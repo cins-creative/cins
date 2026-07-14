@@ -14,6 +14,8 @@ import { JourneyCoverImage } from "@/components/journey/JourneyCoverImage";
 import { PostBlockRenderer } from "@/components/journey/PostBlockRenderer";
 import { JourneyCardEmbedPeek } from "@/components/journey/JourneyCardEmbedPeek";
 import { JourneyChiChuNenPicker } from "@/components/journey/JourneyChiChuNenPicker";
+import { MoTaMarkdown } from "@/components/editor/compose/MoTaMarkdown";
+import { stripMoTaMarkdown } from "@/lib/editor/mo-ta-markdown";
 import type { MilestoneMediaItem } from "@/components/journey/milestone-types";
 import { extractCfImageIdFromDeliveryUrl } from "@/lib/cloudflare/image-id-from-url";
 import type { GridImage } from "@/lib/journey/image-grid";
@@ -220,10 +222,12 @@ export function JourneyMilestoneCardBodyContent({
   const captionNeedsCollapse =
     !disableCaptionCollapse &&
     Boolean(cardCaption) &&
-    (isPhotoCard || isVideoPost) &&
+    (isPhotoCard || isVideoPost || isArticle) &&
     milestoneCardCaptionNeedsCollapse(cardCaption);
   const isCaptionCollapsed = captionNeedsCollapse && !captionExpanded;
-  const captionExpandInline = captionExpandMode === "inline";
+  // Article cũng dùng «Xem thêm» inline (không overlay che media).
+  const captionExpandInline =
+    captionExpandMode === "inline" || isArticle;
 
   useEffect(() => {
     setCaptionExpanded(false);
@@ -382,7 +386,7 @@ export function JourneyMilestoneCardBodyContent({
           {chiChuParagraphs.length > 0 ? (
             <div className="jcard-chi-chu-body">
               {chiChuParagraphs.map((para, idx) => (
-                <p key={idx}>{para}</p>
+                <MoTaMarkdown key={idx} text={para} className="" />
               ))}
             </div>
           ) : emptyFallback ? (
@@ -469,7 +473,7 @@ export function JourneyMilestoneCardBodyContent({
                 aria-expanded={captionNeedsCollapse ? captionExpanded : undefined}
                 aria-label={
                   isCaptionCollapsed && !captionExpandInline
-                    ? `Xem đầy đủ: ${cardCaption!.slice(0, 80)}`
+                    ? `Xem đầy đủ: ${stripMoTaMarkdown(cardCaption!).slice(0, 80)}`
                     : undefined
                 }
                 onClick={
@@ -486,15 +490,15 @@ export function JourneyMilestoneCardBodyContent({
                     : undefined
                 }
               >
-                <p className="jcard-desc">{cardCaption}</p>
+                <MoTaMarkdown text={cardCaption} className="jcard-desc" as="div" />
                 {isCaptionCollapsed && captionExpandInline ? (
                   <button
                     type="button"
                     className="jcard-caption-more"
                     onClick={expandCaption}
-                    aria-label={`Xem thêm: ${cardCaption!.slice(0, 80)}`}
+                    aria-label={`Xem thêm: ${stripMoTaMarkdown(cardCaption!).slice(0, 80)}`}
                   >
-                    xem thêm...
+                    Xem thêm
                   </button>
                 ) : null}
                 {isCaptionCollapsed && !captionExpandInline ? (

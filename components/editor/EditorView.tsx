@@ -11,9 +11,12 @@ import {
   useState,
   useTransition,
   type ChangeEvent,
+  type CSSProperties,
   type DragEvent,
   type KeyboardEvent,
+  type MutableRefObject,
   type ReactNode,
+  type RefObject,
 } from "react";
 import { createPortal } from "react-dom";
 
@@ -47,6 +50,11 @@ import {
 
 import { LayoutThumbIcon } from "@/components/editor/LayoutThumbIcon";
 import {
+  handleMinimalBodyFormatKeyDown,
+  MinimalBodyFormatBar,
+} from "@/components/editor/compose/MinimalBodyFormatBar";
+import { MoTaFormattedField } from "@/components/editor/compose/MoTaFormattedField";
+import {
   EditorTagMenu,
   type EditorTagMenuPick,
 } from "@/components/editor/EditorTagMenu";
@@ -74,6 +82,7 @@ import {
   getImgLayoutMeta,
   canAppendImageSlot,
   padBlockImageSeedsForLayout,
+  splitEditorJustifiedRows,
   normalizeLegacyLayout,
   type ImgLayout,
 } from "@/lib/editor/image-layout";
@@ -147,6 +156,8 @@ import {
   isPersistedImageSeed,
 } from "@/lib/truong/image-ref";
 import type { ComposeIntent } from "@/lib/journey/compose-types";
+import type { EditorInitial } from "@/lib/editor/editor-initial";
+export type { EditorInitial };
 import {
   buildComposeEditorDraftKey,
   clearComposeEditorDraft,
@@ -710,33 +721,6 @@ function newId() {
 
 /* ─── EditorView ─────────────────────────────────────────────────── */
 
-/**
- * Snapshot bài viết hiện tại (mode="edit"). EditorView seed state từ đây.
- * `blocks` ở dạng server canonical (`Block` schema từ `lib/editor/types`) —
- * EditorView tự convert sang local Block shape ở init state.
- */
-export type EditorInitial = {
-  tacPhamId: string;
-  cotMocId: string;
-  tieuDe: string;
-  moTa: string | null;
-  coverSeed: string | null;
-  /** Danh sách `article_bai_viet` đã tag (xem `article_gan_tac_pham`). */
-  tags: ArticleTagRef[];
-  visibility: ServerVisibility;
-  loaiMoc: LoaiMoc;
-  thoiDiem: string;
-  blocks: ServerBlock[];
-  ownerVaiTro?: string;
-  coAuthors?: CoAuthorDraft[];
-  /** Nhãn cá nhân gắn trên cột mốc (`filter_nhan`). */
-  personalFilterIds?: string[];
-  /** `org_bai_dang.loai_bai_dang` khi sửa bài trường. */
-  orgBaiDangLoai?: BaiDangLoai;
-  /** Giờ hẹn đăng (`nhap` + `tao_luc` tương lai). */
-  orgBaiDangSchedulePublishAt?: string | null;
-};
-
 type Props = {
   ownerId: string;
   ownerSlug: string;
@@ -1029,6 +1013,10 @@ export function EditorView({
   );
   const imgPickerTargetRef = useRef<ImgPickerTarget | null>(null);
   const imageFileInputRef = useRef<HTMLInputElement | null>(null);
+  const [minimalBodyTa, setMinimalBodyTa] =
+    useState<HTMLTextAreaElement | null>(null);
+  /** Ref textarea mô tả minimal — format bar / emoji. */
+  const minimalBodyTaRef = useRef<HTMLTextAreaElement | null>(null);
   const minimalAlbumInputRef = useRef<HTMLInputElement | null>(null);
   const minimalVideoInputRef = useRef<HTMLInputElement | null>(null);
   /** Trình chọn ảnh cho mục "Google Photos" — nhớ vị trí chèn khi mở. */
@@ -1492,7 +1480,9 @@ export function EditorView({
             imgs.push(`new-${b.id}-${imgs.length}`);
           }
           imgs[slot] = seed;
-          imgs = padBlockImageSeedsForLayout(b.id, imgs, layout, "expand");
+          // Dùng `display` (không `expand`): expand ép floor LAYOUT_ICON_SLOTS
+          // (full=2) → dán 1 ảnh lại sinh thêm ô trống mới.
+          imgs = padBlockImageSeedsForLayout(b.id, imgs, layout, "display");
           return { ...b, imgs };
         }),
       );
@@ -2585,6 +2575,7 @@ export function EditorView({
       if (isEdit && initial) {
         const result = await updatePost({
           ownerSlug,
+          ownerId,
           tacPhamId: initial.tacPhamId,
           cotMocId: initial.cotMocId,
           tieuDe: tieuDeFinal,
@@ -2622,6 +2613,7 @@ export function EditorView({
 
       const result = await publishPost({
         ownerSlug,
+        ownerId,
         tieuDe: tieuDeFinal,
         moTa: moTaForPublish,
         coverSeed: coverFinal,
@@ -2691,6 +2683,7 @@ export function EditorView({
     composeScheduleActive,
     personalFilterIds,
     blocks,
+    ownerId,
     ownerSlug,
     postSlug,
     router,
@@ -2821,22 +2814,47 @@ export function EditorView({
           maxRows={4}
         />
         {usesMinimalFlow ? (
-          <AutosizeTextarea
-            className="ed-minimal-body"
-            placeholder={
-              isMinimalUI ? "Bạn đang nghĩ gì?" : "Mô tả bài viết"
-            }
-            value={sub}
-            onChange={setSub}
-            maxRows={12}
-            maxLength={POST_MOTA_MAX}
-            enableAtHash
-            onAtHashSync={(trigger, textarea) =>
-              handleAtHashSync(MINIMAL_SUB_BLOCK_ID, trigger, textarea)
-            }
-          />
+          <div className="ed-minimal-body-wrap">
+            <MinimalBodyFormatBar
+              value={sub}
+              onChange={setSub}
+              textareaRef={minimalBodyTaRef}
+              textareaEl={minimalBodyTa}
+              maxLength={POST_MOTA_MAX}
+            />
+            <MoTaFormattedField
+              value={sub}
+              className="ed-minimal-body"
+              textareaRef={minimalBodyTaRef}
+              textareaEl={minimalBodyTa}
+            >
+              <AutosizeTextarea
+                className="ed-md-input"
+                placeholder={
+                  isMinimalUI ? "Bạn đang nghĩ gì?" : "Mô tả bài viết"
+                }
+                value={sub}
+                onChange={setSub}
+                maxRows={12}
+                maxLength={POST_MOTA_MAX}
+                enableAtHash
+                textareaRef={minimalBodyTaRef}
+                onTextareaNode={setMinimalBodyTa}
+                onFormatKeyDown={(e) =>
+                  handleMinimalBodyFormatKeyDown(e, {
+                    value: sub,
+                    onChange: setSub,
+                    maxLength: POST_MOTA_MAX,
+                  })
+                }
+                onAtHashSync={(trigger, textarea) =>
+                  handleAtHashSync(MINIMAL_SUB_BLOCK_ID, trigger, textarea)
+                }
+              />
+            </MoTaFormattedField>
+          </div>
         ) : showFullEditor ? (
-          <AutosizeTextarea
+          <TextFieldWithFormat
             className="sub-in"
             placeholder="Mô tả ngắn (tuỳ chọn)…"
             value={sub}
@@ -4301,7 +4319,7 @@ function BlockInner(p: BlockRowProps) {
           ? "Tiêu đề nhỏ…"
           : "Viết gì đó…";
     return (
-      <AutosizeTextarea
+      <TextFieldWithFormat
         className={cls}
         placeholder={placeholder}
         value={b.text || ""}
@@ -4315,7 +4333,7 @@ function BlockInner(p: BlockRowProps) {
   if (b.t === "quote") {
     return (
       <div className="b-quote">
-        <AutosizeTextarea
+        <TextFieldWithFormat
           placeholder="Trích dẫn nổi bật…"
           value={b.text || ""}
           onChange={p.onChangeText}
@@ -4475,16 +4493,20 @@ function EditorComposeImage({
   width = 900,
   height = 900,
   alt = "",
+  onNaturalAspect,
 }: {
   seed: string;
   width?: number;
   height?: number;
   alt?: string;
+  onNaturalAspect?: (aspect: number) => void;
 }) {
   const [displaySrc, setDisplaySrc] = useState(() => ph(seed, width, height));
   const blobRef = useRef<string | null>(
     isTemporaryImageRef(seed) ? seed : null,
   );
+  const onNaturalAspectRef = useRef(onNaturalAspect);
+  onNaturalAspectRef.current = onNaturalAspect;
 
   useEffect(() => {
     if (isTemporaryImageRef(seed)) {
@@ -4523,7 +4545,18 @@ function EditorComposeImage({
     setDisplaySrc(next);
   }, [seed, width, height]);
 
-  return <img src={displaySrc} alt={alt} />;
+  return (
+    <img
+      src={displaySrc}
+      alt={alt}
+      onLoad={(e) => {
+        const img = e.currentTarget;
+        if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+          onNaturalAspectRef.current?.(img.naturalWidth / img.naturalHeight);
+        }
+      }}
+    />
+  );
 }
 
 function ImageBlock({ block, p }: { block: Block; p: BlockRowProps }) {
@@ -4535,63 +4568,105 @@ function ImageBlock({ block, p }: { block: Block; p: BlockRowProps }) {
     "display",
   );
   const canAdd = canAppendImageSlot(layout, imgs);
-  const addFileInputRef = useRef<HTMLInputElement | null>(null);
+  const [aspectBySlot, setAspectBySlot] = useState<Record<number, number>>({});
+  const imgsKey = imgs.join("\0");
 
-  const onAddFilesChange = useCallback(
-    (e: ChangeEvent<HTMLInputElement>) => {
-      const files = e.target.files ? Array.from(e.target.files) : [];
-      e.target.value = "";
-      if (files.length === 0) return;
-      p.onAddImageFiles(files);
-    },
-    [p],
-  );
+  useEffect(() => {
+    setAspectBySlot({});
+  }, [block.id, imgsKey]);
+
+  const reportAspect = useCallback((slot: number, aspect: number) => {
+    if (!(aspect > 0) || !Number.isFinite(aspect)) return;
+    setAspectBySlot((prev) => {
+      const cur = prev[slot];
+      if (cur != null && Math.abs(cur - aspect) < 0.01) return prev;
+      return { ...prev, [slot]: aspect };
+    });
+  }, []);
+
+  const renderSlot = (seed: string, i: number, style?: CSSProperties) => {
+    const isEmpty = isEditorEmptyImageSeed(seed);
+    return (
+      <div
+        key={`${block.id}-${i}`}
+        className={`ph${isEmpty ? " is-empty" : ""}`}
+        style={style}
+      >
+        {isEmpty ? null : (
+          <EditorComposeImage
+            seed={seed}
+            width={900}
+            height={900}
+            alt=""
+            onNaturalAspect={
+              layout === "justified"
+                ? (aspect) => reportAspect(i, aspect)
+                : undefined
+            }
+          />
+        )}
+        {p.imageUploads[seed] ? (
+          <ImageUploadProgressOverlay
+            progress={p.imageUploads[seed].progress}
+            status={p.imageUploads[seed].status}
+            error={p.imageUploads[seed].error}
+          />
+        ) : null}
+        <button
+          type="button"
+          className="ph-del"
+          title="Xoá ảnh"
+          aria-label="Xoá ảnh"
+          onClick={(e) => {
+            e.stopPropagation();
+            /* Ô trống duy nhất: xoá cả block (mobile không có block-side).
+               Còn lại: gỡ/clear slot như desktop. */
+            if (imgs.length === 1 && isEmpty) {
+              p.onDelete();
+              return;
+            }
+            p.onRemoveImage(i);
+          }}
+        >
+          <X size={14} strokeWidth={2} aria-hidden />
+        </button>
+        <PhImageActions
+          onPick={() => p.onPickImage(i)}
+          onPaste={() => p.onPasteImage(i)}
+          onCrop={isEmpty ? undefined : () => p.onCropImage(i)}
+        />
+      </div>
+    );
+  };
+
+  const justifiedRows =
+    layout === "justified"
+      ? splitEditorJustifiedRows(
+          imgs.map((seed, index) => ({
+            seed,
+            index,
+            aspect: aspectBySlot[index] ?? 1,
+          })),
+        )
+      : null;
 
   return (
     <div className="b-imgs">
       <LayBar block={block} p={p} layout={layout} />
 
       <div className={`imgwrap ${layout}${block.rounded ? " rounded" : ""}`}>
-        {imgs.map((seed, i) => {
-          const isEmpty = isEditorEmptyImageSeed(seed);
-          return (
-          <div key={`${block.id}-${i}`} className={`ph${isEmpty ? " is-empty" : ""}`}>
-            {isEmpty ? null : (
-              <EditorComposeImage seed={seed} width={900} height={900} alt="" />
-            )}
-            {p.imageUploads[seed] ? (
-              <ImageUploadProgressOverlay
-                progress={p.imageUploads[seed].progress}
-                status={p.imageUploads[seed].status}
-                error={p.imageUploads[seed].error}
-              />
-            ) : null}
-            <button
-              type="button"
-              className="ph-del"
-              title="Xoá ảnh"
-              aria-label="Xoá ảnh"
-              onClick={(e) => {
-                e.stopPropagation();
-                /* Ô trống duy nhất: xoá cả block (mobile không có block-side).
-                   Còn lại: gỡ/clear slot như desktop. */
-                if (imgs.length === 1 && isEmpty) {
-                  p.onDelete();
-                  return;
-                }
-                p.onRemoveImage(i);
-              }}
-            >
-              <X size={14} strokeWidth={2} aria-hidden />
-            </button>
-            <PhImageActions
-              onPick={() => p.onPickImage(i)}
-              onPaste={() => p.onPasteImage(i)}
-              onCrop={isEmpty ? undefined : () => p.onCropImage(i)}
-            />
-          </div>
-          );
-        })}
+        {justifiedRows
+          ? justifiedRows.map((row, ri) => (
+              <div key={`${block.id}-jrow-${ri}`} className="imgwrap-jrow">
+                {row.map((cell) =>
+                  renderSlot(cell.seed, cell.index, {
+                    flexGrow: cell.aspect,
+                    aspectRatio: String(cell.aspect),
+                  }),
+                )}
+              </div>
+            ))
+          : imgs.map((seed, i) => renderSlot(seed, i))}
       </div>
 
       {canAdd && p.selected ? (
@@ -4601,31 +4676,12 @@ function ImageBlock({ block, p }: { block: Block; p: BlockRowProps }) {
             className="img-add-btn"
             onClick={(e) => {
               e.stopPropagation();
-              addFileInputRef.current?.click();
-            }}
-          >
-            <ImagePlus size={14} strokeWidth={2} aria-hidden />
-            Thêm ảnh
-          </button>
-          <button
-            type="button"
-            className="img-add-btn img-add-btn--ghost"
-            onClick={(e) => {
-              e.stopPropagation();
               p.onAddImageSlot();
             }}
           >
             <Plus size={14} strokeWidth={2} aria-hidden />
             Ô trống
           </button>
-          <input
-            ref={addFileInputRef}
-            type="file"
-            accept="image/jpeg,image/png,image/webp,image/gif"
-            multiple
-            hidden
-            onChange={onAddFilesChange}
-          />
         </div>
       ) : null}
     </div>
@@ -4757,6 +4813,9 @@ function AutosizeTextarea({
   maxLength,
   enableAtHash = false,
   onAtHashSync,
+  textareaRef: textareaRefProp,
+  onFormatKeyDown,
+  onTextareaNode,
 }: {
   className?: string;
   value: string;
@@ -4769,18 +4828,35 @@ function AutosizeTextarea({
     trigger: AtHashTrigger | null,
     textarea: HTMLTextAreaElement,
   ) => void;
+  textareaRef?: RefObject<HTMLTextAreaElement | null>;
+  onFormatKeyDown?: (e: KeyboardEvent<HTMLTextAreaElement>) => boolean;
+  /** Báo khi DOM textarea sẵn sàng (FormatBar gắn listener). */
+  onTextareaNode?: (el: HTMLTextAreaElement | null) => void;
 }) {
-  const ref = useRef<HTMLTextAreaElement | null>(null);
+  const localRef = useRef<HTMLTextAreaElement | null>(null);
+  const onTextareaNodeRef = useRef(onTextareaNode);
+  onTextareaNodeRef.current = onTextareaNode;
+  const setRefs = useCallback(
+    (node: HTMLTextAreaElement | null) => {
+      localRef.current = node;
+      if (textareaRefProp) {
+        (textareaRefProp as MutableRefObject<HTMLTextAreaElement | null>).current =
+          node;
+      }
+      onTextareaNodeRef.current?.(node);
+    },
+    [textareaRefProp],
+  );
 
   const resize = useCallback(() => {
-    const ta = ref.current;
+    const ta = localRef.current;
     if (!ta) return;
     ta.style.height = "auto";
     ta.style.height = `${ta.scrollHeight + 2}px`;
   }, []);
 
   const syncAtHash = useCallback(() => {
-    const ta = ref.current;
+    const ta = localRef.current;
     if (!ta || !enableAtHash || !onAtHashSync) return;
     onAtHashSync(getAtHashTrigger(ta.value, ta.selectionStart), ta);
   }, [enableAtHash, onAtHashSync]);
@@ -4799,19 +4875,19 @@ function AutosizeTextarea({
 
   const onKeyDown = useCallback(
     (e: KeyboardEvent<HTMLTextAreaElement>) => {
+      if (onFormatKeyDown?.(e)) return;
       if (maxRows && e.key === "Enter") {
         const ta = e.currentTarget;
-        const lh = parseFloat(window.getComputedStyle(ta).lineHeight) || 20;
         const lines = ta.value.split("\n").length;
         if (lines >= maxRows) e.preventDefault();
       }
     },
-    [maxRows],
+    [maxRows, onFormatKeyDown],
   );
 
   return (
     <textarea
-      ref={ref}
+      ref={setRefs}
       className={className}
       rows={1}
       placeholder={placeholder}
@@ -4823,6 +4899,71 @@ function AutosizeTextarea({
       onClick={syncAtHash}
       onSelect={syncAtHash}
     />
+  );
+}
+
+/** Textarea + floating format bubble (markdown / emoji), render đậm/nghiêng… */
+function TextFieldWithFormat({
+  className,
+  value,
+  onChange,
+  placeholder,
+  maxRows,
+  maxLength,
+  enableAtHash = false,
+  onAtHashSync,
+}: {
+  className?: string;
+  value: string;
+  onChange: (s: string) => void;
+  placeholder?: string;
+  maxRows?: number;
+  maxLength?: number;
+  enableAtHash?: boolean;
+  onAtHashSync?: (
+    trigger: AtHashTrigger | null,
+    textarea: HTMLTextAreaElement,
+  ) => void;
+}) {
+  const taRef = useRef<HTMLTextAreaElement | null>(null);
+  const [taEl, setTaEl] = useState<HTMLTextAreaElement | null>(null);
+
+  return (
+    <>
+      <MinimalBodyFormatBar
+        value={value}
+        onChange={onChange}
+        textareaRef={taRef}
+        textareaEl={taEl}
+        maxLength={maxLength}
+      />
+      <MoTaFormattedField
+        value={value}
+        className={className}
+        textareaRef={taRef}
+        textareaEl={taEl}
+      >
+        <AutosizeTextarea
+          className="ed-md-input"
+          value={value}
+          onChange={onChange}
+          placeholder={placeholder}
+          maxRows={maxRows}
+          maxLength={maxLength}
+          enableAtHash={enableAtHash}
+          onAtHashSync={onAtHashSync}
+          textareaRef={taRef}
+          onTextareaNode={setTaEl}
+          onFormatKeyDown={(e) =>
+            handleMinimalBodyFormatKeyDown(e, {
+              value,
+              onChange,
+              maxLength,
+            })
+          }
+        />
+      </MoTaFormattedField>
+    </>
   );
 }
 

@@ -9,6 +9,7 @@ import {
 } from "@/lib/editor/embed-providers";
 import { isLottieAssetEmbedUrl } from "@/lib/editor/lottie-asset-url";
 import { isRiveAssetEmbedUrl } from "@/lib/editor/rive-asset-url";
+import { stripMoTaMarkdown } from "@/lib/editor/mo-ta-markdown";
 import type { ComposeIntent } from "@/lib/journey/compose-types";
 import {
   blocksAreMediaCaptionOnly,
@@ -81,7 +82,14 @@ export function detectExternalEmbedPlatform(
     const url = blockEmbedConfigUrl(block);
     if (!url) continue;
     const classified = classifyEmbedUrl(url);
-    if (!classified || classified.provider === "behance" || classified.provider === "framer") continue;
+    if (
+      !classified ||
+      classified.provider === "behance" ||
+      classified.provider === "framer" ||
+      classified.provider === "codepen"
+    ) {
+      continue;
+    }
     if (classified.provider === "rive-file" || classified.provider === "lottie-file") continue;
     if (buildEmbedIframeSrc(classified) === null) continue;
     return classified.provider as Tier1EmbedPlatformId;
@@ -780,11 +788,14 @@ export function milestoneCardCaptionNeedsCollapse(
   caption: string | null | undefined,
 ): boolean {
   if (!caption?.trim()) return false;
-  const paras = caption
+  // Đo bằng plain (đã gỡ marker) để **bold** không làm “dài” giả.
+  const plain = stripMoTaMarkdown(caption);
+  if (!plain) return false;
+  const paras = plain
     .split(/\n\n+/)
     .map((p) => p.trim())
     .filter(Boolean);
-  return chiChuNeedsCollapse(caption, paras.length);
+  return chiChuNeedsCollapse(plain, paras.length);
 }
 
 /** Bài article trên timeline — có thêm nội dung ngoài preview card (blocks / chữ dài). */

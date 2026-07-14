@@ -1788,16 +1788,27 @@ a.j-main-gallery-item:focus-visible {
   aspect-ratio: 16 / 9;
 }
 
-/* Masonry cân bằng — flex cột + pack JS (shortest column), thay CSS columns tuần tự. */
+/* Masonry cân bằng — flex cột + pack JS (shortest column), thay CSS columns tuần tự.
+   Cột cố định theo --masonry-cols (mật độ theo bề ngang), không stretch khi ít item. */
 .j-main-gallery-grid--masonry-balanced {
   display: flex;
   flex-direction: row;
   align-items: flex-start;
+  justify-content: flex-start;
   gap: 8px;
   columns: auto;
 }
 .j-main-gallery-grid--masonry-balanced .j-main-gallery-grid__mcol {
-  flex: 1 1 0;
+  flex: 0 0
+    calc(
+      (100% - (var(--masonry-cols, 4) - 1) * 8px) / var(--masonry-cols, 4)
+    );
+  width: calc(
+    (100% - (var(--masonry-cols, 4) - 1) * 8px) / var(--masonry-cols, 4)
+  );
+  max-width: calc(
+    (100% - (var(--masonry-cols, 4) - 1) * 8px) / var(--masonry-cols, 4)
+  );
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -3941,8 +3952,14 @@ a.j-main-gallery-item:focus-visible {
 .j-m-card.jcard--article .jcard-media-zone > .jcard-embed-peek {
   border-radius: 0;
 }
+/* Đồng bộ `.ed-embed-compose-preview` (editor): scene/game/motion → 4:3,
+   tránh khung 16:9 cắt HUD PlayCanvas / Spline khi embed trong feed. */
 .jcard-embed-peek[data-provider="sketchfab"],
-.jcard-embed-peek[data-provider="rive"] {
+.jcard-embed-peek[data-provider="rive"],
+.jcard-embed-peek[data-provider="spline"],
+.jcard-embed-peek[data-provider="playcanvas"],
+.jcard-embed-peek[data-provider="lottie"],
+.jcard-embed-peek[data-provider="canva"] {
   aspect-ratio: 4 / 3;
 }
 .jcard-embed-peek[data-provider="rive-file"] {
@@ -3955,8 +3972,18 @@ a.j-main-gallery-item:focus-visible {
   max-height: none;
 }
 .jcard-embed-peek[data-provider="figma"],
-.jcard-embed-peek[data-provider="framer"] {
+.jcard-embed-peek[data-provider="framer"],
+.jcard-embed-peek[data-provider="codepen"] {
   aspect-ratio: 16 / 10;
+}
+/* SoundCloud = audio strip — classic widget 166px, không khung 16:9 video.
+   Specificity đủ để thắng `.preview` + `.preview.preview--article-peek.jcard-embed-peek`. */
+.preview.preview--article-peek.jcard-embed-peek[data-provider="soundcloud"],
+.jcard-embed-peek[data-provider="soundcloud"] {
+  aspect-ratio: auto;
+  height: 166px;
+  min-height: 166px;
+  max-height: 166px;
 }
 .jcard-embed-peek iframe {
   position: absolute;
@@ -3965,6 +3992,82 @@ a.j-main-gallery-item:focus-visible {
   height: 100%;
   border: 0;
   display: block;
+}
+/* PlayCanvas scale-to-fit — viewport ảo (~1600px) rồi thu nhỏ vào khung feed. */
+.jcard-pc-scale {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--neutral-900, #0f172a);
+}
+.jcard-pc-scale-stage {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+.jcard-pc-scale-stage > iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+.jcard-pc-fs-btn {
+  position: absolute;
+  top: auto;
+  right: 10px;
+  bottom: 10px;
+  left: auto;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.82);
+  color: #fff;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.35);
+  -webkit-tap-highlight-color: transparent;
+}
+.jcard-pc-fs-btn:hover,
+.jcard-pc-fs-btn:focus-visible {
+  background: rgba(15, 23, 42, 0.95);
+  outline: none;
+}
+.jcard-pc-scale.is-lightbox {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 10050;
+  width: 100vw !important;
+  height: 100dvh !important;
+  max-width: none !important;
+  max-height: none !important;
+  border-radius: 0 !important;
+  background: #000;
+}
+.jcard-pc-scale.is-focused .jcard-pc-fs-btn {
+  top: auto;
+  right: 14px;
+  bottom: 14px;
+  width: 40px;
+  height: 40px;
+}
+.jcard-pc-scale:fullscreen,
+.jcard-pc-scale:-webkit-full-screen {
+  width: 100%;
+  height: 100%;
+  background: #000;
+  border-radius: 0;
 }
 /* Cổng "chạm để tương tác" — mặc định iframe không nhận touch để cuộn feed mượt
    xuyên qua; chạm 1 lần mới bật xoay/pan (khoá scroll trong khung). */
@@ -3979,13 +4082,15 @@ a.j-main-gallery-item:focus-visible {
   touch-action: auto;
 }
 .jcard-embed-gate-root.is-active {
-  overscroll-behavior: contain;
+  overscroll-behavior: none;
+  /* Chặn browser scroll gesture trên khung; để iframe Spline nhận 1 ngón orbit. */
   touch-action: none;
 }
 .jcard-embed-gate-root.is-active > iframe {
   pointer-events: auto;
-  touch-action: none;
-  overscroll-behavior: contain;
+  /* Để auto: Spline (trong iframe) tự quyết touch; scroll trang khoá bằng JS. */
+  touch-action: auto;
+  overscroll-behavior: none;
 }
 .jcard-embed-gate {
   position: absolute;
@@ -4082,6 +4187,38 @@ a.j-main-gallery-item:focus-visible {
   aspect-ratio: 16 / 9;
   padding: 0;
   background: var(--neutral-900, #0f172a);
+}
+.jcard-media-zone
+  > .preview--article-peek.is-embed-interactive:has(
+    [data-provider="sketchfab"],
+    [data-provider="rive"],
+    [data-provider="spline"],
+    [data-provider="playcanvas"],
+    [data-provider="lottie"],
+    [data-provider="canva"]
+  ) {
+  aspect-ratio: 4 / 3;
+}
+.jcard-media-zone
+  > .preview--article-peek.is-embed-interactive:has(
+    [data-provider="figma"],
+    [data-provider="framer"],
+    [data-provider="codepen"]
+  ) {
+  aspect-ratio: 16 / 10;
+}
+.jcard-media-zone
+  > .preview--article-peek.is-embed-interactive:has(
+    [data-provider="soundcloud"]
+  ),
+.jcard-media-zone
+  > .preview.preview--article-peek.is-embed-interactive:has(
+    [data-provider="soundcloud"]
+  ) {
+  aspect-ratio: auto;
+  height: 166px;
+  min-height: 166px;
+  max-height: 166px;
 }
 .jcard-media-zone > .preview--article-peek.is-embed-interactive .post-blocks-fb {
   min-height: 0;
@@ -4217,6 +4354,23 @@ a.j-main-gallery-item:focus-visible {
   height: auto;
   object-fit: contain;
 }
+.preview--article-peek-inner .b-imgs-ro .imgwrap.inset {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  background: transparent;
+  overflow: visible;
+}
+.preview--article-peek-inner .b-imgs-ro .imgwrap.inset .ph {
+  width: 70%;
+  max-width: 70%;
+}
+.preview--article-peek-inner .b-imgs-ro .imgwrap.inset .ph img {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+}
 .j-m-card.jcard--article.has-unfold.is-collapsed .preview--article-peek {
   margin-top: 8px;
 }
@@ -4263,6 +4417,22 @@ a.j-main-gallery-item:focus-visible {
   margin-top: 12px;
   padding-top: 16px;
   border-top-color: var(--border2, #e4e6eb);
+}
+/* Bài viết dài — nối liền tiêu đề card với nội dung xổ, không khe/viền. */
+.j-m-card.jcard--article.has-unfold.is-expanded:has(.jcard-body.is-content-open)
+  .j-m-card-unfold[data-open="true"] {
+  margin-top: 0;
+  padding-top: 0;
+  border-top-color: transparent;
+}
+.j-m-card.jcard--article.has-unfold.is-expanded:has(.jcard-body.is-content-open)
+  .jcard-body.is-content-open {
+  padding-bottom: 0;
+}
+.j-m-card.jcard--article.has-unfold.is-expanded:has(.jcard-body.is-content-open)
+  .jcard-body.is-content-open
+  .jcard-text {
+  padding-bottom: 0;
 }
 .j-m-card-unfold > .j-m-card-unfold-inner {
   min-height: 0;
@@ -4529,6 +4699,7 @@ a.j-main-gallery-item:focus-visible {
 .j-m-unfold-post .imgwrap.grid4,
 .j-m-unfold-post .imgwrap.hero,
 .j-m-unfold-post .imgwrap.full,
+.j-m-unfold-post .imgwrap.inset,
 .j-m-unfold-post .imgwrap.justified {
   gap: 0;
 }
@@ -5821,6 +5992,11 @@ button.j-m-card-hit {
   overflow: hidden;
   aspect-ratio: 16 / 9;
   width: 100%;
+}
+.j-m-blocks .b-embed-ro.is-iframe[data-provider="soundcloud"] {
+  aspect-ratio: auto;
+  height: 166px;
+  max-height: 166px;
 }
 .j-m-blocks .b-embed-ro.is-iframe iframe {
   width: 100%;
@@ -9163,18 +9339,21 @@ select.j-edit-input {
 .j-compose-sheet .cins-editor-page.is-overlay .editor-canvas {
   width: 100%;
   max-width: none;
-  margin-top: 16px;
-  margin-bottom: 24px;
-  padding: 28px 32px 40px 56px;
+  /* Khít topbar / đáy sheet — tránh hở trên·dưới so với canvas. */
+  margin-top: 0;
+  margin-bottom: 0;
+  padding: 12px 24px 16px 56px;
   border-radius: 0;
   box-shadow: none;
+  /* Scroll theo overlay, không khống chế cao canvas → hở đáy sheet. */
+  max-height: none;
 }
 .j-compose-sheet .cins-editor-page.is-overlay .cover-add.has {
   border-radius: var(--radius-lg);
 }
 
 .cins-editor-page.is-minimal-compose .editor-canvas {
-  padding-top: 20px;
+  padding-top: 12px;
 }
 
 .ed-compose-badge {
@@ -9248,6 +9427,253 @@ select.j-edit-input {
   resize: none;
   background: var(--bg-surface, #fff);
   color: var(--ink-display, #111827);
+}
+
+.ed-minimal-body-wrap {
+  width: 100%;
+  position: relative;
+}
+
+/* Markdown WYSIWYG overlay — lưu `**` / `*` / `~~`, hiển thị đậm/nghiêng/gạch. */
+
+/* Thu `*` / `~` về gần 0 rộng trên CẢ textarea + highlight → hết hở, caret khớp. */
+@font-face {
+  font-family: "CinsMdMarkZero";
+  src: local("Arial"), local("Segoe UI"), local("Helvetica Neue"), local("Helvetica");
+  unicode-range: U+002A, U+007E; /* * ~ — marker bold/italic/strike */
+  size-adjust: 0%;
+}
+
+.ed-md-field {
+  position: relative;
+  width: 100%;
+  font-family: "CinsMdMarkZero", var(--font-sans), system-ui, sans-serif;
+}
+
+.ed-md-field > .ed-md-highlight {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: auto !important;
+  height: auto !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0;
+  pointer-events: none;
+  overflow: hidden;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  resize: none;
+  box-sizing: border-box;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  line-height: inherit;
+}
+
+.ed-md-field > textarea.ed-md-input {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: none;
+  outline: none;
+  resize: none;
+  overflow: hidden;
+  background: transparent !important;
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+  caret-color: var(--ink-display, #111827);
+  box-sizing: border-box;
+  font: inherit;
+  letter-spacing: inherit;
+  line-height: inherit;
+  font-family: inherit;
+}
+
+.ed-md-field > textarea.ed-md-input::placeholder {
+  color: var(--ink-muted, #94a3b8);
+  -webkit-text-fill-color: var(--ink-muted, #94a3b8);
+}
+
+/* Fallback khi size-adjust chưa hỗ trợ: ẩn mark trong lớp highlight. */
+.ed-md-field .ed-md-mark {
+  opacity: 0;
+}
+
+/*
+ * Đậm giả (text-shadow) giữ metrics ≈ textarea — bold thật làm chữ rộng hơn
+ * → caret/wrap lệch.
+ */
+.ed-md-field .ed-md-highlight strong {
+  font-weight: inherit;
+  text-shadow:
+    0.55px 0 0 currentColor,
+    -0.55px 0 0 currentColor,
+    0 0.35px 0 currentColor;
+}
+
+.ed-md-field .ed-md-highlight em {
+  font-style: italic;
+}
+
+.ed-md-field .ed-md-highlight s {
+  text-decoration: line-through;
+}
+
+/* Minimal body: class nằm trên field */
+.ed-md-field.ed-minimal-body {
+  margin-top: 12px;
+  /* Padding chỉ trên highlight + textarea — tránh caret lệch (double pad). */
+  padding: 0 !important;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface, #fff);
+  color: var(--ink-display, #111827);
+  font-size: 16px;
+  line-height: 1.5;
+  min-height: 120px;
+}
+
+.ed-md-field.ed-minimal-body > .ed-md-highlight,
+.ed-md-field.ed-minimal-body > textarea.ed-md-input {
+  min-height: 120px;
+  padding: 14px 16px;
+}
+
+.ed-md-field.ed-minimal-body > textarea.ed-md-input {
+  caret-color: var(--ink-display, #111827);
+}
+
+.ed-mota-format-bar {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-surface, #fff);
+  box-shadow: 0 8px 28px rgba(15, 23, 42, 0.16);
+}
+
+.ed-mota-format-bar--float {
+  position: fixed;
+  z-index: 10050;
+  margin: 0;
+  transform: translateX(-20%);
+  animation: ed-mota-bubble-in 0.12s ease-out;
+  pointer-events: auto;
+}
+
+@keyframes ed-mota-bubble-in {
+  from {
+    opacity: 0;
+    transform: translateX(-20%) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-20%) translateY(0);
+  }
+}
+
+.ed-mota-fmt-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-muted, #64748b);
+  cursor: pointer;
+}
+
+.ed-mota-fmt-btn:hover,
+.ed-mota-fmt-btn.is-active {
+  background: color-mix(in srgb, var(--cins-blue, #2563eb) 12%, transparent);
+  color: var(--cins-blue, #2563eb);
+}
+
+.ed-mota-fmt-sep {
+  width: 1px;
+  height: 18px;
+  margin: 0 4px;
+  background: var(--border);
+}
+
+.ed-mota-emoji-wrap {
+  position: relative;
+}
+
+.ed-emoji-popover {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 6px);
+  z-index: 40;
+  width: min(320px, 86vw);
+  max-height: 280px;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-surface, #fff);
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.14);
+  overflow: hidden;
+}
+
+.ed-emoji-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 8px 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.ed-emoji-tab {
+  border: 0;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-muted, #64748b);
+  background: transparent;
+  cursor: pointer;
+}
+
+.ed-emoji-tab.is-active {
+  background: #eef2ff;
+  color: #3730a3;
+}
+
+.ed-emoji-grid {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 2px;
+  padding: 8px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.ed-emoji-cell {
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  font-size: 20px;
+  line-height: 1.4;
+  cursor: pointer;
+  padding: 4px 0;
+}
+
+.ed-emoji-cell:hover {
+  background: #f1f5f9;
 }
 
 .ed-minimal-body::placeholder {
@@ -10205,22 +10631,38 @@ select.j-edit-input {
 .j-ps-block-rich .article-rich-content .rich-imgs--full {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--cins-img-slot-gap, 1.5px);
+}
+/* inset: một ô ~70% chiều ngang, căn giữa, giữ tỉ lệ ảnh. */
+.j-ps-block-rich .article-rich-content .rich-imgs--inset {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--cins-img-slot-gap, 1.5px);
+}
+.j-ps-block-rich .article-rich-content .rich-imgs--inset .rich-img-cell {
+  width: 70%;
+  max-width: 70%;
+}
+.j-ps-block-rich .article-rich-content .rich-imgs--inset .rich-img-cell img {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
 }
 /* masonry: 3 cột CSS columns theo chiều cao thật (không crop). */
 .j-ps-block-rich .article-rich-content .rich-imgs--masonry {
   column-count: 3;
-  column-gap: 6px;
+  column-gap: var(--cins-img-slot-gap, 1.5px);
 }
 .j-ps-block-rich .article-rich-content .rich-imgs--masonry .rich-img-cell {
   break-inside: avoid;
-  margin-bottom: 6px;
+  margin-bottom: var(--cins-img-slot-gap, 1.5px);
 }
 /* justified: hàng ảnh cao đều, tự xuống hàng; bề rộng theo tỉ lệ ảnh. */
 .j-ps-block-rich .article-rich-content .rich-imgs--justified {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: var(--cins-img-slot-gap, 1.5px);
   align-items: flex-start;
 }
 .j-ps-block-rich .article-rich-content .rich-imgs--justified .rich-img-cell {
@@ -12364,15 +12806,34 @@ select.j-edit-input {
   box-shadow: none;
 }
 
-/* Viewer menu ("..." của người xem) — pin absolute góc trên-phải card. */
+/* Góc trên-phải card: menu "..." của người xem. */
+.j-m-card.jcard:has(.jcard-corner-actions),
 .j-m-card.jcard:has(.jcard-viewer-menu) {
   position: relative;
 }
-.jcard-viewer-menu {
+.jcard-corner-actions {
   position: absolute;
   top: 8px;
   right: 8px;
   left: auto;
+  z-index: 14;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+.jcard-corner-actions .jcard-viewer-menu {
+  position: static;
+  top: auto;
+  right: auto;
+}
+.jcard-datebar .badge-row .jcard-world-boost,
+.jcard-datebar .badge-row .wj-boost-toggle {
+  flex: 0 0 auto;
+  align-self: center;
+}
+.jcard-viewer-menu {
+  position: relative;
   z-index: 14;
   flex: 0 0 auto;
 }
@@ -13691,6 +14152,7 @@ select.j-edit-input {
 .jcard-content {
   display: flex;
   flex-direction: column;
+  gap: 16px;
 }
 .jcard-title {
   margin: 0 0 8px;
@@ -13708,7 +14170,34 @@ select.j-edit-input {
   font-weight: 400;
   line-height: 1.65;
   letter-spacing: 0.01em;
-  white-space: pre-wrap;
+  white-space: normal;
+}
+.jcard-desc .mota-md-p + .mota-md-p,
+.jcard-desc .mota-md-p + .mota-md-ul,
+.jcard-desc .mota-md-p + .mota-md-ol,
+.jcard-desc .mota-md-ul + .mota-md-p,
+.jcard-desc .mota-md-ol + .mota-md-p {
+  display: block;
+  margin-top: 0.65em;
+}
+.jcard-desc .mota-md-ul,
+.jcard-desc .mota-md-ol {
+  margin: 0.4em 0 0.65em;
+  padding-left: 1.35em;
+}
+.jcard-desc .mota-md-ul li,
+.jcard-desc .mota-md-ol li {
+  margin: 0.15em 0;
+}
+.jcard-desc strong {
+  font-weight: 700;
+  color: var(--jcard-ink, var(--ink-display));
+}
+.jcard-desc em {
+  font-style: italic;
+}
+.jcard-desc s {
+  text-decoration: line-through;
 }
 .jcard-desc--empty {
   color: var(--ink-muted, #64748b);
@@ -13814,11 +14303,28 @@ select.j-edit-input {
     max-height var(--j-unfold-dur, 0.48s) var(--j-unfold-ease, cubic-bezier(0.22, 1, 0.36, 1)),
     color 0.28s ease;
 }
+.jcard--article .jcard-desc strong {
+  color: var(--jcard-ink, var(--ink-display));
+  font-weight: 700;
+}
+.jcard--article .jcard-lead.is-caption-collapsed {
+  position: relative;
+}
+.jcard--article .jcard-lead.is-caption-expand-inline.is-caption-collapsed {
+  cursor: default;
+}
+.jcard--article .jcard-lead.is-caption-expand-inline.is-caption-collapsed .jcard-desc {
+  -webkit-line-clamp: 4;
+  margin-bottom: 0;
+  padding-right: 0.35em;
+}
+.jcard--article .jcard-lead.is-caption-expanded .jcard-desc,
+.j-m-card.jcard--article.is-expanded .jcard-lead .jcard-desc,
 .j-m-card.jcard--article.is-expanded .jcard-desc {
   -webkit-line-clamp: unset;
   display: block;
   overflow: visible;
-  max-height: 2400px;
+  max-height: none;
 }
 
 /* Card chỉ chữ — panel nền màu kiểu Facebook, không ảnh bìa / không unfold */

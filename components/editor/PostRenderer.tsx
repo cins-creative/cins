@@ -39,6 +39,8 @@ import {
   embedIframeTitle,
   type ClassifiedEmbed,
 } from "@/lib/editor/embed-providers";
+import { MoTaMarkdown } from "@/components/editor/compose/MoTaMarkdown";
+import { PlayCanvasScaleFit } from "@/components/journey/PlayCanvasScaleFit";
 
 import { getYoutubeId } from "@/lib/youtube";
 
@@ -142,18 +144,32 @@ function ReadOnlyBlock({
   const text = typeof cfg.html === "string" ? cfg.html : "";
 
   if (block.loai === "h2") {
-    return <h2 className="b-text h2 b-text-ro">{renderMultiline(text)}</h2>;
+    return (
+      <MoTaMarkdown
+        text={text}
+        as="h2"
+        className="b-text h2 b-text-ro"
+      />
+    );
   }
   if (block.loai === "h3") {
-    return <h3 className="b-text h3 b-text-ro">{renderMultiline(text)}</h3>;
+    return (
+      <MoTaMarkdown
+        text={text}
+        as="h3"
+        className="b-text h3 b-text-ro"
+      />
+    );
   }
   if (block.loai === "body") {
-    return <p className="b-text b-text-ro">{renderMultiline(text)}</p>;
+    return (
+      <MoTaMarkdown text={text} as="div" className="b-text b-text-ro" />
+    );
   }
   if (block.loai === "quote") {
     return (
       <div className="b-quote">
-        <div className="b-quote-ro">{renderMultiline(text)}</div>
+        <MoTaMarkdown text={text} as="div" className="b-quote-ro" />
       </div>
     );
   }
@@ -285,6 +301,20 @@ function ReadOnlyBlock({
     if (iframeSrc) {
       const canvasClass =
         cls.provider === "youtube" ? resolveEmbedCanvasClass(cfg) : "";
+      const iframe = (
+        <iframe
+          src={iframeSrc}
+          title={embedIframeTitle(cls.provider)}
+          allow={embedIframeAllow(cls.provider)}
+          referrerPolicy={
+            cls.provider === "youtube" || cls.provider === "vimeo"
+              ? "strict-origin-when-cross-origin"
+              : undefined
+          }
+          allowFullScreen
+          loading={mediaAutoplay ? "eager" : "lazy"}
+        />
+      );
       return (
         <ViewportGatedEmbed
           className={
@@ -293,18 +323,11 @@ function ReadOnlyBlock({
           }
           data-provider={cls.provider}
         >
-          <iframe
-            src={iframeSrc}
-            title={embedIframeTitle(cls.provider)}
-            allow={embedIframeAllow(cls.provider)}
-            referrerPolicy={
-              cls.provider === "youtube" || cls.provider === "vimeo"
-                ? "strict-origin-when-cross-origin"
-                : undefined
-            }
-            allowFullScreen
-            loading={mediaAutoplay ? "eager" : "lazy"}
-          />
+          {cls.provider === "playcanvas" ? (
+            <PlayCanvasScaleFit>{iframe}</PlayCanvasScaleFit>
+          ) : (
+            iframe
+          )}
         </ViewportGatedEmbed>
       );
     }
@@ -358,16 +381,4 @@ function ReadOnlyBlock({
   }
 
   return null;
-}
-
-/* Plain text từ textarea có thể nhiều dòng → render `\n` thành `<br>`. */
-function renderMultiline(text: string) {
-  if (!text) return null;
-  const lines = text.split("\n");
-  return lines.map((line, i) => (
-    <span key={i}>
-      {line}
-      {i < lines.length - 1 ? <br /> : null}
-    </span>
-  ));
 }

@@ -1082,6 +1082,18 @@
 .cins-editor-page .sub-in::placeholder {
   color: var(--neutral-300);
 }
+/* Field WYSIWYG: giữ MarkZero + metrics mô tả ngắn */
+.cins-editor-page .ed-md-field.sub-in {
+  font-family: "CinsMdMarkZero", var(--font-sans), system-ui, sans-serif;
+}
+.cins-editor-page .ed-md-field.sub-in > textarea.ed-md-input {
+  caret-color: var(--ink-title);
+  margin-bottom: 0;
+}
+.cins-editor-page .ed-md-field.sub-in > textarea.ed-md-input::placeholder {
+  color: var(--neutral-300);
+  -webkit-text-fill-color: var(--neutral-300);
+}
 
 /* Tag chips */
 .cins-editor-page .meta-chips {
@@ -1505,26 +1517,144 @@
 .cins-editor-page .b-text::placeholder {
   color: var(--neutral-300);
 }
+.cins-editor-page .ed-md-field.b-text {
+  font-family: "CinsMdMarkZero", var(--font-sans), system-ui, sans-serif;
+}
+.cins-editor-page .ed-md-field.b-text > textarea.ed-md-input {
+  caret-color: var(--ink-body);
+}
+.cins-editor-page .ed-md-field.b-text.h2 > textarea.ed-md-input,
+.cins-editor-page .ed-md-field.b-text.h3 > textarea.ed-md-input {
+  caret-color: var(--ink-display);
+}
+.cins-editor-page .ed-md-field.b-text > textarea.ed-md-input::placeholder {
+  color: var(--neutral-300);
+  -webkit-text-fill-color: var(--neutral-300);
+}
+
+/* Markdown WYSIWYG overlay (đồng bộ journey.css — trang chỉ import editor.css). */
+
+@font-face {
+  font-family: "CinsMdMarkZero";
+  src: local("Arial"), local("Segoe UI"), local("Helvetica Neue"), local("Helvetica");
+  unicode-range: U+002A, U+007E;
+  size-adjust: 0%;
+}
+
+.cins-editor-page .ed-md-field {
+  position: relative;
+  width: 100%;
+  font-family: "CinsMdMarkZero", var(--font-sans), system-ui, sans-serif;
+}
+.cins-editor-page .ed-md-field > .ed-md-highlight {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: auto !important;
+  height: auto !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0;
+  pointer-events: none;
+  overflow: hidden;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  resize: none;
+  box-sizing: border-box;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  line-height: inherit;
+}
+.cins-editor-page .ed-md-field > textarea.ed-md-input {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: none;
+  outline: none;
+  resize: none;
+  overflow: hidden;
+  background: transparent !important;
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+  caret-color: var(--ink-display, #111827);
+  box-sizing: border-box;
+  font: inherit;
+  letter-spacing: inherit;
+  line-height: inherit;
+  font-family: inherit;
+}
+.cins-editor-page .ed-md-field > textarea.ed-md-input::placeholder {
+  color: var(--neutral-300);
+  -webkit-text-fill-color: var(--neutral-300);
+}
+.cins-editor-page .ed-md-field .ed-md-mark {
+  opacity: 0;
+}
+.cins-editor-page .ed-md-field .ed-md-highlight strong {
+  font-weight: inherit;
+  text-shadow:
+    0.55px 0 0 currentColor,
+    -0.55px 0 0 currentColor,
+    0 0.35px 0 currentColor;
+}
+.cins-editor-page .ed-md-field .ed-md-highlight em {
+  font-style: italic;
+}
+.cins-editor-page .ed-md-field .ed-md-highlight s {
+  text-decoration: line-through;
+}
+
+.cins-editor-page .ed-md-field.ed-minimal-body {
+  margin-top: 12px;
+  /* Padding chỉ trên highlight + textarea — tránh caret lệch (double pad). */
+  padding: 0 !important;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface, #fff);
+  color: var(--ink-display, #111827);
+  font-size: 16px;
+  line-height: 1.5;
+  font-family: "CinsMdMarkZero", var(--font-sans), system-ui, sans-serif;
+}
+.cins-editor-page .ed-md-field.ed-minimal-body > .ed-md-highlight,
+.cins-editor-page .ed-md-field.ed-minimal-body > textarea.ed-md-input {
+  min-height: 120px;
+  padding: 14px 16px;
+}
+.cins-editor-page .ed-md-field.ed-minimal-body > textarea.ed-md-input {
+  caret-color: var(--ink-display, #111827);
+}
+.cins-editor-page .ed-md-field.ed-minimal-body > textarea.ed-md-input::placeholder {
+  color: var(--ink-muted, #94a3b8);
+  -webkit-text-fill-color: var(--ink-muted, #94a3b8);
+}
+
 .cins-editor-page .b-quote {
   border-left: 3px solid var(--cins-blue);
   padding-left: 20px;
 }
-.cins-editor-page .b-quote textarea {
-  width: 100%;
-  border: none;
-  background: none;
-  outline: none;
-  resize: none;
-  overflow: hidden;
-  font-family: var(--font-serif);
+.cins-editor-page .b-quote .ed-md-field {
+  font-family: "CinsMdMarkZero", var(--font-serif), Georgia, serif;
   font-style: italic;
   font-weight: 600;
   font-size: 24px;
   line-height: 1.4;
   color: var(--cins-blue);
 }
-.cins-editor-page .b-quote textarea::placeholder {
+.cins-editor-page .b-quote .ed-md-field > textarea.ed-md-input {
+  caret-color: var(--cins-blue);
+}
+.cins-editor-page .b-quote .ed-md-field > textarea.ed-md-input::placeholder {
   color: rgba(31, 116, 201, 0.35);
+  -webkit-text-fill-color: rgba(31, 116, 201, 0.35);
 }
 .cins-editor-page .b-divider {
   position: relative;
@@ -1731,6 +1861,9 @@
 .cins-editor-page .b-imgs {
   position: relative;
 }
+.cins-editor-page {
+  --cins-img-slot-gap: 1.5px;
+}
 .cins-editor-page .imgwrap {
   display: block;
   background: #fff;
@@ -1744,26 +1877,59 @@
 .cins-editor-page .imgwrap.full {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: var(--cins-img-slot-gap);
+}
+
+/* inset: một ô ~70% chiều ngang block, căn giữa, giữ tỉ lệ ảnh. */
+.cins-editor-page .imgwrap.inset {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--cins-img-slot-gap);
+}
+.cins-editor-page .imgwrap.inset .ph {
+  width: 70%;
+  max-width: 70%;
+}
+.cins-editor-page .imgwrap.inset .ph img {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
 }
 
 /* masonry: 3 cột CSS columns theo chiều cao thật, không crop. */
 .cins-editor-page .imgwrap.masonry {
   column-count: 3;
-  column-gap: 3px;
+  column-gap: var(--cins-img-slot-gap);
 }
 .cins-editor-page .imgwrap.masonry .ph {
   break-inside: avoid;
-  margin-bottom: 3px;
+  margin-bottom: var(--cins-img-slot-gap);
 }
 
-/* justified: hàng giãn FULL chiều ngang (flex-grow), cao hàng linh hoạt. */
+/* justified: hàng theo tỉ lệ ảnh (ImageBlock dùng .imgwrap-jrow). */
 .cins-editor-page .imgwrap.justified {
   display: flex;
-  flex-wrap: wrap;
-  gap: 3px;
+  flex-direction: column;
+  gap: var(--cins-img-slot-gap);
 }
-.cins-editor-page .imgwrap.justified .ph {
+.cins-editor-page .imgwrap-jrow {
+  display: flex;
+  gap: var(--cins-img-slot-gap);
+  width: 100%;
+  align-items: flex-start;
+}
+.cins-editor-page .imgwrap.justified .imgwrap-jrow .ph {
+  flex-basis: 0;
+  min-width: 0;
+  height: auto;
+}
+/* PostRenderer / HTML cũ chưa có jrow — wrap ngang như trước. */
+.cins-editor-page .imgwrap.justified:not(:has(.imgwrap-jrow)) {
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+.cins-editor-page .imgwrap.justified:not(:has(.imgwrap-jrow)) > .ph {
   flex: 1 1 240px;
   height: 240px;
 }
@@ -1772,7 +1938,7 @@
 .cins-editor-page .imgwrap.duo {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 3px;
+  gap: var(--cins-img-slot-gap);
 }
 .cins-editor-page .imgwrap.duo .ph {
   aspect-ratio: 4 / 5;
@@ -1783,12 +1949,12 @@
 .cins-editor-page .imgwrap.grid3 {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 3px;
+  gap: var(--cins-img-slot-gap);
 }
 .cins-editor-page .imgwrap.grid4 {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 3px;
+  gap: var(--cins-img-slot-gap);
 }
 .cins-editor-page .imgwrap.grid2 .ph,
 .cins-editor-page .imgwrap.grid3 .ph,
@@ -1800,7 +1966,7 @@
 .cins-editor-page .imgwrap.hero {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 3px;
+  gap: var(--cins-img-slot-gap);
 }
 .cins-editor-page .imgwrap.hero .ph {
   aspect-ratio: 1 / 1;
@@ -1850,9 +2016,6 @@
   display: flex;
   align-items: center;
   justify-content: center;
-}
-.cins-editor-page .imgwrap.justified .ph.is-empty {
-  min-width: 220px;
 }
 /* Mặc định (full/masonry): ảnh full-width, cao tự nhiên → không crop. */
 .cins-editor-page .ph img {
@@ -2014,6 +2177,10 @@
     width: 32px;
     height: 32px;
   }
+  /* Mobile: paste clipboard kém tin cậy — ẩn «Dán ảnh», dùng «Đổi ảnh». */
+  .cins-editor-page .ph-paste {
+    display: none !important;
+  }
 }
 .cins-editor-page .ed-photo-album-add-compact {
   display: flex;
@@ -2042,7 +2209,7 @@
 .cins-editor-page .ph-del:hover {
   background: #e5484d;
 }
-/* Nút "Thêm ảnh" dưới block ảnh. */
+/* Nút "Ô trống" dưới block ảnh. */
 .cins-editor-page .img-add-row {
   display: flex;
   flex-wrap: wrap;
@@ -2063,12 +2230,6 @@
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-}
-.cins-editor-page .img-add-btn--ghost {
-  border-style: solid;
-  border-color: var(--line, #d6dae0);
-  background: transparent;
-  color: var(--ink-muted);
 }
 .cins-editor-page .img-add-btn:hover {
   border-color: var(--cins-blue);
@@ -2742,7 +2903,7 @@
   .cins-editor-page .b-text.h3 {
     font-size: 18px;
   }
-  .cins-editor-page .b-quote textarea {
+  .cins-editor-page .b-quote .ed-md-field {
     font-size: 20px;
   }
   /* Image picker modal sheet rộng full viewport. */
