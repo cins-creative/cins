@@ -108,12 +108,20 @@ function hasThumbnail(input: DiemNoiDungInput): boolean {
   return false;
 }
 
+function plainMoTaLength(input: DiemNoiDungInput): number {
+  return plainTextCardPlain(input.moTa, input.blocks)?.trim().length ?? 0;
+}
+
 function hasMoTaDayDu(
   input: DiemNoiDungInput,
   cfg: FeedScoreConfig,
 ): boolean {
-  const plain = plainTextCardPlain(input.moTa, input.blocks)?.trim() ?? "";
-  return plain.length > cfg.CONTENT_TEXT_MIN_CHARS;
+  return plainMoTaLength(input) > cfg.CONTENT_TEXT_MIN_CHARS;
+}
+
+/** Bài chỉ chữ / có chữ — đủ nội dung text để nhận sàn CONTENT_PART. */
+function hasMoTaCoBan(input: DiemNoiDungInput): boolean {
+  return plainMoTaLength(input) > 0;
 }
 
 /**
@@ -134,7 +142,9 @@ export function tinhDiemNoiDung(
   const c = cfgOrDefault(cfg);
   let score = 0;
   if (hasThumbnail(input)) score += c.CONTENT_PART;
-  if (hasMoTaDayDu(input, c)) score += c.CONTENT_PART;
+  /* Có chữ → điểm nội dung cơ bản (bài Chỉ chữ không còn 0 nội dung).
+   * CONTENT_TEXT_MIN_CHARS giữ làm ngưỡng “đầy đủ” admin — hiện cùng +CONTENT_PART. */
+  if (hasMoTaCoBan(input) || hasMoTaDayDu(input, c)) score += c.CONTENT_PART;
   if (input.hasTag) score += c.CONTENT_PART;
   if (hasEmbedSong(input)) score += c.CONTENT_PART;
   return Math.min(c.MAX_CONTENT, score);

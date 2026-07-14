@@ -53,6 +53,7 @@ import {
 } from "@/lib/editor/embed-providers";
 import { EMBED_PLATFORM_LOGO } from "@/lib/editor/embed-platform-logos";
 import {
+  WORLD_JOURNEY_AUTHOR_ECHO_MS,
   WORLD_JOURNEY_FEED_PAGE_SIZE,
   WORLD_JOURNEY_GALLERY_PAGE_SIZE,
 } from "@/lib/cins/worldJourneyFeedConstants";
@@ -642,6 +643,30 @@ export function WorldJourneyFeed({
       window.removeEventListener(HOME_FEED_LAYOUT_CHANGE_EVENT, onLayoutChange);
   }, [handleSurfaceView]);
 
+  /**
+   * Bài vừa đăng của chính viewer — giữ trên feed khi SSR/cache chưa kịp
+   * (author-echo L30 phải thấy ngay, không bị điểm / boost đẩy khỏi trang đầu).
+   */
+  const pinnedOwnPublishRef = useRef<
+    Map<string, { milestone: MilestoneItem; expiresAt: number }>
+  >(new Map());
+
+  const mergePinnedOwnPublishes = useCallback(
+    (base: ReadonlyArray<MilestoneItem>): MilestoneItem[] => {
+      const now = Date.now();
+      const pinned = pinnedOwnPublishRef.current;
+      for (const [key, entry] of [...pinned.entries()]) {
+        if (entry.expiresAt <= now) pinned.delete(key);
+      }
+      let next = base.slice();
+      for (const entry of pinned.values()) {
+        next = mergeMilestoneIntoTimeline(next, entry.milestone);
+      }
+      return next;
+    },
+    [],
+  );
+
   useEffect(() => {
     /* Không ghi đè kết quả query filter bằng props SSR trang đầu. */
     if (
@@ -652,7 +677,7 @@ export function WorldJourneyFeed({
     ) {
       return;
     }
-    setFeedMilestones(milestones);
+    setFeedMilestones(mergePinnedOwnPublishes(milestones));
     setHasMore(feedHasMore);
     setNextOffset(feedNextOffset);
     hasMoreRef.current = feedHasMore;
@@ -671,6 +696,7 @@ export function WorldJourneyFeed({
     activeFilter,
     activeLinhVucSlug,
     feedSource,
+    mergePinnedOwnPublishes,
   ]);
 
   useEffect(() => {
@@ -678,14 +704,40 @@ export function WorldJourneyFeed({
       const detail = (event as CustomEvent<ComposePublishedDetail>).detail;
       if (!detail?.ownerSlug || detail.ownerSlug !== sidebarProfile.slug) return;
       if (!detail.milestone) return;
+      const milestone: MilestoneItem = {
+        ...detail.milestone,
+        postOwnerId:
+          detail.milestone.postOwnerId ??
+          detail.ownerProfileId ??
+          viewerProfileId,
+        lensOwnerId:
+          detail.milestone.lensOwnerId ??
+          detail.ownerProfileId ??
+          viewerProfileId,
+      };
+      const pinKey = milestone.cotMocId ?? milestone.id;
+      pinnedOwnPublishRef.current.set(pinKey, {
+        milestone,
+        expiresAt: Date.now() + WORLD_JOURNEY_AUTHOR_ECHO_MS,
+      });
+      setFeedMilestones((prev) => mergeMilestoneIntoTimeline(prev, milestone));
+    };
+    const onMilestoneDeleted = (event: Event) => {
+      const detail = (event as CustomEvent<{ milestoneId?: string }>).detail;
+      const id = detail?.milestoneId?.trim();
+      if (!id) return;
+      pinnedOwnPublishRef.current.delete(id);
       setFeedMilestones((prev) =>
-        mergeMilestoneIntoTimeline(prev, detail.milestone!),
+        prev.filter((m) => m.id !== id && m.cotMocId !== id),
       );
     };
     window.addEventListener(COMPOSE_PUBLISHED_EVENT, onComposePublished);
-    return () =>
+    window.addEventListener("cins:milestone-deleted", onMilestoneDeleted);
+    return () => {
       window.removeEventListener(COMPOSE_PUBLISHED_EVENT, onComposePublished);
-  }, [sidebarProfile.slug]);
+      window.removeEventListener("cins:milestone-deleted", onMilestoneDeleted);
+    };
+  }, [sidebarProfile.slug, viewerProfileId]);
 
   const activeChip = findWorldJourneyFilterChip(filterChips, activeFilter);
   const exploreIds = useMemo(

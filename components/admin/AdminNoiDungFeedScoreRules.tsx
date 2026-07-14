@@ -21,12 +21,37 @@ type Props = {
   onConfigSaved?: (cfg: FeedScoreConfig) => void;
 };
 
+/** Cửa sổ decay theo ngày — khớp validate DECAY_HOURS [24, 720]. */
+const DECAY_DAYS_MIN = 1;
+const DECAY_DAYS_MAX = 30;
+
 const LOAI_LABEL: Record<FeedScorePhienBan["loai"], string> = {
   luu: "Lưu",
   khoi_phuc: "Khôi phục",
   mac_dinh: "Mặc định",
   seed: "Gốc",
 };
+
+function decayHoursToDays(hours: number): number {
+  return Math.min(
+    DECAY_DAYS_MAX,
+    Math.max(DECAY_DAYS_MIN, Math.round(hours / 24)),
+  );
+}
+
+function decayDaysToHours(days: number): number {
+  return Math.min(
+    DECAY_DAYS_MAX * 24,
+    Math.max(DECAY_DAYS_MIN * 24, Math.round(days) * 24),
+  );
+}
+
+function decaySpeedHint(days: number): string {
+  if (days <= 3) return "Giảm rất nhanh — bài chỉ sống ngắn trên Timeline.";
+  if (days <= 7) return "Mặc định ~7 ngày — phù hợp khi có traffic ổn định.";
+  if (days <= 14) return "Giảm chậm hơn — hữu ích khi ít người dùng / ít engagement.";
+  return "Giảm rất chậm — bài giữ điểm lâu trên Timeline.";
+}
 
 function fmtWhen(iso: string): string {
   const d = new Date(iso);
@@ -96,6 +121,15 @@ export function AdminNoiDungFeedScoreRules({ onConfigSaved }: Props) {
     setDraft((prev) => ({
       ...prev,
       [key]: Number.isFinite(n) ? Math.round(n) : prev[key],
+    }));
+    setOkMsg(null);
+  }
+
+  function setDecayDays(days: number) {
+    if (!editing) return;
+    setDraft((prev) => ({
+      ...prev,
+      DECAY_HOURS: decayDaysToHours(days),
     }));
     setOkMsg(null);
   }
@@ -227,6 +261,7 @@ export function AdminNoiDungFeedScoreRules({ onConfigSaved }: Props) {
 
   const examples = buildFeedScoreExampleRows(draft);
   const latestSo = versions[0]?.soPhien ?? null;
+  const decayDays = decayHoursToDays(draft.DECAY_HOURS);
 
   if (loading) {
     return (
@@ -317,6 +352,57 @@ export function AdminNoiDungFeedScoreRules({ onConfigSaved }: Props) {
         {okMsg ? <p className="ndd-score-rules-ok">{okMsg}</p> : null}
       </div>
 
+      <section
+        className="ndd-score-decay"
+        aria-label="Tốc độ giảm điểm"
+      >
+        <div className="ndd-score-decay-head">
+          <h2 className="ndd-score-rules-h2">Tốc độ giảm điểm</h2>
+          <p className="ndd-score-decay-value">
+            <strong>{decayDays}</strong> ngày
+            <span className="ndd-list-muted">
+              {" "}
+              ({draft.DECAY_HOURS} giờ · điểm về 0 tuyến tính)
+            </span>
+          </p>
+        </div>
+        <p className="ndd-score-rules-note ndd-score-decay-hint">
+          {decaySpeedHint(decayDays)}
+          {!editing
+            ? " Bấm Chỉnh sửa ở trên rồi kéo thanh để đổi."
+            : " Kéo thanh rồi Lưu phiên bản (kèm lý do)."}
+        </p>
+        <div className="ndd-score-decay-slider-wrap">
+          <span className="ndd-score-decay-label" aria-hidden>
+            Nhanh
+          </span>
+          <input
+            className="ndd-score-decay-slider"
+            type="range"
+            min={DECAY_DAYS_MIN}
+            max={DECAY_DAYS_MAX}
+            step={1}
+            value={decayDays}
+            disabled={!editing || pending}
+            onChange={(e) => setDecayDays(Number(e.target.value))}
+            aria-label={`Cửa sổ decay ${decayDays} ngày`}
+            aria-valuemin={DECAY_DAYS_MIN}
+            aria-valuemax={DECAY_DAYS_MAX}
+            aria-valuenow={decayDays}
+            aria-valuetext={`${decayDays} ngày`}
+          />
+          <span className="ndd-score-decay-label" aria-hidden>
+            Chậm
+          </span>
+        </div>
+        <div className="ndd-score-decay-ticks" aria-hidden>
+          <span>1 ngày</span>
+          <span>7</span>
+          <span>14</span>
+          <span>30 ngày</span>
+        </div>
+      </section>
+
       <div className="table-wrap table-wrap--ndd">
         <table className="data-table ndd-score-rules-table">
           <thead>
@@ -351,6 +437,10 @@ export function AdminNoiDungFeedScoreRules({ onConfigSaved }: Props) {
                         disabled={pending}
                         aria-label={row.muc}
                       />
+                    ) : row.key === "DECAY_HOURS" ? (
+                      <strong>
+                        {decayHoursToDays(draft.DECAY_HOURS)} ngày
+                      </strong>
                     ) : (
                       <strong>{draft[row.key]}</strong>
                     )}

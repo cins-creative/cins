@@ -1988,24 +1988,6 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
       ) : null}
 
       <div ref={dockControlsRef} className="j-chat-dock-launcher-row">
-        {bubbleDrag?.armed ? (
-          <div
-            className={[
-              "j-chat-bubble-trash-zone",
-              bubbleDrag.dy <= -BUBBLE_DISMISS_DRAG_PX ? "is-hot" : "",
-            ]
-              .filter(Boolean)
-              .join(" ")}
-            aria-hidden
-          >
-            <Trash2 size={18} strokeWidth={2.2} />
-            <span>
-              {bubbleDrag.dy <= -BUBBLE_DISMISS_DRAG_PX
-                ? "Thả để đóng"
-                : "Kéo lên để đóng"}
-            </span>
-          </div>
-        ) : null}
         {peekThreads.length > 0 ? (
           <div
             className="j-chat-bubbles"
@@ -2026,6 +2008,9 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
               const showDismiss = canClose && !showCount;
               const isDraggingThis =
                 bubbleDrag?.armed && bubbleDrag.roomId === thread.roomId;
+              const isDragHot =
+                isDraggingThis &&
+                bubbleDrag.dy <= -BUBBLE_DISMISS_DRAG_PX;
               const displayTitle = parentThread
                 ? `${parentThread.name} - ${thread.name}`
                 : thread.name;
@@ -2041,29 +2026,28 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
                     thread.isGroup ? "is-group" : "",
                     isProjectChild ? "is-project-child" : "",
                     isDraggingThis ? "is-dragging" : "",
-                    isDraggingThis &&
-                    bubbleDrag.dy <= -BUBBLE_DISMISS_DRAG_PX
-                      ? "is-drag-hot"
-                      : "",
+                    isDragHot ? "is-drag-hot" : "",
                   ]
                     .filter(Boolean)
                     .join(" ")}
-                  style={
-                    isDraggingThis
-                      ? {
-                          transform: `translateY(${bubbleDrag.dy}px)`,
-                          opacity: Math.max(
-                            0.35,
-                            1 + bubbleDrag.dy / 140,
-                          ),
-                        }
-                      : undefined
-                  }
                   onPointerDown={(e) => onBubblePointerDown(e, thread)}
                   onPointerMove={onBubblePointerMove}
                   onPointerUp={(e) => endBubbleDrag(e, thread)}
                   onPointerCancel={(e) => endBubbleDrag(e, thread)}
                 >
+                  {isDraggingThis ? (
+                    <div
+                      className={[
+                        "j-chat-bubble-trash-zone",
+                        isDragHot ? "is-hot" : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" ")}
+                      aria-hidden
+                    >
+                      <Trash2 size={18} strokeWidth={2.2} />
+                    </div>
+                  ) : null}
                   {clickFx && clickFx.roomId === thread.roomId ? (
                     <span
                       key={clickFx.id}
@@ -2085,6 +2069,17 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
                     }
                     aria-pressed={isActive}
                     title={displayTitle}
+                    style={
+                      isDraggingThis
+                        ? {
+                            transform: `translateY(${bubbleDrag.dy}px)`,
+                            opacity: Math.max(
+                              0.35,
+                              1 + bubbleDrag.dy / 140,
+                            ),
+                          }
+                        : undefined
+                    }
                     onClick={(e) => handleBubbleClick(e, thread)}
                   >
                     <MiniAvatar

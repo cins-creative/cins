@@ -173,6 +173,7 @@ import {
   buildComposeEditorDraftKey,
   buildComposeEmbedDraftKey,
   clearComposeEditorDraft,
+  clearComposeSessionDrafts,
   composeDraftHasLottieFileAsset,
   composeDraftHasRestorableContent,
   composeDraftHasRiveFileAsset,
@@ -1167,8 +1168,25 @@ export function EditorView({
   const [savedFlash, setSavedFlash] = useState(false);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+  /** Tắt ghi nháp sau publish — tránh debounce 400ms ghi lại bài cũ. */
+  const composeDraftWriteEnabledRef = useRef(true);
 
   const editorRef = useRef<HTMLDivElement | null>(null);
+
+  const finishComposeDraftAfterPublish = useCallback(() => {
+    composeDraftWriteEnabledRef.current = false;
+    if (!canPersistComposeDraft) return;
+    clearComposeSessionDrafts({
+      ownerSlug,
+      congDongCompose,
+      orgBaiDangCompose,
+    });
+  }, [
+    canPersistComposeDraft,
+    ownerSlug,
+    congDongCompose,
+    orgBaiDangCompose,
+  ]);
 
   /* ╔══ Undo stack (Ctrl/Cmd+Z) ══════════════════════════════════════
    * Lưu snapshot `blocks` TRƯỚC mỗi thao tác cấu trúc (add/delete/move/
@@ -1187,7 +1205,9 @@ export function EditorView({
 
   useEffect(() => {
     if (!canPersistComposeDraft) return;
+    if (!composeDraftWriteEnabledRef.current) return;
     const timer = window.setTimeout(() => {
+      if (!composeDraftWriteEnabledRef.current) return;
       writeComposeEditorDraft(composeDraftKey, {
         tieuDe: title,
         moTa: sub,
@@ -2865,8 +2885,8 @@ export function EditorView({
             ? `✓ Đã hẹn đăng ${formatOrgBaiDangScheduleLabel(composeSchedulePublishAt)}.`
             : "✓ Đã cập nhật bài đăng.",
         );
-        if (isOverlay && onPublished) {
-          onPublished();
+        if (isOverlay) {
+          onPublished?.();
         }
         return;
       }
@@ -2892,11 +2912,10 @@ export function EditorView({
             ? `✓ Đã hẹn đăng ${formatOrgBaiDangScheduleLabel(composeSchedulePublishAt)}.`
             : "✓ Đã đăng bài.",
         );
-        if (canPersistComposeDraft) {
-          clearComposeEditorDraft(composeDraftKey);
-        }
-        if (isOverlay && onPublished) {
-          onPublished();
+        finishComposeDraftAfterPublish();
+        if (isOverlay) {
+          onPublished?.();
+          return;
         }
         return;
       }
@@ -2932,11 +2951,13 @@ export function EditorView({
           cotMocId: result.cotMocId,
           milestone: result.milestone,
         };
-        if (isOverlay && onPublished) {
-          onPublished(publishDetail);
-        } else {
-          router.push(`/${ownerSlug}`);
+        /* Overlay (World Journey / sheet): ở lại bề mặt hiện tại — không đẩy /{slug}. */
+        if (isOverlay) {
+          if (onPublished) onPublished(publishDetail);
+          else onClose?.();
+          return;
         }
+        router.push(`/${ownerSlug}`);
         return;
       }
 
@@ -2969,9 +2990,7 @@ export function EditorView({
 
       setSavedFlash(true);
       setToast("✓ Đã đăng bài.");
-      if (canPersistComposeDraft) {
-        clearComposeEditorDraft(composeDraftKey);
-      }
+      finishComposeDraftAfterPublish();
       const publishDetail: ComposePublishedDetail = {
         ownerSlug,
         postSlug: result.slug,
@@ -2979,11 +2998,12 @@ export function EditorView({
         cotMocId: result.cotMocId,
         milestone: result.milestone,
       };
-      if (isOverlay && onPublished) {
-        onPublished(publishDetail);
-      } else {
-        router.push(`/${ownerSlug}`);
+      if (isOverlay) {
+        if (onPublished) onPublished(publishDetail);
+        else onClose?.();
+        return;
       }
+      router.push(`/${ownerSlug}`);
       } catch (e) {
         setToast(
           e instanceof Error ? e.message : "Không lưu được — thử lại.",
@@ -3018,8 +3038,8 @@ export function EditorView({
     router,
     isOverlay,
     onPublished,
-    canPersistComposeDraft,
-    composeDraftKey,
+    onClose,
+    finishComposeDraftAfterPublish,
   ]);
 
   return (

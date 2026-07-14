@@ -569,7 +569,7 @@ export async function fetchWorldJourneyFeedPage(
   const ranked = feedPageNeedsWidePool(options)
     ? await fetchWorldJourneyFeedRankedWideForApi(viewerId)
     : await fetchWorldJourneyFeedRankedForApi(viewerId);
-  const boosted = await withWorldBoostMilestones(ranked);
+  const boosted = await withWorldBoostMilestones(ranked, { viewerId });
   const filtered = applyWorldJourneyFeedPageFilters(boosted, options);
   return sliceWorldJourneyFeedPage(filtered, offset, limit);
 }
@@ -601,7 +601,7 @@ export async function fetchWorldJourneyFeedPageCached(
   const ranked = feedPageNeedsWidePool(options)
     ? await fetchWorldJourneyFeedRankedWideCached(viewerId)
     : await fetchWorldJourneyFeedRankedCached(viewerId);
-  const boosted = await withWorldBoostMilestones(ranked);
+  const boosted = await withWorldBoostMilestones(ranked, { viewerId });
   const filtered = applyWorldJourneyFeedPageFilters(boosted, options);
   return sliceWorldJourneyFeedPage(filtered, offset, limit);
 }

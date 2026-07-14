@@ -170,10 +170,13 @@ export function compareWorldJourneyFeedByScore(
 /**
  * Giữ tối đa `maxPerAuthor` bài / tác giả ở vùng ưu tiên; phần dư xếp sau
  * (giữ thứ tự tương đối trong mỗi nhóm).
+ * Bài author-echo không bị demote — luôn thấy bài vừa đăng.
  */
 export function applyAuthorSoftQuota(
   items: ReadonlyArray<MilestoneItem>,
   maxPerAuthor = WORLD_JOURNEY_FEED_AUTHOR_SOFT_QUOTA,
+  viewerId?: string | null,
+  nowMs = Date.now(),
 ): MilestoneItem[] {
   if (items.length === 0 || maxPerAuthor < 1) return items.slice();
 
@@ -182,6 +185,10 @@ export function applyAuthorSoftQuota(
   const counts = new Map<string, number>();
 
   for (const m of items) {
+    if (isWorldJourneyAuthorEcho(m, viewerId, nowMs)) {
+      primary.push(m);
+      continue;
+    }
     const key = worldJourneyFeedAuthorKey(m);
     const n = counts.get(key) ?? 0;
     if (n < maxPerAuthor) {
@@ -210,6 +217,8 @@ export function rankWorldJourneyFeedByScore(
       .slice()
       .sort((a, b) => compareWorldJourneyFeedByScore(a, b, viewerId, nowMs)),
     maxPerAuthor,
+    viewerId,
+    nowMs,
   );
 }
 
@@ -280,7 +289,7 @@ export function sortWorldJourneyMilestones(
   const sorted = milestones.slice().sort(cmp);
   /* Soft quota chỉ áp mặc định «Mới nhất» — các sort tường minh giữ đúng tiêu chí. */
   if (sort === "Mới nhất") {
-    return applyAuthorSoftQuota(sorted);
+    return applyAuthorSoftQuota(sorted, WORLD_JOURNEY_FEED_AUTHOR_SOFT_QUOTA, viewerId);
   }
   return sorted;
 }

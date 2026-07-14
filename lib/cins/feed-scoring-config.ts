@@ -71,14 +71,15 @@ export const FEED_SCORE_EDITABLE_META: FeedScoreEditableMeta[] = [
     key: "CONTENT_PART",
     nhom: "Nội dung",
     muc: "Điểm mỗi mục nội dung",
-    dieuKien: "Thumbnail · mô tả · tag · embed (mỗi mục)",
-    ghiChu: "Admin thumb: cover_id hoặc ảnh đầu album",
+    dieuKien: "Thumbnail · có chữ · tag · embed (mỗi mục)",
+    ghiChu: "Bài Chỉ chữ: có chữ → +CONTENT_PART (sàn nội dung cơ bản)",
   },
   {
     key: "CONTENT_TEXT_MIN_CHARS",
     nhom: "Nội dung",
     muc: "Ngưỡng mô tả (ký tự)",
-    dieuKien: "Text thường phải dài hơn mức này mới +CONTENT_PART",
+    dieuKien: "Tham chiếu admin; mọi bài có chữ (≥1) đã nhận +CONTENT_PART",
+    ghiChu: "Bài Chỉ chữ luôn có sàn điểm nội dung cơ bản",
   },
   {
     key: "MAX_CONTENT",
@@ -122,7 +123,8 @@ export const FEED_SCORE_EDITABLE_META: FeedScoreEditableMeta[] = [
     nhom: "Decay",
     muc: "Cửa sổ decay (giờ)",
     dieuKien: "Tuyến tính từ bat_dau_luc đến 0",
-    ghiChu: "Sửa bài không reset; admin đẩy có reset. Đổi số ảnh hưởng realtime ngay.",
+    ghiChu:
+      "Ưu tiên dùng slider «Tốc độ giảm điểm» (theo ngày). Số giờ vẫn chỉnh được khi cần. Đổi áp realtime ngay.",
   },
   {
     key: "MAX_TOTAL",

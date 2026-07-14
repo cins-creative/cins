@@ -302,11 +302,23 @@ export function JourneyMilestoneOwnerMenu({
         );
       }
 
-      const onPostPage =
-        typeof window !== "undefined" &&
-        window.location.pathname.startsWith(`/${ownerSlug}/p/`);
-      if (onPostPage) {
-        router.push(`/${ownerSlug}`);
+      /*
+       * Chỉ rời trang khi đang đứng trên permalink bài `/…/p/…`.
+       * World Journey / timeline: giữ nguyên URL — không đẩy sang trang cá nhân.
+       */
+      if (typeof window !== "undefined") {
+        const path = window.location.pathname;
+        const onPostPage = /\/[^/]+\/p\/[^/]+\/?$/.test(path);
+        const onWorldFeed = Boolean(
+          document.querySelector(".world-journey-home"),
+        );
+        if (onPostPage && !onWorldFeed) {
+          if (window.history.length > 1) {
+            router.back();
+          } else {
+            router.push(`/${ownerSlug}`);
+          }
+        }
       }
       onAfterChange?.();
     })();

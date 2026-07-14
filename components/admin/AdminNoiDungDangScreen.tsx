@@ -1,7 +1,7 @@
 "use client";
 
 import { BarChart3, ExternalLink, LayoutGrid, List, Loader2, Plus, Scale, Search } from "lucide-react";
-import { useCallback, useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import {
   AdminFeedScoreCell,
@@ -19,6 +19,9 @@ import type {
 } from "@/lib/cins/world-boost-types";
 
 type ViewMode = "grid" | "listing" | "dashboard" | "score";
+
+/** Khớp `WORLD_BOOST_TTL_MS` (server-only) — TTL đẩy 3 ngày. */
+const WORLD_BOOST_TTL_MS = 3 * 24 * 60 * 60 * 1000;
 
 function fmtDate(iso: string | null): string {
   if (!iso) return "—";
@@ -45,10 +48,29 @@ export function AdminNoiDungDangScreen() {
   const [qDebounced, setQDebounced] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
   const [scoreConfig, setScoreConfig] = useState<FeedScoreConfig | null>(null);
-  const [boostingKey, setBoostingKey] = useState<string | null>(null);
-  const [bumpingKey, setBumpingKey] = useState<string | null>(null);
+  /** Per-item — không khóa cả lưới khi một thẻ đang gửi API. */
+  const [boostingKeys, setBoostingKeys] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
+  const [bumpingKeys, setBumpingKeys] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
+
+  function toggleKeyInSet(
+    prev: ReadonlySet<string>,
+    key: string,
+    on: boolean,
+  ): ReadonlySet<string> {
+    const next = new Set(prev);
+    if (on) next.add(key);
+    else next.delete(key);
+    return next;
+  }
+
+  function isBusy(key: string): boolean {
+    return boostingKeys.has(key) || bumpingKeys.has(key);
+  }
 
   useEffect(() => {
     const t = setTimeout(() => setQDebounced(q.trim()), 300);
@@ -83,9 +105,12 @@ export function AdminNoiDungDangScreen() {
     }
   }, []);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const load = useCallback(async (opts?: { silent?: boolean }) => {
+    const silent = opts?.silent === true;
+    if (!silent) {
+      setLoading(true);
+      setError(null);
+    }
     try {
       const qs = new URLSearchParams();
       if (nguon !== "all") qs.set("nguon", nguon);
@@ -108,9 +133,11 @@ export function AdminNoiDungDangScreen() {
       setItems(listJson.items ?? []);
       setStats(statsJson.stats);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Lỗi tải dữ liệu.");
+      if (!silent) {
+        setError(e instanceof Error ? e.message : "Lỗi tải dữ liệu.");
+      }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [nguon, dinhDang, xacThuc, chiBoost, qDebounced]);
 
@@ -127,15 +154,36 @@ export function AdminNoiDungDangScreen() {
   }
 
   function toggleBoost(item: WorldBoostCatalogItem) {
-    if (boostingKey || bumpingKey || pending) return;
+    if (isBusy(item.key)) return;
     const next = !item.dangBoost;
-    setBoostingKey(item.key);
-    setItems((prev) =>
-      prev.map((row) =>
-        row.key === item.key ? { ...row, dangBoost: next } : row,
-      ),
+    const prevItem = item;
+    const prevStats = stats;
+    const hetHanOptimistic = next
+      ? new Date(Date.now() + WORLD_BOOST_TTL_MS).toISOString()
+      : null;
+
+    setError(null);
+    setBoostingKeys((prev) => toggleKeyInSet(prev, item.key, true));
+    setItems((prev) => {
+      if (chiBoost && !next) {
+        return prev.filter((row) => row.key !== item.key);
+      }
+      return prev.map((row) =>
+        row.key === item.key
+          ? { ...row, dangBoost: next, hetHanLuc: hetHanOptimistic }
+          : row,
+      );
+    });
+    setStats((s) =>
+      s
+        ? {
+            ...s,
+            dangBoost: Math.max(0, s.dangBoost + (next ? 1 : -1)),
+          }
+        : s,
     );
-    startTransition(async () => {
+
+    void (async () => {
       try {
         const res = await fetch("/api/admin/world-boost", {
           method: "POST",
@@ -147,23 +195,59 @@ export function AdminNoiDungDangScreen() {
           }),
         });
         if (!res.ok) {
-          setItems((prev) =>
-            prev.map((row) =>
-              row.key === item.key ? { ...row, dangBoost: !next } : row,
-            ),
-          );
+          setItems((prev) => {
+            const had = prev.some((row) => row.key === prevItem.key);
+            if (!had && chiBoost && prevItem.dangBoost) {
+              return [prevItem, ...prev];
+            }
+            return prev.map((row) =>
+              row.key === prevItem.key ? prevItem : row,
+            );
+          });
+          setStats(prevStats);
           setError("Không cập nhật được trạng thái đẩy.");
           return;
         }
-        await load();
+        const json = (await res.json()) as {
+          row?: { dang_bat?: boolean; het_han_luc?: string };
+        };
+        if (json.row) {
+          setItems((prev) =>
+            prev.map((row) =>
+              row.key === item.key
+                ? {
+                    ...row,
+                    dangBoost: Boolean(json.row?.dang_bat),
+                    hetHanLuc: json.row?.dang_bat
+                      ? (json.row.het_han_luc ?? row.hetHanLuc)
+                      : null,
+                  }
+                : row,
+            ),
+          );
+        }
+        /* Điểm feed đồng bộ server — refresh nền, không che lưới. */
+        void load({ silent: true });
+      } catch {
+        setItems((prev) => {
+          const had = prev.some((row) => row.key === prevItem.key);
+          if (!had && chiBoost && prevItem.dangBoost) {
+            return [prevItem, ...prev];
+          }
+          return prev.map((row) =>
+            row.key === prevItem.key ? prevItem : row,
+          );
+        });
+        setStats(prevStats);
+        setError("Không cập nhật được trạng thái đẩy.");
       } finally {
-        setBoostingKey(null);
+        setBoostingKeys((prev) => toggleKeyInSet(prev, item.key, false));
       }
-    });
+    })();
   }
 
   function bumpScore(item: WorldBoostCatalogItem) {
-    if (!canBumpScore(item) || boostingKey || bumpingKey || pending) return;
+    if (!canBumpScore(item) || isBusy(item.key)) return;
     const uu = item.diemFeed?.diem_uu_tien ?? 0;
     if (uu >= ADMIN_DIEM_UU_TIEN.MAX) {
       setError(`Đã đạt trần ưu tiên (+${ADMIN_DIEM_UU_TIEN.MAX}).`);
@@ -176,9 +260,37 @@ export function AdminNoiDungDangScreen() {
     ) {
       return;
     }
-    setBumpingKey(item.key);
+
+    const prevItem = item;
+    const nextUu = Math.min(
+      ADMIN_DIEM_UU_TIEN.MAX,
+      uu + ADMIN_DIEM_UU_TIEN.BUMP,
+    );
+    const nowIso = new Date().toISOString();
+
     setError(null);
-    startTransition(async () => {
+    setBumpingKeys((prev) => toggleKeyInSet(prev, item.key, true));
+    setItems((prev) =>
+      prev.map((row) => {
+        if (row.key !== item.key) return row;
+        const base = row.diemFeed;
+        return {
+          ...row,
+          diemFeed: base
+            ? { ...base, diem_uu_tien: nextUu, bat_dau_luc: nowIso }
+            : {
+                diem_co_ban: 0,
+                diem_noi_dung: 0,
+                diem_verify: 0,
+                diem_engagement: 0,
+                diem_uu_tien: nextUu,
+                bat_dau_luc: nowIso,
+              },
+        };
+      }),
+    );
+
+    void (async () => {
       try {
         const res = await fetch("/api/admin/world-boost", {
           method: "POST",
@@ -189,16 +301,41 @@ export function AdminNoiDungDangScreen() {
             id: item.id,
           }),
         });
-        const json = (await res.json()) as { error?: string };
+        const json = (await res.json()) as {
+          error?: string;
+          diemUuTien?: number;
+        };
         if (!res.ok) {
+          setItems((prev) =>
+            prev.map((row) => (row.key === prevItem.key ? prevItem : row)),
+          );
           setError(json.error ?? "Không cộng được điểm ưu tiên.");
           return;
         }
-        await load();
+        if (typeof json.diemUuTien === "number") {
+          setItems((prev) =>
+            prev.map((row) => {
+              if (row.key !== item.key || !row.diemFeed) return row;
+              return {
+                ...row,
+                diemFeed: {
+                  ...row.diemFeed,
+                  diem_uu_tien: json.diemUuTien as number,
+                },
+              };
+            }),
+          );
+        }
+        void load({ silent: true });
+      } catch {
+        setItems((prev) =>
+          prev.map((row) => (row.key === prevItem.key ? prevItem : row)),
+        );
+        setError("Không cộng được điểm ưu tiên.");
       } finally {
-        setBumpingKey(null);
+        setBumpingKeys((prev) => toggleKeyInSet(prev, item.key, false));
       }
-    });
+    })();
   }
 
   return (
@@ -369,9 +506,7 @@ export function AdminNoiDungDangScreen() {
                             className="ndd-card-bump"
                             onClick={() => bumpScore(item)}
                             disabled={
-                              pending ||
-                              boostingKey !== null ||
-                              bumpingKey !== null ||
+                              isBusy(item.key) ||
                               (item.diemFeed?.diem_uu_tien ?? 0) >=
                                 ADMIN_DIEM_UU_TIEN.MAX
                             }
@@ -382,7 +517,7 @@ export function AdminNoiDungDangScreen() {
                             }`}
                             aria-label={`Cộng điểm ưu tiên: ${item.tieuDe}`}
                           >
-                            {bumpingKey === item.key ? (
+                            {bumpingKeys.has(item.key) ? (
                               <Loader2 size={12} className="bc-spin" />
                             ) : (
                               <Plus size={12} strokeWidth={3} aria-hidden />
@@ -393,11 +528,7 @@ export function AdminNoiDungDangScreen() {
                           type="button"
                           className="ndd-card-mark"
                           onClick={() => toggleBoost(item)}
-                          disabled={
-                            pending ||
-                            boostingKey !== null ||
-                            bumpingKey !== null
-                          }
+                          disabled={isBusy(item.key)}
                           aria-pressed={item.dangBoost}
                           aria-label={
                             item.dangBoost
@@ -477,27 +608,21 @@ export function AdminNoiDungDangScreen() {
                               className="ndd-list-bump"
                               onClick={() => bumpScore(item)}
                               disabled={
-                                pending ||
-                                boostingKey !== null ||
-                                bumpingKey !== null ||
+                                isBusy(item.key) ||
                                 (item.diemFeed?.diem_uu_tien ?? 0) >=
                                   ADMIN_DIEM_UU_TIEN.MAX
                               }
                               title={`Cộng +${ADMIN_DIEM_UU_TIEN.BUMP} (không hoàn lại)`}
                               aria-label={`Cộng điểm: ${item.tieuDe}`}
                             >
-                              {bumpingKey === item.key ? "…" : "+"}
+                              {bumpingKeys.has(item.key) ? "…" : "+"}
                             </button>
                           ) : null}
                           <button
                             type="button"
                             className={`ndd-list-toggle${item.dangBoost ? " is-on" : ""}`}
                             onClick={() => toggleBoost(item)}
-                            disabled={
-                              pending ||
-                              boostingKey !== null ||
-                              bumpingKey !== null
-                            }
+                            disabled={isBusy(item.key)}
                             aria-pressed={item.dangBoost}
                           >
                             {item.dangBoost ? "Bật" : "Tắt"}

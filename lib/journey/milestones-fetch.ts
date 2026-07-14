@@ -276,6 +276,8 @@ export async function buildSelfMilestonesForCotMocs(
         }
       : null;
 
+    const ownerId = m.id_nguoi_dung?.trim() || null;
+
     return {
       id: m.id,
       cotMocId: m.id,
@@ -295,6 +297,9 @@ export async function buildSelfMilestonesForCotMocs(
       title: isIdentityCard ? m.tieu_de : (firstPost?.tieu_de ?? m.tieu_de),
       body: isIdentityPending ? m.mo_ta || "Chờ xác thực" : m.mo_ta || null,
       org: verified?.attribution.role ?? pendingAttribution?.name ?? null,
+      /* Bắt buộc cho author-echo World Timeline (L30) — kể cả sau publish optimistic. */
+      postOwnerId: ownerId,
+      lensOwnerId: ownerId,
       postSlug: isOrgCreateCard || isIdentityCard ? null : firstPostSlug,
       tacPhamId: isOrgCreateCard || isIdentityCard ? null : (firstPost?.id ?? null),
       attribution: verified?.attribution ?? pendingAttribution,

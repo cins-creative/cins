@@ -1,10 +1,19 @@
 import type { ArticleTagRef } from "@/lib/editor/article-tag";
 import type { Block as ServerBlock, Visibility as ServerVisibility } from "@/lib/editor/types";
 import type { CongDongComposeConfig } from "@/lib/cong-dong/types";
+import { TIER1_EMBED_PLATFORMS } from "@/lib/editor/embed-providers";
 import { isLottieAssetEmbedUrl } from "@/lib/editor/lottie-asset-url";
 import { isRiveAssetEmbedUrl } from "@/lib/editor/rive-asset-url";
 import type { ComposeIntent } from "@/lib/journey/compose-types";
 import type { OrgBaiDangComposeConfig } from "@/lib/truong/org-bai-dang-compose";
+
+const COMPOSE_INTENTS: readonly ComposeIntent[] = [
+  "minimal",
+  "photo",
+  "video",
+  "full",
+  "embed",
+];
 
 const DRAFT_VERSION = 1 as const;
 
@@ -88,6 +97,36 @@ export function clearComposeEditorDraft(key: string): void {
     localStorage.removeItem(key);
   } catch {
     /* ignore */
+  }
+}
+
+/**
+ * Xóa toàn bộ nháp compose của owner (minimal/full/embed + :file|:url + legacy)
+ * sau khi đăng thành công — tránh mở lại trình soạn còn bài cũ.
+ */
+export function clearComposeSessionDrafts(input: {
+  ownerSlug: string;
+  congDongCompose?: CongDongComposeConfig;
+  orgBaiDangCompose?: OrgBaiDangComposeConfig;
+}): void {
+  if (typeof window === "undefined") return;
+  const ownerSlug = input.ownerSlug.trim();
+  if (!ownerSlug) return;
+
+  for (const intent of COMPOSE_INTENTS) {
+    const base = buildComposeEditorDraftKey({
+      ownerSlug,
+      composeIntent: intent,
+      congDongCompose: input.congDongCompose,
+      orgBaiDangCompose: input.orgBaiDangCompose,
+    });
+    clearComposeEditorDraft(base);
+    if (intent !== "embed") continue;
+    for (const platform of TIER1_EMBED_PLATFORMS) {
+      clearComposeEditorDraft(`${base}:${platform.id}`);
+      clearComposeEditorDraft(`${base}:${platform.id}:file`);
+      clearComposeEditorDraft(`${base}:${platform.id}:url`);
+    }
   }
 }
 

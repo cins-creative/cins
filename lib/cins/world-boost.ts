@@ -4,6 +4,7 @@ import type { MilestoneItem } from "@/components/journey/milestone-types";
 import type { GalleryMainItem } from "@/lib/journey/gallery-page-fetch";
 import { applyAdminDayBaiDiemFeed } from "@/lib/cins/feed-scoring-write";
 import type { FeedScoringLoai } from "@/lib/cins/feed-scoring";
+import { WORLD_JOURNEY_AUTHOR_ECHO_MS } from "@/lib/cins/worldJourneyFeedConstants";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 /** TTL một chu kỳ boost (L29). */
@@ -133,33 +134,54 @@ export async function listActiveWorldBoostKeySet(): Promise<Set<string>> {
 
 /**
  * Đưa item đang boost lên trước, giữ thứ tự gốc trong mỗi nhóm.
+ * Author-echo (bài viewer vừa đăng) luôn đứng trước boost — L30:
+ * lần đầu sau khi đăng phải thấy bài mình trên đầu feed.
  * Gắn `worldBoosted` khi có trong active set (dùng UI admin; viewer không render).
  */
 export function applyWorldBoostOrderToMilestones<T extends MilestoneItem>(
   items: ReadonlyArray<T>,
   boostKeys: ReadonlySet<string>,
+  options?: { viewerId?: string | null; nowMs?: number },
 ): T[] {
-  if (items.length === 0 || boostKeys.size === 0) {
-    return items.map((m) => {
-      const t = worldBoostTargetFromMilestone(m);
-      const boosted = t
-        ? boostKeys.has(worldBoostKey(t.loai, t.id))
-        : false;
-      return boosted ? { ...m, worldBoosted: true } : { ...m, worldBoosted: false };
-    });
+  const viewerId = options?.viewerId ?? null;
+  const nowMs = options?.nowMs ?? Date.now();
+
+  const tagBoost = (m: T): T => {
+    const t = worldBoostTargetFromMilestone(m);
+    const boosted = t
+      ? boostKeys.has(worldBoostKey(t.loai, t.id))
+      : false;
+    return { ...m, worldBoosted: boosted } as T;
+  };
+
+  if (items.length === 0) return [];
+
+  if (boostKeys.size === 0 && !viewerId) {
+    return items.map(tagBoost);
   }
 
+  const echo: T[] = [];
   const boosted: T[] = [];
   const rest: T[] = [];
   for (const m of items) {
-    const t = worldBoostTargetFromMilestone(m);
-    const isBoost =
-      t != null && boostKeys.has(worldBoostKey(t.loai, t.id));
-    const next = { ...m, worldBoosted: isBoost } as T;
-    if (isBoost) boosted.push(next);
+    const next = tagBoost(m);
+    const ownerId = m.postOwnerId ?? m.lensOwnerId;
+    const isEcho =
+      Boolean(viewerId) &&
+      Boolean(ownerId) &&
+      ownerId === viewerId &&
+      (() => {
+        const raw = m.feedSortAt ?? m.createdAt;
+        if (!raw) return false;
+        const posted = Date.parse(raw);
+        if (Number.isNaN(posted) || posted <= 0) return false;
+        return nowMs - posted <= WORLD_JOURNEY_AUTHOR_ECHO_MS;
+      })();
+    if (isEcho) echo.push(next);
+    else if (next.worldBoosted) boosted.push(next);
     else rest.push(next);
   }
-  return [...boosted, ...rest];
+  return [...echo, ...boosted, ...rest];
 }
 
 export function applyWorldBoostOrderToGalleryItems<T extends GalleryMainItem>(
@@ -194,10 +216,13 @@ export function applyWorldBoostOrderToGalleryItems<T extends GalleryMainItem>(
 
 export async function withWorldBoostMilestones<T extends MilestoneItem>(
   items: ReadonlyArray<T>,
+  options?: { viewerId?: string | null },
 ): Promise<T[]> {
   try {
     const keys = await listActiveWorldBoostKeySet();
-    return applyWorldBoostOrderToMilestones(items, keys);
+    return applyWorldBoostOrderToMilestones(items, keys, {
+      viewerId: options?.viewerId,
+    });
   } catch {
     return [...items];
   }

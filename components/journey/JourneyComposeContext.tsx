@@ -18,6 +18,7 @@ import {
   buildComposeEditorDraftKey,
   buildComposeEmbedDraftKey,
   clearComposeEditorDraft,
+  clearComposeSessionDrafts,
   composeDraftHasLottieFileAsset,
   composeDraftHasRestorableContent,
   composeDraftHasRiveFileAsset,
@@ -299,6 +300,12 @@ export function JourneyComposeProvider({
 
   const onPublished = useCallback(
     (detail?: ComposePublishedDetail) => {
+      /* Xóa nháp trước khi đóng sheet — tránh mở lại còn bài vừa đăng. */
+      clearComposeSessionDrafts({
+        ownerSlug,
+        congDongCompose,
+        orgBaiDangCompose,
+      });
       closeCompose();
       if (
         typeof window !== "undefined" &&
@@ -328,6 +335,7 @@ export function JourneyComposeProvider({
       congDongCompose,
       orgBaiDangCompose,
       onAfterPublished,
+      ownerId,
       router,
       ownerSlug,
     ],

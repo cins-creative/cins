@@ -3676,7 +3676,10 @@ a.cins-chat-og-card.is-me:hover {
   font-size: 10px;
   font-weight: 800;
   line-height: 1;
-  transition: background 160ms ease, transform 160ms ease;
+  transition:
+    background 160ms ease,
+    transform 160ms ease,
+    opacity 160ms ease;
 }
 
 .j-chat-bubble-action.is-count {
@@ -3695,28 +3698,51 @@ a.cins-chat-og-card.is-me:hover {
   color: #fff;
 }
 
+/* Desktop: nút X ẩn mặc định — hiện khi hover / focus bubble. */
+@media (hover: hover) and (pointer: fine) {
+  .j-chat-bubble-action.is-dismiss {
+    opacity: 0;
+    pointer-events: none;
+    transform: scale(0.88);
+  }
+
+  .j-chat-bubble-wrap:hover .j-chat-bubble-action.is-dismiss,
+  .j-chat-bubble-wrap:focus-within .j-chat-bubble-action.is-dismiss,
+  .j-chat-bubble-action.is-dismiss:focus-visible {
+    opacity: 1;
+    pointer-events: auto;
+    transform: scale(1);
+  }
+
+  .j-chat-bubble-wrap:hover .j-chat-bubble-action.is-dismiss:hover,
+  .j-chat-bubble-action.is-dismiss:focus-visible:hover {
+    background: #374151;
+    transform: scale(1.08);
+  }
+}
+
 .j-chat-bubble-action.is-dismiss:hover {
   background: #374151;
   transform: scale(1.08);
 }
 
+/* Gắn trên từng bubble đang kéo — neo theo wrap, avatar tự trượt lên. */
 .j-chat-bubble-trash-zone {
   position: absolute;
   left: 50%;
-  bottom: calc(100% + 14px);
+  bottom: calc(100% + 10px);
   transform: translateX(-50%);
   z-index: 50;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 14px;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
   border-radius: 999px;
   border: 1.5px solid rgba(148, 163, 184, 0.45);
   background: rgba(15, 23, 42, 0.88);
   color: #e2e8f0;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.01em;
   pointer-events: none;
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.28);
   animation: j-chat-trash-in 180ms ease-out both;
