@@ -110,9 +110,13 @@ export function JourneyCommentLink({
       ? openComments
       : () => {
           if (!isAuthenticated) {
-            openAuthModal(
-              "Đăng nhập hoặc tạo tài khoản để bình luận bài viết này.",
-            );
+            if (authGate) {
+              authGate.openAuthModal(
+                "Đăng nhập hoặc tạo tài khoản để bình luận bài viết này.",
+              );
+            } else {
+              router.push("/login");
+            }
           }
         };
 
@@ -214,9 +218,7 @@ export function JourneyCommentLink({
       type="button"
       className={count > 0 ? "action-btn-part action-btn-part--icon" : "action-btn"}
       aria-label="Bình luận — cần đăng nhập"
-      onClick={() =>
-        openAuthModal("Đăng nhập hoặc tạo tài khoản để bình luận bài viết này.")
-      }
+      onClick={openComments}
     >
       {icon}
     </button>,

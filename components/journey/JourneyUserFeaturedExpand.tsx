@@ -94,13 +94,15 @@ async function probeAspect(item: GalleryPinnedBanner): Promise<number> {
 
 /**
  * Mũi tên dưới card user — xổ Nội dung nổi bật (masonry 3 cột thật, scroll khi nhiều).
+ * Ẩn hoàn toàn khi user không có bài pinned.
  */
 export function JourneyUserFeaturedExpand({ slug }: Props) {
   const trimmed = slug.trim();
   const [open, setOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<GalleryPinnedBanner[] | null>(null);
-  const [error, setError] = useState(false);
+  const [loadState, setLoadState] = useState<"idle" | "loading" | "ready" | "error">(
+    "idle",
+  );
   const [aspectById, setAspectById] = useState<Map<string, number>>(
     () => new Map(),
   );
@@ -109,40 +111,36 @@ export function JourneyUserFeaturedExpand({ slug }: Props) {
   useEffect(() => {
     setOpen(false);
     setItems(null);
-    setError(false);
-    setLoading(false);
+    setLoadState("idle");
     setAspectById(new Map());
   }, [trimmed]);
 
   useEffect(() => {
-    if (!open || !trimmed || items != null) return;
+    if (!trimmed) return;
     let cancelled = false;
-    setLoading(true);
-    setError(false);
+    setLoadState("loading");
     void fetch(`/api/journey/${encodeURIComponent(trimmed)}/gallery-aside`)
       .then((res) => (res.ok ? res.json() : null))
       .then((json: AsidePayload | null) => {
         if (cancelled) return;
         if (!json) {
-          setError(true);
+          setLoadState("error");
           setItems([]);
           return;
         }
         setItems(Array.isArray(json.pinned) ? json.pinned : []);
+        setLoadState("ready");
       })
       .catch(() => {
         if (!cancelled) {
-          setError(true);
+          setLoadState("error");
           setItems([]);
         }
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
       });
     return () => {
       cancelled = true;
     };
-  }, [open, trimmed, items]);
+  }, [trimmed]);
 
   useEffect(() => {
     if (!open || !items || items.length === 0) return;
@@ -200,7 +198,9 @@ export function JourneyUserFeaturedExpand({ slug }: Props) {
     return cols.slice(0, MASONRY_COLS);
   }, [items, aspectById]);
 
-  if (!trimmed) return null;
+  const hasFeatured = loadState === "ready" && (items?.length ?? 0) > 0;
+
+  if (!trimmed || !hasFeatured) return null;
 
   return (
     <div className={`j-user-featured${open ? " is-open" : ""}`}>
@@ -226,71 +226,61 @@ export function JourneyUserFeaturedExpand({ slug }: Props) {
           role="region"
           aria-label="Nội dung nổi bật"
         >
-          {loading ? (
-            <p className="j-user-featured-status">Đang tải…</p>
-          ) : error ? (
-            <p className="j-user-featured-status">Không tải được nội dung nổi bật.</p>
-          ) : !items || items.length === 0 ? (
-            <p className="j-user-featured-status">
-              Chưa có bài nổi bật. Gắn thẻ Nổi bật trên milestone để hiển thị ở đây.
-            </p>
-          ) : (
-            <div
-              className="j-user-featured-masonry"
-              style={{ "--j-featured-cols": MASONRY_COLS } as CSSProperties}
-            >
-              {(columns ?? [[]]).map((col, colIndex) => (
-                <div
-                  key={`col-${colIndex}`}
-                  className="j-user-featured-mcol"
-                  aria-hidden={col.length === 0 ? true : undefined}
-                >
-                  {col.map((cell) => {
-                    const item = cell.data;
-                    const cotMocId = pinnedCotMocId(item);
-                    const label =
-                      [item.title, item.meta].filter(Boolean).join(" · ") ||
-                      "Bài nổi bật";
-                    return (
-                      <button
-                        key={item.id}
-                        type="button"
-                        className="j-user-featured-tile"
-                        aria-label={label}
-                        disabled={!cotMocId}
-                        style={{ aspectRatio: String(cell.aspect) }}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          event.preventDefault();
-                          openPost(cotMocId);
-                        }}
-                      >
-                        <GalleryItemVisual
-                          src={item.src}
-                          srcSet={item.srcSet}
-                          sizes={item.srcSet ? "140px" : undefined}
-                          width={item.width}
-                          height={item.height}
-                          alt=""
-                          isVideo={item.isVideo || item.mediaKind === "video"}
-                          videoProcessing={item.videoProcessing}
-                          videoPreviewSrc={item.videoPreviewSrc}
+          <div
+            className="j-user-featured-masonry"
+            style={{ "--j-featured-cols": MASONRY_COLS } as CSSProperties}
+          >
+            {(columns ?? [[]]).map((col, colIndex) => (
+              <div
+                key={`col-${colIndex}`}
+                className="j-user-featured-mcol"
+                aria-hidden={col.length === 0 ? true : undefined}
+              >
+                {col.map((cell) => {
+                  const item = cell.data;
+                  const cotMocId = pinnedCotMocId(item);
+                  const label =
+                    [item.title, item.meta].filter(Boolean).join(" · ") ||
+                    "Bài nổi bật";
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className="j-user-featured-tile"
+                      aria-label={label}
+                      disabled={!cotMocId}
+                      style={{ aspectRatio: String(cell.aspect) }}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        event.preventDefault();
+                        openPost(cotMocId);
+                      }}
+                    >
+                      <GalleryItemVisual
+                        src={item.src}
+                        srcSet={item.srcSet}
+                        sizes={item.srcSet ? "140px" : undefined}
+                        width={item.width}
+                        height={item.height}
+                        alt=""
+                        isVideo={item.isVideo || item.mediaKind === "video"}
+                        videoProcessing={item.videoProcessing}
+                        videoPreviewSrc={item.videoPreviewSrc}
+                      />
+                      {item.isVideo || item.mediaKind === "video" ? (
+                        <GalleryVideoPlayBadge />
+                      ) : null}
+                      {item.mediaKind === "embed" && item.embedProvider ? (
+                        <GalleryEmbedPlatformBadge
+                          provider={item.embedProvider}
                         />
-                        {item.isVideo || item.mediaKind === "video" ? (
-                          <GalleryVideoPlayBadge />
-                        ) : null}
-                        {item.mediaKind === "embed" && item.embedProvider ? (
-                          <GalleryEmbedPlatformBadge
-                            provider={item.embedProvider}
-                          />
-                        ) : null}
-                      </button>
-                    );
-                  })}
-                </div>
-              ))}
-            </div>
-          )}
+                      ) : null}
+                    </button>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
         </div>
       ) : null}
       {overlay}

@@ -34,7 +34,6 @@ import { WorldJourneyGuestRightAside } from "@/components/cins/world-journey/Wor
 import { BunnyVideoProcessingPoller } from "@/components/journey/BunnyVideoProcessingPoller";
 import { JourneyGalleryGridView } from "@/components/journey/JourneyGalleryGridView";
 import type { SidebarProfile } from "@/components/journey/JourneySidebar";
-import { JourneyViewProvider } from "@/components/journey/JourneyViewContext";
 import { OrgNotifyFabHost } from "@/components/org/OrgNotifyFab";
 import {
   buildWorldJourneyFeedQuery,
@@ -345,8 +344,9 @@ function WorldJourneyFilterBar({
                         {group.label}
                       </div>
                       {platforms.map((platform) => {
-                        const selected =
-                          selectedEmbedPlatforms.includes(platform.id);
+                        const selected = selectedEmbedPlatforms.includes(
+                          platform.id,
+                        );
                         return (
                           <button
                             key={platform.id}
@@ -358,9 +358,7 @@ function WorldJourneyFilterBar({
                               e.stopPropagation();
                               onFilter(
                                 toggleWorldJourneyEmbedFilterPlatform(
-                                  isEmbedFilterActive
-                                    ? activeFilter
-                                    : "embed",
+                                  isEmbedFilterActive ? activeFilter : "embed",
                                   platform.id,
                                 ),
                               );
@@ -526,7 +524,9 @@ function WorldJourneyFilterSearching({
           <span className="wj-feed-searching-beam" />
         </div>
       </div>
-      <b>{isGallery ? "Đang tìm gallery theo bộ lọc…" : "Đang tìm theo bộ lọc…"}</b>
+      <b>
+        {isGallery ? "Đang tìm gallery theo bộ lọc…" : "Đang tìm theo bộ lọc…"}
+      </b>
       <p>
         {isGallery
           ? "Đang query lại các ô khớp bộ lọc đã chọn."
@@ -702,7 +702,8 @@ export function WorldJourneyFeed({
   useEffect(() => {
     const onComposePublished = (event: Event) => {
       const detail = (event as CustomEvent<ComposePublishedDetail>).detail;
-      if (!detail?.ownerSlug || detail.ownerSlug !== sidebarProfile.slug) return;
+      if (!detail?.ownerSlug || detail.ownerSlug !== sidebarProfile.slug)
+        return;
       if (!detail.milestone) return;
       const milestone: MilestoneItem = {
         ...detail.milestone,
@@ -741,8 +742,7 @@ export function WorldJourneyFeed({
 
   const activeChip = findWorldJourneyFilterChip(filterChips, activeFilter);
   const exploreIds = useMemo(
-    () =>
-      new Set(feedMilestones.filter((m) => m.feedExplore).map((m) => m.id)),
+    () => new Set(feedMilestones.filter((m) => m.feedExplore).map((m) => m.id)),
     [feedMilestones],
   );
   /* Server đã lọc theo filter/source/linhVuc; client chỉ sort + giữ an toàn cho bài compose vừa đăng. */
@@ -849,7 +849,8 @@ export function WorldJourneyFeed({
           fetch(`/api/world-journey/feed?${feedQs}`),
           fetch(`/api/world-journey/gallery?${galleryQs}`),
         ]);
-        if (!feedRes.ok || !galleryRes.ok) throw new Error("filter fetch failed");
+        if (!feedRes.ok || !galleryRes.ok)
+          throw new Error("filter fetch failed");
         const feedData = (await feedRes.json()) as {
           milestones: MilestoneItem[];
           hasMore: boolean;
@@ -897,139 +898,134 @@ export function WorldJourneyFeed({
   const isGallery = surfaceView === "gallery";
 
   return (
-    <JourneyViewProvider initialView="journey" slug={sidebarProfile.slug}>
-      <div
-        className={
-          "world-journey-home cins-journey-page" +
-          (isGallery ? " view-grid" : "")
-        }
-        aria-label="World Journey"
-      >
-        <header className="wj-feed-header">
-          <WorldJourneyFilterBar
-            chips={filterChips}
-            activeFilter={activeFilter}
-            onFilter={setActiveFilter}
-            feedSource={feedSource}
-            onFeedSource={setFeedSource}
-            sort={sort}
-            onSort={setSort}
-            sortOpen={sortOpen}
-            onSortOpen={setSortOpen}
-            surfaceView={surfaceView}
-            onSurfaceView={handleSurfaceView}
-          />
-        </header>
+    <div
+      className={
+        "world-journey-home cins-journey-page" + (isGallery ? " view-grid" : "")
+      }
+      aria-label="World Journey"
+    >
+      <header className="wj-feed-header">
+        <WorldJourneyFilterBar
+          chips={filterChips}
+          activeFilter={activeFilter}
+          onFilter={setActiveFilter}
+          feedSource={feedSource}
+          onFeedSource={setFeedSource}
+          sort={sort}
+          onSort={setSort}
+          sortOpen={sortOpen}
+          onSortOpen={setSortOpen}
+          surfaceView={surfaceView}
+          onSurfaceView={handleSurfaceView}
+        />
+      </header>
 
-        <div className="wj-shell">
-          {leftAside ?? (
-            <WorldJourneyGuestLeftAside
-              linhVucs={linhVucs}
-              activeLinhVucSlug={activeLinhVucSlug}
-              onLinhVucFilter={setActiveLinhVucSlug}
+      <div className="wj-shell">
+        {leftAside ?? (
+          <WorldJourneyGuestLeftAside
+            linhVucs={linhVucs}
+            activeLinhVucSlug={activeLinhVucSlug}
+            onLinhVucFilter={setActiveLinhVucSlug}
+          />
+        )}
+
+        <div className={`wj-feed${isGallery ? " view-grid" : ""}`}>
+          {pendingConfirmations}
+          {!isGallery ? (
+            <CinsFeedComposer
+              ownerSlug={sidebarProfile.slug}
+              ownerName={sidebarProfile.tenHienThi}
+              avatarUrl={sidebarProfile.avatarUrl}
+              layout="feed"
+            />
+          ) : null}
+
+          {isGallery ? (
+            filterLoading ? (
+              <WorldJourneyFilterSearching surface="gallery" />
+            ) : galleryRows.length === 0 && !galleryMore ? (
+              <div className="wj-feed-empty">
+                <LayoutGrid size={22} strokeWidth={1.8} aria-hidden />
+                {activeFilter !== "all" || feedSource !== "all" ? (
+                  <>
+                    <b>Không có ô khớp bộ lọc</b>
+                    <p>Thử «Tất cả» hoặc «Tất cả nhúng», hoặc đổi lọc nguồn.</p>
+                  </>
+                ) : (
+                  <>
+                    <b>Gallery đang trống</b>
+                    <p>
+                      Dự án <strong>Nổi bật</strong> của mọi người, bài cộng
+                      đồng có media, và <strong>Showcase</strong> studio sẽ hiện
+                      ở đây.
+                    </p>
+                  </>
+                )}
+              </div>
+            ) : (
+              <JourneyGalleryGridView
+                key={galleryEndpoint}
+                hideToolbar
+                sourceFilter="all"
+                initialItems={galleryRows}
+                totalCount={galleryRows.length}
+                scrollLoad={{
+                  ownerSlug: sidebarProfile.slug,
+                  hasMore: galleryMore,
+                  nextOffset: galleryOffset,
+                  endpoint: galleryEndpoint,
+                }}
+              />
+            )
+          ) : visibleMilestones.length === 0 ? (
+            filterLoading || loadingMore ? (
+              <WorldJourneyFilterSearching surface="feed" />
+            ) : (
+              <div className="wj-feed-empty">
+                <Sparkles size={22} strokeWidth={1.8} aria-hidden />
+                {activeFilter !== "all" ||
+                activeLinhVucSlug ||
+                feedSource !== "all" ? (
+                  <>
+                    <b>Không có bài khớp bộ lọc</b>
+                    <p>
+                      Thử «Tất cả», «Tất cả nhúng», hoặc đổi lọc nguồn nội dung.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <b>Feed đang trống</b>
+                    <p>
+                      Theo dõi vài người hoặc tổ chức, hoặc khám phá bài{" "}
+                      <strong>Công khai</strong> / <strong>Nổi bật</strong> từ
+                      cộng đồng — tất cả sẽ hiện ở đây.
+                    </p>
+                  </>
+                )}
+              </div>
+            )
+          ) : (
+            <WorldJourneyFeedTimeline
+              milestones={visibleMilestones}
+              viewerProfileId={viewerProfileId}
+              feedPromos={feedPromos}
+              scrollLoad={hasMore ? { enabled: true } : null}
+              loadingMore={loadingMore}
+              loadError={loadError}
+              onLoadMore={() => void loadMore()}
             />
           )}
 
-          <div className={`wj-feed${isGallery ? " view-grid" : ""}`}>
-            {pendingConfirmations}
-            {!isGallery ? (
-              <CinsFeedComposer
-                ownerSlug={sidebarProfile.slug}
-                ownerName={sidebarProfile.tenHienThi}
-                avatarUrl={sidebarProfile.avatarUrl}
-                layout="feed"
-              />
-            ) : null}
-
-            {isGallery ? (
-              filterLoading ? (
-                <WorldJourneyFilterSearching surface="gallery" />
-              ) : galleryRows.length === 0 && !galleryMore ? (
-                <div className="wj-feed-empty">
-                  <LayoutGrid size={22} strokeWidth={1.8} aria-hidden />
-                  {activeFilter !== "all" || feedSource !== "all" ? (
-                    <>
-                      <b>Không có ô khớp bộ lọc</b>
-                      <p>
-                        Thử «Tất cả» hoặc «Tất cả nhúng», hoặc đổi lọc nguồn.
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <b>Gallery đang trống</b>
-                      <p>
-                        Dự án <strong>Nổi bật</strong> của mọi người, bài cộng
-                        đồng có media, và <strong>Showcase</strong> studio sẽ
-                        hiện ở đây.
-                      </p>
-                    </>
-                  )}
-                </div>
-              ) : (
-                <JourneyGalleryGridView
-                  key={galleryEndpoint}
-                  hideToolbar
-                  sourceFilter="all"
-                  initialItems={galleryRows}
-                  totalCount={galleryRows.length}
-                  scrollLoad={{
-                    ownerSlug: sidebarProfile.slug,
-                    hasMore: galleryMore,
-                    nextOffset: galleryOffset,
-                    endpoint: galleryEndpoint,
-                  }}
-                />
-              )
-            ) : visibleMilestones.length === 0 ? (
-              filterLoading || loadingMore ? (
-                <WorldJourneyFilterSearching surface="feed" />
-              ) : (
-                <div className="wj-feed-empty">
-                  <Sparkles size={22} strokeWidth={1.8} aria-hidden />
-                  {activeFilter !== "all" ||
-                  activeLinhVucSlug ||
-                  feedSource !== "all" ? (
-                    <>
-                      <b>Không có bài khớp bộ lọc</b>
-                      <p>
-                        Thử «Tất cả», «Tất cả nhúng», hoặc đổi lọc nguồn nội dung.
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <b>Feed đang trống</b>
-                      <p>
-                        Theo dõi vài người hoặc tổ chức, hoặc khám phá bài{" "}
-                        <strong>Công khai</strong> / <strong>Nổi bật</strong> từ
-                        cộng đồng — tất cả sẽ hiện ở đây.
-                      </p>
-                    </>
-                  )}
-                </div>
-              )
-            ) : (
-              <WorldJourneyFeedTimeline
-                milestones={visibleMilestones}
-                viewerProfileId={viewerProfileId}
-                feedPromos={feedPromos}
-                scrollLoad={hasMore ? { enabled: true } : null}
-                loadingMore={loadingMore}
-                loadError={loadError}
-                onLoadMore={() => void loadMore()}
-              />
-            )}
-
-            {!isGallery && visibleMilestones.length > 0 && !hasMore ? (
-              <div className="wj-feed-end">
-                <b>Đã hết nội dung mới</b>
-              </div>
-            ) : null}
-          </div>
-
-          {rightAside ?? <WorldJourneyGuestRightAside />}
+          {!isGallery && visibleMilestones.length > 0 && !hasMore ? (
+            <div className="wj-feed-end">
+              <b>Đã hết nội dung mới</b>
+            </div>
+          ) : null}
         </div>
-        <BunnyVideoProcessingPoller ownerSlug={sidebarProfile.slug} />
+
+        {rightAside ?? <WorldJourneyGuestRightAside />}
       </div>
-    </JourneyViewProvider>
+      <BunnyVideoProcessingPoller ownerSlug={sidebarProfile.slug} />
+    </div>
   );
 }

@@ -238,27 +238,38 @@
   background: var(--bg-surface, #fff);
   border: 1px solid var(--border, #e4e6eb);
   border-radius: 999px;
-  padding: 3px;
+  padding: 2px;
 }
 
 .entity-light-seg button {
   border: 0;
   background: transparent;
-  font-family: var(--font-be-vietnam, "Be Vietnam Pro", system-ui, sans-serif);
-  font-size: 13px;
-  font-weight: 600;
   color: var(--ink-muted, rgba(0, 0, 0, 0.4));
-  padding: 7px 15px;
+  width: 34px;
+  height: 34px;
+  padding: 0;
   border-radius: 999px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.entity-light-seg button:hover:not(.is-on) {
+  color: var(--ink-title, rgba(0, 0, 0, 0.62));
+  background: var(--neutral-50, #f8f9fb);
 }
 
 .entity-light-seg button.is-on {
   background: var(--cins-blue, #1f74c9);
   color: #fff;
+}
+
+.entity-light-seg button .lay-thumb {
+  display: block;
 }
 
 .entity-light-bar-right {
@@ -372,8 +383,28 @@
   gap: 14px;
 }
 
+.entity-light-grid--masonry {
+  display: block;
+  columns: 3;
+  column-gap: 14px;
+}
+
+.entity-light-grid--masonry > .entity-gcard {
+  break-inside: avoid;
+  margin-bottom: 14px;
+  width: 100%;
+  display: inline-flex;
+  flex-direction: column;
+  vertical-align: top;
+}
+
+.entity-light-grid--masonry .entity-gcard-thumb {
+  aspect-ratio: auto;
+  min-height: 120px;
+}
+
 .entity-gcard {
-  background: #fff;
+  background: var(--bg-surface, #fff);
   border: 1px solid var(--border, #e4e6eb);
   border-radius: var(--radius-md, 14px);
   overflow: hidden;
@@ -383,15 +414,25 @@
 }
 
 .entity-gcard-thumb {
-  aspect-ratio: 1;
+  aspect-ratio: 4 / 3;
   display: flex;
   align-items: center;
   justify-content: center;
   background: var(--neutral-100, #f1f2f5);
-  color: #fff;
-  font-family: var(--font-anton, "Anton", system-ui, sans-serif);
-  font-size: 16px;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.4));
+  font-family: var(--font-be-vietnam, "Be Vietnam Pro", system-ui, sans-serif);
+  font-size: 15px;
+  font-weight: 600;
   overflow: hidden;
+}
+
+.entity-gcard-thumb.is-empty {
+  background: linear-gradient(
+    145deg,
+    var(--neutral-50, #f8f9fb) 0%,
+    var(--neutral-200, #e4e6eb) 100%
+  );
+  color: var(--ink-muted, #64748b);
 }
 
 .entity-gcard-thumb img {
@@ -481,6 +522,15 @@
 
   .entity-light-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .entity-light-grid--masonry {
+    columns: 2;
+    column-gap: 10px;
+  }
+
+  .entity-light-grid--masonry > .entity-gcard {
+    margin-bottom: 10px;
   }
 
   .entity-light-page .entity-light-bar {

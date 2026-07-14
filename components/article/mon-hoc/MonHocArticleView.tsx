@@ -1,3 +1,4 @@
+import { ContributionTabPanel } from "@/components/article/contribution/ContributionTabPanel";
 import { ArticleJsonLd } from "@/components/article/ArticleJsonLd";
 import { InlineArticleDraftBar } from "@/components/article/InlineArticleDraftBar";
 import { EntityArticleDiscussion } from "@/components/article/entity/EntityArticleDiscussion";
@@ -15,7 +16,11 @@ import {
 import { MonHocCoursesSection } from "@/components/article/mon-hoc/MonHocCoursesSection";
 import { resolveHubArticleImages } from "@/lib/bai-viet/thumbnail";
 import { buildArticleLeadSource } from "@/lib/articles/article-lead-source";
-import { entityCanonicalLeadHtml } from "@/lib/article/dong-gop/canonical-content";
+import {
+  entityCanonicalLeadHtml,
+  hasEntityCanonicalContent,
+} from "@/lib/article/dong-gop/canonical-content";
+import { listDongGopForEntityTab } from "@/lib/article/dong-gop/public-list";
 import { fetchRecentTacPhamGallery } from "@/lib/articles/queries";
 import { getVideoUrlFromArticleMeta } from "@/lib/articles/lead-video-url";
 import { partitionNgheRelated } from "@/lib/articles/rel-visual";
@@ -75,6 +80,25 @@ export async function MonHocArticleView({
   const galleryItems =
     tacPham.length > 0 ? tacPham : await fetchRecentTacPhamGallery(6);
 
+  const canonicalEmpty = !hasEntityCanonicalContent(article.noi_dung);
+  const isLoggedIn = viewerProfileId != null;
+  const contributionData = await listDongGopForEntityTab(
+    article.id,
+    viewerProfileId,
+    {
+      loaiBaiViet: "mon_hoc",
+      entityTitle: article.tieu_de,
+      entitySeed: {
+        tieu_de: titleMain,
+        tieu_de_viet: article.tieu_de_viet ?? "",
+        tieu_de_eng: article.tieu_de_eng ?? "",
+        tom_tat: article.tom_tat ?? "",
+        video_url: leadVideoUrl ?? "",
+        thumbnail: article.thumbnail ?? "",
+      },
+    },
+  );
+
   const content = (
     <div className="nghe-lead-panel entity-lead-panel" data-rich-lead-slot="true">
       {leadVideoUrl ? <NgheLeadVideo url={leadVideoUrl} /> : null}
@@ -131,6 +155,24 @@ export async function MonHocArticleView({
           />
         }
         content={content}
+        contentExtra={contentExtra}
+        contribution={
+          <ContributionTabPanel
+            items={contributionData.items}
+            count={contributionData.count}
+            isLoggedIn={isLoggedIn}
+            viewerHasDraft={contributionData.viewerHasDraft}
+            loginNext={slugPath}
+            idBaiViet={article.id}
+            articleTitle={article.tieu_de}
+            loaiBaiViet="mon_hoc"
+            viewerEditor={contributionData.viewerEditor}
+          />
+        }
+        canonicalEmpty={canonicalEmpty}
+        entityKindLabel="Môn học"
+        isLoggedIn={isLoggedIn}
+        loginNext={slugPath}
         discussion={
           <EntityArticleDiscussion
             users={entityTaggedUsers}

@@ -24,6 +24,18 @@ function viewFromSearch(search: string): JourneyProfileView {
   return "journey";
 }
 
+/** Chỉ pin `?view=journey` trên bare `/{slug}` — không đụng `/` (World Journey). */
+function isBareProfilePath(pathname: string, slug: string): boolean {
+  const segments = pathname.replace(/\/+$/, "").split("/").filter(Boolean);
+  if (segments.length !== 1) return false;
+  const segment = segments[0]!;
+  try {
+    return decodeURIComponent(segment) === slug;
+  } catch {
+    return segment === slug;
+  }
+}
+
 /** URL khi user chọn tab trên trang hồ sơ.
  *  Journey luôn gắn `?view=journey` (không dùng bare `/{slug}`) để refresh /
  *  like / comment không bị server áp lại chế độ mặc định của chủ trang. Bare
@@ -76,9 +88,14 @@ export function JourneyViewProvider({
     const fromUrl = viewFromSearch(window.location.search);
     setViewState((current) => (current === fromUrl ? current : fromUrl));
 
-    // Đang xem Journey nhưng URL còn bare (thiếu ?view=) — pin `?view=journey`
+    // Đang xem Journey trên bare `/{slug}` (thiếu ?view=) — pin `?view=journey`
     // để F5 / router.refresh sau action không bị redirect về layout mặc định.
-    if (initialView === "journey" && raw == null) {
+    // Không pin khi đang ở trang chủ `/` (World Journey cũng dùng provider/reuse).
+    if (
+      initialView === "journey" &&
+      raw == null &&
+      isBareProfilePath(window.location.pathname, slug)
+    ) {
       window.history.replaceState(
         { journeyView: "journey" },
         "",

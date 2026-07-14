@@ -36,8 +36,8 @@ export function EntityLightTimeline({
       <div className="entity-light-works-content">
         {milestones.length === 0 ? (
           <p className="entity-light-empty">Chưa có tác phẩm nào gắn tag này.</p>
-        ) : view === "grid" ? (
-          <EntityLightGrid milestones={milestones} />
+        ) : view === "grid" || view === "masonry" ? (
+          <EntityLightGrid milestones={milestones} layout={view} />
         ) : (
           <EntityLightJourneyFeed
             milestones={milestones}
