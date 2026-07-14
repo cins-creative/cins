@@ -121,6 +121,8 @@ export type OrgDoanProjectItem = {
   coverAlt?: string | null;
   coverGradient?: string | null;
   photoCount?: number | null;
+  /** MP4 Bunny — frame đầu khi không có thumb (đồng bộ Journey gallery). */
+  videoPreviewSrc?: string | null;
   tile: "short" | "tall" | "square";
   isVideo?: boolean;
   khoaHocId?: string | null;

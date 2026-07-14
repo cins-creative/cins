@@ -1,5 +1,12 @@
 import "server-only";
 
+import {
+  buildBunnyVideoMp4Url as buildBunnyVideoMp4UrlServer,
+  buildBunnyVideoThumbnailUrl as buildBunnyVideoThumbnailUrlServer,
+} from "@/lib/bunny/thumbnail";
+import { journeyImageFields } from "@/lib/journey/images";
+import { parseServerBlocks } from "@/lib/journey/parse-server-blocks";
+import { resolvePostGridEntry } from "@/lib/journey/post-content-kind";
 import { getAvatarUrl } from "@/lib/journey/profile";
 import {
   ORG_MILESTONE_TAG_KIND,
@@ -15,11 +22,30 @@ import {
 } from "@/lib/journey/org-milestone-tag-types";
 import { setDiemVerifyChoCotMoc } from "@/lib/cins/feed-scoring-write";
 import { notifyOrgMilestoneTagApproved } from "@/lib/social/org-milestone-tag-notify";
-import { isGalleryVideoCoverSrc } from "@/lib/journey/post-media";
+import {
+  extractVideoUrl,
+  isGalleryVideoCoverSrc,
+} from "@/lib/journey/post-media";
+import {
+  bunnyVideoIdFromBlocks,
+  resolveBunnyEmbed,
+} from "@/lib/journey/video-embed";
 import { isCoSoOrgAdmin } from "@/lib/to-chuc/co-so-membership";
 import { orgPublicHref } from "@/lib/search/helpers";
 import { isTruongOrgAdmin } from "@/lib/truong/org-admin";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+
+type DoanCoverVisual = {
+  coverSrc: string | null;
+  isVideo: boolean;
+  videoPreviewSrc: string | null;
+};
+
+type DoanHrefEntry = {
+  cotMocId: string;
+  tacPhamId: string;
+  studentSlug: string;
+};
 
 type DbYeuCauRow = {
   id: string;
@@ -677,12 +703,6 @@ function postPublicHref(
   return `/${owner}/p/${post}`;
 }
 
-type DoanHrefEntry = {
-  cotMocId: string;
-  tacPhamId: string;
-  studentSlug: string;
-};
-
 async function resolveDoanProjectHrefs(
   admin: ReturnType<typeof createServiceRoleClient>,
   entries: DoanHrefEntry[],
@@ -781,6 +801,165 @@ async function resolveDoanProjectHrefs(
 function pickTile(index: number): OrgDoanProjectItem["tile"] {
   const tiles: OrgDoanProjectItem["tile"][] = ["tall", "square", "short"];
   return tiles[index % tiles.length]!;
+}
+
+/** Đồng bộ Gallery Journey: `coverId` → CF URL, Bunny thumb/MP4 khi video. */
+function doanCoverVisualFromTacPham(row: {
+  cover_id: string | null;
+  mo_ta: string | null;
+  noi_dung_blocks: unknown;
+}): DoanCoverVisual | null {
+  const blocks = parseServerBlocks(row.noi_dung_blocks) ?? [];
+  const gridRaw = resolvePostGridEntry({
+    moTa: row.mo_ta,
+    coverId: row.cover_id,
+    blocks,
+  });
+  if (!gridRaw) return null;
+
+  let grid = gridRaw;
+  if (grid.mediaKind === "video") {
+    const url = extractVideoUrl(blocks) ?? "";
+    const bunny = resolveBunnyEmbed(url, bunnyVideoIdFromBlocks(blocks));
+    if (bunny) {
+      grid = {
+        ...grid,
+        coverSrc: grid.coverSrc ?? buildBunnyVideoThumbnailUrlServer(bunny.videoId),
+        videoPreviewSrc:
+          grid.videoPreviewSrc ?? buildBunnyVideoMp4UrlServer(bunny.videoId),
+      };
+    }
+  }
+
+  if (grid.mediaKind === "video" && grid.coverId) {
+    const custom = journeyImageFields(grid.coverId, "gallery-grid");
+    if (custom?.src) {
+      return {
+        coverSrc: custom.src,
+        isVideo: true,
+        videoPreviewSrc: grid.videoPreviewSrc,
+      };
+    }
+  }
+  if (grid.coverSrc) {
+    return {
+      coverSrc: grid.coverSrc,
+      isVideo: grid.mediaKind === "video",
+      videoPreviewSrc: grid.videoPreviewSrc,
+    };
+  }
+  if (grid.coverId) {
+    const img = journeyImageFields(grid.coverId, "gallery-grid");
+    if (img?.src) {
+      return {
+        coverSrc: img.src,
+        isVideo: grid.mediaKind === "video",
+        videoPreviewSrc: grid.videoPreviewSrc,
+      };
+    }
+  }
+
+  return {
+    coverSrc: null,
+    isVideo: grid.mediaKind === "video",
+    videoPreviewSrc: grid.videoPreviewSrc,
+  };
+}
+
+/**
+ * Cover/thumb theo bài live — snapshot `album.coverSrc` lúc gắn org hay thiếu
+ * (album không `cover_id`, video Bunny…). Key = `id_cot_moc`.
+ */
+async function resolveDoanCoverVisualsByCotMoc(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  entries: DoanHrefEntry[],
+): Promise<Map<string, DoanCoverVisual>> {
+  const out = new Map<string, DoanCoverVisual>();
+  if (entries.length === 0) return out;
+
+  const tacPhamIds = [
+    ...new Set(entries.map((e) => e.tacPhamId).filter(Boolean)),
+  ];
+  const cotMocIds = [
+    ...new Set(entries.map((e) => e.cotMocId).filter(Boolean)),
+  ];
+
+  const tpById = new Map<
+    string,
+    {
+      cover_id: string | null;
+      mo_ta: string | null;
+      noi_dung_blocks: unknown;
+    }
+  >();
+  if (tacPhamIds.length > 0) {
+    const { data: tacPhams } = await admin
+      .from("content_tac_pham")
+      .select("id, cover_id, mo_ta, noi_dung_blocks")
+      .in("id", tacPhamIds)
+      .returns<
+        Array<{
+          id: string;
+          cover_id: string | null;
+          mo_ta: string | null;
+          noi_dung_blocks: unknown;
+        }>
+      >();
+    for (const tp of tacPhams ?? []) {
+      tpById.set(tp.id, tp);
+    }
+  }
+
+  const firstTpIdByMoc = new Map<string, string>();
+  if (cotMocIds.length > 0) {
+    const { data: links } = await admin
+      .from("content_tac_pham_thuoc_moc")
+      .select("id_cot_moc, id_tac_pham")
+      .in("id_cot_moc", cotMocIds)
+      .order("thu_tu", { ascending: true })
+      .returns<Array<{ id_cot_moc: string; id_tac_pham: string }>>();
+
+    const missingTpIds: string[] = [];
+    for (const link of links ?? []) {
+      if (firstTpIdByMoc.has(link.id_cot_moc)) continue;
+      firstTpIdByMoc.set(link.id_cot_moc, link.id_tac_pham);
+      if (!tpById.has(link.id_tac_pham)) missingTpIds.push(link.id_tac_pham);
+    }
+
+    if (missingTpIds.length > 0) {
+      const { data: extras } = await admin
+        .from("content_tac_pham")
+        .select("id, cover_id, mo_ta, noi_dung_blocks")
+        .in("id", [...new Set(missingTpIds)])
+        .returns<
+          Array<{
+            id: string;
+            cover_id: string | null;
+            mo_ta: string | null;
+            noi_dung_blocks: unknown;
+          }>
+        >();
+      for (const tp of extras ?? []) {
+        tpById.set(tp.id, tp);
+      }
+    }
+  }
+
+  for (const entry of entries) {
+    const tpId =
+      (entry.tacPhamId && tpById.has(entry.tacPhamId)
+        ? entry.tacPhamId
+        : null) ??
+      firstTpIdByMoc.get(entry.cotMocId) ??
+      null;
+    if (!tpId) continue;
+    const row = tpById.get(tpId);
+    if (!row) continue;
+    const visual = doanCoverVisualFromTacPham(row);
+    if (visual) out.set(entry.cotMocId, visual);
+  }
+
+  return out;
 }
 
 export async function countOrgApprovedDoanTags(orgId: string): Promise<number> {
@@ -924,7 +1103,10 @@ export async function listApprovedOrgDoanProjects(
       studentSlug: payload.studentSlug,
     });
   }
-  const hrefByMoc = await resolveDoanProjectHrefs(admin, hrefEntries);
+  const [hrefByMoc, coverByMoc] = await Promise.all([
+    resolveDoanProjectHrefs(admin, hrefEntries),
+    resolveDoanCoverVisualsByCotMoc(admin, hrefEntries),
+  ]);
 
   for (const [index, row] of (rows ?? []).entries()) {
     const payload = parseOrgMilestoneTagPayload(row.noi_dung);
@@ -939,6 +1121,12 @@ export async function listApprovedOrgDoanProjects(
       continue;
     }
     if (options.khoaHocId && !payload.khoaHocId) continue;
+
+    const liveCover = coverByMoc.get(row.id_cot_moc);
+    const coverSrc =
+      liveCover?.coverSrc?.trim() || payload.album.coverSrc?.trim() || null;
+    const isVideo =
+      liveCover?.isVideo ?? isGalleryVideoCoverSrc(coverSrc);
 
     items.push({
       id: row.id,
@@ -960,11 +1148,12 @@ export async function listApprovedOrgDoanProjects(
           : postPublicHref(payload.studentSlug, null)),
       submittedAt: row.tao_luc,
       reactionCount: reactionByMoc.get(row.id_cot_moc) ?? 0,
-      coverSrc: payload.album.coverSrc ?? null,
+      coverSrc,
       coverAlt: payload.album.coverAlt ?? null,
       coverGradient: payload.album.coverGradient ?? null,
       photoCount: payload.album.photoCount ?? null,
-      isVideo: isGalleryVideoCoverSrc(payload.album.coverSrc ?? null),
+      videoPreviewSrc: liveCover?.videoPreviewSrc ?? null,
+      isVideo,
       tile: pickTile(items.length),
       khoaHocId: payload.khoaHocId ?? null,
       khoaHocTen: payload.khoaHocTen ?? null,

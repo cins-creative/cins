@@ -4,7 +4,10 @@ import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { JourneyCoverImage } from "@/components/journey/JourneyCoverImage";
-import { GalleryVideoPlayBadge } from "@/components/journey/GalleryItemVisual";
+import {
+  GalleryItemVisual,
+  GalleryVideoPlayBadge,
+} from "@/components/journey/GalleryItemVisual";
 import { JourneyPostModal } from "@/components/journey/JourneyPostModal";
 import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
 import {
@@ -139,31 +142,32 @@ function DoanProjectCardHit({
   item: OrgDoanProjectItem;
   displayTitle: string;
 }) {
-  const hasImage = Boolean(item.coverSrc);
-  const isVideo = item.isVideo ?? isGalleryVideoCoverSrc(item.coverSrc);
-  const gridAsset = item.coverSrc
-    ? galleryGridAssetFromCfUrl(item.coverSrc)
-    : null;
+  const coverSrc = item.coverSrc?.trim() || "";
+  const isVideo = item.isVideo ?? isGalleryVideoCoverSrc(coverSrc || null);
+  const gridAsset = coverSrc ? galleryGridAssetFromCfUrl(coverSrc) : null;
+  const thumbSrc = gridAsset?.src ?? coverSrc;
+  const hasVisual = Boolean(thumbSrc) || isVideo;
 
   return (
     <>
       <div
         className="j-main-gallery-thumb"
         style={
-          !hasImage && item.coverGradient
+          !hasVisual && item.coverGradient
             ? { background: item.coverGradient }
             : undefined
         }
       >
-        {hasImage ? (
-          <JourneyCoverImage
-            src={gridAsset?.src ?? item.coverSrc!}
+        {hasVisual ? (
+          <GalleryItemVisual
+            src={thumbSrc}
             srcSet={gridAsset?.srcSet}
             sizes={gridAsset?.srcSet ? GALLERY_GRID_IMAGE_SIZES : undefined}
             alt={item.coverAlt ?? item.projectTitle}
             width={gridAsset?.width ?? 640}
             height={gridAsset?.height ?? 360}
-            className="tdh-doan-gallery-img"
+            isVideo={isVideo}
+            videoPreviewSrc={item.videoPreviewSrc}
           />
         ) : (
           <span className="tdh-doan-gallery-initials" aria-hidden>
