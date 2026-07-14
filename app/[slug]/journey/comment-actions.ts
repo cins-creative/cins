@@ -16,6 +16,7 @@ import {
 } from "@/lib/social/comments/mentions";
 import { notifyCommentReply } from "@/lib/social/comments/reply-notify";
 import { COMMENT_REACTION_KEYS } from "@/lib/social/comments/types";
+import { markEngagementCanTinhLaiForTarget } from "@/lib/cins/feed-scoring-write";
 import { notifyMilestoneComment } from "@/lib/social/follow";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
@@ -212,6 +213,8 @@ export async function addMilestoneCommentV1(
       error: "Không gửi được bình luận: " + (error?.message ?? "unknown"),
     };
   }
+
+  await markEngagementCanTinhLaiForTarget("cot_moc", milestoneId);
 
   if (milestone.ownerSlug) revalidatePath(`/${milestone.ownerSlug}`);
 

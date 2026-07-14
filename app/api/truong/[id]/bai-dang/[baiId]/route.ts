@@ -10,8 +10,10 @@ import {
 } from "@/lib/truong/bai-dang-api-fields";
 import { resolveOrgBaiDangLoaiForWrite } from "@/lib/truong/bai-dang";
 import { sanitizeBaiDangCoverIdInput } from "@/lib/truong/bai-dang-cover";
+import { recalcDiemNoiDung } from "@/lib/cins/feed-scoring-write";
 import { assertTruongOrgWriteApi } from "@/lib/truong/inline-api-auth";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import type { Block } from "@/lib/editor/types";
 
 type RouteContext = { params: Promise<{ id: string; baiId: string }> };
 
@@ -125,6 +127,34 @@ export async function PATCH(request: Request, context: RouteContext) {
   }
   if (!data) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  const contentTouched =
+    "tom_tat" in patch ||
+    "noi_dung_blocks" in patch ||
+    "cover_id" in patch ||
+    "noi_dung" in patch;
+  if (contentTouched) {
+    const row = data as {
+      id: string;
+      tom_tat?: string | null;
+      cover_id?: string | null;
+      noi_dung_blocks?: unknown;
+    };
+    const { count: tagCount } = await supabase
+      .from("org_bai_dang_tag")
+      .select("id_bai_viet", { count: "exact", head: true })
+      .eq("id_bai_dang", row.id);
+    await recalcDiemNoiDung({
+      loai: "org_bai_dang",
+      id: row.id,
+      coverId: typeof row.cover_id === "string" ? row.cover_id : null,
+      moTa: typeof row.tom_tat === "string" ? row.tom_tat : null,
+      blocks: Array.isArray(row.noi_dung_blocks)
+        ? (row.noi_dung_blocks as Block[])
+        : null,
+      hasTag: (tagCount ?? 0) > 0,
+    });
   }
 
   return NextResponse.json({ post: mapOrgBaiDangApiRow(data) });

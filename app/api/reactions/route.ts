@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
+import { markEngagementCanTinhLaiForTarget } from "@/lib/cins/feed-scoring-write";
 import { SOCIAL_LOAI_DOI_TUONG } from "@/lib/cong-dong/constants";
 import { SOCIAL_LOAI_ORG_BAI_DANG } from "@/lib/truong/social-constants";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
@@ -71,6 +72,8 @@ export async function POST(req: Request) {
     .eq("loai_doi_tuong", loaiDoiTuong)
     .eq("id_doi_tuong", idDoiTuong)
     .eq("emoji", emoji);
+
+  await markEngagementCanTinhLaiForTarget(loaiDoiTuong, idDoiTuong);
 
   return NextResponse.json({ ok: true, liked: Boolean(body.active), count: count ?? 0 });
 }

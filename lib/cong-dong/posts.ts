@@ -24,6 +24,11 @@ import {
   parseCommentImageIdsFromRow,
   sanitizeCommentImageIds,
 } from "@/lib/social/comments/attachments";
+import {
+  insertDiemFeedChoBaiMoi,
+  markEngagementCanTinhLaiForTarget,
+  recalcDiemNoiDung,
+} from "@/lib/cins/feed-scoring-write";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 const MAX_POST_LEN = 8000;
@@ -485,6 +490,15 @@ export async function createCongDongPost(params: {
     return { ok: false, error: labelAttach.error };
   }
 
+  await insertDiemFeedChoBaiMoi({
+    loai: "cot_moc",
+    id: inserted.id,
+    coverId: params.mediaIds?.[0] ?? null,
+    moTa: text,
+    blocks: null,
+    hasTag: false,
+  });
+
   const [post] = await mapPosts([inserted], params.orgId, params.authorId);
   return { ok: true, data: post! };
 }
@@ -600,6 +614,11 @@ export async function addCongDongPostComment(params: {
   if (error || !inserted) {
     return { ok: false, error: error?.message ?? "Không gửi được bình luận." };
   }
+
+  await markEngagementCanTinhLaiForTarget(
+    SOCIAL_LOAI_DOI_TUONG.COT_MOC,
+    params.postId,
+  );
 
   const badges = await loadAuthorBadges([inserted.nguoi_binh_luan]);
   const author = badges.get(inserted.nguoi_binh_luan);
@@ -741,6 +760,17 @@ export async function updateCongDongPost(params: {
       filterCheck.ids,
     );
     if (!linkFilters.ok) return { ok: false, error: linkFilters.error };
+  }
+
+  if (typeof patch.mo_ta === "string") {
+    await recalcDiemNoiDung({
+      loai: "cot_moc",
+      id: params.postId,
+      coverId: null,
+      moTa: patch.mo_ta,
+      blocks: null,
+      hasTag: false,
+    });
   }
 
   const updated = await loadPostForAction(params.postId, params.orgId);

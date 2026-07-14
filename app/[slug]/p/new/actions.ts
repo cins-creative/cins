@@ -25,6 +25,7 @@ import type { MilestoneItem } from "@/components/journey/milestone-types";
 import { revalidateTaggedArticlePages } from "@/lib/tag/revalidate-tag-pages";
 import { DEFAULT_ARTICLE_POST_TITLE } from "@/lib/journey/post-media";
 import { validatePostContentForPublish, validateMoTaLength } from "@/lib/journey/post-content-kind";
+import { insertDiemFeedChoBaiMoi } from "@/lib/cins/feed-scoring-write";
 
 /* ╔══════════════════════════════════════════════════════════════════╗
    ║ Server Action: publishPost                                       ║
@@ -44,6 +45,11 @@ import { validatePostContentForPublish, validateMoTaLength } from "@/lib/journey
 
 export type PublishPostInput = {
   ownerSlug: string;
+  /**
+   * Id profile owner trên client — ưu tiên so khớp (ổn định hơn slug URL,
+   * tránh fail khi URL `[slug]` lệch `user_nguoi_dung.slug`).
+   */
+  ownerId?: string;
   tieuDe: string;
   moTa: string;
   coverSeed: string | null;
@@ -90,8 +96,11 @@ export async function publishPost(
     return { ok: false, error: "Bạn cần đăng nhập để đăng bài." };
   }
 
-  if (session.profile.slug !== input.ownerSlug) {
-    /* Slug param URL phải khớp owner — chặn cross-user posting. */
+  /* Chặn cross-user: ưu tiên id (client luôn có); fallback slug khi thiếu id. */
+  const isOwnContext = input.ownerId
+    ? input.ownerId === session.profile.id
+    : session.profile.slug === input.ownerSlug;
+  if (!isOwnContext) {
     return { ok: false, error: "Bạn không có quyền tạo bài cho user khác." };
   }
 
@@ -265,6 +274,15 @@ export async function publishPost(
       return { ok: false, error: labelAttach.error };
     }
 
+    await insertDiemFeedChoBaiMoi({
+      loai: "cot_moc",
+      id: cotMoc.id,
+      coverId: input.coverSeed || null,
+      moTa: moTaFinal || null,
+      blocks: normalized,
+      hasTag: false,
+    });
+
     return {
       ok: true,
       slug,
@@ -375,6 +393,15 @@ export async function publishPost(
       console.error("[publishPost] personal filter sync failed", filterSync.error);
     }
   }
+
+  await insertDiemFeedChoBaiMoi({
+    loai: "cot_moc",
+    id: cotMoc.id,
+    coverId: input.coverSeed || null,
+    moTa: moTaFinal || null,
+    blocks: normalized,
+    hasTag: tagIds.length > 0,
+  });
 
   /* 6. Revalidate profile + feed trang chủ (compose từ World Journey). */
   revalidatePath(`/${session.profile.slug}`);

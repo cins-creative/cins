@@ -19,6 +19,7 @@ import { revalidateTaggedArticlePages } from "@/lib/tag/revalidate-tag-pages";
 import { DEFAULT_ARTICLE_POST_TITLE } from "@/lib/journey/post-media";
 import { validatePostContentForPublish, validateMoTaLength } from "@/lib/journey/post-content-kind";
 import type { CoAuthorDraft } from "@/lib/social/types";
+import { recalcDiemNoiDung } from "@/lib/cins/feed-scoring-write";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { buildMilestoneItemForCotMoc } from "@/lib/journey/milestones-fetch";
 import type { MilestoneItem } from "@/components/journey/milestone-types";
@@ -38,6 +39,8 @@ import type { MilestoneItem } from "@/components/journey/milestone-types";
 
 export type UpdatePostInput = {
   ownerSlug: string;
+  /** Id profile — ưu tiên so khớp hơn slug URL. */
+  ownerId?: string;
   tacPhamId: string;
   cotMocId: string;
   tieuDe: string;
@@ -75,7 +78,10 @@ export async function updatePost(
   if (!session?.profile) {
     return { ok: false, error: "Bạn cần đăng nhập để chỉnh sửa bài viết." };
   }
-  if (session.profile.slug !== input.ownerSlug) {
+  const isOwnContext = input.ownerId
+    ? input.ownerId === session.profile.id
+    : session.profile.slug === input.ownerSlug;
+  if (!isOwnContext) {
     return { ok: false, error: "Bạn không có quyền sửa bài của user khác." };
   }
 
@@ -296,6 +302,28 @@ export async function updatePost(
       return { ok: false, error: filterSync.error };
     }
   }
+
+  const tagIdsForScore =
+    input.tags !== undefined
+      ? sanitizeTagIds(input.tags)
+      : undefined;
+  let hasTag = Boolean(tagIdsForScore?.length);
+  if (tagIdsForScore === undefined) {
+    const { count: tagCount } = await admin
+      .from("article_gan_cot_moc")
+      .select("id_bai_viet", { count: "exact", head: true })
+      .eq("id_cot_moc", input.cotMocId);
+    hasTag = (tagCount ?? 0) > 0;
+  }
+
+  await recalcDiemNoiDung({
+    loai: "cot_moc",
+    id: input.cotMocId,
+    coverId: input.coverSeed || null,
+    moTa: moTaFinal || null,
+    blocks: normalized,
+    hasTag,
+  });
 
   /* 7. Revalidate profile + feed trang chủ. */
   revalidatePath(`/${session.profile.slug}`);

@@ -13,6 +13,7 @@ import {
   type OrgMilestoneTagStatus,
   type OrgSearchHit,
 } from "@/lib/journey/org-milestone-tag-types";
+import { setDiemVerifyChoCotMoc } from "@/lib/cins/feed-scoring-write";
 import { notifyOrgMilestoneTagApproved } from "@/lib/social/org-milestone-tag-notify";
 import { isGalleryVideoCoverSrc } from "@/lib/journey/post-media";
 import { isCoSoOrgAdmin } from "@/lib/to-chuc/co-so-membership";
@@ -641,6 +642,8 @@ export async function respondOrgMilestoneTagRequest(params: {
       });
       if (verifyErr) return { ok: false, error: verifyErr.message };
     }
+
+    await setDiemVerifyChoCotMoc(row.id_cot_moc);
 
     await notifyOrgMilestoneTagApproved({
       studentId: row.nguoi_yeu_cau,

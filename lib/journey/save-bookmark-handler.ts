@@ -14,6 +14,7 @@ import {
   saveOrgTuyenDungBookmark,
   SOCIAL_LOAI_ORG_TUYEN_DUNG,
 } from "@/lib/to-chuc/tuyen-dung-bookmark";
+import { markEngagementCanTinhLaiForTarget } from "@/lib/cins/feed-scoring-write";
 import { SOCIAL_LOAI_ORG_BAI_DANG } from "@/lib/truong/social-constants";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
@@ -143,6 +144,8 @@ export async function handleSaveBookmarkPost(req: Request) {
     .select("id", { count: "exact", head: true })
     .eq("loai_doi_tuong", "cot_moc")
     .eq("id_doi_tuong", idDoiTuong);
+
+  await markEngagementCanTinhLaiForTarget("cot_moc", idDoiTuong);
 
   return NextResponse.json({ ok: true, visibility, bookmarked: true, count: count ?? 0 });
 }

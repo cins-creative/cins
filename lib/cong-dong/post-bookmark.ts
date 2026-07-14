@@ -1,6 +1,7 @@
 import "server-only";
 
 import { SOCIAL_LOAI_DOI_TUONG } from "@/lib/cong-dong/constants";
+import { markEngagementCanTinhLaiForTarget } from "@/lib/cins/feed-scoring-write";
 import { normalizeBookmarkPrivateNote } from "@/lib/journey/bookmark-private-note";
 import { mapBookmarkUiToCheDoLuu } from "@/lib/journey/bookmark-visibility";
 import { isThanhVien } from "@/lib/cong-dong/membership";
@@ -100,6 +101,11 @@ export async function saveCongDongPostBookmark(params: {
     .select("id", { count: "exact", head: true })
     .eq("loai_doi_tuong", SOCIAL_LOAI_DOI_TUONG.COT_MOC)
     .eq("id_doi_tuong", resolved.milestoneId);
+
+  await markEngagementCanTinhLaiForTarget(
+    SOCIAL_LOAI_DOI_TUONG.COT_MOC,
+    resolved.milestoneId,
+  );
 
   return {
     ok: true,

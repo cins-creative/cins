@@ -34,6 +34,7 @@ import {
   applyChiChuNenToBlocks,
   isChiChuNenId,
 } from "@/lib/journey/plain-text-bg";
+import { markEngagementCanTinhLaiForTarget } from "@/lib/cins/feed-scoring-write";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { notifyMilestoneComment } from "@/lib/social/follow";
 import { TINH_THANH_CODE_SET } from "@/lib/truong/contact";
@@ -1045,6 +1046,8 @@ export async function addMilestoneComment(
       error: "Không gửi được bình luận: " + (error?.message ?? "unknown"),
     };
   }
+
+  await markEngagementCanTinhLaiForTarget("cot_moc", milestoneId);
 
   /* Owner Journey path — revalidate để counter "n bình luận" reflect đúng. */
   const { data: ownerProfile } = await admin

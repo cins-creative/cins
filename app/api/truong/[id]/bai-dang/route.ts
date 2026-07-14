@@ -11,7 +11,9 @@ import {
 import { resolveOrgBaiDangLoaiForWrite } from "@/lib/truong/bai-dang";
 import { sanitizeBaiDangCoverIdInput } from "@/lib/truong/bai-dang-cover";
 import { assertTruongOrgWriteApi } from "@/lib/truong/inline-api-auth";
+import { insertDiemFeedChoBaiMoi } from "@/lib/cins/feed-scoring-write";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import type { Block } from "@/lib/editor/types";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -94,6 +96,23 @@ export async function POST(request: Request, context: RouteContext) {
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+
+  const row = data as {
+    id: string;
+    tom_tat?: string | null;
+    cover_id?: string | null;
+    noi_dung_blocks?: unknown;
+  };
+  await insertDiemFeedChoBaiMoi({
+    loai: "org_bai_dang",
+    id: row.id,
+    coverId: typeof row.cover_id === "string" ? row.cover_id : null,
+    moTa: typeof row.tom_tat === "string" ? row.tom_tat : null,
+    blocks: Array.isArray(row.noi_dung_blocks)
+      ? (row.noi_dung_blocks as Block[])
+      : null,
+    hasTag: false,
+  });
 
   return NextResponse.json({ post: mapOrgBaiDangApiRow(data) });
 }

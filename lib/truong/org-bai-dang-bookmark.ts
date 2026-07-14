@@ -10,6 +10,7 @@ import { normalizeBookmarkPrivateNote } from "@/lib/journey/bookmark-private-not
 import { mapOrgLoaiToBookmarkFrameKind } from "@/lib/journey/bookmark-source-theme";
 import { compareTimelineOrder } from "@/lib/journey/timeline-sort";
 import { parseBaiDangBlocks } from "@/lib/truong/bai-dang-blocks";
+import { markEngagementCanTinhLaiForTarget } from "@/lib/cins/feed-scoring-write";
 import { SOCIAL_LOAI_ORG_BAI_DANG } from "@/lib/truong/social-constants";
 import { resolveTruongImageSrcSync } from "@/lib/truong/media-url";
 import { orgPublicHref } from "@/lib/search/helpers";
@@ -71,6 +72,11 @@ export async function saveOrgBaiDangBookmark(params: {
     .select("id", { count: "exact", head: true })
     .eq("loai_doi_tuong", SOCIAL_LOAI_ORG_BAI_DANG)
     .eq("id_doi_tuong", params.postId);
+
+  await markEngagementCanTinhLaiForTarget(
+    SOCIAL_LOAI_ORG_BAI_DANG,
+    params.postId,
+  );
 
   return {
     ok: true,
