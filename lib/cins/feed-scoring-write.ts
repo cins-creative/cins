@@ -4,8 +4,10 @@ import type { Block } from "@/lib/editor/types";
 import {
   FEED_SCORE,
   clampDiemThanhPhan,
+  tinhDiemEngagement,
   tinhDiemNoiDung,
   tinhDiemVerify,
+  tongDonViEngagement,
   type FeedScoringLoai,
 } from "@/lib/cins/feed-scoring";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
@@ -335,4 +337,76 @@ export async function recalcDiemNoiDung(input: {
   if (error) {
     console.error("[feed-scoring] recalc nội dung thất bại:", error.message);
   }
+}
+
+/** Đếm đơn vị engagement (1 reaction · 2 comment · 3 lưu). */
+export async function countEngagementUnits(
+  loai: FeedScoringLoai,
+  id: string,
+): Promise<number> {
+  const admin = createServiceRoleClient();
+  const [reactions, comments, luu] = await Promise.all([
+    admin
+      .from("social_reaction")
+      .select("id", { count: "exact", head: true })
+      .eq("loai_doi_tuong", loai)
+      .eq("id_doi_tuong", id),
+    admin
+      .from("social_binh_luan")
+      .select("id", { count: "exact", head: true })
+      .eq("loai_doi_tuong", loai)
+      .eq("id_doi_tuong", id)
+      .eq("da_xoa", false),
+    admin
+      .from("social_luu")
+      .select("id", { count: "exact", head: true })
+      .eq("loai_doi_tuong", loai)
+      .eq("id_doi_tuong", id),
+  ]);
+
+  return tongDonViEngagement({
+    reactions: reactions.count ?? 0,
+    comments: comments.count ?? 0,
+    luu: luu.count ?? 0,
+  });
+}
+
+/**
+ * Lazy recalc (chốt Bước 5): khi feed đọc điểm dirty → đếm lại engagement,
+ * ghi `diem_engagement`, clear flag. Cap `max` để không làm chậm 1 request.
+ * Trả map key → diem_engagement mới.
+ */
+export async function flushDirtyEngagementScores(
+  dirty: ReadonlyArray<{ loai: FeedScoringLoai; id: string }>,
+  max = 40,
+): Promise<Map<string, number>> {
+  const out = new Map<string, number>();
+  const slice = dirty.slice(0, Math.max(0, max));
+  if (slice.length === 0) return out;
+
+  const admin = createServiceRoleClient();
+  const nowIso = new Date().toISOString();
+
+  await Promise.all(
+    slice.map(async ({ loai, id }) => {
+      try {
+        const units = await countEngagementUnits(loai, id);
+        const diem = tinhDiemEngagement(units);
+        const { error } = await admin
+          .from("content_diem_feed")
+          .update({
+            diem_engagement: diem,
+            engagement_can_tinh_lai: false,
+            cap_nhat_luc: nowIso,
+          })
+          .eq("loai_doi_tuong", loai)
+          .eq("id_doi_tuong", id);
+        if (!error) out.set(`${loai}:${id}`, diem);
+      } catch (e) {
+        console.error("[feed-scoring] flush engagement thất bại:", e);
+      }
+    }),
+  );
+
+  return out;
 }

@@ -9,11 +9,13 @@ import {
   type ContentDiemFeed,
   type FeedScoringLoai,
 } from "@/lib/cins/feed-scoring";
+import { flushDirtyEngagementScores } from "@/lib/cins/feed-scoring-write";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 type DiemFeedRow = ContentDiemFeed & {
   loai_doi_tuong: FeedScoringLoai;
   id_doi_tuong: string;
+  engagement_can_tinh_lai?: boolean;
 };
 
 function scoreKey(loai: FeedScoringLoai, id: string): string {
@@ -66,6 +68,8 @@ export async function loadActiveFeedScoreMap(
   ).toISOString();
   const admin = createServiceRoleClient();
 
+  const dirty: Array<{ loai: FeedScoringLoai; id: string }> = [];
+
   async function loadLoai(loai: FeedScoringLoai, ids: string[]) {
     const chunkSize = 80;
     for (let i = 0; i < ids.length; i += chunkSize) {
@@ -73,7 +77,7 @@ export async function loadActiveFeedScoreMap(
       const { data } = await admin
         .from("content_diem_feed")
         .select(
-          "loai_doi_tuong, id_doi_tuong, diem_co_ban, diem_noi_dung, diem_verify, diem_engagement, bat_dau_luc",
+          "loai_doi_tuong, id_doi_tuong, diem_co_ban, diem_noi_dung, diem_verify, diem_engagement, bat_dau_luc, engagement_can_tinh_lai",
         )
         .eq("loai_doi_tuong", loai)
         .in("id_doi_tuong", slice)
@@ -88,11 +92,24 @@ export async function loadActiveFeedScoreMap(
           diem_engagement: row.diem_engagement,
           bat_dau_luc: row.bat_dau_luc,
         });
+        if (row.engagement_can_tinh_lai) {
+          dirty.push({ loai: row.loai_doi_tuong, id: row.id_doi_tuong });
+        }
       }
     }
   }
 
   await Promise.all([loadLoai("cot_moc", cotMocIds), loadLoai("org_bai_dang", orgIds)]);
+
+  /* Lazy recalc engagement dirty trong pool đang rank (không pg_cron). */
+  if (dirty.length > 0) {
+    const flushed = await flushDirtyEngagementScores(dirty);
+    for (const [key, diem] of flushed) {
+      const prev = map.get(key);
+      if (prev) map.set(key, { ...prev, diem_engagement: diem });
+    }
+  }
+
   return map;
 }
 
