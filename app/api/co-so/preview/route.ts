@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getCoverUrl } from "@/lib/articles/cover";
+import { countOrgApprovedDoanTags } from "@/lib/journey/org-milestone-tag";
 import { getAvatarUrl } from "@/lib/journey/profile";
 import { labelTinhThanh } from "@/lib/truong/contact";
 import { CO_SO_DEFAULT_TAB, coSoTabPath } from "@/lib/to-chuc/co-so-routes";
@@ -42,24 +43,13 @@ export async function GET(req: Request) {
   const extRaw = org.org_co_so_dao_tao;
   const ext = Array.isArray(extRaw) ? (extRaw[0] ?? null) : extRaw;
 
-  const { data: khoaRows } = await admin
-    .from("org_khoa_hoc")
-    .select("id")
-    .eq("id_to_chuc", org.id);
-
-  const khoaIds = (khoaRows ?? []).map((row) => row.id as string);
-  const soKhoaHoc = khoaIds.length;
-  let soHocVien = 0;
-  if (khoaIds.length > 0) {
-    const { data: hvRows } = await admin
-      .from("user_hoc_vien_lop")
-      .select("id_nguoi_dung")
-      .in("id_khoa_hoc", khoaIds)
-      .in("trang_thai", ["da_dang_ky", "dang_hoc"]);
-    soHocVien = new Set(
-      (hvRows ?? []).map((row) => row.id_nguoi_dung as string),
-    ).size;
-  }
+  const [{ count: soKhoaHoc }, soXacThuc] = await Promise.all([
+    admin
+      .from("org_khoa_hoc")
+      .select("id", { count: "exact", head: true })
+      .eq("id_to_chuc", org.id),
+    countOrgApprovedDoanTags(org.id),
+  ]);
 
   return NextResponse.json({
     org: {
@@ -70,8 +60,8 @@ export async function GET(req: Request) {
       avatarUrl: getAvatarUrl(org.avatar_id),
       coverUrl: getCoverUrl(org.cover_id),
       tinhThanh: labelTinhThanh(org.tinh_thanh),
-      soHocVien,
-      soKhoaHoc,
+      soKhoaHoc: soKhoaHoc ?? 0,
+      soXacThuc,
       daVerify: Boolean(ext?.da_verify),
       loaiCoSo: ext?.loai_co_so ?? null,
       href: coSoTabPath(org.slug, CO_SO_DEFAULT_TAB),

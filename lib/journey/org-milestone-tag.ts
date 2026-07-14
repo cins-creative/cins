@@ -257,11 +257,13 @@ export async function loadOrgAttachOptions(
         r.article_bai_viet?.tieu_de?.trim() ||
         r.slug,
       slug: r.slug,
-      monOptions: (monByNganh.get(r.id) ?? []).map((m) => ({
-        id: m.monHocId,
-        label: m.label,
-        slug: m.slug,
-      })),
+      monOptions: (monByNganh.get(r.id) ?? [])
+        .filter((m) => !m.ngungDay)
+        .map((m) => ({
+          id: m.monHocId,
+          label: m.label,
+          slug: m.slug,
+        })),
     })),
   };
 }

@@ -179,6 +179,8 @@ export type MilestoneOrgBaiDangRef = {
   orgId: string;
   orgSlug: string;
   orgName: string;
+  /** Loại org để JourneyOrgPopover gọi đúng preview API. */
+  orgKind?: "cong_dong" | "truong" | "co_so_dao_tao" | "studio" | null;
 };
 
 /** Sự kiện org (`org_su_kien`) trên World Journey feed — không có `content_cot_moc`. */

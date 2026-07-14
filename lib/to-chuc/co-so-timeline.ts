@@ -14,7 +14,7 @@ import {
   parseCalendarYearFromDate,
   type TuyenSinhTimelineMoc,
 } from "@/lib/truong/timeline-moc";
-import { defaultTruongNganhYear } from "@/lib/truong/diem-chuan";
+import { currentCalendarYear } from "@/lib/truong/diem-chuan";
 
 const AUTO_PIN_PREFIX = "auto-pin:";
 export const AUTO_PIN_LOP_PREFIX = "auto-pin-lop:";
@@ -127,7 +127,7 @@ export function collectCoSoTimelineYears(
     if (yt) years.add(yt);
     if (yd) years.add(yd);
   }
-  if (!years.size) years.add(defaultTruongNganhYear());
+  if (!years.size) years.add(currentCalendarYear());
   return [...years].sort((a, b) => b - a);
 }
 

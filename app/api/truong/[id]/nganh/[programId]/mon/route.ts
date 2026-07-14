@@ -5,6 +5,7 @@ import {
   addMonsToTruongNganh,
   addMonToTruongNganh,
   listMonForTruongNganh,
+  reorderMonsOnTruongNganh,
 } from "@/lib/truong/nganh-mon";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
@@ -86,4 +87,46 @@ export async function POST(request: Request, context: RouteContext) {
   }
 
   return NextResponse.json({ item: result.item });
+}
+
+/** PATCH — sắp xếp lại `thu_tu` theo mảng `monHocIds`. */
+export async function PATCH(request: Request, context: RouteContext) {
+  const { id: orgId, programId } = await context.params;
+  if (!orgId?.trim() || !programId?.trim()) {
+    return NextResponse.json({ error: "Missing id" }, { status: 400 });
+  }
+
+  const denied = await assertTruongOrgWriteApi(request, orgId);
+  if (denied) return denied;
+
+  let body: { monHocIds?: unknown };
+  try {
+    body = (await request.json()) as { monHocIds?: unknown };
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  if (!Array.isArray(body.monHocIds) || body.monHocIds.length === 0) {
+    return NextResponse.json(
+      { error: "Thiếu monHocIds (mảng id theo thứ tự)." },
+      { status: 400 },
+    );
+  }
+
+  const monHocIds = body.monHocIds
+    .map((id) => (typeof id === "string" ? id.trim() : ""))
+    .filter(Boolean);
+
+  const admin = createServiceRoleClient();
+  const result = await reorderMonsOnTruongNganh(admin, {
+    orgId: orgId.trim(),
+    programId: programId.trim(),
+    monHocIds,
+  });
+
+  if (!result.ok) {
+    return NextResponse.json({ error: result.error }, { status: 400 });
+  }
+
+  return NextResponse.json({ items: result.items });
 }

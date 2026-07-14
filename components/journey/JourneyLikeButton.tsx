@@ -1,6 +1,6 @@
 "use client";
 
-import { useAuthGate } from "@/components/auth/AuthGateProvider";
+import { useOptionalAuthGate } from "@/components/auth/AuthGateProvider";
 import {
   JourneyActionActorsCount,
   type JourneyActionActorsConfig,
@@ -10,6 +10,7 @@ import { JourneySocialActorsModal } from "@/components/journey/JourneySocialActo
 import { SOCIAL_LOAI_DOI_TUONG } from "@/lib/cong-dong/constants";
 import { useCoarsePointer } from "@/lib/ui/use-coarse-pointer";
 import { Heart } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 
 type Props = {
@@ -42,7 +43,18 @@ export function JourneyLikeButton({
   actorsMediaLabel,
   disableActorsReveal = false,
 }: Props) {
-  const { requireAuth } = useAuthGate();
+  const authGate = useOptionalAuthGate();
+  const router = useRouter();
+  const requireAuth = useCallback(
+    (action: () => void) => {
+      if (authGate) {
+        authGate.requireAuth(action);
+        return;
+      }
+      router.push("/login");
+    },
+    [authGate, router],
+  );
   const isCoarse = useCoarsePointer();
   const [liked, setLiked] = useState(initialLiked);
   const [count, setCount] = useState(initialCount);

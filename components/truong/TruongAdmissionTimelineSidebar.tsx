@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { TruongInlineModal } from "@/components/truong/inline/TruongInlineModal";
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
 import { TruongYearSelect } from "@/components/truong/YearFilterProvider";
-import { defaultTruongNganhYear } from "@/lib/truong/diem-chuan";
+import { currentCalendarYear } from "@/lib/truong/diem-chuan";
 import { TruongTimelineMocSingleForm } from "@/components/truong/tuyensinh/TruongTimelineMocSingleForm";
 import { readTruongInlineError, truongInlineFetch } from "@/lib/truong/inline-api";
 import {
@@ -132,7 +132,7 @@ export function TruongAdmissionTimelineSidebar({
   const [showPastSteps, setShowPastSteps] = useState(false);
   const [mocModal, setMocModal] = useState<MocModalMode | null>(null);
   const persistingMocRef = useRef(false);
-  const [timelineYear, setTimelineYear] = useState(defaultTruongNganhYear());
+  const [timelineYear, setTimelineYear] = useState(currentCalendarYear());
 
   const timelineYearOptions = useMemo(() => {
     const years = collectTimelineCalendarYears(tuyenSinh);

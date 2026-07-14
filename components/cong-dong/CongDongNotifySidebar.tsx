@@ -19,7 +19,7 @@ import {
   type SuKienCardData,
 } from "@/lib/to-chuc/su-kien-constants";
 import { formatSuKienDiaDiemDisplay } from "@/lib/truong/contact";
-import { defaultTruongNganhYear } from "@/lib/truong/diem-chuan";
+import { currentCalendarYear } from "@/lib/truong/diem-chuan";
 import { formatTimelineDate, getStepStatus } from "@/lib/truong/timeline";
 import { mocDateSortKey } from "@/lib/truong/timeline-moc";
 import {
@@ -235,7 +235,7 @@ export function CongDongNotifySidebar({
   const [mocModal, setMocModal] = useState<MocModalMode | null>(null);
   const [suKienModalOpen, setSuKienModalOpen] = useState(false);
   const [editingSuKien, setEditingSuKien] = useState<SuKienCardData | null>(null);
-  const [timelineYear, setTimelineYear] = useState(defaultTruongNganhYear());
+  const [timelineYear, setTimelineYear] = useState(currentCalendarYear());
   const [toast, setToast] = useState<string | null>(null);
 
   const showToast = useCallback((message: string) => {

@@ -2141,7 +2141,7 @@ a.j-main-gallery-item:focus-visible {
   position: relative;
   z-index: 1;
   margin-top: -42px;
-  padding: 0 18px 16px;
+  padding: 0 18px 10px;
   text-align: center;
 }
 .j-friend-avatar {
@@ -2363,9 +2363,9 @@ a.j-main-gallery-item:focus-visible {
   font-weight: 800;
 }
 .j-friend-message {
-  border: 1px solid rgba(148, 163, 184, 0.28);
-  background: #fff;
-  color: var(--ink-muted);
+  border: 1px solid var(--cins-blue);
+  background: var(--cins-blue);
+  color: #fff;
   cursor: pointer;
   transition:
     border-color 0.16s var(--j-ease),
@@ -2373,9 +2373,9 @@ a.j-main-gallery-item:focus-visible {
     background 0.16s var(--j-ease);
 }
 .j-friend-message:hover:not(:disabled) {
-  border-color: rgba(37, 99, 235, 0.35);
-  color: var(--cins-blue);
-  background: var(--cins-blue-soft, rgba(37, 99, 235, 0.08));
+  border-color: var(--cins-blue-dark, #1656a0);
+  background: var(--cins-blue-dark, #1656a0);
+  color: #fff;
 }
 .j-friend-message:disabled {
   cursor: not-allowed;
@@ -2557,9 +2557,9 @@ a.j-main-gallery-item:focus-visible {
   border-color: var(--border);
 }
 :root[data-theme="dark"] .j-friend-message {
-  background: var(--neutral-100);
-  border-color: var(--border);
-  color: var(--ink-body);
+  background: var(--cins-blue);
+  border-color: var(--cins-blue);
+  color: #fff;
 }
 :root[data-theme="dark"] .j-friends-invite-pill {
   background: color-mix(in srgb, var(--cins-orange, #f97316) 20%, transparent);
@@ -13348,9 +13348,9 @@ select.j-edit-input {
 }
 .j-user-pop-close {
   position: absolute;
-  top: -14px;
-  right: -14px;
-  z-index: 2;
+  top: 10px;
+  right: 10px;
+  z-index: 20;
   width: 36px;
   height: 36px;
   border: 1px solid var(--border);
@@ -13716,14 +13716,14 @@ select.j-edit-input {
     background 0.16s ease;
 }
 .j-org-pop-message {
-  border: 1px solid rgba(148, 163, 184, 0.28);
-  background: var(--bg-surface);
-  color: var(--ink-body);
+  border: 1px solid var(--cins-blue);
+  background: var(--cins-blue);
+  color: #fff;
 }
 .j-org-pop-message:hover:not(:disabled) {
-  border-color: rgba(37, 99, 235, 0.35);
-  color: var(--cins-blue);
-  background: var(--cins-blue-soft, rgba(37, 99, 235, 0.08));
+  border-color: var(--cins-blue-dark, #1656a0);
+  background: var(--cins-blue-dark, #1656a0);
+  color: #fff;
 }
 .j-org-pop-follow {
   border: 1px solid rgba(37, 99, 235, 0.28);

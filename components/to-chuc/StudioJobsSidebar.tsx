@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
 import { TruongYearSelect } from "@/components/truong/YearFilterProvider";
-import { defaultTruongNganhYear } from "@/lib/truong/diem-chuan";
+import { currentCalendarYear } from "@/lib/truong/diem-chuan";
 import {
   countUpcomingTimelineSteps,
   getAdmissionTimelineFocus,
@@ -116,7 +116,7 @@ export function StudioJobsSidebar({
   const isManaging = canManage && (ctx?.isEditing ?? false);
 
   const [showPastSteps, setShowPastSteps] = useState(false);
-  const [timelineYear, setTimelineYear] = useState(defaultTruongNganhYear());
+  const [timelineYear, setTimelineYear] = useState(currentCalendarYear());
 
   const allPosts = useMemo(() => {
     if (!ctx) return postsProp;

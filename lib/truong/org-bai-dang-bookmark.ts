@@ -261,6 +261,15 @@ export async function fetchBookmarkedOrgBaiDangMilestones(params: {
         orgId: post.id_to_chuc,
         orgSlug: org.slug.trim(),
         orgName: org.ten.trim(),
+        orgKind:
+          org.loai_to_chuc === "cong_dong"
+            ? "cong_dong"
+            : org.loai_to_chuc === "co_so_dao_tao"
+              ? "co_so_dao_tao"
+              : org.loai_to_chuc === "studio" ||
+                  org.loai_to_chuc === "doanh_nghiep"
+                ? "studio"
+                : "truong",
       },
       bookmark: {
         name: org.ten.trim(),

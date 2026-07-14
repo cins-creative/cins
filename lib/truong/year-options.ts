@@ -1,4 +1,5 @@
 import {
+  currentCalendarYear,
   defaultTruongNganhYear,
   diemChuanRows,
   parseTruongNumericField,
@@ -61,13 +62,9 @@ export function mergeTruongYearOptions(
   return [...years].sort((a, b) => b - a);
 }
 
-/**
- * Năm mặc định trên filter: ưu tiên năm mới nhất có cấu hình khối thi,
- * tránh chọn năm lịch (vd. 2026) khi chỉ có tuyển sinh chưa seed org_cau_hinh_khoi.
- */
-/** Năm gợi ý khi bấm «Thêm dữ liệu» (ưu tiên năm hiện tại nếu chưa có trong DB). */
+/** Năm gợi ý khi bấm «Thêm dữ liệu» (ưu tiên năm lịch nếu chưa có trong DB). */
 export function suggestYearForAdd(yearOptions: number[]): number {
-  const calendar = defaultTruongNganhYear();
+  const calendar = currentCalendarYear();
   if (!yearOptions.includes(calendar)) return calendar;
   if (!yearOptions.length) return calendar;
   return Math.max(...yearOptions) + 1;
@@ -91,20 +88,17 @@ export function pickYearWithAddableSlots(
   return null;
 }
 
+/** Năm mặc định filter: năm lịch − 1; không có thì năm gần nhất ≤ đó, rồi năm trong list. */
 export function pickDefaultTruongYear(
   yearOptions: number[],
-  cauHinhYears: number[] = [],
+  _cauHinhYears: number[] = [],
 ): number {
-  if (!yearOptions.length) return defaultTruongNganhYear();
-
-  const configYears = new Set(cauHinhYears);
-  for (const y of yearOptions) {
-    if (configYears.has(y)) return y;
-  }
-
-  const calendar = defaultTruongNganhYear();
-  if (yearOptions.includes(calendar)) return calendar;
-  return yearOptions[0]!;
+  const preferred = defaultTruongNganhYear();
+  if (!yearOptions.length) return preferred;
+  if (yearOptions.includes(preferred)) return preferred;
+  const atOrBefore = yearOptions.filter((y) => y <= preferred);
+  if (atOrBefore.length) return Math.max(...atOrBefore);
+  return Math.min(...yearOptions);
 }
 
 /** Năm lớn nhất trong danh sách (yearOptions đã sort giảm dần). */

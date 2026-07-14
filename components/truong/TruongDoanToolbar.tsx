@@ -139,7 +139,7 @@ function DoanFilterSelects({
         </select>
       </label>
 
-      <label className="tdh-doan-ctl-wrap tdh-doan-ctl-wrap--grow">
+      <label className="tdh-doan-ctl-wrap tdh-doan-ctl-wrap--grow tdh-doan-ctl-wrap--nganh">
         <span className={nganhLabelClass}>{showLabels ? "Ngành" : "Ngành đồ án"}</span>
         <select
           className="tdh-doan-ctl tdh-doan-ctl--nganh"
@@ -156,13 +156,18 @@ function DoanFilterSelects({
       </label>
 
       {monOptions.length > 0 ? (
-        <label className="tdh-doan-ctl-wrap tdh-doan-ctl-wrap--grow">
+        <label className="tdh-doan-ctl-wrap tdh-doan-ctl-wrap--grow tdh-doan-ctl-wrap--mon">
           <span className={monLabelClass}>{showLabels ? "Môn" : "Môn học"}</span>
           <select
             className="tdh-doan-ctl tdh-doan-ctl--mon"
             value={monFilter}
             onChange={(e) => onMonChange(e.target.value)}
             disabled={!nganhFilter}
+            title={
+              nganhFilter
+                ? "Lọc theo môn chuyên ngành"
+                : "Chọn ngành trước để lọc môn"
+            }
           >
             <option value="">{allMonLabel}</option>
             {monOptions.map((opt) => (
@@ -200,21 +205,25 @@ export function TruongDoanToolbar({
         role="group"
         aria-label="Lọc và sắp xếp đồ án"
       >
-        <DoanViewToggle view={view} onViewChange={onViewChange} />
-        <DoanSortSelect sort={sort} onSortChange={onSortChange} stacked />
-        <DoanFilterSelects
-          yearFilter={yearFilter}
-          yearOptions={yearOptions}
-          nganhFilter={nganhFilter}
-          nganhOptions={nganhOptions}
-          monFilter={monFilter}
-          monOptions={monOptions}
-          onYearChange={onYearChange}
-          onNganhChange={onNganhChange}
-          onMonChange={onMonChange}
-          showLabels
-          compactOptions
-        />
+        <div className="tdh-doan-bar-embedded-row tdh-doan-bar-embedded-row--tools">
+          <DoanViewToggle view={view} onViewChange={onViewChange} />
+          <DoanSortSelect sort={sort} onSortChange={onSortChange} stacked />
+        </div>
+        <div className="tdh-doan-bar-embedded-row tdh-doan-bar-embedded-row--filters">
+          <DoanFilterSelects
+            yearFilter={yearFilter}
+            yearOptions={yearOptions}
+            nganhFilter={nganhFilter}
+            nganhOptions={nganhOptions}
+            monFilter={monFilter}
+            monOptions={monOptions}
+            onYearChange={onYearChange}
+            onNganhChange={onNganhChange}
+            onMonChange={onMonChange}
+            showLabels
+            compactOptions
+          />
+        </div>
       </div>
     );
   }

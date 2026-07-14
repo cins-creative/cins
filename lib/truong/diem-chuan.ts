@@ -10,8 +10,17 @@ export type DiemChuanYearRow = {
   diem: number;
 };
 
-export function defaultTruongNganhYear(): number {
+/** Năm lịch (timeline, «Thêm dữ liệu»). */
+export function currentCalendarYear(): number {
   return new Date().getFullYear();
+}
+
+/**
+ * Năm mặc định filter ngành / điểm chuẩn: năm lịch − 1
+ * (điểm chuẩn thường đã ổn định; năm hiện tại hay còn đang tuyển).
+ */
+export function defaultTruongNganhYear(): number {
+  return currentCalendarYear() - 1;
 }
 
 export function formatDiemChuan(diem: number | null | undefined): string {

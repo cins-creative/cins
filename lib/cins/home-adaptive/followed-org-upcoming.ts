@@ -14,7 +14,7 @@ import {
   getAdmissionTimelineFocus,
   type TuyenSinhTimelineStep,
 } from "@/lib/truong/timeline-steps";
-import { defaultTruongNganhYear } from "@/lib/truong/diem-chuan";
+import { currentCalendarYear } from "@/lib/truong/diem-chuan";
 import { STUDIO_DEFAULT_TAB, studioTabPath } from "@/lib/to-chuc/studio-routes";
 import {
   TRUONG_DEFAULT_TAB,
@@ -137,7 +137,7 @@ export const loadFollowedOrgUpcoming = cache(async function loadFollowedOrgUpcom
 
   const admin = createServiceRoleClient();
   const now = new Date().toISOString();
-  const calendarYear = defaultTruongNganhYear();
+  const calendarYear = currentCalendarYear();
 
   const { data: orgRows } = await admin
     .from("org_to_chuc")

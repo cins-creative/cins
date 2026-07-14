@@ -3,10 +3,11 @@
 import { Bell, BellPlus, Check, Clock3, UserCheck, UserPlus, X } from "lucide-react";
 import { useCallback, useState, useTransition } from "react";
 
-import { useAuthGate } from "@/components/auth/AuthGateProvider";
+import { useOptionalAuthGate } from "@/components/auth/AuthGateProvider";
 import { emitNotificationsChanged } from "@/lib/journey/notifications-client";
 import type { SocialActorProfile } from "@/lib/social/actors-types";
 import type { QuanHe } from "@/lib/social/types";
+import { useRouter } from "next/navigation";
 
 type Props = {
   actor: SocialActorProfile;
@@ -14,7 +15,9 @@ type Props = {
 };
 
 export function JourneySocialActorActions({ actor, viewerId }: Props) {
-  const { isAuthenticated, openAuthModal } = useAuthGate();
+  const authGate = useOptionalAuthGate();
+  const router = useRouter();
+  const isAuthenticated = authGate?.isAuthenticated ?? false;
   const [quanHe, setQuanHe] = useState<QuanHe>(actor.quanHe);
   const [ketBanId, setKetBanId] = useState<string | null>(actor.ketBanId);
   const [following, setFollowing] = useState(actor.dangTheoDoi);
@@ -28,9 +31,13 @@ export function JourneySocialActorActions({ actor, viewerId }: Props) {
         action();
         return;
       }
-      openAuthModal("Đăng nhập để kết nối với người này trên CINs.");
+      if (authGate) {
+        authGate.openAuthModal("Đăng nhập để kết nối với người này trên CINs.");
+      } else {
+        router.push("/login");
+      }
     },
-    [isAuthenticated, openAuthModal],
+    [authGate, isAuthenticated, router],
   );
 
   if (isSelf || quanHe === "blocked") {

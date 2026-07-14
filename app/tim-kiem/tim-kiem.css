@@ -7,6 +7,7 @@
   max-width: none;
   margin: 0;
   padding: 0 0 56px;
+  background: var(--bg-page);
 }
 
 /* ── Hero ── */
@@ -16,59 +17,12 @@
   margin: 0 0 28px;
   padding: 36px 0 32px;
   overflow: hidden;
-  background:
-    radial-gradient(
-      130% 120% at 88% -30%,
-      var(--cins-blue-soft) 0%,
-      transparent 58%
-    ),
-    linear-gradient(180deg, var(--bg-surface) 0%, var(--bg-page) 100%);
+  background: var(--bg-page);
   border-bottom: 1px solid var(--border);
 }
 
 .tk-hero-blob {
-  position: absolute;
-  border-radius: 50%;
-  pointer-events: none;
-  filter: blur(36px);
-}
-
-.tk-hero-blob--yellow {
-  width: 220px;
-  height: 220px;
-  top: -90px;
-  right: 8%;
-  background: var(--cins-yellow);
-  opacity: 0.32;
-}
-
-.tk-hero-blob--blue {
-  width: 140px;
-  height: 140px;
-  bottom: -40px;
-  left: 55%;
-  background: var(--cins-mint);
-  opacity: 0.28;
-  border-radius: 55% 45% 60% 40% / 50% 60% 40% 50%;
-}
-
-/* Dark: nền hero dịu lại, blob giảm cường độ để không chói trên nền tối */
-:root[data-theme="dark"] .tk-hero {
-  background:
-    radial-gradient(
-      130% 120% at 88% -30%,
-      color-mix(in srgb, var(--cins-blue) 22%, transparent) 0%,
-      transparent 60%
-    ),
-    linear-gradient(180deg, var(--bg-surface) 0%, var(--bg-page) 100%);
-}
-
-:root[data-theme="dark"] .tk-hero-blob--yellow {
-  opacity: 0.16;
-}
-
-:root[data-theme="dark"] .tk-hero-blob--blue {
-  opacity: 0.2;
+  display: none;
 }
 
 .tk-hero-inner {
@@ -441,35 +395,231 @@
   width: 100%;
 }
 
-/* Knowledge cards — hn-role-card trong hub nghề */
-.tk-page .tk-knowledge-card .career-hub-card-ph {
-  display: grid;
-  place-items: center;
-  width: 100%;
-  height: 100%;
-  font-size: 2rem;
-  font-weight: 800;
-  color: var(--cins-blue-dark);
-  opacity: 0.55;
+/* Knowledge cards — thẻ nghề / ngành / kiến thức trên tìm kiếm */
+.tk-knowledge-card {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--bg-surface);
+  text-decoration: none;
+  color: inherit;
+  box-shadow: var(--shadow-sm, 0 2px 8px rgba(15, 23, 42, 0.06));
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
 }
 
-.tk-page .tk-knowledge-card .career-hub-card-tooltip--static {
+.tk-knowledge-card:hover,
+.tk-knowledge-card:focus-visible {
+  border-color: color-mix(in srgb, var(--cins-blue) 28%, var(--border));
+  box-shadow: var(--shadow-md, 0 8px 24px rgba(15, 23, 42, 0.08));
+  transform: translateY(-2px);
+}
+
+.tk-knowledge-card:focus-visible {
+  outline: 2px solid var(--cins-blue);
+  outline-offset: 2px;
+}
+
+.tk-knowledge-media {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  background: var(--cins-blue-soft);
+}
+
+.tk-knowledge-media-bg {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.tk-knowledge-card:hover .tk-knowledge-media-bg {
+  transform: scale(1.045);
+}
+
+.tk-knowledge-media-bg--photo {
+  background: var(--surface-2, #eef0f4);
+}
+
+.tk-knowledge-media-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.tk-knowledge-media-ph {
+  font-size: 2.4rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: color-mix(in srgb, var(--ink-display) 42%, transparent);
+  user-select: none;
+}
+
+.tk-knowledge-card--strategy .tk-knowledge-media {
+  background:
+    radial-gradient(circle at 72% 28%, rgba(255, 255, 255, 0.55) 0%, transparent 46%),
+    linear-gradient(145deg, var(--cins-orange-soft, #ffe8cc), #fff7ed);
+}
+
+.tk-knowledge-card--creative .tk-knowledge-media {
+  background:
+    radial-gradient(circle at 28% 70%, rgba(255, 255, 255, 0.5) 0%, transparent 48%),
+    linear-gradient(145deg, var(--cins-yellow-soft, #fff7c2), #fffdf0);
+}
+
+.tk-knowledge-card--research .tk-knowledge-media {
+  background:
+    radial-gradient(circle at 78% 64%, rgba(255, 255, 255, 0.55) 0%, transparent 46%),
+    linear-gradient(145deg, var(--cins-mint-soft, #d9fbed), #f3fffa);
+}
+
+.tk-knowledge-card--production .tk-knowledge-media {
+  background:
+    radial-gradient(circle at 22% 30%, rgba(255, 255, 255, 0.5) 0%, transparent 48%),
+    linear-gradient(145deg, var(--cins-violet-soft, #f0e6ff), #faf7ff);
+}
+
+.tk-knowledge-card--digital .tk-knowledge-media {
+  background:
+    radial-gradient(circle at 70% 24%, rgba(255, 255, 255, 0.55) 0%, transparent 46%),
+    linear-gradient(145deg, var(--cins-blue-soft), #f7faff);
+}
+
+.tk-knowledge-media-shade {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--ink-display) 6%, transparent) 0%,
+    transparent 42%,
+    color-mix(in srgb, var(--ink-display) 10%, transparent) 100%
+  );
+}
+
+.tk-knowledge-kicker {
+  position: absolute;
+  z-index: 2;
+  top: 10px;
+  left: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: calc(100% - 20px);
+  padding: 5px 10px 5px 8px;
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+  color: var(--ink-display);
+  background: color-mix(in srgb, var(--bg-surface) 88%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tk-knowledge-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px 16px;
+  min-width: 0;
+}
+
+.tk-knowledge-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.tk-knowledge-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+  color: var(--ink-display);
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  margin-top: 6px;
-  max-width: none;
-  position: static;
-  transform: none;
-  opacity: 1;
-  pointer-events: none;
-  box-shadow: none;
-  background: transparent;
-  padding: 0;
+}
+
+.tk-knowledge-subtitle {
+  margin: 0;
   font-size: 12px;
-  line-height: 1.45;
+  font-weight: 500;
+  line-height: 1.35;
   color: var(--ink-muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.tk-knowledge-desc {
+  margin: 0;
+  flex: 1;
+  font-size: 12.5px;
+  font-weight: 400;
+  line-height: 1.45;
+  color: var(--ink-body);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.tk-knowledge-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.tk-knowledge-foot-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--cins-blue);
+}
+
+.tk-knowledge-foot-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  color: var(--cins-blue);
+  background: var(--cins-blue-soft);
+  transition:
+    transform 0.18s ease,
+    background 0.18s ease;
+}
+
+.tk-knowledge-card:hover .tk-knowledge-foot-arrow {
+  transform: translateX(2px);
+  background: color-mix(in srgb, var(--cins-blue) 16%, var(--cins-blue-soft));
 }
 
 /* ── Org cards ── */

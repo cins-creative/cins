@@ -2,7 +2,7 @@
 
 import { MessageCircle } from "lucide-react";
 
-import { useAuthGate } from "@/components/auth/AuthGateProvider";
+import { useOptionalAuthGate } from "@/components/auth/AuthGateProvider";
 import {
   JourneyActionActorsCount,
   type JourneyActionActorsConfig,
@@ -11,6 +11,7 @@ import { JourneyActionTouchChip } from "@/components/journey/JourneyActionTouchC
 import { JourneySocialActorsModal } from "@/components/journey/JourneySocialActorsModal";
 import { SOCIAL_LOAI_DOI_TUONG } from "@/lib/cong-dong/constants";
 import { useCoarsePointer } from "@/lib/ui/use-coarse-pointer";
+import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 
 type Props = {
@@ -56,7 +57,9 @@ export function JourneyCommentLink({
   loaiDoiTuong = SOCIAL_LOAI_DOI_TUONG.COT_MOC,
   disableActorsReveal = false,
 }: Props) {
-  const { isAuthenticated, openAuthModal } = useAuthGate();
+  const authGate = useOptionalAuthGate();
+  const router = useRouter();
+  const isAuthenticated = authGate?.isAuthenticated ?? false;
   const isCoarse = useCoarsePointer();
   const [actorsOpen, setActorsOpen] = useState(false);
   const count = commentCount ?? 0;
@@ -73,11 +76,17 @@ export function JourneyCommentLink({
 
   const openComments = useCallback(() => {
     if (!isAuthenticated) {
-      openAuthModal("Đăng nhập hoặc tạo tài khoản để bình luận bài viết này.");
+      if (authGate) {
+        authGate.openAuthModal(
+          "Đăng nhập hoặc tạo tài khoản để bình luận bài viết này.",
+        );
+      } else {
+        router.push("/login");
+      }
       return;
     }
     onOpenComments?.();
-  }, [isAuthenticated, onOpenComments, openAuthModal]);
+  }, [authGate, isAuthenticated, onOpenComments, router]);
 
   const openActors = useCallback(() => {
     if (actors) setActorsOpen(true);

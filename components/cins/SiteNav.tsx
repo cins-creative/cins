@@ -6,7 +6,6 @@ import { Fragment, useState } from "react";
 
 import { CinsComingSoonModal } from "@/components/cins/CinsComingSoonModal";
 import { CinsSidebarRiveBrand } from "@/components/cins/CinsSidebarRiveBrand";
-import { HelpCenterModal } from "@/components/cins/HelpCenterModal";
 import { SidebarNavIcon } from "@/components/cins/SidebarNavIcon";
 import { SidebarOrgFlyout } from "@/components/cins/SidebarOrgFlyout";
 import { UserAccountSettingsModal } from "@/components/cins/UserAccountSettingsModal";
@@ -33,30 +32,15 @@ function SidebarAnchor({
   item,
   pathname,
   onComingSoon,
-  onHelp,
   onSettings,
 }: {
   item: MainNavItem;
   pathname: string;
   onComingSoon?: () => void;
-  onHelp?: () => void;
   onSettings?: () => void;
 }) {
   const active = item.isActive(pathname);
   const className = `sb-item${active ? " active" : ""}${item.highlight ? " sb-item--highlight" : ""}`;
-
-  if (item.opensHelp) {
-    return (
-      <button
-        type="button"
-        className={className}
-        data-tip={item.tip}
-        onClick={onHelp}
-      >
-        <SidebarItemContent item={item} />
-      </button>
-    );
-  }
 
   if (item.opensSettings) {
     return (
@@ -124,7 +108,6 @@ function SidebarLink({
 export function CinsAppSidebar() {
   const pathname = usePathname() ?? "/";
   const [comingSoonOpen, setComingSoonOpen] = useState(false);
-  const [helpOpen, setHelpOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   return (
@@ -152,7 +135,6 @@ export function CinsAppSidebar() {
               item={item}
               pathname={pathname}
               onComingSoon={() => setComingSoonOpen(true)}
-              onHelp={() => setHelpOpen(true)}
               onSettings={() => setSettingsOpen(true)}
             />
           ))}
@@ -162,7 +144,6 @@ export function CinsAppSidebar() {
         open={comingSoonOpen}
         onClose={() => setComingSoonOpen(false)}
       />
-      <HelpCenterModal open={helpOpen} onClose={() => setHelpOpen(false)} />
       <UserAccountSettingsModal
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}

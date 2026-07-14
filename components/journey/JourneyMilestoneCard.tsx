@@ -134,6 +134,9 @@ type Props = {
   feedCompactMedia?: boolean;
   /** Permalink — dùng cho ảnh/video trên feed (không unfold inline). */
   readMoreHref?: string | null;
+  /** Trang org đang mở — ẩn bar xác thực nếu attr trùng org này. */
+  hostOrgSlug?: string | null;
+  hostOrgName?: string | null;
 };
 
 const TYPE_LABEL: Record<MilestoneType, string> = {
@@ -191,6 +194,9 @@ type TruongVerifyBarContext = {
   orgBaiDangRef?: MilestoneOrgBaiDangRef | null;
   posterSlug?: string | null;
   posterName?: string | null;
+  /** Đang xem trang org này — bar «Đã xác thực bởi» cùng org là thừa. */
+  hostOrgSlug?: string | null;
+  hostOrgName?: string | null;
 };
 
 function normalizeOrgCompareKey(value: string): string {
@@ -233,13 +239,22 @@ function isOrgSelfAuthoredPost(
   return attributionMatchesOrgPoster(attr, ctx.posterSlug, ctx.posterName);
 }
 
+function isHostOrgVerify(
+  attr: MilestoneAttribution,
+  ctx: TruongVerifyBarContext,
+): boolean {
+  return attributionMatchesOrgPoster(attr, ctx.hostOrgSlug, ctx.hostOrgName);
+}
+
 function shouldShowTruongVerifyBar(
   attr: MilestoneAttribution | null | undefined,
   variant: MilestoneItem["variant"],
   ctx: TruongVerifyBarContext,
 ): boolean {
   if (!attr || !attributionUsesVerifyBar(attr, variant)) return false;
-  return !isOrgSelfAuthoredPost(attr, ctx);
+  if (isOrgSelfAuthoredPost(attr, ctx)) return false;
+  if (isHostOrgVerify(attr, ctx)) return false;
+  return true;
 }
 
 function MilestoneVerifyBadge() {
@@ -381,6 +396,8 @@ export function JourneyMilestoneCard({
   inlineExpand,
   feedCompactMedia = false,
   readMoreHref = null,
+  hostOrgSlug = null,
+  hostOrgName = null,
 }: Props) {
   const {
     variant,
@@ -656,6 +673,8 @@ export function JourneyMilestoneCard({
       milestone.lensOwnerName?.trim() ??
       authorName?.trim() ??
       null,
+    hostOrgSlug,
+    hostOrgName,
   };
   const showsTruongVerifyBar =
     Boolean(
@@ -2014,6 +2033,7 @@ function CongDongSourceChip({
         href={org.href}
         fallbackName={org.name}
         fallbackAvatarUrl={org.avatarUrl}
+        fallbackCoverUrl={org.coverUrl}
       >
         <span className="org-chip">
           <span className="org-logo" aria-hidden>
@@ -2100,6 +2120,7 @@ function CongDongSourceChip({
           href={org.href}
           fallbackName={org.name}
           fallbackAvatarUrl={org.avatarUrl}
+          fallbackCoverUrl={org.coverUrl}
         >
           <span className="cd-source-org-trigger cd-source-org-trigger--avatar">
             {orgAvatar}
@@ -2112,6 +2133,7 @@ function CongDongSourceChip({
             href={org.href}
             fallbackName={org.name}
             fallbackAvatarUrl={org.avatarUrl}
+            fallbackCoverUrl={org.coverUrl}
           >
             <span className="cd-source-org-name">{org.name}</span>
           </JourneyOrgPopover>
@@ -2128,6 +2150,7 @@ function CongDongSourceChip({
       href={org.href}
       fallbackName={org.name}
       fallbackAvatarUrl={org.avatarUrl}
+      fallbackCoverUrl={org.coverUrl}
     >
       <span className="cd-source-chip">
         <span className="cd-source-avatar" aria-hidden>
@@ -2229,6 +2252,7 @@ function orgMarkInitials(name: string, initial?: string | null): string {
 
 function TruongVerifyBar({ attr }: { attr: MilestoneAttribution }) {
   const mark = orgMarkInitials(attr.name, attr.initial);
+  const popoverKind = orgKindForOrgPopover(attr.orgKind) ?? "truong";
 
   const orgCluster = (
     <span className="j-truong-verify-org">
@@ -2247,10 +2271,11 @@ function TruongVerifyBar({ attr }: { attr: MilestoneAttribution }) {
   const orgLink = attr.slug?.trim() ? (
     <JourneyOrgPopover
       slug={attr.slug}
-      orgKind="truong"
+      orgKind={popoverKind}
       href={attr.href ?? undefined}
       fallbackName={attr.name}
       fallbackAvatarUrl={attr.avatarUrl}
+      fallbackCoverUrl={attr.coverUrl}
     >
       {orgCluster}
     </JourneyOrgPopover>
@@ -2771,10 +2796,12 @@ function BookmarkOriginalPosterChip({
   if (orgBaiDangRef) {
     const href =
       bookmark.url ?? truongRootPath(orgBaiDangRef.orgSlug);
+    const popoverKind =
+      orgKindForOrgPopover(orgBaiDangRef.orgKind) ?? "truong";
     return (
       <JourneyOrgPopover
         slug={orgBaiDangRef.orgSlug}
-        orgKind="truong"
+        orgKind={popoverKind}
         href={href}
         fallbackName={bookmark.name}
         fallbackAvatarUrl={bookmark.avatarUrl}

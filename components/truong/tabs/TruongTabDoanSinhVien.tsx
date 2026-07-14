@@ -126,7 +126,11 @@ export function TruongTabDoanSinhVien() {
     }
     const controller = new AbortController();
     void fetchJson<{
-      items?: Array<{ monHocId: string; label: string }>;
+      items?: Array<{
+        monHocId: string;
+        label: string;
+        ngungDay?: boolean;
+      }>;
     }>(
       `/api/truong/${orgId}/nganh/${selectedProgramId}/mon`,
       controller.signal,
@@ -134,7 +138,10 @@ export function TruongTabDoanSinhVien() {
       .then((json) => {
         const items = Array.isArray(json?.items) ? json.items : [];
         setCatalogMons(
-          items.map((m) => ({ id: m.monHocId, label: m.label })),
+          items.map((m) => ({
+            id: m.monHocId,
+            label: m.ngungDay ? `${m.label} (ngưng dạy)` : m.label,
+          })),
         );
       })
       .catch(() => {
@@ -143,22 +150,20 @@ export function TruongTabDoanSinhVien() {
     return () => controller.abort();
   }, [orgId, selectedProgramId]);
 
+  // Giữ thứ tự `thu_tu` từ API (kéo-thả trong Sửa ngành) — không sort A→Z.
   const monOptions = useMemo(() => {
     if (!nganhFilter) return [];
-    const byId = new Map<string, string>();
-    for (const m of catalogMons) {
-      byId.set(m.id, m.label);
+    return catalogMons;
+  }, [catalogMons, nganhFilter]);
+
+  useEffect(() => {
+    if (
+      monFilter !== ALL_MON &&
+      !catalogMons.some((m) => m.id === monFilter)
+    ) {
+      setMonFilter(ALL_MON);
     }
-    for (const p of projects) {
-      if (p.nganhLabel !== nganhFilter) continue;
-      if (p.monHocId && p.monHocLabel) {
-        byId.set(p.monHocId, p.monHocLabel);
-      }
-    }
-    return [...byId.entries()]
-      .map(([id, label]) => ({ id, label }))
-      .sort((a, b) => a.label.localeCompare(b.label, "vi"));
-  }, [catalogMons, nganhFilter, projects]);
+  }, [catalogMons, monFilter]);
 
   const handleNganhChange = (value: string) => {
     setNganhFilter(value);
@@ -261,6 +266,8 @@ export function TruongTabDoanSinhVien() {
             sort={sort}
             viewerProfileId={null}
             ariaLabel="Đồ án sinh viên"
+            hostOrgSlug={inline?.school.slug ?? null}
+            hostOrgName={inline?.school.ten ?? null}
           />
         </section>
       )}

@@ -10,6 +10,8 @@ export type TruongNganhMonItem = {
   label: string;
   slug: string;
   thuTu: number;
+  /** true = không mở cho gắn đồ án mới; giữ lịch sử. */
+  ngungDay: boolean;
   /** Cột `article_bai_viet.thumbnail` — ưu tiên hiển thị như AdminArticleThumb. */
   thumbnail: string | null;
   coverId: string | null;
@@ -29,6 +31,7 @@ type LinkRow = {
   id: string;
   id_mon_hoc: string;
   thu_tu: number;
+  ngung_day: boolean | null;
   article_bai_viet: {
     id: string;
     slug: string;
@@ -59,6 +62,7 @@ function mapLinkRow(row: LinkRow): TruongNganhMonItem | null {
     label,
     slug: art.slug,
     thuTu: row.thu_tu ?? 0,
+    ngungDay: Boolean(row.ngung_day),
     thumbnail: art.thumbnail?.trim() || null,
     coverId: art.cover_id?.trim() || null,
   };
@@ -71,7 +75,7 @@ export async function listMonForTruongNganh(
   const { data, error } = await admin
     .from("org_truong_nganh_mon")
     .select(
-      "id, id_mon_hoc, thu_tu, article_bai_viet:article_bai_viet(id, slug, tieu_de, tieu_de_viet, loai_bai_viet, thumbnail, cover_id)",
+      "id, id_mon_hoc, thu_tu, ngung_day, article_bai_viet:article_bai_viet(id, slug, tieu_de, tieu_de_viet, loai_bai_viet, thumbnail, cover_id)",
     )
     .eq("id_truong_nganh", truongNganhId)
     .order("thu_tu", { ascending: true })
@@ -97,7 +101,7 @@ export async function listMonByTruongNganhIds(
   const { data, error } = await admin
     .from("org_truong_nganh_mon")
     .select(
-      "id, id_truong_nganh, id_mon_hoc, thu_tu, article_bai_viet:article_bai_viet(id, slug, tieu_de, tieu_de_viet, loai_bai_viet, thumbnail, cover_id)",
+      "id, id_truong_nganh, id_mon_hoc, thu_tu, ngung_day, article_bai_viet:article_bai_viet(id, slug, tieu_de, tieu_de_viet, loai_bai_viet, thumbnail, cover_id)",
     )
     .in("id_truong_nganh", truongNganhIds)
     .order("thu_tu", { ascending: true })
@@ -253,6 +257,7 @@ export async function addMonsToTruongNganh(
       id_truong_nganh: params.programId,
       id_mon_hoc: monHocId,
       thu_tu: thuTu,
+      ngung_day: false,
     };
   });
 
@@ -277,6 +282,7 @@ export async function addMonsToTruongNganh(
         art.tieu_de_viet?.trim() || art.tieu_de?.trim() || art.slug.trim(),
       slug: art.slug,
       thuTu: row.thu_tu,
+      ngungDay: false,
       thumbnail: art.thumbnail?.trim() || null,
       coverId: art.cover_id?.trim() || null,
     });
@@ -349,9 +355,15 @@ export async function addMonToTruongNganh(
       id_truong_nganh: params.programId,
       id_mon_hoc: monHocId,
       thu_tu: nextThuTu,
+      ngung_day: false,
     })
-    .select("id, id_mon_hoc, thu_tu")
-    .maybeSingle<{ id: string; id_mon_hoc: string; thu_tu: number }>();
+    .select("id, id_mon_hoc, thu_tu, ngung_day")
+    .maybeSingle<{
+      id: string;
+      id_mon_hoc: string;
+      thu_tu: number;
+      ngung_day: boolean | null;
+    }>();
 
   if (error || !inserted?.id) {
     return { ok: false, error: error?.message ?? "Không thêm được môn." };
@@ -366,10 +378,49 @@ export async function addMonToTruongNganh(
         art.tieu_de_viet?.trim() || art.tieu_de?.trim() || art.slug.trim(),
       slug: art.slug,
       thuTu: inserted.thu_tu,
+      ngungDay: Boolean(inserted.ngung_day),
       thumbnail: art.thumbnail?.trim() || null,
       coverId: art.cover_id?.trim() || null,
     },
   };
+}
+
+export async function setNgungDayMonOnTruongNganh(
+  admin: SupabaseClient,
+  params: {
+    orgId: string;
+    programId: string;
+    monHocId: string;
+    ngungDay: boolean;
+  },
+): Promise<
+  | { ok: true; item: TruongNganhMonItem }
+  | { ok: false; error: string }
+> {
+  if (!(await assertProgramBelongsToOrg(admin, params.orgId, params.programId))) {
+    return { ok: false, error: "Ngành không thuộc trường này." };
+  }
+
+  const now = new Date().toISOString();
+  const { data: updated, error } = await admin
+    .from("org_truong_nganh_mon")
+    .update({
+      ngung_day: params.ngungDay,
+      ngung_day_luc: params.ngungDay ? now : null,
+    })
+    .eq("id_truong_nganh", params.programId)
+    .eq("id_mon_hoc", params.monHocId)
+    .select(
+      "id, id_mon_hoc, thu_tu, ngung_day, article_bai_viet:article_bai_viet(id, slug, tieu_de, tieu_de_viet, loai_bai_viet, thumbnail, cover_id)",
+    )
+    .maybeSingle<LinkRow>();
+
+  if (error) return { ok: false, error: error.message };
+  const item = updated ? mapLinkRow(updated) : null;
+  if (!item) {
+    return { ok: false, error: "Không tìm thấy môn trong chương trình." };
+  }
+  return { ok: true, item };
 }
 
 export async function removeMonFromTruongNganh(
@@ -390,6 +441,63 @@ export async function removeMonFromTruongNganh(
   return { ok: true };
 }
 
+/** Đặt lại `thu_tu` theo thứ tự `monHocIds` (0..n-1) — dùng cho filter / picker. */
+export async function reorderMonsOnTruongNganh(
+  admin: SupabaseClient,
+  params: {
+    orgId: string;
+    programId: string;
+    monHocIds: string[];
+  },
+): Promise<
+  | { ok: true; items: TruongNganhMonItem[] }
+  | { ok: false; error: string }
+> {
+  if (!(await assertProgramBelongsToOrg(admin, params.orgId, params.programId))) {
+    return { ok: false, error: "Ngành không thuộc trường này." };
+  }
+
+  const ordered = [
+    ...new Set(params.monHocIds.map((id) => id.trim()).filter(Boolean)),
+  ];
+  if (ordered.length === 0) {
+    return { ok: false, error: "Danh sách môn trống." };
+  }
+
+  const existing = await listMonForTruongNganh(admin, params.programId);
+  if (existing.length === 0) {
+    return { ok: false, error: "Chương trình chưa có môn." };
+  }
+  if (ordered.length !== existing.length) {
+    return { ok: false, error: "Danh sách môn không khớp chương trình." };
+  }
+
+  const existingIds = new Set(existing.map((m) => m.monHocId));
+  for (const id of ordered) {
+    if (!existingIds.has(id)) {
+      return { ok: false, error: "Có môn không thuộc chương trình." };
+    }
+  }
+
+  const results = await Promise.all(
+    ordered.map((monHocId, thuTu) =>
+      admin
+        .from("org_truong_nganh_mon")
+        .update({ thu_tu: thuTu })
+        .eq("id_truong_nganh", params.programId)
+        .eq("id_mon_hoc", monHocId),
+    ),
+  );
+  const failed = results.find((r) => r.error);
+  if (failed?.error) {
+    return { ok: false, error: failed.error.message };
+  }
+
+  const items = await listMonForTruongNganh(admin, params.programId);
+  return { ok: true, items };
+}
+
+/** Gắn đồ án mới: chỉ môn đang dạy (`ngung_day = false`). */
 export async function validateMonBelongsToNganh(
   admin: SupabaseClient,
   nganhId: string,
@@ -399,6 +507,12 @@ export async function validateMonBelongsToNganh(
   const match = mons.find((m) => m.monHocId === monHocId);
   if (!match) {
     return { ok: false, error: "Môn học không thuộc ngành đã chọn." };
+  }
+  if (match.ngungDay) {
+    return {
+      ok: false,
+      error: "Môn này đã ngưng dạy — chọn môn đang mở trong chương trình.",
+    };
   }
   return { ok: true, label: match.label };
 }

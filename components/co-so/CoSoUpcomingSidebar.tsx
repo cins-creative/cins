@@ -46,7 +46,7 @@ import {
 import { mocDateSortKey } from "@/lib/truong/timeline-moc";
 import { coSoKhoaHocDetailPath } from "@/lib/to-chuc/co-so-routes";
 import type { KhoaHocCardData } from "@/lib/to-chuc/khoa-hoc-types";
-import { defaultTruongNganhYear } from "@/lib/truong/diem-chuan";
+import { currentCalendarYear } from "@/lib/truong/diem-chuan";
 import {
   buildTimelineStepsFromMocDraft,
   countUpcomingTimelineSteps,
@@ -317,7 +317,7 @@ export function CoSoUpcomingSidebar({
   const [editingKhoa, setEditingKhoa] = useState<KhoaHocCardData | null>(null);
   const [suKienModalOpen, setSuKienModalOpen] = useState(false);
   const [editingSuKien, setEditingSuKien] = useState<SuKienCardData | null>(null);
-  const [timelineYear, setTimelineYear] = useState(defaultTruongNganhYear());
+  const [timelineYear, setTimelineYear] = useState(currentCalendarYear());
 
   const loadLopPins = useCallback(async () => {
     try {

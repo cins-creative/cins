@@ -295,7 +295,7 @@ export function HelpCenterModal({ open, onClose }: Props) {
   return createPortal(
     <div className="uas-backdrop" role="presentation" onMouseDown={onClose}>
       <div
-        className="uas-modal"
+        className="uas-modal help-center-modal"
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}

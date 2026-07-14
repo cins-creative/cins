@@ -1,0 +1,182 @@
+/* Nổi bật xổ dưới card user — dùng chung JourneyUserPopover / FriendCard */
+
+.j-user-featured {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  border-top: 1px solid rgba(148, 163, 184, 0.16);
+  background: var(--bg-surface);
+}
+
+.j-user-featured-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 28px;
+  padding: 4px 12px 8px;
+  border: 0;
+  background: transparent;
+  color: var(--ink-muted);
+  cursor: pointer;
+  transition: color 0.16s ease, background 0.16s ease;
+}
+
+.j-user-featured-toggle:hover {
+  color: var(--cins-blue);
+  background: color-mix(in srgb, var(--cins-blue-soft) 55%, transparent);
+}
+
+.j-user-featured-toggle:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--cins-blue) 45%, transparent);
+  outline-offset: -2px;
+}
+
+.j-user-featured-toggle svg {
+  display: block;
+  transition: transform 0.2s ease;
+}
+
+.j-user-featured.is-open .j-user-featured-toggle svg {
+  transform: rotate(180deg);
+}
+
+.j-user-featured-panel {
+  padding: 0 12px 12px;
+  animation: j-user-featured-in 0.22s ease;
+}
+
+@keyframes j-user-featured-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.j-user-featured-status {
+  margin: 0;
+  padding: 10px 8px 4px;
+  color: var(--ink-muted);
+  font-size: 12px;
+  line-height: 1.45;
+  text-align: center;
+}
+
+/* Masonry 3 cột thật: flex cột dọc + aspect từng ảnh (không CSS column-count). */
+.j-user-featured-masonry {
+  --j-featured-cols: 3;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 6px;
+  max-height: 240px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding-right: 2px;
+  scrollbar-gutter: stable;
+}
+
+.j-user-featured-mcol {
+  flex: 1 1 calc(100% / var(--j-featured-cols));
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.j-user-featured-tile {
+  position: relative;
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--neutral-100, #f1f2f5);
+  color: inherit;
+  cursor: pointer;
+}
+
+.j-user-featured-tile:disabled {
+  cursor: default;
+  opacity: 0.72;
+}
+
+.j-user-featured-tile:not(:disabled):hover {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--cins-blue) 35%, transparent);
+}
+
+.j-user-featured-tile:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--cins-blue) 55%, transparent);
+  outline-offset: 1px;
+}
+
+.j-user-featured-tile > img,
+.j-user-featured-tile .j-cover-img,
+.j-user-featured-tile .j-gallery-video-frame,
+.j-user-featured-tile .j-gallery-video-ph {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.j-user-featured-tile .j-g-play {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  pointer-events: none;
+  background: rgba(15, 23, 42, 0.18);
+}
+
+.j-user-featured-tile .j-g-play svg {
+  width: 18px;
+  height: 18px;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45));
+}
+
+.j-user-featured-tile .j-g-embed-platform {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  z-index: 2;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.2);
+  pointer-events: none;
+}
+
+.j-user-featured-tile .j-g-embed-platform img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+:root[data-theme="dark"] .j-user-featured {
+  border-top-color: rgba(148, 163, 184, 0.22);
+}
+
+:root[data-theme="dark"] .j-user-featured-toggle:hover {
+  background: rgba(37, 99, 235, 0.14);
+}
+
+:root[data-theme="dark"] .j-user-featured-tile {
+  background: rgba(30, 41, 59, 0.85);
+}

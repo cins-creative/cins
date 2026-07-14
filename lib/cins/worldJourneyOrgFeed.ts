@@ -96,6 +96,14 @@ function mapOrgPostRowToMilestone(
       orgId: post.id_to_chuc,
       orgSlug,
       orgName,
+      orgKind:
+        org.loai_to_chuc === "cong_dong"
+          ? "cong_dong"
+          : org.loai_to_chuc === "co_so_dao_tao"
+            ? "co_so_dao_tao"
+            : org.loai_to_chuc === "studio" || org.loai_to_chuc === "doanh_nghiep"
+              ? "studio"
+              : "truong",
     },
     feedOrgFollowed,
     attribution: {
@@ -110,7 +118,9 @@ function mapOrgPostRowToMilestone(
           ? "cong_dong"
           : org.loai_to_chuc === "co_so_dao_tao"
             ? "co_so_dao_tao"
-            : "truong",
+            : org.loai_to_chuc === "studio" || org.loai_to_chuc === "doanh_nghiep"
+              ? "studio"
+              : "truong",
       href,
     },
     lensOwnerSlug: orgSlug,

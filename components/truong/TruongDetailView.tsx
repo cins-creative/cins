@@ -41,7 +41,7 @@ import {
 } from "@/lib/truong/truong-routes";
 import {
   mergeTruongYearOptions,
-  pickMaxTruongYear,
+  pickDefaultTruongYear,
 } from "@/lib/truong/year-options";
 import type { SystemRole } from "@/lib/auth/system-role";
 import type { TruongChiNhanh, TruongPagePayload } from "@/lib/truong/types";
@@ -146,7 +146,7 @@ function TruongDetailViewInner({
         yearOptions,
         cauHinhYears,
         canEdit,
-        pickMaxTruongYear,
+        pickDefaultTruongYear,
       ),
     [school.slug, yearOptions, cauHinhYears, canEdit],
   );

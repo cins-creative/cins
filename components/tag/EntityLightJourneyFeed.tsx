@@ -18,6 +18,9 @@ type Props = {
   sort: TagAggSort;
   viewerProfileId: string | null;
   ariaLabel?: string;
+  /** Trang org đang mở — ẩn bar «Đã xác thực bởi» cùng org. */
+  hostOrgSlug?: string | null;
+  hostOrgName?: string | null;
 };
 
 function groupByYearDesc(
@@ -45,6 +48,8 @@ export function EntityLightJourneyFeed({
   sort,
   viewerProfileId,
   ariaLabel = "Dòng thời gian",
+  hostOrgSlug = null,
+  hostOrgName = null,
 }: Props) {
   const [inlineExpand, setInlineExpand] = useState<TimelineInlineExpandState>(
     null,
@@ -117,6 +122,8 @@ export function EntityLightJourneyFeed({
                 milestones={yb.milestones}
                 entityLens
                 viewerProfileId={viewerProfileId}
+                hostOrgSlug={hostOrgSlug}
+                hostOrgName={hostOrgName}
                 inlineExpand={inlineExpand}
                 onTogglePost={handleToggleContent}
                 onOpenComments={handleOpenComments}
@@ -144,6 +151,8 @@ export function EntityLightJourneyFeed({
                     authorAvatarUrl={m.lensOwnerAvatarUrl ?? null}
                     authorName={m.lensOwnerName ?? null}
                     entityLens
+                    hostOrgSlug={hostOrgSlug}
+                    hostOrgName={hostOrgName}
                     inlineExpand={{
                       showContent:
                         isActive && Boolean(inlineExpand?.showContent),

@@ -1,6 +1,7 @@
 "use client";
 
 import { JourneyFriendCardActions } from "@/components/journey/JourneyFriendCardActions";
+import { JourneyUserFeaturedExpand } from "@/components/journey/JourneyUserFeaturedExpand";
 import { useMutualFriends } from "@/lib/social/use-mutual-friends";
 import type { MutualFriendProfile } from "@/lib/social/types";
 
@@ -84,6 +85,7 @@ export function JourneyFriendCard({
           friendsAreMutual={friendsAreMutual}
         />
       </div>
+      <JourneyUserFeaturedExpand slug={friend.slug} />
     </article>
   );
 }

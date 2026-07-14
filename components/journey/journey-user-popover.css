@@ -31,13 +31,23 @@
 .j-user-popover {
   position: relative;
   width: min(420px, 100%);
+  /* overflow visible — nút Đóng treo góc ngoài (top/right âm) không bị cắt. */
+  overflow: visible;
+}
+
+/* Scroll trên card, không trên wrapper — tránh che nút Đóng. */
+.j-user-popover > .j-friend-card,
+.j-user-popover > .j-org-pop-card {
+  max-height: calc(100vh - 48px);
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .j-user-pop-close {
   position: absolute;
-  top: -14px;
-  right: -14px;
-  z-index: 2;
+  top: 10px;
+  right: 10px;
+  z-index: 20;
   width: 36px;
   height: 36px;
   border: 1px solid var(--border);
@@ -155,7 +165,7 @@
   position: relative;
   z-index: 1;
   margin-top: -42px;
-  padding: 0 18px 16px;
+  padding: 0 18px 10px;
   text-align: center;
 }
 
@@ -328,17 +338,19 @@
   display: flex;
   align-items: stretch;
   gap: 6px;
+  width: 100%;
 }
 
-.j-user-popover .j-friend-actions-row .j-friend-message {
-  flex: 1 1 auto;
+/* Ba nút (Nhắn tin / Kết bạn / Theo dõi) chia đều chiều ngang. */
+.j-user-popover .j-friend-actions-row > .j-friend-message,
+.j-user-popover .j-friend-actions-row > .j-friend-card-follow {
+  flex: 1 1 0;
+  width: 0;
   min-width: 0;
 }
 
 .j-user-popover .j-friend-card-follow {
   position: relative;
-  flex: 1 1 0;
-  min-width: 0;
 }
 
 /* Khi nút kết bạn / theo dõi bị ẩn (self hoặc khách) → wrapper rỗng không
@@ -381,9 +393,9 @@
 }
 
 .j-user-popover .j-friend-message {
-  border: 1px solid rgba(148, 163, 184, 0.28);
-  background: #fff;
-  color: var(--ink-muted);
+  border: 1px solid var(--cins-blue);
+  background: var(--cins-blue);
+  color: #fff;
   cursor: pointer;
   transition:
     border-color 0.16s ease,
@@ -392,9 +404,9 @@
 }
 
 .j-user-popover .j-friend-message:hover:not(:disabled) {
-  border-color: rgba(37, 99, 235, 0.35);
-  color: var(--cins-blue);
-  background: var(--cins-blue-soft, rgba(37, 99, 235, 0.08));
+  border-color: var(--cins-blue-dark, #1656a0);
+  background: var(--cins-blue-dark, #1656a0);
+  color: #fff;
 }
 
 .j-user-popover .j-friend-message:disabled {
@@ -443,11 +455,24 @@
   border-color: var(--border);
 }
 
-/* Nút "Nhắn tin" — cái ô trắng trong ảnh */
-:root[data-theme="dark"] .j-user-popover .j-friend-message {
-  background: var(--neutral-100);
-  border-color: var(--border);
-  color: var(--ink-body);
+:root[data-theme="dark"] .j-user-popover .j-friend-message,
+:root[data-theme="dark"] .j-org-popover .j-org-pop-message {
+  background: var(--cins-blue);
+  border-color: var(--cins-blue);
+  color: #fff;
+}
+
+/* Org popover — tải kèm JourneyOrgPopover (không phụ thuộc journey.css) */
+.j-org-popover .j-org-pop-message {
+  border: 1px solid var(--cins-blue);
+  background: var(--cins-blue);
+  color: #fff;
+}
+
+.j-org-popover .j-org-pop-message:hover:not(:disabled) {
+  border-color: var(--cins-blue-dark, #1656a0);
+  background: var(--cins-blue-dark, #1656a0);
+  color: #fff;
 }
 
 /* Avatar / mặt bạn chung khi không có ảnh (fallback gradient sáng) */

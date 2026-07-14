@@ -179,6 +179,8 @@ export function TruongNganhProgramEditModal({
   const programDirty = !programDraftsEqual(programDraft, programSnapshot);
   const hasUnsavedChanges = programDirty || dirtyYears.length > 0;
 
+  // Chỉ hydrate khi mở modal / đổi ngành·năm — không phụ thuộc reference
+  // `prog`/`tuyenSinh` (toast, mon thi…) kẻo reset draft → nút Lưu tắt giữa chừng.
   useEffect(() => {
     if (!open) {
       setRemoveConfirm(false);
@@ -205,7 +207,8 @@ export function TruongNganhProgramEditModal({
     setProgramDraft(initialProgram);
     setProgramSnapshot({ ...initialProgram });
     setError(null);
-  }, [open, initialYear, prog, tuyenSinh, yearOptions]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- hydrate on open / prog.id / initialYear only
+  }, [open, initialYear, prog.id]);
 
   function patchYearDraft(y: number, patch: Partial<YearDraft>) {
     setYearDrafts((prev) => {
@@ -445,8 +448,9 @@ export function TruongNganhProgramEditModal({
               Sửa ngành — {prog.nganhTitle}
             </h3>
             <p className="tdh-nganh-program-edit-lead">
-              Chuyển tab năm để sửa nhiều năm — bấm{" "}
-              <strong>Lưu thay đổi</strong> một lần khi xong.
+              Chỉ tiêu, điểm chuẩn và thông tin chương trình — bấm{" "}
+              <strong>Lưu thay đổi</strong> một lần khi xong. Môn chuyên ngành
+              và môn thi lưu ngay khi xác nhận.
             </p>
           </div>
           <button
@@ -723,10 +727,25 @@ export function TruongNganhProgramEditModal({
             <button
               type="button"
               className="tdh-inline-btn primary"
-              disabled={busy || !hasUnsavedChanges}
-              onClick={() => void save()}
+              disabled={busy}
+              title={
+                hasUnsavedChanges
+                  ? undefined
+                  : "Chưa sửa chỉ tiêu / điểm / chương trình — môn chuyên ngành đã lưu riêng. Bấm để đóng."
+              }
+              onClick={() => {
+                if (!hasUnsavedChanges) {
+                  onClose();
+                  return;
+                }
+                void save();
+              }}
             >
-              {saving ? "Đang lưu…" : "Lưu thay đổi"}
+              {saving
+                ? "Đang lưu…"
+                : hasUnsavedChanges
+                  ? "Lưu thay đổi"
+                  : "Xong"}
             </button>
           </div>
         </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useAuthGate } from "@/components/auth/AuthGateProvider";
+import { useOptionalAuthGate } from "@/components/auth/AuthGateProvider";
 import {
   JourneyActionActorsCount,
   type JourneyActionActorsConfig,
@@ -10,6 +10,7 @@ import { JourneySocialActorsModal } from "@/components/journey/JourneySocialActo
 import { SOCIAL_LOAI_DOI_TUONG } from "@/lib/cong-dong/constants";
 import { useCoarsePointer } from "@/lib/ui/use-coarse-pointer";
 import { Bookmark, CheckCircle2, Lock, Globe2, X } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -65,7 +66,18 @@ export function JourneyBookmarkButton({
   loaiDoiTuong = SOCIAL_LOAI_DOI_TUONG.COT_MOC,
   disableActorsReveal = false,
 }: Props) {
-  const { requireAuth: defaultRequireAuth } = useAuthGate();
+  const authGate = useOptionalAuthGate();
+  const router = useRouter();
+  const defaultRequireAuth = useCallback(
+    (action: () => void) => {
+      if (authGate) {
+        authGate.requireAuth(action);
+        return;
+      }
+      router.push("/login");
+    },
+    [authGate, router],
+  );
   const requireAuth = onRequireAuth ?? defaultRequireAuth;
   const isCoarse = useCoarsePointer();
   const [mounted, setMounted] = useState(false);

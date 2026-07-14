@@ -150,7 +150,7 @@ export async function loadVerifiedMetaForCotMocs(
           name: org.ten,
           role: isMembership ? "Xác nhận bởi tổ chức" : "Người tạo cơ sở đào tạo",
           avatarUrl,
-          coverUrl: isMembership ? null : coverUrl,
+          coverUrl,
           initial: org.ten.charAt(0).toUpperCase(),
           slug: org.slug,
           isOrg: true,
@@ -172,7 +172,7 @@ export async function loadVerifiedMetaForCotMocs(
           name: org.ten,
           role: isMembership ? "Xác nhận bởi tổ chức" : "Người tạo studio",
           avatarUrl,
-          coverUrl: isMembership ? null : coverUrl,
+          coverUrl,
           initial: org.ten.charAt(0).toUpperCase(),
           slug: org.slug,
           isOrg: true,
@@ -186,12 +186,14 @@ export async function loadVerifiedMetaForCotMocs(
 
     if (org) {
       const avatarUrl = getAvatarUrl(org.avatar_id);
+      const coverUrl = getCoverUrl(org.cover_id);
       out.set(row.id_cot_moc, {
         verifiedBy: `✓ ${org.ten}`,
         attribution: {
           name: org.ten,
           role: "Xác nhận bởi tổ chức",
           avatarUrl,
+          coverUrl,
           initial: org.ten.charAt(0).toUpperCase(),
           slug: org.slug,
           isOrg: true,

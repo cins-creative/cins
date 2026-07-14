@@ -54,6 +54,9 @@ type Props = {
   feedCompactMedia?: boolean;
   /** Permalink bài — dùng khi `feedCompactMedia`. */
   milestonePermalink?(milestone: MilestoneItem): string | null;
+  /** Trang org đang mở — forward sang card để ẩn bar xác thực trùng org. */
+  hostOrgSlug?: string | null;
+  hostOrgName?: string | null;
 };
 
 /**
@@ -84,6 +87,8 @@ export function JourneyYearBlock({
   analyticsNguon,
   feedCompactMedia = false,
   milestonePermalink,
+  hostOrgSlug = null,
+  hostOrgName = null,
 }: Props) {
   /* Year header (label "2026 · Năm hiện tại · 1 mốc") đã bỏ theo brief mới
      — header bar phía trên timeline đã cover thông tin năm hiện tại, đỡ
@@ -120,6 +125,8 @@ export function JourneyYearBlock({
               entityLens={entityLens}
               analyticsNguon={analyticsNguon}
               feedCompactMedia={feedCompactMedia}
+              hostOrgSlug={hostOrgSlug}
+              hostOrgName={hostOrgName}
               readMoreHref={
                 feedCompactMedia && milestonePermalink
                   ? worldJourneyMilestoneCardKind(m) === "photo"

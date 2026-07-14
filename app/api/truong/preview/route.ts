@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getCoverUrl } from "@/lib/articles/cover";
+import { countOrgApprovedDoanTags } from "@/lib/journey/org-milestone-tag";
 import { getAvatarUrl } from "@/lib/journey/profile";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { labelTinhThanh } from "@/lib/truong/contact";
@@ -45,10 +46,13 @@ export async function GET(req: Request) {
   const extRaw = org.org_truong_dai_hoc;
   const ext = Array.isArray(extRaw) ? (extRaw[0] ?? null) : extRaw;
 
-  const { count: soNganh } = await admin
-    .from("org_truong_nganh")
-    .select("id", { count: "exact", head: true })
-    .eq("id_to_chuc", org.id);
+  const [{ count: soNganh }, soXacThuc] = await Promise.all([
+    admin
+      .from("org_truong_nganh")
+      .select("id", { count: "exact", head: true })
+      .eq("id_to_chuc", org.id),
+    countOrgApprovedDoanTags(org.id),
+  ]);
 
   return NextResponse.json({
     org: {
@@ -60,6 +64,7 @@ export async function GET(req: Request) {
       coverUrl: getCoverUrl(org.cover_id),
       tinhThanh: labelTinhThanh(org.tinh_thanh),
       soNganh: soNganh ?? 0,
+      soXacThuc,
       namThanhLap: ext?.nam_thanh_lap ?? null,
       daVerify: Boolean(ext?.da_verify),
       href: truongTabPath(org.slug, TRUONG_DEFAULT_TAB),

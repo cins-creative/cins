@@ -1,5 +1,5 @@
 import { labelTinhThanh } from "@/lib/truong/contact";
-import { defaultTruongNganhYear } from "@/lib/truong/diem-chuan";
+import { currentCalendarYear } from "@/lib/truong/diem-chuan";
 import { normalizeLoaiBaiDang, type BaiDangLoai } from "@/lib/truong/bai-dang";
 import { studioLoaiLabel } from "@/lib/truong/org-bai-dang-loai-options";
 import { baiDangYear } from "@/lib/truong/bai-dang-timeline";
@@ -188,6 +188,6 @@ export function collectStudioTimelineYears(
     const y = parseCalendarYearFromDate(job.hanNop);
     if (y) years.add(y);
   }
-  if (!years.size) years.add(defaultTruongNganhYear());
+  if (!years.size) years.add(currentCalendarYear());
   return [...years].sort((a, b) => b - a);
 }

@@ -235,7 +235,7 @@
 
 .entity-light-seg {
   display: inline-flex;
-  background: #fff;
+  background: var(--bg-surface, #fff);
   border: 1px solid var(--border, #e4e6eb);
   border-radius: 999px;
   padding: 3px;
@@ -278,7 +278,7 @@
   font-size: 13px;
   font-weight: 600;
   color: var(--ink-title, rgba(0, 0, 0, 0.62));
-  background: #fff;
+  background: var(--bg-surface, #fff);
   border: 1px solid var(--border, #e4e6eb);
   border-radius: 999px;
   padding: 8px 34px 8px 14px;
@@ -307,7 +307,11 @@
   background: transparent;
 }
 
-.entity-light-shell.j-shell {
+/* Specificity cao hơn `.j-shell:not(:has(.j-gallery))` và
+   `.cins-journey-page .j-shell` (journey.css load sau entity-page.css) —
+   tránh cột sidebar trống → feed lệch phải. */
+.cins-journey-page.entity-light-journey .j-shell.entity-light-shell,
+.cins-journey-page.entity-light-journey .j-shell.entity-light-shell:not(:has(.j-gallery)) {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   width: 100%;
@@ -324,9 +328,28 @@
   padding: 0;
 }
 
+@media (max-width: 1199.98px) {
+  .cins-journey-page.entity-light-journey .j-shell.entity-light-shell,
+  .cins-journey-page.entity-light-journey .j-shell.entity-light-shell:not(:has(.j-gallery)) {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: var(--entity-feed-max);
+    margin: 0 auto;
+    padding: 0;
+    gap: 0;
+  }
+}
+
 @media (max-width: 991.98px) {
   .entity-light-journey {
     --entity-feed-max: min(820px, 100%);
+  }
+
+  .cins-journey-page.entity-light-journey .j-shell.entity-light-shell,
+  .cins-journey-page.entity-light-journey .j-shell.entity-light-shell:not(:has(.j-gallery)) {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: var(--entity-feed-max);
+    margin: 0 auto;
+    padding: 0;
   }
 }
 

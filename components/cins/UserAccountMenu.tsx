@@ -10,7 +10,6 @@ import {
   removeSavedAccountAction,
   switchAccountAction,
 } from "@/app/auth/switch-account-action";
-import { HelpCenterModal } from "@/components/cins/HelpCenterModal";
 import { SidebarNavIcon } from "@/components/cins/SidebarNavIcon";
 import { UserAccountSettingsModal } from "@/components/cins/UserAccountSettingsModal";
 import { getNameInitials } from "@/lib/journey/profile";
@@ -44,7 +43,6 @@ export function UserAccountMenu({
 }: Props) {
   const [open, setOpen] = useState(false);
   const [switchOpen, setSwitchOpen] = useState(false);
-  const [helpOpen, setHelpOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const cardRef = useRef<HTMLDivElement | null>(null);
   const menuId = useId();
@@ -247,20 +245,17 @@ export function UserAccountMenu({
             </span>
             <span>Cài đặt</span>
           </button>
-          <button
-            type="button"
+          <Link
+            href="/ho-tro"
             className="app-user-menu-item"
             role="menuitem"
-            onClick={() => {
-              setOpen(false);
-              setHelpOpen(true);
-            }}
+            onClick={() => setOpen(false)}
           >
             <span className="app-user-menu-ico" aria-hidden>
               <SidebarNavIcon name="help" />
             </span>
             <span>Trợ giúp</span>
-          </button>
+          </Link>
           <form action={signOutAction} className="app-user-menu-form">
             <button
               type="submit"
@@ -312,7 +307,6 @@ export function UserAccountMenu({
         </span>
       </button>
     </div>
-      <HelpCenterModal open={helpOpen} onClose={() => setHelpOpen(false)} />
       <UserAccountSettingsModal
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}

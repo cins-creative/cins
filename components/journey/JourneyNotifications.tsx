@@ -17,6 +17,7 @@ import { createPortal } from "react-dom";
 import { CoAuthorInviteMessage } from "@/components/journey/CoAuthorInviteMessage";
 import { CoSoStaffInviteMessage } from "@/components/journey/CoSoStaffInviteMessage";
 import { CongDongInviteMessage } from "@/components/journey/CongDongInviteMessage";
+import { JourneyUserFeaturedExpand } from "@/components/journey/JourneyUserFeaturedExpand";
 import "./journey-user-popover.css";
 import type { CoAuthorCredit } from "@/components/journey/milestone-types";
 import { CO_SO_DEFAULT_TAB, coSoTabPath } from "@/lib/to-chuc/co-so-routes";
@@ -1665,6 +1666,7 @@ function FollowRequestModal({
               <ArrowRight size={14} strokeWidth={2.2} aria-hidden />
             </Link>
           </footer>
+          <JourneyUserFeaturedExpand slug={selected.slug} />
         </article>
       </div>
     </div>,

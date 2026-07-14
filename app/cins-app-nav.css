@@ -2115,9 +2115,9 @@ a.j-notify-mini-action.is-link:hover {
 
 .j-notify-request-popover .j-user-pop-close {
   position: absolute;
-  top: -14px;
-  right: -14px;
-  z-index: 2;
+  top: 10px;
+  right: 10px;
+  z-index: 20;
   width: 36px;
   height: 36px;
   border: 1px solid var(--border);

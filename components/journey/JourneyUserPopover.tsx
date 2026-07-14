@@ -7,6 +7,7 @@ import { createPortal } from "react-dom";
 
 import "./journey-user-popover.css";
 
+import { JourneyUserFeaturedExpand } from "@/components/journey/JourneyUserFeaturedExpand";
 import { JourneyUserPopoverActions } from "@/components/journey/JourneyUserPopoverActions";
 import { VerifiedTick } from "@/components/journey/VerifiedTick";
 import { useCinsChat } from "@/components/cins/CinsChatProvider";
@@ -273,6 +274,7 @@ export function JourneyUserPopover({
                   </div>
                 )}
               </div>
+              <JourneyUserFeaturedExpand slug={visibleProfile.slug} />
             </article>
           ) : loading ? (
             <span className="j-user-pop-loading">Đang tải...</span>

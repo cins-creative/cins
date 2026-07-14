@@ -1,5 +1,18 @@
 /* Bổ sung nội dung modal Trợ giúp — layout dùng chung .uas-* */
 
+/* Chiều cao cố định — body scroll bên trong, không co theo nội dung ngắn. */
+.uas-modal.help-center-modal {
+  height: min(90vh, 760px);
+  max-height: min(90vh, 760px);
+}
+
+@media (max-width: 560px) {
+  .uas-modal.help-center-modal {
+    height: min(92vh, 760px);
+    max-height: min(92vh, 760px);
+  }
+}
+
 .help-faq {
   display: flex;
   flex-direction: column;

@@ -9,6 +9,9 @@ import {
   JourneyOrgPopoverActions,
   type OrgActionKind,
 } from "@/components/journey/JourneyOrgPopoverActions";
+
+import "./journey-user-popover.css";
+
 import { CO_SO_DEFAULT_TAB, coSoTabPath } from "@/lib/to-chuc/co-so-routes";
 import { STUDIO_DEFAULT_TAB, studioTabPath } from "@/lib/to-chuc/studio-routes";
 import {
@@ -32,6 +35,8 @@ type OrgPreview = {
   soBaiViet?: number;
   soKhoaHoc?: number;
   soNganh?: number;
+  /** Số đồ án / cột mốc org đã duyệt xác thực (`verify_yeu_cau`). */
+  soXacThuc?: number;
   soTuyenDung?: number;
   namThanhLap?: number | null;
   daVerify?: boolean;
@@ -44,6 +49,7 @@ type Props = {
   orgKind?: OrgPopoverKind | null;
   fallbackName?: string | null;
   fallbackAvatarUrl?: string | null;
+  fallbackCoverUrl?: string | null;
   href?: string | null;
   children: React.ReactNode;
 };
@@ -136,6 +142,7 @@ export function JourneyOrgPopover({
   orgKind = "cong_dong",
   fallbackName,
   fallbackAvatarUrl,
+  fallbackCoverUrl,
   href,
   children,
 }: Props) {
@@ -151,6 +158,10 @@ export function JourneyOrgPopover({
   }, []);
 
   useEffect(() => {
+    setOrg(null);
+  }, [slug, popoverKind]);
+
+  useEffect(() => {
     if (!open) return;
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") setOpen(false);
@@ -164,17 +175,26 @@ export function JourneyOrgPopover({
     };
   }, [open]);
 
-  const toggle = () => {
-    if (!slug || !popoverKind) return;
-    setOpen((value) => !value);
-    if (org || loading) return;
+  useEffect(() => {
+    if (!open || !slug || !popoverKind) return;
+    let cancelled = false;
     setLoading(true);
     void fetch(previewApi(popoverKind, slug))
       .then((res) => (res.ok ? res.json() : null))
       .then((json) => {
-        setOrg(json?.org ?? null);
+        if (!cancelled) setOrg(json?.org ?? null);
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, slug, popoverKind]);
+
+  const toggle = () => {
+    if (!slug || !popoverKind) return;
+    setOpen((value) => !value);
   };
 
   if (!slug || !popoverKind) return <>{children}</>;
@@ -187,7 +207,7 @@ export function JourneyOrgPopover({
           ten: fallbackName,
           moTa: null,
           avatarUrl: fallbackAvatarUrl ?? null,
-          coverUrl: null,
+          coverUrl: fallbackCoverUrl ?? null,
           tinhThanh: null,
           soThanhVien: 0,
           soHocVien: 0,
@@ -272,15 +292,13 @@ export function JourneyOrgPopover({
                         {popoverKind === "co_so_dao_tao" ? (
                           <>
                             <span>
-                              <Users size={14} aria-hidden />
-                              <strong>{visible.soHocVien ?? 0}</strong> học viên
+                              <BookOpen size={14} aria-hidden />
+                              <strong>{visible.soKhoaHoc ?? 0}</strong> khóa học
                             </span>
-                            {typeof visible.soKhoaHoc === "number" ? (
-                              <span>
-                                <BookOpen size={14} aria-hidden />
-                                <strong>{visible.soKhoaHoc}</strong> khóa học
-                              </span>
-                            ) : null}
+                            <span>
+                              <ShieldCheck size={14} aria-hidden />
+                              <strong>{visible.soXacThuc ?? 0}</strong> xác thực
+                            </span>
                           </>
                         ) : popoverKind === "truong" ? (
                           <>
@@ -288,9 +306,10 @@ export function JourneyOrgPopover({
                               <BookOpen size={14} aria-hidden />
                               <strong>{visible.soNganh ?? 0}</strong> ngành
                             </span>
-                            {visible.namThanhLap ? (
-                              <span>Thành lập {visible.namThanhLap}</span>
-                            ) : null}
+                            <span>
+                              <ShieldCheck size={14} aria-hidden />
+                              <strong>{visible.soXacThuc ?? 0}</strong> xác thực
+                            </span>
                           </>
                         ) : popoverKind === "studio" ? (
                           <>

@@ -47,7 +47,7 @@ const map = [
   ["Vimeo.png", "vimeo"],
   ["Figma.png", "figma"],
   ["Canva logo.png", "canva"],
-  ["Sketchfab logo.png", "sketchfab"],
+  ["../sketchfab.png", "sketchfab"],
   ["Spline 3d.jpg", "spline"],
   ["PlayCanvas.png", "playcanvas"],
   ["Rive logo.png", "rive"],

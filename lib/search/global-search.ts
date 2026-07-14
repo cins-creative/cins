@@ -46,7 +46,6 @@ import type {
   SearchHit,
   SearchKindTab,
 } from "@/lib/search/types";
-import { createPublicSupabaseClient } from "@/lib/supabase/public";
 import { hasSupabaseEnv } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
@@ -71,8 +70,9 @@ const PUBLIC_ORG_LOAI = [
   "cong_dong",
 ] as const;
 
+/** Schema thật: `noi_dung` (HTML) — không có `noi_dung_markdown`. */
 const ARTICLE_SELECT =
-  "id, slug, loai_bai_viet, tieu_de, tieu_de_viet, tieu_de_eng, tom_tat, meta_description, noi_dung_markdown, cover_id, thumbnail";
+  "id, slug, loai_bai_viet, tieu_de, tieu_de_viet, tieu_de_eng, tom_tat, meta_description, noi_dung, cover_id, thumbnail";
 
 type ArticleRow = {
   id: string;
@@ -83,7 +83,7 @@ type ArticleRow = {
   tieu_de_eng: string | null;
   tom_tat: string | null;
   meta_description: string | null;
-  noi_dung_markdown: string | null;
+  noi_dung: string | null;
   cover_id: string | null;
   thumbnail: string | null;
 };
@@ -123,7 +123,7 @@ function mapArticleRow(row: ArticleRow, trigramSim = 0): ScoredSearchItem {
   const tomTat = row.tom_tat ? String(row.tom_tat).trim() : null;
   const displayTitle = tieuDeViet || tieuDe || "Không tiêu đề";
   const contentPlain =
-    stripHtmlToPlainText(row.noi_dung_markdown) ??
+    stripHtmlToPlainText(row.noi_dung) ??
     (row.meta_description ? String(row.meta_description).trim() : null);
 
   return {
@@ -155,37 +155,55 @@ function mapArticleRow(row: ArticleRow, trigramSim = 0): ScoredSearchItem {
 }
 
 async function searchArticles(q: string): Promise<SearchHit[]> {
-  const supabase = createPublicSupabaseClient();
   const admin = createServiceRoleClient();
 
-  const [ilikeRes, trigramMap] = await Promise.all([
-    supabase
+  const titleCols = [
+    "tieu_de_viet",
+    "tieu_de",
+    "tieu_de_eng",
+    "slug",
+  ] as const;
+  const phraseOr = buildSupabaseOrIlike(titleCols, q, { phraseOnly: true });
+  const tokenOr = buildSupabaseOrIlike([...titleCols, "tom_tat"], q, {
+    minTokenLength: 3,
+  });
+
+  const runTitleQuery = (orFilter: string) =>
+    admin
       .from("article_bai_viet")
       .select(ARTICLE_SELECT)
       .eq("trang_thai_noi_dung", "published")
       .in("loai_bai_viet", [...ARTICLE_LOAI])
-      .or(
-        buildSupabaseOrIlike(
-          [
-            "tieu_de_viet",
-            "tieu_de",
-            "tieu_de_eng",
-            "slug",
-            "tom_tat",
-            "meta_description",
-            "noi_dung_markdown",
-          ],
-          q,
-        ),
-      )
-      .limit(FETCH_POOL),
+      .or(orFilter)
+      .limit(FETCH_POOL);
+
+  /*
+   * Hai tầng title (+ trigram):
+   * 1) phraseOnly — cả cụm / slug (vd. "Hình họa", "Thiết kế web & ứng dụng")
+   * 2) token ≥3 trên title/slug/tóm tắt — KHÔNG quét `noi_dung` (tránh ngập pool)
+   */
+  const [phraseRes, tokenRes, trigramMap] = await Promise.all([
+    phraseOr ? runTitleQuery(phraseOr) : Promise.resolve({ data: null, error: null }),
+    tokenOr ? runTitleQuery(tokenOr) : Promise.resolve({ data: null, error: null }),
     fuzzyArticleSimilarity(q, TRIGRAM_POOL),
   ]);
 
+  if (phraseRes.error) {
+    console.error("[global-search:article:phrase]", phraseRes.error.message);
+  }
+  if (tokenRes.error) {
+    console.error("[global-search:article:token]", tokenRes.error.message);
+  }
+
   const byId = new Map<string, ScoredSearchItem>();
 
-  for (const row of (ilikeRes.data ?? []) as ArticleRow[]) {
-    byId.set(String(row.id), mapArticleRow(row, trigramMap.get(String(row.id)) ?? 0));
+  for (const row of [
+    ...((phraseRes.data ?? []) as ArticleRow[]),
+    ...((tokenRes.data ?? []) as ArticleRow[]),
+  ]) {
+    const id = String(row.id);
+    if (byId.has(id)) continue;
+    byId.set(id, mapArticleRow(row, trigramMap.get(id) ?? 0));
   }
 
   const missingIds = [...trigramMap.keys()].filter((id) => !byId.has(id));

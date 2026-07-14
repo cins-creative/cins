@@ -21,7 +21,7 @@ import {
 } from "@/lib/to-chuc/su-kien-dang-ky";
 import { labelLoaiSuKien } from "@/lib/to-chuc/su-kien-constants";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
-import { defaultTruongNganhYear } from "@/lib/truong/diem-chuan";
+import { currentCalendarYear } from "@/lib/truong/diem-chuan";
 import { resolveTruongImageSrcSync } from "@/lib/truong/media-url";
 import { formatTimelineDate, getStepStatus } from "@/lib/truong/timeline";
 import { mocDateSortKey } from "@/lib/truong/timeline-moc";
@@ -324,7 +324,7 @@ async function fetchFollowedAdmissionMilestones(
   if (followedOrgIds.length === 0) return [];
 
   const admin = createServiceRoleClient();
-  const calendarYear = defaultTruongNganhYear();
+  const calendarYear = currentCalendarYear();
 
   const { data: orgRows } = await admin
     .from("org_to_chuc")

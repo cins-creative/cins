@@ -3804,18 +3804,89 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 0;
 }
 
-.tdh-nganh-program-edit-mon-chuong-list li {
+.tdh-nganh-program-edit-mon-chuong-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  margin-bottom: 6px;
   padding: 8px 10px;
   border: 1px solid var(--border, #e4e6eb);
   border-radius: 8px;
   font-size: 13px;
+}
+
+.tdh-nganh-program-edit-mon-chuong-list > .tdh-nganh-program-edit-mon-chuong-item:last-child {
+  margin-bottom: 0;
+}
+
+.tdh-nganh-program-edit-mon-chuong-item.is-ngung-day {
+  opacity: 0.72;
+  background: var(--neutral-50, #fafafa);
+}
+
+.tdh-nganh-program-edit-mon-chuong-item.is-dragging {
+  opacity: 0.55;
+}
+
+/* Thanh chèn giữa 2 block khi kéo-thả */
+.tdh-nganh-program-edit-mon-chuong-insert {
+  list-style: none;
+  position: relative;
+  height: 10px;
+  margin: -2px 6px;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  pointer-events: none;
+}
+
+.tdh-nganh-program-edit-mon-chuong-insert::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 3px;
+  transform: translateY(-50%);
+  border-radius: 999px;
+  background: var(--blue, #1f74c9);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--blue, #1f74c9) 40%, transparent);
+}
+
+.tdh-nganh-program-edit-mon-chuong-drag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink3, #6b7280);
+  cursor: grab;
+}
+
+.tdh-nganh-program-edit-mon-chuong-drag:active {
+  cursor: grabbing;
+}
+
+.tdh-nganh-program-edit-mon-chuong-drag:hover:not(:disabled) {
+  background: var(--neutral-100, #f3f4f6);
+  color: var(--ink-display, #111);
+}
+
+.tdh-nganh-program-edit-mon-chuong-drag:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .tdh-nganh-program-edit-mon-chuong-item-main {
@@ -3823,10 +3894,86 @@
   align-items: center;
   gap: 10px;
   min-width: 0;
+  flex: 1 1 auto;
 }
 
-.tdh-nganh-program-edit-mon-chuong-item-main > span:last-child {
+.tdh-nganh-program-edit-mon-chuong-index {
+  flex-shrink: 0;
+  width: 1.25rem;
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-muted, #6b7280);
+  text-align: right;
+}
+
+.tdh-nganh-program-edit-mon-chuong-item-label {
   min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tdh-nganh-program-edit-mon-chuong-item-label.is-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--ink-display, rgba(0, 0, 0, 0.85));
+  text-decoration: none;
+}
+
+.tdh-nganh-program-edit-mon-chuong-item-label.is-link:hover {
+  color: var(--cins-blue, #1f74c9);
+  text-decoration: underline;
+}
+
+.tdh-nganh-program-edit-mon-chuong-item-ext {
+  flex-shrink: 0;
+  opacity: 0.55;
+}
+
+.tdh-nganh-program-edit-mon-chuong-item-label.is-link:hover
+  .tdh-nganh-program-edit-mon-chuong-item-ext {
+  opacity: 1;
+}
+
+.tdh-nganh-program-edit-mon-chuong-item-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.tdh-nganh-program-edit-mon-chuong-status-select {
+  appearance: none;
+  -webkit-appearance: none;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 650;
+  padding: 5px 22px 5px 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 6px center;
+  background-size: 12px;
+}
+
+.tdh-nganh-program-edit-mon-chuong-status-select.is-active {
+  border: 1px solid color-mix(in srgb, #067647 35%, #abefc6);
+  background-color: #ecfdf3;
+  color: #067647;
+}
+
+.tdh-nganh-program-edit-mon-chuong-status-select.is-ngung-day {
+  border: 1px solid color-mix(in srgb, #b42318 30%, #fecdca);
+  background-color: #fef3f2;
+  color: #b42318;
+}
+
+.tdh-nganh-program-edit-mon-chuong-status-select:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .tdh-nganh-program-edit-mon-chuong-thumb {
@@ -3879,7 +4026,8 @@
 .tdh-nganh-mon-picker-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 80;
+  /* Trên `.tdh-inline-modal-backdrop` (10050) — picker portal ra body nhưng trước đây z-index 80 bị modal Sửa ngành che. */
+  z-index: 10070;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -4032,6 +4180,40 @@
   color: var(--ink-muted, var(--ink3, #6b7280));
 }
 
+.tdh-nganh-mon-picker-create {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 4px;
+  padding: 9px 10px;
+  border: 1px dashed color-mix(in srgb, var(--blue, #1f74c9) 45%, var(--border, #e4e6eb));
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--blue, #1f74c9) 6%, transparent);
+  color: var(--blue, #1f74c9);
+  font-size: 13px;
+  font-weight: 650;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tdh-nganh-mon-picker-create:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--blue, #1f74c9) 12%, transparent);
+}
+
+.tdh-nganh-mon-picker-create:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.tdh-nganh-mon-picker-create span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .tdh-nganh-mon-picker-footer {
   display: flex;
   justify-content: flex-end;
@@ -4091,9 +4273,37 @@
   color: var(--ink-title, rgba(255, 255, 255, 0.72));
 }
 
-:root[data-theme="dark"] .tdh-nganh-program-edit-mon-chuong-list li {
+:root[data-theme="dark"] .tdh-nganh-program-edit-mon-chuong-item {
   border-color: var(--border, #2a3040);
   background: var(--neutral-100, #1c212c);
+}
+
+:root[data-theme="dark"] .tdh-nganh-program-edit-mon-chuong-item.is-ngung-day {
+  background: color-mix(in srgb, #1c212c 80%, #000);
+}
+
+:root[data-theme="dark"] .tdh-nganh-program-edit-mon-chuong-insert::before {
+  background: #60a5fa;
+  box-shadow: 0 0 0 1px color-mix(in srgb, #60a5fa 45%, transparent);
+}
+
+:root[data-theme="dark"] .tdh-nganh-program-edit-mon-chuong-drag:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--ink-display, rgba(255, 255, 255, 0.92));
+}
+
+:root[data-theme="dark"] .tdh-nganh-program-edit-mon-chuong-status-select.is-active {
+  border-color: color-mix(in srgb, #32d583 40%, #2a3040);
+  background-color: color-mix(in srgb, #32d583 16%, #151a24);
+  color: #6ce9a6;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236ce9a6' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+}
+
+:root[data-theme="dark"] .tdh-nganh-program-edit-mon-chuong-status-select.is-ngung-day {
+  border-color: color-mix(in srgb, #f97066 40%, #2a3040);
+  background-color: color-mix(in srgb, #f97066 14%, #151a24);
+  color: #fda29b;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23fda29b' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
 }
 
 :root[data-theme="dark"] .tdh-nganh-program-edit-mon-chuong-thumb {
@@ -4142,6 +4352,16 @@
 :root[data-theme="dark"] .tdh-nganh-mon-picker-check {
   background: var(--neutral-50, #151a24);
   border-color: var(--border, #2a3040);
+}
+
+:root[data-theme="dark"] .tdh-nganh-mon-picker-create {
+  border-color: color-mix(in srgb, #60a5fa 40%, var(--border, #2a3040));
+  background: color-mix(in srgb, #60a5fa 10%, transparent);
+  color: #93c5fd;
+}
+
+:root[data-theme="dark"] .tdh-nganh-mon-picker-create:hover:not(:disabled) {
+  background: color-mix(in srgb, #60a5fa 18%, transparent);
 }
 
 :root[data-theme="dark"] .tdh-nganh-program-edit-mon-chuong-remove:hover:not(:disabled) {
