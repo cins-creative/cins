@@ -193,6 +193,11 @@
   flex-basis: 0;
   min-width: 0;
 }
+/* 1 ô / hàng (2 ảnh ngang xếp dọc): full width, giữ tỉ lệ gốc */
+.image-grid-jrow > .image-grid-cell:only-child {
+  flex: 1 1 100%;
+  width: 100%;
+}
 
 .grid-overlay {
   position: absolute;

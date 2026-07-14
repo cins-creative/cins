@@ -1,85 +1,8 @@
 "use client";
 
-import { BadgeLoai, BadgeTinCay, BadgeTrangThai } from "@/components/admin/badges";
+import { BadgeTrangThai } from "@/components/admin/badges";
 
 export { AdminToChucScreen } from "@/components/admin/AdminToChucScreen";
-
-export function AdminDeXuatScreen() {
-  return (
-    <>
-      <header className="page-header">
-        <h1 className="page-title">
-          Đề xuất tag
-          <span className="admin-pending-pill">12 chờ</span>
-        </h1>
-      </header>
-      <div className="page-body">
-        <div className="alert alert-warn">
-          <span>⚠</span>
-          <span>
-            AI đã phân loại tự động — duyệt sẽ tạo bài viết tag mới (mock UI, chưa nối DB).
-          </span>
-        </div>
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Tên đề xuất</th>
-                <th>AI phân loại</th>
-                <th>Context</th>
-                <th>Người đề xuất</th>
-                <th>Ngày</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td className="cell-title">Motion Graphics Designer</td>
-                <td>
-                  <BadgeLoai loai="nghe" />
-                </td>
-                <td className="cell-context">
-                  Gắn vào cột mốc Freelance MG
-                </td>
-                <td className="cell-user">nguyen_thu_ha</td>
-                <td className="cell-date">20/05/2025</td>
-                <td>
-                  <div className="row-actions">
-                    <button type="button" className="action-btn approve">
-                      ✓ Duyệt
-                    </button>
-                    <button type="button" className="action-btn danger">
-                      ✕ Từ chối
-                    </button>
-                  </div>
-                </td>
-              </tr>
-              <tr>
-                <td className="cell-title">Procreate</td>
-                <td>
-                  <BadgeLoai loai="phan_mem" />
-                </td>
-                <td className="cell-context">Đã có bài → merge</td>
-                <td className="cell-user">tran_minh_duc</td>
-                <td className="cell-date">19/05/2025</td>
-                <td>
-                  <div className="row-actions">
-                    <button type="button" className="action-btn edit">
-                      ⇒ Merge
-                    </button>
-                    <button type="button" className="action-btn danger">
-                      ✕ Từ chối
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </>
-  );
-}
 
 export function AdminNganhScreen() {
   return (

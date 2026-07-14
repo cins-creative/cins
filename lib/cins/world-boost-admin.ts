@@ -1,11 +1,17 @@
 import "server-only";
 
+import { loadFeedScoreConfig } from "@/lib/cins/feed-scoring-config-db";
+import { tinhDiemHienTai } from "@/lib/cins/feed-scoring";
+import type { Block } from "@/lib/editor/types";
 import { journeyImageFields } from "@/lib/journey/images";
 import { loadVerifiedCotMocIdSet } from "@/lib/journey/milestone-verify";
 import { parseServerBlocks } from "@/lib/journey/parse-server-blocks";
 import type { GalleryMediaKind } from "@/lib/journey/post-block-helpers";
+import { extractAllImageIds } from "@/lib/journey/post-block-helpers";
 import { galleryMediaKindFromBlocks } from "@/lib/journey/post-media";
+import { orgPostHref, userPostHref } from "@/lib/search/helpers";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { orgSuKienHref } from "@/lib/to-chuc/su-kien-routes";
 import { parseBaiDangBlocks } from "@/lib/truong/bai-dang-blocks";
 import {
   parseWorldBoostLoai,
@@ -13,6 +19,7 @@ import {
   worldBoostKey,
   type WorldBoostLoai,
 } from "@/lib/cins/world-boost";
+import { healOrphanBoostDiemFeedScores } from "@/lib/cins/feed-scoring-write";
 import type {
   WorldBoostCatalogItem,
   WorldBoostCatalogNguon,
@@ -297,6 +304,18 @@ function thumbFromCover(coverId: string | null | undefined): string | null {
   return journeyImageFields(coverId, "gallery-grid")?.src ?? null;
 }
 
+/** Cover trước; không có thì ảnh đầu album trong blocks. */
+function thumbFromCoverOrBlocks(
+  coverId: string | null | undefined,
+  blocks?: ReadonlyArray<Block> | null,
+): string | null {
+  const fromCover = thumbFromCover(coverId);
+  if (fromCover) return fromCover;
+  const firstAlbumId = extractAllImageIds(blocks)[0];
+  if (!firstAlbumId) return null;
+  return journeyImageFields(firstAlbumId, "gallery-grid")?.src ?? null;
+}
+
 function kindMeta(kind: GalleryMediaKind): {
   dinhDang: GalleryMediaKind;
   dinhDangLabel: string;
@@ -316,13 +335,15 @@ export async function listWorldBoostCatalog(
   const q = filters.q?.trim().toLowerCase() ?? "";
 
   const boostMap = await loadBoostMap();
+  /* Sửa điểm còn kẹt mức đẩy dù boost đã tắt (click nhầm / race). */
+  await healOrphanBoostDiemFeedScores().catch(() => 0);
   const admin = createServiceRoleClient();
   const poolLimit = Math.min(240, offset + limit + 80);
 
   type RawItem = Omit<
     WorldBoostCatalogItem,
-    "dangBoost" | "hetHanLuc" | "key" | "diemFeed"
-  >;
+    "dangBoost" | "hetHanLuc" | "key" | "diemFeed" | "moBaiUrl"
+  > & { moBaiUrl?: string | null };
 
   const raw: RawItem[] = [];
 
@@ -379,7 +400,7 @@ export async function listWorldBoostCatalog(
         ? admin
             .from("content_tac_pham_thuoc_moc")
             .select(
-              "id_cot_moc, content_tac_pham:content_tac_pham(cover_id, noi_dung_blocks)",
+              "id_cot_moc, content_tac_pham:content_tac_pham(cover_id, noi_dung_blocks, slug)",
             )
             .in("id_cot_moc", cotIds)
             .limit(poolLimit)
@@ -387,8 +408,16 @@ export async function listWorldBoostCatalog(
               Array<{
                 id_cot_moc: string;
                 content_tac_pham:
-                  | { cover_id: string | null; noi_dung_blocks: unknown }
-                  | { cover_id: string | null; noi_dung_blocks: unknown }[]
+                  | {
+                      cover_id: string | null;
+                      noi_dung_blocks: unknown;
+                      slug: string | null;
+                    }
+                  | {
+                      cover_id: string | null;
+                      noi_dung_blocks: unknown;
+                      slug: string | null;
+                    }[]
                   | null;
               }>
             >()
@@ -396,8 +425,16 @@ export async function listWorldBoostCatalog(
             data: [] as Array<{
               id_cot_moc: string;
               content_tac_pham:
-                | { cover_id: string | null; noi_dung_blocks: unknown }
-                | { cover_id: string | null; noi_dung_blocks: unknown }[]
+                | {
+                    cover_id: string | null;
+                    noi_dung_blocks: unknown;
+                    slug: string | null;
+                  }
+                | {
+                    cover_id: string | null;
+                    noi_dung_blocks: unknown;
+                    slug: string | null;
+                  }[]
                 | null;
             }>,
           }),
@@ -405,29 +442,36 @@ export async function listWorldBoostCatalog(
     ]);
 
     const coverByCot = new Map<string, string | null>();
+    const blocksByCot = new Map<string, Block[] | null>();
     const kindByCot = new Map<string, GalleryMediaKind>();
+    const postSlugByCot = new Map<string, string | null>();
     for (const c of covers ?? []) {
       const tp = Array.isArray(c.content_tac_pham)
         ? c.content_tac_pham[0]
         : c.content_tac_pham;
       if (!coverByCot.has(c.id_cot_moc)) {
+        const blocks = parseServerBlocks(tp?.noi_dung_blocks);
         coverByCot.set(c.id_cot_moc, tp?.cover_id ?? null);
-        kindByCot.set(
-          c.id_cot_moc,
-          galleryMediaKindFromBlocks(parseServerBlocks(tp?.noi_dung_blocks)),
-        );
+        blocksByCot.set(c.id_cot_moc, blocks);
+        kindByCot.set(c.id_cot_moc, galleryMediaKindFromBlocks(blocks));
+        postSlugByCot.set(c.id_cot_moc, tp?.slug?.trim() || null);
       }
     }
 
     for (const r of rows ?? []) {
       const u = userMap.get(r.id_nguoi_dung);
       const kind = kindByCot.get(r.id) ?? "article";
+      const ownerSlug = u?.slug ?? null;
+      const postSlug = postSlugByCot.get(r.id) ?? null;
       raw.push({
         loai: "cot_moc",
         id: r.id,
         tieuDe: r.tieu_de?.trim() || "(Không tiêu đề)",
         moTa: r.mo_ta,
-        thumbUrl: thumbFromCover(coverByCot.get(r.id) ?? null),
+        thumbUrl: thumbFromCoverOrBlocks(
+          coverByCot.get(r.id) ?? null,
+          blocksByCot.get(r.id),
+        ),
         nguon: "user",
         loaiLabel:
           r.che_do_hien_thi === "feature"
@@ -436,7 +480,9 @@ export async function listWorldBoostCatalog(
         ...kindMeta(kind),
         daXacThuc: verifiedIds.has(r.id),
         tacGiaTen: u?.ten_hien_thi ?? u?.slug ?? null,
-        tacGiaSlug: u?.slug ?? null,
+        tacGiaSlug: ownerSlug,
+        moBaiUrl:
+          ownerSlug && postSlug ? userPostHref(ownerSlug, postSlug) : null,
         taoLuc: r.tao_luc,
       });
     }
@@ -446,7 +492,7 @@ export async function listWorldBoostCatalog(
     const { data: rows } = await admin
       .from("org_bai_dang")
       .select(
-        "id, tieu_de, tom_tat, cover_id, tao_luc, id_to_chuc, loai_bai_dang, noi_dung_blocks, org_to_chuc:org_to_chuc(slug, ten)",
+        "id, tieu_de, tom_tat, cover_id, tao_luc, id_to_chuc, loai_bai_dang, noi_dung_blocks, org_to_chuc:org_to_chuc(slug, ten, loai_to_chuc)",
       )
       .eq("trang_thai", "da_dang")
       .order("tao_luc", { ascending: false })
@@ -462,8 +508,16 @@ export async function listWorldBoostCatalog(
           loai_bai_dang: string | null;
           noi_dung_blocks: unknown;
           org_to_chuc:
-            | { slug: string | null; ten: string | null }
-            | { slug: string | null; ten: string | null }[]
+            | {
+                slug: string | null;
+                ten: string | null;
+                loai_to_chuc: string | null;
+              }
+            | {
+                slug: string | null;
+                ten: string | null;
+                loai_to_chuc: string | null;
+              }[]
             | null;
         }>
       >();
@@ -472,15 +526,15 @@ export async function listWorldBoostCatalog(
       const org = Array.isArray(r.org_to_chuc)
         ? r.org_to_chuc[0]
         : r.org_to_chuc;
-      const kind = galleryMediaKindFromBlocks(
-        parseBaiDangBlocks(r.noi_dung_blocks),
-      );
+      const blocks = parseBaiDangBlocks(r.noi_dung_blocks);
+      const kind = galleryMediaKindFromBlocks(blocks);
+      const orgSlug = org?.slug?.trim() || null;
       raw.push({
         loai: "org_bai_dang",
         id: r.id,
         tieuDe: r.tieu_de?.trim() || "(Không tiêu đề)",
         moTa: r.tom_tat,
-        thumbUrl: thumbFromCover(r.cover_id),
+        thumbUrl: thumbFromCoverOrBlocks(r.cover_id, blocks),
         nguon: "org",
         loaiLabel: r.loai_bai_dang
           ? `${LOAI_LABEL.org_bai_dang} · ${r.loai_bai_dang}`
@@ -488,7 +542,11 @@ export async function listWorldBoostCatalog(
         ...kindMeta(kind),
         daXacThuc: false,
         tacGiaTen: org?.ten ?? org?.slug ?? null,
-        tacGiaSlug: org?.slug ?? null,
+        tacGiaSlug: orgSlug,
+        moBaiUrl:
+          orgSlug && org?.loai_to_chuc
+            ? orgPostHref(org.loai_to_chuc, orgSlug, r.id)
+            : null,
         taoLuc: r.tao_luc,
       });
     }
@@ -498,7 +556,7 @@ export async function listWorldBoostCatalog(
     const { data: rows } = await admin
       .from("org_su_kien")
       .select(
-        "id, ten, mo_ta, cover_id, bat_dau, id_to_chuc, org_to_chuc:org_to_chuc(slug, ten)",
+        "id, ten, mo_ta, cover_id, bat_dau, id_to_chuc, org_to_chuc:org_to_chuc(slug, ten, loai_to_chuc)",
       )
       .order("bat_dau", { ascending: false })
       .limit(Math.min(80, poolLimit))
@@ -511,8 +569,16 @@ export async function listWorldBoostCatalog(
           bat_dau: string;
           id_to_chuc: string;
           org_to_chuc:
-            | { slug: string | null; ten: string | null }
-            | { slug: string | null; ten: string | null }[]
+            | {
+                slug: string | null;
+                ten: string | null;
+                loai_to_chuc: string | null;
+              }
+            | {
+                slug: string | null;
+                ten: string | null;
+                loai_to_chuc: string | null;
+              }[]
             | null;
         }>
       >();
@@ -521,6 +587,7 @@ export async function listWorldBoostCatalog(
       const org = Array.isArray(r.org_to_chuc)
         ? r.org_to_chuc[0]
         : r.org_to_chuc;
+      const orgSlug = org?.slug?.trim() || null;
       raw.push({
         loai: "org_su_kien",
         id: r.id,
@@ -532,7 +599,11 @@ export async function listWorldBoostCatalog(
         ...kindMeta("article"),
         daXacThuc: false,
         tacGiaTen: org?.ten ?? org?.slug ?? null,
-        tacGiaSlug: org?.slug ?? null,
+        tacGiaSlug: orgSlug,
+        moBaiUrl:
+          orgSlug && org?.loai_to_chuc
+            ? orgSuKienHref(org.loai_to_chuc, orgSlug)
+            : null,
         /* Không có tao_luc — dùng bat_dau cho sort / hiển thị ngày. */
         taoLuc: r.bat_dau,
       });
@@ -545,6 +616,7 @@ export async function listWorldBoostCatalog(
     return {
       ...item,
       key,
+      moBaiUrl: item.moBaiUrl ?? null,
       dangBoost: Boolean(boost),
       hetHanLuc: boost?.het_han_luc ?? null,
       diemFeed: null,
@@ -573,16 +645,25 @@ export async function listWorldBoostCatalog(
     });
   }
 
+  items = await attachDiemFeedSnapshots(items);
+
+  const scoreCfg = await loadFeedScoreConfig();
+  const nowMs = Date.now();
+  const scoreOf = (item: WorldBoostCatalogItem): number =>
+    item.diemFeed ? tinhDiemHienTai(item.diemFeed, nowMs, scoreCfg) : 0;
+
+  /* Chỉ giữ bài còn điểm > 0 (decay 7 ngày về 0 — không còn xếp Timeline). */
+  items = items.filter((i) => scoreOf(i) > 0);
+
   items.sort((a, b) => {
-    if (a.dangBoost !== b.dangBoost) return a.dangBoost ? -1 : 1;
-    if (a.daXacThuc !== b.daXacThuc) return a.daXacThuc ? -1 : 1;
+    const diff = scoreOf(b) - scoreOf(a);
+    if (diff !== 0) return diff;
     return a.taoLuc > b.taoLuc ? -1 : a.taoLuc < b.taoLuc ? 1 : 0;
   });
 
   const sliced = items.slice(offset, offset + limit);
-  const withDiem = await attachDiemFeedSnapshots(sliced);
   return {
-    items: withDiem,
+    items: sliced,
     hasMore: offset + limit < items.length,
     totalApprox: items.length,
   };
@@ -622,7 +703,7 @@ async function attachDiemFeedSnapshots(
       const { data } = await admin
         .from("content_diem_feed")
         .select(
-          "loai_doi_tuong, id_doi_tuong, diem_co_ban, diem_noi_dung, diem_verify, diem_engagement, bat_dau_luc",
+          "loai_doi_tuong, id_doi_tuong, diem_co_ban, diem_noi_dung, diem_verify, diem_engagement, diem_uu_tien, bat_dau_luc",
         )
         .eq("loai_doi_tuong", loai)
         .in("id_doi_tuong", slice)
@@ -633,6 +714,7 @@ async function attachDiemFeedSnapshots(
           diem_noi_dung: row.diem_noi_dung,
           diem_verify: row.diem_verify,
           diem_engagement: row.diem_engagement,
+          diem_uu_tien: row.diem_uu_tien ?? 0,
           bat_dau_luc: row.bat_dau_luc,
         });
       }

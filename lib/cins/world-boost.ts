@@ -228,6 +228,21 @@ export async function getWorldBoostRow(
   return data ?? null;
 }
 
+async function syncDiemFeedAfterBoostWrite(input: {
+  loai: WorldBoostLoai;
+  id: string;
+  actorProfileId: string;
+  dangBat: boolean;
+}): Promise<void> {
+  if (input.loai !== "cot_moc" && input.loai !== "org_bai_dang") return;
+  await applyAdminDayBaiDiemFeed({
+    loai: input.loai as FeedScoringLoai,
+    id: input.id,
+    actorProfileId: input.actorProfileId,
+    dangBat: input.dangBat,
+  });
+}
+
 export async function toggleWorldBoost(input: {
   loai: WorldBoostLoai;
   id: string;
@@ -262,14 +277,12 @@ export async function toggleWorldBoost(input: {
       if (error || !data) {
         return { ok: false, message: error?.message ?? "Không cập nhật được boost." };
       }
-      if (input.loai === "cot_moc" || input.loai === "org_bai_dang") {
-        await applyAdminDayBaiDiemFeed({
-          loai: input.loai as FeedScoringLoai,
-          id: input.id,
-          actorProfileId: input.actorProfileId,
-          dangBat: true,
-        });
-      }
+      await syncDiemFeedAfterBoostWrite({
+        loai: input.loai,
+        id: input.id,
+        actorProfileId: input.actorProfileId,
+        dangBat: data.dang_bat,
+      });
       return { ok: true, row: data };
     }
 
@@ -281,18 +294,23 @@ export async function toggleWorldBoost(input: {
     if (error || !data) {
       return { ok: false, message: error?.message ?? "Không tạo được boost." };
     }
-    if (input.loai === "cot_moc" || input.loai === "org_bai_dang") {
-      await applyAdminDayBaiDiemFeed({
-        loai: input.loai as FeedScoringLoai,
-        id: input.id,
-        actorProfileId: input.actorProfileId,
-        dangBat: true,
-      });
-    }
+    await syncDiemFeedAfterBoostWrite({
+      loai: input.loai,
+      id: input.id,
+      actorProfileId: input.actorProfileId,
+      dangBat: data.dang_bat,
+    });
     return { ok: true, row: data };
   }
 
   if (!existing) {
+    /* Không có dòng boost — vẫn khôi phục điểm nếu còn sót mức đẩy. */
+    await syncDiemFeedAfterBoostWrite({
+      loai: input.loai,
+      id: input.id,
+      actorProfileId: input.actorProfileId,
+      dangBat: false,
+    });
     return {
       ok: true,
       row: {
@@ -323,5 +341,11 @@ export async function toggleWorldBoost(input: {
   if (error || !data) {
     return { ok: false, message: error?.message ?? "Không tắt được boost." };
   }
+  await syncDiemFeedAfterBoostWrite({
+    loai: input.loai,
+    id: input.id,
+    actorProfileId: input.actorProfileId,
+    dangBat: data.dang_bat,
+  });
   return { ok: true, row: data };
 }

@@ -1,8 +1,10 @@
 import "server-only";
 
 import type { MilestoneItem } from "@/components/journey/milestone-types";
+import type { FeedScoreConfig } from "@/lib/cins/feed-scoring-config";
+import { feedScoreDecaySeconds } from "@/lib/cins/feed-scoring-config";
+import { loadFeedScoreConfig } from "@/lib/cins/feed-scoring-config-db";
 import {
-  FEED_SCORE_DECAY_SECONDS,
   isWithinFeedDecayWindow,
   tinhDiemFallbackTuTaoLuc,
   tinhDiemHienTai,
@@ -15,6 +17,7 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 type DiemFeedRow = ContentDiemFeed & {
   loai_doi_tuong: FeedScoringLoai;
   id_doi_tuong: string;
+  diem_uu_tien?: number;
   engagement_can_tinh_lai?: boolean;
 };
 
@@ -43,19 +46,18 @@ function postedAtIso(m: MilestoneItem): string | null {
 }
 
 /**
- * Load điểm đang sống (bat_dau_luc trong 7 ngày) cho pool feed.
+ * Load điểm đang sống (bat_dau_luc trong cửa sổ decay) cho pool feed.
  * Key: `cot_moc:uuid` | `org_bai_dang:uuid`.
  */
 export async function loadActiveFeedScoreMap(
   targets: ReadonlyArray<{ loai: FeedScoringLoai; id: string }>,
-): Promise<Map<string, ContentDiemFeed>> {
+): Promise<{ map: Map<string, ContentDiemFeed>; config: FeedScoreConfig }> {
   const map = new Map<string, ContentDiemFeed>();
-  if (targets.length === 0) return map;
+  const config = await loadFeedScoreConfig();
+  if (targets.length === 0) return { map, config };
 
   const cotMocIds = [
-    ...new Set(
-      targets.filter((t) => t.loai === "cot_moc").map((t) => t.id),
-    ),
+    ...new Set(targets.filter((t) => t.loai === "cot_moc").map((t) => t.id)),
   ];
   const orgIds = [
     ...new Set(
@@ -64,7 +66,7 @@ export async function loadActiveFeedScoreMap(
   ];
 
   const sinceIso = new Date(
-    Date.now() - FEED_SCORE_DECAY_SECONDS * 1000,
+    Date.now() - feedScoreDecaySeconds(config) * 1000,
   ).toISOString();
   const admin = createServiceRoleClient();
 
@@ -77,7 +79,7 @@ export async function loadActiveFeedScoreMap(
       const { data } = await admin
         .from("content_diem_feed")
         .select(
-          "loai_doi_tuong, id_doi_tuong, diem_co_ban, diem_noi_dung, diem_verify, diem_engagement, bat_dau_luc, engagement_can_tinh_lai",
+          "loai_doi_tuong, id_doi_tuong, diem_co_ban, diem_noi_dung, diem_verify, diem_engagement, diem_uu_tien, bat_dau_luc, engagement_can_tinh_lai",
         )
         .eq("loai_doi_tuong", loai)
         .in("id_doi_tuong", slice)
@@ -90,6 +92,7 @@ export async function loadActiveFeedScoreMap(
           diem_noi_dung: row.diem_noi_dung,
           diem_verify: row.diem_verify,
           diem_engagement: row.diem_engagement,
+          diem_uu_tien: row.diem_uu_tien ?? 0,
           bat_dau_luc: row.bat_dau_luc,
         });
         if (row.engagement_can_tinh_lai) {
@@ -99,7 +102,10 @@ export async function loadActiveFeedScoreMap(
     }
   }
 
-  await Promise.all([loadLoai("cot_moc", cotMocIds), loadLoai("org_bai_dang", orgIds)]);
+  await Promise.all([
+    loadLoai("cot_moc", cotMocIds),
+    loadLoai("org_bai_dang", orgIds),
+  ]);
 
   /* Lazy recalc engagement dirty trong pool đang rank (không pg_cron). */
   if (dirty.length > 0) {
@@ -110,21 +116,22 @@ export async function loadActiveFeedScoreMap(
     }
   }
 
-  return map;
+  return { map, config };
 }
 
 export type ScoredMilestone = MilestoneItem & { feedScore: number };
 
 /**
- * Gắn `feedScore` + lọc cửa sổ 7 ngày.
+ * Gắn `feedScore` + lọc cửa sổ decay.
  * - Có dòng diem_feed sống → tinhDiemHienTai
- * - Chưa có dòng (cot_moc / org_bai_dang) → giữ nếu tao_luc trong 7 ngày, điểm fallback BASE×decay
+ * - Chưa có dòng (cot_moc / org_bai_dang) → giữ nếu tao_luc trong cửa sổ, điểm fallback BASE×decay
  * - org_su_kien → luôn giữ (logic sự kiện riêng), điểm fallback theo feedSortAt/tao_luc
  */
 export function attachFeedScoresAndFilter(
   items: ReadonlyArray<MilestoneItem>,
   scoreMap: ReadonlyMap<string, ContentDiemFeed>,
   nowMs: number = Date.now(),
+  cfg?: FeedScoreConfig,
 ): ScoredMilestone[] {
   const out: ScoredMilestone[] = [];
 
@@ -137,22 +144,22 @@ export function attachFeedScoresAndFilter(
       const iso = posted ?? new Date(nowMs).toISOString();
       out.push({
         ...m,
-        feedScore: tinhDiemFallbackTuTaoLuc(iso, nowMs),
+        feedScore: tinhDiemFallbackTuTaoLuc(iso, nowMs, cfg),
       });
       continue;
     }
 
     const row = scoreMap.get(scoreKey(target.loai, target.id));
     if (row) {
-      out.push({ ...m, feedScore: tinhDiemHienTai(row, nowMs) });
+      out.push({ ...m, feedScore: tinhDiemHienTai(row, nowMs, cfg) });
       continue;
     }
 
-    /* Chưa có dòng / đã ra khỏi cửa sổ DB → fallback tao_luc trong 7 ngày. */
-    if (!posted || !isWithinFeedDecayWindow(posted, nowMs)) continue;
+    /* Chưa có dòng / đã ra khỏi cửa sổ DB → fallback tao_luc trong decay. */
+    if (!posted || !isWithinFeedDecayWindow(posted, nowMs, cfg)) continue;
     out.push({
       ...m,
-      feedScore: tinhDiemFallbackTuTaoLuc(posted, nowMs),
+      feedScore: tinhDiemFallbackTuTaoLuc(posted, nowMs, cfg),
     });
   }
 

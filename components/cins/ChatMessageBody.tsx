@@ -74,7 +74,7 @@ export function ChatMessageBody({
     msg.imageUrl ??
     (msg.imageId ? chatImageDeliveryUrl(msg.imageId, "public") : null) ??
     imageSrc;
-  const { displayText: videoDisplayText, iframeSrc } =
+  const { displayText: videoDisplayText, iframeSrc, videoUrl } =
     parseTextWithExternalVideoEmbed(msg.body);
 
   const ogUrl =
@@ -196,7 +196,13 @@ export function ChatMessageBody({
         />
       ) : null}
       {!mediaOnly && iframeSrc ? (
-        <InlineExternalVideoEmbed src={iframeSrc} gate={false} />
+        <InlineExternalVideoEmbed
+          src={iframeSrc}
+          href={videoUrl}
+          openMode="new-tab"
+          gate={false}
+          title="Video"
+        />
       ) : null}
       {ogUrl ? <ChatLinkOgCard url={ogUrl} tone={isMe ? "me" : "them"} /> : null}
 

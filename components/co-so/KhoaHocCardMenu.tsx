@@ -1,12 +1,13 @@
 "use client";
 
-import { Pencil, Settings2, Trash2 } from "lucide-react";
+import { Copy, Pencil, Settings2, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 type Props = {
   khoaTen: string;
   onManage: () => void;
   onEdit: () => void;
+  onDuplicate: () => void;
   onDelete: () => void;
 };
 
@@ -14,6 +15,7 @@ export function KhoaHocCardMenu({
   khoaTen,
   onManage,
   onEdit,
+  onDuplicate,
   onDelete,
 }: Props) {
   const [open, setOpen] = useState(false);
@@ -88,6 +90,18 @@ export function KhoaHocCardMenu({
           >
             <Pencil size={14} aria-hidden />
             Sửa thông tin
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            className="cso-kh-card-menu-item"
+            onClick={() => {
+              setOpen(false);
+              onDuplicate();
+            }}
+          >
+            <Copy size={14} aria-hidden />
+            Nhân khóa học
           </button>
           <button
             type="button"

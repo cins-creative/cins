@@ -8,6 +8,8 @@ import {
   type WorldBoostDinhDangFilter,
   type WorldBoostXacThucFilter,
 } from "@/lib/cins/world-boost-admin";
+import { bumpAdminDiemUuTien } from "@/lib/cins/feed-scoring-write";
+import type { FeedScoringLoai } from "@/lib/cins/feed-scoring";
 import {
   parseWorldBoostLoai,
   toggleWorldBoost,
@@ -107,7 +109,7 @@ export async function POST(request: Request) {
     typeof rec.loai === "string" ? rec.loai : null,
   );
   const id = typeof rec.id === "string" ? rec.id.trim() : "";
-  const dangBat = Boolean(rec.dangBat);
+  const action = typeof rec.action === "string" ? rec.action.trim() : "toggle";
 
   if (!loai || !id) {
     return NextResponse.json(
@@ -116,6 +118,31 @@ export async function POST(request: Request) {
     );
   }
 
+  /* Cộng điểm ưu tiên không hoàn lại (+10, trần 200). */
+  if (action === "bump") {
+    if (loai !== "cot_moc" && loai !== "org_bai_dang") {
+      return NextResponse.json(
+        { error: "Chỉ cộng điểm cho bài user / bài org." },
+        { status: 422 },
+      );
+    }
+    const bump = await bumpAdminDiemUuTien({
+      loai: loai as FeedScoringLoai,
+      id,
+      actorProfileId: gate.profileId,
+    });
+    if (!bump.ok) {
+      const status = bump.message.includes("trần") ? 422 : 500;
+      return NextResponse.json({ error: bump.message }, { status });
+    }
+    return NextResponse.json({
+      ok: true,
+      diemUuTien: bump.diemUuTien,
+      bumped: bump.bumped,
+    });
+  }
+
+  const dangBat = Boolean(rec.dangBat);
   const result = await toggleWorldBoost({
     loai,
     id,

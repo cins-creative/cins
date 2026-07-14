@@ -31,6 +31,82 @@
   pointer-events: none;
 }
 
+.cins-inline-video-embed-fallback {
+  position: absolute;
+  inset: 0;
+  background: #0f172a;
+  z-index: 0;
+}
+
+/* Chat: thumbnail + play → mở tab mới */
+.cins-inline-video-embed.is-link-out {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.cins-inline-video-embed.is-link-out .cins-inline-video-embed-poster {
+  transition: transform 180ms ease, filter 180ms ease;
+}
+
+.cins-inline-video-embed.is-link-out:hover .cins-inline-video-embed-poster,
+.cins-inline-video-embed.is-link-out:focus-visible .cins-inline-video-embed-poster {
+  transform: scale(1.03);
+  filter: brightness(0.88);
+}
+
+.cins-inline-video-embed.is-link-out:focus-visible {
+  outline: 2px solid var(--cins-blue, #1f74c9);
+  outline-offset: 2px;
+}
+
+.cins-inline-video-embed-play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  margin: 0;
+  padding: 0 0 0 3px;
+  border: 0;
+  border-radius: 999px;
+  transform: translate(-50%, -50%);
+  background: rgba(15, 23, 42, 0.72);
+  color: #fff;
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.35),
+    0 8px 20px rgba(15, 23, 42, 0.35);
+  pointer-events: none;
+  transition:
+    transform 160ms ease,
+    background 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.cins-inline-video-embed.is-link-out:hover .cins-inline-video-embed-play,
+.cins-inline-video-embed.is-link-out:focus-visible .cins-inline-video-embed-play {
+  background: rgba(31, 116, 201, 0.92);
+  transform: translate(-50%, -50%) scale(1.06);
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.5),
+    0 10px 24px rgba(15, 23, 42, 0.4);
+}
+
+.cins-chat-bubble .cins-inline-video-embed-play {
+  width: 48px;
+  height: 48px;
+}
+
+.cins-chat-bubble .cins-inline-video-embed-play svg {
+  width: 22px;
+  height: 22px;
+}
+
 .cins-chat-bubble.is-me .cins-inline-video-embed {
   box-shadow: 0 2px 10px rgba(15, 23, 42, 0.2);
 }

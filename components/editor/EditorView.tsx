@@ -104,6 +104,12 @@ import { isLottieAssetEmbedUrl } from "@/lib/editor/lottie-asset-url";
 import { isRiveAssetEmbedUrl } from "@/lib/editor/rive-asset-url";
 import { resolveAlbumGridCell } from "@/lib/editor/album-grid-block";
 import { isEditorEmptyImageSeed } from "@/lib/editor/editor-stock-image-seeds";
+import {
+  insertIndexFromSnap,
+  sameDragSnap,
+  snapFromPointer,
+  type DragSnapTarget,
+} from "@/lib/editor/image-slot-dnd";
 import { resolveImageSeedUrl } from "@/lib/editor/resolve-image-seed-url";
 import {
   getCfAccountHash,
@@ -1352,7 +1358,7 @@ export function EditorView({
     });
   }, []);
 
-  /** Mở trình cắt cho ảnh thumbnail mới (mặc định 16:9, cho cắt tự do). */
+  /** Mở trình cắt cho ảnh thumbnail mới (mặc định tự do). */
   const openThumbnailCrop = useCallback(
     (file: File, onCropped: (file: File) => void) => {
       if (!isAllowedUploadImageFile(file)) {
@@ -1367,7 +1373,7 @@ export function EditorView({
         fileName: file.name || "thumbnail",
         mimeType: cropOutputMime(file.type),
         title: "Cắt ảnh thumbnail",
-        defaultAspect: 16 / 9,
+        defaultAspect: null,
         onConfirm: onCropped,
       });
     },
@@ -1383,6 +1389,26 @@ export function EditorView({
     },
     [openThumbnailCrop, beginImageUpload, replaceImageSeed],
   );
+
+  /* Dán ảnh (chỉ ảnh, không kèm chữ) khi đang gõ tiêu đề / mô tả → mở cắt thumbnail. */
+  useEffect(() => {
+    function onPaste(e: globalThis.ClipboardEvent) {
+      const el = document.activeElement as HTMLElement | null;
+      if (!el || el.tagName !== "TEXTAREA") return;
+      const isTitleOrMoTa =
+        el.classList.contains("title-in") ||
+        el.classList.contains("ed-md-input") ||
+        el.classList.contains("sub-in");
+      if (!isTitleOrMoTa) return;
+      if (imgPickerTargetRef.current) return;
+      const file = imageFileOnlyFromClipboard(e.clipboardData);
+      if (!file) return;
+      e.preventDefault();
+      applyThumbnailFileWithCrop(file);
+    }
+    document.addEventListener("paste", onPaste);
+    return () => document.removeEventListener("paste", onPaste);
+  }, [applyThumbnailFileWithCrop]);
 
   const videoScrubSrc = useMemo(() => {
     if (localVideoPreviewUrl) return localVideoPreviewUrl;
@@ -2254,6 +2280,75 @@ export function EditorView({
     [pushHistory],
   );
 
+  const reorderImagesInBlock = useCallback(
+    (id: string, fromSlot: number, toSlot: number) => {
+      if (fromSlot === toSlot) return;
+      pushHistory();
+      setBlocks((prev) =>
+        prev.map((b) => {
+          if (b.id !== id || b.t !== "imgs") return b;
+          const layout = normalizeLegacyLayout(b.layout);
+          const imgs = padBlockImageSeedsForLayout(
+            b.id,
+            b.imgs || [],
+            layout,
+            "display",
+          );
+          if (
+            fromSlot < 0 ||
+            toSlot < 0 ||
+            fromSlot >= imgs.length ||
+            toSlot >= imgs.length
+          ) {
+            return b;
+          }
+          const next = [...imgs];
+          const [moved] = next.splice(fromSlot, 1);
+          if (moved == null) return b;
+          next.splice(toSlot, 0, moved);
+          return { ...b, imgs: next };
+        }),
+      );
+    },
+    [pushHistory],
+  );
+
+  /** Album compose = mỗi ảnh 1 block liền kề — reorder = đổi thứ tự block trong đoạn. */
+  const reorderAlbumComposePhotos = useCallback(
+    (
+      startIndex: number,
+      count: number,
+      fromSlot: number,
+      toSlot: number,
+    ) => {
+      if (fromSlot === toSlot || count < 2) return;
+      pushHistory();
+      setBlocks((prev) => {
+        if (
+          startIndex < 0 ||
+          startIndex + count > prev.length ||
+          fromSlot < 0 ||
+          toSlot < 0 ||
+          fromSlot >= count ||
+          toSlot >= count
+        ) {
+          return prev;
+        }
+        const slice = prev.slice(startIndex, startIndex + count);
+        const nextSlice = [...slice];
+        const [moved] = nextSlice.splice(fromSlot, 1);
+        if (moved == null) return prev;
+        nextSlice.splice(toSlot, 0, moved);
+        return [
+          ...prev.slice(0, startIndex),
+          ...nextSlice,
+          ...prev.slice(startIndex + count),
+        ];
+      });
+    },
+    [pushHistory],
+  );
+
   const pasteImageFromClipboard = useCallback(
     async (target: ImgPickerTarget) => {
       const file = await readImageFileFromClipboard();
@@ -3117,6 +3212,14 @@ export function EditorView({
                         onRemoveImage={(slot) =>
                           deleteBlock(segment.blocks[slot]!.id)
                         }
+                        onReorderImages={(from, to) =>
+                          reorderAlbumComposePhotos(
+                            segment.startIndex,
+                            segment.blocks.length,
+                            from,
+                            to,
+                          )
+                        }
                       />
                       {!hideBlockPalette ? (
                         <AddZone
@@ -3196,6 +3299,9 @@ export function EditorView({
                       onRemoveImage={(slot) =>
                         removeImageFromBlock(b.id, slot)
                       }
+                      onReorderImages={(from, to) =>
+                        reorderImagesInBlock(b.id, from, to)
+                      }
                       onAddImageSlot={() => appendImageSlotToBlock(b.id)}
                       onAddImageFiles={(files) =>
                         appendImageFilesToBlock(b.id, files)
@@ -3266,6 +3372,9 @@ export function EditorView({
                     onDown={() => moveBlock(b.id, 1)}
                     onDelete={() => deleteBlock(b.id)}
                     onRemoveImage={(slot) => removeImageFromBlock(b.id, slot)}
+                    onReorderImages={(from, to) =>
+                      reorderImagesInBlock(b.id, from, to)
+                    }
                     onAddImageSlot={() => appendImageSlotToBlock(b.id)}
                     onAddImageFiles={(files) =>
                       appendImageFilesToBlock(b.id, files)
@@ -3382,6 +3491,15 @@ function imageFileFromClipboard(data: DataTransfer | null): File | null {
     if (file && isAllowedUploadImageFile(file)) return file;
   }
   return null;
+}
+
+/** Clipboard chỉ có ảnh (không kèm chữ) — dùng khi dán vào title/mô tả → thumbnail. */
+function imageFileOnlyFromClipboard(data: DataTransfer | null): File | null {
+  const file = imageFileFromClipboard(data);
+  if (!file || !data) return null;
+  const plain = data.getData("text/plain")?.trim() ?? "";
+  if (plain.length > 0) return null;
+  return file;
 }
 
 function isImageFileDrag(e: DragEvent): boolean {
@@ -3836,6 +3954,7 @@ function EditorPhotoAlbumPreview({
   onPickImage,
   onPasteImage,
   onRemoveImage,
+  onReorderImages,
 }: {
   grid: ReturnType<typeof editorAlbumGridFromBlocks>;
   photoCount: number;
@@ -3846,6 +3965,7 @@ function EditorPhotoAlbumPreview({
   onPickImage: (slotIndex: number) => void;
   onPasteImage: (slotIndex: number) => void;
   onRemoveImage: (slotIndex: number) => void;
+  onReorderImages?: (fromSlot: number, toSlot: number) => void;
 }) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const canAddMore = photoCount < maxPhotos;
@@ -3888,6 +4008,7 @@ function EditorPhotoAlbumPreview({
             onPickImage,
             onPasteImage,
             onRemoveImage,
+            onReorderImages,
           }}
         />
       </div>
@@ -3972,6 +4093,7 @@ type BlockRowProps = {
   onDown: () => void;
   onDelete: () => void;
   onRemoveImage: (slot: number) => void;
+  onReorderImages: (fromSlot: number, toSlot: number) => void;
   onAddImageSlot: () => void;
   onAddImageFiles: (files: File[]) => void;
   enableAtHash?: boolean;
@@ -4569,10 +4691,14 @@ function ImageBlock({ block, p }: { block: Block; p: BlockRowProps }) {
   );
   const canAdd = canAppendImageSlot(layout, imgs);
   const [aspectBySlot, setAspectBySlot] = useState<Record<number, number>>({});
+  const [dragFrom, setDragFrom] = useState<number | null>(null);
+  const [dragSnap, setDragSnap] = useState<DragSnapTarget | null>(null);
   const imgsKey = imgs.join("\0");
 
   useEffect(() => {
     setAspectBySlot({});
+    setDragFrom(null);
+    setDragSnap(null);
   }, [block.id, imgsKey]);
 
   const reportAspect = useCallback((slot: number, aspect: number) => {
@@ -4584,14 +4710,86 @@ function ImageBlock({ block, p }: { block: Block; p: BlockRowProps }) {
     });
   }, []);
 
+  const endDrag = useCallback(() => {
+    setDragFrom(null);
+    setDragSnap(null);
+  }, []);
+
   const renderSlot = (seed: string, i: number, style?: CSSProperties) => {
     const isEmpty = isEditorEmptyImageSeed(seed);
+    const canDrag = !isEmpty && imgs.length > 1;
+    const snapHere =
+      dragSnap != null &&
+      dragSnap.slot === i &&
+      dragFrom != null &&
+      insertIndexFromSnap(dragFrom, dragSnap) != null;
     return (
       <div
         key={`${block.id}-${i}`}
-        className={`ph${isEmpty ? " is-empty" : ""}`}
+        className={[
+          "ph",
+          isEmpty ? "is-empty" : "",
+          canDrag ? "is-draggable" : "",
+          dragFrom === i ? "is-dragging" : "",
+          snapHere
+            ? `is-snap-${dragSnap!.edge} is-snap-axis-${dragSnap!.axis}`
+            : "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
         style={style}
+        draggable={canDrag}
+        onDragStart={(e) => {
+          if (!canDrag) return;
+          const t = e.target as HTMLElement;
+          if (t.closest(".ph-actions, .ph-del, button")) {
+            e.preventDefault();
+            return;
+          }
+          e.stopPropagation();
+          e.dataTransfer.effectAllowed = "move";
+          e.dataTransfer.setData("text/plain", String(i));
+          setDragFrom(i);
+          setDragSnap(null);
+        }}
+        onDragOver={(e) => {
+          if (dragFrom == null) return;
+          e.preventDefault();
+          e.dataTransfer.dropEffect = "move";
+          const { edge, axis } = snapFromPointer(e, e.currentTarget);
+          const next: DragSnapTarget = { slot: i, edge, axis };
+          if (insertIndexFromSnap(dragFrom, next) == null) {
+            if (dragSnap != null) setDragSnap(null);
+            return;
+          }
+          if (!sameDragSnap(dragSnap, next)) setDragSnap(next);
+        }}
+        onDragLeave={(e) => {
+          if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+          if (dragSnap?.slot === i) setDragSnap(null);
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const fromRaw = e.dataTransfer.getData("text/plain");
+          const from =
+            fromRaw !== "" ? Number(fromRaw) : (dragFrom ?? Number.NaN);
+          const snap =
+            dragSnap?.slot === i
+              ? dragSnap
+              : ({
+                  slot: i,
+                  ...snapFromPointer(e, e.currentTarget),
+                } satisfies DragSnapTarget);
+          endDrag();
+          if (!Number.isFinite(from)) return;
+          const to = insertIndexFromSnap(from, snap);
+          if (to == null) return;
+          p.onReorderImages(from, to);
+        }}
+        onDragEnd={endDrag}
       >
+        {snapHere ? <span className="ed-drag-snap" aria-hidden /> : null}
         {isEmpty ? null : (
           <EditorComposeImage
             seed={seed}

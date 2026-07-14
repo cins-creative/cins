@@ -36,24 +36,22 @@ function CoSoTabBaidangContent({
   activePost: TruongBaiDang | null;
   orgSlug: string;
 }) {
-  if (activePost) {
-    return (
-      <OrgBaiDangPostDetailView
-        post={activePost}
-        school={school}
-        orgSlug={orgSlug}
-      />
-    );
-  }
-
   return (
     <TruongBaiDangEditProvider>
-      <CoSoOrgBaiDangTimeline
-        posts={posts}
-        owner={school}
-        composeEnabled={composeEnabled}
-        orgFilters={filters}
-      />
+      {activePost ? (
+        <OrgBaiDangPostDetailView
+          post={activePost}
+          school={school}
+          orgSlug={orgSlug}
+        />
+      ) : (
+        <CoSoOrgBaiDangTimeline
+          posts={posts}
+          owner={school}
+          composeEnabled={composeEnabled}
+          orgFilters={filters}
+        />
+      )}
     </TruongBaiDangEditProvider>
   );
 }

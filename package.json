@@ -21,7 +21,10 @@
     "deploy": "node scripts/ensure-prod-site-url.mjs \"opennextjs-cloudflare build && opennextjs-cloudflare deploy -- --keep-vars\"",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
     "cf:variants": "node scripts/cf-ensure-image-variants.mjs",
-    "backfill:diem-feed": "node scripts/backfill-content-diem-feed.mjs"
+    "backfill:diem-feed": "node scripts/backfill-content-diem-feed.mjs",
+    "migrate:feed-score-config": "node scripts/run-content-feed-score-cau-hinh-migration.mjs",
+    "migrate:feed-score-phien-ban": "node scripts/run-content-feed-score-phien-ban-migration.mjs",
+    "migrate:diem-uu-tien": "node scripts/run-content-diem-feed-uu-tien-migration.mjs"
   },
   "dependencies": {
     "@rive-app/canvas": "^2.38.3",

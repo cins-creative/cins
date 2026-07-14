@@ -1,8 +1,9 @@
 import "server-only";
 
 import type { Block } from "@/lib/editor/types";
+import { loadFeedScoreConfig } from "@/lib/cins/feed-scoring-config-db";
 import {
-  FEED_SCORE,
+  ADMIN_DIEM_UU_TIEN,
   clampDiemThanhPhan,
   tinhDiemEngagement,
   tinhDiemNoiDung,
@@ -49,6 +50,7 @@ export async function upsertContentDiemFeed(
     return { ok: false, message: "Thiếu loai hoặc id đối tượng." };
   }
 
+  const cfg = await loadFeedScoreConfig();
   const admin = createServiceRoleClient();
   const nowIso = new Date().toISOString();
   const batDauIso =
@@ -79,23 +81,29 @@ export async function upsertContentDiemFeed(
 
   const diemNoiDung = existing
     ? existing.diem_noi_dung
-    : tinhDiemNoiDung({
-        coverId: input.coverId,
-        moTa: input.moTa,
-        blocks: input.blocks,
-        hasTag: Boolean(input.hasTag),
-      });
+    : tinhDiemNoiDung(
+        {
+          coverId: input.coverId,
+          moTa: input.moTa,
+          blocks: input.blocks,
+          hasTag: Boolean(input.hasTag),
+        },
+        cfg,
+      );
   const diemVerify = existing
     ? existing.diem_verify
-    : tinhDiemVerify(Boolean(input.daXacNhan));
+    : tinhDiemVerify(Boolean(input.daXacNhan), cfg);
   const diemEngagement = existing ? existing.diem_engagement : 0;
 
-  const clamped = clampDiemThanhPhan({
-    diem_co_ban: input.diemCoBan ?? FEED_SCORE.BASE,
-    diem_noi_dung: diemNoiDung,
-    diem_verify: diemVerify,
-    diem_engagement: diemEngagement,
-  });
+  const clamped = clampDiemThanhPhan(
+    {
+      diem_co_ban: input.diemCoBan ?? cfg.BASE,
+      diem_noi_dung: diemNoiDung,
+      diem_verify: diemVerify,
+      diem_engagement: diemEngagement,
+    },
+    cfg,
+  );
 
   const payload = {
     loai_doi_tuong: input.loai,
@@ -118,7 +126,7 @@ export async function upsertContentDiemFeed(
   return { ok: true };
 }
 
-/** Đăng bài mới — điểm cơ bản 40, không verify. */
+/** Đăng bài mới — điểm cơ bản từ config, không verify. */
 export async function insertDiemFeedChoBaiMoi(input: {
   loai: FeedScoringLoai;
   id: string;
@@ -128,9 +136,10 @@ export async function insertDiemFeedChoBaiMoi(input: {
   hasTag?: boolean;
   batDauLuc?: string | Date;
 }): Promise<void> {
+  const cfg = await loadFeedScoreConfig();
   const result = await upsertContentDiemFeed({
     ...input,
-    diemCoBan: FEED_SCORE.BASE,
+    diemCoBan: cfg.BASE,
     daXacNhan: false,
   });
   if (!result.ok) {
@@ -214,31 +223,87 @@ async function loadContentSnapshotForDiem(
   };
 }
 
+async function loadTaoLucDoiTuong(
+  loai: FeedScoringLoai,
+  id: string,
+): Promise<string | null> {
+  const admin = createServiceRoleClient();
+  if (loai === "org_bai_dang") {
+    const { data } = await admin
+      .from("org_bai_dang")
+      .select("tao_luc")
+      .eq("id", id)
+      .maybeSingle<{ tao_luc: string }>();
+    return data?.tao_luc ?? null;
+  }
+  const { data } = await admin
+    .from("content_cot_moc")
+    .select("tao_luc")
+    .eq("id", id)
+    .maybeSingle<{ tao_luc: string }>();
+  return data?.tao_luc ?? null;
+}
+
 /**
- * Admin đẩy bài — reset diem_co_ban=100, bat_dau_luc=now, giữ thành phần khác.
- * Tắt boost: không xoá dòng điểm (chỉ hết bonus qua content_world_boost).
+ * Admin đẩy bài — điểm luôn theo `content_world_boost.dang_bat` hiện tại
+ * (không tin request cũ khi toggle đua nhau).
+ * ON: diem_co_ban=BOOST_RESET, bat_dau_luc=now.
+ * OFF: trả về BASE + decay từ tao_luc bài, giữ nội dung/verify/engagement.
  */
 export async function applyAdminDayBaiDiemFeed(input: {
   loai: FeedScoringLoai;
   id: string;
   actorProfileId: string;
+  /** Gợi ý từ caller — có thể bị override bởi trạng thái boost thật trong DB. */
   dangBat: boolean;
 }): Promise<void> {
   if (input.loai !== "cot_moc" && input.loai !== "org_bai_dang") {
     return;
   }
-  if (!input.dangBat) {
-    /* Tắt boost: không đụng content_diem_feed (brief). */
-    return;
-  }
 
+  const cfg = await loadFeedScoreConfig();
   const admin = createServiceRoleClient();
+
+  const { data: boostRow } = await admin
+    .from("content_world_boost")
+    .select("dang_bat")
+    .eq("loai_doi_tuong", input.loai)
+    .eq("id_doi_tuong", input.id)
+    .maybeSingle<{ dang_bat: boolean }>();
+
+  /* DB là nguồn sự thật — tránh request ON chậm ghi đè sau khi đã tắt. */
+  const dangBat = Boolean(boostRow?.dang_bat);
+
   const { data: existing } = await admin
     .from("content_diem_feed")
     .select("id")
     .eq("loai_doi_tuong", input.loai)
     .eq("id_doi_tuong", input.id)
     .maybeSingle<{ id: string }>();
+
+  if (!dangBat) {
+    if (!existing) return;
+    const taoLuc = await loadTaoLucDoiTuong(input.loai, input.id);
+    const nowIso = new Date().toISOString();
+    const { error } = await admin
+      .from("content_diem_feed")
+      .update({
+        diem_co_ban: cfg.BASE,
+        bat_dau_luc: taoLuc ?? nowIso,
+        day_boi: null,
+        day_luc: null,
+        cap_nhat_luc: nowIso,
+      })
+      .eq("loai_doi_tuong", input.loai)
+      .eq("id_doi_tuong", input.id);
+    if (error) {
+      console.error(
+        "[feed-scoring] tắt đẩy — khôi phục điểm thất bại:",
+        error.message,
+      );
+    }
+    return;
+  }
 
   const snap = existing
     ? null
@@ -252,7 +317,7 @@ export async function applyAdminDayBaiDiemFeed(input: {
     moTa: snap?.moTa,
     blocks: snap?.blocks,
     hasTag: snap?.hasTag,
-    diemCoBan: FEED_SCORE.BOOST_RESET_SCORE,
+    diemCoBan: cfg.BOOST_RESET_SCORE,
     batDauLuc: now,
     dayBoi: input.actorProfileId,
     dayLuc: now,
@@ -261,6 +326,144 @@ export async function applyAdminDayBaiDiemFeed(input: {
   if (!result.ok) {
     console.error("[feed-scoring] admin đẩy thất bại:", result.message);
   }
+}
+
+/**
+ * Cộng điểm ưu tiên admin (+BUMP, không hoàn lại).
+ * Không đụng L29 boost; vẫn giữ khi ON/OFF đẩy (cột riêng diem_uu_tien).
+ * Đồng thời reset bat_dau_luc = now để đẩy bài lên đầu cửa sổ decay.
+ */
+export async function bumpAdminDiemUuTien(input: {
+  loai: FeedScoringLoai;
+  id: string;
+  actorProfileId: string;
+}): Promise<
+  | {
+      ok: true;
+      diemUuTien: number;
+      bumped: number;
+    }
+  | { ok: false; message: string }
+> {
+  if (input.loai !== "cot_moc" && input.loai !== "org_bai_dang") {
+    return {
+      ok: false,
+      message: "Chỉ cộng điểm cho bài user / bài org (không sự kiện).",
+    };
+  }
+
+  const id = input.id.trim();
+  if (!id) return { ok: false, message: "Thiếu id đối tượng." };
+
+  const admin = createServiceRoleClient();
+  const now = new Date();
+  const nowIso = now.toISOString();
+
+  const { data: existing } = await admin
+    .from("content_diem_feed")
+    .select("diem_uu_tien")
+    .eq("loai_doi_tuong", input.loai)
+    .eq("id_doi_tuong", id)
+    .maybeSingle<{ diem_uu_tien: number | null }>();
+
+  if (!existing) {
+    const snap = await loadContentSnapshotForDiem(input.loai, id);
+    const cfg = await loadFeedScoreConfig();
+    const inserted = await upsertContentDiemFeed({
+      loai: input.loai,
+      id,
+      coverId: snap.coverId,
+      moTa: snap.moTa,
+      blocks: snap.blocks,
+      hasTag: snap.hasTag,
+      diemCoBan: cfg.BASE,
+      batDauLuc: now,
+      dayBoi: input.actorProfileId,
+      dayLuc: now,
+    });
+    if (!inserted.ok) {
+      return { ok: false, message: inserted.message };
+    }
+  }
+
+  const current = Math.max(0, Math.round(existing?.diem_uu_tien ?? 0));
+  if (current >= ADMIN_DIEM_UU_TIEN.MAX) {
+    return {
+      ok: false,
+      message: `Đã đạt trần ưu tiên (${ADMIN_DIEM_UU_TIEN.MAX}).`,
+    };
+  }
+
+  const next = Math.min(
+    ADMIN_DIEM_UU_TIEN.MAX,
+    current + ADMIN_DIEM_UU_TIEN.BUMP,
+  );
+  const bumped = next - current;
+
+  const { error } = await admin
+    .from("content_diem_feed")
+    .update({
+      diem_uu_tien: next,
+      bat_dau_luc: nowIso,
+      day_boi: input.actorProfileId,
+      day_luc: nowIso,
+      cap_nhat_luc: nowIso,
+    })
+    .eq("loai_doi_tuong", input.loai)
+    .eq("id_doi_tuong", id);
+
+  if (error) {
+    return { ok: false, message: error.message };
+  }
+
+  return { ok: true, diemUuTien: next, bumped };
+}
+
+/**
+ * Sửa bài còn diem_co_ban = BOOST_RESET nhưng boost đã tắt / không còn.
+ * Gọi lazy khi load catalog admin.
+ */
+export async function healOrphanBoostDiemFeedScores(): Promise<number> {
+  const cfg = await loadFeedScoreConfig();
+  const admin = createServiceRoleClient();
+  const reset = cfg.BOOST_RESET_SCORE;
+
+  const { data: stuck } = await admin
+    .from("content_diem_feed")
+    .select("loai_doi_tuong, id_doi_tuong, diem_co_ban")
+    .gte("diem_co_ban", reset)
+    .in("loai_doi_tuong", ["cot_moc", "org_bai_dang"])
+    .limit(100)
+    .returns<
+      Array<{
+        loai_doi_tuong: FeedScoringLoai;
+        id_doi_tuong: string;
+        diem_co_ban: number;
+      }>
+    >();
+
+  if (!stuck?.length) return 0;
+
+  let healed = 0;
+  for (const row of stuck) {
+    const { data: boost } = await admin
+      .from("content_world_boost")
+      .select("dang_bat")
+      .eq("loai_doi_tuong", row.loai_doi_tuong)
+      .eq("id_doi_tuong", row.id_doi_tuong)
+      .maybeSingle<{ dang_bat: boolean }>();
+
+    if (boost?.dang_bat) continue;
+
+    await applyAdminDayBaiDiemFeed({
+      loai: row.loai_doi_tuong,
+      id: row.id_doi_tuong,
+      actorProfileId: "",
+      dangBat: false,
+    });
+    healed += 1;
+  }
+  return healed;
 }
 
 /** Đánh dấu cần tính lại engagement (hook 4.3). */
@@ -294,13 +497,14 @@ export async function markEngagementCanTinhLaiForTarget(
   await markEngagementCanTinhLai(loaiTrim, idTrim);
 }
 
-/** Verify Loại 2 — set diem_verify = 20 (hook 4.2). */
+/** Verify Loại 2 — set diem_verify theo config (hook 4.2). */
 export async function setDiemVerifyChoCotMoc(cotMocId: string): Promise<void> {
+  const cfg = await loadFeedScoreConfig();
   const admin = createServiceRoleClient();
   const { error } = await admin
     .from("content_diem_feed")
     .update({
-      diem_verify: FEED_SCORE.VERIFIED,
+      diem_verify: cfg.VERIFIED,
       cap_nhat_luc: new Date().toISOString(),
     })
     .eq("loai_doi_tuong", "cot_moc")
@@ -319,13 +523,17 @@ export async function recalcDiemNoiDung(input: {
   blocks?: ReadonlyArray<Block> | null;
   hasTag?: boolean;
 }): Promise<void> {
+  const cfg = await loadFeedScoreConfig();
   const admin = createServiceRoleClient();
-  const diem = tinhDiemNoiDung({
-    coverId: input.coverId,
-    moTa: input.moTa,
-    blocks: input.blocks,
-    hasTag: Boolean(input.hasTag),
-  });
+  const diem = tinhDiemNoiDung(
+    {
+      coverId: input.coverId,
+      moTa: input.moTa,
+      blocks: input.blocks,
+      hasTag: Boolean(input.hasTag),
+    },
+    cfg,
+  );
   const { error } = await admin
     .from("content_diem_feed")
     .update({
@@ -339,11 +547,12 @@ export async function recalcDiemNoiDung(input: {
   }
 }
 
-/** Đếm đơn vị engagement (1 reaction · 2 comment · 3 lưu). */
+/** Đếm đơn vị engagement (reaction / comment / lưu theo config). */
 export async function countEngagementUnits(
   loai: FeedScoringLoai,
   id: string,
 ): Promise<number> {
+  const cfg = await loadFeedScoreConfig();
   const admin = createServiceRoleClient();
   const [reactions, comments, luu] = await Promise.all([
     admin
@@ -364,11 +573,14 @@ export async function countEngagementUnits(
       .eq("id_doi_tuong", id),
   ]);
 
-  return tongDonViEngagement({
-    reactions: reactions.count ?? 0,
-    comments: comments.count ?? 0,
-    luu: luu.count ?? 0,
-  });
+  return tongDonViEngagement(
+    {
+      reactions: reactions.count ?? 0,
+      comments: comments.count ?? 0,
+      luu: luu.count ?? 0,
+    },
+    cfg,
+  );
 }
 
 /**
@@ -384,6 +596,7 @@ export async function flushDirtyEngagementScores(
   const slice = dirty.slice(0, Math.max(0, max));
   if (slice.length === 0) return out;
 
+  const cfg = await loadFeedScoreConfig();
   const admin = createServiceRoleClient();
   const nowIso = new Date().toISOString();
 
@@ -391,7 +604,7 @@ export async function flushDirtyEngagementScores(
     slice.map(async ({ loai, id }) => {
       try {
         const units = await countEngagementUnits(loai, id);
-        const diem = tinhDiemEngagement(units);
+        const diem = tinhDiemEngagement(units, cfg);
         const { error } = await admin
           .from("content_diem_feed")
           .update({

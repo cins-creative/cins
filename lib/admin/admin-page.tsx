@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 
 import { AdminGate } from "@/components/admin/AdminGate";
 import { AdminShell } from "@/components/admin/AdminShell";
-import { hasAdminDbUrl } from "@/lib/admin/db-url";
 import { checkAdminAccess, type AdminGateResult } from "@/lib/admin/require-admin";
 import { canAccessAdminPanel, getCurrentUserSystemRole } from "@/lib/auth/system-role";
 
@@ -17,16 +16,7 @@ export async function renderAdminPage(content: ReactNode) {
     return <AdminGateWrapper gate={{ ok: false, reason: "no_role" }} />;
   }
 
-  const dbReady = hasAdminDbUrl();
-  return (
-    <AdminShell
-      showSqlBubble
-      sqlDbReady={dbReady}
-      sqlPasswordReady={dbReady}
-    >
-      {content}
-    </AdminShell>
-  );
+  return <AdminShell>{content}</AdminShell>;
 }
 
 function AdminGateWrapper({ gate }: { gate: Extract<AdminGateResult, { ok: false }> }) {

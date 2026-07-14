@@ -922,7 +922,7 @@ export function JourneyMilestoneCard({
       />
     ) : null;
 
-  /* "Đẩy World" ưu tiên cạnh badge loại (Cá nhân / …).
+  /* "Đẩy World" đứng trước badge loại (Cá nhân / …) trong cùng badge-row.
    * Góc phải chỉ còn menu "..." — và boost fallback khi card không có cụm loại. */
   const boostBesideTypeBadge =
     Boolean(worldBoostToggleNode) &&
@@ -1501,6 +1501,7 @@ export function JourneyMilestoneCard({
               {/* Trang chủ/entity: badge trạng thái chỉ chủ bài thấy & sửa được. */}
               {canManage && ownerSlug ? (
                 <span className="badge-row">
+                  {typeBadgeBoostNode}
                   {isBookmarkMilestone ? (
                     <span className="ctx-badge j-type-bookmark">
                       <Bookmark size={11} strokeWidth={1.8} aria-hidden />
@@ -1530,7 +1531,6 @@ export function JourneyMilestoneCard({
                       </span>
                     </JourneyMilestoneInlineControls>
                   )}
-                  {typeBadgeBoostNode}
                   {showMilestoneVerifyBadge && !showOrgVerifyBadge ? (
                     <MilestoneVerifyBadge />
                   ) : null}
@@ -1634,6 +1634,7 @@ export function JourneyMilestoneCard({
               {!useForeignFrame ? (
                 <>
                   <span className="badge-row">
+                    {typeBadgeBoostNode}
                     {showMilestoneVerifyBadge && showOrgVerifyBadge ? (
                       <MilestoneVerifyBadge />
                     ) : isCongDongPost ? (
@@ -1668,7 +1669,6 @@ export function JourneyMilestoneCard({
                         </span>
                       </JourneyMilestoneInlineControls>
                     )}
-                    {typeBadgeBoostNode}
                     {showMilestoneVerifyBadge && !showOrgVerifyBadge ? (
                       <MilestoneVerifyBadge />
                     ) : null}
@@ -1753,12 +1753,12 @@ export function JourneyMilestoneCard({
                 <small>{displayDate}</small>
               </span>
               <span className="badge-row">
+                {typeBadgeBoostNode}
                 {showPersonalTypeBadge ? (
                   <span className={`ctx-badge ${TYPE_CLASS[type]}`}>
                     <MilestoneTypeBadgeContent type={type} />
                   </span>
                 ) : null}
-                {typeBadgeBoostNode}
               </span>
               {viewerCornerActionsNode}
             </div>

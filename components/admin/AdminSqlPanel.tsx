@@ -13,15 +13,9 @@ LIMIT 20;`;
 type Props = {
   dbReady: boolean;
   passwordReady: boolean;
-  /** Giao diện popup góc màn hình — textarea và bảng kết quả thấp hơn. */
-  compact?: boolean;
 };
 
-export function AdminSqlPanel({
-  dbReady,
-  passwordReady,
-  compact = false,
-}: Props) {
+export function AdminSqlPanel({ dbReady, passwordReady }: Props) {
   const [sql, setSql] = useState(SAMPLE_SELECT);
   const [mode, setMode] = useState<AdminSqlMode>("read");
   const [running, setRunning] = useState(false);
@@ -47,40 +41,34 @@ export function AdminSqlPanel({
       : [];
 
   return (
-    <div
-      className={
-        compact ? "admin-sql-panel admin-sql-panel--compact" : "admin-sql-page"
-      }
-    >
-      {!compact ? (
-        <header className="page-header">
-          <div>
-            <h1 className="page-title">SQL</h1>
-            <p className="admin-sql-lead">
-              Chạy truy vấn Postgres trực tiếp (server-only). Mặc định chỉ đọc;
-              bật «Đầy đủ» khi cần INSERT/UPDATE/DDL.
-            </p>
-          </div>
-          <div className="page-header-actions">
-            <button
-              type="button"
-              className="btn btn-ghost"
-              onClick={() => setSql(SAMPLE_SELECT)}
-              disabled={running}
-            >
-              Mẫu SELECT
-            </button>
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={() => void onRun()}
-              disabled={running || !dbReady || !passwordReady || !sql.trim()}
-            >
-              {running ? "Đang chạy…" : "Chạy SQL"}
-            </button>
-          </div>
-        </header>
-      ) : null}
+    <div className="admin-sql-page">
+      <header className="page-header">
+        <div>
+          <h1 className="page-title">SQL</h1>
+          <p className="admin-sql-lead">
+            Chạy truy vấn Postgres trực tiếp (server-only). Mặc định chỉ đọc;
+            bật «Đầy đủ» khi cần INSERT/UPDATE/DDL.
+          </p>
+        </div>
+        <div className="page-header-actions">
+          <button
+            type="button"
+            className="btn btn-ghost"
+            onClick={() => setSql(SAMPLE_SELECT)}
+            disabled={running}
+          >
+            Mẫu SELECT
+          </button>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => void onRun()}
+            disabled={running || !dbReady || !passwordReady || !sql.trim()}
+          >
+            {running ? "Đang chạy…" : "Chạy SQL"}
+          </button>
+        </div>
+      </header>
 
       {!dbReady ? (
         <div className="admin-sql-warn" role="alert">
@@ -95,10 +83,6 @@ export function AdminSqlPanel({
         >
           Thiếu <code>SUPABASE_DB_PASSWORD</code> trong .env.local.
         </p>
-      ) : compact ? (
-        <p className="admin-sql-ok-hint admin-sql-ok-hint--compact" role="status">
-          Đã kết nối DB
-        </p>
       ) : (
         <p className="admin-sql-ok-hint" role="status">
           Đã có DATABASE_URL và mật khẩu.
@@ -109,7 +93,7 @@ export function AdminSqlPanel({
         <label className="admin-sql-mode">
           <input
             type="radio"
-            name={compact ? "sql-mode-bubble" : "sql-mode"}
+            name="sql-mode"
             checked={mode === "read"}
             onChange={() => setMode("read")}
             disabled={running}
@@ -119,55 +103,32 @@ export function AdminSqlPanel({
         <label className="admin-sql-mode admin-sql-mode--full">
           <input
             type="radio"
-            name={compact ? "sql-mode-bubble" : "sql-mode"}
+            name="sql-mode"
             checked={mode === "full"}
             onChange={() => setMode("full")}
             disabled={running}
           />
           Đầy đủ
         </label>
-        {compact ? (
-          <div className="admin-sql-toolbar__actions">
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm"
-              onClick={() => setSql(SAMPLE_SELECT)}
-              disabled={running}
-            >
-              Mẫu
-            </button>
-            <button
-              type="button"
-              className="btn btn-primary btn-sm"
-              onClick={() => void onRun()}
-              disabled={running || !dbReady || !passwordReady || !sql.trim()}
-            >
-              {running ? "…" : "Chạy"}
-            </button>
-          </div>
-        ) : null}
       </div>
 
       {mode === "full" ? (
-        <div
-          className="admin-sql-warn admin-sql-warn--danger admin-sql-warn--compact"
-          role="alert"
-        >
+        <div className="admin-sql-warn admin-sql-warn--danger" role="alert">
           Quyền ghi — kiểm tra kỹ trước khi chạy.
         </div>
       ) : null}
 
-      <label className="admin-sql-label" htmlFor={compact ? "admin-sql-bubble-input" : "admin-sql-input"}>
+      <label className="admin-sql-label" htmlFor="admin-sql-input">
         SQL
       </label>
       <textarea
-        id={compact ? "admin-sql-bubble-input" : "admin-sql-input"}
+        id="admin-sql-input"
         className="admin-sql-editor"
         spellCheck={false}
         value={sql}
         onChange={(e) => setSql(e.target.value)}
         disabled={running || !dbReady}
-        rows={compact ? 8 : 14}
+        rows={14}
       />
 
       {error ? (

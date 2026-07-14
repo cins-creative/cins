@@ -37,10 +37,11 @@ Nội dung
   /admin/bai-viet/keyword     → loại keyword
   /admin/bai-viet/software    → loại phan_mem
   /admin/de-xuat              → article_de_xuat trang_thai = cho_review
-  /admin/noi-dung-dang        → **L29** quản lý nội dung World (boost ẩn)
+  /admin/noi-dung-dang        → **L29** quản lý nội dung World (boost ẩn) + **L30** điểm
       · Dashboard: số liệu nội dung mới, đang boost, lọc user/org + loại đăng
-      · View Grid: masonry kiểu World Gallery (`JourneyGalleryGridView`) — toggle đánh dấu đẩy
-      · View Listing: bảng + loại nội dung
+      · View Grid: toggle đẩy + nút **+** cộng `diem_uu_tien` (+10, không hoàn lại)
+      · View Listing: bảng + đẩy / + điểm
+      · View Công thức: Chỉnh sửa → Lưu phiên bản (bắt buộc lý do) + lịch sử/khôi phục (`content_feed_score_phien_ban`); BASE/BOOST_RESET liên kết ON/OFF đẩy; không sửa TTL/cap L29
       · Gate: super_admin | admin (`canManageUsers`); curator không
       · Cùng API với toggle trên World feed (Timeline / lưới khi admin xem)
 

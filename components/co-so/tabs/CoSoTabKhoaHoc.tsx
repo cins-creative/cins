@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from "react";
 import { KhoaHocAddTile, KhoaHocCard } from "@/components/co-so/KhoaHocCard";
 import { KhoaHocCreateModal } from "@/components/co-so/KhoaHocCreateModal";
 import { KhoaHocDeleteConfirm } from "@/components/co-so/KhoaHocDeleteConfirm";
+import { KhoaHocDuplicateConfirm } from "@/components/co-so/KhoaHocDuplicateConfirm";
 import { KhoaHocDetailView } from "@/components/co-so/KhoaHocDetailView";
 import {
   buildKhoaHocDetailMock,
@@ -45,6 +46,7 @@ export function CoSoTabKhoaHoc({
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<KhoaHocCardData | null>(null);
   const [deleting, setDeleting] = useState<KhoaHocCardData | null>(null);
+  const [duplicating, setDuplicating] = useState<KhoaHocCardData | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -138,6 +140,13 @@ export function CoSoTabKhoaHoc({
     if (wasSelected) {
       router.replace(coSoTabPath(orgSlug, "khoa-hoc"), { scroll: false });
     }
+  }
+
+  function handleDuplicated(khoa: KhoaHocCardData) {
+    setItems((prev) => [khoa, ...prev.filter((k) => k.id !== khoa.id)]);
+    notifyCoSoKhoaListChanged(orgId);
+    setCreateOpen(false);
+    setEditing(khoa);
   }
 
   if (isMockupRoute || selected) {
@@ -243,6 +252,7 @@ export function CoSoTabKhoaHoc({
                   setCreateOpen(false);
                   setEditing(khoa);
                 }}
+                onDuplicate={() => setDuplicating(khoa)}
                 onDelete={() => setDeleting(khoa)}
               />
             ))}
@@ -276,6 +286,13 @@ export function CoSoTabKhoaHoc({
             khoa={deleting}
             onClose={() => setDeleting(null)}
             onDeleted={handleDeleted}
+          />
+          <KhoaHocDuplicateConfirm
+            open={Boolean(duplicating)}
+            orgId={orgId}
+            khoa={duplicating}
+            onClose={() => setDuplicating(null)}
+            onDuplicated={handleDuplicated}
           />
         </>
       ) : null}

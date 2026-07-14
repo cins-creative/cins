@@ -2001,6 +2001,59 @@
   background: #fff;
   overflow: hidden;
 }
+.cins-editor-page .ph.is-draggable {
+  cursor: grab;
+}
+.cins-editor-page .ph.is-dragging {
+  opacity: 0.45;
+  cursor: grabbing;
+}
+.cins-editor-page .ph .ed-drag-snap,
+.cins-editor-page .ed-photo-album-compose .image-grid-cell .ed-drag-snap {
+  position: absolute;
+  z-index: 6;
+  pointer-events: none;
+  border-radius: 3px;
+  background: #2563eb;
+  box-shadow:
+    0 0 0 3px rgb(37 99 235 / 22%),
+    0 0 12px rgb(37 99 235 / 35%);
+}
+.cins-editor-page .ph.is-snap-axis-x.is-snap-before .ed-drag-snap,
+.cins-editor-page .ed-photo-album-compose .image-grid-cell.is-snap-axis-x.is-snap-before .ed-drag-snap {
+  left: 3px;
+  top: 10%;
+  width: 4px;
+  height: 80%;
+}
+.cins-editor-page .ph.is-snap-axis-x.is-snap-after .ed-drag-snap,
+.cins-editor-page .ed-photo-album-compose .image-grid-cell.is-snap-axis-x.is-snap-after .ed-drag-snap {
+  right: 3px;
+  top: 10%;
+  width: 4px;
+  height: 80%;
+}
+.cins-editor-page .ph.is-snap-axis-y.is-snap-before .ed-drag-snap,
+.cins-editor-page .ed-photo-album-compose .image-grid-cell.is-snap-axis-y.is-snap-before .ed-drag-snap {
+  top: 3px;
+  left: 10%;
+  height: 4px;
+  width: 80%;
+}
+.cins-editor-page .ph.is-snap-axis-y.is-snap-after .ed-drag-snap,
+.cins-editor-page .ed-photo-album-compose .image-grid-cell.is-snap-axis-y.is-snap-after .ed-drag-snap {
+  bottom: 3px;
+  left: 10%;
+  height: 4px;
+  width: 80%;
+}
+.cins-editor-page .ph.is-snap-before,
+.cins-editor-page .ph.is-snap-after,
+.cins-editor-page .ed-photo-album-compose .image-grid-cell.is-snap-before,
+.cins-editor-page .ed-photo-album-compose .image-grid-cell.is-snap-after {
+  outline: 2px solid rgb(37 99 235 / 35%);
+  outline-offset: -2px;
+}
 /* Ô ảnh trống vừa thêm — chưa chọn ảnh → nền placeholder, không dùng dummy. */
 .cins-editor-page .ph.is-empty {
   min-height: 220px;
@@ -2153,6 +2206,13 @@
 }
 .cins-editor-page .ed-photo-album-compose .image-grid-cell.is-compose-editable {
   position: relative;
+}
+.cins-editor-page .ed-photo-album-compose .image-grid-cell.is-draggable {
+  cursor: grab;
+}
+.cins-editor-page .ed-photo-album-compose .image-grid-cell.is-dragging {
+  opacity: 0.45;
+  cursor: grabbing;
 }
 .cins-editor-page .ed-photo-album-compose .image-grid-cell.is-compose-editable:hover .ph-actions,
 .cins-editor-page .ed-photo-album-compose .image-grid-cell.is-compose-editable:hover .ph-del {

@@ -55,6 +55,8 @@ type Props = {
   post: TruongBaiDang;
   /** Fallback khi không có `TruongInlineEditProvider` (vd. trang cơ sở khách). */
   owner?: OrgOwner | null;
+  /** Permalink chi tiết — mở sẵn nội dung đầy đủ (không cần bấm unfold). */
+  initialExpanded?: boolean;
 };
 
 function shouldIgnoreExpandTrigger(target: Element | null): boolean {
@@ -87,12 +89,16 @@ function orgBaiDangPreviewMedia(post: TruongBaiDang): MilestoneMediaItem | null 
   };
 }
 
-export function OrgBaiDangJourneyCard({ post, owner = null }: Props) {
+export function OrgBaiDangJourneyCard({
+  post,
+  owner = null,
+  initialExpanded = false,
+}: Props) {
   const ctx = useTruongInlineEdit();
   const school = ctx?.school ?? owner;
   const isScheduled = isTruongBaiDangScheduled(post);
   const showScheduledUi = ctx?.isEditing && isScheduled;
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(Boolean(initialExpanded));
   const articleRef = useRef<HTMLElement>(null);
 
   /* Analytics tiếp cận — card này luôn trên TRANG TỔ CHỨC (org/co-so/studio)
@@ -153,7 +159,7 @@ export function OrgBaiDangJourneyCard({ post, owner = null }: Props) {
     chiChuCardText &&
       chiChuNeedsCollapse(chiChuCardText, chiChuParagraphs.length),
   );
-  const [chiChuExpanded, setChiChuExpanded] = useState(false);
+  const [chiChuExpanded, setChiChuExpanded] = useState(Boolean(initialExpanded));
   const showChiChuUnfold =
     isTextCard && chiChuCollapsible && chiChuExpanded;
   const useUnifiedMediaBody = usesBlocks || isMediaCard;
@@ -194,8 +200,8 @@ export function OrgBaiDangJourneyCard({ post, owner = null }: Props) {
   );
 
   useEffect(() => {
-    setChiChuExpanded(false);
-  }, [chiChuCardText, post.tieu_de]);
+    setChiChuExpanded(Boolean(initialExpanded));
+  }, [chiChuCardText, post.tieu_de, initialExpanded]);
 
   const thumbPreview = useMemo(
     () => buildBaiDangThumbPreview(post.noi_dung),

@@ -38,6 +38,7 @@ import {
 import { ChatComposeToolsMenu } from "@/components/cins/ChatComposeToolsMenu";
 import { ChatGroupAvatar } from "@/components/cins/ChatGroupAvatar";
 import { ChatGroupManageModal } from "@/components/cins/ChatGroupManageModal";
+import { ChatRenameGroupModal } from "@/components/cins/ChatRenameGroupModal";
 import { ChatImageLightbox } from "@/components/cins/ChatImageLightbox";
 import { ChatMessageThreadItems } from "@/components/cins/ChatMessageThreadItems";
 import {
@@ -401,6 +402,7 @@ function ChatThreadRow({
   onToggleListPin,
   onToggleMute,
   onManageGroup,
+  onRenameGroup,
   onCreateProject,
   onLeaveGroup,
   onDeleteGroup,
@@ -422,6 +424,7 @@ function ChatThreadRow({
   onToggleListPin: (thread: ChatThread) => void;
   onToggleMute: (thread: ChatThread) => void;
   onManageGroup: (thread: ChatThread) => void;
+  onRenameGroup: (thread: ChatThread) => void;
   onCreateProject: (thread: ChatThread) => void;
   onLeaveGroup: (thread: ChatThread) => void;
   onDeleteGroup: (thread: ChatThread) => void;
@@ -463,12 +466,15 @@ function ChatThreadRow({
     isGroup: Boolean(thread.isGroup),
     isGroupAdmin: Boolean(thread.isGroupAdmin),
     isGroupOwner: Boolean(thread.isGroupOwner),
+    isProjectChild,
     canViewProfile,
     onViewProfile: () => onViewProfile(thread),
     canBlock,
     onBlockUser: () => onBlockUser(thread),
     onToggleListPin: () => onToggleListPin(thread),
     onToggleMute: () => onToggleMute(thread),
+    canRenameGroup: Boolean(thread.isGroup && thread.isGroupAdmin),
+    onRenameGroup: () => onRenameGroup(thread),
     canCreateProject,
     onCreateProject: () => onCreateProject(thread),
     onManageGroup: () => onManageGroup(thread),
@@ -748,6 +754,9 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     "thong_tin" | "thanh_vien" | "project"
   >("thong_tin");
   const [manageDeleteConfirm, setManageDeleteConfirm] = useState(false);
+  const [renameGroupThread, setRenameGroupThread] = useState<ChatThread | null>(
+    null,
+  );
   /** roomId nhóm gốc → đã xổ project con (mặc định thu; nhớ theo viewer). */
   const [expandedProjectParents, setExpandedProjectParents] = useState<
     Record<string, boolean>
@@ -1999,6 +2008,13 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     setManageGroupThread(thread);
   }, []);
 
+  /** Đổi tên nhóm/project nhanh — modal gọn, không mở full quản lý. */
+  const handleRenameGroupQuick = useCallback((thread: ChatThread) => {
+    if (!thread.isGroup || !thread.isGroupAdmin) return;
+    setThreadMenuRoomId(null);
+    setRenameGroupThread(thread);
+  }, []);
+
   /** Mở modal quản lý → tab Project (không dùng window.prompt — hay bị chặn / im lặng). */
   const handleCreateProjectQuick = useCallback((thread: ChatThread) => {
     if (!thread.isGroup || !thread.isGroupAdmin || thread.parentRoomId) return;
@@ -2944,6 +2960,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                     onToggleListPin={(t) => toggleListPin(t.roomId)}
                     onToggleMute={(t) => toggleMuteRoom(t.roomId)}
                     onManageGroup={handleManageGroup}
+                    onRenameGroup={handleRenameGroupQuick}
                     onCreateProject={handleCreateProjectQuick}
                     onLeaveGroup={handleLeaveGroup}
                     onDeleteGroup={handleDeleteGroup}
@@ -3638,6 +3655,13 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
         open={groupModalOpen}
         onClose={() => setGroupModalOpen(false)}
         onCreated={handleGroupCreated}
+      />
+
+      <ChatRenameGroupModal
+        open={Boolean(renameGroupThread)}
+        thread={renameGroupThread}
+        onClose={() => setRenameGroupThread(null)}
+        onRenamed={handleGroupManaged}
       />
 
       {manageGroupThread ? (

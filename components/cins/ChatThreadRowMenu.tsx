@@ -9,6 +9,7 @@ import {
   FolderKanban,
   LogOut,
   MoreVertical,
+  Pencil,
   Settings2,
   Trash2,
   User,
@@ -172,12 +173,17 @@ export function buildThreadMenuActions(options: {
   onToggleListPin: () => void;
   onToggleMute: () => void;
   onManageGroup?: () => void;
+  /** Owner/admin — đổi tên nhóm/project nhanh (không mở full quản lý). */
+  canRenameGroup?: boolean;
+  onRenameGroup?: () => void;
   /** Owner/admin nhóm gốc — tạo project con nhanh. */
   canCreateProject?: boolean;
   onCreateProject?: () => void;
   onLeaveGroup: () => void;
   onDeleteGroup: () => void;
   onHideThread: () => void;
+  /** true khi là project con (đổi nhãn menu). */
+  isProjectChild?: boolean;
 }): ChatThreadMenuAction[] {
   const actions: ChatThreadMenuAction[] = [];
 
@@ -210,6 +216,14 @@ export function buildThreadMenuActions(options: {
   );
 
   if (options.isGroup) {
+    if (options.canRenameGroup && options.onRenameGroup) {
+      actions.push({
+        id: "rename-group",
+        label: options.isProjectChild ? "Đổi tên project" : "Đổi tên nhóm",
+        icon: <Pencil size={15} strokeWidth={2.1} />,
+        onSelect: options.onRenameGroup,
+      });
+    }
     if (options.canCreateProject && options.onCreateProject) {
       actions.push({
         id: "create-project",

@@ -1,7 +1,10 @@
 "use client";
 
 import {
-  FEED_SCORE,
+  DEFAULT_FEED_SCORE_CONFIG,
+  type FeedScoreConfig,
+} from "@/lib/cins/feed-scoring-config";
+import {
   breakdownDiemHienTai,
   gioConLaiDecay,
 } from "@/lib/cins/feed-scoring";
@@ -11,6 +14,8 @@ type Props = {
   diemFeed: WorldBoostDiemFeedSnapshot | null;
   /** `compact` = grid card; `table` = listing columns content. */
   variant?: "compact" | "table";
+  /** Trọng số runtime — ảnh hưởng decay / trần thanh. */
+  scoreConfig?: FeedScoreConfig | null;
 };
 
 function fmtGioConLai(gio: number): string {
@@ -29,22 +34,32 @@ function fmtGioConLai(gio: number): string {
   return `${rounded} giờ`;
 }
 
-function tooltipBreakdown(diemFeed: WorldBoostDiemFeedSnapshot): string {
-  const b = breakdownDiemHienTai(diemFeed);
-  return `Cơ bản: ${b.diemCoBan} · Nội dung: ${b.diemNoiDung} · Verify: ${b.diemVerify} · Engagement: ${b.diemEngagement} · Decay: ${b.decayPct}%`;
+function tooltipBreakdown(
+  diemFeed: WorldBoostDiemFeedSnapshot,
+  cfg: FeedScoreConfig,
+): string {
+  const b = breakdownDiemHienTai(diemFeed, Date.now(), cfg);
+  const uu =
+    b.diemUuTien > 0 ? ` · Ưu tiên: ${b.diemUuTien}` : "";
+  return `Cơ bản: ${b.diemCoBan} · Nội dung: ${b.diemNoiDung} · Verify: ${b.diemVerify} · Engagement: ${b.diemEngagement}${uu} · Decay: ${b.decayPct}%`;
 }
 
 export function fmtAdminFeedGioConLai(
   diemFeed: WorldBoostDiemFeedSnapshot | null,
+  scoreConfig?: FeedScoreConfig | null,
 ): string {
   if (!diemFeed) return "—";
-  return fmtGioConLai(gioConLaiDecay(diemFeed.bat_dau_luc));
+  const cfg = scoreConfig ?? DEFAULT_FEED_SCORE_CONFIG;
+  return fmtGioConLai(gioConLaiDecay(diemFeed.bat_dau_luc, Date.now(), cfg));
 }
 
 export function AdminFeedScoreCell({
   diemFeed,
   variant = "compact",
+  scoreConfig,
 }: Props) {
+  const cfg = scoreConfig ?? DEFAULT_FEED_SCORE_CONFIG;
+
   if (!diemFeed) {
     return (
       <span className="ndd-score ndd-score--empty" title="Không áp điểm Timeline">
@@ -53,15 +68,13 @@ export function AdminFeedScoreCell({
     );
   }
 
-  const b = breakdownDiemHienTai(diemFeed);
+  const b = breakdownDiemHienTai(diemFeed, Date.now(), cfg);
   const diem = Math.round(b.diemHienTai);
   const max =
-    diemFeed.diem_verify > 0
-      ? FEED_SCORE.MAX_TOTAL_VERIFIED
-      : FEED_SCORE.MAX_TOTAL;
+    diemFeed.diem_verify > 0 ? cfg.MAX_TOTAL_VERIFIED : cfg.MAX_TOTAL;
   const pct = Math.max(0, Math.min(100, (diem / max) * 100));
   const tone = pct >= 45 ? "high" : "low";
-  const tip = tooltipBreakdown(diemFeed);
+  const tip = tooltipBreakdown(diemFeed, cfg);
 
   return (
     <span

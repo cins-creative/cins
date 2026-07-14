@@ -5,7 +5,7 @@ type Props = {
   passwordReady: boolean;
 };
 
-/** Trang /admin/sql đầy đủ (tùy chọn); bubble dùng AdminSqlBubble. */
+/** Trang /admin/sql. */
 export function AdminSqlScreen({ dbReady, passwordReady }: Props) {
   return (
     <div className="page-body">

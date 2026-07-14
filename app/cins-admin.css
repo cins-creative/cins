@@ -4502,175 +4502,7 @@
   font-size: 12px;
 }
 
-.cins-admin .admin-sql-toolbar__actions {
-  margin-left: auto;
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.cins-admin .admin-sql-panel--compact {
-  padding: 0;
-}
-
-.cins-admin .admin-sql-panel--compact .admin-sql-toolbar {
-  gap: 10px 14px;
-  align-items: center;
-}
-
-.cins-admin .admin-sql-panel--compact .admin-sql-warn {
-  padding: 8px 10px;
-  margin-bottom: 10px;
-  font-size: 12px;
-}
-
-.cins-admin .admin-sql-panel--compact .admin-sql-warn--compact {
-  margin-bottom: 8px;
-}
-
-.cins-admin .admin-sql-ok-hint--compact {
-  margin-bottom: 8px;
-}
-
-.cins-admin .admin-sql-panel--compact .admin-sql-editor {
-  min-height: 120px;
-}
-
-.cins-admin .admin-sql-panel--compact .admin-sql-table-wrap {
-  max-height: 200px;
-}
-
-/* ── SQL bubble (góc phải, kiểu messenger) ── */
-.admin-sql-bubble-root {
-  position: fixed;
-  right: 20px;
-  bottom: 20px;
-  z-index: 1200;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 12px;
-  pointer-events: none;
-}
-
-.admin-sql-bubble-root > * {
-  pointer-events: auto;
-}
-
-.admin-sql-bubble-fab {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  border: none;
-  background: linear-gradient(135deg, var(--cins-blue), var(--cins-blue-dark, #1656a0));
-  color: #fff;
-  box-shadow: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: transform 0.15s ease;
-}
-
-.admin-sql-bubble-fab svg {
-  width: 26px;
-  height: 26px;
-}
-
-.admin-sql-bubble-fab:hover {
-  transform: scale(1.05);
-}
-
-.admin-sql-bubble-root.is-open .admin-sql-bubble-fab {
-  background: var(--neutral-700, #3d4451);
-}
-
-.admin-sql-bubble-fab-close {
-  font-size: 28px;
-  line-height: 1;
-  font-weight: 300;
-}
-
-.admin-sql-bubble-panel {
-  width: min(440px, calc(100vw - 40px));
-  max-height: min(72vh, 640px);
-  display: flex;
-  flex-direction: column;
-  background: var(--bg-surface, #fff);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  box-shadow:
-    0 12px 40px rgba(15, 23, 42, 0.18),
-    0 4px 12px rgba(15, 23, 42, 0.08);
-  overflow: hidden;
-  animation: admin-sql-bubble-in 0.2s ease-out;
-}
-
-@keyframes admin-sql-bubble-in {
-  from {
-    opacity: 0;
-    transform: translateY(12px) scale(0.96);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-.admin-sql-bubble-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 14px;
-  border-bottom: 1px solid var(--border);
-  background: var(--neutral-50, #f8f9fb);
-  flex-shrink: 0;
-}
-
-.admin-sql-bubble-title {
-  font-family: var(--font-sans);
-  font-weight: var(--weight-extrabold);
-  font-size: 15px;
-  color: var(--fg-1);
-}
-
-.admin-sql-bubble-icon-btn {
-  width: 32px;
-  height: 32px;
-  border: none;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--fg-2);
-  font-size: 20px;
-  line-height: 1;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.admin-sql-bubble-icon-btn:hover {
-  background: rgba(15, 23, 42, 0.06);
-}
-
-.admin-sql-bubble-body {
-  overflow: auto;
-  padding: 12px 14px 14px;
-  flex: 1;
-  min-height: 0;
-}
-
 @media (max-width: 640px) {
-  .admin-sql-bubble-root {
-    right: 12px;
-    bottom: 12px;
-  }
-
-  .admin-sql-bubble-panel {
-    width: calc(100vw - 24px);
-    max-height: min(80vh, 560px);
-  }
-
   .cins-admin .stats-grid {
     grid-template-columns: 1fr;
   }
@@ -6922,6 +6754,7 @@
   gap: 12px;
 }
 .cins-admin .ndd-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   text-align: left;
@@ -6929,8 +6762,45 @@
   border-radius: 12px;
   overflow: hidden;
   background: #fff;
-  cursor: pointer;
+  cursor: default;
   padding: 0;
+}
+.cins-admin .ndd-card-hit {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+}
+.cins-admin .ndd-card-open {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.72);
+  color: #fff;
+  text-decoration: none;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.2);
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+.cins-admin .ndd-card-open:hover {
+  background: rgba(15, 23, 42, 0.92);
+  transform: translateY(-1px);
+}
+.cins-admin .ndd-card-open:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
 }
 .cins-admin .ndd-card.is-boosted {
   border-color: #16a34a;
@@ -7043,6 +6913,22 @@
   color: #0f172a;
   font-weight: 600;
 }
+.cins-admin .ndd-list-open-title {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 6px;
+  color: inherit;
+  text-decoration: none;
+}
+.cins-admin .ndd-list-open-title:hover {
+  color: #1d4ed8;
+  text-decoration: underline;
+}
+.cins-admin .ndd-list-open-title svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  opacity: 0.55;
+}
 .cins-admin .ndd-list-meta {
   display: flex;
   flex-wrap: wrap;
@@ -7099,19 +6985,85 @@
   color: #94a3b8;
   font-weight: 700;
 }
-.cins-admin .ndd-card-mark {
+.cins-admin .ndd-card-mark-row {
   position: absolute;
   top: 8px;
   right: 8px;
-  width: 14px;
-  height: 14px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.cins-admin .ndd-card-mark {
+  width: 18px;
+  height: 18px;
+  padding: 0;
   border-radius: 50%;
   background: rgba(255,255,255,0.9);
   border: 2px solid #cbd5e1;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
+}
+.cins-admin .ndd-card-bump {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1.5px solid #f59e0b;
+  color: #b45309;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
+}
+.cins-admin .ndd-card-bump:hover {
+  background: #fffbeb;
+  transform: scale(1.06);
+}
+.cins-admin .ndd-card-bump:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.cins-admin .ndd-card-mark:hover {
+  border-color: #94a3b8;
+  transform: scale(1.06);
+}
+.cins-admin .ndd-card-mark:focus-visible,
+.cins-admin .ndd-card-bump:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+.cins-admin .ndd-card-mark:disabled {
+  cursor: wait;
+  opacity: 0.72;
 }
 .cins-admin .ndd-card.is-boosted .ndd-card-mark {
   background: #16a34a;
   border-color: #15803d;
+}
+.cins-admin .ndd-list-boost-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.cins-admin .ndd-list-bump {
+  min-width: 28px;
+  height: 28px;
+  padding: 0 6px;
+  border-radius: 8px;
+  border: 1px solid #f59e0b;
+  background: #fffbeb;
+  color: #b45309;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+.cins-admin .ndd-list-bump:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 .cins-admin .ndd-card-body {
   padding: 10px 12px 12px;
@@ -7412,6 +7364,141 @@
 }
 .cins-admin .ndd-dash-bar-fill.is-boost { background: #16a34a; }
 .cins-admin .ndd-dash-bar-fill.is-soon { background: #d97706; }
+
+/* L30 — tab Công thức điểm Timeline */
+.cins-admin .ndd-score-rules {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.cins-admin .ndd-score-rules-intro {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #fff;
+  padding: 14px 16px;
+}
+.cins-admin .ndd-score-rules-formula {
+  margin: 0 0 6px;
+  font-size: 14px;
+  color: #0f172a;
+}
+.cins-admin .ndd-score-rules-formula code {
+  font-size: 13px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: #f1f5f9;
+  color: #0f172a;
+}
+.cins-admin .ndd-score-rules-scope,
+.cins-admin .ndd-score-rules-note {
+  margin: 0;
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.45;
+}
+.cins-admin .ndd-score-rules-note {
+  margin-top: 8px;
+}
+.cins-admin .ndd-score-rules-h2 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+}
+.cins-admin .ndd-score-rules-table th,
+.cins-admin .ndd-score-rules-table td {
+  vertical-align: top;
+}
+.cins-admin .ndd-score-rules-col-diem {
+  width: 110px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.cins-admin .ndd-score-rules-nhom {
+  font-weight: 700;
+  color: #0f172a;
+  white-space: nowrap;
+}
+.cins-admin .ndd-score-rules-note-cell {
+  color: #64748b;
+  font-size: 12px;
+}
+.cins-admin .ndd-score-rules-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.cins-admin .ndd-score-rules-btn {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+  color: #334155;
+  font-size: 13px;
+  padding: 7px 12px;
+  cursor: pointer;
+}
+.cins-admin .ndd-score-rules-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.cins-admin .ndd-score-rules-btn--primary {
+  border-color: #16a34a;
+  background: #f0fdf4;
+  color: #15803d;
+  font-weight: 600;
+}
+.cins-admin .ndd-score-rules-input {
+  width: 88px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.cins-admin .ndd-score-rules-day {
+  width: 56px;
+  text-align: center;
+}
+.cins-admin .ndd-score-rules-day-pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #ecfdf5;
+  color: #15803d;
+  font-size: 11px;
+  font-weight: 600;
+}
+.cins-admin .ndd-score-rules-ok {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: #15803d;
+}
+.cins-admin .ndd-score-rules-phien-hien {
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 500;
+}
+.cins-admin .ndd-score-rules-lydo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+}
+.cins-admin .ndd-score-rules-lydo span {
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f172a;
+}
+.cins-admin .ndd-score-rules-lydo textarea {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13px;
+  resize: vertical;
+  min-height: 56px;
+  font-family: inherit;
+}
 
 @media (max-width: 1100px) {
   .cins-admin .ndd-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }

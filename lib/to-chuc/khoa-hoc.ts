@@ -886,3 +886,276 @@ export async function xoaKhoaHoc(
 
   return { ok: true };
 }
+
+type LopHocCopyRow = {
+  hinh_thuc: HinhThucLop | null;
+  ngay_khai_giang: string | null;
+  trang_thai: string | null;
+  lich_hoc?: string | null;
+  ma_lop: string | null;
+  giao_vien_phu_trach: string | null;
+  giao_vien_text?: string | null;
+  slot_toi_da: number | null;
+};
+
+function uniquifyMaLopInBatch(base: string, used: Set<string>): string {
+  const trimmed = base.trim().slice(0, 48) || "lop";
+  let candidate = trimmed;
+  let n = 2;
+  while (used.has(candidate) && n < 100) {
+    const suffix = `-${n}`;
+    candidate = `${trimmed.slice(0, 48 - suffix.length)}${suffix}`;
+    n += 1;
+  }
+  used.add(candidate);
+  return candidate;
+}
+
+/**
+ * Nhân bản khóa học + mọi lớp (không copy học viên / bài tập).
+ * Bản mới ẩn (`an`) + trạng thái `sap_khai_giang` — admin sửa rồi mở public.
+ */
+export async function nhanBanKhoaHoc(
+  orgId: string,
+  khoaId: string,
+  actorId: string,
+): Promise<
+  { ok: true; khoaHoc: KhoaHocCardData } | { ok: false; error: string }
+> {
+  if (!(await canViewerManageKhoaHoc(actorId, orgId))) {
+    return { ok: false, error: "Bạn không có quyền nhân bản khóa học." };
+  }
+  if (!(await assertCoSoOrg(orgId))) {
+    return { ok: false, error: "Không tìm thấy cơ sở đào tạo." };
+  }
+
+  const admin = createServiceRoleClient();
+
+  let source: KhoaHocRow | null = null;
+  const { data: srcRow, error: srcError } = await admin
+    .from("org_khoa_hoc")
+    .select(`${KHOA_HOC_CARD_SELECT}, bai_tap_hien_thi`)
+    .eq("id_to_chuc", orgId)
+    .eq("id", khoaId)
+    .maybeSingle();
+
+  if (srcError?.message?.includes("bai_tap_hien_thi")) {
+    const fallback = await admin
+      .from("org_khoa_hoc")
+      .select(KHOA_HOC_CARD_SELECT)
+      .eq("id_to_chuc", orgId)
+      .eq("id", khoaId)
+      .maybeSingle();
+    if (fallback.error || !fallback.data) {
+      return {
+        ok: false,
+        error: fallback.error?.message ?? "Không tìm thấy khóa học.",
+      };
+    }
+    source = fallback.data as KhoaHocRow;
+  } else if (srcError || !srcRow) {
+    return {
+      ok: false,
+      error: srcError?.message ?? "Không tìm thấy khóa học.",
+    };
+  } else {
+    source = srcRow as KhoaHocRow;
+  }
+
+  const parsed = parseKhoaHocNoiDungBlocks(source.noi_dung_blocks);
+  const tenMoi = `${source.ten_khoa_hoc.trim()} (bản sao)`.slice(0, 200);
+  const slug = await uniqueKhoaSlugTrongOrg(orgId, slugifyOrgName(tenMoi));
+  const noiDungBlocks = buildKhoaHocNoiDungBlocks({
+    yeuCauChuanBi: parsed.yeuCauChuanBi,
+    diaChiHoc: parsed.diaChiHoc,
+    includeDiaDiem: Boolean(parsed.diaChiHoc?.trim()),
+    cheDoHienThi: "an",
+    goiHocPhi: parsed.goiHocPhi,
+  });
+
+  const insertRow: Record<string, unknown> = {
+    id_to_chuc: orgId,
+    ten_khoa_hoc: tenMoi,
+    slug,
+    loai_mo_hinh: source.loai_mo_hinh,
+    mo_ta: source.mo_ta,
+    thoi_luong_buoi: source.thoi_luong_buoi,
+    thoi_luong_phut_moi_buoi: source.thoi_luong_phut_moi_buoi,
+    hoc_phi: source.hoc_phi,
+    trinh_do_dau_vao: source.trinh_do_dau_vao,
+    trang_thai_khoa_hoc: "sap_khai_giang",
+    avatar_id: source.avatar_id,
+    cover_id: source.cover_id,
+    noi_dung_blocks: noiDungBlocks,
+  };
+
+  const srcWithBaiTap = source as KhoaHocRow & {
+    bai_tap_hien_thi?: string | null;
+  };
+  if (srcWithBaiTap.bai_tap_hien_thi) {
+    insertRow.bai_tap_hien_thi = srcWithBaiTap.bai_tap_hien_thi;
+  }
+
+  let newRow: KhoaHocRow | null = null;
+  const { data: inserted, error: insertError } = await admin
+    .from("org_khoa_hoc")
+    .insert(insertRow)
+    .select(KHOA_HOC_CARD_SELECT)
+    .single();
+
+  if (insertError || !inserted) {
+    const msg = insertError?.message ?? "Không nhân bản được khóa học.";
+    if (msg.includes("noi_dung_blocks")) {
+      delete insertRow.noi_dung_blocks;
+      const retry = await admin
+        .from("org_khoa_hoc")
+        .insert(insertRow)
+        .select(KHOA_HOC_CARD_SELECT_NO_BLOCKS)
+        .single();
+      if (retry.error || !retry.data) {
+        return { ok: false, error: retry.error?.message ?? msg };
+      }
+      newRow = retry.data as KhoaHocRow;
+    } else if (msg.includes("bai_tap_hien_thi")) {
+      delete insertRow.bai_tap_hien_thi;
+      const retry = await admin
+        .from("org_khoa_hoc")
+        .insert(insertRow)
+        .select(KHOA_HOC_CARD_SELECT)
+        .single();
+      if (retry.error || !retry.data) {
+        return { ok: false, error: retry.error?.message ?? msg };
+      }
+      newRow = retry.data as KhoaHocRow;
+    } else {
+      return { ok: false, error: msg };
+    }
+  } else {
+    newRow = inserted as KhoaHocRow;
+  }
+
+  const LOP_SELECT =
+    "hinh_thuc, ngay_khai_giang, trang_thai, lich_hoc, ma_lop, giao_vien_phu_trach, giao_vien_text, slot_toi_da";
+  let lopRows: LopHocCopyRow[] = [];
+  const { data: lopData, error: lopError } = await admin
+    .from("org_lop_hoc")
+    .select(LOP_SELECT)
+    .eq("id_khoa_hoc", khoaId)
+    .order("ngay_khai_giang", { ascending: true });
+
+  if (lopError?.message?.includes("lich_hoc")) {
+    const fallback = await admin
+      .from("org_lop_hoc")
+      .select(
+        "hinh_thuc, ngay_khai_giang, trang_thai, ma_lop, giao_vien_phu_trach, giao_vien_text, slot_toi_da",
+      )
+      .eq("id_khoa_hoc", khoaId)
+      .order("ngay_khai_giang", { ascending: true });
+    if (fallback.error?.message?.includes("giao_vien_text")) {
+      const fb2 = await admin
+        .from("org_lop_hoc")
+        .select(
+          "hinh_thuc, ngay_khai_giang, trang_thai, ma_lop, giao_vien_phu_trach, slot_toi_da",
+        )
+        .eq("id_khoa_hoc", khoaId)
+        .order("ngay_khai_giang", { ascending: true });
+      if (fb2.error) {
+        await admin.from("org_khoa_hoc").delete().eq("id", newRow.id);
+        return { ok: false, error: fb2.error.message };
+      }
+      lopRows = (fb2.data ?? []) as LopHocCopyRow[];
+    } else if (fallback.error) {
+      await admin.from("org_khoa_hoc").delete().eq("id", newRow.id);
+      return { ok: false, error: fallback.error.message };
+    } else {
+      lopRows = (fallback.data ?? []) as LopHocCopyRow[];
+    }
+  } else if (lopError?.message?.includes("giao_vien_text")) {
+    const fallback = await admin
+      .from("org_lop_hoc")
+      .select(
+        "hinh_thuc, ngay_khai_giang, trang_thai, lich_hoc, ma_lop, giao_vien_phu_trach, slot_toi_da",
+      )
+      .eq("id_khoa_hoc", khoaId)
+      .order("ngay_khai_giang", { ascending: true });
+    if (fallback.error) {
+      await admin.from("org_khoa_hoc").delete().eq("id", newRow.id);
+      return { ok: false, error: fallback.error.message };
+    }
+    lopRows = (fallback.data ?? []) as LopHocCopyRow[];
+  } else if (lopError) {
+    await admin.from("org_khoa_hoc").delete().eq("id", newRow.id);
+    return { ok: false, error: lopError.message };
+  } else {
+    lopRows = (lopData ?? []) as LopHocCopyRow[];
+  }
+
+  const usedMa = new Set<string>();
+  if (lopRows.length === 0) {
+    const scaffold = await upsertLopDauTien(
+      newRow.id,
+      tenMoi,
+      source.loai_mo_hinh,
+      {
+        ngayKhaiGiang: defaultNgayKhaiGiang(),
+        hinhThuc: "truc_tiep",
+        lichHoc: null,
+      },
+    );
+    if (!scaffold.ok) {
+      await admin.from("org_khoa_hoc").delete().eq("id", newRow.id);
+      return scaffold;
+    }
+  } else {
+    for (const lop of lopRows) {
+      const ngay =
+        lop.ngay_khai_giang?.trim() ||
+        resolveNgayKhaiGiang(source.loai_mo_hinh, null) ||
+        defaultNgayKhaiGiang();
+      const maBase = lop.ma_lop?.trim()
+        ? `${lop.ma_lop.trim()}-ban-sao`
+        : buildMaLop(tenMoi, ngay);
+      const insertLop: Record<string, unknown> = {
+        id_khoa_hoc: newRow.id,
+        hinh_thuc: lop.hinh_thuc ?? "truc_tiep",
+        ngay_khai_giang: ngay,
+        trang_thai: lop.trang_thai ?? "sap_khai_giang",
+        ma_lop: uniquifyMaLopInBatch(maBase, usedMa),
+      };
+      if (lop.lich_hoc != null) insertLop.lich_hoc = lop.lich_hoc;
+      if (lop.slot_toi_da != null) insertLop.slot_toi_da = lop.slot_toi_da;
+      if (lop.giao_vien_phu_trach) {
+        insertLop.giao_vien_phu_trach = lop.giao_vien_phu_trach;
+      } else if (lop.giao_vien_text?.trim()) {
+        insertLop.giao_vien_text = lop.giao_vien_text.trim();
+      }
+
+      let { error: lopInsErr } = await admin
+        .from("org_lop_hoc")
+        .insert(insertLop);
+      if (lopInsErr?.message?.includes("lich_hoc")) {
+        delete insertLop.lich_hoc;
+        ({ error: lopInsErr } = await admin
+          .from("org_lop_hoc")
+          .insert(insertLop));
+      }
+      if (lopInsErr?.message?.includes("giao_vien_text")) {
+        delete insertLop.giao_vien_text;
+        ({ error: lopInsErr } = await admin
+          .from("org_lop_hoc")
+          .insert(insertLop));
+      }
+      if (lopInsErr) {
+        await admin.from("org_lop_hoc").delete().eq("id_khoa_hoc", newRow.id);
+        await admin.from("org_khoa_hoc").delete().eq("id", newRow.id);
+        return { ok: false, error: lopInsErr.message };
+      }
+    }
+  }
+
+  const khoaHoc = await fetchKhoaHocCard(orgId, newRow.id, 0);
+  if (!khoaHoc) {
+    return { ok: false, error: "Không tải được khóa học sau khi nhân bản." };
+  }
+  return { ok: true, khoaHoc };
+}

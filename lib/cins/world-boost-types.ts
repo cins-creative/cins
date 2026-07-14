@@ -15,6 +15,8 @@ export type WorldBoostDiemFeedSnapshot = {
   diem_noi_dung: number;
   diem_verify: number;
   diem_engagement: number;
+  /** Ưu tiên admin cộng tay (không hoàn lại). */
+  diem_uu_tien: number;
   bat_dau_luc: string;
 };
 
@@ -34,6 +36,8 @@ export type WorldBoostCatalogItem = {
   daXacThuc: boolean;
   tacGiaTen: string | null;
   tacGiaSlug: string | null;
+  /** Permalink mở bài / trang org (null nếu thiếu slug). */
+  moBaiUrl: string | null;
   taoLuc: string;
   dangBoost: boolean;
   hetHanLuc: string | null;

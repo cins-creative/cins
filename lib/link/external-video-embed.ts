@@ -22,20 +22,22 @@ export function findFirstExternalVideoUrl(text: string): string | null {
 export function parseTextWithExternalVideoEmbed(body: string): {
   displayText: string;
   iframeSrc: string | null;
+  /** URL gốc (watch/share) — dùng mở tab mới từ chat. */
+  videoUrl: string | null;
 } {
   const trimmed = body.trim();
   if (!trimmed) {
-    return { displayText: "", iframeSrc: null };
+    return { displayText: "", iframeSrc: null, videoUrl: null };
   }
 
   const videoUrl = findFirstExternalVideoUrl(body);
   if (!videoUrl) {
-    return { displayText: body, iframeSrc: null };
+    return { displayText: body, iframeSrc: null, videoUrl: null };
   }
 
   const iframeSrc = buildVideoIframeSrc(videoUrl);
   if (!iframeSrc) {
-    return { displayText: body, iframeSrc: null };
+    return { displayText: body, iframeSrc: null, videoUrl: null };
   }
 
   const urlTrimmed = videoUrl.trim();
@@ -50,5 +52,5 @@ export function parseTextWithExternalVideoEmbed(body: string): {
         .replace(/\s{2,}/g, " ")
         .trim();
 
-  return { displayText, iframeSrc };
+  return { displayText, iframeSrc, videoUrl };
 }

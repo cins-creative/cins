@@ -270,8 +270,9 @@ async function rankFeedByScore(
     .map(feedScoreTargetFromMilestone)
     .filter((t): t is NonNullable<typeof t> => t != null);
 
-  const scoreMap = await loadActiveFeedScoreMap(targets);
-  const scored = attachFeedScoresAndFilter(items, scoreMap);
+  const { map: scoreMap, config: scoreCfg } =
+    await loadActiveFeedScoreMap(targets);
+  const scored = attachFeedScoresAndFilter(items, scoreMap, Date.now(), scoreCfg);
 
   const ranked = softQuota
     ? rankWorldJourneyFeedByScore(scored, viewerId)

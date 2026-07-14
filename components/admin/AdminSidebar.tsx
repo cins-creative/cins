@@ -9,7 +9,6 @@ const NAV = [
   { href: "/admin/noi-dung-dang", label: "Nội dung đăng", icon: "grid" },
   { href: "/admin/tuyen-dung", label: "Tuyển dụng", icon: "briefcase" },
   { href: "/admin/tag", label: "Quản lý Tag", icon: "tag" },
-  { href: "/admin/de-xuat", label: "Đề xuất tag", icon: "alert", badge: 12 },
   { href: "/admin/bao-cao", label: "Báo cáo", icon: "flag" },
   { href: "/admin/gop-y", label: "Góp ý", icon: "message" },
   { section: "Tổ chức" },
@@ -45,14 +44,6 @@ function NavIcon({ name }: { name: string }) {
         <svg {...p}>
           <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
           <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-        </svg>
-      );
-    case "alert":
-      return (
-        <svg {...p}>
-          <circle cx="12" cy="12" r="10" />
-          <line x1="12" y1="8" x2="12" y2="12" />
-          <line x1="12" y1="16" x2="12.01" y2="16" />
         </svg>
       );
     case "tag":

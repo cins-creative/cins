@@ -5,6 +5,8 @@ import {
   useCallback,
   useState,
   type CSSProperties,
+  type DragEvent,
+  type MouseEvent,
   type ReactNode,
 } from "react";
 
@@ -22,6 +24,12 @@ import {
   type GridImage,
   type GridUploadSlotState,
 } from "@/lib/journey/image-grid";
+import {
+  insertIndexFromSnap,
+  sameDragSnap,
+  snapFromPointer,
+  type DragSnapTarget,
+} from "@/lib/editor/image-slot-dnd";
 
 /** CF variant nhỏ/crop có thể 403 hoặc lệch — thử `public` trước khi ẩn ảnh. */
 function handleGridThumbError(e: { currentTarget: HTMLImageElement }): void {
@@ -69,13 +77,17 @@ type Props = {
   lightboxImages?: GridImage[];
   /** Cộng thêm vào index ô grid khi mở lightbox. */
   lightboxIndexOffset?: number;
-  /** Compose album — đổi / dán / xóa từng ô. */
+  /** Compose album — đổi / dán / xóa / kéo sắp xếp từng ô. */
   composeSlotActions?: {
     onPickImage: (slotIndex: number) => void;
     onPasteImage: (slotIndex: number) => void;
     onRemoveImage: (slotIndex: number) => void;
+    /** Kéo thả đổi thứ tự ảnh trong album (≥2 ảnh). */
+    onReorderImages?: (fromSlot: number, toSlot: number) => void;
   };
 };
+
+const ALBUM_SLOT_MIME = "application/x-cins-album-slot";
 
 type CellProps = {
   image: GridImage;
@@ -93,6 +105,11 @@ type CellProps = {
   style?: CSSProperties;
   composeSlotActions?: Props["composeSlotActions"];
   singlePortrait?: boolean;
+  canReorder?: boolean;
+  dragFrom?: number | null;
+  dragSnap?: DragSnapTarget | null;
+  onDragFromChange?: (slot: number | null) => void;
+  onDragSnapChange?: (snap: DragSnapTarget | null) => void;
 };
 
 function ImageGridCell({
@@ -110,6 +127,11 @@ function ImageGridCell({
   style,
   composeSlotActions,
   singlePortrait = false,
+  canReorder = false,
+  dragFrom = null,
+  dragSnap = null,
+  onDragFromChange,
+  onDragSnapChange,
 }: CellProps) {
   const CellTag = useButtonCells ? "button" : "div";
 
@@ -138,16 +160,101 @@ function ImageGridCell({
   const uploadDone = uploadState?.status === "done";
   const uploadFailed = uploadState?.status === "error";
   const legacyUploading = !uploadState && isUploading;
+  const cellDraggable = Boolean(
+    canReorder && composeSlotActions?.onReorderImages && thumbSrc,
+  );
+  const snapHere =
+    dragSnap != null &&
+    dragSnap.slot === slotIndex &&
+    dragFrom != null &&
+    insertIndexFromSnap(dragFrom, dragSnap) != null;
   const cellClasses = [
     "image-grid-cell",
     !thumbSrc ? "is-compose-pending" : "",
     composeSlotActions ? "is-compose-editable" : "",
+    cellDraggable ? "is-draggable" : "",
+    dragFrom === slotIndex ? "is-dragging" : "",
+    snapHere ? `is-snap-${dragSnap!.edge} is-snap-axis-${dragSnap!.axis}` : "",
     uploadActive || legacyUploading ? "is-upload-active" : "",
     uploadDone ? "is-upload-done" : "",
     uploadFailed ? "is-upload-error" : "",
   ]
     .filter(Boolean)
     .join(" ");
+
+  const applySnapFromEvent = (e: DragEvent) => {
+    if (dragFrom == null) return;
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = "move";
+    const { edge, axis } = snapFromPointer(e, e.currentTarget as HTMLElement);
+    const next: DragSnapTarget = { slot: slotIndex, edge, axis };
+    if (insertIndexFromSnap(dragFrom, next) == null) {
+      if (dragSnap != null) onDragSnapChange?.(null);
+      return;
+    }
+    if (!sameDragSnap(dragSnap, next)) onDragSnapChange?.(next);
+  };
+
+  const clearSnapIfNeeded = (e: DragEvent) => {
+    if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+    if (dragSnap?.slot === slotIndex) onDragSnapChange?.(null);
+  };
+
+  const finishDrop = (e: DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const raw =
+      e.dataTransfer.getData(ALBUM_SLOT_MIME) ||
+      e.dataTransfer.getData("text/plain");
+    const from = raw !== "" ? Number(raw) : (dragFrom ?? Number.NaN);
+    const snap =
+      dragSnap?.slot === slotIndex
+        ? dragSnap
+        : ({
+            slot: slotIndex,
+            ...snapFromPointer(e, e.currentTarget as HTMLElement),
+          } satisfies DragSnapTarget);
+    onDragFromChange?.(null);
+    onDragSnapChange?.(null);
+    if (!Number.isFinite(from)) return;
+    const to = insertIndexFromSnap(from, snap);
+    if (to == null) return;
+    composeSlotActions?.onReorderImages?.(from, to);
+  };
+
+  const reorderDnD =
+    canReorder && composeSlotActions?.onReorderImages
+      ? cellDraggable
+        ? {
+            draggable: true as const,
+            onDragStart: (e: DragEvent) => {
+              const t = e.target as HTMLElement;
+              if (t.closest(".ph-actions, .ph-del, button")) {
+                e.preventDefault();
+                return;
+              }
+              e.stopPropagation();
+              e.dataTransfer.effectAllowed = "move";
+              e.dataTransfer.setData(ALBUM_SLOT_MIME, String(slotIndex));
+              e.dataTransfer.setData("text/plain", String(slotIndex));
+              onDragFromChange?.(slotIndex);
+              onDragSnapChange?.(null);
+            },
+            onDragOver: applySnapFromEvent,
+            onDragLeave: clearSnapIfNeeded,
+            onDrop: finishDrop,
+            onDragEnd: () => {
+              onDragFromChange?.(null);
+              onDragSnapChange?.(null);
+            },
+          }
+        : {
+            onDragOver: applySnapFromEvent,
+            onDragLeave: clearSnapIfNeeded,
+            onDrop: finishDrop,
+          }
+      : null;
 
   return (
     <CellTag
@@ -158,7 +265,7 @@ function ImageGridCell({
               showOverlay
                 ? `Xem thêm ${remaining} ảnh, bắt đầu từ ảnh ${slotIndex + 1}`
                 : `Xem ảnh ${slotIndex + 1}`,
-            onClick: (e: React.MouseEvent) => {
+            onClick: (e: MouseEvent) => {
               e.stopPropagation();
               onOpen(slotIndex);
             },
@@ -166,7 +273,11 @@ function ImageGridCell({
         : { "aria-hidden": true as const })}
       className={cellClasses}
       style={cellStyle}
+      {...reorderDnD}
     >
+      {snapHere ? (
+        <span className="ed-drag-snap" aria-hidden />
+      ) : null}
       {thumbSrc ? (
         /* eslint-disable-next-line @next/next/no-img-element */
         <img
@@ -178,6 +289,7 @@ function ImageGridCell({
           height={image.height}
           loading={isFirstGroup && slotIndex === 0 ? "eager" : "lazy"}
           decoding="async"
+          draggable={false}
           onLoad={(e) => {
             const el = e.currentTarget;
             if (el.naturalWidth > 0 && el.naturalHeight > 0) {
@@ -282,6 +394,8 @@ export function ImageGrid({
   const [internalLightboxIndex, setInternalLightboxIndex] = useState<number | null>(
     null,
   );
+  const [dragFrom, setDragFrom] = useState<number | null>(null);
+  const [dragSnap, setDragSnap] = useState<DragSnapTarget | null>(null);
   const lightboxControlled = onLightboxIndexChange !== undefined;
   const lightboxIndex = lightboxControlled
     ? (controlledLightboxIndex ?? null)
@@ -298,6 +412,9 @@ export function ImageGrid({
 
   const lightboxEnabled = !readOnly || timelineLightbox;
   const useButtonCells = lightboxEnabled;
+  const canReorder = Boolean(
+    composeSlotActions?.onReorderImages && total > 1,
+  );
 
   const lightboxPool = lightboxImagesProp ?? images;
 
@@ -344,6 +461,11 @@ export function ImageGrid({
         style={opts?.style}
         composeSlotActions={composeSlotActions}
         singlePortrait={opts?.singlePortrait}
+        canReorder={canReorder}
+        dragFrom={dragFrom}
+        dragSnap={dragSnap}
+        onDragFromChange={setDragFrom}
+        onDragSnapChange={setDragSnap}
       />
     );
   };

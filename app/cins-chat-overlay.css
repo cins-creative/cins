@@ -3525,7 +3525,7 @@ a.cins-chat-og-card.is-me:hover {
   box-shadow: none;
 }
 
-/* Project con: dấu # + badge mosaic nhóm cha góc phải dưới */
+/* Project con: theme cam (khớp list thread) — dấu # + badge mosaic nhóm cha */
 .j-chat-bubble-wrap.is-project-child {
   overflow: visible;
 }
@@ -3533,16 +3533,36 @@ a.cins-chat-og-card.is-me:hover {
 .j-chat-bubble-wrap.is-project-child .j-chat-bubble-btn {
   overflow: visible;
   border-radius: 14px;
-  background: color-mix(in srgb, #3b9eff 14%, #fff);
-  border-color: color-mix(in srgb, #3b9eff 45%, #fff);
+  background: color-mix(in srgb, var(--cins-orange, #fdad4c) 16%, #fff);
+  border-color: color-mix(in srgb, var(--cins-orange, #fdad4c) 48%, #fff);
 }
 
 .j-chat-bubble-wrap.is-project-child.is-active .j-chat-bubble-btn,
 .j-chat-bubble-wrap.is-project-child.is-pinned .j-chat-bubble-btn {
-  border-color: color-mix(in srgb, #3b9eff 70%, #1f74c9);
+  border-color: color-mix(in srgb, var(--cins-orange, #fdad4c) 78%, #b45309);
   box-shadow:
-    0 0 0 2px rgba(59, 158, 255, 0.28),
+    0 0 0 2px color-mix(in srgb, var(--cins-orange, #fdad4c) 32%, transparent),
     0 4px 12px rgba(15, 23, 42, 0.14);
+}
+
+.j-chat-bubble-wrap.is-project-child::before {
+  border-color: color-mix(in srgb, var(--cins-orange, #fdad4c) 55%, transparent);
+}
+
+.j-chat-bubble-wrap.is-project-child .j-chat-bubble-flash {
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--cins-orange, #fdad4c) 55%, transparent);
+  animation-name: j-chat-bubble-flash-project;
+}
+
+@keyframes j-chat-bubble-flash-project {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--cins-orange, #fdad4c) 55%, transparent);
+    opacity: 1;
+  }
+  100% {
+    box-shadow: 0 0 0 9px color-mix(in srgb, var(--cins-orange, #fdad4c) 0%, transparent);
+    opacity: 0;
+  }
 }
 
 .j-chat-bubble-btn .j-chat-project-mark-avatar {
@@ -3565,7 +3585,7 @@ a.cins-chat-og-card.is-me:hover {
   justify-content: center;
   flex-shrink: 0;
   border-radius: 12px;
-  background: color-mix(in srgb, #3b9eff 12%, #fff);
+  background: color-mix(in srgb, var(--cins-orange, #fdad4c) 14%, #fff);
   overflow: visible;
 }
 
@@ -3573,7 +3593,7 @@ a.cins-chat-og-card.is-me:hover {
   font-size: calc(var(--j-chat-bubble-size, 48px) * 0.42);
   font-weight: 700;
   line-height: 1;
-  color: #1f74c9;
+  color: color-mix(in srgb, var(--cins-orange, #fdad4c) 55%, #9a3412);
 }
 
 .j-chat-mini-head .j-chat-project-mark-hash {
@@ -3770,23 +3790,31 @@ a.cins-chat-og-card.is-me:hover {
   background: linear-gradient(180deg, #fff 0%, var(--neutral-50, #f8f9fb) 100%);
 }
 
-/* Project con — header xanh sáng hơn tab nhóm thường */
+/* Project con — header cam (khớp theme list / dock bubble) */
 .j-chat-mini-head.is-project-child {
   background: linear-gradient(
     180deg,
-    #e8f4ff 0%,
-    color-mix(in srgb, #3b9eff 10%, #fff) 55%,
-    #f3f9ff 100%
+    #fff7ed 0%,
+    color-mix(in srgb, var(--cins-orange, #fdad4c) 12%, #fff) 55%,
+    #fffbf5 100%
   );
-  border-bottom-color: color-mix(in srgb, #3b9eff 28%, var(--border, #e4e6eb));
+  border-bottom-color: color-mix(
+    in srgb,
+    var(--cins-orange, #fdad4c) 32%,
+    var(--border, #e4e6eb)
+  );
 }
 
 .j-chat-mini-head.is-project-child .j-chat-mini-meta strong {
-  color: #0b5fad;
+  color: color-mix(in srgb, var(--cins-orange, #fdad4c) 42%, #7c2d12);
 }
 
 .j-chat-mini-head.is-project-child .j-chat-mini-meta span {
-  color: color-mix(in srgb, #1f74c9 70%, var(--ink-muted, #667085));
+  color: color-mix(
+    in srgb,
+    var(--cins-orange, #fdad4c) 55%,
+    var(--ink-muted, #667085)
+  );
 }
 
 .j-chat-mini-meta {
@@ -5144,6 +5172,21 @@ a.cins-chat-og-card.is-me:hover {
   cursor: not-allowed;
 }
 
+.cins-chat-group-modal.is-rename {
+  width: min(380px, 100%);
+  max-height: none;
+}
+
+.cins-chat-group-modal.is-rename .cins-chat-group-name {
+  margin: 16px 18px 0;
+}
+
+.cins-chat-group-rename-error {
+  margin: 8px 18px 0;
+  font-size: 12px;
+  color: #b91c1c;
+}
+
 .cins-chat-group-manage-modal {
   width: min(440px, 100%);
   height: min(600px, calc(100vh - 32px));
@@ -6279,14 +6322,18 @@ button.cins-chat-project-card-mark:hover {
 :root[data-theme="dark"] .j-chat-mini-head.is-project-child {
   background: linear-gradient(
     180deg,
-    color-mix(in srgb, #3b9eff 22%, var(--neutral-50)) 0%,
-    color-mix(in srgb, #3b9eff 10%, var(--bg-surface)) 100%
+    color-mix(in srgb, var(--cins-orange, #fdad4c) 22%, var(--neutral-50)) 0%,
+    color-mix(in srgb, var(--cins-orange, #fdad4c) 10%, var(--bg-surface)) 100%
   );
-  border-bottom-color: color-mix(in srgb, #3b9eff 35%, var(--border));
+  border-bottom-color: color-mix(
+    in srgb,
+    var(--cins-orange, #fdad4c) 35%,
+    var(--border)
+  );
 }
 
 :root[data-theme="dark"] .j-chat-mini-head.is-project-child .j-chat-mini-meta strong {
-  color: #7ec4ff;
+  color: #fdba74;
 }
 
 /* Group avatar: nền custom + khe mosaic */

@@ -32,6 +32,7 @@ type Props = {
   onClick?: () => void;
   onManage?: () => void;
   onEdit?: () => void;
+  onDuplicate?: () => void;
   onDelete?: () => void;
 };
 
@@ -42,6 +43,7 @@ export function KhoaHocCard({
   onClick,
   onManage,
   onEdit,
+  onDuplicate,
   onDelete,
 }: Props) {
   const muted = isKhoaHocMuted(khoa.trangThaiKhoaHoc);
@@ -52,11 +54,12 @@ export function KhoaHocCard({
   const cardClass = `cso-kh-card${muted ? " muted" : ""}`;
 
   const menuNode =
-    canManage && onManage && onEdit && onDelete ? (
+    canManage && onManage && onEdit && onDuplicate && onDelete ? (
       <KhoaHocCardMenu
         khoaTen={khoa.tenKhoaHoc}
         onManage={onManage}
         onEdit={onEdit}
+        onDuplicate={onDuplicate}
         onDelete={onDelete}
       />
     ) : null;

@@ -14,7 +14,9 @@ import {
 
 import { useCinsChat } from "@/components/cins/CinsChatProvider";
 import { ChatGroupAvatar } from "@/components/cins/ChatGroupAvatar";
+import type { ChatMessageActionHandlers } from "@/components/cins/ChatMessageActions";
 import { ChatMessageThreadItems } from "@/components/cins/ChatMessageThreadItems";
+import { ChatReplyComposeBar } from "@/components/cins/ChatReplyComposeBar";
 import { ChatStickerPicker } from "@/components/cins/ChatStickerPicker";
 import { avatarBg, avatarHueFromSeed, avatarInitialFromName } from "@/lib/chat/avatar";
 import { writeChatThreadsCache, writeRoomMessagesCache } from "@/lib/chat/chat-session-cache";
@@ -32,10 +34,16 @@ import {
 import { buildChatSendPlan, optimisticMessagesFromPlan, type ChatSendPayload } from "@/lib/chat/compose-send-plan";
 import { executeComposeSendPlanInBackground } from "@/lib/chat/execute-compose-send-plan";
 import {
+  patchChatMessage,
+  toggleChatReaction,
+} from "@/lib/chat/message-actions-client";
+import {
   createOptimisticChatMessage,
   messagePreviewText,
 } from "@/lib/chat/optimistic-message";
+import { applyOptimisticReaction } from "@/lib/chat/optimistic-reactions";
 import { fetchRoomMessagesPage } from "@/lib/chat/messages-client";
+import { updateMessageInList } from "@/lib/chat/patch-thread-messages";
 import {
   patchChatReadCursorMessage,
   upsertChatReadCursor,
@@ -46,9 +54,25 @@ import { applyChatViewerPerspective } from "@/lib/chat/message-perspective";
 import { applyKnownGroupSender } from "@/lib/chat/apply-known-group-sender";
 import { replaceOptimisticAlbumWithRealMessages } from "@/lib/chat/replace-album-batch";
 import { imageFilesFromClipboard } from "@/lib/files/clipboard-images";
-import type { ChatMessage, ChatReadCursor, ChatThread } from "@/lib/chat/types";
+import type {
+  ChatMessage,
+  ChatMessageReplyPreview,
+  ChatReadCursor,
+  ChatThread,
+} from "@/lib/chat/types";
 import { userEmojiDeliveryUrl } from "@/lib/user-emoji/delivery-url";
 import type { UserEmojiMuc } from "@/lib/user-emoji/types";
+
+function messageToReplyPreview(msg: ChatMessage): ChatMessageReplyPreview {
+  return {
+    id: msg.id,
+    from: msg.from,
+    body: msg.body,
+    kind: msg.kind,
+    imageUrl: msg.imageUrl,
+    deleted: msg.deleted,
+  };
+}
 
 const RECONCILE_MS = 120_000;
 
@@ -267,6 +291,9 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [stickerPickerOpen, setStickerPickerOpen] = useState(false);
+  const [replyTarget, setReplyTarget] = useState<ChatMessage | null>(null);
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editingDraft, setEditingDraft] = useState("");
   const dismissedPeekRef = useRef<Set<string>>(new Set());
   const viewedRoomsRef = useRef<Set<string>>(new Set());
   const hydratedRoomsRef = useRef<Set<string>>(new Set());
@@ -427,6 +454,163 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
       });
     },
     [],
+  );
+
+  const patchActiveRoomMessages = useCallback(
+    (roomId: string, updater: (messages: ChatMessage[]) => ChatMessage[]) => {
+      setRoomStates((prev) => {
+        const current = prev[roomId];
+        if (!current) return prev;
+        const messages = updater(current.messages);
+        if (viewerProfileId) {
+          writeRoomMessagesCache(viewerProfileId, roomId, messages);
+        }
+        return {
+          ...prev,
+          [roomId]: { ...current, messages },
+        };
+      });
+    },
+    [viewerProfileId],
+  );
+
+  const clearMessageChrome = useCallback(() => {
+    setReplyTarget(null);
+    setEditingMessageId(null);
+    setEditingDraft("");
+  }, []);
+
+  const messageActionHandlers = useMemo<ChatMessageActionHandlers>(
+    () => ({
+      onReply: (msg) => {
+        setReplyTarget(msg);
+        setEditingMessageId(null);
+        setEditingDraft("");
+        inputRef.current?.focus();
+      },
+      onRecall: (msg) => {
+        const roomId = miniRoomIdRef.current;
+        if (!roomId) return;
+        const snapshot = { ...msg };
+        patchActiveRoomMessages(roomId, (msgs) =>
+          updateMessageInList(msgs, msg.id, { deleted: true, body: "" }),
+        );
+        void patchChatMessage(roomId, msg.id, { action: "recall" }).then((res) => {
+          if (res.error) {
+            patchActiveRoomMessages(roomId, (msgs) =>
+              updateMessageInList(msgs, msg.id, snapshot),
+            );
+            setLoadError(res.error);
+            return;
+          }
+          if (res.message) {
+            patchActiveRoomMessages(roomId, (msgs) =>
+              msgs.map((m) => (m.id === msg.id ? { ...m, ...res.message! } : m)),
+            );
+          }
+        });
+      },
+      onEdit: (msg) => {
+        setEditingMessageId(msg.id);
+        setEditingDraft(msg.body);
+        setReplyTarget(null);
+      },
+      onPin: (msg, pinned) => {
+        const roomId = miniRoomIdRef.current;
+        if (!roomId) return;
+        patchActiveRoomMessages(roomId, (msgs) =>
+          updateMessageInList(msgs, msg.id, { pinned }),
+        );
+        void patchChatMessage(roomId, msg.id, { action: "pin", pinned }).then((res) => {
+          if (res.error) {
+            patchActiveRoomMessages(roomId, (msgs) =>
+              updateMessageInList(msgs, msg.id, { pinned: !pinned }),
+            );
+            setLoadError(res.error);
+            return;
+          }
+          if (res.message) {
+            patchActiveRoomMessages(roomId, (msgs) =>
+              msgs.map((m) => (m.id === msg.id ? { ...m, ...res.message! } : m)),
+            );
+          }
+        });
+      },
+      onReaction: (msg, emoji, activeReaction) => {
+        const roomId = miniRoomIdRef.current;
+        if (!roomId) return;
+        const prevReactions = msg.reactions;
+        const nextReactions = applyOptimisticReaction(
+          msg.reactions,
+          emoji,
+          activeReaction,
+        );
+        patchActiveRoomMessages(roomId, (msgs) =>
+          updateMessageInList(msgs, msg.id, { reactions: nextReactions }),
+        );
+        void toggleChatReaction(roomId, msg.id, emoji, activeReaction).then((res) => {
+          if (res.error) {
+            patchActiveRoomMessages(roomId, (msgs) =>
+              updateMessageInList(msgs, msg.id, { reactions: prevReactions }),
+            );
+            setLoadError(res.error);
+            return;
+          }
+          if (res.reactions) {
+            patchActiveRoomMessages(roomId, (msgs) =>
+              updateMessageInList(msgs, msg.id, { reactions: res.reactions }),
+            );
+          }
+        });
+      },
+    }),
+    [patchActiveRoomMessages],
+  );
+
+  const handleSaveEdit = useCallback(
+    (msg: ChatMessage) => {
+      const roomId = miniRoomIdRef.current;
+      if (!roomId) return;
+      const body = editingDraft.trim();
+      if (!body || body === msg.body) {
+        setEditingMessageId(null);
+        setEditingDraft("");
+        return;
+      }
+      const snapshot = {
+        body: msg.body,
+        edited: msg.edited,
+        editedAt: msg.editedAt,
+      };
+      const now = new Date().toISOString();
+      patchActiveRoomMessages(roomId, (msgs) =>
+        updateMessageInList(msgs, msg.id, {
+          body,
+          edited: true,
+          editedAt: now,
+        }),
+      );
+      setEditingMessageId(null);
+      setEditingDraft("");
+      void patchChatMessage(roomId, msg.id, {
+        action: "edit",
+        noi_dung: body,
+      }).then((res) => {
+        if (res.error) {
+          patchActiveRoomMessages(roomId, (msgs) =>
+            updateMessageInList(msgs, msg.id, snapshot),
+          );
+          setLoadError(res.error);
+          return;
+        }
+        if (res.message) {
+          patchActiveRoomMessages(roomId, (msgs) =>
+            msgs.map((m) => (m.id === msg.id ? { ...m, ...res.message! } : m)),
+          );
+        }
+      });
+    },
+    [editingDraft, patchActiveRoomMessages],
   );
 
   const saveComposeForRoom = useCallback(
@@ -933,6 +1117,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
       setMiniThread(thread);
       setMiniOpen(true);
       setStickerPickerOpen(false);
+      clearMessageChrome();
       restoreComposeForRoom(thread.roomId);
       setLoadError(null);
       shouldScrollToBottomRef.current = true;
@@ -944,6 +1129,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
       }
     },
     [
+      clearMessageChrome,
       loadRecentMessages,
       markRoomDismissable,
       miniLeaving,
@@ -975,10 +1161,11 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
         setMiniLeaving(false);
         setMiniThread(null);
         setStickerPickerOpen(false);
+        clearMessageChrome();
         setLoadError(null);
       }
     },
-    [miniThread?.roomId, saveComposeForRoom],
+    [clearMessageChrome, miniThread?.roomId, saveComposeForRoom],
   );
 
   const closeMini = useCallback(() => {
@@ -987,10 +1174,17 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
     saveComposeForRoom(roomId);
     markRoomDismissable(roomId);
     setStickerPickerOpen(false);
+    clearMessageChrome();
     setLoadError(null);
     miniLeavingRef.current = true;
     setMiniLeaving(true);
-  }, [markRoomDismissable, miniOpen, miniThread, saveComposeForRoom]);
+  }, [
+    clearMessageChrome,
+    markRoomDismissable,
+    miniOpen,
+    miniThread,
+    saveComposeForRoom,
+  ]);
 
   const finishCloseMini = useCallback(() => {
     if (!miniLeavingRef.current) return;
@@ -998,8 +1192,9 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
     setMiniOpen(false);
     setMiniLeaving(false);
     setMiniThread(null);
+    clearMessageChrome();
     void syncThreads();
-  }, [syncThreads]);
+  }, [clearMessageChrome, syncThreads]);
 
   useEffect(() => {
     if (!miniLeaving) return;
@@ -1279,6 +1474,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
     const text = draft.trim();
     const snapshotText = draft;
     const snapshotImages = sendableImages;
+    const snapshotReply = replyTarget;
     const roomId = miniThread.roomId;
 
     const plan = buildChatSendPlan({
@@ -1288,6 +1484,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
         imageId: image.imageId,
         previewUrl: image.previewUrl,
       })),
+      replyTo: snapshotReply ? messageToReplyPreview(snapshotReply) : null,
     });
     const optimistics = optimisticMessagesFromPlan(plan);
     if (optimistics.length === 0) return;
@@ -1300,6 +1497,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
     setDraft("");
     setPendingImages([]);
     pendingImagesRef.current = [];
+    setReplyTarget(null);
     composeByRoomRef.current.set(roomId, { text: "", images: [] });
     inputRef.current?.focus();
 
@@ -1315,7 +1513,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
       filesByLocalId: pendingFilesByLocalIdRef.current,
       inFlightUploads: inFlightUploadsRef.current,
       hasText: Boolean(text),
-      replyToId: null,
+      replyToId: snapshotReply?.id ?? null,
       sendText: plan.text
         ? () => submitRoomMessage(roomId, plan.text!.payload, plan.text!.optimistic.id)
         : undefined,
@@ -1339,6 +1537,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
         setDraft(snapshotText);
         setPendingImages(snapshotImages);
         pendingImagesRef.current = snapshotImages;
+        setReplyTarget(snapshotReply);
         composeByRoomRef.current.set(roomId, {
           text: snapshotText,
           images: snapshotImages,
@@ -1357,6 +1556,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
     canSend,
     draft,
     miniThread,
+    replyTarget,
     sendableImages,
     submitAlbumBatch,
     submitRoomMessage,
@@ -1501,6 +1701,17 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
                 messages={messages}
                 readCursors={readCursors}
                 showSenderNames={Boolean(miniThread.isGroup)}
+                actionHandlers={messageActionHandlers}
+                editingMessageId={editingMessageId}
+                editingDraft={editingDraft}
+                onEditingDraftChange={setEditingDraft}
+                onSaveEdit={handleSaveEdit}
+                onCancelEdit={() => {
+                  setEditingMessageId(null);
+                  setEditingDraft("");
+                }}
+                roomId={miniThread.roomId}
+                viewerUserId={viewerProfileId}
                 renderTheirAvatar={(msg) => (
                   <MiniAvatar
                     variant="person"
@@ -1529,6 +1740,12 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
           </div>
 
           <footer className="j-chat-mini-compose">
+            {replyTarget ? (
+              <ChatReplyComposeBar
+                target={replyTarget}
+                onCancel={() => setReplyTarget(null)}
+              />
+            ) : null}
             {pendingImages.length > 0 ? (
               <div className="j-chat-mini-compose-attach-list">
                 {pendingImages.map((image) => (
