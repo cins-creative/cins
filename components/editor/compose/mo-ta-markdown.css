@@ -1,0 +1,11 @@
+/* Autolink trong MoTaMarkdown — URL http(s) click được. */
+a.mota-md-a {
+  color: var(--cins-blue, #1f74c9);
+  text-decoration: none;
+  word-break: break-all;
+  overflow-wrap: anywhere;
+}
+
+a.mota-md-a:hover {
+  color: var(--cins-blue-dark, #1656a0);
+}

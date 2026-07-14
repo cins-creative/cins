@@ -1607,6 +1607,8 @@
 }
 .cins-editor-page .ed-md-field .ed-md-highlight em {
   font-style: italic;
+  font-weight: 400;
+  color: color-mix(in srgb, currentColor 62%, transparent);
 }
 .cins-editor-page .ed-md-field .ed-md-highlight s {
   text-decoration: line-through;

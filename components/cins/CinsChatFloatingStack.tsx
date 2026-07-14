@@ -1,6 +1,6 @@
 "use client";
 
-import { Maximize2, Paperclip, Send, X } from "lucide-react";
+import { Maximize2, Paperclip, Send, Trash2, X } from "lucide-react";
 import {
   useCallback,
   useEffect,
@@ -9,6 +9,7 @@ import {
   useState,
   type ClipboardEvent,
   type MouseEvent as ReactMouseEvent,
+  type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from "react";
 
@@ -86,6 +87,11 @@ type RoomChatState = {
 function peekKey(thread: ChatThread): string {
   return `${thread.roomId}:${thread.lastAt}`;
 }
+
+/** Ngưỡng kéo lên (px) để coi là dismiss trên mobile. */
+const BUBBLE_DISMISS_DRAG_PX = 72;
+/** Tránh nhầm click khi kéo nhẹ. */
+const BUBBLE_DRAG_ARM_PX = 10;
 
 function pickUnreadThreads(threads: ChatThread[]): ChatThread[] {
   return threads
@@ -264,6 +270,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
     pinnedThreadSnapshots,
     pendingBubbleThread,
     clearPendingBubble,
+    unpinRoom,
   } = useCinsChat();
   const pinnedRoomIdSet = useMemo(
     () => new Set(pinnedRoomIds),
@@ -273,6 +280,20 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
   const [dismissableRooms, setDismissableRooms] = useState<Set<string>>(
     () => new Set(),
   );
+  const [bubbleDrag, setBubbleDrag] = useState<{
+    roomId: string;
+    dy: number;
+    armed: boolean;
+  } | null>(null);
+  const bubbleDragRef = useRef<{
+    roomId: string;
+    startY: number;
+    pointerId: number;
+    armed: boolean;
+    suppressClick: boolean;
+    dy: number;
+  } | null>(null);
+  const suppressBubbleClickRef = useRef(false);
   const [miniThread, setMiniThread] = useState<ChatThread | null>(null);
   const [miniOpen, setMiniOpen] = useState(false);
   const [miniLeaving, setMiniLeaving] = useState(false);
@@ -1143,7 +1164,13 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
 
   const dismissBubble = useCallback(
     (thread: ChatThread) => {
-      if (thread.unread > 0) return;
+      const wasPinned = pinnedRoomIdSet.has(thread.roomId);
+      /* Bubble chưa đọc: chỉ cho đóng nếu đang ghim (user chủ động tắt). */
+      if (thread.unread > 0 && !wasPinned) return;
+
+      if (wasPinned) {
+        unpinRoom(thread.roomId);
+      }
 
       dismissedPeekRef.current.add(peekKey(thread));
       viewedRoomsRef.current.delete(thread.roomId);
@@ -1165,7 +1192,112 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
         setLoadError(null);
       }
     },
-    [clearMessageChrome, miniThread?.roomId, saveComposeForRoom],
+    [
+      clearMessageChrome,
+      miniThread?.roomId,
+      pinnedRoomIdSet,
+      saveComposeForRoom,
+      unpinRoom,
+    ],
+  );
+
+  const canDismissBubble = useCallback(
+    (thread: ChatThread, isPinned: boolean, isActive: boolean) => {
+      if (isActive) return false;
+      if (thread.unread > 0 && !isPinned) return false;
+      return isPinned || dismissableRooms.has(thread.roomId);
+    },
+    [dismissableRooms],
+  );
+
+  const onBubblePointerDown = useCallback(
+    (e: ReactPointerEvent<HTMLDivElement>, thread: ChatThread) => {
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      /* Chỉ gesture kéo trên touch / pen — desktop dùng nút X. */
+      if (e.pointerType === "mouse") return;
+      const isPinned = pinnedRoomIdSet.has(thread.roomId);
+      const isActive =
+        miniOpen && !miniLeaving && miniThread?.roomId === thread.roomId;
+      if (!canDismissBubble(thread, isPinned, Boolean(isActive))) return;
+
+      bubbleDragRef.current = {
+        roomId: thread.roomId,
+        startY: e.clientY,
+        pointerId: e.pointerId,
+        armed: false,
+        suppressClick: false,
+        dy: 0,
+      };
+      try {
+        e.currentTarget.setPointerCapture(e.pointerId);
+      } catch {
+        /* ignore */
+      }
+    },
+    [
+      canDismissBubble,
+      miniLeaving,
+      miniOpen,
+      miniThread?.roomId,
+      pinnedRoomIdSet,
+    ],
+  );
+
+  const onBubblePointerMove = useCallback(
+    (e: ReactPointerEvent<HTMLDivElement>) => {
+      const drag = bubbleDragRef.current;
+      if (!drag || drag.pointerId !== e.pointerId) return;
+      if (drag.roomId !== e.currentTarget.dataset.roomId) return;
+
+      const dy = e.clientY - drag.startY;
+      /* Chỉ kích hoạt khi kéo lên. */
+      if (!drag.armed) {
+        if (dy > -BUBBLE_DRAG_ARM_PX) return;
+        drag.armed = true;
+        drag.suppressClick = true;
+        suppressBubbleClickRef.current = true;
+      }
+
+      const clamped = Math.max(-160, Math.min(0, dy));
+      drag.dy = clamped;
+      setBubbleDrag({
+        roomId: drag.roomId,
+        dy: clamped,
+        armed: true,
+      });
+    },
+    [],
+  );
+
+  const endBubbleDrag = useCallback(
+    (e: ReactPointerEvent<HTMLDivElement>, thread: ChatThread) => {
+      const drag = bubbleDragRef.current;
+      if (!drag || drag.pointerId !== e.pointerId) return;
+      bubbleDragRef.current = null;
+      try {
+        if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+          e.currentTarget.releasePointerCapture(e.pointerId);
+        }
+      } catch {
+        /* ignore */
+      }
+
+      const shouldDismiss =
+        drag.armed && drag.dy <= -BUBBLE_DISMISS_DRAG_PX;
+
+      setBubbleDrag(null);
+
+      if (shouldDismiss) {
+        dismissBubble(thread);
+      }
+
+      if (drag.suppressClick) {
+        window.setTimeout(() => {
+          suppressBubbleClickRef.current = false;
+        }, 0);
+      }
+    },
+    [dismissBubble],
   );
 
   const closeMini = useCallback(() => {
@@ -1242,6 +1374,11 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
 
   const handleBubbleClick = useCallback(
     (e: ReactMouseEvent<HTMLButtonElement>, thread: ChatThread) => {
+      if (suppressBubbleClickRef.current) {
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
       const rect = e.currentTarget.getBoundingClientRect();
       const size = Math.max(rect.width, rect.height) * 1.15;
       const fromKeyboard = e.clientX === 0 && e.clientY === 0;
@@ -1851,6 +1988,24 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
       ) : null}
 
       <div ref={dockControlsRef} className="j-chat-dock-launcher-row">
+        {bubbleDrag?.armed ? (
+          <div
+            className={[
+              "j-chat-bubble-trash-zone",
+              bubbleDrag.dy <= -BUBBLE_DISMISS_DRAG_PX ? "is-hot" : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
+            aria-hidden
+          >
+            <Trash2 size={18} strokeWidth={2.2} />
+            <span>
+              {bubbleDrag.dy <= -BUBBLE_DISMISS_DRAG_PX
+                ? "Thả để đóng"
+                : "Kéo lên để đóng"}
+            </span>
+          </div>
+        ) : null}
         {peekThreads.length > 0 ? (
           <div
             className="j-chat-bubbles"
@@ -1867,11 +2022,10 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
               const isProjectChild = Boolean(thread.parentRoomId);
               const parentThread = resolveParentThread(thread);
               const showCount = thread.unread > 0;
-              const showDismiss =
-                !showCount &&
-                !isActive &&
-                !isPinned &&
-                dismissableRooms.has(thread.roomId);
+              const canClose = canDismissBubble(thread, isPinned, isActive);
+              const showDismiss = canClose && !showCount;
+              const isDraggingThis =
+                bubbleDrag?.armed && bubbleDrag.roomId === thread.roomId;
               const displayTitle = parentThread
                 ? `${parentThread.name} - ${thread.name}`
                 : thread.name;
@@ -1879,15 +2033,36 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
               return (
                 <div
                   key={thread.roomId}
+                  data-room-id={thread.roomId}
                   className={[
                     "j-chat-bubble-wrap",
                     isActive ? "is-active" : "",
                     isPinned ? "is-pinned" : "",
                     thread.isGroup ? "is-group" : "",
                     isProjectChild ? "is-project-child" : "",
+                    isDraggingThis ? "is-dragging" : "",
+                    isDraggingThis &&
+                    bubbleDrag.dy <= -BUBBLE_DISMISS_DRAG_PX
+                      ? "is-drag-hot"
+                      : "",
                   ]
                     .filter(Boolean)
                     .join(" ")}
+                  style={
+                    isDraggingThis
+                      ? {
+                          transform: `translateY(${bubbleDrag.dy}px)`,
+                          opacity: Math.max(
+                            0.35,
+                            1 + bubbleDrag.dy / 140,
+                          ),
+                        }
+                      : undefined
+                  }
+                  onPointerDown={(e) => onBubblePointerDown(e, thread)}
+                  onPointerMove={onBubblePointerMove}
+                  onPointerUp={(e) => endBubbleDrag(e, thread)}
+                  onPointerCancel={(e) => endBubbleDrag(e, thread)}
                 >
                   {clickFx && clickFx.roomId === thread.roomId ? (
                     <span
@@ -1946,7 +2121,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
                       aria-label={
                         showCount
                           ? `${thread.unread} tin nhắn chưa đọc từ ${thread.name}`
-                          : `Ẩn ${thread.name}`
+                          : `Đóng chat ${thread.name}`
                       }
                       onClick={(e) => {
                         e.stopPropagation();

@@ -3101,6 +3101,7 @@ a.cins-chat-og-card.is-me:hover {
 }
 
 .j-chat-dock-launcher-row {
+  position: relative;
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -3699,6 +3700,60 @@ a.cins-chat-og-card.is-me:hover {
   transform: scale(1.08);
 }
 
+.j-chat-bubble-trash-zone {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 14px);
+  transform: translateX(-50%);
+  z-index: 50;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(148, 163, 184, 0.45);
+  background: rgba(15, 23, 42, 0.88);
+  color: #e2e8f0;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  pointer-events: none;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.28);
+  animation: j-chat-trash-in 180ms ease-out both;
+}
+
+.j-chat-bubble-trash-zone.is-hot {
+  border-color: rgba(239, 68, 68, 0.7);
+  background: rgba(127, 29, 29, 0.94);
+  color: #fff;
+}
+
+.j-chat-bubble-wrap.is-dragging {
+  z-index: 6;
+  touch-action: none;
+}
+
+.j-chat-bubble-wrap.is-dragging .j-chat-bubble-btn {
+  transition: none;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.22);
+}
+
+.j-chat-bubble-wrap.is-drag-hot .j-chat-bubble-btn {
+  border-color: rgba(239, 68, 68, 0.85);
+  filter: brightness(0.92);
+}
+
+@keyframes j-chat-trash-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}
+
 @keyframes j-chat-bubble-in {
   from {
     opacity: 0;
@@ -4128,6 +4183,15 @@ a.cins-chat-og-card.is-me:hover {
   .j-chat-dock-launcher-row {
     gap: 8px;
     max-width: calc(100vw - 32px);
+  }
+
+  /* Mobile: đóng bubble bằng kéo lên — ẩn nút X. */
+  .j-chat-bubble-action.is-dismiss {
+    display: none;
+  }
+
+  .j-chat-bubble-wrap {
+    touch-action: none;
   }
 
   .j-chat-bubbles {

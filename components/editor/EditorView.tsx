@@ -27,6 +27,7 @@ import {
   CalendarClock,
   Check,
   ClipboardPaste,
+  Code2,
   Crop,
   Columns2,
   Columns3,
@@ -91,6 +92,10 @@ import { CongDongFeedFilterDropdown } from "@/components/cong-dong/CongDongFeedF
 import { updatePost } from "@/app/[slug]/p/[postSlug]/edit/actions";
 import { publishPost } from "@/app/[slug]/p/new/actions";
 import "@/app/cins-embed-picker.css";
+import {
+  EmbedPlatformPicker,
+  type EmbedPlatformPickerSelection,
+} from "@/components/cins/EmbedPlatformPicker";
 import { EditorExternalEmbedPanel } from "@/components/editor/EditorExternalEmbedPanel";
 import { EditorLottieFileEmbedPanel } from "@/components/editor/EditorLottieFileEmbedPanel";
 import { EditorRiveFileEmbedPanel } from "@/components/editor/EditorRiveFileEmbedPanel";
@@ -166,8 +171,14 @@ import type { EditorInitial } from "@/lib/editor/editor-initial";
 export type { EditorInitial };
 import {
   buildComposeEditorDraftKey,
+  buildComposeEmbedDraftKey,
   clearComposeEditorDraft,
+  composeDraftHasLottieFileAsset,
+  composeDraftHasRestorableContent,
+  composeDraftHasRiveFileAsset,
+  getComposeDraftEmbedUrl,
   readComposeEditorDraft,
+  readComposeEmbedFileDraft,
   writeComposeEditorDraft,
   type ComposeEditorDraft,
 } from "@/lib/journey/compose-editor-draft";
@@ -805,8 +816,8 @@ export function EditorView({
   congDongCompose,
   orgBaiDangCompose,
   composeIntent = "full",
-  embedPlatform,
-  riveSource = "url",
+  embedPlatform: embedPlatformProp,
+  riveSource: riveSourceProp = "url",
   initialPhotoFiles,
   initialVideoFile,
   initialRiveFile,
@@ -817,36 +828,105 @@ export function EditorView({
   const isOverlay = presentation === "overlay";
   const isEdit = mode === "edit" && !!initial;
   const isCreateCompose = !isEdit && isOverlay;
-  const canPersistComposeDraft =
-    isCreateCompose &&
-    !initialPhotoFiles?.length &&
-    !initialVideoFile &&
-    !initialRiveFile &&
-    !initialLottieFile;
+  /**
+   * Platform / nguồn nhúng — prop lúc mở compose, hoặc chọn giữa chừng
+   * (nút Nhúng khi đang soạn chữ) / khi sửa bài chữ rồi thêm embed.
+   */
+  const [embedPlatform, setEmbedPlatform] = useState<
+    Tier1EmbedPlatformId | undefined
+  >(() => embedPlatformProp);
+  const [riveSource, setRiveSource] = useState<"url" | "file">(
+    () => riveSourceProp,
+  );
+  const [pickedRiveFile, setPickedRiveFile] = useState<File | undefined>();
+  const [pickedLottieFile, setPickedLottieFile] = useState<File | undefined>();
+  const [embedPickerOpen, setEmbedPickerOpen] = useState(false);
+  const activeRiveFile = initialRiveFile ?? pickedRiveFile;
+  const activeLottieFile = initialLottieFile ?? pickedLottieFile;
+
+  useEffect(() => {
+    if (embedPlatformProp) setEmbedPlatform(embedPlatformProp);
+  }, [embedPlatformProp]);
+  useEffect(() => {
+    setRiveSource(riveSourceProp);
+  }, [riveSourceProp]);
+
+  /** Luôn ghi + đọc nháp khi tạo bài — kể cả mở kèm File (ưu tiên nháp đã lưu). */
+  const canPersistComposeDraft = isCreateCompose;
+  const canRestoreComposeDraft = canPersistComposeDraft;
+  const draftComposeIntent: ComposeIntent = embedPlatform
+    ? "embed"
+    : composeIntent;
   const composeDraftKey = useMemo(() => {
     const base = buildComposeEditorDraftKey({
       ownerSlug,
-      composeIntent,
+      composeIntent: draftComposeIntent,
       congDongCompose,
       orgBaiDangCompose,
     });
-    if (composeIntent === "embed" && embedPlatform) {
-      return `${base}:${embedPlatform}`;
+    if (embedPlatform) {
+      const source = riveSource === "file" ? "file" : "url";
+      return `${base}:${embedPlatform}:${source}`;
     }
     return base;
-  }, [ownerSlug, composeIntent, embedPlatform, congDongCompose, orgBaiDangCompose]);
+  }, [
+    ownerSlug,
+    draftComposeIntent,
+    embedPlatform,
+    riveSource,
+    congDongCompose,
+    orgBaiDangCompose,
+  ]);
 
   let restoredComposeDraft: ComposeEditorDraft | null | undefined;
   const peekRestoredComposeDraft = (): ComposeEditorDraft | null => {
     if (restoredComposeDraft !== undefined) return restoredComposeDraft;
-    if (!canPersistComposeDraft) {
+    if (!canRestoreComposeDraft) {
       restoredComposeDraft = null;
       return null;
     }
-    restoredComposeDraft = readComposeEditorDraft(composeDraftKey);
-    return restoredComposeDraft;
+    const current = readComposeEditorDraft(composeDraftKey);
+    if (current) {
+      restoredComposeDraft = current;
+      return current;
+    }
+    /* Bản nháp cũ / lệch source=file|url sau refresh — thử key khác rồi legacy. */
+    if (embedPlatform) {
+      const base = buildComposeEditorDraftKey({
+        ownerSlug,
+        composeIntent: "embed",
+        congDongCompose,
+        orgBaiDangCompose,
+      });
+      const altSource = riveSource === "file" ? "url" : "file";
+      const alt = readComposeEditorDraft(`${base}:${embedPlatform}:${altSource}`);
+      if (alt) {
+        restoredComposeDraft = alt;
+        return alt;
+      }
+      const legacy = readComposeEditorDraft(`${base}:${embedPlatform}`);
+      restoredComposeDraft = legacy;
+      return legacy;
+    }
+    restoredComposeDraft = null;
+    return null;
   };
   const restoredDraft = peekRestoredComposeDraft();
+  const restoredEmbedUrl = getComposeDraftEmbedUrl(restoredDraft) ?? undefined;
+  const restoredDraftHasRiveAsset = composeDraftHasRiveFileAsset(restoredDraft);
+  const restoredDraftHasLottieAsset =
+    composeDraftHasLottieFileAsset(restoredDraft);
+  const restoredDraftHasPhotos =
+    restoredDraft?.blocks.some((b) => {
+      if (b.loai !== "imgs") return false;
+      const imgs = b.config?.imgs;
+      return Array.isArray(imgs) && imgs.some((s) => typeof s === "string" && s.trim());
+    }) ?? false;
+  const restoredDraftHasVideoEmbed =
+    Boolean(restoredEmbedUrl) &&
+    !restoredDraftHasRiveAsset &&
+    !restoredDraftHasLottieAsset &&
+    (restoredDraft?.blocks.some((b) => b.loai === "embed") ?? false);
 
   const isTextOnlyEdit = isEdit && isTextOnlyEditorInitial(initial);
   /** Ảnh/video overlay dùng cùng shell minimal expanded (canvas, cover, thumbnail). */
@@ -854,23 +934,27 @@ export function EditorView({
     composeIntent === "photo" ||
     composeIntent === "video" ||
     composeIntent === "embed";
-  const isExternalEmbedCompose =
-    composeIntent === "embed" && Boolean(embedPlatform);
+  /** Có platform (từ prop hoặc nút Nhúng giữa chừng) → UI compose nhúng. */
+  const isExternalEmbedCompose = Boolean(embedPlatform);
   const isRiveFileEmbedComposeIntent =
     isExternalEmbedCompose &&
     embedPlatform === "rive" &&
-    riveSource === "file";
+    (riveSource === "file" || isRiveAssetEmbedUrl(restoredEmbedUrl));
   const isLottieFileEmbedComposeIntent =
     isExternalEmbedCompose &&
     embedPlatform === "lottie" &&
-    riveSource === "file";
+    (riveSource === "file" || isLottieAssetEmbedUrl(restoredEmbedUrl));
   const usesMinimalFlow =
     (isCreateCompose &&
-      (composeIntent === "minimal" || isOverlayMediaComposeIntent)) ||
+      (composeIntent === "minimal" ||
+        isOverlayMediaComposeIntent ||
+        isExternalEmbedCompose)) ||
     isTextOnlyEdit ||
     (isEdit &&
       isOverlay &&
-      (composeIntent === "minimal" || isOverlayMediaComposeIntent));
+      (composeIntent === "minimal" ||
+        isOverlayMediaComposeIntent ||
+        isExternalEmbedCompose));
   const [editorExpanded, setEditorExpanded] = useState(() => {
     if (restoredDraft?.editorExpanded != null) return restoredDraft.editorExpanded;
     if (
@@ -1473,7 +1557,7 @@ export function EditorView({
   }, [externalEmbedBlock, isRiveFileEmbedComposeIntent]);
   const isRiveFileEmbedCompose =
     isRiveFileEmbedComposeIntent &&
-    Boolean(initialRiveFile || riveFileEmbedPreviewUrl);
+    Boolean(activeRiveFile || riveFileEmbedPreviewUrl);
 
   const lottieFileEmbedPreviewUrl = useMemo(() => {
     if (!isLottieFileEmbedComposeIntent) return null;
@@ -1483,7 +1567,7 @@ export function EditorView({
   }, [externalEmbedBlock, isLottieFileEmbedComposeIntent]);
   const isLottieFileEmbedCompose =
     isLottieFileEmbedComposeIntent &&
-    Boolean(initialLottieFile || lottieFileEmbedPreviewUrl);
+    Boolean(activeLottieFile || lottieFileEmbedPreviewUrl);
 
   const previewMeta =
     isExternalEmbedCompose && embedPlatform
@@ -1997,36 +2081,67 @@ export function EditorView({
     ) {
       return;
     }
+    /* Nháp album đã có ảnh — giữ nguyên, không seed file mới khi mở lại. */
+    if (restoredDraftHasPhotos) {
+      initialPhotosStartedRef.current = true;
+      return;
+    }
     initialPhotosStartedRef.current = true;
     seedPhotoFiles(initialPhotoFiles);
-  }, [initialPhotoFiles, isEdit, seedPhotoFiles]);
+  }, [initialPhotoFiles, isEdit, restoredDraftHasPhotos, seedPhotoFiles]);
 
   useEffect(() => {
     if (!initialVideoFile || isEdit || initialVideoStartedRef.current) return;
+    if (restoredDraftHasVideoEmbed) {
+      initialVideoStartedRef.current = true;
+      return;
+    }
     initialVideoStartedRef.current = true;
     const blockId = newId();
     videoBlockIdRef.current = blockId;
     pushHistory();
     setBlocks((prev) => [...prev, { id: blockId, t: "embed", embedUrl: "" }]);
     void uploadVideoFile(initialVideoFile);
-  }, [initialVideoFile, isEdit, pushHistory, uploadVideoFile]);
-
-  useEffect(() => {
-    if (!initialRiveFile || isEdit || !isRiveFileEmbedComposeIntent) return;
-    if (initialRiveStartedRef.current) return;
-    initialRiveStartedRef.current = true;
-    void uploadRiveFile(initialRiveFile);
-  }, [initialRiveFile, isEdit, isRiveFileEmbedComposeIntent, uploadRiveFile]);
-
-  useEffect(() => {
-    if (!initialLottieFile || isEdit || !isLottieFileEmbedComposeIntent) return;
-    if (initialLottieStartedRef.current) return;
-    initialLottieStartedRef.current = true;
-    void uploadLottieFile(initialLottieFile);
   }, [
-    initialLottieFile,
+    initialVideoFile,
+    isEdit,
+    restoredDraftHasVideoEmbed,
+    pushHistory,
+    uploadVideoFile,
+  ]);
+
+  useEffect(() => {
+    if (!activeRiveFile || isEdit || !isRiveFileEmbedComposeIntent) return;
+    if (initialRiveStartedRef.current) return;
+    /* Nháp đã có .riv trên CINs — không upload lại file máy vừa chọn. */
+    if (restoredDraftHasRiveAsset) {
+      initialRiveStartedRef.current = true;
+      return;
+    }
+    initialRiveStartedRef.current = true;
+    void uploadRiveFile(activeRiveFile);
+  }, [
+    activeRiveFile,
+    isEdit,
+    isRiveFileEmbedComposeIntent,
+    restoredDraftHasRiveAsset,
+    uploadRiveFile,
+  ]);
+
+  useEffect(() => {
+    if (!activeLottieFile || isEdit || !isLottieFileEmbedComposeIntent) return;
+    if (initialLottieStartedRef.current) return;
+    if (restoredDraftHasLottieAsset) {
+      initialLottieStartedRef.current = true;
+      return;
+    }
+    initialLottieStartedRef.current = true;
+    void uploadLottieFile(activeLottieFile);
+  }, [
+    activeLottieFile,
     isEdit,
     isLottieFileEmbedComposeIntent,
+    restoredDraftHasLottieAsset,
     uploadLottieFile,
   ]);
 
@@ -2040,25 +2155,31 @@ export function EditorView({
 
   useEffect(() => {
     if (!isExternalEmbedCompose || !embedPlatform || isEdit) return;
-    if (isRiveFileEmbedCompose || isLottieFileEmbedCompose) {
-      if (initialEmbedStartedRef.current) return;
-      initialEmbedStartedRef.current = true;
-      setEditorExpanded(true);
-      return;
-    }
     if (initialEmbedStartedRef.current) return;
     initialEmbedStartedRef.current = true;
+    setEditorExpanded(true);
+
+    const existingEmbed = blocksRef.current.find((b) => b.t === "embed");
+    if (existingEmbed) {
+      embedBlockIdRef.current = existingEmbed.id;
+      return;
+    }
+
+    /* Upload .riv/.lottie: chờ hook upload hoặc user chọn file — không seed URL rỗng. */
+    if (isRiveFileEmbedComposeIntent || isLottieFileEmbedComposeIntent) {
+      return;
+    }
+
     const blockId = newId();
     embedBlockIdRef.current = blockId;
     pushHistory();
-    setBlocks([{ id: blockId, t: "embed", embedUrl: "" }]);
-    setEditorExpanded(true);
+    setBlocks((prev) => [...prev, { id: blockId, t: "embed", embedUrl: "" }]);
   }, [
     isExternalEmbedCompose,
     embedPlatform,
     isEdit,
-    isRiveFileEmbedCompose,
-    isLottieFileEmbedCompose,
+    isRiveFileEmbedComposeIntent,
+    isLottieFileEmbedComposeIntent,
     pushHistory,
   ]);
 
@@ -2088,29 +2209,142 @@ export function EditorView({
     [],
   );
 
+  const ensureEmbedBlock = useCallback((embedUrl: string) => {
+    setBlocks((prev) => {
+      const refId = embedBlockIdRef.current;
+      if (refId && prev.some((b) => b.id === refId)) {
+        return prev.map((b) =>
+          b.id === refId ? { ...b, embedUrl } : b,
+        );
+      }
+      const existing = prev.find((b) => b.t === "embed");
+      if (existing) {
+        embedBlockIdRef.current = existing.id;
+        return prev.map((b) =>
+          b.id === existing.id ? { ...b, embedUrl } : b,
+        );
+      }
+      const createdId = newId();
+      embedBlockIdRef.current = createdId;
+      return [...prev, { id: createdId, t: "embed", embedUrl }];
+    });
+  }, []);
+
   useEffect(() => {
     if (!riveAssetUrl) return;
-    const blockId = embedBlockIdRef.current;
-    if (blockId) {
-      updateBlock(blockId, { embedUrl: riveAssetUrl });
-      return;
-    }
-    const createdId = newId();
-    embedBlockIdRef.current = createdId;
-    setBlocks([{ id: createdId, t: "embed", embedUrl: riveAssetUrl }]);
-  }, [riveAssetUrl, updateBlock]);
+    ensureEmbedBlock(riveAssetUrl);
+  }, [riveAssetUrl, ensureEmbedBlock]);
 
   useEffect(() => {
     if (!lottieAssetUrl) return;
-    const blockId = embedBlockIdRef.current;
-    if (blockId) {
-      updateBlock(blockId, { embedUrl: lottieAssetUrl });
-      return;
-    }
-    const createdId = newId();
-    embedBlockIdRef.current = createdId;
-    setBlocks([{ id: createdId, t: "embed", embedUrl: lottieAssetUrl }]);
-  }, [lottieAssetUrl, updateBlock]);
+    ensureEmbedBlock(lottieAssetUrl);
+  }, [lottieAssetUrl, ensureEmbedBlock]);
+
+  const beginEmbedFromPicker = useCallback(
+    (selection: EmbedPlatformPickerSelection) => {
+      setEmbedPickerOpen(false);
+      if (hasPhotoBlocks) {
+        setToast("Không thể thêm nhúng vào bài album ảnh.");
+        return;
+      }
+      if (hasBunnyVideoBlock) {
+        setToast("Không thể thêm nhúng khi đã có video.");
+        return;
+      }
+
+      initialEmbedStartedRef.current = true;
+      setEditorExpanded(true);
+
+      if (
+        selection.type === "rive-file-resume" ||
+        selection.type === "lottie-file-resume"
+      ) {
+        const platform =
+          selection.type === "rive-file-resume" ? "rive" : "lottie";
+        const draft = readComposeEmbedFileDraft({
+          ownerSlug,
+          platform,
+          congDongCompose,
+          orgBaiDangCompose,
+        });
+        if (draft?.blocks?.length) {
+          setBlocks(fromServerBlocks(draft.blocks));
+          if (draft.tieuDe) setTitle(draft.tieuDe);
+          if (draft.moTa) setSub(draft.moTa);
+          if (draft.coverSeed !== undefined) setCoverSeed(draft.coverSeed);
+        }
+        setEmbedPlatform(platform);
+        setRiveSource("file");
+        const embed = (draft ? fromServerBlocks(draft.blocks) : []).find(
+          (b) => b.t === "embed",
+        );
+        if (embed) embedBlockIdRef.current = embed.id;
+        return;
+      }
+
+      if (selection.type === "rive-file") {
+        if (selection.replaceDraft) {
+          clearComposeEditorDraft(
+            buildComposeEmbedDraftKey({
+              ownerSlug,
+              platform: "rive",
+              source: "file",
+              congDongCompose,
+              orgBaiDangCompose,
+            }),
+          );
+        }
+        setEmbedPlatform("rive");
+        setRiveSource("file");
+        setPickedRiveFile(selection.file);
+        initialRiveStartedRef.current = true;
+        void uploadRiveFile(selection.file);
+        return;
+      }
+      if (selection.type === "lottie-file") {
+        if (selection.replaceDraft) {
+          clearComposeEditorDraft(
+            buildComposeEmbedDraftKey({
+              ownerSlug,
+              platform: "lottie",
+              source: "file",
+              congDongCompose,
+              orgBaiDangCompose,
+            }),
+          );
+        }
+        setEmbedPlatform("lottie");
+        setRiveSource("file");
+        setPickedLottieFile(selection.file);
+        initialLottieStartedRef.current = true;
+        void uploadLottieFile(selection.file);
+        return;
+      }
+
+      setEmbedPlatform(selection.platform);
+      setRiveSource("url");
+      const existing = blocksRef.current.find((b) => b.t === "embed");
+      if (existing) {
+        embedBlockIdRef.current = existing.id;
+        return;
+      }
+      const blockId = newId();
+      embedBlockIdRef.current = blockId;
+      pushHistory();
+      setBlocks((prev) => [...prev, { id: blockId, t: "embed", embedUrl: "" }]);
+    },
+    [
+      hasPhotoBlocks,
+      hasBunnyVideoBlock,
+      ownerSlug,
+      congDongCompose,
+      orgBaiDangCompose,
+      pushHistory,
+      uploadRiveFile,
+      uploadLottieFile,
+      setToast,
+    ],
+  );
 
   const moveBlock = useCallback((id: string, dir: -1 | 1) => {
     setBlocks((prev) => {
@@ -3036,7 +3270,7 @@ export function EditorView({
                 ) : null}
                 {isRiveFileEmbedCompose ? (
                   <EditorRiveFileEmbedPanel
-                    file={initialRiveFile}
+                    file={activeRiveFile}
                     previewSrc={riveFileEmbedPreviewUrl ?? undefined}
                     uploading={riveUploading}
                     uploadError={riveUploadError}
@@ -3044,7 +3278,7 @@ export function EditorView({
                   />
                 ) : isLottieFileEmbedCompose ? (
                   <EditorLottieFileEmbedPanel
-                    file={initialLottieFile}
+                    file={activeLottieFile}
                     previewSrc={lottieFileEmbedPreviewUrl ?? undefined}
                     uploading={lottieUploading}
                     uploadError={lottieUploadError}
@@ -3055,15 +3289,7 @@ export function EditorView({
                     platform={embedPlatform}
                     embedUrl={externalEmbedBlock?.embedUrl ?? ""}
                     onChangeEmbedUrl={(url) => {
-                      const blockId =
-                        embedBlockIdRef.current ?? externalEmbedBlock?.id;
-                      if (blockId) {
-                        updateBlock(blockId, { embedUrl: url });
-                        return;
-                      }
-                      const createdId = newId();
-                      embedBlockIdRef.current = createdId;
-                      setBlocks([{ id: createdId, t: "embed", embedUrl: url }]);
+                      ensureEmbedBlock(url);
                     }}
                   />
                 )}
@@ -3132,6 +3358,16 @@ export function EditorView({
                 >
                   <Video size={15} strokeWidth={2} aria-hidden />
                   Thêm video
+                </button>
+              ) : null}
+              {composeIntent !== "video" && !hasPhotoBlocks && !hasBunnyVideoBlock ? (
+                <button
+                  type="button"
+                  className="ed-btn ghost ed-minimal-tool"
+                  onClick={() => setEmbedPickerOpen(true)}
+                >
+                  <Code2 size={15} strokeWidth={2} aria-hidden />
+                  Nhúng
                 </button>
               ) : null}
               {isMinimalUI && composeIntent !== "video" && !hasBunnyVideoBlock ? (
@@ -3457,6 +3693,34 @@ export function EditorView({
         aria-hidden
         tabIndex={-1}
         onChange={onMinimalVideoPick}
+      />
+
+      <EmbedPlatformPicker
+        open={embedPickerOpen}
+        onClose={() => setEmbedPickerOpen(false)}
+        hasRiveFileDraft={
+          embedPickerOpen &&
+          composeDraftHasRestorableContent(
+            readComposeEmbedFileDraft({
+              ownerSlug,
+              platform: "rive",
+              congDongCompose,
+              orgBaiDangCompose,
+            }),
+          )
+        }
+        hasLottieFileDraft={
+          embedPickerOpen &&
+          composeDraftHasRestorableContent(
+            readComposeEmbedFileDraft({
+              ownerSlug,
+              platform: "lottie",
+              congDongCompose,
+              orgBaiDangCompose,
+            }),
+          )
+        }
+        onSelect={beginEmbedFromPicker}
       />
 
       {toast ? <div className="ed-toast">{toast}</div> : null}

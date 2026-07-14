@@ -45,7 +45,14 @@ export function parseComposeSearchParams(
     if (compose === "embed") {
       const platform = params.get("platform")?.trim();
       if (isTier1EmbedPlatformId(platform)) {
-        return { kind: "embed", platform };
+        const sourceRaw = params.get("source")?.trim();
+        const fileSource =
+          sourceRaw === "file" || sourceRaw === "url" ? sourceRaw : undefined;
+        return {
+          kind: "embed",
+          platform,
+          ...(fileSource ? { fileSource } : {}),
+        };
       }
       return null;
     }
@@ -63,6 +70,8 @@ export function composeStateToSearchParams(
   next.delete("compose");
   next.delete("edit");
   next.delete("cotMoc");
+  next.delete("platform");
+  next.delete("source");
   if (!state) return next;
   if (state.kind === "edit") {
     next.set("edit", state.postSlug);
@@ -72,6 +81,10 @@ export function composeStateToSearchParams(
   } else if (state.kind === "embed") {
     next.set("compose", "embed");
     next.set("platform", state.platform);
+    const fileSource = state.fileSource ?? state.riveSource;
+    if (fileSource === "file" || fileSource === "url") {
+      next.set("source", fileSource);
+    }
   } else {
     next.set("compose", state.kind);
   }

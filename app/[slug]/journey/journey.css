@@ -9521,6 +9521,8 @@ select.j-edit-input {
 
 .ed-md-field .ed-md-highlight em {
   font-style: italic;
+  font-weight: 400;
+  color: color-mix(in srgb, currentColor 62%, transparent);
 }
 
 .ed-md-field .ed-md-highlight s {
@@ -14172,12 +14174,15 @@ select.j-edit-input {
   letter-spacing: 0.01em;
   white-space: normal;
 }
+/* Mọi đoạn caption là block — tránh span inline lệch baseline / «Xem thêm». */
+.jcard-desc .mota-md-p {
+  display: block;
+}
 .jcard-desc .mota-md-p + .mota-md-p,
 .jcard-desc .mota-md-p + .mota-md-ul,
 .jcard-desc .mota-md-p + .mota-md-ol,
 .jcard-desc .mota-md-ul + .mota-md-p,
 .jcard-desc .mota-md-ol + .mota-md-p {
-  display: block;
   margin-top: 0.65em;
 }
 .jcard-desc .mota-md-ul,
@@ -14195,6 +14200,8 @@ select.j-edit-input {
 }
 .jcard-desc em {
   font-style: italic;
+  font-weight: 400;
+  color: color-mix(in srgb, currentColor 62%, transparent);
 }
 .jcard-desc s {
   text-decoration: line-through;
@@ -14262,8 +14269,13 @@ select.j-edit-input {
   right: 0;
   bottom: 0;
   z-index: 2;
+  box-sizing: border-box;
   margin: 0;
   border: 0;
+  /* Một dòng chữ — khớp line-height caption, không nhảy baseline */
+  display: inline-flex;
+  align-items: center;
+  height: 1.55em;
   padding: 0 0 0 2.25em;
   background: linear-gradient(
     90deg,
@@ -14298,10 +14310,13 @@ select.j-edit-input {
   display: -webkit-box;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  max-height: calc(1.58em * 4.2);
-  transition:
-    max-height var(--j-unfold-dur, 0.48s) var(--j-unfold-ease, cubic-bezier(0.22, 1, 0.36, 1)),
-    color 0.28s ease;
+  /*
+   * Không max-height cứng: dòng có emoji cao hơn 1.58em —
+   * max-height = 4×line-height sẽ cắt ngang chữ.
+   * -webkit-line-clamp lo truncation; lead bám đúng chiều cao thật.
+   */
+  max-height: none;
+  transition: color 0.28s ease;
 }
 .jcard--article .jcard-desc strong {
   color: var(--jcard-ink, var(--ink-display));
@@ -14317,6 +14332,12 @@ select.j-edit-input {
   -webkit-line-clamp: 4;
   margin-bottom: 0;
   padding-right: 0.35em;
+}
+.jcard--article .jcard-lead.is-caption-expand-inline .jcard-caption-more {
+  font-size: 14px;
+  line-height: 1.58;
+  height: auto;
+  min-height: 1.58em;
 }
 .jcard--article .jcard-lead.is-caption-expanded .jcard-desc,
 .j-m-card.jcard--article.is-expanded .jcard-lead .jcard-desc,

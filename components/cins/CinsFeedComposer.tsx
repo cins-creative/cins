@@ -3,7 +3,7 @@
 import "@/app/cins-feed-composer.css";
 
 import { Code2, Flag, Image as ImageIcon, Video } from "lucide-react";
-import { useRef, useState, type ChangeEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 
 import { EmbedPlatformPicker } from "@/components/cins/EmbedPlatformPicker";
@@ -37,6 +37,8 @@ export function CinsFeedComposer({
     openComposeWithEmbed,
     openComposeWithRiveFile,
     openComposeWithLottieFile,
+    openComposeEmbedFileDraft,
+    hasComposeEmbedFileDraft,
     canCompose,
     ownerSlug: ctxSlug,
     ownerName: ctxName,
@@ -47,9 +49,18 @@ export function CinsFeedComposer({
   const ownerName = ownerNameProp ?? ctxName;
   const avatarUrl = avatarUrlProp ?? ctxAvatar;
 
+  const [embedPickerOpen, setEmbedPickerOpen] = useState(false);
+  const [hasRiveFileDraft, setHasRiveFileDraft] = useState(false);
+  const [hasLottieFileDraft, setHasLottieFileDraft] = useState(false);
+
+  useEffect(() => {
+    if (!embedPickerOpen) return;
+    setHasRiveFileDraft(hasComposeEmbedFileDraft("rive"));
+    setHasLottieFileDraft(hasComposeEmbedFileDraft("lottie"));
+  }, [embedPickerOpen, hasComposeEmbedFileDraft]);
+
   const photoInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
-  const [embedPickerOpen, setEmbedPickerOpen] = useState(false);
 
   const initials = getNameInitials(ownerName, ownerSlug);
 
@@ -181,18 +192,46 @@ export function CinsFeedComposer({
       <EmbedPlatformPicker
         open={embedPickerOpen}
         onClose={() => setEmbedPickerOpen(false)}
+        hasRiveFileDraft={hasRiveFileDraft}
+        hasLottieFileDraft={hasLottieFileDraft}
         onSelect={(selection) => {
-          if (selection.type === "rive-file") {
+          if (selection.type === "rive-file-resume") {
             if (canCompose) {
-              openComposeWithRiveFile(selection.file);
+              openComposeEmbedFileDraft("rive");
               return;
             }
-            router.push(`/${ownerSlug}/p/new?compose=embed&platform=rive&source=file`);
+            router.push(
+              `/${ownerSlug}/p/new?compose=embed&platform=rive&source=file`,
+            );
+            return;
+          }
+          if (selection.type === "lottie-file-resume") {
+            if (canCompose) {
+              openComposeEmbedFileDraft("lottie");
+              return;
+            }
+            router.push(
+              `/${ownerSlug}/p/new?compose=embed&platform=lottie&source=file`,
+            );
+            return;
+          }
+          if (selection.type === "rive-file") {
+            if (canCompose) {
+              openComposeWithRiveFile(selection.file, {
+                replaceDraft: selection.replaceDraft,
+              });
+              return;
+            }
+            router.push(
+              `/${ownerSlug}/p/new?compose=embed&platform=rive&source=file`,
+            );
             return;
           }
           if (selection.type === "lottie-file") {
             if (canCompose) {
-              openComposeWithLottieFile(selection.file);
+              openComposeWithLottieFile(selection.file, {
+                replaceDraft: selection.replaceDraft,
+              });
               return;
             }
             router.push(

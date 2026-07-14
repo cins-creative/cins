@@ -7,6 +7,8 @@ import {
   stripMoTaMarkdown,
 } from "@/lib/editor/mo-ta-markdown";
 
+import "./mo-ta-markdown.css";
+
 type Props = {
   text: string | null | undefined;
   className?: string;

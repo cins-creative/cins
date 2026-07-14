@@ -6,8 +6,79 @@ import {
 
 /**
  * Subset Markdown an toàn cho `mo_ta` / caption Journey.
- * Không hỗ trợ link, heading, code fence, HTML raw.
+ * Autolink URL http(s); không hỗ trợ `[text](url)`, heading, code fence, HTML raw.
  */
+
+/** http(s) trong plain text — không khớp scheme nguy hiểm. */
+const MOTA_URL_RE = /https?:\/\/[^\s<>"'`]+/gi;
+
+function splitTrailingUrlJunk(matched: string): {
+  href: string;
+  trailing: string;
+} {
+  let href = matched;
+  let trailing = "";
+  while (href.length > 0) {
+    const last = href[href.length - 1]!;
+    if (!".,;:!?)]}>'\"".includes(last)) break;
+    if (last === ")") {
+      const opens = (href.match(/\(/g) ?? []).length;
+      const closes = (href.match(/\)/g) ?? []).length;
+      if (opens >= closes) break;
+    }
+    trailing = last + trailing;
+    href = href.slice(0, -1);
+  }
+  return { href, trailing };
+}
+
+function isSafeHttpUrl(href: string): boolean {
+  try {
+    const u = new URL(href);
+    return u.protocol === "http:" || u.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+function linkifyToNodes(text: string, keyPrefix: string): ReactNode[] {
+  const nodes: ReactNode[] = [];
+  const re = new RegExp(MOTA_URL_RE.source, "gi");
+  let last = 0;
+  let m: RegExpExecArray | null;
+  let i = 0;
+
+  while ((m = re.exec(text)) !== null) {
+    const raw = m[0]!;
+    const { href, trailing } = splitTrailingUrlJunk(raw);
+    if (m.index > last) {
+      nodes.push(text.slice(last, m.index));
+    }
+    if (href && isSafeHttpUrl(href)) {
+      nodes.push(
+        createElement(
+          "a",
+          {
+            key: `${keyPrefix}-a${i++}`,
+            href,
+            className: "mota-md-a",
+            target: "_blank",
+            rel: "noopener noreferrer",
+          },
+          href,
+        ),
+      );
+      if (trailing) nodes.push(trailing);
+    } else {
+      nodes.push(raw);
+    }
+    last = m.index + raw.length;
+  }
+
+  if (last < text.length) nodes.push(text.slice(last));
+  if (nodes.length === 0 && text.length > 0) nodes.push(text);
+  return nodes;
+}
 
 const ESCAPE_MAP: Record<string, string> = {
   "&": "&amp;",
@@ -69,16 +140,19 @@ function parseInline(raw: string): InlinePart[] {
 }
 
 function inlineToNodes(parts: InlinePart[], keyPrefix: string): ReactNode[] {
-  return parts.map((p, i) => {
+  return parts.flatMap((p, i) => {
     const key = `${keyPrefix}-${i}`;
-    if (p.kind === "text") return p.text;
+    if (p.kind === "text") {
+      return linkifyToNodes(p.text, key);
+    }
+    const children = linkifyToNodes(p.text, `${key}-c`);
     if (p.kind === "strong") {
-      return createElement("strong", { key }, p.text);
+      return [createElement("strong", { key }, ...children)];
     }
     if (p.kind === "em") {
-      return createElement("em", { key }, p.text);
+      return [createElement("em", { key }, ...children)];
     }
-    return createElement("s", { key }, p.text);
+    return [createElement("s", { key }, ...children)];
   });
 }
 

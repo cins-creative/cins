@@ -22,13 +22,19 @@ import { EMBED_PLATFORM_LOGO } from "@/lib/editor/embed-platform-logos";
 
 export type EmbedPlatformPickerSelection =
   | { type: "platform"; platform: Tier1EmbedPlatformId }
-  | { type: "rive-file"; file: File }
-  | { type: "lottie-file"; file: File };
+  | { type: "rive-file"; file: File; replaceDraft?: boolean }
+  | { type: "lottie-file"; file: File; replaceDraft?: boolean }
+  | { type: "rive-file-resume" }
+  | { type: "lottie-file-resume" };
 
 type Props = {
   open: boolean;
   onClose: () => void;
   onSelect: (selection: EmbedPlatformPickerSelection) => void;
+  /** Còn nháp Rive file — hiện «Tiếp tục nháp». */
+  hasRiveFileDraft?: boolean;
+  /** Còn nháp Lottie file — hiện «Tiếp tục nháp». */
+  hasLottieFileDraft?: boolean;
 };
 
 type FlyoutOption = {
@@ -188,9 +194,17 @@ function MotionEmbedFlyoutItem({
   );
 }
 
-export function EmbedPlatformPicker({ open, onClose, onSelect }: Props) {
+export function EmbedPlatformPicker({
+  open,
+  onClose,
+  onSelect,
+  hasRiveFileDraft = false,
+  hasLottieFileDraft = false,
+}: Props) {
   const riveFileInputRef = useRef<HTMLInputElement>(null);
   const lottieFileInputRef = useRef<HTMLInputElement>(null);
+  const riveReplaceInputRef = useRef<HTMLInputElement>(null);
+  const lottieReplaceInputRef = useRef<HTMLInputElement>(null);
   const [riveExpanded, setRiveExpanded] = useState(false);
   const [lottieExpanded, setLottieExpanded] = useState(false);
 
@@ -217,13 +231,23 @@ export function EmbedPlatformPicker({ open, onClose, onSelect }: Props) {
     onClose();
   };
 
-  const pickRiveFile = (file: File) => {
-    onSelect({ type: "rive-file", file });
+  const pickRiveFile = (file: File, replaceDraft = false) => {
+    onSelect({ type: "rive-file", file, replaceDraft });
     onClose();
   };
 
-  const pickLottieFile = (file: File) => {
-    onSelect({ type: "lottie-file", file });
+  const pickLottieFile = (file: File, replaceDraft = false) => {
+    onSelect({ type: "lottie-file", file, replaceDraft });
+    onClose();
+  };
+
+  const resumeRiveFileDraft = () => {
+    onSelect({ type: "rive-file-resume" });
+    onClose();
+  };
+
+  const resumeLottieFileDraft = () => {
+    onSelect({ type: "lottie-file-resume" });
     onClose();
   };
 
@@ -299,13 +323,34 @@ export function EmbedPlatformPicker({ open, onClose, onSelect }: Props) {
                               icon: <Code2 size={18} strokeWidth={2} />,
                               onPick: () => pickPlatform("rive"),
                             },
-                            {
-                              id: "rive-file",
-                              label: "Tải file .riv",
-                              hint: "Chạy trên CINs",
-                              icon: <Upload size={18} strokeWidth={2} />,
-                              onPick: () => riveFileInputRef.current?.click(),
-                            },
+                            ...(hasRiveFileDraft
+                              ? [
+                                  {
+                                    id: "rive-resume",
+                                    label: "Tiếp tục nháp",
+                                    hint: "Giữ file và nội dung đã soạn",
+                                    icon: <Upload size={18} strokeWidth={2} />,
+                                    onPick: resumeRiveFileDraft,
+                                  } satisfies FlyoutOption,
+                                  {
+                                    id: "rive-file-new",
+                                    label: "Tải file .riv mới",
+                                    hint: "Bỏ nháp cũ — soạn lại",
+                                    icon: <Upload size={18} strokeWidth={2} />,
+                                    onPick: () =>
+                                      riveReplaceInputRef.current?.click(),
+                                  } satisfies FlyoutOption,
+                                ]
+                              : [
+                                  {
+                                    id: "rive-file",
+                                    label: "Tải file .riv",
+                                    hint: "Chạy trên CINs",
+                                    icon: <Upload size={18} strokeWidth={2} />,
+                                    onPick: () =>
+                                      riveFileInputRef.current?.click(),
+                                  } satisfies FlyoutOption,
+                                ]),
                           ]}
                         />
                       );
@@ -334,14 +379,34 @@ export function EmbedPlatformPicker({ open, onClose, onSelect }: Props) {
                               icon: <Code2 size={18} strokeWidth={2} />,
                               onPick: () => pickPlatform("lottie"),
                             },
-                            {
-                              id: "lottie-file",
-                              label: "Tải file",
-                              hint: ".lottie hoặc .json",
-                              icon: <Upload size={18} strokeWidth={2} />,
-                              onPick: () =>
-                                lottieFileInputRef.current?.click(),
-                            },
+                            ...(hasLottieFileDraft
+                              ? [
+                                  {
+                                    id: "lottie-resume",
+                                    label: "Tiếp tục nháp",
+                                    hint: "Giữ file và nội dung đã soạn",
+                                    icon: <Upload size={18} strokeWidth={2} />,
+                                    onPick: resumeLottieFileDraft,
+                                  } satisfies FlyoutOption,
+                                  {
+                                    id: "lottie-file-new",
+                                    label: "Tải file mới",
+                                    hint: "Bỏ nháp cũ — soạn lại",
+                                    icon: <Upload size={18} strokeWidth={2} />,
+                                    onPick: () =>
+                                      lottieReplaceInputRef.current?.click(),
+                                  } satisfies FlyoutOption,
+                                ]
+                              : [
+                                  {
+                                    id: "lottie-file",
+                                    label: "Tải file",
+                                    hint: ".lottie hoặc .json",
+                                    icon: <Upload size={18} strokeWidth={2} />,
+                                    onPick: () =>
+                                      lottieFileInputRef.current?.click(),
+                                  } satisfies FlyoutOption,
+                                ]),
                           ]}
                         />
                       );
@@ -360,6 +425,34 @@ export function EmbedPlatformPicker({ open, onClose, onSelect }: Props) {
             );
           })}
         </div>
+        <input
+          ref={riveReplaceInputRef}
+          type="file"
+          accept=".riv,application/octet-stream"
+          hidden
+          aria-hidden
+          tabIndex={-1}
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            e.target.value = "";
+            if (!file) return;
+            pickRiveFile(file, true);
+          }}
+        />
+        <input
+          ref={lottieReplaceInputRef}
+          type="file"
+          accept=".lottie,.json,application/json,application/zip"
+          hidden
+          aria-hidden
+          tabIndex={-1}
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            e.target.value = "";
+            if (!file) return;
+            pickLottieFile(file, true);
+          }}
+        />
       </div>
     </div>,
     document.body,

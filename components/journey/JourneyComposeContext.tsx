@@ -14,8 +14,20 @@ import { useRouter } from "next/navigation";
 import { JourneyComposeOverlay } from "@/components/journey/JourneyComposeOverlay";
 import type { CongDongComposeConfig } from "@/lib/cong-dong/types";
 import type { Tier1EmbedPlatformId } from "@/lib/editor/embed-providers";
-import { isTier1EmbedPlatformId } from "@/lib/editor/embed-providers";
+import {
+  buildComposeEditorDraftKey,
+  buildComposeEmbedDraftKey,
+  clearComposeEditorDraft,
+  composeDraftHasLottieFileAsset,
+  composeDraftHasRestorableContent,
+  composeDraftHasRiveFileAsset,
+  readComposeEmbedFileDraft,
+} from "@/lib/journey/compose-editor-draft";
 import type { JourneyComposeState } from "@/lib/journey/compose-types";
+import {
+  composeStateToSearchParams,
+  parseComposeSearchParams,
+} from "@/lib/journey/compose-types";
 import type { ComposePublishedDetail } from "@/lib/journey/compose-published-sync";
 import { dispatchComposePublished } from "@/lib/journey/compose-published-sync";
 import { getAvatarUrl } from "@/lib/journey/profile";
@@ -27,8 +39,18 @@ type JourneyComposeContextValue = {
   openComposeWithPhotos: (files: File[]) => void;
   openComposeWithVideo: (file: File) => void;
   openComposeWithEmbed: (platform: Tier1EmbedPlatformId) => void;
-  openComposeWithRiveFile: (file: File) => void;
-  openComposeWithLottieFile: (file: File) => void;
+  openComposeWithRiveFile: (
+    file: File,
+    options?: { replaceDraft?: boolean },
+  ) => void;
+  openComposeWithLottieFile: (
+    file: File,
+    options?: { replaceDraft?: boolean },
+  ) => void;
+  /** Mở lại nháp Rive/Lottie file (không cần chọn File mới). */
+  openComposeEmbedFileDraft: (platform: "rive" | "lottie") => boolean;
+  /** true nếu localStorage còn nháp embed file đáng mở lại. */
+  hasComposeEmbedFileDraft: (platform: "rive" | "lottie") => boolean;
   closeCompose: () => void;
   canCompose: boolean;
   ownerSlug: string;
@@ -63,20 +85,7 @@ type ProviderProps = {
 
 function syncComposeUrl(state: JourneyComposeState | null, mode: "push" | "replace") {
   if (typeof window === "undefined") return;
-  const params = new URLSearchParams(window.location.search);
-  params.delete("compose");
-  params.delete("edit");
-  params.delete("cotMoc");
-  if (state) {
-    if (state.kind === "edit") params.set("edit", state.postSlug);
-    else if (state.kind === "milestone-edit") {
-      params.set("compose", "milestone-edit");
-      params.set("cotMoc", state.cotMocId);
-    } else if (state.kind === "embed") {
-      params.set("compose", "embed");
-      params.set("platform", state.platform);
-    } else params.set("compose", state.kind);
-  }
+  const params = composeStateToSearchParams(state);
   const qs = params.toString();
   const href = qs ? `${window.location.pathname}?${qs}` : window.location.pathname;
   if (mode === "push") window.history.pushState(null, "", href);
@@ -133,9 +142,73 @@ export function JourneyComposeProvider({
     [isOwner, openCompose],
   );
 
+  const hasComposeEmbedFileDraft = useCallback(
+    (platform: "rive" | "lottie") => {
+      if (!isOwner) return false;
+      return composeDraftHasRestorableContent(
+        readComposeEmbedFileDraft({
+          ownerSlug,
+          platform,
+          congDongCompose,
+          orgBaiDangCompose,
+        }),
+      );
+    },
+    [isOwner, ownerSlug, congDongCompose, orgBaiDangCompose],
+  );
+
+  const openComposeEmbedFileDraft = useCallback(
+    (platform: "rive" | "lottie") => {
+      if (!isOwner) return false;
+      if (!hasComposeEmbedFileDraft(platform)) return false;
+      openCompose({ kind: "embed", platform, fileSource: "file" });
+      return true;
+    },
+    [isOwner, hasComposeEmbedFileDraft, openCompose],
+  );
+
+  const clearComposeEmbedFileDraft = useCallback(
+    (platform: "rive" | "lottie") => {
+      clearComposeEditorDraft(
+        buildComposeEmbedDraftKey({
+          ownerSlug,
+          platform,
+          source: "file",
+          congDongCompose,
+          orgBaiDangCompose,
+        }),
+      );
+      /* Key legacy chưa gắn :file|:url */
+      clearComposeEditorDraft(
+        `${buildComposeEditorDraftKey({
+          ownerSlug,
+          composeIntent: "embed",
+          congDongCompose,
+          orgBaiDangCompose,
+        })}:${platform}`,
+      );
+    },
+    [ownerSlug, congDongCompose, orgBaiDangCompose],
+  );
+
   const openComposeWithRiveFile = useCallback(
-    (file: File) => {
+    (file: File, options?: { replaceDraft?: boolean }) => {
       if (!isOwner) return;
+      if (options?.replaceDraft) {
+        clearComposeEmbedFileDraft("rive");
+      } else {
+        const draft = readComposeEmbedFileDraft({
+          ownerSlug,
+          platform: "rive",
+          congDongCompose,
+          orgBaiDangCompose,
+        });
+        /* Nháp đã có .riv trên CINs → mở lại không kèm File (tránh ghi đè). */
+        if (composeDraftHasRiveFileAsset(draft)) {
+          openCompose({ kind: "embed", platform: "rive", fileSource: "file" });
+          return;
+        }
+      }
       openCompose({
         kind: "embed",
         platform: "rive",
@@ -143,12 +216,33 @@ export function JourneyComposeProvider({
         pendingEmbedFile: file,
       });
     },
-    [isOwner, openCompose],
+    [
+      isOwner,
+      ownerSlug,
+      congDongCompose,
+      orgBaiDangCompose,
+      openCompose,
+      clearComposeEmbedFileDraft,
+    ],
   );
 
   const openComposeWithLottieFile = useCallback(
-    (file: File) => {
+    (file: File, options?: { replaceDraft?: boolean }) => {
       if (!isOwner) return;
+      if (options?.replaceDraft) {
+        clearComposeEmbedFileDraft("lottie");
+      } else {
+        const draft = readComposeEmbedFileDraft({
+          ownerSlug,
+          platform: "lottie",
+          congDongCompose,
+          orgBaiDangCompose,
+        });
+        if (composeDraftHasLottieFileAsset(draft)) {
+          openCompose({ kind: "embed", platform: "lottie", fileSource: "file" });
+          return;
+        }
+      }
       openCompose({
         kind: "embed",
         platform: "lottie",
@@ -156,7 +250,14 @@ export function JourneyComposeProvider({
         pendingEmbedFile: file,
       });
     },
-    [isOwner, openCompose],
+    [
+      isOwner,
+      ownerSlug,
+      congDongCompose,
+      orgBaiDangCompose,
+      openCompose,
+      clearComposeEmbedFileDraft,
+    ],
   );
 
   const closeCompose = useCallback(() => {
@@ -188,33 +289,9 @@ export function JourneyComposeProvider({
   useEffect(() => {
     if (!isOwner || !syncComposeUrlEnabled) return;
     const onPop = () => {
-      const params = new URLSearchParams(window.location.search);
-      const edit = params.get("edit")?.trim();
-      const kind = params.get("compose")?.trim();
-      const cotMoc = params.get("cotMoc")?.trim();
-      if (edit) setCompose({ kind: "edit", postSlug: edit });
-      else if (kind === "milestone-edit" && cotMoc) {
-        setCompose({ kind: "milestone-edit", cotMocId: cotMoc });
-      } else if (
-        kind === "article" ||
-        kind === "photo" ||
-        kind === "video" ||
-        kind === "embed" ||
-        kind === "milestone"
-      ) {
-        if (kind === "embed") {
-          const platform = params.get("platform")?.trim();
-          if (isTier1EmbedPlatformId(platform)) {
-            setCompose({ kind: "embed", platform });
-          } else {
-            setCompose(null);
-          }
-        } else {
-          setCompose({ kind });
-        }
-      } else {
-        setCompose(null);
-      }
+      setCompose(
+        parseComposeSearchParams(new URLSearchParams(window.location.search)),
+      );
     };
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
@@ -270,6 +347,8 @@ export function JourneyComposeProvider({
       openComposeWithEmbed,
       openComposeWithRiveFile,
       openComposeWithLottieFile,
+      openComposeEmbedFileDraft,
+      hasComposeEmbedFileDraft,
       closeCompose,
       canCompose: isOwner,
       ownerSlug,
@@ -284,6 +363,8 @@ export function JourneyComposeProvider({
       openComposeWithEmbed,
       openComposeWithRiveFile,
       openComposeWithLottieFile,
+      openComposeEmbedFileDraft,
+      hasComposeEmbedFileDraft,
       closeCompose,
       isOwner,
       ownerSlug,
@@ -323,6 +404,8 @@ export function useJourneyCompose(): JourneyComposeContextValue {
       openComposeWithEmbed: () => {},
       openComposeWithRiveFile: () => {},
       openComposeWithLottieFile: () => {},
+      openComposeEmbedFileDraft: () => false,
+      hasComposeEmbedFileDraft: () => false,
       closeCompose: () => {},
       canCompose: false,
       ownerSlug: "",
