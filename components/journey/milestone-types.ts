@@ -298,6 +298,18 @@ export type MilestoneItem = {
    */
   feedOrgFollowed?: boolean;
 
+  /**
+   * World Journey Timeline — `diem_hien_tai` realtime (decay 7 ngày).
+   * Gắn ở server khi rank; client sort «Mới nhất» dùng lại nếu có.
+   */
+  feedScore?: number | null;
+
+  /**
+   * World Journey — đang được admin editorial boost (L29).
+   * Chỉ dùng UI admin (toggle); không hiện badge cho viewer thường.
+   */
+  worldBoosted?: boolean;
+
   /** World Journey — bài từ pool Khám phá (chưa theo dõi), dùng sort «Theo dõi». */
   feedExplore?: boolean;
 

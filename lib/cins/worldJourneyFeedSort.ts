@@ -58,14 +58,6 @@ export function compareWorldJourneyFeedOrder(
   );
 }
 
-/** Org chưa follow xếp sau bài user + org đang follow. */
-function worldJourneyOrgFollowRank(m: MilestoneItem): number {
-  if (m.orgBaiDangRef || m.orgSuKienRef) {
-    return m.feedOrgFollowed ? 0 : 1;
-  }
-  return 0;
-}
-
 /**
  * Điểm chất lượng — chỉ dùng sort «Đang sôi nổi».
  * Comment nặng hơn like; không cộng view toàn cục vào chất lượng vanity.
@@ -134,17 +126,27 @@ export function effectiveViewerSeenCount(
 }
 
 /**
- * Mặc định phân bổ (Facebook-like, scoped):
- * 1. Author echo (bài mình vừa đăng)
- * 2. Chưa xem của viewer trước
- * 3. Trong unseen: bài mới (cửa sổ freshness) trước
- * 4. Reach toàn cục thấp trước (cold-start nội dung)
- * 5. Org đã follow trước org lạ
- * 6. Tie-break thời gian đăng / timeline
- *
- * Không dùng like/comment ở tầng này (tránh bảng xếp hạng).
+ * @deprecated Unseen/freshness/reach — thay bằng `compareWorldJourneyFeedByScore`
+ * trên World Timeline. Giữ export tạm nếu chỗ khác còn gọi.
  */
 export function compareWorldJourneyFeedByUnseen(
+  a: MilestoneItem,
+  b: MilestoneItem,
+  viewerId?: string | null,
+  nowMs = Date.now(),
+): number {
+  return compareWorldJourneyFeedByScore(a, b, viewerId, nowMs);
+}
+
+/**
+ * Rank Timeline theo điểm:
+ * 1. Author echo (bài mình vừa đăng)
+ * 2. `feedScore` / diem_hien_tai DESC
+ * 3. Tie-break thời gian đăng
+ *
+ * Không dùng unseen / freshness / cold-start reach / org follow.
+ */
+export function compareWorldJourneyFeedByScore(
   a: MilestoneItem,
   b: MilestoneItem,
   viewerId?: string | null,
@@ -154,21 +156,9 @@ export function compareWorldJourneyFeedByUnseen(
   const echoB = isWorldJourneyAuthorEcho(b, viewerId, nowMs) ? 0 : 1;
   if (echoA !== echoB) return echoA - echoB;
 
-  const sa = effectiveViewerSeenCount(a, viewerId);
-  const sb = effectiveViewerSeenCount(b, viewerId);
-  if (sa !== sb) return sa - sb;
-
-  const freshA = isWorldJourneyFreshPost(a, nowMs) ? 0 : 1;
-  const freshB = isWorldJourneyFreshPost(b, nowMs) ? 0 : 1;
-  if (freshA !== freshB) return freshA - freshB;
-
-  const reachA = a.feedGlobalReach ?? a.views ?? 0;
-  const reachB = b.feedGlobalReach ?? b.views ?? 0;
-  if (reachA !== reachB) return reachA - reachB;
-
-  const fa = worldJourneyOrgFollowRank(a);
-  const fb = worldJourneyOrgFollowRank(b);
-  if (fa !== fb) return fa - fb;
+  const scoreA = a.feedScore ?? 0;
+  const scoreB = b.feedScore ?? 0;
+  if (scoreA !== scoreB) return scoreB - scoreA;
 
   const postedA = feedPostedAtMs(a);
   const postedB = feedPostedAtMs(b);
@@ -205,8 +195,11 @@ export function applyAuthorSoftQuota(
   return primary.concat(overflow);
 }
 
-/** Rank mặc định server: hybrid comparator + soft quota tác giả. */
-export function rankWorldJourneyFeedHybrid(
+/**
+ * Rank Timeline: sort theo điểm (+ echo) rồi soft quota max N bài/tác giả.
+ * Thay `rankWorldJourneyFeedHybrid` trên World Feed server.
+ */
+export function rankWorldJourneyFeedByScore(
   items: ReadonlyArray<MilestoneItem>,
   viewerId?: string | null,
   maxPerAuthor = WORLD_JOURNEY_FEED_AUTHOR_SOFT_QUOTA,
@@ -215,9 +208,19 @@ export function rankWorldJourneyFeedHybrid(
   return applyAuthorSoftQuota(
     items
       .slice()
-      .sort((a, b) => compareWorldJourneyFeedByUnseen(a, b, viewerId, nowMs)),
+      .sort((a, b) => compareWorldJourneyFeedByScore(a, b, viewerId, nowMs)),
     maxPerAuthor,
   );
+}
+
+/** @deprecated Dùng `rankWorldJourneyFeedByScore`. */
+export function rankWorldJourneyFeedHybrid(
+  items: ReadonlyArray<MilestoneItem>,
+  viewerId?: string | null,
+  maxPerAuthor = WORLD_JOURNEY_FEED_AUTHOR_SOFT_QUOTA,
+  nowMs = Date.now(),
+): MilestoneItem[] {
+  return rankWorldJourneyFeedByScore(items, viewerId, maxPerAuthor, nowMs);
 }
 
 /** «Đang sôi nổi» — có cộng view toàn cục. */
@@ -263,7 +266,7 @@ export function buildWorldJourneyFeedComparator(
       };
     case "Mới nhất":
     default:
-      return (a, b) => compareWorldJourneyFeedByUnseen(a, b, viewerId);
+      return (a, b) => compareWorldJourneyFeedByScore(a, b, viewerId);
   }
 }
 

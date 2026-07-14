@@ -11,13 +11,13 @@ import {
   buildSelfMilestonesForCotMocs,
 } from "@/lib/journey/milestones-fetch";
 import { getAvatarUrl } from "@/lib/journey/profile";
-import { rankWorldJourneyFeedHybrid } from "@/lib/cins/worldJourneyFeedSort";
-import { worldJourneyAnalyticsId } from "@/lib/cins/worldJourneyAnalytics";
-import { listFriends } from "@/lib/social/ket-ban";
 import {
-  demLuotXemCuaViewer,
-  demLuotXemToanCuc,
-} from "@/lib/social/su-kien";
+  attachFeedScoresAndFilter,
+  feedScoreTargetFromMilestone,
+  loadActiveFeedScoreMap,
+} from "@/lib/cins/feed-scoring-load";
+import { rankWorldJourneyFeedByScore } from "@/lib/cins/worldJourneyFeedSort";
+import { listFriends } from "@/lib/social/ket-ban";
 import { loadUserSuKienPhanHoiMap } from "@/lib/to-chuc/su-kien-dang-ky";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import {
@@ -37,8 +37,21 @@ import {
   WORLD_JOURNEY_FEED_PAGE_SIZE,
   WORLD_JOURNEY_FEED_RANK_REVALIDATE_SEC,
 } from "@/lib/cins/worldJourneyFeedConstants";
+import {
+  resolveWorldJourneyFeedFilterChip,
+  worldJourneyMilestoneMatchesFilter,
+  worldJourneyMilestoneMatchesLinhVuc,
+} from "@/lib/cins/worldJourneyFeedFilters";
+import {
+  matchesFeedSource,
+  normalizeFeedSource,
+  type FeedSourceFilter,
+} from "@/lib/cins/worldJourneyFeedSource";
+import { withWorldBoostMilestones } from "@/lib/cins/world-boost";
 
 const FEED_POOL_LIMIT = 80;
+/** Pool rộng khi đang lọc — đủ bài để filter media/nhúng/lĩnh vực có kết quả. */
+const FEED_FILTER_POOL_LIMIT = 240;
 const QUERY_LIMIT = 120;
 
 const COT_MOC_FEED_SELECT =
@@ -136,6 +149,10 @@ async function fetchLinkRowsForAuthors(
     .select(`id_cot_moc, content_cot_moc:content_cot_moc!inner(${COT_MOC_FEED_SELECT})`)
     .in("content_cot_moc.id_nguoi_dung", authorIds)
     .in("content_cot_moc.che_do_hien_thi", cheDoModes)
+    .order("thoi_diem", {
+      referencedTable: "content_cot_moc",
+      ascending: false,
+    })
     .limit(QUERY_LIMIT)
     .returns<LinkRow[]>();
 
@@ -233,39 +250,34 @@ function applyLensOwners(
 }
 
 /**
- * Xếp hạng feed mặc định (phân bổ scoped):
- * 1. Author echo — bài mình vừa đăng
- * 2. Chưa xem của viewer (không demote bằng self-view)
- * 3. Bài mới trong cửa sổ freshness
- * 4. Reach toàn cục thấp (cold-start)
- * 5. Org đã follow · soft quota · thời gian đăng
- * Cắt còn `FEED_POOL_LIMIT`.
+ * Xếp hạng World Timeline theo điểm:
+ * 1. Load `content_diem_feed` (bat_dau_luc trong 7 ngày) + gắn điểm / lọc
+ * 2. Sort diem_hien_tai DESC (+ author echo)
+ * 3. Soft quota max N bài/tác giả (echo suppression)
+ * Cắt còn `poolLimit`. Boost merge ở `fetchWorldJourneyFeedPage*`.
  */
-async function rankFeedByUnseen(
+async function rankFeedByScore(
   viewerId: string,
   items: MilestoneItem[],
+  options?: { poolLimit?: number; softQuota?: boolean },
 ): Promise<MilestoneItem[]> {
   if (items.length === 0) return [];
 
-  const analyticsIds = items.map(worldJourneyAnalyticsId);
-  const [seen, globalReach] = await Promise.all([
-    demLuotXemCuaViewer(viewerId, analyticsIds),
-    demLuotXemToanCuc(analyticsIds),
-  ]);
+  const poolLimit = options?.poolLimit ?? FEED_POOL_LIMIT;
+  const softQuota = options?.softQuota !== false;
 
-  const withSeen = items.map((m) => {
-    const id = worldJourneyAnalyticsId(m);
-    return {
-      ...m,
-      viewerSeenCount: seen.get(id) ?? 0,
-      feedGlobalReach: globalReach.get(id) ?? 0,
-    };
-  });
+  const targets = items
+    .map(feedScoreTargetFromMilestone)
+    .filter((t): t is NonNullable<typeof t> => t != null);
 
-  return rankWorldJourneyFeedHybrid(withSeen, viewerId).slice(
-    0,
-    FEED_POOL_LIMIT,
-  );
+  const scoreMap = await loadActiveFeedScoreMap(targets);
+  const scored = attachFeedScoresAndFilter(items, scoreMap);
+
+  const ranked = softQuota
+    ? rankWorldJourneyFeedByScore(scored, viewerId)
+    : rankWorldJourneyFeedByScore(scored, viewerId, Number.POSITIVE_INFINITY);
+
+  return ranked.slice(0, poolLimit);
 }
 
 export type WorldJourneyFeedPage = {
@@ -275,8 +287,38 @@ export type WorldJourneyFeedPage = {
   totalCount: number;
 };
 
+export type WorldJourneyFeedPageOptions = {
+  filter?: string | null;
+  source?: FeedSourceFilter | string | null;
+  linhVuc?: string | null;
+};
+
+function feedPageNeedsWidePool(opts: WorldJourneyFeedPageOptions): boolean {
+  const filter = opts.filter?.trim();
+  if (filter && filter !== "all") return true;
+  if (opts.linhVuc?.trim()) return true;
+  const source = normalizeFeedSource(opts.source);
+  return source !== "all";
+}
+
+function applyWorldJourneyFeedPageFilters(
+  items: ReadonlyArray<MilestoneItem>,
+  opts: WorldJourneyFeedPageOptions,
+): MilestoneItem[] {
+  const chip = resolveWorldJourneyFeedFilterChip(opts.filter);
+  const source = normalizeFeedSource(opts.source);
+  const linhVuc = opts.linhVuc?.trim() || null;
+  return items.filter(
+    (milestone) =>
+      matchesFeedSource(milestone, source) &&
+      worldJourneyMilestoneMatchesFilter(milestone, chip) &&
+      worldJourneyMilestoneMatchesLinhVuc(milestone, linhVuc),
+  );
+}
+
 async function buildWorldJourneyFeedRanked(
   viewerId: string,
+  rankOptions?: { poolLimit?: number; softQuota?: boolean },
 ): Promise<MilestoneItem[]> {
   const [
     friendIds,
@@ -449,7 +491,7 @@ async function buildWorldJourneyFeedRanked(
     return m;
   });
 
-  return rankFeedByUnseen(viewerId, followingPool);
+  return rankFeedByScore(viewerId, followingPool, rankOptions);
 }
 
 async function buildExplorePool(
@@ -490,6 +532,13 @@ async function buildExplorePool(
 
 const fetchWorldJourneyFeedRankedCached = cache(buildWorldJourneyFeedRanked);
 
+const fetchWorldJourneyFeedRankedWideCached = cache((viewerId: string) =>
+  buildWorldJourneyFeedRanked(viewerId, {
+    poolLimit: FEED_FILTER_POOL_LIMIT,
+    softQuota: false,
+  }),
+);
+
 function fetchWorldJourneyFeedRankedForApi(viewerId: string) {
   return unstable_cache(
     () => buildWorldJourneyFeedRanked(viewerId),
@@ -498,13 +547,30 @@ function fetchWorldJourneyFeedRankedForApi(viewerId: string) {
   )();
 }
 
+function fetchWorldJourneyFeedRankedWideForApi(viewerId: string) {
+  return unstable_cache(
+    () =>
+      buildWorldJourneyFeedRanked(viewerId, {
+        poolLimit: FEED_FILTER_POOL_LIMIT,
+        softQuota: false,
+      }),
+    ["world-journey-feed-ranked-wide", viewerId],
+    { revalidate: WORLD_JOURNEY_FEED_RANK_REVALIDATE_SEC },
+  )();
+}
+
 export async function fetchWorldJourneyFeedPage(
   viewerId: string,
   offset = 0,
   limit = WORLD_JOURNEY_FEED_PAGE_SIZE,
+  options: WorldJourneyFeedPageOptions = {},
 ): Promise<WorldJourneyFeedPage> {
-  const ranked = await fetchWorldJourneyFeedRankedForApi(viewerId);
-  return sliceWorldJourneyFeedPage(ranked, offset, limit);
+  const ranked = feedPageNeedsWidePool(options)
+    ? await fetchWorldJourneyFeedRankedWideForApi(viewerId)
+    : await fetchWorldJourneyFeedRankedForApi(viewerId);
+  const boosted = await withWorldBoostMilestones(ranked);
+  const filtered = applyWorldJourneyFeedPageFilters(boosted, options);
+  return sliceWorldJourneyFeedPage(filtered, offset, limit);
 }
 
 function sliceWorldJourneyFeedPage(
@@ -529,9 +595,14 @@ export async function fetchWorldJourneyFeedPageCached(
   viewerId: string,
   offset = 0,
   limit = WORLD_JOURNEY_FEED_PAGE_SIZE,
+  options: WorldJourneyFeedPageOptions = {},
 ): Promise<WorldJourneyFeedPage> {
-  const ranked = await fetchWorldJourneyFeedRankedCached(viewerId);
-  return sliceWorldJourneyFeedPage(ranked, offset, limit);
+  const ranked = feedPageNeedsWidePool(options)
+    ? await fetchWorldJourneyFeedRankedWideCached(viewerId)
+    : await fetchWorldJourneyFeedRankedCached(viewerId);
+  const boosted = await withWorldBoostMilestones(ranked);
+  const filtered = applyWorldJourneyFeedPageFilters(boosted, options);
+  return sliceWorldJourneyFeedPage(filtered, offset, limit);
 }
 
 /** Tab Khám phá — chỉ bài Nổi bật toàn cục từ người chưa follow/bạn bè. */
