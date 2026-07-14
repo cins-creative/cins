@@ -117,7 +117,16 @@ export function AdminNoiDungGrowthDashboard({ stats }: Props) {
         const res = await fetch(
           `/api/admin/world-boost?growth=1&days=${days}`,
         );
-        if (!res.ok) throw new Error("Không tải được biểu đồ tăng trưởng.");
+        if (!res.ok) {
+          let detail = "Không tải được biểu đồ tăng trưởng.";
+          try {
+            const body = (await res.json()) as { error?: string };
+            if (body.error?.trim()) detail = body.error.trim();
+          } catch {
+            /* giữ message mặc định */
+          }
+          throw new Error(detail);
+        }
         const json = (await res.json()) as { growth: WorldBoostGrowth };
         if (!cancelled) setGrowth(json.growth);
       } catch (e) {

@@ -2,6 +2,7 @@ import "server-only";
 
 import { MAX_ROOM_RESOURCE_TAGS } from "@/lib/chat/constants";
 import { assertRoomMember } from "@/lib/chat/direct-message";
+import { pickRoomTagColor } from "@/lib/chat/tag-colors";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 export type ChatRoomTag = {
@@ -117,7 +118,15 @@ export async function createRoomTag(
   }
 
   const slug = await uniqueTagSlug(roomId, slugifyTagName(name));
-  const color = mau?.trim() || null;
+  const explicit = mau?.trim() || null;
+  let color = explicit;
+  if (!color) {
+    const { data: existing } = await admin
+      .from("chat_the_tai_nguyen")
+      .select("mau")
+      .eq("id_phong", roomId);
+    color = pickRoomTagColor((existing ?? []).map((row) => row.mau));
+  }
 
   const { data, error } = await admin
     .from("chat_the_tai_nguyen")
@@ -249,7 +258,7 @@ export async function listRoomResources(
   const admin = createServiceRoleClient();
   const { data: messages, error } = await admin
     .from("chat_tin_nhan")
-    .select("id, noi_dung, tao_luc, id_dinh_kem, content_media(cloudflare_id)")
+    .select("id, noi_dung, loai_tin, tao_luc, id_dinh_kem, content_media(cloudflare_id)")
     .eq("id_phong", roomId)
     .eq("da_xoa", false)
     .order("tao_luc", { ascending: false })
@@ -279,6 +288,9 @@ export async function listRoomResources(
 
   const items: ChatRoomResourceItem[] = [];
   for (const row of messages ?? []) {
+    // Meme/sticker không phải tài nguyên ảnh trong workspace.
+    if (row.loai_tin === "sticker") continue;
+
     const body = typeof row.noi_dung === "string" ? row.noi_dung : "";
     const urls = extractUrlsFromText(body);
     const media = row.content_media;

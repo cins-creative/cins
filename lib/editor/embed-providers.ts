@@ -17,14 +17,14 @@ export type Tier1EmbedPlatformId =
   | "playcanvas"
   | "rive"
   | "lottie"
-  | "codepen"
   | "soundcloud";
 
-/** Mọi provider embed được lưu / render (gồm legacy Behance, Framer + file .riv/.lottie trên R2). */
+/** Mọi provider embed được lưu / render (gồm legacy Behance, Framer, CodePen + file .riv/.lottie trên R2). */
 export type EmbedProviderId =
   | Tier1EmbedPlatformId
   | "behance"
   | "framer"
+  | "codepen"
   | "rive-file"
   | "lottie-file";
 
@@ -38,7 +38,6 @@ export type EmbedPlatformGroupId =
   | "design"
   | "scene3d"
   | "motion"
-  | "code"
   | "audio";
 
 export type Tier1EmbedPlatformMeta = {
@@ -60,7 +59,6 @@ export const EMBED_PLATFORM_GROUPS: readonly EmbedPlatformGroupMeta[] = [
   { id: "design", label: "Design" },
   { id: "scene3d", label: "3D & scene" },
   { id: "motion", label: "Motion" },
-  { id: "code", label: "Creative coding" },
   { id: "audio", label: "Âm thanh" },
 ] as const;
 
@@ -140,14 +138,6 @@ export const TIER1_EMBED_PLATFORMS: readonly Tier1EmbedPlatformMeta[] = [
     group: "motion",
   },
   {
-    id: "codepen",
-    label: "CodePen",
-    hint: "Creative coding, UI, shader demo",
-    placeholder: "https://codepen.io/…/pen/…",
-    exampleUrl: "https://codepen.io/team/codepen/pen/PNarYLP",
-    group: "code",
-  },
-  {
     id: "soundcloud",
     label: "SoundCloud",
     hint: "Track, playlist, sound design",
@@ -195,7 +185,7 @@ const EMBED_HOST_RULES: Array<{
     provider: "lottie",
   },
   { host: /^lottie\.host$/i, provider: "lottie" },
-  { host: /^(www\.)?codepen\.io$/i, provider: "codepen" },
+  /* codepen.io — legacy only (không nhận hồ sơ mới qua paste/picker) */
   {
     host: /^(www\.|w\.|api\.)?soundcloud\.com$/i,
     provider: "soundcloud",
@@ -469,7 +459,8 @@ function normalizeSoundCloudEmbedSrc(url: string): string | null {
     out.searchParams.set("auto_play", "false");
     out.searchParams.set("hide_related", "true");
     out.searchParams.set("show_comments", "false");
-    out.searchParams.set("visual", "true");
+    // Classic audio bar (166px) — không visual artwork 16:9.
+    out.searchParams.set("visual", "false");
     return out.toString();
   }
 
@@ -486,7 +477,8 @@ function normalizeSoundCloudEmbedSrc(url: string): string | null {
   out.searchParams.set("auto_play", "false");
   out.searchParams.set("hide_related", "true");
   out.searchParams.set("show_comments", "false");
-  out.searchParams.set("visual", "true");
+  // Classic audio bar (166px) — không visual artwork 16:9.
+  out.searchParams.set("visual", "false");
   return out.toString();
 }
 

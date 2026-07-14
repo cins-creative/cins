@@ -99,6 +99,18 @@ type CinsChatContextValue = {
   isRoomPinned: (roomId: string) => boolean;
   togglePinRoom: (roomId: string, thread?: ChatThread) => void;
   unpinRoom: (roomId: string) => void;
+  /**
+   * Ghim room + đóng panel + yêu cầu FloatingStack mở bubble mini.
+   * Dùng khi bấm "Ghim bubble" trong overlay.
+   * `relatedThreads` — snapshot phụ (vd. nhóm cha của project con) để bubble/header lookup.
+   */
+  popOutRoomToBubble: (
+    thread: ChatThread,
+    relatedThreads?: ChatThread[],
+  ) => void;
+  /** Hội thoại đang chờ mở thành bubble (sau pop-out). */
+  pendingBubbleThread: ChatThread | null;
+  clearPendingBubble: () => void;
   /** Ghim lên đầu danh sách sidebar. */
   pinnedListRoomIds: string[];
   isListPinned: (roomId: string) => boolean;
@@ -146,6 +158,8 @@ export function CinsChatProvider({
   const [pinnedThreadSnapshots, setPinnedThreadSnapshots] = useState<
     Record<string, ChatThread>
   >({});
+  const [pendingBubbleThread, setPendingBubbleThread] =
+    useState<ChatThread | null>(null);
   const listenersRef = useRef(new Set<ChatMessageListener>());
   const focusRef = useRef<{ roomId: string | null; surface: ChatFocusSurface }>({
     roomId: null,
@@ -254,6 +268,36 @@ export function CinsChatProvider({
       }
     },
     [pinnedRoomIds, unpinRoom, viewerProfileId],
+  );
+
+  const clearPendingBubble = useCallback(() => {
+    setPendingBubbleThread(null);
+  }, []);
+
+  const popOutRoomToBubble = useCallback(
+    (thread: ChatThread, relatedThreads?: ChatThread[]) => {
+      if (!viewerProfileId || !thread.roomId) return;
+      const roomId = thread.roomId;
+      setPinnedRoomIds((prev) => {
+        if (prev.includes(roomId)) return prev;
+        const next = [...prev.filter((id) => id !== roomId), roomId];
+        writePinnedRoomIds(viewerProfileId, next);
+        return next;
+      });
+      setPinnedThreadSnapshots((prev) => {
+        const next = { ...prev, [roomId]: thread };
+        for (const related of relatedThreads ?? []) {
+          if (!related.roomId) continue;
+          next[related.roomId] = related;
+        }
+        return next;
+      });
+      setPendingBubbleThread(thread);
+      setOpen(false);
+      setLaunch(null);
+      void refreshUnread();
+    },
+    [refreshUnread, viewerProfileId],
   );
 
   const isListPinned = useCallback(
@@ -587,6 +631,9 @@ export function CinsChatProvider({
       isRoomPinned,
       togglePinRoom,
       unpinRoom,
+      popOutRoomToBubble,
+      pendingBubbleThread,
+      clearPendingBubble,
       pinnedListRoomIds,
       isListPinned,
       toggleListPin,
@@ -616,6 +663,9 @@ export function CinsChatProvider({
       isRoomPinned,
       togglePinRoom,
       unpinRoom,
+      popOutRoomToBubble,
+      pendingBubbleThread,
+      clearPendingBubble,
       pinnedListRoomIds,
       isListPinned,
       toggleListPin,

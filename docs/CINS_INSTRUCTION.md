@@ -47,6 +47,8 @@ Thứ tự ưu tiên khi xung đột: **DB thật (đọc trực tiếp) > CINS_
 
 ## Thay đổi lớn gần đây (tóm tắt — chi tiết ở DECISIONS)
 
+**L29 — World editorial boost ẩn (2026-07-14):** `super_admin`/`admin` đẩy nội dung lên ưu tiên World Timeline + Gallery (không nhãn viewer); tab `/admin` quản lý đăng (grid/listing/dashboard) + toggle trên feed; TTL 3 ngày tự gia hạn; không đụng Journey cá nhân. Xem DECISIONS L29, FOUNDATIONS quy tắc 22, `cursor_map_admin.md`.
+
 **L28 — workspace nhóm chat (2026-07-13):** phòng project con (`id_phong_cha` + ẩn/`an` + lịch sử) · thẻ tài nguyên theo phòng (`chat_the_*`) · mốc timeline phòng (`chat_moc`). Không reuse `filter_nhan`. Xem DECISIONS L28, FOUNDATIONS §C, IMPLEMENTATION chat routes.
 
 **L27 — chế độ phòng cộng đồng (2026-07-12):** `cau_hinh.che_do` = `cong_khai` · `noi_bo` · `bi_mat` (alias `rieng_tu`→`bi_mat`). Join gate suy từ chế độ; xin tham gia nội bộ = `trang_thai=pending`. Xem DECISIONS L27, FOUNDATIONS §O.

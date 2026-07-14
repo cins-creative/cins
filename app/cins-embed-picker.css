@@ -114,18 +114,32 @@
   z-index: 2;
 }
 
+/* Một khối duy nhất: nút Rive/Lottie + panel chọn cách thêm */
 .cins-embed-picker-rive-anchor {
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: var(--radius-sm, 10px);
+  background: var(--bg-surface, #fff);
+  transition:
+    border-color 0.22s ease,
+    background 0.22s ease,
+    box-shadow 0.22s ease;
 }
 
-.cins-embed-picker-list-item--rive:hover,
-.cins-embed-picker-list-item--rive.is-expanded,
-.cins-embed-picker-list-item--lottie:hover,
-.cins-embed-picker-list-item--lottie.is-expanded {
-  z-index: 2;
+.cins-embed-picker-list-item--rive:hover .cins-embed-picker-rive-anchor,
+.cins-embed-picker-list-item--lottie:hover .cins-embed-picker-rive-anchor {
+  border-color: var(--cins-blue, #2563eb);
+  background: var(--cins-blue-soft, #eff6ff);
+}
+
+.cins-embed-picker-list-item--rive.is-expanded .cins-embed-picker-rive-anchor,
+.cins-embed-picker-list-item--lottie.is-expanded .cins-embed-picker-rive-anchor {
+  border-color: var(--cins-blue, #2563eb);
+  background: var(--cins-blue-soft, #eff6ff);
+  box-shadow: 0 0 0 1px rgb(37 99 235 / 12%);
 }
 
 .cins-embed-picker-item {
@@ -196,6 +210,17 @@
 
 .cins-embed-picker-item--has-flyout {
   position: relative;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  transition: background 0.22s ease;
+}
+
+.cins-embed-picker-item--has-flyout:hover,
+.cins-embed-picker-item--has-flyout:focus-visible {
+  border-color: transparent;
+  background: transparent;
+  outline: none;
 }
 
 .cins-embed-picker-item--has-flyout .cins-embed-picker-item-body {
@@ -207,7 +232,9 @@
   margin-left: auto;
   margin-top: 2px;
   color: var(--ink-muted, #6b7280);
-  transition: transform 0.15s ease;
+  transition:
+    transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    color 0.22s ease;
 }
 
 .cins-embed-picker-list-item--rive.is-expanded
@@ -218,36 +245,40 @@
   color: var(--cins-blue, #2563eb);
 }
 
-.cins-embed-picker-list-item--rive.is-expanded
-  .cins-embed-picker-item.cins-embed-picker-item--rive,
-.cins-embed-picker-list-item--lottie.is-expanded
-  .cins-embed-picker-item.cins-embed-picker-item--lottie {
-  border-color: var(--cins-blue, #2563eb);
-  background: var(--cins-blue-soft, #eff6ff);
-}
-
+/* Grid 0fr→1fr: xổ cao mượt, không nhảy 2 khối rời */
 .cins-embed-picker-rive-flyout {
-  display: none;
-  position: relative;
-  z-index: 3;
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
   width: 100%;
   box-sizing: border-box;
-  flex-direction: column;
-  gap: 8px;
-  padding: 10px;
-  border: 1px solid var(--border-strong, #c9ccd3);
-  border-radius: var(--radius-sm, 10px);
-  background: var(--neutral-50, #f9fafb);
+  transition:
+    grid-template-rows 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.22s ease;
+  pointer-events: none;
 }
 
 .cins-embed-picker-list-item--rive.is-expanded .cins-embed-picker-rive-flyout,
 .cins-embed-picker-list-item--lottie.is-expanded .cins-embed-picker-rive-flyout {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.cins-embed-picker-rive-flyout-panel {
+  overflow: hidden;
+  min-height: 0;
   display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 10px 10px;
+  border-top: 1px solid rgb(37 99 235 / 14%);
+  background: rgb(255 255 255 / 55%);
 }
 
 .cins-embed-picker-rive-flyout-title {
   margin: 0;
-  padding: 0 2px;
+  padding: 8px 2px 0;
   font-size: 11px;
   font-weight: 650;
   letter-spacing: 0.03em;
@@ -646,8 +677,9 @@
 }
 
 .ed-embed-compose-preview[data-provider="soundcloud"] {
-  aspect-ratio: 16 / 9;
-  max-height: min(36vh, 300px);
+  aspect-ratio: auto;
+  height: 166px;
+  max-height: 166px;
 }
 
 .ed-embed-compose-preview[data-provider="codepen"] {
@@ -675,6 +707,88 @@
   height: 100%;
   border: 0;
   display: block;
+}
+
+/* PlayCanvas scale-to-fit — dùng chung feed / compose / post page. */
+.jcard-pc-scale {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--neutral-900, #0f172a);
+}
+.jcard-pc-scale-stage {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+.jcard-pc-scale-stage > iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+.jcard-pc-fs-btn {
+  position: absolute;
+  top: auto;
+  right: 10px;
+  bottom: 10px;
+  left: auto;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.82);
+  color: #fff;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.35);
+  -webkit-tap-highlight-color: transparent;
+}
+.jcard-pc-fs-btn:hover,
+.jcard-pc-fs-btn:focus-visible {
+  background: rgba(15, 23, 42, 0.95);
+  outline: none;
+}
+.jcard-pc-scale.is-lightbox {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 10050;
+  width: 100vw !important;
+  height: 100dvh !important;
+  max-width: none !important;
+  max-height: none !important;
+  border-radius: 0 !important;
+  background: #000;
+}
+.jcard-pc-scale.is-focused .jcard-pc-fs-btn {
+  top: auto;
+  right: 14px;
+  bottom: 14px;
+  width: 40px;
+  height: 40px;
+}
+.jcard-pc-scale:fullscreen,
+.jcard-pc-scale:-webkit-full-screen {
+  width: 100%;
+  height: 100%;
+  background: #000;
+  border-radius: 0;
+}
+
+.ed-embed-compose-preview .jcard-pc-scale {
+  position: absolute;
+  inset: 0;
 }
 
 .b-embed.is-rive-file {
@@ -757,8 +871,12 @@
   .ed-embed-compose-preview[data-provider="playcanvas"],
   .ed-embed-compose-preview[data-provider="lottie"],
   .ed-embed-compose-preview[data-provider="canva"],
-  .ed-embed-compose-preview[data-provider="codepen"],
-  .ed-embed-compose-preview[data-provider="soundcloud"] {
+  .ed-embed-compose-preview[data-provider="codepen"] {
     max-height: min(36vh, 280px);
+  }
+
+  .ed-embed-compose-preview[data-provider="soundcloud"] {
+    height: 166px;
+    max-height: 166px;
   }
 }

@@ -13,6 +13,7 @@ import { HaOrgSuggestionRow } from "@/components/cins/home-adaptive/HaOrgSuggest
 import { HaUpdateProjectButton } from "@/components/cins/home-adaptive/HaUpdateProjectButton";
 import { HaUserSuggestionRow } from "@/components/cins/home-adaptive/HaUserSuggestionRow";
 import { ModuleCard, ModuleEmpty } from "@/components/cins/home-adaptive/ModuleCard";
+import { WorldJourneyJobsFab } from "@/components/cins/home-adaptive/WorldJourneyJobsFab";
 import type { HomeModuleCtx } from "@/components/cins/home-adaptive/types";
 import { loadCoHoiForHome, type CoHoiItem } from "@/lib/cins/home-adaptive/co-hoi";
 import {
@@ -179,25 +180,27 @@ function CoHoiJobRow({ job }: { job: CoHoiItem }) {
 export async function CoHoiModule({ ctx }: { ctx: HomeModuleCtx }) {
   const jobs = await loadCoHoiForHome(ctx.giaiDoan, 3);
   return (
-    <ModuleCard
-      icon={Briefcase}
-      title="Cơ hội cho bạn"
-      className="ha-card--jobs"
-      moreHref="/tuyen-dung"
-      moreLabel="Xem thêm"
-    >
-      {jobs.length === 0 ? (
-        <ModuleEmpty>
-          Chưa có tin tuyển dụng phù hợp giai đoạn của bạn. Theo dõi studio để nhận
-          thông báo khi có vị trí mới.
-        </ModuleEmpty>
-      ) : (
-        <div className="ha-job-list">
-          {jobs.map((job) => (
-            <CoHoiJobRow key={job.id} job={job} />
-          ))}
-        </div>
-      )}
-    </ModuleCard>
+    <WorldJourneyJobsFab count={jobs.length}>
+      <ModuleCard
+        icon={Briefcase}
+        title="Cơ hội cho bạn"
+        className="ha-card--jobs"
+        moreHref="/tuyen-dung"
+        moreLabel="Xem thêm"
+      >
+        {jobs.length === 0 ? (
+          <ModuleEmpty>
+            Chưa có tin tuyển dụng phù hợp giai đoạn của bạn. Theo dõi studio để
+            nhận thông báo khi có vị trí mới.
+          </ModuleEmpty>
+        ) : (
+          <div className="ha-job-list">
+            {jobs.map((job) => (
+              <CoHoiJobRow key={job.id} job={job} />
+            ))}
+          </div>
+        )}
+      </ModuleCard>
+    </WorldJourneyJobsFab>
   );
 }

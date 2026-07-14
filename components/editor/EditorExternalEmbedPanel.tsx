@@ -11,6 +11,7 @@ import {
   type Tier1EmbedPlatformId,
 } from "@/lib/editor/embed-providers";
 import { EMBED_PLATFORM_LOGO } from "@/lib/editor/embed-platform-logos";
+import { PlayCanvasScaleFit } from "@/components/journey/PlayCanvasScaleFit";
 
 type Props = {
   platform: Tier1EmbedPlatformId;
@@ -232,13 +233,25 @@ export function EditorExternalEmbedPanel({
           className="ed-embed-compose-preview"
           data-provider={platform}
         >
-          <iframe
-            src={iframeSrc}
-            title={`${meta.label} embed preview`}
-            loading="lazy"
-            allow={iframeAllow}
-            allowFullScreen
-          />
+          {platform === "playcanvas" ? (
+            <PlayCanvasScaleFit>
+              <iframe
+                src={iframeSrc}
+                title={`${meta.label} embed preview`}
+                loading="lazy"
+                allow={iframeAllow}
+                allowFullScreen
+              />
+            </PlayCanvasScaleFit>
+          ) : (
+            <iframe
+              src={iframeSrc}
+              title={`${meta.label} embed preview`}
+              loading="lazy"
+              allow={iframeAllow}
+              allowFullScreen
+            />
+          )}
         </div>
       ) : null}
       {isSpline ? (

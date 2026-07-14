@@ -15,9 +15,12 @@ import {
   type CSSProperties,
 } from "react";
 
+import { WorldBoostToggle } from "@/components/cins/world-journey/WorldBoostToggle";
+import { useWorldBoostAdminOptional } from "@/components/cins/world-journey/WorldBoostAdminContext";
 import { GalleryItemVisual, GalleryEmbedPlatformBadge, GalleryVideoPlayBadge } from "@/components/journey/GalleryItemVisual";
 import { GalleryMainHoverOverlay } from "@/components/journey/GalleryMainHoverOverlay";
 import { useJourneyCompose } from "@/components/journey/JourneyComposeContext";
+import { worldBoostTargetFromGalleryLike } from "@/lib/cins/world-boost-client";
 import { GALLERY_GRID_IMAGE_SIZES } from "@/lib/cloudflare/cf-variant-url";
 import { GalleryMediaFilterDropdown } from "@/components/journey/GalleryMediaFilterDropdown";
 import { GalleryOrgCreateCardBody } from "@/components/journey/GalleryOrgCreateCardBody";
@@ -149,9 +152,16 @@ function GalleryMainItemTile({
   thumbAspect?: number;
 }) {
   const isOrgCreate = isOrgCreateGalleryItem(item);
+  const worldBoostAdmin = useWorldBoostAdminOptional();
+  const boostTarget = worldBoostTargetFromGalleryLike(item);
   const className = [
     galleryItemClassName(item),
     layout === "portrait-rail" ? "is-portrait-rail" : "",
+    item.worldBoosted ||
+    (boostTarget &&
+      worldBoostAdmin?.isBoosted(boostTarget.loai, boostTarget.id))
+      ? "is-world-boosted"
+      : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -165,6 +175,16 @@ function GalleryMainItemTile({
       : layout === "masonry"
         ? { aspectRatio: String(thumbAspect ?? 16 / 9) }
         : undefined;
+
+  const boostToggle =
+    worldBoostAdmin?.canBoost && boostTarget ? (
+      <WorldBoostToggle
+        loai={boostTarget.loai}
+        id={boostTarget.id}
+        compact
+        className="j-main-gallery-boost"
+      />
+    ) : null;
 
   const body = isOrgCreate ? (
     <GalleryOrgCreateCardBody
@@ -205,6 +225,7 @@ function GalleryMainItemTile({
         {item.variant === "verified" ? (
           <GalleryVerifiedBadge cotMocId={item.cotMocId} />
         ) : null}
+        {boostToggle}
       </div>
       <GalleryMainHoverOverlay
         label={item.label}

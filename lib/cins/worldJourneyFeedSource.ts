@@ -2,8 +2,8 @@
  * Bộ lọc *nguồn nội dung* của World Journey (trang chủ) — trục lọc riêng, độc
  * lập với lọc media / lĩnh vực / sắp xếp.
  *
- * Lọc phía client trên pool đã fetch (server gắn nhãn `feedSource` +
- * `feedFollowing` cho từng item) → đổi tức thì, không gọi lại API.
+ * Đổi nguồn → client gọi lại `GET /api/world-journey/feed?source=…` (cùng
+ * `filter` / `linhVuc` nếu đang bật).
  *
  * - `all`       → Khám phá tất cả (mọi nguồn, kể cả khám phá người lạ). Mặc định.
  * - `following` → Theo dõi (chỉ bạn bè + người/org/cộng đồng đang theo dõi).

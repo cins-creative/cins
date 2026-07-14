@@ -22,10 +22,12 @@ import {
   assertCanDirectMessage,
   assertRoomMember,
   countUnreadInRoom,
+  countUnreadMentionsInRoom,
   MESSAGE_SELECT,
   messagePreview,
   type MessageRow,
 } from "@/lib/chat/direct-message";
+import { countUnreadMentions } from "@/lib/chat/mentions";
 import { getAvatarUrl, getGiaiDoanLabel } from "@/lib/journey/profile";
 import { listFriends } from "@/lib/social/ket-ban";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
@@ -162,6 +164,7 @@ function buildGroupThread(
   unread: number,
   isGroupAdmin = false,
   isGroupOwner = false,
+  unreadMentions = 0,
 ): ChatThread {
   const name = buildGroupDisplayName(members, viewerId, room.ten_phong);
   const memberIds = members.map((m) => m.id);
@@ -189,6 +192,7 @@ function buildGroupThread(
     preview,
     lastAt,
     unread,
+    unreadMentions,
     messages: [],
   };
 }
@@ -343,6 +347,7 @@ export async function getGroupThread(
     .maybeSingle<MessageRow>();
 
   const unread = await countUnreadInRoom(roomId, viewerId);
+  const unreadMentions = await countUnreadMentionsInRoom(roomId, viewerId);
 
   return buildGroupThread(
     room,
@@ -353,17 +358,20 @@ export async function getGroupThread(
     unread,
     canManageGroupChat(normalizeGroupVaiTro(myMembership?.vai_tro)),
     canManageGroupRoles(normalizeGroupVaiTro(myMembership?.vai_tro)),
+    unreadMentions,
   );
 }
 
 export async function listGroupThreads(viewerId: string): Promise<ChatThread[]> {
   const admin = createServiceRoleClient();
 
-  let memberships: Array<{
+  type MembershipWithRoom = {
     id_phong: string;
     vai_tro: string;
     chat_phong: RoomRow | RoomRow[] | null;
-  }> | null = null;
+  };
+
+  let memberships: MembershipWithRoom[] = [];
 
   const withWorkspace = await admin
     .from("chat_thanh_vien")
@@ -375,7 +383,7 @@ export async function listGroupThreads(viewerId: string): Promise<ChatThread[]> 
     .eq("chat_phong.loai_phong", GROUP_ROOM);
 
   if (!withWorkspace.error) {
-    memberships = (withWorkspace.data ?? []) as typeof memberships;
+    memberships = (withWorkspace.data ?? []) as unknown as MembershipWithRoom[];
   } else {
     const base = await admin
       .from("chat_thanh_vien")
@@ -387,10 +395,10 @@ export async function listGroupThreads(viewerId: string): Promise<ChatThread[]> 
       .eq("chat_phong.loai_phong", GROUP_ROOM);
 
     if (base.error) return [];
-    memberships = (base.data ?? []) as typeof memberships;
+    memberships = (base.data ?? []) as unknown as MembershipWithRoom[];
   }
 
-  const roomIds = (memberships ?? []).map((row) => row.id_phong);
+  const roomIds = memberships.map((row) => row.id_phong);
   if (roomIds.length === 0) return [];
 
   await Promise.all(roomIds.map((id) => ensureGroupHasOwner(id)));
@@ -467,7 +475,7 @@ export async function listGroupThreads(viewerId: string): Promise<ChatThread[]> 
 
   const threads: ChatThread[] = [];
 
-  for (const row of memberships ?? []) {
+  for (const row of memberships) {
     const roomRaw = row.chat_phong;
     const room = (Array.isArray(roomRaw) ? roomRaw[0] : roomRaw) as RoomRow | null;
     if (!room?.id) continue;
@@ -480,12 +488,12 @@ export async function listGroupThreads(viewerId: string): Promise<ChatThread[]> 
 
     const last = lastByRoom.get(room.id);
     const readAt = readAtByRoom.get(room.id) ?? null;
-    const unread = (messages ?? []).filter(
+    const roomMessages = (messages ?? []).filter((msg) => msg.id_phong === room.id);
+    const unread = roomMessages.filter(
       (msg) =>
-        msg.id_phong === room.id &&
-        msg.id_nguoi_gui !== viewerId &&
-        (!readAt || msg.tao_luc > readAt),
+        msg.id_nguoi_gui !== viewerId && (!readAt || msg.tao_luc > readAt),
     ).length;
+    const unreadMentions = countUnreadMentions(roomMessages, viewerId, readAt);
 
     threads.push(
       buildGroupThread(
@@ -497,6 +505,7 @@ export async function listGroupThreads(viewerId: string): Promise<ChatThread[]> 
         unread,
         canManageGroupChat(roleByRoom.get(room.id) ?? normalizeGroupVaiTro(row.vai_tro)),
         canManageGroupRoles(roleByRoom.get(room.id) ?? normalizeGroupVaiTro(row.vai_tro)),
+        unreadMentions,
       ),
     );
   }
@@ -558,10 +567,10 @@ export async function updateGroupRoomAvatar(
 
   const { data: room } = await admin
     .from("chat_phong")
-    .select("id, loai_phong")
+    .select("id, loai_phong, id_phong_cha")
     .eq("id", roomId)
     .eq("loai_phong", GROUP_ROOM)
-    .maybeSingle<{ id: string; loai_phong: string }>();
+    .maybeSingle<{ id: string; loai_phong: string; id_phong_cha: string | null }>();
 
   if (!room?.id) {
     return { ok: false, error: "Không tìm thấy nhóm chat." };
@@ -581,7 +590,21 @@ export async function updateGroupRoomAvatar(
     .is("roi_luc", null)
     .maybeSingle<{ vai_tro: string }>();
 
-  if (!canManageGroupChat(normalizeGroupVaiTro(membership?.vai_tro))) {
+  let canEdit = canManageGroupChat(normalizeGroupVaiTro(membership?.vai_tro));
+
+  // Admin/chủ nhóm cha cũng được đổi ảnh project con.
+  if (!canEdit && room.id_phong_cha) {
+    const { data: parentMembership } = await admin
+      .from("chat_thanh_vien")
+      .select("vai_tro")
+      .eq("id_phong", room.id_phong_cha)
+      .eq("id_nguoi_dung", viewerId)
+      .is("roi_luc", null)
+      .maybeSingle<{ vai_tro: string }>();
+    canEdit = canManageGroupChat(normalizeGroupVaiTro(parentMembership?.vai_tro));
+  }
+
+  if (!canEdit) {
     return { ok: false, error: "Chỉ chủ nhóm hoặc admin mới đổi được ảnh." };
   }
 

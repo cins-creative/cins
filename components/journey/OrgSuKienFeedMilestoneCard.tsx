@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRef, useState } from "react";
 
 import { HaOrgUpCountdown } from "@/components/cins/home-adaptive/HaOrgUpCountdown";
+import { WorldBoostToggle } from "@/components/cins/world-journey/WorldBoostToggle";
 import { JourneyOrgPopover } from "@/components/journey/JourneyOrgPopover";
 import { OrgSuKienFriendsChips } from "@/components/journey/OrgSuKienFriendsChips";
 import type { MilestoneAttribution, MilestoneItem } from "@/components/journey/milestone-types";
@@ -157,6 +158,7 @@ export function OrgSuKienFeedMilestoneCard({
               </Link>
             )}
             <span className="j-osk-date-badge">
+              <WorldBoostToggle loai="org_su_kien" id={ref.suKienId} />
               <span className="j-osk-date-core">
                 <span className="j-osk-date-month">{badge.month}</span>
                 <span className="j-osk-date-day">{badge.day}</span>

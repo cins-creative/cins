@@ -7,6 +7,17 @@ type RouteContext = {
   params: Promise<{ roomId: string }>;
 };
 
+function resolveRemindMinutes(body: {
+  nhac_truoc_phut?: number;
+  nhac_truoc_ngay?: number;
+}): number | undefined {
+  if (typeof body.nhac_truoc_phut === "number") return body.nhac_truoc_phut;
+  if (typeof body.nhac_truoc_ngay === "number") {
+    return body.nhac_truoc_ngay * 1440;
+  }
+  return undefined;
+}
+
 export async function GET(_req: Request, context: RouteContext) {
   const session = await getCurrentSessionAndProfile();
   if (!session?.profile) {
@@ -36,6 +47,8 @@ export async function POST(req: Request, context: RouteContext) {
     mo_ta?: string | null;
     thoi_diem?: string;
     url?: string | null;
+    nhac_truoc_phut?: number;
+    /** Legacy — quy đổi ngày → phút. */
     nhac_truoc_ngay?: number;
   };
   try {
@@ -49,12 +62,15 @@ export async function POST(req: Request, context: RouteContext) {
     moTa: body.mo_ta,
     thoiDiem: body.thoi_diem ?? "",
     url: body.url,
-    nhacTruocNgay: body.nhac_truoc_ngay,
+    nhacTruocPhut: resolveRemindMinutes(body),
   });
 
   if (!result.ok) {
     return NextResponse.json({ error: result.error }, { status: 400 });
   }
 
-  return NextResponse.json({ moc: result.moc });
+  return NextResponse.json({
+    moc: result.moc,
+    notice: result.notice,
+  });
 }

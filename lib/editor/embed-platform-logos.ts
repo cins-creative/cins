@@ -24,7 +24,6 @@ export const EMBED_PLATFORM_LOGO: Record<EmbedPlatformLogoId, string> = {
   "rive-file": CF_EMBED_LOGO("rive"),
   lottie: CF_EMBED_LOGO("lottie"),
   "lottie-file": CF_EMBED_LOGO("lottie"),
-  codepen: CF_EMBED_LOGO("codepen"),
   soundcloud: CF_EMBED_LOGO("soundcloud"),
 };
 
@@ -37,6 +36,9 @@ export function embedPlatformLogoSrc(
   }
   if (provider === "framer") {
     return CF_EMBED_LOGO("framer");
+  }
+  if (provider === "codepen") {
+    return CF_EMBED_LOGO("codepen");
   }
   return null;
 }

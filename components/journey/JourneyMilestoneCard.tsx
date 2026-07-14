@@ -47,6 +47,9 @@ import { JourneyLikeButton } from "@/components/journey/JourneyLikeButton";
 import { JourneyMilestoneOwnerMenu } from "@/components/journey/JourneyMilestoneOwnerMenu";
 import { JourneyMilestoneInsightsModal } from "@/components/journey/JourneyMilestoneInsightsModal";
 import { JourneyMilestoneViewerMenu } from "@/components/social/JourneyMilestoneViewerMenu";
+import { WorldBoostToggle } from "@/components/cins/world-journey/WorldBoostToggle";
+import { useWorldBoostAdminOptional } from "@/components/cins/world-journey/WorldBoostAdminContext";
+import { worldBoostTargetFromMilestoneLike } from "@/lib/cins/world-boost-client";
 import { IdentityPendingMilestoneCard } from "@/components/journey/IdentityPendingMilestoneCard";
 import { IdentityVerifiedMilestoneCard } from "@/components/journey/IdentityVerifiedMilestoneCard";
 import { OrgSuKienFeedMilestoneCard } from "@/components/journey/OrgSuKienFeedMilestoneCard";
@@ -428,6 +431,8 @@ export function JourneyMilestoneCard({
   const handleArticleTagsSaved = useCallback((tags: ArticleTagRef[]) => {
     setLiveArticleTags(tags);
   }, []);
+
+  const worldBoostAdmin = useWorldBoostAdminOptional();
 
   const displayDate = `${String(day).padStart(2, "0")}-${String(month).padStart(2, "0")}-${year}`;
   const bookmarkSavedDateLabel = milestone.bookmarkSavedAt
@@ -902,6 +907,39 @@ export function JourneyMilestoneCard({
       className="jcard-viewer-menu"
     />
   ) : null;
+
+  const worldBoostTarget = worldBoostTargetFromMilestoneLike({
+    cotMocId: cotMocId ?? milestone.cotMocId,
+    orgBaiDangRef,
+    orgSuKienRef,
+  });
+  const worldBoostToggleNode =
+    worldBoostAdmin?.canBoost && worldBoostTarget ? (
+      <WorldBoostToggle
+        loai={worldBoostTarget.loai}
+        id={worldBoostTarget.id}
+        className="jcard-world-boost"
+      />
+    ) : null;
+
+  /* "Đẩy World" ưu tiên cạnh badge loại (Cá nhân / …).
+   * Góc phải chỉ còn menu "..." — và boost fallback khi card không có cụm loại. */
+  const boostBesideTypeBadge =
+    Boolean(worldBoostToggleNode) &&
+    ((Boolean(canManage && ownerSlug) && !useForeignFrame) ||
+      (variant === "self" && !canManage));
+  const boostInCorner =
+    Boolean(worldBoostToggleNode) && !boostBesideTypeBadge;
+  const viewerCornerActionsNode =
+    viewerMenuNode || boostInCorner ? (
+      <div className="jcard-corner-actions">
+        {boostInCorner ? worldBoostToggleNode : null}
+        {viewerMenuNode}
+      </div>
+    ) : null;
+  const typeBadgeBoostNode = boostBesideTypeBadge
+    ? worldBoostToggleNode
+    : null;
 
   function shouldIgnoreExpandTrigger(target: Element | null): boolean {
     return Boolean(
@@ -1492,6 +1530,7 @@ export function JourneyMilestoneCard({
                       </span>
                     </JourneyMilestoneInlineControls>
                   )}
+                  {typeBadgeBoostNode}
                   {showMilestoneVerifyBadge && !showOrgVerifyBadge ? (
                     <MilestoneVerifyBadge />
                   ) : null}
@@ -1526,7 +1565,7 @@ export function JourneyMilestoneCard({
                   ) : null}
                 </span>
               ) : null}
-              {viewerMenuNode}
+              {viewerCornerActionsNode}
             </div>
           ) : canManage && ownerSlug ? (
             <div
@@ -1629,6 +1668,7 @@ export function JourneyMilestoneCard({
                         </span>
                       </JourneyMilestoneInlineControls>
                     )}
+                    {typeBadgeBoostNode}
                     {showMilestoneVerifyBadge && !showOrgVerifyBadge ? (
                       <MilestoneVerifyBadge />
                     ) : null}
@@ -1718,8 +1758,9 @@ export function JourneyMilestoneCard({
                     <MilestoneTypeBadgeContent type={type} />
                   </span>
                 ) : null}
-                {viewerMenuNode}
+                {typeBadgeBoostNode}
               </span>
+              {viewerCornerActionsNode}
             </div>
           ) : isTaggedFromOthers && attribution ? (
             <div className="jcard-datebar jcard-datebar--guest jcard-datebar--bookmark-source">

@@ -9,19 +9,29 @@ import {
 } from "@/components/cins/ChatMessageActions";
 import { ChatMessageAlbum } from "@/components/cins/ChatMessageAlbum";
 import { ChatMessageBody } from "@/components/cins/ChatMessageBody";
+import { ChatMentionText } from "@/components/cins/ChatMentionText";
 import { ChatMessageReactions } from "@/components/cins/ChatMessageReactions";
 import { ChatMessageReplyQuote } from "@/components/cins/ChatMessageReplyQuote";
 import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
-import { formatChatTime } from "@/lib/chat/avatar";
+import { avatarBg, formatChatTime } from "@/lib/chat/avatar";
 import { groupChatMessages } from "@/lib/chat/message-albums";
 import {
   chatMessageHasInteractiveMedia,
   chatMessageMediaLayout,
 } from "@/lib/chat/message-media-layout";
-import type { ChatMessage } from "@/lib/chat/types";
+import {
+  CHAT_SEEN_AVATARS_MAX,
+  groupReadCursorsByMessage,
+} from "@/lib/chat/read-cursors-client";
+import type {
+  ChatMessage,
+  ChatPollSummary,
+  ChatReadCursor,
+} from "@/lib/chat/types";
 
 type ChatMessageThreadItemsProps = {
   messages: ChatMessage[];
+  readCursors?: ChatReadCursor[];
   renderTheirAvatar?: (msg: ChatMessage) => ReactNode;
   showSenderNames?: boolean;
   actionHandlers?: ChatMessageActionHandlers;
@@ -30,6 +40,10 @@ type ChatMessageThreadItemsProps = {
   onEditingDraftChange?: (value: string) => void;
   onSaveEdit?: (msg: ChatMessage) => void;
   onCancelEdit?: () => void;
+  roomId?: string;
+  viewerUserId?: string | null;
+  onPollUpdated?: (messageId: string, poll: ChatPollSummary) => void;
+  onJumpToMessage?: (messageId: string) => void;
 };
 
 function recalledLabel(msg: ChatMessage): string {
@@ -46,6 +60,88 @@ function PinBadge() {
 
 function messageRowId(messageId: string): string {
   return `cins-chat-msg-${messageId}`;
+}
+
+function ChatSeenAvatars({
+  cursors,
+  align,
+}: {
+  cursors: ChatReadCursor[];
+  align: "me" | "them";
+}) {
+  if (cursors.length === 0) return null;
+  const shown = cursors.slice(0, CHAT_SEEN_AVATARS_MAX);
+  const extra = cursors.length - shown.length;
+  const names = cursors.map((c) => c.name).join(", ");
+
+  return (
+    <div
+      className={`cins-chat-seen-row is-${align}`}
+      aria-label={`Đã xem bởi ${names}`}
+      title={names}
+    >
+      <span className="cins-chat-seen-avatars">
+        {shown.map((cursor) => {
+          const face = (
+            <span
+              className={`cins-chat-seen-avatar${cursor.avatarUrl ? " has-image" : ""}`}
+              style={
+                cursor.avatarUrl
+                  ? undefined
+                  : { background: avatarBg(cursor.hue) }
+              }
+              aria-hidden
+            >
+              {cursor.avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={cursor.avatarUrl} alt="" />
+              ) : (
+                cursor.initial
+              )}
+            </span>
+          );
+
+          const slot = cursor.slug ? (
+            <JourneyUserPopover
+              slug={cursor.slug}
+              fallbackName={cursor.name}
+              fallbackAvatarUrl={cursor.avatarUrl}
+              backdropZIndex={13000}
+            >
+              {face}
+            </JourneyUserPopover>
+          ) : (
+            face
+          );
+
+          return (
+            <span key={cursor.userId} className="cins-chat-seen-slot">
+              {slot}
+            </span>
+          );
+        })}
+        {extra > 0 ? (
+          <span className="cins-chat-seen-more" aria-hidden>
+            +{extra}
+          </span>
+        ) : null}
+      </span>
+    </div>
+  );
+}
+
+function SeenUnderMessage({
+  messageId,
+  from,
+  byMessage,
+}: {
+  messageId: string;
+  from: "me" | "them";
+  byMessage: Map<string, ChatReadCursor[]>;
+}) {
+  const cursors = byMessage.get(messageId);
+  if (!cursors?.length) return null;
+  return <ChatSeenAvatars cursors={cursors} align={from} />;
 }
 
 function SenderCluster({
@@ -116,11 +212,6 @@ function BubbleMeta({
     <span className={["cins-chat-bubble-meta", className].filter(Boolean).join(" ")}>
       {msg.edited ? <span className="cins-chat-edited">đã sửa</span> : null}
       <time dateTime={msg.sentAt}>{formatChatTime(msg.sentAt)}</time>
-      {msg.from === "me" && msg.readByPeer ? (
-        <span className="cins-chat-read" aria-label="Đã xem">
-          ✓✓
-        </span>
-      ) : null}
     </span>
   );
 }
@@ -149,6 +240,7 @@ function bubbleClassName(
 
 function SingleMessageBubble({
   msg,
+  seenBy,
   renderTheirAvatar,
   showSenderNames,
   actionHandlers,
@@ -157,8 +249,13 @@ function SingleMessageBubble({
   onEditingDraftChange,
   onSaveEdit,
   onCancelEdit,
+  roomId,
+  viewerUserId,
+  onPollUpdated,
+  onJumpToMessage,
 }: {
   msg: ChatMessage;
+  seenBy?: ChatReadCursor[];
   renderTheirAvatar?: (msg: ChatMessage) => ReactNode;
   showSenderNames?: boolean;
   actionHandlers?: ChatMessageActionHandlers;
@@ -167,6 +264,10 @@ function SingleMessageBubble({
   onEditingDraftChange?: (value: string) => void;
   onSaveEdit?: (msg: ChatMessage) => void;
   onCancelEdit?: () => void;
+  roomId?: string;
+  viewerUserId?: string | null;
+  onPollUpdated?: (messageId: string, poll: ChatPollSummary) => void;
+  onJumpToMessage?: (messageId: string) => void;
 }) {
   const isMe = msg.from === "me";
   const isEditing = editingMessageId === msg.id;
@@ -177,31 +278,54 @@ function SingleMessageBubble({
   if (msg.deleted) {
     const useCluster = !isMe && Boolean(showSenderNames);
     return (
+      <>
+        <div
+          id={messageRowId(msg.id)}
+          className={`cins-chat-bubble-row ${isMe ? "is-me" : "is-them"}${msg.pinned ? " is-pinned-row" : ""}${useCluster ? " has-sender-cluster" : ""}`}
+        >
+          {useCluster ? (
+            <div className="cins-chat-msg-stack">
+              <SenderCluster
+                msg={msg}
+                renderTheirAvatar={renderTheirAvatar}
+                showSenderNames={showSenderNames}
+                showTime
+              />
+              <div className={`cins-chat-bubble is-recalled${isMe ? " is-me" : " is-them"}`}>
+                <p className="cins-chat-recalled">{recalledLabel(msg)}</p>
+              </div>
+            </div>
+          ) : (
+            <>
+              {msg.from === "them" ? renderTheirAvatar?.(msg) : null}
+              <div className={`cins-chat-bubble is-recalled${isMe ? " is-me" : " is-them"}`}>
+                <p className="cins-chat-recalled">{recalledLabel(msg)}</p>
+                <BubbleMeta msg={msg} />
+              </div>
+            </>
+          )}
+        </div>
+        {seenBy?.length ? (
+          <ChatSeenAvatars cursors={seenBy} align={isMe ? "me" : "them"} />
+        ) : null}
+      </>
+    );
+  }
+
+  if (msg.kind === "moc_nhac" || msg.mocNhac) {
+    return (
       <div
         id={messageRowId(msg.id)}
-        className={`cins-chat-bubble-row ${isMe ? "is-me" : "is-them"}${msg.pinned ? " is-pinned-row" : ""}${useCluster ? " has-sender-cluster" : ""}`}
+        className="cins-chat-bubble-row is-moc-notice"
       >
-        {useCluster ? (
-          <div className="cins-chat-msg-stack">
-            <SenderCluster
-              msg={msg}
-              renderTheirAvatar={renderTheirAvatar}
-              showSenderNames={showSenderNames}
-              showTime
-            />
-            <div className={`cins-chat-bubble is-recalled${isMe ? " is-me" : " is-them"}`}>
-              <p className="cins-chat-recalled">{recalledLabel(msg)}</p>
-            </div>
-          </div>
-        ) : (
-          <>
-            {msg.from === "them" ? renderTheirAvatar?.(msg) : null}
-            <div className={`cins-chat-bubble is-recalled${isMe ? " is-me" : " is-them"}`}>
-              <p className="cins-chat-recalled">{recalledLabel(msg)}</p>
-              <BubbleMeta msg={msg} />
-            </div>
-          </>
-        )}
+        <div className="cins-chat-bubble is-moc-notice">
+          <ChatMessageBody
+            msg={msg}
+            roomId={roomId}
+            viewerUserId={viewerUserId}
+            onPollUpdated={onPollUpdated}
+          />
+        </div>
       </div>
     );
   }
@@ -212,7 +336,8 @@ function SingleMessageBubble({
     "cins-chat-bubble-row",
     isMe ? "is-me" : "is-them",
     msg.pinned ? "is-pinned-row" : "",
-    layout === "media-only" || layout === "sticker" ? "is-media-row" : "",
+    layout === "media-only" ? "is-media-row" : "",
+    layout === "sticker" ? "is-sticker-row" : "",
     useSenderCluster ? "has-sender-cluster" : "",
   ]
     .filter(Boolean)
@@ -251,21 +376,44 @@ function SingleMessageBubble({
   ) : layout === "media-caption" ? (
     <>
       <div className="cins-chat-media-block">
-        <ChatMessageBody msg={msg} mediaOnly />
+        <ChatMessageBody
+          msg={msg}
+          mediaOnly
+          roomId={roomId}
+          viewerUserId={viewerUserId}
+          onPollUpdated={onPollUpdated}
+        />
       </div>
       <div className="cins-chat-media-caption">
-        <p>{caption}</p>
+        <p>
+          <ChatMentionText
+            text={caption}
+            mentions={msg.mentions}
+            viewerUserId={viewerUserId}
+            tone={isMe ? "me" : "them"}
+          />
+        </p>
         {!useSenderCluster ? <BubbleMeta msg={msg} /> : null}
       </div>
     </>
   ) : layout === "media-only" || layout === "sticker" ? (
     <div className="cins-chat-media-block">
-      <ChatMessageBody msg={msg} />
+      <ChatMessageBody
+        msg={msg}
+        roomId={roomId}
+        viewerUserId={viewerUserId}
+        onPollUpdated={onPollUpdated}
+      />
       {metaBelowMedia}
     </div>
   ) : (
     <>
-      <ChatMessageBody msg={msg} />
+      <ChatMessageBody
+        msg={msg}
+        roomId={roomId}
+        viewerUserId={viewerUserId}
+        onPollUpdated={onPollUpdated}
+      />
       {!isEditing && !useSenderCluster ? <BubbleMeta msg={msg} /> : null}
     </>
   );
@@ -274,7 +422,16 @@ function SingleMessageBubble({
     <div className="cins-chat-bubble-wrap">
       <div className={bubbleClassName(msg, isMe, isEditing)}>
         {msg.pinned && !isEditing ? <PinBadge /> : null}
-        {msg.replyTo ? <ChatMessageReplyQuote reply={msg.replyTo} /> : null}
+        {msg.replyTo ? (
+          <ChatMessageReplyQuote
+            reply={msg.replyTo}
+            onJump={
+              onJumpToMessage
+                ? () => onJumpToMessage(msg.replyTo!.id)
+                : undefined
+            }
+          />
+        ) : null}
         {bodyContent}
         {!isEditing && msg.reactions?.length && actionHandlers ? (
           <ChatMessageReactions
@@ -294,29 +451,35 @@ function SingleMessageBubble({
   );
 
   return (
-    <div id={messageRowId(msg.id)} className={rowClass}>
-      {useSenderCluster ? (
-        <div className="cins-chat-msg-stack">
-          <SenderCluster
-            msg={msg}
-            renderTheirAvatar={renderTheirAvatar}
-            showSenderNames={showSenderNames}
-            showTime
-          />
-          {bubbleBlock}
-        </div>
-      ) : (
-        <>
-          {msg.from === "them" ? renderTheirAvatar?.(msg) : null}
-          {bubbleBlock}
-        </>
-      )}
-    </div>
+    <>
+      <div id={messageRowId(msg.id)} className={rowClass}>
+        {useSenderCluster ? (
+          <div className="cins-chat-msg-stack">
+            <SenderCluster
+              msg={msg}
+              renderTheirAvatar={renderTheirAvatar}
+              showSenderNames={showSenderNames}
+              showTime
+            />
+            {bubbleBlock}
+          </div>
+        ) : (
+          <>
+            {msg.from === "them" ? renderTheirAvatar?.(msg) : null}
+            {bubbleBlock}
+          </>
+        )}
+      </div>
+      {seenBy?.length ? (
+        <ChatSeenAvatars cursors={seenBy} align={isMe ? "me" : "them"} />
+      ) : null}
+    </>
   );
 }
 
 export function ChatMessageThreadItems({
   messages,
+  readCursors = [],
   renderTheirAvatar,
   showSenderNames = false,
   actionHandlers,
@@ -325,8 +488,16 @@ export function ChatMessageThreadItems({
   onEditingDraftChange,
   onSaveEdit,
   onCancelEdit,
+  roomId,
+  viewerUserId,
+  onPollUpdated,
+  onJumpToMessage,
 }: ChatMessageThreadItemsProps) {
   const items = useMemo(() => groupChatMessages(messages), [messages]);
+  const byMessage = useMemo(
+    () => groupReadCursorsByMessage(readCursors),
+    [readCursors],
+  );
 
   return (
     <>
@@ -337,6 +508,7 @@ export function ChatMessageThreadItems({
             <SingleMessageBubble
               key={msg.id}
               msg={msg}
+              seenBy={byMessage.get(msg.id)}
               renderTheirAvatar={renderTheirAvatar}
               showSenderNames={showSenderNames}
               actionHandlers={actionHandlers}
@@ -345,6 +517,10 @@ export function ChatMessageThreadItems({
               onEditingDraftChange={onEditingDraftChange}
               onSaveEdit={onSaveEdit}
               onCancelEdit={onCancelEdit}
+              roomId={roomId}
+              viewerUserId={viewerUserId}
+              onPollUpdated={onPollUpdated}
+              onJumpToMessage={onJumpToMessage}
             />
           );
         }
@@ -360,9 +536,14 @@ export function ChatMessageThreadItems({
             <SingleMessageBubble
               key={`recalled-album-${firstId}`}
               msg={{ ...msg, deleted: true }}
+              seenBy={byMessage.get(msg.id)}
               renderTheirAvatar={renderTheirAvatar}
               showSenderNames={showSenderNames}
               actionHandlers={actionHandlers}
+              roomId={roomId}
+              viewerUserId={viewerUserId}
+              onPollUpdated={onPollUpdated}
+              onJumpToMessage={onJumpToMessage}
             />
           );
         }
@@ -373,6 +554,7 @@ export function ChatMessageThreadItems({
         const albumActionMsg = captionMsg ?? activeMessages[0];
         const useSenderCluster = !isMe && Boolean(showSenderNames);
         const headMsg = captionMsg ?? albumActionMsg ?? item.messages[0];
+        const albumSeenIds = item.messages.map((m) => m.id);
 
         return (
           <Fragment key={`album-${firstId}`}>
@@ -394,7 +576,14 @@ export function ChatMessageThreadItems({
                         className={`cins-chat-bubble${isMe ? " is-me" : " is-them"} has-media-actions${captionMsg?.pinned ? " is-pinned" : ""}`}
                       >
                         {captionMsg?.pinned ? <PinBadge /> : null}
-                        <p>{caption}</p>
+                        <p>
+                          <ChatMentionText
+                            text={caption}
+                            mentions={captionMsg?.mentions}
+                            viewerUserId={viewerUserId}
+                            tone={isMe ? "me" : "them"}
+                          />
+                        </p>
                         {actionHandlers && albumActionMsg ? (
                           <ChatMessageActions
                             msg={albumActionMsg}
@@ -414,7 +603,14 @@ export function ChatMessageThreadItems({
                         className={`cins-chat-bubble${isMe ? " is-me" : " is-them"} has-media-actions${captionMsg?.pinned ? " is-pinned" : ""}`}
                       >
                         {captionMsg?.pinned ? <PinBadge /> : null}
-                        <p>{caption}</p>
+                        <p>
+                          <ChatMentionText
+                            text={caption}
+                            mentions={captionMsg?.mentions}
+                            viewerUserId={viewerUserId}
+                            tone={isMe ? "me" : "them"}
+                          />
+                        </p>
                         <BubbleMeta msg={captionMsg ?? item.messages[0]} />
                         {actionHandlers && albumActionMsg ? (
                           <ChatMessageActions
@@ -427,6 +623,13 @@ export function ChatMessageThreadItems({
                   </>
                 )}
               </div>
+            ) : null}
+            {captionMsg ? (
+              <SeenUnderMessage
+                messageId={captionMsg.id}
+                from={item.from}
+                byMessage={byMessage}
+              />
             ) : null}
             <div
               id={
@@ -498,6 +701,16 @@ export function ChatMessageThreadItems({
                 </>
               )}
             </div>
+            {albumSeenIds
+              .filter((id) => id !== captionMsg?.id)
+              .map((id) => (
+                <SeenUnderMessage
+                  key={`seen-${id}`}
+                  messageId={id}
+                  from={item.from}
+                  byMessage={byMessage}
+                />
+              ))}
           </Fragment>
         );
       })}

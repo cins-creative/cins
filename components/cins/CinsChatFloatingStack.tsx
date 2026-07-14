@@ -16,7 +16,7 @@ import { useCinsChat } from "@/components/cins/CinsChatProvider";
 import { ChatGroupAvatar } from "@/components/cins/ChatGroupAvatar";
 import { ChatMessageThreadItems } from "@/components/cins/ChatMessageThreadItems";
 import { ChatStickerPicker } from "@/components/cins/ChatStickerPicker";
-import { avatarBg } from "@/lib/chat/avatar";
+import { avatarBg, avatarHueFromSeed, avatarInitialFromName } from "@/lib/chat/avatar";
 import { writeChatThreadsCache, writeRoomMessagesCache } from "@/lib/chat/chat-session-cache";
 import {
   revokeDraftImageUrls,
@@ -36,12 +36,17 @@ import {
   messagePreviewText,
 } from "@/lib/chat/optimistic-message";
 import { fetchRoomMessagesPage } from "@/lib/chat/messages-client";
+import {
+  patchChatReadCursorMessage,
+  upsertChatReadCursor,
+} from "@/lib/chat/read-cursors-client";
+import { useChatReadCursorsRealtime } from "@/lib/chat/use-chat-read-cursors-realtime";
 import { reconcileChatMessage, appendChatMessageIfNew, mergeChatMessageUpdate, type ChatRealtimeMessageEvent } from "@/lib/chat/realtime";
 import { applyChatViewerPerspective } from "@/lib/chat/message-perspective";
 import { applyKnownGroupSender } from "@/lib/chat/apply-known-group-sender";
 import { replaceOptimisticAlbumWithRealMessages } from "@/lib/chat/replace-album-batch";
 import { imageFilesFromClipboard } from "@/lib/files/clipboard-images";
-import type { ChatMessage, ChatThread } from "@/lib/chat/types";
+import type { ChatMessage, ChatReadCursor, ChatThread } from "@/lib/chat/types";
 import { userEmojiDeliveryUrl } from "@/lib/user-emoji/delivery-url";
 import type { UserEmojiMuc } from "@/lib/user-emoji/types";
 
@@ -51,6 +56,7 @@ type RoomChatState = {
   messages: ChatMessage[];
   hasMore: boolean;
   hydrated: boolean;
+  readCursors?: ChatReadCursor[];
 };
 
 function peekKey(thread: ChatThread): string {
@@ -112,13 +118,74 @@ function MiniAvatar({
   initial,
   hue,
   avatarUrl,
+  parentThread = null,
+  variant = "thread",
 }: {
   thread: ChatThread;
   size?: number;
   initial?: string;
   hue?: number;
   avatarUrl?: string | null;
+  /** Nhóm cha — hiện badge góc phải dưới (project con). */
+  parentThread?: ChatThread | null;
+  /** `person` = avatar người gửi (bỏ qua mosaic nhóm). */
+  variant?: "thread" | "person";
 }) {
+  if (variant === "person") {
+    const resolvedInitial = initial ?? thread.avatarInitial;
+    const resolvedHue = hue ?? thread.avatarHue;
+    const resolvedUrl =
+      avatarUrl !== undefined ? avatarUrl : thread.avatarUrl;
+    return (
+      <span
+        className={`j-chat-mini-avatar${resolvedUrl ? " has-image" : ""}`}
+        style={{
+          width: size,
+          height: size,
+          fontSize: size * 0.38,
+          background: resolvedUrl ? "transparent" : avatarBg(resolvedHue),
+        }}
+        aria-hidden
+      >
+        {resolvedUrl ? (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img src={resolvedUrl} alt="" />
+        ) : (
+          resolvedInitial
+        )}
+      </span>
+    );
+  }
+
+  /* Project con: dấu # (hoặc thumb) + badge avatar nhóm cha. */
+  if (thread.parentRoomId) {
+    const thumbUrl =
+      avatarUrl !== undefined ? avatarUrl : thread.avatarUrl;
+    return (
+      <span
+        className="j-chat-project-mark-avatar"
+        style={{ width: size, height: size }}
+        aria-hidden
+      >
+        {thumbUrl ? (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img className="j-chat-project-mark-thumb" src={thumbUrl} alt="" />
+        ) : (
+          <span className="j-chat-project-mark-hash">#</span>
+        )}
+        {parentThread ? (
+          <span className="j-chat-project-mark-parent">
+            <ChatGroupAvatar
+              size={20}
+              avatarUrl={parentThread.avatarUrl}
+              members={parentThread.memberAvatars ?? []}
+            />
+          </span>
+        ) : null}
+      </span>
+    );
+  }
+
   if (thread.isGroup) {
     return (
       <ChatGroupAvatar
@@ -171,6 +238,8 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
     prefetchChatData,
     pinnedRoomIds,
     pinnedThreadSnapshots,
+    pendingBubbleThread,
+    clearPendingBubble,
   } = useCinsChat();
   const pinnedRoomIdSet = useMemo(
     () => new Set(pinnedRoomIds),
@@ -226,11 +295,115 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
   const activeRoomId = miniThread?.roomId ?? null;
   const activeRoomState = activeRoomId ? roomStates[activeRoomId] : null;
   const messages = activeRoomState?.messages ?? [];
+  const readCursors = activeRoomState?.readCursors ?? [];
   const hasMoreOlder = activeRoomState?.hasMore ?? false;
 
   miniOpenRef.current = miniOpen;
   miniRoomIdRef.current = miniThread?.roomId ?? null;
   miniThreadRef.current = miniThread;
+
+  const threadByRoomId = useMemo(() => {
+    const map = new Map<string, ChatThread>();
+    const cached = getCachedThreads();
+    if (cached) {
+      for (const thread of cached.threads) {
+        map.set(thread.roomId, thread);
+      }
+    }
+    for (const thread of Object.values(pinnedThreadSnapshots)) {
+      map.set(thread.roomId, thread);
+    }
+    for (const thread of peekThreads) {
+      map.set(thread.roomId, thread);
+    }
+    return map;
+  }, [getCachedThreads, peekThreads, pinnedThreadSnapshots]);
+
+  const resolveParentThread = useCallback(
+    (thread: ChatThread): ChatThread | null => {
+      const parentId = thread.parentRoomId?.trim();
+      if (!parentId) return null;
+      return threadByRoomId.get(parentId) ?? null;
+    },
+    [threadByRoomId],
+  );
+
+  const handleReadCursorRealtime = useCallback(
+    (row: {
+      id_phong: string;
+      id_nguoi_dung: string;
+      id_tin_nhan_cuoi_doc: string | null;
+    }) => {
+      const roomId = row.id_phong;
+      const messageId = row.id_tin_nhan_cuoi_doc?.trim();
+      if (!messageId) return;
+
+      setRoomStates((prev) => {
+        const current = prev[roomId];
+        const cursors = current?.readCursors ?? [];
+        const patched = patchChatReadCursorMessage(
+          cursors,
+          row.id_nguoi_dung,
+          messageId,
+        );
+        if (patched) {
+          return {
+            ...prev,
+            [roomId]: {
+              messages: current?.messages ?? [],
+              hasMore: current?.hasMore ?? false,
+              hydrated: current?.hydrated ?? true,
+              readCursors: patched,
+            },
+          };
+        }
+
+        const thread = miniThreadRef.current;
+        const member = thread?.memberAvatars?.find(
+          (m) => m.userId === row.id_nguoi_dung,
+        );
+        const name =
+          member?.name?.trim() ||
+          (thread &&
+          !thread.isGroup &&
+          thread.peerUserId === row.id_nguoi_dung
+            ? thread.name
+            : null) ||
+          "Thành viên";
+        const nextCursor: ChatReadCursor = {
+          userId: row.id_nguoi_dung,
+          messageId,
+          name,
+          slug: member?.slug,
+          avatarUrl:
+            member?.avatarUrl ??
+            (thread &&
+            !thread.isGroup &&
+            thread.peerUserId === row.id_nguoi_dung
+              ? thread.avatarUrl
+              : null),
+          initial: member?.initial ?? avatarInitialFromName(name),
+          hue: member?.hue ?? avatarHueFromSeed(row.id_nguoi_dung),
+        };
+        return {
+          ...prev,
+          [roomId]: {
+            messages: current?.messages ?? [],
+            hasMore: current?.hasMore ?? false,
+            hydrated: current?.hydrated ?? true,
+            readCursors: upsertChatReadCursor(cursors, nextCursor),
+          },
+        };
+      });
+    },
+    [],
+  );
+
+  useChatReadCursorsRealtime(
+    miniOpen ? activeRoomId : null,
+    viewerProfileId,
+    handleReadCursorRealtime,
+  );
   miniLeavingRef.current = miniLeaving;
 
   useEffect(() => {
@@ -306,12 +479,31 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
     if (!el) return;
     if (behavior === "auto") {
       el.scrollTop = el.scrollHeight;
+      /* Một lần nữa sau layout — ảnh/sticker có thể đẩy chiều cao. */
+      el.scrollTop = el.scrollHeight;
       return;
     }
     messagesEndRef.current?.scrollIntoView({ behavior });
   }, []);
   const scrollMessagesToBottomRef = useRef(scrollMessagesToBottom);
   scrollMessagesToBottomRef.current = scrollMessagesToBottom;
+
+  /** Double-rAF + timeout ngắn — chờ DOM mini mount / layout tin nhắn. */
+  const scheduleScrollToBottom = useCallback(
+    (behavior: ScrollBehavior = "auto") => {
+      const run = () => {
+        if (!shouldScrollToBottomRef.current) return;
+        scrollMessagesToBottom(behavior);
+      };
+      requestAnimationFrame(() => {
+        run();
+        requestAnimationFrame(run);
+      });
+      window.setTimeout(run, 50);
+      window.setTimeout(run, 180);
+    },
+    [scrollMessagesToBottom],
+  );
 
   const removePendingImage = useCallback((localId: string) => {
     pendingFilesByLocalIdRef.current.delete(localId);
@@ -591,6 +783,12 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
         });
         hydratedRoomsRef.current.add(roomId);
         setLoadingMessages(false);
+        if (
+          miniRoomIdRef.current === roomId &&
+          shouldScrollToBottomRef.current
+        ) {
+          scheduleScrollToBottom("auto");
+        }
       } else {
         setLoadingMessages(true);
       }
@@ -614,6 +812,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
           messages,
           hasMore: page.hasMore,
           hydrated: true,
+          readCursors: page.readCursors ?? [],
         });
         if (viewerProfileId) {
           writeRoomMessagesCache(viewerProfileId, roomId, messages);
@@ -650,7 +849,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
       } finally {
         setLoadingMessages(false);
         if (miniRoomIdRef.current === roomId && shouldScrollToBottomRef.current) {
-          requestAnimationFrame(() => scrollMessagesToBottom("auto"));
+          scheduleScrollToBottom("auto");
         }
       }
     },
@@ -660,7 +859,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
       pinnedRoomIdSet,
       pinnedThreadSnapshots,
       prefetchChatData,
-      scrollMessagesToBottom,
+      scheduleScrollToBottom,
       viewerProfileId,
     ],
   );
@@ -741,7 +940,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
       if (!hydratedRoomsRef.current.has(thread.roomId)) {
         void loadRecentMessages(thread);
       } else {
-        requestAnimationFrame(() => scrollMessagesToBottom("auto"));
+        scheduleScrollToBottom("auto");
       }
     },
     [
@@ -752,7 +951,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
       miniThread,
       restoreComposeForRoom,
       saveComposeForRoom,
-      scrollMessagesToBottom,
+      scheduleScrollToBottom,
     ],
   );
 
@@ -824,6 +1023,27 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
     },
     [closeMini, miniOpen, miniThread?.roomId, openMini],
   );
+
+  useEffect(() => {
+    if (open || !pendingBubbleThread) return;
+    openMini(pendingBubbleThread);
+    clearPendingBubble();
+  }, [clearPendingBubble, open, openMini, pendingBubbleThread]);
+
+  /* Khi vừa mở mini (hoặc tin nhắn vừa hydrate) — luôn kéo xuống tin mới nhất. */
+  useEffect(() => {
+    if (!miniOpen || miniLeaving || !miniThread) return;
+    if (!shouldScrollToBottomRef.current) return;
+    if (loadingMessages && messages.length === 0) return;
+    scheduleScrollToBottom("auto");
+  }, [
+    loadingMessages,
+    messages.length,
+    miniLeaving,
+    miniOpen,
+    miniThread,
+    scheduleScrollToBottom,
+  ]);
 
   const handleBubbleClick = useCallback(
     (e: ReactMouseEvent<HTMLButtonElement>, thread: ChatThread) => {
@@ -1187,25 +1407,48 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
     );
   }
 
+  const miniParentThread = miniThread
+    ? resolveParentThread(miniThread)
+    : null;
+  const miniDisplayTitle =
+    miniThread && miniParentThread
+      ? `${miniParentThread.name} - ${miniThread.name}`
+      : (miniThread?.name ?? "");
+
   return (
     <>
       {miniOpen && miniThread ? (
         <section
           ref={miniPanelRef}
-          className={["j-chat-mini", miniLeaving ? "is-leaving" : ""]
+          className={[
+            "j-chat-mini",
+            miniLeaving ? "is-leaving" : "",
+            miniThread.parentRoomId ? "is-project-child" : "",
+          ]
             .filter(Boolean)
             .join(" ")}
           role="dialog"
-          aria-label={`Chat với ${miniThread.name}`}
+          aria-label={`Chat với ${miniDisplayTitle}`}
           onAnimationEnd={(e) => {
             if (e.target !== e.currentTarget) return;
             if (miniLeaving) finishCloseMini();
           }}
         >
-          <header className="j-chat-mini-head">
-            <MiniAvatar thread={miniThread} size={34} />
+          <header
+            className={[
+              "j-chat-mini-head",
+              miniThread.parentRoomId ? "is-project-child" : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
+          >
+            <MiniAvatar
+              thread={miniThread}
+              size={34}
+              parentThread={miniParentThread}
+            />
             <div className="j-chat-mini-meta">
-              <strong>{miniThread.name}</strong>
+              <strong>{miniDisplayTitle}</strong>
               <span>{miniThread.role || "Tin nhắn trực tiếp"}</span>
             </div>
             <div className="j-chat-mini-actions">
@@ -1256,9 +1499,11 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
             {messages.length > 0 ? (
               <ChatMessageThreadItems
                 messages={messages}
+                readCursors={readCursors}
                 showSenderNames={Boolean(miniThread.isGroup)}
                 renderTheirAvatar={(msg) => (
                   <MiniAvatar
+                    variant="person"
                     thread={miniThread}
                     size={miniThread.isGroup ? 28 : 26}
                     initial={
@@ -1402,12 +1647,17 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
                 !miniLeaving &&
                 miniThread?.roomId === thread.roomId;
               const isPinned = pinnedRoomIdSet.has(thread.roomId);
+              const isProjectChild = Boolean(thread.parentRoomId);
+              const parentThread = resolveParentThread(thread);
               const showCount = thread.unread > 0;
               const showDismiss =
                 !showCount &&
                 !isActive &&
                 !isPinned &&
                 dismissableRooms.has(thread.roomId);
+              const displayTitle = parentThread
+                ? `${parentThread.name} - ${thread.name}`
+                : thread.name;
 
               return (
                 <div
@@ -1417,6 +1667,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
                     isActive ? "is-active" : "",
                     isPinned ? "is-pinned" : "",
                     thread.isGroup ? "is-group" : "",
+                    isProjectChild ? "is-project-child" : "",
                   ]
                     .filter(Boolean)
                     .join(" ")}
@@ -1433,18 +1684,22 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
                     className="j-chat-bubble-btn"
                     aria-label={
                       thread.unread > 0
-                        ? `${thread.unread} tin nhắn chưa đọc từ ${thread.name}`
+                        ? `${thread.unread} tin nhắn chưa đọc từ ${displayTitle}`
                         : isActive
-                          ? `Thu chat với ${thread.name}`
+                          ? `Thu chat với ${displayTitle}`
                           : isPinned
-                            ? `Chat đã ghim với ${thread.name}`
-                            : `Mở chat với ${thread.name}`
+                            ? `Chat đã ghim với ${displayTitle}`
+                            : `Mở chat với ${displayTitle}`
                     }
                     aria-pressed={isActive}
-                    title={thread.name}
+                    title={displayTitle}
                     onClick={(e) => handleBubbleClick(e, thread)}
                   >
-                    <MiniAvatar thread={thread} size={48} />
+                    <MiniAvatar
+                      thread={thread}
+                      size={48}
+                      parentThread={parentThread}
+                    />
                     {clickFx && clickFx.roomId === thread.roomId ? (
                       <span
                         key={clickFx.id}

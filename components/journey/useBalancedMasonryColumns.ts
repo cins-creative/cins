@@ -51,7 +51,10 @@ export function useBalancedMasonryColumns(
       aspect: aspectById.get(item.id) ?? FALLBACK_ASPECT,
       data: item,
     }));
-    return packMasonryByAspect(cells, columnCount);
+    /* Pack tối đa bằng số item — cột trống đã bị lọc; CSS vẫn dùng columnCount
+       theo bề ngang để giữ kích thước ô ổn định khi ít bài. */
+    const packCols = Math.min(columnCount, Math.max(1, cells.length));
+    return packMasonryByAspect(cells, packCols);
   }, [items, aspectById, columnCount, enabled]);
 
   return { containerRef, columns, columnCount };

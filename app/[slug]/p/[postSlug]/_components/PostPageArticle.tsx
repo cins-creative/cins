@@ -29,7 +29,7 @@ export async function PostPageArticle({ slug, postSlug }: Props) {
 
   return (
     <PostPageClientBridge
-      ownerSlug={slug}
+      ownerSlug={detail.owner.slug || slug}
       postSlug={postSlug}
       serverDetail={detail}
       postSlugFromDb={postSlugFromDb}

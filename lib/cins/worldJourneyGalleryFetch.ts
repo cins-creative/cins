@@ -4,7 +4,6 @@ import { cache } from "react";
 import { unstable_cache } from "next/cache";
 
 import type { GalleryMainItem } from "@/lib/journey/gallery-page-fetch";
-import { GALLERY_SCROLL_PAGE_SIZE } from "@/lib/journey/gallery-page-fetch";
 import { journeyImageFields } from "@/lib/journey/images";
 import { resolvePostGridEntry } from "@/lib/journey/post-content-kind";
 import {
@@ -22,9 +21,25 @@ import { studioTabPath } from "@/lib/to-chuc/studio-routes";
 import { CHE_DO_MOC_CONG_DONG } from "@/lib/journey/journey-visible-clause";
 import { parseBaiDangBlocks } from "@/lib/truong/bai-dang-blocks";
 import type { Block } from "@/lib/editor/types";
-import { WORLD_JOURNEY_FEED_RANK_REVALIDATE_SEC } from "@/lib/cins/worldJourneyFeedConstants";
+import {
+  WORLD_JOURNEY_FEED_RANK_REVALIDATE_SEC,
+  WORLD_JOURNEY_GALLERY_PAGE_SIZE,
+} from "@/lib/cins/worldJourneyFeedConstants";
+import {
+  resolveWorldJourneyFeedFilterChip,
+  worldJourneyGalleryItemMatchesFilter,
+} from "@/lib/cins/worldJourneyFeedFilters";
+import {
+  matchesFeedSource,
+  normalizeFeedSource,
+  type FeedSourceFilter,
+} from "@/lib/cins/worldJourneyFeedSource";
+import { withWorldBoostGalleryItems } from "@/lib/cins/world-boost";
 
-const POOL_LIMIT = 96;
+/** Pool mặc định gallery WJ. */
+const POOL_LIMIT = 120;
+/** Pool rộng khi đang lọc media/nhúng/nguồn — nhiều ô lưới hơn timeline. */
+const FILTER_POOL_LIMIT = 360;
 
 type FeatureRow = {
   id_cot_moc: string;
@@ -151,11 +166,18 @@ function featureRowToItem(
     blocks,
   });
   if (!grid) return null;
-  if (!grid.coverId && !grid.coverSrc && grid.mediaKind !== "video") return null;
+  if (
+    !grid.coverId &&
+    !grid.coverSrc &&
+    grid.mediaKind !== "video" &&
+    grid.mediaKind !== "embed"
+  ) {
+    return null;
+  }
 
   const img = imageFromCover(grid.coverId, grid.coverSrc);
   const isVideo = grid.mediaKind === "video";
-  if (!img?.src && !isVideo) return null;
+  if (!img?.src && !isVideo && grid.mediaKind !== "embed") return null;
 
   const author = authors.get(tp.id_nguoi_dung);
   const slug = author?.slug;
@@ -223,11 +245,18 @@ function showcaseRowToItem(
     blocks,
   });
   if (!grid) return null;
-  if (!grid.coverId && !grid.coverSrc && grid.mediaKind !== "video") return null;
+  if (
+    !grid.coverId &&
+    !grid.coverSrc &&
+    grid.mediaKind !== "video" &&
+    grid.mediaKind !== "embed"
+  ) {
+    return null;
+  }
 
   const img = imageFromCover(grid.coverId, grid.coverSrc);
   const isVideo = grid.mediaKind === "video";
-  if (!img?.src && !isVideo) return null;
+  if (!img?.src && !isVideo && grid.mediaKind !== "embed") return null;
 
   const orgName = org.ten?.trim() || org.slug.trim();
   const avatarId = org.avatar_id ?? org.logo_id;
@@ -289,11 +318,18 @@ function orgBaiDangRowToItem(
     blocks,
   });
   if (!grid) return null;
-  if (!grid.coverId && !grid.coverSrc && grid.mediaKind !== "video") return null;
+  if (
+    !grid.coverId &&
+    !grid.coverSrc &&
+    grid.mediaKind !== "video" &&
+    grid.mediaKind !== "embed"
+  ) {
+    return null;
+  }
 
   const img = imageFromCover(grid.coverId, grid.coverSrc);
   const isVideo = grid.mediaKind === "video";
-  if (!img?.src && !isVideo) return null;
+  if (!img?.src && !isVideo && grid.mediaKind !== "embed") return null;
 
   const orgSlug = org.slug.trim();
   const orgName = org.ten?.trim() || orgSlug;
@@ -420,6 +456,7 @@ async function loadCongDongOrgMeta(
  */
 async function buildWorldJourneyGalleryPool(
   viewerId: string,
+  poolLimit = POOL_LIMIT,
 ): Promise<RankedGalleryItem[]> {
   const [friendIds, followingIds, followingOrgIds, memberCongDongIds] =
     await Promise.all([
@@ -438,10 +475,10 @@ async function buildWorldJourneyGalleryPool(
 
   const [featureRows, congDongRows, showcaseRows, orgBaiDangRows] =
     await Promise.all([
-      fetchFeatureRows(POOL_LIMIT),
-      fetchCongDongVisualRows(congDongOrgIds, 40),
-      fetchStudioShowcaseRows(40),
-      fetchOrgBaiDangVisualRows(40),
+      fetchFeatureRows(poolLimit),
+      fetchCongDongVisualRows(congDongOrgIds, Math.min(60, poolLimit)),
+      fetchStudioShowcaseRows(Math.min(60, poolLimit)),
+      fetchOrgBaiDangVisualRows(Math.min(60, poolLimit)),
     ]);
 
   /* Ưu tiên feature từ mạng quan hệ; vẫn giữ feature toàn cục (discovery). */
@@ -532,10 +569,12 @@ async function buildWorldJourneyGalleryPool(
     items.push(item);
   }
 
-  return items.sort((a, b) => {
-    if (a.featured !== b.featured) return a.featured ? -1 : 1;
-    return a.sortAt > b.sortAt ? -1 : a.sortAt < b.sortAt ? 1 : 0;
-  });
+  return items
+    .sort((a, b) => {
+      if (a.featured !== b.featured) return a.featured ? -1 : 1;
+      return a.sortAt > b.sortAt ? -1 : a.sortAt < b.sortAt ? 1 : 0;
+    })
+    .slice(0, poolLimit);
 }
 
 export type WorldJourneyGalleryPage = {
@@ -545,13 +584,40 @@ export type WorldJourneyGalleryPage = {
   totalCount: number;
 };
 
+export type WorldJourneyGalleryPageOptions = {
+  filter?: string | null;
+  source?: FeedSourceFilter | string | null;
+};
+
+function galleryPageNeedsWidePool(opts: WorldJourneyGalleryPageOptions): boolean {
+  const filter = opts.filter?.trim();
+  if (filter && filter !== "all") return true;
+  return normalizeFeedSource(opts.source) !== "all";
+}
+
+function applyWorldJourneyGalleryPageFilters(
+  items: ReadonlyArray<RankedGalleryItem>,
+  opts: WorldJourneyGalleryPageOptions,
+): RankedGalleryItem[] {
+  const chip = resolveWorldJourneyFeedFilterChip(opts.filter);
+  const source = normalizeFeedSource(opts.source);
+  return items.filter(
+    (item) =>
+      matchesFeedSource(item, source) &&
+      worldJourneyGalleryItemMatchesFilter(item, chip),
+  );
+}
+
 function sliceGalleryPage(
   ranked: RankedGalleryItem[],
   offset: number,
   limit: number,
 ): WorldJourneyGalleryPage {
   const safeOffset = Math.max(0, offset);
-  const safeLimit = Math.min(Math.max(1, limit), GALLERY_SCROLL_PAGE_SIZE * 3);
+  const safeLimit = Math.min(
+    Math.max(1, limit),
+    WORLD_JOURNEY_GALLERY_PAGE_SIZE * 3,
+  );
   const page = ranked.slice(safeOffset, safeOffset + safeLimit);
   const nextOffset = safeOffset + page.length;
   const items: GalleryMainItem[] = page.map(({ sortAt: _s, ...rest }) => rest);
@@ -563,12 +629,26 @@ function sliceGalleryPage(
   };
 }
 
-const buildCached = cache(buildWorldJourneyGalleryPool);
+const buildCached = cache((viewerId: string) =>
+  buildWorldJourneyGalleryPool(viewerId, POOL_LIMIT),
+);
+
+const buildWideCached = cache((viewerId: string) =>
+  buildWorldJourneyGalleryPool(viewerId, FILTER_POOL_LIMIT),
+);
 
 function buildForApi(viewerId: string) {
   return unstable_cache(
-    () => buildWorldJourneyGalleryPool(viewerId),
+    () => buildWorldJourneyGalleryPool(viewerId, POOL_LIMIT),
     ["world-journey-gallery", viewerId],
+    { revalidate: WORLD_JOURNEY_FEED_RANK_REVALIDATE_SEC },
+  )();
+}
+
+function buildWideForApi(viewerId: string) {
+  return unstable_cache(
+    () => buildWorldJourneyGalleryPool(viewerId, FILTER_POOL_LIMIT),
+    ["world-journey-gallery-wide", viewerId],
     { revalidate: WORLD_JOURNEY_FEED_RANK_REVALIDATE_SEC },
   )();
 }
@@ -576,17 +656,27 @@ function buildForApi(viewerId: string) {
 export async function fetchWorldJourneyGalleryPage(
   viewerId: string,
   offset = 0,
-  limit = GALLERY_SCROLL_PAGE_SIZE,
+  limit = WORLD_JOURNEY_GALLERY_PAGE_SIZE,
+  options: WorldJourneyGalleryPageOptions = {},
 ): Promise<WorldJourneyGalleryPage> {
-  const ranked = await buildForApi(viewerId);
-  return sliceGalleryPage(ranked, offset, limit);
+  const ranked = galleryPageNeedsWidePool(options)
+    ? await buildWideForApi(viewerId)
+    : await buildForApi(viewerId);
+  const filtered = applyWorldJourneyGalleryPageFilters(ranked, options);
+  const boosted = await withWorldBoostGalleryItems(filtered);
+  return sliceGalleryPage(boosted, offset, limit);
 }
 
 export async function fetchWorldJourneyGalleryPageCached(
   viewerId: string,
   offset = 0,
-  limit = GALLERY_SCROLL_PAGE_SIZE,
+  limit = WORLD_JOURNEY_GALLERY_PAGE_SIZE,
+  options: WorldJourneyGalleryPageOptions = {},
 ): Promise<WorldJourneyGalleryPage> {
-  const ranked = await buildCached(viewerId);
-  return sliceGalleryPage(ranked, offset, limit);
+  const ranked = galleryPageNeedsWidePool(options)
+    ? await buildWideCached(viewerId)
+    : await buildCached(viewerId);
+  const filtered = applyWorldJourneyGalleryPageFilters(ranked, options);
+  const boosted = await withWorldBoostGalleryItems(filtered);
+  return sliceGalleryPage(boosted, offset, limit);
 }

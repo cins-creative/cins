@@ -3,7 +3,8 @@ import {
   chatImageDeliveryUrl,
   isCloudflareImageId,
 } from "@/lib/chat/image-url";
-import { parseChatNguCanh } from "@/lib/chat/message-perspective";
+import { parseChatMocNhac, parseChatNguCanh, parseChatMessageMentions } from "@/lib/chat/message-perspective";
+import { mentionsIncludeUser } from "@/lib/chat/mentions";
 import { isOptimisticAlbumMessage, isOptimisticMessageId } from "@/lib/chat/optimistic-message";
 
 /** Row từ Supabase Realtime — `chat_tin_nhan`. */
@@ -31,14 +32,22 @@ export type ChatRealtimeMessageEvent = {
 };
 
 export function mapRealtimeRow(row: ChatRealtimeRow, viewerId: string): ChatMessage {
-  const nguCanh = parseChatNguCanh(row.ngu_canh);
-  const kind = nguCanh
-    ? "context"
-    : row.loai_tin === "sticker"
-      ? "sticker"
-      : row.loai_tin === "media"
-        ? "media"
-        : "text";
+  const mocNhac = parseChatMocNhac(row.ngu_canh);
+  const nguCanh = mocNhac ? null : parseChatNguCanh(row.ngu_canh);
+  const mentions = mocNhac ? [] : parseChatMessageMentions(row.ngu_canh);
+  const kind = mocNhac
+    ? "moc_nhac"
+    : nguCanh
+      ? "context"
+      : row.loai_tin === "sticker"
+        ? "sticker"
+        : row.loai_tin === "media"
+          ? "media"
+          : row.loai_tin === "binh_chon"
+            ? "binh_chon"
+            : row.loai_tin === "system"
+              ? "moc_nhac"
+              : "text";
   const rawBody = row.noi_dung?.trim() || "";
   let imageId: string | null = null;
   let body = rawBody;
@@ -50,7 +59,7 @@ export function mapRealtimeRow(row: ChatRealtimeRow, viewerId: string): ChatMess
     } else {
       body = rawBody;
     }
-  } else if (kind === "context") {
+  } else if (kind === "context" || kind === "binh_chon" || kind === "moc_nhac") {
     body = rawBody;
   }
 
@@ -67,14 +76,30 @@ export function mapRealtimeRow(row: ChatRealtimeRow, viewerId: string): ChatMess
     edited: Boolean(row.da_sua),
     editedAt: row.sua_luc ?? null,
     nguCanh,
+    mentions: mentions.length > 0 ? mentions : undefined,
+    poll: null,
+    mocNhac,
   };
+}
+
+export function realtimeMentionsViewer(
+  message: ChatMessage,
+  viewerId: string | null | undefined,
+): boolean {
+  return mentionsIncludeUser(message.mentions, viewerId);
 }
 
 function realtimePreview(row: ChatRealtimeRow): string {
   if (row.da_xoa) return "Đã thu hồi tin nhắn";
+  const mocNhac = parseChatMocNhac(row.ngu_canh);
+  if (mocNhac) return row.noi_dung?.trim() || `Nhắc mốc: ${mocNhac.ten}`;
   const nguCanh = parseChatNguCanh(row.ngu_canh);
   if (nguCanh) return `Trao đổi về: ${nguCanh.tieuDe}`;
   if (row.loai_tin === "sticker") return "Meme";
+  if (row.loai_tin === "binh_chon") {
+    const q = row.noi_dung?.trim() || "";
+    return q ? `Bình chọn: ${q}` : "Bình chọn";
+  }
   if (row.loai_tin === "media") {
     const caption = row.noi_dung?.trim() || "";
     if (caption && !isCloudflareImageId(caption)) return caption;
@@ -140,10 +165,13 @@ export function reconcileChatMessage(
         ...m,
         ...message,
         nguCanh: message.nguCanh ?? m.nguCanh,
+        mentions: message.mentions ?? m.mentions,
         replyTo: message.replyTo ?? m.replyTo,
         reactions: message.reactions ?? m.reactions,
         pinned: message.pinned ?? m.pinned,
         readByPeer: message.readByPeer ?? m.readByPeer,
+        poll: message.poll ?? m.poll,
+        mocNhac: message.mocNhac ?? m.mocNhac,
         senderUserId: message.senderUserId ?? m.senderUserId,
         senderSlug: message.senderSlug ?? m.senderSlug,
         senderName: message.senderName ?? m.senderName,
@@ -178,6 +206,7 @@ export function reconcileChatMessage(
         ...prev,
         ...message,
         nguCanh: message.nguCanh ?? prev.nguCanh,
+        mentions: message.mentions ?? prev.mentions,
       };
       return next;
     }
@@ -202,6 +231,9 @@ export function mergeChatMessageUpdate(
     pinned: message.pinned ?? prev.pinned,
     readByPeer: message.readByPeer ?? prev.readByPeer,
     nguCanh: message.nguCanh ?? prev.nguCanh,
+    mentions: message.mentions ?? prev.mentions,
+    poll: message.poll ?? prev.poll,
+    mocNhac: message.mocNhac ?? prev.mocNhac,
     senderUserId: message.senderUserId ?? prev.senderUserId,
     senderSlug: message.senderSlug ?? prev.senderSlug,
     senderName: message.senderName ?? prev.senderName,

@@ -3888,11 +3888,13 @@
 .j-compose-sheet .cins-editor-page.is-overlay .editor-canvas {
   width: 100%;
   max-width: none;
-  margin-top: 16px;
-  margin-bottom: 24px;
-  padding: 28px 32px 40px 56px;
+  /* Khít topbar / đáy sheet — tránh hở trên·dưới so với canvas. */
+  margin-top: 0;
+  margin-bottom: 0;
+  padding: 12px 24px 16px 56px;
   border-radius: 0;
   box-shadow: none;
+  max-height: none;
 }
 .j-compose-sheet .cins-editor-page.is-overlay .cover-add.has {
   border-radius: var(--radius-lg);

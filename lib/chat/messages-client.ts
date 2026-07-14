@@ -1,4 +1,4 @@
-import type { ChatMessage } from "@/lib/chat/types";
+import type { ChatMessage, ChatReadCursor } from "@/lib/chat/types";
 
 export const CHAT_MESSAGES_PAGE_SIZE = 30;
 
@@ -6,6 +6,8 @@ export type RoomMessagesPage = {
   messages: ChatMessage[];
   hasMore: boolean;
   pinnedMessages?: ChatMessage[];
+  readCursors?: ChatReadCursor[];
+  /** @deprecated */
   peerReadUpToId?: string | null;
 };
 
@@ -30,6 +32,7 @@ export async function fetchRoomMessagesPage(
       messages: json.messages ?? [],
       hasMore: Boolean(json.hasMore),
       pinnedMessages: json.pinnedMessages,
+      readCursors: json.readCursors ?? [],
       peerReadUpToId: json.peerReadUpToId,
     };
   } catch {

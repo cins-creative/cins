@@ -231,7 +231,7 @@ export function WorldJourneyFeedTimeline({
       ) : null}
 
       <div className="j-timeline-end" aria-hidden>
-        <div className="j-timeline-end-text">— hết feed mới —</div>
+        <div className="j-timeline-end-text">— hết nội dung mới —</div>
       </div>
     </main>
   );

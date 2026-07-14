@@ -58,32 +58,6 @@ export async function loadPinnedMessageIds(roomId: string): Promise<Set<string>>
   return new Set((data ?? []).map((row) => row.id_tin_nhan as string));
 }
 
-export async function getPeerReadMessageId(
-  roomId: string,
-  viewerId: string,
-): Promise<string | null> {
-  const admin = createServiceRoleClient();
-  const { data: members } = await admin
-    .from("chat_thanh_vien")
-    .select("id_nguoi_dung")
-    .eq("id_phong", roomId)
-    .is("roi_luc", null)
-    .neq("id_nguoi_dung", viewerId)
-    .limit(1);
-
-  const peerId = members?.[0]?.id_nguoi_dung as string | undefined;
-  if (!peerId) return null;
-
-  const { data: readRow } = await admin
-    .from("chat_da_doc")
-    .select("id_tin_nhan_cuoi_doc")
-    .eq("id_phong", roomId)
-    .eq("id_nguoi_dung", peerId)
-    .maybeSingle<{ id_tin_nhan_cuoi_doc: string }>();
-
-  return readRow?.id_tin_nhan_cuoi_doc ?? null;
-}
-
 export async function assertPinLimit(roomId: string): Promise<void> {
   const admin = createServiceRoleClient();
   const { count } = await admin

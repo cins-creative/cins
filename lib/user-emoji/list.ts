@@ -5,6 +5,7 @@ import {
   MAX_USER_EMOJI_MUC_PER_BO,
 } from "@/lib/user-emoji/constants";
 import { userEmojiDeliveryUrl } from "@/lib/user-emoji/delivery-url";
+import { probeCfImageDelivery } from "@/lib/user-emoji/probe-delivery";
 import { boThumbnailUrl } from "@/lib/user-emoji/thumbnail";
 import type { UserEmojiBo, UserEmojiMuc } from "@/lib/user-emoji/types";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
@@ -63,24 +64,65 @@ export async function listUserEmojiPacks(
     .order("thu_tu", { ascending: true })
     .order("tao_luc", { ascending: true });
 
-  const mucByBo = new Map<string, UserEmojiMuc[]>();
-  for (const row of (mucRows ?? []) as MucRow[]) {
-    const list = mucByBo.get(row.id_bo) ?? [];
-    list.push(mapMuc(row));
-    mucByBo.set(row.id_bo, list);
+  const mapped = ((mucRows ?? []) as MucRow[]).map(mapMuc);
+
+  /** Gỡ meme mồ côi (id còn trong DB nhưng CF đã 404) — không xóa khi HEAD lỗi tạm. */
+  const liveById = new Map<string, boolean>();
+  const uniqueUrls = new Map<string, string>();
+  for (const item of mapped) {
+    if (!item.url || uniqueUrls.has(item.cloudflareId)) continue;
+    uniqueUrls.set(item.cloudflareId, item.url);
+  }
+  await Promise.all(
+    [...uniqueUrls.entries()].map(async ([cfId, deliveryUrl]) => {
+      const status = await probeCfImageDelivery(deliveryUrl);
+      if (status === "live") liveById.set(cfId, true);
+      else if (status === "missing") liveById.set(cfId, false);
+    }),
+  );
+
+  const orphanIds = mapped
+    .filter((item) => liveById.get(item.cloudflareId) === false)
+    .map((item) => item.id);
+
+  if (orphanIds.length > 0) {
+    await admin
+      .from("user_emoji_muc")
+      .update({ da_xoa: true })
+      .in("id", orphanIds);
   }
 
-  const boList: UserEmojiBo[] = (boRows as BoRow[]).map((row) => {
+  const mucByBo = new Map<string, UserEmojiMuc[]>();
+  for (const item of mapped) {
+    if (liveById.get(item.cloudflareId) === false) continue;
+    const list = mucByBo.get(item.boId) ?? [];
+    list.push(item);
+    mucByBo.set(item.boId, list);
+  }
+
+  const boList: UserEmojiBo[] = [];
+  for (const row of boRows as BoRow[]) {
     const items = mucByBo.get(row.id) ?? [];
-    return {
+    let coverId = row.cloudflare_id_anh_bia;
+    if (coverId && liveById.get(coverId) === false) {
+      coverId = items[0]?.cloudflareId ?? null;
+      await admin
+        .from("user_emoji_bo")
+        .update({
+          cloudflare_id_anh_bia: coverId,
+          cap_nhat_luc: new Date().toISOString(),
+        })
+        .eq("id", row.id);
+    }
+    boList.push({
       id: row.id,
       ten: row.ten,
       thuTu: row.thu_tu,
-      cloudflareIdAnhBia: row.cloudflare_id_anh_bia,
-      thumbnailUrl: boThumbnailUrl(row.cloudflare_id_anh_bia, items),
+      cloudflareIdAnhBia: coverId,
+      thumbnailUrl: boThumbnailUrl(coverId, items),
       items,
-    };
-  });
+    });
+  }
 
   return {
     boList,

@@ -111,13 +111,15 @@ function sumSeries(
   return t;
 }
 
-type TaoLucRow = { tao_luc: string };
-
-async function fetchAllTaoLuc(
+async function fetchAllTimestamps(
   buildPage: (
     from: number,
     to: number,
-  ) => PromiseLike<{ data: TaoLucRow[] | null; error: { message: string } | null }>,
+  ) => PromiseLike<{
+    data: Array<Record<string, string | null>> | null;
+    error: { message: string } | null;
+  }>,
+  column: string,
 ): Promise<string[]> {
   const pageSize = 1000;
   const times: string[] = [];
@@ -127,7 +129,8 @@ async function fetchAllTaoLuc(
     if (error) throw new Error(error.message);
     const rows = data ?? [];
     for (const row of rows) {
-      if (row.tao_luc) times.push(row.tao_luc);
+      const v = row[column];
+      if (typeof v === "string" && v.trim()) times.push(v);
     }
     if (rows.length < pageSize) break;
     from += pageSize;
@@ -153,35 +156,39 @@ export async function fetchWorldBoostGrowth(
   /* Hai cửa sổ liền kề: hiện tại `days` ngày + cửa sổ trước cùng độ dài */
   const sinceIso = daysAgoIso(days * 2);
 
+  /* org_su_kien không có tao_luc — dùng bat_dau (ngày sự kiện) làm proxy. */
   const [cotTimes, orgTimes, suKienTimes] = await Promise.all([
-    fetchAllTaoLuc((from, to) =>
-      admin
-        .from("content_cot_moc")
-        .select("tao_luc")
-        .in("che_do_hien_thi", ["feature", "public"])
-        .gte("tao_luc", sinceIso)
-        .order("tao_luc", { ascending: true })
-        .range(from, to)
-        .returns<TaoLucRow[]>(),
+    fetchAllTimestamps(
+      (from, to) =>
+        admin
+          .from("content_cot_moc")
+          .select("tao_luc")
+          .in("che_do_hien_thi", ["feature", "public"])
+          .gte("tao_luc", sinceIso)
+          .order("tao_luc", { ascending: true })
+          .range(from, to),
+      "tao_luc",
     ),
-    fetchAllTaoLuc((from, to) =>
-      admin
-        .from("org_bai_dang")
-        .select("tao_luc")
-        .eq("trang_thai", "da_dang")
-        .gte("tao_luc", sinceIso)
-        .order("tao_luc", { ascending: true })
-        .range(from, to)
-        .returns<TaoLucRow[]>(),
+    fetchAllTimestamps(
+      (from, to) =>
+        admin
+          .from("org_bai_dang")
+          .select("tao_luc")
+          .eq("trang_thai", "da_dang")
+          .gte("tao_luc", sinceIso)
+          .order("tao_luc", { ascending: true })
+          .range(from, to),
+      "tao_luc",
     ),
-    fetchAllTaoLuc((from, to) =>
-      admin
-        .from("org_su_kien")
-        .select("tao_luc")
-        .gte("tao_luc", sinceIso)
-        .order("tao_luc", { ascending: true })
-        .range(from, to)
-        .returns<TaoLucRow[]>(),
+    fetchAllTimestamps(
+      (from, to) =>
+        admin
+          .from("org_su_kien")
+          .select("bat_dau")
+          .gte("bat_dau", sinceIso)
+          .order("bat_dau", { ascending: true })
+          .range(from, to),
+      "bat_dau",
     ),
   ]);
 
@@ -249,7 +256,7 @@ export async function fetchWorldBoostStats(): Promise<WorldBoostStats> {
     admin
       .from("org_su_kien")
       .select("id", { count: "exact", head: true })
-      .gte("tao_luc", since7),
+      .gte("bat_dau", since7),
   ]);
 
   return {
@@ -491,9 +498,9 @@ export async function listWorldBoostCatalog(
     const { data: rows } = await admin
       .from("org_su_kien")
       .select(
-        "id, ten, mo_ta, cover_id, tao_luc, id_to_chuc, org_to_chuc:org_to_chuc(slug, ten)",
+        "id, ten, mo_ta, cover_id, bat_dau, id_to_chuc, org_to_chuc:org_to_chuc(slug, ten)",
       )
-      .order("tao_luc", { ascending: false })
+      .order("bat_dau", { ascending: false })
       .limit(Math.min(80, poolLimit))
       .returns<
         Array<{
@@ -501,7 +508,7 @@ export async function listWorldBoostCatalog(
           ten: string | null;
           mo_ta: string | null;
           cover_id: string | null;
-          tao_luc: string;
+          bat_dau: string;
           id_to_chuc: string;
           org_to_chuc:
             | { slug: string | null; ten: string | null }
@@ -526,7 +533,8 @@ export async function listWorldBoostCatalog(
         daXacThuc: false,
         tacGiaTen: org?.ten ?? org?.slug ?? null,
         tacGiaSlug: org?.slug ?? null,
-        taoLuc: r.tao_luc,
+        /* Không có tao_luc — dùng bat_dau cho sort / hiển thị ngày. */
+        taoLuc: r.bat_dau,
       });
     }
   }

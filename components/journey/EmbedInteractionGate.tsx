@@ -1,16 +1,25 @@
 "use client";
 
+import { Hand, X } from "lucide-react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+
 import {
   embedIframeAllowAttr,
   embedIframeTitle,
   type EmbedProviderId,
 } from "@/lib/editor/embed-providers";
+import { PlayCanvasScaleFit } from "@/components/journey/PlayCanvasScaleFit";
 
-/** Giữ API cũ — hiện không provider nào cần gate “chạm để tương tác”. */
+/**
+ * Provider cần "chạm để tương tác". Tạm tắt để thử tương tác Spline trực tiếp
+ * (bật lại: thêm `"spline"` vào set).
+ */
+const GATED_PROVIDERS = new Set<EmbedProviderId>([/* "spline" */]);
+
 export function embedNeedsInteractionGate(
-  _provider: EmbedProviderId | string,
+  provider: EmbedProviderId | string,
 ): boolean {
-  return false;
+  return GATED_PROVIDERS.has(provider as EmbedProviderId);
 }
 
 type Props = {
@@ -18,8 +27,110 @@ type Props = {
   iframeSrc: string;
 };
 
-/** Iframe embed trên timeline — tương tác trực tiếp, không overlay. */
+type LockedScrollEl = {
+  el: HTMLElement;
+  overflow: string;
+  overflowX: string;
+  overflowY: string;
+  overscrollBehavior: string;
+  scrollTop: number;
+  scrollLeft: number;
+};
+
+function isScrollableOverflow(value: string): boolean {
+  return value === "auto" || value === "scroll" || value === "overlay";
+}
+
+/** Khoá mọi ancestor đang cuộn được + body (window). 1 ngón mới không kéo feed. */
+function lockScrollChain(from: HTMLElement | null): () => void {
+  const locked: LockedScrollEl[] = [];
+  const seen = new Set<HTMLElement>();
+
+  const lockEl = (el: HTMLElement) => {
+    if (seen.has(el)) return;
+    seen.add(el);
+    locked.push({
+      el,
+      overflow: el.style.overflow,
+      overflowX: el.style.overflowX,
+      overflowY: el.style.overflowY,
+      overscrollBehavior: el.style.overscrollBehavior,
+      scrollTop: el.scrollTop,
+      scrollLeft: el.scrollLeft,
+    });
+    el.style.overflow = "hidden";
+    el.style.overflowX = "hidden";
+    el.style.overflowY = "hidden";
+    el.style.overscrollBehavior = "none";
+  };
+
+  let node: HTMLElement | null = from;
+  while (node) {
+    const style = getComputedStyle(node);
+    const canY =
+      isScrollableOverflow(style.overflowY) &&
+      node.scrollHeight > node.clientHeight + 1;
+    const canX =
+      isScrollableOverflow(style.overflowX) &&
+      node.scrollWidth > node.clientWidth + 1;
+    if (canY || canX) lockEl(node);
+    node = node.parentElement;
+  }
+
+  const body = document.body;
+  const html = document.documentElement;
+  const scrollY = window.scrollY;
+  const scrollX = window.scrollX;
+  const prevBody = {
+    position: body.style.position,
+    top: body.style.top,
+    left: body.style.left,
+    right: body.style.right,
+    width: body.style.width,
+    overflow: body.style.overflow,
+  };
+  const prevHtmlOverflow = html.style.overflow;
+
+  lockEl(body);
+  lockEl(html);
+  body.style.position = "fixed";
+  body.style.top = `-${scrollY}px`;
+  body.style.left = `-${scrollX}px`;
+  body.style.right = "0";
+  body.style.width = "100%";
+  body.style.overflow = "hidden";
+  html.style.overflow = "hidden";
+
+  return () => {
+    for (let i = locked.length - 1; i >= 0; i -= 1) {
+      const item = locked[i];
+      item.el.style.overflow = item.overflow;
+      item.el.style.overflowX = item.overflowX;
+      item.el.style.overflowY = item.overflowY;
+      item.el.style.overscrollBehavior = item.overscrollBehavior;
+      item.el.scrollTop = item.scrollTop;
+      item.el.scrollLeft = item.scrollLeft;
+    }
+    body.style.position = prevBody.position;
+    body.style.top = prevBody.top;
+    body.style.left = prevBody.left;
+    body.style.right = prevBody.right;
+    body.style.width = prevBody.width;
+    body.style.overflow = prevBody.overflow;
+    html.style.overflow = prevHtmlOverflow;
+    window.scrollTo(scrollX, scrollY);
+  };
+}
+
+/**
+ * Bọc iframe embed trên timeline. Mặc định iframe `pointer-events: none` để cuộn
+ * feed mượt xuyên qua; user chạm 1 lần mới bật tương tác (khoá scroll trang trên
+ * thiết bị cảm ứng để xoay/pan). Nút thoát trả lại trạng thái cuộn. Reset khi đổi
+ * src (hoặc khi ViewportGatedEmbed unmount lúc rời khung).
+ */
 export function EmbedInteractionGate({ provider, iframeSrc }: Props) {
+  const [active, setActive] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
   const title = embedIframeTitle(provider);
   const allow = embedIframeAllowAttr(provider);
   const referrerPolicy =
@@ -27,14 +138,83 @@ export function EmbedInteractionGate({ provider, iframeSrc }: Props) {
       ? "strict-origin-when-cross-origin"
       : undefined;
 
+  useEffect(() => {
+    setActive(false);
+  }, [iframeSrc]);
+
+  /**
+   * Khoá scroll khi đang tương tác (thiết bị cảm ứng). Spline iframe cross-origin
+   * không chặn được 1 ngón kéo feed — feed cuộn → ViewportGatedEmbed unmount →
+   * "kéo một nhịp rồi rớt". Hai ngón (pan/zoom) không cuộn trang nên vẫn mượt.
+   *
+   * Không chỉ khoá `body`: shell/feed thường cuộn ở ancestor `overflow:auto`.
+   * Dùng `useLayoutEffect` để khoá trước paint, tránh nhịp đầu vẫn kéo feed.
+   */
+  useLayoutEffect(() => {
+    if (!active || typeof window === "undefined") return;
+    const touchLike =
+      window.matchMedia("(pointer: coarse)").matches ||
+      window.matchMedia("(hover: none)").matches ||
+      window.matchMedia("(any-pointer: coarse)").matches;
+    if (!touchLike) return;
+    return lockScrollChain(rootRef.current);
+  }, [active]);
+
+  if (!embedNeedsInteractionGate(provider)) {
+    const iframe = (
+      <iframe
+        src={iframeSrc}
+        title={title}
+        allow={allow}
+        referrerPolicy={referrerPolicy}
+        allowFullScreen
+        loading="lazy"
+      />
+    );
+    if (provider === "playcanvas") {
+      return <PlayCanvasScaleFit>{iframe}</PlayCanvasScaleFit>;
+    }
+    return iframe;
+  }
+
   return (
-    <iframe
-      src={iframeSrc}
-      title={title}
-      allow={allow}
-      referrerPolicy={referrerPolicy}
-      allowFullScreen
-      loading="lazy"
-    />
+    <div
+      ref={rootRef}
+      className={"jcard-embed-gate-root" + (active ? " is-active" : "")}
+      data-active={active ? "true" : "false"}
+    >
+      <iframe
+        src={iframeSrc}
+        title={title}
+        allow={allow}
+        referrerPolicy={referrerPolicy}
+        allowFullScreen
+        loading="lazy"
+        tabIndex={active ? 0 : -1}
+      />
+      {active ? (
+        <button
+          type="button"
+          className="jcard-embed-exit"
+          onClick={() => setActive(false)}
+          aria-label="Thoát tương tác để cuộn tiếp"
+        >
+          <X size={15} strokeWidth={2.4} aria-hidden />
+          <span>Thoát</span>
+        </button>
+      ) : (
+        <button
+          type="button"
+          className="jcard-embed-gate"
+          onClick={() => setActive(true)}
+          aria-label={`Bật tương tác với ${title}`}
+        >
+          <span className="jcard-embed-gate-hint">
+            <Hand size={16} strokeWidth={2} aria-hidden />
+            <span>chạm để tương tác</span>
+          </span>
+        </button>
+      )}
+    </div>
   );
 }

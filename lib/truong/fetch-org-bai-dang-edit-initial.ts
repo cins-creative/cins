@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { EditorInitial } from "@/components/editor/EditorView";
+import type { EditorInitial } from "@/lib/editor/editor-initial";
 import type { Block, LoaiMoc, Visibility } from "@/lib/editor/types";
 import { normalizeLoaiBaiDang } from "@/lib/truong/bai-dang";
 import { parseBaiDangBlocks } from "@/lib/truong/bai-dang-blocks";

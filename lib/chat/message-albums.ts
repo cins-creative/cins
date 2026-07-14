@@ -21,18 +21,21 @@ export function chatMessageImageSrc(message: ChatMessage): string | null {
 
 export type ChatMediaEntry = { id: string; src: string };
 
-/** Ảnh đính kèm trong danh sách tin (mới nhất cuối mảng). */
+/** Ảnh đính kèm trong danh sách tin (mới nhất cuối mảng). Không gồm meme/sticker. */
 export function chatMessageMediaEntries(messages: ChatMessage[]): ChatMediaEntry[] {
   return messages
     .map((message) => {
+      if (message.kind === "sticker" || message.deleted) return null;
       const src = chatMessageImageSrc(message);
       return src ? { id: message.id, src } : null;
     })
     .filter((entry): entry is ChatMediaEntry => entry != null);
 }
 
+/** Ảnh chat thật — không tính meme (`sticker`). */
 function isImageMessage(message: ChatMessage): boolean {
   if (message.deleted) return false;
+  if (message.kind === "sticker") return false;
   if (message.albumImages?.length) return true;
   return Boolean(chatMessageImageSrc(message));
 }

@@ -94,31 +94,9 @@ function MotionEmbedFlyoutItem({
   accept: string;
   onFile: (file: File) => void;
 }) {
-  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const clearCloseTimer = () => {
-    if (closeTimerRef.current) {
-      clearTimeout(closeTimerRef.current);
-      closeTimerRef.current = null;
-    }
-  };
-
-  useEffect(() => () => clearCloseTimer(), []);
-
   return (
     <li
       className={`cins-embed-picker-list-item cins-embed-picker-list-item--${flyoutId}${expanded ? " is-expanded" : ""}`}
-      onMouseEnter={() => {
-        clearCloseTimer();
-        onExpandedChange(true);
-      }}
-      onMouseLeave={() => {
-        clearCloseTimer();
-        closeTimerRef.current = setTimeout(() => {
-          onExpandedChange(false);
-          closeTimerRef.current = null;
-        }, 120);
-      }}
     >
       <div className="cins-embed-picker-rive-anchor">
         <button
@@ -126,13 +104,7 @@ function MotionEmbedFlyoutItem({
           className={`cins-embed-picker-item cins-embed-picker-item--${flyoutId} cins-embed-picker-item--has-flyout`}
           aria-expanded={expanded}
           aria-haspopup="menu"
-          onClick={() => {
-            const canHover =
-              typeof window !== "undefined" &&
-              window.matchMedia("(hover: hover)").matches;
-            if (canHover) return;
-            onExpandedChange(!expanded);
-          }}
+          onClick={() => onExpandedChange(!expanded)}
         >
           <span className="cins-embed-picker-item-mark" aria-hidden>
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -162,33 +134,39 @@ function MotionEmbedFlyoutItem({
           className="cins-embed-picker-rive-flyout"
           role="menu"
           aria-label={menuLabel}
+          aria-hidden={!expanded}
         >
-          <p className="cins-embed-picker-rive-flyout-title">Chọn cách thêm</p>
-          <div className="cins-embed-picker-rive-flyout-grid">
-            {options.map((option) => (
-              <button
-                key={option.id}
-                type="button"
-                role="menuitem"
-                className="cins-embed-picker-rive-option"
-                onClick={option.onPick}
-              >
-                <span
-                  className="cins-embed-picker-rive-option-icon"
-                  aria-hidden
+          <div className="cins-embed-picker-rive-flyout-panel">
+            <p className="cins-embed-picker-rive-flyout-title">
+              Chọn cách thêm
+            </p>
+            <div className="cins-embed-picker-rive-flyout-grid">
+              {options.map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  role="menuitem"
+                  className="cins-embed-picker-rive-option"
+                  tabIndex={expanded ? 0 : -1}
+                  onClick={option.onPick}
                 >
-                  {option.icon}
-                </span>
-                <span className="cins-embed-picker-rive-option-body">
-                  <span className="cins-embed-picker-rive-option-label">
-                    {option.label}
+                  <span
+                    className="cins-embed-picker-rive-option-icon"
+                    aria-hidden
+                  >
+                    {option.icon}
                   </span>
-                  <span className="cins-embed-picker-rive-option-hint">
-                    {option.hint}
+                  <span className="cins-embed-picker-rive-option-body">
+                    <span className="cins-embed-picker-rive-option-label">
+                      {option.label}
+                    </span>
+                    <span className="cins-embed-picker-rive-option-hint">
+                      {option.hint}
+                    </span>
                   </span>
-                </span>
-              </button>
-            ))}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>

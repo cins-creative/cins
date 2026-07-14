@@ -889,6 +889,7 @@ export function MediaComposeView({
       if (isEdit && editInitial) {
         const res = await updatePost({
           ownerSlug,
+          ownerId,
           tacPhamId: editInitial.tacPhamId,
           cotMocId: editInitial.cotMocId,
           tieuDe,
@@ -922,6 +923,7 @@ export function MediaComposeView({
 
       const res = await publishPost({
         ownerSlug,
+        ownerId,
         tieuDe,
         moTa: moTaPublish,
         coverSeed: null,

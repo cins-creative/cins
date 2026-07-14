@@ -11,6 +11,7 @@ import {
 import { assertRoomMember } from "@/lib/chat/direct-message";
 import { getGroupThread, GROUP_ROOM } from "@/lib/chat/group-message";
 import type { ChatThread } from "@/lib/chat/types";
+import { getAvatarUrl } from "@/lib/journey/profile";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 export type ChatRoomTrangThai = "active" | "an";
@@ -21,6 +22,19 @@ type ParentRoomRow = {
   id_phong_cha: string | null;
   trang_thai: string;
 };
+
+const MIGRATION_L28_HINT =
+  "Chưa bật workspace project trên DB. Chạy supabase/sql/migration_chat_project_workspace.sql trên Supabase (CINs), rồi thử lại.";
+
+function isMissingWorkspaceColumnError(message: string | undefined): boolean {
+  const m = (message ?? "").toLowerCase();
+  return (
+    m.includes("id_phong_cha") ||
+    m.includes("trang_thai") ||
+    m.includes("does not exist") ||
+    m.includes("schema cache")
+  );
+}
 
 export function isProjectIdle(
   lastAt: string | null | undefined,
@@ -38,11 +52,15 @@ async function assertViewerCanManageParent(
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const admin = createServiceRoleClient();
 
-  const { data: room } = await admin
+  const { data: room, error } = await admin
     .from("chat_phong")
     .select("id, loai_phong, id_phong_cha, trang_thai")
     .eq("id", parentRoomId)
     .maybeSingle<ParentRoomRow>();
+
+  if (error && isMissingWorkspaceColumnError(error.message)) {
+    return { ok: false, error: MIGRATION_L28_HINT };
+  }
 
   if (!room || room.loai_phong !== GROUP_ROOM) {
     return { ok: false, error: "Không tìm thấy nhóm chat." };
@@ -148,6 +166,9 @@ export async function createProjectRoom(
     .single<{ id: string }>();
 
   if (roomError || !room?.id) {
+    if (roomError && isMissingWorkspaceColumnError(roomError.message)) {
+      return { ok: false, error: MIGRATION_L28_HINT };
+    }
     return { ok: false, error: "Không tạo được phòng project." };
   }
 
@@ -178,11 +199,15 @@ export async function setProjectRoomVisibility(
 ): Promise<{ ok: true; thread: ChatThread } | { ok: false; error: string }> {
   const admin = createServiceRoleClient();
 
-  const { data: room } = await admin
+  const { data: room, error: roomLookupError } = await admin
     .from("chat_phong")
     .select("id, loai_phong, id_phong_cha, trang_thai")
     .eq("id", roomId)
     .maybeSingle<ParentRoomRow>();
+
+  if (roomLookupError && isMissingWorkspaceColumnError(roomLookupError.message)) {
+    return { ok: false, error: MIGRATION_L28_HINT };
+  }
 
   if (!room || room.loai_phong !== GROUP_ROOM) {
     return { ok: false, error: "Không tìm thấy phòng." };
@@ -235,6 +260,7 @@ export type ProjectRoomListItem = {
   unread: number;
   idle: boolean;
   memberCount: number;
+  avatarUrl: string | null;
 };
 
 export async function listProjectRoomsForParent(
@@ -253,7 +279,7 @@ export async function listProjectRoomsForParent(
 
   let query = admin
     .from("chat_phong")
-    .select("id, ten_phong, trang_thai, cap_nhat_luc")
+    .select("id, ten_phong, trang_thai, cap_nhat_luc, avatar_id")
     .eq("id_phong_cha", parentRoomId)
     .eq("loai_phong", GROUP_ROOM)
     .order("cap_nhat_luc", { ascending: false });
@@ -268,6 +294,7 @@ export async function listProjectRoomsForParent(
       ten_phong: string | null;
       trang_thai: string;
       cap_nhat_luc: string;
+      avatar_id: string | null;
     }>
   >();
 
@@ -327,6 +354,7 @@ export async function listProjectRoomsForParent(
       unread: 0,
       idle: isProjectIdle(lastAt),
       memberCount: countByRoom.get(room.id) ?? 0,
+      avatarUrl: getAvatarUrl(room.avatar_id),
     };
   });
 

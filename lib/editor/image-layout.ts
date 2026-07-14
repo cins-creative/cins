@@ -6,25 +6,23 @@ import { resolveImageSeedUrl } from "@/lib/editor/resolve-image-seed-url";
  *
  * Nhóm adaptive (không crop, giữ tỉ lệ gốc):
  *   - full:      Tràn viền, nhiều ảnh xếp dọc full-width.
+ *   - inset:     Một ô ~70% chiều ngang block, căn giữa, giữ tỉ lệ ảnh.
  *   - masonry:   Masonry 3 cột (CSS columns), theo chiều cao thật của ảnh.
  *   - justified: Hàng giãn full chiều ngang, cao hàng co theo tỉ lệ ảnh.
  *
  * Nhóm lưới cơ bản (cắt gọn — object-fit: cover):
  *   - duo:       2 ảnh cạnh nhau, cao đều.
- *   - grid2:     3 ảnh ngang (1 hàng × 3 cột), ô vuông.
  *   - grid3:     Lưới 3 cột, ô vuông đều.
  *   - grid4:     Lưới 2×2, tối đa 4 ô vuông.
- *   - hero:      1 ảnh lớn trên + dải ảnh nhỏ bên dưới.
  */
 export type ImgLayout =
   | "full"
+  | "inset"
   | "masonry"
   | "justified"
   | "duo"
-  | "grid2"
   | "grid3"
-  | "grid4"
-  | "hero";
+  | "grid4";
 
 export type ImgLayoutMeta = {
   k: ImgLayout;
@@ -37,13 +35,12 @@ export type ImgLayoutMeta = {
 
 const IMG_LAYOUT_META: ImgLayoutMeta[] = [
   { k: "full", n: 30, name: "Tràn viền", dynamic: true },
+  { k: "inset", n: 1, name: "Ô 70%", dynamic: true },
   { k: "duo", n: 30, name: "Đôi (2 cột)", dynamic: true },
-  { k: "grid2", n: 30, name: "3 ảnh ngang", dynamic: true },
   { k: "grid3", n: 30, name: "Lưới 3 cột", dynamic: true },
   { k: "grid4", n: 4, name: "Lưới 2×2", dynamic: false },
   { k: "masonry", n: 30, name: "Masonry 3 cột", dynamic: true },
-  { k: "justified", n: 30, name: "Justified", dynamic: true },
-  { k: "hero", n: 30, name: "Nổi bật", dynamic: true },
+  { k: "justified", n: 30, name: "Hàng cân", dynamic: true },
 ];
 
 /** Layout hiển thị trên LayBar. */
@@ -88,14 +85,21 @@ export function countFilledImageSeeds(imgs: ReadonlyArray<string>): number {
   }).length;
 }
 
-const LAYOUT_SLOT_FLOOR: Partial<Record<ImgLayout, number>> = {
+/**
+ * Số ô mặc định khi chọn layout trên LayBar — khớp pictogram LayoutThumbIcon.
+ * User có thể thêm/bớt ô sau; mode `display` không ép lại floor này.
+ */
+const LAYOUT_ICON_SLOTS: Record<ImgLayout, number> = {
+  full: 2,
+  inset: 1,
   duo: 2,
-  grid2: 3,
-  grid3: 3,
-  hero: 2,
+  grid3: 6,
+  grid4: 4,
+  masonry: 6,
+  justified: 5,
 };
 
-/** Số ô gợi ý khi đổi layout (grid3 → 3 cột; full → 1 ô nếu chưa có ảnh). */
+/** Số ô gợi ý khi đổi layout — tối thiểu theo icon, tối đa meta.n. */
 export function imgLayoutSuggestedSlots(
   layout: ImgLayout,
   imgs: ReadonlyArray<string>,
@@ -105,8 +109,8 @@ export function imgLayoutSuggestedSlots(
     return Math.max(imgs.length, meta.n);
   }
   const filled = countFilledImageSeeds(imgs);
-  const floor = LAYOUT_SLOT_FLOOR[layout] ?? 1;
-  return Math.min(Math.max(filled, floor), meta.n);
+  const iconSlots = LAYOUT_ICON_SLOTS[layout] ?? 1;
+  return Math.min(Math.max(filled, iconSlots), meta.n);
 }
 
 /** Số ô hiển thị theo mảng thực tế — không ép floor sau khi user thu gọn. */
@@ -130,7 +134,7 @@ function filledImageSeeds(imgs: ReadonlyArray<string>): string[] {
   });
 }
 
-/** Bổ sung seed `new-…` cho ô trống. `expand` = khi đổi layout / gán slot; `display` = render. */
+/** Bổ sung seed `new-…` cho ô trống. `expand` = khi đổi layout / gán slot; `display` = render (giữ ô trống user đã thêm). */
 export function padBlockImageSeedsForLayout(
   blockId: string,
   imgs: ReadonlyArray<string>,
@@ -146,7 +150,7 @@ export function padBlockImageSeedsForLayout(
     return next;
   }
 
-  const need = imgLayoutSuggestedSlots(layout, imgs);
+  const need = imgLayoutEditorMinSlots(layout, imgs);
   const next = [...imgs];
   while (
     next.length > need &&
@@ -163,18 +167,40 @@ export function padBlockImageSeedsForLayout(
   return next;
 }
 
+/** Số ảnh tối đa mỗi hàng Justified (trừ các case đặc biệt khớp icon). */
+export const EDITOR_JUSTIFIED_MAX_PER_ROW = 3;
+
+/**
+ * Chia ô Justified thành hàng — khớp LayoutThumbIcon (5 ô: 2 trên + 3 dưới).
+ * 4 ô → 2×2; 5 ô → 2+3; còn lại nhóm tối đa 3.
+ */
+export function splitEditorJustifiedRows<T>(cells: ReadonlyArray<T>): T[][] {
+  if (cells.length === 4) {
+    return [cells.slice(0, 2) as T[], cells.slice(2, 4) as T[]];
+  }
+  if (cells.length === 5) {
+    return [cells.slice(0, 2) as T[], cells.slice(2, 5) as T[]];
+  }
+  const rows: T[][] = [];
+  for (let i = 0; i < cells.length; i += EDITOR_JUSTIFIED_MAX_PER_ROW) {
+    rows.push(cells.slice(i, i + EDITOR_JUSTIFIED_MAX_PER_ROW) as T[]);
+  }
+  return rows;
+}
+
 /** Map layout cũ (đã bỏ) → 1 trong 3 layout mới, để bài đăng cũ không vỡ. */
 const LEGACY_LAYOUT_MAP: Record<string, ImgLayout> = {
   full: "full",
+  inset: "inset",
   boxed: "full",
   stack: "full",
   duo: "duo",
   row3: "grid3",
   trio: "grid3",
-  "big-right": "hero",
+  "big-right": "full",
   strip5: "justified",
   "duo-stack": "masonry",
-  grid2: "grid2",
+  grid2: "grid3",
   grid3: "grid3",
   grid4: "grid4",
   grid6: "masonry",
@@ -182,7 +208,7 @@ const LEGACY_LAYOUT_MAP: Record<string, ImgLayout> = {
   mosaic: "masonry",
   masonry: "masonry",
   justified: "justified",
-  hero: "hero",
+  hero: "full",
 };
 
 export function normalizeLegacyLayout(raw: unknown): ImgLayout {

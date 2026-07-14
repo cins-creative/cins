@@ -165,26 +165,45 @@
 }
 
 /* ── Album ảnh (block imgs) ──────────────────────────────────────── */
-/* Nhóm adaptive (giữ tỉ lệ gốc): full / masonry. */
+/* Khe giữa ô — khớp editor `--cins-img-slot-gap` (½ của 3px cũ). */
+.article-rich-content {
+  --cins-img-slot-gap: 1.5px;
+}
+/* Nhóm adaptive (giữ tỉ lệ gốc): full / inset / masonry. */
 .article-rich-content .rich-imgs--full {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--cins-img-slot-gap);
+}
+.article-rich-content .rich-imgs--inset {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--cins-img-slot-gap);
+}
+.article-rich-content .rich-imgs--inset .rich-img-cell {
+  width: 70%;
+  max-width: 70%;
+}
+.article-rich-content .rich-imgs--inset .rich-img-cell img {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
 }
 .article-rich-content .rich-imgs--masonry {
   column-count: 3;
-  column-gap: 6px;
+  column-gap: var(--cins-img-slot-gap);
 }
 .article-rich-content .rich-imgs--masonry .rich-img-cell {
   break-inside: avoid;
-  margin-bottom: 6px;
+  margin-bottom: var(--cins-img-slot-gap);
 }
 
 /* justified: hàng giãn full chiều ngang, cao hàng linh hoạt. */
 .article-rich-content .rich-imgs--justified {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: var(--cins-img-slot-gap);
 }
 .article-rich-content .rich-imgs--justified .rich-img-cell {
   flex: 1 1 240px;
@@ -196,14 +215,14 @@
 .article-rich-content .rich-imgs--grid4 {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 6px;
+  gap: var(--cins-img-slot-gap);
 }
 .article-rich-content .rich-imgs--grid2,
 .article-rich-content .rich-imgs--grid3,
 .article-rich-content .rich-imgs--hero {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 6px;
+  gap: var(--cins-img-slot-gap);
 }
 .article-rich-content .rich-imgs--duo .rich-img-cell {
   aspect-ratio: 4 / 5;

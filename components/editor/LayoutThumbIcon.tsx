@@ -78,6 +78,8 @@ function buildThumbs(variant: ThumbVariant): Record<ImgLayout, ReactNode> {
         <T x={1} y={7.6} w={16} h={5.4} />
       </>
     ),
+    /* inset: một ô ~70% chiều ngang, căn giữa. */
+    inset: <T x={3} y={2.5} w={12} h={9} />,
     masonry: (
       <>
         <T x={1} y={1} w={4.6} h={5} />
@@ -104,14 +106,6 @@ function buildThumbs(variant: ThumbVariant): Record<ImgLayout, ReactNode> {
         <T x={9.5} y={2} w={7.5} h={9.375} />
       </>
     ),
-    /* grid2: 1 hàng 3 ảnh ngang (vuông 1:1). */
-    grid2: (
-      <>
-        <T x={1} y={3} w={4.6} h={4.6} />
-        <T x={6.7} y={3} w={4.6} h={4.6} />
-        <T x={12.4} y={3} w={4.6} h={4.6} />
-      </>
-    ),
     /* grid3: 3 cột, ô vuông 1:1. */
     grid3: (
       <>
@@ -130,15 +124,6 @@ function buildThumbs(variant: ThumbVariant): Record<ImgLayout, ReactNode> {
         <T x={9.5} y={1} w={5.5} h={5.5} />
         <T x={3} y={7.5} w={5.5} h={5.5} />
         <T x={9.5} y={7.5} w={5.5} h={5.5} />
-      </>
-    ),
-    /* hero: ảnh đầu 16:9 + dải vuông 1:1 bên dưới. */
-    hero: (
-      <>
-        <T x={1} y={1} w={16} h={9} />
-        <T x={1} y={10} w={4} h={4} />
-        <T x={6} y={10} w={4} h={4} />
-        <T x={11} y={10} w={4} h={4} />
       </>
     ),
   };

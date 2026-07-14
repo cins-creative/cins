@@ -7,7 +7,7 @@ export function boThumbnailUrl(
 ): string | null {
   const cover = cloudflareIdAnhBia?.trim();
   if (cover) {
-    return userEmojiDeliveryUrl(cover, "thumbnail");
+    return userEmojiDeliveryUrl(cover, "public");
   }
   return items[0]?.url ?? null;
 }

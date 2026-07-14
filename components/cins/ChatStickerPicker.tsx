@@ -33,6 +33,28 @@ function withBoThumbnail(bo: UserEmojiBo): UserEmojiBo {
   };
 }
 
+function StickerImg({
+  src,
+  className,
+}: {
+  src: string;
+  className?: string;
+}) {
+  const [broken, setBroken] = useState(false);
+  if (broken) {
+    return <span className="cins-chat-sticker-picker-broken" aria-hidden />;
+  }
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      className={className}
+      src={src}
+      alt=""
+      onError={() => setBroken(true)}
+    />
+  );
+}
+
 type Props = {
   onClose: () => void;
   onSend: (item: UserEmojiMuc) => void;
@@ -258,12 +280,9 @@ export function ChatStickerPicker({ onClose, onSend, disabled }: Props) {
             onClick={() => setActiveBoId(bo.id)}
           >
             {bo.thumbnailUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
+              <StickerImg
                 className="cins-chat-sticker-picker-tab-thumb"
                 src={bo.thumbnailUrl}
-                alt=""
-                aria-hidden
               />
             ) : (
               <span className="cins-chat-sticker-picker-tab-fallback" aria-hidden />
@@ -319,49 +338,52 @@ export function ChatStickerPicker({ onClose, onSend, disabled }: Props) {
         </p>
       ) : (
         <>
-          <div className="cins-chat-sticker-picker-grid">
-            {activeBo.items.map((item) => (
-              <div key={item.id} className="cins-chat-sticker-picker-cell">
-                <button
-                  type="button"
-                  className="cins-chat-sticker-picker-sticker"
-                  disabled={disabled || manageMode}
-                  aria-label={item.tenGoi ?? "Gửi meme"}
-                  onClick={() => onSend(item)}
-                >
-                  {item.url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={item.url} alt="" />
+          {activeBo.items.length === 0 ? (
+            <p className="cins-chat-sticker-picker-empty">
+              Bộ này chưa có meme còn hiển thị. Bật quản lý rồi thêm lại ảnh.
+            </p>
+          ) : (
+            <div className="cins-chat-sticker-picker-grid">
+              {activeBo.items.map((item) => (
+                <div key={item.id} className="cins-chat-sticker-picker-cell">
+                  <button
+                    type="button"
+                    className="cins-chat-sticker-picker-sticker"
+                    disabled={disabled || manageMode}
+                    aria-label={item.tenGoi ?? "Gửi meme"}
+                    onClick={() => onSend(item)}
+                  >
+                    {item.url ? <StickerImg src={item.url} /> : null}
+                  </button>
+                  {manageMode ? (
+                    <>
+                      <button
+                        type="button"
+                        className={`cins-chat-sticker-picker-cover${
+                          activeBo.cloudflareIdAnhBia === item.cloudflareId
+                            ? " is-active"
+                            : ""
+                        }`}
+                        aria-label="Đặt làm ảnh bìa bộ"
+                        title="Ảnh bìa"
+                        onClick={() => void handleSetBoCover(activeBo.id, item)}
+                      >
+                        <Star size={10} strokeWidth={2} aria-hidden />
+                      </button>
+                      <button
+                        type="button"
+                        className="cins-chat-sticker-picker-remove"
+                        aria-label="Xóa meme"
+                        onClick={() => void handleDeleteItem(activeBo.id, item.id)}
+                      >
+                        <X size={10} strokeWidth={2.5} aria-hidden />
+                      </button>
+                    </>
                   ) : null}
-                </button>
-                {manageMode ? (
-                  <>
-                    <button
-                      type="button"
-                      className={`cins-chat-sticker-picker-cover${
-                        activeBo.cloudflareIdAnhBia === item.cloudflareId
-                          ? " is-active"
-                          : ""
-                      }`}
-                      aria-label="Đặt làm ảnh bìa bộ"
-                      title="Ảnh bìa"
-                      onClick={() => void handleSetBoCover(activeBo.id, item)}
-                    >
-                      <Star size={10} strokeWidth={2} aria-hidden />
-                    </button>
-                    <button
-                      type="button"
-                      className="cins-chat-sticker-picker-remove"
-                      aria-label="Xóa meme"
-                      onClick={() => void handleDeleteItem(activeBo.id, item.id)}
-                    >
-                      <X size={10} strokeWidth={2.5} aria-hidden />
-                    </button>
-                  </>
-                ) : null}
-              </div>
-            ))}
-          </div>
+                </div>
+              ))}
+            </div>
+          )}
 
           {manageMode ? (
             <footer className="cins-chat-sticker-picker-foot">

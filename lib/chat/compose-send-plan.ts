@@ -2,7 +2,7 @@ import {
   createOptimisticAlbumMessage,
   createOptimisticChatMessage,
 } from "@/lib/chat/optimistic-message";
-import type { ChatMessage, ChatMessageReplyPreview } from "@/lib/chat/types";
+import type { ChatMentionRef, ChatMessage, ChatMessageReplyPreview } from "@/lib/chat/types";
 
 export type ChatSendPayload = {
   noi_dung?: string;
@@ -37,10 +37,12 @@ export function buildChatSendPlan(input: {
     previewUrl: string;
   }>;
   replyTo?: ChatMessageReplyPreview | null;
+  mentions?: ChatMentionRef[];
 }): ChatSendPlan {
   const plan: ChatSendPlan = {};
   const text = input.text.trim();
   const replyTo = input.replyTo ?? null;
+  const mentions = input.mentions?.length ? input.mentions : undefined;
 
   if (text) {
     plan.text = {
@@ -51,6 +53,7 @@ export function buildChatSendPlan(input: {
       optimistic: createOptimisticChatMessage({
         body: text,
         replyTo,
+        mentions,
       }),
     };
   }

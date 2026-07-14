@@ -15,8 +15,13 @@ export function ChatMessageReplyQuote({ reply, onJump }: Props) {
   return (
     <button
       type="button"
-      className={`cins-chat-reply-quote${reply.deleted ? " is-deleted" : ""}`}
-      onClick={onJump}
+      className={`cins-chat-reply-quote${reply.deleted ? " is-deleted" : ""}${onJump ? " is-jumpable" : ""}`}
+      aria-label={onJump ? "Xem tin được trả lời" : undefined}
+      onClick={(event) => {
+        if (!onJump) return;
+        event.stopPropagation();
+        onJump();
+      }}
       disabled={!onJump}
     >
       {hasImage ? (

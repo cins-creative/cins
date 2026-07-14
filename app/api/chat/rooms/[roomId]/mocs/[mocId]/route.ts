@@ -7,6 +7,17 @@ type RouteContext = {
   params: Promise<{ roomId: string; mocId: string }>;
 };
 
+function resolveRemindMinutes(body: {
+  nhac_truoc_phut?: number;
+  nhac_truoc_ngay?: number;
+}): number | undefined {
+  if (typeof body.nhac_truoc_phut === "number") return body.nhac_truoc_phut;
+  if (typeof body.nhac_truoc_ngay === "number") {
+    return body.nhac_truoc_ngay * 1440;
+  }
+  return undefined;
+}
+
 export async function PATCH(req: Request, context: RouteContext) {
   const session = await getCurrentSessionAndProfile();
   if (!session?.profile) {
@@ -20,6 +31,7 @@ export async function PATCH(req: Request, context: RouteContext) {
     mo_ta?: string | null;
     thoi_diem?: string;
     url?: string | null;
+    nhac_truoc_phut?: number;
     nhac_truoc_ngay?: number;
   };
   try {
@@ -33,7 +45,7 @@ export async function PATCH(req: Request, context: RouteContext) {
     moTa: body.mo_ta,
     thoiDiem: body.thoi_diem,
     url: body.url,
-    nhacTruocNgay: body.nhac_truoc_ngay,
+    nhacTruocPhut: resolveRemindMinutes(body),
   });
 
   if (!result.ok) {

@@ -196,8 +196,8 @@ function getText(b: Block): string {
 }
 
 function renderImgsBlock(b: Block): string {
-  // Layout: full / masonry / justified / duo / grid2 / grid3 / grid4 / hero.
-  // Layout cũ được map sang qua normalizeLegacyLayout.
+  // Layout: full / masonry / justified / duo / grid3 / grid4.
+  // Layout cũ (grid2, hero, …) được map sang qua normalizeLegacyLayout.
   const layout = normalizeLegacyLayout(b.config?.layout);
   const rounded = !!b.config?.rounded;
   const cap = (b.config?.cap as string | undefined) || "";

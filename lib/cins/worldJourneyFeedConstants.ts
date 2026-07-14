@@ -1,5 +1,11 @@
-/** Số bài render/load mỗi lần trên World Journey feed. */
+/** Số bài render/load mỗi lần trên World Journey feed (timeline). */
 export const WORLD_JOURNEY_FEED_PAGE_SIZE = 12;
+
+/**
+ * Gallery lưới dày hơn timeline (~3–4 cột) — mỗi trang lấy nhiều ô hơn.
+ * 36 ≈ 3× feed page (12).
+ */
+export const WORLD_JOURNEY_GALLERY_PAGE_SIZE = 36;
 
 /** Prefetch thêm trước viewport (px) — sentinel IntersectionObserver. */
 export const WORLD_JOURNEY_FEED_SCROLL_ROOT_MARGIN = "720px 0px";

@@ -2171,6 +2171,7 @@
 
 /* Readonly — bỏ khe 3px editor giữa các ô ảnh / album (editor.css load sau journey). */
 .cins-editor-page.cins-post-view .blocks-readonly .b-imgs-ro .imgwrap.full,
+.cins-editor-page.cins-post-view .blocks-readonly .b-imgs-ro .imgwrap.inset,
 .cins-editor-page.cins-post-view .blocks-readonly .b-imgs-ro .imgwrap.duo,
 .cins-editor-page.cins-post-view .blocks-readonly .b-imgs-ro .imgwrap.grid2,
 .cins-editor-page.cins-post-view .blocks-readonly .b-imgs-ro .imgwrap.grid3,
@@ -2296,6 +2297,25 @@
   aspect-ratio: 16 / 9;
   width: 100%;
 }
+/* Đồng bộ tỉ lệ editor / feed card — HUD game/scene không bị cắt trên 16:9. */
+.cins-post-view .b-embed-ro.is-iframe[data-provider="sketchfab"],
+.cins-post-view .b-embed-ro.is-iframe[data-provider="rive"],
+.cins-post-view .b-embed-ro.is-iframe[data-provider="spline"],
+.cins-post-view .b-embed-ro.is-iframe[data-provider="playcanvas"],
+.cins-post-view .b-embed-ro.is-iframe[data-provider="lottie"],
+.cins-post-view .b-embed-ro.is-iframe[data-provider="canva"] {
+  aspect-ratio: 4 / 3;
+}
+.cins-post-view .b-embed-ro.is-iframe[data-provider="figma"],
+.cins-post-view .b-embed-ro.is-iframe[data-provider="framer"],
+.cins-post-view .b-embed-ro.is-iframe[data-provider="codepen"] {
+  aspect-ratio: 16 / 10;
+}
+.cins-post-view .b-embed-ro.is-iframe[data-provider="soundcloud"] {
+  aspect-ratio: auto;
+  height: 166px;
+  max-height: 166px;
+}
 /* Ghi đè `.cins-editor-page .b-embed` (flex + padding editor) trên trang xem. */
 .cins-editor-page.cins-post-view .b-embed.b-embed-ro.is-iframe {
   display: block;
@@ -2311,6 +2331,19 @@
   height: 100%;
   display: block;
   border: 0;
+}
+.cins-post-view .b-embed-ro.is-iframe .jcard-pc-scale {
+  position: absolute;
+  inset: 0;
+}
+.cins-post-view .b-embed-ro.is-iframe .jcard-pc-scale-stage > iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.cins-post-view .b-embed-ro.is-iframe .jcard-pc-fs-btn {
+  z-index: 5;
 }
 .cins-post-view .b-embed-ro.is-native-video {
   display: block;

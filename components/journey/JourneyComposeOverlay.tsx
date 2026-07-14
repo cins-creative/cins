@@ -15,7 +15,7 @@ import "@/app/[slug]/journey/journey.css";
 import "@/app/[slug]/journey/image-grid.css";
 import "@/app/[slug]/p/new/editor.css";
 
-import type { EditorInitial } from "@/components/editor/EditorView";
+import type { EditorInitial } from "@/lib/editor/editor-initial";
 import type { CongDongComposeConfig } from "@/lib/cong-dong/types";
 import type { OrgBaiDangComposeConfig } from "@/lib/truong/org-bai-dang-compose";
 import { readTruongInlineError, truongInlineFetch } from "@/lib/truong/inline-api";
@@ -208,9 +208,24 @@ export function JourneyComposeOverlay({
           }>;
         })
       : fetch(
-          `/api/journey/${encodeURIComponent(ownerSlug)}/p/${encodeURIComponent(compose.postSlug)}/edit`,
+          `/api/journey/${encodeURIComponent(ownerSlug)}/edit/${encodeURIComponent(compose.postSlug)}`,
         ).then(async (res) => {
-          if (!res.ok) throw new Error("load failed");
+          if (!res.ok) {
+            let detail = "";
+            try {
+              const body = (await res.json()) as { error?: string };
+              if (body.error === "Unauthorized") {
+                detail = " Cần đăng nhập lại.";
+              } else if (body.error === "Forbidden") {
+                detail = " Bạn không có quyền sửa bài này.";
+              } else if (body.error) {
+                detail = ` (${body.error})`;
+              }
+            } catch {
+              /* ignore non-JSON */
+            }
+            throw new Error(`load failed${detail}`);
+          }
           return res.json() as Promise<{
             initial: EditorInitial;
             postSlug: string;
@@ -224,9 +239,17 @@ export function JourneyComposeOverlay({
         setEditPostSlug(data.postSlug);
         setEditLoading(false);
       })
-      .catch(() => {
+      .catch((err: unknown) => {
         if (cancelled) return;
-        setEditError("Không tải được bài viết để chỉnh sửa.");
+        const extra =
+          err instanceof Error && err.message.startsWith("load failed")
+            ? err.message.slice("load failed".length).trim()
+            : "";
+        setEditError(
+          extra
+            ? `Không tải được bài viết để chỉnh sửa.${extra.startsWith("(") ? ` ${extra}` : extra}`
+            : "Không tải được bài viết để chỉnh sửa.",
+        );
         setEditLoading(false);
       });
 

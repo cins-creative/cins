@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  AlertTriangle,
   Archive,
   Check,
   ChevronDown,
@@ -65,7 +66,56 @@ type ProjectRow = {
   lastAt: string;
   idle: boolean;
   memberCount: number;
+  avatarUrl?: string | null;
 };
+
+function ProjectListMark({
+  name,
+  avatarUrl,
+  muted = false,
+  editable = false,
+  onEditClick,
+}: {
+  name: string;
+  avatarUrl?: string | null;
+  muted?: boolean;
+  editable?: boolean;
+  onEditClick?: () => void;
+}) {
+  const content = avatarUrl ? (
+    <>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={avatarUrl} alt="" />
+    </>
+  ) : (
+    <span aria-hidden>#</span>
+  );
+
+  const className = `cins-chat-project-card-mark${avatarUrl ? " has-image" : " is-hash"}${muted ? " is-muted" : ""}`;
+
+  if (editable && onEditClick) {
+    return (
+      <button
+        type="button"
+        className={className}
+        title={`Đổi ảnh project · ${name}`}
+        aria-label={`Đổi ảnh project ${name}`}
+        onClick={(e) => {
+          e.stopPropagation();
+          onEditClick();
+        }}
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return (
+    <span className={className} aria-hidden>
+      {content}
+    </span>
+  );
+}
 
 type Props = {
   open: boolean;
@@ -75,10 +125,14 @@ type Props = {
   memberAvatars?: ChatGroupMemberAvatar[];
   /** false nếu đây đã là phòng project con. */
   canHaveProjects?: boolean;
+  /** Tab mở khi modal mount (vd. «Tạo project» từ menu thread). */
+  initialSection?: ManageSection;
+  /** Mở luôn bước xác nhận xóa nhóm chính (vd. từ menu thread). */
+  initialDeleteConfirm?: boolean;
   onClose: () => void;
   onThreadUpdated: (thread: ChatThread) => void;
   onLeaveGroup: () => void;
-  onDeleteGroup?: () => void;
+  onDeleteGroup?: () => void | Promise<void>;
   onOpenProject?: (thread: ChatThread) => void;
 };
 
@@ -121,6 +175,8 @@ export function ChatGroupManageModal({
   avatarUrl = null,
   memberAvatars = [],
   canHaveProjects = true,
+  initialSection = "thong_tin",
+  initialDeleteConfirm = false,
   onClose,
   onThreadUpdated,
   onLeaveGroup,
@@ -128,8 +184,12 @@ export function ChatGroupManageModal({
   onOpenProject,
 }: Props) {
   const titleId = useId();
+  const deleteTitleId = useId();
+  const deleteNameInputId = useId();
   const avatarInputRef = useRef<HTMLInputElement>(null);
-  const [section, setSection] = useState<ManageSection>("thong_tin");
+  const projectAvatarInputRef = useRef<HTMLInputElement>(null);
+  const projectAvatarTargetRef = useRef<string | null>(null);
+  const [section, setSection] = useState<ManageSection>(initialSection);
   const [members, setMembers] = useState<ChatGroupMember[]>([]);
   const [joinRequests, setJoinRequests] = useState<ChatGroupJoinRequest[]>([]);
   const [isGroupAdmin, setIsGroupAdmin] = useState(false);
@@ -148,6 +208,8 @@ export function ChatGroupManageModal({
   const [friendQuery, setFriendQuery] = useState("");
   const [loadingFriends, setLoadingFriends] = useState(false);
   const [addFriendsOpen, setAddFriendsOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteNameDraft, setDeleteNameDraft] = useState("");
   const [pending, startTransition] = useTransition();
 
   const mosaicMembers = useMemo(() => {
@@ -251,7 +313,11 @@ export function ChatGroupManageModal({
 
   useEffect(() => {
     if (!open) return;
-    setSection("thong_tin");
+    const nextSection =
+      initialSection === "project" && !canHaveProjects
+        ? "thong_tin"
+        : initialSection;
+    setSection(nextSection);
     setFriendQuery("");
     setAddFriendsOpen(false);
     setCopied(false);
@@ -260,7 +326,19 @@ export function ChatGroupManageModal({
     setShowHistory(false);
     void loadMembers();
     void loadProjects();
-  }, [open, loadMembers, loadProjects]);
+  }, [open, loadMembers, loadProjects, initialSection, canHaveProjects]);
+
+  useEffect(() => {
+    if (!open) {
+      setDeleteConfirmOpen(false);
+      setDeleteNameDraft("");
+      return;
+    }
+    if (initialDeleteConfirm && canHaveProjects) {
+      setDeleteConfirmOpen(true);
+      setDeleteNameDraft("");
+    }
+  }, [open, roomId, initialDeleteConfirm, canHaveProjects]);
 
   useEffect(() => {
     if (section !== "thanh_vien") setAddFriendsOpen(false);
@@ -291,11 +369,18 @@ export function ChatGroupManageModal({
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key !== "Escape") return;
+      if (deleteConfirmOpen) {
+        e.preventDefault();
+        setDeleteConfirmOpen(false);
+        setDeleteNameDraft("");
+        return;
+      }
+      onClose();
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
+  }, [open, onClose, deleteConfirmOpen]);
 
   const memberIdSet = useMemo(
     () => new Set(members.map((m) => m.userId)),
@@ -434,6 +519,69 @@ export function ChatGroupManageModal({
       onThreadUpdated(json.thread);
     });
   }, [isGroupAdmin, onThreadUpdated, pending, roomId]);
+
+  const pickProjectAvatar = useCallback((projectRoomId: string) => {
+    if (!isGroupAdmin || pending) return;
+    projectAvatarTargetRef.current = projectRoomId;
+    projectAvatarInputRef.current?.click();
+  }, [isGroupAdmin, pending]);
+
+  const handleProjectAvatarFile = useCallback(
+    async (event: ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      event.target.value = "";
+      const targetRoomId = projectAvatarTargetRef.current;
+      projectAvatarTargetRef.current = null;
+      if (!file || !isGroupAdmin || !targetRoomId) return;
+      if (!isAllowedUploadImageFile(file)) {
+        setError("Chỉ nhận ảnh JPEG, PNG, WebP hoặc GIF.");
+        return;
+      }
+
+      setUploadingAvatar(true);
+      setError(null);
+      try {
+        const form = new FormData();
+        form.append("file", file);
+        const uploadRes = await fetch("/api/avatar/upload", {
+          method: "POST",
+          body: form,
+        });
+        const uploadJson = (await uploadRes.json()) as {
+          imageId?: string;
+          error?: string;
+        };
+        if (!uploadRes.ok || !uploadJson.imageId) {
+          throw new Error(uploadJson.error ?? "Upload thất bại.");
+        }
+
+        const patchRes = await fetch(`/api/chat/rooms/${targetRoomId}/avatar`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ avatarId: uploadJson.imageId }),
+        });
+        const patchJson = (await patchRes.json()) as {
+          thread?: ChatThread;
+          error?: string;
+        };
+        if (!patchRes.ok || !patchJson.thread) {
+          throw new Error(patchJson.error ?? "Không lưu được ảnh project.");
+        }
+        const nextUrl = patchJson.thread.avatarUrl ?? null;
+        setProjects((prev) =>
+          prev.map((p) =>
+            p.roomId === targetRoomId ? { ...p, avatarUrl: nextUrl } : p,
+          ),
+        );
+        onThreadUpdated(patchJson.thread);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Không đổi được ảnh project.");
+      } finally {
+        setUploadingAvatar(false);
+      }
+    },
+    [isGroupAdmin, onThreadUpdated],
+  );
 
   const copyInvite = useCallback(async () => {
     if (!inviteUrl) return;
@@ -667,6 +815,28 @@ export function ChatGroupManageModal({
     [projects],
   );
 
+  const deleteExpectedName = (tenPhong.trim() || threadName.trim());
+  const deleteNameMatches =
+    deleteExpectedName.length > 0 &&
+    deleteNameDraft.trim() === deleteExpectedName;
+
+  const openDeleteConfirm = () => {
+    if (!onDeleteGroup || pending) return;
+    if (canHaveProjects) {
+      setDeleteNameDraft("");
+      setDeleteConfirmOpen(true);
+      return;
+    }
+    onDeleteGroup();
+  };
+
+  const confirmDeleteGroup = () => {
+    if (!onDeleteGroup || pending || !deleteNameMatches) return;
+    startTransition(async () => {
+      await onDeleteGroup();
+    });
+  };
+
   if (!open) return null;
 
   return (
@@ -875,7 +1045,7 @@ export function ChatGroupManageModal({
                   type="button"
                   className="cins-chat-group-danger"
                   disabled={pending}
-                  onClick={onDeleteGroup}
+                  onClick={openDeleteConfirm}
                 >
                   Xóa nhóm chat
                 </button>
@@ -911,6 +1081,7 @@ export function ChatGroupManageModal({
                     disabled={pending}
                     placeholder="VD. Spot TVC tháng 8"
                     aria-label="Tên project"
+                    autoFocus
                     onChange={(e) => setProjectName(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
@@ -940,6 +1111,18 @@ export function ChatGroupManageModal({
               </p>
             )}
 
+            {isGroupAdmin ? (
+              <input
+                ref={projectAvatarInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                className="cins-chat-sr-only"
+                tabIndex={-1}
+                aria-hidden
+                onChange={(e) => void handleProjectAvatarFile(e)}
+              />
+            ) : null}
+
             <div className="cins-chat-project-section">
               <div className="cins-chat-project-section-head">
                 <span>Đang mở</span>
@@ -951,7 +1134,12 @@ export function ChatGroupManageModal({
                   {activeProjects.map((project) => (
                     <li key={project.roomId} className="cins-chat-project-card">
                       <div className="cins-chat-project-card-main">
-                        <span className="cins-chat-project-card-mark" aria-hidden />
+                        <ProjectListMark
+                          name={project.name}
+                          avatarUrl={project.avatarUrl}
+                          editable={isGroupAdmin && !pending && !uploadingAvatar}
+                          onEditClick={() => pickProjectAvatar(project.roomId)}
+                        />
                         <div className="cins-chat-project-card-meta">
                           <strong>{project.name}</strong>
                           <span>
@@ -1006,9 +1194,12 @@ export function ChatGroupManageModal({
                         className="cins-chat-project-card is-archived"
                       >
                         <div className="cins-chat-project-card-main">
-                          <span
-                            className="cins-chat-project-card-mark is-muted"
-                            aria-hidden
+                          <ProjectListMark
+                            name={project.name}
+                            avatarUrl={project.avatarUrl}
+                            muted
+                            editable={isGroupAdmin && !pending && !uploadingAvatar}
+                            onEditClick={() => pickProjectAvatar(project.roomId)}
                           />
                           <div className="cins-chat-project-card-meta">
                             <strong>{project.name}</strong>
@@ -1253,6 +1444,70 @@ export function ChatGroupManageModal({
             )}
           </div>
         )}
+
+        {deleteConfirmOpen ? (
+          <div
+            className="cins-chat-group-delete-confirm"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby={deleteTitleId}
+            aria-describedby={`${deleteTitleId}-desc`}
+          >
+            <span className="cins-chat-group-delete-confirm-icon" aria-hidden>
+              <AlertTriangle size={22} strokeWidth={2} />
+            </span>
+            <h4 id={deleteTitleId}>Xóa nhóm chat vĩnh viễn?</h4>
+            <p id={`${deleteTitleId}-desc`}>
+              Không thể khôi phục. Mọi tin nhắn, project và thành viên trong
+              nhóm <strong>{deleteExpectedName || threadName}</strong> sẽ mất
+              hết.
+            </p>
+            <label
+              className="cins-chat-group-delete-confirm-label"
+              htmlFor={deleteNameInputId}
+            >
+              Nhập đúng tên nhóm để xác nhận
+            </label>
+            <input
+              id={deleteNameInputId}
+              type="text"
+              autoFocus
+              autoComplete="off"
+              spellCheck={false}
+              disabled={pending}
+              placeholder={deleteExpectedName || "Tên nhóm"}
+              value={deleteNameDraft}
+              onChange={(e) => setDeleteNameDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  confirmDeleteGroup();
+                }
+              }}
+            />
+            <div className="cins-chat-group-delete-confirm-actions">
+              <button
+                type="button"
+                className="cins-chat-group-cancel"
+                disabled={pending}
+                onClick={() => {
+                  setDeleteConfirmOpen(false);
+                  setDeleteNameDraft("");
+                }}
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                className="cins-chat-group-danger is-solid"
+                disabled={pending || !deleteNameMatches}
+                onClick={confirmDeleteGroup}
+              >
+                {pending ? "Đang xóa…" : "Xóa vĩnh viễn"}
+              </button>
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   );

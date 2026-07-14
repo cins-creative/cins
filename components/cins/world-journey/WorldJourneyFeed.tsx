@@ -5,10 +5,13 @@ import {
   Building2,
   Check,
   ChevronDown,
+  ChevronLeft,
+  Code2,
   FileText,
   Globe,
   Image as ImageIcon,
   LayoutGrid,
+  Search,
   Sparkles,
   User,
   Users,
@@ -32,14 +35,27 @@ import { BunnyVideoProcessingPoller } from "@/components/journey/BunnyVideoProce
 import { JourneyGalleryGridView } from "@/components/journey/JourneyGalleryGridView";
 import type { SidebarProfile } from "@/components/journey/JourneySidebar";
 import { JourneyViewProvider } from "@/components/journey/JourneyViewContext";
+import { OrgNotifyFabHost } from "@/components/org/OrgNotifyFab";
 import {
+  buildWorldJourneyFeedQuery,
   findWorldJourneyFilterChip,
+  parseWorldJourneyEmbedFilterPlatforms,
+  toggleWorldJourneyEmbedFilterPlatform,
+  worldJourneyEmbedFilterId,
   worldJourneyMilestoneMatchesFilter,
   worldJourneyMilestoneMatchesLinhVuc,
   WORLD_JOURNEY_SORT_OPTIONS,
   type WjFilterChip,
 } from "@/lib/cins/worldJourneyFeedFilters";
-import { WORLD_JOURNEY_FEED_PAGE_SIZE } from "@/lib/cins/worldJourneyFeedConstants";
+import {
+  EMBED_PLATFORM_GROUPS,
+  getTier1PlatformsByGroup,
+} from "@/lib/editor/embed-providers";
+import { EMBED_PLATFORM_LOGO } from "@/lib/editor/embed-platform-logos";
+import {
+  WORLD_JOURNEY_FEED_PAGE_SIZE,
+  WORLD_JOURNEY_GALLERY_PAGE_SIZE,
+} from "@/lib/cins/worldJourneyFeedConstants";
 import { sortWorldJourneyMilestones } from "@/lib/cins/worldJourneyFeedSort";
 import {
   FEED_SOURCE_CHANGE_EVENT,
@@ -68,6 +84,7 @@ import "@/app/[slug]/journey/journey.css";
 /* Inline unfold + bình luận dùng `.cins-post-view` — cùng CSS với journey layout / modal. */
 import "@/app/[slug]/p/new/editor.css";
 import "@/app/[slug]/p/[postSlug]/post-page.css";
+import "@/app/org-notify-fab.css";
 import "@/app/world-journey-feed.css";
 
 type FeedSurfaceView = "journey" | "gallery";
@@ -150,6 +167,7 @@ function WorldJourneyFilterBar({
   const filterRef = useRef<HTMLDivElement>(null);
   const sourceRef = useRef<HTMLDivElement>(null);
   const [filterOpen, setFilterOpen] = useState(false);
+  const [filterPanel, setFilterPanel] = useState<"main" | "embed">("main");
   const [sourceOpen, setSourceOpen] = useState(false);
   const isGallery = surfaceView === "gallery";
 
@@ -163,7 +181,10 @@ function WorldJourneyFilterBar({
   }, [sortOpen, onSortOpen]);
 
   useEffect(() => {
-    if (!filterOpen) return;
+    if (!filterOpen) {
+      setFilterPanel("main");
+      return;
+    }
     const onDoc = (e: MouseEvent) => {
       if (!filterRef.current?.contains(e.target as Node)) setFilterOpen(false);
     };
@@ -180,7 +201,12 @@ function WorldJourneyFilterBar({
     return () => document.removeEventListener("mousedown", onDoc);
   }, [sourceOpen]);
 
-  const activeChip = chips.find((c) => c.id === activeFilter) ?? chips[0];
+  const activeChip =
+    findWorldJourneyFilterChip(chips, activeFilter) ?? chips[0];
+  const isEmbedFilterActive =
+    activeFilter === "embed" || activeFilter.startsWith("embed:");
+  const selectedEmbedPlatforms =
+    parseWorldJourneyEmbedFilterPlatforms(activeFilter) ?? [];
   const activeSource =
     FEED_SOURCE_OPTIONS.find((o) => o.value === feedSource) ??
     FEED_SOURCE_OPTIONS[0];
@@ -196,6 +222,8 @@ function WorldJourneyFilterBar({
         return <Video {...props} />;
       case "file-text":
         return <FileText {...props} />;
+      case "code-2":
+        return <Code2 {...props} />;
       default:
         return null;
     }
@@ -234,55 +262,174 @@ function WorldJourneyFilterBar({
               >
                 {feedSourceIcon(opt.icon)}
                 <span>{opt.label}</span>
-                <Check size={13} />
+                <Check className="wj-filter-check" size={13} />
               </button>
             ))}
           </div>
         ) : null}
       </div>
-      {!isGallery ? (
-        <div className="wj-filter-wrap" ref={filterRef}>
-          <button
-            type="button"
-            className="wj-filter-btn"
-            aria-haspopup="menu"
-            aria-expanded={filterOpen}
-            onClick={(e) => {
-              e.stopPropagation();
-              setFilterOpen((v) => !v);
-            }}
+      <div className="wj-filter-wrap" ref={filterRef}>
+        <button
+          type="button"
+          className="wj-filter-btn"
+          aria-haspopup="menu"
+          aria-expanded={filterOpen}
+          onClick={(e) => {
+            e.stopPropagation();
+            setFilterOpen((v) => {
+              if (v) setFilterPanel("main");
+              return !v;
+            });
+          }}
+        >
+          {chipIcon(activeChip.icon)}
+          <span className="wj-filter-val">{activeChip.label}</span>
+          <ChevronDown size={13} />
+        </button>
+        {filterOpen ? (
+          <div
+            className={
+              "wj-filter-pop" +
+              (filterPanel === "embed" ? " is-embed-panel" : "")
+            }
+            role="menu"
+            aria-label={
+              filterPanel === "embed"
+                ? "Lọc theo nền tảng nhúng"
+                : "Lọc loại nội dung"
+            }
           >
-            {chipIcon(activeChip.icon)}
-            <span className="wj-filter-val">{activeChip.label}</span>
-            <ChevronDown size={13} />
-          </button>
-          {filterOpen ? (
-            <div className="wj-filter-pop" role="menu">
-              {chips.map((chip) => (
+            {filterPanel === "embed" ? (
+              <>
+                <div className="wj-filter-embed-head">
+                  <button
+                    type="button"
+                    className="wj-filter-embed-back"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setFilterPanel("main");
+                    }}
+                  >
+                    <ChevronLeft size={14} strokeWidth={2.2} aria-hidden />
+                    Loại
+                  </button>
+                  <span className="wj-filter-embed-head-title">Nhúng</span>
+                </div>
                 <button
-                  key={chip.id}
                   type="button"
-                  className={activeFilter === chip.id ? "sel" : undefined}
-                  role="menuitem"
+                  className={
+                    isEmbedFilterActive && selectedEmbedPlatforms.length === 0
+                      ? "sel"
+                      : undefined
+                  }
+                  role="menuitemcheckbox"
+                  aria-checked={
+                    isEmbedFilterActive && selectedEmbedPlatforms.length === 0
+                  }
                   onClick={(e) => {
                     e.stopPropagation();
-                    onFilter(chip.id);
-                    setFilterOpen(false);
+                    onFilter(worldJourneyEmbedFilterId(null));
                   }}
                 >
-                  {chipIcon(chip.icon)}
-                  <span>{chip.label}</span>
-                  <Check size={13} />
+                  <Code2 size={13} strokeWidth={2} aria-hidden />
+                  <span>Tất cả nền tảng</span>
+                  <Check className="wj-filter-check" size={13} />
                 </button>
-              ))}
-            </div>
-          ) : null}
-        </div>
-      ) : (
-        <div className="wj-gallery-header-label">
-          Gallery · Nổi bật &amp; Showcase
-        </div>
-      )}
+                {EMBED_PLATFORM_GROUPS.map((group) => {
+                  const platforms = getTier1PlatformsByGroup(group.id);
+                  if (!platforms.length) return null;
+                  return (
+                    <div key={group.id} className="wj-filter-embed-group">
+                      <div className="wj-filter-embed-group-label">
+                        {group.label}
+                      </div>
+                      {platforms.map((platform) => {
+                        const selected =
+                          selectedEmbedPlatforms.includes(platform.id);
+                        return (
+                          <button
+                            key={platform.id}
+                            type="button"
+                            className={selected ? "sel" : undefined}
+                            role="menuitemcheckbox"
+                            aria-checked={selected}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onFilter(
+                                toggleWorldJourneyEmbedFilterPlatform(
+                                  isEmbedFilterActive
+                                    ? activeFilter
+                                    : "embed",
+                                  platform.id,
+                                ),
+                              );
+                            }}
+                          >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              className="wj-filter-embed-logo"
+                              src={EMBED_PLATFORM_LOGO[platform.id]}
+                              alt=""
+                              width={16}
+                              height={16}
+                              loading="lazy"
+                              decoding="async"
+                            />
+                            <span>{platform.label}</span>
+                            <Check className="wj-filter-check" size={13} />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+              </>
+            ) : (
+              chips.map((chip) => {
+                if (chip.kind === "embed") {
+                  return (
+                    <button
+                      key={chip.id}
+                      type="button"
+                      className={isEmbedFilterActive ? "sel" : undefined}
+                      role="menuitem"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (!isEmbedFilterActive) {
+                          onFilter(worldJourneyEmbedFilterId(null));
+                        }
+                        setFilterPanel("embed");
+                      }}
+                    >
+                      {chipIcon(chip.icon)}
+                      <span>{chip.label}</span>
+                      <Check className="wj-filter-check" size={13} />
+                    </button>
+                  );
+                }
+
+                return (
+                  <button
+                    key={chip.id}
+                    type="button"
+                    className={activeFilter === chip.id ? "sel" : undefined}
+                    role="menuitem"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onFilter(chip.id);
+                      setFilterOpen(false);
+                    }}
+                  >
+                    {chipIcon(chip.icon)}
+                    <span>{chip.label}</span>
+                    <Check className="wj-filter-check" size={13} />
+                  </button>
+                );
+              })
+            )}
+          </div>
+        ) : null}
+      </div>
       <span className="wj-filter-spacer" />
       {!isGallery ? (
         <div className="wj-sort-wrap" ref={sortRef}>
@@ -316,34 +463,78 @@ function WorldJourneyFilterBar({
                   }}
                 >
                   {opt}
-                  <Check size={13} />
+                  <Check className="wj-filter-check" size={13} />
                 </button>
               ))}
             </div>
           ) : null}
         </div>
       ) : null}
-      <div className="wj-view-toggle" role="group" aria-label="Chế độ xem">
-        <button
-          type="button"
-          className={`wj-vt-btn${surfaceView === "journey" ? " active" : ""}`}
-          aria-label="Dòng thời gian"
-          aria-pressed={surfaceView === "journey"}
-          title="Dòng thời gian"
-          onClick={() => onSurfaceView("journey")}
-        >
-          <Waypoints size={15} strokeWidth={2} aria-hidden />
-        </button>
-        <button
-          type="button"
-          className={`wj-vt-btn${surfaceView === "gallery" ? " active" : ""}`}
-          aria-label="Gallery"
-          aria-pressed={surfaceView === "gallery"}
-          title="Gallery"
-          onClick={() => onSurfaceView("gallery")}
-        >
-          <LayoutGrid size={15} strokeWidth={2} aria-hidden />
-        </button>
+      <div className="wj-filter-trail">
+        {/* Mobile/tablet: briefcase + lịch portal vào các slot này. */}
+        <OrgNotifyFabHost slot="jobs" className="wj-notify-fab-host" />
+        <OrgNotifyFabHost slot="notify" className="wj-notify-fab-host" />
+        <div className="wj-view-toggle" role="group" aria-label="Chế độ xem">
+          <button
+            type="button"
+            className={`wj-vt-btn${surfaceView === "journey" ? " active" : ""}`}
+            aria-label="Dòng thời gian"
+            aria-pressed={surfaceView === "journey"}
+            title="Dòng thời gian"
+            onClick={() => onSurfaceView("journey")}
+          >
+            <Waypoints size={15} strokeWidth={2} aria-hidden />
+          </button>
+          <button
+            type="button"
+            className={`wj-vt-btn${surfaceView === "gallery" ? " active" : ""}`}
+            aria-label="Gallery"
+            aria-pressed={surfaceView === "gallery"}
+            title="Gallery"
+            onClick={() => onSurfaceView("gallery")}
+          >
+            <LayoutGrid size={15} strokeWidth={2} aria-hidden />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function WorldJourneyFilterSearching({
+  surface,
+}: {
+  surface: "gallery" | "feed";
+}) {
+  const isGallery = surface === "gallery";
+  return (
+    <div
+      className="wj-feed-empty wj-feed-searching"
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
+    >
+      <div className="wj-feed-searching-visual" aria-hidden>
+        <div className="wj-feed-searching-grid">
+          {Array.from({ length: 9 }, (_, i) => (
+            <span key={i} style={{ animationDelay: `${i * 90}ms` }} />
+          ))}
+        </div>
+        <div className="wj-feed-searching-lens">
+          <Search size={18} strokeWidth={2.2} />
+          <span className="wj-feed-searching-beam" />
+        </div>
+      </div>
+      <b>{isGallery ? "Đang tìm gallery theo bộ lọc…" : "Đang tìm theo bộ lọc…"}</b>
+      <p>
+        {isGallery
+          ? "Đang query lại các ô khớp bộ lọc đã chọn."
+          : "Đang query lại feed khớp bộ lọc đã chọn."}
+      </p>
+      <div className="wj-feed-searching-dots" aria-hidden>
+        <span />
+        <span />
+        <span />
       </div>
     </div>
   );
@@ -394,9 +585,25 @@ export function WorldJourneyFeed({
   const [feedMilestones, setFeedMilestones] = useState(milestones);
   const [hasMore, setHasMore] = useState(feedHasMore);
   const [nextOffset, setNextOffset] = useState(feedNextOffset);
+  const [galleryRows, setGalleryRows] = useState(galleryItems);
+  const [galleryMore, setGalleryMore] = useState(galleryHasMore);
+  const [galleryOffset, setGalleryOffset] = useState(galleryNextOffset);
   const [loadingMore, setLoadingMore] = useState(false);
   const [loadError, setLoadError] = useState(false);
+  const [filterLoading, setFilterLoading] = useState(false);
   const loadingMoreRef = useRef(false);
+  const hasMoreRef = useRef(feedHasMore);
+  const nextOffsetRef = useRef(feedNextOffset);
+  const filterQueryEpochRef = useRef(0);
+  const skipInitialFilterFetchRef = useRef(true);
+
+  useEffect(() => {
+    hasMoreRef.current = hasMore;
+  }, [hasMore]);
+
+  useEffect(() => {
+    nextOffsetRef.current = nextOffset;
+  }, [nextOffset]);
 
   const handleSurfaceView = useCallback((next: FeedSurfaceView) => {
     setSurfaceView(next);
@@ -436,10 +643,35 @@ export function WorldJourneyFeed({
   }, [handleSurfaceView]);
 
   useEffect(() => {
+    /* Không ghi đè kết quả query filter bằng props SSR trang đầu. */
+    if (
+      filterLoading ||
+      activeFilter !== "all" ||
+      activeLinhVucSlug ||
+      feedSource !== "all"
+    ) {
+      return;
+    }
     setFeedMilestones(milestones);
     setHasMore(feedHasMore);
     setNextOffset(feedNextOffset);
-  }, [milestones, feedHasMore, feedNextOffset]);
+    hasMoreRef.current = feedHasMore;
+    nextOffsetRef.current = feedNextOffset;
+    setGalleryRows(galleryItems);
+    setGalleryMore(galleryHasMore);
+    setGalleryOffset(galleryNextOffset);
+  }, [
+    milestones,
+    feedHasMore,
+    feedNextOffset,
+    galleryItems,
+    galleryHasMore,
+    galleryNextOffset,
+    filterLoading,
+    activeFilter,
+    activeLinhVucSlug,
+    feedSource,
+  ]);
 
   useEffect(() => {
     const onComposePublished = (event: Event) => {
@@ -461,6 +693,7 @@ export function WorldJourneyFeed({
       new Set(feedMilestones.filter((m) => m.feedExplore).map((m) => m.id)),
     [feedMilestones],
   );
+  /* Server đã lọc theo filter/source/linhVuc; client chỉ sort + giữ an toàn cho bài compose vừa đăng. */
   const visibleMilestones = useMemo(() => {
     const filtered = feedMilestones.filter(
       (milestone) =>
@@ -484,14 +717,28 @@ export function WorldJourneyFeed({
     viewerProfileId,
   ]);
 
+  const feedQueryParams = useCallback(
+    (offset: number, limit = WORLD_JOURNEY_FEED_PAGE_SIZE) =>
+      buildWorldJourneyFeedQuery({
+        offset,
+        limit,
+        filter: activeFilter,
+        source: feedSource,
+        linhVuc: activeLinhVucSlug,
+      }),
+    [activeFilter, feedSource, activeLinhVucSlug],
+  );
+
   const loadMore = useCallback(async () => {
-    if (loadingMoreRef.current || !hasMore) return;
+    if (loadingMoreRef.current || !hasMoreRef.current || filterLoading) {
+      return false;
+    }
     loadingMoreRef.current = true;
     setLoadingMore(true);
     setLoadError(false);
     try {
       const res = await fetch(
-        `/api/world-journey/feed?offset=${nextOffset}&limit=${WORLD_JOURNEY_FEED_PAGE_SIZE}`,
+        `/api/world-journey/feed?${feedQueryParams(nextOffsetRef.current)}`,
       );
       if (!res.ok) throw new Error("load failed");
       const data = (await res.json()) as {
@@ -504,15 +751,96 @@ export function WorldJourneyFeed({
         const extra = data.milestones.filter((m) => !seen.has(m.id));
         return [...prev, ...extra];
       });
+      hasMoreRef.current = data.hasMore;
+      nextOffsetRef.current = data.nextOffset;
       setHasMore(data.hasMore);
       setNextOffset(data.nextOffset);
+      return data.hasMore;
     } catch {
       setLoadError(true);
+      return false;
     } finally {
       loadingMoreRef.current = false;
       setLoadingMore(false);
     }
-  }, [hasMore, nextOffset]);
+  }, [feedQueryParams, filterLoading]);
+
+  /** Đổi bộ lọc → query lại feed + gallery từ offset 0. */
+  useEffect(() => {
+    if (skipInitialFilterFetchRef.current) {
+      skipInitialFilterFetchRef.current = false;
+      return;
+    }
+
+    const epoch = ++filterQueryEpochRef.current;
+    let cancelled = false;
+
+    (async () => {
+      setFilterLoading(true);
+      setLoadError(false);
+      loadingMoreRef.current = false;
+      try {
+        const feedQs = buildWorldJourneyFeedQuery({
+          offset: 0,
+          limit: WORLD_JOURNEY_FEED_PAGE_SIZE,
+          filter: activeFilter,
+          source: feedSource,
+          linhVuc: activeLinhVucSlug,
+        });
+        const galleryQs = buildWorldJourneyFeedQuery({
+          offset: 0,
+          limit: WORLD_JOURNEY_GALLERY_PAGE_SIZE,
+          filter: activeFilter,
+          source: feedSource,
+        });
+        const [feedRes, galleryRes] = await Promise.all([
+          fetch(`/api/world-journey/feed?${feedQs}`),
+          fetch(`/api/world-journey/gallery?${galleryQs}`),
+        ]);
+        if (!feedRes.ok || !galleryRes.ok) throw new Error("filter fetch failed");
+        const feedData = (await feedRes.json()) as {
+          milestones: MilestoneItem[];
+          hasMore: boolean;
+          nextOffset: number;
+        };
+        const galleryData = (await galleryRes.json()) as {
+          items: GalleryMainItem[];
+          hasMore: boolean;
+          nextOffset: number;
+        };
+        if (cancelled || epoch !== filterQueryEpochRef.current) return;
+        setFeedMilestones(feedData.milestones);
+        hasMoreRef.current = feedData.hasMore;
+        nextOffsetRef.current = feedData.nextOffset;
+        setHasMore(feedData.hasMore);
+        setNextOffset(feedData.nextOffset);
+        setGalleryRows(galleryData.items);
+        setGalleryMore(galleryData.hasMore);
+        setGalleryOffset(galleryData.nextOffset);
+      } catch {
+        if (!cancelled && epoch === filterQueryEpochRef.current) {
+          setLoadError(true);
+        }
+      } finally {
+        if (!cancelled && epoch === filterQueryEpochRef.current) {
+          setFilterLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeFilter, feedSource, activeLinhVucSlug]);
+
+  const galleryEndpoint = useMemo(() => {
+    const qs = buildWorldJourneyFeedQuery({
+      limit: WORLD_JOURNEY_GALLERY_PAGE_SIZE,
+      filter: activeFilter,
+      source: feedSource,
+    });
+    return `/api/world-journey/gallery?${qs}`;
+  }, [activeFilter, feedSource]);
 
   const isGallery = surfaceView === "gallery";
 
@@ -562,39 +890,71 @@ export function WorldJourneyFeed({
             ) : null}
 
             {isGallery ? (
-              galleryItems.length === 0 && !galleryHasMore ? (
+              filterLoading ? (
+                <WorldJourneyFilterSearching surface="gallery" />
+              ) : galleryRows.length === 0 && !galleryMore ? (
                 <div className="wj-feed-empty">
                   <LayoutGrid size={22} strokeWidth={1.8} aria-hidden />
-                  <b>Gallery đang trống</b>
-                  <p>
-                    Dự án <strong>Nổi bật</strong> của mọi người, bài cộng đồng
-                    có media, và <strong>Showcase</strong> studio sẽ hiện ở đây.
-                  </p>
+                  {activeFilter !== "all" || feedSource !== "all" ? (
+                    <>
+                      <b>Không có ô khớp bộ lọc</b>
+                      <p>
+                        Thử «Tất cả» hoặc «Tất cả nhúng», hoặc đổi lọc nguồn.
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <b>Gallery đang trống</b>
+                      <p>
+                        Dự án <strong>Nổi bật</strong> của mọi người, bài cộng
+                        đồng có media, và <strong>Showcase</strong> studio sẽ
+                        hiện ở đây.
+                      </p>
+                    </>
+                  )}
                 </div>
               ) : (
                 <JourneyGalleryGridView
+                  key={galleryEndpoint}
                   hideToolbar
-                  sourceFilter={feedSource}
-                  initialItems={galleryItems}
-                  totalCount={galleryItems.length}
+                  sourceFilter="all"
+                  initialItems={galleryRows}
+                  totalCount={galleryRows.length}
                   scrollLoad={{
                     ownerSlug: sidebarProfile.slug,
-                    hasMore: galleryHasMore,
-                    nextOffset: galleryNextOffset,
-                    endpoint: "/api/world-journey/gallery",
+                    hasMore: galleryMore,
+                    nextOffset: galleryOffset,
+                    endpoint: galleryEndpoint,
                   }}
                 />
               )
             ) : visibleMilestones.length === 0 ? (
-              <div className="wj-feed-empty">
-                <Sparkles size={22} strokeWidth={1.8} aria-hidden />
-                <b>Feed đang trống</b>
-                <p>
-                  Theo dõi vài người hoặc tổ chức, hoặc khám phá bài{" "}
-                  <strong>Công khai</strong> / <strong>Nổi bật</strong> từ cộng
-                  đồng — tất cả sẽ hiện ở đây.
-                </p>
-              </div>
+              filterLoading || loadingMore ? (
+                <WorldJourneyFilterSearching surface="feed" />
+              ) : (
+                <div className="wj-feed-empty">
+                  <Sparkles size={22} strokeWidth={1.8} aria-hidden />
+                  {activeFilter !== "all" ||
+                  activeLinhVucSlug ||
+                  feedSource !== "all" ? (
+                    <>
+                      <b>Không có bài khớp bộ lọc</b>
+                      <p>
+                        Thử «Tất cả», «Tất cả nhúng», hoặc đổi lọc nguồn nội dung.
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <b>Feed đang trống</b>
+                      <p>
+                        Theo dõi vài người hoặc tổ chức, hoặc khám phá bài{" "}
+                        <strong>Công khai</strong> / <strong>Nổi bật</strong> từ
+                        cộng đồng — tất cả sẽ hiện ở đây.
+                      </p>
+                    </>
+                  )}
+                </div>
+              )
             ) : (
               <WorldJourneyFeedTimeline
                 milestones={visibleMilestones}
@@ -609,7 +969,7 @@ export function WorldJourneyFeed({
 
             {!isGallery && visibleMilestones.length > 0 && !hasMore ? (
               <div className="wj-feed-end">
-                <b>Đã hết feed mới</b>
+                <b>Đã hết nội dung mới</b>
               </div>
             ) : null}
           </div>

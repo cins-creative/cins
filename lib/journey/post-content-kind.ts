@@ -4,6 +4,7 @@ import {
   classifyEmbedUrl,
   type EmbedProviderId,
 } from "@/lib/editor/embed-providers";
+import { embedPlatformLogoSrc } from "@/lib/editor/embed-platform-logos";
 import {
   classifyBunnyVideoUrl,
 } from "@/lib/bunny/embed";
@@ -133,6 +134,16 @@ function embedBlocks(blocks: ReadonlyArray<Block>): Block[] {
   return blocks.filter((b) => b.loai === "embed");
 }
 
+/** URL embed — `config.url` (canonical) hoặc legacy `config.embedUrl`. */
+function blockEmbedUrl(block: Block): string {
+  const cfg = block.config ?? {};
+  if (typeof cfg.url === "string" && cfg.url.trim()) return cfg.url.trim();
+  if (typeof cfg.embedUrl === "string" && cfg.embedUrl.trim()) {
+    return cfg.embedUrl.trim();
+  }
+  return "";
+}
+
 function isBunnyEmbedBlock(block: Block): boolean {
   if (block.loai !== "embed") return false;
   const bunnyId =
@@ -140,15 +151,15 @@ function isBunnyEmbedBlock(block: Block): boolean {
       ? block.config.bunnyVideoId.trim()
       : "";
   if (bunnyId) return true;
-  const url = typeof block.config?.url === "string" ? block.config.url : "";
+  const url = blockEmbedUrl(block);
   return Boolean(url && classifyBunnyVideoUrl(url));
 }
 
 function isInlineIframeEmbedBlock(block: Block): boolean {
   if (block.loai !== "embed") return false;
   if (isBunnyEmbedBlock(block)) return false;
-  const url = typeof block.config?.url === "string" ? block.config.url : "";
-  if (!url.trim()) return false;
+  const url = blockEmbedUrl(block);
+  if (!url) return false;
   const cls = classifyEmbedUrl(url);
   if (!cls || cls.provider === "behance") return false;
   return buildEmbedIframeSrc(cls) !== null;
@@ -156,18 +167,18 @@ function isInlineIframeEmbedBlock(block: Block): boolean {
 
 function isRiveFileEmbedBlock(block: Block): boolean {
   if (block.loai !== "embed") return false;
-  const url = typeof block.config?.url === "string" ? block.config.url : "";
-  if (!url.trim()) return false;
-  const cls = classifyEmbedUrl(url);
-  return cls?.provider === "rive-file";
+  if (block.config?.provider === "rive-file") return true;
+  const url = blockEmbedUrl(block);
+  if (!url) return false;
+  return classifyEmbedUrl(url)?.provider === "rive-file";
 }
 
 function isLottieFileEmbedBlock(block: Block): boolean {
   if (block.loai !== "embed") return false;
-  const url = typeof block.config?.url === "string" ? block.config.url : "";
-  if (!url.trim()) return false;
-  const cls = classifyEmbedUrl(url);
-  return cls?.provider === "lottie-file";
+  if (block.config?.provider === "lottie-file") return true;
+  const url = blockEmbedUrl(block);
+  if (!url) return false;
+  return classifyEmbedUrl(url)?.provider === "lottie-file";
 }
 
 function hasInlineIframeEmbed(blocks: ReadonlyArray<Block>): boolean {
@@ -207,20 +218,34 @@ export function hasGalleryEmbedContent(
   return blocks.some(isGalleryEmbedBlock);
 }
 
+function resolveEmbedProviderFromBlock(
+  block: Block,
+): EmbedProviderId | null {
+  if (isRiveFileEmbedBlock(block)) return "rive-file";
+  if (isLottieFileEmbedBlock(block)) return "lottie-file";
+  if (!isInlineIframeEmbedBlock(block)) return null;
+  const cls = classifyEmbedUrl(blockEmbedUrl(block));
+  return cls?.provider ?? null;
+}
+
+/** Mọi provider nhúng Tier 1 / file trên bài — dùng lọc feed theo nền tảng. */
+export function listGalleryEmbedProviders(
+  blocks: ReadonlyArray<Block> | null | undefined,
+): EmbedProviderId[] {
+  if (!blocks?.length) return [];
+  const out: EmbedProviderId[] = [];
+  for (const block of blocks) {
+    const provider = resolveEmbedProviderFromBlock(block);
+    if (provider) out.push(provider);
+  }
+  return out;
+}
+
 /** Provider nhúng đầu tiên — badge logo trên gallery. */
 export function resolveGalleryEmbedProvider(
   blocks: ReadonlyArray<Block> | null | undefined,
 ): EmbedProviderId | null {
-  if (!blocks?.length) return null;
-  for (const block of blocks) {
-    if (isRiveFileEmbedBlock(block)) return "rive-file";
-    if (isLottieFileEmbedBlock(block)) return "lottie-file";
-    if (!isInlineIframeEmbedBlock(block)) continue;
-    const url = typeof block.config?.url === "string" ? block.config.url : "";
-    const cls = classifyEmbedUrl(url);
-    if (cls) return cls.provider;
-  }
-  return null;
+  return listGalleryEmbedProviders(blocks)[0] ?? null;
 }
 
 function inlineIframeEmbedResolution(
@@ -833,7 +858,25 @@ export function resolvePostGridEntry(
       thumbId = coverTrimmed ?? imageIds[0] ?? null;
   }
 
-  if (!thumbId || !isPersistedImageSeed(thumbId)) return null;
+  if (!thumbId || !isPersistedImageSeed(thumbId)) {
+    /* Nhúng không cover — vẫn lên gallery bằng logo nền tảng. */
+    if (embedProvider) {
+      const logo = embedPlatformLogoSrc(embedProvider);
+      if (logo) {
+        return {
+          mediaKind: "embed",
+          embedProvider,
+          coverId: null,
+          coverSrc: logo,
+          videoProcessing: false,
+          videoPreviewSrc: null,
+          videoCanvasRatio: null,
+          videoOrientation: null,
+        };
+      }
+    }
+    return null;
+  }
 
   return {
     mediaKind,

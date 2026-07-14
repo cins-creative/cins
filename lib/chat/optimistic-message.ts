@@ -14,6 +14,7 @@ export function createOptimisticChatMessage(input: {
   imageUrl?: string | null;
   replyTo?: ChatMessageReplyPreview | null;
   sentAt?: string;
+  mentions?: ChatMessage["mentions"];
 }): ChatMessage {
   const kind =
     input.kind ?? (input.imageId ? "media" : "text");
@@ -31,6 +32,7 @@ export function createOptimisticChatMessage(input: {
     imageId,
     imageUrl,
     replyTo: input.replyTo ?? null,
+    mentions: input.mentions,
   };
 }
 
@@ -76,6 +78,13 @@ export function messagePreviewText(message: ChatMessage): string {
   }
   if (message.kind === "sticker") {
     return "Meme";
+  }
+  if (message.kind === "moc_nhac" || message.mocNhac) {
+    return message.body.trim() || `Nhắc mốc: ${message.mocNhac?.ten ?? ""}`;
+  }
+  if (message.kind === "binh_chon" || message.poll) {
+    const q = message.poll?.question?.trim() || message.body.trim();
+    return q ? `Bình chọn: ${q}` : "Bình chọn";
   }
   if (message.kind === "media" || message.imageId) {
     return message.body.trim() || "Ảnh";

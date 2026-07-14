@@ -9,7 +9,7 @@ export async function GET(
   _request: Request,
   context: { params: Params },
 ) {
-  const session = await getCurrentSessionAndProfile();
+  await getCurrentSessionAndProfile();
 
   const { slug, postSlug } = await context.params;
   const res = await fetchPostBySlug(slug, postSlug);

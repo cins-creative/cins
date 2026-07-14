@@ -267,11 +267,15 @@ function packMasonryColumns(cells: AlbumCell[], columns: number): AlbumCell[][] 
   return cols.filter((col) => col.length > 0);
 }
 
-/** Chia cells thành các hàng Justified (tối đa JUSTIFIED_MAX_PER_ROW / hàng). */
+/** Chia cells thành các hàng Justified (khớp icon editor: 5 → 2+3). */
 function splitJustifiedRows(cells: AlbumCell[]): AlbumCell[][] {
   // 4 ảnh: 2×2 cân bằng — tránh hàng 3+1 lệch.
   if (cells.length === 4) {
     return [cells.slice(0, 2), cells.slice(2, 4)];
+  }
+  // 5 ảnh: 2 trên + 3 dưới (khớp pictogram Hàng cân).
+  if (cells.length === 5) {
+    return [cells.slice(0, 2), cells.slice(2, 5)];
   }
   const rows: AlbumCell[][] = [];
   for (let i = 0; i < cells.length; i += JUSTIFIED_MAX_PER_ROW) {

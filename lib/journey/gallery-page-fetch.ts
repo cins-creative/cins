@@ -82,6 +82,10 @@ export type GalleryMainItem = {
   feedSource?: FeedSourceKind;
   /** World Journey — item đến từ quan hệ theo dõi (mình / bạn bè / theo dõi / thành viên). */
   feedFollowing?: boolean;
+  /**
+   * World Journey — đang editorial boost (L29). Chỉ dùng UI admin; không badge viewer.
+   */
+  worldBoosted?: boolean;
 };
 
 const getGalleryStubsCached = cache(collectGalleryStubs);

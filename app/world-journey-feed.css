@@ -61,6 +61,8 @@
   --font-display: "Anton", "Be Vietnam Pro", system-ui, sans-serif;
   --font-serif: "Crimson Pro", Georgia, serif;
   --wj-sticky-top: 64px;
+  /* Khớp chiều cao 1 hàng `.wj-feed-header` (~50px) — dùng offset sticky cột aside. */
+  --wj-feed-header-h: 50px;
   --wj-feed-gap: 14px;
   --wj-feed-card-gap: 14px;
   --wj-feed-pad-top: 0;
@@ -87,8 +89,9 @@
 
 /* ── Feed header: 1 hàng gọn — tab + chip lọc trái, xem/sắp xếp phải ── */
 .wj-feed-header {
-  position: relative;
-  z-index: 20;
+  position: sticky;
+  top: var(--wj-sticky-top, var(--site-nav-height, 64px));
+  z-index: 40;
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -100,6 +103,36 @@
   background: var(--bg);
   border-bottom: 1px solid var(--border);
   overflow: visible;
+}
+
+/* Cụm phải filter: lịch + chế độ xem (dồn cuối hàng / mobile). */
+.wj-filter-trail {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+/* Slot nút lịch — chỉ chiếm chỗ khi FAB portal vào. */
+.wj-filter-bar .wj-notify-fab-host {
+  width: 34px;
+  height: 34px;
+}
+
+.wj-filter-bar .wj-notify-fab-host:empty {
+  display: none;
+}
+
+.wj-filter-bar .wj-notify-fab-host .org-notify-fab {
+  width: 34px;
+  height: 34px;
+}
+
+@media (min-width: 1200px) {
+  .wj-filter-bar .wj-notify-fab-host {
+    display: none;
+  }
 }
 
 .wj-feed-tabs {
@@ -256,16 +289,87 @@
 .wj-filter-pop button svg {
   width: 13px;
   height: 13px;
+  flex-shrink: 0;
 }
 
-.wj-filter-pop button > svg:last-child {
+.wj-filter-pop .wj-filter-check {
   margin-left: auto;
   opacity: 0;
   color: var(--blue);
 }
 
-.wj-filter-pop button.sel > svg:last-child {
+.wj-filter-pop button.sel > .wj-filter-check {
   opacity: 1;
+}
+
+.wj-filter-pop.is-embed-panel {
+  min-width: 240px;
+  max-width: min(280px, calc(100vw - 32px));
+  max-height: min(420px, 70vh);
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.wj-filter-embed-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 4px 8px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.wj-filter-embed-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  width: auto !important;
+  padding: 5px 8px !important;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink3);
+  border-radius: var(--r-sm);
+}
+
+.wj-filter-embed-back:hover {
+  background: var(--neutral-100, #f1f2f5);
+  color: var(--ink1);
+}
+
+.wj-filter-embed-head-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink1);
+  letter-spacing: -0.01em;
+}
+
+.wj-filter-embed-logo {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.wj-filter-embed-group + .wj-filter-embed-group {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border);
+}
+
+.wj-filter-embed-group-label {
+  padding: 6px 10px 2px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink4, #8b909a);
+}
+
+@media (max-width: 720px) {
+  .wj-filter-pop.is-embed-panel {
+    max-height: min(360px, 55vh);
+  }
 }
 
 .wj-filter-spacer {
@@ -434,7 +538,9 @@
 
 .wj-aside-right {
   position: sticky;
-  top: var(--j-topbar-h, 64px);
+  top: calc(
+    var(--wj-sticky-top, var(--j-topbar-h, 64px)) + var(--wj-feed-header-h, 50px)
+  );
   align-self: start;
   display: flex;
   flex-direction: column;
@@ -681,6 +787,7 @@
   display: flex;
   flex-direction: row;
   align-items: flex-start;
+  justify-content: flex-start;
   gap: 8px;
   columns: auto;
   width: 100%;
@@ -689,7 +796,16 @@
 
 .world-journey-home.view-grid .j-main-gallery-grid--masonry-balanced .j-main-gallery-grid__mcol,
 .world-journey-home .wj-feed.view-grid .j-main-gallery-grid--masonry-balanced .j-main-gallery-grid__mcol {
-  flex: 1 1 0;
+  flex: 0 0
+    calc(
+      (100% - (var(--masonry-cols, 5) - 1) * 8px) / var(--masonry-cols, 5)
+    );
+  width: calc(
+    (100% - (var(--masonry-cols, 5) - 1) * 8px) / var(--masonry-cols, 5)
+  );
+  max-width: calc(
+    (100% - (var(--masonry-cols, 5) - 1) * 8px) / var(--masonry-cols, 5)
+  );
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -2402,6 +2518,173 @@
   margin-inline: auto;
 }
 
+/* Filter re-query: searching / scanning motion */
+.wj-feed-searching {
+  position: relative;
+  overflow: hidden;
+  padding-block: 36px 30px;
+}
+
+.wj-feed-searching-visual {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 16px;
+}
+
+.wj-feed-searching-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px;
+  width: 100%;
+  height: 100%;
+  padding: 6px;
+  border-radius: 14px;
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--cins-violet, #7c5cfc) 8%, transparent),
+      transparent 70%
+    ),
+    var(--surface-2, color-mix(in srgb, var(--ink2) 4%, var(--surface)));
+  border: 1px solid color-mix(in srgb, var(--cins-violet, #7c5cfc) 18%, var(--border-s));
+}
+
+.wj-feed-searching-grid span {
+  display: block;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--cins-violet, #7c5cfc) 14%, var(--border-s));
+  animation: wj-feed-cell-scan 1.35s ease-in-out infinite;
+}
+
+.wj-feed-searching-lens {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  animation: wj-feed-lens-orbit 2.4s ease-in-out infinite;
+}
+
+.wj-feed-searching-lens svg {
+  margin: 0;
+  width: 28px;
+  height: 28px;
+  padding: 5px;
+  border-radius: 999px;
+  color: var(--cins-violet, #7c5cfc);
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  border: 1px solid color-mix(in srgb, var(--cins-violet, #7c5cfc) 28%, var(--border-s));
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--cins-violet, #7c5cfc) 18%, transparent);
+  backdrop-filter: blur(4px);
+}
+
+.wj-feed-searching-beam {
+  position: absolute;
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  border: 1.5px solid color-mix(in srgb, var(--cins-violet, #7c5cfc) 45%, transparent);
+  animation: wj-feed-beam-pulse 1.6s ease-out infinite;
+}
+
+.wj-feed-searching-dots {
+  display: inline-flex;
+  gap: 6px;
+  margin-top: 14px;
+}
+
+.wj-feed-searching-dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--cins-violet, #7c5cfc);
+  opacity: 0.35;
+  animation: wj-feed-dot-bounce 1.05s ease-in-out infinite;
+}
+
+.wj-feed-searching-dots span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.wj-feed-searching-dots span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes wj-feed-cell-scan {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.92);
+    background: color-mix(in srgb, var(--cins-violet, #7c5cfc) 12%, var(--border-s));
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1);
+    background: color-mix(in srgb, var(--cins-violet, #7c5cfc) 55%, var(--border-s));
+  }
+}
+
+@keyframes wj-feed-lens-orbit {
+  0%,
+  100% {
+    transform: translate(-10px, -8px);
+  }
+  50% {
+    transform: translate(10px, 9px);
+  }
+}
+
+@keyframes wj-feed-beam-pulse {
+  0% {
+    transform: scale(0.72);
+    opacity: 0.7;
+  }
+  70% {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+}
+
+@keyframes wj-feed-dot-bounce {
+  0%,
+  80%,
+  100% {
+    opacity: 0.3;
+    transform: translateY(0);
+  }
+  40% {
+    opacity: 1;
+    transform: translateY(-4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wj-feed-searching-grid span,
+  .wj-feed-searching-lens,
+  .wj-feed-searching-beam,
+  .wj-feed-searching-dots span {
+    animation: none;
+  }
+
+  .wj-feed-searching-lens {
+    transform: none;
+  }
+
+  .wj-feed-searching-beam {
+    opacity: 0.35;
+    transform: scale(1);
+  }
+
+  .wj-feed-searching-dots span {
+    opacity: 0.55;
+  }
+}
+
 .wj-aside-empty {
   margin: 0;
   padding: 4px 0 8px;
@@ -2421,7 +2704,7 @@
 /* ── Guest-page sidebars (cins-trang-khach.html) ───────────── */
 .wj-guest-aside {
   position: sticky;
-  top: calc(var(--wj-sticky-top) + 24px);
+  top: calc(var(--wj-sticky-top) + var(--wj-feed-header-h, 50px) + 24px);
   align-self: start;
   display: flex;
   flex-direction: column;
@@ -2431,7 +2714,9 @@
      làm cột tràn khỏi viewport và không cuộn được. min-height:0 để max-height +
      overflow-y:auto có hiệu lực → cột tự cuộn riêng khi tràn. */
   min-height: 0;
-  max-height: calc(100dvh - var(--wj-sticky-top) - 40px);
+  max-height: calc(
+    100dvh - var(--wj-sticky-top) - var(--wj-feed-header-h, 50px) - 40px
+  );
   overflow-x: clip;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -3257,9 +3542,14 @@
     overflow: visible;
   }
 
-  /* Mobile: shell gap = 0 → thêm khoảng cách dưới cột trái để tách khỏi feed/lời mời */
+  /* Mobile: cột trái → FAB / ẩn; không stack trên feed. */
   .world-journey-home .wj-guest-aside--left {
-    margin-bottom: 16px;
+    display: none;
+  }
+
+  /* Cột phải rỗng khi mọi module đã portal vào FAB. */
+  .world-journey-home .wj-guest-aside--right:empty {
+    display: none;
   }
 
   .world-journey-home .wj-feed {
@@ -3396,6 +3686,11 @@
 }
 
 @media (max-width: 640px) {
+  .world-journey-home {
+    /* Filter bar có thể xuống 2 hàng trên mobile. */
+    --wj-feed-header-h: 92px;
+  }
+
   .wj-vt-btn span {
     display: none;
   }
@@ -3424,11 +3719,6 @@
   .world-journey-home .wj-sort-btn {
     padding: 6px 9px;
   }
-
-  /* Nút chuyển chế độ xem dồn về cuối hàng */
-  .world-journey-home .wj-view-toggle {
-    margin-left: auto;
-  }
 }
 
 @media (max-width: 560px) {
@@ -3443,13 +3733,15 @@
 .world-journey-home .ha-col {
   gap: 14px;
   position: sticky;
-  top: calc(var(--wj-sticky-top) + 24px);
+  top: calc(var(--wj-sticky-top) + var(--wj-feed-header-h, 50px) + 24px);
   align-self: start;
   min-width: 0;
   width: 100%;
   height: fit-content;
   min-height: 0;
-  max-height: calc(100dvh - var(--wj-sticky-top) - 40px);
+  max-height: calc(
+    100dvh - var(--wj-sticky-top) - var(--wj-feed-header-h, 50px) - 40px
+  );
   overflow-x: clip;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -3541,6 +3833,25 @@
 .world-journey-home .ha-card--notify {
   overflow: visible;
   height: fit-content;
+}
+
+/* Drawer mobile: bỏ khung card trùng tiêu đề drawer, giữ body. */
+.wj-notify-fab-panel > .ha-card--notify,
+.wj-notify-fab-panel > .ha-card--jobs {
+  border: none;
+  box-shadow: none;
+  background: transparent;
+  border-radius: 0;
+}
+
+.wj-notify-fab-panel > .ha-card--notify > .ha-card-head,
+.wj-notify-fab-panel > .ha-card--jobs > .ha-card-head {
+  display: none;
+}
+
+/* Giữ link «Xem thêm» tuyển dụng dưới list trong drawer. */
+.wj-notify-fab-panel > .ha-card--jobs .ha-job-list {
+  padding-top: 4px;
 }
 
 .world-journey-home .ha-card--notify .ha-card-head {
@@ -4942,3 +5253,47 @@
   color: var(--ink1);
 }
 
+
+/* L29 World editorial boost (admin-only UI) */
+.wj-boost-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: rgba(255, 255, 255, 0.92);
+  color: #475569;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  z-index: 4;
+}
+.wj-boost-toggle:hover { border-color: #16a34a; color: #15803d; }
+.wj-boost-toggle.is-on {
+  border-color: #16a34a;
+  background: #dcfce7;
+  color: #15803d;
+}
+.wj-boost-toggle-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #94a3b8;
+}
+.wj-boost-toggle.is-on .wj-boost-toggle-dot { background: #16a34a; }
+.wj-boost-toggle.is-compact {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 6px;
+}
+.wj-boost-toggle.is-compact .wj-boost-toggle-dot {
+  width: 10px;
+  height: 10px;
+}
+.j-main-gallery-item.is-world-boosted .j-main-gallery-thumb {
+  outline: 2px solid #16a34a;
+  outline-offset: -2px;
+}
+.j-main-gallery-thumb { position: relative; }

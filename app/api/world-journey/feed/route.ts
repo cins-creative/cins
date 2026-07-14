@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import { WORLD_JOURNEY_FEED_PAGE_SIZE } from "@/lib/cins/worldJourneyFeedConstants";
 import { fetchWorldJourneyFeedPage } from "@/lib/cins/worldJourneyFeedFetch";
+import { normalizeFeedSource } from "@/lib/cins/worldJourneyFeedSource";
 
 export async function GET(request: Request) {
   const session = await getCurrentSessionAndProfile();
@@ -16,11 +17,19 @@ export async function GET(request: Request) {
   const limit = Number.isFinite(limitRaw)
     ? limitRaw
     : WORLD_JOURNEY_FEED_PAGE_SIZE;
+  const filter = searchParams.get("filter");
+  const source = normalizeFeedSource(searchParams.get("source"));
+  const linhVuc = searchParams.get("linhVuc");
 
   const page = await fetchWorldJourneyFeedPage(
     session.profile.id,
     offset,
     limit,
+    {
+      filter,
+      source,
+      linhVuc,
+    },
   );
 
   return NextResponse.json(page);

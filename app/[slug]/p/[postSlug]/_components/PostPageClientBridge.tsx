@@ -109,13 +109,13 @@ export function PostPageClientBridge({
   return (
     <JourneyComposeProvider
       ownerId={detail.owner.id}
-      ownerSlug={ownerSlug}
+      ownerSlug={detail.owner.slug}
       ownerName={detail.owner.tenHienThi}
       ownerAvatarId={detail.owner.avatarId}
       isOwner
       initialCompose={initialCompose}
     >
-      <BunnyVideoProcessingPoller ownerSlug={ownerSlug} />
+      <BunnyVideoProcessingPoller ownerSlug={detail.owner.slug} />
       {body}
     </JourneyComposeProvider>
   );

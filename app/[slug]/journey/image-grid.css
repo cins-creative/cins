@@ -1,8 +1,16 @@
 /* Album layout — no-crop: ảnh giữ nguyên tỉ lệ gốc, nền trắng lấp phần thừa */
+/* Khe giữa ô — khớp editor / article-rich (`--cins-img-slot-gap`). */
+.image-grid,
+.image-grid-row,
+.image-grid-jrow,
+.image-grid--masonry .image-grid-mcol,
+.image-grid[data-count="3"] .image-grid-side {
+  --cins-img-slot-gap: 1.5px;
+}
 
 .image-grid {
   display: flex;
-  gap: 3px;
+  gap: var(--cins-img-slot-gap);
   border-radius: var(--radius-sm, 10px);
   overflow: hidden;
   width: 100%;
@@ -18,7 +26,7 @@
 
 .image-grid-row {
   display: flex;
-  gap: 3px;
+  gap: var(--cins-img-slot-gap);
   width: 100%;
 }
 
@@ -108,7 +116,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: var(--cins-img-slot-gap);
   min-width: 0;
 }
 .image-grid[data-count="3"] .image-grid-side .image-grid-cell {
@@ -162,7 +170,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: var(--cins-img-slot-gap);
 }
 .image-grid--masonry .image-grid-cell {
   width: 100%;
@@ -171,11 +179,11 @@
 
 /* ── Justified Grid: hàng đều cao, ảnh ngang/trộn giữ tỉ lệ gốc, không crop ── */
 .image-grid--justified {
-  gap: 3px;
+  gap: var(--cins-img-slot-gap);
 }
 .image-grid-jrow {
   display: flex;
-  gap: 3px;
+  gap: var(--cins-img-slot-gap);
   width: 100%;
   /* KHÔNG stretch: để chiều cao ô suy ra từ aspect-ratio (mọi ô trong hàng ra cùng chiều cao) */
   align-items: flex-start;

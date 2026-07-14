@@ -1,4 +1,37 @@
-export type ChatMessageKind = "text" | "media" | "sticker" | "context";
+export type ChatMessageKind =
+  | "text"
+  | "media"
+  | "sticker"
+  | "context"
+  | "binh_chon"
+  | "moc_nhac";
+
+export type ChatMocNoticeSuKien = "tao" | "nhac_truoc" | "den_han";
+
+/** Tin hệ thống nhắc mốc trong phòng (`loai_tin=system`, `ngu_canh.loai=moc`). */
+export type ChatMocNotice = {
+  mocId: string;
+  suKien: ChatMocNoticeSuKien;
+  ten: string;
+  thoiDiem: string;
+  url?: string | null;
+  moTa?: string | null;
+};
+
+export type ChatPollOption = {
+  id: string;
+  text: string;
+  count: number;
+};
+
+export type ChatPollSummary = {
+  id: string;
+  question: string;
+  allowMultiple: boolean;
+  totalVotes: number;
+  viewerOptionId: string | null;
+  options: ChatPollOption[];
+};
 
 /** Loại đối tượng ngữ cảnh đính vào chat khi user nhắn tin org qua 1 nội dung. */
 export type ChatContextLoai =
@@ -15,6 +48,13 @@ export type ChatContextCard = {
   anh?: string | null;
   href?: string | null;
   orgTen?: string | null;
+};
+
+/** Người được @nhắc — lưu trong `chat_tin_nhan.ngu_canh.mentions`. */
+export type ChatMentionRef = {
+  id: string;
+  slug: string;
+  ten: string;
 };
 
 export type ChatReactionSummary = {
@@ -57,9 +97,27 @@ export type ChatMessage = {
   replyTo?: ChatMessageReplyPreview | null;
   reactions?: ChatReactionSummary[];
   pinned?: boolean;
+  /** @deprecated Dùng readCursors watermark — giữ optional để tương thích cache cũ. */
   readByPeer?: boolean;
   /** Card ngữ cảnh (tuyển dụng/sự kiện/tuyển sinh) — hiển thị dạng card. */
   nguCanh?: ChatContextCard | null;
+  /** @nhắc trong tin nhóm — từ `ngu_canh.mentions`. */
+  mentions?: ChatMentionRef[];
+  /** Bình chọn gắn tin (loai_tin=binh_chon). */
+  poll?: ChatPollSummary | null;
+  /** Nhắc mốc hệ thống trong phòng. */
+  mocNhac?: ChatMocNotice | null;
+};
+
+/** Cursor «đã xem tới tin này» của một thành viên khác trong phòng. */
+export type ChatReadCursor = {
+  userId: string;
+  messageId: string;
+  name: string;
+  slug?: string;
+  avatarUrl?: string | null;
+  initial: string;
+  hue: number;
 };
 
 export type ChatParticipantKind = "user" | "org";
@@ -155,6 +213,8 @@ export type ChatThread = {
   preview: string;
   lastAt: string;
   unread: number;
+  /** Số tin chưa đọc có @nhắc viewer (nhóm/project). */
+  unreadMentions?: number;
   online?: boolean;
   typing?: boolean;
   messages: ChatMessage[];

@@ -6,6 +6,7 @@ import {
   MAX_USER_EMOJI_MUC_PER_BO,
 } from "@/lib/user-emoji/constants";
 import { userEmojiDeliveryUrl } from "@/lib/user-emoji/delivery-url";
+import { probeCfImageDelivery } from "@/lib/user-emoji/probe-delivery";
 import type { UserEmojiMuc } from "@/lib/user-emoji/types";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
@@ -27,6 +28,12 @@ export async function createUserEmojiMuc(params: {
   const cloudflareId = params.cloudflareId.trim();
   if (!isCloudflareImageId(cloudflareId)) {
     return { ok: false, error: "Ảnh meme không hợp lệ." };
+  }
+
+  const deliveryUrl = userEmojiDeliveryUrl(cloudflareId, "public");
+  const probe = await probeCfImageDelivery(deliveryUrl);
+  if (probe === "missing") {
+    return { ok: false, error: "Ảnh meme không còn trên CDN — hãy tải lại." };
   }
 
   let tenGoi: string | null = null;

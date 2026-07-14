@@ -1,11 +1,38 @@
 import { NextResponse } from "next/server";
 
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
-import { markRoomRead } from "@/lib/chat/direct-message";
+import { assertRoomMember, markRoomRead } from "@/lib/chat/direct-message";
+import { listRoomReadCursors } from "@/lib/chat/read-cursors";
 
 type RouteContext = {
   params: Promise<{ roomId: string }>;
 };
+
+export async function GET(_req: Request, context: RouteContext) {
+  const session = await getCurrentSessionAndProfile();
+  if (!session?.profile) {
+    return NextResponse.json({ error: "Cần đăng nhập." }, { status: 401 });
+  }
+
+  const { roomId } = await context.params;
+  if (!roomId) {
+    return NextResponse.json({ error: "Thiếu roomId." }, { status: 400 });
+  }
+
+  try {
+    await assertRoomMember(roomId, session.profile.id);
+    const readCursors = await listRoomReadCursors(roomId, session.profile.id);
+    return NextResponse.json({ readCursors });
+  } catch (error) {
+    if (error instanceof Error && error.message === "FORBIDDEN") {
+      return NextResponse.json({ error: "Không có quyền truy cập." }, { status: 403 });
+    }
+    return NextResponse.json(
+      { error: "Không tải được trạng thái đã xem." },
+      { status: 500 },
+    );
+  }
+}
 
 export async function POST(req: Request, context: RouteContext) {
   const session = await getCurrentSessionAndProfile();

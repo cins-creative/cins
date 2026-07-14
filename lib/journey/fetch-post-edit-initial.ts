@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { EditorInitial } from "@/components/editor/EditorView";
+import type { EditorInitial } from "@/lib/editor/editor-initial";
 import type { ArticleTagRef } from "@/lib/editor/article-tag";
 import type { Block, LoaiMoc, Visibility } from "@/lib/editor/types";
 import { loadCoAuthorsForTacPham } from "@/lib/social/co-author";

@@ -33,6 +33,7 @@ import { getAvatarUrl } from "@/lib/journey/profile";
 import { notifyMembershipMilestoneResolved } from "@/lib/social/membership-milestone-notify";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { orgPublicHref as buildOrgPublicHref } from "@/lib/search/helpers";
+import { truongRootPath } from "@/lib/truong/truong-routes";
 
 export type SubmitMembershipMilestoneResult =
   | { ok: true; cotMocId: string; milestone?: Awaited<ReturnType<typeof buildMilestoneItemForCotMoc>> }

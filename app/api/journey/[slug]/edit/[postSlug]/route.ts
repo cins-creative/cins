@@ -6,6 +6,11 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 type Params = Promise<{ slug: string; postSlug: string }>;
 
+/**
+ * GET /api/journey/:slug/edit/:postSlug — payload chỉnh sửa (owner only).
+ * Không đặt dưới `[postSlug]/edit` — Turbopack không đăng ký static segment
+ * sau dynamic; cũng không nhồi vào `p/[postSlug]` (import edit làm vỡ route đọc).
+ */
 export async function GET(
   _request: Request,
   context: { params: Params },
@@ -30,17 +35,28 @@ export async function GET(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const result = await fetchPostEditInitial({
-    ownerId: owner.id,
-    postSlug,
-  });
+  try {
+    const result = await fetchPostEditInitial({
+      ownerId: owner.id,
+      postSlug,
+    });
 
-  if (!result.ok) {
+    if (!result.ok) {
+      return NextResponse.json(
+        { error: result.error },
+        { status: result.error === "forbidden" ? 403 : 404 },
+      );
+    }
+
+    return NextResponse.json({
+      postSlug: result.postSlug,
+      initial: result.initial,
+    });
+  } catch (err) {
+    console.error("[journey edit]", err);
     return NextResponse.json(
-      { error: result.error },
-      { status: result.error === "forbidden" ? 403 : 404 },
+      { error: "edit_load_failed" },
+      { status: 500 },
     );
   }
-
-  return NextResponse.json(result);
 }
