@@ -6072,23 +6072,72 @@
 }
 
 .cins-admin .admin-nguoi-dung-role--super_admin {
-  background: #1a1917;
+  background-color: #1a1917;
   color: #fff;
 }
 
 .cins-admin .admin-nguoi-dung-role--admin {
-  background: #e8f0fe;
+  background-color: #e8f0fe;
   color: #1a56db;
 }
 
 .cins-admin .admin-nguoi-dung-role--curator {
-  background: #f0ede8;
+  background-color: #f0ede8;
   color: #5a5855;
 }
 
 .cins-admin .admin-nguoi-dung-role--thanh_vien {
-  background: #f5f4f0;
+  background-color: #f5f4f0;
   color: var(--fg-3);
+}
+
+.cins-admin .admin-nguoi-dung-role-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+}
+
+.cins-admin .admin-nguoi-dung-role-select {
+  appearance: none;
+  -webkit-appearance: none;
+  border: 0;
+  cursor: pointer;
+  padding-right: 22px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 12px;
+  line-height: 1.3;
+}
+
+.cins-admin .admin-nguoi-dung-role-select.admin-nguoi-dung-role--super_admin {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+}
+
+.cins-admin .admin-nguoi-dung-role-select:hover {
+  filter: brightness(0.97);
+}
+
+.cins-admin .admin-nguoi-dung-role-select:focus-visible {
+  outline: 2px solid #94a3b8;
+  outline-offset: 2px;
+}
+
+.cins-admin .admin-nguoi-dung-role-select:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.cins-admin .admin-nguoi-dung-role-select option {
+  color: #0f172a;
+  background: #fff;
+}
+
+.cins-admin .admin-nguoi-dung-role-spin {
+  flex-shrink: 0;
+  color: #64748b;
 }
 
 .cins-admin .admin-nguoi-dung-select {
@@ -6107,6 +6156,24 @@
   cursor: wait;
 }
 
+.cins-admin .admin-nguoi-dung-dash {
+  margin-top: 4px;
+}
+.cins-admin .admin-nguoi-dung-recent {
+  margin-top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.cins-admin .admin-nguoi-dung-recent-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+}
+.cins-admin .admin-nguoi-dung-recent-table td {
+  font-size: 13px;
+}
 .cins-admin .admin-nguoi-dung-locked {
   display: inline-flex;
 }
@@ -6905,6 +6972,112 @@
 }
 .cins-admin .ndd-row-verified td {
   background: #f8fbff;
+}
+.cins-admin .ndd-row-boosted td {
+  background: #f7fef9;
+}
+.cins-admin .ndd-row-boosted.ndd-row-verified td {
+  background: linear-gradient(90deg, #f7fef9 0%, #f8fbff 100%);
+}
+.cins-admin .ndd-list-table tbody tr {
+  vertical-align: middle;
+}
+.cins-admin .ndd-list-col-boost {
+  width: 72px;
+}
+.cins-admin .ndd-list-col-thumb {
+  width: 104px;
+  padding-right: 4px;
+}
+.cins-admin .ndd-list-col-score {
+  width: 88px;
+}
+.cins-admin .ndd-list-col-remain {
+  width: 88px;
+  white-space: nowrap;
+  font-size: 12px;
+  color: #64748b;
+}
+.cins-admin .ndd-list-col-meta {
+  width: 120px;
+}
+.cins-admin .ndd-list-col-dates {
+  width: 148px;
+}
+.cins-admin .ndd-list-thumb {
+  display: block;
+  width: 88px;
+  aspect-ratio: 16 / 9;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  background: #f1f5f9;
+}
+.cins-admin .ndd-list-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.cins-admin .ndd-list-thumb-fallback {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.cins-admin .ndd-list-content {
+  min-width: 220px;
+  max-width: 420px;
+}
+.cins-admin .ndd-list-title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 1.35;
+  color: #0f172a;
+  font-weight: 600;
+}
+.cins-admin .ndd-list-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  margin-top: 6px;
+  font-size: 12px;
+  color: #64748b;
+}
+.cins-admin .ndd-list-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #475569;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+}
+.cins-admin .ndd-list-muted {
+  font-size: 12px;
+  color: #94a3b8;
+}
+.cins-admin .ndd-list-date-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+  color: #475569;
+  line-height: 1.35;
+}
+.cins-admin .ndd-list-date-stack small {
+  font-size: 11px;
+  color: #94a3b8;
 }
 .cins-admin .ndd-card-thumb {
   position: relative;

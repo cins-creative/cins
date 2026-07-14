@@ -1,14 +1,17 @@
 "use client";
 
-import { BadgeCheck, Loader2, Search, Shield } from "lucide-react";
+import { BadgeCheck, BarChart3, List, Loader2, Search, Shield } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
+import { AdminNguoiDungGrowthDashboard } from "@/components/admin/AdminNguoiDungGrowthDashboard";
 import type {
   AdminUserListResponse,
   AdminUserListRow,
 } from "@/lib/admin/nguoi-dung-roles";
 import type { SystemRole } from "@/lib/auth/system-role";
+
+type ViewMode = "list" | "dashboard";
 
 const ROLE_OPTIONS: { value: SystemRole; label: string }[] = [
   { value: "super_admin", label: "Admin tối cao" },
@@ -20,6 +23,19 @@ const ROLE_OPTIONS: { value: SystemRole; label: string }[] = [
 function userInitial(ten: string): string {
   const word = ten.trim().split(/\s+/).find(Boolean);
   return (word?.charAt(0) ?? "?").toUpperCase();
+}
+
+function fmtLanCuoiHoatDong(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleString("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function RoleBadge({ role }: { role: SystemRole }) {
@@ -68,28 +84,39 @@ function RoleSelect({
   }
 
   return (
-    <select
-      className="admin-nguoi-dung-select"
-      value={row.role}
-      disabled={saving}
-      aria-label={`Vai trò của ${row.tenHienThi}`}
-      onChange={(e) => onChange(row.id, e.target.value as SystemRole)}
-    >
-      {ROLE_OPTIONS.map((opt) => {
-        const disabled =
-          opt.value === "super_admin" ||
-          (opt.value === "admin" && !canGrantAdmin);
-        return (
-          <option key={opt.value} value={opt.value} disabled={disabled}>
-            {opt.label}
-          </option>
-        );
-      })}
-    </select>
+    <span className="admin-nguoi-dung-role-wrap">
+      <select
+        className={`admin-nguoi-dung-role-select admin-nguoi-dung-role admin-nguoi-dung-role--${row.role}`}
+        value={row.role}
+        disabled={saving}
+        aria-label={`Vai trò của ${row.tenHienThi}`}
+        onChange={(e) => onChange(row.id, e.target.value as SystemRole)}
+      >
+        {ROLE_OPTIONS.map((opt) => {
+          const disabled =
+            opt.value === "super_admin" ||
+            (opt.value === "admin" && !canGrantAdmin);
+          return (
+            <option key={opt.value} value={opt.value} disabled={disabled}>
+              {opt.label}
+            </option>
+          );
+        })}
+      </select>
+      {saving ? (
+        <Loader2
+          size={12}
+          strokeWidth={2}
+          className="admin-to-chuc-spin admin-nguoi-dung-role-spin"
+          aria-hidden
+        />
+      ) : null}
+    </span>
   );
 }
 
 export function AdminNguoiDungScreen() {
+  const [view, setView] = useState<ViewMode>("list");
   const [query, setQuery] = useState("");
   const [rows, setRows] = useState<AdminUserListRow[]>([]);
   const [total, setTotal] = useState(0);
@@ -108,6 +135,7 @@ export function AdminNguoiDungScreen() {
   const [saveError, setSaveError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
+    if (view === "dashboard") return;
     setLoading(true);
     setError(null);
     try {
@@ -138,14 +166,15 @@ export function AdminNguoiDungScreen() {
     } finally {
       setLoading(false);
     }
-  }, [query]);
+  }, [query, view]);
 
   useEffect(() => {
+    if (view !== "list") return;
     const timer = window.setTimeout(() => {
       void load();
     }, query.trim() ? 220 : 0);
     return () => window.clearTimeout(timer);
-  }, [load, query]);
+  }, [load, query, view]);
 
   async function handleRoleChange(userId: string, role: SystemRole) {
     const previousRows = rows;
@@ -223,9 +252,29 @@ export function AdminNguoiDungScreen() {
             <code>info.cins.vn@gmail.com</code>) cấp được quyền Admin.
           </p>
         </div>
+        <div className="page-header-actions ndd-view-toggle">
+          <button
+            type="button"
+            className={view === "list" ? "is-active" : ""}
+            onClick={() => setView("list")}
+          >
+            <List size={16} /> Danh sách
+          </button>
+          <button
+            type="button"
+            className={view === "dashboard" ? "is-active" : ""}
+            onClick={() => setView("dashboard")}
+          >
+            <BarChart3 size={16} /> Dashboard
+          </button>
+        </div>
       </header>
 
       <div className="page-body admin-to-chuc-body">
+        {view === "dashboard" ? (
+          <AdminNguoiDungGrowthDashboard />
+        ) : (
+          <>
         <div className="admin-to-chuc-stats" aria-label="Tóm tắt vai trò">
           <article className="admin-to-chuc-stat admin-to-chuc-stat--ok">
             <span className="admin-to-chuc-stat-k">Admin tối cao</span>
@@ -304,16 +353,15 @@ export function AdminNguoiDungScreen() {
                 <tr>
                   <th>Người dùng</th>
                   <th>Email</th>
-                  <th>Trạng thái</th>
+                  <th>Lần cuối hoạt động</th>
                   <th>Tick xanh</th>
                   <th>Vai trò hệ thống</th>
-                  <th className="admin-to-chuc-th-actions">Thao tác</th>
                 </tr>
               </thead>
               <tbody>
                 {!loading && rows.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="admin-table-empty">
+                    <td colSpan={5} className="admin-table-empty">
                       Không có user phù hợp bộ lọc.
                     </td>
                   </tr>
@@ -341,10 +389,8 @@ export function AdminNguoiDungScreen() {
                       <td className="admin-nguoi-dung-muted">
                         {row.email ?? "—"}
                       </td>
-                      <td>
-                        <span className="admin-nguoi-dung-status">
-                          {row.trangThaiTaiKhoan.replace(/_/g, " ")}
-                        </span>
+                      <td className="admin-nguoi-dung-muted">
+                        {fmtLanCuoiHoatDong(row.lanCuoiHoatDong)}
                       </td>
                       <td>
                         <button
@@ -373,11 +419,8 @@ export function AdminNguoiDungScreen() {
                           ) : (
                             <BadgeCheck size={15} strokeWidth={2.2} aria-hidden />
                           )}
-                          <span>{row.daXacMinh ? "Đã xác minh" : "Cấp tick"}</span>
+                          <span>{row.daXacMinh ? "Đã xác minh" : "Verify"}</span>
                         </button>
-                      </td>
-                      <td>
-                        <RoleBadge role={row.role} />
                       </td>
                       <td>
                         <RoleSelect
@@ -394,6 +437,8 @@ export function AdminNguoiDungScreen() {
             </table>
           </div>
         </section>
+          </>
+        )}
       </div>
     </div>
   );

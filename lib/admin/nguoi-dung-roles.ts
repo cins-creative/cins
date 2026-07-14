@@ -25,6 +25,8 @@ export type AdminUserListRow = {
   isLocked: boolean;
   daXacMinh: boolean;
   taoLuc: string;
+  /** `lan_cuoi_active` hoặc fallback Auth `last_sign_in_at`. */
+  lanCuoiHoatDong: string | null;
 };
 
 export type AdminUserListResponse = {
@@ -52,6 +54,12 @@ type ProfileRow = {
   trang_thai_tai_khoan: string;
   da_xac_minh: boolean | null;
   tao_luc: string;
+  lan_cuoi_active: string | null;
+};
+
+type AuthUserMeta = {
+  email: string | null;
+  lastSignInAt: string | null;
 };
 
 type RoleRow = {
@@ -61,9 +69,9 @@ type RoleRow = {
 
 const LIST_LIMIT = 1000;
 
-async function buildAuthEmailMap(): Promise<Map<string, string>> {
+async function buildAuthMetaMap(): Promise<Map<string, AuthUserMeta>> {
   const admin = createServiceRoleClient();
-  const map = new Map<string, string>();
+  const map = new Map<string, AuthUserMeta>();
   let page = 1;
   const perPage = 1000;
 
@@ -72,9 +80,10 @@ async function buildAuthEmailMap(): Promise<Map<string, string>> {
     if (error || !data.users.length) break;
 
     for (const user of data.users) {
-      if (user.email) {
-        map.set(user.id, user.email);
-      }
+      map.set(user.id, {
+        email: user.email ?? null,
+        lastSignInAt: user.last_sign_in_at ?? null,
+      });
     }
 
     if (data.users.length < perPage) break;
@@ -114,17 +123,17 @@ export async function fetchAdminUserList(params: {
   const admin = createServiceRoleClient();
   const q = params.q?.trim() ?? "";
 
-  const [{ data: profiles, error: profileErr }, authEmailMap, { data: roleRows }] =
+  const [{ data: profiles, error: profileErr }, authMetaMap, { data: roleRows }] =
     await Promise.all([
       admin
         .from("user_nguoi_dung")
         .select(
-          "id, auth_user_id, slug, ten_hien_thi, avatar_id, email_lien_he, trang_thai_tai_khoan, da_xac_minh, tao_luc",
+          "id, auth_user_id, slug, ten_hien_thi, avatar_id, email_lien_he, trang_thai_tai_khoan, da_xac_minh, tao_luc, lan_cuoi_active",
         )
         .order("tao_luc", { ascending: false })
         .limit(LIST_LIMIT)
         .returns<ProfileRow[]>(),
-      buildAuthEmailMap(),
+      buildAuthMetaMap(),
       admin
         .from("user_quyen_he_thong")
         .select("id_nguoi_dung, vai_tro")
@@ -152,12 +161,16 @@ export async function fetchAdminUserList(params: {
   }
 
   const allRows: AdminUserListRow[] = (profiles ?? []).map((profile) => {
-    const authEmail = profile.auth_user_id
-      ? authEmailMap.get(profile.auth_user_id) ?? null
+    const authMeta = profile.auth_user_id
+      ? authMetaMap.get(profile.auth_user_id) ?? null
       : null;
-    const email = authEmail ?? profile.email_lien_he ?? null;
+    const email = authMeta?.email ?? profile.email_lien_he ?? null;
     const dbRole = roleByUserId.get(profile.id) ?? null;
     const role = resolveSystemRole(email, dbRole);
+    const lanCuoiHoatDong =
+      profile.lan_cuoi_active?.trim() ||
+      authMeta?.lastSignInAt?.trim() ||
+      null;
 
     return {
       id: profile.id,
@@ -171,6 +184,7 @@ export async function fetchAdminUserList(params: {
       isLocked: isRoleLocked(role, params.actorRole),
       daXacMinh: profile.da_xac_minh ?? false,
       taoLuc: profile.tao_luc,
+      lanCuoiHoatDong,
     };
   });
 

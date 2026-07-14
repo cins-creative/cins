@@ -310,29 +310,31 @@ export function AdminNoiDungDangScreen() {
               ))}
             </div>
           ) : (
-            <div className="table-wrap">
-              <table className="data-table">
+            <div className="table-wrap table-wrap--ndd">
+              <table className="data-table ndd-list-table">
                 <thead>
                   <tr>
-                    <th>Đẩy</th>
-                    <th>Tiêu đề</th>
-                    <th>Điểm</th>
-                    <th>Còn lại</th>
-                    <th>Định dạng</th>
-                    <th>Xác thực</th>
-                    <th>Nguồn</th>
-                    <th>Tác giả</th>
-                    <th>Ngày tạo</th>
-                    <th>Hết hạn boost</th>
+                    <th className="ndd-list-col-boost">Đẩy</th>
+                    <th className="ndd-list-col-thumb" aria-label="Ảnh" />
+                    <th>Nội dung</th>
+                    <th className="ndd-list-col-score">Điểm</th>
+                    <th className="ndd-list-col-remain">Còn lại</th>
+                    <th className="ndd-list-col-meta">Trạng thái</th>
+                    <th className="ndd-list-col-dates">Thời gian</th>
                   </tr>
                 </thead>
                 <tbody>
                   {items.map((item) => (
                     <tr
                       key={item.key}
-                      className={item.daXacThuc ? "ndd-row-verified" : undefined}
+                      className={[
+                        item.dangBoost ? "ndd-row-boosted" : "",
+                        item.daXacThuc ? "ndd-row-verified" : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" ") || undefined}
                     >
-                      <td>
+                      <td className="ndd-list-col-boost">
                         <button
                           type="button"
                           className={`ndd-list-toggle${item.dangBoost ? " is-on" : ""}`}
@@ -343,26 +345,57 @@ export function AdminNoiDungDangScreen() {
                           {item.dangBoost ? "Bật" : "Tắt"}
                         </button>
                       </td>
-                      <td>{item.tieuDe}</td>
-                      <td>
+                      <td className="ndd-list-col-thumb">
+                        <span className="ndd-list-thumb">
+                          {item.thumbUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={item.thumbUrl}
+                              alt=""
+                              loading="lazy"
+                            />
+                          ) : (
+                            <span className="ndd-list-thumb-fallback" aria-hidden>
+                              {item.tieuDe.slice(0, 2).toUpperCase()}
+                            </span>
+                          )}
+                        </span>
+                      </td>
+                      <td className="ndd-list-content">
+                        <strong className="ndd-list-title">{item.tieuDe}</strong>
+                        <span className="ndd-list-meta">
+                          <span className="ndd-list-chip">{item.dinhDangLabel}</span>
+                          <span>
+                            {item.nguon === "user" ? "User" : "Org"}
+                            {" · "}
+                            {item.tacGiaTen ?? "—"}
+                          </span>
+                        </span>
+                      </td>
+                      <td className="ndd-list-col-score">
                         <AdminFeedScoreCell
                           diemFeed={item.diemFeed}
                           variant="table"
                         />
                       </td>
-                      <td>{fmtAdminFeedGioConLai(item.diemFeed)}</td>
-                      <td>{item.dinhDangLabel}</td>
-                      <td>
+                      <td className="ndd-list-col-remain">
+                        {fmtAdminFeedGioConLai(item.diemFeed)}
+                      </td>
+                      <td className="ndd-list-col-meta">
                         {item.daXacThuc ? (
                           <span className="ndd-verified-pill">Đã xác thực</span>
                         ) : (
-                          "—"
+                          <span className="ndd-list-muted">Chưa xác thực</span>
                         )}
                       </td>
-                      <td>{item.nguon === "user" ? "User" : "Org"}</td>
-                      <td>{item.tacGiaTen ?? "—"}</td>
-                      <td>{fmtDate(item.taoLuc)}</td>
-                      <td>{fmtDate(item.hetHanLuc)}</td>
+                      <td className="ndd-list-col-dates">
+                        <span className="ndd-list-date-stack">
+                          <span title="Ngày tạo">{fmtDate(item.taoLuc)}</span>
+                          <small title="Hết hạn boost">
+                            Boost: {fmtDate(item.hetHanLuc)}
+                          </small>
+                        </span>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
