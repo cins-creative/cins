@@ -797,7 +797,7 @@
   aspect-ratio: 4 / 3;
   min-height: 240px;
   overflow: hidden;
-  background: var(--neutral-900, #0f172a);
+  background: var(--bg-surface, #fff);
   pointer-events: auto;
   touch-action: manipulation;
 }

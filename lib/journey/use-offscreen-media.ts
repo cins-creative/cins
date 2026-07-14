@@ -35,7 +35,15 @@ function isElementInViewport(
   rootMargin: string,
 ): boolean {
   const rect = el.getBoundingClientRect();
-  if (rect.width <= 0 || rect.height <= 0) return false;
+  /**
+   * ViewportGatedEmbed khi `inView=false` không render children → wrapper cao 0.
+   * Nếu parent đã có kích thước (cột media post split), coi như trong khung để
+   * mount player — tránh kẹt nền đen mãi (Rive/Lottie không bao giờ load).
+   */
+  if (rect.width <= 0 || rect.height <= 0) {
+    const parent = el.parentElement?.getBoundingClientRect();
+    return Boolean(parent && parent.width > 0 && parent.height > 0);
+  }
 
   const { top: marginTop, bottom: marginBottom } =
     parseRootMarginPx(rootMargin);
@@ -96,8 +104,17 @@ export function useOffscreenMedia<T extends HTMLElement = HTMLDivElement>(
     const observer = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
-          const visible =
-            entry.isIntersecting && entry.intersectionRatio >= threshold;
+          const box = entry.boundingClientRect;
+          const emptyShell = box.width <= 0 || box.height <= 0;
+          const parent = (entry.target as HTMLElement).parentElement
+            ?.getBoundingClientRect();
+          const parentSized = Boolean(
+            parent && parent.width > 0 && parent.height > 0,
+          );
+          // Shell rỗng trong parent đã layout — giữ/mount, đừng unmount vì ratio=0.
+          const visible = emptyShell
+            ? parentSized
+            : entry.isIntersecting && entry.intersectionRatio >= threshold;
           setInView(visible);
           if (wasInViewRef.current && !visible) {
             onLeaveRef.current?.();

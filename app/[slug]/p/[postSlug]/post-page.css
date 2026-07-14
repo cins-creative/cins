@@ -237,6 +237,20 @@
   position: relative;
 }
 
+/* Gate wrapper must fill media column even before children mount. */
+.j-post-page:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media
+  [data-viewport-gated] {
+  flex: 1 1 auto;
+  align-self: stretch;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  position: relative;
+  display: block;
+}
+
 .j-post-page:has(.post-canvas--media.post-canvas--split)
   .post-view-content--media
   .b-embed-ro.is-rive-file,
@@ -253,7 +267,8 @@
   position: relative;
   align-self: stretch;
   margin-inline: 0;
-  background: #000;
+  /* Rive artboard thường transparent — không dùng nền cinema #000 như video. */
+  background: var(--bg-surface, #fff);
   border: none;
   border-radius: 0;
   padding: 0;
@@ -2656,7 +2671,7 @@
   padding: 0;
   gap: 0;
   margin: 0;
-  background: var(--neutral-900, #0f172a);
+  background: var(--bg-surface, #fff);
   border: 0;
   border-radius: 0;
   overflow: hidden;
@@ -2673,7 +2688,7 @@
   align-items: stretch;
   border: 0;
   border-radius: 0;
-  background: var(--neutral-900, #0f172a);
+  background: var(--bg-surface, #fff);
 }
 .cins-post-view .b-embed-ro.is-rive-file > div {
   position: absolute;
