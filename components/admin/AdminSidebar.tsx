@@ -178,9 +178,6 @@ export function AdminSidebar() {
               >
                 <NavIcon name={item.icon} />
                 <span className="nav-item-label">{item.label}</span>
-                {"badge" in item && item.badge != null ? (
-                  <span className="nav-badge">{item.badge}</span>
-                ) : null}
               </Link>
             );
           })}
