@@ -1,6 +1,15 @@
 "use client";
 
-import { ChevronDown } from "lucide-react";
+import {
+  Check,
+  ChevronDown,
+  Code2,
+  FileText,
+  Image as ImageIcon,
+  Sparkles,
+  Video,
+  type LucideIcon,
+} from "lucide-react";
 import {
   useEffect,
   useLayoutEffect,
@@ -20,12 +29,24 @@ import { computeFixedMenuPosition } from "@/lib/ui/clamp-fixed-menu-position";
 const GALLERY_FILTER_MENU_MIN_WIDTH = 168;
 const GALLERY_FILTER_MENU_EST_HEIGHT = 260;
 
+const MEDIA_FILTER_ICON: Record<GalleryMediaFilter, LucideIcon> = {
+  all: Sparkles,
+  article: FileText,
+  photo: ImageIcon,
+  video: Video,
+  embed: Code2,
+};
+
 type Props = {
   filter: GalleryMediaFilter;
   onFilterChange: (filter: GalleryMediaFilter) => void;
   className?: string;
-  /** `toolbar` — nút `.j-tlb-dd-btn` trên context bar gallery chính. */
-  variant?: "compact" | "toolbar";
+  /**
+   * `compact` — pill nhỏ aside cũ.
+   * `toolbar` — `.j-tlb-dd-btn` trên gallery chính.
+   * `icon` — nút icon 32px như `.wj-filter-btn` (World Journey).
+   */
+  variant?: "compact" | "toolbar" | "icon";
 };
 
 export function GalleryMediaFilterDropdown({
@@ -108,11 +129,18 @@ export function GalleryMediaFilterDropdown({
     };
   }, [open]);
 
+  const isIcon = variant === "icon";
+  const label = galleryMediaFilterButtonLabel(filter);
+  const ActiveIcon = MEDIA_FILTER_ICON[filter] ?? Sparkles;
+
   const menu =
     open && menuStyle ? (
       <div
         ref={menuRef}
-        className="j-tlb-dd-menu is-portal j-gallery-dd-menu j-gallery-media-dd-menu"
+        className={
+          "j-tlb-dd-menu is-portal j-gallery-dd-menu j-gallery-media-dd-menu" +
+          (isIcon ? " j-gallery-media-dd-menu--icon" : "")
+        }
         role="listbox"
         aria-label="Lọc theo loại nội dung"
         style={{
@@ -125,9 +153,12 @@ export function GalleryMediaFilterDropdown({
           display: "block",
         }}
       >
-        <div className="j-dd-section-label">Loại nội dung</div>
+        {!isIcon ? (
+          <div className="j-dd-section-label">Loại nội dung</div>
+        ) : null}
         {GALLERY_MEDIA_FILTER_OPTIONS.map((opt) => {
           const active = filter === opt.id;
+          const OptIcon = MEDIA_FILTER_ICON[opt.id];
           return (
             <div
               key={opt.id}
@@ -143,7 +174,20 @@ export function GalleryMediaFilterDropdown({
                   setOpen(false);
                 }}
               >
+                {isIcon ? (
+                  <span className="j-dd-ico" aria-hidden>
+                    <OptIcon size={13} strokeWidth={1.7} />
+                  </span>
+                ) : null}
                 <span className="j-dd-lbl">{opt.label}</span>
+                {isIcon ? (
+                  <Check
+                    className="j-gallery-media-check"
+                    size={13}
+                    strokeWidth={2}
+                    aria-hidden
+                  />
+                ) : null}
               </button>
             </div>
           );
@@ -151,38 +195,56 @@ export function GalleryMediaFilterDropdown({
       </div>
     ) : null;
 
-  const label = galleryMediaFilterButtonLabel(filter);
   const isToolbar = variant === "toolbar";
+  const wrapClass = isIcon
+    ? "j-tlb-filter j-gallery-media-filter j-gallery-media-filter--icon"
+    : isToolbar
+      ? "j-tlb-filter j-gallery-media-filter"
+      : "j-gallery-dd";
 
   return (
     <>
       <div
         ref={wrapRef}
         className={
-          (isToolbar ? "j-tlb-filter j-gallery-media-filter" : "j-gallery-dd") +
-          (open ? " is-open" : "") +
-          (className ? ` ${className}` : "")
+          wrapClass + (open ? " is-open" : "") + (className ? ` ${className}` : "")
         }
       >
         <button
           ref={btnRef}
           type="button"
-          className={isToolbar ? "j-tlb-dd-btn" : "j-gallery-dd-btn"}
+          className={
+            isIcon
+              ? "j-gallery-media-icon-btn"
+              : isToolbar
+                ? "j-tlb-dd-btn"
+                : "j-gallery-dd-btn"
+          }
           onClick={(e) => {
             e.stopPropagation();
             setOpen((v) => !v);
           }}
           aria-haspopup="listbox"
           aria-expanded={open}
-          aria-label={`Loại nội dung: ${label}`}
+          aria-label={`Loại nội dung: ${galleryMediaFilterLabel(filter)}`}
+          title={galleryMediaFilterLabel(filter)}
         >
-          <span>{label}</span>
-          <span
-            className={isToolbar ? "j-tlb-dd-caret" : "j-gallery-dd-caret"}
-            aria-hidden
-          >
-            <ChevronDown size={isToolbar ? 14 : 12} strokeWidth={isToolbar ? 1.8 : 2} />
-          </span>
+          {isIcon ? (
+            <ActiveIcon size={15} strokeWidth={2} aria-hidden />
+          ) : (
+            <>
+              <span>{label}</span>
+              <span
+                className={isToolbar ? "j-tlb-dd-caret" : "j-gallery-dd-caret"}
+                aria-hidden
+              >
+                <ChevronDown
+                  size={isToolbar ? 14 : 12}
+                  strokeWidth={isToolbar ? 1.8 : 2}
+                />
+              </span>
+            </>
+          )}
         </button>
       </div>
 

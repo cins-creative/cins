@@ -27,6 +27,9 @@ import {
 } from "react";
 
 import { CongDongFeedFilterDropdown } from "@/components/cong-dong/CongDongFeedFilterDropdown";
+import { EditorPersonalFilterSelect } from "@/components/editor/EditorPersonalFilterSelect";
+import { useJourneyPersonalFilterOptional } from "@/components/journey/JourneyPersonalFilterContext";
+import { isSystemPersonalFilterSlug } from "@/lib/filter/cong-dong-personal-filter.shared";
 import { OrgBaiDangLoaiComposeDropdown } from "@/components/truong/OrgBaiDangLoaiComposeDropdown";
 import { OrgBaiDangScheduleComposeButton } from "@/components/truong/OrgBaiDangScheduleComposeButton";
 import {
@@ -46,7 +49,7 @@ import { JourneyCoAuthorProposal } from "@/components/journey/JourneyCoAuthorPro
 import { JourneyOrgAttachTrigger } from "@/components/journey/JourneyOrgAttachTrigger";
 import { mapLoaiMocToMilestoneType } from "@/lib/journey/milestone-ui-map";
 import { bunnyIframeSrc, classifyBunnyVideoUrl } from "@/lib/bunny/embed";
-import type { Block, Visibility } from "@/lib/editor/types";
+import type { Block, LoaiMoc, Visibility } from "@/lib/editor/types";
 import {
   GRID_IMAGE_DEFAULT_HEIGHT,
   GRID_IMAGE_DEFAULT_WIDTH,
@@ -232,7 +235,16 @@ export function MediaComposeView({
   const [articleTags, setArticleTags] = useState<ArticleTagRef[]>(() => [
     ...(editInitial?.articleTags ?? []),
   ]);
-  const personalFilterIds = editInitial?.personalFilterIds ?? [];
+  const personalFilterCtx = useJourneyPersonalFilterOptional();
+  const [personalFilterIds, setPersonalFilterIds] = useState<string[]>(
+    () => editInitial?.personalFilterIds ?? [],
+  );
+  const [loaiMoc, setLoaiMoc] = useState<LoaiMoc>(
+    () => editInitial?.loaiMoc ?? "ca_nhan",
+  );
+  const personalFilterHydratedRef = useRef(
+    Boolean(editInitial?.personalFilterIds?.length),
+  );
   const [vis, setVis] = useState<Visibility>(
     editInitial?.visibility ?? "public",
   );
@@ -266,6 +278,17 @@ export function MediaComposeView({
     composeSchedulePublishAt,
   );
   const publishVisibility: Visibility = congDongCompose ? "public" : vis;
+
+  useEffect(() => {
+    if (personalFilterHydratedRef.current || isEdit || congDongCompose) return;
+    if (!personalFilterCtx || personalFilterCtx.loading) return;
+    personalFilterHydratedRef.current = true;
+    const slug = personalFilterCtx.activeSlug;
+    if (!slug || isSystemPersonalFilterSlug(slug)) return;
+    const match = personalFilterCtx.filters.find((f) => f.slug === slug);
+    if (match) setPersonalFilterIds([match.id]);
+  }, [personalFilterCtx, isEdit, congDongCompose]);
+
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -343,7 +366,7 @@ export function MediaComposeView({
             caption.trim() || (isPhoto ? "Album ảnh" : "Video"),
             isPhoto ? "photo" : "video",
           )}
-          milestoneKind={mapLoaiMocToMilestoneType(editInitial.loaiMoc)}
+          milestoneKind={mapLoaiMocToMilestoneType(loaiMoc)}
           ownerSlug={ownerSlug}
           postSlug={editInitial.postSlug}
           coverSrc={
@@ -897,7 +920,7 @@ export function MediaComposeView({
           coverSeed: null,
           tags: articleTags,
           visibility: publishVisibility,
-          loaiMoc: editInitial.loaiMoc,
+          loaiMoc,
           thoiDiem: editInitial.thoiDiem,
           blocks,
           personalFilterIds,
@@ -929,7 +952,7 @@ export function MediaComposeView({
         coverSeed: null,
         tags: articleTags,
         visibility: publishVisibility,
-        loaiMoc: "ca_nhan",
+        loaiMoc,
         thoiDiem: new Date().toISOString().slice(0, 10),
         blocks,
         personalFilterIds,
@@ -1015,35 +1038,46 @@ export function MediaComposeView({
                 />
               </div>
             ) : (
-              <div className="mc-compose-vis" ref={visRef}>
-                <button
-                  type="button"
-                  className="mc-compose-vis-btn"
-                  aria-expanded={visOpen}
-                  onClick={() => setVisOpen((v) => !v)}
-                >
-                  <visCurrent.Icon size={14} strokeWidth={1.8} aria-hidden />
-                  <span>{visCurrent.label}</span>
-                </button>
-                {visOpen ? (
-                  <div className="mc-compose-vis-menu" role="menu">
-                    {VIS_OPTIONS.map((opt) => (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        role="menuitem"
-                        className={`mc-compose-vis-opt${opt.value === vis ? " is-active" : ""}`}
-                        onClick={() => {
-                          setVis(opt.value);
-                          setVisOpen(false);
-                        }}
-                      >
-                        <opt.Icon size={14} strokeWidth={1.8} aria-hidden />
-                        <span>{opt.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                ) : null}
+              <div className="ed-topbar-actions-cluster">
+                <EditorPersonalFilterSelect
+                  ownerId={ownerId}
+                  valueIds={personalFilterIds}
+                  onChange={setPersonalFilterIds}
+                  loaiMoc={loaiMoc}
+                  onLoaiMocChange={setLoaiMoc}
+                  menuZIndex={9600}
+                />
+                <div className="mc-compose-vis" ref={visRef}>
+                  <button
+                    type="button"
+                    className="mc-compose-vis-btn"
+                    aria-label={visCurrent.label}
+                    title={visCurrent.label}
+                    aria-expanded={visOpen}
+                    onClick={() => setVisOpen((v) => !v)}
+                  >
+                    <visCurrent.Icon size={18} strokeWidth={1.8} aria-hidden />
+                  </button>
+                  {visOpen ? (
+                    <div className="mc-compose-vis-menu" role="menu">
+                      {VIS_OPTIONS.map((opt) => (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          role="menuitem"
+                          className={`mc-compose-vis-opt${opt.value === vis ? " is-active" : ""}`}
+                          onClick={() => {
+                            setVis(opt.value);
+                            setVisOpen(false);
+                          }}
+                        >
+                          <opt.Icon size={14} strokeWidth={1.8} aria-hidden />
+                          <span>{opt.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
               </div>
             )}
             <button

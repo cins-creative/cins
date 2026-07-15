@@ -1,11 +1,12 @@
 "use client";
 
-import { GripVertical } from "lucide-react";
+import { GripVertical, Pencil } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { GalleryItemVisual, GalleryEmbedPlatformBadge, GalleryVideoPlayBadge } from "@/components/journey/GalleryItemVisual";
 import { GalleryMainHoverOverlay } from "@/components/journey/GalleryMainHoverOverlay";
 import { GalleryMediaFilterDropdown } from "@/components/journey/GalleryMediaFilterDropdown";
+import { useJourneyFeaturedAsideFilterOptional } from "@/components/journey/JourneyFeaturedAsideFilterContext";
 import { useJourneyPostOverlay } from "@/components/journey/useJourneyPostOverlay";
 import type { GalleryMediaKind } from "@/lib/journey/post-media";
 import type { EmbedProviderId } from "@/lib/editor/embed-providers";
@@ -109,8 +110,18 @@ export function JourneyGalleryAside({
 }: Props) {
   void ownerSlug;
   const { openPost, overlay } = useJourneyPostOverlay();
+  const sharedMediaFilter = useJourneyFeaturedAsideFilterOptional();
+  const useSharedMediaFilter = Boolean(featuredOnly && sharedMediaFilter);
 
-  const [filter, setFilter] = useState<GalleryMediaFilter>("all");
+  const [localFilter, setLocalFilter] = useState<GalleryMediaFilter>("all");
+  const filter = useSharedMediaFilter
+    ? sharedMediaFilter!.mediaFilter
+    : localFilter;
+  const setFilter = useSharedMediaFilter
+    ? sharedMediaFilter!.setMediaFilter
+    : setLocalFilter;
+
+  const [reorderEditing, setReorderEditing] = useState(false);
   const [orderedPinned, setOrderedPinned] = useState<GalleryPinnedBanner[]>(() => [
     ...pinned,
   ]);
@@ -128,6 +139,13 @@ export function JourneyGalleryAside({
   const onReorderPinnedRef = useRef(onReorderPinned);
   onReorderPinnedRef.current = onReorderPinned;
 
+  const clearDrag = () => {
+    dragMovedRef.current = false;
+    dropAtRef.current = null;
+    setDragFrom(null);
+    setDropAt(null);
+  };
+
   useEffect(() => {
     /* Đang kéo / đang flush save — đừng ghi đè thứ tự optimistic. */
     if (saveFlushingRef.current || saveQueueRef.current) return;
@@ -135,8 +153,18 @@ export function JourneyGalleryAside({
     lastGoodPinnedRef.current = [...pinned];
   }, [pinned]);
 
-  /* Không khóa UI khi đang lưu — persist chạy ngầm. */
-  const reorderEnabled = canReorder && featuredOnly && filter === "all";
+  useEffect(() => {
+    if (filter !== "all") {
+      setReorderEditing(false);
+      clearDrag();
+    }
+  }, [filter]);
+
+  /* Kéo sắp chỉ khi chủ bật chế độ sửa + lọc Tất cả. */
+  const reorderEnabled =
+    canReorder && featuredOnly && filter === "all" && reorderEditing;
+  const showReorderEditBtn =
+    canReorder && featuredOnly && orderedPinned.length > 0;
 
   const filteredPinned = useMemo(
     () =>
@@ -156,14 +184,10 @@ export function JourneyGalleryAside({
     : orderedPinned.length === 0 && items.length === 0;
   const filteredEmpty =
     !empty && filteredPinned.length === 0 && filteredItems.length === 0;
-  const showFilter = featuredOnly ? orderedPinned.length > 0 : totalTacPham > 0;
-
-  const clearDrag = () => {
-    dragMovedRef.current = false;
-    dropAtRef.current = null;
-    setDragFrom(null);
-    setDropAt(null);
-  };
+  /* Cột nổi bật: filter media nằm trên `.j-tlb`; head chỉ còn nút sửa. */
+  const showLocalMediaFilter =
+    !useSharedMediaFilter &&
+    (featuredOnly ? orderedPinned.length > 0 : totalTacPham > 0);
 
   const setDropGap = (gap: number) => {
     if (dropAtRef.current === gap) return;
@@ -237,8 +261,40 @@ export function JourneyGalleryAside({
           {featuredOnly ? "Nội dung nổi bật" : "Tác phẩm"}
         </div>
 
-        {showFilter ? (
-          <GalleryMediaFilterDropdown filter={filter} onFilterChange={setFilter} />
+        {showReorderEditBtn ? (
+          <button
+            type="button"
+            className={
+              "j-gallery-edit-btn" + (reorderEditing ? " is-active" : "")
+            }
+            aria-pressed={reorderEditing}
+            aria-label={
+              reorderEditing
+                ? "Xong sắp xếp vị trí"
+                : "Sắp xếp vị trí bài nổi bật"
+            }
+            title={
+              filter !== "all"
+                ? "Chọn «Tất cả» loại nội dung trên thanh bộ lọc để sắp xếp"
+                : reorderEditing
+                  ? "Xong"
+                  : "Sắp xếp vị trí"
+            }
+            disabled={filter !== "all"}
+            onClick={() => {
+              setReorderEditing((v) => {
+                if (v) clearDrag();
+                return !v;
+              });
+            }}
+          >
+            <Pencil size={14} strokeWidth={2} aria-hidden />
+          </button>
+        ) : showLocalMediaFilter ? (
+          <GalleryMediaFilterDropdown
+            filter={filter}
+            onFilterChange={setFilter}
+          />
         ) : null}
       </div>
 
@@ -266,7 +322,6 @@ export function JourneyGalleryAside({
                 useMasonry ? "j-g-pinned--masonry" : "",
                 reorderEnabled ? "j-g-pinned--reorder" : "",
                 pendingSave ? "is-pending-save" : "",
-                dragFrom != null ? "is-dragging-active" : "",
               ]
                 .filter(Boolean)
                 .join(" ")}
@@ -276,47 +331,24 @@ export function JourneyGalleryAside({
                 const cotMocId = asideCotMocId(b);
                 const label =
                   [b.title, b.meta].filter(Boolean).join(" · ") || "Bài nổi bật";
-                /* Khe trước item — bỏ qua chỗ không đổi thứ tự (tại / ngay sau nguồn). */
-                const insertBeforeActive =
+                /* Gap no-op: tại / ngay sau nguồn — không vẽ vạch. Layout không đổi khi kéo. */
+                const gapMeaningful =
                   reorderEnabled &&
                   dragFrom != null &&
-                  dropAt === index &&
+                  dropAt != null &&
                   dropAt !== dragFrom &&
                   dropAt !== dragFrom + 1;
+                const showDropBefore = gapMeaningful && dropAt === index;
+                const showDropAfter = gapMeaningful && dropAt === index + 1;
 
                 return (
                   <div key={b.id} className="j-g-banner-slot">
-                    {reorderEnabled ? (
-                      <div
-                        className={
-                          "j-g-banner-insert" +
-                          (insertBeforeActive ? " is-active" : "")
-                        }
-                        aria-hidden
-                        onDragOver={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          e.dataTransfer.dropEffect = "move";
-                          setDropGap(index);
-                        }}
-                        onDrop={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          const from =
-                            dragFrom ??
-                            Number.parseInt(
-                              e.dataTransfer.getData("text/plain"),
-                              10,
-                            );
-                          clearDrag();
-                          if (!Number.isNaN(from)) commitReorder(from, index);
-                        }}
-                      />
-                    ) : null}
                     <div
                       className={[
                         "j-g-banner-wrap",
                         dragFrom === index ? "is-dragging" : "",
+                        showDropBefore ? "is-drop-before" : "",
+                        showDropAfter ? "is-drop-after" : "",
                       ]
                         .filter(Boolean)
                         .join(" ")}
@@ -427,34 +459,6 @@ export function JourneyGalleryAside({
                   </div>
                 );
               })}
-              {reorderEnabled ? (
-                <div
-                  className={
-                    "j-g-banner-insert j-g-banner-insert--end" +
-                    (dragFrom != null &&
-                    dropAt === filteredPinned.length &&
-                    dropAt !== dragFrom
-                      ? " is-active"
-                      : "")
-                  }
-                  aria-hidden
-                  onDragOver={(e) => {
-                    e.preventDefault();
-                    e.dataTransfer.dropEffect = "move";
-                    setDropGap(filteredPinned.length);
-                  }}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    const from =
-                      dragFrom ??
-                      Number.parseInt(e.dataTransfer.getData("text/plain"), 10);
-                    clearDrag();
-                    if (!Number.isNaN(from)) {
-                      commitReorder(from, filteredPinned.length);
-                    }
-                  }}
-                />
-              ) : null}
             </div>
           ) : null}
 

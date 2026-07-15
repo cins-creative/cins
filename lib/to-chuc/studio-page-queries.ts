@@ -12,7 +12,16 @@ import {
 } from "@/lib/truong/org-image-variants";
 import { fetchBaiDang, fetchHinhAnh } from "@/lib/truong/queries";
 import type { TruongBaiDang, TruongHinhAnh } from "@/lib/truong/types";
-import { STUDIO_SHOWCASE_LOAI } from "@/lib/to-chuc/studio-page-config";
+import {
+  isStudioTabVisible,
+  parseStudioPageCauHinh,
+  STUDIO_SHOWCASE_LOAI,
+  type StudioPageCauHinh,
+} from "@/lib/to-chuc/studio-page-config";
+import {
+  normalizeStudioHoatDong,
+  type StudioHoatDongStatus,
+} from "@/lib/to-chuc/studio-lifecycle.shared";
 
 export type StudioPagePayload = {
   id: string;
@@ -108,15 +117,18 @@ export type StudioOwner = {
   diaChi: string | null;
   dienThoai: string | null;
   emailLienHe: string | null;
+  trangThaiHoatDong: StudioHoatDongStatus;
 };
 
 export type StudioDetailPayload = {
   studio: StudioOwner;
-  /** Bài đăng thường (đã loại các bài loại "showcase"). */
+  /** Mọi bài đăng studio (kể cả thẻ showcase) — nguồn tab Bài đăng. */
   baidang: TruongBaiDang[];
-  /** Bài đăng được gán loại "showcase" — hiển thị ở tab Showcase. */
+  /** Subset gắn `loai_bai_dang = showcase` — lens tab Showcase. */
   showcase: TruongBaiDang[];
   hinhanh: TruongHinhAnh[];
+  /** `org_to_chuc.cau_hinh.tabs` — ẩn/hiện tab tùy chọn (vd. Hình ảnh). */
+  pageConfig: StudioPageCauHinh;
 };
 
 async function loadStudioDetailPayload(
@@ -129,7 +141,7 @@ async function loadStudioDetailPayload(
   const { data, error } = await supabase
     .from("org_to_chuc")
     .select(
-      "id, slug, ten, mo_ta, gioi_thieu_truong, tinh_thanh, dia_chi, dien_thoai, email_lien_he, avatar_id, cover_id, loai_to_chuc, cau_hinh",
+      "id, slug, ten, mo_ta, gioi_thieu_truong, tinh_thanh, dia_chi, dien_thoai, email_lien_he, avatar_id, cover_id, loai_to_chuc, cau_hinh, trang_thai_hoat_dong",
     )
     .eq("slug", cleaned)
     .in("loai_to_chuc", ["studio", "doanh_nghiep"])
@@ -147,11 +159,13 @@ async function loadStudioDetailPayload(
       cover_id: string | null;
       loai_to_chuc: string;
       cau_hinh: Record<string, unknown> | null;
+      trang_thai_hoat_dong: string | null;
     }>();
 
   if (error || !data) return null;
 
   const cauHinh = data.cau_hinh ?? {};
+  const pageConfig = parseStudioPageCauHinh(cauHinh);
   const website =
     typeof cauHinh.website === "string" ? (cauHinh.website as string) : null;
   const tenChinhThuc =
@@ -181,21 +195,22 @@ async function loadStudioDetailPayload(
     diaChi: data.dia_chi,
     dienThoai: data.dien_thoai,
     emailLienHe: data.email_lien_he,
+    trangThaiHoatDong: normalizeStudioHoatDong(data.trang_thai_hoat_dong),
   };
 
+  const showHinhAnh = isStudioTabVisible("hinh-anh", pageConfig);
   const [posts, hinhanh] = await Promise.all([
     fetchBaiDang(supabase, data.id, 40),
-    fetchHinhAnh(supabase, data.id),
+    showHinhAnh ? fetchHinhAnh(supabase, data.id) : Promise.resolve([]),
   ]);
 
   const showcase = posts.filter(
     (p) => p.loai_bai_dang === STUDIO_SHOWCASE_LOAI,
   );
-  const baidang = posts.filter(
-    (p) => p.loai_bai_dang !== STUDIO_SHOWCASE_LOAI,
-  );
+  /* Tab Bài đăng = nguồn chính — giữ cả bài gắn thẻ showcase (không “chuyển” mất). */
+  const baidang = posts;
 
-  return { studio, baidang, showcase, hinhanh };
+  return { studio, baidang, showcase, hinhanh, pageConfig };
 }
 
 export async function getStudioMetaBySlugCached(slug: string) {

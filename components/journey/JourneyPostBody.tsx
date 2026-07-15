@@ -310,18 +310,14 @@ export function JourneyPostBody({
 
   /**
    * `cover_id` mặc định chỉ thumb Gallery.
-   * Bài video Bunny: hiện `cover_id` làm poster/thumb trong bài khi embed
-   * config `showCoverInPost` (card + thân bài). Mặc định ẩn → Bunny default.
-   * Bài khác: giữ rule cũ (không lặp cover trên article / text / media album).
+   * Bật «Hiển thị thumbnail trong bài viết» → hiện trong thân (user + org).
+   * Album/photo: không lặp cover trên media card.
    */
   const showCoverInReadView =
     variant === "full" &&
     Boolean(coverSeed) &&
-    (postDisplayKind.kind === "bunny_video"
-      ? readShowCoverInPost(blocks)
-      : !mediaPost &&
-        !isTextPost &&
-        postDisplayKind.kind !== "article");
+    readShowCoverInPost(blocks) &&
+    (postDisplayKind.kind === "bunny_video" || !mediaPost);
   const coverEl = showCoverInReadView ? <PostCover seed={coverSeed} /> : null;
 
   const heroTitleEl = showHeroTitle ? (
@@ -672,7 +668,7 @@ export function JourneyPostBody({
   const mediaVisualEl =
     splitBlockParts.mediaBlocks.length > 0
       ? renderPostBlocks(splitBlockParts.mediaBlocks, { showAllImages: true })
-      : coverSeed
+      : coverSeed && readShowCoverInPost(blocks)
         ? <PostCover seed={coverSeed} />
         : null;
 

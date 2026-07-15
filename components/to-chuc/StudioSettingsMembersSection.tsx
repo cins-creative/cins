@@ -64,8 +64,8 @@ export function StudioSettingsMembersSection({
 
   if (loading || !viewer) {
     return (
-      <div className="cso-settings-loading">
-        <Loader2 size={20} className="cso-settings-spin" aria-hidden />
+      <div className="uas-loading">
+        <Loader2 size={18} className="uas-spin" aria-hidden />
         <span>Đang tải…</span>
       </div>
     );

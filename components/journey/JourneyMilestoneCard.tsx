@@ -44,6 +44,7 @@ import { JourneyOrgAttachTrigger } from "@/components/journey/JourneyOrgAttachTr
 import { JourneyBookmarkButton } from "@/components/journey/JourneyBookmarkButton";
 import { JourneyMilestoneInlineControls } from "@/components/journey/JourneyMilestoneInlineControls";
 import { JourneyLikeButton } from "@/components/journey/JourneyLikeButton";
+import { JourneyDislikeButton } from "@/components/journey/JourneyDislikeButton";
 import { JourneyMilestoneOwnerMenu } from "@/components/journey/JourneyMilestoneOwnerMenu";
 import { JourneyMilestoneInsightsModal } from "@/components/journey/JourneyMilestoneInsightsModal";
 import { JourneyMilestoneViewerMenu } from "@/components/social/JourneyMilestoneViewerMenu";
@@ -793,6 +794,8 @@ export function JourneyMilestoneCard({
   const [liveSocial, setLiveSocial] = useState(() => ({
     viewerLiked: social?.viewerLiked ?? false,
     likeCount: social?.likeCount ?? 0,
+    viewerDisliked: social?.viewerDisliked ?? false,
+    dislikeCount: social?.dislikeCount ?? 0,
     viewerBookmarked: social?.viewerBookmarked ?? false,
     bookmarkCount: social?.bookmarkCount ?? 0,
     showCounts: social?.showCounts ?? false,
@@ -842,6 +845,8 @@ export function JourneyMilestoneCard({
     setLiveSocial({
       viewerLiked: social?.viewerLiked ?? false,
       likeCount: social?.likeCount ?? 0,
+      viewerDisliked: social?.viewerDisliked ?? false,
+      dislikeCount: social?.dislikeCount ?? 0,
       viewerBookmarked: social?.viewerBookmarked ?? false,
       bookmarkCount: social?.bookmarkCount ?? 0,
       showCounts: social?.showCounts ?? false,
@@ -849,6 +854,8 @@ export function JourneyMilestoneCard({
   }, [
     social?.viewerLiked,
     social?.likeCount,
+    social?.viewerDisliked,
+    social?.dislikeCount,
     social?.viewerBookmarked,
     social?.bookmarkCount,
     social?.showCounts,
@@ -861,6 +868,8 @@ export function JourneyMilestoneCard({
           milestoneId?: string;
           liked?: boolean;
           likeCount?: number;
+          disliked?: boolean;
+          dislikeCount?: number;
           bookmarked?: boolean;
           bookmarkCount?: number;
         }>
@@ -873,6 +882,12 @@ export function JourneyMilestoneCard({
           : {}),
         ...(typeof detail.likeCount === "number"
           ? { likeCount: detail.likeCount }
+          : {}),
+        ...(typeof detail.disliked === "boolean"
+          ? { viewerDisliked: detail.disliked }
+          : {}),
+        ...(typeof detail.dislikeCount === "number"
+          ? { dislikeCount: detail.dislikeCount }
           : {}),
         ...(typeof detail.bookmarked === "boolean"
           ? { viewerBookmarked: detail.bookmarked }
@@ -1190,6 +1205,13 @@ export function JourneyMilestoneCard({
         actorsMediaLabel={likeActorsMediaLabel}
         sharePath={viewerPostHref}
         shareTitle={title}
+      />
+      <JourneyDislikeButton
+        milestoneId={milestoneId}
+        initialDisliked={liveSocial.viewerDisliked}
+        initialCount={liveSocial.dislikeCount}
+        showCount={liveSocial.showCounts}
+        actorsMediaLabel={likeActorsMediaLabel}
       />
       {inlineExpand ? (
         <JourneyCommentLink
@@ -1682,7 +1704,7 @@ export function JourneyMilestoneCard({
               className={
                 "jcard-datebar" +
                 (canManageTagged ? " jcard-datebar--tagged" : "") +
-                (isCongDongPost && congDongOrg ? " jcard-datebar--cong-dong" : "") +
+                (congDongOrg ? " jcard-datebar--cong-dong" : "") +
                 (useForeignFrame ? " jcard-datebar--bookmark-source" : "")
               }
             >
@@ -1715,6 +1737,12 @@ export function JourneyMilestoneCard({
                 <TaggedOriginalAuthorChip
                   attr={attribution}
                   dateLabel={displayDate}
+                />
+              ) : isBookmarkMilestone && congDongOrg ? (
+                <CongDongSourceChip
+                  org={congDongOrg}
+                  dateLabel={displayDate}
+                  frameInner
                 />
               ) : isBookmarkMilestone && bookmark ? (
                 <BookmarkOriginalPosterChip
@@ -1883,7 +1911,7 @@ export function JourneyMilestoneCard({
               ) : null}
             </div>
           ) : isCongDongSelfPost && congDongOrg ? (
-            <div className="jcard-datebar jcard-datebar--guest jcard-datebar--bookmark-source">
+            <div className="jcard-datebar jcard-datebar--guest jcard-datebar--bookmark-source jcard-datebar--cong-dong">
               <CongDongSourceChip
                 org={congDongOrg}
                 dateLabel={displayDate}
@@ -1948,8 +1976,24 @@ export function JourneyMilestoneCard({
                 dateLabel={displayDate}
               />
             </div>
+          ) : isBookmarkMilestone && congDongOrg ? (
+            <div className="jcard-datebar jcard-datebar--guest jcard-datebar--bookmark-source jcard-datebar--cong-dong">
+              <CongDongSourceChip
+                org={congDongOrg}
+                dateLabel={displayDate}
+                frameInner
+              />
+            </div>
           ) : isBookmarkMilestone && bookmark ? (
-            <div className="jcard-datebar jcard-datebar--guest jcard-datebar--bookmark-source">
+            <div
+              className={
+                "jcard-datebar jcard-datebar--guest jcard-datebar--bookmark-source" +
+                (bookmark.sourceKind === "cong_dong" ||
+                orgBaiDangRef?.orgKind === "cong_dong"
+                  ? " jcard-datebar--cong-dong"
+                  : "")
+              }
+            >
               <BookmarkOriginalPosterChip
                 bookmark={bookmark}
                 orgBaiDangRef={orgBaiDangRef}
@@ -2181,39 +2225,11 @@ function CongDongSourceChip({
   posterName?: string | null;
   posterSlug?: string | null;
   posterAvatarUrl?: string | null;
-  /** Trong khung ngoài — chỉ nhóm + ngày đăng gốc (không lặp người đăng). */
+  /** Trong khung ngoài — chỉ nhóm + ngày (không lặp người đăng); vẫn giữ nhận diện cộng đồng. */
   frameInner?: boolean;
 }) {
   const orgInitial = (org.initial || org.name.charAt(0) || "?").toUpperCase();
-
-  if (frameInner) {
-    return (
-      <JourneyOrgPopover
-        slug={org.slug}
-        orgKind="cong_dong"
-        href={org.href}
-        fallbackName={org.name}
-        fallbackAvatarUrl={org.avatarUrl}
-        fallbackCoverUrl={org.coverUrl}
-      >
-        <span className="org-chip">
-          <span className="org-logo" aria-hidden>
-            {org.avatarUrl ? (
-              /* eslint-disable-next-line @next/next/no-img-element */
-              <img src={org.avatarUrl} alt="" />
-            ) : (
-              orgInitial
-            )}
-          </span>
-          <span className="org-copy">
-            <strong>{org.name}</strong>
-            <small title="Ngày đăng trong nhóm">{dateLabel}</small>
-          </span>
-        </span>
-      </JourneyOrgPopover>
-    );
-  }
-  const posterDisplay = posterName?.trim() || null;
+  const posterDisplay = frameInner ? null : posterName?.trim() || null;
   const posterSlugTrim = posterSlug?.trim() || null;
   const showPosterIdentity = Boolean(posterSlugTrim && posterDisplay);
 
@@ -2325,18 +2341,16 @@ function CongDongSourceChip({
         <span className="cd-source-copy">
           <strong>{org.name}</strong>
           {posterBlock}
-          <small className="cd-source-meta">
-            <Users size={11} strokeWidth={2} aria-hidden />
-            <span>Cộng đồng</span>
-            {!posterDisplay ? (
-              <>
-                <span className="cd-source-sep" aria-hidden>
-                  ·
-                </span>
-                <time>{dateLabel}</time>
-              </>
-            ) : null}
-          </small>
+          {!posterDisplay ? (
+            <small className="cd-source-meta">
+              <Users size={12} strokeWidth={2} aria-hidden />
+              <span>Trong cộng đồng</span>
+              <span className="cd-source-sep" aria-hidden>
+                ·
+              </span>
+              <time>{dateLabel}</time>
+            </small>
+          ) : null}
         </span>
       </span>
     </JourneyOrgPopover>
@@ -2937,6 +2951,46 @@ function BookmarkOriginalPosterChip({
   dateLabel: string;
 }) {
   const initial = (bookmark.initial || bookmark.name.charAt(0) || "?").toUpperCase();
+  const isCongDongSource =
+    bookmark.sourceKind === "cong_dong" ||
+    orgBaiDangRef?.orgKind === "cong_dong";
+
+  if (isCongDongSource && orgBaiDangRef) {
+    const href =
+      bookmark.url ?? truongRootPath(orgBaiDangRef.orgSlug);
+    return (
+      <JourneyOrgPopover
+        slug={orgBaiDangRef.orgSlug}
+        orgKind="cong_dong"
+        href={href}
+        fallbackName={bookmark.name}
+        fallbackAvatarUrl={bookmark.avatarUrl}
+      >
+        <span className="cd-source-chip">
+          <span className="cd-source-avatar" aria-hidden>
+            {bookmark.avatarUrl ? (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img src={bookmark.avatarUrl} alt="" />
+            ) : (
+              initial
+            )}
+          </span>
+          <span className="cd-source-copy">
+            <strong>{bookmark.name}</strong>
+            <small className="cd-source-meta">
+              <Users size={12} strokeWidth={2} aria-hidden />
+              <span>Trong cộng đồng</span>
+              <span className="cd-source-sep" aria-hidden>
+                ·
+              </span>
+              <time title="Ngày đăng gốc">{dateLabel}</time>
+            </small>
+          </span>
+        </span>
+      </JourneyOrgPopover>
+    );
+  }
+
   const chip = (
     <span className="org-chip">
       <span className="org-logo" aria-hidden>

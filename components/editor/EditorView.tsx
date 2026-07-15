@@ -89,6 +89,9 @@ import {
 } from "@/lib/editor/image-layout";
 import { ImageGrid } from "@/components/journey/ImageGrid";
 import { CongDongFeedFilterDropdown } from "@/components/cong-dong/CongDongFeedFilterDropdown";
+import { EditorPersonalFilterSelect } from "@/components/editor/EditorPersonalFilterSelect";
+import { useJourneyPersonalFilterOptional } from "@/components/journey/JourneyPersonalFilterContext";
+import { isSystemPersonalFilterSlug } from "@/lib/filter/cong-dong-personal-filter.shared";
 import { updatePost } from "@/app/[slug]/p/[postSlug]/edit/actions";
 import { publishPost } from "@/app/[slug]/p/new/actions";
 import "@/app/cins-embed-picker.css";
@@ -139,7 +142,12 @@ import {
   detectMediaPostKind,
   mediaPostHasContent,
 } from "@/lib/journey/post-media";
-import { validatePostContentForPublish, POST_MOTA_MAX, readShowCoverInPost } from "@/lib/journey/post-content-kind";
+import {
+  applyShowCoverInPostFlag,
+  POST_MOTA_MAX,
+  readShowCoverInPost,
+  validatePostContentForPublish,
+} from "@/lib/journey/post-content-kind";
 import { readImageFileFromClipboard } from "@/lib/files/clipboard-images";
 import { OrgBaiDangLoaiComposeDropdown } from "@/components/truong/OrgBaiDangLoaiComposeDropdown";
 import { OrgBaiDangScheduleComposeButton } from "@/components/truong/OrgBaiDangScheduleComposeButton";
@@ -186,7 +194,6 @@ import {
   type ComposeEditorDraft,
 } from "@/lib/journey/compose-editor-draft";
 import {
-  COMPOSE_PREVIEW_LABELS,
   inferComposePreviewKind,
   inferComposePreviewKindFromEditor,
 } from "@/lib/journey/compose-preview-kind";
@@ -331,29 +338,6 @@ function ensureBunnyVideoFirst(
   const [video] = next.splice(i, 1);
   next.unshift(video!);
   return next;
-}
-
-/** Ghi cờ hiển thị thumbnail vào config embed Bunny trước publish / draft. */
-function applyShowCoverInPostFlag(
-  blocks: ServerBlock[],
-  showCoverInPost: boolean,
-): ServerBlock[] {
-  return blocks.map((block, i) => {
-    if (block.loai !== "embed") return { ...block, thu_tu: i };
-    const url = String(block.config?.url ?? "").trim();
-    const bunnyId =
-      typeof block.config?.bunnyVideoId === "string"
-        ? block.config.bunnyVideoId.trim()
-        : "";
-    const isBunny =
-      Boolean(bunnyId) || classifyBunnyVideoUrl(url) !== null;
-    if (!isBunny) return { ...block, thu_tu: i };
-    const config = { ...(block.config ?? {}) };
-    /* Luôn ghi boolean — tắt phải persist `false`, không chỉ xoá key
-       (tránh merge/cờ cũ khiến thumbnail vẫn hiện trên card). */
-    config.showCoverInPost = showCoverInPost;
-    return { ...block, config, thu_tu: i };
-  });
 }
 
 function blockGridDimensions(block: Block): {
@@ -748,6 +732,8 @@ function EditorVisibilitySelect({
         ref={btnRef}
         type="button"
         className="vis-btn"
+        aria-label={current.label}
+        title={current.label}
         aria-expanded={open}
         aria-haspopup="menu"
         onClick={(e) => {
@@ -756,11 +742,7 @@ function EditorVisibilitySelect({
         }}
       >
         <span className="ico" aria-hidden>
-          <current.Icon size={14} strokeWidth={1.7} />
-        </span>
-        <span>{current.label}</span>
-        <span className="caret" aria-hidden>
-          ▾
+          <current.Icon size={18} strokeWidth={1.8} />
         </span>
       </button>
       {menu}
@@ -874,6 +856,7 @@ export function EditorView({
   const isOverlay = presentation === "overlay";
   const isEdit = mode === "edit" && !!initial;
   const isCreateCompose = !isEdit && isOverlay;
+  const personalFilterCtx = useJourneyPersonalFilterOptional();
   /**
    * Platform / nguồn nhúng — prop lúc mở compose, hoặc chọn giữa chừng
    * (nút Nhúng khi đang soạn chữ) / khi sửa bài chữ rồi thêm embed.
@@ -1160,8 +1143,28 @@ export function EditorView({
   const composeScheduleActive = isFutureOrgBaiDangSchedule(
     composeSchedulePublishAt,
   );
-  const personalFilterIds = initial?.personalFilterIds ?? [];
+  const [personalFilterIds, setPersonalFilterIds] = useState<string[]>(
+    () => initial?.personalFilterIds ?? [],
+  );
+  const [loaiMoc, setLoaiMoc] = useState<LoaiMoc>(
+    () => initial?.loaiMoc ?? DEFAULT_LOAI_MOC,
+  );
+  const personalFilterHydratedRef = useRef(
+    Boolean(initial?.personalFilterIds?.length),
+  );
   const publishVisibility: Visibility = congDongCompose ? "public" : vis;
+
+  /* Bài mới: gắn sẵn nhãn đang lọc trên timeline (nếu có). */
+  useEffect(() => {
+    if (personalFilterHydratedRef.current || isEdit || congDongCompose) return;
+    if (!personalFilterCtx || personalFilterCtx.loading) return;
+    personalFilterHydratedRef.current = true;
+    const slug = personalFilterCtx.activeSlug;
+    if (!slug || isSystemPersonalFilterSlug(slug)) return;
+    const match = personalFilterCtx.filters.find((f) => f.slug === slug);
+    if (match) setPersonalFilterIds([match.id]);
+  }, [personalFilterCtx, isEdit, congDongCompose]);
+
   const [imgPickerTarget, setImgPickerTarget] = useState<ImgPickerTarget | null>(
     null,
   );
@@ -1673,14 +1676,6 @@ export function EditorView({
   const isLottieFileEmbedCompose =
     isLottieFileEmbedComposeIntent &&
     Boolean(activeLottieFile || lottieFileEmbedPreviewUrl);
-
-  const previewMeta =
-    isExternalEmbedCompose && embedPlatform
-      ? {
-          label: getTier1EmbedPlatformMeta(embedPlatform).label,
-          hint: "Nhúng từ nền tảng sáng tạo — thumbnail tự lấy khi có; bạn vẫn có thể đổi ảnh riêng",
-        }
-      : COMPOSE_PREVIEW_LABELS[previewKind];
 
   const applyImageToBlock = useCallback(
     (target: ImgPickerTarget, seed: string) => {
@@ -3133,7 +3128,7 @@ export function EditorView({
           coverSeed: coverForPublish,
           tags,
           visibility: publishVisibility,
-          loaiMoc: initial.loaiMoc,
+          loaiMoc,
           thoiDiem: initial.thoiDiem,
           blocks: publishBlocks,
           personalFilterIds,
@@ -3171,7 +3166,7 @@ export function EditorView({
         coverSeed: coverForPublish,
         tags,
         visibility: publishVisibility,
-        loaiMoc: DEFAULT_LOAI_MOC,
+        loaiMoc,
         thoiDiem: isoToday(),
         blocks: publishBlocks,
         personalFilterIds,
@@ -3233,6 +3228,7 @@ export function EditorView({
     composeSchedulePublishAt,
     composeScheduleActive,
     personalFilterIds,
+    loaiMoc,
     blocks,
     ownerId,
     ownerSlug,
@@ -3269,14 +3265,6 @@ export function EditorView({
               <span className="ed-title">Trình tạo bài viết</span>
             </Link>
           )}
-          {isOverlay ? (
-            <span
-              className={`ed-compose-badge ed-compose-badge--${previewKind}`}
-              title={previewMeta.hint}
-            >
-              {previewMeta.label}
-            </span>
-          ) : null}
           <span className="ed-spacer" />
 
           {congDongCompose ? (
@@ -3305,7 +3293,17 @@ export function EditorView({
               />
             </div>
           ) : (
-            <EditorVisibilitySelect value={vis} onChange={setVis} />
+            <div className="ed-topbar-actions-cluster">
+              <EditorPersonalFilterSelect
+                ownerId={ownerId}
+                valueIds={personalFilterIds}
+                onChange={setPersonalFilterIds}
+                loaiMoc={loaiMoc}
+                onLoaiMocChange={setLoaiMoc}
+                menuZIndex={9600}
+              />
+              <EditorVisibilitySelect value={vis} onChange={setVis} />
+            </div>
           )}
 
           {isOverlay && onClose ? (
@@ -3445,13 +3443,9 @@ export function EditorView({
                 beginImageUpload(cropped, onPick, onResolved),
               )
             }
-            showCoverInPost={
-              isBunnyVideoCompose && coverSeed ? showCoverInPost : undefined
-            }
+            showCoverInPost={coverSeed ? showCoverInPost : undefined}
             onShowCoverInPostChange={
-              isBunnyVideoCompose && coverSeed
-                ? setShowCoverInPost
-                : undefined
+              coverSeed ? setShowCoverInPost : undefined
             }
           />
         ) : null}
@@ -4140,7 +4134,7 @@ function CoverArea({
     onPick: (seed: string) => void,
     onResolved?: (from: string, to: string) => void,
   ) => void;
-  /** Bài video Bunny — hiện trong cụm thumbnail khi đã có ảnh bìa. */
+  /** Hiện khi đã có ảnh bìa — mọi loại bài (user + org). */
   showCoverInPost?: boolean;
   onShowCoverInPostChange?: (next: boolean) => void;
 }) {

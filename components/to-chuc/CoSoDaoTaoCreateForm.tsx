@@ -197,7 +197,6 @@ export function CoSoDaoTaoCreateForm({ userSlug }: { userSlug: string }) {
           ["dia_chi", "dia_chi"],
           ["dien_thoai", "dien_thoai"],
           ["email_lien_he", "email_lien_he"],
-          ["gioi_thieu_truong", "gioi_thieu_truong"],
           ["website", "website"],
           ["giay_phep_dao_tao", "giay_phep_dao_tao"],
         ];
@@ -432,18 +431,6 @@ export function CoSoDaoTaoCreateForm({ userSlug }: { userSlug: string }) {
                   name="mo_ta"
                   className="ttc-txt"
                   placeholder="Một câu giới thiệu cơ sở của bạn"
-                />
-              </div>
-
-              <div className="ttc-field">
-                <label className="ttc-lbl" htmlFor="gioi_thieu_truong">
-                  Giới thiệu <span className="ttc-opt">(tùy chọn)</span>
-                </label>
-                <textarea
-                  id="gioi_thieu_truong"
-                  name="gioi_thieu_truong"
-                  className="ttc-txt"
-                  placeholder="Đoạn giới thiệu chi tiết — hiển thị trên trang cơ sở"
                 />
               </div>
 

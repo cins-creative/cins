@@ -135,53 +135,79 @@ async function fetchMilestoneSocial(
   milestoneId: string,
   viewerId: string | null,
 ) {
-  const [{ count: likeCount }, { count: bookmarkCount }, { count: commentCount }, viewerLiked, viewerBookmarked] =
-    await Promise.all([
-      admin
-        .from("social_reaction")
-        .select("id", { count: "exact", head: true })
-        .eq("loai_doi_tuong", "cot_moc")
-        .eq("id_doi_tuong", milestoneId)
-        .eq("emoji", "heart"),
-      admin
-        .from("social_luu")
-        .select("id", { count: "exact", head: true })
-        .eq("loai_doi_tuong", "cot_moc")
-        .eq("id_doi_tuong", milestoneId),
-      admin
-        .from("social_binh_luan")
-        .select("id", { count: "exact", head: true })
-        .eq("loai_doi_tuong", "cot_moc")
-        .eq("id_doi_tuong", milestoneId)
-        .is("id_cha", null)
-        .eq("da_xoa", false),
-      viewerId
-        ? admin
-            .from("social_reaction")
-            .select("id")
-            .eq("id_nguoi_dung", viewerId)
-            .eq("loai_doi_tuong", "cot_moc")
-            .eq("id_doi_tuong", milestoneId)
-            .eq("emoji", "heart")
-            .maybeSingle()
-            .then(({ data }) => Boolean(data))
-        : Promise.resolve(false),
-      viewerId
-        ? admin
-            .from("social_luu")
-            .select("id")
-            .eq("id_nguoi_dung", viewerId)
-            .eq("loai_doi_tuong", "cot_moc")
-            .eq("id_doi_tuong", milestoneId)
-            .maybeSingle()
-            .then(({ data }) => Boolean(data))
-        : Promise.resolve(false),
-    ]);
+  const [
+    { count: likeCount },
+    { count: dislikeCount },
+    { count: bookmarkCount },
+    { count: commentCount },
+    viewerLiked,
+    viewerDisliked,
+    viewerBookmarked,
+  ] = await Promise.all([
+    admin
+      .from("social_reaction")
+      .select("id", { count: "exact", head: true })
+      .eq("loai_doi_tuong", "cot_moc")
+      .eq("id_doi_tuong", milestoneId)
+      .eq("emoji", "heart"),
+    admin
+      .from("social_reaction")
+      .select("id", { count: "exact", head: true })
+      .eq("loai_doi_tuong", "cot_moc")
+      .eq("id_doi_tuong", milestoneId)
+      .eq("emoji", "dislike"),
+    admin
+      .from("social_luu")
+      .select("id", { count: "exact", head: true })
+      .eq("loai_doi_tuong", "cot_moc")
+      .eq("id_doi_tuong", milestoneId),
+    admin
+      .from("social_binh_luan")
+      .select("id", { count: "exact", head: true })
+      .eq("loai_doi_tuong", "cot_moc")
+      .eq("id_doi_tuong", milestoneId)
+      .is("id_cha", null)
+      .eq("da_xoa", false),
+    viewerId
+      ? admin
+          .from("social_reaction")
+          .select("id")
+          .eq("id_nguoi_dung", viewerId)
+          .eq("loai_doi_tuong", "cot_moc")
+          .eq("id_doi_tuong", milestoneId)
+          .eq("emoji", "heart")
+          .maybeSingle()
+          .then(({ data }) => Boolean(data))
+      : Promise.resolve(false),
+    viewerId
+      ? admin
+          .from("social_reaction")
+          .select("id")
+          .eq("id_nguoi_dung", viewerId)
+          .eq("loai_doi_tuong", "cot_moc")
+          .eq("id_doi_tuong", milestoneId)
+          .eq("emoji", "dislike")
+          .maybeSingle()
+          .then(({ data }) => Boolean(data))
+      : Promise.resolve(false),
+    viewerId
+      ? admin
+          .from("social_luu")
+          .select("id")
+          .eq("id_nguoi_dung", viewerId)
+          .eq("loai_doi_tuong", "cot_moc")
+          .eq("id_doi_tuong", milestoneId)
+          .maybeSingle()
+          .then(({ data }) => Boolean(data))
+      : Promise.resolve(false),
+  ]);
 
   return {
     viewerLiked,
+    viewerDisliked,
     viewerBookmarked,
     likeCount: likeCount ?? 0,
+    dislikeCount: dislikeCount ?? 0,
     bookmarkCount: bookmarkCount ?? 0,
     commentCount: commentCount ?? 0,
   };

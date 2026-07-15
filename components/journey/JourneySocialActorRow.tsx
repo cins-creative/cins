@@ -59,7 +59,6 @@ export function JourneySocialActorRow({
         <span className="jsa-item-body">
           <span className="jsa-name">{actor.tenHienThi}</span>
           {subtitle ? <span className="jsa-sub">{subtitle}</span> : null}
-          {actor.bio ? <span className="jsa-bio">{actor.bio}</span> : null}
           <span className="jsa-meta">
             {actor.mutualFriendCount > 0 ? (
               <span className="jsa-mutual">

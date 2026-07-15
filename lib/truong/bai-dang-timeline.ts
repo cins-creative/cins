@@ -163,7 +163,15 @@ export function filterBaiDangByTimelineKey(
       matchesPersonalFilterSlug(p.personalFilterSlugs, nhanSlug),
     );
   }
-  return filterBaiDangPosts(posts, key as BaiDangTimelineFilter);
+  if (key === "all") return [...posts];
+  const want = String(key).trim().toLowerCase();
+  return posts.filter((p) => {
+    const raw = String(p.loai_bai_dang ?? "")
+      .trim()
+      .toLowerCase();
+    if (raw === want) return true;
+    return normalizeLoaiBaiDang(p.loai_bai_dang) === want;
+  });
 }
 
 export function countBaiDangNhanFilters(

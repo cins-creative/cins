@@ -6,6 +6,7 @@ import { OrgBaiDangCreateComposer } from "@/components/truong/OrgBaiDangCreateCo
 import { OrgBaiDangFilteredFeed } from "@/components/truong/OrgBaiDangFilteredFeed";
 import { OrgBaiDangScheduledQueue } from "@/components/truong/OrgBaiDangScheduledQueue";
 import { OrgBaiDangTimelineBar } from "@/components/truong/OrgBaiDangTimelineBar";
+import { useOrgBaiDangPostOverlay } from "@/components/truong/useOrgBaiDangPostOverlay";
 import { useOrgBaiDangView } from "@/components/truong/useOrgBaiDangView";
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
 import {
@@ -36,7 +37,9 @@ export function OrgBaiDangJourneyTimeline({ posts: postsProp }: Props) {
   );
   const canEdit = Boolean(ctx?.isEditing);
   const [filterKey, setFilterKey] = useState<OrgBaiDangTimelineFilterKey>("all");
-  const { view, setView, openPostFromGrid } = useOrgBaiDangView();
+  const { view, setView } = useOrgBaiDangView();
+  const { openPost: openPostFromGrid, overlay: postOverlay } =
+    useOrgBaiDangPostOverlay({ posts });
 
   const customSlugs = useMemo(
     () => filterCtx?.filters.map((f) => f.slug) ?? [],
@@ -125,6 +128,7 @@ export function OrgBaiDangJourneyTimeline({ posts: postsProp }: Props) {
         view={view}
         onOpenPostFromGrid={openPostFromGrid}
       />
+      {postOverlay}
     </main>
   );
 }

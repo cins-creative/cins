@@ -830,7 +830,15 @@ export async function attachSocialState(
   ];
   if (cotMocIds.length === 0) return milestones;
 
-  const [viewerLikes, viewerBookmarks, allLikes, allBookmarks, allComments] = await Promise.all([
+  const [
+    viewerLikes,
+    viewerDislikes,
+    viewerBookmarks,
+    allLikes,
+    allDislikes,
+    allBookmarks,
+    allComments,
+  ] = await Promise.all([
     viewerId
       ? admin
           .from("social_reaction")
@@ -838,6 +846,15 @@ export async function attachSocialState(
           .eq("id_nguoi_dung", viewerId)
           .eq("loai_doi_tuong", "cot_moc")
           .eq("emoji", "heart")
+          .in("id_doi_tuong", cotMocIds)
+      : Promise.resolve({ data: [] }),
+    viewerId
+      ? admin
+          .from("social_reaction")
+          .select("id_doi_tuong")
+          .eq("id_nguoi_dung", viewerId)
+          .eq("loai_doi_tuong", "cot_moc")
+          .eq("emoji", "dislike")
           .in("id_doi_tuong", cotMocIds)
       : Promise.resolve({ data: [] }),
     viewerId
@@ -855,6 +872,12 @@ export async function attachSocialState(
       .eq("emoji", "heart")
       .in("id_doi_tuong", cotMocIds),
     admin
+      .from("social_reaction")
+      .select("id_doi_tuong")
+      .eq("loai_doi_tuong", "cot_moc")
+      .eq("emoji", "dislike")
+      .in("id_doi_tuong", cotMocIds),
+    admin
       .from("social_luu")
       .select("id_doi_tuong")
       .eq("loai_doi_tuong", "cot_moc")
@@ -868,10 +891,14 @@ export async function attachSocialState(
   ]);
 
   const likedIds = new Set((viewerLikes.data ?? []).map((row) => row.id_doi_tuong as string));
+  const dislikedIds = new Set(
+    (viewerDislikes.data ?? []).map((row) => row.id_doi_tuong as string),
+  );
   const bookmarkedIds = new Set(
     (viewerBookmarks.data ?? []).map((row) => row.id_doi_tuong as string),
   );
   const likeCounts = countByTarget(allLikes.data ?? []);
+  const dislikeCounts = countByTarget(allDislikes.data ?? []);
   const bookmarkCounts = countByTarget(allBookmarks.data ?? []);
   const commentCounts = countByTarget(allComments.data ?? []);
 
@@ -881,8 +908,10 @@ export async function attachSocialState(
       ...item,
       social: {
         viewerLiked: likedIds.has(id),
+        viewerDisliked: dislikedIds.has(id),
         viewerBookmarked: bookmarkedIds.has(id),
         likeCount: likeCounts.get(id) ?? 0,
+        dislikeCount: dislikeCounts.get(id) ?? 0,
         bookmarkCount: bookmarkCounts.get(id) ?? 0,
         showCounts: true,
       },

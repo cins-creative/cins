@@ -10,6 +10,7 @@ import {
   Circle,
   FolderKanban,
   Globe,
+  Tag,
   Lock,
   Trophy,
   UserCircle2,
@@ -26,10 +27,14 @@ import {
 import { createPortal } from "react-dom";
 
 import { updateLoaiMocVisibility } from "@/app/[slug]/journey/visibility-actions";
+import { GalleryMediaFilterDropdown } from "@/components/journey/GalleryMediaFilterDropdown";
 import { JourneyFilterShareButton } from "@/components/journey/JourneyFilterShareButton";
 import { useJourneyFilterShareOptional } from "@/components/journey/JourneyFilterShareContext";
+import { useJourneyFeaturedAsideFilterOptional } from "@/components/journey/JourneyFeaturedAsideFilterContext";
 import { JourneyPersonalFilterMenuSection } from "@/components/journey/JourneyPersonalFilterMenuSection";
 import { useJourneyPersonalFilterOptional } from "@/components/journey/JourneyPersonalFilterContext";
+import { JourneySurfaceViewToggle } from "@/components/journey/JourneySurfaceViewToggle";
+import { useJourneyViewOptional } from "@/components/journey/JourneyViewContext";
 import {
   JOURNEY_SHARE_OPEN_EVENT,
   PORTFOLIO_ALL_FILTER_SHARE_SPEC,
@@ -129,7 +134,7 @@ function timelineFilterButtonLabel(
   personalName: string | null,
 ): string {
   if (personalName) return personalName;
-  if (group === "all") return "Nhãn";
+  if (group === "all") return "Bộ lọc";
   return GROUP_LABELS[group];
 }
 
@@ -166,6 +171,9 @@ export function JourneyTimelineBar({
   embed = false,
 }: Props) {
   const personalFilter = useJourneyPersonalFilterOptional();
+  const asideMediaFilter = useJourneyFeaturedAsideFilterOptional();
+  const journeyView = useJourneyViewOptional();
+  const showSurfaceToggle = Boolean(journeyView) && !embed;
   const activePersonalFilter = personalFilter?.activeSlug
     ? personalFilter.filters.find((f) => f.slug === personalFilter.activeSlug)
     : null;
@@ -279,6 +287,7 @@ export function JourneyTimelineBar({
     filter,
     activePersonalFilter?.ten ?? null,
   );
+  const isDefaultFilter = !activePersonalFilter && filter === "all";
   const dotColor = activePersonalFilter
     ? (activePersonalFilter.mau ?? DEFAULT_FILTER_MAU)
     : DOT_COLOR[filter];
@@ -384,7 +393,7 @@ export function JourneyTimelineBar({
       <button
         ref={btnRef}
         type="button"
-        className="j-tlb-dd-btn"
+        className={`j-tlb-dd-btn${isDefaultFilter ? " is-icon" : ""}`}
         onClick={(e) => {
           e.stopPropagation();
           if (!enabled) return;
@@ -392,14 +401,24 @@ export function JourneyTimelineBar({
           setOpen((v) => !v);
         }}
         disabled={!enabled}
+        aria-label={currentLabel}
+        title={currentLabel}
         aria-haspopup="listbox"
         aria-expanded={open}
       >
-        <span
-          className="j-tlb-dd-dot"
-          style={{ background: dotColor }}
-        />
-        <span>{currentLabel}</span>
+        {isDefaultFilter ? (
+          <span className="j-tlb-dd-ico" aria-hidden>
+            <Tag size={14} strokeWidth={1.8} />
+          </span>
+        ) : (
+          <>
+            <span
+              className="j-tlb-dd-dot"
+              style={{ background: dotColor }}
+            />
+            <span>{currentLabel}</span>
+          </>
+        )}
         <span className="j-tlb-dd-caret" aria-hidden>
           <ChevronDown size={14} strokeWidth={1.8} />
         </span>
@@ -416,6 +435,23 @@ export function JourneyTimelineBar({
     );
   }
 
+  const filterCluster =
+    asideMediaFilter || showSurfaceToggle ? (
+      <div className="j-tlb-filters">
+        {filterControl}
+        {asideMediaFilter ? (
+          <GalleryMediaFilterDropdown
+            filter={asideMediaFilter.mediaFilter}
+            onFilterChange={asideMediaFilter.setMediaFilter}
+            variant="icon"
+          />
+        ) : null}
+        {showSurfaceToggle ? <JourneySurfaceViewToggle /> : null}
+      </div>
+    ) : (
+      filterControl
+    );
+
   return (
     <div className="j-tlb">
       <span className="j-tlb-streak-slow" aria-hidden="true" />
@@ -426,7 +462,7 @@ export function JourneyTimelineBar({
       >
         {month || "—"}
       </div>
-      {filterControl}
+      {filterCluster}
       {portalReady && menu ? createPortal(menu, document.body) : null}
     </div>
   );

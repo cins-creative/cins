@@ -12,7 +12,7 @@ type Props = {
   disabled?: boolean;
   /**
    * `pill` — nút có chữ (layout dual co-so/studio).
-   * `icon` — nút icon gọn 36×36 (hàng CTA cạnh avatar trang trường).
+   * `icon` — nút icon gọn (hàng CTA icon-only).
    */
   variant?: "pill" | "icon";
 };
@@ -88,10 +88,10 @@ export function CoSoOrgFollowButton({
   }
 
   const label = following ? "Đang theo dõi" : "Theo dõi";
-  const baseClass =
-    variant === "icon"
-      ? `ss-btn ss-btn-user-follow${following ? " is-following" : ""}`
-      : `cso-ss-btn-follow${following ? " is-following" : ""}`;
+  const iconOnly = variant === "icon";
+  const baseClass = iconOnly
+    ? `ss-btn ss-btn-user-follow${following ? " is-following" : ""}`
+    : `cso-ss-btn-follow${following ? " is-following" : ""}`;
 
   return (
     <button
@@ -99,18 +99,18 @@ export function CoSoOrgFollowButton({
       className={baseClass}
       aria-pressed={following}
       disabled={disabled || !loaded || pending}
-      aria-label={following || variant === "icon" ? label : undefined}
+      aria-label={label}
       title={disabled ? "Bạn đang quản trị tổ chức này" : label}
       onClick={toggle}
     >
       {following ? (
-        <UserCheck size={17} strokeWidth={2.2} aria-hidden />
+        <UserCheck size={17} strokeWidth={2} aria-hidden />
       ) : (
-        <>
-          <UserPlus size={17} strokeWidth={2.2} aria-hidden />
-          <span className="ss-btn-user-follow-label">{label}</span>
-        </>
+        <UserPlus size={17} strokeWidth={2} aria-hidden />
       )}
+      {!iconOnly && !following ? (
+        <span className="ss-btn-user-follow-label">{label}</span>
+      ) : null}
     </button>
   );
 }

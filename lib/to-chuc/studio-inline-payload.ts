@@ -49,9 +49,8 @@ export function studioToInlinePayload(
       hocPhiLabel: null,
       journeyCount: 0,
     },
-    // Gộp bài đăng thường + showcase vào một list để toàn bộ hạ tầng inline-edit
-    // (thêm/sửa/xóa) hoạt động chung; mỗi tab tự lọc theo `loai_bai_dang`.
-    baidang: sortBaiDangByTaoLuc([...payload.baidang, ...payload.showcase]),
+    // `baidang` đã gồm mọi bài (kể cả showcase); không merge trùng.
+    baidang: sortBaiDangByTaoLuc(payload.baidang),
     hinhanh: payload.hinhanh,
     tuyenSinh: [],
     journeyMembers: [],

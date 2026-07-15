@@ -37,11 +37,11 @@ export function JourneyFriendInviteCard({
           {invite.bio ? <p className="j-friend-bio">{invite.bio}</p> : null}
           <div className="j-friend-stats" aria-label="Thống kê hồ sơ">
             <span>
-              <strong>{invite.stats.cotMoc}</strong>
-              Journey
+              <strong>{invite.stats.tacPham}</strong>
+              Nổi bật
             </span>
             <span>
-              <strong>{invite.stats.tacPham}</strong>
+              <strong>{invite.stats.cotMoc}</strong>
               Gallery
             </span>
             <span>

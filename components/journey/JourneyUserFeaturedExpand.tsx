@@ -21,6 +21,7 @@ import {
 import { packMasonryByAspect } from "@/lib/journey/masonry-pack";
 import { probeImageDimensions } from "@/lib/journey/probe-image-dimensions";
 import { probeRemoteVideoDimensions } from "@/lib/journey/probe-remote-video-dimensions";
+import { scheduleWhenIdle } from "@/lib/client/schedule-when-idle";
 
 import "./journey-user-featured.css";
 
@@ -109,27 +110,33 @@ export function JourneyUserFeaturedExpand({ slug }: Props) {
   useEffect(() => {
     if (!trimmed) return;
     let cancelled = false;
-    setLoadState("loading");
-    void fetch(`/api/journey/${encodeURIComponent(trimmed)}/gallery-aside`)
-      .then((res) => (res.ok ? res.json() : null))
-      .then((json: AsidePayload | null) => {
-        if (cancelled) return;
-        if (!json) {
-          setLoadState("error");
-          setItems([]);
-          return;
-        }
-        setItems(Array.isArray(json.pinned) ? json.pinned : []);
-        setLoadState("ready");
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setLoadState("error");
-          setItems([]);
-        }
-      });
+
+    const cancelIdle = scheduleWhenIdle(() => {
+      if (cancelled) return;
+      setLoadState("loading");
+      void fetch(`/api/journey/${encodeURIComponent(trimmed)}/gallery-aside`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((json: AsidePayload | null) => {
+          if (cancelled) return;
+          if (!json) {
+            setLoadState("error");
+            setItems([]);
+            return;
+          }
+          setItems(Array.isArray(json.pinned) ? json.pinned : []);
+          setLoadState("ready");
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setLoadState("error");
+            setItems([]);
+          }
+        });
+    }, 1200);
+
     return () => {
       cancelled = true;
+      cancelIdle();
     };
   }, [trimmed]);
 

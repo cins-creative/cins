@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
+import { fetchUserPreview } from "@/lib/journey/user-preview-cache";
 
 export type MentionPreview = {
   tenHienThi: string;
@@ -64,12 +65,7 @@ export function useMentionPreviews(slugs: readonly string[]) {
     void Promise.all(
       uniqueSlugs.map(async (slug) => {
         try {
-          const res = await fetch(
-            `/api/users/preview?slug=${encodeURIComponent(slug)}`,
-          );
-          if (!res.ok) return null;
-          const json = await res.json();
-          const profile = json?.profile;
+          const profile = await fetchUserPreview(slug);
           if (!profile) return null;
           return {
             slug,

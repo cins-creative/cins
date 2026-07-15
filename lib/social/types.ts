@@ -49,6 +49,8 @@ export type PendingFollowRequest = {
   };
   /** Record `user_ket_ban` — dùng cho accept/decline API. */
   ketBanId?: string;
+  /** Số bạn chung với viewer (đăng nhập) — optional, gắn ở friends API. */
+  mutualFriendCount?: number;
 };
 
 /** Quan hệ kết bạn từ góc nhìn viewer → target. */

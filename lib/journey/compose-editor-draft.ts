@@ -33,7 +33,7 @@ export type ComposeEditorDraft = {
   minimalCoverVisible?: boolean;
   albumGridCompose?: boolean;
   minimalRichBlocks?: boolean;
-  /** Hiển thị `cover_id` trong thân bài khi xem (bài video). */
+  /** Hiển thị `cover_id` trong thân bài khi xem (mọi loại nội dung có thumbnail). */
   showCoverInPost?: boolean;
 };
 

@@ -7,6 +7,7 @@ import { JourneySidebarNavCountsSkeleton } from "@/app/[slug]/_components/Journe
 import type { EditProfileInitial } from "@/components/journey/JourneyEditProfileModal";
 import { BunnyVideoProcessingPoller } from "@/components/journey/BunnyVideoProcessingPoller";
 import { JourneyComposeProvider } from "@/components/journey/JourneyComposeContext";
+import { JourneyFeaturedAsideFilterProvider } from "@/components/journey/JourneyFeaturedAsideFilterContext";
 import {
   JourneySidebar,
   type JourneyProfileView,
@@ -94,21 +95,23 @@ export function JourneyProfileShellClient({
 
   return (
     <JourneyViewProvider initialView={activeView} slug={profile.slug}>
-      {isOwner ? (
-        <JourneyComposeProvider
-          ownerId={ownerId}
-          ownerSlug={profile.slug}
-          ownerName={ownerName}
-          ownerAvatarId={ownerAvatarId}
-          isOwner
-          initialCompose={initialCompose}
-        >
-          <BunnyVideoProcessingPoller ownerSlug={profile.slug} />
-          {shell}
-        </JourneyComposeProvider>
-      ) : (
-        shell
-      )}
+      <JourneyFeaturedAsideFilterProvider>
+        {isOwner ? (
+          <JourneyComposeProvider
+            ownerId={ownerId}
+            ownerSlug={profile.slug}
+            ownerName={ownerName}
+            ownerAvatarId={ownerAvatarId}
+            isOwner
+            initialCompose={initialCompose}
+          >
+            <BunnyVideoProcessingPoller ownerSlug={profile.slug} />
+            {shell}
+          </JourneyComposeProvider>
+        ) : (
+          shell
+        )}
+      </JourneyFeaturedAsideFilterProvider>
     </JourneyViewProvider>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { MessageCircle } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 
@@ -53,8 +54,13 @@ function mapSchoolOrgKind(
   return "truong_dai_hoc";
 }
 
+type Props = {
+  /** Chỉ icon — hàng CTA đồng bộ JourneyUserPopoverActions. */
+  iconOnly?: boolean;
+};
+
 /** Nút nhắn tin cho khách — mở CinsChatOverlay (cần đăng nhập). */
-export function TruongUserChatLauncher() {
+export function TruongUserChatLauncher({ iconOnly = false }: Props) {
   const ctx = useTruongInlineEdit();
   const pathname = usePathname() ?? "";
   const { isAuthenticated, openAuthModal } = useAuthGate();
@@ -101,19 +107,25 @@ export function TruongUserChatLauncher() {
     }
   }
 
+  const label = messaging ? "Đang mở…" : "Nhắn tin";
+
   return (
     <button
       type="button"
-      className="ss-btn primary ss-btn-user-chat"
+      className={`ss-btn primary ss-btn-user-chat${iconOnly ? " is-icon" : ""}`}
       onClick={() => void handleMessage()}
       disabled={messaging || !chat}
-      aria-label="Nhắn tin"
+      aria-label={label}
       title="Nhắn tin"
     >
-      <MessageIcon />
-      <span className="ss-btn-user-chat-label">
-        {messaging ? "Đang mở…" : "Nhắn tin"}
-      </span>
+      {iconOnly ? (
+        <MessageCircle size={17} strokeWidth={2} aria-hidden />
+      ) : (
+        <MessageIcon />
+      )}
+      {iconOnly ? null : (
+        <span className="ss-btn-user-chat-label">{label}</span>
+      )}
     </button>
   );
 }

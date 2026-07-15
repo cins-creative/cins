@@ -13,7 +13,11 @@ export async function POST(req: Request, ctx: RouteContext) {
   }
 
   const { id: orgId } = await ctx.params;
-  let body: { membershipId?: string; confirmSlug?: string };
+  let body: {
+    membershipId?: string;
+    confirmSlug?: string;
+    confirmTen?: string;
+  };
   try {
     body = await req.json();
   } catch {
@@ -28,7 +32,8 @@ export async function POST(req: Request, ctx: RouteContext) {
     orgId,
     actorId: session.profile.id,
     membershipId: body.membershipId,
-    confirmSlug: body.confirmSlug ?? "",
+    confirmSlug: body.confirmSlug,
+    confirmTen: body.confirmTen,
   });
 
   if (!result.ok) {

@@ -6,9 +6,11 @@ import { CoSoOrgBaiDangTimeline } from "@/components/co-so/CoSoOrgBaiDangTimelin
 import { JourneyComposeProvider } from "@/components/journey/JourneyComposeContext";
 import { TruongBaiDangEditProvider } from "@/components/truong/inline/TruongBaiDangEdit";
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
+import { OrgBaiDangFilterProvider } from "@/components/truong/OrgBaiDangFilterContext";
 import { OrgBaiDangLoaiConfigProvider } from "@/components/truong/OrgBaiDangLoaiConfigContext";
 import { isTruongBaiDangScheduled } from "@/lib/truong/org-bai-dang-schedule";
 import { STUDIO_LOAI_CONFIG } from "@/lib/truong/org-bai-dang-loai-options";
+import type { OrgBaiDangView } from "@/lib/truong/bai-dang-grid";
 import type { TruongBaiDang, TruongListItem } from "@/lib/truong/types";
 import { STUDIO_SHOWCASE_LOAI } from "@/lib/to-chuc/studio-page-config";
 
@@ -25,6 +27,8 @@ type Props = {
   posts: TruongBaiDang[];
   owner?: OrgOwner | null;
   guestEmptyMessage?: string;
+  /** Chỉ áp cho Showcase — chế độ xem mặc định từ `cau_hinh`. */
+  showcaseDefaultView?: OrgBaiDangView;
 };
 
 function isShowcasePost(post: TruongBaiDang): boolean {
@@ -39,9 +43,9 @@ function filterByVariant(
   posts: ReadonlyArray<TruongBaiDang>,
   variant: StudioVariant,
 ): TruongBaiDang[] {
-  return posts.filter((p) =>
-    variant === "showcase" ? isShowcasePost(p) : !isShowcasePost(p),
-  );
+  /* Showcase = lens theo thẻ `showcase`. Bài đăng = nguồn đầy đủ (gồm cả thẻ đó). */
+  if (variant === "showcase") return posts.filter(isShowcasePost);
+  return [...posts];
 }
 
 export function StudioTabBaiDang({
@@ -49,6 +53,7 @@ export function StudioTabBaiDang({
   posts: postsProp,
   owner = null,
   guestEmptyMessage,
+  showcaseDefaultView,
 }: Props) {
   const ctx = useTruongInlineEdit();
   const allPosts = ctx?.baidang ?? postsProp;
@@ -116,14 +121,27 @@ export function StudioTabBaiDang({
         owner={owner}
         composeEnabled={Boolean(ctx?.isEditing)}
         guestEmptyMessage={guestEmptyMessage}
+        surface={variant === "showcase" ? "showcase" : "feed"}
+        defaultView={
+          variant === "showcase" ? showcaseDefaultView : undefined
+        }
       />
     </TruongBaiDangEditProvider>
   );
 
+  const withFilters =
+    variant === "bai-dang" && ctx?.orgId ? (
+      <OrgBaiDangFilterProvider orgId={ctx.orgId}>
+        {content}
+      </OrgBaiDangFilterProvider>
+    ) : (
+      content
+    );
+
   if (!ctx?.isEditing) {
     return (
       <OrgBaiDangLoaiConfigProvider config={STUDIO_LOAI_CONFIG}>
-        {content}
+        {withFilters}
       </OrgBaiDangLoaiConfigProvider>
     );
   }
@@ -150,7 +168,7 @@ export function StudioTabBaiDang({
               }),
         }}
       >
-        {content}
+        {withFilters}
       </JourneyComposeProvider>
     </OrgBaiDangLoaiConfigProvider>
   );

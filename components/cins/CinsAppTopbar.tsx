@@ -64,8 +64,7 @@ export async function CinsAppTopbar() {
           <Suspense
             fallback={
               <div className="tb-search tb-search--fallback" aria-hidden>
-                <span className="tb-search-icon" />
-                <span className="tb-search-ph" />
+                <span className="tb-search-toggle" />
               </div>
             }
           >

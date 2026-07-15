@@ -26,6 +26,7 @@ const ALLOWED_TARGETS = new Set<string>([
 
 const ALLOWED_KINDS = new Set<SocialInteractionKind>([
   "like",
+  "dislike",
   "comment",
   "bookmark",
 ]);
@@ -162,6 +163,22 @@ async function loadActorRows(
       .eq("loai_doi_tuong", loaiDoiTuong)
       .eq("id_doi_tuong", idDoiTuong)
       .eq("emoji", "heart")
+      .order("tao_luc", { ascending: false })
+      .returns<Array<{ id_nguoi_dung: string; tao_luc: string | null }>>();
+
+    return (data ?? []).map((row) => ({
+      idNguoiDung: row.id_nguoi_dung,
+      tuongTacLuc: row.tao_luc,
+    }));
+  }
+
+  if (kind === "dislike") {
+    const { data } = await admin
+      .from("social_reaction")
+      .select("id_nguoi_dung, tao_luc")
+      .eq("loai_doi_tuong", loaiDoiTuong)
+      .eq("id_doi_tuong", idDoiTuong)
+      .eq("emoji", "dislike")
       .order("tao_luc", { ascending: false })
       .returns<Array<{ id_nguoi_dung: string; tao_luc: string | null }>>();
 

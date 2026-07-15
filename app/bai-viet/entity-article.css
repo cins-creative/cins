@@ -340,6 +340,27 @@ a.ent-contributors-name:hover {
   display: flex;
   align-items: center;
   justify-content: center;
+  /* Đồng bộ nền sọc với ô ảnh trống editor (.ph.is-empty). */
+  background:
+    repeating-linear-gradient(
+      45deg,
+      #f4f5f7,
+      #f4f5f7 12px,
+      #eceef1 12px,
+      #eceef1 24px
+    );
+  border-style: dashed;
+  border-color: var(--line, #d6dae0);
+  box-shadow: none;
+}
+
+.ent-hero-thumb.is-placeholder .mascot-ph {
+  font-family: var(--font-sans);
+  font-size: clamp(28px, 5vw, 40px);
+  font-weight: 800;
+  color: var(--ink-muted, #8b929c);
+  letter-spacing: 0.02em;
+  opacity: 0.55;
 }
 
 .ent-hero-thumb .mascot {
@@ -349,6 +370,9 @@ a.ent-contributors-name:hover {
   background: transparent;
   border: none;
   box-shadow: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Slot công cụ draft (admin) */

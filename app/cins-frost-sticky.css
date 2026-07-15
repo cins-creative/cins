@@ -5,8 +5,10 @@
  * - 2 light streak đáy: mỏng 11s + dài ×3 / 30s.
  * ─────────────────────────────────────────────────────────────────── */
 
-/* Glass — ::before (chỉ .j-tlb; listing/hub dùng lớp con) */
-.j-tlb::before {
+/* Glass — ::before (.j-tlb + feed sticky; listing/hub dùng lớp con) */
+.j-tlb::before,
+.wj-feed-header::before,
+.cd-v4-moc-bar::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -36,6 +38,8 @@
 
 @supports not (backdrop-filter: blur(1px)) {
   .j-tlb::before,
+  .wj-feed-header::before,
+  .cd-v4-moc-bar::before,
   .cins-frost-glass,
   .td-hub-header__glass,
   .tkh-hub-header__glass {
@@ -59,6 +63,8 @@
 
 /* Nội dung nổi trên kính */
 .j-tlb > *:not(.j-tlb-streak-slow),
+.wj-feed-header > *:not(.j-tlb-streak-slow),
+.cd-v4-moc-bar > *:not(.j-tlb-streak-slow),
 .tdh-list-toolbar > *:not(.j-tlb-streak-slow):not(.cins-frost-glass),
 .cd-list-toolbar > *:not(.j-tlb-streak-slow):not(.cins-frost-glass) {
   position: relative;
@@ -67,6 +73,8 @@
 
 /* Streak mỏng — đáy bar */
 .j-tlb::after,
+.wj-feed-header::after,
+.cd-v4-moc-bar::after,
 .tdh-list-toolbar::after,
 .cd-list-toolbar::after,
 .td-hub-header::after,
@@ -169,6 +177,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .j-tlb::after,
+  .wj-feed-header::after,
+  .cd-v4-moc-bar::after,
   .tdh-list-toolbar::after,
   .cd-list-toolbar::after,
   .td-hub-header::after,

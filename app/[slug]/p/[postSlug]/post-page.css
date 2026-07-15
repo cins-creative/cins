@@ -15,6 +15,8 @@
 /* ╔══ 1. Page wrapper (route) ══════════════════════════════════════ */
 
 .j-post-page {
+  /* Body copy trên trang post: đen 70% (không dùng ink-display). */
+  --ink-body: rgba(0, 0, 0, 0.7);
   min-height: calc(100vh - var(--cins-topbar-h, 56px));
   background: var(--neutral-50, #f5f6f8);
   padding: 20px 24px 80px;
@@ -102,6 +104,26 @@
   display: flex;
   flex-direction: column;
   background: #000;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.28) transparent;
+}
+.j-post-page:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+.j-post-page:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media::-webkit-scrollbar-track {
+  background: transparent;
+}
+.j-post-page:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.28);
+  border-radius: 999px;
+}
+.j-post-page:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.45);
 }
 
 /*
@@ -571,6 +593,7 @@
 /* `JourneyPostBody.tsx`). Tất cả override chỉ áp dụng trong mode này. */
 
 .cins-post-view {
+  --ink-body: rgba(0, 0, 0, 0.7);
   background: transparent;
   min-height: 0;
   position: relative;
@@ -803,10 +826,10 @@
   margin: 0;
   font-family: var(--font-sans, "Be Vietnam Pro", system-ui, sans-serif);
   font-size: 15px;
-  font-weight: 500;
+  font-weight: 400;
   line-height: 1.55;
   letter-spacing: -0.01em;
-  color: var(--jcard-ink, var(--ink-display));
+  color: var(--jcard-ink2, var(--ink-body));
   white-space: normal;
   word-break: break-word;
 }
@@ -1343,7 +1366,7 @@
   font-weight: 400;
   font-size: 13px;
   line-height: 1.4;
-  color: var(--ink-display);
+  color: var(--ink-body);
   white-space: pre-wrap;
   word-break: break-word;
 }
@@ -1373,7 +1396,7 @@
   font-weight: 400;
   line-height: 1.4;
   letter-spacing: normal;
-  color: var(--ink-display);
+  color: var(--ink-body);
   white-space: pre-wrap;
   word-break: break-word;
 }
@@ -1768,7 +1791,7 @@
 .cins-post-view .post-canvas--split .post-view-content .b-text-ro {
   font-size: 17px;
   line-height: 1.75;
-  color: var(--ink-title);
+  color: var(--ink-body);
 }
 
 .cins-post-view.post-canvas--split .img-cap-ro,
@@ -2657,6 +2680,19 @@
 }
 .cins-editor-page.cins-post-view .blocks-readonly .b-imgs-ro .imgwrap.masonry .ph {
   margin-bottom: 0;
+}
+/* Inline imgs (grid3/…) — click mở lightbox; reset button về ô `.ph`. */
+.cins-editor-page.cins-post-view .blocks-readonly .b-imgs-ro .ph.is-lightbox {
+  cursor: zoom-in;
+  appearance: none;
+  -webkit-appearance: none;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  text-align: inherit;
 }
 .cins-editor-page.cins-post-view .blocks-readonly .image-grid,
 .cins-editor-page.cins-post-view .blocks-readonly .image-grid-row,
@@ -3890,10 +3926,15 @@
 .cins-post-view .post-comments-v1 .post-comments-mention-menu {
   position: absolute;
   left: 0;
-  right: 0;
+  right: auto;
   bottom: calc(100% + 6px);
+  min-width: 280px;
+  width: max(100%, 280px);
+  max-width: min(320px, calc(100vw - 16px));
   max-height: 220px;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: thin;
   padding: 4px;
   background: #fff;
   border-radius: 12px;
@@ -4042,8 +4083,13 @@
 /* Portal body — tránh crop bởi overflow compose / unfold */
 .post-comments-mention-menu.is-portal {
   position: fixed;
+  min-width: 280px;
+  max-width: min(320px, calc(100vw - 16px));
   max-height: 220px;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(15, 23, 42, 0.28) transparent;
   padding: 4px;
   background: #fff;
   border: 1px solid rgba(15, 23, 42, 0.08);
@@ -4053,6 +4099,17 @@
   transform: translateY(calc(-100% - 6px));
   font-family: var(--font-sans, "Be Vietnam Pro", system-ui, sans-serif);
   color: var(--ink-body, #374151);
+  box-sizing: border-box;
+}
+.post-comments-mention-menu.is-portal::-webkit-scrollbar {
+  width: 4px;
+}
+.post-comments-mention-menu.is-portal::-webkit-scrollbar-track {
+  background: transparent;
+}
+.post-comments-mention-menu.is-portal::-webkit-scrollbar-thumb {
+  background: rgba(15, 23, 42, 0.28);
+  border-radius: 999px;
 }
 .post-comments-mention-menu.is-portal .post-comments-mention-hint {
   margin: 0;
@@ -4115,6 +4172,9 @@
 .post-comments-mention-menu.is-portal .post-comments-mention-copy small {
   font-size: 12px;
   color: #6b7280;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .cins-post-view .post-comments-v1 .post-comments-textarea {
   width: 100%;

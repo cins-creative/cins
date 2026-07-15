@@ -251,11 +251,140 @@
   gap: 10px;
 }
 
+.tdh-page--cso .cso-ss-primary-action--admin.cso-ss-primary-action--with-settings {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  align-items: stretch;
+}
+
+.tdh-page--cso .cso-ss-primary-action--with-settings .ss-btn-messages-label,
+.tdh-page--cso .cso-ss-primary-action--with-settings .ss-btn-notify-label {
+  display: none;
+}
+
+.tdh-page--cso .cso-ss-primary-action--with-settings .ss-btn {
+  padding: 0;
+  justify-content: center;
+}
+
+.tdh-page--cso .cso-ss-primary-action--with-settings .ss-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.tdh-page--cso .cso-ss-primary-action--with-settings .cso-ss-btn-settings {
+  width: 100%;
+  height: 44px;
+}
+
+.tdh-page--cso .cso-ss-primary-action--with-settings .cso-ss-btn-settings svg {
+  width: 18px;
+  height: 18px;
+}
+
+.tdh-page--cso .cso-ss-primary-action--with-settings .ss-btn-messages-badge,
+.tdh-page--cso .cso-ss-primary-action--with-settings .ss-btn-notify-badge {
+  top: 4px;
+  right: 4px;
+}
+
 .tdh-page--cso .cso-ss-primary-action--dual {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 44px;
   gap: 10px;
   align-items: stretch;
+}
+
+/* Studio guest CTA — đồng bộ JourneyUserPopoverActions icon row */
+.tdh-page--studio .cso-ss-primary-action--dual.cso-ss-primary-action--icons {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  height: auto;
+  min-height: 32px;
+}
+
+.tdh-page--studio .cso-ss-primary-action--icons .ss-btn-user-chat.is-icon,
+.tdh-page--studio .cso-ss-primary-action--icons .ss-btn-user-follow,
+.tdh-page--studio .cso-ss-primary-action--icons .cso-ss-btn-share,
+.tdh-page--studio .cso-ss-primary-action--icons .cso-ss-btn-msg.is-icon,
+.tdh-page--studio .cso-ss-primary-action--icons .cso-ss-btn-follow.is-icon {
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  min-height: 32px;
+  padding: 0;
+  gap: 0;
+  flex: 0 0 32px;
+  border: none;
+  border-radius: 999px;
+  box-shadow: none;
+  transform: none;
+  justify-content: center;
+  font-size: 0;
+}
+
+.tdh-page--studio .cso-ss-primary-action--icons .ss-btn-user-chat.is-icon,
+.tdh-page--studio .cso-ss-primary-action--icons .cso-ss-btn-msg.is-icon,
+.tdh-page--studio .cso-ss-primary-action--icons .cso-ss-btn-share {
+  background: var(--cins-blue-soft, #eff6ff);
+  color: var(--cins-blue, #2563eb);
+}
+
+.tdh-page--studio .cso-ss-primary-action--icons .ss-btn-user-chat.is-icon:hover:not(:disabled),
+.tdh-page--studio .cso-ss-primary-action--icons .cso-ss-btn-share:hover:not(:disabled) {
+  background: color-mix(
+    in srgb,
+    var(--cins-blue, #2563eb) 18%,
+    var(--cins-blue-soft, #eff6ff)
+  );
+  color: var(--cins-blue, #2563eb);
+  border-color: transparent;
+  transform: none;
+}
+
+.tdh-page--studio .cso-ss-primary-action--icons .ss-btn-user-follow {
+  background: var(--cins-blue-soft, #eff6ff);
+  color: var(--cins-blue, #2563eb);
+}
+
+.tdh-page--studio .cso-ss-primary-action--icons .ss-btn-user-follow:hover:not(:disabled),
+.tdh-page--studio .cso-ss-primary-action--icons .cso-ss-btn-follow.is-icon:hover:not(:disabled) {
+  background: color-mix(
+    in srgb,
+    var(--cins-blue, #2563eb) 18%,
+    var(--cins-blue-soft, #eff6ff)
+  );
+  color: var(--cins-blue, #2563eb);
+  border-color: transparent;
+}
+
+.tdh-page--studio .cso-ss-primary-action--icons .ss-btn-user-follow.is-following,
+.tdh-page--studio .cso-ss-primary-action--icons .cso-ss-btn-follow.is-icon.is-following {
+  background: #ecfdf5;
+  color: #047857;
+  border-color: transparent;
+}
+
+.tdh-page--studio .cso-ss-primary-action--icons .cso-ss-btn-follow.is-icon {
+  background: var(--cins-blue-soft, #eff6ff);
+  color: var(--cins-blue, #2563eb);
+}
+
+.tdh-page--studio .cso-ss-primary-action--icons .ss-btn-user-chat.is-icon svg,
+.tdh-page--studio .cso-ss-primary-action--icons .ss-btn-user-follow svg,
+.tdh-page--studio .cso-ss-primary-action--icons .cso-ss-btn-share svg,
+.tdh-page--studio .cso-ss-primary-action--icons .cso-ss-btn-msg.is-icon svg,
+.tdh-page--studio .cso-ss-primary-action--icons .cso-ss-btn-follow.is-icon svg {
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+}
+
+.tdh-page--studio .cso-ss-primary-action--icons .ss-btn-user-chat-label,
+.tdh-page--studio .cso-ss-primary-action--icons .ss-btn-user-follow-label {
+  display: none;
 }
 
 .tdh-page--cso .cso-ss-primary-action--dual .ss-btn-user-chat,
@@ -325,7 +454,8 @@
   flex-shrink: 0;
 }
 
-.tdh-page--cso .cso-ss-btn-share {
+.tdh-page--cso .cso-ss-btn-share,
+.tdh-page--cso .cso-ss-btn-settings {
   width: 44px;
   height: 44px;
   flex-shrink: 0;
@@ -341,18 +471,21 @@
   transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
-.tdh-page--cso .cso-ss-btn-share:hover:not(:disabled) {
+.tdh-page--cso .cso-ss-btn-share:hover:not(:disabled),
+.tdh-page--cso .cso-ss-btn-settings:hover:not(:disabled) {
   background: var(--neutral-100, #f1f2f5);
   border-color: rgba(0, 0, 0, 0.14);
   color: var(--ink-title, rgba(0, 0, 0, 0.85));
 }
 
-.tdh-page--cso .cso-ss-btn-share:disabled {
+.tdh-page--cso .cso-ss-btn-share:disabled,
+.tdh-page--cso .cso-ss-btn-settings:disabled {
   opacity: 0.55;
   cursor: not-allowed;
 }
 
-.tdh-page--cso .cso-ss-btn-share svg {
+.tdh-page--cso .cso-ss-btn-share svg,
+.tdh-page--cso .cso-ss-btn-settings svg {
   width: 16px;
   height: 16px;
   flex-shrink: 0;
@@ -1110,11 +1243,12 @@
   cursor: not-allowed;
 }
 
-/* Tab bài đăng — override timeline bar (layout chung: cins-truong-chi-tiet-v6.css) */
-.tdh-page--cso #cso-panel-bai-dang .org-baidang-tlb {
-  padding: 8px 20px 10px;
-  height: auto;
-  min-height: 44px;
+/* Tab bài đăng — timeline bar đồng bộ Journey (layout: cins-truong-chi-tiet-v6.css) */
+.tdh-page--cso #cso-panel-bai-dang .org-baidang-tlb,
+.tdh-page--cso #cso-panel-showcase .org-baidang-tlb {
+  padding: 0 20px;
+  height: var(--j-ctx-h, 56px);
+  min-height: var(--j-ctx-h, 56px);
   box-sizing: border-box;
 }
 

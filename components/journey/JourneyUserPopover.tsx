@@ -11,27 +11,15 @@ import { JourneyUserFeaturedExpand } from "@/components/journey/JourneyUserFeatu
 import { JourneyUserPopoverActions } from "@/components/journey/JourneyUserPopoverActions";
 import { VerifiedTick } from "@/components/journey/VerifiedTick";
 import { useCinsChat } from "@/components/cins/CinsChatProvider";
+import {
+  fetchUserPreview,
+  getCachedUserPreview,
+  prefetchUserPreview,
+  type UserPreviewProfile,
+} from "@/lib/journey/user-preview-cache";
 import { useMutualFriends } from "@/lib/social/use-mutual-friends";
 import { trackSuKien } from "@/lib/social/track-su-kien";
 import type { NguonSuKien } from "@/lib/social/su-kien-constants";
-
-type UserPreview = {
-  idNguoiDung: string;
-  slug: string;
-  tenHienThi: string;
-  avatarUrl: string | null;
-  coverUrl: string | null;
-  bio: string | null;
-  aiSummaryJourney: string | null;
-  giaiDoan: string | null;
-  tinhThanh: string | null;
-  daXacMinh?: boolean;
-  stats: {
-    cotMoc: number;
-    tacPham: number;
-    banBe: number;
-  };
-};
 
 type Props = {
   slug?: string | null;
@@ -59,7 +47,9 @@ export function JourneyUserPopover({
   const { viewerProfileId } = useCinsChat();
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const [profile, setProfile] = useState<UserPreview | null>(null);
+  const [profile, setProfile] = useState<UserPreviewProfile | null>(() =>
+    slug ? getCachedUserPreview(slug) : null,
+  );
   const [loading, setLoading] = useState(false);
   const wrapRef = useRef<HTMLSpanElement | null>(null);
   const mutual = useMutualFriends(profile?.idNguoiDung ?? "", viewerProfileId);
@@ -83,21 +73,24 @@ export function JourneyUserPopover({
   }, [open]);
 
   useEffect(() => {
-    setProfile(null);
+    setProfile(slug ? getCachedUserPreview(slug) : null);
   }, [slug]);
 
   useEffect(() => {
     if (!open || !slug) return;
+    const cached = getCachedUserPreview(slug);
+    if (cached) {
+      setProfile(cached);
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
     setLoading(true);
-    void fetch(`/api/users/preview?slug=${encodeURIComponent(slug)}`)
-      .then((res) => (res.ok ? res.json() : null))
-      .then((json) => {
-        if (!cancelled) setProfile(json?.profile ?? null);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
+    void fetchUserPreview(slug).then((next) => {
+      if (cancelled) return;
+      setProfile(next);
+      setLoading(false);
+    });
     return () => {
       cancelled = true;
     };
@@ -132,7 +125,6 @@ export function JourneyUserPopover({
           avatarUrl: fallbackAvatarUrl ?? null,
           coverUrl: fallbackCoverUrl ?? null,
           bio: null,
-          aiSummaryJourney: null,
           giaiDoan: null,
           tinhThanh: null,
           stats: { cotMoc: 0, tacPham: 0, banBe: 0 },
@@ -145,6 +137,8 @@ export function JourneyUserPopover({
         type="button"
         className="j-user-pop-trigger"
         aria-expanded={open}
+        onPointerEnter={() => prefetchUserPreview(slug)}
+        onFocus={() => prefetchUserPreview(slug)}
         onClick={(event) => {
           event.stopPropagation();
           event.preventDefault();
@@ -173,7 +167,7 @@ export function JourneyUserPopover({
               aria-label="Đóng"
               onClick={() => setOpen(false)}
             >
-              <X size={14} aria-hidden />
+              <X size={12} strokeWidth={3} absoluteStrokeWidth aria-hidden />
             </button>
           {visibleProfile ? (
             <article className="j-friend-card j-user-pop-card">
@@ -232,21 +226,13 @@ export function JourneyUserPopover({
                   </div>
                 ) : null}
                 {visibleProfile.bio ? <p className="j-friend-bio">{visibleProfile.bio}</p> : null}
-                {visibleProfile.aiSummaryJourney ? (
-                  <p className="j-user-pop-ai">
-                    <strong>AI tóm tắt</strong>
-                    {visibleProfile.aiSummaryJourney}
-                  </p>
-                ) : loading ? (
-                  <p className="j-user-pop-ai is-loading">Đang tải AI tóm tắt...</p>
-                ) : null}
                 <div className="j-friend-stats" aria-label="Thống kê hồ sơ">
                   <span>
-                    <strong>{visibleProfile.stats.cotMoc}</strong>
-                    Journey
+                    <strong>{visibleProfile.stats.tacPham}</strong>
+                    Nổi bật
                   </span>
                   <span>
-                    <strong>{visibleProfile.stats.tacPham}</strong>
+                    <strong>{visibleProfile.stats.cotMoc}</strong>
                     Gallery
                   </span>
                   <span>

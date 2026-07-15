@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
   CoSoOrgNhanTimelineBar,
@@ -9,17 +9,27 @@ import {
 import { OrgBaiDangCreateComposer } from "@/components/truong/OrgBaiDangCreateComposer";
 import { OrgBaiDangFilteredFeed } from "@/components/truong/OrgBaiDangFilteredFeed";
 import { OrgBaiDangTimelineBar } from "@/components/truong/OrgBaiDangTimelineBar";
+import { useOrgBaiDangFilterOptional } from "@/components/truong/OrgBaiDangFilterContext";
+import { useOrgBaiDangLoaiConfig } from "@/components/truong/OrgBaiDangLoaiConfigContext";
+import { useOrgBaiDangPostOverlay } from "@/components/truong/useOrgBaiDangPostOverlay";
 import { useOrgBaiDangView } from "@/components/truong/useOrgBaiDangView";
+import { orgBaiDangFilterKeyFromSearch } from "@/lib/org/org-bai-dang-filter-share";
+import { normalizeLoaiBaiDang } from "@/lib/truong/bai-dang";
 import {
   baiDangMonthLabel,
   baiDangYear,
-  countBaiDangByFilter,
+  countBaiDangNhanFilters,
+  filterBaiDangByTimelineKey,
   filterBaiDangPosts,
   groupBaiDangByYear,
   type BaiDangTimelineFilter,
+  type OrgBaiDangTimelineFilterKey,
 } from "@/lib/truong/bai-dang-timeline";
+import { orgBaiDangNhanSlugFromKey } from "@/lib/truong/org-bai-dang-filters.shared";
 import type { TruongBaiDang, TruongListItem } from "@/lib/truong/types";
 import type { CoSoFilterChip } from "@/lib/to-chuc/co-so-page-queries";
+import type { OrgBaiDangView } from "@/lib/truong/bai-dang-grid";
+import { buildPersonalFilterSearchUrl } from "@/lib/filter/client-utils";
 
 type OrgOwner = Pick<
   TruongListItem,
@@ -32,6 +42,13 @@ type Props = {
   composeEnabled?: boolean;
   orgFilters?: CoSoFilterChip[];
   guestEmptyMessage?: string;
+  /**
+   * `showcase` — chỉ lens theo thẻ Sản phẩm: mặc định lưới gọn (masonry), card chỉ block nội dung.
+   * `feed` — timeline đầy đủ (tab Bài đăng / cơ sở).
+   */
+  surface?: "feed" | "showcase";
+  /** Ghi đè chế độ xem khởi tạo (vd. cấu hình studio Showcase). */
+  defaultView?: OrgBaiDangView;
 };
 
 function currentYearMonth() {
@@ -53,6 +70,39 @@ function countNhanFilters(
   return counts;
 }
 
+function countPostsByLoaiKeys(
+  posts: ReadonlyArray<TruongBaiDang>,
+  keys: ReadonlyArray<string>,
+): Record<string, number> {
+  const counts: Record<string, number> = { all: posts.length };
+  for (const k of keys) counts[k] = 0;
+  for (const p of posts) {
+    const raw = String(p.loai_bai_dang ?? "")
+      .trim()
+      .toLowerCase();
+    if (counts[raw] !== undefined) {
+      counts[raw] += 1;
+      continue;
+    }
+    const normalized = normalizeLoaiBaiDang(p.loai_bai_dang);
+    if (counts[normalized] !== undefined) counts[normalized] += 1;
+  }
+  return counts;
+}
+
+function syncFilterKeyToUrl(key: OrgBaiDangTimelineFilterKey) {
+  if (typeof window === "undefined") return;
+  const slug = orgBaiDangNhanSlugFromKey(key);
+  const next = buildPersonalFilterSearchUrl(
+    window.location.pathname,
+    window.location.search,
+    slug,
+  );
+  if (next !== `${window.location.pathname}${window.location.search}`) {
+    window.history.replaceState(null, "", next);
+  }
+}
+
 export function CoSoOrgBaiDangTimeline({
   posts,
   owner = null,
@@ -60,16 +110,55 @@ export function CoSoOrgBaiDangTimeline({
   orgFilters = [],
   guestEmptyMessage =
     "Chưa có bài đăng công khai. Tin tức và sự kiện sẽ hiển thị tại đây khi cơ sở đăng trên CINs.",
+  surface = "feed",
+  defaultView,
 }: Props) {
   const useOrgFilters = orgFilters.length > 0;
+  const isShowcase = surface === "showcase";
+  const filterCtx = useOrgBaiDangFilterOptional();
+  const loaiConfig = useOrgBaiDangLoaiConfig();
+  const useCustomNhan = Boolean(filterCtx) && !useOrgFilters && !isShowcase;
+
   const [loaiFilter, setLoaiFilter] = useState<BaiDangTimelineFilter>("all");
   const [nhanFilter, setNhanFilter] = useState<CoSoNhanFilter>("all");
-  const { view, setView, openPostFromGrid } = useOrgBaiDangView();
+  const [filterKey, setFilterKey] = useState<OrgBaiDangTimelineFilterKey>("all");
+  const { view, setView } = useOrgBaiDangView(
+    defaultView ?? (isShowcase ? "masonry" : "timeline"),
+  );
+  const { openPost: openPostFromGrid, overlay: postOverlay } =
+    useOrgBaiDangPostOverlay({ posts, owner });
 
-  const loaiCounts = useMemo(() => countBaiDangByFilter(posts), [posts]);
-  const nhanCounts = useMemo(
+  useEffect(() => {
+    if (!useCustomNhan) return;
+    const key = orgBaiDangFilterKeyFromSearch(window.location.search);
+    setFilterKey(key);
+  }, [useCustomNhan]);
+
+  const handleFilterKeyChange = (key: OrgBaiDangTimelineFilterKey) => {
+    setFilterKey(key);
+    if (useCustomNhan) syncFilterKeyToUrl(key);
+  };
+
+  const customSlugs = useMemo(
+    () => filterCtx?.filters.map((f) => f.slug) ?? [],
+    [filterCtx?.filters],
+  );
+
+  const loaiCounts = useMemo(
+    () =>
+      countPostsByLoaiKeys(
+        posts,
+        loaiConfig.options.map((o) => o.value),
+      ),
+    [posts, loaiConfig.options],
+  );
+  const coSoNhanCounts = useMemo(
     () => countNhanFilters(posts, orgFilters),
     [posts, orgFilters],
+  );
+  const customNhanCounts = useMemo(
+    () => countBaiDangNhanFilters(posts, customSlugs),
+    [posts, customSlugs],
   );
 
   const filtered = useMemo(() => {
@@ -77,8 +166,18 @@ export function CoSoOrgBaiDangTimeline({
       if (nhanFilter === "all") return [...posts];
       return [...posts];
     }
+    if (useCustomNhan) {
+      return filterBaiDangByTimelineKey(posts, filterKey);
+    }
     return filterBaiDangPosts(posts, loaiFilter);
-  }, [posts, useOrgFilters, nhanFilter, loaiFilter]);
+  }, [
+    posts,
+    useOrgFilters,
+    nhanFilter,
+    useCustomNhan,
+    filterKey,
+    loaiFilter,
+  ]);
 
   const yearGroups = useMemo(() => groupBaiDangByYear(filtered), [filtered]);
   const fallback = currentYearMonth();
@@ -96,7 +195,7 @@ export function CoSoOrgBaiDangTimeline({
       monthLabel={topMonth}
       filter={nhanFilter}
       onFilterChange={setNhanFilter}
-      counts={nhanCounts}
+      counts={coSoNhanCounts}
       filters={orgFilters}
       enabled={barEnabled}
       view={view}
@@ -106,13 +205,18 @@ export function CoSoOrgBaiDangTimeline({
     <OrgBaiDangTimelineBar
       year={topYear}
       monthLabel={topMonth}
-      filterKey={loaiFilter}
-      onFilterKeyChange={(key) => setLoaiFilter(key as typeof loaiFilter)}
+      filterKey={useCustomNhan ? filterKey : loaiFilter}
+      onFilterKeyChange={
+        useCustomNhan
+          ? handleFilterKeyChange
+          : (key) => setLoaiFilter(key as typeof loaiFilter)
+      }
       loaiCounts={loaiCounts}
-      nhanCounts={{}}
+      nhanCounts={useCustomNhan ? customNhanCounts : {}}
       enabled={barEnabled}
       view={view}
       onViewChange={setView}
+      hideDate={isShowcase}
     />
   );
 
@@ -120,9 +224,9 @@ export function CoSoOrgBaiDangTimeline({
     return (
       <main className="j-timeline tdh-org-baidang-timeline" aria-label="Timeline bài đăng">
         {timelineBar}
-        {composeEnabled ? (
+        {composeEnabled && !isShowcase ? (
           <>
-            <OrgBaiDangCreateComposer />
+            <OrgBaiDangCreateComposer owner={owner} />
             <section className="j-empty" aria-label="Chưa có bài đăng">
               <div className="j-empty-card">
                 <p className="j-empty-eyebrow">Bài đăng · chưa có nội dung</p>
@@ -144,14 +248,18 @@ export function CoSoOrgBaiDangTimeline({
   return (
     <main className="j-timeline tdh-org-baidang-timeline" aria-label="Timeline bài đăng">
       {timelineBar}
-      {composeEnabled ? <OrgBaiDangCreateComposer /> : null}
+      {composeEnabled && !isShowcase ? (
+        <OrgBaiDangCreateComposer owner={owner} />
+      ) : null}
       <OrgBaiDangFilteredFeed
         filtered={filtered}
         yearGroups={yearGroups}
         view={view}
         onOpenPostFromGrid={openPostFromGrid}
         owner={owner}
+        contentOnly={isShowcase}
       />
+      {postOverlay}
     </main>
   );
 }

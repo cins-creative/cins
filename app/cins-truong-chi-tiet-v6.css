@@ -4972,18 +4972,23 @@
   }
 }
 
-/* ── Tab Bài đăng — timeline kiểu Journey ── */
+/* ── Tab Bài đăng / Showcase — timeline kiểu Journey (ctx bar 56px) ── */
 .tdh-page--v6 #tdh-panel-bai-dang,
-.tdh-page--v6 #cso-panel-bai-dang {
+.tdh-page--v6 #cso-panel-bai-dang,
+.tdh-page--v6 #cso-panel-showcase {
   --j-topbar-h: calc(
     var(--site-nav-height, 64px) + var(--tdh-v6-tabs-h, 50px)
   );
-  --j-ctx-h: 52px;
+  --j-ctx-h: 56px;
   --j-rail-x: 0px;
   --j-content-pad-l: 0px;
   --tdh-baidang-stack-gap: 14px;
   --tdh-baidang-card-gap: 16px;
   padding: 0 24px 48px;
+}
+
+.tdh-page--v6 #cso-panel-showcase {
+  padding-top: 0;
 }
 
 .tdh-page--v6 #tdh-panel-bai-dang.tdh-v6-panel.on,
@@ -4998,6 +5003,15 @@
   max-width: 100%;
   flex: 1 1 auto;
   min-height: 0;
+  padding-bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--tdh-baidang-stack-gap);
+}
+
+.tdh-page--v6 #cso-panel-showcase .tdh-org-baidang-timeline {
+  max-width: 100%;
+  padding-top: 0;
   padding-bottom: 0;
   display: flex;
   flex-direction: column;
@@ -5068,7 +5082,8 @@
 }
 
 .tdh-page--v6 #tdh-panel-bai-dang .org-baidang-tlb,
-.tdh-page--v6 #cso-panel-bai-dang .org-baidang-tlb {
+.tdh-page--v6 #cso-panel-bai-dang .org-baidang-tlb,
+.tdh-page--v6 #cso-panel-showcase .org-baidang-tlb {
   top: var(--j-topbar-h);
   z-index: 25;
   margin-bottom: 0;
@@ -5080,184 +5095,112 @@
   flex-shrink: 0;
   width: calc(100% + 48px);
   max-width: none;
-  padding: 8px 24px 10px;
-  height: auto;
-  min-height: 44px;
+  /* Đồng bộ Journey `.j-tlb`: cao cố định --j-ctx-h (56px). */
+  height: var(--j-ctx-h);
+  min-height: var(--j-ctx-h);
+  padding: 0 24px;
   box-sizing: border-box;
   background: transparent;
   border-bottom: 1px solid color-mix(in srgb, var(--border, #e4e6eb) 82%, transparent);
 }
 
-/* Toggle timeline ↔ lưới (mirror World Journey .wj-view-toggle). */
+/* Cụm filter + toggle — cùng layout Journey `.j-tlb-filters`. */
 .tdh-page--v6 #tdh-panel-bai-dang .org-baidang-tlb-actions,
 .tdh-page--v6 #cso-panel-bai-dang .org-baidang-tlb-actions,
 .tdh-page--v6 #cso-panel-showcase .org-baidang-tlb-actions {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
+  grid-column: 3;
   justify-self: end;
-}
-
-.tdh-page--v6 #tdh-panel-bai-dang .org-baidang-view-toggle,
-.tdh-page--v6 #cso-panel-bai-dang .org-baidang-view-toggle,
-.tdh-page--v6 #cso-panel-showcase .org-baidang-view-toggle {
-  display: inline-flex;
-  background: var(--neutral-100, #f1f2f5);
-  border: 1px solid var(--border2, #e4e6eb);
-  border-radius: var(--radius-pill, 999px);
-  padding: 2px;
-  flex-shrink: 0;
-}
-
-.tdh-page--v6 #tdh-panel-bai-dang .org-baidang-view-toggle .obvt-btn,
-.tdh-page--v6 #cso-panel-bai-dang .org-baidang-view-toggle .obvt-btn,
-.tdh-page--v6 #cso-panel-showcase .org-baidang-view-toggle .obvt-btn {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 30px;
-  border: 0;
-  border-radius: var(--radius-pill, 999px);
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.tdh-page--v6 #cso-panel-showcase .org-baidang-tlb--no-date {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.tdh-page--v6 #cso-panel-showcase .org-baidang-tlb--no-date .org-baidang-tlb-actions {
+  grid-column: 2;
+}
+
+.tdh-page--v6 #tdh-panel-bai-dang .org-baidang-tlb .j-tlb-dd-btn.is-icon,
+.tdh-page--v6 #cso-panel-bai-dang .org-baidang-tlb .j-tlb-dd-btn.is-icon,
+.tdh-page--v6 #cso-panel-showcase .org-baidang-tlb .j-tlb-dd-btn.is-icon {
+  width: 32px;
+  height: 32px;
+  min-width: 0;
+  padding: 0;
+  gap: 0;
+  border-radius: var(--radius-sm);
   background: transparent;
-  color: var(--ink2, #5c6370);
-  cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
+  color: var(--ink-display);
 }
 
-.tdh-page--v6 #tdh-panel-bai-dang .org-baidang-view-toggle .obvt-btn:hover,
-.tdh-page--v6 #cso-panel-bai-dang .org-baidang-view-toggle .obvt-btn:hover,
-.tdh-page--v6 #cso-panel-showcase .org-baidang-view-toggle .obvt-btn:hover {
-  color: var(--ink-display, #0f172a);
+.tdh-page--v6 #tdh-panel-bai-dang .org-baidang-tlb .j-tlb-dd-btn.is-icon:hover:not(:disabled),
+.tdh-page--v6 #cso-panel-bai-dang .org-baidang-tlb .j-tlb-dd-btn.is-icon:hover:not(:disabled),
+.tdh-page--v6 #cso-panel-showcase .org-baidang-tlb .j-tlb-dd-btn.is-icon:hover:not(:disabled) {
+  color: var(--cins-blue);
+  background: transparent;
 }
 
-.tdh-page--v6 #tdh-panel-bai-dang .org-baidang-view-toggle .obvt-btn.active,
-.tdh-page--v6 #cso-panel-bai-dang .org-baidang-view-toggle .obvt-btn.active,
-.tdh-page--v6 #cso-panel-showcase .org-baidang-view-toggle .obvt-btn.active {
-  background: #fff;
-  color: var(--cins-blue, #1f74c9);
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
+.tdh-page--v6 #tdh-panel-bai-dang .org-baidang-tlb .j-tlb-dd-btn.is-icon .j-tlb-dd-caret,
+.tdh-page--v6 #cso-panel-bai-dang .org-baidang-tlb .j-tlb-dd-btn.is-icon .j-tlb-dd-caret,
+.tdh-page--v6 #cso-panel-showcase .org-baidang-tlb .j-tlb-dd-btn.is-icon .j-tlb-dd-caret {
+  display: none;
 }
 
-/* Lưới bài đăng — chế độ xem dạng grid. */
+.tdh-page--v6 #tdh-panel-bai-dang .org-baidang-tlb .j-tlb-dd-btn.is-icon .j-tlb-dd-ico svg,
+.tdh-page--v6 #cso-panel-bai-dang .org-baidang-tlb .j-tlb-dd-btn.is-icon .j-tlb-dd-ico svg,
+.tdh-page--v6 #cso-panel-showcase .org-baidang-tlb .j-tlb-dd-btn.is-icon .j-tlb-dd-ico svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* Lưới bài đăng — tái dùng Journey Gallery card (`.j-main-gallery-grid--card`). */
 .tdh-page--v6 #tdh-panel-bai-dang .org-baidang-grid,
 .tdh-page--v6 #cso-panel-bai-dang .org-baidang-grid,
 .tdh-page--v6 #cso-panel-showcase .org-baidang-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
+  width: 100%;
   padding: 0;
   box-sizing: border-box;
+}
+
+/*
+ * Lưới gọn (masonry): cột CSS + chiều cao theo ảnh gốc.
+ * Không ép 16:9 / absolute fill — nếu không mọi ô bằng nhau (không phải masonry).
+ */
+.tdh-page--v6 #tdh-panel-bai-dang .org-baidang-grid.j-main-gallery-grid--masonry .j-main-gallery-thumb,
+.tdh-page--v6 #cso-panel-bai-dang .org-baidang-grid.j-main-gallery-grid--masonry .j-main-gallery-thumb,
+.tdh-page--v6 #cso-panel-showcase .org-baidang-grid.j-main-gallery-grid--masonry .j-main-gallery-thumb {
+  aspect-ratio: auto;
+  flex: none;
   width: 100%;
+  height: auto;
 }
 
-.tdh-page--v6 #tdh-panel-bai-dang .org-baidang-grid-cell,
-.tdh-page--v6 #cso-panel-bai-dang .org-baidang-grid-cell,
-.tdh-page--v6 #cso-panel-showcase .org-baidang-grid-cell {
-  display: flex;
-  flex-direction: column;
-  text-align: left;
-  padding: 0;
-  border: 1px solid var(--border2, #e4e6eb);
-  border-radius: 12px;
-  overflow: hidden;
-  background: #fff;
-  cursor: pointer;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease,
-    transform 0.15s ease;
-}
-
-.tdh-page--v6 #tdh-panel-bai-dang .org-baidang-grid-cell:hover,
-.tdh-page--v6 #cso-panel-bai-dang .org-baidang-grid-cell:hover {
-  border-color: var(--cins-blue, #1f74c9);
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.1);
-  transform: translateY(-2px);
-}
-
-.tdh-page--v6 #tdh-panel-bai-dang .org-baidang-grid-cell:focus-visible,
-.tdh-page--v6 #cso-panel-bai-dang .org-baidang-grid-cell:focus-visible {
-  outline: 2px solid var(--cins-blue, #1f74c9);
-  outline-offset: 2px;
-}
-
-.tdh-page--v6 #tdh-panel-bai-dang .org-baidang-grid-cell .obg-thumb,
-.tdh-page--v6 #cso-panel-bai-dang .org-baidang-grid-cell .obg-thumb {
-  position: relative;
-  display: block;
+.tdh-page--v6 #tdh-panel-bai-dang .org-baidang-grid.j-main-gallery-grid--masonry .j-main-gallery-thumb > img,
+.tdh-page--v6 #cso-panel-bai-dang .org-baidang-grid.j-main-gallery-grid--masonry .j-main-gallery-thumb > img,
+.tdh-page--v6 #cso-panel-showcase .org-baidang-grid.j-main-gallery-grid--masonry .j-main-gallery-thumb > img {
+  position: static;
+  inset: auto;
   width: 100%;
-  aspect-ratio: 16 / 10;
-  background: #e2e8f0;
-  overflow: hidden;
-}
-
-.tdh-page--v6 #tdh-panel-bai-dang .org-baidang-grid-cell .obg-thumb img,
-.tdh-page--v6 #cso-panel-bai-dang .org-baidang-grid-cell .obg-thumb img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  height: auto;
+  object-fit: contain;
   display: block;
 }
 
-.tdh-page--v6 #tdh-panel-bai-dang .org-baidang-grid-cell .obg-play,
-.tdh-page--v6 #cso-panel-bai-dang .org-baidang-grid-cell .obg-play {
-  position: absolute;
-  inset: 0;
-  margin: auto;
-  width: 40px;
-  height: 40px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background: rgba(15, 23, 42, 0.55);
-  color: #fff;
+.tdh-page--v6 #tdh-panel-bai-dang .org-baidang-grid.j-main-gallery-grid--masonry .j-main-gallery-item.is-text .j-main-gallery-thumb,
+.tdh-page--v6 #cso-panel-bai-dang .org-baidang-grid.j-main-gallery-grid--masonry .j-main-gallery-item.is-text .j-main-gallery-thumb,
+.tdh-page--v6 #cso-panel-showcase .org-baidang-grid.j-main-gallery-grid--masonry .j-main-gallery-item.is-text .j-main-gallery-thumb {
+  aspect-ratio: 16 / 9;
 }
 
-.tdh-page--v6 #tdh-panel-bai-dang .org-baidang-grid-cell .obg-body,
-.tdh-page--v6 #cso-panel-bai-dang .org-baidang-grid-cell .obg-body {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 10px 12px 12px;
-  min-height: 0;
-}
-
-.tdh-page--v6 #tdh-panel-bai-dang .org-baidang-grid-cell.is-text .obg-body,
-.tdh-page--v6 #cso-panel-bai-dang .org-baidang-grid-cell.is-text .obg-body {
-  gap: 6px;
-  padding: 14px 14px 16px;
-}
-
-.tdh-page--v6 #tdh-panel-bai-dang .org-baidang-grid-cell .obg-loai,
-.tdh-page--v6 #cso-panel-bai-dang .org-baidang-grid-cell .obg-loai {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.4px;
-  text-transform: uppercase;
-  color: var(--cins-blue, #1f74c9);
-}
-
-.tdh-page--v6 #tdh-panel-bai-dang .org-baidang-grid-cell .obg-title,
-.tdh-page--v6 #cso-panel-bai-dang .org-baidang-grid-cell .obg-title {
-  font-size: 14px;
-  font-weight: 700;
-  line-height: 1.35;
-  color: var(--ink-display, #0f172a);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.tdh-page--v6 #tdh-panel-bai-dang .org-baidang-grid-cell .obg-excerpt,
-.tdh-page--v6 #cso-panel-bai-dang .org-baidang-grid-cell .obg-excerpt {
-  font-size: 12.5px;
-  line-height: 1.5;
-  color: var(--ink-body, #334155);
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+/* Bài không cover — vẫn giữ khung thumb 16:9 như gallery. */
+.tdh-page--v6 #tdh-panel-bai-dang .org-baidang-grid .j-main-gallery-item.is-text .j-main-gallery-thumb,
+.tdh-page--v6 #cso-panel-bai-dang .org-baidang-grid .j-main-gallery-item.is-text .j-main-gallery-thumb,
+.tdh-page--v6 #cso-panel-showcase .org-baidang-grid .j-main-gallery-item.is-text .j-main-gallery-thumb {
+  background: var(--neutral-100, #f1f2f5);
 }
 
 /* Highlight bài vừa mở từ lưới. */
@@ -5279,13 +5222,29 @@
 }
 
 @media (max-width: 575px) {
-  .tdh-page--v6 #tdh-panel-bai-dang .org-baidang-grid,
-  .tdh-page--v6 #cso-panel-bai-dang .org-baidang-grid,
-  .tdh-page--v6 #cso-panel-showcase .org-baidang-grid {
+  /* Chỉ Dạng thẻ (CSS grid) — đừng đụng masonry (CSS columns). */
+  .tdh-page--v6 #tdh-panel-bai-dang .org-baidang-grid.j-main-gallery-grid--card,
+  .tdh-page--v6 #cso-panel-bai-dang .org-baidang-grid.j-main-gallery-grid--card,
+  .tdh-page--v6 #cso-panel-showcase .org-baidang-grid.j-main-gallery-grid--card {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 6px;
-    padding: 0;
   }
+
+  .tdh-page--v6 #tdh-panel-bai-dang .org-baidang-grid.j-main-gallery-grid--masonry,
+  .tdh-page--v6 #cso-panel-bai-dang .org-baidang-grid.j-main-gallery-grid--masonry,
+  .tdh-page--v6 #cso-panel-showcase .org-baidang-grid.j-main-gallery-grid--masonry {
+    columns: 2;
+  }
+}
+
+/* Showcase lens — chỉ block nội dung (không datebar / actions). */
+.tdh-page--v6 #cso-panel-showcase .org-baidang-milestone--content-only .j-m-card {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.tdh-page--v6 #cso-panel-showcase .org-baidang-milestone--content-only .jcard-body {
+  padding-top: 14px;
 }
 
 .tdh-page--v6 #tdh-panel-bai-dang .jcard-datebar--org,
@@ -5493,8 +5452,11 @@
   }
 
   .tdh-page--v6 #tdh-panel-bai-dang .org-baidang-tlb,
-  .tdh-page--v6 #cso-panel-bai-dang .org-baidang-tlb {
-    padding: 8px 12px 10px;
+  .tdh-page--v6 #cso-panel-bai-dang .org-baidang-tlb,
+  .tdh-page--v6 #cso-panel-showcase .org-baidang-tlb {
+    padding: 0 12px;
+    height: var(--j-ctx-h);
+    min-height: var(--j-ctx-h);
     margin-top: 0;
     /* Panel padding = 0 ở mobile nên không cần full-bleed margin. */
     margin-left: 0;
@@ -5909,3 +5871,24 @@
     width: min(100vw - 20px, 440px);
   }
 }
+
+/* Studio lifecycle banner (tạm ngưng / đóng cửa). */
+.tdh-page--studio .sps-lifecycle-banner {
+  grid-column: 1 / -1;
+  margin: 0 0 8px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  background: rgba(217, 119, 6, 0.12);
+  color: #b45309;
+  border: 1px solid rgba(217, 119, 6, 0.28);
+}
+
+.tdh-page--studio .sps-lifecycle-banner.is-closed {
+  background: rgba(212, 56, 13, 0.1);
+  color: #d4380d;
+  border-color: rgba(212, 56, 13, 0.28);
+}
+

@@ -630,14 +630,22 @@ function CommentComposeForm({
       setMentionMenuPos(null);
       return;
     }
+    const MENTIONS_MENU_MIN_W = 280;
+    const MENTIONS_MENU_MAX_W = 320;
     const update = () => {
       const el = inputRef.current;
       if (!el) return;
       const rect = el.getBoundingClientRect();
+      const maxW = Math.min(MENTIONS_MENU_MAX_W, window.innerWidth - 16);
+      const width = Math.min(Math.max(rect.width, MENTIONS_MENU_MIN_W), maxW);
+      let left = rect.left;
+      if (left + width > window.innerWidth - 8) {
+        left = Math.max(8, window.innerWidth - 8 - width);
+      }
       setMentionMenuPos({
-        left: rect.left,
+        left,
         top: rect.top,
-        width: rect.width,
+        width,
       });
     };
     update();

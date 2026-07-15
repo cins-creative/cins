@@ -16,6 +16,8 @@ type Props = {
   view: OrgBaiDangView;
   onOpenPostFromGrid: (postId: string) => void;
   owner?: OrgOwner | null;
+  /** Showcase — chỉ render block nội dung (không datebar / actions). */
+  contentOnly?: boolean;
 };
 
 export function OrgBaiDangFilteredFeed({
@@ -24,6 +26,7 @@ export function OrgBaiDangFilteredFeed({
   view,
   onOpenPostFromGrid,
   owner = null,
+  contentOnly = false,
 }: Props) {
   if (filtered.length === 0) {
     return (
@@ -31,9 +34,13 @@ export function OrgBaiDangFilteredFeed({
     );
   }
 
-  if (view === "grid") {
+  if (view === "grid" || view === "masonry") {
     return (
-      <OrgBaiDangGridView posts={filtered} onOpenPost={onOpenPostFromGrid} />
+      <OrgBaiDangGridView
+        posts={filtered}
+        onOpenPost={onOpenPostFromGrid}
+        layout={view === "masonry" ? "masonry" : "card"}
+      />
     );
   }
 
@@ -42,7 +49,12 @@ export function OrgBaiDangFilteredFeed({
       {yearGroups.map(({ year, posts: yearPosts }) => (
         <section key={year} className="j-year-block" data-year={year}>
           {yearPosts.map((post) => (
-            <OrgBaiDangJourneyCard key={post.id} post={post} owner={owner} />
+            <OrgBaiDangJourneyCard
+              key={post.id}
+              post={post}
+              owner={owner}
+              contentOnly={contentOnly}
+            />
           ))}
         </section>
       ))}

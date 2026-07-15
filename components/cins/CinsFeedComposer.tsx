@@ -3,7 +3,13 @@
 import "@/app/cins-feed-composer.css";
 
 import { Code2, Flag, Image as ImageIcon, Video } from "lucide-react";
-import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type ReactNode,
+} from "react";
 import { useRouter } from "next/navigation";
 
 import { EmbedPlatformPicker } from "@/components/cins/EmbedPlatformPicker";
@@ -14,6 +20,8 @@ type Props = {
   ownerSlug?: string;
   ownerName?: string | null;
   avatarUrl?: string | null;
+  /** Thay avatar mặc định (vd. TruongOrgAvatar trên timeline org). */
+  avatar?: ReactNode;
   placeholder?: string;
   /** Hiện nút cột mốc trong thanh composer (Journey user). */
   showMilestone?: boolean;
@@ -25,6 +33,7 @@ export function CinsFeedComposer({
   ownerSlug: ownerSlugProp,
   ownerName: ownerNameProp,
   avatarUrl: avatarUrlProp,
+  avatar,
   placeholder = "Thêm bài viết",
   showMilestone = true,
   layout = "feed",
@@ -110,14 +119,16 @@ export function CinsFeedComposer({
       className={`cins-feed-composer-row${layout === "journey" ? " cins-feed-composer-row--journey" : ""}`}
     >
       <div className="wj-composer">
-        <div className="wj-av" aria-hidden>
-          {avatarUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={avatarUrl} alt="" />
-          ) : (
-            initials
-          )}
-        </div>
+        {avatar ?? (
+          <div className="wj-av" aria-hidden>
+            {avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={avatarUrl} alt="" />
+            ) : (
+              initials
+            )}
+          </div>
+        )}
         <button
           type="button"
           className="wj-ph"

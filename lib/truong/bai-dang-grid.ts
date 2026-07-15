@@ -1,3 +1,4 @@
+import type { ContentSurfaceView } from "@/lib/cins/content-surface-view";
 import {
   galleryMediaKindFromBlocks,
   milestoneCardCaptionPlain,
@@ -8,8 +9,8 @@ import { baiDangYear } from "@/lib/truong/bai-dang-timeline";
 import { orgBaiDangPostElementId } from "@/lib/truong/org-bai-dang-permalink";
 import type { TruongBaiDang } from "@/lib/truong/types";
 
-/** Hai chế độ xem bài đăng tổ chức — mặc định timeline (giống World Journey). */
-export type OrgBaiDangView = "timeline" | "grid";
+/** Ba chế độ xem bài đăng tổ chức — đồng bộ cụm ContentSurfaceView. */
+export type OrgBaiDangView = ContentSurfaceView;
 
 export type OrgBaiDangGridItem = {
   id: string;

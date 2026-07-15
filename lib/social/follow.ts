@@ -651,7 +651,7 @@ async function loadUserSocialStats(
   return out;
 }
 
-/** Batch stats Journey / Gallery / Bạn bè — tái dùng ngoài follow (vd. global search). */
+/** Batch stats: Gallery tổng (`cotMoc`) · Nội dung nổi bật (`tacPham`) · Bạn bè. */
 export async function loadUserSocialStatsByIds(
   admin: ReturnType<typeof createServiceRoleClient>,
   userIds: string[],

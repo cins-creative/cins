@@ -1,6 +1,6 @@
 import type { QuanHe } from "@/lib/social/types";
 
-export type SocialInteractionKind = "like" | "comment" | "bookmark";
+export type SocialInteractionKind = "like" | "dislike" | "comment" | "bookmark";
 
 export type SocialActorProfile = {
   idNguoiDung: string;

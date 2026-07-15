@@ -321,31 +321,82 @@ function bunnyVideoPublishCompanionError(
   return null;
 }
 
-/** Đọc cờ hiển thị thumbnail (`cover_id`) trong thân bài khi xem — lưu trên embed Bunny. */
+/**
+ * Cờ `showCoverInPost` trong `noi_dung_blocks` (user + org).
+ * Ưu tiên embed Bunny, rồi embed khác, rồi block bất kỳ đã ghi tường minh.
+ */
+export function findShowCoverInPostFlag(
+  blocks: ReadonlyArray<Block> | null | undefined,
+): boolean | undefined {
+  if (!blocks?.length) return undefined;
+  for (const block of blocks) {
+    if (!isBunnyEmbedBlock(block)) continue;
+    if (typeof block.config?.showCoverInPost === "boolean") {
+      return block.config.showCoverInPost;
+    }
+  }
+  for (const block of blocks) {
+    if (typeof block.config?.showCoverInPost === "boolean") {
+      return block.config.showCoverInPost;
+    }
+  }
+  return undefined;
+}
+
+/** Hiện `cover_id` trong thân bài khi xem — cần bật tường minh. */
 export function readShowCoverInPost(
   blocks: ReadonlyArray<Block> | null | undefined,
 ): boolean {
-  if (!blocks?.length) return false;
-  for (const block of blocks) {
-    if (!isBunnyEmbedBlock(block)) continue;
-    return block.config?.showCoverInPost === true;
-  }
-  return false;
+  return findShowCoverInPostFlag(blocks) === true;
 }
 
 /**
- * Poster video trên card/feed: dùng `cover_id` trừ khi user tắt tường minh
- * (`showCoverInPost === false`). Key thiếu = legacy — vẫn hiện cover trên card.
+ * Poster / peek cover trên card: dùng `cover_id` trừ khi tắt tường minh
+ * (`showCoverInPost === false`). Key thiếu = legacy — vẫn hiện.
  */
 export function shouldUseCoverAsVideoPoster(
   blocks: ReadonlyArray<Block> | null | undefined,
 ): boolean {
-  if (!blocks?.length) return true;
-  for (const block of blocks) {
-    if (!isBunnyEmbedBlock(block)) continue;
-    return block.config?.showCoverInPost !== false;
+  return findShowCoverInPostFlag(blocks) !== false;
+}
+
+/** Alias rõ nghĩa — cùng rule card/feed cho mọi loại bài. */
+export const shouldShowCoverOnPostCard = shouldUseCoverAsVideoPoster;
+
+/**
+ * Ghi cờ vào blocks trước publish/draft (Journey user + org_bai_dang).
+ * Không ghi `false` lần đầu trên bài không-Bunny — giữ legacy card cover.
+ */
+export function applyShowCoverInPostFlag(
+  blocks: Block[],
+  showCoverInPost: boolean,
+): Block[] {
+  if (!blocks.length) return blocks;
+
+  const existing = findShowCoverInPostFlag(blocks);
+  const hasBunny = blocks.some(isBunnyEmbedBlock);
+  if (!hasBunny && existing === undefined && showCoverInPost === false) {
+    return blocks.map((block, i) => ({ ...block, thu_tu: i }));
   }
-  return true;
+
+  let targetIdx = blocks.findIndex(isBunnyEmbedBlock);
+  if (targetIdx < 0) {
+    targetIdx = blocks.findIndex((b) => b.loai === "embed");
+  }
+  if (targetIdx < 0) targetIdx = 0;
+
+  return blocks.map((block, i) => {
+    const config = { ...(block.config ?? {}) };
+    if (i === targetIdx) {
+      config.showCoverInPost = showCoverInPost;
+      return { ...block, config, thu_tu: i };
+    }
+    if ("showCoverInPost" in config) {
+      delete config.showCoverInPost;
+      return { ...block, config, thu_tu: i };
+    }
+    return { ...block, thu_tu: i };
+  });
 }
 
 function resolveBunnyVideoMeta(

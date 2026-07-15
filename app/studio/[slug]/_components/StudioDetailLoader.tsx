@@ -20,14 +20,31 @@ export async function StudioDetailLoader({ slug }: Props) {
   const session = await getCurrentSessionAndProfile();
   const viewerProfileId = session?.profile?.id ?? null;
 
-  const postIds = [...payload.baidang, ...payload.showcase].map((p) => p.id);
-
-  const [canEdit, isOrgMember, bookmarkSocial, systemRole] = await Promise.all([
+  const [canEdit, isOrgMember, systemRole] = await Promise.all([
     getOrgAdminStatus(slug, viewerProfileId),
     getOrgMemberStatus(slug, viewerProfileId),
-    loadOrgBaiDangBookmarkSocial(postIds, viewerProfileId),
     getCurrentUserSystemRole(),
   ]);
+
+  const isStaffOrAdmin =
+    canEdit ||
+    isOrgMember ||
+    systemRole === "admin" ||
+    systemRole === "super_admin";
+
+  /* Đóng cửa: khách 404; owner/admin/member vẫn vào để quản trị. */
+  if (
+    payload.studio.trangThaiHoatDong === "da_dong_cua" &&
+    !isStaffOrAdmin
+  ) {
+    notFound();
+  }
+
+  const postIds = [...payload.baidang, ...payload.showcase].map((p) => p.id);
+  const bookmarkSocial = await loadOrgBaiDangBookmarkSocial(
+    postIds,
+    viewerProfileId,
+  );
 
   const hydrate = (post: TruongBaiDang): TruongBaiDang => {
     const social = bookmarkSocial[post.id];

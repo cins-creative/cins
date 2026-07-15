@@ -93,8 +93,10 @@ export type MilestonePostDetail = {
   viewerIsOwner: boolean;
   social: {
     viewerLiked: boolean;
+    viewerDisliked: boolean;
     viewerBookmarked: boolean;
     likeCount: number;
+    dislikeCount: number;
     bookmarkCount: number;
     commentCount: number;
   };

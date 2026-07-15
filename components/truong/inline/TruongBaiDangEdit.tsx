@@ -96,7 +96,17 @@ export function TruongBaiDangEditProvider({ children }: { children: ReactNode })
       const post = mapOrgBaiDangApiRow(json.post);
       ctx.setBaidang((list) =>
         sortBaiDangByTaoLuc(
-          list.map((p) => (p.id === id ? { ...p, ...post } : p)),
+          list.map((p) =>
+            p.id === id
+              ? {
+                  ...p,
+                  ...post,
+                  noiDungBlocks: post.noiDungBlocks ?? p.noiDungBlocks,
+                  personalFilters: p.personalFilters,
+                  personalFilterSlugs: p.personalFilterSlugs,
+                }
+              : p,
+          ),
         ),
       );
     },
@@ -142,6 +152,7 @@ export function TruongBaiDangEditProvider({ children }: { children: ReactNode })
             ? {
                 ...p,
                 ...post,
+                noiDungBlocks: post.noiDungBlocks ?? p.noiDungBlocks,
                 personalFilters: p.personalFilters,
                 personalFilterSlugs: p.personalFilterSlugs,
               }
@@ -229,6 +240,7 @@ export function TruongBaiDangEditProvider({ children }: { children: ReactNode })
               ? {
                   ...p,
                   ...mapped,
+                  noiDungBlocks: mapped.noiDungBlocks ?? p.noiDungBlocks,
                   personalFilters: p.personalFilters,
                   personalFilterSlugs: p.personalFilterSlugs,
                 }

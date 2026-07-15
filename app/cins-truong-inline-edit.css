@@ -6131,6 +6131,33 @@ a.tdh-milestone-tag-student:hover {
   gap: 10px;
 }
 
+.cso-ss-primary-action--admin.cso-ss-primary-action--with-settings {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  align-items: stretch;
+}
+
+.cso-ss-primary-action--with-settings .ss-btn-messages-label,
+.cso-ss-primary-action--with-settings .ss-btn-notify-label {
+  display: none;
+}
+
+.cso-ss-primary-action--with-settings .ss-btn {
+  padding: 0;
+  justify-content: center;
+}
+
+.cso-ss-primary-action--with-settings .cso-ss-btn-settings {
+  width: 100%;
+  height: 44px;
+}
+
+.cso-ss-primary-action--with-settings .ss-btn-messages-badge,
+.cso-ss-primary-action--with-settings .ss-btn-notify-badge {
+  top: 4px;
+  right: 4px;
+}
+
 .cso-ss-primary-action--admin .ss-btn {
   height: 44px;
   min-height: 44px;

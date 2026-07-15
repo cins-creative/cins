@@ -12,6 +12,7 @@ import {
 import { useRouter } from "next/navigation";
 
 import { JourneyComposeOverlay } from "@/components/journey/JourneyComposeOverlay";
+import { JourneyPersonalFilterProvider } from "@/components/journey/JourneyPersonalFilterContext";
 import type { CongDongComposeConfig } from "@/lib/cong-dong/types";
 import type { Tier1EmbedPlatformId } from "@/lib/editor/embed-providers";
 import {
@@ -383,20 +384,22 @@ export function JourneyComposeProvider({
 
   return (
     <JourneyComposeContext.Provider value={value}>
-      {children}
-      {isOwner && compose ? (
-        <JourneyComposeOverlay
-          compose={compose}
-          ownerId={ownerId}
-          ownerSlug={ownerSlug}
-          ownerName={ownerName}
-          ownerAvatarId={ownerAvatarId}
-          congDongCompose={congDongCompose}
-          orgBaiDangCompose={orgBaiDangCompose}
-          onClose={closeCompose}
-          onPublished={onPublished}
-        />
-      ) : null}
+      <JourneyPersonalFilterProvider ownerId={ownerId} isOwner={isOwner}>
+        {children}
+        {isOwner && compose ? (
+          <JourneyComposeOverlay
+            compose={compose}
+            ownerId={ownerId}
+            ownerSlug={ownerSlug}
+            ownerName={ownerName}
+            ownerAvatarId={ownerAvatarId}
+            congDongCompose={congDongCompose}
+            orgBaiDangCompose={orgBaiDangCompose}
+            onClose={closeCompose}
+            onPublished={onPublished}
+          />
+        ) : null}
+      </JourneyPersonalFilterProvider>
     </JourneyComposeContext.Provider>
   );
 }

@@ -9,8 +9,11 @@ import {
 
 import type { EditProfileInitial } from "@/components/journey/JourneyEditProfileModal";
 import { JourneyAvatarTrigger } from "@/components/journey/JourneyAvatarTrigger";
-import { AVATAR_DISPLAY_PX } from "@/lib/cloudflare/cf-image-variants";
 import { JourneyCoverTrigger } from "@/components/journey/JourneyCoverTrigger";
+import {
+  JourneyVisitorAvatar,
+  JourneyVisitorCover,
+} from "@/components/journey/JourneyVisitorAvatar";
 import { JourneyProfileGuestSection } from "@/components/journey/JourneyProfileGuestSection";
 import { JourneyProfileShareTrigger } from "@/components/journey/JourneyProfileShareTrigger";
 import { JourneySidebarOwnerActions } from "@/components/journey/JourneySidebarOwnerActions";
@@ -132,21 +135,10 @@ export function JourneySidebar({
           alt={profile.tenHienThi || profile.slug}
         />
       ) : (
-        <div
-          className={`j-profile-cover${coverUrl ? " has-img" : ""}`}
-          aria-hidden
-        >
-          {coverUrl ? (
-            /* eslint-disable-next-line @next/next/no-img-element */
-            <img
-              src={coverUrl}
-              alt=""
-              className="j-profile-cover-img"
-            />
-          ) : (
-            <div className="j-profile-cover-blob" />
-          )}
-        </div>
+        <JourneyVisitorCover
+          coverUrl={coverUrl}
+          alt={profile.tenHienThi || profile.slug}
+        />
       )}
 
       {isOwner ? (
@@ -156,20 +148,11 @@ export function JourneySidebar({
           alt={profile.tenHienThi || profile.slug}
         />
       ) : (
-        <div className="j-avatar">
-          {avatarUrl ? (
-            /* eslint-disable-next-line @next/next/no-img-element */
-            <img
-              src={avatarUrl}
-              alt={profile.tenHienThi || profile.slug}
-              width={AVATAR_DISPLAY_PX}
-              height={AVATAR_DISPLAY_PX}
-              decoding="async"
-            />
-          ) : (
-            <span aria-hidden>{initials}</span>
-          )}
-        </div>
+        <JourneyVisitorAvatar
+          avatarUrl={avatarUrl}
+          initials={initials}
+          alt={profile.tenHienThi || profile.slug}
+        />
       )}
 
       <h1 className="j-profile-name">

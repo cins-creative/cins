@@ -292,13 +292,14 @@ export function JourneyMilestoneCardBodyContent({
   const showArticleTextDepth =
     articleNeedsDepth && articlePeekBlocks.length === 0 && !isContentOpen;
 /**
- * Thumbnail gallery (`cover_id`) chỉ hiện khi expand nếu user bật
- * «Hiển thị thumbnail trong bài viết» — tránh lộ poster khi ẩn peek.
- * `false` tường minh → ẩn; thiếu key (legacy) vẫn hiện cover trên card.
+ * Thumbnail gallery (`cover_id`) trên card: ẩn khi tắt tường minh
+ * «Hiển thị thumbnail trong bài viết». Key thiếu = legacy — vẫn hiện.
+ * Expand bài video Bunny: ẩn poster nếu không bật cờ (tránh lộ khi ẩn peek).
  */
   const showArticleCoverPreview =
     Boolean(preview?.src) &&
     isArticle &&
+    shouldUseCoverAsVideoPoster(blocks) &&
     !(
       isContentOpen &&
       hasBunnyInArticle &&

@@ -185,6 +185,26 @@
   padding: 4px 8px 12px;
   overflow: auto;
   flex: 1;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.55) transparent;
+}
+
+.cins-chat-threads::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+.cins-chat-threads::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.cins-chat-threads::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.45);
+}
+
+.cins-chat-threads:hover::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.65);
 }
 
 .cins-chat-threads ul {
@@ -1332,6 +1352,26 @@
   display: flex;
   flex-direction: column;
   gap: 18px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.55) transparent;
+}
+
+.cins-chat-messages::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+.cins-chat-messages::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.cins-chat-messages::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.45);
+}
+
+.cins-chat-messages:hover::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.65);
 }
 
 .cins-chat-messages-empty {

@@ -279,7 +279,10 @@ async function searchOrgs(q: string): Promise<SearchHit[]> {
 
   const rowsById = new Map<string, RawOrgSearchRow>();
   for (const row of ilikeRes.data ?? []) {
-    rowsById.set(String(row.id), row as RawOrgSearchRow);
+    const typed = row as RawOrgSearchRow;
+    const status = typed.trang_thai_hoat_dong?.trim() || "dang_hoat_dong";
+    if (status !== "dang_hoat_dong") continue;
+    rowsById.set(String(typed.id), typed);
   }
 
   const missingIds = [...trigramMap.keys()].filter((id) => !rowsById.has(id));
@@ -290,7 +293,10 @@ async function searchOrgs(q: string): Promise<SearchHit[]> {
       .in("id", missingIds)
       .in("loai_to_chuc", [...PUBLIC_ORG_LOAI]);
     for (const row of extraRows ?? []) {
-      rowsById.set(String(row.id), row as RawOrgSearchRow);
+      const typed = row as RawOrgSearchRow;
+      const status = typed.trang_thai_hoat_dong?.trim() || "dang_hoat_dong";
+      if (status !== "dang_hoat_dong") continue;
+      rowsById.set(String(typed.id), typed);
     }
   }
 

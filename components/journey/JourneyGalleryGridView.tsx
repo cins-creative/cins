@@ -1,8 +1,7 @@
 "use client";
 
-import { Image as ImageIcon, LayoutGrid, Plus, Video } from "lucide-react";
+import { Image as ImageIcon, Plus, Video } from "lucide-react";
 
-import { LayoutThumbIcon } from "@/components/editor/LayoutThumbIcon";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -29,6 +28,8 @@ import {
   JourneyTimelineBar,
   type FilterGroup,
 } from "@/components/journey/JourneyTimelineBar";
+import { JourneySurfaceViewToggle } from "@/components/journey/JourneySurfaceViewToggle";
+import { useJourneyViewOptional } from "@/components/journey/JourneyViewContext";
 import { useJourneyPostOverlay } from "@/components/journey/useJourneyPostOverlay";
 import type { GalleryMainItem } from "@/lib/journey/gallery-page-fetch";
 import type { LoaiMocVisibilityMap } from "@/lib/journey/filter-visibility";
@@ -52,7 +53,6 @@ import { useJourneyPersonalFilterOptional } from "@/components/journey/JourneyPe
 import { useJourneyFilterShareOptional } from "@/components/journey/JourneyFilterShareContext";
 import {
   galleryDisplayFromSearch,
-  galleryDisplayHref,
   type GalleryDisplay,
 } from "@/lib/journey/gallery-display-url";
 import {
@@ -293,6 +293,7 @@ export function JourneyGalleryGridView({
 }: Props) {
   const personalFilter = useJourneyPersonalFilterOptional();
   const filterShare = useJourneyFilterShareOptional();
+  const journeyView = useJourneyViewOptional();
   const { openPost, overlay } = useJourneyPostOverlay();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -310,30 +311,20 @@ export function JourneyGalleryGridView({
   }, [urlDisplay]);
 
   useEffect(() => {
-    const onPopState = () => {
+    const syncFromLocation = () => {
       setDisplayView(galleryDisplayFromSearch(window.location.search));
     };
-    window.addEventListener("popstate", onPopState);
-    return () => window.removeEventListener("popstate", onPopState);
+    const onDisplayEvent = (event: Event) => {
+      const detail = (event as CustomEvent<GalleryDisplay>).detail;
+      if (detail === "card" || detail === "grid") setDisplayView(detail);
+    };
+    window.addEventListener("popstate", syncFromLocation);
+    window.addEventListener("cins:gallery-display", onDisplayEvent);
+    return () => {
+      window.removeEventListener("popstate", syncFromLocation);
+      window.removeEventListener("cins:gallery-display", onDisplayEvent);
+    };
   }, []);
-
-  const handleDisplayChange = useCallback(
-    (next: GalleryDisplay) => {
-      setDisplayView((current) => {
-        if (current === next) return current;
-        if (galleryOwnerSlug) {
-          const href = galleryDisplayHref(
-            galleryOwnerSlug,
-            next,
-            gallerySearch,
-          );
-          window.history.pushState({ galleryDisplay: next }, "", href);
-        }
-        return next;
-      });
-    },
-    [galleryOwnerSlug, gallerySearch],
-  );
 
   const openComposeMinimal = useCallback(() => {
     if (compose.canCompose) {
@@ -678,53 +669,27 @@ export function JourneyGalleryGridView({
           <div className="j-tlb-month" aria-hidden style={{ visibility: "hidden" }}>
             —
           </div>
-          {hasData ? (
+          {hasData || journeyView ? (
             <div className="j-tlb-filters">
-              <JourneyTimelineBar
-                embed
-                filter={typeFilter}
-                onFilterChange={handleTypeFilterChange}
-                options={typeOptions}
-                enabled={hasData}
-                isOwner={isOwner}
-                filterVisibility={filterVisibility}
-              />
-              <GalleryMediaFilterDropdown
-                filter={mediaFilter}
-                onFilterChange={setMediaFilter}
-                variant="toolbar"
-              />
-              <div
-                className="j-gallery-view-toggle"
-                role="group"
-                aria-label="Chế độ xem"
-              >
-                <button
-                  type="button"
-                  className={`j-gvt-btn${displayView === "card" ? " active" : ""}`}
-                  aria-label="Dạng thẻ"
-                  aria-pressed={displayView === "card"}
-                  title="Dạng thẻ"
-                  onClick={() => handleDisplayChange("card")}
-                >
-                  <LayoutGrid size={15} />
-                </button>
-                <button
-                  type="button"
-                  className={`j-gvt-btn${displayView === "grid" ? " active" : ""}`}
-                  aria-label="Lưới gọn"
-                  aria-pressed={displayView === "grid"}
-                  title="Lưới gọn"
-                  onClick={() => handleDisplayChange("grid")}
-                >
-                  <LayoutThumbIcon
-                    layout="masonry"
-                    variant="stroke"
-                    size={15}
-                    masonryColumns={2}
+              {hasData ? (
+                <>
+                  <JourneyTimelineBar
+                    embed
+                    filter={typeFilter}
+                    onFilterChange={handleTypeFilterChange}
+                    options={typeOptions}
+                    enabled={hasData}
+                    isOwner={isOwner}
+                    filterVisibility={filterVisibility}
                   />
-                </button>
-              </div>
+                  <GalleryMediaFilterDropdown
+                    filter={mediaFilter}
+                    onFilterChange={setMediaFilter}
+                    variant="toolbar"
+                  />
+                </>
+              ) : null}
+              {journeyView ? <JourneySurfaceViewToggle /> : null}
             </div>
           ) : null}
         </div>

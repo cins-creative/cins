@@ -1,6 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import {
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
+import { Search } from "lucide-react";
 
 import { JourneyFriendCard } from "@/components/journey/JourneyFriendCard";
 import { JourneyFriendInviteCard } from "@/components/journey/JourneyFriendInviteCard";
@@ -13,6 +22,8 @@ type ScrollLoadConfig = {
   nextOffset: number;
 };
 
+type MutualFilter = "all" | "has" | "sort";
+
 type Props = {
   initialFriends?: ReadonlyArray<MutualFriendProfile>;
   totalCount?: number;
@@ -21,6 +32,22 @@ type Props = {
   isOwner?: boolean;
   viewerProfileId?: string | null;
 };
+
+function normalizeSearch(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase()
+    .trim();
+}
+
+function matchesNameQuery(friend: MutualFriendProfile, query: string): boolean {
+  if (!query) return true;
+  return (
+    normalizeSearch(friend.tenHienThi).includes(query) ||
+    normalizeSearch(friend.slug).includes(query)
+  );
+}
 
 export function JourneyFriendsView({
   initialFriends,
@@ -43,8 +70,15 @@ export function JourneyFriendsView({
   );
   const [loadingMore, setLoadingMore] = useState(false);
   const [loadError, setLoadError] = useState(false);
+  const [query, setQuery] = useState("");
+  const [mutualFilter, setMutualFilter] = useState<MutualFilter>("all");
+  const deferredQuery = useDeferredValue(query);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const loadingRef = useRef(false);
+
+  const canFilterMutual = Boolean(viewerProfileId);
+  const normalizedQuery = normalizeSearch(deferredQuery);
+  const needsFullList = normalizedQuery.length > 0 || mutualFilter !== "all";
 
   const loadInvites = useCallback(async () => {
     if (!isOwner) return;
@@ -140,6 +174,7 @@ export function JourneyFriendsView({
 
   useEffect(() => {
     if (!scrollLoad || !hasMore || legacyFriends) return;
+    if (needsFullList) return;
     const node = sentinelRef.current;
     if (!node || typeof IntersectionObserver === "undefined") return;
 
@@ -153,20 +188,56 @@ export function JourneyFriendsView({
     );
     observer.observe(node);
     return () => observer.disconnect();
-  }, [scrollLoad, hasMore, loadMore, items.length, legacyFriends]);
+  }, [scrollLoad, hasMore, loadMore, items.length, legacyFriends, needsFullList]);
+
+  useEffect(() => {
+    if (!needsFullList || !scrollLoad || legacyFriends) return;
+    if (!hasMore || loadingMore || loadError) return;
+    void loadMore();
+  }, [
+    needsFullList,
+    scrollLoad,
+    legacyFriends,
+    hasMore,
+    loadingMore,
+    loadError,
+    loadMore,
+    items.length,
+  ]);
+
+  const filteredItems = useMemo(() => {
+    let list = items.filter((friend) => matchesNameQuery(friend, normalizedQuery));
+
+    if (canFilterMutual && mutualFilter === "has") {
+      list = list.filter((friend) => (friend.mutualFriendCount ?? 0) > 0);
+    }
+
+    if (canFilterMutual && mutualFilter === "sort") {
+      list = [...list].sort(
+        (a, b) => (b.mutualFriendCount ?? 0) - (a.mutualFriendCount ?? 0),
+      );
+    }
+
+    return list;
+  }, [items, normalizedQuery, canFilterMutual, mutualFilter]);
 
   const count = legacyFriends
     ? legacyFriends.length
     : Math.max(totalCount ?? 0, items.length);
+  const filterActive = needsFullList;
   const showEmpty =
     !loadingInvites && invites.length === 0 && items.length === 0;
+  const showFilterEmpty =
+    !showEmpty && items.length > 0 && filteredItems.length === 0 && !loadingMore;
 
   return (
     <section className="j-main-panel" aria-label="Bạn bè">
       <div className="j-main-panel-head">
         <span>Bạn bè</span>
         <strong className="j-friends-head-count">
-          {count} người
+          {filterActive
+            ? `${filteredItems.length}/${count} người`
+            : `${count} người`}
           {isOwner && inviteCount > 0 ? (
             <em className="j-friends-invite-pill">{inviteCount} lời mời</em>
           ) : null}
@@ -179,6 +250,61 @@ export function JourneyFriendsView({
         </div>
       ) : (
         <>
+          <div className="j-friends-toolbar">
+            <label className="j-friends-search">
+              <Search size={16} strokeWidth={2.2} aria-hidden />
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Tìm theo tên…"
+                aria-label="Tìm bạn bè theo tên"
+                autoComplete="off"
+              />
+            </label>
+            {canFilterMutual ? (
+              <div
+                className="j-friends-mutual-filter"
+                role="group"
+                aria-label="Lọc theo bạn chung"
+              >
+                <button
+                  type="button"
+                  className={
+                    "j-friends-mutual-btn" +
+                    (mutualFilter === "all" ? " is-active" : "")
+                  }
+                  aria-pressed={mutualFilter === "all"}
+                  onClick={() => setMutualFilter("all")}
+                >
+                  Tất cả
+                </button>
+                <button
+                  type="button"
+                  className={
+                    "j-friends-mutual-btn" +
+                    (mutualFilter === "has" ? " is-active" : "")
+                  }
+                  aria-pressed={mutualFilter === "has"}
+                  onClick={() => setMutualFilter("has")}
+                >
+                  Có bạn chung
+                </button>
+                <button
+                  type="button"
+                  className={
+                    "j-friends-mutual-btn" +
+                    (mutualFilter === "sort" ? " is-active" : "")
+                  }
+                  aria-pressed={mutualFilter === "sort"}
+                  onClick={() => setMutualFilter("sort")}
+                >
+                  Nhiều bạn chung
+                </button>
+              </div>
+            ) : null}
+          </div>
+
           {isOwner && (loadingInvites || invites.length > 0) ? (
             <div className="j-friends-invites" aria-label="Lời mời kết bạn">
               {loadingInvites && invites.length === 0 ? (
@@ -197,9 +323,16 @@ export function JourneyFriendsView({
               ))}
             </div>
           ) : null}
-          {items.length > 0 ? (
+
+          {showFilterEmpty ? (
+            <div className="j-main-empty j-friends-filter-empty">
+              {needsFullList && hasMore
+                ? "Đang tải thêm để lọc…"
+                : "Không tìm thấy bạn bè phù hợp."}
+            </div>
+          ) : filteredItems.length > 0 ? (
             <div className="j-friends-grid">
-              {items.map((friend) => (
+              {filteredItems.map((friend) => (
                 <JourneyFriendCard
                   key={friend.idNguoiDung}
                   friend={friend}
@@ -212,7 +345,7 @@ export function JourneyFriendsView({
         </>
       )}
 
-      {scrollLoad && hasMore && !legacyFriends ? (
+      {scrollLoad && hasMore && !legacyFriends && !needsFullList ? (
         <div ref={sentinelRef} className="j-timeline-scroll-sentinel" aria-hidden />
       ) : null}
 

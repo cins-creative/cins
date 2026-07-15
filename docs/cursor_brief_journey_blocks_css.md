@@ -23,7 +23,7 @@
 | Overlay composer | `.j-compose-overlay` → `.j-compose-sheet` | UI only |
 | Page | `.cins-editor-page` (+ `.is-overlay` / `.is-minimal-compose`) | |
 | Canvas | `main.editor-canvas` (xem: thêm `.cins-post-view`) | max-width 880px |
-| Cover / thumbnail | `.cover-add.has` → `.cover-img-wrap > img` | `cover_id` — thumb Gallery; bài video có thể hiện trong thân khi embed config `showCoverInPost: true` |
+| Cover / thumbnail | `.cover-add.has` → `.cover-img-wrap > img` | `cover_id` — thumb Gallery; bật `showCoverInPost` trên blocks để hiện trong thân bài (mọi loại; ưu tiên embed Bunny) |
 | Tiêu đề | `.title-in` — 38px / weight 800 / lh 1.28 | `tieu_de` |
 | Mô tả ngắn | `.sub-in` — 18px | `mo_ta` (Markdown subset) |
 | Thân bài | `.blocks` → `.block[data-block-type]` → `.block-inner` → class theo `loai` | `noi_dung_blocks` |

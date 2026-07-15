@@ -28,6 +28,7 @@ import {
   type CoAuthorInviteAcceptedDetail,
   type CoAuthorInviteDeclinedDetail,
 } from "@/lib/journey/coauthor-invite-events";
+import { fetchUserPreview } from "@/lib/journey/user-preview-cache";
 import {
   dispatchMilestoneCreditsUpdated,
 } from "@/lib/journey/coauthor-credits-events";
@@ -1506,10 +1507,8 @@ function FollowRequestModal({
   onRespond: (request: PendingFollowRequest, action: "accept" | "decline") => void;
 }) {
   const [mounted, setMounted] = useState(false);
-  const [previewLoading, setPreviewLoading] = useState(true);
   const [preview, setPreview] = useState<{
     coverUrl: string | null;
-    aiSummaryJourney: string | null;
     stats: { cotMoc: number; tacPham: number; banBe: number };
   } | null>(null);
 
@@ -1532,24 +1531,17 @@ function FollowRequestModal({
 
   useEffect(() => {
     let cancelled = false;
-    setPreviewLoading(true);
-    void fetch(`/api/users/preview?slug=${encodeURIComponent(selected.slug)}`)
-      .then((res) => (res.ok ? res.json() : null))
-      .then((json) => {
-        if (cancelled || !json?.profile) return;
-        setPreview({
-          coverUrl: json.profile.coverUrl ?? null,
-          aiSummaryJourney: json.profile.aiSummaryJourney ?? null,
-          stats: json.profile.stats ?? {
-            cotMoc: selected.stats.cotMoc,
-            tacPham: selected.stats.tacPham,
-            banBe: selected.stats.banBe,
-          },
-        });
-      })
-      .finally(() => {
-        if (!cancelled) setPreviewLoading(false);
+    void fetchUserPreview(selected.slug).then((profile) => {
+      if (cancelled || !profile) return;
+      setPreview({
+        coverUrl: profile.coverUrl ?? null,
+        stats: profile.stats ?? {
+          cotMoc: selected.stats.cotMoc,
+          tacPham: selected.stats.tacPham,
+          banBe: selected.stats.banBe,
+        },
       });
+    });
     return () => {
       cancelled = true;
     };
@@ -1583,7 +1575,7 @@ function FollowRequestModal({
           aria-label="Đóng"
           onClick={onClose}
         >
-          <X size={14} aria-hidden />
+          <X size={12} strokeWidth={3} absoluteStrokeWidth aria-hidden />
         </button>
         <article className="j-friend-card j-user-pop-card j-frq-card">
           <div
@@ -1607,21 +1599,13 @@ function FollowRequestModal({
             <h3>{selected.tenHienThi}</h3>
             <p className="j-friend-slug">@{selected.slug}</p>
             {selected.bio ? <p className="j-friend-bio">{selected.bio}</p> : null}
-            {preview?.aiSummaryJourney ? (
-              <p className="j-user-pop-ai">
-                <strong>AI tóm tắt</strong>
-                {preview.aiSummaryJourney}
-              </p>
-            ) : previewLoading ? (
-              <p className="j-user-pop-ai is-loading">Đang tải AI tóm tắt...</p>
-            ) : null}
             <div className="j-friend-stats" aria-label="Thống kê hồ sơ">
               <span>
-                <strong>{stats.cotMoc}</strong>
-                Journey
+                <strong>{stats.tacPham}</strong>
+                Nổi bật
               </span>
               <span>
-                <strong>{stats.tacPham}</strong>
+                <strong>{stats.cotMoc}</strong>
                 Gallery
               </span>
               <span>

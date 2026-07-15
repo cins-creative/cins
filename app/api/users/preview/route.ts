@@ -15,7 +15,6 @@ type ProfileRow = {
   avatar_id: string | null;
   cover_id: string | null;
   bio: string | null;
-  ai_summary_journey: string | null;
   giai_doan: Parameters<typeof getGiaiDoanLabel>[0] | null;
   tinh_thanh: string | null;
   da_xac_minh: boolean | null;
@@ -32,7 +31,7 @@ export async function GET(req: Request) {
   const { data: profile, error } = await admin
     .from("user_nguoi_dung")
     .select(
-      "id, slug, ten_hien_thi, avatar_id, cover_id, bio, ai_summary_journey, giai_doan, tinh_thanh, da_xac_minh",
+      "id, slug, ten_hien_thi, avatar_id, cover_id, bio, giai_doan, tinh_thanh, da_xac_minh",
     )
     .eq("slug", slug)
     .maybeSingle<ProfileRow>();
@@ -41,7 +40,8 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Không tìm thấy user." }, { status: 404 });
   }
 
-  const [{ count: cotMoc }, { count: tacPham }, { data: followsFrom }, { data: followsTo }] =
+  /* Ban be = ket_ban accepted (head count) — tránh kéo toàn bộ follow edge. */
+  const [{ count: cotMoc }, { count: tacPham }, { count: banBe }] =
     await Promise.all([
       admin
         .from("content_cot_moc")
@@ -52,21 +52,13 @@ export async function GET(req: Request) {
         .select("id", { count: "exact", head: true })
         .eq("id_nguoi_dung", profile.id),
       admin
-        .from("user_theo_doi")
-        .select("id_doi_tuong")
-        .eq("id_nguoi_theo_doi", profile.id)
-        .eq("loai_doi_tuong", "nguoi_dung"),
-      admin
-        .from("user_theo_doi")
-        .select("id_nguoi_theo_doi")
-        .eq("id_doi_tuong", profile.id)
-        .eq("loai_doi_tuong", "nguoi_dung"),
+        .from("user_ket_ban")
+        .select("id", { count: "exact", head: true })
+        .eq("trang_thai", "accepted")
+        .or(
+          `id_nguoi_gui.eq.${profile.id},id_nguoi_nhan.eq.${profile.id}`,
+        ),
     ]);
-
-  const following = new Set((followsFrom ?? []).map((row) => row.id_doi_tuong as string));
-  const friends = (followsTo ?? []).filter((row) =>
-    following.has(row.id_nguoi_theo_doi as string),
-  ).length;
 
   return NextResponse.json({
     profile: {
@@ -76,14 +68,13 @@ export async function GET(req: Request) {
       avatarUrl: getAvatarUrl(profile.avatar_id),
       coverUrl: getProfileCoverUrl(profile.cover_id),
       bio: profile.bio,
-      aiSummaryJourney: profile.ai_summary_journey,
       giaiDoan: getGiaiDoanLabel(profile.giai_doan),
       tinhThanh: formatTinhThanh(profile.tinh_thanh),
       daXacMinh: profile.da_xac_minh ?? false,
       stats: {
         cotMoc: cotMoc ?? 0,
         tacPham: tacPham ?? 0,
-        banBe: friends,
+        banBe: banBe ?? 0,
       },
     },
   });

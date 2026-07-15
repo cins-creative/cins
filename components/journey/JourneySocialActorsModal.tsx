@@ -1,6 +1,6 @@
 "use client";
 
-import { Bookmark, Heart, MessageCircle, Users, X } from "lucide-react";
+import { Bookmark, Heart, MessageCircle, ThumbsDown, Users, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -45,6 +45,9 @@ function modalTitle(kind: SocialInteractionKind, mediaLabel?: "anh" | "bai"): st
   if (kind === "like") {
     return mediaLabel === "anh" ? "Người thích ảnh" : "Người thích";
   }
+  if (kind === "dislike") {
+    return mediaLabel === "anh" ? "Người không thích ảnh" : "Người không thích";
+  }
   if (kind === "comment") return "Người bình luận";
   return "Người đã lưu";
 }
@@ -60,6 +63,16 @@ function modalHeadIcon(kind: SocialInteractionKind) {
       />
     );
   }
+  if (kind === "dislike") {
+    return (
+      <ThumbsDown
+        size={18}
+        strokeWidth={1.8}
+        fill="currentColor"
+        aria-hidden
+      />
+    );
+  }
   if (kind === "comment") {
     return <MessageCircle size={18} strokeWidth={1.9} aria-hidden />;
   }
@@ -68,6 +81,7 @@ function modalHeadIcon(kind: SocialInteractionKind) {
 
 function headIconClass(kind: SocialInteractionKind): string {
   if (kind === "like") return "jsa-head-ico is-liked";
+  if (kind === "dislike") return "jsa-head-ico is-disliked";
   if (kind === "comment") return "jsa-head-ico is-comment";
   return "jsa-head-ico is-bookmark";
 }

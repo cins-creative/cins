@@ -57,6 +57,13 @@
   object-fit: cover;
 }
 
+/* Org timeline — đồng bộ avatar chip trên bài đăng (TruongOrgAvatar sm) */
+.wj-composer .tdh-org-avatar.org-chip-avatar {
+  flex-shrink: 0;
+  border: 1px solid var(--border2, #e4e6eb);
+  box-sizing: border-box;
+}
+
 .wj-composer .wj-ph {
   flex: 1;
   min-width: 0;

@@ -380,8 +380,10 @@ export type MilestoneItem = {
   comments?: number | null;
   social?: {
     viewerLiked: boolean;
+    viewerDisliked?: boolean;
     viewerBookmarked: boolean;
     likeCount: number;
+    dislikeCount?: number;
     bookmarkCount: number;
     showCounts: boolean;
   };

@@ -1,11 +1,10 @@
 "use client";
 
 import { ChevronDown } from "lucide-react";
-import Link from "next/link";
 import { useId, useState } from "react";
 
 import { CongDongCategoryRowLink } from "@/components/cong-dong/CongDongCategoryRowLink";
-import { linhVucHubHref } from "@/lib/cins/worldJourneyGuestAside";
+import { CongDongLinhVucRowLink } from "@/components/cong-dong/CongDongLinhVucRowLink";
 import type { CongDongCategory, CongDongLinhVuc } from "@/lib/cong-dong/types";
 
 type Props = {
@@ -65,25 +64,7 @@ export function CongDongTopicsAside({ linhVucs, categories }: Props) {
               <ul className="cd-v4-categories">
                 {linhVucs.map((item) => (
                   <li key={item.id}>
-                    <Link
-                      href={linhVucHubHref(item.slug)}
-                      className="cd-v4-category-row"
-                      prefetch={false}
-                    >
-                      <span
-                        className="cd-v4-category-row-dot"
-                        style={
-                          item.mauAccent
-                            ? { background: item.mauAccent }
-                            : undefined
-                        }
-                        aria-hidden
-                      />
-                      <span className="cd-v4-category-row-title">
-                        {item.ten}
-                      </span>
-                      <span className="cd-v4-category-row-meta">Lĩnh vực</span>
-                    </Link>
+                    <CongDongLinhVucRowLink item={item} />
                   </li>
                 ))}
               </ul>

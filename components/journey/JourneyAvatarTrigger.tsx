@@ -10,7 +10,7 @@ import { AVATAR_DISPLAY_PX } from "@/lib/cloudflare/cf-image-variants";
    ║ JourneyAvatarTrigger                                             ║
    ║                                                                  ║
    ║ Bọc khối `.j-avatar` thành nút bấm để mở editor (chỉ render khi   ║
-   ║ `isOwner`). Visitor view → chỉ là `div` tĩnh, không hover.       ║
+   ║ `isOwner`). Visitor → `JourneyVisitorAvatar` (click xem phóng to). ║
    ║                                                                  ║
    ║ Sidebar (server component) truyền `avatarUrl` đã resolve và      ║
    ║ `initials` để fallback. Sau khi save, server action revalidate   ║

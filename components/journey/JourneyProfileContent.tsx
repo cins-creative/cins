@@ -16,7 +16,6 @@ import {
 } from "@/components/journey/journey-profile-lazy-views";
 import { JourneyFilterShareProvider } from "@/components/journey/JourneyFilterShareContext";
 import { JourneyTimeline } from "@/components/journey/JourneyTimeline";
-import { JourneyPersonalFilterProvider } from "@/components/journey/JourneyPersonalFilterContext";
 import { useJourneyView } from "@/components/journey/JourneyViewContext";
 import type { MilestoneItem } from "@/components/journey/milestone-types";
 import type { LoaiMocVisibilityMap } from "@/lib/journey/filter-visibility";
@@ -578,8 +577,10 @@ export function JourneyProfileContent({
             ...m,
             social: {
               viewerLiked: m.social?.viewerLiked ?? false,
+              viewerDisliked: m.social?.viewerDisliked ?? false,
               viewerBookmarked: detail.bookmarked!,
               likeCount: m.social?.likeCount ?? 0,
+              dislikeCount: m.social?.dislikeCount ?? 0,
               bookmarkCount:
                 typeof detail.bookmarkCount === "number"
                   ? detail.bookmarkCount
@@ -684,11 +685,10 @@ export function JourneyProfileContent({
   };
 
   return (
-    <JourneyPersonalFilterProvider ownerId={ownerId} isOwner={isOwner}>
-      <JourneyFilterShareProvider
-        profile={filterShareProfile}
-        viewerProfileId={viewerProfileId}
-      >
+    <JourneyFilterShareProvider
+      profile={filterShareProfile}
+      viewerProfileId={viewerProfileId}
+    >
       {view === "gallery" ? (
         galleryCache === "loading" || galleryCache === null ? (
           <JourneyGalleryMainSectionSkeleton />
@@ -768,7 +768,6 @@ export function JourneyProfileContent({
           }}
         />
       )}
-      </JourneyFilterShareProvider>
-    </JourneyPersonalFilterProvider>
+    </JourneyFilterShareProvider>
   );
 }

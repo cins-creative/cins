@@ -338,6 +338,69 @@ export async function countMutualFriends(a: string, b: string): Promise<number> 
   return ids.length;
 }
 
+/**
+ * Đếm bạn chung viewer ↔ từng target trong 1 lần lấy `listFriends(viewer)`
+ * + 1 query cạnh accepted của cả batch (tránh N+1).
+ */
+export async function countMutualFriendsBatch(
+  viewerId: string,
+  targetIds: readonly string[],
+): Promise<Map<string, number>> {
+  const result = new Map<string, number>();
+  const unique = [
+    ...new Set(targetIds.filter((id) => Boolean(id) && id !== viewerId)),
+  ];
+  for (const id of unique) result.set(id, 0);
+  if (!viewerId || unique.length === 0) return result;
+
+  const viewerFriendSet = new Set(await listFriends(viewerId));
+  const admin = createServiceRoleClient();
+  const { data } = await admin
+    .from("user_ket_ban")
+    .select("id_nguoi_gui, id_nguoi_nhan")
+    .eq("trang_thai", "accepted")
+    .or(
+      `id_nguoi_gui.in.(${unique.join(",")}),id_nguoi_nhan.in.(${unique.join(",")})`,
+    )
+    .returns<Array<{ id_nguoi_gui: string; id_nguoi_nhan: string }>>();
+
+  const friendsByTarget = new Map<string, Set<string>>();
+  for (const id of unique) friendsByTarget.set(id, new Set());
+
+  for (const row of data ?? []) {
+    const a = row.id_nguoi_gui;
+    const b = row.id_nguoi_nhan;
+    friendsByTarget.get(a)?.add(b);
+    friendsByTarget.get(b)?.add(a);
+  }
+
+  for (const [targetId, friends] of friendsByTarget) {
+    let count = 0;
+    for (const friendId of friends) {
+      if (friendId !== viewerId && viewerFriendSet.has(friendId)) count += 1;
+    }
+    result.set(targetId, count);
+  }
+  return result;
+}
+
+export async function attachMutualFriendCounts<
+  T extends { idNguoiDung: string; mutualFriendCount?: number },
+>(viewerId: string | null | undefined, profiles: T[]): Promise<T[]> {
+  if (!viewerId || profiles.length === 0) return profiles;
+  const counts = await countMutualFriendsBatch(
+    viewerId,
+    profiles.map((p) => p.idNguoiDung),
+  );
+  return profiles.map((p) => ({
+    ...p,
+    mutualFriendCount:
+      p.idNguoiDung === viewerId
+        ? 0
+        : (counts.get(p.idNguoiDung) ?? 0),
+  }));
+}
+
 export async function countFriends(userId: string): Promise<number> {
   const ids = await listFriends(userId);
   return ids.length;

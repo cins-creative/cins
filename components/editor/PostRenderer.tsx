@@ -8,8 +8,8 @@
    ║ change`, picker, ...) — phần còn lại style bằng cùng `editor.   ║
    ║ css`. Override read-only spacing trong `post-view.css`.         ║
    ║                                                                  ║
-   ║ Pure render — không state, không event. Có thể chạy server hoặc  ║
-   ║ client. Nhận `blocks` đã sort theo `thu_tu`.                     ║
+   ║ Gần như pure render. Block `imgs` giao client `PostReadOnlyImgs` ║
+   ║ (lightbox). Nhận `blocks` đã sort theo `thu_tu`.                  ║
    ╚══════════════════════════════════════════════════════════════════╝ */
 
 import {
@@ -29,17 +29,13 @@ import type { Block } from "@/lib/editor/types";
 import { resolveBunnyEmbed } from "@/lib/journey/video-embed";
 import { videoCanvasRatioClass } from "@/lib/journey/video-canvas-ratio";
 import {
-  flattenMosaicCells,
-  normalizeLegacyLayout,
-  type ImgLayout,
-} from "@/lib/editor/image-layout";
-import {
   buildEmbedIframeSrc,
   classifyEmbedUrl,
   embedIframeAllowAttr,
   embedIframeTitle,
 } from "@/lib/editor/embed-providers";
 import { MoTaMarkdown } from "@/components/editor/compose/MoTaMarkdown";
+import { PostReadOnlyImgs } from "@/components/editor/PostReadOnlyImgs";
 
 import { getYoutubeId } from "@/lib/youtube";
 
@@ -351,34 +347,7 @@ function ReadOnlyBlock({
     );
   }
   if (block.loai === "imgs") {
-    const layout: ImgLayout = normalizeLegacyLayout(cfg.layout);
-    const rounded = !!cfg.rounded;
-    const cap = typeof cfg.cap === "string" ? cfg.cap : "";
-
-    const rawImgs = Array.isArray(cfg.imgs)
-      ? (cfg.imgs as unknown[])
-          .map((s) => (typeof s === "string" ? s : ""))
-          .filter(Boolean)
-      : [];
-    // Bài cũ dùng mosaic chỉ có `cells` → gom seed ảnh ra thành album.
-    const imgs = (rawImgs.length > 0
-      ? rawImgs
-      : flattenMosaicCells(cfg.cells)
-    ).filter((s) => !/^m-|^extra-/.test(s));
-    if (imgs.length === 0) return null;
-
-    return (
-      <div className="b-imgs b-imgs-ro">
-        <div className={`imgwrap ${layout}${rounded ? " rounded" : ""}`}>
-          {imgs.map((seed, i) => (
-            <div key={`${seed}-${i}`} className="ph">
-              <img src={ph(seed, 900, 900)} alt="" loading="lazy" onError={handleBlockImageError} />
-            </div>
-          ))}
-        </div>
-        {cap ? <div className="img-cap img-cap-ro">{cap}</div> : null}
-      </div>
-    );
+    return <PostReadOnlyImgs block={block} />;
   }
 
   return null;

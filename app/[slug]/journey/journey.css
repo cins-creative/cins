@@ -198,6 +198,24 @@ button.j-profile-cover.j-profile-cover-editable:focus-visible .j-profile-cover-e
 .j-profile-cover-edit-label {
   display: inline-block;
 }
+/* Visitor — click xem ảnh bìa phóng to */
+button.j-profile-cover.j-profile-cover-viewable {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: none;
+  appearance: none;
+  font: inherit;
+  outline: none;
+  cursor: zoom-in;
+  transition: box-shadow 0.18s ease;
+}
+button.j-profile-cover.j-profile-cover-viewable:hover,
+button.j-profile-cover.j-profile-cover-viewable:focus-visible {
+  box-shadow:
+    var(--shadow-xs),
+    0 0 0 3px rgba(37, 99, 235, 0.18);
+}
 
 .j-avatar {
   position: relative;
@@ -257,6 +275,41 @@ button.j-avatar.j-avatar-editable:focus-visible {
 button.j-avatar.j-avatar-editable:hover .j-avatar-edit-ico,
 button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   opacity: 1;
+}
+/* Visitor — click xem avatar phóng to */
+button.j-avatar.j-avatar-viewable {
+  padding: 0;
+  cursor: zoom-in;
+  appearance: none;
+  font: inherit;
+  outline: none;
+  transition: box-shadow 0.18s ease, transform 0.18s ease;
+}
+button.j-avatar.j-avatar-viewable:hover,
+button.j-avatar.j-avatar-viewable:focus-visible {
+  box-shadow:
+    var(--shadow-sm),
+    0 0 0 3px rgba(37, 99, 235, 0.18);
+  transform: translateY(-1px);
+}
+
+/* Lightbox avatar — vòng tròn, dễ xem mặt */
+.j-profile-media-lightbox-figure--avatar {
+  width: min(72vw, 360px);
+  height: min(72vw, 360px);
+  max-width: min(90vw, 360px);
+  max-height: min(72vh, 360px);
+  border-radius: 50%;
+  overflow: hidden;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+}
+.j-profile-media-lightbox-figure--avatar img {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  object-fit: cover;
+  border-radius: 50%;
 }
 
 .j-profile-name {
@@ -652,9 +705,17 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   text-align: center;
   transition: background 0.18s var(--j-ease);
 }
-.j-profile-switch-btn:hover,
+.j-profile-switch-btn:hover {
+  background: var(--cins-blue-soft);
+  color: var(--cins-blue);
+}
 .j-profile-switch-btn.is-active {
   background: var(--bg-surface);
+  color: var(--ink-body);
+}
+.j-profile-switch-btn.is-active:hover {
+  background: var(--cins-blue-soft);
+  color: var(--cins-blue);
 }
 .j-profile-switch-ico {
   width: 22px;
@@ -1517,20 +1578,15 @@ a.j-main-gallery-item:focus-visible {
   left: 12px;
   z-index: 2;
 }
-.j-main-gallery-thumb img,
-.j-main-gallery-item img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-/* Ảnh/placeholder phải ra khỏi luồng để chiều cao thumb chỉ do aspect-ratio
-   quyết định — ảnh dọc/nhỏ không còn đẩy giãn hay co hẹp card. */
-.j-main-gallery-thumb img,
+.j-main-gallery-thumb > img,
 .j-main-gallery-thumb .j-gallery-video-ph,
 .j-main-gallery-thumb .j-gallery-video-frame {
   position: absolute;
   inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 .j-gallery-video-frame {
   width: 100%;
@@ -2282,7 +2338,7 @@ a.j-main-gallery-item:focus-visible {
   padding: 4px 10px 4px 6px;
   border-radius: 999px;
   background: rgba(248, 250, 252, 0.95);
-  border: 1px solid rgba(148, 163, 184, 0.2);
+  border: none;
 }
 .j-friend-mutual-faces {
   display: inline-flex;
@@ -2384,25 +2440,42 @@ a.j-main-gallery-item:focus-visible {
   justify-content: center;
   gap: 8px;
 }
-.j-friend-actions-row--icons .j-friend-message,
-.j-friend-actions-row--icons .j-friend-card-follow {
+.j-friend-actions-row--icons > .j-friend-message,
+.j-friend-actions-row--icons > .j-friend-card-follow,
+.j-friend-actions-row--icons > .j-friend-link {
   flex: 0 0 auto;
+  width: auto;
   min-width: 0;
 }
-.j-friend-actions-row--icons .j-friend-message.is-icon {
-  width: 38px;
-  min-width: 38px;
-  height: 38px;
-  min-height: 38px;
+.j-friend-actions-row--icons .j-friend-message.is-icon,
+.j-friend-actions-row--icons .j-friend-link.is-icon {
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  min-height: 32px;
   padding: 0;
-  flex: 0 0 38px;
+  flex: 0 0 32px;
+  border: none;
+  background: var(--cins-blue-soft, #eff6ff);
+  color: var(--cins-blue, #2563eb);
+  text-decoration: none;
+}
+.j-friend-actions-row--icons .j-friend-message.is-icon:hover:not(:disabled),
+.j-friend-actions-row--icons .j-friend-link.is-icon:hover {
+  background: color-mix(
+    in srgb,
+    var(--cins-blue, #2563eb) 18%,
+    var(--cins-blue-soft, #eff6ff)
+  );
+  color: var(--cins-blue, #2563eb);
 }
 .j-friend-actions-row--icons .j-friend-card-follow .j-friend-btn {
-  width: 38px;
-  min-width: 38px;
-  height: 38px;
-  min-height: 38px;
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  min-height: 32px;
   padding: 0;
+  border: none;
 }
 .j-friend-actions-row--icons .j-friend-card-follow .j-follow-wrap {
   width: auto;
@@ -2426,9 +2499,9 @@ a.j-main-gallery-item:focus-visible {
   min-width: 0;
 }
 .j-friend-card-follow .j-friend-btn.is-compact {
-  width: 38px;
-  min-width: 38px;
-  height: 38px;
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
   padding: 0;
 }
 .j-friend-action-error {
@@ -2595,6 +2668,87 @@ a.j-main-gallery-item:focus-visible {
   flex-wrap: wrap;
 }
 
+.j-friends-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 14px;
+}
+
+.j-friends-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1 1 220px;
+  min-width: min(220px, 100%);
+  padding: 9px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-surface);
+  color: var(--ink-muted);
+}
+
+.j-friends-search:focus-within {
+  border-color: color-mix(in srgb, var(--cins-blue) 55%, var(--border));
+  box-shadow: 0 0 0 3px var(--cins-blue-soft);
+}
+
+.j-friends-search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-body);
+  outline: none;
+}
+
+.j-friends-search input::placeholder {
+  color: var(--ink-muted);
+  font-weight: 500;
+}
+
+.j-friends-mutual-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.j-friends-mutual-btn {
+  min-height: 36px;
+  padding: 6px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-surface);
+  color: var(--ink-title);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.j-friends-mutual-btn:hover {
+  border-color: color-mix(in srgb, var(--cins-blue) 40%, var(--border));
+  color: var(--cins-blue);
+}
+
+.j-friends-mutual-btn.is-active {
+  background: var(--cins-blue-soft);
+  border-color: color-mix(in srgb, var(--cins-blue) 45%, var(--border));
+  color: var(--cins-blue-dark, #1656a0);
+}
+
+.j-friends-filter-empty {
+  margin-bottom: 12px;
+}
+
 .j-friends-invite-pill {
   font-style: normal;
   font-size: 11px;
@@ -2650,6 +2804,24 @@ a.j-main-gallery-item:focus-visible {
   background: color-mix(in srgb, var(--cins-orange, #f97316) 20%, transparent);
   border-color: color-mix(in srgb, var(--cins-orange, #f97316) 45%, transparent);
   color: #fdba74;
+}
+:root[data-theme="dark"] .j-friends-search {
+  background: var(--bg-surface);
+  border-color: var(--border);
+}
+:root[data-theme="dark"] .j-friends-search:focus-within {
+  border-color: color-mix(in srgb, var(--cins-blue) 50%, var(--border));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cins-blue) 22%, transparent);
+}
+:root[data-theme="dark"] .j-friends-mutual-btn {
+  background: var(--bg-surface);
+  border-color: var(--border);
+  color: var(--ink-title);
+}
+:root[data-theme="dark"] .j-friends-mutual-btn.is-active {
+  background: color-mix(in srgb, var(--cins-blue) 22%, transparent);
+  border-color: color-mix(in srgb, var(--cins-blue) 45%, var(--border));
+  color: #7db4ee;
 }
 
 @media (max-width: 991.98px) {
@@ -2800,102 +2972,6 @@ a.j-main-gallery-item:focus-visible {
   flex-shrink: 0;
 }
 
-.j-mutual-friends {
-  margin: 8px 0 4px;
-  position: relative;
-}
-
-.j-mutual-friends-trigger {
-  border: none;
-  background: none;
-  padding: 0;
-  font-size: 13px;
-  color: var(--cins-blue, #2563eb);
-  cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-
-.j-mutual-friends--chip {
-  margin: 0 0 4px;
-}
-
-.j-mutual-friends-chip {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  width: 100%;
-  border: none;
-  background: none;
-  padding: 0;
-  font-size: 11px;
-  font-weight: var(--weight-semibold, 600);
-  color: var(--cins-blue, #2563eb);
-  cursor: pointer;
-  line-height: 1.2;
-}
-
-.j-mutual-friends-chip:hover {
-  color: var(--cins-blue-dark, #1a5fa8);
-}
-
-.j-mutual-friends--chip .j-mutual-friends-list {
-  left: 0;
-  right: 0;
-  width: max-content;
-  max-width: min(240px, 80vw);
-}
-
-.j-mutual-friends-list {
-  list-style: none;
-  margin: 8px 0 0;
-  padding: 8px;
-  border: 1px solid var(--j-border, rgba(15, 23, 42, 0.1));
-  border-radius: 10px;
-  background: #fff;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
-  max-height: 220px;
-  overflow: auto;
-  position: absolute;
-  top: 100%;
-  z-index: 30;
-}
-
-.j-mutual-friends-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 4px;
-  border-radius: 8px;
-  color: inherit;
-  text-decoration: none;
-  font-size: 13px;
-}
-
-.j-mutual-friends-item:hover {
-  background: rgba(37, 99, 235, 0.06);
-}
-
-.j-mutual-friends-item img,
-.j-mutual-friends-initial {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  object-fit: cover;
-  flex-shrink: 0;
-}
-
-.j-mutual-friends-initial {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--cins-blue-soft);
-  color: var(--cins-blue);
-  font-weight: 700;
-  font-size: 12px;
-}
-
 .j-follow-blocked {
   font-size: 12px;
   color: var(--j-muted, #64748b);
@@ -2961,6 +3037,107 @@ a.j-main-gallery-item:focus-visible {
   position: relative;
   pointer-events: auto;
 }
+/* Cụm filter timeline — đồng bộ World Journey `.wj-filter-bar` (icon 32px) */
+.j-timeline > .j-tlb > .j-tlb-filters {
+  grid-column: 3;
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.j-timeline > .j-tlb .j-tlb-filters .j-tlb-dd-btn.is-icon {
+  width: 32px;
+  height: 32px;
+  min-width: 0;
+  padding: 0;
+  gap: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--ink-display);
+}
+.j-timeline > .j-tlb .j-tlb-filters .j-tlb-dd-btn.is-icon:hover:not(:disabled) {
+  color: var(--cins-blue);
+  background: transparent;
+}
+.j-timeline > .j-tlb .j-tlb-filters .j-tlb-dd-btn.is-icon .j-tlb-dd-caret {
+  display: none;
+}
+.j-timeline > .j-tlb .j-tlb-filters .j-tlb-dd-btn.is-icon .j-tlb-dd-ico svg {
+  width: 15px;
+  height: 15px;
+}
+.j-gallery-media-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  color: var(--ink-display);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+.j-gallery-media-icon-btn:hover {
+  color: var(--cins-blue);
+}
+.j-gallery-media-icon-btn svg {
+  width: 15px;
+  height: 15px;
+}
+.j-gallery-media-dd-menu--icon .j-gallery-dd-opt {
+  grid-template-columns: auto 1fr auto;
+  gap: 8px;
+}
+.j-gallery-media-dd-menu--icon .j-gallery-media-check {
+  margin-left: auto;
+  opacity: 0;
+  color: var(--cins-blue);
+  flex-shrink: 0;
+}
+.j-gallery-media-dd-menu--icon .j-dd-opt.is-active .j-gallery-media-check {
+  opacity: 1;
+}
+/* Toggle timeline · dạng thẻ · masonry — mirror World Journey `.wj-view-toggle` */
+.j-surface-view-toggle {
+  display: inline-flex;
+  background: transparent;
+  border-radius: var(--radius-pill);
+  padding: 0;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.j-svt-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 14px;
+  font-family: inherit;
+  color: var(--ink-title);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition:
+    color 0.18s ease,
+    background 0.18s ease,
+    box-shadow 0.18s ease;
+}
+.j-svt-btn svg {
+  width: 15px;
+  height: 15px;
+}
+.j-svt-btn:hover {
+  color: var(--ink-display);
+}
+.j-svt-btn.active {
+  background: var(--bg-surface);
+  color: var(--cins-blue);
+  box-shadow: var(--shadow-xs);
+}
 .j-tlb-dd-btn {
   display: inline-flex;
   align-items: center;
@@ -2978,6 +3155,17 @@ a.j-main-gallery-item:focus-visible {
   cursor: pointer;
   white-space: nowrap;
   transition: background 0.15s;
+}
+.j-tlb-dd-btn.is-icon {
+  min-width: 0;
+  padding: 0 10px;
+  gap: 2px;
+}
+.j-tlb-dd-ico {
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+  color: var(--ink-display);
 }
 .j-tlb-dd-btn:hover:not(:disabled) {
   background: var(--neutral-50, #f8fafc);
@@ -3008,41 +3196,14 @@ a.j-main-gallery-item:focus-visible {
   transform: rotate(180deg);
 }
 
-/* Toggle timeline ↔ lưới (đồng bộ org bài đăng). */
+/* Toggle timeline · dạng thẻ · masonry — dùng chung `.j-surface-view-toggle` với Journey. */
 .cins-journey-page .j-timeline .org-baidang-tlb-actions {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
+  grid-column: 3;
   justify-self: end;
-}
-.cins-journey-page .j-timeline .org-baidang-view-toggle {
-  display: inline-flex;
-  background: var(--neutral-100, #f1f2f5);
-  border: 1px solid var(--border2, #e4e6eb);
-  border-radius: var(--radius-pill, 999px);
-  padding: 2px;
-  flex-shrink: 0;
-}
-.cins-journey-page .j-timeline .org-baidang-view-toggle .obvt-btn {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 30px;
-  border: 0;
-  border-radius: var(--radius-pill, 999px);
-  background: transparent;
-  color: var(--ink2, #5c6370);
-  cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
-}
-.cins-journey-page .j-timeline .org-baidang-view-toggle .obvt-btn:hover {
-  color: var(--ink-display, #0f172a);
-}
-.cins-journey-page .j-timeline .org-baidang-view-toggle .obvt-btn.active {
-  background: #fff;
-  color: var(--cins-blue, #1f74c9);
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
+  gap: 6px;
+  flex-wrap: wrap;
 }
 
 /* Lưới cột mốc — chế độ xem grid. */
@@ -4443,20 +4604,16 @@ a.j-main-gallery-item:focus-visible {
   padding-top: 16px;
   border-top-color: var(--border2, #e4e6eb);
 }
-/* Bài viết dài — nối liền tiêu đề card với nội dung xổ, không khe/viền. */
-.j-m-card.jcard--article.has-unfold.is-expanded:has(.jcard-body.is-content-open)
-  .j-m-card-unfold[data-open="true"] {
+/* Bài viết — nối liền body với khối xổ (nội dung / bình luận), không khe/viền. */
+.j-m-card.jcard--article.has-unfold.is-expanded .j-m-card-unfold[data-open="true"] {
   margin-top: 0;
   padding-top: 0;
   border-top-color: transparent;
 }
-.j-m-card.jcard--article.has-unfold.is-expanded:has(.jcard-body.is-content-open)
-  .jcard-body.is-content-open {
+.j-m-card.jcard--article.has-unfold.is-expanded .jcard-body {
   padding-bottom: 0;
 }
-.j-m-card.jcard--article.has-unfold.is-expanded:has(.jcard-body.is-content-open)
-  .jcard-body.is-content-open
-  .jcard-text {
+.j-m-card.jcard--article.has-unfold.is-expanded .jcard-body .jcard-text {
   padding-bottom: 0;
 }
 .j-m-card-unfold > .j-m-card-unfold-inner {
@@ -4531,6 +4688,9 @@ a.j-main-gallery-item:focus-visible {
 }
 .j-m-card.is-expanded .jcard-body {
   padding-bottom: 4px;
+}
+.j-m-card.jcard--article.has-unfold.is-expanded .jcard-body {
+  padding-bottom: 0;
 }
 /* Media unfold — full-bleed; khoảng cách nằm trong từng block. */
 .j-m-unfold-post.j-m-unfold-post--media .blocks-readonly {
@@ -4699,6 +4859,18 @@ a.j-main-gallery-item:focus-visible {
 /* Ảnh: không thêm margin — khoảng cách do block spacer trong editor. */
 .j-m-unfold-post .b-imgs-ro {
   margin: 0;
+}
+.j-m-unfold-post .b-imgs-ro .ph.is-lightbox {
+  cursor: zoom-in;
+  appearance: none;
+  -webkit-appearance: none;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  text-align: inherit;
 }
 .j-m-unfold-post:not(.j-m-unfold-post--media) .block[data-block-type="imgs"] {
   margin-inline: -16px;
@@ -7220,6 +7392,39 @@ button.j-m-card-hit {
   gap: 8px;
   margin-bottom: 14px;
 }
+.j-gallery-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  color: var(--ink-muted);
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease,
+    background 0.15s ease;
+}
+.j-gallery-edit-btn:hover:not(:disabled),
+.j-gallery-edit-btn:focus-visible {
+  border-color: var(--border-strong);
+  color: var(--ink-display);
+  outline: none;
+}
+.j-gallery-edit-btn.is-active {
+  border-color: color-mix(in srgb, var(--cins-blue) 55%, var(--border));
+  color: var(--cins-blue);
+  background: color-mix(in srgb, var(--cins-blue) 10%, var(--bg-surface));
+}
+.j-gallery-edit-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
 .j-gallery-dd {
   position: relative;
   flex-shrink: 0;
@@ -7318,11 +7523,7 @@ button.j-m-card-hit {
 .j-g-pinned--reorder.is-pending-save .j-g-banner-drag {
   opacity: 0.7;
 }
-/* Masonry + kéo sắp: hit-zone cuối chiếm full chiều ngang cột */
-.j-g-pinned--masonry.j-g-pinned--reorder > .j-g-banner-insert {
-  break-inside: avoid;
-  column-span: all;
-}
+/* Masonry + reorder: không nở khe drop (tránh reflow 2 cột lúc kéo). */
 .j-g-banner-slot {
   display: block;
 }
@@ -7373,43 +7574,25 @@ button.j-m-card-hit {
   background: var(--neutral-200);
   color: var(--ink-display);
 }
-/* Khe giữa block — không chiếm chỗ khi nghỉ; lúc kéo nở hit-area + vạch xanh */
-.j-g-banner-insert {
-  position: relative;
-  height: 0;
-  margin: 0;
-  border-radius: 3px;
-  background: transparent;
-  z-index: 2;
-}
-.j-g-pinned--reorder.is-dragging-active .j-g-banner-insert {
-  height: 14px;
-  margin: -5px 0;
-}
-.j-g-banner-insert::before {
+/* Vạch gợi ý thả — absolute trên card, layout giữ nguyên đến khi thả */
+.j-g-banner-wrap.is-drop-before::after,
+.j-g-banner-wrap.is-drop-after::after {
   content: "";
   position: absolute;
   left: 6px;
   right: 6px;
-  top: 50%;
   height: 3px;
-  margin-top: -1.5px;
+  z-index: 7;
+  pointer-events: none;
   border-radius: 999px;
   background: var(--cins-blue);
-  opacity: 0;
-  transform: scaleX(0.92);
-  transition:
-    opacity 0.1s ease,
-    transform 0.1s ease;
-  pointer-events: none;
-}
-.j-g-banner-insert.is-active::before {
-  opacity: 1;
-  transform: scaleX(1);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--cins-blue) 24%, transparent);
 }
-.j-g-banner-insert--end {
-  margin-bottom: 0;
+.j-g-banner-wrap.is-drop-before::after {
+  top: -2px;
+}
+.j-g-banner-wrap.is-drop-after::after {
+  bottom: -2px;
 }
 .j-g-pinned-label {
   font-size: 9px;
@@ -7515,14 +7698,17 @@ button.j-g-item:disabled {
   cursor: default;
   opacity: 0.72;
 }
-.j-g-thumb,
-.j-g-thumb img {
+.j-g-thumb {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
 }
-.j-g-thumb img {
+.j-g-thumb > img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
   display: block;
 }
@@ -7581,6 +7767,8 @@ button.j-g-item:disabled {
   overflow: hidden;
 }
 .j-g-embed-platform img {
+  position: static;
+  inset: auto;
   width: 18px;
   height: 18px;
   object-fit: contain;
@@ -7730,7 +7918,8 @@ button.j-g-item:disabled {
   }
 
   .cins-journey-page .j-profile-cover,
-  .cins-journey-page button.j-profile-cover.j-profile-cover-editable {
+  .cins-journey-page button.j-profile-cover.j-profile-cover-editable,
+  .cins-journey-page button.j-profile-cover.j-profile-cover-viewable {
     border-radius: 0;
     box-shadow: none;
     /* Sidebar giãn full-width — giữ tỉ lệ cover như bản desktop
@@ -8784,6 +8973,26 @@ select.j-edit-input {
   display: flex;
   flex-direction: column;
   background: #000;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.28) transparent;
+}
+.j-post-sheet:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+.j-post-sheet:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media::-webkit-scrollbar-track {
+  background: transparent;
+}
+.j-post-sheet:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.28);
+  border-radius: 999px;
+}
+.j-post-sheet:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.45);
 }
 
 /*
@@ -12864,31 +13073,20 @@ select.j-edit-input {
 }
 .jcard-datebar--cong-dong {
   position: relative;
-  padding-left: 18px;
-  background: linear-gradient(
-    90deg,
-    rgba(237, 233, 254, 0.45) 0%,
-    rgba(248, 250, 252, 0) 68%
-  );
-  border-bottom-color: #ede9fe;
-}
-.jcard-datebar--cong-dong::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 12px;
-  bottom: 12px;
-  width: 3px;
-  border-radius: 99px;
-  background: linear-gradient(180deg, var(--cins-violet, #7c3aed), var(--cins-blue, #2563eb));
+  gap: 10px;
+  padding: 11px 14px 12px;
+  background: color-mix(in srgb, var(--cins-blue-soft, #e7f0fb) 48%, #fff);
+  border-bottom: 1px solid
+    color-mix(in srgb, var(--cins-blue, #1f74c9) 12%, var(--border, #e4e6eb));
 }
 .jcard-datebar--cong-dong.jcard-datebar--bookmark-source {
-  padding-left: 12px;
-  background: transparent;
-  border-bottom-color: var(--neutral-200, #e5e7eb);
-}
-.jcard-datebar--cong-dong.jcard-datebar--bookmark-source::before {
-  display: none;
+  padding: 11px 14px 12px;
+  background: color-mix(in srgb, var(--cins-blue-soft, #e7f0fb) 48%, #fff);
+  border-bottom-color: color-mix(
+    in srgb,
+    var(--cins-blue, #1f74c9) 12%,
+    var(--border, #e4e6eb)
+  );
 }
 .jcard-datebar--cong-dong .j-user-pop-wrap {
   flex: 1 1 auto;
@@ -12902,24 +13100,27 @@ select.j-edit-input {
 .jcard-datebar--cong-dong .cd-source-chip {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   min-width: 0;
   flex: 1 1 auto;
 }
+/* Logo nhóm — vuông mềm, khác avatar tròn người. */
 .jcard-datebar--cong-dong .cd-source-avatar {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border-radius: 10px;
   flex: 0 0 auto;
   overflow: hidden;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #ede9fe;
-  color: #5b21b6;
-  font-size: 13px;
-  font-weight: 800;
-  box-shadow: inset 0 0 0 1px rgba(91, 33, 182, 0.1);
+  background: #fff;
+  color: var(--cins-blue, #1f74c9);
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow:
+    inset 0 0 0 1px var(--border, #e4e6eb),
+    0 1px 2px rgba(15, 23, 42, 0.04);
 }
 .jcard-datebar--cong-dong .cd-source-avatar img {
   width: 100%;
@@ -12930,12 +13131,12 @@ select.j-edit-input {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  line-height: 1.15;
+  gap: 4px;
+  line-height: 1.25;
 }
 .jcard-datebar--cong-dong .cd-source-copy strong {
-  font-size: 14px;
-  font-weight: 800;
+  font-size: 15px;
+  font-weight: 700;
   color: var(--ink-display);
   white-space: nowrap;
   overflow: hidden;
@@ -12955,8 +13156,8 @@ select.j-edit-input {
 }
 .jcard-datebar--cong-dong .cd-source-org-name {
   display: block;
-  font-size: 14px;
-  font-weight: 800;
+  font-size: 15px;
+  font-weight: 700;
   color: var(--ink-display);
   white-space: nowrap;
   overflow: hidden;
@@ -12965,15 +13166,16 @@ select.j-edit-input {
   cursor: pointer;
 }
 .jcard-datebar--cong-dong .j-user-pop-trigger:hover .cd-source-org-name,
+.jcard-datebar--cong-dong .j-user-pop-trigger:hover .cd-source-copy strong,
 .jcard-datebar--cong-dong .j-user-pop-trigger:hover .cd-source-poster-copy strong {
-  color: var(--cins-blue, #2563eb);
+  color: var(--cins-blue, #1f74c9);
 }
 .jcard-datebar--cong-dong .cd-source-poster {
   display: block;
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 500;
   color: var(--ink-muted);
-  line-height: 1.25;
+  line-height: 1.3;
 }
 .jcard-datebar--cong-dong .cd-source-poster--with-avatar {
   display: inline-flex;
@@ -12983,23 +13185,19 @@ select.j-edit-input {
   cursor: pointer;
 }
 .jcard-datebar--cong-dong .cd-source-poster-avatar {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   border-radius: 999px;
   flex: 0 0 auto;
   overflow: hidden;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(
-    135deg,
-    var(--cins-blue, #1f74c9),
-    var(--cins-violet, #bb89f8)
-  );
-  color: #fff;
-  font-size: 11px;
-  font-weight: 800;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+  background: #fff;
+  color: var(--ink-title);
+  font-size: 10px;
+  font-weight: 700;
+  box-shadow: inset 0 0 0 1px var(--border, #e4e6eb);
 }
 .jcard-datebar--cong-dong .cd-source-poster-avatar img {
   width: 100%;
@@ -13012,39 +13210,56 @@ select.j-edit-input {
   flex-wrap: wrap;
   gap: 0;
   min-width: 0;
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 500;
   color: var(--ink-muted);
-  line-height: 1.25;
+  line-height: 1.3;
 }
 .jcard-datebar--cong-dong .cd-source-poster-copy strong {
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--ink-title, rgba(0, 0, 0, 0.62));
 }
-.jcard-datebar--cong-dong .cd-source-poster time {
-  font-weight: 600;
+.jcard-datebar--cong-dong .cd-source-poster time,
+.jcard-datebar--cong-dong .cd-source-meta time {
+  font-weight: 500;
+  color: var(--ink-muted);
 }
 .jcard-datebar--cong-dong .cd-source-meta {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--ink-muted);
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-title, rgba(0, 0, 0, 0.55));
 }
 .jcard-datebar--cong-dong .cd-source-meta svg {
-  color: #7c3aed;
   flex-shrink: 0;
+  color: var(--cins-blue, #1f74c9);
+  opacity: 0.72;
 }
 .jcard-datebar--cong-dong .cd-source-sep {
-  opacity: 0.55;
-}
-.jcard-datebar--cong-dong .j-user-pop-trigger:hover .cd-source-copy strong {
-  color: var(--cins-blue, #2563eb);
+  opacity: 0.45;
 }
 .jcard-datebar--cong-dong .badge-row {
   flex: 0 0 auto;
+}
+
+:root[data-theme="dark"] .jcard-datebar--cong-dong,
+:root[data-theme="dark"] .jcard-datebar--cong-dong.jcard-datebar--bookmark-source {
+  background: color-mix(in srgb, var(--cins-blue, #4f9be8) 12%, var(--bg-surface));
+  border-bottom-color: color-mix(in srgb, var(--cins-blue, #4f9be8) 22%, var(--border));
+}
+:root[data-theme="dark"] .jcard-datebar--cong-dong .cd-source-avatar {
+  background: var(--bg-surface);
+  color: var(--cins-blue);
+}
+:root[data-theme="dark"] .jcard-datebar--cong-dong .cd-source-meta {
+  color: var(--ink-muted);
+}
+:root[data-theme="dark"] .jcard-datebar--cong-dong .cd-source-meta svg {
+  color: var(--cins-blue);
+  opacity: 0.85;
 }
 
 /* Entity lens — chip cộng đồng: [org avatar] | [tên nhóm / người đăng · ngày] | badge */
@@ -13709,22 +13924,46 @@ select.j-edit-input {
   position: relative;
   width: min(420px, 100%);
 }
-.j-user-pop-close {
+.j-user-popover > button.j-user-pop-close,
+button.j-user-pop-close {
   position: absolute;
-  top: 10px;
-  right: 10px;
+  top: 8px;
+  right: 8px;
   z-index: 20;
-  width: 36px;
-  height: 36px;
-  border: 1px solid var(--border);
+  box-sizing: border-box;
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  min-height: 22px;
+  max-width: 22px;
+  max-height: 22px;
+  padding: 0;
+  margin: 0;
+  border: none;
   border-radius: 999px;
-  background: var(--bg-surface);
-  color: var(--ink-muted);
+  background: rgba(255, 255, 255, 0.5);
+  color: #020617;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: var(--shadow-md);
+  box-shadow: none;
+  flex: none;
+  line-height: 0;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+.j-user-popover > button.j-user-pop-close:hover,
+button.j-user-pop-close:hover {
+  background: rgba(255, 255, 255, 0.72);
+  color: #000;
+}
+.j-user-popover > button.j-user-pop-close svg,
+button.j-user-pop-close svg {
+  width: 12px;
+  height: 12px;
+  stroke-width: 3;
+  flex: none;
 }
 .j-user-pop-card {
   display: block;
@@ -14553,9 +14792,6 @@ select.j-edit-input {
 .j-m-card.jcard--photo .jcard-text .jcard-tags,
 .j-m-card.jcard--video .jcard-text .jcard-tags {
   margin-bottom: 0;
-}
-.j-m-card.jcard--article.has-unfold.is-expanded .jcard-body {
-  padding-bottom: 4px;
 }
 .jcard-content {
   display: flex;
@@ -16403,6 +16639,10 @@ a.action-btn {
   color: #e11d48;
   background: #fff1f2;
 }
+.action-btn.is-disliked {
+  color: #475569;
+  background: #f1f5f9;
+}
 .action-btn.is-bookmarked {
   color: var(--cins-blue);
   background: var(--cins-blue-soft);
@@ -16466,6 +16706,14 @@ a.action-btn-part {
 .action-btn--split.is-liked:focus-within {
   background: #ffe4e6;
 }
+.action-btn--split.is-disliked {
+  color: #475569;
+  background: #f1f5f9;
+}
+.action-btn--split.is-disliked:hover,
+.action-btn--split.is-disliked:focus-within {
+  background: #e2e8f0;
+}
 .action-btn--split.is-bookmarked {
   color: var(--cins-blue);
   background: var(--cins-blue-soft);
@@ -16482,6 +16730,18 @@ a.action-btn-part {
 :root[data-theme="dark"] .action-btn--split.is-liked:focus-within {
   background: rgba(244, 63, 94, 0.26);
   color: #fda4af;
+}
+
+:root[data-theme="dark"] .action-btn.is-disliked,
+:root[data-theme="dark"] .action-btn--split.is-disliked {
+  color: #94a3b8;
+  background: rgba(148, 163, 184, 0.16);
+}
+
+:root[data-theme="dark"] .action-btn--split.is-disliked:hover,
+:root[data-theme="dark"] .action-btn--split.is-disliked:focus-within {
+  background: rgba(148, 163, 184, 0.26);
+  color: #cbd5e1;
 }
 
 :root[data-theme="dark"] .action-btn.is-bookmarked,

@@ -559,7 +559,9 @@ export async function countEngagementUnits(
       .from("social_reaction")
       .select("id", { count: "exact", head: true })
       .eq("loai_doi_tuong", loai)
-      .eq("id_doi_tuong", id),
+      .eq("id_doi_tuong", id)
+      /* Chỉ like (heart) — dislike không cộng điểm engagement. */
+      .eq("emoji", "heart"),
     admin
       .from("social_binh_luan")
       .select("id", { count: "exact", head: true })

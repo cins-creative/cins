@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
-import { listMutualFriendProfilesPage } from "@/lib/social/ket-ban";
+import {
+  attachMutualFriendCounts,
+  listMutualFriendProfilesPage,
+} from "@/lib/social/ket-ban";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 type Params = Promise<{ slug: string }>;
@@ -28,6 +31,10 @@ export async function GET(
   }
 
   const page = await listMutualFriendProfilesPage(owner.id, { offset });
+  const friends = await attachMutualFriendCounts(
+    session?.profile?.id,
+    page.friends,
+  );
 
-  return NextResponse.json(page);
+  return NextResponse.json({ ...page, friends });
 }

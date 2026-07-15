@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, ChevronDown } from "lucide-react";
+import { Check, ChevronDown, ListFilter } from "lucide-react";
 import {
   useCallback,
   useEffect,
@@ -22,6 +22,11 @@ type Props = {
   disabled?: boolean;
   /** `compose`: bắt buộc chọn một nhãn (không có "Tất cả"). */
   variant?: "feed" | "compose";
+  /**
+   * `tlb` — markup/class đồng bộ Journey `.j-tlb-dd-btn` (icon khi “Tất cả”).
+   * `default` — pill `.cd-v4-filter-dd` (compose / toolbars cũ).
+   */
+  appearance?: "default" | "tlb";
   className?: string;
   /** z-index menu portal — mặc định 9150. */
   menuZIndex?: number;
@@ -33,10 +38,12 @@ export function CongDongFeedFilterDropdown({
   onChange,
   disabled = false,
   variant = "feed",
+  appearance = "default",
   className,
   menuZIndex = 9150,
 }: Props) {
   const isCompose = variant === "compose";
+  const isTlb = appearance === "tlb";
   const menuId = useId();
   const wrapRef = useRef<HTMLDivElement>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
@@ -59,6 +66,8 @@ export function CongDongFeedFilterDropdown({
       ? "Chọn loại"
       : "Tất cả";
 
+  const isDefaultFilter = !activeFilter && !isCompose;
+
   const updateMenuPosition = useCallback(() => {
     const btn = btnRef.current;
     if (!btn) {
@@ -69,9 +78,9 @@ export function CongDongFeedFilterDropdown({
     setMenuStyle({
       top: rect.bottom + 6,
       left: rect.left,
-      minWidth: rect.width,
+      minWidth: Math.max(rect.width, isTlb ? 180 : rect.width),
     });
-  }, []);
+  }, [isTlb]);
 
   useLayoutEffect(() => {
     if (!open) {
@@ -118,7 +127,11 @@ export function CongDongFeedFilterDropdown({
           <div
             id={menuId}
             ref={menuRef}
-            className="cd-v4-filter-dd-menu cd-v4-filter-dd-menu--portal"
+            className={
+              isTlb
+                ? "j-tlb-dd-menu is-portal"
+                : "cd-v4-filter-dd-menu cd-v4-filter-dd-menu--portal"
+            }
             role="listbox"
             aria-label={isCompose ? "Chọn loại bài đăng" : "Chọn nhãn lọc"}
             style={{
@@ -134,13 +147,28 @@ export function CongDongFeedFilterDropdown({
                 type="button"
                 role="option"
                 aria-selected={activeFilterSlugs.length === 0}
-                className={`cd-v4-filter-dd-item${activeFilterSlugs.length === 0 ? " is-active" : ""}`}
+                className={
+                  isTlb
+                    ? `j-dd-opt${activeFilterSlugs.length === 0 ? " is-active" : ""}`
+                    : `cd-v4-filter-dd-item${activeFilterSlugs.length === 0 ? " is-active" : ""}`
+                }
                 onClick={() => pick([])}
               >
-                <span>Tất cả</span>
-                {activeFilterSlugs.length === 0 ? (
-                  <Check size={15} strokeWidth={2.2} aria-hidden />
-                ) : null}
+                {isTlb ? (
+                  <span className="j-dd-opt-main">
+                    <span className="j-dd-ico" aria-hidden>
+                      <ListFilter size={14} strokeWidth={1.8} />
+                    </span>
+                    <span className="j-dd-lbl">Tất cả</span>
+                  </span>
+                ) : (
+                  <>
+                    <span>Tất cả</span>
+                    {activeFilterSlugs.length === 0 ? (
+                      <Check size={15} strokeWidth={2.2} aria-hidden />
+                    ) : null}
+                  </>
+                )}
               </button>
             ) : null}
             {filters.map((filter) => {
@@ -151,7 +179,11 @@ export function CongDongFeedFilterDropdown({
                   type="button"
                   role="option"
                   aria-selected={active}
-                  className={`cd-v4-filter-dd-item${active ? " is-active" : ""}`}
+                  className={
+                    isTlb
+                      ? `j-dd-opt${active ? " is-active" : ""}`
+                      : `cd-v4-filter-dd-item${active ? " is-active" : ""}`
+                  }
                   onClick={() =>
                     pick(
                       isCompose
@@ -162,17 +194,34 @@ export function CongDongFeedFilterDropdown({
                     )
                   }
                 >
-                  <span className="cd-v4-filter-dd-item-main">
-                    <CongDongFilterIcon
-                      name={filter.icon}
-                      size={15}
-                      color={filter.mau}
-                    />
-                    <span>{filterToolbarLabel(filter.ten)}</span>
-                  </span>
-                  {active ? (
-                    <Check size={15} strokeWidth={2.2} aria-hidden />
-                  ) : null}
+                  {isTlb ? (
+                    <span className="j-dd-opt-main">
+                      <span className="j-dd-ico" aria-hidden>
+                        <CongDongFilterIcon
+                          name={filter.icon}
+                          size={14}
+                          color={filter.mau}
+                        />
+                      </span>
+                      <span className="j-dd-lbl">
+                        {filterToolbarLabel(filter.ten)}
+                      </span>
+                    </span>
+                  ) : (
+                    <>
+                      <span className="cd-v4-filter-dd-item-main">
+                        <CongDongFilterIcon
+                          name={filter.icon}
+                          size={15}
+                          color={filter.mau}
+                        />
+                        <span>{filterToolbarLabel(filter.ten)}</span>
+                      </span>
+                      {active ? (
+                        <Check size={15} strokeWidth={2.2} aria-hidden />
+                      ) : null}
+                    </>
+                  )}
                 </button>
               );
             })}
@@ -180,6 +229,49 @@ export function CongDongFeedFilterDropdown({
           document.body,
         )
       : null;
+
+  if (isTlb) {
+    return (
+      <div
+        className={`j-tlb-filter${open ? " is-open" : ""}${className ? ` ${className}` : ""}`}
+        ref={wrapRef}
+      >
+        <button
+          ref={btnRef}
+          type="button"
+          className={`j-tlb-dd-btn${isDefaultFilter ? " is-icon" : ""}`}
+          aria-haspopup="listbox"
+          aria-expanded={open}
+          aria-controls={menuId}
+          aria-label={triggerLabel}
+          title={triggerLabel}
+          disabled={disabled}
+          onClick={() => setOpen((v) => !v)}
+        >
+          {isDefaultFilter ? (
+            <span className="j-tlb-dd-ico" aria-hidden>
+              <ListFilter size={14} strokeWidth={1.8} />
+            </span>
+          ) : (
+            <>
+              {activeFilter ? (
+                <span
+                  className="j-tlb-dd-dot"
+                  style={{ background: activeFilter.mau }}
+                  aria-hidden
+                />
+              ) : null}
+              <span>{triggerLabel}</span>
+            </>
+          )}
+          <span className="j-tlb-dd-caret" aria-hidden>
+            <ChevronDown size={14} strokeWidth={1.8} />
+          </span>
+        </button>
+        {menu}
+      </div>
+    );
+  }
 
   return (
     <div

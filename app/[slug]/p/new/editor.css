@@ -162,20 +162,25 @@
 .cins-editor-page .vis-btn {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  height: 38px;
-  padding: 0 13px;
+  justify-content: center;
+  gap: 0;
+  width: 36px;
+  height: 36px;
+  padding: 0;
   border-radius: var(--radius-pill);
-  background: var(--bg-surface);
-  border: 1px solid var(--border-strong);
+  background: transparent;
+  border: none;
   font-family: inherit;
   font-size: 13px;
   font-weight: 600;
   color: var(--ink-display);
   cursor: pointer;
+  transition: color 0.15s var(--ed-ease), background 0.15s var(--ed-ease);
 }
 .cins-editor-page .vis-btn:hover {
-  border-color: var(--cins-blue);
+  border: none;
+  background: color-mix(in srgb, var(--cins-blue, #2563eb) 10%, transparent);
+  color: var(--cins-blue, #2563eb);
 }
 .cins-editor-page .vis-btn .ico {
   display: inline-flex;
@@ -183,12 +188,10 @@
   line-height: 1;
 }
 .cins-editor-page .vis-btn .caret {
-  font-size: 10px;
-  color: var(--ink-muted);
-  transition: transform 0.15s var(--ed-ease);
+  display: none;
 }
 .cins-editor-page .vis-select.open .vis-btn .caret {
-  transform: rotate(180deg);
+  transform: none;
 }
 
 .cins-editor-page .cd-v4-filter-dd--editor {
@@ -717,6 +720,110 @@
   align-items: center;
   gap: 8px;
   flex: none;
+}
+
+/* Nhãn riêng trên topbar compose — tái dùng .vis-opt, layout gọn. */
+.cins-editor-page .ed-personal-filter-section-label,
+.vis-portal-root .ed-personal-filter-section-label {
+  padding: 6px 11px 4px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-muted, #5c677a);
+}
+.cins-editor-page .ed-personal-filter-divider,
+.vis-portal-root .ed-personal-filter-divider {
+  height: 1px;
+  margin: 6px 8px;
+  background: var(--border, #e5e7eb);
+}
+.cins-editor-page .ed-personal-filter-type-ico,
+.vis-portal-root .ed-personal-filter-type-ico {
+  display: inline-flex;
+  flex: none;
+  color: var(--ink-muted, #5c677a);
+}
+.cins-editor-page .ed-personal-filter-opt,
+.vis-portal-root .ed-personal-filter-opt {
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--ink-display);
+}
+.cins-editor-page .ed-personal-filter-opt-main,
+.vis-portal-root .ed-personal-filter-opt-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: inherit;
+  font-size: 13px;
+  font-weight: 600;
+}
+.cins-editor-page .ed-personal-filter-opt-main > span:last-child,
+.vis-portal-root .ed-personal-filter-opt-main > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cins-editor-page .ed-personal-filter-create {
+  margin-top: 6px;
+  padding: 6px 4px 2px;
+  border-top: 1px solid var(--border, #e5e7eb);
+}
+.cins-editor-page .ed-personal-filter-create .j-personal-filter-create,
+.vis-portal-root .ed-personal-filter-create .j-personal-filter-create {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.cins-editor-page .ed-personal-filter-create .j-personal-filter-input,
+.vis-portal-root .ed-personal-filter-create .j-personal-filter-input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--border-subtle, #d5dbe6);
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: inherit;
+}
+.cins-editor-page .ed-personal-filter-create .j-personal-filter-create-btn,
+.vis-portal-root .ed-personal-filter-create .j-personal-filter-create-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--cins-blue);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.cins-editor-page .ed-personal-filter-create .j-personal-filter-error,
+.vis-portal-root .ed-personal-filter-create .j-personal-filter-error {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: #b42318;
+}
+.cins-editor-page .ed-personal-filter-hint,
+.vis-portal-root .ed-personal-filter-hint {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--ink-muted, #5c677a);
+}
+.cins-editor-page .vis-btn .j-dd-dot,
+.vis-portal-root .j-dd-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: inline-block;
+}
+.cins-editor-page .vis-btn .caret {
+  display: none;
 }
 
 /* ──── EDITOR CANVAS ────
@@ -2181,8 +2288,9 @@
   color: #fff;
 }
 .cins-editor-page .lay-btn.active {
+  /* Chip trắng cố định trên lay-bar tối — không dùng --neutral-900 (dark mode đảo sáng). */
   background: #fff;
-  color: var(--neutral-900);
+  color: #0e1117;
 }
 .cins-editor-page .lay-thumb {
   display: block;
@@ -2190,7 +2298,7 @@
 }
 .cins-editor-page .lay-btn.round-toggle.active {
   background: var(--cins-yellow);
-  color: var(--neutral-900);
+  color: #0e1117;
 }
 .cins-editor-page .lay-sep {
   width: 1px;
@@ -2994,9 +3102,9 @@
     font-size: 12px;
   }
   .cins-editor-page .vis-btn {
+    width: 34px;
     height: 34px;
-    padding: 0 10px;
-    font-size: 12px;
+    padding: 0;
   }
   .cins-editor-page .meta-chips {
     gap: 6px;
@@ -3082,14 +3190,9 @@
   /* Hủy (ghost) chỉ giữ chữ ngắn — nếu cần ẩn hẳn, bỏ comment dòng dưới. */
   /* .cins-editor-page .ed-btn.ghost { display: none; } */
   .cins-editor-page .vis-btn {
-    padding: 0 8px;
-    font-size: 11px;
-    gap: 4px;
-  }
-  /* Trên xs hộp topbar đã chật: chỉ giữ icon + caret cho vis-btn, hide label
-     ("Công khai" / "Riêng tư" / "Sau"). Menu vẫn xổ ra đầy đủ. */
-  .cins-editor-page .vis-btn > span:not(.ico):not(.caret) {
-    display: none;
+    width: 34px;
+    height: 34px;
+    padding: 0;
   }
   .cins-editor-page .vis-menu {
     right: -8px;
@@ -4188,17 +4291,24 @@
 .cins-editor-page.mc-compose-page .mc-compose-vis-static {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  height: 34px;
-  padding: 0 10px;
-  border: 1px solid var(--border);
+  justify-content: center;
+  gap: 0;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
   border-radius: 999px;
-  background: var(--bg-surface);
+  background: transparent;
   font: inherit;
   font-size: 12px;
   font-weight: 600;
   color: var(--ink-body);
   cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+.cins-editor-page.mc-compose-page .mc-compose-vis-btn:hover {
+  background: color-mix(in srgb, var(--cins-blue, #2563eb) 10%, transparent);
+  color: var(--cins-blue, #2563eb);
 }
 .cins-editor-page .mc-compose-vis-static,
 .cins-editor-page.mc-compose-page .mc-compose-vis-static {

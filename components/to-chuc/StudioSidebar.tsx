@@ -5,9 +5,10 @@ import {
   Globe,
   Mail,
   MapPin,
-  MessageSquare,
-  Pencil,
+  MessageCircle,
   Phone,
+  Settings,
+  UserPlus,
 } from "lucide-react";
 
 import { CoSoOrgFollowButton } from "@/components/co-so/CoSoOrgFollowButton";
@@ -163,44 +164,62 @@ export function StudioSidebar({
             <div className="cso-ss-identity">
               <h1 className="cso-ss-name">{displayTen}</h1>
               {subtitle ? <p className="cso-ss-sub">{subtitle}</p> : null}
-              {showSettings ? (
-                <button
-                  type="button"
-                  className="cso-ss-edit-info-btn"
-                  onClick={onOpenSettings}
-                >
-                  <Pencil size={14} strokeWidth={2.2} aria-hidden />
-                  Sửa thông tin studio
-                </button>
-              ) : null}
             </div>
 
             <div
               className={`cso-ss-primary-action${
                 showAdminCta
-                  ? " cso-ss-primary-action--admin"
-                  : " cso-ss-primary-action--dual"
+                  ? ` cso-ss-primary-action--admin${
+                      showSettings ? " cso-ss-primary-action--with-settings" : ""
+                    }`
+                  : " cso-ss-primary-action--dual cso-ss-primary-action--icons"
               }`}
             >
               {showAdminCta ? (
                 <>
                   <TruongMessageInbox />
                   <TruongMilestoneTagNotify />
+                  {showSettings ? (
+                    <button
+                      type="button"
+                      className="cso-ss-btn-settings"
+                      aria-label="Sửa thông tin studio"
+                      title="Sửa thông tin studio"
+                      onClick={onOpenSettings}
+                    >
+                      <Settings size={18} strokeWidth={2} aria-hidden />
+                    </button>
+                  ) : null}
                 </>
               ) : ctx ? (
                 <>
-                  <TruongUserChatLauncher />
-                  <CoSoOrgFollowButton orgId={studio.id} disabled={isOwner} />
+                  <TruongUserChatLauncher iconOnly />
+                  <CoSoOrgFollowButton
+                    orgId={studio.id}
+                    disabled={isOwner}
+                    variant="icon"
+                  />
                   <OrgSidebarShareButton kind="studio" source={shareSource} />
                 </>
               ) : (
                 <>
-                  <button type="button" className="cso-ss-btn-msg" disabled>
-                    <MessageSquare size={17} strokeWidth={2} aria-hidden />
-                    Nhắn tin
+                  <button
+                    type="button"
+                    className="cso-ss-btn-msg is-icon"
+                    disabled
+                    aria-label="Nhắn tin"
+                    title="Nhắn tin"
+                  >
+                    <MessageCircle size={17} strokeWidth={2} aria-hidden />
                   </button>
-                  <button type="button" className="cso-ss-btn-follow" disabled>
-                    Theo dõi
+                  <button
+                    type="button"
+                    className="cso-ss-btn-follow is-icon"
+                    disabled
+                    aria-label="Theo dõi"
+                    title="Theo dõi"
+                  >
+                    <UserPlus size={17} strokeWidth={2} aria-hidden />
                   </button>
                   <OrgSidebarShareButton kind="studio" source={shareSource} />
                 </>

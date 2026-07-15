@@ -185,7 +185,6 @@ export function StudioCreateForm({ userSlug }: { userSlug: string }) {
           ["dia_chi", "dia_chi"],
           ["dien_thoai", "dien_thoai"],
           ["email_lien_he", "email_lien_he"],
-          ["gioi_thieu_truong", "gioi_thieu_truong"],
           ["website", "website"],
         ];
         for (const [formKey, jsonKey] of optionalFields) {
@@ -388,18 +387,6 @@ export function StudioCreateForm({ userSlug }: { userSlug: string }) {
                 name="mo_ta"
                 className="ttc-txt"
                 placeholder="Một câu giới thiệu studio của bạn"
-              />
-            </div>
-
-            <div className="ttc-field">
-              <label className="ttc-lbl" htmlFor="gioi_thieu_truong">
-                Giới thiệu <span className="ttc-opt">(tùy chọn)</span>
-              </label>
-              <textarea
-                id="gioi_thieu_truong"
-                name="gioi_thieu_truong"
-                className="ttc-txt"
-                placeholder="Đoạn giới thiệu chi tiết — hiển thị trên trang studio"
               />
             </div>
 

@@ -31,6 +31,7 @@ export type RawOrgSearchRow = {
   cover_id: string | null;
   mo_ta: string | null;
   tinh_thanh: string | null;
+  trang_thai_hoat_dong?: string | null;
   org_truong_dai_hoc?: OrgEmbedTruong | OrgEmbedTruong[] | null;
   org_co_so_dao_tao?: OrgEmbedCoSo | OrgEmbedCoSo[] | null;
 };
@@ -196,6 +197,7 @@ export const ORG_SEARCH_SELECT = `
   cover_id,
   mo_ta,
   tinh_thanh,
+  trang_thai_hoat_dong,
   org_truong_dai_hoc ( ma_truong, loai_truong, ten_chinh_thuc ),
   org_co_so_dao_tao ( loai_co_so, ten_chinh_thuc )
 `;

@@ -40,6 +40,8 @@ function mapLinhVucRow(row: Record<string, unknown>): CongDongLinhVuc | null {
     slug,
     ten,
     mauAccent: pickStr(row, ["mau_accent"]),
+    moTa: pickStr(row, ["mo_ta"]),
+    coverId: pickStr(row, ["cover_id", "thumbnail_id"]),
   };
 }
 

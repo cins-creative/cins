@@ -67,11 +67,11 @@ export function JourneyFriendCard({
         {friend.bio ? <p className="j-friend-bio">{friend.bio}</p> : null}
         <div className="j-friend-stats" aria-label="Thống kê hồ sơ bạn bè">
           <span>
-            <strong>{friend.stats.cotMoc}</strong>
-            Journey
+            <strong>{friend.stats.tacPham}</strong>
+            Nổi bật
           </span>
           <span>
-            <strong>{friend.stats.tacPham}</strong>
+            <strong>{friend.stats.cotMoc}</strong>
             Gallery
           </span>
           <span>

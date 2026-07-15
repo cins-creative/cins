@@ -526,12 +526,12 @@
 
 .tdh-page .tdh-card-en {
   margin: 4px 0 0;
-  font-family: var(--font-serif, Georgia, serif);
-  font-style: italic;
+  font-family: var(--font-sans);
+  font-style: normal;
   font-size: 12px;
   font-weight: 500;
   line-height: 1.35;
-  color: var(--ink-body);
+  color: var(--ink-muted);
   text-wrap: pretty;
 }
 

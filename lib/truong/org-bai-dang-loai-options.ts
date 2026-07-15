@@ -33,14 +33,14 @@ export const SCHOOL_LOAI_CONFIG: OrgBaiDangLoaiConfig = {
 /**
  * Cấu hình studio / doanh nghiệp. Dùng lại enum sẵn có:
  * `khac`→Bài đăng (mặc định), `thong_bao`→Thông báo, `su_kien`→Sự kiện,
- * `showcase`→Sản phẩm (chính là tab Showcase). Không có Tuyển sinh / Học bổng.
+ * `showcase`→Showcase (chính là tab Showcase). Không có Tuyển sinh / Học bổng.
  */
 export const STUDIO_LOAI_CONFIG: OrgBaiDangLoaiConfig = {
   options: [
     { value: "khac", label: "Bài đăng" },
     { value: "thong_bao", label: "Thông báo" },
     { value: "su_kien", label: "Sự kiện" },
-    { value: "showcase", label: "Sản phẩm" },
+    { value: "showcase", label: "Showcase" },
   ],
   defaultValue: "khac",
   resolveValue: (raw) => {

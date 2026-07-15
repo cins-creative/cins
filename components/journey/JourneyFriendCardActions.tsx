@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { MessageCircle } from "lucide-react";
+import { MessageCircle, UserRound } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -93,15 +93,20 @@ export function JourneyFriendCardActions({
             />
           </div>
         ) : null}
+        <Link
+          href={`/${friend.slug}`}
+          className="j-friend-link is-icon"
+          title="Xem Journey"
+          aria-label="Xem Journey"
+        >
+          <UserRound size={17} strokeWidth={2} aria-hidden />
+        </Link>
       </div>
       {error ? (
         <p className="j-friend-action-error" role="alert">
           {error}
         </p>
       ) : null}
-      <Link href={`/${friend.slug}`} className="j-friend-link">
-        Xem Journey
-      </Link>
     </div>
   );
 }

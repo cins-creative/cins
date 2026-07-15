@@ -8,6 +8,7 @@ import {
 import { JourneyActionTouchChip } from "@/components/journey/JourneyActionTouchChip";
 import { JourneySocialActorsModal } from "@/components/journey/JourneySocialActorsModal";
 import { SOCIAL_LOAI_DOI_TUONG } from "@/lib/cong-dong/constants";
+import { REACTION_EMOJI } from "@/lib/social/reaction-emoji";
 import { useCoarsePointer } from "@/lib/ui/use-coarse-pointer";
 import { Heart } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -30,6 +31,8 @@ type SocialEvent = CustomEvent<{
   milestoneId: string;
   liked?: boolean;
   likeCount?: number;
+  disliked?: boolean;
+  dislikeCount?: number;
   bookmarked?: boolean;
   bookmarkCount?: number;
 }>;
@@ -72,8 +75,17 @@ export function JourneyLikeButton({
     const onSocial = (event: Event) => {
       const detail = (event as SocialEvent).detail;
       if (detail.milestoneId !== milestoneId) return;
-      if (typeof detail.liked === "boolean") setLiked(detail.liked);
       if (typeof detail.likeCount === "number") setCount(detail.likeCount);
+      if (detail.disliked === true) {
+        setLiked((prev) => {
+          if (prev && typeof detail.likeCount !== "number") {
+            setCount((c) => Math.max(0, c - 1));
+          }
+          return false;
+        });
+        return;
+      }
+      if (typeof detail.liked === "boolean") setLiked(detail.liked);
     };
     window.addEventListener("cins:social-action", onSocial);
     return () => window.removeEventListener("cins:social-action", onSocial);
@@ -87,7 +99,12 @@ export function JourneyLikeButton({
       setCount(nextCount);
       window.dispatchEvent(
         new CustomEvent("cins:social-action", {
-          detail: { milestoneId, liked: nextLiked, likeCount: nextCount },
+          detail: {
+            milestoneId,
+            liked: nextLiked,
+            likeCount: nextCount,
+            ...(nextLiked ? { disliked: false } : {}),
+          },
         }),
       );
       startTransition(async () => {
@@ -97,7 +114,7 @@ export function JourneyLikeButton({
           body: JSON.stringify({
             loai_doi_tuong: loaiDoiTuong,
             id_doi_tuong: milestoneId,
-            emoji: "heart",
+            emoji: REACTION_EMOJI.LIKE,
             active: nextLiked,
           }),
         });
@@ -109,12 +126,23 @@ export function JourneyLikeButton({
           return;
         }
         const syncedLiked = Boolean(json.liked);
-        const syncedCount = Number(json.count ?? nextCount);
+        const syncedCount = Number(json.likeCount ?? json.count ?? nextCount);
+        const syncedDisliked = Boolean(json.disliked);
+        const syncedDislikeCount =
+          typeof json.dislikeCount === "number" ? json.dislikeCount : undefined;
         setLiked(syncedLiked);
         setCount(syncedCount);
         window.dispatchEvent(
           new CustomEvent("cins:social-action", {
-            detail: { milestoneId, liked: syncedLiked, likeCount: syncedCount },
+            detail: {
+              milestoneId,
+              liked: syncedLiked,
+              likeCount: syncedCount,
+              disliked: syncedDisliked,
+              ...(syncedDislikeCount !== undefined
+                ? { dislikeCount: syncedDislikeCount }
+                : {}),
+            },
           }),
         );
       });

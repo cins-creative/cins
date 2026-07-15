@@ -529,7 +529,10 @@ export async function transferStudioOwnership(params: {
   orgId: string;
   actorId: string;
   membershipId: string;
-  confirmSlug: string;
+  /** Legacy: xác nhận bằng slug. */
+  confirmSlug?: string;
+  /** Ưu tiên: xác nhận bằng tên tổ chức (`ten`). */
+  confirmTen?: string;
 }): Promise<
   { ok: true; members: CoSoMemberAdmin[] } | { ok: false; error: string }
 > {
@@ -538,8 +541,15 @@ export async function transferStudioOwnership(params: {
     return { ok: false, error: "Không tìm thấy studio." };
   }
 
-  if (
-    params.confirmSlug.trim().toLowerCase() !== org.slug.trim().toLowerCase()
+  const confirmTen = params.confirmTen?.trim() ?? "";
+  const confirmSlug = params.confirmSlug?.trim() ?? "";
+  if (confirmTen) {
+    if (confirmTen.toLowerCase() !== org.ten.trim().toLowerCase()) {
+      return { ok: false, error: "Tên xác nhận không khớp tên tổ chức." };
+    }
+  } else if (
+    !confirmSlug ||
+    confirmSlug.toLowerCase() !== org.slug.trim().toLowerCase()
   ) {
     return { ok: false, error: "Tên xác nhận không khớp đường dẫn studio." };
   }

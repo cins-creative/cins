@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Loader2, Search } from "lucide-react";
+import { Check, Loader2, Search, X } from "lucide-react";
 import {
   useCallback,
   useEffect,
@@ -165,11 +165,51 @@ export function CongDongTopicPicker({
     <div className="cd-topic-picker">
       {hint ? <p className="cd-topic-picker-hint">{hint}</p> : null}
 
+      {(linhVucs.length > 0 || nganhs.length > 0) && !disabled ? (
+        <div className="cd-topic-picker-selected" aria-label="Đã chọn">
+          {linhVucs.map((item) => (
+            <button
+              key={`lv-${item.id}`}
+              type="button"
+              className="cd-topic-picker-chip"
+              aria-label={`Bỏ lĩnh vực ${item.ten}`}
+              onClick={() => toggleLinhVuc(item)}
+            >
+              {item.mauAccent ? (
+                <span
+                  className="cd-topic-picker-chip-dot"
+                  style={{ background: item.mauAccent }}
+                  aria-hidden
+                />
+              ) : null}
+              <span className="cd-topic-picker-chip-label">{item.ten}</span>
+              <X size={12} strokeWidth={2.4} aria-hidden />
+            </button>
+          ))}
+          {nganhs.map((item) => (
+            <button
+              key={`ng-${item.id}`}
+              type="button"
+              className="cd-topic-picker-chip cd-topic-picker-chip--nganh"
+              aria-label={`Bỏ ngành ${item.tieuDe}`}
+              onClick={() => toggleNganh(item)}
+            >
+              <span className="cd-topic-picker-chip-label">{item.tieuDe}</span>
+              <X size={12} strokeWidth={2.4} aria-hidden />
+            </button>
+          ))}
+        </div>
+      ) : null}
+
       <div className="cd-topic-picker-tabs" role="tablist" aria-label="Loại chủ đề">
         {TABS.map((t) => {
           const selected = tab === t.id;
           const count =
             t.id === "linh_vuc" ? linhVucs.length : nganhs.length;
+          const max =
+            t.id === "linh_vuc"
+              ? CONG_DONG_LINH_VUC_MAX
+              : CONG_DONG_CATEGORY_MAX;
           return (
             <button
               key={t.id}
@@ -186,9 +226,9 @@ export function CongDongTopicPicker({
               }}
             >
               {t.label}
-              {count > 0 ? (
-                <span className="cd-topic-picker-tab-count">{count}</span>
-              ) : null}
+              <span className="cd-topic-picker-tab-count">
+                {count}/{max}
+              </span>
             </button>
           );
         })}

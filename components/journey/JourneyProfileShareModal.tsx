@@ -47,6 +47,7 @@ import {
   type ShareOgThemeState,
 } from "@/lib/journey/share-og-theme";
 import type { OrgShareContext } from "@/lib/org/org-profile-share";
+import { orgBaiDangFilterShareUrl } from "@/lib/org/org-bai-dang-filter-share";
 import {
   orgGalleryShareUrl,
   orgPageShareUrl,
@@ -76,6 +77,11 @@ type Props = {
   anchorRef?: RefObject<HTMLElement | null>;
   /** Trang org (cơ sở / trường / studio) — thay nhãn Journey/Portfolio. */
   orgShare?: OrgShareContext | null;
+  /**
+   * Deep link tab Bài đăng + `?filter=` (không phải Showcase/Portfolio).
+   * Dùng khi mở từ dropdown nhãn org.
+   */
+  orgBaiDangFilterShare?: boolean;
   /** Gate đăng nhập trước khi mở bước mời bạn (cộng đồng). */
   requireAuth?: (then: () => void) => void;
 };
@@ -84,6 +90,7 @@ function stepTitle(
   step: JourneyShareMenuStep,
   portfolioFilter: JourneyGalleryFilterShareSpec | null | undefined,
   orgShare?: OrgShareContext | null,
+  orgBaiDangFilterShare?: boolean,
 ): string {
   if (step === "menu") return "Chia sẻ";
   if (step === "invite-friends") return "Mời bạn bè";
@@ -91,11 +98,13 @@ function stepTitle(
     if (orgShare?.kind === "cong_dong") return "Chia sẻ cộng đồng";
     return orgShare ? "Chia sẻ trang" : "Chia sẻ Journey";
   }
-  const galleryLabel = orgShare?.galleryFeatureLabel ?? "Portfolio";
+  const featureLabel = orgBaiDangFilterShare
+    ? "Bài đăng"
+    : (orgShare?.galleryFeatureLabel ?? "Portfolio");
   if (portfolioFilter && portfolioFilter.kind !== "all") {
-    return `Chia sẻ ${galleryLabel} · ${portfolioFilter.label}`;
+    return `Chia sẻ ${featureLabel} · ${portfolioFilter.label}`;
   }
-  return `Chia sẻ ${galleryLabel}`;
+  return `Chia sẻ ${featureLabel}`;
 }
 
 function stepSubtitle(
@@ -103,9 +112,12 @@ function stepSubtitle(
   slug: string,
   portfolioFilter: JourneyGalleryFilterShareSpec | null | undefined,
   orgShare?: OrgShareContext | null,
+  orgBaiDangFilterShare?: boolean,
 ): string {
   const pathLine = orgShare ? `cins.vn/${orgShare.pathLabel}` : `cins.vn/${slug}`;
-  const galleryLabel = orgShare?.galleryFeatureLabel ?? "Portfolio";
+  const featureLabel = orgBaiDangFilterShare
+    ? "Bài đăng"
+    : (orgShare?.galleryFeatureLabel ?? "Portfolio");
   if (step === "menu") return pathLine;
   if (step === "invite-friends") {
     return "Gửi lời mời — hiện trên thông báo và Journey";
@@ -119,10 +131,12 @@ function stepSubtitle(
       : "Thẻ giới thiệu hồ sơ — toàn bộ Journey";
   }
   if (portfolioFilter && portfolioFilter.kind !== "all") {
-    return `Thẻ tác phẩm — lọc theo "${portfolioFilter.label}"`;
+    return orgBaiDangFilterShare
+      ? `Link timeline — lọc theo "${portfolioFilter.label}"`
+      : `Thẻ tác phẩm — lọc theo "${portfolioFilter.label}"`;
   }
   return orgShare
-    ? `Thẻ ${galleryLabel} — toàn bộ`
+    ? `Thẻ ${featureLabel} — toàn bộ`
     : "Thẻ Portfolio — toàn bộ tác phẩm";
 }
 
@@ -137,6 +151,7 @@ export function JourneyProfileShareModal({
   presentation = "modal",
   anchorRef,
   orgShare = null,
+  orgBaiDangFilterShare = false,
   requireAuth,
 }: Props) {
   const titleId = useId();
@@ -448,13 +463,18 @@ export function JourneyProfileShareModal({
 
   const cardTargetUrl =
     cardKind === "gallery"
-      ? orgShare
-        ? orgGalleryShareUrl(orgShare)
-        : galleryFilterShareUrl(
-            profile.slug,
-            portfolioFilter ?? PORTFOLIO_ALL_FILTER_SHARE_SPEC,
-            galleryDisplay,
+      ? orgShare && orgBaiDangFilterShare
+        ? orgBaiDangFilterShareUrl(
+            orgShare,
+            portfolioFilter ?? { kind: "all", label: "Tất cả" },
           )
+        : orgShare
+          ? orgGalleryShareUrl(orgShare)
+          : galleryFilterShareUrl(
+              profile.slug,
+              portfolioFilter ?? PORTFOLIO_ALL_FILTER_SHARE_SPEC,
+              galleryDisplay,
+            )
       : orgShare
         ? orgPageShareUrl(orgShare)
         : journeyShareUrl(profile.slug);
@@ -573,11 +593,22 @@ export function JourneyProfileShareModal({
           ) : null}
           <div>
             <h2 id={titleId} className="j-share-title">
-              {stepTitle(step, portfolioFilter, orgShare)}
+              {stepTitle(
+                step,
+                portfolioFilter,
+                orgShare,
+                orgBaiDangFilterShare,
+              )}
             </h2>
             {!(isPopover && step === "menu") ? (
               <p className="j-share-sub">
-                {stepSubtitle(step, profile.slug, portfolioFilter, orgShare)}
+                {stepSubtitle(
+                  step,
+                  profile.slug,
+                  portfolioFilter,
+                  orgShare,
+                  orgBaiDangFilterShare,
+                )}
               </p>
             ) : null}
           </div>

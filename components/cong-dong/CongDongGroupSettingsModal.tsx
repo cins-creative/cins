@@ -99,17 +99,23 @@ export function CongDongGroupSettingsPanel({
   }
 
   return (
-    <form className="cd-v4-group-settings-body" onSubmit={onSave}>
+    <form className="cd-v4-group-settings-body cd-manage-topics-form" onSubmit={onSave}>
       <section className="cd-v4-group-settings-section">
-        <p className="cd-v4-group-settings-hint">
-          Gắn lĩnh vực hoạt động (tối đa 3) và ngành đào tạo (tối đa 3).
-        </p>
+        {embedded ? null : (
+          <p className="cd-v4-group-settings-hint">
+            Gắn lĩnh vực hoạt động (tối đa 3) và ngành đào tạo (tối đa 3).
+          </p>
+        )}
         <CongDongTopicPicker
           linhVucs={draftLinhVucs}
           onLinhVucsChange={setDraftLinhVucs}
           nganhs={draftCategories}
           onNganhsChange={setDraftCategories}
-          hint=""
+          hint={
+            embedded
+              ? "Chọn tối đa 3 lĩnh vực và 3 ngành. Đã chọn hiện ở thanh trên."
+              : ""
+          }
         />
       </section>
 

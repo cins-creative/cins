@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import { assertTruongOrgWriteApi } from "@/lib/truong/inline-api-auth";
 import { normalizeTinhThanhForDb } from "@/lib/truong/contact";
 import {
@@ -8,6 +9,19 @@ import {
   splitOrgPatch,
 } from "@/lib/truong/org-contact-fields";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { isContentSurfaceView } from "@/lib/cins/content-surface-view";
+import { getViewerCoSoVaiTro } from "@/lib/to-chuc/co-so-membership";
+import {
+  normalizeStudioHoatDong,
+  type StudioHoatDongStatus,
+} from "@/lib/to-chuc/studio-lifecycle.shared";
+import {
+  mergeStudioPageCauHinh,
+  parseStudioPageCauHinh,
+  STUDIO_OPTIONAL_TAB_IDS,
+  type StudioOptionalTabId,
+  type StudioPageCauHinh,
+} from "@/lib/to-chuc/studio-page-config";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -23,11 +37,15 @@ export type StudioSettings = {
   diaChi: string | null;
   dienThoai: string | null;
   emailLienHe: string | null;
+  pageConfig: StudioPageCauHinh;
+  trangThaiHoatDong: StudioHoatDongStatus;
+  isOwner: boolean;
 };
 
 const ORG_SELECT = `
   id, slug, ten, mo_ta, gioi_thieu_truong, tinh_thanh,
-  dia_chi, dien_thoai, email_lien_he, loai_to_chuc, cau_hinh
+  dia_chi, dien_thoai, email_lien_he, loai_to_chuc, cau_hinh,
+  trang_thai_hoat_dong
 `;
 
 type OrgRow = {
@@ -42,6 +60,7 @@ type OrgRow = {
   email_lien_he: string | null;
   loai_to_chuc: string;
   cau_hinh: Record<string, unknown> | null;
+  trang_thai_hoat_dong?: string | null;
 };
 
 function readCauHinhString(
@@ -52,7 +71,7 @@ function readCauHinhString(
   return typeof value === "string" && value.trim() ? value : null;
 }
 
-function toSettings(row: OrgRow): StudioSettings {
+function toSettings(row: OrgRow, isOwner: boolean): StudioSettings {
   return {
     orgId: row.id,
     slug: row.slug,
@@ -65,7 +84,37 @@ function toSettings(row: OrgRow): StudioSettings {
     diaChi: row.dia_chi,
     dienThoai: row.dien_thoai,
     emailLienHe: row.email_lien_he,
+    pageConfig: parseStudioPageCauHinh(row.cau_hinh),
+    trangThaiHoatDong: normalizeStudioHoatDong(row.trang_thai_hoat_dong),
+    isOwner,
   };
+}
+
+function parsePageConfigPatch(raw: unknown): StudioPageCauHinh | null {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const obj = raw as {
+    tabs?: unknown;
+    showcaseDefaultView?: unknown;
+  };
+  const patch: StudioPageCauHinh = {};
+
+  if (obj.tabs && typeof obj.tabs === "object" && !Array.isArray(obj.tabs)) {
+    const tabs: StudioPageCauHinh["tabs"] = {};
+    for (const id of STUDIO_OPTIONAL_TAB_IDS) {
+      const val = (obj.tabs as Record<string, unknown>)[id];
+      if (typeof val === "boolean") tabs[id as StudioOptionalTabId] = val;
+    }
+    patch.tabs = tabs;
+  }
+
+  if (
+    typeof obj.showcaseDefaultView === "string" &&
+    isContentSurfaceView(obj.showcaseDefaultView)
+  ) {
+    patch.showcaseDefaultView = obj.showcaseDefaultView;
+  }
+
+  return patch;
 }
 
 async function loadStudioRow(
@@ -84,7 +133,9 @@ async function loadStudioRow(
   if (isMissingOrgContactColumnError(full.error.message)) {
     const base = await supabase
       .from("org_to_chuc")
-      .select("id, slug, ten, mo_ta, gioi_thieu_truong, tinh_thanh, loai_to_chuc, cau_hinh")
+      .select(
+        "id, slug, ten, mo_ta, gioi_thieu_truong, tinh_thanh, loai_to_chuc, cau_hinh, trang_thai_hoat_dong",
+      )
       .eq("id", id)
       .in("loai_to_chuc", ["studio", "doanh_nghiep"])
       .maybeSingle();
@@ -96,6 +147,13 @@ async function loadStudioRow(
     }
   }
   return { row: null, missingContact: false };
+}
+
+async function resolveIsOwner(orgId: string): Promise<boolean> {
+  const session = await getCurrentSessionAndProfile();
+  if (!session?.profile?.id) return false;
+  const role = await getViewerCoSoVaiTro(session.profile.id, orgId);
+  return role === "owner";
 }
 
 export async function GET(request: Request, context: RouteContext) {
@@ -112,7 +170,8 @@ export async function GET(request: Request, context: RouteContext) {
   if (!row) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
-  return NextResponse.json({ settings: toSettings(row) });
+  const isOwner = await resolveIsOwner(id);
+  return NextResponse.json({ settings: toSettings(row, isOwner) });
 }
 
 export async function PATCH(request: Request, context: RouteContext) {
@@ -161,10 +220,12 @@ export async function PATCH(request: Request, context: RouteContext) {
   if ("dienThoai" in body) orgPatch.dien_thoai = str(body.dienThoai);
   if ("emailLienHe" in body) orgPatch.email_lien_he = str(body.emailLienHe);
 
-  // website + tên chính thức lưu trong cau_hinh.
-  const touchesCauHinh = "website" in body || "tenChinhThuc" in body;
+  const pageConfigPatch =
+    "pageConfig" in body ? parsePageConfigPatch(body.pageConfig) : null;
+  const touchesCauHinh =
+    "website" in body || "tenChinhThuc" in body || pageConfigPatch !== null;
   if (touchesCauHinh) {
-    const nextCauHinh: Record<string, unknown> = { ...(current.cau_hinh ?? {}) };
+    let nextCauHinh: Record<string, unknown> = { ...(current.cau_hinh ?? {}) };
     if ("website" in body) {
       const w = str(body.website);
       if (w) nextCauHinh.website = w;
@@ -174,6 +235,9 @@ export async function PATCH(request: Request, context: RouteContext) {
       const tc = str(body.tenChinhThuc);
       if (tc) nextCauHinh.ten_chinh_thuc = tc;
       else delete nextCauHinh.ten_chinh_thuc;
+    }
+    if (pageConfigPatch) {
+      nextCauHinh = mergeStudioPageCauHinh(nextCauHinh, pageConfigPatch);
     }
     orgPatch.cau_hinh = nextCauHinh;
   }
@@ -207,8 +271,9 @@ export async function PATCH(request: Request, context: RouteContext) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
+  const isOwner = await resolveIsOwner(id);
   return NextResponse.json({
-    settings: toSettings(row),
+    settings: toSettings(row, isOwner),
     contactFieldsSkipped,
   });
 }

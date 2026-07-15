@@ -6,10 +6,8 @@ import {
   EyeOff,
   Globe,
   Heart,
-  LayoutGrid,
   Lock,
   MessageCircle,
-  Waypoints,
 } from "lucide-react";
 import {
   useCallback,
@@ -20,6 +18,7 @@ import {
   useTransition,
 } from "react";
 
+import { ContentSurfaceViewToggle } from "@/components/cins/ContentSurfaceViewToggle";
 import { CongDongPostBookmarkAct } from "@/components/cong-dong/CongDongPostBookmarkAct";
 import { useCongDongAuthGate } from "@/components/cong-dong/useCongDongAuthGate";
 import { BunnyVideoProcessingPoller } from "@/components/journey/BunnyVideoProcessingPoller";
@@ -28,6 +27,7 @@ import { JourneyCreateComposer } from "@/components/journey/JourneyCreateCompose
 import { CongDongAuthorMetaLine } from "@/components/cong-dong/CongDongAuthorMetaLine";
 import { CongDongTopicsAside } from "@/components/cong-dong/CongDongTopicsAside";
 import { congDongFeedPostCoverUrl } from "@/lib/cong-dong/feed-post-cover";
+import type { ContentSurfaceView } from "@/lib/cins/content-surface-view";
 import {
   CongDongManageModal,
   CongDongManageTriggerButton,
@@ -125,7 +125,7 @@ function CongDongCoverPrivacyBadge({ cheDo }: { cheDo: CongDongCheDo }) {
   );
 }
 
-type FeedView = "journey" | "grid";
+type FeedView = ContentSurfaceView;
 type SortMode = "moi" | "tuongtac" | "az";
 
 /** Khớp `@media (max-width: 1100px)` ẩn `.cd-v4-event-rail-col`. */
@@ -213,7 +213,7 @@ export function CongDongPageClient({ initial }: Props) {
   const [activeFilterSlugs, setActiveFilterSlugs] = useState<string[]>([]);
   const [posts, setPosts] = useState(initial.initialPosts);
   const [nextCursor, setNextCursor] = useState(initial.nextCursor);
-  const [view, setView] = useState<FeedView>("journey");
+  const [view, setView] = useState<FeedView>("timeline");
   const [sortMode, setSortMode] = useState<SortMode>("moi");
   const [loadPending, startLoadMore] = useTransition();
   const [filterPending, startFilter] = useTransition();
@@ -297,7 +297,7 @@ export function CongDongPageClient({ initial }: Props) {
   const firstPostParts = sortedPosts[0]
     ? postTimelineParts(sortedPosts[0].thoiDiem)
     : null;
-  const showFeedTimeline = view === "journey" && sortedPosts.length > 0;
+  const showFeedTimeline = view === "timeline" && sortedPosts.length > 0;
   const [timelineSpy, setTimelineSpy] = useState<TimelineScrollSpy>(() =>
     timelineScrollSpyFromParts(
       firstPostParts?.year,
@@ -601,7 +601,13 @@ export function CongDongPageClient({ initial }: Props) {
             </div>
           ) : (
           <div
-            className={`cd-v4-feed${view === "grid" ? " is-grid" : " is-journey"}${filterPending ? " is-loading" : ""}`}
+            className={`cd-v4-feed${
+              view === "timeline"
+                ? " is-journey"
+                : view === "masonry"
+                  ? " is-masonry"
+                  : " is-grid"
+            }${filterPending ? " is-loading" : ""}`}
           >
             {filterPending && sortedPosts.length === 0 ? (
               <p className="cd-v4-empty">Đang lọc…</p>
@@ -620,7 +626,7 @@ export function CongDongPageClient({ initial }: Props) {
                   Chưa có bài đăng nào. Tham gia cộng đồng để chia sẻ.
                 </p>
               )
-            ) : view === "journey" ? (
+            ) : view === "timeline" ? (
               <JourneyFeed
                 posts={sortedPosts}
                 orgId={org.id}
@@ -820,7 +826,7 @@ function CongDongFeedStickyBar({
   return (
     <div
       ref={barRef}
-      className={`cd-v4-moc-bar${showTimeline ? " has-timeline" : ""}`}
+      className="j-tlb cd-v4-moc-bar"
       aria-live={showTimeline ? "polite" : undefined}
       aria-label={
         showTimeline
@@ -828,19 +834,18 @@ function CongDongFeedStickyBar({
           : "Bộ lọc và sắp xếp bài đăng"
       }
     >
-      {showTimeline ? (
-        <>
-          <span className="cd-v4-moc-yr">{timelineSpy.year}</span>
-          <span
-            className="cd-v4-moc-mo"
-            style={{ visibility: timelineSpy.month ? "visible" : "hidden" }}
-          >
-            {timelineSpy.month || "—"}
-          </span>
-        </>
-      ) : null}
+      <span className="j-tlb-streak-slow" aria-hidden="true" />
+      <div className="j-tlb-year">{timelineSpy.year}</div>
       <div
-        className="cd-v4-feed-controls"
+        className="j-tlb-month"
+        style={{
+          visibility: showTimeline && timelineSpy.month ? "visible" : "hidden",
+        }}
+      >
+        {timelineSpy.month || "—"}
+      </div>
+      <div
+        className="j-tlb-filters cd-v4-feed-controls"
         role="toolbar"
         aria-label="Lọc và sắp xếp bài đăng"
       >
@@ -848,38 +853,26 @@ function CongDongFeedStickyBar({
           filters={filters}
           activeFilterSlugs={activeFilterSlugs}
           onChange={onFilterChange}
-          className="cd-v4-filter-dd--compact"
+          appearance="tlb"
         />
-        <select
-          className="cd-v4-sort cd-v4-sort--compact"
-          value={sortMode}
-          onChange={(e) => onSortModeChange(e.target.value as SortMode)}
-          aria-label="Sắp xếp bài đăng"
-        >
-          <option value="moi">Mới nhất</option>
-          <option value="tuongtac">Tương tác</option>
-          <option value="az">A → Z</option>
-        </select>
-        <div className="cd-v4-toggle cd-v4-toggle--compact" role="group" aria-label="Kiểu hiển thị">
-          <button
-            type="button"
-            className={view === "journey" ? "is-on" : undefined}
-            onClick={() => onViewChange("journey")}
-            aria-label="Journey"
-            title="Journey"
+        <label className="cd-v4-sort-wrap">
+          <span className="cd-v4-sr-only">Sắp xếp bài đăng</span>
+          <select
+            className="j-tlb-dd-btn cd-v4-sort cd-v4-sort--tlb"
+            value={sortMode}
+            onChange={(e) => onSortModeChange(e.target.value as SortMode)}
+            aria-label="Sắp xếp bài đăng"
           >
-            <Waypoints size={15} strokeWidth={2} aria-hidden />
-          </button>
-          <button
-            type="button"
-            className={view === "grid" ? "is-on" : undefined}
-            onClick={() => onViewChange("grid")}
-            aria-label="Lưới"
-            title="Lưới"
-          >
-            <LayoutGrid size={15} strokeWidth={2} aria-hidden />
-          </button>
-        </div>
+            <option value="moi">Mới nhất</option>
+            <option value="tuongtac">Tương tác</option>
+            <option value="az">A → Z</option>
+          </select>
+        </label>
+        <ContentSurfaceViewToggle
+          view={view}
+          onViewChange={onViewChange}
+          ariaLabel="Kiểu hiển thị"
+        />
         <OrgNotifyFabHost />
       </div>
     </div>

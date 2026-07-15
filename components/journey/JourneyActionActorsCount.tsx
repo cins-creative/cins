@@ -15,11 +15,23 @@ export type JourneyActionActorsConfig = {
   mediaLabel?: "anh" | "bai";
 };
 
+function formatActionCount(kind: SocialInteractionKind, count: number): string {
+  if (kind === "dislike" && count > 0) return `−${count}`;
+  return String(count);
+}
+
 function countAriaLabel(config: JourneyActionActorsConfig): string {
   if (config.kind === "like") {
     return config.mediaLabel === "anh"
       ? "Xem người thích ảnh"
       : "Xem người thích";
+  }
+  if (config.kind === "dislike") {
+    const base =
+      config.mediaLabel === "anh"
+        ? "Xem người không thích ảnh"
+        : "Xem người không thích";
+    return config.count > 0 ? `${base} (−${config.count})` : base;
   }
   if (config.kind === "comment") return "Xem người bình luận";
   return "Xem người đã lưu";
@@ -45,7 +57,7 @@ export function JourneyActionActorsCount({ actors }: Props) {
           setOpen(true);
         }}
       >
-        {actors.count}
+        {formatActionCount(actors.kind, actors.count)}
       </button>
       <JourneySocialActorsModal
         open={open}

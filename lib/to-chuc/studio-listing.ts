@@ -34,6 +34,7 @@ type RawStudio = {
   cover_id?: string | null;
   loai_to_chuc?: string | null;
   cau_hinh?: Record<string, unknown> | null;
+  trang_thai_hoat_dong?: string | null;
 };
 
 function readString(value: unknown): string | null {
@@ -57,7 +58,8 @@ export async function listStudiosForListing(): Promise<StudioListItem[]> {
         avatar_id,
         cover_id,
         loai_to_chuc,
-        cau_hinh
+        cau_hinh,
+        trang_thai_hoat_dong
       `,
       )
       .in("loai_to_chuc", ["studio", "doanh_nghiep"]);
@@ -66,6 +68,8 @@ export async function listStudiosForListing(): Promise<StudioListItem[]> {
 
     const items: StudioListItem[] = [];
     for (const row of data as RawStudio[]) {
+      const status = row.trang_thai_hoat_dong?.trim() || "dang_hoat_dong";
+      if (status !== "dang_hoat_dong") continue;
       const id = row.id?.trim();
       const slug = row.slug?.trim();
       const ten = row.ten?.trim();

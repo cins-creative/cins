@@ -191,6 +191,10 @@ export type CongDongLinhVuc = {
   slug: string;
   ten: string;
   mauAccent: string | null;
+  /** `linh_vuc.mo_ta` — mô tả ngắn hub nghề. */
+  moTa: string | null;
+  /** `linh_vuc.cover_id` — thumbnail hero hub. */
+  coverId: string | null;
 };
 
 /** Cấu hình compose trên trang cộng đồng — thay visibility bằng chọn nhãn loại bài. */

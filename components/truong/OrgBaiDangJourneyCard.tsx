@@ -57,6 +57,11 @@ type Props = {
   owner?: OrgOwner | null;
   /** Permalink chi tiết — mở sẵn nội dung đầy đủ (không cần bấm unfold). */
   initialExpanded?: boolean;
+  /**
+   * Showcase lens — chỉ block nội dung (không datebar org / like / bookmark).
+   * Nguồn đầy đủ vẫn ở tab Bài đăng.
+   */
+  contentOnly?: boolean;
 };
 
 function shouldIgnoreExpandTrigger(target: Element | null): boolean {
@@ -93,6 +98,7 @@ export function OrgBaiDangJourneyCard({
   post,
   owner = null,
   initialExpanded = false,
+  contentOnly = false,
 }: Props) {
   const ctx = useTruongInlineEdit();
   const school = ctx?.school ?? owner;
@@ -263,7 +269,7 @@ export function OrgBaiDangJourneyCard({
     <article
       ref={articleRef}
       id={`org-post-${post.id}`}
-      className={`j-milestone j-self org-baidang-milestone${expanded || showChiChuUnfold ? " is-card-expanded" : ""}${showScheduledUi ? " is-scheduled" : ""}`}
+      className={`j-milestone j-self org-baidang-milestone${expanded || showChiChuUnfold ? " is-card-expanded" : ""}${showScheduledUi ? " is-scheduled" : ""}${contentOnly ? " org-baidang-milestone--content-only" : ""}`}
       data-year={year ?? undefined}
       data-month={month ?? undefined}
       data-content-kind={cardKind}
@@ -300,24 +306,26 @@ export function OrgBaiDangJourneyCard({
           tabIndex={legacyCardExpand ? 0 : undefined}
           aria-expanded={legacyCardExpand ? expanded : undefined}
         >
-          <div className="jcard-datebar jcard-datebar--org">
-            <span className="org-chip">
-              {school ? (
-                <TruongOrgAvatar school={school} size="sm" className="org-chip-avatar" />
-              ) : (
-                <span className="org-logo" aria-hidden />
-              )}
-              <span className="org-copy">
-                <strong>{school?.ten ?? "Trường"}</strong>
-                <OrgBaiDangPublishedDate post={post} />
+          {!contentOnly ? (
+            <div className="jcard-datebar jcard-datebar--org">
+              <span className="org-chip">
+                {school ? (
+                  <TruongOrgAvatar school={school} size="sm" className="org-chip-avatar" />
+                ) : (
+                  <span className="org-logo" aria-hidden />
+                )}
+                <span className="org-copy">
+                  <strong>{school?.ten ?? "Trường"}</strong>
+                  <OrgBaiDangPublishedDate post={post} />
+                </span>
               </span>
-            </span>
-            <span className="badge-row">
-              {showScheduledUi ? <OrgBaiDangScheduledBadge post={post} /> : null}
-              <OrgBaiDangLoaiBadge post={post} />
-            </span>
-            <TruongBaiDangPostActions post={post} />
-          </div>
+              <span className="badge-row">
+                {showScheduledUi ? <OrgBaiDangScheduledBadge post={post} /> : null}
+                <OrgBaiDangLoaiBadge post={post} />
+              </span>
+              <TruongBaiDangPostActions post={post} />
+            </div>
+          ) : null}
 
           {useUnifiedMediaBody ? (
             <>
@@ -443,16 +451,18 @@ export function OrgBaiDangJourneyCard({
             </div>
           )}
 
-          <div className="jcard-actions">
-            <OrgBaiDangLikeButton postId={post.id} />
-            <OrgBaiDangBookmarkButton
-              postId={post.id}
-              title={post.tieu_de}
-              initialSaved={post.viewerBookmarked}
-              initialCount={post.bookmarkCount}
-            />
-            <span className="action-spacer" />
-          </div>
+          {!contentOnly ? (
+            <div className="jcard-actions">
+              <OrgBaiDangLikeButton postId={post.id} />
+              <OrgBaiDangBookmarkButton
+                postId={post.id}
+                title={post.tieu_de}
+                initialSaved={post.viewerBookmarked}
+                initialCount={post.bookmarkCount}
+              />
+              <span className="action-spacer" />
+            </div>
+          ) : null}
         </div>
       </div>
     </article>

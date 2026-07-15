@@ -4,7 +4,6 @@ import {
   ArrowDownNarrowWide,
   Building2,
   Check,
-  ChevronDown,
   ChevronLeft,
   Code2,
   FileText,
@@ -123,7 +122,7 @@ function feedViewHref(view: FeedSurfaceView): string {
 }
 
 function feedSourceIcon(icon: string) {
-  const props = { size: 13, strokeWidth: 2 };
+  const props = { size: 15, strokeWidth: 2 };
   switch (icon) {
     case "globe":
       return <Globe {...props} />;
@@ -212,7 +211,7 @@ function WorldJourneyFilterBar({
     FEED_SOURCE_OPTIONS[0];
 
   const chipIcon = (icon: string) => {
-    const props = { size: 13, strokeWidth: 2 };
+    const props = { size: 15, strokeWidth: 2 };
     switch (icon) {
       case "sparkles":
         return <Sparkles {...props} />;
@@ -237,14 +236,14 @@ function WorldJourneyFilterBar({
           className="wj-filter-btn"
           aria-haspopup="menu"
           aria-expanded={sourceOpen}
+          aria-label={activeSource.label}
+          title={activeSource.label}
           onClick={(e) => {
             e.stopPropagation();
             setSourceOpen((v) => !v);
           }}
         >
           {feedSourceIcon(activeSource.icon)}
-          <span className="wj-filter-val">{activeSource.label}</span>
-          <ChevronDown size={13} />
         </button>
         {sourceOpen ? (
           <div className="wj-filter-pop wj-source-pop" role="menu">
@@ -274,6 +273,8 @@ function WorldJourneyFilterBar({
           className="wj-filter-btn"
           aria-haspopup="menu"
           aria-expanded={filterOpen}
+          aria-label={activeChip.label}
+          title={activeChip.label}
           onClick={(e) => {
             e.stopPropagation();
             setFilterOpen((v) => {
@@ -283,8 +284,6 @@ function WorldJourneyFilterBar({
           }}
         >
           {chipIcon(activeChip.icon)}
-          <span className="wj-filter-val">{activeChip.label}</span>
-          <ChevronDown size={13} />
         </button>
         {filterOpen ? (
           <div
@@ -429,7 +428,6 @@ function WorldJourneyFilterBar({
           </div>
         ) : null}
       </div>
-      <span className="wj-filter-spacer" />
       {!isGallery ? (
         <div className="wj-sort-wrap" ref={sortRef}>
           <button
@@ -437,15 +435,14 @@ function WorldJourneyFilterBar({
             className="wj-sort-btn"
             aria-expanded={sortOpen}
             aria-haspopup="menu"
+            aria-label={`Sắp xếp: ${sort}`}
+            title={`Sắp xếp: ${sort}`}
             onClick={(e) => {
               e.stopPropagation();
               onSortOpen(!sortOpen);
             }}
           >
-            <ArrowDownNarrowWide size={13} />
-            <span>Sắp xếp:</span>
-            <span className="wj-sort-val">{sort}</span>
-            <ChevronDown size={13} />
+            <ArrowDownNarrowWide size={15} strokeWidth={2} aria-hidden />
           </button>
           {sortOpen ? (
             <div className="wj-sort-pop" role="menu">
@@ -469,6 +466,7 @@ function WorldJourneyFilterBar({
           ) : null}
         </div>
       ) : null}
+      <span className="wj-filter-spacer" />
       <div className="wj-filter-trail">
         {/* Mobile/tablet: briefcase + lịch portal vào các slot này. */}
         <OrgNotifyFabHost slot="jobs" className="wj-notify-fab-host" />
@@ -904,22 +902,6 @@ export function WorldJourneyFeed({
       }
       aria-label="World Journey"
     >
-      <header className="wj-feed-header">
-        <WorldJourneyFilterBar
-          chips={filterChips}
-          activeFilter={activeFilter}
-          onFilter={setActiveFilter}
-          feedSource={feedSource}
-          onFeedSource={setFeedSource}
-          sort={sort}
-          onSort={setSort}
-          sortOpen={sortOpen}
-          onSortOpen={setSortOpen}
-          surfaceView={surfaceView}
-          onSurfaceView={handleSurfaceView}
-        />
-      </header>
-
       <div className="wj-shell">
         {leftAside ?? (
           <WorldJourneyGuestLeftAside
@@ -930,6 +912,23 @@ export function WorldJourneyFeed({
         )}
 
         <div className={`wj-feed${isGallery ? " view-grid" : ""}`}>
+          <header className="wj-feed-header">
+            <span className="j-tlb-streak-slow" aria-hidden="true" />
+            <WorldJourneyFilterBar
+              chips={filterChips}
+              activeFilter={activeFilter}
+              onFilter={setActiveFilter}
+              feedSource={feedSource}
+              onFeedSource={setFeedSource}
+              sort={sort}
+              onSort={setSort}
+              sortOpen={sortOpen}
+              onSortOpen={setSortOpen}
+              surfaceView={surfaceView}
+              onSurfaceView={handleSurfaceView}
+            />
+          </header>
+
           {pendingConfirmations}
           {!isGallery ? (
             <CinsFeedComposer

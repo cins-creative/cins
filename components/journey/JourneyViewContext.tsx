@@ -10,6 +10,12 @@ import {
 } from "react";
 
 import type { JourneyProfileView } from "@/components/journey/JourneySidebar";
+import type { ContentSurfaceView } from "@/lib/cins/content-surface-view";
+import {
+  galleryDisplayFromSearch,
+  galleryDisplayHref,
+  type GalleryDisplay,
+} from "@/lib/journey/gallery-display-url";
 
 function viewFromSearch(search: string): JourneyProfileView {
   const v = new URLSearchParams(search).get("view");
@@ -56,9 +62,27 @@ export function journeyHrefForView(
   return `/${encodeURIComponent(slug)}?${qs}`;
 }
 
+/** Map URL hồ sơ → cụm 3 view (timeline · dạng thẻ · lưới gọn). */
+export function contentSurfaceFromProfile(
+  view: JourneyProfileView,
+  search: string,
+): ContentSurfaceView {
+  if (view !== "gallery") return "timeline";
+  return galleryDisplayFromSearch(search) === "grid" ? "masonry" : "grid";
+}
+
+function galleryDisplayForSurface(
+  surface: Exclude<ContentSurfaceView, "timeline">,
+): GalleryDisplay {
+  return surface === "masonry" ? "grid" : "card";
+}
+
 type ContextValue = {
   view: JourneyProfileView;
   setView: (view: JourneyProfileView) => void;
+  /** Chế độ xem nội dung đang active trên Journey/Gallery. */
+  contentSurface: ContentSurfaceView;
+  setContentSurface: (surface: ContentSurfaceView) => void;
   slug: string;
 };
 
@@ -76,9 +100,22 @@ export function JourneyViewProvider({
   children,
 }: ProviderProps) {
   const [view, setViewState] = useState(initialView);
+  const [contentSurface, setContentSurfaceState] = useState<ContentSurfaceView>(
+    () =>
+      contentSurfaceFromProfile(
+        initialView,
+        typeof window !== "undefined" ? window.location.search : "",
+      ),
+  );
 
   useEffect(() => {
     setViewState(initialView);
+    setContentSurfaceState(
+      contentSurfaceFromProfile(
+        initialView,
+        typeof window !== "undefined" ? window.location.search : "",
+      ),
+    );
   }, [initialView]);
 
   useEffect(() => {
@@ -87,6 +124,7 @@ export function JourneyViewProvider({
     const raw = params.get("view");
     const fromUrl = viewFromSearch(window.location.search);
     setViewState((current) => (current === fromUrl ? current : fromUrl));
+    setContentSurfaceState(contentSurfaceFromProfile(fromUrl, window.location.search));
 
     // Đang xem Journey trên bare `/{slug}` (thiếu ?view=) — pin `?view=journey`
     // để F5 / router.refresh sau action không bị redirect về layout mặc định.
@@ -107,22 +145,56 @@ export function JourneyViewProvider({
   const setView = useCallback(
     (next: JourneyProfileView) => {
       setViewState(next);
+      setContentSurfaceState(
+        contentSurfaceFromProfile(next, window.location.search),
+      );
       const href = journeyHrefForView(slug, next, window.location.search);
       window.history.pushState({ journeyView: next }, "", href);
     },
     [slug],
   );
 
+  const setContentSurface = useCallback(
+    (surface: ContentSurfaceView) => {
+      if (surface === "timeline") {
+        setViewState("journey");
+        setContentSurfaceState("timeline");
+        const href = journeyHrefForView(slug, "journey", window.location.search);
+        window.history.pushState({ journeyView: "journey" }, "", href);
+        return;
+      }
+      const display = galleryDisplayForSurface(surface);
+      setViewState("gallery");
+      setContentSurfaceState(surface);
+      const href = galleryDisplayHref(slug, display, window.location.search);
+      window.history.pushState(
+        { journeyView: "gallery", galleryDisplay: display },
+        "",
+        href,
+      );
+      window.dispatchEvent(
+        new CustomEvent("cins:gallery-display", { detail: display }),
+      );
+    },
+    [slug],
+  );
+
   useEffect(() => {
     const onPopState = () => {
-      setViewState(viewFromSearch(window.location.search));
+      const nextView = viewFromSearch(window.location.search);
+      setViewState(nextView);
+      setContentSurfaceState(
+        contentSurfaceFromProfile(nextView, window.location.search),
+      );
     };
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
   }, []);
 
   return (
-    <JourneyViewContext.Provider value={{ view, setView, slug }}>
+    <JourneyViewContext.Provider
+      value={{ view, setView, contentSurface, setContentSurface, slug }}
+    >
       {children}
     </JourneyViewContext.Provider>
   );
@@ -134,4 +206,8 @@ export function useJourneyView(): ContextValue {
     throw new Error("useJourneyView must be used within JourneyViewProvider");
   }
   return ctx;
+}
+
+export function useJourneyViewOptional(): ContextValue | null {
+  return useContext(JourneyViewContext);
 }
