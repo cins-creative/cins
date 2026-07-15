@@ -46,6 +46,7 @@ import {
 import {
   resolvePostCardLayout,
   readShowCoverInPost,
+  shouldUseCoverAsVideoPoster,
   type PostCardLayout,
 } from "@/lib/journey/post-content-kind";
 import {
@@ -290,10 +291,11 @@ export function JourneyMilestoneCardBodyContent({
     !isContentOpen;
   const showArticleTextDepth =
     articleNeedsDepth && articlePeekBlocks.length === 0 && !isContentOpen;
-  /**
-   * Thumbnail gallery (`cover_id`) chỉ hiện khi expand nếu user bật
-   * «Hiển thị thumbnail trong bài viết» — tránh lộ poster khi ẩn peek.
-   */
+/**
+ * Thumbnail gallery (`cover_id`) chỉ hiện khi expand nếu user bật
+ * «Hiển thị thumbnail trong bài viết» — tránh lộ poster khi ẩn peek.
+ * `false` tường minh → ẩn; thiếu key (legacy) vẫn hiện cover trên card.
+ */
   const showArticleCoverPreview =
     Boolean(preview?.src) &&
     isArticle &&
@@ -585,7 +587,7 @@ export function JourneyMilestoneCardBodyContent({
               title={showCardTitle ? title : cardCaption || title}
               processing={videoProcessingMeta?.processing === true}
               preview={
-                preview
+                preview && shouldUseCoverAsVideoPoster(blocks)
                   ? {
                       src: preview.src,
                       width: preview.width,

@@ -333,6 +333,21 @@ export function readShowCoverInPost(
   return false;
 }
 
+/**
+ * Poster video trên card/feed: dùng `cover_id` trừ khi user tắt tường minh
+ * (`showCoverInPost === false`). Key thiếu = legacy — vẫn hiện cover trên card.
+ */
+export function shouldUseCoverAsVideoPoster(
+  blocks: ReadonlyArray<Block> | null | undefined,
+): boolean {
+  if (!blocks?.length) return true;
+  for (const block of blocks) {
+    if (!isBunnyEmbedBlock(block)) continue;
+    return block.config?.showCoverInPost !== false;
+  }
+  return true;
+}
+
 function resolveBunnyVideoMeta(
   blocks: ReadonlyArray<Block>,
 ): Pick<PostContentResolution, "videoCanvasRatio" | "videoOrientation"> {

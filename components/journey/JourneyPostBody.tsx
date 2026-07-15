@@ -296,7 +296,8 @@ export function JourneyPostBody({
 
   /**
    * `cover_id` mặc định chỉ thumb Gallery.
-   * Bài video Bunny: hiện trong thân bài khi embed config `showCoverInPost`.
+   * Bài video Bunny: hiện `cover_id` làm poster/thumb trong bài khi embed
+   * config `showCoverInPost` (card + thân bài). Mặc định ẩn → Bunny default.
    * Bài khác: giữ rule cũ (không lặp cover trên article / text / media album).
    */
   const showCoverInReadView =

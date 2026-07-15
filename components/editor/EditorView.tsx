@@ -349,11 +349,9 @@ function applyShowCoverInPostFlag(
       Boolean(bunnyId) || classifyBunnyVideoUrl(url) !== null;
     if (!isBunny) return { ...block, thu_tu: i };
     const config = { ...(block.config ?? {}) };
-    if (showCoverInPost) {
-      config.showCoverInPost = true;
-    } else {
-      delete config.showCoverInPost;
-    }
+    /* Luôn ghi boolean — tắt phải persist `false`, không chỉ xoá key
+       (tránh merge/cờ cũ khiến thumbnail vẫn hiện trên card). */
+    config.showCoverInPost = showCoverInPost;
     return { ...block, config, thu_tu: i };
   });
 }
@@ -3437,20 +3435,15 @@ export function EditorView({
                 beginImageUpload(cropped, onPick, onResolved),
               )
             }
+            showCoverInPost={
+              isBunnyVideoCompose && coverSeed ? showCoverInPost : undefined
+            }
+            onShowCoverInPostChange={
+              isBunnyVideoCompose && coverSeed
+                ? setShowCoverInPost
+                : undefined
+            }
           />
-        ) : null}
-        {isBunnyVideoCompose && coverSeed ? (
-          <label className="ed-show-cover-in-post ed-show-cover-in-post--below-cover">
-            <input
-              type="checkbox"
-              className="ed-show-cover-in-post-input"
-              checked={showCoverInPost}
-              onChange={(e) => setShowCoverInPost(e.target.checked)}
-            />
-            <span className="ed-show-cover-in-post-text">
-              Hiển thị thumbnail trong bài viết
-            </span>
-          </label>
         ) : null}
 
         {(showFullEditor || usesMinimalFlow) &&
@@ -4120,6 +4113,8 @@ function CoverArea({
   onUploadFile,
   showEmptyHint = false,
   allowPaste = true,
+  showCoverInPost,
+  onShowCoverInPostChange,
 }: {
   seed: string | null;
   uploadTrack?: ImageUploadTrack;
@@ -4135,6 +4130,9 @@ function CoverArea({
     onPick: (seed: string) => void,
     onResolved?: (from: string, to: string) => void,
   ) => void;
+  /** Bài video Bunny — hiện trong cụm thumbnail khi đã có ảnh bìa. */
+  showCoverInPost?: boolean;
+  onShowCoverInPostChange?: (next: boolean) => void;
 }) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const dragDepthRef = useRef(0);
@@ -4253,6 +4251,19 @@ function CoverArea({
             <span>Xoá</span>
           </button>
         </div>
+        {onShowCoverInPostChange ? (
+          <label className="ed-show-cover-in-post ed-show-cover-in-post--on-cover">
+            <input
+              type="checkbox"
+              className="ed-show-cover-in-post-input"
+              checked={Boolean(showCoverInPost)}
+              onChange={(e) => onShowCoverInPostChange(e.target.checked)}
+            />
+            <span className="ed-show-cover-in-post-text">
+              Hiển thị thumbnail trong bài viết
+            </span>
+          </label>
+        ) : null}
         {fileInput}
       </div>
     );
