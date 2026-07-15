@@ -75,7 +75,7 @@
   flex-direction: row;
   align-items: flex-start;
   gap: 6px;
-  max-height: 320px;
+  max-height: 440px;
   overflow-x: hidden;
   overflow-y: auto;
   scrollbar-width: none;

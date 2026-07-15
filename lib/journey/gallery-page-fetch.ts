@@ -39,7 +39,8 @@ import { videoPreviewDimensionsFromRatio } from "@/lib/journey/video-canvas-rati
 import { hideProcessingVideoFromViewer } from "@/lib/journey/video-processing-meta";
 
 export const GALLERY_SCROLL_PAGE_SIZE = 24;
-const GALLERY_ASIDE_LIMIT_PER_TYPE = 12;
+/** Aside nổi bật / grid public — đủ để người khác scan nhanh profile. */
+const GALLERY_ASIDE_LIMIT_PER_TYPE = 24;
 
 export type GalleryMainPageResult = {
   items: GalleryMainItem[];
