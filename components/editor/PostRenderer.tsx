@@ -20,7 +20,7 @@ import { PostBunnyEmbed } from "@/components/journey/PostBunnyEmbed";
 import { PostRiveFileEmbed } from "@/components/journey/PostRiveFileEmbed";
 import { PostLottieFileEmbed } from "@/components/journey/PostLottieFileEmbed";
 import { ViewportGatedEmbed } from "@/components/journey/ViewportGatedEmbed";
-import { EmbedInteractionGate } from "@/components/journey/EmbedInteractionGate";
+import { PlayCanvasScaleFit } from "@/components/journey/PlayCanvasScaleFit";
 import {
   handleBlockImageError,
   resolveImageSeedUrl,
@@ -36,6 +36,8 @@ import {
 import {
   buildEmbedIframeSrc,
   classifyEmbedUrl,
+  embedIframeAllowAttr,
+  embedIframeTitle,
 } from "@/lib/editor/embed-providers";
 import { MoTaMarkdown } from "@/components/editor/compose/MoTaMarkdown";
 
@@ -300,6 +302,20 @@ function ReadOnlyBlock({
     if (iframeSrc) {
       const canvasClass =
         cls.provider === "youtube" ? resolveEmbedCanvasClass(cfg) : "";
+      const iframe = (
+        <iframe
+          src={iframeSrc}
+          title={embedIframeTitle(cls.provider)}
+          allow={embedIframeAllowAttr(cls.provider)}
+          referrerPolicy={
+            cls.provider === "youtube" || cls.provider === "vimeo"
+              ? "strict-origin-when-cross-origin"
+              : undefined
+          }
+          allowFullScreen
+          loading={mediaAutoplay ? "eager" : "lazy"}
+        />
+      );
       return (
         <ViewportGatedEmbed
           className={
@@ -308,10 +324,11 @@ function ReadOnlyBlock({
           }
           data-provider={cls.provider}
         >
-          <EmbedInteractionGate
-            provider={cls.provider}
-            iframeSrc={iframeSrc}
-          />
+          {cls.provider === "playcanvas" ? (
+            <PlayCanvasScaleFit>{iframe}</PlayCanvasScaleFit>
+          ) : (
+            iframe
+          )}
         </ViewportGatedEmbed>
       );
     }

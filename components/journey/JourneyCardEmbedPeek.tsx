@@ -3,10 +3,14 @@
 import { useEffect, useState } from "react";
 
 import type { Block } from "@/lib/editor/types";
+import {
+  embedIframeAllowAttr,
+  embedIframeTitle,
+} from "@/lib/editor/embed-providers";
 import { PostRiveFileEmbed } from "@/components/journey/PostRiveFileEmbed";
 import { PostLottieFileEmbed } from "@/components/journey/PostLottieFileEmbed";
+import { PlayCanvasScaleFit } from "@/components/journey/PlayCanvasScaleFit";
 import { ViewportGatedEmbed } from "@/components/journey/ViewportGatedEmbed";
-import { EmbedInteractionGate } from "@/components/journey/EmbedInteractionGate";
 import {
   resolveEmbedIframePeek,
   resolveLottieFileEmbedPeek,
@@ -65,15 +69,33 @@ export function JourneyCardEmbedPeek({ body, blocks }: Props) {
   const peek = resolveEmbedIframePeek(body, blocks);
   if (!peek) return null;
 
+  const title = embedIframeTitle(peek.provider);
+  const allow = embedIframeAllowAttr(peek.provider);
+  const referrerPolicy =
+    peek.provider === "youtube" || peek.provider === "vimeo"
+      ? "strict-origin-when-cross-origin"
+      : undefined;
+  const iframe = (
+    <iframe
+      src={peek.iframeSrc}
+      title={title}
+      allow={allow}
+      referrerPolicy={referrerPolicy}
+      allowFullScreen
+      loading="lazy"
+    />
+  );
+
   return (
     <ViewportGatedEmbed
       className="preview preview--article-peek jcard-embed-peek"
       data-provider={peek.provider}
     >
-      <EmbedInteractionGate
-        provider={peek.provider}
-        iframeSrc={peek.iframeSrc}
-      />
+      {peek.provider === "playcanvas" ? (
+        <PlayCanvasScaleFit>{iframe}</PlayCanvasScaleFit>
+      ) : (
+        iframe
+      )}
     </ViewportGatedEmbed>
   );
 }
