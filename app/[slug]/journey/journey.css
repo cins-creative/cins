@@ -546,7 +546,7 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   color: var(--ink-title);
   white-space: pre-wrap;
   word-break: break-word;
-  text-align: center;
+  text-align: left;
 }
 
 /* Info rows */
@@ -554,19 +554,19 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   margin-top: 14px;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   gap: 7px;
 }
 .j-info-row {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 10px;
   font-size: 13px;
   color: var(--ink-body);
   padding: 5px 0;
   line-height: 1.4;
-  text-align: center;
+  text-align: left;
 }
 .j-info-ico {
   display: inline-flex;
@@ -13219,7 +13219,8 @@ select.j-edit-input {
   gap: 6px;
   flex: 0 0 auto;
 }
-/* Menu "..." / Đẩy World trong datebar: đẩy sang cạnh phải của hàng header. */
+/* Menu "..." / Đẩy World trong datebar: nằm cạnh badge-row (không thêm
+   margin-left:auto thứ hai — hai auto sẽ chia space và để badge “lơ lửng”). */
 .jcard-datebar .jcard-corner-actions {
   position: static;
   top: auto;
@@ -13227,6 +13228,10 @@ select.j-edit-input {
   left: auto;
   z-index: 14;
   flex: 0 0 auto;
+  margin-left: 0;
+}
+/* Không có badge-row → corner tự kéo phải. */
+.jcard-datebar:not(:has(.badge-row)) .jcard-corner-actions {
   margin-left: auto;
 }
 .jcard-corner-actions .jcard-viewer-menu {
