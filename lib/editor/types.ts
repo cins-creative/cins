@@ -25,7 +25,8 @@ export type Block = {
    *   - h2/h3/body/quote: { html: string }  — plain text từ textarea, server tự escape khi render.
    *   - imgs: { layout, rounded, cap, imgs: string[], width?, height?, cols?, cells?, gap?, pad? }
    *     Mỗi phần tử `imgs[]` / mosaic `seed`: Cloudflare UUID hoặc URL http(s) đầy đủ.
-   *   - embed: { url, provider?, embed_html? }
+   *   - embed: { url, provider?, embed_html?, showCoverInPost?, bunnyVideoId?, videoCanvasRatio? }
+   *     `showCoverInPost` — hiện `cover_id` trong thân bài khi xem (mặc định ẩn).
    *   - palette: { colors: string[] }
    *   - divider: {}
    *   - spacer: { size: "s" | "m" | "l" }

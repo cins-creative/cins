@@ -234,10 +234,14 @@ export function JourneyProfileShell({
             <JourneyFeaturedAsideSection
               ownerId={owner.id}
               ownerSlug={owner.slug}
+              isOwner={isOwner}
             />
           </Suspense>
         ) : (
-          <JourneyFeaturedAsideOnDemand ownerSlug={owner.slug} />
+          <JourneyFeaturedAsideOnDemand
+            ownerSlug={owner.slug}
+            isOwner={isOwner}
+          />
         )
       }
     />

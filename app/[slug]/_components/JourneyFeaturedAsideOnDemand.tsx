@@ -13,10 +13,18 @@ type AsidePayload = {
   pinned: GalleryPinnedBanner[];
 };
 
+type Props = {
+  ownerSlug: string;
+  isOwner?: boolean;
+};
+
 /**
  * Cột gallery phải — chỉ fetch khi user chuyển sang Journey (server không prefetch).
  */
-export function JourneyFeaturedAsideOnDemand({ ownerSlug }: { ownerSlug: string }) {
+export function JourneyFeaturedAsideOnDemand({
+  ownerSlug,
+  isOwner = false,
+}: Props) {
   const { view } = useJourneyView();
   const [pinned, setPinned] = useState<GalleryPinnedBanner[] | null>(null);
   const [loading, setLoading] = useState(false);
@@ -49,6 +57,10 @@ export function JourneyFeaturedAsideOnDemand({ ownerSlug }: { ownerSlug: string 
   }
 
   return (
-    <JourneyFeaturedAsidePanel ownerSlug={ownerSlug} initialPinned={pinned} />
+    <JourneyFeaturedAsidePanel
+      ownerSlug={ownerSlug}
+      initialPinned={pinned}
+      isOwner={isOwner}
+    />
   );
 }

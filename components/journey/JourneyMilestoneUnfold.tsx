@@ -2,7 +2,7 @@
 
 import { Loader2 } from "lucide-react";
 import type { ReactNode } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import type { MilestonePostDetail } from "@/lib/journey/milestone-post-types";
 import { JourneyPostBody } from "@/components/journey/JourneyPostBody";
@@ -53,6 +53,9 @@ export function JourneyMilestoneUnfold({
   );
   const loadGenRef = useRef(0);
   const mountedRef = useRef(true);
+  /** Snapshot scroll lúc bắt đầu xổ — khôi phục khi detail async đổ vào (bài dài). */
+  const expandScrollYRef = useRef<number | null>(null);
+  const didRestoreScrollRef = useRef(false);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -69,8 +72,14 @@ export function JourneyMilestoneUnfold({
 
   useEffect(() => {
     if (!active) {
+      expandScrollYRef.current = null;
+      didRestoreScrollRef.current = false;
       setLoading(false);
       return;
+    }
+    if (expandScrollYRef.current == null) {
+      expandScrollYRef.current = window.scrollY;
+      didRestoreScrollRef.current = false;
     }
 
     const cached = readCachedMilestoneDetail(cacheKey);
@@ -107,6 +116,16 @@ export function JourneyMilestoneUnfold({
         setLoading(false);
       });
   }, [active, cacheKey, milestoneId, postOwnerSlug, postSlug]);
+
+  useLayoutEffect(() => {
+    if (!active || !detail || loading) return;
+    if (commentsFocus) return;
+    if (didRestoreScrollRef.current) return;
+    const y = expandScrollYRef.current;
+    if (y == null) return;
+    didRestoreScrollRef.current = true;
+    window.scrollTo({ top: y, left: 0, behavior: "instant" });
+  }, [active, detail, loading, commentsFocus]);
 
   useEffect(() => {
     const onComposePublished = (event: Event) => {

@@ -51,7 +51,10 @@ import {
   partitionBlocksForSplitRail,
   shouldMovePostTextToSplitRail,
 } from "@/lib/journey/post-media";
-import { resolvePostDisplayKind } from "@/lib/journey/post-content-kind";
+import {
+  readShowCoverInPost,
+  resolvePostDisplayKind,
+} from "@/lib/journey/post-content-kind";
 import { getAvatarUrl } from "@/lib/journey/profile";
 
 import { PostActionsRail, PostShareMenu } from "./PostActionsRail";
@@ -291,13 +294,19 @@ export function JourneyPostBody({
     ? `cins-editor-page cins-post-view j-m-unfold-post${mediaPost ? " j-m-unfold-post--media" : ""}${isTextPost ? " j-m-unfold-post--chi-chu" : ""}${commentsOnlyInline ? " j-m-unfold-post--comments-only" : ""}`
     : `cins-editor-page cins-post-view editor-canvas post-canvas${mediaPost ? " post-canvas--media" : ""}${isTextPost ? " post-canvas--chi-chu" : ""}${isSplit ? " post-canvas--split" : ""}`;
 
-  /** `cover_id` chỉ thumb Gallery — bài viết dài không lặp ảnh bìa khi đọc. */
+  /**
+   * `cover_id` mặc định chỉ thumb Gallery.
+   * Bài video Bunny: hiện trong thân bài khi embed config `showCoverInPost`.
+   * Bài khác: giữ rule cũ (không lặp cover trên article / text / media album).
+   */
   const showCoverInReadView =
     variant === "full" &&
-    !mediaPost &&
-    !isTextPost &&
     Boolean(coverSeed) &&
-    postDisplayKind.kind !== "article";
+    (postDisplayKind.kind === "bunny_video"
+      ? readShowCoverInPost(blocks)
+      : !mediaPost &&
+        !isTextPost &&
+        postDisplayKind.kind !== "article");
   const coverEl = showCoverInReadView ? <PostCover seed={coverSeed} /> : null;
 
   const heroEl =

@@ -22,12 +22,12 @@ export const COMPOSE_PREVIEW_LABELS: Record<
     hint: "Timeline: album / hero cover — hiện trên lưới",
   },
   video: {
-    label: "Video Bunny",
-    hint: "Chỉ tiêu đề, mô tả và video — poster lên lưới khi encode xong",
+    label: "Video",
+    hint: "Chỉ video + mô tả ngắn — poster lên lưới khi encode xong",
   },
   article: {
     label: "Bài viết",
-    hint: "Bài dài nhiều block — thumb trên lưới nếu có ảnh/cover",
+    hint: "Bài dài nhiều block (video có thể ở đầu) — thumb trên lưới nếu có ảnh/cover",
   },
 };
 
@@ -110,6 +110,20 @@ export function inferComposePreviewKindFromEditor(
     (b) => b.t === "embed" && Boolean(b.embedUrl?.trim()),
   );
   const hasImgs = blocks.some(editorBlockHasImageSeed);
+  const hasArticleCompanion = blocks.some(
+    (b) =>
+      b.t === "h2" ||
+      b.t === "h3" ||
+      b.t === "quote" ||
+      b.t === "divider" ||
+      b.t === "palette" ||
+      editorBlockHasImageSeed(b),
+  );
+
+  /* Video + block bài viết dài (kể cả ảnh blob chưa lên server) → badge Bài viết. */
+  if (hasEmbed && hasArticleCompanion) {
+    return "article";
+  }
 
   if (hasEmbed && !hasImgs) {
     return inferComposePreviewKind(serverBlocks, coverSeed, moTa);

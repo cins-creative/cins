@@ -166,6 +166,7 @@ export function resolveEditComposeIntent(
     blocks: blocks ?? [],
     moTa: moTa ?? null,
   }).kind;
+  if (kind === "bunny_video") return "video";
   if (kind === "article") return "full";
   return "minimal";
 }

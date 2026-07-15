@@ -106,21 +106,8 @@
   overflow: hidden;
   background: var(--neutral-100, #f1f2f5);
   color: inherit;
-  cursor: pointer;
-}
-
-.j-user-featured-tile:disabled {
-  cursor: default;
-  opacity: 0.72;
-}
-
-.j-user-featured-tile:not(:disabled):hover {
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--cins-blue) 35%, transparent);
-}
-
-.j-user-featured-tile:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--cins-blue) 55%, transparent);
-  outline-offset: 1px;
+  pointer-events: none;
+  user-select: none;
 }
 
 .j-user-featured-tile > img,
@@ -135,21 +122,33 @@
   display: block;
 }
 
+/* Nửa kích thước gallery (40→20); reset inset overlay cũ + giữ translate center. */
 .j-user-featured-tile .j-g-play {
   position: absolute;
-  inset: 0;
+  top: 50%;
+  left: 50%;
+  right: auto;
+  bottom: auto;
   z-index: 1;
+  width: 20px;
+  height: 20px;
+  transform: translate(-50%, -50%);
   display: flex;
   align-items: center;
   justify-content: center;
   color: #fff;
   pointer-events: none;
-  background: rgba(15, 23, 42, 0.18);
+  border-width: 1px;
+  background: rgba(15, 23, 42, 0.72);
+  box-shadow:
+    0 2px 8px rgba(15, 23, 42, 0.4),
+    0 0 0 1px rgba(15, 23, 42, 0.1);
 }
 
 .j-user-featured-tile .j-g-play svg {
-  width: 18px;
-  height: 18px;
+  width: 9px;
+  height: 9px;
+  margin-left: 1px;
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45));
 }
 

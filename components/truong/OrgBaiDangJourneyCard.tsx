@@ -270,6 +270,25 @@ export function OrgBaiDangJourneyCard({
       data-scheduled={showScheduledUi ? "true" : undefined}
     >
       <div className="j-m-body-wrap">
+        {showUnfold || showChiChuUnfold ? (
+          <div className="jcard-unfold-sticky">
+            <button
+              type="button"
+              className="jcard-unfold-toggle"
+              onClick={() => {
+                if (showChiChuUnfold) {
+                  setChiChuExpanded(false);
+                  return;
+                }
+                setExpanded(false);
+              }}
+              aria-label="Thu gọn"
+            >
+              <ChevronUp size={15} strokeWidth={2.2} aria-hidden />
+              <span>Thu gọn</span>
+            </button>
+          </div>
+        ) : null}
         <div
           className={
             useUnifiedMediaBody
@@ -362,21 +381,6 @@ export function OrgBaiDangJourneyCard({
                   </div>
                 </div>
               ) : null}
-
-              {showUnfold ? (
-                <div className="jcard-actions">
-                  <span className="action-spacer" aria-hidden />
-                  <button
-                    type="button"
-                    className="jcard-unfold-toggle"
-                    onClick={() => setExpanded(false)}
-                    aria-label="Thu gọn"
-                  >
-                    <ChevronUp size={15} strokeWidth={2.2} aria-hidden />
-                    <span>Thu gọn</span>
-                  </button>
-                </div>
-              ) : null}
             </>
           ) : (
             <div className="jcard-body org-baidang-body">
@@ -448,17 +452,6 @@ export function OrgBaiDangJourneyCard({
               initialCount={post.bookmarkCount}
             />
             <span className="action-spacer" />
-            {showChiChuUnfold ? (
-              <button
-                type="button"
-                className="jcard-unfold-toggle"
-                onClick={() => setChiChuExpanded(false)}
-                aria-label="Thu gọn"
-              >
-                <ChevronUp size={15} strokeWidth={2.2} aria-hidden />
-                <span>Thu gọn</span>
-              </button>
-            ) : null}
           </div>
         </div>
       </div>

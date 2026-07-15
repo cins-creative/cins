@@ -11,6 +11,8 @@ import { useJourneyView } from "@/components/journey/JourneyViewContext";
 type Props = {
   ownerSlug: string;
   initialPinned: ReadonlyArray<GalleryPinnedBanner>;
+  /** Chỉ chủ Journey được kéo sắp cột nổi bật. */
+  isOwner?: boolean;
 };
 
 type AsidePayload = {
@@ -22,6 +24,7 @@ type AsidePayload = {
 export function JourneyFeaturedAsidePanel({
   ownerSlug,
   initialPinned,
+  isOwner = false,
 }: Props) {
   const { view } = useJourneyView();
   const [pinned, setPinned] = useState<GalleryPinnedBanner[]>(() => [
@@ -41,6 +44,32 @@ export function JourneyFeaturedAsidePanel({
       /* ignore */
     }
   }, [ownerSlug]);
+
+  const reorderPinned = useCallback(
+    async (cotMocIds: string[]) => {
+      const res = await fetch(
+        `/api/journey/${encodeURIComponent(ownerSlug)}/gallery-aside`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ cotMocIds }),
+        },
+      );
+      if (!res.ok) {
+        throw new Error("reorder failed");
+      }
+      const data = (await res.json()) as { pinned?: GalleryPinnedBanner[] };
+      if (Array.isArray(data.pinned)) {
+        setPinned(data.pinned);
+      }
+      window.dispatchEvent(
+        new CustomEvent("cins:journey-gallery-sync", {
+          detail: { ownerSlug },
+        }),
+      );
+    },
+    [ownerSlug],
+  );
 
   useEffect(() => {
     setPinned([...initialPinned]);
@@ -73,6 +102,8 @@ export function JourneyFeaturedAsidePanel({
       totalTacPham={0}
       pinned={pinned}
       featuredOnly
+      canReorder={isOwner}
+      onReorderPinned={isOwner ? reorderPinned : undefined}
     />
   );
 }

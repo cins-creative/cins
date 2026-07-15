@@ -18,6 +18,10 @@ import type { MilestoneFilterCounts } from "@/lib/journey/milestones-page-fetch"
 import { attachPersonalFiltersToGalleryItems } from "@/lib/filter/attach-milestones";
 import type { PersonalFilterRef } from "@/lib/filter/types";
 import {
+  fetchGalleryNoiBatOrderMap,
+  sortPinnedByNoiBatOrder,
+} from "@/lib/journey/gallery-noi-bat-order";
+import {
   collectGalleryStubs,
   resolveOwnerProfiles,
   type GalleryStub,
@@ -239,14 +243,24 @@ function hydrateAsideItems(
   ownerSlug: string,
   ownerSlugById: Map<string, string>,
   ownerProfileById?: Map<string, OwnerProfile>,
+  noiBatOrder?: Map<string, number>,
 ): {
   pinned: GalleryPinnedBanner[];
   items: GalleryGridItem[];
   totalTacPham: number;
 } {
-  const featureEntries = stubs
+  // Mặc định: bài đăng mới nhất (tao_luc) lên trước — không theo năm thoi_diem.
+  const featureNewestFirst = stubs
     .filter((x) => x.visibility === "feature")
-    .slice(0, GALLERY_ASIDE_LIMIT_PER_TYPE);
+    .slice()
+    .sort((a, b) => {
+      if (a.taoLuc !== b.taoLuc) return a.taoLuc > b.taoLuc ? -1 : 1;
+      return a.thoiDiem > b.thoiDiem ? -1 : a.thoiDiem < b.thoiDiem ? 1 : 0;
+    });
+  const featureEntries = sortPinnedByNoiBatOrder(
+    featureNewestFirst,
+    noiBatOrder ?? new Map(),
+  ).slice(0, GALLERY_ASIDE_LIMIT_PER_TYPE);
   const publicEntries = stubs
     .filter((x) => x.visibility === "public")
     .slice(0, GALLERY_ASIDE_LIMIT_PER_TYPE);
@@ -379,10 +393,21 @@ export async function fetchGalleryForUser(params: {
   }
 
   const admin = createServiceRoleClient();
-  const ownerIds = [...new Set(stubs.map((x) => x.postOwnerId))];
-  const ownerProfileById = await resolveOwnerProfiles(admin, ownerIds);
+  const [ownerProfileById, noiBatOrder] = await Promise.all([
+    resolveOwnerProfiles(
+      admin,
+      [...new Set(stubs.map((x) => x.postOwnerId))],
+    ),
+    fetchGalleryNoiBatOrderMap(userId),
+  ]);
   const ownerSlugById = new Map(
     [...ownerProfileById].map(([id, profile]) => [id, profile.slug]),
   );
-  return hydrateAsideItems(stubs, ownerSlug, ownerSlugById, ownerProfileById);
+  return hydrateAsideItems(
+    stubs,
+    ownerSlug,
+    ownerSlugById,
+    ownerProfileById,
+    noiBatOrder,
+  );
 }

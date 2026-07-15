@@ -135,6 +135,25 @@ function JourneyMirrorBody({
 
   return (
     <div className="j-m-body-wrap">
+      {showUnfoldToggle ? (
+        <div className="jcard-unfold-sticky">
+          <button
+            type="button"
+            className="jcard-unfold-toggle"
+            onClick={() => {
+              if (showChiChuUnfold) {
+                setChiChuExpanded(false);
+                return;
+              }
+              onCollapse?.();
+            }}
+            aria-label="Thu gọn"
+          >
+            <ChevronUp size={15} strokeWidth={2.2} aria-hidden />
+            <span>Thu gọn</span>
+          </button>
+        </div>
+      ) : null}
       <div
         className={
           "j-m-card jcard jcard--" +
@@ -166,27 +185,6 @@ function JourneyMirrorBody({
         {showUnfold ? (
           <div className="j-m-card-unfold" data-open="true" aria-hidden={false}>
             {unfold}
-          </div>
-        ) : null}
-
-        {showUnfoldToggle ? (
-          <div className="jcard-actions">
-            <span className="action-spacer" aria-hidden />
-            <button
-              type="button"
-              className="jcard-unfold-toggle"
-              onClick={() => {
-                if (showChiChuUnfold) {
-                  setChiChuExpanded(false);
-                  return;
-                }
-                onCollapse?.();
-              }}
-              aria-label="Thu gọn"
-            >
-              <ChevronUp size={15} strokeWidth={2.2} aria-hidden />
-              <span>Thu gọn</span>
-            </button>
           </div>
         ) : null}
       </div>

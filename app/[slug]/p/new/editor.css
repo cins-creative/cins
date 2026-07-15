@@ -1430,6 +1430,8 @@
 .cins-editor-page .block.selected {
   box-shadow: 0 0 0 2px var(--cins-blue);
   background: var(--cins-blue-soft);
+  /* Đè AddZone kề nhau — tránh click ▲▼✕ lệch sang nút +. */
+  z-index: 5;
 }
 
 /* Side controls */
@@ -1443,6 +1445,8 @@
   opacity: 0;
   transition: opacity 0.15s;
   z-index: 6;
+  /* Ẩn hẳn hit-test khi chưa chọn — không chặn click nhầm. */
+  pointer-events: none;
 }
 .cins-editor-page .block-side::before {
   content: "";
@@ -1452,9 +1456,9 @@
   width: 14px;
   height: 100%;
 }
-.cins-editor-page .block:hover .block-side,
 .cins-editor-page .block.selected .block-side {
   opacity: 1;
+  pointer-events: auto;
 }
 .cins-editor-page .side-btn {
   width: 30px;
@@ -1862,7 +1866,7 @@
 }
 .cins-editor-page .imgwrap {
   display: block;
-  background: #fff;
+  background: var(--bg-surface);
 }
 .cins-editor-page .imgwrap.rounded {
   border-radius: var(--radius-md);
@@ -1994,7 +1998,7 @@
 
 .cins-editor-page .ph {
   position: relative;
-  background: #fff;
+  background: var(--bg-surface);
   overflow: hidden;
 }
 .cins-editor-page .ph.is-draggable {
@@ -2088,12 +2092,12 @@
   margin-top: 8px;
 }
 
-/* Layout switcher (image block) */
+/* Layout switcher (image block) — giữa khung ảnh, tránh đè nút xoá góc ô. */
 .cins-editor-page .lay-bar {
   position: absolute;
-  top: 10px;
+  top: 50%;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translate(-50%, -50%);
   display: flex;
   gap: 3px;
   background: rgba(14, 17, 23, 0.82);
@@ -2178,12 +2182,12 @@
 .cins-editor-page .block.selected .ph:hover .ph-actions {
   opacity: 1;
 }
-/* Nút xoá ảnh (góc phải trên mỗi ô). */
+/* Nút xoá ảnh (góc phải trên mỗi ô) — trên lay-bar để không bị che. */
 .cins-editor-page .ph-del {
   position: absolute;
   top: 6px;
   right: 6px;
-  z-index: 4;
+  z-index: 7;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -2290,6 +2294,16 @@
 .cins-editor-page .img-add-btn:hover {
   border-color: var(--cins-blue);
   color: var(--cins-blue);
+}
+.cins-editor-page .img-add-btn--primary {
+  border-style: solid;
+  border-color: rgba(31, 116, 201, 0.35);
+  background: var(--cins-blue-soft, #e8f2fb);
+  color: var(--cins-blue-dark, #1a5a9c);
+}
+.cins-editor-page .img-add-btn--primary:hover {
+  border-color: var(--cins-blue);
+  background: color-mix(in srgb, var(--cins-blue-soft, #e8f2fb) 70%, #fff);
 }
 .cins-editor-page .ph-change {
   display: inline-flex;
@@ -2453,9 +2467,13 @@
   left: 50%;
   transform: translate(-50%, -50%);
   opacity: 0;
+  /* opacity:0 vẫn bắt click — tắt hit-test khi ẩn để không đè ▲▼✕ / nội dung. */
+  pointer-events: none;
 }
-.cins-editor-page .add-zone:hover .add-btn {
+.cins-editor-page .add-zone:hover .add-btn,
+.cins-editor-page .add-zone.open .add-btn {
   opacity: 1;
+  pointer-events: auto;
 }
 .cins-editor-page .add-btn:hover,
 .cins-editor-page .add-zone.open .add-btn {
@@ -2514,6 +2532,7 @@
     border-color: var(--border-strong);
     color: var(--ink-body);
     box-shadow: var(--shadow-xs);
+    pointer-events: auto;
   }
   .cins-editor-page .add-zone:not(.starter)::before {
     opacity: 0.12;
@@ -3821,9 +3840,10 @@
 .cins-editor-page.mc-compose-page .mc-photo-preview:hover .lay-bar,
 .cins-editor-page.mc-compose-page .mc-photo-preview.is-active .lay-bar {
   opacity: 1;
+  top: 50%;
   left: 50%;
   right: auto;
-  transform: translateX(-50%);
+  transform: translate(-50%, -50%);
   max-width: calc(100% - 20px);
   width: max-content;
   flex-wrap: nowrap;

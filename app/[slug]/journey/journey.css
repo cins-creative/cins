@@ -3640,10 +3640,12 @@ a.j-main-gallery-item:focus-visible {
   box-shadow:
     0 4px 6px rgba(15, 23, 42, 0.04),
     0 20px 44px rgba(15, 23, 42, 0.1);
-  transform: translateY(-1px);
+  /* Không transform — sticky «Thu gọn» trong `.j-m-card-main` cần bám viewport. */
+  transform: none;
 }
 .j-m-card.jcard.is-expanded {
-  overflow: hidden;
+  /* visible: sticky trong main không bị clip; bo góc dưới = actions/tags. */
+  overflow: visible;
   border-radius: 22px;
 }
 .jcard-body.is-expand-trigger:focus-visible {
@@ -4330,21 +4332,22 @@ a.j-main-gallery-item:focus-visible {
   transform: translateY(8px);
   pointer-events: none;
 }
-/* Khối nội dung xổ — grid 0fr→1fr mượt hơn max-height cố định */
+/* Khối nội dung xổ — mở chiều cao tức thì (không animate 0fr→1fr:
+   bài dài hàng nghìn px sẽ kéo viewport xuống cuối nếu interpolate height). */
 .j-m-card-unfold {
   display: grid;
   grid-template-rows: 0fr;
   opacity: 0;
   overflow: hidden;
+  overflow-anchor: none;
   border-top: 1px solid transparent;
   margin-top: 0;
   padding-top: 0;
   transition:
-    grid-template-rows var(--j-unfold-dur, 0.48s) var(--j-unfold-ease, cubic-bezier(0.22, 1, 0.36, 1)),
-    opacity 0.38s var(--j-unfold-ease, cubic-bezier(0.22, 1, 0.36, 1)),
-    border-color 0.32s ease,
-    margin-top 0.32s var(--j-unfold-ease, cubic-bezier(0.22, 1, 0.36, 1)),
-    padding-top 0.32s var(--j-unfold-ease, cubic-bezier(0.22, 1, 0.36, 1));
+    opacity 0.28s var(--j-unfold-ease, cubic-bezier(0.22, 1, 0.36, 1)),
+    border-color 0.24s ease,
+    margin-top 0.24s var(--j-unfold-ease, cubic-bezier(0.22, 1, 0.36, 1)),
+    padding-top 0.24s var(--j-unfold-ease, cubic-bezier(0.22, 1, 0.36, 1));
 }
 .j-m-card-unfold[data-open="true"] {
   grid-template-rows: 1fr;
@@ -4373,15 +4376,12 @@ a.j-main-gallery-item:focus-visible {
   min-height: 0;
   max-width: 100%;
   overflow: hidden;
+  overflow-anchor: none;
   background: var(--bg-surface, #fff);
-  transform: translateY(12px);
-  opacity: 0.92;
-  transition:
-    transform var(--j-unfold-dur, 0.48s) var(--j-unfold-ease, cubic-bezier(0.22, 1, 0.36, 1)),
-    opacity 0.36s var(--j-unfold-ease, cubic-bezier(0.22, 1, 0.36, 1));
+  opacity: 0.96;
+  transition: opacity 0.28s var(--j-unfold-ease, cubic-bezier(0.22, 1, 0.36, 1));
 }
 .j-m-card-unfold[data-open="true"] > .j-m-card-unfold-inner {
-  transform: translateY(0);
   opacity: 1;
   overflow-x: hidden;
   overflow-y: visible;
@@ -4794,6 +4794,27 @@ a.j-main-gallery-item:focus-visible {
 .j-m-unfold-post .post-contributors {
   padding-inline: 16px;
 }
+/* Phạm vi neo sticky «Thu gọn» — kết thúc trước action bar. */
+.j-m-card-main {
+  position: relative;
+  min-width: 0;
+}
+
+/* Dock sticky trong `.j-m-card-main` (không gồm jcard-actions):
+   bám đáy viewport khi cuộn nội dung; lúc chạm đáy main thì dừng trên action bar. */
+.jcard-unfold-sticky {
+  position: sticky;
+  top: calc(100dvh - 16px - env(safe-area-inset-bottom, 0px));
+  z-index: 30;
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-start;
+  height: 0;
+  margin: 0;
+  padding: 0 12px;
+  pointer-events: none;
+  overflow-anchor: none;
+}
 .jcard-unfold-toggle {
   display: inline-flex;
   align-items: center;
@@ -4808,6 +4829,17 @@ a.j-main-gallery-item:focus-visible {
   cursor: pointer;
   animation: j-unfold-toggle-in 0.36s var(--j-unfold-ease, cubic-bezier(0.22, 1, 0.36, 1)) both;
 }
+.jcard-unfold-sticky .jcard-unfold-toggle {
+  pointer-events: auto;
+  transform: translateY(calc(-100% - 12px));
+  background: color-mix(in srgb, var(--bg-surface, #fff) 88%, var(--cins-blue, #1f74c9));
+  box-shadow:
+    0 2px 10px rgba(15, 23, 42, 0.14),
+    0 0 0 1px rgba(31, 116, 201, 0.12);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  animation-name: j-unfold-sticky-in;
+}
 @keyframes j-unfold-toggle-in {
   from {
     opacity: 0;
@@ -4818,8 +4850,21 @@ a.j-main-gallery-item:focus-visible {
     transform: translateY(0);
   }
 }
+@keyframes j-unfold-sticky-in {
+  from {
+    opacity: 0;
+    transform: translateY(calc(-100% - 6px));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(calc(-100% - 12px));
+  }
+}
 .jcard-unfold-toggle:hover {
   background: rgba(31, 116, 201, 0.16);
+}
+.jcard-unfold-sticky .jcard-unfold-toggle:hover {
+  background: color-mix(in srgb, var(--bg-surface, #fff) 78%, var(--cins-blue, #1f74c9));
 }
 /* Legacy stretched-link — không dùng trên timeline unfold. */
 .j-m-card-hit,
@@ -4853,7 +4898,7 @@ button.j-m-card-hit {
   transform: none;
 }
 .j-m-card.has-unfold.is-expanded:hover {
-  transform: translateY(-1px);
+  transform: none;
 }
 @media (prefers-reduced-motion: reduce) {
   .j-m-card.has-unfold,
@@ -4862,7 +4907,8 @@ button.j-m-card-hit {
   .j-m-card-unfold,
   .j-m-card-unfold > .j-m-card-unfold-inner,
   .jcard-expand-cta,
-  .jcard-unfold-toggle {
+  .jcard-unfold-toggle,
+  .jcard-unfold-sticky .jcard-unfold-toggle {
     transition-duration: 0.01ms !important;
     animation: none !important;
   }
@@ -4881,7 +4927,7 @@ button.j-m-card-hit {
 }
 .j-milestone.j-tagged .j-m-card.is-expanded,
 .j-milestone.j-tagged .j-m-card.jcard.is-expanded {
-  overflow: hidden;
+  overflow: visible;
   border-radius: 22px;
 }
 .j-milestone.j-tagged .j-m-card:hover {
@@ -7162,16 +7208,106 @@ button.j-m-card-hit {
 }
 /* Pinned section — cao theo ảnh; >8 bài → masonry 2 cột */
 .j-g-pinned {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
   margin-bottom: 18px;
 }
 .j-g-pinned--masonry {
+  display: block;
   column-count: 2;
   column-gap: 10px;
 }
+.j-g-pinned--masonry .j-g-banner-slot,
 .j-g-pinned--masonry .j-g-banner {
   break-inside: avoid;
   -webkit-column-break-inside: avoid;
   page-break-inside: avoid;
+}
+.j-g-pinned--masonry .j-g-banner-slot {
+  margin-bottom: 10px;
+}
+.j-g-pinned--reorder.is-saving {
+  opacity: 0.72;
+  pointer-events: none;
+}
+/* Masonry + kéo sắp: hit-zone cuối chiếm full chiều ngang cột */
+.j-g-pinned--masonry.j-g-pinned--reorder > .j-g-banner-insert-hit,
+.j-g-pinned--masonry.j-g-pinned--reorder > .j-g-banner-insert {
+  break-inside: avoid;
+  column-span: all;
+}
+.j-g-banner-slot {
+  display: block;
+}
+/* Banner trong wrap không còn là last-child của `.j-g-pinned` — gap ở container */
+.j-g-pinned .j-g-banner {
+  margin-bottom: 0;
+}
+.j-g-banner-wrap {
+  position: relative;
+}
+.j-g-banner-wrap.is-dragging {
+  opacity: 0.45;
+}
+.j-g-banner-wrap.is-drop-target .j-g-banner {
+  outline: 2px solid color-mix(in srgb, var(--cins-blue) 55%, transparent);
+  outline-offset: 2px;
+}
+.j-g-banner-drag {
+  position: absolute;
+  z-index: 4;
+  top: 8px;
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--bg-surface) 90%, transparent);
+  color: var(--ink-muted);
+  cursor: grab;
+  box-shadow: var(--shadow-xs);
+  appearance: none;
+  backdrop-filter: blur(6px);
+}
+.j-g-banner-drag:hover {
+  color: var(--ink-display);
+  background: var(--bg-surface);
+  border-color: var(--border-strong);
+}
+.j-g-banner-drag:active {
+  cursor: grabbing;
+}
+:root[data-theme="dark"] .j-g-banner-drag {
+  background: color-mix(in srgb, var(--neutral-100) 88%, transparent);
+  border-color: color-mix(in srgb, var(--border-strong) 80%, transparent);
+  color: var(--ink-title);
+  box-shadow: var(--shadow-sm);
+}
+:root[data-theme="dark"] .j-g-banner-drag:hover {
+  background: var(--neutral-200);
+  color: var(--ink-display);
+  border-color: var(--border-strong);
+}
+.j-g-banner-insert,
+.j-g-banner-insert.is-active {
+  height: 4px;
+  margin: 2px 0 8px;
+  border-radius: 2px;
+  background: var(--cins-blue);
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+.j-g-banner-insert.is-active {
+  opacity: 1;
+}
+.j-g-banner-insert-hit {
+  height: 12px;
+  margin-top: -4px;
 }
 .j-g-pinned-label {
   font-size: 9px;
@@ -7211,11 +7347,11 @@ button.j-g-banner:disabled {
   cursor: default;
   opacity: 0.72;
 }
-.j-g-banner:last-child {
+.j-g-pinned > .j-g-banner:last-child {
   margin-bottom: 0;
 }
-.j-g-pinned--masonry .j-g-banner:last-child {
-  margin-bottom: 10px;
+.j-g-pinned--masonry .j-g-banner-slot:last-child {
+  margin-bottom: 0;
 }
 .j-g-banner-bg {
   display: block;
@@ -7364,15 +7500,27 @@ button.j-g-item:disabled {
   height: 16px;
   border-radius: 5px;
 }
-/* Gallery aside — banner 16:9 rộng hơn → nút play to hơn một chút. */
+/* Gallery aside — nút play gọn trên cột hẹp / masonry 2 cột. */
 .j-g-banner .j-g-play {
-  width: 44px;
-  height: 44px;
+  width: 28px;
+  height: 28px;
+  border-width: 1.5px;
+  box-shadow:
+    0 2px 8px rgba(15, 23, 42, 0.4),
+    0 0 0 1px rgba(15, 23, 42, 0.1);
 }
 .j-g-banner .j-g-play svg {
-  width: 20px;
-  height: 20px;
-  margin-left: 2px;
+  width: 12px;
+  height: 12px;
+  margin-left: 1px;
+}
+.j-g-pinned--masonry .j-g-banner .j-g-play {
+  width: 24px;
+  height: 24px;
+}
+.j-g-pinned--masonry .j-g-banner .j-g-play svg {
+  width: 10px;
+  height: 10px;
 }
 .j-g-banner:hover .j-main-gallery-overlay,
 .j-g-banner:focus-visible .j-main-gallery-overlay,
@@ -9792,6 +9940,36 @@ select.j-edit-input {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.ed-show-cover-in-post {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 2px 0;
+  cursor: pointer;
+  user-select: none;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-body, #334155);
+  line-height: 1.35;
+}
+
+.ed-show-cover-in-post-input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--cins-blue, #2563eb);
+  flex-shrink: 0;
+}
+
+.ed-show-cover-in-post-text {
+  min-width: 0;
+}
+
+.ed-show-cover-in-post--below-cover {
+  margin: 8px 0 4px;
 }
 
 .ed-minimal-tool--cover {
@@ -12436,6 +12614,11 @@ select.j-edit-input {
 .j-m-card.jcard.is-expanded > .jcard-actions:last-of-type {
   border-bottom-left-radius: 22px;
   border-bottom-right-radius: 22px;
+  overflow: hidden;
+}
+.j-m-card.jcard.is-expanded > .jcard-actions {
+  position: relative;
+  z-index: 31;
 }
 .j-m-card.jcard.is-expanded:has(.j-m-tags) > .jcard-actions {
   border-bottom-left-radius: 0;
@@ -14148,7 +14331,7 @@ select.j-edit-input {
 .j-m-card.jcard--article .jcard-body.is-embed-peek-body .jcard-text,
 .j-m-card.jcard--photo .jcard-text,
 .j-m-card.jcard--video .jcard-text {
-  padding: 14px 16px 12px;
+  padding: 14px 16px 4px;
 }
 .j-m-card.jcard--article.has-unfold .jcard-text .jcard-title,
 .j-m-card.jcard--article .jcard-body.is-embed-peek-body .jcard-text .jcard-title,
@@ -14175,6 +14358,12 @@ select.j-edit-input {
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+.j-m-card.jcard--article.has-unfold .jcard-content,
+.j-m-card.jcard--article .jcard-body.is-embed-peek-body .jcard-content,
+.j-m-card.jcard--photo .jcard-content,
+.j-m-card.jcard--video .jcard-content {
+  gap: 6px;
 }
 .jcard-title {
   margin: 0 0 8px;

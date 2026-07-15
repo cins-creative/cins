@@ -14,7 +14,6 @@ import {
   GalleryVideoPlayBadge,
 } from "@/components/journey/GalleryItemVisual";
 import type { GalleryPinnedBanner } from "@/components/journey/JourneyGalleryAside";
-import { useJourneyPostOverlay } from "@/components/journey/useJourneyPostOverlay";
 import {
   getCachedVideoAspect,
   subscribeVideoAspectCache,
@@ -43,13 +42,6 @@ function isGenericPreset(width: number, height: number): boolean {
     (width === 640 && height === 360) ||
     (width === 800 && height === 450)
   );
-}
-
-function pinnedCotMocId(item: GalleryPinnedBanner): string | null {
-  const direct = item.cotMocId?.trim();
-  if (direct) return direct;
-  const m = item.id.match(/^pin-(.+)-\d+$/);
-  return m?.[1]?.trim() || null;
 }
 
 function seedAspect(item: GalleryPinnedBanner): number {
@@ -93,8 +85,8 @@ async function probeAspect(item: GalleryPinnedBanner): Promise<number> {
 }
 
 /**
- * Mũi tên dưới card user — xổ Nội dung nổi bật (masonry 3 cột thật, scroll khi nhiều).
- * Ẩn hoàn toàn khi user không có bài pinned.
+ * Mũi tên dưới card user — xổ preview thumb Nội dung nổi bật (chỉ xem, không mở bài).
+ * Muốn xem đầy đủ thì vào Journey. Ẩn khi user không có bài pinned.
  */
 export function JourneyUserFeaturedExpand({ slug }: Props) {
   const trimmed = slug.trim();
@@ -106,7 +98,6 @@ export function JourneyUserFeaturedExpand({ slug }: Props) {
   const [aspectById, setAspectById] = useState<Map<string, number>>(
     () => new Map(),
   );
-  const { openPost, overlay } = useJourneyPostOverlay();
 
   useEffect(() => {
     setOpen(false);
@@ -238,23 +229,15 @@ export function JourneyUserFeaturedExpand({ slug }: Props) {
               >
                 {col.map((cell) => {
                   const item = cell.data;
-                  const cotMocId = pinnedCotMocId(item);
                   const label =
                     [item.title, item.meta].filter(Boolean).join(" · ") ||
                     "Bài nổi bật";
                   return (
-                    <button
+                    <div
                       key={item.id}
-                      type="button"
                       className="j-user-featured-tile"
                       aria-label={label}
-                      disabled={!cotMocId}
                       style={{ aspectRatio: String(cell.aspect) }}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        event.preventDefault();
-                        openPost(cotMocId);
-                      }}
                     >
                       <GalleryItemVisual
                         src={item.src}
@@ -275,7 +258,7 @@ export function JourneyUserFeaturedExpand({ slug }: Props) {
                           provider={item.embedProvider}
                         />
                       ) : null}
-                    </button>
+                    </div>
                   );
                 })}
               </div>
@@ -283,7 +266,6 @@ export function JourneyUserFeaturedExpand({ slug }: Props) {
           </div>
         </div>
       ) : null}
-      {overlay}
     </div>
   );
 }

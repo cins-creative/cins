@@ -56,7 +56,15 @@ import { OrgSuKienFeedMilestoneCard } from "@/components/journey/OrgSuKienFeedMi
 import { JourneyOrgPopover } from "@/components/journey/JourneyOrgPopover";
 import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import {
   trackSuKien,
   useImpressionTracker,
@@ -787,6 +795,8 @@ export function JourneyMilestoneCard({
 
   /* Analytics tiếp cận/tương tác — KHÔNG đo nội dung của chính mình. */
   const articleRef = useRef<HTMLElement | null>(null);
+  /** Giữ scroll khi xổ bài dài — tránh viewport nhảy xuống cuối nội dung. */
+  const expandScrollYRef = useRef<number | null>(null);
   /* Nguồn bề mặt — ưu tiên prop tường minh; fallback theo entityLens. */
   const nguonSuKien: NguonSuKien =
     analyticsNguon ?? (entityLens ? "entity_lens" : "journey_home");
@@ -879,6 +889,7 @@ export function JourneyMilestoneCard({
   useEffect(() => {
     if (!showUnfold) {
       setUnfoldReady(false);
+      expandScrollYRef.current = null;
       return;
     }
     setUnfoldMounted(true);
@@ -893,6 +904,13 @@ export function JourneyMilestoneCard({
       cancelAnimationFrame(id);
     };
   }, [showUnfold]);
+
+  useLayoutEffect(() => {
+    if (!showUnfold) return;
+    const y = expandScrollYRef.current;
+    if (y == null) return;
+    window.scrollTo({ top: y, left: 0, behavior: "instant" });
+  }, [showUnfold, unfoldReady, showContent]);
 
   useEffect(() => {
     function onCommentsSync(event: Event) {
@@ -1056,6 +1074,7 @@ export function JourneyMilestoneCard({
     ) {
       return;
     }
+    expandScrollYRef.current = window.scrollY;
     trackContentOpen();
     inlineExpand.onToggleContent();
   }
@@ -1065,6 +1084,7 @@ export function JourneyMilestoneCard({
     if (e.key !== "Enter" && e.key !== " ") return;
     if (shouldIgnoreExpandTrigger(e.target as Element)) return;
     e.preventDefault();
+    expandScrollYRef.current = window.scrollY;
     trackContentOpen();
     inlineExpand.onToggleContent();
   }
@@ -1223,23 +1243,6 @@ export function JourneyMilestoneCard({
           photoCount={media.length > 0 ? media.length : null}
           bodyExcerpt={body ?? null}
         />
-      ) : null}
-      {showUnfoldToggle ? (
-        <button
-          type="button"
-          className="jcard-unfold-toggle"
-          onClick={() => {
-            if (showChiChuUnfold) {
-              setChiChuExpanded(false);
-              return;
-            }
-            inlineExpand?.onClose();
-          }}
-          aria-label="Thu gọn"
-        >
-          <ChevronUp size={15} strokeWidth={2.2} aria-hidden />
-          <span>Thu gọn</span>
-        </button>
       ) : null}
       {views ? (
         <span className="jcard-view-count" aria-label={`${formatViews(views)} lượt xem`}>
@@ -1462,8 +1465,31 @@ export function JourneyMilestoneCard({
   }
 
   function renderMilestoneCardInterior() {
+    const unfoldToggle = showUnfoldToggle ? (
+      <div className="jcard-unfold-sticky">
+        <button
+          type="button"
+          className="jcard-unfold-toggle"
+          onClick={() => {
+            if (showChiChuUnfold) {
+              setChiChuExpanded(false);
+              return;
+            }
+            inlineExpand?.onClose();
+          }}
+          aria-label="Thu gọn"
+        >
+          <ChevronUp size={15} strokeWidth={2.2} aria-hidden />
+          <span>Thu gọn</span>
+        </button>
+      </div>
+    ) : null;
+
     return (
       <>
+        {/* Phạm vi sticky «Thu gọn»: chỉ phần nội dung (trước action bar). */}
+        <div className="j-m-card-main">
+          {unfoldToggle}
           {/* Verify bar (trường xác thực) — hiện cho mọi người, kể cả trên home/entity feed. */}
           {showsTruongVerifyBar && attribution ? (
             <TruongVerifyBar attr={attribution} />
@@ -2057,6 +2083,7 @@ export function JourneyMilestoneCard({
               ) : null}
             </div>
           ) : null}
+        </div>
 
           {showAuthorsStrip && !authorsInUnfold ? jcardAuthors : null}
 

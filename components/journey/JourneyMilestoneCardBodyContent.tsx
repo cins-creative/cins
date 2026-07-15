@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState, type CSSProperties } from "react";
 
 import type { ArticleTagRef } from "@/lib/editor/article-tag";
 import type { Block } from "@/lib/editor/types";
+import { classifyBunnyVideoUrl } from "@/lib/bunny/embed";
 import { ImageGrid } from "@/components/journey/ImageGrid";
 import { JourneyArticleTagLink } from "@/components/journey/JourneyArticleTagLink";
 import { JourneyCardVideo } from "@/components/journey/JourneyCardVideo";
@@ -44,6 +45,7 @@ import {
 } from "@/lib/journey/post-media";
 import {
   resolvePostCardLayout,
+  readShowCoverInPost,
   type PostCardLayout,
 } from "@/lib/journey/post-content-kind";
 import {
@@ -246,9 +248,18 @@ export function JourneyMilestoneCardBodyContent({
     Boolean(emptyFallback);
   const isEmbedInteractivePeek =
     isArticle && articleCardEmbedInteractivePeek(body, blocks);
+  const videoEmbedUrlForArticle = isArticle
+    ? extractVideoUrl(blocks ?? [])
+    : null;
+  const hasBunnyInArticle = Boolean(
+    videoEmbedUrlForArticle &&
+      classifyBunnyVideoUrl(videoEmbedUrlForArticle),
+  );
+  /* Bunny + bài viết dài: hiện full peek (video + block dưới), không chỉ embed. */
   const showArticleEmbedBlocksPeek =
     isArticle &&
     !isEmbedInteractivePeek &&
+    !hasBunnyInArticle &&
     articleCardPeekHasEmbedMedia(body, blocks);
   const showExpandTriggerBase =
     Boolean(expandTrigger?.enabled && isArticle && !isContentOpen) ||
@@ -260,6 +271,7 @@ export function JourneyMilestoneCardBodyContent({
     isArticle &&
     (isEmbedInteractivePeek ||
       showArticleEmbedBlocksPeek ||
+      hasBunnyInArticle ||
       (!preview?.src &&
         showExpandTriggerBase &&
         articleCardNeedsDepthPreview(body, blocks, hasCoverPreview)));
@@ -274,9 +286,22 @@ export function JourneyMilestoneCardBodyContent({
   const showArticleContentPeek =
     articleNeedsDepth &&
     articlePeekBlocks.length > 0 &&
-    !showArticleEmbedBlocksPeek;
+    !showArticleEmbedBlocksPeek &&
+    !isContentOpen;
   const showArticleTextDepth =
-    articleNeedsDepth && articlePeekBlocks.length === 0;
+    articleNeedsDepth && articlePeekBlocks.length === 0 && !isContentOpen;
+  /**
+   * Thumbnail gallery (`cover_id`) chỉ hiện khi expand nếu user bật
+   * «Hiển thị thumbnail trong bài viết» — tránh lộ poster khi ẩn peek.
+   */
+  const showArticleCoverPreview =
+    Boolean(preview?.src) &&
+    isArticle &&
+    !(
+      isContentOpen &&
+      hasBunnyInArticle &&
+      !readShowCoverInPost(blocks)
+    );
 
   const expandCtaLabel = "Xem đầy đủ";
 
@@ -669,7 +694,7 @@ export function JourneyMilestoneCardBodyContent({
               </div>
               {showExpandTrigger ? expandCtaOverlay : null}
             </div>
-          ) : readMoreHref && isArticle ? (
+          ) : readMoreHref && isArticle && showArticleCoverPreview ? (
             <Link href={readMoreHref} className="preview" prefetch={false}>
               {preview ? (
                 <JourneyCoverImage
@@ -690,17 +715,17 @@ export function JourneyMilestoneCardBodyContent({
               )}
               {showExpandTrigger ? expandCtaOverlay : null}
             </Link>
-          ) : preview?.src && isArticle ? (
+          ) : showArticleCoverPreview ? (
             <div className="preview">
               <JourneyCoverImage
-                src={preview.src}
-                srcSet={preview.srcSet}
+                src={preview!.src}
+                srcSet={preview!.srcSet}
                 sizes={
-                  preview.srcSet ? "(max-width: 767px) 100vw, 680px" : undefined
+                  preview!.srcSet ? "(max-width: 767px) 100vw, 680px" : undefined
                 }
-                width={preview.width}
-                height={preview.height}
-                alt={preview.label || title}
+                width={preview!.width}
+                height={preview!.height}
+                alt={preview!.label || title}
               />
               {showExpandTrigger ? expandCtaOverlay : null}
             </div>

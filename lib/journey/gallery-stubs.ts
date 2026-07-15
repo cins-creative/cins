@@ -53,6 +53,7 @@ type GalleryRow = {
   content_cot_moc: {
     id: string;
     thoi_diem: string;
+    tao_luc: string;
     loai_moc: LoaiMocDb;
     che_do_hien_thi: "public" | "theo_nhom" | "chi_minh" | "feature";
     mo_ta: string | null;
@@ -76,6 +77,8 @@ export type GalleryStub = {
   tacPhamId: string;
   cotMocId: string;
   thoiDiem: string;
+  /** Thời điểm tạo cột mốc — mặc định sort aside nổi bật theo cái này (mới nhất trước). */
+  taoLuc: string;
   visibility: "feature" | "public";
   tacPhamSlug: string | null;
   tieuDe: string;
@@ -167,6 +170,7 @@ function rowToStub(
     tacPhamId: tp.id,
     cotMocId: cm.id,
     thoiDiem: cm.thoi_diem,
+    taoLuc: cm.tao_luc,
     visibility: cm.che_do_hien_thi as "feature" | "public",
     tacPhamSlug: tp.slug,
     tieuDe: tp.tieu_de,
@@ -217,6 +221,7 @@ function mergeGalleryRows(
 type OrgAssignCotMocRow = {
   id: string;
   thoi_diem: string;
+  tao_luc: string;
   loai_moc: LoaiMocDb;
   che_do_hien_thi: "public" | "theo_nhom" | "chi_minh" | "feature";
   mo_ta: string | null;
@@ -257,7 +262,7 @@ async function fetchOrgCreateGalleryStubs(
   const { data: rows } = await admin
     .from("content_cot_moc")
     .select(
-      "id, thoi_diem, loai_moc, che_do_hien_thi, mo_ta, tieu_de, id_to_chuc",
+      "id, thoi_diem, tao_luc, loai_moc, che_do_hien_thi, mo_ta, tieu_de, id_to_chuc",
     )
     .eq("id_nguoi_dung", userId)
     .eq("nguon_goc", "sinh_tu_org_assign")
@@ -292,6 +297,7 @@ async function fetchOrgCreateGalleryStubs(
       tacPhamId: row.id,
       cotMocId: row.id,
       thoiDiem: row.thoi_diem,
+      taoLuc: row.tao_luc,
       visibility: row.che_do_hien_thi as "feature" | "public",
       tacPhamSlug: null,
       tieuDe: orgName,
@@ -341,7 +347,7 @@ async function fetchTaggedGalleryRows(
   const { data } = await admin
     .from("content_tac_pham_thuoc_moc")
     .select(
-      "id_cot_moc, content_cot_moc:content_cot_moc!inner(id, thoi_diem, loai_moc, che_do_hien_thi, mo_ta, id_nguoi_dung), content_tac_pham:content_tac_pham!inner(id, slug, tieu_de, mo_ta, cover_id, id_nguoi_dung, noi_dung_blocks)",
+      "id_cot_moc, content_cot_moc:content_cot_moc!inner(id, thoi_diem, tao_luc, loai_moc, che_do_hien_thi, mo_ta, id_nguoi_dung), content_tac_pham:content_tac_pham!inner(id, slug, tieu_de, mo_ta, cover_id, id_nguoi_dung, noi_dung_blocks)",
     )
     .in("id_tac_pham", tacPhamIds)
     .in("content_cot_moc.che_do_hien_thi", ["feature", "public"])
@@ -357,7 +363,7 @@ export async function collectGalleryStubs(userId: string): Promise<GalleryStub[]
   const { data: rows } = await admin
     .from("content_tac_pham_thuoc_moc")
     .select(
-      "id_cot_moc, content_cot_moc:content_cot_moc!inner(id, thoi_diem, loai_moc, che_do_hien_thi, mo_ta, id_nguoi_dung), content_tac_pham:content_tac_pham!inner(id, slug, tieu_de, mo_ta, cover_id, id_nguoi_dung, noi_dung_blocks)",
+      "id_cot_moc, content_cot_moc:content_cot_moc!inner(id, thoi_diem, tao_luc, loai_moc, che_do_hien_thi, mo_ta, id_nguoi_dung), content_tac_pham:content_tac_pham!inner(id, slug, tieu_de, mo_ta, cover_id, id_nguoi_dung, noi_dung_blocks)",
     )
     .eq("content_cot_moc.id_nguoi_dung", userId)
     .in("content_cot_moc.che_do_hien_thi", ["feature", "public"])

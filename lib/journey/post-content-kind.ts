@@ -262,28 +262,30 @@ function inlineIframeEmbedResolution(
   };
 }
 
-const BUNNY_VIDEO_COMPANION_LOAI = new Set<Block["loai"]>([
+/**
+ * Chỉ video + caption — card `jcard--video`.
+ * Thêm h2 / ảnh / palette / … → bài viết dài (video vẫn ở đầu).
+ */
+const BUNNY_VIDEO_CAPTION_LOAI = new Set<Block["loai"]>([
   "embed",
   "body",
   "spacer",
-  "quote",
-  "h2",
-  "h3",
 ]);
 
 function isBunnyVideoPost(blocks: ReadonlyArray<Block>): boolean {
   const embeds = embedBlocks(blocks);
   if (embeds.length !== 1) return false;
   if (!isBunnyEmbedBlock(embeds[0]!)) return false;
-  if (blocks.some((b) => b.loai === "imgs")) return false;
-  return blocks.every((b) => BUNNY_VIDEO_COMPANION_LOAI.has(b.loai));
+  const first = firstMeaningfulBlock(blocks);
+  if (!first || !isBunnyEmbedBlock(first)) return false;
+  return blocks.every((b) => BUNNY_VIDEO_CAPTION_LOAI.has(b.loai));
 }
 
 function bunnyUploadEmbedCount(blocks: ReadonlyArray<Block>): number {
   return embedBlocks(blocks).filter(isBunnyEmbedBlock).length;
 }
 
-/** Một embed Bunny upload — card timeline luôn là bài video (không unfold article). */
+/** Có đúng một video Bunny (kể cả khi đã thêm block bài viết dài phía dưới). */
 function isSingleBunnyUploadPost(blocks: ReadonlyArray<Block>): boolean {
   return bunnyUploadEmbedCount(blocks) === 1;
 }
@@ -303,23 +305,32 @@ function bunnyVideoResolutionBase(
 function bunnyVideoPublishCompanionError(
   blocks: ReadonlyArray<Block>,
 ): string | null {
-  if (blocks.some((b) => b.loai === "imgs")) {
-    return "Bài video Bunny chỉ gồm video — không thêm album ảnh.";
+  if (bunnyUploadEmbedCount(blocks) > 1) {
+    return "Mỗi bài chỉ được một video — xóa video thừa rồi thử lại.";
   }
+  const firstMeaningful = meaningfulBlocks(blocks)[0];
   if (
-    blocks.some(
-      (b) =>
-        b.loai === "h2" ||
-        b.loai === "h3" ||
-        b.loai === "quote" ||
-        b.loai === "palette" ||
-        b.loai === "divider" ||
-        (b.loai === "imgs" && b.config?.layout === "mosaic"),
+    firstMeaningful &&
+    !(
+      firstMeaningful.loai === "embed" &&
+      isBunnyEmbedBlock(firstMeaningful)
     )
   ) {
-    return "Bài video Bunny chỉ gồm tiêu đề, mô tả và video.";
+    return "Video phải nằm ở đầu bài viết.";
   }
   return null;
+}
+
+/** Đọc cờ hiển thị thumbnail (`cover_id`) trong thân bài khi xem — lưu trên embed Bunny. */
+export function readShowCoverInPost(
+  blocks: ReadonlyArray<Block> | null | undefined,
+): boolean {
+  if (!blocks?.length) return false;
+  for (const block of blocks) {
+    if (!isBunnyEmbedBlock(block)) continue;
+    return block.config?.showCoverInPost === true;
+  }
+  return false;
 }
 
 function resolveBunnyVideoMeta(
@@ -414,15 +425,8 @@ export function resolvePostDisplayKind(
   const coverOk = hasValidCover(input);
   const effectiveMoTa = resolveEffectiveMoTa(moTaTrimmed, blocks);
 
+  /* Video thuần (+ caption). Có block bài viết dài phía dưới → rơi xuống article. */
   if (isBunnyVideoPost(blocks)) {
-    return finalizePostContentResolution(
-      bunnyVideoResolutionBase(effectiveMoTa, coverOk),
-      blocks,
-    );
-  }
-
-  /* Upload Bunny — một embed; không xếp article dù có mo_ta / block layout phụ. */
-  if (isSingleBunnyUploadPost(blocks)) {
     return finalizePostContentResolution(
       bunnyVideoResolutionBase(effectiveMoTa, coverOk),
       blocks,
@@ -479,23 +483,19 @@ export function resolvePostDisplayKind(
         );
       }
     } else if (first && first.loai !== "spacer" && first.loai !== "imgs") {
-      if (first.loai === "embed" && isBunnyEmbedBlock(first)) {
-        return finalizePostContentResolution(
-          {
-            kind: "bunny_video",
-            effectiveMoTa,
-            gridVisible: true,
-            gridThumbSource: coverOk ? "cover" : "video_poster",
-          },
-          blocks,
-        );
-      }
+      /* Bunny ở đầu nhưng đã có companion bài viết — article (không ép video card). */
       return finalizePostContentResolution(
         {
           kind: "article",
           effectiveMoTa,
           gridVisible: true,
-          gridThumbSource: coverOk ? "cover" : imageIds[0] ? "first_image" : null,
+          gridThumbSource: coverOk
+            ? "cover"
+            : imageIds[0]
+              ? "first_image"
+              : isSingleBunnyUploadPost(blocks)
+                ? "video_poster"
+                : null,
         },
         blocks,
       );
@@ -533,6 +533,19 @@ export function resolvePostDisplayKind(
         effectiveMoTa,
         gridVisible: true,
         gridThumbSource: coverOk ? "cover" : "first_image",
+      },
+      blocks,
+    );
+  }
+
+  /* Video Bunny + block bài viết dài (h2/quote/…) — chưa có ảnh inline. */
+  if (isSingleBunnyUploadPost(blocks)) {
+    return finalizePostContentResolution(
+      {
+        kind: "article",
+        effectiveMoTa,
+        gridVisible: true,
+        gridThumbSource: coverOk ? "cover" : "video_poster",
       },
       blocks,
     );
@@ -860,6 +873,29 @@ export function resolvePostGridEntry(
   }
 
   if (!thumbId || !isPersistedImageSeed(thumbId)) {
+    /* Bài viết dài có video Bunny ở đầu — vẫn lên lưới bằng poster khi chưa có ảnh/cover. */
+    if (
+      resolution.gridThumbSource === "video_poster" &&
+      isSingleBunnyUploadPost(blocks)
+    ) {
+      const bunnyThumb = resolveBunnyVideoThumbnailFromBlocks(blocks);
+      const videoPreviewSrc = resolveBunnyVideoPreviewMp4FromBlocks(blocks);
+      if (bunnyThumb || videoPreviewSrc) {
+        return {
+          mediaKind: "article",
+          embedProvider: null,
+          coverId: coverTrimmed,
+          coverSrc: bunnyThumb,
+          videoProcessing: processingMeta?.processing === true,
+          videoPreviewSrc,
+          videoCanvasRatio: extractVideoCanvasRatio(blocks),
+          videoOrientation:
+            videoOrientationFromCanvasRatio(
+              extractVideoCanvasRatio(blocks) ?? "16:9",
+            ),
+        };
+      }
+    }
     /* Nhúng không cover CF — ưu tiên thumb provider (YouTube / đã lưu OG), rồi logo. */
     if (embedProvider) {
       const autoThumb = resolveEmbedGalleryThumbnailSrc(blocks);

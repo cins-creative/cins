@@ -204,10 +204,7 @@ export function useEditorVideoUpload() {
             setBunnyVideoId(prep.videoId);
             setVideoUrl(prep.embedUrl);
             setVideoUploading(false);
-            setLocalVideoPreviewUrl((prev) => {
-              if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
-              return null;
-            });
+            // Giữ blob local để pick thumbnail / scrub — không chờ Bunny encode.
           },
         });
 

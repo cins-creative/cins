@@ -286,13 +286,9 @@ export function JourneyComposeOverlay({
       role="dialog"
       aria-modal="true"
       aria-label={ariaLabel}
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
     >
       <div
         className={`j-compose-sheet${isMilestoneSheet ? " j-compose-sheet--milestone" : ""}`}
-        onMouseDown={(event) => event.stopPropagation()}
       >
         {isCreateEditor ? (
           <ComposeLoadErrorBoundary onClose={onClose} label="trình soạn bài viết">

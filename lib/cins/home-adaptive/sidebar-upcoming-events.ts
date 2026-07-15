@@ -427,9 +427,26 @@ type KhoaTimelineRow = {
   trang_thai_khoa_hoc: TrangThaiKhoaHoc;
   ngay_khai_giang_gan_nhat: string | null;
   id_to_chuc: string;
+  avatar_id: string | null;
+  cover_id: string | null;
 };
 
-function coSoMocSidebarBase(org: CoSoOrgEmbed): Pick<
+/** Banner sidebar — cùng ưu tiên với `KhoaHocCard` (`coverUrl ?? thumbnailUrl`). */
+function khoaHocBannerSrc(
+  coverId: string | null | undefined,
+  avatarId: string | null | undefined,
+): string | null {
+  return (
+    resolveTruongImageSrcSync(coverId, ["public", "cover", "medium"]) ??
+    resolveTruongImageSrcSync(avatarId, ["public", "avatar", "medium"]) ??
+    null
+  );
+}
+
+function coSoMocSidebarBase(
+  org: CoSoOrgEmbed,
+  coverSrc: string | null = null,
+): Pick<
   SidebarUpcomingEvent,
   "kind" | "orgId" | "orgSlug" | "orgName" | "orgLoai" | "phanHoi" | "coverSrc" | "orgAvatarUrl"
 > {
@@ -441,7 +458,7 @@ function coSoMocSidebarBase(org: CoSoOrgEmbed): Pick<
     orgName: org.ten!.trim(),
     orgLoai: "co_so_dao_tao",
     phanHoi: null,
-    coverSrc: null,
+    coverSrc,
     orgAvatarUrl: orgAvatarId
       ? resolveTruongImageSrcSync(orgAvatarId, ["public", "avatar"])
       : null,
@@ -456,11 +473,13 @@ function mapCoSoKhoaTimelineRow(
 
   const href = coSoKhoaHocDetailPath(org.slug!.trim(), row.slug);
   const tenKhoa = row.ten_khoa_hoc?.trim() || "Khóa học";
+  const coverSrc = khoaHocBannerSrc(row.cover_id, row.avatar_id);
+  const base = coSoMocSidebarBase(org, coverSrc);
 
   if (row.loai_mo_hinh === "lien_tuc_theo_thang") {
     const nowIso = new Date().toISOString();
     return {
-      ...coSoMocSidebarBase(org),
+      ...base,
       id: `khoa:${row.id}`,
       href,
       label: tenKhoa,
@@ -488,7 +507,7 @@ function mapCoSoKhoaTimelineRow(
   }
 
   return {
-    ...coSoMocSidebarBase(org),
+    ...base,
     id: `khoa:${row.id}`,
     href,
     label: tenKhoa,
@@ -504,6 +523,7 @@ function mapCoSoKhoaTimelineRow(
 function mapCoSoLopTimelinePin(
   org: CoSoOrgEmbed,
   pin: ReturnType<typeof mapCoSoLopTimelinePinRows>[number],
+  coverSrc: string | null = null,
 ): SidebarUpcomingEvent | null {
   const ngay = pin.ngayKhaiGiang.trim();
   if (!ngay) return null;
@@ -521,7 +541,7 @@ function mapCoSoLopTimelinePin(
   const href = coSoKhoaHocDetailPath(org.slug!.trim(), pin.khoaSlug);
 
   return {
-    ...coSoMocSidebarBase(org),
+    ...coSoMocSidebarBase(org, coverSrc),
     id: `lop:${pin.lopId}`,
     href,
     label: `Khai giảng lớp · ${lopLabel}`,
@@ -554,12 +574,15 @@ async function fetchFollowedCoSoTimelineMilestones(
   const coSoIds = coSos.map((o) => o.id);
   const orgById = new Map(coSos.map((o) => [o.id, o]));
 
+  const khoaEmbedSelect =
+    "id, slug, ten_khoa_hoc, loai_mo_hinh, trang_thai_khoa_hoc, id_to_chuc, avatar_id, cover_id";
+
   const [lopRes, khoaRes] = await Promise.all([
     (async () => {
       const primary = await admin
         .from("org_lop_hoc")
         .select(
-          "id, ma_lop, ngay_khai_giang, lich_hoc, org_khoa_hoc!inner ( id, slug, ten_khoa_hoc, loai_mo_hinh, trang_thai_khoa_hoc, id_to_chuc )",
+          `id, ma_lop, ngay_khai_giang, lich_hoc, org_khoa_hoc!inner ( ${khoaEmbedSelect} )`,
         )
         .in("org_khoa_hoc.id_to_chuc", coSoIds)
         .in("trang_thai", ["sap_khai_giang", "dang_hoc"])
@@ -570,7 +593,7 @@ async function fetchFollowedCoSoTimelineMilestones(
       return admin
         .from("org_lop_hoc")
         .select(
-          "id, ma_lop, ngay_khai_giang, org_khoa_hoc!inner ( id, slug, ten_khoa_hoc, loai_mo_hinh, trang_thai_khoa_hoc, id_to_chuc )",
+          `id, ma_lop, ngay_khai_giang, org_khoa_hoc!inner ( ${khoaEmbedSelect} )`,
         )
         .in("org_khoa_hoc.id_to_chuc", coSoIds)
         .in("trang_thai", ["sap_khai_giang", "dang_hoc"])
@@ -580,7 +603,7 @@ async function fetchFollowedCoSoTimelineMilestones(
     admin
       .from("org_khoa_hoc")
       .select(
-        "id, slug, ten_khoa_hoc, loai_mo_hinh, trang_thai_khoa_hoc, ngay_khai_giang_gan_nhat, id_to_chuc",
+        "id, slug, ten_khoa_hoc, loai_mo_hinh, trang_thai_khoa_hoc, ngay_khai_giang_gan_nhat, id_to_chuc, avatar_id, cover_id",
       )
       .in("id_to_chuc", coSoIds)
       .in("trang_thai_khoa_hoc", ["sap_khai_giang", "dang_mo_don"])
@@ -591,18 +614,35 @@ async function fetchFollowedCoSoTimelineMilestones(
   const seenKhoaWithLop = new Set<string>();
 
   for (const rawRow of lopRes.data ?? []) {
-    const embed = (rawRow as { org_khoa_hoc?: { id_to_chuc?: string } | { id_to_chuc?: string }[] })
-      .org_khoa_hoc;
+    const embed = (
+      rawRow as {
+        org_khoa_hoc?:
+          | {
+              id_to_chuc?: string;
+              avatar_id?: string | null;
+              cover_id?: string | null;
+            }
+          | {
+              id_to_chuc?: string;
+              avatar_id?: string | null;
+              cover_id?: string | null;
+            }[];
+      }
+    ).org_khoa_hoc;
     const khoaEmbed = Array.isArray(embed) ? embed[0] : embed;
     const orgId = khoaEmbed?.id_to_chuc;
     if (!orgId) continue;
     const org = orgById.get(orgId);
     if (!org) continue;
 
+    const coverSrc = khoaHocBannerSrc(
+      khoaEmbed?.cover_id,
+      khoaEmbed?.avatar_id,
+    );
     const pins = mapCoSoLopTimelinePinRows([rawRow as Parameters<typeof mapCoSoLopTimelinePinRows>[0][number]]);
     for (const pin of pins) {
       seenKhoaWithLop.add(pin.khoaId);
-      const item = mapCoSoLopTimelinePin(org, pin);
+      const item = mapCoSoLopTimelinePin(org, pin, coverSrc);
       if (item) out.push(item);
     }
   }
