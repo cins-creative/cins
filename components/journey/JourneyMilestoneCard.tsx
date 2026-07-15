@@ -1691,23 +1691,56 @@ export function JourneyMilestoneCard({
                   dateLabel={displayDate}
                 />
               ) : showAuthorBadge ? (
-                <span className="org-chip">
-                  <span className="org-logo" aria-hidden>
-                    {authorAvatarUrl ? (
-                      /* eslint-disable-next-line @next/next/no-img-element */
-                      <img src={authorAvatarUrl} alt="" />
-                    ) : (
-                      getNameInitials(authorName ?? null, ownerSlug ?? "C")
-                    )}
+                ownerSlug ? (
+                  <JourneyUserPopover
+                    slug={ownerSlug}
+                    fallbackName={
+                      authorName || (ownerSlug ? `@${ownerSlug}` : "Người dùng")
+                    }
+                    fallbackAvatarUrl={authorAvatarUrl}
+                    track={
+                      trackOwnContent
+                        ? null
+                        : {
+                            idBoiCanh: milestoneId,
+                            nguon: nguonSuKien,
+                          }
+                    }
+                  >
+                    <span className="org-chip">
+                      <span className="org-logo" aria-hidden>
+                        {authorAvatarUrl ? (
+                          /* eslint-disable-next-line @next/next/no-img-element */
+                          <img src={authorAvatarUrl} alt="" />
+                        ) : (
+                          getNameInitials(authorName ?? null, ownerSlug ?? "C")
+                        )}
+                      </span>
+                      <span className="org-copy">
+                        <strong>
+                          {authorName || `@${ownerSlug ?? ""}`}
+                          <VerifiedTick slug={ownerSlug} />
+                        </strong>
+                        <small>{displayDate}</small>
+                      </span>
+                    </span>
+                  </JourneyUserPopover>
+                ) : (
+                  <span className="org-chip">
+                    <span className="org-logo" aria-hidden>
+                      {authorAvatarUrl ? (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img src={authorAvatarUrl} alt="" />
+                      ) : (
+                        getNameInitials(authorName ?? null, "C")
+                      )}
+                    </span>
+                    <span className="org-copy">
+                      <strong>{authorName || "Người dùng"}</strong>
+                      <small>{displayDate}</small>
+                    </span>
                   </span>
-                  <span className="org-copy">
-                    <strong>
-                      {authorName || `@${ownerSlug ?? ""}`}
-                      <VerifiedTick slug={ownerSlug} />
-                    </strong>
-                    <small>{displayDate}</small>
-                  </span>
-                </span>
+                )
               ) : null}
               {!useForeignFrame ? (
                 <>

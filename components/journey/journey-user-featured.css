@@ -75,11 +75,16 @@
   flex-direction: row;
   align-items: flex-start;
   gap: 6px;
-  max-height: 240px;
+  max-height: 320px;
   overflow-x: hidden;
   overflow-y: auto;
-  padding-right: 2px;
-  scrollbar-gutter: stable;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.j-user-featured-masonry::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
 }
 
 .j-user-featured-mcol {

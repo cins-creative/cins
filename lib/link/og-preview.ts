@@ -110,7 +110,8 @@ export function isSafePublicHttpUrl(raw: string): boolean {
   return true;
 }
 
-function decodeBasicEntities(s: string): string {
+/** Decode entity HTML cơ bản — gồm hex (`&#x2F;` = `/`). PlayCanvas og:image dùng hex cho `/`. */
+export function decodeBasicEntities(s: string): string {
   return s
     .replace(/&amp;/gi, "&")
     .replace(/&lt;/gi, "<")
@@ -118,6 +119,15 @@ function decodeBasicEntities(s: string): string {
     .replace(/&quot;/gi, '"')
     .replace(/&#39;/gi, "'")
     .replace(/&apos;/gi, "'")
+    .replace(/&#x([0-9a-f]+);/gi, (_, h) => {
+      const code = Number.parseInt(h, 16);
+      if (!Number.isFinite(code) || code < 1 || code > 0x10ffff) return "";
+      try {
+        return String.fromCodePoint(code);
+      } catch {
+        return "";
+      }
+    })
     .replace(/&#(\d+);/g, (_, n) => {
       const code = Number(n);
       if (!Number.isFinite(code) || code < 1 || code > 0x10ffff) return "";
@@ -129,6 +139,43 @@ function decodeBasicEntities(s: string): string {
     })
     .replace(/\s+/g, " ")
     .trim();
+}
+
+/**
+ * URL ảnh OG sau decode — sửa lỗi absolutize khi entity hex chưa decode
+ * (vd. `https://playcanv.as/p/…/&#x2F;&#x2F;s3-…` → `https://s3-…`).
+ */
+export function normalizeOgImageUrl(
+  raw: string,
+  pageUrl?: string | null,
+): string | null {
+  const decoded = decodeBasicEntities(raw.trim());
+  if (!decoded) return null;
+
+  let candidate = decoded;
+  try {
+    candidate = pageUrl
+      ? new URL(decoded, pageUrl).href
+      : new URL(decoded).href;
+  } catch {
+    return null;
+  }
+
+  try {
+    const parsed = new URL(candidate);
+    /* Host bị nuốt vào path: /p/id///s3-….amazonaws.com/… */
+    const embedded = parsed.pathname.match(
+      /\/{2,}((?:[\w-]+\.)+(?:amazonaws\.com|playcanvas\.com)\/[^\s"'<>]*)/i,
+    );
+    if (embedded?.[1]) {
+      const recovered = `https://${embedded[1]}`;
+      return isSafePublicHttpUrl(recovered) ? recovered : null;
+    }
+  } catch {
+    return null;
+  }
+
+  return isSafePublicHttpUrl(candidate) ? candidate : null;
 }
 
 function metaContent(html: string, key: string): string | null {
@@ -162,11 +209,7 @@ function htmlTitle(html: string): string | null {
 
 function absolutizeUrl(base: string, maybeRelative: string | null): string | null {
   if (!maybeRelative?.trim()) return null;
-  try {
-    return new URL(maybeRelative.trim(), base).href;
-  } catch {
-    return null;
-  }
+  return normalizeOgImageUrl(maybeRelative, base);
 }
 
 export function parseOgFromHtml(html: string, pageUrl: string): LinkOgPreview | null {

@@ -147,7 +147,13 @@ export function JourneyGalleryAside({
       ) : (
         <>
           {filteredPinned.length > 0 ? (
-            <div className="j-g-pinned">
+            <div
+              className={
+                filteredPinned.length > 8
+                  ? "j-g-pinned j-g-pinned--masonry"
+                  : "j-g-pinned"
+              }
+            >
               {filteredPinned.map((b, index) => {
                 const cotMocId = asideCotMocId(b);
                 const label =

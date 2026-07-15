@@ -8,6 +8,7 @@ import {
   type EmbedProviderId,
 } from "@/lib/editor/embed-providers";
 import type { Block } from "@/lib/editor/types";
+import { normalizeOgImageUrl } from "@/lib/link/og-preview";
 import { getYoutubeId } from "@/lib/youtube";
 
 /** URL ảnh poster lưu trên block embed (OG / oEmbed đã resolve lúc compose). */
@@ -27,13 +28,8 @@ function blockStoredThumbnailUrl(block: Block): string | null {
   if (typeof raw !== "string") return null;
   const trimmed = raw.trim();
   if (!trimmed) return null;
-  try {
-    const u = new URL(trimmed);
-    if (u.protocol !== "http:" && u.protocol !== "https:") return null;
-    return u.href;
-  } catch {
-    return null;
-  }
+  /* Heal og:image PlayCanvas đã lưu khi chưa decode &#x2F; */
+  return normalizeOgImageUrl(trimmed);
 }
 
 /** Thumbnail sync — không gọi mạng (YouTube / poster đã lưu trên block). */

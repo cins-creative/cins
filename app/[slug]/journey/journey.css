@@ -7160,9 +7160,18 @@ button.j-m-card-hit {
 .j-gallery-all:hover {
   text-decoration: underline;
 }
-/* Pinned section */
+/* Pinned section — cao theo ảnh; >8 bài → masonry 2 cột */
 .j-g-pinned {
   margin-bottom: 18px;
+}
+.j-g-pinned--masonry {
+  column-count: 2;
+  column-gap: 10px;
+}
+.j-g-pinned--masonry .j-g-banner {
+  break-inside: avoid;
+  -webkit-column-break-inside: avoid;
+  page-break-inside: avoid;
 }
 .j-g-pinned-label {
   font-size: 9px;
@@ -7184,7 +7193,7 @@ button.j-m-card-hit {
   display: block;
   position: relative;
   width: 100%;
-  aspect-ratio: 16 / 9;
+  height: auto;
   border-radius: var(--radius-md);
   overflow: hidden;
   margin-bottom: 10px;
@@ -7205,16 +7214,32 @@ button.j-g-banner:disabled {
 .j-g-banner:last-child {
   margin-bottom: 0;
 }
-.j-g-banner-bg,
-.j-g-banner-bg img {
-  position: absolute;
-  inset: 0;
+.j-g-pinned--masonry .j-g-banner:last-child {
+  margin-bottom: 10px;
+}
+.j-g-banner-bg {
+  display: block;
+  position: relative;
   width: 100%;
-  height: 100%;
 }
 .j-g-banner-bg img {
-  object-fit: cover;
   display: block;
+  width: 100%;
+  height: auto;
+  vertical-align: top;
+}
+.j-g-banner-bg .j-gallery-video-frame {
+  position: static;
+  inset: auto;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+}
+.j-g-banner-bg .j-gallery-video-ph {
+  aspect-ratio: 16 / 9;
+  min-height: 0;
+  height: auto;
 }
 .j-g-banner-pin {
   position: absolute;
@@ -7312,12 +7337,15 @@ button.j-g-item:disabled {
   z-index: 3;
   pointer-events: none;
   line-height: 0;
+  border-radius: 6px;
+  overflow: hidden;
 }
 .j-g-embed-platform img {
   width: 18px;
   height: 18px;
   object-fit: contain;
   display: block;
+  border-radius: 6px;
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
 }
 .j-main-gallery-thumb .j-g-embed-platform,
@@ -7334,6 +7362,7 @@ button.j-g-item:disabled {
 .j-g-thumb .j-g-embed-platform img {
   width: 16px;
   height: 16px;
+  border-radius: 5px;
 }
 /* Gallery aside — banner 16:9 rộng hơn → nút play to hơn một chút. */
 .j-g-banner .j-g-play {

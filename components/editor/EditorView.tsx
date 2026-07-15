@@ -161,6 +161,7 @@ import { ImageUploadProgressOverlay } from "@/components/ui/ImageUploadProgressO
 import { isAllowedUploadImageFile } from "@/lib/files/infer-image-mime";
 import { uploadPostImageWithProgress } from "@/lib/files/upload-post-image";
 import { captureRiveFrameAsFile } from "@/lib/editor/capture-rive-frame";
+import { resolveEmbedGalleryThumbnailSrc } from "@/lib/editor/embed-thumbnail";
 import type { ComposePublishedDetail } from "@/lib/journey/compose-published-sync";
 import { sanitizeBaiDangCoverIdInput } from "@/lib/truong/bai-dang-cover";
 import {
@@ -807,6 +808,11 @@ const MINIMAL_THUMB_ADD_HINT =
 const MINIMAL_THUMB_EMPTY_HINT =
   "Thumbnail chỉ hiển thị trên grid view. Không thêm thì tự lấy ảnh đầu tiên trong bài.";
 
+const EMBED_THUMB_NUDGE_TITLE =
+  "Nên thêm thumbnail để gallery hiện project rõ hơn";
+const EMBED_THUMB_NUDGE_BODY =
+  "Nền tảng này chưa lấy được ảnh tự động. Bạn có thể thêm thumbnail ngay, hoặc lưu luôn và cập nhật sau.";
+
 export function EditorView({
   ownerId,
   ownerSlug,
@@ -1167,10 +1173,13 @@ export function EditorView({
     Record<string, ImageUploadTrack>
   >({});
   const [savedFlash, setSavedFlash] = useState(false);
+  const [embedThumbNudgeOpen, setEmbedThumbNudgeOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
   /** Tắt ghi nháp sau publish — tránh debounce 400ms ghi lại bài cũ. */
   const composeDraftWriteEnabledRef = useRef(true);
+  /** User đã chọn «Lưu luôn» khi embed thiếu thumbnail auto. */
+  const skipEmbedThumbNudgeRef = useRef(false);
 
   const editorRef = useRef<HTMLDivElement | null>(null);
 
@@ -2864,6 +2873,42 @@ export function EditorView({
 
     startTransition(async () => {
       try {
+      /* Embed thiếu cover + không sync thumb (YouTube…) → thử API OG; thất bại thì nudge. */
+      if (
+        isExternalEmbedCompose &&
+        !coverFinal &&
+        !skipEmbedThumbNudgeRef.current &&
+        !isRiveFileEmbedCompose &&
+        !isLottieFileEmbedCompose
+      ) {
+        const syncThumb = resolveEmbedGalleryThumbnailSrc(publishBlocks);
+        if (!syncThumb) {
+          const embedCfg =
+            publishBlocks.find((b) => b.loai === "embed")?.config ?? {};
+          const embedUrl =
+            (typeof embedCfg.url === "string" && embedCfg.url.trim()) ||
+            (typeof embedCfg.embedUrl === "string" &&
+              embedCfg.embedUrl.trim()) ||
+            "";
+          let hasAutoThumb = false;
+          if (embedUrl) {
+            try {
+              const res = await fetch(
+                `/api/embed/thumbnail?url=${encodeURIComponent(embedUrl)}`,
+              );
+              hasAutoThumb = res.ok;
+            } catch {
+              hasAutoThumb = false;
+            }
+          }
+          if (!hasAutoThumb) {
+            setEmbedThumbNudgeOpen(true);
+            return;
+          }
+        }
+      }
+      skipEmbedThumbNudgeRef.current = false;
+
       let coverForPublish = coverFinal;
       if (
         !coverForPublish &&
@@ -3059,6 +3104,17 @@ export function EditorView({
     onPublished,
     onClose,
     finishComposeDraftAfterPublish,
+    isExternalEmbedCompose,
+    isRiveFileEmbedCompose,
+    isLottieFileEmbedCompose,
+    riveFileEmbedPreviewUrl,
+    riveAssetUrl,
+    videoUploading,
+    riveUploading,
+    lottieUploading,
+    riveUploadError,
+    lottieUploadError,
+    embedPlatform,
   ]);
 
   return (
@@ -3762,6 +3818,57 @@ export function EditorView({
         onSelect={beginEmbedFromPicker}
       />
 
+      {embedThumbNudgeOpen
+        ? createPortal(
+            <div className="ed-thumb-nudge" role="presentation">
+              <button
+                type="button"
+                className="ed-thumb-nudge-backdrop"
+                aria-label="Đóng"
+                onClick={() => setEmbedThumbNudgeOpen(false)}
+              />
+              <div
+                className="ed-thumb-nudge-panel"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="ed-thumb-nudge-title"
+              >
+                <p id="ed-thumb-nudge-title" className="ed-thumb-nudge-title">
+                  {EMBED_THUMB_NUDGE_TITLE}
+                </p>
+                <p className="ed-thumb-nudge-body">{EMBED_THUMB_NUDGE_BODY}</p>
+                <div className="ed-thumb-nudge-actions">
+                  <button
+                    type="button"
+                    className="ed-btn ghost"
+                    onClick={() => {
+                      setEmbedThumbNudgeOpen(false);
+                      setMinimalCoverVisible(true);
+                      requestAnimationFrame(() => {
+                        minimalCoverInputRef.current?.click();
+                      });
+                    }}
+                  >
+                    Thêm thumbnail
+                  </button>
+                  <button
+                    type="button"
+                    className="ed-btn primary ed-thumb-nudge-publish"
+                    onClick={() => {
+                      skipEmbedThumbNudgeRef.current = true;
+                      setEmbedThumbNudgeOpen(false);
+                      handlePublish();
+                    }}
+                  >
+                    Đăng bài
+                  </button>
+                </div>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
+
       {toast ? <div className="ed-toast">{toast}</div> : null}
 
       {cropTarget ? (
@@ -4026,11 +4133,6 @@ function CoverArea({
         </span>
         <span className="cover-add-txt">
           <span className="cover-add-title">{coverAddTitle}</span>
-          <span className="cover-add-sub">
-            {showEmptyHint
-              ? MINIMAL_THUMB_ADD_HINT
-              : "Nhấp để chọn ảnh — hoặc kéo thả / dán (Ctrl+V)"}
-          </span>
         </span>
       </button>
       {dismissible ? (

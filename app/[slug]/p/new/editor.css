@@ -899,12 +899,6 @@
   font-weight: 600;
   line-height: 1.2;
 }
-.cins-editor-page .cover-add .cover-add-sub {
-  font-size: 12px;
-  font-weight: 400;
-  line-height: 1.35;
-  color: var(--ink-muted, #64748b);
-}
 .cins-editor-page .cover-add.has {
   border: none;
   padding: 0;
@@ -2754,6 +2748,99 @@
   to {
     opacity: 1;
     transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* Gợi ý thumbnail khi embed không có OG / cover — portal fullscreen */
+.ed-thumb-nudge {
+  position: fixed;
+  inset: 0;
+  z-index: 9300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  box-sizing: border-box;
+  animation: ed-thumb-nudge-in 180ms var(--ed-ease, ease);
+}
+.ed-thumb-nudge-backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  background: rgba(14, 17, 23, 0.72);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+.ed-thumb-nudge-panel {
+  position: relative;
+  z-index: 1;
+  width: min(420px, 100%);
+  padding: 22px 22px 18px;
+  border-radius: 16px;
+  background: var(--bg-surface, #fff);
+  color: var(--ink-display, #0f172a);
+  box-shadow: var(--shadow-lg, 0 24px 64px rgba(15, 23, 42, 0.28));
+}
+.ed-thumb-nudge-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--ink-display, #0f172a);
+}
+.ed-thumb-nudge-body {
+  margin: 10px 0 0;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--ink-muted, #64748b);
+}
+.ed-thumb-nudge-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 18px;
+}
+.ed-thumb-nudge-actions .ed-btn {
+  min-height: 36px;
+  padding: 0 14px;
+  font-size: 13px;
+  border-radius: var(--radius-pill, 999px);
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-weight: 500;
+}
+.ed-thumb-nudge-actions .ed-btn.ed-thumb-nudge-publish,
+.ed-thumb-nudge-actions .ed-btn.primary {
+  margin-left: auto;
+  background: #16a34a;
+  color: #fff;
+  border-color: #16a34a;
+}
+.ed-thumb-nudge-actions .ed-btn.ed-thumb-nudge-publish:hover,
+.ed-thumb-nudge-actions .ed-btn.primary:hover {
+  background: #15803d;
+  border-color: #15803d;
+  filter: none;
+}
+.ed-thumb-nudge-actions .ed-btn.ghost {
+  background: transparent;
+  color: var(--ink-body, #334155);
+  border-color: var(--border-subtle, #e2e8f0);
+}
+.ed-thumb-nudge-actions .ed-btn.ghost:hover {
+  background: var(--bg-page, #f4f5f8);
+}
+@keyframes ed-thumb-nudge-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }
 
