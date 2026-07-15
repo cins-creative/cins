@@ -41,6 +41,9 @@ export function EditorVideoThumbnailPicker({
   const [capturing, setCapturing] = useState(false);
   const canvasClass = videoCanvasRatioClass(videoCanvasRatio);
   const canScrub = Boolean(videoSrc?.trim()) && !disabled;
+  const waitMessage =
+    disabledHint?.trim() ||
+    "Video chưa sẵn sàng để chọn frame — tải ảnh riêng, hoặc quay lại sửa sau khi video xử lý xong.";
 
   useEffect(() => {
     setDuration(0);
@@ -86,7 +89,9 @@ export function EditorVideoThumbnailPicker({
           <span className="ed-minimal-video-thumb-hint">
             {pickingFrame
               ? "Kéo thanh để chọn frame — không bắt buộc"
-              : "Chọn frame từ video hoặc tải ảnh riêng — không bắt buộc"}
+              : canScrub
+                ? "Chọn frame từ video hoặc tải ảnh riêng — không bắt buộc"
+                : "Đợi video xử lý xong mới chọn frame trong clip được"}
           </span>
         </span>
       </div>
@@ -139,9 +144,8 @@ export function EditorVideoThumbnailPicker({
               </label>
             </div>
           ) : (
-            <p className="ed-minimal-video-thumb-wait">
-              {disabledHint ??
-                "Video chưa sẵn sàng để chọn frame — thử lại sau hoặc tải ảnh riêng."}
+            <p className="ed-minimal-video-thumb-wait" role="status">
+              {waitMessage}
             </p>
           )}
 
@@ -180,34 +184,37 @@ export function EditorVideoThumbnailPicker({
           </div>
         </>
       ) : (
-        <div className="ed-minimal-video-thumb-actions">
-          <button
-            type="button"
-            className="ed-btn ghost ed-minimal-tool"
-            disabled={capturing || !canScrub}
-            title={
-              !canScrub
-                ? (disabledHint ?? "Chưa có video để chọn frame")
-                : undefined
-            }
-            onClick={() => {
-              if (!canScrub) return;
-              setPickingFrame(true);
-            }}
-          >
-            <ScanLine size={15} strokeWidth={2} aria-hidden />
-            Dùng thumbnail video
-          </button>
-          <button
-            type="button"
-            className="ed-btn ghost ed-minimal-tool"
-            disabled={capturing}
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <ImagePlus size={15} strokeWidth={2} aria-hidden />
-            Tải ảnh lên
-          </button>
-        </div>
+        <>
+          {!canScrub ? (
+            <p className="ed-minimal-video-thumb-wait" role="status">
+              {waitMessage}
+            </p>
+          ) : null}
+          <div className="ed-minimal-video-thumb-actions">
+            <button
+              type="button"
+              className="ed-btn ghost ed-minimal-tool"
+              disabled={capturing || !canScrub}
+              title={!canScrub ? waitMessage : undefined}
+              onClick={() => {
+                if (!canScrub) return;
+                setPickingFrame(true);
+              }}
+            >
+              <ScanLine size={15} strokeWidth={2} aria-hidden />
+              Dùng thumbnail video
+            </button>
+            <button
+              type="button"
+              className="ed-btn ghost ed-minimal-tool"
+              disabled={capturing}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <ImagePlus size={15} strokeWidth={2} aria-hidden />
+              Tải ảnh lên
+            </button>
+          </div>
+        </>
       )}
 
       {onShowCoverInPostChange ? (

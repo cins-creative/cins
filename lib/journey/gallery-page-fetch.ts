@@ -114,13 +114,20 @@ function galleryPriorityRank(stub: GalleryStub): number {
   return 3;
 }
 
-/** Sort ổn định theo ưu tiên (giữ nguyên thứ tự gốc trong cùng nhóm). */
+/** Sort ổn định: ưu tiên Nổi bật/Xác thực, trong nhóm theo `tao_luc` mới nhất. */
 function sortGalleryByPriority(stubs: GalleryStub[]): GalleryStub[] {
   return stubs
     .map((stub, index) => ({ stub, index }))
     .sort((a, b) => {
       const rank = galleryPriorityRank(a.stub) - galleryPriorityRank(b.stub);
-      return rank !== 0 ? rank : a.index - b.index;
+      if (rank !== 0) return rank;
+      if (a.stub.taoLuc !== b.stub.taoLuc) {
+        return a.stub.taoLuc > b.stub.taoLuc ? -1 : 1;
+      }
+      if (a.stub.thoiDiem !== b.stub.thoiDiem) {
+        return a.stub.thoiDiem > b.stub.thoiDiem ? -1 : 1;
+      }
+      return a.index - b.index;
     })
     .map((entry) => entry.stub);
 }

@@ -1606,11 +1606,21 @@ export function EditorView({
     return buildBunnyVideoMp4Url(resolvedVideoId, "360p");
   }, [blocks, bunnyVideoId, localVideoPreviewUrl, videoUrl]);
 
-  const videoThumbDisabledHint =
-    !videoScrubSrc && videoUploading
-      ? "Đang tải video lên — chọn frame khi có bản xem trước hoặc tải ảnh riêng."
-      : !videoScrubSrc && videoEncoding
-        ? "Video đang xử lý trên máy chủ — thử chọn frame khi encode xong hoặc tải ảnh riêng."
+  /* Frame từ remote chỉ khi encode xong — blob local vẫn dùng được lúc chờ. */
+  const hasLocalVideoScrub = Boolean(localVideoPreviewUrl?.trim());
+  const videoFramePickSrc =
+    hasLocalVideoScrub
+      ? localVideoPreviewUrl
+      : videoUploading || videoEncoding
+        ? null
+        : videoScrubSrc;
+
+  const videoThumbDisabledHint = videoUploading
+    ? "Đang tải video lên — đợi xong mới chọn frame trong video được. Có thể tải ảnh riêng ngay, hoặc đăng bài rồi quay lại sửa sau."
+    : videoEncoding && !hasLocalVideoScrub
+      ? "Video đang xử lý trên máy chủ — đợi encode xong mới chọn frame trong video được. Có thể tải ảnh riêng ngay, hoặc đăng bài rồi quay lại sửa sau."
+      : !videoFramePickSrc
+        ? "Chưa có video để chọn frame — tải ảnh riêng, hoặc quay lại sửa sau khi video sẵn sàng."
         : null;
 
   const hasPendingUploads = useMemo(
@@ -3530,9 +3540,9 @@ export function EditorView({
               <>
             {isBunnyVideoCompose && !(minimalCoverVisible || coverSeed) ? (
               <EditorVideoThumbnailPicker
-                videoSrc={videoScrubSrc}
+                videoSrc={videoFramePickSrc}
                 videoCanvasRatio={videoCanvasRatio}
-                disabled={!videoScrubSrc}
+                disabled={!videoFramePickSrc}
                 disabledHint={videoThumbDisabledHint}
                 onCaptureFrame={applyMinimalCoverFile}
                 onUploadImage={applyThumbnailFileWithCrop}

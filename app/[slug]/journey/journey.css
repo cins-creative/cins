@@ -9895,10 +9895,13 @@ select.j-edit-input {
 }
 
 .ed-minimal-video-thumb-wait {
-  margin: 0;
+  margin: 0 0 4px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm, 8px);
+  background: color-mix(in srgb, var(--cins-blue-soft, #e8eefc) 70%, transparent);
   font-size: 13px;
   line-height: 1.45;
-  color: var(--ink-muted, #64748b);
+  color: var(--ink-body, #334155);
 }
 
 .ed-minimal-video-thumb-scrub {

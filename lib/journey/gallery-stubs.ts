@@ -214,6 +214,8 @@ function mergeGalleryRows(
     const aFeat = a.visibility === "feature" ? 1 : 0;
     const bFeat = b.visibility === "feature" ? 1 : 0;
     if (aFeat !== bFeat) return bFeat - aFeat;
+    /* Mới đăng lên trước — `tao_luc`, không theo năm mốc `thoi_diem`. */
+    if (a.taoLuc !== b.taoLuc) return a.taoLuc > b.taoLuc ? -1 : 1;
     return a.thoiDiem > b.thoiDiem ? -1 : a.thoiDiem < b.thoiDiem ? 1 : 0;
   });
 }
@@ -325,6 +327,7 @@ function sortGalleryStubs(stubs: GalleryStub[]): GalleryStub[] {
     const aFeat = a.visibility === "feature" ? 1 : 0;
     const bFeat = b.visibility === "feature" ? 1 : 0;
     if (aFeat !== bFeat) return bFeat - aFeat;
+    if (a.taoLuc !== b.taoLuc) return a.taoLuc > b.taoLuc ? -1 : 1;
     return a.thoiDiem > b.thoiDiem ? -1 : a.thoiDiem < b.thoiDiem ? 1 : 0;
   });
 }
