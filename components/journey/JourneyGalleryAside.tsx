@@ -116,15 +116,27 @@ export function JourneyGalleryAside({
   ]);
   const [dragFrom, setDragFrom] = useState<number | null>(null);
   const [dropAt, setDropAt] = useState<number | null>(null);
-  const [saving, setSaving] = useState(false);
+  const [pendingSave, setPendingSave] = useState(false);
   const dragMovedRef = useRef(false);
+  const dropAtRef = useRef<number | null>(null);
+  const lastGoodPinnedRef = useRef<GalleryPinnedBanner[]>([...pinned]);
+  const saveQueueRef = useRef<{
+    ids: string[];
+    snapshot: GalleryPinnedBanner[];
+  } | null>(null);
+  const saveFlushingRef = useRef(false);
+  const onReorderPinnedRef = useRef(onReorderPinned);
+  onReorderPinnedRef.current = onReorderPinned;
 
   useEffect(() => {
+    /* Đang kéo / đang flush save — đừng ghi đè thứ tự optimistic. */
+    if (saveFlushingRef.current || saveQueueRef.current) return;
     setOrderedPinned([...pinned]);
+    lastGoodPinnedRef.current = [...pinned];
   }, [pinned]);
 
-  const reorderEnabled =
-    canReorder && featuredOnly && filter === "all" && !saving;
+  /* Không khóa UI khi đang lưu — persist chạy ngầm. */
+  const reorderEnabled = canReorder && featuredOnly && filter === "all";
 
   const filteredPinned = useMemo(
     () =>
@@ -147,32 +159,70 @@ export function JourneyGalleryAside({
   const showFilter = featuredOnly ? orderedPinned.length > 0 : totalTacPham > 0;
 
   const clearDrag = () => {
+    dragMovedRef.current = false;
+    dropAtRef.current = null;
     setDragFrom(null);
     setDropAt(null);
   };
 
-  const commitReorder = async (from: number, to: number) => {
+  const setDropGap = (gap: number) => {
+    if (dropAtRef.current === gap) return;
+    dropAtRef.current = gap;
+    setDropAt(gap);
+  };
+
+  const flushReorderSave = () => {
+    if (saveFlushingRef.current) return;
+    const persist = onReorderPinnedRef.current;
+    if (!persist) return;
+
+    saveFlushingRef.current = true;
+    setPendingSave(true);
+
+    void (async () => {
+      try {
+        while (saveQueueRef.current) {
+          const job = saveQueueRef.current;
+          saveQueueRef.current = null;
+          try {
+            await persist(job.ids);
+            lastGoodPinnedRef.current = job.snapshot;
+          } catch {
+            setOrderedPinned(lastGoodPinnedRef.current);
+            saveQueueRef.current = null;
+            break;
+          }
+        }
+      } finally {
+        saveFlushingRef.current = false;
+        if (saveQueueRef.current) {
+          flushReorderSave();
+        } else {
+          setPendingSave(false);
+        }
+      }
+    })();
+  };
+
+  const commitReorder = (from: number, to: number) => {
     if (from === to || from < 0 || to < 0) return;
-    const previous = orderedPinned;
-    const next = moveItem(previous, from, to);
-    if (next === previous) return;
+    const next = moveItem(orderedPinned, from, to);
+    if (next === orderedPinned) return;
 
     const cotMocIds = next
       .map((b) => asideCotMocId(b))
       .filter((id): id is string => Boolean(id));
     if (cotMocIds.length !== next.length) return;
 
+    /* Optimistic — UI đổi ngay, PATCH xếp hàng chạy nền. */
     setOrderedPinned(next);
-    if (!onReorderPinned) return;
-
-    setSaving(true);
-    try {
-      await onReorderPinned(cotMocIds);
-    } catch {
-      setOrderedPinned(previous);
-    } finally {
-      setSaving(false);
+    if (!onReorderPinnedRef.current) {
+      lastGoodPinnedRef.current = next;
+      return;
     }
+
+    saveQueueRef.current = { ids: cotMocIds, snapshot: next };
+    flushReorderSave();
   };
 
   const useMasonry = filteredPinned.length > 8;
@@ -215,16 +265,19 @@ export function JourneyGalleryAside({
                 "j-g-pinned",
                 useMasonry ? "j-g-pinned--masonry" : "",
                 reorderEnabled ? "j-g-pinned--reorder" : "",
-                saving ? "is-saving" : "",
+                pendingSave ? "is-pending-save" : "",
+                dragFrom != null ? "is-dragging-active" : "",
               ]
                 .filter(Boolean)
                 .join(" ")}
+              aria-busy={pendingSave || undefined}
             >
               {filteredPinned.map((b, index) => {
                 const cotMocId = asideCotMocId(b);
                 const label =
                   [b.title, b.meta].filter(Boolean).join(" · ") || "Bài nổi bật";
-                const showInsertBefore =
+                /* Khe trước item — bỏ qua chỗ không đổi thứ tự (tại / ngay sau nguồn). */
+                const insertBeforeActive =
                   reorderEnabled &&
                   dragFrom != null &&
                   dropAt === index &&
@@ -233,16 +286,37 @@ export function JourneyGalleryAside({
 
                 return (
                   <div key={b.id} className="j-g-banner-slot">
-                    {showInsertBefore ? (
-                      <div className="j-g-banner-insert" aria-hidden />
+                    {reorderEnabled ? (
+                      <div
+                        className={
+                          "j-g-banner-insert" +
+                          (insertBeforeActive ? " is-active" : "")
+                        }
+                        aria-hidden
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          e.dataTransfer.dropEffect = "move";
+                          setDropGap(index);
+                        }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          const from =
+                            dragFrom ??
+                            Number.parseInt(
+                              e.dataTransfer.getData("text/plain"),
+                              10,
+                            );
+                          clearDrag();
+                          if (!Number.isNaN(from)) commitReorder(from, index);
+                        }}
+                      />
                     ) : null}
                     <div
                       className={[
                         "j-g-banner-wrap",
                         dragFrom === index ? "is-dragging" : "",
-                        dropAt === index && dragFrom != null && dropAt !== dragFrom
-                          ? "is-drop-target"
-                          : "",
                       ]
                         .filter(Boolean)
                         .join(" ")}
@@ -251,11 +325,11 @@ export function JourneyGalleryAside({
                           ? (e) => {
                               e.preventDefault();
                               e.dataTransfer.dropEffect = "move";
-                              const rect = e.currentTarget.getBoundingClientRect();
+                              const rect =
+                                e.currentTarget.getBoundingClientRect();
                               const before =
                                 e.clientY < rect.top + rect.height / 2;
-                              const gap = before ? index : index + 1;
-                              if (dropAt !== gap) setDropAt(gap);
+                              setDropGap(before ? index : index + 1);
                             }
                           : undefined
                       }
@@ -269,10 +343,10 @@ export function JourneyGalleryAside({
                                   e.dataTransfer.getData("text/plain"),
                                   10,
                                 );
-                              const gap = dropAt ?? index;
+                              const gap = dropAtRef.current ?? index;
                               clearDrag();
                               if (!Number.isNaN(from)) {
-                                void commitReorder(from, gap);
+                                commitReorder(from, gap);
                               }
                             }
                           : undefined
@@ -285,10 +359,11 @@ export function JourneyGalleryAside({
                           draggable
                           aria-label={`Kéo để đổi vị trí: ${b.title || "bài nổi bật"}`}
                           title="Kéo để đổi vị trí"
-                          disabled={saving}
                           onClick={(e) => e.stopPropagation()}
                           onDragStart={(e) => {
                             dragMovedRef.current = false;
+                            dropAtRef.current = null;
+                            setDropAt(null);
                             setDragFrom(index);
                             e.dataTransfer.effectAllowed = "move";
                             e.dataTransfer.setData("text/plain", String(index));
@@ -312,7 +387,7 @@ export function JourneyGalleryAside({
                         className="j-g-banner"
                         data-pinned-id={b.id}
                         aria-label={label}
-                        disabled={!cotMocId || saving}
+                        disabled={!cotMocId}
                         onClick={() => {
                           if (dragMovedRef.current) {
                             dragMovedRef.current = false;
@@ -352,21 +427,21 @@ export function JourneyGalleryAside({
                   </div>
                 );
               })}
-              {reorderEnabled && dragFrom != null ? (
+              {reorderEnabled ? (
                 <div
                   className={
+                    "j-g-banner-insert j-g-banner-insert--end" +
+                    (dragFrom != null &&
                     dropAt === filteredPinned.length &&
                     dropAt !== dragFrom
-                      ? "j-g-banner-insert is-active"
-                      : "j-g-banner-insert-hit"
+                      ? " is-active"
+                      : "")
                   }
                   aria-hidden
                   onDragOver={(e) => {
                     e.preventDefault();
                     e.dataTransfer.dropEffect = "move";
-                    if (dropAt !== filteredPinned.length) {
-                      setDropAt(filteredPinned.length);
-                    }
+                    setDropGap(filteredPinned.length);
                   }}
                   onDrop={(e) => {
                     e.preventDefault();
@@ -375,7 +450,7 @@ export function JourneyGalleryAside({
                       Number.parseInt(e.dataTransfer.getData("text/plain"), 10);
                     clearDrag();
                     if (!Number.isNaN(from)) {
-                      void commitReorder(from, filteredPinned.length);
+                      commitReorder(from, filteredPinned.length);
                     }
                   }}
                 />

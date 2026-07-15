@@ -87,11 +87,6 @@ export async function PATCH(
     return NextResponse.json({ error: result.error }, { status: 400 });
   }
 
-  const aside = await fetchGalleryForUser({
-    userId: owner.id,
-    ownerSlug: slug,
-    viewerId: session.profile.id,
-  });
-
-  return NextResponse.json({ ok: true, pinned: aside.pinned });
+  /* Client đã optimistic — không refetch gallery trên PATCH (tránh lag kéo thả). */
+  return NextResponse.json({ ok: true, cotMocIds: result.cotMocIds });
 }

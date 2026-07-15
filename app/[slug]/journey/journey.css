@@ -7227,12 +7227,11 @@ button.j-m-card-hit {
 .j-g-pinned--masonry .j-g-banner-slot {
   margin-bottom: 10px;
 }
-.j-g-pinned--reorder.is-saving {
-  opacity: 0.72;
-  pointer-events: none;
+/* Lưu nền — không khóa kéo thả */
+.j-g-pinned--reorder.is-pending-save .j-g-banner-drag {
+  opacity: 0.7;
 }
 /* Masonry + kéo sắp: hit-zone cuối chiếm full chiều ngang cột */
-.j-g-pinned--masonry.j-g-pinned--reorder > .j-g-banner-insert-hit,
 .j-g-pinned--masonry.j-g-pinned--reorder > .j-g-banner-insert {
   break-inside: avoid;
   column-span: all;
@@ -7248,11 +7247,7 @@ button.j-m-card-hit {
   position: relative;
 }
 .j-g-banner-wrap.is-dragging {
-  opacity: 0.45;
-}
-.j-g-banner-wrap.is-drop-target .j-g-banner {
-  outline: 2px solid color-mix(in srgb, var(--cins-blue) 55%, transparent);
-  outline-offset: 2px;
+  opacity: 0.4;
 }
 .j-g-banner-drag {
   position: absolute;
@@ -7293,21 +7288,43 @@ button.j-m-card-hit {
   color: var(--ink-display);
   border-color: var(--border-strong);
 }
-.j-g-banner-insert,
-.j-g-banner-insert.is-active {
-  height: 4px;
-  margin: 2px 0 8px;
-  border-radius: 2px;
+/* Khe giữa block — không chiếm chỗ khi nghỉ; lúc kéo nở hit-area + vạch xanh */
+.j-g-banner-insert {
+  position: relative;
+  height: 0;
+  margin: 0;
+  border-radius: 3px;
+  background: transparent;
+  z-index: 2;
+}
+.j-g-pinned--reorder.is-dragging-active .j-g-banner-insert {
+  height: 14px;
+  margin: -5px 0;
+}
+.j-g-banner-insert::before {
+  content: "";
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  top: 50%;
+  height: 3px;
+  margin-top: -1.5px;
+  border-radius: 999px;
   background: var(--cins-blue);
   opacity: 0;
-  transition: opacity 0.12s ease;
+  transform: scaleX(0.92);
+  transition:
+    opacity 0.1s ease,
+    transform 0.1s ease;
+  pointer-events: none;
 }
-.j-g-banner-insert.is-active {
+.j-g-banner-insert.is-active::before {
   opacity: 1;
+  transform: scaleX(1);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cins-blue) 24%, transparent);
 }
-.j-g-banner-insert-hit {
-  height: 12px;
-  margin-top: -4px;
+.j-g-banner-insert--end {
+  margin-bottom: 0;
 }
 .j-g-pinned-label {
   font-size: 9px;

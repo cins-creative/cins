@@ -58,15 +58,7 @@ export function JourneyFeaturedAsidePanel({
       if (!res.ok) {
         throw new Error("reorder failed");
       }
-      const data = (await res.json()) as { pinned?: GalleryPinnedBanner[] };
-      if (Array.isArray(data.pinned)) {
-        setPinned(data.pinned);
-      }
-      window.dispatchEvent(
-        new CustomEvent("cins:journey-gallery-sync", {
-          detail: { ownerSlug },
-        }),
-      );
+      /* Aside đã optimistic — không setPinned/refetch tại đây (tránh giật UI). */
     },
     [ownerSlug],
   );
