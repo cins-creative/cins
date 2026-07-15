@@ -14,6 +14,7 @@ import { assertTruongOrgWriteApi } from "@/lib/truong/inline-api-auth";
 import { insertDiemFeedChoBaiMoi } from "@/lib/cins/feed-scoring-write";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import type { Block } from "@/lib/editor/types";
+import { ensureEmbedAutoCover } from "@/lib/editor/ensure-embed-auto-cover";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -65,9 +66,23 @@ export async function POST(request: Request, context: RouteContext) {
     insertRow.noi_dung_blocks as ReturnType<typeof sanitizeBaiDangBlocksInput> | undefined,
   );
 
-  const blocks = insertRow.noi_dung_blocks as
+  let blocks = insertRow.noi_dung_blocks as
     | ReturnType<typeof sanitizeBaiDangBlocksInput>
     | undefined;
+  if (blocks?.length) {
+    try {
+      const autoCover = await ensureEmbedAutoCover({
+        coverId:
+          typeof insertRow.cover_id === "string" ? insertRow.cover_id : null,
+        blocks: blocks as Block[],
+      });
+      blocks = autoCover.blocks;
+      insertRow.noi_dung_blocks = autoCover.blocks;
+      insertRow.cover_id = autoCover.coverId;
+    } catch {
+      /* best-effort */
+    }
+  }
   if (blocks?.length) {
     const contentCheck = validateOrgBaiDangContent({
       tomTat:

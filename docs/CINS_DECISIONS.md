@@ -37,6 +37,13 @@
 
 ## LOG — quyết định đã chốt
 
+### Auto thumbnail embed Gallery (2026-07-15)
+
+- **Không screenshot iframe; resolve provider/OG + capture `.riv`.**
+  • **Vấn đề:** bài embed không cover → Gallery hiện logo platform (Spline/…), kém discovery so với nền tảng lấy poster sẵn.
+  • **Chốt:** (1) user `cover_id` luôn thắng; (2) gallery: YouTube sync + `config.thumbnailUrl` trước logo; (3) publish/edit: oEmbed (Vimeo/Sketchfab) / OG (Spline/PlayCanvas/…) → upload CF; (4) file `.riv` chụp canvas client lúc đăng; (5) **không** headless / đọc pixel iframe cross-origin.
+  • *Hệ quả file:* IMPLEMENTATION § Media + Embed → Gallery thumbnail; không đổi FOUNDATIONS.
+
 ### Môn chuyên ngành trên đồ án trường (2026-07-14)
 
 - **L31 — `mon_hoc` thuộc chương trình ngành trường; dual-write lens + filter đồ án.**

@@ -865,12 +865,16 @@ export function resolveRiveFileEmbedPeek(
 ): { url: string } | null {
   const peek = blocksForArticleCardUnfold(body, blocks);
   if (!peek.length) return null;
-  if (!peek.every((b) => b.loai === "embed" || b.loai === "spacer")) return null;
   const embeds = peek.filter((b) => b.loai === "embed");
   if (embeds.length !== 1) return null;
   const url = blockEmbedConfigUrl(embeds[0]!);
   const cls = classifyEmbedUrl(url);
-  if (cls?.provider !== "rive-file") return null;
+  if (cls?.provider !== "rive-file") {
+    /* DB có thể lưu provider tường minh khi URL path lệch host lúc đọc. */
+    if (embeds[0]!.config?.provider !== "rive-file") return null;
+    if (!url) return null;
+    return { url };
+  }
   return { url: cls.url };
 }
 
@@ -881,12 +885,15 @@ export function resolveLottieFileEmbedPeek(
 ): { url: string } | null {
   const peek = blocksForArticleCardUnfold(body, blocks);
   if (!peek.length) return null;
-  if (!peek.every((b) => b.loai === "embed" || b.loai === "spacer")) return null;
   const embeds = peek.filter((b) => b.loai === "embed");
   if (embeds.length !== 1) return null;
   const url = blockEmbedConfigUrl(embeds[0]!);
   const cls = classifyEmbedUrl(url);
-  if (cls?.provider !== "lottie-file") return null;
+  if (cls?.provider !== "lottie-file") {
+    if (embeds[0]!.config?.provider !== "lottie-file") return null;
+    if (!url) return null;
+    return { url };
+  }
   return { url: cls.url };
 }
 

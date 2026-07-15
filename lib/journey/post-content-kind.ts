@@ -5,6 +5,7 @@ import {
   type EmbedProviderId,
 } from "@/lib/editor/embed-providers";
 import { embedPlatformLogoSrc } from "@/lib/editor/embed-platform-logos";
+import { resolveEmbedGalleryThumbnailSrc } from "@/lib/editor/embed-thumbnail";
 import {
   classifyBunnyVideoUrl,
 } from "@/lib/bunny/embed";
@@ -859,8 +860,21 @@ export function resolvePostGridEntry(
   }
 
   if (!thumbId || !isPersistedImageSeed(thumbId)) {
-    /* Nhúng không cover — vẫn lên gallery bằng logo nền tảng. */
+    /* Nhúng không cover CF — ưu tiên thumb provider (YouTube / đã lưu OG), rồi logo. */
     if (embedProvider) {
+      const autoThumb = resolveEmbedGalleryThumbnailSrc(blocks);
+      if (autoThumb) {
+        return {
+          mediaKind: "embed",
+          embedProvider,
+          coverId: null,
+          coverSrc: autoThumb,
+          videoProcessing: false,
+          videoPreviewSrc: null,
+          videoCanvasRatio: null,
+          videoOrientation: null,
+        };
+      }
       const logo = embedPlatformLogoSrc(embedProvider);
       if (logo) {
         return {

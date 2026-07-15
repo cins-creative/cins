@@ -23,6 +23,7 @@ import { recalcDiemNoiDung } from "@/lib/cins/feed-scoring-write";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { buildMilestoneItemForCotMoc } from "@/lib/journey/milestones-fetch";
 import type { MilestoneItem } from "@/components/journey/milestone-types";
+import { ensureEmbedAutoCover } from "@/lib/editor/ensure-embed-auto-cover";
 
 /* ╔══════════════════════════════════════════════════════════════════╗
    ║ Server Action: updatePost                                        ║
@@ -139,11 +140,24 @@ export async function updatePost(
     };
   }
 
+  let publishBlocks = normalized;
+  let coverId = input.coverSeed?.trim() || null;
+  try {
+    const autoCover = await ensureEmbedAutoCover({
+      coverId,
+      blocks: publishBlocks,
+    });
+    publishBlocks = autoCover.blocks;
+    coverId = autoCover.coverId;
+  } catch {
+    /* best-effort */
+  }
+
   const contentCheck = validatePostContentForPublish({
     moTa,
-    coverId: input.coverSeed,
+    coverId,
     tieuDe,
-    blocks: normalized,
+    blocks: publishBlocks,
   });
   if (!contentCheck.ok) {
     return {
@@ -156,7 +170,7 @@ export async function updatePost(
   const moTaFinal = contentCheck.resolution.effectiveMoTa;
 
   /* 3. Re-render HTML. */
-  const noiDungHtml = blocksToHtml(normalized);
+  const noiDungHtml = blocksToHtml(publishBlocks);
 
   /* 4. Verify ownership trước khi update (tránh PII leak). */
   const admin = createServiceRoleClient();
@@ -193,9 +207,9 @@ export async function updatePost(
     .update({
       tieu_de: tieuDe,
       mo_ta: moTaFinal || null,
-      cover_id: input.coverSeed || null,
+      cover_id: coverId,
       che_do_hien_thi: input.visibility,
-      noi_dung_blocks: normalized,
+      noi_dung_blocks: publishBlocks,
       noi_dung_html: noiDungHtml,
       meta_title: tieuDe.slice(0, 120),
       meta_description: moTaFinal ? moTaFinal.slice(0, 200) : null,
@@ -319,9 +333,9 @@ export async function updatePost(
   await recalcDiemNoiDung({
     loai: "cot_moc",
     id: input.cotMocId,
-    coverId: input.coverSeed || null,
+    coverId,
     moTa: moTaFinal || null,
-    blocks: normalized,
+    blocks: publishBlocks,
     hasTag,
   });
 

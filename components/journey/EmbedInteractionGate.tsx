@@ -18,7 +18,6 @@ import { PlayCanvasScaleFit } from "@/components/journey/PlayCanvasScaleFit";
 const GATED_PROVIDERS = new Set<EmbedProviderId>([
   "spline",
   "playcanvas",
-  "sketchfab",
   "canva",
   "figma",
   "rive",
@@ -51,13 +50,18 @@ function isScrollableOverflow(value: string): boolean {
   return value === "auto" || value === "scroll" || value === "overlay";
 }
 
-/** Khoá mọi ancestor đang cuộn được + body (window). 1 ngón mới không kéo feed. */
+/**
+ * Khoá ancestor đang cuộn (timeline/shell) — không `position:fixed` trên body.
+ * Fixed body làm sập grid `.j-shell` → sidebar sticky biến mất.
+ * Bỏ qua `.j-sidebar` để cột hồ sơ vẫn độc lập.
+ */
 function lockScrollChain(from: HTMLElement | null): () => void {
   const locked: LockedScrollEl[] = [];
   const seen = new Set<HTMLElement>();
 
   const lockEl = (el: HTMLElement) => {
     if (seen.has(el)) return;
+    if (el.classList.contains("j-sidebar")) return;
     seen.add(el);
     locked.push({
       el,
@@ -89,25 +93,10 @@ function lockScrollChain(from: HTMLElement | null): () => void {
 
   const body = document.body;
   const html = document.documentElement;
-  const scrollY = window.scrollY;
-  const scrollX = window.scrollX;
-  const prevBody = {
-    position: body.style.position,
-    top: body.style.top,
-    left: body.style.left,
-    right: body.style.right,
-    width: body.style.width,
-    overflow: body.style.overflow,
-  };
+  const prevBodyOverflow = body.style.overflow;
   const prevHtmlOverflow = html.style.overflow;
-
   lockEl(body);
   lockEl(html);
-  body.style.position = "fixed";
-  body.style.top = `-${scrollY}px`;
-  body.style.left = `-${scrollX}px`;
-  body.style.right = "0";
-  body.style.width = "100%";
   body.style.overflow = "hidden";
   html.style.overflow = "hidden";
 
@@ -121,14 +110,8 @@ function lockScrollChain(from: HTMLElement | null): () => void {
       item.el.scrollTop = item.scrollTop;
       item.el.scrollLeft = item.scrollLeft;
     }
-    body.style.position = prevBody.position;
-    body.style.top = prevBody.top;
-    body.style.left = prevBody.left;
-    body.style.right = prevBody.right;
-    body.style.width = prevBody.width;
-    body.style.overflow = prevBody.overflow;
+    body.style.overflow = prevBodyOverflow;
     html.style.overflow = prevHtmlOverflow;
-    window.scrollTo(scrollX, scrollY);
   };
 }
 
@@ -167,8 +150,8 @@ export function EmbedInteractionGate({ provider, iframeSrc }: Props) {
    * không chặn được 1 ngón kéo feed — feed cuộn → ViewportGatedEmbed unmount →
    * "kéo một nhịp rồi rớt". Hai ngón (pan/zoom) không cuộn trang nên vẫn mượt.
    *
-   * Không chỉ khoá `body`: shell/feed thường cuộn ở ancestor `overflow:auto`.
-   * Dùng `useLayoutEffect` để khoá trước paint, tránh nhịp đầu vẫn kéo feed.
+   * Chỉ `overflow:hidden` trên ancestor (không `position:fixed` body — tránh
+   * sidebar `.j-sidebar` biến mất). Dùng `useLayoutEffect` để khoá trước paint.
    */
   useLayoutEffect(() => {
     if (!active || typeof window === "undefined") return;
@@ -225,8 +208,7 @@ export function EmbedInteractionGate({ provider, iframeSrc }: Props) {
           onClick={() => setActive(false)}
           aria-label="Thoát tương tác để cuộn tiếp"
         >
-          <X size={15} strokeWidth={2.4} aria-hidden />
-          <span>Thoát</span>
+          <X size={18} strokeWidth={2.4} aria-hidden />
         </button>
       ) : (
         <button

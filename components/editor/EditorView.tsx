@@ -160,6 +160,7 @@ import {
 import { ImageUploadProgressOverlay } from "@/components/ui/ImageUploadProgressOverlay";
 import { isAllowedUploadImageFile } from "@/lib/files/infer-image-mime";
 import { uploadPostImageWithProgress } from "@/lib/files/upload-post-image";
+import { captureRiveFrameAsFile } from "@/lib/editor/capture-rive-frame";
 import type { ComposePublishedDetail } from "@/lib/journey/compose-published-sync";
 import { sanitizeBaiDangCoverIdInput } from "@/lib/truong/bai-dang-cover";
 import {
@@ -1593,7 +1594,7 @@ export function EditorView({
     isExternalEmbedCompose && embedPlatform
       ? {
           label: getTier1EmbedPlatformMeta(embedPlatform).label,
-          hint: "Nhúng từ nền tảng sáng tạo — thumbnail tuỳ chọn cho Gallery",
+          hint: "Nhúng từ nền tảng sáng tạo — thumbnail tự lấy khi có; bạn vẫn có thể đổi ảnh riêng",
         }
       : COMPOSE_PREVIEW_LABELS[previewKind];
 
@@ -2863,13 +2864,31 @@ export function EditorView({
 
     startTransition(async () => {
       try {
+      let coverForPublish = coverFinal;
+      if (
+        !coverForPublish &&
+        isRiveFileEmbedCompose &&
+        (riveFileEmbedPreviewUrl || riveAssetUrl.trim())
+      ) {
+        try {
+          const rivSrc =
+            riveFileEmbedPreviewUrl || riveAssetUrl.trim();
+          const file = await captureRiveFrameAsFile(rivSrc);
+          const uploaded = await uploadPostImageWithProgress(file);
+          coverForPublish = uploaded.imageId;
+          setCoverSeed(uploaded.imageId);
+          setMinimalCoverVisible(true);
+        } catch {
+          /* Giữ logo platform nếu chụp thất bại */
+        }
+      }
       if (orgBaiDangCompose && isEdit && initial) {
         const result = await updateOrgBaiDangClient({
           orgId: orgBaiDangCompose.orgId,
           baiDangId: initial.tacPhamId,
           tieuDe: tieuDeFinal,
           tomTat: moTaForPublish || null,
-          coverId: coverFinal,
+          coverId: coverForPublish,
           blocks: publishBlocks,
           loaiBaiDang: orgBaiDangCompose.forceLoaiBaiDang ?? composeLoaiBaiDang,
           schedulePublishAt: composeSchedulePublishAt,
@@ -2896,7 +2915,7 @@ export function EditorView({
           orgId: orgBaiDangCompose.orgId,
           tieuDe: tieuDeFinal,
           tomTat: moTaForPublish || null,
-          coverId: coverFinal,
+          coverId: coverForPublish,
           blocks: publishBlocks,
           loaiBaiDang: orgBaiDangCompose.forceLoaiBaiDang ?? composeLoaiBaiDang,
           schedulePublishAt: composeSchedulePublishAt,
@@ -2928,7 +2947,7 @@ export function EditorView({
           cotMocId: initial.cotMocId,
           tieuDe: tieuDeFinal,
           moTa: moTaForPublish,
-          coverSeed: coverFinal,
+          coverSeed: coverForPublish,
           tags,
           visibility: publishVisibility,
           loaiMoc: initial.loaiMoc,
@@ -2966,7 +2985,7 @@ export function EditorView({
         ownerId,
         tieuDe: tieuDeFinal,
         moTa: moTaForPublish,
-        coverSeed: coverFinal,
+        coverSeed: coverForPublish,
         tags,
         visibility: publishVisibility,
         loaiMoc: DEFAULT_LOAI_MOC,

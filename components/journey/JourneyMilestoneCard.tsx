@@ -774,6 +774,16 @@ export function JourneyMilestoneCard({
     : "cot_moc";
   const trackIdDoiTuong = orgBaiDangRef?.postId ?? milestoneId;
   const [liveCommentCount, setLiveCommentCount] = useState(comments ?? 0);
+  /* Like/bookmark optimistic sống trên card — khi mở comment, action bar
+     chuyển chỗ (pinActionsAboveComments) nên nút remount; nếu chỉ dựa props
+     `social` từ server thì trạng thái local bị mất. */
+  const [liveSocial, setLiveSocial] = useState(() => ({
+    viewerLiked: social?.viewerLiked ?? false,
+    likeCount: social?.likeCount ?? 0,
+    viewerBookmarked: social?.viewerBookmarked ?? false,
+    bookmarkCount: social?.bookmarkCount ?? 0,
+    showCounts: social?.showCounts ?? false,
+  }));
 
   /* Analytics tiếp cận/tương tác — KHÔNG đo nội dung của chính mình. */
   const articleRef = useRef<HTMLElement | null>(null);
@@ -812,6 +822,55 @@ export function JourneyMilestoneCard({
   useEffect(() => {
     setLiveCommentCount(comments ?? 0);
   }, [comments]);
+
+  useEffect(() => {
+    setLiveSocial({
+      viewerLiked: social?.viewerLiked ?? false,
+      likeCount: social?.likeCount ?? 0,
+      viewerBookmarked: social?.viewerBookmarked ?? false,
+      bookmarkCount: social?.bookmarkCount ?? 0,
+      showCounts: social?.showCounts ?? false,
+    });
+  }, [
+    social?.viewerLiked,
+    social?.likeCount,
+    social?.viewerBookmarked,
+    social?.bookmarkCount,
+    social?.showCounts,
+  ]);
+
+  useEffect(() => {
+    function onSocialAction(event: Event) {
+      const detail = (
+        event as CustomEvent<{
+          milestoneId?: string;
+          liked?: boolean;
+          likeCount?: number;
+          bookmarked?: boolean;
+          bookmarkCount?: number;
+        }>
+      ).detail;
+      if (!detail?.milestoneId || detail.milestoneId !== milestoneId) return;
+      setLiveSocial((prev) => ({
+        ...prev,
+        ...(typeof detail.liked === "boolean"
+          ? { viewerLiked: detail.liked }
+          : {}),
+        ...(typeof detail.likeCount === "number"
+          ? { likeCount: detail.likeCount }
+          : {}),
+        ...(typeof detail.bookmarked === "boolean"
+          ? { viewerBookmarked: detail.bookmarked }
+          : {}),
+        ...(typeof detail.bookmarkCount === "number"
+          ? { bookmarkCount: detail.bookmarkCount }
+          : {}),
+      }));
+    }
+    window.addEventListener("cins:social-action", onSocialAction);
+    return () =>
+      window.removeEventListener("cins:social-action", onSocialAction);
+  }, [milestoneId]);
 
   useEffect(() => {
     setChiChuExpanded(false);
@@ -1100,9 +1159,9 @@ export function JourneyMilestoneCard({
     <div className="jcard-actions">
       <JourneyLikeButton
         milestoneId={milestoneId}
-        initialLiked={social?.viewerLiked}
-        initialCount={social?.likeCount}
-        showCount={social?.showCounts}
+        initialLiked={liveSocial.viewerLiked}
+        initialCount={liveSocial.likeCount}
+        showCount={liveSocial.showCounts}
         actorsMediaLabel={likeActorsMediaLabel}
         sharePath={viewerPostHref}
         shareTitle={title}
@@ -1131,9 +1190,9 @@ export function JourneyMilestoneCard({
         <JourneyBookmarkButton
           milestoneId={milestoneId}
           title={title}
-          initialSaved={social?.viewerBookmarked}
-          initialCount={social?.bookmarkCount}
-          showCount={social?.showCounts}
+          initialSaved={liveSocial.viewerBookmarked}
+          initialCount={liveSocial.bookmarkCount}
+          showCount={liveSocial.showCounts}
         />
       ) : null}
       <span className="action-spacer" />

@@ -47,6 +47,8 @@ Thứ tự ưu tiên khi xung đột: **DB thật (đọc trực tiếp) > CINS_
 
 ## Thay đổi lớn gần đây (tóm tắt — chi tiết ở DECISIONS)
 
+**Auto thumbnail embed (2026-07-15):** Gallery / publish tự lấy poster YouTube·oEmbed·OG (hoặc capture `.riv`); user cover vẫn ưu tiên. Xem DECISIONS LOG + IMPLEMENTATION *Embed → Gallery thumbnail*.
+
 **L31 — môn chuyên ngành đồ án trường (2026-07-14):** bảng `org_truong_nganh_mon` nối ngành trường ↔ entity `mon_hoc`; gắn org cascade môn + dual-write lens; filter Năm→Ngành→Môn. Xem DECISIONS L31, IMPLEMENTATION SQL/API truong mon.
 
 **L29 — World editorial boost ẩn (2026-07-14):** `super_admin`/`admin` đẩy nội dung lên ưu tiên World Timeline + Gallery (không nhãn viewer); tab `/admin` quản lý đăng (grid/listing/dashboard) + toggle trên feed; TTL 3 ngày tự gia hạn; không đụng Journey cá nhân. Xem DECISIONS L29, FOUNDATIONS quy tắc 22, `cursor_map_admin.md`.

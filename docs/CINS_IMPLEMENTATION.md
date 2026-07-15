@@ -113,6 +113,8 @@
 |---|---|
 | `post-image/upload` · `article-inline-image` · `career-thumbnail` | Ảnh → Cloudflare |
 | `post-video/prepare` · `complete` · `processing` · `status` | Video → Bunny qua TUS (prepare ký request, complete/processing/status poll) |
+| `embed/thumbnail` | GET `?url=` — preview/auto thumb embed (auth): YouTube sync · Vimeo/Sketchfab oEmbed · OG fallback (Spline/PlayCanvas/Figma/…) |
+| `link/og` | GET `?url=` — OG scrape chat/link preview (auth); dùng chung SSRF helper với thumb embed |
 
 ### Chat (`chat`)
 | Route | Việc |
@@ -156,8 +158,8 @@
 | `truong/` | Module trường: tính điểm, tuyển sinh, phương thức, gallery, timeline, **môn chương trình (L31)** | `calc.ts`, `admission-calc-eval.ts`, `cau-hinh-tinh-diem.ts`, `merge-programs-tuyen-sinh.ts`, `nganh-mon.ts` |
 | `journey/` | Org milestone tag / đồ án (L31: `monHocId` + link `mon_hoc`) | `org-milestone-tag.ts`, `org-milestone-tag-types.ts`, `sync-tac-pham-tags.ts` |
 | `bunny/` | Video delivery: config, stream, embed, thumbnail | `stream.ts`, `config.ts` |
-| `cloudflare/` | Image upload + delivery URL | `upload-image.ts`, `pick-image-delivery-url.ts` |
-| `editor/` · `tiptap/` | Editor: sanitize, image-layout, co-author role, search | `sanitize.ts`, `coauthor-role-action.ts` |
+| `cloudflare/` | Image upload + delivery URL + **upload từ URL remote** (auto cover embed) | `upload-image.ts`, `upload-image-from-url.ts`, `pick-image-delivery-url.ts` |
+| `editor/` · `tiptap/` | Editor: sanitize, embed Tier 1, **auto thumbnail embed**, co-author | `embed-providers.ts`, `embed-thumbnail.ts`, `resolve-embed-thumbnail-server.ts`, `ensure-embed-auto-cover.ts`, `capture-rive-frame.ts`, `embed-platform-logos.ts` |
 | `images/` | Crop cover/square/viewport | `crop-*.ts` |
 | `admin/` | Article admin, môn thi, sql-runner, require-admin, **quản lý user/vai trò**, **ủy quyền membership org** | `require-admin.ts`, `sql-runner.ts`, `nguoi-dung-roles.ts`, `org-delegation.ts`, `org-members.ts`, `to-chuc-list.ts` |
 | `cins/` | Navigation, hub paths, **World Journey feed**, **điểm Timeline (L30)**, **trang chủ adaptive**, **World editorial boost (L29)** | `mainNav.ts`, `hubPaths.ts`, `worldJourneyFeedFetch.ts`, `worldJourneyOrgFeed.ts`, `feed-scoring.ts`, `feed-scoring-load.ts`, `feed-scoring-write.ts`, `world-boost.ts`, `world-boost-admin.ts`, `home-adaptive/*` |
@@ -342,6 +344,22 @@ Code map: `lib/journey/images.ts` (role `gallery-grid` → `grid` + `srcset` `gr
 | Dev OAuth | `NEXT_PUBLIC_SITE_URL=http://localhost:3001` trong `.env.local`; Supabase Redirect URLs `http://localhost:3001/auth/callback` (không lẫn `127.0.0.1`) |
 | Production site URL | **`NEXT_PUBLIC_SITE_URL=https://cins.vn`** phải có lúc `next build` / `npm run deploy` (biến shell ưu tiên hơn `.env.local`). Script `scripts/ensure-prod-site-url.mjs` tự ép khi deploy nếu env còn localhost. Build sai → trang login cảnh báo origin lệch & canonical host redirect không chạy. |
 | Callback | Đọc verifier từ **request** cookies, ghi session lên **response** redirect (`lib/supabase/route-handler.ts`) |
+
+### Embed → Gallery thumbnail (auto cover)
+
+Bài nhúng Tier 1 (YouTube, Vimeo, Sketchfab, Spline, PlayCanvas, Figma, …) / file `.riv` khi **không** có `cover_id` user:
+
+| Tầng | Hành vi |
+|---|---|
+| **Ưu tiên** | `content_tac_pham.cover_id` (user upload / crop) — không auto đè |
+| **Gallery read** (`resolvePostGridEntry`) | (1) `config.thumbnailUrl` trên block embed · (2) YouTube sync `i.ytimg.com/vi/{id}/hqdefault.jpg` · (3) logo platform CF (`embed-platform-logos`) |
+| **Publish / edit** (`ensureEmbedAutoCover`) | Nếu chưa cover: resolve URL (YouTube sync · Vimeo/Sketchfab oEmbed · OG HTML) → `uploadCloudflareImageFromUrl` → ghi `cover_id` + `thumbnailUrl` trên block. Wire: `publishPost` · `updatePost` · `POST /api/truong/[id]/bai-dang` |
+| **Rive file** | Client `captureRiveFrameAsFile` lúc đăng (`EditorView`) → `/api/post-image/upload`. Lottie file: chưa capture (logo / user upload) |
+| **Không làm** | Screenshot iframe cross-origin (Spline/Sketchfab…) — browser chặn; không headless browser |
+
+API phụ: `GET /api/embed/thumbnail?url=` (auth). SSRF: `isSafePublicHttpUrl` (`lib/link/og-preview.ts`).
+
+Code map: `lib/editor/embed-thumbnail.ts` · `resolve-embed-thumbnail-server.ts` · `ensure-embed-auto-cover.ts` · `lib/cloudflare/upload-image-from-url.ts` · `lib/journey/post-content-kind.ts` (`resolvePostGridEntry`).
 | Email/password + OTP | Đăng ký email → Supabase gửi **mã 6 số** (không magic link). UI: `components/auth/EmailOtpVerification.tsx` + `app/login/LoginPasswordForm.tsx`. Template HTML: `supabase/email-templates/confirm-signup.html` — dán vào Supabase Dashboard → Authentication → Email Templates → **Confirm signup**. Subject gợi ý: `Mã xác nhận C.INS của bạn`. Template **phải** có `{{ .Token }}` (OTP); **không** dùng `{{ .ConfirmationURL }}`. Bật **Confirm email** (Providers → Email). **Sender name** đặt `C.INS` (hoặc SMTP custom `noreply@cins.vn`) để tránh hiển thị «Supabase Auth». Resend: `supabase.auth.resend({ type: 'signup', email })`. |
 | Co-author trên Journey | Tagged/bookmark: `che_do_hien_thi_journey` — user tự đặt Nổi bật trên timeline của mình. Migration: `migration_journey_foreign_visibility.sql` |
 | Like count | Hiển thị công khai mặc định (`attachSocialState`, `PostActionsRail`) |

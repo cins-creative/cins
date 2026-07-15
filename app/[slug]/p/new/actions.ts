@@ -26,6 +26,7 @@ import { revalidateTaggedArticlePages } from "@/lib/tag/revalidate-tag-pages";
 import { DEFAULT_ARTICLE_POST_TITLE } from "@/lib/journey/post-media";
 import { validatePostContentForPublish, validateMoTaLength } from "@/lib/journey/post-content-kind";
 import { insertDiemFeedChoBaiMoi } from "@/lib/cins/feed-scoring-write";
+import { ensureEmbedAutoCover } from "@/lib/editor/ensure-embed-auto-cover";
 
 /* ╔══════════════════════════════════════════════════════════════════╗
    ║ Server Action: publishPost                                       ║
@@ -159,11 +160,25 @@ export async function publishPost(
     };
   }
 
+  /* Auto cover embed (YouTube/Vimeo/Sketchfab/OG) khi user chưa upload thumbnail. */
+  let publishBlocks = normalized;
+  let coverId = input.coverSeed?.trim() || null;
+  try {
+    const autoCover = await ensureEmbedAutoCover({
+      coverId,
+      blocks: publishBlocks,
+    });
+    publishBlocks = autoCover.blocks;
+    coverId = autoCover.coverId;
+  } catch {
+    /* best-effort — không chặn đăng bài */
+  }
+
   const contentCheck = validatePostContentForPublish({
     moTa,
-    coverId: input.coverSeed,
+    coverId,
     tieuDe,
-    blocks: normalized,
+    blocks: publishBlocks,
   });
   if (!contentCheck.ok) {
     return {
@@ -188,7 +203,7 @@ export async function publishPost(
   }
 
   /* 4. HTML render. */
-  const noiDungHtml = blocksToHtml(normalized);
+  const noiDungHtml = blocksToHtml(publishBlocks);
 
   /* 5. Insert DB — cộng đồng: cột mốc che_do_hien_thi=cong_dong + tac_pham. */
   const admin = createServiceRoleClient();
@@ -221,10 +236,10 @@ export async function publishPost(
         loai_tac_pham: "bai_viet",
         tieu_de: tieuDe,
         mo_ta: moTaFinal || null,
-        cover_id: input.coverSeed || null,
+        cover_id: coverId,
         che_do_hien_thi: "cong_dong",
         slug,
-        noi_dung_blocks: normalized,
+        noi_dung_blocks: publishBlocks,
         noi_dung_html: noiDungHtml,
         meta_title: tieuDe.slice(0, 120),
         meta_description: moTaFinal ? moTaFinal.slice(0, 200) : null,
@@ -277,9 +292,9 @@ export async function publishPost(
     await insertDiemFeedChoBaiMoi({
       loai: "cot_moc",
       id: cotMoc.id,
-      coverId: input.coverSeed || null,
+      coverId,
       moTa: moTaFinal || null,
-      blocks: normalized,
+      blocks: publishBlocks,
       hasTag: false,
     });
 
@@ -316,10 +331,10 @@ export async function publishPost(
       loai_tac_pham: "bai_viet",
       tieu_de: tieuDe,
       mo_ta: moTaFinal || null,
-      cover_id: input.coverSeed || null,
+      cover_id: coverId,
       che_do_hien_thi: input.visibility,
       slug,
-      noi_dung_blocks: normalized,
+      noi_dung_blocks: publishBlocks,
       noi_dung_html: noiDungHtml,
       meta_title: tieuDe.slice(0, 120),
       meta_description: moTaFinal ? moTaFinal.slice(0, 200) : null,
@@ -397,9 +412,9 @@ export async function publishPost(
   await insertDiemFeedChoBaiMoi({
     loai: "cot_moc",
     id: cotMoc.id,
-    coverId: input.coverSeed || null,
+    coverId,
     moTa: moTaFinal || null,
-    blocks: normalized,
+    blocks: publishBlocks,
     hasTag: tagIds.length > 0,
   });
 

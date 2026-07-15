@@ -257,14 +257,20 @@ function ReadOnlyBlock({
     const cls = classifyEmbedUrl(url);
     if (cls?.provider === "rive-file") {
       return (
-        <ViewportGatedEmbed>
+        <ViewportGatedEmbed
+          className="b-embed b-embed-ro is-rive-file-host"
+          data-provider="rive-file"
+        >
           <PostRiveFileEmbed src={cls.url} fit="native" />
         </ViewportGatedEmbed>
       );
     }
     if (cls?.provider === "lottie-file") {
       return (
-        <ViewportGatedEmbed>
+        <ViewportGatedEmbed
+          className="b-embed b-embed-ro is-lottie-file-host"
+          data-provider="lottie-file"
+        >
           <PostLottieFileEmbed src={cls.url} />
         </ViewportGatedEmbed>
       );
