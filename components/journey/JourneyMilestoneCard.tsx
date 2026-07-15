@@ -91,6 +91,7 @@ import {
 } from "@/lib/journey/bookmark-source-theme";
 import {
   articleCardEmbedInteractivePeek,
+  articleCardHasExpandableContent,
   plainTextCardPlain,
   chiChuBodyPlain,
   milestoneCardCaptionPlain,
@@ -729,7 +730,11 @@ export function JourneyMilestoneCard({
   const isTextCard = cardContentKind === "text";
   const embedInteractivePeek =
     isArticle && articleCardEmbedInteractivePeek(body, noiDungBlocks);
-  const supportsInlineUnfold = isArticle && !embedInteractivePeek;
+  const articleHasExpandableContent =
+    isArticle && articleCardHasExpandableContent(body, noiDungBlocks);
+  /* Chỉ bài viết dài — xổ/thu nội dung; ảnh·video·bình luận không dùng sticky «Thu gọn». */
+  const supportsInlineUnfold =
+    articleHasExpandableContent && !embedInteractivePeek;
   const useFeedCompactMedia = feedCompactMedia && cardContentKind === "photo";
   const cardReadMoreHref =
     useFeedCompactMedia && readMoreHref ? readMoreHref : null;
@@ -755,7 +760,7 @@ export function JourneyMilestoneCard({
   const showChiChuUnfold =
     isTextCard && chiChuCollapsible && chiChuExpanded;
   const showUnfoldToggle = Boolean(
-    (inlineExpand && showUnfold) || showChiChuUnfold,
+    (supportsInlineUnfold && showContent) || showChiChuUnfold,
   );
   const isContentOpen = supportsInlineUnfold && showContent;
   /* Khối xổ inline render khi: bài viết (xổ nội dung) HOẶC bất kỳ loại card nào
@@ -1475,7 +1480,8 @@ export function JourneyMilestoneCard({
               setChiChuExpanded(false);
               return;
             }
-            inlineExpand?.onClose();
+            /* Thu gọn nội dung — không đóng bình luận nếu đang mở. */
+            inlineExpand?.onToggleContent();
           }}
           aria-label="Thu gọn"
         >
@@ -1886,9 +1892,45 @@ export function JourneyMilestoneCard({
             </div>
           ) : variant === "self" ? (
             <div className="jcard-datebar jcard-datebar--guest">
-              <span className="org-copy">
-                <small>{displayDate}</small>
-              </span>
+              {Boolean(authorName || authorAvatarUrl || ownerSlug) ? (
+                <JourneyUserPopover
+                  slug={ownerSlug ?? ""}
+                  fallbackName={
+                    authorName || (ownerSlug ? `@${ownerSlug}` : "Người dùng")
+                  }
+                  fallbackAvatarUrl={authorAvatarUrl}
+                  track={
+                    trackOwnContent
+                      ? null
+                      : {
+                          idBoiCanh: milestoneId,
+                          nguon: nguonSuKien,
+                        }
+                  }
+                >
+                  <span className="org-chip">
+                    <span className="org-logo" aria-hidden>
+                      {authorAvatarUrl ? (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img src={authorAvatarUrl} alt="" />
+                      ) : (
+                        getNameInitials(authorName ?? null, ownerSlug ?? "C")
+                      )}
+                    </span>
+                    <span className="org-copy">
+                      <strong>
+                        {authorName || `@${ownerSlug ?? ""}`}
+                        <VerifiedTick slug={ownerSlug} />
+                      </strong>
+                      <small>{displayDate}</small>
+                    </span>
+                  </span>
+                </JourneyUserPopover>
+              ) : (
+                <span className="org-copy">
+                  <small>{displayDate}</small>
+                </span>
+              )}
               <span className="badge-row">
                 {typeBadgeBoostNode}
                 {showPersonalTypeBadge ? (

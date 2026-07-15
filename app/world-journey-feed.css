@@ -3810,7 +3810,7 @@
 
 .world-journey-home .ha-card {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: none;
   border-radius: var(--r-lg);
   box-shadow: var(--sh-xs);
   overflow: hidden;
@@ -3914,7 +3914,7 @@
 }
 
 .world-journey-home .ha-card--accent {
-  border-color: var(--mint, #6efec0);
+  background: color-mix(in srgb, var(--mint, #6efec0) 10%, var(--surface));
 }
 
 /* ── Card cơ hội (sidebar LÀM) ── */
@@ -3959,12 +3959,11 @@
   padding: 10px 10px 10px 11px;
   text-decoration: none;
   color: inherit;
-  border: 1px solid var(--neutral-100, #f1f2f5);
+  border: none;
   border-radius: var(--r-md, 12px);
   background: var(--neutral-50, #f8f9fb);
   transition:
     background 0.15s var(--ease, ease),
-    border-color 0.15s var(--ease, ease),
     box-shadow 0.15s var(--ease, ease);
   min-width: 0;
 }
@@ -3972,7 +3971,6 @@
 .world-journey-home a.ha-job:hover,
 .world-journey-home a.ha-job:focus-visible {
   background: var(--surface, #fff);
-  border-color: color-mix(in srgb, var(--blue) 22%, var(--border));
   box-shadow: var(--sh-xs);
 }
 
@@ -3998,7 +3996,7 @@
   align-items: center;
   justify-content: center;
   background: var(--blue-soft, #e7f0fb);
-  border: 1px solid color-mix(in srgb, var(--blue) 12%, transparent);
+  border: none;
 }
 
 .world-journey-home .ha-job-av img {
@@ -4098,7 +4096,7 @@
 }
 
 .world-journey-home .ha-card--profile.ha-card--accent {
-  border-color: color-mix(in srgb, var(--mint, #6efec0) 45%, var(--border));
+  background: color-mix(in srgb, var(--mint, #6efec0) 10%, var(--surface));
 }
 
 .world-journey-home .ha-profile-body {
@@ -5259,7 +5257,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  border: 1px solid rgba(15, 23, 42, 0.12);
+  border: none;
   background: rgba(255, 255, 255, 0.92);
   color: #475569;
   border-radius: 999px;
@@ -5269,9 +5267,11 @@
   cursor: pointer;
   z-index: 4;
 }
-.wj-boost-toggle:hover { border-color: #16a34a; color: #15803d; }
+.wj-boost-toggle:hover {
+  background: #dcfce7;
+  color: #15803d;
+}
 .wj-boost-toggle.is-on {
-  border-color: #16a34a;
   background: #dcfce7;
   color: #15803d;
 }

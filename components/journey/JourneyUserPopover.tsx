@@ -173,7 +173,7 @@ export function JourneyUserPopover({
               aria-label="Đóng"
               onClick={() => setOpen(false)}
             >
-              <X size={16} aria-hidden />
+              <X size={14} aria-hidden />
             </button>
           {visibleProfile ? (
             <article className="j-friend-card j-user-pop-card">

@@ -11,13 +11,22 @@ type Props = {
   blocks: ReadonlyArray<Block>;
   /** Modal / permalink — tự phát video khi mở. */
   mediaAutoplay?: boolean;
+  /**
+   * Permalink / media column — hiện đủ ảnh album (không cắt 6 + overlay +N).
+   * Timeline card giữ mặc định false.
+   */
+  showAllImages?: boolean;
 };
 
 /**
  * Render Journey post blocks — gom các block `imgs` liên tiếp thành
  * Facebook-style image grid (render-time only, không đổi DB).
  */
-export function PostBlockRenderer({ blocks, mediaAutoplay = false }: Props) {
+export function PostBlockRenderer({
+  blocks,
+  mediaAutoplay = false,
+  showAllImages = false,
+}: Props) {
   const groups = useMemo(() => groupBlocksForRender(blocks), [blocks]);
 
   /* Chỉ block embed ĐẦU TIÊN được tự phát — nếu bài có nhiều video, để tất cả
@@ -51,6 +60,7 @@ export function PostBlockRenderer({ blocks, mediaAutoplay = false }: Props) {
                   isFirstGroup={isFirstGroup}
                   readOnly
                   timelineLightbox
+                  showAllImages={showAllImages}
                 />
               </div>
             </div>

@@ -252,7 +252,7 @@ export function JourneyOrgPopover({
                   aria-label="Đóng"
                   onClick={() => setOpen(false)}
                 >
-                  <X size={16} aria-hidden />
+                  <X size={14} aria-hidden />
                 </button>
                 {visible ? (
                   <article className={`j-org-pop-card${orgCardClass(popoverKind)}`}>

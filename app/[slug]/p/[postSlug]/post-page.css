@@ -95,23 +95,41 @@
   min-width: 0;
   min-height: 0;
   height: 100%;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
   display: flex;
   flex-direction: column;
   background: #000;
 }
 
-/* Cột media — toàn bộ chain flex, ảnh scale contain trong khung 556×730 */
+/*
+ * Album ImageGrid: chiều cao tự nhiên + scroll cột trái.
+ * (Trước: height 100% / overflow hidden → chồng ô + không cuộn được.)
+ */
 .j-post-page:has(.post-canvas--media.post-canvas--split)
   .post-view-content--media
   .post-view-content-inner,
 .j-post-page:has(.post-canvas--media.post-canvas--split)
   .post-view-content--media
-  .post-blocks-fb,
+  .post-blocks-fb {
+  flex: 0 0 auto;
+  min-width: 0;
+  min-height: 0;
+  width: 100%;
+  height: auto;
+  max-height: none;
+  display: flex;
+  flex-direction: column;
+  overflow: visible;
+  background: #000;
+}
+
 .j-post-page:has(.post-canvas--media.post-canvas--split)
   .post-view-content--media
   .post-blocks-fb
-  .block.block-image-grid,
+  > .block.block-image-grid,
 .j-post-page:has(.post-canvas--media.post-canvas--split)
   .post-view-content--media
   .post-blocks-fb
@@ -120,27 +138,64 @@
   .post-view-content--media
   .post-blocks-fb
   .block-image-grid
-  .block-inner,
+  .block-inner {
+  flex: 0 0 auto;
+  min-width: 0;
+  min-height: 0;
+  width: 100%;
+  height: auto;
+  max-height: none;
+  display: flex;
+  flex-direction: column;
+  overflow: visible;
+  background: #000;
+}
+
 .j-post-page:has(.post-canvas--media.post-canvas--split)
   .post-view-content--media
   .post-blocks-fb
-  .block[data-block-type="embed"],
+  > .block.block-image-grid
+  > .block-inner {
+  display: block;
+  padding: 0;
+}
+
 .j-post-page:has(.post-canvas--media.post-canvas--split)
   .post-view-content--media
+  .post-blocks-fb
+  > .block.block-image-grid
+  .image-grid {
+  width: 100%;
+  max-width: 100%;
+}
+
+/* Carousel / embed thuần — vẫn fill khung viewport (không có ImageGrid). */
+.j-post-page:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media:not(:has(.image-grid))
+  .post-view-content-inner,
+.j-post-page:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media:not(:has(.image-grid))
+  .post-blocks-fb,
+.j-post-page:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media:not(:has(.image-grid))
+  .post-blocks-fb
+  .block[data-block-type="embed"],
+.j-post-page:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media:not(:has(.image-grid))
   .post-blocks-fb
   .block[data-block-type="embed"]
   .block-inner,
 .j-post-page:has(.post-canvas--media.post-canvas--split)
-  .post-view-content--media
+  .post-view-content--media:not(:has(.image-grid))
   .image-album-carousel,
 .j-post-page:has(.post-canvas--media.post-canvas--split)
-  .post-view-content--media
+  .post-view-content--media:not(:has(.image-grid))
   .image-album-carousel.is-portrait,
 .j-post-page:has(.post-canvas--media.post-canvas--split)
-  .post-view-content--media
+  .post-view-content--media:not(:has(.image-grid))
   .image-album-carousel-stage,
 .j-post-page:has(.post-canvas--media.post-canvas--split)
-  .post-view-content--media
+  .post-view-content--media:not(:has(.image-grid))
   .image-album-carousel-figure {
   flex: 1 1 auto;
   min-width: 0;
@@ -154,9 +209,8 @@
   background: #000;
 }
 
-/* block-inner fill 100% khung block — media căn giữa bên trong */
 .j-post-page:has(.post-canvas--media.post-canvas--split)
-  .post-view-content--media
+  .post-view-content--media:not(:has(.image-grid))
   .post-blocks-fb
   > .block {
   flex: 1 1 auto;
@@ -169,7 +223,7 @@
 }
 
 .j-post-page:has(.post-canvas--media.post-canvas--split)
-  .post-view-content--media
+  .post-view-content--media:not(:has(.image-grid))
   .post-blocks-fb
   > .block
   > .block-inner {
@@ -184,6 +238,19 @@
   align-items: center;
   justify-content: center;
   padding: 0;
+}
+
+/* block-inner fill 100% khung block — media căn giữa bên trong */
+.j-post-page:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media:has(.image-grid)
+  .post-blocks-fb
+  > .block:not(.block-image-grid) {
+  flex: 0 0 auto;
+  min-width: 0;
+  width: 100%;
+  height: auto;
+  display: flex;
+  flex-direction: column;
 }
 
 .j-post-page:has(.post-canvas--media.post-canvas--split)
@@ -676,8 +743,134 @@
   min-height: 0;
 }
 
-.cins-post-view.post-canvas--split .post-view-content--media .post-blocks-fb {
-  padding: 0;
+/* Caption media trên rail — đồng bộ font/màu với `.jcard--photo .jcard-text`. */
+.cins-post-view.post-canvas--media.post-canvas--split
+  .post-rail-body
+  .post-rail-media-text,
+.cins-post-view
+  .post-canvas--media.post-canvas--split
+  .post-rail-body
+  .post-rail-media-text {
+  --jcard-ink: var(--ink-display);
+  --jcard-ink2: var(--ink-body);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 2px 0 4px;
+}
+
+.cins-post-view.post-canvas--media.post-canvas--split
+  .post-rail-body
+  .post-rail-media-text
+  .jcard-title,
+.cins-post-view
+  .post-canvas--media.post-canvas--split
+  .post-rail-body
+  .post-rail-media-text
+  .jcard-title {
+  margin: 0 0 8px;
+  font-family: var(--font-sans, "Be Vietnam Pro", system-ui, sans-serif);
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.35;
+  letter-spacing: -0.025em;
+  color: var(--jcard-ink, var(--ink-display));
+}
+
+.cins-post-view.post-canvas--media.post-canvas--split
+  .post-rail-body
+  .post-rail-media-text
+  .jcard-lead,
+.cins-post-view
+  .post-canvas--media.post-canvas--split
+  .post-rail-body
+  .post-rail-media-text
+  .jcard-lead {
+  margin: 0;
+}
+
+.cins-post-view.post-canvas--media.post-canvas--split
+  .post-rail-body
+  .post-rail-media-text
+  .jcard-lead
+  .jcard-desc,
+.cins-post-view
+  .post-canvas--media.post-canvas--split
+  .post-rail-body
+  .post-rail-media-text
+  .jcard-lead
+  .jcard-desc {
+  margin: 0;
+  font-family: var(--font-sans, "Be Vietnam Pro", system-ui, sans-serif);
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.55;
+  letter-spacing: -0.01em;
+  color: var(--jcard-ink, var(--ink-display));
+  white-space: normal;
+  word-break: break-word;
+}
+
+.cins-post-view.post-canvas--media.post-canvas--split
+  .post-rail-body
+  .post-rail-media-text
+  .jcard-desc
+  .mota-md-p,
+.cins-post-view
+  .post-canvas--media.post-canvas--split
+  .post-rail-body
+  .post-rail-media-text
+  .jcard-desc
+  .mota-md-p {
+  margin: 0;
+  color: inherit;
+  font: inherit;
+}
+
+.cins-post-view.post-canvas--media.post-canvas--split
+  .post-rail-body
+  .post-rail-media-text
+  .jcard-desc
+  .mota-md-p
+  + .mota-md-p,
+.cins-post-view
+  .post-canvas--media.post-canvas--split
+  .post-rail-body
+  .post-rail-media-text
+  .jcard-desc
+  .mota-md-p
+  + .mota-md-p {
+  margin-top: 0.65em;
+}
+
+.cins-post-view.post-canvas--media.post-canvas--split
+  .post-rail-body
+  .post-rail-media-text
+  .jcard-desc
+  strong,
+.cins-post-view
+  .post-canvas--media.post-canvas--split
+  .post-rail-body
+  .post-rail-media-text
+  .jcard-desc
+  strong {
+  font-weight: 700;
+  color: inherit;
+}
+
+.cins-post-view.post-canvas--media.post-canvas--split
+  .post-rail-body
+  .post-rail-media-text
+  .jcard-desc
+  a.mota-md-a,
+.cins-post-view
+  .post-canvas--media.post-canvas--split
+  .post-rail-body
+  .post-rail-media-text
+  .jcard-desc
+  a.mota-md-a {
+  color: var(--cins-blue, #1f74c9);
+  font-weight: 500;
 }
 
 .cins-post-view .post-rail-blk--comments {

@@ -26,6 +26,7 @@ import {
 } from "@/app/[slug]/journey/actions";
 import { PostBlockRenderer } from "@/components/journey/PostBlockRenderer";
 import { PostCover } from "@/components/editor/PostRenderer";
+import { MoTaMarkdown } from "@/components/editor/compose/MoTaMarkdown";
 import { JourneyArticleTagLink } from "@/components/journey/JourneyArticleTagLink";
 import { JourneyMilestoneCardBodyContent } from "@/components/journey/JourneyMilestoneCardBodyContent";
 import { JourneyMilestoneOwnerMenu } from "@/components/journey/JourneyMilestoneOwnerMenu";
@@ -47,11 +48,13 @@ import {
 import type { Block } from "@/lib/editor/types";
 import {
   blocksForArticleCardUnfold,
-  isMediaPost,
+  milestoneCardCaptionForDisplay,
   partitionBlocksForSplitRail,
   shouldMovePostTextToSplitRail,
+  shouldShowMilestoneCardTitle,
 } from "@/lib/journey/post-media";
 import {
+  postDisplayKindToMilestoneCardKind,
   readShowCoverInPost,
   resolvePostDisplayKind,
 } from "@/lib/journey/post-content-kind";
@@ -224,7 +227,26 @@ export function JourneyPostBody({
     milestone.tieuDe || mainPost?.tieuDe || "Cột mốc không tiêu đề";
   const heroSub = milestone.moTa || mainPost?.moTa || null;
   const blocks = mainPost?.noiDungBlocks ?? null;
-  const mediaPost = isMediaPost(blocks);
+  const postDisplayKind = resolvePostDisplayKind({
+    moTa: heroSub,
+    coverId: coverSeed,
+    blocks: blocks ?? [],
+  });
+  /** Đồng bộ loại card timeline (`jcard--photo` / video / article / text). */
+  const cardKind = postDisplayKindToMilestoneCardKind(postDisplayKind.kind);
+  const mediaPost = cardKind === "photo" || cardKind === "video";
+  /** Bài chỉ chữ — đồng bộ panel `.jcard-chi-chu` với timeline card. */
+  const isTextPost = cardKind === "text";
+  const showHeroTitle = shouldShowMilestoneCardTitle(
+    heroTitle,
+    blocks,
+    heroSub,
+  );
+  const heroCaption = milestoneCardCaptionForDisplay(
+    heroTitle,
+    heroSub,
+    blocks,
+  );
   const inlineUnfoldBlocks =
     variant === "inline" && blocks && !mediaPost
       ? blocksForArticleCardUnfold(heroSub, blocks)
@@ -282,14 +304,6 @@ export function JourneyPostBody({
   const isSplit = variant === "full" && layout === "split";
   const Wrapper = isInline ? "div" : "main";
 
-  const postDisplayKind = resolvePostDisplayKind({
-    moTa: heroSub,
-    coverId: coverSeed,
-    blocks: blocks ?? [],
-  });
-  /** Bài chỉ chữ — đồng bộ panel `.jcard-chi-chu` với timeline card. */
-  const isTextPost = postDisplayKind.kind === "text";
-
   const wrapperClass = isInline
     ? `cins-editor-page cins-post-view j-m-unfold-post${mediaPost ? " j-m-unfold-post--media" : ""}${isTextPost ? " j-m-unfold-post--chi-chu" : ""}${commentsOnlyInline ? " j-m-unfold-post--comments-only" : ""}`
     : `cins-editor-page cins-post-view editor-canvas post-canvas${mediaPost ? " post-canvas--media" : ""}${isTextPost ? " post-canvas--chi-chu" : ""}${isSplit ? " post-canvas--split" : ""}`;
@@ -310,11 +324,22 @@ export function JourneyPostBody({
         postDisplayKind.kind !== "article");
   const coverEl = showCoverInReadView ? <PostCover seed={coverSeed} /> : null;
 
+  const heroTitleEl = showHeroTitle ? (
+    <h1 className="title-in title-ro">{heroTitle}</h1>
+  ) : null;
+  const heroCaptionEl = heroCaption ? (
+    <MoTaMarkdown
+      text={heroCaption}
+      className="sub-in sub-ro post-view-dek jcard-desc"
+      as="div"
+    />
+  ) : null;
+
   const heroEl =
     variant === "full" && !mediaPost && !isTextPost ? (
       <>
-        <h1 className="title-in title-ro">{heroTitle}</h1>
-        {heroSub ? <p className="sub-in sub-ro">{heroSub}</p> : null}
+        {heroTitleEl}
+        {heroCaptionEl}
       </>
     ) : null;
 
@@ -350,16 +375,17 @@ export function JourneyPostBody({
     />
   );
 
-  const kickerLabel =
-    mainPost?.articleTags[0]?.tieu_de ?? typeLabel;
-  const KickerIcon = mainPost?.articleTags[0] ? FileText : TypeIcon;
+  /** Kicker chỉ khi có thẻ bài viết — không dùng loại cột mốc (Cá nhân…) như card. */
+  const kickerLabel = mainPost?.articleTags[0]?.tieu_de ?? null;
+  const KickerIcon = FileText;
 
   const kickerEl =
     isSplit &&
     variant === "full" &&
     !mediaPost &&
     !isTextPost &&
-    !splitSkip?.kicker ? (
+    !splitSkip?.kicker &&
+    kickerLabel ? (
       <span className="post-view-kicker">
         <KickerIcon size={13} strokeWidth={2} aria-hidden />
         {kickerLabel}
@@ -370,10 +396,8 @@ export function JourneyPostBody({
     isSplit && variant === "full" && !mediaPost && !isTextPost ? (
       <>
         {kickerEl}
-        <h1 className="title-in title-ro">{heroTitle}</h1>
-        {heroSub ? (
-          <p className="sub-in sub-ro post-view-dek">{heroSub}</p>
-        ) : null}
+        {heroTitleEl}
+        {heroCaptionEl}
       </>
     ) : null;
 
@@ -543,27 +567,62 @@ export function JourneyPostBody({
 
   const hideSplitRail = splitSkip?.rail === true;
   const moveTextToRail =
-    isSplit && !hideSplitRail && shouldMovePostTextToSplitRail(blocks);
+    isSplit &&
+    !hideSplitRail &&
+    (mediaPost || shouldMovePostTextToSplitRail(blocks));
   const splitBlockParts = useMemo(() => {
-    if (!blocks?.length || !moveTextToRail) {
+    if (!moveTextToRail) {
       return { railBlocks: [] as Block[], mediaBlocks: blocks ?? [] };
     }
-    return partitionBlocksForSplitRail(blocks);
-  }, [blocks, moveTextToRail]);
+    if (!blocks?.length) {
+      return { railBlocks: [] as Block[], mediaBlocks: [] as Block[] };
+    }
+    return partitionBlocksForSplitRail(blocks, { asMedia: mediaPost });
+  }, [blocks, moveTextToRail, mediaPost]);
 
   const mediaAutoplay = variant === "full";
 
-  function renderPostBlocks(blockList: ReadonlyArray<Block> | null | undefined) {
+  function renderPostBlocks(
+    blockList: ReadonlyArray<Block> | null | undefined,
+    opts?: { showAllImages?: boolean },
+  ) {
     if (!showBlocks || !blockList || blockList.length === 0) return null;
     return (
-      <PostBlockRenderer blocks={blockList} mediaAutoplay={mediaAutoplay} />
+      <PostBlockRenderer
+        blocks={blockList}
+        mediaAutoplay={mediaAutoplay}
+        showAllImages={opts?.showAllImages}
+      />
     );
   }
 
+  /** Title + caption — cùng markup/class với `.jcard-content` trên timeline. */
+  const mediaCaptionRailEl =
+    mediaPost && (showHeroTitle || heroCaption) ? (
+      <div className="post-rail-media-text jcard-text">
+        {showHeroTitle ? (
+          <h2 className="jcard-title">{heroTitle}</h2>
+        ) : null}
+        {heroCaption ? (
+          <div className="jcard-lead">
+            <MoTaMarkdown text={heroCaption} className="jcard-desc" as="div" />
+          </div>
+        ) : null}
+      </div>
+    ) : null;
+
   const railContentEl =
-    moveTextToRail && showBlocks && mediaPost
-      ? renderPostBlocks(splitBlockParts.railBlocks)
-      : null;
+    moveTextToRail && showBlocks && mediaPost ? (
+      <>
+        {mediaCaptionRailEl}
+        {renderPostBlocks(
+          blocksForArticleCardUnfold(
+            heroCaption ?? heroSub,
+            splitBlockParts.railBlocks,
+          ),
+        )}
+      </>
+    ) : null;
 
   const splitContentLeadEl =
     isSplit && variant === "full" && !mediaPost && !isTextPost ? (
@@ -588,13 +647,17 @@ export function JourneyPostBody({
       />
     ) : null;
 
-  const renderBlocks =
-    variant === "inline" && !mediaPost ? inlineUnfoldBlocks : blocks;
+  const contentBlocks =
+    !mediaPost && !isTextPost && heroCaption
+      ? blocksForArticleCardUnfold(heroSub, blocks)
+      : variant === "inline" && !mediaPost
+        ? inlineUnfoldBlocks
+        : blocks;
 
   const blocksEl =
-    !isTextPost && showBlocks && renderBlocks && renderBlocks.length > 0 ? (
+    !isTextPost && showBlocks && contentBlocks && contentBlocks.length > 0 ? (
       <PostBlockRenderer
-        blocks={renderBlocks}
+        blocks={contentBlocks}
         mediaAutoplay={mediaAutoplay}
       />
     ) : !isTextPost && showBlocks && mainPost?.noiDungHtml ? (
@@ -606,16 +669,29 @@ export function JourneyPostBody({
       <div className="post-empty">Cột mốc này chưa có nội dung chi tiết.</div>
     ) : null;
 
+  const mediaVisualEl =
+    splitBlockParts.mediaBlocks.length > 0
+      ? renderPostBlocks(splitBlockParts.mediaBlocks, { showAllImages: true })
+      : coverSeed
+        ? <PostCover seed={coverSeed} />
+        : null;
+
   const splitContentBlocksEl = isTextPost
     ? chiChuEl
-    : moveTextToRail && showBlocks
-      ? (renderPostBlocks(splitBlockParts.mediaBlocks) ??
-        (mainPost?.noiDungHtml ? (
-          <div
-            className="post-html-fallback article-rich-content"
-            dangerouslySetInnerHTML={{ __html: mainPost.noiDungHtml }}
-          />
-        ) : null))
+    : moveTextToRail && showBlocks && mediaPost
+      ? mediaVisualEl
+      : moveTextToRail && showBlocks
+        ? (renderPostBlocks(
+            heroCaption
+              ? blocksForArticleCardUnfold(heroSub, splitBlockParts.mediaBlocks)
+              : splitBlockParts.mediaBlocks,
+          ) ??
+          (mainPost?.noiDungHtml ? (
+            <div
+              className="post-html-fallback article-rich-content"
+              dangerouslySetInnerHTML={{ __html: mainPost.noiDungHtml }}
+            />
+          ) : null))
       : blocksEl;
 
   if (isSplit) {

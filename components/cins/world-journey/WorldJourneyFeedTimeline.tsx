@@ -132,7 +132,11 @@ export function WorldJourneyFeedTimeline({
 
     setInlineExpand((prev) => {
       if (prev?.key === key) {
-        if (prev.showContent) return null;
+        if (prev.showContent) {
+          /* Thu gọn nội dung — giữ bình luận nếu đang mở. */
+          if (prev.showComments) return { ...prev, showContent: false };
+          return null;
+        }
         return { ...prev, showContent: true };
       }
       return {

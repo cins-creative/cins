@@ -118,6 +118,12 @@ export type CongDongMemberPreview = {
   initial: string;
 };
 
+/** Thành viên trong bảng roster công khai (không quyền chỉnh sửa). */
+export type CongDongRosterMember = CongDongMemberPreview & {
+  vaiTro: CongDongVaiTro;
+  vaiTroLabel: string;
+};
+
 export type CongDongMemberAdmin = {
   id: string;
   userId: string;

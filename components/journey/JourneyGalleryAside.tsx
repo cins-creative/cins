@@ -352,36 +352,6 @@ export function JourneyGalleryAside({
                           : undefined
                       }
                     >
-                      {reorderEnabled ? (
-                        <button
-                          type="button"
-                          className="j-g-banner-drag"
-                          draggable
-                          aria-label={`Kéo để đổi vị trí: ${b.title || "bài nổi bật"}`}
-                          title="Kéo để đổi vị trí"
-                          onClick={(e) => e.stopPropagation()}
-                          onDragStart={(e) => {
-                            dragMovedRef.current = false;
-                            dropAtRef.current = null;
-                            setDropAt(null);
-                            setDragFrom(index);
-                            e.dataTransfer.effectAllowed = "move";
-                            e.dataTransfer.setData("text/plain", String(index));
-                          }}
-                          onDrag={(e) => {
-                            if (
-                              !dragMovedRef.current &&
-                              (Math.abs(e.movementX) > 2 ||
-                                Math.abs(e.movementY) > 2)
-                            ) {
-                              dragMovedRef.current = true;
-                            }
-                          }}
-                          onDragEnd={clearDrag}
-                        >
-                          <GripVertical size={16} strokeWidth={2} aria-hidden />
-                        </button>
-                      ) : null}
                       <button
                         type="button"
                         className="j-g-banner"
@@ -423,6 +393,36 @@ export function JourneyGalleryAside({
                           authorAvatarUrl={b.authorAvatarUrl}
                         />
                       </button>
+                      {reorderEnabled ? (
+                        <button
+                          type="button"
+                          className="j-g-banner-drag"
+                          draggable
+                          aria-label={`Kéo để đổi vị trí: ${b.title || "bài nổi bật"}`}
+                          title="Kéo để đổi vị trí"
+                          onClick={(e) => e.stopPropagation()}
+                          onDragStart={(e) => {
+                            dragMovedRef.current = false;
+                            dropAtRef.current = null;
+                            setDropAt(null);
+                            setDragFrom(index);
+                            e.dataTransfer.effectAllowed = "move";
+                            e.dataTransfer.setData("text/plain", String(index));
+                          }}
+                          onDrag={(e) => {
+                            if (
+                              !dragMovedRef.current &&
+                              (Math.abs(e.movementX) > 2 ||
+                                Math.abs(e.movementY) > 2)
+                            ) {
+                              dragMovedRef.current = true;
+                            }
+                          }}
+                          onDragEnd={clearDrag}
+                        >
+                          <GripVertical size={16} strokeWidth={2} aria-hidden />
+                        </button>
+                      ) : null}
                     </div>
                   </div>
                 );

@@ -26,13 +26,13 @@ import { BunnyVideoProcessingPoller } from "@/components/journey/BunnyVideoProce
 import { JourneyComposeProvider } from "@/components/journey/JourneyComposeContext";
 import { JourneyCreateComposer } from "@/components/journey/JourneyCreateComposer";
 import { CongDongAuthorMetaLine } from "@/components/cong-dong/CongDongAuthorMetaLine";
-import { CongDongCategoryLinks } from "@/components/cong-dong/CongDongCategoryLinks";
-import { CongDongLinhVucLinks } from "@/components/cong-dong/CongDongLinhVucLinks";
+import { CongDongTopicsAside } from "@/components/cong-dong/CongDongTopicsAside";
 import { congDongFeedPostCoverUrl } from "@/lib/cong-dong/feed-post-cover";
 import {
   CongDongManageModal,
   CongDongManageTriggerButton,
 } from "@/components/cong-dong/CongDongManageModal";
+import { CongDongRosterModal } from "@/components/cong-dong/CongDongRosterModal";
 import {
   CongDongOrgBrandingAvatar,
   CongDongOrgBrandingCover,
@@ -75,6 +75,7 @@ import type {
   CongDongPost,
 } from "@/lib/cong-dong/types";
 import { isMilestoneArticleCard } from "@/lib/journey/milestone-card-kind";
+import { articleCardHasExpandableContent } from "@/lib/journey/post-media";
 import type { MilestonePostComment } from "@/lib/journey/milestone-post-types";
 import { getAvatarUrl } from "@/lib/journey/profile";
 import {
@@ -222,6 +223,7 @@ export function CongDongPageClient({ initial }: Props) {
     nextCursor: initial.nextCursor,
   });
   const [manageOpen, setManageOpen] = useState(false);
+  const [rosterOpen, setRosterOpen] = useState(false);
   const [notifyFabEnabled, setNotifyFabEnabled] = useState(() => {
     if (typeof window === "undefined") return false;
     return window.matchMedia(CONG_DONG_NOTIFY_FAB_MQ).matches;
@@ -521,8 +523,10 @@ export function CongDongPageClient({ initial }: Props) {
             </div>
           </div>
           <div className="cd-v4-id-body">
-            <CongDongLinhVucLinks linhVucs={linhVucs} />
-            <CongDongCategoryLinks categories={categories} />
+            <CongDongTopicsAside
+              linhVucs={linhVucs}
+              categories={categories}
+            />
 
             {careerMap.length > 0 ? (
               <>
@@ -541,7 +545,12 @@ export function CongDongPageClient({ initial }: Props) {
               <>
                 <div className="cd-v4-divider" />
                 <div className="cd-v4-friends-row">
-                  <div className="cd-v4-facepile" aria-hidden>
+                  <button
+                    type="button"
+                    className="cd-v4-facepile cd-v4-facepile--btn"
+                    onClick={() => setRosterOpen(true)}
+                    aria-label={`Xem thành viên cộng đồng ${org.ten}`}
+                  >
                     {friendsInCommunity.friends.map((member, i) => (
                       <FacepileAvatar
                         key={member.id}
@@ -549,24 +558,16 @@ export function CongDongPageClient({ initial }: Props) {
                         color={FACEPILE_COLORS[i % FACEPILE_COLORS.length]}
                       />
                     ))}
-                    {friendsInCommunity.total > friendsInCommunity.friends.length ? (
+                    {friendsInCommunity.total >
+                    friendsInCommunity.friends.length ? (
                       <span className="cd-v4-facepile-more">
-                        +{friendsInCommunity.total - friendsInCommunity.friends.length}
+                        +
+                        {friendsInCommunity.total -
+                          friendsInCommunity.friends.length}
                       </span>
                     ) : null}
-                  </div>
-                  <p className="cd-v4-face-note">
-                    <strong>{friendsInCommunity.total} người bạn</strong> của bạn đang
-                    ở đây
-                  </p>
+                  </button>
                 </div>
-              </>
-            ) : sidebarLiveLoading && initial.viewerId ? (
-              <>
-                <div className="cd-v4-divider" />
-                <p className="cd-v4-face-note cd-v4-face-note--solo cd-v4-muted">
-                  Đang tải bạn bè…
-                </p>
               </>
             ) : null}
           </div>
@@ -688,6 +689,12 @@ export function CongDongPageClient({ initial }: Props) {
         }}
       />
     ) : null}
+    <CongDongRosterModal
+      open={rosterOpen}
+      onClose={() => setRosterOpen(false)}
+      orgId={org.id}
+      orgLabel={org.ten}
+    />
     </>
   );
 
@@ -770,11 +777,9 @@ function FacepileAvatar({
 }) {
   const avatar = getAvatarUrl(member.avatarId);
   return (
-    <Link
-      href={`/${member.slug}`}
+    <span
       className="cd-v4-facepile-item"
       style={{ background: avatar ? undefined : color }}
-      prefetch={false}
       title={member.tenHienThi}
     >
       {avatar ? (
@@ -783,7 +788,7 @@ function FacepileAvatar({
       ) : (
         member.initial
       )}
-    </Link>
+    </span>
   );
 }
 
@@ -1175,7 +1180,8 @@ function CongDongJourneyPostCard({
       mirror?.noiDungBlocks,
       Boolean(mirror?.previewMedia?.src),
       mirror?.moTa,
-    );
+    ) &&
+    articleCardHasExpandableContent(mirror?.moTa, mirror?.noiDungBlocks);
   const postOwnerSlug = mirror?.ownerSlug || post.author.slug;
   const postSlug = mirror?.postSlug || null;
   const cardTitle =

@@ -13,6 +13,7 @@ import {
 } from "@/components/journey/JourneyYearBlock";
 import type { MilestoneItem } from "@/components/journey/milestone-types";
 import { isMilestoneArticleCard } from "@/lib/journey/milestone-card-kind";
+import { articleCardHasExpandableContent } from "@/lib/journey/post-media";
 import { prefetchMilestoneDetail } from "@/lib/journey/milestone-detail-cache";
 import {
   applyMilestoneInlinePatch,
@@ -392,13 +393,33 @@ export function JourneyTimeline({
   const handleToggleContent = useCallback(
     (milestone: MilestoneItem) => {
       const hasCoverPreview = Boolean(milestone.media?.[0]?.src);
-      if (!isMilestoneArticleCard(milestone.noiDungBlocks, hasCoverPreview, milestone.body)) return;
+      if (
+        !isMilestoneArticleCard(
+          milestone.noiDungBlocks,
+          hasCoverPreview,
+          milestone.body,
+        )
+      ) {
+        return;
+      }
+      if (
+        !articleCardHasExpandableContent(
+          milestone.body,
+          milestone.noiDungBlocks,
+        )
+      ) {
+        return;
+      }
 
       const key = timelineExpandKey(milestone, ownerSlug);
       const postOwnerSlug = milestone.postOwnerSlug ?? ownerSlug;
       setInlineExpand((prev) => {
         if (prev?.key === key) {
-          if (prev.showContent) return null;
+          if (prev.showContent) {
+            /* Thu gọn nội dung — giữ bình luận nếu đang mở. */
+            if (prev.showComments) return { ...prev, showContent: false };
+            return null;
+          }
           return { ...prev, showContent: true };
         }
         return {

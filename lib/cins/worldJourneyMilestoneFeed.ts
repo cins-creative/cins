@@ -1,5 +1,6 @@
 import type { MilestoneItem } from "@/components/journey/milestone-types";
 import { milestoneCardContentKind } from "@/lib/journey/milestone-card-kind";
+import { articleCardHasExpandableContent } from "@/lib/journey/post-media";
 
 export function worldJourneyMilestonePermalink(
   milestone: MilestoneItem,
@@ -25,7 +26,11 @@ export function canWorldJourneyInlineExpandOnFeed(
   milestone: MilestoneItem,
 ): boolean {
   if (milestone.orgSuKienRef) return false;
-  return worldJourneyMilestoneCardKind(milestone) === "article";
+  if (worldJourneyMilestoneCardKind(milestone) !== "article") return false;
+  return articleCardHasExpandableContent(
+    milestone.body,
+    milestone.noiDungBlocks,
+  );
 }
 
 /** @deprecated — dùng `canWorldJourneyInlineExpandOnFeed`. */

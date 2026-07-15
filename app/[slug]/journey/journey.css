@@ -207,7 +207,8 @@ button.j-profile-cover.j-profile-cover-editable:focus-visible .j-profile-cover-e
   overflow: visible;
   border: 4px solid var(--bg-surface);
   background: var(--cins-blue-soft);
-  margin-left: 8px;
+  margin-left: auto;
+  margin-right: auto;
   box-shadow: var(--shadow-sm);
   display: flex;
   align-items: center;
@@ -259,6 +260,10 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
 }
 
 .j-profile-name {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   font-family: var(--font-sans);
   font-size: 21px;
   font-weight: var(--weight-extrabold);
@@ -266,20 +271,23 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   line-height: 1.1;
   margin: 12px 0 0;
   color: var(--ink-display);
+  text-align: center;
 }
 .j-profile-role {
   font-size: 13px;
   color: var(--ink-body);
   margin-top: 2px;
+  text-align: center;
 }
 .j-profile-handle {
   font-size: 12px;
   color: var(--cins-blue);
   font-weight: var(--weight-semibold);
   margin-top: 1px;
+  text-align: center;
 }
 
-/* Action stack (guest profile) */
+/* Action stack (guest profile) — đồng bộ icon row với popover user */
 .j-profile-action-stack {
   display: flex;
   flex-direction: column;
@@ -301,6 +309,80 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
 .j-profile-action-row:not(:has(.j-follow-wrap)) {
   grid-template-columns: 1fr;
 }
+.j-profile-action-row--icons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  grid-template-columns: none;
+}
+.j-profile-action-row--icons > .j-friend-message,
+.j-profile-action-row--icons > .j-friend-card-follow,
+.j-profile-action-row--icons > .j-friend-link {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 0;
+}
+.j-profile-action-row--icons .j-friend-card-follow:empty {
+  display: none;
+}
+.j-profile-action-row--icons .j-friend-message,
+.j-profile-action-row--icons .j-friend-link,
+.j-profile-action-row--icons .j-friend-btn {
+  border: none;
+}
+.j-profile-action-row--icons .j-friend-message.is-icon,
+.j-profile-action-row--icons .j-friend-link.is-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  min-height: 32px;
+  padding: 0;
+  flex: 0 0 32px;
+  border-radius: 999px;
+  background: var(--cins-blue-soft, #eff6ff);
+  color: var(--cins-blue, #2563eb);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.16s var(--j-ease), color 0.16s var(--j-ease);
+}
+.j-profile-action-row--icons .j-friend-message.is-icon:hover:not(:disabled),
+.j-profile-action-row--icons .j-friend-link.is-icon:hover {
+  background: color-mix(
+    in srgb,
+    var(--cins-blue, #2563eb) 18%,
+    var(--cins-blue-soft, #eff6ff)
+  );
+  color: var(--cins-blue, #2563eb);
+}
+.j-profile-action-row--icons .j-friend-message.is-icon:disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+.j-profile-action-row--icons .j-friend-card-follow .j-friend-btn {
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  min-height: 32px;
+  padding: 0;
+  background: var(--cins-blue-soft, #eff6ff);
+  color: var(--cins-blue, #2563eb);
+}
+.j-profile-action-row--icons .j-friend-card-follow .j-friend-btn.is-pending {
+  background: #fff7ed;
+  color: #c2410c;
+}
+.j-profile-action-row--icons .j-friend-card-follow .j-friend-btn.is-friends {
+  background: #ecfdf5;
+  color: #047857;
+}
+.j-profile-action-row--icons .j-friend-card-follow .j-follow-wrap {
+  width: auto;
+  height: auto;
+}
 .j-act-btn {
   display: inline-flex;
   align-items: center;
@@ -310,7 +392,7 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   min-height: 42px;
   padding: 0 10px;
   border-radius: 12px;
-  border: 1px solid transparent;
+  border: none;
   font-family: var(--font-sans);
   font-size: 12.5px;
   font-weight: var(--weight-semibold);
@@ -319,7 +401,6 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   cursor: pointer;
   transition:
     background 0.18s var(--j-ease),
-    border-color 0.18s var(--j-ease),
     color 0.18s var(--j-ease),
     transform 0.18s var(--j-ease),
     opacity 0.18s var(--j-ease);
@@ -336,18 +417,15 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   width: 100%;
   background: var(--cins-blue);
   color: #fff;
-  border-color: var(--cins-blue);
   font-size: 13px;
 }
 .j-act-btn--primary:hover:not(:disabled) {
   background: var(--cins-blue-dark);
-  border-color: var(--cins-blue-dark);
 }
 .j-act-btn--follow {
   width: 100%;
   background: var(--bg-surface);
   color: var(--ink-body);
-  border-color: var(--border-strong);
 }
 .j-act-btn--follow:hover:not(:disabled) {
   background: var(--neutral-100, #f1f2f5);
@@ -356,21 +434,24 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   width: 42px;
   padding: 0;
   flex-shrink: 0;
-  background: var(--bg-surface);
-  color: var(--ink-muted, #64748b);
-  border-color: var(--border-strong);
+  background: var(--cins-blue-soft, #eff6ff);
+  color: var(--cins-blue, #2563eb);
 }
 .j-act-btn--icon:hover:not(:disabled) {
-  background: var(--neutral-100, #f1f2f5);
-  color: var(--ink-body);
+  background: color-mix(
+    in srgb,
+    var(--cins-blue, #2563eb) 18%,
+    var(--cins-blue-soft, #eff6ff)
+  );
+  color: var(--cins-blue, #2563eb);
 }
 
-/* Hàng 3 nút phụ (theo dõi / kết bạn / chia sẻ): fill đều, icon trên + chữ nhỏ dưới. */
-.j-profile-action-row .j-follow-wrap {
+/* Legacy 3-cột (nếu còn chỗ dùng): fill đều. */
+.j-profile-action-row:not(.j-profile-action-row--icons) .j-follow-wrap {
   min-width: 0;
 }
-.j-profile-action-row .j-friend-btn,
-.j-profile-action-row .j-act-btn--icon {
+.j-profile-action-row:not(.j-profile-action-row--icons) .j-friend-btn,
+.j-profile-action-row:not(.j-profile-action-row--icons) .j-act-btn--icon {
   width: 100%;
   min-width: 0;
   height: auto;
@@ -379,9 +460,10 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   gap: 4px;
   padding: 8px 4px;
   border-radius: 12px;
+  border: none;
 }
-.j-profile-action-row .j-friend-btn-label,
-.j-profile-action-row .j-act-btn-cap {
+.j-profile-action-row:not(.j-profile-action-row--icons) .j-friend-btn-label,
+.j-profile-action-row:not(.j-profile-action-row--icons) .j-act-btn-cap {
   display: block;
   max-width: 100%;
   font-size: 10.5px;
@@ -464,25 +546,27 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   color: var(--ink-title);
   white-space: pre-wrap;
   word-break: break-word;
+  text-align: center;
 }
 
 /* Info rows */
 .j-profile-info {
   margin-top: 14px;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 38px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   gap: 7px;
-  align-content: start;
 }
 .j-info-row {
-  grid-column: 1;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 10px;
   font-size: 13px;
   color: var(--ink-body);
   padding: 5px 0;
   line-height: 1.4;
+  text-align: center;
 }
 .j-info-ico {
   display: inline-flex;
@@ -515,10 +599,12 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   font-size: 12.5px;
   line-height: 1.55;
   color: var(--ink-title);
+  text-align: center;
 }
 .j-ai-tag {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 5px;
   font-family: var(--font-sans);
   font-size: 10px;
@@ -527,6 +613,7 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   text-transform: uppercase;
   color: var(--cins-blue-dark);
   margin-bottom: 7px;
+  width: 100%;
 }
 .j-ai-tag::before {
   content: "✦";
@@ -559,17 +646,15 @@ button.j-avatar.j-avatar-editable:focus-visible .j-avatar-edit-ico {
   gap: 5px;
   padding: 8px 4px;
   border-radius: 12px;
-  border: 1px solid transparent;
+  border: none;
   background: transparent;
   color: var(--ink-body);
   text-align: center;
-  transition: border-color 0.18s var(--j-ease), background 0.18s var(--j-ease), box-shadow 0.18s var(--j-ease);
+  transition: background 0.18s var(--j-ease);
 }
 .j-profile-switch-btn:hover,
 .j-profile-switch-btn.is-active {
-  border-color: var(--cins-blue);
   background: var(--bg-surface);
-  box-shadow: var(--shadow-xs);
 }
 .j-profile-switch-ico {
   width: 22px;
@@ -2885,17 +2970,17 @@ a.j-main-gallery-item:focus-visible {
   padding: 0 14px;
   border-radius: var(--radius-pill);
   background: var(--bg-surface);
-  border: 1px solid var(--border-strong);
+  border: none;
   font-family: inherit;
   font-size: 13px;
   font-weight: var(--weight-semibold);
   color: var(--ink-display);
   cursor: pointer;
   white-space: nowrap;
-  transition: border-color 0.15s;
+  transition: background 0.15s;
 }
 .j-tlb-dd-btn:hover:not(:disabled) {
-  border-color: var(--cins-blue);
+  background: var(--neutral-50, #f8fafc);
 }
 .j-tlb-dd-btn:disabled {
   opacity: 0.6;
@@ -3385,37 +3470,42 @@ a.j-main-gallery-item:focus-visible {
   color: #92400e;
   border-color: #f59e0b;
 }
-/* Chia sẻ view filter — placeholder UI, logic bổ sung sau. */
+/* Chia sẻ view filter — chỉ icon, không nền; hiện khi hover/focus row. */
 .j-dd-share {
   flex: 0 0 auto;
   width: 26px;
   height: 26px;
   margin-right: 4px;
-  border-radius: 6px;
-  border: 1px solid var(--border-soft, #e5e7eb);
-  background: var(--neutral-100, #f1f5f9);
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
   color: var(--ink-muted, #64748b);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  opacity: 0;
+  pointer-events: none;
   transition:
-    background 0.14s ease,
     color 0.14s ease,
-    border-color 0.14s ease;
+    opacity 0.14s ease;
 }
-.j-dd-opt:hover .j-dd-share:not(:disabled):not(:hover) {
-  border-color: var(--border, #d5dbe6);
+.j-dd-opt:hover .j-dd-share:not(:disabled),
+.j-dd-opt:focus-within .j-dd-share:not(:disabled) {
+  opacity: 1;
+  pointer-events: auto;
   color: var(--ink-display, #1b2333);
 }
-.j-dd-share:hover:not(:disabled) {
-  background: var(--bg-surface, #fff);
-  border-color: var(--cins-blue, #1f74c9);
+.j-dd-share:hover:not(:disabled),
+.j-dd-share:focus-visible:not(:disabled) {
+  background: transparent;
   color: var(--cins-blue-dark, #1656a0);
 }
 .j-dd-share:disabled {
-  opacity: 0.45;
+  opacity: 0;
   cursor: default;
+  pointer-events: none;
 }
 /* Delete nhãn cá nhân — luôn hiện trên mobile, hover đậm hơn. */
 .j-dd-del {
@@ -3605,7 +3695,7 @@ a.j-main-gallery-item:focus-visible {
 /* CARD */
 .j-m-card {
   background: var(--bg-surface);
-  border: 1px solid var(--border);
+  border: none;
   border-radius: var(--radius-lg);
   padding: 20px 22px;
   position: relative;
@@ -3614,8 +3704,7 @@ a.j-main-gallery-item:focus-visible {
   box-shadow: var(--shadow-xs);
   transition:
     transform 0.18s var(--j-ease),
-    box-shadow 0.18s var(--j-ease),
-    border-color 0.18s var(--j-ease);
+    box-shadow 0.18s var(--j-ease);
 }
 .j-m-card.is-clickable {
   cursor: pointer;
@@ -3631,12 +3720,10 @@ a.j-main-gallery-item:focus-visible {
   --j-unfold-ease: cubic-bezier(0.22, 1, 0.36, 1);
   --j-unfold-dur: 0.48s;
   transition:
-    border-color var(--j-unfold-dur) var(--j-unfold-ease),
     box-shadow var(--j-unfold-dur) var(--j-unfold-ease),
     transform var(--j-unfold-dur) var(--j-unfold-ease);
 }
 .j-m-card.is-expanded {
-  border-color: rgba(31, 116, 201, 0.28);
   box-shadow:
     0 4px 6px rgba(15, 23, 42, 0.04),
     0 20px 44px rgba(15, 23, 42, 0.1);
@@ -7251,7 +7338,7 @@ button.j-m-card-hit {
 }
 .j-g-banner-drag {
   position: absolute;
-  z-index: 4;
+  z-index: 6;
   top: 8px;
   right: 8px;
   display: inline-flex;
@@ -7260,7 +7347,7 @@ button.j-m-card-hit {
   width: 32px;
   height: 32px;
   padding: 0;
-  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  border: none;
   border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--bg-surface) 90%, transparent);
   color: var(--ink-muted);
@@ -7268,25 +7355,23 @@ button.j-m-card-hit {
   box-shadow: var(--shadow-xs);
   appearance: none;
   backdrop-filter: blur(6px);
+  pointer-events: auto;
 }
 .j-g-banner-drag:hover {
   color: var(--ink-display);
   background: var(--bg-surface);
-  border-color: var(--border-strong);
 }
 .j-g-banner-drag:active {
   cursor: grabbing;
 }
 :root[data-theme="dark"] .j-g-banner-drag {
   background: color-mix(in srgb, var(--neutral-100) 88%, transparent);
-  border-color: color-mix(in srgb, var(--border-strong) 80%, transparent);
   color: var(--ink-title);
   box-shadow: var(--shadow-sm);
 }
 :root[data-theme="dark"] .j-g-banner-drag:hover {
   background: var(--neutral-200);
   color: var(--ink-display);
-  border-color: var(--border-strong);
 }
 /* Khe giữa block — không chiếm chỗ khi nghỉ; lúc kéo nở hit-area + vạch xanh */
 .j-g-banner-insert {
@@ -7345,6 +7430,8 @@ button.j-m-card-hit {
 .j-g-banner {
   display: block;
   position: relative;
+  /* Tạo stacking context — overlay (z-index nội bộ) không đè nút kéo sibling. */
+  z-index: 0;
   width: 100%;
   height: auto;
   border-radius: var(--radius-md);
@@ -7521,10 +7608,8 @@ button.j-g-item:disabled {
 .j-g-banner .j-g-play {
   width: 28px;
   height: 28px;
-  border-width: 1.5px;
-  box-shadow:
-    0 2px 8px rgba(15, 23, 42, 0.4),
-    0 0 0 1px rgba(15, 23, 42, 0.1);
+  border: none;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.4);
 }
 .j-g-banner .j-g-play svg {
   width: 12px;
@@ -8692,22 +8777,41 @@ select.j-edit-input {
   min-width: 0;
   min-height: 0;
   height: 100%;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
   display: flex;
   flex-direction: column;
   background: #000;
 }
 
+/*
+ * Album ImageGrid: chiều cao tự nhiên + scroll cột trái.
+ * (Trước: height 100% / overflow hidden → chồng ô + không cuộn được.)
+ */
 .j-post-sheet:has(.post-canvas--media.post-canvas--split)
   .post-view-content--media
   .post-view-content-inner,
 .j-post-sheet:has(.post-canvas--media.post-canvas--split)
   .post-view-content--media
-  .post-blocks-fb,
+  .post-blocks-fb {
+  flex: 0 0 auto;
+  min-width: 0;
+  min-height: 0;
+  width: 100%;
+  height: auto;
+  max-height: none;
+  display: flex;
+  flex-direction: column;
+  overflow: visible;
+  background: #000;
+}
+
 .j-post-sheet:has(.post-canvas--media.post-canvas--split)
   .post-view-content--media
   .post-blocks-fb
-  .block.block-image-grid,
+  > .block.block-image-grid,
 .j-post-sheet:has(.post-canvas--media.post-canvas--split)
   .post-view-content--media
   .post-blocks-fb
@@ -8716,27 +8820,64 @@ select.j-edit-input {
   .post-view-content--media
   .post-blocks-fb
   .block-image-grid
-  .block-inner,
+  .block-inner {
+  flex: 0 0 auto;
+  min-width: 0;
+  min-height: 0;
+  width: 100%;
+  height: auto;
+  max-height: none;
+  display: flex;
+  flex-direction: column;
+  overflow: visible;
+  background: #000;
+}
+
 .j-post-sheet:has(.post-canvas--media.post-canvas--split)
   .post-view-content--media
   .post-blocks-fb
-  .block[data-block-type="embed"],
+  > .block.block-image-grid
+  > .block-inner {
+  display: block;
+  padding: 0;
+}
+
 .j-post-sheet:has(.post-canvas--media.post-canvas--split)
   .post-view-content--media
+  .post-blocks-fb
+  > .block.block-image-grid
+  .image-grid {
+  width: 100%;
+  max-width: 100%;
+}
+
+/* Carousel / embed thuần — vẫn fill khung viewport (không có ImageGrid). */
+.j-post-sheet:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media:not(:has(.image-grid))
+  .post-view-content-inner,
+.j-post-sheet:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media:not(:has(.image-grid))
+  .post-blocks-fb,
+.j-post-sheet:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media:not(:has(.image-grid))
+  .post-blocks-fb
+  .block[data-block-type="embed"],
+.j-post-sheet:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media:not(:has(.image-grid))
   .post-blocks-fb
   .block[data-block-type="embed"]
   .block-inner,
 .j-post-sheet:has(.post-canvas--media.post-canvas--split)
-  .post-view-content--media
+  .post-view-content--media:not(:has(.image-grid))
   .image-album-carousel,
 .j-post-sheet:has(.post-canvas--media.post-canvas--split)
-  .post-view-content--media
+  .post-view-content--media:not(:has(.image-grid))
   .image-album-carousel.is-portrait,
 .j-post-sheet:has(.post-canvas--media.post-canvas--split)
-  .post-view-content--media
+  .post-view-content--media:not(:has(.image-grid))
   .image-album-carousel-stage,
 .j-post-sheet:has(.post-canvas--media.post-canvas--split)
-  .post-view-content--media
+  .post-view-content--media:not(:has(.image-grid))
   .image-album-carousel-figure {
   flex: 1 1 auto;
   min-width: 0;
@@ -8750,9 +8891,8 @@ select.j-edit-input {
   background: #000;
 }
 
-/* block-inner fill 100% khung block — media căn giữa bên trong */
 .j-post-sheet:has(.post-canvas--media.post-canvas--split)
-  .post-view-content--media
+  .post-view-content--media:not(:has(.image-grid))
   .post-blocks-fb
   > .block {
   flex: 1 1 auto;
@@ -8765,7 +8905,7 @@ select.j-edit-input {
 }
 
 .j-post-sheet:has(.post-canvas--media.post-canvas--split)
-  .post-view-content--media
+  .post-view-content--media:not(:has(.image-grid))
   .post-blocks-fb
   > .block
   > .block-inner {
@@ -8780,6 +8920,18 @@ select.j-edit-input {
   align-items: center;
   justify-content: center;
   padding: 0;
+}
+
+.j-post-sheet:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media:has(.image-grid)
+  .post-blocks-fb
+  > .block:not(.block-image-grid) {
+  flex: 0 0 auto;
+  min-width: 0;
+  width: 100%;
+  height: auto;
+  display: flex;
+  flex-direction: column;
 }
 
 .j-post-sheet:has(.post-canvas--media.post-canvas--split)
@@ -12630,7 +12782,7 @@ select.j-edit-input {
   --jcard-coral-bg: var(--cins-orange-soft);
   padding: 0;
   overflow: hidden;
-  border: 1px solid var(--jcard-border);
+  border: none;
   border-radius: 20px;
   background: var(--jcard-bg);
   box-shadow: var(--shadow-xs);
@@ -12679,7 +12831,6 @@ select.j-edit-input {
   z-index: 30;
 }
 .j-m-card.jcard:hover {
-  border-color: var(--jcard-border);
   box-shadow: var(--shadow-xs);
 }
 .j-milestone.j-tagged .j-m-card.jcard {
@@ -12688,7 +12839,6 @@ select.j-edit-input {
   box-shadow: var(--shadow-xs);
 }
 .j-milestone.j-tagged .j-m-card.jcard:hover {
-  border-color: var(--jcard-border);
   box-shadow: var(--shadow-xs);
 }
 .jcard-datebar {
@@ -13069,6 +13219,16 @@ select.j-edit-input {
   gap: 6px;
   flex: 0 0 auto;
 }
+/* Menu "..." / Đẩy World trong datebar: đẩy sang cạnh phải của hàng header. */
+.jcard-datebar .jcard-corner-actions {
+  position: static;
+  top: auto;
+  right: auto;
+  left: auto;
+  z-index: 14;
+  flex: 0 0 auto;
+  margin-left: auto;
+}
 .jcard-corner-actions .jcard-viewer-menu {
   position: static;
   top: auto;
@@ -13143,7 +13303,7 @@ select.j-edit-input {
   line-height: 1;
 }
 .ctx-badge {
-  border: 1px solid var(--jcard-border);
+  border: none;
   background: #f8fafc;
   color: var(--jcard-ink2);
 }
@@ -13152,7 +13312,6 @@ select.j-edit-input {
   color: #92400e;
   font-weight: 700;
   background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-  border-color: #f59e0b;
   box-shadow: 0 1px 3px rgba(245, 158, 11, 0.25);
 }
 .ctx-badge.j-vis-feature svg {
@@ -13162,7 +13321,6 @@ select.j-edit-input {
   color: #1e40af;
   font-weight: 600;
   background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-  border-color: #93c5fd;
   text-decoration: none;
 }
 .ctx-badge.j-vis-cong-dong:hover {
@@ -13186,7 +13344,6 @@ select.j-edit-input {
     rgba(245, 158, 11, 0.2) 0%,
     rgba(245, 158, 11, 0.32) 100%
   );
-  border-color: color-mix(in srgb, #f59e0b 50%, transparent);
 }
 :root[data-theme="dark"] .ctx-badge.j-vis-feature svg {
   color: #fbbf24;
@@ -13198,7 +13355,6 @@ select.j-edit-input {
     rgba(79, 155, 232, 0.16) 0%,
     rgba(79, 155, 232, 0.26) 100%
   );
-  border-color: color-mix(in srgb, var(--cins-blue) 45%, transparent);
 }
 :root[data-theme="dark"] .ctx-badge.j-vis-cong-dong:hover {
   background: linear-gradient(
@@ -13235,13 +13391,13 @@ select.j-edit-input {
 }
 .j-inline-control-trigger:hover .ctx-badge,
 .j-inline-control-trigger:focus-visible .ctx-badge {
-  border-color: rgba(37, 99, 235, 0.35);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
+  background: color-mix(in srgb, var(--cins-blue, #2563eb) 10%, #f8fafc);
+  box-shadow: none;
 }
 .j-inline-control-trigger:hover .ctx-badge.j-vis-feature,
 .j-inline-control-trigger:focus-visible .ctx-badge.j-vis-feature {
-  border-color: #f59e0b;
-  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
+  background: linear-gradient(135deg, #fde68a 0%, #fcd34d 100%);
+  box-shadow: 0 1px 3px rgba(245, 158, 11, 0.3);
 }
 .j-inline-control-menu {
   position: absolute;

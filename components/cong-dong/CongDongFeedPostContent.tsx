@@ -127,7 +127,10 @@ function JourneyMirrorBody({
   const showUnfold = isExpanded && Boolean(unfold);
   const showChiChuUnfold =
     isTextCard && chiChuCollapsible && chiChuExpanded;
-  const showUnfoldToggle = Boolean((showUnfold && onCollapse) || showChiChuUnfold);
+  /* Sticky «Thu gọn» chỉ khi xổ nội dung bài dài / chữ dài — không vì bình luận. */
+  const showUnfoldToggle = Boolean(
+    (isArticle && showUnfold && onCollapse) || showChiChuUnfold,
+  );
 
   useEffect(() => {
     setChiChuExpanded(false);

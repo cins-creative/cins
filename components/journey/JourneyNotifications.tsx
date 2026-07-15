@@ -1583,7 +1583,7 @@ function FollowRequestModal({
           aria-label="Đóng"
           onClick={onClose}
         >
-          <X size={16} aria-hidden />
+          <X size={14} aria-hidden />
         </button>
         <article className="j-friend-card j-user-pop-card j-frq-card">
           <div

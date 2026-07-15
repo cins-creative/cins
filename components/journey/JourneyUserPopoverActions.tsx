@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { MessageCircle, UserRound } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -66,43 +67,53 @@ export function JourneyUserPopoverActions({
 
   return (
     <div className="j-friend-actions">
-      <div className="j-friend-actions-row">
+      <div className="j-friend-actions-row j-friend-actions-row--icons">
         <button
           type="button"
-          className="j-friend-message"
+          className="j-friend-message is-icon"
           disabled={isSelf}
+          title="Nhắn tin"
+          aria-label="Nhắn tin"
           onClick={openMessage}
         >
-          Nhắn tin
+          <MessageCircle size={17} strokeWidth={2} aria-hidden />
         </button>
-        <div className="j-friend-card-follow">
-          <JourneyFollowButton
-            targetUserId={user.idNguoiDung}
-            viewerProfileId={viewerProfileId}
-            status={ketBan.status}
-            ready={ketBan.ready}
-            refreshStatus={ketBan.refresh}
-          />
-        </div>
-        <div className="j-friend-card-follow">
-          <JourneyUserFollowButton
-            targetUserId={user.idNguoiDung}
-            viewerProfileId={viewerProfileId}
-          />
-        </div>
+        {!isSelf ? (
+          <div className="j-friend-card-follow">
+            <JourneyFollowButton
+              compact
+              targetUserId={user.idNguoiDung}
+              viewerProfileId={viewerProfileId}
+              status={ketBan.status}
+              ready={ketBan.ready}
+              refreshStatus={ketBan.refresh}
+            />
+          </div>
+        ) : null}
+        {!isSelf ? (
+          <div className="j-friend-card-follow">
+            <JourneyUserFollowButton
+              compact
+              targetUserId={user.idNguoiDung}
+              viewerProfileId={viewerProfileId}
+            />
+          </div>
+        ) : null}
+        <Link
+          href={`/${user.slug}`}
+          className="j-friend-link is-icon"
+          title="Xem Journey"
+          aria-label="Xem Journey"
+          onClick={() => onClose?.()}
+        >
+          <UserRound size={17} strokeWidth={2} aria-hidden />
+        </Link>
       </div>
       {error ? (
         <p className="j-friend-action-error" role="alert">
           {error}
         </p>
       ) : null}
-      <Link
-        href={`/${user.slug}`}
-        className="j-friend-link"
-        onClick={() => onClose?.()}
-      >
-        Xem Journey
-      </Link>
     </div>
   );
 }

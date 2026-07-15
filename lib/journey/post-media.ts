@@ -193,15 +193,29 @@ export function shouldMovePostTextToSplitRail(
 }
 
 /** Tách blocks cho layout 2 cột: rail (caption media) vs cột trái (media / nội dung bài). */
-export function partitionBlocksForSplitRail(blocks: ReadonlyArray<Block>): {
+export function partitionBlocksForSplitRail(
+  blocks: ReadonlyArray<Block>,
+  options?: { asMedia?: boolean },
+): {
   railBlocks: Block[];
   mediaBlocks: Block[];
 } {
   const kind = detectMediaPostKind(blocks);
-  if (kind === "photo" || kind === "video") {
+  const asMedia =
+    options?.asMedia === true || kind === "photo" || kind === "video";
+  if (asMedia) {
     return {
-      railBlocks: blocks.filter((b) => b.loai === "body"),
-      mediaBlocks: blocks.filter((b) => b.loai !== "body"),
+      railBlocks: blocks.filter(
+        (b) =>
+          b.loai === "body" ||
+          b.loai === "h2" ||
+          b.loai === "h3" ||
+          b.loai === "quote" ||
+          b.loai === "spacer",
+      ),
+      mediaBlocks: blocks.filter(
+        (b) => b.loai === "imgs" || b.loai === "embed",
+      ),
     };
   }
   return { railBlocks: [], mediaBlocks: [...blocks] };
@@ -799,13 +813,11 @@ export function milestoneCardCaptionNeedsCollapse(
   return chiChuNeedsCollapse(plain, paras.length);
 }
 
-/** Bài article trên timeline — có thêm nội dung ngoài preview card (blocks / chữ dài). */
-export function articleCardNeedsDepthPreview(
+/** Bài article đủ dài để xổ / thu nội dung trên timeline (không gồm ảnh·video ngắn). */
+export function articleCardHasExpandableContent(
   body: string | null | undefined,
   blocks: ReadonlyArray<Block> | null | undefined,
-  hasCoverPreview: boolean,
 ): boolean {
-  if (hasCoverPreview) return false;
   if (blocksForArticleCardUnfold(body, blocks).length > 0) return true;
   const caption = milestoneCardCaptionPlain(body, blocks);
   if (!caption) return false;
@@ -814,6 +826,16 @@ export function articleCardNeedsDepthPreview(
     .map((p) => p.trim())
     .filter(Boolean);
   return chiChuNeedsCollapse(caption, paras.length) || caption.length > 160;
+}
+
+/** Bài article trên timeline — có thêm nội dung ngoài preview card (blocks / chữ dài). */
+export function articleCardNeedsDepthPreview(
+  body: string | null | undefined,
+  blocks: ReadonlyArray<Block> | null | undefined,
+  hasCoverPreview: boolean,
+): boolean {
+  if (hasCoverPreview) return false;
+  return articleCardHasExpandableContent(body, blocks);
 }
 
 /** Blocks trong vùng peek card article thu gọn — cùng logic unfold (bỏ đoạn trùng caption). */

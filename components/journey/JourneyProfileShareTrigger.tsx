@@ -42,13 +42,12 @@ export function JourneyProfileShareTrigger({
     variant === "icon-row" ? (
       <button
         type="button"
-        className="j-act-btn j-act-btn--icon"
+        className="j-friend-link is-icon"
         title="Chia sẻ"
         aria-label="Chia sẻ"
         onClick={openShare}
       >
         <Share2 size={17} strokeWidth={2} aria-hidden />
-        <span className="j-act-btn-cap">Chia sẻ</span>
       </button>
     ) : (
       <button
