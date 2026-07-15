@@ -4096,52 +4096,62 @@ a.j-main-gallery-item:focus-visible {
   position: absolute;
   inset: 0;
   z-index: 2;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  padding: 14px;
+  display: block;
   border: 0;
   cursor: pointer;
-  background: linear-gradient(
-    180deg,
-    transparent 55%,
-    rgba(15, 23, 42, 0.42) 100%
-  );
+  background: transparent;
   -webkit-tap-highlight-color: transparent;
-  transition: background 0.16s ease;
 }
 .jcard-embed-gate:hover,
 .jcard-embed-gate:focus-visible {
-  background: linear-gradient(
-    180deg,
-    rgba(15, 23, 42, 0.12) 0%,
-    rgba(15, 23, 42, 0.5) 100%
-  );
   outline: none;
+}
+.jcard-embed-gate:focus-visible .jcard-embed-gate-hint {
+  box-shadow:
+    0 4px 14px rgba(15, 23, 42, 0.4),
+    0 0 0 2px rgba(255, 255, 255, 0.85);
 }
 .jcard-embed-gate-hint {
   position: absolute;
-  right: 12px;
-  bottom: 12px;
+  right: 10px;
+  bottom: 10px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
-  min-height: 44px;
-  padding: 8px 16px;
+  width: 40px;
+  height: 40px;
   border-radius: 999px;
-  /* Opaque đủ để che hẳn badge "Built with Spline" nằm góc dưới-phải. */
-  background: rgba(15, 23, 42, 0.94);
+  /* Opaque đủ để che badge "Built with Spline" góc dưới-phải. */
+  background: rgba(15, 23, 42, 0.88);
   color: #fff;
-  font-family: var(--font-sans);
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1;
   backdrop-filter: blur(6px);
   box-shadow: 0 4px 14px rgba(15, 23, 42, 0.35);
+  pointer-events: none;
 }
-.jcard-embed-gate-hint svg {
+.jcard-embed-gate-hand {
   flex: none;
+  transform-origin: 30% 70%;
+  animation: jcard-embed-hand-tap 1.35s ease-in-out infinite;
+}
+@keyframes jcard-embed-hand-tap {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg) scale(1);
+  }
+  35% {
+    transform: translate(1px, 3px) rotate(-8deg) scale(0.92);
+  }
+  55% {
+    transform: translate(0, 0) rotate(0deg) scale(1);
+  }
+  70% {
+    transform: translate(1px, 2px) rotate(-5deg) scale(0.96);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .jcard-embed-gate-hand {
+    animation: none;
+  }
 }
 .jcard-embed-exit {
   position: absolute;
@@ -4173,11 +4183,6 @@ a.j-main-gallery-item:focus-visible {
 .jcard-embed-gate-root.is-active {
   outline: 2px solid var(--cins-blue, #1f74c9);
   outline-offset: -2px;
-}
-@media (hover: none) {
-  .jcard-embed-gate {
-    align-items: center;
-  }
 }
 /* Embed trong media zone — bài có block phụ (tiêu đề…) vẫn fill khung theo tỉ lệ. */
 .jcard-media-zone > .preview--article-peek.is-embed-interactive {

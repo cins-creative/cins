@@ -1,7 +1,7 @@
 "use client";
 
 import { Hand, X } from "lucide-react";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 
 import {
   embedIframeAllowAttr,
@@ -11,10 +11,20 @@ import {
 import { PlayCanvasScaleFit } from "@/components/journey/PlayCanvasScaleFit";
 
 /**
- * Provider cần "chạm để tương tác". Tạm tắt để thử tương tác Spline trực tiếp
- * (bật lại: thêm `"spline"` vào set).
+ * Provider cần "chạm để tương tác" trên timeline — iframe vẫn load theo
+ * ViewportGatedEmbed (~2 post), nhưng pointer-events tắt tới khi user click.
+ * Chỉ 1 gate active tại một thời điểm.
  */
-const GATED_PROVIDERS = new Set<EmbedProviderId>([/* "spline" */]);
+const GATED_PROVIDERS = new Set<EmbedProviderId>([
+  "spline",
+  "playcanvas",
+  "sketchfab",
+  "canva",
+  "figma",
+  "rive",
+]);
+
+const ACTIVATE_EVENT = "cins:embed-gate-activate";
 
 export function embedNeedsInteractionGate(
   provider: EmbedProviderId | string,
@@ -131,6 +141,7 @@ function lockScrollChain(from: HTMLElement | null): () => void {
 export function EmbedInteractionGate({ provider, iframeSrc }: Props) {
   const [active, setActive] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  const gateId = useId();
   const title = embedIframeTitle(provider);
   const allow = embedIframeAllowAttr(provider);
   const referrerPolicy =
@@ -141,6 +152,15 @@ export function EmbedInteractionGate({ provider, iframeSrc }: Props) {
   useEffect(() => {
     setActive(false);
   }, [iframeSrc]);
+
+  useEffect(() => {
+    const onActivate = (event: Event) => {
+      const otherId = (event as CustomEvent<string>).detail;
+      if (otherId !== gateId) setActive(false);
+    };
+    window.addEventListener(ACTIVATE_EVENT, onActivate);
+    return () => window.removeEventListener(ACTIVATE_EVENT, onActivate);
+  }, [gateId]);
 
   /**
    * Khoá scroll khi đang tương tác (thiết bị cảm ứng). Spline iframe cross-origin
@@ -160,22 +180,36 @@ export function EmbedInteractionGate({ provider, iframeSrc }: Props) {
     return lockScrollChain(rootRef.current);
   }, [active]);
 
-  if (!embedNeedsInteractionGate(provider)) {
-    const iframe = (
-      <iframe
-        src={iframeSrc}
-        title={title}
-        allow={allow}
-        referrerPolicy={referrerPolicy}
-        allowFullScreen
-        loading="lazy"
-      />
+  const iframe = (
+    <iframe
+      src={iframeSrc}
+      title={title}
+      allow={allow}
+      referrerPolicy={referrerPolicy}
+      allowFullScreen
+      loading="lazy"
+      tabIndex={
+        embedNeedsInteractionGate(provider) ? (active ? 0 : -1) : undefined
+      }
+    />
+  );
+  const framed =
+    provider === "playcanvas" ? (
+      <PlayCanvasScaleFit>{iframe}</PlayCanvasScaleFit>
+    ) : (
+      iframe
     );
-    if (provider === "playcanvas") {
-      return <PlayCanvasScaleFit>{iframe}</PlayCanvasScaleFit>;
-    }
-    return iframe;
+
+  if (!embedNeedsInteractionGate(provider)) {
+    return framed;
   }
+
+  const activate = () => {
+    setActive(true);
+    window.dispatchEvent(
+      new CustomEvent(ACTIVATE_EVENT, { detail: gateId }),
+    );
+  };
 
   return (
     <div
@@ -183,15 +217,7 @@ export function EmbedInteractionGate({ provider, iframeSrc }: Props) {
       className={"jcard-embed-gate-root" + (active ? " is-active" : "")}
       data-active={active ? "true" : "false"}
     >
-      <iframe
-        src={iframeSrc}
-        title={title}
-        allow={allow}
-        referrerPolicy={referrerPolicy}
-        allowFullScreen
-        loading="lazy"
-        tabIndex={active ? 0 : -1}
-      />
+      {framed}
       {active ? (
         <button
           type="button"
@@ -206,12 +232,15 @@ export function EmbedInteractionGate({ provider, iframeSrc }: Props) {
         <button
           type="button"
           className="jcard-embed-gate"
-          onClick={() => setActive(true)}
+          onClick={activate}
           aria-label={`Bật tương tác với ${title}`}
         >
-          <span className="jcard-embed-gate-hint">
-            <Hand size={16} strokeWidth={2} aria-hidden />
-            <span>chạm để tương tác</span>
+          <span className="jcard-embed-gate-hint" aria-hidden>
+            <Hand
+              className="jcard-embed-gate-hand"
+              size={18}
+              strokeWidth={2.2}
+            />
           </span>
         </button>
       )}
