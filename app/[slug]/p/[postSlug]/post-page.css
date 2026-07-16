@@ -756,10 +756,13 @@
 
 .cins-post-view.post-canvas--split .sub-in.sub-ro.post-view-dek,
 .cins-post-view .post-canvas--split .sub-in.sub-ro.post-view-dek {
+  font-family: var(--font-sans, "Be Vietnam Pro", system-ui, sans-serif);
+  font-style: normal;
+  font-weight: 400;
   font-size: 20px;
   line-height: 1.5;
-  border-left: 3px solid var(--cins-violet, #bb89f8);
-  padding-left: 16px;
+  border-left: none;
+  padding-left: 0;
   margin-bottom: 28px;
 }
 
@@ -2026,13 +2029,18 @@
   padding: 0.08em 0 0.04em;
 }
 .cins-post-view .sub-in.sub-ro {
-  font-family: var(--font-serif);
-  font-style: italic;
+  font-family: var(--font-sans, "Be Vietnam Pro", system-ui, sans-serif);
+  font-style: normal;
   font-size: 19px;
   color: var(--ink-title);
   margin: 0 0 14px;
   padding: 0;
   line-height: 1.45;
+}
+.cins-post-view .sub-in.sub-ro.post-view-dek.jcard-desc {
+  font-family: var(--font-sans, "Be Vietnam Pro", system-ui, sans-serif);
+  font-style: normal;
+  letter-spacing: normal;
 }
 
 .cins-post-view.post-canvas--media:not(.post-canvas--split) .post-byline,
@@ -2671,7 +2679,10 @@
   padding: 0;
 }
 
-/* Readonly — bỏ khe 3px editor giữa các ô ảnh / album (editor.css load sau journey). */
+/* Readonly — bỏ khe giữa các ô ảnh / album (editor.css dùng --cins-img-slot-gap). */
+.cins-editor-page.cins-post-view .blocks-readonly .b-imgs-ro {
+  --cins-img-slot-gap: 0px;
+}
 .cins-editor-page.cins-post-view .blocks-readonly .b-imgs-ro .imgwrap.full,
 .cins-editor-page.cins-post-view .blocks-readonly .b-imgs-ro .imgwrap.inset,
 .cins-editor-page.cins-post-view .blocks-readonly .b-imgs-ro .imgwrap.duo,
@@ -2688,7 +2699,17 @@
   column-gap: 0;
 }
 .cins-editor-page.cins-post-view .blocks-readonly .b-imgs-ro .imgwrap.masonry .ph {
+  display: block;
+  width: 100%;
+  margin: 0;
   margin-bottom: 0;
+  line-height: 0;
+  vertical-align: top;
+}
+.cins-editor-page.cins-post-view .blocks-readonly .b-imgs-ro .imgwrap.masonry .ph img {
+  display: block;
+  width: 100%;
+  vertical-align: top;
 }
 /* Inline imgs (grid3/…) — click mở lightbox; reset button về ô `.ph`. */
 .cins-editor-page.cins-post-view .blocks-readonly .b-imgs-ro .ph.is-lightbox {
