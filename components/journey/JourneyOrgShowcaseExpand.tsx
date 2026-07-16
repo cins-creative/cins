@@ -14,6 +14,7 @@ import {
   GalleryVideoPlayBadge,
 } from "@/components/journey/GalleryItemVisual";
 import type { GalleryPinnedBanner } from "@/components/journey/JourneyGalleryAside";
+import type { OrgShowcaseAsideKind } from "@/lib/org/org-showcase-aside-types";
 import {
   getCachedVideoAspect,
   subscribeVideoAspectCache,
@@ -27,18 +28,9 @@ import "./journey-user-featured.css";
 
 type Props = {
   slug: string;
-  /** Popover / chỗ user đang nhìn — hiện khung ngay + fetch ngầm. */
+  orgKind: OrgShowcaseAsideKind;
+  /** Popover — hiện khung ngay + fetch ngầm. */
   eager?: boolean;
-  /** Controlled — gắn với ô thống kê «Nổi bật». */
-  open?: boolean;
-  onOpenChange?: (open: boolean) => void;
-  /** Ẩn nút «Nội dung nổi bật» — popover dùng ô thống kê «Nổi bật» để mở. */
-  hideToggle?: boolean;
-  /** Báo khi đã biết có / không có bài pin (để bật ô «Nổi bật»). */
-  onAvailabilityChange?: (info: {
-    ready: boolean;
-    count: number;
-  }) => void;
 };
 
 type AsidePayload = {
@@ -48,7 +40,6 @@ type AsidePayload = {
 const FALLBACK_ASPECT = 16 / 9;
 const MASONRY_COLS = 3;
 
-/** Preset CF gallery-pinned / gallery-grid — không phải tỉ lệ gốc. */
 function isGenericPreset(width: number, height: number): boolean {
   return (
     (width === 560 && height === 315) ||
@@ -97,27 +88,21 @@ async function probeAspect(item: GalleryPinnedBanner): Promise<number> {
   return seedAspect(item);
 }
 
+function showcaseLabel(kind: OrgShowcaseAsideKind): string {
+  return kind === "studio" ? "Showcase" : "Nội dung nổi bật";
+}
+
 /**
- * Mũi tên dưới card user — xổ preview thumb Nội dung nổi bật (chỉ xem, không mở bài).
- * Muốn xem đầy đủ thì vào Journey. Eager: hiện khung ngay, query ngầm; ẩn nếu không có pin.
+ * Mũi tên dưới card org — xổ preview thumb Showcase (studio) / bài media (trường·cơ sở).
+ * Chỉ xem trước; muốn xem đầy đủ thì vào trang org.
  */
-export function JourneyUserFeaturedExpand({
+export function JourneyOrgShowcaseExpand({
   slug,
+  orgKind,
   eager = false,
-  open: openControlled,
-  onOpenChange,
-  hideToggle = false,
-  onAvailabilityChange,
 }: Props) {
   const trimmed = slug.trim();
-  const [openUncontrolled, setOpenUncontrolled] = useState(false);
-  const controlled = openControlled !== undefined;
-  const open = controlled ? openControlled : openUncontrolled;
-  const setOpen = (next: boolean | ((prev: boolean) => boolean)) => {
-    const value = typeof next === "function" ? next(open) : next;
-    if (!controlled) setOpenUncontrolled(value);
-    onOpenChange?.(value);
-  };
+  const [open, setOpen] = useState(false);
   const [items, setItems] = useState<GalleryPinnedBanner[] | null>(null);
   const [loadState, setLoadState] = useState<"idle" | "loading" | "ready" | "error">(
     () => (eager ? "loading" : "idle"),
@@ -126,14 +111,14 @@ export function JourneyUserFeaturedExpand({
     () => new Map(),
   );
 
+  const label = showcaseLabel(orgKind);
+
   useEffect(() => {
     setOpen(false);
     setItems(null);
     setLoadState(eager ? "loading" : "idle");
     setAspectById(new Map());
-    onAvailabilityChange?.({ ready: false, count: 0 });
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset theo slug
-  }, [trimmed, eager]);
+  }, [trimmed, orgKind, eager]);
 
   useEffect(() => {
     if (!trimmed) return;
@@ -142,26 +127,24 @@ export function JourneyUserFeaturedExpand({
     const runFetch = () => {
       if (cancelled) return;
       setLoadState("loading");
-      void fetch(`/api/journey/${encodeURIComponent(trimmed)}/gallery-aside`)
+      const qs = new URLSearchParams({ slug: trimmed, kind: orgKind });
+      void fetch(`/api/org/showcase-aside?${qs.toString()}`)
         .then((res) => (res.ok ? res.json() : null))
         .then((json: AsidePayload | null) => {
           if (cancelled) return;
           if (!json) {
             setLoadState("error");
             setItems([]);
-            onAvailabilityChange?.({ ready: true, count: 0 });
             return;
           }
           const pinned = Array.isArray(json.pinned) ? json.pinned : [];
           setItems(pinned);
           setLoadState("ready");
-          onAvailabilityChange?.({ ready: true, count: pinned.length });
         })
         .catch(() => {
           if (!cancelled) {
             setLoadState("error");
             setItems([]);
-            onAvailabilityChange?.({ ready: true, count: 0 });
           }
         });
     };
@@ -178,7 +161,7 @@ export function JourneyUserFeaturedExpand({
       cancelled = true;
       cancelIdle();
     };
-  }, [trimmed, eager, onAvailabilityChange]);
+  }, [trimmed, orgKind, eager]);
 
   useEffect(() => {
     if (!open || !items || items.length === 0) return;
@@ -237,18 +220,12 @@ export function JourneyUserFeaturedExpand({
 
   const pending = loadState === "idle" || loadState === "loading";
   const hasFeatured = loadState === "ready" && (items?.length ?? 0) > 0;
-  const emptyOrFailed =
-    loadState === "error" ||
-    (loadState === "ready" && (items?.length ?? 0) === 0);
 
   if (!trimmed) return null;
-  /* Friend card list: chỉ hiện khi đã có pin (tránh flash khung trống). */
+  /* Eager popover: giữ mũi tên; lazy (friend-style): chỉ hiện khi đã có pin. */
   if (!eager && !hasFeatured) return null;
-  /* Popover eager: luôn giữ mũi tên xổ; rỗng thì hiện thông báo khi mở.
-     (Ẩn hẳn chỉ khi hideToggle + đóng — không dùng toggle.) */
-  if (hideToggle && eager && emptyOrFailed && !open) return null;
 
-  const panelId = `j-user-featured-panel-${trimmed}`;
+  const panelId = `j-org-showcase-panel-${orgKind}-${trimmed}`;
 
   const panelBody = (() => {
     if (!open) return null;
@@ -258,10 +235,10 @@ export function JourneyUserFeaturedExpand({
           id={panelId}
           className="j-user-featured-panel"
           role="region"
-          aria-label="Nội dung nổi bật"
+          aria-label={label}
           aria-busy
         >
-          <p className="j-user-featured-status">Đang tải nội dung nổi bật…</p>
+          <p className="j-user-featured-status">Đang tải {label.toLowerCase()}…</p>
         </div>
       );
     }
@@ -271,10 +248,10 @@ export function JourneyUserFeaturedExpand({
           id={panelId}
           className="j-user-featured-panel"
           role="region"
-          aria-label="Nội dung nổi bật"
+          aria-label={label}
         >
           <p className="j-user-featured-status">
-            Chưa có nội dung nổi bật để xem trước.
+            Chưa có {label.toLowerCase()} để xem trước.
           </p>
         </div>
       );
@@ -284,7 +261,7 @@ export function JourneyUserFeaturedExpand({
         id={panelId}
         className="j-user-featured-panel"
         role="region"
-        aria-label="Nội dung nổi bật"
+        aria-label={label}
       >
         <div
           className="j-user-featured-masonry"
@@ -298,14 +275,13 @@ export function JourneyUserFeaturedExpand({
             >
               {col.map((cell) => {
                 const item = cell.data;
-                const label =
-                  [item.title, item.meta].filter(Boolean).join(" · ") ||
-                  "Bài nổi bật";
+                const tileLabel =
+                  [item.title, item.meta].filter(Boolean).join(" · ") || label;
                 return (
                   <div
                     key={item.id}
                     className="j-user-featured-tile"
-                    aria-label={label}
+                    aria-label={tileLabel}
                     style={{ aspectRatio: String(cell.aspect) }}
                   >
                     <GalleryItemVisual
@@ -337,16 +313,6 @@ export function JourneyUserFeaturedExpand({
     );
   })();
 
-  /* Popover: không nút «Nội dung nổi bật» — panel chỉ hiện khi mở qua ô «Nổi bật». */
-  if (hideToggle) {
-    if (!open) return null;
-    return (
-      <div className={`j-user-featured is-open${pending ? " is-pending" : ""}`}>
-        {panelBody}
-      </div>
-    );
-  }
-
   return (
     <div
       className={`j-user-featured${open ? " is-open" : ""}${pending ? " is-pending" : ""}`}
@@ -356,7 +322,7 @@ export function JourneyUserFeaturedExpand({
         className="j-user-featured-toggle"
         aria-expanded={open}
         aria-controls={panelId}
-        aria-label={open ? "Thu gọn nội dung nổi bật" : "Xem nội dung nổi bật"}
+        aria-label={open ? `Thu gọn ${label.toLowerCase()}` : `Xem ${label.toLowerCase()}`}
         aria-busy={pending || undefined}
         onClick={(event) => {
           event.stopPropagation();

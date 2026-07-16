@@ -25,12 +25,6 @@
   transition: color 0.16s ease, background 0.16s ease;
 }
 
-.j-user-featured-toggle-label {
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-}
-
 .j-user-featured-toggle:hover {
   color: var(--cins-blue);
   background: color-mix(in srgb, var(--cins-blue-soft) 55%, transparent);
@@ -53,6 +47,11 @@
 .j-user-featured-panel {
   padding: 0 12px 12px;
   animation: j-user-featured-in 0.22s ease;
+}
+
+/* Popover (hideToggle): không có nút — thêm hơi thở phía trên panel. */
+.j-user-featured:not(:has(.j-user-featured-toggle)) .j-user-featured-panel {
+  padding-top: 10px;
 }
 
 @keyframes j-user-featured-in {

@@ -13,6 +13,7 @@ import { listFriends } from "@/lib/social/ket-ban";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { resolveTruongImageSrcSync } from "@/lib/truong/media-url";
 import { orgPublicHref } from "@/lib/search/helpers";
+import { labelTinhThanh } from "@/lib/truong/contact";
 
 export type { FollowSuggestion, OrgFollowSuggestion } from "@/lib/cins/home-adaptive/suggestions-display";
 export {
@@ -176,12 +177,23 @@ type OrgRow = {
   loai_to_chuc: string;
   avatar_id: string | null;
   logo_id: string | null;
+  cover_id: string | null;
+  mo_ta: string | null;
   tinh_thanh: string | null;
   trang_thai_hoat_dong: string | null;
 };
 
 function tinhThanhLabel(value: string | null): string {
-  return value ? value.replace(/_/g, " ") : "";
+  if (!value) return "";
+  return labelTinhThanh(value) || value.replace(/_/g, " ");
+}
+
+function shortOrgBio(moTa: string | null | undefined, max = 120): string | null {
+  const raw =
+    moTa?.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim() || "";
+  if (!raw) return null;
+  if (raw.length <= max) return raw;
+  return `${raw.slice(0, max - 1).trimEnd()}…`;
 }
 
 /**
@@ -246,7 +258,7 @@ export async function loadOrgFollowSuggestions(
   }
 
   const ORG_SELECT =
-    "id, slug, ten, loai_to_chuc, avatar_id, logo_id, tinh_thanh, trang_thai_hoat_dong";
+    "id, slug, ten, loai_to_chuc, avatar_id, logo_id, cover_id, mo_ta, tinh_thanh, trang_thai_hoat_dong";
 
   /* Ứng viên: org bạn chung theo dõi + pool theo persona + pool cùng tỉnh. */
   const mutualOrgIds = [...mutualByOrg.keys()].filter((id) => !excluded.has(id));
@@ -311,6 +323,7 @@ export async function loadOrgFollowSuggestions(
 
     const slug = row.slug as string;
     const avatarId = row.avatar_id ?? row.logo_id;
+    const location = tinhThanhLabel(row.tinh_thanh) || null;
     return {
       id: row.id,
       slug,
@@ -318,6 +331,9 @@ export async function loadOrgFollowSuggestions(
       avatarUrl: avatarId
         ? resolveTruongImageSrcSync(avatarId, ["public", "avatar"])
         : null,
+      coverUrl: getProfileCoverUrl(row.cover_id),
+      bio: shortOrgBio(row.mo_ta),
+      location,
       loaiToChuc: row.loai_to_chuc,
       href: orgPublicHref(row.loai_to_chuc, slug),
       mutualCount: mutual,

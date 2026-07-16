@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Bell, BellPlus, MessageSquare } from "lucide-react";
-import { useCallback, useEffect, useState, useTransition } from "react";
+import { Maximize2, MessageCircle } from "lucide-react";
+import { useCallback, useState } from "react";
 
 import { useOptionalAuthGate } from "@/components/auth/AuthGateProvider";
+import { OrgFollowButton } from "@/components/cins/home-adaptive/OrgFollowButton";
 import { useCinsChat } from "@/components/cins/CinsChatProvider";
 import type { ChatOrgKind } from "@/lib/chat/types";
 
@@ -28,13 +29,11 @@ const CHAT_ORG_KIND: Record<OrgActionKind, ChatOrgKind> = {
   studio: "studio",
 };
 
-const FOLLOW_AUTH_MESSAGE = "Đăng nhập để theo dõi tổ chức này trên CINs.";
 const CHAT_AUTH_MESSAGE = "Đăng nhập để nhắn tin cho tổ chức trên CINs.";
 
 /**
- * Hàng hành động cho card org preview (JourneyOrgPopover) — theo dõi + nhắn tin
- * + CTA sang trang org. Tự chứa: follow qua `/api/follow` (loại `org`), nhắn tin
- * qua `openChat({ orgId })`. Không giả định viewer là quản trị org.
+ * Hàng icon CTA org preview — đồng bộ JourneyUserPopoverActions
+ * (Nhắn tin · Theo dõi · Xem trang).
  */
 export function JourneyOrgPopoverActions({
   orgId,
@@ -48,29 +47,8 @@ export function JourneyOrgPopoverActions({
   const router = useRouter();
   const authGate = useOptionalAuthGate();
   const { openChat } = useCinsChat();
-  const [following, setFollowing] = useState(false);
-  const [loaded, setLoaded] = useState(false);
   const [messaging, setMessaging] = useState(false);
-  const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-
-  const refresh = useCallback(() => {
-    const qs = new URLSearchParams({
-      id_doi_tuong: orgId,
-      loai_doi_tuong: "org",
-    });
-    void fetch(`/api/follow?${qs.toString()}`, { credentials: "same-origin" })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((json: { dang_theo_doi?: boolean } | null) => {
-        if (json) setFollowing(Boolean(json.dang_theo_doi));
-        setLoaded(true);
-      })
-      .catch(() => setLoaded(true));
-  }, [orgId]);
-
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
 
   const requireAuth = useCallback(
     (message: string): boolean => {
@@ -81,22 +59,6 @@ export function JourneyOrgPopoverActions({
     },
     [authGate, router],
   );
-
-  const toggleFollow = () => {
-    if (!requireAuth(FOLLOW_AUTH_MESSAGE)) return;
-    startTransition(async () => {
-      const res = await fetch("/api/follow", {
-        method: following ? "DELETE" : "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "same-origin",
-        body: JSON.stringify({ id_doi_tuong: orgId, loai_doi_tuong: "org" }),
-      });
-      const json = (await res.json().catch(() => null)) as {
-        dang_theo_doi?: boolean;
-      } | null;
-      if (res.ok) setFollowing(Boolean(json?.dang_theo_doi));
-    });
-  };
 
   const openMessage = () => {
     if (!requireAuth(CHAT_AUTH_MESSAGE)) return;
@@ -116,43 +78,37 @@ export function JourneyOrgPopoverActions({
       .finally(() => setMessaging(false));
   };
 
-  const followLabel = following ? "Đang theo dõi" : "Theo dõi";
-
   return (
-    <div className="j-org-pop-actions j-org-pop-actions--rich">
-      <div className="j-org-pop-actions-row">
+    <div className="j-friend-actions">
+      <div className="j-friend-actions-row j-friend-actions-row--icons">
         <button
           type="button"
-          className="j-org-pop-message"
+          className="j-friend-message is-icon"
           disabled={messaging}
+          title="Nhắn tin"
+          aria-label="Nhắn tin"
           onClick={openMessage}
         >
-          <MessageSquare size={15} strokeWidth={2} aria-hidden />
-          {messaging ? "Đang mở…" : "Nhắn tin"}
+          <MessageCircle size={17} strokeWidth={2} aria-hidden />
         </button>
-        <button
-          type="button"
-          className={`j-org-pop-follow${following ? " is-following" : ""}`}
-          aria-pressed={following}
-          disabled={!loaded || pending}
-          onClick={toggleFollow}
+        <div className="j-friend-card-follow">
+          <OrgFollowButton orgId={orgId} compact />
+        </div>
+        <Link
+          href={href}
+          className="j-friend-link is-icon"
+          title={primaryLabel}
+          aria-label={primaryLabel}
+          onClick={() => onClose?.()}
         >
-          {following ? (
-            <Bell size={15} strokeWidth={2} aria-hidden />
-          ) : (
-            <BellPlus size={15} strokeWidth={2} aria-hidden />
-          )}
-          {followLabel}
-        </button>
+          <Maximize2 size={17} strokeWidth={2} aria-hidden />
+        </Link>
       </div>
       {error ? (
         <p className="j-friend-action-error" role="alert">
           {error}
         </p>
       ) : null}
-      <Link href={href} className="j-org-pop-primary" onClick={() => onClose?.()}>
-        {primaryLabel}
-      </Link>
     </div>
   );
 }

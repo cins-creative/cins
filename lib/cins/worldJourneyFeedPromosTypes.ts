@@ -17,6 +17,12 @@ export type FeedPromoCard = {
   orgLogoUrl?: string | null;
   /** Badge ngày trên cover — rail sự kiện. */
   dateBadge?: { month: string; day: string };
+  /** Nhãn loại org — card studio (`is-org`). */
+  typeLabel?: string | null;
+  /** Tỉnh/thành — card studio. */
+  location?: string | null;
+  /** CTA theo dõi / nhắn tin — card org (`JourneyOrgPopoverActions`). */
+  orgActionKind?: "studio" | "truong" | "co_so_dao_tao";
 };
 
 export type FeedPromoVariant = {

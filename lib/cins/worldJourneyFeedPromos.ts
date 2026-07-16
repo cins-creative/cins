@@ -7,7 +7,7 @@ import { SU_KIEN_LOAI_BY_PERSONA } from "@/lib/cins/home-adaptive/persona";
 import {
   loadFollowSuggestions,
   loadOrgFollowSuggestions,
-  orgFollowSubtitle,
+  orgLoaiLabel,
 } from "@/lib/cins/home-adaptive/suggestions";
 import { NGANH_HOC_HUB_PATH } from "@/lib/cins/hubPaths";
 import type { FeedPromoVariant } from "@/lib/cins/worldJourneyFeedPromosTypes";
@@ -318,9 +318,14 @@ export async function loadFeedInlinePromos(
             items: studios.map((o) => ({
               id: o.id,
               title: o.name,
-              sub: orgFollowSubtitle(o.loaiToChuc, o.reason),
+              sub: o.reason,
               href: o.href,
               imageUrl: o.avatarUrl,
+              coverUrl: o.coverUrl,
+              bio: o.bio,
+              typeLabel: orgLoaiLabel(o.loaiToChuc),
+              location: o.location,
+              orgActionKind: "studio" as const,
             })),
           }
         : null,

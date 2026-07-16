@@ -41,6 +41,14 @@
   max-height: 90vh;
   overflow-x: hidden;
   overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.j-user-popover > .j-friend-card::-webkit-scrollbar,
+.j-user-popover > .j-org-pop-card::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
 }
 
 .j-user-popover > button.j-user-pop-close,
@@ -579,11 +587,6 @@ button.j-user-pop-close svg {
   color: var(--cins-blue, #4f9be8);
 }
 
-:root[data-theme="dark"] .j-org-popover .j-org-pop-message {
-  background: var(--cins-blue);
-  color: #fff;
-}
-
 :root[data-theme="dark"] .j-user-popover .j-friend-btn.is-idle {
   background: color-mix(in srgb, var(--cins-blue, #4f9be8) 12%, var(--bg-surface));
   color: var(--cins-blue, #4f9be8);
@@ -597,18 +600,6 @@ button.j-user-pop-close svg {
 :root[data-theme="dark"] .j-user-popover .j-friend-btn.is-friends {
   background: rgba(52, 201, 138, 0.14);
   color: #6ee7b7;
-}
-
-/* Org popover — tải kèm JourneyOrgPopover (không phụ thuộc journey.css) */
-.j-org-popover .j-org-pop-message {
-  border: none;
-  background: var(--cins-blue);
-  color: #fff;
-}
-
-.j-org-popover .j-org-pop-message:hover:not(:disabled) {
-  background: var(--cins-blue-dark, #1656a0);
-  color: #fff;
 }
 
 /* Avatar / mặt bạn chung khi không có ảnh (fallback gradient sáng) */

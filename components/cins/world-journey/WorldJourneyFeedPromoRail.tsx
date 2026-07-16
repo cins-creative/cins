@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 
+import { JourneyOrgPopoverActions } from "@/components/journey/JourneyOrgPopoverActions";
 import { JourneyUserPopoverActions } from "@/components/journey/JourneyUserPopoverActions";
 import type { FeedPromoVariant } from "@/lib/cins/worldJourneyFeedPromosTypes";
 
@@ -257,40 +258,92 @@ function PromoPersonCard({
 }
 
 function PromoOrgCard({
+  id,
   href,
   title,
   sub,
   imageUrl,
+  coverUrl,
+  bio,
+  typeLabel,
+  location,
+  orgActionKind,
 }: {
+  id: string;
   href: string;
   title: string;
   sub: string;
   imageUrl: string | null;
+  coverUrl?: string | null;
+  bio?: string | null;
+  typeLabel?: string | null;
+  location?: string | null;
+  orgActionKind?: "studio" | "truong" | "co_so_dao_tao";
 }) {
+  const initials =
+    title
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((w) => w.charAt(0))
+      .join("")
+      .toUpperCase() || title.slice(0, 2).toUpperCase();
+
+  const actionKind = orgActionKind ?? "studio";
+  const primaryLabel =
+    actionKind === "co_so_dao_tao"
+      ? "Xem cơ sở"
+      : actionKind === "truong"
+        ? "Xem trường"
+        : "Xem studio";
+
   return (
-    <Link
-      href={href}
-      className="wj-feed-promo-card is-org"
-      role="listitem"
-      prefetch={false}
-    >
-      <span className="wj-feed-promo-org-hero" aria-hidden>
-        <span className="wj-feed-promo-org-av">
+    <article className="wj-feed-promo-card is-org" role="listitem">
+      <Link href={href} className="wj-feed-promo-org-main" prefetch={false}>
+        <span
+          className={`wj-feed-promo-org-cover${coverUrl ? " has-img" : ""}`}
+          aria-hidden
+        >
+          {coverUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={coverUrl} alt="" loading="lazy" />
+          ) : null}
+        </span>
+        <span className="wj-feed-promo-org-av" aria-hidden>
           {imageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={imageUrl} alt="" loading="lazy" />
           ) : (
-            <span className="wj-feed-promo-org-av-fallback">
-              {title.slice(0, 2).toUpperCase()}
-            </span>
+            <span className="wj-feed-promo-org-av-fallback">{initials}</span>
           )}
         </span>
-      </span>
-      <span className="wj-feed-promo-card-body">
-        <span className="wj-feed-promo-card-name">{title}</span>
-        <span className="wj-feed-promo-card-sub">{sub}</span>
-      </span>
-    </Link>
+        <span className="wj-feed-promo-card-body">
+          {typeLabel ? (
+            <span className="wj-feed-promo-org-type">{typeLabel}</span>
+          ) : null}
+          <span className="wj-feed-promo-card-name">{title}</span>
+          {location ? (
+            <span className="wj-feed-promo-org-loc">{location}</span>
+          ) : null}
+          {sub ? (
+            <span className="wj-feed-promo-card-sub">{sub}</span>
+          ) : null}
+          {bio ? (
+            <span className="wj-feed-promo-org-bio">{bio}</span>
+          ) : null}
+        </span>
+      </Link>
+      <div className="wj-feed-promo-org-actions">
+        <JourneyOrgPopoverActions
+          orgId={id}
+          orgKind={actionKind}
+          orgName={title}
+          avatarUrl={imageUrl}
+          href={href}
+          primaryLabel={primaryLabel}
+        />
+      </div>
+    </article>
   );
 }
 
@@ -379,10 +432,16 @@ export function WorldJourneyFeedPromoRail({
           return (
             <PromoOrgCard
               key={item.id}
+              id={item.id}
               href={item.href}
               title={item.title}
               sub={item.sub}
               imageUrl={item.imageUrl}
+              coverUrl={item.coverUrl}
+              bio={item.bio}
+              typeLabel={item.typeLabel}
+              location={item.location}
+              orgActionKind={item.orgActionKind}
             />
           );
         })}

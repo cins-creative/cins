@@ -21,6 +21,12 @@ export type OrgFollowSuggestion = {
   slug: string;
   name: string;
   avatarUrl: string | null;
+  /** Ảnh bìa org — card promo studio / gợi ý. */
+  coverUrl: string | null;
+  /** Mô tả ngắn (cắt từ `mo_ta`). */
+  bio: string | null;
+  /** Tỉnh/thành đã format để hiển thị. */
+  location: string | null;
   loaiToChuc: string;
   href: string;
   /** Số bạn chung đang theo dõi org này. */

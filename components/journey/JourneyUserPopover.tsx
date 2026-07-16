@@ -150,7 +150,8 @@ export function JourneyUserPopover({
         }
       : null);
 
-  const canExpandFeatured = featuredReady && featuredCount > 0;
+  const canExpandFeatured =
+    featuredCount > 0 || (!featuredReady && (visibleProfile?.stats.tacPham ?? 0) > 0);
 
   return (
     <span className="j-user-pop-wrap" ref={wrapRef}>
@@ -259,7 +260,11 @@ export function JourneyUserPopover({
                           ? "Thu gọn nội dung nổi bật"
                           : "Xem nội dung nổi bật"
                       }
-                      onClick={() => setFeaturedOpen((value) => !value)}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        event.preventDefault();
+                        setFeaturedOpen((value) => !value);
+                      }}
                     >
                       <strong>{visibleProfile.stats.tacPham}</strong>
                       Nổi bật

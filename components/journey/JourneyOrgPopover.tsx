@@ -9,6 +9,8 @@ import {
   JourneyOrgPopoverActions,
   type OrgActionKind,
 } from "@/components/journey/JourneyOrgPopoverActions";
+import { JourneyOrgShowcaseExpand } from "@/components/journey/JourneyOrgShowcaseExpand";
+import type { OrgShowcaseAsideKind } from "@/lib/org/org-showcase-aside-types";
 
 import "./journey-user-popover.css";
 
@@ -109,6 +111,13 @@ function orgDialogLabel(orgKind: OrgPopoverKind): string {
 /** Org profile (trường / cơ sở / studio) có hàng hành động theo dõi + nhắn tin.
  *  Cộng đồng theo mô hình tham gia riêng → giữ CTA đơn. */
 function orgActionKind(orgKind: OrgPopoverKind): OrgActionKind | null {
+  if (orgKind === "co_so_dao_tao") return "co_so_dao_tao";
+  if (orgKind === "truong") return "truong";
+  if (orgKind === "studio") return "studio";
+  return null;
+}
+
+function orgShowcaseKind(orgKind: OrgPopoverKind): OrgShowcaseAsideKind | null {
   if (orgKind === "co_so_dao_tao") return "co_so_dao_tao";
   if (orgKind === "truong") return "truong";
   if (orgKind === "studio") return "studio";
@@ -364,6 +373,13 @@ export function JourneyOrgPopover({
                         </div>
                       )}
                     </div>
+                    {orgShowcaseKind(popoverKind) ? (
+                      <JourneyOrgShowcaseExpand
+                        slug={visible.slug}
+                        orgKind={orgShowcaseKind(popoverKind)!}
+                        eager
+                      />
+                    ) : null}
                   </article>
                 ) : loading ? (
                   <span className="j-user-pop-loading">Đang tải…</span>

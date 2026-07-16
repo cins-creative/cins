@@ -1136,6 +1136,19 @@ a.j-main-gallery-item:focus-visible,
   width: 16px;
   height: 16px;
 }
+:root[data-theme="dark"] .j-main-gallery-item .j-main-gallery-owner-menu .j-m-menu-btn {
+  background: color-mix(in srgb, var(--bg-surface) 88%, transparent);
+  border-color: var(--border);
+  color: var(--ink-muted);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+:root[data-theme="dark"] .j-main-gallery-item .j-main-gallery-owner-menu .j-m-menu-btn:hover,
+:root[data-theme="dark"] .j-main-gallery-item .j-main-gallery-owner-menu .j-m-menu-btn[aria-expanded="true"] {
+  background: var(--cins-blue);
+  border-color: var(--cins-blue);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(31, 116, 201, 0.28);
+}
 @media (hover: none) {
   .j-main-gallery-item .j-main-gallery-owner-menu {
     opacity: 1;
@@ -13727,9 +13740,10 @@ select.j-edit-input {
 }
 
 /* =========================================================
-   DARK THEME — menu "..." của milestone (viewer menu)
+   DARK THEME — menu "..." của milestone (viewer + gallery owner)
    Nút + popup dùng token nên tự đổi; block này sửa các
    giá trị hard-code còn sót (nút trắng + trạng thái danger).
+   Gallery owner: override ngay cạnh rule gallery (trên).
    ======================================================== */
 :root[data-theme="dark"] .jcard-viewer-menu .j-m-menu-btn {
   background: color-mix(in srgb, var(--bg-surface) 88%, transparent);
@@ -14407,6 +14421,34 @@ button.j-user-pop-close svg {
   box-shadow: 0 0 0 2px rgba(69, 189, 98, 0.12);
 }
 
+/* Dark — bar/mark hard-code xanh nhạt; token --j-verified* chỉ đổi trong dropdown. */
+:root[data-theme="dark"] .j-truong-verify-bar {
+  background: color-mix(in srgb, var(--j-verified, #45bd62) 16%, var(--bg-surface));
+  border-bottom-color: color-mix(in srgb, var(--j-verified, #45bd62) 32%, transparent);
+  color: #86efac;
+}
+:root[data-theme="dark"] .j-truong-verify-copy {
+  color: #86efac;
+}
+:root[data-theme="dark"] .j-truong-verify-org-name {
+  color: #bbf7d0;
+}
+:root[data-theme="dark"] .j-truong-verify-copy .j-user-pop-trigger:hover .j-truong-verify-org-name,
+:root[data-theme="dark"] .j-truong-verify-copy .j-user-pop-trigger:focus-visible .j-truong-verify-org-name {
+  color: #4ade80;
+}
+:root[data-theme="dark"] .j-truong-verify-mark {
+  background: color-mix(in srgb, var(--bg-surface) 90%, #fff);
+  border-color: color-mix(in srgb, var(--j-verified, #45bd62) 35%, transparent);
+  color: var(--ink-muted);
+  box-shadow: none;
+}
+:root[data-theme="dark"] .j-truong-verify-copy .j-user-pop-trigger:hover .j-truong-verify-mark,
+:root[data-theme="dark"] .j-truong-verify-copy .j-user-pop-trigger:focus-visible .j-truong-verify-mark {
+  border-color: color-mix(in srgb, #4ade80 55%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, #4ade80 18%, transparent);
+}
+
 .j-org-pop-card {
   position: relative;
   overflow: hidden;
@@ -14560,79 +14602,8 @@ button.j-user-pop-close svg {
   transform: translateY(-1px);
 }
 
-/* ── Org card: hàng hành động đầy đủ (theo dõi + nhắn tin) ───────── */
-.j-org-pop-actions--rich {
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 14px;
-}
-.j-org-pop-actions--rich .j-org-pop-primary {
-  width: 100%;
-}
-.j-org-pop-actions-row {
-  display: flex;
-  align-items: stretch;
-  gap: 8px;
-}
-.j-org-pop-message,
-.j-org-pop-follow {
-  flex: 1 1 0;
-  min-width: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  min-height: 36px;
-  padding: 0 12px;
-  border-radius: var(--radius-sm, 10px);
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  transition:
-    border-color 0.16s ease,
-    color 0.16s ease,
-    background 0.16s ease;
-}
-.j-org-pop-message {
-  border: 1px solid var(--cins-blue);
-  background: var(--cins-blue);
-  color: #fff;
-}
-.j-org-pop-message:hover:not(:disabled) {
-  border-color: var(--cins-blue-dark, #1656a0);
-  background: var(--cins-blue-dark, #1656a0);
-  color: #fff;
-}
-.j-org-pop-follow {
-  border: 1px solid rgba(37, 99, 235, 0.28);
-  background: var(--cins-blue-soft, rgba(37, 99, 235, 0.08));
-  color: var(--cins-blue);
-}
-.j-org-pop-follow:hover:not(:disabled) {
-  background: var(--cins-blue);
-  color: #fff;
-}
-.j-org-pop-follow.is-following {
-  border-color: rgba(148, 163, 184, 0.28);
-  background: var(--bg-surface);
-  color: var(--ink-muted);
-}
-.j-org-pop-follow.is-following:hover:not(:disabled) {
-  border-color: rgba(220, 38, 38, 0.4);
-  color: #dc2626;
-  background: rgba(220, 38, 38, 0.06);
-}
-.j-org-pop-message:disabled,
-.j-org-pop-follow:disabled {
-  cursor: not-allowed;
-  opacity: 0.7;
-}
-.j-org-pop-actions--rich .j-friend-action-error {
-  margin: 0;
-  color: #dc2626;
-  font-size: 12px;
-  text-align: center;
-}
+/* Org card: hàng icon CTA dùng chung `.j-friend-actions-row--icons`
+   (xem JourneyOrgPopoverActions + journey-user-popover.css). */
 
 /* ── Milestone: tạo cộng đồng — blue/violet hero (không xanh lá) ───── */
 .j-milestone.j-cong-dong-create .j-m-card {
