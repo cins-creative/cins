@@ -9,7 +9,7 @@ export type GallerySourcePerson = {
 };
 
 export type GallerySourceAuthor = {
-  /** Hiện avatar góc thumb — bài từ user/org khác (tag, lưu về, org đồng sự). */
+  /** Hiện avatar góc thumb — nguồn ngoại lai / org / bài có cộng sự. */
   showCorner: boolean;
   /** Người có vai trò trong dự án (chủ + cộng sự accepted). */
   people: GallerySourcePerson[];
@@ -42,8 +42,34 @@ function dedupePeople(people: GallerySourcePerson[]): GallerySourcePerson[] {
   return out;
 }
 
+function peopleFromCredits(
+  accepted: ReadonlyArray<CoAuthorCredit>,
+  ownerProfile?: OwnerProfile,
+  postOwnerId?: string,
+): GallerySourcePerson[] {
+  const fromCredits = accepted
+    .slice()
+    .sort((a, b) => Number(Boolean(b.laChuSoHuu)) - Number(Boolean(a.laChuSoHuu)))
+    .map(creditToPerson);
+
+  const fallbackOwner: GallerySourcePerson | null =
+    ownerProfile && postOwnerId
+      ? {
+          id: postOwnerId,
+          name: ownerProfile.name ?? ownerProfile.slug,
+          avatarUrl: ownerProfile.avatarUrl,
+          initial: (ownerProfile.name ?? ownerProfile.slug).charAt(0).toUpperCase(),
+        }
+      : null;
+
+  return dedupePeople([
+    ...fromCredits,
+    ...(fromCredits.length === 0 && fallbackOwner ? [fallbackOwner] : []),
+  ]).slice(0, MAX_CORNER_PEOPLE);
+}
+
 /**
- * Tác giả/nguồn hiển thị trên thumb gallery pinned / featured preview.
+ * Tác giả/nguồn hiển thị trên thumb gallery pinned / main card / featured preview.
  * `credits` = cộng sự accepted trên tác phẩm / bài org.
  */
 export function resolveGallerySourceAuthor(
@@ -81,34 +107,18 @@ export function resolveGallerySourceAuthor(
   }
 
   const isForeignOwner = entry.postOwnerId !== journeyOwnerId;
-  const showCorner =
+  const hasCollaborators =
+    accepted.some((c) => !c.laChuSoHuu) || accepted.length > 1;
+  const showForeignCorner =
     (entry.variant === "tagged" && isForeignOwner) ||
     (entry.variant === "bookmark" && isForeignOwner) ||
     (entry.variant === "verified" && isForeignOwner);
 
-  if (!showCorner) {
+  if (!showForeignCorner && !hasCollaborators) {
     return { showCorner: false, people: [], name: null, avatarUrl: null };
   }
 
-  const fromCredits = accepted
-    .slice()
-    .sort((a, b) => Number(Boolean(b.laChuSoHuu)) - Number(Boolean(a.laChuSoHuu)))
-    .map(creditToPerson);
-
-  const fallbackOwner: GallerySourcePerson | null = ownerProfile
-    ? {
-        id: entry.postOwnerId,
-        name: ownerProfile.name ?? ownerProfile.slug,
-        avatarUrl: ownerProfile.avatarUrl,
-        initial: (ownerProfile.name ?? ownerProfile.slug).charAt(0).toUpperCase(),
-      }
-    : null;
-
-  const people = dedupePeople([
-    ...fromCredits,
-    ...(fromCredits.length === 0 && fallbackOwner ? [fallbackOwner] : []),
-  ]).slice(0, MAX_CORNER_PEOPLE);
-
+  const people = peopleFromCredits(accepted, ownerProfile, entry.postOwnerId);
   const head = people[0] ?? null;
   return {
     showCorner: people.length > 0,

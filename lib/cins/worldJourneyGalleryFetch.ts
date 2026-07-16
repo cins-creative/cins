@@ -4,11 +4,15 @@ import { cache } from "react";
 import { unstable_cache } from "next/cache";
 
 import type { GalleryMainItem } from "@/lib/journey/gallery-page-fetch";
+import { loadCoAuthorCredits } from "@/lib/journey/coauthor-credits";
+import { resolveGallerySourceAuthor } from "@/lib/journey/gallery-source-author";
+import type { GalleryStub } from "@/lib/journey/gallery-stubs";
 import { journeyImageFields } from "@/lib/journey/images";
 import { resolvePostGridEntry } from "@/lib/journey/post-content-kind";
 import {
   galleryItemExcerptLine,
   galleryItemLabel,
+  type GalleryMediaKind,
 } from "@/lib/journey/post-media";
 import { getAvatarUrl } from "@/lib/journey/profile";
 import { listFriends } from "@/lib/social/ket-ban";
@@ -20,6 +24,7 @@ import { orgPublicHref } from "@/lib/search/helpers";
 import { studioTabPath } from "@/lib/to-chuc/studio-routes";
 import { CHE_DO_MOC_CONG_DONG } from "@/lib/journey/journey-visible-clause";
 import { parseBaiDangBlocks } from "@/lib/truong/bai-dang-blocks";
+import { loadOrgBaiDangCoAuthorCredits } from "@/lib/truong/org-bai-dang-coauthor";
 import type { Block } from "@/lib/editor/types";
 import {
   WORLD_JOURNEY_FEED_RANK_REVALIDATE_SEC,
@@ -97,7 +102,11 @@ type AuthorRow = {
   avatar_id: string | null;
 };
 
-type RankedGalleryItem = GalleryMainItem & { sortAt: string };
+type RankedGalleryItem = GalleryMainItem & {
+  sortAt: string;
+  /** Internal — owner id cho resolve stack đóng góp (bỏ trước khi trả client). */
+  postOwnerId?: string;
+};
 
 function pickOrg<T>(org: T | T[] | null | undefined): T | null {
   if (!org) return null;
@@ -219,6 +228,8 @@ function featureRowToItem(
     visibility: cm.che_do_hien_thi === "feature" ? "feature" : "public",
     postSlug: tp.slug,
     postOwnerSlug: slug ?? null,
+    tacPhamId: tp.id,
+    postOwnerId: tp.id_nguoi_dung,
     variant: "self",
     mediaKind: grid.mediaKind,
     embedProvider: grid.embedProvider ?? null,
@@ -277,6 +288,7 @@ function showcaseRowToItem(
     featured: true,
     type: "du-an",
     variant: "tagged",
+    tacPhamId: row.id,
     mediaKind: grid.mediaKind,
     embedProvider: grid.embedProvider ?? null,
     isVideo,
@@ -351,6 +363,7 @@ function orgBaiDangRowToItem(
     featured: false,
     type: "du-an",
     variant: "tagged",
+    tacPhamId: row.id,
     mediaKind: grid.mediaKind,
     embedProvider: grid.embedProvider ?? null,
     isVideo,
@@ -451,6 +464,112 @@ async function loadCongDongOrgMeta(
     });
   }
   return map;
+}
+
+function wjStubForSourceAuthor(item: RankedGalleryItem): GalleryStub | null {
+  if (!item.tacPhamId) return null;
+  const isOrg = item.feedSource === "org";
+  const mediaKind: GalleryMediaKind = item.mediaKind ?? "photo";
+  return {
+    tacPhamId: item.tacPhamId,
+    cotMocId: item.cotMocId,
+    thoiDiem: item.sortAt,
+    taoLuc: item.sortAt,
+    visibility: item.visibility ?? "public",
+    tacPhamSlug: isOrg ? null : (item.postSlug ?? "x"),
+    tieuDe: item.label,
+    excerpt: item.meta,
+    coverId: null,
+    coverSrc: null,
+    videoPreviewSrc: null,
+    videoProcessing: Boolean(item.videoProcessing),
+    postOwnerId: item.postOwnerId ?? "",
+    type: item.type,
+    variant: item.variant,
+    mediaKind,
+    embedProvider: item.embedProvider ?? null,
+    orgHref: isOrg ? (item.href ?? "/") : null,
+    orgAvatarUrl: item.orgAvatarUrl ?? null,
+    orgKicker: item.orgKicker ?? null,
+  };
+}
+
+async function attachSourceAuthorsToWjItems(
+  items: RankedGalleryItem[],
+  authors: Map<string, AuthorRow>,
+): Promise<RankedGalleryItem[]> {
+  if (items.length === 0) return items;
+
+  const admin = createServiceRoleClient();
+  const tacPhamIds = [
+    ...new Set(
+      items
+        .filter(
+          (i) =>
+            i.tacPhamId &&
+            (i.feedSource === "user" || i.feedSource === "cong_dong"),
+        )
+        .map((i) => i.tacPhamId as string),
+    ),
+  ];
+  const orgPostIds = [
+    ...new Set(
+      items
+        .filter((i) => i.tacPhamId && i.feedSource === "org")
+        .map((i) => i.tacPhamId as string),
+    ),
+  ];
+
+  const [creditsByTacPham, creditsByOrgPost] = await Promise.all([
+    loadCoAuthorCredits(admin, tacPhamIds),
+    loadOrgBaiDangCoAuthorCredits(orgPostIds),
+  ]);
+
+  return items.map((item) => {
+    const stub = wjStubForSourceAuthor(item);
+    if (!stub) return item;
+
+    const isOrg = item.feedSource === "org";
+    const credits = isOrg
+      ? (creditsByOrgPost.get(item.tacPhamId!) ?? [])
+      : (creditsByTacPham.get(item.tacPhamId!) ?? []);
+
+    const author = item.postOwnerId
+      ? authors.get(item.postOwnerId)
+      : undefined;
+    const ownerProfile = author
+      ? {
+          slug: author.slug,
+          name: author.ten_hien_thi?.trim() || author.slug,
+          avatarUrl: getAvatarUrl(author.avatar_id),
+        }
+      : item.authorName
+        ? {
+            slug: item.postOwnerSlug ?? "",
+            name: item.authorName,
+            avatarUrl: item.authorAvatarUrl ?? null,
+          }
+        : undefined;
+
+    /* journeyOwnerId = post owner → bài có cộng sự vẫn hiện stack trên WJ. */
+    const journeyOwnerId = item.postOwnerId || stub.postOwnerId || "";
+    const sourceAuthor = resolveGallerySourceAuthor(
+      stub,
+      journeyOwnerId,
+      ownerProfile,
+      credits,
+    );
+
+    if (!sourceAuthor.showCorner) return item;
+
+    return {
+      ...item,
+      showSourceAuthor: true,
+      sourcePeople: sourceAuthor.people,
+      authorName: sourceAuthor.name ?? item.authorName,
+      authorAvatarUrl: sourceAuthor.avatarUrl ?? item.authorAvatarUrl,
+    };
+  });
 }
 
 /**
@@ -572,12 +691,14 @@ async function buildWorldJourneyGalleryPool(
     items.push(item);
   }
 
-  return items
+  const ranked = items
     .sort((a, b) => {
       if (a.featured !== b.featured) return a.featured ? -1 : 1;
       return a.sortAt > b.sortAt ? -1 : a.sortAt < b.sortAt ? 1 : 0;
     })
     .slice(0, poolLimit);
+
+  return attachSourceAuthorsToWjItems(ranked, authors);
 }
 
 export type WorldJourneyGalleryPage = {
@@ -623,7 +744,9 @@ function sliceGalleryPage(
   );
   const page = ranked.slice(safeOffset, safeOffset + safeLimit);
   const nextOffset = safeOffset + page.length;
-  const items: GalleryMainItem[] = page.map(({ sortAt: _s, ...rest }) => rest);
+  const items: GalleryMainItem[] = page.map(
+    ({ sortAt: _s, postOwnerId: _owner, ...rest }) => rest,
+  );
   return {
     items,
     hasMore: nextOffset < ranked.length,

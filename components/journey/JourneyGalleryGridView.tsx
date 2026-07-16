@@ -17,6 +17,7 @@ import {
 import { WorldBoostToggle } from "@/components/cins/world-journey/WorldBoostToggle";
 import { useWorldBoostAdminOptional } from "@/components/cins/world-journey/WorldBoostAdminContext";
 import { MoTaMarkdown } from "@/components/editor/compose/MoTaMarkdown";
+import { GalleryAuthorCornerBadge } from "@/components/journey/GalleryAuthorCornerBadge";
 import { GalleryItemVisual, GalleryEmbedPlatformBadge, GalleryVideoPlayBadge } from "@/components/journey/GalleryItemVisual";
 import { GalleryMainHoverOverlay } from "@/components/journey/GalleryMainHoverOverlay";
 import { GalleryMediaFilterDropdown } from "@/components/journey/GalleryMediaFilterDropdown";
@@ -305,6 +306,13 @@ function GalleryMainItemTile({
             verifierRole={
               !item.postSlug && item.orgKicker ? item.verifierRole : undefined
             }
+          />
+        ) : null}
+        {item.showSourceAuthor ? (
+          <GalleryAuthorCornerBadge
+            people={item.sourcePeople}
+            name={item.authorName}
+            avatarUrl={item.authorAvatarUrl}
           />
         ) : null}
         {boostToggle}

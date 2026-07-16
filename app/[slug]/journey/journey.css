@@ -7974,6 +7974,10 @@ button.j-g-banner:disabled {
   bottom: 10px;
   left: 10px;
 }
+.j-main-gallery-thumb .j-g-source-author {
+  bottom: 10px;
+  left: 10px;
+}
 .j-g-source-author--featured .j-g-source-author-chip {
   width: 22px;
   height: 22px;
@@ -17021,9 +17025,9 @@ button.j-user-pop-close svg {
   font-size: 11px;
   line-height: 1.4;
 }
-/* Popover bọc dòng đồng tác giả — tên full width, vai trò xuống hàng. */
+/* Popover chiếm phần ngang còn lại; action bạn bè nằm cùng hàng với tên. */
 .author-row-item > .j-user-pop-wrap {
-  flex: 1 1 100%;
+  flex: 1 1 0;
   min-width: 0;
   display: flex;
 }

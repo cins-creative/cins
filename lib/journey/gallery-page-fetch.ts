@@ -33,7 +33,10 @@ import {
 } from "@/lib/journey/post-media";
 import type { EmbedProviderId } from "@/lib/editor/embed-providers";
 import { loadCoAuthorCredits } from "@/lib/journey/coauthor-credits";
-import { resolveGallerySourceAuthor } from "@/lib/journey/gallery-source-author";
+import {
+  resolveGallerySourceAuthor,
+  type GallerySourcePerson,
+} from "@/lib/journey/gallery-source-author";
 import { loadVerifiedCotMocIdSet } from "@/lib/journey/milestone-verify";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { loadOrgBaiDangCoAuthorCredits } from "@/lib/truong/org-bai-dang-coauthor";
@@ -92,6 +95,9 @@ export type GalleryMainItem = {
   /** Tác giả hiển thị trên overlay hover của card gallery. */
   authorName?: string | null;
   authorAvatarUrl?: string | null;
+  /** Stack avatar góc thumb — giống banner pinned. */
+  showSourceAuthor?: boolean;
+  sourcePeople?: GallerySourcePerson[];
   videoCanvasRatio?: VideoCanvasRatio;
   /**
    * World Journey — nguồn nội dung để lọc theo `FeedSourceFilter`
@@ -225,8 +231,11 @@ function galleryStubHref(
 function hydrateMainItems(
   stubs: GalleryStub[],
   ownerSlug: string,
+  journeyOwnerId: string,
   ownerSlugById: Map<string, string>,
   ownerProfileById?: Map<string, OwnerProfile>,
+  creditsByTacPham?: Map<string, CoAuthorCredit[]>,
+  creditsByOrgPost?: Map<string, CoAuthorCredit[]>,
 ): GalleryMainItem[] {
   const out: GalleryMainItem[] = [];
   stubs.forEach((entry, i) => {
@@ -239,6 +248,27 @@ function hydrateMainItems(
     const ownerProfile = ownerProfileById?.get(entry.postOwnerId);
     const href = galleryStubHref(entry, ownerSlug, ownerSlugById);
     const isOrgPost = Boolean(entry.orgHref && !entry.tacPhamSlug && !isOrgCreate);
+    const credits = isOrgCreate
+      ? []
+      : isOrgPost
+        ? (creditsByOrgPost?.get(entry.tacPhamId) ?? [])
+        : (creditsByTacPham?.get(entry.tacPhamId) ?? []);
+    const sourceAuthor = isOrgCreate
+      ? null
+      : resolveGallerySourceAuthor(
+          entry,
+          journeyOwnerId,
+          ownerProfile,
+          credits,
+        );
+    const fallbackAuthorName =
+      isOrgCreate || isOrgPost
+        ? (entry.orgKicker ?? null)
+        : (ownerProfile?.name ?? null);
+    const fallbackAuthorAvatar =
+      isOrgCreate || isOrgPost
+        ? (entry.orgAvatarUrl ?? null)
+        : (ownerProfile?.avatarUrl ?? null);
     out.push({
       id: `${featured ? "pin" : "grid"}-${entry.cotMocId}-${i}`,
       cotMocId: entry.cotMocId,
@@ -267,11 +297,14 @@ function hydrateMainItems(
       orgAvatarUrl: entry.orgAvatarUrl,
       orgKicker: entry.orgKicker,
       verifierRole: entry.verifierRole,
-      authorName: isOrgCreate || isOrgPost ? entry.orgKicker ?? null : ownerProfile?.name ?? null,
-      authorAvatarUrl:
-        isOrgCreate || isOrgPost
-          ? entry.orgAvatarUrl ?? null
-          : ownerProfile?.avatarUrl ?? null,
+      authorName: sourceAuthor?.showCorner
+        ? sourceAuthor.name
+        : fallbackAuthorName,
+      authorAvatarUrl: sourceAuthor?.showCorner
+        ? sourceAuthor.avatarUrl
+        : fallbackAuthorAvatar,
+      showSourceAuthor: sourceAuthor?.showCorner ?? false,
+      sourcePeople: sourceAuthor?.showCorner ? sourceAuthor.people : undefined,
       videoCanvasRatio: entry.videoCanvasRatio,
     });
   });
@@ -403,12 +436,39 @@ export async function fetchGalleryMainPage(params: {
 
   const admin = createServiceRoleClient();
   const ownerIds = [...new Set(slice.map((x) => x.postOwnerId))];
-  const ownerProfileById = await resolveOwnerProfiles(admin, ownerIds);
+  const tacPhamIds = [
+    ...new Set(
+      slice
+        .filter((s) => s.tacPhamSlug && s.tacPhamId)
+        .map((s) => s.tacPhamId),
+    ),
+  ];
+  const orgPostIds = [
+    ...new Set(
+      slice
+        .filter((s) => Boolean(s.orgHref && !s.tacPhamSlug) && s.tacPhamId)
+        .map((s) => s.tacPhamId),
+    ),
+  ];
+  const [ownerProfileById, creditsByTacPham, creditsByOrgPost] =
+    await Promise.all([
+      resolveOwnerProfiles(admin, ownerIds),
+      loadCoAuthorCredits(admin, tacPhamIds),
+      loadOrgBaiDangCoAuthorCredits(orgPostIds),
+    ]);
   const ownerSlugById = new Map(
     [...ownerProfileById].map(([id, profile]) => [id, profile.slug]),
   );
   const items = await attachPersonalFiltersToGalleryItems(
-    hydrateMainItems(slice, ownerSlug, ownerSlugById, ownerProfileById),
+    hydrateMainItems(
+      slice,
+      ownerSlug,
+      userId,
+      ownerSlugById,
+      ownerProfileById,
+      creditsByTacPham,
+      creditsByOrgPost,
+    ),
     userId,
   );
 

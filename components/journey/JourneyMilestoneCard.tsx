@@ -1293,8 +1293,9 @@ export function JourneyMilestoneCard({
               ) : null}
               {tacPhamId &&
               viewerProfileId &&
-              c.idNguoiDung === viewerProfileId &&
-              c.trangThai === "accepted" ? (
+              (c.idNguoiDung === viewerProfileId ||
+                (isOwner && Boolean(c.slug) && c.slug === ownerSlug)) &&
+              c.trangThai !== "pending" ? (
                 <JourneyOwnCoAuthorRoleEditor
                   tacPhamId={tacPhamId}
                   userId={viewerProfileId}
@@ -1303,7 +1304,7 @@ export function JourneyMilestoneCard({
                     const nextRole = joinVaiTroPositions(positions);
                     setCoAuthorRoleOverrides((current) => ({
                       ...current,
-                      [viewerProfileId]: nextRole,
+                      [c.idNguoiDung ?? viewerProfileId]: nextRole,
                     }));
                   }}
                 />

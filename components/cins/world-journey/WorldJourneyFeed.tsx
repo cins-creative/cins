@@ -539,7 +539,7 @@ function WorldJourneyFilterSearching({
       <p>
         {isGallery
           ? "Đang query lại các ô khớp bộ lọc đã chọn."
-          : "Đang query lại feed khớp bộ lọc đã chọn."}
+          : "đang tìm kiếm nội dung phù hợp"}
       </p>
       <div className="wj-feed-searching-dots" aria-hidden>
         <span />

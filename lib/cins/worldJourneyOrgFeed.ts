@@ -6,6 +6,7 @@ import { parseServerBlocks } from "@/lib/journey/parse-server-blocks";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { orgLoaiToMilestoneType } from "@/lib/truong/org-bai-dang-bookmark";
 import { parseBaiDangBlocks } from "@/lib/truong/bai-dang-blocks";
+import { loadOrgBaiDangCoAuthorCredits } from "@/lib/truong/org-bai-dang-coauthor";
 import { orgPublicHref } from "@/lib/search/helpers";
 import { resolveTruongImageSrcSync } from "@/lib/truong/media-url";
 
@@ -160,13 +161,18 @@ export async function fetchWorldJourneyOrgBaiDangMilestones(
     .limit(limit)
     .returns<OrgPostRow[]>();
 
+  const rows = data ?? [];
+  const creditsMap = await loadOrgBaiDangCoAuthorCredits(rows.map((p) => p.id));
+
   const items: MilestoneItem[] = [];
-  for (const post of data ?? []) {
+  for (const post of rows) {
     const item = mapOrgPostRowToMilestone(
       post,
       followedSet.has(post.id_to_chuc),
     );
-    if (item) items.push(item);
+    if (!item) continue;
+    item.coAuthorCredits = creditsMap.get(post.id) ?? [];
+    items.push(item);
   }
   return items;
 }
@@ -187,10 +193,15 @@ export async function fetchFollowedOrgBaiDangMilestones(
     .limit(limit)
     .returns<OrgPostRow[]>();
 
+  const rows = data ?? [];
+  const creditsMap = await loadOrgBaiDangCoAuthorCredits(rows.map((p) => p.id));
+
   const items: MilestoneItem[] = [];
-  for (const post of data ?? []) {
+  for (const post of rows) {
     const item = mapOrgPostRowToMilestone(post, true);
-    if (item) items.push(item);
+    if (!item) continue;
+    item.coAuthorCredits = creditsMap.get(post.id) ?? [];
+    items.push(item);
   }
   return items;
 }
