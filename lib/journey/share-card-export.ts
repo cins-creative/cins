@@ -40,18 +40,25 @@ function downloadBlob(blob: Blob, filename: string): void {
   URL.revokeObjectURL(url);
 }
 
+/** Rasterize thẻ share → PNG blob (dùng cho clipboard + upload OG). */
+export async function exportShareCardBlob(
+  el: HTMLElement,
+): Promise<Blob | null> {
+  try {
+    await awaitCardImages(el);
+    const blob = await toBlob(el, EXPORT_OPTS);
+    return blob ?? null;
+  } catch {
+    return null;
+  }
+}
+
 /** Xuất thẻ share → copy PNG clipboard; fallback tải file. */
 export async function copyShareCardImage(
   el: HTMLElement,
   filename = "cins-share-card.png",
 ): Promise<ShareCardImageResult> {
-  let blob: Blob | null = null;
-  try {
-    await awaitCardImages(el);
-    blob = await toBlob(el, EXPORT_OPTS);
-  } catch {
-    return "failed";
-  }
+  const blob = await exportShareCardBlob(el);
   if (!blob) return "failed";
 
   if (

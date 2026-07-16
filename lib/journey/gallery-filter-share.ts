@@ -42,6 +42,16 @@ const VALID_GALLERY_GROUP = new Set<string>([
   "cong-dong",
 ]);
 
+/** Token ngắn cho key OG snapshot / cache-bust (đồng bộ server + modal). */
+export function shareFilterVersionToken(
+  spec: JourneyGalleryFilterShareSpec | null | undefined,
+): string | null {
+  if (!spec || spec.kind === "all") return null;
+  if (spec.kind === "group") return `g${spec.group}`;
+  const slug = spec.slug.replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 24);
+  return slug ? `f${slug}` : null;
+}
+
 export function galleryGroupFromSearch(search: string): FilterGroup | null {
   const raw = new URLSearchParams(
     search.startsWith("?") ? search.slice(1) : search,

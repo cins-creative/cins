@@ -5243,6 +5243,11 @@ a.j-main-gallery-item:focus-visible,
   background: var(--bg-surface, #fff);
   border: 1px solid var(--border, transparent);
 }
+.j-m-unfold-post .post-comments-v1 .post-comments-menu-pop {
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border, transparent);
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--ink-display, #0f172a) 18%, transparent);
+}
 .j-m-unfold-post .jcard-actions {
   margin-top: 0;
   border-top: 1px solid var(--jcard-border2, var(--border));
@@ -20027,14 +20032,20 @@ a.action-btn-part {
 .j-share-card--namecard .j-nc-b-stats {
   color: var(--og-muted);
 }
-/* Panel/glass mềm — nổi trên nền pattern, viền tinh tế */
+/* Panel/glass mềm — nổi trên nền pattern, viền tinh tế.
+   Sidebar gallery: không phủ panel — lộ pattern theme trực tiếp. */
 .j-share-card--namecard .j-ps-panel-card,
-.j-share-card--namecard .j-ps-side,
 .j-share-card--namecard .j-nc-s-side,
 .j-share-card--namecard .j-nc-f-side {
   background: var(--og-panel);
   box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
   border: 1px solid rgba(148, 163, 184, 0.16);
+}
+.j-share-card--namecard .j-ps-side,
+.j-share-card--namecard .j-ps-side-gallery {
+  background: transparent;
+  box-shadow: none;
+  border: none;
 }
 /* Lộ pattern theme phía sau layout banner & split (bỏ lớp trắng đặc). Panel
    dùng surface bán trong nên pattern vẫn thấy phía sau mà chữ vẫn đọc rõ. */

@@ -1,36 +1,51 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
+import { deleteCloudflareImage } from "@/lib/cloudflare/delete-image";
 import { uploadToCloudflareImages } from "@/lib/cloudflare/upload-image";
 import {
+  isGalleryShareLayout,
+  isJourneyShareLayout,
   parseShareOgThemeState,
-  prependShareOgCustom,
   serializeShareOgThemeState,
   shareOgThemeStatePayload,
+  upsertShareOgSnapshot,
   type ShareOgThemeState,
 } from "@/lib/journey/share-og-theme";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { isTruongOrgAdmin } from "@/lib/truong/org-admin";
 
 /* ╔══════════════════════════════════════════════════════════════════╗
-   ║ POST /api/share-theme/upload                                     ║
-   ║ Upload ảnh nền theme thẻ share / OG (≤ 5MB) + lưu vĩnh viễn vào  ║
-   ║ customs (user.theme | org.cau_hinh.share_og_theme). Auth bắt buộc.║
-   ║ Form: file (bắt buộc), orgId? (org admin).                       ║
+   ║ POST /api/share-theme/og-card                                    ║
+   ║ Upload PNG thẻ share (html-to-image) → CF Images + ghi          ║
+   ║ theme.ogSnapshots[key]. Auth: chủ hồ sơ / admin org.             ║
+   ║ Form: file (PNG), key (buildShareOgSnapshotKey), orgId?          ║
    ╚══════════════════════════════════════════════════════════════════╝ */
 
-const MAX_BYTES = 5 * 1024 * 1024;
+const MAX_BYTES = 8 * 1024 * 1024;
 
-function withNewCustom(
-  prev: ShareOgThemeState,
-  imageId: string,
+const SNAPSHOT_KEY_RE =
+  /^(journey|gallery)\|[a-zA-Z0-9_-]{1,40}\|[a-zA-Z0-9_-]{1,24}\|[pc][a-zA-Z0-9_-]{1,40}$/;
+
+function applyLayoutFromKey(
+  state: ShareOgThemeState,
+  key: string,
 ): ShareOgThemeState {
-  const createdAt = new Date().toISOString();
-  return {
-    ...prev,
-    active: { kind: "custom", imageId },
-    customs: prependShareOgCustom(prev.customs, imageId, createdAt),
-  };
+  const [kind, , layout] = key.split("|");
+  if (kind === "gallery" && isGalleryShareLayout(layout)) {
+    return {
+      ...state,
+      layouts: { ...state.layouts, gallery: layout },
+    };
+  }
+  if (kind === "journey" && isJourneyShareLayout(layout)) {
+    return {
+      ...state,
+      layouts: { ...state.layouts, journey: layout },
+    };
+  }
+  return state;
 }
 
 export async function POST(request: Request) {
@@ -55,9 +70,15 @@ export async function POST(request: Request) {
   }
   if (file.size > MAX_BYTES) {
     return NextResponse.json(
-      { error: "Ảnh quá lớn (giới hạn 5MB)." },
+      { error: "Ảnh quá lớn (giới hạn 8MB)." },
       { status: 413 },
     );
+  }
+
+  const keyRaw = typeof form.get("key") === "string" ? String(form.get("key")) : "";
+  const key = keyRaw.trim().slice(0, 120);
+  if (!key || !SNAPSHOT_KEY_RE.test(key)) {
+    return NextResponse.json({ error: "Key snapshot không hợp lệ." }, { status: 400 });
   }
 
   const orgId =
@@ -75,8 +96,9 @@ export async function POST(request: Request) {
 
   if (orgId) {
     if (!(await isTruongOrgAdmin(orgId, session.profile.id))) {
+      void deleteCloudflareImage(imageId);
       return NextResponse.json(
-        { error: "Bạn không có quyền đổi theme tổ chức này." },
+        { error: "Bạn không có quyền cập nhật thẻ tổ chức này." },
         { status: 403 },
       );
     }
@@ -92,14 +114,20 @@ export async function POST(request: Request) {
       }>();
 
     if (error || !org) {
+      void deleteCloudflareImage(imageId);
       return NextResponse.json({ error: "Không tìm thấy tổ chức." }, { status: 404 });
     }
 
-    const prev = parseShareOgThemeState(
-      org.cau_hinh?.share_og_theme ?? null,
-      org.slug,
+    const prev = applyLayoutFromKey(
+      parseShareOgThemeState(org.cau_hinh?.share_og_theme ?? null, org.slug),
+      key,
     );
-    const next = withNewCustom(prev, imageId);
+    const { state: next, replacedImageId, prunedIds } = upsertShareOgSnapshot(
+      prev,
+      key,
+      imageId,
+    );
+
     const cauHinh = {
       ...(org.cau_hinh && typeof org.cau_hinh === "object" ? org.cau_hinh : {}),
       share_og_theme: shareOgThemeStatePayload(next),
@@ -111,15 +139,23 @@ export async function POST(request: Request) {
       .eq("id", orgId);
 
     if (updErr) {
+      void deleteCloudflareImage(imageId);
       return NextResponse.json(
         { error: "Đã tải ảnh nhưng không lưu được vào hồ sơ." },
         { status: 500 },
       );
     }
 
+    if (replacedImageId) void deleteCloudflareImage(replacedImageId);
+    for (const id of prunedIds) void deleteCloudflareImage(id);
+
+    revalidatePath(`/${org.slug}`);
+    revalidatePath(`/${org.slug}/journey`);
+
     return NextResponse.json({
       imageId,
       url: result.data.url,
+      key,
       state: next,
     });
   }
@@ -132,11 +168,19 @@ export async function POST(request: Request) {
     .maybeSingle<{ id: string; slug: string; theme: string | null }>();
 
   if (error || !user) {
+    void deleteCloudflareImage(imageId);
     return NextResponse.json({ error: "Không tìm thấy hồ sơ." }, { status: 404 });
   }
 
-  const prev = parseShareOgThemeState(user.theme, user.slug);
-  const next = withNewCustom(prev, imageId);
+  const prev = applyLayoutFromKey(
+    parseShareOgThemeState(user.theme, user.slug),
+    key,
+  );
+  const { state: next, replacedImageId, prunedIds } = upsertShareOgSnapshot(
+    prev,
+    key,
+    imageId,
+  );
 
   const { error: updErr } = await admin
     .from("user_nguoi_dung")
@@ -144,15 +188,23 @@ export async function POST(request: Request) {
     .eq("id", profileId);
 
   if (updErr) {
+    void deleteCloudflareImage(imageId);
     return NextResponse.json(
       { error: "Đã tải ảnh nhưng không lưu được vào hồ sơ." },
       { status: 500 },
     );
   }
 
+  if (replacedImageId) void deleteCloudflareImage(replacedImageId);
+  for (const id of prunedIds) void deleteCloudflareImage(id);
+
+  revalidatePath(`/${user.slug}`);
+  revalidatePath(`/${user.slug}/journey`);
+
   return NextResponse.json({
     imageId,
     url: result.data.url,
+    key,
     state: next,
   });
 }

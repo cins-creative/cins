@@ -16,6 +16,7 @@ import { CongDongInviteFriendsPanel } from "@/components/cong-dong/CongDongInvit
 import { JourneyShareCardPreview } from "@/components/journey/JourneyShareCardPreview";
 import { JourneyShareThemePicker } from "@/components/journey/JourneyShareThemePicker";
 import {
+  PORTFOLIO_ALL_FILTER_SHARE_SPEC,
   fetchGalleryItemsForShare,
   filterGalleryItemsForShare,
   galleryFilterShareUrl,
@@ -23,7 +24,7 @@ import {
   galleryThumbsForShareSpec,
   mergeShareGallerySources,
   milestonesToShareGalleryItems,
-  PORTFOLIO_ALL_FILTER_SHARE_SPEC,
+  shareFilterVersionToken,
   type JourneyGalleryFilterShareSpec,
   type ShareGallerySourceItem,
 } from "@/lib/journey/gallery-filter-share";
@@ -43,6 +44,7 @@ import {
   type JourneyShareProfile,
 } from "@/lib/journey/profile-share";
 import {
+  buildShareOgSnapshotKey,
   defaultShareOgThemeState,
   type ShareOgPresetId,
   type ShareOgThemeState,
@@ -55,7 +57,10 @@ import {
   orgShareInviteTitle,
 } from "@/lib/org/org-profile-share";
 import { isLikelyLocalOrPreviewHost } from "@/lib/auth/auth-origin";
-import { copyShareCardImage } from "@/lib/journey/share-card-export";
+import {
+  copyShareCardImage,
+  exportShareCardBlob,
+} from "@/lib/journey/share-card-export";
 import {
   readJourneyGalleryPanelCache,
   readJourneyTimelinePanelCache,
@@ -498,13 +503,87 @@ export function JourneyProfileShareModal({
     stats: shareStats,
   };
 
+  /** Snapshot thẻ → CF + theme.ogSnapshots (chỉ chủ hồ sơ). Best-effort. */
+  const publishOgSnapshot = useCallback(async (): Promise<boolean> => {
+    if (!themeCanEdit) return true;
+    if (step !== "journey-card" && step !== "gallery-card") return true;
+
+    const el = cardExportRef.current;
+    if (!el) return false;
+
+    const kind: JourneyShareCardKind =
+      step === "gallery-card" ? "gallery" : "journey";
+    const layout = kind === "gallery" ? galleryVariant : journeyVariant;
+    const filterVersion =
+      kind === "gallery"
+        ? shareFilterVersionToken(portfolioFilter)
+        : null;
+    const key = buildShareOgSnapshotKey({
+      kind,
+      filterVersion,
+      layout,
+      theme: themeState.active,
+    });
+
+    const blob = await exportShareCardBlob(el);
+    if (!blob) return false;
+
+    const form = new FormData();
+    form.append(
+      "file",
+      new File([blob], "og-card.png", { type: "image/png" }),
+    );
+    form.append("key", key);
+    if (orgShare?.orgId) form.append("orgId", orgShare.orgId);
+
+    try {
+      const res = await fetch("/api/share-theme/og-card", {
+        method: "POST",
+        body: form,
+      });
+      if (!res.ok) return false;
+      const json = (await res.json()) as { state?: ShareOgThemeState };
+      if (json.state) setThemeState(json.state);
+      return true;
+    } catch {
+      return false;
+    }
+  }, [
+    themeCanEdit,
+    step,
+    galleryVariant,
+    journeyVariant,
+    portfolioFilter,
+    themeState.active,
+    orgShare?.orgId,
+  ]);
+
   const copyCardLink = useCallback(async () => {
+    let published = true;
+    if (themeCanEdit) {
+      published = await publishOgSnapshot();
+    }
     const ok = await copyTextToClipboard(cardTargetUrl);
-    showFlash(ok ? "Đã copy link." : "Không copy được link.");
-  }, [cardTargetUrl, showFlash]);
+    if (!ok) {
+      showFlash("Không copy được link.");
+      return;
+    }
+    if (themeCanEdit && !published) {
+      showFlash("Đã copy link — chưa cập nhật được ảnh xem trước MXH.");
+      return;
+    }
+    showFlash(
+      themeCanEdit
+        ? "Đã copy link — ảnh xem trước MXH đã cập nhật."
+        : "Đã copy link.",
+    );
+  }, [cardTargetUrl, publishOgSnapshot, showFlash, themeCanEdit]);
 
   const nativeShare = useCallback(async () => {
     if (!cardTargetUrl || !navigator.share) return;
+    if (themeCanEdit) {
+      await publishOgSnapshot();
+    }
     try {
       await navigator.share({
         title: shareInviteTitle,
@@ -514,13 +593,16 @@ export function JourneyProfileShareModal({
     } catch {
       /* user cancelled */
     }
-  }, [cardTargetUrl, shareInviteTitle]);
+  }, [cardTargetUrl, publishOgSnapshot, shareInviteTitle, themeCanEdit]);
 
   const copyCardImage = useCallback(async () => {
     const el = cardExportRef.current;
     if (!el || copyingImage) return;
     setCopyingImage(true);
     try {
+      if (themeCanEdit) {
+        void publishOgSnapshot();
+      }
       const result = await copyShareCardImage(
         el,
         `cins-${profile.slug}-share.png`,
@@ -535,7 +617,13 @@ export function JourneyProfileShareModal({
     } finally {
       setCopyingImage(false);
     }
-  }, [copyingImage, profile.slug, showFlash]);
+  }, [
+    copyingImage,
+    profile.slug,
+    publishOgSnapshot,
+    showFlash,
+    themeCanEdit,
+  ]);
 
   const socialItems = buildSocialShareItems(
     cardTargetUrl,
@@ -544,7 +632,16 @@ export function JourneyProfileShareModal({
       onNativeShare: () => void nativeShare(),
       onCopy: () => void copyCardLink(),
       onFacebookShare: () => {
-        void openFacebookShare(cardTargetUrl, shareInviteTitle).then(() => {
+        void (async () => {
+          if (themeCanEdit) {
+            const published = await publishOgSnapshot();
+            if (!published) {
+              showFlash(
+                "Chưa cập nhật được ảnh xem trước — Facebook có thể hiện thẻ cũ.",
+              );
+            }
+          }
+          await openFacebookShare(cardTargetUrl, shareInviteTitle);
           const onLocal =
             typeof window !== "undefined" &&
             isLikelyLocalOrPreviewHost(window.location.hostname);
@@ -553,7 +650,7 @@ export function JourneyProfileShareModal({
               ? `Đã copy link ${resolveShareOrigin()} — dán vào bài Facebook nếu composer trống.`
               : "Đã copy link — dán vào bài Facebook nếu chưa thấy preview.",
           );
-        });
+        })();
       },
     },
   );

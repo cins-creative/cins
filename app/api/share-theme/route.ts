@@ -7,6 +7,7 @@ import {
   parseShareOgThemeState,
   prependShareOgCustom,
   serializeShareOgThemeState,
+  shareOgThemeStatePayload,
   type ShareOgCustomEntry,
   type ShareOgLayouts,
   type ShareOgTheme,
@@ -21,8 +22,9 @@ import { isTruongOrgAdmin } from "@/lib/truong/org-admin";
    ║                                                                  ║
    ║ User: cột text `user_nguoi_dung.theme` (JSON string).            ║
    ║ Org:  `org_to_chuc.cau_hinh.share_og_theme`.                     ║
-   ║ Shape: { active, customs, layouts: { journey, gallery } }.       ║
+   ║ Shape: { active, customs, layouts, ogSnapshots? }.               ║
    ║ customs = nền cá nhân vĩnh viễn (chỉ mất khi removeImageId).     ║
+   ║ ogSnapshots = PNG thẻ đã publish (CF) cho og:image.              ║
    ║ Chỉ chủ profile / admin org được PATCH.                          ║
    ╚══════════════════════════════════════════════════════════════════╝ */
 
@@ -59,14 +61,18 @@ function normalizeState(
     nextCustoms = prependShareOgCustom(nextCustoms, nextActive.imageId);
   }
 
-  return parseShareOgThemeState(
-    {
-      active: nextActive,
-      customs: nextCustoms,
-      layouts: layouts ?? prev.layouts,
-    },
-    seed,
-  );
+  return {
+    ...parseShareOgThemeState(
+      {
+        active: nextActive,
+        customs: nextCustoms,
+        layouts: layouts ?? prev.layouts,
+      },
+      seed,
+    ),
+    /** PATCH theme/layout không đụng snapshot đã publish. */
+    ogSnapshots: prev.ogSnapshots ?? {},
+  };
 }
 
 export async function GET(request: Request) {
@@ -181,11 +187,7 @@ export async function PATCH(request: Request) {
 
     const cauHinh = {
       ...(org.cau_hinh && typeof org.cau_hinh === "object" ? org.cau_hinh : {}),
-      share_og_theme: {
-        active: next.active,
-        customs: next.customs,
-        layouts: next.layouts,
-      },
+      share_og_theme: shareOgThemeStatePayload(next),
     };
 
     const { error: updErr } = await admin

@@ -35,13 +35,26 @@ export type ShareOgLayouts = {
   gallery: JourneyGalleryCardVariant;
 };
 
+/** PNG thẻ share đã upload CF — dùng làm `og:image` tĩnh. */
+export type ShareOgSnapshotEntry = {
+  imageId: string;
+  updatedAt: string;
+};
+
 export type ShareOgThemeState = {
   active: ShareOgTheme;
   customs: ShareOgCustomEntry[];
   layouts: ShareOgLayouts;
+  /**
+   * Snapshot thẻ đã upload (key = `buildShareOgSnapshotKey`).
+   * Capped — bản cũ nhất bị loại khi vượt `SHARE_OG_SNAPSHOTS_MAX`.
+   */
+  ogSnapshots: Record<string, ShareOgSnapshotEntry>;
 };
 
 export const SHARE_OG_CUSTOMS_MAX = 6;
+/** Giới hạn số PNG OG đã publish / user (tránh phình theme JSON + CF). */
+export const SHARE_OG_SNAPSHOTS_MAX = 16;
 
 export const DEFAULT_SHARE_OG_LAYOUTS: ShareOgLayouts = {
   journey: "banner",
@@ -288,6 +301,87 @@ export function defaultShareOgThemeState(seed: string): ShareOgThemeState {
     active: defaultShareOgTheme(seed),
     customs: [],
     layouts: { ...DEFAULT_SHARE_OG_LAYOUTS },
+    ogSnapshots: {},
+  };
+}
+
+/** Token theme ngắn cho key snapshot / cache-bust. */
+export function shareOgThemeKeyToken(theme: ShareOgTheme): string {
+  if (theme.kind === "custom") {
+    return `c${theme.imageId.replace(/[^a-zA-Z0-9]/g, "").slice(0, 12)}`;
+  }
+  return `p${theme.id}`;
+}
+
+/**
+ * Key ổn định cho 1 bản OG đã publish.
+ * `filterVersion`: `null`/`all` = portfolio tất cả; `gdu-an` / `fslug` = filter.
+ */
+export function buildShareOgSnapshotKey(input: {
+  kind: "journey" | "gallery";
+  filterVersion?: string | null;
+  layout: string;
+  theme: ShareOgTheme;
+}): string {
+  const filter =
+    input.filterVersion?.trim() && input.filterVersion !== "all"
+      ? input.filterVersion.trim()
+      : "all";
+  const layout = input.layout.replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 24) || "default";
+  return `${input.kind}|${filter}|${layout}|${shareOgThemeKeyToken(input.theme)}`;
+}
+
+export function resolveShareOgSnapshotUrl(
+  state: ShareOgThemeState,
+  key: string,
+): string | null {
+  const entry = state.ogSnapshots[key];
+  if (!entry?.imageId) return null;
+  return cfImagePublicUrl(entry.imageId);
+}
+
+/**
+ * Ghi snapshot mới cho `key`. Trả `replacedImageId` để caller xóa CF (TTL/async).
+ * Prune khi vượt max.
+ */
+export function upsertShareOgSnapshot(
+  state: ShareOgThemeState,
+  key: string,
+  imageId: string,
+  updatedAt = new Date().toISOString(),
+): { state: ShareOgThemeState; replacedImageId: string | null; prunedIds: string[] } {
+  const id = imageId.trim();
+  const safeKey = key.trim().slice(0, 120);
+  if (!id || !safeKey) {
+    return { state, replacedImageId: null, prunedIds: [] };
+  }
+
+  const prev = state.ogSnapshots[safeKey];
+  const replacedImageId =
+    prev?.imageId && prev.imageId !== id ? prev.imageId : null;
+
+  const nextMap: Record<string, ShareOgSnapshotEntry> = {
+    ...state.ogSnapshots,
+    [safeKey]: { imageId: id, updatedAt },
+  };
+
+  const prunedIds: string[] = [];
+  const entries = Object.entries(nextMap).sort(
+    (a, b) =>
+      Date.parse(b[1].updatedAt) - Date.parse(a[1].updatedAt) ||
+      a[0].localeCompare(b[0]),
+  );
+  while (entries.length > SHARE_OG_SNAPSHOTS_MAX) {
+    const dropped = entries.pop();
+    if (!dropped) break;
+    delete nextMap[dropped[0]];
+    if (dropped[1].imageId !== id) prunedIds.push(dropped[1].imageId);
+  }
+
+  return {
+    state: { ...state, ogSnapshots: nextMap },
+    replacedImageId,
+    prunedIds,
   };
 }
 
@@ -358,15 +452,46 @@ export function parseShareOgThemeState(
   }
 
   const layouts = parseShareOgLayouts(obj.layouts);
-  return { active, customs, layouts };
+
+  const ogSnapshots: Record<string, ShareOgSnapshotEntry> = {};
+  const rawSnaps =
+    obj.ogSnapshots && typeof obj.ogSnapshots === "object"
+      ? (obj.ogSnapshots as Record<string, unknown>)
+      : {};
+  for (const [k, v] of Object.entries(rawSnaps)) {
+    if (!k || !v || typeof v !== "object") continue;
+    const entry = v as Record<string, unknown>;
+    const imageId =
+      typeof entry.imageId === "string" ? entry.imageId.trim() : "";
+    if (!imageId) continue;
+    const updatedAt =
+      typeof entry.updatedAt === "string" && entry.updatedAt
+        ? entry.updatedAt
+        : new Date(0).toISOString();
+    ogSnapshots[k.slice(0, 120)] = { imageId, updatedAt };
+    if (Object.keys(ogSnapshots).length >= SHARE_OG_SNAPSHOTS_MAX) break;
+  }
+
+  return { active, customs, layouts, ogSnapshots };
 }
 
 export function serializeShareOgThemeState(state: ShareOgThemeState): string {
-  return JSON.stringify({
+  return JSON.stringify(shareOgThemeStatePayload(state));
+}
+
+/** Object ghi vào `org.cau_hinh.share_og_theme` (không stringify). */
+export function shareOgThemeStatePayload(state: ShareOgThemeState): {
+  active: ShareOgTheme;
+  customs: ShareOgCustomEntry[];
+  layouts: ShareOgLayouts;
+  ogSnapshots: Record<string, ShareOgSnapshotEntry>;
+} {
+  return {
     active: state.active,
     customs: state.customs.slice(0, SHARE_OG_CUSTOMS_MAX),
     layouts: parseShareOgLayouts(state.layouts),
-  });
+    ogSnapshots: state.ogSnapshots ?? {},
+  };
 }
 
 /**

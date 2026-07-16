@@ -6,6 +6,7 @@ import {
   Loader2,
   MessageCircle,
   MoreHorizontal,
+  Pencil,
   Pin,
   PinOff,
   Reply,
@@ -31,7 +32,10 @@ import {
   pinMilestoneComment,
   toggleCommentReaction,
 } from "@/app/[slug]/journey/comment-actions";
-import { deleteMilestoneComment } from "@/app/[slug]/journey/actions";
+import {
+  deleteMilestoneComment,
+  editMilestoneComment,
+} from "@/app/[slug]/journey/actions";
 import { useOptionalAuthGate } from "@/components/auth/AuthGateProvider";
 import { ChatStickerPicker } from "@/components/cins/ChatStickerPicker";
 import { CommentAttachments } from "@/components/journey/CommentAttachments";
@@ -1076,16 +1080,31 @@ function CommentRow({
   const [menuOpen, setMenuOpen] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [reactionErr, setReactionErr] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [editDraft, setEditDraft] = useState(comment.noiDung);
+  const [editErr, setEditErr] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const wrapRef = useRef<HTMLDivElement>(null);
+  const editInputRef = useRef<HTMLTextAreaElement>(null);
 
   const initial = (comment.author?.tenHienThi || comment.author?.slug || "?")
     .charAt(0)
     .toUpperCase();
   const avatarUrl = getAvatarUrl(comment.author?.avatarId ?? null);
+  const canEditOwn =
+    comment.isOwn && !comment.daXoa && Boolean(comment.noiDung?.trim());
   const canDeleteOwn = comment.isOwn && !comment.daXoa;
   const canHide = viewerIsOwner && !comment.isOwn && !comment.daXoa;
   const canPin = viewerIsOwner && !comment.idCha && !comment.daXoa;
+
+  useEffect(() => {
+    if (!editing) return;
+    const el = editInputRef.current;
+    if (!el) return;
+    el.focus();
+    const len = el.value.length;
+    el.setSelectionRange(len, len);
+  }, [editing]);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -1211,6 +1230,23 @@ function CommentRow({
                     <Copy size={14} strokeWidth={1.7} aria-hidden />
                     <span>Sao chép</span>
                   </button>
+                  {canEditOwn ? (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="post-comments-menu-item"
+                      onClick={() => {
+                        setMenuOpen(false);
+                        setPickerOpen(false);
+                        setEditDraft(comment.noiDung);
+                        setEditErr(null);
+                        setEditing(true);
+                      }}
+                    >
+                      <Pencil size={14} strokeWidth={1.7} aria-hidden />
+                      <span>Sửa</span>
+                    </button>
+                  ) : null}
                   {canDeleteOwn ? (
                     <button
                       type="button"
@@ -1295,96 +1331,190 @@ function CommentRow({
             </div>
           </div>
           <div className="post-comments-text-row">
-            {comment.noiDung ? <CommentTextBody text={comment.noiDung} /> : null}
-            {!comment.daXoa && (comment.anhDinhKem?.length ?? 0) > 0 ? (
-              <CommentAttachments imageIds={comment.anhDinhKem ?? []} />
-            ) : null}
-            {!comment.daXoa ? (
-              <div className="post-comments-actions">
-              <div className="post-comments-reactions">
-                {(comment.reactions ?? []).map((r) => (
-                  <button
-                    key={r.emoji}
-                    type="button"
-                    className={
-                      "post-comments-reaction-pill" + (r.viewerReacted ? " is-active" : "")
-                    }
-                    disabled={pending}
-                    aria-label={
-                      r.count > 1
-                        ? `${commentReactionLabel(r.emoji)} ${r.count} lượt`
-                        : commentReactionLabel(r.emoji)
-                    }
-                    onClick={() => runToggleReaction(r.emoji, !r.viewerReacted)}
-                  >
-                    <span className="post-comments-reaction-emoji" aria-hidden>
-                      {commentReactionLabel(r.emoji)}
-                    </span>
-                    {r.count > 1 ? (
-                      <span className="post-comments-reaction-count">{r.count}</span>
-                    ) : null}
-                  </button>
-                ))}
-                <div className="post-comments-reaction-add">
-                  <button
-                    type="button"
-                    className="post-comments-reaction-picker-btn"
-                    aria-label="Thêm cảm xúc"
-                    onClick={() => setPickerOpen((v) => !v)}
-                  >
-                    <Smile size={14} strokeWidth={2} aria-hidden />
-                  </button>
-                  {pickerOpen ? (
-                    <div className="post-comments-reaction-picker" role="menu">
-                      {COMMENT_REACTION_EMOJIS.map((e) => {
-                        const active = (comment.reactions ?? []).some(
-                          (r) => r.emoji === e.key && r.viewerReacted,
-                        );
-                        return (
-                          <button
-                            key={e.key}
-                            type="button"
-                            role="menuitem"
-                            className={
-                              "post-comments-reaction-opt" + (active ? " is-active" : "")
-                            }
-                            onClick={() => {
-                              setPickerOpen(false);
-                              runToggleReaction(e.key, active ? false : true);
-                            }}
-                          >
-                            <span
-                              className="post-comments-reaction-opt-emoji"
-                              aria-hidden
-                            >
-                              {e.label}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  ) : null}
-                </div>
-              </div>
-              {reactionErr ? (
-                <span className="post-comments-reaction-err" role="alert">
-                  {reactionErr}
-                </span>
-              ) : null}
-              {viewerCanComment ? (
-                <button
-                  type="button"
-                  className={
-                    "post-comments-reply-btn" + (isReplyTarget ? " is-active" : "")
+            {editing ? (
+              <form
+                className="post-comments-edit"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const next = editDraft.trim();
+                  if (!next) {
+                    setEditErr("Nội dung bình luận trống.");
+                    return;
                   }
-                  onClick={() => onReply(comment)}
-                  aria-expanded={isReplyTarget}
-                >
-                  Trả lời
-                </button>
-              ) : null}
-              </div>
-            ) : null}
+                  if (next === comment.noiDung.trim()) {
+                    setEditing(false);
+                    setEditErr(null);
+                    return;
+                  }
+                  setEditErr(null);
+                  startTransition(async () => {
+                    const res = await editMilestoneComment(comment.id, next);
+                    if (!res.ok) {
+                      setEditErr(res.error);
+                      return;
+                    }
+                    onUpdated(comment.id, { noiDung: res.data.noiDung });
+                    setEditing(false);
+                  });
+                }}
+              >
+                <textarea
+                  ref={editInputRef}
+                  className="post-comments-edit-input"
+                  value={editDraft}
+                  rows={3}
+                  maxLength={1000}
+                  disabled={pending}
+                  aria-label="Sửa bình luận"
+                  onChange={(e) => setEditDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") {
+                      e.preventDefault();
+                      setEditing(false);
+                      setEditDraft(comment.noiDung);
+                      setEditErr(null);
+                    }
+                  }}
+                />
+                {editErr ? (
+                  <span className="post-comments-edit-err" role="alert">
+                    {editErr}
+                  </span>
+                ) : null}
+                <div className="post-comments-edit-actions">
+                  <button
+                    type="button"
+                    className="post-comments-edit-cancel"
+                    disabled={pending}
+                    onClick={() => {
+                      setEditing(false);
+                      setEditDraft(comment.noiDung);
+                      setEditErr(null);
+                    }}
+                  >
+                    Huỷ
+                  </button>
+                  <button
+                    type="submit"
+                    className="post-comments-edit-save"
+                    disabled={pending || !editDraft.trim()}
+                  >
+                    {pending ? "Đang lưu…" : "Lưu"}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <>
+                {comment.noiDung ? (
+                  <CommentTextBody text={comment.noiDung} />
+                ) : null}
+                {!comment.daXoa && (comment.anhDinhKem?.length ?? 0) > 0 ? (
+                  <CommentAttachments imageIds={comment.anhDinhKem ?? []} />
+                ) : null}
+                {!comment.daXoa ? (
+                  <div className="post-comments-actions">
+                    <div className="post-comments-reactions">
+                      {(comment.reactions ?? []).map((r) => (
+                        <button
+                          key={r.emoji}
+                          type="button"
+                          className={
+                            "post-comments-reaction-pill" +
+                            (r.viewerReacted ? " is-active" : "")
+                          }
+                          disabled={pending}
+                          aria-label={
+                            r.count > 1
+                              ? `${commentReactionLabel(r.emoji)} ${r.count} lượt`
+                              : commentReactionLabel(r.emoji)
+                          }
+                          onClick={() =>
+                            runToggleReaction(r.emoji, !r.viewerReacted)
+                          }
+                        >
+                          <span
+                            className="post-comments-reaction-emoji"
+                            aria-hidden
+                          >
+                            {commentReactionLabel(r.emoji)}
+                          </span>
+                          {r.count > 1 ? (
+                            <span className="post-comments-reaction-count">
+                              {r.count}
+                            </span>
+                          ) : null}
+                        </button>
+                      ))}
+                      <div className="post-comments-reaction-add">
+                        <button
+                          type="button"
+                          className="post-comments-reaction-picker-btn"
+                          aria-label="Thêm cảm xúc"
+                          onClick={() => setPickerOpen((v) => !v)}
+                        >
+                          <Smile size={14} strokeWidth={2} aria-hidden />
+                        </button>
+                        {pickerOpen ? (
+                          <div
+                            className="post-comments-reaction-picker"
+                            role="menu"
+                          >
+                            {COMMENT_REACTION_EMOJIS.map((e) => {
+                              const active = (comment.reactions ?? []).some(
+                                (r) => r.emoji === e.key && r.viewerReacted,
+                              );
+                              return (
+                                <button
+                                  key={e.key}
+                                  type="button"
+                                  role="menuitem"
+                                  className={
+                                    "post-comments-reaction-opt" +
+                                    (active ? " is-active" : "")
+                                  }
+                                  onClick={() => {
+                                    setPickerOpen(false);
+                                    runToggleReaction(
+                                      e.key,
+                                      active ? false : true,
+                                    );
+                                  }}
+                                >
+                                  <span
+                                    className="post-comments-reaction-opt-emoji"
+                                    aria-hidden
+                                  >
+                                    {e.label}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+                    {reactionErr ? (
+                      <span className="post-comments-reaction-err" role="alert">
+                        {reactionErr}
+                      </span>
+                    ) : null}
+                    {viewerCanComment ? (
+                      <button
+                        type="button"
+                        className={
+                          "post-comments-reply-btn" +
+                          (isReplyTarget ? " is-active" : "")
+                        }
+                        onClick={() => onReply(comment)}
+                        aria-expanded={isReplyTarget}
+                      >
+                        Trả lời
+                      </button>
+                    ) : null}
+                  </div>
+                ) : null}
+              </>
+            )}
           </div>
           {composeProps ? (
             <CommentComposeForm

@@ -6,6 +6,7 @@ import {
   galleryFilterSpecFromSearch,
   galleryItemThumbSrc,
   filterGalleryItemsForShare,
+  shareFilterVersionToken,
   type JourneyGalleryFilterShareSpec,
   type ShareGallerySourceItem,
 } from "@/lib/journey/gallery-filter-share";
@@ -28,7 +29,9 @@ import type {
   JourneyShareProfile,
 } from "@/lib/journey/profile-share";
 import {
+  buildShareOgSnapshotKey,
   parseShareOgThemeState,
+  resolveShareOgSnapshotUrl,
   type ShareOgTheme,
 } from "@/lib/journey/share-og-theme";
 import { journeyImageFields } from "@/lib/journey/images";
@@ -54,6 +57,11 @@ export type OgShareContext = {
   filterSpec: JourneyGalleryFilterShareSpec | null;
   /** Token ngắn để bust cache OG theo filter. */
   filterVersion: string | null;
+  /**
+   * PNG thẻ đã publish lên CF (ưu tiên làm `og:image`).
+   * Null → fallback `/{slug}/opengraph-image`.
+   */
+  ogSnapshotUrl: string | null;
 };
 
 function ogImageUrl(url: string | null | undefined): string | null {
@@ -88,13 +96,6 @@ export function buildOgShareSearchParams(search: OgShareSearch): URLSearchParams
 
 function searchStringFromOgSearch(search: OgShareSearch): string {
   return buildOgShareSearchParams(search).toString();
-}
-
-function filterVersionToken(spec: JourneyGalleryFilterShareSpec | null): string | null {
-  if (!spec || spec.kind === "all") return null;
-  if (spec.kind === "group") return `g${spec.group}`;
-  const slug = spec.slug.replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 24);
-  return slug ? `f${slug}` : null;
 }
 
 async function resolvePersonalFilterLabel(
@@ -260,6 +261,17 @@ export async function fetchOgShareContext(
   const layout =
     kind === "gallery" ? themeState.layouts.gallery : themeState.layouts.journey;
 
+  const snapshotUrlFor = (filterVersion: string | null) =>
+    resolveShareOgSnapshotUrl(
+      themeState,
+      buildShareOgSnapshotKey({
+        kind,
+        filterVersion,
+        layout,
+        theme: themeState.active,
+      }),
+    );
+
   const displayName = owner.ten_hien_thi?.trim() || owner.slug;
 
   if (kind === "journey") {
@@ -297,6 +309,7 @@ export async function fetchOgShareContext(
       kind,
       filterSpec: null,
       filterVersion: null,
+      ogSnapshotUrl: snapshotUrlFor(null),
     };
   }
 
@@ -337,6 +350,10 @@ export async function fetchOgShareContext(
     ? `${tacPhamCount} tác phẩm · ${filterLabel} — ${displayName} trên CINs.`
     : `${galleryTotal} tác phẩm của ${displayName} trên CINs.`;
 
+  const filterVersion = shareFilterVersionToken(
+    isFiltered ? filterSpec : null,
+  );
+
   return {
     profile,
     displayTitle,
@@ -345,6 +362,7 @@ export async function fetchOgShareContext(
     layout,
     kind,
     filterSpec: isFiltered ? filterSpec : null,
-    filterVersion: filterVersionToken(isFiltered ? filterSpec : null),
+    filterVersion,
+    ogSnapshotUrl: snapshotUrlFor(filterVersion),
   };
 }

@@ -959,8 +959,7 @@ function SidebarLayout({
             flexDirection: "column",
             gap: 16,
             padding: "28px 24px",
-            borderRadius: 24,
-            background: tokens.panel,
+            background: "transparent",
             justifyContent: "center",
             flexShrink: 0,
           }}

@@ -73,7 +73,11 @@ export async function buildJourneyMetadata(
   const themeVersion = ctx
     ? ogThemeVersion(ctx.theme, ctx.layout, ctx.filterVersion)
     : null;
-  const ogImagePath = ogImagePathForShare(slug, resolved, themeVersion);
+
+  /** Ưu tiên PNG đã snapshot từ modal; fallback Satori `/opengraph-image`. */
+  const ogImageUrl =
+    ctx?.ogSnapshotUrl ??
+    ogImagePathForShare(slug, resolved, themeVersion);
 
   return {
     metadataBase: new URL(siteOrigin),
@@ -89,7 +93,7 @@ export async function buildJourneyMetadata(
       type: "profile",
       images: [
         {
-          url: ogImagePath,
+          url: ogImageUrl,
           alt: title,
           width: 1200,
           height: 630,
@@ -101,7 +105,7 @@ export async function buildJourneyMetadata(
       card: "summary_large_image",
       title,
       description,
-      images: [{ url: ogImagePath, alt: title, width: 1200, height: 630 }],
+      images: [{ url: ogImageUrl, alt: title, width: 1200, height: 630 }],
     },
   };
 }
