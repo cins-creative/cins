@@ -1082,10 +1082,65 @@ a.j-main-gallery-item {
   -webkit-appearance: none;
   text-decoration: none;
 }
+/* Hit area khi card có menu chủ (wrapper `.j-main-gallery-item` + hit bên trong). */
+.j-main-gallery-item > a.j-main-gallery-item-hit,
+.j-main-gallery-item > button.j-main-gallery-item-hit {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  color: inherit;
+  text-decoration: none;
+  font: inherit;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  text-align: left;
+}
 button.j-main-gallery-item:focus-visible,
-a.j-main-gallery-item:focus-visible {
+a.j-main-gallery-item:focus-visible,
+.j-main-gallery-item:has(> .j-main-gallery-item-hit:focus-visible) {
   outline: 2px solid rgba(31, 116, 201, 0.45);
   outline-offset: 2px;
+}
+
+/* Menu ⋯ chủ — góc thumb, hiện khi hover card (giống timeline). */
+.j-main-gallery-item .j-main-gallery-owner-menu {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 8;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+}
+.j-main-gallery-item:hover .j-main-gallery-owner-menu,
+.j-main-gallery-item:focus-within .j-main-gallery-owner-menu,
+.j-main-gallery-item .j-main-gallery-owner-menu:has(.j-m-menu-btn[aria-expanded="true"]) {
+  opacity: 1;
+  pointer-events: auto;
+}
+.j-main-gallery-item .j-main-gallery-owner-menu .j-m-menu-btn {
+  width: 28px;
+  height: 28px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.18);
+}
+.j-main-gallery-item .j-main-gallery-owner-menu .j-m-menu-btn svg {
+  width: 16px;
+  height: 16px;
+}
+@media (hover: none) {
+  .j-main-gallery-item .j-main-gallery-owner-menu {
+    opacity: 1;
+    pointer-events: auto;
+  }
 }
 .j-main-gallery-thumb {
   position: relative;
@@ -2006,7 +2061,7 @@ a.j-main-gallery-item:focus-visible {
   color: var(--ink-body);
 }
 .j-main-gallery-info-title {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   line-height: 1.35;
   color: var(--ink-display);
@@ -2018,11 +2073,23 @@ a.j-main-gallery-item:focus-visible {
 .j-main-gallery-info-excerpt {
   font-size: 12px;
   line-height: 1.4;
-  color: var(--ink-muted);
+  /* Nền sáng: đậm hơn muted (đen 70%). Dark giữ --ink-muted bên dưới. */
+  color: rgba(0, 0, 0, 0.7);
   display: -webkit-box;
   -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+.j-main-gallery-info-excerpt strong,
+.j-main-gallery-overlay-excerpt strong {
+  font-weight: 700;
+}
+.j-main-gallery-info-excerpt em,
+.j-main-gallery-overlay-excerpt em {
+  font-style: italic;
+}
+:root[data-theme="dark"] .j-main-gallery-info-excerpt {
+  color: var(--ink-muted);
 }
 
 @media (max-width: 575.98px) {
@@ -2032,7 +2099,7 @@ a.j-main-gallery-item:focus-visible {
     padding: 8px 9px 10px;
   }
   .j-main-gallery-info-title {
-    font-size: 12px;
+    font-size: 13px;
   }
   .j-main-gallery-info-excerpt {
     font-size: 11px;
@@ -3380,6 +3447,23 @@ a.j-main-gallery-item:focus-visible {
   align-items: center;
   margin-bottom: 4px;
 }
+.j-tlb-dd-menu .j-personal-filter-color {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--border-subtle, #d5dbe6);
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.j-tlb-dd-menu .j-personal-filter-color::-webkit-color-swatch-wrapper {
+  padding: 2px;
+}
+.j-tlb-dd-menu .j-personal-filter-color::-webkit-color-swatch {
+  border: 0;
+  border-radius: 5px;
+}
 .j-tlb-dd-menu .j-personal-filter-input {
   flex: 1;
   min-width: 0;
@@ -3631,8 +3715,9 @@ a.j-main-gallery-item:focus-visible {
   color: #92400e;
   border-color: #f59e0b;
 }
-/* Chia sẻ view filter — chỉ icon, không nền; hiện khi hover/focus row. */
-.j-dd-share {
+/* Chia sẻ / đổi tên nhãn — chỉ icon, không nền; hiện khi hover/focus row. */
+.j-dd-share,
+.j-dd-edit {
   flex: 0 0 auto;
   width: 26px;
   height: 26px;
@@ -3653,20 +3738,61 @@ a.j-main-gallery-item:focus-visible {
     opacity 0.14s ease;
 }
 .j-dd-opt:hover .j-dd-share:not(:disabled),
-.j-dd-opt:focus-within .j-dd-share:not(:disabled) {
+.j-dd-opt:focus-within .j-dd-share:not(:disabled),
+.j-dd-opt:hover .j-dd-edit:not(:disabled),
+.j-dd-opt:focus-within .j-dd-edit:not(:disabled) {
   opacity: 1;
   pointer-events: auto;
   color: var(--ink-display, #1b2333);
 }
 .j-dd-share:hover:not(:disabled),
-.j-dd-share:focus-visible:not(:disabled) {
+.j-dd-share:focus-visible:not(:disabled),
+.j-dd-edit:hover:not(:disabled),
+.j-dd-edit:focus-visible:not(:disabled) {
   background: transparent;
   color: var(--cins-blue-dark, #1656a0);
 }
-.j-dd-share:disabled {
+.j-dd-share:disabled,
+.j-dd-edit:disabled {
   opacity: 0;
   cursor: default;
   pointer-events: none;
+}
+.j-dd-opt.j-dd-row.is-editing {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  cursor: default;
+}
+.j-dd-opt.j-dd-row.is-editing .j-dd-dot {
+  flex: 0 0 auto;
+}
+.j-dd-rename-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 28px;
+  margin: 0;
+  padding: 0 8px;
+  border: 1px solid var(--cins-blue, #1f74c9);
+  border-radius: 6px;
+  background: var(--bg-surface, #fff);
+  color: var(--ink-display, #1b2333);
+  font: inherit;
+  font-size: 13px;
+  outline: none;
+}
+.j-dd-rename-input:disabled {
+  opacity: 0.7;
+}
+.j-dd-rename-error {
+  flex: 1 1 100%;
+  margin: 0;
+  padding-left: 18px;
+  font-size: 11px;
+  line-height: 1.3;
+  color: #b42318;
 }
 /* Delete nhãn cá nhân — luôn hiện trên mobile, hover đậm hơn. */
 .j-dd-del {
@@ -8647,6 +8773,15 @@ select.j-edit-input {
   flex-direction: column;
   gap: 2px;
   animation: j-m-menu-in 140ms var(--j-ease, ease);
+}
+/* Portal — thoát overflow:hidden của gallery card / khung scroll. */
+.j-m-menu-pop.is-portal {
+  position: fixed;
+  top: auto;
+  right: auto;
+  z-index: 80;
+  max-height: min(70vh, calc(100vh - 16px));
+  overflow-y: auto;
 }
 
 @keyframes j-m-menu-in {

@@ -248,6 +248,7 @@
 
 - **Filter cá nhân động (`filter_nhan` + `filter_gan`) — primitive nền tảng cho user & org.**
   Nhãn do chủ sở hữu tự tạo/sửa/xóa, gắn polymorphic lên `content_cot_moc` (user) / `org_bai_dang` (org). **Phân biệt cứng với tag toàn cục** — cục bộ, KHÔNG discovery xuyên người (quy tắc 29 FOUNDATIONS). Lọc áp **cả 2 view** (timeline + grid). Slug nhãn bất biến sau khi tạo. `loai_bai_dang_org_enum` deprecate nhưng GIỮ (còn code dùng).
+  **Khách trên Journey người khác:** được thấy và lọc theo nhãn của chủ (chỉ nhãn gắn ≥1 cột mốc họ được xem) — không phải tính năng owner-only. Provider filter phải mount cho mọi viewer (`JourneyProfileShellClient`). Chi tiết code: `CINS_IMPLEMENTATION.md` §6 Journey & auth.
 
 ### v9 — Trang khóa học + gán tác phẩm cấp khóa (2026-06-10)
 

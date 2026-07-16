@@ -139,13 +139,26 @@ function parseInline(raw: string): InlinePart[] {
   return parts;
 }
 
-function inlineToNodes(parts: InlinePart[], keyPrefix: string): ReactNode[] {
+function textToNodes(
+  text: string,
+  keyPrefix: string,
+  linkify: boolean,
+): ReactNode[] {
+  if (!linkify) return text ? [text] : [];
+  return linkifyToNodes(text, keyPrefix);
+}
+
+function inlineToNodes(
+  parts: InlinePart[],
+  keyPrefix: string,
+  linkify = true,
+): ReactNode[] {
   return parts.flatMap((p, i) => {
     const key = `${keyPrefix}-${i}`;
     if (p.kind === "text") {
-      return linkifyToNodes(p.text, key);
+      return textToNodes(p.text, key, linkify);
     }
-    const children = linkifyToNodes(p.text, `${key}-c`);
+    const children = textToNodes(p.text, `${key}-c`, linkify);
     if (p.kind === "strong") {
       return [createElement("strong", { key }, ...children)];
     }
@@ -283,8 +296,17 @@ function parseBlocks(text: string): Block[] {
   return blocks;
 }
 
+export type RenderMoTaMarkdownOptions = {
+  /** Autolink URL http(s). Tắt khi nằm trong `<a>`/`Link` (tránh nested anchor). */
+  linkify?: boolean;
+};
+
 /** React nodes an toàn — text luôn là string (không HTML raw). */
-export function renderMoTaMarkdownToReactNodes(text: string): ReactNode {
+export function renderMoTaMarkdownToReactNodes(
+  text: string,
+  options?: RenderMoTaMarkdownOptions,
+): ReactNode {
+  const linkify = options?.linkify !== false;
   const trimmed = text.trim();
   if (!trimmed) return null;
 
@@ -298,7 +320,7 @@ export function renderMoTaMarkdownToReactNodes(text: string): ReactNode {
     lines.forEach((line, li) => {
       if (li > 0) nodes.push(createElement("br", { key: `br-${li}` }));
       nodes.push(
-        ...inlineToNodes(parseInline(line), `p0-l${li}`),
+        ...inlineToNodes(parseInline(line), `p0-l${li}`, linkify),
       );
     });
     return createElement(Fragment, null, ...nodes);
@@ -312,7 +334,9 @@ export function renderMoTaMarkdownToReactNodes(text: string): ReactNode {
         const children: ReactNode[] = [];
         block.lines.forEach((line, li) => {
           if (li > 0) children.push(createElement("br", { key: `p${bi}-br${li}` }));
-          children.push(...inlineToNodes(parseInline(line), `p${bi}-l${li}`));
+          children.push(
+            ...inlineToNodes(parseInline(line), `p${bi}-l${li}`, linkify),
+          );
         });
         return createElement(
           "span",
@@ -328,7 +352,7 @@ export function renderMoTaMarkdownToReactNodes(text: string): ReactNode {
             createElement(
               "li",
               { key: `ul-${bi}-${ii}` },
-              ...inlineToNodes(parseInline(item), `ul${bi}-${ii}`),
+              ...inlineToNodes(parseInline(item), `ul${bi}-${ii}`, linkify),
             ),
           ),
         );
@@ -340,7 +364,7 @@ export function renderMoTaMarkdownToReactNodes(text: string): ReactNode {
           createElement(
             "li",
             { key: `ol-${bi}-${ii}` },
-            ...inlineToNodes(parseInline(item), `ol${bi}-${ii}`),
+            ...inlineToNodes(parseInline(item), `ol${bi}-${ii}`, linkify),
           ),
         ),
       );

@@ -12,6 +12,7 @@ import {
 } from "@/app/auth/switch-account-action";
 import { SidebarNavIcon } from "@/components/cins/SidebarNavIcon";
 import { UserAccountSettingsModal } from "@/components/cins/UserAccountSettingsModal";
+import { clearAllWorldJourneyFirstImpressionSeen } from "@/lib/cins/worldJourneyFirstImpression";
 import { getNameInitials } from "@/lib/journey/profile";
 
 export type UserAccountProfile = {
@@ -256,7 +257,13 @@ export function UserAccountMenu({
             </span>
             <span>Trợ giúp</span>
           </Link>
-          <form action={signOutAction} className="app-user-menu-form">
+          <form
+            action={signOutAction}
+            className="app-user-menu-form"
+            onSubmit={() => {
+              clearAllWorldJourneyFirstImpressionSeen();
+            }}
+          >
             <button
               type="submit"
               className="app-user-menu-item app-user-menu-item-danger"

@@ -16,7 +16,10 @@ import {
   feedScoreTargetFromMilestone,
   loadActiveFeedScoreMap,
 } from "@/lib/cins/feed-scoring-load";
-import { rankWorldJourneyFeedByScore } from "@/lib/cins/worldJourneyFeedSort";
+import {
+  promoteWorldJourneyFreshCandidates,
+  rankWorldJourneyFeedByScore,
+} from "@/lib/cins/worldJourneyFeedSort";
 import { listFriends } from "@/lib/social/ket-ban";
 import { loadUserSuKienPhanHoiMap } from "@/lib/to-chuc/su-kien-dang-ky";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
@@ -36,6 +39,7 @@ import {
 import {
   WORLD_JOURNEY_FEED_PAGE_SIZE,
   WORLD_JOURNEY_FEED_RANK_REVALIDATE_SEC,
+  WORLD_JOURNEY_FIRST_IMPRESSION_CAP,
 } from "@/lib/cins/worldJourneyFeedConstants";
 import {
   resolveWorldJourneyFeedFilterChip,
@@ -252,8 +256,9 @@ function applyLensOwners(
 /**
  * Xếp hạng World Timeline theo điểm:
  * 1. Load `content_diem_feed` (bat_dau_luc trong 7 ngày) + gắn điểm / lọc
- * 2. Sort diem_hien_tai DESC (+ author echo)
- * 3. Soft quota max N bài/tác giả (echo suppression)
+ * 2. Sort diem_hien_tai DESC
+ * 3. Soft quota max N bài/tác giả
+ * 4. Promote tối đa N bài fresh vào đầu pool (để client first-impression có payload)
  * Cắt còn `poolLimit`. Boost merge ở `fetchWorldJourneyFeedPage*`.
  */
 async function rankFeedByScore(
@@ -278,7 +283,11 @@ async function rankFeedByScore(
     ? rankWorldJourneyFeedByScore(scored, viewerId)
     : rankWorldJourneyFeedByScore(scored, viewerId, Number.POSITIVE_INFINITY);
 
-  return ranked.slice(0, poolLimit);
+  const withFresh = promoteWorldJourneyFreshCandidates(
+    ranked,
+    WORLD_JOURNEY_FIRST_IMPRESSION_CAP,
+  );
+  return withFresh.slice(0, poolLimit);
 }
 
 export type WorldJourneyFeedPage = {

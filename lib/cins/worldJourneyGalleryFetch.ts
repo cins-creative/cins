@@ -216,6 +216,9 @@ function featureRowToItem(
               : cm.loai_moc === "ca_nhan"
                 ? "ca-nhan"
                 : "du-an",
+    visibility: cm.che_do_hien_thi === "feature" ? "feature" : "public",
+    postSlug: tp.slug,
+    postOwnerSlug: slug ?? null,
     variant: "self",
     mediaKind: grid.mediaKind,
     embedProvider: grid.embedProvider ?? null,

@@ -7,9 +7,9 @@ import { OrgBaiDangPostDetailView } from "@/components/truong/OrgBaiDangPostDeta
 import { JourneyComposeProvider } from "@/components/journey/JourneyComposeContext";
 import { TruongBaiDangEditProvider } from "@/components/truong/inline/TruongBaiDangEdit";
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
+import { OrgBaiDangFilterProvider } from "@/components/truong/OrgBaiDangFilterContext";
 import { isTruongBaiDangScheduled } from "@/lib/truong/org-bai-dang-schedule";
 import type { TruongBaiDang, TruongDetail } from "@/lib/truong/types";
-import type { CoSoFilterChip } from "@/lib/to-chuc/co-so-page-queries";
 
 type Props = {
   posts: TruongBaiDang[];
@@ -17,7 +17,6 @@ type Props = {
   orgId: string;
   orgSlug: string;
   canEdit: boolean;
-  filters: CoSoFilterChip[];
   activeBaiDangId?: string | null;
 };
 
@@ -25,34 +24,35 @@ function CoSoTabBaidangContent({
   posts,
   school,
   composeEnabled,
-  filters,
+  orgId,
   activePost,
   orgSlug,
 }: {
   posts: TruongBaiDang[];
   school: TruongDetail;
   composeEnabled: boolean;
-  filters: CoSoFilterChip[];
+  orgId: string;
   activePost: TruongBaiDang | null;
   orgSlug: string;
 }) {
   return (
-    <TruongBaiDangEditProvider>
-      {activePost ? (
-        <OrgBaiDangPostDetailView
-          post={activePost}
-          school={school}
-          orgSlug={orgSlug}
-        />
-      ) : (
-        <CoSoOrgBaiDangTimeline
-          posts={posts}
-          owner={school}
-          composeEnabled={composeEnabled}
-          orgFilters={filters}
-        />
-      )}
-    </TruongBaiDangEditProvider>
+    <OrgBaiDangFilterProvider orgId={orgId}>
+      <TruongBaiDangEditProvider>
+        {activePost ? (
+          <OrgBaiDangPostDetailView
+            post={activePost}
+            school={school}
+            orgSlug={orgSlug}
+          />
+        ) : (
+          <CoSoOrgBaiDangTimeline
+            posts={posts}
+            owner={school}
+            composeEnabled={composeEnabled}
+          />
+        )}
+      </TruongBaiDangEditProvider>
+    </OrgBaiDangFilterProvider>
   );
 }
 
@@ -62,7 +62,6 @@ export function CoSoTabBaidang({
   orgId,
   orgSlug,
   canEdit,
-  filters,
   activeBaiDangId = null,
 }: Props) {
   const ctx = useTruongInlineEdit();
@@ -131,7 +130,7 @@ export function CoSoTabBaidang({
         posts={posts}
         school={school}
         composeEnabled={false}
-        filters={filters}
+        orgId={orgId}
         activePost={activePost}
         orgSlug={orgSlug}
       />
@@ -155,7 +154,7 @@ export function CoSoTabBaidang({
         posts={posts}
         school={school}
         composeEnabled
-        filters={filters}
+        orgId={orgId}
         activePost={activePost}
         orgSlug={orgSlug}
       />

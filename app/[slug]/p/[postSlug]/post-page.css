@@ -15,7 +15,7 @@
 /* ╔══ 1. Page wrapper (route) ══════════════════════════════════════ */
 
 .j-post-page {
-  /* Body copy trên trang post: đen 70% (không dùng ink-display). */
+  /* Body copy trên trang post: đậm hơn token mặc định một chút. */
   --ink-body: rgba(0, 0, 0, 0.7);
   min-height: calc(100vh - var(--cins-topbar-h, 56px));
   background: var(--neutral-50, #f5f6f8);
@@ -593,12 +593,20 @@
 /* `JourneyPostBody.tsx`). Tất cả override chỉ áp dụng trong mode này. */
 
 .cins-post-view {
+  /* Light: body đậm hơn token mặc định. */
   --ink-body: rgba(0, 0, 0, 0.7);
   background: transparent;
   min-height: 0;
   position: relative;
   display: block;
 }
+
+/* Dark: không giữ mực đen cứng — caption/chip/action trên rail mới đọc được. */
+:root[data-theme="dark"] .j-post-page,
+:root[data-theme="dark"] .cins-post-view {
+  --ink-body: rgba(255, 255, 255, 0.7);
+}
+
 .cins-post-view.cins-editor-page {
   flex: none;
   min-height: 0;
@@ -1427,7 +1435,8 @@
   gap: 4px;
   padding: 3px 8px;
   border-radius: 999px;
-  background: var(--neutral-50, #f5f6f8);
+  /* neutral-100 tách khỏi --bg-surface (dark: cả hai đều #171b24 nếu dùng 50). */
+  background: var(--neutral-100, #f1f2f5);
   font-size: 11px;
   font-weight: 600;
   color: var(--ink-body);
@@ -1488,7 +1497,7 @@
 }
 
 .cins-post-view .post-rail-blk--actions .post-byline-act:hover {
-  background: var(--neutral-50, #f5f6f8);
+  background: var(--neutral-100, #f1f2f5);
 }
 
 .cins-post-view .post-rail-blk--actions .post-byline-act-count {
@@ -1519,7 +1528,7 @@
 }
 
 .cins-post-view .post-rail-blk--actions .post-byline-share-wrap .post-byline-act.is-share:hover {
-  background: var(--neutral-50, #f5f6f8);
+  background: var(--neutral-100, #f1f2f5);
 }
 
 /* Rail — menu chia sẻ xổ xuống, fit content, căn phải; tránh crop overflow scroll */
@@ -2264,7 +2273,7 @@
   padding: 0 14px;
   border-radius: 12px;
   border: 1px solid var(--border);
-  background: #fff;
+  background: var(--bg-surface, #fff);
   color: var(--ink-body);
   font-size: 12px;
   font-weight: 700;

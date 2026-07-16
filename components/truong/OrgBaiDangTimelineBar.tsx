@@ -1,6 +1,17 @@
 "use client";
 
-import { ChevronDown, Tag } from "lucide-react";
+import {
+  Award,
+  CalendarDays,
+  ChevronDown,
+  Circle,
+  FileText,
+  GraduationCap,
+  Megaphone,
+  Package,
+  Tag,
+  type LucideIcon,
+} from "lucide-react";
 import {
   useEffect,
   useLayoutEffect,
@@ -10,6 +21,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 
+import { OrgNotifyFabHost } from "@/components/org/OrgNotifyFab";
 import { OrgBaiDangCustomFilterMenuSection } from "@/components/truong/OrgBaiDangCustomFilterMenuSection";
 import { OrgBaiDangViewToggle } from "@/components/truong/OrgBaiDangViewToggle";
 import { useOrgBaiDangFilterOptional } from "@/components/truong/OrgBaiDangFilterContext";
@@ -40,6 +52,20 @@ type Props = {
 
 const MENU_MIN_WIDTH = 240;
 const MENU_EST_HEIGHT = 400;
+
+const LOAI_ICON_BY_VALUE: Record<string, LucideIcon> = {
+  all: Circle,
+  thong_bao: Megaphone,
+  tuyen_sinh: GraduationCap,
+  hoc_bong: Award,
+  su_kien: CalendarDays,
+  khac: FileText,
+  showcase: Package,
+};
+
+function loaiIcon(value: string): LucideIcon {
+  return LOAI_ICON_BY_VALUE[value] ?? Megaphone;
+}
 
 export function OrgBaiDangTimelineBar({
   year,
@@ -172,31 +198,37 @@ export function OrgBaiDangTimelineBar({
           display: "block",
         }}
       >
-        <div className="j-dd-section-label">Loại bài đăng</div>
-        {filterOptions.map((opt) => (
-          <button
-            key={opt.value}
-            type="button"
-            role="menuitem"
-            className={
-              "j-dd-opt j-dd-opt-main" +
-              (filterKey === opt.value ? " is-active" : "")
-            }
-            onClick={() => {
-              onFilterKeyChange(opt.value);
-              setOpen(false);
-            }}
-          >
-            <span className="j-dd-lbl">{opt.label}</span>
-            <span className="j-dd-n">{loaiCounts[opt.value] ?? 0}</span>
-          </button>
-        ))}
         <OrgBaiDangCustomFilterMenuSection
           filterKey={filterKey}
           onFilterKeyChange={onFilterKeyChange}
           nhanCounts={nhanCounts}
           onItemSelect={() => setOpen(false)}
         />
+        <div className="j-dd-section-label">Loại bài đăng</div>
+        {filterOptions.map((opt) => {
+          const Icon = loaiIcon(opt.value);
+          return (
+            <button
+              key={opt.value}
+              type="button"
+              role="menuitem"
+              className={
+                "j-dd-opt j-dd-opt-main" +
+                (filterKey === opt.value ? " is-active" : "")
+              }
+              onClick={() => {
+                onFilterKeyChange(opt.value);
+                setOpen(false);
+              }}
+            >
+              <span className="j-dd-ico" aria-hidden>
+                <Icon size={13} strokeWidth={1.7} />
+              </span>
+              <span className="j-dd-lbl">{opt.label}</span>
+              <span className="j-dd-n">{loaiCounts[opt.value] ?? 0}</span>
+            </button>
+          );
+        })}
       </div>
     ) : null;
 
@@ -247,6 +279,7 @@ export function OrgBaiDangTimelineBar({
       {onViewChange ? (
         <OrgBaiDangViewToggle view={view} onViewChange={onViewChange} />
       ) : null}
+      <OrgNotifyFabHost />
     </div>
   );
 

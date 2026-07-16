@@ -172,9 +172,9 @@
   gap: 7px;
   min-height: 38px;
   padding: 0 14px;
-  border: 1px solid var(--border);
+  border: none;
   border-radius: var(--radius-pill, 999px);
-  background: var(--bg-surface);
+  background: transparent;
   font: inherit;
   font-size: 13px;
   font-weight: 600;
@@ -182,11 +182,7 @@
   text-decoration: none;
   cursor: pointer;
   appearance: none;
-  transition:
-    background 0.15s ease,
-    border-color 0.15s ease,
-    color 0.15s ease,
-    box-shadow 0.15s ease;
+  transition: color 0.15s ease, background 0.15s ease;
 }
 
 .tk-tab-ico {
@@ -194,15 +190,12 @@
 }
 
 .tk-tab:hover {
-  border-color: var(--border-strong);
   color: var(--ink-display);
 }
 
 .tk-tab.is-active {
-  border-color: var(--cins-blue);
   background: var(--cins-blue-soft);
   color: var(--cins-blue-dark);
-  box-shadow: inset 0 0 0 1px rgba(31, 116, 201, 0.12);
 }
 
 .tk-tab.is-active .tk-tab-ico {
@@ -234,8 +227,8 @@
   min-height: 32px;
   padding: 0 12px;
   border-radius: var(--radius-pill, 999px);
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
+  background: transparent;
+  border: none;
   font-size: 12px;
   color: var(--ink-body);
 }

@@ -2,10 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-import {
-  CoSoOrgNhanTimelineBar,
-  type CoSoNhanFilter,
-} from "@/components/co-so/CoSoOrgNhanTimelineBar";
 import { OrgBaiDangCreateComposer } from "@/components/truong/OrgBaiDangCreateComposer";
 import { OrgBaiDangFilteredFeed } from "@/components/truong/OrgBaiDangFilteredFeed";
 import { OrgBaiDangTimelineBar } from "@/components/truong/OrgBaiDangTimelineBar";
@@ -27,7 +23,6 @@ import {
 } from "@/lib/truong/bai-dang-timeline";
 import { orgBaiDangNhanSlugFromKey } from "@/lib/truong/org-bai-dang-filters.shared";
 import type { TruongBaiDang, TruongListItem } from "@/lib/truong/types";
-import type { CoSoFilterChip } from "@/lib/to-chuc/co-so-page-queries";
 import type { OrgBaiDangView } from "@/lib/truong/bai-dang-grid";
 import { buildPersonalFilterSearchUrl } from "@/lib/filter/client-utils";
 
@@ -40,7 +35,6 @@ type Props = {
   posts: TruongBaiDang[];
   owner?: OrgOwner | null;
   composeEnabled?: boolean;
-  orgFilters?: CoSoFilterChip[];
   guestEmptyMessage?: string;
   /**
    * `showcase` — chỉ lens theo thẻ Sản phẩm: mặc định lưới gọn (masonry), card chỉ block nội dung.
@@ -57,17 +51,6 @@ function currentYearMonth() {
     year: now.getFullYear(),
     month: `Tháng ${now.getMonth() + 1}`,
   };
-}
-
-function countNhanFilters(
-  posts: ReadonlyArray<TruongBaiDang>,
-  filters: CoSoFilterChip[],
-): Record<string, number> {
-  const counts: Record<string, number> = { all: posts.length };
-  for (const chip of filters) {
-    counts[chip.slug] = chip.count > 0 ? chip.count : 0;
-  }
-  return counts;
 }
 
 function countPostsByLoaiKeys(
@@ -107,20 +90,17 @@ export function CoSoOrgBaiDangTimeline({
   posts,
   owner = null,
   composeEnabled = false,
-  orgFilters = [],
   guestEmptyMessage =
     "Chưa có bài đăng công khai. Tin tức và sự kiện sẽ hiển thị tại đây khi cơ sở đăng trên CINs.",
   surface = "feed",
   defaultView,
 }: Props) {
-  const useOrgFilters = orgFilters.length > 0;
   const isShowcase = surface === "showcase";
   const filterCtx = useOrgBaiDangFilterOptional();
   const loaiConfig = useOrgBaiDangLoaiConfig();
-  const useCustomNhan = Boolean(filterCtx) && !useOrgFilters && !isShowcase;
+  const useCustomNhan = Boolean(filterCtx) && !isShowcase;
 
   const [loaiFilter, setLoaiFilter] = useState<BaiDangTimelineFilter>("all");
-  const [nhanFilter, setNhanFilter] = useState<CoSoNhanFilter>("all");
   const [filterKey, setFilterKey] = useState<OrgBaiDangTimelineFilterKey>("all");
   const { view, setView } = useOrgBaiDangView(
     defaultView ?? (isShowcase ? "masonry" : "timeline"),
@@ -152,32 +132,17 @@ export function CoSoOrgBaiDangTimeline({
       ),
     [posts, loaiConfig.options],
   );
-  const coSoNhanCounts = useMemo(
-    () => countNhanFilters(posts, orgFilters),
-    [posts, orgFilters],
-  );
   const customNhanCounts = useMemo(
     () => countBaiDangNhanFilters(posts, customSlugs),
     [posts, customSlugs],
   );
 
   const filtered = useMemo(() => {
-    if (useOrgFilters) {
-      if (nhanFilter === "all") return [...posts];
-      return [...posts];
-    }
     if (useCustomNhan) {
       return filterBaiDangByTimelineKey(posts, filterKey);
     }
     return filterBaiDangPosts(posts, loaiFilter);
-  }, [
-    posts,
-    useOrgFilters,
-    nhanFilter,
-    useCustomNhan,
-    filterKey,
-    loaiFilter,
-  ]);
+  }, [posts, useCustomNhan, filterKey, loaiFilter]);
 
   const yearGroups = useMemo(() => groupBaiDangByYear(filtered), [filtered]);
   const fallback = currentYearMonth();
@@ -189,19 +154,7 @@ export function CoSoOrgBaiDangTimeline({
 
   const barEnabled = composeEnabled || posts.length > 0;
 
-  const timelineBar = useOrgFilters ? (
-    <CoSoOrgNhanTimelineBar
-      year={topYear}
-      monthLabel={topMonth}
-      filter={nhanFilter}
-      onFilterChange={setNhanFilter}
-      counts={coSoNhanCounts}
-      filters={orgFilters}
-      enabled={barEnabled}
-      view={view}
-      onViewChange={setView}
-    />
-  ) : (
+  const timelineBar = (
     <OrgBaiDangTimelineBar
       year={topYear}
       monthLabel={topMonth}

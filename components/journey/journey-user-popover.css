@@ -38,7 +38,7 @@
 /* Scroll trên card, không trên wrapper — tránh che nút Đóng. */
 .j-user-popover > .j-friend-card,
 .j-user-popover > .j-org-pop-card {
-  max-height: calc(100vh - 48px);
+  max-height: 90vh;
   overflow-x: hidden;
   overflow-y: auto;
 }
@@ -89,7 +89,6 @@ button.j-user-pop-close svg {
 
 .j-user-popover .j-friend-card {
   position: relative;
-  overflow: hidden;
   border: 1px solid rgba(148, 163, 184, 0.22);
   border-radius: 20px;
   background:

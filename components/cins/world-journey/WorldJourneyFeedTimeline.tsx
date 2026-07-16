@@ -53,8 +53,8 @@ function canInlineExpand(milestone: MilestoneItem): boolean {
   return canWorldJourneyInlineExpandOnFeed(milestone);
 }
 
-// Tạm ẩn rail gợi ý xen giữa feed (WorldJourneyFeedPromoRail). Đổi `true` để bật lại.
-const SHOW_FEED_PROMO_RAIL = false;
+/** Rail gợi ý ngang xen giữa feed (kết bạn / org / sự kiện…). */
+const SHOW_FEED_PROMO_RAIL = true;
 
 function buildPromoInsertMap(
   postCount: number,

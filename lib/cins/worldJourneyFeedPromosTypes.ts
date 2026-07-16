@@ -1,5 +1,5 @@
 /** Khoảng cách chèn block gợi ý xen kẽ timeline feed. */
-export const FEED_INLINE_PROMO_INTERVAL = 8;
+export const FEED_INLINE_PROMO_INTERVAL = 6;
 
 export type FeedPromoCard = {
   id: string;

@@ -36,14 +36,13 @@ export function countUserPersonalFilters<
 
 /**
  * Nhãn timeline: ghim `Cộng đồng` đầu section; owner luôn thấy (kể cả count 0).
- * Khách chỉ thấy nhãn hệ thống khi có ít nhất 1 cột mốc gắn nhãn.
+ * Khách chỉ thấy nhãn có ≥1 cột mốc visible (đếm theo quyền xem timeline).
  */
 export function orderTimelinePersonalFilters(
   filters: ReadonlyArray<PersonalFilter>,
   options?: { isOwner?: boolean },
 ): PersonalFilter[] {
   let list = filters.filter((f) => {
-    if (!isSystemPersonalFilterSlug(f.slug)) return true;
     if (options?.isOwner) return true;
     return (f.count ?? 0) > 0;
   });

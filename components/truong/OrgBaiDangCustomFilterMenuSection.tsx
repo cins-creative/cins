@@ -1,17 +1,19 @@
 "use client";
 
 import { Plus, Trash2 } from "lucide-react";
-import { useCallback, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 
+import { JourneyFilterRenameButton } from "@/components/journey/JourneyFilterRenameButton";
 import { JourneyFilterShareButton } from "@/components/journey/JourneyFilterShareButton";
 import { useOrgBaiDangFilterShareOptional } from "@/components/org/OrgBaiDangFilterShareContext";
 import {
   createOrgBaiDangFilterClient,
   deleteOrgBaiDangFilterClient,
+  updateOrgBaiDangFilterClient,
   useOrgBaiDangFilterOptional,
 } from "@/components/truong/OrgBaiDangFilterContext";
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
-import { DEFAULT_FILTER_MAU } from "@/lib/filter/constants";
+import { DEFAULT_FILTER_MAU, MAX_FILTER_NAME } from "@/lib/filter/constants";
 import type { PersonalFilter } from "@/lib/filter/types";
 import {
   MAX_TRUONG_ORG_BAI_DANG_FILTERS,
@@ -31,20 +33,107 @@ function PersonalFilterRow({
   active,
   count,
   onSelect,
-  showDelete,
+  showManage,
   onDelete,
+  onRename,
   onShareMenuClose,
 }: {
   filter: PersonalFilter;
   active: boolean;
   count?: number;
   onSelect: () => void;
-  showDelete?: boolean;
+  showManage?: boolean;
   onDelete?: () => void;
+  onRename?: (ten: string) => Promise<{ ok: true } | { ok: false; error: string }>;
   onShareMenuClose?: () => void;
 }) {
   const mau = filter.mau ?? DEFAULT_FILTER_MAU;
   const filterShare = useOrgBaiDangFilterShareOptional();
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(filter.ten);
+  const [renameError, setRenameError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const skipBlurRef = useRef(false);
+
+  useEffect(() => {
+    if (!editing) setDraft(filter.ten);
+  }, [filter.ten, editing]);
+
+  useEffect(() => {
+    if (!editing) return;
+    inputRef.current?.focus();
+    inputRef.current?.select();
+  }, [editing]);
+
+  const commitRename = useCallback(async () => {
+    if (!onRename || saving) return;
+    const ten = draft.trim();
+    if (!ten) {
+      setRenameError("Tên nhãn không được trống.");
+      return;
+    }
+    if (ten === filter.ten) {
+      skipBlurRef.current = true;
+      setEditing(false);
+      setRenameError(null);
+      return;
+    }
+    setSaving(true);
+    setRenameError(null);
+    const result = await onRename(ten);
+    setSaving(false);
+    if (!result.ok) {
+      setRenameError(result.error);
+      return;
+    }
+    skipBlurRef.current = true;
+    setEditing(false);
+  }, [onRename, saving, draft, filter.ten]);
+
+  if (editing && onRename) {
+    return (
+      <div className={"j-dd-opt j-dd-row is-editing" + (active ? " is-active" : "")}>
+        <span className="j-dd-dot" style={{ background: mau }} aria-hidden />
+        <input
+          ref={inputRef}
+          type="text"
+          className="j-dd-rename-input"
+          value={draft}
+          maxLength={MAX_FILTER_NAME}
+          disabled={saving}
+          aria-label="Tên nhãn"
+          onChange={(e) => setDraft(e.target.value)}
+          onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => {
+            e.stopPropagation();
+            if (e.key === "Enter") {
+              e.preventDefault();
+              void commitRename();
+            } else if (e.key === "Escape") {
+              e.preventDefault();
+              skipBlurRef.current = true;
+              setEditing(false);
+              setRenameError(null);
+              setDraft(filter.ten);
+            }
+          }}
+          onBlur={() => {
+            if (skipBlurRef.current) {
+              skipBlurRef.current = false;
+              return;
+            }
+            void commitRename();
+          }}
+        />
+        {renameError ? (
+          <span className="j-dd-rename-error" role="alert">
+            {renameError}
+          </span>
+        ) : null}
+      </div>
+    );
+  }
 
   return (
     <div className={"j-dd-opt j-dd-row" + (active ? " is-active" : "")}>
@@ -59,6 +148,16 @@ function PersonalFilterRow({
         <span className="j-dd-lbl">{filter.ten}</span>
         {typeof count === "number" ? <span className="j-dd-n">{count}</span> : null}
       </button>
+      {showManage && onRename ? (
+        <JourneyFilterRenameButton
+          label={filter.ten}
+          onEdit={() => {
+            setDraft(filter.ten);
+            setRenameError(null);
+            setEditing(true);
+          }}
+        />
+      ) : null}
       <JourneyFilterShareButton
         label={filter.ten}
         onShare={
@@ -74,7 +173,7 @@ function PersonalFilterRow({
             : undefined
         }
       />
-      {showDelete && onDelete ? (
+      {showManage && onDelete ? (
         <button
           type="button"
           className="j-dd-del"
@@ -101,6 +200,7 @@ export function OrgBaiDangCustomFilterMenuSection({
   const ctx = useOrgBaiDangFilterOptional();
   const inline = useTruongInlineEdit();
   const [newName, setNewName] = useState("");
+  const [newMau, setNewMau] = useState(DEFAULT_FILTER_MAU);
   const [error, setError] = useState<string | null>(null);
   const [, startTransition] = useTransition();
 
@@ -114,15 +214,20 @@ export function OrgBaiDangCustomFilterMenuSection({
     if (!ten) return;
     setError(null);
     startTransition(async () => {
-      const result = await createOrgBaiDangFilterClient(inline.orgId, ten);
+      const result = await createOrgBaiDangFilterClient(
+        inline.orgId,
+        ten,
+        newMau,
+      );
       if (!result.ok) {
         setError(result.error);
         return;
       }
       setNewName("");
+      setNewMau(DEFAULT_FILTER_MAU);
       await ctx.refreshFilters();
     });
-  }, [ctx, inline, newName]);
+  }, [ctx, inline, newName, newMau]);
 
   const onDelete = useCallback(
     (filter: PersonalFilter) => {
@@ -138,6 +243,21 @@ export function OrgBaiDangCustomFilterMenuSection({
       });
     },
     [ctx, inline, filterKey, onFilterKeyChange],
+  );
+
+  const onRename = useCallback(
+    async (filter: PersonalFilter, ten: string) => {
+      if (!ctx || !inline) {
+        return { ok: false as const, error: "Không có quyền sửa." };
+      }
+      const result = await updateOrgBaiDangFilterClient(inline.orgId, filter.id, {
+        ten,
+      });
+      if (!result.ok) return result;
+      await ctx.refreshFilters();
+      return { ok: true as const };
+    },
+    [ctx, inline],
   );
 
   if (!ctx) return null;
@@ -157,7 +277,6 @@ export function OrgBaiDangCustomFilterMenuSection({
 
   return (
     <div className="j-dd-section j-dd-section--personal-labels">
-      <div className="j-dd-divider j-dd-divider--section" aria-hidden />
       <div className="j-dd-section-label">Nhãn riêng</div>
       {filters.map((filter) => (
         <PersonalFilterRow
@@ -166,8 +285,11 @@ export function OrgBaiDangCustomFilterMenuSection({
           active={filterKey === orgBaiDangNhanFilterKey(filter.slug)}
           count={nhanCounts[filter.slug] ?? filter.count ?? 0}
           onSelect={() => selectSlug(filter.slug)}
-          showDelete={canManage}
+          showManage={canManage}
           onDelete={() => onDelete(filter)}
+          onRename={
+            canManage ? (ten) => onRename(filter, ten) : undefined
+          }
           onShareMenuClose={onItemSelect}
         />
       ))}
@@ -179,6 +301,13 @@ export function OrgBaiDangCustomFilterMenuSection({
             </p>
           ) : (
             <div className="j-personal-filter-create">
+              <input
+                type="color"
+                className="j-personal-filter-color"
+                value={newMau}
+                aria-label="Màu nhãn mới"
+                onChange={(e) => setNewMau(e.target.value)}
+              />
               <input
                 type="text"
                 className="j-personal-filter-input"
@@ -203,12 +332,13 @@ export function OrgBaiDangCustomFilterMenuSection({
           {error ? <p className="j-personal-filter-error">{error}</p> : null}
           {filters.length === 0 && !atLimit ? (
             <p className="j-personal-filter-hint">
-              Gắn nhãn trên bài đăng để lọc — khác loại bài đăng mặc định. Tối đa{" "}
-              {MAX_TRUONG_ORG_BAI_DANG_FILTERS} nhãn.
+              Gắn trên bài đăng để lọc — khác loại bài đăng (Thông báo, Sự kiện, …).
+              Chọn màu làm icon chấm. Tối đa {MAX_TRUONG_ORG_BAI_DANG_FILTERS} nhãn.
             </p>
           ) : null}
         </div>
       ) : null}
+      <div className="j-dd-divider j-dd-divider--section" aria-hidden />
     </div>
   );
 }

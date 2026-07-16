@@ -16,21 +16,24 @@ import {
 
 import { WorldBoostToggle } from "@/components/cins/world-journey/WorldBoostToggle";
 import { useWorldBoostAdminOptional } from "@/components/cins/world-journey/WorldBoostAdminContext";
+import { MoTaMarkdown } from "@/components/editor/compose/MoTaMarkdown";
 import { GalleryItemVisual, GalleryEmbedPlatformBadge, GalleryVideoPlayBadge } from "@/components/journey/GalleryItemVisual";
 import { GalleryMainHoverOverlay } from "@/components/journey/GalleryMainHoverOverlay";
-import { useJourneyCompose } from "@/components/journey/JourneyComposeContext";
-import { worldBoostTargetFromGalleryLike } from "@/lib/cins/world-boost-client";
-import { GALLERY_GRID_IMAGE_SIZES } from "@/lib/cloudflare/cf-variant-url";
 import { GalleryMediaFilterDropdown } from "@/components/journey/GalleryMediaFilterDropdown";
 import { GalleryOrgCreateCardBody } from "@/components/journey/GalleryOrgCreateCardBody";
 import { GalleryVerifiedBadge } from "@/components/journey/GalleryVerifiedBadge";
+import { useJourneyCompose } from "@/components/journey/JourneyComposeContext";
+import { JourneyMilestoneInsightsModal } from "@/components/journey/JourneyMilestoneInsightsModal";
+import { JourneyMilestoneOwnerMenu } from "@/components/journey/JourneyMilestoneOwnerMenu";
+import { JourneySurfaceViewToggle } from "@/components/journey/JourneySurfaceViewToggle";
 import {
   JourneyTimelineBar,
   type FilterGroup,
 } from "@/components/journey/JourneyTimelineBar";
-import { JourneySurfaceViewToggle } from "@/components/journey/JourneySurfaceViewToggle";
 import { useJourneyViewOptional } from "@/components/journey/JourneyViewContext";
 import { useJourneyPostOverlay } from "@/components/journey/useJourneyPostOverlay";
+import { worldBoostTargetFromGalleryLike } from "@/lib/cins/world-boost-client";
+import { GALLERY_GRID_IMAGE_SIZES } from "@/lib/cloudflare/cf-variant-url";
 import type { GalleryMainItem } from "@/lib/journey/gallery-page-fetch";
 import type { LoaiMocVisibilityMap } from "@/lib/journey/filter-visibility";
 import {
@@ -59,6 +62,10 @@ import {
   buildGalleryGroupFilterSearchUrl,
   galleryGroupFromSearch,
 } from "@/lib/journey/gallery-filter-share";
+import {
+  MILESTONE_INLINE_PATCH_EVENT,
+  type MilestoneInlinePatchDetail,
+} from "@/lib/journey/milestone-inline-patch";
 import { useGalleryMasonryAspects } from "@/components/journey/useGalleryMasonryAspects";
 import { useBalancedMasonryColumns } from "@/components/journey/useBalancedMasonryColumns";
 import { useGalleryPortraitVideoIds } from "@/components/journey/useGalleryPortraitVideoIds";
@@ -140,17 +147,39 @@ function galleryItemClassName(item: {
 
 type GalleryItemTileLayout = "grid" | "portrait-rail" | "masonry";
 
+/** Ưu tiên `postSlug`; fallback parse từ `href` `/{slug}/p/{postSlug}` (cache cũ). */
+function resolveGalleryPostSlug(item: GalleryMainItem): string | null {
+  const direct = item.postSlug?.trim();
+  if (direct) return direct;
+  const href = item.href?.trim();
+  if (!href) return null;
+  try {
+    const path = href.startsWith("http")
+      ? new URL(href).pathname
+      : href.split("?")[0] ?? href;
+    const m = path.match(/\/p\/([^/]+)\/?$/);
+    return m?.[1] ? decodeURIComponent(m[1]) : null;
+  } catch {
+    return null;
+  }
+}
+
 function GalleryMainItemTile({
   item,
   onOpenPost,
   layout = "grid",
   thumbAspect,
+  isOwner = false,
+  ownerSlug = null,
 }: {
   item: GalleryMainItem;
   onOpenPost: (cotMocId: string) => void;
   layout?: GalleryItemTileLayout;
   thumbAspect?: number;
+  isOwner?: boolean;
+  ownerSlug?: string | null;
 }) {
+  const [insightsOpen, setInsightsOpen] = useState(false);
   const isOrgCreate = isOrgCreateGalleryItem(item);
   const worldBoostAdmin = useWorldBoostAdminOptional();
   const boostTarget = worldBoostTargetFromGalleryLike(item);
@@ -183,6 +212,33 @@ function GalleryMainItemTile({
         id={boostTarget.id}
         compact
         className="j-main-gallery-boost"
+      />
+    ) : null;
+
+  const menuOwnerSlug = ownerSlug?.trim() || item.postOwnerSlug?.trim() || null;
+  const postSlug = resolveGalleryPostSlug(item);
+  const canSeeInsights =
+    isOwner &&
+    Boolean(item.cotMocId) &&
+    (item.variant === "self" ||
+      item.variant === "verified" ||
+      item.variant === "tagged");
+  const ownerMenu =
+    isOwner && menuOwnerSlug && !isOrgCreate && item.cotMocId ? (
+      <JourneyMilestoneOwnerMenu
+        milestoneId={item.cotMocId}
+        ownerSlug={menuOwnerSlug}
+        permalinkOwnerSlug={item.postOwnerSlug ?? menuOwnerSlug}
+        currentType={item.type}
+        currentVisibility={
+          item.visibility ?? (item.featured ? "feature" : "public")
+        }
+        postSlug={postSlug}
+        personalFilterSlugs={item.personalFilterSlugs}
+        className="j-main-gallery-owner-menu"
+        onOpenInsights={
+          canSeeInsights ? () => setInsightsOpen(true) : undefined
+        }
       />
     ) : null;
 
@@ -236,22 +292,43 @@ function GalleryMainItemTile({
       <span className="j-main-gallery-info-panel">
         <strong className="j-main-gallery-info-title">{item.label}</strong>
         {item.meta ? (
-          <small className="j-main-gallery-info-excerpt">{item.meta}</small>
+          <MoTaMarkdown
+            text={item.meta}
+            as="small"
+            className="j-main-gallery-info-excerpt"
+            linkify={false}
+          />
         ) : null}
       </span>
     </>
   );
 
-  if (isOrgCreate && item.href) {
+  const insightsModal =
+    canSeeInsights && item.cotMocId ? (
+      <JourneyMilestoneInsightsModal
+        open={insightsOpen}
+        onClose={() => setInsightsOpen(false)}
+        milestoneId={item.cotMocId}
+      />
+    ) : null;
+
+  /* Menu chủ nằm ngoài Link/button để tránh nested interactive + nested <a>. */
+  if (item.href && ownerMenu) {
     return (
-      <Link
-        href={item.href}
-        className={className}
-        prefetch={false}
-        aria-label={viewLabel}
-      >
-        {body}
-      </Link>
+      <>
+        <div className={className}>
+          <Link
+            href={item.href}
+            className="j-main-gallery-item-hit"
+            prefetch={false}
+            aria-label={viewLabel}
+          >
+            {body}
+          </Link>
+          {ownerMenu}
+        </div>
+        {insightsModal}
+      </>
     );
   }
 
@@ -265,6 +342,25 @@ function GalleryMainItemTile({
       >
         {body}
       </Link>
+    );
+  }
+
+  if (ownerMenu) {
+    return (
+      <>
+        <div className={className}>
+          <button
+            type="button"
+            className="j-main-gallery-item-hit"
+            onClick={() => onOpenPost(item.cotMocId)}
+            aria-label={viewLabel}
+          >
+            {body}
+          </button>
+          {ownerMenu}
+        </div>
+        {insightsModal}
+      </>
     );
   }
 
@@ -432,6 +528,73 @@ export function JourneyGalleryGridView({
     setNextOffset(scrollLoad?.nextOffset ?? (initialItems?.length ?? 0));
     setLoadError(false);
   }, [initialItems, scrollLoad?.hasMore, scrollLoad?.nextOffset, legacyAll]);
+
+  /* Menu chủ trên card — cập nhật local khi xoá / đổi loại / hiển thị. */
+  useEffect(() => {
+    if (!isOwner) return;
+    const profileSlug = scrollLoad?.ownerSlug;
+
+    const onDeleted = (event: Event) => {
+      const detail = (
+        event as CustomEvent<{ milestoneId?: string; ownerSlug?: string }>
+      ).detail;
+      if (!detail?.milestoneId) return;
+      if (profileSlug && detail.ownerSlug && detail.ownerSlug !== profileSlug) {
+        return;
+      }
+      setGalleryItems((prev) =>
+        prev.filter((it) => it.cotMocId !== detail.milestoneId),
+      );
+    };
+
+    const onPatch = (event: Event) => {
+      const detail = (event as CustomEvent<MilestoneInlinePatchDetail>).detail;
+      if (!detail?.milestoneId) return;
+      setGalleryItems((prev) => {
+        const idx = prev.findIndex((it) => it.cotMocId === detail.milestoneId);
+        if (idx < 0) return prev;
+        const cur = prev[idx]!;
+        if (detail.kind === "type") {
+          if (cur.type === detail.value) return prev;
+          const next = prev.slice();
+          next[idx] = { ...cur, type: detail.value };
+          return next;
+        }
+        if (detail.kind === "visibility") {
+          if (detail.value !== "feature" && detail.value !== "public") {
+            return prev.filter((it) => it.cotMocId !== detail.milestoneId);
+          }
+          if (cur.visibility === detail.value && cur.featured === (detail.value === "feature")) {
+            return prev;
+          }
+          const next = prev.slice();
+          next[idx] = {
+            ...cur,
+            visibility: detail.value,
+            featured: detail.value === "feature",
+          };
+          return next;
+        }
+        if (detail.kind === "personalFilters") {
+          const next = prev.slice();
+          next[idx] = {
+            ...cur,
+            personalFilterSlugs: detail.value,
+            personalFilters: detail.personalFilters,
+          };
+          return next;
+        }
+        return prev;
+      });
+    };
+
+    window.addEventListener("cins:milestone-deleted", onDeleted);
+    window.addEventListener(MILESTONE_INLINE_PATCH_EVENT, onPatch);
+    return () => {
+      window.removeEventListener("cins:milestone-deleted", onDeleted);
+      window.removeEventListener(MILESTONE_INLINE_PATCH_EVENT, onPatch);
+    };
+  }, [isOwner, scrollLoad?.ownerSlug]);
 
   useEffect(() => {
     filterShare?.registerGalleryItems(galleryItems);
@@ -685,7 +848,7 @@ export function JourneyGalleryGridView({
                   <GalleryMediaFilterDropdown
                     filter={mediaFilter}
                     onFilterChange={setMediaFilter}
-                    variant="toolbar"
+                    variant="icon"
                   />
                 </>
               ) : null}
@@ -716,6 +879,8 @@ export function JourneyGalleryGridView({
                     onOpenPost={openPost}
                     layout="portrait-rail"
                     thumbAspect={aspectById.get(item.id)}
+                    isOwner={isOwner}
+                    ownerSlug={scrollLoad?.ownerSlug}
                   />
                 ))}
               </div>
@@ -746,6 +911,8 @@ export function JourneyGalleryGridView({
                         onOpenPost={openPost}
                         layout="masonry"
                         thumbAspect={masonryAspectById.get(item.id)}
+                        isOwner={isOwner}
+                        ownerSlug={scrollLoad?.ownerSlug}
                       />
                     ))}
                   </div>
@@ -765,6 +932,8 @@ export function JourneyGalleryGridView({
                     thumbAspect={
                       showMasonry ? masonryAspectById.get(item.id) : undefined
                     }
+                    isOwner={isOwner}
+                    ownerSlug={scrollLoad?.ownerSlug}
                   />
                 ))}
               </>

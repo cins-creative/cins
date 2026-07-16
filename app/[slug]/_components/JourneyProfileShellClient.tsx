@@ -96,21 +96,20 @@ export function JourneyProfileShellClient({
   return (
     <JourneyViewProvider initialView={activeView} slug={profile.slug}>
       <JourneyFeaturedAsideFilterProvider>
-        {isOwner ? (
-          <JourneyComposeProvider
-            ownerId={ownerId}
-            ownerSlug={profile.slug}
-            ownerName={ownerName}
-            ownerAvatarId={ownerAvatarId}
-            isOwner
-            initialCompose={initialCompose}
-          >
+        {/* Khách cũng cần PersonalFilterProvider — không thì mất «Nhãn riêng» trong filter. */}
+        <JourneyComposeProvider
+          ownerId={ownerId}
+          ownerSlug={profile.slug}
+          ownerName={ownerName}
+          ownerAvatarId={ownerAvatarId}
+          isOwner={isOwner}
+          initialCompose={isOwner ? initialCompose : null}
+        >
+          {isOwner ? (
             <BunnyVideoProcessingPoller ownerSlug={profile.slug} />
-            {shell}
-          </JourneyComposeProvider>
-        ) : (
-          shell
-        )}
+          ) : null}
+          {shell}
+        </JourneyComposeProvider>
       </JourneyFeaturedAsideFilterProvider>
     </JourneyViewProvider>
   );

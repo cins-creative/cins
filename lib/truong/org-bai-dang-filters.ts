@@ -164,6 +164,63 @@ export async function createTruongOrgFilter(params: {
   return { ok: true, filter: mapFilter(data) };
 }
 
+export async function updateTruongOrgFilter(params: {
+  orgId: string;
+  filterId: string;
+  adminId: string;
+  ten?: string;
+  mau?: string;
+  thuTu?: number;
+}): Promise<{ ok: true; filter: TruongOrgFilterChip } | { ok: false; error: string }> {
+  if (!(await isTruongOrgAdmin(params.orgId, params.adminId))) {
+    return { ok: false, error: "Chỉ quản trị viên trường mới quản lý nhãn." };
+  }
+
+  const admin = createServiceRoleClient();
+  const { data: existing } = await admin
+    .from("filter_nhan")
+    .select("id")
+    .eq("id", params.filterId)
+    .eq("id_to_chuc", params.orgId)
+    .maybeSingle();
+
+  if (!existing) return { ok: false, error: "Không tìm thấy nhãn." };
+
+  const patch: Record<string, unknown> = {};
+  if (params.ten !== undefined) {
+    const ten = params.ten.trim();
+    if (!ten) return { ok: false, error: "Tên nhãn không được trống." };
+    if (ten.length > MAX_FILTER_NAME) {
+      return { ok: false, error: `Tên nhãn tối đa ${MAX_FILTER_NAME} ký tự.` };
+    }
+    patch.ten = ten;
+  }
+  if (params.mau !== undefined) {
+    const mau = normalizeMau(params.mau);
+    if (!mau) return { ok: false, error: "Màu nhãn không hợp lệ (#RRGGBB)." };
+    patch.mau = mau;
+  }
+  if (params.thuTu !== undefined) patch.thu_tu = params.thuTu;
+
+  if (Object.keys(patch).length === 0) {
+    return { ok: false, error: "Không có thay đổi." };
+  }
+
+  const { data, error } = await admin
+    .from("filter_nhan")
+    .update(patch)
+    .eq("id", params.filterId)
+    .eq("id_to_chuc", params.orgId)
+    .select("id, ten, slug, mau, thu_tu")
+    .single<FilterRow>();
+
+  if (error || !data) {
+    return { ok: false, error: error?.message ?? "Không cập nhật được nhãn." };
+  }
+
+  return { ok: true, filter: mapFilter(data) };
+}
+
 export async function deleteTruongOrgFilter(params: {
   orgId: string;
   filterId: string;

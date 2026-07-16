@@ -31,7 +31,8 @@ import {
   type CoSoTabId,
 } from "@/lib/to-chuc/co-so-page-cau-hinh";
 import type { SystemRole } from "@/lib/auth/system-role";
-import type { CoSoDetailPayload, CoSoFilterChip } from "@/lib/to-chuc/co-so-page-queries";
+import type { CoSoDetailPayload } from "@/lib/to-chuc/co-so-page-queries";
+import { ORG_BAI_DANG_FILTERS_CHANGED_EVENT } from "@/lib/truong/org-bai-dang-filters.shared";
 import { countActiveStudioJobs } from "@/lib/to-chuc/studio-tuyen-dung-format";
 import { CO_SO_KHOA_UPDATED_EVENT } from "@/lib/to-chuc/co-so-khoa-events";
 import { isKhoaHocMuted } from "@/lib/to-chuc/khoa-hoc-labels";
@@ -64,7 +65,7 @@ type Props = {
 type SettingsSavedPatch = {
   slug?: string;
   ten?: string;
-  filters?: CoSoFilterChip[];
+  filters?: unknown;
   loaiCoSo?: string;
   namThanhLap?: number | null;
   giayPhepDaoTao?: string | null;
@@ -100,7 +101,6 @@ function CoSoDetailViewInner({
   onOpenSettings?: (section: CoSoSettingsSection) => void;
 }) {
   const ctx = useTruongInlineEdit();
-  const [filters, setFilters] = useState(payload.filters);
   const [daVerify, setDaVerify] = useState(payload.daVerify);
   const [schoolExtra, setSchoolExtra] = useState<Partial<typeof payload.school>>({});
   const { baidang, hinhanh } = payload;
@@ -172,7 +172,9 @@ function CoSoDetailViewInner({
     .join(" ");
 
   function handleSettingsSaved(patch: SettingsSavedPatch) {
-    if (patch.filters) setFilters(patch.filters);
+    if (patch.filters) {
+      window.dispatchEvent(new Event(ORG_BAI_DANG_FILTERS_CHANGED_EVENT));
+    }
     setSchoolExtra((prev) => ({
       ...prev,
       ...(patch.ten ? { ten: patch.ten } : {}),
@@ -323,7 +325,6 @@ function CoSoDetailViewInner({
                   orgId={school.id}
                   orgSlug={orgSlug}
                   canEdit={canEdit}
-                  filters={filters}
                   activeBaiDangId={tab === "bai-dang" ? baiDangId : null}
                 />
               ) : null}

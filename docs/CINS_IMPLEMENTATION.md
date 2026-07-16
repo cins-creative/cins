@@ -35,7 +35,7 @@
 ### Filter cá nhân (`filters`) — đề xuất, Cursor chỉnh tên nếu trùng
 | Route | Việc |
 |---|---|
-| `filters` | GET list nhãn current user (`?userId=` xem nhãn người khác, read-only) · POST tạo nhãn |
+| `filters` | GET list nhãn (`?userId=` bắt buộc khi khách / xem Journey người khác) · POST tạo nhãn (chỉ chủ). Non-owner: kèm `count` theo cột mốc **visible** (`countPersonalFilterSlugsVisibleToViewer`) |
 | `filters/[id]` | PATCH sửa (`ten`/`mau`/`thu_tu`; slug bất biến) · DELETE xóa (chỉ chủ sở hữu) |
 | `milestone/[milestoneId]/filters` | PUT set danh sách nhãn 1 cột mốc (gửi mảng `id_filter`, server diff insert/delete `filter_gan`) |
 
@@ -149,7 +149,7 @@
 | `to-chuc/` | **Cơ sở đào tạo** — trang chi tiết, settings, members, filters, timeline lớp, staff invite, create | `co-so-page-queries.ts`, `co-so-settings.ts`, `co-so-members.ts`, `co-so-create.ts`, `co-so-vai-tro.ts`, `co-so-inline-payload.ts`, `co-so-timeline-lop.ts`, `co-so-timeline-lop-pins.ts`, `co-so-staff-invite.ts`, `co-so-page-cau-hinh.ts` |
 | `co-so/` | **Khóa/lớp/giáo trình/ghi danh** (một phần) | `khoa-hoc.ts`, `giao-trinh.ts`, `lop.ts`, `ghi-danh.ts`, `san-pham-lens.ts` |
 | `tag/` | Tạo tag, dedup, gen tom-tat, normalize, slug, admin merge | `create.ts`, `gen-tom-tat.ts`, `dedup.ts`, `normalize.ts` |
-| `filter/` | **Filter cá nhân** (user & org): tạo/sửa/xóa nhãn, gắn lên cột mốc/bài đăng org, list theo chủ sở hữu | `create.ts`, `update.ts`, `delete.ts`, `gan.ts`, `list-cua-user.ts` |
+| `filter/` | **Filter cá nhân** (user & org): CRUD nhãn, gắn cột mốc/bài org, list theo chủ, đếm visible cho khách, nhãn hệ thống `cong-dong` | `create.ts`, `update.ts`, `delete.ts`, `gan.ts`, `list-cua-user.ts`, `count-visible-to-viewer.ts`, `cong-dong-personal-filter.ts` (+ `.shared.ts`) |
 | `chat/` | **Chat:** DM/org/nhóm, realtime, ghim, nhóm bạn bè, **project con**, thẻ tài nguyên, mốc phòng, bình chọn | `group-message.ts`, `group-roles.ts`, `project-room.ts`, `room-tags.ts`, `room-moc.ts`, `room-poll.ts`, `direct-message.ts`, `use-chat-realtime.ts` |
 | `articles/` | Bài viết nghề/keyword/phần mềm, quan hệ liên quan, link keyword | `queries.ts`, `nghe-role-preview.ts`, `link-keywords-in-html.ts`, `partition-*` |
 | `bai-viet/` | Hub card, phân loại, pagination | `hub-card.ts`, `hub-loai.ts` |
@@ -338,6 +338,7 @@ Code map: `lib/journey/images.ts` (role `gallery-grid` → `grid` + `srcset` `gr
 | Quy tắc | Ghi chú |
 |---|---|
 | Xem công khai | Journey, timeline, bài viết, Gallery tab — **không** redirect `/login` |
+| Nhãn riêng (filter) | Khách **được** thấy / lọc nhãn `filter_nhan` của chủ Journey (chỉ nhãn có ≥1 cột mốc visible). UI: `JourneyPersonalFilterMenuSection` + `orderTimelinePersonalFilters`. Provider: `JourneyProfileShellClient` **luôn** bọc `JourneyComposeProvider` (kèm `JourneyPersonalFilterProvider`) kể cả `!isOwner` — thiếu provider thì dropdown mất section «Nhãn riêng» / `?filter=` không chạy. API: `GET /api/filters?userId=`. Deep link: `lib/filter/client-utils.ts` |
 | Tương tác | Like / bookmark / bình luận → modal đăng nhập nếu chưa session (`AuthGateProvider` trên `app/[slug]/layout`; cộng đồng: `useCongDongAuthGate` + `AuthRequiredModal`) |
 | OAuth | Google PKCE — `app/auth/callback/route.ts`; cookie `cins-oauth-intent`, `cins-oauth-return` |
 | Protected | `/onboarding`, `/admin`, `/{slug}/p/new`, `/{slug}/p/.../edit` |

@@ -65,6 +65,12 @@ export type GalleryMainItem = {
   meta: string;
   featured: boolean;
   type: MilestoneType;
+  /** Chế độ hiển thị — menu chủ gallery; gallery public chỉ có feature/public. */
+  visibility?: "feature" | "public";
+  /** Slug tác phẩm — menu chủ (sửa / permalink). */
+  postSlug?: string | null;
+  /** Slug chủ bài (permalink) khi khác profile đang xem. */
+  postOwnerSlug?: string | null;
   variant: MilestoneVariant;
   mediaKind?: GalleryMediaKind;
   /** Logo góc thumb — YouTube, Figma, Rive, … */
@@ -229,6 +235,9 @@ function hydrateMainItems(
       meta: entry.excerpt,
       featured,
       type: entry.type,
+      visibility: entry.visibility,
+      postSlug: isOrgCreate ? null : entry.tacPhamSlug,
+      postOwnerSlug: isOrgCreate ? null : slug,
       variant: entry.variant,
       mediaKind: entry.mediaKind,
       embedProvider: entry.embedProvider ?? null,

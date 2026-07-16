@@ -1,5 +1,6 @@
 "use client";
 
+import { MoTaMarkdown } from "@/components/editor/compose/MoTaMarkdown";
 import { GalleryVideoPlayBadge } from "@/components/journey/GalleryItemVisual";
 import { orgBaiDangPostsToGridItems } from "@/lib/truong/bai-dang-grid";
 import type { TruongBaiDang } from "@/lib/truong/types";
@@ -63,7 +64,12 @@ export function OrgBaiDangGridView({
               <span className="j-main-gallery-info-panel">
                 <strong className="j-main-gallery-info-title">{it.title}</strong>
                 {meta ? (
-                  <small className="j-main-gallery-info-excerpt">{meta}</small>
+                  <MoTaMarkdown
+                    text={meta}
+                    as="small"
+                    className="j-main-gallery-info-excerpt"
+                    linkify={false}
+                  />
                 ) : null}
               </span>
             ) : (

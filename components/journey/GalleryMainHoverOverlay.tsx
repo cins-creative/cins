@@ -1,3 +1,5 @@
+import { MoTaMarkdown } from "@/components/editor/compose/MoTaMarkdown";
+
 type Props = {
   label: string;
   meta?: string | null;
@@ -35,7 +37,12 @@ export function GalleryMainHoverOverlay({
         ) : null}
         <strong className="j-main-gallery-overlay-title">{label}</strong>
         {meta ? (
-          <small className="j-main-gallery-overlay-excerpt">{meta}</small>
+          <MoTaMarkdown
+            text={meta}
+            as="small"
+            className="j-main-gallery-overlay-excerpt"
+            linkify={false}
+          />
         ) : null}
       </span>
     </span>

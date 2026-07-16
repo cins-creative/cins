@@ -1,17 +1,22 @@
 "use client";
 
 import { Plus, Trash2 } from "lucide-react";
-import { useCallback, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 
+import { JourneyFilterRenameButton } from "@/components/journey/JourneyFilterRenameButton";
 import { JourneyFilterShareButton } from "@/components/journey/JourneyFilterShareButton";
 import { useJourneyFilterShareOptional } from "@/components/journey/JourneyFilterShareContext";
 import { useJourneyPersonalFilterOptional } from "@/components/journey/JourneyPersonalFilterContext";
 import {
   countUserPersonalFilters,
-  filterTimelinePersonalFilters,
   isSystemPersonalFilterSlug,
+  orderTimelinePersonalFilters,
 } from "@/lib/filter/cong-dong-personal-filter.shared";
-import { DEFAULT_FILTER_MAU, MAX_FILTERS_PER_OWNER } from "@/lib/filter/constants";
+import {
+  DEFAULT_FILTER_MAU,
+  MAX_FILTER_NAME,
+  MAX_FILTERS_PER_OWNER,
+} from "@/lib/filter/constants";
 import type { PersonalFilter } from "@/lib/filter/types";
 
 type Props = {
@@ -25,19 +30,106 @@ function PersonalFilterRow({
   filter,
   active,
   onSelect,
-  showDelete,
+  showManage,
   onDelete,
+  onRename,
   onShareMenuClose,
 }: {
   filter: PersonalFilter;
   active: boolean;
   onSelect: () => void;
-  showDelete?: boolean;
+  showManage?: boolean;
   onDelete?: () => void;
+  onRename?: (ten: string) => Promise<{ ok: true } | { ok: false; error: string }>;
   onShareMenuClose?: () => void;
 }) {
   const mau = filter.mau ?? DEFAULT_FILTER_MAU;
   const filterShare = useJourneyFilterShareOptional();
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(filter.ten);
+  const [renameError, setRenameError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const skipBlurRef = useRef(false);
+
+  useEffect(() => {
+    if (!editing) setDraft(filter.ten);
+  }, [filter.ten, editing]);
+
+  useEffect(() => {
+    if (!editing) return;
+    inputRef.current?.focus();
+    inputRef.current?.select();
+  }, [editing]);
+
+  const commitRename = useCallback(async () => {
+    if (!onRename || saving) return;
+    const ten = draft.trim();
+    if (!ten) {
+      setRenameError("Tên nhãn không được trống.");
+      return;
+    }
+    if (ten === filter.ten) {
+      skipBlurRef.current = true;
+      setEditing(false);
+      setRenameError(null);
+      return;
+    }
+    setSaving(true);
+    setRenameError(null);
+    const result = await onRename(ten);
+    setSaving(false);
+    if (!result.ok) {
+      setRenameError(result.error);
+      return;
+    }
+    skipBlurRef.current = true;
+    setEditing(false);
+  }, [onRename, saving, draft, filter.ten]);
+
+  if (editing && onRename) {
+    return (
+      <div className={"j-dd-opt j-dd-row is-editing" + (active ? " is-active" : "")}>
+        <span className="j-dd-dot" style={{ background: mau }} aria-hidden />
+        <input
+          ref={inputRef}
+          type="text"
+          className="j-dd-rename-input"
+          value={draft}
+          maxLength={MAX_FILTER_NAME}
+          disabled={saving}
+          aria-label="Tên nhãn"
+          onChange={(e) => setDraft(e.target.value)}
+          onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => {
+            e.stopPropagation();
+            if (e.key === "Enter") {
+              e.preventDefault();
+              void commitRename();
+            } else if (e.key === "Escape") {
+              e.preventDefault();
+              skipBlurRef.current = true;
+              setEditing(false);
+              setRenameError(null);
+              setDraft(filter.ten);
+            }
+          }}
+          onBlur={() => {
+            if (skipBlurRef.current) {
+              skipBlurRef.current = false;
+              return;
+            }
+            void commitRename();
+          }}
+        />
+        {renameError ? (
+          <span className="j-dd-rename-error" role="alert">
+            {renameError}
+          </span>
+        ) : null}
+      </div>
+    );
+  }
 
   return (
     <div className={"j-dd-opt j-dd-row" + (active ? " is-active" : "")}>
@@ -48,13 +140,19 @@ function PersonalFilterRow({
         className="j-dd-opt-main"
         onClick={onSelect}
       >
-        <span
-          className="j-dd-dot"
-          style={{ background: mau }}
-          aria-hidden
-        />
+        <span className="j-dd-dot" style={{ background: mau }} aria-hidden />
         <span className="j-dd-lbl">{filter.ten}</span>
       </button>
+      {showManage && onRename ? (
+        <JourneyFilterRenameButton
+          label={filter.ten}
+          onEdit={() => {
+            setDraft(filter.ten);
+            setRenameError(null);
+            setEditing(true);
+          }}
+        />
+      ) : null}
       <JourneyFilterShareButton
         label={filter.ten}
         onShare={
@@ -70,7 +168,7 @@ function PersonalFilterRow({
             : undefined
         }
       />
-      {showDelete && onDelete ? (
+      {showManage && onDelete ? (
         <button
           type="button"
           className="j-dd-del"
@@ -142,10 +240,33 @@ export function JourneyPersonalFilterMenuSection({
     [ctx],
   );
 
+  const onRename = useCallback(
+    async (filter: PersonalFilter, ten: string) => {
+      if (!ctx) return { ok: false as const, error: "Không có quyền sửa." };
+      const res = await fetch(`/api/filters/${encodeURIComponent(filter.id)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ten }),
+      });
+      const data = (await res.json().catch(() => null)) as {
+        error?: string;
+      } | null;
+      if (!res.ok) {
+        return {
+          ok: false as const,
+          error: data?.error ?? "Không đổi được tên nhãn.",
+        };
+      }
+      await ctx.refreshFilters();
+      return { ok: true as const };
+    },
+    [ctx],
+  );
+
   if (!ctx) return null;
 
   const { filters: rawFilters, activeSlug, setActiveSlug, isOwner, loading } = ctx;
-  const filters = filterTimelinePersonalFilters(rawFilters);
+  const filters = orderTimelinePersonalFilters(rawFilters, { isOwner });
 
   if (loading && filters.length === 0) return null;
   if (!loading && filters.length === 0 && !isOwner) return null;
@@ -163,19 +284,26 @@ export function JourneyPersonalFilterMenuSection({
   return (
     <div className="j-dd-section j-dd-section--personal-labels">
       <div className="j-dd-section-label">Nhãn riêng</div>
-      {filters.map((filter) => (
-        <PersonalFilterRow
-          key={filter.id}
-          filter={filter}
-          active={activeSlug === filter.slug}
-          onSelect={() =>
-            selectSlug(activeSlug === filter.slug ? null : filter.slug)
-          }
-          showDelete={isOwner && !isSystemPersonalFilterSlug(filter.slug)}
-          onDelete={() => onDelete(filter)}
-          onShareMenuClose={onItemSelect}
-        />
-      ))}
+      {filters.map((filter) => {
+        const canManageRow =
+          isOwner && !isSystemPersonalFilterSlug(filter.slug);
+        return (
+          <PersonalFilterRow
+            key={filter.id}
+            filter={filter}
+            active={activeSlug === filter.slug}
+            onSelect={() =>
+              selectSlug(activeSlug === filter.slug ? null : filter.slug)
+            }
+            showManage={canManageRow}
+            onDelete={() => onDelete(filter)}
+            onRename={
+              canManageRow ? (ten) => onRename(filter, ten) : undefined
+            }
+            onShareMenuClose={onItemSelect}
+          />
+        );
+      })}
       {isOwner ? (
         <div className="j-personal-filter-dd-manage">
           {atLabelLimit ? (

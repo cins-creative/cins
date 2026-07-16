@@ -13,13 +13,20 @@ type Props = {
   text: string | null | undefined;
   className?: string;
   /** Thẻ bao (mặc định p — khớp `.jcard-desc`). */
-  as?: "p" | "div" | "span" | "h2" | "h3";
+  as?: "p" | "div" | "span" | "small" | "h2" | "h3";
+  /** Autolink URL — tắt khi nằm trong `Link`/`<a>`. Mặc định bật. */
+  linkify?: boolean;
 };
 
 /** Caption / mo_ta với subset Markdown an toàn. */
-export function MoTaMarkdown({ text, className, as = "p" }: Props) {
+export function MoTaMarkdown({
+  text,
+  className,
+  as = "p",
+  linkify = true,
+}: Props) {
   const raw = text ?? "";
-  const nodes = renderMoTaMarkdownToReactNodes(raw);
+  const nodes = renderMoTaMarkdownToReactNodes(raw, { linkify });
   if (!nodes) return null;
 
   const Tag = as;

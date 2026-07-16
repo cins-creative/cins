@@ -13,6 +13,7 @@ import {
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
 import type { PersonalFilter } from "@/lib/filter/types";
 import { readTruongInlineError, truongInlineFetch } from "@/lib/truong/inline-api";
+import { ORG_BAI_DANG_FILTERS_CHANGED_EVENT } from "@/lib/truong/org-bai-dang-filters.shared";
 
 type Ctx = {
   filters: PersonalFilter[];
@@ -81,6 +82,15 @@ export function OrgBaiDangFilterProvider({
     void refreshFilters();
   }, [refreshFilters]);
 
+  useEffect(() => {
+    const onChanged = () => {
+      void refreshFilters();
+    };
+    window.addEventListener(ORG_BAI_DANG_FILTERS_CHANGED_EVENT, onChanged);
+    return () =>
+      window.removeEventListener(ORG_BAI_DANG_FILTERS_CHANGED_EVENT, onChanged);
+  }, [refreshFilters]);
+
   const value = useMemo(
     () => ({
       filters,
@@ -101,11 +111,31 @@ export function OrgBaiDangFilterProvider({
 export async function createOrgBaiDangFilterClient(
   orgId: string,
   ten: string,
+  mau?: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const res = await truongInlineFetch(orgId, "/filters", {
     method: "POST",
-    body: JSON.stringify({ ten }),
+    body: JSON.stringify({ ten, ...(mau ? { mau } : {}) }),
   });
+  if (!res.ok) {
+    return { ok: false, error: await readTruongInlineError(res) };
+  }
+  return { ok: true };
+}
+
+export async function updateOrgBaiDangFilterClient(
+  orgId: string,
+  filterId: string,
+  patch: { ten?: string; mau?: string },
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const res = await truongInlineFetch(
+    orgId,
+    `/filters/${encodeURIComponent(filterId)}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(patch),
+    },
+  );
   if (!res.ok) {
     return { ok: false, error: await readTruongInlineError(res) };
   }

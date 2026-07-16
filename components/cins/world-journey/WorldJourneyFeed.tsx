@@ -20,6 +20,7 @@ import {
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -51,11 +52,20 @@ import {
 } from "@/lib/editor/embed-providers";
 import { EMBED_PLATFORM_LOGO } from "@/lib/editor/embed-platform-logos";
 import {
-  WORLD_JOURNEY_AUTHOR_ECHO_MS,
   WORLD_JOURNEY_FEED_PAGE_SIZE,
+  WORLD_JOURNEY_FIRST_IMPRESSION_CAP,
   WORLD_JOURNEY_GALLERY_PAGE_SIZE,
+  WORLD_JOURNEY_OWN_PUBLISH_PIN_MS,
 } from "@/lib/cins/worldJourneyFeedConstants";
-import { sortWorldJourneyMilestones } from "@/lib/cins/worldJourneyFeedSort";
+import {
+  applyWorldJourneyFirstImpressionPin,
+  sortWorldJourneyMilestones,
+} from "@/lib/cins/worldJourneyFeedSort";
+import {
+  markWorldJourneyFirstImpressionSeen,
+  readWorldJourneyFirstImpressionSeen,
+  worldJourneyMilestonePinKey,
+} from "@/lib/cins/worldJourneyFirstImpression";
 import {
   FEED_SOURCE_CHANGE_EVENT,
   FEED_SOURCE_OPTIONS,
@@ -642,8 +652,8 @@ export function WorldJourneyFeed({
   }, [handleSurfaceView]);
 
   /**
-   * Bài vừa đăng của chính viewer — giữ trên feed khi SSR/cache chưa kịp
-   * (author-echo L30 phải thấy ngay, không bị điểm / boost đẩy khỏi trang đầu).
+   * Bài vừa compose — giữ trong RAM khi SSR/cache chưa kịp.
+   * Không sống qua F5; first-impression session pin lo lần đầu / sau reload.
    */
   const pinnedOwnPublishRef = useRef<
     Map<string, { milestone: MilestoneItem; expiresAt: number }>
@@ -661,6 +671,28 @@ export function WorldJourneyFeed({
         next = mergeMilestoneIntoTimeline(next, entry.milestone);
       }
       return next;
+    },
+    [],
+  );
+
+  /** Đưa bài compose vừa đăng lên trước list đã sort (RAM only). */
+  const prependPinnedOwnPublishes = useCallback(
+    (items: ReadonlyArray<MilestoneItem>): MilestoneItem[] => {
+      const now = Date.now();
+      const pinned = pinnedOwnPublishRef.current;
+      const active: MilestoneItem[] = [];
+      for (const [key, entry] of [...pinned.entries()]) {
+        if (entry.expiresAt <= now) {
+          pinned.delete(key);
+          continue;
+        }
+        active.push(entry.milestone);
+      }
+      if (active.length === 0) return items.slice();
+      const keys = new Set(active.map(worldJourneyMilestonePinKey));
+      return active.concat(
+        items.filter((m) => !keys.has(worldJourneyMilestonePinKey(m))),
+      );
     },
     [],
   );
@@ -714,11 +746,20 @@ export function WorldJourneyFeed({
           detail.ownerProfileId ??
           viewerProfileId,
       };
-      const pinKey = milestone.cotMocId ?? milestone.id;
+      const pinKey = worldJourneyMilestonePinKey(milestone);
       pinnedOwnPublishRef.current.set(pinKey, {
         milestone,
-        expiresAt: Date.now() + WORLD_JOURNEY_AUTHOR_ECHO_MS,
+        expiresAt: Date.now() + WORLD_JOURNEY_OWN_PUBLISH_PIN_MS,
       });
+      /* Đã thấy bài mình → F5 không first-impression lại. */
+      markWorldJourneyFirstImpressionSeen(viewerProfileId, [pinKey]);
+      if (!liveFirstImpressionIdsRef.current.includes(pinKey)) {
+        liveFirstImpressionIdsRef.current = [
+          pinKey,
+          ...liveFirstImpressionIdsRef.current,
+        ].slice(0, WORLD_JOURNEY_FIRST_IMPRESSION_CAP);
+      }
+      liveFirstImpressionResolvedRef.current = true;
       setFeedMilestones((prev) => mergeMilestoneIntoTimeline(prev, milestone));
     };
     const onMilestoneDeleted = (event: Event) => {
@@ -743,8 +784,8 @@ export function WorldJourneyFeed({
     () => new Set(feedMilestones.filter((m) => m.feedExplore).map((m) => m.id)),
     [feedMilestones],
   );
-  /* Server đã lọc theo filter/source/linhVuc; client chỉ sort + giữ an toàn cho bài compose vừa đăng. */
-  const visibleMilestones = useMemo(() => {
+  /* Server đã lọc theo filter/source/linhVuc; client sort theo điểm. */
+  const scoreSortedMilestones = useMemo(() => {
     const filtered = feedMilestones.filter(
       (milestone) =>
         matchesFeedSource(milestone, feedSource) &&
@@ -765,6 +806,74 @@ export function WorldJourneyFeed({
     sort,
     exploreIds,
     viewerProfileId,
+  ]);
+
+  /**
+   * First-impression: ghim ≤3 bài mới chưa đánh dấu session lên top (sort «Mới nhất»).
+   * Ghi sessionStorage ngay (F5 không ghim lại); giữ id trong RAM để load-more không mất pin.
+   */
+  const [visibleMilestones, setVisibleMilestones] = useState(
+    scoreSortedMilestones,
+  );
+  const liveFirstImpressionIdsRef = useRef<string[]>([]);
+  const liveFirstImpressionResolvedRef = useRef(false);
+  const liveFirstImpressionViewerRef = useRef(viewerProfileId);
+
+  useLayoutEffect(() => {
+    if (liveFirstImpressionViewerRef.current !== viewerProfileId) {
+      liveFirstImpressionViewerRef.current = viewerProfileId;
+      liveFirstImpressionIdsRef.current = [];
+      liveFirstImpressionResolvedRef.current = false;
+    }
+
+    if (sort !== "Mới nhất") {
+      setVisibleMilestones(prependPinnedOwnPublishes(scoreSortedMilestones));
+      return;
+    }
+
+    if (!liveFirstImpressionResolvedRef.current) {
+      /* Chờ có data — tránh resolve sớm khi list còn rỗng. */
+      if (scoreSortedMilestones.length === 0) {
+        setVisibleMilestones([]);
+        return;
+      }
+      const seen = readWorldJourneyFirstImpressionSeen(viewerProfileId);
+      const { ordered, newlyPinnedIds } = applyWorldJourneyFirstImpressionPin(
+        scoreSortedMilestones,
+        seen,
+      );
+      liveFirstImpressionIdsRef.current = newlyPinnedIds;
+      liveFirstImpressionResolvedRef.current = true;
+      if (newlyPinnedIds.length > 0) {
+        markWorldJourneyFirstImpressionSeen(viewerProfileId, newlyPinnedIds);
+      }
+      setVisibleMilestones(prependPinnedOwnPublishes(ordered));
+      return;
+    }
+
+    if (liveFirstImpressionIdsRef.current.length === 0) {
+      setVisibleMilestones(prependPinnedOwnPublishes(scoreSortedMilestones));
+      return;
+    }
+
+    /* Giữ pin đã chọn trong phiên; phần còn lại theo thứ tự điểm. */
+    const pinKeys = new Set(liveFirstImpressionIdsRef.current);
+    const pinned = liveFirstImpressionIdsRef.current
+      .map((id) =>
+        scoreSortedMilestones.find(
+          (m) => worldJourneyMilestonePinKey(m) === id,
+        ),
+      )
+      .filter((m): m is MilestoneItem => Boolean(m));
+    const rest = scoreSortedMilestones.filter(
+      (m) => !pinKeys.has(worldJourneyMilestonePinKey(m)),
+    );
+    setVisibleMilestones(prependPinnedOwnPublishes(pinned.concat(rest)));
+  }, [
+    scoreSortedMilestones,
+    sort,
+    viewerProfileId,
+    prependPinnedOwnPublishes,
   ]);
 
   const feedQueryParams = useCallback(

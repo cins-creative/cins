@@ -7,9 +7,11 @@ import {
 import {
   WORLD_JOURNEY_AUTHOR_ECHO_MS,
   WORLD_JOURNEY_FEED_AUTHOR_SOFT_QUOTA,
+  WORLD_JOURNEY_FIRST_IMPRESSION_CAP,
   WORLD_JOURNEY_FRESHNESS_WINDOW_MS,
 } from "./worldJourneyFeedConstants";
 import { WORLD_JOURNEY_SORT_OPTIONS } from "./worldJourneyFeedFilters";
+import { worldJourneyMilestonePinKey } from "./worldJourneyFirstImpression";
 
 export type WorldJourneySortOption =
   (typeof WORLD_JOURNEY_SORT_OPTIONS)[number];
@@ -82,7 +84,7 @@ export function worldJourneyFeedAuthorKey(m: MilestoneItem): string {
   return `item:${m.id}`;
 }
 
-function feedPostedAtMs(m: MilestoneItem): number {
+export function feedPostedAtMs(m: MilestoneItem): number {
   const raw =
     m.feedSortAt ?? m.createdAt ?? resolveWorldJourneyFeedSortable(m).createdAt;
   if (!raw) return 0;
@@ -90,7 +92,10 @@ function feedPostedAtMs(m: MilestoneItem): number {
   return Number.isNaN(ms) ? 0 : ms;
 }
 
-/** Bài của viewer trong cửa sổ echo — luôn gần đầu feed của họ. */
+/**
+ * @deprecated Rank Timeline không còn dùng author echo (first-impression session pin).
+ * Giữ export nếu chỗ khác còn gọi.
+ */
 export function isWorldJourneyAuthorEcho(
   m: MilestoneItem,
   viewerId: string | null | undefined,
@@ -140,22 +145,17 @@ export function compareWorldJourneyFeedByUnseen(
 
 /**
  * Rank Timeline theo điểm:
- * 1. Author echo (bài mình vừa đăng)
- * 2. `feedScore` / diem_hien_tai DESC
- * 3. Tie-break thời gian đăng
+ * 1. `feedScore` / diem_hien_tai DESC
+ * 2. Tie-break thời gian đăng
  *
- * Không dùng unseen / freshness / cold-start reach / org follow.
+ * First-impression (client session) ghim bài mới lần đầu — không nằm ở comparator này.
  */
 export function compareWorldJourneyFeedByScore(
   a: MilestoneItem,
   b: MilestoneItem,
-  viewerId?: string | null,
-  nowMs = Date.now(),
+  _viewerId?: string | null,
+  _nowMs = Date.now(),
 ): number {
-  const echoA = isWorldJourneyAuthorEcho(a, viewerId, nowMs) ? 0 : 1;
-  const echoB = isWorldJourneyAuthorEcho(b, viewerId, nowMs) ? 0 : 1;
-  if (echoA !== echoB) return echoA - echoB;
-
   const scoreA = a.feedScore ?? 0;
   const scoreB = b.feedScore ?? 0;
   if (scoreA !== scoreB) return scoreB - scoreA;
@@ -170,13 +170,12 @@ export function compareWorldJourneyFeedByScore(
 /**
  * Giữ tối đa `maxPerAuthor` bài / tác giả ở vùng ưu tiên; phần dư xếp sau
  * (giữ thứ tự tương đối trong mỗi nhóm).
- * Bài author-echo không bị demote — luôn thấy bài vừa đăng.
  */
 export function applyAuthorSoftQuota(
   items: ReadonlyArray<MilestoneItem>,
   maxPerAuthor = WORLD_JOURNEY_FEED_AUTHOR_SOFT_QUOTA,
-  viewerId?: string | null,
-  nowMs = Date.now(),
+  _viewerId?: string | null,
+  _nowMs = Date.now(),
 ): MilestoneItem[] {
   if (items.length === 0 || maxPerAuthor < 1) return items.slice();
 
@@ -185,10 +184,6 @@ export function applyAuthorSoftQuota(
   const counts = new Map<string, number>();
 
   for (const m of items) {
-    if (isWorldJourneyAuthorEcho(m, viewerId, nowMs)) {
-      primary.push(m);
-      continue;
-    }
     const key = worldJourneyFeedAuthorKey(m);
     const n = counts.get(key) ?? 0;
     if (n < maxPerAuthor) {
@@ -203,8 +198,7 @@ export function applyAuthorSoftQuota(
 }
 
 /**
- * Rank Timeline: sort theo điểm (+ echo) rồi soft quota max N bài/tác giả.
- * Thay `rankWorldJourneyFeedHybrid` trên World Feed server.
+ * Rank Timeline: sort theo điểm rồi soft quota max N bài/tác giả.
  */
 export function rankWorldJourneyFeedByScore(
   items: ReadonlyArray<MilestoneItem>,
@@ -230,6 +224,78 @@ export function rankWorldJourneyFeedHybrid(
   nowMs = Date.now(),
 ): MilestoneItem[] {
   return rankWorldJourneyFeedByScore(items, viewerId, maxPerAuthor, nowMs);
+}
+
+/**
+ * Top N bài fresh nhất (theo thời gian đăng) — dùng server đảm bảo vào pool/page 0.
+ */
+export function pickWorldJourneyFreshestMilestones(
+  items: ReadonlyArray<MilestoneItem>,
+  cap = WORLD_JOURNEY_FIRST_IMPRESSION_CAP,
+  nowMs = Date.now(),
+): MilestoneItem[] {
+  if (cap < 1 || items.length === 0) return [];
+  return items
+    .filter((m) => isWorldJourneyFreshPost(m, nowMs))
+    .slice()
+    .sort((a, b) => feedPostedAtMs(b) - feedPostedAtMs(a))
+    .slice(0, cap);
+}
+
+/**
+ * Đưa tối đa `cap` bài fresh lên đầu list (dedupe), giữ thứ tự tương đối phần còn lại.
+ * Server dùng để bài mới điểm thấp vẫn có trong payload trang đầu; client vẫn sort lại theo điểm.
+ */
+export function promoteWorldJourneyFreshCandidates(
+  ranked: ReadonlyArray<MilestoneItem>,
+  cap = WORLD_JOURNEY_FIRST_IMPRESSION_CAP,
+  nowMs = Date.now(),
+): MilestoneItem[] {
+  const fresh = pickWorldJourneyFreshestMilestones(ranked, cap, nowMs);
+  if (fresh.length === 0) return ranked.slice();
+  const freshKeys = new Set(fresh.map(worldJourneyMilestonePinKey));
+  const rest = ranked.filter(
+    (m) => !freshKeys.has(worldJourneyMilestonePinKey(m)),
+  );
+  return fresh.concat(rest);
+}
+
+/**
+ * Client: ghim tối đa N bài fresh chưa “thấy lần đầu” trong session lên top.
+ * `seenIds` = đã ghi sessionStorage (kể cả sau F5).
+ */
+export function applyWorldJourneyFirstImpressionPin(
+  items: ReadonlyArray<MilestoneItem>,
+  seenIds: ReadonlySet<string>,
+  cap = WORLD_JOURNEY_FIRST_IMPRESSION_CAP,
+  nowMs = Date.now(),
+): { ordered: MilestoneItem[]; newlyPinnedIds: string[] } {
+  if (items.length === 0 || cap < 1) {
+    return { ordered: items.slice(), newlyPinnedIds: [] };
+  }
+
+  const candidates = items
+    .filter((m) => {
+      if (!isWorldJourneyFreshPost(m, nowMs)) return false;
+      const key = worldJourneyMilestonePinKey(m);
+      return Boolean(key) && !seenIds.has(key);
+    })
+    .slice()
+    .sort((a, b) => feedPostedAtMs(b) - feedPostedAtMs(a))
+    .slice(0, cap);
+
+  if (candidates.length === 0) {
+    return { ordered: items.slice(), newlyPinnedIds: [] };
+  }
+
+  const pinKeys = new Set(candidates.map(worldJourneyMilestonePinKey));
+  const rest = items.filter(
+    (m) => !pinKeys.has(worldJourneyMilestonePinKey(m)),
+  );
+  return {
+    ordered: candidates.concat(rest),
+    newlyPinnedIds: candidates.map(worldJourneyMilestonePinKey),
+  };
 }
 
 /** «Đang sôi nổi» — có cộng view toàn cục. */
@@ -289,7 +355,11 @@ export function sortWorldJourneyMilestones(
   const sorted = milestones.slice().sort(cmp);
   /* Soft quota chỉ áp mặc định «Mới nhất» — các sort tường minh giữ đúng tiêu chí. */
   if (sort === "Mới nhất") {
-    return applyAuthorSoftQuota(sorted, WORLD_JOURNEY_FEED_AUTHOR_SOFT_QUOTA, viewerId);
+    return applyAuthorSoftQuota(
+      sorted,
+      WORLD_JOURNEY_FEED_AUTHOR_SOFT_QUOTA,
+      viewerId,
+    );
   }
   return sorted;
 }
