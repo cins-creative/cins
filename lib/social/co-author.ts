@@ -365,6 +365,39 @@ export async function respondCoAuthor(
   return { ok: true };
 }
 
+/** Tác giả đã tham gia tự cập nhật vị trí của mình trong tác phẩm. */
+export async function updateOwnCoAuthorPositions(
+  tacPhamId: string,
+  userId: string,
+  viTri: ReadonlyArray<string>,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const admin = createServiceRoleClient();
+  const { data: row } = await admin
+    .from("content_tac_pham_tac_gia")
+    .select("id_nguoi_dung")
+    .eq("id_tac_pham", tacPhamId)
+    .eq("id_nguoi_dung", userId)
+    .eq("trang_thai", "accepted")
+    .maybeSingle();
+
+  if (!row) {
+    return {
+      ok: false,
+      error: "Không tìm thấy vai trò đã được xác nhận của bạn.",
+    };
+  }
+
+  const { error } = await admin
+    .from("content_tac_pham_tac_gia")
+    .update({ vai_tro: joinVaiTroPositions(viTri) })
+    .eq("id_tac_pham", tacPhamId)
+    .eq("id_nguoi_dung", userId)
+    .eq("trang_thai", "accepted");
+
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
+}
+
 export async function removeCoAuthor(
   tacPhamId: string,
   targetUserId: string,

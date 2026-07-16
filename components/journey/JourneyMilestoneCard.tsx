@@ -23,8 +23,12 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { AuthorRoleTooltip } from "@/components/journey/AuthorRoleTooltip";
-import { parseVaiTroPositions } from "@/lib/social/vai-tro";
+import {
+  joinVaiTroPositions,
+  parseVaiTroPositions,
+} from "@/lib/social/vai-tro";
 import { JourneyAuthorRowFriendAction } from "@/components/journey/JourneyAuthorRowFriendAction";
+import { JourneyOwnCoAuthorRoleEditor } from "@/components/journey/JourneyOwnCoAuthorRoleEditor";
 import { JourneyBookmarkListingCard } from "@/components/journey/JourneyBookmarkListingCard";
 import { JourneyMilestoneCardBodyContent } from "@/components/journey/JourneyMilestoneCardBodyContent";
 import { JourneyMilestoneUnfold } from "@/components/journey/JourneyMilestoneUnfold";
@@ -444,7 +448,7 @@ export function JourneyMilestoneCard({
     media = [],
     tags = [],
     articleTags = [],
-    coAuthorCredits = [],
+    coAuthorCredits: initialCoAuthorCredits = [],
     views,
     comments,
     visibility,
@@ -474,6 +478,14 @@ export function JourneyMilestoneCard({
   const [liveArticleTags, setLiveArticleTags] = useState<ArticleTagRef[]>(() => [
     ...articleTags,
   ]);
+  const [coAuthorRoleOverrides, setCoAuthorRoleOverrides] = useState<
+    Record<string, string | null>
+  >({});
+  const coAuthorCredits = initialCoAuthorCredits.map((credit) => {
+    const id = credit.idNguoiDung;
+    if (!id || !Object.hasOwn(coAuthorRoleOverrides, id)) return credit;
+    return { ...credit, role: coAuthorRoleOverrides[id] };
+  });
 
   useEffect(() => {
     setLiveArticleTags([...articleTags]);
@@ -1278,6 +1290,23 @@ export function JourneyMilestoneCard({
                 <span className="abadge abadge-you">Bạn</span>
               ) : c.trangThai === "pending" ? (
                 <span className="abadge abadge-pending">Chờ xác nhận</span>
+              ) : null}
+              {tacPhamId &&
+              viewerProfileId &&
+              c.idNguoiDung === viewerProfileId &&
+              c.trangThai === "accepted" ? (
+                <JourneyOwnCoAuthorRoleEditor
+                  tacPhamId={tacPhamId}
+                  userId={viewerProfileId}
+                  role={c.role}
+                  onSaved={(positions) => {
+                    const nextRole = joinVaiTroPositions(positions);
+                    setCoAuthorRoleOverrides((current) => ({
+                      ...current,
+                      [viewerProfileId]: nextRole,
+                    }));
+                  }}
+                />
               ) : null}
               <JourneyAuthorRowFriendAction
                 targetUserId={c.idNguoiDung}

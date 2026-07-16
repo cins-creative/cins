@@ -231,6 +231,39 @@ export async function respondOrgBaiDangCoAuthor(
   return { ok: true };
 }
 
+/** Cộng sự đã tham gia tự cập nhật vị trí của mình trong bài đăng tổ chức. */
+export async function updateOwnOrgBaiDangCoAuthorPositions(
+  baiDangId: string,
+  userId: string,
+  viTri: ReadonlyArray<string>,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const admin = createServiceRoleClient();
+  const { data: row } = await admin
+    .from("org_bai_dang_tac_gia")
+    .select("id_nguoi_dung")
+    .eq("id_bai_dang", baiDangId)
+    .eq("id_nguoi_dung", userId)
+    .eq("trang_thai", "accepted")
+    .maybeSingle();
+
+  if (!row) {
+    return {
+      ok: false,
+      error: "Không tìm thấy vai trò đã được xác nhận của bạn.",
+    };
+  }
+
+  const { error } = await admin
+    .from("org_bai_dang_tac_gia")
+    .update({ vai_tro: joinVaiTroPositions(viTri) })
+    .eq("id_bai_dang", baiDangId)
+    .eq("id_nguoi_dung", userId)
+    .eq("trang_thai", "accepted");
+
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
+}
+
 /** Lời mời cộng sự org đang chờ — hiển thị banner Journey + dropdown thông báo. */
 export async function loadPendingOrgBaiDangCoAuthorInvites(
   userId: string,

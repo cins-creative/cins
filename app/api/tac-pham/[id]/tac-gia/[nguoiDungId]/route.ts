@@ -3,8 +3,15 @@ import { NextResponse } from "next/server";
 
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import { loadCoAuthorCreditsForTacPham } from "@/lib/journey/coauthor-credits";
-import { removeCoAuthor, respondCoAuthor } from "@/lib/social/co-author";
-import { respondOrgBaiDangCoAuthor } from "@/lib/truong/org-bai-dang-coauthor";
+import {
+  removeCoAuthor,
+  respondCoAuthor,
+  updateOwnCoAuthorPositions,
+} from "@/lib/social/co-author";
+import {
+  respondOrgBaiDangCoAuthor,
+  updateOwnOrgBaiDangCoAuthorPositions,
+} from "@/lib/truong/org-bai-dang-coauthor";
 import { MAX_COAUTHOR_POSITIONS } from "@/lib/social/vai-tro";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
@@ -31,19 +38,15 @@ export async function PATCH(req: Request, ctx: RouteCtx) {
     return NextResponse.json({ error: "Chỉ người được tag mới phản hồi." }, { status: 403 });
   }
 
-  let body: { trang_thai?: string; vai_tro?: unknown };
+  let body: {
+    action?: string;
+    trang_thai?: string;
+    vai_tro?: unknown;
+  };
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: "Body JSON không hợp lệ." }, { status: 400 });
-  }
-
-  const trangThai = body.trang_thai;
-  if (trangThai !== "accepted" && trangThai !== "declined") {
-    return NextResponse.json(
-      { error: "trang_thai phải là accepted hoặc declined." },
-      { status: 400 },
-    );
   }
 
   let viTri: string[] | undefined;
@@ -64,6 +67,58 @@ export async function PATCH(req: Request, ctx: RouteCtx) {
         { status: 400 },
       );
     }
+  }
+
+  if (body.action === "update_role") {
+    if (!viTri?.length) {
+      return NextResponse.json(
+        { error: "Chọn ít nhất một vị trí công việc." },
+        { status: 400 },
+      );
+    }
+
+    let result = await updateOwnCoAuthorPositions(
+      tacPhamId,
+      nguoiDungId,
+      viTri,
+    );
+    if (!result.ok && result.error.includes("Không tìm thấy")) {
+      result = await updateOwnOrgBaiDangCoAuthorPositions(
+        tacPhamId,
+        nguoiDungId,
+        viTri,
+      );
+    }
+    if (!result.ok) {
+      return NextResponse.json({ error: result.error }, { status: 403 });
+    }
+
+    const admin = createServiceRoleClient();
+    const ownerId = await getTacPhamOwnerId(tacPhamId);
+    if (ownerId) {
+      const { data: owner } = await admin
+        .from("user_nguoi_dung")
+        .select("slug")
+        .eq("id", ownerId)
+        .maybeSingle();
+      if (owner?.slug) revalidatePath(`/${owner.slug}`);
+    }
+    const { data: profile } = await admin
+      .from("user_nguoi_dung")
+      .select("slug")
+      .eq("id", nguoiDungId)
+      .maybeSingle();
+    if (profile?.slug) revalidatePath(`/${profile.slug}`);
+
+    return NextResponse.json({ ok: true, vai_tro: viTri });
+  }
+
+  const trangThai = body.trang_thai;
+  if (trangThai !== "accepted" && trangThai !== "declined") {
+    return NextResponse.json(
+      { error: "trang_thai phải là accepted hoặc declined." },
+      { status: 400 },
+    );
   }
 
   let result = await respondCoAuthor(tacPhamId, nguoiDungId, trangThai, viTri);

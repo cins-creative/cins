@@ -16943,6 +16943,84 @@ button.j-user-pop-close svg {
 .author-row-mutual svg {
   opacity: 0.75;
 }
+.author-row-role-edit {
+  margin-left: auto;
+  flex: 0 0 auto;
+}
+.author-row-role-edit.is-open {
+  flex: 1 0 100%;
+  margin-left: 0;
+}
+.author-row-role-edit-trigger {
+  min-width: 44px;
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 0 9px;
+  border: 1px solid var(--jcard-blue-border);
+  border-radius: 999px;
+  background: var(--jcard-blue-bg);
+  color: var(--jcard-blue);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.author-row-role-edit-trigger:hover {
+  background: var(--cins-blue);
+  border-color: var(--cins-blue);
+  color: var(--bg-surface);
+}
+.author-row-role-edit-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--jcard-blue-border);
+  border-radius: 10px;
+  background: var(--cins-blue-soft);
+}
+.author-row-role-edit-panel > p:first-child {
+  margin: 0;
+  color: var(--jcard-ink);
+  font-size: 12px;
+  font-weight: 500;
+}
+.author-row-role-edit-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.author-row-role-edit-actions button {
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--bg-surface);
+  color: var(--ink-body);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.author-row-role-edit-actions button.is-save {
+  border-color: var(--cins-blue);
+  background: var(--cins-blue);
+  color: var(--bg-surface);
+}
+.author-row-role-edit-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.author-row-role-edit-error {
+  margin: 0;
+  color: var(--jcard-danger, #b91c1c);
+  font-size: 11px;
+  line-height: 1.4;
+}
 /* Popover bọc dòng đồng tác giả — tên full width, vai trò xuống hàng. */
 .author-row-item > .j-user-pop-wrap {
   flex: 1 1 100%;
