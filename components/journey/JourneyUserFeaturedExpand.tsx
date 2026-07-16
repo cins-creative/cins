@@ -27,6 +27,16 @@ import "./journey-user-featured.css";
 
 type Props = {
   slug: string;
+  /** Popover / chỗ user đang nhìn — hiện khung ngay + fetch ngầm. */
+  eager?: boolean;
+  /** Controlled — gắn với ô thống kê «Nổi bật». */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  /** Báo khi đã biết có / không có bài pin (để bật ô «Nổi bật»). */
+  onAvailabilityChange?: (info: {
+    ready: boolean;
+    count: number;
+  }) => void;
 };
 
 type AsidePayload = {
@@ -87,14 +97,27 @@ async function probeAspect(item: GalleryPinnedBanner): Promise<number> {
 
 /**
  * Mũi tên dưới card user — xổ preview thumb Nội dung nổi bật (chỉ xem, không mở bài).
- * Muốn xem đầy đủ thì vào Journey. Ẩn khi user không có bài pinned.
+ * Muốn xem đầy đủ thì vào Journey. Eager: hiện khung ngay, query ngầm; ẩn nếu không có pin.
  */
-export function JourneyUserFeaturedExpand({ slug }: Props) {
+export function JourneyUserFeaturedExpand({
+  slug,
+  eager = false,
+  open: openControlled,
+  onOpenChange,
+  onAvailabilityChange,
+}: Props) {
   const trimmed = slug.trim();
-  const [open, setOpen] = useState(false);
+  const [openUncontrolled, setOpenUncontrolled] = useState(false);
+  const controlled = openControlled !== undefined;
+  const open = controlled ? openControlled : openUncontrolled;
+  const setOpen = (next: boolean | ((prev: boolean) => boolean)) => {
+    const value = typeof next === "function" ? next(open) : next;
+    if (!controlled) setOpenUncontrolled(value);
+    onOpenChange?.(value);
+  };
   const [items, setItems] = useState<GalleryPinnedBanner[] | null>(null);
   const [loadState, setLoadState] = useState<"idle" | "loading" | "ready" | "error">(
-    "idle",
+    () => (eager ? "loading" : "idle"),
   );
   const [aspectById, setAspectById] = useState<Map<string, number>>(
     () => new Map(),
@@ -103,15 +126,17 @@ export function JourneyUserFeaturedExpand({ slug }: Props) {
   useEffect(() => {
     setOpen(false);
     setItems(null);
-    setLoadState("idle");
+    setLoadState(eager ? "loading" : "idle");
     setAspectById(new Map());
-  }, [trimmed]);
+    onAvailabilityChange?.({ ready: false, count: 0 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset theo slug
+  }, [trimmed, eager]);
 
   useEffect(() => {
     if (!trimmed) return;
     let cancelled = false;
 
-    const cancelIdle = scheduleWhenIdle(() => {
+    const runFetch = () => {
       if (cancelled) return;
       setLoadState("loading");
       void fetch(`/api/journey/${encodeURIComponent(trimmed)}/gallery-aside`)
@@ -121,24 +146,36 @@ export function JourneyUserFeaturedExpand({ slug }: Props) {
           if (!json) {
             setLoadState("error");
             setItems([]);
+            onAvailabilityChange?.({ ready: true, count: 0 });
             return;
           }
-          setItems(Array.isArray(json.pinned) ? json.pinned : []);
+          const pinned = Array.isArray(json.pinned) ? json.pinned : [];
+          setItems(pinned);
           setLoadState("ready");
+          onAvailabilityChange?.({ ready: true, count: pinned.length });
         })
         .catch(() => {
           if (!cancelled) {
             setLoadState("error");
             setItems([]);
+            onAvailabilityChange?.({ ready: true, count: 0 });
           }
         });
-    }, 1200);
+    };
 
+    if (eager) {
+      runFetch();
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    const cancelIdle = scheduleWhenIdle(runFetch, 1200);
     return () => {
       cancelled = true;
       cancelIdle();
     };
-  }, [trimmed]);
+  }, [trimmed, eager, onAvailabilityChange]);
 
   useEffect(() => {
     if (!open || !items || items.length === 0) return;
@@ -190,34 +227,47 @@ export function JourneyUserFeaturedExpand({ slug }: Props) {
       data: item,
     }));
     const packed = packMasonryByAspect(cells, MASONRY_COLS);
-    /* Giữ đúng 3 cột UI kể cả khi ít bài / cột pack trống bị lọc. */
     const cols = [...packed];
     while (cols.length < MASONRY_COLS) cols.push([]);
     return cols.slice(0, MASONRY_COLS);
   }, [items, aspectById]);
 
+  const pending = loadState === "idle" || loadState === "loading";
   const hasFeatured = loadState === "ready" && (items?.length ?? 0) > 0;
+  const emptyOrFailed =
+    loadState === "error" ||
+    (loadState === "ready" && (items?.length ?? 0) === 0);
 
-  if (!trimmed || !hasFeatured) return null;
+  if (!trimmed) return null;
+  /* Friend card list: chỉ hiện khi đã có pin (tránh flash khung trống). */
+  if (!eager && !hasFeatured) return null;
+  /* Popover eager: hiện khung toggle ngay (đóng); ẩn hẳn khi query xong mà không có pin. */
+  if (eager && emptyOrFailed) return null;
 
   return (
-    <div className={`j-user-featured${open ? " is-open" : ""}`}>
+    <div
+      className={`j-user-featured${open ? " is-open" : ""}${pending ? " is-pending" : ""}`}
+    >
       <button
         type="button"
         className="j-user-featured-toggle"
         aria-expanded={open}
         aria-controls={`j-user-featured-panel-${trimmed}`}
         aria-label={open ? "Thu gọn nội dung nổi bật" : "Xem nội dung nổi bật"}
+        aria-busy={pending || undefined}
+        disabled={pending}
         onClick={(event) => {
           event.stopPropagation();
           event.preventDefault();
+          if (pending) return;
           setOpen((value) => !value);
         }}
       >
+        <span className="j-user-featured-toggle-label">Nội dung nổi bật</span>
         <ChevronDown size={16} strokeWidth={2.2} aria-hidden />
       </button>
 
-      {open ? (
+      {open && hasFeatured ? (
         <div
           id={`j-user-featured-panel-${trimmed}`}
           className="j-user-featured-panel"

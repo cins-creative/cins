@@ -165,9 +165,9 @@
 }
 
 /* ── Album ảnh (block imgs) ──────────────────────────────────────── */
-/* Khe giữa ô — khớp editor `--cins-img-slot-gap` (½ của 3px cũ). */
+/* Khe giữa ô — khớp editor `--cins-img-slot-gap` (mặc định 2px). */
 .article-rich-content {
-  --cins-img-slot-gap: 1.5px;
+  --cins-img-slot-gap: 2px;
 }
 /* Nhóm adaptive (giữ tỉ lệ gốc): full / inset / masonry. */
 .article-rich-content .rich-imgs--full {

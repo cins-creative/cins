@@ -142,7 +142,7 @@
 | Folder | Vai trò chính | File đáng chú ý |
 |---|---|---|
 | `supabase/` | Client server/browser/service-role, env, cookie, error | `service-role.ts`, `route-handler.ts`, `env.ts` |
-| `auth/` | Google OAuth, session, login-intent, **vai trò hệ thống** | `google-oauth.ts`, `session.ts`, `oauth-intent-*`, `cins-admin*`, `system-role.ts` |
+| `auth/` | Google OAuth, session, login-intent, **vai trò hệ thống** | `google-oauth.ts`, `in-app-browser.ts`, `oauth-errors.ts`, `session.ts`, `oauth-intent-*`, `cins-admin*`, `system-role.ts` |
 | `social/` | Kết bạn, follow entity, notification, co-author, video-ready | `ket-ban.ts`, `follow.ts`, `follow-entity.ts` ⚠️§5, `thong-bao-insert.ts` |
 | `journey/` | Milestone, timeline, gallery, video processing, co-author credit, cache | `timeline-merge.ts`, `milestone-verify.ts`, `foreign-milestone-visibility.ts`, `video-upload-session.ts`, `sync-tac-pham-tags.ts` |
 | `cong-dong/` | Tạo org, membership, thảo luận, filter, sidebar, mirror tác phẩm, **quản lý thành viên**, categories, event rail, **branding** | `org-create.ts`, `org-profile.ts`, `membership.ts`, `members.ts`, `vai-tro.ts`, `categories.ts`, `event-rail.ts`, `creator-milestone.ts`, `sync-from-publish.ts`, `tac-pham-mirror.ts` ⚠️§5 |
@@ -250,7 +250,9 @@ chat_moc
 
 ```
 # Supabase
-NEXT_PUBLIC_SUPABASE_URL = https://ospzzzxcomrmhqrnkoiw.supabase.co
+NEXT_PUBLIC_SUPABASE_URL = https://auth.cins.vn
+# Fallback cũ (vẫn dùng được): https://ospzzzxcomrmhqrnkoiw.supabase.co
+# Script DNS/check: node scripts/setup-auth-custom-domain.mjs {dns|check}
 SUPABASE_SERVICE_ROLE_KEY  (server-only, dùng trong lib/supabase/service-role.ts)
 
 # Bunny Stream (video)
@@ -283,7 +285,7 @@ URL: `https://imagedelivery.net/${NEXT_PUBLIC_CF_IMAGES_ACCOUNT_HASH}/${cloudfla
 
 Code map: `lib/journey/images.ts` (role `gallery-grid` → `grid` + `srcset` `gridsm`/`grid`) · `lib/journey/image-grid.ts` (`gridThumbAsset` ảnh đơn dọc → `feed`/`feedsm`) · `lib/truong/images.ts` (`CfImageVariant`) · `scripts/cf-ensure-image-variants.mjs` (đồng bộ variant Dashboard). Ô lưới CSS: `aspect-ratio: 16/9` — **không** dùng `thumbnail` (vuông) hay `public` cho grid thumb ảnh dọc đơn (dùng `feed`).
 
-- **Deploy**: **Cloudflare Workers** qua OpenNext (`@opennextjs/cloudflare`). Config: `wrangler.jsonc` (worker **`cins`**, `nodejs_compat`, binding `HYPERDRIVE` + `ASSETS`), `open-next.config.ts`. Production: **`https://cins.vn`** (và `www.cins.vn`); workers.dev: `https://cins.info-cins-vn.workers.dev`.
+- **Deploy**: **Cloudflare Workers** qua OpenNext (`@opennextjs/cloudflare`). Config: `wrangler.jsonc` (worker **`cins`**, `nodejs_compat`, binding `HYPERDRIVE` + `ASSETS`), `open-next.config.ts`. Production: **`https://cins.vn`** (và `www.cins.vn`); workers.dev: `https://cins.info-cins-vn.workers.dev`. **Không dùng Vercel** — không deploy / preview / env trên Vercel; không còn `*.vercel.app` trong OAuth hay Site URL.
   - **Build phải dùng webpack** (`next build --webpack`) — build Turbopack chạy trên Workers bị `ChunkLoadError`. Đã cài trong script `build`.
   - **Postgres TCP** (admin SQL `lib/admin/*`, tag trigram `lib/tag/postgres.ts`) đi qua **Hyperdrive** (config `cins-supabase`, binding `HYPERDRIVE`, caching off). Code lấy connection string từ `lib/db/hyperdrive.ts`; fallback `DATABASE_URL` khi chạy Node (`next dev`).
   - **Env**: `NEXT_PUBLIC_*` inline lúc build từ `.env.local`. Secret server-side set bằng `wrangler secret bulk` (SUPABASE_SERVICE_ROLE_KEY, CLOUDFLARE_IMAGES_API_TOKEN, ARTICLE_INLINE_IMAGE_UPLOAD_TOKEN, DATABASE_URL, BUNNY_*, GOOGLE_*, CINS_SYSTEM_USER_ID, **CINS_ORG_DELEGATION_PASSWORD**). `CLOUDFLARE_ACCOUNT_ID` (không bí mật, cần ở runtime cho upload Cloudflare Images) khai báo trong `wrangler.jsonc` → `vars` (không phải secret). Local preview: `.dev.vars` (gitignore).
@@ -293,10 +295,13 @@ Code map: `lib/journey/images.ts` (role `gallery-grid` → `grid` + `srcset` `gr
     - **GitHub repo secrets** (Settings → Secrets and variables → Actions → **Repository secrets**, đúng tên — không phải Environments): `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` (`2a6e413a7ced7243651c9d476e7d2f25`), `DATABASE_URL` (Postgres/Hyperdrive — cùng giá trị runtime trên Worker, dùng cho OpenNext deploy trên CI), `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_CF_IMAGES_ACCOUNT_HASH`, `NEXT_PUBLIC_BUNNY_LIBRARY_ID`, `NEXT_PUBLIC_BUNNY_CDN_HOSTNAME`, `NEXT_PUBLIC_ARTICLE_INLINE_IMAGE_UPLOAD_TOKEN`, `NEXT_PUBLIC_CAREER_THUMB_UPLOAD_TOKEN` (cùng giá trị `.env.local` production). **Không** đặt tên rút gọn (`BUNNY_LIBRARY_ID`, `CLOUDFLARE_TOKEN`, …). Token CF: My Profile → API Tokens → template *Edit Cloudflare Workers*.
     - **Workers Builds** (Cloudflare Dashboard, tùy chọn — **không bật song song** với Actions deploy trên cùng branch `main`, tránh deploy 2 lần): Workers & Pages → worker **`cins`** → Settings → Builds → Connect GitHub `cins-creative/cins`, branch `main`. Build command: `npx opennextjs-cloudflare build`. Deploy command: `npx opennextjs-cloudflare deploy -- --keep-vars`. Build variables & secrets: cùng bộ `NEXT_PUBLIC_*` ở trên + `NEXT_PUBLIC_SITE_URL=https://cins.vn`. Runtime secrets giữ trên Worker (Variables & Secrets / `wrangler secret`) — deploy dùng `--keep-vars`.
     - OpenNext build trên CI: Linux (GitHub-hosted runner); không build OpenNext trên Windows trực tiếp.
-  - **OAuth**: thêm `https://cins.vn/auth/callback` (và `https://www.cins.vn/auth/callback` nếu dùng) vào Supabase → Authentication → URL Configuration → Redirect URLs.
+  - **OAuth (Supabase → Authentication → URL Configuration)**:
+    - **Site URL**: `https://cins.vn`
+    - **Redirect URLs**: `https://cins.vn/auth/callback` (và `https://www.cins.vn/auth/callback` nếu dùng www); dev: `http://localhost:3001/auth/callback`
+    - **Xóa** mọi URL `*.vercel.app` / host Vercel cũ — lệch domain → mất cookie PKCE verifier. Branding consent Google: cấu hình OAuth Client riêng trên Google Cloud + (khuyến nghị) Supabase Custom Domain `auth.cins.vn` — chi tiết bảng *Journey & auth* → *OAuth branding*.
   - Request body lớn: video KHÔNG đi qua server (browser upload thẳng Bunny qua TUS; server chỉ `post-video/prepare` ký request).
 - **Video flow**: `prepare` (tạo object + ký) → browser TUS upload → Bunny re-encode HLS → webhook/poll `status`/`processing` → `complete` → `notifications/video-ready`.
-- **Auth**: Google OAuth only, `/login` với `state` phân biệt đăng ký/đăng nhập; onboarding modal overlay khi `giai_doan IS NULL`; trigger `handle_new_user()` `SECURITY DEFINER`.
+- **Auth**: Google OAuth (+ email/password OTP), `/login` với cookie intent phân biệt đăng ký/đăng nhập; onboarding modal overlay khi `giai_doan IS NULL`; trigger `handle_new_user()` `SECURITY DEFINER`. In-app browser bị chặn sớm (`in-app-browser.ts`) để tránh Google 403 `disallowed_useragent`.
 
 ---
 
@@ -340,12 +345,24 @@ Code map: `lib/journey/images.ts` (role `gallery-grid` → `grid` + `srcset` `gr
 | Xem công khai | Journey, timeline, bài viết, Gallery tab — **không** redirect `/login` |
 | Nhãn riêng (filter) | Khách **được** thấy / lọc nhãn `filter_nhan` của chủ Journey (chỉ nhãn có ≥1 cột mốc visible). UI: `JourneyPersonalFilterMenuSection` + `orderTimelinePersonalFilters`. Provider: `JourneyProfileShellClient` **luôn** bọc `JourneyComposeProvider` (kèm `JourneyPersonalFilterProvider`) kể cả `!isOwner` — thiếu provider thì dropdown mất section «Nhãn riêng» / `?filter=` không chạy. API: `GET /api/filters?userId=`. Deep link: `lib/filter/client-utils.ts` |
 | Tương tác | Like / bookmark / bình luận → modal đăng nhập nếu chưa session (`AuthGateProvider` trên `app/[slug]/layout`; cộng đồng: `useCongDongAuthGate` + `AuthRequiredModal`) |
-| OAuth | Google PKCE — `app/auth/callback/route.ts`; cookie `cins-oauth-intent`, `cins-oauth-return` |
+| OAuth | Google PKCE — `app/auth/callback/route.ts`; cookie `cins-oauth-intent`, `cins-oauth-return`. Host production duy nhất: **`cins.vn`** (Cloudflare) — **không** Vercel / `*.vercel.app`. Chặn in-app browser trước khi redirect (`lib/auth/in-app-browser.ts`); map lỗi Google (`lib/auth/oauth-errors.ts`, gồm `disallowed_useragent`) |
 | Protected | `/onboarding`, `/admin`, `/{slug}/p/new`, `/{slug}/p/.../edit` |
 | Admin panel gate | Middleware: session bắt buộc. `renderAdminPage` + `lib/auth/system-role.ts`: chỉ `super_admin` / `admin` / `curator`. Tab `/admin/nguoi-dung`: `canManageUsers` (super_admin + admin). Sửa nội dung: `canEditContent`. **Phân quyền org** (`/admin/to-chuc`, nút Shield): chỉ `super_admin` + `CINS_ORG_DELEGATION_PASSWORD` + mật khẩu ủy quyền mỗi mutation (L22). |
-| Dev OAuth | `NEXT_PUBLIC_SITE_URL=http://localhost:3001` trong `.env.local`; Supabase Redirect URLs `http://localhost:3001/auth/callback` (không lẫn `127.0.0.1`) |
+| Dev OAuth | `NEXT_PUBLIC_SITE_URL=http://localhost:3001` trong `.env.local`; mở đúng `http://localhost:3001/login` (không `127.0.0.1` / `0.0.0.0` / IP LAN). Supabase Redirect URLs: `http://localhost:3001/auth/callback` |
+| Dev Supabase URL | **Local `.env.local`:** `NEXT_PUBLIC_SUPABASE_URL=https://ospzzzxcomrmhqrnkoiw.supabase.co` (cùng DB/anon key). **Production secret:** `https://auth.cins.vn`. Dev trỏ `auth.cins.vn` khi DNS máy chưa resolve → query Supabase fail → trang guest trống (stats `—`). |
 | Production site URL | **`NEXT_PUBLIC_SITE_URL=https://cins.vn`** phải có lúc `next build` / `npm run deploy` (biến shell ưu tiên hơn `.env.local`). Script `scripts/ensure-prod-site-url.mjs` tự ép khi deploy nếu env còn localhost. Build sai → trang login cảnh báo origin lệch & canonical host redirect không chạy. |
-| Callback | Đọc verifier từ **request** cookies, ghi session lên **response** redirect (`lib/supabase/route-handler.ts`) |
+| Callback | Đọc verifier từ **request** cookies, ghi session lên **response** redirect (`lib/supabase/route-handler.ts`). Thông báo thiếu PKCE dùng **origin hiện tại** + nhắc `https://cins.vn/auth/callback` — không hardcode host cũ. |
+| OAuth branding (Dashboard) | Consent Google hiện `*.supabase.co` nếu chưa cấu hình. Checklist: (1) Supabase Site URL = `https://cins.vn` + Redirect URLs; (2) Google Cloud OAuth consent = app **CINs** + logo + verify domain `cins.vn`; (3) OAuth Client redirect URI = `https://ospzzzxcomrmhqrnkoiw.supabase.co/auth/v1/callback`; (4) dán Client ID/Secret vào Supabase → Auth → Google; (5) custom domain `auth.cins.vn` — xem **Custom domain Auth** bên dưới. |
+
+#### Custom domain Auth (`auth.cins.vn`)
+
+| Bước | Ai | Việc |
+|---|---|---|
+| DNS CNAME | Bạn (Cloudflare) hoặc AI khi token có **Zone:DNS Edit** | `auth` → `ospzzzxcomrmhqrnkoiw.supabase.co`, **Proxy OFF** (DNS only). Script: `node scripts/setup-auth-custom-domain.mjs dns` |
+| Add-on + activate | Bạn | Supabase → Custom Domains **hoặc** `npx supabase login` rồi `domains create / reverify / activate --project-ref ospzzzxcomrmhqrnkoiw --custom-hostname auth.cins.vn` |
+| Google redirect | Bạn | Thêm `https://auth.cins.vn/auth/v1/callback` vào OAuth Client |
+| Env + deploy | Bạn + AI hỗ trợ | `NEXT_PUBLIC_SUPABASE_URL=https://auth.cins.vn` (`.env.local` + GitHub secret) → redeploy. **Không** đổi URL trước khi domain Active. |
+| Kiểm tra | AI / bạn | `node scripts/setup-auth-custom-domain.mjs check` — DNS + `https://auth.cins.vn/auth/v1/health` |
 
 ### Embed → Gallery thumbnail (auto cover)
 

@@ -5,7 +5,6 @@ import {
   fetchRecentTacPhamGallery,
   listNgheArticlesForHub,
 } from "@/lib/articles/queries";
-import { listBlogHub } from "@/lib/bai-viet/queries";
 import { mapNgheArticlesToHubItems } from "@/lib/career/articleMappers";
 import { listLinhVucForHub } from "@/lib/career/queries";
 import type { NgheNghiepHubItem } from "@/lib/career/types";
@@ -40,14 +39,6 @@ export type GuestHomeEvent = CongDongEvent & {
   coverSrc: string | null;
 };
 
-export type GuestHomeBlog = {
-  slug: string;
-  title: string;
-  summary: string | null;
-  thumbSrc: string | null;
-  loai: string;
-};
-
 export type GuestHomeLinhVuc = {
   slug: string;
   ten: string;
@@ -65,7 +56,6 @@ export type GuestHomeData = {
   courses: KhoaHocGoiYItem[];
   events: GuestHomeEvent[];
   works: GuestHomeWork[];
-  blog: GuestHomeBlog[];
 };
 
 function pickSchools(items: TruongListItem[], limit: number): TruongListItem[] {
@@ -94,7 +84,6 @@ export async function loadGuestHomeData(): Promise<GuestHomeData> {
     eventsRaw,
     courses,
     worksRaw,
-    blogResult,
   ] = await Promise.all([
     listTruongDaiHoc(),
     listCoSoDaoTaoForListing(),
@@ -104,7 +93,6 @@ export async function loadGuestHomeData(): Promise<GuestHomeData> {
     loadUpcomingEventsForHome([], 6),
     loadKhoaHocGoiY(6),
     fetchRecentTacPhamGallery(8),
-    listBlogHub({ limit: 4 }),
   ]);
 
   const ngheRows = ngheResult.ok ? ngheResult.items : [];
@@ -135,16 +123,6 @@ export async function loadGuestHomeData(): Promise<GuestHomeData> {
     loai: w.loai_tac_pham ?? null,
   }));
 
-  const blog: GuestHomeBlog[] = blogResult.ok
-    ? blogResult.items.map((row) => ({
-        slug: row.slug,
-        title: row.tieu_de_eng?.trim() || row.tieu_de,
-        summary: row.tom_tat,
-        thumbSrc: row.thumb_url ?? row.cover_url,
-        loai: row.loai_bai_viet,
-      }))
-    : [];
-
   return {
     stats: {
       nghe: ngheRows.length,
@@ -161,6 +139,5 @@ export async function loadGuestHomeData(): Promise<GuestHomeData> {
     courses,
     events,
     works,
-    blog,
   };
 }

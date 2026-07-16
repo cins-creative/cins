@@ -1568,24 +1568,46 @@
   width: 52px;
   height: 100%;
 }
+.cins-editor-page .block[data-block-type="imgs"]::after {
+  content: "";
+  position: absolute;
+  right: -52px;
+  top: 0;
+  width: 52px;
+  height: 100%;
+}
 .cins-editor-page .block.selected {
   box-shadow: 0 0 0 2px var(--cins-blue);
   background: var(--cins-blue-soft);
-  /* Đè AddZone kề nhau — tránh click ▲▼✕ lệch sang nút +. */
+  /* Dưới add-zone (+ / picker) — nút chèn luôn nằm trên block chọn. */
   z-index: 25;
 }
 
-/* Side controls */
-.cins-editor-page .block-side {
+/* Side controls — rail absolute full-height block; toolbar sticky trong khung scroll. */
+.cins-editor-page .block-side-rail,
+.cins-editor-page .lay-bar-rail {
   position: absolute;
-  left: -46px;
   top: 0;
+  bottom: 0;
+  width: 30px;
+  z-index: 6;
+  pointer-events: none;
+}
+.cins-editor-page .block-side-rail {
+  left: -46px;
+}
+.cins-editor-page .lay-bar-rail {
+  right: -46px;
+}
+.cins-editor-page .block-side {
+  position: sticky;
+  top: 12px;
+  left: auto;
   display: flex;
   flex-direction: column;
   gap: 4px;
   opacity: 0;
   transition: opacity 0.15s;
-  z-index: 6;
   /* Ẩn hẳn hit-test khi chưa chọn — không chặn click nhầm. */
   pointer-events: none;
 }
@@ -2003,7 +2025,7 @@
   position: relative;
 }
 .cins-editor-page {
-  --cins-img-slot-gap: 1.5px;
+  --cins-img-slot-gap: 2px;
 }
 .cins-editor-page .imgwrap {
   display: block;
@@ -2219,7 +2241,7 @@
   display: block;
   transition: opacity 0.18s ease;
 }
-/* justified: ảnh phủ kín ô đã giãn (fill ngang), cắt gọn nhẹ ở cao. */
+/* justified: ảnh phủ ô — bản đọc ghi đè contain (post-page / unfold). */
 .cins-editor-page .imgwrap.justified .ph img {
   height: 100%;
   width: 100%;
@@ -2233,64 +2255,70 @@
   margin-top: 8px;
 }
 
-/* Layout switcher (image block) — giữa khung ảnh, tránh đè nút xoá góc ô. */
+/* Layout switcher (image block) — rail dọc bên phải ngoài khung, đối xứng block-side. */
 .cins-editor-page .lay-bar {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  position: sticky;
+  top: 12px;
+  right: auto;
+  left: auto;
+  transform: none;
   display: flex;
-  gap: 3px;
-  background: rgba(14, 17, 23, 0.82);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  padding: 4px;
-  border-radius: var(--radius-pill);
+  flex-direction: column;
+  gap: 4px;
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  padding: 0;
+  border-radius: 0;
   opacity: 0;
   transition: opacity 0.15s;
-  z-index: 5;
-  max-width: calc(100% - 24px);
-  width: max-content;
+  max-width: none;
+  width: auto;
+  overflow: visible;
   flex-wrap: nowrap;
-  overflow-x: auto;
-  overflow-y: hidden;
-  scrollbar-width: thin;
+  pointer-events: none;
 }
-.cins-editor-page .lay-bar::-webkit-scrollbar {
-  height: 4px;
-}
-.cins-editor-page .lay-bar::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.35);
-  border-radius: 999px;
+.cins-editor-page .lay-bar::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -12px;
+  width: 14px;
+  height: 100%;
 }
 .cins-editor-page .block.selected .lay-bar {
   opacity: 1;
+  pointer-events: auto;
 }
 .cins-editor-page .lay-btn {
-  min-width: 30px;
+  width: 30px;
   height: 30px;
-  padding: 0 8px;
-  border-radius: var(--radius-pill);
-  border: none;
-  background: transparent;
-  color: rgba(255, 255, 255, 0.7);
+  min-width: 30px;
+  padding: 0;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-surface);
+  color: var(--ink-body);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: var(--shadow-xs);
+  transition: all 0.12s;
   font-family: inherit;
   font-size: 12px;
   font-weight: 600;
   flex-shrink: 0;
 }
 .cins-editor-page .lay-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
   color: #fff;
+  background: var(--cins-blue);
+  border-color: var(--cins-blue);
 }
 .cins-editor-page .lay-btn.active {
-  /* Chip trắng cố định trên lay-bar tối — không dùng --neutral-900 (dark mode đảo sáng). */
-  background: #fff;
-  color: #0e1117;
+  background: var(--cins-blue);
+  color: #fff;
+  border-color: var(--cins-blue);
 }
 .cins-editor-page .lay-thumb {
   display: block;
@@ -2299,12 +2327,27 @@
 .cins-editor-page .lay-btn.round-toggle.active {
   background: var(--cins-yellow);
   color: #0e1117;
+  border-color: var(--cins-yellow);
+}
+.cins-editor-page .lay-btn.gap-toggle {
+  font-variant-numeric: tabular-nums;
+}
+.cins-editor-page .lay-btn.gap-toggle .lay-gap-val {
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+.cins-editor-page .lay-btn.gap-toggle.active {
+  background: var(--cins-yellow);
+  color: #0e1117;
+  border-color: var(--cins-yellow);
 }
 .cins-editor-page .lay-sep {
-  width: 1px;
-  height: 18px;
-  background: rgba(255, 255, 255, 0.25);
-  margin: 0 2px;
+  width: 22px;
+  height: 1px;
+  background: var(--border-strong);
+  margin: 2px auto;
   align-self: center;
 }
 
@@ -2450,14 +2493,17 @@
 .cins-editor-page .ph-change {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  gap: 0;
+  width: 34px;
+  height: 34px;
   background: rgba(14, 17, 23, 0.78);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   color: #fff;
   border: none;
-  border-radius: var(--radius-pill);
-  padding: 6px 13px;
+  border-radius: 50%;
+  padding: 0;
   font-family: inherit;
   font-size: 11px;
   font-weight: 600;
@@ -2548,8 +2594,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  /* Trên album ảnh (ô / ph-del ~7) — nút + không bị che. */
-  z-index: 20;
+  /* Cao hơn `.block.selected` (25) — nút + / picker không bị block chọn che. */
+  z-index: 50;
+}
+.cins-editor-page .add-zone.open {
+  z-index: 60;
 }
 .cins-editor-page .add-zone::after {
   /* Vùng hover ẩn — bao phủ ±8px quanh đường biên block để dễ click. */
@@ -2593,7 +2642,7 @@
   justify-content: center;
   opacity: 0;
   transition: all 0.15s var(--ed-ease);
-  z-index: 21;
+  z-index: 51;
   font-family: inherit;
   font-size: 16px;
   font-weight: 600;
@@ -3223,7 +3272,12 @@
   }
   /* Block side controls (drag/del) đè vào padding canvas, gây overflow.
      Giấu trên mobile — owner edit qua tap-and-hold (lượt sau). */
+  .cins-editor-page .block-side-rail,
+  .cins-editor-page .lay-bar-rail,
   .cins-editor-page .block-side {
+    display: none;
+  }
+  .cins-editor-page .lay-bar {
     display: none;
   }
   .cins-editor-page .block::before {
@@ -3977,26 +4031,17 @@
 .cins-editor-page.mc-compose-page .mc-photo-preview .lay-bar,
 .cins-editor-page.mc-compose-page .mc-photo-preview:hover .lay-bar,
 .cins-editor-page.mc-compose-page .mc-photo-preview.is-active .lay-bar {
+  position: absolute;
   opacity: 1;
-  top: 50%;
-  left: 50%;
-  right: auto;
-  transform: translate(-50%, -50%);
-  max-width: calc(100% - 20px);
-  width: max-content;
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  overflow-y: hidden;
-  scrollbar-width: thin;
-  -webkit-overflow-scrolling: touch;
-  padding-bottom: 2px;
-}
-.cins-editor-page.mc-compose-page .mc-photo-preview .lay-bar::-webkit-scrollbar {
-  height: 4px;
-}
-.cins-editor-page.mc-compose-page .mc-photo-preview .lay-bar::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.35);
-  border-radius: 999px;
+  right: -46px;
+  left: auto;
+  top: 0;
+  transform: none;
+  flex-direction: column;
+  max-width: none;
+  width: auto;
+  overflow: visible;
+  pointer-events: auto;
 }
 .cins-editor-page.mc-compose-page .mc-photo-preview .lay-btn {
   flex-shrink: 0;
@@ -4369,12 +4414,14 @@
 }
 .cins-editor-page.is-overlay .editor-canvas {
   max-height: calc(100vh - 140px);
-  overflow-y: auto;
-  /* Picker dùng `position: fixed` — không cần clip để tránh cắt menu chèn block. */
+  /* Chỉ scroll dọc — `overflow-y: auto` + `overflow-x: visible` bị browser
+     ép overflow-x thành auto/clip → cắt lay-bar bên phải. Dùng clip chỉ trục Y. */
   overflow-x: visible;
+  overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  /* Compose overlay — left padding 56px cho `.block-side` (left: -46px). */
+  /* Compose overlay — padding hai bên cho block-side (trái) + lay-bar (phải). */
   padding-left: 56px;
+  padding-right: 56px;
 }
 
 /* Picker portal — compose overlay neo theo nút `+` (AddZone). */
@@ -4772,4 +4819,72 @@
     max-height: 100vh;
     border-radius: 0;
   }
+}
+
+/* ─── DARK THEME — editor + compose overlay ─────────────────────────
+   Topbar blur + nền card sáng trong overlay dễ làm chữ token (sáng ở dark)
+   mất tương phản. Dùng nền đặc + canvas trong suốt khi is-overlay. */
+:root[data-theme="dark"] .cins-editor-page .ed-topbar {
+  background: var(--bg-surface);
+  border-bottom-color: var(--border);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+:root[data-theme="dark"] .cins-editor-page .ed-topbar-inner {
+  color: var(--ink-display);
+}
+
+:root[data-theme="dark"] .cins-editor-page .ed-btn.ghost,
+:root[data-theme="dark"] .cins-editor-page a.ed-btn.ghost {
+  color: var(--cins-blue);
+}
+
+:root[data-theme="dark"] .cins-editor-page .vis-btn {
+  color: var(--ink-display);
+}
+
+:root[data-theme="dark"] .cins-editor-page .vis-btn:hover {
+  color: var(--cins-blue);
+}
+
+:root[data-theme="dark"] .cins-editor-page .ed-compose-close {
+  color: var(--ink-body);
+}
+
+:root[data-theme="dark"] .cins-editor-page .ed-compose-close:hover,
+:root[data-theme="dark"] .cins-editor-page .ed-compose-close:focus-visible {
+  background: var(--neutral-100);
+  color: var(--ink-display);
+}
+
+:root[data-theme="dark"] .cins-editor-page.is-overlay .editor-canvas {
+  background: transparent;
+  box-shadow: none;
+}
+
+:root[data-theme="dark"] .cins-editor-page .title-in::placeholder,
+:root[data-theme="dark"] .cins-editor-page .sub-in::placeholder,
+:root[data-theme="dark"] .cins-editor-page .b-text::placeholder,
+:root[data-theme="dark"] .cins-editor-page .ed-md-field > textarea.ed-md-input::placeholder,
+:root[data-theme="dark"] .cins-editor-page .ed-md-field.sub-in > textarea.ed-md-input::placeholder,
+:root[data-theme="dark"] .cins-editor-page .ed-md-field.b-text > textarea.ed-md-input::placeholder {
+  color: var(--ink-muted);
+  -webkit-text-fill-color: var(--ink-muted);
+}
+
+:root[data-theme="dark"] .cins-editor-page .ed-md-field {
+  color: var(--ink-body);
+}
+
+:root[data-theme="dark"] .cins-editor-page .ed-md-field.ed-minimal-body {
+  background: var(--neutral-100);
+  border-color: var(--border);
+  color: var(--ink-display);
+}
+
+:root[data-theme="dark"] .cins-editor-page .meta-chip.add {
+  background: var(--bg-surface);
+  border-color: var(--border-strong);
+  color: var(--ink-muted);
 }

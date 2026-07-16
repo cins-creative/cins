@@ -396,7 +396,7 @@ export function GuestHomeView({ data }: Props) {
           ) : null}
 
           {data.works.length > 0 ? (
-            <section className="gh-section" aria-labelledby="gh-works">
+            <section className="gh-section gh-section--last" aria-labelledby="gh-works">
               <SectionHead
                 eyebrow="portfolio cộng đồng"
                 title="Tác phẩm mới trên CINs"
@@ -439,46 +439,6 @@ export function GuestHomeView({ data }: Props) {
                     </li>
                   );
                 })}
-              </ul>
-            </section>
-          ) : null}
-
-          {data.blog.length > 0 ? (
-            <section className="gh-section gh-section--last" aria-labelledby="gh-blog">
-              <SectionHead
-                eyebrow="đọc thêm"
-                title="Bài viết &amp; hướng dẫn"
-                href="/bai-viet"
-                linkLabel="Tất cả bài viết"
-              />
-              <ul className="gh-blog-list" id="gh-blog">
-                {data.blog.map((post) => (
-                  <li key={post.slug}>
-                    <Link
-                      href={articlePublicHref(post.loai, post.slug)}
-                      className="gh-blog-card"
-                    >
-                      {post.thumbSrc ? (
-                        <div className="gh-blog-thumb">
-                          <Image
-                            src={post.thumbSrc}
-                            alt=""
-                            fill
-                            className="gh-blog-thumb-img"
-                            sizes="85px"
-                            unoptimized={post.thumbSrc.includes("imagedelivery.net")}
-                          />
-                        </div>
-                      ) : null}
-                      <div className="gh-blog-body">
-                        <h3 className="gh-blog-title">{post.title}</h3>
-                        {post.summary ? (
-                          <p className="gh-blog-sum">{post.summary}</p>
-                        ) : null}
-                      </div>
-                    </Link>
-                  </li>
-                ))}
               </ul>
             </section>
           ) : null}

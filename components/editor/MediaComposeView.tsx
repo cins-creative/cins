@@ -37,8 +37,8 @@ import {
   type ArticleTagRef,
 } from "@/lib/editor/article-tag";
 import { validatePostContentForPublish, POST_MOTA_MAX } from "@/lib/journey/post-content-kind";
-import { publishPost } from "@/app/[slug]/p/new/actions";
-import { updatePost } from "@/app/[slug]/p/[postSlug]/edit/actions";
+import { publishPost } from "@/lib/editor/post-publish-action";
+import { updatePost } from "@/lib/editor/post-update-action";
 import { uploadPostImageWithProgress } from "@/lib/files/upload-post-image";
 import { rememberCfAccountHashFromDeliveryUrl } from "@/lib/cloudflare/account-hash";
 import type { ComposePublishedDetail } from "@/lib/journey/compose-published-sync";
@@ -821,6 +821,7 @@ export function MediaComposeView({
             config: {
               layout: "full",
               rounded: false,
+              gap: 2,
               cap: "",
               imgs: [photo.imageId!],
               width: photo.width,

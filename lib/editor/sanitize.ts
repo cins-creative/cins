@@ -19,6 +19,7 @@ import { resolveImageSeedUrl } from "@/lib/editor/resolve-image-seed-url";
 import type { Block, BlockType } from "@/lib/editor/types";
 import {
   flattenMosaicCells,
+  normalizeImgSlotGap,
   normalizeLegacyLayout,
 } from "@/lib/editor/image-layout";
 import {
@@ -200,6 +201,7 @@ function renderImgsBlock(b: Block): string {
   // Layout cũ (grid2, hero, …) được map sang qua normalizeLegacyLayout.
   const layout = normalizeLegacyLayout(b.config?.layout);
   const rounded = !!b.config?.rounded;
+  const gap = normalizeImgSlotGap(b.config?.gap);
   const cap = (b.config?.cap as string | undefined) || "";
 
   const capHtml = cap
@@ -224,7 +226,7 @@ function renderImgsBlock(b: Block): string {
     })
     .join("");
 
-  return `<figure class="rich-imgs rich-imgs--${layout}${rounded ? " is-rounded" : ""}">${cellsHtml}${capHtml}</figure>`;
+  return `<figure class="rich-imgs rich-imgs--${layout}${rounded ? " is-rounded" : ""}" style="--cins-img-slot-gap:${gap}px">${cellsHtml}${capHtml}</figure>`;
 }
 
 function imgSrcForSeed(seed: string): string {

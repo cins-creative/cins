@@ -5,6 +5,10 @@ export type FollowSuggestion = {
   slug: string;
   name: string;
   avatarUrl: string | null;
+  /** Ảnh bìa hồ sơ — card promo / gợi ý kiểu friend-card. */
+  coverUrl: string | null;
+  /** Mô tả ngắn hồ sơ (bio). */
+  bio: string | null;
   giaiDoan: string | null;
   /** Số bạn chung với người xem (0 nếu không có / không xác định). */
   mutualCount: number;

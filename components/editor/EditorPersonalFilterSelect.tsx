@@ -121,8 +121,6 @@ export function EditorPersonalFilterSelect({
   const selectedType =
     JOURNEY_MILESTONE_TYPE_OPTIONS.find((opt) => opt.db === loaiMoc) ?? null;
   const triggerLabel = selected?.ten ?? selectedType?.label ?? "Nhãn";
-  const TypeIcon = selectedType?.Icon ?? null;
-  const dotMau = selected?.mau ?? null;
   const userFilterCount = countUserPersonalFilters(rawFilters);
   const atLabelLimit = userFilterCount >= MAX_FILTERS_PER_OWNER;
   const listLoading =
@@ -419,21 +417,10 @@ export function EditorPersonalFilterSelect({
           setOpen((v) => !v);
         }}
       >
-        {dotMau ? (
-          <span
-            className="j-dd-dot"
-            style={{ background: dotMau }}
-            aria-hidden
-          />
-        ) : TypeIcon ? (
-          <span className="ico" aria-hidden>
-            <TypeIcon size={18} strokeWidth={1.8} />
-          </span>
-        ) : (
-          <span className="ico" aria-hidden>
-            <Tag size={18} strokeWidth={1.8} />
-          </span>
-        )}
+        {/* Khớp JourneyTimelineBar `.j-tlb-dd-btn.is-icon` — luôn Tag, không đổi sang chấm màu. */}
+        <span className="ico" aria-hidden>
+          <Tag size={14} strokeWidth={1.8} />
+        </span>
       </button>
       {menu}
     </div>

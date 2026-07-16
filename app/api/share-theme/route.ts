@@ -7,6 +7,7 @@ import {
   serializeShareOgThemeState,
   SHARE_OG_CUSTOMS_MAX,
   type ShareOgCustomEntry,
+  type ShareOgLayouts,
   type ShareOgTheme,
   type ShareOgThemeState,
 } from "@/lib/journey/share-og-theme";
@@ -19,6 +20,7 @@ import { isTruongOrgAdmin } from "@/lib/truong/org-admin";
    ║                                                                  ║
    ║ User: cột text `user_nguoi_dung.theme` (JSON string).            ║
    ║ Org:  `org_to_chuc.cau_hinh.share_og_theme`.                     ║
+   ║ Shape: { active, customs, layouts: { journey, gallery } }.       ║
    ║ Chỉ chủ profile / admin org được PATCH.                          ║
    ╚══════════════════════════════════════════════════════════════════╝ */
 
@@ -26,6 +28,7 @@ type PatchBody = {
   orgId?: string;
   active?: ShareOgTheme;
   customs?: ShareOgCustomEntry[];
+  layouts?: ShareOgLayouts;
   /** Xóa một custom imageId khỏi list (+ CF best-effort). */
   removeImageId?: string;
 };
@@ -33,6 +36,7 @@ type PatchBody = {
 function normalizeState(
   active: ShareOgTheme | undefined,
   customs: ShareOgCustomEntry[] | undefined,
+  layouts: ShareOgLayouts | undefined,
   seed: string,
   prev: ShareOgThemeState,
 ): ShareOgThemeState {
@@ -57,7 +61,11 @@ function normalizeState(
     .slice(0, SHARE_OG_CUSTOMS_MAX);
 
   return parseShareOgThemeState(
-    { active: nextActive, customs: nextCustoms },
+    {
+      active: nextActive,
+      customs: nextCustoms,
+      layouts: layouts ?? prev.layouts,
+    },
     seed,
   );
 }
@@ -158,7 +166,13 @@ export async function PATCH(request: Request) {
       org.cau_hinh?.share_og_theme ?? null,
       org.slug,
     );
-    let next = normalizeState(body.active, body.customs, org.slug, prev);
+    let next = normalizeState(
+      body.active,
+      body.customs,
+      body.layouts,
+      org.slug,
+      prev,
+    );
 
     if (body.removeImageId?.trim()) {
       const removeId = body.removeImageId.trim();
@@ -178,6 +192,7 @@ export async function PATCH(request: Request) {
       share_og_theme: {
         active: next.active,
         customs: next.customs,
+        layouts: next.layouts,
       },
     };
 
@@ -208,7 +223,13 @@ export async function PATCH(request: Request) {
   }
 
   const prev = parseShareOgThemeState(user.theme, user.slug);
-  let next = normalizeState(body.active, body.customs, user.slug, prev);
+  let next = normalizeState(
+    body.active,
+    body.customs,
+    body.layouts,
+    user.slug,
+    prev,
+  );
 
   if (body.removeImageId?.trim()) {
     const removeId = body.removeImageId.trim();

@@ -1,5 +1,6 @@
 "use client";
 
+import { MoTaMarkdown } from "@/components/editor/compose/MoTaMarkdown";
 import { PostBlockRenderer } from "@/components/journey/PostBlockRenderer";
 import type { Block } from "@/lib/editor/types";
 import {
@@ -45,7 +46,11 @@ export function JourneyUnfoldArticleContent({
     <>
       {showTitle ? <h1 className="title-in title-ro">{title}</h1> : null}
       {unfoldTomTat ? (
-        <p className="sub-in sub-ro">{unfoldTomTat}</p>
+        <MoTaMarkdown
+          text={unfoldTomTat}
+          className="sub-in sub-ro"
+          as="div"
+        />
       ) : null}
       <PostBlockRenderer blocks={blocks} />
     </>

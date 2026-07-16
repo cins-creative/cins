@@ -37,6 +37,12 @@
 
 ## LOG — quyết định đã chốt
 
+### Host production = cins.vn only · bỏ Vercel (2026-07-16)
+
+- **Chốt:** Production site URL / OAuth / deploy chỉ **`https://cins.vn`** trên **Cloudflare Workers** (OpenNext). Không dùng Vercel; xóa Redirect URLs / Site URL `*.vercel.app` trên Supabase.
+- **Vì sao:** Host lệch (Vercel vs `cins.vn` vs localhost) → cookie PKCE verifier không khớp lúc `/auth/callback` → lỗi «không tìm thấy mã xác minh PKCE».
+- **Code/docs:** thông báo PKCE lấy origin request; gỡ fallback `VERCEL_URL` / copy Vercel trong notice env; `AGENTS.md` + `CINS_IMPLEMENTATION.md` §4/§6 auth.
+
 ### Auto thumbnail embed Gallery (2026-07-15)
 
 - **Không screenshot iframe; resolve provider/OG + capture `.riv`.**

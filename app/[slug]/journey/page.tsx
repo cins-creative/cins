@@ -14,6 +14,9 @@ type SearchParams = Promise<{
   view?: string;
   compose?: string;
   edit?: string;
+  nhom?: string;
+  filter?: string;
+  display?: string;
 }>;
 
 export async function generateMetadata({
@@ -25,7 +28,11 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const sp = await searchParams;
-  return buildJourneyMetadata(slug, sp.view);
+  return buildJourneyMetadata(slug, {
+    view: sp.view,
+    nhom: sp.nhom,
+    filter: sp.filter,
+  });
 }
 
 export default async function JourneyPage({

@@ -30,13 +30,6 @@
   margin: 0;
 }
 
-.gh-login-title em {
-  font-family: var(--font-serif);
-  font-style: italic;
-  font-weight: 600;
-  color: var(--cins-blue);
-}
-
 .gh-login-lead {
   margin: var(--space-2) 0 0;
   font-size: var(--text-sm);
@@ -119,8 +112,8 @@
 
 .gh-login-panel .cins-login-pw-tabs {
   padding: 3px;
-  background: var(--neutral-50);
-  border: 1px solid var(--border);
+  background: transparent;
+  border: none;
   border-radius: var(--radius-pill);
   gap: 3px;
 }
@@ -213,8 +206,8 @@
   gap: 6px;
   text-align: center;
   padding: var(--space-3) var(--space-2);
-  background: var(--neutral-50);
-  border: 1px solid var(--border);
+  background: transparent;
+  border: none;
   border-radius: var(--radius-md);
 }
 

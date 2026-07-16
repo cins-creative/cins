@@ -1,6 +1,6 @@
 import "server-only";
 
-import { getAvatarUrl } from "@/lib/journey/profile";
+import { getAvatarUrl, getProfileCoverUrl } from "@/lib/journey/profile";
 import { resolvePersona, type GiaiDoan, type Persona } from "@/lib/cins/home-adaptive/persona";
 import {
   CO_SO_DAO_TAO_LOAI,
@@ -27,8 +27,17 @@ type UserRow = {
   slug: string | null;
   ten_hien_thi: string | null;
   avatar_id: string | null;
+  cover_id: string | null;
+  bio: string | null;
   giai_doan: string | null;
 };
+
+function shortBio(bio: string | null | undefined, max = 110): string | null {
+  const text = bio?.replace(/\s+/g, " ").trim();
+  if (!text) return null;
+  if (text.length <= max) return text;
+  return `${text.slice(0, max - 1).trimEnd()}…`;
+}
 
 /**
  * Gợi ý người để kết nối (module `goi_y_theo_doi` / `nguoi_cung_nganh`, feed promo).
@@ -68,7 +77,7 @@ export async function loadFollowSuggestions(
 
   const { data } = await admin
     .from("user_nguoi_dung")
-    .select("id, slug, ten_hien_thi, avatar_id, giai_doan")
+    .select("id, slug, ten_hien_thi, avatar_id, cover_id, bio, giai_doan")
     .eq("trang_thai_tai_khoan", "dang_hoat_dong")
     .not("giai_doan", "is", null)
     .order("lan_cuoi_active", { ascending: false, nullsFirst: false })
@@ -83,6 +92,8 @@ export async function loadFollowSuggestions(
       slug: row.slug.trim(),
       name: row.ten_hien_thi?.trim() || row.slug.trim(),
       avatarUrl: getAvatarUrl(row.avatar_id),
+      coverUrl: getProfileCoverUrl(row.cover_id),
+      bio: shortBio(row.bio),
       giaiDoan: row.giai_doan,
       mutualCount: 0,
       isFriend: false,

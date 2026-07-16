@@ -5,6 +5,7 @@ import { useCallback, useState, useTransition } from "react";
 
 import { useOptionalAuthGate } from "@/components/auth/AuthGateProvider";
 import { emitNotificationsChanged } from "@/lib/journey/notifications-client";
+import { emitUserFollowChanged } from "@/lib/social/follow-client";
 import type { SocialActorProfile } from "@/lib/social/actors-types";
 import type { QuanHe } from "@/lib/social/types";
 import { useRouter } from "next/navigation";
@@ -58,6 +59,8 @@ export function JourneySocialActorActions({ actor, viewerId }: Props) {
         } | null;
         setQuanHe("pending_sent");
         setKetBanId(json?.ket_ban_id ?? ketBanId);
+        setFollowing(true);
+        emitUserFollowChanged(actor.idNguoiDung, true);
         emitNotificationsChanged();
       });
     });
@@ -75,6 +78,10 @@ export function JourneySocialActorActions({ actor, viewerId }: Props) {
         if (!res.ok) return;
         setQuanHe(action === "accept" ? "accepted" : "none");
         if (action === "decline") setKetBanId(null);
+        if (action === "accept") {
+          setFollowing(true);
+          emitUserFollowChanged(actor.idNguoiDung, true);
+        }
         emitNotificationsChanged();
       });
     });
@@ -110,6 +117,7 @@ export function JourneySocialActorActions({ actor, viewerId }: Props) {
         } | null;
         if (!res.ok) return;
         setFollowing(Boolean(json?.dang_theo_doi));
+        emitUserFollowChanged(actor.idNguoiDung, Boolean(json?.dang_theo_doi));
       });
     });
   };
@@ -169,21 +177,23 @@ export function JourneySocialActorActions({ actor, viewerId }: Props) {
         </button>
       )}
 
-      <button
-        type="button"
-        className={`jsa-act is-follow${following ? " is-following" : ""}`}
-        title={followLabel}
-        aria-label={followLabel}
-        aria-pressed={following}
-        disabled={pending}
-        onClick={toggleFollow}
-      >
-        {following ? (
-          <Bell size={15} strokeWidth={2} aria-hidden />
-        ) : (
-          <BellPlus size={15} strokeWidth={2} aria-hidden />
-        )}
-      </button>
+      {quanHe !== "accepted" ? (
+        <button
+          type="button"
+          className={`jsa-act is-follow${following ? " is-following" : ""}`}
+          title={followLabel}
+          aria-label={followLabel}
+          aria-pressed={following}
+          disabled={pending}
+          onClick={toggleFollow}
+        >
+          {following ? (
+            <Bell size={15} strokeWidth={2} aria-hidden />
+          ) : (
+            <BellPlus size={15} strokeWidth={2} aria-hidden />
+          )}
+        </button>
+      ) : null}
     </div>
   );
 }

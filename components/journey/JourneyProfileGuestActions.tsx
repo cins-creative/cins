@@ -33,6 +33,7 @@ export function JourneyProfileGuestActions({
   const { openChat } = useCinsChat();
   const [error, setError] = useState<string | null>(null);
   const isSelf = viewerProfileId === targetUserId;
+  const showFollowButton = !isSelf && ketBan.quanHe !== "accepted";
 
   const openMessage = () => {
     if (!viewerProfileId) {
@@ -78,7 +79,7 @@ export function JourneyProfileGuestActions({
             />
           </div>
         ) : null}
-        {!isSelf ? (
+        {showFollowButton ? (
           <div className="j-friend-card-follow">
             <JourneyUserFollowButton
               compact

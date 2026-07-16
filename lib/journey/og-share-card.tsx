@@ -1,9 +1,19 @@
-import type { JourneyShareProfile } from "@/lib/journey/profile-share";
+import type { CSSProperties, ReactNode } from "react";
+
+import type {
+  JourneyGalleryCardVariant,
+  JourneyJourneyCardVariant,
+  JourneyShareProfile,
+} from "@/lib/journey/profile-share";
 import {
+  DEFAULT_SHARE_OG_LAYOUTS,
   resolveShareOgThemeTokens,
   shareOgBackgroundStyle,
   type ShareOgTheme,
+  type ShareOgThemeTokens,
 } from "@/lib/journey/share-og-theme";
+
+/* ── Primitives ─────────────────────────────────────────────── */
 
 function OgAvatar({
   profile,
@@ -58,38 +68,19 @@ function OgAvatar({
   );
 }
 
-function OgBrand({
-  logoUrl,
-  ink,
-}: {
-  logoUrl: string;
-  ink: string;
-}) {
+function OgBrand({ logoUrl, ink }: { logoUrl: string; ink: string }) {
   return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 10,
-      }}
-    >
+    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={logoUrl}
         alt="CINs"
-        width={40}
-        height={40}
-        style={{ width: 40, height: 40, borderRadius: 10 }}
+        width={36}
+        height={36}
+        style={{ width: 36, height: 36, borderRadius: 10 }}
       />
-      <span
-        style={{
-          fontSize: 20,
-          fontWeight: 700,
-          color: ink,
-          letterSpacing: "0.04em",
-        }}
-      >
-        CINS.VN
+      <span style={{ fontSize: 18, fontWeight: 700, color: ink, letterSpacing: "0.04em" }}>
+        CINS
       </span>
     </div>
   );
@@ -99,22 +90,25 @@ function OgUrlChip({
   slug,
   accent,
   panel,
+  light = false,
 }: {
   slug: string;
   accent: string;
   panel: string;
+  light?: boolean;
 }) {
   return (
     <div
       style={{
         display: "flex",
         alignItems: "center",
-        padding: "10px 18px",
+        padding: "10px 16px",
         borderRadius: 999,
-        background: panel,
-        color: accent,
+        background: light ? "rgba(255,255,255,0.18)" : panel,
+        color: light ? "#ffffff" : accent,
         fontSize: 18,
         fontWeight: 700,
+        flexShrink: 0,
       }}
     >
       cins.vn/{slug}
@@ -122,251 +116,45 @@ function OgUrlChip({
   );
 }
 
-/** Journey — cover cinematic + identity strip theo theme. */
-export function OgJourneyShareCard({
+function OgCover({
   profile,
-  logoUrl,
-  theme,
+  style,
 }: {
   profile: JourneyShareProfile;
-  logoUrl: string;
-  theme?: ShareOgTheme | null;
+  style?: CSSProperties;
 }) {
-  const tokens = resolveShareOgThemeTokens(theme, profile.slug);
-  const bg = shareOgBackgroundStyle(tokens);
-  const cotMoc = profile.stats?.cotMoc ?? 0;
-  const tacPham = profile.stats?.tacPham ?? 0;
-  const bio =
-    profile.bio?.trim() ||
-    "Khám phá hành trình sáng tạo — cột mốc, tác phẩm và kết nối trên CINs.";
-
+  if (profile.coverUrl) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={profile.coverUrl}
+        alt=""
+        width={1200}
+        height={630}
+        style={{
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+          ...style,
+        }}
+      />
+    );
+  }
   return (
     <div
       style={{
         width: "100%",
         height: "100%",
-        display: "flex",
-        flexDirection: "column",
-        backgroundColor: bg.backgroundColor,
-        ...(tokens.isCustom
-          ? {}
-          : {
-              backgroundImage: bg.backgroundImage,
-              backgroundSize: bg.backgroundSize,
-            }),
-        color: tokens.ink,
-        fontFamily: "Be Vietnam Pro",
-        position: "relative",
+        background: "linear-gradient(135deg, #0ea5e9 0%, #0369a1 55%, #0f172a 100%)",
+        ...style,
       }}
-    >
-      {tokens.backgroundImage ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={tokens.backgroundImage}
-          alt=""
-          width={1200}
-          height={630}
-          style={{
-            position: "absolute",
-            inset: 0,
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-            opacity: 0.35,
-          }}
-        />
-      ) : null}
-
-      <div
-        style={{
-          position: "relative",
-          width: "100%",
-          height: 320,
-          overflow: "hidden",
-          display: "flex",
-        }}
-      >
-        {profile.coverUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={profile.coverUrl}
-            alt=""
-            width={1200}
-            height={320}
-            style={{
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-            }}
-          />
-        ) : (
-          <div
-            style={{
-              width: "100%",
-              height: "100%",
-              background: tokens.accent,
-              opacity: 0.35,
-            }}
-          />
-        )}
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            background: `linear-gradient(180deg, transparent 30%, ${
-              tokens.lightInk ? "rgba(15,23,42,0.9)" : "rgba(255,255,255,0.92)"
-            } 100%)`,
-          }}
-        />
-      </div>
-
-      <div
-        style={{
-          flex: 1,
-          display: "flex",
-          flexDirection: "column",
-          padding: "0 48px 40px",
-          marginTop: -72,
-          position: "relative",
-          gap: 20,
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "flex-end",
-            justifyContent: "space-between",
-            gap: 24,
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "flex-end", gap: 22 }}>
-            <OgAvatar
-              profile={profile}
-              size={96}
-              borderColor={tokens.lightInk ? "#0f172a" : "#ffffff"}
-            />
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              <div
-                style={{
-                  fontSize: 44,
-                  fontWeight: 800,
-                  color: tokens.ink,
-                  lineHeight: 1.05,
-                  letterSpacing: "-0.02em",
-                }}
-              >
-                {profile.displayName}
-              </div>
-              {profile.roleLine ? (
-                <div
-                  style={{
-                    fontSize: 20,
-                    fontWeight: 600,
-                    color: tokens.muted,
-                  }}
-                >
-                  {profile.roleLine}
-                </div>
-              ) : null}
-            </div>
-          </div>
-          <OgUrlChip
-            slug={profile.slug}
-            accent={tokens.accent}
-            panel={tokens.panel}
-          />
-        </div>
-
-        <div
-          style={{
-            display: "flex",
-            gap: 28,
-            alignItems: "flex-start",
-          }}
-        >
-          <div
-            style={{
-              flex: 1,
-              fontSize: 22,
-              lineHeight: 1.4,
-              color: tokens.ink,
-              opacity: 0.92,
-            }}
-          >
-            {bio}
-          </div>
-          <div
-            style={{
-              display: "flex",
-              gap: 20,
-              flexShrink: 0,
-              padding: "14px 22px",
-              borderRadius: 18,
-              background: tokens.panel,
-            }}
-          >
-            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-              <span
-                style={{
-                  fontSize: 28,
-                  fontWeight: 800,
-                  color: tokens.accent,
-                  lineHeight: 1,
-                }}
-              >
-                {cotMoc}
-              </span>
-              <span style={{ fontSize: 14, fontWeight: 600, color: tokens.muted }}>
-                Cột mốc
-              </span>
-            </div>
-            <div
-              style={{
-                width: 1,
-                alignSelf: "stretch",
-                background: tokens.muted,
-                opacity: 0.35,
-              }}
-            />
-            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-              <span
-                style={{
-                  fontSize: 28,
-                  fontWeight: 800,
-                  color: tokens.accent,
-                  lineHeight: 1,
-                }}
-              >
-                {tacPham}
-              </span>
-              <span style={{ fontSize: 14, fontWeight: 600, color: tokens.muted }}>
-                Tác phẩm
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <div
-          style={{
-            marginTop: "auto",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <OgBrand logoUrl={logoUrl} ink={tokens.ink} />
-          <span style={{ fontSize: 16, color: tokens.muted, fontWeight: 600 }}>
-            Journey trên CINs
-          </span>
-        </div>
-      </div>
-    </div>
+    />
   );
 }
 
 function OgGalleryThumb({
   src,
-  radius = 18,
+  radius = 16,
 }: {
   src: string | null;
   radius?: number;
@@ -377,8 +165,8 @@ function OgGalleryThumb({
       <img
         src={src}
         alt=""
-        width={280}
-        height={210}
+        width={400}
+        height={400}
         style={{
           width: "100%",
           height: "100%",
@@ -388,7 +176,6 @@ function OgGalleryThumb({
       />
     );
   }
-
   return (
     <div
       style={{
@@ -401,22 +188,22 @@ function OgGalleryThumb({
   );
 }
 
-/** Portfolio — mosaic lớn + identity theo theme. */
-export function OgGalleryShareCard({
-  profile,
-  logoUrl,
-  theme,
-}: {
-  profile: JourneyShareProfile;
-  logoUrl: string;
-  theme?: ShareOgTheme | null;
-}) {
-  const tokens = resolveShareOgThemeTokens(theme, profile.slug);
-  const bg = shareOgBackgroundStyle(tokens);
-  const tacPham = profile.stats?.tacPham ?? 0;
-  const cells = [...(profile.galleryThumbs ?? []).slice(0, 4)];
-  while (cells.length < 4) cells.push("");
+function padThumbs(thumbs: string[] | undefined, n: number): string[] {
+  const cells = [...(thumbs ?? []).slice(0, n)];
+  while (cells.length < n) cells.push("");
+  return cells;
+}
 
+function ThemeShell({
+  tokens,
+  children,
+  padding = 0,
+}: {
+  tokens: ShareOgThemeTokens;
+  children: ReactNode;
+  padding?: number;
+}) {
+  const bg = shareOgBackgroundStyle(tokens);
   return (
     <div
       style={{
@@ -433,8 +220,8 @@ export function OgGalleryShareCard({
             }),
         color: tokens.ink,
         fontFamily: "Be Vietnam Pro",
-        padding: 36,
         position: "relative",
+        padding,
       }}
     >
       {tokens.backgroundImage ? (
@@ -450,102 +237,912 @@ export function OgGalleryShareCard({
             width: "100%",
             height: "100%",
             objectFit: "cover",
-            opacity: 0.28,
+            opacity: 0.3,
           }}
         />
       ) : null}
+      {children}
+    </div>
+  );
+}
 
+function RoleLine({
+  text,
+  color,
+  size = 18,
+}: {
+  text: string;
+  color: string;
+  size?: number;
+}) {
+  if (!text.trim()) return null;
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
       <div
         style={{
-          position: "relative",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: 22,
-          gap: 20,
+          width: 8,
+          height: 8,
+          borderRadius: "50%",
+          background: color,
+          flexShrink: 0,
         }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
-          <OgAvatar profile={profile} size={68} />
-          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            <div
-              style={{
-                fontSize: 34,
-                fontWeight: 800,
-                color: tokens.ink,
-                lineHeight: 1.1,
-                letterSpacing: "-0.02em",
-              }}
-            >
-              {profile.displayName}
+      />
+      <span style={{ fontSize: size, fontWeight: 600, color }}>{text}</span>
+    </div>
+  );
+}
+
+function StatsInline({
+  profile,
+  ink,
+  muted,
+}: {
+  profile: JourneyShareProfile;
+  ink: string;
+  muted: string;
+}) {
+  const cotMoc = profile.stats?.cotMoc ?? 0;
+  const tacPham = profile.stats?.tacPham ?? 0;
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 18 }}>
+      <span style={{ display: "flex", gap: 6 }}>
+        <span style={{ fontWeight: 800, color: ink }}>{cotMoc}</span>
+        <span style={{ fontWeight: 600, color: muted }}>Cột mốc</span>
+      </span>
+      <span style={{ color: muted }}>•</span>
+      <span style={{ display: "flex", gap: 6 }}>
+        <span style={{ fontWeight: 800, color: ink }}>{tacPham}</span>
+        <span style={{ fontWeight: 600, color: muted }}>Tác phẩm</span>
+      </span>
+    </div>
+  );
+}
+
+function StatsPair({
+  profile,
+  tokens,
+}: {
+  profile: JourneyShareProfile;
+  tokens: ShareOgThemeTokens;
+}) {
+  const cotMoc = profile.stats?.cotMoc ?? 0;
+  const tacPham = profile.stats?.tacPham ?? 0;
+  return (
+    <div
+      style={{
+        display: "flex",
+        gap: 18,
+        padding: "12px 18px",
+        borderRadius: 16,
+        background: tokens.panel,
+      }}
+    >
+      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+        <span style={{ fontSize: 26, fontWeight: 800, color: tokens.accent, lineHeight: 1 }}>
+          {cotMoc}
+        </span>
+        <span style={{ fontSize: 13, fontWeight: 600, color: tokens.muted }}>Cột mốc</span>
+      </div>
+      <div
+        style={{
+          width: 1,
+          alignSelf: "stretch",
+          background: tokens.muted,
+          opacity: 0.35,
+        }}
+      />
+      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+        <span style={{ fontSize: 26, fontWeight: 800, color: tokens.accent, lineHeight: 1 }}>
+          {tacPham}
+        </span>
+        <span style={{ fontSize: 13, fontWeight: 600, color: tokens.muted }}>Tác phẩm</span>
+      </div>
+    </div>
+  );
+}
+
+function bioText(profile: JourneyShareProfile): string {
+  return (
+    profile.bio?.trim() ||
+    "Khám phá hành trình sáng tạo — cột mốc, tác phẩm và kết nối trên CINs."
+  );
+}
+
+/* ── Journey layouts ────────────────────────────────────────── */
+
+function BannerLayout({
+  profile,
+  tokens,
+  logoUrl,
+}: {
+  profile: JourneyShareProfile;
+  tokens: ShareOgThemeTokens;
+  logoUrl: string;
+}) {
+  const cotMoc = profile.stats?.cotMoc ?? 0;
+  const tacPham = profile.stats?.tacPham ?? 0;
+  return (
+    <ThemeShell tokens={tokens}>
+      <div style={{ position: "relative", display: "flex", flexDirection: "column", width: "100%", height: "100%" }}>
+        <div style={{ display: "flex", height: 340, overflow: "hidden" }}>
+          <OgCover profile={profile} />
+        </div>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 22,
+            padding: "22px 36px",
+            flex: 1,
+            background: tokens.panel,
+          }}
+        >
+          <div style={{ marginTop: -48 }}>
+            <OgAvatar profile={profile} size={96} />
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1, minWidth: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+              <span
+                style={{
+                  fontSize: 36,
+                  fontWeight: 800,
+                  color: tokens.ink,
+                  letterSpacing: "-0.02em",
+                  lineHeight: 1.1,
+                }}
+              >
+                {profile.displayName}
+              </span>
+              <RoleLine text={profile.roleLine} color={tokens.muted} size={16} />
             </div>
             <div
               style={{
                 fontSize: 18,
-                fontWeight: 600,
-                color: tokens.muted,
+                color: tokens.ink,
+                opacity: 0.88,
+                lineHeight: 1.35,
+                display: "flex",
               }}
             >
-              {tacPham} tác phẩm
+              {bioText(profile)}
             </div>
           </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, alignItems: "flex-end" }}>
+            <OgUrlChip slug={profile.slug} accent={tokens.accent} panel="rgba(255,255,255,0.92)" />
+            <div style={{ display: "flex", gap: 12, fontSize: 16, color: tokens.muted, fontWeight: 600 }}>
+              <span>
+                <span style={{ fontWeight: 800, color: tokens.accent }}>{cotMoc}</span> Cột mốc
+              </span>
+              <span>•</span>
+              <span>
+                <span style={{ fontWeight: 800, color: tokens.accent }}>{tacPham}</span> Tác phẩm
+              </span>
+            </div>
+            <OgBrand logoUrl={logoUrl} ink={tokens.ink} />
+          </div>
         </div>
-        <OgUrlChip
-          slug={profile.slug}
-          accent={tokens.accent}
-          panel={tokens.panel}
-        />
       </div>
+    </ThemeShell>
+  );
+}
 
+function FrameLayout({
+  profile,
+  tokens,
+}: {
+  profile: JourneyShareProfile;
+  tokens: ShareOgThemeTokens;
+}) {
+  return (
+    <ThemeShell tokens={tokens} padding={28}>
       <div
         style={{
           position: "relative",
-          flex: 1,
           display: "flex",
-          gap: 14,
+          width: "100%",
+          height: "100%",
+          borderRadius: 28,
+          overflow: "hidden",
+          background: tokens.panel,
         }}
       >
-        <div style={{ flex: 1.35, display: "flex" }}>
-          <OgGalleryThumb src={cells[0] || null} radius={20} />
+        <div style={{ display: "flex", width: "46%", height: "100%" }}>
+          <OgCover profile={profile} />
         </div>
         <div
           style={{
-            flex: 1,
             display: "flex",
             flexDirection: "column",
+            flex: 1,
+            padding: "36px 40px",
             gap: 14,
+            justifyContent: "center",
           }}
         >
-          <div style={{ flex: 1, display: "flex" }}>
-            <OgGalleryThumb src={cells[1] || null} />
+          <OgAvatar profile={profile} size={84} />
+          <div
+            style={{
+              fontSize: 40,
+              fontWeight: 800,
+              color: tokens.ink,
+              letterSpacing: "-0.02em",
+              lineHeight: 1.1,
+            }}
+          >
+            {profile.displayName}
           </div>
-          <div style={{ flex: 1, display: "flex", gap: 14 }}>
-            <div style={{ flex: 1, display: "flex" }}>
-              <OgGalleryThumb src={cells[2] || null} />
+          <RoleLine text={profile.roleLine} color={tokens.muted} />
+          <div style={{ fontSize: 20, lineHeight: 1.4, color: tokens.ink, opacity: 0.9 }}>
+            {bioText(profile)}
+          </div>
+          <StatsPair profile={profile} tokens={tokens} />
+          <OgUrlChip slug={profile.slug} accent={tokens.accent} panel={tokens.panel} />
+        </div>
+      </div>
+    </ThemeShell>
+  );
+}
+
+function CenterLayout({
+  profile,
+  tokens,
+}: {
+  profile: JourneyShareProfile;
+  tokens: ShareOgThemeTokens;
+}) {
+  const cotMoc = profile.stats?.cotMoc ?? 0;
+  const tacPham = profile.stats?.tacPham ?? 0;
+  return (
+    <ThemeShell tokens={tokens}>
+      <div style={{ position: "relative", display: "flex", flexDirection: "column", width: "100%", height: "100%" }}>
+        <div style={{ display: "flex", height: 160, overflow: "hidden" }}>
+          <OgCover profile={profile} />
+        </div>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            flex: 1,
+            padding: "0 48px 28px",
+            marginTop: -52,
+          }}
+        >
+          <OgAvatar profile={profile} size={104} />
+          <div
+            style={{
+              marginTop: 14,
+              fontSize: 42,
+              fontWeight: 800,
+              color: tokens.ink,
+              letterSpacing: "-0.02em",
+              textAlign: "center",
+            }}
+          >
+            {profile.displayName}
+          </div>
+          <div style={{ marginTop: 8 }}>
+            <RoleLine text={profile.roleLine} color={tokens.muted} />
+          </div>
+          <div
+            style={{
+              marginTop: 10,
+              fontSize: 18,
+              lineHeight: 1.35,
+              color: tokens.ink,
+              opacity: 0.88,
+              textAlign: "center",
+              maxWidth: 720,
+            }}
+          >
+            {bioText(profile)}
+          </div>
+          <div style={{ display: "flex", gap: 16, marginTop: 18 }}>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                padding: "14px 28px",
+                borderRadius: 16,
+                background: tokens.panel,
+                minWidth: 140,
+              }}
+            >
+              <span style={{ fontSize: 28, fontWeight: 800, color: tokens.accent }}>{tacPham}</span>
+              <span style={{ fontSize: 14, fontWeight: 600, color: tokens.muted }}>Tác phẩm</span>
             </div>
-            <div style={{ flex: 1, display: "flex" }}>
-              <OgGalleryThumb src={cells[3] || null} />
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                padding: "14px 28px",
+                borderRadius: 16,
+                background: tokens.panel,
+                minWidth: 140,
+              }}
+            >
+              <span style={{ fontSize: 28, fontWeight: 800, color: tokens.accent }}>{cotMoc}</span>
+              <span style={{ fontSize: 14, fontWeight: 600, color: tokens.muted }}>Cột mốc</span>
+            </div>
+          </div>
+          <div style={{ marginTop: "auto" }}>
+            <OgUrlChip slug={profile.slug} accent={tokens.accent} panel={tokens.panel} />
+          </div>
+        </div>
+      </div>
+    </ThemeShell>
+  );
+}
+
+function SplitLayout({
+  profile,
+  tokens,
+}: {
+  profile: JourneyShareProfile;
+  tokens: ShareOgThemeTokens;
+}) {
+  return (
+    <ThemeShell tokens={tokens}>
+      <div style={{ position: "relative", display: "flex", width: "100%", height: "100%" }}>
+        <div style={{ display: "flex", width: "52%", height: "100%" }}>
+          <OgCover profile={profile} />
+        </div>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            flex: 1,
+            padding: "40px 44px",
+            gap: 14,
+            justifyContent: "center",
+            background: tokens.panel,
+          }}
+        >
+          <OgAvatar profile={profile} size={88} />
+          <div
+            style={{
+              fontSize: 38,
+              fontWeight: 800,
+              color: tokens.ink,
+              letterSpacing: "-0.02em",
+              lineHeight: 1.1,
+            }}
+          >
+            {profile.displayName}
+          </div>
+          <RoleLine text={profile.roleLine} color={tokens.muted} />
+          <div style={{ fontSize: 19, lineHeight: 1.4, color: tokens.ink, opacity: 0.9 }}>
+            {bioText(profile)}
+          </div>
+          <StatsPair profile={profile} tokens={tokens} />
+          <OgUrlChip slug={profile.slug} accent={tokens.accent} panel="rgba(255,255,255,0.9)" />
+        </div>
+      </div>
+    </ThemeShell>
+  );
+}
+
+function ImmersiveLayout({
+  profile,
+  tokens,
+}: {
+  profile: JourneyShareProfile;
+  tokens: ShareOgThemeTokens;
+}) {
+  return (
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        position: "relative",
+        fontFamily: "Be Vietnam Pro",
+        color: "#ffffff",
+      }}
+    >
+      <div style={{ position: "absolute", inset: 0, display: "flex" }}>
+        <OgCover profile={profile} />
+      </div>
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          background:
+            "linear-gradient(180deg, rgba(15,23,42,0.25) 0%, rgba(15,23,42,0.55) 45%, rgba(15,23,42,0.92) 100%)",
+        }}
+      />
+      <div
+        style={{
+          position: "relative",
+          display: "flex",
+          flexDirection: "column",
+          width: "100%",
+          height: "100%",
+          padding: "36px 40px",
+          justifyContent: "space-between",
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+          <OgUrlChip
+            slug={profile.slug}
+            accent="#ffffff"
+            panel="rgba(255,255,255,0.18)"
+            light
+          />
+        </div>
+        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 24 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12, flex: 1 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
+              <OgAvatar profile={profile} size={80} borderColor="rgba(255,255,255,0.9)" />
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <span
+                    style={{
+                      fontSize: 40,
+                      fontWeight: 800,
+                      color: "#ffffff",
+                      letterSpacing: "-0.02em",
+                      lineHeight: 1.1,
+                    }}
+                  >
+                    {profile.displayName}
+                  </span>
+                  <RoleLine text={profile.roleLine} color="rgba(255,255,255,0.75)" size={16} />
+                </div>
+              </div>
+            </div>
+            <div style={{ fontSize: 20, lineHeight: 1.4, color: "rgba(255,255,255,0.9)", maxWidth: 760 }}>
+              {bioText(profile)}
+            </div>
+          </div>
+          <StatsPair
+            profile={profile}
+            tokens={{
+              ...tokens,
+              panel: "rgba(255,255,255,0.14)",
+              accent: "#ffffff",
+              muted: "rgba(255,255,255,0.7)",
+            }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Gallery layouts ────────────────────────────────────────── */
+
+function FilterPill({
+  label,
+  accent,
+  panel,
+}: {
+  label: string;
+  accent: string;
+  panel: string;
+}) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        padding: "6px 12px",
+        borderRadius: 999,
+        background: panel,
+        color: accent,
+        fontSize: 15,
+        fontWeight: 700,
+        flexShrink: 0,
+      }}
+    >
+      {label}
+    </div>
+  );
+}
+
+function StripLayout({
+  profile,
+  tokens,
+  logoUrl,
+  filterLabel,
+}: {
+  profile: JourneyShareProfile;
+  tokens: ShareOgThemeTokens;
+  logoUrl: string;
+  filterLabel?: string | null;
+}) {
+  const cells = padThumbs(profile.galleryThumbs, 4);
+  return (
+    <ThemeShell tokens={tokens} padding={36}>
+      <div style={{ position: "relative", display: "flex", flexDirection: "column", width: "100%", height: "100%", gap: 22 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
+            <OgAvatar profile={profile} size={72} />
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <span style={{ fontSize: 34, fontWeight: 800, color: tokens.ink, letterSpacing: "-0.02em" }}>
+                  {profile.displayName}
+                </span>
+                {filterLabel ? (
+                  <FilterPill label={filterLabel} accent={tokens.accent} panel={tokens.panel} />
+                ) : null}
+              </div>
+              <span style={{ fontSize: 16, fontWeight: 600, color: tokens.muted }}>
+                cins.vn/{profile.slug}
+              </span>
+              <StatsInline profile={profile} ink={tokens.ink} muted={tokens.muted} />
+            </div>
+          </div>
+          <OgBrand logoUrl={logoUrl} ink={tokens.ink} />
+        </div>
+        <div style={{ display: "flex", flex: 1, gap: 12 }}>
+          <div style={{ flex: 1.6, display: "flex" }}>
+            <OgGalleryThumb src={cells[0] || null} radius={18} />
+          </div>
+          <div style={{ flex: 1, display: "flex" }}>
+            <OgGalleryThumb src={cells[1] || null} radius={18} />
+          </div>
+          <div style={{ flex: 1, display: "flex" }}>
+            <OgGalleryThumb src={cells[2] || null} radius={18} />
+          </div>
+          <div style={{ flex: 1, display: "flex" }}>
+            <OgGalleryThumb src={cells[3] || null} radius={18} />
+          </div>
+        </div>
+      </div>
+    </ThemeShell>
+  );
+}
+
+function PanelLayout({
+  profile,
+  tokens,
+  filterLabel,
+}: {
+  profile: JourneyShareProfile;
+  tokens: ShareOgThemeTokens;
+  filterLabel?: string | null;
+}) {
+  const cells = padThumbs(profile.galleryThumbs, 5);
+  return (
+    <ThemeShell tokens={tokens} padding={28}>
+      <div style={{ position: "relative", display: "flex", width: "100%", height: "100%", gap: 22 }}>
+        <div
+          style={{
+            width: 280,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 14,
+            padding: 28,
+            borderRadius: 24,
+            background: tokens.panel,
+            flexShrink: 0,
+          }}
+        >
+          <OgAvatar profile={profile} size={96} />
+          <div
+            style={{
+              fontSize: 28,
+              fontWeight: 800,
+              color: tokens.ink,
+              textAlign: "center",
+              letterSpacing: "-0.02em",
+              lineHeight: 1.15,
+            }}
+          >
+            {profile.displayName}
+          </div>
+          <span style={{ fontSize: 15, fontWeight: 600, color: tokens.muted }}>
+            cins.vn/{profile.slug}
+          </span>
+          {filterLabel ? (
+            <FilterPill label={filterLabel} accent={tokens.accent} panel="rgba(255,255,255,0.9)" />
+          ) : null}
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", flex: 1, gap: 14 }}>
+          <StatsInline profile={profile} ink={tokens.ink} muted={tokens.muted} />
+          <div style={{ display: "flex", flex: 1, gap: 12 }}>
+            <div style={{ flex: 1.4, display: "flex" }}>
+              <OgGalleryThumb src={cells[0] || null} radius={16} />
+            </div>
+            <div style={{ width: 160, display: "flex" }}>
+              <OgGalleryThumb src={cells[1] || null} radius={16} />
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", flex: 1, gap: 12 }}>
+              <div style={{ flex: 1, display: "flex" }}>
+                <OgGalleryThumb src={cells[2] || null} radius={14} />
+              </div>
+              <div style={{ flex: 1, display: "flex", gap: 12 }}>
+                <div style={{ flex: 1, display: "flex" }}>
+                  <OgGalleryThumb src={cells[3] || null} radius={14} />
+                </div>
+                <div style={{ flex: 1, display: "flex" }}>
+                  <OgGalleryThumb src={cells[4] || null} radius={14} />
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
-
-      <div
-        style={{
-          position: "relative",
-          marginTop: 20,
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <OgBrand logoUrl={logoUrl} ink={tokens.ink} />
-        <span style={{ fontSize: 16, color: tokens.muted, fontWeight: 600 }}>
-          Portfolio trên CINs
-        </span>
-      </div>
-    </div>
+    </ThemeShell>
   );
+}
+
+function SidebarLayout({
+  profile,
+  tokens,
+  filterLabel,
+}: {
+  profile: JourneyShareProfile;
+  tokens: ShareOgThemeTokens;
+  filterLabel?: string | null;
+}) {
+  const cells = padThumbs(profile.galleryThumbs, 5);
+  return (
+    <ThemeShell tokens={tokens} padding={28}>
+      <div style={{ position: "relative", display: "flex", width: "100%", height: "100%", gap: 22 }}>
+        <div
+          style={{
+            width: 300,
+            display: "flex",
+            flexDirection: "column",
+            gap: 16,
+            padding: "28px 24px",
+            borderRadius: 24,
+            background: tokens.panel,
+            justifyContent: "center",
+            flexShrink: 0,
+          }}
+        >
+          <OgAvatar profile={profile} size={88} />
+          <div
+            style={{
+              fontSize: 30,
+              fontWeight: 800,
+              color: tokens.ink,
+              letterSpacing: "-0.02em",
+              lineHeight: 1.15,
+            }}
+          >
+            {profile.displayName}
+          </div>
+          <span style={{ fontSize: 15, fontWeight: 700, color: tokens.accent }}>
+            cins.vn/{profile.slug}
+          </span>
+          {filterLabel ? (
+            <FilterPill label={filterLabel} accent={tokens.accent} panel="rgba(255,255,255,0.9)" />
+          ) : null}
+          <StatsPair profile={profile} tokens={tokens} />
+        </div>
+        <div style={{ display: "flex", flex: 1, gap: 12 }}>
+          <div style={{ flex: 1.35, display: "flex" }}>
+            <OgGalleryThumb src={cells[0] || null} radius={16} />
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", flex: 1, gap: 12 }}>
+            <div style={{ flex: 1.2, display: "flex" }}>
+              <OgGalleryThumb src={cells[1] || null} radius={14} />
+            </div>
+            <div style={{ flex: 1, display: "flex", gap: 12 }}>
+              <div style={{ flex: 1, display: "flex" }}>
+                <OgGalleryThumb src={cells[2] || null} radius={12} />
+              </div>
+              <div style={{ flex: 1, display: "flex" }}>
+                <OgGalleryThumb src={cells[3] || null} radius={12} />
+              </div>
+              <div style={{ flex: 1, display: "flex" }}>
+                <OgGalleryThumb src={cells[4] || null} radius={12} />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </ThemeShell>
+  );
+}
+
+function FilmLayout({
+  profile,
+  tokens,
+  logoUrl,
+  filterLabel,
+}: {
+  profile: JourneyShareProfile;
+  tokens: ShareOgThemeTokens;
+  logoUrl: string;
+  filterLabel?: string | null;
+}) {
+  const cells = padThumbs(profile.galleryThumbs, 4);
+  return (
+    <ThemeShell tokens={tokens} padding={36}>
+      <div style={{ position: "relative", display: "flex", flexDirection: "column", width: "100%", height: "100%", gap: 20 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+            <OgAvatar profile={profile} size={64} />
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <span style={{ fontSize: 32, fontWeight: 800, color: tokens.ink, letterSpacing: "-0.02em" }}>
+                  {profile.displayName}
+                </span>
+                {filterLabel ? (
+                  <FilterPill label={filterLabel} accent={tokens.accent} panel={tokens.panel} />
+                ) : null}
+              </div>
+              <span style={{ fontSize: 16, fontWeight: 600, color: tokens.muted }}>
+                cins.vn/{profile.slug}
+              </span>
+            </div>
+          </div>
+          <OgBrand logoUrl={logoUrl} ink={tokens.ink} />
+        </div>
+        <div style={{ display: "flex", flex: 1, gap: 14 }}>
+          {cells.map((src, i) => (
+            <div key={i} style={{ flex: 1, display: "flex" }}>
+              <OgGalleryThumb src={src || null} radius={18} />
+            </div>
+          ))}
+        </div>
+      </div>
+    </ThemeShell>
+  );
+}
+
+function StackLayout({
+  profile,
+  tokens,
+  filterLabel,
+}: {
+  profile: JourneyShareProfile;
+  tokens: ShareOgThemeTokens;
+  filterLabel?: string | null;
+}) {
+  const cells = padThumbs(profile.galleryThumbs, 5);
+  const offsets = [
+    { x: 40, y: 20, rot: -8 },
+    { x: 160, y: 8, rot: -3 },
+    { x: 290, y: 0, rot: 2 },
+    { x: 420, y: 10, rot: 6 },
+    { x: 540, y: 28, rot: 10 },
+  ];
+  return (
+    <ThemeShell tokens={tokens} padding={36}>
+      <div style={{ position: "relative", display: "flex", flexDirection: "column", width: "100%", height: "100%" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 18, marginBottom: 12 }}>
+          <OgAvatar profile={profile} size={68} />
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <span style={{ fontSize: 34, fontWeight: 800, color: tokens.ink, letterSpacing: "-0.02em" }}>
+                {profile.displayName}
+              </span>
+              {filterLabel ? (
+                <FilterPill label={filterLabel} accent={tokens.accent} panel={tokens.panel} />
+              ) : null}
+            </div>
+            <StatsPair profile={profile} tokens={tokens} />
+          </div>
+        </div>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            alignSelf: "flex-start",
+            gap: 10,
+            padding: "10px 18px",
+            borderRadius: 999,
+            background: tokens.panel,
+            marginBottom: 8,
+          }}
+        >
+          <span style={{ fontSize: 16, fontWeight: 700, color: tokens.accent }}>
+            cins.vn/{profile.slug}
+          </span>
+          <span style={{ fontSize: 16, color: tokens.muted }}>↗</span>
+        </div>
+        <div style={{ position: "relative", flex: 1, display: "flex" }}>
+          {cells.map((src, i) => {
+            const o = offsets[i]!;
+            return (
+              <div
+                key={i}
+                style={{
+                  position: "absolute",
+                  left: o.x,
+                  top: o.y,
+                  width: 220,
+                  height: 280,
+                  display: "flex",
+                  transform: `rotate(${o.rot}deg)`,
+                  boxShadow: "0 12px 28px rgba(15, 23, 42, 0.22)",
+                  borderRadius: 18,
+                  overflow: "hidden",
+                  background: "#fff",
+                }}
+              >
+                <OgGalleryThumb src={src || null} radius={18} />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </ThemeShell>
+  );
+}
+
+/* ── Public API ─────────────────────────────────────────────── */
+
+export function OgJourneyShareCard({
+  profile,
+  logoUrl,
+  theme,
+  layout = DEFAULT_SHARE_OG_LAYOUTS.journey,
+}: {
+  profile: JourneyShareProfile;
+  logoUrl: string;
+  theme?: ShareOgTheme | null;
+  layout?: JourneyJourneyCardVariant;
+}) {
+  const tokens = resolveShareOgThemeTokens(theme, profile.slug);
+  switch (layout) {
+    case "frame":
+      return <FrameLayout profile={profile} tokens={tokens} />;
+    case "center":
+      return <CenterLayout profile={profile} tokens={tokens} />;
+    case "split":
+      return <SplitLayout profile={profile} tokens={tokens} />;
+    case "immersive":
+      return <ImmersiveLayout profile={profile} tokens={tokens} />;
+    case "banner":
+    default:
+      return <BannerLayout profile={profile} tokens={tokens} logoUrl={logoUrl} />;
+  }
+}
+
+export function OgGalleryShareCard({
+  profile,
+  logoUrl,
+  theme,
+  layout = DEFAULT_SHARE_OG_LAYOUTS.gallery,
+  filterLabel = null,
+}: {
+  profile: JourneyShareProfile;
+  logoUrl: string;
+  theme?: ShareOgTheme | null;
+  layout?: JourneyGalleryCardVariant;
+  /** Nhãn filter đang chia sẻ (Cộng đồng, Học tập, …). */
+  filterLabel?: string | null;
+}) {
+  const tokens = resolveShareOgThemeTokens(theme, profile.slug);
+  const label = filterLabel?.trim() || null;
+  switch (layout) {
+    case "panel":
+      return <PanelLayout profile={profile} tokens={tokens} filterLabel={label} />;
+    case "sidebar":
+      return <SidebarLayout profile={profile} tokens={tokens} filterLabel={label} />;
+    case "film":
+      return (
+        <FilmLayout
+          profile={profile}
+          tokens={tokens}
+          logoUrl={logoUrl}
+          filterLabel={label}
+        />
+      );
+    case "stack":
+      return <StackLayout profile={profile} tokens={tokens} filterLabel={label} />;
+    case "strip":
+    default:
+      return (
+        <StripLayout
+          profile={profile}
+          tokens={tokens}
+          logoUrl={logoUrl}
+          filterLabel={label}
+        />
+      );
+  }
 }
 
 export function OgFallbackShareCard({

@@ -19,8 +19,12 @@
 
 ## Auth OAuth (Google / PKCE)
 
+- Production site: **`https://cins.vn`** (Cloudflare Workers / OpenNext — không dùng Vercel).
 - Dev: `.env.local` → `NEXT_PUBLIC_SITE_URL=http://localhost:3001` (cùng origin khi mở `/login`, không lẫn `127.0.0.1`).
-- Supabase Dashboard → **Redirect URLs**: `http://localhost:3001/auth/callback` (hoặc `http://localhost:3001/**`).
+- Supabase Dashboard → **Redirect URLs**:
+  - `https://cins.vn/auth/callback` (và `https://www.cins.vn/auth/callback` nếu dùng www)
+  - Dev: `http://localhost:3001/auth/callback` (hoặc `http://localhost:3001/**`)
+  - **Không** còn `*.vercel.app`.
 - Callback: `app/auth/callback/route.ts` — đọc verifier từ **request** cookies, ghi session lên **response** redirect (`lib/supabase/route-handler.ts`).
 - Intent đăng ký/đăng nhập: cookie `cins-oauth-intent` (không gắn `?intent=` vào `redirectTo`).
 

@@ -15,8 +15,8 @@ const MAINTENANCE_MODE = false;
 
 /**
  * Hostname bị maintenance khi `MAINTENANCE_MODE = true`.
- * Hiện tại chỉ chặn ở custom domain production `cins.vn`. Vercel preview
- * (`*.vercel.app`) và localhost vẫn hoạt động bình thường để team test.
+ * Chỉ chặn production `cins.vn` / `www.cins.vn`. Localhost và
+ * `*.workers.dev` vẫn hoạt động bình thường để team test.
  */
 const MAINTENANCE_HOSTS = new Set<string>(["cins.vn", "www.cins.vn"]);
 

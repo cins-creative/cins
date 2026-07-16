@@ -5,23 +5,34 @@ import { SquareRoundCorner } from "lucide-react";
 import { LayoutThumbIcon } from "@/components/editor/LayoutThumbIcon";
 import {
   IMG_LAYOUTS,
+  IMG_SLOT_GAP_DEFAULT,
+  imgSlotGapLabel,
+  imgSlotGapNextHint,
+  normalizeImgSlotGap,
   type ImgLayout,
+  type ImgSlotGap,
 } from "@/lib/editor/image-layout";
 
 type Props = {
   layout: ImgLayout;
   rounded: boolean;
+  gap?: ImgSlotGap;
   onChangeLayout: (layout: ImgLayout) => void;
   onToggleRound: () => void;
+  onCycleGap: () => void;
 };
 
-/** Toolbar chọn layout ảnh + bo góc — dùng chung editor & compose ảnh. */
+/** Toolbar chọn layout ảnh + bo góc + gap — dùng chung editor & compose ảnh. */
 export function ImageLayoutBar({
   layout,
   rounded,
+  gap: gapProp,
   onChangeLayout,
   onToggleRound,
+  onCycleGap,
 }: Props) {
+  const gap = normalizeImgSlotGap(gapProp);
+  const gapTitle = `${imgSlotGapLabel(gap)} — bấm để ${imgSlotGapNextHint(gap).toLowerCase()}`;
   return (
     <div className="lay-bar">
       {IMG_LAYOUTS.map((l) => (
@@ -52,6 +63,21 @@ export function ImageLayoutBar({
         }}
       >
         <SquareRoundCorner size={16} strokeWidth={1.8} aria-hidden />
+      </button>
+      <button
+        type="button"
+        className={`lay-btn gap-toggle${gap !== IMG_SLOT_GAP_DEFAULT ? " active" : ""}`}
+        data-gap={gap}
+        title={gapTitle}
+        aria-label={gapTitle}
+        onClick={(e) => {
+          e.stopPropagation();
+          onCycleGap();
+        }}
+      >
+        <span className="lay-gap-val" aria-hidden>
+          {gap}
+        </span>
       </button>
     </div>
   );

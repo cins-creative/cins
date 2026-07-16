@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { MessageCircle, UserRound } from "lucide-react";
+import { Maximize2, MessageCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -23,31 +23,54 @@ type Props = {
   user: PopoverUser;
   viewerProfileId: string | null;
   onClose?: () => void;
+  /** Gợi ý người lạ — không hiện nhắn tin. */
+  showMessage?: boolean;
 };
+
+/** Khung icon CTA — hiện ngay khi card mở, trước khi có id user. */
+export function JourneyUserPopoverActionsShell() {
+  return (
+    <div className="j-friend-actions" aria-hidden>
+      <div className="j-friend-actions-row j-friend-actions-row--icons">
+        <span className="j-friend-message is-icon is-skel" />
+        <span className="j-friend-card-follow">
+          <span className="j-friend-btn is-compact is-skel" />
+        </span>
+        <span className="j-friend-card-follow">
+          <span className="j-friend-btn is-compact is-skel" />
+        </span>
+        <span className="j-friend-link is-icon is-skel" />
+      </div>
+    </div>
+  );
+}
 
 export function JourneyUserPopoverActions({
   user,
   viewerProfileId,
   onClose,
+  showMessage = true,
 }: Props) {
   const router = useRouter();
   const { openChat } = useCinsChat();
   const [error, setError] = useState<string | null>(null);
   const ketBan = useKetBanStatus(user.idNguoiDung, viewerProfileId);
-  const isSelf = viewerProfileId === user.idNguoiDung;
+  const isSelf =
+    Boolean(user.idNguoiDung) && viewerProfileId === user.idNguoiDung;
+  const showFollowButton =
+    Boolean(user.idNguoiDung) && !isSelf && ketBan.quanHe !== "accepted";
 
   const openMessage = () => {
     if (!viewerProfileId) {
       router.push("/login");
       return;
     }
-    if (isSelf) return;
+    if (!user.idNguoiDung || isSelf) return;
 
     setError(null);
     void openChat({
       targetUserId: user.idNguoiDung,
-      tab:
-        ketBan.quanHe === "accepted" ? "ban_be" : "nguoi_la",
+      tab: ketBan.quanHe === "accepted" ? "ban_be" : "nguoi_la",
       peerPreview: {
         name: user.tenHienThi,
         slug: user.slug,
@@ -68,17 +91,19 @@ export function JourneyUserPopoverActions({
   return (
     <div className="j-friend-actions">
       <div className="j-friend-actions-row j-friend-actions-row--icons">
-        <button
-          type="button"
-          className="j-friend-message is-icon"
-          disabled={isSelf}
-          title="Nhắn tin"
-          aria-label="Nhắn tin"
-          onClick={openMessage}
-        >
-          <MessageCircle size={17} strokeWidth={2} aria-hidden />
-        </button>
-        {!isSelf ? (
+        {showMessage ? (
+          <button
+            type="button"
+            className="j-friend-message is-icon"
+            disabled={isSelf || !user.idNguoiDung}
+            title="Nhắn tin"
+            aria-label="Nhắn tin"
+            onClick={openMessage}
+          >
+            <MessageCircle size={17} strokeWidth={2} aria-hidden />
+          </button>
+        ) : null}
+        {user.idNguoiDung && !isSelf ? (
           <div className="j-friend-card-follow">
             <JourneyFollowButton
               compact
@@ -90,7 +115,7 @@ export function JourneyUserPopoverActions({
             />
           </div>
         ) : null}
-        {!isSelf ? (
+        {showFollowButton ? (
           <div className="j-friend-card-follow">
             <JourneyUserFollowButton
               compact
@@ -106,7 +131,7 @@ export function JourneyUserPopoverActions({
           aria-label="Xem Journey"
           onClick={() => onClose?.()}
         >
-          <UserRound size={17} strokeWidth={2} aria-hidden />
+          <Maximize2 size={17} strokeWidth={2} aria-hidden />
         </Link>
       </div>
       {error ? (

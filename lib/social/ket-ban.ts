@@ -8,7 +8,7 @@ import {
   notifyFriendAccepted,
   notifyFriendRequest,
 } from "@/lib/social/friend-notifications";
-import { loadFollowProfiles, loadNotifyProfiles } from "@/lib/social/follow";
+import { followTarget, loadFollowProfiles, loadNotifyProfiles } from "@/lib/social/follow";
 import type {
   MutualFriendProfile,
   PendingFollowRequest,
@@ -134,7 +134,11 @@ export async function sendFriendRequest(
   }
 
   const record = mapRow(data);
-  await notifyFriendRequest(nhan, gui, record.id);
+  await Promise.all([
+    notifyFriendRequest(nhan, gui, record.id),
+    /* Gửi lời mời kết bạn → mặc định theo dõi người nhận. */
+    followTarget(gui, nhan, "user"),
+  ]);
   return { ok: true, data: record };
 }
 
@@ -175,6 +179,8 @@ export async function acceptFriendRequest(
     markKetBanMoiNotificationHandled(recordId, currentUserId),
     logFollowRequestHandled(currentUserId, row.id_nguoi_gui, "accept"),
     notifyFriendAccepted(row.id_nguoi_gui, currentUserId),
+    /* Chấp nhận kết bạn → mặc định theo dõi người gửi lời mời. */
+    followTarget(currentUserId, row.id_nguoi_gui, "user"),
   ]);
   return { ok: true, data: mapRow(updated) };
 }

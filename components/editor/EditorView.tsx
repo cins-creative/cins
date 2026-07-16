@@ -79,21 +79,27 @@ import {
 import {
   flattenMosaicCells,
   IMG_LAYOUTS,
+  IMG_SLOT_GAP_DEFAULT,
   countFilledImageSeeds,
+  cycleImgSlotGap,
   getImgLayoutMeta,
   canAppendImageSlot,
+  imgSlotGapLabel,
+  imgSlotGapNextHint,
+  normalizeImgSlotGap,
   padBlockImageSeedsForLayout,
   splitEditorJustifiedRows,
   normalizeLegacyLayout,
   type ImgLayout,
+  type ImgSlotGap,
 } from "@/lib/editor/image-layout";
 import { ImageGrid } from "@/components/journey/ImageGrid";
 import { CongDongFeedFilterDropdown } from "@/components/cong-dong/CongDongFeedFilterDropdown";
 import { EditorPersonalFilterSelect } from "@/components/editor/EditorPersonalFilterSelect";
 import { useJourneyPersonalFilterOptional } from "@/components/journey/JourneyPersonalFilterContext";
 import { isSystemPersonalFilterSlug } from "@/lib/filter/cong-dong-personal-filter.shared";
-import { updatePost } from "@/app/[slug]/p/[postSlug]/edit/actions";
-import { publishPost } from "@/app/[slug]/p/new/actions";
+import { updatePost } from "@/lib/editor/post-update-action";
+import { publishPost } from "@/lib/editor/post-publish-action";
 import "@/app/cins-embed-picker.css";
 import {
   EmbedPlatformPicker,
@@ -278,6 +284,8 @@ type Block = {
   layout?: ImgLayout;
   imgs?: string[]; // mảng "seed" cho picsum (placeholder cho Cloudflare media_id)
   rounded?: boolean;
+  /** Khe giữa ô ảnh (px) — chu kỳ 2 → 4 → 0. Mặc định 2. */
+  gap?: ImgSlotGap;
   cap?: string;
   /** Kích thước gốc ảnh (ô đầu / album 1 ảnh–1 block) — lưu xuống server cho grid layout. */
   width?: number;
@@ -1791,6 +1799,7 @@ export function EditorView({
         b.imgs = [`new-${b.id}`];
         b.cap = "";
         b.rounded = false;
+        b.gap = IMG_SLOT_GAP_DEFAULT;
         b.albumGridCell = false;
       }
       if (type === "spacer") b.size = "m";
@@ -1841,6 +1850,7 @@ export function EditorView({
             imgs: [localSeed],
             cap: "",
             rounded: false,
+            gap: IMG_SLOT_GAP_DEFAULT,
             albumGridCell: albumGrid,
           },
         });
@@ -1906,6 +1916,7 @@ export function EditorView({
           imgs: [`new-${id}`],
           cap: "",
           rounded: false,
+          gap: IMG_SLOT_GAP_DEFAULT,
           albumGridCell: useAlbumGrid,
         });
         return ensureBunnyVideoFirst(next, videoBlockIdRef.current);
@@ -2772,6 +2783,18 @@ export function EditorView({
     [pushHistory],
   );
 
+  const cycleGap = useCallback(
+    (id: string) => {
+      pushHistory();
+      setBlocks((prev) =>
+        prev.map((b) =>
+          b.id === id ? { ...b, gap: cycleImgSlotGap(b.gap) } : b,
+        ),
+      );
+    },
+    [pushHistory],
+  );
+
   const existingUserIds = useMemo(
     () => new Set(collaborators.map((c) => c.idNguoiDung)),
     [collaborators],
@@ -2972,7 +2995,7 @@ export function EditorView({
           id: newId(),
           loai: "imgs",
           thu_tu: 0,
-          config: { layout: "full", rounded: false, cap: "", imgs: [coverFinal] },
+          config: { layout: "full", rounded: false, gap: 2, cap: "", imgs: [coverFinal] },
         },
       ];
       coverFinal = null;
@@ -3760,6 +3783,7 @@ export function EditorView({
                       onChangeSize={(size) => updateBlock(b.id, { size })}
                       onChangeLayout={(layout) => setLayout(b.id, layout)}
                       onToggleRound={() => toggleRound(b.id)}
+                      onCycleGap={() => cycleGap(b.id)}
                       onPickImage={(slot) => openImgPicker(b.id, slot)}
                       onPasteImage={(slot) => pasteImgPicker(b.id, slot)}
                     onCropImage={(slot) => cropImgPicker(b.id, slot)}
@@ -3835,6 +3859,7 @@ export function EditorView({
                     onChangeSize={(size) => updateBlock(b.id, { size })}
                     onChangeLayout={(layout) => setLayout(b.id, layout)}
                     onToggleRound={() => toggleRound(b.id)}
+                    onCycleGap={() => cycleGap(b.id)}
                     onPickImage={(slot) => openImgPicker(b.id, slot)}
                     onPasteImage={(slot) => pasteImgPicker(b.id, slot)}
                     onCropImage={(slot) => cropImgPicker(b.id, slot)}
@@ -4652,6 +4677,7 @@ type BlockRowProps = {
   onChangeSize: (s: "s" | "m" | "l") => void;
   onChangeLayout: (l: ImgLayout) => void;
   onToggleRound: () => void;
+  onCycleGap: () => void;
   onPickImage: (slot: number) => void;
   onPasteImage: (slot: number) => void;
   onCropImage: (slot: number) => void;
@@ -4692,36 +4718,39 @@ function PhImageActions({
       <button
         type="button"
         className="ph-change"
+        title={pickLabel}
+        aria-label={pickLabel}
         onClick={(e) => {
           e.stopPropagation();
           onPick();
         }}
       >
-        <ImagePlus size={14} strokeWidth={1.8} aria-hidden />
-        {pickLabel}
+        <ImagePlus size={18} strokeWidth={1.8} aria-hidden />
       </button>
       <button
         type="button"
         className="ph-change ph-paste"
+        title={pasteLabel}
+        aria-label={pasteLabel}
         onClick={(e) => {
           e.stopPropagation();
           onPaste();
         }}
       >
-        <ClipboardPaste size={14} strokeWidth={1.8} aria-hidden />
-        {pasteLabel}
+        <ClipboardPaste size={18} strokeWidth={1.8} aria-hidden />
       </button>
       {onCrop ? (
         <button
           type="button"
           className="ph-change ph-crop"
+          title="Cắt ảnh"
+          aria-label="Cắt ảnh"
           onClick={(e) => {
             e.stopPropagation();
             onCrop();
           }}
         >
-          <Crop size={14} strokeWidth={1.8} aria-hidden />
-          Cắt ảnh
+          <Crop size={18} strokeWidth={1.8} aria-hidden />
         </button>
       ) : null}
     </div>
@@ -4730,6 +4759,8 @@ function PhImageActions({
 
 function BlockRow(p: BlockRowProps) {
   const { block: b, selected, onSelect, isMinimalMediaCompose } = p;
+  const imgLayout =
+    b.t === "imgs" ? normalizeLegacyLayout(b.layout) : null;
   return (
     <div
       className={`block${selected ? " selected" : ""}${isMinimalMediaCompose ? " is-minimal-media-block" : ""}`}
@@ -4737,46 +4768,54 @@ function BlockRow(p: BlockRowProps) {
       onClick={onSelect}
     >
       {!isMinimalMediaCompose ? (
-        <div className="block-side">
-          <button
-            type="button"
-            className="side-btn"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              p.onUp();
-            }}
-            title="Lên"
-            aria-label="Di chuyển lên"
-          >
-            ▲
-          </button>
-          <button
-            type="button"
-            className="side-btn"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              p.onDown();
-            }}
-            title="Xuống"
-            aria-label="Di chuyển xuống"
-          >
-            ▼
-          </button>
-          <button
-            type="button"
-            className="side-btn del"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              p.onDelete();
-            }}
-            title="Xoá block"
-            aria-label="Xoá"
-          >
-            ✕
-          </button>
+        <div className="block-side-rail">
+          <div className="block-side">
+            <button
+              type="button"
+              className="side-btn"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                p.onUp();
+              }}
+              title="Lên"
+              aria-label="Di chuyển lên"
+            >
+              ▲
+            </button>
+            <button
+              type="button"
+              className="side-btn"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                p.onDown();
+              }}
+              title="Xuống"
+              aria-label="Di chuyển xuống"
+            >
+              ▼
+            </button>
+            <button
+              type="button"
+              className="side-btn del"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                p.onDelete();
+              }}
+              title="Xoá block"
+              aria-label="Xoá"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      ) : null}
+      {/* LayBar = sibling của block-side (neo `.block`), không nhét trong `.b-imgs`. */}
+      {!isMinimalMediaCompose && imgLayout != null ? (
+        <div className="lay-bar-rail">
+          <LayBar block={b} p={p} layout={imgLayout} />
         </div>
       ) : null}
       <div className="block-inner">
@@ -5426,9 +5465,14 @@ function ImageBlock({ block, p }: { block: Block; p: BlockRowProps }) {
 
   return (
     <div className="b-imgs">
-      <LayBar block={block} p={p} layout={layout} />
-
-      <div className={`imgwrap ${layout}${block.rounded ? " rounded" : ""}`}>
+      <div
+        className={`imgwrap ${layout}${block.rounded ? " rounded" : ""}`}
+        style={
+          {
+            "--cins-img-slot-gap": `${normalizeImgSlotGap(block.gap)}px`,
+          } as CSSProperties
+        }
+      >
         {justifiedRows
           ? justifiedRows.map((row, ri) => (
               <div key={`${block.id}-jrow-${ri}`} className="imgwrap-jrow">
@@ -5491,9 +5535,8 @@ function ImageBlock({ block, p }: { block: Block; p: BlockRowProps }) {
 }
 
 /**
- * Toolbar nhỏ nổi trên block ảnh — chọn layout + bo góc. Tách ra để dùng
- * chung cho layout thường (lay-bar trên grid) và mosaic-view (lay-bar
- * trên grid ở chế độ xem).
+ * Toolbar chọn layout + bo góc + gap — sticky trong `.lay-bar-rail`
+ * (neo trên `.block`, không nằm trong `.b-imgs` / canvas content).
  */
 function LayBar({
   block,
@@ -5504,6 +5547,8 @@ function LayBar({
   p: BlockRowProps;
   layout: ImgLayout;
 }) {
+  const gap = normalizeImgSlotGap(block.gap);
+  const gapTitle = `${imgSlotGapLabel(gap)} — bấm để ${imgSlotGapNextHint(gap).toLowerCase()}`;
   return (
     <div className="lay-bar">
       {IMG_LAYOUTS.map((l) => (
@@ -5534,6 +5579,21 @@ function LayBar({
         }}
       >
         <SquareRoundCorner size={16} strokeWidth={1.8} aria-hidden />
+      </button>
+      <button
+        type="button"
+        className={`lay-btn gap-toggle${gap !== IMG_SLOT_GAP_DEFAULT ? " active" : ""}`}
+        data-gap={gap}
+        title={gapTitle}
+        aria-label={gapTitle}
+        onClick={(e) => {
+          e.stopPropagation();
+          p.onCycleGap();
+        }}
+      >
+        <span className="lay-gap-val" aria-hidden>
+          {gap}
+        </span>
       </button>
     </div>
   );
@@ -5806,6 +5866,7 @@ function fromServerBlocks(blocks: ServerBlock[]): Block[] {
     } else if (t === "imgs") {
       local.layout = normalizeLegacyLayout(cfg.layout);
       local.rounded = !!cfg.rounded;
+      local.gap = normalizeImgSlotGap(cfg.gap);
       local.cap = typeof cfg.cap === "string" ? cfg.cap : "";
       /* Ảnh: đọc `imgs`; nếu là mosaic cũ (chỉ có `cells`) thì gom seed ra. */
       const rawImgs = Array.isArray(cfg.imgs)
@@ -5907,6 +5968,7 @@ function toServerBlocks(blocks: Block[]): ServerBlock[] {
         config = {
           layout: normalizeLegacyLayout(b.layout),
           rounded: !!b.rounded,
+          gap: normalizeImgSlotGap(b.gap),
           cap: (b.cap || "").slice(0, 280),
           imgs: baseImgs,
           ...(typeof b.width === "number" && b.width > 0

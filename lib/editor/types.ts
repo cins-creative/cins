@@ -23,7 +23,8 @@ export type Block = {
   /**
    * Cấu hình theo type:
    *   - h2/h3/body/quote: { html: string }  — plain text từ textarea, server tự escape khi render.
-   *   - imgs: { layout, rounded, cap, imgs: string[], width?, height?, cols?, cells?, gap?, pad? }
+   *   - imgs: { layout, rounded, gap?, cap, imgs: string[], width?, height?, cols?, cells?, pad? }
+   *     `gap` — khe giữa ô (0 | 2 | 4 px), mặc định 2.
    *     Mỗi phần tử `imgs[]` / mosaic `seed`: Cloudflare UUID hoặc URL http(s) đầy đủ.
    *   - embed: { url, provider?, embed_html?, showCoverInPost?, bunnyVideoId?, videoCanvasRatio? }
    *     `showCoverInPost` — hiện `cover_id` trong bài (card + thân). Có thể nằm trên

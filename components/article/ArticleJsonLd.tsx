@@ -3,9 +3,7 @@ import type { ArticleBaiViet } from "@/lib/articles/types";
 function siteOrigin(): string {
   const u = process.env.NEXT_PUBLIC_SITE_URL?.trim();
   if (u) return u.replace(/\/$/, "");
-  const v = process.env.VERCEL_URL?.trim();
-  if (v) return `https://${v.replace(/\/$/, "")}`;
-  return "";
+  return "https://cins.vn";
 }
 
 export function ArticleJsonLd({

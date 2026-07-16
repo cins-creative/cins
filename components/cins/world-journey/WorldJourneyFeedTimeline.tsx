@@ -59,6 +59,7 @@ const SHOW_FEED_PROMO_RAIL = true;
 function buildPromoInsertMap(
   postCount: number,
   promos: FeedPromoVariant[],
+  viewerProfileId: string,
 ): Map<number, ReactNode> {
   const map = new Map<number, ReactNode>();
   if (!SHOW_FEED_PROMO_RAIL || postCount === 0 || promos.length === 0) return map;
@@ -76,6 +77,7 @@ function buildPromoInsertMap(
         key={`feed-promo-${promoIdx}`}
         slotKey={`${promoIdx}`}
         variant={variant}
+        viewerProfileId={viewerProfileId}
       />,
     );
     promoIdx += 1;
@@ -102,8 +104,8 @@ export function WorldJourneyFeedTimeline({
   );
 
   const promoInsertMap = useMemo(
-    () => buildPromoInsertMap(milestones.length, feedPromos),
-    [milestones.length, feedPromos],
+    () => buildPromoInsertMap(milestones.length, feedPromos, viewerProfileId),
+    [milestones.length, feedPromos, viewerProfileId],
   );
 
   useEffect(() => {

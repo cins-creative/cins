@@ -151,7 +151,8 @@
   margin-bottom: 22px;
 }
 
-/* ── Error banner ── */
+/* ── Error banner ──
+   Không dùng --ink-* thô: nền banner soft + dark theme (chữ trắng) → mất contrast. */
 .cins-login-banner {
   display: flex;
   gap: 12px;
@@ -164,11 +165,9 @@
 .cins-login-banner strong {
   display: block;
   font-weight: var(--weight-bold);
-  color: var(--ink-display);
   margin-bottom: 2px;
 }
 .cins-login-banner p {
-  color: var(--ink-body);
   margin: 0;
   word-break: break-word;
 }
@@ -180,8 +179,15 @@
   margin-top: 5px;
 }
 .cins-login-banner--err {
-  background: #fff0f1;
-  border: 1px solid #f5c8ca;
+  background: color-mix(in srgb, var(--danger) 12%, var(--bg-surface, #fff));
+  border: 1px solid color-mix(in srgb, var(--danger) 42%, transparent);
+  color: color-mix(in srgb, var(--danger) 72%, var(--ink-display));
+}
+.cins-login-banner--err strong {
+  color: var(--danger);
+}
+.cins-login-banner--err p {
+  color: color-mix(in srgb, var(--danger) 55%, var(--ink-display));
 }
 .cins-login-banner--err .cins-login-banner-dot {
   background: var(--danger);

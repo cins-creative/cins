@@ -1,4 +1,8 @@
 import { getCfAccountHash } from "@/lib/cloudflare/account-hash";
+import type {
+  JourneyGalleryCardVariant,
+  JourneyJourneyCardVariant,
+} from "@/lib/journey/profile-share";
 
 /** Preset nền OG / thẻ share — thiên về pattern nền sáng, dễ đọc. */
 export const SHARE_OG_PRESET_IDS = [
@@ -25,12 +29,71 @@ export type ShareOgCustomEntry = {
   createdAt: string;
 };
 
+/** Layout thẻ Journey / Gallery — cùng id với modal chia sẻ. */
+export type ShareOgLayouts = {
+  journey: JourneyJourneyCardVariant;
+  gallery: JourneyGalleryCardVariant;
+};
+
 export type ShareOgThemeState = {
   active: ShareOgTheme;
   customs: ShareOgCustomEntry[];
+  layouts: ShareOgLayouts;
 };
 
 export const SHARE_OG_CUSTOMS_MAX = 6;
+
+export const DEFAULT_SHARE_OG_LAYOUTS: ShareOgLayouts = {
+  journey: "banner",
+  gallery: "strip",
+};
+
+const JOURNEY_LAYOUT_IDS = new Set<JourneyJourneyCardVariant>([
+  "banner",
+  "frame",
+  "center",
+  "split",
+  "immersive",
+]);
+
+const GALLERY_LAYOUT_IDS = new Set<JourneyGalleryCardVariant>([
+  "strip",
+  "panel",
+  "sidebar",
+  "film",
+  "stack",
+]);
+
+export function isJourneyShareLayout(
+  value: unknown,
+): value is JourneyJourneyCardVariant {
+  return (
+    typeof value === "string" &&
+    JOURNEY_LAYOUT_IDS.has(value as JourneyJourneyCardVariant)
+  );
+}
+
+export function isGalleryShareLayout(
+  value: unknown,
+): value is JourneyGalleryCardVariant {
+  return (
+    typeof value === "string" &&
+    GALLERY_LAYOUT_IDS.has(value as JourneyGalleryCardVariant)
+  );
+}
+
+export function parseShareOgLayouts(raw: unknown): ShareOgLayouts {
+  if (!raw || typeof raw !== "object") return { ...DEFAULT_SHARE_OG_LAYOUTS };
+  const obj = raw as Record<string, unknown>;
+  return {
+    journey: isJourneyShareLayout(obj.journey)
+      ? obj.journey
+      : DEFAULT_SHARE_OG_LAYOUTS.journey,
+    gallery: isGalleryShareLayout(obj.gallery)
+      ? obj.gallery
+      : DEFAULT_SHARE_OG_LAYOUTS.gallery,
+  };
+}
 
 export type ShareOgThemeTokens = {
   /** Màu nền cơ sở (backgroundColor). */
@@ -221,7 +284,11 @@ export function defaultShareOgTheme(seed: string): ShareOgTheme {
 }
 
 export function defaultShareOgThemeState(seed: string): ShareOgThemeState {
-  return { active: defaultShareOgTheme(seed), customs: [] };
+  return {
+    active: defaultShareOgTheme(seed),
+    customs: [],
+    layouts: { ...DEFAULT_SHARE_OG_LAYOUTS },
+  };
 }
 
 export function cfImagePublicUrl(imageId: string): string | null {
@@ -290,13 +357,15 @@ export function parseShareOgThemeState(
     }
   }
 
-  return { active, customs };
+  const layouts = parseShareOgLayouts(obj.layouts);
+  return { active, customs, layouts };
 }
 
 export function serializeShareOgThemeState(state: ShareOgThemeState): string {
   return JSON.stringify({
     active: state.active,
     customs: state.customs.slice(0, SHARE_OG_CUSTOMS_MAX),
+    layouts: parseShareOgLayouts(state.layouts),
   });
 }
 

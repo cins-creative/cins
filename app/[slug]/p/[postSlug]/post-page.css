@@ -15,8 +15,7 @@
 /* ╔══ 1. Page wrapper (route) ══════════════════════════════════════ */
 
 .j-post-page {
-  /* Body copy trên trang post: đậm hơn token mặc định một chút. */
-  --ink-body: rgba(0, 0, 0, 0.7);
+  /* --ink-body: thừa hưởng design token (khớp EditorView). */
   min-height: calc(100vh - var(--cins-topbar-h, 56px));
   background: var(--neutral-50, #f5f6f8);
   padding: 20px 24px 80px;
@@ -593,18 +592,11 @@
 /* `JourneyPostBody.tsx`). Tất cả override chỉ áp dụng trong mode này. */
 
 .cins-post-view {
-  /* Light: body đậm hơn token mặc định. */
-  --ink-body: rgba(0, 0, 0, 0.7);
+  /* --ink-body: thừa hưởng design token (khớp EditorView). */
   background: transparent;
   min-height: 0;
   position: relative;
   display: block;
-}
-
-/* Dark: không giữ mực đen cứng — caption/chip/action trên rail mới đọc được. */
-:root[data-theme="dark"] .j-post-page,
-:root[data-theme="dark"] .cins-post-view {
-  --ink-body: rgba(255, 255, 255, 0.7);
 }
 
 .cins-post-view.cins-editor-page {
@@ -748,8 +740,8 @@
 .cins-post-view.post-canvas--split .title-in.title-ro,
 .cins-post-view .post-canvas--split .title-in.title-ro {
   font-weight: 800;
-  font-size: clamp(28px, 3.6vw, 40px);
-  line-height: 1.12;
+  font-size: clamp(28px, 3.6vw, 38px);
+  line-height: 1.28;
   letter-spacing: -0.8px;
   margin-bottom: 14px;
 }
@@ -759,7 +751,7 @@
   font-family: var(--font-sans, "Be Vietnam Pro", system-ui, sans-serif);
   font-style: normal;
   font-weight: 400;
-  font-size: 20px;
+  font-size: 18px;
   line-height: 1.5;
   border-left: none;
   padding-left: 0;
@@ -1801,7 +1793,7 @@
 
 .cins-post-view.post-canvas--split .post-view-content .b-text-ro,
 .cins-post-view .post-canvas--split .post-view-content .b-text-ro {
-  font-size: 17px;
+  font-size: 16px;
   line-height: 1.75;
   color: var(--ink-body);
 }
@@ -2031,7 +2023,7 @@
 .cins-post-view .sub-in.sub-ro {
   font-family: var(--font-sans, "Be Vietnam Pro", system-ui, sans-serif);
   font-style: normal;
-  font-size: 19px;
+  font-size: 18px;
   color: var(--ink-title);
   margin: 0 0 14px;
   padding: 0;
@@ -2679,30 +2671,10 @@
   padding: 0;
 }
 
-/* Readonly — bỏ khe giữa các ô ảnh / album (editor.css dùng --cins-img-slot-gap). */
-.cins-editor-page.cins-post-view .blocks-readonly .b-imgs-ro {
-  --cins-img-slot-gap: 0px;
-}
-.cins-editor-page.cins-post-view .blocks-readonly .b-imgs-ro .imgwrap.full,
-.cins-editor-page.cins-post-view .blocks-readonly .b-imgs-ro .imgwrap.inset,
-.cins-editor-page.cins-post-view .blocks-readonly .b-imgs-ro .imgwrap.duo,
-.cins-editor-page.cins-post-view .blocks-readonly .b-imgs-ro .imgwrap.grid2,
-.cins-editor-page.cins-post-view .blocks-readonly .b-imgs-ro .imgwrap.grid3,
-.cins-editor-page.cins-post-view .blocks-readonly .b-imgs-ro .imgwrap.grid4,
-.cins-editor-page.cins-post-view .blocks-readonly .b-imgs-ro .imgwrap.hero,
-.cins-editor-page.cins-post-view .blocks-readonly .b-imgs-ro .imgwrap.justified,
-.cins-editor-page.cins-post-view .blocks-readonly .b-imgs-ro .imgwrap.trio,
-.cins-editor-page.cins-post-view .blocks-readonly .b-imgs-ro .imgwrap.big-right {
-  gap: 0;
-}
-.cins-editor-page.cins-post-view .blocks-readonly .b-imgs-ro .imgwrap.masonry {
-  column-gap: 0;
-}
+/* Readonly — khe giữa ô ảnh theo `--cins-img-slot-gap` trên từng `.imgwrap`. */
 .cins-editor-page.cins-post-view .blocks-readonly .b-imgs-ro .imgwrap.masonry .ph {
   display: block;
   width: 100%;
-  margin: 0;
-  margin-bottom: 0;
   line-height: 0;
   vertical-align: top;
 }
@@ -2711,11 +2683,13 @@
   width: 100%;
   vertical-align: top;
 }
-/* Inline imgs (grid3/…) — click mở lightbox; reset button về ô `.ph`. */
+/* Inline imgs — click mở lightbox; reset button + không crop (khớp unfold). */
 .cins-editor-page.cins-post-view .blocks-readonly .b-imgs-ro .ph.is-lightbox {
   cursor: zoom-in;
   appearance: none;
   -webkit-appearance: none;
+  display: block;
+  width: 100%;
   border: 0;
   margin: 0;
   padding: 0;
@@ -2723,6 +2697,39 @@
   color: inherit;
   background: transparent;
   text-align: inherit;
+}
+.cins-editor-page.cins-post-view.post-canvas .blocks-readonly .b-imgs-ro .ph img {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  display: block;
+}
+.cins-editor-page.cins-post-view.post-canvas .blocks-readonly .imgwrap.duo .ph,
+.cins-editor-page.cins-post-view.post-canvas .blocks-readonly .imgwrap.grid2 .ph,
+.cins-editor-page.cins-post-view.post-canvas .blocks-readonly .imgwrap.grid3 .ph,
+.cins-editor-page.cins-post-view.post-canvas .blocks-readonly .imgwrap.grid4 .ph,
+.cins-editor-page.cins-post-view.post-canvas .blocks-readonly .imgwrap.hero .ph,
+.cins-editor-page.cins-post-view.post-canvas
+  .blocks-readonly
+  .imgwrap.hero
+  .ph:first-child {
+  aspect-ratio: auto;
+  min-height: 0;
+  min-width: 0;
+}
+.cins-editor-page.cins-post-view.post-canvas .blocks-readonly .imgwrap.duo .ph img,
+.cins-editor-page.cins-post-view.post-canvas .blocks-readonly .imgwrap.grid2 .ph img,
+.cins-editor-page.cins-post-view.post-canvas .blocks-readonly .imgwrap.grid3 .ph img,
+.cins-editor-page.cins-post-view.post-canvas .blocks-readonly .imgwrap.grid4 .ph img,
+.cins-editor-page.cins-post-view.post-canvas .blocks-readonly .imgwrap.hero .ph img,
+.cins-editor-page.cins-post-view.post-canvas
+  .blocks-readonly
+  .imgwrap.justified
+  .ph
+  img {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
 }
 .cins-editor-page.cins-post-view .blocks-readonly .image-grid,
 .cins-editor-page.cins-post-view .blocks-readonly .image-grid-row,
@@ -2733,8 +2740,8 @@
 .cins-editor-page.cins-post-view .blocks-readonly .image-grid--masonry,
 .cins-editor-page.cins-post-view .blocks-readonly .image-grid--masonry .image-grid-mcol,
 .cins-editor-page.cins-post-view .blocks-readonly .image-grid-jrow {
-  gap: 0;
-  column-gap: 0;
+  gap: var(--cins-img-slot-gap, 2px);
+  column-gap: var(--cins-img-slot-gap, 2px);
 }
 /* Block "Khoảng trống" do người dùng chủ động thêm → bản đọc phải tôn trọng
    chiều cao (khớp editor: s=16 / m=36 / l=64). Đường kẻ đứt chỉ dùng khi soạn

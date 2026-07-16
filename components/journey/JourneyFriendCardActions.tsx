@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { MessageCircle, UserRound } from "lucide-react";
+import { Maximize2, MessageCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -29,6 +29,9 @@ export function JourneyFriendCardActions({
   const [error, setError] = useState<string | null>(null);
   const ketBan = useKetBanStatus(friend.idNguoiDung, viewerProfileId);
   const isSelf = viewerProfileId === friend.idNguoiDung;
+  const isFriend =
+    friendsAreMutual || ketBan.quanHe === "accepted";
+  const showFollowButton = !isSelf && !isFriend;
 
   const openMessage = () => {
     if (!viewerProfileId) {
@@ -84,7 +87,7 @@ export function JourneyFriendCardActions({
             />
           </div>
         ) : null}
-        {!isSelf ? (
+        {showFollowButton ? (
           <div className="j-friend-card-follow">
             <JourneyUserFollowButton
               compact
@@ -99,7 +102,7 @@ export function JourneyFriendCardActions({
           title="Xem Journey"
           aria-label="Xem Journey"
         >
-          <UserRound size={17} strokeWidth={2} aria-hidden />
+          <Maximize2 size={17} strokeWidth={2} aria-hidden />
         </Link>
       </div>
       {error ? (

@@ -7,10 +7,11 @@ import {
   OgJourneyShareCard,
 } from "@/lib/journey/og-share-card";
 import { loadOgFonts } from "@/lib/journey/og-fonts";
-import {
-  fetchOgShareContext,
-  type OgShareKind,
-} from "@/lib/journey/og-share-fetch";
+import { fetchOgShareContext } from "@/lib/journey/og-share-fetch";
+import type {
+  JourneyGalleryCardVariant,
+  JourneyJourneyCardVariant,
+} from "@/lib/journey/profile-share";
 
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
@@ -18,11 +19,12 @@ export const contentType = "image/png";
 export const alt = "Hành trình sáng tạo trên CINs";
 
 type Params = Promise<{ slug: string }>;
-type SearchParams = Promise<{ view?: string }>;
-
-function shareKindFromSearch(view: string | undefined): OgShareKind {
-  return view === "gallery" ? "gallery" : "journey";
-}
+type SearchParams = Promise<{
+  view?: string;
+  nhom?: string;
+  filter?: string;
+  v?: string;
+}>;
 
 function siteOrigin(): string {
   return getConfiguredSiteOrigin() ?? "https://cins.vn";
@@ -37,28 +39,38 @@ export default async function Image({
 }) {
   const { slug } = await params;
   const sp = searchParams ? await searchParams : {};
-  const kind = shareKindFromSearch(sp.view);
   const origin = siteOrigin();
   const logoUrl = `${origin}/assets/logo-cins-64.png`;
   const logoWhiteUrl = `${origin}/assets/logo-cins-white.png`;
 
   const [ctx, fonts] = await Promise.all([
-    fetchOgShareContext(slug, kind),
+    fetchOgShareContext(slug, {
+      view: sp.view,
+      nhom: sp.nhom,
+      filter: sp.filter,
+    }),
     loadOgFonts(),
   ]);
 
   const element = ctx ? (
-    kind === "gallery" ? (
+    ctx.kind === "gallery" ? (
       <OgGalleryShareCard
         profile={ctx.profile}
         logoUrl={logoUrl}
         theme={ctx.theme}
+        layout={ctx.layout as JourneyGalleryCardVariant}
+        filterLabel={
+          ctx.filterSpec && ctx.filterSpec.kind !== "all"
+            ? ctx.filterSpec.label
+            : null
+        }
       />
     ) : (
       <OgJourneyShareCard
         profile={ctx.profile}
         logoUrl={logoUrl}
         theme={ctx.theme}
+        layout={ctx.layout as JourneyJourneyCardVariant}
       />
     )
   ) : (

@@ -27,7 +27,6 @@ export function isLikelyLocalOrPreviewHost(hostname: string): boolean {
     h === "localhost" ||
     h === "0.0.0.0" ||
     h.endsWith(".localhost") ||
-    h.endsWith(".vercel.app") ||
     h.endsWith(".workers.dev") ||
     /^\d+\.\d+\.\d+\.\d+$/.test(h)
   );

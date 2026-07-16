@@ -217,6 +217,9 @@ function mapPeople(
           : giaiDoanLabel(p.giaiDoan),
       href: `/${p.slug}`,
       imageUrl: p.avatarUrl,
+      coverUrl: p.coverUrl,
+      giaiDoan: giaiDoanLabel(p.giaiDoan),
+      bio: p.bio,
     })),
   };
 }

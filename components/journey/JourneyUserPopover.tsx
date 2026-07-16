@@ -2,13 +2,16 @@
 
 import Link from "next/link";
 import { X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import "./journey-user-popover.css";
 
 import { JourneyUserFeaturedExpand } from "@/components/journey/JourneyUserFeaturedExpand";
-import { JourneyUserPopoverActions } from "@/components/journey/JourneyUserPopoverActions";
+import {
+  JourneyUserPopoverActions,
+  JourneyUserPopoverActionsShell,
+} from "@/components/journey/JourneyUserPopoverActions";
 import { VerifiedTick } from "@/components/journey/VerifiedTick";
 import { useCinsChat } from "@/components/cins/CinsChatProvider";
 import {
@@ -51,8 +54,20 @@ export function JourneyUserPopover({
     slug ? getCachedUserPreview(slug) : null,
   );
   const [loading, setLoading] = useState(false);
+  const [featuredOpen, setFeaturedOpen] = useState(false);
+  const [featuredCount, setFeaturedCount] = useState(0);
+  const [featuredReady, setFeaturedReady] = useState(false);
   const wrapRef = useRef<HTMLSpanElement | null>(null);
   const mutual = useMutualFriends(profile?.idNguoiDung ?? "", viewerProfileId);
+
+  const onFeaturedAvailability = useCallback(
+    (info: { ready: boolean; count: number }) => {
+      setFeaturedReady(info.ready);
+      setFeaturedCount(info.count);
+      if (!info.ready || info.count === 0) setFeaturedOpen(false);
+    },
+    [],
+  );
 
   useEffect(() => {
     queueMicrotask(() => setMounted(true));
@@ -74,6 +89,9 @@ export function JourneyUserPopover({
 
   useEffect(() => {
     setProfile(slug ? getCachedUserPreview(slug) : null);
+    setFeaturedOpen(false);
+    setFeaturedCount(0);
+    setFeaturedReady(false);
   }, [slug]);
 
   useEffect(() => {
@@ -109,6 +127,7 @@ export function JourneyUserPopover({
           ngu_canh: slug ? { target_slug: slug } : null,
         });
       }
+      if (!next) setFeaturedOpen(false);
       return next;
     });
   };
@@ -130,6 +149,8 @@ export function JourneyUserPopover({
           stats: { cotMoc: 0, tacPham: 0, banBe: 0 },
         }
       : null);
+
+  const canExpandFeatured = featuredReady && featuredCount > 0;
 
   return (
     <span className="j-user-pop-wrap" ref={wrapRef}>
@@ -227,10 +248,38 @@ export function JourneyUserPopover({
                 ) : null}
                 {visibleProfile.bio ? <p className="j-friend-bio">{visibleProfile.bio}</p> : null}
                 <div className="j-friend-stats" aria-label="Thống kê hồ sơ">
-                  <span>
-                    <strong>{visibleProfile.stats.tacPham}</strong>
-                    Nổi bật
-                  </span>
+                  {canExpandFeatured ? (
+                    <button
+                      type="button"
+                      className={`j-friend-stat-btn${featuredOpen ? " is-open" : ""}`}
+                      aria-expanded={featuredOpen}
+                      aria-controls={`j-user-featured-panel-${visibleProfile.slug}`}
+                      title={
+                        featuredOpen
+                          ? "Thu gọn nội dung nổi bật"
+                          : "Xem nội dung nổi bật"
+                      }
+                      onClick={() => setFeaturedOpen((value) => !value)}
+                    >
+                      <strong>{visibleProfile.stats.tacPham}</strong>
+                      Nổi bật
+                    </button>
+                  ) : visibleProfile.stats.tacPham > 0 ? (
+                    <Link
+                      href={`/${visibleProfile.slug}`}
+                      className="j-friend-stat-btn"
+                      title="Xem Journey — nội dung nổi bật"
+                      onClick={() => setOpen(false)}
+                    >
+                      <strong>{visibleProfile.stats.tacPham}</strong>
+                      Nổi bật
+                    </Link>
+                  ) : (
+                    <span>
+                      <strong>{visibleProfile.stats.tacPham}</strong>
+                      Nổi bật
+                    </span>
+                  )}
                   <span>
                     <strong>{visibleProfile.stats.cotMoc}</strong>
                     Gallery
@@ -253,14 +302,16 @@ export function JourneyUserPopover({
                     onClose={() => setOpen(false)}
                   />
                 ) : (
-                  <div className="j-friend-actions">
-                    <Link href={`/${visibleProfile.slug}`} className="j-friend-link">
-                      Xem Journey
-                    </Link>
-                  </div>
+                  <JourneyUserPopoverActionsShell />
                 )}
               </div>
-              <JourneyUserFeaturedExpand slug={visibleProfile.slug} />
+              <JourneyUserFeaturedExpand
+                slug={visibleProfile.slug}
+                eager
+                open={featuredOpen}
+                onOpenChange={setFeaturedOpen}
+                onAvailabilityChange={onFeaturedAvailability}
+              />
             </article>
           ) : loading ? (
             <span className="j-user-pop-loading">Đang tải...</span>

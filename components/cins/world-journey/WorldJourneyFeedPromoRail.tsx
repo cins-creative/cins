@@ -1,10 +1,14 @@
+"use client";
+
 import Link from "next/link";
 
+import { JourneyUserPopoverActions } from "@/components/journey/JourneyUserPopoverActions";
 import type { FeedPromoVariant } from "@/lib/cins/worldJourneyFeedPromosTypes";
 
 type Props = {
   variant: FeedPromoVariant;
   slotKey: string;
+  viewerProfileId: string;
 };
 
 function splitPromoSub(sub: string): { primary: string; secondary: string | null } {
@@ -147,41 +151,108 @@ function PromoEventCard({
   );
 }
 
+function isMutualFriendsSub(sub: string): boolean {
+  return /^\d+\s+bạn chung$/i.test(sub.trim());
+}
+
 function PromoPersonCard({
   href,
   title,
   sub,
   imageUrl,
+  coverUrl,
+  bio,
+  userId,
+  giaiDoan,
+  viewerProfileId,
 }: {
   href: string;
   title: string;
   sub: string;
   imageUrl: string | null;
+  coverUrl?: string | null;
+  bio?: string | null;
+  userId: string;
+  giaiDoan?: string | null;
+  viewerProfileId: string;
 }) {
+  const mutual = isMutualFriendsSub(sub);
+  const slug = href.replace(/^\//, "");
+  const initials = title
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w.charAt(0))
+    .join("")
+    .toUpperCase() || title.slice(0, 1).toUpperCase();
+
   return (
-    <Link
-      href={href}
-      className="wj-feed-promo-card is-person"
-      role="listitem"
-      prefetch={false}
-    >
-      <span className="wj-feed-promo-person-hero" aria-hidden>
-        <span className="wj-feed-promo-person-av">
+    <article className="wj-feed-promo-card is-person" role="listitem">
+      <Link href={href} className="wj-feed-promo-person-main" prefetch={false}>
+        <span
+          className={`wj-feed-promo-person-cover${coverUrl ? " has-img" : ""}`}
+          aria-hidden
+        >
+          {coverUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={coverUrl} alt="" loading="lazy" />
+          ) : null}
+        </span>
+        <span className="wj-feed-promo-person-av" aria-hidden>
           {imageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={imageUrl} alt="" loading="lazy" />
           ) : (
-            <span className="wj-feed-promo-person-av-fallback">
-              {title.slice(0, 2).toUpperCase()}
-            </span>
+            <span className="wj-feed-promo-person-av-fallback">{initials}</span>
           )}
         </span>
-      </span>
-      <span className="wj-feed-promo-card-body">
-        <span className="wj-feed-promo-card-name">{title}</span>
-        <span className="wj-feed-promo-card-tag">{sub}</span>
-      </span>
-    </Link>
+        <span className="wj-feed-promo-card-body">
+          <span className="wj-feed-promo-card-name">{title}</span>
+          {sub ? (
+            <span
+              className={`wj-feed-promo-person-sub${mutual ? " is-mutual" : ""}`}
+            >
+              {mutual ? (
+                <svg
+                  className="wj-feed-promo-person-sub-icon"
+                  width={13}
+                  height={13}
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2.2}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden
+                >
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                  <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                </svg>
+              ) : null}
+              <span>{sub}</span>
+            </span>
+          ) : null}
+          {bio ? (
+            <span className="wj-feed-promo-person-bio">{bio}</span>
+          ) : null}
+        </span>
+      </Link>
+      <div className="wj-feed-promo-person-actions">
+        <JourneyUserPopoverActions
+          viewerProfileId={viewerProfileId}
+          showMessage={false}
+          user={{
+            idNguoiDung: userId,
+            slug,
+            tenHienThi: title,
+            avatarUrl: imageUrl,
+            giaiDoan: giaiDoan ?? null,
+          }}
+        />
+      </div>
+    </article>
   );
 }
 
@@ -224,7 +295,11 @@ function PromoOrgCard({
 }
 
 /** Block ngang gợi ý xen kẽ timeline feed (không dùng ở Gallery). */
-export function WorldJourneyFeedPromoRail({ variant, slotKey }: Props) {
+export function WorldJourneyFeedPromoRail({
+  variant,
+  slotKey,
+  viewerProfileId,
+}: Props) {
   if (variant.items.length === 0) return null;
 
   return (
@@ -293,6 +368,11 @@ export function WorldJourneyFeedPromoRail({ variant, slotKey }: Props) {
                 title={item.title}
                 sub={item.sub}
                 imageUrl={item.imageUrl}
+                coverUrl={item.coverUrl}
+                bio={item.bio}
+                userId={item.id}
+                giaiDoan={item.giaiDoan}
+                viewerProfileId={viewerProfileId}
               />
             );
           }

@@ -4,7 +4,12 @@ import {
   authOriginMismatchMessage,
   resolveAuthOrigin,
 } from "@/lib/auth/auth-origin";
+import {
+  IN_APP_BROWSER_OAUTH_MESSAGE,
+  isInAppBrowser,
+} from "@/lib/auth/in-app-browser";
 import type { LoginIntent } from "@/lib/auth/login-intent";
+import { mapOAuthError } from "@/lib/auth/oauth-errors";
 import { stashOAuthIntent } from "@/lib/auth/oauth-intent-client";
 import { resolveOAuthReturnPath } from "@/lib/auth/oauth-return-path";
 import { stashOAuthReturnTo } from "@/lib/auth/oauth-return-client";
@@ -24,6 +29,10 @@ export async function startGoogleLogin(
 ): Promise<{ error?: string }> {
   if (typeof window === "undefined") {
     return { error: "Phải chạy ở client để khởi tạo OAuth." };
+  }
+
+  if (isInAppBrowser()) {
+    return { error: IN_APP_BROWSER_OAUTH_MESSAGE };
   }
 
   const originMismatch = authOriginMismatchMessage();
@@ -55,11 +64,11 @@ export async function startGoogleLogin(
         skipBrowserRedirect: false,
       },
     });
-    if (error) return { error: error.message };
+    if (error) return { error: mapOAuthError(error.message) };
     return {};
   } catch (e) {
-    return {
-      error: e instanceof Error ? e.message : "Lỗi không xác định khi mở Google.",
-    };
+    const raw =
+      e instanceof Error ? e.message : "Lỗi không xác định khi mở Google.";
+    return { error: mapOAuthError(raw) };
   }
 }

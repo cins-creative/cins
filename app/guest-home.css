@@ -176,7 +176,7 @@
   text-transform: lowercase;
   color: var(--cins-blue-dark);
   background: rgba(255, 255, 255, 0.82);
-  border: 1px solid color-mix(in srgb, var(--cins-blue) 22%, var(--border));
+  border: none;
   border-radius: var(--radius-pill);
   box-shadow: var(--shadow-xs);
 }
@@ -239,7 +239,7 @@
 
 .gh-stat {
   position: relative;
-  padding: var(--space-4) var(--space-4) var(--space-4) calc(var(--space-4) + 4px);
+  padding: var(--space-4);
   background: rgba(255, 255, 255, 0.78);
   border: 1px solid color-mix(in srgb, var(--border) 80%, white);
   border-radius: var(--radius-lg);
@@ -249,17 +249,6 @@
     transform var(--gh-dur) var(--gh-ease),
     box-shadow var(--gh-dur) var(--gh-ease),
     border-color var(--gh-dur) var(--gh-ease);
-}
-
-.gh-stat::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 12px;
-  bottom: 12px;
-  width: 3px;
-  border-radius: 0 3px 3px 0;
-  background: var(--gh-stat-accent, var(--cins-blue));
 }
 
 .gh-stat:hover {
@@ -327,21 +316,17 @@
   font-weight: var(--weight-semibold);
   padding: 8px 14px;
   border-radius: var(--radius-pill);
-  background: rgba(255, 255, 255, 0.88);
-  border: 1px solid var(--border);
+  background: transparent;
+  border: none;
   color: var(--ink-title);
-  box-shadow: var(--shadow-xs);
+  box-shadow: none;
   transition:
-    border-color var(--gh-dur) var(--gh-ease),
     color var(--gh-dur) var(--gh-ease),
-    background var(--gh-dur) var(--gh-ease),
     transform var(--gh-dur) var(--gh-ease);
 }
 
 .gh-lv-chip:hover {
-  border-color: var(--gh-lv-accent, var(--cins-blue));
   color: var(--cins-blue);
-  background: var(--cins-blue-soft);
   transform: translateY(-1px);
 }
 
@@ -398,7 +383,7 @@
   height: auto;
   border-radius: var(--radius-sm);
   background: var(--bg-surface, #fff);
-  border: 1px solid var(--border);
+  border: none;
   display: grid;
   place-items: center;
   overflow: hidden;

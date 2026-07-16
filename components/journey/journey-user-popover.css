@@ -341,7 +341,37 @@ button.j-user-pop-close svg {
   line-height: 1.05;
 }
 
-.j-user-popover .j-friend-stats span + span {
+.j-user-popover .j-friend-stats .j-friend-stat-btn {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 9px 4px;
+  border: none;
+  border-radius: 0;
+  background: none;
+  color: var(--ink-muted);
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1.05;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.14s ease, background 0.14s ease;
+}
+
+.j-user-popover .j-friend-stats .j-friend-stat-btn:hover,
+.j-user-popover .j-friend-stats .j-friend-stat-btn.is-open {
+  color: var(--cins-blue, #2563eb);
+  background: color-mix(in srgb, var(--cins-blue-soft, #eff6ff) 70%, transparent);
+}
+
+.j-user-popover .j-friend-stats span + span,
+.j-user-popover .j-friend-stats span + .j-friend-stat-btn,
+.j-user-popover .j-friend-stats .j-friend-stat-btn + span,
+.j-user-popover .j-friend-stats .j-friend-stat-btn + .j-friend-stat-btn {
   border-left: 1px solid rgba(148, 163, 184, 0.2);
 }
 
@@ -350,6 +380,11 @@ button.j-user-pop-close svg {
   color: var(--ink-display);
   font-size: 18px;
   line-height: 1;
+}
+
+.j-user-popover .j-friend-stats .j-friend-stat-btn:hover strong,
+.j-user-popover .j-friend-stats .j-friend-stat-btn.is-open strong {
+  color: var(--cins-blue, #2563eb);
 }
 
 .j-user-popover .j-friend-actions {
@@ -386,6 +421,43 @@ button.j-user-pop-close svg {
 
 .j-user-popover .j-friend-card-follow:empty {
   display: none;
+}
+
+.j-user-popover .j-friend-actions-row--icons .j-friend-message.is-icon.is-skel,
+.j-user-popover .j-friend-actions-row--icons .j-friend-link.is-icon.is-skel,
+.j-user-popover .j-friend-actions-row--icons .j-friend-btn.is-skel {
+  display: inline-block;
+  border: none;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    var(--neutral-100, #f1f2f5) 0%,
+    color-mix(in srgb, var(--neutral-200, #e4e6eb) 75%, transparent) 45%,
+    var(--neutral-100, #f1f2f5) 100%
+  );
+  background-size: 200% 100%;
+  animation: j-user-featured-skel 1.2s ease-in-out infinite;
+  color: transparent;
+}
+
+.j-user-popover .j-friend-actions-row--icons .j-friend-btn.is-skel {
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  min-height: 32px;
+  border-radius: 999px;
+}
+
+:root[data-theme="dark"] .j-user-popover .j-friend-actions-row--icons .j-friend-message.is-icon.is-skel,
+:root[data-theme="dark"] .j-user-popover .j-friend-actions-row--icons .j-friend-link.is-icon.is-skel,
+:root[data-theme="dark"] .j-user-popover .j-friend-actions-row--icons .j-friend-btn.is-skel {
+  background: linear-gradient(
+    90deg,
+    rgba(30, 41, 59, 0.9) 0%,
+    rgba(51, 65, 85, 0.75) 45%,
+    rgba(30, 41, 59, 0.9) 100%
+  );
+  background-size: 200% 100%;
 }
 
 .j-user-popover .j-friend-actions-row--icons .j-friend-message.is-icon,

@@ -5,7 +5,7 @@
 .image-grid-jrow,
 .image-grid--masonry .image-grid-mcol,
 .image-grid[data-count="3"] .image-grid-side {
-  --cins-img-slot-gap: 1.5px;
+  --cins-img-slot-gap: 2px;
 }
 
 .image-grid {

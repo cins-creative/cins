@@ -5,6 +5,10 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState, useTransition } from "react";
 
 import { useOptionalAuthGate } from "@/components/auth/AuthGateProvider";
+import {
+  emitUserFollowChanged,
+  USER_FOLLOW_CHANGED,
+} from "@/lib/social/follow-client";
 
 type Props = {
   targetUserId: string;
@@ -50,6 +54,20 @@ export function JourneyUserFollowButton({
     refresh();
   }, [refresh]);
 
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent<{ targetUserId?: string; following?: boolean }>)
+        .detail;
+      if (detail?.targetUserId !== targetUserId) return;
+      if (typeof detail.following === "boolean") {
+        setFollowing(detail.following);
+        setLoaded(true);
+      }
+    };
+    window.addEventListener(USER_FOLLOW_CHANGED, handler);
+    return () => window.removeEventListener(USER_FOLLOW_CHANGED, handler);
+  }, [targetUserId]);
+
   if (!viewerProfileId || isSelf) return null;
 
   const label = following ? "Đang theo dõi" : "Theo dõi";
@@ -92,6 +110,7 @@ export function JourneyUserFollowButton({
       }
 
       setFollowing(Boolean(json?.dang_theo_doi));
+      emitUserFollowChanged(targetUserId, Boolean(json?.dang_theo_doi));
     });
   }
 

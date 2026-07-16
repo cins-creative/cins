@@ -7,6 +7,12 @@ export type FeedPromoCard = {
   sub: string;
   href: string;
   imageUrl: string | null;
+  /** Ảnh bìa hồ sơ — card người (`is-person`); avatar vẫn dùng `imageUrl`. */
+  coverUrl?: string | null;
+  /** Giai đoạn — card người (nhắn tin / preview chat). */
+  giaiDoan?: string | null;
+  /** Mô tả ngắn hồ sơ — card người. */
+  bio?: string | null;
   /** Logo / avatar tổ chức — hiển thị cạnh tên org trên card khóa học / sự kiện. */
   orgLogoUrl?: string | null;
   /** Badge ngày trên cover — rail sự kiện. */

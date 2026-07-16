@@ -9,6 +9,7 @@ import {
 } from "@/lib/auth/account-vault";
 import { normalizeDevBindAllOrigin } from "@/lib/auth/auth-origin";
 import type { LoginIntent } from "@/lib/auth/login-intent";
+import { mapOAuthError } from "@/lib/auth/oauth-errors";
 import {
   clearOAuthIntentOnResponse,
   readOAuthIntent,
@@ -72,7 +73,11 @@ export async function GET(request: NextRequest) {
   const safeNextFromQuery = normalizeOAuthReturnPath(nextParam);
 
   if (errorDescription) {
-    return loginRedirect(origin, errorDescription, safeNextFromQuery);
+    return loginRedirect(
+      origin,
+      mapOAuthError(errorDescription),
+      safeNextFromQuery,
+    );
   }
   if (!code) {
     return loginRedirect(
@@ -86,9 +91,10 @@ export async function GET(request: NextRequest) {
     return loginRedirect(
       origin,
       "Phiên đăng nhập không tìm thấy mã xác minh PKCE. " +
-        "Hãy mở lại trang login trên cùng domain (vd. https://cins.vercel.app) " +
+        `Hãy mở lại trang login trên cùng domain (${origin}/login) ` +
         "và thử «Đăng nhập với Google» lại. " +
-        "Supabase → Redirect URLs: https://cins.vercel.app/auth/callback",
+        `Supabase → Redirect URLs: ${origin}/auth/callback` +
+        " (production: https://cins.vn/auth/callback).",
       safeNextFromQuery,
     );
   }
@@ -106,10 +112,11 @@ export async function GET(request: NextRequest) {
   const { data: exchangeData, error: exchangeErr } =
     await supabase.auth.exchangeCodeForSession(code);
   if (exchangeErr) {
-    const msg = exchangeErr.message.includes("PKCE code verifier")
-      ? "Phiên đăng nhập hết hạn hoặc mở sai trình duyệt. Vui lòng thử «Đăng nhập với Google» lại."
-      : exchangeErr.message;
-    return loginRedirect(origin, msg, safeNextFromQuery);
+    return loginRedirect(
+      origin,
+      mapOAuthError(exchangeErr.message),
+      safeNextFromQuery,
+    );
   }
 
   await flushDeferredAuthCookies();
@@ -121,7 +128,7 @@ export async function GET(request: NextRequest) {
   if (userErr || !user) {
     return loginRedirect(
       origin,
-      userErr?.message ?? "Không lấy được tài khoản sau xác thực.",
+      mapOAuthError(userErr?.message ?? "Không lấy được tài khoản sau xác thực."),
       safeNextFromQuery,
     );
   }

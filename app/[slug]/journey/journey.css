@@ -2478,7 +2478,34 @@ a.j-main-gallery-item:focus-visible,
   letter-spacing: 0.01em;
   line-height: 1.05;
 }
-.j-friend-stats span + span {
+.j-friend-stats .j-friend-stat-btn {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 9px 4px;
+  border: none;
+  border-radius: 0;
+  background: none;
+  color: var(--ink-muted);
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1.05;
+  cursor: pointer;
+  transition: color 0.14s ease, background 0.14s ease;
+}
+.j-friend-stats .j-friend-stat-btn:hover,
+.j-friend-stats .j-friend-stat-btn.is-open {
+  color: var(--cins-blue, #2563eb);
+  background: color-mix(in srgb, var(--cins-blue-soft, #eff6ff) 70%, transparent);
+}
+.j-friend-stats span + span,
+.j-friend-stats span + .j-friend-stat-btn,
+.j-friend-stats .j-friend-stat-btn + span,
+.j-friend-stats .j-friend-stat-btn + .j-friend-stat-btn {
   border-left: 1px solid rgba(148, 163, 184, 0.2);
 }
 .j-friend-stats strong {
@@ -2487,6 +2514,10 @@ a.j-main-gallery-item:focus-visible,
   color: var(--ink-display);
   font-size: 18px;
   line-height: 1;
+}
+.j-friend-stats .j-friend-stat-btn:hover strong,
+.j-friend-stats .j-friend-stat-btn.is-open strong {
+  color: var(--cins-blue, #2563eb);
 }
 .j-friend-actions {
   display: flex;
@@ -4889,34 +4920,34 @@ a.j-main-gallery-item:focus-visible,
 .cins-editor-page.cins-post-view.j-m-unfold-post .cover-add.has.cover-readonly img {
   border-radius: 0;
 }
-/* Article unfold — typography gọn trong card timeline (khớp excerpt / j-m-blocks). */
+/* Article unfold — typography khớp EditorView canvas. */
 .j-m-unfold-post:not(.j-m-unfold-post--media) .blocks-readonly .b-text-ro {
   font-family: var(--font-sans);
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 400;
-  line-height: 1.55;
-  color: var(--jcard-ink, var(--ink-body));
+  line-height: 1.75;
+  color: var(--ink-body);
   margin: 0;
 }
 .j-m-unfold-post:not(.j-m-unfold-post--media) .blocks-readonly .b-text-ro.h2,
 .j-m-unfold-post:not(.j-m-unfold-post--media) .blocks-readonly h2.b-text-ro {
-  font-size: 20px;
+  font-size: 26px;
   font-weight: 700;
   line-height: 1.25;
-  letter-spacing: -0.3px;
+  letter-spacing: -0.4px;
   color: var(--ink-display);
   margin: 0.85em 0 0.35em;
 }
 .j-m-unfold-post:not(.j-m-unfold-post--media) .blocks-readonly .b-text-ro.h3,
 .j-m-unfold-post:not(.j-m-unfold-post--media) .blocks-readonly h3.b-text-ro {
-  font-size: 17px;
+  font-size: 20px;
   font-weight: 700;
   line-height: 1.3;
   color: var(--ink-display);
   margin: 0.75em 0 0.25em;
 }
 .j-m-unfold-post:not(.j-m-unfold-post--media) .blocks-readonly .b-quote .b-quote-ro {
-  font-size: 17px;
+  font-size: 24px;
   line-height: 1.4;
 }
 .j-m-unfold-post .post-html-fallback,
@@ -4990,6 +5021,8 @@ a.j-main-gallery-item:focus-visible,
   cursor: zoom-in;
   appearance: none;
   -webkit-appearance: none;
+  display: block;
+  width: 100%;
   border: 0;
   margin: 0;
   padding: 0;
@@ -5006,13 +5039,35 @@ a.j-main-gallery-item:focus-visible,
 .j-m-unfold-post:not(.j-m-unfold-post--media) .block[data-block-type="imgs"] .img-cap-ro {
   padding-inline: 16px;
 }
+/* Unfold ảnh — không crop: full/masonry/inset/lưới/justified đều contain.
+   Tỉ lệ ô theo ảnh (justified) hoặc co theo nội dung (không ép 1:1 / 4:5). */
 .j-m-unfold-post .b-imgs-ro .ph img {
   width: 100%;
-  height: 100%;
-  object-fit: cover;
+  height: auto;
+  object-fit: contain;
   display: block;
 }
-/* Unfold — ảnh lưới full-bleed, không khe giữa các ô (editor mặc định gap: 3px). */
+.j-m-unfold-post .imgwrap.duo .ph,
+.j-m-unfold-post .imgwrap.grid2 .ph,
+.j-m-unfold-post .imgwrap.grid3 .ph,
+.j-m-unfold-post .imgwrap.grid4 .ph,
+.j-m-unfold-post .imgwrap.hero .ph,
+.j-m-unfold-post .imgwrap.hero .ph:first-child {
+  aspect-ratio: auto;
+  min-height: 0;
+  min-width: 0;
+}
+.j-m-unfold-post .imgwrap.duo .ph img,
+.j-m-unfold-post .imgwrap.grid2 .ph img,
+.j-m-unfold-post .imgwrap.grid3 .ph img,
+.j-m-unfold-post .imgwrap.grid4 .ph img,
+.j-m-unfold-post .imgwrap.hero .ph img,
+.j-m-unfold-post .imgwrap.justified .ph img {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+/* Unfold — khe giữa ô ảnh theo `--cins-img-slot-gap` (khớp editor / LayBar). */
 .j-m-unfold-post .imgwrap.duo,
 .j-m-unfold-post .imgwrap.grid2,
 .j-m-unfold-post .imgwrap.grid3,
@@ -5020,14 +5075,15 @@ a.j-main-gallery-item:focus-visible,
 .j-m-unfold-post .imgwrap.hero,
 .j-m-unfold-post .imgwrap.full,
 .j-m-unfold-post .imgwrap.inset,
-.j-m-unfold-post .imgwrap.justified {
-  gap: 0;
+.j-m-unfold-post .imgwrap.justified,
+.j-m-unfold-post .imgwrap-jrow {
+  gap: var(--cins-img-slot-gap, 2px);
 }
 .j-m-unfold-post .imgwrap.masonry {
-  column-gap: 0;
+  column-gap: var(--cins-img-slot-gap, 2px);
 }
 .j-m-unfold-post .imgwrap.masonry .ph {
-  margin-bottom: 0;
+  margin-bottom: var(--cins-img-slot-gap, 2px);
 }
 .j-m-unfold-post .imgwrap.boxed .ph {
   aspect-ratio: auto;
@@ -9948,27 +10004,39 @@ select.j-edit-input {
   --j-compose-radius: 20px;
   width: min(880px, calc(100% - 32px));
   max-width: 880px;
+  /* Khớp viewport — scroll trong canvas để sticky block-side / lay-bar hoạt động. */
+  max-height: calc(100vh - 40px);
+  max-height: calc(100dvh - 40px);
   margin: 0 auto;
   border-radius: var(--j-compose-radius);
   /* Clip nền + bo góc sheet; picker/portal render ra body nên không bị cắt. */
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
   background: var(--bg-page);
   box-shadow: var(--shadow-lg, 0 24px 64px rgba(15, 23, 42, 0.28));
 }
 .j-compose-sheet > .cins-editor-page {
   border-radius: inherit;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 /* Ảnh / video — card hẹp kiểu Facebook, không full 1100px */
 .j-compose-sheet.j-compose-sheet--media {
   width: min(500px, calc(100% - 32px));
 }
 .j-compose-sheet .cins-editor-page.is-overlay {
-  min-height: auto;
-  flex: none;
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
 }
 .j-compose-sheet .cins-editor-page.is-overlay .ed-topbar {
-  position: sticky;
-  top: 0;
+  position: relative;
+  top: auto;
+  flex-shrink: 0;
 }
 .j-compose-sheet .cins-editor-page.is-overlay .ed-topbar-inner {
   max-width: none;
@@ -9977,14 +10045,20 @@ select.j-edit-input {
 .j-compose-sheet .cins-editor-page.is-overlay .editor-canvas {
   width: 100%;
   max-width: none;
+  flex: 1 1 auto;
+  min-height: 0;
   /* Khít topbar / đáy sheet — tránh hở trên·dưới so với canvas. */
   margin-top: 0;
   margin-bottom: 0;
-  padding: 12px 24px 16px 56px;
+  /* Trái 56 = block-side · phải 56 = lay-bar (đối xứng, tránh crop). */
+  padding: 12px 56px 16px 56px;
   border-radius: 0;
   box-shadow: none;
-  /* Scroll theo overlay, không khống chế cao canvas → hở đáy sheet. */
+  /* Scroll trong canvas — sticky rail bám khung nhìn. */
   max-height: none;
+  overflow-x: visible;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 .j-compose-sheet .cins-editor-page.is-overlay .cover-add.has {
   border-radius: var(--radius-lg);
@@ -10051,6 +10125,44 @@ select.j-edit-input {
   background: color-mix(in srgb, #c084fc 18%, transparent);
   border-color: color-mix(in srgb, #c084fc 40%, transparent);
   color: #d8b4fe;
+}
+
+/* Compose overlay — dark: sheet + topbar + vùng soạn đồng bộ nền tối */
+:root[data-theme="dark"] .j-compose-sheet .cins-editor-page.is-overlay .ed-topbar {
+  background: var(--bg-surface);
+}
+
+:root[data-theme="dark"] .j-compose-sheet .cins-editor-page.is-overlay .editor-canvas {
+  background: transparent;
+}
+
+:root[data-theme="dark"] .ed-minimal-body {
+  background: var(--neutral-100);
+  border-color: var(--border);
+  color: var(--ink-display);
+}
+
+:root[data-theme="dark"] .ed-minimal-body::placeholder {
+  color: var(--ink-muted);
+}
+
+:root[data-theme="dark"] .ed-minimal-video-thumb {
+  background: var(--neutral-100);
+  border-color: var(--border);
+}
+
+:root[data-theme="dark"] .ed-emoji-tab.is-active {
+  background: color-mix(in srgb, var(--cins-blue) 18%, transparent);
+  color: var(--cins-blue);
+}
+
+:root[data-theme="dark"] .ed-emoji-cell:hover {
+  background: var(--neutral-100);
+}
+
+:root[data-theme="dark"] .ed-minimal-video-preview--pending {
+  background: var(--neutral-100);
+  color: var(--ink-muted);
 }
 
 .ed-minimal-body {
@@ -11326,14 +11438,14 @@ select.j-edit-input {
 .j-ps-block-rich .article-rich-content .rich-imgs--full {
   display: flex;
   flex-direction: column;
-  gap: var(--cins-img-slot-gap, 1.5px);
+  gap: var(--cins-img-slot-gap, 2px);
 }
 /* inset: một ô ~70% chiều ngang, căn giữa, giữ tỉ lệ ảnh. */
 .j-ps-block-rich .article-rich-content .rich-imgs--inset {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--cins-img-slot-gap, 1.5px);
+  gap: var(--cins-img-slot-gap, 2px);
 }
 .j-ps-block-rich .article-rich-content .rich-imgs--inset .rich-img-cell {
   width: 70%;
@@ -11347,17 +11459,17 @@ select.j-edit-input {
 /* masonry: 3 cột CSS columns theo chiều cao thật (không crop). */
 .j-ps-block-rich .article-rich-content .rich-imgs--masonry {
   column-count: 3;
-  column-gap: var(--cins-img-slot-gap, 1.5px);
+  column-gap: var(--cins-img-slot-gap, 2px);
 }
 .j-ps-block-rich .article-rich-content .rich-imgs--masonry .rich-img-cell {
   break-inside: avoid;
-  margin-bottom: var(--cins-img-slot-gap, 1.5px);
+  margin-bottom: var(--cins-img-slot-gap, 2px);
 }
 /* justified: hàng ảnh cao đều, tự xuống hàng; bề rộng theo tỉ lệ ảnh. */
 .j-ps-block-rich .article-rich-content .rich-imgs--justified {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--cins-img-slot-gap, 1.5px);
+  gap: var(--cins-img-slot-gap, 2px);
   align-items: flex-start;
 }
 .j-ps-block-rich .article-rich-content .rich-imgs--justified .rich-img-cell {
@@ -13753,6 +13865,35 @@ select.j-edit-input {
 .j-inline-control-trigger:focus-visible .ctx-badge.j-vis-feature {
   background: linear-gradient(135deg, #fde68a 0%, #fcd34d 100%);
   box-shadow: 0 1px 3px rgba(245, 158, 11, 0.3);
+}
+/* Dark: không mix với #f8fafc — nền sáng + chữ token trắng = không đọc được. */
+:root[data-theme="dark"] .j-inline-control-trigger:hover .ctx-badge,
+:root[data-theme="dark"] .j-inline-control-trigger:focus-visible .ctx-badge {
+  background: color-mix(in srgb, var(--cins-blue) 18%, var(--neutral-100));
+  color: var(--ink-display);
+}
+:root[data-theme="dark"] .j-inline-control-trigger:hover .ctx-badge.j-vis-feature,
+:root[data-theme="dark"]
+  .j-inline-control-trigger:focus-visible
+  .ctx-badge.j-vis-feature {
+  background: linear-gradient(
+    135deg,
+    rgba(245, 158, 11, 0.28) 0%,
+    rgba(245, 158, 11, 0.4) 100%
+  );
+  color: #fbbf24;
+  box-shadow: 0 1px 3px rgba(245, 158, 11, 0.28);
+}
+:root[data-theme="dark"] .j-inline-control-trigger:hover .ctx-badge.j-vis-cong-dong,
+:root[data-theme="dark"]
+  .j-inline-control-trigger:focus-visible
+  .ctx-badge.j-vis-cong-dong {
+  background: linear-gradient(
+    135deg,
+    rgba(79, 155, 232, 0.26) 0%,
+    rgba(79, 155, 232, 0.36) 100%
+  );
+  color: #7db4ee;
 }
 .j-inline-control-menu {
   position: absolute;

@@ -14,14 +14,21 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 6px;
   width: 100%;
   min-height: 28px;
-  padding: 4px 12px 8px;
+  padding: 6px 12px 10px;
   border: 0;
   background: transparent;
   color: var(--ink-muted);
   cursor: pointer;
   transition: color 0.16s ease, background 0.16s ease;
+}
+
+.j-user-featured-toggle-label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
 }
 
 .j-user-featured-toggle:hover {
@@ -108,6 +115,43 @@
   color: inherit;
   pointer-events: none;
   user-select: none;
+}
+
+.j-user-featured.is-pending .j-user-featured-toggle {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+.j-user-featured-tile.is-skel,
+.j-user-featured-masonry.is-skel .j-user-featured-tile {
+  background: linear-gradient(
+    90deg,
+    var(--neutral-100, #f1f2f5) 0%,
+    color-mix(in srgb, var(--neutral-200, #e4e6eb) 70%, transparent) 45%,
+    var(--neutral-100, #f1f2f5) 100%
+  );
+  background-size: 200% 100%;
+  animation: j-user-featured-skel 1.2s ease-in-out infinite;
+}
+
+@keyframes j-user-featured-skel {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+
+:root[data-theme="dark"] .j-user-featured-tile.is-skel,
+:root[data-theme="dark"] .j-user-featured-masonry.is-skel .j-user-featured-tile {
+  background: linear-gradient(
+    90deg,
+    rgba(30, 41, 59, 0.9) 0%,
+    rgba(51, 65, 85, 0.75) 45%,
+    rgba(30, 41, 59, 0.9) 100%
+  );
+  background-size: 200% 100%;
 }
 
 .j-user-featured-tile > img,

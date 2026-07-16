@@ -23,7 +23,7 @@ export function GuestHomeLoginPanel() {
       <header className="gh-login-head">
         <p className="gh-eyebrow">tài khoản miễn phí</p>
         <h2 className="gh-login-title">
-          Khám phá <em>hành trình</em> của bạn
+          Xây dựng hành trình sáng tạo của bạn
         </h2>
         <p className="gh-login-lead">
           Đăng ký trong 30 giây — lưu portfolio, đăng ký open day và nhận gợi ý

@@ -236,3 +236,36 @@ export function flattenMosaicCells(cells: unknown): string[] {
   }
   return out;
 }
+
+/** Khe giữa ô ảnh trong block — chu kỳ LayBar: 2 → 4 → 0 → 2. */
+export type ImgSlotGap = 0 | 2 | 4;
+
+export const IMG_SLOT_GAP_DEFAULT: ImgSlotGap = 2;
+
+const IMG_SLOT_GAP_CYCLE: readonly ImgSlotGap[] = [2, 4, 0];
+
+export function normalizeImgSlotGap(raw: unknown): ImgSlotGap {
+  if (raw === 0 || raw === 2 || raw === 4) return raw;
+  if (typeof raw === "string") {
+    const n = Number(raw);
+    if (n === 0 || n === 2 || n === 4) return n;
+  }
+  return IMG_SLOT_GAP_DEFAULT;
+}
+
+export function cycleImgSlotGap(current: unknown): ImgSlotGap {
+  const cur = normalizeImgSlotGap(current);
+  const i = IMG_SLOT_GAP_CYCLE.indexOf(cur);
+  return IMG_SLOT_GAP_CYCLE[(i + 1) % IMG_SLOT_GAP_CYCLE.length]!;
+}
+
+export function imgSlotGapLabel(gap: ImgSlotGap): string {
+  if (gap === 0) return "Không gap";
+  return `Gap ${gap}px`;
+}
+
+export function imgSlotGapNextHint(gap: ImgSlotGap): string {
+  const next = cycleImgSlotGap(gap);
+  if (next === 0) return "Bỏ gap";
+  return `Gap ${next}px`;
+}

@@ -36,8 +36,9 @@ import {
   journeyShareUrl,
   openFacebookShare,
   resolveShareOrigin,
+  type JourneyGalleryCardVariant,
+  type JourneyJourneyCardVariant,
   type JourneyShareCardKind,
-  type JourneyShareCardVariant,
   type JourneyShareMenuStep,
   type JourneyShareProfile,
 } from "@/lib/journey/profile-share";
@@ -165,9 +166,9 @@ export function JourneyProfileShareModal({
   } | null>(null);
   const [step, setStep] = useState<JourneyShareMenuStep>("menu");
   const [journeyVariant, setJourneyVariant] =
-    useState<JourneyShareCardVariant>("banner");
+    useState<JourneyJourneyCardVariant>("banner");
   const [galleryVariant, setGalleryVariant] =
-    useState<JourneyShareCardVariant>("strip");
+    useState<JourneyGalleryCardVariant>("strip");
   const [flash, setFlash] = useState<string | null>(null);
   const [galleryThumbs, setGalleryThumbs] = useState<string[]>(
     profile.galleryThumbs ?? [],
@@ -271,6 +272,8 @@ export function JourneyProfileShareModal({
         };
         if (cancelled || !json.state) return;
         setThemeState(json.state);
+        setJourneyVariant(json.state.layouts.journey);
+        setGalleryVariant(json.state.layouts.gallery);
       } catch {
         if (!cancelled) {
           setThemeState(defaultShareOgThemeState(profile.slug));
@@ -295,6 +298,7 @@ export function JourneyProfileShareModal({
             orgId: orgShare?.orgId,
             active: next.active,
             customs: next.customs,
+            layouts: next.layouts,
             removeImageId,
           }),
         });
@@ -758,9 +762,19 @@ export function JourneyProfileShareModal({
                       title={opt.hint}
                       onClick={() => {
                         if (cardKind === "journey") {
-                          setJourneyVariant(opt.id);
+                          const id = opt.id as JourneyJourneyCardVariant;
+                          setJourneyVariant(id);
+                          void persistTheme({
+                            ...themeState,
+                            layouts: { ...themeState.layouts, journey: id },
+                          });
                         } else {
-                          setGalleryVariant(opt.id);
+                          const id = opt.id as JourneyGalleryCardVariant;
+                          setGalleryVariant(id);
+                          void persistTheme({
+                            ...themeState,
+                            layouts: { ...themeState.layouts, gallery: id },
+                          });
                         }
                       }}
                     >
@@ -806,6 +820,7 @@ export function JourneyProfileShareModal({
                     return;
                   }
                   await persistTheme({
+                    ...themeState,
                     active: { kind: "custom", imageId: json.imageId },
                     customs: [
                       {

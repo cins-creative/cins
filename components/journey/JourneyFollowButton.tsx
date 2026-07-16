@@ -1,9 +1,13 @@
 "use client";
 
-import { Check, Clock3, UserCheck, UserMinus, UserPlus, X } from "lucide-react";
-import { useEffect, useState, useTransition } from "react";
+import { Check, Clock3, UserCheck, UserMinus, UserPlus, X, Bell, BellOff } from "lucide-react";
+import { useCallback, useEffect, useState, useTransition } from "react";
 
 import { emitNotificationsChanged } from "@/lib/journey/notifications-client";
+import {
+  emitUserFollowChanged,
+  USER_FOLLOW_CHANGED,
+} from "@/lib/social/follow-client";
 import type { KetBanStatusSummary, QuanHe } from "@/lib/social/types";
 
 type Props = {
@@ -27,10 +31,46 @@ export function JourneyFollowButton({
   const [notice, setNotice] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [unfriending, setUnfriending] = useState(false);
+  const [following, setFollowing] = useState<boolean | null>(null);
   const [pending, startTransition] = useTransition();
 
   const quanHe: QuanHe = status?.trang_thai ?? "none";
   const ketBanId = status?.ket_ban_id ?? null;
+
+  const refreshFollowStatus = useCallback(() => {
+    if (!viewerProfileId || viewerProfileId === targetUserId) return;
+    const qs = new URLSearchParams({
+      id_doi_tuong: targetUserId,
+      loai_doi_tuong: "user",
+    });
+    void fetch(`/api/follow?${qs.toString()}`, { credentials: "same-origin" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json: { dang_theo_doi?: boolean } | null) => {
+        if (json) setFollowing(Boolean(json.dang_theo_doi));
+      })
+      .catch(() => {});
+  }, [targetUserId, viewerProfileId]);
+
+  useEffect(() => {
+    if (quanHe !== "accepted") {
+      queueMicrotask(() => setFollowing(null));
+      return;
+    }
+    refreshFollowStatus();
+  }, [quanHe, refreshFollowStatus]);
+
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent<{ targetUserId?: string; following?: boolean }>)
+        .detail;
+      if (detail?.targetUserId !== targetUserId) return;
+      if (typeof detail.following === "boolean") {
+        setFollowing(detail.following);
+      }
+    };
+    window.addEventListener(USER_FOLLOW_CHANGED, handler);
+    return () => window.removeEventListener(USER_FOLLOW_CHANGED, handler);
+  }, [targetUserId]);
 
   useEffect(() => {
     if (quanHe !== "pending_received" && quanHe !== "accepted") {
@@ -67,6 +107,7 @@ export function JourneyFollowButton({
         );
         return;
       }
+      emitUserFollowChanged(targetUserId, true);
       await refreshStatus();
       emitNotificationsChanged();
     });
@@ -89,8 +130,38 @@ export function JourneyFollowButton({
         );
         return;
       }
+      if (action === "accept") {
+        emitUserFollowChanged(targetUserId, true);
+      }
       await refreshStatus();
       emitNotificationsChanged();
+    });
+  };
+
+  const toggleFollow = () => {
+    setError(null);
+    startTransition(async () => {
+      const isFollowing = following === true;
+      const res = await fetch("/api/follow", {
+        method: isFollowing ? "DELETE" : "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({
+          id_doi_tuong: targetUserId,
+          loai_doi_tuong: "user",
+        }),
+      });
+      const json = (await res.json().catch(() => null)) as {
+        dang_theo_doi?: boolean;
+        error?: string;
+      } | null;
+      if (!res.ok) {
+        setError(json?.error ?? "Không cập nhật được theo dõi.");
+        return;
+      }
+      const next = Boolean(json?.dang_theo_doi);
+      setFollowing(next);
+      emitUserFollowChanged(targetUserId, next);
     });
   };
 
@@ -184,15 +255,30 @@ export function JourneyFollowButton({
           }
         >
           {quanHe === "accepted" ? (
-            <button
-              type="button"
-              className="j-friend-action is-unfriend"
-              disabled={unfriending}
-              onClick={cancelOrUnfriend}
-            >
-              <UserMinus size={13} strokeWidth={2} aria-hidden />
-              {unfriending ? "Đang hủy..." : "Hủy kết bạn"}
-            </button>
+            <>
+              <button
+                type="button"
+                className="j-friend-action is-follow-toggle"
+                disabled={pending || following === null}
+                onClick={toggleFollow}
+              >
+                {following ? (
+                  <BellOff size={13} strokeWidth={2} aria-hidden />
+                ) : (
+                  <Bell size={13} strokeWidth={2} aria-hidden />
+                )}
+                {following ? "Bỏ theo dõi" : "Theo dõi"}
+              </button>
+              <button
+                type="button"
+                className="j-friend-action is-unfriend"
+                disabled={unfriending}
+                onClick={cancelOrUnfriend}
+              >
+                <UserMinus size={13} strokeWidth={2} aria-hidden />
+                {unfriending ? "Đang hủy..." : "Hủy kết bạn"}
+              </button>
+            </>
           ) : quanHe === "pending_sent" ? (
             <button
               type="button"
