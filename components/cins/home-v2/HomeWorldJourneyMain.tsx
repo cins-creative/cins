@@ -33,6 +33,7 @@ import {
 } from "@/lib/cins/worldJourneyFeedConstants";
 import { fetchWorldJourneyFeedPageCached } from "@/lib/cins/worldJourneyFeedFetch";
 import { fetchWorldJourneyGalleryPageCached } from "@/lib/cins/worldJourneyGalleryFetch";
+import { FEED_SOURCE_DEFAULT } from "@/lib/cins/worldJourneyFeedSource";
 import { loadFeedInlinePromos } from "@/lib/cins/worldJourneyFeedPromos";
 import { listLinhVucForHub } from "@/lib/career/queries";
 
@@ -67,11 +68,13 @@ export async function HomeWorldJourneyMain() {
       session.profile.id,
       0,
       WORLD_JOURNEY_FEED_PAGE_SIZE,
+      { source: FEED_SOURCE_DEFAULT },
     ),
     fetchWorldJourneyGalleryPageCached(
       session.profile.id,
       0,
       WORLD_JOURNEY_GALLERY_PAGE_SIZE,
+      { source: FEED_SOURCE_DEFAULT },
     ),
     getCachedPendingCoAuthorInvites(session.profile.id),
     getCachedPendingCoSoStaffInvites(session.profile.id),

@@ -1859,13 +1859,13 @@ a.j-main-gallery-item:focus-visible,
   }
   .j-main-gallery-thumb .j-g-play,
   .j-main-gallery-item .j-g-play {
-    width: 32px;
-    height: 32px;
+    width: 24px;
+    height: 24px;
   }
   .j-main-gallery-thumb .j-g-play svg,
   .j-main-gallery-item .j-g-play svg {
-    width: 14px;
-    height: 14px;
+    width: 11px;
+    height: 11px;
     margin-left: 1px;
   }
 }
@@ -7949,14 +7949,12 @@ button.j-g-item:disabled {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 40px;
-  height: 40px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   background: rgba(15, 23, 42, 0.72);
-  border: 2px solid rgba(255, 255, 255, 0.92);
-  box-shadow:
-    0 4px 14px rgba(15, 23, 42, 0.42),
-    0 0 0 1px rgba(15, 23, 42, 0.12);
+  border: none;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.35);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -7965,9 +7963,9 @@ button.j-g-item:disabled {
   pointer-events: none;
 }
 .j-g-play svg {
-  width: 18px;
-  height: 18px;
-  margin-left: 2px;
+  width: 13px;
+  height: 13px;
+  margin-left: 1px;
   flex-shrink: 0;
 }
 .j-g-embed-platform {

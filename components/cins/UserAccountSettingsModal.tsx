@@ -36,6 +36,7 @@ import {
   type HomeFeedLayout,
 } from "@/lib/home/home-feed-layout";
 import {
+  FEED_SOURCE_DEFAULT,
   FEED_SOURCE_OPTIONS,
   readFeedSourceDefault,
   setFeedSourceDefault,
@@ -105,7 +106,8 @@ export function UserAccountSettingsModal({ open, onClose }: Props) {
   const [section, setSection] = useState<SettingsSection>("journey-display");
   const [layoutTab, setLayoutTab] = useState<LayoutTab>("profile");
   const [homeLayout, setHomeLayout] = useState<HomeFeedLayout>("timeline");
-  const [feedSource, setFeedSource] = useState<FeedSourceFilter>("all");
+  const [feedSource, setFeedSource] =
+    useState<FeedSourceFilter>(FEED_SOURCE_DEFAULT);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);

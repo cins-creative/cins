@@ -843,19 +843,22 @@
   margin-bottom: 0;
 }
 
-/* ── Trang chủ: card gallery mặc định KHÔNG overlay; hover mới hiện
-   avatar + tên + tiêu đề + trích dẫn ───────────────────────────────── */
+/* ── Trang chủ: card gallery mặc định hiện avatar + tên người/tổ chức;
+   hover mới hiện thêm tiêu đề + trích dẫn ───────────────────────────── */
 .world-journey-home .j-main-gallery-item .j-main-gallery-overlay {
-  opacity: 0;
+  opacity: 1;
   background: linear-gradient(
     180deg,
     rgba(15, 23, 42, 0) 0%,
-    rgba(15, 23, 42, 0) 58%,
-    rgba(15, 23, 42, 0.66) 100%
+    rgba(15, 23, 42, 0) 62%,
+    rgba(15, 23, 42, 0.58) 100%
   );
 }
 .world-journey-home .j-main-gallery-item .j-main-gallery-overlay-body {
   gap: 0;
+}
+.world-journey-home .j-main-gallery-item .j-main-gallery-author {
+  opacity: 1;
 }
 .world-journey-home .j-main-gallery-item .j-main-gallery-overlay-title,
 .world-journey-home .j-main-gallery-item .j-main-gallery-overlay-excerpt {
@@ -870,7 +873,6 @@
 .world-journey-home .j-main-gallery-item:hover .j-main-gallery-overlay,
 .world-journey-home .j-main-gallery-item:focus-visible .j-main-gallery-overlay,
 .world-journey-home .j-main-gallery-item:focus-within .j-main-gallery-overlay {
-  opacity: 1;
   background: linear-gradient(
     180deg,
     rgba(15, 23, 42, 0) 0%,

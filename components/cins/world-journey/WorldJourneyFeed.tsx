@@ -68,6 +68,7 @@ import {
 } from "@/lib/cins/worldJourneyFirstImpression";
 import {
   FEED_SOURCE_CHANGE_EVENT,
+  FEED_SOURCE_DEFAULT,
   FEED_SOURCE_OPTIONS,
   matchesFeedSource,
   readFeedSourceDefault,
@@ -583,7 +584,8 @@ export function WorldJourneyFeed({
 }) {
   const [surfaceView, setSurfaceView] = useState<FeedSurfaceView>("journey");
   const [activeFilter, setActiveFilter] = useState("all");
-  const [feedSource, setFeedSource] = useState<FeedSourceFilter>("all");
+  const [feedSource, setFeedSource] =
+    useState<FeedSourceFilter>(FEED_SOURCE_DEFAULT);
   const [activeLinhVucSlug, setActiveLinhVucSlug] = useState<string | null>(
     null,
   );
@@ -703,7 +705,7 @@ export function WorldJourneyFeed({
       filterLoading ||
       activeFilter !== "all" ||
       activeLinhVucSlug ||
-      feedSource !== "all"
+      feedSource !== FEED_SOURCE_DEFAULT
     ) {
       return;
     }
@@ -1074,7 +1076,7 @@ export function WorldJourneyFeed({
               <JourneyGalleryGridView
                 key={galleryEndpoint}
                 hideToolbar
-                sourceFilter="all"
+                sourceFilter={feedSource}
                 initialItems={galleryRows}
                 totalCount={galleryRows.length}
                 scrollLoad={{
