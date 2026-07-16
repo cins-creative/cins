@@ -19350,6 +19350,9 @@ a.action-btn-part {
 .j-share-sheet--popover .j-share-body {
   padding: 12px 16px 16px;
 }
+.j-share-sheet--popover .j-share-layout-bar {
+  padding: 10px 16px 12px;
+}
 .j-share-sheet--popover .j-share-menu {
   gap: 8px;
 }
@@ -19448,6 +19451,26 @@ a.action-btn-part {
   color: var(--cins-blue-dark);
   background: var(--cins-blue-soft);
   border-bottom: 1px solid rgba(31, 116, 201, 0.15);
+}
+/* Layout chips neo dưới header — không bị scroll khuất trong .j-share-body */
+.j-share-layout-bar {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 22px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-elevated, var(--bg-surface, #fff));
+}
+.j-share-layout-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-muted);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 .j-share-body {
   padding: 16px 22px 22px;
@@ -19665,21 +19688,27 @@ a.action-btn-part {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  align-items: center;
 }
 .j-share-variant-chip {
-  border: 1px solid var(--border);
+  border: 1px solid var(--border, #cbd5e1);
   border-radius: 999px;
-  background: var(--bg-surface);
-  padding: 6px 12px;
+  background: var(--bg-surface, #fff);
+  padding: 7px 14px;
   font-size: 12px;
   font-weight: 600;
-  color: var(--ink-muted);
+  color: var(--ink-body, #334155);
   cursor: pointer;
+  flex: 0 0 auto;
 }
 .j-share-variant-chip.is-active {
   border-color: var(--cins-blue);
   background: var(--cins-blue-soft);
   color: var(--cins-blue-dark);
+}
+.j-share-variant-chip:hover:not(.is-active) {
+  border-color: color-mix(in srgb, var(--cins-blue) 45%, var(--border, #cbd5e1));
+  color: var(--ink-display, #0f172a);
 }
 .j-share-theme {
   display: flex;
@@ -22081,9 +22110,18 @@ a.action-btn-part {
   font-size: 13px;
 }
 
-.j-share-variant-row {
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  scrollbar-width: thin;
+/* Dark — chip layout đọc rõ trên nền sheet */
+:root[data-theme="dark"] .j-share-layout-bar {
+  background: var(--bg-elevated, var(--bg-surface));
+}
+:root[data-theme="dark"] .j-share-variant-chip {
+  color: var(--ink-body);
+  background: var(--bg-surface);
+  border-color: var(--border);
+}
+:root[data-theme="dark"] .j-share-variant-chip.is-active {
+  color: var(--cins-blue);
+  background: color-mix(in srgb, var(--cins-blue) 18%, transparent);
+  border-color: var(--cins-blue);
 }
 

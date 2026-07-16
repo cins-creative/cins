@@ -737,6 +737,57 @@ export function JourneyProfileShareModal({
         </p>
       ) : null}
 
+      {cardKind && JOURNEY_SHARE_CARD_VARIANTS[cardKind].length > 1 ? (
+        <div className="j-share-layout-bar">
+          <div className="j-share-layout-label">
+            <span>Layout</span>
+          </div>
+          <div
+            className="j-share-variant-row"
+            role="tablist"
+            aria-label="Chọn layout thẻ"
+          >
+            {JOURNEY_SHARE_CARD_VARIANTS[cardKind].map((opt) => {
+              const active =
+                cardKind === "journey"
+                  ? journeyVariant === opt.id
+                  : galleryVariant === opt.id;
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  className={
+                    "j-share-variant-chip" + (active ? " is-active" : "")
+                  }
+                  title={opt.hint}
+                  onClick={() => {
+                    if (cardKind === "journey") {
+                      const id = opt.id as JourneyJourneyCardVariant;
+                      setJourneyVariant(id);
+                      void persistTheme({
+                        ...themeState,
+                        layouts: { ...themeState.layouts, journey: id },
+                      });
+                    } else {
+                      const id = opt.id as JourneyGalleryCardVariant;
+                      setGalleryVariant(id);
+                      void persistTheme({
+                        ...themeState,
+                        layouts: { ...themeState.layouts, gallery: id },
+                      });
+                    }
+                  }}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
+
       <div className="j-share-body">
           {step === "menu" ? (
             <div className="j-share-menu">
@@ -848,47 +899,6 @@ export function JourneyProfileShareModal({
             />
           ) : cardKind ? (
             <>
-              {JOURNEY_SHARE_CARD_VARIANTS[cardKind].length > 1 ? (
-              <div className="j-share-variant-row" role="tablist" aria-label="Chọn layout thẻ">
-                {JOURNEY_SHARE_CARD_VARIANTS[cardKind].map((opt) => {
-                  const active =
-                    cardKind === "journey"
-                      ? journeyVariant === opt.id
-                      : galleryVariant === opt.id;
-                  const chipLabel = opt.label;
-                  return (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      role="tab"
-                      aria-selected={active}
-                      className={"j-share-variant-chip" + (active ? " is-active" : "")}
-                      title={opt.hint}
-                      onClick={() => {
-                        if (cardKind === "journey") {
-                          const id = opt.id as JourneyJourneyCardVariant;
-                          setJourneyVariant(id);
-                          void persistTheme({
-                            ...themeState,
-                            layouts: { ...themeState.layouts, journey: id },
-                          });
-                        } else {
-                          const id = opt.id as JourneyGalleryCardVariant;
-                          setGalleryVariant(id);
-                          void persistTheme({
-                            ...themeState,
-                            layouts: { ...themeState.layouts, gallery: id },
-                          });
-                        }
-                      }}
-                    >
-                      {chipLabel}
-                    </button>
-                  );
-                })}
-              </div>
-              ) : null}
-
               <JourneyShareThemePicker
                 state={themeState}
                 saving={themeSaving}
