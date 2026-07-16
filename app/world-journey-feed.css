@@ -1546,19 +1546,16 @@
 .world-journey-home .wj-feed-promo-rail-track {
   display: flex;
   gap: 8px;
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  scroll-snap-type: x mandatory;
-  padding: 2px 2px 6px;
-  margin: 0 -2px;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: thin;
+  overflow-x: hidden;
+  padding: 2px 0 6px;
+  margin: 0;
+  width: 100%;
 }
 
 /* —— Card chung —— */
 .world-journey-home .wj-feed-promo-card {
-  flex: 0 0 auto;
-  scroll-snap-align: start;
+  flex: 1 1 0;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -1584,7 +1581,8 @@
 .world-journey-home .wj-feed-promo-card.is-course,
 .world-journey-home .wj-feed-promo-card.is-career,
 .world-journey-home .wj-feed-promo-card.is-event {
-  width: min(218px, 57vw);
+  width: auto;
+  max-width: none;
 }
 
 .world-journey-home .wj-feed-promo-card.is-event .wj-feed-promo-card-cover {
@@ -1749,7 +1747,8 @@
 /* Người — mini profile card (cover + avatar giữa + bio + CTA) */
 .world-journey-home .wj-feed-promo-card.is-person {
   position: relative;
-  width: min(196px, 52vw);
+  width: auto;
+  max-width: none;
   padding: 0;
   gap: 0;
   overflow: hidden;
@@ -1905,6 +1904,7 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
   width: 100%;
+  min-height: calc(1.4em * 2);
   margin-top: 2px;
   font-size: 12px;
   font-weight: 500;
@@ -1981,7 +1981,8 @@
 /* Org / Studio — card ngang rộng: cover + logo + meta + theo dõi */
 .world-journey-home .wj-feed-promo-card.is-org {
   position: relative;
-  width: min(288px, 78vw);
+  width: auto;
+  max-width: none;
   padding: 0;
   gap: 0;
   overflow: hidden;
@@ -2185,6 +2186,45 @@
 :root[data-theme="dark"] .world-journey-home .wj-feed-promo-org-type {
   background: color-mix(in srgb, var(--cins-blue, #2563eb) 18%, transparent);
   color: #93c5fd;
+}
+
+/* S6 — rail người «Gợi ý kết nối thêm»: card hơi gọn hơn (vẫn ≤4 / hàng) */
+.world-journey-home .wj-feed-promo-rail.is-dense .wj-feed-promo-card.is-person {
+  border-radius: 14px;
+}
+
+.world-journey-home .wj-feed-promo-rail.is-dense .wj-feed-promo-person-cover {
+  height: 56px;
+}
+
+.world-journey-home .wj-feed-promo-rail.is-dense .wj-feed-promo-person-av {
+  width: 44px;
+  height: 44px;
+  margin-top: -24px;
+  border-width: 2px;
+}
+
+.world-journey-home .wj-feed-promo-rail.is-dense .wj-feed-promo-card.is-person .wj-feed-promo-card-body {
+  padding: 6px 8px 0;
+  gap: 2px;
+}
+
+.world-journey-home .wj-feed-promo-rail.is-dense .wj-feed-promo-card.is-person .wj-feed-promo-card-name {
+  font-size: 12.5px;
+}
+
+.world-journey-home .wj-feed-promo-rail.is-dense .wj-feed-promo-person-sub {
+  font-size: 10.5px;
+}
+
+.world-journey-home .wj-feed-promo-rail.is-dense .wj-feed-promo-person-bio {
+  font-size: 11px;
+  min-height: calc(1.35em * 2);
+  -webkit-line-clamp: 2;
+}
+
+.world-journey-home .wj-feed-promo-rail.is-dense .wj-feed-promo-person-actions {
+  padding: 6px 8px 10px;
 }
 
 /* Sự kiện org xen kẽ timeline feed giữa */
@@ -3098,21 +3138,15 @@
   overflow-x: clip;
   overflow-y: auto;
   overscroll-behavior: contain;
-  scrollbar-width: thin;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
-/* Thanh cuộn mảnh, chỉ hiện khi hover cột */
+/* Ẩn scrollbar — vẫn cuộn được. */
 .wj-guest-aside::-webkit-scrollbar {
-  width: 6px;
-}
-
-.wj-guest-aside::-webkit-scrollbar-thumb {
-  border-radius: 999px;
-  background: transparent;
-}
-
-.wj-guest-aside:hover::-webkit-scrollbar-thumb {
-  background: var(--border-s, rgba(0, 0, 0, 0.18));
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 .wj-guest-aside--left {
@@ -3123,14 +3157,6 @@
 .wj-guest-aside--right {
   gap: 16px;
   padding-right: 0;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
-.wj-guest-aside--right::-webkit-scrollbar {
-  display: none;
-  width: 0;
-  height: 0;
 }
 
 .wj-guest-panel,
@@ -4113,8 +4139,15 @@
   overflow-x: clip;
   overflow-y: auto;
   overscroll-behavior: contain;
-  scrollbar-width: thin;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   padding-right: 0;
+}
+
+.world-journey-home .ha-col::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 .world-journey-home .ha-col > .ha-card {
@@ -4122,7 +4155,7 @@
   height: fit-content;
 }
 
-/* Card module trong cột phải — bỏ padding phải để khít mép scrollbar.
+/* Card module trong cột phải — bỏ padding phải để khít mép.
    Cột trái giữ padding đầy đủ; card cơ hội (ha-card--jobs) giữ padding trong. */
 .world-journey-home .ha-col--right .ha-card:not(.ha-card--jobs):not(.ha-card--notify) .ha-card-head,
 .world-journey-home .ha-col--right .ha-card:not(.ha-card--jobs):not(.ha-card--notify) .ha-card-empty,
@@ -4136,34 +4169,9 @@
   padding-right: 0;
 }
 
-/* Cột trái — padding phải thoáng hơn; cuộn mảnh khi hover (nội dung dài hơn cột phải). */
+/* Cột trái — padding phải thoáng hơn. */
 .world-journey-home .ha-col--left {
   --ha-inset-x: 14px;
-}
-
-.world-journey-home .ha-col--left::-webkit-scrollbar {
-  width: 6px;
-}
-
-.world-journey-home .ha-col--left::-webkit-scrollbar-thumb {
-  border-radius: 999px;
-  background: transparent;
-}
-
-.world-journey-home .ha-col--left:hover::-webkit-scrollbar-thumb {
-  background: var(--border-s, rgba(0, 0, 0, 0.18));
-}
-
-/* Cột phải — ẩn scrollbar, vẫn cuộn được. */
-.world-journey-home .ha-col--right {
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
-.world-journey-home .ha-col--right::-webkit-scrollbar {
-  display: none;
-  width: 0;
-  height: 0;
 }
 
 @media (max-width: 991.98px) {
@@ -4615,11 +4623,18 @@
   flex: 0 0 auto;
 }
 
-.world-journey-home .ha-person .j-friend-btn.is-compact {
+.world-journey-home .ha-person .j-friend-btn.is-compact,
+.world-journey-home .ha-person .j-friend-btn.is-compact.is-idle,
+.world-journey-home .ha-person .j-friend-btn.is-compact.is-pending,
+.world-journey-home .ha-person .j-friend-btn.is-compact.is-friends {
   width: 38px;
   min-width: 38px;
   padding: 0;
   border: none;
+  background: transparent;
+  box-shadow: none;
+}
+.world-journey-home .ha-person .j-friend-btn.is-compact:hover:not(:disabled) {
   background: transparent;
 }
 
@@ -4723,15 +4738,19 @@
 .world-journey-home .ha-row .j-follow-wrap {
   flex: 0 0 auto;
 }
-.world-journey-home .ha-row .j-friend-btn.is-compact {
+.world-journey-home .ha-row .j-friend-btn.is-compact,
+.world-journey-home .ha-row .j-friend-btn.is-compact.is-idle,
+.world-journey-home .ha-row .j-friend-btn.is-compact.is-pending,
+.world-journey-home .ha-row .j-friend-btn.is-compact.is-friends {
   width: 38px;
   min-width: 38px;
   padding: 0;
   border: none;
   background: transparent;
+  box-shadow: none;
 }
 .world-journey-home .ha-row .j-friend-btn.is-compact:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--cins-blue, #2563eb) 10%, transparent);
+  background: transparent;
 }
 
 .world-journey-home .ha-row-name {

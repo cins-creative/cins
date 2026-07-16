@@ -382,6 +382,8 @@ export type MilestoneItem = {
     viewerLiked: boolean;
     viewerDisliked?: boolean;
     viewerBookmarked: boolean;
+    /** True khi viewer còn ít nhất một bình luận chưa xóa trên cột mốc. */
+    viewerCommented?: boolean;
     likeCount: number;
     dislikeCount?: number;
     bookmarkCount: number;

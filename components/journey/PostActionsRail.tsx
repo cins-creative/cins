@@ -8,6 +8,7 @@ import {
   MessageCircle,
   Share2,
 } from "lucide-react";
+import { POST_COMMENTS_SYNC_EVENT } from "@/lib/journey/comments-sync-client";
 import {
   useEffect,
   useRef,
@@ -25,6 +26,8 @@ type Props = {
   milestoneId: string;
   initialLiked?: boolean;
   initialBookmarked?: boolean;
+  /** True khi viewer đã bình luận (chưa xóa) — tô màu nút. */
+  initialCommented?: boolean;
   likeCount?: number;
   bookmarkCount?: number;
   commentCount?: number;
@@ -275,6 +278,7 @@ export function PostActionsRail({
   milestoneId,
   initialLiked = false,
   initialBookmarked = false,
+  initialCommented = false,
   likeCount = 0,
   bookmarkCount = 0,
   commentCount = 0,
@@ -300,6 +304,7 @@ export function PostActionsRail({
   );
   const [liked, setLiked] = useState(initialLiked);
   const [bookmarked, setBookmarked] = useState(initialBookmarked);
+  const [commented, setCommented] = useState(initialCommented);
   const [likes, setLikes] = useState(likeCount);
   const [bookmarks, setBookmarks] = useState(bookmarkCount);
   const [pending, startTransition] = useTransition();
@@ -308,10 +313,17 @@ export function PostActionsRail({
     queueMicrotask(() => {
       setLiked(initialLiked);
       setBookmarked(initialBookmarked);
+      setCommented(initialCommented);
       setLikes(likeCount);
       setBookmarks(bookmarkCount);
     });
-  }, [initialLiked, initialBookmarked, likeCount, bookmarkCount]);
+  }, [
+    initialLiked,
+    initialBookmarked,
+    initialCommented,
+    likeCount,
+    bookmarkCount,
+  ]);
 
   useEffect(() => {
     const onSocial = (event: Event) => {
@@ -332,6 +344,24 @@ export function PostActionsRail({
     };
     window.addEventListener("cins:social-action", onSocial);
     return () => window.removeEventListener("cins:social-action", onSocial);
+  }, [milestoneId]);
+
+  useEffect(() => {
+    function onCommentsSync(event: Event) {
+      const detail = (
+        event as CustomEvent<{
+          milestoneId?: string;
+          viewerCommented?: boolean;
+        }>
+      ).detail;
+      if (detail?.milestoneId !== milestoneId) return;
+      if (typeof detail.viewerCommented === "boolean") {
+        setCommented(detail.viewerCommented);
+      }
+    }
+    window.addEventListener(POST_COMMENTS_SYNC_EVENT, onCommentsSync);
+    return () =>
+      window.removeEventListener(POST_COMMENTS_SYNC_EVENT, onCommentsSync);
   }, [milestoneId]);
 
   function toggleLike() {
@@ -482,11 +512,23 @@ export function PostActionsRail({
 
       <button
         type="button"
-        className="post-byline-act is-comment"
+        className={
+          "post-byline-act is-comment" + (commented ? " is-active is-commented" : "")
+        }
         onClick={() => requireAuth(scrollToComments)}
-        aria-label={`${commentCount} bình luận — cuộn tới phần bình luận`}
+        aria-label={
+          commented
+            ? `${commentCount} bình luận — bạn đã bình luận`
+            : `${commentCount} bình luận — cuộn tới phần bình luận`
+        }
+        aria-pressed={commented || undefined}
       >
-        <MessageCircle size={isVertical ? 18 : 16} strokeWidth={1.8} aria-hidden />
+        <MessageCircle
+          size={isVertical ? 18 : 16}
+          strokeWidth={1.8}
+          fill={commented ? "currentColor" : "none"}
+          aria-hidden
+        />
         {showLabels ? (
           <span className="post-byline-act-label">Bình luận</span>
         ) : null}

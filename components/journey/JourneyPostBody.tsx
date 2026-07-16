@@ -39,7 +39,10 @@ import {
   removeCommentFromThreads,
   updateCommentInThreads,
 } from "@/lib/social/comments/client-tree";
-import { emitPostCommentsSync } from "@/lib/journey/comments-sync-client";
+import {
+  emitPostCommentsSync,
+  viewerHasActiveComment,
+} from "@/lib/journey/comments-sync-client";
 import { patchMilestoneDetailComments } from "@/lib/journey/milestone-detail-cache";
 import {
   mapCheDoToMilestoneVisibility,
@@ -274,7 +277,11 @@ export function JourneyPostBody({
       return {
         ...d,
         comments: nextComments,
-        social: { ...d.social, commentCount },
+        social: {
+          ...d.social,
+          commentCount,
+          viewerCommented: viewerHasActiveComment(nextComments),
+        },
       };
     });
   }
@@ -344,6 +351,7 @@ export function JourneyPostBody({
       milestoneId={milestone.id}
       initialLiked={social.viewerLiked}
       initialBookmarked={social.viewerBookmarked}
+      initialCommented={social.viewerCommented}
       likeCount={social.likeCount}
       bookmarkCount={social.bookmarkCount}
       commentCount={displayCommentCount}
@@ -360,6 +368,7 @@ export function JourneyPostBody({
       milestoneId={milestone.id}
       initialLiked={social.viewerLiked}
       initialBookmarked={social.viewerBookmarked}
+      initialCommented={social.viewerCommented}
       likeCount={social.likeCount}
       bookmarkCount={social.bookmarkCount}
       commentCount={displayCommentCount}

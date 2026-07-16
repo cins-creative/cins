@@ -17,6 +17,8 @@ import { useCallback, useMemo, useState, type ReactNode } from "react";
 type Props = {
   href?: string;
   commentCount?: number | null;
+  /** True khi viewer đã bình luận (chưa xóa) — tô màu nút. */
+  viewerCommented?: boolean;
   /** Timeline inline — mở panel bình luận trong card, không navigate popup. */
   onOpenComments?: () => void;
   /** Mở popup bài viết (`data-open-post`) thay vì panel inline. */
@@ -51,6 +53,7 @@ function CommentCount({
 export function JourneyCommentLink({
   href,
   commentCount,
+  viewerCommented = false,
   onOpenComments,
   openPostPopup = false,
   idDoiTuong,
@@ -63,6 +66,7 @@ export function JourneyCommentLink({
   const isCoarse = useCoarsePointer();
   const [actorsOpen, setActorsOpen] = useState(false);
   const count = commentCount ?? 0;
+  const commentedClass = viewerCommented ? " is-commented" : "";
 
   const actors = useMemo<JourneyActionActorsConfig | null>(() => {
     if (disableActorsReveal || count <= 0 || !idDoiTuong) return null;
@@ -103,7 +107,14 @@ export function JourneyCommentLink({
       />
     ) : null;
 
-  const icon = <MessageCircle size={16} strokeWidth={1.8} aria-hidden />;
+  const icon = (
+    <MessageCircle
+      size={16}
+      strokeWidth={1.8}
+      fill={viewerCommented ? "currentColor" : "none"}
+      aria-hidden
+    />
+  );
 
   if (isCoarse) {
     const press = onOpenComments
@@ -123,8 +134,8 @@ export function JourneyCommentLink({
     return (
       <>
         <JourneyActionTouchChip
-          className="action-btn"
-          ariaLabel="Bình luận"
+          className={`action-btn${commentedClass}`}
+          ariaLabel={viewerCommented ? "Bình luận của bạn" : "Bình luận"}
           onPress={press}
           onLongPress={actors ? openActors : undefined}
           longPressHint={
@@ -149,7 +160,7 @@ export function JourneyCommentLink({
   const wrap = (iconControl: ReactNode) => {
     if (count <= 0) return iconControl;
     return (
-      <span className="action-btn action-btn--split">
+      <span className={`action-btn action-btn--split${commentedClass}`}>
         {iconControl}
         <CommentCount
           count={count}
@@ -160,12 +171,19 @@ export function JourneyCommentLink({
     );
   };
 
+  const iconClass =
+    count > 0
+      ? "action-btn-part action-btn-part--icon"
+      : `action-btn${commentedClass}`;
+  const ariaLabel = viewerCommented ? "Bình luận của bạn" : "Bình luận";
+
   if (onOpenComments) {
     return wrap(
       <button
         type="button"
-        className={count > 0 ? "action-btn-part action-btn-part--icon" : "action-btn"}
-        aria-label="Bình luận"
+        className={iconClass}
+        aria-label={ariaLabel}
+        aria-pressed={viewerCommented || undefined}
         onClick={(e) => {
           e.stopPropagation();
           openComments();
@@ -180,8 +198,9 @@ export function JourneyCommentLink({
     return wrap(
       <button
         type="button"
-        className={count > 0 ? "action-btn-part action-btn-part--icon" : "action-btn"}
-        aria-label="Bình luận"
+        className={iconClass}
+        aria-label={ariaLabel}
+        aria-pressed={viewerCommented || undefined}
         data-open-post="true"
       >
         {icon}
@@ -193,8 +212,9 @@ export function JourneyCommentLink({
     return wrap(
       <button
         type="button"
-        className={count > 0 ? "action-btn-part action-btn-part--icon" : "action-btn"}
-        aria-label="Bình luận"
+        className={iconClass}
+        aria-label={ariaLabel}
+        aria-pressed={viewerCommented || undefined}
       >
         {icon}
       </button>,
@@ -205,8 +225,8 @@ export function JourneyCommentLink({
     return wrap(
       <a
         href={href}
-        className={count > 0 ? "action-btn-part action-btn-part--icon" : "action-btn"}
-        aria-label="Bình luận"
+        className={iconClass}
+        aria-label={ariaLabel}
       >
         {icon}
       </a>,
@@ -216,7 +236,7 @@ export function JourneyCommentLink({
   return wrap(
     <button
       type="button"
-      className={count > 0 ? "action-btn-part action-btn-part--icon" : "action-btn"}
+      className={iconClass}
       aria-label="Bình luận — cần đăng nhập"
       onClick={openComments}
     >

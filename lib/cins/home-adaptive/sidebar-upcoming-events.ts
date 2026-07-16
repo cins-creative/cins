@@ -104,12 +104,10 @@ function eventSortKey(batDau: string): number {
 
 function priorityRank(
   phanHoi: LoaiPhanHoiSuKien | null,
-  fromFollowedOrg: boolean,
 ): number {
   if (phanHoi === "se_tham_gia") return 0;
   if (phanHoi === "quan_tam") return 1;
-  if (fromFollowedOrg) return 2;
-  return 3;
+  return 2;
 }
 
 function mapSuKienRow(
@@ -180,6 +178,11 @@ async function fetchUpcomingSuKienRows(
     .order("bat_dau", { ascending: true })
     .limit(options.limit + options.excludeIds.size + 6);
 
+  /* Discovery (không lọc theo id sự kiện đã quan tâm): chỉ lấy sắp tới. */
+  if (!options.suKienIds?.length) {
+    query = query.gte("bat_dau", now);
+  }
+
   if (options.suKienIds?.length) {
     query = query.in("id", options.suKienIds);
   } else if (options.orgIds?.length) {
@@ -202,15 +205,16 @@ async function fetchUpcomingSuKienRows(
 
 function sortSidebarEvents(
   pool: SidebarUpcomingEvent[],
-  followedSet: Set<string>,
+  _followedSet: Set<string>,
 ): SidebarUpcomingEvent[] {
   return [...pool].sort((a, b) => {
-    const rankA = priorityRank(a.phanHoi, followedSet.has(a.orgId));
-    const rankB = priorityRank(b.phanHoi, followedSet.has(b.orgId));
+    const rankA = priorityRank(a.phanHoi);
+    const rankB = priorityRank(b.phanHoi);
     if (rankA !== rankB) return rankA - rankB;
-    const liveOrder =
-      (a.status === "active" ? 0 : 1) - (b.status === "active" ? 0 : 1);
-    if (liveOrder !== 0) return liveOrder;
+    /* Sắp tới gần nhất trước; đang diễn ra xếp sau. */
+    const upcomingOrder =
+      (a.status === "upcoming" ? 0 : 1) - (b.status === "upcoming" ? 0 : 1);
+    if (upcomingOrder !== 0) return upcomingOrder;
     return a.sortKey - b.sortKey;
   });
 }

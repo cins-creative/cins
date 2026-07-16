@@ -156,6 +156,10 @@
   padding: 6px 8px 4px;
   overflow-y: auto;
   flex: 1;
+  scrollbar-width: none;
+}
+.jsa-list::-webkit-scrollbar {
+  display: none;
 }
 
 .jsa-row {
@@ -187,8 +191,15 @@
   gap: 10px;
   flex: 1;
   min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  font: inherit;
+  text-align: left;
   text-decoration: none;
   color: inherit;
+  cursor: default;
 }
 
 .jsa-item-body {

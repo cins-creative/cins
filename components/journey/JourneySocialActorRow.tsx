@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { useCallback, useState, type MouseEvent } from "react";
+import { useCallback, useState } from "react";
 import { Maximize2, Users } from "lucide-react";
 
 import { JourneySocialActorActions } from "@/components/journey/JourneySocialActorActions";
@@ -20,7 +19,6 @@ type Props = {
   kind: SocialInteractionKind;
   /** Emoji reaction khi danh sách từ bình luận. */
   reactionEmoji?: string;
-  onNavigate: () => void;
 };
 
 function interactionVerb(
@@ -43,7 +41,6 @@ export function JourneySocialActorRow({
   viewerId,
   kind,
   reactionEmoji,
-  onNavigate,
 }: Props) {
   const subtitle = buildSubtitle(actor);
   const when = formatActorRelativeTime(actor.tuongTacLuc);
@@ -63,12 +60,9 @@ export function JourneySocialActorRow({
 
   const canExpandFeatured = featuredReady && featuredCount > 0;
 
-  const onCardClick = (event: MouseEvent<HTMLAnchorElement>) => {
-    if (!canExpandFeatured) {
-      onNavigate();
-      return;
-    }
-    event.preventDefault();
+  /** Click hàng chỉ xổ nội dung nổi bật — không vào trang cá nhân. */
+  const onCardClick = () => {
+    if (!canExpandFeatured) return;
     setFeaturedOpen((v) => !v);
   };
 
@@ -77,13 +71,20 @@ export function JourneySocialActorRow({
       <div
         className={`jsa-item${featuredOpen ? " is-expanded" : ""}${canExpandFeatured ? " is-expandable" : ""}`}
       >
-        <Link
-          href={`/${actor.slug}`}
+        <button
+          type="button"
           className="jsa-item-hit"
           aria-expanded={canExpandFeatured ? featuredOpen : undefined}
           aria-controls={
             canExpandFeatured
               ? `j-user-featured-panel-${actor.slug}`
+              : undefined
+          }
+          aria-label={
+            canExpandFeatured
+              ? featuredOpen
+                ? `Thu gọn nội dung nổi bật của ${actor.tenHienThi}`
+                : `Xem nội dung nổi bật của ${actor.tenHienThi}`
               : undefined
           }
           onClick={onCardClick}
@@ -119,7 +120,7 @@ export function JourneySocialActorRow({
               ) : null}
             </span>
           </span>
-        </Link>
+        </button>
         <div className="jsa-actions" onClick={(e) => e.stopPropagation()}>
           <JourneySocialActorActions actor={actor} viewerId={viewerId} bare />
           {canExpandFeatured ? (

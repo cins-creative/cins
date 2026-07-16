@@ -248,7 +248,6 @@ export function JourneySocialActorsModal({
                     viewerId={viewerId}
                     kind={kind}
                     reactionEmoji={emoji}
-                    onNavigate={onClose}
                   />
                 ))}
               </ul>

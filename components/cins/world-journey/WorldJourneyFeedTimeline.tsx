@@ -15,6 +15,12 @@ import {
 import { WORLD_JOURNEY_FEED_SCROLL_ROOT_MARGIN } from "@/lib/cins/worldJourneyFeedConstants";
 import {
   FEED_INLINE_PROMO_INTERVAL,
+  FEED_PROMO_CYCLE,
+  feedPromoVisibleCount,
+  resolveFeedPromoBreakpoint,
+  takePromoSlice,
+  type FeedPromoBreakpoint,
+  type FeedPromoKind,
   type FeedPromoVariant,
 } from "@/lib/cins/worldJourneyFeedPromosTypes";
 
@@ -56,31 +62,74 @@ function canInlineExpand(milestone: MilestoneItem): boolean {
 /** Rail gợi ý ngang xen giữa feed (kết bạn / org / sự kiện…). */
 const SHOW_FEED_PROMO_RAIL = true;
 
+function useFeedPromoBreakpoint(): FeedPromoBreakpoint {
+  const [bp, setBp] = useState<FeedPromoBreakpoint>("lg");
+
+  useEffect(() => {
+    const update = () =>
+      setBp(resolveFeedPromoBreakpoint(window.innerWidth));
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+
+  return bp;
+}
+
+/**
+ * Chèn rail theo chu kỳ S1–S6; mỗi lần lấy slice mới từ pool (tránh lặp cùng bộ card).
+ * Số card theo breakpoint — không scroll ngang.
+ */
 function buildPromoInsertMap(
   postCount: number,
   promos: FeedPromoVariant[],
   viewerProfileId: string,
+  bp: FeedPromoBreakpoint,
 ): Map<number, ReactNode> {
   const map = new Map<number, ReactNode>();
-  if (!SHOW_FEED_PROMO_RAIL || postCount === 0 || promos.length === 0) return map;
+  if (!SHOW_FEED_PROMO_RAIL || postCount === 0 || promos.length === 0) {
+    return map;
+  }
 
-  let promoIdx = 0;
+  const cursors: Partial<Record<FeedPromoKind, number>> = {};
+  let cycleIdx = 0;
+
   for (
     let after = FEED_INLINE_PROMO_INTERVAL;
     after <= postCount;
     after += FEED_INLINE_PROMO_INTERVAL
   ) {
-    const variant = promos[promoIdx % promos.length];
+    let variant: FeedPromoVariant | null = null;
+
+    for (let attempt = 0; attempt < FEED_PROMO_CYCLE.length; attempt += 1) {
+      const slot = FEED_PROMO_CYCLE[cycleIdx % FEED_PROMO_CYCLE.length];
+      cycleIdx += 1;
+      const count = feedPromoVisibleCount(slot.kind, slot.density, bp);
+      const offset = cursors[slot.kind] ?? 0;
+      variant = takePromoSlice(
+        promos,
+        slot.kind,
+        offset,
+        count,
+        slot.density,
+      );
+      if (variant) {
+        cursors[slot.kind] = offset + variant.items.length;
+        break;
+      }
+    }
+
+    if (!variant) continue;
+
     map.set(
       after,
       <WorldJourneyFeedPromoRail
-        key={`feed-promo-${promoIdx}`}
-        slotKey={`${promoIdx}`}
+        key={`feed-promo-${after}-${variant.kind}-${variant.density ?? "normal"}`}
+        slotKey={`${after}`}
         variant={variant}
         viewerProfileId={viewerProfileId}
       />,
     );
-    promoIdx += 1;
   }
   return map;
 }
@@ -97,6 +146,7 @@ export function WorldJourneyFeedTimeline({
   const [inlineExpand, setInlineExpand] =
     useState<TimelineInlineExpandState>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const promoBp = useFeedPromoBreakpoint();
 
   const byYear = useMemo(
     () => groupByYearPreserveOrder(milestones),
@@ -104,8 +154,14 @@ export function WorldJourneyFeedTimeline({
   );
 
   const promoInsertMap = useMemo(
-    () => buildPromoInsertMap(milestones.length, feedPromos, viewerProfileId),
-    [milestones.length, feedPromos, viewerProfileId],
+    () =>
+      buildPromoInsertMap(
+        milestones.length,
+        feedPromos,
+        viewerProfileId,
+        promoBp,
+      ),
+    [milestones.length, feedPromos, viewerProfileId, promoBp],
   );
 
   useEffect(() => {

@@ -788,6 +788,9 @@ export function JourneyMilestoneCard({
     : "cot_moc";
   const trackIdDoiTuong = orgBaiDangRef?.postId ?? milestoneId;
   const [liveCommentCount, setLiveCommentCount] = useState(comments ?? 0);
+  const [liveViewerCommented, setLiveViewerCommented] = useState(
+    social?.viewerCommented ?? false,
+  );
   /* Like/bookmark optimistic sống trên card — khi mở comment, action bar
      chuyển chỗ (pinActionsAboveComments) nên nút remount; nếu chỉ dựa props
      `social` từ server thì trạng thái local bị mất. */
@@ -840,6 +843,10 @@ export function JourneyMilestoneCard({
   useEffect(() => {
     setLiveCommentCount(comments ?? 0);
   }, [comments]);
+
+  useEffect(() => {
+    setLiveViewerCommented(social?.viewerCommented ?? false);
+  }, [social?.viewerCommented]);
 
   useEffect(() => {
     setLiveSocial({
@@ -935,12 +942,19 @@ export function JourneyMilestoneCard({
   useEffect(() => {
     function onCommentsSync(event: Event) {
       const detail = (
-        event as CustomEvent<{ milestoneId?: string; count?: number }>
+        event as CustomEvent<{
+          milestoneId?: string;
+          count?: number;
+          viewerCommented?: boolean;
+        }>
       ).detail;
-      if (detail?.milestoneId !== milestoneId || typeof detail.count !== "number") {
-        return;
+      if (detail?.milestoneId !== milestoneId) return;
+      if (typeof detail.count === "number") {
+        setLiveCommentCount(detail.count);
       }
-      setLiveCommentCount(detail.count);
+      if (typeof detail.viewerCommented === "boolean") {
+        setLiveViewerCommented(detail.viewerCommented);
+      }
     }
 
     window.addEventListener(POST_COMMENTS_SYNC_EVENT, onCommentsSync);
@@ -1216,6 +1230,7 @@ export function JourneyMilestoneCard({
       {inlineExpand ? (
         <JourneyCommentLink
           commentCount={liveCommentCount}
+          viewerCommented={liveViewerCommented}
           idDoiTuong={milestoneId}
           sharePath={viewerPostHref}
           shareTitle={title}
@@ -1227,6 +1242,7 @@ export function JourneyMilestoneCard({
       ) : (
         <JourneyCommentLink
           commentCount={liveCommentCount}
+          viewerCommented={liveViewerCommented}
           idDoiTuong={milestoneId}
           sharePath={viewerPostHref}
           shareTitle={title}

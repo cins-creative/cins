@@ -186,6 +186,8 @@ function PromoPersonCard({
     .map((w) => w.charAt(0))
     .join("")
     .toUpperCase() || title.slice(0, 1).toUpperCase();
+  const description =
+    bio?.trim() || "Khám phá hành trình trên CINs";
 
   return (
     <article className="wj-feed-promo-card is-person" role="listitem">
@@ -235,9 +237,7 @@ function PromoPersonCard({
               <span>{sub}</span>
             </span>
           ) : null}
-          {bio ? (
-            <span className="wj-feed-promo-person-bio">{bio}</span>
-          ) : null}
+          <span className="wj-feed-promo-person-bio">{description}</span>
         </span>
       </Link>
       <div className="wj-feed-promo-person-actions">
@@ -355,25 +355,21 @@ export function WorldJourneyFeedPromoRail({
 }: Props) {
   if (variant.items.length === 0) return null;
 
+  const density = variant.density ?? "normal";
+  const railClass =
+    density === "dense"
+      ? "wj-feed-promo-rail is-dense"
+      : "wj-feed-promo-rail";
+
   return (
     <aside
-      className="wj-feed-promo-rail"
+      className={railClass}
       aria-label={variant.title}
       data-promo-kind={variant.kind}
+      data-promo-density={density}
       data-promo-slot={slotKey}
+      data-promo-count={variant.items.length}
     >
-      <div className="wj-feed-promo-rail-head">
-        <div className="wj-feed-promo-rail-head-copy">
-          <h3 className="wj-feed-promo-rail-title">{variant.title}</h3>
-        </div>
-        <Link
-          href={variant.moreHref}
-          className="wj-feed-promo-rail-more"
-          prefetch={false}
-        >
-          {variant.moreLabel ?? "Xem tất cả"}
-        </Link>
-      </div>
       <div className="wj-feed-promo-rail-track" role="list">
         {variant.items.map((item) => {
           if (variant.kind === "courses") {

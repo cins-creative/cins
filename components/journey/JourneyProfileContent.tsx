@@ -579,6 +579,7 @@ export function JourneyProfileContent({
               viewerLiked: m.social?.viewerLiked ?? false,
               viewerDisliked: m.social?.viewerDisliked ?? false,
               viewerBookmarked: detail.bookmarked!,
+              viewerCommented: m.social?.viewerCommented ?? false,
               likeCount: m.social?.likeCount ?? 0,
               dislikeCount: m.social?.dislikeCount ?? 0,
               bookmarkCount:

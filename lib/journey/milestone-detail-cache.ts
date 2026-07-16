@@ -1,6 +1,7 @@
 "use client";
 
 import type { MilestonePostDetail } from "@/lib/journey/milestone-post-types";
+import { viewerHasActiveComment } from "@/lib/journey/comments-sync-client";
 
 const cache = new Map<string, MilestonePostDetail>();
 const inflight = new Map<string, Promise<MilestonePostDetail>>();
@@ -170,7 +171,11 @@ export function patchMilestoneDetailComments(
     cache.set(key, {
       ...value,
       comments: [...comments],
-      social: { ...value.social, commentCount },
+      social: {
+        ...value.social,
+        commentCount,
+        viewerCommented: viewerHasActiveComment(comments),
+      },
     });
   }
 }

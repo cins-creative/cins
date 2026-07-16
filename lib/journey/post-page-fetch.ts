@@ -143,6 +143,7 @@ async function fetchMilestoneSocial(
     viewerLiked,
     viewerDisliked,
     viewerBookmarked,
+    viewerCommented,
   ] = await Promise.all([
     admin
       .from("social_reaction")
@@ -200,12 +201,24 @@ async function fetchMilestoneSocial(
           .maybeSingle()
           .then(({ data }) => Boolean(data))
       : Promise.resolve(false),
+    viewerId
+      ? admin
+          .from("social_binh_luan")
+          .select("id")
+          .eq("nguoi_binh_luan", viewerId)
+          .eq("loai_doi_tuong", "cot_moc")
+          .eq("id_doi_tuong", milestoneId)
+          .eq("da_xoa", false)
+          .limit(1)
+          .then(({ data }) => (data?.length ?? 0) > 0)
+      : Promise.resolve(false),
   ]);
 
   return {
     viewerLiked,
     viewerDisliked,
     viewerBookmarked,
+    viewerCommented,
     likeCount: likeCount ?? 0,
     dislikeCount: dislikeCount ?? 0,
     bookmarkCount: bookmarkCount ?? 0,

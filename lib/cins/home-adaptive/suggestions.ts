@@ -30,7 +30,9 @@ type UserRow = {
   avatar_id: string | null;
   cover_id: string | null;
   bio: string | null;
+  tinh_thanh: string | null;
   giai_doan: string | null;
+  lan_cuoi_active: string | null;
 };
 
 function shortBio(bio: string | null | undefined, max = 110): string | null {
@@ -40,11 +42,31 @@ function shortBio(bio: string | null | undefined, max = 110): string | null {
   return `${text.slice(0, max - 1).trimEnd()}…`;
 }
 
+/** Điểm hồ sơ + nội dung — ưu tiên user đủ thông tin hoặc đã đăng. */
+function peopleSuggestionScore(
+  row: UserRow,
+  hasPosts: boolean,
+): number {
+  let score = 0;
+  if (hasPosts) score += 6;
+  if (row.avatar_id) score += 2;
+  if (row.bio?.trim()) score += 2;
+  if (row.tinh_thanh) score += 1;
+  if (row.cover_id) score += 1;
+  return score;
+}
+
+function peopleActiveMs(row: UserRow): number {
+  if (!row.lan_cuoi_active) return 0;
+  const t = Date.parse(row.lan_cuoi_active);
+  return Number.isNaN(t) ? 0 : t;
+}
+
 /**
  * Gợi ý người để kết nối (module `goi_y_theo_doi` / `nguoi_cung_nganh`, feed promo).
  * Loại: bản thân · chưa xong onboarding (`giai_doan` null) · đã có quan hệ
  * `user_ket_ban` (pending / accepted / blocked) · đã theo dõi (legacy).
- * Ưu tiên hoạt động gần đây.
+ * Ưu tiên: đủ thông tin cá nhân hoặc đã có nội dung đăng; tie-break hoạt động gần đây.
  */
 export async function loadFollowSuggestions(
   viewerId: string,
@@ -76,31 +98,55 @@ export async function loadFollowSuggestions(
     );
   }
 
+  const fetchLimit = Math.max(limit * 6, limit + excluded.size + 24);
   const { data } = await admin
     .from("user_nguoi_dung")
-    .select("id, slug, ten_hien_thi, avatar_id, cover_id, bio, giai_doan")
+    .select(
+      "id, slug, ten_hien_thi, avatar_id, cover_id, bio, tinh_thanh, giai_doan, lan_cuoi_active",
+    )
     .eq("trang_thai_tai_khoan", "dang_hoat_dong")
     .not("giai_doan", "is", null)
     .order("lan_cuoi_active", { ascending: false, nullsFirst: false })
-    .limit(limit + excluded.size + 12)
+    .limit(fetchLimit)
     .returns<UserRow[]>();
 
-  const out: FollowSuggestion[] = [];
+  const candidates: UserRow[] = [];
   for (const row of data ?? []) {
     if (excluded.has(row.id) || !row.slug?.trim() || !row.giai_doan) continue;
-    out.push({
-      id: row.id,
-      slug: row.slug.trim(),
-      name: row.ten_hien_thi?.trim() || row.slug.trim(),
-      avatarUrl: getAvatarUrl(row.avatar_id),
-      coverUrl: getProfileCoverUrl(row.cover_id),
-      bio: shortBio(row.bio),
-      giaiDoan: row.giai_doan,
-      mutualCount: 0,
-      isFriend: false,
-    });
-    if (out.length >= limit) break;
+    candidates.push(row);
   }
+  if (candidates.length === 0) return [];
+
+  const candidateIds = candidates.map((r) => r.id);
+  const { data: mocRows } = await admin
+    .from("content_cot_moc")
+    .select("id_nguoi_dung")
+    .in("id_nguoi_dung", candidateIds)
+    .in("che_do_hien_thi", ["public", "feature"])
+    .limit(Math.min(candidateIds.length * 3, 400))
+    .returns<Array<{ id_nguoi_dung: string }>>();
+  const hasPosts = new Set((mocRows ?? []).map((r) => r.id_nguoi_dung));
+
+  candidates.sort((a, b) => {
+    const scoreDiff =
+      peopleSuggestionScore(b, hasPosts.has(b.id)) -
+      peopleSuggestionScore(a, hasPosts.has(a.id));
+    if (scoreDiff !== 0) return scoreDiff;
+    return peopleActiveMs(b) - peopleActiveMs(a);
+  });
+
+  const out: FollowSuggestion[] = candidates.slice(0, limit).map((row) => ({
+    id: row.id,
+    slug: row.slug!.trim(),
+    name: row.ten_hien_thi?.trim() || row.slug!.trim(),
+    avatarUrl: getAvatarUrl(row.avatar_id),
+    coverUrl: getProfileCoverUrl(row.cover_id),
+    bio: shortBio(row.bio),
+    location: labelTinhThanh(row.tinh_thanh) || null,
+    giaiDoan: row.giai_doan,
+    mutualCount: 0,
+    isFriend: false,
+  }));
 
   await attachMutualCounts(viewerId, out);
   return out;
@@ -198,7 +244,7 @@ function shortOrgBio(moTa: string | null | undefined, max = 120): string | null 
 
 /**
  * Gợi ý tổ chức để theo dõi (module `goi_y_theo_doi`, song song gợi ý người — L21 #1).
- * Chấm điểm: bạn chung theo dõi (mạnh nhất) + cùng tỉnh + hợp persona + còn hoạt động.
+ * Chấm điểm: có bài đăng / đủ thông tin org (mạnh) + bạn chung theo dõi + cùng tỉnh + hợp persona.
  * Match theo ngành/nghề chưa hỗ trợ (chỉ trường nối ngành) — xem FOUNDATIONS §13.
  */
 export async function loadOrgFollowSuggestions(
@@ -311,8 +357,20 @@ export async function loadOrgFollowSuggestions(
     const sameTinh = Boolean(viewerTinh && row.tinh_thanh === viewerTinh);
     const personaMatch = personaLoai.includes(row.loai_to_chuc);
     const active = hasPosts.has(row.id);
+    const hasAvatar = Boolean(row.avatar_id ?? row.logo_id);
+    const hasBio = Boolean(row.mo_ta?.replace(/<[^>]+>/g, "").trim());
+    const hasCover = Boolean(row.cover_id);
+    const hasLocation = Boolean(row.tinh_thanh);
+    /* Ưu tiên org có nội dung đăng hoặc hồ sơ đủ; mutual/persona vẫn cộng. */
     const score =
-      mutual * 3 + (sameTinh ? 2 : 0) + (personaMatch ? 2 : 0) + (active ? 1 : 0);
+      (active ? 6 : 0) +
+      (hasAvatar ? 2 : 0) +
+      (hasBio ? 2 : 0) +
+      (hasCover ? 1 : 0) +
+      (hasLocation ? 1 : 0) +
+      mutual * 3 +
+      (sameTinh ? 2 : 0) +
+      (personaMatch ? 2 : 0);
 
     const reason =
       mutual > 0

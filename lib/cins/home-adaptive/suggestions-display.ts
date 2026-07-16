@@ -9,6 +9,8 @@ export type FollowSuggestion = {
   coverUrl: string | null;
   /** Mô tả ngắn hồ sơ (bio). */
   bio: string | null;
+  /** Tỉnh/thành đã format — fallback dòng mô tả khi thiếu bio. */
+  location: string | null;
   giaiDoan: string | null;
   /** Số bạn chung với người xem (0 nếu không có / không xác định). */
   mutualCount: number;

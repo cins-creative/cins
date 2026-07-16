@@ -834,6 +834,7 @@ export async function attachSocialState(
     viewerLikes,
     viewerDislikes,
     viewerBookmarks,
+    viewerComments,
     allLikes,
     allDislikes,
     allBookmarks,
@@ -863,6 +864,15 @@ export async function attachSocialState(
           .select("id_doi_tuong")
           .eq("id_nguoi_dung", viewerId)
           .eq("loai_doi_tuong", "cot_moc")
+          .in("id_doi_tuong", cotMocIds)
+      : Promise.resolve({ data: [] }),
+    viewerId
+      ? admin
+          .from("social_binh_luan")
+          .select("id_doi_tuong")
+          .eq("nguoi_binh_luan", viewerId)
+          .eq("loai_doi_tuong", "cot_moc")
+          .eq("da_xoa", false)
           .in("id_doi_tuong", cotMocIds)
       : Promise.resolve({ data: [] }),
     admin
@@ -897,6 +907,9 @@ export async function attachSocialState(
   const bookmarkedIds = new Set(
     (viewerBookmarks.data ?? []).map((row) => row.id_doi_tuong as string),
   );
+  const commentedIds = new Set(
+    (viewerComments.data ?? []).map((row) => row.id_doi_tuong as string),
+  );
   const likeCounts = countByTarget(allLikes.data ?? []);
   const dislikeCounts = countByTarget(allDislikes.data ?? []);
   const bookmarkCounts = countByTarget(allBookmarks.data ?? []);
@@ -910,6 +923,7 @@ export async function attachSocialState(
         viewerLiked: likedIds.has(id),
         viewerDisliked: dislikedIds.has(id),
         viewerBookmarked: bookmarkedIds.has(id),
+        viewerCommented: commentedIds.has(id),
         likeCount: likeCounts.get(id) ?? 0,
         dislikeCount: dislikeCounts.get(id) ?? 0,
         bookmarkCount: bookmarkCounts.get(id) ?? 0,

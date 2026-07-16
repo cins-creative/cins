@@ -175,7 +175,11 @@ export function JourneyMilestoneUnfold({
   useEffect(() => {
     function onCommentsSync(event: Event) {
       const sync = (
-        event as CustomEvent<{ milestoneId?: string; count?: number }>
+        event as CustomEvent<{
+          milestoneId?: string;
+          count?: number;
+          viewerCommented?: boolean;
+        }>
       ).detail;
       if (sync?.milestoneId !== milestoneId || typeof sync.count !== "number") {
         return;
@@ -190,7 +194,13 @@ export function JourneyMilestoneUnfold({
         prev
           ? {
               ...prev,
-              social: { ...prev.social, commentCount: nextCount },
+              social: {
+                ...prev.social,
+                commentCount: nextCount,
+                ...(typeof sync.viewerCommented === "boolean"
+                  ? { viewerCommented: sync.viewerCommented }
+                  : {}),
+              },
             }
           : prev,
       );

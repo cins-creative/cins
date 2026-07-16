@@ -3802,6 +3802,14 @@ a.j-main-gallery-item:focus-visible,
   cursor: default;
   pointer-events: none;
 }
+/* Touch / no-hover: luôn hiện nút chia sẻ & đổi tên (desktop vẫn hover-to-reveal). */
+@media (hover: none) {
+  .j-dd-share:not(:disabled),
+  .j-dd-edit:not(:disabled) {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
 .j-dd-opt.j-dd-row.is-editing {
   display: flex;
   flex-wrap: wrap;
@@ -4774,18 +4782,25 @@ a.j-main-gallery-item:focus-visible,
   padding-top: 16px;
   border-top-color: var(--border2, #e4e6eb);
 }
-/* Bài viết — nối liền body với khối xổ (nội dung / bình luận), không khe/viền.
+/* Nối liền body với khối xổ (nội dung / bình luận), không khe/viền.
    Không phụ thuộc `.has-unfold`: embed-peek (Spline/…) không xổ nội dung nhưng
-   vẫn mở bình luận inline → thiếu class đó, trước đây để lại gap 12+16px. */
-.j-m-card.jcard--article.is-expanded .j-m-card-unfold[data-open="true"] {
+   vẫn mở bình luận inline → thiếu class đó, trước đây để lại gap 12+16px.
+   Article + photo + video đều flush khi expanded. */
+.j-m-card.jcard--article.is-expanded .j-m-card-unfold[data-open="true"],
+.j-m-card.jcard--photo.is-expanded .j-m-card-unfold[data-open="true"],
+.j-m-card.jcard--video.is-expanded .j-m-card-unfold[data-open="true"] {
   margin-top: 0;
   padding-top: 0;
   border-top-color: transparent;
 }
-.j-m-card.jcard--article.is-expanded .jcard-body {
+.j-m-card.jcard--article.is-expanded .jcard-body,
+.j-m-card.jcard--photo.is-expanded .jcard-body,
+.j-m-card.jcard--video.is-expanded .jcard-body {
   padding-bottom: 0;
 }
-.j-m-card.jcard--article.is-expanded .jcard-body .jcard-text {
+.j-m-card.jcard--article.is-expanded .jcard-body .jcard-text,
+.j-m-card.jcard--photo.is-expanded .jcard-body .jcard-text,
+.j-m-card.jcard--video.is-expanded .jcard-body .jcard-text {
   padding-bottom: 0;
 }
 .j-m-card-unfold > .j-m-card-unfold-inner {
@@ -4861,7 +4876,7 @@ a.j-main-gallery-item:focus-visible,
 .j-m-card.is-expanded .jcard-body {
   padding-bottom: 4px;
 }
-/* Article expanded — padding-bottom:0 đã set ở rule nối liền unfold phía trên. */
+/* Article/photo/video expanded — padding-bottom:0 đã set ở rule nối liền unfold phía trên. */
 /* Media unfold — full-bleed; khoảng cách nằm trong từng block. */
 .j-m-unfold-post.j-m-unfold-post--media .blocks-readonly {
   padding-inline: 0;
@@ -16916,6 +16931,10 @@ a.action-btn {
   color: var(--cins-blue);
   background: var(--cins-blue-soft);
 }
+.action-btn.is-commented {
+  color: #2563eb;
+  background: #eff6ff;
+}
 
 /* Nút action tách icon / số — bấm số mở danh sách người tương tác. */
 .action-btn--split {
@@ -16987,6 +17006,14 @@ a.action-btn-part {
   color: var(--cins-blue);
   background: var(--cins-blue-soft);
 }
+.action-btn--split.is-commented {
+  color: #2563eb;
+  background: #eff6ff;
+}
+.action-btn--split.is-commented:hover,
+.action-btn--split.is-commented:focus-within {
+  background: #dbeafe;
+}
 
 /* Dark — like/bookmark dùng pastel sáng (#fff1f2) lệch trên nền tối */
 :root[data-theme="dark"] .action-btn.is-liked,
@@ -17017,6 +17044,18 @@ a.action-btn-part {
 :root[data-theme="dark"] .action-btn--split.is-bookmarked {
   color: var(--cins-blue, #4f9be8);
   background: var(--cins-blue-soft, rgba(79, 155, 232, 0.16));
+}
+
+:root[data-theme="dark"] .action-btn.is-commented,
+:root[data-theme="dark"] .action-btn--split.is-commented {
+  color: #60a5fa;
+  background: rgba(37, 99, 235, 0.18);
+}
+
+:root[data-theme="dark"] .action-btn--split.is-commented:hover,
+:root[data-theme="dark"] .action-btn--split.is-commented:focus-within {
+  background: rgba(37, 99, 235, 0.28);
+  color: #93c5fd;
 }
 
 .action-btn-count:hover {

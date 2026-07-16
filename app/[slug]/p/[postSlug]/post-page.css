@@ -2421,6 +2421,10 @@
   color: var(--cins-blue-strong, #1d4ed8);
   background: var(--cins-blue-soft, #eef4ff);
 }
+.cins-post-view .post-byline-act.is-active.is-commented {
+  color: #2563eb;
+  background: #eff6ff;
+}
 /* Dark — trạng thái active phải dùng nền tối. Nền sáng cứng (#fff1f2 /
    xanh nhạt) làm số đếm (màu --ink-muted = trắng mờ ở dark) chìm mất. */
 :root[data-theme="dark"] .cins-post-view .post-byline-act.is-active.is-like {
@@ -2438,6 +2442,14 @@
 :root[data-theme="dark"] .cins-post-view .post-byline-act.is-active.is-bookmark .post-byline-act-count,
 :root[data-theme="dark"] .cins-post-view .post-byline-act.is-active.is-bookmark .post-byline-act-n {
   color: #93c5fd;
+}
+:root[data-theme="dark"] .cins-post-view .post-byline-act.is-active.is-commented {
+  color: #60a5fa;
+  background: rgba(37, 99, 235, 0.2);
+}
+:root[data-theme="dark"] .cins-post-view .post-byline-act.is-active.is-commented .post-byline-act-count,
+:root[data-theme="dark"] .cins-post-view .post-byline-act.is-active.is-commented .post-byline-act-n {
+  color: #60a5fa;
 }
 .cins-post-view .post-byline-act-count {
   font-variant-numeric: tabular-nums;

@@ -186,18 +186,32 @@ export function JourneyTimeline({
   useEffect(() => {
     function onCommentsSync(event: Event) {
       const detail = (
-        event as CustomEvent<{ milestoneId?: string; count?: number }>
+        event as CustomEvent<{
+          milestoneId?: string;
+          count?: number;
+          viewerCommented?: boolean;
+        }>
       ).detail;
       const milestoneId = detail?.milestoneId;
       const count = detail?.count;
       if (!milestoneId || typeof count !== "number") return;
 
       setItems((prev) =>
-        prev.map((item) =>
-          milestoneItemMatchesId(item, milestoneId)
-            ? { ...item, comments: count }
-            : item,
-        ),
+        prev.map((item) => {
+          if (!milestoneItemMatchesId(item, milestoneId)) return item;
+          return {
+            ...item,
+            comments: count,
+            social: item.social
+              ? {
+                  ...item.social,
+                  ...(typeof detail.viewerCommented === "boolean"
+                    ? { viewerCommented: detail.viewerCommented }
+                    : {}),
+                }
+              : item.social,
+          };
+        }),
       );
     }
 
