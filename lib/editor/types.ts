@@ -27,9 +27,9 @@ export type Block = {
    *     `gap` — khe giữa ô (0 | 2 | 4 px), mặc định 2.
    *     Mỗi phần tử `imgs[]` / mosaic `seed`: Cloudflare UUID hoặc URL http(s) đầy đủ.
    *   - embed: { url, provider?, embed_html?, showCoverInPost?, bunnyVideoId?, videoCanvasRatio? }
-   *     `showCoverInPost` — hiện `cover_id` trong bài (card + thân). Có thể nằm trên
-   *     embed (ưu tiên Bunny) hoặc block đầu nếu không có embed. Gallery luôn dùng cover.
-   *     Bài video: mặc định ẩn thân; card ẩn khi `false` tường minh.
+   *     `showCoverInPost` — hiện `cover_id` trong thân bài (opt-in `true`).
+   *     Card timeline: hiện trừ khi `false` tường minh. Gallery / OG luôn dùng cover.
+   *     Có thể nằm trên embed (ưu tiên Bunny) hoặc block đầu.
    *   - palette: { colors: string[] }
    *   - divider: {}
    *   - spacer: { size: "s" | "m" | "l" }

@@ -23,10 +23,9 @@
   "observability": {
     "enabled": true
   },
-  // Local preview/deploy (Windows): đặt
-  // CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE trong .dev.vars
-  // (cùng DATABASE_URL; KHÔNG commit). `npm run deploy` tự nạp vào process.env.
-  // Tên cũ WRANGLER_HYPERDRIVE_… không còn đủ với Wrangler 4.
+  // Local preview cần chuỗi kết nối Postgres: đặt biến
+  // WRANGLER_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE trong .dev.vars
+  // (KHÔNG commit). Production dùng chuỗi đã lưu trong Hyperdrive config.
   "hyperdrive": [
     {
       "binding": "HYPERDRIVE",

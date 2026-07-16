@@ -343,7 +343,7 @@ export function findShowCoverInPostFlag(
   return undefined;
 }
 
-/** Hiện `cover_id` trong thân bài khi xem — cần bật tường minh. */
+/** Hiện `cover_id` trong thân bài khi xem — mặc định tắt; cần bật tường minh. */
 export function readShowCoverInPost(
   blocks: ReadonlyArray<Block> | null | undefined,
 ): boolean {
@@ -351,8 +351,10 @@ export function readShowCoverInPost(
 }
 
 /**
- * Poster / peek cover trên card: dùng `cover_id` trừ khi tắt tường minh
- * (`showCoverInPost === false`). Key thiếu = legacy — vẫn hiện.
+ * Cover trên card timeline / poster video:
+ * ẩn chỉ khi `showCoverInPost === false` tường minh.
+ * Key thiếu = bài cũ — vẫn hiện (tránh mất ảnh feed).
+ * Thân bài dùng `readShowCoverInPost` (opt-in).
  */
 export function shouldUseCoverAsVideoPoster(
   blocks: ReadonlyArray<Block> | null | undefined,
@@ -365,19 +367,13 @@ export const shouldShowCoverOnPostCard = shouldUseCoverAsVideoPoster;
 
 /**
  * Ghi cờ vào blocks trước publish/draft (Journey user + org_bai_dang).
- * Không ghi `false` lần đầu trên bài không-Bunny — giữ legacy card cover.
+ * Luôn ghi tường minh `true`/`false`.
  */
 export function applyShowCoverInPostFlag(
   blocks: Block[],
   showCoverInPost: boolean,
 ): Block[] {
   if (!blocks.length) return blocks;
-
-  const existing = findShowCoverInPostFlag(blocks);
-  const hasBunny = blocks.some(isBunnyEmbedBlock);
-  if (!hasBunny && existing === undefined && showCoverInPost === false) {
-    return blocks.map((block, i) => ({ ...block, thu_tu: i }));
-  }
 
   let targetIdx = blocks.findIndex(isBunnyEmbedBlock);
   if (targetIdx < 0) {

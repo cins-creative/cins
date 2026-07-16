@@ -149,8 +149,8 @@ import {
 } from "@/lib/journey/post-media";
 import {
   applyShowCoverInPostFlag,
+  findShowCoverInPostFlag,
   POST_MOTA_MAX,
-  readShowCoverInPost,
   validatePostContentForPublish,
 } from "@/lib/journey/post-content-kind";
 import { readImageFileFromClipboard } from "@/lib/files/clipboard-images";
@@ -1049,7 +1049,12 @@ export function EditorView({
     if (typeof restoredDraft?.showCoverInPost === "boolean") {
       return restoredDraft.showCoverInPost;
     }
-    return readShowCoverInPost(initial?.blocks ?? restoredDraft?.blocks);
+    const flag = findShowCoverInPostFlag(
+      initial?.blocks ?? restoredDraft?.blocks,
+    );
+    if (typeof flag === "boolean") return flag;
+    /* Bài mới: tắt. Bài cũ thiếu key: bật — khớp card, tránh mất cover khi lưu. */
+    return isEdit;
   });
   const [cropTarget, setCropTarget] = useState<CropTarget | null>(null);
   const showMinimalToolbar = useMemo(
@@ -3013,6 +3018,8 @@ export function EditorView({
       ];
       coverFinal = null;
     }
+    /* Ghi lại sau khi có thể vừa tạo block imgs từ cover — tránh mất cờ khi blocks rỗng. */
+    publishBlocks = applyShowCoverInPostFlag(publishBlocks, showCoverInPost);
 
     if (
       detectMediaPostKind(publishBlocks) === "photo" &&

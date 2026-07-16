@@ -1,6 +1,6 @@
 import "server-only";
 
-import { getCoverUrl } from "@/lib/articles/cover";
+import { getCoverOgUrl } from "@/lib/articles/cover";
 import { getAvatarUrl } from "@/lib/journey/profile";
 import { getCachedPostPageCore } from "@/lib/journey/post-page-cache";
 import type { PostOgContext } from "@/lib/journey/post-og-card";
@@ -46,7 +46,8 @@ export async function fetchPostOgContext(
     return {
       title,
       summary,
-      coverUrl: getCoverUrl(first?.coverId ?? null, "public"),
+      /** Landscape 1200×630 — khớp FB large card (không dùng `/public` vuông). */
+      coverUrl: getCoverOgUrl(first?.coverId ?? null),
       authorName: author.tenHienThi?.trim() || author.slug || "Người dùng",
       authorAvatarUrl: getAvatarUrl(author.avatarId),
       dateLabel: formatDate(milestone.thoiDiem),

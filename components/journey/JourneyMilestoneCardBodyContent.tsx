@@ -126,7 +126,9 @@ export function JourneyMilestoneCardBodyContent({
 }: Props) {
   const router = useRouter();
   const blocks = noiDungBlocks ?? null;
-  const hasCoverPreview = Boolean(preview?.src);
+  /** Cover/`cover_id` trên card — ẩn chỉ khi tắt tường minh (`=== false`). */
+  const showCoverOnCard = shouldUseCoverAsVideoPoster(blocks);
+  const hasCoverPreview = Boolean(preview?.src) && showCoverOnCard;
   const photoGridImages = photoGridOverride ?? null;
   const singlePortraitMedia = Boolean(
     photoGridImages?.length === 1 &&
@@ -148,9 +150,10 @@ export function JourneyMilestoneCardBodyContent({
     previewPortraitMedia && preview
       ? mediaNaturalAspect(preview.width ?? 0, preview.height ?? 0)
       : null;
-  const coverIdFromPreview = preview?.src
-    ? extractCfImageIdFromDeliveryUrl(preview.src)
-    : null;
+  const coverIdFromPreview =
+    hasCoverPreview && preview?.src
+      ? extractCfImageIdFromDeliveryUrl(preview.src)
+      : null;
   const cardLayout: PostCardLayout = resolvePostCardLayout({
     moTa: body,
     hasCover: hasCoverPreview,
@@ -203,8 +206,9 @@ export function JourneyMilestoneCardBodyContent({
     ? extractVideoProcessingMeta(blocks ?? [])
     : null;
   const compactPhotoPreview = useMemo(() => {
-    if (!useCompactMedia || !photoGridImages?.[0]) return preview;
-    if (preview?.src) return preview;
+    if (!useCompactMedia) return null;
+    if (showCoverOnCard && preview?.src) return preview;
+    if (!photoGridImages?.[0]) return null;
     const first = photoGridImages[0];
     return {
       src: gridThumbSrc(first),
@@ -212,7 +216,7 @@ export function JourneyMilestoneCardBodyContent({
       height: first.height,
       label: title,
     };
-  }, [photoGridImages, preview, title, useCompactMedia]);
+  }, [photoGridImages, preview, title, useCompactMedia, showCoverOnCard]);
   const showCardTitle = shouldShowMilestoneCardTitle(title, blocks, body);
   const cardCaption = milestoneCardCaptionForDisplay(title, body, blocks);
   const emptyFallback =
@@ -291,15 +295,14 @@ export function JourneyMilestoneCardBodyContent({
     !isContentOpen;
   const showArticleTextDepth =
     articleNeedsDepth && articlePeekBlocks.length === 0 && !isContentOpen;
-/**
- * Thumbnail gallery (`cover_id`) trên card: ẩn khi tắt tường minh
- * «Hiển thị thumbnail trong bài viết». Key thiếu = legacy — vẫn hiện.
- * Expand bài video Bunny: ẩn poster nếu không bật cờ (tránh lộ khi ẩn peek).
- */
+  /**
+   * Thumbnail gallery (`cover_id`) trên card: ẩn khi `showCoverInPost === false`.
+   * Key thiếu = bài cũ — vẫn hiện. Thân bài / unfold: `readShowCoverInPost` (opt-in).
+   * Expand bài video Bunny: ẩn poster nếu không bật cờ (tránh lộ khi ẩn peek).
+   */
   const showArticleCoverPreview =
-    Boolean(preview?.src) &&
+    hasCoverPreview &&
     isArticle &&
-    shouldUseCoverAsVideoPoster(blocks) &&
     !(
       isContentOpen &&
       hasBunnyInArticle &&
@@ -588,7 +591,7 @@ export function JourneyMilestoneCardBodyContent({
               title={showCardTitle ? title : cardCaption || title}
               processing={videoProcessingMeta?.processing === true}
               preview={
-                preview && shouldUseCoverAsVideoPoster(blocks)
+                hasCoverPreview && preview
                   ? {
                       src: preview.src,
                       width: preview.width,
@@ -599,7 +602,7 @@ export function JourneyMilestoneCardBodyContent({
               }
               noiDungBlocks={blocks ?? undefined}
             />
-          ) : isAlbumHeroGrid && preview?.src && photoGridImages ? (
+          ) : isAlbumHeroGrid && hasCoverPreview && preview && photoGridImages ? (
             <div className="jcard-photo-album">
               <div className="preview preview--album-hero">
                 <JourneyCoverImage
@@ -636,7 +639,7 @@ export function JourneyMilestoneCardBodyContent({
             >
               <ImageGrid images={photoGridImages} readOnly timelineLightbox />
             </div>
-          ) : isTextWithImage && preview?.src ? (
+          ) : isTextWithImage && hasCoverPreview && preview ? (
             <div
               className={`preview preview--photo-grid preview--photo-single${previewPortraitMedia ? " is-portrait-media" : ""}`}
               style={
@@ -660,7 +663,7 @@ export function JourneyMilestoneCardBodyContent({
                 alt={preview.label || title}
               />
             </div>
-          ) : isPhotoCard && preview?.src ? (
+          ) : isPhotoCard && hasCoverPreview && preview ? (
             <div
               className={`preview preview--photo-grid preview--photo-single${previewPortraitMedia ? " is-portrait-media" : ""}`}
               style={
