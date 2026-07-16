@@ -40,6 +40,7 @@ import { useOptionalAuthGate } from "@/components/auth/AuthGateProvider";
 import { ChatStickerPicker } from "@/components/cins/ChatStickerPicker";
 import { CommentAttachments } from "@/components/journey/CommentAttachments";
 import { CommentMentionText } from "@/components/journey/CommentMentionText";
+import { CommentReactionPill } from "@/components/journey/CommentReactionPill";
 import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
 import { InlineExternalVideoEmbed } from "@/components/shared/InlineExternalVideoEmbed";
 import { rememberCfAccountHashFromDeliveryUrl } from "@/lib/cloudflare/account-hash";
@@ -53,7 +54,6 @@ import {
 import { composeReplyMentionPrefix } from "@/lib/social/comments/mention-parse";
 import {
   COMMENT_REACTION_EMOJIS,
-  commentReactionLabel,
 } from "@/lib/social/comments/types";
 import { applyViewerReactionToggle } from "@/lib/social/comments/reactions";
 import { countCommentThreads } from "@/lib/social/comments/client-tree";
@@ -1415,35 +1415,13 @@ function CommentRow({
                   <div className="post-comments-actions">
                     <div className="post-comments-reactions">
                       {(comment.reactions ?? []).map((r) => (
-                        <button
+                        <CommentReactionPill
                           key={r.emoji}
-                          type="button"
-                          className={
-                            "post-comments-reaction-pill" +
-                            (r.viewerReacted ? " is-active" : "")
-                          }
+                          commentId={comment.id}
+                          reaction={r}
                           disabled={pending}
-                          aria-label={
-                            r.count > 1
-                              ? `${commentReactionLabel(r.emoji)} ${r.count} lượt`
-                              : commentReactionLabel(r.emoji)
-                          }
-                          onClick={() =>
-                            runToggleReaction(r.emoji, !r.viewerReacted)
-                          }
-                        >
-                          <span
-                            className="post-comments-reaction-emoji"
-                            aria-hidden
-                          >
-                            {commentReactionLabel(r.emoji)}
-                          </span>
-                          {r.count > 1 ? (
-                            <span className="post-comments-reaction-count">
-                              {r.count}
-                            </span>
-                          ) : null}
-                        </button>
+                          onToggle={runToggleReaction}
+                        />
                       ))}
                       <div className="post-comments-reaction-add">
                         <button

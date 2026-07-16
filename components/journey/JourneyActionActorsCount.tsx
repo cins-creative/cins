@@ -13,6 +13,8 @@ export type JourneyActionActorsConfig = {
   idDoiTuong: string;
   count: number;
   mediaLabel?: "anh" | "bai";
+  /** Lọc reaction theo emoji (vd. bình luận: heart / joy / …). */
+  emoji?: string;
 };
 
 function formatActionCount(kind: SocialInteractionKind, count: number): string {
@@ -21,6 +23,9 @@ function formatActionCount(kind: SocialInteractionKind, count: number): string {
 }
 
 function countAriaLabel(config: JourneyActionActorsConfig): string {
+  if (config.loaiDoiTuong === "binh_luan" && config.emoji) {
+    return "Xem người bày tỏ cảm xúc";
+  }
   if (config.kind === "like") {
     return config.mediaLabel === "anh"
       ? "Xem người thích ảnh"
@@ -66,6 +71,7 @@ export function JourneyActionActorsCount({ actors }: Props) {
         loaiDoiTuong={actors.loaiDoiTuong}
         idDoiTuong={actors.idDoiTuong}
         mediaLabel={actors.mediaLabel}
+        emoji={actors.emoji}
       />
     </>
   );

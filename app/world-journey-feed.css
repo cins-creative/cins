@@ -256,13 +256,14 @@
   position: absolute;
   top: calc(100% + 6px);
   left: 0;
-  background: var(--surface);
+  background: var(--bg-surface, var(--surface, #fff));
   border: 1px solid var(--border);
   border-radius: var(--r-md);
   box-shadow: var(--sh-md);
   padding: 6px;
   min-width: 180px;
-  z-index: 100;
+  z-index: 120;
+  isolation: isolate;
 }
 
 .wj-filter-pop button {
@@ -272,13 +273,22 @@
   width: 100%;
   text-align: left;
   padding: 8px 10px;
+  font: inherit;
   font-size: 13px;
   color: var(--ink3);
+  border: none;
   border-radius: var(--r-sm);
+  background: transparent;
+  background-color: transparent;
+  cursor: pointer;
+  transition:
+    background-color 0.12s var(--ease, ease),
+    color 0.12s var(--ease, ease);
 }
 
-.wj-filter-pop button:hover {
+.wj-filter-pop button:hover:not(.sel) {
   background: var(--neutral-100, #f1f2f5);
+  background-color: var(--neutral-100, #f1f2f5);
   color: var(--ink1);
 }
 
@@ -286,6 +296,13 @@
   color: var(--blue);
   font-weight: 600;
   background: var(--blue-soft);
+  background-color: var(--blue-soft);
+}
+
+.wj-filter-pop button.sel:hover {
+  background: var(--blue-soft);
+  background-color: var(--blue-soft);
+  color: var(--blue);
 }
 
 .wj-filter-pop button svg {
@@ -494,13 +511,20 @@
   position: absolute;
   top: calc(100% + 6px);
   left: 0;
-  background: var(--surface);
+  /* Nền đặc — tránh frosted sticky (::before blur) làm menu trông tối/bẩn. */
+  background: var(--bg-surface, var(--surface, #fff));
   border: 1px solid var(--border);
   border-radius: var(--r-md);
   box-shadow: var(--sh-md);
   padding: 6px;
   min-width: 180px;
-  z-index: 100;
+  z-index: 120;
+  isolation: isolate;
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] .wj-sort-pop {
+  color-scheme: dark;
 }
 
 .wj-sort-pop button {
@@ -510,13 +534,23 @@
   width: 100%;
   text-align: left;
   padding: 8px 10px;
+  font: inherit;
   font-size: 13px;
   color: var(--ink3);
+  border: none;
   border-radius: var(--r-sm);
+  background: transparent;
+  background-color: transparent;
+  cursor: pointer;
+  transition:
+    background-color 0.12s var(--ease, ease),
+    color 0.12s var(--ease, ease);
 }
 
-.wj-sort-pop button:hover {
-  background: #f1f2f5;
+/* Token theme — không hardcode #f1f2f5 (sai dark) / không để UA buttonface tối. */
+.wj-sort-pop button:hover:not(.sel) {
+  background: var(--neutral-100, #f1f2f5);
+  background-color: var(--neutral-100, #f1f2f5);
   color: var(--ink1);
 }
 
@@ -524,6 +558,13 @@
   color: var(--blue);
   font-weight: 600;
   background: var(--blue-soft);
+  background-color: var(--blue-soft);
+}
+
+.wj-sort-pop button.sel:hover {
+  background: var(--blue-soft);
+  background-color: var(--blue-soft);
+  color: var(--blue);
 }
 
 .wj-sort-pop button svg {

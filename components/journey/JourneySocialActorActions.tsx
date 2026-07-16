@@ -13,9 +13,11 @@ import { useRouter } from "next/navigation";
 type Props = {
   actor: SocialActorProfile;
   viewerId: string | null;
+  /** Chỉ nút hành động — wrapper `.jsa-actions` do hàng cha lo. */
+  bare?: boolean;
 };
 
-export function JourneySocialActorActions({ actor, viewerId }: Props) {
+export function JourneySocialActorActions({ actor, viewerId, bare = false }: Props) {
   const authGate = useOptionalAuthGate();
   const router = useRouter();
   const isAuthenticated = authGate?.isAuthenticated ?? false;
@@ -124,8 +126,8 @@ export function JourneySocialActorActions({ actor, viewerId }: Props) {
 
   const followLabel = following ? "Đang theo dõi" : "Theo dõi";
 
-  return (
-    <div className="jsa-actions" onClick={(e) => e.stopPropagation()}>
+  const buttons = (
+    <>
       {quanHe === "accepted" ? (
         <span className="jsa-act is-friends" title="Bạn bè" aria-label="Bạn bè">
           <UserCheck size={15} strokeWidth={2.2} aria-hidden />
@@ -194,6 +196,14 @@ export function JourneySocialActorActions({ actor, viewerId }: Props) {
           )}
         </button>
       ) : null}
+    </>
+  );
+
+  if (bare) return buttons;
+
+  return (
+    <div className="jsa-actions" onClick={(e) => e.stopPropagation()}>
+      {buttons}
     </div>
   );
 }

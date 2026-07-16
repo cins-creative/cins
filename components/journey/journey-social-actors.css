@@ -160,9 +160,15 @@
 
 .jsa-row {
   display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  padding: 2px 0;
+}
+
+.jsa-row-main {
+  display: flex;
   align-items: center;
   gap: 6px;
-  padding: 2px 0;
 }
 
 .jsa-item {
@@ -318,6 +324,55 @@
   cursor: default;
 }
 
+.jsa-act.is-featured {
+  min-width: 32px;
+  padding: 0 8px;
+  width: auto;
+  color: var(--cins-blue, #2563eb);
+  border-color: transparent;
+  background: transparent;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.jsa-act.is-featured:hover:not(:disabled) {
+  background: transparent;
+  color: var(--cins-blue, #2563eb);
+}
+
+.jsa-act.is-featured.is-open {
+  background: transparent;
+  border-color: transparent;
+  color: var(--cins-blue, #2563eb);
+}
+
+.jsa-featured-count {
+  line-height: 1;
+}
+
+.jsa-row .j-user-featured {
+  margin: 0 8px 6px;
+  border: none;
+  border-radius: 0;
+  border-top: none;
+  overflow: hidden;
+  background: transparent;
+}
+
+.jsa-row .j-user-featured-panel {
+  padding: 0;
+}
+
+.jsa-row .j-user-featured:not(:has(.j-user-featured-toggle)) .j-user-featured-panel {
+  padding: 0;
+}
+
+.jsa-row .j-user-featured-masonry {
+  max-height: 280px;
+}
+
 .jsa-act:hover:not(:disabled):not(.is-friends) {
   background: var(--neutral-100, #f1f5f9);
 }
@@ -411,6 +466,16 @@
   background: rgba(245, 158, 11, 0.14);
   color: #fbbf24;
   border-color: rgba(251, 191, 36, 0.4);
+}
+
+:root[data-theme="dark"] .jsa-act.is-featured {
+  background: transparent;
+  color: var(--cins-blue, #4f9be8);
+  border-color: transparent;
+}
+
+:root[data-theme="dark"] .jsa-act.is-featured.is-open {
+  background: transparent;
 }
 
 :root[data-theme="dark"] .jsa-msg--err {

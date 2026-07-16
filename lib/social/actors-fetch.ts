@@ -12,16 +12,22 @@ import type {
   SocialActorsPage,
   SocialInteractionKind,
 } from "@/lib/social/actors-types";
+import { COMMENT_REACTION_KEYS } from "@/lib/social/comments/types";
 import { countMutualFriends, getQuanHeDetail } from "@/lib/social/ket-ban";
 import { getFollowStatus } from "@/lib/social/follow";
+import { REACTION_EMOJI } from "@/lib/social/reaction-emoji";
 import { SOCIAL_LOAI_ORG_BAI_DANG } from "@/lib/truong/social-constants";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 const PAGE_SIZE = 24;
 
+/** Reaction trên bình luận — `social_reaction.loai_doi_tuong`. */
+export const SOCIAL_LOAI_BINH_LUAN = "binh_luan" as const;
+
 const ALLOWED_TARGETS = new Set<string>([
   SOCIAL_LOAI_DOI_TUONG.COT_MOC,
   SOCIAL_LOAI_ORG_BAI_DANG,
+  SOCIAL_LOAI_BINH_LUAN,
 ]);
 
 const ALLOWED_KINDS = new Set<SocialInteractionKind>([
@@ -50,6 +56,8 @@ export async function fetchSocialActorsPage(params: {
   kind: SocialInteractionKind;
   loaiDoiTuong: string;
   idDoiTuong: string;
+  /** Lọc `social_reaction.emoji` — bắt buộc hợp lệ khi `loai_doi_tuong=binh_luan`. */
+  emoji?: string | null;
   offset?: number;
   limit?: number;
   viewerId?: string | null;
@@ -58,16 +66,26 @@ export async function fetchSocialActorsPage(params: {
   const offset = Math.max(0, params.offset ?? 0);
   const limit = Math.min(48, Math.max(1, params.limit ?? PAGE_SIZE));
   const viewerId = params.viewerId ?? null;
+  const emoji = resolveReactionEmoji(loaiDoiTuong, kind, params.emoji);
 
   if (!ALLOWED_TARGETS.has(loaiDoiTuong) || !ALLOWED_KINDS.has(kind)) {
     return { error: "Tham số không hợp lệ.", status: 400 };
+  }
+  if (emoji === "invalid") {
+    return { error: "Emoji không hợp lệ.", status: 400 };
   }
   if (!/^[0-9a-f-]{36}$/i.test(idDoiTuong)) {
     return { error: "Đối tượng không hợp lệ.", status: 400 };
   }
 
   const admin = createServiceRoleClient();
-  const actorRows = await loadActorRows(admin, kind, loaiDoiTuong, idDoiTuong);
+  const actorRows = await loadActorRows(
+    admin,
+    kind,
+    loaiDoiTuong,
+    idDoiTuong,
+    emoji,
+  );
   const total = actorRows.length;
   const slice = actorRows.slice(offset, offset + limit);
 
@@ -150,11 +168,33 @@ async function enrichActorsForViewer(
   );
 }
 
+/**
+ * `null` = dùng mặc định theo kind (heart / dislike).
+ * `"invalid"` = emoji query không hợp lệ.
+ */
+function resolveReactionEmoji(
+  loaiDoiTuong: string,
+  kind: SocialInteractionKind,
+  raw: string | null | undefined,
+): string | null | "invalid" {
+  const trimmed = raw?.trim() || null;
+  if (loaiDoiTuong === SOCIAL_LOAI_BINH_LUAN) {
+    if (kind !== "like") return "invalid";
+    if (!trimmed || !COMMENT_REACTION_KEYS.has(trimmed)) return "invalid";
+    return trimmed;
+  }
+  if (!trimmed) return null;
+  if (kind === "like" && trimmed === REACTION_EMOJI.LIKE) return trimmed;
+  if (kind === "dislike" && trimmed === REACTION_EMOJI.DISLIKE) return trimmed;
+  return "invalid";
+}
+
 async function loadActorRows(
   admin: ReturnType<typeof createServiceRoleClient>,
   kind: SocialInteractionKind,
   loaiDoiTuong: string,
   idDoiTuong: string,
+  emoji: string | null,
 ): Promise<ActorRow[]> {
   if (kind === "like") {
     const { data } = await admin
@@ -162,7 +202,7 @@ async function loadActorRows(
       .select("id_nguoi_dung, tao_luc")
       .eq("loai_doi_tuong", loaiDoiTuong)
       .eq("id_doi_tuong", idDoiTuong)
-      .eq("emoji", "heart")
+      .eq("emoji", emoji ?? REACTION_EMOJI.LIKE)
       .order("tao_luc", { ascending: false })
       .returns<Array<{ id_nguoi_dung: string; tao_luc: string | null }>>();
 
@@ -178,7 +218,7 @@ async function loadActorRows(
       .select("id_nguoi_dung, tao_luc")
       .eq("loai_doi_tuong", loaiDoiTuong)
       .eq("id_doi_tuong", idDoiTuong)
-      .eq("emoji", "dislike")
+      .eq("emoji", emoji ?? REACTION_EMOJI.DISLIKE)
       .order("tao_luc", { ascending: false })
       .returns<Array<{ id_nguoi_dung: string; tao_luc: string | null }>>();
 

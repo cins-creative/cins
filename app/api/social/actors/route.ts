@@ -10,6 +10,7 @@ export async function GET(req: Request) {
   const kind = searchParams.get("kind") as SocialInteractionKind | null;
   const loaiDoiTuong = searchParams.get("loai_doi_tuong")?.trim() ?? "";
   const idDoiTuong = searchParams.get("id_doi_tuong")?.trim() ?? "";
+  const emoji = searchParams.get("emoji")?.trim() || null;
   const offset = Math.max(0, Number(searchParams.get("offset") ?? 0) || 0);
 
   if (!kind || !loaiDoiTuong || !idDoiTuong) {
@@ -20,6 +21,7 @@ export async function GET(req: Request) {
     kind,
     loaiDoiTuong,
     idDoiTuong,
+    emoji,
     offset,
     viewerId: session?.profile?.id ?? null,
   });

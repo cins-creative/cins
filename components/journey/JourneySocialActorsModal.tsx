@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { JourneySocialActorRow } from "@/components/journey/JourneySocialActorRow";
+import { commentReactionLabel } from "@/lib/social/comments/types";
 import type {
   SocialActorProfile,
   SocialInteractionKind,
@@ -20,6 +21,8 @@ type Props = {
   idDoiTuong: string;
   /** Nhãn phụ — ví dụ "ảnh" cho like trên card media. */
   mediaLabel?: "anh" | "bai";
+  /** Lọc reaction theo emoji (bình luận). */
+  emoji?: string;
 };
 
 type FetchState =
@@ -41,7 +44,14 @@ type FetchState =
     }
   | { status: "error"; message: string };
 
-function modalTitle(kind: SocialInteractionKind, mediaLabel?: "anh" | "bai"): string {
+function modalTitle(
+  kind: SocialInteractionKind,
+  mediaLabel?: "anh" | "bai",
+  emoji?: string,
+): string {
+  if (emoji) {
+    return `Người bày tỏ ${commentReactionLabel(emoji)}`;
+  }
   if (kind === "like") {
     return mediaLabel === "anh" ? "Người thích ảnh" : "Người thích";
   }
@@ -93,6 +103,7 @@ export function JourneySocialActorsModal({
   loaiDoiTuong,
   idDoiTuong,
   mediaLabel,
+  emoji,
 }: Props) {
   const [mounted, setMounted] = useState(false);
   const [state, setState] = useState<FetchState>({ status: "idle" });
@@ -119,6 +130,7 @@ export function JourneySocialActorsModal({
         id_doi_tuong: idDoiTuong,
         offset: String(offset),
       });
+      if (emoji) qs.set("emoji", emoji);
 
       try {
         const res = await fetch(`/api/social/actors?${qs.toString()}`);
@@ -155,7 +167,7 @@ export function JourneySocialActorsModal({
         setState({ status: "error", message: "Lỗi mạng." });
       }
     },
-    [kind, loaiDoiTuong, idDoiTuong],
+    [kind, loaiDoiTuong, idDoiTuong, emoji],
   );
 
   useEffect(() => {
@@ -182,7 +194,7 @@ export function JourneySocialActorsModal({
 
   if (!mounted || !open) return null;
 
-  const title = modalTitle(kind, mediaLabel);
+  const title = modalTitle(kind, mediaLabel, emoji);
   const actorCount =
     state.status === "ok" || state.status === "loadingMore" ? state.total : null;
   const viewerId =
@@ -235,6 +247,7 @@ export function JourneySocialActorsModal({
                     actor={actor}
                     viewerId={viewerId}
                     kind={kind}
+                    reactionEmoji={emoji}
                     onNavigate={onClose}
                   />
                 ))}

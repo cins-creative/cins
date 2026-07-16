@@ -183,6 +183,7 @@ export function JourneyLikeButton({
         loaiDoiTuong={actors.loaiDoiTuong}
         idDoiTuong={actors.idDoiTuong}
         mediaLabel={actors.mediaLabel}
+        emoji={actors.emoji}
       />
     ) : null;
 

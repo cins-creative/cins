@@ -2,6 +2,7 @@ import { ImageResponse } from "next/og";
 
 import { getConfiguredSiteOrigin } from "@/lib/auth/auth-origin";
 import { loadOgFonts } from "@/lib/journey/og-fonts";
+import { withOgImageCacheHeaders } from "@/lib/journey/og-image-url";
 import { PostOgShareCard } from "@/lib/journey/post-og-card";
 import { fetchPostOgContext } from "@/lib/journey/post-og-fetch";
 
@@ -61,5 +62,7 @@ export default async function Image({ params }: { params: Params }) {
     </div>
   );
 
-  return new ImageResponse(element, { ...size, fonts });
+  return withOgImageCacheHeaders(
+    new ImageResponse(element, { ...size, fonts }),
+  );
 }

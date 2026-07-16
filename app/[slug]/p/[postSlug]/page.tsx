@@ -5,6 +5,7 @@ import { PostPageArticle } from "@/app/[slug]/p/[postSlug]/_components/PostPageA
 import { PostPageInstantFallback } from "@/app/[slug]/p/[postSlug]/_components/PostPageInstantFallback";
 import { PostPageShell } from "@/app/[slug]/p/[postSlug]/_components/PostPageShell";
 import { CinsShell } from "@/components/cins/CinsShell";
+import { getCoverUrl } from "@/lib/articles/cover";
 import { getConfiguredSiteOrigin } from "@/lib/auth/auth-origin";
 import { getCachedPostPageCore } from "@/lib/journey/post-page-cache";
 
@@ -39,7 +40,9 @@ export async function generateMetadata({
   const isPrivate = milestone.cheDoHienThi === "chi_minh";
   const shortDesc = desc.slice(0, 200);
   const pagePath = `/${encodeURIComponent(slug)}/p/${encodeURIComponent(postSlug)}`;
-  const ogImagePath = `${pagePath}/opengraph-image`;
+  /** Thumbnail CF đầy đủ (= gallery) — không qua Satori card chữ+khung. */
+  const coverUrl = getCoverUrl(posts[0]?.coverId ?? null, "public");
+  const ogImage = coverUrl ?? `${pagePath}/opengraph-image?v=thumb`;
 
   return {
     metadataBase,
@@ -56,13 +59,23 @@ export async function generateMetadata({
       locale: "vi_VN",
       url: pagePath,
       authors: [owner.tenHienThi],
-      images: [{ url: ogImagePath, alt: title }],
+      images: coverUrl
+        ? [{ url: coverUrl, alt: title }]
+        : [
+            {
+              url: ogImage,
+              alt: title,
+              width: 1200,
+              height: 630,
+              type: "image/png",
+            },
+          ],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description: shortDesc,
-      images: [ogImagePath],
+      images: [coverUrl ?? ogImage],
     },
   };
 }
