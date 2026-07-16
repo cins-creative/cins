@@ -3567,7 +3567,7 @@
   padding: 2px 7px;
   border: none;
   border-radius: 999px;
-  background: #fff;
+  background: var(--bg-surface, #fff);
   font-size: 12px;
   line-height: 1;
   cursor: pointer;
@@ -3600,7 +3600,7 @@
   font-variant-numeric: tabular-nums;
 }
 .cins-post-view .post-comments-v1 .post-comments-reaction-pill.is-active {
-  background: #fff;
+  background: var(--bg-surface, #fff);
   border: none;
   box-shadow: none;
 }
@@ -3608,7 +3608,7 @@
   color: var(--cins-blue, #1f74c9);
 }
 .cins-post-view .post-comments-v1 .post-comments-reaction-pill:hover:not(:disabled) {
-  background: #fafafa;
+  background: var(--neutral-100, #fafafa);
 }
 .cins-post-view .post-comments-v1 .post-comments-reaction-add {
   position: relative;
@@ -3621,8 +3621,8 @@
   height: 26px;
   border: none;
   border-radius: 999px;
-  background: #fff;
-  color: #374151;
+  background: var(--bg-surface, #fff);
+  color: var(--ink-body, #374151);
   cursor: pointer;
 }
 .cins-post-view .post-comments-v1 .post-comments-reaction-err {
@@ -3631,8 +3631,8 @@
   color: #b42318;
 }
 .cins-post-view .post-comments-v1 .post-comments-reaction-picker-btn:hover {
-  background: #f5f5f5;
-  color: #374151;
+  background: var(--neutral-100, #f5f5f5);
+  color: var(--ink-body, #374151);
 }
 .cins-post-view .post-comments-v1 .post-comments-reaction-picker {
   position: absolute;
@@ -3642,10 +3642,10 @@
   grid-template-columns: repeat(5, 32px);
   gap: 3px;
   padding: 7px;
-  background: #fff;
-  border: none;
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border, transparent);
   border-radius: 12px;
-  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.14);
+  box-shadow: 0 10px 28px color-mix(in srgb, var(--ink1, #0f172a) 18%, transparent);
   z-index: 20;
   -webkit-font-smoothing: auto;
 }
@@ -3658,7 +3658,7 @@
   padding: 0;
   border: none;
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-surface, #fff);
   cursor: pointer;
   -webkit-font-smoothing: auto;
 }
@@ -3674,10 +3674,10 @@
   transform: translateZ(0);
 }
 .cins-post-view .post-comments-v1 .post-comments-reaction-opt:hover {
-  background: #f5f5f5;
+  background: var(--neutral-100, #f5f5f5);
 }
 .cins-post-view .post-comments-v1 .post-comments-reaction-opt.is-active {
-  background: #fff;
+  background: var(--bg-surface, #fff);
   border: none;
   box-shadow: none;
 }

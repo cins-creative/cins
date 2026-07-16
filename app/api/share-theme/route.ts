@@ -3,9 +3,10 @@ import { NextResponse } from "next/server";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import { deleteCloudflareImage } from "@/lib/cloudflare/delete-image";
 import {
+  mergeShareOgCustoms,
   parseShareOgThemeState,
+  prependShareOgCustom,
   serializeShareOgThemeState,
-  SHARE_OG_CUSTOMS_MAX,
   type ShareOgCustomEntry,
   type ShareOgLayouts,
   type ShareOgTheme,
@@ -21,6 +22,7 @@ import { isTruongOrgAdmin } from "@/lib/truong/org-admin";
    ║ User: cột text `user_nguoi_dung.theme` (JSON string).            ║
    ║ Org:  `org_to_chuc.cau_hinh.share_og_theme`.                     ║
    ║ Shape: { active, customs, layouts: { journey, gallery } }.       ║
+   ║ customs = nền cá nhân vĩnh viễn (chỉ mất khi removeImageId).     ║
    ║ Chỉ chủ profile / admin org được PATCH.                          ║
    ╚══════════════════════════════════════════════════════════════════╝ */
 
@@ -39,26 +41,23 @@ function normalizeState(
   layouts: ShareOgLayouts | undefined,
   seed: string,
   prev: ShareOgThemeState,
+  removeImageId?: string | null,
 ): ShareOgThemeState {
-  const nextActive = active ?? prev.active;
-  let nextCustoms = Array.isArray(customs) ? customs : prev.customs;
-
-  if (nextActive.kind === "custom") {
-    const known = nextCustoms.some((c) => c.imageId === nextActive.imageId);
-    if (!known) {
-      nextCustoms = [
-        {
-          imageId: nextActive.imageId,
-          createdAt: new Date().toISOString(),
-        },
-        ...nextCustoms,
-      ];
-    }
+  const removeId = removeImageId?.trim() || null;
+  let nextActive = active ?? prev.active;
+  if (
+    removeId &&
+    nextActive.kind === "custom" &&
+    nextActive.imageId === removeId
+  ) {
+    nextActive = { kind: "preset", id: "paper" };
   }
 
-  nextCustoms = nextCustoms
-    .filter((c) => c.imageId?.trim())
-    .slice(0, SHARE_OG_CUSTOMS_MAX);
+  let nextCustoms = mergeShareOgCustoms(prev.customs, customs, removeId);
+
+  if (nextActive.kind === "custom") {
+    nextCustoms = prependShareOgCustom(nextCustoms, nextActive.imageId);
+  }
 
   return parseShareOgThemeState(
     {
@@ -166,24 +165,17 @@ export async function PATCH(request: Request) {
       org.cau_hinh?.share_og_theme ?? null,
       org.slug,
     );
-    let next = normalizeState(
+    const removeId = body.removeImageId?.trim() || null;
+    const next = normalizeState(
       body.active,
       body.customs,
       body.layouts,
       org.slug,
       prev,
+      removeId,
     );
 
-    if (body.removeImageId?.trim()) {
-      const removeId = body.removeImageId.trim();
-      next = {
-        ...next,
-        customs: next.customs.filter((c) => c.imageId !== removeId),
-        active:
-          next.active.kind === "custom" && next.active.imageId === removeId
-            ? { kind: "preset", id: "paper" }
-            : next.active,
-      };
+    if (removeId) {
       void deleteCloudflareImage(removeId);
     }
 
@@ -223,24 +215,17 @@ export async function PATCH(request: Request) {
   }
 
   const prev = parseShareOgThemeState(user.theme, user.slug);
-  let next = normalizeState(
+  const removeId = body.removeImageId?.trim() || null;
+  const next = normalizeState(
     body.active,
     body.customs,
     body.layouts,
     user.slug,
     prev,
+    removeId,
   );
 
-  if (body.removeImageId?.trim()) {
-    const removeId = body.removeImageId.trim();
-    next = {
-      ...next,
-      customs: next.customs.filter((c) => c.imageId !== removeId),
-      active:
-        next.active.kind === "custom" && next.active.imageId === removeId
-          ? { kind: "preset", id: "paper" }
-          : next.active,
-    };
+  if (removeId) {
     void deleteCloudflareImage(removeId);
   }
 

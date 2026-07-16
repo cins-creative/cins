@@ -5,9 +5,11 @@
 --   JSON string:
 --   {
 --     "active": ShareOgTheme,
---     "customs": [{ imageId, createdAt }],
+--     "customs": [{ imageId, createdAt }],  -- nền cá nhân vĩnh viễn (≤6)
 --     "layouts": { "journey": "banner"|"frame"|…, "gallery": "strip"|"panel"|… }
 --   }
+--   customs chỉ mất khi DELETE qua PATCH removeImageId (xóa CF best-effort).
+--   Upload POST /api/share-theme/upload ghi thẳng vào customs + active.
 --
 -- org_to_chuc.cau_hinh.share_og_theme (jsonb nested)
 --   Cùng shape object (không stringify).

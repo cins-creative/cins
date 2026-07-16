@@ -182,6 +182,7 @@ export function JourneyProfileShareModal({
     defaultShareOgThemeState(profile.slug),
   );
   const [themeSaving, setThemeSaving] = useState(false);
+  const [themeCanEdit, setThemeCanEdit] = useState(false);
   const skipMenu = Boolean(galleryFilter);
   const isPopover = presentation === "popover";
 
@@ -272,11 +273,13 @@ export function JourneyProfileShareModal({
         };
         if (cancelled || !json.state) return;
         setThemeState(json.state);
+        setThemeCanEdit(Boolean(json.canEdit));
         setJourneyVariant(json.state.layouts.journey);
         setGalleryVariant(json.state.layouts.gallery);
       } catch {
         if (!cancelled) {
           setThemeState(defaultShareOgThemeState(profile.slug));
+          setThemeCanEdit(false);
         }
       }
     })();
@@ -303,13 +306,17 @@ export function JourneyProfileShareModal({
           }),
         });
         if (!res.ok) {
-          // 401/403: không phải chủ hồ sơ — giữ preview cục bộ, không phá UX.
-          if (res.status !== 401 && res.status !== 403) {
-            const err = (await res.json().catch(() => null)) as {
-              error?: string;
-            } | null;
-            showFlash(err?.error ?? "Không lưu được theme.");
+          // Khách xem thử: 401/403 im lặng. Chủ hồ sơ thì báo lỗi.
+          if (res.status === 401 || res.status === 403) {
+            if (themeCanEdit) {
+              showFlash("Không lưu được theme — thử đăng nhập lại.");
+            }
+            return;
           }
+          const err = (await res.json().catch(() => null)) as {
+            error?: string;
+          } | null;
+          showFlash(err?.error ?? "Không lưu được theme.");
           return;
         }
         const json = (await res.json()) as { state?: ShareOgThemeState };
@@ -320,7 +327,7 @@ export function JourneyProfileShareModal({
         setThemeSaving(false);
       }
     },
-    [orgShare?.orgId, showFlash],
+    [orgShare?.orgId, showFlash, themeCanEdit],
   );
 
   useEffect(() => {
@@ -788,6 +795,7 @@ export function JourneyProfileShareModal({
               <JourneyShareThemePicker
                 state={themeState}
                 saving={themeSaving}
+                canEdit={themeCanEdit}
                 onSelectPreset={(id: ShareOgPresetId) => {
                   void persistTheme({
                     ...themeState,
@@ -803,6 +811,7 @@ export function JourneyProfileShareModal({
                 onUpload={async (file) => {
                   const form = new FormData();
                   form.set("file", file);
+                  if (orgShare?.orgId) form.set("orgId", orgShare.orgId);
                   const res = await fetch("/api/share-theme/upload", {
                     method: "POST",
                     body: form,
@@ -814,7 +823,14 @@ export function JourneyProfileShareModal({
                     showFlash(err?.error ?? "Upload nền thất bại.");
                     return;
                   }
-                  const json = (await res.json()) as { imageId?: string };
+                  const json = (await res.json()) as {
+                    imageId?: string;
+                    state?: ShareOgThemeState;
+                  };
+                  if (json.state) {
+                    setThemeState(json.state);
+                    return;
+                  }
                   if (!json.imageId) {
                     showFlash("Upload nền thất bại.");
                     return;

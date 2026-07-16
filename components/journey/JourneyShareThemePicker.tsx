@@ -15,6 +15,8 @@ import {
 type Props = {
   state: ShareOgThemeState;
   saving?: boolean;
+  /** Chủ hồ sơ / admin org — mới được tải lên & xóa nền vĩnh viễn. */
+  canEdit?: boolean;
   onSelectPreset: (id: ShareOgPresetId) => void;
   onSelectCustom: (imageId: string) => void;
   onUpload: (file: File) => Promise<void>;
@@ -24,6 +26,7 @@ type Props = {
 export function JourneyShareThemePicker({
   state,
   saving = false,
+  canEdit = false,
   onSelectPreset,
   onSelectCustom,
   onUpload,
@@ -35,7 +38,7 @@ export function JourneyShareThemePicker({
   const active = state.active;
 
   async function handleFile(file: File | undefined) {
-    if (!file) return;
+    if (!file || !canEdit) return;
     setUploading(true);
     try {
       await onUpload(file);
@@ -90,7 +93,7 @@ export function JourneyShareThemePicker({
                 role="option"
                 aria-selected={selected}
                 className="j-share-theme-swatch j-share-theme-swatch--img"
-                title="Nền cá nhân"
+                title="Nền cá nhân (đã lưu)"
                 style={
                   url
                     ? {
@@ -102,40 +105,47 @@ export function JourneyShareThemePicker({
                 }
                 onClick={() => onSelectCustom(entry.imageId)}
               />
-              <button
-                type="button"
-                className="j-share-theme-remove"
-                aria-label="Xóa nền này"
-                title="Xóa nền"
-                onClick={() => onRemoveCustom(entry.imageId)}
-              >
-                <X size={12} strokeWidth={2.2} aria-hidden />
-              </button>
+              {canEdit ? (
+                <button
+                  type="button"
+                  className="j-share-theme-remove"
+                  aria-label="Xóa nền này"
+                  title="Xóa nền"
+                  onClick={() => onRemoveCustom(entry.imageId)}
+                >
+                  <X size={12} strokeWidth={2.2} aria-hidden />
+                </button>
+              ) : null}
             </div>
           );
         })}
 
-        <button
-          type="button"
-          className="j-share-theme-add"
-          disabled={uploading}
-          title="Tải nền cá nhân lên"
-          onClick={() => inputRef.current?.click()}
-        >
-          <ImagePlus size={16} strokeWidth={1.8} aria-hidden />
-          <span>{uploading ? "Đang tải…" : "Tải nền lên"}</span>
-        </button>
-        <input
-          ref={inputRef}
-          type="file"
-          accept="image/jpeg,image/png,image/webp,image/gif"
-          hidden
-          onChange={(e) => void handleFile(e.target.files?.[0])}
-        />
+        {canEdit ? (
+          <>
+            <button
+              type="button"
+              className="j-share-theme-add"
+              disabled={uploading}
+              title="Tải nền cá nhân lên — lưu vĩnh viễn"
+              onClick={() => inputRef.current?.click()}
+            >
+              <ImagePlus size={16} strokeWidth={1.8} aria-hidden />
+              <span>{uploading ? "Đang tải…" : "Tải nền lên"}</span>
+            </button>
+            <input
+              ref={inputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              hidden
+              onChange={(e) => void handleFile(e.target.files?.[0])}
+            />
+          </>
+        ) : null}
       </div>
       <p className="j-share-theme-hint">
-        Tải ảnh nền của bạn (PNG, JPG, WebP · tối đa 5MB) để tạo thẻ theo phong
-        cách riêng.
+        {canEdit
+          ? "Nền tải lên được lưu vĩnh viễn (tối đa 6 ảnh · PNG/JPG/WebP · ≤5MB). Chỉ mất khi bạn xóa."
+          : "Theme của chủ hồ sơ — chỉ chủ mới tải hoặc xóa nền cá nhân."}
       </p>
     </div>
   );

@@ -5202,27 +5202,46 @@ a.j-main-gallery-item:focus-visible,
 .j-m-unfold-post .post-comments-v1 .post-comments-reaction-pill {
   min-height: 26px;
   border: none;
+  background: var(--bg-surface, #fff);
 }
 .j-m-unfold-post .post-comments-v1 .post-comments-reaction-pill.is-active {
-  background: #fff;
+  background: var(--bg-surface, #fff);
   border: none;
+}
+.j-m-unfold-post .post-comments-v1 .post-comments-reaction-pill:hover:not(:disabled) {
+  background: var(--neutral-100, #fafafa);
+}
+.j-m-unfold-post .post-comments-v1 .post-comments-reaction-picker-btn {
+  background: var(--bg-surface, #fff);
+  color: var(--ink-body, #374151);
+}
+.j-m-unfold-post .post-comments-v1 .post-comments-reaction-picker-btn:hover {
+  background: var(--neutral-100, #f5f5f5);
+  color: var(--ink-body, #374151);
 }
 .j-m-unfold-post .post-comments-v1 .post-comments-reaction-opt-emoji {
   font-size: 20px;
   filter: saturate(1.2) contrast(1.04);
 }
 .j-m-unfold-post .post-comments-v1 .post-comments-reaction-opt {
-  background: #fff;
+  background: var(--bg-surface, #fff);
   border: none;
 }
 .j-m-unfold-post .post-comments-v1 .post-comments-reaction-opt.is-active {
-  background: #fff;
+  background: var(--bg-surface, #fff);
   border: none;
   box-shadow: none;
+}
+.j-m-unfold-post .post-comments-v1 .post-comments-reaction-opt:hover {
+  background: var(--neutral-100, #f5f5f5);
 }
 .j-m-unfold-post .post-comments-v1 .post-comments-reactions,
 .j-m-unfold-post .post-comments-v1 .post-comments-reaction-picker {
   -webkit-font-smoothing: auto;
+}
+.j-m-unfold-post .post-comments-v1 .post-comments-reaction-picker {
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border, transparent);
 }
 .j-m-unfold-post .jcard-actions {
   margin-top: 0;
@@ -19947,16 +19966,6 @@ a.action-btn-part {
   background-size: cover;
   background-position: center;
   pointer-events: none;
-}
-.j-share-card-theme-bg::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    180deg,
-    rgba(15, 23, 42, 0.45) 0%,
-    rgba(15, 23, 42, 0.72) 100%
-  );
 }
 .j-share-card--namecard,
 .j-share-card--journey.j-share-card--namecard {

@@ -369,6 +369,62 @@ export function serializeShareOgThemeState(state: ShareOgThemeState): string {
   });
 }
 
+/**
+ * Gộp customs đã lưu + incoming — không bao giờ xóa entry chỉ vì client gửi list ngắn
+ * (tránh mất nền vĩnh viễn do stale state). Xóa chỉ qua `removeImageId`.
+ */
+export function mergeShareOgCustoms(
+  prev: ShareOgCustomEntry[],
+  incoming?: ShareOgCustomEntry[] | null,
+  removeImageId?: string | null,
+): ShareOgCustomEntry[] {
+  const removeId = removeImageId?.trim() || null;
+  const byId = new Map<string, ShareOgCustomEntry>();
+
+  for (const entry of prev) {
+    const id = entry.imageId?.trim();
+    if (!id || id === removeId) continue;
+    byId.set(id, {
+      imageId: id,
+      createdAt: entry.createdAt || new Date(0).toISOString(),
+    });
+  }
+
+  if (Array.isArray(incoming)) {
+    for (const item of incoming) {
+      const id = item?.imageId?.trim();
+      if (!id || id === removeId) continue;
+      const existing = byId.get(id);
+      byId.set(id, {
+        imageId: id,
+        createdAt:
+          existing?.createdAt ||
+          (typeof item.createdAt === "string" && item.createdAt
+            ? item.createdAt
+            : new Date().toISOString()),
+      });
+    }
+  }
+
+  return Array.from(byId.values())
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    .slice(0, SHARE_OG_CUSTOMS_MAX);
+}
+
+/** Thêm (hoặc đẩy lên đầu) một nền custom — dùng sau upload. */
+export function prependShareOgCustom(
+  prev: ShareOgCustomEntry[],
+  imageId: string,
+  createdAt = new Date().toISOString(),
+): ShareOgCustomEntry[] {
+  const id = imageId.trim();
+  if (!id) return prev.slice(0, SHARE_OG_CUSTOMS_MAX);
+  return [
+    { imageId: id, createdAt },
+    ...prev.filter((c) => c.imageId !== id),
+  ].slice(0, SHARE_OG_CUSTOMS_MAX);
+}
+
 const DEFAULT_PRESET: ShareOgPresetId = "paper";
 
 export function resolveShareOgThemeTokens(
@@ -433,7 +489,7 @@ export function shareOgBackgroundStyle(tokens: ShareOgThemeTokens): {
   if (tokens.backgroundImage) {
     return {
       backgroundColor: tokens.surface,
-      backgroundImage: `linear-gradient(180deg, rgba(15,23,42,0.5) 0%, rgba(15,23,42,0.82) 100%), url(${tokens.backgroundImage})`,
+      backgroundImage: `url(${tokens.backgroundImage})`,
       backgroundSize: "cover",
     };
   }

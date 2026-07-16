@@ -30,6 +30,38 @@ function siteOrigin(): string {
   return getConfiguredSiteOrigin() ?? "https://cins.vn";
 }
 
+/**
+ * `opengraph-image` file convention của Next không luôn truyền `searchParams`
+ * từ query trên URL ảnh. Đọc lại từ `x-url` / `next-url` nếu có (OpenNext/proxy).
+ */
+async function resolveOgSearch(
+  sp: Awaited<SearchParams>,
+): Promise<{ view?: string; nhom?: string; filter?: string }> {
+  if (sp.view || sp.nhom || sp.filter) {
+    return { view: sp.view, nhom: sp.nhom, filter: sp.filter };
+  }
+  try {
+    const { headers } = await import("next/headers");
+    const h = await headers();
+    const raw =
+      h.get("x-url") ||
+      h.get("x-forwarded-url") ||
+      h.get("next-url") ||
+      h.get("x-invoke-path");
+    if (!raw) return {};
+    const url = raw.startsWith("http")
+      ? new URL(raw)
+      : new URL(raw, "https://cins.vn");
+    return {
+      view: url.searchParams.get("view") ?? undefined,
+      nhom: url.searchParams.get("nhom") ?? undefined,
+      filter: url.searchParams.get("filter") ?? undefined,
+    };
+  } catch {
+    return {};
+  }
+}
+
 export default async function Image({
   params,
   searchParams,
@@ -38,9 +70,10 @@ export default async function Image({
   searchParams?: SearchParams;
 }) {
   const { slug } = await params;
-  const sp = searchParams ? await searchParams : {};
+  const sp = await resolveOgSearch(searchParams ? await searchParams : {});
   const origin = siteOrigin();
   const logoUrl = `${origin}/assets/logo-cins-64.png`;
+  /** Phải là PNG RGBA — palette+alpha làm crash resvg/@vercel/og. */
   const logoWhiteUrl = `${origin}/assets/logo-cins-white.png`;
 
   const [ctx, fonts] = await Promise.all([

@@ -1,6 +1,5 @@
 import { createServerClient } from "@supabase/ssr";
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 import { buildCanonicalHostRedirect } from "@/lib/auth/auth-origin";
 import { getSupabaseCookieOptions } from "@/lib/supabase/cookie-options";
@@ -249,12 +248,21 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const { response: sessionResponse, userId } = await resolveSession(request);
+  /* OG image: gắn full URL vào request headers để opengraph-image đọc query
+     (`view`/`nhom`/`filter`). Next file convention không luôn truyền searchParams. */
+  let ogRequest = request;
+  if (pathname.endsWith("/opengraph-image") || pathname.endsWith("/twitter-image")) {
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set("x-url", request.nextUrl.href);
+    ogRequest = new NextRequest(request, { headers: requestHeaders });
+  }
+
+  const { response: sessionResponse, userId } = await resolveSession(ogRequest);
 
   /* Protected routes — check session bất kể MAINTENANCE_MODE. */
   if (isProtectedPath(pathname)) {
     if (!userId) {
-      return redirectToLogin(request, sessionResponse);
+      return redirectToLogin(ogRequest, sessionResponse);
     }
     return sessionResponse;
   }

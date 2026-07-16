@@ -111,7 +111,7 @@ function OgUrlChip({
         flexShrink: 0,
       }}
     >
-      cins.vn/{slug}
+      {`cins.vn/${slug}`}
     </div>
   );
 }
@@ -204,26 +204,24 @@ function ThemeShell({
   padding?: number;
 }) {
   const bg = shareOgBackgroundStyle(tokens);
+  const style: CSSProperties = {
+    width: "100%",
+    height: "100%",
+    display: "flex",
+    flexDirection: "column",
+    backgroundColor: bg.backgroundColor,
+    color: tokens.ink,
+    fontFamily: "Be Vietnam Pro",
+    position: "relative",
+    padding,
+  };
+  if (!tokens.isCustom && bg.backgroundImage) {
+    style.backgroundImage = bg.backgroundImage;
+    if (bg.backgroundSize) style.backgroundSize = bg.backgroundSize;
+  }
+
   return (
-    <div
-      style={{
-        width: "100%",
-        height: "100%",
-        display: "flex",
-        flexDirection: "column",
-        backgroundColor: bg.backgroundColor,
-        ...(tokens.isCustom
-          ? {}
-          : {
-              backgroundImage: bg.backgroundImage,
-              backgroundSize: bg.backgroundSize,
-            }),
-        color: tokens.ink,
-        fontFamily: "Be Vietnam Pro",
-        position: "relative",
-        padding,
-      }}
-    >
+    <div style={style}>
       {tokens.backgroundImage ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
@@ -233,15 +231,26 @@ function ThemeShell({
           height={630}
           style={{
             position: "absolute",
-            inset: 0,
+            top: 0,
+            left: 0,
             width: "100%",
             height: "100%",
             objectFit: "cover",
-            opacity: 0.3,
           }}
         />
       ) : null}
-      {children}
+      <div
+        style={{
+          position: "relative",
+          display: "flex",
+          flexDirection: "column",
+          width: "100%",
+          height: "100%",
+          flex: 1,
+        }}
+      >
+        {children}
+      </div>
     </div>
   );
 }
@@ -363,7 +372,15 @@ function BannerLayout({
   const tacPham = profile.stats?.tacPham ?? 0;
   return (
     <ThemeShell tokens={tokens}>
-      <div style={{ position: "relative", display: "flex", flexDirection: "column", width: "100%", height: "100%" }}>
+      <div
+        style={{
+          position: "relative",
+          display: "flex",
+          flexDirection: "column",
+          width: "100%",
+          height: "100%",
+        }}
+      >
         <div style={{ display: "flex", height: 340, overflow: "hidden" }}>
           <OgCover profile={profile} />
         </div>
@@ -377,13 +394,22 @@ function BannerLayout({
             background: tokens.panel,
           }}
         >
-          <div style={{ marginTop: -48 }}>
+          <div style={{ marginTop: -48, display: "flex" }}>
             <OgAvatar profile={profile} size={96} />
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1, minWidth: 0 }}>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 6,
+              flex: 1,
+              minWidth: 0,
+            }}
+          >
             <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-              <span
+              <div
                 style={{
+                  display: "flex",
                   fontSize: 36,
                   fontWeight: 800,
                   color: tokens.ink,
@@ -392,7 +418,7 @@ function BannerLayout({
                 }}
               >
                 {profile.displayName}
-              </span>
+              </div>
               <RoleLine text={profile.roleLine} color={tokens.muted} size={16} />
             </div>
             <div
@@ -407,15 +433,36 @@ function BannerLayout({
               {bioText(profile)}
             </div>
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10, alignItems: "flex-end" }}>
-            <OgUrlChip slug={profile.slug} accent={tokens.accent} panel="rgba(255,255,255,0.92)" />
-            <div style={{ display: "flex", gap: 12, fontSize: 16, color: tokens.muted, fontWeight: 600 }}>
-              <span>
-                <span style={{ fontWeight: 800, color: tokens.accent }}>{cotMoc}</span> Cột mốc
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 10,
+              alignItems: "flex-end",
+            }}
+          >
+            <OgUrlChip
+              slug={profile.slug}
+              accent={tokens.accent}
+              panel="rgba(255,255,255,0.92)"
+            />
+            <div
+              style={{
+                display: "flex",
+                gap: 12,
+                fontSize: 16,
+                color: tokens.muted,
+                fontWeight: 600,
+              }}
+            >
+              <span style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                <span style={{ fontWeight: 800, color: tokens.accent }}>{cotMoc}</span>
+                <span>Cột mốc</span>
               </span>
               <span>•</span>
-              <span>
-                <span style={{ fontWeight: 800, color: tokens.accent }}>{tacPham}</span> Tác phẩm
+              <span style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                <span style={{ fontWeight: 800, color: tokens.accent }}>{tacPham}</span>
+                <span>Tác phẩm</span>
               </span>
             </div>
             <OgBrand logoUrl={logoUrl} ink={tokens.ink} />
@@ -472,7 +519,15 @@ function FrameLayout({
             {profile.displayName}
           </div>
           <RoleLine text={profile.roleLine} color={tokens.muted} />
-          <div style={{ fontSize: 20, lineHeight: 1.4, color: tokens.ink, opacity: 0.9 }}>
+          <div
+            style={{
+              fontSize: 20,
+              lineHeight: 1.4,
+              color: tokens.ink,
+              opacity: 0.9,
+              display: "flex",
+            }}
+          >
             {bioText(profile)}
           </div>
           <StatsPair profile={profile} tokens={tokens} />
@@ -642,13 +697,25 @@ function ImmersiveLayout({
         color: "#ffffff",
       }}
     >
-      <div style={{ position: "absolute", inset: 0, display: "flex" }}>
+      <div
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          display: "flex",
+        }}
+      >
         <OgCover profile={profile} />
       </div>
       <div
         style={{
           position: "absolute",
-          inset: 0,
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
           background:
             "linear-gradient(180deg, rgba(15,23,42,0.25) 0%, rgba(15,23,42,0.55) 45%, rgba(15,23,42,0.92) 100%)",
         }}
@@ -770,7 +837,7 @@ function StripLayout({
                 ) : null}
               </div>
               <span style={{ fontSize: 16, fontWeight: 600, color: tokens.muted }}>
-                cins.vn/{profile.slug}
+                {`cins.vn/${profile.slug}`}
               </span>
               <StatsInline profile={profile} ink={tokens.ink} muted={tokens.muted} />
             </div>
@@ -778,16 +845,16 @@ function StripLayout({
           <OgBrand logoUrl={logoUrl} ink={tokens.ink} />
         </div>
         <div style={{ display: "flex", flex: 1, gap: 12 }}>
-          <div style={{ flex: 1.6, display: "flex" }}>
+          <div style={{ flexGrow: 2, display: "flex" }}>
             <OgGalleryThumb src={cells[0] || null} radius={18} />
           </div>
-          <div style={{ flex: 1, display: "flex" }}>
+          <div style={{ flexGrow: 1, display: "flex" }}>
             <OgGalleryThumb src={cells[1] || null} radius={18} />
           </div>
-          <div style={{ flex: 1, display: "flex" }}>
+          <div style={{ flexGrow: 1, display: "flex" }}>
             <OgGalleryThumb src={cells[2] || null} radius={18} />
           </div>
-          <div style={{ flex: 1, display: "flex" }}>
+          <div style={{ flexGrow: 1, display: "flex" }}>
             <OgGalleryThumb src={cells[3] || null} radius={18} />
           </div>
         </div>
@@ -837,7 +904,7 @@ function PanelLayout({
             {profile.displayName}
           </div>
           <span style={{ fontSize: 15, fontWeight: 600, color: tokens.muted }}>
-            cins.vn/{profile.slug}
+            {`cins.vn/${profile.slug}`}
           </span>
           {filterLabel ? (
             <FilterPill label={filterLabel} accent={tokens.accent} panel="rgba(255,255,255,0.9)" />
@@ -846,7 +913,7 @@ function PanelLayout({
         <div style={{ display: "flex", flexDirection: "column", flex: 1, gap: 14 }}>
           <StatsInline profile={profile} ink={tokens.ink} muted={tokens.muted} />
           <div style={{ display: "flex", flex: 1, gap: 12 }}>
-            <div style={{ flex: 1.4, display: "flex" }}>
+            <div style={{ flexGrow: 2, display: "flex" }}>
               <OgGalleryThumb src={cells[0] || null} radius={16} />
             </div>
             <div style={{ width: 160, display: "flex" }}>
@@ -911,7 +978,7 @@ function SidebarLayout({
             {profile.displayName}
           </div>
           <span style={{ fontSize: 15, fontWeight: 700, color: tokens.accent }}>
-            cins.vn/{profile.slug}
+            {`cins.vn/${profile.slug}`}
           </span>
           {filterLabel ? (
             <FilterPill label={filterLabel} accent={tokens.accent} panel="rgba(255,255,255,0.9)" />
@@ -919,11 +986,11 @@ function SidebarLayout({
           <StatsPair profile={profile} tokens={tokens} />
         </div>
         <div style={{ display: "flex", flex: 1, gap: 12 }}>
-          <div style={{ flex: 1.35, display: "flex" }}>
+          <div style={{ flexGrow: 2, display: "flex" }}>
             <OgGalleryThumb src={cells[0] || null} radius={16} />
           </div>
           <div style={{ display: "flex", flexDirection: "column", flex: 1, gap: 12 }}>
-            <div style={{ flex: 1.2, display: "flex" }}>
+            <div style={{ flexGrow: 2, display: "flex" }}>
               <OgGalleryThumb src={cells[1] || null} radius={14} />
             </div>
             <div style={{ flex: 1, display: "flex", gap: 12 }}>
@@ -972,7 +1039,7 @@ function FilmLayout({
                 ) : null}
               </div>
               <span style={{ fontSize: 16, fontWeight: 600, color: tokens.muted }}>
-                cins.vn/{profile.slug}
+                {`cins.vn/${profile.slug}`}
               </span>
             </div>
           </div>
@@ -1037,7 +1104,7 @@ function StackLayout({
           }}
         >
           <span style={{ fontSize: 16, fontWeight: 700, color: tokens.accent }}>
-            cins.vn/{profile.slug}
+            {`cins.vn/${profile.slug}`}
           </span>
           <span style={{ fontSize: 16, color: tokens.muted }}>↗</span>
         </div>
@@ -1196,7 +1263,7 @@ export function OgFallbackShareCard({
           lineHeight: 1.15,
         }}
       >
-        Journey · {slug}
+        {`Journey · ${slug}`}
       </div>
       <div style={{ fontSize: 24, fontWeight: 600, opacity: 0.92 }}>
         Hành trình sáng tạo trên CINs
