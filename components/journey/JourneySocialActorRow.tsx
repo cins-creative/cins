@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useState } from "react";
-import { Users } from "lucide-react";
+import { useCallback, useState, type MouseEvent } from "react";
+import { Maximize2, Users } from "lucide-react";
 
 import { JourneySocialActorActions } from "@/components/journey/JourneySocialActorActions";
 import { JourneyUserFeaturedExpand } from "@/components/journey/JourneyUserFeaturedExpand";
@@ -61,15 +61,33 @@ export function JourneySocialActorRow({
     [],
   );
 
-  const showFeaturedBtn = featuredReady && featuredCount > 0;
-  const isSelf = !viewerId || viewerId === actor.idNguoiDung;
-  const showConnectActions = !isSelf && actor.quanHe !== "blocked";
-  const showActions = showFeaturedBtn || showConnectActions;
+  const canExpandFeatured = featuredReady && featuredCount > 0;
+
+  const onCardClick = (event: MouseEvent<HTMLAnchorElement>) => {
+    if (!canExpandFeatured) {
+      onNavigate();
+      return;
+    }
+    event.preventDefault();
+    setFeaturedOpen((v) => !v);
+  };
 
   return (
     <li className={`jsa-row${featuredOpen ? " is-featured-open" : ""}`}>
-      <div className="jsa-row-main">
-        <Link href={`/${actor.slug}`} className="jsa-item" onClick={onNavigate}>
+      <div
+        className={`jsa-item${featuredOpen ? " is-expanded" : ""}${canExpandFeatured ? " is-expandable" : ""}`}
+      >
+        <Link
+          href={`/${actor.slug}`}
+          className="jsa-item-hit"
+          aria-expanded={canExpandFeatured ? featuredOpen : undefined}
+          aria-controls={
+            canExpandFeatured
+              ? `j-user-featured-panel-${actor.slug}`
+              : undefined
+          }
+          onClick={onCardClick}
+        >
           {actor.avatarUrl ? (
             /* eslint-disable-next-line @next/next/no-img-element */
             <img
@@ -102,34 +120,30 @@ export function JourneySocialActorRow({
             </span>
           </span>
         </Link>
-        {showActions ? (
-          <div className="jsa-actions" onClick={(e) => e.stopPropagation()}>
-            {showFeaturedBtn ? (
-              <button
-                type="button"
-                className={`jsa-act is-featured${featuredOpen ? " is-open" : ""}`}
-                title={
-                  featuredOpen
-                    ? "Thu gọn nội dung nổi bật"
-                    : `Xem ${featuredCount} nội dung nổi bật`
-                }
-                aria-label={
-                  featuredOpen
-                    ? "Thu gọn nội dung nổi bật"
-                    : `Xem ${featuredCount} nội dung nổi bật`
-                }
-                aria-expanded={featuredOpen}
-                aria-controls={`j-user-featured-panel-${actor.slug}`}
-                onClick={() => setFeaturedOpen((v) => !v)}
-              >
-                <span className="jsa-featured-count" aria-hidden>
-                  {featuredCount}
-                </span>
-              </button>
-            ) : null}
-            <JourneySocialActorActions actor={actor} viewerId={viewerId} bare />
-          </div>
-        ) : null}
+        <div className="jsa-actions" onClick={(e) => e.stopPropagation()}>
+          <JourneySocialActorActions actor={actor} viewerId={viewerId} bare />
+          {canExpandFeatured ? (
+            <button
+              type="button"
+              className={`jsa-act is-journey${featuredOpen ? " is-open" : ""}`}
+              title={
+                featuredOpen
+                  ? "Thu gọn nội dung nổi bật"
+                  : "Xem nội dung nổi bật"
+              }
+              aria-label={
+                featuredOpen
+                  ? "Thu gọn nội dung nổi bật"
+                  : "Xem nội dung nổi bật"
+              }
+              aria-expanded={featuredOpen}
+              aria-controls={`j-user-featured-panel-${actor.slug}`}
+              onClick={() => setFeaturedOpen((v) => !v)}
+            >
+              <Maximize2 size={17} strokeWidth={2} aria-hidden />
+            </button>
+          ) : null}
+        </div>
       </div>
       <JourneyUserFeaturedExpand
         slug={actor.slug}

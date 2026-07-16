@@ -165,27 +165,30 @@
   padding: 2px 0;
 }
 
-.jsa-row-main {
+.jsa-item {
   display: flex;
   align-items: center;
   gap: 6px;
+  min-width: 0;
+  padding: 8px;
+  border-radius: 12px;
+  color: inherit;
+  transition: background 0.12s;
 }
 
-.jsa-item {
+.jsa-item:hover,
+.jsa-item.is-expanded {
+  background: var(--neutral-100, #f1f5f9);
+}
+
+.jsa-item-hit {
   display: flex;
   align-items: flex-start;
   gap: 10px;
   flex: 1;
   min-width: 0;
-  padding: 8px;
-  border-radius: 12px;
   text-decoration: none;
   color: inherit;
-  transition: background 0.12s;
-}
-
-.jsa-item:hover {
-  background: var(--neutral-100, #f1f5f9);
 }
 
 .jsa-item-body {
@@ -253,12 +256,21 @@
   font-weight: 600;
 }
 
+.jsa-item.is-expandable {
+  cursor: pointer;
+}
+
+.jsa-item.is-expandable .jsa-item-hit {
+  cursor: pointer;
+}
+
 .jsa-actions {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 4px;
+  min-height: 32px;
   flex: none;
-  padding-right: 4px;
 }
 
 .jsa-act {
@@ -324,32 +336,19 @@
   cursor: default;
 }
 
-.jsa-act.is-featured {
-  min-width: 32px;
-  padding: 0 8px;
-  width: auto;
+.jsa-act.is-journey {
   color: var(--cins-blue, #2563eb);
-  border-color: transparent;
-  background: transparent;
-  font-family: var(--font-sans);
-  font-size: 12px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
+  border: none;
+  background: var(--cins-blue-soft, #eff6ff);
 }
 
-.jsa-act.is-featured:hover:not(:disabled) {
-  background: transparent;
+.jsa-act.is-journey:hover:not(:disabled) {
+  background: #dbeafe;
   color: var(--cins-blue, #2563eb);
 }
 
-.jsa-act.is-featured.is-open {
-  background: transparent;
-  border-color: transparent;
-  color: var(--cins-blue, #2563eb);
-}
-
-.jsa-featured-count {
-  line-height: 1;
+.jsa-act.is-journey.is-open {
+  background: #dbeafe;
 }
 
 .jsa-row .j-user-featured {
@@ -373,7 +372,7 @@
   max-height: 280px;
 }
 
-.jsa-act:hover:not(:disabled):not(.is-friends) {
+.jsa-act:hover:not(:disabled):not(.is-friends):not(.is-journey) {
   background: var(--neutral-100, #f1f5f9);
 }
 
@@ -425,7 +424,7 @@
   color: var(--cins-blue, #4f9be8);
 }
 
-:root[data-theme="dark"] .jsa-act:hover:not(:disabled):not(.is-friends) {
+:root[data-theme="dark"] .jsa-act:hover:not(:disabled):not(.is-friends):not(.is-journey) {
   background: var(--neutral-100, #1c212c);
 }
 
@@ -468,14 +467,19 @@
   border-color: rgba(251, 191, 36, 0.4);
 }
 
-:root[data-theme="dark"] .jsa-act.is-featured {
-  background: transparent;
+:root[data-theme="dark"] .jsa-act.is-journey {
+  background: color-mix(in srgb, var(--cins-blue, #4f9be8) 12%, var(--bg-surface));
   color: var(--cins-blue, #4f9be8);
-  border-color: transparent;
+  border: none;
 }
 
-:root[data-theme="dark"] .jsa-act.is-featured.is-open {
-  background: transparent;
+:root[data-theme="dark"] .jsa-act.is-journey:hover {
+  background: color-mix(in srgb, var(--cins-blue, #4f9be8) 20%, var(--bg-surface));
+}
+
+:root[data-theme="dark"] .jsa-item:hover,
+:root[data-theme="dark"] .jsa-item.is-expanded {
+  background: var(--neutral-100, #1c212c);
 }
 
 :root[data-theme="dark"] .jsa-msg--err {

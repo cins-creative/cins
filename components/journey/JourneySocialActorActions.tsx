@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, BellPlus, Check, Clock3, UserCheck, UserPlus, X } from "lucide-react";
+import { Check, Clock3, UserCheck, UserPlus, X } from "lucide-react";
 import { useCallback, useState, useTransition } from "react";
 
 import { useOptionalAuthGate } from "@/components/auth/AuthGateProvider";
@@ -23,7 +23,6 @@ export function JourneySocialActorActions({ actor, viewerId, bare = false }: Pro
   const isAuthenticated = authGate?.isAuthenticated ?? false;
   const [quanHe, setQuanHe] = useState<QuanHe>(actor.quanHe);
   const [ketBanId, setKetBanId] = useState<string | null>(actor.ketBanId);
-  const [following, setFollowing] = useState(actor.dangTheoDoi);
   const [pending, startTransition] = useTransition();
 
   const isSelf = !viewerId || viewerId === actor.idNguoiDung;
@@ -61,7 +60,6 @@ export function JourneySocialActorActions({ actor, viewerId, bare = false }: Pro
         } | null;
         setQuanHe("pending_sent");
         setKetBanId(json?.ket_ban_id ?? ketBanId);
-        setFollowing(true);
         emitUserFollowChanged(actor.idNguoiDung, true);
         emitNotificationsChanged();
       });
@@ -81,7 +79,6 @@ export function JourneySocialActorActions({ actor, viewerId, bare = false }: Pro
         setQuanHe(action === "accept" ? "accepted" : "none");
         if (action === "decline") setKetBanId(null);
         if (action === "accept") {
-          setFollowing(true);
           emitUserFollowChanged(actor.idNguoiDung, true);
         }
         emitNotificationsChanged();
@@ -101,30 +98,6 @@ export function JourneySocialActorActions({ actor, viewerId, bare = false }: Pro
       });
     });
   };
-
-  const toggleFollow = () => {
-    requireAuth(() => {
-      startTransition(async () => {
-        const res = await fetch("/api/follow", {
-          method: following ? "DELETE" : "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "same-origin",
-          body: JSON.stringify({
-            id_doi_tuong: actor.idNguoiDung,
-            loai_doi_tuong: "user",
-          }),
-        });
-        const json = (await res.json().catch(() => null)) as {
-          dang_theo_doi?: boolean;
-        } | null;
-        if (!res.ok) return;
-        setFollowing(Boolean(json?.dang_theo_doi));
-        emitUserFollowChanged(actor.idNguoiDung, Boolean(json?.dang_theo_doi));
-      });
-    });
-  };
-
-  const followLabel = following ? "Đang theo dõi" : "Theo dõi";
 
   const buttons = (
     <>
@@ -178,24 +151,6 @@ export function JourneySocialActorActions({ actor, viewerId, bare = false }: Pro
           <UserPlus size={15} strokeWidth={2.2} aria-hidden />
         </button>
       )}
-
-      {quanHe !== "accepted" ? (
-        <button
-          type="button"
-          className={`jsa-act is-follow${following ? " is-following" : ""}`}
-          title={followLabel}
-          aria-label={followLabel}
-          aria-pressed={following}
-          disabled={pending}
-          onClick={toggleFollow}
-        >
-          {following ? (
-            <Bell size={15} strokeWidth={2} aria-hidden />
-          ) : (
-            <BellPlus size={15} strokeWidth={2} aria-hidden />
-          )}
-        </button>
-      ) : null}
     </>
   );
 
