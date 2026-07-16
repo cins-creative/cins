@@ -8,6 +8,7 @@ import {
 } from "@/lib/journey/og-share-card";
 import { loadOgFonts } from "@/lib/journey/og-fonts";
 import { fetchOgShareContext } from "@/lib/journey/og-share-fetch";
+import { withOgImageCacheHeaders } from "@/lib/journey/og-image-url";
 import type {
   JourneyGalleryCardVariant,
   JourneyJourneyCardVariant,
@@ -110,8 +111,15 @@ export default async function Image({
     <OgFallbackShareCard slug={slug} logoUrl={logoWhiteUrl} />
   );
 
-  return new ImageResponse(element, {
-    ...size,
-    fonts,
-  });
+  /**
+   * Cache dài hạn + gỡ Vary RSC.
+   * `v=` trên URL là content key → đổi layout/filter/theme = URL mới.
+   * OpenNext/Next hay gắn `Vary: rsc,…` lên PNG — CF không cache khi có Vary lạ.
+   */
+  return withOgImageCacheHeaders(
+    new ImageResponse(element, {
+      ...size,
+      fonts,
+    }),
+  );
 }

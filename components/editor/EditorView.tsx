@@ -60,12 +60,11 @@ import {
   type EditorTagMenuPick,
 } from "@/components/editor/EditorTagMenu";
 import {
-  articleTagLabel,
-  articleTagLoaiClass,
   type ArticleTagRef,
 } from "@/lib/editor/article-tag";
 import {
   getAtHashTrigger,
+  replaceAtHashTrigger,
   stripAtHashTrigger,
   type AtHashTrigger,
 } from "@/lib/editor/use-at-hash-trigger";
@@ -2845,33 +2844,47 @@ export function EditorView({
       if (!atHashMenu) return;
       const { blockId, trigger, textarea } = atHashMenu;
 
-      if (blockId === MINIMAL_SUB_BLOCK_ID) {
-        const { text: stripped, caret } = stripAtHashTrigger(sub, trigger);
-        setSub(stripped);
+      // Luôn đọc DOM — trigger được đo từ textarea.value; `sub`/block.text
+      // có thể lệch 1 frame và strip nhầm thành chuỗi rỗng.
+      const source = textarea.value;
+      const activeTrigger =
+        getAtHashTrigger(source, textarea.selectionStart) ?? trigger;
+      const head = source.slice(activeTrigger.start, activeTrigger.start + 1);
+      if (head !== "@" && head !== "#") {
         applyTagPickSelection(pick);
         setAtHashMenu(null);
-        requestAnimationFrame(() => {
-          textarea.focus();
-          textarea.setSelectionRange(caret, caret);
-        });
         return;
       }
 
-      const block = blocks.find((b) => b.id === blockId);
-      if (!block) return;
-      const { text: stripped, caret } = stripAtHashTrigger(
-        block.text ?? "",
-        trigger,
-      );
-      updateBlock(blockId, { text: stripped });
+      const applied =
+        pick.kind === "tag"
+          ? replaceAtHashTrigger(
+              source,
+              activeTrigger,
+              `#${pick.tag.tieu_de}`,
+            )
+          : stripAtHashTrigger(source, activeTrigger);
+
+      if (blockId === MINIMAL_SUB_BLOCK_ID) {
+        setSub(applied.text);
+      } else {
+        const block = blocks.find((b) => b.id === blockId);
+        if (!block) {
+          applyTagPickSelection(pick);
+          setAtHashMenu(null);
+          return;
+        }
+        updateBlock(blockId, { text: applied.text });
+      }
+
       applyTagPickSelection(pick);
       setAtHashMenu(null);
       requestAnimationFrame(() => {
         textarea.focus();
-        textarea.setSelectionRange(caret, caret);
+        textarea.setSelectionRange(applied.caret, applied.caret);
       });
     },
-    [atHashMenu, blocks, updateBlock, sub, applyTagPickSelection],
+    [atHashMenu, blocks, updateBlock, applyTagPickSelection],
   );
 
   const handlePublish = useCallback(() => {
@@ -5643,25 +5656,19 @@ function EditorComposeMetaChips({
           </span>
         );
       })}
-      {tags.map((t) => {
-        const cls = articleTagLoaiClass(t.loai_bai_viet);
-        return (
-          <span key={t.id} className={`meta-chip meta-chip-tag ${cls}`}>
-            <span className="meta-chip-loai" aria-hidden>
-              {articleTagLabel(t.loai_bai_viet)}
-            </span>
-            <span className="meta-chip-name">{t.tieu_de}</span>
-            <button
-              type="button"
-              className="meta-chip-x"
-              aria-label={`Bỏ tag ${t.tieu_de}`}
-              onClick={() => onRemoveTag(t.id)}
-            >
-              ×
-            </button>
-          </span>
-        );
-      })}
+      {tags.map((t) => (
+        <span key={t.id} className="meta-chip meta-chip-tag">
+          <span className="meta-chip-name">#{t.tieu_de}</span>
+          <button
+            type="button"
+            className="meta-chip-x"
+            aria-label={`Bỏ thẻ ${t.tieu_de}`}
+            onClick={() => onRemoveTag(t.id)}
+          >
+            ×
+          </button>
+        </span>
+      ))}
     </div>
   );
 }

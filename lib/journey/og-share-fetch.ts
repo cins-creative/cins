@@ -30,21 +30,22 @@ import type {
 } from "@/lib/journey/profile-share";
 import {
   buildShareOgSnapshotKey,
+  cfImagePublicUrl,
   parseShareOgThemeState,
   resolveShareOgSnapshotUrl,
   type ShareOgTheme,
 } from "@/lib/journey/share-og-theme";
 import { journeyImageFields } from "@/lib/journey/images";
+import {
+  buildOgShareSearchParams,
+  type OgShareSearch,
+} from "@/lib/journey/og-image-url";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 export type OgShareKind = "journey" | "gallery";
 
-/** Query ảnh hưởng OG trên `/{slug}`. */
-export type OgShareSearch = {
-  view?: string | null;
-  nhom?: string | null;
-  filter?: string | null;
-};
+export type { OgShareSearch };
+export { buildOgShareSearchParams };
 
 export type OgShareContext = {
   profile: JourneyShareProfile;
@@ -78,20 +79,6 @@ function truncateBio(text: string | null | undefined, max = 140): string | null 
 
 export function ogKindFromSearch(view: string | null | undefined): OgShareKind {
   return view === "gallery" ? "gallery" : "journey";
-}
-
-/** Build query string từ params share (không gồm `v=`). */
-export function buildOgShareSearchParams(search: OgShareSearch): URLSearchParams {
-  const params = new URLSearchParams();
-  if (search.view === "gallery") params.set("view", "gallery");
-  const filter = search.filter?.trim();
-  const nhom = search.nhom?.trim();
-  if (filter) {
-    params.set("filter", filter);
-  } else if (nhom && nhom !== "all") {
-    params.set("nhom", nhom);
-  }
-  return params;
 }
 
 function searchStringFromOgSearch(search: OgShareSearch): string {
@@ -261,8 +248,12 @@ export async function fetchOgShareContext(
   const layout =
     kind === "gallery" ? themeState.layouts.gallery : themeState.layouts.journey;
 
-  const snapshotUrlFor = (filterVersion: string | null) =>
-    resolveShareOgSnapshotUrl(
+  const snapshotUrlFor = (filterVersion: string | null) => {
+    /** Ảnh custom = OG card đầy đủ trên CF — dùng trực tiếp làm og:image. */
+    if (themeState.active.kind === "custom") {
+      return cfImagePublicUrl(themeState.active.imageId);
+    }
+    return resolveShareOgSnapshotUrl(
       themeState,
       buildShareOgSnapshotKey({
         kind,
@@ -271,6 +262,7 @@ export async function fetchOgShareContext(
         theme: themeState.active,
       }),
     );
+  };
 
   const displayName = owner.ten_hien_thi?.trim() || owner.slug;
 

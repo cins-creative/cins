@@ -667,22 +667,51 @@ export function JourneyShareCardPreview({
     : `j-share-card--theme-${tokens.presetId ?? "paper"}`;
   const bg = shareOgBackgroundStyle(tokens);
 
+  /** Card tùy chỉnh = canvas trắng + ảnh user (không render layout mẫu). */
+  if (tokens.isCustom && tokens.backgroundImage) {
+    return (
+      <NamecardStage>
+        <article
+          ref={exportRef as RefObject<HTMLElement>}
+          className={[
+            "j-share-card",
+            `j-share-card--${kind}`,
+            "j-share-card--namecard",
+            "j-share-card--custom-art",
+            themeClass,
+          ].join(" ")}
+          style={{
+            backgroundColor: "#ffffff",
+            color: tokens.ink,
+          }}
+          data-share-url={targetUrl}
+          aria-label={
+            isJourney
+              ? `Card tùy chỉnh — ${profile.displayName}`
+              : `Card ${galleryLabel} tùy chỉnh — ${profile.displayName}`
+          }
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            className="j-share-card-custom-art-img"
+            src={tokens.backgroundImage}
+            alt=""
+            draggable={false}
+          />
+        </article>
+      </NamecardStage>
+    );
+  }
+
   const themeStyle = {
     "--og-surface": tokens.surface,
     "--og-ink": tokens.ink,
     "--og-muted": tokens.muted,
     "--og-accent": tokens.accent,
     "--og-panel": tokens.panel,
-    ...(tokens.backgroundImage
-      ? { "--og-bg-image": `url(${tokens.backgroundImage})` }
-      : {}),
     backgroundColor: bg.backgroundColor,
-    ...(tokens.isCustom
-      ? {}
-      : {
-          backgroundImage: bg.backgroundImage,
-          backgroundSize: bg.backgroundSize,
-        }),
+    backgroundImage: bg.backgroundImage,
+    backgroundSize: bg.backgroundSize,
     color: tokens.ink,
   } as CSSProperties;
 
@@ -705,9 +734,6 @@ export function JourneyShareCardPreview({
             : `Thẻ ${galleryLabel} — ${profile.displayName}`
         }
       >
-        {tokens.backgroundImage ? (
-          <div className="j-share-card-theme-bg" aria-hidden />
-        ) : null}
         <div className="j-share-card-main">
           {isJourney ? (
             <JourneyLayout variant={journeyVariant} profile={profile} />

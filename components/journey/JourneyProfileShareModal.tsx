@@ -6,7 +6,6 @@ import {
   ImageDown,
   Link2,
   Map,
-  Palette,
   Users,
 } from "lucide-react";
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type RefObject } from "react";
@@ -30,6 +29,12 @@ import {
 } from "@/lib/journey/gallery-filter-share";
 import type { GalleryDisplay } from "@/lib/journey/gallery-display-url";
 import type { GalleryMainItem } from "@/lib/journey/gallery-page-fetch";
+import {
+  buildJourneyOgImageAbsoluteUrl,
+  buildOgImageVersion,
+  type OgShareSearch,
+  warmOgImageCache,
+} from "@/lib/journey/og-image-url";
 import {
   buildSocialShareItems,
   copyTextToClipboard,
@@ -100,17 +105,22 @@ function stepTitle(
 ): string {
   if (step === "menu") return "Chia sẻ";
   if (step === "invite-friends") return "Mời bạn bè";
-  if (step === "journey-card") {
+  if (step === "journey-card" || step === "gallery-card") {
     if (orgShare?.kind === "cong_dong") return "Chia sẻ cộng đồng";
-    return orgShare ? "Chia sẻ trang" : "Chia sẻ Journey";
+    if (orgShare?.pageOnly) return "Chia sẻ trang";
+    if (
+      step === "gallery-card" &&
+      portfolioFilter &&
+      portfolioFilter.kind !== "all"
+    ) {
+      const featureLabel = orgBaiDangFilterShare
+        ? "Bài đăng"
+        : (orgShare?.galleryFeatureLabel ?? "Portfolio");
+      return `Chia sẻ Card · ${featureLabel} · ${portfolioFilter.label}`;
+    }
+    return "Chia sẻ Card";
   }
-  const featureLabel = orgBaiDangFilterShare
-    ? "Bài đăng"
-    : (orgShare?.galleryFeatureLabel ?? "Portfolio");
-  if (portfolioFilter && portfolioFilter.kind !== "all") {
-    return `Chia sẻ ${featureLabel} · ${portfolioFilter.label}`;
-  }
-  return `Chia sẻ ${featureLabel}`;
+  return "Chia sẻ";
 }
 
 function stepSubtitle(
@@ -133,17 +143,20 @@ function stepSubtitle(
       return "Thẻ giới thiệu cộng đồng — lời mời tham gia";
     }
     return orgShare
-      ? "Thẻ giới thiệu trang — toàn bộ"
-      : "Thẻ giới thiệu hồ sơ — toàn bộ Journey";
+      ? "Thẻ giới thiệu trang"
+      : "Thẻ hồ sơ & bài viết — /slug và /slug/p/…";
   }
-  if (portfolioFilter && portfolioFilter.kind !== "all") {
-    return orgBaiDangFilterShare
-      ? `Link timeline — lọc theo "${portfolioFilter.label}"`
-      : `Thẻ tác phẩm — lọc theo "${portfolioFilter.label}"`;
+  if (step === "gallery-card") {
+    if (portfolioFilter && portfolioFilter.kind !== "all") {
+      return orgBaiDangFilterShare
+        ? `Link timeline — lọc theo "${portfolioFilter.label}"`
+        : `Thẻ ${featureLabel} — lọc theo "${portfolioFilter.label}"`;
+    }
+    return orgShare
+      ? `Thẻ ${featureLabel}`
+      : "Thẻ Portfolio — toàn bộ tác phẩm";
   }
-  return orgShare
-    ? `Thẻ ${featureLabel} — toàn bộ`
-    : "Thẻ Portfolio — toàn bộ tác phẩm";
+  return pathLine;
 }
 
 export function JourneyProfileShareModal({
@@ -180,6 +193,8 @@ export function JourneyProfileShareModal({
   );
   const [shareStats, setShareStats] = useState(profile.stats);
   const [copyingImage, setCopyingImage] = useState(false);
+  const [copyingLink, setCopyingLink] = useState(false);
+  const flashTimerRef = useRef<number | null>(null);
   /** Filter Portfolio đang áp dụng trên bước gallery-card (menu hoặc dropdown). */
   const [portfolioFilter, setPortfolioFilter] =
     useState<JourneyGalleryFilterShareSpec | null>(null);
@@ -194,6 +209,11 @@ export function JourneyProfileShareModal({
   const handleClose = useCallback(() => {
     setStep("menu");
     setFlash(null);
+    setCopyingLink(false);
+    if (flashTimerRef.current != null) {
+      window.clearTimeout(flashTimerRef.current);
+      flashTimerRef.current = null;
+    }
     onClose();
   }, [onClose]);
 
@@ -257,9 +277,15 @@ export function JourneyProfileShareModal({
     }
   }, [open, galleryFilter]);
 
-  const showFlash = useCallback((message: string) => {
+  const showFlash = useCallback((message: string, durationMs = 2800) => {
     setFlash(message);
-    window.setTimeout(() => setFlash(null), 2200);
+    if (flashTimerRef.current != null) {
+      window.clearTimeout(flashTimerRef.current);
+    }
+    flashTimerRef.current = window.setTimeout(() => {
+      setFlash(null);
+      flashTimerRef.current = null;
+    }, durationMs);
   }, []);
 
   useEffect(() => {
@@ -474,6 +500,26 @@ export function JourneyProfileShareModal({
         ? "gallery"
         : null;
 
+  /** Tab Journey | Portfolio — ẩn khi mở từ filter share hoặc org chỉ có thẻ trang. */
+  const showCardKindTabs =
+    Boolean(cardKind) && !skipMenu && !orgShare?.pageOnly;
+
+  const openGalleryCardTab = useCallback(() => {
+    setPortfolioFilter(
+      orgShare
+        ? PORTFOLIO_ALL_FILTER_SHARE_SPEC
+        : typeof window !== "undefined"
+          ? galleryFilterSpecFromSearch(window.location.search)
+          : PORTFOLIO_ALL_FILTER_SHARE_SPEC,
+    );
+    setStep("gallery-card");
+  }, [orgShare]);
+
+  const openJourneyCardTab = useCallback(() => {
+    setPortfolioFilter(null);
+    setStep("journey-card");
+  }, []);
+
   const cardVariant =
     cardKind === "journey" ? journeyVariant : galleryVariant;
 
@@ -497,16 +543,62 @@ export function JourneyProfileShareModal({
 
   const shareInviteTitle = orgShareInviteTitle(orgShare, profile.displayName);
 
+  /**
+   * Preview DOM (`JourneyShareCardPreview`) không hit `/opengraph-image`.
+   * Warm URL on-demand cùng key `v=` với metadata — fire-and-forget trước bot scrape.
+   */
+  const warmOnDemandOgImage = useCallback(() => {
+    if (!cardKind || orgShare) return;
+    const search: OgShareSearch =
+      cardKind === "gallery"
+        ? (() => {
+            const spec = portfolioFilter ?? PORTFOLIO_ALL_FILTER_SHARE_SPEC;
+            if (spec.kind === "group") {
+              return { view: "gallery", nhom: spec.group };
+            }
+            if (spec.kind === "personal-label") {
+              return { view: "gallery", filter: spec.slug };
+            }
+            return { view: "gallery" };
+          })()
+        : {};
+    const filterVersion =
+      cardKind === "gallery"
+        ? shareFilterVersionToken(portfolioFilter)
+        : null;
+    const version = buildOgImageVersion(
+      themeState.active,
+      cardVariant,
+      filterVersion,
+    );
+    const url = buildJourneyOgImageAbsoluteUrl(
+      resolveShareOrigin(),
+      profile.slug,
+      search,
+      version,
+    );
+    warmOgImageCache(url);
+  }, [
+    cardKind,
+    orgShare,
+    portfolioFilter,
+    themeState.active,
+    cardVariant,
+    profile.slug,
+  ]);
+
   const cardProfile: JourneyShareProfile = {
     ...profile,
     galleryThumbs,
     stats: shareStats,
   };
 
-  /** Snapshot thẻ → CF + theme.ogSnapshots (chỉ chủ hồ sơ). Best-effort. */
+  /** Snapshot thẻ → CF + theme.ogSnapshots (chỉ chủ hồ sơ). Best-effort.
+   *  Card tùy chỉnh (active.custom) đã là ảnh CF đầy đủ — không rasterize lại. */
   const publishOgSnapshot = useCallback(async (): Promise<boolean> => {
     if (!themeCanEdit) return true;
     if (step !== "journey-card" && step !== "gallery-card") return true;
+    if (themeState.active.kind === "custom") return true;
 
     const el = cardExportRef.current;
     if (!el) return false;
@@ -559,28 +651,53 @@ export function JourneyProfileShareModal({
   ]);
 
   const copyCardLink = useCallback(async () => {
-    let published = true;
-    if (themeCanEdit) {
-      published = await publishOgSnapshot();
+    if (copyingLink) return;
+    setCopyingLink(true);
+    warmOnDemandOgImage();
+
+    const needsPublish =
+      themeCanEdit && themeState.active.kind !== "custom";
+    if (needsPublish) {
+      showFlash("Đang tạo card, bạn đợi xíu nhé…", 60_000);
     }
-    const ok = await copyTextToClipboard(cardTargetUrl);
-    if (!ok) {
-      showFlash("Không copy được link.");
-      return;
+
+    try {
+      let published = true;
+      if (themeCanEdit) {
+        published = await publishOgSnapshot();
+      }
+      const ok = await copyTextToClipboard(cardTargetUrl);
+      if (!ok) {
+        showFlash("Không copy được link. Thử lại giúp mình nhé.");
+        return;
+      }
+      if (themeCanEdit && !published) {
+        showFlash(
+          "Đã copy link — ảnh xem trước MXH chưa kịp cập nhật, thử lại giúp mình nhé.",
+        );
+        return;
+      }
+      showFlash(
+        themeCanEdit
+          ? "Sẵn sàng gửi rồi — đã copy link, dán vào MXH hoặc chat nhé."
+          : "Đã copy link.",
+      );
+    } finally {
+      setCopyingLink(false);
     }
-    if (themeCanEdit && !published) {
-      showFlash("Đã copy link — chưa cập nhật được ảnh xem trước MXH.");
-      return;
-    }
-    showFlash(
-      themeCanEdit
-        ? "Đã copy link — ảnh xem trước MXH đã cập nhật."
-        : "Đã copy link.",
-    );
-  }, [cardTargetUrl, publishOgSnapshot, showFlash, themeCanEdit]);
+  }, [
+    cardTargetUrl,
+    copyingLink,
+    publishOgSnapshot,
+    showFlash,
+    themeCanEdit,
+    themeState.active.kind,
+    warmOnDemandOgImage,
+  ]);
 
   const nativeShare = useCallback(async () => {
     if (!cardTargetUrl || !navigator.share) return;
+    warmOnDemandOgImage();
     if (themeCanEdit) {
       await publishOgSnapshot();
     }
@@ -593,13 +710,20 @@ export function JourneyProfileShareModal({
     } catch {
       /* user cancelled */
     }
-  }, [cardTargetUrl, publishOgSnapshot, shareInviteTitle, themeCanEdit]);
+  }, [
+    cardTargetUrl,
+    publishOgSnapshot,
+    shareInviteTitle,
+    themeCanEdit,
+    warmOnDemandOgImage,
+  ]);
 
   const copyCardImage = useCallback(async () => {
     const el = cardExportRef.current;
     if (!el || copyingImage) return;
     setCopyingImage(true);
     try {
+      warmOnDemandOgImage();
       if (themeCanEdit) {
         void publishOgSnapshot();
       }
@@ -623,6 +747,7 @@ export function JourneyProfileShareModal({
     publishOgSnapshot,
     showFlash,
     themeCanEdit,
+    warmOnDemandOgImage,
   ]);
 
   const socialItems = buildSocialShareItems(
@@ -633,6 +758,7 @@ export function JourneyProfileShareModal({
       onCopy: () => void copyCardLink(),
       onFacebookShare: () => {
         void (async () => {
+          warmOnDemandOgImage();
           if (themeCanEdit) {
             const published = await publishOgSnapshot();
             if (!published) {
@@ -737,54 +863,98 @@ export function JourneyProfileShareModal({
         </p>
       ) : null}
 
-      {cardKind && JOURNEY_SHARE_CARD_VARIANTS[cardKind].length > 1 ? (
-        <div className="j-share-layout-bar">
-          <div className="j-share-layout-label">
-            <span>Layout</span>
-          </div>
-          <div
-            className="j-share-variant-row"
-            role="tablist"
-            aria-label="Chọn layout thẻ"
-          >
-            {JOURNEY_SHARE_CARD_VARIANTS[cardKind].map((opt) => {
-              const active =
-                cardKind === "journey"
-                  ? journeyVariant === opt.id
-                  : galleryVariant === opt.id;
-              return (
-                <button
-                  key={opt.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={active}
-                  className={
-                    "j-share-variant-chip" + (active ? " is-active" : "")
-                  }
-                  title={opt.hint}
-                  onClick={() => {
-                    if (cardKind === "journey") {
-                      const id = opt.id as JourneyJourneyCardVariant;
-                      setJourneyVariant(id);
-                      void persistTheme({
-                        ...themeState,
-                        layouts: { ...themeState.layouts, journey: id },
-                      });
-                    } else {
-                      const id = opt.id as JourneyGalleryCardVariant;
-                      setGalleryVariant(id);
-                      void persistTheme({
-                        ...themeState,
-                        layouts: { ...themeState.layouts, gallery: id },
-                      });
-                    }
-                  }}
-                >
-                  {opt.label}
-                </button>
-              );
-            })}
-          </div>
+      {cardKind ? (
+        <div className="j-share-card-chrome">
+          {showCardKindTabs ? (
+            <div
+              className="j-share-kind-tabs"
+              role="tablist"
+              aria-label="Loại thẻ chia sẻ"
+            >
+              <button
+                type="button"
+                role="tab"
+                aria-selected={cardKind === "journey"}
+                className={
+                  "j-share-kind-tab" +
+                  (cardKind === "journey" ? " is-active" : "")
+                }
+                onClick={openJourneyCardTab}
+              >
+                {orgShare?.kind === "cong_dong"
+                  ? "Cộng đồng"
+                  : orgShare
+                    ? "Trang"
+                    : "Journey & bài viết"}
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={cardKind === "gallery"}
+                className={
+                  "j-share-kind-tab" +
+                  (cardKind === "gallery" ? " is-active" : "")
+                }
+                onClick={openGalleryCardTab}
+              >
+                {orgBaiDangFilterShare
+                  ? "Bài đăng"
+                  : (orgShare?.galleryFeatureLabel ?? "Portfolio")}
+              </button>
+            </div>
+          ) : null}
+
+          {JOURNEY_SHARE_CARD_VARIANTS[cardKind].length > 1 &&
+          themeState.active.kind !== "custom" ? (
+            <div className="j-share-layout-bar">
+              <div className="j-share-layout-label">
+                <span>Layout</span>
+              </div>
+              <div
+                className="j-share-variant-row"
+                role="tablist"
+                aria-label="Chọn layout thẻ"
+              >
+                {JOURNEY_SHARE_CARD_VARIANTS[cardKind].map((opt) => {
+                  const active =
+                    cardKind === "journey"
+                      ? journeyVariant === opt.id
+                      : galleryVariant === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      role="tab"
+                      aria-selected={active}
+                      className={
+                        "j-share-variant-chip" + (active ? " is-active" : "")
+                      }
+                      title={opt.hint}
+                      onClick={() => {
+                        if (cardKind === "journey") {
+                          const id = opt.id as JourneyJourneyCardVariant;
+                          setJourneyVariant(id);
+                          void persistTheme({
+                            ...themeState,
+                            layouts: { ...themeState.layouts, journey: id },
+                          });
+                        } else {
+                          const id = opt.id as JourneyGalleryCardVariant;
+                          setGalleryVariant(id);
+                          void persistTheme({
+                            ...themeState,
+                            layouts: { ...themeState.layouts, gallery: id },
+                          });
+                        }
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
         </div>
       ) : null}
 
@@ -834,7 +1004,10 @@ export function JourneyProfileShareModal({
               <button
                 type="button"
                 className="j-share-menu-item"
-                onClick={() => setStep("journey-card")}
+                onClick={() => {
+                  setPortfolioFilter(null);
+                  setStep("journey-card");
+                }}
               >
                 <span className="j-share-menu-ic j-share-menu-ic--journey">
                   <Map size={20} strokeWidth={1.8} aria-hidden />
@@ -843,49 +1016,21 @@ export function JourneyProfileShareModal({
                   <strong>
                     {orgShare?.kind === "cong_dong"
                       ? "Chia sẻ cộng đồng"
-                      : orgShare
+                      : orgShare?.pageOnly
                         ? "Chia sẻ trang"
-                        : "Chia sẻ Journey"}
+                        : "Chia sẻ Card"}
                   </strong>
                   <span>
                     {orgShare?.kind === "cong_dong"
                       ? "Thẻ + MXH — mời người khác tham gia"
-                      : orgShare
-                        ? "Thẻ giới thiệu trang — toàn bộ"
-                        : "Thẻ giới thiệu hồ sơ — toàn bộ Journey"}
+                      : orgShare?.pageOnly
+                        ? "Thẻ giới thiệu trang"
+                        : orgShare
+                          ? `Thẻ trang & ${orgShare.galleryFeatureLabel ?? "Portfolio"}`
+                          : "Thẻ Journey & bài viết · Portfolio — chọn layout, theme hoặc tải card riêng"}
                   </span>
                 </span>
               </button>
-
-              {!orgShare?.pageOnly ? (
-                <button
-                  type="button"
-                  className="j-share-menu-item"
-                  onClick={() => {
-                    setPortfolioFilter(
-                      orgShare
-                        ? PORTFOLIO_ALL_FILTER_SHARE_SPEC
-                        : typeof window !== "undefined"
-                          ? galleryFilterSpecFromSearch(window.location.search)
-                          : PORTFOLIO_ALL_FILTER_SHARE_SPEC,
-                    );
-                    setStep("gallery-card");
-                  }}
-                >
-                  <span className="j-share-menu-ic j-share-menu-ic--gallery">
-                    <Palette size={20} strokeWidth={1.8} aria-hidden />
-                  </span>
-                  <span className="j-share-menu-copy">
-                    <strong>
-                      Chia sẻ {orgShare?.galleryFeatureLabel ?? "Portfolio"}
-                    </strong>
-                    <span>
-                      Thẻ {orgShare?.galleryFeatureLabel ?? "Portfolio"} — toàn bộ
-                      {orgShare ? "" : " tác phẩm"}
-                    </span>
-                  </span>
-                </button>
-              ) : null}
             </div>
           ) : step === "invite-friends" && orgShare?.orgId ? (
             <CongDongInviteFriendsPanel
@@ -927,7 +1072,7 @@ export function JourneyProfileShareModal({
                     const err = (await res.json().catch(() => null)) as {
                       error?: string;
                     } | null;
-                    showFlash(err?.error ?? "Upload nền thất bại.");
+                    showFlash(err?.error ?? "Upload card thất bại.");
                     return;
                   }
                   const json = (await res.json()) as {
@@ -939,7 +1084,7 @@ export function JourneyProfileShareModal({
                     return;
                   }
                   if (!json.imageId) {
-                    showFlash("Upload nền thất bại.");
+                    showFlash("Upload card thất bại.");
                     return;
                   }
                   await persistTheme({
@@ -989,16 +1134,25 @@ export function JourneyProfileShareModal({
               <div className="j-share-actions">
                 <button
                   type="button"
-                  className="j-share-action j-share-action--primary"
+                  className={
+                    "j-share-action j-share-action--primary" +
+                    (copyingLink ? " is-busy" : "")
+                  }
+                  disabled={copyingLink}
+                  aria-busy={copyingLink}
                   onClick={() => void copyCardLink()}
                 >
-                  <Copy size={15} strokeWidth={1.8} aria-hidden />
-                  Copy link
+                  {!copyingLink ? (
+                    <Copy size={15} strokeWidth={1.8} aria-hidden />
+                  ) : null}
+                  {copyingLink
+                    ? "Đang tạo card, bạn đợi xíu nhé…"
+                    : "Copy link"}
                 </button>
                 <button
                   type="button"
                   className="j-share-action"
-                  disabled={copyingImage}
+                  disabled={copyingImage || copyingLink}
                   title="Copy ảnh PNG thẻ — dán gửi chat/MXH"
                   onClick={() => void copyCardImage()}
                 >

@@ -40,8 +40,24 @@ export function stripAtHashTrigger(
   text: string,
   trigger: AtHashTrigger,
 ): { text: string; caret: number } {
+  const start = Math.max(0, Math.min(trigger.start, text.length));
+  const end = Math.max(start, Math.min(trigger.end, text.length));
   return {
-    text: text.slice(0, trigger.start) + text.slice(trigger.end),
-    caret: trigger.start,
+    text: text.slice(0, start) + text.slice(end),
+    caret: start,
+  };
+}
+
+/** Thay `@query` / `#query` bằng `replacement`; caret đặt sau phần thay. */
+export function replaceAtHashTrigger(
+  text: string,
+  trigger: AtHashTrigger,
+  replacement: string,
+): { text: string; caret: number } {
+  const start = Math.max(0, Math.min(trigger.start, text.length));
+  const end = Math.max(start, Math.min(trigger.end, text.length));
+  return {
+    text: text.slice(0, start) + replacement + text.slice(end),
+    caret: start + replacement.length,
   };
 }

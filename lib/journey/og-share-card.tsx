@@ -1139,6 +1139,36 @@ function StackLayout({
 
 /* ── Public API ─────────────────────────────────────────────── */
 
+function OgCustomArtCard({ imageUrl }: { imageUrl: string }) {
+  return (
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#ffffff",
+      }}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={imageUrl}
+        alt=""
+        width={1200}
+        height={630}
+        style={{
+          width: "100%",
+          height: "100%",
+          objectFit: "contain",
+          objectPosition: "center",
+          backgroundColor: "#ffffff",
+        }}
+      />
+    </div>
+  );
+}
+
 export function OgJourneyShareCard({
   profile,
   logoUrl,
@@ -1151,6 +1181,9 @@ export function OgJourneyShareCard({
   layout?: JourneyJourneyCardVariant;
 }) {
   const tokens = resolveShareOgThemeTokens(theme, profile.slug);
+  if (tokens.isCustom && tokens.backgroundImage) {
+    return <OgCustomArtCard imageUrl={tokens.backgroundImage} />;
+  }
   switch (layout) {
     case "frame":
       return <FrameLayout profile={profile} tokens={tokens} />;
@@ -1181,6 +1214,9 @@ export function OgGalleryShareCard({
   filterLabel?: string | null;
 }) {
   const tokens = resolveShareOgThemeTokens(theme, profile.slug);
+  if (tokens.isCustom && tokens.backgroundImage) {
+    return <OgCustomArtCard imageUrl={tokens.backgroundImage} />;
+  }
   const label = filterLabel?.trim() || null;
   switch (layout) {
     case "panel":

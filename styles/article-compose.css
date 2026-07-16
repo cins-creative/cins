@@ -17,8 +17,8 @@ body > .cins-editor-page.picker-portal-root .picker {
 
 .contrib-editor-modal .article-compose-editor .blocks {
   max-width: 100%;
-  /* Chừa chỗ cho `.block-side` (left: -46px) — tránh bị cắt bởi overflow của main. */
-  padding: 4px 4px 12px 56px;
+  /* Chừa gutter trái cho ▲▼✕ absolute — không để controls chiếm flow. */
+  padding: 4px 8px 12px 44px;
   box-sizing: border-box;
 }
 
@@ -26,10 +26,52 @@ body > .cins-editor-page.picker-portal-root .picker {
   max-width: 100%;
 }
 
-/* Trong modal đóng góp: luôn hiện nút ▲▼✕ khi chọn / hover — dễ xóa khung. */
-.contrib-editor-modal .article-compose-editor .block:hover .block-side,
+/* Modal đóng góp: side controls absolute + fit-content — không đẩy block-inner.
+   Chỉ hiện khi block đang chọn (không hiện vì hover). */
+.contrib-editor-modal .article-compose-editor .block-side {
+  position: absolute;
+  top: 2px;
+  left: -40px;
+  right: auto;
+  bottom: auto;
+  width: max-content;
+  height: max-content;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 6;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s;
+}
+
+.contrib-editor-modal .article-compose-editor .block-side::before {
+  display: none;
+}
+
 .contrib-editor-modal .article-compose-editor .block.selected .block-side {
   opacity: 1;
+  pointer-events: auto;
+}
+
+.contrib-editor-modal .article-compose-editor .block:hover:not(.selected) .block-side {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Mobile editor.css ẩn `.block-side` — giữ trong modal đóng góp. */
+@media (max-width: 767.98px) {
+  .contrib-editor-modal .article-compose-editor .block-side {
+    display: flex;
+  }
+
+  .contrib-editor-modal .article-compose-editor .blocks {
+    padding-left: 40px;
+  }
+
+  .contrib-editor-modal .article-compose-editor .block-side {
+    left: -36px;
+  }
 }
 
 /* Danh sách */

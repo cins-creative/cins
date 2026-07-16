@@ -15,7 +15,7 @@ import {
 type Props = {
   state: ShareOgThemeState;
   saving?: boolean;
-  /** Chủ hồ sơ / admin org — mới được tải lên & xóa nền vĩnh viễn. */
+  /** Chủ hồ sơ / admin org — mới được tải lên & xóa card tùy chỉnh. */
   canEdit?: boolean;
   onSelectPreset: (id: ShareOgPresetId) => void;
   onSelectCustom: (imageId: string) => void;
@@ -49,14 +49,14 @@ export function JourneyShareThemePicker({
   }
 
   return (
-    <div className="j-share-theme" aria-label="Chọn theme thẻ">
+    <div className="j-share-theme" aria-label="Chọn theme hoặc card tùy chỉnh">
       <div className="j-share-theme-label">
-        <span>Theme</span>
+        <span>Theme / card</span>
         {saving || uploading ? (
           <span className="j-share-theme-status">Đang lưu…</span>
         ) : null}
       </div>
-      <div className="j-share-theme-row" role="listbox" aria-label="Preset nền">
+      <div className="j-share-theme-row" role="listbox" aria-label="Preset thẻ mẫu">
         {SHARE_OG_PRESETS.map((preset) => {
           const selected =
             active.kind === "preset" && active.id === preset.id;
@@ -93,7 +93,7 @@ export function JourneyShareThemePicker({
                 role="option"
                 aria-selected={selected}
                 className="j-share-theme-swatch j-share-theme-swatch--img"
-                title="Nền cá nhân (đã lưu)"
+                title="Card tùy chỉnh (đã lưu)"
                 style={
                   url
                     ? {
@@ -109,8 +109,8 @@ export function JourneyShareThemePicker({
                 <button
                   type="button"
                   className="j-share-theme-remove"
-                  aria-label="Xóa nền này"
-                  title="Xóa nền"
+                  aria-label="Xóa card này"
+                  title="Xóa card"
                   onClick={() => onRemoveCustom(entry.imageId)}
                 >
                   <X size={12} strokeWidth={2.2} aria-hidden />
@@ -126,16 +126,16 @@ export function JourneyShareThemePicker({
               type="button"
               className="j-share-theme-add"
               disabled={uploading}
-              title="Tải nền cá nhân lên — lưu vĩnh viễn"
+              title="Tải ảnh OG card tùy chỉnh (JPG) — canvas trắng, thay thế thẻ mẫu"
               onClick={() => inputRef.current?.click()}
             >
               <ImagePlus size={16} strokeWidth={1.8} aria-hidden />
-              <span>{uploading ? "Đang tải…" : "Tải nền lên"}</span>
+              <span>{uploading ? "Đang tải…" : "Tải ảnh lên (JPG)"}</span>
             </button>
             <input
               ref={inputRef}
               type="file"
-              accept="image/jpeg,image/png,image/webp,image/gif"
+              accept="image/jpeg,image/jpg"
               hidden
               onChange={(e) => void handleFile(e.target.files?.[0])}
             />
@@ -144,8 +144,8 @@ export function JourneyShareThemePicker({
       </div>
       <p className="j-share-theme-hint">
         {canEdit
-          ? "Nền tải lên được lưu vĩnh viễn (tối đa 6 ảnh · PNG/JPG/WebP · ≤5MB). Chỉ mất khi bạn xóa."
-          : "Theme của chủ hồ sơ — chỉ chủ mới tải hoặc xóa nền cá nhân."}
+          ? "Tải ảnh JPG = OG card đầy đủ trên canvas trắng (không phải nền). Chọn preset màu để quay lại thẻ mẫu. Tối đa 6 ảnh · JPG · ≤5MB."
+          : "Theme / card của chủ hồ sơ — chỉ chủ mới tải hoặc xóa card tùy chỉnh."}
       </p>
     </div>
   );

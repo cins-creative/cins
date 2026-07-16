@@ -561,15 +561,16 @@ export function resolveShareOgThemeTokens(
   if (resolved.kind === "custom") {
     const url = cfImagePublicUrl(resolved.imageId);
     return {
-      surface: "#0f172a",
+      /** Canvas trắng — ảnh user = toàn bộ OG card, không phải lớp nền. */
+      surface: "#ffffff",
       patternImage: null,
       patternSize: null,
-      ink: "#f8fafc",
-      muted: "#cbd5e1",
-      accent: "#38bdf8",
-      panel: "rgba(15, 23, 42, 0.55)",
+      ink: "#0f172a",
+      muted: "#64748b",
+      accent: "#2563eb",
+      panel: "rgba(255, 255, 255, 0.92)",
       backgroundImage: url,
-      lightInk: true,
+      lightInk: false,
       presetId: null,
       isCustom: true,
     };

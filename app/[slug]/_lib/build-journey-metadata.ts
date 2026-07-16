@@ -2,50 +2,19 @@ import type { Metadata } from "next";
 
 import { getConfiguredSiteOrigin } from "@/lib/auth/auth-origin";
 import {
-  buildOgShareSearchParams,
   fetchOgShareContext,
   type OgShareSearch,
 } from "@/lib/journey/og-share-fetch";
-import type { ShareOgTheme } from "@/lib/journey/share-og-theme";
-
-/**
- * Token phiên bản OG suy ra từ theme + layout + filter.
- * Đổi bất kỳ cái nào → URL ảnh OG đổi, buộc Facebook/Zalo/… refetch.
- */
-function ogThemeVersion(
-  theme: ShareOgTheme | null | undefined,
-  layout: string | null | undefined,
-  filterVersion: string | null | undefined,
-): string | null {
-  const parts: string[] = [];
-  if (layout) parts.push(`l${layout}`);
-  if (filterVersion) parts.push(filterVersion);
-  if (theme) {
-    if (theme.kind === "custom") {
-      parts.push(`c${theme.imageId.replace(/[^a-zA-Z0-9]/g, "").slice(0, 12)}`);
-    } else {
-      parts.push(`p${theme.id}`);
-    }
-  }
-  return parts.length > 0 ? parts.join("-") : null;
-}
+import {
+  buildJourneyOgImagePath,
+  buildOgImageVersion,
+  buildOgShareSearchParams,
+} from "@/lib/journey/og-image-url";
 
 function pagePathForShare(slug: string, search: OgShareSearch): string {
   const params = buildOgShareSearchParams(search);
   const qs = params.toString();
   const base = `/${encodeURIComponent(slug)}`;
-  return qs ? `${base}?${qs}` : base;
-}
-
-function ogImagePathForShare(
-  slug: string,
-  search: OgShareSearch,
-  version: string | null,
-): string {
-  const params = buildOgShareSearchParams(search);
-  if (version) params.set("v", version);
-  const qs = params.toString();
-  const base = `/${encodeURIComponent(slug)}/opengraph-image`;
   return qs ? `${base}?${qs}` : base;
 }
 
@@ -71,13 +40,13 @@ export async function buildJourneyMetadata(
     ctx?.description ?? `Hành trình sáng tạo của ${slug} trên CINS.`;
 
   const themeVersion = ctx
-    ? ogThemeVersion(ctx.theme, ctx.layout, ctx.filterVersion)
+    ? buildOgImageVersion(ctx.theme, ctx.layout, ctx.filterVersion)
     : null;
 
   /** Ưu tiên PNG đã snapshot từ modal; fallback Satori `/opengraph-image`. */
   const ogImageUrl =
     ctx?.ogSnapshotUrl ??
-    ogImagePathForShare(slug, resolved, themeVersion);
+    buildJourneyOgImagePath(slug, resolved, themeVersion);
 
   return {
     metadataBase: new URL(siteOrigin),

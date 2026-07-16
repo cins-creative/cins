@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextRequest, NextResponse } from "next/server";
 
 import { buildCanonicalHostRedirect } from "@/lib/auth/auth-origin";
+import { OG_IMAGE_CACHE_CONTROL } from "@/lib/journey/og-image-url";
 import { getSupabaseCookieOptions } from "@/lib/supabase/cookie-options";
 import {
   getTrimmedSupabaseAnonKey,
@@ -249,15 +250,27 @@ export async function middleware(request: NextRequest) {
   }
 
   /* OG image: gắn full URL vào request headers để opengraph-image đọc query
-     (`view`/`nhom`/`filter`). Next file convention không luôn truyền searchParams. */
+     (`view`/`nhom`/`filter`). Next file convention không luôn truyền searchParams.
+     Đồng thời gắn Cache-Control dài hạn trên response wrapper (Vary RSC
+     được gỡ trong `withOgImageCacheHeaders` ở opengraph-image.tsx). */
   let ogRequest = request;
-  if (pathname.endsWith("/opengraph-image") || pathname.endsWith("/twitter-image")) {
+  const isOgImage =
+    pathname.endsWith("/opengraph-image") ||
+    pathname.endsWith("/twitter-image");
+  if (isOgImage) {
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set("x-url", request.nextUrl.href);
     ogRequest = new NextRequest(request, { headers: requestHeaders });
   }
 
   const { response: sessionResponse, userId } = await resolveSession(ogRequest);
+
+  if (isOgImage) {
+    sessionResponse.headers.set("Cache-Control", OG_IMAGE_CACHE_CONTROL);
+    sessionResponse.headers.set("CDN-Cache-Control", OG_IMAGE_CACHE_CONTROL);
+    sessionResponse.headers.delete("vary");
+    sessionResponse.headers.delete("Vary");
+  }
 
   /* Protected routes — check session bất kể MAINTENANCE_MODE. */
   if (isProtectedPath(pathname)) {

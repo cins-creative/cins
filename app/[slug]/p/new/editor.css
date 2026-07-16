@@ -3852,6 +3852,43 @@
 }
 .cins-editor-page .ed-compose-meta-chips {
   margin: 0 0 16px;
+  padding-bottom: 0;
+  border-bottom: none;
+  gap: 4px 10px;
+}
+
+/* Compose tag chips: plain #hashtag, no pill background */
+.cins-editor-page .ed-compose-meta-chips .meta-chip.meta-chip-tag {
+  height: auto;
+  max-width: 280px;
+  padding: 2px 0;
+  gap: 2px;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: var(--cins-blue, #1f74c9);
+  font-weight: 600;
+  font-size: 13px;
+  cursor: default;
+}
+
+.cins-editor-page .ed-compose-meta-chips .meta-chip-tag .meta-chip-name {
+  padding: 0;
+  color: inherit;
+}
+
+.cins-editor-page .ed-compose-meta-chips .meta-chip-tag .meta-chip-x {
+  width: 18px;
+  height: 18px;
+  color: var(--ink-muted);
+  font-size: 15px;
+  opacity: 0.7;
+}
+
+.cins-editor-page .ed-compose-meta-chips .meta-chip-tag .meta-chip-x:hover {
+  opacity: 1;
+  color: var(--ink-display);
+  background: transparent;
 }
 
 /* ─── Media compose (photo / video) ─── */

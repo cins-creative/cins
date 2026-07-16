@@ -14,7 +14,7 @@ import { isTruongOrgAdmin } from "@/lib/truong/org-admin";
 
 /* ╔══════════════════════════════════════════════════════════════════╗
    ║ POST /api/share-theme/upload                                     ║
-   ║ Upload ảnh nền theme thẻ share / OG (≤ 5MB) + lưu vĩnh viễn vào  ║
+   ║ Upload ảnh OG card tùy chỉnh (≤ 5MB) + lưu vĩnh viễn vào         ║
    ║ customs (user.theme | org.cau_hinh.share_og_theme). Auth bắt buộc.║
    ║ Form: file (bắt buộc), orgId? (org admin).                       ║
    ╚══════════════════════════════════════════════════════════════════╝ */
