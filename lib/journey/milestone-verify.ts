@@ -35,6 +35,14 @@ type OrgRow = {
   cover_id: string | null;
 };
 
+function orgVerifierRoleLabel(loai: string | null | undefined): string {
+  if (loai === "studio" || loai === "doanh_nghiep") return "Xác nhận bởi studio";
+  if (loai === "cong_dong") return "Người tạo cộng đồng";
+  if (loai === "co_so_dao_tao") return "Xác nhận bởi cơ sở đào tạo";
+  if (loai === "truong_dai_hoc") return "Xác nhận bởi trường";
+  return "Xác nhận bởi tổ chức";
+}
+
 function orgPublicHref(org: OrgRow): string | null {
   if (
     org.loai_to_chuc === "cong_dong" ||
@@ -220,6 +228,74 @@ export type VerifySummary = {
   } | null;
 };
 
+type OrgBaiDangVerifyRow = {
+  id: string;
+  org_to_chuc:
+    | {
+        ten: string;
+        slug: string;
+        loai_to_chuc: string;
+        avatar_id: string | null;
+        logo_id: string | null;
+      }
+    | Array<{
+        ten: string;
+        slug: string;
+        loai_to_chuc: string;
+        avatar_id: string | null;
+        logo_id: string | null;
+      }>
+    | null;
+};
+
+/** Bài org đồng sự — `cotMocId` là `org_bai_dang.id`, không có `verify_xac_nhan`. */
+async function loadVerifySummaryForOrgBaiDangPost(
+  postId: string,
+): Promise<VerifySummary | null> {
+  const admin = createServiceRoleClient();
+  const { data: post } = await admin
+    .from("org_bai_dang")
+    .select(
+      `
+      id,
+      org_to_chuc!inner ( ten, slug, loai_to_chuc, avatar_id, logo_id )
+    `,
+    )
+    .eq("id", postId)
+    .eq("trang_thai", "da_dang")
+    .maybeSingle<OrgBaiDangVerifyRow>();
+
+  if (!post) return null;
+
+  const orgRaw = post.org_to_chuc;
+  const org = Array.isArray(orgRaw) ? orgRaw[0] : orgRaw;
+  const name = org?.ten?.trim();
+  if (!org || !name) return null;
+
+  const avatarId = org.avatar_id ?? org.logo_id;
+  const avatarUrl = avatarId ? getAvatarUrl(avatarId) : null;
+  const orgRow: OrgRow = {
+    id: "",
+    ten: name,
+    slug: org.slug,
+    loai_to_chuc: org.loai_to_chuc,
+    avatar_id: org.avatar_id,
+    cover_id: null,
+  };
+
+  return {
+    cotMocId: postId,
+    count: 1,
+    verifier: {
+      name,
+      avatarUrl,
+      role: orgVerifierRoleLabel(org.loai_to_chuc),
+      href: orgPublicHref(orgRow),
+      isOrg: true,
+    },
+  };
+}
+
 /** Tóm tắt xác thực cho 1 cột mốc — tooltip badge gallery (ai + avatar + tổng số). */
 export async function loadVerifySummaryForCotMoc(
   cotMocId: string,
@@ -234,7 +310,13 @@ export async function loadVerifySummaryForCotMoc(
     .eq("trang_thai", "da_xac_nhan");
 
   const total = count ?? 0;
-  if (total === 0) return { cotMocId, count: 0, verifier: null };
+  if (total === 0) {
+    return (await loadVerifySummaryForOrgBaiDangPost(cotMocId)) ?? {
+      cotMocId,
+      count: 0,
+      verifier: null,
+    };
+  }
 
   const metaMap = await loadVerifiedMetaForCotMocs([cotMocId]);
   const meta = metaMap.get(cotMocId);

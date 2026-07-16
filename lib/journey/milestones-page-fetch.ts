@@ -15,7 +15,10 @@ import {
   fetchTaggedMilestonesForUser,
 } from "@/lib/journey/milestones-fetch";
 import { attachPersonalFiltersToMilestones } from "@/lib/filter/attach-milestones";
-import { loadPersonalFilterSlugsForCotMocs } from "@/lib/filter/gan";
+import {
+  loadPersonalFilterSlugsForCotMocs,
+  loadPersonalFilterSlugsForJourneyStubs,
+} from "@/lib/filter/gan";
 import {
   dedupeMembershipCotMocs,
   loadMembershipMilestoneContextForCotMocs,
@@ -31,16 +34,22 @@ import {
 import { mapCheDoToMilestoneVisibility } from "@/lib/journey/journey-visible-clause";
 import {
   isBookmarkHiddenOnViewerJourney,
-  mapCheDoLuuToForeignJourney,
+  resolveBookmarkJourneyVisibility,
 } from "@/lib/journey/bookmark-visibility";
 import {
   isHiddenOnForeignJourney,
   mapForeignJourneyVisibilityToUi,
 } from "@/lib/journey/foreign-milestone-visibility";
-import { compareTimelineOrder, resolveTaggedTimelineSortAt } from "@/lib/journey/timeline-sort";
+import {
+  attachJourneyGhimToItems,
+  loadJourneyGhimByMilestoneKey,
+} from "@/lib/journey/journey-ghim";
+import { sortJourneyViewTimeline } from "@/lib/journey/journey-timeline-sort";
+import { resolveTaggedTimelineSortAt } from "@/lib/journey/timeline-sort";
 import {
   orgLoaiToMilestoneType,
 } from "@/lib/truong/org-bai-dang-bookmark";
+import { collectTaggedOrgBaiDangStubs } from "@/lib/truong/org-bai-dang-tagged-journey";
 import { SOCIAL_LOAI_ORG_BAI_DANG } from "@/lib/truong/social-constants";
 import { SOCIAL_LOAI_ORG_KHOA_HOC } from "@/lib/to-chuc/khoa-hoc-bookmark";
 import { SOCIAL_LOAI_ORG_TUYEN_DUNG } from "@/lib/to-chuc/tuyen-dung-bookmark";
@@ -83,6 +92,7 @@ type TimelineStub = {
   year: number;
   month: number;
   day: number;
+  journeyGhimLuc?: string | null;
 };
 
 type CotMocStubRow = {
@@ -221,7 +231,7 @@ async function collectTaggedStubs(
 ): Promise<TimelineStub[]> {
   const { data: tagRows } = await admin
     .from("content_tac_pham_tac_gia")
-    .select("id_tac_pham, xu_ly_luc")
+    .select("id_tac_pham, xu_ly_luc, che_do_hien_thi_journey")
     .eq("id_nguoi_dung", userId)
     .eq("trang_thai", "accepted")
     .eq("la_chu_so_huu", false);
@@ -230,7 +240,10 @@ async function collectTaggedStubs(
 
   const tacPhamIds = tagRows.map((r) => r.id_tac_pham as string);
   const journeyVisByTp = new Map(
-    tagRows.map((r) => [r.id_tac_pham as string, "public" as const]),
+    tagRows.map((r) => [
+      r.id_tac_pham as string,
+      (r.che_do_hien_thi_journey as string | null) ?? "public",
+    ]),
   );
   const acceptedAtByTp = new Map(
     tagRows.map((r) => [
@@ -240,7 +253,7 @@ async function collectTaggedStubs(
   );
   const { data: tacPhams } = await admin
     .from("content_tac_pham")
-    .select("id, slug")
+    .select("id, slug, id_nguoi_dung")
     .in("id", tacPhamIds);
 
   const { data: links } = await admin
@@ -272,7 +285,14 @@ async function collectTaggedStubs(
   for (const tp of tacPhams ?? []) {
     if (!tp.slug) continue;
     const tpId = tp.id as string;
-    if (isHiddenOnForeignJourney(journeyVisByTp.get(tpId))) continue;
+    const isSelfAuthoredTagged =
+      isOwner && (tp.id_nguoi_dung as string) === userId;
+    if (
+      isHiddenOnForeignJourney(journeyVisByTp.get(tpId)) &&
+      !isSelfAuthoredTagged
+    ) {
+      continue;
+    }
     const cmId = cotMocIdByTp.get(tpId);
     const cm = cmId ? cmById.get(cmId) : undefined;
     if (!cm) continue;
@@ -289,7 +309,9 @@ async function collectTaggedStubs(
       id: `${cm.id}:${tpId}`,
       source: "tagged",
       cotMocId: cm.id,
-      visibility: mapForeignJourneyVisibilityToUi(journeyVisByTp.get(tpId)),
+      visibility: isSelfAuthoredTagged
+        ? mapCheDoToMilestoneVisibility(cm.che_do_hien_thi)
+        : mapForeignJourneyVisibilityToUi(journeyVisByTp.get(tpId)),
       variant: "tagged",
       type: LOAI_MOC_TO_TYPE[cm.loai_moc],
       thoiDiem: cm.thoi_diem,
@@ -314,7 +336,7 @@ async function collectBookmarkStubs(
 ): Promise<TimelineStub[]> {
   const { data: savedRows } = await admin
     .from("social_luu")
-    .select("id_doi_tuong, tao_luc, che_do_hien_thi")
+    .select("id_doi_tuong, tao_luc, che_do_hien_thi, che_do_hien_thi_journey")
     .eq("id_nguoi_dung", userId)
     .eq("loai_doi_tuong", "cot_moc");
 
@@ -327,7 +349,10 @@ async function collectBookmarkStubs(
   const journeyVisByMoc = new Map(
     (savedRows ?? []).map((row) => [
       row.id_doi_tuong as string,
-      mapCheDoLuuToForeignJourney(row.che_do_hien_thi as string | null),
+      resolveBookmarkJourneyVisibility(
+        row.che_do_hien_thi_journey as string | null,
+        row.che_do_hien_thi as string | null,
+      ),
     ]),
   );
 
@@ -554,14 +579,29 @@ async function collectTimelineStubs(
   isOwner: boolean,
   access: MilestoneViewerAccess,
 ): Promise<TimelineStub[]> {
-  const [self, tagged, bookmarks] = await Promise.all([
+  const [self, tagged, taggedOrgBaiDang, bookmarks] = await Promise.all([
     collectSelfStubs(admin, userId, isOwner, access),
     collectTaggedStubs(admin, userId, isOwner, access),
+    collectTaggedOrgBaiDangStubs(admin, userId),
     collectBookmarkStubs(admin, userId, isOwner, access),
   ]);
 
   const selfCotMocIds = new Set(self.map((s) => s.cotMocId));
-  const taggedExtra = tagged.filter((s) => !selfCotMocIds.has(s.cotMocId));
+  const taggedOrgStubs: TimelineStub[] = taggedOrgBaiDang.map((stub) => ({
+    id: stub.id,
+    source: "tagged" as const,
+    cotMocId: stub.cotMocId,
+    visibility: "public" as MilestoneVisibility,
+    variant: "verified" as MilestoneVariant,
+    type: stub.type,
+    thoiDiem: stub.thoiDiem,
+    taoLuc: stub.taoLuc,
+    year: stub.year,
+    month: stub.month,
+    day: stub.day,
+  }));
+  const taggedMerged = [...tagged, ...taggedOrgStubs];
+  const taggedExtra = taggedMerged.filter((s) => !selfCotMocIds.has(s.cotMocId));
   const seenCotMocIds = new Set([
     ...selfCotMocIds,
     ...taggedExtra.map((s) => s.cotMocId),
@@ -580,8 +620,9 @@ async function collectTimelineStubs(
   ];
 
   const merged = [...self, ...taggedExtra, ...bookmarkExtra];
-  merged.sort(compareTimelineOrder);
-  return merged;
+  const ghimByKey = await loadJourneyGhimByMilestoneKey(userId);
+  const withGhim = attachJourneyGhimToItems(merged, ghimByKey);
+  return sortJourneyViewTimeline(withGhim);
 }
 
 const getTimelineStubsCached = cache(
@@ -619,8 +660,18 @@ async function filterStubsByPersonalLabel(
   const cotMocIds = [...new Set(stubs.map((s) => s.cotMocId))];
   if (cotMocIds.length === 0) return [];
 
+  const orgVerifiedPostIds = new Set(
+    stubs.filter((stub) => stub.id.startsWith("tagged:org:")).map((stub) => stub.cotMocId),
+  );
+
   const [slugMap, pendingMembershipIds] = await Promise.all([
-    loadPersonalFilterSlugsForCotMocs(cotMocIds),
+    options?.isOwner && options.ownerProfileId
+      ? loadPersonalFilterSlugsForJourneyStubs(
+          options.ownerProfileId,
+          stubs,
+          orgVerifiedPostIds,
+        )
+      : loadPersonalFilterSlugsForCotMocs(cotMocIds),
     options?.isOwner && options.ownerProfileId
       ? loadPendingMembershipCotMocIdsForUser(options.ownerProfileId)
       : Promise.resolve(new Set<string>()),
@@ -647,7 +698,7 @@ type CotMocFullRow = {
 async function hydrateTimelineStubs(
   admin: ReturnType<typeof createServiceRoleClient>,
   stubs: TimelineStub[],
-  params: { userId: string; isOwner: boolean },
+  params: { userId: string; isOwner: boolean; viewerId?: string | null },
 ): Promise<MilestoneItem[]> {
   if (stubs.length === 0) return [];
 
@@ -673,6 +724,7 @@ async function hydrateTimelineStubs(
       ? fetchTaggedMilestonesForUser({
           userId: params.userId,
           isOwner: params.isOwner,
+          viewerId: params.viewerId ?? null,
           admin,
         })
       : Promise.resolve([] as MilestoneItem[]),
@@ -696,7 +748,15 @@ async function hydrateTimelineStubs(
   }
 
   return stubs
-    .map((stub) => byId.get(stub.id))
+    .map((stub) => {
+      const item = byId.get(stub.id);
+      if (!item) return undefined;
+      return stub.journeyGhimLuc
+        ? { ...item, journeyGhimLuc: stub.journeyGhimLuc }
+        : item.journeyGhimLuc
+          ? { ...item, journeyGhimLuc: null }
+          : item;
+    })
     .filter((item): item is MilestoneItem => item !== undefined);
 }
 
@@ -728,9 +788,11 @@ export async function fetchMilestoneTimelinePage(params: {
   const hydrated = await hydrateTimelineStubs(admin, slice, {
     userId,
     isOwner,
+    viewerId,
   });
   const milestones = await attachPersonalFiltersToMilestones(
     await attachSocialState(admin, hydrated, viewerId),
+    isOwner ? userId : null,
   );
 
   const nextOffset = offset + milestones.length;

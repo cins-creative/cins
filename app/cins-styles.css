@@ -1804,6 +1804,47 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .footer-bottom a:hover {
   color: var(--cins-yellow);
 }
+
+:root[data-theme="dark"] .footer {
+  color: rgba(255, 255, 255, 0.94);
+  background: linear-gradient(
+    145deg,
+    #0c1f38 0%,
+    #102a4a 40%,
+    #143352 100%
+  );
+  box-shadow: 0 -10px 36px -12px rgba(0, 0, 0, 0.5);
+}
+
+:root[data-theme="dark"] .footer::before {
+  opacity: 0.2;
+}
+
+:root[data-theme="dark"] .footer::after {
+  opacity: 0.16;
+}
+
+:root[data-theme="dark"] .footer-tagline {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+:root[data-theme="dark"] .footer-col-title {
+  color: rgba(255, 255, 255, 0.66);
+}
+
+:root[data-theme="dark"] .footer-col a {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+:root[data-theme="dark"] .footer-bottom {
+  color: rgba(255, 255, 255, 0.72);
+  border-top-color: rgba(255, 255, 255, 0.16);
+}
+
+:root[data-theme="dark"] .footer-bottom a {
+  color: rgba(255, 255, 255, 0.9);
+}
+
 @media (max-width: 600px) {
   .footer-inner {
     grid-template-columns: 1fr;

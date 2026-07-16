@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { BookOpen, Briefcase, FileText, ShieldCheck, Users, X } from "lucide-react";
+import { BookOpen, FileText, Package, ShieldCheck, Users, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -39,7 +39,8 @@ type OrgPreview = {
   soNganh?: number;
   /** Số đồ án / cột mốc org đã duyệt xác thực (`verify_yeu_cau`). */
   soXacThuc?: number;
-  soTuyenDung?: number;
+  /** Số bài showcase studio (`loai_bai_dang = showcase`). */
+  soShowcase?: number;
   namThanhLap?: number | null;
   daVerify?: boolean;
   loaiCoSo?: string | null;
@@ -221,6 +222,7 @@ export function JourneyOrgPopover({
           soThanhVien: 0,
           soHocVien: 0,
           soBaiViet: 0,
+          soShowcase: 0,
           href: href ?? defaultHref(popoverKind, slug),
         }
       : null);
@@ -326,18 +328,10 @@ export function JourneyOrgPopover({
                               <Users size={14} aria-hidden />
                               <strong>{visible.soThanhVien}</strong> thành viên
                             </span>
-                            {typeof visible.soTuyenDung === "number" ? (
-                              <span>
-                                <Briefcase size={14} aria-hidden />
-                                <strong>{visible.soTuyenDung}</strong> tin tuyển dụng
-                              </span>
-                            ) : null}
-                            {typeof visible.soBaiViet === "number" ? (
-                              <span>
-                                <FileText size={14} aria-hidden />
-                                <strong>{visible.soBaiViet}</strong> bài viết
-                              </span>
-                            ) : null}
+                            <span>
+                              <Package size={14} aria-hidden />
+                              <strong>{visible.soShowcase ?? 0}</strong> showcase
+                            </span>
                           </>
                         ) : (
                           <>

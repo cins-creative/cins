@@ -433,6 +433,18 @@
 }
 .article-rich-content .arc-card-body p:last-child { margin-bottom: 0; }
 
+:root[data-theme="dark"] .article-rich-content .arc-card-body {
+  background: var(--neutral-100);
+}
+
+:root[data-theme="dark"] .article-rich-content .arc-card-body p {
+  color: var(--ink-title);
+}
+
+:root[data-theme="dark"] .article-rich-content .arc-card summary::after {
+  color: var(--neutral-500);
+}
+
 /* ── Related jobs (data-dynamic inject) ── */
 /* Frontend inject .arc-related-grid vào section[data-dynamic="related-jobs"] */
 .article-rich-content .arc-related-grid {

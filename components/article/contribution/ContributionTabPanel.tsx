@@ -40,7 +40,7 @@ export function ContributionTabPanel({
           <p className="contrib-tab-sub">
             {count > 0
               ? `${count} topic từ cộng đồng — thảo luận ngay dưới mỗi topic như trên Journey.`
-              : "Mỗi người soạn một bài riêng — curator sẽ chọn bản phù hợp làm nội dung chính."}
+              : "Một nội dung có thể sẽ không bao quát được hết, hãy chia sẻ kinh nghiệm của bạn cho cộng đồng biết nhé, đội ngũ tụi mình sẽ xem qua & duyệt nội dung tốt nhất để qua tab nội dung chính cho bạn đọc, tuy nhiên những nội dung không được duyệt cộng đồng vẫn đọc và trao đổi với nhau được nhé :D"}
           </p>
         </div>
         <ContributionTabActions

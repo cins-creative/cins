@@ -35,9 +35,10 @@ import {
 } from "@/lib/journey/timeline-sort";
 import {
   isBookmarkHiddenOnViewerJourney,
-  mapCheDoLuuToForeignJourney,
+  resolveBookmarkJourneyVisibility,
 } from "@/lib/journey/bookmark-visibility";
 import { fetchBookmarkedOrgBaiDangMilestones } from "@/lib/truong/org-bai-dang-bookmark";
+import { fetchTaggedOrgBaiDangMilestonesForUser } from "@/lib/truong/org-bai-dang-tagged-journey";
 import { fetchBookmarkedOrgKhoaHocMilestones } from "@/lib/to-chuc/khoa-hoc-bookmark";
 import { fetchBookmarkedOrgTuyenDungMilestones } from "@/lib/to-chuc/tuyen-dung-bookmark";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
@@ -94,6 +95,7 @@ type BookmarkRow = {
   loai_doi_tuong: string;
   tao_luc: string | null;
   che_do_hien_thi?: string | null;
+  che_do_hien_thi_journey?: string | null;
 };
 
 type BookmarkLinkRow = {
@@ -397,6 +399,7 @@ export async function fetchMilestonesForUser(params: {
       fetchTaggedMilestonesForUser({
         userId,
         isOwner,
+        viewerId,
         admin,
       }),
       fetchBookmarkedMilestonesForUser({ userId, isOwner, admin }),
@@ -442,6 +445,7 @@ export async function fetchMilestonesForUser(params: {
     fetchTaggedMilestonesForUser({
       userId,
       isOwner,
+      viewerId,
       admin,
     }),
     fetchBookmarkedMilestonesForUser({ userId, isOwner, admin }),
@@ -475,25 +479,35 @@ export async function fetchMilestonesForUser(params: {
 export async function fetchTaggedMilestonesForUser(params: {
   userId: string;
   isOwner: boolean;
+  viewerId?: string | null;
   admin: ReturnType<typeof createServiceRoleClient>;
 }): Promise<MilestoneItem[]> {
-  const { userId, isOwner, admin } = params;
+  const { userId, isOwner, viewerId = null, admin } = params;
 
   const { data: tagRows } = await admin
     .from("content_tac_pham_tac_gia")
-    .select("id_tac_pham, vai_tro, trang_thai, xu_ly_luc")
+    .select("id_tac_pham, vai_tro, trang_thai, xu_ly_luc, che_do_hien_thi_journey")
     .eq("id_nguoi_dung", userId)
     .eq("trang_thai", "accepted")
     .eq("la_chu_so_huu", false);
 
-  if (!tagRows?.length) return [];
+  if (!tagRows?.length) {
+    return fetchTaggedOrgBaiDangMilestonesForUser({
+      userId,
+      viewerId: viewerId ?? (isOwner ? userId : null),
+      admin,
+    });
+  }
 
   const tacPhamIds = tagRows.map((r) => r.id_tac_pham as string);
   const roleByTp = new Map(
     tagRows.map((r) => [r.id_tac_pham as string, r.vai_tro as string | null]),
   );
   const journeyVisByTp = new Map(
-    tagRows.map((r) => [r.id_tac_pham as string, "public" as const]),
+    tagRows.map((r) => [
+      r.id_tac_pham as string,
+      (r.che_do_hien_thi_journey as string | null) ?? "public",
+    ]),
   );
   const acceptedAtByTp = new Map(
     tagRows.map((r) => [
@@ -543,7 +557,14 @@ export async function fetchTaggedMilestonesForUser(params: {
   for (const tp of tacPhams ?? []) {
     if (!tp.slug) continue;
     const tpId = tp.id as string;
-    if (isHiddenOnForeignJourney(journeyVisByTp.get(tpId))) continue;
+    const isSelfAuthoredTagged =
+      isOwner && (tp.id_nguoi_dung as string) === userId;
+    if (
+      isHiddenOnForeignJourney(journeyVisByTp.get(tpId)) &&
+      !isSelfAuthoredTagged
+    ) {
+      continue;
+    }
     const cmId = cotMocIdByTp.get(tpId);
     const cm = cmId ? cmById.get(cmId) : undefined;
     if (!cm) continue;
@@ -563,7 +584,13 @@ export async function fetchTaggedMilestonesForUser(params: {
     });
   }
 
-  if (items.length === 0) return [];
+  if (items.length === 0) {
+    return fetchTaggedOrgBaiDangMilestonesForUser({
+      userId,
+      viewerId: viewerId ?? (isOwner ? userId : null),
+      admin,
+    });
+  }
 
   const ownerIds = [...new Set(items.map((i) => i.tp.id_nguoi_dung))];
   const { data: owners } = await admin
@@ -576,17 +603,19 @@ export async function fetchTaggedMilestonesForUser(params: {
   const creditsByTacPham = await loadCoAuthorCredits(admin, taggedTpIds);
   const tagsByTacPham = await fetchArticleTagsForTacPham(admin, taggedTpIds);
 
-  return items.map(({ cm, tp, myRole, tacPhamId }) => {
+  const userTagged = items.map(({ cm, tp, myRole, tacPhamId }) => {
     const owner = ownerById.get(tp.id_nguoi_dung);
+    const isSelfAuthoredTagged =
+      isOwner && (tp.id_nguoi_dung as string) === userId;
     const dateObj = new Date(cm.thoi_diem);
     return {
       id: `${cm.id}:${tacPhamId}`,
       cotMocId: cm.id,
       variant: "tagged" as MilestoneVariant,
       type: LOAI_MOC_TO_TYPE[cm.loai_moc],
-      visibility: mapForeignJourneyVisibilityToUi(
-        journeyVisByTp.get(tacPhamId),
-      ),
+      visibility: isSelfAuthoredTagged
+        ? mapCheDoToMilestoneVisibility(cm.che_do_hien_thi)
+        : mapForeignJourneyVisibilityToUi(journeyVisByTp.get(tacPhamId)),
       year: dateObj.getUTCFullYear(),
       month: dateObj.getUTCMonth() + 1,
       day: dateObj.getUTCDate(),
@@ -625,6 +654,14 @@ export async function fetchTaggedMilestonesForUser(params: {
       coAuthorCredits: creditsByTacPham.get(tacPhamId) ?? [],
     };
   });
+
+  const orgTagged = await fetchTaggedOrgBaiDangMilestonesForUser({
+    userId,
+    viewerId: viewerId ?? (isOwner ? userId : null),
+    admin,
+  });
+
+  return mergeMilestoneLists(userTagged, orgTagged);
 }
 
 export async function fetchBookmarkedMilestonesForUser(params: {
@@ -635,7 +672,7 @@ export async function fetchBookmarkedMilestonesForUser(params: {
   const { userId, isOwner, admin } = params;
   const { data: savedRows } = await admin
     .from("social_luu")
-    .select("id_doi_tuong, loai_doi_tuong, tao_luc, che_do_hien_thi")
+    .select("id_doi_tuong, loai_doi_tuong, tao_luc, che_do_hien_thi, che_do_hien_thi_journey")
     .eq("id_nguoi_dung", userId)
     .eq("loai_doi_tuong", "cot_moc")
     .returns<BookmarkRow[]>();
@@ -646,7 +683,10 @@ export async function fetchBookmarkedMilestonesForUser(params: {
   const journeyVisByMoc = new Map(
     (savedRows ?? []).map((row) => [
       row.id_doi_tuong as string,
-      mapCheDoLuuToForeignJourney(row.che_do_hien_thi as string | null),
+      resolveBookmarkJourneyVisibility(
+        row.che_do_hien_thi_journey as string | null,
+        row.che_do_hien_thi as string | null,
+      ),
     ]),
   );
 
@@ -821,9 +861,10 @@ export async function attachSocialState(
   milestones: MilestoneItem[],
   viewerId: string | null,
 ): Promise<MilestoneItem[]> {
+  const cotMocMilestones = milestones.filter((item) => !item.orgBaiDangRef);
   const cotMocIds = [
     ...new Set(
-      milestones
+      cotMocMilestones
         .map((item) => item.cotMocId ?? item.id)
         .filter((id) => /^[0-9a-f-]{36}$/i.test(id)),
     ),
@@ -916,6 +957,7 @@ export async function attachSocialState(
   const commentCounts = countByTarget(allComments.data ?? []);
 
   return milestones.map((item) => {
+    if (item.orgBaiDangRef) return item;
     const id = item.cotMocId ?? item.id;
     return {
       ...item,

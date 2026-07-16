@@ -68,6 +68,7 @@ import type {
   ProcessedCoAuthorReview,
   VideoReadyNotification,
 } from "@/lib/social/types";
+import { coAuthorInvitePostHref } from "@/lib/social/coauthor-invite-href";
 
 type Props = {
   /** Badge từ server — feed chi tiết lazy-load khi mở menu. */
@@ -76,8 +77,7 @@ type Props = {
 };
 
 function coAuthorPostHref(inv: PendingCoAuthorInviteNotification): string | null {
-  if (!inv.ownerSlug || !inv.postSlug) return null;
-  return `/${encodeURIComponent(inv.ownerSlug)}/p/${encodeURIComponent(inv.postSlug)}`;
+  return coAuthorInvitePostHref(inv);
 }
 
 function coAuthorReviewPostHref(review: {

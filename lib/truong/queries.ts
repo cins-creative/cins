@@ -449,7 +449,7 @@ export async function fetchBaiDang(
       tao_luc,
       ghim,
       org_bai_dang_tag (
-        article_bai_viet ( tieu_de_viet, tieu_de, slug )
+        article_bai_viet ( id, slug, tieu_de, tieu_de_viet, loai_bai_viet, tom_tat, da_verify )
       )
     `,
     )
@@ -474,21 +474,37 @@ export async function fetchBaiDang(
       ghim?: boolean | null;
       org_bai_dang_tag?: {
         article_bai_viet?: {
+          id?: string | null;
           tieu_de_viet?: string | null;
           tieu_de?: string | null;
           slug?: string | null;
+          loai_bai_viet?: string | null;
+          tom_tat?: string | null;
+          da_verify?: boolean | null;
         } | null;
       }[];
     };
     if (!r.id || !r.tieu_de?.trim()) continue;
     const tags: TruongBaiDang["tags"] = [];
+    const articleTags: NonNullable<TruongBaiDang["articleTags"]> = [];
     for (const tag of r.org_bai_dang_tag ?? []) {
       const art = pickOne(tag.article_bai_viet);
       const slug = art?.slug?.trim();
-      if (!slug) continue;
+      const id = art?.id?.trim();
+      if (!slug || !id) continue;
       const label =
         art?.tieu_de_viet?.trim() || art?.tieu_de?.trim() || slug;
       if (!tags.some((t) => t.slug === slug)) tags.push({ label, slug });
+      if (!articleTags.some((t) => t.id === id)) {
+        articleTags.push({
+          id,
+          slug,
+          tieu_de: label,
+          loai_bai_viet: art?.loai_bai_viet?.trim() || "blog",
+          tom_tat: art?.tom_tat?.trim() || null,
+          da_verify: art?.da_verify === true,
+        });
+      }
     }
     const cover_id = r.cover_id?.trim() || null;
     out.push({
@@ -504,6 +520,7 @@ export async function fetchBaiDang(
       trang_thai: "da_dang",
       ghim: Boolean(r.ghim),
       tags,
+      articleTags,
     });
   }
 
@@ -532,6 +549,14 @@ export async function fetchBaiDang(
       if (synced) post.noiDungBlocks = synced;
     }),
   );
+
+  const { loadOrgBaiDangCoAuthorCredits } = await import(
+    "@/lib/truong/org-bai-dang-coauthor"
+  );
+  const creditsMap = await loadOrgBaiDangCoAuthorCredits(out.map((p) => p.id));
+  for (const post of out) {
+    post.coAuthorCredits = creditsMap.get(post.id) ?? [];
+  }
 
   return out;
 }

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import { createUserFilter } from "@/lib/filter/create";
-import { ensureCongDongPersonalFilter } from "@/lib/filter/cong-dong-personal-filter";
+import { ensureDefaultPersonalFilters } from "@/lib/filter/ensure-default-personal-filters";
 import { countPersonalFilterSlugsVisibleToViewer } from "@/lib/filter/count-visible-to-viewer";
 import { listPersonalFiltersForUser } from "@/lib/filter/list-cua-user";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
@@ -39,7 +39,7 @@ export async function GET(req: Request) {
 
   if (isOwnerSession) {
     try {
-      await ensureCongDongPersonalFilter(user.id);
+      await ensureDefaultPersonalFilters(user.id);
     } catch {
       /* List vẫn trả về — UI có fallback nhãn hệ thống. */
     }

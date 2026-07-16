@@ -107,5 +107,13 @@ export async function fetchScheduledBaiDang(
     post.personalFilterSlugs = filters.map((f) => f.slug);
   }
 
+  const { loadOrgBaiDangCoAuthorCredits } = await import(
+    "@/lib/truong/org-bai-dang-coauthor"
+  );
+  const creditsMap = await loadOrgBaiDangCoAuthorCredits(out.map((p) => p.id));
+  for (const post of out) {
+    post.coAuthorCredits = creditsMap.get(post.id) ?? [];
+  }
+
   return out;
 }

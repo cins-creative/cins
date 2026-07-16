@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import { loadCoAuthorCreditsForTacPham } from "@/lib/journey/coauthor-credits";
 import { removeCoAuthor, respondCoAuthor } from "@/lib/social/co-author";
+import { respondOrgBaiDangCoAuthor } from "@/lib/truong/org-bai-dang-coauthor";
 import { MAX_COAUTHOR_POSITIONS } from "@/lib/social/vai-tro";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
@@ -65,7 +66,15 @@ export async function PATCH(req: Request, ctx: RouteCtx) {
     }
   }
 
-  const result = await respondCoAuthor(tacPhamId, nguoiDungId, trangThai, viTri);
+  let result = await respondCoAuthor(tacPhamId, nguoiDungId, trangThai, viTri);
+  if (!result.ok && result.error.includes("Không tìm thấy")) {
+    result = await respondOrgBaiDangCoAuthor(
+      tacPhamId,
+      nguoiDungId,
+      trangThai,
+      viTri,
+    );
+  }
   if (!result.ok) {
     return NextResponse.json({ error: result.error }, { status: 400 });
   }

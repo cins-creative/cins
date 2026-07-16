@@ -24,6 +24,8 @@ export type PendingCoAuthorInvite = {
   ownerName: string;
   ownerAvatarUrl: string | null;
   vaiTro: string;
+  /** Bài studio org — link `/studio/{ownerSlug}` thay vì Journey post. */
+  orgBaiDang?: boolean;
 };
 
 /** Lời mời cộng sự từ `social_thong_bao` (`tac_gia_invite`). */

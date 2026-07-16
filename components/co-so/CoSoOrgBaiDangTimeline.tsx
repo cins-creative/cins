@@ -43,6 +43,8 @@ type Props = {
   surface?: "feed" | "showcase";
   /** Ghi đè chế độ xem khởi tạo (vd. cấu hình studio Showcase). */
   defaultView?: OrgBaiDangView;
+  /** Studio — quản lý cộng sự trên card bài đăng. */
+  allowCoAuthorManage?: boolean;
 };
 
 function currentYearMonth() {
@@ -94,6 +96,7 @@ export function CoSoOrgBaiDangTimeline({
     "Chưa có bài đăng công khai. Tin tức và sự kiện sẽ hiển thị tại đây khi cơ sở đăng trên CINs.",
   surface = "feed",
   defaultView,
+  allowCoAuthorManage = false,
 }: Props) {
   const isShowcase = surface === "showcase";
   const filterCtx = useOrgBaiDangFilterOptional();
@@ -211,6 +214,7 @@ export function CoSoOrgBaiDangTimeline({
         onOpenPostFromGrid={openPostFromGrid}
         owner={owner}
         contentOnly={isShowcase}
+        allowCoAuthorManage={allowCoAuthorManage}
       />
       {postOverlay}
     </main>

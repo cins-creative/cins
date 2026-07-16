@@ -3,11 +3,13 @@
 import { GripVertical, Pencil } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { GalleryAuthorCornerBadge } from "@/components/journey/GalleryAuthorCornerBadge";
 import { GalleryItemVisual, GalleryEmbedPlatformBadge, GalleryVideoPlayBadge } from "@/components/journey/GalleryItemVisual";
 import { GalleryMainHoverOverlay } from "@/components/journey/GalleryMainHoverOverlay";
 import { GalleryMediaFilterDropdown } from "@/components/journey/GalleryMediaFilterDropdown";
 import { useJourneyFeaturedAsideFilterOptional } from "@/components/journey/JourneyFeaturedAsideFilterContext";
 import { useJourneyPostOverlay } from "@/components/journey/useJourneyPostOverlay";
+import type { GallerySourcePerson } from "@/lib/journey/gallery-source-author";
 import type { GalleryMediaKind } from "@/lib/journey/post-media";
 import type { EmbedProviderId } from "@/lib/editor/embed-providers";
 import {
@@ -28,6 +30,10 @@ export type GalleryPinnedBanner = {
   meta: string;
   authorName?: string | null;
   authorAvatarUrl?: string | null;
+  /** Avatar góc — bài từ user/org khác tag hoặc lưu về. */
+  showSourceAuthor?: boolean;
+  /** Người có vai trò trong dự án (stack avatar). */
+  sourcePeople?: GallerySourcePerson[];
   /** Link ngữ cảnh — VD /{slug}/p/{postSlug}. */
   href?: string;
   /** Cột mốc — mở modal bài viết client-side. */
@@ -417,6 +423,13 @@ export function JourneyGalleryAside({
                         ) : null}
                         {b.mediaKind === "embed" && b.embedProvider ? (
                           <GalleryEmbedPlatformBadge provider={b.embedProvider} />
+                        ) : null}
+                        {b.showSourceAuthor ? (
+                          <GalleryAuthorCornerBadge
+                            people={b.sourcePeople}
+                            name={b.authorName}
+                            avatarUrl={b.authorAvatarUrl}
+                          />
                         ) : null}
                         <GalleryMainHoverOverlay
                           label={b.title}

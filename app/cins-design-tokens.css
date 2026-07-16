@@ -135,17 +135,31 @@
    Chỉ override token; component nào dùng token sẽ tự đổi màu.
    ======================================================== */
 :root[data-theme="dark"] {
-  /* Brand blue sáng hơn chút để đủ tương phản trên nền tối */
-  --cins-blue:      #4f9be8;
-  --cins-blue-dark: #6fb0f0;
-  --cins-blue-soft: rgba(79, 155, 232, 0.16);
+  /* Brand blue sáng hơn để đủ tương phản trên nền tối (heading, link, badge arc-*) */
+  --cins-blue:      #7db8f2;
+  --cins-blue-dark: #93c5fd;
+  --cins-blue-soft: rgba(125, 184, 242, 0.18);
 
   /* Mint text sáng lên trên nền tối để đủ tương phản (giá khóa học, level…) */
   --cins-mint-dark:   #4FD9A6;
 
   --cins-yellow-soft: rgba(253, 232, 89, 0.16);
   --cins-mint-soft:   rgba(110, 254, 192, 0.16);
+  --cins-orange-soft: rgba(253, 173, 76, 0.16);
   --cins-violet-soft: rgba(187, 137, 248, 0.18);
+
+  /* Quản trị / owner — cam sáng hơn để đủ tương phản trên nền tối */
+  --cins-priv-accent: #fdad4c;
+  --cins-priv-accent-strong: #fdba74;
+  --cins-priv-accent-ink: #fcd34d;
+  --cins-priv-accent-soft: rgba(253, 173, 76, 0.16);
+  --cins-priv-accent-border: color-mix(in srgb, var(--cins-orange) 38%, transparent);
+  --cins-priv-accent-shadow: rgba(253, 173, 76, 0.28);
+  --cins-priv-accent-gradient: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--cins-orange) 18%, transparent),
+    color-mix(in srgb, var(--cins-orange) 8%, transparent)
+  );
 
   /* Neutrals đảo chiều (0 = tối nhất, 900 = sáng nhất) */
   --neutral-0:   #12151d;

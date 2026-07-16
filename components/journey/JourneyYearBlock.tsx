@@ -57,6 +57,8 @@ type Props = {
   /** Trang org đang mở — forward sang card để ẩn bar xác thực trùng org. */
   hostOrgSlug?: string | null;
   hostOrgName?: string | null;
+  /** Menu ghim Journey — chỉ view timeline Journey của chủ trang. */
+  showJourneyPin?: boolean;
 };
 
 /**
@@ -89,6 +91,7 @@ export function JourneyYearBlock({
   milestonePermalink,
   hostOrgSlug = null,
   hostOrgName = null,
+  showJourneyPin = false,
 }: Props) {
   /* Year header (label "2026 · Năm hiện tại · 1 mốc") đã bỏ theo brief mới
      — header bar phía trên timeline đã cover thông tin năm hiện tại, đỡ
@@ -127,6 +130,7 @@ export function JourneyYearBlock({
               feedCompactMedia={feedCompactMedia}
               hostOrgSlug={hostOrgSlug}
               hostOrgName={hostOrgName}
+              showJourneyPin={showJourneyPin}
               readMoreHref={
                 feedCompactMedia && milestonePermalink
                   ? worldJourneyMilestoneCardKind(m) === "photo"

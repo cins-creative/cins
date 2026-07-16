@@ -164,7 +164,8 @@
   }
 
   .career-skeleton--hub-rail {
-    min-height: 120px;
+    min-height: 48px;
+    max-height: 48px;
   }
 }
 

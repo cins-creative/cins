@@ -26,7 +26,7 @@
   padding: 5px 9px;
   border-radius: 999px;
   border: 1px solid var(--cins-priv-accent-border);
-  background: #fff;
+  background: var(--bg-surface, #fff);
   color: var(--cins-priv-accent-strong);
   cursor: pointer;
   white-space: nowrap;
@@ -86,7 +86,7 @@
   justify-content: center;
   border-color: var(--cins-priv-accent-border);
   color: var(--cins-priv-accent-strong);
-  background: color-mix(in srgb, var(--cins-priv-accent-soft) 40%, #fff);
+  background: color-mix(in srgb, var(--cins-priv-accent-soft) 40%, var(--bg-surface, #fff));
 }
 
 .cins-app-topbar .tb-truong-admin-btn--icon:hover {
@@ -129,7 +129,7 @@
 .cins-app-topbar .tb-truong-role-btn--org:not(.is-active) {
   border-color: var(--cins-priv-accent-border);
   color: var(--cins-priv-accent-strong);
-  background: color-mix(in srgb, var(--cins-priv-accent-soft) 45%, #fff);
+  background: color-mix(in srgb, var(--cins-priv-accent-soft) 45%, var(--bg-surface, #fff));
 }
 
 .tdh-page,
@@ -1142,6 +1142,87 @@
   width: 10px;
   height: 10px;
   border-radius: 50%;
+}
+
+/* Dark — loại bài đăng + picker (tab Bài đăng cơ sở / studio) */
+:root[data-theme="dark"] .org-baidang-loai-badge--thongbao {
+  background: color-mix(in srgb, #9ca3af 14%, #1c212c);
+  border-color: color-mix(in srgb, #9ca3af 26%, #2a3040);
+  color: #d1d5db;
+}
+
+:root[data-theme="dark"] .org-baidang-loai-badge--tuyensinh {
+  background: color-mix(in srgb, #60a5fa 16%, #1c212c);
+  border-color: color-mix(in srgb, #60a5fa 30%, #2a3040);
+  color: #93c5fd;
+}
+
+:root[data-theme="dark"] .org-baidang-loai-badge--hocbong {
+  background: color-mix(in srgb, #fbbf24 14%, #1c212c);
+  border-color: color-mix(in srgb, #fbbf24 28%, #2a3040);
+  color: #fcd34d;
+}
+
+:root[data-theme="dark"] .org-baidang-loai-badge--sukien {
+  background: color-mix(in srgb, #a78bfa 16%, #1c212c);
+  border-color: color-mix(in srgb, #a78bfa 30%, #2a3040);
+  color: #c4b5fd;
+}
+
+:root[data-theme="dark"] .org-baidang-loai-picker-trigger:hover .org-baidang-loai-badge--thongbao,
+:root[data-theme="dark"] .org-baidang-loai-picker.is-open .org-baidang-loai-picker-trigger .org-baidang-loai-badge--thongbao {
+  background: color-mix(in srgb, #9ca3af 22%, #252b38);
+  border-color: color-mix(in srgb, #9ca3af 34%, #3a4254);
+}
+
+:root[data-theme="dark"] .org-baidang-loai-picker-trigger:hover .org-baidang-loai-badge--tuyensinh,
+:root[data-theme="dark"] .org-baidang-loai-picker.is-open .org-baidang-loai-picker-trigger .org-baidang-loai-badge--tuyensinh {
+  background: color-mix(in srgb, #60a5fa 24%, #252b38);
+  border-color: color-mix(in srgb, #60a5fa 38%, #3a4254);
+}
+
+:root[data-theme="dark"] .org-baidang-loai-picker-trigger:hover .org-baidang-loai-badge--hocbong,
+:root[data-theme="dark"] .org-baidang-loai-picker.is-open .org-baidang-loai-picker-trigger .org-baidang-loai-badge--hocbong {
+  background: color-mix(in srgb, #fbbf24 22%, #252b38);
+  border-color: color-mix(in srgb, #fbbf24 36%, #3a4254);
+}
+
+:root[data-theme="dark"] .org-baidang-loai-picker-trigger:hover .org-baidang-loai-badge--sukien,
+:root[data-theme="dark"] .org-baidang-loai-picker.is-open .org-baidang-loai-picker-trigger .org-baidang-loai-badge--sukien {
+  background: color-mix(in srgb, #a78bfa 24%, #252b38);
+  border-color: color-mix(in srgb, #a78bfa 38%, #3a4254);
+}
+
+:root[data-theme="dark"] .org-baidang-loai-menu {
+  background: #1c212c;
+  border-color: #3a4254;
+  box-shadow:
+    0 4px 6px rgba(0, 0, 0, 0.25),
+    0 16px 40px rgba(0, 0, 0, 0.45);
+}
+
+:root[data-theme="dark"] .org-baidang-loai-menu-title {
+  color: #9ca3af;
+}
+
+:root[data-theme="dark"] .org-baidang-loai-menu-item {
+  color: #f3f4f6;
+}
+
+:root[data-theme="dark"] .org-baidang-loai-menu-item:hover {
+  background: #252b38;
+}
+
+:root[data-theme="dark"] .org-baidang-loai-menu-item.is-active {
+  background: color-mix(in srgb, #3b82f6 18%, #1c212c);
+}
+
+:root[data-theme="dark"] .org-baidang-loai-menu-check {
+  color: #93c5fd;
+}
+
+:root[data-theme="dark"] .org-baidang-loai-menu-divider {
+  background: #3a4254;
 }
 
 .org-tl-title-row {

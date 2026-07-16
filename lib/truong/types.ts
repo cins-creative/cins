@@ -1,4 +1,6 @@
 import type { Block } from "@/lib/editor/types";
+import type { ArticleTagRef } from "@/lib/editor/article-tag";
+import type { CoAuthorCredit } from "@/components/journey/milestone-types";
 import type { PersonalFilterRef } from "@/lib/filter/types";
 import type { CoSoStaffVaiTro } from "@/lib/to-chuc/co-so-vai-tro";
 
@@ -114,6 +116,8 @@ export type TruongBaiDang = {
   /** `nhap` + `tao_luc` tương lai = hẹn đăng (chỉ admin thấy trên timeline). */
   trang_thai?: string | null;
   tags: { label: string; slug: string }[];
+  /** Tag entity (`article_bai_viet`) — quản lý trên card khi inline-edit. */
+  articleTags?: ArticleTagRef[];
   /** Nhãn tùy chỉnh (`filter_nhan` + `filter_gan`). */
   personalFilters?: PersonalFilterRef[];
   personalFilterSlugs?: string[];
@@ -122,6 +126,8 @@ export type TruongBaiDang = {
   bookmarkCount?: number;
   /** Ghim lên đầu timeline org (`org_bai_dang.ghim`). */
   ghim?: boolean | null;
+  /** Cộng sự đã chấp nhận + đang chờ — hydrate server khi fetch bài đăng. */
+  coAuthorCredits?: CoAuthorCredit[];
 };
 
 export type TruongHinhAnh = {

@@ -43,13 +43,6 @@
   margin-bottom: var(--space-4);
 }
 
-.ent-hero::before {
-  content: "";
-  display: block;
-  height: 4px;
-  background: linear-gradient(90deg, var(--cins-blue), var(--cins-violet));
-}
-
 .ent-hero-inner {
   display: flex;
   align-items: center;
@@ -123,12 +116,19 @@
 
 .ent-subtitle {
   margin: 8px 0 0;
-  font-family: var(--font-serif);
+  font-family: var(--font-sans);
   font-size: clamp(1.05rem, 2vw, 1.35rem);
-  font-style: italic;
+  font-style: normal;
   font-weight: 600;
   line-height: 1.3;
   color: var(--cins-blue);
+}
+
+.ent-subtitle em {
+  font-family: inherit;
+  font-style: normal;
+  font-weight: inherit;
+  color: inherit;
 }
 
 .ent-summary {
@@ -1286,6 +1286,9 @@ a.ent-contributors-name:hover {
   }
   .ent-rail {
     position: static;
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: clip;
   }
 }
 

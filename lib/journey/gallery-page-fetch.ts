@@ -32,8 +32,12 @@ import {
   type GalleryMediaKind,
 } from "@/lib/journey/post-media";
 import type { EmbedProviderId } from "@/lib/editor/embed-providers";
+import { loadCoAuthorCredits } from "@/lib/journey/coauthor-credits";
+import { resolveGallerySourceAuthor } from "@/lib/journey/gallery-source-author";
 import { loadVerifiedCotMocIdSet } from "@/lib/journey/milestone-verify";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { loadOrgBaiDangCoAuthorCredits } from "@/lib/truong/org-bai-dang-coauthor";
+import type { CoAuthorCredit } from "@/components/journey/milestone-types";
 import type { VideoCanvasRatio } from "@/lib/journey/video-canvas-ratio";
 import { videoPreviewDimensionsFromRatio } from "@/lib/journey/video-canvas-ratio";
 import { hideProcessingVideoFromViewer } from "@/lib/journey/video-processing-meta";
@@ -71,6 +75,8 @@ export type GalleryMainItem = {
   postSlug?: string | null;
   /** Slug chủ bài (permalink) khi khác profile đang xem. */
   postOwnerSlug?: string | null;
+  /** Tác phẩm — menu đổi hiển thị tagged/bookmark trên Journey viewer. */
+  tacPhamId?: string | null;
   variant: MilestoneVariant;
   mediaKind?: GalleryMediaKind;
   /** Logo góc thumb — YouTube, Figma, Rive, … */
@@ -82,6 +88,7 @@ export type GalleryMainItem = {
   cardLayout?: MilestoneCardLayout;
   orgAvatarUrl?: string | null;
   orgKicker?: string | null;
+  verifierRole?: string | null;
   /** Tác giả hiển thị trên overlay hover của card gallery. */
   authorName?: string | null;
   authorAvatarUrl?: string | null;
@@ -204,6 +211,17 @@ function isOrgCreateGalleryStub(entry: GalleryStub): boolean {
   );
 }
 
+function galleryStubHref(
+  entry: GalleryStub,
+  ownerSlug: string,
+  ownerSlugById: Map<string, string>,
+): string | undefined {
+  if (isOrgCreateGalleryStub(entry)) return entry.orgHref ?? undefined;
+  if (entry.orgHref && !entry.tacPhamSlug) return entry.orgHref;
+  const slug = ownerSlugById.get(entry.postOwnerId) ?? ownerSlug;
+  return postHref(slug, entry.tacPhamSlug);
+}
+
 function hydrateMainItems(
   stubs: GalleryStub[],
   ownerSlug: string,
@@ -219,6 +237,8 @@ function hydrateMainItems(
     if (!isOrgCreate && !img?.src && !isVideo) return;
     const slug = ownerSlugById.get(entry.postOwnerId) ?? ownerSlug;
     const ownerProfile = ownerProfileById?.get(entry.postOwnerId);
+    const href = galleryStubHref(entry, ownerSlug, ownerSlugById);
+    const isOrgPost = Boolean(entry.orgHref && !entry.tacPhamSlug && !isOrgCreate);
     out.push({
       id: `${featured ? "pin" : "grid"}-${entry.cotMocId}-${i}`,
       cotMocId: entry.cotMocId,
@@ -229,15 +249,14 @@ function hydrateMainItems(
       label: isOrgCreate
         ? entry.tieuDe
         : galleryItemLabel(entry.tieuDe, entry.mediaKind),
-      href: isOrgCreate
-        ? (entry.orgHref ?? undefined)
-        : postHref(slug, entry.tacPhamSlug),
+      href,
       meta: entry.excerpt,
       featured,
       type: entry.type,
       visibility: entry.visibility,
-      postSlug: isOrgCreate ? null : entry.tacPhamSlug,
-      postOwnerSlug: isOrgCreate ? null : slug,
+      postSlug: isOrgCreate || isOrgPost ? null : entry.tacPhamSlug,
+      postOwnerSlug: isOrgCreate || isOrgPost ? null : slug,
+      tacPhamId: isOrgCreate ? null : entry.tacPhamId,
       variant: entry.variant,
       mediaKind: entry.mediaKind,
       embedProvider: entry.embedProvider ?? null,
@@ -247,8 +266,12 @@ function hydrateMainItems(
       cardLayout: entry.cardLayout,
       orgAvatarUrl: entry.orgAvatarUrl,
       orgKicker: entry.orgKicker,
-      authorName: isOrgCreate ? null : ownerProfile?.name ?? null,
-      authorAvatarUrl: isOrgCreate ? null : ownerProfile?.avatarUrl ?? null,
+      verifierRole: entry.verifierRole,
+      authorName: isOrgCreate || isOrgPost ? entry.orgKicker ?? null : ownerProfile?.name ?? null,
+      authorAvatarUrl:
+        isOrgCreate || isOrgPost
+          ? entry.orgAvatarUrl ?? null
+          : ownerProfile?.avatarUrl ?? null,
       videoCanvasRatio: entry.videoCanvasRatio,
     });
   });
@@ -258,9 +281,12 @@ function hydrateMainItems(
 function hydrateAsideItems(
   stubs: GalleryStub[],
   ownerSlug: string,
+  journeyOwnerId: string,
   ownerSlugById: Map<string, string>,
   ownerProfileById?: Map<string, OwnerProfile>,
   noiBatOrder?: Map<string, number>,
+  creditsByTacPham?: Map<string, CoAuthorCredit[]>,
+  creditsByOrgPost?: Map<string, CoAuthorCredit[]>,
 ): {
   pinned: GalleryPinnedBanner[];
   items: GalleryGridItem[];
@@ -288,6 +314,16 @@ function hydrateAsideItems(
     const isVideo = entry.mediaKind === "video";
     if (!img?.src && !isVideo) return;
     const ownerProfile = ownerProfileById?.get(entry.postOwnerId);
+    const isOrgPost = Boolean(entry.orgHref && !entry.tacPhamSlug);
+    const credits = isOrgPost
+      ? (creditsByOrgPost?.get(entry.tacPhamId) ?? [])
+      : (creditsByTacPham?.get(entry.tacPhamId) ?? []);
+    const sourceAuthor = resolveGallerySourceAuthor(
+      entry,
+      journeyOwnerId,
+      ownerProfile,
+      credits,
+    );
     pinned.push({
       id: `pin-${entry.cotMocId}-${i}`,
       cotMocId: entry.cotMocId,
@@ -298,12 +334,11 @@ function hydrateAsideItems(
       pin: "Nổi bật",
       title: galleryItemLabel(entry.tieuDe, entry.mediaKind),
       meta: entry.excerpt,
-      authorName: ownerProfile?.name ?? null,
-      authorAvatarUrl: ownerProfile?.avatarUrl ?? null,
-      href: postHref(
-        ownerSlugById.get(entry.postOwnerId) ?? ownerSlug,
-        entry.tacPhamSlug,
-      ),
+      authorName: sourceAuthor.showCorner ? sourceAuthor.name : null,
+      authorAvatarUrl: sourceAuthor.showCorner ? sourceAuthor.avatarUrl : null,
+      showSourceAuthor: sourceAuthor.showCorner,
+      sourcePeople: sourceAuthor.showCorner ? sourceAuthor.people : undefined,
+      href: galleryStubHref(entry, ownerSlug, ownerSlugById),
       mediaKind: entry.mediaKind,
       embedProvider: entry.embedProvider ?? null,
       isVideo,
@@ -325,10 +360,7 @@ function hydrateAsideItems(
       width: img?.width,
       height: img?.height,
       label: galleryItemLabel(entry.tieuDe, entry.mediaKind),
-      href: postHref(
-        ownerSlugById.get(entry.postOwnerId) ?? ownerSlug,
-        entry.tacPhamSlug,
-      ),
+      href: galleryStubHref(entry, ownerSlug, ownerSlugById),
       mediaKind: entry.mediaKind,
       embedProvider: entry.embedProvider ?? null,
       isVideo,
@@ -377,6 +409,7 @@ export async function fetchGalleryMainPage(params: {
   );
   const items = await attachPersonalFiltersToGalleryItems(
     hydrateMainItems(slice, ownerSlug, ownerSlugById, ownerProfileById),
+    userId,
   );
 
   const nextOffset = offset + items.length;
@@ -410,21 +443,45 @@ export async function fetchGalleryForUser(params: {
   }
 
   const admin = createServiceRoleClient();
-  const [ownerProfileById, noiBatOrder] = await Promise.all([
-    resolveOwnerProfiles(
-      admin,
-      [...new Set(stubs.map((x) => x.postOwnerId))],
+  const tacPhamIds = [
+    ...new Set(
+      stubs
+        .filter((s) => s.tacPhamSlug && s.visibility === "feature")
+        .map((s) => s.tacPhamId),
     ),
-    fetchGalleryNoiBatOrderMap(userId),
-  ]);
+  ];
+  const orgPostIds = [
+    ...new Set(
+      stubs
+        .filter(
+          (s) =>
+            s.visibility === "feature" &&
+            Boolean(s.orgHref && !s.tacPhamSlug),
+        )
+        .map((s) => s.tacPhamId),
+    ),
+  ];
+  const [ownerProfileById, noiBatOrder, creditsByTacPham, creditsByOrgPost] =
+    await Promise.all([
+      resolveOwnerProfiles(
+        admin,
+        [...new Set(stubs.map((x) => x.postOwnerId))],
+      ),
+      fetchGalleryNoiBatOrderMap(userId),
+      loadCoAuthorCredits(admin, tacPhamIds),
+      loadOrgBaiDangCoAuthorCredits(orgPostIds),
+    ]);
   const ownerSlugById = new Map(
     [...ownerProfileById].map(([id, profile]) => [id, profile.slug]),
   );
   return hydrateAsideItems(
     stubs,
     ownerSlug,
+    userId,
     ownerSlugById,
     ownerProfileById,
     noiBatOrder,
+    creditsByTacPham,
+    creditsByOrgPost,
   );
 }

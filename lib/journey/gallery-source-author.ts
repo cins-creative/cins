@@ -1,0 +1,119 @@
+import type { CoAuthorCredit } from "@/components/journey/milestone-types";
+import type { GalleryStub, OwnerProfile } from "@/lib/journey/gallery-stubs";
+
+export type GallerySourcePerson = {
+  id?: string;
+  name: string;
+  avatarUrl: string | null;
+  initial?: string;
+};
+
+export type GallerySourceAuthor = {
+  /** Hiện avatar góc thumb — bài từ user/org khác (tag, lưu về, org đồng sự). */
+  showCorner: boolean;
+  /** Người có vai trò trong dự án (chủ + cộng sự accepted). */
+  people: GallerySourcePerson[];
+  /** Người đứng đầu — dùng overlay hover. */
+  name: string | null;
+  avatarUrl: string | null;
+};
+
+const MAX_CORNER_PEOPLE = 4;
+
+function creditToPerson(c: CoAuthorCredit): GallerySourcePerson {
+  const name = c.name?.trim() || "?";
+  return {
+    id: c.idNguoiDung,
+    name,
+    avatarUrl: c.avatarUrl ?? null,
+    initial: c.initial ?? name.charAt(0).toUpperCase(),
+  };
+}
+
+function dedupePeople(people: GallerySourcePerson[]): GallerySourcePerson[] {
+  const seen = new Set<string>();
+  const out: GallerySourcePerson[] = [];
+  for (const p of people) {
+    const key = (p.id ?? p.name).toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(p);
+  }
+  return out;
+}
+
+/**
+ * Tác giả/nguồn hiển thị trên thumb gallery pinned / featured preview.
+ * `credits` = cộng sự accepted trên tác phẩm / bài org.
+ */
+export function resolveGallerySourceAuthor(
+  entry: GalleryStub,
+  journeyOwnerId: string,
+  ownerProfile?: OwnerProfile,
+  credits: ReadonlyArray<CoAuthorCredit> = [],
+): GallerySourceAuthor {
+  const accepted = credits.filter((c) => c.trangThai !== "pending");
+  const isOrgPost = Boolean(entry.orgHref && !entry.tacPhamSlug);
+
+  if (isOrgPost) {
+    const orgName = entry.orgKicker?.trim() || null;
+    const orgAvatar = entry.orgAvatarUrl ?? null;
+    const people = dedupePeople([
+      ...(orgName || orgAvatar
+        ? [
+            {
+              id: `org:${entry.cotMocId}`,
+              name: orgName ?? "Tổ chức",
+              avatarUrl: orgAvatar,
+              initial: (orgName ?? "T").charAt(0).toUpperCase(),
+            },
+          ]
+        : []),
+      ...accepted.map(creditToPerson),
+    ]).slice(0, MAX_CORNER_PEOPLE);
+
+    return {
+      showCorner: people.length > 0,
+      people,
+      name: orgName,
+      avatarUrl: orgAvatar,
+    };
+  }
+
+  const isForeignOwner = entry.postOwnerId !== journeyOwnerId;
+  const showCorner =
+    (entry.variant === "tagged" && isForeignOwner) ||
+    (entry.variant === "bookmark" && isForeignOwner) ||
+    (entry.variant === "verified" && isForeignOwner);
+
+  if (!showCorner) {
+    return { showCorner: false, people: [], name: null, avatarUrl: null };
+  }
+
+  const fromCredits = accepted
+    .slice()
+    .sort((a, b) => Number(Boolean(b.laChuSoHuu)) - Number(Boolean(a.laChuSoHuu)))
+    .map(creditToPerson);
+
+  const fallbackOwner: GallerySourcePerson | null = ownerProfile
+    ? {
+        id: entry.postOwnerId,
+        name: ownerProfile.name ?? ownerProfile.slug,
+        avatarUrl: ownerProfile.avatarUrl,
+        initial: (ownerProfile.name ?? ownerProfile.slug).charAt(0).toUpperCase(),
+      }
+    : null;
+
+  const people = dedupePeople([
+    ...fromCredits,
+    ...(fromCredits.length === 0 && fallbackOwner ? [fallbackOwner] : []),
+  ]).slice(0, MAX_CORNER_PEOPLE);
+
+  const head = people[0] ?? null;
+  return {
+    showCorner: people.length > 0,
+    people,
+    name: head?.name ?? null,
+    avatarUrl: head?.avatarUrl ?? null,
+  };
+}

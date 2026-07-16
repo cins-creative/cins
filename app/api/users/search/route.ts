@@ -17,6 +17,13 @@ export async function GET(req: Request) {
   const q = (searchParams.get("q") ?? "").trim().toLowerCase();
   const friendsOnly = searchParams.get("friends_only") === "true";
   const mutualOnly = searchParams.get("mutual_only") === "true";
+  const orgId = (searchParams.get("org_id") ?? "").trim();
+  const limitRaw = Number.parseInt(searchParams.get("limit") ?? "", 10);
+  const limit = Number.isFinite(limitRaw)
+    ? Math.min(Math.max(limitRaw, 1), 50)
+    : friendsOnly
+      ? 20
+      : 40;
 
   const admin = createServiceRoleClient();
   let allowedIds: string[] | null = null;
@@ -39,8 +46,12 @@ export async function GET(req: Request) {
   let query = admin
     .from("user_nguoi_dung")
     .select("id, slug, ten_hien_thi, avatar_id")
-    .neq("id", profileId)
-    .limit(20);
+    .limit(limit);
+
+  // Org studio picker — cho phép tìm cả chính mình + owner org (ghim đầu danh sách).
+  if (!orgId) {
+    query = query.neq("id", profileId);
+  }
 
   if (allowedIds) {
     query = query.in("id", allowedIds);
@@ -61,6 +72,36 @@ export async function GET(req: Request) {
     ten_hien_thi: u.ten_hien_thi,
     avatar_id: u.avatar_id,
   }));
+
+  if (orgId) {
+    const { data: ownerMember } = await admin
+      .from("user_thanh_vien_to_chuc")
+      .select(
+        "user_nguoi_dung: id_nguoi_dung ( id, slug, ten_hien_thi, avatar_id )",
+      )
+      .eq("id_to_chuc", orgId)
+      .eq("vai_tro", "owner")
+      .maybeSingle<{
+        user_nguoi_dung?: {
+          id?: string;
+          slug?: string;
+          ten_hien_thi?: string | null;
+          avatar_id?: string | null;
+        } | null;
+      }>();
+
+    const owner = ownerMember?.user_nguoi_dung;
+    if (owner?.id) {
+      const ownerUser = {
+        id: owner.id,
+        slug: owner.slug ?? "",
+        ten_hien_thi: owner.ten_hien_thi,
+        avatar_id: owner.avatar_id ?? null,
+      };
+      const rest = users.filter((u) => u.id !== owner.id);
+      return NextResponse.json({ users: [ownerUser, ...rest] });
+    }
+  }
 
   return NextResponse.json({ users });
 }

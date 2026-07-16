@@ -1301,7 +1301,8 @@ a.j-main-gallery-item:focus-visible,
   max-width: 248px;
   padding: 10px 12px;
   border-radius: 12px;
-  background: var(--ink-display, #0f172a);
+  /* Nền tối cố định — không dùng --ink-display (token chữ, đảo sang trắng ở dark). */
+  background: #0f172a;
   color: #fff;
   /* Viền sáng mảnh giúp tooltip nổi trên nền tối (ảnh bìa tối/dark mode);
      vẫn dịu trên nền sáng. */
@@ -1386,6 +1387,29 @@ a.j-main-gallery-item:focus-visible,
   font-size: 11.5px;
   font-weight: 600;
   color: var(--cins-green-soft, #6efec0);
+}
+
+/* Dark mode — tooltip portal ra body, nền tách khỏi page tối. */
+:root[data-theme="dark"] .j-verify-tip {
+  --j-verified: #4ade80;
+  background: var(--neutral-100, #1c212c);
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.08),
+    0 12px 30px rgba(0, 0, 0, 0.65);
+}
+:root[data-theme="dark"] .j-verify-tip-loading {
+  color: rgba(255, 255, 255, 0.78);
+}
+:root[data-theme="dark"] .j-verify-tip-name {
+  color: rgba(255, 255, 255, 0.94);
+}
+:root[data-theme="dark"] .j-verify-tip-role {
+  color: rgba(255, 255, 255, 0.62);
+}
+:root[data-theme="dark"] .j-verify-tip-count {
+  border-top-color: rgba(255, 255, 255, 0.12);
+  color: var(--j-verified, #4ade80);
 }
 .j-main-gallery-item.is-org-create {
   aspect-ratio: 16 / 9;
@@ -7905,6 +7929,72 @@ button.j-g-banner:disabled {
   z-index: 2;
 }
 
+.j-g-source-author {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  flex-direction: row;
+  pointer-events: none;
+}
+.j-g-source-author-chip {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  overflow: hidden;
+  flex-shrink: 0;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.28);
+  background: var(--neutral-200, #e4e6eb);
+  margin-left: -8px;
+}
+.j-g-source-author-chip:first-child {
+  margin-left: 0;
+}
+.j-g-source-author-chip img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.j-g-source-author-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--ink-display, #0f172a);
+  line-height: 1;
+}
+.j-g-banner .j-g-source-author {
+  bottom: 10px;
+  left: 10px;
+}
+.j-g-source-author--featured .j-g-source-author-chip {
+  width: 22px;
+  height: 22px;
+  border-width: 1.5px;
+  margin-left: -6px;
+}
+.j-g-source-author--featured .j-g-source-author-chip:first-child {
+  margin-left: 0;
+}
+.j-g-source-author--featured {
+  bottom: 5px;
+  left: 5px;
+}
+.j-g-source-author--featured .j-g-source-author-fallback {
+  font-size: 9px;
+}
+:root[data-theme="dark"] .j-g-source-author-chip {
+  border-color: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+}
+
 /* Square album grid */
 .j-gallery-grid {
   display: grid;
@@ -13282,6 +13372,7 @@ select.j-edit-input {
   --jcard-blue-border: #bfdbfe;
   --jcard-amber: #92400e;
   --jcard-amber-bg: #fef3c7;
+  --jcard-amber-border: rgba(245, 158, 11, 0.35);
   --jcard-purple: var(--cins-violet);
   --jcard-purple-bg: var(--cins-violet-soft);
   --jcard-coral: #c2410c;
@@ -13847,6 +13938,17 @@ select.j-edit-input {
 .ctx-badge.j-vis-cong-dong svg {
   color: #2563eb;
 }
+/* Verified — icon + chữ, không nền chip (đồng bộ màu `.j-dd-opt--verified`). */
+.ctx-badge.j-vis-verified {
+  color: var(--j-verified-ink, #15803d);
+  font-weight: 600;
+  background: transparent;
+  padding-left: 0;
+  padding-right: 0;
+}
+.ctx-badge.j-vis-verified svg {
+  color: var(--j-verified, #45bd62);
+}
 
 /* =========================================================
    DARK THEME — ctx-badge (Dự án, loại nội dung) + badge hiển thị.
@@ -13883,6 +13985,13 @@ select.j-edit-input {
 }
 :root[data-theme="dark"] .ctx-badge.j-vis-cong-dong svg {
   color: #7db4ee;
+}
+:root[data-theme="dark"] .ctx-badge.j-vis-verified {
+  color: var(--j-verified-ink, #6ee7a8);
+  background: transparent;
+}
+:root[data-theme="dark"] .ctx-badge.j-vis-verified svg {
+  color: var(--j-verified, #4ade80);
 }
 
 .j-inline-control {
@@ -14059,6 +14168,16 @@ select.j-edit-input {
   height: 10px;
   border-radius: 50%;
   display: block;
+}
+.j-pf-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex: 0 0 auto;
+}
+.ctx-badge.j-type-personal-custom {
+  gap: 5px;
 }
 .verify-badge {
   border: 1px solid var(--jcard-green-border);
@@ -16481,6 +16600,7 @@ button.j-user-pop-close svg {
   --jcard-blue-border: color-mix(in srgb, var(--cins-blue) 40%, transparent);
   --jcard-amber: #fbbf24;
   --jcard-amber-bg: rgba(245, 158, 11, 0.18);
+  --jcard-amber-border: color-mix(in srgb, var(--jcard-amber) 40%, transparent);
   --jcard-coral: #fb923c;
 }
 .authors-details {
@@ -16547,8 +16667,10 @@ button.j-user-pop-close svg {
 .author-row-info.author-row-inline {
   flex: 1;
   flex-direction: row;
-  align-items: center;
-  gap: 6px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  align-content: flex-start;
+  gap: 4px 6px;
 }
 .authors-right {
   flex: 1;
@@ -16651,9 +16773,11 @@ button.j-user-pop-close svg {
 }
 .author-row-role {
   min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  max-width: 100%;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+  line-height: 1.35;
 }
 .collapse-hint {
   display: none;
@@ -16712,7 +16836,9 @@ button.j-user-pop-close svg {
 }
 .author-row-item {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  row-gap: 6px;
   gap: 10px;
   padding: 7px 0;
   border-bottom: 1px solid var(--jcard-border2);
@@ -16727,6 +16853,7 @@ button.j-user-pop-close svg {
   justify-content: flex-end;
   gap: 6px;
   flex-shrink: 0;
+  align-self: flex-start;
 }
 .author-row-friend,
 .author-row-mutual {
@@ -16816,10 +16943,9 @@ button.j-user-pop-close svg {
 .author-row-mutual svg {
   opacity: 0.75;
 }
-/* Popover bọc dòng đồng tác giả: cho phép co lại để vai trò cắt bớt (ellipsis)
-   thay vì tràn card trên mobile. */
+/* Popover bọc dòng đồng tác giả — tên full width, vai trò xuống hàng. */
 .author-row-item > .j-user-pop-wrap {
-  flex: 1;
+  flex: 1 1 100%;
   min-width: 0;
   display: flex;
 }
@@ -16827,11 +16953,11 @@ button.j-user-pop-close svg {
   flex: 1;
   min-width: 0;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
 }
 .author-row-person {
   display: inline-flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
   flex: 1;
   min-width: 0;
@@ -16842,9 +16968,11 @@ button.j-user-pop-close svg {
   font-weight: 500;
   line-height: 1.3;
   min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  flex: 1 1 100%;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+  word-break: break-word;
 }
 .author-row-name.is-you {
   color: var(--jcard-green);
@@ -16870,9 +16998,9 @@ button.j-user-pop-close svg {
   color: var(--jcard-green);
 }
 .abadge-pending {
-  border: 1px solid rgba(245, 158, 11, 0.35);
-  background: #fffbeb;
-  color: #b45309;
+  border: 1px solid var(--jcard-amber-border);
+  background: var(--jcard-amber-bg);
+  color: var(--jcard-amber);
 }
 .author-row-item.is-pending-credit .author-row-name {
   color: var(--jcard-ink2);

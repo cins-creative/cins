@@ -217,6 +217,17 @@ function GalleryMainItemTile({
 
   const menuOwnerSlug = ownerSlug?.trim() || item.postOwnerSlug?.trim() || null;
   const postSlug = resolveGalleryPostSlug(item);
+  const foreignJourney =
+    isOwner &&
+    item.cotMocId &&
+    item.tacPhamId &&
+    (item.variant === "tagged" || item.variant === "bookmark")
+      ? {
+          variant: item.variant as "tagged" | "bookmark",
+          cotMocId: item.cotMocId,
+          tacPhamId: item.tacPhamId,
+        }
+      : undefined;
   const canSeeInsights =
     isOwner &&
     Boolean(item.cotMocId) &&
@@ -235,6 +246,10 @@ function GalleryMainItemTile({
         }
         postSlug={postSlug}
         personalFilterSlugs={item.personalFilterSlugs}
+        foreignJourney={foreignJourney}
+        hideEdit={Boolean(foreignJourney)}
+        hideDelete={foreignJourney?.variant === "tagged"}
+        hideTypeChange={foreignJourney?.variant === "bookmark"}
         className="j-main-gallery-owner-menu"
         onOpenInsights={
           canSeeInsights ? () => setInsightsOpen(true) : undefined
@@ -279,7 +294,18 @@ function GalleryMainItemTile({
           <GalleryEmbedPlatformBadge provider={item.embedProvider} />
         ) : null}
         {item.variant === "verified" ? (
-          <GalleryVerifiedBadge cotMocId={item.cotMocId} />
+          <GalleryVerifiedBadge
+            cotMocId={item.cotMocId}
+            verifierName={
+              !item.postSlug && item.orgKicker ? item.orgKicker : undefined
+            }
+            verifierAvatarUrl={
+              !item.postSlug ? item.orgAvatarUrl : undefined
+            }
+            verifierRole={
+              !item.postSlug && item.orgKicker ? item.verifierRole : undefined
+            }
+          />
         ) : null}
         {boostToggle}
       </div>

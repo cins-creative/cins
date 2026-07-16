@@ -27,6 +27,7 @@ import type {
 } from "@/components/journey/milestone-types";
 import { useMilestonePersonalFilterAttach } from "@/components/journey/useMilestonePersonalFilterAttach";
 import { CONG_DONG_PERSONAL_FILTER_SLUG } from "@/lib/filter/cong-dong-personal-filter.shared";
+import { isTypeMirrorPersonalFilterSlug } from "@/lib/filter/default-personal-filters.shared";
 import type { LoaiMoc, Visibility } from "@/lib/editor/types";
 import { dispatchMilestoneInlinePatch } from "@/lib/journey/milestone-inline-patch";
 import { milestoneVisibilityHint } from "@/lib/journey/milestone-visibility-hints";
@@ -160,9 +161,9 @@ type VisibilityOption = {
 };
 
 type ForeignJourneyContext = {
-  variant: "tagged" | "bookmark";
+  variant: "tagged" | "bookmark" | "org_tagged";
   cotMocId: string;
-  tacPhamId: string;
+  tacPhamId?: string;
 };
 
 type CongDongContext = {
@@ -465,9 +466,21 @@ export function JourneyMilestoneInlineControls(props: Props) {
     });
   };
 
-  const attachFilters = personalAttach.filters.filter(
-    (f) => !isCongDongPost || f.slug !== CONG_DONG_PERSONAL_FILTER_SLUG,
-  );
+  const attachFilters = personalAttach.filters.filter((f) => {
+    if (isCongDongPost && f.slug === CONG_DONG_PERSONAL_FILTER_SLUG) {
+      return false;
+    }
+    /* Cùng menu với «Loại cột mốc» — ẩn nhãn hệ thống trùng tên loại. */
+    if (props.kind === "type" && isTypeMirrorPersonalFilterSlug(f.slug)) {
+      return false;
+    }
+    return true;
+  });
+
+  const showPersonalFilterSection =
+    showPersonalFilters &&
+    personalAttach.canAttach &&
+    attachFilters.length > 0;
 
   const menu =
     open && menuStyle ? (
@@ -545,7 +558,7 @@ export function JourneyMilestoneInlineControls(props: Props) {
             );
           })
         )}
-        {showPersonalFilters && personalAttach.canAttach ? (
+        {showPersonalFilterSection ? (
           <>
             <div className="j-inline-control-divider" aria-hidden />
             <div className="j-inline-control-section-label">Nhãn riêng</div>

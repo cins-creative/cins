@@ -53,6 +53,10 @@ import { useWorldBoostAdminOptional } from "@/components/cins/world-journey/Worl
 import { worldBoostTargetFromMilestoneLike } from "@/lib/cins/world-boost-client";
 import { IdentityPendingMilestoneCard } from "@/components/journey/IdentityPendingMilestoneCard";
 import { IdentityVerifiedMilestoneCard } from "@/components/journey/IdentityVerifiedMilestoneCard";
+import {
+  PersonalFilterBadge,
+  personalFilterBadgeClass,
+} from "@/components/journey/PersonalFilterVisual";
 import { OrgSuKienFeedMilestoneCard } from "@/components/journey/OrgSuKienFeedMilestoneCard";
 import { JourneyOrgPopover } from "@/components/journey/JourneyOrgPopover";
 import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
@@ -103,6 +107,10 @@ import {
   chiChuNeedsCollapse,
 } from "@/lib/journey/plain-text-bg";
 import { JOURNEY_MILESTONE_TYPE_OPTIONS } from "@/lib/journey/milestone-type-options";
+import {
+  FILTER_LOAI_COT_MOC,
+  FILTER_LOAI_ORG_BAI_DANG,
+} from "@/lib/filter/types";
 import { getNameInitials } from "@/lib/journey/profile";
 import { truongRootPath } from "@/lib/truong/truong-routes";
 
@@ -147,6 +155,8 @@ type Props = {
   /** Trang org đang mở — ẩn bar xác thực nếu attr trùng org này. */
   hostOrgSlug?: string | null;
   hostOrgName?: string | null;
+  /** Menu ghim lên đầu Journey timeline — chỉ view Journey. */
+  showJourneyPin?: boolean;
 };
 
 const TYPE_LABEL: Record<MilestoneType, string> = {
@@ -237,8 +247,11 @@ function attributionMatchesOrgPoster(
 function isOrgSelfAuthoredPost(
   attr: MilestoneAttribution | null | undefined,
   ctx: TruongVerifyBarContext,
+  variant?: MilestoneItem["variant"],
 ): boolean {
   if (!attr?.isOrg) return false;
+  /* Cộng sự org bài đăng trên Journey cá nhân — org gắn user = xác thực, không ẩn bar. */
+  if (ctx.orgBaiDangRef && variant === "verified") return false;
   if (ctx.orgBaiDangRef) {
     return attributionMatchesOrgPoster(
       attr,
@@ -262,13 +275,22 @@ function shouldShowTruongVerifyBar(
   ctx: TruongVerifyBarContext,
 ): boolean {
   if (!attr || !attributionUsesVerifyBar(attr, variant)) return false;
-  if (isOrgSelfAuthoredPost(attr, ctx)) return false;
+  if (isOrgSelfAuthoredPost(attr, ctx, variant)) return false;
   if (isHostOrgVerify(attr, ctx)) return false;
   return true;
 }
 
 function MilestoneVerifyBadge() {
-  return <span className="verify-badge">Verify</span>;
+  return (
+    <span
+      className="ctx-badge j-vis-verified"
+      title="Verified"
+      aria-label="Verified"
+    >
+      <BadgeCheck size={11} strokeWidth={1.7} aria-hidden />
+      Verified
+    </span>
+  );
 }
 
 const EDITABLE_VIS_OPTIONS: ReadonlyArray<{
@@ -408,6 +430,7 @@ export function JourneyMilestoneCard({
   readMoreHref = null,
   hostOrgSlug = null,
   hostOrgName = null,
+  showJourneyPin = false,
 }: Props) {
   const {
     variant,
@@ -442,6 +465,7 @@ export function JourneyMilestoneCard({
     orgHref,
     congDongOrg,
     personalFilterSlugs = [],
+    personalFilters = [],
     membershipPending,
     feedSuggestion = false,
   } = milestone;
@@ -616,16 +640,40 @@ export function JourneyMilestoneCard({
   const isCongDongPost = visibility === "cong-dong";
   const isBookmarkMilestone = variant === "bookmark";
   const isTaggedFromOthers =
-    variant === "tagged" &&
+    (variant === "tagged" || variant === "verified") &&
     Boolean(postOwnerSlug?.trim()) &&
     Boolean(ownerSlug?.trim()) &&
     postOwnerSlug!.trim() !== ownerSlug!.trim();
+  const isJourneyPostAuthor =
+    (Boolean(postOwnerSlug?.trim()) &&
+      Boolean(ownerSlug?.trim()) &&
+      postOwnerSlug!.trim() === ownerSlug!.trim()) ||
+    (Boolean(ownerProfileId) &&
+      Boolean(postOwnerId) &&
+      postOwnerId === ownerProfileId);
+  const isCreditOwnerOnTacPham =
+    Boolean(ownerProfileId) &&
+    coAuthorCredits.some(
+      (c) => c.laChuSoHuu && c.idNguoiDung === ownerProfileId,
+    );
+  /** Gắn thẻ / verify nhưng chủ Journey cũng là tác giả bài — coi như bài của mình. */
+  const isSelfAuthoredTagged =
+    isOwner &&
+    (variant === "tagged" || variant === "verified") &&
+    Boolean(ownerSlug?.trim()) &&
+    (isJourneyPostAuthor || isCreditOwnerOnTacPham);
   const isCongDongSelfPost =
     variant === "self" && isCongDongPost && Boolean(congDongOrg);
+  const isTaggedOrgBaiDang =
+    (variant === "tagged" || variant === "verified") &&
+    Boolean(orgBaiDangRef) &&
+    Boolean(bookmark);
   const useForeignFrame =
-    (isBookmarkMilestone && Boolean(bookmark)) ||
-    isTaggedFromOthers ||
-    isCongDongSelfPost;
+    !isSelfAuthoredTagged &&
+    ((isBookmarkMilestone && Boolean(bookmark)) ||
+      isTaggedFromOthers ||
+      isCongDongSelfPost ||
+      isTaggedOrgBaiDang);
   const foreignFrameKind = isBookmarkMilestone
     ? bookmarkFrameKind
     : isCongDongSelfPost
@@ -647,28 +695,61 @@ export function JourneyMilestoneCard({
       : "Ngày gắn thẻ";
   const canManageSelf =
     isOwner &&
-    (variant === "self" || variant === "verified" || isBookmarkMilestone) &&
+    (variant === "self" ||
+      variant === "verified" ||
+      isBookmarkMilestone ||
+      isSelfAuthoredTagged) &&
     Boolean(ownerSlug);
   const canManageTagged =
-    isOwner && variant === "tagged" && Boolean(ownerSlug) && Boolean(tacPhamId);
+    isOwner &&
+    (variant === "tagged" || variant === "verified") &&
+    !isSelfAuthoredTagged &&
+    Boolean(ownerSlug) &&
+    (Boolean(tacPhamId) || isTaggedOrgBaiDang);
   const canManageForeignJourney =
     (canManageTagged || (isBookmarkMilestone && canManageSelf)) &&
     Boolean(cotMocId) &&
-    Boolean(tacPhamId);
+    (Boolean(tacPhamId) || isTaggedOrgBaiDang);
   const canManage = canManageSelf || canManageTagged;
   const foreignJourneyContext =
-    canManageForeignJourney && cotMocId && tacPhamId
-      ? {
-          variant: (isBookmarkMilestone ? "bookmark" : "tagged") as
-            | "bookmark"
-            | "tagged",
-          cotMocId,
-          tacPhamId,
-        }
+    canManageForeignJourney && cotMocId
+      ? isBookmarkMilestone && tacPhamId
+        ? {
+            variant: "bookmark" as const,
+            cotMocId,
+            tacPhamId,
+          }
+        : isTaggedOrgBaiDang && orgBaiDangRef?.postId
+          ? {
+              variant: "org_tagged" as const,
+              cotMocId: orgBaiDangRef.postId,
+            }
+          : tacPhamId
+            ? {
+                variant: "tagged" as const,
+                cotMocId,
+                tacPhamId,
+              }
+            : undefined
       : undefined;
+  const personalFilterLoai = isTaggedOrgBaiDang
+    ? FILTER_LOAI_ORG_BAI_DANG
+    : FILTER_LOAI_COT_MOC;
+  const personalFilterMenuId =
+    isTaggedOrgBaiDang && orgBaiDangRef?.postId
+      ? orgBaiDangRef.postId
+      : (cotMocId ?? milestone.id);
+  const primaryPersonalFilter = personalFilters[0] ?? null;
+  const allowPersonalFilterOnMenu = Boolean(
+    isOwner && ownerSlug && (canManage || foreignJourneyContext),
+  );
   const canBookmark = !(isOwner && (variant === "self" || isBookmarkMilestone));
   const canManageCoAuthors =
-    isOwner && (variant === "self" || variant === "verified") && Boolean(tacPhamId);
+    isOwner &&
+    (variant === "self" ||
+      variant === "verified" ||
+      isSelfAuthoredTagged) &&
+    Boolean(tacPhamId);
   const showOrgVerifyBadge = usesOrgVerifyTypeBadge(type, verifiedBy, isCongDongPost);
   const truongVerifyBarContext: TruongVerifyBarContext = {
     orgBaiDangRef,
@@ -697,7 +778,7 @@ export function JourneyMilestoneCard({
     (showOrgVerifyBadge || Boolean(verifiedBy?.trim()));
   const canManageArticleTags = canManageCoAuthors;
   const coAuthorExcludeOwnerId =
-    variant === "tagged" && postOwnerId
+    variant === "tagged" && postOwnerId && !isSelfAuthoredTagged
       ? postOwnerId
       : ownerProfileId ?? "";
   const canShowCoAuthorAction =
@@ -1295,6 +1376,27 @@ export function JourneyMilestoneCard({
     </div>
   );
 
+  function renderPersonalFilterToolbarControl() {
+    if (!primaryPersonalFilter || !ownerSlug) return null;
+    return (
+      <JourneyMilestoneInlineControls
+        kind="type"
+        milestoneId={personalFilterMenuId}
+        current={type}
+        options={EDITABLE_TYPE_OPTIONS}
+        personalFilterSlugs={personalFilterSlugs}
+      >
+        <span
+          className={`ctx-badge ${personalFilterBadgeClass(primaryPersonalFilter.slug)}`}
+          title={primaryPersonalFilter.ten}
+          aria-label={primaryPersonalFilter.ten}
+        >
+          <PersonalFilterBadge filter={primaryPersonalFilter} />
+        </span>
+      </JourneyMilestoneInlineControls>
+    );
+  }
+
   return (
     <article
       ref={articleRef}
@@ -1368,9 +1470,11 @@ export function JourneyMilestoneCard({
 
   function renderForeignFrameToolbar() {
     const canEditToolbar =
-      (isBookmarkMilestone && canManageSelf) ||
-      (isTaggedFromOthers && canManageTagged) ||
-      (isCongDongSelfPost && canManageSelf);
+      isOwner &&
+      Boolean(ownerSlug) &&
+      ((isBookmarkMilestone && canManageSelf) ||
+        (canManageTagged && (isTaggedFromOthers || isTaggedOrgBaiDang)) ||
+        (isCongDongSelfPost && canManageSelf));
     return (
       <>
         <span className="badge-row">
@@ -1387,8 +1491,11 @@ export function JourneyMilestoneCard({
                 >
                   <CongDongTypeBadge />
                 </JourneyMilestoneInlineControls>
-              ) : showMilestoneVerifyBadge && showOrgVerifyBadge ? (
-                <MilestoneVerifyBadge />
+              ) : showMilestoneVerifyBadge && showOrgVerifyBadge && !isSelfAuthoredTagged ? (
+                <>
+                  <MilestoneVerifyBadge />
+                  {renderPersonalFilterToolbarControl()}
+                </>
               ) : (
                 <JourneyMilestoneInlineControls
                   kind="type"
@@ -1455,7 +1562,7 @@ export function JourneyMilestoneCard({
             <>
               {isCongDongSelfPost ? (
                 <CongDongTypeBadge />
-              ) : showMilestoneVerifyBadge && showOrgVerifyBadge ? (
+              ) : showMilestoneVerifyBadge && showOrgVerifyBadge && !isSelfAuthoredTagged ? (
                 <MilestoneVerifyBadge />
               ) : showPersonalTypeBadge ? (
                 <span className={`ctx-badge ${TYPE_CLASS[type]}`}>
@@ -1488,19 +1595,32 @@ export function JourneyMilestoneCard({
         </span>
         {canEditToolbar && ownerSlug ? (
           <JourneyMilestoneOwnerMenu
-            milestoneId={cotMocId ?? milestone.id}
+            milestoneId={personalFilterMenuId}
             ownerSlug={ownerSlug}
             permalinkOwnerSlug={resolvedPostOwner}
             currentType={type}
             currentVisibility={visibility ?? "public"}
             postSlug={postSlug ?? null}
-            hideTypeChange={isBookmarkMilestone || isCongDongSelfPost}
-            hideEdit={isBookmarkMilestone || isTaggedFromOthers}
-            hideDelete={isTaggedFromOthers}
+            hideTypeChange={
+              isBookmarkMilestone ||
+              isCongDongSelfPost ||
+              (isTaggedOrgBaiDang && !isSelfAuthoredTagged)
+            }
+            hideEdit={
+              isBookmarkMilestone ||
+              isTaggedFromOthers ||
+              (isTaggedOrgBaiDang && !isSelfAuthoredTagged)
+            }
+            hideDelete={isTaggedFromOthers || isTaggedOrgBaiDang}
             foreignJourney={foreignJourneyContext}
             personalFilterSlugs={personalFilterSlugs}
+            personalFilterLoai={personalFilterLoai}
+            allowPersonalFilter={allowPersonalFilterOnMenu}
             className="jcard-date-menu"
             onOpenInsights={onOpenInsights}
+            milestoneKey={milestone.id}
+            journeyGhimLuc={milestone.journeyGhimLuc ?? null}
+            showJourneyPin={showJourneyPin}
           />
         ) : null}
       </>
@@ -1542,6 +1662,7 @@ export function JourneyMilestoneCard({
           {variant === "tagged" || variant === "verified" ? (
             attribution &&
             !canManageTagged &&
+            !isSelfAuthoredTagged &&
             !useForeignFrame &&
             !entityLens &&
             !showsTruongVerifyBar ? (
@@ -1660,7 +1781,7 @@ export function JourneyMilestoneCard({
                       <Users size={11} strokeWidth={1.8} aria-hidden />
                       Cộng đồng
                     </span>
-                  ) : showMilestoneVerifyBadge && showOrgVerifyBadge ? (
+                  ) : showMilestoneVerifyBadge && showOrgVerifyBadge && !isSelfAuthoredTagged ? (
                     <MilestoneVerifyBadge />
                   ) : (
                     <JourneyMilestoneInlineControls
@@ -1679,7 +1800,7 @@ export function JourneyMilestoneCard({
                       </span>
                     </JourneyMilestoneInlineControls>
                   )}
-                  {showMilestoneVerifyBadge && !showOrgVerifyBadge ? (
+                  {showMilestoneVerifyBadge && (!showOrgVerifyBadge || isSelfAuthoredTagged) ? (
                     <MilestoneVerifyBadge />
                   ) : null}
                   {vis && !isCongDongPost ? (
@@ -1726,6 +1847,7 @@ export function JourneyMilestoneCard({
             >
               {canManageTagged &&
               attribution &&
+              !isSelfAuthoredTagged &&
               !useForeignFrame &&
               !showsTruongVerifyBar ? (
                 <TaggedByPanel
@@ -1760,7 +1882,7 @@ export function JourneyMilestoneCard({
                   dateLabel={displayDate}
                   frameInner
                 />
-              ) : isBookmarkMilestone && bookmark ? (
+              ) : (isBookmarkMilestone || isTaggedOrgBaiDang) && bookmark ? (
                 <BookmarkOriginalPosterChip
                   bookmark={bookmark}
                   orgBaiDangRef={orgBaiDangRef}
@@ -1822,7 +1944,9 @@ export function JourneyMilestoneCard({
                 <>
                   <span className="badge-row">
                     {typeBadgeBoostNode}
-                    {showMilestoneVerifyBadge && showOrgVerifyBadge ? (
+                    {showMilestoneVerifyBadge &&
+                    showOrgVerifyBadge &&
+                    !isSelfAuthoredTagged ? (
                       <MilestoneVerifyBadge />
                     ) : isCongDongPost ? (
                       <JourneyMilestoneInlineControls
@@ -1856,7 +1980,7 @@ export function JourneyMilestoneCard({
                         </span>
                       </JourneyMilestoneInlineControls>
                     )}
-                    {showMilestoneVerifyBadge && !showOrgVerifyBadge ? (
+                    {showMilestoneVerifyBadge && (!showOrgVerifyBadge || isSelfAuthoredTagged) ? (
                       <MilestoneVerifyBadge />
                     ) : null}
                     {vis ? (
@@ -1907,7 +2031,7 @@ export function JourneyMilestoneCard({
                     ) : null}
                   </span>
                   <JourneyMilestoneOwnerMenu
-                    milestoneId={cotMocId ?? milestone.id}
+                    milestoneId={personalFilterMenuId}
                     ownerSlug={ownerSlug}
                     permalinkOwnerSlug={
                       canManageTagged ? resolvedPostOwner : ownerSlug
@@ -1920,8 +2044,13 @@ export function JourneyMilestoneCard({
                     hideDelete={canManageTagged}
                     foreignJourney={foreignJourneyContext}
                     personalFilterSlugs={personalFilterSlugs}
+                    personalFilterLoai={personalFilterLoai}
+                    allowPersonalFilter={allowPersonalFilterOnMenu}
                     className="jcard-date-menu"
                     onOpenInsights={onOpenInsights}
+                    milestoneKey={milestone.id}
+                    journeyGhimLuc={milestone.journeyGhimLuc ?? null}
+                    showJourneyPin={showJourneyPin}
                   />
                 </>
               ) : null}
@@ -2052,14 +2181,17 @@ export function JourneyMilestoneCard({
                 </span>
               </JourneyUserPopover>
               <span className="badge-row">
-                {showMilestoneVerifyBadge && showOrgVerifyBadge ? (
-                  <MilestoneVerifyBadge />
+                {showMilestoneVerifyBadge && showOrgVerifyBadge && !isSelfAuthoredTagged ? (
+                  <>
+                    <MilestoneVerifyBadge />
+                    {renderPersonalFilterToolbarControl()}
+                  </>
                 ) : showPersonalTypeBadge ? (
                   <span className={`ctx-badge ${TYPE_CLASS[type]}`}>
                     <MilestoneTypeBadgeContent type={type} />
                   </span>
                 ) : null}
-                {showMilestoneVerifyBadge && !showOrgVerifyBadge ? (
+                {showMilestoneVerifyBadge && (!showOrgVerifyBadge || isSelfAuthoredTagged) ? (
                   <MilestoneVerifyBadge />
                 ) : null}
                 {vis && showVisibilityMetaBadge ? (

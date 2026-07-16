@@ -125,6 +125,7 @@ export function StudioTabBaiDang({
         defaultView={
           variant === "showcase" ? showcaseDefaultView : undefined
         }
+        allowCoAuthorManage
       />
     </TruongBaiDangEditProvider>
   );

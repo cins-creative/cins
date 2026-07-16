@@ -24,7 +24,11 @@ export async function PUT(req: Request, ctx: RouteContext) {
 
   const { milestoneId } = await ctx.params;
 
-  let body: { id_filter?: string[]; filterIds?: string[] };
+  let body: {
+    id_filter?: string[];
+    filterIds?: string[];
+    loaiDoiTuong?: "cot_moc" | "org_bai_dang";
+  };
   try {
     body = await req.json();
   } catch {
@@ -40,6 +44,7 @@ export async function PUT(req: Request, ctx: RouteContext) {
     milestoneId,
     userId: session.profile.id,
     filterIds: filterIds.map(String),
+    loaiDoiTuong: body.loaiDoiTuong,
   });
 
   if (!result.ok) {

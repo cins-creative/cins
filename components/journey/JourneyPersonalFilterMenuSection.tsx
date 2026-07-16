@@ -5,11 +5,13 @@ import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 
 import { JourneyFilterRenameButton } from "@/components/journey/JourneyFilterRenameButton";
 import { JourneyFilterShareButton } from "@/components/journey/JourneyFilterShareButton";
+import { PersonalFilterDropdownLeading } from "@/components/journey/PersonalFilterVisual";
 import { useJourneyFilterShareOptional } from "@/components/journey/JourneyFilterShareContext";
 import { useJourneyPersonalFilterOptional } from "@/components/journey/JourneyPersonalFilterContext";
 import {
   countUserPersonalFilters,
   isSystemPersonalFilterSlug,
+  isTypeMirrorPersonalFilterSlug,
   orderTimelinePersonalFilters,
 } from "@/lib/filter/cong-dong-personal-filter.shared";
 import {
@@ -90,7 +92,7 @@ function PersonalFilterRow({
   if (editing && onRename) {
     return (
       <div className={"j-dd-opt j-dd-row is-editing" + (active ? " is-active" : "")}>
-        <span className="j-dd-dot" style={{ background: mau }} aria-hidden />
+        <PersonalFilterDropdownLeading slug={filter.slug} mau={mau} />
         <input
           ref={inputRef}
           type="text"
@@ -140,7 +142,7 @@ function PersonalFilterRow({
         className="j-dd-opt-main"
         onClick={onSelect}
       >
-        <span className="j-dd-dot" style={{ background: mau }} aria-hidden />
+        <PersonalFilterDropdownLeading slug={filter.slug} mau={mau} />
         <span className="j-dd-lbl">{filter.ten}</span>
       </button>
       {showManage && onRename ? (
@@ -266,7 +268,9 @@ export function JourneyPersonalFilterMenuSection({
   if (!ctx) return null;
 
   const { filters: rawFilters, activeSlug, setActiveSlug, isOwner, loading } = ctx;
-  const filters = orderTimelinePersonalFilters(rawFilters, { isOwner });
+  const filters = orderTimelinePersonalFilters(rawFilters, { isOwner }).filter(
+    (f) => !isTypeMirrorPersonalFilterSlug(f.slug),
+  );
 
   if (loading && filters.length === 0) return null;
   if (!loading && filters.length === 0 && !isOwner) return null;

@@ -2,7 +2,17 @@
 
 import Link from "next/link";
 import { ChevronUp } from "lucide-react";
-import { useMemo, useRef, useState, useEffect } from "react";
+import { useMemo, useRef, useState, useEffect, useCallback } from "react";
+
+import { JourneyCoAuthorCreditsStrip } from "@/components/journey/JourneyCoAuthorCreditsStrip";
+import { JourneyArticleTagManager } from "@/components/journey/JourneyArticleTagManager";
+import { JourneyCoAuthorProposal } from "@/components/journey/JourneyCoAuthorProposal";
+import type { ArticleTagRef } from "@/lib/editor/article-tag";
+import type { CoAuthorCredit } from "@/components/journey/milestone-types";
+import {
+  MILESTONE_CREDITS_UPDATED_EVENT,
+  type MilestoneCreditsUpdatedDetail,
+} from "@/lib/journey/coauthor-credits-events";
 
 import { JourneyMilestoneCardBodyContent } from "@/components/journey/JourneyMilestoneCardBodyContent";
 import type { MilestoneMediaItem } from "@/components/journey/milestone-types";
@@ -62,12 +72,14 @@ type Props = {
    * Nguồn đầy đủ vẫn ở tab Bài đăng.
    */
   contentOnly?: boolean;
+  /** Studio — hiện quản lý cộng sự trên card (tổ chức giáo dục chỉ tag). */
+  allowCoAuthorManage?: boolean;
 };
 
 function shouldIgnoreExpandTrigger(target: Element | null): boolean {
   return Boolean(
     target?.closest(
-      "a, button, input, textarea, select, summary, .j-m-menu, .authors-details, .image-grid-cell, .jcard-video-trigger, .jcard-actions, .tdh-baidang-edit, .org-baidang-date-edit, .org-baidang-loai-picker",
+      "a, button, input, textarea, select, summary, .j-m-menu, .authors-details, .image-grid-cell, .jcard-video-trigger, .jcard-actions, .tdh-baidang-edit, .org-baidang-date-edit, .org-baidang-loai-picker, .j-article-tag-manage, .j-coauthor-propose",
     ),
   );
 }
@@ -99,11 +111,77 @@ export function OrgBaiDangJourneyCard({
   owner = null,
   initialExpanded = false,
   contentOnly = false,
+  allowCoAuthorManage = false,
 }: Props) {
   const ctx = useTruongInlineEdit();
   const school = ctx?.school ?? owner;
   const isScheduled = isTruongBaiDangScheduled(post);
   const showScheduledUi = ctx?.isEditing && isScheduled;
+  const canManagePost = Boolean(ctx?.isEditing);
+  const orgId = ctx?.orgId ?? "";
+  const [liveArticleTags, setLiveArticleTags] = useState<ArticleTagRef[]>(
+    () => [...(post.articleTags ?? [])],
+  );
+  const [liveCoAuthorCredits, setLiveCoAuthorCredits] = useState<CoAuthorCredit[]>(
+    () => [...(post.coAuthorCredits ?? [])],
+  );
+
+  useEffect(() => {
+    setLiveArticleTags([...(post.articleTags ?? [])]);
+  }, [post.id, post.articleTags]);
+
+  useEffect(() => {
+    setLiveCoAuthorCredits([...(post.coAuthorCredits ?? [])]);
+  }, [post.id, post.coAuthorCredits]);
+
+  useEffect(() => {
+    const onCreditsUpdated = (event: Event) => {
+      const detail = (event as CustomEvent<MilestoneCreditsUpdatedDetail>).detail;
+      if (!detail || detail.tacPhamId !== post.id) return;
+      setLiveCoAuthorCredits([...detail.coAuthorCredits]);
+      ctx?.setBaidang((list) =>
+        list.map((p) =>
+          p.id === post.id
+            ? { ...p, coAuthorCredits: [...detail.coAuthorCredits] }
+            : p,
+        ),
+      );
+    };
+    window.addEventListener(MILESTONE_CREDITS_UPDATED_EVENT, onCreditsUpdated);
+    return () => {
+      window.removeEventListener(MILESTONE_CREDITS_UPDATED_EVENT, onCreditsUpdated);
+    };
+  }, [ctx, post.id]);
+
+  const handleArticleTagsSaved = useCallback(
+    (tags: ArticleTagRef[]) => {
+      setLiveArticleTags(tags);
+      ctx?.setBaidang((list) =>
+        list.map((p) =>
+          p.id === post.id
+            ? {
+                ...p,
+                articleTags: tags,
+                tags: tags.map((t) => ({
+                  label: t.tieu_de,
+                  slug: t.slug,
+                })),
+              }
+            : p,
+        ),
+      );
+    },
+    [ctx, post.id],
+  );
+
+  const tagsApiUrl =
+    orgId && post.id
+      ? `/api/truong/${encodeURIComponent(orgId)}/bai-dang/${encodeURIComponent(post.id)}/tags`
+      : undefined;
+  const tacGiaApiUrl =
+    orgId && post.id
+      ? `/api/truong/${encodeURIComponent(orgId)}/bai-dang/${encodeURIComponent(post.id)}/tac-gia`
+      : undefined;
   const [expanded, setExpanded] = useState(Boolean(initialExpanded));
   const articleRef = useRef<HTMLElement>(null);
 
@@ -451,6 +529,10 @@ export function OrgBaiDangJourneyCard({
             </div>
           )}
 
+          {!contentOnly && liveCoAuthorCredits.length > 0 ? (
+            <JourneyCoAuthorCreditsStrip credits={liveCoAuthorCredits} />
+          ) : null}
+
           {!contentOnly ? (
             <div className="jcard-actions">
               <OrgBaiDangLikeButton postId={post.id} />
@@ -461,6 +543,23 @@ export function OrgBaiDangJourneyCard({
                 initialCount={post.bookmarkCount}
               />
               <span className="action-spacer" />
+              {canManagePost && tagsApiUrl ? (
+                <JourneyArticleTagManager
+                  tacPhamId={post.id}
+                  initialTags={liveArticleTags}
+                  persistUrl={tagsApiUrl}
+                  onTagsSaved={handleArticleTagsSaved}
+                />
+              ) : null}
+              {canManagePost && allowCoAuthorManage && tacGiaApiUrl ? (
+                <JourneyCoAuthorProposal
+                  tacPhamId={post.id}
+                  mode="owner"
+                  tacGiaApiUrl={tacGiaApiUrl}
+                  pickerScope="platform"
+                  orgId={orgId}
+                />
+              ) : null}
             </div>
           ) : null}
         </div>

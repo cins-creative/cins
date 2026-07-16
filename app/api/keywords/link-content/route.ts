@@ -4,6 +4,7 @@ import { linkKeywordsInContent } from "@/lib/articles/link-keywords-in-content";
 import {
   markdownToArcLeadHtml,
   normalizeArticleRichHtml,
+  stripArcImagePlaceholdersFromHtml,
 } from "@/lib/articles/article-rich-html-normalize";
 import { stripLeadingSqlComments } from "@/lib/article/rich-body";
 
@@ -21,7 +22,9 @@ export async function POST(req: Request) {
     const html = /^\s*</.test(stripped)
       ? stripped
       : markdownToArcLeadHtml(stripped);
-    const normalized = normalizeArticleRichHtml(html);
+    const normalized = stripArcImagePlaceholdersFromHtml(
+      normalizeArticleRichHtml(html),
+    );
     const linked = await linkKeywordsInContent(normalized, {
       excludeSlug: body.excludeSlug?.trim() || undefined,
     });

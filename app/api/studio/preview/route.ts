@@ -4,6 +4,7 @@ import { getCoverUrl } from "@/lib/articles/cover";
 import { getAvatarUrl } from "@/lib/journey/profile";
 import { labelTinhThanh } from "@/lib/truong/contact";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { STUDIO_SHOWCASE_LOAI } from "@/lib/to-chuc/studio-page-config";
 import { STUDIO_DEFAULT_TAB, studioTabPath } from "@/lib/to-chuc/studio-routes";
 
 export async function GET(req: Request) {
@@ -33,26 +34,18 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Không tìm thấy studio." }, { status: 404 });
   }
 
-  const [{ count: memberCount }, jobResult, { count: postCount }] =
-    await Promise.all([
-      admin
-        .from("user_thanh_vien_to_chuc")
-        .select("id", { count: "exact", head: true })
-        .eq("id_to_chuc", org.id),
-      admin
-        .from("org_tuyen_dung")
-        .select("id", { count: "exact", head: true })
-        .eq("id_to_chuc", org.id)
-        .eq("da_xoa", false)
-        .eq("trang_thai", "dang_mo"),
-      admin
-        .from("org_bai_dang")
-        .select("id", { count: "exact", head: true })
-        .eq("id_to_chuc", org.id)
-        .eq("trang_thai", "da_dang"),
-    ]);
-
-  const jobCount = jobResult.error ? 0 : (jobResult.count ?? 0);
+  const [{ count: memberCount }, { count: showcaseCount }] = await Promise.all([
+    admin
+      .from("user_thanh_vien_to_chuc")
+      .select("id", { count: "exact", head: true })
+      .eq("id_to_chuc", org.id),
+    admin
+      .from("org_bai_dang")
+      .select("id", { count: "exact", head: true })
+      .eq("id_to_chuc", org.id)
+      .eq("trang_thai", "da_dang")
+      .eq("loai_bai_dang", STUDIO_SHOWCASE_LOAI),
+  ]);
 
   return NextResponse.json({
     org: {
@@ -64,8 +57,7 @@ export async function GET(req: Request) {
       coverUrl: getCoverUrl(org.cover_id),
       tinhThanh: labelTinhThanh(org.tinh_thanh),
       soThanhVien: memberCount ?? 0,
-      soTuyenDung: jobCount,
-      soBaiViet: postCount ?? 0,
+      soShowcase: showcaseCount ?? 0,
       loaiToChuc: org.loai_to_chuc,
       href: studioTabPath(org.slug, STUDIO_DEFAULT_TAB),
     },

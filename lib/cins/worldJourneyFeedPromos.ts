@@ -268,7 +268,9 @@ export async function loadFeedInlinePromos(
   persona: Persona,
 ): Promise<FeedPromoVariant[]> {
   const [people, events, studios, courses, schools] = await Promise.all([
-    loadFollowSuggestions(viewerId, FEED_PROMO_POOL_FETCH.people),
+    loadFollowSuggestions(viewerId, FEED_PROMO_POOL_FETCH.people, {
+      bioMax: 168,
+    }),
     loadFeedPromoEvents(viewerId, persona, FEED_PROMO_POOL_FETCH.events),
     loadOrgFollowSuggestions(viewerId, FEED_PROMO_POOL_FETCH.studios, {
       loaiToChuc: ["studio", "doanh_nghiep"],

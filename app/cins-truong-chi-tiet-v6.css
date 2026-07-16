@@ -5303,6 +5303,19 @@
   outline-offset: 1px;
 }
 
+:root[data-theme="dark"] .tdh-page--v6 #tdh-panel-bai-dang .org-baidang-date-edit,
+:root[data-theme="dark"] .tdh-page--v6 #cso-panel-bai-dang .org-baidang-date-edit {
+  background: #1c212c;
+  border-color: #3a4254;
+  color: #f3f4f6;
+  color-scheme: dark;
+}
+
+:root[data-theme="dark"] .tdh-page--v6 #tdh-panel-bai-dang .org-baidang-date-edit:focus,
+:root[data-theme="dark"] .tdh-page--v6 #cso-panel-bai-dang .org-baidang-date-edit:focus {
+  outline-color: #60a5fa;
+}
+
 .tdh-page--v6 #tdh-panel-bai-dang .org-baidang-cover,
 .tdh-page--v6 #cso-panel-bai-dang .org-baidang-cover {
   position: relative;

@@ -13,6 +13,7 @@ import {
   GalleryItemVisual,
   GalleryVideoPlayBadge,
 } from "@/components/journey/GalleryItemVisual";
+import { GalleryAuthorCornerBadge } from "@/components/journey/GalleryAuthorCornerBadge";
 import type { GalleryPinnedBanner } from "@/components/journey/JourneyGalleryAside";
 import {
   getCachedVideoAspect,
@@ -325,6 +326,14 @@ export function JourneyUserFeaturedExpand({
                     {item.mediaKind === "embed" && item.embedProvider ? (
                       <GalleryEmbedPlatformBadge
                         provider={item.embedProvider}
+                      />
+                    ) : null}
+                    {item.showSourceAuthor ? (
+                      <GalleryAuthorCornerBadge
+                        className="j-g-source-author--featured"
+                        people={item.sourcePeople}
+                        name={item.authorName}
+                        avatarUrl={item.authorAvatarUrl}
                       />
                     ) : null}
                   </div>

@@ -1,5 +1,6 @@
 import "server-only";
 
+import { isSystemPersonalFilterSlug } from "@/lib/filter/default-personal-filters.shared";
 import { DEFAULT_FILTER_MAU, MAX_FILTER_NAME } from "@/lib/filter/constants";
 import type { PersonalFilter } from "@/lib/filter/types";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
@@ -40,12 +41,15 @@ export async function updateUserFilter(params: {
   const admin = createServiceRoleClient();
   const { data: existing } = await admin
     .from("filter_nhan")
-    .select("id, id_nguoi_dung")
+    .select("id, id_nguoi_dung, slug")
     .eq("id", params.filterId)
-    .maybeSingle<{ id: string; id_nguoi_dung: string | null }>();
+    .maybeSingle<{ id: string; id_nguoi_dung: string | null; slug: string }>();
 
   if (!existing || existing.id_nguoi_dung !== params.userId) {
     return { ok: false, error: "Không tìm thấy nhãn hoặc bạn không có quyền sửa." };
+  }
+  if (isSystemPersonalFilterSlug(existing.slug)) {
+    return { ok: false, error: "Không thể đổi tên nhãn mặc định của hệ thống." };
   }
 
   const patch: Record<string, unknown> = {};

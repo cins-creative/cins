@@ -1,6 +1,7 @@
 import {
   markdownToArcLeadHtml,
   normalizeArticleRichHtml,
+  stripArcImagePlaceholdersFromHtml,
 } from "@/lib/articles/article-rich-html-normalize";
 import { normalizeArcSkillRichHtml } from "@/lib/articles/arc-skill-grid-normalize";
 import { transformArcSkillEmojiSpans } from "@/lib/articles/arc-skill-emoji-to-ms";
@@ -32,5 +33,5 @@ export function buildArticleLeadSource(
   if (relatedJobsLienQuan.length > 0) {
     html = injectRelatedJobsGridIntoHtml(html, relatedJobsLienQuan);
   }
-  return html;
+  return stripArcImagePlaceholdersFromHtml(html);
 }

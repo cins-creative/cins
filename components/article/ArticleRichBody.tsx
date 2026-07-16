@@ -5,6 +5,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 import { imagedeliveryPreferPublicInHtml } from "@/lib/cloudflare/imagedelivery-prefer-public";
+import { stripArcImagePlaceholdersFromHtml } from "@/lib/articles/article-rich-html-normalize";
 import {
   isProbablyHtmlContent,
   stripLeadingSqlComments,
@@ -57,7 +58,9 @@ export function ArticleRichBody({
   }
 
   if (isProbablyHtmlContent(trimmed)) {
-    const html = imagedeliveryPreferPublicInHtml(trimmed);
+    const html = stripArcImagePlaceholdersFromHtml(
+      imagedeliveryPreferPublicInHtml(trimmed),
+    );
     return (
       <div
         className={className}

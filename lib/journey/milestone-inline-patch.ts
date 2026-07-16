@@ -21,6 +21,11 @@ export type MilestoneInlinePatchDetail =
       kind: "personalFilters";
       value: string[];
       personalFilters?: PersonalFilterRef[];
+    }
+  | {
+      milestoneId: string;
+      kind: "journeyPin";
+      value: string | null;
     };
 
 export const MILESTONE_INLINE_PATCH_EVENT = "cins:milestone-inline-patch";
@@ -51,6 +56,9 @@ export function applyMilestoneInlinePatch(
         personalFilterSlugs: detail.value,
         personalFilters: detail.personalFilters ?? m.personalFilters ?? [],
       };
+    }
+    if (detail.kind === "journeyPin") {
+      return { ...m, journeyGhimLuc: detail.value };
     }
     return { ...m, visibility: detail.value as MilestoneVisibility };
   });

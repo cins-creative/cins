@@ -2,6 +2,7 @@
 
 import { Check } from "lucide-react";
 
+import { PersonalFilterMenuIcon } from "@/components/journey/PersonalFilterVisual";
 import { DEFAULT_FILTER_MAU } from "@/lib/filter/constants";
 import type { PersonalFilter } from "@/lib/filter/types";
 
@@ -34,6 +35,7 @@ export function MilestonePersonalFilterOptions({
             key={filter.id}
             active={active}
             pending={pending}
+            slug={filter.slug}
             label={filter.ten}
             mau={mau}
             onSelect={() => onSelect(filter.slug)}
@@ -47,12 +49,14 @@ export function MilestonePersonalFilterOptions({
 function InlineItem({
   active,
   pending,
+  slug,
   label,
   mau,
   onSelect,
 }: {
   active: boolean;
   pending: boolean;
+  slug: string;
   label: string;
   mau: string;
   onSelect: () => void;
@@ -69,7 +73,7 @@ function InlineItem({
         onSelect();
       }}
     >
-      <span className="j-dd-dot" style={{ background: mau }} aria-hidden />
+      <PersonalFilterMenuIcon slug={slug} mau={mau} />
       <span>{label}</span>
       {active ? <Check size={13} strokeWidth={2.1} aria-hidden /> : null}
     </button>
@@ -79,12 +83,14 @@ function InlineItem({
 function SubmenuItem({
   active,
   pending,
+  slug,
   label,
   mau,
   onSelect,
 }: {
   active: boolean;
   pending: boolean;
+  slug: string;
   label: string;
   mau: string;
   onSelect: () => void;
@@ -98,11 +104,13 @@ function SubmenuItem({
       disabled={pending}
       onClick={onSelect}
     >
-      <span
-        className="j-m-menu-ico j-m-menu-dot"
-        style={{ background: mau }}
-        aria-hidden
-      />
+      <span className="j-m-menu-ico" aria-hidden>
+        <PersonalFilterMenuIcon
+          slug={slug}
+          mau={mau}
+          dotClassName="j-m-menu-dot"
+        />
+      </span>
       <span className="j-m-menu-lbl">{label}</span>
       {active ? (
         <span className="j-m-menu-check" aria-hidden>

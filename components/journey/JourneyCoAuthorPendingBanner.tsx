@@ -18,10 +18,10 @@ import { CoAuthorPositionPicker } from "@/components/journey/CoAuthorPositionPic
 import { loadCoAuthorNgheRoleOptions } from "@/lib/editor/coauthor-role-action";
 import type { CoAuthorNgheRoleOption } from "@/lib/editor/coauthor-role-types";
 import type { PendingCoAuthorInvite } from "@/lib/social/types";
+import { coAuthorInvitePostHref } from "@/lib/social/coauthor-invite-href";
 
 function coAuthorPostHref(inv: PendingCoAuthorInvite): string | null {
-  if (!inv.ownerSlug || !inv.postSlug) return null;
-  return `/${encodeURIComponent(inv.ownerSlug)}/p/${encodeURIComponent(inv.postSlug)}`;
+  return coAuthorInvitePostHref(inv);
 }
 
 type Props = {
@@ -75,6 +75,7 @@ export function JourneyCoAuthorPendingBanner({
 
   useEffect(() => {
     for (const inv of invites) {
+      if (inv.orgBaiDang) continue;
       if (preloadInflight.current.has(inv.tacPhamId)) continue;
       preloadInflight.current.add(inv.tacPhamId);
       void (async () => {
@@ -208,6 +209,13 @@ export function JourneyCoAuthorPendingBanner({
     (inv: PendingCoAuthorInvite, positions: string[]) => {
       if (respondingId) return;
 
+      if (inv.orgBaiDang) {
+        setPickingId(null);
+        dismissInvite(inv.tacPhamId);
+        void respondInBackground(inv, "accepted", undefined, positions);
+        return;
+      }
+
       const base = preloaded.get(inv.tacPhamId);
       if (!base) {
         setItemErrors((prev) => {
@@ -252,7 +260,7 @@ export function JourneyCoAuthorPendingBanner({
         const postHref = coAuthorPostHref(inv);
         const isResponding = respondingId === inv.tacPhamId;
         const error = itemErrors.get(inv.tacPhamId);
-        const ready = preloaded.has(inv.tacPhamId);
+        const ready = inv.orgBaiDang || preloaded.has(inv.tacPhamId);
         const isPicking = pickingId === inv.tacPhamId;
         return (
           <div key={inv.tacPhamId} className="j-coauthor-pending">

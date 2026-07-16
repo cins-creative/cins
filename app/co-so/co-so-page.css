@@ -217,7 +217,7 @@
 }
 
 .tdh-page--cso .cso-ss-edit-info-btn:hover {
-  background: color-mix(in srgb, var(--cins-priv-accent-soft) 55%, #fff);
+  background: color-mix(in srgb, var(--cins-priv-accent-soft) 55%, var(--bg-surface, #fff));
   border-color: color-mix(in srgb, var(--cins-priv-accent-strong) 45%, transparent);
 }
 
@@ -929,6 +929,18 @@
 
 :root[data-theme="dark"] .tdh-page--cso .cso-ss-verify.is-verified .cso-ss-verify-sub {
   color: var(--cins-mint-dark, #4fd9a6);
+}
+
+:root[data-theme="dark"] .tdh-page--cso .cso-ss-sec .tdh-gioi-thieu-btn {
+  background: #1c212c;
+  border-color: #3a4254;
+  color: #93c5fd;
+}
+
+:root[data-theme="dark"] .tdh-page--cso .cso-ss-sec .tdh-gioi-thieu-btn:hover {
+  background: color-mix(in srgb, #3b82f6 18%, #252b38);
+  border-color: color-mix(in srgb, #60a5fa 38%, #3a4254);
+  color: #bfdbfe;
 }
 
 /* Mobile shell — Thông tin + Nội dung stack; Thông báo qua FAB (org-notify-fab) */

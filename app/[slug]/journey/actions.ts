@@ -771,6 +771,62 @@ export async function updateMilestoneVisibility(
   return { ok: true, data: null };
 }
 
+/** Ghim / bỏ ghim cột mốc lên đầu Journey timeline — không đổi visibility. */
+export async function updateJourneyMilestonePin(input: {
+  ownerSlug: string;
+  milestoneKey: string;
+  pinned: boolean;
+}): Promise<ActionResult<{ journeyGhimLuc: string | null }>> {
+  const session = await getCurrentSessionAndProfile();
+  if (!session?.profile) {
+    return { ok: false, error: "Phiên đăng nhập đã hết hạn." };
+  }
+
+  const ownerSlug = input.ownerSlug?.trim();
+  const milestoneKey = input.milestoneKey?.trim();
+  if (!ownerSlug || !milestoneKey) {
+    return { ok: false, error: "Thiếu thông tin cột mốc." };
+  }
+  if (session.profile.slug !== ownerSlug) {
+    return { ok: false, error: "Chỉ chủ Journey mới ghim được." };
+  }
+  if (milestoneKey.length > 200) {
+    return { ok: false, error: "Khóa cột mốc không hợp lệ." };
+  }
+
+  const admin = createServiceRoleClient();
+  const ownerId = session.profile.id;
+
+  if (!input.pinned) {
+    const { error } = await admin
+      .from("user_journey_ghim")
+      .delete()
+      .eq("id_nguoi_dung", ownerId)
+      .eq("milestone_key", milestoneKey);
+    if (error) {
+      return { ok: false, error: "Không bỏ ghim được: " + error.message };
+    }
+    revalidatePath(`/${ownerSlug}`);
+    return { ok: true, data: { journeyGhimLuc: null } };
+  }
+
+  const ghimLuc = new Date().toISOString();
+  const { error } = await admin.from("user_journey_ghim").upsert(
+    {
+      id_nguoi_dung: ownerId,
+      milestone_key: milestoneKey,
+      ghim_luc: ghimLuc,
+    },
+    { onConflict: "id_nguoi_dung,milestone_key" },
+  );
+  if (error) {
+    return { ok: false, error: "Không ghim được: " + error.message };
+  }
+
+  revalidatePath(`/${ownerSlug}`);
+  return { ok: true, data: { journeyGhimLuc: ghimLuc } };
+}
+
 /** Rời feed cộng đồng — đổi `che_do_hien_thi` khỏi `cong_dong`, gỡ nhãn org feed. */
 export async function graduateCongDongMilestoneAction(input: {
   milestoneId: string;
@@ -794,11 +850,11 @@ export async function graduateCongDongMilestoneAction(input: {
   return { ok: true, data: null };
 }
 
-/** Tagged / Lưu về — đổi hiển thị trên Journey của viewer, không sửa `content_cot_moc` gốc. */
+/** Tagged / Lưu về / bài org — đổi hiển thị trên Journey của viewer, không sửa nội dung gốc. */
 export async function updateForeignMilestoneJourneyVisibility(input: {
-  variant: "tagged" | "bookmark";
+  variant: "tagged" | "bookmark" | "org_tagged";
   cotMocId: string;
-  tacPhamId: string;
+  tacPhamId?: string;
   visibility: Visibility;
 }): Promise<ActionResult<null>> {
   const session = await getCurrentSessionAndProfile();
@@ -807,7 +863,10 @@ export async function updateForeignMilestoneJourneyVisibility(input: {
   }
 
   const { variant, cotMocId, tacPhamId, visibility } = input;
-  if (!cotMocId || !tacPhamId) {
+  if (!cotMocId) {
+    return { ok: false, error: "Thiếu thông tin cột mốc." };
+  }
+  if (variant !== "org_tagged" && !tacPhamId) {
     return { ok: false, error: "Thiếu thông tin cột mốc." };
   }
 
@@ -828,7 +887,7 @@ export async function updateForeignMilestoneJourneyVisibility(input: {
     const { data: row, error } = await admin
       .from("content_tac_pham_tac_gia")
       .update({ che_do_hien_thi_journey: journeyVis })
-      .eq("id_tac_pham", tacPhamId)
+      .eq("id_tac_pham", tacPhamId!)
       .eq("id_nguoi_dung", session.profile.id)
       .eq("trang_thai", "accepted")
       .eq("la_chu_so_huu", false)
@@ -844,11 +903,33 @@ export async function updateForeignMilestoneJourneyVisibility(input: {
     if (!row) {
       return { ok: false, error: "Bạn không có quyền chỉnh cột mốc này." };
     }
+  } else if (variant === "org_tagged") {
+    const { data: row, error } = await admin
+      .from("org_bai_dang_tac_gia")
+      .update({ che_do_hien_thi_journey: journeyVis })
+      .eq("id_bai_dang", cotMocId)
+      .eq("id_nguoi_dung", session.profile.id)
+      .eq("trang_thai", "accepted")
+      .select("id_bai_dang")
+      .maybeSingle();
+
+    if (error) {
+      return {
+        ok: false,
+        error: "Không đổi được chế độ hiển thị: " + error.message,
+      };
+    }
+    if (!row) {
+      return { ok: false, error: "Bạn không có quyền chỉnh cột mốc này." };
+    }
   } else {
     const cheDoLuu = journeyVis === "chi_minh" ? "private" : "public";
     const { data: row, error } = await admin
       .from("social_luu")
-      .update({ che_do_hien_thi: cheDoLuu })
+      .update({
+        che_do_hien_thi_journey: journeyVis,
+        che_do_hien_thi: cheDoLuu,
+      })
       .eq("id_nguoi_dung", session.profile.id)
       .eq("loai_doi_tuong", "cot_moc")
       .eq("id_doi_tuong", cotMocId)

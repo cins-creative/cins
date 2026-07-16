@@ -14,6 +14,8 @@ import {
   Link2,
   Lock,
   MoreVertical,
+  Pin,
+  PinOff,
   Pencil,
   Star,
   Tag,
@@ -35,6 +37,7 @@ import { createPortal } from "react-dom";
 import {
   deleteMilestone,
   updateForeignMilestoneJourneyVisibility,
+  updateJourneyMilestonePin,
   updateMilestoneType,
   updateMilestoneVisibility,
 } from "@/app/[slug]/journey/actions";
@@ -43,6 +46,7 @@ import type {
   MilestoneType,
   MilestoneVisibility,
 } from "@/components/journey/milestone-types";
+import type { FilterLoaiDoiTuong } from "@/lib/filter/types";
 import type { LoaiMoc, Visibility } from "@/lib/editor/types";
 import { JOURNEY_MILESTONE_TYPE_OPTIONS } from "@/lib/journey/milestone-type-options";
 import { MilestonePersonalFilterOptions } from "@/components/journey/MilestonePersonalFilterOptions";
@@ -76,16 +80,26 @@ type Props = {
   onAfterChange?: () => void;
   /** Tagged / Lưu về — đổi hiển thị trên Journey của viewer. */
   foreignJourney?: {
-    variant: "tagged" | "bookmark";
+    variant: "tagged" | "bookmark" | "org_tagged";
     cotMocId: string;
-    tacPhamId: string;
+    tacPhamId?: string;
   };
   /** Class wrapper — vd. `post-byline-menu` trong JourneyPostBody. */
   className?: string;
   /** Nhãn lọc đang gắn — để gán/bỏ trong menu. */
   personalFilterSlugs?: string[];
+  /** Loại đối tượng gắn nhãn — mặc định `cot_moc`; bài org verify dùng `org_bai_dang`. */
+  personalFilterLoai?: FilterLoaiDoiTuong;
+  /** Bật mục «Nhãn riêng» cho tagged / verified / lưu về. */
+  allowPersonalFilter?: boolean;
   /** Mở modal số liệu tiếp cận (chỉ chủ bài / quản trị org). Bỏ trống → ẩn mục. */
   onOpenInsights?: () => void;
+  /** Khóa timeline (`MilestoneItem.id`) — dùng ghim Journey view. */
+  milestoneKey?: string;
+  /** Thời điểm ghim Journey (`user_journey_ghim.ghim_luc`). */
+  journeyGhimLuc?: string | null;
+  /** Hiện mục ghim lên đầu Journey — chỉ view timeline Journey. */
+  showJourneyPin?: boolean;
 };
 
 /* ╔══════════════════════════════════════════════════════════════════╗
@@ -153,12 +167,21 @@ export function JourneyMilestoneOwnerMenu({
   foreignJourney,
   className,
   personalFilterSlugs = [],
+  personalFilterLoai,
+  allowPersonalFilter = false,
   onOpenInsights,
+  milestoneKey,
+  journeyGhimLuc = null,
+  showJourneyPin = false,
 }: Props) {
   const router = useRouter();
   const personalAttach = useMilestonePersonalFilterAttach(
     milestoneId,
-    foreignJourney ? [] : personalFilterSlugs,
+    personalFilterSlugs,
+    {
+      loaiDoiTuong: personalFilterLoai,
+      enabled: allowPersonalFilter || !foreignJourney,
+    },
   );
   const { openCompose, canCompose } = useJourneyCompose();
   const [open, setOpen] = useState(false);
@@ -288,6 +311,42 @@ export function JourneyMilestoneOwnerMenu({
       return;
     }
     void personalAttach.select(slug);
+  }
+
+  function handleJourneyPin(pinned: boolean) {
+    const key = milestoneKey?.trim();
+    if (!key || pending || personalAttach.pending) return;
+    const previous = journeyGhimLuc;
+    setError(null);
+    close();
+    dispatchMilestoneInlinePatch({
+      milestoneId: key,
+      kind: "journeyPin",
+      value: pinned ? new Date().toISOString() : null,
+    });
+    startTransition(async () => {
+      const res = await updateJourneyMilestonePin({
+        ownerSlug,
+        milestoneKey: key,
+        pinned,
+      });
+      if (!res.ok) {
+        setError(res.error);
+        dispatchMilestoneInlinePatch({
+          milestoneId: key,
+          kind: "journeyPin",
+          value: previous,
+        });
+        return;
+      }
+      dispatchMilestoneInlinePatch({
+        milestoneId: key,
+        kind: "journeyPin",
+        value: res.data?.journeyGhimLuc ?? null,
+      });
+      router.refresh();
+      onAfterChange?.();
+    });
   }
 
   function handleChangeVisibility(db: Visibility) {
@@ -483,6 +542,36 @@ export function JourneyMilestoneOwnerMenu({
           </button>
         ) : null}
 
+        {showJourneyPin && milestoneKey ? (
+          journeyGhimLuc ? (
+            <button
+              type="button"
+              className="j-m-menu-item"
+              role="menuitem"
+              disabled={pending || personalAttach.pending}
+              onClick={() => handleJourneyPin(false)}
+            >
+              <span className="j-m-menu-ico" aria-hidden>
+                <PinOff size={14} strokeWidth={1.7} />
+              </span>
+              <span className="j-m-menu-lbl">Bỏ ghim lên đầu Journey</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="j-m-menu-item"
+              role="menuitem"
+              disabled={pending || personalAttach.pending}
+              onClick={() => handleJourneyPin(true)}
+            >
+              <span className="j-m-menu-ico" aria-hidden>
+                <Pin size={14} strokeWidth={1.7} />
+              </span>
+              <span className="j-m-menu-lbl">Ghim lên đầu Journey</span>
+            </button>
+          )
+        ) : null}
+
         {/* Sửa bài viết */}
         {!hideEdit ? (
           postSlug ? (
@@ -615,7 +704,7 @@ export function JourneyMilestoneOwnerMenu({
           </div>
         ) : null}
 
-        {!foreignJourney && personalAttach.canAttach ? (
+        {(allowPersonalFilter || !foreignJourney) && personalAttach.canAttach ? (
           <>
             <button
               type="button"

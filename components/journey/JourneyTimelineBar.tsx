@@ -188,7 +188,6 @@ export function JourneyTimelineBar({
   const wrapRef = useRef<HTMLDivElement>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-  const ignoreOutsideClickRef = useRef(false);
 
   /* Local optimistic copy của visibility map — server-side revalidatePath
      sẽ refresh prop, nhưng UI cần response tức thì khi toggle. */
@@ -256,14 +255,10 @@ export function JourneyTimelineBar({
     };
   }, [open]);
 
-  /* Click ngoài → đóng menu (portal ra body; bỏ qua click mở menu). */
+  /* Click ngoài → đóng menu (portal ra body; capture để không bị stopPropagation chặn). */
   useEffect(() => {
     if (!open) return;
-    function onDocClick(e: MouseEvent) {
-      if (ignoreOutsideClickRef.current) {
-        ignoreOutsideClickRef.current = false;
-        return;
-      }
+    function onDocPointerDown(e: MouseEvent) {
       const target = e.target as Node;
       if (wrapRef.current?.contains(target)) return;
       if (menuRef.current?.contains(target)) return;
@@ -273,12 +268,12 @@ export function JourneyTimelineBar({
       if (e.key === "Escape") setOpen(false);
     }
     const timerId = window.setTimeout(() => {
-      document.addEventListener("click", onDocClick);
+      document.addEventListener("mousedown", onDocPointerDown, true);
     }, 0);
     document.addEventListener("keydown", onEsc);
     return () => {
       window.clearTimeout(timerId);
-      document.removeEventListener("click", onDocClick);
+      document.removeEventListener("mousedown", onDocPointerDown, true);
       document.removeEventListener("keydown", onEsc);
     };
   }, [open]);
@@ -397,7 +392,6 @@ export function JourneyTimelineBar({
         onClick={(e) => {
           e.stopPropagation();
           if (!enabled) return;
-          ignoreOutsideClickRef.current = true;
           setOpen((v) => !v);
         }}
         disabled={!enabled}

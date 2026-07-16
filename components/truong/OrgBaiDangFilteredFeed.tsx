@@ -18,6 +18,8 @@ type Props = {
   owner?: OrgOwner | null;
   /** Showcase — chỉ render block nội dung (không datebar / actions). */
   contentOnly?: boolean;
+  /** Studio — quản lý cộng sự trên card. */
+  allowCoAuthorManage?: boolean;
 };
 
 export function OrgBaiDangFilteredFeed({
@@ -27,6 +29,7 @@ export function OrgBaiDangFilteredFeed({
   onOpenPostFromGrid,
   owner = null,
   contentOnly = false,
+  allowCoAuthorManage = false,
 }: Props) {
   if (filtered.length === 0) {
     return (
@@ -54,6 +57,7 @@ export function OrgBaiDangFilteredFeed({
               post={post}
               owner={owner}
               contentOnly={contentOnly}
+              allowCoAuthorManage={allowCoAuthorManage}
             />
           ))}
         </section>

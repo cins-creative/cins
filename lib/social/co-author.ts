@@ -17,6 +17,10 @@ export type { PendingCoAuthorInvite };
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { insertSocialThongBao } from "@/lib/social/thong-bao-insert";
 import { joinVaiTroPositions } from "@/lib/social/vai-tro";
+import {
+  loadPendingOrgBaiDangCoAuthorInvites,
+  resolveOrgBaiDangCoAuthorInvitesByBaiIds,
+} from "@/lib/truong/org-bai-dang-coauthor";
 
 type TacGiaRow = {
   id_tac_pham: string;
@@ -458,6 +462,16 @@ export async function syncCoAuthorsFromEditor(
 export async function loadPendingCoAuthorInvites(
   userId: string,
 ): Promise<PendingCoAuthorInvite[]> {
+  const [contentInvites, orgInvites] = await Promise.all([
+    loadPendingContentCoAuthorInvites(userId),
+    loadPendingOrgBaiDangCoAuthorInvites(userId),
+  ]);
+  return [...contentInvites, ...orgInvites];
+}
+
+async function loadPendingContentCoAuthorInvites(
+  userId: string,
+): Promise<PendingCoAuthorInvite[]> {
   const admin = createServiceRoleClient();
   const { data: rows } = await admin
     .from("content_tac_pham_tac_gia")
@@ -546,10 +560,18 @@ export async function listPendingCoAuthorInviteNotifications(
     ]),
   );
 
-  const { data: tacPhams } = await admin
-    .from("content_tac_pham")
-    .select("id, slug, tieu_de, id_nguoi_dung")
-    .in("id", tacPhamIds);
+  const orgInviteByBaiId = await resolveOrgBaiDangCoAuthorInvitesByBaiIds(
+    userId,
+    tacPhamIds.filter((id) => !pendingByTacPham.has(id)),
+  );
+
+  const contentTacPhamIds = tacPhamIds.filter((id) => pendingByTacPham.has(id));
+  const { data: tacPhams } = contentTacPhamIds.length
+    ? await admin
+        .from("content_tac_pham")
+        .select("id, slug, tieu_de, id_nguoi_dung")
+        .in("id", contentTacPhamIds)
+    : { data: [] };
 
   const ownerIds = [
     ...new Set((tacPhams ?? []).map((tp) => tp.id_nguoi_dung as string)),
@@ -567,7 +589,21 @@ export async function listPendingCoAuthorInviteNotifications(
   const invites: PendingCoAuthorInviteNotification[] = [];
   for (const row of rows) {
     const tacPhamId = row.id_doi_tuong as string | null;
-    if (!tacPhamId || !pendingByTacPham.has(tacPhamId)) continue;
+    if (!tacPhamId) continue;
+
+    const orgInvite = orgInviteByBaiId.get(tacPhamId);
+    if (orgInvite) {
+      const invite: PendingCoAuthorInviteNotification = {
+        notificationId: row.id as string,
+        ...orgInvite,
+      };
+      const taoLuc = row.tao_luc as string | null;
+      if (taoLuc) invite.taoLuc = taoLuc;
+      invites.push(invite);
+      continue;
+    }
+
+    if (!pendingByTacPham.has(tacPhamId)) continue;
     const tp = tpById.get(tacPhamId);
     if (!tp?.slug) continue;
     const owner = ownerById.get(tp.id_nguoi_dung as string);

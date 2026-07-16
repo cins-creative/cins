@@ -275,6 +275,80 @@ function promoteLeadTitleParagraph(html: string): string {
   return `<section class="arc-section"><h2 class="arc-h2" data-arc-section="01"><span class="arc-heading-body">${escapeHtml(title)}</span></h2>${rest}</section>`;
 }
 
+function findClosingDivEnd(html: string, contentStart: number): number {
+  let depth = 1;
+  let i = contentStart;
+  while (i < html.length && depth > 0) {
+    const open = html.indexOf("<div", i);
+    const close = html.indexOf("</div>", i);
+    if (close === -1) return -1;
+    if (open !== -1 && open < close) {
+      depth += 1;
+      i = open + 4;
+    } else {
+      depth -= 1;
+      if (depth === 0) return close + 6;
+      i = close + 6;
+    }
+  }
+  return -1;
+}
+
+/** Gỡ khối `.arc-image-block` không chứa `<img>` thật (chỉ placeholder / caption). */
+function removeArcImageBlocksWithoutImg(html: string): string {
+  let out = "";
+  let cursor = 0;
+
+  while (cursor < html.length) {
+    const rel = html.slice(cursor);
+    const m = rel.match(/<div[^>]*\barc-image-block\b[^>]*>/i);
+    if (!m || m.index === undefined) {
+      out += html.slice(cursor);
+      break;
+    }
+
+    const start = cursor + m.index;
+    out += html.slice(cursor, start);
+    const openEnd = start + m[0].length;
+    const closeEnd = findClosingDivEnd(html, openEnd);
+    if (closeEnd === -1) {
+      out += html.slice(start);
+      break;
+    }
+
+    const inner = html.slice(openEnd, closeEnd - 6);
+    if (!/<img\b/i.test(inner)) {
+      cursor = closeEnd;
+    } else {
+      out += html.slice(start, closeEnd);
+      cursor = closeEnd;
+    }
+  }
+
+  return out;
+}
+
+/**
+ * Ẩn khối gợi ý tìm ảnh CMS (`.arc-image-placeholder`) khỏi nội dung đọc công khai.
+ * Giữ nguyên trong editor soạn thảo (Tiptap).
+ */
+export function stripArcImagePlaceholdersFromHtml(html: string): string {
+  if (!/\barc-image-placeholder\b/i.test(html)) return html;
+
+  let out = html.replace(
+    /<(?:div|motion)[^>]*\barc-image-placeholder\b[^>]*>[\s\S]*?<\/(?:div|motion)>/gi,
+    "",
+  );
+
+  let prev = "";
+  while (prev !== out) {
+    prev = out;
+    out = removeArcImageBlocksWithoutImg(out);
+  }
+
+  return out;
+}
+
 export function normalizeArticleRichHtml(html: string): string {
   let out = promoteLeadTitleParagraph(html);
   out = restructureArcImagePlaceholders(out);

@@ -5,6 +5,7 @@ import { Users } from "lucide-react";
 import { CareerHubCongDongSection } from "@/components/career/CareerHubCongDongSection";
 import { CareerHubDeptTabs } from "@/components/career/CareerHubDeptTabs";
 import { CareerHubPageHead } from "@/components/career/CareerHubPageHead";
+import { CareerHubMobileRail } from "@/components/career/CareerHubMobileRail";
 import { CareerHubRail } from "@/components/career/CareerHubRail";
 import { CareerHubRoleCard } from "@/components/career/CareerHubRoleCard";
 import { NganhHubAddButton } from "@/components/nganh/hub/NganhHubAddButton";
@@ -30,6 +31,83 @@ function linhTitle(lv: LinhVucRow | null): string {
 function linhTitleVi(lv: LinhVucRow | null): string {
   if (!lv) return "Nghề nghiệp";
   return lv.ten_vi ?? lv.ten ?? lv.ten_en ?? "Nghề nghiệp";
+}
+
+function hubRailSelectionLabel(
+  tab: TabKey,
+  activeLinhVuc: LinhVucRow | null,
+  activeNhomLabel: string | null,
+): string {
+  if (tab === "nganh-hoc") {
+    return activeNhomLabel?.trim() || "Tất cả ngành";
+  }
+  if (!activeLinhVuc) return "Tất cả lĩnh vực";
+  return (
+    activeLinhVuc.ten_vi ??
+    activeLinhVuc.ten ??
+    activeLinhVuc.ten_en ??
+    activeLinhVuc.slug ??
+    "Lĩnh vực"
+  );
+}
+
+function hubRailGroupLabel(
+  groups: LinhVucSidebarGroup[],
+  activeSlug: string,
+): string | null {
+  if (!activeSlug) return null;
+  for (const group of groups) {
+    if (!group.heading) continue;
+    if (group.links.some((lv) => (lv.slug ?? "") === activeSlug)) {
+      return group.heading;
+    }
+  }
+  return null;
+}
+
+function HubRail({
+  tab,
+  hubBase,
+  linhVucSidebarGroups,
+  activeLinhVuc,
+  slugForLink,
+  nganhSidebarGroups,
+  activeNhomId,
+  activeNhomLabel,
+}: {
+  tab: TabKey;
+  hubBase: string;
+  linhVucSidebarGroups: LinhVucSidebarGroup[];
+  activeLinhVuc: LinhVucRow | null;
+  slugForLink: string;
+  nganhSidebarGroups: NganhSidebarGroup[];
+  activeNhomId: string;
+  activeNhomLabel: string | null;
+}) {
+  return (
+    <CareerHubMobileRail
+      tab={tab}
+      selectionLabel={hubRailSelectionLabel(
+        tab,
+        activeLinhVuc,
+        activeNhomLabel,
+      )}
+      groupLabel={
+        tab === "nghe"
+          ? hubRailGroupLabel(linhVucSidebarGroups, slugForLink)
+          : null
+      }
+    >
+      <CareerHubRail
+        tab={tab}
+        hubBase={hubBase}
+        sidebarGroups={linhVucSidebarGroups}
+        activeSlug={slugForLink}
+        nganhSidebarGroups={nganhSidebarGroups}
+        activeNhomId={activeNhomId}
+      />
+    </CareerHubMobileRail>
+  );
 }
 
 type TabKey = "nghe" | "nganh-hoc";
@@ -142,13 +220,15 @@ export function CareerHub({
           activeNhomLabel={activeNhomLabel}
         />
         <div className="hn-main">
-          <CareerHubRail
+          <HubRail
             tab={tab}
             hubBase={hubBase}
-            sidebarGroups={linhVucSidebarGroups}
-            activeSlug={slugForLink}
+            linhVucSidebarGroups={linhVucSidebarGroups}
+            activeLinhVuc={activeLinhVuc}
+            slugForLink={slugForLink}
             nganhSidebarGroups={nganhSidebarGroups}
             activeNhomId={activeNhomId}
+            activeNhomLabel={activeNhomLabel}
           />
           <div className="hn-content">
             <section className="hn-ad-hero" aria-labelledby="hn-nganh-hero-title">
@@ -276,11 +356,15 @@ export function CareerHub({
       <CareerHubPageHead tab={tab} activeLinhVuc={activeLinhVuc} />
 
       <div className="hn-main">
-        <CareerHubRail
+        <HubRail
           tab={tab}
           hubBase={hubBase}
-          sidebarGroups={linhVucSidebarGroups}
-          activeSlug={slugForLink}
+          linhVucSidebarGroups={linhVucSidebarGroups}
+          activeLinhVuc={activeLinhVuc}
+          slugForLink={slugForLink}
+          nganhSidebarGroups={nganhSidebarGroups}
+          activeNhomId={activeNhomId}
+          activeNhomLabel={activeNhomLabel}
         />
 
         <div className="hn-content">

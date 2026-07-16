@@ -71,6 +71,7 @@ function peopleActiveMs(row: UserRow): number {
 export async function loadFollowSuggestions(
   viewerId: string,
   limit = 4,
+  options?: { bioMax?: number },
 ): Promise<FollowSuggestion[]> {
   const admin = createServiceRoleClient();
 
@@ -141,7 +142,7 @@ export async function loadFollowSuggestions(
     name: row.ten_hien_thi?.trim() || row.slug!.trim(),
     avatarUrl: getAvatarUrl(row.avatar_id),
     coverUrl: getProfileCoverUrl(row.cover_id),
-    bio: shortBio(row.bio),
+    bio: shortBio(row.bio, options?.bioMax ?? 110),
     location: labelTinhThanh(row.tinh_thanh) || null,
     giaiDoan: row.giai_doan,
     mutualCount: 0,

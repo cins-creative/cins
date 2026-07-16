@@ -4,7 +4,25 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState, useTransition } from "react";
 
 import { useJourneyPersonalFilterOptional } from "@/components/journey/JourneyPersonalFilterContext";
+import { orderTimelinePersonalFilters } from "@/lib/filter/default-personal-filters.shared";
+import type { FilterLoaiDoiTuong } from "@/lib/filter/types";
 import { dispatchMilestoneInlinePatch } from "@/lib/journey/milestone-inline-patch";
+
+async function putMilestoneFilters(
+  milestoneId: string,
+  filterIds: string[],
+  loaiDoiTuong?: FilterLoaiDoiTuong,
+) {
+  const res = await fetch(
+    `/api/milestone/${encodeURIComponent(milestoneId)}/filters`,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ filterIds, loaiDoiTuong }),
+    },
+  );
+  return res.ok;
+}
 
 function notifyTimelineChanged() {
   if (typeof window === "undefined") return;
@@ -12,22 +30,14 @@ function notifyTimelineChanged() {
   window.dispatchEvent(new CustomEvent("cins:journey-gallery-sync"));
 }
 
-async function putMilestoneFilters(milestoneId: string, filterIds: string[]) {
-  const res = await fetch(
-    `/api/milestone/${encodeURIComponent(milestoneId)}/filters`,
-    {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ filterIds }),
-    },
-  );
-  return res.ok;
-}
-
 /** Gắn một nhãn lọc cá nhân (`filter_gan`) — tối đa 1 nhãn / cột mốc. */
 export function useMilestonePersonalFilterAttach(
   milestoneId: string,
   attachedSlugs: string[],
+  options?: {
+    loaiDoiTuong?: FilterLoaiDoiTuong;
+    enabled?: boolean;
+  },
 ) {
   const router = useRouter();
   const ctx = useJourneyPersonalFilterOptional();
@@ -45,8 +55,11 @@ export function useMilestonePersonalFilterAttach(
     });
   }, [attachedSlug]);
 
-  const filters = ctx?.filters ?? [];
-  const canAttach = Boolean(ctx?.isOwner && filters.length > 0);
+  const filters = orderTimelinePersonalFilters(ctx?.filters ?? [], {
+    isOwner: ctx?.isOwner,
+  });
+  const enabled = options?.enabled ?? true;
+  const canAttach = Boolean(ctx?.isOwner && filters.length > 0 && enabled);
   const selectedSlug = selectedSlugs[0] ?? null;
 
   const applySlugs = useCallback(
@@ -75,7 +88,11 @@ export function useMilestonePersonalFilterAttach(
 
       return new Promise<boolean>((resolve) => {
         startTransition(async () => {
-          const ok = await putMilestoneFilters(milestoneId, nextIds);
+          const ok = await putMilestoneFilters(
+            milestoneId,
+            nextIds,
+            options?.loaiDoiTuong,
+          );
           if (!ok) {
             setSelectedSlugs(rollbackSlugs);
             dispatchMilestoneInlinePatch({
@@ -94,7 +111,7 @@ export function useMilestonePersonalFilterAttach(
         });
       });
     },
-    [ctx, filters, milestoneId, router],
+    [ctx, filters, milestoneId, options?.loaiDoiTuong, router],
   );
 
   const select = useCallback(

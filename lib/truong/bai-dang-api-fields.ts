@@ -28,7 +28,7 @@ type BaiDangDbRow = {
  */
 export function mapOrgBaiDangApiRow(
   row: BaiDangDbRow,
-  extras?: Partial<Pick<TruongBaiDang, "cover_src" | "tags">>,
+  extras?: Partial<Pick<TruongBaiDang, "cover_src" | "tags" | "coAuthorCredits">>,
 ): TruongBaiDang {
   const blocks =
     parseBaiDangBlocks(row.noi_dung_blocks) ??
@@ -47,5 +47,6 @@ export function mapOrgBaiDangApiRow(
     ghim: row.ghim ?? false,
     tags: extras?.tags ?? row.tags ?? [],
     cover_src: extras?.cover_src ?? row.cover_src ?? null,
+    coAuthorCredits: extras?.coAuthorCredits ?? [],
   };
 }

@@ -47,6 +47,10 @@ import {
 } from "@/lib/journey/timeline-merge";
 import { compareTimelineOrder } from "@/lib/journey/timeline-sort";
 import {
+  sortJourneyViewTimeline,
+  splitJourneyPinnedMilestones,
+} from "@/lib/journey/journey-timeline-sort";
+import {
   computeScrollSpyFromMarkers,
   JOURNEY_TIMELINE_SPY_ANCHOR_PX,
   timelineScrollSpyFromParts,
@@ -328,7 +332,13 @@ export function JourneyTimeline({
     const onMilestonePatch = (event: Event) => {
       const detail = (event as CustomEvent<MilestoneInlinePatchDetail>).detail;
       if (!detail?.milestoneId) return;
-      setItems((prev) => applyMilestoneInlinePatch(prev, detail));
+      setItems((prev) => {
+        const next = applyMilestoneInlinePatch(prev, detail);
+        if (detail.kind === "journeyPin") {
+          return sortJourneyViewTimeline(next);
+        }
+        return next;
+      });
     };
     const onCreditsUpdated = (event: Event) => {
       const detail = (event as CustomEvent<MilestoneCreditsUpdatedDetail>).detail;
@@ -537,8 +547,12 @@ export function JourneyTimeline({
     return rows.filter((m) => m.type === filter);
   }, [visibleItems, filter, personalFilter?.activeSlug, isOwner]);
 
-  /* Group theo năm DESC. */
-  const byYear = useMemo(() => groupByYearDesc(filtered), [filtered]);
+  /* Group theo năm DESC — cột mốc ghim tách riêng ở đầu timeline. */
+  const { pinned: pinnedMilestones, rest: timelineRest } = useMemo(
+    () => splitJourneyPinnedMilestones(filtered),
+    [filtered],
+  );
+  const byYear = useMemo(() => groupByYearDesc(timelineRest), [timelineRest]);
 
   const yearNow = String(new Date().getFullYear());
 
@@ -640,18 +654,11 @@ export function JourneyTimeline({
       ) : null}
 
       {hasData ? (
-        byYear.length > 0 ? (
-          byYear.map((yb) => (
+        <>
+          {pinnedMilestones.length > 0 ? (
             <JourneyYearBlock
-              key={yb.year}
-              year={yb.year}
-              milestones={yb.milestones}
-              metaLeft={
-                yb.year === Number(yearNow) ? "Năm hiện tại" : undefined
-              }
-              verifiedCount={
-                yb.milestones.filter((m) => m.variant === "verified").length
-              }
+              year={pinnedMilestones[0]?.year ?? Number(yearNow)}
+              milestones={pinnedMilestones}
               isOwner={isOwner}
               ownerSlug={ownerSlug}
               ownerProfileId={ownerProfileId}
@@ -662,14 +669,41 @@ export function JourneyTimeline({
               onTogglePost={handleToggleContent}
               onOpenComments={handleOpenComments}
               onCloseExpand={handleCloseExpand}
+              showJourneyPin={isOwner}
             />
-          ))
-        ) : (
-          <FilteredEmptyState
-            filter={filter}
-            personalLabelName={activePersonalFilter?.ten ?? null}
-          />
-        )
+          ) : null}
+          {byYear.length > 0 ? (
+            byYear.map((yb) => (
+              <JourneyYearBlock
+                key={yb.year}
+                year={yb.year}
+                milestones={yb.milestones}
+                metaLeft={
+                  yb.year === Number(yearNow) ? "Năm hiện tại" : undefined
+                }
+                verifiedCount={
+                  yb.milestones.filter((m) => m.variant === "verified").length
+                }
+                isOwner={isOwner}
+                ownerSlug={ownerSlug}
+                ownerProfileId={ownerProfileId}
+                viewerProfileId={viewerProfileId}
+                authorAvatarUrl={ownerAvatarUrl ?? null}
+                authorName={ownerName}
+                inlineExpand={inlineExpand}
+                onTogglePost={handleToggleContent}
+                onOpenComments={handleOpenComments}
+                onCloseExpand={handleCloseExpand}
+                showJourneyPin={isOwner}
+              />
+            ))
+          ) : pinnedMilestones.length === 0 ? (
+            <FilteredEmptyState
+              filter={filter}
+              personalLabelName={activePersonalFilter?.ten ?? null}
+            />
+          ) : null}
+        </>
       ) : isOwner ? (
         <OwnerEmptyState
           ownerSlug={ownerSlug}

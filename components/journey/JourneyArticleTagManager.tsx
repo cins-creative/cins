@@ -11,6 +11,8 @@ import type { ArticleTagRef } from "@/lib/editor/article-tag";
 type Props = {
   tacPhamId: string;
   initialTags: ReadonlyArray<ArticleTagRef>;
+  /** Ghi đè endpoint PUT — mặc định `/api/tac-pham/:id/tags` (Journey user). */
+  persistUrl?: string;
   /** Cập nhật UI cục bộ sau lưu — tránh `router.refresh()` kẹt modal (feed cộng đồng). */
   onTagsSaved?: (tags: ArticleTagRef[]) => void;
 };
@@ -18,6 +20,7 @@ type Props = {
 export function JourneyArticleTagManager({
   tacPhamId,
   initialTags,
+  persistUrl,
   onTagsSaved,
 }: Props) {
   const router = useRouter();
@@ -63,6 +66,9 @@ export function JourneyArticleTagManager({
     };
   }, [open, close]);
 
+  const tagsEndpoint =
+    persistUrl ?? `/api/tac-pham/${encodeURIComponent(tacPhamId)}/tags`;
+
   const persist = useCallback(
     async (next: ArticleTagRef[], previous: ArticleTagRef[]) => {
       abortRef.current?.abort();
@@ -71,7 +77,7 @@ export function JourneyArticleTagManager({
       setMessage(null);
       setSaving(true);
       try {
-        const res = await fetch(`/api/tac-pham/${tacPhamId}/tags`, {
+        const res = await fetch(tagsEndpoint, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ tags: next }),
@@ -110,7 +116,7 @@ export function JourneyArticleTagManager({
         }
       }
     },
-    [onTagsSaved, router, tacPhamId],
+    [onTagsSaved, router, tagsEndpoint],
   );
 
   const openModal = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {

@@ -18,9 +18,27 @@ type Props = {
   className?: string;
   /** Cột mốc — fetch thông tin xác thực khi hover. */
   cotMocId?: string | null;
+  /** Org đồng sự — studio/tổ chức xác thực (tránh fetch khi đã có sẵn). */
+  verifierName?: string | null;
+  verifierAvatarUrl?: string | null;
+  verifierRole?: string | null;
 };
 
-export function GalleryVerifiedBadge({ className, cotMocId }: Props) {
+export function GalleryVerifiedBadge({
+  className,
+  cotMocId,
+  verifierName,
+  verifierAvatarUrl,
+  verifierRole,
+}: Props) {
+  const prefilledVerifier = verifierName?.trim()
+    ? {
+        name: verifierName.trim(),
+        avatarUrl: verifierAvatarUrl ?? null,
+        role: verifierRole?.trim() || null,
+        isOrg: true as const,
+      }
+    : null;
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
@@ -41,7 +59,13 @@ export function GalleryVerifiedBadge({ className, cotMocId }: Props) {
   }, []);
 
   const loadSummary = useCallback(() => {
-    if (!cotMocId || fetchedRef.current) return;
+    if (fetchedRef.current) return;
+    if (prefilledVerifier) {
+      fetchedRef.current = true;
+      setSummary({ count: 1, verifier: prefilledVerifier });
+      return;
+    }
+    if (!cotMocId) return;
     fetchedRef.current = true;
     setLoading(true);
     void fetch(
@@ -51,7 +75,7 @@ export function GalleryVerifiedBadge({ className, cotMocId }: Props) {
       .then((json: VerifySummary | null) => setSummary(json))
       .catch(() => setSummary(null))
       .finally(() => setLoading(false));
-  }, [cotMocId]);
+  }, [cotMocId, prefilledVerifier]);
 
   const updatePosition = useCallback(() => {
     const rect = badgeRef.current?.getBoundingClientRect();
@@ -90,7 +114,7 @@ export function GalleryVerifiedBadge({ className, cotMocId }: Props) {
     };
   }, [open, updatePosition]);
 
-  const interactive = Boolean(cotMocId);
+  const interactive = Boolean(cotMocId || prefilledVerifier);
 
   const tooltip =
     interactive && open && pos ? (

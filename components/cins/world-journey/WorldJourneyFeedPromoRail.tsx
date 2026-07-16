@@ -60,8 +60,7 @@ function PromoCourseCard({
   orgLogoUrl?: string | null;
   className?: string;
 }) {
-  const { primary, secondary } = splitPromoSub(sub);
-  const showTag = className === "is-course" && secondary;
+  const { primary } = splitPromoSub(sub);
 
   return (
     <Link
@@ -86,12 +85,7 @@ function PromoCourseCard({
           {className === "is-career" ? (
             sub ? <span className="wj-feed-promo-card-sub">{sub}</span> : null
           ) : (
-            <>
-              <PromoOrgLine name={primary} logoUrl={orgLogoUrl} />
-              {showTag ? (
-                <span className="wj-feed-promo-card-tag">{secondary}</span>
-              ) : null}
-            </>
+            <PromoOrgLine name={primary} logoUrl={orgLogoUrl} />
           )}
         </span>
       </span>

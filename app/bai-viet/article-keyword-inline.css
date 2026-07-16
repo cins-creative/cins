@@ -55,7 +55,8 @@
 }
 
 .kw-inline-tip {
-  background: var(--neutral-900, #1a1a1a);
+  /* Không dùng --neutral-900: token đảo chiều ở dark → nền sáng + chữ trắng */
+  background: #1a1a1a;
   color: #fff;
   border-radius: var(--radius-md, 12px);
   padding: 14px 14px 12px;
@@ -72,7 +73,7 @@
   left: 50%;
   margin-left: -7px;
   border: 7px solid transparent;
-  border-top-color: var(--neutral-900, #1a1a1a);
+  border-top-color: #1a1a1a;
 }
 
 .kw-inline-tip:not(.kw-inline-tip--above)::before {
@@ -82,7 +83,21 @@
   left: 50%;
   margin-left: -7px;
   border: 7px solid transparent;
-  border-bottom-color: var(--neutral-900, #1a1a1a);
+  border-bottom-color: #1a1a1a;
+}
+
+:root[data-theme="dark"] .kw-inline-tip {
+  background: #2a3040;
+  border: 1px solid #3a4152;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.55);
+}
+
+:root[data-theme="dark"] .kw-inline-tip--above::before {
+  border-top-color: #2a3040;
+}
+
+:root[data-theme="dark"] .kw-inline-tip:not(.kw-inline-tip--above)::before {
+  border-bottom-color: #2a3040;
 }
 
 .kw-inline-tip__head {

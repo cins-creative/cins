@@ -20,6 +20,11 @@ type Props = {
   mode: "owner" | "proposal";
   /** Chủ Journey — loại khỏi danh sách tìm cộng sự. */
   ownerId?: string;
+  /** Ghi đè base API — mặc định `/api/tac-pham/:id/tac-gia`. */
+  tacGiaApiUrl?: string;
+  /** Org studio — tìm mọi user (+ owner org). */
+  pickerScope?: "friends" | "platform";
+  orgId?: string;
 };
 
 function persistedToDraft(rows: CoAuthorPersisted[]): CoAuthorDraft[] {
@@ -38,7 +43,13 @@ export function JourneyCoAuthorProposal({
   tacPhamId,
   mode,
   ownerId = "",
+  tacGiaApiUrl,
+  pickerScope = "friends",
+  orgId = "",
 }: Props) {
+  const tacGiaEndpoint =
+    tacGiaApiUrl ??
+    `/api/tac-pham/${encodeURIComponent(tacPhamId)}/tac-gia`;
   const headingId = useId();
   const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
@@ -64,7 +75,7 @@ export function JourneyCoAuthorProposal({
     setLoadingList(true);
     setMessage(null);
     try {
-      const res = await fetch(`/api/tac-pham/${tacPhamId}/tac-gia`, {
+      const res = await fetch(tacGiaEndpoint, {
         cache: "no-store",
       });
       const json = await res.json().catch(() => ({}));
@@ -87,7 +98,7 @@ export function JourneyCoAuthorProposal({
     } finally {
       setLoadingList(false);
     }
-  }, [tacPhamId]);
+  }, [tacGiaEndpoint]);
 
   const openModal = useCallback(() => {
     setOpen(true);
@@ -113,7 +124,7 @@ export function JourneyCoAuthorProposal({
     (list: CoAuthorDraft[]) => {
       setMessage(null);
       startTransition(async () => {
-        const res = await fetch(`/api/tac-pham/${tacPhamId}/tac-gia`, {
+        const res = await fetch(tacGiaEndpoint, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ collaborators: list }),
@@ -141,7 +152,7 @@ export function JourneyCoAuthorProposal({
         setMessage("Đã lưu cộng sự.");
       });
     },
-    [tacPhamId],
+    [tacGiaEndpoint],
   );
 
   const handleOwnerChange = useCallback(
@@ -171,7 +182,7 @@ export function JourneyCoAuthorProposal({
     setMessage(null);
     startTransition(async () => {
       for (const item of list) {
-        const res = await fetch(`/api/tac-pham/${tacPhamId}/tac-gia`, {
+        const res = await fetch(tacGiaEndpoint, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -229,6 +240,8 @@ export function JourneyCoAuthorProposal({
             ownerId={ownerId}
             collaborators={collaborators}
             ownerVaiTro=""
+            pickerScope={pickerScope}
+            orgId={orgId}
             onCollaboratorsChange={
               isOwnerMode ? handleOwnerChange : setCollaborators
             }

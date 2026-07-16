@@ -1617,6 +1617,31 @@ footer:not(.footer):not(.hn-role-foot):not(.tdh-inline-modal-actions):not(.tdh-m
   background: var(--cins-blue-soft, #e8f2fc);
   border-color: rgba(31, 116, 201, 0.35);
 }
+
+:root[data-theme="dark"] .tdh-gioi-thieu-btn {
+  background: #1c212c;
+  border-color: #3a4254;
+  color: #93c5fd;
+}
+
+:root[data-theme="dark"] .tdh-gioi-thieu-btn:hover {
+  background: color-mix(in srgb, #3b82f6 18%, #252b38);
+  border-color: color-mix(in srgb, #60a5fa 38%, #3a4254);
+  color: #bfdbfe;
+}
+
+:root[data-theme="dark"] .tdh-page--v6:not(.tdh-page--cso) .school-side:not(.cso-ss-side) .cso-ss-sec .tdh-gioi-thieu-btn {
+  background: #1c212c;
+  border-color: #3a4254;
+  color: #93c5fd;
+}
+
+:root[data-theme="dark"] .tdh-page--v6:not(.tdh-page--cso) .school-side:not(.cso-ss-side) .cso-ss-sec .tdh-gioi-thieu-btn:hover {
+  background: color-mix(in srgb, #3b82f6 18%, #252b38);
+  border-color: color-mix(in srgb, #60a5fa 38%, #3a4254);
+  color: #bfdbfe;
+}
+
 .tdh-inline-modal.tdh-gioi-thieu-modal {
   min-height: min(360px, 55vh);
   display: flex;

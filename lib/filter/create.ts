@@ -1,6 +1,6 @@
 import "server-only";
 
-import { CONG_DONG_PERSONAL_FILTER_SLUG } from "@/lib/filter/cong-dong-personal-filter.shared";
+import { isSystemPersonalFilterSlug } from "@/lib/filter/default-personal-filters.shared";
 import {
   DEFAULT_FILTER_MAU,
   MAX_FILTER_NAME,
@@ -51,13 +51,17 @@ export async function createUserFilter(params: {
   if (mau === null) return { ok: false, error: "Màu nhãn không hợp lệ (#RRGGBB)." };
 
   const admin = createServiceRoleClient();
-  const { count } = await admin
+  const { data: existingRows } = await admin
     .from("filter_nhan")
-    .select("id", { count: "exact", head: true })
+    .select("slug")
     .eq("id_nguoi_dung", params.userId)
-    .neq("slug", CONG_DONG_PERSONAL_FILTER_SLUG);
+    .returns<Array<{ slug: string }>>();
 
-  if ((count ?? 0) >= MAX_FILTERS_PER_OWNER) {
+  const userFilterCount = (existingRows ?? []).filter(
+    (row) => !isSystemPersonalFilterSlug(row.slug),
+  ).length;
+
+  if (userFilterCount >= MAX_FILTERS_PER_OWNER) {
     return {
       ok: false,
       error: `Tối đa ${MAX_FILTERS_PER_OWNER} nhãn mỗi tài khoản.`,

@@ -222,6 +222,12 @@ export type MilestoneItem = {
   type: MilestoneType;
   visibility?: MilestoneVisibility;
 
+  /**
+   * Ghim lên đầu Journey timeline (`user_journey_ghim.ghim_luc`) — chỉ sort view
+   * Journey; không đổi `che_do_hien_thi` / Gallery / World feed.
+   */
+  journeyGhimLuc?: string | null;
+
   /** Thời gian xảy ra — năm + tháng (1..12) + ngày (1..31). */
   year: number;
   month: number;

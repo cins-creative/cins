@@ -22,6 +22,12 @@ type Props = {
   /** Mở sẵn picker tìm người (modal quản lý cộng sự). */
   initialPickerOpen?: boolean;
   /**
+   * `friends` — chỉ bạn bè (Journey user). `platform` — mọi user (+ owner org nếu có orgId).
+   */
+  pickerScope?: "friends" | "platform";
+  /** Khi `pickerScope=platform` — ghim owner org lên đầu danh sách. */
+  orgId?: string;
+  /**
    * Nếu có: nút "Thêm đã chọn" gọi thẳng callback này với danh sách vừa chọn
    * (bỏ bước thêm vào chip + footer). Dùng cho modal Đề xuất — gửi luôn.
    */
@@ -33,11 +39,14 @@ export function CoAuthorSection({
   collaborators,
   onCollaboratorsChange,
   initialPickerOpen = false,
+  pickerScope = "friends",
+  orgId = "",
   onConfirmSelection,
 }: Props) {
+  const isPlatformPicker = pickerScope === "platform";
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchUser[]>([]);
-  const [hasFriends, setHasFriends] = useState<boolean | null>(null);
+  const [hasPickerUsers, setHasPickerUsers] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(initialPickerOpen);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -45,10 +54,13 @@ export function CoAuthorSection({
   const search = useCallback(async (q: string) => {
     setLoading(true);
     try {
-      const qs = new URLSearchParams({
-        q,
-        friends_only: "true",
-      });
+      const qs = new URLSearchParams({ q, limit: isPlatformPicker ? "40" : "20" });
+      if (!isPlatformPicker) {
+        qs.set("friends_only", "true");
+      }
+      if (isPlatformPicker && orgId.trim()) {
+        qs.set("org_id", orgId.trim());
+      }
       const res = await fetch(`/api/users/search?${qs.toString()}`);
       const json = await res.json();
       if (!res.ok) {
@@ -56,13 +68,15 @@ export function CoAuthorSection({
         return;
       }
       const users = (json.users ?? []) as SearchUser[];
-      const filtered = users.filter((u) => u.id !== ownerId);
+      const filtered = isPlatformPicker
+        ? users
+        : users.filter((u) => u.id !== ownerId);
       setResults(filtered);
-      if (!q) setHasFriends(filtered.length > 0);
+      if (!q) setHasPickerUsers(filtered.length > 0);
     } finally {
       setLoading(false);
     }
-  }, [ownerId]);
+  }, [isPlatformPicker, orgId, ownerId]);
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -152,9 +166,11 @@ export function CoAuthorSection({
 
       {pickerOpen ? (
         <div className="ed-coauthor-picker">
-          {hasFriends === false ? (
+          {hasPickerUsers === false ? (
             <p className="ed-coauthor-empty">
-              Kết bạn với người dùng khác để thêm họ làm cộng sự.
+              {isPlatformPicker
+                ? "Chưa tìm thấy người dùng nào trên CINs."
+                : "Kết bạn với người dùng khác để thêm họ làm cộng sự."}
             </p>
           ) : (
             <>
@@ -164,7 +180,9 @@ export function CoAuthorSection({
                   type="search"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Tìm bạn cộng sự"
+                  placeholder={
+                    isPlatformPicker ? "Tìm người dùng CINs" : "Tìm bạn cộng sự"
+                  }
                   aria-label="Tìm người cùng làm"
                 />
               </div>
