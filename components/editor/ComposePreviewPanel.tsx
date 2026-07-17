@@ -3,7 +3,6 @@
 import {
   Bookmark,
   ChevronUp,
-  Eye,
   Heart,
   Image as ImageIcon,
   LayoutGrid,
@@ -50,7 +49,6 @@ type Props = {
   draft: ComposePreviewDraft;
   /** Mobile: panel đang mở dạng drawer. */
   mobileOpen?: boolean;
-  onMobileClose?: () => void;
 };
 
 const TABS: {
@@ -464,7 +462,6 @@ function MasonryPreview({ snap }: { snap: ComposePreviewSnapshot }) {
 export function ComposePreviewPanel({
   draft,
   mobileOpen = false,
-  onMobileClose,
 }: Props) {
   const tabsId = useId();
   const [tab, setTab] = useState<ComposePreviewTab>("journey");
@@ -480,22 +477,6 @@ export function ComposePreviewPanel({
       className={`ed-compose-preview${mobileOpen ? " is-mobile-open" : ""}`}
       aria-label="Xem trước bài đăng"
     >
-      <div className="ed-compose-preview-head">
-        <div className="ed-compose-preview-title">
-          <Eye size={15} strokeWidth={2} aria-hidden />
-          <span>Xem trước</span>
-        </div>
-        {onMobileClose ? (
-          <button
-            type="button"
-            className="ed-btn ghost ed-compose-preview-close"
-            onClick={onMobileClose}
-          >
-            Đóng
-          </button>
-        ) : null}
-      </div>
-
       <div
         className="ed-compose-preview-tabs"
         role="tablist"

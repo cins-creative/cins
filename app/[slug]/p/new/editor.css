@@ -3367,8 +3367,8 @@
     font-size: 14px;
   }
   .cins-editor-page .ed-topbar-inner {
-    padding: 0 10px;
-    gap: 6px;
+    padding: 0 8px;
+    gap: 4px;
   }
   .cins-editor-page .ed-btn {
     height: 32px;
@@ -3377,6 +3377,25 @@
   }
   .cins-editor-page .ed-btn.primary {
     padding: 0 12px;
+  }
+  .cins-editor-page .ed-btn.ed-compose-preview-toggle {
+    order: -1;
+    width: auto;
+    min-width: 0;
+    height: 34px;
+    padding: 0 10px;
+    gap: 6px;
+    border-radius: var(--radius-pill);
+  }
+  .cins-editor-page .ed-compose-preview-toggle svg {
+    width: 16px;
+    height: 16px;
+  }
+  .cins-editor-page .ed-compose-preview-label {
+    display: inline;
+  }
+  .cins-editor-page .ed-compose-close {
+    margin-left: 0;
   }
   /* Hủy (ghost) chỉ giữ chữ ngắn — nếu cần ẩn hẳn, bỏ comment dòng dưới. */
   /* .cins-editor-page .ed-btn.ghost { display: none; } */
@@ -3412,16 +3431,132 @@
     grid-template-columns: repeat(2, 1fr);
   }
   /* Block side controls (drag/del) đè vào padding canvas, gây overflow.
-     Giấu trên mobile — owner edit qua tap-and-hold (lượt sau). */
-  .cins-editor-page .block-side-rail,
-  .cins-editor-page .lay-bar-rail,
-  .cins-editor-page .block-side {
+     Giấu trên mobile (trang editor thường). Compose overlay `.is-overlay`
+     hiện floating trong block — xem media 991 bên dưới. */
+  .cins-editor-page:not(.is-overlay) .block-side-rail,
+  .cins-editor-page:not(.is-overlay) .lay-bar-rail,
+  .cins-editor-page:not(.is-overlay) .block-side {
     display: none;
   }
-  .cins-editor-page .lay-bar {
+  .cins-editor-page:not(.is-overlay) .lay-bar {
     display: none;
   }
   .cins-editor-page .block::before {
+    display: none;
+  }
+}
+
+/* Compose overlay (Journey / Cộng đồng) — mobile + tablet fullscreen:
+   neo LayBar / BlockSide trong block (không đòi gutter 56px ngoài). */
+@media (max-width: 991.98px) {
+  .cins-editor-page.is-overlay .block-side-rail,
+  .cins-editor-page.is-overlay .lay-bar-rail {
+    display: block;
+    width: auto;
+    z-index: 8;
+    pointer-events: none;
+  }
+  .cins-editor-page.is-overlay .block-side-rail {
+    left: 8px;
+    right: auto;
+  }
+  .cins-editor-page.is-overlay .lay-bar-rail {
+    right: 8px;
+    left: auto;
+  }
+  .cins-editor-page.is-overlay .block-side,
+  .cins-editor-page.is-overlay .lay-bar {
+    display: flex;
+  }
+  .cins-editor-page.is-overlay .block-side::before,
+  .cins-editor-page.is-overlay .lay-bar::before {
+    display: none;
+  }
+  .cins-editor-page.is-overlay .block.selected .block-side,
+  .cins-editor-page.is-overlay .block.selected .lay-bar {
+    gap: 2px;
+    padding: 3px;
+    border-radius: 9px;
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: var(--shadow-sm, 0 4px 12px rgba(15, 23, 42, 0.12));
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+  }
+  .cins-editor-page.is-overlay .side-btn,
+  .cins-editor-page.is-overlay .lay-btn {
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    border-radius: 7px;
+    font-size: 14px;
+  }
+
+  /* Giữ vùng chạm thoải mái trên thiết bị cảm ứng. */
+  @media (pointer: coarse) {
+    .cins-editor-page.is-overlay .side-btn,
+    .cins-editor-page.is-overlay .lay-btn {
+      width: 44px;
+      height: 44px;
+      min-width: 44px;
+    }
+  }
+
+  /* Mobile: toolbar ngang absolute ngoài viền trên của block ảnh được chọn. */
+  .cins-editor-page.is-overlay .lay-bar-rail {
+    position: absolute;
+    top: -50px;
+    right: 0;
+    bottom: auto;
+    left: 0;
+    display: none;
+    width: 100%;
+    height: auto;
+    z-index: 8;
+  }
+  .cins-editor-page.is-overlay
+    .block[data-block-type="imgs"].selected
+    > .lay-bar-rail {
+    display: block;
+  }
+  .cins-editor-page.is-overlay .lay-bar {
+    position: static;
+    width: fit-content;
+    max-width: 100%;
+    margin-inline: auto;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 3px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+  }
+  .cins-editor-page.is-overlay .lay-bar::-webkit-scrollbar {
+    display: none;
+  }
+  .cins-editor-page.is-overlay .block.selected .lay-bar {
+    padding: 4px;
+    border-radius: 9px;
+    background: color-mix(
+      in srgb,
+      var(--bg-surface, #fff) 50%,
+      transparent
+    );
+    box-shadow: none;
+  }
+  .cins-editor-page.is-overlay .lay-bar .lay-btn {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+  }
+  .cins-editor-page.is-overlay .lay-bar .lay-sep {
+    width: 1px;
+    height: 22px;
+    margin: 0 2px;
+    flex: 0 0 1px;
+  }
+  .cins-editor-page.is-overlay
+    .block[data-block-type="imgs"]::after {
     display: none;
   }
 }
@@ -4687,9 +4822,17 @@
   overflow-y: auto;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
-  /* Compose overlay — padding hai bên cho block-side (trái) + lay-bar (phải). */
+  /* Compose overlay desktop — padding hai bên cho block-side + lay-bar. */
   padding-left: 56px;
   padding-right: 56px;
+}
+@media (max-width: 991.98px) {
+  .cins-editor-page.is-overlay .editor-canvas {
+    /* Mobile: rail overlay trong block — bỏ gutter 56px kẻo canvas lệch. */
+    padding-left: 16px;
+    padding-right: 16px;
+    overflow-x: hidden;
+  }
 }
 .cins-editor-page.is-overlay .editor-canvas::-webkit-scrollbar {
   display: none;
@@ -5202,24 +5345,8 @@
   background: color-mix(in srgb, var(--bg-page) 88%, var(--cins-blue-soft));
 }
 
-.cins-editor-page .ed-compose-preview-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 12px 14px 8px;
-  flex-shrink: 0;
-}
-
-.cins-editor-page .ed-compose-preview-title {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ink-title);
-}
-
+.cins-editor-page .ed-compose-preview-head,
+.cins-editor-page .ed-compose-preview-title,
 .cins-editor-page .ed-compose-preview-close {
   display: none;
 }
@@ -5227,7 +5354,7 @@
 .cins-editor-page .ed-compose-preview-tabs {
   display: flex;
   gap: 4px;
-  padding: 0 12px 10px;
+  padding: 12px 12px 10px;
   flex-shrink: 0;
 }
 
@@ -5821,10 +5948,6 @@
 
   .cins-editor-page .ed-compose-preview.is-mobile-open {
     transform: translateX(0);
-  }
-
-  .cins-editor-page .ed-compose-preview-close {
-    display: inline-flex;
   }
 
   .j-compose-sheet:has(.has-compose-preview) {

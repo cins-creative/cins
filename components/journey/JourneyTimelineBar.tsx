@@ -80,9 +80,9 @@ const GROUP_ICON: Record<FilterGroup, LucideIcon> = {
 };
 
 type Props = {
-  /** Năm hiện tại — scroll-spy cập nhật khi user cuộn timeline. Bỏ khi `embed`. */
+  /** Năm tại cột mốc đang nằm dưới context bar. Bỏ khi `embed`. */
   year?: string;
-  /** Tháng hiển thị — VD "Tháng 5". Bỏ trống → ẩn cột. */
+  /** Tháng tại cột mốc đang nằm dưới context bar. */
   month?: string;
   /** Filter group đang chọn. */
   filter: FilterGroup;
@@ -153,11 +153,10 @@ function selectTimelineFilter(
 }
 
 /**
- * Context bar 3 cột: Năm | Tháng | Filter dropdown.
+ * Context bar Journey: filter trái · toggle chế độ xem phải.
  *
  * - Dropdown menu mở/đóng bằng local state, click ngoài đóng.
  * - Filter group được nâng lên parent (`JourneyTimeline`) để filter milestones.
- * - Scroll-spy cập nhật year/month theo cột mốc gần mép dưới context bar.
  */
 export function JourneyTimelineBar({
   year = "",
@@ -429,18 +428,14 @@ export function JourneyTimelineBar({
     );
   }
 
-  const filterCluster =
-    asideMediaFilter || showSurfaceToggle ? (
+  const filterCluster = asideMediaFilter ? (
       <div className="j-tlb-filters">
         {filterControl}
-        {asideMediaFilter ? (
-          <GalleryMediaFilterDropdown
-            filter={asideMediaFilter.mediaFilter}
-            onFilterChange={asideMediaFilter.setMediaFilter}
-            variant="icon"
-          />
-        ) : null}
-        {showSurfaceToggle ? <JourneySurfaceViewToggle /> : null}
+        <GalleryMediaFilterDropdown
+          filter={asideMediaFilter.mediaFilter}
+          onFilterChange={asideMediaFilter.setMediaFilter}
+          variant="icon"
+        />
       </div>
     ) : (
       filterControl
@@ -449,14 +444,17 @@ export function JourneyTimelineBar({
   return (
     <div className="j-tlb">
       <span className="j-tlb-streak-slow" aria-hidden="true" />
-      <div className="j-tlb-year">{year}</div>
-      <div
-        className="j-tlb-month"
-        style={{ visibility: month ? "visible" : "hidden" }}
-      >
-        {month || "—"}
+      <div className="j-tlb-date">
+        <div className="j-tlb-year">{year}</div>
+        <div
+          className="j-tlb-month"
+          style={{ visibility: month ? "visible" : "hidden" }}
+        >
+          {month || "—"}
+        </div>
       </div>
       {filterCluster}
+      {showSurfaceToggle ? <JourneySurfaceViewToggle /> : null}
       {portalReady && menu ? createPortal(menu, document.body) : null}
     </div>
   );

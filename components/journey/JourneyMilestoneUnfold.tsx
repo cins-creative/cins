@@ -8,6 +8,11 @@ import type { MilestonePostDetail } from "@/lib/journey/milestone-post-types";
 import { JourneyPostBody } from "@/components/journey/JourneyPostBody";
 import { POST_COMMENTS_SYNC_EVENT } from "@/lib/journey/comments-sync-client";
 import {
+  captureExpandScrollPin,
+  subscribeExpandScrollPin,
+  type ExpandScrollPin,
+} from "@/lib/journey/expand-scroll-pin";
+import {
   invalidateMilestoneDetailCache,
   loadMilestoneDetailCached,
   milestoneDetailCacheKey,
@@ -35,6 +40,11 @@ type Props = {
   actionsBeforeComments?: ReactNode;
 };
 
+function resolveScrollAnchor(from: HTMLElement | null): HTMLElement | null {
+  if (!from) return null;
+  return from.closest<HTMLElement>(".j-milestone") ?? from;
+}
+
 export function JourneyMilestoneUnfold({
   postOwnerSlug,
   postSlug,
@@ -53,9 +63,9 @@ export function JourneyMilestoneUnfold({
   );
   const loadGenRef = useRef(0);
   const mountedRef = useRef(true);
-  /** Snapshot scroll lúc bắt đầu xổ — khôi phục khi detail async đổ vào (bài dài). */
-  const expandScrollYRef = useRef<number | null>(null);
-  const didRestoreScrollRef = useRef(false);
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  /** Snapshot offset card lúc xổ — re-pin khi detail/ảnh đổ vào. */
+  const expandScrollPinRef = useRef<ExpandScrollPin | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -72,14 +82,14 @@ export function JourneyMilestoneUnfold({
 
   useEffect(() => {
     if (!active) {
-      expandScrollYRef.current = null;
-      didRestoreScrollRef.current = false;
+      expandScrollPinRef.current = null;
       setLoading(false);
       return;
     }
-    if (expandScrollYRef.current == null) {
-      expandScrollYRef.current = window.scrollY;
-      didRestoreScrollRef.current = false;
+    if (expandScrollPinRef.current == null) {
+      expandScrollPinRef.current = captureExpandScrollPin(
+        resolveScrollAnchor(rootRef.current),
+      );
     }
 
     const cached = readCachedMilestoneDetail(cacheKey);
@@ -118,13 +128,17 @@ export function JourneyMilestoneUnfold({
   }, [active, cacheKey, milestoneId, postOwnerSlug, postSlug]);
 
   useLayoutEffect(() => {
-    if (!active || !detail || loading) return;
-    if (commentsFocus) return;
-    if (didRestoreScrollRef.current) return;
-    const y = expandScrollYRef.current;
-    if (y == null) return;
-    didRestoreScrollRef.current = true;
-    window.scrollTo({ top: y, left: 0, behavior: "instant" });
+    if (!active || commentsFocus) return;
+    const anchor = resolveScrollAnchor(rootRef.current);
+    if (!anchor) return;
+    const pin =
+      expandScrollPinRef.current ?? captureExpandScrollPin(anchor);
+    if (!pin) return;
+    expandScrollPinRef.current = pin;
+    return subscribeExpandScrollPin(anchor, pin, {
+      resizeTarget: rootRef.current ?? anchor,
+      holdMs: loading || !detail ? 4000 : 2800,
+    });
   }, [active, detail, loading, commentsFocus]);
 
   useEffect(() => {
@@ -247,6 +261,7 @@ export function JourneyMilestoneUnfold({
 
   return (
     <div
+      ref={rootRef}
       className="j-m-card-unfold-inner"
       id={`milestone-unfold-${milestoneId}`}
     >

@@ -847,10 +847,6 @@ export function JourneyGalleryGridView({
       {!hideToolbar ? (
         <div className="j-tlb">
           <span className="j-tlb-streak-slow" aria-hidden="true" />
-          <div className="j-tlb-year">Gallery</div>
-          <div className="j-tlb-month" aria-hidden style={{ visibility: "hidden" }}>
-            —
-          </div>
           {hasData || journeyView ? (
             <div className="j-tlb-filters">
               {hasData ? (

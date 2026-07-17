@@ -16,11 +16,13 @@ import { JourneyShareCardPreview } from "@/components/journey/JourneyShareCardPr
 import { JourneyShareThemePicker } from "@/components/journey/JourneyShareThemePicker";
 import {
   PORTFOLIO_ALL_FILTER_SHARE_SPEC,
+  enrichFeaturedShareSources,
   featuredPinnedToShareSources,
   fetchGalleryItemsForShare,
   filterGalleryItemsForShare,
   galleryFilterShareUrl,
   galleryFilterSpecFromSearch,
+  galleryItemsToShareSources,
   galleryThumbsForShareSpec,
   getLiveFeaturedPinnedForShare,
   mergeShareGallerySources,
@@ -370,11 +372,27 @@ export function JourneyProfileShareModal({
     const timeline = readJourneyTimelinePanelCache(profile.slug, viewerProfileId);
     const gallery = readJourneyGalleryPanelCache(profile.slug, viewerProfileId);
     const aside = readJourneyAsidePanelCache(profile.slug, viewerProfileId);
+    const liveGallerySources = galleryItemsToShareSources(liveGalleryItems);
+    const cachedGallerySources = galleryItemsToShareSources(gallery?.items ?? []);
+    const timelineSources = milestonesToShareGalleryItems(
+      timeline?.page.milestones ?? [],
+    );
     /** Live Feature (sau kéo) thắng cache stale; fallback aside cache. */
-    const featuredSources = featuredPinnedToShareSources(
-      getLiveFeaturedPinnedForShare().length > 0
-        ? getLiveFeaturedPinnedForShare()
-        : (aside?.pinned ?? []),
+    const featuredSources = enrichFeaturedShareSources(
+      featuredPinnedToShareSources(
+        getLiveFeaturedPinnedForShare().length > 0
+          ? getLiveFeaturedPinnedForShare()
+          : (aside?.pinned ?? []).map((b) => ({
+              cotMocId: b.cotMocId,
+              src: b.src,
+              videoPreviewSrc: b.videoPreviewSrc,
+              type: b.type,
+              variant: b.variant,
+            })),
+      ),
+      liveGallerySources,
+      cachedGallerySources,
+      timelineSources,
     );
     let cancelled = false;
 
@@ -422,18 +440,19 @@ export function JourneyProfileShareModal({
     };
 
     if (orgShare) {
-      applyThumbs([featuredSources, liveGalleryItems], {
+      applyThumbs([featuredSources, liveGallerySources], {
         noiBat: profile.stats?.noiBat ?? 0,
         tacPham: profile.stats?.tacPham ?? 0,
       });
       void (async () => {
         const fetched = await fetchGalleryItemsForShare(profile.slug);
         if (cancelled || fetched.items.length === 0) return;
-        applyThumbs([featuredSources, liveGalleryItems, fetched.items], {
+        const fetchedSources = galleryItemsToShareSources(fetched.items);
+        applyThumbs([featuredSources, liveGallerySources, fetchedSources], {
           noiBat:
             profile.stats?.noiBat ??
             resolveNoiBat(
-              [liveGalleryItems, fetched.items],
+              [liveGallerySources, fetchedSources],
               fetched.featuredCount,
             ),
           tacPham: profile.stats?.tacPham ?? resolveTacPham(fetched.totalCount),
@@ -447,25 +466,32 @@ export function JourneyProfileShareModal({
     const baseStats = {
       noiBat: resolveNoiBat([
         featuredSources,
-        liveGalleryItems,
-        gallery?.items ?? [],
+        liveGallerySources,
+        cachedGallerySources,
       ]),
       tacPham: resolveTacPham(),
     };
 
     if (step === "journey-card" || filterSpec.kind === "all") {
       applyThumbs(
-        [featuredSources, liveGalleryItems, gallery?.items ?? []],
+        [featuredSources, liveGallerySources, cachedGallerySources],
         baseStats,
       );
       void (async () => {
         const fetched = await fetchGalleryItemsForShare(profile.slug);
         if (cancelled || fetched.items.length === 0) return;
-        const sources = [
+        const fetchedSources = galleryItemsToShareSources(fetched.items);
+        const featuredWithLabels = enrichFeaturedShareSources(
           featuredSources,
-          liveGalleryItems,
-          fetched.items,
-          gallery?.items ?? [],
+          liveGallerySources,
+          fetchedSources,
+          cachedGallerySources,
+        );
+        const sources = [
+          featuredWithLabels,
+          liveGallerySources,
+          fetchedSources,
+          cachedGallerySources,
         ];
         applyThumbs(sources, {
           noiBat: resolveNoiBat(sources, fetched.featuredCount),
@@ -493,21 +519,30 @@ export function JourneyProfileShareModal({
 
     applyFiltered([
       featuredSources,
-      liveGalleryItems,
-      gallery?.items ?? [],
-      milestonesToShareGalleryItems(timeline?.page.milestones ?? []),
+      liveGallerySources,
+      cachedGallerySources,
+      timelineSources,
     ]);
 
     void (async () => {
       const fetched = await fetchGalleryItemsForShare(profile.slug);
       if (cancelled || fetched.items.length === 0) return;
+      const fetchedSources = galleryItemsToShareSources(fetched.items);
+      /** Re-enrich sau fetch — pin Feature nhận đủ nhãn từ trang gallery. */
+      const featuredWithLabels = enrichFeaturedShareSources(
+        featuredSources,
+        liveGallerySources,
+        fetchedSources,
+        cachedGallerySources,
+        timelineSources,
+      );
       applyFiltered(
         [
-          featuredSources,
-          liveGalleryItems,
-          fetched.items,
-          gallery?.items ?? [],
-          milestonesToShareGalleryItems(timeline?.page.milestones ?? []),
+          featuredWithLabels,
+          liveGallerySources,
+          fetchedSources,
+          cachedGallerySources,
+          timelineSources,
         ],
         fetched.featuredCount,
       );
@@ -602,7 +637,28 @@ export function JourneyProfileShareModal({
         ? orgPageShareUrl(orgShare)
         : journeyShareUrl(profile.slug);
 
-  const shareInviteTitle = orgShareInviteTitle(orgShare, profile.displayName);
+  const shareInviteTitle = (() => {
+    const base = orgShareInviteTitle(orgShare, profile.displayName);
+    if (
+      cardKind === "gallery" &&
+      portfolioFilter &&
+      portfolioFilter.kind !== "all"
+    ) {
+      return `${base} · ${portfolioFilter.label}`;
+    }
+    return base;
+  })();
+
+  const shareCardDescription = (() => {
+    if (profile.bio) return profile.bio;
+    if (cardKind === "gallery") {
+      if (portfolioFilter && portfolioFilter.kind !== "all") {
+        return `Portfolio «${portfolioFilter.label}» của ${profile.displayName} trên CINs.`;
+      }
+      return `Portfolio của ${profile.displayName} trên CINs.`;
+    }
+    return `Hành trình sáng tạo của ${profile.displayName} trên CINs.`;
+  })();
 
   /**
    * Preview DOM (`JourneyShareCardPreview`) không hit `/opengraph-image`.
@@ -748,11 +804,7 @@ export function JourneyProfileShareModal({
           body: JSON.stringify({
             targetUrl: cardTargetUrl,
             title: `${shareInviteTitle} · CINS`,
-            description:
-              profile.bio ??
-              (cardKind === "gallery"
-                ? `Portfolio của ${profile.displayName} trên CINs.`
-                : `Hành trình sáng tạo của ${profile.displayName} trên CINs.`),
+            description: shareCardDescription,
             imageId: snapshot.imageId,
             orgId: orgShareId,
           }),
@@ -779,9 +831,9 @@ export function JourneyProfileShareModal({
     cardTargetUrl,
     fallbackCardShareUrl,
     orgShareId,
-    profile.bio,
     profile.displayName,
     publishOgSnapshot,
+    shareCardDescription,
     shareInviteTitle,
     themeCanEdit,
     warmOnDemandOgImage,

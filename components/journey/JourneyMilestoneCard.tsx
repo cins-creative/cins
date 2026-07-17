@@ -37,6 +37,11 @@ import { VerifiedTick } from "@/components/journey/VerifiedTick";
 import { PostBlockRenderer } from "@/components/journey/PostBlockRenderer";
 import { POST_COMMENTS_SYNC_EVENT } from "@/lib/journey/comments-sync-client";
 import {
+  captureExpandScrollPin,
+  subscribeExpandScrollPin,
+  type ExpandScrollPin,
+} from "@/lib/journey/expand-scroll-pin";
+import {
   isMilestoneArticleCard,
   milestoneCardContentKind,
   milestoneCardPhotoGrid,
@@ -902,8 +907,8 @@ export function JourneyMilestoneCard({
 
   /* Analytics tiếp cận/tương tác — KHÔNG đo nội dung của chính mình. */
   const articleRef = useRef<HTMLElement | null>(null);
-  /** Giữ scroll khi xổ bài dài — tránh viewport nhảy xuống cuối nội dung. */
-  const expandScrollYRef = useRef<number | null>(null);
+  /** Neo viewport khi xổ bài dài — theo offset card, re-pin khi body/ảnh phình. */
+  const expandScrollPinRef = useRef<ExpandScrollPin | null>(null);
   /* Nguồn bề mặt — ưu tiên prop tường minh; fallback theo entityLens. */
   const nguonSuKien: NguonSuKien =
     analyticsNguon ?? (entityLens ? "entity_lens" : "journey_home");
@@ -1012,7 +1017,7 @@ export function JourneyMilestoneCard({
   useEffect(() => {
     if (!showUnfold) {
       setUnfoldReady(false);
-      expandScrollYRef.current = null;
+      expandScrollPinRef.current = null;
       return;
     }
     setUnfoldMounted(true);
@@ -1029,10 +1034,19 @@ export function JourneyMilestoneCard({
   }, [showUnfold]);
 
   useLayoutEffect(() => {
-    if (!showUnfold) return;
-    const y = expandScrollYRef.current;
-    if (y == null) return;
-    window.scrollTo({ top: y, left: 0, behavior: "instant" });
+    if (!showUnfold || !showContent) return;
+    const pin =
+      expandScrollPinRef.current ??
+      captureExpandScrollPin(articleRef.current);
+    if (!pin) return;
+    expandScrollPinRef.current = pin;
+    const unfoldEl = articleRef.current?.querySelector<HTMLElement>(
+      ".j-m-card-unfold",
+    );
+    return subscribeExpandScrollPin(articleRef.current, pin, {
+      resizeTarget: unfoldEl ?? articleRef.current,
+      holdMs: 3200,
+    });
   }, [showUnfold, unfoldReady, showContent]);
 
   useEffect(() => {
@@ -1204,7 +1218,7 @@ export function JourneyMilestoneCard({
     ) {
       return;
     }
-    expandScrollYRef.current = window.scrollY;
+    expandScrollPinRef.current = captureExpandScrollPin(articleRef.current);
     trackContentOpen();
     inlineExpand.onToggleContent();
   }
@@ -1214,7 +1228,7 @@ export function JourneyMilestoneCard({
     if (e.key !== "Enter" && e.key !== " ") return;
     if (shouldIgnoreExpandTrigger(e.target as Element)) return;
     e.preventDefault();
-    expandScrollYRef.current = window.scrollY;
+    expandScrollPinRef.current = captureExpandScrollPin(articleRef.current);
     trackContentOpen();
     inlineExpand.onToggleContent();
   }

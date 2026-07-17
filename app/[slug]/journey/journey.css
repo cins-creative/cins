@@ -527,18 +527,23 @@ button.j-avatar.j-avatar-viewable:focus-visible {
   text-overflow: ellipsis;
 }
 .j-profile-actions {
-  display: grid;
-  grid-template-columns: 1fr auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
-  margin-top: 16px;
+  width: fit-content;
+  max-width: 100%;
+  margin: 16px auto 0;
 }
 .j-btn-msg {
-  width: 100%;
+  width: fit-content;
+  max-width: 100%;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 7px;
   height: 38px;
+  padding: 0 14px;
   border: 1px solid transparent;
   border-radius: var(--radius-pill);
   background: var(--cins-blue);
@@ -2254,6 +2259,18 @@ a.j-main-gallery-item:focus-visible,
     align-items: center;
     flex-wrap: nowrap;
   }
+  .cins-journey-page
+    .j-gallery-main
+    .j-tlb
+    > .j-tlb-filters:has(> .j-tlb-filter > .j-tlb-dd-btn.is-icon) {
+    grid-template-columns: auto auto minmax(0, 1fr);
+  }
+  .cins-journey-page
+    .j-gallery-main
+    .j-tlb-filters
+    > .j-surface-view-toggle {
+    justify-self: end;
+  }
   .cins-journey-page .j-gallery-main .j-tlb-filters > .j-tlb-filter {
     min-width: 0;
   }
@@ -3151,9 +3168,21 @@ a.j-main-gallery-item:focus-visible,
   max-width: 100%;
   padding: 0 4px 0 calc(var(--j-rail-x) - 8px);
 }
+.j-timeline > .j-tlb {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+.j-timeline > .j-tlb > .j-tlb-date {
+  grid-column: 1;
+  grid-row: 1;
+  min-width: 0;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
 .j-tlb-year {
-  font-family: var(--font-j-anton, "Anton"), var(--font-sans);
+  font-family: var(--font-sans);
   font-size: 30px;
+  font-weight: var(--weight-bold);
   line-height: 1;
   letter-spacing: 0.5px;
   color: var(--cins-blue);
@@ -3174,31 +3203,76 @@ a.j-main-gallery-item:focus-visible,
 }
 /* Cụm filter timeline — đồng bộ World Journey `.wj-filter-bar` (icon 32px) */
 .j-timeline > .j-tlb > .j-tlb-filters {
-  grid-column: 3;
+  grid-column: 2;
+  grid-row: 1;
   justify-self: end;
   display: flex;
   align-items: center;
   gap: 6px;
   flex-wrap: wrap;
 }
-.j-timeline > .j-tlb .j-tlb-filters .j-tlb-dd-btn.is-icon {
+.j-timeline > .j-tlb > .j-tlb-filter {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: end;
+}
+.j-timeline > .j-tlb > .j-surface-view-toggle {
+  grid-column: 3;
+  grid-row: 1;
+  justify-self: end;
+  position: relative;
+}
+.j-timeline > .j-tlb > .j-surface-view-toggle::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: -9px;
+  width: 1px;
+  height: 16px;
+  background: var(--border);
+  transform: translateY(-50%);
+}
+.j-timeline > .j-tlb .j-tlb-filters .j-tlb-dd-btn.is-icon,
+.cins-journey-page
+  .j-gallery-main
+  .j-tlb-filters
+  .j-tlb-dd-btn.is-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 32px;
   height: 32px;
   min-width: 0;
   padding: 0;
   gap: 0;
+  border: 0;
   border-radius: var(--radius-sm);
   background: transparent;
   color: var(--ink-display);
 }
-.j-timeline > .j-tlb .j-tlb-filters .j-tlb-dd-btn.is-icon:hover:not(:disabled) {
+.j-timeline > .j-tlb .j-tlb-filters .j-tlb-dd-btn.is-icon:hover:not(:disabled),
+.cins-journey-page
+  .j-gallery-main
+  .j-tlb-filters
+  .j-tlb-dd-btn.is-icon:hover:not(:disabled) {
   color: var(--cins-blue);
   background: transparent;
 }
-.j-timeline > .j-tlb .j-tlb-filters .j-tlb-dd-btn.is-icon .j-tlb-dd-caret {
+.j-timeline > .j-tlb .j-tlb-filters .j-tlb-dd-btn.is-icon .j-tlb-dd-caret,
+.cins-journey-page
+  .j-gallery-main
+  .j-tlb-filters
+  .j-tlb-dd-btn.is-icon
+  .j-tlb-dd-caret {
   display: none;
 }
-.j-timeline > .j-tlb .j-tlb-filters .j-tlb-dd-btn.is-icon .j-tlb-dd-ico svg {
+.j-timeline > .j-tlb .j-tlb-filters .j-tlb-dd-btn.is-icon .j-tlb-dd-ico svg,
+.cins-journey-page
+  .j-gallery-main
+  .j-tlb-filters
+  .j-tlb-dd-btn.is-icon
+  .j-tlb-dd-ico
+  svg {
   width: 15px;
   height: 15px;
 }
@@ -8411,7 +8485,11 @@ button.j-g-item:disabled {
     aspect-ratio: 248 / 100;
   }
 
-  .cins-journey-page .j-sidebar > :not(.j-profile-cover):not(button.j-profile-cover):not(.j-avatar) {
+  .cins-journey-page
+    .j-sidebar
+    > :not(.j-profile-cover):not(button.j-profile-cover):not(.j-avatar):not(
+      .j-profile-actions
+    ) {
     margin-left: 16px;
     margin-right: 16px;
   }
@@ -8426,6 +8504,24 @@ button.j-g-item:disabled {
   .cins-journey-page .j-profile-role,
   .cins-journey-page .j-profile-handle {
     text-align: center;
+  }
+
+  .cins-journey-page .j-sidebar > .j-profile-actions {
+    width: fit-content;
+    margin-left: auto;
+    margin-right: auto;
+    justify-content: center;
+  }
+
+  .cins-journey-page .j-sidebar > .j-profile-bio {
+    text-align: center;
+  }
+
+  .cins-journey-page .j-sidebar > .j-profile-info {
+    width: 80%;
+    max-width: 80%;
+    margin-left: auto;
+    margin-right: auto;
   }
 
   .cins-journey-page .j-timeline,
@@ -8561,7 +8657,11 @@ button.j-g-item:disabled {
 
 /* ── xs (≤575.98px / phone): sidebar + card typography gọn ── */
 @media (max-width: 575.98px) {
-  .cins-journey-page .j-sidebar > :not(.j-profile-cover):not(button.j-profile-cover):not(.j-avatar) {
+  .cins-journey-page
+    .j-sidebar
+    > :not(.j-profile-cover):not(button.j-profile-cover):not(.j-avatar):not(
+      .j-profile-actions
+    ) {
     margin-left: 12px;
     margin-right: 12px;
   }
@@ -8638,7 +8738,7 @@ button.j-g-item:disabled {
     right: 8px;
   }
   .cins-journey-page .j-m-menu-pop {
-    min-width: 200px;
+    width: min(260px, calc(100vw - 16px));
   }
   /* Create CTA — padding + font nhỏ. margin-left tự co qua --j-content-pad-l. */
   .cins-journey-page .j-create-cta {
@@ -9118,7 +9218,10 @@ select.j-edit-input {
   position: absolute;
   top: calc(100% + 6px);
   right: 0;
-  min-width: 220px;
+  /* Cố định ngang — confirm xóa dài không kéo rộng popover. */
+  width: 260px;
+  max-width: calc(100vw - 16px);
+  box-sizing: border-box;
   z-index: 40;
   background: var(--bg-surface);
   border: 1px solid var(--border-strong);
@@ -9288,6 +9391,8 @@ select.j-edit-input {
   color: #7a1d11;
   line-height: 1.4;
   margin: 0 0 8px;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
 }
 .j-m-menu-confirm-actions {
   display: flex;
@@ -11411,6 +11516,11 @@ select.j-edit-input {
     overflow: hidden;
   }
 
+  .j-compose-overlay > .j-compose-sheet:has(.has-compose-preview) {
+    width: 100%;
+    max-width: none;
+  }
+
   .j-compose-sheet > .cins-editor-page.is-overlay,
   .j-compose-sheet > .j-ms-compose {
     flex: 1 1 auto;
@@ -11434,15 +11544,23 @@ select.j-edit-input {
     padding-top: env(safe-area-inset-top, 0);
   }
 
+  .j-compose-sheet .cins-editor-page.is-overlay .ed-topbar-inner {
+    width: 100%;
+    padding-inline: 8px;
+    gap: 4px;
+  }
+
   .j-compose-sheet .cins-editor-page.is-overlay .editor-canvas {
     flex: 1 1 auto;
     min-height: 0;
+    width: 100%;
+    max-width: none;
     margin: 0;
+    /* Mobile: rail nằm trong block — không cần gutter 56px / lệch L-R. */
     padding: 16px 16px max(24px, env(safe-area-inset-bottom, 0px));
-    padding-left: 16px;
     border-radius: 0;
     overflow-y: auto;
-    overflow-x: visible;
+    overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
   }
@@ -13613,6 +13731,12 @@ select.j-edit-input {
 .j-milestone.is-card-expanded {
   position: relative;
   z-index: 20;
+  /* Tránh browser scroll anchoring kéo viewport xuống khi body phình. */
+  overflow-anchor: none;
+}
+.j-milestone.is-card-expanded .j-m-card,
+.j-milestone.is-card-expanded .j-m-body-wrap {
+  overflow-anchor: none;
 }
 .jcard-datebar .jcard-date-menu .j-m-menu-pop {
   z-index: 30;
@@ -14205,6 +14329,45 @@ select.j-edit-input {
   color: inherit;
   font: inherit;
   cursor: pointer;
+}
+@media (max-width: 575.98px) {
+  .j-m-card .j-inline-control-trigger {
+    min-width: 32px;
+    min-height: 32px;
+    align-items: center;
+    justify-content: center;
+  }
+  .j-m-card .j-inline-control-trigger .ctx-badge {
+    width: 32px;
+    min-width: 32px;
+    min-height: 32px;
+    padding: 0;
+    gap: 0;
+    justify-content: center;
+    border: 0;
+    border-radius: 0;
+    background: transparent !important;
+    box-shadow: none !important;
+    font-size: 0;
+  }
+  .j-m-card .j-inline-control-trigger .ctx-badge svg {
+    width: 19px;
+    height: 19px;
+  }
+  .j-m-card .j-inline-control-trigger .ctx-badge .j-pf-dot {
+    width: 10px;
+    height: 10px;
+  }
+  .j-m-card .j-inline-control-trigger:hover .ctx-badge,
+  .j-m-card .j-inline-control-trigger:focus-visible .ctx-badge {
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+  .j-m-card .j-inline-control-trigger:focus-visible {
+    border-radius: 4px;
+    outline: 2px solid var(--cins-blue);
+    outline-offset: 2px;
+  }
 }
 .j-inline-control-trigger:hover .ctx-badge,
 .j-inline-control-trigger:focus-visible .ctx-badge {
@@ -16879,18 +17042,23 @@ button.j-user-pop-close svg {
   z-index: 3;
   pointer-events: auto;
 }
-.jcard-actions .j-article-tag-trigger {
+.jcard-actions .j-article-tag-trigger,
+.jcard-actions .j-coauthor-propose-trigger,
+.jcard-actions .j-org-attach-trigger {
   pointer-events: auto;
+  position: relative;
   width: 28px;
   height: 28px;
   border-color: transparent;
   background: transparent;
   color: var(--jcard-ink3);
 }
-.jcard-actions .j-article-tag-trigger:hover {
+.jcard-actions .j-article-tag-trigger:hover,
+.jcard-actions .j-coauthor-propose-trigger:hover,
+.jcard-actions .j-org-attach-trigger:hover:not(:disabled) {
   border-color: transparent;
   background: var(--neutral-100);
-  color: #15803d;
+  color: #b45309;
 }
 .jcard-actions .j-article-tag-count {
   top: -2px;
@@ -16900,33 +17068,19 @@ button.j-user-pop-close svg {
   font-size: 8px;
   line-height: 14px;
 }
-.jcard-actions .j-coauthor-propose-trigger {
-  width: 28px;
-  height: 28px;
+:root[data-theme="dark"] .jcard-actions .j-article-tag-trigger,
+:root[data-theme="dark"] .jcard-actions .j-coauthor-propose-trigger,
+:root[data-theme="dark"] .jcard-actions .j-org-attach-trigger {
   border-color: transparent;
   background: transparent;
   color: var(--jcard-ink3);
 }
-.jcard-actions .j-coauthor-propose-trigger:hover {
-  border-color: transparent;
-  background: var(--neutral-100);
-  color: var(--cins-blue);
-}
-.jcard-actions .j-org-attach-trigger {
-  width: 28px;
-  height: 28px;
-  border-color: transparent;
-  background: transparent;
-  color: var(--jcard-ink3);
-}
-.jcard-actions .j-org-attach-trigger:hover {
+:root[data-theme="dark"] .jcard-actions .j-article-tag-trigger:hover,
+:root[data-theme="dark"] .jcard-actions .j-coauthor-propose-trigger:hover,
+:root[data-theme="dark"] .jcard-actions .j-org-attach-trigger:hover:not(:disabled) {
   border-color: transparent;
   background: var(--neutral-100);
   color: #b45309;
-}
-
-.jcard-actions .j-org-attach-trigger {
-  position: relative;
 }
 
 .jcard-actions .j-org-attach-pending-dot {

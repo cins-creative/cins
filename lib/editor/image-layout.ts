@@ -40,7 +40,7 @@ const IMG_LAYOUT_META: ImgLayoutMeta[] = [
   { k: "grid3", n: 30, name: "Lưới 3 cột", dynamic: true },
   { k: "grid4", n: 4, name: "Lưới 2×2", dynamic: false },
   { k: "masonry", n: 30, name: "Masonry 3 cột", dynamic: true },
-  { k: "justified", n: 30, name: "Hàng cân", dynamic: true },
+  { k: "justified", n: 30, name: "Masonry ngang", dynamic: true },
 ];
 
 /** Layout hiển thị trên LayBar. */

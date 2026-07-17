@@ -4336,12 +4336,13 @@
   .j-compose-sheet .cins-editor-page.is-overlay .editor-canvas {
     flex: 1 1 auto;
     min-height: 0;
+    width: 100%;
+    max-width: none;
     margin: 0;
     padding: 16px 16px max(24px, env(safe-area-inset-bottom, 0px));
-    padding-left: 16px;
     border-radius: 0;
     overflow-y: auto;
-    overflow-x: visible;
+    overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
   }

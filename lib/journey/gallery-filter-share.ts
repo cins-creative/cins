@@ -132,6 +132,8 @@ export type ShareGallerySourceItem = Pick<
   GalleryMainItem,
   "src" | "type" | "variant" | "personalFilterSlugs"
 > & {
+  /** Khớp pin aside ↔ gallery grid khi gắn nhãn / dedupe. */
+  cotMocId?: string;
   visibility?: MilestoneItem["visibility"];
   /** Đồng bộ `GalleryMainItem.featured` khi có — dùng đếm Feature. */
   featured?: boolean;
@@ -139,21 +141,25 @@ export type ShareGallerySourceItem = Pick<
   videoPreviewSrc?: string | null;
 };
 
+export type LiveFeaturedPinnedForShare = {
+  cotMocId?: string;
+  src?: string | null;
+  videoPreviewSrc?: string | null;
+  type?: MilestoneItem["type"];
+  variant?: MilestoneItem["variant"];
+  personalFilterSlugs?: GalleryMainItem["personalFilterSlugs"];
+};
+
 /** Banner Feature aside → nguồn thumb share (giữ đúng thứ tự index 1…n). */
 export function featuredPinnedToShareSources(
-  pinned: ReadonlyArray<{
-    src?: string | null;
-    videoPreviewSrc?: string | null;
-    type?: MilestoneItem["type"];
-    variant?: MilestoneItem["variant"];
-    personalFilterSlugs?: GalleryMainItem["personalFilterSlugs"];
-  }>,
+  pinned: ReadonlyArray<LiveFeaturedPinnedForShare>,
 ): ShareGallerySourceItem[] {
   const out: ShareGallerySourceItem[] = [];
   for (const item of pinned) {
     const src = galleryItemThumbSrc(item);
     if (!src) continue;
     out.push({
+      cotMocId: item.cotMocId?.trim() || undefined,
       src,
       type: item.type ?? "du-an",
       variant: item.variant ?? "self",
@@ -164,6 +170,44 @@ export function featuredPinnedToShareSources(
     });
   }
   return out;
+}
+
+/**
+ * Pin aside thường thiếu `personalFilterSlugs` — bổ sung từ gallery/timeline
+ * theo `cotMocId` (ưu tiên) hoặc URL thumb, để filter nhãn vẫn giữ thứ tự Feature.
+ */
+export function enrichFeaturedShareSources(
+  featured: ReadonlyArray<ShareGallerySourceItem>,
+  ...lookups: ReadonlyArray<ReadonlyArray<ShareGallerySourceItem>>
+): ShareGallerySourceItem[] {
+  if (featured.length === 0) return [];
+
+  const byCotMoc = new Map<string, ShareGallerySourceItem>();
+  const bySrc = new Map<string, ShareGallerySourceItem>();
+  for (const list of lookups) {
+    for (const item of list) {
+      const id = item.cotMocId?.trim();
+      if (id && !byCotMoc.has(id)) byCotMoc.set(id, item);
+      const src = galleryItemThumbSrc(item);
+      if (src && !bySrc.has(src)) bySrc.set(src, item);
+    }
+  }
+
+  return featured.map((pin) => {
+    const id = pin.cotMocId?.trim();
+    const match =
+      (id ? byCotMoc.get(id) : undefined) ??
+      bySrc.get(galleryItemThumbSrc(pin));
+    if (!match) return pin;
+    return {
+      ...pin,
+      type: match.type ?? pin.type,
+      variant: match.variant ?? pin.variant,
+      personalFilterSlugs:
+        pin.personalFilterSlugs ?? match.personalFilterSlugs,
+      videoPreviewSrc: pin.videoPreviewSrc ?? match.videoPreviewSrc,
+    };
+  });
 }
 
 /** URL thumb cho share card: ảnh cover trước, fallback preview video. */
@@ -180,7 +224,7 @@ export function milestonesToShareGalleryItems(
   milestones: ReadonlyArray<
     Pick<
       MilestoneItem,
-      "type" | "variant" | "visibility" | "personalFilterSlugs" | "media"
+      "id" | "type" | "variant" | "visibility" | "personalFilterSlugs" | "media"
     >
   >,
 ): ShareGallerySourceItem[] {
@@ -189,6 +233,7 @@ export function milestonesToShareGalleryItems(
     const src = m.media?.[0]?.src?.trim();
     if (!src) continue;
     out.push({
+      cotMocId: m.id?.trim() || undefined,
       src,
       type: m.type,
       variant: m.variant,
@@ -198,6 +243,22 @@ export function milestonesToShareGalleryItems(
     });
   }
   return out;
+}
+
+/** GalleryMainItem → nguồn share (giữ cotMocId để khớp pin Feature). */
+export function galleryItemsToShareSources(
+  items: ReadonlyArray<GalleryMainItem>,
+): ShareGallerySourceItem[] {
+  return items.map((item) => ({
+    cotMocId: item.cotMocId,
+    src: item.src,
+    type: item.type,
+    variant: item.variant,
+    visibility: item.visibility,
+    featured: item.featured,
+    personalFilterSlugs: item.personalFilterSlugs,
+    videoPreviewSrc: item.videoPreviewSrc,
+  }));
 }
 
 /** Gộp nguồn gallery — ưu tiên thứ tự, bỏ trùng URL thumb. */
@@ -279,30 +340,15 @@ export function getLiveGalleryItemsForShare(): ReadonlyArray<GalleryMainItem> {
 /**
  * Cột Feature aside đang render (đã sort theo index) — ưu tiên thumb portfolio card.
  */
-let liveFeaturedPinnedForShare: ReadonlyArray<{
-  src?: string | null;
-  videoPreviewSrc?: string | null;
-  type?: MilestoneItem["type"];
-  variant?: MilestoneItem["variant"];
-}> = [];
+let liveFeaturedPinnedForShare: ReadonlyArray<LiveFeaturedPinnedForShare> = [];
 
 export function setLiveFeaturedPinnedForShare(
-  pinned: ReadonlyArray<{
-    src?: string | null;
-    videoPreviewSrc?: string | null;
-    type?: MilestoneItem["type"];
-    variant?: MilestoneItem["variant"];
-  }>,
+  pinned: ReadonlyArray<LiveFeaturedPinnedForShare>,
 ): void {
   liveFeaturedPinnedForShare = pinned;
 }
 
-export function getLiveFeaturedPinnedForShare(): ReadonlyArray<{
-  src?: string | null;
-  videoPreviewSrc?: string | null;
-  type?: MilestoneItem["type"];
-  variant?: MilestoneItem["variant"];
-}> {
+export function getLiveFeaturedPinnedForShare(): ReadonlyArray<LiveFeaturedPinnedForShare> {
   return liveFeaturedPinnedForShare;
 }
 

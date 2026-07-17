@@ -208,7 +208,15 @@ export function JourneyGalleryAside({
 
   useEffect(() => {
     if (!featuredOnly) return;
-    setLiveFeaturedPinnedForShare(orderedPinned);
+    setLiveFeaturedPinnedForShare(
+      orderedPinned.map((b) => ({
+        cotMocId: asideCotMocId(b) ?? undefined,
+        src: b.src,
+        videoPreviewSrc: b.videoPreviewSrc,
+        type: b.type,
+        variant: b.variant,
+      })),
+    );
   }, [featuredOnly, orderedPinned]);
 
   useEffect(() => {

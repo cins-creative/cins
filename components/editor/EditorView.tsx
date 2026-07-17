@@ -26,6 +26,8 @@ import {
   AlignRight,
   CalendarClock,
   Check,
+  ChevronDown,
+  ChevronUp,
   ClipboardPaste,
   Code2,
   Crop,
@@ -1011,15 +1013,8 @@ export function EditorView({
         isExternalEmbedCompose));
   const [editorExpanded, setEditorExpanded] = useState(() => {
     if (restoredDraft?.editorExpanded != null) return restoredDraft.editorExpanded;
-    if (
-      composeIntent === "photo" ||
-      composeIntent === "video" ||
-      composeIntent === "embed"
-    ) {
-      return true;
-    }
-    if (isEdit) return !isTextOnlyEditorInitial(initial);
-    return composeIntent !== "minimal";
+    /* Luôn mở sẵn AddZone `+` — không cần bấm "Bài viết dài". */
+    return true;
   });
   const [minimalCoverVisible, setMinimalCoverVisible] = useState(
     () => restoredDraft?.minimalCoverVisible ?? false,
@@ -1029,6 +1024,8 @@ export function EditorView({
     if (restoredDraft?.minimalRichBlocks != null) {
       return restoredDraft.minimalRichBlocks;
     }
+    /* Bài mới minimal: chrome + AddZone sẵn như sau khi expand. */
+    if (!isEdit && composeIntent === "minimal") return true;
     const seedBlocks = initial?.blocks ?? [];
     /* Video/bài đã có block layout dài → mở chrome đầy đủ ngay khi sửa. */
     return seedBlocks.some(
@@ -1298,6 +1295,16 @@ export function EditorView({
     congDongCompose,
     orgBaiDangCompose,
   ]);
+
+  /** Huỷ = bỏ nháp localStorage (không giữ để mở lại). */
+  const discardComposeDraftOnCancel = useCallback(() => {
+    finishComposeDraftAfterPublish();
+  }, [finishComposeDraftAfterPublish]);
+
+  const handleCancelCompose = useCallback(() => {
+    discardComposeDraftOnCancel();
+    onClose?.();
+  }, [discardComposeDraftOnCancel, onClose]);
 
   /* ╔══ Undo stack (Ctrl/Cmd+Z) ══════════════════════════════════════
    * Lưu snapshot `blocks` TRƯỚC mỗi thao tác cấu trúc (add/delete/move/
@@ -3417,20 +3424,40 @@ export function EditorView({
           {isOverlay ? (
             <button
               type="button"
-              className="ed-btn ghost ed-compose-preview-toggle"
-              onClick={() => setPreviewMobileOpen(true)}
+              className={`ed-btn ghost ed-compose-preview-toggle${previewMobileOpen ? " is-active" : ""}`}
+              onClick={() => setPreviewMobileOpen((open) => !open)}
+              title={
+                previewMobileOpen
+                  ? "Đóng xem trước"
+                  : "Xem trước bài viết"
+              }
+              aria-label={
+                previewMobileOpen
+                  ? "Đóng xem trước"
+                  : "Xem trước bài viết"
+              }
+              aria-pressed={previewMobileOpen}
             >
               <Eye size={14} strokeWidth={2} aria-hidden />
-              Xem trước
+              <span className="ed-compose-preview-label">Xem trước</span>
             </button>
           ) : null}
 
           {isOverlay && onClose ? (
-            <button type="button" className="ed-btn ghost" onClick={onClose}>
+            <button
+              type="button"
+              className="ed-btn ghost"
+              onClick={handleCancelCompose}
+            >
               Huỷ
             </button>
           ) : (
-            <Link href={cancelHref} className="ed-btn ghost" prefetch={false}>
+            <Link
+              href={cancelHref}
+              className="ed-btn ghost"
+              prefetch={false}
+              onClick={discardComposeDraftOnCancel}
+            >
               Huỷ
             </Link>
           )}
@@ -3734,16 +3761,6 @@ export function EditorView({
                   Nhúng
                 </button>
               ) : null}
-              {isMinimalUI && !isExternalEmbedCompose ? (
-                <button
-                  type="button"
-                  className="ed-btn ghost ed-minimal-tool"
-                  onClick={expandMinimalToFullEditor}
-                >
-                  <Plus size={15} strokeWidth={2} aria-hidden />
-                  Bài viết dài
-                </button>
-              ) : null}
             </div>
               </>
             )}
@@ -4030,7 +4047,6 @@ export function EditorView({
         <ComposePreviewPanel
           draft={previewDraft}
           mobileOpen={previewMobileOpen}
-          onMobileClose={() => setPreviewMobileOpen(false)}
         />
       ) : null}
       </div>
@@ -4933,7 +4949,7 @@ function BlockRow(p: BlockRowProps) {
               title="Lên"
               aria-label="Di chuyển lên"
             >
-              ▲
+              <ChevronUp size={15} strokeWidth={2} aria-hidden />
             </button>
             <button
               type="button"
@@ -4946,7 +4962,7 @@ function BlockRow(p: BlockRowProps) {
               title="Xuống"
               aria-label="Di chuyển xuống"
             >
-              ▼
+              <ChevronDown size={15} strokeWidth={2} aria-hidden />
             </button>
             <button
               type="button"
@@ -4959,7 +4975,7 @@ function BlockRow(p: BlockRowProps) {
               title="Xoá block"
               aria-label="Xoá"
             >
-              ✕
+              <X size={15} strokeWidth={2} aria-hidden />
             </button>
           </div>
         </div>

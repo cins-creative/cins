@@ -122,6 +122,7 @@ function toShareSources(
   items: ReadonlyArray<GalleryMainItem>,
 ): ShareGallerySourceItem[] {
   return items.map((item) => ({
+    cotMocId: item.cotMocId,
     src: item.src,
     type: item.type,
     variant: item.variant,

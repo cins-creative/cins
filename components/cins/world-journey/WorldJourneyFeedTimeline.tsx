@@ -166,6 +166,8 @@ export function WorldJourneyFeedTimeline({
 
   useEffect(() => {
     if (!scrollLoad?.enabled || !onLoadMore) return;
+    /* Đang xổ bài dài: sentinel dễ vào viewport → load-more đẩy feed → nhảy scroll. */
+    if (inlineExpand?.showContent) return;
     const node = sentinelRef.current;
     if (!node || typeof IntersectionObserver === "undefined") return;
 
@@ -179,7 +181,7 @@ export function WorldJourneyFeedTimeline({
     );
     observer.observe(node);
     return () => observer.disconnect();
-  }, [scrollLoad, onLoadMore, milestones.length]);
+  }, [scrollLoad, onLoadMore, milestones.length, inlineExpand?.showContent]);
 
   const handleToggleContent = useCallback((milestone: MilestoneItem) => {
     if (!canInlineExpand(milestone)) return;
