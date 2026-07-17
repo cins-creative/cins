@@ -66,6 +66,7 @@ import {
 } from "@/lib/journey/gallery-filter-share";
 import {
   MILESTONE_INLINE_PATCH_EVENT,
+  applyGalleryMilestoneInlinePatch,
   type MilestoneInlinePatchDetail,
 } from "@/lib/journey/milestone-inline-patch";
 import { useGalleryMasonryAspects } from "@/components/journey/useGalleryMasonryAspects";
@@ -603,42 +604,7 @@ export function JourneyGalleryGridView({
     const onPatch = (event: Event) => {
       const detail = (event as CustomEvent<MilestoneInlinePatchDetail>).detail;
       if (!detail?.milestoneId) return;
-      setGalleryItems((prev) => {
-        const idx = prev.findIndex((it) => it.cotMocId === detail.milestoneId);
-        if (idx < 0) return prev;
-        const cur = prev[idx]!;
-        if (detail.kind === "type") {
-          if (cur.type === detail.value) return prev;
-          const next = prev.slice();
-          next[idx] = { ...cur, type: detail.value };
-          return next;
-        }
-        if (detail.kind === "visibility") {
-          if (detail.value !== "feature" && detail.value !== "public") {
-            return prev.filter((it) => it.cotMocId !== detail.milestoneId);
-          }
-          if (cur.visibility === detail.value && cur.featured === (detail.value === "feature")) {
-            return prev;
-          }
-          const next = prev.slice();
-          next[idx] = {
-            ...cur,
-            visibility: detail.value,
-            featured: detail.value === "feature",
-          };
-          return next;
-        }
-        if (detail.kind === "personalFilters") {
-          const next = prev.slice();
-          next[idx] = {
-            ...cur,
-            personalFilterSlugs: detail.value,
-            personalFilters: detail.personalFilters,
-          };
-          return next;
-        }
-        return prev;
-      });
+      setGalleryItems((prev) => applyGalleryMilestoneInlinePatch(prev, detail));
     };
 
     window.addEventListener("cins:milestone-deleted", onDeleted);

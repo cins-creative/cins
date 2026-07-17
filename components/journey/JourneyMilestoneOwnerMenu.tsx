@@ -59,6 +59,13 @@ import {
 
 const OWNER_MENU_MIN_WIDTH = 220;
 const OWNER_MENU_EST_HEIGHT = 320;
+/**
+ * Cao hơn `.j-post-overlay` (9000), `.j-compose-overlay` (9100),
+ * `.j-post-close` (9010), `.j-post-overlay--stacked` (10120).
+ * Portal luôn ra `document.body` — overlay có `overflow: hidden` sẽ cắt
+ * menu nếu portal vào trong.
+ */
+const OWNER_MENU_PORTAL_Z = 11000;
 type Props = {
   milestoneId: string;
   ownerSlug: string;
@@ -254,16 +261,20 @@ export function JourneyMilestoneOwnerMenu({
       close();
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") close();
+      if (e.key !== "Escape") return;
+      /* Capture — đóng menu trước, không để Escape đóng luôn post overlay. */
+      e.preventDefault();
+      e.stopPropagation();
+      close();
     };
     const timerId = window.setTimeout(() => {
       document.addEventListener("mousedown", onDocClick);
     }, 0);
-    document.addEventListener("keydown", onKey);
+    document.addEventListener("keydown", onKey, true);
     return () => {
       window.clearTimeout(timerId);
       document.removeEventListener("mousedown", onDocClick);
-      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("keydown", onKey, true);
     };
   }, [open]);
 
@@ -292,13 +303,21 @@ export function JourneyMilestoneOwnerMenu({
     startTransition(async () => {
       const res = await updateMilestoneType(milestoneId, db);
       if (!res.ok) {
-        setError(res.error);
         dispatchMilestoneInlinePatch({
           milestoneId,
           kind: "type",
           value: previous,
         });
+        setError(res.error);
+        setOpen(true);
         return;
+      }
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("cins:journey-gallery-sync", {
+            detail: { ownerSlug },
+          }),
+        );
       }
       router.refresh();
       onAfterChange?.();
@@ -334,12 +353,13 @@ export function JourneyMilestoneOwnerMenu({
         pinned,
       });
       if (!res.ok) {
-        setError(res.error);
         dispatchMilestoneInlinePatch({
           milestoneId: key,
           kind: "journeyPin",
           value: previous,
         });
+        setError(res.error);
+        setOpen(true);
         return;
       }
       dispatchMilestoneInlinePatch({
@@ -373,13 +393,21 @@ export function JourneyMilestoneOwnerMenu({
           })
         : await updateMilestoneVisibility(milestoneId, db);
       if (!res.ok) {
-        setError(res.error);
         dispatchMilestoneInlinePatch({
           milestoneId,
           kind: "visibility",
           value: previous,
         });
+        setError(res.error);
+        setOpen(true);
         return;
+      }
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("cins:journey-gallery-sync", {
+            detail: { ownerSlug },
+          }),
+        );
       }
       router.refresh();
       onVisibilityChange?.(option.ui);
@@ -488,8 +516,10 @@ export function JourneyMilestoneOwnerMenu({
           top: menuStyle.top,
           left: menuStyle.left,
           right: "auto",
-          zIndex: 80,
+          zIndex: OWNER_MENU_PORTAL_Z,
         }}
+        onPointerDown={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
       >
         {error ? <div className="j-m-menu-err">{error}</div> : null}
@@ -806,9 +836,16 @@ export function JourneyMilestoneOwnerMenu({
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            setOpen((v) => !v);
+            const next = !open;
+            setOpen(next);
             setSub("none");
             setConfirmDelete(false);
+            if (next) {
+              /* Đặt vị trí ngay — tránh frame menuPop=null vì chờ useLayoutEffect. */
+              updateMenuPosition();
+            } else {
+              setMenuStyle(null);
+            }
           }}
         >
           <MoreVertical size={18} strokeWidth={2} aria-hidden />

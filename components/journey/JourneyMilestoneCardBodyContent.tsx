@@ -128,9 +128,9 @@ export function JourneyMilestoneCardBodyContent({
   const router = useRouter();
   const blocks = noiDungBlocks ?? null;
   /**
-   * Cover trên card Journey / Gallery luôn hiện khi có `preview`.
-   * `showCoverInPost` chỉ điều khiển thân bài (xem `readShowCoverInPost`) —
-   * không ẩn thumbnail trên timeline.
+   * Cover trên card Journey / Gallery luôn tôn trọng `showCoverInPost`
+   * (xem `shouldShowCoverOnPostCard` ở fetch media). Khi tắt cờ, `preview`
+   * không mang cover — album ảnh vẫn hiện từ blocks.
    */
   const hasCoverPreview = Boolean(preview?.src);
   const photoGridImages = photoGridOverride ?? null;
@@ -348,9 +348,9 @@ export function JourneyMilestoneCardBodyContent({
     (articlePeekBlocks.length === 0 || peekIsTextOnly) &&
     !isContentOpen;
   /**
-   * Thumbnail trên card article: luôn hiện khi có cover.
-   * Khi unfold bài video Bunny: ẩn poster nếu chưa bật «hiện trong bài»
-   * (tránh lộ thumbnail khi peek đã tắt).
+   * Thumbnail trên card article: hiện khi có cover (đã lọc theo
+   * `shouldShowCoverOnPostCard` ở tầng media). Khi unfold bài video Bunny:
+   * ẩn poster nếu chưa bật «hiện trong bài» (tránh lộ thumbnail khi peek đã tắt).
    */
   const showArticleCoverPreview =
     hasCoverPreview &&

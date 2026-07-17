@@ -9130,12 +9130,12 @@ select.j-edit-input {
   gap: 2px;
   animation: j-m-menu-in 140ms var(--j-ease, ease);
 }
-/* Portal — thoát overflow:hidden của gallery card / khung scroll. */
+/* Portal — thoát overflow:hidden; z-index trên post/compose overlay. */
 .j-m-menu-pop.is-portal {
   position: fixed;
   top: auto;
   right: auto;
-  z-index: 80;
+  z-index: 11000;
   max-height: min(70vh, calc(100vh - 16px));
   overflow-y: auto;
 }

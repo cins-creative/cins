@@ -34,7 +34,7 @@ export type ComposeEditorDraft = {
   minimalCoverVisible?: boolean;
   albumGridCompose?: boolean;
   minimalRichBlocks?: boolean;
-  /** Hiển thị `cover_id` trong thân bài khi xem (mọi loại nội dung có thumbnail). */
+  /** Hiện `cover_id` trên card Journey + thân bài khi xem (opt-in). */
   showCoverInPost?: boolean;
   /** Tỉ lệ + điểm neo khung thumbnail (Gallery / bài dài). */
   coverThumb?: CoverThumbMeta | null;

@@ -51,6 +51,7 @@ import {
   findCoverThumbMeta,
   resolveCoverThumbDeliveryUrl,
 } from "@/lib/journey/cover-thumb";
+import { shouldShowCoverOnPostCard } from "@/lib/journey/post-content-kind";
 import { baiDangCoverDisplayUrl, baiDangJourneyPreviewUrl } from "@/lib/truong/bai-dang-cover";
 import {
   baiDangHasExpandableBody,
@@ -96,8 +97,11 @@ function shouldIgnoreExpandTrigger(target: Element | null): boolean {
 }
 
 function orgBaiDangPreviewMedia(post: TruongBaiDang): MilestoneMediaItem | null {
-  const meta = findCoverThumbMeta(post.noiDungBlocks);
   const coverId = post.cover_id?.trim() || null;
+  if (coverId && !shouldShowCoverOnPostCard(post.noiDungBlocks)) {
+    return null;
+  }
+  const meta = findCoverThumbMeta(post.noiDungBlocks);
   const gravityUrl =
     coverId && meta
       ? resolveCoverThumbDeliveryUrl(coverId, meta, "card")

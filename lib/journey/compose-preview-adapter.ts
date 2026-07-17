@@ -81,8 +81,8 @@ export type ComposePreviewSnapshot = {
    */
   thumbAutoFromContent: boolean;
   /**
-   * Media trên card Journey — luôn hiện cover/album khi có.
-   * `showCoverInPost` chỉ ảnh hưởng thân bài dài, không ẩn card.
+   * Media cover trên card Journey — tôn trọng `showCoverInPost`.
+   * Album ảnh trong blocks vẫn qua `photoGrid` khi tắt cover.
    */
   journeyMediaSrc: string | null;
   journeyIsVideo: boolean;
@@ -388,24 +388,29 @@ export function buildComposePreviewSnapshot(
           ? [{ src: thumb.src, isVideo: thumb.isVideo }]
           : [];
 
-  /* Journey card: luôn hiện cover / ảnh album khi có — `showCoverInPost`
-   * chỉ điều khiển thân bài dài, không ẩn thumbnail timeline. */
+  /* Journey card: cover chỉ khi bật «Hiển thị thumbnail…».
+   * Tắt → ẩn cover; album ảnh vẫn qua photoGrid; video lấy poster embed. */
   let journeyMediaSrc: string | null = null;
   let journeyIsVideo = false;
-  if (imgMedia.length > 0 && kind === "photo") {
-    journeyMediaSrc = coverUrl ?? imgMedia[0]!.src;
-  } else if (coverUrl) {
-    journeyMediaSrc = coverUrl;
+  if (showCoverInPost) {
+    if (imgMedia.length > 0 && kind === "photo") {
+      journeyMediaSrc = coverUrl ?? imgMedia[0]!.src;
+    } else if (coverUrl) {
+      journeyMediaSrc = coverUrl;
+    } else if (kind === "video" || thumb.isVideo) {
+      journeyIsVideo = true;
+      journeyMediaSrc = thumb.src;
+      if (!journeyMediaSrc) {
+        const embedOnly = resolveThumb(null, blocks);
+        journeyMediaSrc = embedOnly.src;
+      }
+    } else if (thumb.src) {
+      journeyMediaSrc = thumb.src;
+      journeyIsVideo = thumb.isVideo;
+    }
   } else if (kind === "video" || thumb.isVideo) {
     journeyIsVideo = true;
-    journeyMediaSrc = thumb.src;
-    if (!journeyMediaSrc) {
-      const embedOnly = resolveThumb(null, blocks);
-      journeyMediaSrc = embedOnly.src;
-    }
-  } else if (thumb.src) {
-    journeyMediaSrc = thumb.src;
-    journeyIsVideo = thumb.isVideo;
+    journeyMediaSrc = resolveThumb(null, blocks).src;
   }
 
   const title = resolveDisplayTitle(draft.title, draft.moTa, kind, blocks);

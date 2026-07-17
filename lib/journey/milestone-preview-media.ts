@@ -12,10 +12,8 @@ import {
   journeyImageFields,
   journeyImageFieldsWithCoverThumb,
 } from "@/lib/journey/images";
-import {
-  detectMediaPostKind,
-  extractAllImageIds,
-} from "@/lib/journey/post-media";
+import { detectMediaPostKind } from "@/lib/journey/post-media";
+import { shouldShowCoverOnPostCard } from "@/lib/journey/post-content-kind";
 import { resolveBunnyVideoThumbnailFromBlocks } from "@/lib/journey/video-embed";
 import {
   extractVideoCanvasRatio,
@@ -48,8 +46,9 @@ function coverFromImageId(
 
 /**
  * Preview ảnh/video trên milestone card (article cover, video thumb).
- * Bài album ảnh: chỉ trả preview khi có `cover_id` tuỳ chọn — ảnh album render từ blocks;
- * thumb Gallery dùng `resolveGalleryVisual` (ảnh đầu album khi không có cover).
+ * Bài album ảnh: trả cover khi có `cover_id` và cờ «hiện thumbnail» bật
+ * (hero / `album_hero_grid`); ảnh album vẫn render từ blocks.
+ * Tắt cờ → không đưa `cover_id` lên card (Gallery vẫn dùng cover riêng).
  */
 export function milestonePreviewMedia(
   coverId: string | null | undefined,
@@ -58,7 +57,10 @@ export function milestonePreviewMedia(
 ): MilestoneMediaItem[] {
   const parsed = blocks ?? [];
   const mediaKind = detectMediaPostKind(parsed);
-  const trimmedCover = coverId?.trim() || null;
+  const trimmedCover =
+    coverId?.trim() && shouldShowCoverOnPostCard(parsed)
+      ? coverId.trim()
+      : null;
 
   if (mediaKind === "video") {
     if (trimmedCover) return coverFromImageId(trimmedCover, label, parsed);
@@ -73,8 +75,7 @@ export function milestonePreviewMedia(
   }
 
   if (mediaKind === "photo") {
-    const photoIds = extractAllImageIds(parsed);
-    if (photoIds.length > 0) return [];
+    /* Cover tuỳ chọn → `media[0]` khi được phép hiện — khớp compose + album_hero. */
     if (trimmedCover) return coverFromImageId(trimmedCover, label, parsed);
     return [];
   }

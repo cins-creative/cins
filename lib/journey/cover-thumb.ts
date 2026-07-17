@@ -6,7 +6,7 @@ import {
   isTemporaryImageRef,
 } from "@/lib/truong/image-ref";
 
-export type CoverThumbRatio = "16:9" | "4:3";
+export type CoverThumbRatio = "16:9";
 
 export type CoverThumbMeta = {
   ratio: CoverThumbRatio;
@@ -31,8 +31,6 @@ export const DEFAULT_COVER_THUMB_META: CoverThumbMeta = {
 export const COVER_THUMB_ZOOM_MIN = 1;
 export const COVER_THUMB_ZOOM_MAX = 3;
 
-const COVER_THUMB_RATIOS: ReadonlyArray<CoverThumbRatio> = ["16:9", "4:3"];
-
 function clampPct(value: number): number {
   if (!Number.isFinite(value)) return 50;
   return Math.min(100, Math.max(0, Math.round(value * 100) / 100));
@@ -56,11 +54,15 @@ function isBunnyEmbedBlock(block: Block): boolean {
   return /iframe\.mediadelivery\.net|mediadelivery\.net\/embed/i.test(url);
 }
 
+/** Chấp nhận legacy `"4:3"` rồi ép về 16:9 khi normalize. */
+function isReadableCoverThumbRatio(
+  value: unknown,
+): value is "16:9" | "4:3" {
+  return value === "16:9" || value === "4:3";
+}
+
 export function isCoverThumbRatio(value: unknown): value is CoverThumbRatio {
-  return (
-    typeof value === "string" &&
-    (COVER_THUMB_RATIOS as ReadonlyArray<string>).includes(value)
-  );
+  return value === "16:9";
 }
 
 export function normalizeCoverThumbMeta(
@@ -68,7 +70,7 @@ export function normalizeCoverThumbMeta(
 ): CoverThumbMeta | null {
   if (!raw || typeof raw !== "object") return null;
   const obj = raw as Record<string, unknown>;
-  if (!isCoverThumbRatio(obj.ratio)) return null;
+  if (!isReadableCoverThumbRatio(obj.ratio)) return null;
   const x = typeof obj.x === "number" ? obj.x : Number(obj.x);
   const y = typeof obj.y === "number" ? obj.y : Number(obj.y);
   if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
@@ -79,7 +81,7 @@ export function normalizeCoverThumbMeta(
         ? obj.zoom
         : Number(obj.zoom);
   return {
-    ratio: obj.ratio,
+    ratio: "16:9",
     x: clampPct(x),
     y: clampPct(y),
     zoom: clampCoverThumbZoom(zoomRaw),
@@ -171,17 +173,15 @@ export function coverThumbImageStyle(
 }
 
 export function coverThumbAspectRatio(
-  meta: CoverThumbMeta | null | undefined,
+  _meta?: CoverThumbMeta | null,
 ): number {
-  const ratio = meta?.ratio ?? DEFAULT_COVER_THUMB_META.ratio;
-  return ratio === "4:3" ? 4 / 3 : 16 / 9;
+  return 16 / 9;
 }
 
 export function coverThumbAspectCss(
-  meta: CoverThumbMeta | null | undefined,
+  _meta?: CoverThumbMeta | null,
 ): string {
-  const ratio = meta?.ratio ?? DEFAULT_COVER_THUMB_META.ratio;
-  return ratio === "4:3" ? "4 / 3" : "16 / 9";
+  return "16 / 9";
 }
 
 /** Gravity CF flexible: 0–1 từ phần trăm. */
@@ -198,41 +198,27 @@ export function coverThumbFlexibleVariant(
   meta: CoverThumbMeta | null | undefined,
   size: "card" | "card-sm" | "hero" = "card",
 ): string {
-  const ratio = meta?.ratio ?? DEFAULT_COVER_THUMB_META.ratio;
   const g = coverThumbGravityParam(meta);
   if (size === "hero") {
-    return ratio === "4:3"
-      ? `w=1200,h=900,fit=cover,gravity=${g}`
-      : `w=1366,h=768,fit=cover,gravity=${g}`;
+    return `w=1366,h=768,fit=cover,gravity=${g}`;
   }
   if (size === "card-sm") {
-    return ratio === "4:3"
-      ? `w=400,h=300,fit=cover,gravity=${g}`
-      : `w=400,h=225,fit=cover,gravity=${g}`;
+    return `w=400,h=225,fit=cover,gravity=${g}`;
   }
-  return ratio === "4:3"
-    ? `w=640,h=480,fit=cover,gravity=${g}`
-    : `w=640,h=360,fit=cover,gravity=${g}`;
+  return `w=640,h=360,fit=cover,gravity=${g}`;
 }
 
 export function coverThumbLayoutSize(
-  meta: CoverThumbMeta | null | undefined,
+  _meta?: CoverThumbMeta | null,
   size: "card" | "card-sm" | "hero" = "card",
 ): { width: number; height: number } {
-  const ratio = meta?.ratio ?? DEFAULT_COVER_THUMB_META.ratio;
   if (size === "hero") {
-    return ratio === "4:3"
-      ? { width: 1200, height: 900 }
-      : { width: 1366, height: 768 };
+    return { width: 1366, height: 768 };
   }
   if (size === "card-sm") {
-    return ratio === "4:3"
-      ? { width: 400, height: 300 }
-      : { width: 400, height: 225 };
+    return { width: 400, height: 225 };
   }
-  return ratio === "4:3"
-    ? { width: 640, height: 480 }
-    : { width: 640, height: 360 };
+  return { width: 640, height: 360 };
 }
 
 /** URL CF có gravity — null nếu không phải CF UUID. */

@@ -371,14 +371,17 @@ export function readShowCoverInPost(
 }
 
 /**
- * Cover trên card timeline / poster video: luôn hiện khi có ảnh.
- * `showCoverInPost === false` không còn ẩn thumbnail card — cờ đó chỉ cho
- * thân bài (`readShowCoverInPost`). Giữ helper để tương thích call-site cũ.
+ * Cover trên card Journey / poster video.
+ * - `true` → hiện cover trên card
+ * - `false` → ẩn cover trên card (khớp checkbox «Hiển thị thumbnail…»)
+ * - thiếu key (bài cũ) → hiện — tránh mất thumbnail khi chưa migrate cờ
  */
 export function shouldUseCoverAsVideoPoster(
-  _blocks: ReadonlyArray<Block> | null | undefined,
+  blocks: ReadonlyArray<Block> | null | undefined,
 ): boolean {
-  return true;
+  const flag = findShowCoverInPostFlag(blocks);
+  if (flag === undefined) return true;
+  return flag;
 }
 
 /** Alias rõ nghĩa — cùng rule card/feed cho mọi loại bài. */

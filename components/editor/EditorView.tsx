@@ -154,6 +154,7 @@ import {
   applyCoverThumbMeta,
   DEFAULT_COVER_THUMB_META,
   findCoverThumbMeta,
+  normalizeCoverThumbMeta,
   type CoverThumbMeta,
 } from "@/lib/journey/cover-thumb";
 import {
@@ -1075,7 +1076,10 @@ export function EditorView({
   });
   const [coverThumb, setCoverThumb] = useState<CoverThumbMeta>(() => {
     if (restoredDraft?.coverThumb) {
-      return restoredDraft.coverThumb;
+      return (
+        normalizeCoverThumbMeta(restoredDraft.coverThumb) ??
+        DEFAULT_COVER_THUMB_META
+      );
     }
     return (
       findCoverThumbMeta(initial?.blocks ?? restoredDraft?.blocks) ??
@@ -4359,7 +4363,7 @@ function CoverArea({
     const isUploading = uploadTrack?.status === "uploading";
     const aspectStyle = coverThumb
       ? {
-          aspectRatio: coverThumb.ratio === "4:3" ? "4 / 3" : "16 / 9",
+          aspectRatio: "16 / 9",
         }
       : undefined;
 
@@ -4377,7 +4381,7 @@ function CoverArea({
             <EditorComposeImage
               seed={seed}
               width={1600}
-              height={coverThumb.ratio === "4:3" ? 1200 : 900}
+              height={900}
               alt="Ảnh bìa"
             />
             {uploadTrack ? (
@@ -4393,7 +4397,7 @@ function CoverArea({
             <EditorComposeImage
               seed={seed}
               width={1600}
-              height={coverThumb?.ratio === "4:3" ? 1200 : 900}
+              height={900}
               alt="Ảnh bìa"
               objectPosition={
                 coverThumb ? `${coverThumb.x}% ${coverThumb.y}%` : undefined

@@ -63,3 +63,65 @@ export function applyMilestoneInlinePatch(
     return { ...m, visibility: detail.value as MilestoneVisibility };
   });
 }
+
+type GalleryInlinePatchItem = {
+  cotMocId?: string | null;
+  type?: MilestoneType;
+  visibility?: MilestoneVisibility | "feature" | "public";
+  featured?: boolean;
+  personalFilterSlugs?: string[];
+  personalFilters?: PersonalFilterRef[];
+};
+
+/**
+ * Patch gallery card list (client cache + grid local state).
+ * Ẩn khỏi Gallery khi đổi sang bạn bè / chỉ mình.
+ */
+export function applyGalleryMilestoneInlinePatch<T extends GalleryInlinePatchItem>(
+  items: ReadonlyArray<T>,
+  detail: MilestoneInlinePatchDetail,
+): T[] {
+  const idx = items.findIndex((it) => it.cotMocId === detail.milestoneId);
+  if (idx < 0) return items as T[];
+
+  if (detail.kind === "visibility") {
+    if (detail.value !== "feature" && detail.value !== "public") {
+      return items.filter((it) => it.cotMocId !== detail.milestoneId) as T[];
+    }
+    const cur = items[idx]!;
+    if (
+      cur.visibility === detail.value &&
+      cur.featured === (detail.value === "feature")
+    ) {
+      return items as T[];
+    }
+    const next = items.slice();
+    next[idx] = {
+      ...cur,
+      visibility: detail.value,
+      featured: detail.value === "feature",
+    };
+    return next;
+  }
+
+  if (detail.kind === "type") {
+    const cur = items[idx]!;
+    if (cur.type === detail.value) return items as T[];
+    const next = items.slice();
+    next[idx] = { ...cur, type: detail.value };
+    return next;
+  }
+
+  if (detail.kind === "personalFilters") {
+    const cur = items[idx]!;
+    const next = items.slice();
+    next[idx] = {
+      ...cur,
+      personalFilterSlugs: detail.value,
+      personalFilters: detail.personalFilters ?? cur.personalFilters,
+    };
+    return next;
+  }
+
+  return items as T[];
+}

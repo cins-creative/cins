@@ -15,7 +15,6 @@ import {
   COVER_THUMB_ZOOM_MAX,
   COVER_THUMB_ZOOM_MIN,
   type CoverThumbMeta,
-  type CoverThumbRatio,
 } from "@/lib/journey/cover-thumb";
 
 type Props = {
@@ -32,7 +31,7 @@ function clampPct(value: number): number {
 }
 
 /**
- * Một khung ảnh bìa: kéo pan điểm neo, lăn/pinch/thanh zoom để phóng.
+ * Một khung ảnh bìa 16:9: kéo pan điểm neo, lăn/pinch/thanh zoom để phóng.
  * Không còn preview riêng bên dưới.
  */
 export function CoverThumbFocalControl({
@@ -57,17 +56,11 @@ export function CoverThumbFocalControl({
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
 
-  const setRatio = useCallback((ratio: CoverThumbRatio) => {
-    const current = metaRef.current;
-    if (ratio === current.ratio) return;
-    onChangeRef.current({ ...current, ratio });
-  }, []);
-
   const setZoom = useCallback((zoom: number) => {
     const current = metaRef.current;
     const next = clampCoverThumbZoom(zoom);
     if (next === clampCoverThumbZoom(current.zoom ?? 1)) return;
-    onChangeRef.current({ ...current, zoom: next });
+    onChangeRef.current({ ...current, ratio: "16:9", zoom: next });
   }, []);
 
   const onPointerDown = useCallback((e: ReactPointerEvent<HTMLDivElement>) => {
@@ -139,7 +132,7 @@ export function CoverThumbFocalControl({
       const x = clampPct(current.x - (dx / rect.width) * sensitivity);
       const y = clampPct(current.y - (dy / rect.height) * sensitivity);
       if (x === current.x && y === current.y) return;
-      onChangeRef.current({ ...current, x, y });
+      onChangeRef.current({ ...current, ratio: "16:9", x, y });
     },
     [setZoom],
   );
@@ -193,29 +186,6 @@ export function CoverThumbFocalControl({
 
       <div className="ed-cover-thumb-chrome">
         <div className="ed-cover-thumb-chrome-row">
-          <div
-            className="ed-cover-thumb-ratio-toggle"
-            role="group"
-            aria-label="Tỉ lệ thumbnail"
-          >
-            <button
-              type="button"
-              className={`ed-cover-thumb-ratio-btn${meta.ratio === "16:9" ? " is-active" : ""}`}
-              onClick={() => setRatio("16:9")}
-              aria-pressed={meta.ratio === "16:9"}
-            >
-              16:9
-            </button>
-            <button
-              type="button"
-              className={`ed-cover-thumb-ratio-btn${meta.ratio === "4:3" ? " is-active" : ""}`}
-              onClick={() => setRatio("4:3")}
-              aria-pressed={meta.ratio === "4:3"}
-            >
-              4:3
-            </button>
-          </div>
-
           <label className="ed-cover-thumb-zoom">
             <span className="ed-cover-thumb-zoom-label">Zoom</span>
             <input
