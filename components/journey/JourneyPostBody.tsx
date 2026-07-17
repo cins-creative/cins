@@ -27,6 +27,7 @@ import {
 import { PostBlockRenderer } from "@/components/journey/PostBlockRenderer";
 import { PostCover } from "@/components/editor/PostRenderer";
 import { MoTaMarkdown } from "@/components/editor/compose/MoTaMarkdown";
+import { findCoverThumbMeta } from "@/lib/journey/cover-thumb";
 import { JourneyArticleTagLink } from "@/components/journey/JourneyArticleTagLink";
 import { JourneyMilestoneCardBodyContent } from "@/components/journey/JourneyMilestoneCardBodyContent";
 import { JourneyMilestoneOwnerMenu } from "@/components/journey/JourneyMilestoneOwnerMenu";
@@ -93,7 +94,7 @@ const TYPE_LABEL: Record<string, string> = {
 };
 
 const VIS_LABEL: Record<string, { Icon: LucideIcon; text: string }> = {
-  feature: { Icon: Star, text: "Nổi bật" },
+  feature: { Icon: Star, text: "Feature" },
   public: { Icon: Globe, text: "Công khai" },
   theo_nhom: { Icon: Users, text: "Bạn bè" },
   chi_minh: { Icon: Lock, text: "Chỉ mình tôi" },
@@ -325,7 +326,10 @@ export function JourneyPostBody({
     Boolean(coverSeed) &&
     readShowCoverInPost(blocks) &&
     (postDisplayKind.kind === "bunny_video" || !mediaPost);
-  const coverEl = showCoverInReadView ? <PostCover seed={coverSeed} /> : null;
+  const coverThumbMeta = findCoverThumbMeta(blocks);
+  const coverEl = showCoverInReadView ? (
+    <PostCover seed={coverSeed} coverThumb={coverThumbMeta} />
+  ) : null;
 
   const heroTitleEl = showHeroTitle ? (
     <h1 className="title-in title-ro">{heroTitle}</h1>
@@ -678,7 +682,7 @@ export function JourneyPostBody({
     splitBlockParts.mediaBlocks.length > 0
       ? renderPostBlocks(splitBlockParts.mediaBlocks, { showAllImages: true })
       : coverSeed && readShowCoverInPost(blocks)
-        ? <PostCover seed={coverSeed} />
+        ? <PostCover seed={coverSeed} coverThumb={coverThumbMeta} />
         : null;
 
   const splitContentBlocksEl = isTextPost

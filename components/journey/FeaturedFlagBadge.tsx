@@ -14,7 +14,7 @@ export function FeaturedFlagBadge({ className, size = 20 }: Props) {
     <span
       className={className ? `j-featured-flag ${className}` : "j-featured-flag"}
       role="img"
-      aria-label="Nổi bật"
+      aria-label="Feature"
     >
       <svg
         width={size}

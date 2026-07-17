@@ -7,6 +7,7 @@ import {
   type EmbedProviderId,
   type Tier1EmbedPlatformId,
 } from "@/lib/editor/embed-providers";
+import { isEditorEmptyImageSeed } from "@/lib/editor/editor-stock-image-seeds";
 import { isLottieAssetEmbedUrl } from "@/lib/editor/lottie-asset-url";
 import { isRiveAssetEmbedUrl } from "@/lib/editor/rive-asset-url";
 import { stripMoTaMarkdown } from "@/lib/editor/mo-ta-markdown";
@@ -818,7 +819,7 @@ export function articleCardHasExpandableContent(
   body: string | null | undefined,
   blocks: ReadonlyArray<Block> | null | undefined,
 ): boolean {
-  if (blocksForArticleCardUnfold(body, blocks).length > 0) return true;
+  if (blocksForArticleCardPeek(body, blocks).length > 0) return true;
   const caption = milestoneCardCaptionPlain(body, blocks);
   if (!caption) return false;
   const paras = caption
@@ -843,7 +844,29 @@ export function articleCardPeekBlocks(
   body: string | null | undefined,
   blocks: ReadonlyArray<Block> | null | undefined,
 ): Block[] {
-  return blocksForArticleCardUnfold(body, blocks);
+  return blocksForArticleCardPeek(body, blocks);
+}
+
+const ARTICLE_TEXT_PEEK_LOAI = new Set<Block["loai"]>([
+  "body",
+  "h2",
+  "h3",
+  "quote",
+  "divider",
+  "spacer",
+]);
+
+/**
+ * Peek chỉ chữ (h2/body/…) — không dùng khung media 480px.
+ * Card thu gọn: title + caption + CTA «Xem đầy đủ»; block chỉ hiện khi xổ.
+ */
+export function articleCardPeekIsTextOnly(
+  body: string | null | undefined,
+  blocks: ReadonlyArray<Block> | null | undefined,
+): boolean {
+  const peek = blocksForArticleCardPeek(body, blocks);
+  if (peek.length === 0) return false;
+  return peek.every((b) => ARTICLE_TEXT_PEEK_LOAI.has(b.loai));
 }
 
 function blockEmbedConfigUrl(block: Block): string {
@@ -853,6 +876,53 @@ function blockEmbedConfigUrl(block: Block): string {
     return cfg.embedUrl.trim();
   }
   return "";
+}
+
+function blockHasBunnyVideoId(block: Block): boolean {
+  return (
+    typeof block.config?.bunnyVideoId === "string" &&
+    Boolean(block.config.bunnyVideoId.trim())
+  );
+}
+
+/** Embed chưa có URL / bunny id — không tính là media peek. */
+function isDeadEmbedBlock(block: Block): boolean {
+  if (block.loai !== "embed") return false;
+  return !blockEmbedConfigUrl(block) && !blockHasBunnyVideoId(block);
+}
+
+/** Ảnh placeholder/rỗng trong compose chưa phải nội dung peek render được. */
+function isDeadImageBlock(block: Block): boolean {
+  if (block.loai !== "imgs") return false;
+  const cfg = block.config ?? {};
+  const imgs = Array.isArray(cfg.imgs) ? cfg.imgs : [];
+  const hasImage = imgs.some(
+    (seed) =>
+      typeof seed === "string" &&
+      seed.trim().length > 0 &&
+      !isEditorEmptyImageSeed(seed),
+  );
+  if (hasImage) return false;
+
+  const cells = Array.isArray(cfg.cells) ? cfg.cells : [];
+  return !cells.some((raw) => {
+    if (!raw || typeof raw !== "object") return false;
+    const seed = (raw as { seed?: unknown }).seed;
+    return (
+      typeof seed === "string" &&
+      seed.trim().length > 0 &&
+      !isEditorEmptyImageSeed(seed)
+    );
+  });
+}
+
+function blocksForArticleCardPeek(
+  body: string | null | undefined,
+  blocks: ReadonlyArray<Block> | null | undefined,
+): Block[] {
+  return blocksForArticleCardUnfold(body, blocks).filter(
+    (b) => !isDeadEmbedBlock(b) && !isDeadImageBlock(b),
+  );
 }
 
 function isInlineIframeEmbedBlock(block: Block): boolean {

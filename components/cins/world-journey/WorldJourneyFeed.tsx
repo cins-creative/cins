@@ -747,6 +747,22 @@ export function WorldJourneyFeed({
           detail.milestone.lensOwnerId ??
           detail.ownerProfileId ??
           viewerProfileId,
+        /* World feed entityLens cần slug/tên/avatar — buildSelf không gắn. */
+        postOwnerSlug:
+          detail.milestone.postOwnerSlug ?? detail.ownerSlug ?? sidebarProfile.slug,
+        lensOwnerSlug:
+          detail.milestone.lensOwnerSlug ??
+          detail.ownerSlug ??
+          sidebarProfile.slug,
+        lensOwnerName:
+          detail.milestone.lensOwnerName ??
+          sidebarProfile.tenHienThi ??
+          detail.ownerSlug ??
+          sidebarProfile.slug,
+        lensOwnerAvatarUrl:
+          detail.milestone.lensOwnerAvatarUrl ??
+          sidebarProfile.avatarUrl ??
+          null,
       };
       const pinKey = worldJourneyMilestonePinKey(milestone);
       pinnedOwnPublishRef.current.set(pinKey, {
@@ -779,7 +795,7 @@ export function WorldJourneyFeed({
       window.removeEventListener(COMPOSE_PUBLISHED_EVENT, onComposePublished);
       window.removeEventListener("cins:milestone-deleted", onMilestoneDeleted);
     };
-  }, [sidebarProfile.slug, viewerProfileId]);
+  }, [sidebarProfile.slug, sidebarProfile.tenHienThi, sidebarProfile.avatarUrl, viewerProfileId]);
 
   const activeChip = findWorldJourneyFilterChip(filterChips, activeFilter);
   const exploreIds = useMemo(

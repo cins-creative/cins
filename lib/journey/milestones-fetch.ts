@@ -352,7 +352,37 @@ export async function buildMilestoneItemForCotMoc(
     .maybeSingle<CotMocRow>();
   if (error || !data) return null;
   const items = await buildSelfMilestonesForCotMocs(admin, [data]);
-  return items[0] ?? null;
+  const item = items[0];
+  if (!item) return null;
+
+  const ownerId = data.id_nguoi_dung?.trim() || item.lensOwnerId || null;
+  if (!ownerId) return item;
+
+  const { data: author } = await admin
+    .from("user_nguoi_dung")
+    .select("id, slug, ten_hien_thi, avatar_id")
+    .eq("id", ownerId)
+    .maybeSingle<{
+      id: string;
+      slug: string;
+      ten_hien_thi: string | null;
+      avatar_id: string | null;
+    }>();
+
+  const slug = author?.slug?.trim() || item.postOwnerSlug || null;
+  if (!slug && !author) return item;
+
+  return {
+    ...item,
+    lensOwnerId: ownerId,
+    lensOwnerSlug: slug,
+    lensOwnerName:
+      author?.ten_hien_thi?.trim() || slug || item.lensOwnerName || null,
+    lensOwnerAvatarUrl:
+      getAvatarUrl(author?.avatar_id ?? null) ?? item.lensOwnerAvatarUrl ?? null,
+    postOwnerId: ownerId,
+    postOwnerSlug: slug ?? item.postOwnerSlug ?? null,
+  };
 }
 
 export async function fetchMilestonesForUser(params: {

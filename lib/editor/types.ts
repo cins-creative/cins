@@ -26,9 +26,11 @@ export type Block = {
    *   - imgs: { layout, rounded, gap?, cap, imgs: string[], width?, height?, cols?, cells?, pad? }
    *     `gap` — khe giữa ô (0 | 2 | 4 px), mặc định 2.
    *     Mỗi phần tử `imgs[]` / mosaic `seed`: Cloudflare UUID hoặc URL http(s) đầy đủ.
-   *   - embed: { url, provider?, embed_html?, showCoverInPost?, bunnyVideoId?, videoCanvasRatio? }
+   *   - embed: { url, provider?, embed_html?, showCoverInPost?, coverThumb?, bunnyVideoId?, videoCanvasRatio? }
    *     `showCoverInPost` — hiện `cover_id` trong thân bài (opt-in `true`).
    *     Card timeline: hiện trừ khi `false` tường minh. Gallery / OG luôn dùng cover.
+     *     `coverThumb` — { ratio: "16:9"|"4:3", x:0–100, y:0–100, zoom?:1–3 }
+     *     điểm neo + phóng khung thumbnail (Gallery / bài dài).
    *     Có thể nằm trên embed (ưu tiên Bunny) hoặc block đầu.
    *   - palette: { colors: string[] }
    *   - divider: {}

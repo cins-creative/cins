@@ -160,6 +160,10 @@ export function useEditorVideoUpload() {
           embedUrl: prep.embedUrl,
         };
 
+        /* Cho phép Journey preview / scrub dùng id + embed ngay — không chờ tus xong. */
+        setBunnyVideoId(prep.videoId);
+        setVideoUrl(prep.embedUrl);
+
         const { Upload } = await import("tus-js-client");
         if (session !== uploadSessionRef.current) return;
         const upload = new Upload(file, {

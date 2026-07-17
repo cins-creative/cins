@@ -1,5 +1,6 @@
 "use client";
 
+import { Star } from "lucide-react";
 import {
   useEffect,
   useRef,
@@ -163,13 +164,22 @@ function StatsPair({
     <div className={"j-nc-stats" + (className ? ` ${className}` : "")}>
       <div className="j-nc-stat">
         <strong>{noiBat}</strong>
-        <span>Nội dung nổi bật</span>
+        <FeatureLabel />
       </div>
       <div className="j-nc-stat">
         <strong>{tacPham}</strong>
         <span>Tác phẩm</span>
       </div>
     </div>
+  );
+}
+
+function FeatureLabel() {
+  return (
+    <span className="j-feature-label">
+      <Star size="1em" strokeWidth={1.9} fill="currentColor" aria-hidden />
+      Feature
+    </span>
   );
 }
 
@@ -193,7 +203,7 @@ function BannerLayout({ profile }: { profile: JourneyShareProfile }) {
         </div>
         <div className="j-nc-b-stats">
           <span>
-            <b>{noiBat}</b> Nội dung nổi bật
+            <b>{noiBat}</b> <FeatureLabel />
           </span>
           <span className="j-nc-sep">•</span>
           <span>
@@ -255,7 +265,7 @@ function CenterLayout({ profile }: { profile: JourneyShareProfile }) {
           </div>
           <div className="j-nc-c-box">
             <strong>{noiBat}</strong>
-            <span>Nội dung nổi bật</span>
+            <FeatureLabel />
           </div>
         </div>
       </div>
@@ -389,7 +399,7 @@ function PsStatsInline({ profile }: { profile: JourneyShareProfile }) {
   return (
     <div className="j-ps-stats-inline">
       <span>
-        <b>{noiBat}</b> Nội dung nổi bật
+        <b>{noiBat}</b> <FeatureLabel />
       </span>
       <span className="j-ps-dot" aria-hidden>
         •
@@ -408,7 +418,7 @@ function PsStatsPair({ profile }: { profile: JourneyShareProfile }) {
     <div className="j-ps-stats-pair">
       <div className="j-ps-stat">
         <strong>{noiBat}</strong>
-        <span>Nội dung nổi bật</span>
+        <FeatureLabel />
       </div>
       <div className="j-ps-stat-vr" aria-hidden />
       <div className="j-ps-stat">

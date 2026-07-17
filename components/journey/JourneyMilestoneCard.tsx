@@ -304,7 +304,7 @@ const EDITABLE_VIS_OPTIONS: ReadonlyArray<{
   label: string;
   Icon: LucideIcon;
 }> = [
-  { ui: "feature", db: "feature", label: "Nổi bật", Icon: Star },
+  { ui: "feature", db: "feature", label: "Feature", Icon: Star },
   { ui: "public", db: "public", label: "Công khai", Icon: Globe },
   { ui: "unlisted", db: "theo_nhom", label: "Bạn bè", Icon: Users },
   { ui: "private", db: "chi_minh", label: "Chỉ mình tôi", Icon: Lock },
@@ -320,7 +320,7 @@ const CONG_DONG_GRADUATE_VIS_OPTIONS: ReadonlyArray<{
   { ui: "public", db: "public", label: "Công khai", Icon: Globe },
   { ui: "unlisted", db: "theo_nhom", label: "Bạn bè", Icon: Users },
   { ui: "private", db: "chi_minh", label: "Chỉ mình tôi", Icon: Lock },
-  { ui: "feature", db: "feature", label: "Nổi bật", Icon: Star },
+  { ui: "feature", db: "feature", label: "Feature", Icon: Star },
 ];
 
 /** Tagged / Lưu về — chỉ đổi hiển thị trên Journey của viewer. */
@@ -330,7 +330,7 @@ const FOREIGN_JOURNEY_VIS_OPTIONS: ReadonlyArray<{
   label: string;
   Icon: LucideIcon;
 }> = [
-  { ui: "feature", db: "feature", label: "Nổi bật", Icon: Star },
+  { ui: "feature", db: "feature", label: "Feature", Icon: Star },
   { ui: "public", db: "public", label: "Công khai", Icon: Globe },
   { ui: "private", db: "chi_minh", label: "Ẩn khỏi Journey", Icon: Lock },
 ];
@@ -408,7 +408,7 @@ function visibilityIcon(
         : "Cộng đồng",
     };
   }
-  if (v === "feature") return { Icon: Star, label: "Nổi bật" };
+  if (v === "feature") return { Icon: Star, label: "Feature" };
   if (!v || v === "public") return { Icon: Globe, label: "Công khai" };
   if (v === "unlisted") return { Icon: Users, label: "Bạn bè" };
   if (v === "private") return { Icon: Lock, label: "Chỉ mình tôi" };
@@ -1597,7 +1597,7 @@ export function JourneyMilestoneCard({
                           ? { fill: "currentColor" }
                           : {})}
                       />
-                      {visibility === "feature" ? "Nổi bật" : vis.label}
+                      {visibility === "feature" ? "Feature" : vis.label}
                     </span>
                   )}
                 </JourneyMilestoneInlineControls>
@@ -1631,7 +1631,7 @@ export function JourneyMilestoneCard({
                     {...(visibility === "feature" ? { fill: "currentColor" } : {})}
                   />
                   {visibility === "feature" && !isCongDongSelfPost
-                    ? "Nổi bật"
+                    ? "Feature"
                     : vis.label}
                 </span>
               ) : null}
@@ -1873,7 +1873,7 @@ export function JourneyMilestoneCard({
                             ? { fill: "currentColor" }
                             : {})}
                         />
-                        {visibility === "feature" ? "Nổi bật" : vis.label}
+                        {visibility === "feature" ? "Feature" : vis.label}
                       </span>
                     </JourneyMilestoneInlineControls>
                   ) : null}
@@ -2069,7 +2069,7 @@ export function JourneyMilestoneCard({
                                 ? { fill: "currentColor" }
                                 : {})}
                             />
-                            {visibility === "feature" ? "Nổi bật" : vis.label}
+                            {visibility === "feature" ? "Feature" : vis.label}
                           </span>
                         )}
                       </JourneyMilestoneInlineControls>
@@ -2251,7 +2251,7 @@ export function JourneyMilestoneCard({
                       aria-hidden
                       {...(visibility === "feature" ? { fill: "currentColor" } : {})}
                     />
-                    {visibility === "feature" ? "Nổi bật" : vis.label}
+                    {visibility === "feature" ? "Feature" : vis.label}
                   </span>
                 ) : null}
               </span>

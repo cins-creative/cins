@@ -31,6 +31,7 @@ import {
   Crop,
   Columns2,
   Columns3,
+  Eye,
   Globe,
   ImagePlus,
   Loader2,
@@ -147,6 +148,13 @@ import {
   detectMediaPostKind,
   mediaPostHasContent,
 } from "@/lib/journey/post-media";
+import { CoverThumbFocalControl } from "@/components/editor/CoverThumbFocalControl";
+import {
+  applyCoverThumbMeta,
+  DEFAULT_COVER_THUMB_META,
+  findCoverThumbMeta,
+  type CoverThumbMeta,
+} from "@/lib/journey/cover-thumb";
 import {
   applyShowCoverInPostFlag,
   findShowCoverInPostFlag,
@@ -210,6 +218,12 @@ import { videoCanvasRatioClass } from "@/lib/journey/video-canvas-ratio";
 import { bunnyIframeSrc, buildBunnyVideoMp4Url, buildBunnyVideoThumbnailUrl, classifyBunnyVideoUrl } from "@/lib/bunny/embed";
 import { EditorVideoThumbnailPicker } from "@/components/editor/EditorVideoThumbnailPicker";
 import { ImageCropModal } from "@/components/editor/ImageCropModal";
+import { ComposePreviewPanel } from "@/components/editor/ComposePreviewPanel";
+import {
+  toPreviewServerBlocks,
+  type ComposePreviewDraft,
+} from "@/lib/journey/compose-preview-adapter";
+import { useJourneyCompose } from "@/components/journey/JourneyComposeContext";
 
 /** MIME xuất ra sau khi cắt — giữ PNG/WebP có kênh alpha, còn lại về JPEG. */
 function cropOutputMime(inputType: string | undefined): string {
@@ -864,6 +878,8 @@ export function EditorView({
   const isEdit = mode === "edit" && !!initial;
   const isCreateCompose = !isEdit && isOverlay;
   const personalFilterCtx = useJourneyPersonalFilterOptional();
+  const composeCtx = useJourneyCompose();
+  const [previewMobileOpen, setPreviewMobileOpen] = useState(false);
   /**
    * Platform / nguồn nhúng — prop lúc mở compose, hoặc chọn giữa chừng
    * (nút Nhúng khi đang soạn chữ) / khi sửa bài chữ rồi thêm embed.
@@ -1055,6 +1071,15 @@ export function EditorView({
     if (typeof flag === "boolean") return flag;
     /* Bài mới: tắt. Bài cũ thiếu key: bật — khớp card, tránh mất cover khi lưu. */
     return isEdit;
+  });
+  const [coverThumb, setCoverThumb] = useState<CoverThumbMeta>(() => {
+    if (restoredDraft?.coverThumb) {
+      return restoredDraft.coverThumb;
+    }
+    return (
+      findCoverThumbMeta(initial?.blocks ?? restoredDraft?.blocks) ??
+      DEFAULT_COVER_THUMB_META
+    );
   });
   const [cropTarget, setCropTarget] = useState<CropTarget | null>(null);
   const showMinimalToolbar = useMemo(
@@ -1289,17 +1314,15 @@ export function EditorView({
     if (!composeDraftWriteEnabledRef.current) return;
     const timer = window.setTimeout(() => {
       if (!composeDraftWriteEnabledRef.current) return;
+      const draftBlocks = applyCoverThumbMeta(
+        applyShowCoverInPostFlag(toServerBlocks(blocks), showCoverInPost),
+        coverSeed ? coverThumb : null,
+      );
       writeComposeEditorDraft(composeDraftKey, {
         tieuDe: title,
         moTa: sub,
-        coverSeed: sanitizeBaiDangCoverIdInput(
-          coverSeed,
-          applyShowCoverInPostFlag(toServerBlocks(blocks), showCoverInPost),
-        ),
-        blocks: applyShowCoverInPostFlag(
-          toServerBlocks(blocks),
-          showCoverInPost,
-        ),
+        coverSeed: sanitizeBaiDangCoverIdInput(coverSeed, draftBlocks),
+        blocks: draftBlocks,
         visibility: vis,
         tags,
         composeFilterSlugs: congDongCompose ? composeFilterSlugs : undefined,
@@ -1312,6 +1335,7 @@ export function EditorView({
         albumGridCompose,
         minimalRichBlocks,
         showCoverInPost,
+        coverThumb: coverSeed ? coverThumb : null,
       });
     }, 400);
     return () => window.clearTimeout(timer);
@@ -1332,6 +1356,7 @@ export function EditorView({
     albumGridCompose,
     minimalRichBlocks,
     showCoverInPost,
+    coverThumb,
     congDongCompose,
     orgBaiDangCompose,
   ]);
@@ -1539,6 +1564,7 @@ export function EditorView({
   const applyMinimalCoverFile = useCallback(
     (file: File) => {
       setMinimalCoverVisible(true);
+      setCoverThumb(DEFAULT_COVER_THUMB_META);
       beginImageUpload(file, setCoverSeed, replaceImageSeed);
     },
     [beginImageUpload, replaceImageSeed],
@@ -1551,39 +1577,19 @@ export function EditorView({
     });
   }, []);
 
-  /** Mở trình cắt cho ảnh thumbnail mới (mặc định tự do). */
-  const openThumbnailCrop = useCallback(
-    (file: File, onCropped: (file: File) => void) => {
+  /** Thumbnail: upload ảnh gốc ngay — chọn vùng hiển thị bằng điểm neo, không crop trước. */
+  const applyThumbnailFile = useCallback(
+    (file: File) => {
       if (!isAllowedUploadImageFile(file)) {
         setToast("Chọn ảnh JPEG, PNG, WebP hoặc GIF.");
         return;
       }
-      const url = URL.createObjectURL(file);
-      setCropTarget({
-        src: url,
-        crossOrigin: false,
-        revoke: url,
-        fileName: file.name || "thumbnail",
-        mimeType: cropOutputMime(file.type),
-        title: "Cắt ảnh thumbnail",
-        defaultAspect: null,
-        onConfirm: onCropped,
-      });
+      applyMinimalCoverFile(file);
     },
-    [],
+    [applyMinimalCoverFile],
   );
 
-  const applyThumbnailFileWithCrop = useCallback(
-    (file: File) => {
-      openThumbnailCrop(file, (cropped) => {
-        setMinimalCoverVisible(true);
-        beginImageUpload(cropped, setCoverSeed, replaceImageSeed);
-      });
-    },
-    [openThumbnailCrop, beginImageUpload, replaceImageSeed],
-  );
-
-  /* Dán ảnh (chỉ ảnh, không kèm chữ) khi đang gõ tiêu đề / mô tả → mở cắt thumbnail. */
+  /* Dán ảnh (chỉ ảnh, không kèm chữ) khi đang gõ tiêu đề / mô tả → thumbnail. */
   useEffect(() => {
     function onPaste(e: globalThis.ClipboardEvent) {
       const el = document.activeElement as HTMLElement | null;
@@ -1597,11 +1603,11 @@ export function EditorView({
       const file = imageFileOnlyFromClipboard(e.clipboardData);
       if (!file) return;
       e.preventDefault();
-      applyThumbnailFileWithCrop(file);
+      applyThumbnailFile(file);
     }
     document.addEventListener("paste", onPaste);
     return () => document.removeEventListener("paste", onPaste);
-  }, [applyThumbnailFileWithCrop]);
+  }, [applyThumbnailFile]);
 
   const videoScrubSrc = useMemo(() => {
     if (localVideoPreviewUrl) return localVideoPreviewUrl;
@@ -1665,6 +1671,52 @@ export function EditorView({
       ),
     [blocks, coverSeed, sub],
   );
+  const previewDraft = useMemo((): ComposePreviewDraft => {
+    const previewBlocks = applyCoverThumbMeta(
+      applyShowCoverInPostFlag(
+        toPreviewServerBlocks(blocks),
+        showCoverInPost,
+      ),
+      coverSeed ? coverThumb : null,
+    );
+    const isBunnyCompose = blocks.some((b) =>
+      isEditorBunnyVideoBlock(b, videoBlockIdRef.current),
+    );
+    return {
+      title,
+      moTa: sub,
+      coverSeed,
+      blocks: previewBlocks,
+      showCoverInPost,
+      coverThumb: coverSeed ? coverThumb : null,
+      ownerName,
+      ownerAvatarUrl: composeCtx.ownerAvatarUrl,
+      ownerSlug,
+      bunnyVideo: isBunnyCompose
+        ? {
+            embedUrl: videoUrl || null,
+            bunnyVideoId: bunnyVideoId || null,
+            processing: videoUploading || videoEncoding,
+            videoCanvasRatio: videoCanvasRatio || null,
+          }
+        : null,
+    };
+  }, [
+    title,
+    sub,
+    coverSeed,
+    blocks,
+    showCoverInPost,
+    coverThumb,
+    ownerName,
+    ownerSlug,
+    composeCtx.ownerAvatarUrl,
+    videoUrl,
+    bunnyVideoId,
+    videoUploading,
+    videoEncoding,
+    videoCanvasRatio,
+  ]);
   const externalEmbedBlock = useMemo(
     () => blocks.find((b) => b.t === "embed") ?? null,
     [blocks],
@@ -2971,9 +3023,12 @@ export function EditorView({
       blocks,
       videoBlockIdRef.current,
     );
-    const serverBlocks: ServerBlock[] = applyShowCoverInPostFlag(
-      toServerBlocks(orderedLocal),
-      showCoverInPost,
+    const serverBlocks: ServerBlock[] = applyCoverThumbMeta(
+      applyShowCoverInPostFlag(
+        toServerBlocks(orderedLocal),
+        showCoverInPost,
+      ),
+      coverSeed ? coverThumb : null,
     );
 
     const hasMediaBlock = blocks.some((b) => b.t === "imgs" || b.t === "embed");
@@ -3019,7 +3074,10 @@ export function EditorView({
       coverFinal = null;
     }
     /* Ghi lại sau khi có thể vừa tạo block imgs từ cover — tránh mất cờ khi blocks rỗng. */
-    publishBlocks = applyShowCoverInPostFlag(publishBlocks, showCoverInPost);
+    publishBlocks = applyCoverThumbMeta(
+      applyShowCoverInPostFlag(publishBlocks, showCoverInPost),
+      coverFinal ? coverThumb : null,
+    );
 
     if (
       detectMediaPostKind(publishBlocks) === "photo" &&
@@ -3258,6 +3316,8 @@ export function EditorView({
     title,
     sub,
     coverSeed,
+    coverThumb,
+    showCoverInPost,
     tags,
     collaborators,
     ownerVaiTro,
@@ -3296,7 +3356,7 @@ export function EditorView({
 
   return (
     <div
-      className={`cins-editor-page${isOverlay ? " is-overlay" : ""}${usesMinimalFlow && isOverlay ? " is-minimal-compose" : ""}${usesMinimalFlow && editorExpanded ? " is-minimal-compose-expanded" : ""}`}
+      className={`cins-editor-page${isOverlay ? " is-overlay has-compose-preview" : ""}${usesMinimalFlow && isOverlay ? " is-minimal-compose" : ""}${usesMinimalFlow && editorExpanded ? " is-minimal-compose-expanded" : ""}`}
       ref={editorRef}
     >
       {/* TOPBAR */}
@@ -3348,6 +3408,17 @@ export function EditorView({
               <EditorVisibilitySelect value={vis} onChange={setVis} />
             </div>
           )}
+
+          {isOverlay ? (
+            <button
+              type="button"
+              className="ed-btn ghost ed-compose-preview-toggle"
+              onClick={() => setPreviewMobileOpen(true)}
+            >
+              <Eye size={14} strokeWidth={2} aria-hidden />
+              Xem trước
+            </button>
+          ) : null}
 
           {isOverlay && onClose ? (
             <button type="button" className="ed-btn ghost" onClick={onClose}>
@@ -3402,7 +3473,12 @@ export function EditorView({
         </div>
       </header>
 
-      {/* CANVAS */}
+      {/* CANVAS (+ xem trước khi overlay) */}
+      <div
+        className={
+          isOverlay ? "ed-compose-split" : "ed-compose-page-canvas"
+        }
+      >
       <main
         className="editor-canvas"
         aria-label={`Soạn bài cho ${ownerName}`}
@@ -3480,16 +3556,18 @@ export function EditorView({
               setCoverSeed(null);
               setMinimalCoverVisible(false);
               setShowCoverInPost(false);
+              setCoverThumb(DEFAULT_COVER_THUMB_META);
             }}
-            onUploadFile={(file, onPick, onResolved) =>
-              openThumbnailCrop(file, (cropped) =>
-                beginImageUpload(cropped, onPick, onResolved),
-              )
-            }
+            onUploadFile={(file, onPick, onResolved) => {
+              setCoverThumb(DEFAULT_COVER_THUMB_META);
+              beginImageUpload(file, onPick, onResolved);
+            }}
             showCoverInPost={coverSeed ? showCoverInPost : undefined}
             onShowCoverInPostChange={
               coverSeed ? setShowCoverInPost : undefined
             }
+            coverThumb={coverSeed ? coverThumb : undefined}
+            onCoverThumbChange={coverSeed ? setCoverThumb : undefined}
           />
         ) : null}
 
@@ -3541,7 +3619,7 @@ export function EditorView({
                       tabIndex={-1}
                       onChange={(e) => {
                         const f = e.target.files?.[0];
-                        if (f) applyThumbnailFileWithCrop(f);
+                        if (f) applyThumbnailFile(f);
                         e.target.value = "";
                       }}
                     />
@@ -3582,7 +3660,7 @@ export function EditorView({
                 disabled={!videoFramePickSrc}
                 disabledHint={videoThumbDisabledHint}
                 onCaptureFrame={applyMinimalCoverFile}
-                onUploadImage={applyThumbnailFileWithCrop}
+                onUploadImage={applyThumbnailFile}
                 onError={(message) => setToast(message)}
                 showCoverInPost={showCoverInPost}
                 onShowCoverInPostChange={setShowCoverInPost}
@@ -3615,7 +3693,7 @@ export function EditorView({
                 tabIndex={-1}
                 onChange={(e) => {
                   const f = e.target.files?.[0];
-                  if (f) applyThumbnailFileWithCrop(f);
+                  if (f) applyThumbnailFile(f);
                   e.target.value = "";
                 }}
               />
@@ -3943,6 +4021,15 @@ export function EditorView({
         ) : null}
       </main>
 
+      {isOverlay ? (
+        <ComposePreviewPanel
+          draft={previewDraft}
+          mobileOpen={previewMobileOpen}
+          onMobileClose={() => setPreviewMobileOpen(false)}
+        />
+      ) : null}
+      </div>
+
       <input
         ref={imageFileInputRef}
         type="file"
@@ -4164,6 +4251,8 @@ function CoverArea({
   allowPaste = true,
   showCoverInPost,
   onShowCoverInPostChange,
+  coverThumb,
+  onCoverThumbChange,
 }: {
   seed: string | null;
   uploadTrack?: ImageUploadTrack;
@@ -4182,6 +4271,8 @@ function CoverArea({
   /** Hiện khi đã có ảnh bìa — mọi loại bài (user + org). */
   showCoverInPost?: boolean;
   onShowCoverInPostChange?: (next: boolean) => void;
+  coverThumb?: CoverThumbMeta;
+  onCoverThumbChange?: (next: CoverThumbMeta) => void;
 }) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const dragDepthRef = useRef(0);
@@ -4265,21 +4356,57 @@ function CoverArea({
 
   if (seed) {
     const isUploading = uploadTrack?.status === "uploading";
+    const aspectStyle = coverThumb
+      ? {
+          aspectRatio: coverThumb.ratio === "4:3" ? "4 / 3" : "16 / 9",
+        }
+      : undefined;
+
     return (
       <div
         className={`cover-add has${isUploading ? " is-uploading" : ""}${coverDragClass}`}
         {...coverDragProps}
       >
-        <div className="cover-img-wrap">
-          <EditorComposeImage seed={seed} width={1600} height={640} alt="Ảnh bìa" />
-          {uploadTrack ? (
-            <ImageUploadProgressOverlay
-              progress={uploadTrack.progress}
-              status={uploadTrack.status}
-              error={uploadTrack.error}
+        {coverThumb && onCoverThumbChange ? (
+          <CoverThumbFocalControl
+            meta={coverThumb}
+            onChange={onCoverThumbChange}
+            style={aspectStyle}
+          >
+            <EditorComposeImage
+              seed={seed}
+              width={1600}
+              height={coverThumb.ratio === "4:3" ? 1200 : 900}
+              alt="Ảnh bìa"
             />
-          ) : null}
-        </div>
+            {uploadTrack ? (
+              <ImageUploadProgressOverlay
+                progress={uploadTrack.progress}
+                status={uploadTrack.status}
+                error={uploadTrack.error}
+              />
+            ) : null}
+          </CoverThumbFocalControl>
+        ) : (
+          <div className="cover-img-wrap" style={aspectStyle}>
+            <EditorComposeImage
+              seed={seed}
+              width={1600}
+              height={coverThumb?.ratio === "4:3" ? 1200 : 900}
+              alt="Ảnh bìa"
+              objectPosition={
+                coverThumb ? `${coverThumb.x}% ${coverThumb.y}%` : undefined
+              }
+            />
+            {uploadTrack ? (
+              <ImageUploadProgressOverlay
+                progress={uploadTrack.progress}
+                status={uploadTrack.status}
+                error={uploadTrack.error}
+              />
+            ) : null}
+          </div>
+        )}
         <div className="cover-actions">
           <button
             type="button"
@@ -5248,12 +5375,14 @@ function EditorComposeImage({
   height = 900,
   alt = "",
   onNaturalAspect,
+  objectPosition,
 }: {
   seed: string;
   width?: number;
   height?: number;
   alt?: string;
   onNaturalAspect?: (aspect: number) => void;
+  objectPosition?: string;
 }) {
   const [displaySrc, setDisplaySrc] = useState(() => ph(seed, width, height));
   const blobRef = useRef<string | null>(
@@ -5303,6 +5432,7 @@ function EditorComposeImage({
     <img
       src={displaySrc}
       alt={alt}
+      style={objectPosition ? { objectPosition } : undefined}
       onLoad={(e) => {
         const img = e.currentTarget;
         if (img.naturalWidth > 0 && img.naturalHeight > 0) {
@@ -5482,6 +5612,9 @@ function ImageBlock({ block, p }: { block: Block; p: BlockRowProps }) {
           })),
         )
       : null;
+  const justifiedRowAspect = justifiedRows
+    ? (16 * Math.min(justifiedRows.length, 2)) / 9
+    : null;
 
   return (
     <div className="b-imgs">
@@ -5495,11 +5628,14 @@ function ImageBlock({ block, p }: { block: Block; p: BlockRowProps }) {
       >
         {justifiedRows
           ? justifiedRows.map((row, ri) => (
-              <div key={`${block.id}-jrow-${ri}`} className="imgwrap-jrow">
+              <div
+                key={`${block.id}-jrow-${ri}`}
+                className="imgwrap-jrow"
+                style={{ aspectRatio: String(justifiedRowAspect) }}
+              >
                 {row.map((cell) =>
                   renderSlot(cell.seed, cell.index, {
                     flexGrow: cell.aspect,
-                    aspectRatio: String(cell.aspect),
                   }),
                 )}
               </div>

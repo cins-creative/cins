@@ -51,17 +51,6 @@ export function PostReadOnlyImgs({ block }: Props) {
   const imgs = (
     rawImgs.length > 0 ? rawImgs : flattenMosaicCells(cfg.cells)
   ).filter((s) => !/^m-|^extra-/.test(s));
-  if (imgs.length === 0) return null;
-
-  const width =
-    typeof cfg.width === "number" && cfg.width > 0
-      ? Math.round(cfg.width)
-      : GRID_IMAGE_DEFAULT_WIDTH;
-  const height =
-    typeof cfg.height === "number" && cfg.height > 0
-      ? Math.round(cfg.height)
-      : GRID_IMAGE_DEFAULT_HEIGHT;
-  const gridImages: GridImage[] = imgs.map((id) => ({ id, width, height }));
 
   const reportAspect = useCallback((slot: number, aspect: number) => {
     if (!Number.isFinite(aspect) || aspect <= 0) return;
@@ -82,6 +71,18 @@ export function PostReadOnlyImgs({ block }: Props) {
     },
     [reportAspect],
   );
+
+  if (imgs.length === 0) return null;
+
+  const width =
+    typeof cfg.width === "number" && cfg.width > 0
+      ? Math.round(cfg.width)
+      : GRID_IMAGE_DEFAULT_WIDTH;
+  const height =
+    typeof cfg.height === "number" && cfg.height > 0
+      ? Math.round(cfg.height)
+      : GRID_IMAGE_DEFAULT_HEIGHT;
+  const gridImages: GridImage[] = imgs.map((id) => ({ id, width, height }));
 
   const renderSlot = (
     seed: string,
@@ -122,6 +123,9 @@ export function PostReadOnlyImgs({ block }: Props) {
           })),
         )
       : null;
+  const justifiedRowAspect = justifiedRows
+    ? (16 * Math.min(justifiedRows.length, 2)) / 9
+    : null;
 
   return (
     <div className="b-imgs b-imgs-ro">
@@ -135,11 +139,14 @@ export function PostReadOnlyImgs({ block }: Props) {
       >
         {justifiedRows
           ? justifiedRows.map((row, ri) => (
-              <div key={`${block.id}-jrow-${ri}`} className="imgwrap-jrow">
+              <div
+                key={`${block.id}-jrow-${ri}`}
+                className="imgwrap-jrow"
+                style={{ aspectRatio: String(justifiedRowAspect) }}
+              >
                 {row.map((cell) =>
                   renderSlot(cell.seed, cell.index, {
                     flexGrow: cell.aspect,
-                    aspectRatio: String(cell.aspect),
                   }),
                 )}
               </div>

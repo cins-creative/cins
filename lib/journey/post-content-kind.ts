@@ -14,6 +14,7 @@ import {
   blocksArePlainTextOnly,
   extractAllImageIds,
   hasArticleLayoutBlocks,
+  hasArticleProseStructure,
   type GalleryMediaKind,
 } from "@/lib/journey/post-block-helpers";
 import { extractVideoProcessingMeta } from "@/lib/journey/video-processing-meta";
@@ -154,6 +155,25 @@ function isBunnyEmbedBlock(block: Block): boolean {
   if (bunnyId) return true;
   const url = blockEmbedUrl(block);
   return Boolean(url && classifyBunnyVideoUrl(url));
+}
+
+/**
+ * Embed có media phát được (Bunny / URL). Block `embed` trống (compose đang
+ * upload) không tính — tránh ép article + peek chữ trong khung 480px.
+ */
+function isPlayableOrLinkedEmbedBlock(block: Block): boolean {
+  if (block.loai !== "embed") return false;
+  if (isBunnyEmbedBlock(block)) return true;
+  return Boolean(blockEmbedUrl(block));
+}
+
+/** Bỏ embed trống khỏi danh sách khi phân loại / peek — không đổi DB. */
+function withoutDeadEmbedBlocks(
+  blocks: ReadonlyArray<Block>,
+): Block[] {
+  return blocks.filter(
+    (b) => b.loai !== "embed" || isPlayableOrLinkedEmbedBlock(b),
+  );
 }
 
 function isInlineIframeEmbedBlock(block: Block): boolean {
@@ -351,15 +371,14 @@ export function readShowCoverInPost(
 }
 
 /**
- * Cover trên card timeline / poster video:
- * ẩn chỉ khi `showCoverInPost === false` tường minh.
- * Key thiếu = bài cũ — vẫn hiện (tránh mất ảnh feed).
- * Thân bài dùng `readShowCoverInPost` (opt-in).
+ * Cover trên card timeline / poster video: luôn hiện khi có ảnh.
+ * `showCoverInPost === false` không còn ẩn thumbnail card — cờ đó chỉ cho
+ * thân bài (`readShowCoverInPost`). Giữ helper để tương thích call-site cũ.
  */
 export function shouldUseCoverAsVideoPoster(
-  blocks: ReadonlyArray<Block> | null | undefined,
+  _blocks: ReadonlyArray<Block> | null | undefined,
 ): boolean {
-  return findShowCoverInPostFlag(blocks) !== false;
+  return true;
 }
 
 /** Alias rõ nghĩa — cùng rule card/feed cho mọi loại bài. */
@@ -481,7 +500,8 @@ function finalizePostContentResolution(
 export function resolvePostDisplayKind(
   input: PostContentResolveInput,
 ): PostContentResolution {
-  const blocks = input.blocks ?? [];
+  /* Embed trống (upload dở) không được kéo kind → article. */
+  const blocks = withoutDeadEmbedBlocks(input.blocks ?? []);
   const moTaTrimmed = (input.moTa ?? "").trim();
   const imageIds = extractAllImageIds(blocks);
   const coverOk = hasValidCover(input);
@@ -614,6 +634,27 @@ export function resolvePostDisplayKind(
   }
 
   if (coverOk && blocksArePlainTextOnly(blocks)) {
+    /* Cover + prose/layout/thân dài → bài viết, không ép album 1 ảnh. */
+    const bodyBlocks = meaningfulBlocks(blocks).filter(
+      (b) => b.loai === "body" && blockPlainText(b),
+    );
+    const longFormBody = bodyBlocks.some((b) => blockPlainText(b).length > 160);
+    if (
+      hasArticleProseStructure(blocks) ||
+      hasArticleLayoutBlocks(blocks) ||
+      longFormBody ||
+      bodyBlocks.length > 1
+    ) {
+      return finalizePostContentResolution(
+        {
+          kind: "article",
+          effectiveMoTa,
+          gridVisible: true,
+          gridThumbSource: "cover",
+        },
+        blocks,
+      );
+    }
     return finalizePostContentResolution(
       {
         kind: "album",

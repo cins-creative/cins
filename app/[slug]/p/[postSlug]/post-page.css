@@ -1346,6 +1346,10 @@
   min-height: 0;
   border-radius: 12px;
 }
+.cins-post-view .post-rail-cover .cover-add.cover-readonly.has-cover-thumb {
+  aspect-ratio: unset;
+  max-height: none;
+}
 
 .cins-post-view .post-rail-hero .post-view-kicker {
   margin-bottom: 8px;
@@ -1973,6 +1977,11 @@
   position: relative;
   overflow: hidden;
 }
+/* Có coverThumb — khung theo tỉ lệ đã chọn, không khóa height cố định. */
+.cins-post-view .cover-add.cover-readonly.has-cover-thumb {
+  height: auto;
+  max-height: none;
+}
 .cins-post-view .cover-add.cover-readonly:hover {
   border-color: transparent;
   background: transparent;
@@ -1983,12 +1992,22 @@
   inset: 0;
   overflow: hidden;
 }
+.cins-post-view .cover-add.cover-readonly.has-cover-thumb .cover-img-wrap {
+  position: relative;
+  inset: auto;
+  width: 100%;
+  aspect-ratio: inherit;
+}
 .cins-post-view .cover-add.cover-readonly img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   object-position: center;
   display: block;
+}
+.cins-post-view .cover-add.cover-readonly.has-cover-thumb img {
+  position: absolute;
+  inset: 0;
 }
 
 /* Split permalink — cover đầu cột trái, không full-bleed stack layout */
@@ -2002,6 +2021,11 @@
   max-height: 220px;
   min-height: 0;
   border: none;
+}
+.cins-post-view.post-canvas--split .cover-add.cover-readonly.has-cover-thumb,
+.cins-post-view .post-canvas--split .cover-add.cover-readonly.has-cover-thumb {
+  aspect-ratio: unset;
+  max-height: none;
 }
 
 .cins-post-view.post-canvas--split .post-view-content-inner,
@@ -4401,6 +4425,10 @@
     height: 240px;
     border-radius: 14px;
   }
+  .cins-post-view .cover-add.cover-readonly.has-cover-thumb {
+    height: auto;
+    max-height: none;
+  }
   .cins-post-view.post-canvas--split .cover-add.cover-readonly,
   .cins-post-view .post-canvas--split .cover-add.cover-readonly {
     margin: 24px 0 0;
@@ -4408,6 +4436,11 @@
     height: auto;
     aspect-ratio: 21 / 9;
     max-height: 220px;
+  }
+  .cins-post-view.post-canvas--split .cover-add.cover-readonly.has-cover-thumb,
+  .cins-post-view .post-canvas--split .cover-add.cover-readonly.has-cover-thumb {
+    aspect-ratio: unset;
+    max-height: none;
   }
   .cins-post-view .title-in.title-ro {
     font-size: 32px;
@@ -4799,6 +4832,10 @@
     height: 200px;
     border-radius: 12px;
   }
+  .cins-post-view .cover-add.cover-readonly.has-cover-thumb {
+    height: auto;
+    max-height: none;
+  }
   .cins-post-view.post-canvas--split .cover-add.cover-readonly,
   .cins-post-view .post-canvas--split .cover-add.cover-readonly {
     margin: 20px 0 0;
@@ -4806,6 +4843,11 @@
     height: auto;
     aspect-ratio: 21 / 9;
     max-height: 220px;
+  }
+  .cins-post-view.post-canvas--split .cover-add.cover-readonly.has-cover-thumb,
+  .cins-post-view .post-canvas--split .cover-add.cover-readonly.has-cover-thumb {
+    aspect-ratio: unset;
+    max-height: none;
   }
   .cins-post-view .title-in.title-ro {
     font-size: 26px;
@@ -4909,6 +4951,12 @@
     aspect-ratio: 21 / 9;
     max-height: 220px;
     min-height: 160px;
+  }
+  .cins-post-view.post-canvas--split .cover-add.cover-readonly.has-cover-thumb,
+  .cins-post-view .post-canvas--split .cover-add.cover-readonly.has-cover-thumb {
+    aspect-ratio: unset;
+    max-height: none;
+    min-height: 0;
   }
   .cins-post-view .title-in.title-ro {
     font-size: 22px;

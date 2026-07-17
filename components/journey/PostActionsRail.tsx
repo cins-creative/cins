@@ -4,6 +4,7 @@ import { useOptionalAuthGate } from "@/components/auth/AuthGateProvider";
 import {
   Bookmark,
   BookmarkCheck,
+  Copy,
   Heart,
   MessageCircle,
   Share2,
@@ -159,7 +160,7 @@ export function PostShareMenu({
       id: "copy",
       label: copied ? "Đã sao chép!" : "Sao chép liên kết",
       iconClass: "post-byline-share-ic--copy",
-      iconLabel: "⎘",
+      iconLabel: "",
       onClick: () => void copyLink(),
     },
     {
@@ -182,20 +183,6 @@ export function PostShareMenu({
       iconClass: "post-byline-share-ic--in",
       iconLabel: "in",
       href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`,
-    },
-    {
-      id: "zalo",
-      label: "Zalo",
-      iconClass: "post-byline-share-ic--zalo",
-      iconLabel: "Z",
-      href: `https://button-share.zalo.me/share_external?layout=1&color=blue&customize=false&width=24&height=24&isDesktop=true&href=${encodedUrl}`,
-    },
-    {
-      id: "whatsapp",
-      label: "WhatsApp",
-      iconClass: "post-byline-share-ic--wa",
-      iconLabel: "W",
-      href: `https://wa.me/?text=${encodeURIComponent(`${shareTitle ? `${shareTitle} — ` : ""}${shareUrl}`)}`,
     },
     {
       id: "pinterest",
@@ -249,7 +236,11 @@ export function PostShareMenu({
                   className={`post-byline-share-ic ${item.iconClass}`}
                   aria-hidden
                 >
-                  {item.iconLabel}
+                  {item.id === "copy" ? (
+                    <Copy size={14} strokeWidth={2} />
+                  ) : (
+                    item.iconLabel
+                  )}
                 </span>
                 <span>{item.label}</span>
               </a>
@@ -265,7 +256,11 @@ export function PostShareMenu({
                   className={`post-byline-share-ic ${item.iconClass}`}
                   aria-hidden
                 >
-                  {item.iconLabel}
+                  {item.id === "copy" ? (
+                    <Copy size={14} strokeWidth={2} />
+                  ) : (
+                    item.iconLabel
+                  )}
                 </span>
                 <span>{item.label}</span>
               </button>

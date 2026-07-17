@@ -4202,6 +4202,10 @@
   background: var(--bg-page, #f4f5f7);
   box-shadow: var(--shadow-lg, 0 24px 64px rgba(15, 23, 42, 0.28));
 }
+.j-compose-sheet:has(.has-compose-preview) {
+  width: min(1280px, calc(100% - 24px));
+  max-width: 1280px;
+}
 .j-compose-sheet > .cins-editor-page {
   border-radius: inherit;
 }
@@ -4259,6 +4263,16 @@
   background: linear-gradient(90deg, #eef2f7 0%, #f8fafc 50%, #eef2f7 100%);
   background-size: 200% 100%;
   animation: cd-compose-shimmer 1.2s ease infinite;
+}
+:root[data-theme="dark"] .j-compose-skeleton-bar,
+:root[data-theme="dark"] .j-compose-skeleton-body {
+  background: linear-gradient(
+    90deg,
+    var(--neutral-100) 0%,
+    var(--neutral-200) 50%,
+    var(--neutral-100) 100%
+  );
+  background-size: 200% 100%;
 }
 .j-compose-skeleton-label {
   margin: 14px 0 0;

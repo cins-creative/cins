@@ -12,7 +12,16 @@ import type {
   MilestoneCardLayout,
 } from "@/components/journey/milestone-types";
 import type { FeedSourceKind } from "@/lib/cins/worldJourneyFeedSource";
-import { journeyImageFields } from "@/lib/journey/images";
+import {
+  coverThumbAspectRatio,
+  coverThumbObjectPosition,
+  type CoverThumbMeta,
+} from "@/lib/journey/cover-thumb";
+import {
+  journeyImageFields,
+  journeyImageFieldsWithCoverThumb,
+  journeyImagePublicOnly,
+} from "@/lib/journey/images";
 import { computeFilterCounts } from "@/lib/journey/milestone-filter-options";
 import type { MilestoneFilterCounts } from "@/lib/journey/milestones-page-fetch";
 import { attachPersonalFiltersToGalleryItems } from "@/lib/filter/attach-milestones";
@@ -67,8 +76,13 @@ export type GalleryMainItem = {
   personalFilters?: PersonalFilterRef[];
   src: string;
   srcSet?: string;
+  /** Masonry — chỉ `/public`, không kèm `grid` crop. */
+  masonrySrc?: string | null;
   width?: number;
   height?: number;
+  /** Tỉ lệ + điểm neo thumbnail. */
+  coverThumb?: CoverThumbMeta | null;
+  objectPosition?: string;
   label: string;
   href?: string;
   meta: string;
@@ -176,32 +190,74 @@ function stubImageFields(
 ): {
   src: string;
   srcSet?: string;
+  masonrySrc?: string | null;
   width?: number;
   height?: number;
+  coverThumb?: CoverThumbMeta | null;
+  objectPosition?: string;
 } | null {
+  const coverThumb = entry.coverThumb ?? null;
+  const objectPosition = coverThumb
+    ? coverThumbObjectPosition(coverThumb)
+    : undefined;
+
   if (entry.mediaKind === "video" && entry.coverId) {
-    const custom = journeyImageFields(entry.coverId, role);
+    const custom = coverThumb
+      ? journeyImageFieldsWithCoverThumb(entry.coverId, coverThumb)
+      : journeyImageFields(entry.coverId, role);
     if (custom?.src) {
-      const dims = videoPreviewDimensionsFromRatio(entry.videoCanvasRatio);
+      const dims = coverThumb
+        ? {
+            width: custom.width,
+            height: custom.height,
+          }
+        : videoPreviewDimensionsFromRatio(entry.videoCanvasRatio);
+      const masonry = journeyImagePublicOnly(entry.coverId);
       return {
         src: custom.src,
         srcSet: custom.srcSet,
+        masonrySrc: masonry?.src ?? custom.src,
         width: dims.width,
         height: dims.height,
+        coverThumb,
+        objectPosition,
       };
     }
   }
   if (entry.coverSrc) {
     if (entry.mediaKind === "video") {
       const dims = videoPreviewDimensionsFromRatio(entry.videoCanvasRatio);
-      return { src: entry.coverSrc, width: dims.width, height: dims.height };
+      return {
+        src: entry.coverSrc,
+        masonrySrc: entry.coverSrc,
+        width: dims.width,
+        height: dims.height,
+        coverThumb,
+        objectPosition,
+      };
     }
-    return { src: entry.coverSrc, width: 800, height: 450 };
+    const aspect = coverThumbAspectRatio(coverThumb ?? undefined);
+    return {
+      src: entry.coverSrc,
+      masonrySrc: entry.coverSrc,
+      width: 800,
+      height: Math.round(800 / aspect),
+      coverThumb,
+      objectPosition,
+    };
   }
   if (entry.coverId) {
-    const img = journeyImageFields(entry.coverId, role);
+    const img = coverThumb
+      ? journeyImageFieldsWithCoverThumb(entry.coverId, coverThumb)
+      : journeyImageFields(entry.coverId, role);
     if (!img?.src) return null;
-    return img;
+    const masonry = journeyImagePublicOnly(entry.coverId);
+    return {
+      ...img,
+      masonrySrc: masonry?.src ?? img.src,
+      coverThumb,
+      objectPosition,
+    };
   }
   return null;
 }
@@ -276,8 +332,11 @@ function hydrateMainItems(
       cotMocId: entry.cotMocId,
       src: img?.src ?? "",
       srcSet: img?.srcSet,
+      masonrySrc: img?.masonrySrc ?? null,
       width: img?.width,
       height: img?.height,
+      coverThumb: img?.coverThumb ?? entry.coverThumb ?? null,
+      objectPosition: img?.objectPosition,
       label: isOrgCreate
         ? entry.tieuDe
         : galleryItemLabel(entry.tieuDe, entry.mediaKind),
@@ -375,6 +434,13 @@ function hydrateAsideItems(
       sourcePeople: sourceAuthor.showCorner ? sourceAuthor.people : undefined,
       href: galleryStubHref(entry, ownerSlug, ownerSlugById),
       isOrgPost,
+      type: entry.type,
+      variant: entry.variant,
+      tacPhamId: entry.tacPhamId,
+      postSlug: isOrgPost ? null : entry.tacPhamSlug,
+      postOwnerSlug: isOrgPost
+        ? null
+        : (ownerSlugById.get(entry.postOwnerId) ?? ownerSlug),
       mediaKind: entry.mediaKind,
       embedProvider: entry.embedProvider ?? null,
       isVideo,

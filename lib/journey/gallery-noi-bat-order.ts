@@ -58,7 +58,8 @@ export function sortPinnedByNoiBatOrder<T extends { cotMocId?: string }>(
 
 /**
  * Lưu thứ tự aside — chỉ chủ Journey. cotMocIds = permutation của bài feature
- * đang hiện (có thể thiếu bài ngoài limit aside; phần còn lại nối sau).
+ * đang hiện (content_cot_moc hoặc org_bai_dang; có thể thiếu bài ngoài limit aside;
+ * phần còn lại nối sau).
  */
 export async function reorderGalleryNoiBat(params: {
   userId: string;

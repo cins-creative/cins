@@ -1,6 +1,6 @@
 "use client";
 
-import { GripVertical, Pencil } from "lucide-react";
+import { GripVertical, Pencil, Star } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -8,8 +8,13 @@ import { GalleryAuthorCornerBadge } from "@/components/journey/GalleryAuthorCorn
 import { GalleryItemVisual, GalleryEmbedPlatformBadge, GalleryVideoPlayBadge } from "@/components/journey/GalleryItemVisual";
 import { GalleryMainHoverOverlay } from "@/components/journey/GalleryMainHoverOverlay";
 import { GalleryMediaFilterDropdown } from "@/components/journey/GalleryMediaFilterDropdown";
+import { JourneyMilestoneOwnerMenu } from "@/components/journey/JourneyMilestoneOwnerMenu";
 import { useJourneyFeaturedAsideFilterOptional } from "@/components/journey/JourneyFeaturedAsideFilterContext";
 import { useJourneyPostOverlay } from "@/components/journey/useJourneyPostOverlay";
+import type {
+  MilestoneType,
+  MilestoneVariant,
+} from "@/components/journey/milestone-types";
 import type { GallerySourcePerson } from "@/lib/journey/gallery-source-author";
 import type { GalleryMediaKind } from "@/lib/journey/post-media";
 import type { EmbedProviderId } from "@/lib/editor/embed-providers";
@@ -44,6 +49,16 @@ export type GalleryPinnedBanner = {
   isOrgPost?: boolean;
   /** Cột mốc — mở modal bài viết client-side. */
   cotMocId?: string;
+  /** Nhóm nội dung — menu chủ khi sắp Feature. */
+  type?: MilestoneType;
+  /** Nguồn xuất hiện trên Journey — quyết định foreignJourney menu. */
+  variant?: MilestoneVariant;
+  /** Tác phẩm — đổi hiển thị tagged/bookmark. */
+  tacPhamId?: string | null;
+  /** Slug bài — sửa / permalink trong menu. */
+  postSlug?: string | null;
+  /** Slug chủ bài khi khác profile Journey. */
+  postOwnerSlug?: string | null;
   mediaKind?: GalleryMediaKind;
   embedProvider?: EmbedProviderId | null;
   isVideo?: boolean;
@@ -245,7 +260,8 @@ export function JourneyGalleryAside({
           try {
             await persist(job.ids);
             lastGoodPinnedRef.current = job.snapshot;
-          } catch {
+          } catch (err) {
+            console.error("[JourneyGalleryAside] reorder save failed", err);
             setOrderedPinned(lastGoodPinnedRef.current);
             saveQueueRef.current = null;
             break;
@@ -283,16 +299,242 @@ export function JourneyGalleryAside({
     flushReorderSave();
   };
 
+  const syncAsideAfterMenuChange = () => {
+    if (typeof window === "undefined") return;
+    window.dispatchEvent(
+      new CustomEvent("cins:journey-timeline-changed", {
+        detail: { ownerSlug },
+      }),
+    );
+    window.dispatchEvent(
+      new CustomEvent("cins:journey-gallery-sync", {
+        detail: { ownerSlug },
+      }),
+    );
+  };
+
+  const dropPinnedAfterUnfeature = (cotMocId: string) => {
+    const id = cotMocId.trim();
+    if (!id) return;
+    setOrderedPinned((prev) => {
+      const next = prev.filter((x) => asideCotMocId(x) !== id);
+      if (next.length === prev.length) return prev;
+      lastGoodPinnedRef.current = next;
+      return next;
+    });
+    syncAsideAfterMenuChange();
+  };
+
   const useMasonry = filteredPinned.length > 8;
+  /* Masonry 2 cột xen kẽ: 1 phải, 2 trái, 3 phải, 4 trái… (không dùng CSS columns dọc). */
+  const masonryRight = useMasonry
+    ? filteredPinned
+        .map((b, index) => ({ b, index }))
+        .filter(({ index }) => index % 2 === 0)
+    : [];
+  const masonryLeft = useMasonry
+    ? filteredPinned
+        .map((b, index) => ({ b, index }))
+        .filter(({ index }) => index % 2 === 1)
+    : [];
+
+  const renderPinnedSlot = (b: GalleryPinnedBanner, index: number) => {
+    const cotMocId = asideCotMocId(b);
+    const label =
+      [b.title, b.meta].filter(Boolean).join(" · ") || "Bài nổi bật";
+    /* Gap no-op: tại / ngay sau nguồn — không vẽ vạch. Layout không đổi khi kéo. */
+    const gapMeaningful =
+      reorderEnabled &&
+      dragFrom != null &&
+      dropAt != null &&
+      dropAt !== dragFrom &&
+      dropAt !== dragFrom + 1;
+    const showDropBefore = gapMeaningful && dropAt === index;
+    const showDropAfter = gapMeaningful && dropAt === index + 1;
+
+    const menuOwnerSlug =
+      ownerSlug.trim() || b.postOwnerSlug?.trim() || null;
+    const foreignJourney =
+      reorderEnabled &&
+      cotMocId &&
+      (b.isOrgPost
+        ? { variant: "org_tagged" as const, cotMocId }
+        : b.variant === "tagged" && b.tacPhamId
+          ? {
+              variant: "tagged" as const,
+              cotMocId,
+              tacPhamId: b.tacPhamId,
+            }
+          : b.variant === "bookmark" && b.tacPhamId
+            ? {
+                variant: "bookmark" as const,
+                cotMocId,
+                tacPhamId: b.tacPhamId,
+              }
+            : undefined);
+    const ownerMenu =
+      reorderEnabled && menuOwnerSlug && cotMocId ? (
+        <JourneyMilestoneOwnerMenu
+          milestoneId={cotMocId}
+          ownerSlug={menuOwnerSlug}
+          permalinkOwnerSlug={b.postOwnerSlug ?? menuOwnerSlug}
+          currentType={b.type ?? "du-an"}
+          currentVisibility="feature"
+          postSlug={b.isOrgPost ? null : (b.postSlug ?? null)}
+          foreignJourney={foreignJourney}
+          hideEdit={Boolean(foreignJourney)}
+          hideDelete={
+            foreignJourney?.variant === "tagged" ||
+            foreignJourney?.variant === "org_tagged"
+          }
+          hideTypeChange={Boolean(foreignJourney)}
+          className="j-g-banner-owner-menu"
+          onVisibilityChange={(visibility) => {
+            if (visibility === "feature") return;
+            dropPinnedAfterUnfeature(cotMocId);
+          }}
+        />
+      ) : null;
+
+    return (
+      <div key={b.id} className="j-g-banner-slot">
+        <div
+          className={[
+            "j-g-banner-wrap",
+            dragFrom === index ? "is-dragging" : "",
+            showDropBefore ? "is-drop-before" : "",
+            showDropAfter ? "is-drop-after" : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
+          onDragOver={
+            reorderEnabled
+              ? (e) => {
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = "move";
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const before = e.clientY < rect.top + rect.height / 2;
+                  setDropGap(before ? index : index + 1);
+                }
+              : undefined
+          }
+          onDrop={
+            reorderEnabled
+              ? (e) => {
+                  e.preventDefault();
+                  const from =
+                    dragFrom ??
+                    Number.parseInt(e.dataTransfer.getData("text/plain"), 10);
+                  const gap = dropAtRef.current ?? index;
+                  clearDrag();
+                  if (!Number.isNaN(from)) {
+                    commitReorder(from, gap);
+                  }
+                }
+              : undefined
+          }
+        >
+          <button
+            type="button"
+            className="j-g-banner"
+            data-pinned-id={b.id}
+            aria-label={label}
+            disabled={b.isOrgPost ? !b.href?.trim() : !cotMocId}
+            onClick={() => {
+              if (dragMovedRef.current) {
+                dragMovedRef.current = false;
+                return;
+              }
+              openAsideEntry(b, openPost, router);
+            }}
+          >
+            <span className="j-g-banner-bg">
+              <GalleryItemVisual
+                src={b.src}
+                srcSet={b.srcSet}
+                sizes={b.srcSet ? "340px" : undefined}
+                width={b.width}
+                height={b.height}
+                alt=""
+                priority={index === 0}
+                isVideo={b.isVideo || b.mediaKind === "video"}
+                videoProcessing={b.videoProcessing}
+                videoPreviewSrc={b.videoPreviewSrc}
+              />
+            </span>
+            {b.isVideo || b.mediaKind === "video" ? (
+              <GalleryVideoPlayBadge />
+            ) : null}
+            {b.mediaKind === "embed" && b.embedProvider ? (
+              <GalleryEmbedPlatformBadge provider={b.embedProvider} />
+            ) : null}
+            {b.showSourceAuthor ? (
+              <GalleryAuthorCornerBadge
+                people={b.sourcePeople}
+                name={b.authorName}
+                avatarUrl={b.authorAvatarUrl}
+              />
+            ) : null}
+            <GalleryMainHoverOverlay
+              label={b.title}
+              meta={b.meta}
+              authorName={b.authorName}
+              authorAvatarUrl={b.authorAvatarUrl}
+            />
+          </button>
+          {ownerMenu}
+          {reorderEnabled ? (
+            <button
+              type="button"
+              className="j-g-banner-drag"
+              draggable
+              aria-label={`Vị trí ${index + 1}. Kéo để đổi vị trí: ${b.title || "bài nổi bật"}`}
+              title={`Vị trí ${index + 1} — kéo để đổi vị trí`}
+              onClick={(e) => e.stopPropagation()}
+              onDragStart={(e) => {
+                dragMovedRef.current = false;
+                dropAtRef.current = null;
+                setDropAt(null);
+                setDragFrom(index);
+                e.dataTransfer.effectAllowed = "move";
+                e.dataTransfer.setData("text/plain", String(index));
+              }}
+              onDrag={(e) => {
+                if (
+                  !dragMovedRef.current &&
+                  (Math.abs(e.movementX) > 2 || Math.abs(e.movementY) > 2)
+                ) {
+                  dragMovedRef.current = true;
+                }
+              }}
+              onDragEnd={clearDrag}
+            >
+              <span className="j-g-banner-drag-index" aria-hidden>
+                {index + 1}
+              </span>
+              <GripVertical size={14} strokeWidth={2} aria-hidden />
+            </button>
+          ) : null}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <aside
       className="j-gallery"
-      aria-label={featuredOnly ? "Nội dung nổi bật" : "Tác phẩm gần đây"}
+      aria-label={featuredOnly ? "Feature" : "Tác phẩm gần đây"}
     >
       <div className="j-gallery-head">
         <div className="j-gallery-title">
-          {featuredOnly ? "Nội dung nổi bật" : "Tác phẩm"}
+          {featuredOnly ? (
+            <span className="j-feature-label">
+              <Star size={15} strokeWidth={1.9} fill="currentColor" aria-hidden />
+              Feature
+            </span>
+          ) : (
+            "Tác phẩm"
+          )}
         </div>
 
         {showReorderEditBtn ? (
@@ -361,147 +603,22 @@ export function JourneyGalleryAside({
                 .join(" ")}
               aria-busy={pendingSave || undefined}
             >
-              {filteredPinned.map((b, index) => {
-                const cotMocId = asideCotMocId(b);
-                const label =
-                  [b.title, b.meta].filter(Boolean).join(" · ") || "Bài nổi bật";
-                /* Gap no-op: tại / ngay sau nguồn — không vẽ vạch. Layout không đổi khi kéo. */
-                const gapMeaningful =
-                  reorderEnabled &&
-                  dragFrom != null &&
-                  dropAt != null &&
-                  dropAt !== dragFrom &&
-                  dropAt !== dragFrom + 1;
-                const showDropBefore = gapMeaningful && dropAt === index;
-                const showDropAfter = gapMeaningful && dropAt === index + 1;
-
-                return (
-                  <div key={b.id} className="j-g-banner-slot">
-                    <div
-                      className={[
-                        "j-g-banner-wrap",
-                        dragFrom === index ? "is-dragging" : "",
-                        showDropBefore ? "is-drop-before" : "",
-                        showDropAfter ? "is-drop-after" : "",
-                      ]
-                        .filter(Boolean)
-                        .join(" ")}
-                      onDragOver={
-                        reorderEnabled
-                          ? (e) => {
-                              e.preventDefault();
-                              e.dataTransfer.dropEffect = "move";
-                              const rect =
-                                e.currentTarget.getBoundingClientRect();
-                              const before =
-                                e.clientY < rect.top + rect.height / 2;
-                              setDropGap(before ? index : index + 1);
-                            }
-                          : undefined
-                      }
-                      onDrop={
-                        reorderEnabled
-                          ? (e) => {
-                              e.preventDefault();
-                              const from =
-                                dragFrom ??
-                                Number.parseInt(
-                                  e.dataTransfer.getData("text/plain"),
-                                  10,
-                                );
-                              const gap = dropAtRef.current ?? index;
-                              clearDrag();
-                              if (!Number.isNaN(from)) {
-                                commitReorder(from, gap);
-                              }
-                            }
-                          : undefined
-                      }
-                    >
-                      <button
-                        type="button"
-                        className="j-g-banner"
-                        data-pinned-id={b.id}
-                        aria-label={label}
-                        disabled={
-                          b.isOrgPost ? !b.href?.trim() : !cotMocId
-                        }
-                        onClick={() => {
-                          if (dragMovedRef.current) {
-                            dragMovedRef.current = false;
-                            return;
-                          }
-                          openAsideEntry(b, openPost, router);
-                        }}
-                      >
-                        <span className="j-g-banner-bg">
-                          <GalleryItemVisual
-                            src={b.src}
-                            srcSet={b.srcSet}
-                            sizes={b.srcSet ? "340px" : undefined}
-                            width={b.width}
-                            height={b.height}
-                            alt=""
-                            priority={index === 0}
-                            isVideo={b.isVideo || b.mediaKind === "video"}
-                            videoProcessing={b.videoProcessing}
-                            videoPreviewSrc={b.videoPreviewSrc}
-                          />
-                        </span>
-                        {b.isVideo || b.mediaKind === "video" ? (
-                          <GalleryVideoPlayBadge />
-                        ) : null}
-                        {b.mediaKind === "embed" && b.embedProvider ? (
-                          <GalleryEmbedPlatformBadge provider={b.embedProvider} />
-                        ) : null}
-                        {b.showSourceAuthor ? (
-                          <GalleryAuthorCornerBadge
-                            people={b.sourcePeople}
-                            name={b.authorName}
-                            avatarUrl={b.authorAvatarUrl}
-                          />
-                        ) : null}
-                        <GalleryMainHoverOverlay
-                          label={b.title}
-                          meta={b.meta}
-                          authorName={b.authorName}
-                          authorAvatarUrl={b.authorAvatarUrl}
-                        />
-                      </button>
-                      {reorderEnabled ? (
-                        <button
-                          type="button"
-                          className="j-g-banner-drag"
-                          draggable
-                          aria-label={`Kéo để đổi vị trí: ${b.title || "bài nổi bật"}`}
-                          title="Kéo để đổi vị trí"
-                          onClick={(e) => e.stopPropagation()}
-                          onDragStart={(e) => {
-                            dragMovedRef.current = false;
-                            dropAtRef.current = null;
-                            setDropAt(null);
-                            setDragFrom(index);
-                            e.dataTransfer.effectAllowed = "move";
-                            e.dataTransfer.setData("text/plain", String(index));
-                          }}
-                          onDrag={(e) => {
-                            if (
-                              !dragMovedRef.current &&
-                              (Math.abs(e.movementX) > 2 ||
-                                Math.abs(e.movementY) > 2)
-                            ) {
-                              dragMovedRef.current = true;
-                            }
-                          }}
-                          onDragEnd={clearDrag}
-                        >
-                          <GripVertical size={16} strokeWidth={2} aria-hidden />
-                        </button>
-                      ) : null}
-                    </div>
+              {useMasonry ? (
+                <>
+                  <div className="j-g-pinned-col">
+                    {masonryLeft.map(({ b, index }) =>
+                      renderPinnedSlot(b, index),
+                    )}
                   </div>
-                );
-              })}
+                  <div className="j-g-pinned-col">
+                    {masonryRight.map(({ b, index }) =>
+                      renderPinnedSlot(b, index),
+                    )}
+                  </div>
+                </>
+              ) : (
+                filteredPinned.map((b, index) => renderPinnedSlot(b, index))
+              )}
             </div>
           ) : null}
 

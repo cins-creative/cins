@@ -1010,21 +1010,27 @@
   border: none;
   padding: 0;
   overflow: hidden;
-  height: 320px;
+  height: auto;
   position: relative;
   /* Sau mô tả ngắn — nằm gọn trong canvas, không full-bleed. */
   margin: 0 0 28px;
   width: 100%;
   border-radius: var(--radius-lg);
   cursor: default;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-surface);
 }
 .cins-editor-page .cover-add.has .cover-img-wrap {
-  position: absolute;
-  inset: 0;
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  max-height: 320px;
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 .cins-editor-page .cover-add.has img {
   position: absolute;
@@ -1034,6 +1040,139 @@
   object-fit: cover;
   object-position: center;
   display: block;
+}
+
+/* Focal thumbnail — pan/zoom ngay trên khung ảnh bìa (một khung duy nhất). */
+.cins-editor-page .cover-add.has .cover-img-wrap.ed-cover-thumb-stage {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+.cins-editor-page .cover-add.has .cover-img-wrap.ed-cover-thumb-stage:active {
+  cursor: grabbing;
+}
+.cins-editor-page .ed-cover-thumb-stage > img,
+.cins-editor-page .ed-cover-thumb-stage .ed-compose-img,
+.cins-editor-page .cover-add.has .ed-cover-thumb-stage img {
+  object-position: var(--cover-thumb-x, 50%) var(--cover-thumb-y, 50%);
+  transform: scale(var(--cover-thumb-zoom, 1));
+  transform-origin: var(--cover-thumb-x, 50%) var(--cover-thumb-y, 50%);
+  will-change: transform, object-position;
+}
+.cins-editor-page .ed-cover-thumb-chrome {
+  position: absolute;
+  z-index: 3;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  pointer-events: none;
+}
+.cins-editor-page .ed-cover-thumb-affordance {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  left: 50%;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.58);
+  color: #fff;
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(8px);
+  pointer-events: none;
+  opacity: 0.7;
+  transform: translate(-50%, -50%);
+  animation: ed-cover-thumb-affordance 2.4s ease-in-out infinite;
+  transition: opacity 160ms ease;
+}
+.cins-editor-page .ed-cover-thumb-stage:hover .ed-cover-thumb-affordance,
+.cins-editor-page .ed-cover-thumb-stage:active .ed-cover-thumb-affordance {
+  opacity: 0.92;
+}
+@keyframes ed-cover-thumb-affordance {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.08);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cins-editor-page .ed-cover-thumb-affordance {
+    animation: none;
+  }
+}
+.cins-editor-page .ed-cover-thumb-chrome-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.cins-editor-page .ed-cover-thumb-chrome-row > * {
+  pointer-events: auto;
+}
+.cins-editor-page .ed-cover-thumb-ratio-toggle {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(8px);
+}
+.cins-editor-page .ed-cover-thumb-ratio-btn {
+  border: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  padding: 4px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.cins-editor-page .ed-cover-thumb-ratio-btn.is-active {
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--cins-blue);
+  box-shadow: var(--shadow-xs);
+}
+.cins-editor-page .ed-cover-thumb-zoom {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px 4px 10px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(8px);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+}
+.cins-editor-page .ed-cover-thumb-zoom-label {
+  flex-shrink: 0;
+}
+.cins-editor-page .ed-cover-thumb-zoom input[type="range"] {
+  width: 88px;
+  height: 4px;
+  margin: 0;
+  accent-color: var(--cins-blue);
+  cursor: pointer;
+}
+
+/* Legacy panel classes (nếu còn chỗ khác) — giữ tối thiểu. */
+.cins-editor-page .ed-cover-thumb-focal {
+  display: none;
 }
 
 .cins-editor-page .img-upload-progress {
@@ -1119,12 +1258,13 @@
 .cins-editor-page .ed-show-cover-in-post--on-cover {
   position: absolute;
   left: 12px;
-  bottom: 12px;
+  top: 12px;
+  bottom: auto;
   z-index: 5;
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  max-width: calc(100% - 24px);
+  max-width: calc(100% - 220px);
   margin: 0;
   padding: 6px 10px;
   border-radius: 10px;
@@ -2080,12 +2220,13 @@
   display: flex;
   gap: var(--cins-img-slot-gap);
   width: 100%;
-  align-items: flex-start;
+  align-items: stretch;
 }
 .cins-editor-page .imgwrap.justified .imgwrap-jrow .ph {
   flex-basis: 0;
   min-width: 0;
-  height: auto;
+  min-height: 0;
+  height: 100%;
 }
 /* PostRenderer / HTML cũ chưa có jrow — wrap ngang như trước. */
 .cins-editor-page .imgwrap.justified:not(:has(.imgwrap-jrow)) {
@@ -3090,7 +3231,7 @@
     margin: 0 0 24px;
     width: 100%;
     border-radius: var(--radius-lg);
-    height: 280px;
+    height: auto;
   }
   .cins-editor-page .title-in {
     font-size: 32px;
@@ -3119,7 +3260,7 @@
     margin: 0 0 20px;
     width: 100%;
     border-radius: var(--radius-lg);
-    height: 220px;
+    height: auto;
   }
   .cins-editor-page .cover-actions {
     top: 10px;
@@ -3215,7 +3356,7 @@
     margin: 0 0 18px;
     width: 100%;
     border-radius: var(--radius-lg);
-    height: 180px;
+    height: auto;
   }
   .cins-editor-page .title-in {
     font-size: 22px;
@@ -4544,10 +4685,14 @@
      ép overflow-x thành auto/clip → cắt lay-bar bên phải. Dùng clip chỉ trục Y. */
   overflow-x: visible;
   overflow-y: auto;
+  scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
   /* Compose overlay — padding hai bên cho block-side (trái) + lay-bar (phải). */
   padding-left: 56px;
   padding-right: 56px;
+}
+.cins-editor-page.is-overlay .editor-canvas::-webkit-scrollbar {
+  display: none;
 }
 
 /* Picker portal — compose overlay neo theo nút `+` (AddZone). */
@@ -4592,25 +4737,28 @@
 .cins-editor-page.is-overlay .cover-add-slot {
   margin: 0 0 24px;
 }
+.cins-editor-page.is-overlay.is-minimal-compose-expanded .ed-minimal-body-wrap {
+  margin-bottom: 20px;
+}
 .cins-editor-page.is-overlay .cover-add.has {
-  /* Overlay: ngay sau mô tả ngắn. */
+  /* Overlay: ảnh theo aspect-ratio; panel điểm neo nằm dưới — không khóa height. */
   margin: 0 0 24px;
   width: 100%;
-  height: 220px;
-  max-height: min(320px, 36vh);
+  height: auto;
+  max-height: none;
   border-radius: var(--radius-lg);
 }
 @media (max-width: 991.98px) {
   .cins-editor-page.is-overlay .cover-add.has {
     margin: 0 0 20px;
     width: 100%;
-    height: 200px;
+    height: auto;
     border-radius: var(--radius-lg);
   }
 }
 @media (max-width: 767.98px) {
   .cins-editor-page.is-overlay .cover-add.has {
-    height: 180px;
+    height: auto;
   }
 }
 
@@ -5013,4 +5161,696 @@
   background: var(--bg-surface);
   border-color: var(--border-strong);
   color: var(--ink-muted);
+}
+
+/* ─── Compose preview panel (Journey / Gallery / Masonry) ───────── */
+.ed-compose-page-canvas {
+  display: contents;
+}
+
+.cins-editor-page.is-overlay.has-compose-preview {
+  min-height: 0;
+}
+
+.cins-editor-page .ed-compose-split {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  align-items: stretch;
+}
+
+.cins-editor-page .ed-compose-split > .editor-canvas {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.cins-editor-page .ed-compose-preview-toggle {
+  display: none;
+  gap: 6px;
+  align-items: center;
+}
+
+.cins-editor-page .ed-compose-preview {
+  flex: 0 0 min(360px, 38%);
+  width: min(360px, 38%);
+  max-width: 400px;
+  min-width: 280px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-left: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg-page) 88%, var(--cins-blue-soft));
+}
+
+.cins-editor-page .ed-compose-preview-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 14px 8px;
+  flex-shrink: 0;
+}
+
+.cins-editor-page .ed-compose-preview-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-title);
+}
+
+.cins-editor-page .ed-compose-preview-close {
+  display: none;
+}
+
+.cins-editor-page .ed-compose-preview-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 0 12px 10px;
+  flex-shrink: 0;
+}
+
+.cins-editor-page .ed-compose-preview-tab {
+  flex: 1 1 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 36px;
+  padding: 6px 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm, 10px);
+  background: transparent;
+  color: var(--ink-muted);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background 120ms ease,
+    color 120ms ease,
+    border-color 120ms ease;
+}
+
+.cins-editor-page .ed-compose-preview-tab:hover {
+  color: var(--ink-title);
+  background: color-mix(in srgb, var(--bg-surface) 70%, transparent);
+}
+
+.cins-editor-page .ed-compose-preview-tab.is-active {
+  color: var(--cins-blue);
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.cins-editor-page .ed-compose-preview-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 4px 12px 12px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.cins-editor-page .ed-compose-preview-body::-webkit-scrollbar {
+  display: none;
+}
+
+/* Stage + mock neighbors */
+.cins-editor-page .ed-cp-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cins-editor-page .ed-cp-absent {
+  padding: 10px 12px;
+  border-radius: var(--radius-sm, 10px);
+  border: 1px dashed color-mix(in srgb, var(--cins-blue) 40%, var(--border));
+  background: color-mix(in srgb, var(--cins-blue-soft) 70%, var(--bg-surface));
+}
+
+.cins-editor-page .ed-cp-absent-title {
+  margin: 0 0 2px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-title);
+}
+
+.cins-editor-page .ed-cp-absent-body {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--ink-muted);
+}
+
+.cins-editor-page .ed-cp-gallery-grid.is-dimmed,
+.cins-editor-page .ed-cp-masonry.is-dimmed {
+  opacity: 0.55;
+}
+
+.cins-editor-page .ed-cp-mock-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  opacity: 0.28;
+  filter: saturate(0.35);
+  pointer-events: none;
+  user-select: none;
+}
+
+.cins-editor-page .ed-cp-mock-card {
+  position: relative;
+  width: 100%;
+  border-radius: var(--radius-md, 14px);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  min-height: 48px;
+}
+
+.cins-editor-page .ed-cp-mock-shimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    110deg,
+    rgba(0, 0, 0, 0.03) 20%,
+    rgba(31, 116, 201, 0.08) 40%,
+    rgba(0, 0, 0, 0.03) 60%
+  );
+  background-size: 200% 100%;
+  animation: ed-cp-shimmer 2.4s ease-in-out infinite;
+}
+
+@keyframes ed-cp-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+.cins-editor-page .ed-cp-focus {
+  position: relative;
+  z-index: 1;
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--cins-blue) 35%, transparent),
+    var(--shadow-md, 0 8px 24px rgba(15, 23, 42, 0.1));
+}
+
+/* Journey preview — tái dùng card timeline thật (journey.css) */
+.cins-editor-page .ed-cp-stage--journey {
+  padding: 2px 0 4px;
+}
+
+.cins-editor-page .ed-cp-journey-live.j-m-card.jcard {
+  width: 100%;
+  max-width: 100%;
+  border-radius: 10px;
+  overflow: hidden;
+  /* Chỉ review: «Xem đầy đủ» / «Thu gọn» — tắt lightbox, link, video, iframe. */
+  pointer-events: auto;
+  user-select: none;
+}
+.cins-editor-page .ed-cp-journey-live.j-m-card.jcard.is-expanded {
+  overflow: visible;
+}
+.cins-editor-page .ed-cp-journey-live .ed-cp-journey-actions {
+  pointer-events: none;
+}
+/* Preview không mở lightbox / điều hướng URL / chơi media như bài thật. */
+.cins-editor-page .ed-compose-preview-body a,
+.cins-editor-page .ed-compose-preview-body area,
+.cins-editor-page .ed-compose-preview-body [href],
+.cins-editor-page .ed-cp-journey-live .image-grid-cell,
+.cins-editor-page .ed-cp-journey-live .ph.is-lightbox,
+.cins-editor-page .ed-cp-journey-live .is-lightbox,
+.cins-editor-page .ed-cp-journey-live iframe,
+.cins-editor-page .ed-cp-journey-live video,
+.cins-editor-page .ed-cp-journey-live .jcard-video-native,
+.cins-editor-page .ed-cp-journey-live .jcard-video-trigger,
+.cins-editor-page .ed-cp-journey-live .jcard-pc-fs-btn,
+.cins-editor-page .ed-cp-journey-live .jcard-tags,
+.cins-editor-page .ed-cp-journey-live .j-m-unfold-post button:not(.jcard-unfold-toggle) {
+  pointer-events: none !important;
+  cursor: default;
+}
+.cins-editor-page .ed-cp-journey-live .jcard-unfold-toggle {
+  pointer-events: auto;
+}
+
+.cins-editor-page .ed-cp-journey-actions {
+  flex-shrink: 0;
+}
+
+.cins-editor-page .ed-cp-journey-actions .action-btn {
+  flex: 0 0 auto;
+}
+
+.cins-editor-page .ed-cp-journey-live .jcard-datebar {
+  /* Preview hẹp — giữ chip + badge không vỡ hàng quá sớm */
+  flex-wrap: wrap;
+  row-gap: 8px;
+}
+
+/* Typography mockup — panel preview chỉ rộng khoảng nửa card Journey thật. */
+.cins-editor-page .ed-cp-journey-live .jcard-text {
+  padding: 11px 13px 3px;
+}
+.cins-editor-page .ed-cp-journey-live .jcard-title {
+  font-size: 15px;
+  line-height: 1.32;
+}
+.cins-editor-page .ed-cp-journey-live .jcard-desc {
+  font-size: 13px;
+  line-height: 1.55;
+}
+.cins-editor-page
+  .ed-cp-journey-live
+  .j-m-unfold-post:not(.j-m-unfold-post--media)
+  .blocks-readonly.post-blocks-fb {
+  padding-inline: 13px;
+}
+.cins-editor-page
+  .ed-cp-journey-live
+  .j-m-unfold-post:not(.j-m-unfold-post--media)
+  .block[data-block-type="embed"]:has(.b-embed-ro.is-native-video) {
+  width: calc(100% + 26px);
+  margin-inline: -13px;
+}
+.cins-editor-page
+  .ed-cp-journey-live
+  .j-m-unfold-post
+  .b-embed-ro.is-native-video,
+.cins-editor-page
+  .ed-cp-journey-live
+  .j-m-unfold-post
+  .b-embed-ro.is-native-video
+  .jcard-video-root,
+.cins-editor-page
+  .ed-cp-journey-live
+  .j-m-unfold-post
+  .b-embed-ro.is-native-video
+  .jcard-video-player,
+.cins-editor-page
+  .ed-cp-journey-live
+  .j-m-unfold-post
+  .b-embed-ro.is-native-video
+  .jcard-video-native {
+  width: 100%;
+  max-width: none;
+  border: 0;
+  border-radius: 0;
+}
+.cins-editor-page
+  .ed-cp-journey-live
+  .j-m-unfold-post:not(.j-m-unfold-post--media)
+  .blocks-readonly
+  .b-text-ro {
+  font-size: 13px;
+  line-height: 1.65;
+}
+.cins-editor-page
+  .ed-cp-journey-live
+  .j-m-unfold-post:not(.j-m-unfold-post--media)
+  .blocks-readonly
+  .b-text-ro.h2,
+.cins-editor-page
+  .ed-cp-journey-live
+  .j-m-unfold-post:not(.j-m-unfold-post--media)
+  .blocks-readonly
+  h2.b-text-ro {
+  font-size: 16px;
+  line-height: 1.35;
+}
+.cins-editor-page
+  .ed-cp-journey-live
+  .j-m-unfold-post:not(.j-m-unfold-post--media)
+  .blocks-readonly
+  .b-text-ro.h3,
+.cins-editor-page
+  .ed-cp-journey-live
+  .j-m-unfold-post:not(.j-m-unfold-post--media)
+  .blocks-readonly
+  h3.b-text-ro {
+  font-size: 16px;
+  line-height: 1.3;
+}
+.cins-editor-page
+  .ed-cp-journey-live
+  .j-m-unfold-post:not(.j-m-unfold-post--media)
+  .blocks-readonly
+  .b-quote
+  .b-quote-ro {
+  font-size: 18px;
+}
+.cins-editor-page
+  .ed-cp-journey-live
+  .j-m-unfold-post:not(.j-m-unfold-post--media)
+  .blocks-readonly
+  .b-quote {
+  padding-left: 15px;
+}
+.cins-editor-page
+  .ed-cp-journey-live
+  .j-m-unfold-post:not(.j-m-unfold-post--media)
+  .blocks-readonly
+  .b-divider {
+  padding-block: 10px;
+}
+.cins-editor-page
+  .ed-cp-journey-live
+  .j-m-unfold-post:not(.j-m-unfold-post--media)
+  .blocks-readonly
+  .b-spacer.s {
+  height: 12px;
+}
+.cins-editor-page
+  .ed-cp-journey-live
+  .j-m-unfold-post:not(.j-m-unfold-post--media)
+  .blocks-readonly
+  .b-spacer.m {
+  height: 27px;
+}
+.cins-editor-page
+  .ed-cp-journey-live
+  .j-m-unfold-post:not(.j-m-unfold-post--media)
+  .blocks-readonly
+  .b-spacer.l {
+  height: 48px;
+}
+.cins-editor-page
+  .ed-cp-journey-live
+  .j-m-unfold-post:not(.j-m-unfold-post--media)
+  .blocks-readonly
+  .b-palette {
+  gap: 6px;
+}
+.cins-editor-page
+  .ed-cp-journey-live
+  .j-m-unfold-post:not(.j-m-unfold-post--media)
+  .blocks-readonly
+  .b-palette
+  .sw {
+  height: 48px;
+}
+
+.cins-editor-page .ed-cp-journey-live .jcard-media-zone .preview,
+.cins-editor-page .ed-cp-journey-live .jcard-media-zone .preview img,
+.cins-editor-page .ed-cp-journey-live .jcard-media-zone .preview--photo-grid {
+  max-width: 100%;
+}
+
+/* Thumb */
+.cins-editor-page .ed-cp-thumb {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: var(--neutral-100, #f4f4f5);
+  overflow: hidden;
+  border-radius: inherit;
+}
+
+.cins-editor-page .ed-cp-thumb img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Masonry: ảnh quyết định chiều cao bằng tỉ lệ intrinsic, không crop 16:9/4:5. */
+.cins-editor-page .ed-cp-thumb.ed-cp-thumb--natural {
+  aspect-ratio: auto;
+}
+
+.cins-editor-page .ed-cp-thumb.ed-cp-thumb--natural img {
+  position: static;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+
+.cins-editor-page .ed-cp-thumb-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: var(--ink-muted);
+  background: color-mix(in srgb, var(--cins-blue-soft) 55%, var(--bg-surface));
+}
+
+.cins-editor-page .ed-cp-play {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.62);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  padding-left: 2px;
+}
+
+/* Gallery card grid */
+.cins-editor-page .ed-cp-gallery-grid {
+  display: grid;
+  grid-template-columns:
+    minmax(0, 0.55fr)
+    minmax(0, 1.9fr)
+    minmax(0, 0.55fr);
+  gap: 6px;
+  align-items: start;
+  width: calc(100% + 32px);
+  margin-inline: -16px;
+}
+
+.cins-editor-page .ed-cp-mock-wrap {
+  opacity: 0.28;
+  filter: saturate(0.35);
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md, 14px);
+  overflow: hidden;
+}
+
+.cins-editor-page .ed-cp-mock-wrap .ed-cp-mock-card {
+  border: 0;
+  border-radius: 0;
+}
+
+.cins-editor-page .ed-cp-mock-info {
+  display: block;
+  height: 36px;
+  background: var(--bg-surface);
+  border-top: 1px solid var(--border);
+  position: relative;
+}
+
+.cins-editor-page .ed-cp-mock-info::before,
+.cins-editor-page .ed-cp-mock-info::after {
+  content: "";
+  position: absolute;
+  left: 8px;
+  height: 6px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--ink-muted) 22%, transparent);
+}
+
+.cins-editor-page .ed-cp-mock-info::before {
+  top: 9px;
+  width: 55%;
+}
+
+.cins-editor-page .ed-cp-mock-info::after {
+  top: 20px;
+  width: 35%;
+}
+
+.cins-editor-page .ed-cp-gallery-item {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md, 14px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.cins-editor-page .ed-cp-gallery-item.is-card {
+  border-radius: 10px;
+}
+
+.cins-editor-page .ed-cp-gallery-item.is-card .ed-cp-thumb {
+  border-radius: 0;
+}
+
+.cins-editor-page .ed-cp-gallery-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px 10px;
+}
+
+.cins-editor-page .ed-cp-gallery-info strong {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--ink-display);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.cins-editor-page .ed-cp-gallery-meta {
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--ink-muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.cins-editor-page .ed-cp-gallery-meta.is-muted {
+  font-style: italic;
+}
+
+.cins-editor-page .ed-cp-gallery-thumb-hint {
+  margin-top: 4px;
+  font-size: 10px;
+  line-height: 1.4;
+  font-weight: 500;
+  color: var(--ink-muted);
+}
+
+/* Masonry */
+.cins-editor-page .ed-cp-stage--masonry {
+  overflow: hidden;
+}
+
+.cins-editor-page .ed-cp-masonry {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+  width: calc(100% + 32px);
+  margin-inline: -16px;
+}
+
+.cins-editor-page .ed-cp-masonry-col {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cins-editor-page .ed-cp-masonry-col--side {
+  flex: 0.55 1 0;
+}
+
+.cins-editor-page .ed-cp-masonry-col--main {
+  flex: 1.9 1 0;
+}
+
+.cins-editor-page .ed-cp-masonry-col .ed-cp-mock-card {
+  opacity: 0.44;
+  filter: saturate(0.55) contrast(1.03);
+}
+
+.cins-editor-page .ed-cp-gallery-item.is-masonry {
+  border-radius: var(--radius-sm, 10px);
+}
+
+.cins-editor-page
+  .ed-cp-gallery-item.is-masonry:hover
+  .j-main-gallery-overlay {
+  opacity: 1;
+}
+
+.cins-editor-page .ed-cp-gallery-item.is-masonry .ed-cp-thumb {
+  border-radius: 0;
+}
+
+@media (max-width: 991.98px) {
+  .cins-editor-page .ed-compose-preview-toggle {
+    display: inline-flex;
+  }
+
+  .cins-editor-page .ed-compose-split {
+    display: block;
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .cins-editor-page .ed-compose-split > .editor-canvas {
+    height: 100%;
+    max-height: none;
+  }
+
+  .cins-editor-page .ed-compose-preview {
+    position: absolute;
+    inset: 0;
+    width: auto;
+    max-width: none;
+    min-width: 0;
+    flex: none;
+    border-left: 0;
+    z-index: 5;
+    transform: translateX(104%);
+    transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+    box-shadow: var(--shadow-lg, 0 24px 64px rgba(15, 23, 42, 0.28));
+  }
+
+  .cins-editor-page .ed-compose-preview.is-mobile-open {
+    transform: translateX(0);
+  }
+
+  .cins-editor-page .ed-compose-preview-close {
+    display: inline-flex;
+  }
+
+  .j-compose-sheet:has(.has-compose-preview) {
+    width: min(880px, calc(100% - 24px));
+    max-width: 880px;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .cins-editor-page .ed-cp-gallery-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    width: 100%;
+    margin-inline: 0;
+  }
+
+  .cins-editor-page .ed-cp-masonry-col:last-child {
+    display: none;
+  }
+}
+
+:root[data-theme="dark"] .cins-editor-page .ed-compose-preview {
+  background: color-mix(in srgb, var(--bg-page) 92%, #1f74c9);
+  border-left-color: var(--border);
+}
+
+:root[data-theme="dark"] .cins-editor-page .ed-compose-preview-tab.is-active {
+  background: transparent;
 }

@@ -35,10 +35,13 @@ type Props = {
   mode: "feed" | "detail";
   /** Chi tiết bài — tự phát khi mở (modal / permalink). */
   autoplay?: boolean;
+  /** Lặp lại video khi hết (mặc định bật). */
+  loop?: boolean;
   preview?: {
     srcSet?: string;
     width?: number;
     height?: number;
+    objectPosition?: string;
   } | null;
 };
 
@@ -80,6 +83,7 @@ export function BunnyNativeVideoPlayer({
   canvasStyle,
   mode,
   autoplay = false,
+  loop = true,
   preview = null,
 }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -262,6 +266,7 @@ export function BunnyNativeVideoPlayer({
                 width={preview?.width ?? 1280}
                 height={preview?.height ?? 720}
                 alt=""
+                objectPosition={preview?.objectPosition}
               />
               <span className="jcard-video-play" aria-hidden>
                 <Play size={28} strokeWidth={2} fill="currentColor" />
@@ -308,6 +313,7 @@ export function BunnyNativeVideoPlayer({
                 width={preview?.width ?? 1280}
                 height={preview?.height ?? 720}
                 alt=""
+                objectPosition={preview?.objectPosition}
               />
               {buffering ? (
                 <span
@@ -337,6 +343,7 @@ export function BunnyNativeVideoPlayer({
               title={title}
               controls
               playsInline
+              loop={loop}
               autoPlay={shouldAutoplay}
               preload={shouldAutoplay || mode === "feed" ? "auto" : "metadata"}
               onPlaying={handlePlaying}
@@ -358,6 +365,7 @@ type DetailProps = {
   canvasClass?: string;
   canvasStyle?: CSSProperties;
   autoplay?: boolean;
+  loop?: boolean;
 };
 
 /** Player native HD cho permalink / modal / unfold. */
@@ -368,6 +376,7 @@ export function JourneyDetailBunnyVideo({
   canvasClass = "",
   canvasStyle,
   autoplay = false,
+  loop = true,
 }: DetailProps) {
   return (
     <div
@@ -386,6 +395,7 @@ export function JourneyDetailBunnyVideo({
         canvasStyle={canvasStyle}
         mode="detail"
         autoplay={autoplay}
+        loop={loop}
       />
     </div>
   );

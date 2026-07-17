@@ -31,6 +31,7 @@ import {
   articleCardNeedsDepthPreview,
   articleCardEmbedInteractivePeek,
   articleCardPeekHasEmbedMedia,
+  articleCardPeekIsTextOnly,
   articleCardPeekBlocks,
   extractVideoUrl,
   plainTextCardPlain,
@@ -46,11 +47,11 @@ import {
 import {
   resolvePostCardLayout,
   readShowCoverInPost,
-  shouldUseCoverAsVideoPoster,
   type PostCardLayout,
 } from "@/lib/journey/post-content-kind";
 import {
   resolveChiChuNen,
+  readChiChuNenFromBlocks,
   splitChiChuParagraphs,
   chiChuNeedsCollapse,
   chiChuNenClass,
@@ -126,9 +127,12 @@ export function JourneyMilestoneCardBodyContent({
 }: Props) {
   const router = useRouter();
   const blocks = noiDungBlocks ?? null;
-  /** Cover/`cover_id` trên card — ẩn chỉ khi tắt tường minh (`=== false`). */
-  const showCoverOnCard = shouldUseCoverAsVideoPoster(blocks);
-  const hasCoverPreview = Boolean(preview?.src) && showCoverOnCard;
+  /**
+   * Cover trên card Journey / Gallery luôn hiện khi có `preview`.
+   * `showCoverInPost` chỉ điều khiển thân bài (xem `readShowCoverInPost`) —
+   * không ẩn thumbnail trên timeline.
+   */
+  const hasCoverPreview = Boolean(preview?.src);
   const photoGridImages = photoGridOverride ?? null;
   const singlePortraitMedia = Boolean(
     photoGridImages?.length === 1 &&
@@ -169,6 +173,9 @@ export function JourneyMilestoneCardBodyContent({
   const isPhotoAlbumMulti = isPhotoCard && photoLayout === "album";
   const isPhotoSingle = isPhotoCard && photoLayout === "single";
   const isArticle = contentKind === "article";
+  /**
+   * Seed lần mount (công thức cũ). Không đưa vào effect — tránh nhảy màu khi gõ title.
+   */
   const chiChuSeed =
     title.trim() ||
     plainTextCardPlain(body, blocks) ||
@@ -186,9 +193,25 @@ export function JourneyMilestoneCardBodyContent({
     ? onChiChuExpandedChange
     : setInternalChiChuExpanded;
 
+  /* Nền đã chọn / đã lưu trong blocks. */
   useEffect(() => {
-    setChiChuNen(resolveChiChuNen(blocks, chiChuSeed));
-  }, [blocks, chiChuSeed]);
+    const fromBlocks = readChiChuNenFromBlocks(blocks);
+    if (fromBlocks != null) setChiChuNen(fromBlocks);
+  }, [blocks]);
+
+  /* Đổi bài trên timeline — resolve lại; compose (không tacPhamId) giữ sticky khi gõ. */
+  useEffect(() => {
+    if (!tacPhamId) return;
+    setChiChuNen(
+      resolveChiChuNen(
+        blocks,
+        title.trim() ||
+          plainTextCardPlain(body, blocks) ||
+          "cins-chi-chu",
+      ),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- chỉ theo identity bài
+  }, [tacPhamId]);
 
   const chiChuCardText = useMemo(() => {
     if (!isTextCard) return null;
@@ -207,7 +230,7 @@ export function JourneyMilestoneCardBodyContent({
     : null;
   const compactPhotoPreview = useMemo(() => {
     if (!useCompactMedia) return null;
-    if (showCoverOnCard && preview?.src) return preview;
+    if (preview?.src) return preview;
     if (!photoGridImages?.[0]) return null;
     const first = photoGridImages[0];
     return {
@@ -216,7 +239,7 @@ export function JourneyMilestoneCardBodyContent({
       height: first.height,
       label: title,
     };
-  }, [photoGridImages, preview, title, useCompactMedia, showCoverOnCard]);
+  }, [photoGridImages, preview, title, useCompactMedia]);
   const showCardTitle = shouldShowMilestoneCardTitle(title, blocks, body);
   const cardCaption = milestoneCardCaptionForDisplay(title, body, blocks);
   const emptyFallback =
@@ -277,8 +300,7 @@ export function JourneyMilestoneCardBodyContent({
     (isEmbedInteractivePeek ||
       showArticleEmbedBlocksPeek ||
       hasBunnyInArticle ||
-      (!preview?.src &&
-        showExpandTriggerBase &&
+      (showExpandTriggerBase &&
         articleCardNeedsDepthPreview(body, blocks, hasCoverPreview)));
   const articlePeekBlocks = useMemo(() => {
     if (!articleNeedsDepth || !blocks?.length) return [];
@@ -288,17 +310,25 @@ export function JourneyMilestoneCardBodyContent({
     () => articlePeekBlocks.filter((b) => b.loai === "embed"),
     [articlePeekBlocks],
   );
+  /* Peek chữ thuần: không dump h2/body vào khung 480px — CTA overlay teaser
+     (title/caption), block chỉ hiện khi xổ — đồng bộ bài có cover. */
+  const peekIsTextOnly =
+    articlePeekBlocks.length > 0 &&
+    articleCardPeekIsTextOnly(body, blocks);
   const showArticleContentPeek =
     articleNeedsDepth &&
     articlePeekBlocks.length > 0 &&
+    !peekIsTextOnly &&
     !showArticleEmbedBlocksPeek &&
     !isContentOpen;
   const showArticleTextDepth =
-    articleNeedsDepth && articlePeekBlocks.length === 0 && !isContentOpen;
+    articleNeedsDepth &&
+    (articlePeekBlocks.length === 0 || peekIsTextOnly) &&
+    !isContentOpen;
   /**
-   * Thumbnail gallery (`cover_id`) trên card: ẩn khi `showCoverInPost === false`.
-   * Key thiếu = bài cũ — vẫn hiện. Thân bài / unfold: `readShowCoverInPost` (opt-in).
-   * Expand bài video Bunny: ẩn poster nếu không bật cờ (tránh lộ khi ẩn peek).
+   * Thumbnail trên card article: luôn hiện khi có cover.
+   * Khi unfold bài video Bunny: ẩn poster nếu chưa bật «hiện trong bài»
+   * (tránh lộ thumbnail khi peek đã tắt).
    */
   const showArticleCoverPreview =
     hasCoverPreview &&
@@ -313,6 +343,13 @@ export function JourneyMilestoneCardBodyContent({
 
   const expandCtaOverlay = (
     <span className="jcard-expand-cta" aria-hidden>
+      <ChevronDown size={14} strokeWidth={2.4} />
+      {expandCtaLabel}
+    </span>
+  );
+
+  const expandCtaTextDepth = (
+    <span className="jcard-expand-cta jcard-expand-cta--light" aria-hidden>
       <ChevronDown size={14} strokeWidth={2.4} />
       {expandCtaLabel}
     </span>
@@ -472,7 +509,7 @@ export function JourneyMilestoneCardBodyContent({
           showArticleTextDepth ? "is-article-depth" : "",
         ]
           .filter(Boolean)
-          .join("")}
+        .join(" ")}
       >
         {hasJcardText ? (
           <div className="jcard-text">
@@ -577,6 +614,8 @@ export function JourneyMilestoneCardBodyContent({
                     width={compactPhotoPreview.width}
                     height={compactPhotoPreview.height}
                     alt={compactPhotoPreview.label || title}
+                    objectPosition={compactPhotoPreview.objectPosition}
+                    zoom={compactPhotoPreview.zoom}
                   />
                 ) : null}
                 <span className="jcard-expand-cta" aria-hidden>
@@ -597,14 +636,23 @@ export function JourneyMilestoneCardBodyContent({
                       width: preview.width,
                       height: preview.height,
                       label: preview.label || title,
+                      objectPosition: preview.objectPosition,
+                      zoom: preview.zoom,
                     }
                   : null
               }
               noiDungBlocks={blocks ?? undefined}
             />
-          ) : isAlbumHeroGrid && hasCoverPreview && preview && photoGridImages ? (
+          ) : isAlbumHeroGrid && hasCoverPreview && preview && photoGridImages?.length ? (
             <div className="jcard-photo-album">
-              <div className="preview preview--album-hero">
+              <div
+                className="preview preview--album-hero"
+                style={
+                  preview.aspectRatio
+                    ? { aspectRatio: preview.aspectRatio }
+                    : undefined
+                }
+              >
                 <JourneyCoverImage
                   src={preview.src}
                   srcSet={preview.srcSet}
@@ -614,17 +662,21 @@ export function JourneyMilestoneCardBodyContent({
                   width={preview.width}
                   height={preview.height}
                   alt={preview.label || title}
+                  objectPosition={preview.objectPosition}
+                  zoom={preview.zoom}
                 />
               </div>
               <div className="preview preview--photo-grid">
                 <ImageGrid images={photoGridImages} readOnly timelineLightbox />
               </div>
             </div>
-          ) : isPhotoAlbumMulti && photoGridImages ? (
+          ) : isPhotoAlbumMulti && photoGridImages && photoGridImages.length > 0 ? (
             <div className="preview preview--photo-grid">
               <ImageGrid images={photoGridImages} readOnly timelineLightbox />
             </div>
-          ) : (isPhotoSingle || isPhotoCard) && photoGridImages ? (
+          ) : (isPhotoSingle || isPhotoCard) &&
+            photoGridImages &&
+            photoGridImages.length > 0 ? (
             <div
               className={`preview preview--photo-grid${singlePortraitMedia ? " is-portrait-media" : ""}`}
               style={
@@ -643,13 +695,15 @@ export function JourneyMilestoneCardBodyContent({
             <div
               className={`preview preview--photo-grid preview--photo-single${previewPortraitMedia ? " is-portrait-media" : ""}`}
               style={
-                previewPortraitAspect != null
-                  ? ({
-                      ["--media-natural-aspect" as string]: String(
-                        previewPortraitAspect,
-                      ),
-                    } as CSSProperties)
-                  : undefined
+                preview.aspectRatio
+                  ? { aspectRatio: preview.aspectRatio }
+                  : previewPortraitAspect != null
+                    ? ({
+                        ["--media-natural-aspect" as string]: String(
+                          previewPortraitAspect,
+                        ),
+                      } as CSSProperties)
+                    : undefined
               }
             >
               <JourneyCoverImage
@@ -661,19 +715,23 @@ export function JourneyMilestoneCardBodyContent({
                 width={preview.width}
                 height={preview.height}
                 alt={preview.label || title}
+                objectPosition={preview.objectPosition}
+                zoom={preview.zoom}
               />
             </div>
           ) : isPhotoCard && hasCoverPreview && preview ? (
             <div
               className={`preview preview--photo-grid preview--photo-single${previewPortraitMedia ? " is-portrait-media" : ""}`}
               style={
-                previewPortraitAspect != null
-                  ? ({
-                      ["--media-natural-aspect" as string]: String(
-                        previewPortraitAspect,
-                      ),
-                    } as CSSProperties)
-                  : undefined
+                preview.aspectRatio
+                  ? { aspectRatio: preview.aspectRatio }
+                  : previewPortraitAspect != null
+                    ? ({
+                        ["--media-natural-aspect" as string]: String(
+                          previewPortraitAspect,
+                        ),
+                      } as CSSProperties)
+                    : undefined
               }
             >
               <JourneyCoverImage
@@ -685,6 +743,8 @@ export function JourneyMilestoneCardBodyContent({
                 width={preview.width}
                 height={preview.height}
                 alt={preview.label || title}
+                objectPosition={preview.objectPosition}
+                zoom={preview.zoom}
               />
             </div>
           ) : isEmbedInteractivePeek && blocks?.length ? (
@@ -701,7 +761,16 @@ export function JourneyMilestoneCardBodyContent({
               {showExpandTrigger ? expandCtaOverlay : null}
             </div>
           ) : readMoreHref && isArticle && showArticleCoverPreview ? (
-            <Link href={readMoreHref} className="preview" prefetch={false}>
+            <Link
+              href={readMoreHref}
+              className="preview"
+              prefetch={false}
+              style={
+                preview?.aspectRatio
+                  ? { aspectRatio: preview.aspectRatio }
+                  : undefined
+              }
+            >
               {preview ? (
                 <JourneyCoverImage
                   src={preview.src}
@@ -712,6 +781,8 @@ export function JourneyMilestoneCardBodyContent({
                   width={preview.width}
                   height={preview.height}
                   alt={preview.label || title}
+                  objectPosition={preview.objectPosition}
+                  zoom={preview.zoom}
                 />
               ) : (
                 <div className="preview-inner">
@@ -722,7 +793,14 @@ export function JourneyMilestoneCardBodyContent({
               {showExpandTrigger ? expandCtaOverlay : null}
             </Link>
           ) : showArticleCoverPreview ? (
-            <div className="preview">
+            <div
+              className="preview"
+              style={
+                preview?.aspectRatio
+                  ? { aspectRatio: preview.aspectRatio }
+                  : undefined
+              }
+            >
               <JourneyCoverImage
                 src={preview!.src}
                 srcSet={preview!.srcSet}
@@ -732,12 +810,14 @@ export function JourneyMilestoneCardBodyContent({
                 width={preview!.width}
                 height={preview!.height}
                 alt={preview!.label || title}
+                objectPosition={preview!.objectPosition}
+                zoom={preview!.zoom}
               />
               {showExpandTrigger ? expandCtaOverlay : null}
             </div>
           ) : null}
         </div>
-        {showArticleTextDepth && showExpandTrigger ? expandCtaOverlay : null}
+        {showArticleTextDepth && showExpandTrigger ? expandCtaTextDepth : null}
       </div>
     </div>
   );

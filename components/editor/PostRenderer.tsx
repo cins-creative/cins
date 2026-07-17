@@ -36,6 +36,13 @@ import {
 } from "@/lib/editor/embed-providers";
 import { MoTaMarkdown } from "@/components/editor/compose/MoTaMarkdown";
 import { PostReadOnlyImgs } from "@/components/editor/PostReadOnlyImgs";
+import {
+  coverThumbAspectCss,
+  coverThumbImageStyle,
+  coverThumbLayoutSize,
+  resolveCoverThumbDeliveryUrl,
+  type CoverThumbMeta,
+} from "@/lib/journey/cover-thumb";
 
 import { getYoutubeId } from "@/lib/youtube";
 
@@ -71,21 +78,43 @@ function resolveEmbedCanvasClass(cfg: Record<string, unknown>): string {
 
 /* ─── Cover image (read-only) ──────────────────────────────────── */
 
-export function PostCover({ seed }: { seed: string | null | undefined }) {
+export function PostCover({
+  seed,
+  coverThumb,
+}: {
+  seed: string | null | undefined;
+  /** Tỉ lệ + điểm neo từ `noi_dung_blocks` — bài cũ không meta giữ layout cũ. */
+  coverThumb?: CoverThumbMeta | null;
+}) {
   if (!seed) return null;
 
+  const meta = coverThumb ?? null;
+  const layout = coverThumbLayoutSize(meta ?? undefined, "hero");
+  const gravitySrc = meta
+    ? resolveCoverThumbDeliveryUrl(seed, meta, "hero")
+    : null;
+  const src = gravitySrc ?? ph(seed, layout.width, layout.height);
+  const wrapStyle = meta
+    ? { aspectRatio: coverThumbAspectCss(meta) }
+    : undefined;
+  const imgStyle = meta ? coverThumbImageStyle(meta) : undefined;
+
   return (
-    <div className="cover-add has cover-readonly">
-      <div className="cover-img-wrap">
+    <div
+      className={`cover-add has cover-readonly${meta ? " has-cover-thumb" : ""}`}
+      style={wrapStyle}
+    >
+      <div className="cover-img-wrap" style={wrapStyle}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={ph(seed, 1400, 560)}
+          src={src}
           alt="Ảnh bìa"
-          width={1400}
-          height={560}
+          width={layout.width}
+          height={layout.height}
           loading="eager"
           fetchPriority="high"
           decoding="async"
+          style={imgStyle}
           onError={handleBlockImageError}
         />
       </div>

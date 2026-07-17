@@ -229,7 +229,7 @@ export function buildSocialShareItems(
             id: "copy",
             label: "Copy link",
             iconClass: "j-share-soc-ic--copy",
-            iconLabel: "⎘",
+            iconLabel: "",
             onClick: opts.onCopy,
           } satisfies SocialShareItem,
         ]
@@ -262,20 +262,6 @@ export function buildSocialShareItems(
       iconClass: "j-share-soc-ic--in",
       iconLabel: "in",
       href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`,
-    },
-    {
-      id: "zalo",
-      label: "Zalo",
-      iconClass: "j-share-soc-ic--zalo",
-      iconLabel: "Z",
-      href: `https://button-share.zalo.me/share_external?layout=1&color=blue&customize=false&width=24&height=24&isDesktop=true&href=${encodedUrl}`,
-    },
-    {
-      id: "wa",
-      label: "WhatsApp",
-      iconClass: "j-share-soc-ic--wa",
-      iconLabel: "W",
-      href: `https://wa.me/?text=${encodeURIComponent(`${shareTitle ? `${shareTitle} — ` : ""}${shareUrl}`)}`,
     },
   ];
 }

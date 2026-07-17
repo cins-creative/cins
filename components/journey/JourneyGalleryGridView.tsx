@@ -23,6 +23,7 @@ import { GalleryMainHoverOverlay } from "@/components/journey/GalleryMainHoverOv
 import { GalleryMediaFilterDropdown } from "@/components/journey/GalleryMediaFilterDropdown";
 import { GalleryOrgCreateCardBody } from "@/components/journey/GalleryOrgCreateCardBody";
 import { GalleryVerifiedBadge } from "@/components/journey/GalleryVerifiedBadge";
+import { coverThumbAspectCss } from "@/lib/journey/cover-thumb";
 import { useJourneyCompose } from "@/components/journey/JourneyComposeContext";
 import { JourneyMilestoneInsightsModal } from "@/components/journey/JourneyMilestoneInsightsModal";
 import { JourneyMilestoneOwnerMenu } from "@/components/journey/JourneyMilestoneOwnerMenu";
@@ -199,12 +200,28 @@ function GalleryMainItemTile({
     item.variant === "verified"
       ? `Xem ${item.label} (đã xác thực)`
       : `Xem ${item.label}`;
+  const isMasonry = layout === "masonry";
+  const cardAspectCss = item.coverThumb
+    ? coverThumbAspectCss(item.coverThumb)
+    : undefined;
   const thumbStyle =
     layout === "portrait-rail"
       ? { aspectRatio: String(thumbAspect ?? 9 / 16) }
-      : layout === "masonry"
+      : isMasonry
         ? { aspectRatio: String(thumbAspect ?? 16 / 9) }
-        : undefined;
+        : cardAspectCss
+          ? { aspectRatio: cardAspectCss }
+          : undefined;
+  const visualSrc =
+    isMasonry && item.masonrySrc?.trim() ? item.masonrySrc : item.src;
+  const visualSrcSet = isMasonry ? undefined : item.srcSet;
+  const visualObjectPosition = isMasonry
+    ? undefined
+    : item.objectPosition;
+  const visualZoom =
+    isMasonry || !item.coverThumb?.zoom || item.coverThumb.zoom <= 1
+      ? undefined
+      : item.coverThumb.zoom;
 
   const boostToggle =
     worldBoostAdmin?.canBoost && boostTarget ? (
@@ -277,9 +294,9 @@ function GalleryMainItemTile({
     <>
       <div className="j-main-gallery-thumb" style={thumbStyle}>
         <GalleryItemVisual
-          src={item.src}
-          srcSet={item.srcSet}
-          sizes={item.srcSet ? GALLERY_GRID_IMAGE_SIZES : undefined}
+          src={visualSrc}
+          srcSet={visualSrcSet}
+          sizes={visualSrcSet ? GALLERY_GRID_IMAGE_SIZES : undefined}
           width={item.width}
           height={item.height}
           alt={item.label}
@@ -287,6 +304,8 @@ function GalleryMainItemTile({
           isVideo={item.isVideo || item.mediaKind === "video"}
           videoProcessing={item.videoProcessing}
           videoPreviewSrc={item.videoPreviewSrc}
+          objectPosition={visualObjectPosition}
+          zoom={visualZoom}
         />
         {item.isVideo || item.mediaKind === "video" ? (
           <GalleryVideoPlayBadge />

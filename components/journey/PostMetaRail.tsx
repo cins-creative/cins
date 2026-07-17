@@ -45,7 +45,7 @@ const TYPE_LABEL: Record<string, string> = {
 };
 
 const VIS_LABEL: Record<string, { Icon: LucideIcon; text: string }> = {
-  feature: { Icon: Star, text: "Nổi bật" },
+  feature: { Icon: Star, text: "Feature" },
   public: { Icon: Globe, text: "Công khai" },
   theo_nhom: { Icon: Users, text: "Bạn bè" },
   chi_minh: { Icon: Lock, text: "Chỉ mình tôi" },

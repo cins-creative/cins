@@ -20,6 +20,8 @@ type Props = {
   videoProcessing?: boolean;
   /** MP4 Bunny — hiển thị frame đầu khi không có / lỗi thumbnail. */
   videoPreviewSrc?: string | null;
+  objectPosition?: string;
+  zoom?: number;
 };
 
 const MP4_QUALITIES = ["360p", "480p", "720p", "1080p"] as const;
@@ -114,6 +116,8 @@ export function GalleryItemVisual({
   isVideo,
   videoProcessing,
   videoPreviewSrc,
+  objectPosition,
+  zoom,
 }: Props) {
   const [thumbFailed, setThumbFailed] = useState(false);
   const previewSrc = videoPreviewSrc?.trim() || null;
@@ -145,6 +149,8 @@ export function GalleryItemVisual({
         height={height}
         alt={alt}
         priority={priority}
+        objectPosition={objectPosition}
+        zoom={zoom}
         onFinalError={
           previewSrc && isVideo ? () => setThumbFailed(true) : undefined
         }

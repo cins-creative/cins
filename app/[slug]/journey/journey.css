@@ -4195,13 +4195,14 @@ a.j-main-gallery-item:focus-visible,
   padding-bottom: 2px;
 }
 .j-m-card.jcard--article.has-unfold.is-collapsed {
+  /* Trần peek khi chưa «Xem đầy đủ» — không force chiều cao cố định. */
   --j-article-peek-h: 480px;
 }
 .preview--article-peek {
   position: relative;
   box-sizing: border-box;
-  height: var(--j-article-peek-h, 480px);
-  min-height: var(--j-article-peek-h, 480px);
+  height: auto;
+  min-height: 0;
   max-height: var(--j-article-peek-h, 480px);
   display: block;
   /* Không tô nền trắng riêng — hòa với jcard, tránh khối media trắng lạ. */
@@ -4224,6 +4225,8 @@ a.j-main-gallery-item:focus-visible,
   max-height: 100%;
   overflow: hidden;
   pointer-events: none;
+  /* Chừa đáy cho gradient CTA «Xem đầy đủ». */
+  padding-bottom: 64px;
 }
 .preview--article-peek-inner .blocks-readonly {
   margin: 0;
@@ -4295,6 +4298,22 @@ a.j-main-gallery-item:focus-visible,
 .preview--article-peek-inner .b-embed-ro.is-iframe.is-canvas-16-9,
 .preview--article-peek-inner .b-embed-ro.is-native-video.is-canvas-16-9 {
   aspect-ratio: 16 / 9;
+}
+/* Video native trong article peek: full-bleed, không bo góc. */
+.preview--article-peek-inner .block[data-block-type="embed"]:has(
+    .b-embed-ro.is-native-video
+  ) {
+  margin: 0;
+  padding: 0;
+}
+.preview--article-peek-inner .b-embed-ro.is-native-video,
+.preview--article-peek-inner .b-embed-ro.is-native-video .jcard-video-root,
+.preview--article-peek-inner .b-embed-ro.is-native-video .jcard-video-player,
+.preview--article-peek-inner .b-embed-ro.is-native-video .jcard-video-native {
+  width: 100%;
+  max-width: none;
+  border: 0;
+  border-radius: 0;
 }
 .preview--article-peek-inner .b-embed.b-embed-ro.is-iframe iframe,
 .preview--article-peek-inner .b-embed-ro.is-iframe iframe {
@@ -7741,6 +7760,15 @@ button.j-m-card-hit {
   color: var(--ink-display);
   letter-spacing: -0.1px;
 }
+.j-feature-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  white-space: nowrap;
+}
+.j-feature-label svg {
+  flex: 0 0 auto;
+}
 .j-gallery-count {
   font-variant-numeric: tabular-nums;
   font-size: 11px;
@@ -7756,7 +7784,7 @@ button.j-m-card-hit {
 .j-gallery-all:hover {
   text-decoration: underline;
 }
-/* Pinned section — cao theo ảnh; >8 bài → masonry 2 cột */
+/* Pinned section — cao theo ảnh; >8 bài → masonry 2 cột xen kẽ (1 phải, 2 trái…) */
 .j-g-pinned {
   display: flex;
   flex-direction: column;
@@ -7764,18 +7792,20 @@ button.j-m-card-hit {
   margin-bottom: 18px;
 }
 .j-g-pinned--masonry {
-  display: block;
-  column-count: 2;
-  column-gap: 10px;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 10px;
 }
-.j-g-pinned--masonry .j-g-banner-slot,
-.j-g-pinned--masonry .j-g-banner {
-  break-inside: avoid;
-  -webkit-column-break-inside: avoid;
-  page-break-inside: avoid;
+.j-g-pinned--masonry .j-g-pinned-col {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 .j-g-pinned--masonry .j-g-banner-slot {
-  margin-bottom: 10px;
+  margin-bottom: 0;
 }
 /* Lưu nền — không khóa kéo thả */
 .j-g-pinned--reorder.is-pending-save .j-g-banner-drag {
@@ -7803,9 +7833,10 @@ button.j-m-card-hit {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
+  gap: 2px;
+  min-width: 32px;
   height: 32px;
-  padding: 0;
+  padding: 0 6px 0 8px;
   border: none;
   border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--bg-surface) 90%, transparent);
@@ -7816,12 +7847,47 @@ button.j-m-card-hit {
   backdrop-filter: blur(6px);
   pointer-events: auto;
 }
+.j-g-banner-drag-index {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-display);
+}
 .j-g-banner-drag:hover {
   color: var(--ink-display);
   background: var(--bg-surface);
 }
 .j-g-banner-drag:active {
   cursor: grabbing;
+}
+/* Menu ⋯ gỡ Feature — góc trái khi đang sắp xếp aside */
+.j-g-banner-wrap .j-g-banner-owner-menu {
+  position: absolute;
+  z-index: 7;
+  top: 8px;
+  left: 8px;
+}
+.j-g-banner-wrap .j-g-banner-owner-menu .j-m-menu-btn {
+  width: 32px;
+  height: 32px;
+  background: color-mix(in srgb, var(--bg-surface) 90%, transparent);
+  box-shadow: var(--shadow-xs);
+  backdrop-filter: blur(6px);
+}
+.j-g-banner-wrap .j-g-banner-owner-menu .j-m-menu-btn svg {
+  width: 16px;
+  height: 16px;
+}
+:root[data-theme="dark"] .j-g-banner-wrap .j-g-banner-owner-menu .j-m-menu-btn {
+  background: color-mix(in srgb, var(--neutral-100) 88%, transparent);
+  color: var(--ink-title);
+  box-shadow: var(--shadow-sm);
+}
+:root[data-theme="dark"] .j-g-banner-wrap .j-g-banner-owner-menu .j-m-menu-btn:hover,
+:root[data-theme="dark"] .j-g-banner-wrap .j-g-banner-owner-menu .j-m-menu-btn[aria-expanded="true"] {
+  background: var(--neutral-200);
+  color: var(--ink-display);
 }
 :root[data-theme="dark"] .j-g-banner-drag {
   background: color-mix(in srgb, var(--neutral-100) 88%, transparent);
@@ -10160,6 +10226,11 @@ select.j-edit-input {
   background: var(--bg-page);
   box-shadow: var(--shadow-lg, 0 24px 64px rgba(15, 23, 42, 0.28));
 }
+/* Overlay có panel xem trước — rộng hơn để editor + preview song song. */
+.j-compose-sheet:has(.has-compose-preview) {
+  width: min(1280px, calc(100% - 24px));
+  max-width: 1280px;
+}
 .j-compose-sheet > .cins-editor-page {
   border-radius: inherit;
   flex: 1 1 auto;
@@ -10203,6 +10274,18 @@ select.j-edit-input {
   overflow-x: visible;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+}
+/* Split editor | preview — canvas không còn flex trực tiếp dưới page. */
+.j-compose-sheet .cins-editor-page.is-overlay.has-compose-preview .ed-compose-split {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+}
+.j-compose-sheet .cins-editor-page.is-overlay.has-compose-preview .ed-compose-split > .editor-canvas {
+  flex: 1 1 0;
+  min-width: 0;
 }
 .j-compose-sheet .cins-editor-page.is-overlay .cover-add.has {
   border-radius: var(--radius-lg);
@@ -11187,6 +11270,16 @@ select.j-edit-input {
   background: linear-gradient(90deg, #eef2f7 0%, #f8fafc 50%, #eef2f7 100%);
   background-size: 200% 100%;
   animation: j-shimmer 1.2s ease infinite;
+}
+:root[data-theme="dark"] .j-compose-skeleton-bar,
+:root[data-theme="dark"] .j-compose-skeleton-body {
+  background: linear-gradient(
+    90deg,
+    var(--neutral-100) 0%,
+    var(--neutral-200) 50%,
+    var(--neutral-100) 100%
+  );
+  background-size: 200% 100%;
 }
 .j-compose-skeleton-label {
   margin: 14px 0 0;
@@ -15999,14 +16092,15 @@ button.j-user-pop-close svg {
     --media-canvas-max-aspect: 0.5625;
   }
 }
-/* Article peek — giữ khung cố định; không bị rule `.preview--photo-grid` kéo dài. */
+/* Article peek thu gọn — canvas cố định 4:3, cắt phần nội dung vượt khung. */
 .preview.preview--article-peek:not(.jcard-embed-peek):not(.is-embed-interactive),
 .j-m-card.jcard--article.has-unfold.is-collapsed
   .preview.preview--article-peek:not(.jcard-embed-peek):not(.is-embed-interactive) {
-  height: var(--j-article-peek-h, 480px);
-  min-height: var(--j-article-peek-h, 480px);
-  max-height: var(--j-article-peek-h, 480px);
-  aspect-ratio: auto;
+  display: block;
+  height: auto;
+  min-height: 0;
+  max-height: none;
+  aspect-ratio: 4 / 3;
   overflow: hidden;
   background: transparent;
 }

@@ -20,7 +20,7 @@ type StudioVariant = "bai-dang" | "showcase";
 
 type OrgOwner = Pick<
   TruongListItem,
-  "avatar_id" | "logo_id" | "avatar_src" | "ten" | "slug"
+  "avatar_id" | "logo_id" | "avatar_src" | "ten" | "slug" | "org_loai"
 >;
 
 type Props = {

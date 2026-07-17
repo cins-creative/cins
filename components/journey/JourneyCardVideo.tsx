@@ -139,6 +139,7 @@ export function JourneyCardVideo({
                 srcSet: preview.srcSet,
                 width: posterWidth,
                 height: posterHeight,
+                objectPosition: preview.objectPosition,
               }
             : null
         }
@@ -162,6 +163,7 @@ export function JourneyCardVideo({
           width={posterWidth}
           height={posterHeight}
           alt=""
+          objectPosition={preview?.objectPosition}
         />
         {showLoading ? (
           <span className="jcard-video-play jcard-video-play--loading" aria-hidden>
@@ -241,6 +243,7 @@ export function JourneyCardVideo({
             width={posterWidth}
             height={posterHeight}
             alt=""
+            objectPosition={preview?.objectPosition}
           />
           <span className="jcard-video-play" aria-hidden>
             <Play size={28} strokeWidth={2} fill="currentColor" />

@@ -2,7 +2,16 @@ import "server-only";
 
 import type { MilestoneMediaItem } from "@/components/journey/milestone-types";
 import type { Block } from "@/lib/editor/types";
-import { journeyImageFields } from "@/lib/journey/images";
+import {
+  coverThumbAspectCss,
+  coverThumbObjectPosition,
+  coverThumbZoom,
+  findCoverThumbMeta,
+} from "@/lib/journey/cover-thumb";
+import {
+  journeyImageFields,
+  journeyImageFieldsWithCoverThumb,
+} from "@/lib/journey/images";
 import {
   detectMediaPostKind,
   extractAllImageIds,
@@ -16,8 +25,12 @@ import {
 function coverFromImageId(
   imageId: string,
   label: string,
+  blocks: Block[] | null | undefined,
 ): MilestoneMediaItem[] {
-  const img = journeyImageFields(imageId, "milestone-preview");
+  const meta = findCoverThumbMeta(blocks);
+  const img = meta
+    ? journeyImageFieldsWithCoverThumb(imageId, meta)
+    : journeyImageFields(imageId, "milestone-preview");
   if (!img?.src) return [];
   return [
     {
@@ -26,6 +39,9 @@ function coverFromImageId(
       width: img.width,
       height: img.height,
       label,
+      objectPosition: meta ? coverThumbObjectPosition(meta) : undefined,
+      aspectRatio: meta ? coverThumbAspectCss(meta) : undefined,
+      zoom: meta ? coverThumbZoom(meta) : undefined,
     },
   ];
 }
@@ -45,7 +61,7 @@ export function milestonePreviewMedia(
   const trimmedCover = coverId?.trim() || null;
 
   if (mediaKind === "video") {
-    if (trimmedCover) return coverFromImageId(trimmedCover, label);
+    if (trimmedCover) return coverFromImageId(trimmedCover, label, parsed);
     const thumb = resolveBunnyVideoThumbnailFromBlocks(parsed);
     if (thumb) {
       const dims = videoPreviewDimensionsFromRatio(
@@ -59,10 +75,10 @@ export function milestonePreviewMedia(
   if (mediaKind === "photo") {
     const photoIds = extractAllImageIds(parsed);
     if (photoIds.length > 0) return [];
-    if (trimmedCover) return coverFromImageId(trimmedCover, label);
+    if (trimmedCover) return coverFromImageId(trimmedCover, label, parsed);
     return [];
   }
 
-  if (trimmedCover) return coverFromImageId(trimmedCover, label);
+  if (trimmedCover) return coverFromImageId(trimmedCover, label, parsed);
   return [];
 }

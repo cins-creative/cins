@@ -209,6 +209,12 @@ export type MilestoneMediaItem = {
   label?: string | null;
   /** Có overlay play icon (video) hay không. */
   isVideo?: boolean;
+  /** Điểm neo thumbnail — CSS `object-position`. */
+  objectPosition?: string;
+  /** Khung cố định theo `coverThumb.ratio` — vd. `"16 / 9"`. */
+  aspectRatio?: string;
+  /** Phóng quanh điểm neo (`coverThumb.zoom`). */
+  zoom?: number;
 };
 
 export type MilestoneItem = {

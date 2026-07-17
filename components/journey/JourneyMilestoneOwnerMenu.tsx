@@ -78,6 +78,8 @@ type Props = {
   hideDelete?: boolean;
   /** Gọi sau khi đổi loại/hiển thị/xoá thành công (vd. refetch modal post). */
   onAfterChange?: () => void;
+  /** Gọi sau khi đổi chế độ hiển thị thành công — kèm giá trị UI mới. */
+  onVisibilityChange?: (visibility: MilestoneVisibility) => void;
   /** Tagged / Lưu về — đổi hiển thị trên Journey của viewer. */
   foreignJourney?: {
     variant: "tagged" | "bookmark" | "org_tagged";
@@ -126,7 +128,7 @@ const VIS_OPTIONS: ReadonlyArray<{
   {
     ui: "feature",
     db: "feature",
-    label: "Nổi bật",
+    label: "Feature",
     desc: "Công khai & ghim lên đầu Journey",
     Icon: Star,
   },
@@ -164,6 +166,7 @@ export function JourneyMilestoneOwnerMenu({
   hideEdit = false,
   hideDelete = false,
   onAfterChange,
+  onVisibilityChange,
   foreignJourney,
   className,
   personalFilterSlugs = [],
@@ -379,6 +382,7 @@ export function JourneyMilestoneOwnerMenu({
         return;
       }
       router.refresh();
+      onVisibilityChange?.(option.ui);
       onAfterChange?.();
     });
   }

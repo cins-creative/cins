@@ -142,9 +142,7 @@ function stepSubtitle(
     if (orgShare?.kind === "cong_dong") {
       return "Thẻ giới thiệu cộng đồng — lời mời tham gia";
     }
-    return orgShare
-      ? "Thẻ giới thiệu trang"
-      : "Thẻ hồ sơ & bài viết — /slug và /slug/p/…";
+    return orgShare ? "Thẻ giới thiệu trang" : "";
   }
   if (step === "gallery-card") {
     if (portfolioFilter && portfolioFilter.kind !== "all") {
@@ -812,6 +810,17 @@ export function JourneyProfileShareModal({
     (isPopover ? " j-share-sheet--popover" : "") +
     (step !== "menu" ? " is-card-step" : "");
 
+  const shareSubtitle =
+    isPopover && step === "menu"
+      ? ""
+      : stepSubtitle(
+          step,
+          profile.slug,
+          portfolioFilter,
+          orgShare,
+          orgBaiDangFilterShare,
+        );
+
   const sheet = (
     <section
       ref={sheetRef}
@@ -849,16 +858,8 @@ export function JourneyProfileShareModal({
                 orgBaiDangFilterShare,
               )}
             </h2>
-            {!(isPopover && step === "menu") ? (
-              <p className="j-share-sub">
-                {stepSubtitle(
-                  step,
-                  profile.slug,
-                  portfolioFilter,
-                  orgShare,
-                  orgBaiDangFilterShare,
-                )}
-              </p>
+            {shareSubtitle ? (
+              <p className="j-share-sub">{shareSubtitle}</p>
             ) : null}
           </div>
         </div>
@@ -1191,7 +1192,11 @@ export function JourneyProfileShareModal({
                         aria-label={item.label}
                       >
                         <span className={`j-share-soc-ic ${item.iconClass}`}>
-                          {item.iconLabel}
+                          {item.id === "copy" ? (
+                            <Copy size={15} strokeWidth={2} aria-hidden />
+                          ) : (
+                            item.iconLabel
+                          )}
                         </span>
                       </a>
                     ) : (
@@ -1204,7 +1209,11 @@ export function JourneyProfileShareModal({
                         onClick={item.onClick}
                       >
                         <span className={`j-share-soc-ic ${item.iconClass}`}>
-                          {item.iconLabel}
+                          {item.id === "copy" ? (
+                            <Copy size={15} strokeWidth={2} aria-hidden />
+                          ) : (
+                            item.iconLabel
+                          )}
                         </span>
                       </button>
                     ),

@@ -203,6 +203,11 @@ export const MASONRY_MIN_PORTRAIT_SHARE = 0.8;
 export const MASONRY_MAX_COLUMNS = 3;
 /** Số ảnh tối đa trên một hàng Justified. */
 export const JUSTIFIED_MAX_PER_ROW = 3;
+/**
+ * Canvas album không thấp hơn khung 16:9.
+ * Với justified row: `rowHeight / containerWidth ≈ 1 / tổng aspect`.
+ */
+export const JUSTIFIED_MIN_CANVAS_HEIGHT_RATIO = 9 / 16;
 
 /** Aspect ratio = width / height (fallback 1 nếu thiếu số liệu). */
 export function gridImageAspect(image: GridImage): number {
@@ -251,32 +256,40 @@ function toCell(image: GridImage, index: number): AlbumCell {
   return { image, index, aspect: gridImageAspect(image) };
 }
 
-/** Chia cells vào các cột Masonry cân bằng (cột "thấp" nhất nhận ảnh kế). */
-function packMasonryColumns(cells: AlbumCell[], columns: number): AlbumCell[][] {
-  const cols: AlbumCell[][] = Array.from({ length: columns }, () => []);
-  const heights = new Array(columns).fill(0);
-  for (const cell of cells) {
-    let target = 0;
-    for (let c = 1; c < columns; c++) {
-      if (heights[c] < heights[target]) target = c;
+function justifiedRowHeightRatio(cells: AlbumCell[]): number {
+  const aspectSum = cells.reduce((sum, cell) => sum + cell.aspect, 0);
+  return aspectSum > 0 ? 1 / aspectSum : 1;
+}
+
+/** Tách một hàng thành hai phần liên tiếp có tổng aspect cân bằng nhất. */
+function splitBalancedJustifiedRow(cells: AlbumCell[]): AlbumCell[][] {
+  if (cells.length < 2) return [cells];
+
+  const totalAspect = cells.reduce((sum, cell) => sum + cell.aspect, 0);
+  let leftAspect = 0;
+  let bestSplit = 1;
+  let bestDifference = Number.POSITIVE_INFINITY;
+
+  for (let index = 1; index < cells.length; index++) {
+    leftAspect += cells[index - 1]!.aspect;
+    const difference = Math.abs(leftAspect - (totalAspect - leftAspect));
+    if (difference < bestDifference) {
+      bestDifference = difference;
+      bestSplit = index;
     }
-    cols[target].push(cell);
-    // Chiều cao tương đối của ảnh khi bề rộng cột = 1 là 1/aspect.
-    heights[target] += 1 / (cell.aspect || 1);
   }
-  return cols.filter((col) => col.length > 0);
+
+  return [cells.slice(0, bestSplit), cells.slice(bestSplit)];
 }
 
 /** Chia cells thành các hàng Justified (khớp icon editor: 5 → 2+3). */
 function splitJustifiedRows(cells: AlbumCell[]): AlbumCell[][] {
-  // 2 ảnh ngang: xếp dọc full-width — cạnh nhau ô quá thấp (dẹp lép).
-  if (cells.length === 2) {
-    const bothLandscape = cells.every(
-      (c) => c.aspect > SQUARE_ASPECT_TOLERANCE,
-    );
-    if (bothLandscape) {
-      return [[cells[0]!], [cells[1]!]];
-    }
+  // Một hàng thấp hơn canvas 16:9 → tách hai hàng, tránh album dẹp lép.
+  if (
+    cells.length <= JUSTIFIED_MAX_PER_ROW &&
+    justifiedRowHeightRatio(cells) < JUSTIFIED_MIN_CANVAS_HEIGHT_RATIO
+  ) {
+    return splitBalancedJustifiedRow(cells);
   }
   // 4 ảnh: 2×2 cân bằng — tránh hàng 3+1 lệch.
   if (cells.length === 4) {
@@ -294,16 +307,13 @@ function splitJustifiedRows(cells: AlbumCell[]): AlbumCell[][] {
 }
 
 /**
- * Chọn layout album theo hướng ảnh (brief no-crop):
+ * Album nhiều ảnh luôn dùng Justified Grid:
  * - 1 ảnh: giữ tỉ lệ gốc (single)
- * - toàn ảnh vuông: grid vuông
- * - gần như toàn ảnh dọc: Masonry dọc
- * - còn lại (ngang / trộn): Justified Grid
- *   (2 ảnh ngang → stack dọc; 4 ảnh → 2×2; 5 → 2+3)
+ * - 2+ ảnh: tự chia hàng cân bằng (4 → 2+2, 5 → 2+3, 6 → 3+3)
+ * - >6 ảnh ở feed: hiện 6 ô đầu, ô cuối phủ "+N"
  *
- * >6 ảnh (chế độ xem): vẫn chọn layout theo hướng ảnh như trên nhưng chỉ hiện
- * 6 ô đầu, ô cuối phủ overlay "+N" (N = số ảnh còn lại). Trước đây >6 luôn ép
- * về grid vuông → ảnh ngang bị nhốt trong ô vuông; nay tôn trọng hướng ảnh.
+ * Cùng một thuật toán cho mọi hướng ảnh giúp hàng cuối không đổi sang
+ * masonry/square hoặc phình cao bất thường.
  */
 export function resolveAlbumLayout(
   images: GridImage[],
@@ -323,38 +333,7 @@ export function resolveAlbumLayout(
   const remaining = albumGridRemainingCount(total, showAll);
   const overlaySlotIndex = remaining > 0 ? displayCount - 1 : null;
   const displayImages = images.slice(0, displayCount);
-
-  const squareLayout = (): AlbumLayout => ({
-    kind: "square",
-    layoutCount: albumGridLayoutCount(total, showAll),
-    displayImages,
-    remaining,
-    overlaySlotIndex,
-  });
-
-  // Phân loại hướng theo đúng số ảnh sẽ hiện (6 ô đầu khi >6).
-  const orientations = displayImages.map(classifyGridImage);
-  const portraitCount = orientations.filter((o) => o === "portrait").length;
-  const landscapeCount = orientations.filter((o) => o === "landscape").length;
-  const squareCount = orientations.filter((o) => o === "square").length;
-
-  if (squareCount === displayCount) return squareLayout();
-
   const cells = displayImages.map(toCell);
-
-  const portraitDominant =
-    landscapeCount === 0 &&
-    portraitCount / displayCount >= MASONRY_MIN_PORTRAIT_SHARE;
-
-  if (portraitDominant) {
-    const columns = Math.min(MASONRY_MAX_COLUMNS, displayCount);
-    return {
-      kind: "masonry",
-      columns: packMasonryColumns(cells, columns),
-      remaining,
-      overlaySlotIndex,
-    };
-  }
 
   return {
     kind: "justified",

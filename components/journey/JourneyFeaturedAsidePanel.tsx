@@ -56,7 +56,14 @@ export function JourneyFeaturedAsidePanel({
         },
       );
       if (!res.ok) {
-        throw new Error("reorder failed");
+        let detail = "";
+        try {
+          const body = (await res.json()) as { error?: string };
+          detail = body.error?.trim() ? `: ${body.error.trim()}` : "";
+        } catch {
+          /* ignore */
+        }
+        throw new Error(`Không lưu được thứ tự nổi bật${detail}`);
       }
       /* Aside đã optimistic — không setPinned/refetch tại đây (tránh giật UI). */
     },

@@ -43,6 +43,14 @@ import { TruongBaiDangPostActions } from "@/components/truong/inline/TruongBaiDa
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
 import { trackSuKien, useImpressionTracker } from "@/lib/social/track-su-kien";
 import { TruongOrgAvatar } from "@/components/truong/TruongOrgAvatar";
+import {
+  coverThumbAspectCss,
+  coverThumbLayoutSize,
+  coverThumbObjectPosition,
+  coverThumbZoom,
+  findCoverThumbMeta,
+  resolveCoverThumbDeliveryUrl,
+} from "@/lib/journey/cover-thumb";
 import { baiDangCoverDisplayUrl, baiDangJourneyPreviewUrl } from "@/lib/truong/bai-dang-cover";
 import {
   baiDangHasExpandableBody,
@@ -88,17 +96,30 @@ function shouldIgnoreExpandTrigger(target: Element | null): boolean {
 }
 
 function orgBaiDangPreviewMedia(post: TruongBaiDang): MilestoneMediaItem | null {
-  const url = baiDangJourneyPreviewUrl(post);
+  const meta = findCoverThumbMeta(post.noiDungBlocks);
+  const coverId = post.cover_id?.trim() || null;
+  const gravityUrl =
+    coverId && meta
+      ? resolveCoverThumbDeliveryUrl(coverId, meta, "card")
+      : null;
+  const url = gravityUrl ?? baiDangJourneyPreviewUrl(post);
   if (!url) return null;
 
-  let width = 800;
-  let height = 450;
-  for (const block of post.noiDungBlocks ?? []) {
-    if (block.loai !== "imgs") continue;
-    const cfg = block.config ?? {};
-    if (typeof cfg.width === "number" && cfg.width > 0) width = Math.round(cfg.width);
-    if (typeof cfg.height === "number" && cfg.height > 0) height = Math.round(cfg.height);
-    break;
+  const layout = meta ? coverThumbLayoutSize(meta, "card") : null;
+  let width = layout?.width ?? 800;
+  let height = layout?.height ?? 450;
+  if (!layout) {
+    for (const block of post.noiDungBlocks ?? []) {
+      if (block.loai !== "imgs") continue;
+      const cfg = block.config ?? {};
+      if (typeof cfg.width === "number" && cfg.width > 0) {
+        width = Math.round(cfg.width);
+      }
+      if (typeof cfg.height === "number" && cfg.height > 0) {
+        height = Math.round(cfg.height);
+      }
+      break;
+    }
   }
 
   return {
@@ -106,6 +127,9 @@ function orgBaiDangPreviewMedia(post: TruongBaiDang): MilestoneMediaItem | null 
     width,
     height,
     label: post.tieu_de,
+    objectPosition: meta ? coverThumbObjectPosition(meta) : undefined,
+    aspectRatio: meta ? coverThumbAspectCss(meta) : undefined,
+    zoom: meta ? coverThumbZoom(meta) : undefined,
   };
 }
 

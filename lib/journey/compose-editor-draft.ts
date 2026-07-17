@@ -4,6 +4,7 @@ import type { CongDongComposeConfig } from "@/lib/cong-dong/types";
 import { TIER1_EMBED_PLATFORMS } from "@/lib/editor/embed-providers";
 import { isLottieAssetEmbedUrl } from "@/lib/editor/lottie-asset-url";
 import { isRiveAssetEmbedUrl } from "@/lib/editor/rive-asset-url";
+import type { CoverThumbMeta } from "@/lib/journey/cover-thumb";
 import type { ComposeIntent } from "@/lib/journey/compose-types";
 import type { OrgBaiDangComposeConfig } from "@/lib/truong/org-bai-dang-compose";
 
@@ -35,6 +36,8 @@ export type ComposeEditorDraft = {
   minimalRichBlocks?: boolean;
   /** Hiển thị `cover_id` trong thân bài khi xem (mọi loại nội dung có thumbnail). */
   showCoverInPost?: boolean;
+  /** Tỉ lệ + điểm neo khung thumbnail (Gallery / bài dài). */
+  coverThumb?: CoverThumbMeta | null;
 };
 
 export function buildComposeEditorDraftKey(input: {

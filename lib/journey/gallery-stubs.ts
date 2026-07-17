@@ -11,6 +11,7 @@ import {
   galleryItemExcerptLine,
   type GalleryMediaKind,
 } from "@/lib/journey/post-media";
+import { findCoverThumbMeta } from "@/lib/journey/cover-thumb";
 import { resolvePostGridEntry } from "@/lib/journey/post-content-kind";
 import {
   buildBunnyVideoMp4Url as buildBunnyVideoMp4UrlServer,
@@ -152,6 +153,8 @@ export type GalleryStub = {
   /** Tooltip badge verified — vai trò org xác thực (studio, trường, …). */
   verifierRole?: string | null;
   videoCanvasRatio?: VideoCanvasRatio;
+  /** Tỉ lệ + điểm neo thumbnail (từ `noi_dung_blocks.coverThumb`). */
+  coverThumb?: import("@/lib/journey/cover-thumb").CoverThumbMeta | null;
 };
 
 function parseBlocks(raw: unknown): Block[] {
@@ -237,6 +240,7 @@ function rowToStub(
     mediaKind: gridEntry.mediaKind,
     embedProvider: gridEntry.embedProvider,
     videoCanvasRatio: gridEntry.videoCanvasRatio ?? undefined,
+    coverThumb: findCoverThumbMeta(blocks),
   };
 }
 
@@ -375,6 +379,7 @@ async function fetchTaggedGalleryStubs(
       mediaKind: gridEntry.mediaKind,
       embedProvider: gridEntry.embedProvider,
       videoCanvasRatio: gridEntry.videoCanvasRatio ?? undefined,
+      coverThumb: findCoverThumbMeta(blocks),
     });
   }
 
@@ -536,6 +541,7 @@ async function fetchOrgTaggedGalleryStubs(
       mediaKind,
       embedProvider: gridEntry?.embedProvider,
       videoCanvasRatio: gridEntry?.videoCanvasRatio ?? undefined,
+      coverThumb: findCoverThumbMeta(blocks),
       orgHref: orgBaiDangPermalinkPath(
         orgSlug,
         post.id,
@@ -776,6 +782,7 @@ async function fetchBookmarkGalleryStubs(
       mediaKind: gridEntry.mediaKind,
       embedProvider: gridEntry.embedProvider,
       videoCanvasRatio: gridEntry.videoCanvasRatio ?? undefined,
+      coverThumb: findCoverThumbMeta(blocks),
     });
   }
 

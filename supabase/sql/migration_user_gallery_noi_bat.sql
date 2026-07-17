@@ -5,7 +5,8 @@
 
 CREATE TABLE IF NOT EXISTS public.user_gallery_noi_bat (
   id_nguoi_dung uuid NOT NULL REFERENCES public.user_nguoi_dung(id) ON DELETE CASCADE,
-  id_cot_moc    uuid NOT NULL REFERENCES public.content_cot_moc(id) ON DELETE CASCADE,
+  -- Polymorphic: content_cot_moc.id hoặc org_bai_dang.id (không FK — aside feature gồm cả hai).
+  id_cot_moc    uuid NOT NULL,
   thu_tu        integer NOT NULL DEFAULT 0,
   tao_luc       timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (id_nguoi_dung, id_cot_moc)

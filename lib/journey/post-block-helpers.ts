@@ -62,3 +62,13 @@ export function hasArticleLayoutBlocks(
       (b.loai === "imgs" && b.config?.layout === "mosaic"),
   );
 }
+
+/** Có cấu trúc prose bài viết (h2/h3/quote) — không phải caption album thuần. */
+export function hasArticleProseStructure(
+  blocks: ReadonlyArray<Block> | null | undefined,
+): boolean {
+  if (!blocks?.length) return false;
+  return blocks.some(
+    (b) => b.loai === "h2" || b.loai === "h3" || b.loai === "quote",
+  );
+}

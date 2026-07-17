@@ -89,7 +89,7 @@ async function probeAspect(item: GalleryPinnedBanner): Promise<number> {
 }
 
 function showcaseLabel(kind: OrgShowcaseAsideKind): string {
-  return kind === "studio" ? "Showcase" : "Nội dung nổi bật";
+  return kind === "studio" ? "Showcase" : "Feature";
 }
 
 /**

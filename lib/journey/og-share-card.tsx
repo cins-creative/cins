@@ -1,3 +1,4 @@
+import { Star } from "lucide-react";
 import type { CSSProperties, ReactNode } from "react";
 
 import type {
@@ -14,6 +15,30 @@ import {
 } from "@/lib/journey/share-og-theme";
 
 /* ── Primitives ─────────────────────────────────────────────── */
+
+function FeatureLabel({
+  color,
+  fontSize,
+}: {
+  color: string;
+  fontSize: number;
+}) {
+  return (
+    <span
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 4,
+        color,
+        fontSize,
+        fontWeight: 600,
+      }}
+    >
+      <Star size={fontSize} strokeWidth={1.9} fill="currentColor" />
+      <span>Feature</span>
+    </span>
+  );
+}
 
 function OgAvatar({
   profile,
@@ -296,7 +321,7 @@ function StatsInline({
     <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 18 }}>
       <span style={{ display: "flex", gap: 6 }}>
         <span style={{ fontWeight: 800, color: ink }}>{noiBat}</span>
-        <span style={{ fontWeight: 600, color: muted }}>Nội dung nổi bật</span>
+        <FeatureLabel color={muted} fontSize={18} />
       </span>
       <span style={{ color: muted }}>•</span>
       <span style={{ display: "flex", gap: 6 }}>
@@ -330,9 +355,7 @@ function StatsPair({
         <span style={{ fontSize: 26, fontWeight: 800, color: tokens.accent, lineHeight: 1 }}>
           {noiBat}
         </span>
-        <span style={{ fontSize: 13, fontWeight: 600, color: tokens.muted }}>
-          Nội dung nổi bật
-        </span>
+        <FeatureLabel color={tokens.muted} fontSize={13} />
       </div>
       <div
         style={{
@@ -459,7 +482,7 @@ function BannerLayout({
             >
               <span style={{ display: "flex", gap: 6, alignItems: "center" }}>
                 <span style={{ fontWeight: 800, color: tokens.accent }}>{noiBat}</span>
-                <span>Nội dung nổi bật</span>
+                <FeatureLabel color={tokens.muted} fontSize={16} />
               </span>
               <span>•</span>
               <span style={{ display: "flex", gap: 6, alignItems: "center" }}>
@@ -621,9 +644,7 @@ function CenterLayout({
               }}
             >
               <span style={{ fontSize: 28, fontWeight: 800, color: tokens.accent }}>{noiBat}</span>
-              <span style={{ fontSize: 14, fontWeight: 600, color: tokens.muted }}>
-                Nội dung nổi bật
-              </span>
+              <FeatureLabel color={tokens.muted} fontSize={14} />
             </div>
           </div>
           <div style={{ marginTop: "auto" }}>

@@ -259,10 +259,10 @@ export function JourneyUserFeaturedExpand({
           id={panelId}
           className="j-user-featured-panel"
           role="region"
-          aria-label="Nội dung nổi bật"
+          aria-label="Feature"
           aria-busy
         >
-          <p className="j-user-featured-status">Đang tải nội dung nổi bật…</p>
+          <p className="j-user-featured-status">Đang tải Feature…</p>
         </div>
       );
     }
@@ -272,11 +272,9 @@ export function JourneyUserFeaturedExpand({
           id={panelId}
           className="j-user-featured-panel"
           role="region"
-          aria-label="Nội dung nổi bật"
+          aria-label="Feature"
         >
-          <p className="j-user-featured-status">
-            Chưa có nội dung nổi bật để xem trước.
-          </p>
+          <p className="j-user-featured-status">Chưa có Feature để xem trước.</p>
         </div>
       );
     }
@@ -285,7 +283,7 @@ export function JourneyUserFeaturedExpand({
         id={panelId}
         className="j-user-featured-panel"
         role="region"
-        aria-label="Nội dung nổi bật"
+        aria-label="Feature"
       >
         <div
           className="j-user-featured-masonry"
@@ -365,7 +363,7 @@ export function JourneyUserFeaturedExpand({
         className="j-user-featured-toggle"
         aria-expanded={open}
         aria-controls={panelId}
-        aria-label={open ? "Thu gọn nội dung nổi bật" : "Xem nội dung nổi bật"}
+        aria-label={open ? "Thu gọn Feature" : "Xem Feature"}
         aria-busy={pending || undefined}
         onClick={(event) => {
           event.stopPropagation();

@@ -396,27 +396,15 @@ export function ImageGrid({
   );
   const [dragFrom, setDragFrom] = useState<number | null>(null);
   const [dragSnap, setDragSnap] = useState<DragSnapTarget | null>(null);
-  const lightboxControlled = onLightboxIndexChange !== undefined;
+  const lightboxControlled = typeof onLightboxIndexChange === "function";
   const lightboxIndex = lightboxControlled
     ? (controlledLightboxIndex ?? null)
     : internalLightboxIndex;
   const setLightboxIndex = lightboxControlled
     ? onLightboxIndexChange
     : setInternalLightboxIndex;
-  const total = images.length;
-  if (total === 0) return null;
-
-  if (albumCarousel && total > 1) {
-    return <ImageAlbumCarousel images={images} isFirstGroup={isFirstGroup} />;
-  }
 
   const lightboxEnabled = !readOnly || timelineLightbox;
-  const useButtonCells = lightboxEnabled;
-  const canReorder = Boolean(
-    composeSlotActions?.onReorderImages && total > 1,
-  );
-
-  const lightboxPool = lightboxImagesProp ?? images;
 
   const openLightbox = useCallback(
     (index: number) => {
@@ -428,7 +416,21 @@ export function ImageGrid({
 
   const closeLightbox = useCallback(() => {
     setLightboxIndex(null);
-  }, []);
+  }, [setLightboxIndex]);
+
+  const total = images.length;
+  if (total === 0) return null;
+
+  if (albumCarousel && total > 1) {
+    return <ImageAlbumCarousel images={images} isFirstGroup={isFirstGroup} />;
+  }
+
+  const useButtonCells = lightboxEnabled;
+  const canReorder = Boolean(
+    composeSlotActions?.onReorderImages && total > 1,
+  );
+
+  const lightboxPool = lightboxImagesProp ?? images;
 
   const layout = resolveAlbumLayout(images, showAllImages);
 
@@ -511,13 +513,20 @@ export function ImageGrid({
       </div>
     );
   } else if (layout.kind === "justified") {
+    /* Một hàng = 16:9; từ hai hàng trở lên, mỗi hàng chiếm nửa canvas 16:9.
+       Hàng cuối vì vậy vẫn cùng chiều cao, không phình theo tỉ lệ một ảnh. */
+    const rowAspect = (16 * Math.min(layout.rows.length, 2)) / 9;
     body = (
       <div className="image-grid image-grid-col image-grid--justified" data-count={total}>
         {layout.rows.map((row, ri) => (
-          <div key={`jrow-${ri}`} className="image-grid-jrow">
+          <div
+            key={`jrow-${ri}`}
+            className="image-grid-jrow"
+            style={{ aspectRatio: String(rowAspect) }}
+          >
             {row.map((c: AlbumCell) =>
               renderCell(c.index, {
-                style: { flexGrow: c.aspect, aspectRatio: String(c.aspect) },
+                style: { flexGrow: c.aspect },
                 overlay: layout.overlaySlotIndex === c.index,
                 remaining: layout.remaining,
               }),
