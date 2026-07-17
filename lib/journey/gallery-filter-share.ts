@@ -137,6 +137,32 @@ export type ShareGallerySourceItem = Pick<
   videoPreviewSrc?: string | null;
 };
 
+/** Banner Feature aside → nguồn thumb share (giữ đúng thứ tự index 1…n). */
+export function featuredPinnedToShareSources(
+  pinned: ReadonlyArray<{
+    src?: string | null;
+    videoPreviewSrc?: string | null;
+    type?: MilestoneItem["type"];
+    variant?: MilestoneItem["variant"];
+    personalFilterSlugs?: GalleryMainItem["personalFilterSlugs"];
+  }>,
+): ShareGallerySourceItem[] {
+  const out: ShareGallerySourceItem[] = [];
+  for (const item of pinned) {
+    const src = galleryItemThumbSrc(item);
+    if (!src) continue;
+    out.push({
+      src,
+      type: item.type ?? "du-an",
+      variant: item.variant ?? "self",
+      visibility: "feature",
+      personalFilterSlugs: item.personalFilterSlugs,
+      videoPreviewSrc: item.videoPreviewSrc,
+    });
+  }
+  return out;
+}
+
 /** URL thumb cho share card: ảnh cover trước, fallback preview video. */
 export function galleryItemThumbSrc(
   item: Pick<ShareGallerySourceItem, "src" | "videoPreviewSrc">,
@@ -214,6 +240,36 @@ export function setLiveGalleryItemsForShare(
 
 export function getLiveGalleryItemsForShare(): ReadonlyArray<GalleryMainItem> {
   return liveGalleryItemsForShare;
+}
+
+/**
+ * Cột Feature aside đang render (đã sort theo index) — ưu tiên thumb portfolio card.
+ */
+let liveFeaturedPinnedForShare: ReadonlyArray<{
+  src?: string | null;
+  videoPreviewSrc?: string | null;
+  type?: MilestoneItem["type"];
+  variant?: MilestoneItem["variant"];
+}> = [];
+
+export function setLiveFeaturedPinnedForShare(
+  pinned: ReadonlyArray<{
+    src?: string | null;
+    videoPreviewSrc?: string | null;
+    type?: MilestoneItem["type"];
+    variant?: MilestoneItem["variant"];
+  }>,
+): void {
+  liveFeaturedPinnedForShare = pinned;
+}
+
+export function getLiveFeaturedPinnedForShare(): ReadonlyArray<{
+  src?: string | null;
+  videoPreviewSrc?: string | null;
+  type?: MilestoneItem["type"];
+  variant?: MilestoneItem["variant"];
+}> {
+  return liveFeaturedPinnedForShare;
 }
 
 export function filterGalleryItemsForShare<T extends ShareGallerySourceItem>(

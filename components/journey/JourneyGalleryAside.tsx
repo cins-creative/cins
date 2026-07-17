@@ -22,6 +22,7 @@ import {
   matchesGalleryMediaFilter,
   type GalleryMediaFilter,
 } from "@/lib/journey/post-media";
+import { setLiveFeaturedPinnedForShare } from "@/lib/journey/gallery-filter-share";
 
 export type GalleryPinnedBanner = {
   id: string;
@@ -178,6 +179,8 @@ export function JourneyGalleryAside({
   const [dropAt, setDropAt] = useState<number | null>(null);
   const [pendingSave, setPendingSave] = useState(false);
   const dragMovedRef = useRef(false);
+  /** Index nguồn — set sync trong dragstart (state React phải trì hoãn, kẻo Chrome hủy drag). */
+  const dragFromRef = useRef<number | null>(null);
   const dropAtRef = useRef<number | null>(null);
   const lastGoodPinnedRef = useRef<GalleryPinnedBanner[]>([...pinned]);
   const saveQueueRef = useRef<{
@@ -190,6 +193,7 @@ export function JourneyGalleryAside({
 
   const clearDrag = () => {
     dragMovedRef.current = false;
+    dragFromRef.current = null;
     dropAtRef.current = null;
     setDragFrom(null);
     setDropAt(null);
@@ -201,6 +205,11 @@ export function JourneyGalleryAside({
     setOrderedPinned([...pinned]);
     lastGoodPinnedRef.current = [...pinned];
   }, [pinned]);
+
+  useEffect(() => {
+    if (!featuredOnly) return;
+    setLiveFeaturedPinnedForShare(orderedPinned);
+  }, [featuredOnly, orderedPinned]);
 
   useEffect(() => {
     if (filter !== "all") {
@@ -355,23 +364,23 @@ export function JourneyGalleryAside({
     const menuOwnerSlug =
       ownerSlug.trim() || b.postOwnerSlug?.trim() || null;
     const foreignJourney =
-      reorderEnabled &&
-      cotMocId &&
-      (b.isOrgPost
-        ? { variant: "org_tagged" as const, cotMocId }
-        : b.variant === "tagged" && b.tacPhamId
-          ? {
-              variant: "tagged" as const,
-              cotMocId,
-              tacPhamId: b.tacPhamId,
-            }
-          : b.variant === "bookmark" && b.tacPhamId
+      reorderEnabled && cotMocId
+        ? b.isOrgPost
+          ? { variant: "org_tagged" as const, cotMocId }
+          : b.variant === "tagged" && b.tacPhamId
             ? {
-                variant: "bookmark" as const,
+                variant: "tagged" as const,
                 cotMocId,
                 tacPhamId: b.tacPhamId,
               }
-            : undefined);
+            : b.variant === "bookmark" && b.tacPhamId
+              ? {
+                  variant: "bookmark" as const,
+                  cotMocId,
+                  tacPhamId: b.tacPhamId,
+                }
+              : undefined
+        : undefined;
     const ownerMenu =
       reorderEnabled && menuOwnerSlug && cotMocId ? (
         <JourneyMilestoneOwnerMenu
@@ -396,17 +405,107 @@ export function JourneyGalleryAside({
         />
       ) : null;
 
+    const bannerVisual = (
+      <>
+        <span className="j-g-banner-bg">
+          <GalleryItemVisual
+            src={b.src}
+            srcSet={b.srcSet}
+            sizes={b.srcSet ? "340px" : undefined}
+            width={b.width}
+            height={b.height}
+            alt=""
+            priority={index === 0}
+            isVideo={b.isVideo || b.mediaKind === "video"}
+            videoProcessing={b.videoProcessing}
+            videoPreviewSrc={b.videoPreviewSrc}
+          />
+        </span>
+        {b.isVideo || b.mediaKind === "video" ? (
+          <GalleryVideoPlayBadge />
+        ) : null}
+        {b.mediaKind === "embed" && b.embedProvider ? (
+          <GalleryEmbedPlatformBadge provider={b.embedProvider} />
+        ) : null}
+        {b.showSourceAuthor ? (
+          <GalleryAuthorCornerBadge
+            people={b.sourcePeople}
+            name={b.authorName}
+            avatarUrl={b.authorAvatarUrl}
+          />
+        ) : null}
+        <GalleryMainHoverOverlay
+          label={b.title}
+          meta={b.meta}
+          authorName={b.authorName}
+          authorAvatarUrl={b.authorAvatarUrl}
+        />
+      </>
+    );
+
+    const openBanner = () => {
+      if (dragMovedRef.current) {
+        dragMovedRef.current = false;
+        return;
+      }
+      openAsideEntry(b, openPost, router);
+    };
+
     return (
       <div key={b.id} className="j-g-banner-slot">
         <div
           className={[
             "j-g-banner-wrap",
+            reorderEnabled ? "is-reorderable" : "",
             dragFrom === index ? "is-dragging" : "",
             showDropBefore ? "is-drop-before" : "",
             showDropAfter ? "is-drop-after" : "",
           ]
             .filter(Boolean)
             .join(" ")}
+          draggable={reorderEnabled}
+          onDragStart={
+            reorderEnabled
+              ? (e) => {
+                  const target = e.target as HTMLElement | null;
+                  /* Menu ⋯ không phải nguồn kéo. */
+                  if (target?.closest(".j-g-banner-owner-menu")) {
+                    e.preventDefault();
+                    return;
+                  }
+                  e.stopPropagation();
+                  dragMovedRef.current = false;
+                  dragFromRef.current = index;
+                  dropAtRef.current = null;
+                  e.dataTransfer.effectAllowed = "move";
+                  e.dataTransfer.setData("text/plain", String(index));
+                  try {
+                    e.dataTransfer.setDragImage(e.currentTarget, 24, 24);
+                  } catch {
+                    /* một số trình duyệt không hỗ trợ setDragImage */
+                  }
+                  /* Trì hoãn setState — sync re-render trong dragstart = Chrome hủy drag. */
+                  window.setTimeout(() => {
+                    if (dragFromRef.current !== index) return;
+                    setDropAt(null);
+                    setDragFrom(index);
+                  }, 0);
+                }
+              : undefined
+          }
+          onDrag={
+            reorderEnabled
+              ? (e) => {
+                  if (
+                    !dragMovedRef.current &&
+                    (Math.abs(e.movementX) > 2 || Math.abs(e.movementY) > 2)
+                  ) {
+                    dragMovedRef.current = true;
+                  }
+                }
+              : undefined
+          }
+          onDragEnd={reorderEnabled ? clearDrag : undefined}
           onDragOver={
             reorderEnabled
               ? (e) => {
@@ -422,98 +521,58 @@ export function JourneyGalleryAside({
             reorderEnabled
               ? (e) => {
                   e.preventDefault();
-                  const from =
+                  const fromRaw =
+                    dragFromRef.current ??
                     dragFrom ??
                     Number.parseInt(e.dataTransfer.getData("text/plain"), 10);
                   const gap = dropAtRef.current ?? index;
                   clearDrag();
-                  if (!Number.isNaN(from)) {
-                    commitReorder(from, gap);
+                  if (!Number.isNaN(fromRaw) && fromRaw != null) {
+                    commitReorder(fromRaw, gap);
                   }
                 }
               : undefined
           }
         >
-          <button
-            type="button"
-            className="j-g-banner"
-            data-pinned-id={b.id}
-            aria-label={label}
-            disabled={b.isOrgPost ? !b.href?.trim() : !cotMocId}
-            onClick={() => {
-              if (dragMovedRef.current) {
-                dragMovedRef.current = false;
-                return;
-              }
-              openAsideEntry(b, openPost, router);
-            }}
-          >
-            <span className="j-g-banner-bg">
-              <GalleryItemVisual
-                src={b.src}
-                srcSet={b.srcSet}
-                sizes={b.srcSet ? "340px" : undefined}
-                width={b.width}
-                height={b.height}
-                alt=""
-                priority={index === 0}
-                isVideo={b.isVideo || b.mediaKind === "video"}
-                videoProcessing={b.videoProcessing}
-                videoPreviewSrc={b.videoPreviewSrc}
-              />
-            </span>
-            {b.isVideo || b.mediaKind === "video" ? (
-              <GalleryVideoPlayBadge />
-            ) : null}
-            {b.mediaKind === "embed" && b.embedProvider ? (
-              <GalleryEmbedPlatformBadge provider={b.embedProvider} />
-            ) : null}
-            {b.showSourceAuthor ? (
-              <GalleryAuthorCornerBadge
-                people={b.sourcePeople}
-                name={b.authorName}
-                avatarUrl={b.authorAvatarUrl}
-              />
-            ) : null}
-            <GalleryMainHoverOverlay
-              label={b.title}
-              meta={b.meta}
-              authorName={b.authorName}
-              authorAvatarUrl={b.authorAvatarUrl}
-            />
-          </button>
-          {ownerMenu}
+          {/* Reorder: div thay button — button chặn HTML5 drag của parent. */}
           {reorderEnabled ? (
+            <div
+              role="button"
+              tabIndex={0}
+              className="j-g-banner"
+              data-pinned-id={b.id}
+              aria-label={`${label}. Kéo để đổi vị trí ${index + 1}`}
+              onClick={openBanner}
+              onKeyDown={(e) => {
+                if (e.key !== "Enter" && e.key !== " ") return;
+                e.preventDefault();
+                openBanner();
+              }}
+            >
+              {bannerVisual}
+            </div>
+          ) : (
             <button
               type="button"
-              className="j-g-banner-drag"
-              draggable
-              aria-label={`Vị trí ${index + 1}. Kéo để đổi vị trí: ${b.title || "bài nổi bật"}`}
-              title={`Vị trí ${index + 1} — kéo để đổi vị trí`}
-              onClick={(e) => e.stopPropagation()}
-              onDragStart={(e) => {
-                dragMovedRef.current = false;
-                dropAtRef.current = null;
-                setDropAt(null);
-                setDragFrom(index);
-                e.dataTransfer.effectAllowed = "move";
-                e.dataTransfer.setData("text/plain", String(index));
-              }}
-              onDrag={(e) => {
-                if (
-                  !dragMovedRef.current &&
-                  (Math.abs(e.movementX) > 2 || Math.abs(e.movementY) > 2)
-                ) {
-                  dragMovedRef.current = true;
-                }
-              }}
-              onDragEnd={clearDrag}
+              className="j-g-banner"
+              data-pinned-id={b.id}
+              aria-label={label}
+              disabled={b.isOrgPost ? !b.href?.trim() : !cotMocId}
+              onClick={openBanner}
             >
-              <span className="j-g-banner-drag-index" aria-hidden>
-                {index + 1}
-              </span>
-              <GripVertical size={14} strokeWidth={2} aria-hidden />
+              {bannerVisual}
             </button>
+          )}
+          {ownerMenu}
+          {reorderEnabled ? (
+            <div
+              className="j-g-banner-drag"
+              aria-hidden
+              title={`Vị trí ${index + 1}`}
+            >
+              <span className="j-g-banner-drag-index">{index + 1}</span>
+              <GripVertical size={14} strokeWidth={2} aria-hidden />
+            </div>
           ) : null}
         </div>
       </div>

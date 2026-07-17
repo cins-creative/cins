@@ -139,19 +139,42 @@ function filterGalleryStubsForViewer(
   return stubs.filter((stub) => !stub.videoProcessing);
 }
 
-/** Thứ tự ưu tiên gallery: Nổi bật & Xác thực → Nổi bật → Xác thực → còn lại. */
+/** Thứ tự ưu tiên gallery: Nổi bật (theo index Feature) → Xác thực → còn lại. */
 function galleryPriorityRank(stub: GalleryStub): number {
   const featured = stub.visibility === "feature";
   const verified = stub.variant === "verified";
-  if (featured && verified) return 0;
-  if (featured) return 1;
-  if (verified) return 2;
-  return 3;
+  if (featured) return 0;
+  if (verified) return 1;
+  return 2;
 }
 
-/** Sort ổn định: ưu tiên Nổi bật/Xác thực, trong nhóm theo `tao_luc` mới nhất. */
-function sortGalleryByPriority(stubs: GalleryStub[]): GalleryStub[] {
-  return stubs
+/**
+ * Sort gallery chính / share thumbs:
+ * - Bài Nổi bật trước, theo `user_gallery_noi_bat.thu_tu` (số thấp = trên / index 1…).
+ * - Bài chưa có thu_tu (mới gắn Feature) nổi đầu nhóm nổi bật.
+ * - Phần còn lại: verified rồi mới theo thời gian.
+ */
+function sortGalleryByPriority(
+  stubs: GalleryStub[],
+  noiBatOrder: Map<string, number> = new Map(),
+): GalleryStub[] {
+  const featuredNewestFirst = stubs
+    .filter((stub) => stub.visibility === "feature")
+    .slice()
+    .sort((a, b) => {
+      if (a.taoLuc !== b.taoLuc) return a.taoLuc > b.taoLuc ? -1 : 1;
+      if (a.thoiDiem !== b.thoiDiem) {
+        return a.thoiDiem > b.thoiDiem ? -1 : 1;
+      }
+      return 0;
+    });
+  const featuredOrdered = sortPinnedByNoiBatOrder(
+    featuredNewestFirst,
+    noiBatOrder,
+  );
+
+  const rest = stubs
+    .filter((stub) => stub.visibility !== "feature")
     .map((stub, index) => ({ stub, index }))
     .sort((a, b) => {
       const rank = galleryPriorityRank(a.stub) - galleryPriorityRank(b.stub);
@@ -165,6 +188,8 @@ function sortGalleryByPriority(stubs: GalleryStub[]): GalleryStub[] {
       return a.index - b.index;
     })
     .map((entry) => entry.stub);
+
+  return [...featuredOrdered, ...rest];
 }
 
 async function withVerifiedGalleryVariants(
@@ -495,12 +520,13 @@ export async function fetchGalleryMainPage(params: {
     Math.max(1, params.limit ?? GALLERY_SCROLL_PAGE_SIZE),
   );
 
+  const [stubsRaw, noiBatOrder] = await Promise.all([
+    withVerifiedGalleryVariants(await getGalleryStubsCached(userId)),
+    fetchGalleryNoiBatOrderMap(userId),
+  ]);
   const stubs = sortGalleryByPriority(
-    filterGalleryStubsForViewer(
-      await withVerifiedGalleryVariants(await getGalleryStubsCached(userId)),
-      viewerId,
-      userId,
-    ),
+    filterGalleryStubsForViewer(stubsRaw, viewerId, userId),
+    noiBatOrder,
   );
   const filterCounts = computeFilterCounts(stubs);
   const slice = stubs.slice(offset, offset + limit);

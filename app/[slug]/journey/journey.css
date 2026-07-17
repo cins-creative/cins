@@ -7822,6 +7822,34 @@ button.j-m-card-hit {
 .j-g-banner-wrap {
   position: relative;
 }
+.j-g-banner-wrap.is-reorderable {
+  cursor: grab;
+  user-select: none;
+  -webkit-user-drag: element;
+  touch-action: none;
+}
+.j-g-banner-wrap.is-reorderable:active {
+  cursor: grabbing;
+}
+.j-g-banner-wrap.is-reorderable .j-g-banner {
+  cursor: grab;
+}
+.j-g-banner-wrap.is-reorderable:active .j-g-banner {
+  cursor: grabbing;
+}
+/* Ảnh/video không tranh native drag với wrap. */
+.j-g-banner-wrap.is-reorderable .j-g-banner-bg,
+.j-g-banner-wrap.is-reorderable .j-g-banner-bg * {
+  -webkit-user-drag: none;
+  pointer-events: none;
+  user-select: none;
+}
+.j-g-banner-wrap.is-reorderable .j-g-banner-owner-menu,
+.j-g-banner-wrap.is-reorderable .j-g-banner-owner-menu .j-m-menu-btn {
+  cursor: pointer;
+  -webkit-user-drag: none;
+  pointer-events: auto;
+}
 .j-g-banner-wrap.is-dragging {
   opacity: 0.4;
 }
@@ -7845,7 +7873,8 @@ button.j-m-card-hit {
   box-shadow: var(--shadow-xs);
   appearance: none;
   backdrop-filter: blur(6px);
-  pointer-events: auto;
+  pointer-events: none;
+  user-select: none;
 }
 .j-g-banner-drag-index {
   font-size: 12px;
@@ -7858,8 +7887,9 @@ button.j-m-card-hit {
   color: var(--ink-display);
   background: var(--bg-surface);
 }
-.j-g-banner-drag:active {
-  cursor: grabbing;
+.j-g-banner-wrap.is-reorderable:hover .j-g-banner-drag {
+  color: var(--ink-display);
+  background: var(--bg-surface);
 }
 /* Menu ⋯ gỡ Feature — góc trái khi đang sắp xếp aside */
 .j-g-banner-wrap .j-g-banner-owner-menu {
