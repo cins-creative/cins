@@ -23,6 +23,7 @@ import type { Block } from "@/lib/editor/types";
 import {
   GRID_IMAGE_DEFAULT_HEIGHT,
   GRID_IMAGE_DEFAULT_WIDTH,
+  justifiedRowCanvasAspect,
   type GridImage,
 } from "@/lib/journey/image-grid";
 
@@ -123,9 +124,6 @@ export function PostReadOnlyImgs({ block }: Props) {
           })),
         )
       : null;
-  const justifiedRowAspect = justifiedRows
-    ? (16 * Math.min(justifiedRows.length, 2)) / 9
-    : null;
 
   return (
     <div className="b-imgs b-imgs-ro">
@@ -142,7 +140,7 @@ export function PostReadOnlyImgs({ block }: Props) {
               <div
                 key={`${block.id}-jrow-${ri}`}
                 className="imgwrap-jrow"
-                style={{ aspectRatio: String(justifiedRowAspect) }}
+                style={{ aspectRatio: String(justifiedRowCanvasAspect(row)) }}
               >
                 {row.map((cell) =>
                   renderSlot(cell.seed, cell.index, {

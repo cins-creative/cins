@@ -140,6 +140,7 @@ import type { CongDongComposeConfig } from "@/lib/cong-dong/types";
 import {
   GRID_IMAGE_DEFAULT_HEIGHT,
   GRID_IMAGE_DEFAULT_WIDTH,
+  justifiedRowCanvasAspect,
   type GridImage,
   type GridUploadSlotState,
 } from "@/lib/journey/image-grid";
@@ -5612,9 +5613,6 @@ function ImageBlock({ block, p }: { block: Block; p: BlockRowProps }) {
           })),
         )
       : null;
-  const justifiedRowAspect = justifiedRows
-    ? (16 * Math.min(justifiedRows.length, 2)) / 9
-    : null;
 
   return (
     <div className="b-imgs">
@@ -5631,7 +5629,7 @@ function ImageBlock({ block, p }: { block: Block; p: BlockRowProps }) {
               <div
                 key={`${block.id}-jrow-${ri}`}
                 className="imgwrap-jrow"
-                style={{ aspectRatio: String(justifiedRowAspect) }}
+                style={{ aspectRatio: String(justifiedRowCanvasAspect(row)) }}
               >
                 {row.map((cell) =>
                   renderSlot(cell.seed, cell.index, {

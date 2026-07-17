@@ -204,8 +204,9 @@ export const MASONRY_MAX_COLUMNS = 3;
 /** Số ảnh tối đa trên một hàng Justified. */
 export const JUSTIFIED_MAX_PER_ROW = 3;
 /**
- * Canvas album không thấp hơn khung 16:9.
- * Với justified row: `rowHeight / containerWidth ≈ 1 / tổng aspect`.
+ * Canvas album: tách hàng khi một hàng thấp hơn khung 16:9 (tránh album dẹp lép).
+ * Chiều cao từng hàng sau tách vẫn theo tỉ lệ ảnh (`justifiedRowCanvasAspect`) —
+ * không ép lại canvas 16:9 (ép sẽ crop ảnh user).
  */
 export const JUSTIFIED_MIN_CANVAS_HEIGHT_RATIO = 9 / 16;
 
@@ -261,6 +262,18 @@ function justifiedRowHeightRatio(cells: AlbumCell[]): number {
   return aspectSum > 0 ? 1 / aspectSum : 1;
 }
 
+/**
+ * Aspect-ratio CSS của một hàng Justified = tổng (width/height) các ô.
+ * Cùng chiều cao hàng → mỗi ô khớp tỉ lệ ảnh (ít letterbox với contain).
+ * Không ép canvas 16:9. Ảnh user luôn `object-fit: contain` — không crop.
+ */
+export function justifiedRowCanvasAspect(
+  cells: ReadonlyArray<{ aspect: number }>,
+): number {
+  const aspectSum = cells.reduce((sum, cell) => sum + cell.aspect, 0);
+  return aspectSum > 0 ? aspectSum : 1;
+}
+
 /** Tách một hàng thành hai phần liên tiếp có tổng aspect cân bằng nhất. */
 function splitBalancedJustifiedRow(cells: AlbumCell[]): AlbumCell[][] {
   if (cells.length < 2) return [cells];
@@ -284,6 +297,10 @@ function splitBalancedJustifiedRow(cells: AlbumCell[]): AlbumCell[][] {
 
 /** Chia cells thành các hàng Justified (khớp icon editor: 5 → 2+3). */
 function splitJustifiedRows(cells: AlbumCell[]): AlbumCell[][] {
+  // Album 2 ảnh luôn đặt cạnh nhau theo chiều ngang.
+  if (cells.length === 2) {
+    return [cells];
+  }
   // Một hàng thấp hơn canvas 16:9 → tách hai hàng, tránh album dẹp lép.
   if (
     cells.length <= JUSTIFIED_MAX_PER_ROW &&
@@ -309,7 +326,7 @@ function splitJustifiedRows(cells: AlbumCell[]): AlbumCell[][] {
 /**
  * Album nhiều ảnh luôn dùng Justified Grid:
  * - 1 ảnh: giữ tỉ lệ gốc (single)
- * - 2+ ảnh: tự chia hàng cân bằng (4 → 2+2, 5 → 2+3, 6 → 3+3)
+ * - 2 ảnh: luôn nằm ngang; 4 → 2+2, 5 → 2+3, 6 → 3+3
  * - >6 ảnh ở feed: hiện 6 ô đầu, ô cuối phủ "+N"
  *
  * Cùng một thuật toán cho mọi hướng ảnh giúp hàng cuối không đổi sang

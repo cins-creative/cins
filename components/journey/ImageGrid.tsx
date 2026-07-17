@@ -3,6 +3,8 @@
 import { Check, Loader2, X } from "lucide-react";
 import {
   useCallback,
+  useEffect,
+  useMemo,
   useState,
   type CSSProperties,
   type DragEvent,
@@ -19,6 +21,7 @@ import { handleBlockImageError } from "@/lib/editor/resolve-image-seed-url";
 import {
   albumGridComposeRows,
   gridThumbAsset,
+  justifiedRowCanvasAspect,
   resolveAlbumLayout,
   type AlbumCell,
   type GridImage,
@@ -103,6 +106,8 @@ type CellProps = {
   onOpen: (index: number) => void;
   /** Style bổ sung cho ô (justified: flex-grow + aspect-ratio; masonry: aspect-ratio). */
   style?: CSSProperties;
+  /** Báo tỉ lệ intrinsic lên grid — đồng bộ hàng justified khi metadata width/height sai. */
+  onNaturalAspect?: (slotIndex: number, aspect: number) => void;
   composeSlotActions?: Props["composeSlotActions"];
   singlePortrait?: boolean;
   canReorder?: boolean;
@@ -125,6 +130,7 @@ function ImageGridCell({
   remaining,
   onOpen,
   style,
+  onNaturalAspect,
   composeSlotActions,
   singlePortrait = false,
   canReorder = false,
@@ -135,24 +141,9 @@ function ImageGridCell({
 }: CellProps) {
   const CellTag = useButtonCells ? "button" : "div";
 
-  // Tỉ lệ thật của ảnh (đo khi load) — dùng để sửa lại tỉ lệ ô khi block lưu
-  // sai / thiếu width·height (mặc định 1200×800), để ảnh fit khít theo kích
-  // thước thật, không bị crop / co méo.
-  const [naturalAspect, setNaturalAspect] = useState<number | null>(null);
-
-  // Chỉ override khi ô có aspect-ratio đặt inline (masonry / justified — layout
-  // "no-crop"). Giữ đồng bộ flex-grow = aspect để hàng justified vẫn cùng chiều
-  // cao. Các layout ô cố định (vuông / 3 ảnh / >6) không có style inline nên bỏ qua.
-  const cellStyle: CSSProperties | undefined =
-    style && naturalAspect
-      ? {
-          ...style,
-          ...(style.aspectRatio !== undefined
-            ? { aspectRatio: String(naturalAspect) }
-            : null),
-          ...(style.flexGrow !== undefined ? { flexGrow: naturalAspect } : null),
-        }
-      : style;
+  // Parent (justified/masonry) đã truyền aspect đo được qua `style` — không override
+  // local nữa kẻo lệch với aspect-ratio hàng.
+  const cellStyle = style;
 
   const thumb = gridThumbAsset(image, { singlePortrait });
   const thumbSrc = thumb.src;
@@ -293,7 +284,10 @@ function ImageGridCell({
           onLoad={(e) => {
             const el = e.currentTarget;
             if (el.naturalWidth > 0 && el.naturalHeight > 0) {
-              setNaturalAspect(el.naturalWidth / el.naturalHeight);
+              onNaturalAspect?.(
+                slotIndex,
+                el.naturalWidth / el.naturalHeight,
+              );
             }
           }}
           onError={handleGridThumbError}
@@ -396,6 +390,9 @@ export function ImageGrid({
   );
   const [dragFrom, setDragFrom] = useState<number | null>(null);
   const [dragSnap, setDragSnap] = useState<DragSnapTarget | null>(null);
+  const [measuredAspectByIndex, setMeasuredAspectByIndex] = useState<
+    Record<number, number>
+  >({});
   const lightboxControlled = typeof onLightboxIndexChange === "function";
   const lightboxIndex = lightboxControlled
     ? (controlledLightboxIndex ?? null)
@@ -405,6 +402,30 @@ export function ImageGrid({
     : setInternalLightboxIndex;
 
   const lightboxEnabled = !readOnly || timelineLightbox;
+
+  const imagesAspectKey = useMemo(
+    () => images.map((img) => img.id).join("|"),
+    [images],
+  );
+  useEffect(() => {
+    setMeasuredAspectByIndex({});
+  }, [imagesAspectKey]);
+
+  const reportNaturalAspect = useCallback(
+    (slotIndex: number, aspect: number) => {
+      setMeasuredAspectByIndex((prev) => {
+        const current = prev[slotIndex];
+        if (current != null && Math.abs(current - aspect) < 0.0001) return prev;
+        return { ...prev, [slotIndex]: aspect };
+      });
+    },
+    [],
+  );
+
+  const resolveCellAspect = useCallback(
+    (cell: AlbumCell) => measuredAspectByIndex[cell.index] ?? cell.aspect,
+    [measuredAspectByIndex],
+  );
 
   const openLightbox = useCallback(
     (index: number) => {
@@ -461,6 +482,7 @@ export function ImageGrid({
         remaining={opts?.remaining ?? 0}
         onOpen={openLightbox}
         style={opts?.style}
+        onNaturalAspect={reportNaturalAspect}
         composeSlotActions={composeSlotActions}
         singlePortrait={opts?.singlePortrait}
         canReorder={canReorder}
@@ -475,7 +497,8 @@ export function ImageGrid({
   let body: ReactNode;
 
   if (layout.kind === "single") {
-    const naturalAspect = layout.cell.aspect;
+    const naturalAspect =
+      measuredAspectByIndex[0] ?? layout.cell.aspect;
     body = (
       <div
         className={`image-grid image-grid--single${layout.portrait ? " is-portrait" : ""}`}
@@ -503,7 +526,7 @@ export function ImageGrid({
           <div key={`mcol-${ci}`} className="image-grid-mcol">
             {col.map((c: AlbumCell) =>
               renderCell(c.index, {
-                style: { aspectRatio: String(c.aspect) },
+                style: { aspectRatio: String(resolveCellAspect(c)) },
                 overlay: layout.overlaySlotIndex === c.index,
                 remaining: layout.remaining,
               }),
@@ -513,26 +536,32 @@ export function ImageGrid({
       </div>
     );
   } else if (layout.kind === "justified") {
-    /* Một hàng = 16:9; từ hai hàng trở lên, mỗi hàng chiếm nửa canvas 16:9.
-       Hàng cuối vì vậy vẫn cùng chiều cao, không phình theo tỉ lệ một ảnh. */
-    const rowAspect = (16 * Math.min(layout.rows.length, 2)) / 9;
+    /* Mỗi hàng: aspect = tổng tỉ lệ ảnh (ưu tiên intrinsic sau load). */
     body = (
       <div className="image-grid image-grid-col image-grid--justified" data-count={total}>
-        {layout.rows.map((row, ri) => (
-          <div
-            key={`jrow-${ri}`}
-            className="image-grid-jrow"
-            style={{ aspectRatio: String(rowAspect) }}
-          >
-            {row.map((c: AlbumCell) =>
-              renderCell(c.index, {
-                style: { flexGrow: c.aspect },
-                overlay: layout.overlaySlotIndex === c.index,
-                remaining: layout.remaining,
-              }),
-            )}
-          </div>
-        ))}
+        {layout.rows.map((row, ri) => {
+          const rowWithAspect = row.map((c) => ({
+            ...c,
+            aspect: resolveCellAspect(c),
+          }));
+          return (
+            <div
+              key={`jrow-${ri}`}
+              className="image-grid-jrow"
+              style={{
+                aspectRatio: String(justifiedRowCanvasAspect(rowWithAspect)),
+              }}
+            >
+              {rowWithAspect.map((c: AlbumCell) =>
+                renderCell(c.index, {
+                  style: { flexGrow: c.aspect },
+                  overlay: layout.overlaySlotIndex === c.index,
+                  remaining: layout.remaining,
+                }),
+              )}
+            </div>
+          );
+        })}
       </div>
     );
   } else {

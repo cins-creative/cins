@@ -144,20 +144,12 @@
   min-height: 0;
 }
 
-/* 2+ ảnh: KHÔNG crop. Masonry/justified có tỉ lệ ô = tỉ lệ ảnh nên lấp đầy khít;
-   các ô có tỉ lệ cố định (square/3 ảnh/>6) hiển thị trọn ảnh, nền xám trắng lấp phần thừa. */
+/* 2+ ảnh: KHÔNG crop — luôn contain; nền xám trắng lấp phần thừa khi ô ≠ tỉ lệ ảnh. */
 .image-grid:not(.image-grid--single) .image-grid-cell img {
   width: 100%;
   height: 100%;
   object-fit: contain;
   display: block;
-}
-
-/* Justified / Masonry: ô đã có aspect-ratio = tỉ lệ ảnh nên `cover` lấp khít,
-   không để lộ nền letterbox, cũng gần như không crop. */
-.image-grid.image-grid--justified .image-grid-cell img,
-.image-grid.image-grid--masonry .image-grid-cell img {
-  object-fit: cover;
 }
 
 /* ── Masonry dọc: album gần như toàn ảnh dọc, giữ tỉ lệ gốc, không crop ── */
