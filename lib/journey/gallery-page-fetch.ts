@@ -594,6 +594,8 @@ export async function fetchGalleryForUser(params: {
   pinned: GalleryPinnedBanner[];
   items: GalleryGridItem[];
   totalTacPham: number;
+  /** Tổng bài `feature` — không bị cắt bởi limit cột aside (24). */
+  featuredCount: number;
 }> {
   const { userId, ownerSlug, viewerId = null } = params;
   const stubs = filterGalleryStubsForViewer(
@@ -601,8 +603,9 @@ export async function fetchGalleryForUser(params: {
     viewerId,
     userId,
   );
+  const featuredCount = stubs.filter((s) => s.visibility === "feature").length;
   if (stubs.length === 0) {
-    return { pinned: [], items: [], totalTacPham: 0 };
+    return { pinned: [], items: [], totalTacPham: 0, featuredCount: 0 };
   }
 
   const admin = createServiceRoleClient();
@@ -637,7 +640,7 @@ export async function fetchGalleryForUser(params: {
   const ownerSlugById = new Map(
     [...ownerProfileById].map(([id, profile]) => [id, profile.slug]),
   );
-  return hydrateAsideItems(
+  const aside = hydrateAsideItems(
     stubs,
     ownerSlug,
     userId,
@@ -647,4 +650,5 @@ export async function fetchGalleryForUser(params: {
     creditsByTacPham,
     creditsByOrgPost,
   );
+  return { ...aside, featuredCount };
 }

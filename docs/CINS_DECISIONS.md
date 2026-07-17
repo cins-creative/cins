@@ -37,6 +37,14 @@
 
 ## LOG — quyết định đã chốt
 
+### Facebook OG cache-bust + short-link bất biến (2026-07-17)
+
+- **Vấn đề:** publish lại PNG share card chỉ đổi `og:image`; Facebook vẫn cache metadata theo URL Journey/Portfolio cũ, phải vào Sharing Debugger để scrape lại.
+- **Chốt:** mỗi lần chia sẻ card của chủ trang tạo row `content_share_link` với token mới + Cloudflare snapshot cụ thể; URL copy là `/s/[token]`. Route short trả HTTP 200 với `og:url` riêng để crawler đọc metadata, rồi soft-redirect người thật về URL canonical có `?s=token`.
+- **Fallback:** nếu không tạo được short-link (khách xem hoặc API lỗi), copy URL canonical có nonce `?s=`; metadata giữ `s` trong identity trang nhưng không đưa token vào URL ảnh.
+- **Không dùng:** hard 307/308 cho mọi request (crawler sẽ bỏ metadata short-link), token stateless chỉ encode slug/view (không đóng băng ảnh), hoặc tự động gọi Meta Graph API.
+- **Vòng đời ảnh:** snapshot được short-link tham chiếu không bị prune khỏi Cloudflare Images. Bảng chỉ service role đọc/ghi; endpoint tạo kiểm tra chủ hồ sơ / admin org.
+
 ### Host production = cins.vn only · bỏ Vercel (2026-07-16)
 
 - **Chốt:** Production site URL / OAuth / deploy chỉ **`https://cins.vn`** trên **Cloudflare Workers** (OpenNext). Không dùng Vercel; xóa Redirect URLs / Site URL `*.vercel.app` trên Supabase.

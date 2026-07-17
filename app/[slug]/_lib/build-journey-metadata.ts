@@ -8,11 +8,11 @@ import {
 import {
   buildJourneyOgImagePath,
   buildOgImageVersion,
-  buildOgShareSearchParams,
+  buildOgPageSearchParams,
 } from "@/lib/journey/og-image-url";
 
 function pagePathForShare(slug: string, search: OgShareSearch): string {
-  const params = buildOgShareSearchParams(search);
+  const params = buildOgPageSearchParams(search);
   const qs = params.toString();
   const base = `/${encodeURIComponent(slug)}`;
   return qs ? `${base}?${qs}` : base;

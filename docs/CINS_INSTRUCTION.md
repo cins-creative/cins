@@ -1,7 +1,7 @@
 # CINS — README (Project Instructions)
 
 > **File router — điểm vào cho agent & developer.** Bản đầy đủ sống trong `docs/` (5 file bên dưới).
-> **Phiên bản:** v12 MXH chuyên môn + đóng góp canonical 2026-07-10 · **L28 workspace nhóm chat 2026-07-13** · v11 phân quyền org 2026-07-01 · v10 theo dõi/phân bổ 2026-06-15 · **~72 bảng logic** sau L28 (đọc trực tiếp từ DB để xác nhận).
+> **Phiên bản:** **OG short-link 2026-07-17** · v12 MXH chuyên môn + đóng góp canonical 2026-07-10 · **L28 workspace nhóm chat 2026-07-13** · v11 phân quyền org 2026-07-01 · v10 theo dõi/phân bổ 2026-06-15 · **~73 bảng logic** sau `content_share_link` (đọc trực tiếp từ DB để xác nhận).
 
 CINS = **mạng xã hội chuyên môn** cho ngành sáng tạo Việt Nam (Next.js + Supabase). Ba tầng: **Portfolio/Journey** (MXH + showcase) · **Entity lens** (khám phá) · **Canonical** (tri thức đã duyệt). Verify quan hệ là moat; curator thẩm định nội dung là trục riêng.
 
@@ -46,6 +46,8 @@ Thứ tự ưu tiên khi xung đột: **DB thật (đọc trực tiếp) > CINS_
 ---
 
 ## Thay đổi lớn gần đây (tóm tắt — chi tiết ở DECISIONS)
+
+**Facebook OG short-link (2026-07-17):** Mỗi lần chủ card chia sẻ tạo `/s/[token]` với Cloudflare snapshot cố định; crawler nhận OG object mới, người thật soft-redirect về URL gốc có `?s=`. Bảng server-only `content_share_link`. Xem DECISIONS LOG + IMPLEMENTATION API/SQL.
 
 **Host production = cins.vn only (2026-07-16):** Bỏ Vercel; deploy Cloudflare Workers; Supabase Site URL / Redirect URLs chỉ `cins.vn` (+ localhost dev). Xem DECISIONS LOG + IMPLEMENTATION §4 Deploy / §6 OAuth.
 

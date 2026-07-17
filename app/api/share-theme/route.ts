@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
-import { deleteCloudflareImage } from "@/lib/cloudflare/delete-image";
+import { deleteUnreferencedShareImage } from "@/lib/journey/share-link";
 import {
   mergeShareOgCustoms,
   parseShareOgThemeState,
@@ -182,7 +182,7 @@ export async function PATCH(request: Request) {
     );
 
     if (removeId) {
-      void deleteCloudflareImage(removeId);
+      void deleteUnreferencedShareImage(removeId);
     }
 
     const cauHinh = {
@@ -228,7 +228,7 @@ export async function PATCH(request: Request) {
   );
 
   if (removeId) {
-    void deleteCloudflareImage(removeId);
+    void deleteUnreferencedShareImage(removeId);
   }
 
   const { error: updErr } = await admin

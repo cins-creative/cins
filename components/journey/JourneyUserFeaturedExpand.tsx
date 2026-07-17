@@ -44,6 +44,8 @@ type Props = {
 
 type AsidePayload = {
   pinned?: GalleryPinnedBanner[];
+  /** Tổng Feature thật — không bị cắt bởi limit cột aside (24). */
+  featuredCount?: number;
 };
 
 const FALLBACK_ASPECT = 16 / 9;
@@ -156,7 +158,11 @@ export function JourneyUserFeaturedExpand({
           const pinned = Array.isArray(json.pinned) ? json.pinned : [];
           setItems(pinned);
           setLoadState("ready");
-          onAvailabilityChange?.({ ready: true, count: pinned.length });
+          const count =
+            typeof json.featuredCount === "number"
+              ? json.featuredCount
+              : pinned.length;
+          onAvailabilityChange?.({ ready: true, count });
         })
         .catch(() => {
           if (!cancelled) {

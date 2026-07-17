@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import { deleteCloudflareImage } from "@/lib/cloudflare/delete-image";
 import { uploadToCloudflareImages } from "@/lib/cloudflare/upload-image";
+import { deleteUnreferencedShareImage } from "@/lib/journey/share-link";
 import {
   isGalleryShareLayout,
   isJourneyShareLayout,
@@ -146,8 +147,8 @@ export async function POST(request: Request) {
       );
     }
 
-    if (replacedImageId) void deleteCloudflareImage(replacedImageId);
-    for (const id of prunedIds) void deleteCloudflareImage(id);
+    if (replacedImageId) void deleteUnreferencedShareImage(replacedImageId);
+    for (const id of prunedIds) void deleteUnreferencedShareImage(id);
 
     revalidatePath(`/${org.slug}`);
     revalidatePath(`/${org.slug}/journey`);
@@ -195,8 +196,8 @@ export async function POST(request: Request) {
     );
   }
 
-  if (replacedImageId) void deleteCloudflareImage(replacedImageId);
-  for (const id of prunedIds) void deleteCloudflareImage(id);
+  if (replacedImageId) void deleteUnreferencedShareImage(replacedImageId);
+  for (const id of prunedIds) void deleteUnreferencedShareImage(id);
 
   revalidatePath(`/${user.slug}`);
   revalidatePath(`/${user.slug}/journey`);

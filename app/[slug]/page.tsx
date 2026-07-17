@@ -15,6 +15,7 @@ type SearchParams = Promise<{
   nhom?: string;
   filter?: string;
   display?: string;
+  s?: string;
 }>;
 
 export async function generateMetadata({
@@ -30,6 +31,7 @@ export async function generateMetadata({
     view: sp.view,
     nhom: sp.nhom,
     filter: sp.filter,
+    s: sp.s,
   });
 }
 

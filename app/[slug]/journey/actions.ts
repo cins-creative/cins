@@ -68,6 +68,7 @@ const RESERVED_SLUGS = new Set<string>([
   "phan-mem",
   "keyword",
   "search",
+  "s",
   "gallery",
   "invite",
   "verify",

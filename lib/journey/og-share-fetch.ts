@@ -126,6 +126,7 @@ function toShareSources(
     type: item.type,
     variant: item.variant,
     visibility: item.visibility,
+    featured: item.featured,
     personalFilterSlugs: item.personalFilterSlugs,
     videoPreviewSrc: item.videoPreviewSrc,
   }));

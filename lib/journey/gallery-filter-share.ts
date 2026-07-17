@@ -133,6 +133,8 @@ export type ShareGallerySourceItem = Pick<
   "src" | "type" | "variant" | "personalFilterSlugs"
 > & {
   visibility?: MilestoneItem["visibility"];
+  /** Đồng bộ `GalleryMainItem.featured` khi có — dùng đếm Feature. */
+  featured?: boolean;
   /** Frame đầu video khi `src` trống — dùng cho thumb share. */
   videoPreviewSrc?: string | null;
 };
@@ -156,6 +158,7 @@ export function featuredPinnedToShareSources(
       type: item.type ?? "du-an",
       variant: item.variant ?? "self",
       visibility: "feature",
+      featured: true,
       personalFilterSlugs: item.personalFilterSlugs,
       videoPreviewSrc: item.videoPreviewSrc,
     });
@@ -165,7 +168,10 @@ export function featuredPinnedToShareSources(
 
 /** URL thumb cho share card: ảnh cover trước, fallback preview video. */
 export function galleryItemThumbSrc(
-  item: Pick<ShareGallerySourceItem, "src" | "videoPreviewSrc">,
+  item: {
+    src?: string | null;
+    videoPreviewSrc?: string | null;
+  },
 ): string {
   return item.src?.trim() || item.videoPreviewSrc?.trim() || "";
 }
@@ -187,6 +193,7 @@ export function milestonesToShareGalleryItems(
       type: m.type,
       variant: m.variant,
       visibility: m.visibility,
+      featured: m.visibility === "feature",
       personalFilterSlugs: m.personalFilterSlugs,
     });
   }
@@ -210,19 +217,46 @@ export function mergeShareGallerySources(
   return merged;
 }
 
+/** Trang đầu gallery + tổng thật — dùng cho share card (không lấy `items.length` làm count). */
+export type GalleryShareFetchResult = {
+  items: GalleryMainItem[];
+  totalCount: number;
+  featuredCount: number;
+};
+
 export async function fetchGalleryItemsForShare(
   slug: string,
-): Promise<GalleryMainItem[]> {
+): Promise<GalleryShareFetchResult> {
+  const empty: GalleryShareFetchResult = {
+    items: [],
+    totalCount: 0,
+    featuredCount: 0,
+  };
   try {
     const res = await fetch(
       `/api/journey/${encodeURIComponent(slug)}/gallery?offset=0`,
       { cache: "no-store" },
     );
-    if (!res.ok) return [];
-    const data = (await res.json()) as { items?: GalleryMainItem[] };
-    return data.items ?? [];
+    if (!res.ok) return empty;
+    const data = (await res.json()) as {
+      items?: GalleryMainItem[];
+      totalCount?: number;
+      featuredCount?: number;
+    };
+    const items = data.items ?? [];
+    return {
+      items,
+      totalCount:
+        typeof data.totalCount === "number" ? data.totalCount : items.length,
+      featuredCount:
+        typeof data.featuredCount === "number"
+          ? data.featuredCount
+          : items.filter(
+              (item) => item.visibility === "feature" || item.featured,
+            ).length,
+    };
   } catch {
-    return [];
+    return empty;
   }
 }
 

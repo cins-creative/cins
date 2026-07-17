@@ -5,6 +5,8 @@ export type OgShareSearch = {
   view?: string | null;
   nhom?: string | null;
   filter?: string | null;
+  /** Identity riêng cho page share; không ảnh hưởng nội dung/URL ảnh OG. */
+  s?: string | null;
 };
 
 /** Build query string từ params share (không gồm `v=`). */
@@ -19,6 +21,18 @@ export function buildOgShareSearchParams(
     params.set("filter", filter);
   } else if (nhom && nhom !== "all") {
     params.set("nhom", nhom);
+  }
+  return params;
+}
+
+/** Query cho `og:url`: giữ thêm token share để Facebook coi là object mới. */
+export function buildOgPageSearchParams(
+  search: OgShareSearch,
+): URLSearchParams {
+  const params = buildOgShareSearchParams(search);
+  const shareToken = search.s?.trim();
+  if (shareToken && /^[A-Za-z0-9_-]{10,24}$/.test(shareToken)) {
+    params.set("s", shareToken);
   }
   return params;
 }
