@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Loader2, X } from "lucide-react";
+import { Check, ClipboardPaste, ImagePlus, Loader2, X } from "lucide-react";
 import {
   useCallback,
   useEffect,
@@ -333,22 +333,26 @@ function ImageGridCell({
             <button
               type="button"
               className="ph-change"
+              title="Đổi ảnh"
+              aria-label="Đổi ảnh"
               onClick={(e) => {
                 e.stopPropagation();
                 composeSlotActions.onPickImage(slotIndex);
               }}
             >
-              Đổi ảnh
+              <ImagePlus size={18} strokeWidth={1.8} aria-hidden />
             </button>
             <button
               type="button"
-              className="ph-change"
+              className="ph-change ph-paste"
+              title="Dán ảnh"
+              aria-label="Dán ảnh"
               onClick={(e) => {
                 e.stopPropagation();
                 composeSlotActions.onPasteImage(slotIndex);
               }}
             >
-              Dán ảnh
+              <ClipboardPaste size={18} strokeWidth={1.8} aria-hidden />
             </button>
           </div>
           <button
