@@ -86,10 +86,10 @@
 /* ── 2 ảnh: 2 cột vuông ──
    Loại trừ justified/masonry: các layout đó cũng đặt data-count nhưng KHÔNG
    dùng ô vuông / khung cố định (nếu không sẽ bị ép tỉ lệ → khoảng trống). */
-.image-grid[data-count="2"]:not(.image-grid--justified):not(.image-grid--masonry) {
+.image-grid[data-count="2"]:not(.image-grid--justified):not(.image-grid--masonry):not(.image-grid--stack):not(.image-grid--columns2) {
   flex-direction: row;
 }
-.image-grid[data-count="2"]:not(.image-grid--justified):not(.image-grid--masonry)
+.image-grid[data-count="2"]:not(.image-grid--justified):not(.image-grid--masonry):not(.image-grid--stack):not(.image-grid--columns2)
   .image-grid-cell {
   flex: 1;
   aspect-ratio: 1 / 1;
@@ -97,7 +97,7 @@
 }
 
 /* ── 3 ảnh: ô lớn trái + 2 ô nhỏ phải (container 3:2) ── */
-.image-grid[data-count="3"]:not(.image-grid--justified):not(.image-grid--masonry) {
+.image-grid[data-count="3"]:not(.image-grid--justified):not(.image-grid--masonry):not(.image-grid--stack):not(.image-grid--columns2) {
   flex-direction: row;
   aspect-ratio: 3 / 2;
 }
@@ -167,6 +167,44 @@
 .image-grid--masonry .image-grid-cell {
   width: 100%;
   /* aspect-ratio đặt inline theo từng ảnh */
+}
+
+/* ── Stack: xếp dọc full-width, giữ tỉ lệ từng ảnh ── */
+.image-grid--stack {
+  flex-direction: column;
+  gap: var(--cins-img-slot-gap);
+  background: var(--bg-page, #f4f5f8);
+}
+.image-grid--stack .image-grid-cell {
+  width: 100%;
+  aspect-ratio: auto;
+}
+.image-grid--stack .image-grid-cell img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+/* ── Lưới 2 cột: ô vuông; hàng lẻ cuối giữ nửa chiều ngang ── */
+.image-grid--columns2 {
+  flex-direction: column;
+}
+.image-grid--columns2 .image-grid-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.image-grid--columns2 .image-grid-cell {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+}
+
+/* Layout lưới chủ đích dùng ô cố định: crop cover để không tạo dải trống. */
+.image-grid.image-grid--columns2 .image-grid-cell img,
+.image-grid.image-grid--square .image-grid-cell img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 /* ── Justified Grid: mọi album 2+ ảnh; các hàng cùng chiều cao ── */

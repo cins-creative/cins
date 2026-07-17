@@ -23,8 +23,9 @@ export type Block = {
   /**
    * Cấu hình theo type:
    *   - h2/h3/body/quote: { html: string }  — plain text từ textarea, server tự escape khi render.
-   *   - imgs: { layout, rounded, gap?, cap, imgs: string[], width?, height?, cols?, cells?, pad? }
+   *   - imgs: { layout, rounded, gap?, cap, imgs: string[], width?, height?, cols?, cells?, pad?, albumGridCell?, albumLayout? }
    *     `gap` — khe giữa ô (0 | 2 | 4 px), mặc định 2.
+   *     `albumLayout` — preset album feed: justified | masonry | columns2 | square | stack (khi albumGridCell).
    *     Mỗi phần tử `imgs[]` / mosaic `seed`: Cloudflare UUID hoặc URL http(s) đầy đủ.
    *   - embed: { url, provider?, embed_html?, showCoverInPost?, coverThumb?, bunnyVideoId?, videoCanvasRatio? }
    *     `showCoverInPost` — hiện `cover_id` trên card Journey + thân bài (opt-in `true`).

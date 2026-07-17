@@ -461,6 +461,8 @@ export function toPreviewServerBlocks(
     cap?: string;
     width?: number;
     height?: number;
+    albumGridCell?: boolean;
+    albumLayout?: string;
     embedUrl?: string;
     videoCanvasRatio?: string;
     colors?: string[];
@@ -502,6 +504,14 @@ export function toPreviewServerBlocks(
           ),
           ...(typeof b.width === "number" ? { width: b.width } : {}),
           ...(typeof b.height === "number" ? { height: b.height } : {}),
+          ...(b.albumGridCell === true
+            ? { albumGridCell: true }
+            : b.albumGridCell === false
+              ? { albumGridCell: false }
+              : {}),
+          ...(b.albumGridCell === true && b.albumLayout
+            ? { albumLayout: b.albumLayout }
+            : {}),
         };
         break;
       case "embed":

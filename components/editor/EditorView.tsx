@@ -41,6 +41,7 @@ import {
   Pencil,
   Play,
   Plus,
+  Replace,
   Save,
   SquareRoundCorner,
   Star,
@@ -119,6 +120,13 @@ import {
 import { isLottieAssetEmbedUrl } from "@/lib/editor/lottie-asset-url";
 import { isRiveAssetEmbedUrl } from "@/lib/editor/rive-asset-url";
 import { resolveAlbumGridCell } from "@/lib/editor/album-grid-block";
+import {
+  ALBUM_LAYOUT_MODE_META,
+  DEFAULT_ALBUM_LAYOUT_MODE,
+  albumLayoutModeFromBlocks,
+  normalizeAlbumLayoutMode,
+  type AlbumLayoutMode,
+} from "@/lib/journey/album-layout-mode";
 import { isEditorEmptyImageSeed } from "@/lib/editor/editor-stock-image-seeds";
 import {
   insertIndexFromSnap,
@@ -321,6 +329,8 @@ type Block = {
   dividerThick?: "thin" | "med" | "thick";
   /** Ô trong album grid justify/masonry — false = block ảnh độc (LayBar). */
   albumGridCell?: boolean;
+  /** Preset bố cục album (justified / masonry / square / stack). */
+  albumLayout?: AlbumLayoutMode;
 };
 
 type Visibility = "feature" | "public" | "theo_nhom" | "chi_minh";
@@ -1046,6 +1056,20 @@ export function EditorView({
     const parsed = initial?.blocks ? fromServerBlocks(initial.blocks) : [];
     return looksLikeEditorAlbumGrid(parsed);
   });
+  /** Preset layout album — đổi trong sheet compose, lưu trên từng ô album. */
+  const [albumLayoutMode, setAlbumLayoutMode] = useState<AlbumLayoutMode>(() => {
+    if (restoredDraft?.blocks?.length) {
+      return albumLayoutModeFromBlocks(restoredDraft.blocks);
+    }
+    if (initial?.blocks?.length) {
+      return albumLayoutModeFromBlocks(initial.blocks);
+    }
+    return DEFAULT_ALBUM_LAYOUT_MODE;
+  });
+  const albumLayoutModeRef = useRef(albumLayoutMode);
+  useEffect(() => {
+    albumLayoutModeRef.current = albumLayoutMode;
+  }, [albumLayoutMode]);
   const isMinimalUI = isOverlay && usesMinimalFlow && !editorExpanded;
   const showFullEditor = !isMinimalUI;
   /* Huỷ → journey (không link `/p/slug` — intercept modal sẽ mở popup thay vì thoát edit). */
@@ -1903,6 +1927,9 @@ export function EditorView({
         setAlbumGridCompose(true);
       }
       pushHistory();
+      const albumLayout = albumGrid
+        ? albumLayoutModeRef.current
+        : undefined;
 
       const pending: Array<{ file: File; localSeed: string; block: Block }> = [];
       for (const file of imageFiles) {
@@ -1920,6 +1947,7 @@ export function EditorView({
             rounded: false,
             gap: IMG_SLOT_GAP_DEFAULT,
             albumGridCell: albumGrid,
+            ...(albumLayout ? { albumLayout } : {}),
           },
         });
       }
@@ -1986,11 +2014,29 @@ export function EditorView({
           rounded: false,
           gap: IMG_SLOT_GAP_DEFAULT,
           albumGridCell: useAlbumGrid,
+          ...(useAlbumGrid
+            ? { albumLayout: albumLayoutModeRef.current }
+            : {}),
         });
         return ensureBunnyVideoFirst(next, videoBlockIdRef.current);
       });
       setOpenAddIdx(null);
       setSelectedId(id);
+    },
+    [pushHistory],
+  );
+
+  const applyAlbumLayoutMode = useCallback(
+    (mode: AlbumLayoutMode) => {
+      const nextMode = normalizeAlbumLayoutMode(mode);
+      setAlbumLayoutMode(nextMode);
+      albumLayoutModeRef.current = nextMode;
+      pushHistory();
+      setBlocks((prev) =>
+        prev.map((b) =>
+          isAlbumGridImgBlock(b) ? { ...b, albumLayout: nextMode } : b,
+        ),
+      );
     },
     [pushHistory],
   );
@@ -3802,6 +3848,8 @@ export function EditorView({
                         photoCount={segment.blocks.length}
                         maxPhotos={MAX_EDITOR_ALBUM_PHOTOS}
                         showAddDropzone={previewKind !== "article"}
+                        albumLayoutMode={albumLayoutMode}
+                        onAlbumLayoutModeChange={applyAlbumLayoutMode}
                         onAddFiles={(files) => {
                           const room =
                             MAX_EDITOR_ALBUM_PHOTOS - segment.blocks.length;
@@ -4712,6 +4760,8 @@ function EditorPhotoAlbumPreview({
   photoCount,
   maxPhotos,
   showAddDropzone = true,
+  albumLayoutMode = DEFAULT_ALBUM_LAYOUT_MODE,
+  onAlbumLayoutModeChange,
   onAddFiles,
   onAddSlot,
   onPickImage,
@@ -4723,6 +4773,8 @@ function EditorPhotoAlbumPreview({
   photoCount: number;
   maxPhotos: number;
   showAddDropzone?: boolean;
+  albumLayoutMode?: AlbumLayoutMode;
+  onAlbumLayoutModeChange?: (mode: AlbumLayoutMode) => void;
   onAddFiles: (files: File[]) => void;
   onAddSlot: () => void;
   onPickImage: (slotIndex: number) => void;
@@ -4734,6 +4786,8 @@ function EditorPhotoAlbumPreview({
   const canAddMore = photoCount < maxPhotos;
   const showDropzone = showAddDropzone && canAddMore;
   const showCompactAdd = !showAddDropzone && canAddMore;
+  const showLayoutStrip =
+    Boolean(onAlbumLayoutModeChange) && photoCount >= 1;
 
   const onFileChange = useCallback(
     (e: ChangeEvent<HTMLInputElement>) => {
@@ -4757,6 +4811,30 @@ function EditorPhotoAlbumPreview({
 
   return (
     <div className="ed-photo-album-compose">
+      {showLayoutStrip ? (
+        <div
+          className="ed-album-layout-strip"
+          role="toolbar"
+          aria-label="Bố cục album"
+        >
+          {ALBUM_LAYOUT_MODE_META.map((m) => (
+            <button
+              key={m.k}
+              type="button"
+              className={`ed-album-layout-btn${m.k === albumLayoutMode ? " is-active" : ""}`}
+              title={m.name}
+              aria-label={m.name}
+              aria-pressed={m.k === albumLayoutMode}
+              onClick={(e) => {
+                e.stopPropagation();
+                onAlbumLayoutModeChange?.(m.k);
+              }}
+            >
+              <LayoutThumbIcon layout={m.thumb} />
+            </button>
+          ))}
+        </div>
+      ) : null}
       <div className="preview preview--photo-grid">
         <ImageGrid
           images={grid.images}
@@ -4767,6 +4845,7 @@ function EditorPhotoAlbumPreview({
           uploadBySlot={grid.uploadBySlot}
           showAllImages
           readOnly
+          albumLayoutMode={albumLayoutMode}
           composeSlotActions={{
             onPickImage,
             onPasteImage,
@@ -4893,7 +4972,7 @@ function PhImageActions({
           onPick();
         }}
       >
-        <ImagePlus size={18} strokeWidth={1.8} aria-hidden />
+        <Replace size={18} strokeWidth={1.8} aria-hidden />
       </button>
       <button
         type="button"
@@ -6045,6 +6124,9 @@ function fromServerBlocks(blocks: ServerBlock[]): Block[] {
       local.imgs = imgs.filter((s) => !/^m-|^extra-/.test(s));
       if (cfg.albumGridCell === true) local.albumGridCell = true;
       else if (cfg.albumGridCell === false) local.albumGridCell = false;
+      if (cfg.albumGridCell === true || typeof cfg.albumLayout === "string") {
+        local.albumLayout = normalizeAlbumLayoutMode(cfg.albumLayout);
+      }
       if (typeof cfg.width === "number" && cfg.width > 0) {
         local.width = Math.round(cfg.width);
       }
@@ -6150,6 +6232,13 @@ function toServerBlocks(blocks: Block[]): ServerBlock[] {
             : b.albumGridCell === false
               ? { albumGridCell: false }
               : {}),
+          ...(b.albumGridCell === true
+            ? {
+                albumLayout: normalizeAlbumLayoutMode(
+                  b.albumLayout ?? DEFAULT_ALBUM_LAYOUT_MODE,
+                ),
+              }
+            : {}),
         };
       } else if (b.t === "embed") {
         const url = (b.embedUrl || "").trim().slice(0, 2048);

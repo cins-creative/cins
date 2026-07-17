@@ -19,6 +19,7 @@ import { MoTaMarkdown } from "@/components/editor/compose/MoTaMarkdown";
 import { stripMoTaMarkdown } from "@/lib/editor/mo-ta-markdown";
 import type { MilestoneMediaItem } from "@/components/journey/milestone-types";
 import { extractCfImageIdFromDeliveryUrl } from "@/lib/cloudflare/image-id-from-url";
+import { albumLayoutModeFromBlocks } from "@/lib/journey/album-layout-mode";
 import type { GridImage } from "@/lib/journey/image-grid";
 import {
   gridThumbSrc,
@@ -134,6 +135,10 @@ export function JourneyMilestoneCardBodyContent({
    */
   const hasCoverPreview = Boolean(preview?.src);
   const photoGridImages = photoGridOverride ?? null;
+  const albumLayoutMode = useMemo(
+    () => albumLayoutModeFromBlocks(blocks),
+    [blocks],
+  );
   const singlePortraitMedia = Boolean(
     photoGridImages?.length === 1 &&
       isPortraitGridImage(photoGridImages[0]),
@@ -696,6 +701,7 @@ export function JourneyMilestoneCardBodyContent({
                   images={photoGridImages}
                   readOnly
                   timelineLightbox
+                  albumLayoutMode={albumLayoutMode}
                   lightboxIndex={albumLightboxIndex}
                   onLightboxIndexChange={setAlbumLightboxIndex}
                   lightboxImages={albumHeroLightboxImages ?? undefined}
@@ -705,7 +711,12 @@ export function JourneyMilestoneCardBodyContent({
             </div>
           ) : isPhotoAlbumMulti && photoGridImages && photoGridImages.length > 0 ? (
             <div className="preview preview--photo-grid">
-              <ImageGrid images={photoGridImages} readOnly timelineLightbox />
+              <ImageGrid
+                images={photoGridImages}
+                readOnly
+                timelineLightbox
+                albumLayoutMode={albumLayoutMode}
+              />
             </div>
           ) : (isPhotoSingle || isPhotoCard) &&
             photoGridImages &&
@@ -722,7 +733,12 @@ export function JourneyMilestoneCardBodyContent({
                   : undefined
               }
             >
-              <ImageGrid images={photoGridImages} readOnly timelineLightbox />
+              <ImageGrid
+                images={photoGridImages}
+                readOnly
+                timelineLightbox
+                albumLayoutMode={albumLayoutMode}
+              />
             </div>
           ) : isTextWithImage && hasCoverPreview && preview ? (
             <div

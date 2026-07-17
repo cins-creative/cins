@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, ClipboardPaste, ImagePlus, Loader2, X } from "lucide-react";
+import { Check, ClipboardPaste, Loader2, Replace, X } from "lucide-react";
 import {
   useCallback,
   useEffect,
@@ -18,6 +18,10 @@ import { ImageLightbox } from "@/components/journey/ImageLightbox";
 import { ImageUploadProgressOverlay } from "@/components/ui/ImageUploadProgressOverlay";
 import { swapCfImageVariant } from "@/lib/cloudflare/cf-variant-url";
 import { handleBlockImageError } from "@/lib/editor/resolve-image-seed-url";
+import {
+  DEFAULT_ALBUM_LAYOUT_MODE,
+  type AlbumLayoutMode,
+} from "@/lib/journey/album-layout-mode";
 import {
   albumGridComposeRows,
   gridThumbAsset,
@@ -89,6 +93,8 @@ type Props = {
     /** Kéo thả đổi thứ tự ảnh trong album (≥2 ảnh). */
     onReorderImages?: (fromSlot: number, toSlot: number) => void;
   };
+  /** Preset album (justified mặc định). */
+  albumLayoutMode?: AlbumLayoutMode;
 };
 
 const ALBUM_SLOT_MIME = "application/x-cins-album-slot";
@@ -340,7 +346,7 @@ function ImageGridCell({
                 composeSlotActions.onPickImage(slotIndex);
               }}
             >
-              <ImagePlus size={18} strokeWidth={1.8} aria-hidden />
+              <Replace size={18} strokeWidth={1.8} aria-hidden />
             </button>
             <button
               type="button"
@@ -389,6 +395,7 @@ export function ImageGrid({
   lightboxImages: lightboxImagesProp,
   lightboxIndexOffset = 0,
   composeSlotActions,
+  albumLayoutMode = DEFAULT_ALBUM_LAYOUT_MODE,
 }: Props) {
   const [internalLightboxIndex, setInternalLightboxIndex] = useState<number | null>(
     null,
@@ -458,7 +465,7 @@ export function ImageGrid({
 
   const lightboxPool = lightboxImagesProp ?? images;
 
-  const layout = resolveAlbumLayout(images, showAllImages);
+  const layout = resolveAlbumLayout(images, showAllImages, albumLayoutMode);
 
   const renderCell = (
     slotIndex: number,
@@ -569,6 +576,40 @@ export function ImageGrid({
         ))}
       </div>
     );
+  } else if (layout.kind === "stack") {
+    body = (
+      <div className="image-grid image-grid-col image-grid--stack" data-count={total}>
+        {layout.cells.map((c: AlbumCell) =>
+          renderCell(c.index, {
+            style: { aspectRatio: String(resolveCellAspect(c)) },
+            overlay: layout.overlaySlotIndex === c.index,
+            remaining: layout.remaining,
+          }),
+        )}
+      </div>
+    );
+  } else if (layout.kind === "columns2") {
+    const rows: AlbumCell[][] = [];
+    for (let i = 0; i < layout.cells.length; i += 2) {
+      rows.push(layout.cells.slice(i, i + 2));
+    }
+    body = (
+      <div
+        className="image-grid image-grid-col image-grid--columns2"
+        data-count={total}
+      >
+        {rows.map((row, rowIndex) => (
+          <div key={`columns2-${rowIndex}`} className="image-grid-row">
+            {row.map((cell) =>
+              renderCell(cell.index, {
+                overlay: layout.overlaySlotIndex === cell.index,
+                remaining: layout.remaining,
+              }),
+            )}
+          </div>
+        ))}
+      </div>
+    );
   } else {
     // square-grid (2-6 ảnh toàn vuông, hoặc >6 chế độ xem, hoặc compose 7+)
     const { layoutCount, remaining, overlaySlotIndex, displayImages } = layout;
@@ -585,14 +626,14 @@ export function ImageGrid({
 
     if (layoutCount === 2) {
       body = (
-        <div className="image-grid" data-count="2">
+        <div className="image-grid image-grid--square" data-count="2">
           {sqCell(0)}
           {sqCell(1)}
         </div>
       );
     } else if (layoutCount === 3) {
       body = (
-        <div className="image-grid" data-count="3">
+        <div className="image-grid image-grid--square" data-count="3">
           <div className="image-grid-main">{sqCell(0)}</div>
           <div className="image-grid-side">
             {sqCell(1)}
@@ -602,21 +643,30 @@ export function ImageGrid({
       );
     } else if (layoutCount === 4) {
       body = (
-        <div className="image-grid image-grid-col" data-count="4">
+        <div
+          className="image-grid image-grid-col image-grid--square"
+          data-count="4"
+        >
           {sqRow([0, 1], false)}
           {sqRow([2, 3], false)}
         </div>
       );
     } else if (layoutCount === 5) {
       body = (
-        <div className="image-grid image-grid-col" data-count="5">
+        <div
+          className="image-grid image-grid-col image-grid--square"
+          data-count="5"
+        >
           {sqRow([0, 1], false)}
           {sqRow([2, 3, 4], true)}
         </div>
       );
     } else if (layoutCount === 6) {
       body = (
-        <div className="image-grid image-grid-col" data-count="6">
+        <div
+          className="image-grid image-grid-col image-grid--square"
+          data-count="6"
+        >
           {sqRow([0, 1, 2], true)}
           {sqRow([3, 4, 5], true)}
         </div>
@@ -624,7 +674,10 @@ export function ImageGrid({
     } else {
       const rows = albumGridComposeRows(displayImages.length);
       body = (
-        <div className="image-grid image-grid-col" data-count={layoutCount}>
+        <div
+          className="image-grid image-grid-col image-grid--square"
+          data-count={layoutCount}
+        >
           {rows.map((indices, rowIdx) => (
             <div
               key={`row-${rowIdx}`}

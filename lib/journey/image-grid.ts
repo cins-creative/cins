@@ -5,9 +5,17 @@ import {
   resolveImageSeedThumbUrl,
   type ImageSeedDeliveryAsset,
 } from "@/lib/editor/resolve-image-seed-url";
+import {
+  albumLayoutModeFromConfig,
+  DEFAULT_ALBUM_LAYOUT_MODE,
+  normalizeAlbumLayoutMode,
+  type AlbumLayoutMode,
+} from "@/lib/journey/album-layout-mode";
 import { detectMediaPostKind } from "@/lib/journey/post-media";
 import { isServerAlbumGridImgBlock } from "@/lib/editor/album-grid-block";
 import { isPersistedImageSeed } from "@/lib/truong/image-ref";
+
+export type { AlbumLayoutMode } from "@/lib/journey/album-layout-mode";
 
 export type GridImage = {
   id: string;
@@ -27,7 +35,11 @@ export type GridUploadSlotState = {
 };
 
 export type BlockRenderGroup =
-  | { type: "image_grid"; images: GridImage[] }
+  | {
+      type: "image_grid";
+      images: GridImage[];
+      albumLayout: AlbumLayoutMode;
+    }
   | { type: "block"; block: Block };
 
 export const GRID_IMAGE_DEFAULT_WIDTH = 1200;
@@ -62,17 +74,28 @@ export function groupBlocksForRender(
 ): BlockRenderGroup[] {
   const groups: BlockRenderGroup[] = [];
   let imageBuffer: GridImage[] = [];
+  let bufferAlbumLayout: AlbumLayoutMode = DEFAULT_ALBUM_LAYOUT_MODE;
 
   const flushImages = () => {
     if (imageBuffer.length === 0) return;
-    groups.push({ type: "image_grid", images: imageBuffer });
+    groups.push({
+      type: "image_grid",
+      images: imageBuffer,
+      albumLayout: bufferAlbumLayout,
+    });
     imageBuffer = [];
+    bufferAlbumLayout = DEFAULT_ALBUM_LAYOUT_MODE;
   };
 
   for (const block of blocks) {
     if (isServerAlbumGridImgBlock(block, blocks)) {
       const extracted = extractImagesFromImgsBlock(block);
       if (extracted.length > 0) {
+        if (imageBuffer.length === 0) {
+          bufferAlbumLayout = albumLayoutModeFromConfig(
+            block.config ?? undefined,
+          );
+        }
         imageBuffer.push(...extracted);
         continue;
       }
@@ -246,6 +269,12 @@ export type AlbumLayout =
       overlaySlotIndex: number | null;
     }
   | {
+      kind: "columns2";
+      cells: AlbumCell[];
+      remaining: number;
+      overlaySlotIndex: number | null;
+    }
+  | {
       kind: "masonry";
       columns: AlbumCell[][];
       remaining: number;
@@ -256,7 +285,35 @@ export type AlbumLayout =
       rows: AlbumCell[][];
       remaining: number;
       overlaySlotIndex: number | null;
+    }
+  | {
+      kind: "stack";
+      cells: AlbumCell[];
+      remaining: number;
+      overlaySlotIndex: number | null;
     };
+
+/** Phân cột masonry theo chiều cao ước lượng (1/aspect). */
+export function packMasonryColumns(
+  cells: AlbumCell[],
+  maxCols: number = MASONRY_MAX_COLUMNS,
+): AlbumCell[][] {
+  if (cells.length === 0) return [];
+  const colCount = Math.min(maxCols, Math.max(1, cells.length));
+  const columns: AlbumCell[][] = Array.from({ length: colCount }, () => []);
+  const heights = Array.from({ length: colCount }, () => 0);
+
+  for (const cell of cells) {
+    let shortest = 0;
+    for (let i = 1; i < colCount; i++) {
+      if (heights[i]! < heights[shortest]!) shortest = i;
+    }
+    columns[shortest]!.push(cell);
+    heights[shortest]! += cell.aspect > 0 ? 1 / cell.aspect : 1;
+  }
+
+  return columns;
+}
 
 function toCell(image: GridImage, index: number): AlbumCell {
   return { image, index, aspect: gridImageAspect(image) };
@@ -338,26 +395,28 @@ export function splitJustifiedRows(cells: AlbumCell[]): AlbumCell[][] {
 }
 
 /**
- * Album nhiều ảnh luôn dùng Justified Grid:
- * - 1 ảnh: giữ tỉ lệ gốc (single)
- * - 2 ảnh: luôn nằm ngang; 3 ảnh: ưu tiên 1 hàng (không tách 1+2 nếu tạo hàng dọc quá cao)
- * - 4 → 2+2, 5 → 2+3, 6 → 3+3
- * - >6 ảnh ở feed: hiện 6 ô đầu, ô cuối phủ "+N"
- *
- * Cùng một thuật toán cho mọi hướng ảnh giúp hàng cuối không đổi sang
- * masonry/square hoặc phình cao bất thường.
+ * Album layout theo preset user (mặc định justified):
+ * - 1 ảnh: luôn single (giữ tỉ lệ gốc)
+ * - justified: hàng cân (2 / 2+2 / 2+3 / …)
+ * - masonry: cột dọc theo tỉ lệ ảnh
+ * - columns2: lưới vuông 2 cột cố định
+ * - square: lưới ô vuông (2–6 / compose 7+)
+ * - stack: xếp dọc full-width
+ * - >6 ảnh ở feed: hiện 6 ô đầu, ô cuối phủ "+N" (trừ showAll / stack compose)
  */
 export function resolveAlbumLayout(
   images: GridImage[],
   showAll = false,
+  mode: AlbumLayoutMode | unknown = DEFAULT_ALBUM_LAYOUT_MODE,
 ): AlbumLayout {
   const total = images.length;
+  const albumMode = normalizeAlbumLayoutMode(mode);
 
   if (total === 1) {
     return {
       kind: "single",
-      portrait: isPortraitGridImage(images[0]),
-      cell: toCell(images[0], 0),
+      portrait: isPortraitGridImage(images[0]!),
+      cell: toCell(images[0]!, 0),
     };
   }
 
@@ -366,6 +425,43 @@ export function resolveAlbumLayout(
   const overlaySlotIndex = remaining > 0 ? displayCount - 1 : null;
   const displayImages = images.slice(0, displayCount);
   const cells = displayImages.map(toCell);
+
+  if (albumMode === "stack") {
+    return {
+      kind: "stack",
+      cells,
+      remaining,
+      overlaySlotIndex,
+    };
+  }
+
+  if (albumMode === "masonry") {
+    return {
+      kind: "masonry",
+      columns: packMasonryColumns(cells),
+      remaining,
+      overlaySlotIndex,
+    };
+  }
+
+  if (albumMode === "columns2") {
+    return {
+      kind: "columns2",
+      cells,
+      remaining,
+      overlaySlotIndex,
+    };
+  }
+
+  if (albumMode === "square") {
+    return {
+      kind: "square",
+      layoutCount: albumGridLayoutCount(total, showAll),
+      displayImages,
+      remaining,
+      overlaySlotIndex,
+    };
+  }
 
   return {
     kind: "justified",

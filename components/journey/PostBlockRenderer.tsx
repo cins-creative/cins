@@ -61,6 +61,7 @@ export function PostBlockRenderer({
                   readOnly
                   timelineLightbox
                   showAllImages={showAllImages}
+                  albumLayoutMode={group.albumLayout}
                 />
               </div>
             </div>

@@ -2568,6 +2568,42 @@
     display: none !important;
   }
 }
+/* Preset layout album — phía trên grid, không full LayBar. */
+.cins-editor-page .ed-album-layout-strip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 0 0 10px;
+  padding: 4px;
+  width: fit-content;
+  max-width: 100%;
+  margin-inline: auto;
+  border-radius: var(--radius-md, 12px);
+  background: color-mix(in srgb, var(--bg-surface, #fff) 72%, transparent);
+  border: 1px solid var(--border, #e4e6eb);
+}
+.cins-editor-page .ed-album-layout-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm, 10px);
+  background: transparent;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.4));
+  cursor: pointer;
+}
+.cins-editor-page .ed-album-layout-btn:hover {
+  color: var(--ink-display, rgba(0, 0, 0, 0.85));
+  background: var(--neutral-100, #f4f5f8);
+}
+.cins-editor-page .ed-album-layout-btn.is-active {
+  color: var(--cins-blue, #1f74c9);
+  background: var(--cins-blue-soft, #e7f0fb);
+}
 .cins-editor-page .ed-photo-album-add-compact {
   display: flex;
   justify-content: center;
