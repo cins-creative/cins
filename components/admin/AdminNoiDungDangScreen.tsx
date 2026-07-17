@@ -11,6 +11,8 @@ import {
   Scale,
   Search,
 } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
 import {
@@ -19,7 +21,13 @@ import {
 } from "@/components/admin/AdminFeedScoreCell";
 import { AdminNoiDungFeedScoreRules } from "@/components/admin/AdminNoiDungFeedScoreRules";
 import { AdminNoiDungGrowthDashboard } from "@/components/admin/AdminNoiDungGrowthDashboard";
+import { AdminPendingContentVerifyQueue } from "@/components/admin/AdminPendingContentVerifyQueue";
 import type { PendingContentVerifyItem } from "@/lib/admin/pending-content-verify-types";
+import {
+  pathForNoiDungDangView,
+  viewFromNoiDungDangPath,
+  type NoiDungDangView,
+} from "@/lib/admin/noi-dung-dang-views";
 import { ADMIN_DIEM_UU_TIEN } from "@/lib/cins/feed-scoring";
 import type { FeedScoreConfig } from "@/lib/cins/feed-scoring-config";
 import type {
@@ -29,28 +37,15 @@ import type {
   WorldBoostXacThucFilter,
 } from "@/lib/cins/world-boost-types";
 
-type ViewMode = "grid" | "listing" | "dashboard" | "score" | "pendingVerify";
+type ViewMode = NoiDungDangView;
 
 type Props = {
-  /** Deep-link từ admin inbox: `?view=pendingVerify`. */
+  /** Deep-link từ route `/admin/noi-dung-dang/...`. */
   initialView?: ViewMode;
 };
 
 /** Khớp `WORLD_BOOST_TTL_MS` (server-only) — TTL đẩy 3 ngày. */
 const WORLD_BOOST_TTL_MS = 3 * 24 * 60 * 60 * 1000;
-
-const VIEW_MODES: ReadonlySet<ViewMode> = new Set([
-  "grid",
-  "listing",
-  "dashboard",
-  "score",
-  "pendingVerify",
-]);
-
-function parseViewMode(value: string | null | undefined): ViewMode | null {
-  if (!value) return null;
-  return VIEW_MODES.has(value as ViewMode) ? (value as ViewMode) : null;
-}
 
 function fmtDate(iso: string | null): string {
   if (!iso) return "—";
@@ -66,9 +61,9 @@ function fmtDate(iso: string | null): string {
 }
 
 export function AdminNoiDungDangScreen({ initialView }: Props) {
-  const [view, setView] = useState<ViewMode>(
-    () => parseViewMode(initialView) ?? "grid",
-  );
+  const pathname = usePathname();
+  const view: ViewMode =
+    viewFromNoiDungDangPath(pathname) ?? initialView ?? "grid";
   const [stats, setStats] = useState<WorldBoostStats | null>(null);
   const [items, setItems] = useState<WorldBoostCatalogItem[]>([]);
   const [pendingItems, setPendingItems] = useState<PendingContentVerifyItem[]>(
@@ -425,45 +420,50 @@ export function AdminNoiDungDangScreen({ initialView }: Props) {
     <>
       <header className="page-header">
         <div>
-          <h1 className="page-title">Nội dung đăng (World)</h1>
+          <h1 className="page-title">
+            {view === "pendingVerify"
+              ? "Nội dung chờ xác thực"
+              : "Nội dung đăng (World)"}
+          </h1>
           <p className="page-subtitle">
-            Đẩy ẩn (TTL 3 ngày) · nút + cộng điểm ưu tiên không hoàn lại · không
-            hiện nhãn với user.
+            {view === "pendingVerify"
+              ? "Xem bằng chứng và xử lý nhanh yêu cầu gắn nội dung với tổ chức."
+              : "Đẩy ẩn (TTL 3 ngày) · nút + cộng điểm ưu tiên không hoàn lại · không hiện nhãn với user."}
           </p>
         </div>
         <div className="page-header-actions ndd-view-toggle">
-          <button
-            type="button"
-            className={view === "grid" ? "is-active" : ""}
-            onClick={() => setView("grid")}
+          <Link
+            href={pathForNoiDungDangView("grid")}
+            className={view === "grid" ? "is-active" : undefined}
+            aria-current={view === "grid" ? "page" : undefined}
           >
             <LayoutGrid size={16} /> Lưới
-          </button>
-          <button
-            type="button"
-            className={view === "listing" ? "is-active" : ""}
-            onClick={() => setView("listing")}
+          </Link>
+          <Link
+            href={pathForNoiDungDangView("listing")}
+            className={view === "listing" ? "is-active" : undefined}
+            aria-current={view === "listing" ? "page" : undefined}
           >
             <List size={16} /> Listing
-          </button>
-          <button
-            type="button"
-            className={view === "dashboard" ? "is-active" : ""}
-            onClick={() => setView("dashboard")}
+          </Link>
+          <Link
+            href={pathForNoiDungDangView("dashboard")}
+            className={view === "dashboard" ? "is-active" : undefined}
+            aria-current={view === "dashboard" ? "page" : undefined}
           >
             <BarChart3 size={16} /> Dashboard
-          </button>
-          <button
-            type="button"
-            className={view === "score" ? "is-active" : ""}
-            onClick={() => setView("score")}
+          </Link>
+          <Link
+            href={pathForNoiDungDangView("score")}
+            className={view === "score" ? "is-active" : undefined}
+            aria-current={view === "score" ? "page" : undefined}
           >
             <Scale size={16} /> Công thức
-          </button>
-          <button
-            type="button"
-            className={view === "pendingVerify" ? "is-active" : ""}
-            onClick={() => setView("pendingVerify")}
+          </Link>
+          <Link
+            href={pathForNoiDungDangView("pendingVerify")}
+            className={view === "pendingVerify" ? "is-active" : undefined}
+            aria-current={view === "pendingVerify" ? "page" : undefined}
           >
             <BadgeCheck size={16} />
             Nội dung chờ xác thực
@@ -472,7 +472,7 @@ export function AdminNoiDungDangScreen({ initialView }: Props) {
                 {pendingVerifyCount > 99 ? "99+" : pendingVerifyCount}
               </span>
             ) : null}
-          </button>
+          </Link>
         </div>
       </header>
 
@@ -506,133 +506,19 @@ export function AdminNoiDungDangScreen({ initialView }: Props) {
       ) : view === "score" ? (
         <AdminNoiDungFeedScoreRules onConfigSaved={setScoreConfig} />
       ) : view === "pendingVerify" ? (
-        <>
-          {error ? <p className="ndd-error">{error}</p> : null}
-          {loading ? (
-            <p className="admin-panel-loading">
-              <Loader2 className="bc-spin" size={18} /> Đang tải…
-            </p>
-          ) : pendingItems.length === 0 ? (
-            <div className="bc-empty">
-              <p>Không có nội dung chờ xác thực.</p>
-            </div>
-          ) : (
-            <div className="table-wrap table-wrap--ndd">
-              <table className="data-table ndd-list-table ndd-pending-table">
-                <thead>
-                  <tr>
-                    <th className="ndd-list-col-thumb" aria-label="Ảnh" />
-                    <th>Nội dung</th>
-                    <th>Người gửi</th>
-                    <th>Tổ chức</th>
-                    <th>Chi tiết</th>
-                    <th>Gửi lúc</th>
-                    <th className="ndd-pending-col-actions">Liên kết</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pendingItems.map((item) => {
-                    const metaParts = [
-                      item.nam ? `Năm ${item.nam}` : null,
-                      item.nganhLabel,
-                      item.monHocLabel,
-                    ].filter(Boolean);
-                    return (
-                      <tr key={item.requestId}>
-                        <td className="ndd-list-col-thumb">
-                          <span className="ndd-list-thumb">
-                            {item.thumbUrl ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img
-                                src={item.thumbUrl}
-                                alt=""
-                                loading="lazy"
-                              />
-                            ) : (
-                              <span
-                                className="ndd-list-thumb-fallback"
-                                aria-hidden
-                              >
-                                {item.projectTitle.slice(0, 2).toUpperCase()}
-                              </span>
-                            )}
-                          </span>
-                        </td>
-                        <td className="ndd-list-content">
-                          <strong className="ndd-list-title">
-                            {item.projectTitle}
-                          </strong>
-                          {item.milestoneTitle &&
-                          item.milestoneTitle !== item.projectTitle ? (
-                            <span className="ndd-list-meta">
-                              {item.milestoneTitle}
-                            </span>
-                          ) : null}
-                        </td>
-                        <td>
-                          {item.studentSlug ? (
-                            <a
-                              href={`/${encodeURIComponent(item.studentSlug)}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                              {item.studentName || item.studentSlug}
-                            </a>
-                          ) : (
-                            item.studentName || "—"
-                          )}
-                        </td>
-                        <td>
-                          {item.orgUrl ? (
-                            <a
-                              href={item.orgUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                              {item.orgTen}
-                            </a>
-                          ) : (
-                            item.orgTen
-                          )}
-                        </td>
-                        <td className="ndd-list-muted">
-                          {metaParts.length > 0 ? metaParts.join(" · ") : "—"}
-                        </td>
-                        <td>{fmtDate(item.submittedAt)}</td>
-                        <td className="ndd-pending-col-actions">
-                          <span className="ndd-pending-actions">
-                            {item.postUrl ? (
-                              <a
-                                className="ndd-pending-link"
-                                href={item.postUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                              >
-                                Mở bài
-                                <ExternalLink size={12} aria-hidden />
-                              </a>
-                            ) : null}
-                            {item.orgUrl ? (
-                              <a
-                                className="ndd-pending-link"
-                                href={item.orgUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                              >
-                                Mở org
-                                <ExternalLink size={12} aria-hidden />
-                              </a>
-                            ) : null}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </>
+        <AdminPendingContentVerifyQueue
+          items={pendingItems}
+          total={pendingVerifyCount}
+          loading={loading}
+          error={error}
+          onRetry={() => void loadPending()}
+          onResolved={(requestId) => {
+            setPendingItems((current) =>
+              current.filter((item) => item.requestId !== requestId),
+            );
+            setPendingVerifyCount((current) => Math.max(0, current - 1));
+          }}
+        />
       ) : (
         <>
           <div className="ndd-filters">

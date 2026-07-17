@@ -23,6 +23,7 @@ import {
   gridThumbAsset,
   justifiedRowCanvasAspect,
   resolveAlbumLayout,
+  splitJustifiedRows,
   type AlbumCell,
   type GridImage,
   type GridUploadSlotState,
@@ -536,32 +537,32 @@ export function ImageGrid({
       </div>
     );
   } else if (layout.kind === "justified") {
-    /* Mỗi hàng: aspect = tổng tỉ lệ ảnh (ưu tiên intrinsic sau load). */
+    /* Tách lại hàng theo tỉ lệ intrinsic — metadata width/height hay sai khiến
+       split 1+2 với ảnh dọc → hàng đơn quá cao. */
+    const cellsWithAspect = layout.rows.flat().map((c) => ({
+      ...c,
+      aspect: resolveCellAspect(c),
+    }));
+    const justifiedRows = splitJustifiedRows(cellsWithAspect);
     body = (
       <div className="image-grid image-grid-col image-grid--justified" data-count={total}>
-        {layout.rows.map((row, ri) => {
-          const rowWithAspect = row.map((c) => ({
-            ...c,
-            aspect: resolveCellAspect(c),
-          }));
-          return (
-            <div
-              key={`jrow-${ri}`}
-              className="image-grid-jrow"
-              style={{
-                aspectRatio: String(justifiedRowCanvasAspect(rowWithAspect)),
-              }}
-            >
-              {rowWithAspect.map((c: AlbumCell) =>
-                renderCell(c.index, {
-                  style: { flexGrow: c.aspect },
-                  overlay: layout.overlaySlotIndex === c.index,
-                  remaining: layout.remaining,
-                }),
-              )}
-            </div>
-          );
-        })}
+        {justifiedRows.map((row, ri) => (
+          <div
+            key={`jrow-${ri}`}
+            className="image-grid-jrow"
+            style={{
+              aspectRatio: String(justifiedRowCanvasAspect(row)),
+            }}
+          >
+            {row.map((c: AlbumCell) =>
+              renderCell(c.index, {
+                style: { flexGrow: c.aspect },
+                overlay: layout.overlaySlotIndex === c.index,
+                remaining: layout.remaining,
+              }),
+            )}
+          </div>
+        ))}
       </div>
     );
   } else {

@@ -647,13 +647,21 @@ export async function listOrgMilestoneTagRequests(
   return { ok: true, items };
 }
 
-export async function respondOrgMilestoneTagRequest(params: {
+type RespondOrgMilestoneTagRequestParams = {
   orgId: string;
   requestId: string;
   viewerId: string;
   action: "approve" | "reject" | "detach";
-}): Promise<{ ok: true } | { ok: false; error: string }> {
-  if (!(await canReviewOrgMilestoneTags(params.orgId, params.viewerId))) {
+};
+
+async function respondOrgMilestoneTagRequestCore(
+  params: RespondOrgMilestoneTagRequestParams,
+  requireOrgMembership: boolean,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (
+    requireOrgMembership &&
+    !(await canReviewOrgMilestoneTags(params.orgId, params.viewerId))
+  ) {
     return { ok: false, error: "Không có quyền duyệt." };
   }
 
@@ -788,6 +796,23 @@ export async function respondOrgMilestoneTagRequest(params: {
 
   if (error) return { ok: false, error: error.message };
   return { ok: true };
+}
+
+/** Duyệt tại trang tổ chức — bắt buộc người xử lý quản trị đúng tổ chức. */
+export async function respondOrgMilestoneTagRequest(
+  params: RespondOrgMilestoneTagRequestParams,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  return respondOrgMilestoneTagRequestCore(params, true);
+}
+
+/**
+ * Duyệt từ hàng đợi Admin toàn hệ thống.
+ * Caller bắt buộc gate `canManageUsers` trước khi gọi.
+ */
+export async function respondAdminOrgMilestoneTagRequest(
+  params: RespondOrgMilestoneTagRequestParams,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  return respondOrgMilestoneTagRequestCore(params, false);
 }
 
 function postPublicHref(

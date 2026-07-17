@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import type { ReactNode } from "react";
 
 import { NgheHeroMascot } from "@/components/article/nghe/NgheHeroMascot";
 import { useNgheArticleDraftOptional } from "@/components/article/nghe/NgheArticleDraftContext";
@@ -21,12 +22,19 @@ type SharedProps = {
   heroThumbnailUrl?: string | null;
 };
 
+type HeroProps = SharedProps & {
+  belowInner?: ReactNode;
+};
+
 function kickerLabel(): string {
   return "Nghề nghiệp · Ngành Game · Phim";
 }
 
 /** Hero draft — header cố định (`entity-light-header`). */
-export function NgheHeroInlineDraft({ heroThumbnailUrl }: SharedProps) {
+export function NgheHeroInlineDraft({
+  heroThumbnailUrl,
+  belowInner,
+}: HeroProps) {
   const d = useNgheArticleDraftOptional();
   if (!d) return null;
 
@@ -189,6 +197,7 @@ export function NgheHeroInlineDraft({ heroThumbnailUrl }: SharedProps) {
             </div>
           )}
         </div>
+      {belowInner}
     </header>
   );
 }

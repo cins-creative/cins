@@ -55,7 +55,7 @@ const ROWS: InboxRow[] = [
     key: "noiDungChoXacThuc",
     label: "Nội dung chờ xác thực",
     hint: "Theo dõi · duyệt tại trang tổ chức",
-    href: "/admin/noi-dung-dang?view=pendingVerify",
+    href: "/admin/noi-dung-dang/cho-xac-thuc",
     icon: BadgeCheck,
   },
 ];

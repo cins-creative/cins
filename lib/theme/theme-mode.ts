@@ -4,12 +4,15 @@
  * - Lưu lựa chọn của người dùng vào localStorage (device-local, không đồng bộ server).
  * - Áp trực tiếp lên <html data-theme="..."> + color-scheme để token CSS phản ứng ngay.
  * - Script no-flash trong layout đọc cùng key này trước khi paint.
+ * - ThemeRoot (client) sync lại sau hydrate + theo dõi prefers-color-scheme.
+ * - Guest home có thể khoá nền sáng tạm thời qua acquireForceLightTheme().
  */
 
 export type ThemeMode = "light" | "dark" | "system";
 export type ResolvedTheme = "light" | "dark";
 
 export const THEME_STORAGE_KEY = "cins-theme";
+export const THEME_CHANGE_EVENT = "cins:theme-change";
 
 export const THEME_MODE_OPTIONS: ReadonlyArray<{
   value: ThemeMode;
@@ -24,6 +27,9 @@ export const THEME_MODE_OPTIONS: ReadonlyArray<{
     desc: "Tự đổi theo cài đặt hệ điều hành.",
   },
 ];
+
+/** Số trang đang khoá nền sáng (vd. guest home). Ref-count để chịu React Strict Mode. */
+let forceLightLocks = 0;
 
 export function normalizeThemeMode(value: unknown): ThemeMode {
   return value === "light" || value === "dark" || value === "system"
@@ -50,15 +56,39 @@ export function readThemeMode(): ThemeMode {
   }
 }
 
+export function isForceLightThemeActive(): boolean {
+  return forceLightLocks > 0;
+}
+
 /** Áp theme đã resolve lên <html> (data-theme + color-scheme). */
 export function applyResolvedTheme(resolved: ResolvedTheme): void {
   if (typeof document === "undefined") return;
+  if (forceLightLocks > 0 && resolved !== "light") return;
   const root = document.documentElement;
   root.setAttribute("data-theme", resolved);
   root.style.colorScheme = resolved;
 }
 
-/** Lưu lựa chọn + áp ngay lên DOM. */
+/**
+ * Đồng bộ DOM theo localStorage (hoặc giữ sáng nếu đang khoá guest home).
+ * Gọi từ ThemeRoot sau hydrate / khi storage đổi.
+ */
+export function syncThemeFromStorage(): void {
+  if (forceLightLocks > 0) {
+    applyResolvedTheme("light");
+    return;
+  }
+  applyResolvedTheme(resolveTheme(readThemeMode()));
+}
+
+function emitThemeChange(mode: ThemeMode): void {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(
+    new CustomEvent(THEME_CHANGE_EVENT, { detail: { mode } }),
+  );
+}
+
+/** Lưu lựa chọn + áp ngay lên DOM (trừ khi đang khoá nền sáng). */
 export function setThemeMode(mode: ThemeMode): void {
   if (typeof window !== "undefined") {
     try {
@@ -67,7 +97,30 @@ export function setThemeMode(mode: ThemeMode): void {
       /* bỏ qua khi localStorage bị chặn */
     }
   }
-  applyResolvedTheme(resolveTheme(mode));
+  if (forceLightLocks > 0) {
+    applyResolvedTheme("light");
+  } else {
+    applyResolvedTheme(resolveTheme(mode));
+  }
+  emitThemeChange(mode);
+}
+
+/**
+ * Khoá nền sáng tạm thời (guest home).
+ * Cleanup dùng microtask để Strict Mode remount không nháy dark→light.
+ */
+export function acquireForceLightTheme(): () => void {
+  forceLightLocks += 1;
+  applyResolvedTheme("light");
+  let released = false;
+  return () => {
+    if (released) return;
+    released = true;
+    forceLightLocks = Math.max(0, forceLightLocks - 1);
+    queueMicrotask(() => {
+      syncThemeFromStorage();
+    });
+  };
 }
 
 /**
@@ -82,7 +135,8 @@ export function watchSystemTheme(
     return () => {};
   }
   const mql = window.matchMedia("(prefers-color-scheme: dark)");
-  const handler = (e: MediaQueryListEvent) => onChange(e.matches ? "dark" : "light");
+  const handler = (e: MediaQueryListEvent) =>
+    onChange(e.matches ? "dark" : "light");
   mql.addEventListener("change", handler);
   return () => mql.removeEventListener("change", handler);
 }

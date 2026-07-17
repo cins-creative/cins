@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Anton, Be_Vietnam_Pro } from "next/font/google";
 
 import { AuthSessionRemember } from "@/components/auth/AuthSessionRemember";
+import { ThemeRoot } from "@/components/cins/ThemeRoot";
 import { GopYButton } from "@/components/feedback/GopYButton";
 import { getConfiguredSiteOrigin } from "@/lib/auth/auth-origin";
 import "./globals.css";
@@ -94,6 +95,7 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
+        <ThemeRoot />
         <AuthSessionRemember />
         {children}
         <GopYButton />

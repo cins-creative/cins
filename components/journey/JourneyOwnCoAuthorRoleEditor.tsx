@@ -89,7 +89,6 @@ export function JourneyOwnCoAuthorRoleEditor({
           onClick={showEditor}
         >
           <Pencil size={14} strokeWidth={2} aria-hidden />
-          <span>Sửa</span>
         </button>
       ) : (
         <div className="author-row-role-edit-panel">

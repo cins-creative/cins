@@ -289,12 +289,12 @@
   place-items: center;
   width: 32px;
   height: 32px;
-  border: 1px solid var(--border, #e2e8f0);
+  border: 0;
   border-radius: 999px;
-  background: var(--bg-surface, #fff);
+  background: transparent;
   color: var(--ink-muted, #64748b);
   cursor: pointer;
-  transition: background 0.12s, border-color 0.12s, color 0.12s;
+  transition: color 0.12s, opacity 0.12s;
 }
 
 .jsa-act:disabled {
@@ -304,12 +304,10 @@
 
 .jsa-act.is-add-friend {
   color: var(--cins-blue, #2563eb);
-  border-color: rgba(37, 99, 235, 0.25);
-  background: #eff6ff;
 }
 
 .jsa-act.is-add-friend:hover:not(:disabled) {
-  background: #dbeafe;
+  color: var(--cins-blue-dark, #1d4ed8);
 }
 
 .jsa-act.is-follow {
@@ -318,48 +316,35 @@
 
 .jsa-act.is-follow.is-following {
   color: var(--cins-blue, #2563eb);
-  border-color: rgba(37, 99, 235, 0.3);
-  background: var(--cins-blue-soft, #dbeafe);
 }
 
 .jsa-act.is-accept {
   color: #15803d;
-  border-color: rgba(21, 128, 61, 0.28);
-  background: #f0fdf4;
 }
 
 .jsa-act.is-decline {
   color: #b91c1c;
-  border-color: rgba(185, 28, 28, 0.22);
-  background: #fef2f2;
 }
 
 .jsa-act.is-pending {
   color: #b45309;
-  border-color: rgba(180, 83, 9, 0.25);
-  background: #fffbeb;
 }
 
 .jsa-act.is-friends {
-  border-color: rgba(21, 128, 61, 0.28);
-  background: #f0fdf4;
   color: #15803d;
   cursor: default;
 }
 
 .jsa-act.is-journey {
   color: var(--cins-blue, #2563eb);
-  border: none;
-  background: var(--cins-blue-soft, #eff6ff);
 }
 
 .jsa-act.is-journey:hover:not(:disabled) {
-  background: #dbeafe;
-  color: var(--cins-blue, #2563eb);
+  color: var(--cins-blue-dark, #1d4ed8);
 }
 
 .jsa-act.is-journey.is-open {
-  background: #dbeafe;
+  color: var(--cins-blue-dark, #1d4ed8);
 }
 
 .jsa-row .j-user-featured {
@@ -384,7 +369,7 @@
 }
 
 .jsa-act:hover:not(:disabled):not(.is-friends):not(.is-journey) {
-  background: var(--neutral-100, #f1f5f9);
+  opacity: 0.72;
 }
 
 .jsa-more-wrap {
@@ -436,17 +421,15 @@
 }
 
 :root[data-theme="dark"] .jsa-act:hover:not(:disabled):not(.is-friends):not(.is-journey) {
-  background: var(--neutral-100, #1c212c);
+  opacity: 0.72;
 }
 
 :root[data-theme="dark"] .jsa-act.is-add-friend {
-  background: color-mix(in srgb, var(--cins-blue, #4f9be8) 12%, var(--bg-surface));
   color: var(--cins-blue, #4f9be8);
-  border-color: color-mix(in srgb, var(--cins-blue, #4f9be8) 45%, var(--border));
 }
 
 :root[data-theme="dark"] .jsa-act.is-add-friend:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--cins-blue, #4f9be8) 20%, var(--bg-surface));
+  color: color-mix(in srgb, var(--cins-blue, #4f9be8) 80%, #fff);
 }
 
 :root[data-theme="dark"] .jsa-act.is-follow {
@@ -454,38 +437,28 @@
 }
 
 :root[data-theme="dark"] .jsa-act.is-follow.is-following {
-  background: var(--cins-blue-soft, rgba(79, 155, 232, 0.16));
   color: var(--cins-blue, #4f9be8);
-  border-color: color-mix(in srgb, var(--cins-blue, #4f9be8) 40%, var(--border));
 }
 
 :root[data-theme="dark"] .jsa-act.is-accept,
 :root[data-theme="dark"] .jsa-act.is-friends {
-  background: rgba(52, 201, 138, 0.14);
   color: #6ee7b7;
-  border-color: rgba(52, 201, 138, 0.4);
 }
 
 :root[data-theme="dark"] .jsa-act.is-decline {
-  background: rgba(248, 113, 113, 0.12);
   color: #f87171;
-  border-color: rgba(248, 113, 113, 0.35);
 }
 
 :root[data-theme="dark"] .jsa-act.is-pending {
-  background: rgba(245, 158, 11, 0.14);
   color: #fbbf24;
-  border-color: rgba(251, 191, 36, 0.4);
 }
 
 :root[data-theme="dark"] .jsa-act.is-journey {
-  background: color-mix(in srgb, var(--cins-blue, #4f9be8) 12%, var(--bg-surface));
   color: var(--cins-blue, #4f9be8);
-  border: none;
 }
 
 :root[data-theme="dark"] .jsa-act.is-journey:hover {
-  background: color-mix(in srgb, var(--cins-blue, #4f9be8) 20%, var(--bg-surface));
+  color: color-mix(in srgb, var(--cins-blue, #4f9be8) 80%, #fff);
 }
 
 :root[data-theme="dark"] .jsa-item:hover,

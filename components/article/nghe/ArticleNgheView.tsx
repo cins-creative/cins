@@ -1,6 +1,7 @@
 import type { ArticleBaiViet, ArticleCard } from "@/lib/articles/types";
 import { buildNgheLeadSourceFromNoiDung } from "@/lib/articles/nghe-lead-source-build";
 import type { RelatedJobLienQuanRow } from "@/lib/articles/related-jobs-dynamic";
+import type { NgheRolePerson } from "@/lib/articles/nghe-role-people-types";
 import type { MilestoneItem } from "@/components/journey/milestone-types";
 import type { TagAggSort, TagAggUser } from "@/lib/tag/aggregation-types";
 import { getVideoUrlFromArticleMeta } from "@/lib/articles/lead-video-url";
@@ -15,6 +16,7 @@ import {
   NgheHeroInlineDraft,
   NgheLeadInlineDraft,
 } from "@/components/article/nghe/NgheHeroLeadInlineDraft";
+import { NgheRolePeopleSection } from "@/components/article/nghe/NgheRolePeopleSection";
 import { NgheLayoutStatic } from "@/components/article/nghe/static/NgheLayoutStatic";
 import { ngheNghiepDetailHref } from "@/lib/cins/hubPaths";
 import {
@@ -41,6 +43,7 @@ type ArticleNgheViewProps = {
   entityMilestones?: ReadonlyArray<MilestoneItem>;
   entitySort?: TagAggSort;
   viewerProfileId?: string | null;
+  rolePeople?: ReadonlyArray<NgheRolePerson>;
 };
 
 export async function ArticleNgheView({
@@ -53,6 +56,7 @@ export async function ArticleNgheView({
   entityMilestones = [],
   entitySort = "moi_nhat",
   viewerProfileId = null,
+  rolePeople = [],
 }: ArticleNgheViewProps) {
   const slugPath = ngheNghiepDetailHref(article.slug);
   const attributionDisplay = mapAttributionForDisplay(
@@ -61,6 +65,10 @@ export async function ArticleNgheView({
   const heroAttribution = (
     <EntityArticleAttribution data={attributionDisplay} />
   );
+  const peopleBelowHero =
+    rolePeople.length > 0 ? (
+      <NgheRolePeopleSection people={rolePeople} />
+    ) : null;
   const leadSource = buildNgheLeadSourceFromNoiDung(
     entityCanonicalLeadHtml(article.noi_dung) ?? article.noi_dung_markdown,
     relatedJobsLienQuan,
@@ -122,12 +130,14 @@ export async function ArticleNgheView({
             entityMilestones={entityMilestones}
             entitySort={entitySort}
             viewerProfileId={viewerProfileId}
+            rolePeople={rolePeople}
             heroThumbnailUrl={heroThumbnailUrl}
             {...entityTabProps}
             heroBlock={
               <NgheHeroInlineDraft
                 leadVideoUrl={leadVideoUrl}
                 heroThumbnailUrl={heroThumbnailUrl}
+                belowInner={peopleBelowHero}
               />
             }
             leadBlock={
@@ -153,6 +163,7 @@ export async function ArticleNgheView({
           entityMilestones={entityMilestones}
           entitySort={entitySort}
           viewerProfileId={viewerProfileId}
+          rolePeople={rolePeople}
           heroThumbnailUrl={heroThumbnailUrl}
           {...entityTabProps}
           heroTitle={article.tieu_de}

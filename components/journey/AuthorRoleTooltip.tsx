@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -54,6 +55,7 @@ type Props = {
 };
 
 export function AuthorRoleTooltip({ role, className }: Props) {
+  const router = useRouter();
   const tipId = useId();
   const anchorRef = useRef<HTMLSpanElement>(null);
   const tipRef = useRef<HTMLDivElement>(null);
@@ -148,9 +150,28 @@ export function AuthorRoleTooltip({ role, className }: Props) {
 
   const desc = preview?.tomTat?.trim() || null;
   const displayRole = preview?.roleLabel ?? role;
+  const href =
+    hasMatch && preview?.slug
+      ? articlePublicHref("nghe", preview.slug)
+      : null;
   const triggerClass =
     (className ?? "author-row-role") +
     (hasMatch ? " j-nghe-role-trigger" : "");
+
+  /** Nằm trong `button` popover — không dùng `<a>`; stop bubble rồi điều hướng. */
+  const openRoleArticle = useCallback(
+    (event: React.MouseEvent | React.KeyboardEvent) => {
+      event.stopPropagation();
+      event.preventDefault();
+      if (!href) return;
+      if ("metaKey" in event && (event.metaKey || event.ctrlKey)) {
+        window.open(href, "_blank", "noopener,noreferrer");
+        return;
+      }
+      router.push(href);
+    },
+    [href, router],
+  );
 
   return (
     <>
@@ -164,8 +185,16 @@ export function AuthorRoleTooltip({ role, className }: Props) {
         }}
         onMouseMove={(event) => onPointerMove(event.clientX, event.clientY)}
         onMouseLeave={leaveTrigger}
-        onClick={(event) => event.stopPropagation()}
+        onClick={openRoleArticle}
         onMouseDown={(event) => event.stopPropagation()}
+        onKeyDown={(event) => {
+          if (!href) return;
+          if (event.key === "Enter" || event.key === " ") {
+            openRoleArticle(event);
+          }
+        }}
+        role={href ? "link" : undefined}
+        tabIndex={href ? 0 : undefined}
         aria-describedby={showTip ? tipId : undefined}
       >
         {displayRole}

@@ -1,10 +1,12 @@
 import type { ReactNode } from "react";
 
 import type { ArticleCard } from "@/lib/articles/types";
+import type { NgheRolePerson } from "@/lib/articles/nghe-role-people-types";
 import { imagedeliveryPreferPublicInHtml } from "@/lib/cloudflare/imagedelivery-prefer-public";
 import { EntityArticleLayout } from "@/components/article/entity/EntityArticleLayout";
 import { EntityRelatedSection } from "@/components/article/entity/EntityRelatedSection";
 import { NgheEntityHeader } from "@/components/article/nghe/NgheEntityHeader";
+import { NgheRolePeopleSection } from "@/components/article/nghe/NgheRolePeopleSection";
 import { NgheTaggedWorksSection } from "@/components/article/nghe/NgheTaggedWorksSection";
 import type { MilestoneItem } from "@/components/journey/milestone-types";
 import {
@@ -48,6 +50,7 @@ type NgheLayoutStaticProps = {
   entityMilestones?: ReadonlyArray<MilestoneItem>;
   entitySort?: TagAggSort;
   viewerProfileId?: string | null;
+  rolePeople?: ReadonlyArray<NgheRolePerson>;
   contribution?: ReactNode;
   canonicalEmpty?: boolean;
   isLoggedIn?: boolean;
@@ -72,6 +75,7 @@ export function NgheLayoutStatic({
   entityMilestones = [],
   entitySort = "moi_nhat",
   viewerProfileId = null,
+  rolePeople = [],
   contribution,
   canonicalEmpty = false,
   isLoggedIn = false,
@@ -201,6 +205,11 @@ export function NgheLayoutStatic({
       </div>
     );
 
+  const peopleBelowHero =
+    rolePeople.length > 0 ? (
+      <NgheRolePeopleSection people={rolePeople} />
+    ) : null;
+
   const header =
     heroBlock ??
     (
@@ -212,6 +221,7 @@ export function NgheLayoutStatic({
         thumbnailUrl={heroThumbnailUrl}
         draftTools={heroDraftTools}
         attribution={heroAttribution}
+        belowInner={peopleBelowHero}
       />
     );
 

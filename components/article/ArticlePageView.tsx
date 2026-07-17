@@ -5,6 +5,7 @@ import type {
   TruongNganhRow,
 } from "@/lib/articles/types";
 import type { RelatedJobLienQuanRow } from "@/lib/articles/related-jobs-dynamic";
+import type { NgheRolePerson } from "@/lib/articles/nghe-role-people-types";
 import type { MilestoneItem } from "@/components/journey/milestone-types";
 import type { TagAggSort, TagAggUser } from "@/lib/tag/aggregation-types";
 import { ArticleContent } from "@/components/article/ArticleContent";
@@ -27,6 +28,7 @@ type Props = {
   entityMilestones?: ReadonlyArray<MilestoneItem>;
   entitySort?: TagAggSort;
   viewerProfileId?: string | null;
+  rolePeople?: ReadonlyArray<NgheRolePerson>;
   /** Hiện nút sửa + form khi dev hoặc CINS_INLINE_ARTICLE_EDIT (không cần service role). */
   draftUiEnabled?: boolean;
   /** Cho phép lưu Supabase — cần SUPABASE_SERVICE_ROLE_KEY. */
@@ -43,6 +45,7 @@ export function ArticlePageView({
   entityMilestones = [],
   entitySort = "moi_nhat",
   viewerProfileId = null,
+  rolePeople = [],
   draftUiEnabled = false,
   draftPersistEnabled = false,
 }: Props) {
@@ -62,6 +65,7 @@ export function ArticlePageView({
         entityMilestones={entityMilestones}
         entitySort={entitySort}
         viewerProfileId={viewerProfileId}
+        rolePeople={rolePeople}
         showDraftBar={draftUiEnabled}
         draftPersistEnabled={draftPersistEnabled}
       />

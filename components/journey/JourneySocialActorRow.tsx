@@ -58,11 +58,12 @@ export function JourneySocialActorRow({
     [],
   );
 
-  const canExpandFeatured = featuredReady && featuredCount > 0;
+  const canExpandFeatured = !featuredReady || featuredCount > 0;
 
-  /** Click hàng chỉ xổ nội dung nổi bật — không vào trang cá nhân. */
+  /** Click hàng chỉ xổ nội dung nổi bật — không vào trang cá nhân.
+   *  Card chỉ fetch khi mở (không prefetch danh sách). */
   const onCardClick = () => {
-    if (!canExpandFeatured) return;
+    if (featuredReady && featuredCount <= 0) return;
     setFeaturedOpen((v) => !v);
   };
 

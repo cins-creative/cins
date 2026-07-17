@@ -51,7 +51,6 @@ import {
   THEME_MODE_OPTIONS,
   readThemeMode,
   setThemeMode as persistThemeMode,
-  watchSystemTheme,
   type ThemeMode,
 } from "@/lib/theme/theme-mode";
 
@@ -172,11 +171,6 @@ export function UserAccountSettingsModal({ open, onClose }: Props) {
     setFeedSource(value);
     setFeedSourceDefault(value);
   }, []);
-
-  useEffect(() => {
-    if (!open) return;
-    return watchSystemTheme(themeMode, () => persistThemeMode(themeMode));
-  }, [open, themeMode]);
 
   useEffect(() => {
     if (!open) return;

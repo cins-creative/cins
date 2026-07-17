@@ -4,6 +4,7 @@ import { ChevronDown } from "lucide-react";
 import {
   useEffect,
   useMemo,
+  useRef,
   useState,
   type CSSProperties,
 } from "react";
@@ -22,7 +23,6 @@ import {
 import { packMasonryByAspect } from "@/lib/journey/masonry-pack";
 import { probeImageDimensions } from "@/lib/journey/probe-image-dimensions";
 import { probeRemoteVideoDimensions } from "@/lib/journey/probe-remote-video-dimensions";
-import { scheduleWhenIdle } from "@/lib/client/schedule-when-idle";
 
 import "./journey-user-featured.css";
 
@@ -102,7 +102,7 @@ async function probeAspect(item: GalleryPinnedBanner): Promise<number> {
 
 /**
  * Mũi tên dưới card user — xổ preview thumb Nội dung nổi bật (chỉ xem, không mở bài).
- * Muốn xem đầy đủ thì vào Journey. Eager: hiện khung ngay, query ngầm; ẩn nếu không có pin.
+ * Eager: fetch ngay. Không eager: chỉ fetch khi `open` (không idle-prefetch).
  */
 export function JourneyUserFeaturedExpand({
   slug,
@@ -128,64 +128,68 @@ export function JourneyUserFeaturedExpand({
   const [aspectById, setAspectById] = useState<Map<string, number>>(
     () => new Map(),
   );
+  /** Tránh refetch khi đóng/mở lại cùng slug. */
+  const fetchedSlugRef = useRef<string | null>(null);
 
   useEffect(() => {
-    setOpen(true);
+    /* Controlled: parent giữ open (modal actors mặc định thu gọn). */
+    if (!controlled) setOpenUncontrolled(true);
     setItems(null);
     setLoadState(eager ? "loading" : "idle");
     setAspectById(new Map());
+    fetchedSlugRef.current = null;
     onAvailabilityChange?.({ ready: false, count: 0 });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reset theo slug
   }, [trimmed, eager]);
 
   useEffect(() => {
     if (!trimmed) return;
+    /* Không eager → chỉ tải khi user mở panel (giảm bandwidth danh sách dài). */
+    if (!eager && !open) return;
+    if (fetchedSlugRef.current === trimmed) return;
+
     let cancelled = false;
+    let completed = false;
+    fetchedSlugRef.current = trimmed;
+    setLoadState("loading");
+    void fetch(`/api/journey/${encodeURIComponent(trimmed)}/gallery-aside`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json: AsidePayload | null) => {
+        if (cancelled) return;
+        completed = true;
+        if (!json) {
+          fetchedSlugRef.current = null;
+          setLoadState("error");
+          setItems([]);
+          onAvailabilityChange?.({ ready: true, count: 0 });
+          return;
+        }
+        const pinned = Array.isArray(json.pinned) ? json.pinned : [];
+        setItems(pinned);
+        setLoadState("ready");
+        const count =
+          typeof json.featuredCount === "number"
+            ? json.featuredCount
+            : pinned.length;
+        onAvailabilityChange?.({ ready: true, count });
+      })
+      .catch(() => {
+        if (!cancelled) {
+          completed = true;
+          fetchedSlugRef.current = null;
+          setLoadState("error");
+          setItems([]);
+          onAvailabilityChange?.({ ready: true, count: 0 });
+        }
+      });
 
-    const runFetch = () => {
-      if (cancelled) return;
-      setLoadState("loading");
-      void fetch(`/api/journey/${encodeURIComponent(trimmed)}/gallery-aside`)
-        .then((res) => (res.ok ? res.json() : null))
-        .then((json: AsidePayload | null) => {
-          if (cancelled) return;
-          if (!json) {
-            setLoadState("error");
-            setItems([]);
-            onAvailabilityChange?.({ ready: true, count: 0 });
-            return;
-          }
-          const pinned = Array.isArray(json.pinned) ? json.pinned : [];
-          setItems(pinned);
-          setLoadState("ready");
-          const count =
-            typeof json.featuredCount === "number"
-              ? json.featuredCount
-              : pinned.length;
-          onAvailabilityChange?.({ ready: true, count });
-        })
-        .catch(() => {
-          if (!cancelled) {
-            setLoadState("error");
-            setItems([]);
-            onAvailabilityChange?.({ ready: true, count: 0 });
-          }
-        });
-    };
-
-    if (eager) {
-      runFetch();
-      return () => {
-        cancelled = true;
-      };
-    }
-
-    const cancelIdle = scheduleWhenIdle(runFetch, 1200);
     return () => {
       cancelled = true;
-      cancelIdle();
+      if (!completed && fetchedSlugRef.current === trimmed) {
+        fetchedSlugRef.current = null;
+      }
     };
-  }, [trimmed, eager, onAvailabilityChange]);
+  }, [trimmed, eager, open, onAvailabilityChange]);
 
   useEffect(() => {
     if (!open || !items || items.length === 0) return;
@@ -244,16 +248,12 @@ export function JourneyUserFeaturedExpand({
 
   const pending = loadState === "idle" || loadState === "loading";
   const hasFeatured = loadState === "ready" && (items?.length ?? 0) > 0;
-  const emptyOrFailed =
-    loadState === "error" ||
-    (loadState === "ready" && (items?.length ?? 0) === 0);
 
   if (!trimmed) return null;
-  /* Friend card list: chỉ hiện khi đã có pin (tránh flash khung trống). */
-  if (!eager && !hasFeatured) return null;
-  /* Popover eager: luôn giữ mũi tên xổ; rỗng thì hiện thông báo khi mở.
-     (Ẩn hẳn chỉ khi hideToggle + đóng — không dùng toggle.) */
-  if (hideToggle && eager && emptyOrFailed && !open) return null;
+  /* hideToggle (modal actors): chỉ mount panel khi mở — loading vẫn hiện. */
+  if (hideToggle && !open) return null;
+  /* Friend card / toggle: ẩn đến khi biết có pin; đang mở + đang tải thì hiện loading. */
+  if (!eager && !hideToggle && !hasFeatured && !(open && pending)) return null;
 
   const panelId = `j-user-featured-panel-${trimmed}`;
 

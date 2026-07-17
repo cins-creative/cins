@@ -1289,10 +1289,6 @@ export function JourneyMilestoneCard({
               </JourneyUserPopover>
               {c.laChuSoHuu ? (
                 <span className="abadge abadge-owner">Chủ bài</span>
-              ) : (variant === "tagged" || variant === "verified") &&
-                c.slug &&
-                c.slug === ownerSlug ? (
-                <span className="abadge abadge-you">Bạn</span>
               ) : c.trangThai === "pending" ? (
                 <span className="abadge abadge-pending">Chờ xác nhận</span>
               ) : null}

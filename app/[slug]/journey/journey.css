@@ -7674,9 +7674,10 @@ button.j-m-card-hit {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  width: 28px;
+  gap: 4px;
+  min-width: 28px;
   height: 28px;
-  padding: 0;
+  padding: 0 6px;
   border-radius: var(--radius-sm);
   background: var(--bg-surface);
   border: 1px solid var(--border);
@@ -7687,20 +7688,46 @@ button.j-m-card-hit {
     color 0.15s ease,
     background 0.15s ease;
 }
-.j-gallery-edit-btn:hover:not(:disabled),
-.j-gallery-edit-btn:focus-visible {
-  border-color: var(--border-strong);
-  color: var(--ink-display);
-  outline: none;
-}
 .j-gallery-edit-btn.is-active {
+  width: auto;
+  padding: 0 8px;
   border-color: color-mix(in srgb, var(--cins-blue) 55%, var(--border));
   color: var(--cins-blue);
   background: color-mix(in srgb, var(--cins-blue) 10%, var(--bg-surface));
 }
+.j-gallery-edit-btn-label {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.01em;
+}
+.j-gallery-edit-btn:hover:not(:disabled):not(.is-active),
+.j-gallery-edit-btn:focus-visible:not(.is-active) {
+  border-color: var(--border-strong);
+  color: var(--ink-display);
+  outline: none;
+}
+.j-gallery-edit-btn.is-active:hover:not(:disabled),
+.j-gallery-edit-btn.is-active:focus-visible {
+  outline: none;
+  border-color: color-mix(in srgb, var(--cins-blue) 70%, var(--border));
+  color: var(--cins-blue-dark);
+  background: color-mix(in srgb, var(--cins-blue) 14%, var(--bg-surface));
+}
 .j-gallery-edit-btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
+}
+.j-gallery-reorder-hint {
+  margin: -6px 0 12px;
+  padding: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink-muted);
+}
+.j-gallery-reorder-hint strong {
+  color: var(--cins-blue);
+  font-weight: 700;
 }
 .j-gallery-dd {
   position: relative;
@@ -7853,6 +7880,37 @@ button.j-m-card-hit {
 .j-g-banner-wrap.is-dragging {
   opacity: 0.4;
 }
+/* Số thứ tự Feature — chỉ hiện khi bật edit/reorder */
+.j-g-banner-rank {
+  position: absolute;
+  z-index: 6;
+  top: 8px;
+  right: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 7px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--bg-surface) 94%, transparent);
+  color: var(--ink-display);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(6px);
+  pointer-events: none;
+  user-select: none;
+  border: 1px solid color-mix(in srgb, var(--border-strong) 55%, transparent);
+}
+.j-g-banner-rank.is-first {
+  background: var(--cins-blue);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--cins-blue) 35%, transparent);
+}
 .j-g-banner-drag {
   position: absolute;
   z-index: 6;
@@ -7861,10 +7919,9 @@ button.j-m-card-hit {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 2px;
-  min-width: 32px;
+  width: 32px;
   height: 32px;
-  padding: 0 6px 0 8px;
+  padding: 0;
   border: none;
   border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--bg-surface) 90%, transparent);
@@ -7875,13 +7932,6 @@ button.j-m-card-hit {
   backdrop-filter: blur(6px);
   pointer-events: none;
   user-select: none;
-}
-.j-g-banner-drag-index {
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-  color: var(--ink-display);
 }
 .j-g-banner-drag:hover {
   color: var(--ink-display);
@@ -7918,6 +7968,16 @@ button.j-m-card-hit {
 :root[data-theme="dark"] .j-g-banner-wrap .j-g-banner-owner-menu .j-m-menu-btn[aria-expanded="true"] {
   background: var(--neutral-200);
   color: var(--ink-display);
+}
+:root[data-theme="dark"] .j-g-banner-rank {
+  background: color-mix(in srgb, var(--neutral-100) 92%, transparent);
+  color: var(--ink-display);
+  border-color: color-mix(in srgb, var(--neutral-300) 50%, transparent);
+}
+:root[data-theme="dark"] .j-g-banner-rank.is-first {
+  background: var(--cins-blue);
+  color: #fff;
+  border-color: transparent;
 }
 :root[data-theme="dark"] .j-g-banner-drag {
   background: color-mix(in srgb, var(--neutral-100) 88%, transparent);
@@ -15909,9 +15969,9 @@ button.j-user-pop-close svg {
   padding: 10px 12px 12px;
 }
 
-/* Vai trò đồng tác giả — khớp bài nghề */
+/* Vai trò đồng tác giả — khớp bài nghề (click → trang nghề) */
 .j-nghe-role-trigger {
-  cursor: help;
+  cursor: pointer;
   border-bottom: 1px dotted transparent;
   transition: border-color 0.12s, color 0.12s;
 }
@@ -17083,26 +17143,20 @@ button.j-user-pop-close svg {
   margin-left: 0;
 }
 .author-row-role-edit-trigger {
-  min-width: 44px;
-  min-height: 32px;
+  width: 32px;
+  height: 32px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
-  padding: 0 9px;
-  border: 1px solid var(--jcard-blue-border);
-  border-radius: 999px;
-  background: var(--jcard-blue-bg);
+  padding: 0;
+  border: 0;
+  background: transparent;
   color: var(--jcard-blue);
-  font-family: var(--font-sans);
-  font-size: 11px;
-  font-weight: 500;
   cursor: pointer;
 }
 .author-row-role-edit-trigger:hover {
-  background: var(--cins-blue);
-  border-color: var(--cins-blue);
-  color: var(--bg-surface);
+  background: transparent;
+  color: var(--cins-blue-dark);
 }
 .author-row-role-edit-panel {
   display: flex;

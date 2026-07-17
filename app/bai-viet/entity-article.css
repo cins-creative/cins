@@ -50,6 +50,134 @@
   padding: var(--space-8);
 }
 
+/* Người đang làm nghề — dưới hero */
+.nghe-role-people {
+  --jcard-bg: var(--bg-surface);
+  --jcard-ink: var(--ink-display, rgba(0, 0, 0, 0.85));
+  --jcard-ink2: var(--ink-body, rgba(0, 0, 0, 0.65));
+  --jcard-ink3: var(--ink-muted, rgba(0, 0, 0, 0.45));
+  --jcard-border2: var(--border);
+  --jcard-blue: var(--cins-blue);
+  --jcard-blue-bg: var(--cins-blue-soft);
+  --jcard-green: #047857;
+  --jcard-green-bg: var(--cins-mint-soft);
+  --jcard-amber: #92400e;
+  --jcard-amber-bg: #fef3c7;
+  --jcard-purple: var(--cins-violet);
+  --jcard-purple-bg: var(--cins-violet-soft);
+  --jcard-coral: #c2410c;
+  --jcard-coral-bg: var(--cins-orange-soft);
+  border-top: 1px solid var(--border);
+  padding: var(--space-5) var(--space-8) var(--space-6);
+  background: var(--bg-surface);
+}
+
+.nghe-role-people-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: var(--space-3);
+}
+
+.nghe-role-people-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--ink-display, rgba(0, 0, 0, 0.85));
+  letter-spacing: -0.01em;
+}
+
+.nghe-role-people-count {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.45));
+}
+
+.nghe-role-people-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.nghe-role-people-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: var(--space-3);
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cins-blue);
+  cursor: pointer;
+  text-align: left;
+}
+
+.nghe-role-people-all:hover,
+.nghe-role-people-all:focus-visible {
+  color: var(--cins-blue-dark);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  outline: none;
+}
+
+.nghe-role-people-all-count {
+  font-weight: 500;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.45));
+}
+
+.nghe-role-people-modal-list .jsa-row + .jsa-row {
+  border-top: 1px solid var(--border, #e2e8f0);
+}
+
+.nghe-role-people-modal-item {
+  padding: 10px 16px;
+}
+
+.nghe-role-people-modal-person {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+  width: 100%;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.nghe-role-people-modal-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.nghe-role-people-modal-name {
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--ink-display, rgba(0, 0, 0, 0.85));
+  line-height: 1.3;
+}
+
+.nghe-role-people-modal-roles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  align-items: center;
+}
+
+@media (max-width: 720px) {
+  .nghe-role-people {
+    padding: var(--space-4) var(--space-5) var(--space-5);
+  }
+}
+
 .ent-hero-main {
   flex: 1 1 auto;
   min-width: 0;

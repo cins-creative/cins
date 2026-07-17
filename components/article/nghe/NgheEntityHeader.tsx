@@ -11,6 +11,7 @@ type Props = {
   thumbnailUrl?: string | null;
   draftTools?: ReactNode;
   attribution?: ReactNode;
+  belowInner?: ReactNode;
 };
 
 /** Header cố định trang nghề — wrapper `EntityArticleHeader`. */
@@ -22,6 +23,7 @@ export function NgheEntityHeader({
   thumbnailUrl,
   draftTools,
   attribution,
+  belowInner,
 }: Props) {
   const displayTitle = (title ?? "").trim() || NGHE_HERO_TITLE_FALLBACK;
 
@@ -36,6 +38,7 @@ export function NgheEntityHeader({
       introId="nghe-sec-intro"
       draftTools={draftTools}
       attribution={attribution}
+      belowInner={belowInner}
     />
   );
 }

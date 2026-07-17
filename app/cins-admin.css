@@ -6741,7 +6741,8 @@
   display: inline-flex;
   gap: 6px;
 }
-.cins-admin .ndd-view-toggle button {
+.cins-admin .ndd-view-toggle button,
+.cins-admin .ndd-view-toggle a {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -6752,8 +6753,10 @@
   color: var(--fg-3);
   font-size: 13px;
   cursor: pointer;
+  text-decoration: none;
 }
-.cins-admin .ndd-view-toggle button.is-active {
+.cins-admin .ndd-view-toggle button.is-active,
+.cins-admin .ndd-view-toggle a.is-active {
   border-color: #16a34a;
   background: #f0fdf4;
   color: #15803d;
@@ -6773,7 +6776,8 @@
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }
-.cins-admin .ndd-view-toggle button.is-active .ndd-tab-badge {
+.cins-admin .ndd-view-toggle button.is-active .ndd-tab-badge,
+.cins-admin .ndd-view-toggle a.is-active .ndd-tab-badge {
   background: rgba(22, 163, 74, 0.18);
   color: #15803d;
 }
@@ -6798,6 +6802,375 @@
 .cins-admin .ndd-pending-col-actions {
   width: 1%;
   white-space: nowrap;
+}
+.cins-admin .ndd-review {
+  display: grid;
+  gap: 14px;
+}
+.cins-admin .ndd-review-overview {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  border: 1px solid color-mix(in srgb, var(--cins-blue) 24%, var(--border));
+  border-radius: 14px;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--cins-blue) 8%, var(--bg-surface)),
+    var(--bg-surface)
+  );
+}
+.cins-admin .ndd-review-overview-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--cins-blue-soft);
+  color: var(--cins-blue);
+}
+.cins-admin .ndd-review-overview-copy h2 {
+  margin: 0;
+  color: var(--fg-1);
+  font-size: 17px;
+}
+.cins-admin .ndd-review-overview-copy p {
+  margin: 4px 0 0;
+  color: var(--fg-4);
+  font-size: 13px;
+}
+.cins-admin .ndd-review-count {
+  display: grid;
+  justify-items: end;
+  min-width: 76px;
+}
+.cins-admin .ndd-review-count strong {
+  color: var(--fg-1);
+  font-size: 24px;
+  line-height: 1;
+}
+.cins-admin .ndd-review-count span {
+  margin-top: 4px;
+  color: var(--fg-4);
+  font-size: 11px;
+}
+.cins-admin .ndd-review-refresh,
+.cins-admin .ndd-review-error button {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 13px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--bg-surface);
+  color: var(--fg-2);
+  font-weight: 650;
+  cursor: pointer;
+}
+.cins-admin .ndd-review-refresh:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+.cins-admin .ndd-review-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 10px;
+}
+.cins-admin .ndd-review-search {
+  display: flex;
+  min-width: min(360px, 100%);
+  min-height: 42px;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-surface);
+  color: var(--fg-4);
+}
+.cins-admin .ndd-review-search:focus-within {
+  border-color: var(--cins-blue);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cins-blue) 13%, transparent);
+}
+.cins-admin .ndd-review-search input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--fg-1);
+  font: inherit;
+}
+.cins-admin .ndd-review-org-filter {
+  display: grid;
+  gap: 4px;
+}
+.cins-admin .ndd-review-org-filter span {
+  color: var(--fg-4);
+  font-size: 11px;
+  font-weight: 650;
+}
+.cins-admin .ndd-review-org-filter select {
+  min-height: 42px;
+  max-width: 260px;
+  padding: 0 34px 0 11px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-surface);
+  color: var(--fg-2);
+}
+.cins-admin .ndd-review-filter-count {
+  padding: 0 2px 11px;
+  color: var(--fg-4);
+  font-size: 12px;
+}
+.cins-admin .ndd-review-message,
+.cins-admin .ndd-review-error {
+  margin: 0;
+  padding: 11px 13px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 13px;
+}
+.cins-admin .ndd-review-message.is-success {
+  border-color: color-mix(in srgb, var(--success) 35%, var(--border));
+  background: var(--cins-mint-soft);
+  color: var(--success);
+}
+.cins-admin .ndd-review-message.is-error,
+.cins-admin .ndd-review-error {
+  border-color: color-mix(in srgb, var(--danger) 35%, var(--border));
+  background: color-mix(in srgb, var(--danger) 7%, var(--bg-surface));
+  color: var(--danger);
+}
+.cins-admin .ndd-review-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.cins-admin .ndd-review-list {
+  display: grid;
+  gap: 10px;
+}
+.cins-admin .ndd-review-card {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr) 180px;
+  gap: 16px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--bg-surface);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--fg-1) 5%, transparent);
+}
+.cins-admin .ndd-review-card:hover {
+  border-color: color-mix(in srgb, var(--cins-blue) 24%, var(--border));
+}
+.cins-admin .ndd-review-card-media {
+  display: grid;
+  min-height: 112px;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 10px;
+  background: var(--neutral-100);
+  color: var(--fg-4);
+  font-weight: 750;
+}
+.cins-admin .ndd-review-card-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.cins-admin .ndd-review-card-main {
+  min-width: 0;
+}
+.cins-admin .ndd-review-card-top {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.cins-admin .ndd-review-card-top h3 {
+  margin: 0;
+  color: var(--fg-1);
+  font-size: 15px;
+  line-height: 1.35;
+}
+.cins-admin .ndd-review-card-top p {
+  margin: 3px 0 0;
+  color: var(--fg-4);
+  font-size: 12px;
+}
+.cins-admin .ndd-review-card-top time {
+  flex: 0 0 auto;
+  color: var(--fg-4);
+  font-size: 11px;
+}
+.cins-admin .ndd-review-people {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+}
+.cins-admin .ndd-review-person {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+}
+.cins-admin .ndd-review-person > span:last-child {
+  display: grid;
+  min-width: 0;
+}
+.cins-admin .ndd-review-person small {
+  color: var(--fg-4);
+  font-size: 10px;
+}
+.cins-admin .ndd-review-person a,
+.cins-admin .ndd-review-person strong {
+  overflow: hidden;
+  color: var(--fg-2);
+  font-size: 12.5px;
+  font-weight: 650;
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cins-admin .ndd-review-avatar,
+.cins-admin .ndd-review-org-mark {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--neutral-100);
+  color: var(--fg-3);
+  font-size: 10px;
+  font-weight: 750;
+}
+.cins-admin .ndd-review-org-mark {
+  border-radius: 8px;
+  background: var(--cins-blue-soft);
+  color: var(--cins-blue);
+}
+.cins-admin .ndd-review-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.cins-admin .ndd-review-arrow {
+  color: var(--fg-4);
+}
+.cins-admin .ndd-review-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.cins-admin .ndd-review-meta li {
+  padding: 3px 7px;
+  border-radius: var(--radius-pill);
+  background: var(--neutral-100);
+  color: var(--fg-3);
+  font-size: 10.5px;
+}
+.cins-admin .ndd-review-evidence {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+  margin-top: 10px;
+}
+.cins-admin .ndd-review-evidence-label,
+.cins-admin .ndd-review-evidence a,
+.cins-admin .ndd-review-evidence > span:not(.ndd-review-evidence-label) {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--fg-4);
+  font-size: 11px;
+}
+.cins-admin .ndd-review-evidence a {
+  color: var(--cins-blue);
+  text-decoration: none;
+}
+.cins-admin .ndd-review-card-actions {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 14px;
+  padding-left: 14px;
+  border-left: 1px solid var(--border);
+}
+.cins-admin .ndd-review-open-links {
+  display: grid;
+  gap: 5px;
+}
+.cins-admin .ndd-review-open-links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--cins-blue);
+  font-size: 12px;
+  font-weight: 650;
+  text-decoration: none;
+}
+.cins-admin .ndd-review-decisions {
+  display: grid;
+  gap: 7px;
+}
+.cins-admin .ndd-review-decisions button {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.cins-admin .ndd-review-decisions button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+.cins-admin .ndd-review-decisions .is-reject {
+  border-color: color-mix(in srgb, var(--danger) 24%, var(--border));
+  background: color-mix(in srgb, var(--danger) 6%, var(--bg-surface));
+  color: var(--danger);
+}
+.cins-admin .ndd-review-decisions .is-approve {
+  background: var(--success);
+  color: var(--neutral-0);
+}
+.cins-admin .ndd-review-loading,
+.cins-admin .ndd-review-empty {
+  display: grid;
+  min-height: 220px;
+  place-items: center;
+  align-content: center;
+  gap: 8px;
+  border: 1px dashed var(--border);
+  border-radius: 14px;
+  color: var(--fg-4);
+}
+.cins-admin .ndd-review-loading {
+  grid-template-columns: auto auto;
+}
+.cins-admin .ndd-review-empty strong {
+  color: var(--fg-2);
+}
+.cins-admin .ndd-review-empty span {
+  font-size: 13px;
 }
 .cins-admin .ndd-stats {
   display: grid;
@@ -7725,6 +8098,91 @@
   .cins-admin .ndd-dash-bar-row strong { text-align: left; }
 }
 
+@media (max-width: 1080px) {
+  .cins-admin .ndd-review-card {
+    grid-template-columns: 92px minmax(0, 1fr);
+  }
+  .cins-admin .ndd-review-card-media {
+    min-height: 92px;
+  }
+  .cins-admin .ndd-review-card-actions {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    align-items: end;
+    padding: 12px 0 0;
+    border-top: 1px solid var(--border);
+    border-left: 0;
+  }
+  .cins-admin .ndd-review-open-links,
+  .cins-admin .ndd-review-decisions {
+    display: flex;
+    flex-wrap: wrap;
+  }
+  .cins-admin .ndd-review-decisions button {
+    min-width: 126px;
+  }
+}
+
+@media (max-width: 720px) {
+  .cins-admin .ndd-view-toggle {
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+  .cins-admin .ndd-view-toggle a,
+  .cins-admin .ndd-view-toggle button {
+    min-height: 44px;
+    flex: 0 0 auto;
+  }
+  .cins-admin .ndd-review-overview {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .cins-admin .ndd-review-count {
+    justify-items: start;
+  }
+  .cins-admin .ndd-review-refresh {
+    width: 100%;
+  }
+  .cins-admin .ndd-review-org-filter,
+  .cins-admin .ndd-review-org-filter select {
+    width: 100%;
+    max-width: none;
+  }
+  .cins-admin .ndd-review-card {
+    grid-template-columns: 72px minmax(0, 1fr);
+    gap: 11px;
+    padding: 11px;
+  }
+  .cins-admin .ndd-review-card-media {
+    min-height: 72px;
+  }
+  .cins-admin .ndd-review-card-top {
+    display: grid;
+  }
+  .cins-admin .ndd-review-people {
+    grid-column: 1 / -1;
+    flex-wrap: wrap;
+  }
+  .cins-admin .ndd-review-arrow {
+    display: none;
+  }
+  .cins-admin .ndd-review-card-actions {
+    align-items: stretch;
+  }
+  .cins-admin .ndd-review-open-links {
+    align-items: center;
+  }
+  .cins-admin .ndd-review-decisions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+  }
+  .cins-admin .ndd-review-decisions button {
+    min-width: 0;
+    min-height: 44px;
+  }
+}
+
 /* ========================================================
    DARK THEME — admin surfaces còn hard-code nền sáng
    ======================================================== */
@@ -7765,7 +8223,8 @@
   color: var(--cins-blue-dark);
 }
 
-:root[data-theme="dark"] .cins-admin .ndd-view-toggle button.is-active {
+:root[data-theme="dark"] .cins-admin .ndd-view-toggle button.is-active,
+:root[data-theme="dark"] .cins-admin .ndd-view-toggle a.is-active {
   border-color: color-mix(in srgb, #34c98a 55%, var(--border));
   background: color-mix(in srgb, #34c98a 16%, var(--bg-surface));
   color: #4ade80;

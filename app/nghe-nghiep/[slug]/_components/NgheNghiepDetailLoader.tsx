@@ -5,10 +5,10 @@ import {
   fetchRelatedArticles,
   fetchRelatedJobsLienQuan,
 } from "@/lib/articles/queries";
+import { fetchNgheRolePeople } from "@/lib/articles/nghe-role-people";
 import { getNgheArticleBySlugCached } from "@/lib/articles/nghe-page-queries";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import { getArticleInlineAdminStatus } from "@/lib/articles/article-inline-admin";
-import { parseTagAggSort } from "@/lib/tag/aggregation-queries";
 import {
   fetchEntityMilestones,
   fetchEntityTaggedUsers,
@@ -31,13 +31,19 @@ export async function NgheNghiepDetailLoader({ slug, sort }: Props) {
   const session = await getCurrentSessionAndProfile();
   const viewerProfileId = session?.profile?.id ?? null;
 
-  const [lienQuan, relatedJobsLienQuan, entityTaggedUsers, entityMilestones] =
-    await Promise.all([
-      fetchRelatedArticles(article.id),
-      fetchRelatedJobsLienQuan(article.id),
-      fetchEntityTaggedUsers(article.id),
-      fetchEntityMilestones(article.id, sort, viewerProfileId),
-    ]);
+  const [
+    lienQuan,
+    relatedJobsLienQuan,
+    entityTaggedUsers,
+    entityMilestones,
+    rolePeople,
+  ] = await Promise.all([
+    fetchRelatedArticles(article.id),
+    fetchRelatedJobsLienQuan(article.id),
+    fetchEntityTaggedUsers(article.id),
+    fetchEntityMilestones(article.id, sort, viewerProfileId),
+    fetchNgheRolePeople(article),
+  ]);
 
   const [draftUiEnabled, draftPersistEnabled] = await Promise.all([
     getArticleInlineAdminStatus(),
@@ -56,6 +62,7 @@ export async function NgheNghiepDetailLoader({ slug, sort }: Props) {
         entityMilestones={entityMilestones}
         entitySort={sort}
         viewerProfileId={viewerProfileId}
+        rolePeople={rolePeople}
         draftUiEnabled={draftUiEnabled}
         draftPersistEnabled={draftPersistEnabled}
       />

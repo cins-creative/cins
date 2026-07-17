@@ -25,6 +25,8 @@ type Props = {
   introId?: string;
   draftTools?: ReactNode;
   attribution?: ReactNode;
+  /** Nội dung ngay dưới `ent-hero-inner` (vd. người đang làm nghề). */
+  belowInner?: ReactNode;
 };
 
 function badgeText(kind: EntityBadgeKind, context: string): string {
@@ -44,6 +46,7 @@ export function EntityArticleHeader({
   introId = "entity-sec-intro",
   draftTools,
   attribution,
+  belowInner,
 }: Props) {
   const displayTitle = title.trim() || "Bài viết";
   const displayEm = (emLine ?? "").trim();
@@ -93,6 +96,7 @@ export function EntityArticleHeader({
           </div>
         )}
       </div>
+      {belowInner}
     </header>
   );
 }

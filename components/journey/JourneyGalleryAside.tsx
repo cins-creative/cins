@@ -565,14 +565,24 @@ export function JourneyGalleryAside({
           )}
           {ownerMenu}
           {reorderEnabled ? (
-            <div
-              className="j-g-banner-drag"
-              aria-hidden
-              title={`Vị trí ${index + 1}`}
-            >
-              <span className="j-g-banner-drag-index">{index + 1}</span>
-              <GripVertical size={14} strokeWidth={2} aria-hidden />
-            </div>
+            <>
+              <div
+                className={
+                  "j-g-banner-rank" + (index === 0 ? " is-first" : "")
+                }
+                aria-hidden
+                title={`Thứ tự Feature ${index + 1}`}
+              >
+                {index + 1}
+              </div>
+              <div
+                className="j-g-banner-drag"
+                aria-hidden
+                title={`Kéo để đổi vị trí ${index + 1}`}
+              >
+                <GripVertical size={14} strokeWidth={2} aria-hidden />
+              </div>
+            </>
           ) : null}
         </div>
       </div>
@@ -613,7 +623,7 @@ export function JourneyGalleryAside({
                 ? "Chọn «Tất cả» loại nội dung trên thanh bộ lọc để sắp xếp"
                 : reorderEditing
                   ? "Xong"
-                  : "Sắp xếp vị trí"
+                  : "Sắp xếp vị trí Feature"
             }
             disabled={filter !== "all"}
             onClick={() => {
@@ -624,6 +634,7 @@ export function JourneyGalleryAside({
             }}
           >
             <Pencil size={14} strokeWidth={2} aria-hidden />
+            {reorderEditing ? <span className="j-gallery-edit-btn-label">Xong</span> : null}
           </button>
         ) : showLocalMediaFilter ? (
           <GalleryMediaFilterDropdown
@@ -632,6 +643,13 @@ export function JourneyGalleryAside({
           />
         ) : null}
       </div>
+
+      {reorderEnabled ? (
+        <p className="j-gallery-reorder-hint">
+          Số thứ tự giúp xếp Feature đẹp nhất — <strong>1</strong> hiện trước.
+          Kéo thẻ để đổi vị trí.
+        </p>
+      ) : null}
 
       {empty ? (
         <div className="j-gallery-empty">

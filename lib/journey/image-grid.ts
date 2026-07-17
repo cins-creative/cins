@@ -209,6 +209,11 @@ export const JUSTIFIED_MAX_PER_ROW = 3;
  * không ép lại canvas 16:9 (ép sẽ crop ảnh user).
  */
 export const JUSTIFIED_MIN_CANVAS_HEIGHT_RATIO = 9 / 16;
+/**
+ * Ceiling chiều cao hàng (height/width). Tách 1+2 với ảnh dọc tạo hàng đơn
+ * ~0.7 aspect → cao hơn khung vuông — từ chối split đó, giữ 1 hàng.
+ */
+export const JUSTIFIED_MAX_ROW_HEIGHT_RATIO = 1;
 
 /** Aspect ratio = width / height (fallback 1 nếu thiếu số liệu). */
 export function gridImageAspect(image: GridImage): number {
@@ -295,18 +300,27 @@ function splitBalancedJustifiedRow(cells: AlbumCell[]): AlbumCell[][] {
   return [cells.slice(0, bestSplit), cells.slice(bestSplit)];
 }
 
-/** Chia cells thành các hàng Justified (khớp icon editor: 5 → 2+3). */
-function splitJustifiedRows(cells: AlbumCell[]): AlbumCell[][] {
+/**
+ * Chia cells thành các hàng Justified (khớp icon editor: 5 → 2+3).
+ * Export để ImageGrid tách lại khi đo được tỉ lệ intrinsic (metadata hay sai).
+ */
+export function splitJustifiedRows(cells: AlbumCell[]): AlbumCell[][] {
   // Album 2 ảnh luôn đặt cạnh nhau theo chiều ngang.
   if (cells.length === 2) {
     return [cells];
   }
-  // Một hàng thấp hơn canvas 16:9 → tách hai hàng, tránh album dẹp lép.
+  // Một hàng thấp hơn canvas 16:9 → thử tách hai hàng, tránh album dẹp lép.
+  // Từ chối split nếu tạo hàng cao hơn khung vuông (điển hình: 3 ảnh dọc → 1+2).
   if (
     cells.length <= JUSTIFIED_MAX_PER_ROW &&
     justifiedRowHeightRatio(cells) < JUSTIFIED_MIN_CANVAS_HEIGHT_RATIO
   ) {
-    return splitBalancedJustifiedRow(cells);
+    const split = splitBalancedJustifiedRow(cells);
+    const splitIsSane = split.every(
+      (row) => justifiedRowHeightRatio(row) <= JUSTIFIED_MAX_ROW_HEIGHT_RATIO,
+    );
+    if (splitIsSane) return split;
+    return [cells];
   }
   // 4 ảnh: 2×2 cân bằng — tránh hàng 3+1 lệch.
   if (cells.length === 4) {
@@ -326,7 +340,8 @@ function splitJustifiedRows(cells: AlbumCell[]): AlbumCell[][] {
 /**
  * Album nhiều ảnh luôn dùng Justified Grid:
  * - 1 ảnh: giữ tỉ lệ gốc (single)
- * - 2 ảnh: luôn nằm ngang; 4 → 2+2, 5 → 2+3, 6 → 3+3
+ * - 2 ảnh: luôn nằm ngang; 3 ảnh: ưu tiên 1 hàng (không tách 1+2 nếu tạo hàng dọc quá cao)
+ * - 4 → 2+2, 5 → 2+3, 6 → 3+3
  * - >6 ảnh ở feed: hiện 6 ô đầu, ô cuối phủ "+N"
  *
  * Cùng một thuật toán cho mọi hướng ảnh giúp hàng cuối không đổi sang

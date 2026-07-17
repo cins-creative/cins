@@ -35,8 +35,10 @@ function rowToItem(row: YeuCauRow): PendingContentVerifyItem | null {
     orgId: row.id_to_chuc,
     studentName: payload.studentName,
     studentSlug: payload.studentSlug,
+    studentAvatarUrl: payload.studentAvatarUrl ?? null,
     projectTitle: payload.projectTitle || payload.milestoneTitle,
     milestoneTitle: payload.milestoneTitle,
+    milestoneKind: payload.milestoneKind,
     orgTen: payload.orgTen,
     orgSlug: payload.orgSlug,
     orgLoai: payload.orgLoai,
@@ -47,6 +49,7 @@ function rowToItem(row: YeuCauRow): PendingContentVerifyItem | null {
     submittedAt: row.tao_luc,
     postUrl,
     orgUrl,
+    evidence: Array.isArray(payload.evidence) ? payload.evidence : [],
   };
 }
 
