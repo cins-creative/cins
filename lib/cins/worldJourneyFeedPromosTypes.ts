@@ -65,7 +65,8 @@ export const FEED_PROMO_CYCLE = [
 export type FeedPromoCycleSlot = (typeof FEED_PROMO_CYCLE)[number];
 
 /**
- * Số card theo loại + mật độ + breakpoint (không scroll ngang).
+ * Số card theo loại + mật độ + breakpoint.
+ * Mobile (`sm`) ưu tiên đủ card để scroll ngang; desktop vẫn fill một hàng.
  * Người: tối đa 4 card / lần hiển thị.
  */
 export const FEED_PROMO_VISIBLE_COUNTS: Record<
@@ -73,23 +74,23 @@ export const FEED_PROMO_VISIBLE_COUNTS: Record<
   { normal: Record<FeedPromoBreakpoint, number>; dense?: Record<FeedPromoBreakpoint, number> }
 > = {
   people: {
-    normal: { sm: 3, md: 4, lg: 4 },
-    dense: { sm: 3, md: 4, lg: 4 },
+    normal: { sm: 4, md: 4, lg: 4 },
+    dense: { sm: 4, md: 4, lg: 4 },
   },
   events: {
-    normal: { sm: 2, md: 2, lg: 3 },
+    normal: { sm: 4, md: 2, lg: 3 },
   },
   studios: {
-    normal: { sm: 2, md: 2, lg: 3 },
+    normal: { sm: 4, md: 2, lg: 3 },
   },
   courses: {
-    normal: { sm: 3, md: 4, lg: 4 },
+    normal: { sm: 4, md: 4, lg: 4 },
   },
   schools: {
-    normal: { sm: 3, md: 4, lg: 5 },
+    normal: { sm: 4, md: 4, lg: 5 },
   },
   careers: {
-    normal: { sm: 3, md: 4, lg: 5 },
+    normal: { sm: 4, md: 4, lg: 5 },
   },
 };
 

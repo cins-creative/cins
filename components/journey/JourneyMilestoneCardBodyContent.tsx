@@ -240,6 +240,28 @@ export function JourneyMilestoneCardBodyContent({
       label: title,
     };
   }, [photoGridImages, preview, title, useCompactMedia]);
+
+  /** Cover hero + album — dùng chung 1 lightbox (cover = index 0). */
+  const [albumLightboxIndex, setAlbumLightboxIndex] = useState<number | null>(
+    null,
+  );
+  const albumHeroLightboxImages = useMemo((): GridImage[] | null => {
+    if (!isAlbumHeroGrid || !preview?.src?.trim() || !photoGridImages?.length) {
+      return null;
+    }
+    const coverSrc = preview.src.trim();
+    const coverId =
+      extractCfImageIdFromDeliveryUrl(coverSrc) ?? `cover:${coverSrc}`;
+    return [
+      {
+        id: coverId,
+        width: preview.width ?? 1200,
+        height: preview.height ?? 800,
+        previewSrc: coverSrc,
+      },
+      ...photoGridImages,
+    ];
+  }, [isAlbumHeroGrid, photoGridImages, preview]);
   const showCardTitle = shouldShowMilestoneCardTitle(title, blocks, body);
   const cardCaption = milestoneCardCaptionForDisplay(title, body, blocks);
   const emptyFallback =
@@ -645,13 +667,16 @@ export function JourneyMilestoneCardBodyContent({
             />
           ) : isAlbumHeroGrid && hasCoverPreview && preview && photoGridImages?.length ? (
             <div className="jcard-photo-album">
-              <div
+              <button
+                type="button"
                 className="preview preview--album-hero"
+                aria-label="Xem ảnh bìa lớn"
                 style={
                   preview.aspectRatio
                     ? { aspectRatio: preview.aspectRatio }
                     : undefined
                 }
+                onClick={() => setAlbumLightboxIndex(0)}
               >
                 <JourneyCoverImage
                   src={preview.src}
@@ -665,9 +690,17 @@ export function JourneyMilestoneCardBodyContent({
                   objectPosition={preview.objectPosition}
                   zoom={preview.zoom}
                 />
-              </div>
+              </button>
               <div className="preview preview--photo-grid">
-                <ImageGrid images={photoGridImages} readOnly timelineLightbox />
+                <ImageGrid
+                  images={photoGridImages}
+                  readOnly
+                  timelineLightbox
+                  lightboxIndex={albumLightboxIndex}
+                  onLightboxIndexChange={setAlbumLightboxIndex}
+                  lightboxImages={albumHeroLightboxImages ?? undefined}
+                  lightboxIndexOffset={1}
+                />
               </div>
             </div>
           ) : isPhotoAlbumMulti && photoGridImages && photoGridImages.length > 0 ? (

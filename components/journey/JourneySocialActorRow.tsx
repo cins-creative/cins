@@ -16,9 +16,12 @@ import { commentReactionLabel } from "@/lib/social/comments/types";
 type Props = {
   actor: SocialActorProfile;
   viewerId: string | null;
-  kind: SocialInteractionKind;
+  /** Khi có — hiện dòng «Thích / Bình luận …» theo thời điểm tương tác. */
+  kind?: SocialInteractionKind;
   /** Emoji reaction khi danh sách từ bình luận. */
   reactionEmoji?: string;
+  /** Ghi đè subtitle (vd. vai trò nghề) — null/undefined = giai đoạn · tỉnh thành. */
+  subtitleOverride?: string | null;
 };
 
 function interactionVerb(
@@ -41,10 +44,14 @@ export function JourneySocialActorRow({
   viewerId,
   kind,
   reactionEmoji,
+  subtitleOverride,
 }: Props) {
-  const subtitle = buildSubtitle(actor);
-  const when = formatActorRelativeTime(actor.tuongTacLuc);
-  const verb = interactionVerb(kind, reactionEmoji);
+  const subtitle =
+    subtitleOverride?.trim() || buildSubtitle(actor);
+  const when = kind
+    ? formatActorRelativeTime(actor.tuongTacLuc)
+    : null;
+  const verb = kind ? interactionVerb(kind, reactionEmoji) : "";
   const [featuredOpen, setFeaturedOpen] = useState(false);
   const [featuredCount, setFeaturedCount] = useState(0);
   const [featuredReady, setFeaturedReady] = useState(false);

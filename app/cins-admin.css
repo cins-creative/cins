@@ -6973,7 +6973,8 @@
 }
 .cins-admin .ndd-review-card-media {
   display: grid;
-  min-height: 112px;
+  align-self: start;
+  aspect-ratio: 4 / 3;
   place-items: center;
   overflow: hidden;
   border-radius: 10px;
@@ -7060,7 +7061,8 @@
   background: var(--cins-blue-soft);
   color: var(--cins-blue);
 }
-.cins-admin .ndd-review-avatar img {
+.cins-admin .ndd-review-avatar img,
+.cins-admin .ndd-review-org-mark img {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -8102,9 +8104,6 @@
   .cins-admin .ndd-review-card {
     grid-template-columns: 92px minmax(0, 1fr);
   }
-  .cins-admin .ndd-review-card-media {
-    min-height: 92px;
-  }
   .cins-admin .ndd-review-card-actions {
     grid-column: 1 / -1;
     flex-direction: row;
@@ -8152,9 +8151,6 @@
     grid-template-columns: 72px minmax(0, 1fr);
     gap: 11px;
     padding: 11px;
-  }
-  .cins-admin .ndd-review-card-media {
-    min-height: 72px;
   }
   .cins-admin .ndd-review-card-top {
     display: grid;

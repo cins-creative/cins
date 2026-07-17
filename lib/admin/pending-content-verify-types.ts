@@ -12,6 +12,7 @@ export type PendingContentVerifyItem = {
   milestoneKind: string;
   orgTen: string;
   orgSlug: string;
+  orgAvatarUrl: string | null;
   orgLoai: "truong_dai_hoc" | "co_so_dao_tao";
   nganhLabel: string | null;
   monHocLabel: string | null;

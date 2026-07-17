@@ -1085,6 +1085,25 @@ async function resolveDoanCoverVisualsByCotMoc(
   return out;
 }
 
+/**
+ * Cover/thumb live theo cột mốc — cover bài hoặc ảnh đầu tiên trong blocks.
+ * Dùng khi snapshot `album.coverSrc` lúc gắn org bị thiếu.
+ */
+export async function resolveLiveCoverSrcByCotMoc(
+  entries: Array<{ cotMocId: string; tacPhamId: string }>,
+): Promise<Map<string, string | null>> {
+  const admin = createServiceRoleClient();
+  const visuals = await resolveDoanCoverVisualsByCotMoc(
+    admin,
+    entries.map((entry) => ({ ...entry, studentSlug: "" })),
+  );
+  const out = new Map<string, string | null>();
+  for (const [cotMocId, visual] of visuals) {
+    out.set(cotMocId, visual.coverSrc?.trim() || null);
+  }
+  return out;
+}
+
 export async function countOrgApprovedDoanTags(orgId: string): Promise<number> {
   const admin = createServiceRoleClient();
   const { data: rows } = await admin

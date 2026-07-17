@@ -1,22 +1,14 @@
 "use client";
 
-import { Users, X } from "lucide-react";
-import { useEffect, useId, useState } from "react";
+import { Loader2, Users, X } from "lucide-react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 
-import { AuthorRoleTooltip } from "@/components/journey/AuthorRoleTooltip";
-import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
+import { JourneySocialActorRow } from "@/components/journey/JourneySocialActorRow";
 import type { NgheRolePerson } from "@/lib/articles/nghe-role-people-types";
+import type { SocialActorProfile } from "@/lib/social/actors-types";
 
 import "@/components/journey/journey-social-actors.css";
-
-const AVATAR_TONES = [
-  "av-blue",
-  "av-green",
-  "av-amber",
-  "av-purple",
-  "av-coral",
-] as const;
 
 type Props = {
   open: boolean;
@@ -24,30 +16,51 @@ type Props = {
   people: ReadonlyArray<NgheRolePerson>;
 };
 
-function PersonAvatar({
-  person,
-  tone,
-}: {
-  person: NgheRolePerson;
-  tone: string;
-}) {
-  const initial = (person.tenHienThi || person.slug || "?").slice(0, 1).toUpperCase();
-  return (
-    <span className={`av ${tone}`}>
-      {person.avatarUrl ? (
-        /* eslint-disable-next-line @next/next/no-img-element */
-        <img src={person.avatarUrl} alt="" />
-      ) : (
-        initial
-      )}
-    </span>
-  );
+type EnrichState =
+  | { status: "idle" | "loading" }
+  | {
+      status: "ok";
+      actors: SocialActorProfile[];
+      viewerId: string | null;
+    }
+  | { status: "error" };
+
+function personToFallbackActor(person: NgheRolePerson): SocialActorProfile {
+  return {
+    idNguoiDung: person.id,
+    slug: person.slug,
+    tenHienThi: person.tenHienThi,
+    avatarUrl: person.avatarUrl,
+    tuongTacLuc: null,
+    bio: null,
+    giaiDoan: null,
+    tinhThanh: null,
+    mutualFriendCount: 0,
+    quanHe: "none",
+    ketBanId: null,
+    dangTheoDoi: false,
+  };
 }
 
-/** Bảng danh sách đầy đủ — người có vai trò khớp nghề. */
+/** Bảng danh sách đầy đủ — người có vai trò khớp nghề (cùng card social actors). */
 export function NgheRolePeopleModal({ open, onClose, people }: Props) {
   const titleId = useId();
   const [mounted, setMounted] = useState(false);
+  const [enrich, setEnrich] = useState<EnrichState>({ status: "idle" });
+
+  const rolesById = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const person of people) {
+      const roles = person.roles.join(" · ").trim();
+      if (roles) map.set(person.id, roles);
+    }
+    return map;
+  }, [people]);
+
+  const peopleIdsKey = useMemo(
+    () => people.map((p) => p.id).join("|"),
+    [people],
+  );
 
   useEffect(() => {
     queueMicrotask(() => setMounted(true));
@@ -67,7 +80,62 @@ export function NgheRolePeopleModal({ open, onClose, people }: Props) {
     };
   }, [open, onClose]);
 
+  useEffect(() => {
+    if (!open || people.length === 0) {
+      setEnrich({ status: "idle" });
+      return;
+    }
+
+    let cancelled = false;
+    setEnrich({ status: "loading" });
+
+    void (async () => {
+      try {
+        const response = await fetch("/api/social/actor-profiles", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ids: people.map((p) => p.id) }),
+        });
+        const json = (await response.json()) as {
+          actors?: SocialActorProfile[];
+          viewerId?: string | null;
+          error?: string;
+        };
+        if (!response.ok) {
+          throw new Error(json.error ?? "Không tải được hồ sơ.");
+        }
+        if (cancelled) return;
+
+        const byId = new Map(
+          (json.actors ?? []).map((actor) => [actor.idNguoiDung, actor]),
+        );
+        const actors = people.map(
+          (person) => byId.get(person.id) ?? personToFallbackActor(person),
+        );
+        setEnrich({
+          status: "ok",
+          actors,
+          viewerId: json.viewerId ?? null,
+        });
+      } catch {
+        if (cancelled) return;
+        setEnrich({ status: "error" });
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, people, peopleIdsKey]);
+
   if (!mounted || !open) return null;
+
+  const rows =
+    enrich.status === "ok"
+      ? enrich.actors
+      : people.map(personToFallbackActor);
+  const viewerId = enrich.status === "ok" ? enrich.viewerId : null;
+  const showList = enrich.status === "ok" || enrich.status === "error";
 
   return createPortal(
     <div className="jsa-backdrop" role="presentation" onClick={onClose}>
@@ -103,38 +171,20 @@ export function NgheRolePeopleModal({ open, onClose, people }: Props) {
             <Users size={14} strokeWidth={2} aria-hidden />
             Chưa có ai khớp nghề này.
           </p>
+        ) : !showList ? (
+          <p className="jsa-msg">
+            <Loader2 size={14} strokeWidth={2} className="bc-spin" aria-hidden />
+            Đang tải…
+          </p>
         ) : (
           <ul className="jsa-list nghe-role-people-modal-list" role="list">
-            {people.map((person, index) => (
-              <li key={person.id} className="jsa-row">
-                <div className="jsa-item nghe-role-people-modal-item">
-                  <JourneyUserPopover
-                    slug={person.slug}
-                    fallbackName={person.tenHienThi}
-                    fallbackAvatarUrl={person.avatarUrl}
-                    backdropZIndex={10950}
-                  >
-                    <span className="nghe-role-people-modal-person">
-                      <PersonAvatar
-                        person={person}
-                        tone={
-                          AVATAR_TONES[index % AVATAR_TONES.length] ?? "av-blue"
-                        }
-                      />
-                      <span className="nghe-role-people-modal-meta">
-                        <span className="nghe-role-people-modal-name">
-                          {person.tenHienThi}
-                        </span>
-                        <span className="nghe-role-people-modal-roles">
-                          {person.roles.map((role) => (
-                            <AuthorRoleTooltip key={role} role={role} />
-                          ))}
-                        </span>
-                      </span>
-                    </span>
-                  </JourneyUserPopover>
-                </div>
-              </li>
+            {rows.map((actor) => (
+              <JourneySocialActorRow
+                key={actor.idNguoiDung}
+                actor={actor}
+                viewerId={viewerId}
+                subtitleOverride={rolesById.get(actor.idNguoiDung) ?? null}
+              />
             ))}
           </ul>
         )}

@@ -1,14 +1,14 @@
 "use client";
 
+import { Search } from "lucide-react";
 import { useState } from "react";
 
-import { AuthorRoleTooltip } from "@/components/journey/AuthorRoleTooltip";
 import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
 import { NgheRolePeopleModal } from "@/components/article/nghe/NgheRolePeopleModal";
 import type { NgheRolePerson } from "@/lib/articles/nghe-role-people-types";
 
 /** Số người xem trước trên trang; phần còn lại mở trong bảng danh sách. */
-const PREVIEW_LIMIT = 4;
+const PREVIEW_LIMIT = 8;
 
 const AVATAR_TONES = [
   "av-blue",
@@ -56,50 +56,45 @@ export function NgheRolePeopleSection({ people }: Props) {
       className="nghe-role-people"
       aria-labelledby="nghe-role-people-title"
     >
-      <div className="nghe-role-people-head">
-        <h2 id="nghe-role-people-title" className="nghe-role-people-title">
-          Những người đang làm nghề này
-        </h2>
-        <span className="nghe-role-people-count">{countLabel} người</span>
-      </div>
+      <h2 id="nghe-role-people-title" className="nghe-role-people-title">
+        Người trong nghề
+      </h2>
 
-      <ul className="nghe-role-people-list" role="list">
-        {preview.map((person, index) => (
-          <li key={person.id} className="nghe-role-people-item author-row-item">
-            <JourneyUserPopover
-              slug={person.slug}
-              fallbackName={person.tenHienThi}
-              fallbackAvatarUrl={person.avatarUrl}
-            >
-              <span className="author-row-person">
-                <PersonAvatar
-                  person={person}
-                  tone={
-                    AVATAR_TONES[index % AVATAR_TONES.length] ?? "av-blue"
-                  }
-                />
-                <span className="author-row-info author-row-inline">
-                  <span className="author-row-name">{person.tenHienThi}</span>
-                  {person.roles.map((role) => (
-                    <AuthorRoleTooltip key={role} role={role} />
-                  ))}
+      <div className="nghe-role-people-row">
+        <ul className="nghe-role-people-list" role="list">
+          {preview.map((person, index) => (
+            <li key={person.id} className="nghe-role-people-item">
+              <JourneyUserPopover
+                slug={person.slug}
+                fallbackName={person.tenHienThi}
+                fallbackAvatarUrl={person.avatarUrl}
+              >
+                <span
+                  className="nghe-role-people-person"
+                  aria-label={person.tenHienThi}
+                >
+                  <PersonAvatar
+                    person={person}
+                    tone={
+                      AVATAR_TONES[index % AVATAR_TONES.length] ?? "av-blue"
+                    }
+                  />
                 </span>
-              </span>
-            </JourneyUserPopover>
-          </li>
-        ))}
-      </ul>
+              </JourneyUserPopover>
+            </li>
+          ))}
+        </ul>
 
-      <button
-        type="button"
-        className="nghe-role-people-all"
-        onClick={() => setListOpen(true)}
-      >
-        Xem tất cả người làm công việc này
-        {people.length > PREVIEW_LIMIT ? (
-          <span className="nghe-role-people-all-count">({countLabel})</span>
-        ) : null}
-      </button>
+        <button
+          type="button"
+          className="nghe-role-people-all"
+          aria-label={`Xem tất cả ${countLabel} người trong nghề`}
+          title={`Xem tất cả ${countLabel} người`}
+          onClick={() => setListOpen(true)}
+        >
+          <Search size={18} strokeWidth={1.9} aria-hidden />
+        </button>
+      </div>
 
       <NgheRolePeopleModal
         open={listOpen}

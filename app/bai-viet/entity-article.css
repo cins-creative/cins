@@ -68,31 +68,21 @@
   --jcard-coral: #c2410c;
   --jcard-coral-bg: var(--cins-orange-soft);
   border-top: 1px solid var(--border);
-  padding: var(--space-5) var(--space-8) var(--space-6);
+  padding: var(--space-4) var(--space-8);
   background: var(--bg-surface);
 }
 
-.nghe-role-people-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: var(--space-3);
-}
-
 .nghe-role-people-title {
-  margin: 0;
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: var(--ink-display, rgba(0, 0, 0, 0.85));
-  letter-spacing: -0.01em;
-}
-
-.nghe-role-people-count {
-  flex-shrink: 0;
+  margin: 0 0 8px;
   font-size: 12px;
   font-weight: 600;
   color: var(--ink-muted, rgba(0, 0, 0, 0.45));
+}
+
+.nghe-role-people-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .nghe-role-people-list {
@@ -100,81 +90,76 @@
   margin: 0;
   padding: 0;
   display: flex;
-  flex-direction: column;
+  align-items: center;
+}
+
+.nghe-role-people-item {
+  position: relative;
+  margin-left: -10px;
+}
+
+.nghe-role-people-item:first-child {
+  margin-left: 0;
+}
+
+.nghe-role-people-item:hover,
+.nghe-role-people-item:focus-within {
+  z-index: 2;
+}
+
+.nghe-role-people-person {
+  display: block;
+  cursor: pointer;
+  border-radius: 50%;
+}
+
+.nghe-role-people-person .av {
+  width: 38px;
+  height: 38px;
+  border: 2px solid var(--bg-surface);
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.12);
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.nghe-role-people-person:hover .av,
+.nghe-role-people-person:focus-visible .av {
+  transform: translateY(-2px);
+  box-shadow: 0 3px 8px rgba(15, 23, 42, 0.16);
 }
 
 .nghe-role-people-all {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  margin-top: var(--space-3);
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
   padding: 0;
-  border: none;
-  background: none;
-  font: inherit;
-  font-size: 13px;
-  font-weight: 600;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--bg-surface);
   color: var(--cins-blue);
   cursor: pointer;
-  text-align: left;
+  transition:
+    border-color 0.18s ease,
+    background 0.18s ease,
+    color 0.18s ease;
 }
 
 .nghe-role-people-all:hover,
 .nghe-role-people-all:focus-visible {
   color: var(--cins-blue-dark);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  outline: none;
-}
-
-.nghe-role-people-all-count {
-  font-weight: 500;
-  color: var(--ink-muted, rgba(0, 0, 0, 0.45));
-}
-
-.nghe-role-people-modal-list .jsa-row + .jsa-row {
-  border-top: 1px solid var(--border, #e2e8f0);
-}
-
-.nghe-role-people-modal-item {
-  padding: 10px 16px;
-}
-
-.nghe-role-people-modal-person {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  min-width: 0;
-  width: 100%;
-  text-decoration: none;
-  color: inherit;
-  cursor: pointer;
-}
-
-.nghe-role-people-modal-meta {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0;
-}
-
-.nghe-role-people-modal-name {
-  font-size: 14px;
-  font-weight: 650;
-  color: var(--ink-display, rgba(0, 0, 0, 0.85));
-  line-height: 1.3;
-}
-
-.nghe-role-people-modal-roles {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 6px;
-  align-items: center;
+  border-color: color-mix(in srgb, var(--cins-blue) 35%, var(--border));
+  background: var(--cins-blue-soft);
+  outline: 2px solid color-mix(in srgb, var(--cins-blue) 25%, transparent);
+  outline-offset: 2px;
 }
 
 @media (max-width: 720px) {
   .nghe-role-people {
-    padding: var(--space-4) var(--space-5) var(--space-5);
+    padding: var(--space-4) var(--space-5);
   }
 }
 

@@ -4,6 +4,7 @@ import type { PendingContentVerifyItem } from "@/lib/admin/pending-content-verif
 import {
   orgPublicPath,
   parseOrgMilestoneTagPayload,
+  resolveLiveCoverSrcByCotMoc,
 } from "@/lib/journey/org-milestone-tag";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
@@ -17,7 +18,9 @@ type YeuCauRow = {
   tao_luc: string;
 };
 
-function rowToItem(row: YeuCauRow): PendingContentVerifyItem | null {
+function rowToItem(
+  row: YeuCauRow,
+): { item: PendingContentVerifyItem; tacPhamId: string } | null {
   const payload = parseOrgMilestoneTagPayload(row.noi_dung);
   if (!payload) return null;
 
@@ -30,26 +33,30 @@ function rowToItem(row: YeuCauRow): PendingContentVerifyItem | null {
   const orgUrl = orgPublicPath(payload.orgLoai, payload.orgSlug);
 
   return {
-    requestId: row.id,
-    cotMocId: row.id_cot_moc,
-    orgId: row.id_to_chuc,
-    studentName: payload.studentName,
-    studentSlug: payload.studentSlug,
-    studentAvatarUrl: payload.studentAvatarUrl ?? null,
-    projectTitle: payload.projectTitle || payload.milestoneTitle,
-    milestoneTitle: payload.milestoneTitle,
-    milestoneKind: payload.milestoneKind,
-    orgTen: payload.orgTen,
-    orgSlug: payload.orgSlug,
-    orgLoai: payload.orgLoai,
-    nganhLabel: payload.nganhLabel ?? null,
-    monHocLabel: payload.monHocLabel ?? null,
-    nam: payload.nam,
-    thumbUrl: payload.album?.coverSrc ?? null,
-    submittedAt: row.tao_luc,
-    postUrl,
-    orgUrl,
-    evidence: Array.isArray(payload.evidence) ? payload.evidence : [],
+    item: {
+      requestId: row.id,
+      cotMocId: row.id_cot_moc,
+      orgId: row.id_to_chuc,
+      studentName: payload.studentName,
+      studentSlug: payload.studentSlug,
+      studentAvatarUrl: payload.studentAvatarUrl ?? null,
+      projectTitle: payload.projectTitle || payload.milestoneTitle,
+      milestoneTitle: payload.milestoneTitle,
+      milestoneKind: payload.milestoneKind,
+      orgTen: payload.orgTen,
+      orgSlug: payload.orgSlug,
+      orgAvatarUrl: payload.orgAvatarUrl?.trim() || null,
+      orgLoai: payload.orgLoai,
+      nganhLabel: payload.nganhLabel ?? null,
+      monHocLabel: payload.monHocLabel ?? null,
+      nam: payload.nam,
+      thumbUrl: payload.album?.coverSrc?.trim() || null,
+      submittedAt: row.tao_luc,
+      postUrl,
+      orgUrl,
+      evidence: Array.isArray(payload.evidence) ? payload.evidence : [],
+    },
+    tacPhamId: payload.tacPhamId?.trim() || "",
   };
 }
 
@@ -60,6 +67,10 @@ const MAX_ROWS = 5000;
 async function loadPendingOrgTagItems(): Promise<PendingContentVerifyItem[]> {
   const admin = createServiceRoleClient();
   const items: PendingContentVerifyItem[] = [];
+  const coverLookups: Array<{
+    cotMocId: string;
+    tacPhamId: string;
+  }> = [];
   let from = 0;
 
   for (;;) {
@@ -76,13 +87,28 @@ async function loadPendingOrgTagItems(): Promise<PendingContentVerifyItem[]> {
 
     const rows = data ?? [];
     for (const row of rows) {
-      const item = rowToItem(row);
-      if (item) items.push(item);
+      const parsed = rowToItem(row);
+      if (!parsed) continue;
+      items.push(parsed.item);
+      if (!parsed.item.thumbUrl && parsed.tacPhamId) {
+        coverLookups.push({
+          cotMocId: row.id_cot_moc,
+          tacPhamId: parsed.tacPhamId,
+        });
+      }
     }
 
     if (rows.length < PAGE_SIZE) break;
     from += PAGE_SIZE;
     if (from >= MAX_ROWS) break;
+  }
+
+  if (coverLookups.length === 0) return items;
+
+  const liveCovers = await resolveLiveCoverSrcByCotMoc(coverLookups);
+  for (const item of items) {
+    if (item.thumbUrl) continue;
+    item.thumbUrl = liveCovers.get(item.cotMocId) ?? null;
   }
 
   return items;

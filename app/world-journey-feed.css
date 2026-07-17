@@ -4099,6 +4099,32 @@
     padding: 12px 0;
     gap: 6px;
   }
+
+  .world-journey-home .wj-feed-promo-rail-track {
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x proximity;
+    scroll-padding-inline: 12px;
+    overscroll-behavior-inline: contain;
+    touch-action: pan-x;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .world-journey-home .wj-feed-promo-rail-track::-webkit-scrollbar {
+    display: none;
+  }
+
+  .world-journey-home .wj-feed-promo-rail-track > .wj-feed-promo-card,
+  .world-journey-home
+    .wj-feed-promo-rail-track
+    > .wj-feed-promo-card.is-person,
+  .world-journey-home .wj-feed-promo-rail-track > .wj-feed-promo-card.is-org {
+    flex: 0 0 160px;
+    width: 160px;
+    min-width: 160px;
+    scroll-snap-align: start;
+  }
 }
 
 @media (max-width: 640px) {

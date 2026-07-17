@@ -303,7 +303,12 @@ export function AdminPendingContentVerifyQueue({
                     </span>
                     <span className="ndd-review-person">
                       <span className="ndd-review-org-mark" aria-hidden>
-                        {item.orgTen.slice(0, 1).toUpperCase()}
+                        {item.orgAvatarUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={item.orgAvatarUrl} alt="" />
+                        ) : (
+                          item.orgTen.slice(0, 1).toUpperCase()
+                        )}
                       </span>
                       <span>
                         <small>Tổ chức xác thực</small>

@@ -168,6 +168,60 @@ async function enrichActorsForViewer(
   );
 }
 
+/** Hồ sơ actor theo id — mutual / kết bạn / follow theo viewer (modal nghề, …). */
+export async function fetchSocialActorProfilesByIds(params: {
+  userIds: readonly string[];
+  viewerId?: string | null;
+}): Promise<{ actors: SocialActorProfile[]; viewerId: string | null }> {
+  const viewerId = params.viewerId ?? null;
+  const userIds = [
+    ...new Set(
+      params.userIds
+        .map((id) => id.trim())
+        .filter((id) => /^[0-9a-f-]{36}$/i.test(id)),
+    ),
+  ].slice(0, 48);
+
+  if (userIds.length === 0) {
+    return { actors: [], viewerId };
+  }
+
+  const admin = createServiceRoleClient();
+  const { data: profiles } = await admin
+    .from("user_nguoi_dung")
+    .select("id, slug, ten_hien_thi, avatar_id, bio, giai_doan, tinh_thanh")
+    .in("id", userIds)
+    .returns<ProfileRow[]>();
+
+  const profileById = new Map((profiles ?? []).map((p) => [p.id, p]));
+  const baseActors: SocialActorProfile[] = [];
+
+  for (const id of userIds) {
+    const profile = profileById.get(id);
+    if (!profile?.slug?.trim()) continue;
+    const bioRaw = profile.bio?.trim() || null;
+    baseActors.push({
+      idNguoiDung: profile.id,
+      slug: profile.slug,
+      tenHienThi: profile.ten_hien_thi?.trim() || profile.slug,
+      avatarUrl: getAvatarUrl(profile.avatar_id),
+      tuongTacLuc: null,
+      bio: bioRaw ? truncateBio(bioRaw) : null,
+      giaiDoan: getGiaiDoanLabel(
+        (profile.giai_doan as GiaiDoan | null) ?? null,
+      ),
+      tinhThanh: formatTinhThanh(profile.tinh_thanh),
+      mutualFriendCount: 0,
+      quanHe: "none",
+      ketBanId: null,
+      dangTheoDoi: false,
+    });
+  }
+
+  const actors = await enrichActorsForViewer(baseActors, viewerId);
+  return { actors, viewerId };
+}
+
 /**
  * `null` = dùng mặc định theo kind (heart / dislike).
  * `"invalid"` = emoji query không hợp lệ.
