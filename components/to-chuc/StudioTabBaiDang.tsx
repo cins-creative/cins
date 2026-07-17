@@ -8,17 +8,19 @@ import { TruongBaiDangEditProvider } from "@/components/truong/inline/TruongBaiD
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
 import { OrgBaiDangFilterProvider } from "@/components/truong/OrgBaiDangFilterContext";
 import { OrgBaiDangLoaiConfigProvider } from "@/components/truong/OrgBaiDangLoaiConfigContext";
+import { OrgBaiDangPostDetailView } from "@/components/truong/OrgBaiDangPostDetailView";
 import { isTruongBaiDangScheduled } from "@/lib/truong/org-bai-dang-schedule";
 import { STUDIO_LOAI_CONFIG } from "@/lib/truong/org-bai-dang-loai-options";
 import type { OrgBaiDangView } from "@/lib/truong/bai-dang-grid";
 import type { TruongBaiDang, TruongListItem } from "@/lib/truong/types";
 import { STUDIO_SHOWCASE_LOAI } from "@/lib/to-chuc/studio-page-config";
+import { studioTabPath } from "@/lib/to-chuc/studio-routes";
 
 type StudioVariant = "bai-dang" | "showcase";
 
 type OrgOwner = Pick<
   TruongListItem,
-  "avatar_id" | "logo_id" | "avatar_src" | "ten"
+  "avatar_id" | "logo_id" | "avatar_src" | "ten" | "slug"
 >;
 
 type Props = {
@@ -29,6 +31,8 @@ type Props = {
   guestEmptyMessage?: string;
   /** Chỉ áp cho Showcase — chế độ xem mặc định từ `cau_hinh`. */
   showcaseDefaultView?: OrgBaiDangView;
+  /** Deep link `/studio/:slug/bai-dang|:showcase/:id`. */
+  activeBaiDangId?: string | null;
 };
 
 function isShowcasePost(post: TruongBaiDang): boolean {
@@ -54,6 +58,7 @@ export function StudioTabBaiDang({
   owner = null,
   guestEmptyMessage,
   showcaseDefaultView,
+  activeBaiDangId = null,
 }: Props) {
   const ctx = useTruongInlineEdit();
   const allPosts = ctx?.baidang ?? postsProp;
@@ -61,6 +66,23 @@ export function StudioTabBaiDang({
     () => filterByVariant(allPosts, variant),
     [allPosts, variant],
   );
+  const orgSlug = ctx?.school.slug ?? owner?.slug ?? "";
+  const detailOwner =
+    owner ??
+    (ctx?.school
+      ? {
+          avatar_id: ctx.school.avatar_id,
+          logo_id: ctx.school.logo_id,
+          avatar_src: ctx.school.avatar_src,
+          ten: ctx.school.ten,
+          slug: ctx.school.slug,
+        }
+      : null);
+  const activePost = activeBaiDangId
+    ? (allPosts.find((p) => p.id === activeBaiDangId) ??
+      posts.find((p) => p.id === activeBaiDangId) ??
+      null)
+    : null;
 
   const onPostPublished = useCallback(
     (post: TruongBaiDang) => {
@@ -114,7 +136,7 @@ export function StudioTabBaiDang({
     [ctx],
   );
 
-  const content = (
+  const timeline = (
     <TruongBaiDangEditProvider>
       <CoSoOrgBaiDangTimeline
         posts={posts}
@@ -129,6 +151,18 @@ export function StudioTabBaiDang({
       />
     </TruongBaiDangEditProvider>
   );
+
+  const content =
+    activePost && detailOwner && orgSlug ? (
+      <OrgBaiDangPostDetailView
+        post={activePost}
+        school={detailOwner}
+        orgSlug={orgSlug}
+        backHref={studioTabPath(orgSlug, variant)}
+      />
+    ) : (
+      timeline
+    );
 
   const withFilters =
     variant === "bai-dang" && ctx?.orgId ? (

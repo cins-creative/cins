@@ -51,7 +51,7 @@ export type JourneyShareProfile = {
   emailLine?: string | null;
   /** Dòng MXH ngắn (vd. behance.net/…) — thẻ mặt trước. */
   socialLine?: string | null;
-  stats?: { cotMoc: number; tacPham: number };
+  stats?: { noiBat: number; tacPham: number };
   /** Thumbnail gallery — lấy từ cache panel khi có. */
   galleryThumbs?: string[];
 };

@@ -21,33 +21,66 @@ export function studioJobPath(orgSlug: string, jobId: string): string {
   return `${studioTabPath(orgSlug, "tuyen-dung")}/${encodeURIComponent(jobId)}`;
 }
 
+/** URL sâu tới một bài đăng: `/studio/:slug/bai-dang/:baiDangId`. */
+export function studioBaiDangPostPath(orgSlug: string, baiDangId: string): string {
+  return `${studioTabPath(orgSlug, "bai-dang")}/${encodeURIComponent(baiDangId)}`;
+}
+
+export type StudioPathState = {
+  tab: StudioTabId;
+  jobId: string | null;
+  baiDangId: string | null;
+};
+
+const DEFAULT_PATH_STATE: StudioPathState = {
+  tab: STUDIO_DEFAULT_TAB,
+  jobId: null,
+  baiDangId: null,
+};
+
 /** Lấy jobId từ pathname `/studio/:slug/tuyen-dung/:jobId` (null nếu không có). */
 export function parseStudioJobIdFromPathname(pathname: string): string | null {
-  const normalizedPath = pathname.split("?")[0].split("#")[0];
-  const prefix = "/studio/";
-  if (!normalizedPath.startsWith(prefix)) return null;
-
-  const rest = normalizedPath
-    .slice(prefix.length)
-    .split("/")
-    .filter(Boolean);
-  // rest = [slug, tab, jobId?]
-  if (rest[1] !== "tuyen-dung") return null;
-  const jobId = rest[2];
-  return jobId ? decodeURIComponent(jobId) : null;
+  return parseStudioRouteFromPathname(pathname)?.jobId ?? null;
 }
 
 /** Parse tab từ pathname `/studio/:slug/...` — không phụ thuộc slug khớp payload. */
 export function parseStudioTabFromPathname(pathname: string): StudioTabId {
+  return parseStudioRouteFromPathname(pathname)?.tab ?? STUDIO_DEFAULT_TAB;
+}
+
+/** Parse tab + deep link (bài đăng / tuyển dụng) từ pathname studio. */
+export function parseStudioRouteFromPathname(
+  pathname: string,
+): StudioPathState | null {
   const normalizedPath = pathname.split("?")[0].split("#")[0];
   const prefix = "/studio/";
-  if (!normalizedPath.startsWith(prefix)) return STUDIO_DEFAULT_TAB;
+  if (!normalizedPath.startsWith(prefix)) return null;
 
   const withoutPrefix = normalizedPath.slice(prefix.length);
   const firstSlash = withoutPrefix.indexOf("/");
-  if (firstSlash === -1) return STUDIO_DEFAULT_TAB;
+  if (firstSlash === -1) {
+    return { ...DEFAULT_PATH_STATE };
+  }
 
-  const rest = withoutPrefix.slice(firstSlash + 1).split("/").filter(Boolean);
-  const first = rest[0];
-  return first && isStudioTabId(first) ? first : STUDIO_DEFAULT_TAB;
+  const rest = withoutPrefix
+    .slice(firstSlash + 1)
+    .split("/")
+    .filter(Boolean);
+  if (rest.length === 0) {
+    return { ...DEFAULT_PATH_STATE };
+  }
+
+  const tabSeg = rest[0];
+  if (!tabSeg || !isStudioTabId(tabSeg)) {
+    return null;
+  }
+
+  const deepId = rest[1] ? decodeURIComponent(rest[1]) : null;
+  if (tabSeg === "tuyen-dung") {
+    return { tab: tabSeg, jobId: deepId, baiDangId: null };
+  }
+  if (tabSeg === "bai-dang" || tabSeg === "showcase") {
+    return { tab: tabSeg, jobId: null, baiDangId: deepId };
+  }
+  return { tab: tabSeg, jobId: null, baiDangId: null };
 }

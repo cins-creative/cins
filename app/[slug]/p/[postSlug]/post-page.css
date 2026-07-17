@@ -3577,6 +3577,25 @@
   margin-top: 0;
   flex-shrink: 0;
 }
+.cins-post-view .post-comments-v1 .post-comments-votes {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.cins-post-view .post-comments-v1 .post-comments-votes .action-btn,
+.cins-post-view .post-comments-v1 .post-comments-votes .action-btn--split {
+  padding: 3px 6px;
+  min-height: 26px;
+  border-radius: 6px;
+  font-size: 12px;
+  gap: 4px;
+}
+.cins-post-view .post-comments-v1 .post-comments-votes .action-btn-count {
+  min-width: 1.1em;
+  padding: 0 1px;
+  font-size: 12px;
+  font-weight: 700;
+}
 .cins-post-view .post-comments-v1 .post-comments-reactions {
   display: flex;
   flex-wrap: wrap;

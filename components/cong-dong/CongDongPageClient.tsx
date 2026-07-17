@@ -443,7 +443,7 @@ export function CongDongPageClient({ initial }: Props) {
       avatar_id: org.avatarId,
       cover_id: org.coverId,
       tinhThanh: org.tinhThanh,
-      stats: { cotMoc: org.soBaiViet, tacPham: 0 },
+      stats: { noiBat: org.soBaiViet, tacPham: 0 },
     }),
     [
       org.id,

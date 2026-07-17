@@ -55,6 +55,8 @@ export type GalleryMainPageResult = {
   nextOffset: number;
   hasMore: boolean;
   totalCount: number;
+  /** Số nội dung `che_do_hien_thi = feature`. */
+  featuredCount: number;
   filterCounts: MilestoneFilterCounts;
 };
 
@@ -372,6 +374,7 @@ function hydrateAsideItems(
       showSourceAuthor: sourceAuthor.showCorner,
       sourcePeople: sourceAuthor.showCorner ? sourceAuthor.people : undefined,
       href: galleryStubHref(entry, ownerSlug, ownerSlugById),
+      isOrgPost,
       mediaKind: entry.mediaKind,
       embedProvider: entry.embedProvider ?? null,
       isVideo,
@@ -385,6 +388,7 @@ function hydrateAsideItems(
     const img = stubImageFields(entry, "gallery-grid");
     const isVideo = entry.mediaKind === "video";
     if (!img?.src && !isVideo) return;
+    const isOrgPost = Boolean(entry.orgHref && !entry.tacPhamSlug);
     items.push({
       id: `grid-${entry.cotMocId}-${i}`,
       cotMocId: entry.cotMocId,
@@ -394,6 +398,7 @@ function hydrateAsideItems(
       height: img?.height,
       label: galleryItemLabel(entry.tieuDe, entry.mediaKind),
       href: galleryStubHref(entry, ownerSlug, ownerSlugById),
+      isOrgPost,
       mediaKind: entry.mediaKind,
       embedProvider: entry.embedProvider ?? null,
       isVideo,
@@ -479,8 +484,14 @@ export async function fetchGalleryMainPage(params: {
     nextOffset,
     hasMore: nextOffset < stubs.length,
     totalCount: stubs.length,
+    featuredCount: stubs.filter((s) => s.visibility === "feature").length,
     filterCounts,
   };
+}
+
+export async function fetchGalleryFeaturedCount(userId: string): Promise<number> {
+  const stubs = await getGalleryStubsCached(userId);
+  return stubs.filter((s) => s.visibility === "feature").length;
 }
 
 export async function fetchGalleryForUser(params: {

@@ -25,6 +25,8 @@ import {
 
 import { updateCover } from "@/app/[slug]/journey/actions";
 
+import "./journey-avatar-editor.css";
+
 /* ╔══════════════════════════════════════════════════════════════════╗
    ║ JourneyCoverEditor                                               ║
    ║                                                                  ║

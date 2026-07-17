@@ -9,7 +9,7 @@ export type GallerySourcePerson = {
 };
 
 export type GallerySourceAuthor = {
-  /** Hiện avatar góc thumb — nguồn ngoại lai / org / bài có cộng sự. */
+  /** Hiện avatar góc thumb — nguồn ngoại lai / bài có ≥2 người đóng góp. */
   showCorner: boolean;
   /** Người có vai trò trong dự án (chủ + cộng sự accepted). */
   people: GallerySourcePerson[];
@@ -98,8 +98,13 @@ export function resolveGallerySourceAuthor(
       ...accepted.map(creditToPerson),
     ]).slice(0, MAX_CORNER_PEOPLE);
 
+    /* Chỉ hiện avatar khi bài có đóng góp nhiều người — không gắn avatar tổ chức đơn lẻ. */
+    if (people.length < 2) {
+      return { showCorner: false, people: [], name: null, avatarUrl: null };
+    }
+
     return {
-      showCorner: people.length > 0,
+      showCorner: true,
       people,
       name: orgName,
       avatarUrl: orgAvatar,

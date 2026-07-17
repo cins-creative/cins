@@ -179,8 +179,13 @@ function resolveReactionEmoji(
 ): string | null | "invalid" {
   const trimmed = raw?.trim() || null;
   if (loaiDoiTuong === SOCIAL_LOAI_BINH_LUAN) {
+    if (kind === "dislike") {
+      if (trimmed && trimmed !== REACTION_EMOJI.DISLIKE) return "invalid";
+      return REACTION_EMOJI.DISLIKE;
+    }
     if (kind !== "like") return "invalid";
     if (!trimmed || !COMMENT_REACTION_KEYS.has(trimmed)) return "invalid";
+    if (trimmed === REACTION_EMOJI.DISLIKE) return "invalid";
     return trimmed;
   }
   if (!trimmed) return null;

@@ -12193,6 +12193,9 @@ select.j-edit-input {
   gap: 8px;
   padding: 14px 20px 18px;
   border-top: 1px solid var(--border-soft, #e5e7eb);
+  background: var(--bg-surface, #fff);
+  color: var(--ink-strong, #0f172a);
+  margin-top: 0;
 }
 .ja-foot-spacer {
   flex: 1;
@@ -17334,6 +17337,103 @@ a.action-btn-part {
 .action-spacer {
   flex: 1;
 }
+.jcard-actions .jcard-share {
+  position: relative;
+  flex: 0 0 auto;
+  margin-left: 2px;
+  z-index: 3;
+}
+.jcard-actions .jcard-share .share-btn {
+  min-width: 36px;
+  min-height: 36px;
+  justify-content: center;
+  padding-inline: 8px;
+}
+.jcard-actions .jcard-share .post-byline-share {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  top: auto;
+  right: 0;
+  left: auto;
+  width: max-content;
+  min-width: 0;
+  max-width: min(280px, calc(100vw - 24px));
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--jcard-border2, var(--border));
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.14);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 40;
+}
+.jcard-actions .jcard-share .post-byline-share-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  text-decoration: none;
+  background: transparent;
+  border: none;
+  color: var(--jcard-ink, var(--ink-body));
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: background 120ms ease;
+}
+.jcard-actions .jcard-share .post-byline-share-item:hover {
+  background: var(--neutral-100, #f1f2f5);
+}
+.jcard-actions .jcard-share .post-byline-share-ic {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 12px;
+  color: #fff;
+  flex-shrink: 0;
+}
+.jcard-actions .jcard-share .post-byline-share-ic--native {
+  background: var(--cins-blue, #2563eb);
+}
+.jcard-actions .jcard-share .post-byline-share-ic--copy {
+  background: var(--neutral-200, #e5e7eb);
+  color: var(--jcard-ink, var(--ink-title));
+}
+.jcard-actions .jcard-share .post-byline-share-ic--fb {
+  background: #1877f2;
+  font-family: Georgia, serif;
+  font-size: 16px;
+}
+.jcard-actions .jcard-share .post-byline-share-ic--x {
+  background: #000;
+  font-size: 13px;
+}
+.jcard-actions .jcard-share .post-byline-share-ic--in {
+  background: #0a66c2;
+  font-size: 11px;
+  letter-spacing: -0.5px;
+}
+.jcard-actions .jcard-share .post-byline-share-ic--zalo {
+  background: #0068ff;
+  font-size: 13px;
+}
+.jcard-actions .jcard-share .post-byline-share-ic--wa {
+  background: #25d366;
+  font-size: 13px;
+}
+.jcard-actions .jcard-share .post-byline-share-ic--pin {
+  background: #e60023;
+  font-size: 13px;
+}
 .jcard-view-count {
   display: none;
 }
@@ -21452,6 +21552,19 @@ a.action-btn-part {
   color: var(--cins-blue, #1f74c9);
   letter-spacing: -0.4px;
 }
+.j-ps-panel-card .j-ps-stats-inline {
+  justify-content: center;
+  flex-wrap: wrap;
+  font-size: 15px;
+  margin-top: 4px;
+}
+.j-ps-panel-card .j-ps-stats-inline b {
+  font-size: 22px;
+  background: linear-gradient(90deg, #1f74c9, #bb89f8);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
 .j-ps-panel-main {
   position: relative;
   z-index: 1;
@@ -21460,17 +21573,6 @@ a.action-btn-part {
   gap: 14px;
   min-width: 0;
   min-height: 0;
-}
-.j-ps-panel-main .j-ps-stats-inline {
-  justify-content: center;
-  font-size: 18px;
-}
-.j-ps-panel-main .j-ps-stats-inline b {
-  font-size: 28px;
-  background: linear-gradient(90deg, #1f74c9, #bb89f8);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
 }
 .j-ps-panel-grid {
   flex: 1;

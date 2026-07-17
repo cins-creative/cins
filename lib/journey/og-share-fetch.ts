@@ -13,6 +13,7 @@ import {
 import {
   fetchGalleryMainPage,
   fetchGalleryTotalCount,
+  fetchGalleryFeaturedCount,
   type GalleryMainItem,
 } from "@/lib/journey/gallery-page-fetch";
 import {
@@ -242,7 +243,6 @@ export async function fetchOgShareContext(
   if (error || !owner || owner.giai_doan === null) return null;
 
   const kind = ogKindFromSearch(search.view);
-  const admin = createServiceRoleClient();
 
   const themeState = parseShareOgThemeState(owner.theme, owner.slug);
   const layout =
@@ -267,12 +267,9 @@ export async function fetchOgShareContext(
   const displayName = owner.ten_hien_thi?.trim() || owner.slug;
 
   if (kind === "journey") {
-    const [{ count: cotMoc }, galleryCount] = await Promise.all([
-      admin
-        .from("content_cot_moc")
-        .select("id", { count: "exact", head: true })
-        .eq("id_nguoi_dung", owner.id),
+    const [galleryCount, featuredCount] = await Promise.all([
       fetchGalleryTotalCount(owner.id),
+      fetchGalleryFeaturedCount(owner.id),
     ]);
 
     const bio = truncateBio(owner.bio);
@@ -286,7 +283,7 @@ export async function fetchOgShareContext(
       roleLine: getGiaiDoanLabel(owner.giai_doan),
       locationLine: formatTinhThanh(owner.tinh_thanh),
       stats: {
-        cotMoc: cotMoc ?? 0,
+        noiBat: featuredCount,
         tacPham: galleryCount,
       },
     };
@@ -306,12 +303,9 @@ export async function fetchOgShareContext(
   }
 
   const filterSpec = await resolveGalleryFilterSpec(owner.id, search);
-  const [{ count: cotMoc }, galleryTotal, filtered] = await Promise.all([
-    admin
-      .from("content_cot_moc")
-      .select("id", { count: "exact", head: true })
-      .eq("id_nguoi_dung", owner.id),
+  const [galleryTotal, featuredCount, filtered] = await Promise.all([
     fetchGalleryTotalCount(owner.id),
+    fetchGalleryFeaturedCount(owner.id),
     fetchFilteredGalleryForOg(owner.id, slug, filterSpec),
   ]);
 
@@ -329,7 +323,7 @@ export async function fetchOgShareContext(
     roleLine: getGiaiDoanLabel(owner.giai_doan),
     locationLine: formatTinhThanh(owner.tinh_thanh),
     stats: {
-      cotMoc: cotMoc ?? 0,
+      noiBat: featuredCount,
       tacPham: tacPhamCount,
     },
     galleryThumbs: filtered.thumbs,

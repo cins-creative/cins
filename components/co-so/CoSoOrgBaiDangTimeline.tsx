@@ -28,7 +28,7 @@ import { buildPersonalFilterSearchUrl } from "@/lib/filter/client-utils";
 
 type OrgOwner = Pick<
   TruongListItem,
-  "avatar_id" | "logo_id" | "avatar_src" | "ten"
+  "avatar_id" | "logo_id" | "avatar_src" | "ten" | "slug" | "org_loai"
 >;
 
 type Props = {

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { ChevronUp } from "lucide-react";
 import { useMemo, useRef, useState, useEffect, useCallback } from "react";
 
@@ -18,6 +19,7 @@ import { JourneyMilestoneCardBodyContent } from "@/components/journey/JourneyMil
 import type { MilestoneMediaItem } from "@/components/journey/milestone-types";
 import { JourneyUnfoldArticleContent } from "@/components/journey/JourneyUnfoldArticleContent";
 import { PostBlockRenderer } from "@/components/journey/PostBlockRenderer";
+import { PostShareMenu } from "@/components/journey/PostActionsRail";
 import {
   milestoneCardContentKind,
   milestoneCardPhotoGrid,
@@ -54,11 +56,12 @@ import {
   baiDangYear,
 } from "@/lib/truong/bai-dang-timeline";
 import { isTruongBaiDangScheduled } from "@/lib/truong/org-bai-dang-schedule";
+import { orgBaiDangPermalinkForSchool } from "@/lib/truong/org-bai-dang-permalink";
 import type { TruongBaiDang, TruongListItem } from "@/lib/truong/types";
 
 type OrgOwner = Pick<
   TruongListItem,
-  "avatar_id" | "logo_id" | "avatar_src" | "ten"
+  "avatar_id" | "logo_id" | "avatar_src" | "ten" | "slug" | "org_loai"
 >;
 
 type Props = {
@@ -79,7 +82,7 @@ type Props = {
 function shouldIgnoreExpandTrigger(target: Element | null): boolean {
   return Boolean(
     target?.closest(
-      "a, button, input, textarea, select, summary, .j-m-menu, .authors-details, .image-grid-cell, .jcard-video-trigger, .jcard-actions, .tdh-baidang-edit, .org-baidang-date-edit, .org-baidang-loai-picker, .j-article-tag-manage, .j-coauthor-propose",
+      "a, button, input, textarea, select, summary, .j-m-menu, .authors-details, .image-grid-cell, .jcard-video-trigger, .jcard-actions, .jcard-share, .post-byline-share-wrap, .tdh-baidang-edit, .org-baidang-date-edit, .org-baidang-loai-picker, .j-article-tag-manage, .j-coauthor-propose",
     ),
   );
 }
@@ -114,11 +117,16 @@ export function OrgBaiDangJourneyCard({
   allowCoAuthorManage = false,
 }: Props) {
   const ctx = useTruongInlineEdit();
+  const pathname = usePathname();
   const school = ctx?.school ?? owner;
   const isScheduled = isTruongBaiDangScheduled(post);
   const showScheduledUi = ctx?.isEditing && isScheduled;
   const canManagePost = Boolean(ctx?.isEditing);
   const orgId = ctx?.orgId ?? "";
+  const sharePath = useMemo(() => {
+    if (!school?.slug) return null;
+    return orgBaiDangPermalinkForSchool(school, post.id, pathname);
+  }, [school, post.id, pathname]);
   const [liveArticleTags, setLiveArticleTags] = useState<ArticleTagRef[]>(
     () => [...(post.articleTags ?? [])],
   );
@@ -558,6 +566,14 @@ export function OrgBaiDangJourneyCard({
                   tacGiaApiUrl={tacGiaApiUrl}
                   pickerScope="platform"
                   orgId={orgId}
+                />
+              ) : null}
+              {sharePath ? (
+                <PostShareMenu
+                  sharePath={sharePath}
+                  shareTitle={post.tieu_de}
+                  className="jcard-share"
+                  buttonClassName="share-btn"
                 />
               ) : null}
             </div>

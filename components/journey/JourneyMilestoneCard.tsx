@@ -49,6 +49,7 @@ import { JourneyBookmarkButton } from "@/components/journey/JourneyBookmarkButto
 import { JourneyMilestoneInlineControls } from "@/components/journey/JourneyMilestoneInlineControls";
 import { JourneyLikeButton } from "@/components/journey/JourneyLikeButton";
 import { JourneyDislikeButton } from "@/components/journey/JourneyDislikeButton";
+import { PostShareMenu } from "@/components/journey/PostActionsRail";
 import { JourneyMilestoneOwnerMenu } from "@/components/journey/JourneyMilestoneOwnerMenu";
 import { JourneyMilestoneInsightsModal } from "@/components/journey/JourneyMilestoneInsightsModal";
 import { JourneyMilestoneViewerMenu } from "@/components/social/JourneyMilestoneViewerMenu";
@@ -795,6 +796,8 @@ export function JourneyMilestoneCard({
       : ownerProfileId ?? "";
   const canShowCoAuthorAction =
     (canProposeCoAuthor || canManageCoAuthors) && Boolean(tacPhamId);
+  /** Id để PATCH vị trí — tác phẩm user hoặc bài đăng org (tagged). */
+  const roleEditTargetId = tacPhamId ?? orgBaiDangRef?.postId ?? null;
   const visibleCoAuthors = coAuthorCredits.slice(0, MAX_VISIBLE_COAUTHORS);
   const hiddenCoAuthorCount = Math.max(
     0,
@@ -1286,18 +1289,22 @@ export function JourneyMilestoneCard({
               </JourneyUserPopover>
               {c.laChuSoHuu ? (
                 <span className="abadge abadge-owner">Chủ bài</span>
-              ) : variant === "tagged" && c.slug && c.slug === ownerSlug ? (
+              ) : (variant === "tagged" || variant === "verified") &&
+                c.slug &&
+                c.slug === ownerSlug ? (
                 <span className="abadge abadge-you">Bạn</span>
               ) : c.trangThai === "pending" ? (
                 <span className="abadge abadge-pending">Chờ xác nhận</span>
               ) : null}
-              {tacPhamId &&
+              {/* Org bài đăng tagged không có `tacPhamId` — dùng `orgBaiDangRef.postId`
+                  (API PATCH /tac-pham/... fallback sang org_bai_dang_tac_gia). */}
+              {roleEditTargetId &&
               viewerProfileId &&
               (c.idNguoiDung === viewerProfileId ||
                 (isOwner && Boolean(c.slug) && c.slug === ownerSlug)) &&
               c.trangThai !== "pending" ? (
                 <JourneyOwnCoAuthorRoleEditor
-                  tacPhamId={tacPhamId}
+                  tacPhamId={roleEditTargetId}
                   userId={viewerProfileId}
                   role={c.role}
                   onSaved={(positions) => {
@@ -1402,6 +1409,14 @@ export function JourneyMilestoneCard({
         <span className="jcard-view-count" aria-label={`${formatViews(views)} lượt xem`}>
           {formatViews(views)}
         </span>
+      ) : null}
+      {viewerPostHref ? (
+        <PostShareMenu
+          sharePath={viewerPostHref}
+          shareTitle={title}
+          className="jcard-share"
+          buttonClassName="share-btn"
+        />
       ) : null}
     </div>
   );

@@ -38,10 +38,11 @@ export type MilestonePostCommentV1 = {
   replies: MilestonePostCommentV1[];
 };
 
-/** Emoji key lưu DB → hiển thị UI. */
+/** Emoji key lưu DB → hiển thị UI. Like/dislike khớp cột mốc (`REACTION_EMOJI`). */
 export const COMMENT_REACTION_EMOJIS = [
-  { key: "thumbsup", label: "👍" },
   { key: "heart", label: "❤️" },
+  { key: "dislike", label: "👎" },
+  { key: "thumbsup", label: "👍" },
   { key: "joy", label: "😂" },
   { key: "wow", label: "😮" },
   { key: "sad", label: "😢" },

@@ -4,6 +4,7 @@ import { UserCheck } from "lucide-react";
 
 import { JourneyFollowButton } from "@/components/journey/JourneyFollowButton";
 import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
+import { VerifiedTick } from "@/components/journey/VerifiedTick";
 import { useKetBanStatus } from "@/lib/social/use-ket-ban-status";
 
 type Props = {
@@ -70,6 +71,7 @@ export function HaUserSuggestionRow({
           <span className="ha-row-meta">
             <span className="ha-row-name">
               {name}
+              <VerifiedTick slug={slug} />
               {variant !== "person" ? friendBadge : null}
             </span>
             <span className="ha-row-sub">{subtitle}</span>

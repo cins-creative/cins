@@ -362,16 +362,26 @@ export function JourneyProfileShareModal({
   );
 
   useEffect(() => {
-    if (!open || step !== "gallery-card") return;
+    if (!open || (step !== "gallery-card" && step !== "journey-card")) return;
 
     const filterSpec = portfolioFilter ?? PORTFOLIO_ALL_FILTER_SHARE_SPEC;
     const timeline = readJourneyTimelinePanelCache(profile.slug, viewerProfileId);
     const gallery = readJourneyGalleryPanelCache(profile.slug, viewerProfileId);
     let cancelled = false;
 
+    const countNoiBat = (
+      sources: ReadonlyArray<ReadonlyArray<ShareGallerySourceItem>>,
+    ): number => {
+      if (typeof gallery?.featuredCount === "number") {
+        return gallery.featuredCount;
+      }
+      const merged = mergeShareGallerySources(...sources);
+      return merged.filter((item) => item.visibility === "feature").length;
+    };
+
     const applyThumbs = (
       sources: ReadonlyArray<ReadonlyArray<ShareGallerySourceItem>>,
-      stats: { cotMoc: number; tacPham: number },
+      stats: { noiBat: number; tacPham: number },
     ) => {
       const merged = mergeShareGallerySources(...sources);
       const thumbs = galleryThumbsForShareSpec(merged, filterSpec);
@@ -384,14 +394,14 @@ export function JourneyProfileShareModal({
 
     if (orgShare) {
       applyThumbs([liveGalleryItems], {
-        cotMoc: profile.stats?.cotMoc ?? 0,
+        noiBat: profile.stats?.noiBat ?? 0,
         tacPham: profile.stats?.tacPham ?? 0,
       });
       void (async () => {
         const fetched = await fetchGalleryItemsForShare(profile.slug);
         if (cancelled || fetched.length === 0) return;
         applyThumbs([liveGalleryItems, fetched], {
-          cotMoc: profile.stats?.cotMoc ?? 0,
+          noiBat: profile.stats?.noiBat ?? countNoiBat([liveGalleryItems, fetched]),
           tacPham: profile.stats?.tacPham ?? fetched.length,
         });
       })();
@@ -400,18 +410,23 @@ export function JourneyProfileShareModal({
       };
     }
 
+    const resolveNoiBat = (
+      sources: ReadonlyArray<ReadonlyArray<ShareGallerySourceItem>>,
+    ) => profile.stats?.noiBat ?? countNoiBat(sources);
+
     const baseStats = {
-      cotMoc: timeline?.page.totalCount ?? profile.stats?.cotMoc ?? 0,
+      noiBat: resolveNoiBat([liveGalleryItems, gallery?.items ?? []]),
       tacPham: gallery?.totalCount ?? profile.stats?.tacPham ?? 0,
     };
 
-    if (filterSpec.kind === "all") {
+    if (step === "journey-card" || filterSpec.kind === "all") {
       applyThumbs([liveGalleryItems, gallery?.items ?? []], baseStats);
       void (async () => {
         const fetched = await fetchGalleryItemsForShare(profile.slug);
         if (cancelled || fetched.length === 0) return;
-        applyThumbs([liveGalleryItems, fetched, gallery?.items ?? []], {
-          ...baseStats,
+        const sources = [liveGalleryItems, fetched, gallery?.items ?? []];
+        applyThumbs(sources, {
+          noiBat: resolveNoiBat(sources),
           tacPham:
             gallery?.totalCount ??
             (fetched.length > 0 ? fetched.length : baseStats.tacPham),
@@ -430,7 +445,7 @@ export function JourneyProfileShareModal({
       if (cancelled) return;
       setGalleryThumbs(galleryThumbsForShareSpec(merged, filterSpec));
       setShareStats({
-        cotMoc: timeline?.page.totalCount ?? profile.stats?.cotMoc ?? 0,
+        noiBat: resolveNoiBat(sources),
         tacPham: filtered.length,
       });
     };

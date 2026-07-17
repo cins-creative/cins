@@ -8,6 +8,7 @@ import {
   commentReactionLabel,
   type CommentReactionSummary,
 } from "@/lib/social/comments/types";
+import { REACTION_EMOJI } from "@/lib/social/reaction-emoji";
 import { useCoarsePointer } from "@/lib/ui/use-coarse-pointer";
 
 type Props = {
@@ -45,7 +46,9 @@ export function CommentReactionPill({
       <JourneySocialActorsModal
         open={actorsOpen}
         onClose={() => setActorsOpen(false)}
-        kind="like"
+        kind={
+          reaction.emoji === REACTION_EMOJI.DISLIKE ? "dislike" : "like"
+        }
         loaiDoiTuong="binh_luan"
         idDoiTuong={commentId}
         emoji={reaction.emoji}

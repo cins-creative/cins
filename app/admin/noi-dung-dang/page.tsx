@@ -5,7 +5,34 @@ import { canManageUsers, getCurrentUserSystemRole } from "@/lib/auth/system-role
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-export default async function AdminNoiDungDangPage() {
+type SearchParams = Promise<Record<string, string | string[] | undefined>>;
+
+type NoiDungDangView =
+  | "grid"
+  | "listing"
+  | "dashboard"
+  | "score"
+  | "pendingVerify";
+
+function pickView(sp: Record<string, string | string[] | undefined>): NoiDungDangView {
+  const raw = sp.view;
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  if (
+    value === "listing" ||
+    value === "dashboard" ||
+    value === "score" ||
+    value === "pendingVerify"
+  ) {
+    return value;
+  }
+  return "grid";
+}
+
+export default async function AdminNoiDungDangPage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
   const role = await getCurrentUserSystemRole();
   if (!canManageUsers(role)) {
     return renderAdminPage(
@@ -25,5 +52,8 @@ export default async function AdminNoiDungDangPage() {
     );
   }
 
-  return renderAdminPage(<AdminNoiDungDangScreen />);
+  const sp = await searchParams;
+  const initialView = pickView(sp);
+
+  return renderAdminPage(<AdminNoiDungDangScreen initialView={initialView} />);
 }

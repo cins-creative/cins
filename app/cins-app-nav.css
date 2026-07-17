@@ -1464,6 +1464,179 @@
   text-align: center;
 }
 
+/* Admin inbox — việc cần xử lý (chỉ admin / super_admin) */
+.cins-app-topbar .admin-inbox {
+  position: relative;
+  z-index: 1;
+}
+
+.cins-app-topbar .admin-inbox-trigger {
+  position: relative;
+  z-index: 2;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--bg-surface);
+  color: var(--ink-body);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--app-nav-dur) var(--app-nav-ease);
+}
+
+.cins-app-topbar .admin-inbox-trigger:hover,
+.cins-app-topbar .admin-inbox-trigger.has-unread {
+  border-color: var(--cins-blue);
+  color: var(--cins-blue);
+  background: var(--cins-blue-soft);
+}
+
+.cins-app-topbar .admin-inbox-count {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  pointer-events: none;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 17px;
+  text-align: center;
+}
+
+.admin-inbox-menu.is-portal {
+  position: fixed;
+  z-index: 250;
+  width: min(340px, calc(100vw - 32px));
+  max-height: min(420px, calc(100vh - 120px));
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-lg);
+  pointer-events: auto;
+}
+
+.admin-inbox-menu-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 2px 4px 6px;
+}
+
+.admin-inbox-menu-head strong {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-display);
+}
+
+.admin-inbox-menu-head span {
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+.admin-inbox-empty {
+  margin: 0;
+  padding: 18px 10px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+
+.admin-inbox-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow: auto;
+}
+
+.admin-inbox-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 8px 10px;
+  border-radius: var(--radius-md, 14px);
+  border: 1px solid transparent;
+  color: inherit;
+  text-decoration: none;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.admin-inbox-item:hover {
+  background: var(--cins-blue-soft);
+  border-color: rgba(31, 116, 201, 0.12);
+}
+
+.admin-inbox-item-ico {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--ink-body);
+  flex-shrink: 0;
+}
+
+.admin-inbox-item.has-count .admin-inbox-item-ico {
+  background: var(--cins-blue-soft);
+  color: var(--cins-blue);
+}
+
+.admin-inbox-item-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.admin-inbox-item-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-title);
+}
+
+.admin-inbox-item-hint {
+  font-size: 11px;
+  color: var(--ink-muted);
+}
+
+.admin-inbox-item-badge {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 20px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.admin-inbox-item-zero {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-muted);
+  flex-shrink: 0;
+}
+
 .cins-app-topbar .j-notify-menu,
 .j-notify-menu.is-portal {
   width: min(320px, calc(100vw - 32px));

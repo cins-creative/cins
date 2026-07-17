@@ -62,6 +62,7 @@ function studioCoverOwner(studio: StudioOwner) {
     logo_id: studio.logo_id,
     ten: studio.ten,
     avatar_src: studio.avatar_src,
+    slug: studio.slug,
   };
 }
 
@@ -110,7 +111,7 @@ function StudioDetailViewInner({
   const [pageConfig, setPageConfig] = useState<StudioPageCauHinh>(
     () => payload.pageConfig,
   );
-  const { tab, selectTab } = useStudioTabNav(studio.slug);
+  const { tab, baiDangId, selectTab } = useStudioTabNav(studio.slug);
   const { jobs } = useOrgStudioJobs(studio.id);
   const [mountedTabs, setMountedTabs] = useState<Set<StudioTabId>>(
     () => new Set([tab]),
@@ -286,6 +287,7 @@ function StudioDetailViewInner({
                   variant="bai-dang"
                   posts={baidang}
                   owner={coverOwner}
+                  activeBaiDangId={tab === "bai-dang" ? baiDangId : null}
                   guestEmptyMessage="Chưa có bài đăng công khai. Tin tức và cập nhật sẽ hiển thị tại đây khi tổ chức đăng trên CINs."
                 />
               ) : null}
@@ -296,6 +298,7 @@ function StudioDetailViewInner({
                   variant="showcase"
                   posts={showcase}
                   owner={coverOwner}
+                  activeBaiDangId={tab === "showcase" ? baiDangId : null}
                   showcaseDefaultView={
                     pageConfig.showcaseDefaultView ?? "masonry"
                   }

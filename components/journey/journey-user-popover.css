@@ -335,7 +335,8 @@ button.j-user-pop-close svg {
   overflow: visible;
 }
 
-.j-user-popover .j-friend-stats span {
+.j-user-popover .j-friend-stats span,
+.j-user-popover .j-friend-stats .j-friend-stat-btn {
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -350,30 +351,12 @@ button.j-user-pop-close svg {
 }
 
 .j-user-popover .j-friend-stats .j-friend-stat-btn {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  padding: 9px 4px;
   border: none;
-  border-radius: 10px;
+  border-radius: 0;
   background: none;
-  color: var(--ink-muted);
   font-family: inherit;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.01em;
-  line-height: 1.05;
   text-decoration: none;
   cursor: pointer;
-  transition: color 0.14s ease, background 0.14s ease;
-}
-
-.j-user-popover .j-friend-stats .j-friend-stat-btn:hover,
-.j-user-popover .j-friend-stats .j-friend-stat-btn.is-open {
-  color: var(--cins-blue, #2563eb);
-  background: color-mix(in srgb, var(--cins-blue-soft, #eff6ff) 70%, transparent);
 }
 
 .j-user-popover .j-friend-stats span + span,
@@ -388,11 +371,6 @@ button.j-user-pop-close svg {
   color: var(--ink-display);
   font-size: 18px;
   line-height: 1;
-}
-
-.j-user-popover .j-friend-stats .j-friend-stat-btn:hover strong,
-.j-user-popover .j-friend-stats .j-friend-stat-btn.is-open strong {
-  color: var(--cins-blue, #2563eb);
 }
 
 .j-user-popover .j-friend-actions {

@@ -44,6 +44,18 @@
   font-size: 13px;
   flex-shrink: 0;
   overflow: hidden;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.wj-composer a.wj-av:hover,
+.wj-composer a.wj-av:focus-visible {
+  opacity: 0.92;
+  outline: none;
+}
+
+.wj-composer a.wj-av:focus-visible {
+  box-shadow: 0 0 0 2px var(--surface, #fff), 0 0 0 4px var(--cins-blue, #2563eb);
 }
 
 .cins-journey-page .wj-composer .wj-av {

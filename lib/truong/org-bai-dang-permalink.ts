@@ -1,5 +1,7 @@
 import { coSoBaiDangPostPath } from "@/lib/to-chuc/co-so-routes";
-import { studioTabPath, STUDIO_DEFAULT_TAB } from "@/lib/to-chuc/studio-routes";
+import {
+  studioBaiDangPostPath,
+} from "@/lib/to-chuc/studio-routes";
 import { truongTabPath, TRUONG_DEFAULT_TAB } from "@/lib/truong/truong-routes";
 import type { TruongListItem } from "@/lib/truong/types";
 
@@ -19,7 +21,7 @@ function orgBaiDangPostBasePath(
     case "co-so":
       return coSoBaiDangPostPath(orgSlug, postId);
     case "studio":
-      return `${studioTabPath(orgSlug, STUDIO_DEFAULT_TAB)}/${encodeURIComponent(postId)}`;
+      return studioBaiDangPostPath(orgSlug, postId);
     default:
       return `${truongTabPath(orgSlug, TRUONG_DEFAULT_TAB)}/${encodeURIComponent(postId)}`;
   }

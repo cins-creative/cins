@@ -111,7 +111,7 @@ export function JourneyUserFeaturedExpand({
   onAvailabilityChange,
 }: Props) {
   const trimmed = slug.trim();
-  const [openUncontrolled, setOpenUncontrolled] = useState(false);
+  const [openUncontrolled, setOpenUncontrolled] = useState(true);
   const controlled = openControlled !== undefined;
   const open = controlled ? openControlled : openUncontrolled;
   const setOpen = (next: boolean | ((prev: boolean) => boolean)) => {
@@ -128,7 +128,7 @@ export function JourneyUserFeaturedExpand({
   );
 
   useEffect(() => {
-    setOpen(false);
+    setOpen(true);
     setItems(null);
     setLoadState(eager ? "loading" : "idle");
     setAspectById(new Map());

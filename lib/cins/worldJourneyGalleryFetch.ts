@@ -560,7 +560,19 @@ async function attachSourceAuthorsToWjItems(
       credits,
     );
 
-    if (!sourceAuthor.showCorner) return item;
+    if (!sourceAuthor.showCorner) {
+      /* Bài org đơn tác giả: ẩn avatar/tên overlay (trước đây luôn hiện logo tổ chức). */
+      if (isOrg) {
+        return {
+          ...item,
+          showSourceAuthor: false,
+          sourcePeople: undefined,
+          authorName: null,
+          authorAvatarUrl: null,
+        };
+      }
+      return item;
+    }
 
     return {
       ...item,

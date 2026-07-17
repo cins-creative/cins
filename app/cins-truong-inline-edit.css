@@ -987,8 +987,8 @@
 }
 
 .org-baidang-loai-badge--sukien {
-  background: #f3f0ff;
-  border-color: #ddd6fe;
+  background: transparent;
+  border-color: transparent;
   color: #5b21b6;
 }
 
@@ -1032,8 +1032,8 @@
 
 .org-baidang-loai-picker-trigger:hover .org-baidang-loai-badge--sukien,
 .org-baidang-loai-picker.is-open .org-baidang-loai-picker-trigger .org-baidang-loai-badge--sukien {
-  background: #ebe6ff;
-  border-color: #c4b5fd;
+  background: transparent;
+  border-color: transparent;
 }
 
 .org-baidang-loai-picker {
@@ -1164,8 +1164,8 @@
 }
 
 :root[data-theme="dark"] .org-baidang-loai-badge--sukien {
-  background: color-mix(in srgb, #a78bfa 16%, #1c212c);
-  border-color: color-mix(in srgb, #a78bfa 30%, #2a3040);
+  background: transparent;
+  border-color: transparent;
   color: #c4b5fd;
 }
 
@@ -1189,8 +1189,8 @@
 
 :root[data-theme="dark"] .org-baidang-loai-picker-trigger:hover .org-baidang-loai-badge--sukien,
 :root[data-theme="dark"] .org-baidang-loai-picker.is-open .org-baidang-loai-picker-trigger .org-baidang-loai-badge--sukien {
-  background: color-mix(in srgb, #a78bfa 24%, #252b38);
-  border-color: color-mix(in srgb, #a78bfa 38%, #3a4254);
+  background: transparent;
+  border-color: transparent;
 }
 
 :root[data-theme="dark"] .org-baidang-loai-menu {

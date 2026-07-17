@@ -48,6 +48,8 @@ type ShareMenuProps = {
   sharePath?: string | null;
   shareTitle?: string;
   className?: string;
+  /** Class nút trigger — mặc định byline; jcard dùng `share-btn`. */
+  buttonClassName?: string;
   showLabel?: boolean;
 };
 
@@ -70,6 +72,7 @@ export function PostShareMenu({
   sharePath = null,
   shareTitle = "",
   className = "",
+  buttonClassName = "post-byline-act is-share",
   showLabel = false,
 }: ShareMenuProps) {
   const [shareOpen, setShareOpen] = useState(false);
@@ -214,7 +217,7 @@ export function PostShareMenu({
     >
       <button
         type="button"
-        className="post-byline-act is-share"
+        className={buttonClassName}
         onClick={(e) => {
           e.stopPropagation();
           setShareOpen((v) => !v);

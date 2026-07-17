@@ -10,6 +10,7 @@ import {
   type ChangeEvent,
   type ReactNode,
 } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { EmbedPlatformPicker } from "@/components/cins/EmbedPlatformPicker";
@@ -120,14 +121,19 @@ export function CinsFeedComposer({
     >
       <div className="wj-composer">
         {avatar ?? (
-          <div className="wj-av" aria-hidden>
+          <Link
+            href={`/${ownerSlug}`}
+            className="wj-av"
+            aria-label={`Trang cá nhân @${ownerSlug}`}
+            prefetch={false}
+          >
             {avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={avatarUrl} alt="" />
             ) : (
               initials
             )}
-          </div>
+          </Link>
         )}
         <button
           type="button"

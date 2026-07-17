@@ -290,13 +290,13 @@ function StatsInline({
   ink: string;
   muted: string;
 }) {
-  const cotMoc = profile.stats?.cotMoc ?? 0;
+  const noiBat = profile.stats?.noiBat ?? 0;
   const tacPham = profile.stats?.tacPham ?? 0;
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 18 }}>
       <span style={{ display: "flex", gap: 6 }}>
-        <span style={{ fontWeight: 800, color: ink }}>{cotMoc}</span>
-        <span style={{ fontWeight: 600, color: muted }}>Cột mốc</span>
+        <span style={{ fontWeight: 800, color: ink }}>{noiBat}</span>
+        <span style={{ fontWeight: 600, color: muted }}>Nội dung nổi bật</span>
       </span>
       <span style={{ color: muted }}>•</span>
       <span style={{ display: "flex", gap: 6 }}>
@@ -314,7 +314,7 @@ function StatsPair({
   profile: JourneyShareProfile;
   tokens: ShareOgThemeTokens;
 }) {
-  const cotMoc = profile.stats?.cotMoc ?? 0;
+  const noiBat = profile.stats?.noiBat ?? 0;
   const tacPham = profile.stats?.tacPham ?? 0;
   return (
     <div
@@ -328,9 +328,11 @@ function StatsPair({
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
         <span style={{ fontSize: 26, fontWeight: 800, color: tokens.accent, lineHeight: 1 }}>
-          {cotMoc}
+          {noiBat}
         </span>
-        <span style={{ fontSize: 13, fontWeight: 600, color: tokens.muted }}>Cột mốc</span>
+        <span style={{ fontSize: 13, fontWeight: 600, color: tokens.muted }}>
+          Nội dung nổi bật
+        </span>
       </div>
       <div
         style={{
@@ -368,7 +370,7 @@ function BannerLayout({
   tokens: ShareOgThemeTokens;
   logoUrl: string;
 }) {
-  const cotMoc = profile.stats?.cotMoc ?? 0;
+  const noiBat = profile.stats?.noiBat ?? 0;
   const tacPham = profile.stats?.tacPham ?? 0;
   return (
     <ThemeShell tokens={tokens}>
@@ -456,8 +458,8 @@ function BannerLayout({
               }}
             >
               <span style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                <span style={{ fontWeight: 800, color: tokens.accent }}>{cotMoc}</span>
-                <span>Cột mốc</span>
+                <span style={{ fontWeight: 800, color: tokens.accent }}>{noiBat}</span>
+                <span>Nội dung nổi bật</span>
               </span>
               <span>•</span>
               <span style={{ display: "flex", gap: 6, alignItems: "center" }}>
@@ -545,7 +547,7 @@ function CenterLayout({
   profile: JourneyShareProfile;
   tokens: ShareOgThemeTokens;
 }) {
-  const cotMoc = profile.stats?.cotMoc ?? 0;
+  const noiBat = profile.stats?.noiBat ?? 0;
   const tacPham = profile.stats?.tacPham ?? 0;
   return (
     <ThemeShell tokens={tokens}>
@@ -618,8 +620,10 @@ function CenterLayout({
                 minWidth: 140,
               }}
             >
-              <span style={{ fontSize: 28, fontWeight: 800, color: tokens.accent }}>{cotMoc}</span>
-              <span style={{ fontSize: 14, fontWeight: 600, color: tokens.muted }}>Cột mốc</span>
+              <span style={{ fontSize: 28, fontWeight: 800, color: tokens.accent }}>{noiBat}</span>
+              <span style={{ fontSize: 14, fontWeight: 600, color: tokens.muted }}>
+                Nội dung nổi bật
+              </span>
             </div>
           </div>
           <div style={{ marginTop: "auto" }}>
@@ -909,9 +913,9 @@ function PanelLayout({
           {filterLabel ? (
             <FilterPill label={filterLabel} accent={tokens.accent} panel="rgba(255,255,255,0.9)" />
           ) : null}
+          <StatsInline profile={profile} ink={tokens.ink} muted={tokens.muted} />
         </div>
         <div style={{ display: "flex", flexDirection: "column", flex: 1, gap: 14 }}>
-          <StatsInline profile={profile} ink={tokens.ink} muted={tokens.muted} />
           <div style={{ display: "flex", flex: 1, gap: 12 }}>
             <div style={{ flexGrow: 2, display: "flex" }}>
               <OgGalleryThumb src={cells[0] || null} radius={16} />

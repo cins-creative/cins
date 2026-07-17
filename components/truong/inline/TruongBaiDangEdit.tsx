@@ -253,7 +253,9 @@ export function TruongBaiDangEditProvider({ children }: { children: ReactNode })
     [ctx],
   );
 
-  if (!ctx?.isEditing) {
+  /* Menu kebab (mở / copy / ghim / sửa / xóa) hiện khi canEdit —
+   * không phụ thuộc editMode bật/tắt — khớp JourneyMilestoneOwnerMenu. */
+  if (!ctx?.canEdit) {
     return <>{children}</>;
   }
 
@@ -326,17 +328,18 @@ export function TruongBaiDangPostActions({ post }: { post: TruongBaiDang }) {
 
   return (
     <div
-      className="tdh-baidang-edit"
+      className="j-m-menu jcard-date-menu tdh-baidang-edit"
       ref={rootRef}
       onClick={(e) => e.stopPropagation()}
     >
       <button
         type="button"
         className="j-m-menu-btn tdh-baidang-menu-btn"
-        aria-label="Tùy chọn bài đăng"
+        aria-label="Mở menu bài đăng"
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={(e) => {
+          e.preventDefault();
           e.stopPropagation();
           setOpen((v) => !v);
         }}

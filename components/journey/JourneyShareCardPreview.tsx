@@ -157,13 +157,13 @@ function StatsPair({
   profile: JourneyShareProfile;
   className?: string;
 }) {
-  const cotMoc = profile.stats?.cotMoc ?? 0;
+  const noiBat = profile.stats?.noiBat ?? 0;
   const tacPham = profile.stats?.tacPham ?? 0;
   return (
     <div className={"j-nc-stats" + (className ? ` ${className}` : "")}>
       <div className="j-nc-stat">
-        <strong>{cotMoc}</strong>
-        <span>Cột mốc</span>
+        <strong>{noiBat}</strong>
+        <span>Nội dung nổi bật</span>
       </div>
       <div className="j-nc-stat">
         <strong>{tacPham}</strong>
@@ -175,7 +175,7 @@ function StatsPair({
 
 /* ── 1 · Banner ─────────────────────────────────────────────── */
 function BannerLayout({ profile }: { profile: JourneyShareProfile }) {
-  const cotMoc = profile.stats?.cotMoc ?? 0;
+  const noiBat = profile.stats?.noiBat ?? 0;
   const tacPham = profile.stats?.tacPham ?? 0;
   return (
     <div className="j-nc j-nc--banner">
@@ -193,7 +193,7 @@ function BannerLayout({ profile }: { profile: JourneyShareProfile }) {
         </div>
         <div className="j-nc-b-stats">
           <span>
-            <b>{cotMoc}</b> Cột mốc
+            <b>{noiBat}</b> Nội dung nổi bật
           </span>
           <span className="j-nc-sep">•</span>
           <span>
@@ -236,7 +236,7 @@ function FrameLayout({ profile }: { profile: JourneyShareProfile }) {
 
 /* ── 3 · Center ─────────────────────────────────────────────── */
 function CenterLayout({ profile }: { profile: JourneyShareProfile }) {
-  const cotMoc = profile.stats?.cotMoc ?? 0;
+  const noiBat = profile.stats?.noiBat ?? 0;
   const tacPham = profile.stats?.tacPham ?? 0;
   return (
     <div className="j-nc j-nc--center">
@@ -254,8 +254,8 @@ function CenterLayout({ profile }: { profile: JourneyShareProfile }) {
             <span>Tác phẩm</span>
           </div>
           <div className="j-nc-c-box">
-            <strong>{cotMoc}</strong>
-            <span>Cột mốc</span>
+            <strong>{noiBat}</strong>
+            <span>Nội dung nổi bật</span>
           </div>
         </div>
       </div>
@@ -384,12 +384,12 @@ function PsAvatar({
 }
 
 function PsStatsInline({ profile }: { profile: JourneyShareProfile }) {
-  const cotMoc = profile.stats?.cotMoc ?? 0;
+  const noiBat = profile.stats?.noiBat ?? 0;
   const tacPham = profile.stats?.tacPham ?? 0;
   return (
     <div className="j-ps-stats-inline">
       <span>
-        <b>{cotMoc}</b> Cột mốc
+        <b>{noiBat}</b> Nội dung nổi bật
       </span>
       <span className="j-ps-dot" aria-hidden>
         •
@@ -402,13 +402,13 @@ function PsStatsInline({ profile }: { profile: JourneyShareProfile }) {
 }
 
 function PsStatsPair({ profile }: { profile: JourneyShareProfile }) {
-  const cotMoc = profile.stats?.cotMoc ?? 0;
+  const noiBat = profile.stats?.noiBat ?? 0;
   const tacPham = profile.stats?.tacPham ?? 0;
   return (
     <div className="j-ps-stats-pair">
       <div className="j-ps-stat">
-        <strong>{cotMoc}</strong>
-        <span>Cột mốc</span>
+        <strong>{noiBat}</strong>
+        <span>Nội dung nổi bật</span>
       </div>
       <div className="j-ps-stat-vr" aria-hidden />
       <div className="j-ps-stat">
@@ -464,9 +464,9 @@ function PanelLayout({
         <PsAvatar profile={profile} className="j-ps-panel-avatar" />
         <h3>{profile.displayName}</h3>
         <p className="j-ps-url j-ps-url--dot">cins.vn/{profile.slug}</p>
+        <PsStatsInline profile={profile} />
       </aside>
       <div className="j-ps-panel-main">
-        <PsStatsInline profile={profile} />
         <div className="j-ps-panel-grid" aria-hidden>
           <GalleryThumb src={cells[0] || null} className="j-ps-cell j-ps-cell--hero" />
           <GalleryThumb src={cells[1] || null} className="j-ps-cell j-ps-cell--tall" />

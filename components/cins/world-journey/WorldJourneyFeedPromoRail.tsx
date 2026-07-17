@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import { JourneyOrgPopoverActions } from "@/components/journey/JourneyOrgPopoverActions";
 import { JourneyUserPopoverActions } from "@/components/journey/JourneyUserPopoverActions";
+import { VerifiedTick } from "@/components/journey/VerifiedTick";
 import type { FeedPromoVariant } from "@/lib/cins/worldJourneyFeedPromosTypes";
 
 type Props = {
@@ -204,7 +205,10 @@ function PromoPersonCard({
           )}
         </span>
         <span className="wj-feed-promo-card-body">
-          <span className="wj-feed-promo-card-name">{title}</span>
+          <span className="wj-feed-promo-card-name">
+            <span className="wj-feed-promo-card-name-text">{title}</span>
+            <VerifiedTick slug={slug} />
+          </span>
           {sub ? (
             <span
               className={`wj-feed-promo-person-sub${mutual ? " is-mutual" : ""}`}

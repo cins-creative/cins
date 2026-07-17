@@ -11,7 +11,6 @@ import {
   PinOff,
   Reply,
   Send,
-  Smile,
   Trash2,
   X,
 } from "lucide-react";
@@ -41,6 +40,7 @@ import { ChatStickerPicker } from "@/components/cins/ChatStickerPicker";
 import { CommentAttachments } from "@/components/journey/CommentAttachments";
 import { CommentMentionText } from "@/components/journey/CommentMentionText";
 import { CommentReactionPill } from "@/components/journey/CommentReactionPill";
+import { CommentVoteButtons } from "@/components/journey/CommentVoteButtons";
 import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
 import { InlineExternalVideoEmbed } from "@/components/shared/InlineExternalVideoEmbed";
 import { rememberCfAccountHashFromDeliveryUrl } from "@/lib/cloudflare/account-hash";
@@ -52,14 +52,12 @@ import {
   sanitizeCommentImageIds,
 } from "@/lib/social/comments/attachments";
 import { composeReplyMentionPrefix } from "@/lib/social/comments/mention-parse";
-import {
-  COMMENT_REACTION_EMOJIS,
-} from "@/lib/social/comments/types";
 import { applyViewerReactionToggle } from "@/lib/social/comments/reactions";
 import { countCommentThreads } from "@/lib/social/comments/client-tree";
 import type { MilestonePostComment } from "@/lib/journey/milestone-post-types";
 import { getAvatarUrl } from "@/lib/journey/profile";
 import { emitNotificationsChanged } from "@/lib/journey/notifications-client";
+import { REACTION_EMOJI } from "@/lib/social/reaction-emoji";
 import type { UserEmojiMuc } from "@/lib/user-emoji/types";
 
 type CommentSubmitResult =
@@ -1078,7 +1076,6 @@ function CommentRow({
   contentOwnerId: string;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [pickerOpen, setPickerOpen] = useState(false);
   const [reactionErr, setReactionErr] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [editDraft, setEditDraft] = useState(comment.noiDung);
@@ -1237,7 +1234,6 @@ function CommentRow({
                       className="post-comments-menu-item"
                       onClick={() => {
                         setMenuOpen(false);
-                        setPickerOpen(false);
                         setEditDraft(comment.noiDung);
                         setEditErr(null);
                         setEditing(true);
@@ -1413,64 +1409,36 @@ function CommentRow({
                 ) : null}
                 {!comment.daXoa ? (
                   <div className="post-comments-actions">
-                    <div className="post-comments-reactions">
-                      {(comment.reactions ?? []).map((r) => (
-                        <CommentReactionPill
-                          key={r.emoji}
-                          commentId={comment.id}
-                          reaction={r}
-                          disabled={pending}
-                          onToggle={runToggleReaction}
-                        />
-                      ))}
-                      <div className="post-comments-reaction-add">
-                        <button
-                          type="button"
-                          className="post-comments-reaction-picker-btn"
-                          aria-label="Thêm cảm xúc"
-                          onClick={() => setPickerOpen((v) => !v)}
-                        >
-                          <Smile size={14} strokeWidth={2} aria-hidden />
-                        </button>
-                        {pickerOpen ? (
-                          <div
-                            className="post-comments-reaction-picker"
-                            role="menu"
-                          >
-                            {COMMENT_REACTION_EMOJIS.map((e) => {
-                              const active = (comment.reactions ?? []).some(
-                                (r) => r.emoji === e.key && r.viewerReacted,
-                              );
-                              return (
-                                <button
-                                  key={e.key}
-                                  type="button"
-                                  role="menuitem"
-                                  className={
-                                    "post-comments-reaction-opt" +
-                                    (active ? " is-active" : "")
-                                  }
-                                  onClick={() => {
-                                    setPickerOpen(false);
-                                    runToggleReaction(
-                                      e.key,
-                                      active ? false : true,
-                                    );
-                                  }}
-                                >
-                                  <span
-                                    className="post-comments-reaction-opt-emoji"
-                                    aria-hidden
-                                  >
-                                    {e.label}
-                                  </span>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        ) : null}
+                    <CommentVoteButtons
+                      commentId={comment.id}
+                      reactions={comment.reactions ?? []}
+                      disabled={pending}
+                      onToggle={runToggleReaction}
+                    />
+                    {(comment.reactions ?? []).some(
+                      (r) =>
+                        r.emoji !== REACTION_EMOJI.LIKE &&
+                        r.emoji !== REACTION_EMOJI.DISLIKE &&
+                        r.count > 0,
+                    ) ? (
+                      <div className="post-comments-reactions">
+                        {(comment.reactions ?? [])
+                          .filter(
+                            (r) =>
+                              r.emoji !== REACTION_EMOJI.LIKE &&
+                              r.emoji !== REACTION_EMOJI.DISLIKE,
+                          )
+                          .map((r) => (
+                            <CommentReactionPill
+                              key={r.emoji}
+                              commentId={comment.id}
+                              reaction={r}
+                              disabled={pending}
+                              onToggle={runToggleReaction}
+                            />
+                          ))}
                       </div>
-                    </div>
+                    ) : null}
                     {reactionErr ? (
                       <span className="post-comments-reaction-err" role="alert">
                         {reactionErr}

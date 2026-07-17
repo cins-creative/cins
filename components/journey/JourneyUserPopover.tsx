@@ -54,7 +54,7 @@ export function JourneyUserPopover({
     slug ? getCachedUserPreview(slug) : null,
   );
   const [loading, setLoading] = useState(false);
-  const [featuredOpen, setFeaturedOpen] = useState(false);
+  const [featuredOpen, setFeaturedOpen] = useState(true);
   const [featuredCount, setFeaturedCount] = useState(0);
   const [featuredReady, setFeaturedReady] = useState(false);
   const wrapRef = useRef<HTMLSpanElement | null>(null);
@@ -64,7 +64,8 @@ export function JourneyUserPopover({
     (info: { ready: boolean; count: number }) => {
       setFeaturedReady(info.ready);
       setFeaturedCount(info.count);
-      if (!info.ready || info.count === 0) setFeaturedOpen(false);
+      if (!info.ready) return;
+      setFeaturedOpen(info.count > 0);
     },
     [],
   );
@@ -89,7 +90,7 @@ export function JourneyUserPopover({
 
   useEffect(() => {
     setProfile(slug ? getCachedUserPreview(slug) : null);
-    setFeaturedOpen(false);
+    setFeaturedOpen(true);
     setFeaturedCount(0);
     setFeaturedReady(false);
   }, [slug]);
@@ -127,7 +128,7 @@ export function JourneyUserPopover({
           ngu_canh: slug ? { target_slug: slug } : null,
         });
       }
-      if (!next) setFeaturedOpen(false);
+      setFeaturedOpen(next);
       return next;
     });
   };
@@ -152,6 +153,10 @@ export function JourneyUserPopover({
 
   const canExpandFeatured =
     featuredCount > 0 || (!featuredReady && (visibleProfile?.stats.tacPham ?? 0) > 0);
+  /** Nổi bật = bài gắn feature; ưu tiên count từ gallery-aside khi đã sẵn. */
+  const noiBatCount = featuredReady
+    ? featuredCount
+    : (visibleProfile?.stats.tacPham ?? 0);
 
   return (
     <span className="j-user-pop-wrap" ref={wrapRef}>
@@ -266,22 +271,22 @@ export function JourneyUserPopover({
                         setFeaturedOpen((value) => !value);
                       }}
                     >
-                      <strong>{visibleProfile.stats.tacPham}</strong>
+                      <strong>{noiBatCount}</strong>
                       Nổi bật
                     </button>
-                  ) : visibleProfile.stats.tacPham > 0 ? (
+                  ) : noiBatCount > 0 ? (
                     <Link
                       href={`/${visibleProfile.slug}`}
                       className="j-friend-stat-btn"
                       title="Xem Journey — nội dung nổi bật"
                       onClick={() => setOpen(false)}
                     >
-                      <strong>{visibleProfile.stats.tacPham}</strong>
+                      <strong>{noiBatCount}</strong>
                       Nổi bật
                     </Link>
                   ) : (
                     <span>
-                      <strong>{visibleProfile.stats.tacPham}</strong>
+                      <strong>{noiBatCount}</strong>
                       Nổi bật
                     </span>
                   )}

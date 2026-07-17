@@ -31,8 +31,26 @@ import type {
 
 type ViewMode = "grid" | "listing" | "dashboard" | "score" | "pendingVerify";
 
+type Props = {
+  /** Deep-link từ admin inbox: `?view=pendingVerify`. */
+  initialView?: ViewMode;
+};
+
 /** Khớp `WORLD_BOOST_TTL_MS` (server-only) — TTL đẩy 3 ngày. */
 const WORLD_BOOST_TTL_MS = 3 * 24 * 60 * 60 * 1000;
+
+const VIEW_MODES: ReadonlySet<ViewMode> = new Set([
+  "grid",
+  "listing",
+  "dashboard",
+  "score",
+  "pendingVerify",
+]);
+
+function parseViewMode(value: string | null | undefined): ViewMode | null {
+  if (!value) return null;
+  return VIEW_MODES.has(value as ViewMode) ? (value as ViewMode) : null;
+}
 
 function fmtDate(iso: string | null): string {
   if (!iso) return "—";
@@ -47,8 +65,10 @@ function fmtDate(iso: string | null): string {
   });
 }
 
-export function AdminNoiDungDangScreen() {
-  const [view, setView] = useState<ViewMode>("grid");
+export function AdminNoiDungDangScreen({ initialView }: Props) {
+  const [view, setView] = useState<ViewMode>(
+    () => parseViewMode(initialView) ?? "grid",
+  );
   const [stats, setStats] = useState<WorldBoostStats | null>(null);
   const [items, setItems] = useState<WorldBoostCatalogItem[]>([]);
   const [pendingItems, setPendingItems] = useState<PendingContentVerifyItem[]>(

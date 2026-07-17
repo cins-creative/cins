@@ -667,12 +667,9 @@ export function JourneyProfileContent({
     stats:
       galleryCache && galleryCache !== "loading" && galleryCache !== "error"
         ? {
-            cotMoc:
-              timelineCache &&
-              timelineCache !== "loading" &&
-              timelineCache !== "error"
-                ? timelineCache.page.totalCount
-                : 0,
+            noiBat:
+              galleryCache.featuredCount ??
+              galleryCache.items.filter((item) => item.featured).length,
             tacPham: galleryCache.totalCount,
           }
         : undefined,

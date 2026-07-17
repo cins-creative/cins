@@ -2,15 +2,19 @@ import { Suspense } from "react";
 import { Menu as MenuIcon } from "lucide-react";
 import Link from "next/link";
 
+import { AdminInboxButton } from "@/components/admin/AdminInboxButton";
 import { CinsTopbarSearch } from "@/components/cins/CinsTopbarSearch";
 import { SessionRestorer } from "@/components/cins/SessionRestorer";
 import { UserAccountMenu } from "@/components/cins/UserAccountMenu";
 import { JourneyNotifications } from "@/components/journey/JourneyNotifications";
+import { countAdminInboxStats } from "@/lib/admin/admin-inbox-stats";
+import { EMPTY_ADMIN_INBOX_STATS } from "@/lib/admin/admin-inbox-stats-types";
 import {
   getSwitchableAccounts,
   hasRestoreHint,
   readAccountVault,
 } from "@/lib/auth/account-vault";
+import { getCurrentUserIsCinsAdmin } from "@/lib/auth/cins-admin-server";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import { getAvatarUrl } from "@/lib/journey/profile";
 import { countUnreadNotifications } from "@/lib/social/notifications";
@@ -30,6 +34,12 @@ export async function CinsAppTopbar() {
   const unreadNotificationCount = session?.profile
     ? await countUnreadNotifications(session.profile.id).catch(() => 0)
     : 0;
+  const isCinsAdmin = session?.profile
+    ? await getCurrentUserIsCinsAdmin()
+    : false;
+  const adminInboxStats = isCinsAdmin
+    ? await countAdminInboxStats().catch(() => EMPTY_ADMIN_INBOX_STATS)
+    : null;
   const accountProfile =
     session?.profile?.slug
       ? {
@@ -77,6 +87,9 @@ export async function CinsAppTopbar() {
             className="tb-page-slot"
             aria-live="polite"
           />
+          {adminInboxStats ? (
+            <AdminInboxButton initialStats={adminInboxStats} />
+          ) : null}
           {session?.profile ? (
             <JourneyNotifications
               initialUnreadCount={unreadNotificationCount}

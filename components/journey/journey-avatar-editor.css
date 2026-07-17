@@ -282,6 +282,9 @@
   gap: 8px;
   padding: 14px 20px 18px;
   border-top: 1px solid var(--border-soft, #e5e7eb);
+  background: var(--bg-surface, #fff);
+  color: var(--ink-strong, #0f172a);
+  margin-top: 0;
 }
 .ja-foot-spacer {
   flex: 1;

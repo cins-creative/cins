@@ -1,6 +1,7 @@
 "use client";
 
 import { GripVertical, Pencil } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { GalleryAuthorCornerBadge } from "@/components/journey/GalleryAuthorCornerBadge";
@@ -36,6 +37,11 @@ export type GalleryPinnedBanner = {
   sourcePeople?: GallerySourcePerson[];
   /** Link ngữ cảnh — VD /{slug}/p/{postSlug}. */
   href?: string;
+  /**
+   * Bài `org_bai_dang` trên Journey (cotMocId = id bài org).
+   * Click phải đi permalink org — không mở JourneyPostModal.
+   */
+  isOrgPost?: boolean;
   /** Cột mốc — mở modal bài viết client-side. */
   cotMocId?: string;
   mediaKind?: GalleryMediaKind;
@@ -60,6 +66,8 @@ export type GalleryGridItem = {
   videoProcessing?: boolean;
   videoPreviewSrc?: string | null;
   href?: string;
+  /** Bài org — mở permalink, không dùng JourneyPostModal. */
+  isOrgPost?: boolean;
   /** Cột mốc — mở modal bài viết client-side. */
   cotMocId?: string;
   mediaKind?: GalleryMediaKind;
@@ -92,6 +100,25 @@ function asideCotMocId(item: { id: string; cotMocId?: string }): string | null {
   return m?.[1]?.trim() || null;
 }
 
+function openAsideEntry(
+  item: {
+    id: string;
+    cotMocId?: string;
+    href?: string;
+    isOrgPost?: boolean;
+  },
+  openPost: (cotMocId: string | null | undefined) => void,
+  router: { push: (href: string) => void },
+) {
+  /* org_bai_dang: cotMocId = id bài org — JourneyPostModal sẽ 404. */
+  if (item.isOrgPost) {
+    const href = item.href?.trim();
+    if (href) router.push(href);
+    return;
+  }
+  openPost(asideCotMocId(item));
+}
+
 function moveItem<T>(list: T[], from: number, to: number): T[] {
   if (from === to || from < 0 || to < 0 || from >= list.length || to > list.length) {
     return list;
@@ -116,6 +143,7 @@ export function JourneyGalleryAside({
 }: Props) {
   void ownerSlug;
   const { openPost, overlay } = useJourneyPostOverlay();
+  const router = useRouter();
   const sharedMediaFilter = useJourneyFeaturedAsideFilterOptional();
   const useSharedMediaFilter = Boolean(featuredOnly && sharedMediaFilter);
 
@@ -395,13 +423,15 @@ export function JourneyGalleryAside({
                         className="j-g-banner"
                         data-pinned-id={b.id}
                         aria-label={label}
-                        disabled={!cotMocId}
+                        disabled={
+                          b.isOrgPost ? !b.href?.trim() : !cotMocId
+                        }
                         onClick={() => {
                           if (dragMovedRef.current) {
                             dragMovedRef.current = false;
                             return;
                           }
-                          openPost(cotMocId);
+                          openAsideEntry(b, openPost, router);
                         }}
                       >
                         <span className="j-g-banner-bg">
@@ -486,8 +516,10 @@ export function JourneyGalleryAside({
                     className={"j-g-item" + (it.isVerified ? " is-verified" : "")}
                     data-item-id={it.id}
                     aria-label={it.label}
-                    disabled={!cotMocId}
-                    onClick={() => openPost(cotMocId)}
+                    disabled={
+                      it.isOrgPost ? !it.href?.trim() : !cotMocId
+                    }
+                    onClick={() => openAsideEntry(it, openPost, router)}
                   >
                     <span className="j-g-thumb">
                       <GalleryItemVisual

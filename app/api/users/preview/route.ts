@@ -6,6 +6,7 @@ import {
   getGiaiDoanLabel,
   getProfileCoverUrl,
 } from "@/lib/journey/profile";
+import { loadUserSocialStatsByIds } from "@/lib/social/follow";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 type ProfileRow = {
@@ -40,25 +41,14 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Không tìm thấy user." }, { status: 404 });
   }
 
-  /* Ban be = ket_ban accepted (head count) — tránh kéo toàn bộ follow edge. */
-  const [{ count: cotMoc }, { count: tacPham }, { count: banBe }] =
-    await Promise.all([
-      admin
-        .from("content_cot_moc")
-        .select("id", { count: "exact", head: true })
-        .eq("id_nguoi_dung", profile.id),
-      admin
-        .from("content_tac_pham")
-        .select("id", { count: "exact", head: true })
-        .eq("id_nguoi_dung", profile.id),
-      admin
-        .from("user_ket_ban")
-        .select("id", { count: "exact", head: true })
-        .eq("trang_thai", "accepted")
-        .or(
-          `id_nguoi_gui.eq.${profile.id},id_nguoi_nhan.eq.${profile.id}`,
-        ),
-    ]);
+  /* Cùng contract friend/search: Gallery (`cotMoc`) · Nổi bật = feature (`tacPham`) · Bạn bè. */
+  const statsMap = await loadUserSocialStatsByIds(admin, [profile.id]);
+  const stats = statsMap.get(profile.id) ?? {
+    cotMoc: 0,
+    tacPham: 0,
+    banBe: 0,
+    toChucXacThuc: 0,
+  };
 
   return NextResponse.json({
     profile: {
@@ -72,9 +62,9 @@ export async function GET(req: Request) {
       tinhThanh: formatTinhThanh(profile.tinh_thanh),
       daXacMinh: profile.da_xac_minh ?? false,
       stats: {
-        cotMoc: cotMoc ?? 0,
-        tacPham: tacPham ?? 0,
-        banBe: banBe ?? 0,
+        cotMoc: stats.cotMoc,
+        tacPham: stats.tacPham,
+        banBe: stats.banBe,
       },
     },
   });

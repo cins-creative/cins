@@ -7,7 +7,7 @@ import type { TruongBaiDang, TruongListItem } from "@/lib/truong/types";
 
 type OrgOwner = Pick<
   TruongListItem,
-  "avatar_id" | "logo_id" | "avatar_src" | "ten"
+  "avatar_id" | "logo_id" | "avatar_src" | "ten" | "slug" | "org_loai"
 >;
 
 type Props = {

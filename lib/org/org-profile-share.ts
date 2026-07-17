@@ -39,7 +39,7 @@ export type OrgShareSource = {
   avatarPreviewUrl?: string | null;
   coverPreviewUrl?: string | null;
   galleryThumbs?: string[];
-  stats?: { cotMoc: number; tacPham: number };
+  stats?: { noiBat: number; tacPham: number };
 };
 
 const ORG_ROLE_LINES: Record<OrgShareKind, string> = {
