@@ -26,16 +26,28 @@ export function studioBaiDangPostPath(orgSlug: string, baiDangId: string): strin
   return `${studioTabPath(orgSlug, "bai-dang")}/${encodeURIComponent(baiDangId)}`;
 }
 
+/** URL sâu tới một sự kiện: `/studio/:slug/su-kien/:suKienId`. */
+export function studioSuKienPath(orgSlug: string, suKienId: string): string {
+  return `${studioTabPath(orgSlug, "su-kien")}/${encodeURIComponent(suKienId)}`;
+}
+
+/** Tab Quản lý sự kiện (duyệt quầy / nội dung). */
+export function studioSuKienManagePath(orgSlug: string, suKienId: string): string {
+  return `${studioSuKienPath(orgSlug, suKienId)}?manage=1`;
+}
+
 export type StudioPathState = {
   tab: StudioTabId;
   jobId: string | null;
   baiDangId: string | null;
+  suKienId: string | null;
 };
 
 const DEFAULT_PATH_STATE: StudioPathState = {
   tab: STUDIO_DEFAULT_TAB,
   jobId: null,
   baiDangId: null,
+  suKienId: null,
 };
 
 /** Lấy jobId từ pathname `/studio/:slug/tuyen-dung/:jobId` (null nếu không có). */
@@ -48,7 +60,7 @@ export function parseStudioTabFromPathname(pathname: string): StudioTabId {
   return parseStudioRouteFromPathname(pathname)?.tab ?? STUDIO_DEFAULT_TAB;
 }
 
-/** Parse tab + deep link (bài đăng / tuyển dụng) từ pathname studio. */
+/** Parse tab + deep link (bài đăng / tuyển dụng / sự kiện) từ pathname studio. */
 export function parseStudioRouteFromPathname(
   pathname: string,
 ): StudioPathState | null {
@@ -77,10 +89,13 @@ export function parseStudioRouteFromPathname(
 
   const deepId = rest[1] ? decodeURIComponent(rest[1]) : null;
   if (tabSeg === "tuyen-dung") {
-    return { tab: tabSeg, jobId: deepId, baiDangId: null };
+    return { tab: tabSeg, jobId: deepId, baiDangId: null, suKienId: null };
   }
   if (tabSeg === "bai-dang" || tabSeg === "showcase") {
-    return { tab: tabSeg, jobId: null, baiDangId: deepId };
+    return { tab: tabSeg, jobId: null, baiDangId: deepId, suKienId: null };
   }
-  return { tab: tabSeg, jobId: null, baiDangId: null };
+  if (tabSeg === "su-kien") {
+    return { tab: tabSeg, jobId: null, baiDangId: null, suKienId: deepId };
+  }
+  return { tab: tabSeg, jobId: null, baiDangId: null, suKienId: null };
 }

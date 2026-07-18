@@ -70,6 +70,14 @@ export async function POST(request: Request) {
         422,
         "Bạn cần xác nhận rủi ro chuyển khoản trước khi gửi đơn.",
       ],
+      STOCK_EMPTY: [
+        422,
+        "Có món hết hàng — chỉ đặt trước được.",
+      ],
+      STOCK_INSUFFICIENT: [
+        422,
+        "Số lượng vượt tồn kho — giảm SL hoặc chọn Đặt trước.",
+      ],
       POST_NOT_FOUND: [404, "Không tìm thấy bài viết."],
     };
     const hit = map[msg];

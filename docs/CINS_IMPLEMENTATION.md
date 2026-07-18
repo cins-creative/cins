@@ -24,8 +24,9 @@
 | `shop/bang-gia` · `shop/bang-gia/[id]` | CRUD bảng giá + dòng giá theo biến thể |
 | `shop/gio` | GET/PATCH giỏ theo `cotMocId` (buyer) |
 | `shop/don` · `shop/don/[id]` | Tạo đơn từ giỏ · seller xác nhận (trừ kho) · list đơn seller/buyer — **không** hủy đơn trên API |
-| `milestone/[milestoneId]/shop-hang` | GET public hàng gắn post · PUT gắn/gỡ (owner + `ban_hang_bat`) |
-| `su-kien/[suKienId]/quay` · `…/quay/[quayId]` | Xin làm quầy + bằng chứng · owner sự kiện duyệt/từ chối · list quầy đã duyệt |
+| `milestone/[milestoneId]/shop-hang` | GET public hàng gắn post (**ẩn nếu owner `ban_hang_bat=false`**) · PUT gắn/gỡ (owner + `ban_hang_bat`) |
+| `su-kien/[suKienId]/quay` · `…/quay/[quayId]` | Xin làm quầy + bằng chứng · owner duyệt/từ chối/gỡ (kèm lý do) · seller rút (`action=withdraw`) · list quầy đã duyệt |
+| `shop/quay/cua-toi` | GET — quầy đang/đã tham gia của seller (`cho_xu_ly` + `da_duyet`) |
 
 ### Kết bạn & social
 | Route | Việc |
@@ -189,6 +190,8 @@
 | File | Tạo gì |
 |---|---|
 | `migration_shop_san_pham_phan_loai.sql` | Cột `shop_san_pham.phan_loai` (nhãn nhóm sản phẩm). Chạy: `node scripts/run-shop-san-pham-phan-loai-migration.mjs`. |
+| `migration_shop_don_chap_nhan.sql` | Snapshot chấp nhận rủi ro chuyển khoản trên `shop_don_hang`. Chạy: `node scripts/run-shop-don-chap-nhan-migration.mjs`. |
+| `migration_shop_tru_kho_atomic.sql` | RPC `shop_tru_kho_bien_the` / `shop_hoan_kho_bien_the` — trừ/hoàn tồn atomic (mua_ngay trừ lúc tạo đơn). Chạy: `node scripts/run-shop-tru-kho-atomic-migration.mjs`. |
 | `migration_shop_don_ma_don.sql` | Cột `shop_don_hang.ma_don` (mã TENNGUOIMUA-12345). Chạy: `node scripts/run-shop-don-ma-don-migration.mjs`. |
 | `migration_social_bao_cao.sql` | Bảng `social_bao_cao` + enum loại/trạng thái báo cáo. Chạy: `node scripts/run-bao-cao-migration.mjs`. |
 | `migration_bao_cao_lua_dao.sql` | Thêm enum `lua_dao` (Lừa đảo). Chạy: `node scripts/run-bao-cao-lua-dao-migration.mjs`. |

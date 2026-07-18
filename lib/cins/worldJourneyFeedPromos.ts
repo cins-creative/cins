@@ -16,9 +16,8 @@ import type {
 } from "@/lib/cins/worldJourneyFeedPromosTypes";
 import { FEED_PROMO_POOL_FETCH } from "@/lib/cins/worldJourneyFeedPromosTypes";
 import { listFollowingOrgIds } from "@/lib/cins/worldJourneyOrgFeed";
-import { coSoTabPath } from "@/lib/to-chuc/co-so-routes";
 import { labelLoaiSuKien } from "@/lib/to-chuc/su-kien-constants";
-import { orgPublicHref } from "@/lib/search/helpers";
+import { suKienDetailPath } from "@/lib/to-chuc/su-kien-routes";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { resolveTruongImageSrcSync } from "@/lib/truong/media-url";
 
@@ -39,11 +38,6 @@ function promoEventDate(iso: string): { month: string; day: string } {
     month: PROMO_EVENT_MONTHS[d.getMonth()] ?? "",
     day: String(d.getDate()).padStart(2, "0"),
   };
-}
-
-function orgSuKienHref(loai: string, slug: string): string {
-  if (loai === "co_so_dao_tao") return coSoTabPath(slug, "su-kien");
-  return orgPublicHref(loai, slug);
 }
 
 type SuKienPromoRow = {
@@ -150,11 +144,9 @@ async function loadFeedPromoEvents(
     items: rows.map((row) => {
       const orgRaw = row.org_to_chuc;
       const org = Array.isArray(orgRaw) ? orgRaw[0] : orgRaw;
-      const orgSlug = org?.slug?.trim() ?? "";
       const orgTen = org?.ten?.trim() ?? "Tổ chức";
-      const orgLoai = org?.loai_to_chuc?.trim() ?? "co_so_dao_tao";
       const loaiLabel = labelLoaiSuKien(row.loai_su_kien);
-      const href = orgSlug ? orgSuKienHref(orgLoai, orgSlug) : "/";
+      const href = suKienDetailPath(row.id);
       const coverSrc = row.cover_id
         ? resolveTruongImageSrcSync(row.cover_id, ["public", "cover", "medium"])
         : null;

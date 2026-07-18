@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Bell, Check, CheckCircle2, PencilLine, Video, X, XCircle } from "lucide-react";
+import { ArrowRight, Bell, Check, CheckCircle2, ClipboardList, PencilLine, Video, X, XCircle } from "lucide-react";
 import type { ReactNode } from "react";
 import {
   useCallback,
@@ -66,6 +66,8 @@ import type {
   PendingCongDongInviteNotification,
   PendingFollowRequest,
   ProcessedCoAuthorReview,
+  ShopQuayPendingNotification,
+  ShopQuayResolvedNotification,
   VideoReadyNotification,
 } from "@/lib/social/types";
 import { coAuthorInvitePostHref } from "@/lib/social/coauthor-invite-href";
@@ -181,6 +183,41 @@ function membershipMilestoneNotifyLabel(
   );
 }
 
+function shopQuayNotifyLabel(notice: ShopQuayResolvedNotification): ReactNode {
+  if (notice.action === "approved") {
+    return (
+      <>
+        <strong>{notice.orgTen}</strong> đã duyệt quầy bán hàng của bạn
+        <small>{notice.suKienTen}</small>
+      </>
+    );
+  }
+  return (
+    <>
+      <strong>{notice.orgTen}</strong> đã từ chối yêu cầu làm quầy
+      <small>
+        {notice.suKienTen}
+        {notice.lyDoTuChoi ? ` · ${notice.lyDoTuChoi}` : ""}
+      </small>
+    </>
+  );
+}
+
+function shopQuayPendingNotifyLabel(
+  notice: ShopQuayPendingNotification,
+): ReactNode {
+  const n = notice.pendingCount;
+  return (
+    <>
+      <strong>{notice.orgTen}</strong>
+      {n === 1
+        ? " có 1 nội dung chờ duyệt"
+        : ` có ${n} nội dung chờ duyệt`}
+      <small>{notice.suKienTen}</small>
+    </>
+  );
+}
+
 function parseFeedPayload(json: unknown): NotificationFeed | null {
   return parseNotificationFeedPayload(json);
 }
@@ -206,6 +243,8 @@ function countDisplayedItems(feed: NotificationFeed): number {
     feed.congDongInvites.length +
     feed.orgMilestoneTagApproved.length +
     feed.membershipMilestoneResolved.length +
+    feed.shopQuayResolved.length +
+    feed.shopQuayPending.length +
     feed.videoReady.length +
     feed.dongGopFeedback.length +
     feed.dongGopPromoted.length +
@@ -222,6 +261,8 @@ type InfoNotificationSnapshot = Pick<
   | "videoReady"
   | "orgMilestoneTagApproved"
   | "membershipMilestoneResolved"
+  | "shopQuayResolved"
+  | "shopQuayPending"
   | "dongGopFeedback"
   | "dongGopPromoted"
 >;
@@ -233,6 +274,8 @@ function extractInfoSnapshot(feed: NotificationFeed): InfoNotificationSnapshot {
     videoReady: feed.videoReady,
     orgMilestoneTagApproved: feed.orgMilestoneTagApproved,
     membershipMilestoneResolved: feed.membershipMilestoneResolved,
+    shopQuayResolved: feed.shopQuayResolved,
+    shopQuayPending: feed.shopQuayPending,
     dongGopFeedback: feed.dongGopFeedback,
     dongGopPromoted: feed.dongGopPromoted,
   };
@@ -245,6 +288,8 @@ function countInfoItems(info: InfoNotificationSnapshot): number {
     info.videoReady.length +
     info.orgMilestoneTagApproved.length +
     info.membershipMilestoneResolved.length +
+    info.shopQuayResolved.length +
+    info.shopQuayPending.length +
     info.dongGopFeedback.length +
     info.dongGopPromoted.length
   );
@@ -286,6 +331,43 @@ function renderInfoTimelineEntry(entry: InfoTimelineEntry): ReactNode {
               ) : (
                 <XCircle size={16} strokeWidth={2} />
               )}
+            </span>
+          }
+        />
+      );
+    case "shopQuayResolved":
+      return (
+        <HistoryInfoItem
+          key={entry.item.notificationId}
+          href={entry.item.suKienHref || "#"}
+          label={shopQuayNotifyLabel(entry.item)}
+          time={formatNotifyTime(entry.item.taoLuc)}
+          avatar={
+            <span
+              className={`j-notify-avatar${
+                entry.item.action === "approved" ? " is-verified" : " is-rejected"
+              }`}
+              aria-hidden
+            >
+              {entry.item.action === "approved" ? (
+                <CheckCircle2 size={16} strokeWidth={2} />
+              ) : (
+                <XCircle size={16} strokeWidth={2} />
+              )}
+            </span>
+          }
+        />
+      );
+    case "shopQuayPending":
+      return (
+        <HistoryInfoItem
+          key={entry.item.notificationId}
+          href={entry.item.manageHref || "#"}
+          label={shopQuayPendingNotifyLabel(entry.item)}
+          time={formatNotifyTime(entry.item.taoLuc)}
+          avatar={
+            <span className="j-notify-avatar is-verified" aria-hidden>
+              <ClipboardList size={16} strokeWidth={2} />
             </span>
           }
         />
@@ -447,6 +529,8 @@ function renderHistoryTimelineEntry(entry: HistoryTimelineEntry): ReactNode {
     case "accepted":
     case "comment":
     case "membershipMilestoneResolved":
+    case "shopQuayResolved":
+    case "shopQuayPending":
     case "orgMilestoneTagApproved":
     case "videoReady":
     case "dongGopFeedback":

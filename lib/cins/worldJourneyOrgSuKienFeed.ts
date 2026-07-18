@@ -6,7 +6,7 @@ import type {
 } from "@/components/journey/milestone-types";
 import { getAvatarUrl } from "@/lib/journey/profile";
 import { labelLoaiSuKien } from "@/lib/to-chuc/su-kien-constants";
-import { orgSuKienHref } from "@/lib/to-chuc/su-kien-routes";
+import { suKienDetailPath } from "@/lib/to-chuc/su-kien-routes";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { resolveTruongImageSrcSync } from "@/lib/truong/media-url";
 import { getStepStatus } from "@/lib/truong/timeline";
@@ -102,7 +102,7 @@ function mapSuKienToMilestone(
   const avatarUrl = avatarId
     ? resolveTruongImageSrcSync(avatarId, ["public", "avatar"])
     : null;
-  const href = orgSuKienHref(orgLoai, orgSlug);
+  const href = suKienDetailPath(row.id);
   const coverSrc = row.cover_id
     ? resolveTruongImageSrcSync(row.cover_id, ["public", "cover", "medium"])
     : null;

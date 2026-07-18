@@ -64,6 +64,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     };
   }
 
+  if (tab === "su-kien") {
+    return {
+      metadataBase,
+      title: `Sự kiện — ${meta.ten} | CINs`,
+      description: meta.moTa ?? `Sự kiện tại ${meta.ten} trên CINs.`,
+    };
+  }
+
   return { metadataBase, title: `${meta.ten} | CINs` };
 }
 
@@ -76,6 +84,10 @@ export default async function StudioDeepLinkPage({ params }: Props) {
     return null;
   }
   if (tab === "bai-dang" || tab === "showcase") {
+    if (!jobId?.trim()) notFound();
+    return null;
+  }
+  if (tab === "su-kien") {
     if (!jobId?.trim()) notFound();
     return null;
   }

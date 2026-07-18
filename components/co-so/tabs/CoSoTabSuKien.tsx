@@ -9,24 +9,30 @@ import {
   Trash2,
   Users,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 
 import { SuKienCreateModal } from "@/components/co-so/SuKienCreateModal";
-import { SuKienDetailModal } from "@/components/co-so/SuKienDetailModal";
+import { SuKienDetailView } from "@/components/co-so/SuKienDetailView";
 import {
   labelLoaiSuKien,
   labelSuKienVe,
   type SuKienCardData,
 } from "@/lib/to-chuc/su-kien-constants";
+import { coSoSuKienPath, coSoTabPath } from "@/lib/to-chuc/co-so-routes";
+import { studioSuKienPath, studioTabPath } from "@/lib/to-chuc/studio-routes";
 import { formatSuKienDiaDiemDisplay } from "@/lib/truong/contact";
 
 type Props = {
   orgId: string;
+  orgSlug: string;
   orgTen: string;
   orgDiaChi?: string | null;
   orgTinhThanh?: string | null;
   canManageSuKien: boolean;
+  activeSuKienId?: string | null;
+  detailPathMode: "co-so" | "studio";
 };
 
 function formatRange(batDau: string, ketThuc: string | null): string {
@@ -60,20 +66,39 @@ function isPast(batDau: string, ketThuc: string | null): boolean {
 
 export function CoSoTabSuKien({
   orgId,
+  orgSlug,
   orgTen,
   orgDiaChi = null,
   orgTinhThanh = null,
   canManageSuKien,
+  activeSuKienId = null,
+  detailPathMode,
 }: Props) {
+  const router = useRouter();
+  const [openManageFromQuery, setOpenManageFromQuery] = useState(false);
   const [items, setItems] = useState<SuKienCardData[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<SuKienCardData | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [detailSuKien, setDetailSuKien] = useState<SuKienCardData | null>(
-    null,
-  );
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const q = new URLSearchParams(window.location.search);
+    setOpenManageFromQuery(q.get("manage") === "1");
+  }, [activeSuKienId]);
+
+  const listHref =
+    detailPathMode === "co-so"
+      ? coSoTabPath(orgSlug, "su-kien")
+      : studioTabPath(orgSlug, "su-kien");
+
+  function detailHref(suKienId: string) {
+    return detailPathMode === "co-so"
+      ? coSoSuKienPath(orgSlug, suKienId)
+      : studioSuKienPath(orgSlug, suKienId);
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -112,6 +137,14 @@ export function CoSoTabSuKien({
     };
   }, [orgId]);
 
+  const activeSuKien = useMemo(
+    () =>
+      activeSuKienId
+        ? items.find((s) => s.id === activeSuKienId) ?? null
+        : null,
+    [activeSuKienId, items],
+  );
+
   function handleCreated(suKien: SuKienCardData) {
     setItems((prev) =>
       [suKien, ...prev.filter((s) => s.id !== suKien.id)].sort(
@@ -135,9 +168,6 @@ export function CoSoTabSuKien({
     setItems((prev) =>
       prev.map((s) => (s.id === suKienId ? { ...s, soDangKy } : s)),
     );
-    setDetailSuKien((prev) =>
-      prev?.id === suKienId ? { ...prev, soDangKy } : prev,
-    );
   }
 
   async function handleDelete(suKien: SuKienCardData) {
@@ -150,12 +180,19 @@ export function CoSoTabSuKien({
       );
       if (res.ok) {
         setItems((prev) => prev.filter((s) => s.id !== suKien.id));
+        if (activeSuKienId === suKien.id) {
+          router.push(listHref, { scroll: false });
+        }
       }
     } catch {
       /* bỏ qua — giữ danh sách */
     } finally {
       setDeletingId(null);
     }
+  }
+
+  function openDetail(suKien: SuKienCardData) {
+    router.push(detailHref(suKien.id), { scroll: false });
   }
 
   if (loading) {
@@ -171,6 +208,67 @@ export function CoSoTabSuKien({
       <div className="cso-kh-empty">
         <p className="cso-kh-empty-title">Không tải được sự kiện</p>
         <p className="cso-kh-empty-hint">{loadError}</p>
+      </div>
+    );
+  }
+
+  if (activeSuKienId) {
+    if (!activeSuKien) {
+      return (
+        <div className="cso-kh-tab">
+          <div className="cso-kh-empty">
+            <p className="cso-kh-empty-title">Không tìm thấy sự kiện</p>
+            <p className="cso-kh-empty-hint">
+              Sự kiện có thể đã bị xóa hoặc không thuộc tổ chức này.
+            </p>
+            <button
+              type="button"
+              className="cso-kh-toolbar-btn cso-kh-empty-btn"
+              onClick={() => router.push(listHref, { scroll: false })}
+            >
+              Quay lại danh sách
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="cso-kh-tab">
+        <SuKienDetailView
+          orgId={orgId}
+          suKien={activeSuKien}
+          canManage={canManageSuKien}
+          variant="panel"
+          initialPanelTab={
+            canManageSuKien && openManageFromQuery ? "manage" : "detail"
+          }
+          onBack={() => {
+            router.push(listHref, { scroll: false });
+          }}
+          onSoDangKyChange={handleSoDangKyChange}
+        />
+        {canManageSuKien ? (
+          <>
+            <SuKienCreateModal
+              open={createOpen && !editing}
+              orgId={orgId}
+              orgDiaChi={orgDiaChi}
+              orgTinhThanh={orgTinhThanh}
+              onClose={() => setCreateOpen(false)}
+              onCreated={handleCreated}
+            />
+            <SuKienCreateModal
+              open={Boolean(editing)}
+              orgId={orgId}
+              orgDiaChi={orgDiaChi}
+              orgTinhThanh={orgTinhThanh}
+              editing={editing}
+              onClose={() => setEditing(null)}
+              onUpdated={handleUpdated}
+            />
+          </>
+        ) : null}
       </div>
     );
   }
@@ -239,11 +337,11 @@ export function CoSoTabSuKien({
                   className={`cso-sk-card${past ? " cso-sk-card--past" : ""}`}
                   role="button"
                   tabIndex={0}
-                  onClick={() => setDetailSuKien(sk)}
+                  onClick={() => openDetail(sk)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
-                      setDetailSuKien(sk);
+                      openDetail(sk);
                     }
                   }}
                 >
@@ -331,15 +429,6 @@ export function CoSoTabSuKien({
           </ul>
         )}
       </div>
-
-      <SuKienDetailModal
-        open={Boolean(detailSuKien)}
-        orgId={orgId}
-        suKien={detailSuKien}
-        onClose={() => setDetailSuKien(null)}
-        onSoDangKyChange={handleSoDangKyChange}
-        canManage={canManageSuKien}
-      />
 
       {canManageSuKien ? (
         <>

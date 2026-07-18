@@ -10,6 +10,7 @@ import type {
   MilestoneType,
   MilestoneVariant,
   MilestoneCardLayout,
+  MilestoneVisibility,
 } from "@/components/journey/milestone-types";
 import type { FeedSourceKind } from "@/lib/cins/worldJourneyFeedSource";
 import {
@@ -88,8 +89,8 @@ export type GalleryMainItem = {
   meta: string;
   featured: boolean;
   type: MilestoneType;
-  /** Chế độ hiển thị — menu chủ gallery; gallery public chỉ có feature/public. */
-  visibility?: "feature" | "public";
+  /** Chế độ hiển thị — menu chủ gallery; khách chỉ thấy feature/public (+ bạn bè / tùy chọn). */
+  visibility?: MilestoneVisibility;
   /** Slug tác phẩm — menu chủ (sửa / permalink). */
   postSlug?: string | null;
   /** Slug chủ bài (permalink) khi khác profile đang xem. */
@@ -128,7 +129,14 @@ export type GalleryMainItem = {
   worldBoosted?: boolean;
 };
 
-const getGalleryStubsCached = cache(collectGalleryStubs);
+const getGalleryStubsCached = cache(
+  async (
+    userId: string,
+    isOwner: boolean,
+    viewerId: string | null,
+  ): Promise<GalleryStub[]> =>
+    collectGalleryStubs(userId, { isOwner, viewerId }),
+);
 
 function filterGalleryStubsForViewer(
   stubs: GalleryStub[],
@@ -501,8 +509,13 @@ function hydrateAsideItems(
   return { pinned, items, totalTacPham: stubs.length };
 }
 
-export async function fetchGalleryTotalCount(userId: string): Promise<number> {
-  const stubs = await getGalleryStubsCached(userId);
+export async function fetchGalleryTotalCount(
+  userId: string,
+  options?: { isOwner?: boolean; viewerId?: string | null },
+): Promise<number> {
+  const isOwner = Boolean(options?.isOwner);
+  const viewerId = options?.viewerId ?? null;
+  const stubs = await getGalleryStubsCached(userId, isOwner, viewerId);
   return stubs.length;
 }
 
@@ -514,6 +527,7 @@ export async function fetchGalleryMainPage(params: {
   limit?: number;
 }): Promise<GalleryMainPageResult> {
   const { userId, ownerSlug, viewerId = null } = params;
+  const isOwner = Boolean(viewerId && viewerId === userId);
   const offset = Math.max(0, params.offset ?? 0);
   const limit = Math.min(
     48,
@@ -521,7 +535,9 @@ export async function fetchGalleryMainPage(params: {
   );
 
   const [stubsRaw, noiBatOrder] = await Promise.all([
-    withVerifiedGalleryVariants(await getGalleryStubsCached(userId)),
+    withVerifiedGalleryVariants(
+      await getGalleryStubsCached(userId, isOwner, viewerId),
+    ),
     fetchGalleryNoiBatOrderMap(userId),
   ]);
   const stubs = sortGalleryByPriority(
@@ -582,7 +598,7 @@ export async function fetchGalleryMainPage(params: {
 }
 
 export async function fetchGalleryFeaturedCount(userId: string): Promise<number> {
-  const stubs = await getGalleryStubsCached(userId);
+  const stubs = await getGalleryStubsCached(userId, false, null);
   return stubs.filter((s) => s.visibility === "feature").length;
 }
 
@@ -598,8 +614,9 @@ export async function fetchGalleryForUser(params: {
   featuredCount: number;
 }> {
   const { userId, ownerSlug, viewerId = null } = params;
+  const isOwner = Boolean(viewerId && viewerId === userId);
   const stubs = filterGalleryStubsForViewer(
-    await getGalleryStubsCached(userId),
+    await getGalleryStubsCached(userId, isOwner, viewerId),
     viewerId,
     userId,
   );

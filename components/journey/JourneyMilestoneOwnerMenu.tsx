@@ -906,7 +906,7 @@ export function JourneyMilestoneOwnerMenu({
               <span className="j-m-menu-ico" aria-hidden>
                 <Store size={14} strokeWidth={1.7} />
               </span>
-              <span className="j-m-menu-lbl">Xin làm quầy sự kiện</span>
+              <span className="j-m-menu-lbl">Tham gia sự kiện</span>
             </button>
           </>
         ) : null}

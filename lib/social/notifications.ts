@@ -22,6 +22,7 @@ import {
 import type { NotificationFeed, NotificationFilter } from "@/lib/social/types";
 import { listOrgMilestoneTagApprovedNotifications } from "@/lib/social/org-milestone-tag-notify";
 import { listMembershipMilestoneResolvedNotifications } from "@/lib/social/membership-milestone-notify";
+import { listShopQuayResolvedNotifications, listShopQuayPendingNotifications } from "@/lib/shop/quay-notify";
 import { listVideoReadyNotifications } from "@/lib/social/video-ready";
 import { listDongGopFeedbackNotifications } from "@/lib/article/dong-gop/notify-feedback";
 import { listDongGopPromotedNotifications } from "@/lib/article/dong-gop/notify-promote";
@@ -47,6 +48,8 @@ export const EMPTY_NOTIFICATION_FEED: NotificationFeed = {
   videoReady: [],
   orgMilestoneTagApproved: [],
   membershipMilestoneResolved: [],
+  shopQuayResolved: [],
+  shopQuayPending: [],
   dongGopFeedback: [],
   dongGopPromoted: [],
   handledFollows: [],
@@ -76,6 +79,8 @@ function capUnreadLists(payload: FeedPayload, limit: number): FeedPayload {
     congDongInvites: take(payload.congDongInvites),
     orgMilestoneTagApproved: payload.orgMilestoneTagApproved.slice(0, 5),
     membershipMilestoneResolved: payload.membershipMilestoneResolved.slice(0, 5),
+    shopQuayResolved: payload.shopQuayResolved.slice(0, 5),
+    shopQuayPending: payload.shopQuayPending.slice(0, 5),
     followRequests: take(payload.followRequests),
     coAuthorInvites: take(payload.coAuthorInvites),
     coAuthorReviews: take(payload.coAuthorReviews),
@@ -136,6 +141,8 @@ async function loadNotificationFeedUnsafe(
     congDongInvites,
     orgMilestoneTagApproved,
     membershipMilestoneResolved,
+    shopQuayResolved,
+    shopQuayPending,
     videoReady,
     dongGopFeedback,
     dongGopPromoted,
@@ -178,6 +185,16 @@ async function loadNotificationFeedUnsafe(
       historyOnly,
       limit: rowLimit,
     }),
+    listShopQuayResolvedNotifications(viewerId, {
+      unreadOnly,
+      historyOnly,
+      limit: rowLimit,
+    }),
+    listShopQuayPendingNotifications(viewerId, {
+      unreadOnly,
+      historyOnly,
+      limit: rowLimit,
+    }),
     listVideoReadyNotifications(viewerId, {
       unreadOnly,
       historyOnly,
@@ -211,6 +228,8 @@ async function loadNotificationFeedUnsafe(
     congDongInvites: unreadOnly ? congDongInvites : [],
     orgMilestoneTagApproved,
     membershipMilestoneResolved,
+    shopQuayResolved,
+    shopQuayPending,
     videoReady,
     dongGopFeedback,
     dongGopPromoted,
@@ -262,6 +281,9 @@ export async function countUnreadNotifications(viewerId: string): Promise<number
     { count: orgMilestoneTag },
     { count: membershipMilestoneApproved },
     { count: membershipMilestoneRejected },
+    { count: shopQuayApproved },
+    { count: shopQuayRejected },
+    { count: shopQuayPending },
     { count: video },
     { count: dongGopFeedback },
     { count: dongGopPromoted },
@@ -354,6 +376,24 @@ export async function countUnreadNotifications(viewerId: string): Promise<number
       .from("social_thong_bao")
       .select("id", { count: "exact", head: true })
       .eq("nguoi_nhan", viewerId)
+      .eq("loai_doi_tuong", "shop_quay_approved")
+      .eq("da_doc", false),
+    admin
+      .from("social_thong_bao")
+      .select("id", { count: "exact", head: true })
+      .eq("nguoi_nhan", viewerId)
+      .eq("loai_doi_tuong", "shop_quay_rejected")
+      .eq("da_doc", false),
+    admin
+      .from("social_thong_bao")
+      .select("id", { count: "exact", head: true })
+      .eq("nguoi_nhan", viewerId)
+      .eq("loai_doi_tuong", "shop_quay_pending")
+      .eq("da_doc", false),
+    admin
+      .from("social_thong_bao")
+      .select("id", { count: "exact", head: true })
+      .eq("nguoi_nhan", viewerId)
       .eq("loai_doi_tuong", "video_ready")
       .eq("da_doc", false),
     admin
@@ -383,6 +423,9 @@ export async function countUnreadNotifications(viewerId: string): Promise<number
     (orgMilestoneTag ?? 0) +
     (membershipMilestoneApproved ?? 0) +
     (membershipMilestoneRejected ?? 0) +
+    (shopQuayApproved ?? 0) +
+    (shopQuayRejected ?? 0) +
+    (shopQuayPending ?? 0) +
     (video ?? 0) +
     (dongGopFeedback ?? 0) +
     (dongGopPromoted ?? 0)
@@ -536,6 +579,9 @@ export async function markAllInfoNotificationsRead(
       "org_milestone_tag_approved",
       "membership_milestone_approved",
       "membership_milestone_rejected",
+      "shop_quay_approved",
+      "shop_quay_rejected",
+      "shop_quay_pending",
       "video_ready",
       "article_dong_gop_feedback",
       "article_dong_gop_promoted",

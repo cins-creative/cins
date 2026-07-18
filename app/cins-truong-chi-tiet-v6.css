@@ -2935,7 +2935,7 @@
 
 :is(.tdh-page--v6, .cd-v4-page) .tdh-admission-side .timeline-item--focus.timeline-item--next .timeline-label,
 :is(.tdh-page--v6, .cd-v4-page) .tdh-admission-side .timeline-item--focus.timeline-item--next .timeline-label--link {
-  color: var(--ink, #0f172a);
+  color: var(--ink-display, var(--ink, #0f172a));
   font-weight: 900;
 }
 
@@ -2956,6 +2956,61 @@
 
 :is(.tdh-page--v6, .cd-v4-page) .tdh-admission-side .timeline-item--editable:hover {
   background: var(--neutral-100, #f4f5f8);
+}
+
+/* Dark — label/mốc sự kiện: tránh #0f172a / --ink tối trên nền tối */
+:root[data-theme="dark"] :is(.tdh-page--v6, .cd-v4-page) .tdh-admission-side .timeline-label,
+:root[data-theme="dark"] :is(.tdh-page--v6, .cd-v4-page) .tdh-admission-side .timeline-label--link,
+:root[data-theme="dark"] :is(.tdh-page--v6, .cd-v4-page) .tdh-admission-side .timeline-item.upcoming .timeline-label--link,
+:root[data-theme="dark"] :is(.tdh-page--v6, .cd-v4-page) .tdh-admission-side .timeline-item .timeline-label--link,
+:root[data-theme="dark"] :is(.tdh-page--v6, .cd-v4-page) .tdh-admission-side .timeline-item--focus.timeline-item--next .timeline-label,
+:root[data-theme="dark"] :is(.tdh-page--v6, .cd-v4-page) .tdh-admission-side .timeline-item--focus.timeline-item--next .timeline-label--link {
+  color: var(--ink-display, rgba(255, 255, 255, 0.92));
+}
+
+:root[data-theme="dark"] :is(.tdh-page--v6, .cd-v4-page) .tdh-admission-side .timeline-item--focus.timeline-item--current .timeline-label,
+:root[data-theme="dark"] :is(.tdh-page--v6, .cd-v4-page) .tdh-admission-side .timeline-item--focus.timeline-item--current .timeline-label--link,
+:root[data-theme="dark"] :is(.tdh-page--v6, .cd-v4-page) .tdh-admission-side .timeline-item.done .timeline-label,
+:root[data-theme="dark"] :is(.tdh-page--v6, .cd-v4-page) .tdh-admission-side .timeline-item.done .timeline-label--link {
+  color: var(--cins-mint, #34c98a);
+}
+
+:root[data-theme="dark"] :is(.tdh-page--v6, .cd-v4-page) .tdh-admission-side .timeline-item.active .timeline-label,
+:root[data-theme="dark"] :is(.tdh-page--v6, .cd-v4-page) .tdh-admission-side .timeline-item.active .timeline-label--link {
+  color: var(--cins-blue, #4f9be8);
+}
+
+:root[data-theme="dark"] :is(.tdh-page--v6, .cd-v4-page) .tdh-admission-side .timeline-desc,
+:root[data-theme="dark"] :is(.tdh-page--v6, .cd-v4-page) .tdh-admission-side .timeline-date,
+:root[data-theme="dark"] :is(.tdh-page--v6, .cd-v4-page) .tdh-admission-side .timeline-edit-hint {
+  color: var(--ink-muted, rgba(255, 255, 255, 0.46));
+}
+
+:root[data-theme="dark"] :is(.tdh-page--v6, .cd-v4-page) .tdh-admission-side .timeline-item--past .timeline-label,
+:root[data-theme="dark"] :is(.tdh-page--v6, .cd-v4-page) .tdh-admission-side .timeline-item--past .timeline-label--link {
+  color: var(--ink-muted, rgba(255, 255, 255, 0.46));
+}
+
+:root[data-theme="dark"] :is(.tdh-page--v6, .cd-v4-page) .tdh-admission-side .timeline-item--editable:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+:root[data-theme="dark"] :is(.tdh-page--v6, .cd-v4-page) .tdh-admission-side .timeline-add-moc {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--border, #2a3040);
+}
+
+:root[data-theme="dark"] :is(.tdh-page--v6, .cd-v4-page) .tdh-admission-side .timeline-add-moc .timeline-label {
+  color: var(--ink-display, rgba(255, 255, 255, 0.92));
+}
+
+:root[data-theme="dark"] :is(.tdh-page--v6, .cd-v4-page) .tdh-admission-side .timeline-add-moc .timeline-desc {
+  color: var(--ink-muted, rgba(255, 255, 255, 0.46));
+}
+
+:root[data-theme="dark"] :is(.tdh-page--v6, .cd-v4-page) .tdh-admission-side .timeline-add-moc:hover {
+  border-color: color-mix(in srgb, var(--cins-blue, #4f9be8) 45%, transparent);
+  background: color-mix(in srgb, var(--cins-blue, #4f9be8) 12%, transparent);
 }
 
 :is(.tdh-page--v6, .cd-v4-page) .tdh-admission-side .timeline-edit-hint {

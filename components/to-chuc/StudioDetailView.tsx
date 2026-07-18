@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   prefetchStudioTab,
   StudioHinhAnhTabLazy,
+  StudioTabSuKienLazy,
   StudioTabTuyenDungLazy,
 } from "@/components/org/org-tab-lazy-views";
 import { TruongAdminToolbar } from "@/components/truong/inline/TruongAdminToolbar";
@@ -92,7 +93,14 @@ export function StudioDetailView({
 
 function studioTabPrefetch(tab: StudioTabId) {
   if (tab === "bai-dang") return;
-  prefetchStudioTab(tab);
+  if (
+    tab === "tuyen-dung" ||
+    tab === "hinh-anh" ||
+    tab === "showcase" ||
+    tab === "su-kien"
+  ) {
+    prefetchStudioTab(tab);
+  }
 }
 
 function StudioDetailViewInner({
@@ -111,7 +119,7 @@ function StudioDetailViewInner({
   const [pageConfig, setPageConfig] = useState<StudioPageCauHinh>(
     () => payload.pageConfig,
   );
-  const { tab, baiDangId, selectTab } = useStudioTabNav(studio.slug);
+  const { tab, baiDangId, suKienId, selectTab } = useStudioTabNav(studio.slug);
   const { jobs } = useOrgStudioJobs(studio.id);
   const [mountedTabs, setMountedTabs] = useState<Set<StudioTabId>>(
     () => new Set([tab]),
@@ -260,7 +268,7 @@ function StudioDetailViewInner({
                 onFocus={() => studioTabPrefetch(t.id)}
                 onClick={(event) => {
                   event.preventDefault();
-                  if (tab !== t.id) selectTab(t.id);
+                  if (tab !== t.id || baiDangId || suKienId) selectTab(t.id);
                 }}
               >
                 {t.label}
@@ -306,6 +314,19 @@ function StudioDetailViewInner({
                 />
               ) : null}
 
+              {t.id === "su-kien" ? (
+                <StudioTabSuKienLazy
+                  orgId={studio.id}
+                  orgSlug={studio.slug}
+                  orgTen={studio.ten}
+                  orgDiaChi={studio.diaChi}
+                  orgTinhThanh={studio.tinhThanh}
+                  canManageSuKien={canEdit}
+                  activeSuKienId={tab === "su-kien" ? suKienId : null}
+                  detailPathMode="studio"
+                />
+              ) : null}
+
               {t.id === "tuyen-dung" ? (
                 <StudioTabTuyenDungLazy
                   jobs={jobs}
@@ -332,8 +353,11 @@ function StudioDetailViewInner({
 
       <OrgNotifyFab enabled={isMobileShell} count={notifyCount}>
         <StudioJobsSidebar
+          orgId={studio.id}
           jobs={openJobs}
           orgSlug={studio.slug}
+          orgDiaChi={studio.diaChi}
+          orgTinhThanh={studio.tinhThanh}
           posts={baidang}
           canManage={canEdit}
           onUpcomingCountChange={setNotifyCount}

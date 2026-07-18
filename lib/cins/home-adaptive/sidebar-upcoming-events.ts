@@ -36,6 +36,7 @@ import {
   TRUONG_DEFAULT_TAB,
   truongTabPath,
 } from "@/lib/truong/truong-routes";
+import { suKienDetailPath } from "@/lib/to-chuc/su-kien-routes";
 import type { TruongTuyenSinhNamRow } from "@/lib/truong/types";
 
 export type SidebarUpcomingEventsBundle = {
@@ -49,8 +50,8 @@ export function sidebarSuKienId(item: SidebarUpcomingEvent): string {
 }
 
 export function sidebarEventHref(item: SidebarUpcomingEvent): string {
-  if (item.phanHoi) {
-    return `/su-kien?tab=cua-ban&suKien=${encodeURIComponent(sidebarSuKienId(item))}`;
+  if (item.kind === "su_kien") {
+    return suKienDetailPath(sidebarSuKienId(item));
   }
   return item.href;
 }

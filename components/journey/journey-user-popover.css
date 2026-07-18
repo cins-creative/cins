@@ -164,10 +164,24 @@ button.j-user-pop-close svg {
   position: relative;
   height: 96px;
   overflow: hidden;
-  background:
-    radial-gradient(circle at 16% 18%, rgba(253, 232, 89, 0.9), transparent 34%),
-    radial-gradient(circle at 84% 26%, rgba(124, 58, 237, 0.55), transparent 42%),
-    linear-gradient(135deg, #1d4ed8, #7c3aed 60%, #0f172a);
+  /* Banner mặc định: nền chấm — đồng bộ promo person cover */
+  background-color: var(--neutral-100, #eef1f6);
+  background-image: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--ink1, #0f172a) 12%, transparent) 1px,
+    transparent 1.25px
+  );
+  background-size: 9px 9px;
+  background-position: 0 0;
+}
+
+:root[data-theme="dark"] .j-user-popover .j-friend-cover:not(.has-img) {
+  background-color: color-mix(in srgb, var(--surface, #171b24) 82%, #0f172a);
+  background-image: radial-gradient(
+    circle,
+    color-mix(in srgb, #fff 14%, transparent) 1px,
+    transparent 1.25px
+  );
 }
 
 .j-user-popover .j-friend-cover.has-img {

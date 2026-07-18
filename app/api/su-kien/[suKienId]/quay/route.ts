@@ -78,12 +78,6 @@ export async function POST(request: Request, ctx: Ctx) {
     if (msg === "BAN_HANG_OFF") {
       return NextResponse.json({ error: "Chưa bật bán hàng." }, { status: 403 });
     }
-    if (msg === "EVIDENCE_REQUIRED") {
-      return NextResponse.json(
-        { error: "Cần ít nhất một bằng chứng (vé/mã quầy…)." },
-        { status: 422 },
-      );
-    }
     return NextResponse.json({ error: "Không gửi được." }, { status: 500 });
   }
 }

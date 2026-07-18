@@ -57,8 +57,9 @@ type DongRow = {
 
 function mapDong(
   d: DongRow,
-  anhByBienThe: Map<string, string | null>,
+  metaByBienThe: Map<string, { anhUrl: string | null; phanLoai: string | null }>,
 ): ShopDonHangDong {
+  const meta = d.id_bien_the ? metaByBienThe.get(d.id_bien_the) : undefined;
   return {
     id: d.id,
     idBienThe: d.id_bien_the,
@@ -66,7 +67,8 @@ function mapDong(
     nhanSnapshot: d.nhan_snapshot,
     soLuong: d.so_luong,
     giaDonVi: Number(d.gia_don_vi),
-    anhUrl: d.id_bien_the ? (anhByBienThe.get(d.id_bien_the) ?? null) : null,
+    anhUrl: meta?.anhUrl ?? null,
+    phanLoai: meta?.phanLoai ?? null,
   };
 }
 
@@ -89,7 +91,10 @@ async function attachDong(dons: DonRow[]): Promise<ShopDonHang[]> {
         .filter((id): id is string => Boolean(id)),
     ),
   ];
-  const anhByBienThe = new Map<string, string | null>();
+  const metaByBienThe = new Map<
+    string,
+    { anhUrl: string | null; phanLoai: string | null }
+  >();
   if (btIds.length > 0) {
     const { data: bts } = await admin
       .from("shop_bien_the")
@@ -101,31 +106,39 @@ async function attachDong(dons: DonRow[]): Promise<ShopDonHang[]> {
       anh_id: string | null;
     }>;
     const spIds = [...new Set(btList.map((b) => b.id_san_pham).filter(Boolean))];
-    const spAnh = new Map<string, string | null>();
+    const spMeta = new Map<
+      string,
+      { anhId: string | null; phanLoai: string | null }
+    >();
     if (spIds.length > 0) {
       const { data: sps } = await admin
         .from("shop_san_pham")
-        .select("id, anh_id")
+        .select("id, anh_id, phan_loai")
         .in("id", spIds);
       for (const s of (sps ?? []) as Array<{
         id: string;
         anh_id: string | null;
+        phan_loai: string | null;
       }>) {
-        spAnh.set(s.id, s.anh_id);
+        spMeta.set(s.id, {
+          anhId: s.anh_id,
+          phanLoai: s.phan_loai?.trim() || null,
+        });
       }
     }
     for (const bt of btList) {
-      anhByBienThe.set(
-        bt.id,
-        shopImageUrl(bt.anh_id ?? spAnh.get(bt.id_san_pham) ?? null),
-      );
+      const sp = spMeta.get(bt.id_san_pham);
+      metaByBienThe.set(bt.id, {
+        anhUrl: shopImageUrl(bt.anh_id ?? sp?.anhId ?? null),
+        phanLoai: sp?.phanLoai ?? null,
+      });
     }
   }
 
   const byDon = new Map<string, ShopDonHangDong[]>();
   for (const d of dongRows) {
     const list = byDon.get(d.id_don_hang) ?? [];
-    list.push(mapDong(d, anhByBienThe));
+    list.push(mapDong(d, metaByBienThe));
     byDon.set(d.id_don_hang, list);
   }
 
@@ -227,6 +240,13 @@ export async function createDonFromGio(
     throw new Error("BUYER_ACCEPTANCE_REQUIRED");
   }
 
+  if (input.loaiDon === "mua_ngay") {
+    for (const d of gio.dong) {
+      if (d.soLuongTon <= 0) throw new Error("STOCK_EMPTY");
+      if (d.soLuong > d.soLuongTon) throw new Error("STOCK_INSUFFICIENT");
+    }
+  }
+
   const { data: buyer } = await admin
     .from("user_nguoi_dung")
     .select("ten_hien_thi, slug")
@@ -315,32 +335,92 @@ export async function createDonFromGio(
     throw new Error("CREATE_FAILED");
   }
 
+  /* Mua ngay: trừ kho ngay (atomic) — tránh 2 buyer cùng lấy hết tồn. */
+  if (input.loaiDon === "mua_ngay") {
+    const deducted: Array<{ idBienThe: string; soLuong: number }> = [];
+    try {
+      for (const d of gio.dong) {
+        const ok = await truKhoBienThe(d.idBienThe, d.soLuong);
+        if (!ok) throw new Error("STOCK_INSUFFICIENT");
+        deducted.push({ idBienThe: d.idBienThe, soLuong: d.soLuong });
+      }
+      const { error: flagErr } = await admin
+        .from("shop_don_hang")
+        .update({
+          da_tru_kho: true,
+          cap_nhat_luc: new Date().toISOString(),
+        })
+        .eq("id", don.id);
+      if (flagErr) throw new Error("CREATE_FAILED");
+    } catch (e) {
+      for (const x of deducted.reverse()) {
+        await hoanKhoBienThe(x.idBienThe, x.soLuong);
+      }
+      await admin.from("shop_don_hang").delete().eq("id", don.id);
+      if (e instanceof Error && e.message === "STOCK_INSUFFICIENT") {
+        throw e;
+      }
+      console.error("[shop] createDonTruKho", e);
+      throw new Error("CREATE_FAILED");
+    }
+  }
+
   // Clear cart after order
   if (gio.id) {
     await admin.from("shop_gio_dong").delete().eq("id_gio", gio.id);
   }
 
-  const [mapped] = await attachDong([don]);
-  return mapped!;
+  const fresh = await getDonHang(don.id);
+  if (!fresh) throw new Error("CREATE_FAILED");
+  return fresh;
+}
+
+async function truKhoBienThe(
+  idBienThe: string,
+  soLuong: number,
+): Promise<boolean> {
+  const admin = createServiceRoleClient();
+  const { data, error } = await admin.rpc("shop_tru_kho_bien_the", {
+    p_id_bien_the: idBienThe,
+    p_so_luong: soLuong,
+  });
+  if (error) {
+    console.error("[shop] truKho", error);
+    return false;
+  }
+  return data === true;
+}
+
+async function hoanKhoBienThe(
+  idBienThe: string,
+  soLuong: number,
+): Promise<boolean> {
+  const admin = createServiceRoleClient();
+  const { data, error } = await admin.rpc("shop_hoan_kho_bien_the", {
+    p_id_bien_the: idBienThe,
+    p_so_luong: soLuong,
+  });
+  if (error) {
+    console.error("[shop] hoanKho", error);
+    return false;
+  }
+  return data === true;
 }
 
 async function adjustStock(dongs: ShopDonHangDong[]): Promise<void> {
-  const admin = createServiceRoleClient();
-  for (const d of dongs) {
-    if (!d.idBienThe) continue;
-    const { data: bt } = await admin
-      .from("shop_bien_the")
-      .select("so_luong_ton")
-      .eq("id", d.idBienThe)
-      .maybeSingle<{ so_luong_ton: number }>();
-    if (!bt) continue;
-    await admin
-      .from("shop_bien_the")
-      .update({
-        so_luong_ton: bt.so_luong_ton - d.soLuong,
-        cap_nhat_luc: new Date().toISOString(),
-      })
-      .eq("id", d.idBienThe);
+  const deducted: Array<{ idBienThe: string; soLuong: number }> = [];
+  try {
+    for (const d of dongs) {
+      if (!d.idBienThe) continue;
+      const ok = await truKhoBienThe(d.idBienThe, d.soLuong);
+      if (!ok) throw new Error("STOCK_INSUFFICIENT");
+      deducted.push({ idBienThe: d.idBienThe, soLuong: d.soLuong });
+    }
+  } catch (e) {
+    for (const x of deducted.reverse()) {
+      await hoanKhoBienThe(x.idBienThe, x.soLuong);
+    }
+    throw e;
   }
 }
 
@@ -464,11 +544,24 @@ export function donHangToChatContext(don: ShopDonHang): {
     })
     .join("\n");
   const tong = `${don.tongTien.toLocaleString("vi-VN")} ${don.tienTe}`;
+  const ghiChu = (don.ghiChu ?? "")
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l) => l && !l.startsWith("Hóa đơn thanh toán:"))
+    .join(" ")
+    .trim();
+  const parts = [
+    loaiLabel,
+    `Tình trạng: ${trangThaiLabel}`,
+    `Tổng: ${tong}`,
+    lines,
+  ];
+  if (ghiChu) parts.push(`Ghi chú: ${ghiChu}`);
   return {
     loai: "don_hang",
     id: don.id,
     tieuDe: `Đơn ${ma}`,
-    moTa: `${loaiLabel}\nTình trạng: ${trangThaiLabel}\nTổng: ${tong}\n${lines}`,
+    moTa: parts.filter(Boolean).join("\n"),
     href: `/ban-hang/don?id=${don.id}`,
   };
 }

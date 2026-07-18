@@ -6249,6 +6249,14 @@ a.tdh-milestone-tag-student:hover {
 .cso-ss-primary-action--with-settings .ss-btn {
   padding: 0;
   justify-content: center;
+  align-items: center;
+}
+
+.cso-ss-primary-action--with-settings .ss-btn.ss-btn-messages,
+.cso-ss-primary-action--with-settings .ss-btn.ss-btn-notify {
+  justify-content: center;
+  align-items: center;
+  gap: 0;
 }
 
 .cso-ss-primary-action--with-settings .cso-ss-btn-settings {
@@ -6289,8 +6297,20 @@ a.tdh-milestone-tag-student:hover {
 }
 
 .cso-ss-primary-action--admin .ss-btn-messages:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--cins-priv-accent-soft) 55%, #fff);
+  background: color-mix(
+    in srgb,
+    var(--cins-priv-accent-soft) 70%,
+    var(--bg-surface, #fff)
+  );
   border-color: color-mix(in srgb, var(--cins-priv-accent-strong) 45%, transparent);
+  color: var(--cins-priv-accent-strong);
+}
+
+:root[data-theme="dark"] .cso-ss-primary-action--admin .ss-btn-messages:hover:not(:disabled),
+:root[data-theme="dark"] .tdh-page--v6 .cso-ss-primary-action--admin .ss-btn.ss-btn-messages.ghost:hover {
+  background: color-mix(in srgb, var(--cins-priv-accent, #fdad4c) 26%, transparent);
+  border-color: color-mix(in srgb, var(--cins-priv-accent, #fdad4c) 48%, transparent);
+  color: var(--cins-priv-accent-strong, #fdba74);
 }
 
 .ss-btn-messages-label {

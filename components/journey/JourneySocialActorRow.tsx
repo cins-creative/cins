@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useState } from "react";
 import { Maximize2, Users } from "lucide-react";
 
@@ -67,8 +68,7 @@ export function JourneySocialActorRow({
 
   const canExpandFeatured = !featuredReady || featuredCount > 0;
 
-  /** Click hàng chỉ xổ nội dung nổi bật — không vào trang cá nhân.
-   *  Card chỉ fetch khi mở (không prefetch danh sách). */
+  /** Click hàng xổ Feature; nút Maximize2 → trang Journey (giống friend card / popover). */
   const onCardClick = () => {
     if (featuredReady && featuredCount <= 0) return;
     setFeaturedOpen((v) => !v);
@@ -131,27 +131,15 @@ export function JourneySocialActorRow({
         </button>
         <div className="jsa-actions" onClick={(e) => e.stopPropagation()}>
           <JourneySocialActorActions actor={actor} viewerId={viewerId} bare />
-          {canExpandFeatured ? (
-            <button
-              type="button"
-              className={`jsa-act is-journey${featuredOpen ? " is-open" : ""}`}
-              title={
-                featuredOpen
-                  ? "Thu gọn nội dung nổi bật"
-                  : "Xem nội dung nổi bật"
-              }
-              aria-label={
-                featuredOpen
-                  ? "Thu gọn nội dung nổi bật"
-                  : "Xem nội dung nổi bật"
-              }
-              aria-expanded={featuredOpen}
-              aria-controls={`j-user-featured-panel-${actor.slug}`}
-              onClick={() => setFeaturedOpen((v) => !v)}
-            >
-              <Maximize2 size={17} strokeWidth={2} aria-hidden />
-            </button>
-          ) : null}
+          <Link
+            href={`/${actor.slug}`}
+            className="jsa-act is-journey"
+            title="Xem Journey"
+            aria-label={`Xem Journey của ${actor.tenHienThi}`}
+            prefetch={false}
+          >
+            <Maximize2 size={17} strokeWidth={2} aria-hidden />
+          </Link>
         </div>
       </div>
       <JourneyUserFeaturedExpand

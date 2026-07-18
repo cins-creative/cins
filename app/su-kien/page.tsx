@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -6,6 +7,7 @@ import { SuKienListingLoader } from "@/components/su-kien/SuKienListingLoader";
 import { SuKienListingSkeleton } from "@/components/su-kien/SuKienListing.skeleton";
 import { CinsShell } from "@/components/cins/CinsShell";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
+import { suKienDetailPath } from "@/lib/to-chuc/su-kien-routes";
 
 const HUB_TITLE = "Sự kiện | CINs";
 const HUB_DESC =
@@ -41,14 +43,15 @@ export default async function SuKienListingPage({
   if (!hasSupabaseEnv()) notFound();
 
   const sp = await searchParams;
+  const legacyId = sp.suKien?.trim();
+  if (legacyId) {
+    redirect(suKienDetailPath(legacyId));
+  }
 
   return (
     <CinsShell data-screen-label="Su-kien-listing">
       <Suspense fallback={<SuKienListingSkeleton />}>
-        <SuKienListingLoader
-          initialTab={sp.tab}
-          initialSuKienId={sp.suKien}
-        />
+        <SuKienListingLoader initialTab={sp.tab} />
       </Suspense>
     </CinsShell>
   );

@@ -1,8 +1,8 @@
 "use client";
 
-import { ImagePlus, Loader2, X } from "lucide-react";
+import { ClipboardPaste, ImagePlus, Loader2, X } from "lucide-react";
 import Image from "next/image";
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type ClipboardEvent } from "react";
 
 import { TruongInlineModal } from "@/components/truong/inline/TruongInlineModal";
 import { GioiThieuContentEditor } from "@/components/truong/GioiThieuContentEditor";
@@ -14,11 +14,21 @@ import {
   type ModularWhen,
 } from "@/components/common/ModularDateTimeField";
 import {
+  imageFilesFromClipboard,
+  readImageFileFromClipboard,
+} from "@/lib/files/clipboard-images";
+import {
   LOAI_SU_KIEN_VALUES,
   LOAI_SU_KIEN_LABELS,
   type LoaiSuKien,
   type SuKienCardData,
 } from "@/lib/to-chuc/su-kien-constants";
+import {
+  clearSuKienDraft,
+  loadSuKienDraft,
+  saveSuKienDraft,
+  suKienDraftHasContent,
+} from "@/lib/to-chuc/su-kien-draft-storage";
 import {
   TINH_THANH_SELECT_OPTIONS,
   normalizeTinhThanhForDb,
@@ -99,6 +109,47 @@ export function SuKienCreateModal({
     setError(null);
   }, [defaultTinhThanh]);
 
+  const buildDraftSnapshot = useCallback(
+    () => ({
+      ten,
+      loaiSuKien,
+      when,
+      tinhThanh,
+      diaDiem,
+      mienPhi,
+      giaVe,
+      moTa,
+      noiDung,
+      slotToiDa,
+      coverImageId: cover.imageId,
+      coverPreviewUrl: cover.previewUrl,
+    }),
+    [
+      ten,
+      loaiSuKien,
+      when,
+      tinhThanh,
+      diaDiem,
+      mienPhi,
+      giaVe,
+      moTa,
+      noiDung,
+      slotToiDa,
+      cover.imageId,
+      cover.previewUrl,
+    ],
+  );
+
+  const persistDraft = useCallback(() => {
+    if (isEdit) return;
+    const snap = buildDraftSnapshot();
+    if (!suKienDraftHasContent(snap)) {
+      clearSuKienDraft(orgId);
+      return;
+    }
+    saveSuKienDraft(orgId, snap);
+  }, [isEdit, buildDraftSnapshot, orgId]);
+
   async function handleCoverPick(file: File) {
     const localPreview = URL.createObjectURL(file);
     setCover({ imageId: null, previewUrl: localPreview, uploading: true });
@@ -131,10 +182,50 @@ export function SuKienCreateModal({
     }
   }
 
+  function handleCoverPaste(e: ClipboardEvent) {
+    const file = imageFilesFromClipboard(e.clipboardData)[0];
+    if (!file) return;
+    e.preventDefault();
+    e.stopPropagation();
+    void handleCoverPick(file);
+  }
+
+  async function handleCoverPasteClick() {
+    if (cover.uploading || submitting) return;
+    const file = await readImageFileFromClipboard();
+    if (file) {
+      void handleCoverPick(file);
+      return;
+    }
+    setError("Không đọc được ảnh từ clipboard — thử Ctrl+V trên khung ảnh bìa.");
+  }
+
   useEffect(() => {
     if (!open) return;
     setConfirmDelete(false);
     if (!editing) {
+      const draft = loadSuKienDraft(orgId);
+      if (draft && suKienDraftHasContent(draft)) {
+        setTen(draft.ten);
+        setLoaiSuKien(draft.loaiSuKien);
+        setWhen(draft.when);
+        setTinhThanh(
+          normalizeTinhThanhForDb(draft.tinhThanh) ?? defaultTinhThanh,
+        );
+        setDiaDiem(draft.diaDiem);
+        setMienPhi(draft.mienPhi);
+        setGiaVe(draft.giaVe);
+        setMoTa(draft.moTa);
+        setNoiDung(draft.noiDung?.trim() || "<p></p>");
+        setSlotToiDa(draft.slotToiDa);
+        setCover({
+          imageId: draft.coverImageId,
+          previewUrl: draft.coverPreviewUrl,
+          uploading: false,
+        });
+        setError(null);
+        return;
+      }
       reset();
       if (orgDiaChi?.trim()) setDiaDiem(orgDiaChi.trim());
       return;
@@ -157,10 +248,38 @@ export function SuKienCreateModal({
       uploading: false,
     });
     setError(null);
-  }, [open, editing, reset, orgDiaChi, defaultTinhThanh]);
+  }, [open, editing, reset, orgDiaChi, defaultTinhThanh, orgId]);
 
-  function handleClose() {
+  /** Đóng sau khi tạo/sửa thành công — xóa nháp create. */
+  function finishAndClose() {
+    if (!isEdit) clearSuKienDraft(orgId);
+    setConfirmDelete(false);
+    reset();
+    onClose();
+  }
+
+  /** Huỷ / nút X — hỏi có lưu nháp không (chỉ khi tạo mới + có nội dung). */
+  function handleCancelClose() {
     if (submitting || deleting) return;
+    if (!isEdit) {
+      const snap = buildDraftSnapshot();
+      if (suKienDraftHasContent(snap)) {
+        const save = window.confirm("Bạn muốn lưu nội dung nháp không?");
+        if (save) saveSuKienDraft(orgId, snap);
+        else clearSuKienDraft(orgId);
+      } else {
+        clearSuKienDraft(orgId);
+      }
+    }
+    setConfirmDelete(false);
+    reset();
+    onClose();
+  }
+
+  /** Click nền ngoài — tự lưu nháp rồi đóng (chỉ create). */
+  function handleBackdropClose() {
+    if (submitting || deleting) return;
+    if (!isEdit) persistDraft();
     setConfirmDelete(false);
     reset();
     onClose();
@@ -254,8 +373,7 @@ export function SuKienCreateModal({
       }
       if (isEdit) onUpdated?.(json.suKien);
       else onCreated?.(json.suKien);
-      reset();
-      onClose();
+      finishAndClose();
     } catch {
       setError("Lỗi mạng — thử lại sau.");
     } finally {
@@ -266,7 +384,8 @@ export function SuKienCreateModal({
   return (
     <TruongInlineModal
       open={open}
-      onClose={handleClose}
+      onClose={handleBackdropClose}
+      closeOnBackdrop
       className="tdh-inline-modal--wide cso-kh-create-modal"
       labelledBy={titleId}
       showClose={false}
@@ -279,7 +398,7 @@ export function SuKienCreateModal({
           type="button"
           className="cso-kh-create-close"
           aria-label="Đóng"
-          onClick={handleClose}
+          onClick={handleCancelClose}
           disabled={submitting}
         >
           <X size={18} aria-hidden />
@@ -326,7 +445,33 @@ export function SuKienCreateModal({
               Ảnh bìa <span className="cso-kh-req">*</span>
             </span>
             <div className="cso-kh-cover-pick cso-kh-cover-pick--full">
-              <div className="cso-kh-cover-preview cso-kh-cover-preview--banner c1">
+              <input
+                ref={coverInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                className="cso-kh-cover-input"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) void handleCoverPick(file);
+                  e.target.value = "";
+                }}
+              />
+              <div
+                className={[
+                  "cso-kh-cover-preview",
+                  "cso-kh-cover-preview--banner",
+                  "cso-kh-cover-preview--interactive",
+                  "c1",
+                  cover.previewUrl ? "has-image" : "",
+                  cover.uploading ? "is-uploading" : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+                tabIndex={0}
+                role="group"
+                aria-label="Ảnh bìa sự kiện — chọn hoặc dán ảnh"
+                onPaste={handleCoverPaste}
+              >
                 {cover.previewUrl ? (
                   <Image
                     src={cover.previewUrl}
@@ -337,44 +482,43 @@ export function SuKienCreateModal({
                     unoptimized={cover.previewUrl.startsWith("blob:")}
                   />
                 ) : (
-                  <span className="cso-kh-cover-preview-ph" aria-hidden>
-                    <ImagePlus size={24} strokeWidth={1.5} />
-                  </span>
+                  <span className="cso-kh-cover-preview-ph" aria-hidden />
                 )}
-              </div>
-              <div className="cso-kh-cover-actions">
-                <input
-                  ref={coverInputRef}
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp,image/gif"
-                  className="cso-kh-cover-input"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) void handleCoverPick(file);
-                    e.target.value = "";
-                  }}
-                />
-                <button
-                  type="button"
-                  className="cso-kh-cover-btn"
-                  disabled={cover.uploading || submitting}
-                  onClick={() => coverInputRef.current?.click()}
-                >
+                <div className="cso-kh-cover-preview-tools">
                   {cover.uploading ? (
-                    <>
-                      <Loader2 size={14} className="tdh-spin" aria-hidden />
-                      Đang tải…
-                    </>
+                    <span className="cso-kh-cover-tool cso-kh-cover-tool--busy">
+                      <Loader2 size={18} className="tdh-spin" aria-hidden />
+                      <span className="sr-only">Đang tải ảnh…</span>
+                    </span>
                   ) : (
                     <>
-                      <ImagePlus size={14} aria-hidden />
-                      {cover.previewUrl ? "Đổi ảnh bìa" : "Chọn ảnh bìa"}
+                      <button
+                        type="button"
+                        className="cso-kh-cover-tool"
+                        disabled={submitting}
+                        title={
+                          cover.previewUrl ? "Đổi ảnh bìa" : "Chọn ảnh bìa"
+                        }
+                        aria-label={
+                          cover.previewUrl ? "Đổi ảnh bìa" : "Chọn ảnh bìa"
+                        }
+                        onClick={() => coverInputRef.current?.click()}
+                      >
+                        <ImagePlus size={18} strokeWidth={2} aria-hidden />
+                      </button>
+                      <button
+                        type="button"
+                        className="cso-kh-cover-tool"
+                        disabled={submitting}
+                        title="Dán ảnh từ clipboard"
+                        aria-label="Dán ảnh từ clipboard"
+                        onClick={() => void handleCoverPasteClick()}
+                      >
+                        <ClipboardPaste size={18} strokeWidth={2} aria-hidden />
+                      </button>
                     </>
                   )}
-                </button>
-                <p className="cso-kh-cover-hint">
-                  Hiển thị trên card sự kiện và banner gợi ý.
-                </p>
+                </div>
               </div>
             </div>
           </div>
@@ -524,7 +668,7 @@ export function SuKienCreateModal({
           <button
             type="button"
             className="cso-kh-foot-btn cso-kh-foot-btn--ghost"
-            onClick={handleClose}
+            onClick={handleCancelClose}
             disabled={submitting || deleting}
           >
             Huỷ

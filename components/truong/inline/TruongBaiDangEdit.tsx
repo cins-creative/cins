@@ -18,17 +18,13 @@ import { JourneyMilestoneInsightsModal } from "@/components/journey/JourneyMiles
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
 import { resolveOrgBaiDangLoaiForWrite } from "@/lib/truong/bai-dang";
 import { mapOrgBaiDangApiRow } from "@/lib/truong/bai-dang-api-fields";
-import {
-  baiDangTaoLucFromDateInput,
-  sortBaiDangByTaoLuc,
-} from "@/lib/truong/bai-dang-timeline";
+import { sortBaiDangByTaoLuc } from "@/lib/truong/bai-dang-timeline";
 import { readTruongInlineError, truongInlineFetch } from "@/lib/truong/inline-api";
 import { orgBaiDangAbsolutePermalink, orgBaiDangPermalinkForSchool } from "@/lib/truong/org-bai-dang-permalink";
 import type { TruongBaiDang } from "@/lib/truong/types";
 
 type BaiDangActionsCtx = {
   remove: (id: string) => void;
-  updateTaoLuc: (id: string, dateValue: string) => Promise<void>;
   updateLoaiBaiDang: (id: string, loai: string) => Promise<void>;
   updatePersonalFilters: (id: string, filterIds: string[]) => Promise<void>;
   updateGhim: (id: string, ghim: boolean) => Promise<void>;
@@ -61,54 +57,6 @@ export function TruongBaiDangEditProvider({ children }: { children: ReactNode })
       } else {
         ctx.showToast("Đã xóa bài đăng");
       }
-    },
-    [ctx],
-  );
-
-  const updateTaoLuc = useCallback(
-    async (id: string, dateValue: string) => {
-      if (!ctx) return;
-      const current = ctx.baidang.find((p) => p.id === id);
-      const iso = baiDangTaoLucFromDateInput(dateValue, current?.tao_luc);
-      if (!iso || iso === current?.tao_luc) return;
-
-      const prev = ctx.baidang;
-      ctx.setBaidang((list) =>
-        sortBaiDangByTaoLuc(
-          list.map((p) => (p.id === id ? { ...p, tao_luc: iso } : p)),
-        ),
-      );
-
-      const res = await truongInlineFetch(ctx.orgId, `/bai-dang/${id}`, {
-        method: "PATCH",
-        body: JSON.stringify({ tao_luc: iso }),
-      });
-
-      if (!res.ok) {
-        ctx.setBaidang(prev);
-        ctx.showToast("Cập nhật ngày đăng thất bại");
-        return;
-      }
-
-      const json = (await res.json()) as {
-        post: Parameters<typeof mapOrgBaiDangApiRow>[0];
-      };
-      const post = mapOrgBaiDangApiRow(json.post);
-      ctx.setBaidang((list) =>
-        sortBaiDangByTaoLuc(
-          list.map((p) =>
-            p.id === id
-              ? {
-                  ...p,
-                  ...post,
-                  noiDungBlocks: post.noiDungBlocks ?? p.noiDungBlocks,
-                  personalFilters: p.personalFilters,
-                  personalFilterSlugs: p.personalFilterSlugs,
-                }
-              : p,
-          ),
-        ),
-      );
     },
     [ctx],
   );
@@ -263,7 +211,6 @@ export function TruongBaiDangEditProvider({ children }: { children: ReactNode })
     <BaiDangActionsContext.Provider
       value={{
         remove,
-        updateTaoLuc,
         updateLoaiBaiDang,
         updatePersonalFilters,
         updateGhim,

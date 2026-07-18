@@ -91,7 +91,7 @@ type Props = {
 function shouldIgnoreExpandTrigger(target: Element | null): boolean {
   return Boolean(
     target?.closest(
-      "a, button, input, textarea, select, summary, .j-m-menu, .authors-details, .image-grid-cell, .jcard-video-trigger, .jcard-actions, .jcard-share, .post-byline-share-wrap, .tdh-baidang-edit, .org-baidang-date-edit, .org-baidang-loai-picker, .j-article-tag-manage, .j-coauthor-propose",
+      "a, button, input, textarea, select, summary, .j-m-menu, .authors-details, .image-grid-cell, .jcard-video-trigger, .jcard-actions, .jcard-share, .post-byline-share-wrap, .tdh-baidang-edit, .org-baidang-loai-picker, .j-article-tag-manage, .j-coauthor-propose",
     ),
   );
 }

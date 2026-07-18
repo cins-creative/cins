@@ -53,7 +53,8 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: #000;
+  /* Nền sáng = trắng; dark theme = surface tối. Cinema #000 chỉ cột media. */
+  background: var(--bg-surface, #ffffff);
 }
 
 .j-post-page:has(.post-canvas--media.post-canvas--split) .j-post-page-inner {
@@ -89,6 +90,7 @@
   border-radius: 0;
   box-shadow: none;
   align-items: stretch;
+  background: var(--bg-surface, #ffffff);
 }
 
 .j-post-page:has(.post-canvas--media.post-canvas--split) .post-view-content--media {
@@ -491,6 +493,9 @@
   --post-rail-sticky-top: 0;
   --post-rail-min-h: 0;
   --post-rail-max-h: none;
+  /* Cinema #000 chỉ cột media — rail phải surface để nền sáng còn đọc được */
+  background: var(--bg-surface, #ffffff);
+  border-left: 1px solid var(--border);
 }
 
 .j-post-page-toolbar {
@@ -1956,7 +1961,18 @@
 .cins-post-view.post-canvas--media.post-canvas--split .post-view-layout--2col,
 .cins-post-view .post-canvas--media.post-canvas--split .post-view-layout--2col {
   min-height: 0;
-  align-items: start;
+  align-items: stretch;
+  background: var(--bg-surface, #ffffff);
+}
+
+/* Media split — rail surface (token theo theme; cột media vẫn #000) */
+.cins-post-view.post-canvas--media.post-canvas--split .post-view-rail,
+.cins-post-view .post-canvas--media.post-canvas--split .post-view-rail {
+  background: var(--bg-surface, #ffffff);
+  border-left: 1px solid var(--border);
+  align-self: stretch;
+  height: 100%;
+  min-height: 0;
 }
 
 .cins-post-view.post-canvas--split .post-view-content--media,
@@ -3984,10 +4000,11 @@
   opacity: 0.45;
   cursor: not-allowed;
 }
-/* Portal — tránh crop bởi overflow card / unfold */
+/* Portal — tránh crop bởi overflow card / unfold.
+ * Phải > .j-post-overlay (9000) / --stacked (10120); < chat overlay (11000). */
 .post-comments-sticker-portal {
   position: fixed;
-  z-index: 420;
+  z-index: 10250;
   pointer-events: auto;
 }
 .post-comments-sticker-portal .cins-chat-sticker-picker {
@@ -4266,7 +4283,8 @@
   border: 1px solid rgba(15, 23, 42, 0.08);
   border-radius: 12px;
   box-shadow: 0 10px 28px rgba(15, 23, 42, 0.14);
-  z-index: 400;
+  /* Cùng tầng sticker portal — nổi trên .j-post-overlay */
+  z-index: 10250;
   transform: translateY(calc(-100% - 6px));
   font-family: var(--font-sans, "Be Vietnam Pro", system-ui, sans-serif);
   color: var(--ink-body, #374151);
@@ -4874,6 +4892,8 @@
     height: auto;
     min-height: calc(100dvh - var(--cins-topbar-h, 56px));
     overflow: visible;
+    /* Rail flatten (display:contents) — nền trang phải surface, không inherit #000 */
+    background: var(--bg-surface, #ffffff);
   }
 
   .j-post-page:has(.post-canvas--media.post-canvas--split) .post-view-layout--2col {
@@ -5091,6 +5111,7 @@
   }
   .j-post-page:has(.post-canvas--media.post-canvas--split) {
     padding: 0 0 20px;
+    background: var(--bg-surface, #ffffff);
   }
   .j-post-page:has(.post-canvas--media.post-canvas--split) .j-post-page-toolbar {
     margin-bottom: 0;

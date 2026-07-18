@@ -3233,6 +3233,38 @@ a.cins-chat-don-card.is-paid:hover {
   color: #78716c;
 }
 
+.cins-chat-don-card-note {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.04);
+  text-align: left;
+}
+
+.cins-chat-don-card-note-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #78716c;
+}
+
+.cins-chat-don-card-note-text {
+  font-size: 12px;
+  font-weight: 550;
+  line-height: 1.4;
+  color: #334155;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 .cins-chat-don-card-cta {
   display: block;
   padding: 2px 4px 0;
@@ -7130,6 +7162,15 @@ button.cins-chat-project-card-mark:hover {
 }
 :root[data-theme="dark"] .cins-chat-don-card-more {
   color: #94a3b8;
+}
+:root[data-theme="dark"] .cins-chat-don-card-note {
+  background: rgba(255, 255, 255, 0.06);
+}
+:root[data-theme="dark"] .cins-chat-don-card-note-label {
+  color: #94a3b8;
+}
+:root[data-theme="dark"] .cins-chat-don-card-note-text {
+  color: rgba(255, 255, 255, 0.82);
 }
 :root[data-theme="dark"] .cins-chat-don-card-cta {
   color: var(--cins-orange, #ffc078);

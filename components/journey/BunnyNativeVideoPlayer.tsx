@@ -92,6 +92,10 @@ export function BunnyNativeVideoPlayer({
   const [posterVisible, setPosterVisible] = useState(true);
   const [buffering, setBuffering] = useState(shouldAutoplay);
   const [candidateIndex, setCandidateIndex] = useState(0);
+  /** Chặn onLeave ngay sau gesture play — tránh flash trên Android (video dọc < 20% viewport). */
+  const ignoreLeaveUntilRef = useRef(0);
+  const playingRef = useRef(playing);
+  playingRef.current = playing;
 
   const preferredQuality: BunnyMp4Quality =
     mode === "feed" ? BUNNY_FEED_QUALITY : pickDetailQuality();
@@ -108,6 +112,7 @@ export function BunnyNativeVideoPlayer({
   );
 
   const stopPlayback = useCallback(() => {
+    if (Date.now() < ignoreLeaveUntilRef.current) return;
     const video = videoRef.current;
     if (video) {
       saveBunnyPlaybackState(videoId, video.currentTime);
@@ -122,7 +127,9 @@ export function BunnyNativeVideoPlayer({
 
   const { ref: rootRef } = useOffscreenMedia<HTMLDivElement>({
     enabled: mode === "detail" || playing,
-    threshold: 0.2,
+    /* threshold 0 = chỉ dừng khi hết isIntersecting — video 9:16 mobile thường < 20%. */
+    threshold: 0,
+    rootMargin: "96px 0px",
     onLeave: stopPlayback,
   });
 
@@ -150,28 +157,49 @@ export function BunnyNativeVideoPlayer({
     if (!video || !activeSrc) return;
     video.load();
 
-    if (!shouldAutoplay) return;
+    if (shouldAutoplay) {
+      const startPlayback = () => {
+        seekToSavedTime();
+        void video
+          .play()
+          .then(() => {
+            setPlaying(true);
+            setPosterVisible(false);
+            setBuffering(false);
+          })
+          .catch(() => {
+            setPlaying(false);
+            setBuffering(false);
+          });
+      };
 
-    const startPlayback = () => {
-      seekToSavedTime();
-      void video.play().then(() => {
-        setPlaying(true);
-        setPosterVisible(false);
-        setBuffering(false);
-      }).catch(() => {
-        setPlaying(false);
-        setBuffering(false);
-      });
-    };
+      if (video.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
+        startPlayback();
+        return;
+      }
 
-    if (video.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
-      startPlayback();
-      return;
+      video.addEventListener("canplay", startPlayback, { once: true });
+      return () => video.removeEventListener("canplay", startPlayback);
     }
 
-    video.addEventListener("canplay", startPlayback, { once: true });
-    return () => video.removeEventListener("canplay", startPlayback);
-  }, [activeSrc, shouldAutoplay, seekToSavedTime]);
+    /* Fallback chất lượng khi đang xem feed — load() src mới rồi play lại. */
+    if (mode === "feed" && playingRef.current) {
+      setBuffering(true);
+      const resume = () => {
+        void video.play().catch(() => {
+          setPlaying(false);
+          setBuffering(false);
+          setPosterVisible(true);
+        });
+      };
+      if (video.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
+        resume();
+        return;
+      }
+      video.addEventListener("canplay", resume, { once: true });
+      return () => video.removeEventListener("canplay", resume);
+    }
+  }, [activeSrc, shouldAutoplay, seekToSavedTime, mode]);
 
   useEffect(() => {
     if (mode !== "detail") return;
@@ -199,22 +227,46 @@ export function BunnyNativeVideoPlayer({
     };
   }, [mode, playing, videoId]);
 
-  const startFeedPlayback = useCallback(
-    async (e: React.MouseEvent) => {
-      e.stopPropagation();
-      setPlaying(true);
-      setBuffering(true);
-      requestAnimationFrame(() => {
-        const video = videoRef.current;
-        if (!video) return;
-        void video.play().catch(() => {
-          setPlaying(false);
-          setBuffering(false);
-        });
+  const startFeedPlayback = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const video = videoRef.current;
+    if (!video) return;
+
+    /* iOS/Android: play() phải đồng bộ trong user gesture trên <video> đã mount. */
+    ignoreLeaveUntilRef.current = Date.now() + 2000;
+    setPlaying(true);
+    setBuffering(true);
+    setPosterVisible(true);
+
+    void video
+      .play()
+      .then(() => {
+        setPosterVisible(false);
+        setBuffering(false);
+      })
+      .catch(() => {
+        /* Chưa đủ data — giữ trạng thái playing + poster; canplay sẽ thử lại. */
+        const retry = () => {
+          void video
+            .play()
+            .then(() => {
+              setPosterVisible(false);
+              setBuffering(false);
+            })
+            .catch(() => {
+              setPlaying(false);
+              setBuffering(false);
+              setPosterVisible(true);
+            });
+        };
+        if (video.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
+          retry();
+          return;
+        }
+        video.addEventListener("canplay", retry, { once: true });
       });
-    },
-    [],
-  );
+  }, []);
 
   const handlePlaying = useCallback(() => {
     setPosterVisible(false);
@@ -234,126 +286,152 @@ export function BunnyNativeVideoPlayer({
       const next = index + 1;
       if (next >= candidates.length) {
         setBuffering(false);
+        setPlaying(false);
+        setPosterVisible(true);
         return index;
       }
       return next;
     });
   }, [candidates.length]);
 
+  const feedIdle = mode === "feed" && !playing;
+  /* Giữ overlay/poster đến khi frame thật sự chạy — tránh màn đen lúc buffering. */
+  const showFeedStartOverlay =
+    mode === "feed" && (feedIdle || (playing && posterVisible));
   const showPosterLayer =
     Boolean(poster) &&
     posterVisible &&
-    (buffering || (mode === "feed" && playing) || mode === "detail");
+    !showFeedStartOverlay &&
+    (buffering || mode === "detail");
+
+  const posterImage =
+    poster ? (
+      <JourneyCoverImage
+        src={poster}
+        srcSet={preview?.srcSet}
+        sizes={
+          preview?.srcSet ? "(max-width: 767px) 100vw, 680px" : undefined
+        }
+        width={preview?.width ?? 1280}
+        height={preview?.height ?? 720}
+        alt=""
+        objectPosition={preview?.objectPosition}
+      />
+    ) : null;
 
   return (
     <div ref={rootRef} className="jcard-video-root">
-      {mode === "feed" && !playing ? (
-        <button
-          type="button"
-          className={`preview preview--video jcard-video-trigger ${canvasClass}`}
-          style={canvasStyle}
-          aria-label={`Phát video: ${title}`}
-          onClick={startFeedPlayback}
-        >
-          {poster ? (
-            <>
-              <JourneyCoverImage
-                src={poster}
-                srcSet={preview?.srcSet}
-                sizes={
-                  preview?.srcSet ? "(max-width: 767px) 100vw, 680px" : undefined
-                }
-                width={preview?.width ?? 1280}
-                height={preview?.height ?? 720}
-                alt=""
-                objectPosition={preview?.objectPosition}
-              />
-              <span className="jcard-video-play" aria-hidden>
-                <Play size={28} strokeWidth={2} fill="currentColor" />
-              </span>
-            </>
-          ) : (
-            <>
-              <div className="preview-inner jcard-video-poster">
-                <Play size={36} strokeWidth={1.8} aria-hidden />
-              </div>
-              <span className="jcard-video-play" aria-hidden>
-                <Play size={28} strokeWidth={2} fill="currentColor" />
-              </span>
-            </>
-          )}
-        </button>
-      ) : (
-        <div
-          className={[
-            "jcard-video-player",
-            canvasClass,
-            buffering ? "is-buffering" : "",
-            !posterVisible ? "is-playing-ready" : "",
-          ]
-            .filter(Boolean)
-            .join(" ")}
-          style={canvasStyle}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {showPosterLayer ? (
-            <div
-              className={
-                "jcard-video-poster-layer" +
-                (!posterVisible ? " is-hidden" : "")
-              }
-              aria-hidden={!posterVisible}
-            >
-              <JourneyCoverImage
-                src={poster!}
-                srcSet={preview?.srcSet}
-                sizes={
-                  preview?.srcSet ? "(max-width: 767px) 100vw, 680px" : undefined
-                }
-                width={preview?.width ?? 1280}
-                height={preview?.height ?? 720}
-                alt=""
-                objectPosition={preview?.objectPosition}
-              />
-              {buffering ? (
+      <div
+        className={[
+          "jcard-video-player",
+          canvasClass,
+          buffering ? "is-buffering" : "",
+          !posterVisible ? "is-playing-ready" : "",
+          showFeedStartOverlay ? "is-feed-idle" : "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
+        style={canvasStyle}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {activeSrc ? (
+          /* eslint-disable-next-line jsx-a11y/media-has-caption */
+          <video
+            ref={videoRef}
+            key={activeSrc}
+            className="jcard-video-native"
+            src={activeSrc}
+            poster={poster ?? undefined}
+            title={title}
+            controls={!showFeedStartOverlay}
+            playsInline
+            loop={loop}
+            autoPlay={shouldAutoplay}
+            /* Không đổi preload theo playing — Chrome/Android sẽ load() lại và abort play(). */
+            preload={mode === "feed" || shouldAutoplay ? "auto" : "metadata"}
+            onPlaying={handlePlaying}
+            onWaiting={handleWaiting}
+            onCanPlay={handleCanPlay}
+            onError={handleVideoError}
+          />
+        ) : null}
+
+        {showFeedStartOverlay ? (
+          <button
+            type="button"
+            className="jcard-video-trigger jcard-video-trigger--overlay"
+            aria-label={`Phát video: ${title}`}
+            aria-busy={playing && buffering}
+            onClick={startFeedPlayback}
+          >
+            {posterImage ? (
+              <>
+                {posterImage}
                 <span
-                  className="jcard-video-play jcard-video-play--loading"
+                  className={
+                    "jcard-video-play" +
+                    (playing && buffering ? " jcard-video-play--loading" : "")
+                  }
                   aria-hidden
                 >
-                  <Loader2 size={26} strokeWidth={2.2} />
+                  {playing && buffering ? (
+                    <Loader2 size={28} strokeWidth={2.2} />
+                  ) : (
+                    <Play size={28} strokeWidth={2} fill="currentColor" />
+                  )}
                 </span>
-              ) : null}
-            </div>
-          ) : null}
+              </>
+            ) : (
+              <>
+                <div className="preview-inner jcard-video-poster">
+                  {playing && buffering ? (
+                    <Loader2 size={36} strokeWidth={2.2} aria-hidden />
+                  ) : (
+                    <Play size={36} strokeWidth={1.8} aria-hidden />
+                  )}
+                </div>
+                <span
+                  className={
+                    "jcard-video-play" +
+                    (playing && buffering ? " jcard-video-play--loading" : "")
+                  }
+                  aria-hidden
+                >
+                  {playing && buffering ? (
+                    <Loader2 size={28} strokeWidth={2.2} />
+                  ) : (
+                    <Play size={28} strokeWidth={2} fill="currentColor" />
+                  )}
+                </span>
+              </>
+            )}
+          </button>
+        ) : showPosterLayer ? (
+          <div
+            className={
+              "jcard-video-poster-layer" +
+              (!posterVisible ? " is-hidden" : "")
+            }
+            aria-hidden={!posterVisible}
+          >
+            {posterImage}
+            {buffering ? (
+              <span
+                className="jcard-video-play jcard-video-play--loading"
+                aria-hidden
+              >
+                <Loader2 size={26} strokeWidth={2.2} />
+              </span>
+            ) : null}
+          </div>
+        ) : null}
 
-          {buffering && mode === "detail" ? (
-            <span className="jcard-video-quality-hint" aria-live="polite">
-              Đang tải chất lượng cao…
-            </span>
-          ) : null}
-
-          {activeSrc ? (
-            /* eslint-disable-next-line jsx-a11y/media-has-caption */
-            <video
-              ref={videoRef}
-              key={activeSrc}
-              className="jcard-video-native"
-              src={activeSrc}
-              poster={poster ?? undefined}
-              title={title}
-              controls
-              playsInline
-              loop={loop}
-              autoPlay={shouldAutoplay}
-              preload={shouldAutoplay || mode === "feed" ? "auto" : "metadata"}
-              onPlaying={handlePlaying}
-              onWaiting={handleWaiting}
-              onCanPlay={handleCanPlay}
-              onError={handleVideoError}
-            />
-          ) : null}
-        </div>
-      )}
+        {buffering && mode === "detail" ? (
+          <span className="jcard-video-quality-hint" aria-live="polite">
+            Đang tải chất lượng cao…
+          </span>
+        ) : null}
+      </div>
     </div>
   );
 }

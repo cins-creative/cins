@@ -76,7 +76,7 @@ export async function reorderGalleryNoiBat(params: {
     return { ok: false, error: "Danh sách thứ tự trống hoặc không hợp lệ." };
   }
 
-  const stubs = await collectGalleryStubs(params.userId);
+  const stubs = await collectGalleryStubs(params.userId, { isOwner: true });
   const featuredIds = stubs
     .filter((s) => s.visibility === "feature")
     .map((s) => s.cotMocId);

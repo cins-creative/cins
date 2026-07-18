@@ -147,6 +147,31 @@ export type MembershipMilestoneResolvedNotification = {
   daDoc?: boolean;
 };
 
+/** Seller nhận khi quầy sự kiện được duyệt / từ chối (`shop_quay_*`). */
+export type ShopQuayResolvedNotification = {
+  notificationId: string;
+  quayId: string;
+  suKienTen: string;
+  suKienHref: string;
+  orgTen: string;
+  action: "approved" | "rejected";
+  lyDoTuChoi?: string | null;
+  taoLuc?: string;
+  daDoc?: boolean;
+};
+
+/** Admin org nhận khi có nội dung quầy chờ duyệt (`shop_quay_pending`) — 1 tin / sự kiện. */
+export type ShopQuayPendingNotification = {
+  notificationId: string;
+  suKienId: string;
+  suKienTen: string;
+  manageHref: string;
+  orgTen: string;
+  pendingCount: number;
+  taoLuc?: string;
+  daDoc?: boolean;
+};
+
 /** Curator nhận khi có bản đóng góp entity gửi duyệt (`article_dong_gop`). */
 export type ArticleDongGopCuratorNotification = {
   notificationId: string;
@@ -234,6 +259,8 @@ export type NotificationFeed = {
   videoReady: VideoReadyNotification[];
   orgMilestoneTagApproved: OrgMilestoneTagApprovedNotification[];
   membershipMilestoneResolved: MembershipMilestoneResolvedNotification[];
+  shopQuayResolved: ShopQuayResolvedNotification[];
+  shopQuayPending: ShopQuayPendingNotification[];
   dongGopFeedback: ArticleDongGopFeedbackNotification[];
   dongGopPromoted: ArticleDongGopPromotedNotification[];
   handledFollows: FollowHandledNotification[];

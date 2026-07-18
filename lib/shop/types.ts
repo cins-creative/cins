@@ -1,5 +1,7 @@
 /** L33 — Shop UGC types (không payment gateway). */
 
+import type { MilestoneItem } from "@/components/journey/milestone-types";
+
 export type ShopLoaiDon = "mua_ngay" | "dat_truoc_nhan_su_kien";
 
 export type ShopTrangThaiDon =
@@ -103,6 +105,8 @@ export type ShopDonHangDong = {
   giaDonVi: number;
   /** Ảnh biến thể / sản phẩm hiện tại (không snapshot — có thể null nếu đã xóa). */
   anhUrl?: string | null;
+  /** Phân loại sản phẩm hiện tại (`shop_san_pham.phan_loai`). */
+  phanLoai?: string | null;
 };
 
 export type ShopDonHang = {
@@ -140,7 +144,17 @@ export type ShopQuaySuKien = {
   lyDoTuChoi: string | null;
   nguoiDungTen?: string | null;
   nguoiDungSlug?: string | null;
+  nguoiDungAvatarUrl?: string | null;
+  /** Meta sự kiện — list “quầy của tôi”. */
+  suKienTen?: string | null;
+  suKienBatDau?: string | null;
+  orgTen?: string | null;
   taoLuc: string;
+  /**
+   * Snapshot cột mốc gắn quầy — hydrate khi list có `idCotMoc`
+   * (tab Sự kiện xem bài đã duyệt; tab Quản lý duyệt chờ xử lý).
+   */
+  cotMoc?: MilestoneItem | null;
 };
 
 export const SHOP_LOAI_DON_LABEL: Record<ShopLoaiDon, string> = {
@@ -152,6 +166,12 @@ export const SHOP_TRANG_THAI_DON_LABEL: Record<ShopTrangThaiDon, string> = {
   nhap: "Nháp",
   cho_xac_nhan: "Chờ xác nhận",
   da_nhan_tien: "Đã nhận tiền",
-  da_giao_tai_su_kien: "Đã giao tại sự kiện",
+  da_giao_tai_su_kien: "Thanh toán khi nhận hàng",
   huy: "Đã hủy",
+};
+
+export const SHOP_TRANG_THAI_QUAY_LABEL: Record<ShopTrangThaiQuay, string> = {
+  cho_xu_ly: "Chờ duyệt",
+  da_duyet: "Đã duyệt",
+  tu_choi: "Đã rút / từ chối",
 };

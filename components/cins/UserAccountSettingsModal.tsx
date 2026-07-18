@@ -8,13 +8,10 @@ import {
   Globe,
   LayoutGrid,
   Loader2,
-  Monitor,
-  Moon,
   Rows3,
   Settings2,
   ShieldCheck,
   Smartphone,
-  Sun,
   User,
   UserMinus,
   UserRoundX,
@@ -53,18 +50,11 @@ import {
   normalizeJourneyDefaultView,
   type JourneyDefaultView,
 } from "@/lib/journey/journey-default-view";
-import {
-  THEME_MODE_OPTIONS,
-  readThemeMode,
-  setThemeMode as persistThemeMode,
-  type ThemeMode,
-} from "@/lib/theme/theme-mode";
 
 import "./user-account-settings-modal.css";
 
 type SettingsSection =
   | "journey-display"
-  | "appearance"
   | "lich-su-mua"
   | "ban-hang"
   | "user-management"
@@ -72,7 +62,6 @@ type SettingsSection =
 
 const NAV: ReadonlyArray<{ id: SettingsSection; label: string }> = [
   { id: "journey-display", label: "Cài đặt bố cục" },
-  { id: "appearance", label: "Giao diện" },
   { id: "lich-su-mua", label: "Lịch sử mua hàng" },
   { id: "ban-hang", label: "Bán hàng" },
   { id: "user-management", label: "Quản lý người dùng" },
@@ -99,12 +88,6 @@ const FEED_SOURCE_ICON: Record<FeedSourceFilter, LucideIcon> = {
   "org-only": Building2,
 };
 
-const THEME_ICON: Record<ThemeMode, LucideIcon> = {
-  light: Sun,
-  dark: Moon,
-  system: Monitor,
-};
-
 type Props = {
   open: boolean;
   onClose: () => void;
@@ -125,7 +108,6 @@ export function UserAccountSettingsModal({ open, onClose }: Props) {
   const [initial, setInitial] = useState<JourneyDefaultView>("timeline");
   const [applyToMe, setApplyToMe] = useState(false);
   const [initialApplyToMe, setInitialApplyToMe] = useState(false);
-  const [themeMode, setThemeMode] = useState<ThemeMode>("system");
 
   const loadSettings = useCallback(async () => {
     setLoading(true);
@@ -161,16 +143,10 @@ export function UserAccountSettingsModal({ open, onClose }: Props) {
     setSection("journey-display");
     setLayoutTab("profile");
     setSavedTick(false);
-    setThemeMode(readThemeMode());
     setHomeLayout(readHomeFeedLayout());
     setFeedSource(readFeedSourceDefault());
     void loadSettings();
   }, [open, loadSettings]);
-
-  const chooseTheme = useCallback((mode: ThemeMode) => {
-    setThemeMode(mode);
-    persistThemeMode(mode);
-  }, []);
 
   const chooseHomeLayout = useCallback((layout: HomeFeedLayout) => {
     setHomeLayout(layout);
@@ -502,52 +478,6 @@ export function UserAccountSettingsModal({ open, onClose }: Props) {
               </section>
             ) : null}
 
-            {section === "appearance" ? (
-              <section className="uas-section" aria-labelledby={`${titleId}-th`}>
-                <div className="uas-section-head">
-                  <h3 id={`${titleId}-th`} className="uas-section-title">
-                    Giao diện
-                  </h3>
-                  <p className="uas-section-hint">
-                    Chọn nền sáng, tối hoặc để giao diện tự đổi theo cài đặt của
-                    thiết bị. Lựa chọn được lưu trên máy này và áp dụng ngay.
-                  </p>
-                </div>
-
-                <div
-                  className="uas-options"
-                  role="radiogroup"
-                  aria-label="Chế độ giao diện"
-                >
-                  {THEME_MODE_OPTIONS.map((opt) => {
-                    const Icon = THEME_ICON[opt.value];
-                    const active = themeMode === opt.value;
-                    return (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        role="radio"
-                        aria-checked={active}
-                        className={`uas-option${active ? " on" : ""}`}
-                        onClick={() => chooseTheme(opt.value)}
-                      >
-                        <span className="uas-option-ico" aria-hidden>
-                          <Icon size={20} strokeWidth={1.8} />
-                        </span>
-                        <span className="uas-option-text">
-                          <span className="uas-option-label">{opt.label}</span>
-                          <span className="uas-option-desc">{opt.desc}</span>
-                        </span>
-                        <span className="uas-option-check" aria-hidden>
-                          {active ? <Check size={16} strokeWidth={2.4} /> : null}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </section>
-            ) : null}
-
             {section === "lich-su-mua" ? (
               <LichSuMuaHangSection titleId={`${titleId}-lsm`} />
             ) : null}
@@ -789,7 +719,13 @@ function BanHangSettingsSection({ titleId }: { titleId: string }) {
         setErr(json?.error ?? "Không lưu được.");
         return;
       }
-      setEnabled(json?.enabled === true);
+      const next = json?.enabled === true;
+      setEnabled(next);
+      window.dispatchEvent(
+        new CustomEvent("cins:ban-hang-changed", {
+          detail: { enabled: next },
+        }),
+      );
     } finally {
       setSaving(false);
     }
@@ -801,10 +737,6 @@ function BanHangSettingsSection({ titleId }: { titleId: string }) {
         <h3 id={titleId} className="uas-section-title">
           Bán hàng
         </h3>
-        <p className="uas-section-hint">
-          Mặc định tắt. Khi bật, bạn quản lý kho, gắn hàng vào bài và nhận đơn —
-          CINs không trung gian tiền.
-        </p>
       </div>
 
       {loading ? (

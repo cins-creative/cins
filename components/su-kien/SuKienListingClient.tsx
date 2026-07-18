@@ -5,7 +5,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { SuKienDetailModal } from "@/components/co-so/SuKienDetailModal";
 import { HaOrgPopoverChip } from "@/components/cins/home-adaptive/HaOrgPopoverChip";
 import { SuKienHeroCarousel } from "@/components/su-kien/SuKienHeroCarousel";
 import { SuKienPhanHoiActions } from "@/components/to-chuc/SuKienPhanHoiActions";
@@ -17,6 +16,7 @@ import {
 } from "@/lib/to-chuc/su-kien-constants";
 import type { LoaiPhanHoiSuKien } from "@/lib/to-chuc/su-kien-dang-ky";
 import type { SuKienListItem } from "@/lib/to-chuc/su-kien-listing";
+import { suKienDetailPath } from "@/lib/to-chuc/su-kien-routes";
 import {
   TINH_THANH_SELECT_OPTIONS,
   formatSuKienDiaDiemDisplay,
@@ -27,7 +27,6 @@ type Props = {
   events: SuKienListItem[];
   mySuKienPhanHoi: Record<string, LoaiPhanHoiSuKien>;
   initialTab?: string;
-  initialSuKienId?: string;
   isLoggedIn: boolean;
 };
 
@@ -105,14 +104,12 @@ function SuKienListCard({
   item,
   initialLoai,
   featured = false,
-  onOpen,
   onPhanHoiChange,
   onSoDangKyChange,
 }: {
   item: SuKienListItem;
   initialLoai?: LoaiPhanHoiSuKien | null;
   featured?: boolean;
-  onOpen: (item: SuKienListItem) => void;
   onPhanHoiChange?: (suKienId: string, loai: LoaiPhanHoiSuKien | null) => void;
   onSoDangKyChange?: (suKienId: string, soDangKy: number) => void;
 }) {
@@ -121,16 +118,17 @@ function SuKienListCard({
   const location = formatSuKienDiaDiemDisplay(item.tinhThanh, item.diaDiem);
   const time = formatTimeRange(item.batDau, item.ketThuc);
   const rsvpEnabled = item.status !== "done";
+  const href = suKienDetailPath(item.id);
 
   return (
     <article
       className={`evb-card evb-card--listing${featured ? " is-featured" : ""}`}
     >
-      <button
-        type="button"
+      <Link
+        href={href}
         className="evb-card-hit evb-card-hit--cover"
-        onClick={() => onOpen(item)}
         aria-label={`Xem chi tiết ${item.ten}`}
+        prefetch={false}
       >
         <div className="evb-card-img relative">
           {item.coverSrc ? (
@@ -160,7 +158,7 @@ function SuKienListCard({
             <span className="evb-card-date-m">{month}</span>
           </div>
         </div>
-      </button>
+      </Link>
       <div className="evb-card-body">
         <div className="evb-card-meta evb-card-meta--org">
           <HaOrgPopoverChip
@@ -172,11 +170,7 @@ function SuKienListCard({
             nameClassName="evb-card-org-name"
           />
         </div>
-        <button
-          type="button"
-          className="evb-card-hit evb-card-hit--content"
-          onClick={() => onOpen(item)}
-        >
+        <Link href={href} className="evb-card-hit evb-card-hit--content" prefetch={false}>
           {time || location ? (
             <div className="evb-card-meta">
               {time ? <span>🕐 {time}</span> : null}
@@ -190,7 +184,7 @@ function SuKienListCard({
           ) : null}
           <h2 className="evb-card-title">{item.ten}</h2>
           {item.moTa ? <p className="evb-card-desc">{item.moTa}</p> : null}
-        </button>
+        </Link>
         <div className="evb-card-actions">
           <SuKienPhanHoiActions
             orgId={item.orgId}
@@ -213,7 +207,6 @@ export function SuKienListingClient({
   events,
   mySuKienPhanHoi,
   initialTab,
-  initialSuKienId,
   isLoggedIn,
 }: Props) {
   const [timeFilter, setTimeFilter] = useState<TimeFilter>(() =>
@@ -222,7 +215,6 @@ export function SuKienListingClient({
   const [loaiFilter, setLoaiFilter] = useState<LoaiSuKien | "all">("all");
   const [tinhThanh, setTinhThanh] = useState("");
   const [query, setQuery] = useState("");
-  const [detail, setDetail] = useState<SuKienListItem | null>(null);
   const [phanHoiMap, setPhanHoiMap] = useState(mySuKienPhanHoi);
 
   useEffect(() => {
@@ -244,12 +236,6 @@ export function SuKienListingClient({
       ).length,
     [events, phanHoiMap],
   );
-
-  useEffect(() => {
-    if (!initialSuKienId) return;
-    const found = events.find((e) => e.id === initialSuKienId);
-    if (found) setDetail(found);
-  }, [events, initialSuKienId]);
 
   const visible = useMemo(() => {
     const q = normalize(query);
@@ -311,15 +297,9 @@ export function SuKienListingClient({
     [],
   );
 
-  const handleSoDangKyChange = useCallback((suKienId: string, soDangKy: number) => {
-    setDetail((prev) =>
-      prev?.id === suKienId ? { ...prev, soDangKy } : prev,
-    );
-  }, []);
-
   return (
     <>
-      <SuKienHeroCarousel events={events} onOpen={setDetail} />
+      <SuKienHeroCarousel events={events} />
 
       <div className="sk-list-page">
       <div className="sk-list-body">
@@ -431,9 +411,7 @@ export function SuKienListingClient({
               item={item}
               featured={item.id === featuredSuKienId}
               initialLoai={phanHoiMap[item.id] ?? null}
-              onOpen={setDetail}
               onPhanHoiChange={handlePhanHoiChange}
-              onSoDangKyChange={handleSoDangKyChange}
             />
           ))}
         </div>
@@ -447,14 +425,6 @@ export function SuKienListingClient({
       </p>
       </div>
       </div>
-
-      <SuKienDetailModal
-        open={Boolean(detail)}
-        orgId={detail?.orgId ?? ""}
-        suKien={detail}
-        onClose={() => setDetail(null)}
-        onSoDangKyChange={handleSoDangKyChange}
-      />
     </>
   );
 }

@@ -19,6 +19,12 @@ import { createPortal } from "react-dom";
 
 import type { AdminInboxStats } from "@/lib/admin/admin-inbox-stats-types";
 import { EMPTY_ADMIN_INBOX_STATS } from "@/lib/admin/admin-inbox-stats-types";
+import { computeFixedMenuPosition } from "@/lib/ui/clamp-fixed-menu-position";
+
+const MENU_WIDTH = 340;
+const MENU_EST_HEIGHT = 280;
+const MENU_GAP = 10;
+const MENU_MARGIN = 16;
 
 type Props = {
   initialStats: AdminInboxStats;
@@ -94,7 +100,7 @@ export function AdminInboxButton({ initialStats }: Props) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [portalReady, setPortalReady] = useState(false);
-  const [menuStyle, setMenuStyle] = useState<{ top: number; right: number } | null>(
+  const [menuStyle, setMenuStyle] = useState<{ top: number; left: number } | null>(
     null,
   );
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -139,15 +145,23 @@ export function AdminInboxButton({ initialStats }: Props) {
       const btn = triggerRef.current;
       if (!btn) return;
       const rect = btn.getBoundingClientRect();
-      setMenuStyle({
-        top: rect.bottom + 10,
-        right: Math.max(16, window.innerWidth - rect.right),
-      });
+      const menuEl = menuRef.current;
+      const width = Math.min(MENU_WIDTH, window.innerWidth - MENU_MARGIN * 2);
+      const height = menuEl?.offsetHeight || MENU_EST_HEIGHT;
+      setMenuStyle(
+        computeFixedMenuPosition(
+          rect,
+          { width, height },
+          { gap: MENU_GAP, margin: MENU_MARGIN },
+        ),
+      );
     };
     updatePosition();
+    const rafId = window.requestAnimationFrame(updatePosition);
     window.addEventListener("resize", updatePosition);
     window.addEventListener("scroll", updatePosition, true);
     return () => {
+      window.cancelAnimationFrame(rafId);
       window.removeEventListener("resize", updatePosition);
       window.removeEventListener("scroll", updatePosition, true);
     };
@@ -194,7 +208,7 @@ export function AdminInboxButton({ initialStats }: Props) {
       <div
         ref={menuRef}
         className="admin-inbox-menu is-portal"
-        style={{ top: menuStyle.top, right: menuStyle.right }}
+        style={{ top: menuStyle.top, left: menuStyle.left }}
         role="dialog"
         aria-label="Bảng việc cần xử lý admin"
       >
@@ -214,6 +228,8 @@ export function AdminInboxButton({ initialStats }: Props) {
                 <li key={row.key}>
                   <Link
                     href={row.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className={`admin-inbox-item${count > 0 ? " has-count" : ""}`}
                     onClick={() => setOpen(false)}
                   >

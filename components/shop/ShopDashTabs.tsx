@@ -2,6 +2,7 @@
 
 import { ClipboardList, Package } from "lucide-react";
 import Link from "next/link";
+import type { ReactNode } from "react";
 
 type ShopDashTab = "kho" | "don";
 
@@ -21,27 +22,36 @@ const TAB_COPY: Record<
   },
 };
 
-export function ShopDashTabs({ active }: { active: ShopDashTab }) {
+export function ShopDashTabs({
+  active,
+  actions,
+}: {
+  active: ShopDashTab;
+  actions?: ReactNode;
+}) {
   return (
     <header className="shop-dash-head">
-      <nav className="shop-dash-tabs" aria-label="Quản lý bán hàng">
-        <Link
-          href={TAB_COPY.kho.href}
-          className={`shop-dash-tab${active === "kho" ? " is-active" : ""}`}
-          aria-current={active === "kho" ? "page" : undefined}
-        >
-          <Package size={18} strokeWidth={2} aria-hidden />
-          {TAB_COPY.kho.label}
-        </Link>
-        <Link
-          href={TAB_COPY.don.href}
-          className={`shop-dash-tab${active === "don" ? " is-active" : ""}`}
-          aria-current={active === "don" ? "page" : undefined}
-        >
-          <ClipboardList size={18} strokeWidth={2} aria-hidden />
-          {TAB_COPY.don.label}
-        </Link>
-      </nav>
+      <div className="shop-dash-head-row">
+        <nav className="shop-dash-tabs" aria-label="Quản lý bán hàng">
+          <Link
+            href={TAB_COPY.kho.href}
+            className={`shop-dash-tab${active === "kho" ? " is-active" : ""}`}
+            aria-current={active === "kho" ? "page" : undefined}
+          >
+            <Package size={18} strokeWidth={2} aria-hidden />
+            {TAB_COPY.kho.label}
+          </Link>
+          <Link
+            href={TAB_COPY.don.href}
+            className={`shop-dash-tab${active === "don" ? " is-active" : ""}`}
+            aria-current={active === "don" ? "page" : undefined}
+          >
+            <ClipboardList size={18} strokeWidth={2} aria-hidden />
+            {TAB_COPY.don.label}
+          </Link>
+        </nav>
+        {actions ? <div className="shop-dash-head-actions">{actions}</div> : null}
+      </div>
       <p className="shop-dash-sub">{TAB_COPY[active].hint}</p>
     </header>
   );

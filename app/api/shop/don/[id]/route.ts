@@ -67,6 +67,15 @@ export async function PATCH(request: Request, ctx: Ctx) {
         { status: 422 },
       );
     }
+    if (msg === "STOCK_INSUFFICIENT" || msg === "STOCK_EMPTY") {
+      return NextResponse.json(
+        {
+          error:
+            "Không đủ tồn kho để xác nhận — giảm SL đơn hoặc restock trước.",
+        },
+        { status: 422 },
+      );
+    }
     return NextResponse.json({ error: "Không cập nhật được." }, { status: 500 });
   }
 }

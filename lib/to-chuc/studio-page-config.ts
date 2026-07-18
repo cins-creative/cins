@@ -8,6 +8,7 @@ export const STUDIO_TAB_IDS = [
   "showcase",
   "tuyen-dung",
   "hinh-anh",
+  "su-kien",
 ] as const;
 
 export type StudioTabId = (typeof STUDIO_TAB_IDS)[number];
@@ -33,6 +34,7 @@ export const STUDIO_OPTIONAL_TAB_IDS: readonly StudioOptionalTabId[] = [
 export const STUDIO_TAB_LABELS: Record<StudioTabId, string> = {
   "bai-dang": "Bài đăng",
   showcase: "Showcase",
+  "su-kien": "Sự kiện",
   "tuyen-dung": "Tuyển dụng",
   "hinh-anh": "Hình ảnh",
 };
@@ -120,7 +122,12 @@ export function isStudioTabVisible(
   tabId: StudioTabId,
   config?: StudioPageCauHinh,
 ): boolean {
-  if (tabId === "bai-dang" || tabId === "showcase" || tabId === "tuyen-dung") {
+  if (
+    tabId === "bai-dang" ||
+    tabId === "showcase" ||
+    tabId === "su-kien" ||
+    tabId === "tuyen-dung"
+  ) {
     return true;
   }
   return config?.tabs?.[tabId] !== false;

@@ -2750,40 +2750,6 @@
   );
 }
 
-.cd-v4-cover-badge {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  z-index: 4;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 5px 11px;
-  border-radius: 999px;
-  background: rgba(15, 17, 23, 0.44);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  color: #fff;
-  font-size: 11px;
-  font-weight: 600;
-  line-height: 1.2;
-  letter-spacing: 0.02em;
-  pointer-events: none;
-  user-select: none;
-}
-
-.cd-v4-cover-badge--privacy.is-cong_khai {
-  background: rgba(15, 118, 110, 0.78);
-}
-
-.cd-v4-cover-badge--privacy.is-noi_bo {
-  background: rgba(161, 98, 7, 0.82);
-}
-
-.cd-v4-cover-badge--privacy.is-bi_mat {
-  background: rgba(91, 33, 182, 0.82);
-}
-
 .cd-v4-id-avatar-slot {
   position: absolute;
   left: 50%;
@@ -3848,6 +3814,30 @@
   min-width: 0;
 }
 
+.cd-v4-friends-row--btn {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  border-radius: 8px;
+}
+
+.cd-v4-friends-row--btn:hover .cd-v4-facepile-item,
+.cd-v4-friends-row--btn:hover .cd-v4-facepile-more {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--cins-blue, #1f74c9) 35%, transparent);
+}
+
+.cd-v4-friends-row--btn:hover .cd-v4-face-note strong {
+  color: var(--cins-blue, #1f74c9);
+}
+
+.cd-v4-friends-row--btn:focus-visible {
+  outline: 2px solid var(--cins-blue, #1f74c9);
+  outline-offset: 3px;
+}
+
 .cd-v4-facepile {
   display: flex;
   align-items: center;
@@ -3913,10 +3903,32 @@
   font-size: 13px;
   line-height: 1.35;
   color: var(--ink-muted, rgba(0, 0, 0, 0.4));
+  text-align: left;
 }
 
 .cd-v4-face-note--solo {
   margin-bottom: 4px;
+}
+
+.cd-v4-face-note--btn {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  border-radius: 6px;
+}
+
+.cd-v4-face-note--btn:hover strong {
+  color: var(--cins-blue, #1f74c9);
+}
+
+.cd-v4-face-note--btn:focus-visible {
+  outline: 2px solid var(--cins-blue, #1f74c9);
+  outline-offset: 3px;
 }
 
 .cd-v4-face-note strong {

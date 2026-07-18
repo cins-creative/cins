@@ -540,6 +540,20 @@ export function JourneyMilestoneCard({
     };
   }, [isOwner, viewerProfileId]);
 
+  useEffect(() => {
+    if (!isOwner) return;
+    const onBanHangChanged = (e: Event) => {
+      const detail = (e as CustomEvent<{ enabled?: boolean }>).detail;
+      if (typeof detail?.enabled === "boolean") {
+        setBanHangEnabled(detail.enabled);
+      }
+    };
+    window.addEventListener("cins:ban-hang-changed", onBanHangChanged);
+    return () => {
+      window.removeEventListener("cins:ban-hang-changed", onBanHangChanged);
+    };
+  }, [isOwner]);
+
   const displayDate = `${String(day).padStart(2, "0")}-${String(month).padStart(2, "0")}-${year}`;
   const bookmarkSavedDateLabel = milestone.bookmarkSavedAt
     ? formatIsoToDisplayDate(milestone.bookmarkSavedAt)

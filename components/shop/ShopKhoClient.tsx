@@ -1,6 +1,19 @@
 "use client";
 
-import { ClipboardPaste, ImagePlus, Loader2, Plus, Save, Trash2, X } from "lucide-react";
+import {
+  ArrowDownWideNarrow,
+  ArrowUpNarrowWide,
+  Check,
+  ChevronDown,
+  ClipboardPaste,
+  ImagePlus,
+  Loader2,
+  Pencil,
+  Plus,
+  Save,
+  Trash2,
+  X,
+} from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -15,10 +28,14 @@ import { ShopPhanLoaiInput } from "./ShopPhanLoaiInput";
 import { ShopTienTeSelect } from "./ShopTienTeSelect";
 import "./shop-dashboard.css";
 
+type SortTon = "none" | "nhieu" | "het";
+
 type RowDraft = {
   phanLoai: string;
   ton: string;
   gia: string;
+  /** Còn kinh doanh (`shop_san_pham.dang_ban`). */
+  dangBan: boolean;
   /** Ảnh mới chờ lưu (đã upload CF). */
   anhId?: string | null;
   anhUrl?: string | null;
@@ -42,10 +59,27 @@ export function ShopKhoClient() {
   const [saving, setSaving] = useState(false);
   const [newBangTen, setNewBangTen] = useState("Bảng giá mặc định");
   const [newBangTienTe, setNewBangTienTe] = useState("VND");
-  const [filterLoai, setFilterLoai] = useState<string>("all");
+  const [filterLoai, setFilterLoai] = useState<string[]>([]);
+  /** Sắp xếp theo tồn: none · còn nhiều trước · hết hàng trước. */
+  const [sortTon, setSortTon] = useState<SortTon>("none");
+  const [khoEditing, setKhoEditing] = useState(false);
   const [drafts, setDrafts] = useState<Record<string, RowDraft>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
   const [thumbMenuKey, setThumbMenuKey] = useState<string | null>(null);
+  const [filterMenuOpen, setFilterMenuOpen] = useState(false);
+
+  function exitKhoEditing() {
+    setKhoEditing(false);
+    setDrafts({});
+    setThumbMenuKey(null);
+    setTen("");
+    setTon("0");
+    setGia("");
+    setPhanLoai("");
+    setAnhId(null);
+    setAnhUrl(null);
+    setErr(null);
+  }
 
   useEffect(() => {
     if (!thumbMenuKey) return;
@@ -112,13 +146,95 @@ export function ShopKhoClient() {
     return [...set].sort((a, b) => a.localeCompare(b, "vi"));
   }, [products]);
 
+  const hasUncategorized = useMemo(
+    () => products.some((p) => !p.phanLoai?.trim()),
+    [products],
+  );
+
+  /** Tất cả + loại + (Chưa phân loại) — >7 thẻ → dropdown. */
+  const filterChipCount =
+    1 + categoryOptions.length + (hasUncategorized ? 1 : 0);
+  const useFilterDropdown = filterChipCount > 7;
+
   const filteredProducts = useMemo(() => {
-    if (filterLoai === "all") return products;
-    if (filterLoai === "__none__") {
-      return products.filter((p) => !p.phanLoai?.trim());
+    let list: ShopSanPham[];
+    if (filterLoai.length === 0) {
+      list = products;
+    } else {
+      const selected = new Set(filterLoai);
+      list = products.filter((p) => {
+        const loai = p.phanLoai?.trim();
+        if (!loai) return selected.has("__none__");
+        return selected.has(loai);
+      });
     }
-    return products.filter((p) => p.phanLoai?.trim() === filterLoai);
-  }, [products, filterLoai]);
+
+    const dangBanOf = (p: ShopSanPham): boolean => {
+      const draft = drafts[p.id];
+      if (draft) return draft.dangBan;
+      return p.dangBan !== false;
+    };
+
+    const tonOf = (p: ShopSanPham): number => {
+      const draft = drafts[p.id];
+      if (draft) {
+        const n = Number.parseInt(draft.ton, 10);
+        if (Number.isFinite(n)) return n;
+      }
+      return p.bienThe[0]?.soLuongTon ?? 0;
+    };
+
+    return [...list].sort((a, b) => {
+      // Ngừng bán luôn xuống dưới cùng
+      const aBan = dangBanOf(a) ? 0 : 1;
+      const bBan = dangBanOf(b) ? 0 : 1;
+      if (aBan !== bBan) return aBan - bBan;
+
+      if (sortTon === "none") return 0;
+      const diff = tonOf(a) - tonOf(b);
+      return sortTon === "het" ? diff : -diff;
+    });
+  }, [products, filterLoai, sortTon, drafts]);
+
+  function toggleFilterLoai(key: string) {
+    if (key === "all") {
+      setFilterLoai([]);
+      return;
+    }
+    setFilterLoai((prev) => {
+      if (prev.includes(key)) return prev.filter((x) => x !== key);
+      return [...prev, key];
+    });
+  }
+
+  function filterLoaiLabel(): string {
+    if (filterLoai.length === 0) return "Tất cả phân loại";
+    const labels = filterLoai.map((k) =>
+      k === "__none__" ? "Chưa phân loại" : k,
+    );
+    if (labels.length <= 2) return labels.join(", ");
+    return `Đã chọn ${labels.length} loại`;
+  }
+
+  useEffect(() => {
+    if (!filterMenuOpen) return;
+    function onPointerDown(e: PointerEvent) {
+      const t = e.target;
+      if (!(t instanceof Element)) return;
+      if (t.closest("[data-shop-filter-menu]")) return;
+      setFilterMenuOpen(false);
+    }
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [filterMenuOpen]);
+
+  function cycleSortTon() {
+    setSortTon((prev) => {
+      if (prev === "none") return "nhieu";
+      if (prev === "nhieu") return "het";
+      return "none";
+    });
+  }
 
   function parseGiaInput(raw: string): number | null {
     const cleaned = raw.trim().replace(/\s/g, "").replace(/,/g, "");
@@ -134,17 +250,14 @@ export function ShopKhoClient() {
 
   function resolveGiaBienThe(idBienThe: string | undefined): number | null {
     if (!idBienThe) return null;
-    const preferred = bangGiaId
+    // Chỉ lấy giá trong bảng đang chọn — không fallback sang bảng khác
+    // (tránh hiện 35.000 IDR khi bảng IDR chưa có dòng, giá thật thuộc bảng VND).
+    const bg = bangGiaId
       ? priceLists.find((b) => b.id === bangGiaId)
-      : null;
-    const ordered = preferred
-      ? [preferred, ...priceLists.filter((b) => b.id !== preferred.id)]
-      : priceLists;
-    for (const bg of ordered) {
-      const d = bg.dong.find((x) => x.idBienThe === idBienThe);
-      if (d) return d.gia;
-    }
-    return null;
+      : priceLists[0];
+    if (!bg) return null;
+    const d = bg.dong.find((x) => x.idBienThe === idBienThe);
+    return d ? d.gia : null;
   }
 
   function baseDraftForProduct(p: ShopSanPham): RowDraft {
@@ -154,6 +267,7 @@ export function ShopKhoClient() {
       phanLoai: p.phanLoai ?? "",
       ton: String(bt?.soLuongTon ?? 0),
       gia: giaDong != null ? String(giaDong) : "",
+      dangBan: p.dangBan !== false,
     };
   }
 
@@ -175,7 +289,8 @@ export function ShopKhoClient() {
     return (
       d.phanLoai.trim() !== base.phanLoai.trim() ||
       d.ton.trim() !== base.ton.trim() ||
-      parseGiaInput(d.gia) !== parseGiaInput(base.gia)
+      parseGiaInput(d.gia) !== parseGiaInput(base.gia) ||
+      d.dangBan !== base.dangBan
     );
   }
 
@@ -462,6 +577,7 @@ export function ShopKhoClient() {
     try {
       const patchBody: Record<string, unknown> = {
         phanLoai: draft.phanLoai.trim() || null,
+        dangBan: draft.dangBan,
       };
       if (draft.anhId !== undefined) {
         patchBody.anhId = draft.anhId;
@@ -595,7 +711,11 @@ export function ShopKhoClient() {
             <div className="shop-dash-bang-gia-pick">
               <select
                 value={bangGiaId}
-                onChange={(e) => setBangGiaId(e.target.value)}
+                onChange={(e) => {
+                  setBangGiaId(e.target.value);
+                  // Draft giá thuộc bảng cũ — xóa để không lẫn tiền tệ / số dòng.
+                  setDrafts({});
+                }}
               >
                 {priceLists.map((b) => (
                   <option key={b.id} value={b.id}>
@@ -630,49 +750,128 @@ export function ShopKhoClient() {
 
       <section className="shop-dash-card">
         <div className="shop-dash-kho-head">
-          <h2>
-            Kho hàng (
-            {filteredProducts.length}
-            {filterLoai !== "all" ? ` / ${products.length}` : ""})
-          </h2>
-          {products.length > 0 ? (
-            <div
-              className="shop-filter-chips"
-              role="tablist"
-              aria-label="Lọc theo phân loại"
+          <div className="shop-dash-kho-title-row">
+            <h2>
+              Kho hàng (
+              {filteredProducts.length}
+              {filterLoai.length > 0 ? ` / ${products.length}` : ""})
+            </h2>
+            <button
+              type="button"
+              className={`shop-dash-kho-edit-btn${khoEditing ? " is-active" : ""}`}
+              aria-pressed={khoEditing}
+              onClick={() => {
+                if (khoEditing) exitKhoEditing();
+                else setKhoEditing(true);
+              }}
             >
-              <button
-                type="button"
-                className={`shop-filter-chip${filterLoai === "all" ? " is-active" : ""}`}
-                onClick={() => setFilterLoai("all")}
+              {khoEditing ? (
+                <>
+                  <Check size={15} strokeWidth={2.25} aria-hidden />
+                  Xong
+                </>
+              ) : (
+                <>
+                  <Pencil size={15} strokeWidth={2} aria-hidden />
+                  Sửa
+                </>
+              )}
+            </button>
+          </div>
+          {products.length > 0 && filterChipCount > 1 ? (
+            useFilterDropdown ? (
+              <div className="shop-filter-dropdown" data-shop-filter-menu>
+                <button
+                  type="button"
+                  className={`shop-filter-dropdown-trigger${filterLoai.length > 0 ? " is-active" : ""}${filterMenuOpen ? " is-open" : ""}`}
+                  aria-expanded={filterMenuOpen}
+                  aria-haspopup="listbox"
+                  aria-label="Lọc theo phân loại"
+                  onClick={() => setFilterMenuOpen((o) => !o)}
+                >
+                  <span>{filterLoaiLabel()}</span>
+                  <ChevronDown size={15} strokeWidth={2.25} aria-hidden />
+                </button>
+                {filterMenuOpen ? (
+                  <div
+                    className="shop-filter-dropdown-panel"
+                    role="listbox"
+                    aria-multiselectable
+                    aria-label="Chọn phân loại"
+                  >
+                    <label className="shop-filter-dropdown-opt">
+                      <input
+                        type="checkbox"
+                        checked={filterLoai.length === 0}
+                        onChange={() => toggleFilterLoai("all")}
+                      />
+                      <span>Tất cả</span>
+                    </label>
+                    {categoryOptions.map((c) => (
+                      <label key={c} className="shop-filter-dropdown-opt">
+                        <input
+                          type="checkbox"
+                          checked={filterLoai.includes(c)}
+                          onChange={() => toggleFilterLoai(c)}
+                        />
+                        <span>{c}</span>
+                      </label>
+                    ))}
+                    {hasUncategorized ? (
+                      <label className="shop-filter-dropdown-opt">
+                        <input
+                          type="checkbox"
+                          checked={filterLoai.includes("__none__")}
+                          onChange={() => toggleFilterLoai("__none__")}
+                        />
+                        <span>Chưa phân loại</span>
+                      </label>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
+            ) : (
+              <div
+                className="shop-filter-chips"
+                role="group"
+                aria-label="Lọc theo phân loại"
               >
-                Tất cả
-              </button>
-              {categoryOptions.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  className={`shop-filter-chip${filterLoai === c ? " is-active" : ""}`}
-                  onClick={() => setFilterLoai(c)}
-                >
-                  {c}
-                </button>
-              ))}
-              {products.some((p) => !p.phanLoai?.trim()) ? (
                 <button
                   type="button"
-                  className={`shop-filter-chip${filterLoai === "__none__" ? " is-active" : ""}`}
-                  onClick={() => setFilterLoai("__none__")}
+                  className={`shop-filter-chip${filterLoai.length === 0 ? " is-active" : ""}`}
+                  aria-pressed={filterLoai.length === 0}
+                  onClick={() => toggleFilterLoai("all")}
                 >
-                  Chưa phân loại
+                  Tất cả
                 </button>
-              ) : null}
-            </div>
+                {categoryOptions.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    className={`shop-filter-chip${filterLoai.includes(c) ? " is-active" : ""}`}
+                    aria-pressed={filterLoai.includes(c)}
+                    onClick={() => toggleFilterLoai(c)}
+                  >
+                    {c}
+                  </button>
+                ))}
+                {hasUncategorized ? (
+                  <button
+                    type="button"
+                    className={`shop-filter-chip${filterLoai.includes("__none__") ? " is-active" : ""}`}
+                    aria-pressed={filterLoai.includes("__none__")}
+                    onClick={() => toggleFilterLoai("__none__")}
+                  >
+                    Chưa phân loại
+                  </button>
+                ) : null}
+              </div>
+            )
           ) : null}
         </div>
 
         <div className="shop-grid-wrap">
-          <table className="shop-grid">
+          <table className={`shop-grid${khoEditing ? "" : " shop-grid--readonly"}`}>
             <thead>
               <tr>
                 <th scope="col" className="shop-grid-col-thumb">
@@ -685,17 +884,48 @@ export function ShopKhoClient() {
                   Phân loại
                 </th>
                 <th scope="col" className="shop-grid-col-ton">
-                  Tồn kho
+                  <button
+                    type="button"
+                    className={`shop-grid-sort-btn${sortTon !== "none" ? " is-active" : ""}`}
+                    onClick={cycleSortTon}
+                    aria-label={
+                      sortTon === "none"
+                        ? "Sắp xếp tồn kho"
+                        : sortTon === "nhieu"
+                          ? "Đang sắp: còn nhiều hàng trước. Bấm để xếp hết hàng trước"
+                          : "Đang sắp: hết hàng trước. Bấm để bỏ sắp xếp"
+                    }
+                    title={
+                      sortTon === "none"
+                        ? "Bấm để sắp: còn nhiều hàng → hết hàng → mặc định"
+                        : sortTon === "nhieu"
+                          ? "Còn nhiều hàng trước"
+                          : "Hết hàng trước"
+                    }
+                  >
+                    <span>Tồn kho</span>
+                    {sortTon === "nhieu" ? (
+                      <ArrowDownWideNarrow size={13} strokeWidth={2.25} aria-hidden />
+                    ) : sortTon === "het" ? (
+                      <ArrowUpNarrowWide size={13} strokeWidth={2.25} aria-hidden />
+                    ) : null}
+                  </button>
                 </th>
                 <th scope="col" className="shop-grid-col-gia">
                   Giá ({currentTienTe()})
                 </th>
-                <th scope="col" className="shop-grid-col-actions">
-                  Thao tác
+                <th scope="col" className="shop-grid-col-status">
+                  Tình trạng
                 </th>
+                {khoEditing ? (
+                  <th scope="col" className="shop-grid-col-actions">
+                    Thao tác
+                  </th>
+                ) : null}
               </tr>
             </thead>
             <tbody>
+              {khoEditing ? (
               <tr
                 className="shop-grid-row shop-grid-row--add"
                 onPaste={(e) => {
@@ -860,6 +1090,14 @@ export function ShopKhoClient() {
                     </span>
                   </div>
                 </td>
+                <td className="shop-grid-col-status">
+                  <span
+                    className="shop-status shop-status--dang_ban"
+                    title="Sản phẩm mới mặc định còn kinh doanh"
+                  >
+                    Đang bán
+                  </span>
+                </td>
                 <td className="shop-grid-col-actions">
                   <button
                     type="button"
@@ -875,12 +1113,15 @@ export function ShopKhoClient() {
                   </button>
                 </td>
               </tr>
+              ) : null}
 
               {filteredProducts.length === 0 ? (
                 <tr className="shop-grid-row shop-grid-row--empty">
-                  <td colSpan={6}>
+                  <td colSpan={khoEditing ? 7 : 6}>
                     {products.length === 0
-                      ? "Chưa có sản phẩm — điền dòng trên rồi bấm Thêm."
+                      ? khoEditing
+                        ? "Chưa có sản phẩm — điền dòng trên rồi bấm Thêm."
+                        : "Chưa có sản phẩm — bấm Sửa để thêm."
                       : "Không có sản phẩm trong nhóm này."}
                   </td>
                 </tr>
@@ -893,12 +1134,28 @@ export function ShopKhoClient() {
                     draft.anhId !== undefined ? draft.anhUrl : p.anhUrl;
                   const rowSaving = savingId === p.id;
                   const rowFileId = `shop-row-thumb-${p.id}`;
+                  const giaHienThi = resolveGiaBienThe(bt?.id);
+                  const dangBanHienThi = khoEditing
+                    ? draft.dangBan
+                    : p.dangBan !== false;
                   return (
                     <tr
                       key={p.id}
-                      className={`shop-grid-row${dirty ? " is-dirty" : ""}`}
+                      className={`shop-grid-row${dirty && khoEditing ? " is-dirty" : ""}${!dangBanHienThi ? " is-ngung-ban" : ""}`}
                     >
                       <td className="shop-grid-col-thumb">
+                        {!khoEditing ? (
+                          <div
+                            className={`shop-grid-readonly-thumb${displayAnh ? "" : " is-empty"}`}
+                          >
+                            {displayAnh ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={displayAnh} alt="" />
+                            ) : (
+                              "—"
+                            )}
+                          </div>
+                        ) : (
                         <div
                           className={`shop-thumb-pick${thumbMenuKey === p.id ? " is-open" : ""}`}
                           data-thumb-menu={p.id}
@@ -1024,14 +1281,23 @@ export function ShopKhoClient() {
                             </div>
                           ) : null}
                         </div>
+                        )}
                       </td>
                       <td className="shop-grid-col-name">
                         <strong>{p.ten}</strong>
-                        {bt && Number.parseInt(draft.ton, 10) <= 0 ? (
+                        {bt &&
+                        (khoEditing
+                          ? Number.parseInt(draft.ton, 10) <= 0
+                          : (bt.soLuongTon ?? 0) <= 0) ? (
                           <div className="shop-dash-hint">Đợi restock</div>
                         ) : null}
                       </td>
                       <td className="shop-grid-col-loai">
+                        {!khoEditing ? (
+                          <span className="shop-grid-readonly-val">
+                            {p.phanLoai?.trim() || "—"}
+                          </span>
+                        ) : (
                         <ShopPhanLoaiInput
                           className="shop-phan-loai-inline"
                           value={draft.phanLoai}
@@ -1047,9 +1313,14 @@ export function ShopKhoClient() {
                             )
                           }
                         />
+                        )}
                       </td>
                       <td className="shop-grid-col-ton">
-                        {bt ? (
+                        {!khoEditing ? (
+                          <span className="shop-grid-readonly-val">
+                            {bt ? bt.soLuongTon : "—"}
+                          </span>
+                        ) : bt ? (
                           <input
                             className="shop-dash-ton"
                             type="number"
@@ -1069,7 +1340,13 @@ export function ShopKhoClient() {
                         )}
                       </td>
                       <td className="shop-grid-col-gia">
-                        {bt ? (
+                        {!khoEditing ? (
+                          <span className="shop-grid-readonly-val">
+                            {giaHienThi != null
+                              ? `${giaHienThi.toLocaleString("vi-VN")} ${currentTienTe()}`
+                              : "—"}
+                          </span>
+                        ) : bt ? (
                           <div className="shop-gia-cell">
                             <input
                               value={draft.gia}
@@ -1096,6 +1373,34 @@ export function ShopKhoClient() {
                           "—"
                         )}
                       </td>
+                      <td className="shop-grid-col-status">
+                        {!khoEditing ? (
+                          <span
+                            className={`shop-status ${dangBanHienThi ? "shop-status--dang_ban" : "shop-status--ngung_ban"}`}
+                          >
+                            {dangBanHienThi ? "Đang bán" : "Ngừng bán"}
+                          </span>
+                        ) : (
+                          <select
+                            className="shop-status-select"
+                            value={draft.dangBan ? "1" : "0"}
+                            disabled={rowSaving}
+                            aria-label={`Tình trạng ${p.ten}`}
+                            title="Còn kinh doanh hay đã ngừng bán"
+                            onChange={(e) =>
+                              patchDraft(
+                                p.id,
+                                { dangBan: e.target.value === "1" },
+                                baseDraftForProduct(p),
+                              )
+                            }
+                          >
+                            <option value="1">Đang bán</option>
+                            <option value="0">Ngừng bán</option>
+                          </select>
+                        )}
+                      </td>
+                      {khoEditing ? (
                       <td className="shop-grid-col-actions">
                         <div className="shop-grid-actions">
                           {dirty ? (
@@ -1125,6 +1430,7 @@ export function ShopKhoClient() {
                           </button>
                         </div>
                       </td>
+                      ) : null}
                     </tr>
                   );
                 })

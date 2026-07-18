@@ -789,9 +789,12 @@
   color: #b54708;
 }
 
-.uas-mua-status--da_nhan_tien,
-.uas-mua-status--da_giao_tai_su_kien {
+.uas-mua-status--da_nhan_tien {
   color: #027a48;
+}
+
+.uas-mua-status--da_giao_tai_su_kien {
+  color: #0369a1;
 }
 
 .uas-mua-status--huy,

@@ -172,11 +172,26 @@ export function studioBaiDangStepSortKey(
   return mocDateSortKey(post?.tao_luc ?? null, null);
 }
 
-/** Năm lịch cho dropdown — từ bài đăng thông báo/sự kiện và hạn nộp tuyển dụng. */
+/** Năm lịch từ mốc sidebar (session) — `ngay_tu` / `ngay_den`. */
+export function collectStudioMocYears(
+  moc: ReadonlyArray<{ ngay_tu?: string | null; ngay_den?: string | null }>,
+): number[] {
+  const years = new Set<number>();
+  for (const m of moc) {
+    const yt = parseCalendarYearFromDate(m.ngay_tu);
+    const yd = parseCalendarYearFromDate(m.ngay_den);
+    if (yt) years.add(yt);
+    if (yd) years.add(yd);
+  }
+  return [...years];
+}
+
+/** Năm lịch cho dropdown — bài đăng, tuyển dụng, mốc tùy chỉnh, sự kiện org. */
 export function collectStudioTimelineYears(
   posts: ReadonlyArray<TruongBaiDang>,
   jobs: ReadonlyArray<StudioJob>,
   includeScheduled = false,
+  extraYears: ReadonlyArray<number> = [],
 ): number[] {
   const years = new Set<number>();
   for (const post of posts) {
@@ -187,6 +202,9 @@ export function collectStudioTimelineYears(
   for (const job of jobs) {
     const y = parseCalendarYearFromDate(job.hanNop);
     if (y) years.add(y);
+  }
+  for (const y of extraYears) {
+    if (Number.isFinite(y)) years.add(y);
   }
   if (!years.size) years.add(currentCalendarYear());
   return [...years].sort((a, b) => b - a);

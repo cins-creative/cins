@@ -8,6 +8,8 @@ import type {
   NotificationFeed,
   OrgMilestoneTagApprovedNotification,
   ProcessedCoAuthorReview,
+  ShopQuayPendingNotification,
+  ShopQuayResolvedNotification,
   VideoReadyNotification,
 } from "@/lib/social/types";
 
@@ -17,6 +19,8 @@ export type HistoryTimelineEntry =
   | { kind: "accepted"; item: FollowAcceptedNotification }
   | { kind: "comment"; item: CommentNotification }
   | { kind: "membershipMilestoneResolved"; item: MembershipMilestoneResolvedNotification }
+  | { kind: "shopQuayResolved"; item: ShopQuayResolvedNotification }
+  | { kind: "shopQuayPending"; item: ShopQuayPendingNotification }
   | { kind: "orgMilestoneTagApproved"; item: OrgMilestoneTagApprovedNotification }
   | { kind: "videoReady"; item: VideoReadyNotification }
   | { kind: "dongGopFeedback"; item: ArticleDongGopFeedbackNotification }
@@ -33,6 +37,8 @@ export function historyTimelineToFeed(
   | "accepted"
   | "comments"
   | "membershipMilestoneResolved"
+  | "shopQuayResolved"
+  | "shopQuayPending"
   | "orgMilestoneTagApproved"
   | "videoReady"
   | "dongGopFeedback"
@@ -44,6 +50,8 @@ export function historyTimelineToFeed(
     accepted: [] as FollowAcceptedNotification[],
     comments: [] as CommentNotification[],
     membershipMilestoneResolved: [] as MembershipMilestoneResolvedNotification[],
+    shopQuayResolved: [] as ShopQuayResolvedNotification[],
+    shopQuayPending: [] as ShopQuayPendingNotification[],
     orgMilestoneTagApproved: [] as OrgMilestoneTagApprovedNotification[],
     videoReady: [] as VideoReadyNotification[],
     dongGopFeedback: [] as ArticleDongGopFeedbackNotification[],
@@ -66,6 +74,12 @@ export function historyTimelineToFeed(
         break;
       case "membershipMilestoneResolved":
         feed.membershipMilestoneResolved.push(entry.item);
+        break;
+      case "shopQuayResolved":
+        feed.shopQuayResolved.push(entry.item);
+        break;
+      case "shopQuayPending":
+        feed.shopQuayPending.push(entry.item);
         break;
       case "orgMilestoneTagApproved":
         feed.orgMilestoneTagApproved.push(entry.item);
@@ -102,6 +116,8 @@ export function appendHistoryTimeline(
 
 export type InfoTimelineEntry =
   | { kind: "membershipMilestoneResolved"; item: MembershipMilestoneResolvedNotification }
+  | { kind: "shopQuayResolved"; item: ShopQuayResolvedNotification }
+  | { kind: "shopQuayPending"; item: ShopQuayPendingNotification }
   | { kind: "orgMilestoneTagApproved"; item: OrgMilestoneTagApprovedNotification }
   | { kind: "accepted"; item: FollowAcceptedNotification }
   | { kind: "comment"; item: CommentNotification }
@@ -127,6 +143,8 @@ export function buildHistoryTimeline(
     | "accepted"
     | "comments"
     | "membershipMilestoneResolved"
+    | "shopQuayResolved"
+    | "shopQuayPending"
     | "orgMilestoneTagApproved"
     | "videoReady"
     | "dongGopFeedback"
@@ -170,6 +188,20 @@ export function buildHistoryTimeline(
       sortTime: notificationSortTime(item.taoLuc),
     });
   }
+  for (const item of feed.shopQuayResolved) {
+    entries.push({
+      kind: "shopQuayResolved",
+      item,
+      sortTime: notificationSortTime(item.taoLuc),
+    });
+  }
+  for (const item of feed.shopQuayPending) {
+    entries.push({
+      kind: "shopQuayPending",
+      item,
+      sortTime: notificationSortTime(item.taoLuc),
+    });
+  }
   for (const item of feed.orgMilestoneTagApproved) {
     entries.push({
       kind: "orgMilestoneTagApproved",
@@ -208,6 +240,8 @@ export function buildInfoTimeline(info: {
   videoReady: VideoReadyNotification[];
   orgMilestoneTagApproved: OrgMilestoneTagApprovedNotification[];
   membershipMilestoneResolved: MembershipMilestoneResolvedNotification[];
+  shopQuayResolved: ShopQuayResolvedNotification[];
+  shopQuayPending: ShopQuayPendingNotification[];
   dongGopFeedback: ArticleDongGopFeedbackNotification[];
   dongGopPromoted: ArticleDongGopPromotedNotification[];
 }): InfoTimelineEntry[] {
@@ -248,6 +282,20 @@ export function buildInfoTimeline(info: {
       sortTime: notificationSortTime(item.taoLuc),
     });
   }
+  for (const item of info.shopQuayResolved) {
+    entries.push({
+      kind: "shopQuayResolved",
+      item,
+      sortTime: notificationSortTime(item.taoLuc),
+    });
+  }
+  for (const item of info.shopQuayPending) {
+    entries.push({
+      kind: "shopQuayPending",
+      item,
+      sortTime: notificationSortTime(item.taoLuc),
+    });
+  }
   for (const item of info.dongGopFeedback) {
     entries.push({
       kind: "dongGopFeedback",
@@ -277,6 +325,8 @@ export const EMPTY_NOTIFICATION_HISTORY_FEED: NotificationFeed = {
   congDongInvites: [],
   orgMilestoneTagApproved: [],
   membershipMilestoneResolved: [],
+  shopQuayResolved: [],
+  shopQuayPending: [],
   videoReady: [],
   dongGopFeedback: [],
   dongGopPromoted: [],
@@ -311,6 +361,12 @@ export function parseNotificationFeedPayload(
     membershipMilestoneResolved: Array.isArray(data.membershipMilestoneResolved)
       ? data.membershipMilestoneResolved
       : [],
+    shopQuayResolved: Array.isArray(data.shopQuayResolved)
+      ? data.shopQuayResolved
+      : [],
+    shopQuayPending: Array.isArray(data.shopQuayPending)
+      ? data.shopQuayPending
+      : [],
     videoReady: Array.isArray(data.videoReady) ? data.videoReady : [],
     dongGopFeedback: Array.isArray(data.dongGopFeedback)
       ? data.dongGopFeedback
@@ -338,6 +394,8 @@ export function parseNotificationFeedPage(json: unknown): {
         feed.accepted.length +
         feed.comments.length +
         feed.membershipMilestoneResolved.length +
+        feed.shopQuayResolved.length +
+        feed.shopQuayPending.length +
         feed.orgMilestoneTagApproved.length +
         feed.videoReady.length +
         feed.dongGopFeedback.length +

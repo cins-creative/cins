@@ -154,6 +154,11 @@ export function ShopDonDetailModal({
   // seller xác nhận — khớp card chat.
   const isPaid = don?.loaiDon === "mua_ngay";
   const isLater = don?.loaiDon === "dat_truoc_nhan_su_kien";
+  const noteText = (don?.ghiChu ?? "")
+    .split("\n")
+    .filter((l) => !l.trim().startsWith("Hóa đơn thanh toán:"))
+    .join("\n")
+    .trim();
 
   return createPortal(
     <div
@@ -226,7 +231,7 @@ export function ShopDonDetailModal({
               )}
             </p>
 
-            <ul className="shop-don-detail-lines">
+            <ul className="shop-don-detail-lines" aria-label="Chi tiết đơn">
               {don.dong.map((line) => {
                 const nhan =
                   line.nhanSnapshot?.trim() &&
@@ -240,21 +245,30 @@ export function ShopDonDetailModal({
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={line.anhUrl} alt="" loading="lazy" />
                       ) : (
-                        <Package size={18} strokeWidth={1.8} />
+                        <Package size={16} strokeWidth={1.8} />
                       )}
                     </span>
                     <span className="shop-don-detail-line-body">
                       <span className="shop-don-detail-line-name">
                         {line.tenSnapshot}
+                        {nhan ? (
+                          <span className="shop-don-detail-line-var">
+                            {" "}
+                            · {nhan}
+                          </span>
+                        ) : null}
                       </span>
-                      <span className="shop-don-detail-line-meta">
-                        {nhan ? `${nhan} · ` : ""}×{line.soLuong}
-                      </span>
-                      <strong className="shop-don-detail-line-price">
-                        {(line.giaDonVi * line.soLuong).toLocaleString("vi-VN")}{" "}
-                        {don.tienTe}
-                      </strong>
                     </span>
+                    <span
+                      className="shop-don-detail-line-qty"
+                      title={`Số lượng: ${line.soLuong}`}
+                    >
+                      ×{line.soLuong}
+                    </span>
+                    <strong className="shop-don-detail-line-price">
+                      {(line.giaDonVi * line.soLuong).toLocaleString("vi-VN")}{" "}
+                      {don.tienTe}
+                    </strong>
                   </li>
                 );
               })}
@@ -267,15 +281,11 @@ export function ShopDonDetailModal({
               </strong>
             </div>
 
-            {don.ghiChu?.trim() ? (
-              <p className="shop-don-detail-note">
-                <span>Ghi chú</span>
-                {don.ghiChu
-                  .split("\n")
-                  .filter((l) => !l.startsWith("Hóa đơn thanh toán:"))
-                  .join("\n")
-                  .trim() || "—"}
-              </p>
+            {noteText ? (
+              <div className="shop-don-detail-note">
+                <span className="shop-don-detail-note-label">Lời nhắn</span>
+                <p className="shop-don-detail-note-text">{noteText}</p>
+              </div>
             ) : null}
 
             {err ? (

@@ -6,6 +6,7 @@ import { createPortal } from "react-dom";
 
 import type { ShopBangGia, ShopSanPham } from "@/lib/shop/types";
 
+import "@/components/cins/user-account-settings-modal.css";
 import "./shop-dashboard.css";
 
 type Props = {
@@ -278,27 +279,20 @@ export function ShopAttachHangModal({
             </>
           )}
         </div>
-        <footer
-          style={{
-            padding: 12,
-            borderTop: "1px solid var(--border)",
-            display: "flex",
-            justifyContent: "flex-end",
-            gap: 8,
-          }}
-        >
-          <button type="button" className="uas-close" onClick={onClose}>
-            Hủy
-          </button>
-          <button
-            type="button"
-            className="shop-kiosk-submit"
-            style={{ width: "auto" }}
-            disabled={saving}
-            onClick={() => void save()}
-          >
-            {saving ? <Loader2 className="shop-spin" size={16} /> : "Lưu"}
-          </button>
+        <footer className="uas-foot" style={{ justifyContent: "flex-end" }}>
+          <div className="uas-foot-actions">
+            <button type="button" className="uas-btn ghost" onClick={onClose}>
+              Hủy
+            </button>
+            <button
+              type="button"
+              className="uas-btn primary"
+              disabled={saving}
+              onClick={() => void save()}
+            >
+              {saving ? <Loader2 className="shop-spin" size={16} /> : "Lưu"}
+            </button>
+          </div>
         </footer>
       </div>
     </div>,

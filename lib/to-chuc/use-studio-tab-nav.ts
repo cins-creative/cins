@@ -15,9 +15,10 @@ const DEFAULT_STATE: StudioPathState = {
   tab: STUDIO_DEFAULT_TAB,
   jobId: null,
   baiDangId: null,
+  suKienId: null,
 };
 
-/** Tab studio — `pushState` client; deep link bài đăng / tuyển dụng giữ pathname. */
+/** Tab studio — `pushState` client; deep link bài đăng / tuyển dụng / sự kiện giữ pathname. */
 export function useStudioTabNav(orgSlug: string) {
   const pathname = usePathname();
   const pathState = useMemo(
@@ -46,12 +47,13 @@ export function useStudioTabNav(orgSlug: string) {
         if (
           current.tab === next &&
           !current.jobId &&
-          !current.baiDangId
+          !current.baiDangId &&
+          !current.suKienId
         ) {
           return current;
         }
         window.history.pushState(null, "", studioTabPath(orgSlug, next));
-        return { tab: next, jobId: null, baiDangId: null };
+        return { tab: next, jobId: null, baiDangId: null, suKienId: null };
       });
     },
     [orgSlug],
@@ -61,6 +63,7 @@ export function useStudioTabNav(orgSlug: string) {
     tab: route.tab,
     jobId: route.jobId,
     baiDangId: route.baiDangId,
+    suKienId: route.suKienId,
     selectTab,
   };
 }

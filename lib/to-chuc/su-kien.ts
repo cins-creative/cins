@@ -248,6 +248,54 @@ async function getSuKienOrgId(suKienId: string): Promise<string | null> {
   return data?.id_to_chuc ?? null;
 }
 
+export type SuKienPublicDetail = {
+  suKien: SuKienCardData;
+  orgId: string;
+  orgSlug: string;
+  orgTen: string;
+  orgLoai: string;
+};
+
+/** Chi tiết sự kiện công khai theo id — cho trang `/su-kien/[id]`. */
+export async function getSuKienByIdPublic(
+  suKienId: string,
+): Promise<SuKienPublicDetail | null> {
+  const id = suKienId?.trim();
+  if (!id) return null;
+
+  const admin = createServiceRoleClient();
+  const { data, error } = await admin
+    .from("org_su_kien")
+    .select(
+      `${SU_KIEN_SELECT}, id_to_chuc, org_to_chuc!inner ( id, slug, ten, loai_to_chuc )`,
+    )
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error || !data) return null;
+
+  const row = data as SuKienRow & {
+    id_to_chuc: string;
+    org_to_chuc:
+      | { id: string; slug: string | null; ten: string | null; loai_to_chuc: string | null }
+      | { id: string; slug: string | null; ten: string | null; loai_to_chuc: string | null }[];
+  };
+
+  const org = Array.isArray(row.org_to_chuc)
+    ? row.org_to_chuc[0]
+    : row.org_to_chuc;
+  if (!org?.slug?.trim() || !org.ten?.trim()) return null;
+
+  const counts = await demDangKySeThamGia([row.id]);
+  return {
+    suKien: mapRow(row, counts.get(row.id) ?? 0),
+    orgId: row.id_to_chuc,
+    orgSlug: org.slug.trim(),
+    orgTen: org.ten.trim(),
+    orgLoai: org.loai_to_chuc?.trim() || "studio",
+  };
+}
+
 export async function capNhatSuKien(
   suKienId: string,
   actorId: string,

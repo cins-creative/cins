@@ -19,16 +19,19 @@ export default function AppError({
   }, [error]);
 
   return (
-    <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 bg-zinc-100 px-6 py-16 text-center text-zinc-900">
-      <p className="text-sm font-semibold uppercase tracking-wider text-zinc-500">
+    <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 bg-[var(--bg-page,#f4f5f8)] px-6 py-16 text-center text-[var(--ink-display,rgba(0,0,0,0.85))]">
+      <p className="text-sm font-semibold uppercase tracking-wider text-[var(--ink-muted,rgba(0,0,0,0.4))]">
         Lỗi
       </p>
       <h1 className="max-w-md text-2xl font-bold leading-snug">
         Không tải được trang
       </h1>
-      <p className="max-w-md text-zinc-600">
+      <p className="max-w-md text-[var(--ink-body,rgba(0,0,0,0.55))]">
         Thử lại sau vài giây, hoặc{" "}
-        <Link href="/" className="font-semibold text-blue-700 underline">
+        <Link
+          href="/"
+          className="font-semibold text-[var(--cins-blue,#1f74c9)] underline"
+        >
           về trang chủ
         </Link>
         .
@@ -36,7 +39,7 @@ export default function AppError({
       <button
         type="button"
         onClick={reset}
-        className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white"
+        className="rounded-md bg-[var(--ink-display,rgba(0,0,0,0.85))] px-4 py-2 text-sm font-medium text-[var(--bg-surface,#fff)]"
       >
         Thử lại
       </button>

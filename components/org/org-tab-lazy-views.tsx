@@ -127,13 +127,21 @@ export const StudioTabTuyenDungLazy = dynamic(
   { loading: () => <OrgTabPanelSkeleton label="Đang tải tuyển dụng" /> },
 );
 
+export const StudioTabSuKienLazy = dynamic(
+  () =>
+    import("@/components/co-so/tabs/CoSoTabSuKien").then((m) => m.CoSoTabSuKien),
+  { loading: () => <OrgTabPanelSkeleton label="Đang tải sự kiện" /> },
+);
+
 export const StudioHinhAnhTabLazy = dynamic(
   () =>
     import("@/components/truong/HinhAnhTabPanel").then((m) => m.HinhAnhTabPanel),
   { loading: () => <OrgTabPanelSkeleton label="Đang tải hình ảnh" /> },
 );
 
-export function prefetchStudioTab(tab: "tuyen-dung" | "hinh-anh" | "showcase") {
+export function prefetchStudioTab(
+  tab: "tuyen-dung" | "hinh-anh" | "showcase" | "su-kien",
+) {
   switch (tab) {
     case "tuyen-dung":
       void import("@/components/to-chuc/tabs/StudioTabTuyenDung");
@@ -143,6 +151,9 @@ export function prefetchStudioTab(tab: "tuyen-dung" | "hinh-anh" | "showcase") {
       break;
     case "showcase":
       void import("@/components/to-chuc/StudioTabBaiDang");
+      break;
+    case "su-kien":
+      void import("@/components/co-so/tabs/CoSoTabSuKien");
       break;
   }
 }

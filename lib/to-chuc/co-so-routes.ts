@@ -30,6 +30,16 @@ export function coSoJobPath(orgSlug: string, jobId: string): string {
   return `${coSoTabPath(orgSlug, "tuyen-dung")}/${encodeURIComponent(jobId)}`;
 }
 
+/** URL sâu tới một sự kiện: `/co-so/:slug/su-kien/:suKienId`. */
+export function coSoSuKienPath(orgSlug: string, suKienId: string): string {
+  return `${coSoTabPath(orgSlug, "su-kien")}/${encodeURIComponent(suKienId)}`;
+}
+
+/** Tab Quản lý sự kiện (duyệt quầy / nội dung). */
+export function coSoSuKienManagePath(orgSlug: string, suKienId: string): string {
+  return `${coSoSuKienPath(orgSlug, suKienId)}?manage=1`;
+}
+
 export const CO_SO_DEFAULT_TAB: CoSoTabId = "bai-dang";
 
 export type CoSoPathState = {
@@ -37,6 +47,7 @@ export type CoSoPathState = {
   khoaSlug: string | null;
   jobId: string | null;
   baiDangId: string | null;
+  suKienId: string | null;
 };
 
 const DEFAULT_PATH_STATE: CoSoPathState = {
@@ -44,6 +55,7 @@ const DEFAULT_PATH_STATE: CoSoPathState = {
   khoaSlug: null,
   jobId: null,
   baiDangId: null,
+  suKienId: null,
 };
 
 /** Kiểm tra segment URL hợp lệ dưới `/co-so/[slug]/`. */
@@ -60,6 +72,9 @@ export function validateCoSoSegments(segments: readonly string[]): boolean {
   if (segments.length === 2 && segments[0] === "tuyen-dung") {
     return Boolean(segments[1]?.trim());
   }
+  if (segments.length === 2 && segments[0] === "su-kien") {
+    return Boolean(segments[1]?.trim());
+  }
   return false;
 }
 
@@ -71,6 +86,7 @@ export function parseCoSoLayoutSegments(segments: readonly string[]): CoSoPathSt
       khoaSlug: decodeURIComponent(segments[1]),
       jobId: null,
       baiDangId: null,
+      suKienId: null,
     };
   }
   if (segments.length >= 2 && segments[0] === "bai-dang") {
@@ -79,6 +95,7 @@ export function parseCoSoLayoutSegments(segments: readonly string[]): CoSoPathSt
       khoaSlug: null,
       jobId: null,
       baiDangId: decodeURIComponent(segments[1]),
+      suKienId: null,
     };
   }
   if (segments.length >= 2 && segments[0] === "tuyen-dung") {
@@ -87,10 +104,26 @@ export function parseCoSoLayoutSegments(segments: readonly string[]): CoSoPathSt
       khoaSlug: null,
       jobId: decodeURIComponent(segments[1]),
       baiDangId: null,
+      suKienId: null,
+    };
+  }
+  if (segments.length >= 2 && segments[0] === "su-kien") {
+    return {
+      tab: "su-kien",
+      khoaSlug: null,
+      jobId: null,
+      baiDangId: null,
+      suKienId: decodeURIComponent(segments[1]),
     };
   }
   if (segments.length >= 1 && isCoSoTabId(segments[0])) {
-    return { tab: segments[0], khoaSlug: null, jobId: null, baiDangId: null };
+    return {
+      tab: segments[0],
+      khoaSlug: null,
+      jobId: null,
+      baiDangId: null,
+      suKienId: null,
+    };
   }
   return { ...DEFAULT_PATH_STATE };
 }

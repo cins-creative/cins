@@ -5,12 +5,10 @@ import { listSuKienForListing } from "@/lib/to-chuc/su-kien-listing";
 
 type Props = {
   initialTab?: string;
-  initialSuKienId?: string;
 };
 
 export async function SuKienListingLoader({
   initialTab,
-  initialSuKienId,
 }: Props) {
   const [events, session] = await Promise.all([
     listSuKienForListing(),
@@ -24,7 +22,6 @@ export async function SuKienListingLoader({
       events={events}
       mySuKienPhanHoi={mySuKienPhanHoi}
       initialTab={initialTab}
-      initialSuKienId={initialSuKienId}
       isLoggedIn={Boolean(session?.profile?.id)}
     />
   );

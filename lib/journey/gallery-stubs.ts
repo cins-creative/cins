@@ -4,6 +4,7 @@ import type {
   MilestoneType,
   MilestoneVariant,
   MilestoneCardLayout,
+  MilestoneVisibility,
 } from "@/components/journey/milestone-types";
 import type { Block } from "@/lib/editor/types";
 import type { EmbedProviderId } from "@/lib/editor/embed-providers";
@@ -25,11 +26,24 @@ import { extractVideoUrl } from "@/lib/journey/post-media";
 import {
   type VideoCanvasRatio,
 } from "@/lib/journey/video-canvas-ratio";
-import { resolveBookmarkJourneyVisibility } from "@/lib/journey/bookmark-visibility";
+import {
+  isBookmarkHiddenOnViewerJourney,
+  resolveBookmarkJourneyVisibility,
+} from "@/lib/journey/bookmark-visibility";
 import type { ForeignJourneyVisibility } from "@/lib/journey/foreign-milestone-visibility";
 import {
   isHiddenOnForeignJourney,
+  mapForeignJourneyVisibilityToUi,
 } from "@/lib/journey/foreign-milestone-visibility";
+import { mapCheDoToMilestoneVisibility } from "@/lib/journey/journey-visible-clause";
+import {
+  isForeignMilestoneVisibleToViewer,
+  isSelfMilestoneVisibleToViewer,
+  loadMilestoneViewerAccess,
+  type MilestoneViewerAccess,
+} from "@/lib/journey/milestone-viewer-access";
+import { loadVisibilityNgoaiLeIndex } from "@/lib/journey/milestone-visibility-custom";
+import type { VisibilityNgoaiLeEntry } from "@/lib/journey/milestone-visibility-custom.shared";
 import {
   loadVerifiedMetaForCotMocs,
   type VerifiedMilestoneMeta,
@@ -44,6 +58,17 @@ import {
   type OrgBaiDangPermalinkHub,
 } from "@/lib/truong/org-bai-dang-permalink";
 import { resolveTruongImageSrcSync } from "@/lib/truong/media-url";
+
+export type CollectGalleryStubsOptions = {
+  isOwner?: boolean;
+  viewerId?: string | null;
+};
+
+type GalleryViewerCtx = {
+  isOwner: boolean;
+  viewerId: string | null;
+  access: MilestoneViewerAccess;
+};
 
 type LoaiMocDb =
   | "hoc"
@@ -69,7 +94,7 @@ type GalleryRow = {
     thoi_diem: string;
     tao_luc: string;
     loai_moc: LoaiMocDb;
-    che_do_hien_thi: "public" | "theo_nhom" | "chi_minh" | "feature";
+    che_do_hien_thi: "public" | "theo_nhom" | "chi_minh" | "feature" | "cong_dong";
     mo_ta: string | null;
   } | null;
   content_tac_pham: {
@@ -96,7 +121,7 @@ const GALLERY_VARIANT_RANK: Record<MilestoneVariant, number> = {
   bookmark: 2,
 };
 
-/** Dedupe theo tác phẩm — feature thắng public; self/verified ưu tiên hơn tagged/bookmark. */
+/** Dedupe theo tác phẩm — feature thắng; self/verified ưu tiên hơn tagged/bookmark. */
 function mergeGalleryStubsByTacPham(stubs: GalleryStub[]): GalleryStub[] {
   const byTacPham = new Map<string, GalleryStub>();
 
@@ -106,14 +131,14 @@ function mergeGalleryStubsByTacPham(stubs: GalleryStub[]): GalleryStub[] {
       byTacPham.set(stub.tacPhamId, stub);
       continue;
     }
-    const visibility: GalleryStub["visibility"] =
-      existing.visibility === "feature" || stub.visibility === "feature"
-        ? "feature"
-        : "public";
     const preferExisting =
       GALLERY_VARIANT_RANK[existing.variant] <=
       GALLERY_VARIANT_RANK[stub.variant];
     const base = preferExisting ? existing : stub;
+    const visibility: MilestoneVisibility =
+      existing.visibility === "feature" || stub.visibility === "feature"
+        ? "feature"
+        : base.visibility;
     byTacPham.set(stub.tacPhamId, {
       ...base,
       visibility,
@@ -130,7 +155,7 @@ export type GalleryStub = {
   thoiDiem: string;
   /** Thời điểm tạo cột mốc — mặc định sort aside nổi bật theo cái này (mới nhất trước). */
   taoLuc: string;
-  visibility: "feature" | "public";
+  visibility: MilestoneVisibility;
   tacPhamSlug: string | null;
   tieuDe: string;
   excerpt: string;
@@ -218,15 +243,12 @@ function rowToStub(
   ) {
     return null;
   }
-  if (cm.che_do_hien_thi !== "feature" && cm.che_do_hien_thi !== "public") {
-    return null;
-  }
   return {
     tacPhamId: tp.id,
     cotMocId: cm.id,
     thoiDiem: cm.thoi_diem,
     taoLuc: cm.tao_luc,
-    visibility: cm.che_do_hien_thi as "feature" | "public",
+    visibility: mapCheDoToMilestoneVisibility(cm.che_do_hien_thi),
     tacPhamSlug: tp.slug,
     tieuDe: tp.tieu_de,
     excerpt: galleryItemExcerptLine(cm.mo_ta, tp.mo_ta, blocks),
@@ -244,9 +266,26 @@ function rowToStub(
   };
 }
 
-function mergeGallerySelfRows(selfRows: GalleryRow[]): GalleryStub[] {
+function mergeGallerySelfRows(
+  selfRows: GalleryRow[],
+  ctx: GalleryViewerCtx,
+  ngoaiLeIndex: Map<string, VisibilityNgoaiLeEntry> | null,
+): GalleryStub[] {
   const out: GalleryStub[] = [];
   for (const r of selfRows) {
+    const cm = r.content_cot_moc;
+    if (!cm) continue;
+    if (
+      !isSelfMilestoneVisibleToViewer({
+        cheDoHienThi: cm.che_do_hien_thi,
+        isOwner: ctx.isOwner,
+        viewerIsFriend: ctx.access.viewerIsFriend,
+        viewerId: ctx.viewerId,
+        ngoaiLe: ngoaiLeIndex?.get(cm.id) ?? null,
+      })
+    ) {
+      continue;
+    }
     const stub = rowToStub(r, "self");
     if (stub) out.push(stub);
   }
@@ -256,6 +295,7 @@ function mergeGallerySelfRows(selfRows: GalleryRow[]): GalleryStub[] {
 async function fetchTaggedGalleryStubs(
   admin: ReturnType<typeof createServiceRoleClient>,
   userId: string,
+  ctx: GalleryViewerCtx,
 ): Promise<GalleryStub[]> {
   const { data: tagRows } = await admin
     .from("content_tac_pham_tac_gia")
@@ -309,13 +349,21 @@ async function fetchTaggedGalleryStubs(
         thoi_diem: string;
         tao_luc: string;
         loai_moc: LoaiMocDb;
-        che_do_hien_thi: string;
+        che_do_hien_thi:
+          | "public"
+          | "theo_nhom"
+          | "chi_minh"
+          | "feature"
+          | "cong_dong";
         mo_ta: string | null;
         id_nguoi_dung: string;
       }>
     >();
 
   const cmById = new Map((cotMocs ?? []).map((cm) => [cm.id, cm]));
+  const ngoaiLeIndex = ctx.isOwner
+    ? null
+    : await loadVisibilityNgoaiLeIndex([...(cmById.keys())]);
   const stubs: GalleryStub[] = [];
 
   for (const tpId of tacPhamIds) {
@@ -325,23 +373,33 @@ async function fetchTaggedGalleryStubs(
     const cmId = link?.id_cot_moc as string | undefined;
     const cm = cmId ? cmById.get(cmId) : undefined;
     if (!cm) continue;
-    if (cm.che_do_hien_thi !== "feature" && cm.che_do_hien_thi !== "public") {
-      continue;
-    }
 
     const tpRaw = link?.content_tac_pham;
     const tp = Array.isArray(tpRaw) ? tpRaw[0] : tpRaw;
     if (!tp?.id || !tp.slug) continue;
 
-    const isSelfAuthoredTagged = tp.id_nguoi_dung === userId;
-    if (!isSelfAuthoredTagged) {
-      if (isHiddenOnForeignJourney(journeyVis)) continue;
-      if (journeyVis !== "feature" && journeyVis !== "public") continue;
+    const isSelfAuthoredTagged =
+      ctx.isOwner && tp.id_nguoi_dung === userId;
+    if (
+      isHiddenOnForeignJourney(journeyVis) &&
+      !isSelfAuthoredTagged
+    ) {
+      continue;
+    }
+    if (
+      !isForeignMilestoneVisibleToViewer(cm.che_do_hien_thi, {
+        isOwner: ctx.isOwner,
+        viewerIsFriend: ctx.access.viewerIsFriend,
+        viewerId: ctx.viewerId,
+        ngoaiLe: ngoaiLeIndex?.get(cm.id) ?? null,
+      })
+    ) {
+      continue;
     }
 
-    const visibility: GalleryStub["visibility"] = isSelfAuthoredTagged
-      ? (cm.che_do_hien_thi as "feature" | "public")
-      : (journeyVis as "feature" | "public");
+    const visibility: MilestoneVisibility = isSelfAuthoredTagged
+      ? mapCheDoToMilestoneVisibility(cm.che_do_hien_thi)
+      : mapForeignJourneyVisibilityToUi(journeyVis);
 
     const blocks = parseBlocks(tp.noi_dung_blocks);
     const gridEntryRaw = resolvePostGridEntry({
@@ -436,6 +494,7 @@ function orgVerifierRoleLabel(loai: string | null | undefined): string {
 async function fetchOrgTaggedGalleryStubs(
   admin: ReturnType<typeof createServiceRoleClient>,
   userId: string,
+  ctx: GalleryViewerCtx,
 ): Promise<GalleryStub[]> {
   const { data: tagRows } = await admin
     .from("org_bai_dang_tac_gia")
@@ -482,8 +541,14 @@ async function fetchOrgTaggedGalleryStubs(
   const stubs: GalleryStub[] = [];
   for (const post of posts ?? []) {
     const journeyVis = journeyVisByPost.get(post.id) ?? "public";
-    if (isHiddenOnForeignJourney(journeyVis)) continue;
-    if (journeyVis !== "feature" && journeyVis !== "public") continue;
+    if (isHiddenOnForeignJourney(journeyVis) && !ctx.isOwner) continue;
+    if (
+      !ctx.isOwner &&
+      journeyVis !== "feature" &&
+      journeyVis !== "public"
+    ) {
+      continue;
+    }
 
     const org = pickOrgEmbedFromRow(post.org_to_chuc);
     if (!org) continue;
@@ -527,7 +592,7 @@ async function fetchOrgTaggedGalleryStubs(
       cotMocId: post.id,
       thoiDiem: post.tao_luc,
       taoLuc: sortAt,
-      visibility: journeyVis,
+      visibility: mapForeignJourneyVisibilityToUi(journeyVis),
       tacPhamSlug: null,
       tieuDe: post.tieu_de,
       excerpt: galleryItemExcerptLine(post.tom_tat, null, blocks),
@@ -561,7 +626,7 @@ type OrgAssignCotMocRow = {
   thoi_diem: string;
   tao_luc: string;
   loai_moc: LoaiMocDb;
-  che_do_hien_thi: "public" | "theo_nhom" | "chi_minh" | "feature";
+  che_do_hien_thi: "public" | "theo_nhom" | "chi_minh" | "feature" | "cong_dong";
   mo_ta: string | null;
   tieu_de: string | null;
   id_to_chuc: string | null;
@@ -596,18 +661,29 @@ async function fetchOrgCreateGalleryStubs(
   admin: ReturnType<typeof createServiceRoleClient>,
   userId: string,
   skipCotMocIds: Set<string>,
+  ctx: GalleryViewerCtx,
 ): Promise<GalleryStub[]> {
-  const { data: rows } = await admin
+  let query = admin
     .from("content_cot_moc")
     .select(
       "id, thoi_diem, tao_luc, loai_moc, che_do_hien_thi, mo_ta, tieu_de, id_to_chuc",
     )
     .eq("id_nguoi_dung", userId)
-    .eq("nguon_goc", "sinh_tu_org_assign")
-    .in("che_do_hien_thi", ["feature", "public"])
-    .returns<OrgAssignCotMocRow[]>();
+    .eq("nguon_goc", "sinh_tu_org_assign");
+  if (!ctx.isOwner) {
+    query = query.in("che_do_hien_thi", ["feature", "public"]);
+  }
+  const { data: rows } = await query.returns<OrgAssignCotMocRow[]>();
 
-  const candidates = (rows ?? []).filter((row) => !skipCotMocIds.has(row.id));
+  const candidates = (rows ?? []).filter((row) => {
+    if (skipCotMocIds.has(row.id)) return false;
+    return isSelfMilestoneVisibleToViewer({
+      cheDoHienThi: row.che_do_hien_thi,
+      isOwner: ctx.isOwner,
+      viewerIsFriend: ctx.access.viewerIsFriend,
+      viewerId: ctx.viewerId,
+    });
+  });
   if (candidates.length === 0) return [];
 
   const orgByCotMoc = new Map(
@@ -636,7 +712,7 @@ async function fetchOrgCreateGalleryStubs(
       cotMocId: row.id,
       thoiDiem: row.thoi_diem,
       taoLuc: row.tao_luc,
-      visibility: row.che_do_hien_thi as "feature" | "public",
+      visibility: mapCheDoToMilestoneVisibility(row.che_do_hien_thi),
       tacPhamSlug: null,
       tieuDe: orgName,
       excerpt: row.mo_ta?.trim() || "",
@@ -671,6 +747,7 @@ function sortGalleryStubs(stubs: GalleryStub[]): GalleryStub[] {
 async function fetchBookmarkGalleryStubs(
   admin: ReturnType<typeof createServiceRoleClient>,
   userId: string,
+  ctx: GalleryViewerCtx,
 ): Promise<GalleryStub[]> {
   const { data: savedRows } = await admin
     .from("social_luu")
@@ -692,9 +769,10 @@ async function fetchBookmarkGalleryStubs(
     savedAtByMoc.set(mocId, (row.tao_luc as string | null) ?? null);
   }
 
-  const cotMocIds = [...journeyVisByMoc.entries()]
-    .filter(([, vis]) => vis === "feature" || vis === "public")
-    .map(([id]) => id);
+  const cotMocIds = [...journeyVisByMoc.keys()].filter(
+    (id) =>
+      !isBookmarkHiddenOnViewerJourney(journeyVisByMoc.get(id), ctx.isOwner),
+  );
   if (cotMocIds.length === 0) return [];
 
   const { data: cotMocs } = await admin
@@ -707,17 +785,30 @@ async function fetchBookmarkGalleryStubs(
         thoi_diem: string;
         tao_luc: string;
         loai_moc: LoaiMocDb;
-        che_do_hien_thi: string;
+        che_do_hien_thi:
+          | "public"
+          | "theo_nhom"
+          | "chi_minh"
+          | "feature"
+          | "cong_dong";
         mo_ta: string | null;
         id_nguoi_dung: string;
       }>
     >();
 
-  const visibleCotMocs = (cotMocs ?? []).filter(
-    (cm) =>
-      cm.id_nguoi_dung !== userId &&
-      (cm.che_do_hien_thi === "feature" || cm.che_do_hien_thi === "public"),
-  );
+  const ngoaiLeIndex = ctx.isOwner
+    ? null
+    : await loadVisibilityNgoaiLeIndex((cotMocs ?? []).map((cm) => cm.id));
+
+  const visibleCotMocs = (cotMocs ?? []).filter((cm) => {
+    if (cm.id_nguoi_dung === userId) return false;
+    return isForeignMilestoneVisibleToViewer(cm.che_do_hien_thi, {
+      isOwner: ctx.isOwner,
+      viewerIsFriend: ctx.access.viewerIsFriend,
+      viewerId: ctx.viewerId,
+      ngoaiLe: ngoaiLeIndex?.get(cm.id) ?? null,
+    });
+  });
   if (visibleCotMocs.length === 0) return [];
 
   const { data: links } = await admin
@@ -740,7 +831,8 @@ async function fetchBookmarkGalleryStubs(
   const stubs: GalleryStub[] = [];
   for (const cm of visibleCotMocs) {
     const journeyVis = journeyVisByMoc.get(cm.id);
-    if (journeyVis !== "feature" && journeyVis !== "public") continue;
+    if (!journeyVis) continue;
+    if (isBookmarkHiddenOnViewerJourney(journeyVis, ctx.isOwner)) continue;
 
     const link = firstLinkByMoc.get(cm.id);
     const tpRaw = link?.content_tac_pham;
@@ -768,7 +860,7 @@ async function fetchBookmarkGalleryStubs(
       cotMocId: cm.id,
       thoiDiem: cm.thoi_diem,
       taoLuc: savedAtByMoc.get(cm.id) ?? cm.tao_luc,
-      visibility: journeyVis,
+      visibility: mapForeignJourneyVisibilityToUi(journeyVis),
       tacPhamSlug: tp.slug,
       tieuDe: tp.tieu_de,
       excerpt: galleryItemExcerptLine(cm.mo_ta, tp.mo_ta, blocks),
@@ -790,23 +882,42 @@ async function fetchBookmarkGalleryStubs(
 }
 
 /** Index nhẹ gallery — dedupe + sort, không resolve ảnh. */
-export async function collectGalleryStubs(userId: string): Promise<GalleryStub[]> {
+export async function collectGalleryStubs(
+  userId: string,
+  options: CollectGalleryStubsOptions = {},
+): Promise<GalleryStub[]> {
+  const isOwner = Boolean(options.isOwner);
+  const viewerId = options.viewerId ?? null;
   const admin = createServiceRoleClient();
+  const access = await loadMilestoneViewerAccess(userId, {
+    isOwner,
+    viewerId,
+  });
+  const ctx: GalleryViewerCtx = { isOwner, viewerId, access };
+
   const { data: rows } = await admin
     .from("content_tac_pham_thuoc_moc")
     .select(
       "id_cot_moc, content_cot_moc:content_cot_moc!inner(id, thoi_diem, tao_luc, loai_moc, che_do_hien_thi, mo_ta, id_nguoi_dung), content_tac_pham:content_tac_pham!inner(id, slug, tieu_de, mo_ta, cover_id, id_nguoi_dung, noi_dung_blocks)",
     )
     .eq("content_cot_moc.id_nguoi_dung", userId)
-    .in("content_cot_moc.che_do_hien_thi", ["feature", "public"])
     .order("thu_tu", { ascending: true })
     .returns<GalleryRow[]>();
 
-  const selfStubs = mergeGallerySelfRows(rows ?? []);
+  const selfRows = rows ?? [];
+  const ngoaiLeIndex = isOwner
+    ? null
+    : await loadVisibilityNgoaiLeIndex(
+        selfRows
+          .map((r) => r.content_cot_moc?.id)
+          .filter((id): id is string => Boolean(id)),
+      );
+
+  const selfStubs = mergeGallerySelfRows(selfRows, ctx, ngoaiLeIndex);
   const [taggedStubs, bookmarkStubs, orgTaggedStubs] = await Promise.all([
-    fetchTaggedGalleryStubs(admin, userId),
-    fetchBookmarkGalleryStubs(admin, userId),
-    fetchOrgTaggedGalleryStubs(admin, userId),
+    fetchTaggedGalleryStubs(admin, userId, ctx),
+    fetchBookmarkGalleryStubs(admin, userId, ctx),
+    fetchOrgTaggedGalleryStubs(admin, userId, ctx),
   ]);
   const merged = mergeGalleryStubsByTacPham([
     ...selfStubs,
@@ -819,6 +930,7 @@ export async function collectGalleryStubs(userId: string): Promise<GalleryStub[]
     admin,
     userId,
     existingCotMocIds,
+    ctx,
   );
   return sortGalleryStubs([...merged, ...orgCreateStubs]);
 }

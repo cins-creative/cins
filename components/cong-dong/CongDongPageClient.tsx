@@ -3,10 +3,7 @@
 import Link from "next/link";
 import {
   BadgeCheck,
-  EyeOff,
-  Globe,
   Heart,
-  Lock,
   MessageCircle,
 } from "lucide-react";
 import {
@@ -57,10 +54,7 @@ import {
   congDongPostTimelineParts,
 } from "@/lib/cong-dong/feed-display";
 import {
-  CONG_DONG_CHE_DO,
   SOCIAL_LOAI_DOI_TUONG,
-  congDongCheDoLabel,
-  type CongDongCheDo,
 } from "@/lib/cong-dong/constants";
 import {
   canManageLabels,
@@ -98,36 +92,6 @@ import {
 type Props = {
   initial: CongDongPageData;
 };
-
-function congDongPrivacyHint(cheDo: CongDongCheDo): string {
-  switch (cheDo) {
-    case CONG_DONG_CHE_DO.BI_MAT:
-      return "Ẩn danh sách · chỉ lời mời";
-    case CONG_DONG_CHE_DO.NOI_BO:
-      return "Tìm thấy · feed chỉ thành viên";
-    default:
-      return "Ai cũng xem được trang và bài";
-  }
-}
-
-function CongDongCoverPrivacyBadge({ cheDo }: { cheDo: CongDongCheDo }) {
-  const Icon =
-    cheDo === CONG_DONG_CHE_DO.BI_MAT
-      ? EyeOff
-      : cheDo === CONG_DONG_CHE_DO.NOI_BO
-        ? Lock
-        : Globe;
-
-  return (
-    <span
-      className={`cd-v4-cover-badge cd-v4-cover-badge--privacy is-${cheDo}`}
-      title={congDongPrivacyHint(cheDo)}
-    >
-      <Icon size={12} strokeWidth={2.2} aria-hidden />
-      {congDongCheDoLabel(cheDo)}
-    </span>
-  );
-}
 
 type FeedView = ContentSurfaceView;
 type SortMode = CongDongFeedSortMode;
@@ -334,6 +298,7 @@ export function CongDongPageClient({ initial }: Props) {
     setCanViewFeed(true);
     setViewerVaiTro(vaiTro);
     setNotifyLevel("chi_noi_bat");
+    setOrg((prev) => ({ ...prev, soThanhVien: prev.soThanhVien + 1 }));
   }, []);
 
   const onJoinPending = useCallback(() => {
@@ -349,6 +314,10 @@ export function CongDongPageClient({ initial }: Props) {
     setNotifyLevel("tat");
     // Nội bộ/bí mật: rời → mất feed; công khai vẫn xem được.
     setCanViewFeed(initial.org.cheDo === "cong_khai");
+    setOrg((prev) => ({
+      ...prev,
+      soThanhVien: Math.max(0, prev.soThanhVien - 1),
+    }));
   }, [initial.org.cheDo]);
 
   const loadMore = () => {
@@ -500,7 +469,6 @@ export function CongDongPageClient({ initial }: Props) {
                 canEdit={initial.isAdmin}
                 onBrandingChange={onBrandingChange}
               />
-              <CongDongCoverPrivacyBadge cheDo={org.cheDo} />
               <div className="cd-v4-id-avatar-slot">
                 <CongDongOrgBrandingAvatar
                   orgId={org.id}
@@ -553,13 +521,13 @@ export function CongDongPageClient({ initial }: Props) {
             {initial.viewerId && friendsInCommunity.total > 0 ? (
               <>
                 <div className="cd-v4-divider" />
-                <div className="cd-v4-friends-row">
-                  <button
-                    type="button"
-                    className="cd-v4-facepile cd-v4-facepile--btn"
-                    onClick={() => setRosterOpen(true)}
-                    aria-label={`Xem thành viên cộng đồng ${org.ten}`}
-                  >
+                <button
+                  type="button"
+                  className="cd-v4-friends-row cd-v4-friends-row--btn"
+                  onClick={() => setRosterOpen(true)}
+                  aria-label={`Xem ${org.soThanhVien} thành viên cộng đồng ${org.ten}`}
+                >
+                  <span className="cd-v4-facepile">
                     {friendsInCommunity.friends.map((member, i) => (
                       <FacepileAvatar
                         key={member.id}
@@ -575,8 +543,23 @@ export function CongDongPageClient({ initial }: Props) {
                           friendsInCommunity.friends.length}
                       </span>
                     ) : null}
-                  </button>
-                </div>
+                  </span>
+                  <span className="cd-v4-face-note">
+                    <strong>{org.soThanhVien}</strong> thành viên
+                  </span>
+                </button>
+              </>
+            ) : org.soThanhVien > 0 ? (
+              <>
+                <div className="cd-v4-divider" />
+                <button
+                  type="button"
+                  className="cd-v4-face-note cd-v4-face-note--solo cd-v4-face-note--btn"
+                  onClick={() => setRosterOpen(true)}
+                  aria-label={`Xem ${org.soThanhVien} thành viên cộng đồng ${org.ten}`}
+                >
+                  <strong>{org.soThanhVien}</strong> thành viên
+                </button>
               </>
             ) : null}
           </div>

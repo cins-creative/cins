@@ -2,13 +2,14 @@
 
 import { ImageIcon } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import type { SuKienListItem } from "@/lib/to-chuc/su-kien-listing";
+import { suKienDetailPath } from "@/lib/to-chuc/su-kien-routes";
 
 type Props = {
   events: SuKienListItem[];
-  onOpen: (item: SuKienListItem) => void;
 };
 
 const ROTATE_MS = 5500;
@@ -51,7 +52,7 @@ function pickHeroSlides(events: SuKienListItem[]): {
   return { slides: [], mode: "static" };
 }
 
-export function SuKienHeroCarousel({ events, onOpen }: Props) {
+export function SuKienHeroCarousel({ events }: Props) {
   const reduceMotion = usePrefersReducedMotion();
   const { slides, mode } = useMemo(() => pickHeroSlides(events), [events]);
   const [index, setIndex] = useState(0);
@@ -126,13 +127,13 @@ export function SuKienHeroCarousel({ events, onOpen }: Props) {
 
       {active ? (
         <div className="sk-hero-cta-wrap">
-          <button
-            type="button"
+          <Link
+            href={suKienDetailPath(active.id)}
             className="sk-hero-cta"
-            onClick={() => onOpen(active)}
+            prefetch={false}
           >
             Xem chi tiết
-          </button>
+          </Link>
         </div>
       ) : null}
     </section>

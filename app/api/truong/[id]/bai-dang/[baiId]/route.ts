@@ -41,10 +41,17 @@ export async function PATCH(request: Request, context: RouteContext) {
     "noi_dung_blocks",
     "cover_id",
     "trang_thai",
-    "tao_luc",
     "ghim",
   ] as const;
   const patch: Record<string, unknown> = {};
+
+  if ("tao_luc" in body) {
+    return NextResponse.json(
+      { error: "Không được sửa ngày đăng bài." },
+      { status: 403 },
+    );
+  }
+
   for (const key of allowed) {
     if (!(key in body)) continue;
     if (key === "loai_bai_dang") {
@@ -66,18 +73,6 @@ export async function PATCH(request: Request, context: RouteContext) {
     }
     if (key === "ghim") {
       patch[key] = Boolean(body[key]);
-      continue;
-    }
-    if (key === "tao_luc") {
-      const raw = String(body[key] ?? "").trim();
-      if (!raw) {
-        return NextResponse.json({ error: "Invalid tao_luc" }, { status: 400 });
-      }
-      const parsed = new Date(raw);
-      if (Number.isNaN(parsed.getTime())) {
-        return NextResponse.json({ error: "Invalid tao_luc" }, { status: 400 });
-      }
-      patch[key] = parsed.toISOString();
       continue;
     }
     patch[key] = body[key];

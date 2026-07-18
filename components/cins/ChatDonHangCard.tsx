@@ -12,6 +12,7 @@ type ParsedDon = {
   trangThai: string | null;
   tong: string | null;
   items: string[];
+  ghiChu: string | null;
 };
 
 const LOAI_THANH_TOAN = new Set([
@@ -31,6 +32,7 @@ function parseDonHangCard(card: ChatContextCard): ParsedDon {
   let loaiThanhToan: string | null = null;
   let trangThai: string | null = null;
   let tong: string | null = null;
+  let ghiChu: string | null = null;
   const items: string[] = [];
 
   for (const line of lines) {
@@ -47,6 +49,7 @@ function parseDonHangCard(card: ChatContextCard): ParsedDon {
     if (
       line === "Chờ xác nhận" ||
       line === "Đã nhận tiền" ||
+      line === "Thanh toán khi nhận hàng" ||
       line === "Đã giao tại sự kiện" ||
       line === "Đã hủy" ||
       line === "Nháp"
@@ -58,10 +61,15 @@ function parseDonHangCard(card: ChatContextCard): ParsedDon {
       tong = line.replace(/^Tổng:\s*/i, "").trim();
       continue;
     }
+    if (/^Ghi chú:\s*/i.test(line)) {
+      const note = line.replace(/^Ghi chú:\s*/i, "").trim();
+      ghiChu = note || null;
+      continue;
+    }
     items.push(line.replace(/^•\s*/, "").replace(/\s*\(Mặc định\)/g, ""));
   }
 
-  return { ma, loaiThanhToan, trangThai, tong, items };
+  return { ma, loaiThanhToan, trangThai, tong, items, ghiChu };
 }
 
 type Props = {
@@ -71,7 +79,8 @@ type Props = {
 
 export function ChatDonHangCard({ card, tone = "them" }: Props) {
   const [detailOpen, setDetailOpen] = useState(false);
-  const { ma, loaiThanhToan, trangThai, tong, items } = parseDonHangCard(card);
+  const { ma, loaiThanhToan, trangThai, tong, items, ghiChu } =
+    parseDonHangCard(card);
   const visibleItems = items.slice(0, 3);
   const moreCount = Math.max(0, items.length - visibleItems.length);
   const isPayLater = loaiThanhToan === "Thanh toán sau";
@@ -84,7 +93,9 @@ export function ChatDonHangCard({ card, tone = "them" }: Props) {
       : loaiThanhToan;
   const donId = card.id?.trim() || null;
   const statusDone =
-    trangThai === "Đã nhận tiền" || trangThai === "Đã giao tại sự kiện";
+    trangThai === "Đã nhận tiền" ||
+    trangThai === "Thanh toán khi nhận hàng" ||
+    trangThai === "Đã giao tại sự kiện";
   const statusPending = trangThai === "Chờ xác nhận";
 
   const className = [
@@ -152,6 +163,13 @@ export function ChatDonHangCard({ card, tone = "them" }: Props) {
                 </span>
               ) : null}
             </span>
+          </span>
+        ) : null}
+
+        {ghiChu ? (
+          <span className="cins-chat-don-card-note">
+            <span className="cins-chat-don-card-note-label">Lời nhắn</span>
+            <span className="cins-chat-don-card-note-text">{ghiChu}</span>
           </span>
         ) : null}
 

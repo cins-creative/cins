@@ -1,6 +1,6 @@
 "use client";
 
-import { UserCheck, UserPlus } from "lucide-react";
+import { Bell, BellPlus } from "lucide-react";
 import { useCallback, useEffect, useState, useTransition } from "react";
 
 import { useAuthGate } from "@/components/auth/AuthGateProvider";
@@ -104,9 +104,9 @@ export function CoSoOrgFollowButton({
       onClick={toggle}
     >
       {following ? (
-        <UserCheck size={17} strokeWidth={2} aria-hidden />
+        <Bell size={17} strokeWidth={2} aria-hidden />
       ) : (
-        <UserPlus size={17} strokeWidth={2} aria-hidden />
+        <BellPlus size={17} strokeWidth={2} aria-hidden />
       )}
       {!iconOnly && !following ? (
         <span className="ss-btn-user-follow-label">{label}</span>

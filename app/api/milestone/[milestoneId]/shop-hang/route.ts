@@ -2,13 +2,32 @@ import { NextResponse } from "next/server";
 
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import { listPostHang, setPostHang } from "@/lib/shop/post-hang";
+import { getBanHangEnabled } from "@/lib/shop/settings";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 type Ctx = { params: Promise<{ milestoneId: string }> };
 
 export async function GET(_request: Request, ctx: Ctx) {
   const { milestoneId } = await ctx.params;
+  const admin = createServiceRoleClient();
+  const { data: moc } = await admin
+    .from("content_cot_moc")
+    .select("id_nguoi_dung")
+    .eq("id", milestoneId)
+    .maybeSingle<{ id_nguoi_dung: string | null }>();
+  const ownerId = moc?.id_nguoi_dung?.trim() ?? "";
+  if (!ownerId) {
+    return NextResponse.json({ items: [], banHangEnabled: false });
+  }
+
+  /* Opt-in L33: tắt bán hàng → kiosk ẩn (không lộ hàng gắn post). */
+  const banHangEnabled = await getBanHangEnabled(ownerId);
+  if (!banHangEnabled) {
+    return NextResponse.json({ items: [], banHangEnabled: false });
+  }
+
   const items = await listPostHang(milestoneId);
-  return NextResponse.json({ items });
+  return NextResponse.json({ items, banHangEnabled: true });
 }
 
 export async function PUT(request: Request, ctx: Ctx) {

@@ -3,9 +3,8 @@
 import {
   CalendarClock,
   Check,
-  ChevronUp,
+  ChevronLeft,
   Copy,
-  LayoutGrid,
   Loader2,
   MessageCircle,
   Minus,
@@ -40,6 +39,9 @@ const HOA_DON_UPLOAD_TIMEOUT_MS = 45_000;
 function filterHoaDonExportNode(node: HTMLElement): boolean {
   if (node.classList?.contains("shop-kiosk-hoa-don-footer")) return false;
   if (node.classList?.contains("shop-kiosk-hoa-don-close")) return false;
+  if (node.classList?.contains("shop-kiosk-hoa-don-back")) return false;
+  if (node.classList?.contains("shop-kiosk-hoa-don-proof")) return false;
+  if (node.classList?.contains("shop-kiosk-hoa-don-note-field")) return false;
   return true;
 }
 
@@ -64,11 +66,71 @@ type PreviewState = {
 /** Debounce sync giỏ — gộp nhiều lần bấm ± thành 1 PATCH. */
 const QTY_SYNC_MS = 180;
 
+/**
+ * Trần số lượng theo tồn kho.
+ * - Đặt trước: không giới hạn (null).
+ * - Mua ngay / chưa chọn: cap = tồn; hết hàng → chỉ đặt trước (cap 0 khi đã chọn mua ngay).
+ */
+function qtyCapForLine(
+  soLuongTon: number,
+  loaiDon: ShopLoaiDon | null,
+): number | null {
+  if (loaiDon === "dat_truoc_nhan_su_kien") return null;
+  if (soLuongTon <= 0) {
+    return loaiDon === "mua_ngay" ? 0 : null;
+  }
+  return soLuongTon;
+}
+
+function canIncreaseLineQty(
+  soLuongTon: number,
+  currentQty: number,
+  loaiDon: ShopLoaiDon | null,
+): boolean {
+  const cap = qtyCapForLine(soLuongTon, loaiDon);
+  if (cap === null) return true;
+  return currentQty < cap;
+}
+
+function clampQtyToStock(
+  soLuong: number,
+  soLuongTon: number,
+  loaiDon: ShopLoaiDon | null,
+): number {
+  const qty = Math.max(0, Math.trunc(soLuong));
+  const cap = qtyCapForLine(soLuongTon, loaiDon);
+  if (cap === null) return qty;
+  return Math.min(qty, cap);
+}
+
+function cartHasOutOfStock(dong: ShopGioDong[]): boolean {
+  return dong.some((d) => d.soLuongTon <= 0);
+}
+
+function sortGioDongByCatalog(
+  dong: ShopGioDong[],
+  catalogItems: ShopPostHangItem[],
+): ShopGioDong[] {
+  if (dong.length <= 1) return dong;
+  const order = new Map(
+    catalogItems.map((it, i) => [it.idBienThe, it.thuTu ?? i]),
+  );
+  return [...dong].sort((a, b) => {
+    const oa = order.get(a.idBienThe) ?? Number.MAX_SAFE_INTEGER;
+    const ob = order.get(b.idBienThe) ?? Number.MAX_SAFE_INTEGER;
+    if (oa !== ob) return oa - ob;
+    const byName = a.tenSanPham.localeCompare(b.tenSanPham, "vi");
+    if (byName !== 0) return byName;
+    return a.nhanBienThe.localeCompare(b.nhanBienThe, "vi");
+  });
+}
+
 function applyLocalQty(
   prev: ShopGio | null,
   milestoneId: string,
   item: ShopPostHangItem,
   soLuong: number,
+  catalogItems: ShopPostHangItem[] = [],
 ): ShopGio {
   const qty = Math.max(0, Math.trunc(soLuong));
   const base: ShopGio = prev ?? {
@@ -93,12 +155,19 @@ function applyLocalQty(
       soLuongTon: item.soLuongTon,
     });
   }
-  const tongTien = dong.reduce((sum, d) => sum + d.giaHienThi * d.soLuong, 0);
+  const dongSorted = sortGioDongByCatalog(
+    dong,
+    catalogItems.length > 0 ? catalogItems : [item],
+  );
+  const tongTien = dongSorted.reduce(
+    (sum, d) => sum + d.giaHienThi * d.soLuong,
+    0,
+  );
   return {
     ...base,
-    dong,
+    dong: dongSorted,
     tongTien,
-    tienTe: dong[0]?.tienTe ?? base.tienTe,
+    tienTe: dongSorted[0]?.tienTe ?? base.tienTe,
   };
 }
 
@@ -108,12 +177,14 @@ function mergePendingOntoGio(
   items: ShopPostHangItem[],
   pending: Map<string, number>,
 ): ShopGio {
-  if (pending.size === 0) return server;
+  if (pending.size === 0) {
+    return { ...server, dong: sortGioDongByCatalog(server.dong, items) };
+  }
   let merged = server;
   for (const [idBienThe, soLuong] of pending) {
     const item = items.find((it) => it.idBienThe === idBienThe);
     if (!item) continue;
-    merged = applyLocalQty(merged, milestoneId, item, soLuong);
+    merged = applyLocalQty(merged, milestoneId, item, soLuong, items);
   }
   return merged;
 }
@@ -141,12 +212,10 @@ export function ShopKioskBlock({
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const [loaiDon, setLoaiDon] = useState<ShopLoaiDon>("mua_ngay");
+  const [loaiDon, setLoaiDon] = useState<ShopLoaiDon | null>(null);
   const [ghiChu, setGhiChu] = useState("");
-  const [expanded, setExpanded] = useState(false);
   const [preview, setPreview] = useState<PreviewState | null>(null);
   const [portalReady, setPortalReady] = useState(false);
-  const [filterLoai, setFilterLoai] = useState<string>("all");
   const [catalogOpen, setCatalogOpen] = useState(false);
   const [hoaDonOpen, setHoaDonOpen] = useState(false);
   const [hoaDonMa, setHoaDonMa] = useState<string | null>(null);
@@ -174,16 +243,23 @@ export function ShopKioskBlock({
   }, []);
 
   useEffect(() => {
-    if (!preview && !hoaDonOpen && !catalogOpen) return;
+    if (!preview && !catalogOpen) return;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
       e.preventDefault();
       e.stopPropagation();
-      if (preview) setPreview(null);
-      else if (catalogOpen) setCatalogOpen(false);
-      else if (hoaDonOpen) setHoaDonOpen(false);
+      if (preview) {
+        setPreview(null);
+        return;
+      }
+      if (hoaDonOpen) {
+        setHoaDonOpen(false);
+        return;
+      }
+      setCatalogOpen(false);
+      setLoaiDon(null);
     };
     document.addEventListener("keydown", onKey, true);
     return () => {
@@ -191,6 +267,22 @@ export function ShopKioskBlock({
       document.removeEventListener("keydown", onKey, true);
     };
   }, [preview, hoaDonOpen, catalogOpen]);
+
+  /* Giỏ trống khi đang xác nhận → quay lại bước giỏ. */
+  useEffect(() => {
+    if (hoaDonOpen && !(gio?.dong.length)) {
+      setHoaDonOpen(false);
+    }
+  }, [gio?.dong.length, hoaDonOpen]);
+
+  /* Mua ngay không hợp lệ nếu giỏ còn món hết tồn. */
+  useEffect(() => {
+    if (loaiDon !== "mua_ngay" || !gio?.dong.length) return;
+    if (!cartHasOutOfStock(gio.dong)) return;
+    setLoaiDon(null);
+    setHoaDonOpen(false);
+    setErr("Có món hết hàng — chỉ đặt trước được.");
+  }, [gio, loaiDon]);
 
   const isOwner =
     Boolean(viewerProfileId) &&
@@ -204,8 +296,13 @@ export function ShopKioskBlock({
       });
       const json = (await res.json().catch(() => null)) as {
         items?: ShopPostHangItem[];
+        banHangEnabled?: boolean;
       } | null;
-      setItems(json?.items ?? []);
+      if (json?.banHangEnabled === false) {
+        setItems([]);
+      } else {
+        setItems(json?.items ?? []);
+      }
     } catch {
       setItems([]);
     } finally {
@@ -273,6 +370,17 @@ export function ShopKioskBlock({
     void loadGio();
   }, [loadGio]);
 
+  /* Cài đặt tắt/bật bán hàng → refetch (API ẩn hàng khi seller tắt). */
+  useEffect(() => {
+    const onBanHangChanged = () => {
+      void loadHang();
+    };
+    window.addEventListener("cins:ban-hang-changed", onBanHangChanged);
+    return () => {
+      window.removeEventListener("cins:ban-hang-changed", onBanHangChanged);
+    };
+  }, [loadHang]);
+
   useEffect(() => {
     const timers = syncTimersRef.current;
     const pending = pendingQtyRef.current;
@@ -331,7 +439,7 @@ export function ShopKioskBlock({
   );
 
   const patchQty = useCallback(
-    (idBienThe: string, soLuong: number) => {
+    (idBienThe: string, soLuong: number, loaiOverride?: ShopLoaiDon | null) => {
       if (!viewerProfileId) {
         setErr("Đăng nhập để thêm vào giỏ.");
         return;
@@ -341,14 +449,28 @@ export function ShopKioskBlock({
       const item = itemsRef.current.find((it) => it.idBienThe === idBienThe);
       if (!item) return;
 
-      const qty = Math.max(0, Math.trunc(soLuong));
-      setErr(null);
+      const effectiveLoai =
+        loaiOverride !== undefined ? loaiOverride : loaiDon;
+      const qty = clampQtyToStock(soLuong, item.soLuongTon, effectiveLoai);
+      if (
+        soLuong > qty &&
+        effectiveLoai !== "dat_truoc_nhan_su_kien" &&
+        item.soLuongTon > 0
+      ) {
+        setErr(
+          `Chỉ còn ${item.soLuongTon} trong kho — chọn Đặt trước nếu cần thêm.`,
+        );
+      } else {
+        setErr(null);
+      }
       qtyEpochRef.current.set(
         idBienThe,
         (qtyEpochRef.current.get(idBienThe) ?? 0) + 1,
       );
       /* Phản hồi tức thì — không chờ mạng. */
-      setGio((prev) => applyLocalQty(prev, milestoneId, item, qty));
+      setGio((prev) =>
+        applyLocalQty(prev, milestoneId, item, qty, itemsRef.current),
+      );
 
       pendingQtyRef.current.set(idBienThe, qty);
       const prevTimer = syncTimersRef.current.get(idBienThe);
@@ -361,7 +483,27 @@ export function ShopKioskBlock({
         }, QTY_SYNC_MS),
       );
     },
-    [viewerProfileId, isOwner, milestoneId, flushQtySync],
+    [viewerProfileId, isOwner, milestoneId, flushQtySync, loaiDon],
+  );
+
+  const selectLoaiDon = useCallback(
+    (next: ShopLoaiDon) => {
+      if (!gio?.dong.length) return;
+      if (next === "mua_ngay" && cartHasOutOfStock(gio.dong)) {
+        setErr("Có món hết hàng — chỉ đặt trước được.");
+        return;
+      }
+      setErr(null);
+      setLoaiDon(next);
+      if (next === "mua_ngay") {
+        for (const d of gio.dong) {
+          if (d.soLuongTon > 0 && d.soLuong > d.soLuongTon) {
+            patchQty(d.idBienThe, d.soLuongTon, "mua_ngay");
+          }
+        }
+      }
+    },
+    [gio, patchQty],
   );
 
   const categoryOptions = useMemo(() => {
@@ -377,18 +519,6 @@ export function ShopKioskBlock({
     () => items.some((it) => !it.phanLoai?.trim()),
     [items],
   );
-
-  /** >5 loại → dropdown; ≤5 giữ chip không viền. */
-  const useFilterDropdown =
-    categoryOptions.length + (hasUncategorized ? 1 : 0) > 5;
-
-  const filteredItems = useMemo(() => {
-    if (filterLoai === "all") return items;
-    if (filterLoai === "__none__") {
-      return items.filter((it) => !it.phanLoai?.trim());
-    }
-    return items.filter((it) => it.phanLoai?.trim() === filterLoai);
-  }, [items, filterLoai]);
 
   const itemsByGroup = useMemo(() => {
     const map = new Map<string, ShopPostHangItem[]>();
@@ -420,8 +550,13 @@ export function ShopKioskBlock({
     setHoaDonMa(buildShopMaDon(buyerLabel));
     setHoaDonAccepted(false);
     setHoaDonUploadErr(null);
+    setHoaDonCopied(false);
     setHoaDonOpen(true);
   }, [buyerLabel]);
+
+  const backToCartStep = useCallback(() => {
+    setHoaDonOpen(false);
+  }, []);
 
   const hoaDonBienLaiOk =
     Boolean(hoaDonAnhUrl) &&
@@ -440,6 +575,25 @@ export function ShopKioskBlock({
     if (!gio?.dong.length) {
       setErr("Giỏ hàng trống.");
       return;
+    }
+    if (!loaiDon) {
+      setErr("Chọn Mua ngay hoặc Đặt trước.");
+      return;
+    }
+    if (loaiDon === "mua_ngay" && cartHasOutOfStock(gio.dong)) {
+      setErr("Có món hết hàng — chỉ đặt trước được.");
+      return;
+    }
+    if (loaiDon === "mua_ngay") {
+      const over = gio.dong.find(
+        (d) => d.soLuongTon > 0 && d.soLuong > d.soLuongTon,
+      );
+      if (over) {
+        setErr(
+          `${over.tenSanPham}: chỉ còn ${over.soLuongTon} trong kho.`,
+        );
+        return;
+      }
     }
     if (loaiDon === "mua_ngay" && !hoaDonAccepted) {
       setErr("Bạn cần xác nhận rủi ro chuyển khoản trước khi gửi đơn.");
@@ -518,8 +672,11 @@ export function ShopKioskBlock({
       setHoaDonAnhUrl(null);
       setHoaDonAnhId(null);
       setHoaDonOpen(false);
+      setLoaiDon(null);
       setHoaDonAccepted(false);
       setHoaDonMa(null);
+      setCatalogOpen(false);
+      setTab("hang");
       try {
         await openChat({
           targetUserId: sellerUserId,
@@ -684,6 +841,15 @@ export function ShopKioskBlock({
     await openChat({ targetUserId: sellerUserId });
   }, [sellerUserId, openChat]);
 
+  const openCatalog = useCallback(
+    (nextTab: Tab = "hang") => {
+      if (isOwner && nextTab === "gio") return;
+      setTab(nextTab);
+      setCatalogOpen(true);
+    },
+    [isOwner],
+  );
+
   if (loading) return null;
   if (items.length === 0) return null;
 
@@ -738,27 +904,30 @@ export function ShopKioskBlock({
         )
       : null;
 
-  const hoaDonPortal =
-    portalReady && hoaDonOpen && gio && gio.dong.length > 0
-      ? createPortal(
-          <div
-            className="shop-kiosk-hoa-don"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="shop-kiosk-hoa-don-title"
-            onClick={(e) => {
-              e.stopPropagation();
-              setHoaDonOpen(false);
-            }}
-            onKeyDown={(e) => e.stopPropagation()}
-          >
+  const showCheckoutPanel =
+    hoaDonOpen &&
+    loaiDon !== null &&
+    Boolean(gio?.dong.length) &&
+    tab === "gio";
+
+  const hoaDonPanel =
+    showCheckoutPanel && gio ? (
             <div
               ref={hoaDonPanelRef}
-              className="shop-kiosk-hoa-don-panel"
-              onClick={(e) => e.stopPropagation()}
+              className="shop-kiosk-hoa-don-panel shop-kiosk-hoa-don-panel--embed"
+              role="region"
+              aria-labelledby="shop-kiosk-hoa-don-title"
             >
               <header className="shop-kiosk-hoa-don-hdr">
                 <div>
+                  <button
+                    type="button"
+                    className="shop-kiosk-hoa-don-back"
+                    onClick={backToCartStep}
+                  >
+                    <ChevronLeft size={16} strokeWidth={2.2} aria-hidden />
+                    Giỏ hàng
+                  </button>
                   <div className="shop-kiosk-hoa-don-seller">
                     {sellerAvatarUrl ? (
                       /* eslint-disable-next-line @next/next/no-img-element */
@@ -777,31 +946,17 @@ export function ShopKioskBlock({
                     )}
                     <p className="shop-kiosk-hoa-don-kicker">{sellerLabel}</p>
                   </div>
-                  <h3 id="shop-kiosk-hoa-don-title">Hóa đơn xác nhận</h3>
+                  <h3 id="shop-kiosk-hoa-don-title">Xác nhận đơn</h3>
                 </div>
                 <button
                   type="button"
                   className="shop-kiosk-hoa-don-close"
-                  aria-label="Đóng"
-                  onClick={() => setHoaDonOpen(false)}
+                  aria-label="Quay lại giỏ hàng"
+                  onClick={backToCartStep}
                 >
                   <X size={18} strokeWidth={2} aria-hidden />
                 </button>
               </header>
-
-              <p className="shop-kiosk-hoa-don-warn" role="alert">
-                <TriangleAlert
-                  className="shop-kiosk-hoa-don-warn-icon"
-                  size={18}
-                  strokeWidth={2.2}
-                  aria-hidden
-                />
-                <span>
-                  Chuyển tiền trực tiếp cho người bán — hãy xác minh chính chủ
-                  trước khi thanh toán. Mọi giao dịch ngoài nền tảng do hai bên
-                  tự chịu trách nhiệm; CINs không chịu trách nhiệm.
-                </span>
-              </p>
 
                 <div className="shop-kiosk-hoa-don-sheet">
                 <div className="shop-kiosk-hoa-don-meta">
@@ -811,7 +966,9 @@ export function ShopKioskBlock({
                       timeStyle: "short",
                     })}
                   </span>
-                  <span className="shop-kiosk-hoa-don-badge">Mua ngay</span>
+                  <span className="shop-kiosk-hoa-don-badge">
+                    {loaiDon === "mua_ngay" ? "Mua ngay" : "Đặt trước"}
+                  </span>
                 </div>
                 {hoaDonMa ? (
                   <p className="shop-kiosk-hoa-don-ma">
@@ -853,10 +1010,6 @@ export function ShopKioskBlock({
                                   {d.nhanBienThe}
                                 </span>
                               ) : null}
-                              <span className="shop-kiosk-hoa-don-item-unit">
-                                {d.giaHienThi.toLocaleString("vi-VN")} {d.tienTe}
-                                /sp
-                              </span>
                             </span>
                           </div>
                         </td>
@@ -876,7 +1029,9 @@ export function ShopKioskBlock({
                   </strong>
                 </div>
                 <p className="shop-kiosk-hoa-don-foot">
-                  CINs không trung gian tiền — hai bên tự thỏa thuận thanh toán.
+                  {loaiDon === "mua_ngay"
+                    ? "Thanh toán trực tiếp cho người bán — CINs không trung gian tiền."
+                    : "Thanh toán khi nhận hàng — xác nhận với người bán trước khi giao."}
                 </p>
               </div>
 
@@ -886,13 +1041,33 @@ export function ShopKioskBlock({
                   rows={2}
                   value={ghiChu}
                   onChange={(e) => setGhiChu(e.target.value)}
-                  placeholder="VD: đã chuyển khoản lúc 17:30, mã GD…"
+                  placeholder={
+                    loaiDon === "mua_ngay"
+                      ? "VD: đã chuyển khoản lúc 17:30, mã GD…"
+                      : "VD: nhận tại quầy B12, ngày 2, màu xanh…"
+                  }
                 />
               </label>
 
+              {loaiDon === "mua_ngay" ? (
+                <div className="shop-kiosk-hoa-don-proof">
+                  <p className="shop-kiosk-hoa-don-warn" role="alert">
+                    <TriangleAlert
+                      className="shop-kiosk-hoa-don-warn-icon"
+                      size={18}
+                      strokeWidth={2.2}
+                      aria-hidden
+                    />
+                    <span>
+                      Chuyển tiền trực tiếp cho người bán — hãy xác minh chính chủ
+                      trước khi thanh toán. Mọi giao dịch ngoài nền tảng do hai bên
+                      tự chịu trách nhiệm; CINs không chịu trách nhiệm.
+                    </span>
+                  </p>
+
               <div className="shop-kiosk-hoa-don-upload">
                 <span className="shop-kiosk-hoa-don-upload-label">
-                  Tải hóa đơn thanh toán
+                  Ảnh biên lai chuyển khoản
                 </span>
                 <input
                   ref={hoaDonFileRef}
@@ -907,7 +1082,7 @@ export function ShopKioskBlock({
                 {hoaDonAnhUrl ? (
                   <div className="shop-kiosk-hoa-don-upload-preview">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={hoaDonAnhUrl} alt="Hóa đơn thanh toán" />
+                    <img src={hoaDonAnhUrl} alt="Biên lai chuyển khoản" />
                     {hoaDonUploading ? (
                       <div className="shop-kiosk-hoa-don-upload-busy">
                         <Loader2 size={16} className="shop-spin" aria-hidden />
@@ -946,7 +1121,7 @@ export function ShopKioskBlock({
                     ) : (
                       <>
                         <Upload size={16} strokeWidth={2} aria-hidden />
-                        Chọn ảnh hóa đơn / biên lai
+                        Chọn ảnh biên lai
                       </>
                     )}
                   </button>
@@ -966,9 +1141,32 @@ export function ShopKioskBlock({
                 />
                 <span>{SHOP_BUYER_TRANSFER_DISCLAIMER}</span>
               </label>
+                </div>
+              ) : null}
 
               <div className="shop-kiosk-hoa-don-footer">
+                {err ? (
+                  <p className="shop-kiosk-err" role="alert">
+                    {err}
+                  </p>
+                ) : null}
                 <div className="shop-kiosk-hoa-don-actions">
+                  <button
+                    type="button"
+                    className="shop-kiosk-submit shop-kiosk-hoa-don-submit"
+                    disabled={
+                      busy ||
+                      (loaiDon === "mua_ngay" &&
+                        (!hoaDonAccepted || !hoaDonBienLaiOk))
+                    }
+                    onClick={() => void submitOrder()}
+                  >
+                    {busy ? (
+                      <Loader2 size={16} className="shop-spin" />
+                    ) : (
+                      "Gửi đơn cho người bán"
+                    )}
+                  </button>
                   <button
                     type="button"
                     className="shop-kiosk-hoa-don-copy"
@@ -988,29 +1186,14 @@ export function ShopKioskBlock({
                     ) : (
                       <>
                         <Copy size={16} strokeWidth={2} aria-hidden />
-                        Sao chép ảnh
+                        Sao chép ảnh đơn
                       </>
-                    )}
-                  </button>
-                  <button
-                    type="button"
-                    className="shop-kiosk-submit shop-kiosk-hoa-don-submit"
-                    disabled={busy || !hoaDonAccepted || !hoaDonBienLaiOk}
-                    onClick={() => void submitOrder()}
-                  >
-                    {busy ? (
-                      <Loader2 size={16} className="shop-spin" />
-                    ) : (
-                      "Gửi đơn cho người bán"
                     )}
                   </button>
                 </div>
               </div>
             </div>
-          </div>,
-          document.body,
-        )
-      : null;
+    ) : null;
 
   const catalogPortal =
     portalReady && catalogOpen
@@ -1022,6 +1205,8 @@ export function ShopKioskBlock({
             aria-labelledby="shop-kiosk-catalog-title"
             onClick={(e) => {
               e.stopPropagation();
+              setHoaDonOpen(false);
+              setLoaiDon(null);
               setCatalogOpen(false);
             }}
             onKeyDown={(e) => e.stopPropagation()}
@@ -1033,121 +1218,511 @@ export function ShopKioskBlock({
               <header className="shop-kiosk-catalog-hdr">
                 <div>
                   <p className="shop-kiosk-catalog-kicker">{sellerLabel}</p>
-                  <h3 id="shop-kiosk-catalog-title">Tất cả hàng bán</h3>
+                  <h3 id="shop-kiosk-catalog-title">
+                    {tab === "gio"
+                      ? showCheckoutPanel
+                        ? "Xác nhận đơn"
+                        : "Giỏ hàng của bạn"
+                      : "Hàng bán"}
+                  </h3>
                 </div>
                 <div className="shop-kiosk-catalog-hdr-actions">
-                  {!isOwner && cartCount > 0 ? (
-                    <button
-                      type="button"
-                      className="shop-kiosk-catalog-cart-btn"
-                      onClick={() => {
-                        setCatalogOpen(false);
-                        setExpanded(true);
-                        setTab("gio");
-                      }}
-                    >
-                      <ShoppingBag size={15} strokeWidth={2} aria-hidden />
-                      Giỏ ({cartCount})
-                    </button>
-                  ) : null}
+                  <button
+                    type="button"
+                    className="shop-kiosk-catalog-msg-btn"
+                    onClick={() => void messageSeller()}
+                    disabled={!sellerUserId || isOwner}
+                    aria-label="Nhắn người bán"
+                  >
+                    <MessageCircle size={16} strokeWidth={2} aria-hidden />
+                  </button>
                   <button
                     type="button"
                     className="shop-kiosk-catalog-close"
                     aria-label="Đóng"
-                    onClick={() => setCatalogOpen(false)}
+                    onClick={() => {
+                      setHoaDonOpen(false);
+                      setLoaiDon(null);
+                      setCatalogOpen(false);
+                    }}
                   >
                     <X size={18} strokeWidth={2} aria-hidden />
                   </button>
                 </div>
               </header>
 
-              <div className="shop-kiosk-catalog-body">
-                {itemsByGroup.length === 0 ? (
-                  <p className="shop-kiosk-empty">Chưa có hàng bán.</p>
-                ) : (
-                  itemsByGroup.map((group) => (
-                    <section
-                      key={group.loai}
-                      className="shop-kiosk-catalog-group"
-                    >
-                      <h4 className="shop-kiosk-catalog-group-title">
-                        {group.loai}
-                        <span>{group.items.length}</span>
-                      </h4>
-                      <ul className="shop-kiosk-catalog-grid">
-                        {group.items.map((it) => {
-                          const qty = qtyInCart(it.idBienThe);
-                          return (
-                            <li key={it.id} className="shop-kiosk-catalog-card">
-                              {it.anhUrl ? (
-                                <button
-                                  type="button"
-                                  className="shop-kiosk-catalog-thumb-btn"
-                                  onClick={() =>
-                                    setPreview({
-                                      src: it.anhUrl!,
-                                      name: it.tenSanPham,
-                                    })
-                                  }
-                                  aria-label={`Xem ảnh ${it.tenSanPham}`}
-                                >
-                                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                                  <img src={it.anhUrl} alt="" loading="lazy" />
-                                </button>
-                              ) : (
-                                <div className="shop-kiosk-catalog-thumb is-empty" />
-                              )}
-                              <div className="shop-kiosk-catalog-card-body">
-                                <div className="shop-kiosk-catalog-card-name">
-                                  {it.tenSanPham}
-                                  {it.nhanBienThe !== "Mặc định" ? (
-                                    <span> · {it.nhanBienThe}</span>
+              <div className="shop-kiosk-catalog-tabs" role="tablist">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={tab === "hang"}
+                  className={`shop-kiosk-catalog-tab${tab === "hang" ? " is-active" : ""}`}
+                  onClick={() => {
+                    setHoaDonOpen(false);
+                    setLoaiDon(null);
+                    setTab("hang");
+                  }}
+                >
+                  <ShoppingBag size={14} strokeWidth={1.8} aria-hidden />
+                  Hàng bán
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={tab === "gio"}
+                  className={`shop-kiosk-catalog-tab${tab === "gio" ? " is-active" : ""}`}
+                  onClick={() => setTab("gio")}
+                  disabled={isOwner}
+                >
+                  Giỏ hàng
+                  {cartCount > 0 ? (
+                    <span className="shop-kiosk-badge">{cartCount}</span>
+                  ) : null}
+                </button>
+              </div>
+
+              {err ? <p className="shop-kiosk-catalog-err">{err}</p> : null}
+
+              {tab === "gio" && !isOwner ? (
+                <nav
+                  className="shop-kiosk-checkout-steps"
+                  aria-label="Các bước mua hàng"
+                >
+                  <button
+                    type="button"
+                    className={`shop-kiosk-checkout-step${showCheckoutPanel ? "" : " is-active"}`}
+                    aria-current={showCheckoutPanel ? undefined : "step"}
+                    onClick={() => {
+                      if (showCheckoutPanel) backToCartStep();
+                    }}
+                  >
+                    <span className="shop-kiosk-checkout-step-num" aria-hidden>
+                      1
+                    </span>
+                    Giỏ hàng
+                  </button>
+                  <span className="shop-kiosk-checkout-step-sep" aria-hidden />
+                  <button
+                    type="button"
+                    className={`shop-kiosk-checkout-step${showCheckoutPanel ? " is-active" : ""}`}
+                    aria-current={showCheckoutPanel ? "step" : undefined}
+                    disabled={!loaiDon || !(gio?.dong.length)}
+                    onClick={() => {
+                      if (!showCheckoutPanel && loaiDon && gio?.dong.length) {
+                        openHoaDon();
+                      }
+                    }}
+                  >
+                    <span className="shop-kiosk-checkout-step-num" aria-hidden>
+                      2
+                    </span>
+                    Xác nhận
+                  </button>
+                </nav>
+              ) : null}
+
+              <div
+                className={`shop-kiosk-catalog-body${showCheckoutPanel ? " is-split" : ""}`}
+              >
+                {tab === "hang" ? (
+                  itemsByGroup.length === 0 ? (
+                    <p className="shop-kiosk-empty">Chưa có hàng bán.</p>
+                  ) : (
+                    itemsByGroup.map((group) => (
+                      <section
+                        key={group.loai}
+                        className="shop-kiosk-catalog-group"
+                      >
+                        <h4 className="shop-kiosk-catalog-group-title">
+                          {group.loai}
+                          <span>{group.items.length}</span>
+                        </h4>
+                        <ul className="shop-kiosk-catalog-grid">
+                          {group.items.map((it) => {
+                            const qty = qtyInCart(it.idBienThe);
+                            const outOfStock =
+                              it.hetHang || it.soLuongTon <= 0;
+                            const canIncrease =
+                              Boolean(viewerProfileId) &&
+                              canIncreaseLineQty(
+                                it.soLuongTon,
+                                qty,
+                                loaiDon,
+                              );
+                            const canAddFirst =
+                              Boolean(viewerProfileId) &&
+                              (outOfStock
+                                ? loaiDon !== "mua_ngay"
+                                : canIncreaseLineQty(
+                                    it.soLuongTon,
+                                    0,
+                                    loaiDon,
+                                  ));
+                            return (
+                              <li
+                                key={it.id}
+                                className="shop-kiosk-catalog-card"
+                              >
+                                {it.anhUrl ? (
+                                  <button
+                                    type="button"
+                                    className="shop-kiosk-catalog-thumb-btn"
+                                    onClick={() =>
+                                      setPreview({
+                                        src: it.anhUrl!,
+                                        name: it.tenSanPham,
+                                      })
+                                    }
+                                    aria-label={`Xem ảnh ${it.tenSanPham}`}
+                                  >
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img
+                                      src={it.anhUrl}
+                                      alt=""
+                                      loading="lazy"
+                                    />
+                                  </button>
+                                ) : (
+                                  <div className="shop-kiosk-catalog-thumb is-empty" />
+                                )}
+                                <div className="shop-kiosk-catalog-card-body">
+                                  <div className="shop-kiosk-catalog-card-name">
+                                    {it.tenSanPham}
+                                    {it.nhanBienThe !== "Mặc định" ? (
+                                      <span> · {it.nhanBienThe}</span>
+                                    ) : null}
+                                  </div>
+                                  <div className="shop-kiosk-catalog-card-foot">
+                                    <strong>
+                                      {it.giaHienThi.toLocaleString("vi-VN")}{" "}
+                                      {it.tienTe}
+                                    </strong>
+                                    <span>
+                                      {outOfStock
+                                        ? "Hết hàng · đặt trước"
+                                        : `Còn ${it.soLuongTon}`}
+                                    </span>
+                                  </div>
+                                  {!isOwner ? (
+                                    qty > 0 ? (
+                                      <div className="shop-kiosk-qty shop-kiosk-catalog-qty">
+                                        <button
+                                          type="button"
+                                          aria-label="Bớt"
+                                          onClick={() =>
+                                            patchQty(it.idBienThe, qty - 1)
+                                          }
+                                        >
+                                          <Minus size={14} />
+                                        </button>
+                                        <span>{qty}</span>
+                                        <button
+                                          type="button"
+                                          aria-label="Thêm"
+                                          disabled={!canIncrease}
+                                          title={
+                                            !canIncrease && !outOfStock
+                                              ? `Tối đa ${it.soLuongTon} (tồn kho)`
+                                              : outOfStock &&
+                                                  loaiDon === "mua_ngay"
+                                                ? "Chọn Đặt trước để thêm"
+                                                : undefined
+                                          }
+                                          onClick={() =>
+                                            patchQty(it.idBienThe, qty + 1)
+                                          }
+                                        >
+                                          <Plus size={14} />
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        className="shop-kiosk-catalog-add"
+                                        disabled={!canAddFirst}
+                                        title={
+                                          !viewerProfileId
+                                            ? "Đăng nhập để thêm vào giỏ"
+                                            : outOfStock &&
+                                                loaiDon === "mua_ngay"
+                                              ? "Chọn Đặt trước để thêm hàng hết tồn"
+                                              : outOfStock
+                                                ? "Hết hàng — thêm để đặt trước"
+                                                : "Thêm vào giỏ"
+                                        }
+                                        onClick={() => {
+                                          if (!viewerProfileId) {
+                                            setErr(
+                                              "Đăng nhập để thêm vào giỏ.",
+                                            );
+                                            return;
+                                          }
+                                          patchQty(it.idBienThe, 1);
+                                        }}
+                                      >
+                                        <Plus
+                                          size={14}
+                                          strokeWidth={2.2}
+                                          aria-hidden
+                                        />
+                                        {outOfStock
+                                          ? "Đặt trước"
+                                          : "Thêm vào giỏ"}
+                                      </button>
+                                    )
                                   ) : null}
                                 </div>
-                                <div className="shop-kiosk-catalog-card-foot">
-                                  <strong>
-                                    {it.giaHienThi.toLocaleString("vi-VN")}{" "}
-                                    {it.tienTe}
-                                  </strong>
-                                  <span>
-                                    {it.hetHang || it.soLuongTon < 0
-                                      ? "Đợi restock"
-                                      : `Còn ${it.soLuongTon}`}
-                                  </span>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </section>
+                    ))
+                  )
+                ) : (
+                  <div
+                    className={`shop-kiosk-cart shop-kiosk-catalog-cart${showCheckoutPanel ? " is-checkout-summary" : ""}`}
+                  >
+                    {!gio?.dong.length ? (
+                      <div className="shop-kiosk-cart-empty">
+                        <ShoppingBag size={22} strokeWidth={1.7} aria-hidden />
+                        <p>Giỏ còn trống</p>
+                        <button
+                          type="button"
+                          className="shop-kiosk-cart-empty-cta"
+                          onClick={() => setTab("hang")}
+                        >
+                          Xem hàng bán
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        {showCheckoutPanel ? (
+                          <p className="shop-kiosk-cart-summary-label">
+                            Đơn của bạn
+                          </p>
+                        ) : null}
+                        <ul
+                          className="shop-kiosk-cart-lines"
+                          aria-label="Giỏ hàng"
+                        >
+                          {gio.dong.map((d) => {
+                            const canIncrease = canIncreaseLineQty(
+                              d.soLuongTon,
+                              d.soLuong,
+                              loaiDon,
+                            );
+                            const outOfStock = d.soLuongTon <= 0;
+                            return (
+                            <li
+                              key={d.idBienThe}
+                              className="shop-kiosk-cart-line"
+                            >
+                              {d.anhUrl ? (
+                                <button
+                                  type="button"
+                                  className="shop-kiosk-thumb-btn"
+                                  onClick={() =>
+                                    setPreview({
+                                      src: d.anhUrl!,
+                                      name: d.tenSanPham,
+                                    })
+                                  }
+                                  aria-label={`Xem ảnh ${d.tenSanPham}`}
+                                >
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img
+                                    src={d.anhUrl}
+                                    alt=""
+                                    className="shop-kiosk-thumb"
+                                  />
+                                </button>
+                              ) : (
+                                <div className="shop-kiosk-thumb shop-kiosk-thumb--empty" />
+                              )}
+                              <div className="shop-kiosk-cart-line-body">
+                                <div className="shop-kiosk-cart-line-top">
+                                  <div className="shop-kiosk-name">
+                                    {d.tenSanPham}
+                                    {d.nhanBienThe !== "Mặc định" ? (
+                                      <span className="shop-kiosk-variant">
+                                        {" "}
+                                        · {d.nhanBienThe}
+                                      </span>
+                                    ) : null}
+                                  </div>
+                                  <div className="shop-kiosk-cart-line-sum">
+                                    {(d.giaHienThi * d.soLuong).toLocaleString(
+                                      "vi-VN",
+                                    )}{" "}
+                                    {d.tienTe}
+                                  </div>
                                 </div>
-                                {!isOwner ? (
-                                  <div className="shop-kiosk-qty shop-kiosk-catalog-qty">
+                                <div className="shop-kiosk-cart-line-foot">
+                                  <span className="shop-kiosk-cart-unit">
+                                    {d.giaHienThi.toLocaleString("vi-VN")}{" "}
+                                    {d.tienTe}/sp
+                                    {outOfStock ? (
+                                      <span className="shop-kiosk-cart-stock is-oos">
+                                        {" "}
+                                        · hết hàng
+                                      </span>
+                                    ) : loaiDon !==
+                                      "dat_truoc_nhan_su_kien" ? (
+                                      <span className="shop-kiosk-cart-stock">
+                                        {" "}
+                                        · còn {d.soLuongTon}
+                                      </span>
+                                    ) : null}
+                                  </span>
+                                  <div className="shop-kiosk-qty">
                                     <button
                                       type="button"
                                       aria-label="Bớt"
-                                      disabled={qty <= 0}
+                                      disabled={d.soLuong <= 0}
                                       onClick={() =>
-                                        patchQty(it.idBienThe, qty - 1)
+                                        patchQty(d.idBienThe, d.soLuong - 1)
                                       }
                                     >
                                       <Minus size={14} />
                                     </button>
-                                    <span>{qty}</span>
+                                    <span>{d.soLuong}</span>
                                     <button
                                       type="button"
                                       aria-label="Thêm"
-                                      disabled={!viewerProfileId}
+                                      disabled={!canIncrease}
+                                      title={
+                                        !canIncrease && !outOfStock
+                                          ? `Tối đa ${d.soLuongTon} (tồn kho)`
+                                          : outOfStock &&
+                                              loaiDon === "mua_ngay"
+                                            ? "Chọn Đặt trước để thêm"
+                                            : undefined
+                                      }
                                       onClick={() =>
-                                        patchQty(it.idBienThe, qty + 1)
+                                        patchQty(d.idBienThe, d.soLuong + 1)
                                       }
                                     >
                                       <Plus size={14} />
                                     </button>
                                   </div>
-                                ) : null}
+                                </div>
                               </div>
                             </li>
-                          );
-                        })}
-                      </ul>
-                    </section>
-                  ))
+                            );
+                          })}
+                        </ul>
+
+                        <div className="shop-kiosk-cart-summary">
+                          <span>Tổng cộng</span>
+                          <strong>
+                            {gio.tongTien.toLocaleString("vi-VN")} {gio.tienTe}
+                          </strong>
+                        </div>
+
+                        {!showCheckoutPanel ? (
+                        <div className="shop-kiosk-cart-form">
+                              <p className="shop-kiosk-cart-form-label">
+                                Chọn cách nhận hàng
+                              </p>
+                              <div
+                                className="shop-kiosk-loai-don"
+                                role="radiogroup"
+                                aria-label="Cách nhận hàng"
+                              >
+                                <button
+                                  type="button"
+                                  role="radio"
+                                  aria-checked={loaiDon === "mua_ngay"}
+                                  aria-disabled={cartHasOutOfStock(gio.dong)}
+                                  disabled={cartHasOutOfStock(gio.dong)}
+                                  title={
+                                    cartHasOutOfStock(gio.dong)
+                                      ? "Có món hết hàng — chỉ đặt trước được"
+                                      : undefined
+                                  }
+                                  className={`shop-kiosk-loai-don-opt is-mua${loaiDon === "mua_ngay" ? " is-active" : ""}`}
+                                  onClick={() => selectLoaiDon("mua_ngay")}
+                                >
+                                  <span
+                                    className="shop-kiosk-loai-don-icon"
+                                    aria-hidden
+                                  >
+                                    <Zap size={18} strokeWidth={2} />
+                                  </span>
+                                  <span className="shop-kiosk-loai-don-text">
+                                    <span className="shop-kiosk-loai-don-title">
+                                      Mua ngay
+                                    </span>
+                                    <span className="shop-kiosk-loai-don-desc">
+                                      {cartHasOutOfStock(gio.dong)
+                                        ? "Cần hàng còn tồn"
+                                        : "Theo tồn kho · thanh toán luôn"}
+                                    </span>
+                                  </span>
+                                </button>
+                                <button
+                                  type="button"
+                                  role="radio"
+                                  aria-checked={
+                                    loaiDon === "dat_truoc_nhan_su_kien"
+                                  }
+                                  className={`shop-kiosk-loai-don-opt is-dat${loaiDon === "dat_truoc_nhan_su_kien" ? " is-active" : ""}`}
+                                  onClick={() =>
+                                    selectLoaiDon("dat_truoc_nhan_su_kien")
+                                  }
+                                >
+                                  <span
+                                    className="shop-kiosk-loai-don-icon"
+                                    aria-hidden
+                                  >
+                                    <CalendarClock size={18} strokeWidth={2} />
+                                  </span>
+                                  <span className="shop-kiosk-loai-don-text">
+                                    <span className="shop-kiosk-loai-don-title">
+                                      Đặt trước
+                                    </span>
+                                    <span className="shop-kiosk-loai-don-desc">
+                                      Không giới hạn tồn · trả khi nhận
+                                    </span>
+                                  </span>
+                                </button>
+                              </div>
+                              {cartHasOutOfStock(gio.dong) ? (
+                                <p className="shop-kiosk-cart-continue-hint">
+                                  Giỏ có món hết hàng — chỉ đặt trước được
+                                </p>
+                              ) : null}
+                              <button
+                                type="button"
+                                className="shop-kiosk-submit shop-kiosk-cart-continue"
+                                disabled={!loaiDon}
+                                onClick={() => {
+                                  if (
+                                    loaiDon === "mua_ngay" &&
+                                    gio &&
+                                    cartHasOutOfStock(gio.dong)
+                                  ) {
+                                    setErr(
+                                      "Có món hết hàng — chỉ đặt trước được.",
+                                    );
+                                    return;
+                                  }
+                                  openHoaDon();
+                                }}
+                              >
+                                Tiếp tục
+                              </button>
+                              <p className="shop-kiosk-cart-continue-hint">
+                                Bước tiếp: kiểm tra đơn rồi gửi người bán
+                              </p>
+                        </div>
+                        ) : null}
+                      </>
+                    )}
+                  </div>
                 )}
+                {hoaDonPanel}
               </div>
             </div>
           </div>,
@@ -1155,457 +1730,77 @@ export function ShopKioskBlock({
         )
       : null;
 
-  if (!expanded) {
-    return (
-      <>
-        <div
-          className="shop-kiosk shop-kiosk--ticker"
-          onClick={(e) => e.stopPropagation()}
-          onKeyDown={(e) => e.stopPropagation()}
-        >
-          <button
-            type="button"
-            className="shop-kiosk-ticker-hit"
-            onClick={() => setExpanded(true)}
-            aria-expanded={false}
-            aria-label={`Hàng bán · ${items.length} sản phẩm${cartCount ? ` · ${cartCount} trong giỏ` : ""}`}
-          >
-            <span className="shop-kiosk-ticker is-scroll" aria-hidden>
-              <span className="shop-kiosk-ticker-track">
-                {tickerItems.map((it, i) =>
-                  it.anhUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      key={`${it.id}-${i}`}
-                      src={it.anhUrl}
-                      alt=""
-                      className="shop-kiosk-ticker-thumb"
-                    />
-                  ) : (
-                    <span
-                      key={`${it.id}-${i}`}
-                      className="shop-kiosk-ticker-thumb shop-kiosk-ticker-thumb--empty"
-                    />
-                  ),
-                )}
-              </span>
-            </span>
-            <span className="shop-kiosk-ticker-label">
-              <ShoppingBag strokeWidth={1.8} aria-hidden />
-              {cartCount > 0 ? (
-                <span className="shop-kiosk-badge">{cartCount}</span>
-              ) : null}
-            </span>
-          </button>
-        </div>
-        {previewPortal}
-        {hoaDonPortal}
-        {catalogPortal}
-      </>
-    );
-  }
-
   return (
     <>
       <div
-        className="shop-kiosk"
+        className="shop-kiosk shop-kiosk--ticker"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={(e) => e.stopPropagation()}
       >
-        <div className="shop-kiosk-tabs" role="tablist">
+        <div
+          className="shop-kiosk-ticker-hit"
+          role="group"
+          aria-label={`Hàng bán · ${items.length} sản phẩm`}
+        >
+          <div
+            className="shop-kiosk-ticker is-scroll"
+            onPointerDown={(e) => {
+              e.currentTarget.classList.add("is-paused");
+            }}
+          >
+            <div className="shop-kiosk-ticker-track">
+              {tickerItems.map((it, i) =>
+                it.anhUrl ? (
+                  <button
+                    key={`${it.id}-${i}`}
+                    type="button"
+                    className="shop-kiosk-ticker-thumb-btn"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setPreview({
+                        src: it.anhUrl!,
+                        name: it.tenSanPham,
+                      });
+                    }}
+                    aria-label={`Xem ảnh ${it.tenSanPham}`}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={it.anhUrl}
+                      alt=""
+                      className="shop-kiosk-ticker-thumb"
+                      draggable={false}
+                    />
+                  </button>
+                ) : (
+                  <span
+                    key={`${it.id}-${i}`}
+                    className="shop-kiosk-ticker-thumb shop-kiosk-ticker-thumb--empty"
+                    aria-hidden
+                  />
+                ),
+              )}
+            </div>
+          </div>
           <button
             type="button"
-            role="tab"
-            aria-selected={tab === "hang"}
-            className={`shop-kiosk-tab${tab === "hang" ? " is-active" : ""}`}
-            onClick={() => setTab("hang")}
+            className="shop-kiosk-ticker-label"
+            onClick={(e) => {
+              e.stopPropagation();
+              openCatalog("hang");
+            }}
+            aria-expanded={catalogOpen}
+            aria-label={`Mở hàng bán · ${items.length} sản phẩm${cartCount ? ` · ${cartCount} trong giỏ` : ""}`}
           >
-            <ShoppingBag size={14} strokeWidth={1.8} aria-hidden />
-            Hàng bán
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={tab === "gio"}
-            className={`shop-kiosk-tab${tab === "gio" ? " is-active" : ""}`}
-            onClick={() => setTab("gio")}
-            disabled={isOwner}
-          >
-            Giỏ hàng của bạn
+            <ShoppingBag strokeWidth={1.8} aria-hidden />
             {cartCount > 0 ? (
               <span className="shop-kiosk-badge">{cartCount}</span>
             ) : null}
           </button>
-          <button
-            type="button"
-            className="shop-kiosk-tab shop-kiosk-tab--msg"
-            onClick={() => void messageSeller()}
-            disabled={!sellerUserId || isOwner}
-          >
-            <span className="shop-kiosk-tab-msg-icon" aria-hidden>
-              <MessageCircle size={16} strokeWidth={2} />
-            </span>
-            Nhắn người bán
-          </button>
-          <button
-            type="button"
-            className="shop-kiosk-collapse"
-            onClick={() => setExpanded(false)}
-            aria-label="Thu gọn hàng bán"
-            title="Thu gọn"
-          >
-            <ChevronUp size={22} strokeWidth={2} aria-hidden />
-          </button>
         </div>
-
-        {err ? <p className="shop-kiosk-err">{err}</p> : null}
-
-        {tab === "hang" ? (
-          <>
-            {items.length > 0 ? (
-              <div className="shop-kiosk-toolbar">
-                {categoryOptions.length > 0 || hasUncategorized ? (
-                  useFilterDropdown ? (
-                    <label className="shop-kiosk-filters shop-kiosk-filters--select">
-                      <span className="shop-kiosk-filter-label">Loại hàng</span>
-                      <select
-                        className="shop-kiosk-filter-select"
-                        value={filterLoai}
-                        aria-label="Lọc theo loại hàng"
-                        onChange={(e) => setFilterLoai(e.target.value)}
-                      >
-                        <option value="all">Tất cả</option>
-                        {categoryOptions.map((c) => (
-                          <option key={c} value={c}>
-                            {c}
-                          </option>
-                        ))}
-                        {hasUncategorized ? (
-                          <option value="__none__">Chưa phân loại</option>
-                        ) : null}
-                      </select>
-                    </label>
-                  ) : (
-                    <div
-                      className="shop-kiosk-filters"
-                      role="tablist"
-                      aria-label="Lọc theo loại hàng"
-                    >
-                      <button
-                        type="button"
-                        className={`shop-kiosk-filter${filterLoai === "all" ? " is-active" : ""}`}
-                        onClick={() => setFilterLoai("all")}
-                      >
-                        Tất cả
-                      </button>
-                      {categoryOptions.map((c) => (
-                        <button
-                          key={c}
-                          type="button"
-                          className={`shop-kiosk-filter${filterLoai === c ? " is-active" : ""}`}
-                          onClick={() => setFilterLoai(c)}
-                        >
-                          {c}
-                        </button>
-                      ))}
-                      {hasUncategorized ? (
-                        <button
-                          type="button"
-                          className={`shop-kiosk-filter${filterLoai === "__none__" ? " is-active" : ""}`}
-                          onClick={() => setFilterLoai("__none__")}
-                        >
-                          Chưa phân loại
-                        </button>
-                      ) : null}
-                    </div>
-                  )
-                ) : (
-                  <span className="shop-kiosk-toolbar-spacer" />
-                )}
-                <button
-                  type="button"
-                  className="shop-kiosk-view-all"
-                  onClick={() => setCatalogOpen(true)}
-                >
-                  <LayoutGrid size={14} strokeWidth={2.2} aria-hidden />
-                  Xem tất cả
-                </button>
-              </div>
-            ) : null}
-            {filteredItems.length === 0 ? (
-              <p className="shop-kiosk-empty">Không có hàng thuộc loại này.</p>
-            ) : (
-              <ul className="shop-kiosk-list">
-                {filteredItems.map((it) => {
-                  const qty = qtyInCart(it.idBienThe);
-                  return (
-                    <li key={it.id} className="shop-kiosk-item">
-                      {it.anhUrl ? (
-                        <button
-                          type="button"
-                          className="shop-kiosk-thumb-btn"
-                          onClick={() =>
-                            setPreview({
-                              src: it.anhUrl!,
-                              name: it.tenSanPham,
-                            })
-                          }
-                          aria-label={`Xem ảnh ${it.tenSanPham}`}
-                        >
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={it.anhUrl}
-                            alt=""
-                            className="shop-kiosk-thumb"
-                          />
-                        </button>
-                      ) : (
-                        <div className="shop-kiosk-thumb shop-kiosk-thumb--empty" />
-                      )}
-                      <div className="shop-kiosk-meta">
-                        <div className="shop-kiosk-name">
-                          {it.tenSanPham}
-                          {it.nhanBienThe !== "Mặc định" ? (
-                            <span className="shop-kiosk-variant">
-                              {" "}
-                              · {it.nhanBienThe}
-                            </span>
-                          ) : null}
-                        </div>
-                        {it.phanLoai ? (
-                          <div className="shop-kiosk-loai">{it.phanLoai}</div>
-                        ) : null}
-                        <div className="shop-kiosk-meta-foot">
-                          <span className="shop-kiosk-price">
-                            {it.giaHienThi.toLocaleString("vi-VN")} {it.tienTe}
-                          </span>
-                          <span className="shop-kiosk-stock">
-                            {it.hetHang || it.soLuongTon < 0
-                              ? "Đợi restock"
-                              : `Còn ${it.soLuongTon}`}
-                          </span>
-                        </div>
-                      </div>
-                      {!isOwner ? (
-                        <div className="shop-kiosk-qty">
-                          <button
-                            type="button"
-                            aria-label="Bớt"
-                            disabled={qty <= 0}
-                            onClick={() => patchQty(it.idBienThe, qty - 1)}
-                          >
-                            <Minus size={14} />
-                          </button>
-                          <span>{qty}</span>
-                          <button
-                            type="button"
-                            aria-label="Thêm"
-                            disabled={!viewerProfileId}
-                            onClick={() => patchQty(it.idBienThe, qty + 1)}
-                          >
-                            <Plus size={14} />
-                          </button>
-                        </div>
-                      ) : null}
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </>
-        ) : (
-          <div className="shop-kiosk-cart">
-            {!gio?.dong.length ? (
-              <div className="shop-kiosk-cart-empty">
-                <ShoppingBag size={22} strokeWidth={1.7} aria-hidden />
-                <p>Giỏ còn trống</p>
-                <button
-                  type="button"
-                  className="shop-kiosk-cart-empty-cta"
-                  onClick={() => setTab("hang")}
-                >
-                  Xem hàng bán
-                </button>
-              </div>
-            ) : (
-              <>
-                <ul className="shop-kiosk-cart-lines" aria-label="Giỏ hàng">
-                  {gio.dong.map((d) => (
-                    <li key={d.idBienThe} className="shop-kiosk-cart-line">
-                      {d.anhUrl ? (
-                        <button
-                          type="button"
-                          className="shop-kiosk-thumb-btn"
-                          onClick={() =>
-                            setPreview({
-                              src: d.anhUrl!,
-                              name: d.tenSanPham,
-                            })
-                          }
-                          aria-label={`Xem ảnh ${d.tenSanPham}`}
-                        >
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={d.anhUrl}
-                            alt=""
-                            className="shop-kiosk-thumb"
-                          />
-                        </button>
-                      ) : (
-                        <div className="shop-kiosk-thumb shop-kiosk-thumb--empty" />
-                      )}
-                      <div className="shop-kiosk-cart-line-body">
-                        <div className="shop-kiosk-cart-line-top">
-                          <div className="shop-kiosk-name">
-                            {d.tenSanPham}
-                            {d.nhanBienThe !== "Mặc định" ? (
-                              <span className="shop-kiosk-variant">
-                                {" "}
-                                · {d.nhanBienThe}
-                              </span>
-                            ) : null}
-                          </div>
-                          <div className="shop-kiosk-cart-line-sum">
-                            {(d.giaHienThi * d.soLuong).toLocaleString("vi-VN")}{" "}
-                            {d.tienTe}
-                          </div>
-                        </div>
-                        <div className="shop-kiosk-cart-line-foot">
-                          <span className="shop-kiosk-cart-unit">
-                            {d.giaHienThi.toLocaleString("vi-VN")} {d.tienTe}
-                            /sp
-                          </span>
-                          <div className="shop-kiosk-qty">
-                            <button
-                              type="button"
-                              aria-label="Bớt"
-                              disabled={d.soLuong <= 0}
-                              onClick={() =>
-                                patchQty(d.idBienThe, d.soLuong - 1)
-                              }
-                            >
-                              <Minus size={14} />
-                            </button>
-                            <span>{d.soLuong}</span>
-                            <button
-                              type="button"
-                              aria-label="Thêm"
-                              onClick={() =>
-                                patchQty(d.idBienThe, d.soLuong + 1)
-                              }
-                            >
-                              <Plus size={14} />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-
-                <div className="shop-kiosk-cart-summary">
-                  <span>Tổng cộng</span>
-                  <strong>
-                    {gio.tongTien.toLocaleString("vi-VN")} {gio.tienTe}
-                  </strong>
-                </div>
-
-                <div className="shop-kiosk-cart-form">
-                  <div
-                    className="shop-kiosk-loai-don"
-                    role="radiogroup"
-                    aria-label="Loại đơn"
-                  >
-                    <button
-                      type="button"
-                      role="radio"
-                      aria-checked={loaiDon === "mua_ngay"}
-                      className={`shop-kiosk-loai-don-opt is-mua${loaiDon === "mua_ngay" ? " is-active" : ""}`}
-                      onClick={() => {
-                        setLoaiDon("mua_ngay");
-                        if (gio?.dong.length) {
-                          setHoaDonCopied(false);
-                          openHoaDon();
-                        }
-                      }}
-                    >
-                      <span className="shop-kiosk-loai-don-icon" aria-hidden>
-                        <Zap size={18} strokeWidth={2} />
-                      </span>
-                      <span className="shop-kiosk-loai-don-text">
-                        <span className="shop-kiosk-loai-don-title">
-                          Mua ngay
-                        </span>
-                        <span className="shop-kiosk-loai-don-desc">
-                          Thanh toán luôn
-                        </span>
-                      </span>
-                    </button>
-                    <button
-                      type="button"
-                      role="radio"
-                      aria-checked={loaiDon === "dat_truoc_nhan_su_kien"}
-                      className={`shop-kiosk-loai-don-opt is-dat${loaiDon === "dat_truoc_nhan_su_kien" ? " is-active" : ""}`}
-                      onClick={() => setLoaiDon("dat_truoc_nhan_su_kien")}
-                    >
-                      <span className="shop-kiosk-loai-don-icon" aria-hidden>
-                        <CalendarClock size={18} strokeWidth={2} />
-                      </span>
-                      <span className="shop-kiosk-loai-don-text">
-                        <span className="shop-kiosk-loai-don-title">
-                          Đặt trước
-                        </span>
-                        <span className="shop-kiosk-loai-don-desc">
-                          Thanh toán khi nhận hàng
-                        </span>
-                      </span>
-                    </button>
-                  </div>
-
-                  {loaiDon === "dat_truoc_nhan_su_kien" ? (
-                    <>
-                      <label className="shop-kiosk-field">
-                        <span>Ghi chú cho người bán</span>
-                        <textarea
-                          rows={2}
-                          value={ghiChu}
-                          onChange={(e) => setGhiChu(e.target.value)}
-                          placeholder="VD: nhận tại quầy B12, ngày 2, màu xanh…"
-                        />
-                      </label>
-                      <div className="shop-kiosk-cart-footer">
-                        {err ? (
-                          <p className="shop-kiosk-err" role="alert">
-                            {err}
-                          </p>
-                        ) : null}
-                        <p className="shop-kiosk-disclaimer">
-                          CINs không trung gian tiền — hai bên tự thỏa thuận
-                          thanh toán.
-                        </p>
-                        <button
-                          type="button"
-                          className="shop-kiosk-submit"
-                          disabled={busy}
-                          onClick={() => void submitOrder()}
-                        >
-                          {busy ? (
-                            <Loader2 size={16} className="shop-spin" />
-                          ) : (
-                            "Gửi đơn cho người bán"
-                          )}
-                        </button>
-                      </div>
-                    </>
-                  ) : null}
-                </div>
-              </>
-            )}
-          </div>
-        )}
       </div>
       {previewPortal}
-      {hoaDonPortal}
       {catalogPortal}
     </>
   );

@@ -16,6 +16,7 @@ const DEFAULT_STATE: CoSoPathState = {
   khoaSlug: null,
   jobId: null,
   baiDangId: null,
+  suKienId: null,
 };
 
 /** Tab cơ sở đào tạo — `pushState` cho tab top-level; deep link giữ pathname. */
@@ -46,12 +47,19 @@ export function useCoSoTabNav(orgSlug: string) {
           current.tab === next &&
           !current.khoaSlug &&
           !current.jobId &&
-          !current.baiDangId
+          !current.baiDangId &&
+          !current.suKienId
         ) {
           return current;
         }
         window.history.pushState(null, "", coSoTabPath(orgSlug, next));
-        return { tab: next, khoaSlug: null, jobId: null, baiDangId: null };
+        return {
+          tab: next,
+          khoaSlug: null,
+          jobId: null,
+          baiDangId: null,
+          suKienId: null,
+        };
       });
     },
     [orgSlug],
@@ -62,6 +70,7 @@ export function useCoSoTabNav(orgSlug: string) {
     khoaSlug: route.khoaSlug,
     jobId: route.jobId,
     baiDangId: route.baiDangId,
+    suKienId: route.suKienId,
     selectTab,
   };
 }

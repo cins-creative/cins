@@ -10,7 +10,6 @@ export async function getGio(
 ): Promise<ShopGio> {
   const admin = createServiceRoleClient();
   const hang = await listPostHang(cotMocId);
-  const hangByBt = new Map(hang.map((h) => [h.idBienThe, h]));
 
   const { data: gio } = await admin
     .from("shop_gio")
@@ -34,21 +33,25 @@ export async function getGio(
     .select("id_bien_the, so_luong")
     .eq("id_gio", gio.id);
 
+  const qtyByBt = new Map(
+    ((dongs ?? []) as Array<{ id_bien_the: string; so_luong: number }>).map(
+      (d) => [d.id_bien_the, d.so_luong],
+    ),
+  );
+
   const outDong: ShopGioDong[] = [];
   let tong = 0;
   let tienTe = hang[0]?.tienTe ?? "VND";
 
-  for (const d of (dongs ?? []) as Array<{
-    id_bien_the: string;
-    so_luong: number;
-  }>) {
-    const h = hangByBt.get(d.id_bien_the);
-    if (!h) continue;
+  /* Giữ thứ tự catalog (thu_tu), không theo thời điểm thêm vào giỏ. */
+  for (const h of hang) {
+    const soLuong = qtyByBt.get(h.idBienThe);
+    if (soLuong === undefined) continue;
     tienTe = h.tienTe;
-    tong += h.giaHienThi * d.so_luong;
+    tong += h.giaHienThi * soLuong;
     outDong.push({
-      idBienThe: d.id_bien_the,
-      soLuong: d.so_luong,
+      idBienThe: h.idBienThe,
+      soLuong,
       tenSanPham: h.tenSanPham,
       nhanBienThe: h.nhanBienThe,
       giaHienThi: h.giaHienThi,

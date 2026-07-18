@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  BellPlus,
   Briefcase,
   Globe,
   Mail,
@@ -8,7 +9,6 @@ import {
   MessageCircle,
   Phone,
   Settings,
-  UserPlus,
 } from "lucide-react";
 
 import { CoSoOrgFollowButton } from "@/components/co-so/CoSoOrgFollowButton";
@@ -219,7 +219,7 @@ export function StudioSidebar({
                     aria-label="Theo dõi"
                     title="Theo dõi"
                   >
-                    <UserPlus size={17} strokeWidth={2} aria-hidden />
+                    <BellPlus size={17} strokeWidth={2} aria-hidden />
                   </button>
                   <OrgSidebarShareButton kind="studio" source={shareSource} />
                 </>
@@ -273,7 +273,7 @@ export function StudioSidebar({
               </div>
             </section>
 
-            {hasTruongGioiThieuContent(displayGioiThieu) || isOwner || isEditing ? (
+            {hasTruongGioiThieuContent(displayGioiThieu) || isEditing ? (
               <section className="cso-ss-sec" aria-labelledby="studio-ss-about-title">
                 <div className="cso-ss-sec-head">
                   <h2 id="studio-ss-about-title" className="cso-ss-sec-title">

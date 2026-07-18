@@ -235,6 +235,7 @@ export function JourneyProfileShell({
               ownerId={owner.id}
               ownerSlug={owner.slug}
               isOwner={isOwner}
+              viewerId={viewerProfileId}
             />
           </Suspense>
         ) : (
