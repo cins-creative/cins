@@ -13,8 +13,28 @@ export type LinkOgPreview = {
   url: string;
   title: string;
   description: string | null;
+  /** Cover / thumbnail chính của card. */
   image: string | null;
   siteName: string | null;
+  /**
+   * Preview nội bộ CINs (resolve DB) — luôn hiện dạng OG card giàu
+   * (avatar + cover + badge + meta).
+   */
+  source?: "cins" | "external";
+  /** Journey / org avatar hoặc logo. */
+  avatar?: string | null;
+  /** Nhãn loại: Journey, Studio, Cộng đồng… */
+  badge?: string | null;
+  /** Dòng phụ dưới title (giai đoạn, tên chính thức…). */
+  subtitle?: string | null;
+  /** Meta ngắn: tỉnh/thành, lương, hạn nộp… */
+  meta?: string | null;
+  /**
+   * Phân loại entity nội bộ — UI card render khác nhau:
+   * - `bai_viet` → cover + title + mô tả (không avatar)
+   * - `journey` | `org` | `cong_dong` → cover + avatar lớn căn giữa + tên
+   */
+  kind?: "bai_viet" | "journey" | "org" | "cong_dong" | string | null;
 };
 
 export function trimUrlTrailingPunctuation(url: string): string {
@@ -54,7 +74,12 @@ export function findFirstOgPreviewUrl(text: string): string | null {
 export function isUrlOnlyBody(body: string, url: string): boolean {
   const trimmed = body.trim();
   const u = trimUrlTrailingPunctuation(url.trim());
-  return trimmed === u || trimmed === url.trim();
+  if (trimmed === u || trimmed === url.trim()) return true;
+  try {
+    return new URL(trimUrlTrailingPunctuation(trimmed)).href === new URL(url).href;
+  } catch {
+    return false;
+  }
 }
 
 /** Chặn SSRF cơ bản theo hostname (không resolve DNS). */

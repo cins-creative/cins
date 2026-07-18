@@ -1351,7 +1351,7 @@
   padding: 20px 18px;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 10px;
   scrollbar-width: thin;
   scrollbar-color: rgba(148, 163, 184, 0.55) transparent;
 }
@@ -1467,6 +1467,15 @@
   background: var(--cins-blue);
   color: #fff;
   border-bottom-right-radius: 6px;
+}
+
+/*
+ * Dark theme: --cins-blue sáng (#7db8f2) để link/badge trên nền tối.
+ * Bubble "của tôi" cần xanh đậm hơn để chữ trắng + OG card đọc rõ.
+ */
+:root[data-theme="dark"] .cins-chat-bubble.is-me {
+  background: #145a9e;
+  color: #fff;
 }
 
 .cins-chat-bubble p {
@@ -2502,15 +2511,13 @@
   background: #fff;
   color: #16202c;
   text-decoration: none;
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
-  transition: background 0.15s ease, border-color 0.15s ease,
-    box-shadow 0.15s ease;
+  box-shadow: none;
+  transition: background 0.15s ease, border-color 0.15s ease;
 }
 
 a.cins-chat-ctx-card:hover {
   background: #f7f9fc;
   border-color: rgba(15, 23, 42, 0.14);
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
 }
 
 .cins-chat-ctx-card-img {
@@ -2553,6 +2560,22 @@ a.cins-chat-ctx-card:hover {
   opacity: 0.75;
 }
 
+/* Autolink URL trong caption bubble */
+.cins-chat-msg-link {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+.cins-chat-bubble.is-them .cins-chat-msg-link {
+  color: #0b57d0;
+}
+.cins-chat-bubble.is-me .cins-chat-msg-link {
+  color: inherit;
+  text-decoration-color: rgba(255, 255, 255, 0.75);
+}
+
 /* Link OG preview trong bubble */
 .cins-chat-og-card {
   display: flex;
@@ -2567,20 +2590,17 @@ a.cins-chat-ctx-card:hover {
   background: rgba(255, 255, 255, 0.92);
   color: #16202c;
   text-decoration: none;
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
-  transition: background 0.15s ease, border-color 0.15s ease,
-    box-shadow 0.15s ease;
+  box-shadow: none;
+  transition: background 0.15s ease, border-color 0.15s ease;
 }
 a.cins-chat-og-card:hover {
   background: #fff;
   border-color: rgba(15, 23, 42, 0.16);
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.1);
 }
 .cins-chat-og-card.is-me {
   background: rgba(255, 255, 255, 0.18);
   border-color: rgba(255, 255, 255, 0.28);
   color: #fff;
-  box-shadow: none;
 }
 a.cins-chat-og-card.is-me:hover {
   background: rgba(255, 255, 255, 0.26);
@@ -2638,23 +2658,261 @@ a.cins-chat-og-card.is-me:hover {
 .cins-chat-og-card.is-me .cins-chat-og-card-desc {
   opacity: 0.85;
 }
+.cins-chat-og-card.is-fallback .cins-chat-og-card-title {
+  font-weight: 600;
+  font-size: 13px;
+  word-break: break-all;
+  -webkit-line-clamp: 3;
+}
+
+/* CINs nội bộ — avatar + cover + badge */
+.cins-chat-og-card.is-cins {
+  position: relative;
+}
+.cins-chat-og-card.is-cins .cins-chat-og-card-img {
+  aspect-ratio: 16 / 9;
+}
+.cins-chat-og-card-cover-fallback {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: linear-gradient(
+    135deg,
+    rgba(15, 23, 42, 0.08) 0%,
+    rgba(59, 130, 246, 0.18) 100%
+  );
+}
+.cins-chat-og-card.is-me .cins-chat-og-card-cover-fallback {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.12) 0%,
+    rgba(255, 255, 255, 0.22) 100%
+  );
+}
+.cins-chat-og-card-identity {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  padding: 0 12px;
+  margin-top: -22px;
+  position: relative;
+  z-index: 1;
+}
+.cins-chat-og-card-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 2.5px solid #fff;
+  background: #e2e8f0;
+  box-shadow: none;
+}
+.cins-chat-og-card.is-me .cins-chat-og-card-avatar {
+  border-color: rgba(255, 255, 255, 0.95);
+}
+.cins-chat-og-card-avatar.is-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 700;
+  color: #334155;
+}
+.cins-chat-og-card.is-me .cins-chat-og-card-avatar.is-fallback {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.22);
+}
+.cins-chat-og-card-identity-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding-bottom: 2px;
+}
+.cins-chat-og-card-badge {
+  display: inline-block;
+  max-width: 100%;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #0b57d0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cins-chat-og-card.is-me .cins-chat-og-card-badge {
+  color: rgba(255, 255, 255, 0.92);
+}
+.cins-chat-og-card-subtitle {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.35;
+  opacity: 0.78;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cins-chat-og-card-meta {
+  margin-top: 2px;
+  font-size: 11px;
+  line-height: 1.4;
+  opacity: 0.62;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cins-chat-og-card.is-me .cins-chat-og-card-meta {
+  opacity: 0.8;
+}
+/* CINs card — cover → title → mô tả ngắn */
+.cins-chat-og-card.is-cins .cins-chat-og-card-body,
+.cins-chat-og-card.is-post .cins-chat-og-card-body {
+  gap: 6px;
+  padding: 10px 12px 12px;
+}
+/* Journey / org / cộng đồng — avatar lớn + tên căn giữa */
+.cins-chat-og-card.has-avatar .cins-chat-og-card-identity {
+  justify-content: center;
+  align-items: center;
+  padding: 0 12px;
+  margin-top: -36px;
+}
+.cins-chat-og-card.has-avatar .cins-chat-og-card-avatar {
+  width: 72px;
+  height: 72px;
+  border-width: 3px;
+}
+.cins-chat-og-card.has-avatar .cins-chat-og-card-body {
+  align-items: center;
+  text-align: center;
+  padding-top: 10px;
+}
+.cins-chat-og-card.has-avatar .cins-chat-og-card-title {
+  width: 100%;
+}
+.cins-chat-og-card-kicker {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+.cins-chat-og-card.is-post .cins-chat-og-card-badge {
+  text-transform: uppercase;
+}
+.cins-chat-og-card.is-post .cins-chat-og-card-meta {
+  margin-top: 0;
+  flex-shrink: 0;
+}
+.cins-chat-og-card.is-post .cins-chat-og-card-desc {
+  -webkit-line-clamp: 3;
+}
+.cins-chat-og-card-author {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  margin-top: 2px;
+}
+.cins-chat-og-card-author-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: #e2e8f0;
+}
+.cins-chat-og-card-author-avatar.is-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: #334155;
+}
+.cins-chat-og-card.is-me .cins-chat-og-card-author-avatar.is-fallback {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.22);
+}
+.cins-chat-og-card-author-name {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.3;
+  opacity: 0.82;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cins-chat-og-card.is-me .cins-chat-og-card-author-name {
+  opacity: 0.92;
+}
+
 .cins-chat-bubble:has(> .cins-chat-og-card:only-child),
 .cins-chat-bubble:has(> p + .cins-chat-og-card) {
   max-width: min(360px, 86%);
 }
 
 :root[data-theme="dark"] .cins-chat-og-card {
-  background: rgba(30, 41, 59, 0.92);
-  border-color: rgba(148, 163, 184, 0.2);
-  color: #e2e8f0;
+  background: var(--neutral-100, #1c212c);
+  border-color: var(--border, #2a3040);
+  color: var(--ink-display, rgba(255, 255, 255, 0.92));
+  box-shadow: none;
 }
 :root[data-theme="dark"] a.cins-chat-og-card:hover {
-  background: rgba(51, 65, 85, 0.95);
+  background: var(--neutral-200, #2a3040);
+  border-color: var(--border-strong, #3a4152);
 }
+/* is-me: bubble xanh đậm (#145a9e) — card tối để chữ/excerpt rõ trên nền xanh */
 :root[data-theme="dark"] .cins-chat-og-card.is-me {
-  background: rgba(255, 255, 255, 0.14);
-  border-color: rgba(255, 255, 255, 0.22);
-  color: #fff;
+  background: #0f141c;
+  border-color: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.94);
+}
+:root[data-theme="dark"] a.cins-chat-og-card.is-me:hover {
+  background: #151b26;
+  border-color: rgba(255, 255, 255, 0.18);
+}
+:root[data-theme="dark"] .cins-chat-og-card.is-me .cins-chat-og-card-badge {
+  color: var(--cins-blue, #7db8f2);
+}
+:root[data-theme="dark"] .cins-chat-og-card-badge {
+  color: var(--cins-blue, #7db8f2);
+}
+:root[data-theme="dark"] .cins-chat-og-card-avatar {
+  border-color: var(--neutral-100, #1c212c);
+  background: var(--neutral-200, #2a3040);
+  box-shadow: none;
+}
+:root[data-theme="dark"] .cins-chat-og-card.is-me .cins-chat-og-card-avatar {
+  border-color: var(--neutral-50, #171b24);
+}
+:root[data-theme="dark"] .cins-chat-og-card-avatar.is-fallback {
+  color: var(--ink-display, rgba(255, 255, 255, 0.92));
+}
+:root[data-theme="dark"] .cins-chat-og-card.is-me .cins-chat-og-card-avatar.is-fallback {
+  color: var(--ink-display, rgba(255, 255, 255, 0.92));
+  background: var(--neutral-200, #2a3040);
+}
+:root[data-theme="dark"] .cins-chat-og-card-cover-fallback {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.04) 0%,
+    color-mix(in srgb, var(--cins-blue, #7db8f2) 22%, transparent) 100%
+  );
+}
+:root[data-theme="dark"] .cins-chat-og-card.is-me .cins-chat-og-card-cover-fallback {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    color-mix(in srgb, var(--cins-blue, #7db8f2) 28%, transparent) 100%
+  );
+}
+:root[data-theme="dark"] .cins-chat-og-card-img {
+  background: rgba(255, 255, 255, 0.04);
+}
+:root[data-theme="dark"] .cins-chat-og-card.is-me .cins-chat-og-card-img {
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .cins-chat-ctx-card-desc {
@@ -5099,6 +5357,68 @@ a.cins-chat-og-card.is-me:hover {
   margin-left: auto;
 }
 
+.cins-chat-create-tabs {
+  display: flex;
+  gap: 4px;
+  margin: 0 14px;
+  padding: 4px;
+  border-radius: var(--radius-pill);
+  background: rgba(0, 0, 0, 0.05);
+  flex-shrink: 0;
+}
+
+.cins-chat-create-tab {
+  flex: 1;
+  min-width: 0;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--ink-muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.cins-chat-create-tab:hover {
+  color: var(--ink-display);
+}
+
+.cins-chat-create-tab.is-active {
+  background: var(--bg-surface, #fff);
+  color: var(--ink-display);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+}
+
+.cins-chat-group-pick-meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+}
+
+.cins-chat-group-pick-meta .cins-chat-group-pick-label {
+  flex: none;
+}
+
+.cins-chat-group-pick-rel {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+.cins-chat-group-pick-rel.is-ban_be {
+  color: var(--cins-blue);
+}
+
+.cins-chat-group-pick-rel.is-theo_doi {
+  color: rgba(15, 23, 42, 0.55);
+}
+
 .cins-chat-group-name {
   display: flex;
   flex-direction: column;
@@ -5264,10 +5584,15 @@ a.cins-chat-og-card.is-me:hover {
 
 .cins-chat-group-modal-foot {
   display: flex;
+  flex-shrink: 0;
+  align-items: center;
   justify-content: flex-end;
   gap: 8px;
+  margin: 0;
   padding: 14px 18px 18px;
   border-top: 1px solid var(--border);
+  background: transparent;
+  color: inherit;
 }
 
 .cins-chat-group-cancel,
@@ -6378,12 +6703,11 @@ button.cins-chat-project-card-mark:hover {
   background: var(--neutral-100);
   color: var(--ink-display);
   border-color: var(--border);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  box-shadow: none;
 }
 :root[data-theme="dark"] a.cins-chat-ctx-card:hover {
   background: var(--neutral-200);
   border-color: var(--border-strong);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
 }
 
 /* Chip ngữ cảnh ở ô soạn */

@@ -14,7 +14,7 @@ import {
   Send,
   Settings2,
   Tag,
-  UserPlus,
+  MessageSquarePlus,
   Users,
   X,
 } from "lucide-react";
@@ -2849,11 +2849,11 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                 <button
                   type="button"
                   className="cins-chat-icon-btn"
-                  aria-label="Tạo nhóm chat"
-                  title="Tạo nhóm chat"
+                  aria-label="Tin nhắn mới"
+                  title="Tin nhắn mới"
                   onClick={() => setGroupModalOpen(true)}
                 >
-                  <UserPlus size={18} strokeWidth={1.8} aria-hidden />
+                  <MessageSquarePlus size={18} strokeWidth={1.8} aria-hidden />
                 </button>
               ) : null}
               <button

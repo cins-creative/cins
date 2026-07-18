@@ -1,9 +1,11 @@
 import "server-only";
 
 import { getCoverOgUrl } from "@/lib/articles/cover";
+import { stripMoTaMarkdown } from "@/lib/editor/mo-ta-markdown";
 import { getAvatarUrl } from "@/lib/journey/profile";
 import { getCachedPostPageCore } from "@/lib/journey/post-page-cache";
 import type { PostOgContext } from "@/lib/journey/post-og-card";
+import { milestoneCardCaptionForDisplay } from "@/lib/journey/post-media";
 
 function truncate(text: string | null | undefined, max: number): string | null {
   const trimmed = text?.trim();
@@ -41,7 +43,16 @@ export async function fetchPostOgContext(
     const { milestone, owner: author, posts } = res.data;
     const first = posts[0] ?? null;
     const title = milestone.tieuDe?.trim() || first?.tieuDe?.trim() || "Bài viết";
-    const summary = truncate(milestone.moTa ?? first?.moTa ?? null, 165);
+    const caption =
+      milestoneCardCaptionForDisplay(
+        title,
+        milestone.moTa ?? first?.moTa ?? null,
+        first?.noiDungBlocks ?? null,
+      ) ??
+      milestone.moTa ??
+      first?.moTa ??
+      null;
+    const summary = truncate(stripMoTaMarkdown(caption ?? ""), 165);
 
     return {
       title,
