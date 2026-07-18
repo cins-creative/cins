@@ -209,7 +209,6 @@ export function PostMetaRail({
 
       {attachTags.length > 0 ? (
         <div className="post-rail-blk post-rail-blk--tags">
-          <div className="post-rail-lbl">Thẻ</div>
           <div className="post-rail-tags">
             {attachTags.map((t) => (
               <JourneyArticleTagLink

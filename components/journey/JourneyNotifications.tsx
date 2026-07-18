@@ -1650,7 +1650,10 @@ function FollowRequestModal({
               <ArrowRight size={14} strokeWidth={2.2} aria-hidden />
             </Link>
           </footer>
-          <JourneyUserFeaturedExpand slug={selected.slug} />
+          <JourneyUserFeaturedExpand
+            slug={selected.slug}
+            hasFeaturedHint={stats.tacPham > 0}
+          />
         </article>
       </div>
     </div>,

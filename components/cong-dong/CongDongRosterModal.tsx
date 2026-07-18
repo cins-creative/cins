@@ -1,14 +1,15 @@
 "use client";
 
 import { Loader2, Users, X } from "lucide-react";
-import { useCallback, useEffect, useId, useState, useTransition } from "react";
+import { useCallback, useEffect, useId, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 
-import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
+import { JourneySocialActorRow } from "@/components/journey/JourneySocialActorRow";
 import type { CongDongRosterMember } from "@/lib/cong-dong/types";
 import { getAvatarUrl } from "@/lib/journey/profile";
+import type { SocialActorProfile } from "@/lib/social/actors-types";
 
-const ROSTER_POPOVER_Z = 10600;
+import "@/components/journey/journey-social-actors.css";
 
 type Props = {
   open: boolean;
@@ -17,24 +18,85 @@ type Props = {
   orgLabel: string;
 };
 
-function MemberAvatar({
-  avatarId,
-  name,
-}: {
-  avatarId: string | null;
-  name: string;
-}) {
-  const src = avatarId ? getAvatarUrl(avatarId) : null;
-  return (
-    <span className="cd-v4-members-avatar" aria-hidden>
-      {src ? (
-        /* eslint-disable-next-line @next/next/no-img-element */
-        <img src={src} alt="" />
-      ) : (
-        <span>{name.charAt(0).toUpperCase()}</span>
-      )}
-    </span>
-  );
+type FetchState =
+  | { status: "idle" }
+  | { status: "loading" }
+  | {
+      status: "loadingMore";
+      members: CongDongRosterMember[];
+      actors: SocialActorProfile[];
+      total: number;
+      nextOffset: number | null;
+      viewerId: string | null;
+    }
+  | {
+      status: "ok";
+      members: CongDongRosterMember[];
+      actors: SocialActorProfile[];
+      total: number;
+      nextOffset: number | null;
+      viewerId: string | null;
+    }
+  | { status: "error"; message: string };
+
+function memberToFallbackActor(member: CongDongRosterMember): SocialActorProfile {
+  return {
+    idNguoiDung: member.id,
+    slug: member.slug,
+    tenHienThi: member.tenHienThi,
+    avatarUrl: member.avatarId ? getAvatarUrl(member.avatarId) : null,
+    tuongTacLuc: null,
+    bio: null,
+    giaiDoan: null,
+    tinhThanh: null,
+    mutualFriendCount: 0,
+    quanHe: "none",
+    ketBanId: null,
+    dangTheoDoi: false,
+  };
+}
+
+async function enrichMembers(
+  members: CongDongRosterMember[],
+): Promise<{ actors: SocialActorProfile[]; viewerId: string | null }> {
+  if (members.length === 0) {
+    return { actors: [], viewerId: null };
+  }
+
+  try {
+    const response = await fetch("/api/social/actor-profiles", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids: members.map((m) => m.id) }),
+    });
+    const json = (await response.json().catch(() => null)) as {
+      actors?: SocialActorProfile[];
+      viewerId?: string | null;
+      error?: string;
+    } | null;
+
+    if (!response.ok) {
+      return {
+        actors: members.map(memberToFallbackActor),
+        viewerId: null,
+      };
+    }
+
+    const byId = new Map(
+      (json?.actors ?? []).map((actor) => [actor.idNguoiDung, actor]),
+    );
+    return {
+      actors: members.map(
+        (member) => byId.get(member.id) ?? memberToFallbackActor(member),
+      ),
+      viewerId: json?.viewerId ?? null,
+    };
+  } catch {
+    return {
+      actors: members.map(memberToFallbackActor),
+      viewerId: null,
+    };
+  }
 }
 
 export function CongDongRosterModal({
@@ -44,17 +106,36 @@ export function CongDongRosterModal({
   orgLabel,
 }: Props) {
   const titleId = useId();
-  const [members, setMembers] = useState<CongDongRosterMember[]>([]);
-  const [total, setTotal] = useState(0);
-  const [nextOffset, setNextOffset] = useState<number | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
-  const [loadMorePending, startLoadMore] = useTransition();
+  const [mounted, setMounted] = useState(false);
+  const [state, setState] = useState<FetchState>({ status: "idle" });
+
+  useEffect(() => {
+    queueMicrotask(() => setMounted(true));
+  }, []);
+
+  const roleById = useMemo(() => {
+    if (state.status !== "ok" && state.status !== "loadingMore") {
+      return new Map<string, string>();
+    }
+    const map = new Map<string, string>();
+    for (const member of state.members) {
+      map.set(member.id, member.vaiTroLabel);
+    }
+    return map;
+  }, [state]);
 
   const loadPage = useCallback(
     async (offset: number, append: boolean) => {
-      if (!append) setLoading(true);
-      setErr(null);
+      if (append) {
+        setState((prev) =>
+          prev.status === "ok"
+            ? { ...prev, status: "loadingMore" }
+            : { status: "loading" },
+        );
+      } else {
+        setState({ status: "loading" });
+      }
+
       try {
         const res = await fetch(
           `/api/cong-dong/${orgId}/roster?offset=${offset}`,
@@ -66,161 +147,161 @@ export function CongDongRosterModal({
           nextOffset?: number | null;
           error?: string;
         } | null;
+
         if (!res.ok) {
-          setErr(json?.error ?? "Không tải được danh sách.");
-          if (!append) {
-            setMembers([]);
-            setTotal(0);
-            setNextOffset(null);
-          }
+          setState({
+            status: "error",
+            message: json?.error ?? "Không tải được danh sách.",
+          });
           return;
         }
+
         const page = json?.members ?? [];
-        setMembers((prev) => (append ? [...prev, ...page] : page));
-        setTotal(json?.total ?? page.length);
-        setNextOffset(
-          typeof json?.nextOffset === "number" ? json.nextOffset : null,
-        );
-      } finally {
-        if (!append) setLoading(false);
+        const total = json?.total ?? page.length;
+        const nextOffset =
+          typeof json?.nextOffset === "number" ? json.nextOffset : null;
+        const enriched = await enrichMembers(page);
+
+        setState((prev) => {
+          const prevMembers =
+            append && (prev.status === "ok" || prev.status === "loadingMore")
+              ? prev.members
+              : [];
+          const prevActors =
+            append && (prev.status === "ok" || prev.status === "loadingMore")
+              ? prev.actors
+              : [];
+          const prevViewer =
+            append && (prev.status === "ok" || prev.status === "loadingMore")
+              ? prev.viewerId
+              : null;
+
+          return {
+            status: "ok",
+            members: append ? [...prevMembers, ...page] : page,
+            actors: append ? [...prevActors, ...enriched.actors] : enriched.actors,
+            total,
+            nextOffset,
+            viewerId: enriched.viewerId ?? prevViewer,
+          };
+        });
+      } catch {
+        setState({ status: "error", message: "Lỗi mạng." });
       }
     },
     [orgId],
   );
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      queueMicrotask(() => setState({ status: "idle" }));
+      return;
+    }
     void loadPage(0, false);
   }, [open, loadPage]);
-
-  useEffect(() => {
-    if (!open) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, [open]);
 
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      document.removeEventListener("keydown", onKey);
+    };
   }, [open, onClose]);
 
-  if (!open || typeof document === "undefined") return null;
+  if (!mounted || !open) return null;
+
+  const actorCount =
+    state.status === "ok" || state.status === "loadingMore" ? state.total : null;
+  const viewerId =
+    state.status === "ok" || state.status === "loadingMore"
+      ? state.viewerId
+      : null;
 
   return createPortal(
-    <div
-      className="cd-v4-members-backdrop"
-      role="presentation"
-      onClick={onClose}
-    >
+    <div className="jsa-backdrop" role="presentation" onClick={onClose}>
       <div
-        className="cd-v4-members-modal cd-v4-roster-modal"
+        className="jsa-modal"
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         onClick={(e) => e.stopPropagation()}
       >
-        <header className="cd-v4-members-head">
-          <div className="cd-v4-members-head-copy">
-            <span className="cd-v4-members-head-icon" aria-hidden>
-              <Users size={18} strokeWidth={2} />
-            </span>
-            <div className="cd-v4-members-head-text">
-              <h2 id={titleId}>Thành viên cộng đồng</h2>
-              <p className="cd-v4-members-head-sub">
-                {orgLabel}
-                {total > 0 ? ` · ${total} người` : null}
-              </p>
-            </div>
+        <div className="jsa-head">
+          <span className="jsa-head-ico" aria-hidden>
+            <Users size={18} strokeWidth={1.9} />
+          </span>
+          <div className="jsa-head-copy">
+            <strong id={titleId}>Thành viên cộng đồng</strong>
+            <small>
+              {orgLabel}
+              {actorCount != null
+                ? ` · ${new Intl.NumberFormat("vi-VN").format(actorCount)} người`
+                : null}
+            </small>
           </div>
           <button
             type="button"
-            className="cd-v4-members-close"
+            className="jsa-close"
             aria-label="Đóng"
             onClick={onClose}
           >
-            <X size={18} strokeWidth={2} aria-hidden />
+            <X size={16} aria-hidden />
           </button>
-        </header>
-
-        <div className="cd-v4-members-body">
-          {err ? (
-            <p className="cd-v4-members-err" role="alert">
-              {err}
-            </p>
-          ) : null}
-
-          <section className="cd-v4-members-panel cd-v4-members-panel--list">
-            <div className="cd-v4-members-list-scroll">
-              {loading ? (
-                <p className="cd-v4-members-muted">
-                  <Loader2
-                    size={14}
-                    strokeWidth={2}
-                    className="cd-v4-members-spin"
-                    aria-hidden
-                  />
-                  Đang tải…
-                </p>
-              ) : members.length === 0 ? (
-                <p className="cd-v4-members-empty">Chưa có thành viên.</p>
-              ) : (
-                <ul className="cd-v4-members-list">
-                  {members.map((member) => (
-                    <li key={member.id}>
-                      <div className="cd-v4-members-row-copy">
-                        <JourneyUserPopover
-                          slug={member.slug}
-                          fallbackName={member.tenHienThi}
-                          fallbackAvatarUrl={
-                            member.avatarId
-                              ? getAvatarUrl(member.avatarId)
-                              : null
-                          }
-                          backdropZIndex={ROSTER_POPOVER_Z}
-                        >
-                          <span className="cd-v4-members-row-trigger">
-                            <MemberAvatar
-                              avatarId={member.avatarId}
-                              name={member.tenHienThi}
-                            />
-                            <div className="cd-v4-members-row-text">
-                              <strong>{member.tenHienThi}</strong>
-                              <span className="cd-v4-members-muted">
-                                {member.vaiTroLabel}
-                              </span>
-                            </div>
-                          </span>
-                        </JourneyUserPopover>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-
-            {nextOffset != null ? (
-              <button
-                type="button"
-                className="cd-v4-roster-more"
-                disabled={loadMorePending}
-                onClick={() =>
-                  startLoadMore(() => {
-                    void loadPage(nextOffset, true);
-                  })
-                }
-              >
-                {loadMorePending ? "Đang tải…" : "Xem thêm"}
-              </button>
-            ) : null}
-          </section>
         </div>
+
+        {state.status === "loading" || state.status === "idle" ? (
+          <p className="jsa-msg">
+            <Loader2
+              size={14}
+              strokeWidth={2}
+              className="cd-v4-members-spin"
+              aria-hidden
+            />
+            Đang tải…
+          </p>
+        ) : state.status === "error" ? (
+          <p className="jsa-msg jsa-msg--err">{state.message}</p>
+        ) : state.actors.length === 0 ? (
+          <p className="jsa-msg">
+            <Users size={14} strokeWidth={2} aria-hidden />
+            Chưa có thành viên.
+          </p>
+        ) : (
+          <>
+            <ul className="jsa-list" role="list">
+              {state.actors.map((actor) => (
+                <JourneySocialActorRow
+                  key={actor.idNguoiDung}
+                  actor={actor}
+                  viewerId={viewerId}
+                  subtitleOverride={roleById.get(actor.idNguoiDung) ?? null}
+                />
+              ))}
+            </ul>
+            {state.nextOffset != null ? (
+              <div className="jsa-more-wrap">
+                <button
+                  type="button"
+                  className="jsa-more"
+                  disabled={state.status === "loadingMore"}
+                  onClick={() => {
+                    const offset = state.nextOffset;
+                    if (offset == null) return;
+                    void loadPage(offset, true);
+                  }}
+                >
+                  {state.status === "loadingMore" ? "Đang tải…" : "Xem thêm"}
+                </button>
+              </div>
+            ) : null}
+          </>
+        )}
       </div>
     </div>,
     document.body,

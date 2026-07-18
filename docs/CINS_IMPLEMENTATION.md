@@ -114,7 +114,7 @@
 | `post-image/upload` · `article-inline-image` · `career-thumbnail` | Ảnh → Cloudflare |
 | `post-video/prepare` · `complete` · `processing` · `status` | Video → Bunny qua TUS (prepare ký request, complete/processing/status poll) |
 | `embed/thumbnail` | GET `?url=` — preview/auto thumb embed (auth): YouTube sync · Vimeo/Sketchfab oEmbed · OG fallback (Spline/PlayCanvas/Figma/…) |
-| `link/og` | GET `?url=` — OG scrape chat/link preview (auth); dùng chung SSRF helper với thumb embed |
+| `link/og` | GET `?url=` — chat link preview (auth). **CINs host** (`cins.vn` / `NEXT_PUBLIC_SITE_URL`): resolve DB nội bộ (`lib/link/cins-internal-preview.ts`) → card giàu avatar/cover/badge/meta. URL ngoài: scrape OG HTML. SSRF: `isSafePublicHttpUrl`. |
 | `share-theme/og-card` · `share-link` | Chủ card upload PNG snapshot lên Cloudflare Images, sau đó tạo short-link bất biến `/s/[token]`. `content_share_link` giữ target nội bộ + title/description + `image_id`/`image_url`; route short trả HTTP 200 có OG rồi soft-redirect người thật về target có `?s=token`. |
 
 ### Chat (`chat`)
@@ -404,18 +404,31 @@ Code map: `lib/editor/embed-thumbnail.ts` · `resolve-embed-thumbnail-server.ts`
 - Xin tham gia nội bộ: `user_thanh_vien_to_chuc.trang_thai=pending` → admin duyệt qua `PATCH .../members/:id` `{ action: "approve"|"reject" }` (`lib/cong-dong/members.ts`).
 - Tạo org: `POST /api/to-chuc` → **1 dòng** `user_thanh_vien_to_chuc` (**creator = `owner`**) + cột mốc Journey (`loai_moc=thanh_tuu`, `nguon_goc=sinh_tu_org_assign`) + `verify_xac_nhan` → filter **Verified**, vai trò **Người tạo cộng đồng**. CINs admin truy cập qua quyền hệ thống (trục 1, trang `/admin`) — **KHÔNG** thêm tài khoản hệ thống vào org. Trường seed / org bỏ hoang: super admin gán staff qua **`/admin/to-chuc` → Phân quyền** (L22). ⚠️ Org tạo bằng code cũ có thể còn pattern legacy "CINS `owner` + creator `admin`" → chuẩn hoá về creator=owner khi gặp (xem `CINS_DECISIONS.md` L20).
 - Nhãn lọc: admin định nghĩa taxonomy; seed 4 nhãn mặc định khi tạo (`lib/cong-dong/default-filters.ts`). Sửa nhãn trong trang cộng đồng (`CongDongFilterAdminModal`). Sau tạo → vào thẳng `/cong-dong/[slug]`.
-- **UI trang `/cong-dong/[slug]`** (`CongDongPageClient`, CSS `app/cong-dong/cong-dong.css`): layout 3 cột — sidebar org · feed · event rail (ẩn &lt;1100px). Nền trang: xám phẳng `#eceef2` (không dùng gradient `body`).
+- **UI trang `/cong-dong/[slug]`** (`CongDongPageClient`, CSS `app/cong-dong/cong-dong.css`): layout 3 cột — sidebar org · feed · event rail (ẩn &lt;1100px). Nền trang theo `--bg-page` (dark mode đồng bộ Journey).
 
-#### Menu thành viên (`CongDongRoleButton`)
+#### Topbar quản trị (`CongDongTopbarToolbar`) — L32
 
-Portal dropdown khi đã tham gia (nút vai trò ▾):
+Portal vào `#app-topbar-page-slot` (cùng pattern `CoSoAdminToolbar` / `TruongAdminToolbar`). Class: `.tb-truong-admin.tb-cong-dong-admin` + cam priv (`app/cins-truong-inline-edit.css`).
+
+| Phần tử | Khi nào | Hành vi |
+|---|---|---|
+| Nút Settings2 (cam) | `canOpenManage` | Mở `CongDongManageModal` |
+| Badge vai trò (cam) | Thành viên / CINs admin / system owner | Menu: thông báo · quản lý · rời (nếu được phép) |
+
+Nhãn badge: `listingRoleLabel` (`Chủ sở hữu` / `Admin` / …) hoặc `CINs` khi admin hệ thống chưa là member.
+
+#### Sidebar CTA (`CongDongRoleButton`)
+
+Chỉ còn tham gia / chờ duyệt / chia sẻ. **Không** còn nút vai trò hay “Quản lý cộng đồng” trong identity card.
+
+#### Menu thành viên (menu portal từ topbar)
+
+Portal dropdown khi mở badge vai trò trên topbar:
 
 | Mục | Ai thấy | Hành vi |
 |---|---|---|
-| Thông báo | Mọi thành viên | PATCH `/api/cong-dong/:id/theo-doi` (`muc_thong_bao`) |
-| Quản lý nhãn | `canManageLabels` (admin + quản trị nội dung) | Mở `CongDongFilterAdminModal` |
-| Cài đặt nhóm | `isCongDongAdmin` (server) | Mở `CongDongGroupSettingsModal` — gắn chủ đề nghề/ngành |
-| **Thành viên & quyền** | `canManageMembers` (= `vai_tro` **admin** only) | Mở `CongDongMembersModal` |
+| Thông báo | Thành viên (kể cả system owner) | PATCH `/api/cong-dong/:id/theo-doi` (`muc_thong_bao`) |
+| Quản lý cộng đồng | `canManageLabels` / `canManageMembers` / CINs admin | Mở `CongDongManageModal` |
 | Rời cộng đồng | `thanh_vien` | DELETE `/api/cong-dong/:id/tham-gia` |
 
 Helper vai trò: `lib/cong-dong/vai-tro.ts` (`canManageLabels`, `canManageMembers`, `CONG_DONG_ASSIGNABLE_ROLES`, …).

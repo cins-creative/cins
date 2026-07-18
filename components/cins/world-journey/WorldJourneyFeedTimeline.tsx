@@ -1,6 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 
 import { WorldJourneyFeedPromoRail } from "@/components/cins/world-journey/WorldJourneyFeedPromoRail";
 import {
@@ -12,7 +20,10 @@ import type { MilestoneItem } from "@/components/journey/milestone-types";
 import {
   canWorldJourneyInlineExpandOnFeed,
 } from "@/lib/cins/worldJourneyMilestoneFeed";
-import { WORLD_JOURNEY_FEED_SCROLL_ROOT_MARGIN } from "@/lib/cins/worldJourneyFeedConstants";
+import {
+  WORLD_JOURNEY_FEED_PREFETCH_REMAINING_POSTS,
+  WORLD_JOURNEY_FEED_SCROLL_ROOT_MARGIN,
+} from "@/lib/cins/worldJourneyFeedConstants";
 import {
   FEED_INLINE_PROMO_INTERVAL,
   FEED_PROMO_CYCLE,
@@ -145,7 +156,8 @@ export function WorldJourneyFeedTimeline({
 }: Props) {
   const [inlineExpand, setInlineExpand] =
     useState<TimelineInlineExpandState>(null);
-  const sentinelRef = useRef<HTMLDivElement>(null);
+  const earlySentinelRef = useRef<HTMLDivElement>(null);
+  const endSentinelRef = useRef<HTMLDivElement>(null);
   const promoBp = useFeedPromoBreakpoint();
 
   const byYear = useMemo(
@@ -164,12 +176,46 @@ export function WorldJourneyFeedTimeline({
     [milestones.length, feedPromos, viewerProfileId, promoBp],
   );
 
+  /**
+   * Early sentinel sau bài `length - PREFETCH` (~còn 3 bài) + giữ promo
+   * cùng slot nếu trùng chu kỳ xen kẽ.
+   */
+  const insertAfterPostCounts = useMemo(() => {
+    const map = new Map(promoInsertMap);
+    if (
+      !scrollLoad?.enabled ||
+      milestones.length <= WORLD_JOURNEY_FEED_PREFETCH_REMAINING_POSTS
+    ) {
+      return map;
+    }
+
+    const after =
+      milestones.length - WORLD_JOURNEY_FEED_PREFETCH_REMAINING_POSTS;
+    const existing = map.get(after) ?? null;
+    map.set(
+      after,
+      <Fragment key={`wj-feed-early-load-${after}`}>
+        {existing}
+        <div
+          ref={earlySentinelRef}
+          className="j-timeline-scroll-sentinel j-timeline-scroll-sentinel--early"
+          aria-hidden
+        />
+      </Fragment>,
+    );
+    return map;
+  }, [promoInsertMap, scrollLoad?.enabled, milestones.length]);
+
   useEffect(() => {
     if (!scrollLoad?.enabled || !onLoadMore) return;
     /* Đang xổ bài dài: sentinel dễ vào viewport → load-more đẩy feed → nhảy scroll. */
     if (inlineExpand?.showContent) return;
-    const node = sentinelRef.current;
-    if (!node || typeof IntersectionObserver === "undefined") return;
+    if (typeof IntersectionObserver === "undefined") return;
+
+    const nodes = [earlySentinelRef.current, endSentinelRef.current].filter(
+      (node): node is HTMLDivElement => node != null,
+    );
+    if (nodes.length === 0) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -177,11 +223,21 @@ export function WorldJourneyFeedTimeline({
           onLoadMore();
         }
       },
-      { root: null, rootMargin: WORLD_JOURNEY_FEED_SCROLL_ROOT_MARGIN, threshold: 0 },
+      {
+        root: null,
+        rootMargin: WORLD_JOURNEY_FEED_SCROLL_ROOT_MARGIN,
+        threshold: 0,
+      },
     );
-    observer.observe(node);
+    for (const node of nodes) observer.observe(node);
     return () => observer.disconnect();
-  }, [scrollLoad, onLoadMore, milestones.length, inlineExpand?.showContent]);
+  }, [
+    scrollLoad,
+    onLoadMore,
+    milestones.length,
+    inlineExpand?.showContent,
+    insertAfterPostCounts,
+  ]);
 
   const handleToggleContent = useCallback((milestone: MilestoneItem) => {
     if (!canInlineExpand(milestone)) return;
@@ -250,7 +306,7 @@ export function WorldJourneyFeedTimeline({
             onOpenComments={handleOpenComments}
             onCloseExpand={handleCloseExpand}
             postCountOffset={postCountOffset}
-            insertAfterPostCounts={promoInsertMap}
+            insertAfterPostCounts={insertAfterPostCounts}
           />
         );
         postCountOffset += yb.milestones.length;
@@ -258,7 +314,11 @@ export function WorldJourneyFeedTimeline({
       })}
 
       {scrollLoad?.enabled ? (
-        <div ref={sentinelRef} className="j-timeline-scroll-sentinel" aria-hidden />
+        <div
+          ref={endSentinelRef}
+          className="j-timeline-scroll-sentinel"
+          aria-hidden
+        />
       ) : null}
 
       {loadingMore ? (

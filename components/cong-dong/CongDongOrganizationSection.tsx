@@ -5,21 +5,20 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { OrgOwnerDangerConfirmModal } from "@/components/to-chuc/OrgOwnerDangerConfirmModal";
-import type { CoSoMemberAdmin } from "@/lib/to-chuc/co-so-settings-types";
+import { TransferOwnerModal } from "@/components/to-chuc/TransferOwnerModal";
+import type { CongDongMemberAdmin } from "@/lib/cong-dong/types";
 import type { StudioHoatDongStatus } from "@/lib/to-chuc/studio-lifecycle.shared";
 
-type DangerKind = "transfer" | "pause" | "resume" | "close";
+type DangerKind = "pause" | "resume" | "close";
 
 type Props = {
   orgId: string;
+  orgSlug: string;
   orgTen: string;
   trangThaiHoatDong: StudioHoatDongStatus;
   onStatusChange: (next: StudioHoatDongStatus) => void;
-  onError: (message: string | null) => void;
-  /** Sau đóng cửa — đóng settings + refresh / redirect. */
-  onClosed: () => void;
-  /** Sau bàn giao — đóng settings (không còn là owner). */
   onTransferred: () => void;
+  onClosed: () => void;
 };
 
 function statusLabel(status: StudioHoatDongStatus): string {
@@ -28,36 +27,41 @@ function statusLabel(status: StudioHoatDongStatus): string {
   return "Đang hoạt động";
 }
 
-export function StudioSettingsOrganizationSection({
+export function CongDongOrganizationSection({
   orgId,
+  orgSlug,
   orgTen,
   trangThaiHoatDong,
   onStatusChange,
-  onError,
-  onClosed,
   onTransferred,
+  onClosed,
 }: Props) {
   const router = useRouter();
-  const [members, setMembers] = useState<CoSoMemberAdmin[]>([]);
+  const [members, setMembers] = useState<CongDongMemberAdmin[]>([]);
   const [loadingMembers, setLoadingMembers] = useState(true);
   const [transferMemberId, setTransferMemberId] = useState("");
+  const [transferOpen, setTransferOpen] = useState(false);
+  const [transferPending, setTransferPending] = useState(false);
+  const [transferError, setTransferError] = useState<string | null>(null);
   const [danger, setDanger] = useState<DangerKind | null>(null);
   const [pending, setPending] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
+  const [sectionError, setSectionError] = useState<string | null>(null);
 
   const loadMembers = useCallback(async () => {
     setLoadingMembers(true);
+    setSectionError(null);
     try {
       const res = await fetch(
-        `/api/studio/${encodeURIComponent(orgId)}/members`,
+        `/api/cong-dong/${encodeURIComponent(orgId)}/members`,
         { credentials: "same-origin" },
       );
       const json = (await res.json().catch(() => null)) as {
-        members?: CoSoMemberAdmin[];
+        members?: CongDongMemberAdmin[];
         error?: string;
       } | null;
       if (!res.ok) {
-        onError(json?.error ?? "Không tải được danh sách thành viên.");
+        setSectionError(json?.error ?? "Không tải được danh sách thành viên.");
         setMembers([]);
         return;
       }
@@ -65,7 +69,7 @@ export function StudioSettingsOrganizationSection({
     } finally {
       setLoadingMembers(false);
     }
-  }, [orgId, onError]);
+  }, [orgId]);
 
   useEffect(() => {
     void loadMembers();
@@ -74,10 +78,7 @@ export function StudioSettingsOrganizationSection({
   const transferCandidates = useMemo(
     () =>
       members.filter(
-        (m) =>
-          m.trangThai === "active" &&
-          m.vaiTro !== "owner" &&
-          !m.isSelf,
+        (m) => m.vaiTro !== "owner" && m.trangThai !== "pending",
       ),
     [members],
   );
@@ -87,7 +88,7 @@ export function StudioSettingsOrganizationSection({
   );
 
   function openDanger(kind: DangerKind) {
-    onError(null);
+    setSectionError(null);
     setModalError(null);
     setDanger(kind);
   }
@@ -106,7 +107,7 @@ export function StudioSettingsOrganizationSection({
     setModalError(null);
     try {
       const res = await fetch(
-        `/api/studio/${encodeURIComponent(orgId)}/lifecycle`,
+        `/api/cong-dong/${encodeURIComponent(orgId)}/lifecycle`,
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -126,7 +127,7 @@ export function StudioSettingsOrganizationSection({
       setDanger(null);
       if (action === "close") {
         onClosed();
-        router.push("/studio");
+        router.push("/cong-dong");
         router.refresh();
         return;
       }
@@ -136,74 +137,53 @@ export function StudioSettingsOrganizationSection({
     }
   }
 
-  async function runTransfer(confirmTen: string) {
+  async function runTransfer(confirmSlug: string) {
     if (!transferTarget) {
-      setModalError("Chọn thành viên nhận quyền sở hữu.");
+      setTransferError("Chọn thành viên nhận quyền sở hữu.");
       return;
     }
-    setPending(true);
-    setModalError(null);
+    setTransferPending(true);
+    setTransferError(null);
     try {
       const res = await fetch(
-        `/api/studio/${encodeURIComponent(orgId)}/transfer-owner`,
+        `/api/cong-dong/${encodeURIComponent(orgId)}/transfer-owner`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "same-origin",
           body: JSON.stringify({
             membershipId: transferTarget.id,
-            confirmTen,
+            confirmSlug,
           }),
         },
       );
       const json = (await res.json().catch(() => null)) as {
-        members?: CoSoMemberAdmin[];
         error?: string;
       } | null;
       if (!res.ok) {
-        setModalError(json?.error ?? "Không bàn giao được quyền sở hữu.");
+        setTransferError(json?.error ?? "Không bàn giao được quyền sở hữu.");
         return;
       }
-      setDanger(null);
+      setTransferOpen(false);
+      setTransferMemberId("");
       onTransferred();
       router.refresh();
     } finally {
-      setPending(false);
+      setTransferPending(false);
     }
   }
 
   const confirmConfig = (() => {
     if (!danger) return null;
-    if (danger === "transfer") {
-      return {
-        title: "Bàn giao quyền sở hữu",
-        confirmButtonLabel: "Bàn giao quyền sở hữu",
-        warning: (
-          <p style={{ margin: 0 }}>
-            Bạn sắp chuyển <strong>quyền sở hữu tối đa</strong> của{" "}
-            <strong>{orgTen}</strong>
-            {transferTarget ? (
-              <>
-                {" "}
-                cho <strong>{transferTarget.tenHienThi}</strong>
-              </>
-            ) : null}
-            . Sau khi bàn giao, bạn trở thành <strong>quản trị viên</strong> và{" "}
-            <strong>không còn quyền sở hữu</strong>.
-          </p>
-        ),
-        onConfirm: runTransfer,
-      };
-    }
     if (danger === "pause") {
       return {
-        title: "Tạm dừng studio",
-        confirmButtonLabel: "Tạm dừng studio",
+        title: "Tạm dừng cộng đồng",
+        confirmButtonLabel: "Tạm dừng cộng đồng",
         warning: (
           <p style={{ margin: 0 }}>
-            Studio <strong>{orgTen}</strong> sẽ bị ẩn khỏi hub và tìm kiếm. Trang
-            vẫn mở được kèm thông báo tạm ngưng. Bạn có thể mở lại bất kỳ lúc
-            nào.
+            Cộng đồng <strong>{orgTen}</strong> sẽ bị ẩn khỏi danh sách và tìm
+            kiếm. Thành viên vẫn vào được trang kèm trạng thái tạm ngưng. Bạn có
+            thể mở lại bất kỳ lúc nào.
           </p>
         ),
         onConfirm: (ten: string) => runLifecycle("pause", ten),
@@ -211,25 +191,25 @@ export function StudioSettingsOrganizationSection({
     }
     if (danger === "resume") {
       return {
-        title: "Mở lại studio",
-        confirmButtonLabel: "Mở lại studio",
+        title: "Mở lại cộng đồng",
+        confirmButtonLabel: "Mở lại cộng đồng",
         warning: (
           <p style={{ margin: 0 }}>
-            Studio <strong>{orgTen}</strong> sẽ hiện lại trên hub và tìm kiếm,
-            trạng thái hoạt động bình thường.
+            Cộng đồng <strong>{orgTen}</strong> sẽ hiện lại trên danh sách và tìm
+            kiếm, trạng thái hoạt động bình thường.
           </p>
         ),
         onConfirm: (ten: string) => runLifecycle("resume", ten),
       };
     }
     return {
-      title: "Xóa studio",
-      confirmButtonLabel: "Xóa studio",
+      title: "Xóa cộng đồng",
+      confirmButtonLabel: "Xóa cộng đồng",
       warning: (
         <p style={{ margin: 0 }}>
-          Studio <strong>{orgTen}</strong> sẽ bị xóa và biến mất khỏi CINs —
-          không còn trên hub, tìm kiếm hay trang công khai. Hành động này không
-          thể hoàn tác.
+          Cộng đồng <strong>{orgTen}</strong> sẽ bị xóa và biến mất khỏi CINs —
+          không còn trên danh sách, tìm kiếm hay trang công khai. Hành động này
+          không thể hoàn tác.
         </p>
       ),
       onConfirm: (ten: string) => runLifecycle("close", ten),
@@ -240,11 +220,17 @@ export function StudioSettingsOrganizationSection({
   const isPaused = trangThaiHoatDong === "tam_ngung";
 
   return (
-    <section className="sps-org" aria-label="Tổ chức">
-      <div className="sps-org-status">
-        <span className="sps-org-status-label">Trạng thái</span>
+    <section className="cd-manage-org" aria-label="Tổ chức">
+      {sectionError ? (
+        <p className="cd-manage-org-err" role="alert">
+          {sectionError}
+        </p>
+      ) : null}
+
+      <div className="cd-manage-org-status">
+        <span className="cd-manage-org-status-label">Trạng thái</span>
         <span
-          className={`sps-org-status-badge${
+          className={`cd-manage-org-status-badge${
             isClosed ? " is-closed" : isPaused ? " is-paused" : ""
           }`}
         >
@@ -252,26 +238,26 @@ export function StudioSettingsOrganizationSection({
         </span>
       </div>
 
-      <div className="sps-org-block">
-        <div className="sps-org-block-head">
+      <div className="cd-manage-org-block">
+        <div className="cd-manage-org-block-head">
           <UserCog size={16} strokeWidth={2} aria-hidden />
-          <h4 className="sps-org-block-title">Chuyển nhượng</h4>
+          <h4 className="cd-manage-org-block-title">Chuyển nhượng</h4>
         </div>
-        <p className="sps-org-block-hint">
-          Chuyển quyền sở hữu tối đa cho một thành viên đang tham gia. Chỉ chủ
-          sở hữu thực hiện được.
+        <p className="cd-manage-org-block-hint">
+          Chuyển quyền sở hữu tối đa cho một thành viên đang tham gia. Chỉ chủ sở
+          hữu thực hiện được.
         </p>
         {loadingMembers ? (
-          <p className="sps-org-muted">Đang tải thành viên…</p>
+          <p className="cd-manage-org-muted">Đang tải thành viên…</p>
         ) : transferCandidates.length === 0 ? (
-          <p className="sps-org-muted">
-            Chưa có thành viên phù hợp để nhận quyền sở hữu. Mời người khác ở
+          <p className="cd-manage-org-muted">
+            Chưa có thành viên phù hợp để nhận quyền sở hữu. Thêm thành viên ở
             tab Thành viên trước.
           </p>
         ) : (
-          <div className="sps-org-transfer-row">
+          <div className="cd-manage-org-transfer-row">
             <select
-              className="sps-org-select"
+              className="cd-manage-org-select"
               value={transferMemberId}
               onChange={(e) => setTransferMemberId(e.target.value)}
               aria-label="Thành viên nhận quyền sở hữu"
@@ -285,9 +271,12 @@ export function StudioSettingsOrganizationSection({
             </select>
             <button
               type="button"
-              className="uas-btn ghost sps-org-danger-btn"
+              className="cd-v4-btn cd-v4-btn--ghost cd-manage-org-danger-btn"
               disabled={!transferMemberId || isClosed}
-              onClick={() => openDanger("transfer")}
+              onClick={() => {
+                setTransferError(null);
+                setTransferOpen(true);
+              }}
             >
               Chuyển nhượng…
             </button>
@@ -295,25 +284,25 @@ export function StudioSettingsOrganizationSection({
         )}
       </div>
 
-      <div className="sps-org-block">
-        <div className="sps-org-block-head">
+      <div className="cd-manage-org-block">
+        <div className="cd-manage-org-block-head">
           {isPaused ? (
             <PlayCircle size={16} strokeWidth={2} aria-hidden />
           ) : (
             <PauseCircle size={16} strokeWidth={2} aria-hidden />
           )}
-          <h4 className="sps-org-block-title">
-            {isPaused ? "Mở lại studio" : "Tạm dừng"}
+          <h4 className="cd-manage-org-block-title">
+            {isPaused ? "Mở lại cộng đồng" : "Tạm dừng"}
           </h4>
         </div>
-        <p className="sps-org-block-hint">
+        <p className="cd-manage-org-block-hint">
           {isPaused
-            ? "Studio đang tạm ngưng — mở lại để hiện trên hub và tìm kiếm."
-            : "Ẩn studio khỏi hub và tìm kiếm; trang vẫn xem được kèm thông báo tạm ngưng."}
+            ? "Cộng đồng đang tạm ngưng — mở lại để hiện trên danh sách và tìm kiếm."
+            : "Ẩn cộng đồng khỏi danh sách và tìm kiếm; thành viên vẫn xem được kèm thông báo tạm ngưng."}
         </p>
         <button
           type="button"
-          className="uas-btn ghost sps-org-danger-btn"
+          className="cd-v4-btn cd-v4-btn--ghost cd-manage-org-danger-btn"
           disabled={isClosed}
           onClick={() => openDanger(isPaused ? "resume" : "pause")}
         >
@@ -321,23 +310,39 @@ export function StudioSettingsOrganizationSection({
         </button>
       </div>
 
-      <div className="sps-org-block sps-org-block--close">
-        <div className="sps-org-block-head">
+      <div className="cd-manage-org-block cd-manage-org-block--close">
+        <div className="cd-manage-org-block-head">
           <AlertTriangle size={16} strokeWidth={2} aria-hidden />
-          <h4 className="sps-org-block-title">Xóa studio</h4>
+          <h4 className="cd-manage-org-block-title">Xóa cộng đồng</h4>
         </div>
-        <p className="sps-org-block-hint">
+        <p className="cd-manage-org-block-hint">
           Xóa vĩnh viễn khỏi CINs. Không thể khôi phục.
         </p>
         <button
           type="button"
-          className="uas-btn sps-org-close-btn"
+          className="cd-v4-btn cd-manage-org-close-btn"
           disabled={isClosed}
           onClick={() => openDanger("close")}
         >
-          {isClosed ? "Đã xóa" : "Xóa studio…"}
+          {isClosed ? "Đã xóa" : "Xóa cộng đồng…"}
         </button>
       </div>
+
+      <TransferOwnerModal
+        open={transferOpen}
+        orgSlug={orgSlug}
+        orgLabel={orgTen}
+        targetName={transferTarget?.tenHienThi ?? ""}
+        pending={transferPending}
+        error={transferError}
+        onConfirm={runTransfer}
+        onClose={() => {
+          if (!transferPending) {
+            setTransferOpen(false);
+            setTransferError(null);
+          }
+        }}
+      />
 
       {confirmConfig ? (
         <OrgOwnerDangerConfirmModal

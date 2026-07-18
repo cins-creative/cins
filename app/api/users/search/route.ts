@@ -5,6 +5,18 @@ import { listFollowingUserIds } from "@/lib/social/follow";
 import { listFriends } from "@/lib/social/ket-ban";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
+export type UserSearchQuanHe = "ban_be" | "theo_doi" | "nguoi_la";
+
+const QUAN_HE_RANK: Record<UserSearchQuanHe, number> = {
+  ban_be: 0,
+  theo_doi: 1,
+  nguoi_la: 2,
+};
+
+function escapeIlike(raw: string): string {
+  return raw.replace(/[%_,]/g, "\\$&");
+}
+
 export async function GET(req: Request) {
   const session = await getCurrentSessionAndProfile();
   if (!session?.profile) {
@@ -17,6 +29,7 @@ export async function GET(req: Request) {
   const q = (searchParams.get("q") ?? "").trim().toLowerCase();
   const friendsOnly = searchParams.get("friends_only") === "true";
   const mutualOnly = searchParams.get("mutual_only") === "true";
+  const rankRelation = searchParams.get("rank_relation") === "true";
   const orgId = (searchParams.get("org_id") ?? "").trim();
   const limitRaw = Number.parseInt(searchParams.get("limit") ?? "", 10);
   const limit = Number.isFinite(limitRaw)
@@ -26,14 +39,23 @@ export async function GET(req: Request) {
       : 40;
 
   const admin = createServiceRoleClient();
+
+  const needRelationSets = friendsOnly || mutualOnly || rankRelation;
+  let friends: string[] = [];
+  let following: string[] = [];
+  if (needRelationSets) {
+    [friends, following] = await Promise.all([
+      listFriends(profileId),
+      listFollowingUserIds(profileId),
+    ]);
+  }
+
   let allowedIds: string[] | null = null;
   if (friendsOnly || mutualOnly) {
-    const friends = await listFriends(profileId);
     if (friendsOnly) {
       allowedIds = friends.filter((id) => id !== profileId);
     } else {
       // mutual_only: bạn bè + người mình đang theo dõi.
-      const following = await listFollowingUserIds(profileId);
       allowedIds = [...new Set([...friends, ...following])].filter(
         (id) => id !== profileId,
       );
@@ -58,7 +80,8 @@ export async function GET(req: Request) {
   }
 
   if (q.length >= 1) {
-    query = query.or(`slug.ilike.%${q}%,ten_hien_thi.ilike.%${q}%`);
+    const safe = escapeIlike(q);
+    query = query.or(`slug.ilike.%${safe}%,ten_hien_thi.ilike.%${safe}%`);
   }
 
   const { data, error } = await query;
@@ -66,7 +89,15 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  const users = (data ?? []).map((u) => ({
+  type UserRow = {
+    id: string;
+    slug: string;
+    ten_hien_thi: string;
+    avatar_id: string | null;
+    quan_he?: UserSearchQuanHe;
+  };
+
+  let users: UserRow[] = (data ?? []).map((u) => ({
     id: u.id,
     slug: u.slug,
     ten_hien_thi: u.ten_hien_thi,
@@ -92,15 +123,37 @@ export async function GET(req: Request) {
 
     const owner = ownerMember?.user_nguoi_dung;
     if (owner?.id) {
-      const ownerUser = {
+      const ownerUser: UserRow = {
         id: owner.id,
         slug: owner.slug ?? "",
-        ten_hien_thi: owner.ten_hien_thi,
+        ten_hien_thi: owner.ten_hien_thi ?? "",
         avatar_id: owner.avatar_id ?? null,
       };
       const rest = users.filter((u) => u.id !== owner.id);
-      return NextResponse.json({ users: [ownerUser, ...rest] });
+      users = [ownerUser, ...rest];
     }
+  }
+
+  if (rankRelation) {
+    const friendSet = new Set(friends);
+    const followingSet = new Set(following);
+    users = users
+      .map((u) => {
+        const quan_he: UserSearchQuanHe = friendSet.has(u.id)
+          ? "ban_be"
+          : followingSet.has(u.id)
+            ? "theo_doi"
+            : "nguoi_la";
+        return { ...u, quan_he };
+      })
+      .sort((a, b) => {
+        const rankA = QUAN_HE_RANK[a.quan_he ?? "nguoi_la"];
+        const rankB = QUAN_HE_RANK[b.quan_he ?? "nguoi_la"];
+        if (rankA !== rankB) return rankA - rankB;
+        const nameA = (a.ten_hien_thi || a.slug).toLocaleLowerCase("vi");
+        const nameB = (b.ten_hien_thi || b.slug).toLocaleLowerCase("vi");
+        return nameA.localeCompare(nameB, "vi");
+      });
   }
 
   return NextResponse.json({ users });

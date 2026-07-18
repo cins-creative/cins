@@ -38,6 +38,7 @@ import {
   ORG_NOTIFY_DEFAULT,
 } from "@/lib/social/org-notify";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { normalizeStudioHoatDong } from "@/lib/to-chuc/studio-lifecycle.shared";
 
 function resolveCinsSystemUserId(): string | null {
   try {
@@ -59,12 +60,13 @@ export async function fetchCongDongBySlug(
   cover_id: string | null;
   cau_hinh: unknown;
   trang_thai_tin_cay: CongDongTrangThaiTinCay;
+  trang_thai_hoat_dong: string | null;
 } | null> {
   const admin = createServiceRoleClient();
   const { data } = await admin
     .from("org_to_chuc")
     .select(
-      "id, slug, ten, mo_ta, tinh_thanh, avatar_id, cover_id, cau_hinh, loai_to_chuc, trang_thai_tin_cay",
+      "id, slug, ten, mo_ta, tinh_thanh, avatar_id, cover_id, cau_hinh, loai_to_chuc, trang_thai_tin_cay, trang_thai_hoat_dong",
     )
     .eq("slug", slug.trim())
     .eq("loai_to_chuc", "cong_dong")
@@ -79,6 +81,7 @@ export async function fetchCongDongBySlug(
       cau_hinh: unknown;
       loai_to_chuc: string;
       trang_thai_tin_cay: CongDongTrangThaiTinCay;
+      trang_thai_hoat_dong: string | null;
     }>();
   if (!data) return null;
   return data;
@@ -90,8 +93,9 @@ export async function listCongDongOrgs(
   const admin = createServiceRoleClient();
   const { data: rows } = await admin
     .from("org_to_chuc")
-    .select("id, slug, ten, mo_ta, tinh_thanh, avatar_id, cover_id, cau_hinh")
+    .select("id, slug, ten, mo_ta, tinh_thanh, avatar_id, cover_id, cau_hinh, trang_thai_hoat_dong")
     .eq("loai_to_chuc", "cong_dong")
+    .not("trang_thai_hoat_dong", "in", "(tam_ngung,da_dong_cua)")
     .order("ten", { ascending: true })
     .limit(100);
 
@@ -153,6 +157,9 @@ export async function listCongDongOrgs(
       coverId: row.cover_id,
       cheDo,
       trangThaiTinCay: "binh_thuong",
+      trangThaiHoatDong: normalizeStudioHoatDong(
+        (row as { trang_thai_hoat_dong?: string | null }).trang_thai_hoat_dong,
+      ),
       soThanhVien: countMap.get(row.id) ?? 0,
       soBaiViet: 0,
       soBaiMoi7Ngay: recentPostCounts.get(row.id) ?? 0,
@@ -251,6 +258,7 @@ export async function loadCongDongPageData(params: {
       coverId: orgRow.cover_id,
       cheDo,
       trangThaiTinCay: orgRow.trang_thai_tin_cay ?? "binh_thuong",
+      trangThaiHoatDong: normalizeStudioHoatDong(orgRow.trang_thai_hoat_dong),
       soThanhVien,
       soBaiViet,
       soBaiMoi7Ngay: 0,

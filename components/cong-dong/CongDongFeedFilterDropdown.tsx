@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, ChevronDown, ListFilter } from "lucide-react";
+import { Check, ChevronDown, Tag } from "lucide-react";
 import {
   useCallback,
   useEffect,
@@ -157,7 +157,7 @@ export function CongDongFeedFilterDropdown({
                 {isTlb ? (
                   <span className="j-dd-opt-main">
                     <span className="j-dd-ico" aria-hidden>
-                      <ListFilter size={14} strokeWidth={1.8} />
+                      <Tag size={14} strokeWidth={1.8} />
                     </span>
                     <span className="j-dd-lbl">Tất cả</span>
                   </span>
@@ -250,7 +250,7 @@ export function CongDongFeedFilterDropdown({
         >
           {isDefaultFilter ? (
             <span className="j-tlb-dd-ico" aria-hidden>
-              <ListFilter size={14} strokeWidth={1.8} />
+              <Tag size={14} strokeWidth={1.8} />
             </span>
           ) : (
             <>

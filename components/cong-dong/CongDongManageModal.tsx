@@ -1,19 +1,25 @@
 "use client";
 
-import { Layers3, Settings2, Tags, Users, X } from "lucide-react";
+import { Building2, Layers3, Settings2, Tags, Users, X } from "lucide-react";
 import { useEffect, useId, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { CongDongFilterAdminPanel } from "@/components/cong-dong/CongDongFilterAdmin";
 import { CongDongGroupSettingsPanel } from "@/components/cong-dong/CongDongGroupSettingsModal";
 import { CongDongMembersModal } from "@/components/cong-dong/CongDongMembersModal";
+import { CongDongOrganizationSection } from "@/components/cong-dong/CongDongOrganizationSection";
 import type {
   CongDongCategory,
   CongDongFilter,
   CongDongLinhVuc,
 } from "@/lib/cong-dong/types";
+import type { StudioHoatDongStatus } from "@/lib/to-chuc/studio-lifecycle.shared";
 
-export type CongDongManageSection = "chu_de" | "nhan" | "thanh_vien";
+export type CongDongManageSection =
+  | "chu_de"
+  | "nhan"
+  | "thanh_vien"
+  | "to_chuc";
 
 type Props = {
   open: boolean;
@@ -26,6 +32,7 @@ type Props = {
   canTopics: boolean;
   canLabels: boolean;
   canMembers: boolean;
+  trangThaiHoatDong: StudioHoatDongStatus;
   categories: CongDongCategory[];
   linhVucs: CongDongLinhVuc[];
   filters: CongDongFilter[];
@@ -34,6 +41,8 @@ type Props = {
     categories: CongDongCategory[];
     linhVucs: CongDongLinhVuc[];
   }) => void;
+  onHoatDongChange: (next: StudioHoatDongStatus) => void;
+  onOwnershipTransferred: () => void;
 };
 
 type NavItem = {
@@ -54,11 +63,14 @@ export function CongDongManageModal({
   canTopics,
   canLabels,
   canMembers,
+  trangThaiHoatDong,
   categories,
   linhVucs,
   filters,
   onFiltersChange,
   onTopicsSaved,
+  onHoatDongChange,
+  onOwnershipTransferred,
 }: Props) {
   const titleId = useId();
 
@@ -88,8 +100,16 @@ export function CongDongManageModal({
         icon: Users,
       });
     }
+    if (viewerIsOwner) {
+      items.push({
+        id: "to_chuc",
+        label: "Tổ chức",
+        blurb: "Chuyển nhượng, tạm dừng, xóa",
+        icon: Building2,
+      });
+    }
     return items;
-  }, [canTopics, canLabels, canMembers]);
+  }, [canTopics, canLabels, canMembers, viewerIsOwner]);
 
   const resolvedInitial = useMemo(() => {
     if (initialSection && nav.some((n) => n.id === initialSection)) {
@@ -226,6 +246,23 @@ export function CongDongManageModal({
                   orgSlug={orgSlug}
                   orgLabel={orgLabel}
                   viewerIsOwner={viewerIsOwner}
+                />
+              ) : null}
+
+              {viewerIsOwner && section === "to_chuc" ? (
+                <CongDongOrganizationSection
+                  orgId={orgId}
+                  orgSlug={orgSlug}
+                  orgTen={orgLabel}
+                  trangThaiHoatDong={trangThaiHoatDong}
+                  onStatusChange={onHoatDongChange}
+                  onTransferred={() => {
+                    onOwnershipTransferred();
+                    onClose();
+                  }}
+                  onClosed={() => {
+                    onClose();
+                  }}
                 />
               ) : null}
             </div>

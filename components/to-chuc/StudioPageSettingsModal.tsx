@@ -425,7 +425,7 @@ export function StudioPageSettingsModal({
                     Tổ chức
                   </h3>
                   <p className="uas-section-hint">
-                    Chuyển nhượng, tạm dừng hoặc đóng cửa studio — chỉ chủ sở hữu.
+                    Chuyển nhượng, tạm dừng hoặc xóa studio — chỉ chủ sở hữu.
                     Mọi hành động cần xác nhận bằng tên tổ chức.
                   </p>
                 </div>

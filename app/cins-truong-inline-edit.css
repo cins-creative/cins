@@ -100,6 +100,12 @@
   gap: 7px;
 }
 
+/* Cộng đồng — chevron gọn cạnh tên vai trò */
+.cins-app-topbar .tb-cong-dong-admin .tb-truong-role-btn svg:last-child {
+  opacity: 0.72;
+  flex-shrink: 0;
+}
+
 .cins-app-topbar .tb-truong-role-name {
   font-weight: 700;
   white-space: nowrap;
@@ -126,6 +132,7 @@
 .cins-app-topbar .tb-truong-role-btn--super_admin:not(.is-active),
 .cins-app-topbar .tb-truong-role-btn--admin:not(.is-active),
 .cins-app-topbar .tb-truong-role-btn--curator:not(.is-active),
+.cins-app-topbar .tb-truong-role-btn--owner:not(.is-active),
 .cins-app-topbar .tb-truong-role-btn--org:not(.is-active) {
   border-color: var(--cins-priv-accent-border);
   color: var(--cins-priv-accent-strong);
@@ -551,6 +558,22 @@
   color: var(--ink-title, rgba(255, 255, 255, 0.72));
 }
 
+:root[data-theme="dark"] .tdh-inline-field input,
+:root[data-theme="dark"] .tdh-inline-field textarea,
+:root[data-theme="dark"] .tdh-inline-field select {
+  background: var(--bg-page, #0e1117);
+  border-color: var(--border, #2a3040);
+  color: var(--ink-display, rgba(255, 255, 255, 0.92));
+  box-shadow: none;
+}
+
+:root[data-theme="dark"] .tdh-inline-field input:focus,
+:root[data-theme="dark"] .tdh-inline-field textarea:focus,
+:root[data-theme="dark"] .tdh-inline-field select:focus {
+  border-color: var(--cins-priv-accent, #fdad4c);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cins-priv-accent, #fdad4c) 22%, transparent);
+}
+
 .tdh-inline-modal--wide {
   max-width: min(720px, calc(100vw - 40px));
   max-height: min(90vh, 900px);
@@ -638,7 +661,7 @@
 .tdh-inline-field textarea,
 .tdh-inline-field select {
   padding: 8px 10px;
-  border: 1.5px solid var(--border2, #c8cdd6);
+  border: 1.5px solid var(--border-strong, var(--border, #c8cdd6));
   border-radius: 6px;
   font: inherit;
   background: var(--bg-surface, #fff);

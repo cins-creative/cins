@@ -30,7 +30,6 @@ import { congDongFeedPostCoverUrl } from "@/lib/cong-dong/feed-post-cover";
 import type { ContentSurfaceView } from "@/lib/cins/content-surface-view";
 import {
   CongDongManageModal,
-  CongDongManageTriggerButton,
 } from "@/components/cong-dong/CongDongManageModal";
 import { CongDongRosterModal } from "@/components/cong-dong/CongDongRosterModal";
 import {
@@ -38,6 +37,10 @@ import {
   CongDongOrgBrandingCover,
 } from "@/components/cong-dong/CongDongOrgBranding";
 import { CongDongFeedFilterDropdown } from "@/components/cong-dong/CongDongFeedFilterDropdown";
+import {
+  CongDongFeedSortDropdown,
+  type CongDongFeedSortMode,
+} from "@/components/cong-dong/CongDongFeedSortDropdown";
 import { CongDongNotifySidebar } from "@/components/cong-dong/CongDongNotifySidebar";
 import { OrgNotifyFab, OrgNotifyFabHost } from "@/components/org/OrgNotifyFab";
 import { CongDongFeedPostContent } from "@/components/cong-dong/CongDongFeedPostContent";
@@ -48,6 +51,7 @@ import { JourneyMilestoneUnfold } from "@/components/journey/JourneyMilestoneUnf
 import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
 import { JourneyPostCommentsBlock } from "@/components/journey/JourneyPostBody";
 import { CongDongRoleButton } from "@/components/cong-dong/CongDongRoleButton";
+import { CongDongTopbarToolbar } from "@/components/cong-dong/CongDongTopbarToolbar";
 import {
   compareCongDongPostsByMilestoneDate,
   congDongPostTimelineParts,
@@ -126,7 +130,7 @@ function CongDongCoverPrivacyBadge({ cheDo }: { cheDo: CongDongCheDo }) {
 }
 
 type FeedView = ContentSurfaceView;
-type SortMode = "moi" | "tuongtac" | "az";
+type SortMode = CongDongFeedSortMode;
 
 /** Khớp `@media (max-width: 1100px)` ẩn `.cd-v4-event-rail-col`. */
 const CONG_DONG_NOTIFY_FAB_MQ = "(max-width: 1100px)";
@@ -199,7 +203,10 @@ export function CongDongPageClient({ initial }: Props) {
   const canManageMembersView = canManageMembers(viewerVaiTro) || isCinsAdmin;
   const canManageTopicsView = initial.isAdmin;
   const canOpenManage =
-    canManageLabelsView || canManageMembersView || canManageTopicsView;
+    canManageLabelsView ||
+    canManageMembersView ||
+    canManageTopicsView ||
+    viewerVaiTro === "owner";
   const [notifyLevel, setNotifyLevel] = useState<OrgNotifyLevel>(
     initial.notifyLevel,
   );
@@ -470,6 +477,18 @@ export function CongDongPageClient({ initial }: Props) {
 
   const page = (
     <>
+    <CongDongTopbarToolbar
+      orgId={org.id}
+      isThanhVien={isThanhVien}
+      viewerVaiTro={viewerVaiTro}
+      isCinsAdmin={isCinsAdmin}
+      hideForOwner={initial.hideMembershipForOwner}
+      canManage={canOpenManage}
+      initialNotifyLevel={notifyLevel}
+      onNotifyLevelChange={setNotifyLevel}
+      onLeft={onLeftCommunity}
+      onOpenManage={() => setManageOpen(true)}
+    />
     <div className="cd-v4-page">
       <div className="cd-v4-layout">
         <aside className="cd-v4-id">
@@ -496,11 +515,6 @@ export function CongDongPageClient({ initial }: Props) {
               <div className="cd-v4-id-head-main">
                 <h1 className="cd-v4-title">{org.ten}</h1>
                 {org.moTa ? <p className="cd-v4-desc">{org.moTa}</p> : null}
-                {canOpenManage ? (
-                  <CongDongManageTriggerButton
-                    onClick={() => setManageOpen(true)}
-                  />
-                ) : null}
                 <CongDongRoleButton
                   orgId={org.id}
                   cheDo={org.cheDo}
@@ -510,14 +524,9 @@ export function CongDongPageClient({ initial }: Props) {
                   viewerVaiTro={viewerVaiTro}
                   isCinsAdmin={isCinsAdmin}
                   hideForOwner={initial.hideMembershipForOwner}
-                  initialNotifyLevel={notifyLevel}
                   onJoined={onJoined}
                   onJoinPending={onJoinPending}
                   onLeft={onLeftCommunity}
-                  onNotifyLevelChange={setNotifyLevel}
-                  onManage={
-                    canOpenManage ? () => setManageOpen(true) : undefined
-                  }
                 />
               </div>
             </div>
@@ -685,6 +694,7 @@ export function CongDongPageClient({ initial }: Props) {
         canTopics={canManageTopicsView}
         canLabels={canManageLabelsView}
         canMembers={canManageMembersView}
+        trangThaiHoatDong={org.trangThaiHoatDong}
         categories={categories}
         linhVucs={linhVucs}
         filters={filters}
@@ -692,6 +702,12 @@ export function CongDongPageClient({ initial }: Props) {
         onTopicsSaved={(next) => {
           setCategories(next.categories);
           setLinhVucs(next.linhVucs);
+        }}
+        onHoatDongChange={(next) => {
+          setOrg((prev) => ({ ...prev, trangThaiHoatDong: next }));
+        }}
+        onOwnershipTransferred={() => {
+          setViewerVaiTro("admin");
         }}
       />
     ) : null}
@@ -835,14 +851,17 @@ function CongDongFeedStickyBar({
       }
     >
       <span className="j-tlb-streak-slow" aria-hidden="true" />
-      <div className="j-tlb-year">{timelineSpy.year}</div>
-      <div
-        className="j-tlb-month"
-        style={{
-          visibility: showTimeline && timelineSpy.month ? "visible" : "hidden",
-        }}
-      >
-        {timelineSpy.month || "—"}
+      <div className="j-tlb-date">
+        <div className="j-tlb-year">{timelineSpy.year}</div>
+        <div
+          className="j-tlb-month"
+          style={{
+            visibility:
+              showTimeline && timelineSpy.month ? "visible" : "hidden",
+          }}
+        >
+          {timelineSpy.month || "—"}
+        </div>
       </div>
       <div
         className="j-tlb-filters cd-v4-feed-controls"
@@ -855,26 +874,17 @@ function CongDongFeedStickyBar({
           onChange={onFilterChange}
           appearance="tlb"
         />
-        <label className="cd-v4-sort-wrap">
-          <span className="cd-v4-sr-only">Sắp xếp bài đăng</span>
-          <select
-            className="j-tlb-dd-btn cd-v4-sort cd-v4-sort--tlb"
-            value={sortMode}
-            onChange={(e) => onSortModeChange(e.target.value as SortMode)}
-            aria-label="Sắp xếp bài đăng"
-          >
-            <option value="moi">Mới nhất</option>
-            <option value="tuongtac">Tương tác</option>
-            <option value="az">A → Z</option>
-          </select>
-        </label>
-        <ContentSurfaceViewToggle
-          view={view}
-          onViewChange={onViewChange}
-          ariaLabel="Kiểu hiển thị"
+        <CongDongFeedSortDropdown
+          sortMode={sortMode}
+          onSortModeChange={onSortModeChange}
         />
         <OrgNotifyFabHost />
       </div>
+      <ContentSurfaceViewToggle
+        view={view}
+        onViewChange={onViewChange}
+        ariaLabel="Kiểu hiển thị"
+      />
     </div>
   );
 }

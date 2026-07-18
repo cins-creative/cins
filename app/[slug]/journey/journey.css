@@ -20155,9 +20155,13 @@ a.action-btn-part {
   height: 1px;
   width: 100%;
   pointer-events: none;
+  /* Không neo scroll vào sentinel khi DOM đổi (append / đổi vị trí early). */
+  overflow-anchor: none;
 }
 .cins-journey-page .j-timeline-load-more {
   padding: 8px 0 16px;
+  /* Skeleton đáy không được làm scroll-anchor — tránh giật khi thay bằng bài thật. */
+  overflow-anchor: none;
 }
 .cins-journey-page .j-timeline-load-retry-wrap {
   display: flex;

@@ -35,6 +35,11 @@ type Props = {
   onOpenChange?: (open: boolean) => void;
   /** Ẩn nút «Nội dung nổi bật» — popover dùng ô thống kê «Nổi bật» để mở. */
   hideToggle?: boolean;
+  /**
+   * Hint từ stats card (vd. `tacPham > 0`) — ẩn mũi tên khi chắc không có pin,
+   * không cần prefetch. `undefined` = hiện mũi tên đến khi fetch xong.
+   */
+  hasFeaturedHint?: boolean;
   /** Báo khi đã biết có / không có bài pin (để bật ô «Nổi bật»). */
   onAvailabilityChange?: (info: {
     ready: boolean;
@@ -102,7 +107,7 @@ async function probeAspect(item: GalleryPinnedBanner): Promise<number> {
 
 /**
  * Mũi tên dưới card user — xổ preview thumb Nội dung nổi bật (chỉ xem, không mở bài).
- * Eager: fetch ngay. Không eager: chỉ fetch khi `open` (không idle-prefetch).
+ * Eager: fetch ngay. Không eager: mặc định thu gọn, chỉ fetch khi user mở.
  */
 export function JourneyUserFeaturedExpand({
   slug,
@@ -110,10 +115,11 @@ export function JourneyUserFeaturedExpand({
   open: openControlled,
   onOpenChange,
   hideToggle = false,
+  hasFeaturedHint,
   onAvailabilityChange,
 }: Props) {
   const trimmed = slug.trim();
-  const [openUncontrolled, setOpenUncontrolled] = useState(true);
+  const [openUncontrolled, setOpenUncontrolled] = useState(false);
   const controlled = openControlled !== undefined;
   const open = controlled ? openControlled : openUncontrolled;
   const setOpen = (next: boolean | ((prev: boolean) => boolean)) => {
@@ -132,8 +138,8 @@ export function JourneyUserFeaturedExpand({
   const fetchedSlugRef = useRef<string | null>(null);
 
   useEffect(() => {
-    /* Controlled: parent giữ open (modal actors mặc định thu gọn). */
-    if (!controlled) setOpenUncontrolled(true);
+    /* Uncontrolled: mỗi slug bắt đầu thu gọn — chỉ query khi user mở. */
+    if (!controlled) setOpenUncontrolled(false);
     setItems(null);
     setLoadState(eager ? "loading" : "idle");
     setAspectById(new Map());
@@ -246,14 +252,18 @@ export function JourneyUserFeaturedExpand({
     return cols.slice(0, MASONRY_COLS);
   }, [items, aspectById]);
 
-  const pending = loadState === "idle" || loadState === "loading";
+  /* Chỉ busy khi đang mở + chưa có data (idle chờ effect / loading). */
+  const pending = open && (loadState === "idle" || loadState === "loading");
   const hasFeatured = loadState === "ready" && (items?.length ?? 0) > 0;
 
   if (!trimmed) return null;
   /* hideToggle (modal actors): chỉ mount panel khi mở — loading vẫn hiện. */
   if (hideToggle && !open) return null;
-  /* Friend card / toggle: ẩn đến khi biết có pin; đang mở + đang tải thì hiện loading. */
-  if (!eager && !hideToggle && !hasFeatured && !(open && pending)) return null;
+  /* Friend card: hiện mũi tên khi chưa fetch (hoặc hint = có pin); ẩn khi đã biết không có. */
+  if (!eager && !hideToggle) {
+    if (loadState === "ready" && !hasFeatured) return null;
+    if (loadState !== "ready" && hasFeaturedHint === false) return null;
+  }
 
   const panelId = `j-user-featured-panel-${trimmed}`;
 

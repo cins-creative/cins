@@ -7,8 +7,17 @@ export const WORLD_JOURNEY_FEED_PAGE_SIZE = 12;
  */
 export const WORLD_JOURNEY_GALLERY_PAGE_SIZE = 36;
 
-/** Prefetch thêm trước viewport (px) — sentinel IntersectionObserver. */
-export const WORLD_JOURNEY_FEED_SCROLL_ROOT_MARGIN = "720px 0px";
+/**
+ * Prefetch khi còn khoảng N bài tới cuối timeline (sentinel chèn sau bài
+ * `length - N`), không đợi user chạm đáy.
+ */
+export const WORLD_JOURNEY_FEED_PREFETCH_REMAINING_POSTS = 3;
+
+/**
+ * Cushion nhỏ quanh early/end sentinel (px). Prefetch chính theo số bài
+ * (`PREFETCH_REMAINING_POSTS`) — không dùng margin lớn kiểu “720px ≈ 1–2 bài”.
+ */
+export const WORLD_JOURNEY_FEED_SCROLL_ROOT_MARGIN = "160px 0px";
 
 /**
  * Soft quota mặc định: tối đa N bài / tác giả (hoặc org) giữ vị trí ưu tiên

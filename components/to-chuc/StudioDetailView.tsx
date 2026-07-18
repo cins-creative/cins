@@ -217,7 +217,7 @@ function StudioDetailViewInner({
         >
           {studio.trangThaiHoatDong === "tam_ngung"
             ? "Studio đang tạm ngưng — ẩn khỏi hub và tìm kiếm."
-            : "Studio đã đóng cửa — chỉ thành viên quản trị còn xem được trang này."}
+            : "Studio đã bị xóa — chỉ thành viên quản trị còn xem được trang này."}
         </div>
       ) : null}
       <StudioSidebar

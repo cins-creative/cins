@@ -26,6 +26,8 @@ type Props = {
   onClose?: () => void;
   /** Gợi ý người lạ — không hiện nhắn tin. */
   showMessage?: boolean;
+  /** Gợi ý kết bạn — không hiện chia sẻ. */
+  showShare?: boolean;
 };
 
 /** Khung icon CTA — hiện ngay khi card mở, trước khi có id user. */
@@ -52,6 +54,7 @@ export function JourneyUserPopoverActions({
   viewerProfileId,
   onClose,
   showMessage = true,
+  showShare = true,
 }: Props) {
   const router = useRouter();
   const { openChat } = useCinsChat();
@@ -127,7 +130,7 @@ export function JourneyUserPopoverActions({
             />
           </div>
         ) : null}
-        {sharePath ? (
+        {showShare && sharePath ? (
           <ShareLinkMenu
             sharePath={sharePath}
             shareTitle={user.tenHienThi || user.slug}

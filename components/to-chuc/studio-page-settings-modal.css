@@ -213,3 +213,37 @@
   color: #d4380d;
   border-color: rgba(212, 56, 13, 0.28);
 }
+
+/* Dark: input/form đồng bộ viền với .sps-org-block */
+:root[data-theme="dark"] .sps-modal .tdh-inline-field input,
+:root[data-theme="dark"] .sps-modal .tdh-inline-field textarea,
+:root[data-theme="dark"] .sps-modal .tdh-inline-field select,
+:root[data-theme="dark"] .sps-org-select {
+  background: var(--bg-page, #0e1117);
+  border-color: var(--border, #2a3040);
+  color: var(--ink-display, rgba(255, 255, 255, 0.92));
+  box-shadow: none;
+}
+
+:root[data-theme="dark"] .sps-org-block {
+  background: var(--bg-surface, #171b24);
+  border-color: var(--border, #2a3040);
+}
+
+:root[data-theme="dark"] .sps-org-block--close {
+  background: color-mix(in srgb, var(--danger, #f0656a) 10%, var(--bg-surface, #171b24));
+  border-color: color-mix(in srgb, var(--danger, #f0656a) 32%, var(--border, #2a3040));
+}
+
+:root[data-theme="dark"] .sps-org-block-head {
+  color: var(--ink-display, rgba(255, 255, 255, 0.92));
+}
+
+:root[data-theme="dark"] .sps-org-block-hint,
+:root[data-theme="dark"] .sps-org-muted {
+  color: var(--ink-muted, rgba(255, 255, 255, 0.46));
+}
+
+:root[data-theme="dark"] .sps-org-select {
+  background: var(--bg-page, #0e1117);
+}

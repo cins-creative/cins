@@ -22,7 +22,7 @@ type ScrollLoadConfig = {
   nextOffset: number;
 };
 
-type MutualFilter = "all" | "has" | "sort";
+type MutualFilter = "all" | "has";
 
 type Props = {
   initialFriends?: ReadonlyArray<MutualFriendProfile>;
@@ -47,6 +47,16 @@ function matchesNameQuery(friend: MutualFriendProfile, query: string): boolean {
     normalizeSearch(friend.tenHienThi).includes(query) ||
     normalizeSearch(friend.slug).includes(query)
   );
+}
+
+/** Nhiều bạn chung trước, hòa thì nhiều nội dung nổi bật trước. */
+function compareFriendsByRelevance(
+  a: MutualFriendProfile,
+  b: MutualFriendProfile,
+): number {
+  const byMutual = (b.mutualFriendCount ?? 0) - (a.mutualFriendCount ?? 0);
+  if (byMutual !== 0) return byMutual;
+  return (b.stats.tacPham ?? 0) - (a.stats.tacPham ?? 0);
 }
 
 export function JourneyFriendsView({
@@ -78,7 +88,8 @@ export function JourneyFriendsView({
 
   const canFilterMutual = Boolean(viewerProfileId);
   const normalizedQuery = normalizeSearch(deferredQuery);
-  const needsFullList = normalizedQuery.length > 0 || mutualFilter !== "all";
+  /* Đăng nhập / đang tìm: tải đủ list để sort toàn cục (bạn chung → nổi bật). */
+  const needsFullList = normalizedQuery.length > 0 || canFilterMutual;
 
   const loadInvites = useCallback(async () => {
     if (!isOwner) return;
@@ -212,11 +223,7 @@ export function JourneyFriendsView({
       list = list.filter((friend) => (friend.mutualFriendCount ?? 0) > 0);
     }
 
-    if (canFilterMutual && mutualFilter === "sort") {
-      list = [...list].sort(
-        (a, b) => (b.mutualFriendCount ?? 0) - (a.mutualFriendCount ?? 0),
-      );
-    }
+    list = [...list].sort(compareFriendsByRelevance);
 
     return list;
   }, [items, normalizedQuery, canFilterMutual, mutualFilter]);
@@ -289,17 +296,6 @@ export function JourneyFriendsView({
                   onClick={() => setMutualFilter("has")}
                 >
                   Có bạn chung
-                </button>
-                <button
-                  type="button"
-                  className={
-                    "j-friends-mutual-btn" +
-                    (mutualFilter === "sort" ? " is-active" : "")
-                  }
-                  aria-pressed={mutualFilter === "sort"}
-                  onClick={() => setMutualFilter("sort")}
-                >
-                  Nhiều bạn chung
                 </button>
               </div>
             ) : null}

@@ -2551,6 +2551,27 @@
   background: var(--neutral-200, #e5e7eb);
   color: var(--ink-title);
 }
+.cins-post-view .post-byline-share-ic--friends {
+  background: var(--cins-blue, #1f74c9);
+  color: #fff;
+}
+.cins-post-view .post-byline-share-ic--back {
+  background: var(--neutral-200, #e5e7eb);
+  color: var(--ink-title);
+  font-size: 12px;
+}
+.cins-post-view .post-byline-share--friends {
+  width: min(300px, calc(100vw - 24px));
+  max-width: min(300px, calc(100vw - 24px));
+  max-height: min(420px, 70vh);
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.cins-post-view .post-byline-share--friends::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
 .cins-post-view .post-byline-share-ic--fb {
   background: #1877f2;
   font-family: Georgia, serif;
@@ -2857,6 +2878,24 @@
 }
 .cins-post-view .b-embed-ro .em-link:hover {
   text-decoration: underline;
+}
+
+/* Rive / Lottie file — full-bleed, không padding / bo góc (khác link card). */
+.cins-post-view .b-embed-ro.is-rive-file-host,
+.cins-post-view .b-embed-ro.is-lottie-file-host,
+.cins-post-view .b-embed-ro.is-rive-file,
+.cins-post-view .b-embed-ro.is-lottie-file,
+.cins-editor-page.cins-post-view .b-embed.b-embed-ro.is-rive-file-host,
+.cins-editor-page.cins-post-view .b-embed.b-embed-ro.is-lottie-file-host,
+.cins-editor-page.cins-post-view .b-embed.b-embed-ro.is-rive-file,
+.cins-editor-page.cins-post-view .b-embed.b-embed-ro.is-lottie-file {
+  display: block;
+  padding: 0;
+  gap: 0;
+  border: none;
+  border-radius: 0;
+  background: var(--bg-surface, #fff);
+  overflow: hidden;
 }
 
 /* Iframe variant — YouTube / Figma đã được PostRenderer dựng thành iframe
@@ -4488,14 +4527,123 @@
 
   .cins-post-view.post-canvas--split:not(.post-canvas--media) .post-view-content,
   .cins-post-view .post-canvas--split:not(.post-canvas--media) .post-view-content {
-    order: 1;
-    border-radius: 16px 16px 0 0;
+    /* Flatten — cho phép author/actions xen giữa dek và embed trên mobile */
+    display: contents;
+    order: unset;
+    border-radius: 0;
+    padding: 0;
   }
 
   .cins-post-view .post-view-content {
     order: 1;
     padding: 24px 20px 28px;
     border-top: none;
+  }
+
+  /* Mobile split (không media): author → actions → dek → nội dung → comments */
+  .cins-post-view.post-canvas--split:not(.post-canvas--media) .post-rail-blk--author,
+  .cins-post-view .post-canvas--split:not(.post-canvas--media) .post-rail-blk--author {
+    order: 1;
+    border-top: none;
+    padding-inline: 20px;
+  }
+
+  .cins-post-view.post-canvas--split:not(.post-canvas--media) .post-rail-blk--tags,
+  .cins-post-view.post-canvas--split:not(.post-canvas--media) .post-rail-blk--people,
+  .cins-post-view .post-canvas--split:not(.post-canvas--media) .post-rail-blk--tags,
+  .cins-post-view .post-canvas--split:not(.post-canvas--media) .post-rail-blk--people {
+    order: 2;
+    padding-inline: 20px;
+  }
+
+  .cins-post-view.post-canvas--split:not(.post-canvas--media) .post-rail-blk--actions,
+  .cins-post-view .post-canvas--split:not(.post-canvas--media) .post-rail-blk--actions {
+    order: 3;
+    width: 100%;
+    border-top: 1px solid var(--border);
+    padding: 8px 20px;
+  }
+
+  .cins-post-view.post-canvas--split:not(.post-canvas--media) .post-view-kicker,
+  .cins-post-view.post-canvas--split:not(.post-canvas--media) .title-in.title-ro,
+  .cins-post-view.post-canvas--split:not(.post-canvas--media) .sub-in.sub-ro.post-view-dek,
+  .cins-post-view .post-canvas--split:not(.post-canvas--media) .post-view-kicker,
+  .cins-post-view .post-canvas--split:not(.post-canvas--media) .title-in.title-ro,
+  .cins-post-view .post-canvas--split:not(.post-canvas--media) .sub-in.sub-ro.post-view-dek {
+    order: 4;
+    padding-inline: 20px;
+  }
+
+  .cins-post-view.post-canvas--split:not(.post-canvas--media) .cover-add.cover-readonly,
+  .cins-post-view .post-canvas--split:not(.post-canvas--media) .cover-add.cover-readonly {
+    order: 5;
+    margin-inline: 20px;
+    width: calc(100% - 40px);
+  }
+
+  .cins-post-view.post-canvas--split:not(.post-canvas--media) .post-view-content-inner,
+  .cins-post-view .post-canvas--split:not(.post-canvas--media) .post-view-content-inner {
+    order: 6;
+    width: 100%;
+    max-width: 100%;
+    padding-inline: 0;
+    box-sizing: border-box;
+  }
+
+  /* Rive / Lottie / media embed — full-bleed ngang trên mobile */
+  .cins-post-view.post-canvas--split:not(.post-canvas--media)
+    .post-view-content-inner
+    .block[data-block-type="embed"],
+  .cins-post-view
+    .post-canvas--split:not(.post-canvas--media)
+    .post-view-content-inner
+    .block[data-block-type="embed"]
+    .block-inner,
+  .cins-post-view.post-canvas--split:not(.post-canvas--media)
+    .b-embed-ro.is-rive-file-host,
+  .cins-post-view.post-canvas--split:not(.post-canvas--media)
+    .b-embed-ro.is-lottie-file-host,
+  .cins-post-view.post-canvas--split:not(.post-canvas--media)
+    .b-embed-ro.is-rive-file,
+  .cins-post-view.post-canvas--split:not(.post-canvas--media)
+    .b-embed-ro.is-lottie-file,
+  .cins-post-view
+    .post-canvas--split:not(.post-canvas--media)
+    .b-embed-ro.is-rive-file-host,
+  .cins-post-view
+    .post-canvas--split:not(.post-canvas--media)
+    .b-embed-ro.is-lottie-file-host,
+  .cins-post-view
+    .post-canvas--split:not(.post-canvas--media)
+    .b-embed-ro.is-rive-file,
+  .cins-post-view
+    .post-canvas--split:not(.post-canvas--media)
+    .b-embed-ro.is-lottie-file {
+    width: 100%;
+    max-width: 100%;
+    margin-inline: 0;
+    padding-inline: 0;
+    border-radius: 0;
+  }
+
+  /* Text / block khác trong inner vẫn giữ lề ngang */
+  .cins-post-view.post-canvas--split:not(.post-canvas--media)
+    .post-view-content-inner
+    .block:not([data-block-type="embed"])
+    .block-inner,
+  .cins-post-view
+    .post-canvas--split:not(.post-canvas--media)
+    .post-view-content-inner
+    .block:not([data-block-type="embed"])
+    .block-inner {
+    padding-inline: 20px;
+  }
+
+  .cins-post-view.post-canvas--split:not(.post-canvas--media) .post-rail-blk--comments,
+  .cins-post-view .post-canvas--split:not(.post-canvas--media) .post-rail-blk--comments {
+    order: 7;
+    border-top: 1px solid var(--border);
+    padding-inline: 20px;
   }
 
   .cins-post-view .post-rail-blk--author {
@@ -4598,6 +4746,12 @@
     border-top: 1px solid var(--border);
   }
 
+  /* Non-media split: comments sau embed (order 7 đã set ở trên — giữ specificity) */
+  .cins-post-view.post-canvas--split:not(.post-canvas--media) .post-rail-blk--comments,
+  .cins-post-view .post-canvas--split:not(.post-canvas--media) .post-rail-blk--comments {
+    order: 7;
+  }
+
   .cins-post-view.post-canvas--split .post-rail-blk--comments,
   .cins-post-view .post-canvas--split .post-rail-blk--comments {
     flex: none;
@@ -4630,14 +4784,45 @@
     align-items: stretch;
   }
 
+  /* Mobile media split: author → tags → actions → ảnh/video → comments */
+  .cins-post-view.post-canvas--media.post-canvas--split .post-rail-blk--author,
+  .cins-post-view .post-canvas--media.post-canvas--split .post-rail-blk--author {
+    order: 1;
+    border-top: none;
+    padding-inline: 20px;
+  }
+
+  .cins-post-view.post-canvas--media.post-canvas--split .post-rail-blk--tags,
+  .cins-post-view.post-canvas--media.post-canvas--split .post-rail-blk--people,
+  .cins-post-view .post-canvas--media.post-canvas--split .post-rail-blk--tags,
+  .cins-post-view .post-canvas--media.post-canvas--split .post-rail-blk--people {
+    order: 2;
+    padding-inline: 20px;
+  }
+
+  .cins-post-view.post-canvas--media.post-canvas--split .post-rail-blk--actions,
+  .cins-post-view .post-canvas--media.post-canvas--split .post-rail-blk--actions {
+    order: 3;
+    width: 100%;
+    border-top: 1px solid var(--border);
+    padding: 8px 20px;
+  }
+
   .cins-post-view.post-canvas--split .post-view-content--media,
   .cins-post-view .post-canvas--split .post-view-content--media {
-    order: 1;
+    order: 4;
     padding: 0;
     min-height: 0;
     height: auto;
     max-height: none;
     border-top: none;
+  }
+
+  .cins-post-view.post-canvas--media.post-canvas--split .post-rail-blk--comments,
+  .cins-post-view .post-canvas--media.post-canvas--split .post-rail-blk--comments {
+    order: 5;
+    border-top: 1px solid var(--border);
+    padding-inline: 20px;
   }
 
   .cins-post-view.post-canvas--split .post-view-content--media .post-view-content-inner,
@@ -4697,40 +4882,39 @@
     align-items: stretch;
   }
 
-  .j-post-page:has(.post-canvas--media.post-canvas--split) .post-view-content--media {
+  /* Carousel / album không ImageGrid — giữ khung ~62dvh */
+  .j-post-page:has(.post-canvas--media.post-canvas--split)
+    .post-view-content--media:not(:has(.image-grid)) {
     flex: 0 0 auto;
     min-height: min(62dvh, 560px);
     height: min(62dvh, 560px);
     max-height: min(62dvh, 560px);
   }
 
+  /* ImageGrid (justified…) — co theo nội dung, không ép viewport */
   .j-post-page:has(.post-canvas--media.post-canvas--split)
-    .post-view-content--media
+    .post-view-content--media:has(.image-grid) {
+    flex: 0 0 auto;
+    height: auto;
+    min-height: 0;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .j-post-page:has(.post-canvas--media.post-canvas--split)
+    .post-view-content--media:not(:has(.image-grid))
     .post-view-content-inner,
   .j-post-page:has(.post-canvas--media.post-canvas--split)
-    .post-view-content--media
+    .post-view-content--media:not(:has(.image-grid))
     .post-blocks-fb,
   .j-post-page:has(.post-canvas--media.post-canvas--split)
-    .post-view-content--media
-    .post-blocks-fb
-    .block.block-image-grid,
-  .j-post-page:has(.post-canvas--media.post-canvas--split)
-    .post-view-content--media
-    .post-blocks-fb
-    .block-image-grid,
-  .j-post-page:has(.post-canvas--media.post-canvas--split)
-    .post-view-content--media
-    .post-blocks-fb
-    .block-image-grid
-    .block-inner,
-  .j-post-page:has(.post-canvas--media.post-canvas--split)
-    .post-view-content--media
+    .post-view-content--media:not(:has(.image-grid))
     .image-album-carousel,
   .j-post-page:has(.post-canvas--media.post-canvas--split)
-    .post-view-content--media
+    .post-view-content--media:not(:has(.image-grid))
     .image-album-carousel-stage,
   .j-post-page:has(.post-canvas--media.post-canvas--split)
-    .post-view-content--media
+    .post-view-content--media:not(:has(.image-grid))
     .image-album-carousel-figure {
     flex: 1 1 auto;
     min-height: 0;
@@ -4739,7 +4923,35 @@
   }
 
   .j-post-page:has(.post-canvas--media.post-canvas--split)
-    .post-view-content--media
+    .post-view-content--media:has(.image-grid)
+    .post-view-content-inner,
+  .j-post-page:has(.post-canvas--media.post-canvas--split)
+    .post-view-content--media:has(.image-grid)
+    .post-blocks-fb,
+  .j-post-page:has(.post-canvas--media.post-canvas--split)
+    .post-view-content--media:has(.image-grid)
+    .post-blocks-fb
+    .block.block-image-grid,
+  .j-post-page:has(.post-canvas--media.post-canvas--split)
+    .post-view-content--media:has(.image-grid)
+    .post-blocks-fb
+    .block-image-grid,
+  .j-post-page:has(.post-canvas--media.post-canvas--split)
+    .post-view-content--media:has(.image-grid)
+    .post-blocks-fb
+    .block-image-grid
+    .block-inner,
+  .j-post-page:has(.post-canvas--media.post-canvas--split)
+    .post-view-content--media:has(.image-grid)
+    .image-grid {
+    flex: 0 0 auto;
+    height: auto;
+    min-height: 0;
+    max-height: none;
+  }
+
+  .j-post-page:has(.post-canvas--media.post-canvas--split)
+    .post-view-content--media:not(:has(.image-grid))
     .image-album-carousel-figure
     img {
     max-width: 100%;

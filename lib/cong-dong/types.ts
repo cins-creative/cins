@@ -5,6 +5,7 @@ import type { CongDongVaiTro } from "@/lib/cong-dong/vai-tro";
 import type { OrgNotifyLevel } from "@/lib/social/org-notify";
 import type { Block } from "@/lib/editor/types";
 import type { ArticleTagRef } from "@/lib/editor/article-tag";
+import type { StudioHoatDongStatus } from "@/lib/to-chuc/studio-lifecycle.shared";
 
 export type CongDongTrangThaiTinCay =
   | "binh_thuong"
@@ -23,6 +24,8 @@ export type CongDongOrg = {
   coverId: string | null;
   cheDo: CongDongCheDo;
   trangThaiTinCay: CongDongTrangThaiTinCay;
+  /** Soft lifecycle trên `org_to_chuc.trang_thai_hoat_dong`. */
+  trangThaiHoatDong: StudioHoatDongStatus;
   soThanhVien: number;
   soBaiViet: number;
   /** Số bài `content_cot_moc` tạo trong 7 ngày gần nhất. */

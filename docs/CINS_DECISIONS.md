@@ -37,7 +37,18 @@
 
 ## LOG — quyết định đã chốt
 
+### Cộng đồng — vai trò + cài đặt lên app topbar (2026-07-18)
+
+- **L32 — Chrome quản trị cộng đồng đồng bộ trường/cơ sở (`CoSoAdminToolbar`).**
+  • **Vai trò viewer** trên trang `/cong-dong/[slug]` luôn nằm trong `#app-topbar-page-slot` (`CongDongTopbarToolbar`), không còn nút “Bạn là … ▾” trong identity sidebar.
+  • **Cài đặt / quản lý** (Settings2) cũng luôn trên topbar khi `canOpenManage` — bỏ `CongDongManageTriggerButton` khỏi cột trái.
+  • **Màu cam priv** (`--cins-priv-*`): nút vai trò + nút cài đặt — cùng visual language với `tb-truong-admin` / admin trường·cơ sở. Không dùng brand blue cho chrome đặc quyền.
+  • **Sidebar** (`CongDongRoleButton`) chỉ còn CTA tham gia / chờ duyệt / chia sẻ (khách); thành viên & CINs admin chỉ còn nút chia sẻ.
+  • Menu portal (thông báo · quản lý · rời) gắn vào nút vai trò trên topbar — không đổi API membership.
+  • *Vì sao:* identity card gọn = brand cộng đồng; quyền/vai trò là chrome trang (topbar), tránh lẫn CTA join với badge quản trị.
+
 ### Facebook OG cache-bust + short-link bất biến (2026-07-17)
+
 
 - **Vấn đề:** publish lại PNG share card chỉ đổi `og:image`; Facebook vẫn cache metadata theo URL Journey/Portfolio cũ, phải vào Sharing Debugger để scrape lại.
 - **Chốt:** mỗi lần chia sẻ card của chủ trang tạo row `content_share_link` với token mới + Cloudflare snapshot cụ thể; URL copy là `/s/[token]`. Route short trả HTTP 200 với `og:url` riêng để crawler đọc metadata, rồi soft-redirect người thật về URL canonical có `?s=token`.
@@ -120,7 +131,7 @@
 - **Alias legacy:** `rieng_tu` (code cũ) đọc = `bi_mat` (hành vi listing/page trước đây đã là ẩn). Ghi mới dùng `bi_mat`.
 - **Join gate suy từ chế độ** — không field riêng: open / request+invite / invite-only.
 - **Request nội bộ:** `user_thanh_vien_to_chuc.trang_thai='pending'` → admin (`canManageMembers`) duyệt → `active`. Invite accept luôn `active`.
-- **Trục B (vai trò)** giữ 4: `owner`/`admin`/`quan_ly_noi_dung`/`thanh_vien`. CTA `CongDongRoleButton` trước khi member theo *chế độ phòng*; sau khi member theo *vai trò*.
+- **Trục B (vai trò)** giữ 4: `owner`/`admin`/`quan_ly_noi_dung`/`thanh_vien`. CTA join (`CongDongRoleButton` sidebar) trước khi member theo *chế độ phòng*; sau khi member badge vai trò + cài đặt trên **app topbar** (`CongDongTopbarToolbar`, L32) — cam priv.
 - **Trục C (bài):** vẫn `che_do_hien_thi='cong_dong'` — không rò World Journey (L12/L21). Không thêm mức privacy kiểu Discord.
 - *Vì sao 3 không 2:* `rieng_tu` cũ gộp “nội bộ discoverable” với “bí mật”; thiếu tầng tìm thấy được nhưng feed khóa — đúng nhu cầu nhóm nghề có cổng duyệt.
 

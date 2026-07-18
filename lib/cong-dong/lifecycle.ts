@@ -1,7 +1,7 @@
 import "server-only";
 
+import { getViewerVaiTroInOrg } from "@/lib/cong-dong/membership";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
-import { getViewerCoSoVaiTro } from "@/lib/to-chuc/co-so-membership";
 import {
   normalizeStudioHoatDong,
   type StudioHoatDongStatus,
@@ -9,12 +9,10 @@ import {
 } from "@/lib/to-chuc/studio-lifecycle.shared";
 
 export type {
-  StudioHoatDongStatus,
-  StudioLifecycleAction,
+  StudioHoatDongStatus as CongDongHoatDongStatus,
+  StudioLifecycleAction as CongDongLifecycleAction,
 } from "@/lib/to-chuc/studio-lifecycle.shared";
-export { normalizeStudioHoatDong } from "@/lib/to-chuc/studio-lifecycle.shared";
-
-const STUDIO_ORG_TYPES = ["studio", "doanh_nghiep"] as const;
+export { normalizeStudioHoatDong as normalizeCongDongHoatDong } from "@/lib/to-chuc/studio-lifecycle.shared";
 
 const STATUS_BY_ACTION: Record<StudioLifecycleAction, StudioHoatDongStatus> = {
   pause: "tam_ngung",
@@ -26,13 +24,13 @@ function normalizeConfirm(value: string): string {
   return value.trim().toLowerCase();
 }
 
-async function loadStudioLifecycleMeta(orgId: string) {
+async function loadCongDongLifecycleMeta(orgId: string) {
   const admin = createServiceRoleClient();
   const { data } = await admin
     .from("org_to_chuc")
     .select("id, slug, ten, trang_thai_hoat_dong")
     .eq("id", orgId)
-    .in("loai_to_chuc", [...STUDIO_ORG_TYPES])
+    .eq("loai_to_chuc", "cong_dong")
     .maybeSingle<{
       id: string;
       slug: string;
@@ -42,19 +40,11 @@ async function loadStudioLifecycleMeta(orgId: string) {
   return data;
 }
 
-export async function getStudioHoatDongStatus(
-  orgId: string,
-): Promise<StudioHoatDongStatus | null> {
-  const org = await loadStudioLifecycleMeta(orgId);
-  if (!org) return null;
-  return normalizeStudioHoatDong(org.trang_thai_hoat_dong);
-}
-
 /**
- * Owner-only: tạm dừng / mở lại / đóng cửa studio (soft status).
+ * Owner-only: tạm dừng / mở lại / đóng cửa cộng đồng (soft `trang_thai_hoat_dong`).
  * Xác nhận bằng đúng tên tổ chức (`ten`).
  */
-export async function updateStudioLifecycle(params: {
+export async function updateCongDongLifecycle(params: {
   orgId: string;
   actorId: string;
   action: StudioLifecycleAction;
@@ -63,18 +53,21 @@ export async function updateStudioLifecycle(params: {
   | { ok: true; trangThaiHoatDong: StudioHoatDongStatus }
   | { ok: false; error: string }
 > {
-  const org = await loadStudioLifecycleMeta(params.orgId);
+  const org = await loadCongDongLifecycleMeta(params.orgId);
   if (!org?.id) {
-    return { ok: false, error: "Không tìm thấy studio." };
+    return { ok: false, error: "Không tìm thấy cộng đồng." };
   }
 
   if (normalizeConfirm(params.confirmTen) !== normalizeConfirm(org.ten)) {
-    return { ok: false, error: "Tên xác nhận không khớp tên tổ chức." };
+    return { ok: false, error: "Tên xác nhận không khớp tên cộng đồng." };
   }
 
-  const actorRole = await getViewerCoSoVaiTro(params.actorId, params.orgId);
+  const actorRole = await getViewerVaiTroInOrg(params.actorId, params.orgId);
   if (actorRole !== "owner") {
-    return { ok: false, error: "Chỉ chủ sở hữu mới thay đổi trạng thái studio." };
+    return {
+      ok: false,
+      error: "Chỉ chủ sở hữu mới thay đổi trạng thái cộng đồng.",
+    };
   }
 
   const current = normalizeStudioHoatDong(org.trang_thai_hoat_dong);
@@ -84,13 +77,13 @@ export async function updateStudioLifecycle(params: {
     return {
       ok: false,
       error:
-        "Studio đã bị xóa — không thể tạm dừng.",
+        "Cộng đồng đã bị xóa — không thể tạm dừng.",
     };
   }
   if (params.action === "resume" && current === "da_dong_cua") {
     return {
       ok: false,
-      error: "Studio đã bị xóa — không thể mở lại.",
+      error: "Cộng đồng đã bị xóa — không thể mở lại.",
     };
   }
   if (params.action === "resume" && current === "dang_hoat_dong") {
