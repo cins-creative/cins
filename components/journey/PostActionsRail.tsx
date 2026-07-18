@@ -1,6 +1,7 @@
 "use client";
 
 import { useOptionalAuthGate } from "@/components/auth/AuthGateProvider";
+import { SharePostToFriendsPanel } from "@/components/social/SharePostToFriendsPanel";
 import {
   Bookmark,
   BookmarkCheck,
@@ -76,10 +77,19 @@ export function PostShareMenu({
   buttonClassName = "post-byline-act is-share",
   showLabel = false,
 }: ShareMenuProps) {
+  const authGate = useOptionalAuthGate();
   const [shareOpen, setShareOpen] = useState(false);
+  const [panel, setPanel] = useState<"main" | "friends">("main");
   const [copied, setCopied] = useState(false);
+  const [flash, setFlash] = useState<string | null>(null);
   const [shareUrl, setShareUrl] = useState("");
   const shareWrapRef = useRef<HTMLDivElement>(null);
+
+  function closeShare() {
+    setShareOpen(false);
+    setPanel("main");
+    setFlash(null);
+  }
 
   useEffect(() => {
     const path = sharePath?.trim();
@@ -93,10 +103,16 @@ export function PostShareMenu({
   useEffect(() => {
     if (!shareOpen) return;
     function onDocClick(e: MouseEvent) {
-      if (!shareWrapRef.current?.contains(e.target as Node)) setShareOpen(false);
+      if (!shareWrapRef.current?.contains(e.target as Node)) closeShare();
     }
     function onEsc(e: KeyboardEvent) {
-      if (e.key === "Escape") setShareOpen(false);
+      if (e.key !== "Escape") return;
+      if (panel === "friends") {
+        setPanel("main");
+        setFlash(null);
+      } else {
+        closeShare();
+      }
     }
     const timerId = window.setTimeout(() => {
       document.addEventListener("click", onDocClick);
@@ -107,7 +123,7 @@ export function PostShareMenu({
       document.removeEventListener("click", onDocClick);
       document.removeEventListener("keydown", onEsc);
     };
-  }, [shareOpen]);
+  }, [shareOpen, panel]);
 
   async function copyLink() {
     if (!shareUrl) return;
@@ -125,7 +141,7 @@ export function PostShareMenu({
       setCopied(true);
       window.setTimeout(() => setCopied(false), 2000);
     }
-    setShareOpen(false);
+    closeShare();
   }
 
   async function nativeShare() {
@@ -135,10 +151,22 @@ export function PostShareMenu({
         title: shareTitle || "CINs",
         url: shareUrl,
       });
-      setShareOpen(false);
+      closeShare();
     } catch {
       /* User huỷ — giữ menu mở. */
     }
+  }
+
+  function openFriendsPanel() {
+    const go = () => {
+      setFlash(null);
+      setPanel("friends");
+    };
+    if (authGate && !authGate.isAuthenticated) {
+      authGate.requireAuth(go);
+      return;
+    }
+    go();
   }
 
   const encodedUrl = encodeURIComponent(shareUrl);
@@ -199,15 +227,22 @@ export function PostShareMenu({
       className={
         "post-byline-share-wrap" +
         (shareOpen ? " is-open" : "") +
+        (panel === "friends" ? " is-friends" : "") +
         (className ? ` ${className}` : "")
       }
+      onClick={(e) => e.stopPropagation()}
     >
       <button
         type="button"
         className={buttonClassName}
         onClick={(e) => {
           e.stopPropagation();
-          setShareOpen((v) => !v);
+          if (shareOpen) closeShare();
+          else {
+            setPanel("main");
+            setFlash(null);
+            setShareOpen(true);
+          }
         }}
         aria-haspopup="menu"
         aria-expanded={shareOpen}
@@ -220,51 +255,110 @@ export function PostShareMenu({
       </button>
 
       {shareOpen ? (
-        <div className="post-byline-share" role="menu">
-          {shareItems.map((item) =>
-            item.href ? (
-              <a
-                key={item.id}
-                href={item.href}
-                className="post-byline-share-item"
-                role="menuitem"
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => setShareOpen(false)}
-              >
-                <span
-                  className={`post-byline-share-ic ${item.iconClass}`}
-                  aria-hidden
-                >
-                  {item.id === "copy" ? (
-                    <Copy size={14} strokeWidth={2} />
-                  ) : (
-                    item.iconLabel
-                  )}
-                </span>
-                <span>{item.label}</span>
-              </a>
-            ) : (
+        <div
+          className={
+            "post-byline-share" +
+            (panel === "friends" ? " post-byline-share--friends" : "")
+          }
+          role="menu"
+        >
+          {panel === "friends" ? (
+            <>
               <button
-                key={item.id}
                 type="button"
                 className="post-byline-share-item"
                 role="menuitem"
-                onClick={item.onClick}
+                onClick={() => {
+                  setFlash(null);
+                  setPanel("main");
+                }}
               >
                 <span
-                  className={`post-byline-share-ic ${item.iconClass}`}
+                  className="post-byline-share-ic post-byline-share-ic--back"
                   aria-hidden
                 >
-                  {item.id === "copy" ? (
-                    <Copy size={14} strokeWidth={2} />
-                  ) : (
-                    item.iconLabel
-                  )}
+                  ←
                 </span>
-                <span>{item.label}</span>
+                <span>Quay lại</span>
               </button>
-            ),
+              {flash ? (
+                <p className="j-m-share-friends-flash" role="status">
+                  {flash}
+                </p>
+              ) : null}
+              {shareUrl ? (
+                <SharePostToFriendsPanel
+                  shareUrl={shareUrl}
+                  shareTitle={shareTitle || null}
+                  onDone={(message) => {
+                    setFlash(message);
+                    window.setTimeout(() => closeShare(), 900);
+                  }}
+                />
+              ) : null}
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                className="post-byline-share-item"
+                role="menuitem"
+                onClick={openFriendsPanel}
+              >
+                <span
+                  className="post-byline-share-ic post-byline-share-ic--friends"
+                  aria-hidden
+                >
+                  <MessageCircle size={14} strokeWidth={2} />
+                </span>
+                <span>Gửi bạn bè</span>
+              </button>
+              {shareItems.map((item) =>
+                item.href ? (
+                  <a
+                    key={item.id}
+                    href={item.href}
+                    className="post-byline-share-item"
+                    role="menuitem"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => closeShare()}
+                  >
+                    <span
+                      className={`post-byline-share-ic ${item.iconClass}`}
+                      aria-hidden
+                    >
+                      {item.id === "copy" ? (
+                        <Copy size={14} strokeWidth={2} />
+                      ) : (
+                        item.iconLabel
+                      )}
+                    </span>
+                    <span>{item.label}</span>
+                  </a>
+                ) : (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className="post-byline-share-item"
+                    role="menuitem"
+                    onClick={item.onClick}
+                  >
+                    <span
+                      className={`post-byline-share-ic ${item.iconClass}`}
+                      aria-hidden
+                    >
+                      {item.id === "copy" ? (
+                        <Copy size={14} strokeWidth={2} />
+                      ) : (
+                        item.iconLabel
+                      )}
+                    </span>
+                    <span>{item.label}</span>
+                  </button>
+                ),
+              )}
+            </>
           )}
         </div>
       ) : null}

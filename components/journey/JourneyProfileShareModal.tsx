@@ -6,14 +6,17 @@ import {
   ImageDown,
   Link2,
   Map,
+  MessageCircle,
   Users,
 } from "lucide-react";
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { createPortal } from "react-dom";
 
+import { useOptionalAuthGate } from "@/components/auth/AuthGateProvider";
 import { CongDongInviteFriendsPanel } from "@/components/cong-dong/CongDongInviteFriendsPanel";
 import { JourneyShareCardPreview } from "@/components/journey/JourneyShareCardPreview";
 import { JourneyShareThemePicker } from "@/components/journey/JourneyShareThemePicker";
+import { SharePostToFriendsPanel } from "@/components/social/SharePostToFriendsPanel";
 import {
   PORTFOLIO_ALL_FILTER_SHARE_SPEC,
   enrichFeaturedShareSources,
@@ -100,6 +103,8 @@ type Props = {
   orgBaiDangFilterShare?: boolean;
   /** Gate đăng nhập trước khi mở bước mời bạn (cộng đồng). */
   requireAuth?: (then: () => void) => void;
+  /** Bước mở khi `open` bật (vd. deep-link «Mời bạn»). Bỏ qua nếu có `galleryFilter`. */
+  initialStep?: JourneyShareMenuStep;
 };
 
 function stepTitle(
@@ -110,6 +115,7 @@ function stepTitle(
 ): string {
   if (step === "menu") return "Chia sẻ";
   if (step === "invite-friends") return "Mời bạn bè";
+  if (step === "send-friends") return "Gửi bạn bè";
   if (step === "journey-card" || step === "gallery-card") {
     if (orgShare?.kind === "cong_dong") return "Chia sẻ cộng đồng";
     if (orgShare?.pageOnly) return "Chia sẻ trang";
@@ -143,6 +149,15 @@ function stepSubtitle(
   if (step === "invite-friends") {
     return "Gửi lời mời — hiện trên thông báo và Journey";
   }
+  if (step === "send-friends") {
+    if (orgShare?.kind === "cong_dong") {
+      return "Gửi link cộng đồng qua tin nhắn 1-1";
+    }
+    if (orgShare) {
+      return "Gửi link trang qua tin nhắn 1-1";
+    }
+    return "Gửi link Journey qua tin nhắn 1-1";
+  }
   if (step === "journey-card") {
     if (orgShare?.kind === "cong_dong") {
       return "Thẻ giới thiệu cộng đồng — lời mời tham gia";
@@ -175,7 +190,9 @@ export function JourneyProfileShareModal({
   orgShare = null,
   orgBaiDangFilterShare = false,
   requireAuth,
+  initialStep,
 }: Props) {
+  const authGate = useOptionalAuthGate();
   const titleId = useId();
   const cardExportRef = useRef<HTMLElement>(null);
   const sheetRef = useRef<HTMLElement>(null);
@@ -278,8 +295,12 @@ export function JourneyProfileShareModal({
     if (galleryFilter) {
       setStep("gallery-card");
       setPortfolioFilter(galleryFilter);
+      return;
     }
-  }, [open, galleryFilter]);
+    if (initialStep) {
+      setStep(initialStep);
+    }
+  }, [open, galleryFilter, initialStep]);
 
   const showFlash = useCallback((message: string, durationMs = 2800) => {
     setFlash(message);
@@ -970,7 +991,8 @@ export function JourneyProfileShareModal({
   const sheetClass =
     "j-share-sheet" +
     (isPopover ? " j-share-sheet--popover" : "") +
-    (step !== "menu" ? " is-card-step" : "");
+    (step !== "menu" ? " is-card-step" : "") +
+    (step === "invite-friends" || step === "send-friends" ? " is-invite-step" : "");
 
   const shareSubtitle =
     isPopover && step === "menu"
@@ -1159,6 +1181,41 @@ export function JourneyProfileShareModal({
                 </span>
               </button>
 
+              <button
+                type="button"
+                className="j-share-menu-item"
+                onClick={() => {
+                  const openSend = () => setStep("send-friends");
+                  if (requireAuth) {
+                    requireAuth(openSend);
+                    return;
+                  }
+                  if (viewerProfileId) {
+                    openSend();
+                    return;
+                  }
+                  if (authGate) {
+                    authGate.requireAuth(openSend);
+                    return;
+                  }
+                  window.location.href = "/login";
+                }}
+              >
+                <span className="j-share-menu-ic j-share-menu-ic--invite">
+                  <MessageCircle size={20} strokeWidth={1.8} aria-hidden />
+                </span>
+                <span className="j-share-menu-copy">
+                  <strong>Gửi bạn bè</strong>
+                  <span>
+                    {orgShare?.kind === "cong_dong"
+                      ? "Gửi link cộng đồng qua tin nhắn"
+                      : orgShare
+                        ? "Gửi link trang qua tin nhắn"
+                        : "Gửi link Journey qua tin nhắn"}
+                  </span>
+                </span>
+              </button>
+
               {orgShare?.kind === "cong_dong" && orgShare.orgId ? (
                 <button
                   type="button"
@@ -1218,6 +1275,21 @@ export function JourneyProfileShareModal({
                 window.setTimeout(() => {
                   setStep("menu");
                 }, 1400);
+              }}
+            />
+          ) : step === "send-friends" ? (
+            <SharePostToFriendsPanel
+              shareUrl={
+                orgShare
+                  ? orgPageShareUrl(orgShare)
+                  : journeyShareUrl(profile.slug)
+              }
+              shareTitle={orgShareInviteTitle(orgShare, profile.displayName)}
+              onDone={(message) => {
+                showFlash(message);
+                window.setTimeout(() => {
+                  handleClose();
+                }, 900);
               }}
             />
           ) : cardKind ? (

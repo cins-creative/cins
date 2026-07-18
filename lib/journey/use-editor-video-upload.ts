@@ -53,6 +53,23 @@ export function useEditorVideoUpload() {
     }
   }, []);
 
+  const clearVideoUpload = useCallback(() => {
+    uploadSessionRef.current += 1;
+    abortActiveVideoUpload();
+    uploadLockRef.current = false;
+    setVideoUrl("");
+    setBunnyVideoId(null);
+    setVideoUploading(false);
+    setVideoUploadProgress(0);
+    setVideoUploadError(null);
+    setVideoEncodeReady(false);
+    setVideoCanvasRatio(null);
+    setLocalVideoPreviewUrl((prev) => {
+      if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+      return null;
+    });
+  }, [abortActiveVideoUpload]);
+
   useEffect(
     () => () => {
       abortActiveVideoUpload();
@@ -245,5 +262,6 @@ export function useEditorVideoUpload() {
     videoCanvasRatio,
     uploadVideoFile,
     abortActiveVideoUpload,
+    clearVideoUpload,
   };
 }

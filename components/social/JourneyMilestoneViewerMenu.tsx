@@ -2,14 +2,23 @@
 
 import {
   AlertTriangle,
+  ChevronLeft,
+  Copy,
   ExternalLink,
-  Link2,
+  MessageCircle,
   MoreHorizontal,
   Share2,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
+import { useOptionalAuthGate } from "@/components/auth/AuthGateProvider";
 import { ReportModal } from "@/components/social/ReportModal";
+import { SharePostToFriendsPanel } from "@/components/social/SharePostToFriendsPanel";
+import {
+  buildSocialShareItems,
+  copyTextToClipboard,
+  openFacebookShare,
+} from "@/lib/journey/profile-share";
 
 type Props = {
   /** ID nội dung để báo cáo (cột mốc). */
@@ -21,7 +30,9 @@ type Props = {
   className?: string;
 };
 
-/** Menu "..." cho người xem nội dung của người khác: mở, chia sẻ, copy, báo cáo. */
+type MenuPanel = "main" | "share" | "friends";
+
+/** Menu "..." cho người xem nội dung của người khác: mở, chia sẻ, báo cáo. */
 export function JourneyMilestoneViewerMenu({
   reportTargetId,
   reportTargetTitle,
@@ -29,10 +40,19 @@ export function JourneyMilestoneViewerMenu({
   viewerLoggedIn,
   className,
 }: Props) {
+  const authGate = useOptionalAuthGate();
   const [open, setOpen] = useState(false);
+  const [panel, setPanel] = useState<MenuPanel>("main");
   const [copied, setCopied] = useState(false);
+  const [flash, setFlash] = useState<string | null>(null);
   const [reportOpen, setReportOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+
+  function closeMenu() {
+    setOpen(false);
+    setPanel("main");
+    setFlash(null);
+  }
 
   useEffect(() => {
     if (!open) return;
@@ -40,10 +60,13 @@ export function JourneyMilestoneViewerMenu({
     const timer = window.setTimeout(() => {
       const onDocPointerDown = (e: PointerEvent) => {
         if (rootRef.current?.contains(e.target as Node)) return;
-        setOpen(false);
+        closeMenu();
       };
       const onKey = (e: KeyboardEvent) => {
-        if (e.key === "Escape") setOpen(false);
+        if (e.key !== "Escape") return;
+        if (panel === "friends") setPanel("share");
+        else if (panel === "share") setPanel("main");
+        else closeMenu();
       };
       /* Capture: tránh bị parent stopPropagation (mousedown bubble) giữ menu mở. */
       document.addEventListener("pointerdown", onDocPointerDown, true);
@@ -57,43 +80,72 @@ export function JourneyMilestoneViewerMenu({
       window.clearTimeout(timer);
       removeListeners?.();
     };
-  }, [open]);
+  }, [open, panel]);
 
   function absoluteHref(): string | null {
     if (!postHref) return null;
-    const base = typeof window !== "undefined" ? window.location.origin : "";
-    return base ? `${base}${postHref}` : postHref;
+    const path = postHref.startsWith("/") ? postHref : `/${postHref}`;
+    if (typeof window === "undefined") return path;
+    return `${window.location.origin}${path}`;
   }
 
-  function copyLink() {
+  async function copyLink() {
     const full = absoluteHref();
     if (!full) return;
-    try {
-      navigator.clipboard.writeText(full);
+    const ok = await copyTextToClipboard(full);
+    if (ok) {
       setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
+      window.setTimeout(() => setCopied(false), 1500);
+      return;
+    }
+    window.prompt("Sao chép URL bài viết:", full);
+  }
+
+  async function nativeShare() {
+    const full = absoluteHref();
+    if (!full || typeof navigator === "undefined" || !navigator.share) return;
+    try {
+      /* Gọi share trước khi đóng menu — giữ user gesture trên desktop. */
+      await navigator.share({
+        title: reportTargetTitle ?? "Bài viết trên CINs",
+        url: full,
+      });
+      closeMenu();
     } catch {
-      window.prompt("Sao chép URL bài viết:", full);
+      /* User huỷ hoặc OS từ chối — giữ panel mở. */
     }
   }
 
-  async function share() {
-    const full = absoluteHref();
-    if (!full) return;
-    setOpen(false);
-    if (typeof navigator !== "undefined" && navigator.share) {
-      try {
-        await navigator.share({
-          title: reportTargetTitle ?? "Bài viết trên CINs",
-          url: full,
-        });
+  function openFriendsPanel() {
+    const go = () => {
+      setFlash(null);
+      setPanel("friends");
+    };
+    if (!viewerLoggedIn) {
+      if (authGate) {
+        authGate.requireAuth(go);
         return;
-      } catch {
-        /* user huỷ share — bỏ qua */
       }
+      window.location.href = "/login";
+      return;
     }
-    copyLink();
+    go();
   }
+
+  const shareTitle = reportTargetTitle?.trim() || "Bài viết trên CINs";
+  const shareUrl = absoluteHref() ?? "";
+  const shareItems =
+    shareUrl && panel === "share"
+      ? buildSocialShareItems(shareUrl, shareTitle, {
+          onNativeShare: () => void nativeShare(),
+          onCopy: () => void copyLink(),
+          onFacebookShare: () => void openFacebookShare(shareUrl, shareTitle),
+        }).map((item) =>
+          item.id === "copy"
+            ? { ...item, label: copied ? "Đã sao chép link!" : "Sao chép link" }
+            : item,
+        )
+      : [];
 
   return (
     <div
@@ -109,76 +161,182 @@ export function JourneyMilestoneViewerMenu({
         aria-expanded={open}
         onClick={(e) => {
           e.stopPropagation();
-          setOpen((v) => !v);
+          if (open) closeMenu();
+          else {
+            setPanel("main");
+            setFlash(null);
+            setOpen(true);
+          }
         }}
       >
         <MoreHorizontal size={18} strokeWidth={2} aria-hidden />
       </button>
 
       {open ? (
-        <div className="j-m-menu-pop" role="menu">
-          {postHref ? (
-            <a
-              href={postHref}
-              className="j-m-menu-item"
-              role="menuitem"
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => setOpen(false)}
-            >
-              <span className="j-m-menu-ico" aria-hidden>
-                <ExternalLink size={14} strokeWidth={1.7} />
-              </span>
-              <span className="j-m-menu-lbl">Mở bài viết</span>
-            </a>
-          ) : null}
+        <div
+          className={
+            "j-m-menu-pop" +
+            (panel === "friends" ? " j-m-menu-pop--friends" : "")
+          }
+          role="menu"
+        >
+          {panel === "friends" ? (
+            <>
+              <button
+                type="button"
+                className="j-m-menu-item"
+                role="menuitem"
+                onClick={() => {
+                  setFlash(null);
+                  setPanel("share");
+                }}
+              >
+                <span className="j-m-menu-ico" aria-hidden>
+                  <ChevronLeft size={14} strokeWidth={1.7} />
+                </span>
+                <span className="j-m-menu-lbl">Quay lại</span>
+              </button>
+              <div className="j-m-menu-sep" aria-hidden />
+              {flash ? (
+                <p className="j-m-share-friends-flash" role="status">
+                  {flash}
+                </p>
+              ) : null}
+              {shareUrl ? (
+                <SharePostToFriendsPanel
+                  shareUrl={shareUrl}
+                  shareTitle={reportTargetTitle}
+                  onDone={(message) => {
+                    setFlash(message);
+                    window.setTimeout(() => closeMenu(), 900);
+                  }}
+                />
+              ) : null}
+            </>
+          ) : panel === "share" ? (
+            <>
+              <button
+                type="button"
+                className="j-m-menu-item"
+                role="menuitem"
+                onClick={() => setPanel("main")}
+              >
+                <span className="j-m-menu-ico" aria-hidden>
+                  <ChevronLeft size={14} strokeWidth={1.7} />
+                </span>
+                <span className="j-m-menu-lbl">Quay lại</span>
+              </button>
+              <div className="j-m-menu-sep" aria-hidden />
 
-          {postHref ? (
-            <button
-              type="button"
-              className="j-m-menu-item"
-              role="menuitem"
-              onClick={share}
-            >
-              <span className="j-m-menu-ico" aria-hidden>
-                <Share2 size={14} strokeWidth={1.7} />
-              </span>
-              <span className="j-m-menu-lbl">Chia sẻ</span>
-            </button>
-          ) : null}
+              <button
+                type="button"
+                className="j-m-menu-item j-m-share-item"
+                role="menuitem"
+                onClick={openFriendsPanel}
+              >
+                <span
+                  className="j-share-soc-ic j-m-share-ic j-share-soc-ic--invite"
+                  aria-hidden
+                >
+                  <MessageCircle size={12} strokeWidth={2.2} />
+                </span>
+                <span className="j-m-menu-lbl">Gửi bạn bè</span>
+              </button>
 
-          {postHref ? (
-            <button
-              type="button"
-              className="j-m-menu-item"
-              role="menuitem"
-              onClick={copyLink}
-            >
-              <span className="j-m-menu-ico" aria-hidden>
-                <Link2 size={14} strokeWidth={1.7} />
-              </span>
-              <span className="j-m-menu-lbl">
-                {copied ? "Đã sao chép link!" : "Sao chép link"}
-              </span>
-            </button>
-          ) : null}
+              <div className="j-m-menu-sep" aria-hidden />
 
-          <div className="j-m-menu-sep" aria-hidden />
+              {shareItems.map((item) =>
+                item.href ? (
+                  <a
+                    key={item.id}
+                    href={item.href}
+                    className="j-m-menu-item j-m-share-item"
+                    role="menuitem"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => closeMenu()}
+                  >
+                    <span
+                      className={`j-share-soc-ic j-m-share-ic ${item.iconClass}`}
+                      aria-hidden
+                    >
+                      {item.iconLabel}
+                    </span>
+                    <span className="j-m-menu-lbl">{item.label}</span>
+                  </a>
+                ) : (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className="j-m-menu-item j-m-share-item"
+                    role="menuitem"
+                    onClick={() => item.onClick?.()}
+                  >
+                    <span
+                      className={`j-share-soc-ic j-m-share-ic ${item.iconClass}`}
+                      aria-hidden
+                    >
+                      {item.id === "copy" ? (
+                        <Copy size={12} strokeWidth={2.2} />
+                      ) : (
+                        item.iconLabel
+                      )}
+                    </span>
+                    <span className="j-m-menu-lbl">{item.label}</span>
+                  </button>
+                ),
+              )}
+            </>
+          ) : (
+            <>
+              {postHref ? (
+                <a
+                  href={postHref}
+                  className="j-m-menu-item"
+                  role="menuitem"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => closeMenu()}
+                >
+                  <span className="j-m-menu-ico" aria-hidden>
+                    <ExternalLink size={14} strokeWidth={1.7} />
+                  </span>
+                  <span className="j-m-menu-lbl">Mở bài viết</span>
+                </a>
+              ) : null}
 
-          <button
-            type="button"
-            className="j-m-menu-item is-danger"
-            role="menuitem"
-            onClick={() => {
-              setOpen(false);
-              setReportOpen(true);
-            }}
-          >
-            <span className="j-m-menu-ico" aria-hidden>
-              <AlertTriangle size={14} strokeWidth={1.7} />
-            </span>
-            <span className="j-m-menu-lbl">Báo cáo</span>
-          </button>
+              {postHref ? (
+                <button
+                  type="button"
+                  className="j-m-menu-item"
+                  role="menuitem"
+                  onClick={() => setPanel("share")}
+                >
+                  <span className="j-m-menu-ico" aria-hidden>
+                    <Share2 size={14} strokeWidth={1.7} />
+                  </span>
+                  <span className="j-m-menu-lbl">Chia sẻ</span>
+                </button>
+              ) : null}
+
+              <div className="j-m-menu-sep" aria-hidden />
+
+              <button
+                type="button"
+                className="j-m-menu-item is-danger"
+                role="menuitem"
+                onClick={() => {
+                  closeMenu();
+                  setReportOpen(true);
+                }}
+              >
+                <span className="j-m-menu-ico" aria-hidden>
+                  <AlertTriangle size={14} strokeWidth={1.7} />
+                </span>
+                <span className="j-m-menu-lbl">Báo cáo</span>
+              </button>
+            </>
+          )}
         </div>
       ) : null}
 

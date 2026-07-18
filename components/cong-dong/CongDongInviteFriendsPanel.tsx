@@ -142,8 +142,7 @@ export function CongDongInviteFriendsPanel({ orgId, onDone }: Props) {
         aria-label="Chọn bạn bè"
         aria-multiselectable="true"
       >
-        {friends.map((friend) => {
-          const disabled = friend.alreadyMember;
+        {inviteable.map((friend) => {
           const checked = selected.has(friend.id);
           return (
             <li key={friend.id}>
@@ -151,13 +150,11 @@ export function CongDongInviteFriendsPanel({ orgId, onDone }: Props) {
                 type="button"
                 role="option"
                 aria-selected={checked}
-                disabled={disabled || pending}
+                disabled={pending}
                 className={
-                  "j-share-invite-row" +
-                  (checked ? " is-selected" : "") +
-                  (disabled ? " is-disabled" : "")
+                  "j-share-invite-row" + (checked ? " is-selected" : "")
                 }
-                onClick={() => toggle(friend.id, disabled)}
+                onClick={() => toggle(friend.id, false)}
               >
                 {friend.avatarUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -175,18 +172,12 @@ export function CongDongInviteFriendsPanel({ orgId, onDone }: Props) {
                 )}
                 <span className="j-share-invite-meta">
                   <strong>{friend.tenHienThi}</strong>
-                  {disabled ? (
-                    <span>Đã là thành viên</span>
-                  ) : (
-                    <span>@{friend.slug}</span>
-                  )}
+                  <span>@{friend.slug}</span>
                 </span>
-                {!disabled ? (
-                  <span
-                    className={"j-share-invite-check" + (checked ? " is-on" : "")}
-                    aria-hidden
-                  />
-                ) : null}
+                <span
+                  className={"j-share-invite-check" + (checked ? " is-on" : "")}
+                  aria-hidden
+                />
               </button>
             </li>
           );

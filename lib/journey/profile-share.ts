@@ -89,7 +89,8 @@ export type JourneyShareMenuStep =
   | "menu"
   | "journey-card"
   | "gallery-card"
-  | "invite-friends";
+  | "invite-friends"
+  | "send-friends";
 
 export const JOURNEY_SHARE_CARD_VARIANTS: Record<
   JourneyShareCardKind,

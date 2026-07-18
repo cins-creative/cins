@@ -8,6 +8,7 @@ import { useState } from "react";
 import { useCinsChat } from "@/components/cins/CinsChatProvider";
 import { JourneyFollowButton } from "@/components/journey/JourneyFollowButton";
 import { JourneyUserFollowButton } from "@/components/journey/JourneyUserFollowButton";
+import { ShareLinkMenu } from "@/components/social/ShareLinkMenu";
 import { avatarHueFromSeed, avatarInitialFromName } from "@/lib/chat/avatar";
 import { useKetBanStatus } from "@/lib/social/use-ket-ban-status";
 
@@ -40,6 +41,7 @@ export function JourneyUserPopoverActionsShell() {
           <span className="j-friend-btn is-compact is-skel" />
         </span>
         <span className="j-friend-link is-icon is-skel" />
+        <span className="j-friend-link is-icon is-skel" />
       </div>
     </div>
   );
@@ -59,6 +61,7 @@ export function JourneyUserPopoverActions({
     Boolean(user.idNguoiDung) && viewerProfileId === user.idNguoiDung;
   const showFollowButton =
     Boolean(user.idNguoiDung) && !isSelf && ketBan.quanHe !== "accepted";
+  const sharePath = user.slug ? `/${user.slug}` : "";
 
   const openMessage = () => {
     if (!viewerProfileId) {
@@ -123,6 +126,17 @@ export function JourneyUserPopoverActions({
               viewerProfileId={viewerProfileId}
             />
           </div>
+        ) : null}
+        {sharePath ? (
+          <ShareLinkMenu
+            sharePath={sharePath}
+            shareTitle={user.tenHienThi || user.slug}
+            viewerLoggedIn={Boolean(viewerProfileId)}
+            triggerClassName="j-friend-link is-icon"
+            triggerLabel="Chia sẻ"
+            placement="up"
+            onCloseParent={onClose}
+          />
         ) : null}
         <Link
           href={`/${user.slug}`}

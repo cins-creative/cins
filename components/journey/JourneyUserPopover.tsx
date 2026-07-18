@@ -262,8 +262,8 @@ export function JourneyUserPopover({
                       aria-controls={`j-user-featured-panel-${visibleProfile.slug}`}
                       title={
                         featuredOpen
-                          ? "Thu gọn nội dung nổi bật"
-                          : "Xem nội dung nổi bật"
+                          ? "Thu gọn Feature"
+                          : "Xem Feature"
                       }
                       onClick={(event) => {
                         event.stopPropagation();
@@ -272,22 +272,22 @@ export function JourneyUserPopover({
                       }}
                     >
                       <strong>{noiBatCount}</strong>
-                      Nổi bật
+                      Feature
                     </button>
                   ) : noiBatCount > 0 ? (
                     <Link
                       href={`/${visibleProfile.slug}`}
                       className="j-friend-stat-btn"
-                      title="Xem Journey — nội dung nổi bật"
+                      title="Xem Journey — Feature"
                       onClick={() => setOpen(false)}
                     >
                       <strong>{noiBatCount}</strong>
-                      Nổi bật
+                      Feature
                     </Link>
                   ) : (
                     <span>
                       <strong>{noiBatCount}</strong>
-                      Nổi bật
+                      Feature
                     </span>
                   )}
                   <span>

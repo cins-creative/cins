@@ -1043,10 +1043,13 @@ button.j-avatar.j-avatar-viewable:focus-visible {
   margin-bottom: 16px;
 }
 .j-main-panel-head span {
-  font-family: var(--font-j-anton, "Anton"), var(--font-sans);
-  font-size: 28px;
-  letter-spacing: 0.02em;
-  color: var(--ink-display);
+  font-family: var(--font-sans);
+  font-size: 30px;
+  font-weight: var(--weight-bold);
+  line-height: 1;
+  letter-spacing: 0.5px;
+  color: var(--cins-blue);
+  white-space: nowrap;
 }
 .j-main-panel-head strong {
   font-size: 12px;
@@ -2594,13 +2597,15 @@ a.j-main-gallery-item:focus-visible,
 }
 .j-friend-actions-row--icons > .j-friend-message,
 .j-friend-actions-row--icons > .j-friend-card-follow,
-.j-friend-actions-row--icons > .j-friend-link {
+.j-friend-actions-row--icons > .j-friend-link,
+.j-friend-actions-row--icons > .j-share-link-menu {
   flex: 0 0 auto;
   width: auto;
   min-width: 0;
 }
 .j-friend-actions-row--icons .j-friend-message.is-icon,
-.j-friend-actions-row--icons .j-friend-link.is-icon {
+.j-friend-actions-row--icons .j-friend-link.is-icon,
+.j-friend-actions-row--icons .j-share-link-menu .j-friend-link.is-icon {
   width: 32px;
   min-width: 32px;
   height: 32px;
@@ -2613,7 +2618,8 @@ a.j-main-gallery-item:focus-visible,
   text-decoration: none;
 }
 .j-friend-actions-row--icons .j-friend-message.is-icon:hover:not(:disabled),
-.j-friend-actions-row--icons .j-friend-link.is-icon:hover {
+.j-friend-actions-row--icons .j-friend-link.is-icon:hover,
+.j-friend-actions-row--icons .j-share-link-menu .j-friend-link.is-icon:hover {
   background: color-mix(
     in srgb,
     var(--cins-blue, #2563eb) 18%,
@@ -2700,6 +2706,36 @@ a.j-main-gallery-item:focus-visible,
 .j-friend-link:hover {
   background: var(--cins-blue);
   color: #fff;
+}
+/* Icon CTA: cùng look soft với «Xem Journey», không fill xanh đặc của nút text. */
+.j-friend-message.is-icon {
+  border: 1px solid rgba(37, 99, 235, 0.22);
+  background: var(--cins-blue-soft);
+  color: var(--cins-blue);
+}
+.j-friend-message.is-icon:hover:not(:disabled) {
+  border-color: rgba(37, 99, 235, 0.22);
+  background: color-mix(
+    in srgb,
+    var(--cins-blue, #2563eb) 18%,
+    var(--cins-blue-soft, #eff6ff)
+  );
+  color: var(--cins-blue, #2563eb);
+}
+.j-friend-actions-row--icons .j-friend-message.is-icon,
+.j-friend-actions-row--icons .j-friend-link.is-icon,
+.j-profile-action-row--icons .j-friend-message.is-icon,
+.j-profile-action-row--icons .j-friend-link.is-icon {
+  border: none;
+}
+.j-friend-actions-row--icons .j-friend-link.is-icon:hover,
+.j-profile-action-row--icons .j-friend-link.is-icon:hover {
+  background: color-mix(
+    in srgb,
+    var(--cins-blue, #2563eb) 18%,
+    var(--cins-blue-soft, #eff6ff)
+  );
+  color: var(--cins-blue, #2563eb);
 }
 
 .j-friend-card.is-invite {
@@ -2951,6 +2987,19 @@ a.j-main-gallery-item:focus-visible,
   background: var(--cins-blue);
   border-color: var(--cins-blue);
   color: #fff;
+}
+:root[data-theme="dark"] .j-friend-message.is-icon {
+  background: var(--cins-blue-soft);
+  border-color: transparent;
+  color: var(--cins-blue);
+}
+:root[data-theme="dark"] .j-friend-message.is-icon:hover:not(:disabled) {
+  background: color-mix(
+    in srgb,
+    var(--cins-blue, #2563eb) 18%,
+    var(--cins-blue-soft, #eff6ff)
+  );
+  color: var(--cins-blue);
 }
 :root[data-theme="dark"] .j-friends-invite-pill {
   background: color-mix(in srgb, var(--cins-orange, #f97316) 20%, transparent);
@@ -8678,7 +8727,8 @@ button.j-g-item:disabled {
     padding-right: 12px;
   }
   .cins-journey-page .j-year-label,
-  .cins-journey-page .j-tlb-year {
+  .cins-journey-page .j-tlb-year,
+  .cins-journey-page .j-main-panel-head span {
     font-size: 26px;
   }
   .cins-journey-page .j-year-header {
@@ -10878,6 +10928,24 @@ select.j-edit-input {
   align-items: center;
   gap: 6px;
   font-size: 13px;
+}
+
+.ed-minimal-tool--danger {
+  color: #b91c1c;
+}
+
+.ed-minimal-tool--danger:hover:not(:disabled) {
+  color: #991b1b;
+  background: color-mix(in srgb, #fee2e2 70%, transparent);
+}
+
+:root[data-theme="dark"] .ed-minimal-tool--danger {
+  color: #fca5a5;
+}
+
+:root[data-theme="dark"] .ed-minimal-tool--danger:hover:not(:disabled) {
+  color: #fecaca;
+  background: rgba(185, 28, 28, 0.18);
 }
 
 .ed-minimal-tool--cover-hint {
@@ -14179,6 +14247,220 @@ select.j-edit-input {
   right: 0;
   left: auto;
   z-index: 40;
+}
+.jcard-viewer-menu .j-m-menu-pop--friends {
+  width: min(300px, calc(100vw - 16px));
+  max-height: min(420px, 70vh);
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.jcard-viewer-menu .j-m-menu-pop--friends::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+/* Panel chia sẻ trong menu viewer — icon MXH gọn hơn modal share. */
+.jcard-viewer-menu .j-m-share-item {
+  gap: 12px;
+}
+.jcard-viewer-menu .j-m-share-ic.j-share-soc-ic {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  font-size: 10px;
+}
+.jcard-viewer-menu .j-m-share-ic.j-share-soc-ic--copy,
+.jcard-viewer-menu .j-m-share-ic.j-share-soc-ic--invite {
+  color: #fff;
+}
+.j-share-soc-ic--invite {
+  background: var(--cins-blue, #1f74c9);
+}
+.j-m-share-friends {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 2px 2px 4px;
+}
+.j-m-share-friends-search input {
+  width: 100%;
+  box-sizing: border-box;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-page, #f4f5f8);
+  font: inherit;
+  font-size: 12.5px;
+  color: var(--ink-body);
+}
+.j-m-share-friends-search input:focus {
+  outline: none;
+  border-color: var(--cins-blue);
+  background: var(--bg-surface);
+}
+.j-m-share-friends-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 2px;
+}
+.j-m-share-friends-select-all {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--cins-blue);
+  cursor: pointer;
+}
+.j-m-share-friends-select-all:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.j-m-share-friends-meta {
+  font-size: 11.5px;
+  color: var(--ink-muted);
+}
+.j-m-share-friends-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 220px;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.j-m-share-friends-list::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+.j-m-share-friends-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 7px 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: var(--ink-title);
+}
+.j-m-share-friends-row:hover:not(:disabled) {
+  background: var(--neutral-100, #f4f4f5);
+}
+.j-m-share-friends-row.is-selected {
+  background: var(--cins-blue-soft, #e7f0fb);
+}
+.j-m-share-friends-row:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.j-m-share-friends-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.j-m-share-friends-avatar.is-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--cins-blue-soft, #e7f0fb);
+  color: var(--cins-blue);
+  font-size: 12px;
+  font-weight: 700;
+}
+.j-m-share-friends-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1;
+}
+.j-m-share-friends-copy strong {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-display, rgba(0, 0, 0, 0.85));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.j-m-share-friends-copy span {
+  font-size: 11.5px;
+  color: var(--ink-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.j-m-share-friends-check {
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  border: 1.5px solid var(--border-strong);
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+.j-m-share-friends-check.is-on {
+  border-color: var(--cins-blue);
+  background: var(--cins-blue);
+  box-shadow: inset 0 0 0 3px var(--bg-surface, #fff);
+}
+.j-m-share-friends-empty,
+.j-m-share-friends-error {
+  margin: 4px 2px;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--ink-muted);
+}
+.j-m-share-friends-error {
+  color: #b42318;
+}
+.j-m-share-friends-flash {
+  margin: 0 2px 4px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--cins-blue-soft, #e7f0fb);
+  color: var(--cins-blue-dark, #1656a0);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.j-m-share-friends-send {
+  width: 100%;
+  height: 36px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--cins-blue);
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.j-m-share-friends-send:hover:not(:disabled) {
+  background: var(--cins-blue-dark, #1656a0);
+}
+.j-m-share-friends-send:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+:root[data-theme="dark"] .j-m-share-friends-search input {
+  background: color-mix(in srgb, var(--bg-surface) 88%, transparent);
+}
+:root[data-theme="dark"] .j-m-share-friends-row:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--cins-blue) 12%, transparent);
+}
+:root[data-theme="dark"] .j-m-share-friends-row.is-selected {
+  background: color-mix(in srgb, var(--cins-blue) 18%, transparent);
 }
 
 /* =========================================================
@@ -17700,6 +17982,18 @@ a.action-btn-part {
   gap: 2px;
   z-index: 40;
 }
+.jcard-actions .jcard-share .post-byline-share--friends {
+  width: min(300px, calc(100vw - 24px));
+  max-width: min(300px, calc(100vw - 24px));
+  max-height: min(420px, 70vh);
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.jcard-actions .jcard-share .post-byline-share--friends::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
 .jcard-actions .jcard-share .post-byline-share-item {
   display: flex;
   align-items: center;
@@ -17739,6 +18033,15 @@ a.action-btn-part {
 .jcard-actions .jcard-share .post-byline-share-ic--copy {
   background: var(--neutral-200, #e5e7eb);
   color: var(--jcard-ink, var(--ink-title));
+}
+.jcard-actions .jcard-share .post-byline-share-ic--friends {
+  background: var(--cins-blue, #1f74c9);
+  color: #fff;
+}
+.jcard-actions .jcard-share .post-byline-share-ic--back {
+  background: var(--neutral-200, #e5e7eb);
+  color: var(--jcard-ink, var(--ink-title));
+  font-size: 12px;
 }
 .jcard-actions .jcard-share .post-byline-share-ic--fb {
   background: #1877f2;
@@ -20001,6 +20304,41 @@ a.action-btn-part {
 .j-share-sheet.is-card-step {
   width: min(720px, calc(100vw - 24px));
 }
+/* Mời bạn bè — hẹp hơn card preview, cao cố định 80vh */
+.j-share-sheet.is-invite-step {
+  width: min(440px, calc(100vw - 24px));
+  height: 80vh;
+  max-height: 80vh;
+}
+.j-share-sheet.is-invite-step .j-share-body {
+  flex: 1;
+  min-height: 0;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.j-share-sheet.is-invite-step .j-share-body::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+.j-share-sheet.is-invite-step .j-share-invite {
+  flex: 1;
+  min-height: 0;
+}
+.j-share-sheet.is-invite-step .j-share-invite-list {
+  flex: 1;
+  max-height: none;
+  min-height: 0;
+}
+.j-share-sheet.is-invite-step .j-m-share-friends {
+  flex: 1;
+  min-height: 0;
+}
+.j-share-sheet.is-invite-step .j-m-share-friends-list {
+  flex: 1;
+  max-height: none;
+  min-height: 0;
+}
 .j-share-sheet--popover {
   --j-ease: cubic-bezier(0.2, 0.7, 0.3, 1);
   position: fixed;
@@ -20014,6 +20352,11 @@ a.action-btn-part {
 }
 .j-share-sheet--popover.is-card-step {
   max-height: min(90vh, 720px);
+}
+.j-share-sheet--popover.is-invite-step {
+  width: min(440px, calc(100vw - 24px));
+  height: 80vh;
+  max-height: 80vh;
 }
 .j-share-sheet--popover .j-share-head {
   padding: 14px 16px 10px;
@@ -20276,6 +20619,7 @@ a.action-btn-part {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+  flex-shrink: 0;
 }
 .j-share-invite-select-all {
   border: none;
@@ -20295,7 +20639,7 @@ a.action-btn-part {
 }
 .j-share-invite-toolbar-meta {
   font-size: 12px;
-  color: var(--ink-muted, rgba(0, 0, 0, 0.45));
+  color: var(--ink-muted);
 }
 .j-share-invite-list {
   list-style: none;
@@ -20306,6 +20650,13 @@ a.action-btn-part {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.j-share-invite-list::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
 .j-share-invite-row {
   display: flex;
@@ -20318,14 +20669,17 @@ a.action-btn-part {
   background: transparent;
   padding: 8px 10px;
   cursor: pointer;
-  color: inherit;
+  color: var(--ink-body);
 }
 .j-share-invite-row:hover:not(:disabled) {
-  background: var(--bg-muted, #f8fafc);
+  background: var(--neutral-100);
 }
 .j-share-invite-row.is-selected {
-  border-color: rgba(31, 116, 201, 0.28);
-  background: rgba(31, 116, 201, 0.06);
+  border-color: color-mix(in srgb, var(--cins-blue) 35%, transparent);
+  background: var(--cins-blue-soft);
+}
+.j-share-invite-row.is-selected:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--cins-blue-soft) 80%, var(--neutral-100));
 }
 .j-share-invite-row.is-disabled {
   opacity: 0.55;
@@ -20342,8 +20696,8 @@ a.action-btn-part {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #e2e8f0;
-  color: #334155;
+  background: var(--neutral-200);
+  color: var(--ink-display);
   font-size: 13px;
   font-weight: 600;
 }
@@ -20357,37 +20711,78 @@ a.action-btn-part {
 .j-share-invite-meta strong {
   font-size: 13px;
   font-weight: 600;
+  color: var(--ink-display);
 }
 .j-share-invite-meta span {
   font-size: 11px;
-  color: var(--ink-muted, #64748b);
+  color: var(--ink-muted);
 }
+/* Checkbox vuông — multi-select (không dùng radio tròn) */
 .j-share-invite-check {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  border: 1.5px solid #cbd5e1;
+  position: relative;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  border: 1.5px solid var(--border-strong);
+  background: var(--bg-surface);
   flex-shrink: 0;
 }
 .j-share-invite-check.is-on {
-  border-color: var(--cins-blue, #1f74c9);
-  background: var(--cins-blue, #1f74c9);
-  box-shadow: inset 0 0 0 3px var(--bg-surface, #fff);
+  border-color: var(--cins-blue);
+  background: var(--cins-blue);
+}
+.j-share-invite-check.is-on::after {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 1.5px;
+  width: 5px;
+  height: 9px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
 }
 .j-share-invite-send {
   width: 100%;
   justify-content: center;
+  align-self: stretch;
+}
+/* Thắng `.j-share-action { flex: 1 }` — tránh nút phình thành oval trong cột flex. */
+.j-share-invite > .j-share-action.j-share-invite-send {
+  flex: 0 0 auto;
+  flex-grow: 0;
+  height: 38px;
+  max-height: 38px;
+  min-height: 38px;
 }
 .j-share-invite-empty,
 .j-share-invite-error {
   margin: 0;
   font-size: 13px;
-  color: var(--ink-muted, #64748b);
+  color: var(--ink-muted);
   line-height: 1.4;
   padding: 8px 4px;
 }
 .j-share-invite-error {
-  color: #b91c1c;
+  color: var(--danger, #b91c1c);
+}
+:root[data-theme="dark"] .j-share-invite-row:hover:not(:disabled) {
+  background: var(--neutral-200);
+}
+:root[data-theme="dark"] .j-share-invite-row.is-selected {
+  border-color: color-mix(in srgb, var(--cins-blue) 45%, transparent);
+  background: var(--cins-blue-soft);
+}
+:root[data-theme="dark"] .j-share-invite-row.is-selected:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--cins-blue) 28%, var(--neutral-100));
+}
+:root[data-theme="dark"] .j-share-invite-check {
+  border-color: var(--neutral-400);
+  background: var(--neutral-50);
+}
+:root[data-theme="dark"] .j-share-invite-check.is-on {
+  border-color: var(--cins-blue);
+  background: var(--cins-blue);
 }
 .j-share-menu-copy {
   display: flex;

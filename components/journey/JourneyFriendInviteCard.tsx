@@ -38,7 +38,7 @@ export function JourneyFriendInviteCard({
           <div className="j-friend-stats" aria-label="Thống kê hồ sơ">
             <span>
               <strong>{invite.stats.tacPham}</strong>
-              Nổi bật
+              Feature
             </span>
             <span>
               <strong>{invite.stats.cotMoc}</strong>

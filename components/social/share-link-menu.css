@@ -1,0 +1,115 @@
+/* ShareLinkMenu — menu chia sẻ entity (Journey / bài) dùng chung */
+
+.j-share-link-menu {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  /* Không inherit .j-m-menu { position:absolute; top/right } */
+  top: auto;
+  right: auto;
+  z-index: auto;
+}
+
+/* Portal pop — thoát overflow card/popover */
+.j-share-link-menu-pop.is-portal {
+  position: fixed;
+  box-sizing: border-box;
+  max-width: calc(100vw - 16px);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-strong, var(--border));
+  border-radius: var(--radius-md, 14px);
+  box-shadow: var(--shadow-md, 0 8px 24px rgba(0, 0, 0, 0.12));
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.j-share-link-menu-pop.j-m-menu-pop--friends {
+  max-height: min(420px, 70vh);
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.j-share-link-menu-pop.j-m-menu-pop--friends::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.j-share-link-menu-pop .j-m-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 0;
+  background: transparent;
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--ink-title, rgba(0, 0, 0, 0.6));
+  cursor: pointer;
+  text-align: left;
+  text-decoration: none;
+  width: 100%;
+}
+
+.j-share-link-menu-pop .j-m-menu-item:hover {
+  background: var(--neutral-100, #f4f4f5);
+}
+
+.j-share-link-menu-pop .j-m-menu-ico {
+  display: inline-flex;
+  width: 18px;
+  justify-content: center;
+  color: var(--ink-muted);
+  flex-shrink: 0;
+}
+
+.j-share-link-menu-pop .j-m-menu-sep {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 6px;
+}
+
+.j-share-link-menu-pop .j-m-share-item {
+  gap: 12px;
+}
+
+.j-share-link-menu-pop .j-share-soc-ic,
+.j-share-link-menu-pop .j-m-share-ic.j-share-soc-ic {
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 800;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.j-share-link-menu-pop .j-share-soc-ic--native {
+  background: #334155;
+}
+.j-share-link-menu-pop .j-share-soc-ic--copy {
+  background: #64748b;
+}
+.j-share-link-menu-pop .j-share-soc-ic--fb {
+  background: #1877f2;
+}
+.j-share-link-menu-pop .j-share-soc-ic--x {
+  background: #0f1419;
+}
+.j-share-link-menu-pop .j-share-soc-ic--in {
+  background: #0a66c2;
+}
+.j-share-link-menu-pop .j-share-soc-ic--invite {
+  background: var(--cins-blue, #1f74c9);
+}
+
+:root[data-theme="dark"] .j-share-link-menu-pop .j-m-menu-item:hover {
+  background: color-mix(in srgb, var(--cins-blue) 12%, transparent);
+}

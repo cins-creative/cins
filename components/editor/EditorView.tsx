@@ -1260,6 +1260,7 @@ export function EditorView({
     localVideoPreviewUrl,
     videoCanvasRatio,
     uploadVideoFile,
+    clearVideoUpload,
   } = useEditorVideoUpload();
 
   const {
@@ -2285,16 +2286,34 @@ export function EditorView({
         setToast("Bài nhúng không thêm video upload.");
         return;
       }
-      if (hasBunnyVideoBlock) {
-        setToast("Bài đã có video.");
-        return;
-      }
       if (hasPhotoBlocks) {
         setToast("Không thể thêm video vào bài album ảnh.");
         return;
       }
+
       expandMinimalToFullEditor();
       setEditorExpanded(true);
+
+      const existingId = videoBlockIdRef.current;
+      const existingBlock = blocksRef.current.find((b) =>
+        isEditorBunnyVideoBlock(b, existingId),
+      );
+
+      if (existingBlock) {
+        clearVideoUpload();
+        pushHistory();
+        setBlocks((prev) =>
+          prev.map((b) =>
+            b.id === existingBlock.id
+              ? { ...b, t: "embed" as const, embedUrl: "" }
+              : b,
+          ),
+        );
+        videoBlockIdRef.current = existingBlock.id;
+        void uploadVideoFile(file);
+        return;
+      }
+
       const blockId = newId();
       videoBlockIdRef.current = blockId;
       pushHistory();
@@ -2305,13 +2324,27 @@ export function EditorView({
       void uploadVideoFile(file);
     },
     [
+      clearVideoUpload,
       expandMinimalToFullEditor,
       hasPhotoBlocks,
-      hasBunnyVideoBlock,
       pushHistory,
       uploadVideoFile,
     ],
   );
+
+  const clearMinimalVideo = useCallback(() => {
+    const trackedId = videoBlockIdRef.current;
+    clearVideoUpload();
+    videoBlockIdRef.current = null;
+    pushHistory();
+    setBlocks((prev) => {
+      const next = prev.filter((b) => !isEditorBunnyVideoBlock(b, trackedId));
+      setSelectedId((cur) =>
+        cur && !next.some((b) => b.id === cur) ? null : cur,
+      );
+      return next;
+    });
+  }, [clearVideoUpload, pushHistory]);
 
   useEffect(() => {
     if (
@@ -2616,10 +2649,20 @@ export function EditorView({
     (id: string) => {
       setOpenAddIdx(null);
       pushHistory();
+      const block = blocksRef.current.find((b) => b.id === id);
+      const isVideo =
+        videoBlockIdRef.current === id ||
+        (block
+          ? isEditorBunnyVideoBlock(block, videoBlockIdRef.current)
+          : false);
+      if (isVideo) {
+        clearVideoUpload();
+        videoBlockIdRef.current = null;
+      }
       setBlocks((prev) => prev.filter((b) => b.id !== id));
       setSelectedId((cur) => (cur === id ? null : cur));
     },
-    [pushHistory],
+    [clearVideoUpload, pushHistory],
   );
 
   const openImgPicker = useCallback(
@@ -3777,6 +3820,35 @@ export function EditorView({
               />
             ) : null}
             <div className="ed-minimal-toolbar-actions">
+              {isBunnyVideoCompose &&
+              (hasBunnyVideoBlock ||
+                Boolean(localVideoPreviewUrl) ||
+                videoUploading) ? (
+                <>
+                  <button
+                    type="button"
+                    className="ed-btn ghost ed-minimal-tool"
+                    onClick={() => minimalVideoInputRef.current?.click()}
+                    disabled={videoUploading}
+                  >
+                    <Video size={15} strokeWidth={2} aria-hidden />
+                    Đổi video
+                  </button>
+                  <button
+                    type="button"
+                    className="ed-btn ghost ed-minimal-tool ed-minimal-tool--danger"
+                    onClick={clearMinimalVideo}
+                    title={
+                      videoUploading
+                        ? "Hủy tải lên và xóa video"
+                        : "Xóa video đã tải lên"
+                    }
+                  >
+                    <Trash2 size={15} strokeWidth={2} aria-hidden />
+                    {videoUploading ? "Hủy / xóa" : "Xóa video"}
+                  </button>
+                </>
+              ) : null}
               {composeIntent !== "video" && !hasPhotoBlocks && !hasBunnyVideoBlock ? (
                 <button
                   type="button"

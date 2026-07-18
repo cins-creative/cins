@@ -68,7 +68,7 @@ export function JourneyFriendCard({
         <div className="j-friend-stats" aria-label="Thống kê hồ sơ bạn bè">
           <span>
             <strong>{friend.stats.tacPham}</strong>
-            Nổi bật
+            Feature
           </span>
           <span>
             <strong>{friend.stats.cotMoc}</strong>
@@ -85,7 +85,10 @@ export function JourneyFriendCard({
           friendsAreMutual={friendsAreMutual}
         />
       </div>
-      <JourneyUserFeaturedExpand slug={friend.slug} />
+      <JourneyUserFeaturedExpand
+        slug={friend.slug}
+        hasFeaturedHint={friend.stats.tacPham > 0}
+      />
     </article>
   );
 }
