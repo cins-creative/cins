@@ -56,6 +56,9 @@ export type PostPublishValidationResult =
   | { ok: true; resolution: PostContentResolution; blocks: Block[] }
   | { ok: false; error: string; field?: string };
 
+/** Tiêu đề bài (`tieu_de`) — tối đa khi publish/update. */
+export const POST_TITLE_MAX = 100;
+
 /** Mô tả bài (`tom_tat` / `moTa`) — tối đa khi publish. */
 export const POST_MOTA_MAX = 15_000;
 

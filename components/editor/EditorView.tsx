@@ -171,6 +171,7 @@ import {
   applyShowCoverInPostFlag,
   findShowCoverInPostFlag,
   POST_MOTA_MAX,
+  POST_TITLE_MAX,
   validatePostContentForPublish,
 } from "@/lib/journey/post-content-kind";
 import { readImageFileFromClipboard } from "@/lib/files/clipboard-images";
@@ -3612,6 +3613,7 @@ export function EditorView({
           value={title}
           onChange={setTitle}
           maxRows={4}
+          maxLength={POST_TITLE_MAX}
         />
         {usesMinimalFlow ? (
           <div className="ed-minimal-body-wrap">

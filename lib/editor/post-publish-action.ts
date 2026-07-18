@@ -29,7 +29,11 @@ import { buildMilestoneItemForCotMoc } from "@/lib/journey/milestones-fetch";
 import type { MilestoneItem } from "@/components/journey/milestone-types";
 import { revalidateTaggedArticlePages } from "@/lib/tag/revalidate-tag-pages";
 import { DEFAULT_ARTICLE_POST_TITLE } from "@/lib/journey/post-media";
-import { validatePostContentForPublish, validateMoTaLength } from "@/lib/journey/post-content-kind";
+import {
+  POST_TITLE_MAX,
+  validatePostContentForPublish,
+  validateMoTaLength,
+} from "@/lib/journey/post-content-kind";
 import { insertDiemFeedChoBaiMoi } from "@/lib/cins/feed-scoring-write";
 import { ensureEmbedAutoCover } from "@/lib/editor/ensure-embed-auto-cover";
 
@@ -90,7 +94,6 @@ export type PublishPostResult =
       field?: string;
     };
 
-const MAX_TITLE = 200;
 const MAX_BLOCKS = 200;
 
 export async function publishPost(
@@ -112,10 +115,10 @@ export async function publishPost(
 
   /* 2. Validate. */
   const tieuDe = (input.tieuDe || "").trim() || DEFAULT_ARTICLE_POST_TITLE;
-  if (tieuDe.length > MAX_TITLE) {
+  if (tieuDe.length > POST_TITLE_MAX) {
     return {
       ok: false,
-      error: `Tiêu đề tối đa ${MAX_TITLE} ký tự.`,
+      error: `Tiêu đề tối đa ${POST_TITLE_MAX} ký tự.`,
       field: "tieuDe",
     };
   }

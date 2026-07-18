@@ -36,7 +36,11 @@ import {
   articleTagLoaiClass,
   type ArticleTagRef,
 } from "@/lib/editor/article-tag";
-import { validatePostContentForPublish, POST_MOTA_MAX } from "@/lib/journey/post-content-kind";
+import {
+  POST_MOTA_MAX,
+  POST_TITLE_MAX,
+  validatePostContentForPublish,
+} from "@/lib/journey/post-content-kind";
 import { publishPost } from "@/lib/editor/post-publish-action";
 import { updatePost } from "@/lib/editor/post-update-action";
 import { uploadPostImageWithProgress } from "@/lib/files/upload-post-image";
@@ -1121,7 +1125,7 @@ export function MediaComposeView({
             placeholder="Tiêu đề bài viết…"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            maxLength={120}
+            maxLength={POST_TITLE_MAX}
             aria-label="Tiêu đề bài viết"
           />
 
