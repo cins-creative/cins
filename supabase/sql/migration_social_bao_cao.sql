@@ -9,7 +9,8 @@ BEGIN
       'spam',       -- Spam / quảng cáo
       'phan_cam',   -- Nội dung phản cảm / người lớn
       'quay_roi',   -- Quấy rối / bắt nạt
-      'sai_lech',   -- Thông tin sai / lừa đảo
+      'sai_lech',   -- Thông tin sai lệch
+      'lua_dao',    -- Lừa đảo (tiền / bán hàng)
       'ban_quyen',  -- Vi phạm bản quyền
       'mao_danh',   -- Mạo danh
       'khac'        -- Khác
@@ -37,7 +38,7 @@ CREATE TABLE IF NOT EXISTS public.social_bao_cao (
   loai_bao_cao   public.loai_bao_cao_enum NOT NULL,
   tieu_de        text,
   noi_dung       text,
-  -- Danh sách bằng chứng: [{ "loai": "url" | "anh", "value": "…" }]
+  -- Danh sách bằng chứng ảnh: [{ "loai": "anh", "value": "…" }] (url legacy vẫn đọc được)
   bang_chung     jsonb NOT NULL DEFAULT '[]'::jsonb,
   -- Kênh xử lý: 'admin' (trang chủ / cá nhân) | 'cong_dong' (owner cộng đồng xử lý).
   kenh           text NOT NULL DEFAULT 'admin',

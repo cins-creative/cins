@@ -2488,11 +2488,77 @@
   box-sizing: border-box;
 }
 
+/* Đơn hàng — card đứng riêng, không nằm trong bubble */
+.cins-chat-bubble-row.is-don-hang-row {
+  width: min(100%, 360px);
+  max-width: 92%;
+}
+
+.cins-chat-bubble-row.is-don-hang-row .cins-chat-don-hang-wrap {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  /* Giữ row của .cins-chat-bubble-wrap — actions nằm cạnh, không dưới card */
+  align-items: center;
+}
+
+.cins-chat-don-hang-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  position: relative;
+}
+
+.cins-chat-don-hang-meta {
+  align-self: flex-end;
+  opacity: 0.65;
+  font-size: 11px;
+}
+
+.cins-chat-bubble-row.is-don-hang-row.is-them .cins-chat-don-hang-meta {
+  align-self: flex-start;
+}
+
+/* Ảnh / sticker — không bubble; actions cạnh ảnh */
+.cins-chat-bubble-row.is-bare-media-row .cins-chat-bare-media-wrap {
+  width: fit-content;
+  max-width: 100%;
+  align-items: center;
+}
+
+.cins-chat-bare-media-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: relative;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.cins-chat-bubble-row.is-bare-media-row.is-sticker-row .cins-chat-media-block {
+  width: fit-content;
+  max-width: min(var(--cins-chat-sticker-max, 160px), 100%);
+}
+
 .cins-chat-ctx-card-wrap {
   display: flex;
   flex-direction: column;
   gap: 6px;
   width: 100%;
+}
+
+.cins-chat-ctx-card-wrap--don .cins-chat-ctx-card-note {
+  color: var(--ink-muted, rgba(0, 0, 0, 0.5));
+}
+
+.cins-chat-bubble-row.is-me .cins-chat-ctx-card-wrap--don .cins-chat-ctx-card-note {
+  text-align: right;
+}
+
+:root[data-theme="dark"] .cins-chat-ctx-card-wrap--don .cins-chat-ctx-card-note {
+  color: var(--ink-muted, #94a3b8);
 }
 
 .cins-chat-ctx-card-note {
@@ -2922,6 +2988,257 @@ a.cins-chat-og-card.is-me:hover {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+/* ── Card đơn hàng shop ─────────────────────────────────────── */
+.cins-chat-ctx-card-wrap--don {
+  gap: 8px;
+}
+
+.cins-chat-don-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 12px 11px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--cins-orange, #fdad4c) 28%, #e4e6eb);
+  background:
+    linear-gradient(
+      165deg,
+      color-mix(in srgb, var(--cins-orange, #fdad4c) 10%, #fff) 0%,
+      #fff 42%
+    );
+  color: #16202c;
+  text-align: left;
+  text-decoration: none;
+  font: inherit;
+  cursor: pointer;
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.03);
+  transition: border-color 0.15s ease, background 0.15s ease;
+  box-sizing: border-box;
+  position: relative;
+  overflow: hidden;
+}
+
+button.cins-chat-don-card:hover,
+a.cins-chat-don-card:hover {
+  border-color: color-mix(in srgb, var(--cins-orange, #fdad4c) 48%, #c9cdd4);
+  background:
+    linear-gradient(
+      165deg,
+      color-mix(in srgb, var(--cins-orange, #fdad4c) 16%, #fff) 0%,
+      #fff 48%
+    );
+}
+
+.cins-chat-don-card-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding-left: 4px;
+}
+
+.cins-chat-don-card-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  background: color-mix(in srgb, var(--cins-orange, #fdad4c) 18%, transparent);
+  color: color-mix(in srgb, var(--cins-orange, #fdad4c) 70%, #8a4b00);
+}
+
+.cins-chat-don-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  min-width: 0;
+}
+
+.cins-chat-don-card-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: color-mix(in srgb, var(--cins-orange, #fdad4c) 55%, #5c3200);
+}
+
+.cins-chat-don-card-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.cins-chat-don-card-badge.is-now {
+  background: color-mix(in srgb, var(--cins-orange, #fdad4c) 18%, transparent);
+  color: color-mix(in srgb, var(--cins-orange, #fdad4c) 45%, #5c3200);
+}
+
+.cins-chat-don-card-badge.is-later {
+  background: color-mix(in srgb, #64748b 14%, transparent);
+  color: #475569;
+}
+
+.cins-chat-don-card-badge.is-paid {
+  background: color-mix(in srgb, #16a34a 16%, transparent);
+  color: #15803d;
+}
+
+/* Đã thanh toán — theme xanh lá */
+.cins-chat-don-card.is-paid {
+  border-color: color-mix(in srgb, #16a34a 28%, #e4e6eb);
+  background:
+    linear-gradient(
+      165deg,
+      color-mix(in srgb, #16a34a 10%, #fff) 0%,
+      #fff 42%
+    );
+}
+
+button.cins-chat-don-card.is-paid:hover,
+a.cins-chat-don-card.is-paid:hover {
+  border-color: color-mix(in srgb, #16a34a 48%, #c9cdd4);
+  background:
+    linear-gradient(
+      165deg,
+      color-mix(in srgb, #16a34a 16%, #fff) 0%,
+      #fff 48%
+    );
+}
+
+.cins-chat-don-card.is-paid .cins-chat-don-card-icon {
+  background: color-mix(in srgb, #16a34a 16%, transparent);
+  color: #15803d;
+}
+
+.cins-chat-don-card.is-paid .cins-chat-don-card-label {
+  color: #166534;
+}
+
+.cins-chat-don-card.is-paid .cins-chat-don-card-tong {
+  background: color-mix(in srgb, #16a34a 10%, #f0fdf4);
+}
+
+.cins-chat-don-card.is-paid .cins-chat-don-card-tong strong {
+  color: #15803d;
+}
+
+.cins-chat-don-card.is-paid .cins-chat-don-card-cta {
+  color: #15803d;
+}
+
+.cins-chat-don-card-ma {
+  display: block;
+  padding-left: 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 15px;
+  font-weight: 750;
+  letter-spacing: 0.02em;
+  line-height: 1.25;
+  color: #0f172a;
+}
+
+.cins-chat-don-card-status {
+  display: inline-flex;
+  align-self: flex-start;
+  margin: 2px 0 0 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.3;
+  background: color-mix(in srgb, var(--border, #e4e6eb) 65%, transparent);
+  color: var(--ink-muted, rgba(0, 0, 0, 0.55));
+}
+
+.cins-chat-don-card-status.is-pending {
+  background: color-mix(in srgb, #f79009 16%, transparent);
+  color: #b54708;
+}
+
+.cins-chat-don-card-status.is-done {
+  background: color-mix(in srgb, #16a34a 16%, transparent);
+  color: #15803d;
+}
+
+.cins-chat-don-card-tong {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 0 0 4px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--cins-orange, #fdad4c) 12%, #fff8f0);
+}
+
+.cins-chat-don-card-tong-label {
+  font-size: 11px;
+  font-weight: 650;
+  color: #78716c;
+}
+
+.cins-chat-don-card-tong strong {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #9a3412;
+}
+
+.cins-chat-don-card-mid {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding-left: 4px;
+  min-width: 0;
+}
+
+.cins-chat-don-card-anh {
+  width: 52px;
+  height: 52px;
+  border-radius: 10px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: #f1f5f9;
+}
+
+.cins-chat-don-card-items {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  flex: 1;
+}
+
+.cins-chat-don-card-item {
+  font-size: 12px;
+  line-height: 1.35;
+  color: #334155;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cins-chat-don-card-more {
+  font-size: 11px;
+  font-weight: 650;
+  color: #78716c;
+}
+
+.cins-chat-don-card-cta {
+  display: block;
+  padding: 2px 4px 0;
+  font-size: 11px;
+  font-weight: 700;
+  color: color-mix(in srgb, var(--cins-orange, #fdad4c) 40%, #9a3412);
 }
 
 .cins-chat-compose-ctx {
@@ -6708,6 +7025,117 @@ button.cins-chat-project-card-mark:hover {
 :root[data-theme="dark"] a.cins-chat-ctx-card:hover {
   background: var(--neutral-200);
   border-color: var(--border-strong);
+}
+
+:root[data-theme="dark"] .cins-chat-don-card {
+  background:
+    linear-gradient(
+      165deg,
+      color-mix(in srgb, var(--cins-orange, #fdad4c) 14%, var(--neutral-100, #151a24)) 0%,
+      var(--neutral-100, #151a24) 48%
+    );
+  border-color: color-mix(in srgb, var(--cins-orange, #fdad4c) 32%, var(--border, #2a3040));
+  color: var(--ink-display, rgba(255, 255, 255, 0.92));
+}
+:root[data-theme="dark"] button.cins-chat-don-card:hover,
+:root[data-theme="dark"] a.cins-chat-don-card:hover {
+  border-color: color-mix(in srgb, var(--cins-orange, #fdad4c) 48%, var(--border, #2a3040));
+  background:
+    linear-gradient(
+      165deg,
+      color-mix(in srgb, var(--cins-orange, #fdad4c) 20%, var(--neutral-100, #151a24)) 0%,
+      var(--neutral-100, #151a24) 52%
+    );
+}
+:root[data-theme="dark"] .cins-chat-don-card-label {
+  color: var(--cins-orange, #ffc078);
+}
+:root[data-theme="dark"] .cins-chat-don-card-icon {
+  color: var(--cins-orange, #ffc078);
+  background: color-mix(in srgb, var(--cins-orange, #fdad4c) 16%, transparent);
+}
+:root[data-theme="dark"] .cins-chat-don-card-badge.is-now {
+  background: color-mix(in srgb, var(--cins-orange, #fdad4c) 18%, transparent);
+  color: var(--cins-orange, #ffc078);
+}
+:root[data-theme="dark"] .cins-chat-don-card-badge.is-later {
+  background: rgba(148, 163, 184, 0.14);
+  color: #94a3b8;
+}
+:root[data-theme="dark"] .cins-chat-don-card-badge.is-paid {
+  background: color-mix(in srgb, #22c55e 18%, transparent);
+  color: #4ade80;
+}
+:root[data-theme="dark"] .cins-chat-don-card.is-paid {
+  background:
+    linear-gradient(
+      165deg,
+      color-mix(in srgb, #22c55e 14%, var(--neutral-100, #151a24)) 0%,
+      var(--neutral-100, #151a24) 48%
+    );
+  border-color: color-mix(in srgb, #22c55e 32%, var(--border, #2a3040));
+}
+:root[data-theme="dark"] button.cins-chat-don-card.is-paid:hover,
+:root[data-theme="dark"] a.cins-chat-don-card.is-paid:hover {
+  border-color: color-mix(in srgb, #22c55e 48%, var(--border, #2a3040));
+  background:
+    linear-gradient(
+      165deg,
+      color-mix(in srgb, #22c55e 20%, var(--neutral-100, #151a24)) 0%,
+      var(--neutral-100, #151a24) 52%
+    );
+}
+:root[data-theme="dark"] .cins-chat-don-card.is-paid .cins-chat-don-card-label {
+  color: #4ade80;
+}
+:root[data-theme="dark"] .cins-chat-don-card.is-paid .cins-chat-don-card-icon {
+  color: #4ade80;
+  background: color-mix(in srgb, #22c55e 16%, transparent);
+}
+:root[data-theme="dark"] .cins-chat-don-card.is-paid .cins-chat-don-card-tong {
+  background: color-mix(in srgb, #22c55e 12%, rgba(0, 0, 0, 0.25));
+}
+:root[data-theme="dark"] .cins-chat-don-card.is-paid .cins-chat-don-card-tong strong {
+  color: #4ade80;
+}
+:root[data-theme="dark"] .cins-chat-don-card.is-paid .cins-chat-don-card-cta {
+  color: #4ade80;
+}
+:root[data-theme="dark"] .cins-chat-don-card-ma {
+  color: #fff;
+}
+:root[data-theme="dark"] .cins-chat-don-card-status {
+  background: rgba(255, 255, 255, 0.08);
+  color: #94a3b8;
+}
+:root[data-theme="dark"] .cins-chat-don-card-status.is-pending {
+  background: color-mix(in srgb, #f79009 22%, transparent);
+  color: #fdb022;
+}
+:root[data-theme="dark"] .cins-chat-don-card-status.is-done {
+  background: color-mix(in srgb, #16a34a 22%, transparent);
+  color: #4ade80;
+}
+:root[data-theme="dark"] .cins-chat-don-card-tong {
+  background: color-mix(in srgb, var(--cins-orange, #fdad4c) 12%, rgba(0, 0, 0, 0.25));
+}
+:root[data-theme="dark"] .cins-chat-don-card-tong-label {
+  color: #94a3b8;
+}
+:root[data-theme="dark"] .cins-chat-don-card-tong strong {
+  color: var(--cins-orange, #ffc078);
+}
+:root[data-theme="dark"] .cins-chat-don-card-item {
+  color: rgba(255, 255, 255, 0.78);
+}
+:root[data-theme="dark"] .cins-chat-don-card-more {
+  color: #94a3b8;
+}
+:root[data-theme="dark"] .cins-chat-don-card-cta {
+  color: var(--cins-orange, #ffc078);
+}
+:root[data-theme="dark"] .cins-chat-don-card-anh {
+  background: rgba(255, 255, 255, 0.06);
 }
 
 /* Chip ngữ cảnh ở ô soạn */

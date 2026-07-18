@@ -1988,6 +1988,11 @@ export function JourneyMilestoneCard({
                   orgBaiDangRef={orgBaiDangRef}
                   dateLabel={displayDate}
                 />
+              ) : useForeignFrame && attribution ? (
+                <TaggedOriginalAuthorChip
+                  attr={attribution}
+                  dateLabel={displayDate}
+                />
               ) : showAuthorBadge ? (
                 ownerSlug ? (
                   <JourneyUserPopover
@@ -2232,7 +2237,7 @@ export function JourneyMilestoneCard({
                 frameInner
               />
             </div>
-          ) : isBookmarkMilestone && bookmark ? (
+          ) : (isBookmarkMilestone || isTaggedOrgBaiDang) && bookmark ? (
             <div
               className={
                 "jcard-datebar jcard-datebar--guest jcard-datebar--bookmark-source" +
@@ -2248,7 +2253,15 @@ export function JourneyMilestoneCard({
                 dateLabel={displayDate}
               />
             </div>
+          ) : useForeignFrame && attribution ? (
+            <div className="jcard-datebar jcard-datebar--guest jcard-datebar--bookmark-source">
+              <TaggedOriginalAuthorChip
+                attr={attribution}
+                dateLabel={displayDate}
+              />
+            </div>
           ) : variant === "verified" &&
+            !useForeignFrame &&
             Boolean(authorName || authorAvatarUrl || ownerSlug) &&
             !isCongDongPost ? (
             <div className="jcard-datebar jcard-datebar--guest">
@@ -2284,7 +2297,9 @@ export function JourneyMilestoneCard({
                 </span>
               </JourneyUserPopover>
               <span className="badge-row">
-                {showMilestoneVerifyBadge && showOrgVerifyBadge && !isSelfAuthoredTagged ? (
+                {showMilestoneVerifyBadge &&
+                showOrgVerifyBadge &&
+                !isSelfAuthoredTagged ? (
                   <>
                     <MilestoneVerifyBadge />
                     {renderPersonalFilterToolbarControl()}
@@ -2294,7 +2309,8 @@ export function JourneyMilestoneCard({
                     <MilestoneTypeBadgeContent type={type} />
                   </span>
                 ) : null}
-                {showMilestoneVerifyBadge && (!showOrgVerifyBadge || isSelfAuthoredTagged) ? (
+                {showMilestoneVerifyBadge &&
+                (!showOrgVerifyBadge || isSelfAuthoredTagged) ? (
                   <MilestoneVerifyBadge />
                 ) : null}
                 {vis && showVisibilityMetaBadge ? (
@@ -2307,7 +2323,9 @@ export function JourneyMilestoneCard({
                       size={11}
                       strokeWidth={1.8}
                       aria-hidden
-                      {...(visibility === "feature" ? { fill: "currentColor" } : {})}
+                      {...(visibility === "feature"
+                        ? { fill: "currentColor" }
+                        : {})}
                     />
                     {visibility === "feature" ? "Feature" : vis.label}
                   </span>
@@ -2372,6 +2390,9 @@ export function JourneyMilestoneCard({
               milestoneId={milestoneId}
               sellerUserId={postOwnerId ?? ownerProfileId}
               viewerProfileId={viewerProfileId}
+              sellerName={entityPosterLabel}
+              sellerAvatarUrl={entityPosterAvatar}
+              sellerSlug={entityPosterSlug}
             />
           ) : null}
 

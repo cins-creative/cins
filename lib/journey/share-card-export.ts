@@ -2,11 +2,19 @@ import { toBlob } from "html-to-image";
 
 export type ShareCardImageResult = "copied" | "downloaded" | "failed";
 
-const EXPORT_OPTS = {
+type ExportOpts = {
+  cacheBust: boolean;
+  pixelRatio: number;
+  useCORS: true;
+  backgroundColor: string;
+  filter?: (node: HTMLElement) => boolean;
+};
+
+const EXPORT_OPTS: ExportOpts = {
   cacheBust: true,
   pixelRatio: 2,
   /** Avatar/cover Cloudflare — cần CORS để rasterize. */
-  useCORS: true as const,
+  useCORS: true,
   backgroundColor: "#ffffff",
 };
 
@@ -43,10 +51,11 @@ function downloadBlob(blob: Blob, filename: string): void {
 /** Rasterize thẻ share → PNG blob (dùng cho clipboard + upload OG). */
 export async function exportShareCardBlob(
   el: HTMLElement,
+  overrides?: Partial<ExportOpts>,
 ): Promise<Blob | null> {
   try {
     await awaitCardImages(el);
-    const blob = await toBlob(el, EXPORT_OPTS);
+    const blob = await toBlob(el, { ...EXPORT_OPTS, ...overrides });
     return blob ?? null;
   } catch {
     return null;
@@ -57,8 +66,9 @@ export async function exportShareCardBlob(
 export async function copyShareCardImage(
   el: HTMLElement,
   filename = "cins-share-card.png",
+  overrides?: Partial<ExportOpts>,
 ): Promise<ShareCardImageResult> {
-  const blob = await exportShareCardBlob(el);
+  const blob = await exportShareCardBlob(el, overrides);
   if (!blob) return "failed";
 
   if (

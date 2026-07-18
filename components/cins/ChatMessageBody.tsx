@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { ChatDonHangCard } from "@/components/cins/ChatDonHangCard";
 import { ChatImageLightbox } from "@/components/cins/ChatImageLightbox";
 import { ChatLinkOgCard } from "@/components/cins/ChatLinkOgCard";
 import { ChatMentionText } from "@/components/cins/ChatMentionText";
@@ -22,6 +23,7 @@ const CHAT_CONTEXT_LABEL: Record<string, string> = {
   su_kien: "Sự kiện",
   tuyen_sinh: "Tuyển sinh",
   khoa_hoc: "Khóa học",
+  don_hang: "Đơn hàng",
 };
 
 type ChatMessageBodyProps = {
@@ -113,6 +115,28 @@ export function ChatMessageBody({
 
   if (msg.nguCanh) {
     const card = msg.nguCanh;
+
+    if (card.loai === "don_hang") {
+      return (
+        <span className="cins-chat-ctx-card-wrap cins-chat-ctx-card-wrap--don">
+          <span className="cins-chat-ctx-card-note">
+            {isMe ? "Bạn vừa gửi đơn" : "Đơn hàng mới"}
+          </span>
+          <ChatDonHangCard card={card} tone={isMe ? "me" : "them"} />
+          {displayText ? (
+            <MessageCaption
+              text={displayText}
+              msg={msg}
+              viewerUserId={viewerUserId}
+            />
+          ) : null}
+          {ogUrl ? (
+            <ChatLinkOgCard url={ogUrl} tone={isMe ? "me" : "them"} />
+          ) : null}
+        </span>
+      );
+    }
+
     const kindLabel = CHAT_CONTEXT_LABEL[card.loai] ?? "Nội dung";
     const inner = (
       <>

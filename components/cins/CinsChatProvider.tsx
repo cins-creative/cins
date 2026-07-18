@@ -73,6 +73,11 @@ type OpenChatOptions = {
   orgPreview?: OpenChatOrgPreview;
   /** Card ngữ cảnh đính vào hội thoại (tuyển dụng/sự kiện/tuyển sinh). */
   nguCanh?: ChatContextCard | null;
+  /** Tự gửi card ngữ cảnh khi phòng sẵn sàng. */
+  autoSendNguCanh?: boolean;
+  /** Ảnh Cloudflare — gửi kèm sau card (biên lai đơn shop). */
+  autoSendImageId?: string | null;
+  autoSendImageUrl?: string | null;
 };
 
 type ChatFocusSurface = "full" | "mini" | null;
@@ -454,6 +459,21 @@ export function CinsChatProvider({
       for (const listener of listenersRef.current) {
         listener(event);
       }
+
+      /* Shop bump đơn → người mua nhận như tin mới (không INSERT trùng). */
+      const fromPeer = event.senderId !== viewerProfileId;
+      if (
+        !fromPeer ||
+        event.message.nguCanh?.loai !== "don_hang"
+      ) {
+        return;
+      }
+      const focus = focusRef.current;
+      const isViewing =
+        focus.surface !== null && focus.roomId === event.roomId;
+      if (!isViewing) {
+        setTotalUnread((count) => count + 1);
+      }
     },
     [viewerProfileId],
   );
@@ -466,24 +486,40 @@ export function CinsChatProvider({
     void refreshUnread();
   }, [refreshUnread]);
 
-  const resolveDirectRoom = useCallback(async (targetUserId: string) => {
-    const res = await fetch("/api/chat/rooms/open", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id_nguoi: targetUserId }),
-    });
-    const json = (await res.json()) as { thread?: ChatThread; error?: string };
-    if (!res.ok || !json.thread) {
-      throw new Error(json.error ?? "Không mở được hội thoại.");
-    }
+  const resolveDirectRoom = useCallback(
+    async (
+      targetUserId: string,
+      opts?: {
+        nguCanh?: ChatContextCard | null;
+        autoSendNguCanh?: boolean;
+        autoSendImageId?: string | null;
+        autoSendImageUrl?: string | null;
+      },
+    ) => {
+      const res = await fetch("/api/chat/rooms/open", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id_nguoi: targetUserId }),
+      });
+      const json = (await res.json()) as { thread?: ChatThread; error?: string };
+      if (!res.ok || !json.thread) {
+        throw new Error(json.error ?? "Không mở được hội thoại.");
+      }
 
-    setLaunch({
-      thread: json.thread,
-      tab: json.thread.group,
-      resolving: false,
-    });
-    return json.thread;
-  }, []);
+      const nguCanh = opts?.nguCanh ?? null;
+      setLaunch({
+        thread: json.thread,
+        tab: json.thread.group,
+        resolving: false,
+        nguCanh,
+        autoSendNguCanh: Boolean(opts?.autoSendNguCanh && nguCanh),
+        autoSendImageId: opts?.autoSendImageId ?? null,
+        autoSendImageUrl: opts?.autoSendImageUrl ?? null,
+      });
+      return json.thread;
+    },
+    [],
+  );
 
   const resolveOrgRoom = useCallback(
     async (orgId: string, nguCanh?: ChatContextCard | null) => {
@@ -567,16 +603,29 @@ export function CinsChatProvider({
           avatarUrl: options.peerPreview?.avatarUrl,
         };
         const optimistic = buildOptimisticDirectThread(peer, options.tab ?? "nguoi_la");
+        const nguCanh = options.nguCanh ?? null;
+        const autoSendNguCanh = Boolean(options.autoSendNguCanh && nguCanh);
+        const autoSendImageId = options.autoSendImageId?.trim() || null;
+        const autoSendImageUrl = options.autoSendImageUrl?.trim() || null;
 
         setLaunch({
           thread: optimistic,
           tab: optimistic.group,
           resolving: true,
+          nguCanh,
+          autoSendNguCanh,
+          autoSendImageId,
+          autoSendImageUrl,
         });
         setOpen(true);
 
         try {
-          await resolveDirectRoom(options.targetUserId);
+          await resolveDirectRoom(options.targetUserId, {
+            nguCanh,
+            autoSendNguCanh,
+            autoSendImageId,
+            autoSendImageUrl,
+          });
         } catch (error) {
           setOpen(false);
           setLaunch(null);

@@ -1,4 +1,4 @@
-/** Loại báo cáo — khớp `loai_bao_cao_enum` (migration_social_bao_cao.sql). */
+/** Loại báo cáo — khớp `loai_bao_cao_enum` (migration_social_bao_cao.sql + lua_dao). */
 export const LOAI_BAO_CAO_OPTIONS = [
   {
     value: "spam",
@@ -17,8 +17,13 @@ export const LOAI_BAO_CAO_OPTIONS = [
   },
   {
     value: "sai_lech",
-    label: "Thông tin sai / lừa đảo",
-    desc: "Tin giả, lừa đảo, mạo nhận thành tích.",
+    label: "Thông tin sai lệch",
+    desc: "Tin giả, mạo nhận thành tích, xuyên tạc.",
+  },
+  {
+    value: "lua_dao",
+    label: "Lừa đảo",
+    desc: "Lừa tiền, bán hàng giả, chiếm đoạt qua chuyển khoản.",
   },
   {
     value: "ban_quyen",

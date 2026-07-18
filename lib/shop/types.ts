@@ -101,10 +101,14 @@ export type ShopDonHangDong = {
   nhanSnapshot: string | null;
   soLuong: number;
   giaDonVi: number;
+  /** Ảnh biến thể / sản phẩm hiện tại (không snapshot — có thể null nếu đã xóa). */
+  anhUrl?: string | null;
 };
 
 export type ShopDonHang = {
   id: string;
+  /** Mã đơn công khai (TENNGUOIMUA-12345). */
+  maDon: string | null;
   idNguoiMua: string;
   idNguoiBan: string;
   idCotMoc: string | null;
@@ -120,6 +124,10 @@ export type ShopDonHang = {
   banTen?: string | null;
   taoLuc: string;
   xacNhanLuc: string | null;
+  /** Snapshot chấp nhận rủi ro chuyển khoản (`mua_ngay`). */
+  nguoiMuaChapNhanLuc?: string | null;
+  nguoiMuaChapNhanVanBan?: string | null;
+  nguoiMuaChapNhanPhienBan?: string | null;
 };
 
 export type ShopQuaySuKien = {
@@ -136,8 +144,8 @@ export type ShopQuaySuKien = {
 };
 
 export const SHOP_LOAI_DON_LABEL: Record<ShopLoaiDon, string> = {
-  mua_ngay: "Mua ngay",
-  dat_truoc_nhan_su_kien: "Đặt trước — nhận tại sự kiện",
+  mua_ngay: "Mua ngay — thanh toán luôn",
+  dat_truoc_nhan_su_kien: "Đặt trước — thanh toán sau",
 };
 
 export const SHOP_TRANG_THAI_DON_LABEL: Record<ShopTrangThaiDon, string> = {

@@ -197,9 +197,10 @@
   flex-wrap: wrap;
 }
 
-.rpt-evidence-add .rpt-input {
-  flex: 1;
-  min-width: 180px;
+.rpt-evidence-upload {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .rpt-evidence-list {

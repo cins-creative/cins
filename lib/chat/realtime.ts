@@ -221,7 +221,7 @@ export function mergeChatMessageUpdate(
 ): ChatMessage[] {
   const idx = messages.findIndex((m) => m.id === message.id);
   if (idx < 0) return messages;
-  const prev = messages[idx];
+  const prev = messages[idx]!;
   const next = [...messages];
   next[idx] = {
     ...prev,
@@ -242,6 +242,12 @@ export function mergeChatMessageUpdate(
     senderAvatarUrl: message.senderAvatarUrl ?? prev.senderAvatarUrl,
     senderRole: message.senderRole ?? prev.senderRole,
   };
+  /* Shop bump đơn: đổi tao_luc → đẩy card xuống tin mới nhất, không nhân bản. */
+  if (prev.sentAt !== message.sentAt) {
+    next.sort(
+      (a, b) => new Date(a.sentAt).getTime() - new Date(b.sentAt).getTime(),
+    );
+  }
   return next;
 }
 

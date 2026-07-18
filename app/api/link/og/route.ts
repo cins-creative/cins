@@ -60,10 +60,12 @@ export async function GET(req: Request) {
     });
   }
 
-  /* CINs nội bộ: resolve DB (avatar/cover/meta) — không scrape HTML. */
-  const internal = await fetchCinsInternalLinkPreview(key);
+  /* CINs nội bộ: resolve DB (avatar/cover/meta) — không scrape HTML.
+   * Truyền `parsed.href` (không phải cache key `v2:…`) — URL() cần protocol http(s). */
+  const internal = await fetchCinsInternalLinkPreview(parsed.href);
   const preview =
-    internal ?? (cinsInternal ? null : await fetchLinkOgPreview(key));
+    internal ??
+    (cinsInternal ? null : await fetchLinkOgPreview(parsed.href));
 
   if (memoryCache.size >= CACHE_MAX) {
     const oldest = memoryCache.keys().next().value;

@@ -36,6 +36,12 @@ Nội dung
   /admin/bai-viet/mon-hoc     → loại mon_hoc
   /admin/bai-viet/keyword     → loại keyword
   /admin/bai-viet/software    → loại phan_mem
+  /admin/bao-cao              → báo cáo nội dung
+  /admin/giao-dich            → **L33** đơn shop UGC + tab bằng chứng chấp nhận rủi ro
+      · Tab Đơn hàng: mọi `shop_don_hang`
+      · Tab Bằng chứng chấp nhận (`?tab=chap-nhan`): đơn có `nguoi_mua_chap_nhan_luc`
+      · Gate: `canAccessAdminPanel` (super_admin | admin | curator) — chỉ đọc
+  /admin/gop-y                → góp ý
   /admin/de-xuat              → article_de_xuat trang_thai = cho_review
   /admin/noi-dung-dang        → **L29** quản lý nội dung World (boost ẩn) + **L30** điểm
       · Dashboard: số liệu nội dung mới, đang boost, lọc user/org + loại đăng

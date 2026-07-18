@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import {
-  cancelDonHang,
   confirmDonHang,
   donHangToChatContext,
   getDonHang,
@@ -52,10 +51,6 @@ export async function PATCH(request: Request, ctx: Ctx) {
         body.action,
       );
       return NextResponse.json({ don, chatContext: donHangToChatContext(don) });
-    }
-    if (body.action === "huy") {
-      const don = await cancelDonHang(session.profile.id, id);
-      return NextResponse.json({ don });
     }
     return NextResponse.json({ error: "action không hợp lệ." }, { status: 422 });
   } catch (e) {

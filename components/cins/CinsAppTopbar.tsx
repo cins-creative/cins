@@ -7,6 +7,7 @@ import { CinsTopbarSearch } from "@/components/cins/CinsTopbarSearch";
 import { SessionRestorer } from "@/components/cins/SessionRestorer";
 import { UserAccountMenu } from "@/components/cins/UserAccountMenu";
 import { JourneyNotifications } from "@/components/journey/JourneyNotifications";
+import { ShopTopbarButton } from "@/components/shop/ShopTopbarButton";
 import { countAdminInboxStats } from "@/lib/admin/admin-inbox-stats";
 import { EMPTY_ADMIN_INBOX_STATS } from "@/lib/admin/admin-inbox-stats-types";
 import {
@@ -17,6 +18,7 @@ import {
 import { getCurrentUserIsCinsAdmin } from "@/lib/auth/cins-admin-server";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import { getAvatarUrl } from "@/lib/journey/profile";
+import { getBanHangEnabled } from "@/lib/shop/settings";
 import { countUnreadNotifications } from "@/lib/social/notifications";
 
 /**
@@ -36,6 +38,9 @@ export async function CinsAppTopbar() {
     : 0;
   const isCinsAdmin = session?.profile
     ? await getCurrentUserIsCinsAdmin()
+    : false;
+  const banHangEnabled = session?.profile
+    ? await getBanHangEnabled(session.profile.id).catch(() => false)
     : false;
   const adminInboxStats = isCinsAdmin
     ? await countAdminInboxStats().catch(() => EMPTY_ADMIN_INBOX_STATS)
@@ -87,6 +92,7 @@ export async function CinsAppTopbar() {
             className="tb-page-slot"
             aria-live="polite"
           />
+          {banHangEnabled ? <ShopTopbarButton /> : null}
           {adminInboxStats ? (
             <AdminInboxButton initialStats={adminInboxStats} />
           ) : null}

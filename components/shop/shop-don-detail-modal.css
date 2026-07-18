@@ -1,0 +1,373 @@
+.shop-don-detail {
+  position: fixed;
+  inset: 0;
+  z-index: 12300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  box-sizing: border-box;
+  background: rgba(15, 23, 42, 0.48);
+}
+
+.shop-don-detail-panel {
+  width: min(100%, 420px);
+  max-height: min(88vh, 720px);
+  overflow: auto;
+  padding: 18px 18px 16px;
+  border-radius: 16px;
+  background: var(--bg-surface, #fff);
+  box-shadow: 0 24px 64px rgba(15, 23, 42, 0.28);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-sizing: border-box;
+  border: 1px solid
+    color-mix(in srgb, var(--cins-orange, #fdad4c) 22%, var(--border, #e4e6eb));
+}
+
+.shop-don-detail-panel.is-paid {
+  border-color: color-mix(in srgb, #16a34a 28%, var(--border, #e4e6eb));
+}
+
+.shop-don-detail-panel.is-later {
+  border-color: color-mix(in srgb, #64748b 22%, var(--border, #e4e6eb));
+}
+
+.shop-don-detail-panel::-webkit-scrollbar {
+  display: none;
+}
+
+.shop-don-detail-hdr {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.shop-don-detail-kicker {
+  margin: 0 0 2px;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  letter-spacing: 0.02em;
+  color: var(--cins-orange, #fdad4c);
+}
+
+.shop-don-detail-panel.is-paid .shop-don-detail-kicker {
+  color: #15803d;
+}
+
+.shop-don-detail-hdr h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  color: var(--ink-display, rgba(0, 0, 0, 0.9));
+}
+
+.shop-don-detail-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--neutral-100, #f1f5f9);
+  color: var(--ink-muted, #64748b);
+  cursor: pointer;
+}
+
+.shop-don-detail-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.shop-don-detail-status,
+.shop-don-detail-loai {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--bg-page, #f7f8fa);
+}
+
+.shop-don-detail-status.shop-status--cho_xac_nhan {
+  color: #b54708;
+}
+
+.shop-don-detail-status.shop-status--da_nhan_tien,
+.shop-don-detail-status.shop-status--da_giao_tai_su_kien {
+  color: #027a48;
+}
+
+.shop-don-detail-status.shop-status--huy,
+.shop-don-detail-status.shop-status--nhap {
+  color: #b42318;
+}
+
+.shop-don-detail-loai {
+  background: color-mix(in srgb, var(--cins-orange, #fdad4c) 14%, transparent);
+  color: color-mix(in srgb, var(--cins-orange, #fdad4c) 45%, #5c3200);
+}
+
+.shop-don-detail-panel.is-paid .shop-don-detail-loai {
+  background: color-mix(in srgb, #16a34a 14%, transparent);
+  color: #15803d;
+}
+
+.shop-don-detail-parties {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.55));
+}
+
+.shop-don-detail-lines {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+  gap: 10px;
+}
+
+.shop-don-detail-line {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--border, #e4e6eb);
+  border-radius: 12px;
+  background: var(--bg-page, #f7f8fa);
+  box-sizing: border-box;
+}
+
+.shop-don-detail-thumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border, #e4e6eb);
+  color: var(--ink-muted, rgba(0, 0, 0, 0.4));
+}
+
+.shop-don-detail-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.shop-don-detail-line-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.shop-don-detail-line-name {
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--ink-display, rgba(0, 0, 0, 0.88));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.shop-don-detail-line-meta {
+  font-size: 12px;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.55));
+}
+
+.shop-don-detail-line-price {
+  margin-top: 4px;
+  font-size: 13px;
+  font-weight: 750;
+  color: var(--ink-display, rgba(0, 0, 0, 0.88));
+}
+
+.shop-don-detail-panel.is-paid .shop-don-detail-line-price {
+  color: #15803d;
+}
+
+.shop-don-detail-tong {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--cins-orange, #fdad4c) 10%, #fff8f0);
+  font-size: 13px;
+}
+
+.shop-don-detail-panel.is-paid .shop-don-detail-tong {
+  background: color-mix(in srgb, #16a34a 10%, #f0fdf4);
+}
+
+.shop-don-detail-tong strong {
+  font-size: 16px;
+  font-weight: 800;
+  color: #9a3412;
+}
+
+.shop-don-detail-panel.is-paid .shop-don-detail-tong strong {
+  color: #15803d;
+}
+
+.shop-don-detail-note {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.6));
+  white-space: pre-wrap;
+}
+
+.shop-don-detail-note span {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.shop-don-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.shop-don-detail-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border, #e4e6eb);
+  background: var(--bg-surface, #fff);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.shop-don-detail-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.shop-don-detail-btn.primary {
+  border: 0;
+  background: var(--cins-orange, #fdad4c);
+  color: #5c3200;
+}
+
+.shop-don-detail-panel.is-paid .shop-don-detail-btn.primary {
+  background: #16a34a;
+  color: #fff;
+}
+
+.shop-don-detail-btn.danger {
+  border-color: color-mix(in srgb, #dc2626 35%, transparent);
+  color: #b91c1c;
+}
+
+.shop-don-detail-btn.ghost {
+  background: transparent;
+}
+
+.shop-don-detail-loading,
+.shop-don-detail-err,
+.shop-don-detail-foot {
+  margin: 0;
+  font-size: 13px;
+}
+
+.shop-don-detail-loading {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink-muted);
+}
+
+.shop-don-detail-err {
+  color: #b91c1c;
+}
+
+.shop-don-detail-foot {
+  color: var(--ink-muted, rgba(0, 0, 0, 0.5));
+  font-size: 12px;
+}
+
+.shop-spin {
+  animation: shop-don-detail-spin 0.8s linear infinite;
+}
+
+@keyframes shop-don-detail-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+:root[data-theme="dark"] .shop-don-detail {
+  background: rgba(2, 6, 23, 0.72);
+}
+
+:root[data-theme="dark"] .shop-don-detail-panel {
+  background: var(--bg-surface, #151a24);
+  border-color: var(--border, #2a3040);
+  color: var(--ink-display, rgba(255, 255, 255, 0.92));
+}
+
+:root[data-theme="dark"] .shop-don-detail-hdr h3,
+:root[data-theme="dark"] .shop-don-detail-line-name,
+:root[data-theme="dark"] .shop-don-detail-line-price {
+  color: var(--ink-display, rgba(255, 255, 255, 0.92));
+}
+
+:root[data-theme="dark"] .shop-don-detail-line {
+  background: color-mix(in srgb, var(--bg-page, #0f141d) 80%, #1c212c);
+  border-color: var(--border, #2a3040);
+}
+
+:root[data-theme="dark"] .shop-don-detail-thumb {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--border, #2a3040);
+  color: #64748b;
+}
+
+:root[data-theme="dark"] .shop-don-detail-panel.is-paid .shop-don-detail-line-price {
+  color: #4ade80;
+}
+
+:root[data-theme="dark"] .shop-don-detail-close {
+  background: var(--neutral-100, #1c212c);
+  color: var(--ink-muted, #94a3b8);
+}
+
+:root[data-theme="dark"] .shop-don-detail-tong {
+  background: color-mix(in srgb, var(--cins-orange, #fdad4c) 12%, rgba(0, 0, 0, 0.25));
+}
+
+:root[data-theme="dark"] .shop-don-detail-panel.is-paid .shop-don-detail-tong {
+  background: color-mix(in srgb, #22c55e 12%, rgba(0, 0, 0, 0.25));
+}
+
+:root[data-theme="dark"] .shop-don-detail-tong strong {
+  color: var(--cins-orange, #ffc078);
+}
+
+:root[data-theme="dark"] .shop-don-detail-panel.is-paid .shop-don-detail-tong strong {
+  color: #4ade80;
+}

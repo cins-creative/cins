@@ -268,6 +268,11 @@ export type ChatLaunchState = {
   thread: ChatThread;
   tab?: ChatThreadGroup;
   resolving?: boolean;
-  /** Card ngữ cảnh chờ — chèn vào ô soạn, chỉ gửi khi user gửi tin. */
+  /** Card ngữ cảnh chờ — chèn vào ô soạn; gửi khi user gửi tin (hoặc autoSend). */
   nguCanh?: ChatContextCard | null;
+  /** Tự gửi card ngữ cảnh ngay khi phòng sẵn sàng (vd. đơn shop). */
+  autoSendNguCanh?: boolean;
+  /** Cloudflare image id — tự gửi ảnh sau card (vd. biên lai thanh toán). */
+  autoSendImageId?: string | null;
+  autoSendImageUrl?: string | null;
 };

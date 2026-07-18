@@ -23,7 +23,7 @@
 | `shop/san-pham` · `shop/san-pham/[id]` | CRUD catalog + biến thể / tồn kho (seller) |
 | `shop/bang-gia` · `shop/bang-gia/[id]` | CRUD bảng giá + dòng giá theo biến thể |
 | `shop/gio` | GET/PATCH giỏ theo `cotMocId` (buyer) |
-| `shop/don` · `shop/don/[id]` | Tạo đơn từ giỏ · seller xác nhận/hủy (trừ/hoàn kho) · list đơn seller/buyer |
+| `shop/don` · `shop/don/[id]` | Tạo đơn từ giỏ · seller xác nhận (trừ kho) · list đơn seller/buyer — **không** hủy đơn trên API |
 | `milestone/[milestoneId]/shop-hang` | GET public hàng gắn post · PUT gắn/gỡ (owner + `ban_hang_bat`) |
 | `su-kien/[suKienId]/quay` · `…/quay/[quayId]` | Xin làm quầy + bằng chứng · owner sự kiện duyệt/từ chối · list quầy đã duyệt |
 
@@ -189,6 +189,9 @@
 | File | Tạo gì |
 |---|---|
 | `migration_shop_san_pham_phan_loai.sql` | Cột `shop_san_pham.phan_loai` (nhãn nhóm sản phẩm). Chạy: `node scripts/run-shop-san-pham-phan-loai-migration.mjs`. |
+| `migration_shop_don_ma_don.sql` | Cột `shop_don_hang.ma_don` (mã TENNGUOIMUA-12345). Chạy: `node scripts/run-shop-don-ma-don-migration.mjs`. |
+| `migration_social_bao_cao.sql` | Bảng `social_bao_cao` + enum loại/trạng thái báo cáo. Chạy: `node scripts/run-bao-cao-migration.mjs`. |
+| `migration_bao_cao_lua_dao.sql` | Thêm enum `lua_dao` (Lừa đảo). Chạy: `node scripts/run-bao-cao-lua-dao-migration.mjs`. |
 | `migration_shop_ban_hang.sql` | **L33 Shop UGC:** `ban_hang_bat` / `ban_hang_dieu_khoan_luc`; bảng `shop_*` (catalog, giá, post-hang, giỏ, đơn, quầy) + RLS. Chạy: `node scripts/run-shop-ban-hang-migration.mjs`. |
 | `migration_ket_ban.sql` | Bảng `user_ket_ban` (thay follow-user) |
 | `migration_content_thao_luan.sql` | Bảng `content_thao_luan` (+ liên quan) |

@@ -181,17 +181,6 @@ export function ChatMessageActions({ msg, handlers }: Props) {
             className="cins-chat-msg-menu is-floating"
             role="menu"
           >
-            <button
-              type="button"
-              role="menuitem"
-              onClick={() => {
-                handlers.onReply(msg);
-                setOpen(false);
-              }}
-            >
-              <CornerUpLeft size={14} aria-hidden />
-              Trả lời
-            </button>
             <button type="button" role="menuitem" onClick={() => void copyText()}>
               <Copy size={14} aria-hidden />
               Sao chép
@@ -247,6 +236,19 @@ export function ChatMessageActions({ msg, handlers }: Props) {
       }
       ref={rootRef}
     >
+      <button
+        type="button"
+        className="cins-chat-msg-action-btn"
+        aria-label="Trả lời"
+        title="Trả lời"
+        onClick={() => {
+          handlers.onReply(msg);
+          setOpen(false);
+          setShowReact(false);
+        }}
+      >
+        <CornerUpLeft size={14} strokeWidth={1.8} aria-hidden />
+      </button>
       <button
         ref={reactBtnRef}
         type="button"

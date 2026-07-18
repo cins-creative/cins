@@ -709,6 +709,120 @@
   }
 }
 
+.uas-mua-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.uas-mua-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border, #e4e6eb);
+  background: var(--bg-surface, #fff);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.uas-mua-row:hover {
+  border-color: color-mix(in srgb, var(--cins-orange, #fdad4c) 40%, var(--border, #e4e6eb));
+  background: color-mix(in srgb, var(--cins-orange, #fdad4c) 6%, #fff);
+}
+
+.uas-mua-row-main {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  flex: 1;
+}
+
+.uas-mua-ma {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+  font-weight: 750;
+  letter-spacing: 0.02em;
+  color: var(--cins-orange, #fdad4c);
+}
+
+.uas-mua-meta {
+  font-size: 13px;
+  color: var(--ink-display, rgba(0, 0, 0, 0.88));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.uas-mua-time {
+  font-size: 11px;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.5));
+}
+
+.uas-mua-row-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.uas-mua-status {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--bg-page, #f7f8fa);
+}
+
+.uas-mua-status--cho_xac_nhan {
+  color: #b54708;
+}
+
+.uas-mua-status--da_nhan_tien,
+.uas-mua-status--da_giao_tai_su_kien {
+  color: #027a48;
+}
+
+.uas-mua-status--huy,
+.uas-mua-status--nhap {
+  color: #b42318;
+}
+
+.uas-mua-tong {
+  font-size: 13px;
+  font-weight: 750;
+  color: var(--ink-display, rgba(0, 0, 0, 0.88));
+}
+
+:root[data-theme="dark"] .uas-mua-row {
+  background: var(--bg-surface, #151a24);
+  border-color: var(--border, #2a3040);
+}
+
+:root[data-theme="dark"] .uas-mua-row:hover {
+  background: color-mix(in srgb, var(--cins-orange, #fdad4c) 10%, rgba(0, 0, 0, 0.2));
+}
+
+:root[data-theme="dark"] .uas-mua-meta,
+:root[data-theme="dark"] .uas-mua-tong {
+  color: var(--ink-display, rgba(255, 255, 255, 0.9));
+}
+
+:root[data-theme="dark"] .uas-mua-time {
+  color: var(--ink-muted, #94a3b8);
+}
+
 @media (max-width: 560px) {
   .uas-backdrop {
     padding: 0;

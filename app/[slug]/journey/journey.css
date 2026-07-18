@@ -2352,6 +2352,8 @@ a.j-main-gallery-item:focus-visible,
 }
 .j-friend-card {
   position: relative;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
   border: 1px solid rgba(148, 163, 184, 0.22);
   border-radius: 20px;
@@ -2360,6 +2362,9 @@ a.j-main-gallery-item:focus-visible,
     linear-gradient(135deg, rgba(37, 99, 235, 0.42), rgba(253, 232, 89, 0.46)) border-box;
   box-shadow: none;
   transition: transform 0.18s var(--j-ease);
+}
+.j-friend-card > .j-user-featured {
+  margin-top: auto;
 }
 .j-friend-card:hover {
   transform: translateY(-3px);

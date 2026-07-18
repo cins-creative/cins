@@ -331,6 +331,13 @@ function SingleMessageBubble({
   }
 
   const useSenderCluster = !isMe && Boolean(showSenderNames);
+  const isDonHangCard =
+    !isEditing && msg.nguCanh?.loai === "don_hang" && !msg.deleted;
+  /** Ảnh / sticker đứng riêng — không bọc bubble chat. */
+  const isBareMedia =
+    !isEditing &&
+    !msg.deleted &&
+    (layout === "media-only" || layout === "sticker");
 
   const rowClass = [
     "cins-chat-bubble-row",
@@ -338,6 +345,8 @@ function SingleMessageBubble({
     msg.pinned ? "is-pinned-row" : "",
     layout === "media-only" ? "is-media-row" : "",
     layout === "sticker" ? "is-sticker-row" : "",
+    isDonHangCard ? "is-don-hang-row" : "",
+    isBareMedia ? "is-bare-media-row" : "",
     useSenderCluster ? "has-sender-cluster" : "",
   ]
     .filter(Boolean)
@@ -414,11 +423,79 @@ function SingleMessageBubble({
         viewerUserId={viewerUserId}
         onPollUpdated={onPollUpdated}
       />
-      {!isEditing && !useSenderCluster ? <BubbleMeta msg={msg} /> : null}
+      {!isEditing && !useSenderCluster && !isDonHangCard ? (
+        <BubbleMeta msg={msg} />
+      ) : null}
     </>
   );
 
-  const bubbleBlock = (
+  const bubbleBlock = isDonHangCard ? (
+    <div className="cins-chat-bubble-wrap cins-chat-don-hang-wrap">
+      <div className="cins-chat-don-hang-body">
+        {msg.pinned ? <PinBadge /> : null}
+        {msg.replyTo ? (
+          <ChatMessageReplyQuote
+            reply={msg.replyTo}
+            onJump={
+              onJumpToMessage
+                ? () => onJumpToMessage(msg.replyTo!.id)
+                : undefined
+            }
+          />
+        ) : null}
+        <ChatMessageBody
+          msg={msg}
+          roomId={roomId}
+          viewerUserId={viewerUserId}
+          onPollUpdated={onPollUpdated}
+        />
+        {!useSenderCluster ? (
+          <BubbleMeta msg={msg} className="cins-chat-don-hang-meta" />
+        ) : null}
+        {!isEditing && msg.reactions?.length && actionHandlers ? (
+          <ChatMessageReactions
+            placement="corner"
+            reactions={msg.reactions}
+            onToggle={(emoji, active) =>
+              actionHandlers.onReaction(msg, emoji, active)
+            }
+          />
+        ) : null}
+      </div>
+      {actionHandlers ? (
+        <ChatMessageActions msg={msg} handlers={actionHandlers} />
+      ) : null}
+    </div>
+  ) : isBareMedia ? (
+    <div className="cins-chat-bubble-wrap cins-chat-bare-media-wrap">
+      <div className="cins-chat-bare-media-body">
+        {msg.pinned ? <PinBadge /> : null}
+        {msg.replyTo ? (
+          <ChatMessageReplyQuote
+            reply={msg.replyTo}
+            onJump={
+              onJumpToMessage
+                ? () => onJumpToMessage(msg.replyTo!.id)
+                : undefined
+            }
+          />
+        ) : null}
+        {bodyContent}
+        {!isEditing && msg.reactions?.length && actionHandlers ? (
+          <ChatMessageReactions
+            placement="corner"
+            reactions={msg.reactions}
+            onToggle={(emoji, active) =>
+              actionHandlers.onReaction(msg, emoji, active)
+            }
+          />
+        ) : null}
+      </div>
+      {actionHandlers ? (
+        <ChatMessageActions msg={msg} handlers={actionHandlers} />
+      ) : null}
+    </div>
+  ) : (
     <div className="cins-chat-bubble-wrap">
       <div className={bubbleClassName(msg, isMe, isEditing)}>
         {msg.pinned && !isEditing ? <PinBadge /> : null}

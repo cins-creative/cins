@@ -33,6 +33,8 @@ export async function POST(request: Request) {
     loaiDon?: unknown;
     idSuKien?: unknown;
     ghiChu?: unknown;
+    maDon?: unknown;
+    nguoiMuaChapNhanRuiRo?: unknown;
   };
   try {
     body = (await request.json()) as typeof body;
@@ -52,6 +54,8 @@ export async function POST(request: Request) {
       loaiDon,
       idSuKien: typeof body.idSuKien === "string" ? body.idSuKien : null,
       ghiChu: typeof body.ghiChu === "string" ? body.ghiChu : null,
+      maDon: typeof body.maDon === "string" ? body.maDon : null,
+      nguoiMuaChapNhanRuiRo: body.nguoiMuaChapNhanRuiRo === true,
     });
     return NextResponse.json(
       { don, chatContext: donHangToChatContext(don) },
@@ -62,7 +66,10 @@ export async function POST(request: Request) {
     const map: Record<string, [number, string]> = {
       CART_EMPTY: [422, "Giỏ hàng trống."],
       CANNOT_BUY_OWN: [422, "Không thể mua hàng của chính mình."],
-      SU_KIEN_REQUIRED: [422, "Cần chọn sự kiện khi đặt trước."],
+      BUYER_ACCEPTANCE_REQUIRED: [
+        422,
+        "Bạn cần xác nhận rủi ro chuyển khoản trước khi gửi đơn.",
+      ],
       POST_NOT_FOUND: [404, "Không tìm thấy bài viết."],
     };
     const hit = map[msg];

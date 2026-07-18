@@ -724,6 +724,8 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
   const [pendingCardByRoom, setPendingCardByRoom] = useState<
     Record<string, ChatContextCard>
   >({});
+  /** Tránh gửi 2 lần khi launch.autoSendNguCanh. */
+  const autoSentNguCanhRef = useRef<string | null>(null);
   const [mobileShowThread, setMobileShowThread] = useState(() => Boolean(launch?.thread));
   const [sidePanel, setSidePanel] = useState<ChatSidePanel | null>(null);
   const skipPersistSidePanelRef = useRef(true);
@@ -1325,6 +1327,11 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
           const isActive = t.roomId === activeRoomIdRef.current;
           const pendingAlbumId =
             pendingAlbumByRoomRef.current.get(event.roomId) ?? null;
+          const donHangBump =
+            event.event === "update" &&
+            enriched.from === "them" &&
+            enriched.nguCanh?.loai === "don_hang" &&
+            event.lastAt > t.lastAt;
           return {
             ...t,
             preview: event.preview,
@@ -1338,7 +1345,8 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
               : t.messages,
             unread: isActive
               ? 0
-              : event.event === "insert" && enriched.from === "them"
+              : (event.event === "insert" && enriched.from === "them") ||
+                  donHangBump
                 ? t.unread + 1
                 : t.unread,
             unreadMentions: isActive
@@ -2634,6 +2642,70 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     },
     [appendOptimisticMessages, viewerProfileId],
   );
+
+  /* Tự gửi card đơn (+ biên lai ảnh) khi openChat({ autoSendNguCanh: true }). */
+  useEffect(() => {
+    if (!launch?.autoSendNguCanh) return;
+    if (launch.resolving) return;
+    const card = launch.nguCanh;
+    const launchThread = launch.thread;
+    if (!card || !launchThread || !active) return;
+    const roomId = active.roomId;
+    if (!roomId || isPendingRoomId(roomId)) return;
+    const sameThread =
+      active.id === launchThread.id ||
+      (active.orgId != null && active.orgId === launchThread.orgId) ||
+      (active.peerUserId != null &&
+        active.peerUserId === launchThread.peerUserId);
+    if (!sameThread) return;
+
+    const pending = pendingCardByRoom[roomId];
+    if (!pending || pending.loai !== card.loai || pending.id !== card.id) {
+      return;
+    }
+
+    const key = `${roomId}:${card.loai}:${card.id}`;
+    if (autoSentNguCanhRef.current === key) return;
+    autoSentNguCanhRef.current = key;
+
+    const imageId = launch.autoSendImageId?.trim() || null;
+    const imageUrl = launch.autoSendImageUrl?.trim() || null;
+    const thread = active;
+
+    void (async () => {
+      await sendPendingCard(thread, pending);
+      if (!imageId) return;
+
+      const optimistic = {
+        ...createOptimisticChatMessage({
+          body: "",
+          kind: "media",
+          imageId,
+          imageUrl,
+        }),
+        senderUserId: viewerProfileId ?? undefined,
+      };
+      appendOptimisticMessages(thread, [optimistic]);
+      await submitRoomMessage(
+        thread,
+        { cloudflare_image_id: imageId },
+        optimistic.id,
+      );
+    })();
+  }, [
+    launch?.autoSendNguCanh,
+    launch?.resolving,
+    launch?.nguCanh,
+    launch?.thread,
+    launch?.autoSendImageId,
+    launch?.autoSendImageUrl,
+    active,
+    pendingCardByRoom,
+    sendPendingCard,
+    appendOptimisticMessages,
+    submitRoomMessage,
+    viewerProfileId,
+  ]);
 
   const sendMessage = useCallback(() => {
     if (!active || !canSend) return;

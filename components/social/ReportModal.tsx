@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, Check, Loader2, Paperclip, X } from "lucide-react";
+import { AlertTriangle, Check, ImagePlus, Loader2, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -11,7 +11,7 @@ import {
 
 import "./report.css";
 
-type EvidenceItem = { loai: "url" | "anh"; value: string };
+type EvidenceItem = { loai: "anh"; value: string };
 
 type Props = {
   open: boolean;
@@ -23,6 +23,7 @@ type Props = {
 };
 
 const MAX_NOI_DUNG = 1000;
+const MAX_ANH = 8;
 
 export function ReportModal({
   open,
@@ -36,7 +37,6 @@ export function ReportModal({
   const [tieuDe, setTieuDe] = useState("");
   const [noiDung, setNoiDung] = useState("");
   const [evidence, setEvidence] = useState<EvidenceItem[]>([]);
-  const [urlDraft, setUrlDraft] = useState("");
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,7 +53,6 @@ export function ReportModal({
     setTieuDe("");
     setNoiDung("");
     setEvidence([]);
-    setUrlDraft("");
     setError(null);
     setDone(false);
     setSubmitting(false);
@@ -84,36 +83,34 @@ export function ReportModal({
 
   if (!open || !mounted) return null;
 
-  function addUrl() {
-    const v = urlDraft.trim();
-    if (!v) return;
-    setEvidence((prev) =>
-      [...prev, { loai: "url" as const, value: v }].slice(0, 8),
-    );
-    setUrlDraft("");
-  }
-
   async function onPickFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
+    const files = Array.from(e.target.files ?? []);
     e.target.value = "";
-    if (!file) return;
+    if (files.length === 0) return;
     setError(null);
     setUploading(true);
+    const added: EvidenceItem[] = [];
+    let room = Math.max(0, MAX_ANH - evidence.length);
     try {
-      const fd = new FormData();
-      fd.append("file", file);
-      const res = await fetch("/api/avatar/upload", {
-        method: "POST",
-        body: fd,
-      });
-      const json = (await res.json()) as { url?: string; error?: string };
-      if (!res.ok || !json.url) {
-        setError(json.error ?? "Tải ảnh thất bại.");
-        return;
+      for (const file of files) {
+        if (room <= 0) break;
+        const fd = new FormData();
+        fd.append("file", file);
+        const res = await fetch("/api/avatar/upload", {
+          method: "POST",
+          body: fd,
+        });
+        const json = (await res.json()) as { url?: string; error?: string };
+        if (!res.ok || !json.url) {
+          setError(json.error ?? "Tải ảnh thất bại.");
+          break;
+        }
+        added.push({ loai: "anh", value: json.url });
+        room -= 1;
       }
-      setEvidence((prev) =>
-        [...prev, { loai: "anh" as const, value: json.url! }].slice(0, 8),
-      );
+      if (added.length > 0) {
+        setEvidence((prev) => [...prev, ...added].slice(0, MAX_ANH));
+      }
     } catch {
       setError("Tải ảnh thất bại.");
     } finally {
@@ -265,46 +262,30 @@ export function ReportModal({
             </label>
 
             <div className="rpt-field">
-              <span className="rpt-label">Bằng chứng (tuỳ chọn)</span>
+              <span className="rpt-label">Ảnh bằng chứng (tuỳ chọn)</span>
               <div className="rpt-evidence-add">
-                <input
-                  type="url"
-                  className="rpt-input"
-                  value={urlDraft}
-                  placeholder="Dán link bằng chứng…"
-                  onChange={(e) => setUrlDraft(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      addUrl();
-                    }
-                  }}
-                />
                 <button
                   type="button"
-                  className="rpt-btn rpt-btn-ghost"
-                  onClick={addUrl}
-                  disabled={!urlDraft.trim()}
-                >
-                  Thêm link
-                </button>
-                <button
-                  type="button"
-                  className="rpt-btn rpt-btn-ghost"
+                  className="rpt-btn rpt-btn-ghost rpt-evidence-upload"
                   onClick={() => fileRef.current?.click()}
-                  disabled={uploading}
+                  disabled={uploading || evidence.length >= MAX_ANH}
                 >
                   {uploading ? (
                     <Loader2 size={14} className="rpt-spin" aria-hidden />
                   ) : (
-                    <Paperclip size={14} aria-hidden />
+                    <ImagePlus size={14} aria-hidden />
                   )}
-                  Ảnh
+                  {uploading
+                    ? "Đang tải…"
+                    : evidence.length >= MAX_ANH
+                      ? `Đã đủ ${MAX_ANH} ảnh`
+                      : "Thêm ảnh bằng chứng"}
                 </button>
                 <input
                   ref={fileRef}
                   type="file"
                   accept="image/*"
+                  multiple
                   hidden
                   onChange={onPickFile}
                 />
@@ -313,12 +294,8 @@ export function ReportModal({
                 <ul className="rpt-evidence-list">
                   {evidence.map((ev, i) => (
                     <li key={`${ev.value}-${i}`} className="rpt-evidence-item">
-                      {ev.loai === "anh" ? (
-                        /* eslint-disable-next-line @next/next/no-img-element */
-                        <img src={ev.value} alt="" className="rpt-evidence-thumb" />
-                      ) : (
-                        <span className="rpt-evidence-url">{ev.value}</span>
-                      )}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={ev.value} alt="" className="rpt-evidence-thumb" />
                       <button
                         type="button"
                         className="rpt-evidence-rm"

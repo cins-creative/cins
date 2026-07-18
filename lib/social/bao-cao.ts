@@ -10,7 +10,7 @@ import {
 } from "@/lib/social/bao-cao-constants";
 import { resolveTruongImageSrcSync } from "@/lib/truong/media-url";
 
-export type BangChungItem = { loai: "url" | "anh"; value: string };
+export type BangChungItem = { loai: "anh" | "url"; value: string };
 
 export type CreateBaoCaoInput = {
   reporterId: string;
@@ -26,18 +26,11 @@ export type CreateBaoCaoResult =
   | { ok: true; id: string; kenh: "admin" | "cong_dong"; daTonTai: boolean }
   | { ok: false; error: string };
 
-type UserBrief = {
-  id: string;
-  slug: string;
-  tenHienThi: string;
-  avatarSrc: string | null;
-};
-
 function sanitizeBangChung(input: BangChungItem[] | undefined): BangChungItem[] {
   if (!Array.isArray(input)) return [];
   return input
-    .filter((it) => it && (it.loai === "url" || it.loai === "anh"))
-    .map((it) => ({ loai: it.loai, value: String(it.value).trim() }))
+    .filter((it) => it && it.loai === "anh")
+    .map((it) => ({ loai: "anh" as const, value: String(it.value).trim() }))
     .filter((it) => it.value.length > 0)
     .slice(0, 8);
 }

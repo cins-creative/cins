@@ -1,17 +1,30 @@
 import "server-only";
 
 import { getGio } from "@/lib/shop/gio";
-import { shopTermsSnapshot } from "@/lib/shop/terms";
+import {
+  buildShopMaDon,
+  isValidShopMaDon,
+  normalizeShopMaDon,
+  shopMaDonPrefix,
+} from "@/lib/shop/ma-don";
+import {
+  SHOP_BUYER_TRANSFER_DISCLAIMER,
+  SHOP_BUYER_TRANSFER_DISCLAIMER_VERSION,
+  shopTermsSnapshot,
+} from "@/lib/shop/terms";
+import { shopImageUrl } from "@/lib/shop/settings";
 import type {
   ShopDonHang,
   ShopDonHangDong,
   ShopLoaiDon,
   ShopTrangThaiDon,
 } from "@/lib/shop/types";
+import { SHOP_TRANG_THAI_DON_LABEL } from "@/lib/shop/types";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 type DonRow = {
   id: string;
+  ma_don: string | null;
   id_nguoi_mua: string;
   id_nguoi_ban: string;
   id_cot_moc: string | null;
@@ -24,7 +37,13 @@ type DonRow = {
   da_tru_kho: boolean;
   tao_luc: string;
   xac_nhan_luc: string | null;
+  nguoi_mua_chap_nhan_luc?: string | null;
+  nguoi_mua_chap_nhan_van_ban?: string | null;
+  nguoi_mua_chap_nhan_phien_ban?: string | null;
 };
+
+const DON_SELECT =
+  "id, ma_don, id_nguoi_mua, id_nguoi_ban, id_cot_moc, id_su_kien, loai_don, trang_thai, tien_te, tong_tien, ghi_chu, da_tru_kho, tao_luc, xac_nhan_luc, nguoi_mua_chap_nhan_luc, nguoi_mua_chap_nhan_van_ban, nguoi_mua_chap_nhan_phien_ban";
 
 type DongRow = {
   id: string;
@@ -36,7 +55,10 @@ type DongRow = {
   gia_don_vi: number | string;
 };
 
-function mapDong(d: DongRow): ShopDonHangDong {
+function mapDong(
+  d: DongRow,
+  anhByBienThe: Map<string, string | null>,
+): ShopDonHangDong {
   return {
     id: d.id,
     idBienThe: d.id_bien_the,
@@ -44,6 +66,7 @@ function mapDong(d: DongRow): ShopDonHangDong {
     nhanSnapshot: d.nhan_snapshot,
     soLuong: d.so_luong,
     giaDonVi: Number(d.gia_don_vi),
+    anhUrl: d.id_bien_the ? (anhByBienThe.get(d.id_bien_the) ?? null) : null,
   };
 }
 
@@ -57,10 +80,52 @@ async function attachDong(dons: DonRow[]): Promise<ShopDonHang[]> {
       "id, id_don_hang, id_bien_the, ten_snapshot, nhan_snapshot, so_luong, gia_don_vi",
     )
     .in("id_don_hang", ids);
+  const dongRows = (dongs ?? []) as DongRow[];
+
+  const btIds = [
+    ...new Set(
+      dongRows
+        .map((d) => d.id_bien_the)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+  const anhByBienThe = new Map<string, string | null>();
+  if (btIds.length > 0) {
+    const { data: bts } = await admin
+      .from("shop_bien_the")
+      .select("id, id_san_pham, anh_id")
+      .in("id", btIds);
+    const btList = (bts ?? []) as Array<{
+      id: string;
+      id_san_pham: string;
+      anh_id: string | null;
+    }>;
+    const spIds = [...new Set(btList.map((b) => b.id_san_pham).filter(Boolean))];
+    const spAnh = new Map<string, string | null>();
+    if (spIds.length > 0) {
+      const { data: sps } = await admin
+        .from("shop_san_pham")
+        .select("id, anh_id")
+        .in("id", spIds);
+      for (const s of (sps ?? []) as Array<{
+        id: string;
+        anh_id: string | null;
+      }>) {
+        spAnh.set(s.id, s.anh_id);
+      }
+    }
+    for (const bt of btList) {
+      anhByBienThe.set(
+        bt.id,
+        shopImageUrl(bt.anh_id ?? spAnh.get(bt.id_san_pham) ?? null),
+      );
+    }
+  }
+
   const byDon = new Map<string, ShopDonHangDong[]>();
-  for (const d of (dongs ?? []) as DongRow[]) {
+  for (const d of dongRows) {
     const list = byDon.get(d.id_don_hang) ?? [];
-    list.push(mapDong(d));
+    list.push(mapDong(d, anhByBienThe));
     byDon.set(d.id_don_hang, list);
   }
 
@@ -79,6 +144,7 @@ async function attachDong(dons: DonRow[]): Promise<ShopDonHang[]> {
 
   return dons.map((d) => ({
     id: d.id,
+    maDon: d.ma_don,
     idNguoiMua: d.id_nguoi_mua,
     idNguoiBan: d.id_nguoi_ban,
     idCotMoc: d.id_cot_moc,
@@ -94,6 +160,9 @@ async function attachDong(dons: DonRow[]): Promise<ShopDonHang[]> {
     banTen: nameMap.get(d.id_nguoi_ban) ?? null,
     taoLuc: d.tao_luc,
     xacNhanLuc: d.xac_nhan_luc,
+    nguoiMuaChapNhanLuc: d.nguoi_mua_chap_nhan_luc ?? null,
+    nguoiMuaChapNhanVanBan: d.nguoi_mua_chap_nhan_van_ban ?? null,
+    nguoiMuaChapNhanPhienBan: d.nguoi_mua_chap_nhan_phien_ban ?? null,
   }));
 }
 
@@ -101,9 +170,7 @@ export async function getDonHang(donId: string): Promise<ShopDonHang | null> {
   const admin = createServiceRoleClient();
   const { data } = await admin
     .from("shop_don_hang")
-    .select(
-      "id, id_nguoi_mua, id_nguoi_ban, id_cot_moc, id_su_kien, loai_don, trang_thai, tien_te, tong_tien, ghi_chu, da_tru_kho, tao_luc, xac_nhan_luc",
-    )
+    .select(DON_SELECT)
     .eq("id", donId)
     .maybeSingle<DonRow>();
   if (!data) return null;
@@ -120,9 +187,7 @@ export async function listDonHangForUser(
   const col = role === "seller" ? "id_nguoi_ban" : "id_nguoi_mua";
   const { data, error } = await admin
     .from("shop_don_hang")
-    .select(
-      "id, id_nguoi_mua, id_nguoi_ban, id_cot_moc, id_su_kien, loai_don, trang_thai, tien_te, tong_tien, ghi_chu, da_tru_kho, tao_luc, xac_nhan_luc",
-    )
+    .select(DON_SELECT)
     .eq(col, userId)
     .order("tao_luc", { ascending: false })
     .limit(Math.min(limit, 100));
@@ -140,6 +205,10 @@ export async function createDonFromGio(
     loaiDon: ShopLoaiDon;
     idSuKien?: string | null;
     ghiChu?: string | null;
+    /** Mã đơn client đã in trên hóa đơn — server validate + lưu. */
+    maDon?: string | null;
+    /** Bắt buộc true khi `mua_ngay` — server không tin checkbox client alone. */
+    nguoiMuaChapNhanRuiRo?: boolean;
   },
 ): Promise<ShopDonHang> {
   const gio = await getGio(buyerId, input.cotMocId);
@@ -154,31 +223,79 @@ export async function createDonFromGio(
   if (!moc) throw new Error("POST_NOT_FOUND");
   if (moc.id_nguoi_dung === buyerId) throw new Error("CANNOT_BUY_OWN");
 
-  if (input.loaiDon === "dat_truoc_nhan_su_kien" && !input.idSuKien) {
-    throw new Error("SU_KIEN_REQUIRED");
+  if (input.loaiDon === "mua_ngay" && input.nguoiMuaChapNhanRuiRo !== true) {
+    throw new Error("BUYER_ACCEPTANCE_REQUIRED");
   }
 
-  const { data: don, error } = await admin
-    .from("shop_don_hang")
-    .insert({
-      id_nguoi_mua: buyerId,
-      id_nguoi_ban: moc.id_nguoi_dung,
-      id_cot_moc: input.cotMocId,
-      id_su_kien: input.idSuKien ?? null,
-      loai_don: input.loaiDon,
-      trang_thai: "cho_xac_nhan",
-      tien_te: gio.tienTe,
-      tong_tien: gio.tongTien,
-      ghi_chu: input.ghiChu?.trim() || null,
-      dieu_khoan_snapshot: shopTermsSnapshot(),
-      da_tru_kho: false,
-    })
-    .select(
-      "id, id_nguoi_mua, id_nguoi_ban, id_cot_moc, id_su_kien, loai_don, trang_thai, tien_te, tong_tien, ghi_chu, da_tru_kho, tao_luc, xac_nhan_luc",
-    )
-    .single<DonRow>();
-  if (error || !don) {
-    console.error("[shop] createDon", error);
+  const { data: buyer } = await admin
+    .from("user_nguoi_dung")
+    .select("ten_hien_thi, slug")
+    .eq("id", buyerId)
+    .maybeSingle<{ ten_hien_thi: string | null; slug: string | null }>();
+  const buyerLabel =
+    buyer?.ten_hien_thi?.trim() || buyer?.slug?.trim() || "BUYER";
+
+  const buyerPrefix = shopMaDonPrefix(buyerLabel);
+  const clientMa =
+    typeof input.maDon === "string" && isValidShopMaDon(input.maDon)
+      ? normalizeShopMaDon(input.maDon)
+      : null;
+  /* Chỉ nhận mã client nếu prefix = tên người mua (khớp hóa đơn đã in). */
+  let maDon =
+    clientMa && clientMa.startsWith(`${buyerPrefix}-`)
+      ? clientMa
+      : buildShopMaDon(buyerLabel);
+
+  const chapNhan =
+    input.loaiDon === "mua_ngay"
+      ? {
+          nguoi_mua_chap_nhan_luc: new Date().toISOString(),
+          nguoi_mua_chap_nhan_van_ban: SHOP_BUYER_TRANSFER_DISCLAIMER,
+          nguoi_mua_chap_nhan_phien_ban: SHOP_BUYER_TRANSFER_DISCLAIMER_VERSION,
+        }
+      : {
+          nguoi_mua_chap_nhan_luc: null,
+          nguoi_mua_chap_nhan_van_ban: null,
+          nguoi_mua_chap_nhan_phien_ban: null,
+        };
+
+  let don: DonRow | null = null;
+  let lastError: unknown = null;
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const { data, error } = await admin
+      .from("shop_don_hang")
+      .insert({
+        id_nguoi_mua: buyerId,
+        id_nguoi_ban: moc.id_nguoi_dung,
+        id_cot_moc: input.cotMocId,
+        id_su_kien: input.idSuKien ?? null,
+        loai_don: input.loaiDon,
+        trang_thai: "cho_xac_nhan",
+        tien_te: gio.tienTe,
+        tong_tien: gio.tongTien,
+        ghi_chu: input.ghiChu?.trim() || null,
+        ma_don: maDon,
+        dieu_khoan_snapshot: shopTermsSnapshot(),
+        da_tru_kho: false,
+        ...chapNhan,
+      })
+      .select(DON_SELECT)
+      .single<DonRow>();
+    if (!error && data) {
+      don = data;
+      break;
+    }
+    lastError = error;
+    const code =
+      error && typeof error === "object" && "code" in error
+        ? String((error as { code?: string }).code)
+        : "";
+    /* 23505 = unique_violation (mã đơn trùng) → đổi mã rồi thử lại. */
+    if (code !== "23505") break;
+    maDon = buildShopMaDon(buyerLabel);
+  }
+  if (!don) {
+    console.error("[shop] createDon", lastError);
     throw new Error("CREATE_FAILED");
   }
 
@@ -207,10 +324,7 @@ export async function createDonFromGio(
   return mapped!;
 }
 
-async function adjustStock(
-  dongs: ShopDonHangDong[],
-  direction: "tru" | "hoan",
-): Promise<void> {
+async function adjustStock(dongs: ShopDonHangDong[]): Promise<void> {
   const admin = createServiceRoleClient();
   for (const d of dongs) {
     if (!d.idBienThe) continue;
@@ -220,14 +334,10 @@ async function adjustStock(
       .eq("id", d.idBienThe)
       .maybeSingle<{ so_luong_ton: number }>();
     if (!bt) continue;
-    const next =
-      direction === "tru"
-        ? bt.so_luong_ton - d.soLuong
-        : bt.so_luong_ton + d.soLuong;
     await admin
       .from("shop_bien_the")
       .update({
-        so_luong_ton: next,
+        so_luong_ton: bt.so_luong_ton - d.soLuong,
         cap_nhat_luc: new Date().toISOString(),
       })
       .eq("id", d.idBienThe);
@@ -249,7 +359,7 @@ export async function confirmDonHang(
   }
 
   if (!don.daTruKho) {
-    await adjustStock(don.dong, "tru");
+    await adjustStock(don.dong);
   }
 
   const admin = createServiceRoleClient();
@@ -267,44 +377,70 @@ export async function confirmDonHang(
 
   const updated = await getDonHang(donId);
   if (!updated) throw new Error("NOT_FOUND");
+
+  /* Cập nhật card chat sẵn có + đẩy xuống tin mới nhất — không tạo tin trùng. */
+  await bumpDonHangChatMessage(updated, actorId);
+
   return updated;
 }
 
-export async function cancelDonHang(
+/**
+ * Tìm tin `ngu_canh.loai=don_hang` của đơn, cập nhật snapshot + `tao_luc`,
+ * chuyển người gửi sang shop để người mua nhận như tin mới (unread).
+ */
+async function bumpDonHangChatMessage(
+  don: ShopDonHang,
   actorId: string,
-  donId: string,
-): Promise<ShopDonHang> {
-  const don = await getDonHang(donId);
-  if (!don) throw new Error("NOT_FOUND");
-  if (don.idNguoiBan !== actorId && don.idNguoiMua !== actorId) {
-    throw new Error("FORBIDDEN");
-  }
-  if (don.trangThai === "huy") return don;
-  if (
-    don.trangThai === "da_nhan_tien" ||
-    don.trangThai === "da_giao_tai_su_kien"
-  ) {
-    if (don.idNguoiBan !== actorId) throw new Error("FORBIDDEN");
-    if (don.daTruKho) await adjustStock(don.dong, "hoan");
-  } else if (don.trangThai !== "cho_xac_nhan" && don.trangThai !== "nhap") {
-    throw new Error("INVALID_STATE");
-  }
-
+): Promise<void> {
   const admin = createServiceRoleClient();
+  const ctx = donHangToChatContext(don);
   const now = new Date().toISOString();
-  await admin
-    .from("shop_don_hang")
-    .update({
-      trang_thai: "huy",
-      da_tru_kho: false,
-      huy_luc: now,
-      cap_nhat_luc: now,
-    })
-    .eq("id", donId);
 
-  const updated = await getDonHang(donId);
-  if (!updated) throw new Error("NOT_FOUND");
-  return updated;
+  const { data: rows, error } = await admin
+    .from("chat_tin_nhan")
+    .select("id, id_phong, ngu_canh")
+    .eq("da_xoa", false)
+    .filter("ngu_canh->>loai", "eq", "don_hang")
+    .filter("ngu_canh->>id", "eq", don.id)
+    .order("tao_luc", { ascending: false })
+    .limit(3);
+
+  if (error) {
+    console.error("[shop] bumpDonHangChat find", error);
+    return;
+  }
+  const msg = rows?.[0] as
+    | { id: string; id_phong: string; ngu_canh: unknown }
+    | undefined;
+  if (!msg) return;
+
+  const prev =
+    msg.ngu_canh && typeof msg.ngu_canh === "object"
+      ? (msg.ngu_canh as Record<string, unknown>)
+      : null;
+  const nextNguCanh: Record<string, unknown> = { ...ctx };
+  if (prev && Array.isArray(prev.mentions)) {
+    nextNguCanh.mentions = prev.mentions;
+  }
+
+  const { error: updErr } = await admin
+    .from("chat_tin_nhan")
+    .update({
+      ngu_canh: nextNguCanh,
+      tao_luc: now,
+      id_nguoi_gui: actorId,
+      noi_dung: SHOP_TRANG_THAI_DON_LABEL[don.trangThai],
+    })
+    .eq("id", msg.id);
+  if (updErr) {
+    console.error("[shop] bumpDonHangChat update", updErr);
+    return;
+  }
+
+  await admin
+    .from("chat_phong")
+    .update({ cap_nhat_luc: now })
+    .eq("id", msg.id_phong);
 }
 
 export function donHangToChatContext(don: ShopDonHang): {
@@ -314,17 +450,25 @@ export function donHangToChatContext(don: ShopDonHang): {
   moTa: string;
   href: string;
 } {
+  const ma = don.maDon?.trim() || don.id.slice(0, 8);
+  const loaiLabel =
+    don.loaiDon === "mua_ngay" ? "Đã thanh toán" : "Thanh toán sau";
+  const trangThaiLabel = SHOP_TRANG_THAI_DON_LABEL[don.trangThai];
   const lines = don.dong
-    .map(
-      (d) =>
-        `• ${d.tenSnapshot}${d.nhanSnapshot ? ` (${d.nhanSnapshot})` : ""} ×${d.soLuong} — ${d.giaDonVi.toLocaleString("vi-VN")} ${don.tienTe}`,
-    )
+    .map((d) => {
+      const nhan =
+        d.nhanSnapshot?.trim() && d.nhanSnapshot.trim() !== "Mặc định"
+          ? ` (${d.nhanSnapshot.trim()})`
+          : "";
+      return `• ${d.tenSnapshot}${nhan} ×${d.soLuong} — ${d.giaDonVi.toLocaleString("vi-VN")} ${don.tienTe}`;
+    })
     .join("\n");
+  const tong = `${don.tongTien.toLocaleString("vi-VN")} ${don.tienTe}`;
   return {
     loai: "don_hang",
     id: don.id,
-    tieuDe: `Đơn hàng #${don.id.slice(0, 8)}`,
-    moTa: `${lines}\nTổng: ${don.tongTien.toLocaleString("vi-VN")} ${don.tienTe}`,
+    tieuDe: `Đơn ${ma}`,
+    moTa: `${loaiLabel}\nTình trạng: ${trangThaiLabel}\nTổng: ${tong}\n${lines}`,
     href: `/ban-hang/don?id=${don.id}`,
   };
 }

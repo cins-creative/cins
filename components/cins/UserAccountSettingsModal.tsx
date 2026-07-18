@@ -28,6 +28,11 @@ import { createPortal } from "react-dom";
 import Link from "next/link";
 
 import { LayoutThumbIcon } from "@/components/editor/LayoutThumbIcon";
+import { ShopDonDetailModal } from "@/components/shop/ShopDonDetailModal";
+import {
+  SHOP_TRANG_THAI_DON_LABEL,
+  type ShopDonHang,
+} from "@/lib/shop/types";
 import type { MutualFriendProfile } from "@/lib/social/types";
 
 import {
@@ -60,6 +65,7 @@ import "./user-account-settings-modal.css";
 type SettingsSection =
   | "journey-display"
   | "appearance"
+  | "lich-su-mua"
   | "ban-hang"
   | "user-management"
   | "security-2fa";
@@ -67,6 +73,7 @@ type SettingsSection =
 const NAV: ReadonlyArray<{ id: SettingsSection; label: string }> = [
   { id: "journey-display", label: "Cài đặt bố cục" },
   { id: "appearance", label: "Giao diện" },
+  { id: "lich-su-mua", label: "Lịch sử mua hàng" },
   { id: "ban-hang", label: "Bán hàng" },
   { id: "user-management", label: "Quản lý người dùng" },
   { id: "security-2fa", label: "Bảo mật 2 lớp" },
@@ -541,6 +548,10 @@ export function UserAccountSettingsModal({ open, onClose }: Props) {
               </section>
             ) : null}
 
+            {section === "lich-su-mua" ? (
+              <LichSuMuaHangSection titleId={`${titleId}-lsm`} />
+            ) : null}
+
             {section === "ban-hang" ? (
               <BanHangSettingsSection titleId={`${titleId}-bh`} />
             ) : null}
@@ -592,6 +603,127 @@ export function UserAccountSettingsModal({ open, onClose }: Props) {
 }
 
 type UmTab = "friends" | "pending" | "blocked";
+
+function LichSuMuaHangSection({ titleId }: { titleId: string }) {
+  const [items, setItems] = useState<ShopDonHang[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState<string | null>(null);
+  const [detailId, setDetailId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      setLoading(true);
+      setErr(null);
+      try {
+        const res = await fetch("/api/shop/don?role=buyer", {
+          cache: "no-store",
+        });
+        const json = (await res.json().catch(() => null)) as {
+          items?: ShopDonHang[];
+          error?: string;
+        } | null;
+        if (cancelled) return;
+        if (!res.ok) {
+          setErr(json?.error ?? "Không tải lịch sử mua.");
+          setItems([]);
+          return;
+        }
+        setItems(Array.isArray(json?.items) ? json.items : []);
+      } catch {
+        if (!cancelled) {
+          setErr("Không tải lịch sử mua.");
+          setItems([]);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return (
+    <section className="uas-section" aria-labelledby={titleId}>
+      <div className="uas-section-head">
+        <h3 id={titleId} className="uas-section-title">
+          Lịch sử mua hàng
+        </h3>
+        <p className="uas-section-hint">
+          Các đơn bạn đã đặt trên CINs. Chọn một đơn để xem chi tiết. Đơn đã
+          gửi không hủy trên nền tảng — tiền và giao hàng do bạn và người bán
+          tự thỏa thuận.
+        </p>
+      </div>
+
+      {loading ? (
+        <div className="uas-loading">
+          <Loader2 size={18} className="uas-spin" aria-hidden />
+          <span>Đang tải…</span>
+        </div>
+      ) : err ? (
+        <p className="uas-section-hint" style={{ color: "#b42318" }} role="alert">
+          {err}
+        </p>
+      ) : items.length === 0 ? (
+        <p className="uas-section-hint">Bạn chưa có đơn mua nào.</p>
+      ) : (
+        <ul className="uas-mua-list">
+          {items.map((don) => {
+            const ma = don.maDon?.trim() || don.id.slice(0, 8);
+            const first = don.dong[0];
+            const more = Math.max(0, don.dong.length - 1);
+            const summary = first
+              ? `${first.tenSnapshot}${more > 0 ? ` +${more}` : ""}`
+              : "—";
+            return (
+              <li key={don.id}>
+                <button
+                  type="button"
+                  className="uas-mua-row"
+                  onClick={() => setDetailId(don.id)}
+                >
+                  <span className="uas-mua-row-main">
+                    <span className="uas-mua-ma">{ma}</span>
+                    <span className="uas-mua-meta">
+                      {don.banTen?.trim() || "Người bán"} · {summary}
+                    </span>
+                    <span className="uas-mua-time">
+                      {new Date(don.taoLuc).toLocaleString("vi-VN")}
+                    </span>
+                  </span>
+                  <span className="uas-mua-row-side">
+                    <span
+                      className={`uas-mua-status uas-mua-status--${don.trangThai}`}
+                    >
+                      {SHOP_TRANG_THAI_DON_LABEL[don.trangThai]}
+                    </span>
+                    <strong className="uas-mua-tong">
+                      {don.tongTien.toLocaleString("vi-VN")} {don.tienTe}
+                    </strong>
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      <ShopDonDetailModal
+        donId={detailId}
+        open={detailId != null}
+        onClose={() => setDetailId(null)}
+        viewerRole="buyer"
+        onDonChange={(don) => {
+          setItems((prev) =>
+            prev.map((item) => (item.id === don.id ? don : item)),
+          );
+        }}
+      />
+    </section>
+  );
+}
 
 function BanHangSettingsSection({ titleId }: { titleId: string }) {
   const [enabled, setEnabled] = useState(false);

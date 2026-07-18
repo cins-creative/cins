@@ -8324,3 +8324,119 @@
 :root[data-theme="dark"] .cins-admin .admin-nguoi-dung-giai--chua_chon {
   color: var(--fg-3);
 }
+
+/* -- Admin giao d?ch (shop L33) ------------------------------- */
+.cins-admin .admin-gd-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.9fr);
+  gap: 1rem;
+  align-items: start;
+}
+.cins-admin .admin-gd-table-wrap {
+  overflow-x: auto;
+}
+.cins-admin .admin-gd-id {
+  font-size: 0.85em;
+}
+.cins-admin .admin-gd-user-link {
+  color: var(--cins-link, #2563eb);
+  text-decoration: none;
+}
+.cins-admin .admin-gd-user-link:hover {
+  text-decoration: underline;
+}
+.cins-admin .admin-gd-pager {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+  font-size: 0.875rem;
+  color: var(--fg-2);
+}
+.cins-admin .admin-gd-detail {
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 10px;
+  padding: 1rem 1.1rem;
+  background: var(--bg-1, #fff);
+  position: sticky;
+  top: 0.75rem;
+  max-height: calc(100vh - 6rem);
+  overflow: auto;
+}
+.cins-admin .admin-gd-detail h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.05rem;
+}
+.cins-admin .admin-gd-detail h3 {
+  margin: 1rem 0 0.4rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.cins-admin .admin-gd-detail-empty {
+  color: var(--fg-3);
+  margin: 0;
+}
+.cins-admin .admin-gd-dl {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+}
+.cins-admin .admin-gd-dl > div {
+  display: grid;
+  grid-template-columns: 7.5rem 1fr;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+.cins-admin .admin-gd-dl dt {
+  color: var(--fg-3);
+  margin: 0;
+}
+.cins-admin .admin-gd-dl dd {
+  margin: 0;
+}
+.cins-admin .admin-gd-lines {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.875rem;
+}
+.cins-admin .admin-gd-evidence {
+  font-size: 0.875rem;
+}
+.cins-admin .admin-gd-quote {
+  margin: 0.5rem 0 0;
+  padding: 0.65rem 0.75rem;
+  border-left: 3px solid var(--cins-priv-fg, #ea580c);
+  background: color-mix(in srgb, var(--cins-priv-fg, #ea580c) 8%, transparent);
+  font-size: 0.875rem;
+}
+.cins-admin .admin-gd-missing {
+  font-size: 0.875rem;
+  color: var(--fg-3);
+  margin: 0;
+}
+.cins-admin .admin-gd-receipt img {
+  display: block;
+  max-width: 100%;
+  border-radius: 8px;
+  border: 1px solid var(--border, #e5e7eb);
+}
+.cins-admin .admin-gd-note {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 0.8rem;
+  font-family: inherit;
+  padding: 0.5rem 0.65rem;
+  border-radius: 8px;
+  background: var(--bg-2, #f8fafc);
+}
+@media (max-width: 960px) {
+  .cins-admin .admin-gd-layout {
+    grid-template-columns: 1fr;
+  }
+  .cins-admin .admin-gd-detail {
+    position: static;
+    max-height: none;
+  }
+}
