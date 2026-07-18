@@ -33,6 +33,12 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { buildMilestoneItemForCotMoc } from "@/lib/journey/milestones-fetch";
 import type { MilestoneItem } from "@/components/journey/milestone-types";
 import { ensureEmbedAutoCover } from "@/lib/editor/ensure-embed-auto-cover";
+import {
+  clearVisibilityNgoaiLe,
+  isVisibilityNgoaiLeLoai,
+  replaceVisibilityNgoaiLe,
+  VISIBILITY_CUSTOM_BASE,
+} from "@/lib/journey/milestone-visibility-custom";
 
 /* ╔══════════════════════════════════════════════════════════════════╗
    ║ Server Action: updatePost                                        ║
@@ -59,6 +65,10 @@ export type UpdatePostInput = {
   /** Tag — quản lý từ Journey card; bỏ qua khi không truyền. */
   tags?: ArticleTagRef[];
   visibility: Visibility;
+  visibilityCustom?: {
+    mode: "chan" | "cho_phep";
+    peopleIds: string[];
+  } | null;
   loaiMoc: LoaiMoc;
   thoiDiem: string;
   blocks: Block[];
@@ -139,6 +149,13 @@ export async function updatePost(
     return { ok: false, error: "Loại cột mốc không hợp lệ.", field: "loaiMoc" };
   }
 
+  const customInput = input.visibilityCustom;
+  const useCustom =
+    Boolean(customInput) && isVisibilityNgoaiLeLoai(customInput!.mode);
+  const effectiveVisibility: Visibility = useCustom
+    ? VISIBILITY_CUSTOM_BASE[customInput!.mode]
+    : input.visibility;
+
   const normalized = normalizeBlocks(input.blocks);
   if (!normalized) {
     return {
@@ -216,7 +233,7 @@ export async function updatePost(
       tieu_de: tieuDe,
       mo_ta: moTaFinal || null,
       cover_id: coverId,
-      che_do_hien_thi: input.visibility,
+      che_do_hien_thi: effectiveVisibility,
       noi_dung_blocks: publishBlocks,
       noi_dung_html: noiDungHtml,
       meta_title: tieuDe.slice(0, 120),
@@ -234,7 +251,7 @@ export async function updatePost(
     .update({
       tieu_de: tieuDe,
       mo_ta: moTaFinal || null,
-      che_do_hien_thi: input.visibility,
+      che_do_hien_thi: effectiveVisibility,
       loai_moc: input.loaiMoc,
       thoi_diem: input.thoiDiem,
     })
@@ -323,6 +340,20 @@ export async function updatePost(
     if (!filterSync.ok) {
       return { ok: false, error: filterSync.error };
     }
+  }
+
+  if (useCustom && customInput) {
+    const ngoaiLe = await replaceVisibilityNgoaiLe({
+      cotMocId: input.cotMocId,
+      mode: customInput.mode,
+      peopleIds: customInput.peopleIds,
+      ownerId: session.profile.id,
+    });
+    if (!ngoaiLe.ok) {
+      return { ok: false, error: ngoaiLe.error };
+    }
+  } else if (input.visibilityCustom === null || !useCustom) {
+    await clearVisibilityNgoaiLe(input.cotMocId);
   }
 
   const tagIdsForScore =

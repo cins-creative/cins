@@ -8,6 +8,7 @@ import {
   ImagePlus,
   Loader2,
   Lock,
+  SlidersHorizontal,
   Star,
   Trash2,
   Users,
@@ -28,7 +29,10 @@ import {
 
 import { CongDongFeedFilterDropdown } from "@/components/cong-dong/CongDongFeedFilterDropdown";
 import { EditorPersonalFilterSelect } from "@/components/editor/EditorPersonalFilterSelect";
+import { MilestoneVisibilityCustomModal } from "@/components/journey/MilestoneVisibilityCustomModal";
+import type { MilestoneVisibilityCustom } from "@/components/journey/milestone-types";
 import { useJourneyPersonalFilterOptional } from "@/components/journey/JourneyPersonalFilterContext";
+import { VISIBILITY_CUSTOM_BASE } from "@/lib/journey/milestone-visibility-custom.shared";
 import { isSystemPersonalFilterSlug } from "@/lib/filter/cong-dong-personal-filter.shared";
 import { OrgBaiDangLoaiComposeDropdown } from "@/components/truong/OrgBaiDangLoaiComposeDropdown";
 import { OrgBaiDangScheduleComposeButton } from "@/components/truong/OrgBaiDangScheduleComposeButton";
@@ -252,7 +256,11 @@ export function MediaComposeView({
   const [vis, setVis] = useState<Visibility>(
     editInitial?.visibility ?? "public",
   );
+  const [visCustom, setVisCustom] = useState<MilestoneVisibilityCustom | null>(
+    editInitial?.visibilityCustom ?? null,
+  );
   const [visOpen, setVisOpen] = useState(false);
+  const [visCustomOpen, setVisCustomOpen] = useState(false);
   const sortedCongDongFilters = useMemo(
     () =>
       [...(congDongCompose?.filters ?? [])].sort(
@@ -925,6 +933,12 @@ export function MediaComposeView({
           coverSeed: null,
           tags: articleTags,
           visibility: publishVisibility,
+          visibilityCustom: visCustom
+            ? {
+                mode: visCustom.mode,
+                peopleIds: visCustom.people.map((p) => p.id),
+              }
+            : null,
           loaiMoc,
           thoiDiem: editInitial.thoiDiem,
           blocks,
@@ -957,6 +971,12 @@ export function MediaComposeView({
         coverSeed: null,
         tags: articleTags,
         visibility: publishVisibility,
+        visibilityCustom: visCustom
+          ? {
+              mode: visCustom.mode,
+              peopleIds: visCustom.people.map((p) => p.id),
+            }
+          : null,
         loaiMoc,
         thoiDiem: new Date().toISOString().slice(0, 10),
         blocks,
@@ -992,7 +1012,13 @@ export function MediaComposeView({
     });
   };
 
-  const visCurrent = VIS_OPTIONS.find((o) => o.value === vis) ?? VIS_OPTIONS[1];
+  const visCurrent = visCustom
+    ? {
+        value: "tuy_chinh" as const,
+        label: "Tùy chỉnh",
+        Icon: SlidersHorizontal,
+      }
+    : (VIS_OPTIONS.find((o) => o.value === vis) ?? VIS_OPTIONS[1]);
 
   return (
     <div className={`cins-editor-page mc-compose-page${isOverlay ? " is-overlay" : ""}`}>
@@ -1070,8 +1096,9 @@ export function MediaComposeView({
                           key={opt.value}
                           type="button"
                           role="menuitem"
-                          className={`mc-compose-vis-opt${opt.value === vis ? " is-active" : ""}`}
+                          className={`mc-compose-vis-opt${!visCustom && opt.value === vis ? " is-active" : ""}`}
                           onClick={() => {
+                            setVisCustom(null);
                             setVis(opt.value);
                             setVisOpen(false);
                           }}
@@ -1080,6 +1107,18 @@ export function MediaComposeView({
                           <span>{opt.label}</span>
                         </button>
                       ))}
+                      <button
+                        type="button"
+                        role="menuitem"
+                        className={`mc-compose-vis-opt${visCustom ? " is-active" : ""}`}
+                        onClick={() => {
+                          setVisOpen(false);
+                          setVisCustomOpen(true);
+                        }}
+                      >
+                        <SlidersHorizontal size={14} strokeWidth={1.8} aria-hidden />
+                        <span>Tùy chỉnh</span>
+                      </button>
                     </div>
                   ) : null}
                 </div>
@@ -1339,6 +1378,19 @@ export function MediaComposeView({
           </div>
         ) : null}
       </main>
+      <MilestoneVisibilityCustomModal
+        open={visCustomOpen}
+        onClose={() => setVisCustomOpen(false)}
+        initial={visCustom}
+        onSave={(payload) => {
+          setVisCustom({
+            mode: payload.mode,
+            people: payload.people,
+          });
+          setVis(VISIBILITY_CUSTOM_BASE[payload.mode]);
+          setVisCustomOpen(false);
+        }}
+      />
     </div>
   );
 }

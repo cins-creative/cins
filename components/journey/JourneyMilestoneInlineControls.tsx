@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Users, type LucideIcon } from "lucide-react";
+import { Check, SlidersHorizontal, Users, type LucideIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import {
@@ -18,12 +18,15 @@ import {
   updateForeignMilestoneJourneyVisibility,
   updateMilestoneType,
   updateMilestoneVisibility,
+  updateMilestoneVisibilityCustom,
 } from "@/app/[slug]/journey/actions";
 import { CongDongGraduateConfirmModal } from "@/components/journey/CongDongGraduateConfirmModal";
 import { MilestonePersonalFilterOptions } from "@/components/journey/MilestonePersonalFilterOptions";
+import { MilestoneVisibilityCustomModal } from "@/components/journey/MilestoneVisibilityCustomModal";
 import type {
   MilestoneType,
   MilestoneVisibility,
+  MilestoneVisibilityCustom,
 } from "@/components/journey/milestone-types";
 import { useMilestonePersonalFilterAttach } from "@/components/journey/useMilestonePersonalFilterAttach";
 import { CONG_DONG_PERSONAL_FILTER_SLUG } from "@/lib/filter/cong-dong-personal-filter.shared";
@@ -31,6 +34,8 @@ import { isTypeMirrorPersonalFilterSlug } from "@/lib/filter/default-personal-fi
 import type { LoaiMoc, Visibility } from "@/lib/editor/types";
 import { dispatchMilestoneInlinePatch } from "@/lib/journey/milestone-inline-patch";
 import { milestoneVisibilityHint } from "@/lib/journey/milestone-visibility-hints";
+import { VISIBILITY_CUSTOM_BASE } from "@/lib/journey/milestone-visibility-custom.shared";
+import { mapCheDoToMilestoneVisibility } from "@/lib/journey/milestone-ui-map";
 
 const MENU_MIN_WIDTH = 168;
 const VIS_HINT_TIP_W = 248;
@@ -66,6 +71,7 @@ function InlineControlVisibilityOption({
   portalReady,
   hint,
   onChoose,
+  allowReselect = false,
 }: {
   option: VisibilityOption;
   active: boolean;
@@ -73,6 +79,7 @@ function InlineControlVisibilityOption({
   portalReady: boolean;
   hint: string;
   onChoose: () => void;
+  allowReselect?: boolean;
 }) {
   const wrapRef = useRef<HTMLSpanElement>(null);
   const [hintPos, setHintPos] = useState<{ top: number; left: number } | null>(
@@ -110,7 +117,7 @@ function InlineControlVisibilityOption({
           role="menuitemradio"
           aria-checked={active}
           aria-describedby={showHint ? hintId : undefined}
-          disabled={pending || active}
+          disabled={pending || (active && !allowReselect)}
           onClick={(event) => {
             event.stopPropagation();
             onChoose();
@@ -195,6 +202,7 @@ type Props =
       milestoneId: string;
       current: MilestoneVisibility;
       options: ReadonlyArray<VisibilityOption>;
+      visibilityCustom?: MilestoneVisibilityCustom | null;
       foreignJourney?: ForeignJourneyContext;
       congDongPost?: CongDongContext;
       children: ReactNode;
@@ -226,6 +234,8 @@ export function JourneyMilestoneInlineControls(props: Props) {
     showPersonalFilters ? (props.personalFilterSlugs ?? []) : [],
   );
   const [open, setOpen] = useState(false);
+  const [customOpen, setCustomOpen] = useState(false);
+  const [customError, setCustomError] = useState<string | null>(null);
   const [graduateIntent, setGraduateIntent] = useState<GraduateIntent | null>(
     null,
   );
@@ -355,7 +365,9 @@ export function JourneyMilestoneInlineControls(props: Props) {
 
   const chooseVisibility = (option: VisibilityOption) => {
     if (props.kind !== "visibility") return;
-    if (pending || option.ui === props.current) return;
+    const alreadyActive =
+      !props.visibilityCustom && option.ui === props.current;
+    if (pending || alreadyActive) return;
 
     setOpen(false);
 
@@ -370,10 +382,12 @@ export function JourneyMilestoneInlineControls(props: Props) {
     }
 
     const previous = props.current;
+    const previousCustom = props.visibilityCustom ?? null;
     dispatchMilestoneInlinePatch({
       milestoneId: props.milestoneId,
       kind: "visibility",
       value: option.ui,
+      visibilityCustom: null,
     });
 
     startTransition(async () => {
@@ -390,9 +404,63 @@ export function JourneyMilestoneInlineControls(props: Props) {
           milestoneId: props.milestoneId,
           kind: "visibility",
           value: previous,
+          visibilityCustom: previousCustom,
         });
         return;
       }
+      notifyTimelineChanged();
+      router.refresh();
+    });
+  };
+
+  const openCustomVisibility = () => {
+    if (props.kind !== "visibility") return;
+    if (props.foreignJourney) return;
+    setOpen(false);
+    setCustomError(null);
+    setCustomOpen(true);
+  };
+
+  const saveCustomVisibility = async (payload: {
+    mode: "chan" | "cho_phep";
+    people: NonNullable<MilestoneVisibilityCustom>["people"];
+  }) => {
+    if (props.kind !== "visibility" || pending) return;
+    const previous = props.current;
+    const previousCustom = props.visibilityCustom ?? null;
+    const nextVis = mapCheDoToMilestoneVisibility(
+      VISIBILITY_CUSTOM_BASE[payload.mode],
+    );
+    const nextCustom: MilestoneVisibilityCustom = {
+      mode: payload.mode,
+      people: payload.people,
+    };
+
+    dispatchMilestoneInlinePatch({
+      milestoneId: props.milestoneId,
+      kind: "visibility",
+      value: nextVis,
+      visibilityCustom: nextCustom,
+    });
+
+    startTransition(async () => {
+      setCustomError(null);
+      const res = await updateMilestoneVisibilityCustom({
+        milestoneId: props.milestoneId,
+        mode: payload.mode,
+        peopleIds: payload.people.map((p) => p.id),
+      });
+      if (!res.ok) {
+        dispatchMilestoneInlinePatch({
+          milestoneId: props.milestoneId,
+          kind: "visibility",
+          value: previous,
+          visibilityCustom: previousCustom,
+        });
+        setCustomError(res.error ?? "Không lưu được tùy chỉnh.");
+        return;
+      }
+      setCustomOpen(false);
       notifyTimelineChanged();
       router.refresh();
     });
@@ -467,9 +535,6 @@ export function JourneyMilestoneInlineControls(props: Props) {
   };
 
   const attachFilters = personalAttach.filters.filter((f) => {
-    if (isCongDongPost && f.slug === CONG_DONG_PERSONAL_FILTER_SLUG) {
-      return false;
-    }
     /* Cùng menu với «Loại cột mốc» — ẩn nhãn hệ thống trùng tên loại. */
     if (props.kind === "type" && isTypeMirrorPersonalFilterSlug(f.slug)) {
       return false;
@@ -542,21 +607,40 @@ export function JourneyMilestoneInlineControls(props: Props) {
             })}
           </>
         ) : (
-          props.options.map((option) => {
-            const active = option.ui === props.current;
-            const hintContext = props.foreignJourney ? "foreign" : "self";
-            return (
+          <>
+            {props.options.map((option) => {
+              const active =
+                !props.visibilityCustom && option.ui === props.current;
+              const hintContext = props.foreignJourney ? "foreign" : "self";
+              return (
+                <InlineControlVisibilityOption
+                  key={option.ui}
+                  option={option}
+                  active={active}
+                  pending={pending}
+                  portalReady={portalReady}
+                  hint={milestoneVisibilityHint(option.db, hintContext)}
+                  onChoose={() => chooseVisibility(option)}
+                />
+              );
+            })}
+            {!props.foreignJourney ? (
               <InlineControlVisibilityOption
-                key={option.ui}
-                option={option}
-                active={active}
+                option={{
+                  ui: "private",
+                  db: "chi_minh",
+                  label: "Tùy chỉnh",
+                  Icon: SlidersHorizontal,
+                }}
+                active={Boolean(props.visibilityCustom)}
                 pending={pending}
                 portalReady={portalReady}
-                hint={milestoneVisibilityHint(option.db, hintContext)}
-                onChoose={() => chooseVisibility(option)}
+                hint={milestoneVisibilityHint("tuy_chinh")}
+                onChoose={openCustomVisibility}
+                allowReselect
               />
-            );
-          })
+            ) : null}
+          </>
         )}
         {showPersonalFilterSection ? (
           <>
@@ -609,6 +693,20 @@ export function JourneyMilestoneInlineControls(props: Props) {
         }}
         onConfirm={confirmGraduate}
       />
+      {props.kind === "visibility" && !props.foreignJourney ? (
+        <MilestoneVisibilityCustomModal
+          open={customOpen}
+          onClose={() => {
+            if (pending) return;
+            setCustomOpen(false);
+            setCustomError(null);
+          }}
+          onSave={saveCustomVisibility}
+          initial={props.visibilityCustom}
+          pending={pending}
+          error={customError}
+        />
+      ) : null}
     </span>
   );
 }

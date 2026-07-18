@@ -1,5 +1,6 @@
 import type { ArticleTagRef } from "@/lib/editor/article-tag";
 import type { Block, LoaiMoc, Visibility } from "@/lib/editor/types";
+import type { MilestoneVisibilityCustom } from "@/components/journey/milestone-types";
 import { classifyBunnyVideoUrl } from "@/lib/bunny/embed";
 import {
   buildEmbedIframeSrc,
@@ -1114,6 +1115,7 @@ export type MediaEditInitial = {
   title: string;
   caption: string;
   visibility: Visibility;
+  visibilityCustom?: MilestoneVisibilityCustom | null;
   loaiMoc: LoaiMoc;
   thoiDiem: string;
   articleTags?: ArticleTagRef[];
@@ -1131,6 +1133,7 @@ export function buildMediaEditInitial(params: {
   postSlug: string;
   tieuDe: string;
   visibility: Visibility;
+  visibilityCustom?: MilestoneVisibilityCustom | null;
   loaiMoc: LoaiMoc;
   thoiDiem: string;
   blocks: ReadonlyArray<Block>;
@@ -1148,6 +1151,7 @@ export function buildMediaEditInitial(params: {
     title: initialMediaComposeTitle(params.tieuDe, params.kind),
     caption,
     visibility: params.visibility,
+    visibilityCustom: params.visibilityCustom ?? null,
     loaiMoc: params.loaiMoc,
     thoiDiem: params.thoiDiem,
     articleTags: params.articleTags ?? [],

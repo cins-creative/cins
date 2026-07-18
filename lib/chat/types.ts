@@ -37,7 +37,8 @@ export type ChatPollSummary = {
 export type ChatContextLoai =
   | "tuyen_dung"
   | "su_kien"
-  | "tuyen_sinh";
+  | "tuyen_sinh"
+  | "don_hang";
 
 /** Snapshot card ngữ cảnh (lưu trong `chat_tin_nhan.ngu_canh`). */
 export type ChatContextCard = {

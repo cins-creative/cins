@@ -14,6 +14,7 @@ import { useCallback, useEffect, useId, useState, useTransition } from "react";
 
 import { ArticleRichBody } from "@/components/article/ArticleRichBody";
 import { useAuthGate } from "@/components/auth/AuthGateProvider";
+import { ShopQuaySuKienPanel } from "@/components/shop/ShopQuaySuKienPanel";
 import { TruongInlineModal } from "@/components/truong/inline/TruongInlineModal";
 import type { LoaiPhanHoiSuKien } from "@/lib/to-chuc/su-kien-dang-ky";
 import {
@@ -29,6 +30,8 @@ type Props = {
   suKien: SuKienCardData | null;
   onClose: () => void;
   onSoDangKyChange?: (suKienId: string, soDangKy: number) => void;
+  /** Owner/admin sự kiện — hiện hàng chờ duyệt quầy. */
+  canManage?: boolean;
 };
 
 function formatRange(batDau: string, ketThuc: string | null): string {
@@ -61,6 +64,7 @@ export function SuKienDetailModal({
   suKien,
   onClose,
   onSoDangKyChange,
+  canManage = false,
 }: Props) {
   const titleId = useId();
   const { isAuthenticated, openAuthModal } = useAuthGate();
@@ -226,6 +230,12 @@ export function SuKienDetailModal({
           </div>
         ) : null}
       </div>
+
+      {suKien ? (
+        <div style={{ padding: "0 20px 12px" }}>
+          <ShopQuaySuKienPanel suKienId={suKien.id} canManage={canManage} />
+        </div>
+      ) : null}
 
       <div className="cso-sk-detail-foot">
         {actionError ? (

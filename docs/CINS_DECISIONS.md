@@ -37,6 +37,18 @@
 
 ## LOG — quyết định đã chốt
 
+### Shop UGC — bán hàng / preorder (không payment gateway) (2026-07-18)
+
+- **L33 — Module `shop_*` opt-in cho user; CINs không trung gian tiền.**
+  • **Ngách:** artist bán goods tại hội chợ (COFI, Hoyofes…) + shop online / đặt trước nhận tại circle.
+  • **Không** dùng prefix `payment_` (FOUNDATIONS §13 = cổng thanh toán org sau này). Bảng `shop_*`.
+  • **Opt-in:** `user_nguoi_dung.ban_hang_bat` mặc định false; bật trong cài đặt account + chấp nhận điều khoản (`ban_hang_dieu_khoan_luc`). Copy: CINs không liên quan chuyển tiền; quyền quyết định thuộc hai bên user.
+  • **Catalog:** `shop_san_pham` + `shop_bien_the` (tồn kho). **Bảng giá đa ngữ cảnh:** `shop_bang_gia` + `shop_bang_gia_dong` (nhiều bảng / tiền tệ — event A ≠ event B / quốc gia).
+  • **Post = kiosk:** `shop_post_hang` gắn biến thể + bảng giá (snapshot `gia_hien_thi`) lên `content_cot_moc`. Giỏ **theo post** (`shop_gio` unique buyer+cot_moc).
+  • **Đơn cứng:** `shop_don_hang` / `shop_don_hang_dong` — `loai_don` = `mua_ngay` | `dat_truoc_nhan_su_kien`. Trạng thái: `nhap` → `cho_xac_nhan` → `da_nhan_tien` | `da_giao_tai_su_kien` | `huy`. Chat DM `1_1` gửi card `ngu_canh.loai=don_hang`; seller xác nhận mới trừ kho. Hủy sau trừ → hoàn kho. Không soft-hold / không payment API.
+  • **RSVP sự kiện** (`se_tham_gia`) **không** gate mua hàng. **Xin làm quầy:** `shop_quay_su_kien` + bằng chứng → owner sự kiện duyệt (vừa đủ, không scale sớm). Không nhồi vào `org_milestone_tag_v1`.
+  • *Hệ quả file:* IMPLEMENTATION (SQL + API + UI `/ban-hang/*`); FOUNDATIONS §13 ghi chú shop≠payment; chat context `don_hang`.
+
 ### Cộng đồng — vai trò + cài đặt lên app topbar (2026-07-18)
 
 - **L32 — Chrome quản trị cộng đồng đồng bộ trường/cơ sở (`CoSoAdminToolbar`).**

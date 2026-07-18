@@ -2212,15 +2212,26 @@
 
 /* justified: hàng theo tỉ lệ ảnh (ImageBlock dùng .imgwrap-jrow). */
 .cins-editor-page .imgwrap.justified {
+  container-type: inline-size;
   display: flex;
   flex-direction: column;
   gap: var(--cins-img-slot-gap);
+  row-gap: var(--cins-img-slot-gap);
+  column-gap: var(--cins-img-slot-gap);
 }
 .cins-editor-page .imgwrap-jrow {
   display: flex;
   gap: var(--cins-img-slot-gap);
+  row-gap: var(--cins-img-slot-gap);
+  column-gap: var(--cins-img-slot-gap);
   width: 100%;
   align-items: stretch;
+  /* Đồng bộ với `.image-grid-jrow`: trừ gap ngang khi tính cao hàng. */
+  height: calc(
+    (100cqi - (var(--jrow-gaps, 0) * var(--cins-img-slot-gap))) /
+      var(--jrow-aspect-sum, 1)
+  );
+  aspect-ratio: auto;
 }
 .cins-editor-page .imgwrap.justified .imgwrap-jrow .ph {
   flex-basis: 0;

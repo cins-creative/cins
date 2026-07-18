@@ -43,6 +43,7 @@ import {
   Plus,
   Replace,
   Save,
+  SlidersHorizontal,
   SquareRoundCorner,
   Star,
   Trash2,
@@ -150,7 +151,7 @@ import type { CongDongComposeConfig } from "@/lib/cong-dong/types";
 import {
   GRID_IMAGE_DEFAULT_HEIGHT,
   GRID_IMAGE_DEFAULT_WIDTH,
-  justifiedRowCanvasAspect,
+  justifiedRowStyle,
   type GridImage,
   type GridUploadSlotState,
 } from "@/lib/journey/image-grid";
@@ -204,6 +205,9 @@ import {
 } from "@/lib/truong/image-ref";
 import type { ComposeIntent } from "@/lib/journey/compose-types";
 import type { EditorInitial } from "@/lib/editor/editor-initial";
+import { MilestoneVisibilityCustomModal } from "@/components/journey/MilestoneVisibilityCustomModal";
+import type { MilestoneVisibilityCustom } from "@/components/journey/milestone-types";
+import { VISIBILITY_CUSTOM_BASE } from "@/lib/journey/milestone-visibility-custom.shared";
 export type { EditorInitial };
 import {
   buildComposeEditorDraftKey,
@@ -625,24 +629,39 @@ const VIS_MENU_Z = 9600;
 function EditorVisibilitySelect({
   value,
   onChange,
+  visibilityCustom,
+  onCustomChange,
 }: {
   value: Visibility;
   onChange: (value: Visibility) => void;
+  visibilityCustom: MilestoneVisibilityCustom | null;
+  onCustomChange: (value: MilestoneVisibilityCustom | null) => void;
 }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
+  const [customOpen, setCustomOpen] = useState(false);
   const [portalReady, setPortalReady] = useState(false);
   const [menuStyle, setMenuStyle] = useState<{
     top: number;
     left: number;
   } | null>(null);
 
-  const current = useMemo(
-    () => VIS_OPTIONS.find((o) => o.k === value) ?? VIS_OPTIONS[0],
-    [value],
-  );
+  const current = useMemo(() => {
+    if (visibilityCustom) {
+      return {
+        k: "tuy_chinh" as const,
+        Icon: SlidersHorizontal,
+        label: "Tùy chỉnh",
+        desc:
+          visibilityCustom.mode === "chan"
+            ? `Chặn ${visibilityCustom.people.length} người`
+            : `${visibilityCustom.people.length} người được xem`,
+      };
+    }
+    return VIS_OPTIONS.find((o) => o.k === value) ?? VIS_OPTIONS[0];
+  }, [value, visibilityCustom]);
 
   useEffect(() => {
     setPortalReady(true);
@@ -741,8 +760,9 @@ function EditorVisibilitySelect({
                 <button
                   key={o.k}
                   type="button"
-                  className={`vis-opt${o.k === value ? " active" : ""}`}
+                  className={`vis-opt${!visibilityCustom && o.k === value ? " active" : ""}`}
                   onClick={() => {
+                    onCustomChange(null);
                     onChange(o.k);
                     setOpen(false);
                   }}
@@ -756,6 +776,22 @@ function EditorVisibilitySelect({
                   </span>
                 </button>
               ))}
+              <button
+                type="button"
+                className={`vis-opt${visibilityCustom ? " active" : ""}`}
+                onClick={() => {
+                  setOpen(false);
+                  setCustomOpen(true);
+                }}
+              >
+                <span className="ico" aria-hidden>
+                  <SlidersHorizontal size={14} strokeWidth={1.7} />
+                </span>
+                <span>
+                  <b>Tùy chỉnh</b>
+                  <em>Chặn người hoặc chỉ một số người xem</em>
+                </span>
+              </button>
             </div>
           </div>,
           document.body,
@@ -763,26 +799,41 @@ function EditorVisibilitySelect({
       : null;
 
   return (
-    <div className={`vis-select${open ? " open" : ""}`} ref={wrapRef}>
-      <button
-        ref={btnRef}
-        type="button"
-        className="vis-btn"
-        aria-label={current.label}
-        title={current.label}
-        aria-expanded={open}
-        aria-haspopup="menu"
-        onClick={(e) => {
-          e.stopPropagation();
-          setOpen((v) => !v);
+    <>
+      <div className={`vis-select${open ? " open" : ""}`} ref={wrapRef}>
+        <button
+          ref={btnRef}
+          type="button"
+          className="vis-btn"
+          aria-label={current.label}
+          title={current.label}
+          aria-expanded={open}
+          aria-haspopup="menu"
+          onClick={(e) => {
+            e.stopPropagation();
+            setOpen((v) => !v);
+          }}
+        >
+          <span className="ico" aria-hidden>
+            <current.Icon size={18} strokeWidth={1.8} />
+          </span>
+        </button>
+        {menu}
+      </div>
+      <MilestoneVisibilityCustomModal
+        open={customOpen}
+        onClose={() => setCustomOpen(false)}
+        initial={visibilityCustom}
+        onSave={(payload) => {
+          onCustomChange({
+            mode: payload.mode,
+            people: payload.people,
+          });
+          onChange(VISIBILITY_CUSTOM_BASE[payload.mode]);
+          setCustomOpen(false);
         }}
-      >
-        <span className="ico" aria-hidden>
-          <current.Icon size={18} strokeWidth={1.8} />
-        </span>
-      </button>
-      {menu}
-    </div>
+      />
+    </>
   );
 }
 
@@ -1164,6 +1215,9 @@ export function EditorView({
   } | null>(null);
   const [vis, setVis] = useState<Visibility>(
     () => initial?.visibility ?? restoredDraft?.visibility ?? "public",
+  );
+  const [visCustom, setVisCustom] = useState<MilestoneVisibilityCustom | null>(
+    () => initial?.visibilityCustom ?? null,
   );
   const sortedCongDongFilters = useMemo(
     () =>
@@ -3331,6 +3385,12 @@ export function EditorView({
           coverSeed: coverForPublish,
           tags,
           visibility: publishVisibility,
+          visibilityCustom: visCustom
+            ? {
+                mode: visCustom.mode,
+                peopleIds: visCustom.people.map((p) => p.id),
+              }
+            : null,
           loaiMoc,
           thoiDiem: initial.thoiDiem,
           blocks: publishBlocks,
@@ -3369,6 +3429,12 @@ export function EditorView({
         coverSeed: coverForPublish,
         tags,
         visibility: publishVisibility,
+        visibilityCustom: visCustom
+          ? {
+              mode: visCustom.mode,
+              peopleIds: visCustom.people.map((p) => p.id),
+            }
+          : null,
         loaiMoc,
         thoiDiem: isoToday(),
         blocks: publishBlocks,
@@ -3507,7 +3573,12 @@ export function EditorView({
                 onLoaiMocChange={setLoaiMoc}
                 menuZIndex={9600}
               />
-              <EditorVisibilitySelect value={vis} onChange={setVis} />
+              <EditorVisibilitySelect
+                value={vis}
+                onChange={setVis}
+                visibilityCustom={visCustom}
+                onCustomChange={setVisCustom}
+              />
             </div>
           )}
 
@@ -5802,7 +5873,7 @@ function ImageBlock({ block, p }: { block: Block; p: BlockRowProps }) {
               <div
                 key={`${block.id}-jrow-${ri}`}
                 className="imgwrap-jrow"
-                style={{ aspectRatio: String(justifiedRowCanvasAspect(row)) }}
+                style={justifiedRowStyle(row) as CSSProperties}
               >
                 {row.map((cell) =>
                   renderSlot(cell.seed, cell.index, {

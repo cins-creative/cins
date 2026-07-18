@@ -25,7 +25,7 @@ import {
 import {
   albumGridComposeRows,
   gridThumbAsset,
-  justifiedRowCanvasAspect,
+  justifiedRowStyle,
   resolveAlbumLayout,
   splitJustifiedRows,
   type AlbumCell,
@@ -561,9 +561,7 @@ export function ImageGrid({
           <div
             key={`jrow-${ri}`}
             className="image-grid-jrow"
-            style={{
-              aspectRatio: String(justifiedRowCanvasAspect(row)),
-            }}
+            style={justifiedRowStyle(row) as CSSProperties}
           >
             {row.map((c: AlbumCell) =>
               renderCell(c.index, {

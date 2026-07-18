@@ -338,6 +338,7 @@ export function CoSoTabSuKien({
         suKien={detailSuKien}
         onClose={() => setDetailSuKien(null)}
         onSoDangKyChange={handleSoDangKyChange}
+        canManage={canManageSuKien}
       />
 
       {canManageSuKien ? (

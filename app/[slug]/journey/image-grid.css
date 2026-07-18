@@ -209,15 +209,26 @@
 
 /* ── Justified Grid: mọi album 2+ ảnh; các hàng cùng chiều cao ── */
 .image-grid--justified {
+  container-type: inline-size;
   gap: var(--cins-img-slot-gap);
+  row-gap: var(--cins-img-slot-gap);
+  column-gap: var(--cins-img-slot-gap);
 }
 .image-grid-jrow {
   display: flex;
   gap: var(--cins-img-slot-gap);
+  row-gap: var(--cins-img-slot-gap);
+  column-gap: var(--cins-img-slot-gap);
   width: 100%;
   align-items: stretch;
   overflow: hidden;
   min-height: 0;
+  /* Trừ gap ngang khỏi bề rộng khi tính cao hàng → gutter ngang/dọc khớp. */
+  height: calc(
+    (100cqi - (var(--jrow-gaps, 0) * var(--cins-img-slot-gap))) /
+      var(--jrow-aspect-sum, 1)
+  );
+  aspect-ratio: auto;
 }
 .image-grid-jrow .image-grid-cell {
   /* flex-grow = aspect thật; chiều cao lấy từ hàng để mọi hàng cân bằng. */

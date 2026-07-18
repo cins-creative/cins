@@ -15,6 +15,7 @@ import {
   Lock,
   MessageCircle,
   Palette,
+  SlidersHorizontal,
   Star,
   Tag,
   Trophy,
@@ -56,6 +57,7 @@ import { JourneyLikeButton } from "@/components/journey/JourneyLikeButton";
 import { JourneyDislikeButton } from "@/components/journey/JourneyDislikeButton";
 import { PostShareMenu } from "@/components/journey/PostActionsRail";
 import { JourneyMilestoneOwnerMenu } from "@/components/journey/JourneyMilestoneOwnerMenu";
+import { ShopKioskBlock } from "@/components/shop/ShopKioskBlock";
 import { JourneyMilestoneInsightsModal } from "@/components/journey/JourneyMilestoneInsightsModal";
 import { JourneyMilestoneViewerMenu } from "@/components/social/JourneyMilestoneViewerMenu";
 import { WorldBoostToggle } from "@/components/cins/world-journey/WorldBoostToggle";
@@ -404,19 +406,31 @@ function congDongInlineContext(
 function visibilityIcon(
   v: MilestoneItem["visibility"] | undefined,
   congDongOrg?: MilestoneItem["congDongOrg"],
-): { Icon: LucideIcon; label: string } | null {
+  visibilityCustom?: MilestoneItem["visibilityCustom"],
+): { Icon: LucideIcon; label: string; badgeKey: string } | null {
+  if (visibilityCustom) {
+    return {
+      Icon: SlidersHorizontal,
+      label:
+        visibilityCustom.mode === "chan"
+          ? `Tùy chỉnh · chặn ${visibilityCustom.people.length} người`
+          : `Tùy chỉnh · ${visibilityCustom.people.length} người`,
+      badgeKey: "custom",
+    };
+  }
   if (v === "cong-dong") {
     return {
       Icon: Users,
       label: congDongOrg?.name
         ? `Cộng đồng · ${congDongOrg.name}`
         : "Cộng đồng",
+      badgeKey: "cong-dong",
     };
   }
-  if (v === "feature") return { Icon: Star, label: "Feature" };
-  if (!v || v === "public") return { Icon: Globe, label: "Công khai" };
-  if (v === "unlisted") return { Icon: Users, label: "Bạn bè" };
-  if (v === "private") return { Icon: Lock, label: "Chỉ mình tôi" };
+  if (v === "feature") return { Icon: Star, label: "Feature", badgeKey: "feature" };
+  if (!v || v === "public") return { Icon: Globe, label: "Công khai", badgeKey: "public" };
+  if (v === "unlisted") return { Icon: Users, label: "Bạn bè", badgeKey: "unlisted" };
+  if (v === "private") return { Icon: Lock, label: "Chỉ mình tôi", badgeKey: "private" };
   return null;
 }
 
@@ -502,6 +516,29 @@ export function JourneyMilestoneCard({
   }, []);
 
   const worldBoostAdmin = useWorldBoostAdminOptional();
+  const [banHangEnabled, setBanHangEnabled] = useState(false);
+
+  useEffect(() => {
+    if (!isOwner || !viewerProfileId) {
+      setBanHangEnabled(false);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch("/api/user/ban-hang", { cache: "no-store" });
+        const json = (await res.json().catch(() => null)) as {
+          enabled?: boolean;
+        } | null;
+        if (!cancelled) setBanHangEnabled(json?.enabled === true);
+      } catch {
+        if (!cancelled) setBanHangEnabled(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isOwner, viewerProfileId]);
 
   const displayDate = `${String(day).padStart(2, "0")}-${String(month).padStart(2, "0")}-${year}`;
   const bookmarkSavedDateLabel = milestone.bookmarkSavedAt
@@ -654,7 +691,11 @@ export function JourneyMilestoneCard({
     .filter(Boolean)
     .join(" ");
 
-  const vis = visibilityIcon(visibility, congDongOrg);
+  const vis = visibilityIcon(
+    visibility,
+    congDongOrg,
+    milestone.visibilityCustom,
+  );
   const isCongDongPost = visibility === "cong-dong";
   const isBookmarkMilestone = variant === "bookmark";
   const isTaggedFromOthers =
@@ -1571,6 +1612,7 @@ export function JourneyMilestoneCard({
                   kind="visibility"
                   milestoneId={cotMocId ?? milestone.id}
                   current={visibility ?? "public"}
+                  visibilityCustom={milestone.visibilityCustom}
                   options={
                     foreignJourneyContext
                       ? FOREIGN_JOURNEY_VIS_OPTIONS
@@ -1595,7 +1637,7 @@ export function JourneyMilestoneCard({
                     </span>
                   ) : (
                     <span
-                      className={`ctx-badge j-vis-${visibility ?? "public"}`}
+                      className={`ctx-badge j-vis-${vis.badgeKey}`}
                       title={vis.label}
                       aria-label={vis.label}
                     >
@@ -1603,11 +1645,11 @@ export function JourneyMilestoneCard({
                         size={11}
                         strokeWidth={1.8}
                         aria-hidden
-                        {...(visibility === "feature"
+                        {...(vis.badgeKey === "feature"
                           ? { fill: "currentColor" }
                           : {})}
                       />
-                      {visibility === "feature" ? "Feature" : vis.label}
+                      {vis.badgeKey === "feature" ? "Feature" : vis.label}
                     </span>
                   )}
                 </JourneyMilestoneInlineControls>
@@ -1655,6 +1697,7 @@ export function JourneyMilestoneCard({
             permalinkOwnerSlug={resolvedPostOwner}
             currentType={type}
             currentVisibility={visibility ?? "public"}
+            visibilityCustom={milestone.visibilityCustom}
             postSlug={postSlug ?? null}
             hideTypeChange={
               isBookmarkMilestone ||
@@ -1676,6 +1719,7 @@ export function JourneyMilestoneCard({
             milestoneKey={milestone.id}
             journeyGhimLuc={milestone.journeyGhimLuc ?? null}
             showJourneyPin={showJourneyPin}
+            banHangEnabled={banHangEnabled}
           />
         ) : null}
       </>
@@ -1863,6 +1907,7 @@ export function JourneyMilestoneCard({
                       kind="visibility"
                       milestoneId={cotMocId ?? milestone.id}
                       current={visibility ?? "public"}
+                      visibilityCustom={milestone.visibilityCustom}
                       options={
                         foreignJourneyContext
                           ? FOREIGN_JOURNEY_VIS_OPTIONS
@@ -1871,7 +1916,7 @@ export function JourneyMilestoneCard({
                       foreignJourney={foreignJourneyContext}
                     >
                       <span
-                        className={`ctx-badge j-vis-${visibility ?? "public"}`}
+                        className={`ctx-badge j-vis-${vis.badgeKey}`}
                         title={vis.label}
                         aria-label={vis.label}
                       >
@@ -1879,11 +1924,11 @@ export function JourneyMilestoneCard({
                           size={11}
                           strokeWidth={1.8}
                           aria-hidden
-                          {...(visibility === "feature"
+                          {...(vis.badgeKey === "feature"
                             ? { fill: "currentColor" }
                             : {})}
                         />
-                        {visibility === "feature" ? "Feature" : vis.label}
+                        {vis.badgeKey === "feature" ? "Feature" : vis.label}
                       </span>
                     </JourneyMilestoneInlineControls>
                   ) : null}
@@ -2043,6 +2088,7 @@ export function JourneyMilestoneCard({
                         kind="visibility"
                         milestoneId={cotMocId ?? milestone.id}
                         current={visibility ?? "public"}
+                        visibilityCustom={milestone.visibilityCustom}
                         options={
                           foreignJourneyContext
                             ? FOREIGN_JOURNEY_VIS_OPTIONS
@@ -2067,7 +2113,7 @@ export function JourneyMilestoneCard({
                           </span>
                         ) : (
                           <span
-                            className={`ctx-badge j-vis-${visibility ?? "public"}`}
+                            className={`ctx-badge j-vis-${vis.badgeKey}`}
                             title={vis.label}
                             aria-label={vis.label}
                           >
@@ -2075,11 +2121,11 @@ export function JourneyMilestoneCard({
                               size={11}
                               strokeWidth={1.8}
                               aria-hidden
-                              {...(visibility === "feature"
+                              {...(vis.badgeKey === "feature"
                                 ? { fill: "currentColor" }
                                 : {})}
                             />
-                            {visibility === "feature" ? "Feature" : vis.label}
+                            {vis.badgeKey === "feature" ? "Feature" : vis.label}
                           </span>
                         )}
                       </JourneyMilestoneInlineControls>
@@ -2093,6 +2139,7 @@ export function JourneyMilestoneCard({
                     }
                     currentType={type}
                     currentVisibility={visibility ?? "public"}
+                    visibilityCustom={milestone.visibilityCustom}
                     postSlug={postSlug ?? null}
                     hideTypeChange={isCongDongPost}
                     hideEdit={canManageTagged}
@@ -2106,6 +2153,7 @@ export function JourneyMilestoneCard({
                     milestoneKey={milestone.id}
                     journeyGhimLuc={milestone.journeyGhimLuc ?? null}
                     showJourneyPin={showJourneyPin}
+                    banHangEnabled={banHangEnabled}
                   />
                 </>
               ) : null}
@@ -2318,6 +2366,14 @@ export function JourneyMilestoneCard({
               onTagLinkClick={(e) => e.stopPropagation()}
             />
           )}
+
+          {!bookmarkListing && !orgBaiDangRef && !orgSuKienRef ? (
+            <ShopKioskBlock
+              milestoneId={milestoneId}
+              sellerUserId={postOwnerId ?? ownerProfileId}
+              viewerProfileId={viewerProfileId}
+            />
+          ) : null}
 
           {canRenderInlineUnfold ? (
             <div

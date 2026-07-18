@@ -36,6 +36,12 @@ import {
 } from "@/lib/journey/post-content-kind";
 import { insertDiemFeedChoBaiMoi } from "@/lib/cins/feed-scoring-write";
 import { ensureEmbedAutoCover } from "@/lib/editor/ensure-embed-auto-cover";
+import {
+  clearVisibilityNgoaiLe,
+  isVisibilityNgoaiLeLoai,
+  replaceVisibilityNgoaiLe,
+  VISIBILITY_CUSTOM_BASE,
+} from "@/lib/journey/milestone-visibility-custom";
 
 /* ╔══════════════════════════════════════════════════════════════════╗
    ║ Server Action: publishPost                                       ║
@@ -66,6 +72,14 @@ export type PublishPostInput = {
   /** Tag — quản lý từ Journey card sau khi đăng; bỏ qua khi không truyền. */
   tags?: ArticleTagRef[];
   visibility: Visibility;
+  /**
+   * Tùy chỉnh — nếu có thì ghi ngoại lệ + nền theo mode
+   * (`chan`→theo_nhom, `cho_phep`→chi_minh). Bỏ qua khi `congDong`.
+   */
+  visibilityCustom?: {
+    mode: "chan" | "cho_phep";
+    peopleIds: string[];
+  } | null;
   loaiMoc: LoaiMoc;
   thoiDiem: string; // ISO date `YYYY-MM-DD`
   blocks: Block[];
@@ -154,6 +168,15 @@ export async function publishPost(
   if (!VALID_LOAI_MOC.includes(input.loaiMoc)) {
     return { ok: false, error: "Loại cột mốc không hợp lệ.", field: "loaiMoc" };
   }
+
+  const customInput = input.visibilityCustom;
+  const useCustom =
+    Boolean(customInput) &&
+    isVisibilityNgoaiLeLoai(customInput!.mode) &&
+    !input.congDong;
+  const effectiveVisibility: Visibility = useCustom
+    ? VISIBILITY_CUSTOM_BASE[customInput!.mode]
+    : input.visibility;
   const thoiDiem = isValidIsoDate(input.thoiDiem)
     ? input.thoiDiem
     : todayIso();
@@ -323,7 +346,7 @@ export async function publishPost(
       tieu_de: tieuDe,
       mo_ta: moTaFinal || null,
       thoi_diem: thoiDiem,
-      che_do_hien_thi: input.visibility,
+      che_do_hien_thi: effectiveVisibility,
     })
     .select("id")
     .single<{ id: string }>();
@@ -340,7 +363,7 @@ export async function publishPost(
       tieu_de: tieuDe,
       mo_ta: moTaFinal || null,
       cover_id: coverId,
-      che_do_hien_thi: input.visibility,
+      che_do_hien_thi: effectiveVisibility,
       slug,
       noi_dung_blocks: publishBlocks,
       noi_dung_html: noiDungHtml,
@@ -415,6 +438,20 @@ export async function publishPost(
     if (!filterSync.ok) {
       console.error("[publishPost] personal filter sync failed", filterSync.error);
     }
+  }
+
+  if (useCustom && customInput) {
+    const ngoaiLe = await replaceVisibilityNgoaiLe({
+      cotMocId: cotMoc.id,
+      mode: customInput.mode,
+      peopleIds: customInput.peopleIds,
+      ownerId: session.profile.id,
+    });
+    if (!ngoaiLe.ok) {
+      console.error("[publishPost] visibility custom failed", ngoaiLe.error);
+    }
+  } else {
+    await clearVisibilityNgoaiLe(cotMoc.id);
   }
 
   await insertDiemFeedChoBaiMoi({

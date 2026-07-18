@@ -8,6 +8,7 @@ import { loadPersonalFilterIdsForCotMoc } from "@/lib/filter/gan";
 import { parseServerBlocks } from "@/lib/journey/parse-server-blocks";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { sanitizePersistableCoverId } from "@/lib/truong/image-ref";
+import { loadVisibilityCustomStates } from "@/lib/journey/milestone-visibility-custom";
 
 type TacPhamRow = {
   id: string;
@@ -168,6 +169,8 @@ export async function fetchPostEditInitial(params: {
     cotMoTa: cm.mo_ta,
   });
 
+  const customMap = await loadVisibilityCustomStates([cm.id]);
+
   return {
     ok: true,
     postSlug,
@@ -179,6 +182,7 @@ export async function fetchPostEditInitial(params: {
       coverSeed: sanitizePersistableCoverId(tp.cover_id, blocks),
       tags,
       visibility: (tp.che_do_hien_thi ?? cm.che_do_hien_thi ?? "public") as Visibility,
+      visibilityCustom: customMap.get(cm.id) ?? null,
       loaiMoc: cm.loai_moc,
       thoiDiem: cm.thoi_diem ?? isoToday(),
       blocks,

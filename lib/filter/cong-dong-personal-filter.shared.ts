@@ -8,6 +8,7 @@ export {
   countUserPersonalFilters,
   defaultPersonalFilterFallback,
   filterTimelinePersonalFilters,
+  isAutoAttachedPersonalFilterSlug,
   isHiddenPersonalFilterSlug,
   isSystemPersonalFilterSlug,
   isTypeMirrorPersonalFilterSlug,

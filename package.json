@@ -24,7 +24,8 @@
     "backfill:diem-feed": "node scripts/backfill-content-diem-feed.mjs",
     "migrate:feed-score-config": "node scripts/run-content-feed-score-cau-hinh-migration.mjs",
     "migrate:feed-score-phien-ban": "node scripts/run-content-feed-score-phien-ban-migration.mjs",
-    "migrate:diem-uu-tien": "node scripts/run-content-diem-feed-uu-tien-migration.mjs"
+    "migrate:diem-uu-tien": "node scripts/run-content-diem-feed-uu-tien-migration.mjs",
+    "migrate:shop": "node scripts/run-shop-ban-hang-migration.mjs"
   },
   "dependencies": {
     "@rive-app/canvas": "^2.38.3",

@@ -2,6 +2,7 @@ import type {
   MilestoneItem,
   MilestoneType,
   MilestoneVisibility,
+  MilestoneVisibilityCustom,
 } from "@/components/journey/milestone-types";
 import type { PersonalFilterRef } from "@/lib/filter/types";
 
@@ -15,6 +16,7 @@ export type MilestoneInlinePatchDetail =
       milestoneId: string;
       kind: "visibility";
       value: MilestoneVisibility;
+      visibilityCustom?: MilestoneVisibilityCustom | null;
     }
   | {
       milestoneId: string;
@@ -60,7 +62,14 @@ export function applyMilestoneInlinePatch(
     if (detail.kind === "journeyPin") {
       return { ...m, journeyGhimLuc: detail.value };
     }
-    return { ...m, visibility: detail.value as MilestoneVisibility };
+    return {
+      ...m,
+      visibility: detail.value as MilestoneVisibility,
+      visibilityCustom:
+        detail.visibilityCustom === undefined
+          ? null
+          : detail.visibilityCustom,
+    };
   });
 }
 

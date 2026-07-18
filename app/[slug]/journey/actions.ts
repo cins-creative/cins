@@ -17,6 +17,14 @@ import {
   type ForeignJourneyVisibility,
 } from "@/lib/journey/foreign-milestone-visibility";
 import { graduateCongDongMilestone } from "@/lib/journey/graduate-cong-dong-milestone";
+import {
+  clearVisibilityNgoaiLe,
+  isVisibilityNgoaiLeLoai,
+  replaceVisibilityNgoaiLe,
+  VISIBILITY_CUSTOM_BASE,
+  type VisibilityCustomState,
+  type VisibilityNgoaiLeLoai,
+} from "@/lib/journey/milestone-visibility-custom";
 import type {
   MilestonePostAuthor,
   MilestonePostDetail,
@@ -753,6 +761,9 @@ export async function updateMilestoneVisibility(
     };
   }
 
+  /* Đổi sang chế độ chuẩn → bỏ ngoại lệ tùy chỉnh. */
+  await clearVisibilityNgoaiLe(milestoneId);
+
   /* Sync cùng visibility xuống các `content_tac_pham` được liên kết với
      cột mốc — owner expect "cột mốc private" cũng ẩn bài viết tương ứng. */
   const { data: links } = await admin
@@ -770,6 +781,78 @@ export async function updateMilestoneVisibility(
 
   revalidatePath(`/${owner.profileSlug}`);
   return { ok: true, data: null };
+}
+
+/** Tùy chỉnh: chặn người (nền Bạn bè) hoặc chỉ một số người (nền Chỉ mình tôi). */
+export async function updateMilestoneVisibilityCustom(input: {
+  milestoneId: string;
+  mode: VisibilityNgoaiLeLoai;
+  peopleIds: string[];
+}): Promise<
+  ActionResult<{
+    visibility: Visibility;
+    visibilityCustom: VisibilityCustomState;
+  }>
+> {
+  const access = await requireMilestoneEditorAccess(input.milestoneId);
+  if (!access.ok) return { ok: false, error: access.error };
+  if (!isVisibilityNgoaiLeLoai(input.mode)) {
+    return { ok: false, error: "Chế độ tùy chỉnh không hợp lệ." };
+  }
+
+  const admin = createServiceRoleClient();
+  const { data: moc, error: mocErr } = await admin
+    .from("content_cot_moc")
+    .select("id, id_nguoi_dung")
+    .eq("id", input.milestoneId)
+    .maybeSingle<{ id: string; id_nguoi_dung: string }>();
+
+  if (mocErr || !moc) {
+    return { ok: false, error: "Không tìm thấy cột mốc." };
+  }
+
+  const baseVisibility = VISIBILITY_CUSTOM_BASE[input.mode];
+  const { error: visErr } = await admin
+    .from("content_cot_moc")
+    .update({ che_do_hien_thi: baseVisibility })
+    .eq("id", input.milestoneId);
+
+  if (visErr) {
+    return {
+      ok: false,
+      error: "Không đổi được chế độ hiển thị: " + visErr.message,
+    };
+  }
+
+  const { data: links } = await admin
+    .from("content_tac_pham_thuoc_moc")
+    .select("id_tac_pham")
+    .eq("id_cot_moc", input.milestoneId)
+    .returns<Array<{ id_tac_pham: string }>>();
+  const tacPhamIds = (links ?? []).map((l) => l.id_tac_pham);
+  if (tacPhamIds.length > 0) {
+    await admin
+      .from("content_tac_pham")
+      .update({ che_do_hien_thi: baseVisibility })
+      .in("id", tacPhamIds);
+  }
+
+  const replaced = await replaceVisibilityNgoaiLe({
+    cotMocId: input.milestoneId,
+    mode: input.mode,
+    peopleIds: input.peopleIds,
+    ownerId: moc.id_nguoi_dung,
+  });
+  if (!replaced.ok) return { ok: false, error: replaced.error };
+
+  revalidatePath(`/${access.profileSlug}`);
+  return {
+    ok: true,
+    data: {
+      visibility: baseVisibility,
+      visibilityCustom: replaced.state,
+    },
+  };
 }
 
 /** Ghim / bỏ ghim cột mốc lên đầu Journey timeline — không đổi visibility. */

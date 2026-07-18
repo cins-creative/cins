@@ -47,6 +47,8 @@ Thứ tự ưu tiên khi xung đột: **DB thật (đọc trực tiếp) > CINS_
 
 ## Thay đổi lớn gần đây (tóm tắt — chi tiết ở DECISIONS)
 
+**Shop UGC / preorder (2026-07-18):** Module `shop_*` opt-in — catalog, bảng giá đa ngữ cảnh, post-kiosk, đơn cứng + chat `don_hang`, quầy sự kiện. CINs không cầm tiền. Xem DECISIONS **L33**.
+
 **Cộng đồng topbar role (2026-07-18):** Vai trò + cài đặt lên `#app-topbar-page-slot` (cam priv, giống cơ sở/trường); sidebar chỉ join/share. Xem DECISIONS L32 + IMPLEMENTATION *Topbar quản trị*.
 
 **Facebook OG short-link (2026-07-17):** Mỗi lần chủ card chia sẻ tạo `/s/[token]` với Cloudflare snapshot cố định; crawler nhận OG object mới, người thật soft-redirect về URL gốc có `?s=`. Bảng server-only `content_share_link`. Xem DECISIONS LOG + IMPLEMENTATION API/SQL.

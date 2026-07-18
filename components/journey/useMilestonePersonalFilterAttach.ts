@@ -4,7 +4,10 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState, useTransition } from "react";
 
 import { useJourneyPersonalFilterOptional } from "@/components/journey/JourneyPersonalFilterContext";
-import { orderTimelinePersonalFilters } from "@/lib/filter/default-personal-filters.shared";
+import {
+  isAutoAttachedPersonalFilterSlug,
+  orderTimelinePersonalFilters,
+} from "@/lib/filter/default-personal-filters.shared";
 import type { FilterLoaiDoiTuong } from "@/lib/filter/types";
 import { dispatchMilestoneInlinePatch } from "@/lib/journey/milestone-inline-patch";
 
@@ -57,7 +60,7 @@ export function useMilestonePersonalFilterAttach(
 
   const filters = orderTimelinePersonalFilters(ctx?.filters ?? [], {
     isOwner: ctx?.isOwner,
-  });
+  }).filter((f) => !isAutoAttachedPersonalFilterSlug(f.slug));
   const enabled = options?.enabled ?? true;
   const canAttach = Boolean(ctx?.isOwner && filters.length > 0 && enabled);
   const selectedSlug = selectedSlugs[0] ?? null;

@@ -7,6 +7,11 @@ import type { MilestoneItem } from "@/components/journey/milestone-types";
 import { isVisibleOnWorldJourneyFeed } from "@/lib/cins/worldJourneyFeedVisibility";
 import { hideProcessingVideoFromViewer } from "@/lib/journey/video-processing-meta";
 import {
+  listChoPhepCotMocIdsForViewer,
+  loadVisibilityNgoaiLeIndex,
+  type VisibilityNgoaiLeIndex,
+} from "@/lib/journey/milestone-visibility-custom";
+import {
   attachSocialState,
   buildSelfMilestonesForCotMocs,
 } from "@/lib/journey/milestones-fetch";
@@ -142,6 +147,21 @@ async function fetchLinkRowsForFollowedTags(
   return data ?? [];
 }
 
+async function fetchLinkRowsForCotMocIds(
+  cotMocIds: string[],
+): Promise<LinkRow[]> {
+  if (cotMocIds.length === 0) return [];
+  const admin = createServiceRoleClient();
+  const { data } = await admin
+    .from("content_tac_pham_thuoc_moc")
+    .select(`id_cot_moc, content_cot_moc:content_cot_moc!inner(${COT_MOC_FEED_SELECT})`)
+    .in("content_cot_moc.id", cotMocIds)
+    .limit(QUERY_LIMIT)
+    .returns<LinkRow[]>();
+
+  return data ?? [];
+}
+
 async function fetchLinkRowsForAuthors(
   authorIds: string[],
   cheDoModes: string[],
@@ -191,12 +211,14 @@ function isVisibleCotMoc(
   viewerId: string,
   friendSet: Set<string>,
   followingSet: Set<string>,
+  ngoaiLeIndex?: VisibilityNgoaiLeIndex,
 ): boolean {
   return isVisibleOnWorldJourneyFeed(cm.che_do_hien_thi, {
     viewerId,
     ownerId: cm.id_nguoi_dung,
     viewerIsFriend: friendSet.has(cm.id_nguoi_dung),
     viewerIsFollowing: followingSet.has(cm.id_nguoi_dung),
+    ngoaiLe: ngoaiLeIndex?.get(cm.id) ?? null,
   });
 }
 
@@ -369,6 +391,7 @@ async function buildWorldJourneyFeedRanked(
     orgSuKienMilestonesAll,
     friendSuKienSuggestionsAll,
     memberCongDongMilestones,
+    choPhepCotMocIds,
   ] = await Promise.all([
     fetchLinkRowsForAuthors(
       [viewerId],
@@ -386,7 +409,10 @@ async function buildWorldJourneyFeedRanked(
       followingOrgIds,
       memberCongDongOrgIds,
     ),
+    listChoPhepCotMocIdsForViewer(viewerId),
   ]);
+
+  const choPhepLinks = await fetchLinkRowsForCotMocIds(choPhepCotMocIds);
 
   const congDongConnectedOrgIds = [
     ...new Set([...memberCongDongOrgIds, ...followingOrgIds]),
@@ -407,13 +433,23 @@ async function buildWorldJourneyFeedRanked(
     return ownerId ? !knownAuthorIds.has(ownerId) : false;
   });
 
-  const cotMocs = dedupeCotMocs([
+  const candidateLinks = [
     ...ownLinks,
     ...friendLinks,
     ...followingLinks,
     ...strangerFeatureLinks,
     ...tagLinks,
-  ]).filter((cm) => isVisibleCotMoc(cm, viewerId, friendSet, followingSet));
+    ...choPhepLinks,
+  ];
+  const ngoaiLeIndex = await loadVisibilityNgoaiLeIndex(
+    candidateLinks
+      .map((row) => row.content_cot_moc?.id)
+      .filter((id): id is string => Boolean(id)),
+  );
+
+  const cotMocs = dedupeCotMocs(candidateLinks).filter((cm) =>
+    isVisibleCotMoc(cm, viewerId, friendSet, followingSet, ngoaiLeIndex),
+  );
 
   let followingPool: MilestoneItem[] = [];
 
@@ -516,8 +552,14 @@ async function buildExplorePool(
     return ownerId ? !knownAuthorIds.has(ownerId) : false;
   });
 
+  const ngoaiLeIndex = await loadVisibilityNgoaiLeIndex(
+    strangerLinks
+      .map((row) => row.content_cot_moc?.id)
+      .filter((id): id is string => Boolean(id)),
+  );
+
   const cotMocs = dedupeCotMocs(strangerLinks).filter((cm) =>
-    isVisibleCotMoc(cm, viewerId, friendSet, followingSet),
+    isVisibleCotMoc(cm, viewerId, friendSet, followingSet, ngoaiLeIndex),
   );
 
   if (cotMocs.length === 0) return [];

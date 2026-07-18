@@ -290,12 +290,7 @@
 .cins-app-sidebar .sb-foot .sb-item.sb-item--highlight {
   color: #fff;
   font-weight: 600;
-  background: linear-gradient(
-    145deg,
-    #2b8ae8 0%,
-    var(--cins-blue, #1f74c9) 42%,
-    #124a8f 100%
-  );
+  background: var(--cins-blue, #1f74c9);
   border: none;
   box-shadow: none;
   transition:
@@ -304,24 +299,14 @@
 }
 
 .cins-app-sidebar .sb-foot .sb-item.sb-item--highlight:hover {
-  background: linear-gradient(
-    145deg,
-    #3296f0 0%,
-    #247fd4 42%,
-    #1656a0 100%
-  );
+  background: var(--cins-blue-dark, #1656a0);
   color: #fff;
   box-shadow: none;
 }
 
 .cins-app-sidebar .sb-foot .sb-item.sb-item--highlight.active {
   font-weight: 700;
-  background: linear-gradient(
-    145deg,
-    #247fd4 0%,
-    var(--cins-blue-dark, #1656a0) 42%,
-    #0f3568 100%
-  );
+  background: var(--cins-blue-dark, #1656a0);
   color: #fff;
   box-shadow: none;
 }

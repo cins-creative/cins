@@ -16,7 +16,9 @@ import { useJourneyPersonalFilterOptional } from "@/components/journey/JourneyPe
 import type { LoaiMoc } from "@/lib/editor/types";
 import {
   countUserPersonalFilters,
+  isAutoAttachedPersonalFilterSlug,
   isSystemPersonalFilterSlug,
+  isTypeMirrorPersonalFilterSlug,
   orderTimelinePersonalFilters,
 } from "@/lib/filter/cong-dong-personal-filter.shared";
 import { DEFAULT_FILTER_MAU, MAX_FILTERS_PER_OWNER } from "@/lib/filter/constants";
@@ -110,8 +112,13 @@ export function EditorPersonalFilterSelect({
     ctx && (!ctx.loading || ctx.filters.length > 0)
       ? ctx.filters
       : fetchedFilters;
-  /* Giống JourneyMilestoneInlineControls — gồm Cộng đồng, ghim đầu list. */
-  const filters = orderTimelinePersonalFilters(rawFilters, { isOwner });
+  /* Giống JourneyMilestoneInlineControls — ghim nhãn hệ thống đầu list.
+   * Ẩn trùng «Loại cột mốc» + Cộng đồng (chỉ gắn khi bài thuộc cộng đồng). */
+  const filters = orderTimelinePersonalFilters(rawFilters, { isOwner }).filter(
+    (f) =>
+      !isTypeMirrorPersonalFilterSlug(f.slug) &&
+      !isAutoAttachedPersonalFilterSlug(f.slug),
+  );
   const selectedId = valueIds[0] ?? null;
   const selected = selectedId
     ? filters.find((f) => f.id === selectedId) ??

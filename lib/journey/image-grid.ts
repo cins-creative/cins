@@ -228,7 +228,7 @@ export const MASONRY_MAX_COLUMNS = 3;
 export const JUSTIFIED_MAX_PER_ROW = 3;
 /**
  * Canvas album: tách hàng khi một hàng thấp hơn khung 16:9 (tránh album dẹp lép).
- * Chiều cao từng hàng sau tách vẫn theo tỉ lệ ảnh (`justifiedRowCanvasAspect`) —
+ * Chiều cao từng hàng sau tách vẫn theo tỉ lệ ảnh (`justifiedRowStyle`) —
  * không ép lại canvas 16:9 (ép sẽ crop ảnh user).
  */
 export const JUSTIFIED_MIN_CANVAS_HEIGHT_RATIO = 9 / 16;
@@ -325,15 +325,28 @@ function justifiedRowHeightRatio(cells: AlbumCell[]): number {
 }
 
 /**
- * Aspect-ratio CSS của một hàng Justified = tổng (width/height) các ô.
- * Cùng chiều cao hàng → mỗi ô khớp tỉ lệ ảnh (ít letterbox với contain).
- * Không ép canvas 16:9. Ảnh user luôn `object-fit: contain` — không crop.
+ * Tổng aspect (width/height) các ô trên một hàng Justified.
+ * Dùng cho CSS `--jrow-aspect-sum` (xem `justifiedRowStyle`).
  */
 export function justifiedRowCanvasAspect(
   cells: ReadonlyArray<{ aspect: number }>,
 ): number {
   const aspectSum = cells.reduce((sum, cell) => sum + cell.aspect, 0);
   return aspectSum > 0 ? aspectSum : 1;
+}
+
+/**
+ * Style vars hàng Justified: chiều cao = (container − gap ngang) / tổng aspect.
+ * Trừ `(n−1) × gap` khỏi bề rộng để khe ngang và khe dọc cùng visual
+ * (nếu chỉ set aspect-ratio = tổng aspect, hàng cao thừa → letterbox dọc trông dày hơn gap ngang).
+ */
+export function justifiedRowStyle(
+  cells: ReadonlyArray<{ aspect: number }>,
+): { ["--jrow-aspect-sum"]: string; ["--jrow-gaps"]: string } {
+  return {
+    "--jrow-aspect-sum": String(justifiedRowCanvasAspect(cells)),
+    "--jrow-gaps": String(Math.max(0, cells.length - 1)),
+  };
 }
 
 /** Tách một hàng thành hai phần liên tiếp có tổng aspect cân bằng nhất. */

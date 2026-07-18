@@ -1,4 +1,8 @@
 import type { CheDoHienThiMoc } from "@/lib/journey/journey-visible-clause";
+import {
+  applyVisibilityNgoaiLe,
+  type VisibilityNgoaiLeEntry,
+} from "@/lib/journey/milestone-visibility-custom.shared";
 
 /** Quan hệ viewer ↔ chủ cột mốc — dùng lọc feed trang chủ World Journey. */
 export type WorldJourneyViewerRelation = {
@@ -11,6 +15,8 @@ export type WorldJourneyViewerRelation = {
    * (member · follow `cong_khai` · hoặc gợi ý `cong_khai` đã chọn).
    */
   canViewCongDongPost?: boolean;
+  /** Ngoại lệ tùy chỉnh (chặn / chỉ một số người). */
+  ngoaiLe?: VisibilityNgoaiLeEntry | null;
 };
 
 const WORLD_JOURNEY_FEED_MODES = new Set<CheDoHienThiMoc>([
@@ -46,26 +52,31 @@ export function isVisibleOnWorldJourneyFeed(
   relation: WorldJourneyViewerRelation,
 ): boolean {
   const { viewerId, ownerId, viewerIsFriend, viewerIsFollowing } = relation;
+  const isOwner = Boolean(viewerId && viewerId === ownerId);
 
-  if (viewerId && viewerId === ownerId) return true;
+  if (isOwner) return true;
 
   if (cheDoHienThi === "cong_dong") {
     return Boolean(relation.canViewCongDongPost);
   }
 
-  if (cheDoHienThi === "chi_minh") return false;
-
-  if (cheDoHienThi === "feature") return true;
-
-  if (cheDoHienThi === "public") {
-    return viewerIsFriend || viewerIsFollowing;
+  let baseVisible = false;
+  if (cheDoHienThi === "chi_minh") {
+    baseVisible = false;
+  } else if (cheDoHienThi === "feature") {
+    baseVisible = true;
+  } else if (cheDoHienThi === "public") {
+    baseVisible = viewerIsFriend || viewerIsFollowing;
+  } else if (cheDoHienThi === "theo_nhom") {
+    baseVisible = viewerIsFriend;
   }
 
-  if (cheDoHienThi === "theo_nhom") {
-    return viewerIsFriend;
-  }
-
-  return false;
+  return applyVisibilityNgoaiLe({
+    baseVisible,
+    isOwner,
+    viewerId,
+    ngoaiLe: relation.ngoaiLe,
+  });
 }
 
 export function isWorldJourneyFeedCheDo(

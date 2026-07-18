@@ -31,6 +31,7 @@ import {
   loadMilestoneViewerAccess,
   type MilestoneViewerAccess,
 } from "@/lib/journey/milestone-viewer-access";
+import { loadVisibilityNgoaiLeIndex } from "@/lib/journey/milestone-visibility-custom";
 import { mapCheDoToMilestoneVisibility } from "@/lib/journey/journey-visible-clause";
 import {
   isBookmarkHiddenOnViewerJourney,
@@ -177,6 +178,7 @@ async function collectSelfStubs(
   userId: string,
   isOwner: boolean,
   access: MilestoneViewerAccess,
+  viewerId: string | null,
 ): Promise<TimelineStub[]> {
   const { data: cotMocs } = await admin
     .from("content_cot_moc")
@@ -186,11 +188,17 @@ async function collectSelfStubs(
     .order("tao_luc", { ascending: false, nullsFirst: false })
     .returns<CotMocStubRow[]>();
 
+  const ngoaiLeIndex = isOwner
+    ? null
+    : await loadVisibilityNgoaiLeIndex((cotMocs ?? []).map((m) => m.id));
+
   const visible = (cotMocs ?? []).filter((m) =>
     isSelfMilestoneVisibleToViewer({
       cheDoHienThi: m.che_do_hien_thi,
       isOwner,
       viewerIsFriend: access.viewerIsFriend,
+      viewerId,
+      ngoaiLe: ngoaiLeIndex?.get(m.id) ?? null,
     }),
   );
 
@@ -228,6 +236,7 @@ async function collectTaggedStubs(
   userId: string,
   isOwner: boolean,
   access: MilestoneViewerAccess,
+  viewerId: string | null,
 ): Promise<TimelineStub[]> {
   const { data: tagRows } = await admin
     .from("content_tac_pham_tac_gia")
@@ -280,6 +289,9 @@ async function collectTaggedStubs(
     .returns<CotMocStubRow[]>();
 
   const cmById = new Map((cotMocs ?? []).map((cm) => [cm.id, cm]));
+  const ngoaiLeIndex = isOwner
+    ? null
+    : await loadVisibilityNgoaiLeIndex([...(cmById.keys())]);
   const stubs: TimelineStub[] = [];
 
   for (const tp of tacPhams ?? []) {
@@ -300,6 +312,8 @@ async function collectTaggedStubs(
       !isForeignMilestoneVisibleToViewer(cm.che_do_hien_thi, {
         isOwner,
         viewerIsFriend: access.viewerIsFriend,
+        viewerId,
+        ngoaiLe: ngoaiLeIndex?.get(cm.id) ?? null,
       })
     ) {
       continue;
@@ -333,6 +347,7 @@ async function collectBookmarkStubs(
   userId: string,
   isOwner: boolean,
   access: MilestoneViewerAccess,
+  viewerId: string | null,
 ): Promise<TimelineStub[]> {
   const { data: savedRows } = await admin
     .from("social_luu")
@@ -365,11 +380,17 @@ async function collectBookmarkStubs(
     .in("id", cotMocIds)
     .returns<CotMocStubRow[]>();
 
+  const ngoaiLeIndex = isOwner
+    ? null
+    : await loadVisibilityNgoaiLeIndex((cotMocs ?? []).map((m) => m.id));
+
   const visible = (cotMocs ?? []).filter((m) => {
     if (m.id_nguoi_dung === userId) return false;
     return isForeignMilestoneVisibleToViewer(m.che_do_hien_thi, {
       isOwner,
       viewerIsFriend: access.viewerIsFriend,
+      viewerId,
+      ngoaiLe: ngoaiLeIndex?.get(m.id) ?? null,
     });
   });
   if (visible.length === 0) return [];
@@ -578,12 +599,13 @@ async function collectTimelineStubs(
   userId: string,
   isOwner: boolean,
   access: MilestoneViewerAccess,
+  viewerId: string | null,
 ): Promise<TimelineStub[]> {
   const [self, tagged, taggedOrgBaiDang, bookmarks] = await Promise.all([
-    collectSelfStubs(admin, userId, isOwner, access),
-    collectTaggedStubs(admin, userId, isOwner, access),
+    collectSelfStubs(admin, userId, isOwner, access, viewerId),
+    collectTaggedStubs(admin, userId, isOwner, access, viewerId),
     collectTaggedOrgBaiDangStubs(admin, userId),
-    collectBookmarkStubs(admin, userId, isOwner, access),
+    collectBookmarkStubs(admin, userId, isOwner, access, viewerId),
   ]);
 
   const selfCotMocIds = new Set(self.map((s) => s.cotMocId));
@@ -636,7 +658,7 @@ const getTimelineStubsCached = cache(
       isOwner,
       viewerId,
     });
-    return collectTimelineStubs(admin, userId, isOwner, access);
+    return collectTimelineStubs(admin, userId, isOwner, access, viewerId);
   },
 );
 

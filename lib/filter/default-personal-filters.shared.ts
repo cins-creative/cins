@@ -44,6 +44,14 @@ export function isTypeMirrorPersonalFilterSlug(slug: string): boolean {
   return TYPE_MIRROR_PERSONAL_FILTER_SLUGS.has(slug);
 }
 
+/**
+ * Nhãn chỉ gắn server khi bài thuộc cộng đồng — không chọn tay trong menu gắn.
+ * Vẫn hiện ở filter timeline để lọc bài cộng đồng.
+ */
+export function isAutoAttachedPersonalFilterSlug(slug: string): boolean {
+  return slug === CONG_DONG_PERSONAL_FILTER_SLUG;
+}
+
 /** @deprecated Dùng {@link isSystemPersonalFilterSlug}. */
 export function isHiddenPersonalFilterSlug(slug: string): boolean {
   return isSystemPersonalFilterSlug(slug);

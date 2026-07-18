@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import Link from "next/link";
 
 import { LayoutThumbIcon } from "@/components/editor/LayoutThumbIcon";
 import type { MutualFriendProfile } from "@/lib/social/types";
@@ -59,12 +60,14 @@ import "./user-account-settings-modal.css";
 type SettingsSection =
   | "journey-display"
   | "appearance"
+  | "ban-hang"
   | "user-management"
   | "security-2fa";
 
 const NAV: ReadonlyArray<{ id: SettingsSection; label: string }> = [
   { id: "journey-display", label: "Cài đặt bố cục" },
   { id: "appearance", label: "Giao diện" },
+  { id: "ban-hang", label: "Bán hàng" },
   { id: "user-management", label: "Quản lý người dùng" },
   { id: "security-2fa", label: "Bảo mật 2 lớp" },
 ];
@@ -538,6 +541,10 @@ export function UserAccountSettingsModal({ open, onClose }: Props) {
               </section>
             ) : null}
 
+            {section === "ban-hang" ? (
+              <BanHangSettingsSection titleId={`${titleId}-bh`} />
+            ) : null}
+
             {section === "user-management" ? (
               <UserManagementSection titleId={`${titleId}-um`} />
             ) : null}
@@ -585,6 +592,173 @@ export function UserAccountSettingsModal({ open, onClose }: Props) {
 }
 
 type UmTab = "friends" | "pending" | "blocked";
+
+function BanHangSettingsSection({ titleId }: { titleId: string }) {
+  const [enabled, setEnabled] = useState(false);
+  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [termsBody, setTermsBody] = useState("");
+  const [termsTitle, setTermsTitle] = useState("Điều khoản bán hàng");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      setLoading(true);
+      try {
+        const res = await fetch("/api/user/ban-hang", { cache: "no-store" });
+        const json = (await res.json().catch(() => null)) as {
+          enabled?: boolean;
+          terms?: { title?: string; body?: string };
+          error?: string;
+        } | null;
+        if (cancelled) return;
+        if (!res.ok) {
+          setErr(json?.error ?? "Không tải được.");
+          return;
+        }
+        setEnabled(json?.enabled === true);
+        setAcceptTerms(json?.enabled === true);
+        if (json?.terms?.title) setTermsTitle(json.terms.title);
+        if (json?.terms?.body) setTermsBody(json.terms.body);
+      } catch {
+        if (!cancelled) setErr("Không tải được.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function save(nextEnabled: boolean) {
+    if (nextEnabled && !acceptTerms) {
+      setErr("Cần chấp nhận điều khoản trước khi bật.");
+      return;
+    }
+    setSaving(true);
+    setErr(null);
+    try {
+      const res = await fetch("/api/user/ban-hang", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          enabled: nextEnabled,
+          acceptTerms: nextEnabled ? true : false,
+        }),
+      });
+      const json = (await res.json().catch(() => null)) as {
+        enabled?: boolean;
+        error?: string;
+      } | null;
+      if (!res.ok) {
+        setErr(json?.error ?? "Không lưu được.");
+        return;
+      }
+      setEnabled(json?.enabled === true);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <section className="uas-section" aria-labelledby={titleId}>
+      <div className="uas-section-head">
+        <h3 id={titleId} className="uas-section-title">
+          Bán hàng
+        </h3>
+        <p className="uas-section-hint">
+          Mặc định tắt. Khi bật, bạn quản lý kho, gắn hàng vào bài và nhận đơn —
+          CINs không trung gian tiền.
+        </p>
+      </div>
+
+      {loading ? (
+        <p className="uas-section-hint">
+          <Loader2 size={14} className="shop-spin" /> Đang tải…
+        </p>
+      ) : (
+        <>
+          {err ? (
+            <p className="uas-section-hint" style={{ color: "#b42318" }}>
+              {err}
+            </p>
+          ) : null}
+
+          <div className="uas-toggle-row" style={{ marginBottom: 12 }}>
+            <span className="uas-toggle-text">
+              <span className="uas-toggle-label">Bật chức năng bán hàng</span>
+              <span className="uas-toggle-desc">
+                Hiện «Thêm hàng bán» trên bài và trang quản lý kho / đơn.
+              </span>
+            </span>
+            <button
+              type="button"
+              className={`uas-switch${enabled ? " on" : ""}`}
+              role="switch"
+              aria-checked={enabled}
+              aria-label="Bật chức năng bán hàng"
+              disabled={saving}
+              onClick={() => void save(!enabled)}
+            >
+              <span className="uas-switch-knob" aria-hidden />
+            </button>
+          </div>
+
+          {!enabled ? (
+            <label
+              style={{
+                display: "flex",
+                gap: 8,
+                alignItems: "flex-start",
+                fontSize: 13,
+                marginBottom: 12,
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={acceptTerms}
+                onChange={(e) => setAcceptTerms(e.target.checked)}
+              />
+              <span>
+                Tôi đã đọc và đồng ý với điều khoản bên dưới trước khi bật.
+              </span>
+            </label>
+          ) : null}
+
+          <details open style={{ marginBottom: 16 }}>
+            <summary style={{ cursor: "pointer", fontWeight: 600 }}>
+              {termsTitle}
+            </summary>
+            <p
+              style={{
+                whiteSpace: "pre-wrap",
+                fontSize: 13,
+                color: "var(--ink-muted)",
+                marginTop: 8,
+              }}
+            >
+              {termsBody}
+            </p>
+          </details>
+
+          {enabled ? (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+              <Link href="/ban-hang/kho" className="uas-btn primary">
+                Quản lý kho hàng
+              </Link>
+              <Link href="/ban-hang/don" className="uas-btn ghost">
+                Quản lý đơn hàng
+              </Link>
+            </div>
+          ) : null}
+        </>
+      )}
+    </section>
+  );
+}
 
 type UmPage = {
   items: MutualFriendProfile[];

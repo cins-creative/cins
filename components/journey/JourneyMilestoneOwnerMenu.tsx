@@ -17,11 +17,14 @@ import {
   Pin,
   PinOff,
   Pencil,
+  SlidersHorizontal,
   Star,
   Tag,
   Trash2,
   UserCircle2,
   Users,
+  ShoppingBag,
+  Store,
   type LucideIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -40,12 +43,19 @@ import {
   updateJourneyMilestonePin,
   updateMilestoneType,
   updateMilestoneVisibility,
+  updateMilestoneVisibilityCustom,
 } from "@/app/[slug]/journey/actions";
 import { useJourneyCompose } from "@/components/journey/JourneyComposeContext";
+import { MilestoneVisibilityCustomModal } from "@/components/journey/MilestoneVisibilityCustomModal";
 import type {
   MilestoneType,
   MilestoneVisibility,
+  MilestoneVisibilityCustom,
 } from "@/components/journey/milestone-types";
+import { mapCheDoToMilestoneVisibility } from "@/lib/journey/milestone-ui-map";
+import { VISIBILITY_CUSTOM_BASE } from "@/lib/journey/milestone-visibility-custom.shared";
+import { ShopAttachHangModal } from "@/components/shop/ShopAttachHangModal";
+import { ShopXinQuayModal } from "@/components/shop/ShopXinQuayModal";
 import type { FilterLoaiDoiTuong } from "@/lib/filter/types";
 import type { LoaiMoc, Visibility } from "@/lib/editor/types";
 import { JOURNEY_MILESTONE_TYPE_OPTIONS } from "@/lib/journey/milestone-type-options";
@@ -75,6 +85,8 @@ type Props = {
   currentType: MilestoneType;
   /** Chế độ hiển thị hiện tại (UI value). */
   currentVisibility: MilestoneVisibility;
+  /** Ngoại lệ tùy chỉnh — nếu có thì mục «Tùy chỉnh» đang active. */
+  visibilityCustom?: MilestoneVisibilityCustom | null;
   /** Slug của tác phẩm đầu tiên gắn vào cột mốc — null = không có bài viết. */
   postSlug: string | null;
   /** Ẩn đổi nhóm filter (cột mốc Lưu về). */
@@ -109,6 +121,8 @@ type Props = {
   journeyGhimLuc?: string | null;
   /** Hiện mục ghim lên đầu Journey — chỉ view timeline Journey. */
   showJourneyPin?: boolean;
+  /** Bật bán hàng — hiện «Thêm hàng bán» / «Xin làm quầy». */
+  banHangEnabled?: boolean;
 };
 
 /* ╔══════════════════════════════════════════════════════════════════╗
@@ -168,6 +182,7 @@ export function JourneyMilestoneOwnerMenu({
   permalinkOwnerSlug,
   currentType,
   currentVisibility,
+  visibilityCustom = null,
   postSlug,
   hideTypeChange = false,
   hideEdit = false,
@@ -183,6 +198,7 @@ export function JourneyMilestoneOwnerMenu({
   milestoneKey,
   journeyGhimLuc = null,
   showJourneyPin = false,
+  banHangEnabled = false,
 }: Props) {
   const router = useRouter();
   const personalAttach = useMilestonePersonalFilterAttach(
@@ -195,6 +211,10 @@ export function JourneyMilestoneOwnerMenu({
   );
   const { openCompose, canCompose } = useJourneyCompose();
   const [open, setOpen] = useState(false);
+  const [customOpen, setCustomOpen] = useState(false);
+  const [customError, setCustomError] = useState<string | null>(null);
+  const [attachHangOpen, setAttachHangOpen] = useState(false);
+  const [xinQuayOpen, setXinQuayOpen] = useState(false);
   const [sub, setSub] = useState<SubMenu>("none");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -374,14 +394,18 @@ export function JourneyMilestoneOwnerMenu({
 
   function handleChangeVisibility(db: Visibility) {
     const option = VIS_OPTIONS.find((o) => o.db === db);
-    if (!option || option.ui === currentVisibility) return;
+    if (!option) return;
+    const alreadyActive = !visibilityCustom && option.ui === currentVisibility;
+    if (alreadyActive) return;
     const previous = currentVisibility;
+    const previousCustom = visibilityCustom;
     setError(null);
     close();
     dispatchMilestoneInlinePatch({
       milestoneId,
       kind: "visibility",
       value: option.ui,
+      visibilityCustom: null,
     });
     startTransition(async () => {
       const res = foreignJourney
@@ -397,6 +421,7 @@ export function JourneyMilestoneOwnerMenu({
           milestoneId,
           kind: "visibility",
           value: previous,
+          visibilityCustom: previousCustom,
         });
         setError(res.error);
         setOpen(true);
@@ -411,6 +436,63 @@ export function JourneyMilestoneOwnerMenu({
       }
       router.refresh();
       onVisibilityChange?.(option.ui);
+      onAfterChange?.();
+    });
+  }
+
+  function openCustomVisibility() {
+    if (foreignJourney) return;
+    close();
+    setCustomError(null);
+    setCustomOpen(true);
+  }
+
+  function saveCustomVisibility(payload: {
+    mode: "chan" | "cho_phep";
+    people: NonNullable<MilestoneVisibilityCustom>["people"];
+  }) {
+    const previous = currentVisibility;
+    const previousCustom = visibilityCustom;
+    const nextVis = mapCheDoToMilestoneVisibility(
+      VISIBILITY_CUSTOM_BASE[payload.mode],
+    );
+    const nextCustom: MilestoneVisibilityCustom = {
+      mode: payload.mode,
+      people: payload.people,
+    };
+    dispatchMilestoneInlinePatch({
+      milestoneId,
+      kind: "visibility",
+      value: nextVis,
+      visibilityCustom: nextCustom,
+    });
+    startTransition(async () => {
+      setCustomError(null);
+      const res = await updateMilestoneVisibilityCustom({
+        milestoneId,
+        mode: payload.mode,
+        peopleIds: payload.people.map((p) => p.id),
+      });
+      if (!res.ok) {
+        dispatchMilestoneInlinePatch({
+          milestoneId,
+          kind: "visibility",
+          value: previous,
+          visibilityCustom: previousCustom,
+        });
+        setCustomError(res.error ?? "Không lưu được tùy chỉnh.");
+        return;
+      }
+      setCustomOpen(false);
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("cins:journey-gallery-sync", {
+            detail: { ownerSlug },
+          }),
+        );
+      }
+      router.refresh();
+      onVisibilityChange?.(nextVis);
       onAfterChange?.();
     });
   }
@@ -709,7 +791,7 @@ export function JourneyMilestoneOwnerMenu({
         {sub === "visibility" ? (
           <div className="j-m-submenu">
             {visibilityOptions.map((opt) => {
-              const active = opt.ui === currentVisibility;
+              const active = !visibilityCustom && opt.ui === currentVisibility;
               return (
                 <button
                   key={opt.db}
@@ -735,6 +817,31 @@ export function JourneyMilestoneOwnerMenu({
                 </button>
               );
             })}
+            {!foreignJourney ? (
+              <button
+                type="button"
+                className={`j-m-submenu-item ${visibilityCustom ? "is-active" : ""}`}
+                role="menuitemradio"
+                aria-checked={Boolean(visibilityCustom)}
+                disabled={pending}
+                onClick={openCustomVisibility}
+              >
+                <span className="j-m-menu-ico" aria-hidden>
+                  <SlidersHorizontal size={14} strokeWidth={1.7} />
+                </span>
+                <span className="j-m-menu-lbl">
+                  Tùy chỉnh
+                  <span className="j-m-menu-sub">
+                    Chặn người hoặc chỉ một số người xem
+                  </span>
+                </span>
+                {visibilityCustom ? (
+                  <span className="j-m-menu-check" aria-hidden>
+                    <Check size={14} strokeWidth={2.2} />
+                  </span>
+                ) : null}
+              </button>
+            ) : null}
           </div>
         ) : null}
 
@@ -767,6 +874,40 @@ export function JourneyMilestoneOwnerMenu({
                 />
               </div>
             ) : null}
+          </>
+        ) : null}
+
+        {banHangEnabled && !foreignJourney ? (
+          <>
+            <div className="j-m-menu-sep j-m-menu-sep--shop" aria-hidden />
+            <button
+              type="button"
+              className="j-m-menu-item is-shop"
+              role="menuitem"
+              onClick={() => {
+                close();
+                setAttachHangOpen(true);
+              }}
+            >
+              <span className="j-m-menu-ico" aria-hidden>
+                <ShoppingBag size={14} strokeWidth={1.7} />
+              </span>
+              <span className="j-m-menu-lbl">Thêm hàng bán</span>
+            </button>
+            <button
+              type="button"
+              className="j-m-menu-item is-shop"
+              role="menuitem"
+              onClick={() => {
+                close();
+                setXinQuayOpen(true);
+              }}
+            >
+              <span className="j-m-menu-ico" aria-hidden>
+                <Store size={14} strokeWidth={1.7} />
+              </span>
+              <span className="j-m-menu-lbl">Xin làm quầy sự kiện</span>
+            </button>
           </>
         ) : null}
 
@@ -855,6 +996,31 @@ export function JourneyMilestoneOwnerMenu({
       {portalReady && menuPop
         ? createPortal(menuPop, document.body)
         : null}
+
+      <ShopAttachHangModal
+        open={attachHangOpen}
+        milestoneId={milestoneId}
+        onClose={() => setAttachHangOpen(false)}
+      />
+      <ShopXinQuayModal
+        open={xinQuayOpen}
+        milestoneId={milestoneId}
+        onClose={() => setXinQuayOpen(false)}
+      />
+      {!foreignJourney ? (
+        <MilestoneVisibilityCustomModal
+          open={customOpen}
+          onClose={() => {
+            if (pending) return;
+            setCustomOpen(false);
+            setCustomError(null);
+          }}
+          onSave={saveCustomVisibility}
+          initial={visibilityCustom}
+          pending={pending}
+          error={customError}
+        />
+      ) : null}
     </>
   );
 }

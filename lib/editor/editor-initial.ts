@@ -1,5 +1,6 @@
 import type { ArticleTagRef } from "@/lib/editor/article-tag";
 import type { Block, LoaiMoc, Visibility } from "@/lib/editor/types";
+import type { MilestoneVisibilityCustom } from "@/components/journey/milestone-types";
 import type { CoAuthorDraft } from "@/lib/social/types";
 import type { BaiDangLoai } from "@/lib/truong/bai-dang";
 
@@ -20,6 +21,8 @@ export type EditorInitial = {
   /** Danh sách `article_bai_viet` đã tag (xem `article_gan_tac_pham`). */
   tags: ArticleTagRef[];
   visibility: Visibility;
+  /** Ngoại lệ tùy chỉnh hiển thị (nếu có). */
+  visibilityCustom?: MilestoneVisibilityCustom | null;
   loaiMoc: LoaiMoc;
   thoiDiem: string;
   blocks: Block[];

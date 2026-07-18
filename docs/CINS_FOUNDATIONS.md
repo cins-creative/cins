@@ -174,7 +174,7 @@ Nguyên tắc nền: **§2** (chat có context, không inbox MXH tự do). Bản
 
 | `loai_phong` | Ngữ cảnh | MVP |
 |---|---|---|
-| `1_1` | User ↔ user | ✅ DM; tab Bạn bè / Người lạ theo `user_ket_ban` |
+| `1_1` | User ↔ user | ✅ DM; tab Bạn bè / Người lạ theo `user_ket_ban`; card ngữ cảnh `don_hang` (shop L33) |
 | `1_org` | User ↔ org | ✅ Hỗ trợ / tuyển sinh; card ngữ cảnh trên tin đầu |
 | `nhom` | Nhóm bạn bè (+ project con) | ✅ Xem dưới |
 | `du_an` / `lop_hoc` / `su_kien` | Entity gắn phòng | Defer — tạo phòng khi triển khai module tương ứng |
@@ -382,7 +382,7 @@ Check: `user_thanh_vien_to_chuc.vai_tro IN ('admin', 'quan_ly_noi_dung', 'quan_l
 
 ## 13. Nhóm tương lai (không trong MVP)
 
-- `payment_` (5 bảng) — khi org bán khóa học, sự kiện thu phí, subscription
+- `payment_` (5 bảng) — khi org bán khóa học, sự kiện thu phí, subscription (cổng thanh toán). **Không** nhầm với module **`shop_*`** (UGC bán hàng / preorder: catalog + đơn + chat chốt; CINs không cầm tiền — DECISIONS L33).
 - `api_` (4 bảng) — public API cho developer
 - `ad_` (8 bảng) — sponsored content
 - Video on demand + LMS đầy đủ — defer cùng payment phase

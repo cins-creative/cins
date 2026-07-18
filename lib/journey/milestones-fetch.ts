@@ -29,6 +29,7 @@ import {
   isMilestoneVisibleOnPublicJourney,
   mapCheDoToMilestoneVisibility,
 } from "@/lib/journey/journey-visible-clause";
+import { loadVisibilityCustomStates } from "@/lib/journey/milestone-visibility-custom";
 import {
   compareTimelineOrder,
   resolveTaggedTimelineSortAt,
@@ -195,10 +196,16 @@ export async function buildSelfMilestonesForCotMocs(
     .filter((m) => m.che_do_hien_thi === CHE_DO_MOC_CONG_DONG && m.id_to_chuc)
     .map((m) => m.id_to_chuc as string);
 
-  const [personalFiltersByMoc, congDongOrgs, membershipContextByMoc] = await Promise.all([
+  const [
+    personalFiltersByMoc,
+    congDongOrgs,
+    membershipContextByMoc,
+    visibilityCustomByMoc,
+  ] = await Promise.all([
     loadPersonalFiltersForCotMocs(ids),
     loadCongDongOrgsForMilestones(congDongOrgIds),
     loadMembershipMilestoneContextForCotMocs(admin, ids),
+    loadVisibilityCustomStates(ids),
   ]);
 
   const cotMocsForCards = dedupeMembershipCotMocs(cotMocs, membershipContextByMoc);
@@ -286,6 +293,7 @@ export async function buildSelfMilestonesForCotMocs(
       variant: (verified ? "verified" : "self") as MilestoneVariant,
       type: LOAI_MOC_TO_TYPE[m.loai_moc],
       visibility: mapCheDoToMilestoneVisibility(m.che_do_hien_thi),
+      visibilityCustom: visibilityCustomByMoc.get(m.id) ?? null,
       congDongOrg:
         m.che_do_hien_thi === CHE_DO_MOC_CONG_DONG && m.id_to_chuc
           ? (congDongOrgs.get(m.id_to_chuc) ?? null)

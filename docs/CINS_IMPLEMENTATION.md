@@ -15,6 +15,17 @@
 | `auth/session-profile` | Lấy profile từ session |
 | `users/preview` · `users/search` | Card preview user · tìm user (cho tag, kết bạn) |
 | `avatar/upload` · `cover/upload` | Upload ảnh đại diện / cover → Cloudflare |
+| `user/ban-hang` | GET/PATCH opt-in bán hàng (`ban_hang_bat` + chấp nhận điều khoản) — L33 |
+
+### Shop UGC (`shop`) — L33
+| Route | Việc |
+|---|---|
+| `shop/san-pham` · `shop/san-pham/[id]` | CRUD catalog + biến thể / tồn kho (seller) |
+| `shop/bang-gia` · `shop/bang-gia/[id]` | CRUD bảng giá + dòng giá theo biến thể |
+| `shop/gio` | GET/PATCH giỏ theo `cotMocId` (buyer) |
+| `shop/don` · `shop/don/[id]` | Tạo đơn từ giỏ · seller xác nhận/hủy (trừ/hoàn kho) · list đơn seller/buyer |
+| `milestone/[milestoneId]/shop-hang` | GET public hàng gắn post · PUT gắn/gỡ (owner + `ban_hang_bat`) |
+| `su-kien/[suKienId]/quay` · `…/quay/[quayId]` | Xin làm quầy + bằng chứng · owner sự kiện duyệt/từ chối · list quầy đã duyệt |
 
 ### Kết bạn & social
 | Route | Việc |
@@ -140,6 +151,10 @@
 
 ## 2. Lib (`lib/`) — theo domain
 
+| Domain | Path |
+|---|---|
+| Shop UGC (L33) | `lib/shop/` — types, terms, catalog, giá, giỏ, đơn, quầy sự kiện, post-hang |
+
 | Folder | Vai trò chính | File đáng chú ý |
 |---|---|---|
 | `supabase/` | Client server/browser/service-role, env, cookie, error | `service-role.ts`, `route-handler.ts`, `env.ts` |
@@ -173,6 +188,8 @@
 
 | File | Tạo gì |
 |---|---|
+| `migration_shop_san_pham_phan_loai.sql` | Cột `shop_san_pham.phan_loai` (nhãn nhóm sản phẩm). Chạy: `node scripts/run-shop-san-pham-phan-loai-migration.mjs`. |
+| `migration_shop_ban_hang.sql` | **L33 Shop UGC:** `ban_hang_bat` / `ban_hang_dieu_khoan_luc`; bảng `shop_*` (catalog, giá, post-hang, giỏ, đơn, quầy) + RLS. Chạy: `node scripts/run-shop-ban-hang-migration.mjs`. |
 | `migration_ket_ban.sql` | Bảng `user_ket_ban` (thay follow-user) |
 | `migration_content_thao_luan.sql` | Bảng `content_thao_luan` (+ liên quan) |
 | `migration_cong_dong.sql` | Cộng đồng (org loại `cong_dong`) |

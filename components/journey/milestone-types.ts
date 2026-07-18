@@ -47,6 +47,20 @@ export type MilestoneVisibility =
   /** Post trong feed cộng đồng — ẩn Journey public, chỉ owner thấy badge. */
   | "cong-dong";
 
+/** Ngoại lệ «Tùy chỉnh» — chặn người hoặc chỉ cho phép một số người. */
+export type MilestoneVisibilityCustomPerson = {
+  id: string;
+  name: string;
+  slug: string;
+  avatarUrl?: string | null;
+};
+
+export type MilestoneVisibilityCustom = {
+  /** `chan` = nền Bạn bè + denylist; `cho_phep` = nền Chỉ mình + allowlist. */
+  mode: "chan" | "cho_phep";
+  people: MilestoneVisibilityCustomPerson[];
+};
+
 /** Credit strip — tác giả accepted + pending trên tác phẩm. */
 export type CoAuthorCredit = {
   /** UUID người dùng — dùng cho trạng thái kết bạn trên author row. */
@@ -227,6 +241,11 @@ export type MilestoneItem = {
   variant: MilestoneVariant;
   type: MilestoneType;
   visibility?: MilestoneVisibility;
+  /**
+   * Khi có — badge/menu hiện «Tùy chỉnh»; `visibility` vẫn map từ nền DB
+   * (`theo_nhom` / `chi_minh`).
+   */
+  visibilityCustom?: MilestoneVisibilityCustom | null;
 
   /**
    * Ghim lên đầu Journey timeline (`user_journey_ghim.ghim_luc`) — chỉ sort view
