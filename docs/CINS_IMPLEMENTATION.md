@@ -21,6 +21,7 @@
 | Route | Việc |
 |---|---|
 | `shop/san-pham` · `shop/san-pham/[id]` | CRUD catalog + biến thể / tồn kho (seller) |
+| `shop/nhom` · `shop/nhom/[id]` | GET/POST list·tạo nhóm; PATCH mô tả/nhãn (`shop_nhom` — mô tả dưới tiêu đề group storefront; quản lý trong Kho) |
 | `shop/bang-gia` · `shop/bang-gia/[id]` | CRUD bảng giá + dòng giá theo biến thể |
 | `shop/gio` | GET/PATCH/DELETE giỏ buyer — scope **XOR** `cotMocId` (post-kiosk) **hoặc** `cuaHangId` (storefront `/{slug}/shop`) |
 | `shop/don` · `shop/don/[id]` | Tạo đơn từ giỏ (`cotMocId` **hoặc** `cuaHangId`) · seller xác nhận (trừ kho) · list đơn seller/buyer — **không** hủy đơn trên API |
@@ -194,6 +195,7 @@
 | `migration_shop_cua_hang_nhan_phan_loai.sql` | Cột `shop_cua_hang.nhan_phan_loai` / `nhan_phan_loai_2` (đổi tên trục phân loại). Chạy: `node scripts/run-shop-cua-hang-nhan-phan-loai-migration.mjs`. |
 | `migration_shop_san_pham_phan_loai_2.sql` | Cột `shop_san_pham.phan_loai_2` (nhãn nhóm thứ hai). Chạy: `node scripts/run-shop-san-pham-phan-loai-2-migration.mjs`. |
 | `migration_shop_san_pham_phan_loai.sql` | Cột `shop_san_pham.phan_loai` (nhãn nhóm sản phẩm). Chạy: `node scripts/run-shop-san-pham-phan-loai-migration.mjs`. |
+| `migration_shop_nhom.sql` | Bảng `shop_nhom` (nhãn + mô tả) + `shop_san_pham.id_nhom` / `id_nhom_2`; backfill từ text. Chạy: `npm run migrate:shop-nhom`. |
 | `migration_shop_don_chap_nhan.sql` | Snapshot chấp nhận rủi ro chuyển khoản trên `shop_don_hang`. Chạy: `node scripts/run-shop-don-chap-nhan-migration.mjs`. |
 | `migration_shop_tru_kho_atomic.sql` | RPC `shop_tru_kho_bien_the` / `shop_hoan_kho_bien_the` — trừ/hoàn tồn atomic (mua_ngay trừ lúc tạo đơn). Chạy: `node scripts/run-shop-tru-kho-atomic-migration.mjs`. |
 | `migration_shop_don_ma_don.sql` | Cột `shop_don_hang.ma_don` (mã TENNGUOIMUA-12345). Chạy: `node scripts/run-shop-don-ma-don-migration.mjs`. |

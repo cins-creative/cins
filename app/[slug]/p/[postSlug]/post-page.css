@@ -192,6 +192,117 @@
   max-width: 100%;
 }
 
+/*
+ * 1 ảnh đơn (landscape/portrait) — fit ngang cột media, căn giữa khung cinema.
+ * Override album scroll (flex:0 / height:auto) + max-height 560px của .image-grid--single.
+ */
+.j-post-page:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media:has(.image-grid--single)
+  .post-view-content-inner,
+.j-post-page:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media:has(.image-grid--single)
+  .post-blocks-fb,
+.j-post-page:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media:has(.image-grid--single)
+  .post-blocks-fb
+  > .block.block-image-grid,
+.j-post-page:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media:has(.image-grid--single)
+  .post-blocks-fb
+  .block-image-grid,
+.j-post-page:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media:has(.image-grid--single)
+  .post-blocks-fb
+  .block-image-grid
+  .block-inner {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+  background: #000;
+}
+
+.j-post-page:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media:has(.image-grid--single)
+  .image-grid--single {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 100%;
+  height: 100%;
+  max-height: 100%;
+  min-height: 0;
+  margin: 0 auto;
+  background: #000;
+  border-radius: 0;
+  overflow: hidden;
+}
+
+.j-post-page:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media:has(.image-grid--single)
+  .image-grid--single.is-portrait {
+  width: min(
+    100%,
+    calc(
+      100% * var(--media-natural-aspect, var(--media-canvas-max-aspect)) /
+        var(--media-canvas-max-aspect)
+    )
+  );
+  max-height: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+}
+
+.j-post-page:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media:has(.image-grid--single)
+  .image-grid--single
+  .image-grid-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  min-height: 0;
+  background: transparent;
+}
+
+.j-post-page:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media:has(.image-grid--single)
+  .image-grid--single
+  .image-grid-cell
+  img,
+.j-post-page:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media:has(.image-grid--single)
+  .image-grid--single:not(.is-portrait)
+  .image-grid-cell
+  img,
+.j-post-page:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media:has(.image-grid--single)
+  .image-grid--single.is-portrait
+  .image-grid-cell
+  img {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  object-position: center;
+}
+
 /* Carousel / embed thuần — vẫn fill khung viewport (không có ImageGrid). */
 .j-post-page:has(.post-canvas--media.post-canvas--split)
   .post-view-content--media:not(:has(.image-grid))
@@ -1149,48 +1260,51 @@
   font-variant-numeric: tabular-nums;
 }
 
-.cins-post-view .post-rail-blk--author .post-rail-meta-chips {
-  margin-top: 10px;
+/* Meta chips + verify — một hàng gọn */
+.cins-post-view .post-rail-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  margin-top: 8px;
+  min-width: 0;
 }
 
-/* ── Org verify callout — highlight ai xác thực ── */
+.cins-post-view .post-rail-blk--author .post-rail-meta-chips {
+  margin-top: 0;
+  flex: 0 1 auto;
+}
+
+/* ── Org verify — nền surface thường, không gradient ── */
 .cins-post-view .post-rail-blk--author.is-verified {
-  background:
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--j-verified, #45bd62) 10%, var(--bg-surface, #fff)) 0%,
-      var(--bg-surface, #fff) 72%
-    );
+  background: var(--bg-surface, #fff);
 }
 
 .cins-post-view .post-rail-verifier {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 12px;
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid color-mix(in srgb, var(--j-verified, #45bd62) 38%, transparent);
-  background:
-    linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--j-verified, #45bd62) 14%, #fff) 0%,
-      color-mix(in srgb, var(--j-verified-soft, #dcfce7) 88%, #fff) 100%
-    );
-  box-shadow: 0 1px 0 rgba(21, 128, 61, 0.06);
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  margin-top: 0;
+  min-width: 0;
+  max-width: 100%;
+  padding: 0;
+  border-radius: 0;
+  border: none;
+  background: transparent;
 }
 
 .cins-post-view .post-rail-verifier-head {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  min-width: 0;
+  gap: 5px;
+  flex-shrink: 0;
 }
 
 .cins-post-view .post-rail-verifier-icon {
   flex-shrink: 0;
-  width: 22px;
-  height: 22px;
+  width: 18px;
+  height: 18px;
   border-radius: 999px;
   display: inline-flex;
   align-items: center;
@@ -1200,22 +1314,24 @@
 }
 
 .cins-post-view .post-rail-verifier-lead {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.01em;
   color: var(--j-verified-ink, #15803d);
+  white-space: nowrap;
 }
 
 .cins-post-view .post-rail-verifier > .j-user-pop-wrap,
 .cins-post-view .post-rail-verifier > .j-org-pop-wrap {
   min-width: 0;
-  width: 100%;
+  flex: 1 1 auto;
 }
 
 .cins-post-view .post-rail-verifier > .j-user-pop-wrap > .j-user-pop-trigger,
 .cins-post-view .post-rail-verifier > .j-org-pop-wrap > .j-org-pop-trigger {
   display: flex;
-  width: 100%;
+  width: auto;
+  max-width: 100%;
   min-width: 0;
   text-align: left;
 }
@@ -1223,38 +1339,35 @@
 .cins-post-view .post-rail-verifier-link {
   display: block;
   min-width: 0;
+  max-width: 100%;
   text-decoration: none;
   color: inherit;
 }
 
 .cins-post-view .post-rail-verifier-org {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
   min-width: 0;
-  width: 100%;
-  padding: 8px 10px;
-  border-radius: 10px;
-  background: color-mix(in srgb, #fff 82%, transparent);
-  border: 1px solid color-mix(in srgb, var(--j-verified, #45bd62) 22%, transparent);
-  transition:
-    border-color 140ms ease,
-    box-shadow 140ms ease,
-    transform 140ms ease;
+  max-width: 100%;
+  width: auto;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  border: none;
+  transition: opacity 120ms ease;
 }
 
 .cins-post-view .post-rail-verifier-link:hover .post-rail-verifier-org,
 .cins-post-view .post-rail-verifier .j-user-pop-trigger:hover .post-rail-verifier-org,
 .cins-post-view .post-rail-verifier .j-org-pop-trigger:hover .post-rail-verifier-org {
-  border-color: color-mix(in srgb, var(--j-verified, #45bd62) 48%, transparent);
-  box-shadow: 0 4px 14px rgba(21, 128, 61, 0.12);
-  transform: translateY(-1px);
+  opacity: 0.85;
 }
 
 .cins-post-view .post-rail-verifier-avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
   overflow: hidden;
   flex-shrink: 0;
   display: inline-flex;
@@ -1262,7 +1375,7 @@
   justify-content: center;
   background: #166534;
   color: #fff;
-  font-size: 13px;
+  font-size: 9px;
   font-weight: 800;
   border: 1px solid color-mix(in srgb, var(--j-verified, #45bd62) 35%, transparent);
 }
@@ -1275,53 +1388,47 @@
 }
 
 .cins-post-view .post-rail-verifier-org-copy {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+  display: inline-flex;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 4px;
   min-width: 0;
 }
 
 .cins-post-view .post-rail-verifier-org-copy strong {
-  font-size: 13.5px;
+  font-size: 11.5px;
   font-weight: 700;
   color: #14532d;
-  line-height: 1.25;
+  line-height: 1.2;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .cins-post-view .post-rail-verifier-org-copy span {
-  font-size: 11.5px;
+  font-size: 10.5px;
   font-weight: 500;
   color: var(--j-verified-ink, #15803d);
-  opacity: 0.88;
+  opacity: 0.8;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  max-width: 12em;
+}
+
+@media (max-width: 767.98px) {
+  .cins-post-view .post-rail-verifier-org-copy span {
+    display: none;
+  }
 }
 
 :root[data-theme="dark"] .cins-post-view .post-rail-blk--author.is-verified {
-  background:
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--j-verified, #45bd62) 16%, var(--bg-surface, #171b24)) 0%,
-      var(--bg-surface, #171b24) 74%
-    );
+  background: var(--bg-surface, #171b24);
 }
 
 :root[data-theme="dark"] .cins-post-view .post-rail-verifier {
-  background:
-    linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--j-verified, #45bd62) 22%, #171b24) 0%,
-      color-mix(in srgb, #14532d 55%, #171b24) 100%
-    );
-  border-color: color-mix(in srgb, var(--j-verified, #45bd62) 42%, transparent);
-}
-
-:root[data-theme="dark"] .cins-post-view .post-rail-verifier-org {
-  background: color-mix(in srgb, #0f172a 72%, transparent);
+  background: transparent;
+  border: none;
 }
 
 :root[data-theme="dark"] .cins-post-view .post-rail-verifier-org-copy strong {
@@ -2099,9 +2206,26 @@
   margin-top: 4px;
 }
 
+.cins-post-view.post-canvas--media .post-blocks-fb .block-image-grid:has(.image-grid--single),
+.cins-post-view .post-canvas--media .post-blocks-fb .block-image-grid:has(.image-grid--single) {
+  margin-top: 0;
+}
+
 .cins-post-view.post-canvas--media .post-blocks-fb .block-image-grid .block-inner,
 .cins-post-view .post-canvas--media .post-blocks-fb .block-image-grid .block-inner {
   padding: 0 4px;
+}
+
+.cins-post-view.post-canvas--media
+  .post-blocks-fb
+  .block-image-grid:has(.image-grid--single)
+  .block-inner,
+.cins-post-view
+  .post-canvas--media
+  .post-blocks-fb
+  .block-image-grid:has(.image-grid--single)
+  .block-inner {
+  padding: 0;
 }
 
 /* Post media — ảnh album không bo góc (khớp full-bleed canvas) */
@@ -2419,7 +2543,7 @@
   padding: 4px;
   border-radius: 12px;
   background: var(--neutral-50, #f5f6f8);
-  border: 1px solid var(--border);
+  border: none;
 }
 
 .cins-post-view .post-byline-act {
@@ -2732,7 +2856,10 @@
   margin: 0;
   border: none;
 }
-.cins-post-view .blocks-readonly .block::before {
+/* Editor hit-area (::before trái / ::after phải imgs) — ẩn trên view bài.
+   Nếu giữ ::after (right:-52px) → overflow ngang + khoảng hở phải trên mobile. */
+.cins-post-view .blocks-readonly .block::before,
+.cins-post-view .blocks-readonly .block[data-block-type="imgs"]::after {
   display: none;
 }
 .cins-post-view .blocks-readonly .block:hover {
@@ -4694,7 +4821,7 @@
     padding: 4px;
     border-radius: 12px;
     background: var(--neutral-50, #f5f6f8);
-    border: 1px solid var(--border);
+    border: none;
   }
 
   .cins-post-view .post-rail-blk--actions .post-byline-act,
@@ -4911,16 +5038,6 @@
     max-height: min(62dvh, 560px);
   }
 
-  /* ImageGrid (justified…) — co theo nội dung, không ép viewport */
-  .j-post-page:has(.post-canvas--media.post-canvas--split)
-    .post-view-content--media:has(.image-grid) {
-    flex: 0 0 auto;
-    height: auto;
-    min-height: 0;
-    max-height: none;
-    overflow: visible;
-  }
-
   .j-post-page:has(.post-canvas--media.post-canvas--split)
     .post-view-content--media:not(:has(.image-grid))
     .post-view-content-inner,
@@ -4942,27 +5059,47 @@
     max-height: 100%;
   }
 
+  /* ImageGrid (justified…) — co theo nội dung, không ép viewport */
   .j-post-page:has(.post-canvas--media.post-canvas--split)
-    .post-view-content--media:has(.image-grid)
+    .post-view-content--media:has(.image-grid):not(:has(.image-grid--single)) {
+    flex: 0 0 auto;
+    height: auto;
+    min-height: 0;
+    max-height: none;
+    overflow: visible;
+  }
+
+  /* 1 ảnh đơn mobile — full ngang, khung cao vừa nhìn, ảnh căn giữa */
+  .j-post-page:has(.post-canvas--media.post-canvas--split)
+    .post-view-content--media:has(.image-grid--single) {
+    flex: 0 0 auto;
+    min-height: min(62dvh, 560px);
+    height: min(72dvh, 720px);
+    max-height: min(72dvh, 720px);
+    overflow: hidden;
+  }
+
+  .j-post-page:has(.post-canvas--media.post-canvas--split)
+    .post-view-content--media:has(.image-grid):not(:has(.image-grid--single))
     .post-view-content-inner,
   .j-post-page:has(.post-canvas--media.post-canvas--split)
-    .post-view-content--media:has(.image-grid)
+    .post-view-content--media:has(.image-grid):not(:has(.image-grid--single))
     .post-blocks-fb,
   .j-post-page:has(.post-canvas--media.post-canvas--split)
-    .post-view-content--media:has(.image-grid)
+    .post-view-content--media:has(.image-grid):not(:has(.image-grid--single))
     .post-blocks-fb
     .block.block-image-grid,
   .j-post-page:has(.post-canvas--media.post-canvas--split)
-    .post-view-content--media:has(.image-grid)
+    .post-view-content--media:has(.image-grid):not(:has(.image-grid--single))
     .post-blocks-fb
     .block-image-grid,
   .j-post-page:has(.post-canvas--media.post-canvas--split)
-    .post-view-content--media:has(.image-grid)
+    .post-view-content--media:has(.image-grid):not(:has(.image-grid--single))
     .post-blocks-fb
     .block-image-grid
     .block-inner,
   .j-post-page:has(.post-canvas--media.post-canvas--split)
-    .post-view-content--media:has(.image-grid)
+    .post-view-content--media:has(.image-grid):not(:has(.image-grid--single))
     .image-grid {
     flex: 0 0 auto;
     height: auto;

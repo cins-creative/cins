@@ -1,6 +1,7 @@
 import "server-only";
 
 import { assertShopReady } from "@/lib/shop/cua-hang";
+import { resolvePhanLoaiPatch } from "@/lib/shop/nhom";
 import { shopImageUrl } from "@/lib/shop/settings";
 import type { ShopBienThe, ShopSanPham } from "@/lib/shop/types";
 import { SHOP_FEATURE_MAX } from "@/lib/shop/types";
@@ -13,10 +14,15 @@ type SpRow = {
   anh_id: string | null;
   phan_loai: string | null;
   phan_loai_2: string | null;
+  id_nhom: string | null;
+  id_nhom_2: string | null;
   dang_ban: boolean;
   noi_bat: boolean;
   tao_luc: string;
 };
+
+const SP_SELECT =
+  "id, ten, mo_ta, anh_id, phan_loai, phan_loai_2, id_nhom, id_nhom_2, dang_ban, noi_bat, tao_luc";
 
 type BtRow = {
   id: string;
@@ -43,9 +49,7 @@ export async function listSanPham(ownerId: string): Promise<ShopSanPham[]> {
   const admin = createServiceRoleClient();
   const { data: sps, error } = await admin
     .from("shop_san_pham")
-    .select(
-      "id, ten, mo_ta, anh_id, phan_loai, phan_loai_2, dang_ban, noi_bat, tao_luc",
-    )
+    .select(SP_SELECT)
     .eq("id_nguoi_dung", ownerId)
     .eq("da_xoa", false)
     .order("tao_luc", { ascending: false })
@@ -77,6 +81,8 @@ export async function listSanPham(ownerId: string): Promise<ShopSanPham[]> {
     anhUrl: shopImageUrl(r.anh_id),
     phanLoai: r.phan_loai,
     phanLoai2: r.phan_loai_2,
+    idNhom: r.id_nhom,
+    idNhom2: r.id_nhom_2,
     dangBan: r.dang_ban,
     noiBat: r.noi_bat === true,
     bienThe: bySp.get(r.id) ?? [],
@@ -104,6 +110,11 @@ export async function createSanPham(
   const ten = input.ten.trim();
   if (!ten) throw new Error("TEN_REQUIRED");
 
+  const nhomPatch = await resolvePhanLoaiPatch(ownerId, {
+    phanLoai: input.phanLoai ?? null,
+    phanLoai2: input.phanLoai2 ?? null,
+  });
+
   const admin = createServiceRoleClient();
   const { data: sp, error } = await admin
     .from("shop_san_pham")
@@ -112,13 +123,13 @@ export async function createSanPham(
       ten,
       mo_ta: input.moTa?.trim() || null,
       anh_id: input.anhId?.trim() || null,
-      phan_loai: input.phanLoai?.trim() || null,
-      phan_loai_2: input.phanLoai2?.trim() || null,
+      phan_loai: nhomPatch.phan_loai,
+      phan_loai_2: nhomPatch.phan_loai_2,
+      id_nhom: nhomPatch.id_nhom,
+      id_nhom_2: nhomPatch.id_nhom_2,
       dang_ban: true,
     })
-    .select(
-      "id, ten, mo_ta, anh_id, phan_loai, phan_loai_2, dang_ban, noi_bat, tao_luc",
-    )
+    .select(SP_SELECT)
     .single<SpRow>();
   if (error || !sp) {
     console.error("[shop] createSanPham", error);
@@ -154,6 +165,8 @@ export async function createSanPham(
     anhUrl: shopImageUrl(sp.anh_id),
     phanLoai: sp.phan_loai,
     phanLoai2: sp.phan_loai_2,
+    idNhom: sp.id_nhom,
+    idNhom2: sp.id_nhom_2,
     dangBan: sp.dang_ban,
     noiBat: sp.noi_bat === true,
     bienThe: ((bts ?? []) as BtRow[]).map(mapBienThe),
@@ -186,11 +199,12 @@ export async function updateSanPham(
   }
   if (input.moTa !== undefined) patch.mo_ta = input.moTa?.trim() || null;
   if (input.anhId !== undefined) patch.anh_id = input.anhId?.trim() || null;
-  if (input.phanLoai !== undefined) {
-    patch.phan_loai = input.phanLoai?.trim() || null;
-  }
-  if (input.phanLoai2 !== undefined) {
-    patch.phan_loai_2 = input.phanLoai2?.trim() || null;
+  if (input.phanLoai !== undefined || input.phanLoai2 !== undefined) {
+    const nhomPatch = await resolvePhanLoaiPatch(ownerId, {
+      phanLoai: input.phanLoai,
+      phanLoai2: input.phanLoai2,
+    });
+    Object.assign(patch, nhomPatch);
   }
   if (typeof input.dangBan === "boolean") patch.dang_ban = input.dangBan;
   if (typeof input.noiBat === "boolean") {

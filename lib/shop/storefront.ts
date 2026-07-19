@@ -12,9 +12,16 @@ type SpRow = {
   anh_id: string | null;
   phan_loai: string | null;
   phan_loai_2: string | null;
+  id_nhom: string | null;
   dang_ban: boolean;
   noi_bat: boolean;
   tao_luc: string;
+};
+
+type NhomRow = {
+  id: string;
+  nhan: string;
+  mo_ta: string | null;
 };
 
 type BtRow = {
@@ -66,7 +73,7 @@ export async function listShopStorefrontItems(opts: {
   const { data: spRows, error: spErr } = await admin
     .from("shop_san_pham")
     .select(
-      "id, ten, anh_id, phan_loai, phan_loai_2, dang_ban, noi_bat, tao_luc",
+      "id, ten, anh_id, phan_loai, phan_loai_2, id_nhom, dang_ban, noi_bat, tao_luc",
     )
     .eq("id_nguoi_dung", opts.sellerId)
     .eq("da_xoa", false)
@@ -80,6 +87,23 @@ export async function listShopStorefrontItems(opts: {
   }
   const sps = (spRows ?? []) as SpRow[];
   if (sps.length === 0) return [];
+
+  const nhomIds = [
+    ...new Set(
+      sps.map((s) => s.id_nhom).filter((id): id is string => Boolean(id)),
+    ),
+  ];
+  const moTaByNhomId = new Map<string, string | null>();
+  if (nhomIds.length > 0) {
+    const { data: nhomRows } = await admin
+      .from("shop_nhom")
+      .select("id, nhan, mo_ta")
+      .in("id", nhomIds)
+      .eq("da_xoa", false);
+    for (const n of (nhomRows ?? []) as NhomRow[]) {
+      moTaByNhomId.set(n.id, n.mo_ta?.trim() || null);
+    }
+  }
 
   const spIds = sps.map((s) => s.id);
   const { data: btRows } = await admin
@@ -303,6 +327,10 @@ export async function listShopStorefrontItems(opts: {
       noiBat: sp.noi_bat === true,
       phanLoai: sp.phan_loai?.trim() || null,
       phanLoai2: sp.phan_loai_2?.trim() || null,
+      idNhom: sp.id_nhom,
+      phanLoaiMoTa: sp.id_nhom
+        ? (moTaByNhomId.get(sp.id_nhom) ?? null)
+        : null,
     });
   }
   return out;

@@ -25,17 +25,19 @@ import {
   imageFilesFromClipboard,
   readImageFileFromClipboard,
 } from "@/lib/files/clipboard-images";
-import type { ShopBangGia, ShopCuaHang, ShopSanPham } from "@/lib/shop/types";
+import type { ShopBangGia, ShopCuaHang, ShopNhom, ShopSanPham } from "@/lib/shop/types";
 import {
   resolveShopNhanPhanLoai,
   resolveShopNhanPhanLoai2,
   SHOP_FEATURE_MAX,
   SHOP_NHAN_PHAN_LOAI_2_DEFAULT,
   SHOP_NHAN_PHAN_LOAI_DEFAULT,
+  SHOP_NHOM_MO_TA_MAX,
 } from "@/lib/shop/types";
 import { fetchBanHangClientStatus } from "@/lib/shop/client-fetch-cache";
 
 import { ShopDashTabs } from "./ShopDashTabs";
+import { ShopNhomMoTaField } from "./ShopNhomMoTaField";
 import { ShopPhanLoaiInput } from "./ShopPhanLoaiInput";
 import { ShopTienTeSelect } from "./ShopTienTeSelect";
 import "./shop-dashboard.css";
@@ -104,6 +106,16 @@ export function ShopKhoClient() {
     SHOP_NHAN_PHAN_LOAI_2_DEFAULT,
   );
   const [savingNhanLoai, setSavingNhanLoai] = useState(false);
+  /** Loại hàng (truc=1) — quản lý tên + mô tả ngắn. */
+  const [nhoms, setNhoms] = useState<ShopNhom[]>([]);
+  const [nhomPanelOpen, setNhomPanelOpen] = useState(false);
+  const [newNhomNhan, setNewNhomNhan] = useState("");
+  const [newNhomMoTa, setNewNhomMoTa] = useState("");
+  const [creatingNhom, setCreatingNhom] = useState(false);
+  const [savingNhomId, setSavingNhomId] = useState<string | null>(null);
+  const [nhomMoTaDrafts, setNhomMoTaDrafts] = useState<Record<string, string>>(
+    {},
+  );
   const [exitConfirmOpen, setExitConfirmOpen] = useState(false);
   const [exitingSave, setExitingSave] = useState(false);
 
@@ -193,11 +205,12 @@ export function ShopKhoClient() {
       setErr(null);
     }
     try {
-      const [status, pRes, bRes, shopRes] = await Promise.all([
+      const [status, pRes, bRes, shopRes, nhomRes] = await Promise.all([
         fetchBanHangClientStatus(),
         fetch("/api/shop/san-pham", { cache: "no-store" }),
         fetch("/api/shop/bang-gia", { cache: "no-store" }),
         fetch("/api/shop/cua-hang", { cache: "no-store" }),
+        fetch("/api/shop/nhom?truc=1", { cache: "no-store" }),
       ]);
       setEnabled(status.enabled);
       if (!status.enabled) return;
@@ -211,6 +224,9 @@ export function ShopKhoClient() {
       const shopJson = (await shopRes.json().catch(() => null)) as {
         shop?: ShopCuaHang | null;
       } | null;
+      const nhomJson = (await nhomRes.json().catch(() => null)) as {
+        items?: ShopNhom[];
+      } | null;
       setProducts(pJson?.items ?? []);
       const lists = bJson?.items ?? [];
       setPriceLists(lists);
@@ -221,6 +237,11 @@ export function ShopKhoClient() {
       setNhanPhanLoai2(label2);
       setNhanPhanLoaiDraft(label1);
       setNhanPhanLoai2Draft(label2);
+      const nextNhoms = nhomJson?.items ?? [];
+      setNhoms(nextNhoms);
+      const drafts: Record<string, string> = {};
+      for (const n of nextNhoms) drafts[n.id] = n.moTa ?? "";
+      setNhomMoTaDrafts(drafts);
     } catch {
       setErr("Không tải được kho.");
     } finally {
@@ -293,12 +314,16 @@ export function ShopKhoClient() {
 
   const categoryOptions = useMemo(() => {
     const set = new Set<string>();
+    for (const n of nhoms) {
+      const t = n.nhan?.trim();
+      if (t) set.add(t);
+    }
     for (const p of products) {
       const t = p.phanLoai?.trim();
       if (t) set.add(t);
     }
     return [...set].sort((a, b) => a.localeCompare(b, "vi"));
-  }, [products]);
+  }, [products, nhoms]);
 
   const categoryOptions2 = useMemo(() => {
     const set = new Set<string>();
@@ -308,6 +333,91 @@ export function ShopKhoClient() {
     }
     return [...set].sort((a, b) => a.localeCompare(b, "vi"));
   }, [products]);
+
+  const saveNhomMoTa = useCallback(
+    async (nhomId: string) => {
+      const nhom = nhoms.find((n) => n.id === nhomId);
+      if (!nhom) return;
+      const next = (nhomMoTaDrafts[nhomId] ?? "").trim().slice(0, SHOP_NHOM_MO_TA_MAX);
+      const prev = (nhom.moTa ?? "").trim();
+      if (next === prev) return;
+      setSavingNhomId(nhomId);
+      setErr(null);
+      try {
+        const res = await fetch(`/api/shop/nhom/${encodeURIComponent(nhomId)}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ moTa: next || null }),
+        });
+        const json = (await res.json().catch(() => null)) as {
+          item?: ShopNhom;
+          error?: string;
+        } | null;
+        if (!res.ok || !json?.item) {
+          setErr(json?.error ?? "Không lưu được mô tả loại hàng.");
+          setNhomMoTaDrafts((d) => ({ ...d, [nhomId]: nhom.moTa ?? "" }));
+          return;
+        }
+        setNhoms((prevList) =>
+          prevList.map((n) => (n.id === nhomId ? json.item! : n)),
+        );
+        setNhomMoTaDrafts((d) => ({
+          ...d,
+          [nhomId]: json.item!.moTa ?? "",
+        }));
+      } catch {
+        setErr("Không lưu được mô tả loại hàng.");
+        setNhomMoTaDrafts((d) => ({ ...d, [nhomId]: nhom.moTa ?? "" }));
+      } finally {
+        setSavingNhomId(null);
+      }
+    },
+    [nhoms, nhomMoTaDrafts],
+  );
+
+  const createLoaiHang = useCallback(async () => {
+    const nhan = newNhomNhan.trim();
+    if (!nhan) {
+      setErr(`Nhập tên ${nhanPhanLoai.toLowerCase()}.`);
+      return;
+    }
+    setCreatingNhom(true);
+    setErr(null);
+    try {
+      const res = await fetch("/api/shop/nhom", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          truc: 1,
+          nhan,
+          moTa: newNhomMoTa.trim() || null,
+        }),
+      });
+      const json = (await res.json().catch(() => null)) as {
+        item?: ShopNhom;
+        error?: string;
+      } | null;
+      if (!res.ok || !json?.item) {
+        setErr(json?.error ?? "Không tạo được loại hàng.");
+        return;
+      }
+      const item = json.item;
+      setNhoms((prev) => {
+        const without = prev.filter((n) => n.id !== item.id);
+        return [...without, item].sort((a, b) =>
+          a.nhan.localeCompare(b.nhan, "vi"),
+        );
+      });
+      setNhomMoTaDrafts((d) => ({ ...d, [item.id]: item.moTa ?? "" }));
+      setNewNhomNhan("");
+      setNewNhomMoTa("");
+      setNhomPanelOpen(true);
+    } catch {
+      setErr("Không tạo được loại hàng.");
+    } finally {
+      setCreatingNhom(false);
+    }
+  }, [newNhomNhan, newNhomMoTa, nhanPhanLoai]);
 
   const hasUncategorized = useMemo(
     () => products.some((p) => !p.phanLoai?.trim()),
@@ -1771,6 +1881,14 @@ export function ShopKhoClient() {
               ) : null}
               <button
                 type="button"
+                className={`shop-dash-kho-edit-btn${nhomPanelOpen ? " is-active" : ""}`}
+                aria-pressed={nhomPanelOpen}
+                onClick={() => setNhomPanelOpen((o) => !o)}
+              >
+                {nhanPhanLoai}
+              </button>
+              <button
+                type="button"
                 className={`shop-dash-kho-edit-btn${khoEditing ? " is-active" : ""}`}
                 aria-pressed={khoEditing}
                 disabled={exitingSave}
@@ -1794,6 +1912,80 @@ export function ShopKhoClient() {
             </div>
           </div>
         </div>
+
+        {nhomPanelOpen ? (
+          <div className="shop-kho-nhom-panel" aria-label={`Quản lý ${nhanPhanLoai.toLowerCase()}`}>
+            <p className="shop-kho-nhom-lead">
+              Tạo {nhanPhanLoai.toLowerCase()} và mô tả ngắn — hiện dưới tiêu đề
+              nhóm trên trang shop. Gán vào sản phẩm ở cột bảng bên dưới.
+            </p>
+            {nhoms.length > 0 ? (
+              <ul className="shop-kho-nhom-list">
+                {nhoms.map((n) => (
+                  <li key={n.id} className="shop-kho-nhom-row">
+                    <div className="shop-kho-nhom-name">{n.nhan}</div>
+                    <ShopNhomMoTaField
+                      value={nhomMoTaDrafts[n.id] ?? ""}
+                      disabled={savingNhomId === n.id}
+                      aria-label={`Mô tả ${n.nhan}`}
+                      onChange={(next) =>
+                        setNhomMoTaDrafts((d) => ({
+                          ...d,
+                          [n.id]: next,
+                        }))
+                      }
+                      onBlur={() => void saveNhomMoTa(n.id)}
+                    />
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="shop-kho-nhom-empty">
+                Chưa có {nhanPhanLoai.toLowerCase()}. Thêm bên dưới hoặc gõ
+                tên mới khi sửa cột sản phẩm.
+              </p>
+            )}
+            <form
+              className="shop-kho-nhom-create"
+              onSubmit={(e) => {
+                e.preventDefault();
+                void createLoaiHang();
+              }}
+            >
+              <input
+                type="text"
+                className="shop-kho-nhom-create-nhan"
+                value={newNhomNhan}
+                maxLength={40}
+                placeholder={`Tên ${nhanPhanLoai.toLowerCase()}`}
+                aria-label={`Tên ${nhanPhanLoai.toLowerCase()} mới`}
+                disabled={creatingNhom}
+                onChange={(e) => setNewNhomNhan(e.target.value)}
+              />
+              <ShopNhomMoTaField
+                className="shop-kho-nhom-create-mota-wrap"
+                value={newNhomMoTa}
+                disabled={creatingNhom}
+                placeholder="Mô tả ngắn (tuỳ chọn)"
+                aria-label="Mô tả ngắn loại hàng mới"
+                rows={2}
+                onChange={setNewNhomMoTa}
+              />
+              <button
+                type="submit"
+                className="shop-kho-nhom-create-btn"
+                disabled={creatingNhom || !newNhomNhan.trim()}
+              >
+                {creatingNhom ? (
+                  <Loader2 size={14} className="shop-spin" aria-hidden />
+                ) : (
+                  <Plus size={14} strokeWidth={2.25} aria-hidden />
+                )}
+                Thêm {nhanPhanLoai.toLowerCase()}
+              </button>
+            </form>
+          </div>
+        ) : null}
 
         <div className="shop-grid-wrap">
           <table className={`shop-grid${khoEditing ? "" : " shop-grid--readonly"}`}>

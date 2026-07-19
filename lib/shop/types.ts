@@ -32,16 +32,33 @@ export type ShopBienThe = {
   anhUrl: string | null;
 };
 
+/** Trục nhóm: 1 = phân loại 1 (group storefront); 2 = phân loại 2. */
+export type ShopNhomTruc = 1 | 2;
+
+/** Nhóm phân loại (`shop_nhom`) — có mô tả ngắn. */
+export type ShopNhom = {
+  id: string;
+  truc: ShopNhomTruc;
+  nhan: string;
+  moTa: string | null;
+  thuTu: number;
+  taoLuc: string;
+};
+
 export type ShopSanPham = {
   id: string;
   ten: string;
   moTa: string | null;
   anhId: string | null;
   anhUrl: string | null;
-  /** Nhãn phân loại / nhóm (seller tự đặt). */
+  /** Nhãn phân loại / nhóm (denormalized từ `shop_nhom.nhan`). */
   phanLoai: string | null;
-  /** Nhãn phân loại thứ hai (`shop_san_pham.phan_loai_2`). */
+  /** Nhãn phân loại thứ hai (denormalized từ `shop_nhom.nhan` truc=2). */
   phanLoai2: string | null;
+  /** FK `shop_nhom` truc=1. */
+  idNhom?: string | null;
+  /** FK `shop_nhom` truc=2. */
+  idNhom2?: string | null;
   dangBan: boolean;
   /** Feature / nổi bật (`shop_san_pham.noi_bat`). */
   noiBat: boolean;
@@ -128,6 +145,10 @@ export type ShopStorefrontItem = {
   /** Phân loại 1 — dùng group layout mặt tiền. */
   phanLoai: string | null;
   phanLoai2: string | null;
+  /** FK `shop_nhom` truc=1 — để seller sửa mô tả nhóm. */
+  idNhom: string | null;
+  /** Mô tả ngắn nhóm phân loại 1 (`shop_nhom.mo_ta`). */
+  phanLoaiMoTa: string | null;
 };
 
 export type ShopGioDong = {
@@ -198,6 +219,9 @@ export type ShopPhuongThucTt = {
 /** Nhãn trục mặc định khi seller chưa đổi tên cột phân loại. */
 export const SHOP_NHAN_PHAN_LOAI_DEFAULT = "Phân loại";
 export const SHOP_NHAN_PHAN_LOAI_2_DEFAULT = "Phân loại 2";
+
+/** Giới hạn mô tả ngắn nhóm phân loại (`shop_nhom.mo_ta`). */
+export const SHOP_NHOM_MO_TA_MAX = 280;
 
 export type ShopCuaHang = {
   id: string;

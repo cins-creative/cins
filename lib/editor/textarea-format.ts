@@ -79,10 +79,10 @@ function lineRangeForSelection(
   return { lineStart, lineEnd };
 }
 
-const BULLET_PREFIX_RE = /^\s*[-*]\s+/;
+const BULLET_PREFIX_RE = /^\s*(?:[-*]|•|·|‣)\s+/u;
 const ORDERED_PREFIX_RE = /^\s*\d+\.\s+/;
 
-const BULLET_LINE_RE = /^(\s*)([-*]\s+)(.*)$/;
+const BULLET_LINE_RE = /^(\s*)((?:[-*]|•|·|‣)\s+)(.*)$/u;
 const ORDERED_LINE_RE = /^(\s*)(\d+)\.\s+(.*)$/;
 
 /**

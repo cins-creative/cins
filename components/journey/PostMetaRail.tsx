@@ -172,17 +172,19 @@ export function PostMetaRail({
             />
           ) : null}
         </div>
-        <div className="post-rail-meta-chips" aria-label="Thông tin bài viết">
-          <span className="post-rail-chip">
-            <TypeIcon size={12} strokeWidth={2} aria-hidden />
-            {typeLabel}
-          </span>
-          <span className="post-rail-chip">
-            <vis.Icon size={12} strokeWidth={2} aria-hidden />
-            {vis.text}
-          </span>
+        <div className="post-rail-meta-row">
+          <div className="post-rail-meta-chips" aria-label="Thông tin bài viết">
+            <span className="post-rail-chip">
+              <TypeIcon size={12} strokeWidth={2} aria-hidden />
+              {typeLabel}
+            </span>
+            <span className="post-rail-chip">
+              <vis.Icon size={12} strokeWidth={2} aria-hidden />
+              {vis.text}
+            </span>
+          </div>
+          {verifier ? <PostRailVerifierCallout verifier={verifier} /> : null}
         </div>
-        {verifier ? <PostRailVerifierCallout verifier={verifier} /> : null}
         {heroRail ? <div className="post-rail-hero">{heroRail}</div> : null}
         {coverRail ? <div className="post-rail-cover">{coverRail}</div> : null}
         {contentRail ? (
@@ -325,7 +327,6 @@ function PostRailVerifierCallout({
       </span>
       <span className="post-rail-verifier-org-copy">
         <strong>{verifier.name}</strong>
-        {verifier.role ? <span>{verifier.role}</span> : null}
       </span>
     </span>
   );
@@ -341,9 +342,9 @@ function PostRailVerifierCallout({
     >
       <div className="post-rail-verifier-head">
         <span className="post-rail-verifier-icon" aria-hidden>
-          <BadgeCheck size={14} strokeWidth={2.4} />
+          <BadgeCheck size={12} strokeWidth={2.4} />
         </span>
-        <span className="post-rail-verifier-lead">Đã xác thực bởi</span>
+        <span className="post-rail-verifier-lead">Xác thực bởi</span>
       </div>
       {canPopover && orgKind ? (
         <JourneyOrgPopover

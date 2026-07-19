@@ -13,6 +13,7 @@ import {
 
 import { useAuthGate } from "@/components/auth/AuthGateProvider";
 import { ShopKioskBlock } from "@/components/shop/ShopKioskBlock";
+import { parseShopNhomMoTa } from "@/lib/shop/nhom-mo-ta";
 import type {
   ShopGio,
   ShopGioDong,
@@ -26,6 +27,57 @@ import {
 
 const FILTER_ALL = "__all";
 const FILTER_KHAC = "__khac";
+
+function GroupHeadDesc({ moTa }: { moTa: string }) {
+  const blocks = parseShopNhomMoTa(moTa);
+  if (blocks.length === 0) return null;
+  return (
+    <div className="j-shop-sf-group-desc">
+      {blocks.map((b, i) => {
+        if (b.type === "p") {
+          return (
+            <p key={`p-${i}`} className="j-shop-sf-group-desc-p">
+              {b.text}
+            </p>
+          );
+        }
+        if (b.type === "ul") {
+          return (
+            <ul key={`ul-${i}`} className="j-shop-sf-group-desc-ul">
+              {b.items.map((item, j) => (
+                <li key={j}>{item}</li>
+              ))}
+            </ul>
+          );
+        }
+        return (
+          <ol key={`ol-${i}`} className="j-shop-sf-group-desc-ol">
+            {b.items.map((item, j) => (
+              <li key={j}>{item}</li>
+            ))}
+          </ol>
+        );
+      })}
+    </div>
+  );
+}
+
+function GroupHead({
+  label,
+  moTa,
+}: {
+  label: string;
+  moTa: string | null;
+}) {
+  return (
+    <div className="j-shop-sf-group-head">
+      <div className="j-shop-sf-group-head-title">
+        <h4>{label}</h4>
+      </div>
+      {moTa ? <GroupHeadDesc moTa={moTa} /> : null}
+    </div>
+  );
+}
 
 function formatGia(gia: number, tienTe: string): string {
   const n = Number.isFinite(gia) ? gia : 0;
@@ -104,6 +156,8 @@ function toHangItems(items: ShopStorefrontItem[]): ShopPostHangItem[] {
 type PhanLoaiGroup = {
   key: string;
   label: string;
+  idNhom: string | null;
+  moTa: string | null;
   items: ShopStorefrontItem[];
 };
 
@@ -124,17 +178,24 @@ function groupByPhanLoai(items: ShopStorefrontItem[]): PhanLoaiGroup[] {
   const named = [...map.entries()]
     .filter(([k]) => k !== "")
     .sort(([a], [b]) => a.localeCompare(b, "vi", { sensitivity: "base" }))
-    .map(([key, groupItems]) => ({
-      key,
-      label: key,
-      items: groupItems,
-    }));
+    .map(([key, groupItems]) => {
+      const withNhom = groupItems.find((i) => i.idNhom);
+      return {
+        key,
+        label: key,
+        idNhom: withNhom?.idNhom ?? null,
+        moTa: withNhom?.phanLoaiMoTa ?? null,
+        items: groupItems,
+      };
+    });
 
   const other = map.get("");
   if (other && other.length > 0) {
     named.push({
       key: FILTER_KHAC,
       label: named.length > 0 ? "Khác" : "Sản phẩm",
+      idNhom: null,
+      moTa: null,
       items: other,
     });
   }
@@ -827,8 +888,10 @@ export function JourneyShopStorefront({
             {featured.length > 0 ? (
               <section className="j-shop-sf-group j-shop-sf-group--feature">
                 <div className="j-shop-sf-group-head">
-                  <Star size={14} strokeWidth={2.25} aria-hidden />
-                  <h4>Ngôi sao</h4>
+                  <div className="j-shop-sf-group-head-title">
+                    <Star size={14} strokeWidth={2.25} aria-hidden />
+                    <h4>Ngôi sao</h4>
+                  </div>
                 </div>
                 <ProductGrid
                   items={featured}
@@ -844,9 +907,7 @@ export function JourneyShopStorefront({
               <section key={group.key} className="j-shop-sf-group">
                 {(groups.length > 1 || featured.length > 0) &&
                 showGroupHeads ? (
-                  <div className="j-shop-sf-group-head">
-                    <h4>{group.label}</h4>
-                  </div>
+                  <GroupHead label={group.label} moTa={group.moTa} />
                 ) : null}
                 <ProductGrid
                   items={group.items}

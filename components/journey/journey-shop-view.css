@@ -470,9 +470,16 @@
 
 .j-shop-sf-group-head {
   display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  color: var(--ink-display, var(--ink-body));
+}
+
+.j-shop-sf-group-head-title {
+  display: flex;
   align-items: center;
   gap: 6px;
-  color: var(--ink-display, var(--ink-body));
 }
 
 .j-shop-sf-group-head h4 {
@@ -480,6 +487,42 @@
   font-size: 0.92rem;
   font-weight: 700;
   letter-spacing: -0.01em;
+}
+
+.j-shop-sf-group-desc {
+  margin: 0;
+  max-width: 42rem;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  font-weight: 450;
+  color: var(--ink-muted, #64748b);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.j-shop-sf-group-desc-p {
+  margin: 0;
+  white-space: pre-line;
+}
+
+.j-shop-sf-group-desc-ul,
+.j-shop-sf-group-desc-ol {
+  margin: 0;
+  padding-left: 1.15rem;
+}
+
+.j-shop-sf-group-desc-ul {
+  list-style: disc;
+}
+
+.j-shop-sf-group-desc-ol {
+  list-style: decimal;
+}
+
+.j-shop-sf-group-desc-ul li,
+.j-shop-sf-group-desc-ol li {
+  margin: 0.15em 0;
 }
 
 .j-shop-sf-group--feature .j-shop-sf-group-head {

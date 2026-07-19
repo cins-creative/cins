@@ -10434,7 +10434,7 @@ select.j-edit-input {
     padding: 4px;
     border-radius: 12px;
     background: var(--neutral-50, #f5f6f8);
-    border: 1px solid var(--border);
+    border: none;
   }
 
   .j-post-overlay
