@@ -1,7 +1,16 @@
 "use client";
 
-import { ImagePlus, Loader2, X } from "lucide-react";
-import { useCallback, useEffect, useId, useMemo, useState } from "react";
+import { ChevronDown, ImagePlus, Loader2, X } from "lucide-react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type Dispatch,
+  type SetStateAction,
+} from "react";
 import { createPortal } from "react-dom";
 
 import type { ShopBangGia, ShopSanPham } from "@/lib/shop/types";
@@ -16,6 +25,27 @@ type Props = {
   onSaved?: () => void;
 };
 
+type FilterMenu = "loai" | "loai2" | null;
+
+function matchesCategoryFilter(
+  value: string | null | undefined,
+  selected: string[],
+): boolean {
+  if (selected.length === 0) return true;
+  const trimmed = value?.trim();
+  if (!trimmed) return selected.includes("__none__");
+  return selected.includes(trimmed);
+}
+
+function filterLabel(selected: string[], emptyLabel: string): string {
+  if (selected.length === 0) return emptyLabel;
+  const labels = selected.map((k) =>
+    k === "__none__" ? "Chưa phân loại" : k,
+  );
+  if (labels.length <= 2) return labels.join(", ");
+  return `Đã chọn ${labels.length}`;
+}
+
 export function ShopAttachHangModal({
   open,
   milestoneId,
@@ -23,11 +53,14 @@ export function ShopAttachHangModal({
   onSaved,
 }: Props) {
   const titleId = useId();
+  const selectAllRef = useRef<HTMLInputElement>(null);
   const [products, setProducts] = useState<ShopSanPham[]>([]);
   const [priceLists, setPriceLists] = useState<ShopBangGia[]>([]);
   const [bangGiaId, setBangGiaId] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [filterLoai, setFilterLoai] = useState<string>("all");
+  const [filterLoai, setFilterLoai] = useState<string[]>([]);
+  const [filterLoai2, setFilterLoai2] = useState<string[]>([]);
+  const [filterMenuOpen, setFilterMenuOpen] = useState<FilterMenu>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -54,7 +87,9 @@ export function ShopAttachHangModal({
       setSelected(sel);
       const firstBg = hJson.items?.find((i) => i.idBangGia)?.idBangGia;
       if (firstBg) setBangGiaId(firstBg);
-      setFilterLoai("all");
+      setFilterLoai([]);
+      setFilterLoai2([]);
+      setFilterMenuOpen(null);
     } catch {
       setErr("Không tải kho.");
     } finally {
@@ -67,6 +102,18 @@ export function ShopAttachHangModal({
     void load();
   }, [open, load]);
 
+  useEffect(() => {
+    if (!filterMenuOpen) return;
+    function onPointerDown(e: PointerEvent) {
+      const t = e.target;
+      if (!(t instanceof Element)) return;
+      if (t.closest("[data-shop-filter-menu]")) return;
+      setFilterMenuOpen(null);
+    }
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [filterMenuOpen]);
+
   const categoryOptions = useMemo(() => {
     const set = new Set<string>();
     for (const p of products) {
@@ -76,15 +123,66 @@ export function ShopAttachHangModal({
     return [...set].sort((a, b) => a.localeCompare(b, "vi"));
   }, [products]);
 
-  const filteredProducts = useMemo(() => {
-    if (filterLoai === "all") return products;
-    if (filterLoai === "__none__") {
-      return products.filter((p) => !p.phanLoai?.trim());
+  const categoryOptions2 = useMemo(() => {
+    const set = new Set<string>();
+    for (const p of products) {
+      const t = p.phanLoai2?.trim();
+      if (t) set.add(t);
     }
-    return products.filter((p) => p.phanLoai?.trim() === filterLoai);
-  }, [products, filterLoai]);
+    return [...set].sort((a, b) => a.localeCompare(b, "vi"));
+  }, [products]);
 
-  if (!open) return null;
+  const hasUncategorized = useMemo(
+    () => products.some((p) => !p.phanLoai?.trim()),
+    [products],
+  );
+  const hasUncategorized2 = useMemo(
+    () => products.some((p) => !p.phanLoai2?.trim()),
+    [products],
+  );
+
+  const showFilterLoai =
+    categoryOptions.length > 0 || hasUncategorized;
+  const showFilterLoai2 =
+    categoryOptions2.length > 0 || hasUncategorized2;
+
+  const filteredProducts = useMemo(() => {
+    return products.filter(
+      (p) =>
+        matchesCategoryFilter(p.phanLoai, filterLoai) &&
+        matchesCategoryFilter(p.phanLoai2, filterLoai2),
+    );
+  }, [products, filterLoai, filterLoai2]);
+
+  const filteredBienTheIds = useMemo(
+    () => filteredProducts.flatMap((p) => p.bienThe.map((bt) => bt.id)),
+    [filteredProducts],
+  );
+
+  const allFilteredSelected =
+    filteredBienTheIds.length > 0 &&
+    filteredBienTheIds.every((id) => selected.has(id));
+  const someFilteredSelected =
+    filteredBienTheIds.some((id) => selected.has(id)) && !allFilteredSelected;
+
+  useEffect(() => {
+    const el = selectAllRef.current;
+    if (el) el.indeterminate = someFilteredSelected;
+  }, [someFilteredSelected]);
+
+  function toggleFilter(
+    key: string,
+    setter: Dispatch<SetStateAction<string[]>>,
+  ) {
+    if (key === "all") {
+      setter([]);
+      return;
+    }
+    setter((prev) => {
+      if (prev.includes(key)) return prev.filter((x) => x !== key);
+      return [...prev, key];
+    });
+  }
 
   function toggle(id: string) {
     setSelected((prev) => {
@@ -95,18 +193,32 @@ export function ShopAttachHangModal({
     });
   }
 
+  function toggleSelectAll() {
+    setSelected((prev) => {
+      if (
+        filteredBienTheIds.length > 0 &&
+        filteredBienTheIds.every((id) => prev.has(id))
+      ) {
+        const next = new Set(prev);
+        for (const id of filteredBienTheIds) next.delete(id);
+        return next;
+      }
+      const next = new Set(prev);
+      for (const id of filteredBienTheIds) next.add(id);
+      return next;
+    });
+  }
+
   function resolveGia(idBienThe: string): { gia: number; tienTe: string } | null {
-    const preferred = bangGiaId
+    // Chỉ lấy giá trong bảng đang chọn — không fallback sang bảng khác
+    // (tránh hiện 3.000 VND khi đang chọn bảng IDR chưa có dòng).
+    const bg = bangGiaId
       ? priceLists.find((b) => b.id === bangGiaId)
-      : null;
-    const ordered = preferred
-      ? [preferred, ...priceLists.filter((b) => b.id !== preferred.id)]
-      : priceLists;
-    for (const bg of ordered) {
-      const d = bg.dong.find((x) => x.idBienThe === idBienThe);
-      if (d) return { gia: d.gia, tienTe: bg.tienTe };
-    }
-    return null;
+      : priceLists[0];
+    if (!bg) return null;
+    const d = bg.dong.find((x) => x.idBienThe === idBienThe);
+    if (!d) return null;
+    return { gia: d.gia, tienTe: bg.tienTe };
   }
 
   async function save() {
@@ -134,6 +246,11 @@ export function ShopAttachHangModal({
         setErr(json?.error ?? "Không lưu được.");
         return;
       }
+      window.dispatchEvent(
+        new CustomEvent("cins:shop-hang-changed", {
+          detail: { milestoneId },
+        }),
+      );
       onSaved?.();
       onClose();
     } finally {
@@ -141,7 +258,75 @@ export function ShopAttachHangModal({
     }
   }
 
-  const hasUncategorized = products.some((p) => !p.phanLoai?.trim());
+  if (!open) return null;
+
+  function renderFilterDropdown(opts: {
+    menuKey: "loai" | "loai2";
+    selected: string[];
+    setter: Dispatch<SetStateAction<string[]>>;
+    options: string[];
+    hasNone: boolean;
+    emptyLabel: string;
+    ariaLabel: string;
+  }) {
+    const openMenu = filterMenuOpen === opts.menuKey;
+    return (
+      <div className="shop-filter-dropdown" data-shop-filter-menu>
+        <button
+          type="button"
+          className={`shop-filter-dropdown-trigger${opts.selected.length > 0 ? " is-active" : ""}${openMenu ? " is-open" : ""}`}
+          aria-expanded={openMenu}
+          aria-haspopup="listbox"
+          aria-label={opts.ariaLabel}
+          onClick={() =>
+            setFilterMenuOpen((cur) =>
+              cur === opts.menuKey ? null : opts.menuKey,
+            )
+          }
+        >
+          <span>{filterLabel(opts.selected, opts.emptyLabel)}</span>
+          <ChevronDown size={15} strokeWidth={2.25} aria-hidden />
+        </button>
+        {openMenu ? (
+          <div
+            className="shop-filter-dropdown-panel"
+            role="listbox"
+            aria-multiselectable
+            aria-label={opts.ariaLabel}
+          >
+            <label className="shop-filter-dropdown-opt">
+              <input
+                type="checkbox"
+                checked={opts.selected.length === 0}
+                onChange={() => toggleFilter("all", opts.setter)}
+              />
+              <span>Tất cả</span>
+            </label>
+            {opts.options.map((c) => (
+              <label key={c} className="shop-filter-dropdown-opt">
+                <input
+                  type="checkbox"
+                  checked={opts.selected.includes(c)}
+                  onChange={() => toggleFilter(c, opts.setter)}
+                />
+                <span>{c}</span>
+              </label>
+            ))}
+            {opts.hasNone ? (
+              <label className="shop-filter-dropdown-opt">
+                <input
+                  type="checkbox"
+                  checked={opts.selected.includes("__none__")}
+                  onChange={() => toggleFilter("__none__", opts.setter)}
+                />
+                <span>Chưa phân loại</span>
+              </label>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+    );
+  }
 
   return createPortal(
     <div className="uas-backdrop" role="presentation" onClick={onClose}>
@@ -161,7 +346,7 @@ export function ShopAttachHangModal({
             <X size={18} />
           </button>
         </header>
-        <div style={{ padding: 16, overflow: "auto" }}>
+        <div className="shop-attach-body">
           {loading ? (
             <p>
               <Loader2 className="shop-spin" size={16} /> Đang tải…
@@ -184,43 +369,50 @@ export function ShopAttachHangModal({
                   ))}
                 </select>
               </label>
-              {products.length > 0 &&
-              (categoryOptions.length > 0 || hasUncategorized) ? (
-                <div
-                  className="shop-filter-chips"
-                  role="tablist"
-                  aria-label="Lọc theo loại hàng"
-                  style={{ marginTop: 12 }}
-                >
-                  <button
-                    type="button"
-                    className={`shop-filter-chip${filterLoai === "all" ? " is-active" : ""}`}
-                    onClick={() => setFilterLoai("all")}
-                  >
-                    Tất cả
-                  </button>
-                  {categoryOptions.map((c) => (
-                    <button
-                      key={c}
-                      type="button"
-                      className={`shop-filter-chip${filterLoai === c ? " is-active" : ""}`}
-                      onClick={() => setFilterLoai(c)}
-                    >
-                      {c}
-                    </button>
-                  ))}
-                  {hasUncategorized ? (
-                    <button
-                      type="button"
-                      className={`shop-filter-chip${filterLoai === "__none__" ? " is-active" : ""}`}
-                      onClick={() => setFilterLoai("__none__")}
-                    >
-                      Chưa phân loại
-                    </button>
-                  ) : null}
+              {products.length > 0 && (showFilterLoai || showFilterLoai2) ? (
+                <div className="shop-attach-filters">
+                  {showFilterLoai
+                    ? renderFilterDropdown({
+                        menuKey: "loai",
+                        selected: filterLoai,
+                        setter: setFilterLoai,
+                        options: categoryOptions,
+                        hasNone: hasUncategorized,
+                        emptyLabel: "Tất cả phân loại",
+                        ariaLabel: "Lọc theo phân loại",
+                      })
+                    : null}
+                  {showFilterLoai2
+                    ? renderFilterDropdown({
+                        menuKey: "loai2",
+                        selected: filterLoai2,
+                        setter: setFilterLoai2,
+                        options: categoryOptions2,
+                        hasNone: hasUncategorized2,
+                        emptyLabel: "Tất cả phân loại 2",
+                        ariaLabel: "Lọc theo phân loại 2",
+                      })
+                    : null}
                 </div>
               ) : null}
-              <ul className="shop-dash-list shop-attach-list" style={{ marginTop: 12 }}>
+              {filteredBienTheIds.length > 0 ? (
+                <label className="shop-attach-select-all">
+                  <input
+                    ref={selectAllRef}
+                    type="checkbox"
+                    checked={allFilteredSelected}
+                    onChange={toggleSelectAll}
+                    aria-label="Chọn tất cả sản phẩm đang hiện"
+                  />
+                  <span>
+                    Chọn tất cả
+                    {filteredBienTheIds.length > 0
+                      ? ` (${filteredBienTheIds.length} đang hiện)`
+                      : ""}
+                  </span>
+                </label>
+              ) : null}
+              <ul className="shop-dash-list shop-attach-list">
                 {filteredProducts.flatMap((p) =>
                   p.bienThe.map((bt) => {
                     const thumb = bt.anhUrl ?? p.anhUrl;
@@ -254,7 +446,13 @@ export function ShopAttachHangModal({
                               {bt.nhan !== "Mặc định" ? ` · ${bt.nhan}` : ""}
                             </span>
                             <span className="shop-attach-sub">
-                              {p.phanLoai ? `${p.phanLoai} · ` : ""}
+                              {[p.phanLoai, p.phanLoai2]
+                                .map((t) => t?.trim())
+                                .filter(Boolean)
+                                .join(" · ")}
+                              {[p.phanLoai, p.phanLoai2].some((t) => t?.trim())
+                                ? " · "
+                                : ""}
                               tồn {bt.soLuongTon}
                             </span>
                           </span>

@@ -10,6 +10,7 @@ type SpRow = {
   mo_ta: string | null;
   anh_id: string | null;
   phan_loai: string | null;
+  phan_loai_2: string | null;
   dang_ban: boolean;
   tao_luc: string;
 };
@@ -39,7 +40,7 @@ export async function listSanPham(ownerId: string): Promise<ShopSanPham[]> {
   const admin = createServiceRoleClient();
   const { data: sps, error } = await admin
     .from("shop_san_pham")
-    .select("id, ten, mo_ta, anh_id, phan_loai, dang_ban, tao_luc")
+    .select("id, ten, mo_ta, anh_id, phan_loai, phan_loai_2, dang_ban, tao_luc")
     .eq("id_nguoi_dung", ownerId)
     .eq("da_xoa", false)
     .order("tao_luc", { ascending: false })
@@ -70,6 +71,7 @@ export async function listSanPham(ownerId: string): Promise<ShopSanPham[]> {
     anhId: r.anh_id,
     anhUrl: shopImageUrl(r.anh_id),
     phanLoai: r.phan_loai,
+    phanLoai2: r.phan_loai_2,
     dangBan: r.dang_ban,
     bienThe: bySp.get(r.id) ?? [],
     taoLuc: r.tao_luc,
@@ -83,6 +85,7 @@ export async function createSanPham(
     moTa?: string | null;
     anhId?: string | null;
     phanLoai?: string | null;
+    phanLoai2?: string | null;
     bienThe?: Array<{
       nhan?: string;
       sku?: string | null;
@@ -104,9 +107,10 @@ export async function createSanPham(
       mo_ta: input.moTa?.trim() || null,
       anh_id: input.anhId?.trim() || null,
       phan_loai: input.phanLoai?.trim() || null,
+      phan_loai_2: input.phanLoai2?.trim() || null,
       dang_ban: true,
     })
-    .select("id, ten, mo_ta, anh_id, phan_loai, dang_ban, tao_luc")
+    .select("id, ten, mo_ta, anh_id, phan_loai, phan_loai_2, dang_ban, tao_luc")
     .single<SpRow>();
   if (error || !sp) {
     console.error("[shop] createSanPham", error);
@@ -141,6 +145,7 @@ export async function createSanPham(
     anhId: sp.anh_id,
     anhUrl: shopImageUrl(sp.anh_id),
     phanLoai: sp.phan_loai,
+    phanLoai2: sp.phan_loai_2,
     dangBan: sp.dang_ban,
     bienThe: ((bts ?? []) as BtRow[]).map(mapBienThe),
     taoLuc: sp.tao_luc,
@@ -155,6 +160,7 @@ export async function updateSanPham(
     moTa?: string | null;
     anhId?: string | null;
     phanLoai?: string | null;
+    phanLoai2?: string | null;
     dangBan?: boolean;
   },
 ): Promise<void> {
@@ -172,6 +178,9 @@ export async function updateSanPham(
   if (input.anhId !== undefined) patch.anh_id = input.anhId?.trim() || null;
   if (input.phanLoai !== undefined) {
     patch.phan_loai = input.phanLoai?.trim() || null;
+  }
+  if (input.phanLoai2 !== undefined) {
+    patch.phan_loai_2 = input.phanLoai2?.trim() || null;
   }
   if (typeof input.dangBan === "boolean") patch.dang_ban = input.dangBan;
 

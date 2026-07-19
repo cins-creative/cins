@@ -55,7 +55,7 @@ export async function listPostHang(
   ];
   const { data: sps } = await admin
     .from("shop_san_pham")
-    .select("id, ten, anh_id, phan_loai, da_xoa, dang_ban")
+    .select("id, ten, anh_id, phan_loai, phan_loai_2, da_xoa, dang_ban")
     .in("id", spIds);
   const spMap = new Map(
     ((sps ?? []) as Array<{
@@ -63,6 +63,7 @@ export async function listPostHang(
       ten: string;
       anh_id: string | null;
       phan_loai: string | null;
+      phan_loai_2: string | null;
       da_xoa: boolean;
       dang_ban: boolean;
     }>).map((s) => [s.id, s]),
@@ -82,6 +83,7 @@ export async function listPostHang(
       tenSanPham: sp.ten,
       nhanBienThe: bt.nhan,
       phanLoai: sp.phan_loai?.trim() || null,
+      phanLoai2: sp.phan_loai_2?.trim() || null,
       anhUrl: shopImageUrl(bt.anh_id ?? sp.anh_id),
       soLuongTon: ton,
       giaHienThi: Number(row.gia_hien_thi),

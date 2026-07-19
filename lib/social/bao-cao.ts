@@ -12,6 +12,13 @@ import { resolveTruongImageSrcSync } from "@/lib/truong/media-url";
 
 export type BangChungItem = { loai: "anh" | "url"; value: string };
 
+export type UserBrief = {
+  id: string;
+  slug: string;
+  tenHienThi: string;
+  avatarSrc: string | null;
+};
+
 export type CreateBaoCaoInput = {
   reporterId: string;
   loaiDoiTuong?: string;

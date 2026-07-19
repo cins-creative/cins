@@ -208,7 +208,13 @@ function EvidenceBlock({ items }: { items: ShopEvidence[] }) {
   );
 }
 
-function QuayApprovedCard({ q }: { q: ShopQuaySuKien }) {
+function QuayApprovedCard({
+  q,
+  viewerProfileId,
+}: {
+  q: ShopQuaySuKien;
+  viewerProfileId: string | null;
+}) {
   const milestone = quayMilestoneCard(q);
   if (!milestone) {
     return (
@@ -227,15 +233,21 @@ function QuayApprovedCard({ q }: { q: ShopQuaySuKien }) {
     milestone.lensOwnerSlug ?? milestone.postOwnerSlug ?? q.nguoiDungSlug ?? "";
   const ownerProfileId =
     milestone.lensOwnerId ?? milestone.postOwnerId ?? q.idNguoiDung;
+  const isOwner =
+    Boolean(viewerProfileId) &&
+    Boolean(ownerProfileId) &&
+    viewerProfileId === ownerProfileId;
 
   return (
     <li className="shop-quay-review-card">
       <JourneyMilestoneCard
         milestone={milestone}
+        isOwner={isOwner}
         entityLens
         analyticsNguon="entity_lens"
         ownerSlug={ownerSlug || undefined}
         ownerProfileId={ownerProfileId}
+        viewerProfileId={viewerProfileId}
         authorAvatarUrl={milestone.lensOwnerAvatarUrl ?? null}
         authorName={milestone.lensOwnerName ?? null}
       />
@@ -313,6 +325,7 @@ export function ShopQuaySuKienPanel({
 }: Props) {
   const [items, setItems] = useState<ShopQuaySuKien[]>([]);
   const [loading, setLoading] = useState(true);
+  const [viewerProfileId, setViewerProfileId] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [view, setView] = useState<ContentSurfaceView>("timeline");
   const [pendingFocusId, setPendingFocusId] = useState<string | null>(null);
@@ -322,6 +335,28 @@ export function ShopQuaySuKienPanel({
   } | null>(null);
   const [reasonText, setReasonText] = useState("");
   const [actionErr, setActionErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch("/api/auth/session-profile", {
+          cache: "no-store",
+        });
+        const json = (await res.json().catch(() => null)) as {
+          profile?: { id?: string } | null;
+        } | null;
+        if (!cancelled) {
+          setViewerProfileId(json?.profile?.id?.trim() || null);
+        }
+      } catch {
+        if (!cancelled) setViewerProfileId(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -453,7 +488,11 @@ export function ShopQuaySuKienPanel({
           view === "timeline" ? (
             <ul className="shop-dash-list shop-quay-review-list">
               {approved.map((q) => (
-                <QuayApprovedCard key={q.id} q={q} />
+                <QuayApprovedCard
+                  key={q.id}
+                  q={q}
+                  viewerProfileId={viewerProfileId}
+                />
               ))}
             </ul>
           ) : (
@@ -622,6 +661,7 @@ export function ShopQuaySuKienPanel({
                           sellerUserId={q.idNguoiDung}
                           sellerName={q.nguoiDungTen}
                           sellerSlug={q.nguoiDungSlug}
+                          viewerProfileId={viewerProfileId}
                         />
                       ) : q.idCotMoc ? (
                         <p className="shop-dash-hint">

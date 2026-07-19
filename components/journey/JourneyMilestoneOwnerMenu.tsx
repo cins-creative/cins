@@ -892,7 +892,7 @@ export function JourneyMilestoneOwnerMenu({
               <span className="j-m-menu-ico" aria-hidden>
                 <ShoppingBag size={14} strokeWidth={1.7} />
               </span>
-              <span className="j-m-menu-lbl">Thêm hàng bán</span>
+              <span className="j-m-menu-lbl">Gắn sản phẩm</span>
             </button>
             <button
               type="button"
@@ -1001,6 +1001,9 @@ export function JourneyMilestoneOwnerMenu({
         open={attachHangOpen}
         milestoneId={milestoneId}
         onClose={() => setAttachHangOpen(false)}
+        onSaved={() => {
+          onAfterChange?.();
+        }}
       />
       <ShopXinQuayModal
         open={xinQuayOpen}

@@ -9382,13 +9382,14 @@ select.j-edit-input {
   background: #fef3f2;
 }
 .j-m-menu-item.is-shop {
-  color: var(--cins-orange, #fdad4c);
+  /* Cam đậm hơn #fdad4c — dễ đọc trên nền sáng */
+  color: #b45309;
 }
 .j-m-menu-item.is-shop:hover:not(:disabled) {
   background: var(--cins-orange-soft, #fdf0e2);
 }
 .j-m-menu-item.is-shop .j-m-menu-ico {
-  color: var(--cins-orange, #fdad4c);
+  color: #b45309;
 }
 
 .j-m-menu-ico {

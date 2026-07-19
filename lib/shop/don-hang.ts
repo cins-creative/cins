@@ -57,7 +57,10 @@ type DongRow = {
 
 function mapDong(
   d: DongRow,
-  metaByBienThe: Map<string, { anhUrl: string | null; phanLoai: string | null }>,
+  metaByBienThe: Map<
+    string,
+    { anhUrl: string | null; phanLoai: string | null; phanLoai2: string | null }
+  >,
 ): ShopDonHangDong {
   const meta = d.id_bien_the ? metaByBienThe.get(d.id_bien_the) : undefined;
   return {
@@ -69,6 +72,7 @@ function mapDong(
     giaDonVi: Number(d.gia_don_vi),
     anhUrl: meta?.anhUrl ?? null,
     phanLoai: meta?.phanLoai ?? null,
+    phanLoai2: meta?.phanLoai2 ?? null,
   };
 }
 
@@ -93,7 +97,7 @@ async function attachDong(dons: DonRow[]): Promise<ShopDonHang[]> {
   ];
   const metaByBienThe = new Map<
     string,
-    { anhUrl: string | null; phanLoai: string | null }
+    { anhUrl: string | null; phanLoai: string | null; phanLoai2: string | null }
   >();
   if (btIds.length > 0) {
     const { data: bts } = await admin
@@ -108,21 +112,23 @@ async function attachDong(dons: DonRow[]): Promise<ShopDonHang[]> {
     const spIds = [...new Set(btList.map((b) => b.id_san_pham).filter(Boolean))];
     const spMeta = new Map<
       string,
-      { anhId: string | null; phanLoai: string | null }
+      { anhId: string | null; phanLoai: string | null; phanLoai2: string | null }
     >();
     if (spIds.length > 0) {
       const { data: sps } = await admin
         .from("shop_san_pham")
-        .select("id, anh_id, phan_loai")
+        .select("id, anh_id, phan_loai, phan_loai_2")
         .in("id", spIds);
       for (const s of (sps ?? []) as Array<{
         id: string;
         anh_id: string | null;
         phan_loai: string | null;
+        phan_loai_2: string | null;
       }>) {
         spMeta.set(s.id, {
           anhId: s.anh_id,
           phanLoai: s.phan_loai?.trim() || null,
+          phanLoai2: s.phan_loai_2?.trim() || null,
         });
       }
     }
@@ -131,6 +137,7 @@ async function attachDong(dons: DonRow[]): Promise<ShopDonHang[]> {
       metaByBienThe.set(bt.id, {
         anhUrl: shopImageUrl(bt.anh_id ?? sp?.anhId ?? null),
         phanLoai: sp?.phanLoai ?? null,
+        phanLoai2: sp?.phanLoai2 ?? null,
       });
     }
   }

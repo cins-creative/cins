@@ -24,6 +24,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type MouseEvent,
   type ReactNode,
 } from "react";
 
@@ -488,8 +489,15 @@ function WorldJourneyFilterBar({
             className={`wj-vt-btn${surfaceView === "journey" ? " active" : ""}`}
             aria-label="Dòng thời gian"
             aria-pressed={surfaceView === "journey"}
-            title="Dòng thời gian"
-            onClick={() => onSurfaceView("journey")}
+            title={
+              surfaceView === "journey"
+                ? "Cuộn lên đầu và tải nội dung mới"
+                : "Dòng thời gian"
+            }
+            onClick={(e) => {
+              e.stopPropagation();
+              onSurfaceView("journey");
+            }}
           >
             <Waypoints size={15} strokeWidth={2} aria-hidden />
           </button>
@@ -498,8 +506,15 @@ function WorldJourneyFilterBar({
             className={`wj-vt-btn${surfaceView === "gallery" ? " active" : ""}`}
             aria-label="Gallery"
             aria-pressed={surfaceView === "gallery"}
-            title="Gallery"
-            onClick={() => onSurfaceView("gallery")}
+            title={
+              surfaceView === "gallery"
+                ? "Cuộn lên đầu và tải nội dung mới"
+                : "Gallery"
+            }
+            onClick={(e) => {
+              e.stopPropagation();
+              onSurfaceView("gallery");
+            }}
           >
             <LayoutGrid size={15} strokeWidth={2} aria-hidden />
           </button>
@@ -602,11 +617,14 @@ export function WorldJourneyFeed({
   const [loadingMore, setLoadingMore] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const [filterLoading, setFilterLoading] = useState(false);
+  /** Tăng khi user tap header / tab đang chọn → fetch lại từ đầu. */
+  const [refreshNonce, setRefreshNonce] = useState(0);
   const loadingMoreRef = useRef(false);
   const hasMoreRef = useRef(feedHasMore);
   const nextOffsetRef = useRef(feedNextOffset);
   const filterQueryEpochRef = useRef(0);
   const skipInitialFilterFetchRef = useRef(true);
+  const surfaceViewRef = useRef(surfaceView);
 
   useEffect(() => {
     hasMoreRef.current = hasMore;
@@ -616,10 +634,42 @@ export function WorldJourneyFeed({
     nextOffsetRef.current = nextOffset;
   }, [nextOffset]);
 
-  const handleSurfaceView = useCallback((next: FeedSurfaceView) => {
-    setSurfaceView(next);
-    window.history.pushState({ wjView: next }, "", feedViewHref(next));
+  useEffect(() => {
+    surfaceViewRef.current = surfaceView;
+  }, [surfaceView]);
+
+  const reloadFromTop = useCallback(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+    setRefreshNonce((n) => n + 1);
   }, []);
+
+  const handleSurfaceView = useCallback(
+    (next: FeedSurfaceView) => {
+      if (surfaceViewRef.current === next) {
+        reloadFromTop();
+        return;
+      }
+      setSurfaceView(next);
+      window.history.pushState({ wjView: next }, "", feedViewHref(next));
+    },
+    [reloadFromTop],
+  );
+
+  const handleFeedHeaderClick = useCallback(
+    (e: MouseEvent<HTMLElement>) => {
+      const target = e.target;
+      if (!(target instanceof Element)) return;
+      if (
+        target.closest(
+          "button, a, input, textarea, select, [role='menu'], [role='menuitem'], .wj-filter-pop, .wj-sort-pop, .wj-source-pop",
+        )
+      ) {
+        return;
+      }
+      reloadFromTop();
+    },
+    [reloadFromTop],
+  );
 
   useEffect(() => {
     setSurfaceView(initialSurfaceView(window.location.search));
@@ -1009,7 +1059,7 @@ export function WorldJourneyFeed({
     return () => {
       cancelled = true;
     };
-  }, [activeFilter, feedSource, activeLinhVucSlug]);
+  }, [activeFilter, feedSource, activeLinhVucSlug, refreshNonce]);
 
   const galleryEndpoint = useMemo(() => {
     const qs = buildWorldJourneyFeedQuery({
@@ -1039,7 +1089,11 @@ export function WorldJourneyFeed({
         )}
 
         <div className={`wj-feed${isGallery ? " view-grid" : ""}`}>
-          <header className="wj-feed-header">
+          <header
+            className="wj-feed-header"
+            title="Cuộn lên đầu và tải nội dung mới"
+            onClick={handleFeedHeaderClick}
+          >
             <span className="j-tlb-streak-slow" aria-hidden="true" />
             <WorldJourneyFilterBar
               chips={filterChips}

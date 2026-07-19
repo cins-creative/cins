@@ -6,19 +6,14 @@ import type { ReactNode } from "react";
 
 type ShopDashTab = "kho" | "don";
 
-const TAB_COPY: Record<
-  ShopDashTab,
-  { href: string; label: string; hint: string }
-> = {
+const TAB_COPY: Record<ShopDashTab, { href: string; label: string }> = {
   kho: {
     href: "/ban-hang/kho",
     label: "Kho hàng",
-    hint: "Thêm sản phẩm, tồn kho và bảng giá theo ngữ cảnh sự kiện.",
   },
   don: {
     href: "/ban-hang/don",
     label: "Đơn hàng",
-    hint: "CINs không trung gian tiền — bạn tự xác nhận khi đã nhận tiền hoặc đã giao tại sự kiện.",
   },
 };
 
@@ -52,7 +47,6 @@ export function ShopDashTabs({
         </nav>
         {actions ? <div className="shop-dash-head-actions">{actions}</div> : null}
       </div>
-      <p className="shop-dash-sub">{TAB_COPY[active].hint}</p>
     </header>
   );
 }

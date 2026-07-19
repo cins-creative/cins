@@ -104,6 +104,7 @@
   box-shadow: 0 6px 18px -14px rgba(15, 23, 42, 0.4);
   border-bottom: 1px solid color-mix(in srgb, var(--border, #e4e6eb) 82%, transparent);
   overflow: visible;
+  cursor: pointer;
 }
 
 /* Header nằm đầu cột feed — sát mép trên cột. */
@@ -5120,8 +5121,19 @@
   letter-spacing: 0.3px;
 }
 
+/* Dark: --neutral-800 đảo sáng → giữ dải tháng tối + chữ trắng (không #fff trên nền sáng) */
+:root[data-theme="dark"] .world-journey-home .ha-org-up-date-month {
+  background: var(--neutral-0, #12151d);
+  color: #fff;
+}
+
 .world-journey-home .ha-org-up-date--live .ha-org-up-date-month {
   background: var(--mint-deep, #0e9b6e);
+}
+
+:root[data-theme="dark"] .world-journey-home .ha-org-up-date--live .ha-org-up-date-month {
+  background: var(--mint-deep, #0e9b6e);
+  color: #fff;
 }
 
 .world-journey-home .ha-org-up-date-day {

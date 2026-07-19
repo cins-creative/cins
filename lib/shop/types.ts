@@ -40,6 +40,8 @@ export type ShopSanPham = {
   anhUrl: string | null;
   /** Nhãn phân loại / nhóm (seller tự đặt). */
   phanLoai: string | null;
+  /** Nhãn phân loại thứ hai (`shop_san_pham.phan_loai_2`). */
+  phanLoai2: string | null;
   dangBan: boolean;
   bienThe: ShopBienThe[];
   taoLuc: string;
@@ -68,6 +70,8 @@ export type ShopPostHangItem = {
   nhanBienThe: string;
   /** Nhãn phân loại từ `shop_san_pham.phan_loai`. */
   phanLoai: string | null;
+  /** Nhãn phân loại 2 từ `shop_san_pham.phan_loai_2`. */
+  phanLoai2: string | null;
   anhUrl: string | null;
   soLuongTon: number;
   giaHienThi: number;
@@ -107,6 +111,8 @@ export type ShopDonHangDong = {
   anhUrl?: string | null;
   /** Phân loại sản phẩm hiện tại (`shop_san_pham.phan_loai`). */
   phanLoai?: string | null;
+  /** Phân loại 2 sản phẩm hiện tại (`shop_san_pham.phan_loai_2`). */
+  phanLoai2?: string | null;
 };
 
 export type ShopDonHang = {

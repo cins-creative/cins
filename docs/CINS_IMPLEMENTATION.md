@@ -189,6 +189,7 @@
 
 | File | Tạo gì |
 |---|---|
+| `migration_shop_san_pham_phan_loai_2.sql` | Cột `shop_san_pham.phan_loai_2` (nhãn nhóm thứ hai). Chạy: `node scripts/run-shop-san-pham-phan-loai-2-migration.mjs`. |
 | `migration_shop_san_pham_phan_loai.sql` | Cột `shop_san_pham.phan_loai` (nhãn nhóm sản phẩm). Chạy: `node scripts/run-shop-san-pham-phan-loai-migration.mjs`. |
 | `migration_shop_don_chap_nhan.sql` | Snapshot chấp nhận rủi ro chuyển khoản trên `shop_don_hang`. Chạy: `node scripts/run-shop-don-chap-nhan-migration.mjs`. |
 | `migration_shop_tru_kho_atomic.sql` | RPC `shop_tru_kho_bien_the` / `shop_hoan_kho_bien_the` — trừ/hoàn tồn atomic (mua_ngay trừ lúc tạo đơn). Chạy: `node scripts/run-shop-tru-kho-atomic-migration.mjs`. |

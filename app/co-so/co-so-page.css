@@ -6632,6 +6632,7 @@ a.cso-sk-manage-person-name:hover {
 .cso-sk-detail-actions.sk-detail-rsvp-actions--compact
   .cso-sk-detail-btn--join.is-active {
   box-shadow: none;
+  color: #fff;
 }
 
 .cso-sk-detail-btn {
@@ -6677,6 +6678,7 @@ a.cso-sk-manage-person-name:hover {
 .cso-sk-detail-btn--join.is-active {
   background: #15803d;
   border-color: rgba(21, 128, 61, 0.2);
+  color: #fff;
   box-shadow: 0 6px 18px rgba(21, 128, 61, 0.22);
 }
 
@@ -6755,6 +6757,7 @@ a.cso-sk-manage-person-name:hover {
 :root[data-theme="dark"] .cso-sk-detail-btn--join.is-active {
   background: #22a06b;
   border-color: transparent;
+  color: #fff;
   box-shadow: 0 6px 18px rgba(34, 160, 107, 0.28);
 }
 

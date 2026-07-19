@@ -23,6 +23,7 @@ import {
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import { LayoutThumbIcon } from "@/components/editor/LayoutThumbIcon";
 import { ShopDonDetailModal } from "@/components/shop/ShopDonDetailModal";
@@ -656,6 +657,7 @@ function LichSuMuaHangSection({ titleId }: { titleId: string }) {
 }
 
 function BanHangSettingsSection({ titleId }: { titleId: string }) {
+  const router = useRouter();
   const [enabled, setEnabled] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [termsBody, setTermsBody] = useState("");
@@ -726,6 +728,8 @@ function BanHangSettingsSection({ titleId }: { titleId: string }) {
           detail: { enabled: next },
         }),
       );
+      // Topbar (ShopTopbarButton) lấy cờ từ server — refresh RSC để hiện/ẩn UI người bán.
+      router.refresh();
     } finally {
       setSaving(false);
     }

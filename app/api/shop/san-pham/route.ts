@@ -26,6 +26,7 @@ export async function POST(request: Request) {
     moTa?: unknown;
     anhId?: unknown;
     phanLoai?: unknown;
+    phanLoai2?: unknown;
     bienThe?: unknown;
   };
   try {
@@ -42,6 +43,7 @@ export async function POST(request: Request) {
       moTa: typeof body.moTa === "string" ? body.moTa : null,
       anhId: typeof body.anhId === "string" ? body.anhId : null,
       phanLoai: typeof body.phanLoai === "string" ? body.phanLoai : null,
+      phanLoai2: typeof body.phanLoai2 === "string" ? body.phanLoai2 : null,
       bienThe: Array.isArray(body.bienThe)
         ? body.bienThe.map((v) => {
             const o = v as Record<string, unknown>;

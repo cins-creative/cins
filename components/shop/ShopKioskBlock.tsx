@@ -381,6 +381,20 @@ export function ShopKioskBlock({
     };
   }, [loadHang]);
 
+  /* Gắn / gỡ sản phẩm trên bài → refetch card bán hàng. */
+  useEffect(() => {
+    const onShopHangChanged = (e: Event) => {
+      const detail = (e as CustomEvent<{ milestoneId?: string }>).detail;
+      if (detail?.milestoneId && detail.milestoneId !== milestoneId) return;
+      setLoading(true);
+      void loadHang();
+    };
+    window.addEventListener("cins:shop-hang-changed", onShopHangChanged);
+    return () => {
+      window.removeEventListener("cins:shop-hang-changed", onShopHangChanged);
+    };
+  }, [loadHang, milestoneId]);
+
   useEffect(() => {
     const timers = syncTimersRef.current;
     const pending = pendingQtyRef.current;

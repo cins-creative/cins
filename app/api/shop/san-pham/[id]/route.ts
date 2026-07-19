@@ -51,6 +51,10 @@ export async function PATCH(request: Request, ctx: Ctx) {
         body.phanLoai === null || typeof body.phanLoai === "string"
           ? (body.phanLoai as string | null)
           : undefined,
+      phanLoai2:
+        body.phanLoai2 === null || typeof body.phanLoai2 === "string"
+          ? (body.phanLoai2 as string | null)
+          : undefined,
       dangBan: typeof body.dangBan === "boolean" ? body.dangBan : undefined,
     });
     return NextResponse.json({ ok: true });
