@@ -684,8 +684,165 @@ button.j-avatar.j-avatar-viewable:focus-visible {
 }
 
 /* Profile view switch */
-.j-profile-switch {
+.j-profile-switch-stack {
   margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.j-profile-shop-switch {
+  display: block;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--cins-orange, #fdad4c) 28%, var(--border));
+  background: var(--bg-surface);
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--cins-orange, #fdad4c) 12%, transparent),
+    0 8px 20px -14px rgb(15 23 42 / 28%);
+}
+.j-profile-shop-switch-btn {
+  position: relative;
+  display: block;
+  width: 100%;
+  min-height: 88px;
+  padding: 0;
+  border: none;
+  border-radius: 15px;
+  overflow: hidden;
+  color: #f8fafc;
+  text-align: left;
+  text-decoration: none;
+  isolation: isolate;
+  transition:
+    transform 0.2s var(--j-ease),
+    box-shadow 0.2s var(--j-ease);
+}
+.j-profile-shop-switch-btn:hover {
+  transform: translateY(-1px);
+}
+.j-profile-shop-switch-btn:focus-visible {
+  outline: 2px solid var(--cins-blue);
+  outline-offset: 2px;
+}
+.j-profile-shop-switch-btn.is-active {
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--cins-orange, #fdad4c) 75%, white);
+}
+.j-profile-shop-switch-cover {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background:
+    linear-gradient(145deg, #0f172a 0%, #1e293b 42%, #0f766e 100%);
+  background-size: cover;
+  background-position: center;
+}
+.j-profile-shop-switch-cover.has-img {
+  background-color: #0f172a;
+}
+.j-profile-shop-switch-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      180deg,
+      rgb(15 23 42 / 18%) 0%,
+      rgb(15 23 42 / 42%) 48%,
+      rgb(15 23 42 / 82%) 100%
+    ),
+    linear-gradient(
+      90deg,
+      rgb(15 23 42 / 35%) 0%,
+      transparent 55%
+    );
+}
+.j-profile-shop-switch-row {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 88px;
+  padding: 12px 10px 12px 12px;
+}
+.j-profile-shop-switch-avatar {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  border: 2px solid rgb(255 255 255 / 92%);
+  background:
+    linear-gradient(160deg, #fff7ed, #ffedd5 55%, #fdad4c);
+  color: #9a3412;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  box-shadow:
+    0 4px 12px rgb(15 23 42 / 35%),
+    0 0 0 1px rgb(15 23 42 / 18%);
+}
+.j-profile-shop-switch-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.j-profile-shop-switch-copy {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+  color: #fff;
+  text-shadow: 0 1px 8px rgb(15 23 42 / 45%);
+}
+.j-profile-shop-switch-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+  color: rgb(255 255 255 / 88%);
+}
+.j-profile-shop-switch-label svg {
+  flex-shrink: 0;
+  opacity: 0.95;
+}
+.j-profile-shop-switch-name {
+  display: block;
+  min-width: 0;
+  font-size: 13.5px;
+  font-weight: 750;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+@media (prefers-reduced-motion: reduce) {
+  .j-profile-shop-switch-btn {
+    transition: none;
+  }
+  .j-profile-shop-switch-btn:hover {
+    transform: none;
+  }
+}
+:root[data-theme="dark"] .j-profile-shop-switch {
+  border-color: color-mix(in srgb, var(--cins-orange, #fdad4c) 22%, var(--border));
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--cins-orange, #fdad4c) 10%, transparent),
+    0 10px 24px -16px rgb(0 0 0 / 55%);
+}
+:root[data-theme="dark"] .j-profile-shop-switch-avatar {
+  border-color: rgb(15 23 42 / 88%);
+}
+.j-profile-switch {
+  margin-top: 0;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 4px;
@@ -8836,8 +8993,37 @@ button.j-g-item:disabled {
   .cins-journey-page .j-create-cta-sub {
     font-size: 11.5px;
   }
-  .cins-journey-page .j-profile-switch {
+  .cins-journey-page .j-profile-switch-stack {
     margin-top: 12px;
+    gap: 6px;
+  }
+  .cins-journey-page .j-profile-shop-switch {
+    border-radius: 14px;
+  }
+  .cins-journey-page .j-profile-shop-switch-btn,
+  .cins-journey-page .j-profile-shop-switch-row {
+    min-height: 80px;
+  }
+  .cins-journey-page .j-profile-shop-switch-row {
+    gap: 8px;
+    padding: 10px 8px 10px 10px;
+  }
+  .cins-journey-page .j-profile-shop-switch-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+  }
+  .cins-journey-page .j-profile-shop-switch-copy {
+    gap: 1px;
+  }
+  .cins-journey-page .j-profile-shop-switch-label {
+    font-size: 10.5px;
+  }
+  .cins-journey-page .j-profile-shop-switch-name {
+    font-size: 12.5px;
+  }
+  .cins-journey-page .j-profile-switch {
+    margin-top: 0;
     gap: 3px;
     padding: 3px;
   }

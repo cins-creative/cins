@@ -95,6 +95,7 @@ import {
   resolveMentionsAgainstMembers,
 } from "@/lib/chat/mentions";
 import {
+  applyOrgRoomReadCursorRealtime,
   patchChatReadCursorMessage,
   upsertChatReadCursor,
 } from "@/lib/chat/read-cursors-client";
@@ -855,6 +856,20 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
 
       setReadCursorsByRoom((prev) => {
         const current = prev[roomId] ?? [];
+        const thread = threads.find((t) => t.roomId === roomId);
+
+        if (thread) {
+          const orgApplied = applyOrgRoomReadCursorRealtime(
+            current,
+            thread,
+            row.id_nguoi_dung,
+            messageId,
+          );
+          if (orgApplied) {
+            return { ...prev, [roomId]: orgApplied };
+          }
+        }
+
         const patched = patchChatReadCursorMessage(
           current,
           row.id_nguoi_dung,
@@ -864,7 +879,6 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
           return { ...prev, [roomId]: patched };
         }
 
-        const thread = threads.find((t) => t.roomId === roomId);
         const member = thread?.memberAvatars?.find(
           (m) => m.userId === row.id_nguoi_dung,
         );
@@ -3744,6 +3758,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
           avatarUrl={manageGroupThread.avatarUrl}
           memberAvatars={manageGroupThread.memberAvatars}
           canHaveProjects={!manageGroupThread.parentRoomId}
+          parentRoomId={manageGroupThread.parentRoomId ?? null}
           initialSection={manageGroupSection}
           initialDeleteConfirm={manageDeleteConfirm}
           onClose={() => {

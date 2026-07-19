@@ -24,7 +24,7 @@ import {
   useMemo,
   useRef,
   useState,
-  type MouseEvent,
+  type MouseEvent as ReactMouseEvent,
   type ReactNode,
 } from "react";
 
@@ -656,7 +656,7 @@ export function WorldJourneyFeed({
   );
 
   const handleFeedHeaderClick = useCallback(
-    (e: MouseEvent<HTMLElement>) => {
+    (e: ReactMouseEvent<HTMLElement>) => {
       const target = e.target;
       if (!(target instanceof Element)) return;
       if (

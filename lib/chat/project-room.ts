@@ -92,8 +92,9 @@ async function assertViewerCanManageParent(
 
 /**
  * Tạo phòng project con dưới nhóm cha.
- * Thành viên mặc định = toàn bộ thành viên đang active của cha;
- * creator = owner phòng con.
+ * Mặc định chỉ creator (owner) — admin thêm thành viên sau;
+ * người chưa được thêm không thấy project (list theo membership).
+ * `memberIds` tuỳ chọn: subset ⊆ thành viên đang active của cha.
  */
 export async function createProjectRoom(
   parentRoomId: string,
@@ -141,7 +142,7 @@ export async function createProjectRoom(
 
   let selected = memberIds?.length
     ? [...new Set(memberIds.map((id) => id.trim()).filter(Boolean))]
-    : [...parentMemberIds];
+    : [viewerId];
 
   if (!selected.includes(viewerId)) {
     selected = [viewerId, ...selected];

@@ -659,6 +659,8 @@ function LichSuMuaHangSection({ titleId }: { titleId: string }) {
 function BanHangSettingsSection({ titleId }: { titleId: string }) {
   const router = useRouter();
   const [enabled, setEnabled] = useState(false);
+  const [shopReady, setShopReady] = useState(false);
+  const [shopSetupHref, setShopSetupHref] = useState<string | null>(null);
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [termsBody, setTermsBody] = useState("");
   const [termsTitle, setTermsTitle] = useState("Điều khoản bán hàng");
@@ -674,6 +676,8 @@ function BanHangSettingsSection({ titleId }: { titleId: string }) {
         const res = await fetch("/api/user/ban-hang", { cache: "no-store" });
         const json = (await res.json().catch(() => null)) as {
           enabled?: boolean;
+          shopReady?: boolean;
+          shopSetupHref?: string | null;
           terms?: { title?: string; body?: string };
           error?: string;
         } | null;
@@ -683,6 +687,10 @@ function BanHangSettingsSection({ titleId }: { titleId: string }) {
           return;
         }
         setEnabled(json?.enabled === true);
+        setShopReady(json?.shopReady === true);
+        setShopSetupHref(
+          typeof json?.shopSetupHref === "string" ? json.shopSetupHref : null,
+        );
         setAcceptTerms(json?.enabled === true);
         if (json?.terms?.title) setTermsTitle(json.terms.title);
         if (json?.terms?.body) setTermsBody(json.terms.body);
@@ -715,6 +723,8 @@ function BanHangSettingsSection({ titleId }: { titleId: string }) {
       });
       const json = (await res.json().catch(() => null)) as {
         enabled?: boolean;
+        shopReady?: boolean;
+        shopSetupHref?: string | null;
         error?: string;
       } | null;
       if (!res.ok) {
@@ -723,6 +733,10 @@ function BanHangSettingsSection({ titleId }: { titleId: string }) {
       }
       const next = json?.enabled === true;
       setEnabled(next);
+      setShopReady(json?.shopReady === true);
+      setShopSetupHref(
+        typeof json?.shopSetupHref === "string" ? json.shopSetupHref : null,
+      );
       window.dispatchEvent(
         new CustomEvent("cins:ban-hang-changed", {
           detail: { enabled: next },
@@ -759,7 +773,8 @@ function BanHangSettingsSection({ titleId }: { titleId: string }) {
             <span className="uas-toggle-text">
               <span className="uas-toggle-label">Bật chức năng bán hàng</span>
               <span className="uas-toggle-desc">
-                Hiện «Thêm hàng bán» trên bài và trang quản lý kho / đơn.
+                Bật để bán trên bài. Cần thiết lập tài khoản nhận tiền (Shop)
+                trước khi thêm hàng và nhận đơn.
               </span>
             </span>
             <button
@@ -813,13 +828,25 @@ function BanHangSettingsSection({ titleId }: { titleId: string }) {
           </details>
 
           {enabled ? (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-              <Link href="/ban-hang/kho" className="uas-btn primary">
-                Quản lý kho hàng
-              </Link>
-              <Link href="/ban-hang/don" className="uas-btn ghost">
-                Quản lý đơn hàng
-              </Link>
+            <div>
+              {shopReady ? (
+                <Link href="/ban-hang/kho" className="uas-btn primary">
+                  Vào trang quản lý
+                </Link>
+              ) : shopSetupHref ? (
+                <>
+                  <Link href={shopSetupHref} className="uas-btn primary">
+                    Thiết lập Shop
+                  </Link>
+                  <p className="uas-section-hint" style={{ marginTop: 8 }}>
+                    Cần tài khoản nhận tiền trước khi thêm hàng và nhận đơn.
+                  </p>
+                </>
+              ) : (
+                <p className="uas-section-hint">
+                  Không lấy được đường dẫn Shop — thử tải lại trang.
+                </p>
+              )}
             </div>
           ) : null}
         </>

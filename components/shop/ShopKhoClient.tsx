@@ -13,6 +13,7 @@ import {
   Pencil,
   Plus,
   Save,
+  Star,
   Trash2,
   X,
 } from "lucide-react";
@@ -24,7 +25,15 @@ import {
   imageFilesFromClipboard,
   readImageFileFromClipboard,
 } from "@/lib/files/clipboard-images";
-import type { ShopBangGia, ShopSanPham } from "@/lib/shop/types";
+import type { ShopBangGia, ShopCuaHang, ShopSanPham } from "@/lib/shop/types";
+import {
+  resolveShopNhanPhanLoai,
+  resolveShopNhanPhanLoai2,
+  SHOP_FEATURE_MAX,
+  SHOP_NHAN_PHAN_LOAI_2_DEFAULT,
+  SHOP_NHAN_PHAN_LOAI_DEFAULT,
+} from "@/lib/shop/types";
+import { fetchBanHangClientStatus } from "@/lib/shop/client-fetch-cache";
 
 import { ShopDashTabs } from "./ShopDashTabs";
 import { ShopPhanLoaiInput } from "./ShopPhanLoaiInput";
@@ -38,9 +47,14 @@ type RowDraft = {
   phanLoai: string;
   phanLoai2: string;
   ton: string;
+  /** Giá bán (niêm yết). */
   gia: string;
+  /** Giá giảm / khuyến mãi — trống = không giảm. */
+  giaGiam: string;
   /** Còn kinh doanh (`shop_san_pham.dang_ban`). */
   dangBan: boolean;
+  /** Feature (`shop_san_pham.noi_bat`). */
+  noiBat: boolean;
   /** Ảnh mới chờ lưu (đã upload CF). */
   anhId?: string | null;
   anhUrl?: string | null;
@@ -79,6 +93,19 @@ export function ShopKhoClient() {
   /** Dòng vừa sửa gần nhất — nguồn cho Áp dụng hàng loạt. */
   const [lastEditedId, setLastEditedId] = useState<string | null>(null);
   const [bulkApplying, setBulkApplying] = useState(false);
+  const [nhanPhanLoai, setNhanPhanLoai] = useState(SHOP_NHAN_PHAN_LOAI_DEFAULT);
+  const [nhanPhanLoai2, setNhanPhanLoai2] = useState(
+    SHOP_NHAN_PHAN_LOAI_2_DEFAULT,
+  );
+  const [nhanPhanLoaiDraft, setNhanPhanLoaiDraft] = useState(
+    SHOP_NHAN_PHAN_LOAI_DEFAULT,
+  );
+  const [nhanPhanLoai2Draft, setNhanPhanLoai2Draft] = useState(
+    SHOP_NHAN_PHAN_LOAI_2_DEFAULT,
+  );
+  const [savingNhanLoai, setSavingNhanLoai] = useState(false);
+  const [exitConfirmOpen, setExitConfirmOpen] = useState(false);
+  const [exitingSave, setExitingSave] = useState(false);
 
   function exitKhoEditing() {
     setKhoEditing(false);
@@ -89,6 +116,44 @@ export function ShopKhoClient() {
     lastSelectIndexRef.current = null;
     setLastEditedId(null);
     setErr(null);
+    setExitConfirmOpen(false);
+    setNhanPhanLoaiDraft(nhanPhanLoai);
+    setNhanPhanLoai2Draft(nhanPhanLoai2);
+  }
+
+  function enterKhoEditing() {
+    setNhanPhanLoaiDraft(nhanPhanLoai);
+    setNhanPhanLoai2Draft(nhanPhanLoai2);
+    setKhoEditing(true);
+  }
+
+  function countDirtyRows(): number {
+    return products.filter((p) => isRowDirty(p)).length;
+  }
+
+  function requestExitKhoEditing() {
+    if (exitingSave) return;
+    if (countDirtyRows() > 0) {
+      setExitConfirmOpen(true);
+      return;
+    }
+    exitKhoEditing();
+  }
+
+  async function confirmExitSaveAll() {
+    if (exitingSave) return;
+    setExitingSave(true);
+    setErr(null);
+    try {
+      const dirty = products.filter((p) => isRowDirty(p));
+      for (const p of dirty) {
+        const ok = await saveRow(p);
+        if (!ok) return;
+      }
+      exitKhoEditing();
+    } finally {
+      setExitingSave(false);
+    }
   }
 
   useEffect(() => {
@@ -99,6 +164,15 @@ export function ShopKhoClient() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [deleteTargets, deleting]);
+
+  useEffect(() => {
+    if (!exitConfirmOpen) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape" && !exitingSave) setExitConfirmOpen(false);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [exitConfirmOpen, exitingSave]);
 
   useEffect(() => {
     if (!thumbMenuKey) return;
@@ -119,21 +193,14 @@ export function ShopKhoClient() {
       setErr(null);
     }
     try {
-      const [sRes, pRes, bRes] = await Promise.all([
-        fetch("/api/user/ban-hang", { cache: "no-store" }),
+      const [status, pRes, bRes, shopRes] = await Promise.all([
+        fetchBanHangClientStatus(),
         fetch("/api/shop/san-pham", { cache: "no-store" }),
         fetch("/api/shop/bang-gia", { cache: "no-store" }),
+        fetch("/api/shop/cua-hang", { cache: "no-store" }),
       ]);
-      const sJson = (await sRes.json().catch(() => null)) as {
-        enabled?: boolean;
-        error?: string;
-      } | null;
-      if (!sRes.ok) {
-        setErr(sJson?.error ?? "Không tải được.");
-        return;
-      }
-      setEnabled(sJson?.enabled === true);
-      if (!sJson?.enabled) return;
+      setEnabled(status.enabled);
+      if (!status.enabled) return;
 
       const pJson = (await pRes.json().catch(() => null)) as {
         items?: ShopSanPham[];
@@ -141,16 +208,84 @@ export function ShopKhoClient() {
       const bJson = (await bRes.json().catch(() => null)) as {
         items?: ShopBangGia[];
       } | null;
+      const shopJson = (await shopRes.json().catch(() => null)) as {
+        shop?: ShopCuaHang | null;
+      } | null;
       setProducts(pJson?.items ?? []);
       const lists = bJson?.items ?? [];
       setPriceLists(lists);
       if (lists[0] && !bangGiaId) setBangGiaId(lists[0].id);
+      const label1 = resolveShopNhanPhanLoai(shopJson?.shop);
+      const label2 = resolveShopNhanPhanLoai2(shopJson?.shop);
+      setNhanPhanLoai(label1);
+      setNhanPhanLoai2(label2);
+      setNhanPhanLoaiDraft(label1);
+      setNhanPhanLoai2Draft(label2);
     } catch {
       setErr("Không tải được kho.");
     } finally {
       if (!silent) setLoading(false);
     }
   }, [bangGiaId]);
+
+  const saveNhanPhanLoai = useCallback(
+    async (which: 1 | 2) => {
+      const nextRaw =
+        which === 1 ? nhanPhanLoaiDraft.trim() : nhanPhanLoai2Draft.trim();
+      const current = which === 1 ? nhanPhanLoai : nhanPhanLoai2;
+      const fallback =
+        which === 1
+          ? SHOP_NHAN_PHAN_LOAI_DEFAULT
+          : SHOP_NHAN_PHAN_LOAI_2_DEFAULT;
+      const resolved = nextRaw || fallback;
+      if (resolved === current) {
+        if (which === 1) setNhanPhanLoaiDraft(current);
+        else setNhanPhanLoai2Draft(current);
+        return;
+      }
+      setSavingNhanLoai(true);
+      setErr(null);
+      try {
+        const body =
+          which === 1
+            ? { nhanPhanLoai: nextRaw || null }
+            : { nhanPhanLoai2: nextRaw || null };
+        const res = await fetch("/api/shop/cua-hang", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        const json = (await res.json().catch(() => null)) as {
+          shop?: ShopCuaHang | null;
+          error?: string;
+        } | null;
+        if (!res.ok) {
+          setErr(json?.error ?? "Không lưu được tên phân loại.");
+          if (which === 1) setNhanPhanLoaiDraft(nhanPhanLoai);
+          else setNhanPhanLoai2Draft(nhanPhanLoai2);
+          return;
+        }
+        const label1 = resolveShopNhanPhanLoai(json?.shop);
+        const label2 = resolveShopNhanPhanLoai2(json?.shop);
+        setNhanPhanLoai(label1);
+        setNhanPhanLoai2(label2);
+        setNhanPhanLoaiDraft(label1);
+        setNhanPhanLoai2Draft(label2);
+      } catch {
+        setErr("Không lưu được tên phân loại.");
+        if (which === 1) setNhanPhanLoaiDraft(nhanPhanLoai);
+        else setNhanPhanLoai2Draft(nhanPhanLoai2);
+      } finally {
+        setSavingNhanLoai(false);
+      }
+    },
+    [
+      nhanPhanLoai,
+      nhanPhanLoai2,
+      nhanPhanLoaiDraft,
+      nhanPhanLoai2Draft,
+    ],
+  );
 
   useEffect(() => {
     void load();
@@ -240,8 +375,17 @@ export function ShopKhoClient() {
   const someFilteredSelected =
     filteredProducts.some((p) => selectedIdSet.has(p.id)) && !allFilteredSelected;
 
+  const featureCount = useMemo(
+    () =>
+      products.filter((p) => {
+        const d = drafts[p.id];
+        return d ? d.noiBat : p.noiBat === true;
+      }).length,
+    [products, drafts],
+  );
+
   const applySelect = useCallback(
-    (id: string, index: number, shiftKey: boolean, checked: boolean) => {
+    (id: string, index: number, shiftKey: boolean) => {
       setSelectedIds((prev) => {
         if (shiftKey && lastSelectIndexRef.current != null) {
           const a = Math.min(lastSelectIndexRef.current, index);
@@ -253,10 +397,10 @@ export function ShopKhoClient() {
           }
           return [...next];
         }
-        if (checked) {
-          return prev.includes(id) ? prev : [...prev, id];
-        }
-        return prev.filter((x) => x !== id);
+        /* Không Shift: bỏ selection cũ, chỉ giữ ô vừa pick.
+           Click lại đúng ô đang chọn duy nhất → bỏ chọn. */
+        if (prev.length === 1 && prev[0] === id) return [];
+        return [id];
       });
       if (!shiftKey) lastSelectIndexRef.current = index;
     },
@@ -293,9 +437,9 @@ export function ShopKhoClient() {
   }
 
   function filterLoaiLabel(): string {
-    if (filterLoai.length === 0) return "Tất cả phân loại";
+    if (filterLoai.length === 0) return `Tất cả ${nhanPhanLoai.toLowerCase()}`;
     const labels = filterLoai.map((k) =>
-      k === "__none__" ? "Chưa phân loại" : k,
+      k === "__none__" ? `Chưa có ${nhanPhanLoai.toLowerCase()}` : k,
     );
     if (labels.length <= 2) return labels.join(", ");
     return `Đã chọn ${labels.length} loại`;
@@ -346,7 +490,7 @@ export function ShopKhoClient() {
     return Number.isFinite(n) && n >= 0 ? n : null;
   }
 
-  function resolveGiaBienThe(idBienThe: string | undefined): number | null {
+  function resolveDongBienThe(idBienThe: string | undefined) {
     if (!idBienThe) return null;
     // Chỉ lấy giá trong bảng đang chọn — không fallback sang bảng khác
     // (tránh hiện 35.000 IDR khi bảng IDR chưa có dòng, giá thật thuộc bảng VND).
@@ -354,25 +498,40 @@ export function ShopKhoClient() {
       ? priceLists.find((b) => b.id === bangGiaId)
       : priceLists[0];
     if (!bg) return null;
-    const d = bg.dong.find((x) => x.idBienThe === idBienThe);
+    return bg.dong.find((x) => x.idBienThe === idBienThe) ?? null;
+  }
+
+  function resolveGiaBienThe(idBienThe: string | undefined): number | null {
+    const d = resolveDongBienThe(idBienThe);
     return d ? d.gia : null;
+  }
+
+  function resolveGiaGiamBienThe(
+    idBienThe: string | undefined,
+  ): number | null {
+    const d = resolveDongBienThe(idBienThe);
+    return d?.giaGiam ?? null;
   }
 
   function baseDraftForProduct(p: ShopSanPham): RowDraft {
     const bt = p.bienThe[0];
-    const giaDong = resolveGiaBienThe(bt?.id);
+    const dong = resolveDongBienThe(bt?.id);
     return {
       ten: p.ten ?? "",
       phanLoai: p.phanLoai ?? "",
       phanLoai2: p.phanLoai2 ?? "",
       ton: String(bt?.soLuongTon ?? 0),
-      gia: giaDong != null ? String(giaDong) : "",
+      gia: dong != null ? String(dong.gia) : "",
+      giaGiam: dong?.giaGiam != null ? String(dong.giaGiam) : "",
       dangBan: p.dangBan !== false,
+      noiBat: p.noiBat === true,
     };
   }
 
   function getDraft(p: ShopSanPham): RowDraft {
-    return drafts[p.id] ?? baseDraftForProduct(p);
+    const base = baseDraftForProduct(p);
+    const d = drafts[p.id];
+    return d ? { ...base, ...d } : base;
   }
 
   function patchDraft(id: string, patch: Partial<RowDraft>, base: RowDraft) {
@@ -395,7 +554,11 @@ export function ShopKhoClient() {
     }
     if (d.ton.trim() !== base.ton.trim()) patch.ton = d.ton;
     if (parseGiaInput(d.gia) !== parseGiaInput(base.gia)) patch.gia = d.gia;
+    if (parseGiaInput(d.giaGiam) !== parseGiaInput(base.giaGiam)) {
+      patch.giaGiam = d.giaGiam;
+    }
     if (d.dangBan !== base.dangBan) patch.dangBan = d.dangBan;
+    if (d.noiBat !== base.noiBat) patch.noiBat = d.noiBat;
     if (d.anhId !== undefined) {
       patch.anhId = d.anhId;
       patch.anhUrl = d.anhUrl ?? null;
@@ -406,11 +569,13 @@ export function ShopKhoClient() {
   function describeChangedFields(patch: Partial<RowDraft>): string {
     const labels: string[] = [];
     if (patch.ten !== undefined) labels.push("tên");
-    if (patch.phanLoai !== undefined) labels.push("phân loại");
-    if (patch.phanLoai2 !== undefined) labels.push("phân loại 2");
+    if (patch.phanLoai !== undefined) labels.push(nhanPhanLoai.toLowerCase());
+    if (patch.phanLoai2 !== undefined) labels.push(nhanPhanLoai2.toLowerCase());
     if (patch.ton !== undefined) labels.push("tồn");
-    if (patch.gia !== undefined) labels.push("giá");
+    if (patch.gia !== undefined) labels.push("giá bán");
+    if (patch.giaGiam !== undefined) labels.push("giá giảm");
     if (patch.dangBan !== undefined) labels.push("tình trạng");
+    if (patch.noiBat !== undefined) labels.push("ngôi sao");
     if (patch.anhId !== undefined) labels.push("ảnh");
     return labels.join(", ");
   }
@@ -425,7 +590,9 @@ export function ShopKhoClient() {
       d.phanLoai2.trim() !== base.phanLoai2.trim() ||
       d.ton.trim() !== base.ton.trim() ||
       parseGiaInput(d.gia) !== parseGiaInput(base.gia) ||
-      d.dangBan !== base.dangBan
+      parseGiaInput(d.giaGiam) !== parseGiaInput(base.giaGiam) ||
+      d.dangBan !== base.dangBan ||
+      d.noiBat !== base.noiBat
     );
   }
 
@@ -478,7 +645,7 @@ export function ShopKhoClient() {
 
   async function saveGiaForBienThe(
     idBienThe: string,
-    giaNum: number,
+    next: { gia: number; giaGiam: number | null },
     lists: ShopBangGia[] = priceLists,
   ): Promise<boolean> {
     const targetBang = await ensureBangGiaId(lists);
@@ -487,8 +654,16 @@ export function ShopKhoClient() {
       lists.find((b) => b.id === targetBang) ??
       priceLists.find((b) => b.id === targetBang);
     const dong = [
-      ...(bg?.dong.filter((d) => d.idBienThe !== idBienThe) ?? []),
-      { idBienThe, gia: giaNum },
+      ...(bg?.dong.filter((d) => d.idBienThe !== idBienThe) ?? []).map((d) => ({
+        idBienThe: d.idBienThe,
+        gia: d.gia,
+        giaGiam: d.giaGiam ?? null,
+      })),
+      {
+        idBienThe,
+        gia: next.gia,
+        giaGiam: next.giaGiam,
+      },
     ];
     const res = await fetch(`/api/shop/bang-gia/${targetBang}`, {
       method: "PATCH",
@@ -667,7 +842,7 @@ export function ShopKhoClient() {
   async function handleAddImages(files: File[]) {
     const list = files.filter((f) => f.size > 0);
     if (list.length === 0) return;
-    if (!khoEditing) setKhoEditing(true);
+    if (!khoEditing) enterKhoEditing();
 
     setSaving(true);
     setUploading(true);
@@ -732,7 +907,7 @@ export function ShopKhoClient() {
   }
 
   async function createBlankProduct() {
-    if (!khoEditing) setKhoEditing(true);
+    if (!khoEditing) enterKhoEditing();
     setSaving(true);
     setErr(null);
     try {
@@ -823,9 +998,34 @@ export function ShopKhoClient() {
     const giaRaw = draft.gia.trim();
     const giaNum = giaRaw ? parseGiaInput(giaRaw) : null;
     if (giaRaw && giaNum == null) {
-      setErr("Giá không hợp lệ.");
+      setErr("Giá bán không hợp lệ.");
       return false;
     }
+    const giaGiamRaw = draft.giaGiam.trim();
+    const giaGiamNum = giaGiamRaw ? parseGiaInput(giaGiamRaw) : null;
+    if (giaGiamRaw && giaGiamNum == null) {
+      setErr("Giá giảm không hợp lệ.");
+      return false;
+    }
+    const oldGia = resolveGiaBienThe(bt.id);
+    const oldGiaGiam = resolveGiaGiamBienThe(bt.id);
+    const nextGia = giaNum ?? oldGia;
+    const nextGiaGiam = giaGiamRaw ? giaGiamNum : null;
+    if (giaGiamRaw && nextGia == null) {
+      setErr("Cần có giá bán trước khi nhập giá giảm.");
+      return false;
+    }
+    if (
+      nextGia != null &&
+      nextGiaGiam != null &&
+      nextGiaGiam > nextGia
+    ) {
+      setErr("Giá giảm không được cao hơn giá bán.");
+      return false;
+    }
+    const giaChanged =
+      (giaNum != null && giaNum !== oldGia) ||
+      (giaGiamRaw ? giaGiamNum !== oldGiaGiam : oldGiaGiam != null);
 
     setSavingId(p.id);
     setErr(null);
@@ -835,6 +1035,7 @@ export function ShopKhoClient() {
         phanLoai: draft.phanLoai.trim() || null,
         phanLoai2: draft.phanLoai2.trim() || null,
         dangBan: draft.dangBan,
+        noiBat: draft.noiBat,
       };
       if (draft.anhId !== undefined) {
         patchBody.anhId = draft.anhId;
@@ -869,9 +1070,11 @@ export function ShopKhoClient() {
         }
       }
 
-      const oldGia = resolveGiaBienThe(bt.id);
-      if (giaNum != null && giaNum !== oldGia) {
-        const ok = await saveGiaForBienThe(bt.id, giaNum);
+      if (giaChanged && nextGia != null) {
+        const ok = await saveGiaForBienThe(bt.id, {
+          gia: nextGia,
+          giaGiam: nextGiaGiam,
+        });
         if (!ok) return false;
       }
 
@@ -920,16 +1123,33 @@ export function ShopKhoClient() {
       return;
     }
 
-    setBulkApplying(true);
-    setErr(null);
-
     const applyTen = changed.ten !== undefined;
     const applyPhan = changed.phanLoai !== undefined;
     const applyPhan2 = changed.phanLoai2 !== undefined;
     const applyDangBan = changed.dangBan !== undefined;
+    const applyNoiBat = changed.noiBat !== undefined;
     const applyAnh = changed.anhId !== undefined;
     const applyTon = changed.ton !== undefined;
     const applyGia = changed.gia !== undefined;
+    const applyGiaGiam = changed.giaGiam !== undefined;
+
+    if (applyNoiBat && changed.noiBat === true) {
+      const already = products.filter((p) => {
+        if (selectedIdSet.has(p.id) || p.id === source.id) return false;
+        const d = drafts[p.id];
+        return d ? d.noiBat : p.noiBat === true;
+      }).length;
+      const applying = 1 + targets.length; // source + targets
+      if (already + applying > SHOP_FEATURE_MAX) {
+        setErr(
+          `Chỉ được gắn ngôi sao tối đa ${SHOP_FEATURE_MAX} sản phẩm (đang còn ${Math.max(0, SHOP_FEATURE_MAX - already)} chỗ).`,
+        );
+        return;
+      }
+    }
+
+    setBulkApplying(true);
+    setErr(null);
 
     let tonNum: number | null = null;
     if (applyTon) {
@@ -945,7 +1165,53 @@ export function ShopKhoClient() {
     if (applyGia) {
       giaNum = parseGiaInput(changed.gia!);
       if (giaNum == null) {
-        setErr("Giá trên dòng nguồn không hợp lệ.");
+        setErr("Giá bán trên dòng nguồn không hợp lệ.");
+        setBulkApplying(false);
+        return;
+      }
+    }
+
+    let giaGiamNum: number | null = null;
+    let clearGiaGiam = false;
+    if (applyGiaGiam) {
+      const raw = changed.giaGiam!.trim();
+      if (!raw) {
+        clearGiaGiam = true;
+        giaGiamNum = null;
+      } else {
+        giaGiamNum = parseGiaInput(raw);
+        if (giaGiamNum == null) {
+          setErr("Giá giảm trên dòng nguồn không hợp lệ.");
+          setBulkApplying(false);
+          return;
+        }
+      }
+    }
+
+    let bulkSourceGia: number | null = null;
+    let bulkSourceGiaGiam: number | null = null;
+    if (applyGia || applyGiaGiam) {
+      const sourceDraft = getDraft(source);
+      bulkSourceGia =
+        giaNum ??
+        parseGiaInput(sourceDraft.gia) ??
+        resolveGiaBienThe(source.bienThe[0]?.id);
+      bulkSourceGiaGiam = applyGiaGiam
+        ? clearGiaGiam
+          ? null
+          : giaGiamNum
+        : (parseGiaInput(sourceDraft.giaGiam) ??
+          resolveGiaGiamBienThe(source.bienThe[0]?.id));
+      if (bulkSourceGia == null) {
+        setErr("Cần có giá bán trước khi áp dụng giá.");
+        setBulkApplying(false);
+        return;
+      }
+      if (
+        bulkSourceGiaGiam != null &&
+        bulkSourceGiaGiam > bulkSourceGia
+      ) {
+        setErr("Giá giảm không được cao hơn giá bán.");
         setBulkApplying(false);
         return;
       }
@@ -965,6 +1231,7 @@ export function ShopKhoClient() {
         productPatch.phanLoai2 = changed.phanLoai2!.trim() || null;
       }
       if (applyDangBan) productPatch.dangBan = changed.dangBan;
+      if (applyNoiBat) productPatch.noiBat = changed.noiBat;
       if (applyAnh) productPatch.anhId = changed.anhId;
 
       if (Object.keys(productPatch).length > 0) {
@@ -1010,7 +1277,7 @@ export function ShopKhoClient() {
         }
       }
 
-      if (applyGia && giaNum != null) {
+      if ((applyGia || applyGiaGiam) && bulkSourceGia != null) {
         const targetBang = await ensureBangGiaId(priceLists);
         if (!targetBang) return;
         const bg =
@@ -1024,8 +1291,23 @@ export function ShopKhoClient() {
         ].filter((id): id is string => Boolean(id));
         const keep = new Set(applyBtIds);
         const dong = [
-          ...(bg?.dong.filter((d) => !keep.has(d.idBienThe)) ?? []),
-          ...applyBtIds.map((idBienThe) => ({ idBienThe, gia: giaNum })),
+          ...(bg?.dong.filter((d) => !keep.has(d.idBienThe)) ?? []).map(
+            (d) => ({
+              idBienThe: d.idBienThe,
+              gia: d.gia,
+              giaGiam: d.giaGiam ?? null,
+            }),
+          ),
+          ...applyBtIds.map((idBienThe) => {
+            const existing = bg?.dong.find((d) => d.idBienThe === idBienThe);
+            return {
+              idBienThe,
+              gia: applyGia ? bulkSourceGia : (existing?.gia ?? bulkSourceGia),
+              giaGiam: applyGiaGiam
+                ? bulkSourceGiaGiam
+                : (existing?.giaGiam ?? null),
+            };
+          }),
         ];
         const res = await fetch(`/api/shop/bang-gia/${targetBang}`, {
           method: "PATCH",
@@ -1085,8 +1367,12 @@ export function ShopKhoClient() {
 
   if (loading) {
     return (
-      <div className="shop-dash-loading">
-        <Loader2 className="shop-spin" size={20} /> Đang tải…
+      <div className="shop-dash">
+        <ShopDashTabs active="kho" />
+        <div className="shop-dash-loading" aria-busy="true">
+          <Loader2 className="shop-spin" size={20} aria-hidden />
+          Đang tải…
+        </div>
       </div>
     );
   }
@@ -1361,7 +1647,7 @@ export function ShopKhoClient() {
                     className={`shop-filter-dropdown-trigger${filterLoai.length > 0 ? " is-active" : ""}${filterMenuOpen ? " is-open" : ""}`}
                     aria-expanded={filterMenuOpen}
                     aria-haspopup="listbox"
-                    aria-label="Lọc theo phân loại"
+                    aria-label={`Lọc theo ${nhanPhanLoai.toLowerCase()}`}
                     onClick={() => setFilterMenuOpen((o) => !o)}
                   >
                     <span>{filterLoaiLabel()}</span>
@@ -1372,7 +1658,7 @@ export function ShopKhoClient() {
                       className="shop-filter-dropdown-panel"
                       role="listbox"
                       aria-multiselectable
-                      aria-label="Chọn phân loại"
+                      aria-label={`Chọn ${nhanPhanLoai.toLowerCase()}`}
                     >
                       <label className="shop-filter-dropdown-opt">
                         <input
@@ -1399,7 +1685,7 @@ export function ShopKhoClient() {
                             checked={filterLoai.includes("__none__")}
                             onChange={() => toggleFilterLoai("__none__")}
                           />
-                          <span>Chưa phân loại</span>
+                          <span>Chưa có {nhanPhanLoai.toLowerCase()}</span>
                         </label>
                       ) : null}
                     </div>
@@ -1409,7 +1695,7 @@ export function ShopKhoClient() {
                 <div
                   className="shop-filter-chips"
                   role="group"
-                  aria-label="Lọc theo phân loại"
+                  aria-label={`Lọc theo ${nhanPhanLoai.toLowerCase()}`}
                 >
                   <button
                     type="button"
@@ -1437,7 +1723,7 @@ export function ShopKhoClient() {
                       aria-pressed={filterLoai.includes("__none__")}
                       onClick={() => toggleFilterLoai("__none__")}
                     >
-                      Chưa phân loại
+                      Chưa có {nhanPhanLoai.toLowerCase()}
                     </button>
                   ) : null}
                 </div>
@@ -1487,9 +1773,10 @@ export function ShopKhoClient() {
                 type="button"
                 className={`shop-dash-kho-edit-btn${khoEditing ? " is-active" : ""}`}
                 aria-pressed={khoEditing}
+                disabled={exitingSave}
                 onClick={() => {
-                  if (khoEditing) exitKhoEditing();
-                  else setKhoEditing(true);
+                  if (khoEditing) requestExitKhoEditing();
+                  else enterKhoEditing();
                 }}
               >
                 {khoEditing ? (
@@ -1532,11 +1819,63 @@ export function ShopKhoClient() {
                 <th scope="col" className="shop-grid-col-name">
                   Tên sản phẩm
                 </th>
-                <th scope="col" className="shop-grid-col-loai">
-                  Phân loại
+                <th
+                  scope="col"
+                  className="shop-grid-col-feature"
+                  title={`Tối đa ${SHOP_FEATURE_MAX} sản phẩm ngôi sao`}
+                >
+                  <span className="shop-grid-col-feature-head">
+                    <Star size={14} strokeWidth={2.25} aria-hidden />
+                    <span className="shop-feature-count">
+                      {featureCount}/{SHOP_FEATURE_MAX}
+                    </span>
+                  </span>
                 </th>
                 <th scope="col" className="shop-grid-col-loai">
-                  Phân loại 2
+                  {khoEditing ? (
+                    <input
+                      className="shop-grid-col-rename"
+                      value={nhanPhanLoaiDraft}
+                      maxLength={40}
+                      disabled={savingNhanLoai}
+                      aria-label="Đổi tên cột phân loại"
+                      title="Đổi tên cột này"
+                      placeholder={SHOP_NHAN_PHAN_LOAI_DEFAULT}
+                      onChange={(e) => setNhanPhanLoaiDraft(e.target.value)}
+                      onBlur={() => void saveNhanPhanLoai(1)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          (e.target as HTMLInputElement).blur();
+                        }
+                      }}
+                    />
+                  ) : (
+                    nhanPhanLoai
+                  )}
+                </th>
+                <th scope="col" className="shop-grid-col-loai">
+                  {khoEditing ? (
+                    <input
+                      className="shop-grid-col-rename"
+                      value={nhanPhanLoai2Draft}
+                      maxLength={40}
+                      disabled={savingNhanLoai}
+                      aria-label="Đổi tên cột phân loại 2"
+                      title="Đổi tên cột này"
+                      placeholder={SHOP_NHAN_PHAN_LOAI_2_DEFAULT}
+                      onChange={(e) => setNhanPhanLoai2Draft(e.target.value)}
+                      onBlur={() => void saveNhanPhanLoai(2)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          (e.target as HTMLInputElement).blur();
+                        }
+                      }}
+                    />
+                  ) : (
+                    nhanPhanLoai2
+                  )}
                 </th>
                 <th scope="col" className="shop-grid-col-ton">
                   <button
@@ -1574,7 +1913,10 @@ export function ShopKhoClient() {
                   </button>
                 </th>
                 <th scope="col" className="shop-grid-col-gia">
-                  Giá ({currentTienTe()})
+                  Giá bán
+                </th>
+                <th scope="col" className="shop-grid-col-gia-giam">
+                  Giá giảm
                 </th>
                 <th scope="col" className="shop-grid-col-status">
                   Tình trạng
@@ -1589,7 +1931,7 @@ export function ShopKhoClient() {
             <tbody>
               {filteredProducts.length === 0 ? (
                 <tr className="shop-grid-row shop-grid-row--empty">
-                  <td colSpan={khoEditing ? 9 : 7}>
+                  <td colSpan={khoEditing ? 11 : 9}>
                     {products.length === 0
                       ? khoEditing
                         ? "Chưa có sản phẩm — bấm Thêm để tạo dòng trống."
@@ -1607,6 +1949,7 @@ export function ShopKhoClient() {
                   const rowSaving = savingId === p.id;
                   const rowFileId = `shop-row-thumb-${p.id}`;
                   const giaHienThi = resolveGiaBienThe(bt?.id);
+                  const giaGiamHienThi = resolveGiaGiamBienThe(bt?.id);
                   const dangBanHienThi = khoEditing
                     ? draft.dangBan
                     : p.dangBan !== false;
@@ -1630,10 +1973,12 @@ export function ShopKhoClient() {
                     [
                       "anhId",
                       "ten",
+                      "noiBat",
                       "phanLoai",
                       "phanLoai2",
                       "ton",
                       "gia",
+                      "giaGiam",
                       "dangBan",
                     ] as const
                   ).find(
@@ -1670,7 +2015,17 @@ export function ShopKhoClient() {
                       className={`shop-grid-row${dirty && khoEditing ? " is-dirty" : ""}${!dangBanHienThi ? " is-ngung-ban" : ""}${isSelected && khoEditing ? " is-selected" : ""}${isBulkSource && changedFields ? " is-bulk-source" : ""}`}
                     >
                       {khoEditing ? (
-                        <td className="shop-grid-col-check">
+                        <td
+                          className="shop-grid-col-check"
+                          onClick={(e) => {
+                            if (rowSaving || bulkApplying || deleting) return;
+                            /* Click padding ô — input tự xử lý qua onChange. */
+                            if ((e.target as HTMLElement).closest("input")) {
+                              return;
+                            }
+                            applySelect(p.id, rowIndex, e.shiftKey);
+                          }}
+                        >
                           <input
                             type="checkbox"
                             checked={isSelected}
@@ -1679,12 +2034,11 @@ export function ShopKhoClient() {
                             onMouseDown={(e) => {
                               shiftHeldRef.current = e.shiftKey;
                             }}
-                            onChange={(e) => {
+                            onChange={() => {
                               applySelect(
                                 p.id,
                                 rowIndex,
                                 shiftHeldRef.current,
-                                e.target.checked,
                               );
                               shiftHeldRef.current = false;
                             }}
@@ -1873,6 +2227,83 @@ export function ShopKhoClient() {
                         ) : null}
                       </td>
                       <td
+                        className={`shop-grid-col-feature${cellChanged("noiBat")}`}
+                        title={
+                          cellChanged("noiBat")
+                            ? "Ô đã sửa — sẽ áp dụng khi bấm Áp dụng"
+                            : undefined
+                        }
+                      >
+                        {cellApplyBtn("noiBat")}
+                        {!khoEditing ? (
+                          p.noiBat ? (
+                            <span
+                              className="shop-feature-badge"
+                              title="Ngôi sao"
+                              aria-label="Ngôi sao"
+                            >
+                              <Star size={13} strokeWidth={2.25} fill="currentColor" aria-hidden />
+                            </span>
+                          ) : (
+                            <span className="shop-grid-readonly-val">—</span>
+                          )
+                        ) : (
+                          <label
+                            className={`shop-feature-toggle${
+                              !draft.noiBat && featureCount >= SHOP_FEATURE_MAX
+                                ? " is-capped"
+                                : ""
+                            }`}
+                            title={
+                              !draft.noiBat && featureCount >= SHOP_FEATURE_MAX
+                                ? `Đã đủ ${SHOP_FEATURE_MAX} ngôi sao — bỏ chọn một mục khác trước`
+                                : draft.noiBat
+                                  ? "Bỏ ngôi sao"
+                                  : "Gắn ngôi sao"
+                            }
+                          >
+                            <input
+                              type="checkbox"
+                              checked={draft.noiBat}
+                              disabled={
+                                rowSaving ||
+                                (!draft.noiBat &&
+                                  featureCount >= SHOP_FEATURE_MAX)
+                              }
+                              aria-label={`Ngôi sao ${p.ten}`}
+                              onChange={(e) => {
+                                const next = e.target.checked;
+                                if (next) {
+                                  const others = products.filter((x) => {
+                                    if (x.id === p.id) return false;
+                                    const d = drafts[x.id];
+                                    return d ? d.noiBat : x.noiBat === true;
+                                  }).length;
+                                  if (others >= SHOP_FEATURE_MAX) {
+                                    setErr(
+                                      `Chỉ được gắn ngôi sao tối đa ${SHOP_FEATURE_MAX} sản phẩm.`,
+                                    );
+                                    return;
+                                  }
+                                }
+                                setErr(null);
+                                patchDraft(
+                                  p.id,
+                                  { noiBat: next },
+                                  baseDraftForProduct(p),
+                                );
+                              }}
+                            />
+                            <Star
+                              size={14}
+                              strokeWidth={2.25}
+                              fill={draft.noiBat ? "currentColor" : "none"}
+                              aria-hidden
+                            />
+                          </label>
+                        )}
+                      </td>
+                      <td
                         className={`shop-grid-col-loai${cellChanged("phanLoai")}`}
                         title={
                           cellChanged("phanLoai")
@@ -1891,7 +2322,7 @@ export function ShopKhoClient() {
                           value={draft.phanLoai}
                           options={categoryOptions}
                           placeholder="—"
-                          aria-label={`Phân loại ${p.ten}`}
+                          aria-label={`${nhanPhanLoai} ${p.ten}`}
                           disabled={rowSaving}
                           onChange={(v) =>
                             patchDraft(
@@ -1922,7 +2353,7 @@ export function ShopKhoClient() {
                           value={draft.phanLoai2}
                           options={categoryOptions2}
                           placeholder="—"
-                          aria-label={`Phân loại 2 ${p.ten}`}
+                          aria-label={`${nhanPhanLoai2} ${p.ten}`}
                           disabled={rowSaving}
                           onChange={(v) =>
                             patchDraft(
@@ -1988,11 +2419,53 @@ export function ShopKhoClient() {
                               placeholder="—"
                               inputMode="decimal"
                               disabled={rowSaving}
-                              aria-label={`Giá ${p.ten} (${currentTienTe()})`}
+                              aria-label={`Giá bán ${p.ten} (${currentTienTe()})`}
                               onChange={(e) =>
                                 patchDraft(
                                   p.id,
                                   { gia: e.target.value },
+                                  baseDraftForProduct(p),
+                                )
+                              }
+                            />
+                            <span
+                              className="shop-tien-te-badge"
+                              title="Theo bảng giá đang chọn"
+                            >
+                              {currentTienTe()}
+                            </span>
+                          </div>
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+                      <td
+                        className={`shop-grid-col-gia-giam${cellChanged("giaGiam")}`}
+                        title={
+                          cellChanged("giaGiam")
+                            ? "Ô đã sửa — sẽ áp dụng khi bấm Áp dụng"
+                            : undefined
+                        }
+                      >
+                        {cellApplyBtn("giaGiam")}
+                        {!khoEditing ? (
+                          <span className="shop-grid-readonly-val">
+                            {giaGiamHienThi != null
+                              ? `${giaGiamHienThi.toLocaleString("vi-VN")} ${currentTienTe()}`
+                              : "—"}
+                          </span>
+                        ) : bt ? (
+                          <div className="shop-gia-cell">
+                            <input
+                              value={draft.giaGiam}
+                              placeholder="—"
+                              inputMode="decimal"
+                              disabled={rowSaving}
+                              aria-label={`Giá giảm ${p.ten} (${currentTienTe()})`}
+                              onChange={(e) =>
+                                patchDraft(
+                                  p.id,
+                                  { giaGiam: e.target.value },
                                   baseDraftForProduct(p),
                                 )
                               }
@@ -2154,6 +2627,70 @@ export function ShopKhoClient() {
                     {deleteTargets.length === 1
                       ? "Xóa sản phẩm"
                       : `Xóa ${deleteTargets.length} sản phẩm`}
+                  </button>
+                </div>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
+
+      {exitConfirmOpen && typeof document !== "undefined"
+        ? createPortal(
+            <div
+              className="shop-kho-delete-backdrop"
+              role="presentation"
+              onMouseDown={(e) => {
+                if (e.target === e.currentTarget && !exitingSave) {
+                  setExitConfirmOpen(false);
+                }
+              }}
+            >
+              <div
+                className="shop-kho-delete-dialog"
+                role="alertdialog"
+                aria-modal="true"
+                aria-labelledby="shop-kho-exit-title"
+                aria-describedby="shop-kho-exit-desc"
+                onMouseDown={(e) => e.stopPropagation()}
+              >
+                <div className="shop-kho-exit-icon" aria-hidden>
+                  <Save size={20} strokeWidth={2.2} />
+                </div>
+                <h3 id="shop-kho-exit-title">Lưu thay đổi?</h3>
+                <p id="shop-kho-exit-desc" className="shop-kho-delete-desc">
+                  Còn {countDirtyRows()} sản phẩm chưa lưu. Bạn muốn lưu hết trước
+                  khi thoát chế độ sửa không?
+                </p>
+                <div className="shop-kho-delete-actions">
+                  <button
+                    type="button"
+                    className="shop-kho-delete-cancel"
+                    disabled={exitingSave}
+                    onClick={() => setExitConfirmOpen(false)}
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    type="button"
+                    className="shop-kho-exit-discard"
+                    disabled={exitingSave}
+                    onClick={() => exitKhoEditing()}
+                  >
+                    Không lưu
+                  </button>
+                  <button
+                    type="button"
+                    className="shop-kho-exit-save"
+                    disabled={exitingSave}
+                    onClick={() => void confirmExitSaveAll()}
+                  >
+                    {exitingSave ? (
+                      <Loader2 className="shop-spin" size={16} aria-hidden />
+                    ) : (
+                      <Save size={15} strokeWidth={2.25} aria-hidden />
+                    )}
+                    Lưu hết
                   </button>
                 </div>
               </div>

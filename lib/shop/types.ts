@@ -43,15 +43,31 @@ export type ShopSanPham = {
   /** Nhãn phân loại thứ hai (`shop_san_pham.phan_loai_2`). */
   phanLoai2: string | null;
   dangBan: boolean;
+  /** Feature / nổi bật (`shop_san_pham.noi_bat`). */
+  noiBat: boolean;
   bienThe: ShopBienThe[];
   taoLuc: string;
 };
 
+/** Tối đa sản phẩm được đánh Feature trên một cửa hàng. */
+export const SHOP_FEATURE_MAX = 4;
+
 export type ShopBangGiaDong = {
   id: string;
   idBienThe: string;
+  /** Giá bán (niêm yết). */
   gia: number;
+  /** Giá giảm / khuyến mãi — null = không giảm. */
+  giaGiam: number | null;
 };
+
+/** Giá khách trả: ưu tiên `giaGiam` nếu có. */
+export function shopGiaHieuLuc(dong: {
+  gia: number;
+  giaGiam?: number | null;
+}): number {
+  return dong.giaGiam != null ? dong.giaGiam : dong.gia;
+}
 
 export type ShopBangGia = {
   id: string;
@@ -74,11 +90,44 @@ export type ShopPostHangItem = {
   phanLoai2: string | null;
   anhUrl: string | null;
   soLuongTon: number;
+  /** Tổng số lượng đã bán (dòng đơn đã trừ kho). */
+  soLuongBan: number;
   giaHienThi: number;
   tienTe: string;
   idBangGia: string | null;
   thuTu: number;
   hetHang: boolean;
+};
+
+/** Card sản phẩm trên storefront `/{slug}/shop` — catalog đang bán. */
+export type ShopStorefrontItem = {
+  sanPhamId: string;
+  /** Biến thể dùng để hiện giá / thêm giỏ (giá tốt nhất). */
+  idBienThe: string | null;
+  /** Có khi biến thể còn gắn kiosk public — link bài (tuỳ chọn). */
+  hangId: string | null;
+  idCotMoc: string | null;
+  postHref: string | null;
+  tenSanPham: string;
+  nhanBienThe: string | null;
+  anhUrl: string | null;
+  /** Null nếu chưa có dòng giá trong bảng giá nào. Giá khách trả (ưu tiên giảm). */
+  giaHienThi: number | null;
+  /**
+   * Giá bán niêm yết khi đang giảm — hiện gạch ngang.
+   * Null = không giảm (chỉ hiện `giaHienThi`).
+   */
+  giaGoc: number | null;
+  tienTe: string;
+  /** Tồn biến thể đang hiện giá (không phải tổng mọi biến thể). */
+  soLuongTon: number;
+  /** Tổng SL đã bán của biến thể đang hiện. */
+  soLuongBan: number;
+  hetHang: boolean;
+  noiBat: boolean;
+  /** Phân loại 1 — dùng group layout mặt tiền. */
+  phanLoai: string | null;
+  phanLoai2: string | null;
 };
 
 export type ShopGioDong = {
@@ -94,7 +143,10 @@ export type ShopGioDong = {
 
 export type ShopGio = {
   id: string | null;
-  idCotMoc: string;
+  /** Giỏ theo post-kiosk — null khi giỏ storefront. */
+  idCotMoc: string | null;
+  /** Giỏ theo cửa hàng — null khi giỏ post-kiosk. */
+  idCuaHang: string | null;
   dong: ShopGioDong[];
   tongTien: number;
   tienTe: string;
@@ -114,6 +166,72 @@ export type ShopDonHangDong = {
   /** Phân loại 2 sản phẩm hiện tại (`shop_san_pham.phan_loai_2`). */
   phanLoai2?: string | null;
 };
+
+/** Snapshot STK/QR lúc tạo đơn — không đổi khi seller sửa TK sau. */
+export type ShopThanhToanSnapshot = {
+  idPhuongThuc: string | null;
+  nganHang: string;
+  soTaiKhoan: string;
+  tenChuTaiKhoan: string;
+  qrAnhId: string | null;
+  qrAnhUrl: string | null;
+  /** Nội dung chuyển khoản gợi ý (= mã đơn). */
+  noiDungCk: string;
+  tongTien: number;
+  tienTe: string;
+};
+
+export type ShopPhuongThucTt = {
+  id: string;
+  idCuaHang: string;
+  nganHang: string;
+  soTaiKhoan: string;
+  tenChuTaiKhoan: string;
+  qrAnhId: string | null;
+  qrAnhUrl: string | null;
+  macDinh: boolean;
+  kichHoat: boolean;
+  thuTu: number;
+  taoLuc: string;
+};
+
+/** Nhãn trục mặc định khi seller chưa đổi tên cột phân loại. */
+export const SHOP_NHAN_PHAN_LOAI_DEFAULT = "Phân loại";
+export const SHOP_NHAN_PHAN_LOAI_2_DEFAULT = "Phân loại 2";
+
+export type ShopCuaHang = {
+  id: string;
+  idNguoiDung: string;
+  ten: string | null;
+  moTa: string | null;
+  avatarId: string | null;
+  avatarUrl: string | null;
+  coverId: string | null;
+  coverUrl: string | null;
+  chinhSach: string | null;
+  lienHe: string | null;
+  /** Tên cột/trục phân loại 1 (`shop_cua_hang.nhan_phan_loai`). Null → mặc định UI. */
+  nhanPhanLoai: string | null;
+  /** Tên cột/trục phân loại 2 (`shop_cua_hang.nhan_phan_loai_2`). */
+  nhanPhanLoai2: string | null;
+  phuongThucTt: ShopPhuongThucTt[];
+  /** Có ≥1 phương thức nhận tiền đang bật. */
+  sanSangNhanDon: boolean;
+  taoLuc: string;
+  capNhatLuc: string;
+};
+
+export function resolveShopNhanPhanLoai(
+  shop: Pick<ShopCuaHang, "nhanPhanLoai"> | null | undefined,
+): string {
+  return shop?.nhanPhanLoai?.trim() || SHOP_NHAN_PHAN_LOAI_DEFAULT;
+}
+
+export function resolveShopNhanPhanLoai2(
+  shop: Pick<ShopCuaHang, "nhanPhanLoai2"> | null | undefined,
+): string {
+  return shop?.nhanPhanLoai2?.trim() || SHOP_NHAN_PHAN_LOAI_2_DEFAULT;
+}
 
 export type ShopDonHang = {
   id: string;
@@ -138,6 +256,8 @@ export type ShopDonHang = {
   nguoiMuaChapNhanLuc?: string | null;
   nguoiMuaChapNhanVanBan?: string | null;
   nguoiMuaChapNhanPhienBan?: string | null;
+  /** Snapshot nhận tiền lúc tạo đơn (`mua_ngay`). */
+  thanhToanSnapshot?: ShopThanhToanSnapshot | null;
 };
 
 export type ShopQuaySuKien = {

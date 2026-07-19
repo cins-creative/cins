@@ -1,4 +1,4 @@
-import type { LucideIcon } from "lucide-react";
+import { ArrowRight, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
@@ -7,7 +7,7 @@ type ModuleCardProps = {
   title: string;
   /** Pill nhỏ cạnh tiêu đề (vd. «Đang mở»). */
   badge?: string;
-  /** Link "xem tất cả" góc phải header. */
+  /** Link góc phải header — hiện icon mũi tên; `moreLabel` dùng cho aria-label. */
   moreHref?: string;
   moreLabel?: string;
   className?: string;
@@ -31,8 +31,14 @@ export function ModuleCard({
         <span className="ha-card-title">{title}</span>
         {badge ? <span className="ha-card-badge">{badge}</span> : null}
         {moreHref ? (
-          <Link href={moreHref} className="ha-card-more" prefetch={false}>
-            {moreLabel}
+          <Link
+            href={moreHref}
+            className="ha-card-more"
+            prefetch={false}
+            aria-label={moreLabel}
+            title={moreLabel}
+          >
+            <ArrowRight size={16} strokeWidth={2} aria-hidden />
           </Link>
         ) : null}
       </div>

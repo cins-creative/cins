@@ -30,6 +30,7 @@ export async function POST(request: Request) {
   }
   let body: {
     cotMocId?: unknown;
+    cuaHangId?: unknown;
     loaiDon?: unknown;
     idSuKien?: unknown;
     ghiChu?: unknown;
@@ -41,16 +42,32 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json({ error: "JSON không hợp lệ." }, { status: 400 });
   }
-  if (typeof body.cotMocId !== "string") {
-    return NextResponse.json({ error: "Thiếu cotMocId." }, { status: 422 });
+  const cotMocId =
+    typeof body.cotMocId === "string" && body.cotMocId.trim()
+      ? body.cotMocId.trim()
+      : null;
+  const cuaHangId =
+    typeof body.cuaHangId === "string" && body.cuaHangId.trim()
+      ? body.cuaHangId.trim()
+      : null;
+  if ((cotMocId == null) === (cuaHangId == null)) {
+    return NextResponse.json(
+      { error: "Cần cotMocId hoặc cuaHangId." },
+      { status: 422 },
+    );
   }
   const loaiDon = body.loaiDon as ShopLoaiDon;
-  if (loaiDon !== "mua_ngay" && loaiDon !== "dat_truoc_nhan_su_kien") {
-    return NextResponse.json({ error: "loaiDon không hợp lệ." }, { status: 422 });
+  /* Chỉ mua ngay — đặt trước đã gỡ khỏi luồng tạo đơn. */
+  if (loaiDon !== "mua_ngay") {
+    return NextResponse.json(
+      { error: "Chỉ hỗ trợ mua ngay. Hàng hết tồn không đặt trước được." },
+      { status: 422 },
+    );
   }
   try {
     const don = await createDonFromGio(session.profile.id, {
-      cotMocId: body.cotMocId,
+      cotMocId,
+      cuaHangId,
       loaiDon,
       idSuKien: typeof body.idSuKien === "string" ? body.idSuKien : null,
       ghiChu: typeof body.ghiChu === "string" ? body.ghiChu : null,
@@ -65,20 +82,27 @@ export async function POST(request: Request) {
     const msg = e instanceof Error ? e.message : "";
     const map: Record<string, [number, string]> = {
       CART_EMPTY: [422, "Giỏ hàng trống."],
+      CART_SCOPE_REQUIRED: [422, "Cần cotMocId hoặc cuaHangId."],
       CANNOT_BUY_OWN: [422, "Không thể mua hàng của chính mình."],
       BUYER_ACCEPTANCE_REQUIRED: [
         422,
         "Bạn cần xác nhận rủi ro chuyển khoản trước khi gửi đơn.",
       ],
-      STOCK_EMPTY: [
-        422,
-        "Có món hết hàng — chỉ đặt trước được.",
-      ],
+      STOCK_EMPTY: [422, "Có món hết hàng — hãy gỡ khỏi giỏ."],
       STOCK_INSUFFICIENT: [
         422,
-        "Số lượng vượt tồn kho — giảm SL hoặc chọn Đặt trước.",
+        "Số lượng vượt tồn kho — giảm số lượng rồi thử lại.",
+      ],
+      LOAI_DON_UNSUPPORTED: [
+        422,
+        "Chỉ hỗ trợ mua ngay. Hàng hết tồn không đặt trước được.",
       ],
       POST_NOT_FOUND: [404, "Không tìm thấy bài viết."],
+      SHOP_NOT_FOUND: [404, "Không tìm thấy cửa hàng."],
+      PAYMENT_REQUIRED: [
+        422,
+        "Người bán chưa thêm tài khoản nhận tiền — chưa nhận đơn được.",
+      ],
     };
     const hit = map[msg];
     if (hit) {

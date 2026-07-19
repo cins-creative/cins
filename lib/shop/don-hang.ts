@@ -1,6 +1,10 @@
 import "server-only";
 
-import { getGio } from "@/lib/shop/gio";
+import { getGio, getGioCuaHang } from "@/lib/shop/gio";
+import {
+  buildThanhToanSnapshot,
+  getShopCheckoutPayment,
+} from "@/lib/shop/cua-hang";
 import {
   buildShopMaDon,
   isValidShopMaDon,
@@ -17,6 +21,7 @@ import type {
   ShopDonHang,
   ShopDonHangDong,
   ShopLoaiDon,
+  ShopThanhToanSnapshot,
   ShopTrangThaiDon,
 } from "@/lib/shop/types";
 import { SHOP_TRANG_THAI_DON_LABEL } from "@/lib/shop/types";
@@ -40,10 +45,39 @@ type DonRow = {
   nguoi_mua_chap_nhan_luc?: string | null;
   nguoi_mua_chap_nhan_van_ban?: string | null;
   nguoi_mua_chap_nhan_phien_ban?: string | null;
+  thanh_toan_snapshot?: ShopThanhToanSnapshot | null;
 };
 
 const DON_SELECT =
-  "id, ma_don, id_nguoi_mua, id_nguoi_ban, id_cot_moc, id_su_kien, loai_don, trang_thai, tien_te, tong_tien, ghi_chu, da_tru_kho, tao_luc, xac_nhan_luc, nguoi_mua_chap_nhan_luc, nguoi_mua_chap_nhan_van_ban, nguoi_mua_chap_nhan_phien_ban";
+  "id, ma_don, id_nguoi_mua, id_nguoi_ban, id_cot_moc, id_su_kien, loai_don, trang_thai, tien_te, tong_tien, ghi_chu, da_tru_kho, tao_luc, xac_nhan_luc, nguoi_mua_chap_nhan_luc, nguoi_mua_chap_nhan_van_ban, nguoi_mua_chap_nhan_phien_ban, thanh_toan_snapshot";
+
+function normalizeThanhToanSnapshot(
+  raw: unknown,
+): ShopThanhToanSnapshot | null {
+  if (!raw || typeof raw !== "object") return null;
+  const s = raw as Partial<ShopThanhToanSnapshot>;
+  if (
+    typeof s.nganHang !== "string" ||
+    typeof s.soTaiKhoan !== "string" ||
+    typeof s.tenChuTaiKhoan !== "string"
+  ) {
+    return null;
+  }
+  const qrAnhId =
+    typeof s.qrAnhId === "string" && s.qrAnhId.trim() ? s.qrAnhId.trim() : null;
+  return {
+    idPhuongThuc:
+      typeof s.idPhuongThuc === "string" ? s.idPhuongThuc : null,
+    nganHang: s.nganHang,
+    soTaiKhoan: s.soTaiKhoan,
+    tenChuTaiKhoan: s.tenChuTaiKhoan,
+    qrAnhId,
+    qrAnhUrl: s.qrAnhUrl ?? shopImageUrl(qrAnhId),
+    noiDungCk: typeof s.noiDungCk === "string" ? s.noiDungCk : "",
+    tongTien: Number(s.tongTien ?? 0),
+    tienTe: typeof s.tienTe === "string" ? s.tienTe : "VND",
+  };
+}
 
 type DongRow = {
   id: string;
@@ -183,6 +217,7 @@ async function attachDong(dons: DonRow[]): Promise<ShopDonHang[]> {
     nguoiMuaChapNhanLuc: d.nguoi_mua_chap_nhan_luc ?? null,
     nguoiMuaChapNhanVanBan: d.nguoi_mua_chap_nhan_van_ban ?? null,
     nguoiMuaChapNhanPhienBan: d.nguoi_mua_chap_nhan_phien_ban ?? null,
+    thanhToanSnapshot: normalizeThanhToanSnapshot(d.thanh_toan_snapshot),
   }));
 }
 
@@ -221,7 +256,10 @@ export async function listDonHangForUser(
 export async function createDonFromGio(
   buyerId: string,
   input: {
-    cotMocId: string;
+    /** Giỏ post-kiosk — XOR với `cuaHangId`. */
+    cotMocId?: string | null;
+    /** Giỏ storefront — XOR với `cotMocId`. */
+    cuaHangId?: string | null;
     loaiDon: ShopLoaiDon;
     idSuKien?: string | null;
     ghiChu?: string | null;
@@ -231,27 +269,55 @@ export async function createDonFromGio(
     nguoiMuaChapNhanRuiRo?: boolean;
   },
 ): Promise<ShopDonHang> {
-  const gio = await getGio(buyerId, input.cotMocId);
+  const cotMocId =
+    typeof input.cotMocId === "string" && input.cotMocId.trim()
+      ? input.cotMocId.trim()
+      : null;
+  const cuaHangId =
+    typeof input.cuaHangId === "string" && input.cuaHangId.trim()
+      ? input.cuaHangId.trim()
+      : null;
+  if ((cotMocId == null) === (cuaHangId == null)) {
+    throw new Error("CART_SCOPE_REQUIRED");
+  }
+
+  const gio = cotMocId
+    ? await getGio(buyerId, cotMocId)
+    : await getGioCuaHang(buyerId, cuaHangId!);
   if (gio.dong.length === 0) throw new Error("CART_EMPTY");
 
   const admin = createServiceRoleClient();
-  const { data: moc } = await admin
-    .from("content_cot_moc")
-    .select("id, id_nguoi_dung")
-    .eq("id", input.cotMocId)
-    .maybeSingle<{ id: string; id_nguoi_dung: string }>();
-  if (!moc) throw new Error("POST_NOT_FOUND");
-  if (moc.id_nguoi_dung === buyerId) throw new Error("CANNOT_BUY_OWN");
+  let sellerId: string;
+  if (cotMocId) {
+    const { data: moc } = await admin
+      .from("content_cot_moc")
+      .select("id, id_nguoi_dung")
+      .eq("id", cotMocId)
+      .maybeSingle<{ id: string; id_nguoi_dung: string }>();
+    if (!moc) throw new Error("POST_NOT_FOUND");
+    sellerId = moc.id_nguoi_dung;
+  } else {
+    const { data: shop } = await admin
+      .from("shop_cua_hang")
+      .select("id, id_nguoi_dung")
+      .eq("id", cuaHangId!)
+      .maybeSingle<{ id: string; id_nguoi_dung: string }>();
+    if (!shop) throw new Error("SHOP_NOT_FOUND");
+    sellerId = shop.id_nguoi_dung;
+  }
+  if (sellerId === buyerId) throw new Error("CANNOT_BUY_OWN");
 
-  if (input.loaiDon === "mua_ngay" && input.nguoiMuaChapNhanRuiRo !== true) {
+  if (input.loaiDon !== "mua_ngay") {
+    throw new Error("LOAI_DON_UNSUPPORTED");
+  }
+
+  if (input.nguoiMuaChapNhanRuiRo !== true) {
     throw new Error("BUYER_ACCEPTANCE_REQUIRED");
   }
 
-  if (input.loaiDon === "mua_ngay") {
-    for (const d of gio.dong) {
-      if (d.soLuongTon <= 0) throw new Error("STOCK_EMPTY");
-      if (d.soLuong > d.soLuongTon) throw new Error("STOCK_INSUFFICIENT");
-    }
+  for (const d of gio.dong) {
+    if (d.soLuongTon <= 0) throw new Error("STOCK_EMPTY");
+    if (d.soLuong > d.soLuongTon) throw new Error("STOCK_INSUFFICIENT");
   }
 
   const { data: buyer } = await admin
@@ -273,28 +339,36 @@ export async function createDonFromGio(
       ? clientMa
       : buildShopMaDon(buyerLabel);
 
-  const chapNhan =
-    input.loaiDon === "mua_ngay"
-      ? {
-          nguoi_mua_chap_nhan_luc: new Date().toISOString(),
-          nguoi_mua_chap_nhan_van_ban: SHOP_BUYER_TRANSFER_DISCLAIMER,
-          nguoi_mua_chap_nhan_phien_ban: SHOP_BUYER_TRANSFER_DISCLAIMER_VERSION,
-        }
-      : {
-          nguoi_mua_chap_nhan_luc: null,
-          nguoi_mua_chap_nhan_van_ban: null,
-          nguoi_mua_chap_nhan_phien_ban: null,
-        };
+  const { payment } = await getShopCheckoutPayment(sellerId);
+  if (!payment) {
+    throw new Error("PAYMENT_REQUIRED");
+  }
+  const thanhToanSnapshot = buildThanhToanSnapshot(
+    payment,
+    maDon,
+    gio.tongTien,
+    gio.tienTe,
+  );
+
+  const chapNhan = {
+    nguoi_mua_chap_nhan_luc: new Date().toISOString(),
+    nguoi_mua_chap_nhan_van_ban: SHOP_BUYER_TRANSFER_DISCLAIMER,
+    nguoi_mua_chap_nhan_phien_ban: SHOP_BUYER_TRANSFER_DISCLAIMER_VERSION,
+  };
 
   let don: DonRow | null = null;
   let lastError: unknown = null;
   for (let attempt = 0; attempt < 6; attempt++) {
+    const snapshotForAttempt = {
+      ...thanhToanSnapshot,
+      noiDungCk: maDon,
+    };
     const { data, error } = await admin
       .from("shop_don_hang")
       .insert({
         id_nguoi_mua: buyerId,
-        id_nguoi_ban: moc.id_nguoi_dung,
-        id_cot_moc: input.cotMocId,
+        id_nguoi_ban: sellerId,
+        id_cot_moc: cotMocId,
         id_su_kien: input.idSuKien ?? null,
         loai_don: input.loaiDon,
         trang_thai: "cho_xac_nhan",
@@ -304,6 +378,7 @@ export async function createDonFromGio(
         ma_don: maDon,
         dieu_khoan_snapshot: shopTermsSnapshot(),
         da_tru_kho: false,
+        thanh_toan_snapshot: snapshotForAttempt,
         ...chapNhan,
       })
       .select(DON_SELECT)
@@ -342,8 +417,8 @@ export async function createDonFromGio(
     throw new Error("CREATE_FAILED");
   }
 
-  /* Mua ngay: trừ kho ngay (atomic) — tránh 2 buyer cùng lấy hết tồn. */
-  if (input.loaiDon === "mua_ngay") {
+  /* Trừ kho ngay (atomic) — tránh 2 buyer cùng lấy hết tồn. */
+  {
     const deducted: Array<{ idBienThe: string; soLuong: number }> = [];
     try {
       for (const d of gio.dong) {

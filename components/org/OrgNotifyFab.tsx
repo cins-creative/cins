@@ -195,14 +195,7 @@ export function OrgNotifyFab({
 
   return (
     <>
-      {host
-        ? createPortal(button, host)
-        : createPortal(
-            <div className="org-notify-fab-root" data-open={open ? "1" : "0"}>
-              {button}
-            </div>,
-            document.body,
-          )}
+      {host ? createPortal(button, host) : null}
       {createPortal(
         <div className="org-notify-fab-layer" data-open={open ? "1" : "0"}>
           {overlayAndDrawer}

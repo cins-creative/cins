@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 
+import { JourneyOrgPopover } from "@/components/journey/JourneyOrgPopover";
 import { JourneyOrgPopoverActions } from "@/components/journey/JourneyOrgPopoverActions";
 import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
 import { JourneyUserPopoverActions } from "@/components/journey/JourneyUserPopoverActions";
@@ -303,43 +304,53 @@ function PromoOrgCard({
       : actionKind === "truong"
         ? "Xem trường"
         : "Xem studio";
+  const slug = orgSlugFromPromoHref(href);
 
   return (
     <article className="wj-feed-promo-card is-org" role="listitem">
-      <Link href={href} className="wj-feed-promo-org-main" prefetch={false}>
-        <span
-          className={`wj-feed-promo-org-cover${coverUrl ? " has-img" : ""}`}
-          aria-hidden
-        >
-          {coverUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={coverUrl} alt="" loading="lazy" />
-          ) : null}
+      <JourneyOrgPopover
+        slug={slug}
+        orgKind={actionKind}
+        href={href}
+        fallbackName={title}
+        fallbackAvatarUrl={imageUrl}
+        fallbackCoverUrl={coverUrl ?? null}
+      >
+        <span className="wj-feed-promo-org-main">
+          <span
+            className={`wj-feed-promo-org-cover${coverUrl ? " has-img" : ""}`}
+            aria-hidden
+          >
+            {coverUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={coverUrl} alt="" loading="lazy" />
+            ) : null}
+          </span>
+          <span className="wj-feed-promo-org-av" aria-hidden>
+            {imageUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={imageUrl} alt="" loading="lazy" />
+            ) : (
+              <span className="wj-feed-promo-org-av-fallback">{initials}</span>
+            )}
+          </span>
+          <span className="wj-feed-promo-card-body">
+            {typeLabel ? (
+              <span className="wj-feed-promo-org-type">{typeLabel}</span>
+            ) : null}
+            <span className="wj-feed-promo-card-name">{title}</span>
+            {location ? (
+              <span className="wj-feed-promo-org-loc">{location}</span>
+            ) : null}
+            {sub ? (
+              <span className="wj-feed-promo-card-sub">{sub}</span>
+            ) : null}
+            {bio ? (
+              <span className="wj-feed-promo-org-bio">{bio}</span>
+            ) : null}
+          </span>
         </span>
-        <span className="wj-feed-promo-org-av" aria-hidden>
-          {imageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={imageUrl} alt="" loading="lazy" />
-          ) : (
-            <span className="wj-feed-promo-org-av-fallback">{initials}</span>
-          )}
-        </span>
-        <span className="wj-feed-promo-card-body">
-          {typeLabel ? (
-            <span className="wj-feed-promo-org-type">{typeLabel}</span>
-          ) : null}
-          <span className="wj-feed-promo-card-name">{title}</span>
-          {location ? (
-            <span className="wj-feed-promo-org-loc">{location}</span>
-          ) : null}
-          {sub ? (
-            <span className="wj-feed-promo-card-sub">{sub}</span>
-          ) : null}
-          {bio ? (
-            <span className="wj-feed-promo-org-bio">{bio}</span>
-          ) : null}
-        </span>
-      </Link>
+      </JourneyOrgPopover>
       <div className="wj-feed-promo-org-actions">
         <JourneyOrgPopoverActions
           orgId={id}
@@ -352,6 +363,17 @@ function PromoOrgCard({
       </div>
     </article>
   );
+}
+
+/** `/studio/:slug/...` · `/co-so/:slug/...` · `/truong/:slug/...` */
+function orgSlugFromPromoHref(href: string): string {
+  const parts = href.replace(/^\//, "").split("/").filter(Boolean);
+  if (parts.length < 2) return "";
+  try {
+    return decodeURIComponent(parts[1]!);
+  } catch {
+    return parts[1]!;
+  }
 }
 
 /** Block ngang gợi ý xen kẽ timeline feed (không dùng ở Gallery). */

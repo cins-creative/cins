@@ -60,8 +60,8 @@
 }
 
 .cso-settings-close:hover {
-  background: var(--bg-soft, #f0f2f5);
-  color: var(--ink, #111);
+  background: var(--neutral-100, #f0f2f5);
+  color: var(--ink-display, #111);
 }
 
 .cso-settings-nav {
@@ -77,7 +77,7 @@
 
 .cso-settings-nav-btn {
   border: 1px solid var(--border, #e4e6eb);
-  background: #fff;
+  background: var(--bg-surface, #fff);
   color: var(--ink-muted, #65676b);
   border-radius: 999px;
   padding: 6px 12px;
@@ -89,7 +89,7 @@
 .cso-settings-nav-btn.on {
   border-color: var(--cins-blue, #1f74c9);
   color: var(--cins-blue, #1f74c9);
-  background: rgba(31, 116, 201, 0.08);
+  background: color-mix(in srgb, var(--cins-blue, #1f74c9) 8%, var(--bg-surface, #fff));
 }
 
 .cso-settings-loading {
@@ -189,7 +189,7 @@
   gap: 10px;
   font-size: 14px;
   font-weight: 500;
-  color: var(--text, #1c1e21);
+  color: var(--ink-display, #1c1e21);
   cursor: pointer;
 }
 
@@ -226,6 +226,82 @@
 }
 
 .tdh-page--v6 .ss-edit-info-btn:hover {
-  background: #dceaf8;
-  border-color: rgba(31, 116, 201, 0.45);
+  background: color-mix(in srgb, var(--cins-blue, #1f74c9) 16%, var(--bg-surface, #fff));
+  border-color: color-mix(in srgb, var(--cins-blue, #1f74c9) 45%, transparent);
+}
+
+/* ── Dark: modal cài đặt org (portal body — nền/chữ cứng sáng sẽ lệch token) */
+:root[data-theme="dark"] .cso-settings-modal {
+  background: var(--bg-surface, #171b24);
+  color: var(--ink-display, rgba(255, 255, 255, 0.92));
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.08),
+    0 24px 64px rgba(0, 0, 0, 0.6);
+}
+
+:root[data-theme="dark"] .cso-settings-modal .cso-settings-title,
+:root[data-theme="dark"] .cso-settings-modal .tdh-inline-modal-title {
+  color: var(--ink-display, rgba(255, 255, 255, 0.92));
+}
+
+:root[data-theme="dark"] .cso-settings-head,
+:root[data-theme="dark"] .cso-settings-foot {
+  border-color: var(--border, #2a3040);
+  background: var(--bg-surface, #171b24);
+}
+
+:root[data-theme="dark"] .cso-settings-close:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--ink-display, rgba(255, 255, 255, 0.92));
+}
+
+:root[data-theme="dark"] .cso-settings-nav-btn {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.14);
+  color: var(--ink-muted, rgba(255, 255, 255, 0.46));
+}
+
+:root[data-theme="dark"] .cso-settings-nav-btn.on {
+  border-color: var(--cins-blue, #4f9be8);
+  background: color-mix(in srgb, var(--cins-blue, #4f9be8) 16%, transparent);
+  color: var(--cins-blue, #4f9be8);
+}
+
+:root[data-theme="dark"] .cso-settings-check {
+  color: var(--ink-display, rgba(255, 255, 255, 0.92));
+}
+
+:root[data-theme="dark"] .cso-settings-modal .tdh-inline-field > span {
+  color: var(--ink-title, rgba(255, 255, 255, 0.72));
+}
+
+:root[data-theme="dark"] .cso-settings-modal .tdh-inline-field input,
+:root[data-theme="dark"] .cso-settings-modal .tdh-inline-field textarea,
+:root[data-theme="dark"] .cso-settings-modal .tdh-inline-field select {
+  background: var(--neutral-100, #1c212c);
+  border-color: var(--border, #2a3040);
+  color: var(--ink-display, rgba(255, 255, 255, 0.92));
+  color-scheme: dark;
+  box-shadow: none;
+}
+
+:root[data-theme="dark"] .cso-settings-modal .tdh-inline-btn.ghost {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.16);
+  color: var(--ink-body, rgba(255, 255, 255, 0.64));
+}
+
+:root[data-theme="dark"] .cso-settings-modal .tdh-inline-btn.ghost:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--ink-display, rgba(255, 255, 255, 0.92));
+}
+
+:root[data-theme="dark"] .tdh-page--v6 .ss-edit-info-btn {
+  background: color-mix(in srgb, var(--cins-blue, #4f9be8) 16%, transparent);
+  border-color: color-mix(in srgb, var(--cins-blue, #4f9be8) 35%, transparent);
+  color: var(--cins-blue, #4f9be8);
+}
+
+:root[data-theme="dark"] .tdh-page--v6 .ss-edit-info-btn:hover {
+  background: color-mix(in srgb, var(--cins-blue, #4f9be8) 24%, transparent);
 }

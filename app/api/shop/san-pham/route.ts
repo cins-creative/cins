@@ -66,6 +66,15 @@ export async function POST(request: Request) {
         { status: 403 },
       );
     }
+    if (msg === "SHOP_NOT_READY") {
+      return NextResponse.json(
+        {
+          error:
+            "Cần thêm tài khoản nhận tiền trong Shop trước khi thêm hàng hoặc nhận đơn.",
+        },
+        { status: 403 },
+      );
+    }
     if (msg === "TEN_REQUIRED") {
       return NextResponse.json({ error: "Thiếu tên." }, { status: 422 });
     }

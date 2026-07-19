@@ -16,7 +16,6 @@ import {
 } from "@/components/truong/inline/TruongInlineEditContext";
 import { TruongOrgCover } from "@/components/truong/TruongOrgCover";
 import { OrgBaiDangFilterShareProvider } from "@/components/org/OrgBaiDangFilterShareContext";
-import { OrgNotifyFab } from "@/components/org/OrgNotifyFab";
 import { StudioPageSettingsModal } from "@/components/to-chuc/StudioPageSettingsModal";
 import { StudioSidebar } from "@/components/to-chuc/StudioSidebar";
 import { StudioJobsSidebar } from "@/components/to-chuc/StudioJobsSidebar";
@@ -125,7 +124,6 @@ function StudioDetailViewInner({
     () => new Set([tab]),
   );
   const { isMobileShell } = useCoSoMobileShell();
-  const [notifyCount, setNotifyCount] = useState(0);
 
   const visibleTabs = useMemo(
     () => TABS.filter((t) => isStudioTabVisible(t.id, pageConfig)),
@@ -351,18 +349,15 @@ function StudioDetailViewInner({
         })}
       </div>
 
-      <OrgNotifyFab enabled={isMobileShell} count={notifyCount}>
-        <StudioJobsSidebar
-          orgId={studio.id}
-          jobs={openJobs}
-          orgSlug={studio.slug}
-          orgDiaChi={studio.diaChi}
-          orgTinhThanh={studio.tinhThanh}
-          posts={baidang}
-          canManage={canEdit}
-          onUpcomingCountChange={setNotifyCount}
-        />
-      </OrgNotifyFab>
+      <StudioJobsSidebar
+        orgId={studio.id}
+        jobs={openJobs}
+        orgSlug={studio.slug}
+        orgDiaChi={studio.diaChi}
+        orgTinhThanh={studio.tinhThanh}
+        posts={baidang}
+        canManage={canEdit}
+      />
 
       {canEdit ? (
         <StudioPageSettingsModal

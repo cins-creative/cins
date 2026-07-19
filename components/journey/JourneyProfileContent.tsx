@@ -10,9 +10,11 @@ import {
   JourneyFriendsViewLazy,
   JourneyGalleryGridViewLazy,
   JourneyOrganizationsViewLazy,
+  JourneyShopViewLazy,
   prefetchJourneyFriendsView,
   prefetchJourneyGalleryView,
   prefetchJourneyOrganizationsView,
+  prefetchJourneyShopView,
 } from "@/components/journey/journey-profile-lazy-views";
 import { JourneyFilterShareProvider } from "@/components/journey/JourneyFilterShareContext";
 import { JourneyTimeline } from "@/components/journey/JourneyTimeline";
@@ -371,6 +373,7 @@ export function JourneyProfileContent({
     if (view === "gallery") prefetchJourneyGalleryView();
     if (view === "friends") prefetchJourneyFriendsView();
     if (view === "organizations") prefetchJourneyOrganizationsView();
+    if (view === "shop") prefetchJourneyShopView();
   }, [view]);
 
   const pendingMembershipCount =
@@ -738,6 +741,15 @@ export function JourneyProfileContent({
         ) : (
           <JourneyOrganizationsViewLazy data={organizationsCache} />
         )
+      ) : view === "shop" ? (
+        <JourneyShopViewLazy
+          ownerId={ownerId}
+          ownerSlug={ownerSlug}
+          ownerName={ownerName}
+          isOwner={isOwner}
+          viewerProfileId={viewerProfileId}
+          ownerAvatarUrl={ownerAvatarUrl}
+        />
       ) : timelineCache === "loading" || timelineCache === null ? (
         <JourneyTimelineSectionSkeleton />
       ) : timelineCache === "error" ? (

@@ -46,6 +46,7 @@ import { applyOptimisticReaction } from "@/lib/chat/optimistic-reactions";
 import { fetchRoomMessagesPage } from "@/lib/chat/messages-client";
 import { updateMessageInList } from "@/lib/chat/patch-thread-messages";
 import {
+  applyOrgRoomReadCursorRealtime,
   patchChatReadCursorMessage,
   upsertChatReadCursor,
 } from "@/lib/chat/read-cursors-client";
@@ -389,6 +390,28 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
       setRoomStates((prev) => {
         const current = prev[roomId];
         const cursors = current?.readCursors ?? [];
+        const thread = miniThreadRef.current;
+
+        if (thread && thread.roomId === roomId) {
+          const orgApplied = applyOrgRoomReadCursorRealtime(
+            cursors,
+            thread,
+            row.id_nguoi_dung,
+            messageId,
+          );
+          if (orgApplied) {
+            return {
+              ...prev,
+              [roomId]: {
+                messages: current?.messages ?? [],
+                hasMore: current?.hasMore ?? false,
+                hydrated: current?.hydrated ?? true,
+                readCursors: orgApplied,
+              },
+            };
+          }
+        }
+
         const patched = patchChatReadCursorMessage(
           cursors,
           row.id_nguoi_dung,
@@ -406,7 +429,6 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
           };
         }
 
-        const thread = miniThreadRef.current;
         const member = thread?.memberAvatars?.find(
           (m) => m.userId === row.id_nguoi_dung,
         );

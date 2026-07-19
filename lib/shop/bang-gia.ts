@@ -1,7 +1,8 @@
 import "server-only";
 
-import { assertBanHangEnabled } from "@/lib/shop/settings";
+import { assertShopReady } from "@/lib/shop/cua-hang";
 import type { ShopBangGia } from "@/lib/shop/types";
+import { shopGiaHieuLuc } from "@/lib/shop/types";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 type BgRow = {
@@ -17,7 +18,37 @@ type DongRow = {
   id_bang_gia: string;
   id_bien_the: string;
   gia: number | string;
+  gia_giam: number | string | null;
 };
+
+export type ShopBangGiaDongInput = {
+  idBienThe: string;
+  gia: number;
+  giaGiam?: number | null;
+};
+
+function mapDong(d: DongRow): ShopBangGia["dong"][number] {
+  return {
+    id: d.id,
+    idBienThe: d.id_bien_the,
+    gia: Number(d.gia),
+    giaGiam: d.gia_giam == null ? null : Number(d.gia_giam),
+  };
+}
+
+function normalizeDongInput(
+  d: ShopBangGiaDongInput,
+): { id_bien_the: string; gia: number; gia_giam: number | null } {
+  const giaGiam =
+    d.giaGiam == null || Number.isNaN(Number(d.giaGiam))
+      ? null
+      : Number(d.giaGiam);
+  return {
+    id_bien_the: d.idBienThe,
+    gia: d.gia,
+    gia_giam: giaGiam,
+  };
+}
 
 export async function listBangGia(ownerId: string): Promise<ShopBangGia[]> {
   const admin = createServiceRoleClient();
@@ -35,16 +66,12 @@ export async function listBangGia(ownerId: string): Promise<ShopBangGia[]> {
   const ids = rows.map((r) => r.id);
   const { data: dongs } = await admin
     .from("shop_bang_gia_dong")
-    .select("id, id_bang_gia, id_bien_the, gia")
+    .select("id, id_bang_gia, id_bien_the, gia, gia_giam")
     .in("id_bang_gia", ids);
   const byBg = new Map<string, ShopBangGia["dong"]>();
   for (const d of (dongs ?? []) as DongRow[]) {
     const list = byBg.get(d.id_bang_gia) ?? [];
-    list.push({
-      id: d.id,
-      idBienThe: d.id_bien_the,
-      gia: Number(d.gia),
-    });
+    list.push(mapDong(d));
     byBg.set(d.id_bang_gia, list);
   }
   return rows.map((r) => ({
@@ -63,10 +90,10 @@ export async function createBangGia(
     ten: string;
     tienTe?: string;
     ghiChu?: string | null;
-    dong?: Array<{ idBienThe: string; gia: number }>;
+    dong?: ShopBangGiaDongInput[];
   },
 ): Promise<ShopBangGia> {
-  await assertBanHangEnabled(ownerId);
+  await assertShopReady(ownerId);
   const ten = input.ten.trim();
   if (!ten) throw new Error("TEN_REQUIRED");
   const admin = createServiceRoleClient();
@@ -86,19 +113,12 @@ export async function createBangGia(
   if (input.dong && input.dong.length > 0) {
     const { data: inserted } = await admin
       .from("shop_bang_gia_dong")
-      .insert(
-        input.dong.map((d) => ({
-          id_bang_gia: data.id,
-          id_bien_the: d.idBienThe,
-          gia: d.gia,
-        })),
-      )
-      .select("id, id_bang_gia, id_bien_the, gia");
-    dong = ((inserted ?? []) as DongRow[]).map((d) => ({
-      id: d.id,
-      idBienThe: d.id_bien_the,
-      gia: Number(d.gia),
-    }));
+      .insert(input.dong.map(normalizeDongInput).map((row) => ({
+        id_bang_gia: data.id,
+        ...row,
+      })))
+      .select("id, id_bang_gia, id_bien_the, gia, gia_giam");
+    dong = ((inserted ?? []) as DongRow[]).map(mapDong);
   }
 
   return {
@@ -118,10 +138,10 @@ export async function updateBangGia(
     ten?: string;
     tienTe?: string;
     ghiChu?: string | null;
-    dong?: Array<{ idBienThe: string; gia: number }>;
+    dong?: ShopBangGiaDongInput[];
   },
 ): Promise<void> {
-  await assertBanHangEnabled(ownerId);
+  await assertShopReady(ownerId);
   const admin = createServiceRoleClient();
   const { data: bg } = await admin
     .from("shop_bang_gia")
@@ -151,10 +171,9 @@ export async function updateBangGia(
     await admin.from("shop_bang_gia_dong").delete().eq("id_bang_gia", bangGiaId);
     if (input.dong.length > 0) {
       await admin.from("shop_bang_gia_dong").insert(
-        input.dong.map((d) => ({
+        input.dong.map(normalizeDongInput).map((row) => ({
           id_bang_gia: bangGiaId,
-          id_bien_the: d.idBienThe,
-          gia: d.gia,
+          ...row,
         })),
       );
     }
@@ -165,7 +184,7 @@ export async function softDeleteBangGia(
   ownerId: string,
   bangGiaId: string,
 ): Promise<void> {
-  await assertBanHangEnabled(ownerId);
+  await assertShopReady(ownerId);
   const admin = createServiceRoleClient();
   const { error, count } = await admin
     .from("shop_bang_gia")
@@ -178,10 +197,13 @@ export async function softDeleteBangGia(
   if (error || !count) throw new Error("DELETE_FAILED");
 }
 
+/**
+ * Giá gắn kiosk / đơn: ưu tiên `gia_giam` nếu có, không thì `gia`.
+ */
 export async function resolveGiaBienThe(
   bangGiaId: string,
   bienTheId: string,
-): Promise<{ gia: number; tienTe: string } | null> {
+): Promise<{ gia: number; giaBan: number; giaGiam: number | null; tienTe: string } | null> {
   const admin = createServiceRoleClient();
   const { data: bg } = await admin
     .from("shop_bang_gia")
@@ -192,10 +214,17 @@ export async function resolveGiaBienThe(
   if (!bg) return null;
   const { data: dong } = await admin
     .from("shop_bang_gia_dong")
-    .select("gia")
+    .select("gia, gia_giam")
     .eq("id_bang_gia", bangGiaId)
     .eq("id_bien_the", bienTheId)
-    .maybeSingle<{ gia: number | string }>();
+    .maybeSingle<{ gia: number | string; gia_giam: number | string | null }>();
   if (!dong) return null;
-  return { gia: Number(dong.gia), tienTe: bg.tien_te };
+  const giaBan = Number(dong.gia);
+  const giaGiam = dong.gia_giam == null ? null : Number(dong.gia_giam);
+  return {
+    gia: shopGiaHieuLuc({ gia: giaBan, giaGiam }),
+    giaBan,
+    giaGiam,
+    tienTe: bg.tien_te,
+  };
 }

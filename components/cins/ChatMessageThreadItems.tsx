@@ -12,6 +12,7 @@ import { ChatMessageBody } from "@/components/cins/ChatMessageBody";
 import { ChatMentionText } from "@/components/cins/ChatMentionText";
 import { ChatMessageReactions } from "@/components/cins/ChatMessageReactions";
 import { ChatMessageReplyQuote } from "@/components/cins/ChatMessageReplyQuote";
+import { JourneyOrgPopover } from "@/components/journey/JourneyOrgPopover";
 import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
 import { avatarBg, formatChatTime } from "@/lib/chat/avatar";
 import { groupChatMessages } from "@/lib/chat/message-albums";
@@ -25,9 +26,20 @@ import {
 } from "@/lib/chat/read-cursors-client";
 import type {
   ChatMessage,
+  ChatOrgKind,
   ChatPollSummary,
   ChatReadCursor,
 } from "@/lib/chat/types";
+
+function orgPopoverKind(
+  orgKind: ChatOrgKind | undefined,
+): "cong_dong" | "co_so_dao_tao" | "truong" | "studio" | null {
+  if (orgKind === "cong_dong") return "cong_dong";
+  if (orgKind === "co_so_dao_tao") return "co_so_dao_tao";
+  if (orgKind === "truong_dai_hoc") return "truong";
+  if (orgKind === "studio") return "studio";
+  return null;
+}
 
 type ChatMessageThreadItemsProps = {
   messages: ChatMessage[];
@@ -101,18 +113,37 @@ function ChatSeenAvatars({
             </span>
           );
 
-          const slot = cursor.slug ? (
-            <JourneyUserPopover
-              slug={cursor.slug}
-              fallbackName={cursor.name}
-              fallbackAvatarUrl={cursor.avatarUrl}
-              backdropZIndex={13000}
-            >
-              {face}
-            </JourneyUserPopover>
-          ) : (
-            face
-          );
+          const slot = (() => {
+            if (cursor.asOrg) {
+              const popoverKind = orgPopoverKind(cursor.orgKind);
+              if (cursor.slug && popoverKind) {
+                return (
+                  <JourneyOrgPopover
+                    slug={cursor.slug}
+                    orgKind={popoverKind}
+                    fallbackName={cursor.name}
+                    fallbackAvatarUrl={cursor.avatarUrl}
+                  >
+                    {face}
+                  </JourneyOrgPopover>
+                );
+              }
+              return face;
+            }
+            if (cursor.slug) {
+              return (
+                <JourneyUserPopover
+                  slug={cursor.slug}
+                  fallbackName={cursor.name}
+                  fallbackAvatarUrl={cursor.avatarUrl}
+                  backdropZIndex={13000}
+                >
+                  {face}
+                </JourneyUserPopover>
+              );
+            }
+            return face;
+          })();
 
           return (
             <span key={cursor.userId} className="cins-chat-seen-slot">

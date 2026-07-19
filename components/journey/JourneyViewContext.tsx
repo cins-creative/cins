@@ -16,14 +16,32 @@ import {
   galleryDisplayHref,
   type GalleryDisplay,
 } from "@/lib/journey/gallery-display-url";
+import { shopPublicHref } from "@/lib/shop/cua-hang-href";
 
-function viewFromSearch(search: string): JourneyProfileView {
+function isShopPathname(pathname: string, slug: string): boolean {
+  const segments = pathname.replace(/\/+$/, "").split("/").filter(Boolean);
+  if (segments.length !== 2) return false;
+  if (segments[1] !== "shop") return false;
+  try {
+    return decodeURIComponent(segments[0]!) === slug;
+  } catch {
+    return segments[0] === slug;
+  }
+}
+
+function viewFromLocation(
+  pathname: string,
+  search: string,
+  slug: string,
+): JourneyProfileView {
+  if (isShopPathname(pathname, slug)) return "shop";
   const v = new URLSearchParams(search).get("view");
   if (
     v === "journey" ||
     v === "gallery" ||
     v === "friends" ||
-    v === "organizations"
+    v === "organizations" ||
+    v === "shop"
   ) {
     return v;
   }
@@ -46,12 +64,16 @@ function isBareProfilePath(pathname: string, slug: string): boolean {
  *  Journey luôn gắn `?view=journey` (không dùng bare `/{slug}`) để refresh /
  *  like / comment không bị server áp lại chế độ mặc định của chủ trang. Bare
  *  `/{slug}` chỉ dành cho lần vào từ trang khác → loader mới redirect theo
- *  `journey_mac_dinh_view`. */
+ *  `journey_mac_dinh_view`.
+ *  Shop = path riêng `/{slug}/shop` (chia sẻ storefront độc lập). */
 export function journeyHrefForView(
   slug: string,
   view: JourneyProfileView,
   baseSearch = "",
 ): string {
+  if (view === "shop") {
+    return shopPublicHref(slug);
+  }
   const params = new URLSearchParams(
     baseSearch.startsWith("?") ? baseSearch.slice(1) : baseSearch,
   );
@@ -122,9 +144,15 @@ export function JourneyViewProvider({
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
     const raw = params.get("view");
-    const fromUrl = viewFromSearch(window.location.search);
+    const fromUrl = viewFromLocation(
+      window.location.pathname,
+      window.location.search,
+      slug,
+    );
     setViewState((current) => (current === fromUrl ? current : fromUrl));
-    setContentSurfaceState(contentSurfaceFromProfile(fromUrl, window.location.search));
+    setContentSurfaceState(
+      contentSurfaceFromProfile(fromUrl, window.location.search),
+    );
 
     // Đang xem Journey trên bare `/{slug}` (thiếu ?view=) — pin `?view=journey`
     // để F5 / router.refresh sau action không bị redirect về layout mặc định.
@@ -144,11 +172,23 @@ export function JourneyViewProvider({
 
   const setView = useCallback(
     (next: JourneyProfileView) => {
+      const href = journeyHrefForView(slug, next, window.location.search);
+      const onShop = isShopPathname(window.location.pathname, slug);
+      /* Shop là path riêng nhưng cùng shell hồ sơ — soft pushState như tab
+         Gallery/Friends, tránh router.push remount + fetch owner lại. */
+      if (next === "shop" || onShop) {
+        if (next === "shop" && onShop) return;
+        setViewState(next);
+        setContentSurfaceState(
+          contentSurfaceFromProfile(next, window.location.search),
+        );
+        window.history.pushState({ journeyView: next }, "", href);
+        return;
+      }
       setViewState(next);
       setContentSurfaceState(
         contentSurfaceFromProfile(next, window.location.search),
       );
-      const href = journeyHrefForView(slug, next, window.location.search);
       window.history.pushState({ journeyView: next }, "", href);
     },
     [slug],
@@ -156,6 +196,28 @@ export function JourneyViewProvider({
 
   const setContentSurface = useCallback(
     (surface: ContentSurfaceView) => {
+      if (isShopPathname(window.location.pathname, slug)) {
+        if (surface === "timeline") {
+          setViewState("journey");
+          setContentSurfaceState("timeline");
+          const href = journeyHrefForView(slug, "journey", window.location.search);
+          window.history.pushState({ journeyView: "journey" }, "", href);
+          return;
+        }
+        const display = galleryDisplayForSurface(surface);
+        setViewState("gallery");
+        setContentSurfaceState(surface);
+        const href = galleryDisplayHref(slug, display, window.location.search);
+        window.history.pushState(
+          { journeyView: "gallery", galleryDisplay: display },
+          "",
+          href,
+        );
+        window.dispatchEvent(
+          new CustomEvent("cins:gallery-display", { detail: display }),
+        );
+        return;
+      }
       if (surface === "timeline") {
         setViewState("journey");
         setContentSurfaceState("timeline");
@@ -181,7 +243,11 @@ export function JourneyViewProvider({
 
   useEffect(() => {
     const onPopState = () => {
-      const nextView = viewFromSearch(window.location.search);
+      const nextView = viewFromLocation(
+        window.location.pathname,
+        window.location.search,
+        slug,
+      );
       setViewState(nextView);
       setContentSurfaceState(
         contentSurfaceFromProfile(nextView, window.location.search),
@@ -189,7 +255,7 @@ export function JourneyViewProvider({
     };
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
-  }, []);
+  }, [slug]);
 
   return (
     <JourneyViewContext.Provider

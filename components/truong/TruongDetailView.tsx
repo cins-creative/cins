@@ -29,7 +29,6 @@ import {
   TruongTabNganhLazy,
   TruongTabTuyensinhLazy,
 } from "@/components/org/org-tab-lazy-views";
-import { OrgNotifyFab } from "@/components/org/OrgNotifyFab";
 import { YearFilterProvider } from "@/components/truong/YearFilterProvider";
 import { useTruongTabNav } from "@/lib/truong/use-truong-tab-nav";
 import { formatHocPhiLabel } from "@/lib/truong/display";
@@ -118,7 +117,6 @@ function TruongDetailViewInner({
     () => new Set([tab]),
   );
   const { isMobileShell } = useCoSoMobileShell();
-  const [notifyCount, setNotifyCount] = useState(0);
 
   useEffect(() => {
     setMountedTabs((prev) => {
@@ -308,13 +306,10 @@ function TruongDetailViewInner({
           })}
         </div>
 
-        <OrgNotifyFab enabled={isMobileShell} count={notifyCount}>
-          <TruongAdmissionTimelineSidebar
-            isMobileShell={isMobileShell}
-            isMobileShellActive
-            onUpcomingCountChange={setNotifyCount}
-          />
-        </OrgNotifyFab>
+        <TruongAdmissionTimelineSidebar
+          isMobileShell={isMobileShell}
+          isMobileShellActive
+        />
       </div>
 
       {canEdit && onSettingsOpenChange ? (

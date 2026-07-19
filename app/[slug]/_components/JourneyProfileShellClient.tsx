@@ -35,14 +35,18 @@ type Props = {
   countsPromise: Promise<SwitchNavCounts>;
   mainPanel: ReactNode;
   featuredAside: ReactNode;
+  /** Hiện tab Shop trên cụm chuyển hồ sơ. */
+  showShop?: boolean;
 };
 
 function JourneySidebarSwitchNavWithCounts({
   slug,
   countsPromise,
+  showShop,
 }: {
   slug: string;
   countsPromise: Promise<SwitchNavCounts>;
+  showShop: boolean;
 }) {
   const { friendCount, orgCount } = use(countsPromise);
 
@@ -51,6 +55,7 @@ function JourneySidebarSwitchNavWithCounts({
       slug={slug}
       friendCount={friendCount}
       orgCount={orgCount}
+      showShop={showShop}
     />
   );
 }
@@ -68,6 +73,7 @@ export function JourneyProfileShellClient({
   countsPromise,
   mainPanel,
   featuredAside,
+  showShop = false,
 }: Props) {
   const ownerName = profile.tenHienThi ?? profile.slug;
   const shell = (
@@ -83,6 +89,7 @@ export function JourneyProfileShellClient({
             <JourneySidebarSwitchNavWithCounts
               slug={profile.slug}
               countsPromise={countsPromise}
+              showShop={showShop}
             />
           </Suspense>
         }

@@ -33,6 +33,7 @@ import {
   splitChiChuParagraphs,
   chiChuNeedsCollapse,
 } from "@/lib/journey/plain-text-bg";
+import { JourneyOrgPopover } from "@/components/journey/JourneyOrgPopover";
 import { OrgBaiDangBookmarkButton } from "@/components/truong/OrgBaiDangBookmarkButton";
 import { OrgBaiDangLikeButton } from "@/components/truong/OrgBaiDangLikeButton";
 import { OrgBaiDangLoaiBadge } from "@/components/truong/OrgBaiDangLoaiBadge";
@@ -42,6 +43,7 @@ import { baiDangUsesBlocks } from "@/lib/truong/bai-dang-blocks";
 import { TruongBaiDangPostActions } from "@/components/truong/inline/TruongBaiDangEdit";
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
 import { trackSuKien, useImpressionTracker } from "@/lib/social/track-su-kien";
+import { resolveSchoolAvatarSrc } from "@/lib/truong/school-avatar";
 import { TruongOrgAvatar } from "@/components/truong/TruongOrgAvatar";
 import {
   coverThumbAspectCss,
@@ -91,9 +93,15 @@ type Props = {
 function shouldIgnoreExpandTrigger(target: Element | null): boolean {
   return Boolean(
     target?.closest(
-      "a, button, input, textarea, select, summary, .j-m-menu, .authors-details, .image-grid-cell, .jcard-video-trigger, .jcard-actions, .jcard-share, .post-byline-share-wrap, .tdh-baidang-edit, .org-baidang-loai-picker, .j-article-tag-manage, .j-coauthor-propose",
+      "a, button, input, textarea, select, summary, .j-m-menu, .authors-details, .image-grid-cell, .jcard-video-trigger, .jcard-actions, .jcard-share, .post-byline-share-wrap, .tdh-baidang-edit, .org-baidang-loai-picker, .j-article-tag-manage, .j-coauthor-propose, .j-user-pop-wrap",
     ),
   );
+}
+
+function orgPopoverKindForSchool(
+  orgLoai: OrgOwner["org_loai"],
+): "co_so_dao_tao" | "truong" {
+  return orgLoai === "co_so_dao_tao" ? "co_so_dao_tao" : "truong";
 }
 
 function orgBaiDangPreviewMedia(post: TruongBaiDang): MilestoneMediaItem | null {
@@ -422,17 +430,42 @@ export function OrgBaiDangJourneyCard({
         >
           {!contentOnly ? (
             <div className="jcard-datebar jcard-datebar--org">
-              <span className="org-chip">
-                {school ? (
-                  <TruongOrgAvatar school={school} size="sm" className="org-chip-avatar" />
-                ) : (
-                  <span className="org-logo" aria-hidden />
-                )}
-                <span className="org-copy">
-                  <strong>{school?.ten ?? "Trường"}</strong>
-                  <OrgBaiDangPublishedDate post={post} />
+              {school?.slug ? (
+                <JourneyOrgPopover
+                  slug={school.slug}
+                  orgKind={orgPopoverKindForSchool(school.org_loai)}
+                  fallbackName={school.ten}
+                  fallbackAvatarUrl={resolveSchoolAvatarSrc(school)}
+                >
+                  <span className="org-chip">
+                    <TruongOrgAvatar
+                      school={school}
+                      size="sm"
+                      className="org-chip-avatar"
+                    />
+                    <span className="org-copy">
+                      <strong>{school.ten}</strong>
+                      <OrgBaiDangPublishedDate post={post} />
+                    </span>
+                  </span>
+                </JourneyOrgPopover>
+              ) : (
+                <span className="org-chip">
+                  {school ? (
+                    <TruongOrgAvatar
+                      school={school}
+                      size="sm"
+                      className="org-chip-avatar"
+                    />
+                  ) : (
+                    <span className="org-logo" aria-hidden />
+                  )}
+                  <span className="org-copy">
+                    <strong>{school?.ten ?? "Trường"}</strong>
+                    <OrgBaiDangPublishedDate post={post} />
+                  </span>
                 </span>
-              </span>
+              )}
               <span className="badge-row">
                 {showScheduledUi ? <OrgBaiDangScheduledBadge post={post} /> : null}
                 <OrgBaiDangLoaiBadge post={post} />

@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  CalendarClock,
   Check,
   ChevronLeft,
   Copy,
@@ -12,7 +11,6 @@ import {
   ShoppingBag,
   TriangleAlert,
   Upload,
-  Zap,
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -27,9 +25,9 @@ import { SHOP_BUYER_TRANSFER_DISCLAIMER } from "@/lib/shop/terms";
 import type {
   ShopGio,
   ShopGioDong,
-  ShopLoaiDon,
   ShopPostHangItem,
 } from "@/lib/shop/types";
+import { buildVietQrImageUrl } from "@/lib/shop/vietqr";
 
 import "./shop-kiosk-block.css";
 
@@ -42,11 +40,17 @@ function filterHoaDonExportNode(node: HTMLElement): boolean {
   if (node.classList?.contains("shop-kiosk-hoa-don-back")) return false;
   if (node.classList?.contains("shop-kiosk-hoa-don-proof")) return false;
   if (node.classList?.contains("shop-kiosk-hoa-don-note-field")) return false;
+  if (node.classList?.contains("shop-kiosk-pay-box")) return false;
   return true;
 }
 
+type Tab = "hang" | "gio";
+
 type Props = {
-  milestoneId: string;
+  /** Post-kiosk — XOR với `cuaHangId`. */
+  milestoneId?: string;
+  /** Storefront shop — XOR với `milestoneId`. */
+  cuaHangId?: string;
   sellerUserId: string | null | undefined;
   viewerProfileId?: string | null;
   /** Logo / avatar người bán — header hóa đơn. */
@@ -54,9 +58,18 @@ type Props = {
   /** Tên hiển thị người bán — thay kicker «CINs Shop». */
   sellerName?: string | null;
   sellerSlug?: string | null;
+  /**
+   * Chỉ portal catalog/giỏ (không ticker). Dùng trên `/{slug}/shop`.
+   * Khi true: mở/đóng qua `open` + `onOpenChange`.
+   */
+  dialogOnly?: boolean;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  /** Tab lúc mở (dialogOnly). */
+  initialTab?: Tab;
+  /** Catalog sẵn — bỏ fetch post-hang / mat-hang. */
+  hangItems?: ShopPostHangItem[];
 };
-
-type Tab = "hang" | "gio";
 
 type PreviewState = {
   src: string;
@@ -66,41 +79,18 @@ type PreviewState = {
 /** Debounce sync giỏ — gộp nhiều lần bấm ± thành 1 PATCH. */
 const QTY_SYNC_MS = 180;
 
-/**
- * Trần số lượng theo tồn kho.
- * - Đặt trước: không giới hạn (null).
- * - Mua ngay / chưa chọn: cap = tồn; hết hàng → chỉ đặt trước (cap 0 khi đã chọn mua ngay).
- */
-function qtyCapForLine(
-  soLuongTon: number,
-  loaiDon: ShopLoaiDon | null,
-): number | null {
-  if (loaiDon === "dat_truoc_nhan_su_kien") return null;
-  if (soLuongTon <= 0) {
-    return loaiDon === "mua_ngay" ? 0 : null;
-  }
-  return soLuongTon;
+/** Trần số lượng = tồn kho; hết hàng → không thêm được. */
+function qtyCapForLine(soLuongTon: number): number {
+  return Math.max(0, soLuongTon);
 }
 
-function canIncreaseLineQty(
-  soLuongTon: number,
-  currentQty: number,
-  loaiDon: ShopLoaiDon | null,
-): boolean {
-  const cap = qtyCapForLine(soLuongTon, loaiDon);
-  if (cap === null) return true;
-  return currentQty < cap;
+function canIncreaseLineQty(soLuongTon: number, currentQty: number): boolean {
+  return currentQty < qtyCapForLine(soLuongTon);
 }
 
-function clampQtyToStock(
-  soLuong: number,
-  soLuongTon: number,
-  loaiDon: ShopLoaiDon | null,
-): number {
+function clampQtyToStock(soLuong: number, soLuongTon: number): number {
   const qty = Math.max(0, Math.trunc(soLuong));
-  const cap = qtyCapForLine(soLuongTon, loaiDon);
-  if (cap === null) return qty;
-  return Math.min(qty, cap);
+  return Math.min(qty, qtyCapForLine(soLuongTon));
 }
 
 function cartHasOutOfStock(dong: ShopGioDong[]): boolean {
@@ -109,25 +99,22 @@ function cartHasOutOfStock(dong: ShopGioDong[]): boolean {
 
 function sortGioDongByCatalog(
   dong: ShopGioDong[],
-  catalogItems: ShopPostHangItem[],
+  catalog: ShopPostHangItem[],
 ): ShopGioDong[] {
-  if (dong.length <= 1) return dong;
-  const order = new Map(
-    catalogItems.map((it, i) => [it.idBienThe, it.thuTu ?? i]),
-  );
+  const order = new Map(catalog.map((it, i) => [it.idBienThe, i]));
   return [...dong].sort((a, b) => {
-    const oa = order.get(a.idBienThe) ?? Number.MAX_SAFE_INTEGER;
-    const ob = order.get(b.idBienThe) ?? Number.MAX_SAFE_INTEGER;
-    if (oa !== ob) return oa - ob;
-    const byName = a.tenSanPham.localeCompare(b.tenSanPham, "vi");
-    if (byName !== 0) return byName;
+    const ia = order.get(a.idBienThe);
+    const ib = order.get(b.idBienThe);
+    if (ia != null && ib != null) return ia - ib;
+    if (ia != null) return -1;
+    if (ib != null) return 1;
     return a.nhanBienThe.localeCompare(b.nhanBienThe, "vi");
   });
 }
 
 function applyLocalQty(
   prev: ShopGio | null,
-  milestoneId: string,
+  scope: Pick<ShopGio, "idCotMoc" | "idCuaHang">,
   item: ShopPostHangItem,
   soLuong: number,
   catalogItems: ShopPostHangItem[] = [],
@@ -135,7 +122,8 @@ function applyLocalQty(
   const qty = Math.max(0, Math.trunc(soLuong));
   const base: ShopGio = prev ?? {
     id: null,
-    idCotMoc: milestoneId,
+    idCotMoc: scope.idCotMoc,
+    idCuaHang: scope.idCuaHang,
     dong: [],
     tongTien: 0,
     tienTe: item.tienTe,
@@ -173,7 +161,7 @@ function applyLocalQty(
 
 function mergePendingOntoGio(
   server: ShopGio,
-  milestoneId: string,
+  scope: Pick<ShopGio, "idCotMoc" | "idCuaHang">,
   items: ShopPostHangItem[],
   pending: Map<string, number>,
 ): ShopGio {
@@ -184,19 +172,35 @@ function mergePendingOntoGio(
   for (const [idBienThe, soLuong] of pending) {
     const item = items.find((it) => it.idBienThe === idBienThe);
     if (!item) continue;
-    merged = applyLocalQty(merged, milestoneId, item, soLuong, items);
+    merged = applyLocalQty(merged, scope, item, soLuong, items);
   }
   return merged;
 }
 
 export function ShopKioskBlock({
   milestoneId,
+  cuaHangId,
   sellerUserId,
   viewerProfileId,
   sellerAvatarUrl = null,
   sellerName = null,
   sellerSlug = null,
+  dialogOnly = false,
+  open: openProp,
+  onOpenChange,
+  initialTab = "hang",
+  hangItems,
 }: Props) {
+  const isShopCart = Boolean(cuaHangId?.trim());
+  const postId = milestoneId?.trim() || "";
+  const shopId = cuaHangId?.trim() || "";
+  const cartScope = useMemo(
+    (): Pick<ShopGio, "idCotMoc" | "idCuaHang"> =>
+      isShopCart
+        ? { idCotMoc: null, idCuaHang: shopId }
+        : { idCotMoc: postId, idCuaHang: null },
+    [isShopCart, shopId, postId],
+  );
   const { openChat } = useCinsChat();
   const sellerLabel =
     sellerName?.trim() ||
@@ -206,17 +210,32 @@ export function ShopKioskBlock({
     sellerName,
     sellerSlug?.trim() || "C",
   );
-  const [items, setItems] = useState<ShopPostHangItem[]>([]);
+  const [items, setItems] = useState<ShopPostHangItem[]>(hangItems ?? []);
   const [gio, setGio] = useState<ShopGio | null>(null);
-  const [tab, setTab] = useState<Tab>("hang");
-  const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState<Tab>(initialTab);
+  const [loading, setLoading] = useState(!hangItems);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const [loaiDon, setLoaiDon] = useState<ShopLoaiDon | null>(null);
   const [ghiChu, setGhiChu] = useState("");
   const [preview, setPreview] = useState<PreviewState | null>(null);
   const [portalReady, setPortalReady] = useState(false);
-  const [catalogOpen, setCatalogOpen] = useState(false);
+  const [catalogOpenInternal, setCatalogOpenInternal] = useState(
+    dialogOnly ? Boolean(openProp) : false,
+  );
+  const catalogOpen =
+    dialogOnly && openProp !== undefined ? openProp : catalogOpenInternal;
+  const setCatalogOpen = useCallback(
+    (next: boolean | ((prev: boolean) => boolean)) => {
+      const value =
+        typeof next === "function" ? next(catalogOpen) : next;
+      if (!(dialogOnly && openProp !== undefined)) {
+        setCatalogOpenInternal(value);
+      }
+      onOpenChange?.(value);
+    },
+    [catalogOpen, dialogOnly, openProp, onOpenChange],
+  );
+
   const [hoaDonOpen, setHoaDonOpen] = useState(false);
   const [hoaDonMa, setHoaDonMa] = useState<string | null>(null);
   const [buyerLabel, setBuyerLabel] = useState("BUYER");
@@ -227,6 +246,14 @@ export function ShopKioskBlock({
   const [hoaDonAnhId, setHoaDonAnhId] = useState<string | null>(null);
   const [hoaDonUploading, setHoaDonUploading] = useState(false);
   const [hoaDonUploadErr, setHoaDonUploadErr] = useState<string | null>(null);
+  const [sellerPay, setSellerPay] = useState<{
+    nganHang: string;
+    soTaiKhoan: string;
+    tenChuTaiKhoan: string;
+    chinhSach: string | null;
+  } | null>(null);
+  const [sellerPayLoading, setSellerPayLoading] = useState(false);
+  const [sellerPayErr, setSellerPayErr] = useState<string | null>(null);
   const hoaDonFileRef = useRef<HTMLInputElement>(null);
   const hoaDonPanelRef = useRef<HTMLDivElement>(null);
   const hoaDonLocalUrlRef = useRef<string | null>(null);
@@ -259,7 +286,6 @@ export function ShopKioskBlock({
         return;
       }
       setCatalogOpen(false);
-      setLoaiDon(null);
     };
     document.addEventListener("keydown", onKey, true);
     return () => {
@@ -275,14 +301,13 @@ export function ShopKioskBlock({
     }
   }, [gio?.dong.length, hoaDonOpen]);
 
-  /* Mua ngay không hợp lệ nếu giỏ còn món hết tồn. */
+  /* Món hết tồn không giữ trong giỏ mua ngay. */
   useEffect(() => {
-    if (loaiDon !== "mua_ngay" || !gio?.dong.length) return;
+    if (!gio?.dong.length) return;
     if (!cartHasOutOfStock(gio.dong)) return;
-    setLoaiDon(null);
     setHoaDonOpen(false);
-    setErr("Có món hết hàng — chỉ đặt trước được.");
-  }, [gio, loaiDon]);
+    setErr("Có món hết hàng — hãy gỡ khỏi giỏ hoặc xóa giỏ.");
+  }, [gio]);
 
   const isOwner =
     Boolean(viewerProfileId) &&
@@ -290,8 +315,70 @@ export function ShopKioskBlock({
     viewerProfileId === sellerUserId;
 
   const loadHang = useCallback(async () => {
+    if (hangItems) {
+      setItems(hangItems);
+      setLoading(false);
+      return;
+    }
+    if (isShopCart) {
+      if (!sellerSlug?.trim()) {
+        setItems([]);
+        setLoading(false);
+        return;
+      }
+      try {
+        const res = await fetch(
+          `/api/shop/cua-hang/mat-hang?slug=${encodeURIComponent(sellerSlug.trim())}`,
+          { cache: "no-store" },
+        );
+        const json = (await res.json().catch(() => null)) as {
+          items?: Array<{
+            sanPhamId: string;
+            idBienThe: string | null;
+            hangId: string | null;
+            tenSanPham: string;
+            nhanBienThe: string | null;
+            phanLoai: string | null;
+            phanLoai2: string | null;
+            anhUrl: string | null;
+            soLuongTon: number;
+            soLuongBan: number;
+            giaHienThi: number | null;
+            tienTe: string;
+            hetHang: boolean;
+          }>;
+        } | null;
+        const mapped: ShopPostHangItem[] = [];
+        for (const [idx, it] of (json?.items ?? []).entries()) {
+          if (!it.idBienThe || it.giaHienThi == null) continue;
+          mapped.push({
+            id: it.hangId ?? it.idBienThe,
+            idBienThe: it.idBienThe,
+            idSanPham: it.sanPhamId,
+            tenSanPham: it.tenSanPham,
+            nhanBienThe: it.nhanBienThe ?? "Mặc định",
+            phanLoai: it.phanLoai,
+            phanLoai2: it.phanLoai2,
+            anhUrl: it.anhUrl,
+            soLuongTon: it.soLuongTon,
+            soLuongBan: it.soLuongBan,
+            giaHienThi: it.giaHienThi,
+            tienTe: it.tienTe,
+            idBangGia: null,
+            thuTu: idx,
+            hetHang: it.hetHang,
+          });
+        }
+        setItems(mapped);
+      } catch {
+        setItems([]);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
     try {
-      const res = await fetch(`/api/milestone/${milestoneId}/shop-hang`, {
+      const res = await fetch(`/api/milestone/${postId}/shop-hang`, {
         cache: "no-store",
       });
       const json = (await res.json().catch(() => null)) as {
@@ -308,15 +395,16 @@ export function ShopKioskBlock({
     } finally {
       setLoading(false);
     }
-  }, [milestoneId]);
+  }, [hangItems, isShopCart, sellerSlug, postId]);
 
   const loadGio = useCallback(async () => {
     if (!viewerProfileId || isOwner) return;
+    if (isShopCart ? !shopId : !postId) return;
     try {
-      const res = await fetch(
-        `/api/shop/gio?cotMocId=${encodeURIComponent(milestoneId)}`,
-        { cache: "no-store" },
-      );
+      const qs = isShopCart
+        ? `cuaHangId=${encodeURIComponent(shopId)}`
+        : `cotMocId=${encodeURIComponent(postId)}`;
+      const res = await fetch(`/api/shop/gio?${qs}`, { cache: "no-store" });
       const json = (await res.json().catch(() => null)) as {
         gio?: ShopGio;
       } | null;
@@ -324,7 +412,7 @@ export function ShopKioskBlock({
         setGio(
           mergePendingOntoGio(
             json.gio,
-            milestoneId,
+            cartScope,
             itemsRef.current,
             pendingQtyRef.current,
           ),
@@ -333,7 +421,14 @@ export function ShopKioskBlock({
     } catch {
       /* ignore */
     }
-  }, [milestoneId, viewerProfileId, isOwner]);
+  }, [
+    viewerProfileId,
+    isOwner,
+    isShopCart,
+    shopId,
+    postId,
+    cartScope,
+  ]);
 
   useEffect(() => {
     if (!viewerProfileId) {
@@ -383,9 +478,10 @@ export function ShopKioskBlock({
 
   /* Gắn / gỡ sản phẩm trên bài → refetch card bán hàng. */
   useEffect(() => {
+    if (isShopCart) return;
     const onShopHangChanged = (e: Event) => {
       const detail = (e as CustomEvent<{ milestoneId?: string }>).detail;
-      if (detail?.milestoneId && detail.milestoneId !== milestoneId) return;
+      if (detail?.milestoneId && detail.milestoneId !== postId) return;
       setLoading(true);
       void loadHang();
     };
@@ -393,7 +489,21 @@ export function ShopKioskBlock({
     return () => {
       window.removeEventListener("cins:shop-hang-changed", onShopHangChanged);
     };
-  }, [loadHang, milestoneId]);
+  }, [loadHang, isShopCart, postId]);
+
+  useEffect(() => {
+    if (hangItems) {
+      setItems(hangItems);
+      setLoading(false);
+    }
+  }, [hangItems]);
+
+  useEffect(() => {
+    if (dialogOnly && catalogOpen) {
+      setTab(initialTab);
+      void loadGio();
+    }
+  }, [dialogOnly, catalogOpen, initialTab, loadGio]);
 
   useEffect(() => {
     const timers = syncTimersRef.current;
@@ -417,7 +527,7 @@ export function ShopKioskBlock({
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            cotMocId: milestoneId,
+            ...(isShopCart ? { cuaHangId: shopId } : { cotMocId: postId }),
             idBienThe,
             soLuong,
           }),
@@ -438,7 +548,7 @@ export function ShopKioskBlock({
         setGio(
           mergePendingOntoGio(
             json.gio,
-            milestoneId,
+            cartScope,
             itemsRef.current,
             pendingQtyRef.current,
           ),
@@ -449,11 +559,11 @@ export function ShopKioskBlock({
         await loadGio();
       }
     },
-    [milestoneId, loadGio],
+    [isShopCart, shopId, postId, cartScope, loadGio],
   );
 
   const patchQty = useCallback(
-    (idBienThe: string, soLuong: number, loaiOverride?: ShopLoaiDon | null) => {
+    (idBienThe: string, soLuong: number) => {
       if (!viewerProfileId) {
         setErr("Đăng nhập để thêm vào giỏ.");
         return;
@@ -463,17 +573,11 @@ export function ShopKioskBlock({
       const item = itemsRef.current.find((it) => it.idBienThe === idBienThe);
       if (!item) return;
 
-      const effectiveLoai =
-        loaiOverride !== undefined ? loaiOverride : loaiDon;
-      const qty = clampQtyToStock(soLuong, item.soLuongTon, effectiveLoai);
-      if (
-        soLuong > qty &&
-        effectiveLoai !== "dat_truoc_nhan_su_kien" &&
-        item.soLuongTon > 0
-      ) {
-        setErr(
-          `Chỉ còn ${item.soLuongTon} trong kho — chọn Đặt trước nếu cần thêm.`,
-        );
+      const qty = clampQtyToStock(soLuong, item.soLuongTon);
+      if (soLuong > qty && item.soLuongTon > 0) {
+        setErr(`Chỉ còn ${item.soLuongTon} trong kho.`);
+      } else if (item.soLuongTon <= 0 && soLuong > 0) {
+        setErr("Hết hàng — không thêm vào giỏ được.");
       } else {
         setErr(null);
       }
@@ -483,7 +587,7 @@ export function ShopKioskBlock({
       );
       /* Phản hồi tức thì — không chờ mạng. */
       setGio((prev) =>
-        applyLocalQty(prev, milestoneId, item, qty, itemsRef.current),
+        applyLocalQty(prev, cartScope, item, qty, itemsRef.current),
       );
 
       pendingQtyRef.current.set(idBienThe, qty);
@@ -497,28 +601,61 @@ export function ShopKioskBlock({
         }, QTY_SYNC_MS),
       );
     },
-    [viewerProfileId, isOwner, milestoneId, flushQtySync, loaiDon],
+    [viewerProfileId, isOwner, cartScope, flushQtySync],
   );
 
-  const selectLoaiDon = useCallback(
-    (next: ShopLoaiDon) => {
-      if (!gio?.dong.length) return;
-      if (next === "mua_ngay" && cartHasOutOfStock(gio.dong)) {
-        setErr("Có món hết hàng — chỉ đặt trước được.");
+  const clearCart = useCallback(async () => {
+    if (!viewerProfileId || isOwner) return;
+    for (const t of syncTimersRef.current.values()) clearTimeout(t);
+    syncTimersRef.current.clear();
+    pendingQtyRef.current.clear();
+    qtyEpochRef.current.clear();
+
+    const tienTe = gio?.tienTe ?? itemsRef.current[0]?.tienTe ?? "VND";
+    setGio({
+      id: gio?.id ?? null,
+      ...cartScope,
+      dong: [],
+      tongTien: 0,
+      tienTe,
+    });
+    setHoaDonOpen(false);
+    setGhiChu("");
+    setErr(null);
+    setTab("hang");
+    setBusy(true);
+    try {
+      const qs = isShopCart
+        ? `cuaHangId=${encodeURIComponent(shopId)}`
+        : `cotMocId=${encodeURIComponent(postId)}`;
+      const res = await fetch(`/api/shop/gio?${qs}`, { method: "DELETE" });
+      const json = (await res.json().catch(() => null)) as {
+        gio?: ShopGio;
+        error?: string;
+      } | null;
+      if (!res.ok) {
+        setErr(json?.error ?? "Không xóa giỏ.");
+        await loadGio();
         return;
       }
-      setErr(null);
-      setLoaiDon(next);
-      if (next === "mua_ngay") {
-        for (const d of gio.dong) {
-          if (d.soLuongTon > 0 && d.soLuong > d.soLuongTon) {
-            patchQty(d.idBienThe, d.soLuongTon, "mua_ngay");
-          }
-        }
-      }
-    },
-    [gio, patchQty],
-  );
+      if (json?.gio) setGio(json.gio);
+    } catch {
+      setErr("Không xóa giỏ.");
+      await loadGio();
+    } finally {
+      setBusy(false);
+    }
+  }, [
+    viewerProfileId,
+    isOwner,
+    gio?.id,
+    gio?.tienTe,
+    cartScope,
+    isShopCart,
+    shopId,
+    postId,
+    loadGio,
+  ]);
 
   const categoryOptions = useMemo(() => {
     const set = new Set<string>();
@@ -566,7 +703,49 @@ export function ShopKioskBlock({
     setHoaDonUploadErr(null);
     setHoaDonCopied(false);
     setHoaDonOpen(true);
-  }, [buyerLabel]);
+    setSellerPayErr(null);
+    if (!sellerUserId) {
+      setSellerPay(null);
+      return;
+    }
+    setSellerPayLoading(true);
+    void (async () => {
+      try {
+        const res = await fetch(
+          `/api/shop/cua-hang/thanh-toan?sellerId=${encodeURIComponent(sellerUserId)}`,
+          { cache: "no-store" },
+        );
+        const json = (await res.json().catch(() => null)) as {
+          payment?: {
+            nganHang?: string;
+            soTaiKhoan?: string;
+            tenChuTaiKhoan?: string;
+          } | null;
+          shop?: { chinhSach?: string | null } | null;
+          error?: string;
+        } | null;
+        if (!res.ok || !json?.payment) {
+          setSellerPay(null);
+          setSellerPayErr(
+            json?.error ??
+              "Người bán chưa thêm tài khoản nhận tiền — chưa gửi đơn được.",
+          );
+          return;
+        }
+        setSellerPay({
+          nganHang: json.payment.nganHang ?? "",
+          soTaiKhoan: json.payment.soTaiKhoan ?? "",
+          tenChuTaiKhoan: json.payment.tenChuTaiKhoan ?? "",
+          chinhSach: json.shop?.chinhSach ?? null,
+        });
+      } catch {
+        setSellerPay(null);
+        setSellerPayErr("Không tải được thông tin nhận tiền.");
+      } finally {
+        setSellerPayLoading(false);
+      }
+    })();
+  }, [buyerLabel, sellerUserId]);
 
   const backToCartStep = useCallback(() => {
     setHoaDonOpen(false);
@@ -576,6 +755,15 @@ export function ShopKioskBlock({
     Boolean(hoaDonAnhUrl) &&
     !hoaDonUploading &&
     !hoaDonAnhUrl?.startsWith("blob:");
+
+  /** VietQR chỉ gắn STK — số tiền / nội dung CK hiện bên cạnh, không nhét vào ảnh. */
+  const payQrUrl = useMemo(() => {
+    if (!sellerPay) return null;
+    return buildVietQrImageUrl({
+      nganHang: sellerPay.nganHang,
+      soTaiKhoan: sellerPay.soTaiKhoan,
+    });
+  }, [sellerPay]);
 
   const submitOrder = useCallback(async () => {
     if (!viewerProfileId) {
@@ -590,35 +778,35 @@ export function ShopKioskBlock({
       setErr("Giỏ hàng trống.");
       return;
     }
-    if (!loaiDon) {
-      setErr("Chọn Mua ngay hoặc Đặt trước.");
+    if (cartHasOutOfStock(gio.dong)) {
+      setErr("Có món hết hàng — hãy gỡ khỏi giỏ hoặc xóa giỏ.");
       return;
     }
-    if (loaiDon === "mua_ngay" && cartHasOutOfStock(gio.dong)) {
-      setErr("Có món hết hàng — chỉ đặt trước được.");
+    const over = gio.dong.find(
+      (d) => d.soLuongTon > 0 && d.soLuong > d.soLuongTon,
+    );
+    if (over) {
+      setErr(`${over.tenSanPham}: chỉ còn ${over.soLuongTon} trong kho.`);
       return;
     }
-    if (loaiDon === "mua_ngay") {
-      const over = gio.dong.find(
-        (d) => d.soLuongTon > 0 && d.soLuong > d.soLuongTon,
-      );
-      if (over) {
-        setErr(
-          `${over.tenSanPham}: chỉ còn ${over.soLuongTon} trong kho.`,
-        );
-        return;
-      }
-    }
-    if (loaiDon === "mua_ngay" && !hoaDonAccepted) {
+    if (!hoaDonAccepted) {
       setErr("Bạn cần xác nhận rủi ro chuyển khoản trước khi gửi đơn.");
       if (!hoaDonOpen) openHoaDon();
       return;
     }
-    if (loaiDon === "mua_ngay" && !hoaDonBienLaiOk) {
+    if (!hoaDonBienLaiOk) {
       setHoaDonUploadErr(
         hoaDonUploading
           ? "Đang tải hóa đơn — chờ xong rồi gửi đơn."
           : "Cần tải biên lai chuyển khoản trước khi gửi đơn.",
+      );
+      if (!hoaDonOpen) openHoaDon();
+      return;
+    }
+    if (!sellerPay) {
+      setErr(
+        sellerPayErr ??
+          "Người bán chưa thêm tài khoản nhận tiền — chưa gửi đơn được.",
       );
       if (!hoaDonOpen) openHoaDon();
       return;
@@ -633,25 +821,21 @@ export function ShopKioskBlock({
       await Promise.all(pendingIds.map((id) => flushQtySync(id)));
 
       const noteParts = [ghiChu.trim()];
-      if (loaiDon === "mua_ngay" && hoaDonAnhUrl) {
+      if (hoaDonAnhUrl) {
         noteParts.push(`Hóa đơn thanh toán: ${hoaDonAnhUrl}`);
       }
       const ghiChuGui = noteParts.filter(Boolean).join("\n") || null;
-      const maDonGui =
-        loaiDon === "mua_ngay"
-          ? (hoaDonMa ?? buildShopMaDon(buyerLabel))
-          : buildShopMaDon(buyerLabel);
+      const maDonGui = hoaDonMa ?? buildShopMaDon(buyerLabel);
 
       const res = await fetch("/api/shop/don", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          cotMocId: milestoneId,
-          loaiDon,
+          ...(isShopCart ? { cuaHangId: shopId } : { cotMocId: postId }),
+          loaiDon: "mua_ngay",
           ghiChu: ghiChuGui,
           maDon: maDonGui,
-          nguoiMuaChapNhanRuiRo:
-            loaiDon === "mua_ngay" ? hoaDonAccepted : undefined,
+          nguoiMuaChapNhanRuiRo: hoaDonAccepted,
         }),
       });
       const json = (await res.json().catch(() => null)) as {
@@ -671,22 +855,20 @@ export function ShopKioskBlock({
       }
       setGio({
         id: null,
-        idCotMoc: milestoneId,
+        ...cartScope,
         dong: [],
         tongTien: 0,
         tienTe: gio.tienTe,
       });
       setGhiChu("");
       const bienLaiUrl =
-        loaiDon === "mua_ngay" && hoaDonAnhUrl && !hoaDonAnhUrl.startsWith("blob:")
+        hoaDonAnhUrl && !hoaDonAnhUrl.startsWith("blob:")
           ? hoaDonAnhUrl
           : null;
-      const bienLaiId =
-        loaiDon === "mua_ngay" ? hoaDonAnhId?.trim() || null : null;
+      const bienLaiId = hoaDonAnhId?.trim() || null;
       setHoaDonAnhUrl(null);
       setHoaDonAnhId(null);
       setHoaDonOpen(false);
-      setLoaiDon(null);
       setHoaDonAccepted(false);
       setHoaDonMa(null);
       setCatalogOpen(false);
@@ -727,8 +909,10 @@ export function ShopKioskBlock({
     sellerAvatarUrl,
     sellerInitials,
     gio,
-    milestoneId,
-    loaiDon,
+    isShopCart,
+    shopId,
+    postId,
+    cartScope,
     ghiChu,
     hoaDonAnhUrl,
     hoaDonAnhId,
@@ -741,6 +925,8 @@ export function ShopKioskBlock({
     openHoaDon,
     flushQtySync,
     openChat,
+    sellerPay,
+    sellerPayErr,
   ]);
 
   const uploadHoaDonThanhToan = useCallback(async (file: File | null) => {
@@ -864,8 +1050,11 @@ export function ShopKioskBlock({
     [isOwner],
   );
 
-  if (loading) return null;
-  if (items.length === 0) return null;
+  if (dialogOnly && !catalogOpen && !preview) return null;
+  if (!dialogOnly) {
+    if (loading) return null;
+    if (items.length === 0) return null;
+  }
 
   const cartCount = gio?.dong.length ?? 0;
   const tickerHalf = (() => {
@@ -919,10 +1108,7 @@ export function ShopKioskBlock({
       : null;
 
   const showCheckoutPanel =
-    hoaDonOpen &&
-    loaiDon !== null &&
-    Boolean(gio?.dong.length) &&
-    tab === "gio";
+    hoaDonOpen && Boolean(gio?.dong.length) && tab === "gio";
 
   const hoaDonPanel =
     showCheckoutPanel && gio ? (
@@ -980,9 +1166,7 @@ export function ShopKioskBlock({
                       timeStyle: "short",
                     })}
                   </span>
-                  <span className="shop-kiosk-hoa-don-badge">
-                    {loaiDon === "mua_ngay" ? "Mua ngay" : "Đặt trước"}
-                  </span>
+                  <span className="shop-kiosk-hoa-don-badge">Mua ngay</span>
                 </div>
                 {hoaDonMa ? (
                   <p className="shop-kiosk-hoa-don-ma">
@@ -1043,10 +1227,61 @@ export function ShopKioskBlock({
                   </strong>
                 </div>
                 <p className="shop-kiosk-hoa-don-foot">
-                  {loaiDon === "mua_ngay"
-                    ? "Thanh toán trực tiếp cho người bán — CINs không trung gian tiền."
-                    : "Thanh toán khi nhận hàng — xác nhận với người bán trước khi giao."}
+                  Thanh toán trực tiếp cho người bán — CINs không trung gian tiền.
                 </p>
+              </div>
+
+              <div className="shop-kiosk-pay-box">
+                <h4 className="shop-kiosk-pay-title">Chuyển khoản tới</h4>
+                {sellerPayLoading ? (
+                  <p className="shop-kiosk-pay-muted">
+                    <Loader2 size={14} className="shop-spin" aria-hidden /> Đang
+                    tải thông tin nhận tiền…
+                  </p>
+                ) : sellerPay ? (
+                  <div className="shop-kiosk-pay-grid">
+                    <div>
+                      <p>
+                        <strong>{sellerPay.nganHang}</strong>
+                      </p>
+                      <p>
+                        STK: <strong>{sellerPay.soTaiKhoan}</strong>
+                      </p>
+                      <p>Chủ TK: {sellerPay.tenChuTaiKhoan}</p>
+                      {hoaDonMa ? (
+                        <p>
+                          Nội dung CK: <strong>{hoaDonMa}</strong>
+                        </p>
+                      ) : null}
+                      {gio ? (
+                        <p>
+                          Số tiền:{" "}
+                          <strong>
+                            {gio.tongTien.toLocaleString("vi-VN")} {gio.tienTe}
+                          </strong>
+                        </p>
+                      ) : null}
+                      {sellerPay.chinhSach ? (
+                        <p className="shop-kiosk-pay-policy">
+                          {sellerPay.chinhSach}
+                        </p>
+                      ) : null}
+                    </div>
+                    {payQrUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={payQrUrl}
+                        alt="QR chuyển khoản"
+                        className="shop-kiosk-pay-qr"
+                      />
+                    ) : null}
+                  </div>
+                ) : (
+                  <p className="shop-kiosk-err" role="alert">
+                    {sellerPayErr ??
+                      "Người bán chưa thêm tài khoản nhận tiền."}
+                  </p>
+                )}
               </div>
 
               <label className="shop-kiosk-hoa-don-note-field">
@@ -1055,16 +1290,10 @@ export function ShopKioskBlock({
                   rows={2}
                   value={ghiChu}
                   onChange={(e) => setGhiChu(e.target.value)}
-                  placeholder={
-                    loaiDon === "mua_ngay"
-                      ? "VD: đã chuyển khoản lúc 17:30, mã GD…"
-                      : "VD: nhận tại quầy B12, ngày 2, màu xanh…"
-                  }
                 />
               </label>
 
-              {loaiDon === "mua_ngay" ? (
-                <div className="shop-kiosk-hoa-don-proof">
+              <div className="shop-kiosk-hoa-don-proof">
                   <p className="shop-kiosk-hoa-don-warn" role="alert">
                     <TriangleAlert
                       className="shop-kiosk-hoa-don-warn-icon"
@@ -1155,8 +1384,7 @@ export function ShopKioskBlock({
                 />
                 <span>{SHOP_BUYER_TRANSFER_DISCLAIMER}</span>
               </label>
-                </div>
-              ) : null}
+              </div>
 
               <div className="shop-kiosk-hoa-don-footer">
                 {err ? (
@@ -1170,8 +1398,10 @@ export function ShopKioskBlock({
                     className="shop-kiosk-submit shop-kiosk-hoa-don-submit"
                     disabled={
                       busy ||
-                      (loaiDon === "mua_ngay" &&
-                        (!hoaDonAccepted || !hoaDonBienLaiOk))
+                      !hoaDonAccepted ||
+                      !hoaDonBienLaiOk ||
+                      !sellerPay ||
+                      sellerPayLoading
                     }
                     onClick={() => void submitOrder()}
                   >
@@ -1220,7 +1450,6 @@ export function ShopKioskBlock({
             onClick={(e) => {
               e.stopPropagation();
               setHoaDonOpen(false);
-              setLoaiDon(null);
               setCatalogOpen(false);
             }}
             onKeyDown={(e) => e.stopPropagation()}
@@ -1256,8 +1485,7 @@ export function ShopKioskBlock({
                     aria-label="Đóng"
                     onClick={() => {
                       setHoaDonOpen(false);
-                      setLoaiDon(null);
-                      setCatalogOpen(false);
+                              setCatalogOpen(false);
                     }}
                   >
                     <X size={18} strokeWidth={2} aria-hidden />
@@ -1273,8 +1501,7 @@ export function ShopKioskBlock({
                   className={`shop-kiosk-catalog-tab${tab === "hang" ? " is-active" : ""}`}
                   onClick={() => {
                     setHoaDonOpen(false);
-                    setLoaiDon(null);
-                    setTab("hang");
+                          setTab("hang");
                   }}
                 >
                   <ShoppingBag size={14} strokeWidth={1.8} aria-hidden />
@@ -1320,9 +1547,15 @@ export function ShopKioskBlock({
                     type="button"
                     className={`shop-kiosk-checkout-step${showCheckoutPanel ? " is-active" : ""}`}
                     aria-current={showCheckoutPanel ? "step" : undefined}
-                    disabled={!loaiDon || !(gio?.dong.length)}
+                    disabled={
+                      !(gio?.dong.length) || cartHasOutOfStock(gio.dong)
+                    }
                     onClick={() => {
-                      if (!showCheckoutPanel && loaiDon && gio?.dong.length) {
+                      if (
+                        !showCheckoutPanel &&
+                        gio?.dong.length &&
+                        !cartHasOutOfStock(gio.dong)
+                      ) {
                         openHoaDon();
                       }
                     }}
@@ -1356,22 +1589,24 @@ export function ShopKioskBlock({
                             const qty = qtyInCart(it.idBienThe);
                             const outOfStock =
                               it.hetHang || it.soLuongTon <= 0;
+                            const showLowStock =
+                              !outOfStock &&
+                              Number.isFinite(it.soLuongTon) &&
+                              it.soLuongTon > 0 &&
+                              it.soLuongTon < 5;
                             const canIncrease =
                               Boolean(viewerProfileId) &&
-                              canIncreaseLineQty(
-                                it.soLuongTon,
-                                qty,
-                                loaiDon,
-                              );
+                              !outOfStock &&
+                              canIncreaseLineQty(it.soLuongTon, qty);
                             const canAddFirst =
                               Boolean(viewerProfileId) &&
-                              (outOfStock
-                                ? loaiDon !== "mua_ngay"
-                                : canIncreaseLineQty(
-                                    it.soLuongTon,
-                                    0,
-                                    loaiDon,
-                                  ));
+                              !outOfStock &&
+                              canIncreaseLineQty(it.soLuongTon, 0);
+                            const lowStockBadge = showLowStock ? (
+                              <span className="shop-kiosk-catalog-low-stock">
+                                SL:{it.soLuongTon}
+                              </span>
+                            ) : null;
                             return (
                               <li
                                 key={it.id}
@@ -1395,9 +1630,12 @@ export function ShopKioskBlock({
                                       alt=""
                                       loading="lazy"
                                     />
+                                    {lowStockBadge}
                                   </button>
                                 ) : (
-                                  <div className="shop-kiosk-catalog-thumb is-empty" />
+                                  <div className="shop-kiosk-catalog-thumb is-empty">
+                                    {lowStockBadge}
+                                  </div>
                                 )}
                                 <div className="shop-kiosk-catalog-card-body">
                                   <div className="shop-kiosk-catalog-card-name">
@@ -1411,80 +1649,80 @@ export function ShopKioskBlock({
                                       {it.giaHienThi.toLocaleString("vi-VN")}{" "}
                                       {it.tienTe}
                                     </strong>
-                                    <span>
-                                      {outOfStock
-                                        ? "Hết hàng · đặt trước"
-                                        : `Còn ${it.soLuongTon}`}
-                                    </span>
                                   </div>
                                   {!isOwner ? (
-                                    qty > 0 ? (
-                                      <div className="shop-kiosk-qty shop-kiosk-catalog-qty">
+                                    <div className="shop-kiosk-catalog-action">
+                                      <span className="shop-kiosk-catalog-stock">
+                                        Bán: {it.soLuongBan}
+                                      </span>
+                                      {qty > 0 ? (
+                                        <div className="shop-kiosk-qty shop-kiosk-catalog-qty">
+                                          <button
+                                            type="button"
+                                            aria-label="Bớt"
+                                            onClick={() =>
+                                              patchQty(it.idBienThe, qty - 1)
+                                            }
+                                          >
+                                            <Minus size={14} />
+                                          </button>
+                                          <span>{qty}</span>
+                                          <button
+                                            type="button"
+                                            aria-label="Thêm"
+                                            disabled={!canIncrease}
+                                            title={
+                                              !canIncrease && !outOfStock
+                                                ? `Tối đa ${it.soLuongTon} (tồn kho)`
+                                                : outOfStock
+                                                  ? "Hết hàng"
+                                                  : undefined
+                                            }
+                                            onClick={() =>
+                                              patchQty(it.idBienThe, qty + 1)
+                                            }
+                                          >
+                                            <Plus size={14} />
+                                          </button>
+                                        </div>
+                                      ) : (
                                         <button
                                           type="button"
-                                          aria-label="Bớt"
-                                          onClick={() =>
-                                            patchQty(it.idBienThe, qty - 1)
-                                          }
-                                        >
-                                          <Minus size={14} />
-                                        </button>
-                                        <span>{qty}</span>
-                                        <button
-                                          type="button"
-                                          aria-label="Thêm"
-                                          disabled={!canIncrease}
+                                          className="shop-kiosk-catalog-add"
+                                          disabled={!canAddFirst}
+                                          aria-label="Thêm vào giỏ"
                                           title={
-                                            !canIncrease && !outOfStock
-                                              ? `Tối đa ${it.soLuongTon} (tồn kho)`
-                                              : outOfStock &&
-                                                  loaiDon === "mua_ngay"
-                                                ? "Chọn Đặt trước để thêm"
-                                                : undefined
-                                          }
-                                          onClick={() =>
-                                            patchQty(it.idBienThe, qty + 1)
-                                          }
-                                        >
-                                          <Plus size={14} />
-                                        </button>
-                                      </div>
-                                    ) : (
-                                      <button
-                                        type="button"
-                                        className="shop-kiosk-catalog-add"
-                                        disabled={!canAddFirst}
-                                        title={
-                                          !viewerProfileId
-                                            ? "Đăng nhập để thêm vào giỏ"
-                                            : outOfStock &&
-                                                loaiDon === "mua_ngay"
-                                              ? "Chọn Đặt trước để thêm hàng hết tồn"
+                                            !viewerProfileId
+                                              ? "Đăng nhập để thêm vào giỏ"
                                               : outOfStock
-                                                ? "Hết hàng — thêm để đặt trước"
+                                                ? "Hết hàng"
                                                 : "Thêm vào giỏ"
-                                        }
-                                        onClick={() => {
-                                          if (!viewerProfileId) {
-                                            setErr(
-                                              "Đăng nhập để thêm vào giỏ.",
-                                            );
-                                            return;
                                           }
-                                          patchQty(it.idBienThe, 1);
-                                        }}
-                                      >
-                                        <Plus
-                                          size={14}
-                                          strokeWidth={2.2}
-                                          aria-hidden
-                                        />
-                                        {outOfStock
-                                          ? "Đặt trước"
-                                          : "Thêm vào giỏ"}
-                                      </button>
-                                    )
-                                  ) : null}
+                                          onClick={() => {
+                                            if (!viewerProfileId) {
+                                              setErr(
+                                                "Đăng nhập để thêm vào giỏ.",
+                                              );
+                                              return;
+                                            }
+                                            patchQty(it.idBienThe, 1);
+                                          }}
+                                        >
+                                          <Plus
+                                            size={14}
+                                            strokeWidth={2.4}
+                                            aria-hidden
+                                          />
+                                        </button>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <div className="shop-kiosk-catalog-action">
+                                      <span className="shop-kiosk-catalog-stock">
+                                        Bán: {it.soLuongBan}
+                                      </span>
+                                    </div>
+                                  )}
                                 </div>
                               </li>
                             );
@@ -1524,7 +1762,6 @@ export function ShopKioskBlock({
                             const canIncrease = canIncreaseLineQty(
                               d.soLuongTon,
                               d.soLuong,
-                              loaiDon,
                             );
                             const outOfStock = d.soLuongTon <= 0;
                             return (
@@ -1581,13 +1818,12 @@ export function ShopKioskBlock({
                                         {" "}
                                         · hết hàng
                                       </span>
-                                    ) : loaiDon !==
-                                      "dat_truoc_nhan_su_kien" ? (
+                                    ) : (
                                       <span className="shop-kiosk-cart-stock">
                                         {" "}
                                         · còn {d.soLuongTon}
                                       </span>
-                                    ) : null}
+                                    )}
                                   </span>
                                   <div className="shop-kiosk-qty">
                                     <button
@@ -1608,9 +1844,8 @@ export function ShopKioskBlock({
                                       title={
                                         !canIncrease && !outOfStock
                                           ? `Tối đa ${d.soLuongTon} (tồn kho)`
-                                          : outOfStock &&
-                                              loaiDon === "mua_ngay"
-                                            ? "Chọn Đặt trước để thêm"
+                                          : outOfStock
+                                            ? "Hết hàng"
                                             : undefined
                                       }
                                       onClick={() =>
@@ -1636,89 +1871,24 @@ export function ShopKioskBlock({
 
                         {!showCheckoutPanel ? (
                         <div className="shop-kiosk-cart-form">
-                              <p className="shop-kiosk-cart-form-label">
-                                Chọn cách nhận hàng
-                              </p>
-                              <div
-                                className="shop-kiosk-loai-don"
-                                role="radiogroup"
-                                aria-label="Cách nhận hàng"
-                              >
-                                <button
-                                  type="button"
-                                  role="radio"
-                                  aria-checked={loaiDon === "mua_ngay"}
-                                  aria-disabled={cartHasOutOfStock(gio.dong)}
-                                  disabled={cartHasOutOfStock(gio.dong)}
-                                  title={
-                                    cartHasOutOfStock(gio.dong)
-                                      ? "Có món hết hàng — chỉ đặt trước được"
-                                      : undefined
-                                  }
-                                  className={`shop-kiosk-loai-don-opt is-mua${loaiDon === "mua_ngay" ? " is-active" : ""}`}
-                                  onClick={() => selectLoaiDon("mua_ngay")}
-                                >
-                                  <span
-                                    className="shop-kiosk-loai-don-icon"
-                                    aria-hidden
-                                  >
-                                    <Zap size={18} strokeWidth={2} />
-                                  </span>
-                                  <span className="shop-kiosk-loai-don-text">
-                                    <span className="shop-kiosk-loai-don-title">
-                                      Mua ngay
-                                    </span>
-                                    <span className="shop-kiosk-loai-don-desc">
-                                      {cartHasOutOfStock(gio.dong)
-                                        ? "Cần hàng còn tồn"
-                                        : "Theo tồn kho · thanh toán luôn"}
-                                    </span>
-                                  </span>
-                                </button>
-                                <button
-                                  type="button"
-                                  role="radio"
-                                  aria-checked={
-                                    loaiDon === "dat_truoc_nhan_su_kien"
-                                  }
-                                  className={`shop-kiosk-loai-don-opt is-dat${loaiDon === "dat_truoc_nhan_su_kien" ? " is-active" : ""}`}
-                                  onClick={() =>
-                                    selectLoaiDon("dat_truoc_nhan_su_kien")
-                                  }
-                                >
-                                  <span
-                                    className="shop-kiosk-loai-don-icon"
-                                    aria-hidden
-                                  >
-                                    <CalendarClock size={18} strokeWidth={2} />
-                                  </span>
-                                  <span className="shop-kiosk-loai-don-text">
-                                    <span className="shop-kiosk-loai-don-title">
-                                      Đặt trước
-                                    </span>
-                                    <span className="shop-kiosk-loai-don-desc">
-                                      Không giới hạn tồn · trả khi nhận
-                                    </span>
-                                  </span>
-                                </button>
-                              </div>
                               {cartHasOutOfStock(gio.dong) ? (
-                                <p className="shop-kiosk-cart-continue-hint">
-                                  Giỏ có món hết hàng — chỉ đặt trước được
+                                <p className="shop-kiosk-cart-continue-hint is-warn">
+                                  Giỏ có món hết hàng — gỡ món đó hoặc xóa giỏ
+                                </p>
+                              ) : null}
+                              {err && tab === "gio" ? (
+                                <p className="shop-kiosk-err" role="alert">
+                                  {err}
                                 </p>
                               ) : null}
                               <button
                                 type="button"
                                 className="shop-kiosk-submit shop-kiosk-cart-continue"
-                                disabled={!loaiDon}
+                                disabled={cartHasOutOfStock(gio.dong)}
                                 onClick={() => {
-                                  if (
-                                    loaiDon === "mua_ngay" &&
-                                    gio &&
-                                    cartHasOutOfStock(gio.dong)
-                                  ) {
+                                  if (cartHasOutOfStock(gio.dong)) {
                                     setErr(
-                                      "Có món hết hàng — chỉ đặt trước được.",
+                                      "Có món hết hàng — hãy gỡ khỏi giỏ hoặc xóa giỏ.",
                                     );
                                     return;
                                   }
@@ -1726,6 +1896,14 @@ export function ShopKioskBlock({
                                 }}
                               >
                                 Tiếp tục
+                              </button>
+                              <button
+                                type="button"
+                                className="shop-kiosk-cart-clear"
+                                disabled={busy}
+                                onClick={() => void clearCart()}
+                              >
+                                Xóa giỏ hàng hiện tại
                               </button>
                               <p className="shop-kiosk-cart-continue-hint">
                                 Bước tiếp: kiểm tra đơn rồi gửi người bán
@@ -1746,6 +1924,7 @@ export function ShopKioskBlock({
 
   return (
     <>
+      {!dialogOnly ? (
       <div
         className="shop-kiosk shop-kiosk--ticker"
         onClick={(e) => e.stopPropagation()}
@@ -1814,6 +1993,7 @@ export function ShopKioskBlock({
           </button>
         </div>
       </div>
+      ) : null}
       {previewPortal}
       {catalogPortal}
     </>

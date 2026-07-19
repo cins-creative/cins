@@ -125,6 +125,8 @@ type Props = {
   memberAvatars?: ChatGroupMemberAvatar[];
   /** false nếu đây đã là phòng project con. */
   canHaveProjects?: boolean;
+  /** Nhóm cha — khi đang quản lý project con (để thêm thành viên ⊆ cha). */
+  parentRoomId?: string | null;
   /** Tab mở khi modal mount (vd. «Tạo project» từ menu thread). */
   initialSection?: ManageSection;
   /** Mở luôn bước xác nhận xóa nhóm chính (vd. từ menu thread). */
@@ -175,6 +177,7 @@ export function ChatGroupManageModal({
   avatarUrl = null,
   memberAvatars = [],
   canHaveProjects = true,
+  parentRoomId = null,
   initialSection = "thong_tin",
   initialDeleteConfirm = false,
   onClose,
@@ -349,22 +352,49 @@ export function ChatGroupManageModal({
     setLoadingFriends(true);
     void (async () => {
       try {
-        const res = await fetch("/api/users/search?friends_only=true", {
-          cache: "no-store",
-        });
-        if (!res.ok) throw new Error("Không tải được danh sách bạn bè.");
-        const json = (await res.json()) as { users?: FriendRow[] };
-        setFriends(json.users ?? []);
+        if (parentRoomId) {
+          const res = await fetch(`/api/chat/rooms/${parentRoomId}/members`, {
+            cache: "no-store",
+          });
+          if (!res.ok) throw new Error("Không tải được thành viên nhóm cha.");
+          const json = (await res.json()) as {
+            members?: Array<{
+              userId: string;
+              tenHienThi: string;
+              slug: string;
+              avatarId?: string | null;
+            }>;
+          };
+          setFriends(
+            (json.members ?? []).map((m) => ({
+              id: m.userId,
+              ten_hien_thi: m.tenHienThi,
+              slug: m.slug,
+              avatar_id: m.avatarId ?? null,
+            })),
+          );
+        } else {
+          const res = await fetch("/api/users/search?friends_only=true", {
+            cache: "no-store",
+          });
+          if (!res.ok) throw new Error("Không tải được danh sách bạn bè.");
+          const json = (await res.json()) as { users?: FriendRow[] };
+          setFriends(json.users ?? []);
+        }
       } catch (e) {
         setFriends([]);
         setError(
-          e instanceof Error ? e.message : "Không tải được danh sách bạn bè.",
+          e instanceof Error
+            ? e.message
+            : parentRoomId
+              ? "Không tải được thành viên nhóm cha."
+              : "Không tải được danh sách bạn bè.",
         );
       } finally {
         setLoadingFriends(false);
       }
     })();
-  }, [open, isGroupAdmin]);
+  }, [open, isGroupAdmin, parentRoomId]);
 
   useEffect(() => {
     if (!open) return;
@@ -1061,8 +1091,9 @@ export function ChatGroupManageModal({
               <div>
                 <strong>Kênh theo project</strong>
                 <p>
-                  Tách thảo luận từng việc. Project im lâu có thể ẩn khỏi danh
-                  sách chat và lấy lại trong lịch sử.
+                  Chỉ chủ/admin tạo và thêm thành viên. Ai chưa được thêm sẽ
+                  không thấy project. Project im lâu có thể ẩn và lấy lại trong
+                  lịch sử.
                 </p>
               </div>
             </div>
@@ -1267,13 +1298,18 @@ export function ChatGroupManageModal({
                 <div className="cins-chat-group-list cins-chat-group-manage-add-list">
                   {loadingFriends ? (
                     <p className="cins-chat-group-list-empty">
-                      <Loader2 size={16} className="spin" /> Đang tải bạn bè…
+                      <Loader2 size={16} className="spin" />{" "}
+                      {parentRoomId
+                        ? "Đang tải thành viên nhóm cha…"
+                        : "Đang tải bạn bè…"}
                     </p>
                   ) : addableFriends.length === 0 ? (
                     <p className="cins-chat-group-list-empty">
-                      {canAddMore
-                        ? "Không còn bạn bè nào để thêm."
-                        : "Nhóm đã đủ thành viên."}
+                      {!canAddMore
+                        ? "Nhóm đã đủ thành viên."
+                        : parentRoomId
+                          ? "Không còn thành viên nhóm cha để thêm."
+                          : "Không còn bạn bè nào để thêm."}
                     </p>
                   ) : (
                     <ul role="list">

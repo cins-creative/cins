@@ -38,6 +38,10 @@
 
 ## LOG — quyết định đã chốt
 
+### Shop storefront — giỏ theo cửa hàng (2026-07-20)
+
+- **Bổ sung L33:** mua thẳng từ `/{slug}/shop` không cần `shop_post_hang`. Post-kiosk vẫn gắn subset. Schema `shop_gio`: XOR `id_cot_moc` | `id_cua_hang`. API `shop/gio` · `shop/don` nhận một trong hai scope. UI: `JourneyShopStorefront` thêm giỏ + gửi đơn.
+
 ### Shop UGC — bán hàng / preorder (không payment gateway) (2026-07-18)
 
 - **L33 — Module `shop_*` opt-in cho user; CINs không trung gian tiền.**
@@ -45,7 +49,8 @@
   • **Không** dùng prefix `payment_` (FOUNDATIONS §13 = cổng thanh toán org sau này). Bảng `shop_*`.
   • **Opt-in:** `user_nguoi_dung.ban_hang_bat` mặc định false; bật trong cài đặt account + chấp nhận điều khoản (`ban_hang_dieu_khoan_luc`). Copy: CINs không liên quan chuyển tiền; quyền quyết định thuộc hai bên user.
   • **Catalog:** `shop_san_pham` + `shop_bien_the` (tồn kho). **Bảng giá đa ngữ cảnh:** `shop_bang_gia` + `shop_bang_gia_dong` (nhiều bảng / tiền tệ — event A ≠ event B / quốc gia).
-  • **Post = kiosk:** `shop_post_hang` gắn biến thể + bảng giá (snapshot `gia_hien_thi`) lên `content_cot_moc`. Giỏ **theo post** (`shop_gio` unique buyer+cot_moc).
+  • **Post = kiosk:** `shop_post_hang` gắn **subset** biến thể + bảng giá (snapshot `gia_hien_thi`) lên `content_cot_moc` — chỉ hàng liên quan bài đó. Giỏ **theo post** (`shop_gio.id_cot_moc`, unique buyer+cot_moc).
+  • **Storefront shop:** `/{slug}/shop` bán **toàn catalog** đang bán — **không** bắt buộc gắn bài. Giỏ **theo cửa hàng** (`shop_gio.id_cua_hang`, unique buyer+cua_hang). XOR scope: đúng một trong `id_cot_moc` | `id_cua_hang`. Đơn từ storefront: `shop_don_hang.id_cot_moc` null.
   • **Đơn cứng:** `shop_don_hang` / `shop_don_hang_dong` — `loai_don` = `mua_ngay` | `dat_truoc_nhan_su_kien`. Trạng thái: `nhap` → `cho_xac_nhan` → `da_nhan_tien` | `da_giao_tai_su_kien` (giữ enum `huy` legacy, **không** expose hủy trên UI/API). Chat DM `1_1` gửi card `ngu_canh.loai=don_hang`. **Tồn kho:** `mua_ngay` trừ kho **atomic ngay khi tạo đơn** (`da_tru_kho=true`, RPC `shop_tru_kho_bien_the`) — chặn oversell khi nhiều buyer cùng lúc; `dat_truoc_nhan_su_kien` trừ kho lúc seller xác nhận (thương lượng giao hàng, không giữ chỗ). Seller xác nhận không trừ lại nếu đã `da_tru_kho`. **Không hủy đơn trên CINs** — chuyển khoản P2P, mất tiền tự chịu; CINs không phân xử. Không soft-hold TTL / không payment API.
   • **RSVP sự kiện** (`se_tham_gia`) **không** gate mua hàng. **Xin làm quầy:** `shop_quay_su_kien` + bằng chứng → owner sự kiện duyệt (vừa đủ, không scale sớm). Không nhồi vào `org_milestone_tag_v1`.
   • *Hệ quả file:* IMPLEMENTATION (SQL + API + UI `/ban-hang/*`); FOUNDATIONS §13 ghi chú shop≠payment; chat context `don_hang`.
@@ -125,7 +130,7 @@
 ### Workspace nhóm chat — project con + thẻ tài nguyên + mốc (2026-07-13)
 
 - **L28 — Nhóm chat = phòng ban ổn định + project có vòng đời + tài nguyên/mốc làm việc.**
-  • **Phòng project con:** `chat_phong.id_phong_cha` → nhóm gốc (`loai_phong='nhom'`). Chỉ **1 cấp** (trigger chặn lồng sâu). Owner/admin nhóm cha tạo; thành viên mặc định = toàn bộ thành viên cha (có thể subset ⊆ cha). Cap: `MAX_PROJECT_ROOMS_PER_PARENT` (20).
+  • **Phòng project con:** `chat_phong.id_phong_cha` → nhóm gốc (`loai_phong='nhom'`). Chỉ **1 cấp** (trigger chặn lồng sâu). Owner/admin nhóm cha tạo; thành viên = subset ⊆ cha do admin **thêm tay** (mặc định chỉ creator — chưa thêm thì không thấy phòng). Cap: `MAX_PROJECT_ROOMS_PER_PARENT` (20).
   • **Ẩn / lịch sử:** `chat_phong.trang_thai` = `active` | `an`. `an` = ẩn khỏi list/FAB, còn trong lịch sử nhóm cha để khôi phục. Gợi ý UI khi im ≥ `PROJECT_IDLE_DAYS_HINT` (45 ngày) — chưa auto-notify.
   • **Thẻ tài nguyên:** `chat_the_tai_nguyen` + `chat_the_gan` — nhãn **cục bộ theo phòng**, member tự tạo; gắn lên tin có ảnh/URL. **Không** reuse `filter_nhan` / Journey (quy tắc 29 vẫn đúng cho Journey; chat dùng primitive riêng cùng mental model).
   • **Mốc phòng:** `chat_moc` — timeline + tin nhắc trong phòng (tạo / nhắc trước / đến hạn qua `loai_tin=system`); owner/admin CRUD. Push/email ngoài app → **O17** còn mở.

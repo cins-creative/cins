@@ -20,3 +20,28 @@ export function formatActorRelativeTime(iso: string | null | undefined): string 
     month: "short",
   }).format(new Date(iso));
 }
+
+/**
+ * Thời gian đăng trên chip author (Journey datebar):
+ * trong 24h → "Vừa xong" / "N phút trước" / "N giờ trước";
+ * quá 24h hoặc thiếu ISO → null (không hiện).
+ */
+export function formatPostedWithin24h(
+  iso: string | null | undefined,
+): string | null {
+  if (!iso) return null;
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return null;
+
+  const diffMs = Date.now() - then;
+  if (diffMs < 0) return "Vừa xong";
+
+  const mins = Math.floor(diffMs / 60_000);
+  if (mins < 1) return "Vừa xong";
+  if (mins < 60) return `${mins} phút trước`;
+
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours} giờ trước`;
+
+  return null;
+}

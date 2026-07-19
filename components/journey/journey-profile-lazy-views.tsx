@@ -30,6 +30,18 @@ export const JourneyOrganizationsViewLazy = dynamic(
   { loading: () => <JourneyOrganizationsSectionSkeleton /> },
 );
 
+export const JourneyShopViewLazy = dynamic(
+  () =>
+    import("@/components/journey/JourneyShopView").then((m) => m.JourneyShopView),
+  {
+    loading: () => (
+      <section className="j-shop" aria-busy="true">
+        <div className="j-shop-loading">Đang tải cửa hàng…</div>
+      </section>
+    ),
+  },
+);
+
 export function prefetchJourneyGalleryView() {
   void import("@/components/journey/JourneyGalleryGridView");
 }
@@ -40,4 +52,8 @@ export function prefetchJourneyFriendsView() {
 
 export function prefetchJourneyOrganizationsView() {
   void import("@/components/journey/JourneyOrganizationsView");
+}
+
+export function prefetchJourneyShopView() {
+  void import("@/components/journey/JourneyShopView");
 }

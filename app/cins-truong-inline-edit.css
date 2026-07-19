@@ -2950,7 +2950,7 @@
   margin: 0;
   font-size: 12px;
   line-height: 1.45;
-  color: var(--ink3);
+  color: var(--ink-muted, #64748b);
 }
 
 .tdh-chi-nhanh-editor-list {
@@ -2963,13 +2963,13 @@
 }
 
 .tdh-chi-nhanh-editor-card {
-  border: 1px solid var(--border2, #e4e6eb);
+  border: 1px solid var(--border, #e4e6eb);
   border-radius: 10px;
   background: var(--neutral-50, #fafbfc);
 }
 
 .tdh-chi-nhanh-editor-card.is-expanded {
-  background: #fff;
+  background: var(--bg-surface, #fff);
 }
 
 .tdh-chi-nhanh-editor-card-hdr {
@@ -3008,7 +3008,7 @@
 .tdh-chi-nhanh-editor-title {
   font-size: 13px;
   font-weight: 700;
-  color: var(--ink1, #1a1d23);
+  color: var(--ink-display, #1a1d23);
   line-height: 1.3;
   min-width: 0;
 }
@@ -3028,7 +3028,7 @@
 .tdh-chi-nhanh-editor-summary {
   font-size: 12px;
   line-height: 1.4;
-  color: var(--ink3);
+  color: var(--ink-muted, #64748b);
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -3041,7 +3041,7 @@
   position: absolute;
   right: 12px;
   top: 12px;
-  color: var(--ink3);
+  color: var(--ink-muted, #64748b);
   transition: transform 0.15s ease;
 }
 
@@ -3055,7 +3055,7 @@
 
 .tdh-chi-nhanh-editor-fields {
   padding: 0 12px 12px;
-  border-top: 1px solid var(--border2, #e4e6eb);
+  border-top: 1px solid var(--border, #e4e6eb);
 }
 
 .tdh-chi-nhanh-editor-fields .tdh-inline-field {
@@ -3178,6 +3178,36 @@
 
 .tdh-chi-nhanh-editor-add {
   align-self: flex-start;
+}
+
+/* ── Dark: editor chi nhánh trong modal cài đặt */
+:root[data-theme="dark"] .tdh-chi-nhanh-editor-card {
+  background: var(--neutral-0, #12151d);
+  border-color: var(--border, #2a3040);
+}
+
+:root[data-theme="dark"] .tdh-chi-nhanh-editor-card.is-expanded {
+  background: var(--bg-surface, #171b24);
+}
+
+:root[data-theme="dark"] .tdh-chi-nhanh-editor-toggle:hover {
+  background: color-mix(in srgb, var(--cins-blue, #4f9be8) 10%, transparent);
+}
+
+:root[data-theme="dark"] .tdh-chi-nhanh-editor-fields,
+:root[data-theme="dark"] .tdh-chi-nhanh-editor-delete-confirm {
+  border-top-color: var(--border, #2a3040);
+}
+
+:root[data-theme="dark"] .tdh-chi-nhanh-editor-cover-preview {
+  background: var(--neutral-100, #1c212c);
+  box-shadow: inset 0 0 0 1px var(--border, #2a3040);
+}
+
+:root[data-theme="dark"] .tdh-chi-nhanh-editor-del {
+  background: rgba(240, 101, 106, 0.12);
+  border-color: rgba(240, 101, 106, 0.35);
+  color: #f0656a;
 }
 
 .tdh-calc-config-section {
@@ -6359,7 +6389,7 @@ a.tdh-milestone-tag-student:hover {
   margin: 6px 0 0;
   font-size: 13px;
   line-height: 1.5;
-  color: var(--ink2, #475569);
+  color: var(--ink-body, #475569);
   max-width: 520px;
 }
 
@@ -6369,9 +6399,10 @@ a.tdh-milestone-tag-student:hover {
   gap: 0;
   flex: 1;
   min-height: 0;
-  border: 1px solid var(--border2, #e4e6eb);
+  border: 1px solid var(--border, #e4e6eb);
   border-radius: 14px;
   overflow: hidden;
+  background: var(--bg-surface, #fff);
 }
 
 @media (max-width: 640px) {
@@ -6392,14 +6423,14 @@ a.tdh-milestone-tag-student:hover {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  border-right: 1px solid var(--border2, #e4e6eb);
-  background: var(--bg-soft, #f8fafc);
+  border-right: 1px solid var(--border, #e4e6eb);
+  background: var(--neutral-50, #f8fafc);
 }
 
 @media (max-width: 640px) {
   .tdh-message-inbox-list-pane {
     border-right: none;
-    border-bottom: 1px solid var(--border2, #e4e6eb);
+    border-bottom: 1px solid var(--border, #e4e6eb);
     min-height: 0;
   }
 }
@@ -6409,7 +6440,7 @@ a.tdh-milestone-tag-student:hover {
   flex-wrap: wrap;
   gap: 6px;
   padding: 10px 10px 8px;
-  border-bottom: 1px solid var(--border2, #e4e6eb);
+  border-bottom: 1px solid var(--border, #e4e6eb);
 }
 
 .tdh-message-inbox-filter {
@@ -6418,8 +6449,8 @@ a.tdh-milestone-tag-student:hover {
   font-weight: 600;
   padding: 5px 9px;
   border-radius: 999px;
-  border: 1px solid var(--border2, #e4e6eb);
-  background: #fff;
+  border: 1px solid var(--border, #e4e6eb);
+  background: var(--bg-surface, #fff);
   color: var(--ink-muted, #64748b);
   cursor: pointer;
 }
@@ -6427,7 +6458,7 @@ a.tdh-milestone-tag-student:hover {
 .tdh-message-inbox-filter.on {
   border-color: var(--cins-blue, #1f74c9);
   color: var(--cins-blue, #1f74c9);
-  background: color-mix(in srgb, var(--cins-blue, #1f74c9) 8%, #fff);
+  background: color-mix(in srgb, var(--cins-blue, #1f74c9) 8%, var(--bg-surface, #fff));
 }
 
 .tdh-message-inbox-filter-count {
@@ -6450,19 +6481,20 @@ a.tdh-milestone-tag-student:hover {
   width: 100%;
   padding: 12px 12px;
   border: none;
-  border-bottom: 1px solid var(--border2, #e4e6eb);
+  border-bottom: 1px solid var(--border, #e4e6eb);
   background: transparent;
+  color: inherit;
   text-align: left;
   cursor: pointer;
   font: inherit;
 }
 
 .tdh-message-inbox-thread:hover {
-  background: #fff;
+  background: var(--bg-surface, #fff);
 }
 
 .tdh-message-inbox-thread.is-active {
-  background: #fff;
+  background: var(--bg-surface, #fff);
   box-shadow: inset 3px 0 0 var(--cins-blue, #1f74c9);
 }
 
@@ -6517,7 +6549,7 @@ a.tdh-milestone-tag-student:hover {
 .tdh-message-inbox-thread-name {
   font-size: 13px;
   font-weight: 600;
-  color: var(--ink, #0f172a);
+  color: var(--ink-display, #0f172a);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -6604,7 +6636,7 @@ a.tdh-milestone-tag-student:hover {
 .tdh-message-inbox-thread-subject {
   font-size: 12px;
   font-weight: 600;
-  color: var(--ink, #334155);
+  color: var(--ink-title, #334155);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -6653,8 +6685,8 @@ a.tdh-milestone-tag-student:hover {
   flex-shrink: 0;
   margin: 0;
   padding: 12px 14px 8px;
-  border-bottom: 1px solid var(--border2, #e4e6eb);
-  background: #fff;
+  border-bottom: 1px solid var(--border, #e4e6eb);
+  background: var(--bg-surface, #fff);
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -6662,7 +6694,11 @@ a.tdh-milestone-tag-student:hover {
 
 .tdh-message-inbox-verify-panel--pending {
   border-left: 3px solid #f59e0b;
-  background: linear-gradient(180deg, #fffbeb 0%, #fff 72%);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, #f59e0b 12%, var(--bg-surface, #fff)) 0%,
+    var(--bg-surface, #fff) 72%
+  );
 }
 
 .tdh-message-inbox-verify-panel--approved {
@@ -6691,7 +6727,7 @@ a.tdh-milestone-tag-student:hover {
 .tdh-message-inbox-verify-name {
   font-size: 14px;
   font-weight: 800;
-  color: var(--ink, #0f172a);
+  color: var(--ink-display, #0f172a);
   text-decoration: none;
 }
 
@@ -6731,7 +6767,7 @@ a.tdh-message-inbox-verify-name:hover {
   font-size: 14px;
   font-weight: 700;
   line-height: 1.35;
-  color: var(--ink, #0f172a);
+  color: var(--ink-display, #0f172a);
 }
 
 .tdh-message-inbox-verify-panel-body {
@@ -6755,7 +6791,7 @@ a.tdh-message-inbox-verify-name:hover {
   gap: 6px;
   margin-top: 2px;
   padding: 6px 0 0;
-  border-top: 1px solid color-mix(in srgb, var(--border2, #e4e6eb) 80%, transparent);
+  border-top: 1px solid color-mix(in srgb, var(--border, #e4e6eb) 80%, transparent);
 }
 
 .tdh-message-inbox-verify-panel-actions .tdh-inline-btn {
@@ -6812,7 +6848,7 @@ a.tdh-message-inbox-verify-name:hover {
   font-size: 13px;
   text-align: center;
   color: var(--ink-muted, #64748b);
-  background: var(--bg-soft, #f8fafc);
+  background: var(--neutral-50, #f8fafc);
   border-radius: 10px;
 }
 
@@ -6836,7 +6872,7 @@ a.tdh-message-inbox-verify-name:hover {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  background: #fff;
+  background: var(--bg-surface, #fff);
 }
 
 .tdh-message-inbox-pick {
@@ -6853,7 +6889,7 @@ a.tdh-message-inbox-verify-name:hover {
   justify-content: space-between;
   gap: 12px;
   padding: 14px 16px;
-  border-bottom: 1px solid var(--border2, #e4e6eb);
+  border-bottom: 1px solid var(--border, #e4e6eb);
   flex-shrink: 0;
 }
 
@@ -6861,7 +6897,7 @@ a.tdh-message-inbox-verify-name:hover {
   margin: 0;
   font-size: 15px;
   font-weight: 800;
-  color: var(--ink, #0f172a);
+  color: var(--ink-display, #0f172a);
 }
 
 .tdh-message-inbox-detail-meta {
@@ -6901,7 +6937,7 @@ a.tdh-message-inbox-verify-name:hover {
   display: flex;
   flex-direction: column;
   gap: 18px;
-  background: var(--bg-soft, #f8fafc);
+  background: var(--neutral-50, #f8fafc);
   /* Tin cũ trên · tin mới dưới (giống overlay) */
   --cins-chat-media-max-w: 300px;
   --cins-chat-media-max-h-portrait: 360px;
@@ -6966,8 +7002,8 @@ a.tdh-message-inbox-verify-name:hover {
   align-items: stretch;
   gap: 8px;
   padding: 10px 12px;
-  border-top: 1px solid var(--border2, #e4e6eb);
-  background: #fff;
+  border-top: 1px solid var(--border, #e4e6eb);
+  background: var(--bg-surface, #fff);
   flex-shrink: 0;
   margin: 0;
   color: inherit;
@@ -6987,14 +7023,14 @@ a.tdh-message-inbox-verify-name:hover {
   font-size: 13px;
   line-height: 1.4;
   padding: 8px 10px;
-  border: 1px solid var(--border2, #e4e6eb);
+  border: 1px solid var(--border, #e4e6eb);
   border-radius: 10px;
   resize: none;
   min-height: 38px;
   max-height: 120px;
   margin: 0;
-  background: var(--bg-soft, #f8fafc);
-  color: var(--ink, #0f172a);
+  background: var(--neutral-50, #f8fafc);
+  color: var(--ink-display, #0f172a);
 }
 
 .tdh-message-inbox-send {
@@ -7010,6 +7046,132 @@ a.tdh-message-inbox-verify-name:hover {
 .tdh-message-inbox-textarea:focus {
   outline: 2px solid color-mix(in srgb, var(--cins-blue, #1f74c9) 35%, transparent);
   border-color: var(--cins-blue, #1f74c9);
+}
+
+/* ── Dark mode: hộp thư tin nhắn tuyển sinh
+   Nền cứng #fff/#f8fafc + chữ --ink-display (gần trắng) khi portal lên body
+   → chữ trắng trên nền trắng. Đưa bề mặt về token dark, giữ accent. */
+:root[data-theme="dark"] .tdh-message-inbox-modal {
+  background: var(--bg-surface, #171b24);
+  color: var(--ink-display, rgba(255, 255, 255, 0.92));
+}
+
+:root[data-theme="dark"] .tdh-message-inbox-modal .tdh-inline-modal-title {
+  color: var(--ink-display, rgba(255, 255, 255, 0.92));
+}
+
+:root[data-theme="dark"] .tdh-message-inbox-layout {
+  border-color: var(--border, #2a3040);
+  background: var(--bg-surface, #171b24);
+}
+
+:root[data-theme="dark"] .tdh-message-inbox-list-pane {
+  background: var(--neutral-0, #12151d);
+  border-right-color: var(--border, #2a3040);
+}
+
+:root[data-theme="dark"] .tdh-message-inbox-filters {
+  border-bottom-color: var(--border, #2a3040);
+}
+
+:root[data-theme="dark"] .tdh-message-inbox-filter {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.14);
+  color: var(--ink-muted, rgba(255, 255, 255, 0.46));
+}
+
+:root[data-theme="dark"] .tdh-message-inbox-filter.on {
+  border-color: var(--cins-blue, #4f9be8);
+  background: color-mix(in srgb, var(--cins-blue, #4f9be8) 16%, transparent);
+  color: var(--cins-blue, #4f9be8);
+}
+
+:root[data-theme="dark"] .tdh-message-inbox-thread {
+  border-bottom-color: var(--border, #2a3040);
+}
+
+:root[data-theme="dark"] .tdh-message-inbox-thread:hover {
+  background: var(--neutral-100, #1c212c);
+}
+
+:root[data-theme="dark"] .tdh-message-inbox-thread.is-active {
+  background: color-mix(in srgb, var(--cins-blue, #4f9be8) 12%, var(--bg-surface, #171b24));
+}
+
+:root[data-theme="dark"] .tdh-message-inbox-detail-pane {
+  background: var(--bg-surface, #171b24);
+}
+
+:root[data-theme="dark"] .tdh-message-inbox-detail-hdr {
+  border-bottom-color: var(--border, #2a3040);
+}
+
+:root[data-theme="dark"] .tdh-message-inbox-messages {
+  background: var(--neutral-0, #12151d);
+}
+
+:root[data-theme="dark"] .tdh-message-inbox-compose {
+  background: var(--bg-surface, #171b24);
+  border-top-color: var(--border, #2a3040);
+}
+
+:root[data-theme="dark"] .tdh-message-inbox-textarea {
+  background: var(--neutral-100, #1c212c);
+  border-color: var(--border, #2a3040);
+  color: var(--ink-display, rgba(255, 255, 255, 0.92));
+  color-scheme: dark;
+}
+
+:root[data-theme="dark"] .tdh-message-inbox-textarea::placeholder {
+  color: var(--ink-muted, rgba(255, 255, 255, 0.46));
+}
+
+:root[data-theme="dark"] .tdh-message-inbox-verify-panel {
+  background: var(--bg-surface, #171b24);
+  border-bottom-color: var(--border, #2a3040);
+}
+
+:root[data-theme="dark"] .tdh-message-inbox-verify-panel--pending {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, #f59e0b 14%, var(--bg-surface, #171b24)) 0%,
+    var(--bg-surface, #171b24) 72%
+  );
+}
+
+:root[data-theme="dark"] .tdh-message-inbox-contact-badge--hoc_vien {
+  color: #93c5fd;
+  background: rgba(59, 130, 246, 0.22);
+}
+
+:root[data-theme="dark"] .tdh-message-inbox-contact-badge--giao_vien {
+  color: #c4b5fd;
+  background: rgba(139, 92, 246, 0.22);
+}
+
+:root[data-theme="dark"] .tdh-message-inbox-contact-badge--nhan_vien {
+  color: var(--ink-title, rgba(255, 255, 255, 0.72));
+  background: rgba(255, 255, 255, 0.08);
+}
+
+:root[data-theme="dark"] .tdh-message-inbox-contact-badge--admin {
+  color: #fcd34d;
+  background: rgba(245, 158, 11, 0.22);
+}
+
+:root[data-theme="dark"] .tdh-message-inbox-contact-badge--nguoi_la {
+  color: var(--ink-muted, rgba(255, 255, 255, 0.46));
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+:root[data-theme="dark"] .tdh-message-inbox-contact-badge--default {
+  color: var(--ink-body, rgba(255, 255, 255, 0.64));
+  background: rgba(255, 255, 255, 0.08);
+}
+
+:root[data-theme="dark"] .tdh-message-inbox-evidence-modal-empty {
+  background: var(--neutral-100, #1c212c);
 }
 
 /* User — gửi tin nhắn tới trường */

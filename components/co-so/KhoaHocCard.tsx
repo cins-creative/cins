@@ -108,7 +108,7 @@ export function KhoaHocCard({
           {labelTrinhDoDauVao(khoa.trinhDoDauVao)}
         </div>
         <div className="cso-kh-card-facts">
-          <div className="cso-kh-cf">
+          <div className="cso-kh-cf cso-kh-cf--duration">
             <div className="cso-kh-cf-v">
               {formatThoiLuongKhoa(
                 khoa.thoiLuongBuoi,
@@ -117,7 +117,7 @@ export function KhoaHocCard({
             </div>
             <div className="cso-kh-cf-k">Thời lượng</div>
           </div>
-          <div className="cso-kh-cf">
+          <div className="cso-kh-cf cso-kh-cf--price">
             <div className="cso-kh-cf-v">
               {formatKhoaHocPhi(khoa.hocPhi, khoa.loaiMoHinh)}
             </div>

@@ -67,14 +67,13 @@ export function resolveSeeking(giaiDoan: GiaiDoan | null | undefined): boolean {
 }
 
 /**
- * Nội dung dạng "cơ hội & thông báo" — org theo dõi, sự kiện, tuyển dụng, khóa học.
- * Luôn nằm ở **cột phải** cho mọi persona; các module còn lại dồn sang **cột trái**.
- * Đổi phân loại 1 module = thêm/bớt id ở đây (không cần `if persona`).
+ * Nội dung dạng "cơ hội & thông báo" — org theo dõi, sự kiện, tuyển dụng.
+ * Luôn nằm ở **cột phải** cho mọi persona; các module còn lại (gồm khóa học gợi ý)
+ * dồn sang **cột trái**. Đổi phân loại 1 module = thêm/bớt id ở đây (không cần `if persona`).
  */
 const NOTIFY_MODULES: readonly ModuleId[] = [
   "theo_doi_org",
   "co_hoi",
-  "khoa_hoc_goi_y",
 ];
 
 /**

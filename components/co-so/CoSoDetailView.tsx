@@ -18,7 +18,6 @@ import {
   CoSoTabTuyenDungLazy,
   prefetchCoSoTab,
 } from "@/components/org/org-tab-lazy-views";
-import { OrgNotifyFab } from "@/components/org/OrgNotifyFab";
 import { TruongOrgCover } from "@/components/truong/TruongOrgCover";
 import {
   TruongInlineEditProvider,
@@ -115,7 +114,6 @@ function CoSoDetailViewInner({
   );
   const editableMedia = canEdit && Boolean(ctx?.canEdit);
   const { isMobileShell } = useCoSoMobileShell();
-  const [notifyCount, setNotifyCount] = useState(0);
 
   const activeJobCount = useMemo(() => countActiveStudioJobs(jobs), [jobs]);
 
@@ -379,18 +377,15 @@ function CoSoDetailViewInner({
         })}
       </div>
 
-      <OrgNotifyFab enabled={isMobileShell} count={notifyCount}>
-        <CoSoUpcomingSidebar
-          orgId={school.id}
-          orgSlug={orgSlug}
-          orgDiaChi={school.dia_chi}
-          orgTinhThanh={school.tinh_thanh}
-          canManageKhoaHoc={canManageKhoaHoc}
-          isMobileShell={isMobileShell}
-          isMobileShellActive
-          onUpcomingCountChange={setNotifyCount}
-        />
-      </OrgNotifyFab>
+      <CoSoUpcomingSidebar
+        orgId={school.id}
+        orgSlug={orgSlug}
+        orgDiaChi={school.dia_chi}
+        orgTinhThanh={school.tinh_thanh}
+        canManageKhoaHoc={canManageKhoaHoc}
+        isMobileShell={isMobileShell}
+        isMobileShellActive
+      />
       </div>
 
       {canEdit && onSettingsOpenChange ? (

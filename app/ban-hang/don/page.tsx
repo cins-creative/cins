@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { CinsShell } from "@/components/cins/CinsShell";
 import { ShopDonClient } from "@/components/shop/ShopDonClient";
+import { ShopReadyGate } from "@/components/shop/ShopReadyGate";
 
 export const metadata: Metadata = {
   title: "Quản lý đơn hàng — CINs",
@@ -11,7 +12,9 @@ export const metadata: Metadata = {
 export default function BanHangDonPage() {
   return (
     <CinsShell data-screen-label="Ban-hang-don">
-      <ShopDonClient />
+      <ShopReadyGate allowWhenNotReady>
+        <ShopDonClient />
+      </ShopReadyGate>
     </CinsShell>
   );
 }

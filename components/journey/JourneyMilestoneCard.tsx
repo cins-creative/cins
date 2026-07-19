@@ -86,6 +86,7 @@ import {
   trackSuKien,
   useImpressionTracker,
 } from "@/lib/social/track-su-kien";
+import { formatPostedWithin24h } from "@/lib/social/actors-relative-time";
 import type {
   LoaiDoiTuongSuKien,
   NguonSuKien,
@@ -555,6 +556,8 @@ export function JourneyMilestoneCard({
   }, [isOwner]);
 
   const displayDate = `${String(day).padStart(2, "0")}-${String(month).padStart(2, "0")}-${year}`;
+  /** Chip author: chỉ hiện trong 24h kể từ `tao_luc`. */
+  const postedAgoLabel = formatPostedWithin24h(milestone.createdAt);
   const bookmarkSavedDateLabel = milestone.bookmarkSavedAt
     ? formatIsoToDisplayDate(milestone.bookmarkSavedAt)
     : null;
@@ -1837,7 +1840,7 @@ export function JourneyMilestoneCard({
                         {entityPosterLabel ||
                           (ownerSlug ? `@${ownerSlug}` : "Tổ chức")}
                       </strong>
-                      <small>{displayDate}</small>
+                      {postedAgoLabel ? <small>{postedAgoLabel}</small> : null}
                     </span>
                   </span>
                 </JourneyOrgPopover>
@@ -1875,7 +1878,7 @@ export function JourneyMilestoneCard({
                           (ownerSlug ? `@${ownerSlug}` : "Người dùng")}
                         <VerifiedTick slug={entityPosterSlug} />
                       </strong>
-                      <small>{displayDate}</small>
+                      {postedAgoLabel ? <small>{postedAgoLabel}</small> : null}
                     </span>
                   </span>
                 </JourneyUserPopover>
@@ -2038,7 +2041,7 @@ export function JourneyMilestoneCard({
                           {authorName || `@${ownerSlug ?? ""}`}
                           <VerifiedTick slug={ownerSlug} />
                         </strong>
-                        <small>{displayDate}</small>
+                        {postedAgoLabel ? <small>{postedAgoLabel}</small> : null}
                       </span>
                     </span>
                   </JourneyUserPopover>
@@ -2054,7 +2057,7 @@ export function JourneyMilestoneCard({
                     </span>
                     <span className="org-copy">
                       <strong>{authorName || "Người dùng"}</strong>
-                      <small>{displayDate}</small>
+                      {postedAgoLabel ? <small>{postedAgoLabel}</small> : null}
                     </span>
                   </span>
                 )
@@ -2217,13 +2220,13 @@ export function JourneyMilestoneCard({
                         {authorName || `@${ownerSlug ?? ""}`}
                         <VerifiedTick slug={ownerSlug} />
                       </strong>
-                      <small>{displayDate}</small>
+                      {postedAgoLabel ? <small>{postedAgoLabel}</small> : null}
                     </span>
                   </span>
                 </JourneyUserPopover>
               ) : (
                 <span className="org-copy">
-                  <small>{displayDate}</small>
+                  {postedAgoLabel ? <small>{postedAgoLabel}</small> : null}
                 </span>
               )}
               <span className="badge-row">
@@ -2306,7 +2309,7 @@ export function JourneyMilestoneCard({
                       {authorName || `@${ownerSlug ?? ""}`}
                       <VerifiedTick slug={ownerSlug} />
                     </strong>
-                    <small>{displayDate}</small>
+                    {postedAgoLabel ? <small>{postedAgoLabel}</small> : null}
                   </span>
                 </span>
               </JourneyUserPopover>

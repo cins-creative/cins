@@ -997,6 +997,14 @@ export async function addGroupMembers(
 
   const admin = createServiceRoleClient();
 
+  const { data: roomMeta } = await admin
+    .from("chat_phong")
+    .select("id_phong_cha")
+    .eq("id", roomId)
+    .maybeSingle<{ id_phong_cha: string | null }>();
+
+  const parentRoomId = roomMeta?.id_phong_cha?.trim() || null;
+
   const { data: activeRows } = await admin
     .from("chat_thanh_vien")
     .select("id_nguoi_dung")
@@ -1017,13 +1025,33 @@ export async function addGroupMembers(
     };
   }
 
-  const friendIds = new Set(await listFriends(viewerId));
-  for (const id of toAdd) {
-    if (!friendIds.has(id)) {
-      return { ok: false, error: "Chỉ có thể thêm bạn bè vào nhóm." };
+  if (parentRoomId) {
+    /* Project con: chỉ thành viên đang ở nhóm cha — admin thêm tay. */
+    const { data: parentRows } = await admin
+      .from("chat_thanh_vien")
+      .select("id_nguoi_dung")
+      .eq("id_phong", parentRoomId)
+      .is("roi_luc", null);
+    const parentIds = new Set(
+      (parentRows ?? []).map((row) => row.id_nguoi_dung),
+    );
+    for (const id of toAdd) {
+      if (!parentIds.has(id)) {
+        return {
+          ok: false,
+          error: "Chỉ thêm thành viên đang ở nhóm cha vào project.",
+        };
+      }
     }
-    const allowed = await assertCanDirectMessage(viewerId, id);
-    if (!allowed.ok) return allowed;
+  } else {
+    const friendIds = new Set(await listFriends(viewerId));
+    for (const id of toAdd) {
+      if (!friendIds.has(id)) {
+        return { ok: false, error: "Chỉ có thể thêm bạn bè vào nhóm." };
+      }
+      const allowed = await assertCanDirectMessage(viewerId, id);
+      if (!allowed.ok) return allowed;
+    }
   }
 
   const { data: leftRows } = await admin

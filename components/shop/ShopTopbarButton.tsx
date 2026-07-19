@@ -6,6 +6,7 @@ import {
   Loader2,
   Package,
   ShoppingBag,
+  Store,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -22,6 +23,7 @@ import {
   SHOP_TRANG_THAI_DON_LABEL,
   type ShopDonHang,
 } from "@/lib/shop/types";
+import { useShopReadyGate } from "@/lib/shop/use-shop-ready-gate";
 
 import "./shop-topbar.css";
 
@@ -42,6 +44,11 @@ export function ShopTopbarButton() {
   } | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const {
+    shopReady,
+    shopSetupHref,
+    loading: readyLoading,
+  } = useShopReadyGate();
 
   const pending = items.filter((d) => d.trangThai === "cho_xac_nhan");
   const pendingCount = pending.length;
@@ -186,134 +193,171 @@ export function ShopTopbarButton() {
               <div className="shop-topbar-menu-head-text">
                 <strong>Bán hàng</strong>
                 <span>
-                  {loading ? "Đang cập nhật…" : "Kho hàng · đơn hàng"}
+                  {readyLoading || loading
+                    ? "Đang cập nhật…"
+                    : shopReady
+                      ? "Kho hàng · đơn hàng"
+                      : "Cần thiết lập Shop trước"}
                 </span>
               </div>
-              <a
-                href="/ban-hang/don"
-                target="_blank"
-                rel="noreferrer"
-                className="shop-topbar-ext"
-                aria-label="Mở quản lý đơn hàng tab mới"
-                title="Mở quản lý đơn hàng"
-                onClick={() => setOpen(false)}
-              >
-                <ExternalLink size={15} strokeWidth={2} aria-hidden />
-              </a>
-            </div>
-
-            <div className="shop-topbar-shortcuts">
-              <div className="shop-topbar-shortcut">
-                <Link
-                  href="/ban-hang/kho"
-                  className="shop-topbar-shortcut-main"
-                  onClick={() => setOpen(false)}
-                >
-                  <Package size={16} strokeWidth={2} aria-hidden />
-                  Kho hàng
-                </Link>
-                <a
-                  href="/ban-hang/kho"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="shop-topbar-shortcut-ext"
-                  aria-label="Mở kho hàng tab mới"
-                  title="Mở tab mới"
-                  onClick={() => setOpen(false)}
-                >
-                  <ExternalLink size={14} strokeWidth={2} aria-hidden />
-                </a>
-              </div>
-              <div className="shop-topbar-shortcut">
-                <Link
-                  href="/ban-hang/don"
-                  className="shop-topbar-shortcut-main"
-                  onClick={() => setOpen(false)}
-                >
-                  <ClipboardList size={16} strokeWidth={2} aria-hidden />
-                  Đơn hàng
-                </Link>
+              {shopReady ? (
                 <a
                   href="/ban-hang/don"
                   target="_blank"
                   rel="noreferrer"
-                  className="shop-topbar-shortcut-ext"
-                  aria-label="Mở đơn hàng tab mới"
-                  title="Mở tab mới"
+                  className="shop-topbar-ext"
+                  aria-label="Mở quản lý đơn hàng tab mới"
+                  title="Mở quản lý đơn hàng"
                   onClick={() => setOpen(false)}
                 >
-                  <ExternalLink size={14} strokeWidth={2} aria-hidden />
+                  <ExternalLink size={15} strokeWidth={2} aria-hidden />
                 </a>
-              </div>
-            </div>
-
-            <div className="shop-topbar-section-label">
-              Đơn chờ xác nhận
-              {pendingCount > 0 ? (
-                <span className="shop-topbar-section-count">{pendingCount}</span>
               ) : null}
             </div>
 
-            {err ? <p className="shop-topbar-err">{err}</p> : null}
-
-            {loading && items.length === 0 ? (
-              <p className="shop-topbar-empty">
-                <Loader2 size={14} className="shop-topbar-spin" aria-hidden />
-                Đang tải…
-              </p>
-            ) : preview.length === 0 ? (
-              <p className="shop-topbar-empty">Không có đơn chờ.</p>
+            {!shopReady ? (
+              <div className="shop-topbar-shortcuts">
+                <div className="shop-topbar-shortcut">
+                  <Link
+                    href={shopSetupHref || "/ban-hang/cua-hang"}
+                    className="shop-topbar-shortcut-main"
+                    onClick={() => setOpen(false)}
+                  >
+                    <Store size={16} strokeWidth={2} aria-hidden />
+                    Thiết lập Shop
+                  </Link>
+                </div>
+              </div>
             ) : (
-              <ul className="shop-topbar-list">
-                {preview.map((d) => {
-                  const ma = d.maDon?.trim() || d.id.slice(0, 8);
-                  const first = d.dong[0];
-                  const more = Math.max(0, d.dong.length - 1);
-                  const summary = first
-                    ? `${first.tenSnapshot}${more > 0 ? ` +${more}` : ""}`
-                    : "—";
-                  return (
-                    <li key={d.id} className="shop-topbar-don">
-                      <div className="shop-topbar-don-main">
-                        <span className="shop-topbar-don-ma">{ma}</span>
-                        <span className="shop-topbar-don-meta">
-                          {d.muaTen ?? "Người mua"} · {summary}
-                        </span>
-                        <span className="shop-topbar-don-sub">
-                          {SHOP_LOAI_DON_LABEL[d.loaiDon]} ·{" "}
-                          {SHOP_TRANG_THAI_DON_LABEL[d.trangThai]}
-                        </span>
-                      </div>
-                      <div className="shop-topbar-don-side">
-                        <strong>
-                          {d.tongTien.toLocaleString("vi-VN")} {d.tienTe}
-                        </strong>
-                        {d.loaiDon === "mua_ngay" ? (
-                          <button
-                            type="button"
-                            className="shop-topbar-don-btn"
-                            disabled={busyId === d.id}
-                            onClick={() => void patchDon(d.id, "da_nhan_tien")}
-                          >
-                            Đã nhận tiền
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            className="shop-topbar-don-btn"
-                            disabled={busyId === d.id}
-                            onClick={() =>
-                              void patchDon(d.id, "da_giao_tai_su_kien")
-                            }
-                          >
-                            Đã giao
-                          </button>
-                        )}
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
+              <div className="shop-topbar-shortcuts">
+                <div className="shop-topbar-shortcut">
+                  <Link
+                    href="/ban-hang/kho"
+                    className="shop-topbar-shortcut-main"
+                    onClick={() => setOpen(false)}
+                  >
+                    <Package size={16} strokeWidth={2} aria-hidden />
+                    Kho hàng
+                  </Link>
+                  <a
+                    href="/ban-hang/kho"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="shop-topbar-shortcut-ext"
+                    aria-label="Mở kho hàng tab mới"
+                    title="Mở tab mới"
+                    onClick={() => setOpen(false)}
+                  >
+                    <ExternalLink size={14} strokeWidth={2} aria-hidden />
+                  </a>
+                </div>
+                <div className="shop-topbar-shortcut">
+                  <Link
+                    href="/ban-hang/don"
+                    className="shop-topbar-shortcut-main"
+                    onClick={() => setOpen(false)}
+                  >
+                    <ClipboardList size={16} strokeWidth={2} aria-hidden />
+                    Đơn hàng
+                  </Link>
+                  <a
+                    href="/ban-hang/don"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="shop-topbar-shortcut-ext"
+                    aria-label="Mở đơn hàng tab mới"
+                    title="Mở tab mới"
+                    onClick={() => setOpen(false)}
+                  >
+                    <ExternalLink size={14} strokeWidth={2} aria-hidden />
+                  </a>
+                </div>
+              </div>
+            )}
+
+            {shopReady ? (
+              <>
+                <div className="shop-topbar-section-label">
+                  Đơn chờ xác nhận
+                  {pendingCount > 0 ? (
+                    <span className="shop-topbar-section-count">
+                      {pendingCount}
+                    </span>
+                  ) : null}
+                </div>
+
+                {err ? <p className="shop-topbar-err">{err}</p> : null}
+
+                {loading && items.length === 0 ? (
+                  <p className="shop-topbar-empty">
+                    <Loader2
+                      size={14}
+                      className="shop-topbar-spin"
+                      aria-hidden
+                    />
+                    Đang tải…
+                  </p>
+                ) : preview.length === 0 ? (
+                  <p className="shop-topbar-empty">Không có đơn chờ.</p>
+                ) : (
+                  <ul className="shop-topbar-list">
+                    {preview.map((d) => {
+                      const ma = d.maDon?.trim() || d.id.slice(0, 8);
+                      const first = d.dong[0];
+                      const more = Math.max(0, d.dong.length - 1);
+                      const summary = first
+                        ? `${first.tenSnapshot}${more > 0 ? ` +${more}` : ""}`
+                        : "—";
+                      return (
+                        <li key={d.id} className="shop-topbar-don">
+                          <div className="shop-topbar-don-main">
+                            <span className="shop-topbar-don-ma">{ma}</span>
+                            <span className="shop-topbar-don-meta">
+                              {d.muaTen ?? "Người mua"} · {summary}
+                            </span>
+                            <span className="shop-topbar-don-sub">
+                              {SHOP_LOAI_DON_LABEL[d.loaiDon]} ·{" "}
+                              {SHOP_TRANG_THAI_DON_LABEL[d.trangThai]}
+                            </span>
+                          </div>
+                          <div className="shop-topbar-don-side">
+                            <strong>
+                              {d.tongTien.toLocaleString("vi-VN")} {d.tienTe}
+                            </strong>
+                            {d.loaiDon === "mua_ngay" ? (
+                              <button
+                                type="button"
+                                className="shop-topbar-don-btn"
+                                disabled={busyId === d.id}
+                                onClick={() =>
+                                  void patchDon(d.id, "da_nhan_tien")
+                                }
+                              >
+                                Đã nhận tiền
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                className="shop-topbar-don-btn"
+                                disabled={busyId === d.id}
+                                onClick={() =>
+                                  void patchDon(d.id, "da_giao_tai_su_kien")
+                                }
+                              >
+                                Đã giao
+                              </button>
+                            )}
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </>
+            ) : (
+              <p className="shop-topbar-empty">
+                Thêm tài khoản nhận tiền trong Shop rồi mới quản lý kho / đơn.
+              </p>
             )}
 
             <Link

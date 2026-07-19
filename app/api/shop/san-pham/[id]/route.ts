@@ -7,6 +7,7 @@ import {
   updateSanPham,
   upsertBienThe,
 } from "@/lib/shop/catalog";
+import { SHOP_FEATURE_MAX } from "@/lib/shop/types";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -56,6 +57,7 @@ export async function PATCH(request: Request, ctx: Ctx) {
           ? (body.phanLoai2 as string | null)
           : undefined,
       dangBan: typeof body.dangBan === "boolean" ? body.dangBan : undefined,
+      noiBat: typeof body.noiBat === "boolean" ? body.noiBat : undefined,
     });
     return NextResponse.json({ ok: true });
   } catch (e) {
@@ -63,8 +65,23 @@ export async function PATCH(request: Request, ctx: Ctx) {
     if (msg === "BAN_HANG_OFF") {
       return NextResponse.json({ error: "Chưa bật bán hàng." }, { status: 403 });
     }
+    if (msg === "SHOP_NOT_READY") {
+      return NextResponse.json(
+        {
+          error:
+            "Cần thêm tài khoản nhận tiền trong Shop trước khi thêm hàng hoặc nhận đơn.",
+        },
+        { status: 403 },
+      );
+    }
     if (msg === "NOT_FOUND" || msg === "FORBIDDEN") {
       return NextResponse.json({ error: "Không tìm thấy." }, { status: 404 });
+    }
+    if (msg === "FEATURE_LIMIT") {
+      return NextResponse.json(
+        { error: `Chỉ được gắn ngôi sao tối đa ${SHOP_FEATURE_MAX} sản phẩm.` },
+        { status: 422 },
+      );
     }
     return NextResponse.json({ error: "Không cập nhật được." }, { status: 500 });
   }

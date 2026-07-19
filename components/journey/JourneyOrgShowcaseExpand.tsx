@@ -89,11 +89,14 @@ async function probeAspect(item: GalleryPinnedBanner): Promise<number> {
 }
 
 function showcaseLabel(kind: OrgShowcaseAsideKind): string {
-  return kind === "studio" ? "Showcase" : "Feature";
+  if (kind === "studio") return "Showcase";
+  if (kind === "co_so_dao_tao") return "Sản phẩm học viên";
+  return "Feature";
 }
 
 /**
- * Mũi tên dưới card org — xổ preview thumb Showcase (studio) / bài media (trường·cơ sở).
+ * Mũi tên dưới card org — xổ preview:
+ * studio = Showcase · cơ sở = sản phẩm học viên (sort điểm) · trường = bài media.
  * Chỉ xem trước; muốn xem đầy đủ thì vào trang org.
  */
 export function JourneyOrgShowcaseExpand({
@@ -102,7 +105,8 @@ export function JourneyOrgShowcaseExpand({
   eager = false,
 }: Props) {
   const trimmed = slug.trim();
-  const [open, setOpen] = useState(false);
+  /** Popover (`eager`): xổ panel ngay khi mở card; lazy friend-style vẫn đóng. */
+  const [open, setOpen] = useState(eager);
   const [items, setItems] = useState<GalleryPinnedBanner[] | null>(null);
   const [loadState, setLoadState] = useState<"idle" | "loading" | "ready" | "error">(
     () => (eager ? "loading" : "idle"),
@@ -114,7 +118,7 @@ export function JourneyOrgShowcaseExpand({
   const label = showcaseLabel(orgKind);
 
   useEffect(() => {
-    setOpen(false);
+    setOpen(eager);
     setItems(null);
     setLoadState(eager ? "loading" : "idle");
     setAspectById(new Map());

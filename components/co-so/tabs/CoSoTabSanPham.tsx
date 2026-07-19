@@ -2,9 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+import { ContentSurfaceViewToggle } from "@/components/cins/ContentSurfaceViewToggle";
 import { CoSoDoanSanPhamAdmin } from "@/components/co-so/CoSoDoanSanPhamAdmin";
+import type { MilestoneItem } from "@/components/journey/milestone-types";
+import { EntityLightJourneyFeed } from "@/components/tag/EntityLightJourneyFeed";
 import { TruongDoanProjectMasonry } from "@/components/truong/TruongDoanProjectMasonry";
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
+import type { ContentSurfaceView } from "@/lib/cins/content-surface-view";
 import type { OrgDoanProjectItem } from "@/lib/journey/org-milestone-tag-types";
 import { sortDoanProjectsForPublic } from "@/lib/truong/doan-project-sort";
 
@@ -42,10 +46,14 @@ export function CoSoTabSanPham({
 
   const [adminProjects, setAdminProjects] = useState<OrgDoanProjectItem[]>([]);
   const [publicProjects, setPublicProjects] = useState<OrgDoanProjectItem[]>([]);
+  const [milestones, setMilestones] = useState<MilestoneItem[]>([]);
   const [loadingAdmin, setLoadingAdmin] = useState(false);
   const [loadingPublic, setLoadingPublic] = useState(true);
+  const [loadingMilestones, setLoadingMilestones] = useState(false);
   const [khoaFilter, setKhoaFilter] = useState(ALL_KHOA);
   const [khoaOptions, setKhoaOptions] = useState<KhoaOption[]>([]);
+  /** Mặc định lưới gọn — khớp ContentSurfaceViewToggle «Lưới gọn». */
+  const [view, setView] = useState<ContentSurfaceView>("masonry");
 
   useEffect(() => {
     const controller = new AbortController();
@@ -111,9 +119,46 @@ export function CoSoTabSanPham({
     return () => controller.abort();
   }, [orgId, khoaFilter]);
 
+  useEffect(() => {
+    if (view !== "timeline") return;
+
+    const controller = new AbortController();
+    setLoadingMilestones(true);
+    void fetch(
+      `/api/org/${encodeURIComponent(orgId)}/doan-milestones?sort=moi_nhat`,
+      { cache: "no-store", signal: controller.signal },
+    )
+      .then(async (res) => {
+        const json = (await res.json()) as { milestones?: MilestoneItem[] };
+        if (!res.ok) throw new Error("fetch failed");
+        setMilestones(Array.isArray(json.milestones) ? json.milestones : []);
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setMilestones([]);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoadingMilestones(false);
+      });
+
+    return () => {
+      controller.abort();
+      setLoadingMilestones(false);
+    };
+  }, [orgId, view]);
+
   const sortedPublic = useMemo(
     () => sortDoanProjectsForPublic(publicProjects),
     [publicProjects],
+  );
+
+  const allowedMocIds = useMemo(
+    () => new Set(sortedPublic.map((p) => p.cotMocId)),
+    [sortedPublic],
+  );
+
+  const filteredMilestones = useMemo(
+    () => milestones.filter((m) => allowedMocIds.has(m.cotMocId ?? m.id)),
+    [allowedMocIds, milestones],
   );
 
   function handleAdminUpdated(item: OrgDoanProjectItem) {
@@ -129,8 +174,12 @@ export function CoSoTabSanPham({
     });
   }
 
+  const waitingTimeline =
+    view === "timeline" && loadingMilestones && milestones.length === 0;
+
   const showPublicEmpty =
     !loadingPublic &&
+    !waitingTimeline &&
     sortedPublic.length === 0 &&
     !(isManaging && loadingAdmin);
 
@@ -180,9 +229,10 @@ export function CoSoTabSanPham({
                 ))}
               </select>
             </label>
+            <ContentSurfaceViewToggle view={view} onViewChange={setView} />
           </div>
 
-          {loadingPublic ? (
+          {loadingPublic || waitingTimeline ? (
             <p className="tdh-placeholder">Đang tải sản phẩm học viên…</p>
           ) : showPublicEmpty ? (
             <p className="tdh-placeholder">
@@ -190,8 +240,25 @@ export function CoSoTabSanPham({
                 ? "Chưa có sản phẩm nào được bật hiển thị công khai. Bật «Hiển thị» trong Quản lý bài học viên."
                 : "Chưa có sản phẩm học viên nào được cơ sở chọn hiển thị."}
             </p>
+          ) : view === "timeline" ? (
+            <section
+              className="entity-light-works tdh-doan-works"
+              aria-label="Sản phẩm học viên"
+            >
+              <EntityLightJourneyFeed
+                milestones={filteredMilestones}
+                sort="moi_nhat"
+                viewerProfileId={null}
+                ariaLabel="Sản phẩm học viên"
+                hostOrgSlug={ctx?.school.slug ?? null}
+                hostOrgName={ctx?.school.ten ?? null}
+              />
+            </section>
           ) : (
-            <TruongDoanProjectMasonry projects={sortedPublic} />
+            <TruongDoanProjectMasonry
+              projects={sortedPublic}
+              layout={view === "masonry" ? "masonry" : "card"}
+            />
           )}
         </div>
       ) : null}

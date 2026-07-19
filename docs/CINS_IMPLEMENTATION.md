@@ -22,8 +22,9 @@
 |---|---|
 | `shop/san-pham` · `shop/san-pham/[id]` | CRUD catalog + biến thể / tồn kho (seller) |
 | `shop/bang-gia` · `shop/bang-gia/[id]` | CRUD bảng giá + dòng giá theo biến thể |
-| `shop/gio` | GET/PATCH giỏ theo `cotMocId` (buyer) |
-| `shop/don` · `shop/don/[id]` | Tạo đơn từ giỏ · seller xác nhận (trừ kho) · list đơn seller/buyer — **không** hủy đơn trên API |
+| `shop/gio` | GET/PATCH/DELETE giỏ buyer — scope **XOR** `cotMocId` (post-kiosk) **hoặc** `cuaHangId` (storefront `/{slug}/shop`) |
+| `shop/don` · `shop/don/[id]` | Tạo đơn từ giỏ (`cotMocId` **hoặc** `cuaHangId`) · seller xác nhận (trừ kho) · list đơn seller/buyer — **không** hủy đơn trên API |
+| `shop/cua-hang` · `…/mat-hang` · `…/thanh-toan` | Hồ sơ cửa hàng · catalog storefront · STK/QR checkout |
 | `milestone/[milestoneId]/shop-hang` | GET public hàng gắn post (**ẩn nếu owner `ban_hang_bat=false`**) · PUT gắn/gỡ (owner + `ban_hang_bat`) |
 | `su-kien/[suKienId]/quay` · `…/quay/[quayId]` | Xin làm quầy + bằng chứng · owner duyệt/từ chối/gỡ (kèm lý do) · seller rút (`action=withdraw`) · list quầy đã duyệt |
 | `shop/quay/cua-toi` | GET — quầy đang/đã tham gia của seller (`cho_xu_ly` + `da_duyet`) |
@@ -154,7 +155,7 @@
 
 | Domain | Path |
 |---|---|
-| Shop UGC (L33) | `lib/shop/` — types, terms, catalog, giá, giỏ, đơn, quầy sự kiện, post-hang |
+| Shop UGC (L33) | `lib/shop/` — types, terms, catalog, giá, giỏ (post + cửa hàng), đơn, storefront, quầy, post-hang, cửa hàng |
 
 | Folder | Vai trò chính | File đáng chú ý |
 |---|---|---|
@@ -189,6 +190,8 @@
 
 | File | Tạo gì |
 |---|---|
+| `migration_shop_gio_cua_hang.sql` | Giỏ storefront: `shop_gio.id_cua_hang` + `id_cot_moc` nullable; CHECK XOR scope; unique partial (buyer+moc) / (buyer+cua_hang). Chạy: `node scripts/run-shop-gio-cua-hang-migration.mjs`. |
+| `migration_shop_cua_hang_nhan_phan_loai.sql` | Cột `shop_cua_hang.nhan_phan_loai` / `nhan_phan_loai_2` (đổi tên trục phân loại). Chạy: `node scripts/run-shop-cua-hang-nhan-phan-loai-migration.mjs`. |
 | `migration_shop_san_pham_phan_loai_2.sql` | Cột `shop_san_pham.phan_loai_2` (nhãn nhóm thứ hai). Chạy: `node scripts/run-shop-san-pham-phan-loai-2-migration.mjs`. |
 | `migration_shop_san_pham_phan_loai.sql` | Cột `shop_san_pham.phan_loai` (nhãn nhóm sản phẩm). Chạy: `node scripts/run-shop-san-pham-phan-loai-migration.mjs`. |
 | `migration_shop_don_chap_nhan.sql` | Snapshot chấp nhận rủi ro chuyển khoản trên `shop_don_hang`. Chạy: `node scripts/run-shop-don-chap-nhan-migration.mjs`. |

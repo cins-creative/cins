@@ -317,8 +317,12 @@ export function ShopDonClient() {
 
   if (loading) {
     return (
-      <div className="shop-dash-loading">
-        <Loader2 className="shop-spin" size={20} /> Đang tải…
+      <div className="shop-dash">
+        <ShopDashTabs active="don" />
+        <div className="shop-dash-loading" aria-busy="true">
+          <Loader2 className="shop-spin" size={20} aria-hidden />
+          Đang tải…
+        </div>
       </div>
     );
   }

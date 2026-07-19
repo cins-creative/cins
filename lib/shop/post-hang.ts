@@ -1,7 +1,8 @@
 import "server-only";
 
 import { resolveGiaBienThe } from "@/lib/shop/bang-gia";
-import { assertBanHangEnabled, shopImageUrl } from "@/lib/shop/settings";
+import { assertShopReady } from "@/lib/shop/cua-hang";
+import { shopImageUrl } from "@/lib/shop/settings";
 import type { ShopPostHangItem } from "@/lib/shop/types";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
@@ -69,6 +70,45 @@ export async function listPostHang(
     }>).map((s) => [s.id, s]),
   );
 
+  /* Tổng SL đã bán theo biến thể — đơn đã trừ kho (mua_ngay). */
+  const soldByBienThe = new Map<string, number>();
+  {
+    const { data: dongBan, error: soldErr } = await admin
+      .from("shop_don_hang_dong")
+      .select("id_bien_the, so_luong, shop_don_hang!inner(trang_thai)")
+      .in("id_bien_the", btIds);
+    if (soldErr) {
+      console.error("[shop] listPostHang sold", soldErr);
+    } else {
+      for (const row of (dongBan ?? []) as Array<{
+        id_bien_the: string | null;
+        so_luong: number;
+        shop_don_hang:
+          | { trang_thai: string }
+          | { trang_thai: string }[]
+          | null;
+      }>) {
+        if (!row.id_bien_the) continue;
+        const don = Array.isArray(row.shop_don_hang)
+          ? row.shop_don_hang[0]
+          : row.shop_don_hang;
+        if (!don) continue;
+        if (
+          don.trang_thai !== "cho_xac_nhan" &&
+          don.trang_thai !== "da_nhan_tien" &&
+          don.trang_thai !== "da_giao_tai_su_kien"
+        ) {
+          continue;
+        }
+        const qty = Math.max(0, Math.trunc(Number(row.so_luong) || 0));
+        soldByBienThe.set(
+          row.id_bien_the,
+          (soldByBienThe.get(row.id_bien_the) ?? 0) + qty,
+        );
+      }
+    }
+  }
+
   const out: ShopPostHangItem[] = [];
   for (const row of list) {
     const bt = btMap.get(row.id_bien_the);
@@ -86,6 +126,7 @@ export async function listPostHang(
       phanLoai2: sp.phan_loai_2?.trim() || null,
       anhUrl: shopImageUrl(bt.anh_id ?? sp.anh_id),
       soLuongTon: ton,
+      soLuongBan: soldByBienThe.get(bt.id) ?? 0,
       giaHienThi: Number(row.gia_hien_thi),
       tienTe: row.tien_te,
       idBangGia: row.id_bang_gia,
@@ -105,7 +146,7 @@ export async function setPostHang(
     thuTu?: number;
   }>,
 ): Promise<ShopPostHangItem[]> {
-  await assertBanHangEnabled(ownerId);
+  await assertShopReady(ownerId);
   const admin = createServiceRoleClient();
 
   const { data: moc } = await admin

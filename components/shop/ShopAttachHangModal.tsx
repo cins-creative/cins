@@ -14,6 +14,7 @@ import {
 import { createPortal } from "react-dom";
 
 import type { ShopBangGia, ShopSanPham } from "@/lib/shop/types";
+import Link from "next/link";
 
 import "@/components/cins/user-account-settings-modal.css";
 import "./shop-dashboard.css";
@@ -64,11 +65,33 @@ export function ShopAttachHangModal({
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [shopReady, setShopReady] = useState(true);
+  const [shopSetupHref, setShopSetupHref] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     setErr(null);
     try {
+      const readyRes = await fetch("/api/user/ban-hang", { cache: "no-store" });
+      const readyJson = (await readyRes.json().catch(() => null)) as {
+        shopReady?: boolean;
+        shopSetupHref?: string | null;
+        error?: string;
+      } | null;
+      const ready = readyJson?.shopReady === true;
+      setShopReady(ready);
+      setShopSetupHref(
+        typeof readyJson?.shopSetupHref === "string"
+          ? readyJson.shopSetupHref
+          : null,
+      );
+      if (!ready) {
+        setProducts([]);
+        setPriceLists([]);
+        setErr(null);
+        return;
+      }
+
       const [pRes, bRes, hRes] = await Promise.all([
         fetch("/api/shop/san-pham", { cache: "no-store" }),
         fetch("/api/shop/bang-gia", { cache: "no-store" }),
@@ -218,7 +241,10 @@ export function ShopAttachHangModal({
     if (!bg) return null;
     const d = bg.dong.find((x) => x.idBienThe === idBienThe);
     if (!d) return null;
-    return { gia: d.gia, tienTe: bg.tienTe };
+    return {
+      gia: d.giaGiam != null ? d.giaGiam : d.gia,
+      tienTe: bg.tienTe,
+    };
   }
 
   async function save() {
@@ -351,6 +377,22 @@ export function ShopAttachHangModal({
             <p>
               <Loader2 className="shop-spin" size={16} /> Đang tải…
             </p>
+          ) : !shopReady ? (
+            <div className="shop-attach-gate">
+              <p>
+                Cần thêm tài khoản nhận tiền trong Shop trước khi gắn hàng lên
+                bài.
+              </p>
+              {shopSetupHref ? (
+                <Link
+                  href={shopSetupHref}
+                  className="uas-btn primary"
+                  onClick={onClose}
+                >
+                  Thiết lập Shop
+                </Link>
+              ) : null}
+            </div>
           ) : (
             <>
               {err ? (
@@ -480,16 +522,18 @@ export function ShopAttachHangModal({
         <footer className="uas-foot" style={{ justifyContent: "flex-end" }}>
           <div className="uas-foot-actions">
             <button type="button" className="uas-btn ghost" onClick={onClose}>
-              Hủy
+              {shopReady ? "Hủy" : "Đóng"}
             </button>
-            <button
-              type="button"
-              className="uas-btn primary"
-              disabled={saving}
-              onClick={() => void save()}
-            >
-              {saving ? <Loader2 className="shop-spin" size={16} /> : "Lưu"}
-            </button>
+            {shopReady ? (
+              <button
+                type="button"
+                className="uas-btn primary"
+                disabled={saving}
+                onClick={() => void save()}
+              >
+                {saving ? <Loader2 className="shop-spin" size={16} /> : "Lưu"}
+              </button>
+            ) : null}
           </div>
         </footer>
       </div>

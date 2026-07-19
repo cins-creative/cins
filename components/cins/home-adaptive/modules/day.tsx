@@ -16,8 +16,9 @@ export async function ChoBanDuyetModule({ ctx }: { ctx: HomeModuleCtx }) {
     <ModuleCard
       icon={ClipboardCheck}
       title="Chờ bạn duyệt"
+      badge={pending.length > 0 ? String(pending.length) : undefined}
       moreHref={pending.length > 0 ? "/admin" : undefined}
-      moreLabel={pending.length > 0 ? String(pending.length) : undefined}
+      moreLabel="Xem danh sách chờ duyệt"
     >
       {pending.length === 0 ? (
         <ModuleEmpty>Không có tác phẩm nào đang chờ bạn xác nhận.</ModuleEmpty>

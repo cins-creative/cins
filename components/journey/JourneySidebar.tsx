@@ -56,7 +56,8 @@ export type JourneyProfileView =
   | "journey"
   | "gallery"
   | "friends"
-  | "organizations";
+  | "organizations"
+  | "shop";
 
 type Props = {
   profile: SidebarProfile;
@@ -77,15 +78,7 @@ type Props = {
 
 /**
  * Sidebar trái sticky — profile column (mockup v2 §3.1).
- *
- * Cấu trúc theo v2:
- *   1. Profile cover (gradient blue→violet + blob vàng)
- *   2. Avatar tròn 68px chồng lên cover, badge `#NNN` (Journey index)
- *   3. Tên · vai trò · handle `cins.vn/{slug}`
- *   4. Action stack: Nhắn tin (primary) + hàng Theo dõi · Kết bạn · Chia sẻ
- *   5. Info rows (📍 · 💼 · 🔗 · ✉) — bỏ row nào nếu dữ liệu thiếu
- *   6. AI Summary card (blue-soft bg)
- *   7. Stats card (Cột mốc / Tác phẩm / Tổ chức)
+ * Luôn là hồ sơ cá nhân; mặt Shop nằm ở cụm `j-profile-shop-switch`.
  */
 export function JourneySidebar({
   profile,
@@ -195,9 +188,7 @@ export function JourneySidebar({
         </div>
       )}
 
-      {profile.bio ? (
-        <p className="j-profile-bio">{profile.bio}</p>
-      ) : null}
+      {profile.bio ? <p className="j-profile-bio">{profile.bio}</p> : null}
 
       <div className="j-profile-info">
         {cityLabel ? (

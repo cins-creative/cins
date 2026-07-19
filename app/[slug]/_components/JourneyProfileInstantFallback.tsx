@@ -7,6 +7,7 @@ import {
   JourneyFriendsViewLazy,
   JourneyGalleryGridViewLazy,
   JourneyOrganizationsViewLazy,
+  JourneyShopViewLazy,
 } from "@/components/journey/journey-profile-lazy-views";
 import { JourneyTimeline } from "@/components/journey/JourneyTimeline";
 import { useJourneyView } from "@/components/journey/JourneyViewContext";
@@ -16,6 +17,7 @@ import {
   type JourneyFriendsPanelData,
   type JourneyGalleryPanelData,
   type JourneyOrganizationsPanelData,
+  type JourneyPanelView,
   type JourneyTimelinePanelData,
 } from "@/lib/journey/journey-panel-local-cache";
 
@@ -43,12 +45,30 @@ export function JourneyProfileInstantFallback({
   filterVisibility,
 }: Props) {
   const { view } = useJourneyView();
+  const panelView: JourneyPanelView =
+    view === "shop" ? "journey" : (view as JourneyPanelView);
 
   const cached = useSyncExternalStore(
     subscribe,
-    () => readJourneyPanelCacheForView(ownerSlug, viewerProfileId, view),
+    () =>
+      view === "shop"
+        ? null
+        : readJourneyPanelCacheForView(ownerSlug, viewerProfileId, panelView),
     () => null,
   );
+
+  if (view === "shop") {
+    return (
+      <JourneyShopViewLazy
+        ownerId={ownerId}
+        ownerSlug={ownerSlug}
+        ownerName={ownerName}
+        isOwner={isOwner}
+        viewerProfileId={viewerProfileId}
+        ownerAvatarUrl={ownerAvatarUrl}
+      />
+    );
+  }
 
   if (!cached) {
     return <JourneyMainPanelSkeleton />;

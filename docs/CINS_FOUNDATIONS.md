@@ -189,7 +189,8 @@ Nguyên tắc nền: **§2** (chat có context, không inbox MXH tự do). Bản
 - Tin trong nhóm hiển thị **tên người gửi** (khác DM 1-1).
 
 **Project con (L28):**
-- `id_phong_cha` trỏ nhóm gốc; **chỉ 1 cấp**. Owner/admin cha tạo; thành viên ⊆ cha (mặc định copy hết).
+- `id_phong_cha` trỏ nhóm gốc; **chỉ 1 cấp**. Owner/admin cha tạo.
+- **Thành viên:** chỉ người được owner/admin **thêm tay** (⊆ thành viên cha). Tạo mới mặc định chỉ creator — ai chưa được thêm **không** thấy project trên list/FAB.
 - `trang_thai`: `active` (hiện list/FAB) · `an` (ẩn, còn lịch sử để khôi phục). Gợi ý ẩn khi im lâu — chưa auto-push.
 - List UI: indent dưới cha; pill `Project`.
 

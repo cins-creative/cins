@@ -8,7 +8,8 @@
 /* Glass — ::before (.j-tlb + feed sticky; listing/hub dùng lớp con) */
 .j-tlb::before,
 .wj-feed-header::before,
-.cd-v4-moc-bar::before {
+.cd-v4-moc-bar::before,
+.j-shop-sf-section-head::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -40,6 +41,7 @@
   .j-tlb::before,
   .wj-feed-header::before,
   .cd-v4-moc-bar::before,
+  .j-shop-sf-section-head::before,
   .cins-frost-glass,
   .td-hub-header__glass,
   .tkh-hub-header__glass {
@@ -65,6 +67,7 @@
 .j-tlb > *:not(.j-tlb-streak-slow),
 .wj-feed-header > *:not(.j-tlb-streak-slow),
 .cd-v4-moc-bar > *:not(.j-tlb-streak-slow),
+.j-shop-sf-section-head > *:not(.j-tlb-streak-slow),
 .tdh-list-toolbar > *:not(.j-tlb-streak-slow):not(.cins-frost-glass),
 .cd-list-toolbar > *:not(.j-tlb-streak-slow):not(.cins-frost-glass) {
   position: relative;
@@ -75,6 +78,7 @@
 .j-tlb::after,
 .wj-feed-header::after,
 .cd-v4-moc-bar::after,
+.j-shop-sf-section-head::after,
 .tdh-list-toolbar::after,
 .cd-list-toolbar::after,
 .td-hub-header::after,
@@ -179,6 +183,7 @@
   .j-tlb::after,
   .wj-feed-header::after,
   .cd-v4-moc-bar::after,
+  .j-shop-sf-section-head::after,
   .tdh-list-toolbar::after,
   .cd-list-toolbar::after,
   .td-hub-header::after,

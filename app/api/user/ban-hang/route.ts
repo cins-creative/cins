@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
+import { getShopReady, shopSetupHref } from "@/lib/shop/cua-hang";
 import {
   getBanHangSettings,
   setBanHangEnabled,
@@ -16,9 +17,16 @@ export async function GET() {
   if (!session?.profile) {
     return NextResponse.json({ error: "Chưa đăng nhập." }, { status: 401 });
   }
-  const settings = await getBanHangSettings(session.profile.id);
+  const [settings, ready] = await Promise.all([
+    getBanHangSettings(session.profile.id),
+    getShopReady(session.profile.id),
+  ]);
+  const slug = session.profile.slug?.trim() || "";
   return NextResponse.json({
     ...settings,
+    shopReady: ready.shopReady,
+    shopReadyMissing: ready.missing,
+    shopSetupHref: shopSetupHref(slug),
     terms: {
       version: SHOP_TERMS_VERSION,
       title: SHOP_TERMS_TITLE,
@@ -47,7 +55,14 @@ export async function PATCH(request: Request) {
       body.enabled,
       body.acceptTerms === true,
     );
-    return NextResponse.json(settings);
+    const ready = await getShopReady(session.profile.id);
+    const slug = session.profile.slug?.trim() || "";
+    return NextResponse.json({
+      ...settings,
+      shopReady: ready.shopReady,
+      shopReadyMissing: ready.missing,
+      shopSetupHref: shopSetupHref(slug),
+    });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "";
     if (msg === "TERMS_REQUIRED") {

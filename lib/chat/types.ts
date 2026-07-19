@@ -119,6 +119,12 @@ export type ChatReadCursor = {
   avatarUrl?: string | null;
   initial: string;
   hue: number;
+  /**
+   * Phòng `1_org`: cursor phía tổ chức (watermark staff gộp thành 1).
+   * UI hiện avatar/tên org — không lộ profile admin.
+   */
+  asOrg?: boolean;
+  orgKind?: ChatOrgKind;
 };
 
 export type ChatParticipantKind = "user" | "org";

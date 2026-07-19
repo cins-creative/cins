@@ -21,7 +21,6 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 
-import { OrgNotifyFabHost } from "@/components/org/OrgNotifyFab";
 import { OrgBaiDangCustomFilterMenuSection } from "@/components/truong/OrgBaiDangCustomFilterMenuSection";
 import { OrgBaiDangViewToggle } from "@/components/truong/OrgBaiDangViewToggle";
 import { useOrgBaiDangFilterOptional } from "@/components/truong/OrgBaiDangFilterContext";
@@ -279,7 +278,6 @@ export function OrgBaiDangTimelineBar({
       {onViewChange ? (
         <OrgBaiDangViewToggle view={view} onViewChange={onViewChange} />
       ) : null}
-      <OrgNotifyFabHost />
     </div>
   );
 

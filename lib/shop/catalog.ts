@@ -1,7 +1,9 @@
 import "server-only";
 
-import { assertBanHangEnabled, shopImageUrl } from "@/lib/shop/settings";
+import { assertShopReady } from "@/lib/shop/cua-hang";
+import { shopImageUrl } from "@/lib/shop/settings";
 import type { ShopBienThe, ShopSanPham } from "@/lib/shop/types";
+import { SHOP_FEATURE_MAX } from "@/lib/shop/types";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 type SpRow = {
@@ -12,6 +14,7 @@ type SpRow = {
   phan_loai: string | null;
   phan_loai_2: string | null;
   dang_ban: boolean;
+  noi_bat: boolean;
   tao_luc: string;
 };
 
@@ -40,7 +43,9 @@ export async function listSanPham(ownerId: string): Promise<ShopSanPham[]> {
   const admin = createServiceRoleClient();
   const { data: sps, error } = await admin
     .from("shop_san_pham")
-    .select("id, ten, mo_ta, anh_id, phan_loai, phan_loai_2, dang_ban, tao_luc")
+    .select(
+      "id, ten, mo_ta, anh_id, phan_loai, phan_loai_2, dang_ban, noi_bat, tao_luc",
+    )
     .eq("id_nguoi_dung", ownerId)
     .eq("da_xoa", false)
     .order("tao_luc", { ascending: false })
@@ -73,6 +78,7 @@ export async function listSanPham(ownerId: string): Promise<ShopSanPham[]> {
     phanLoai: r.phan_loai,
     phanLoai2: r.phan_loai_2,
     dangBan: r.dang_ban,
+    noiBat: r.noi_bat === true,
     bienThe: bySp.get(r.id) ?? [],
     taoLuc: r.tao_luc,
   }));
@@ -94,7 +100,7 @@ export async function createSanPham(
     }>;
   },
 ): Promise<ShopSanPham> {
-  await assertBanHangEnabled(ownerId);
+  await assertShopReady(ownerId);
   const ten = input.ten.trim();
   if (!ten) throw new Error("TEN_REQUIRED");
 
@@ -110,7 +116,9 @@ export async function createSanPham(
       phan_loai_2: input.phanLoai2?.trim() || null,
       dang_ban: true,
     })
-    .select("id, ten, mo_ta, anh_id, phan_loai, phan_loai_2, dang_ban, tao_luc")
+    .select(
+      "id, ten, mo_ta, anh_id, phan_loai, phan_loai_2, dang_ban, noi_bat, tao_luc",
+    )
     .single<SpRow>();
   if (error || !sp) {
     console.error("[shop] createSanPham", error);
@@ -147,6 +155,7 @@ export async function createSanPham(
     phanLoai: sp.phan_loai,
     phanLoai2: sp.phan_loai_2,
     dangBan: sp.dang_ban,
+    noiBat: sp.noi_bat === true,
     bienThe: ((bts ?? []) as BtRow[]).map(mapBienThe),
     taoLuc: sp.tao_luc,
   };
@@ -162,9 +171,10 @@ export async function updateSanPham(
     phanLoai?: string | null;
     phanLoai2?: string | null;
     dangBan?: boolean;
+    noiBat?: boolean;
   },
 ): Promise<void> {
-  await assertBanHangEnabled(ownerId);
+  await assertShopReady(ownerId);
   const admin = createServiceRoleClient();
   const patch: Record<string, unknown> = {
     cap_nhat_luc: new Date().toISOString(),
@@ -183,6 +193,25 @@ export async function updateSanPham(
     patch.phan_loai_2 = input.phanLoai2?.trim() || null;
   }
   if (typeof input.dangBan === "boolean") patch.dang_ban = input.dangBan;
+  if (typeof input.noiBat === "boolean") {
+    if (input.noiBat === true) {
+      const { count: featuredCount, error: featErr } = await admin
+        .from("shop_san_pham")
+        .select("id", { count: "exact", head: true })
+        .eq("id_nguoi_dung", ownerId)
+        .eq("da_xoa", false)
+        .eq("noi_bat", true)
+        .neq("id", sanPhamId);
+      if (featErr) {
+        console.error("[shop] updateSanPham feature count", featErr);
+        throw new Error("UPDATE_FAILED");
+      }
+      if ((featuredCount ?? 0) >= SHOP_FEATURE_MAX) {
+        throw new Error("FEATURE_LIMIT");
+      }
+    }
+    patch.noi_bat = input.noiBat;
+  }
 
   const { error, count } = await admin
     .from("shop_san_pham")
@@ -200,7 +229,7 @@ export async function softDeleteSanPham(
   ownerId: string,
   sanPhamId: string,
 ): Promise<void> {
-  await assertBanHangEnabled(ownerId);
+  await assertShopReady(ownerId);
   const admin = createServiceRoleClient();
   const { error, count } = await admin
     .from("shop_san_pham")
@@ -224,7 +253,7 @@ export async function upsertBienThe(
     anhId?: string | null;
   },
 ): Promise<ShopBienThe> {
-  await assertBanHangEnabled(ownerId);
+  await assertShopReady(ownerId);
   const admin = createServiceRoleClient();
   const { data: sp } = await admin
     .from("shop_san_pham")
@@ -269,7 +298,7 @@ export async function softDeleteBienThe(
   ownerId: string,
   bienTheId: string,
 ): Promise<void> {
-  await assertBanHangEnabled(ownerId);
+  await assertShopReady(ownerId);
   const admin = createServiceRoleClient();
   const { data: bt } = await admin
     .from("shop_bien_the")

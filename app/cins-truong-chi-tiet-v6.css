@@ -4917,6 +4917,12 @@
   background: var(--neutral-100, #f1f5f9);
 }
 
+.tdh-page--v6 .j-main-gallery-grid--masonry .tdh-doan-gallery-hit .j-main-gallery-thumb {
+  flex: none;
+  /* Tỉ lệ thật qua style inline (probe) — không ép 16/9. */
+  aspect-ratio: unset;
+}
+
 .tdh-page--v6 .tdh-doan-gallery-hit .j-main-gallery-thumb img,
 .tdh-page--v6 .tdh-doan-gallery-img {
   position: absolute;
@@ -4945,8 +4951,8 @@
 }
 
 .tdh-page--v6 .tdh-doan-gallery-meta {
-  padding: 0 12px 10px;
-  margin-top: -2px;
+  padding: 2px 12px 12px;
+  margin-top: 0;
 }
 
 .tdh-page--v6 .tdh-doan-gallery-meta .j-user-pop-wrap {
@@ -4971,21 +4977,21 @@
 .tdh-page--v6 .tdh-doan-gallery-student {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 9px;
   min-width: 0;
 }
 
 .tdh-page--v6 .tdh-doan-gallery-student-avatar {
   flex-shrink: 0;
-  width: 22px;
-  height: 22px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: var(--font-mono);
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 800;
   color: #fff;
 }
@@ -5001,12 +5007,13 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: 1px;
 }
 
 .tdh-page--v6 .tdh-doan-gallery-student-name {
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 700;
+  line-height: 1.25;
   color: var(--ink2, #374151);
   white-space: nowrap;
   overflow: hidden;
@@ -5014,11 +5021,23 @@
 }
 
 .tdh-page--v6 .tdh-doan-gallery-student-nganh {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--ink-muted, var(--ink3, #6b7280));
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+:root[data-theme="dark"] .tdh-page--v6 .tdh-doan-gallery-student-name {
+  color: #fff;
+}
+
+:root[data-theme="dark"] .tdh-page--v6 .tdh-doan-gallery-student-nganh {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+:root[data-theme="dark"] .tdh-page--v6 .tdh-doan-gallery-meta .j-user-pop-trigger:hover {
+  background: rgba(255, 255, 255, 0.06);
 }
 
 @media (max-width: 575.98px) {
@@ -5316,7 +5335,8 @@
   align-items: center;
   gap: 8px;
   min-width: 0;
-  flex: 1 1 160px;
+  /* Không nuốt hết hàng — để badge + menu dồn phải trên cùng một dòng */
+  flex: 1 1 auto;
 }
 
 .tdh-page--v6 #tdh-panel-bai-dang .jcard-datebar--org .org-chip-avatar,
@@ -5326,8 +5346,18 @@
   box-sizing: border-box;
 }
 
+/*
+ * badge-row đã có margin-left:auto (journey.css). Thêm auto trên .tdh-baidang-edit
+ * → hai auto chia space → badge «Thông báo» lơ lửng giữa (cùng bug corner-actions).
+ */
 .tdh-page--v6 #tdh-panel-bai-dang .jcard-datebar--org .tdh-baidang-edit,
 .tdh-page--v6 #cso-panel-bai-dang .jcard-datebar--org .tdh-baidang-edit {
+  margin-left: 0;
+  flex: 0 0 auto;
+}
+
+.tdh-page--v6 #tdh-panel-bai-dang .jcard-datebar--org:not(:has(.badge-row)) .tdh-baidang-edit,
+.tdh-page--v6 #cso-panel-bai-dang .jcard-datebar--org:not(:has(.badge-row)) .tdh-baidang-edit {
   margin-left: auto;
 }
 
@@ -5335,6 +5365,7 @@
 .tdh-page--v6 #cso-panel-bai-dang .jcard-datebar--org .badge-row {
   display: flex;
   align-items: center;
+  flex: 0 1 auto;
   min-width: 0;
 }
 
@@ -5481,7 +5512,8 @@
   .tdh-page--v6 #cso-panel-bai-dang {
     padding: 0;
     margin-top: 0;
-    background: var(--bg-surface, #fff);
+    /* Nền page giữa card — khớp kính sticky; tránh trắng chồng trắng / tint lẫn vào post */
+    background: var(--bg-page, #f4f5f8);
     --tdh-baidang-stack-gap: 8px;
     --tdh-baidang-card-gap: 12px;
     /* Khớp chiều cao thanh tab cố định — tránh hở với filter sticky */
@@ -5500,6 +5532,7 @@
   .tdh-page--v6 #cso-panel-bai-dang .tdh-org-baidang-timeline {
     margin-top: 0;
     padding-top: 0;
+    background: var(--bg-page, #f4f5f8);
   }
 
   .tdh-page--v6 #tdh-panel-bai-dang .tdh-org-baidang-timeline,
@@ -5512,6 +5545,20 @@
   .tdh-page--v6 #tdh-panel-bai-dang .tdh-org-baidang-timeline,
   .tdh-page--v6 #cso-panel-bai-dang .tdh-org-baidang-timeline {
     gap: var(--tdh-baidang-stack-gap);
+  }
+
+  .tdh-page--v6 #tdh-panel-bai-dang .tdh-org-baidang-timeline .j-m-month,
+  .tdh-page--v6 #cso-panel-bai-dang .tdh-org-baidang-timeline .j-m-month,
+  .tdh-page--v6 #tdh-panel-bai-dang .tdh-org-baidang-timeline .j-m-diamond,
+  .tdh-page--v6 #cso-panel-bai-dang .tdh-org-baidang-timeline .j-m-diamond,
+  .tdh-page--v6 #tdh-panel-bai-dang .tdh-org-baidang-timeline .j-year-diamond,
+  .tdh-page--v6 #cso-panel-bai-dang .tdh-org-baidang-timeline .j-year-diamond {
+    display: none;
+  }
+
+  .tdh-page--v6 #tdh-panel-bai-dang .tdh-org-baidang-timeline .j-m-body-wrap,
+  .tdh-page--v6 #cso-panel-bai-dang .tdh-org-baidang-timeline .j-m-body-wrap {
+    padding-left: 0;
   }
 
   .tdh-page--v6 #tdh-panel-bai-dang .tdh-org-baidang-timeline .j-milestone,
@@ -5540,11 +5587,14 @@
   }
 
   .tdh-page--v6 #tdh-panel-bai-dang .j-m-card,
-  .tdh-page--v6 #cso-panel-bai-dang .j-m-card {
+  .tdh-page--v6 #cso-panel-bai-dang .j-m-card,
+  .tdh-page--v6 #tdh-panel-bai-dang .j-m-card.jcard,
+  .tdh-page--v6 #cso-panel-bai-dang .j-m-card.jcard {
     border-radius: 0;
     border-left: none;
     border-right: none;
     box-shadow: none;
+    background: var(--bg-surface, #fff);
   }
 
   .tdh-page--v6 #tdh-panel-bai-dang .j-m-card.is-expanded,
@@ -5554,6 +5604,7 @@
     border-radius: 0;
     transform: none;
     box-shadow: none;
+    background: var(--bg-surface, #fff);
   }
 
   .tdh-page--v6 #tdh-panel-bai-dang .j-create-composer,

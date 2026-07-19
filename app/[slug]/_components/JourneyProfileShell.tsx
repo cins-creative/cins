@@ -54,6 +54,8 @@ type Props = {
   filterVisibility: LoaiMocVisibilityMap;
   editProfileInitial?: EditProfileInitial;
   initialCompose?: JourneyComposeState | null;
+  /** Hiện tab Shop (bật bán hàng, hoặc chính chủ). */
+  showShop?: boolean;
 };
 
 async function loadInitialData(
@@ -85,6 +87,10 @@ async function loadInitialData(
   if (activeView === "organizations") {
     const organizations = await fetchUserOrganizationsPage(ownerId);
     return { organizations };
+  }
+
+  if (activeView === "shop") {
+    return {};
   }
 
   const [page, coAuthorPendingInvites, coSoStaffPendingInvites, membershipPendingOutbound] =
@@ -172,6 +178,7 @@ export function JourneyProfileShell({
   filterVisibility,
   editProfileInitial,
   initialCompose = null,
+  showShop = false,
 }: Props) {
   const countsPromise = getCachedJourneySwitchNavCounts({ ownerId: owner.id }).then(
     ({ friendCount, orgCount }) => ({ friendCount, orgCount }),
@@ -201,6 +208,7 @@ export function JourneyProfileShell({
       initialKetBanStatus={initialKetBanStatus}
       initialCompose={initialCompose}
       countsPromise={countsPromise}
+      showShop={showShop}
       mainPanel={
         <Suspense
           fallback={

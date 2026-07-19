@@ -10,7 +10,7 @@ import {
   notifyShopQuayResolved,
   syncShopQuayPendingAdminNotifications,
 } from "@/lib/shop/quay-notify";
-import { assertBanHangEnabled } from "@/lib/shop/settings";
+import { assertShopReady } from "@/lib/shop/cua-hang";
 import type { ShopEvidence, ShopQuaySuKien, ShopTrangThaiQuay } from "@/lib/shop/types";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { canViewerManageSuKien } from "@/lib/to-chuc/su-kien";
@@ -146,7 +146,7 @@ export async function xinLamQuay(
     bangChung: ShopEvidence[];
   },
 ): Promise<ShopQuaySuKien> {
-  await assertBanHangEnabled(userId);
+  await assertShopReady(userId);
 
   const admin = createServiceRoleClient();
   const { data: sk } = await admin

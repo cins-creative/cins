@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { CO_SO_MOBILE_SHELL_MQ } from "@/lib/to-chuc/co-so-mobile-shell";
 
 /**
- * Mobile shell (≤991.98px) — gộp Thông tin + Nội dung; Thông báo qua FAB.
+ * Mobile shell (≤991.98px) — gộp Thông tin + Nội dung; cột Thông báo xếp sau.
  * Luôn init `false` (khớp SSR) rồi sync trong effect — tránh hydration mismatch.
  */
 export function useCoSoMobileShell() {

@@ -1,6 +1,8 @@
 import "server-only";
 
 import type { GalleryPinnedBanner } from "@/components/journey/JourneyGalleryAside";
+import { listApprovedOrgDoanProjects } from "@/lib/journey/org-milestone-tag";
+import type { OrgDoanProjectItem } from "@/lib/journey/org-milestone-tag-types";
 import { journeyImageFields } from "@/lib/journey/images";
 import { resolvePostGridEntry } from "@/lib/journey/post-content-kind";
 import { galleryItemLabel } from "@/lib/journey/post-media";
@@ -9,7 +11,8 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { STUDIO_SHOWCASE_LOAI } from "@/lib/to-chuc/studio-page-config";
 import { studioTabPath } from "@/lib/to-chuc/studio-routes";
 import { parseBaiDangBlocks } from "@/lib/truong/bai-dang-blocks";
-import { CO_SO_DEFAULT_TAB, coSoTabPath } from "@/lib/to-chuc/co-so-routes";
+import { sortDoanProjectsForPublic } from "@/lib/truong/doan-project-sort";
+import { coSoTabPath } from "@/lib/to-chuc/co-so-routes";
 import {
   TRUONG_DEFAULT_TAB,
   truongTabPath,
@@ -29,7 +32,7 @@ type BaiDangRow = {
 };
 
 function orgHref(kind: OrgShowcaseAsideKind, slug: string): string {
-  if (kind === "co_so_dao_tao") return coSoTabPath(slug, CO_SO_DEFAULT_TAB);
+  if (kind === "co_so_dao_tao") return coSoTabPath(slug, "san-pham");
   if (kind === "truong") return truongTabPath(slug, TRUONG_DEFAULT_TAB);
   return studioTabPath(slug, "showcase");
 }
@@ -94,9 +97,54 @@ function rowToPinned(
   };
 }
 
+function doanProjectToPinned(
+  item: OrgDoanProjectItem,
+): GalleryPinnedBanner | null {
+  const coverSrc = item.coverSrc?.trim() || "";
+  const isVideo = Boolean(item.isVideo);
+  if (!coverSrc && !isVideo && !item.videoPreviewSrc?.trim()) return null;
+
+  const metaParts = [item.studentName, item.khoaHocTen].filter(Boolean);
+
+  return {
+    id: `org-doan-${item.id}`,
+    src: coverSrc,
+    width: coverSrc ? 560 : undefined,
+    height: coverSrc ? 315 : undefined,
+    pin: "Học viên",
+    title: item.projectTitle,
+    meta: metaParts.join(" · ") || "Sản phẩm học viên",
+    authorName: item.studentName,
+    authorAvatarUrl: item.studentAvatarUrl,
+    href: item.href,
+    cotMocId: item.cotMocId,
+    mediaKind: isVideo ? "video" : "photo",
+    isVideo,
+    videoPreviewSrc: item.videoPreviewSrc ?? null,
+  };
+}
+
+async function fetchCoSoHocVienShowcase(
+  orgId: string,
+): Promise<{ pinned: GalleryPinnedBanner[] }> {
+  const projects = await listApprovedOrgDoanProjects(orgId, {
+    featuredOnly: true,
+  });
+  const sorted = sortDoanProjectsForPublic(projects);
+  const pinned: GalleryPinnedBanner[] = [];
+  for (const project of sorted) {
+    const item = doanProjectToPinned(project);
+    if (!item) continue;
+    pinned.push(item);
+    if (pinned.length >= ASIDE_LIMIT) break;
+  }
+  return { pinned };
+}
+
 /**
  * Preview showcase / bài có media của org — dùng trong JourneyOrgPopover
  * (cùng pattern gallery-aside của user).
+ * Cơ sở đào tạo: sản phẩm học viên đã bật hiện, sort theo `diemSapXep`.
  */
 export async function fetchOrgShowcaseAside(params: {
   slug: string;
@@ -114,6 +162,10 @@ export async function fetchOrgShowcaseAside(params: {
     .maybeSingle<{ id: string; slug: string; loai_to_chuc: string }>();
 
   if (!org) return { pinned: [] };
+
+  if (params.kind === "co_so_dao_tao") {
+    return fetchCoSoHocVienShowcase(org.id);
+  }
 
   const pinLabel = params.kind === "studio" ? "Showcase" : "Nổi bật";
   let query = admin

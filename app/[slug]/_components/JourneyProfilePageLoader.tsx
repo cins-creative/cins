@@ -34,9 +34,12 @@ type SearchParams = Promise<{
 export async function JourneyProfilePageLoader({
   params,
   searchParams,
+  /** Trang `/{slug}/shop` — không redirect vòng, ép view shop. */
+  storefront = false,
 }: {
   params: Params;
   searchParams: SearchParams;
+  storefront?: boolean;
 }) {
   const { slug } = await params;
   const { welcome, view, compose, edit } = await searchParams;
@@ -64,7 +67,11 @@ export async function JourneyProfilePageLoader({
   // đến từ trang khác / link hồ sơ. Khi user đã chọn Journey (`?view=journey`)
   // hoặc Gallery / Friends… thì giữ nguyên qua F5 và các action (like, comment).
   // Mặc định chỉ áp cho khách; áp cho chính chủ khi bật "Áp dụng cho tôi".
-  if (view === undefined && (!isOwner || owner.journey_mac_dinh_ap_dung_toi)) {
+  if (
+    !storefront &&
+    view === undefined &&
+    (!isOwner || owner.journey_mac_dinh_ap_dung_toi)
+  ) {
     const defaultView = normalizeJourneyDefaultView(owner.journey_mac_dinh_view);
     if (defaultView !== "timeline") {
       redirect(journeyDefaultViewHref(slug, defaultView));
@@ -84,12 +91,23 @@ export async function JourneyProfilePageLoader({
   const emailPublic = owner.visibility_email === "public";
   const emailForView = isOwner || emailPublic ? owner.email_lien_he : null;
 
-  const activeView: JourneyProfileView =
-    view === "gallery" ||
-    view === "friends" ||
-    view === "organizations" ||
-    view === "journey"
-      ? view
+  const banHangBat = owner.ban_hang_bat === true;
+  const showShop = isOwner || banHangBat;
+
+  if (storefront) {
+    if (!showShop) notFound();
+  } else if (view === "shop") {
+    /* Legacy `?view=shop` → path storefront. */
+    redirect(`/${encodeURIComponent(slug)}/shop`);
+  }
+
+  const activeView: JourneyProfileView = storefront
+    ? "shop"
+    : view === "gallery" ||
+        view === "friends" ||
+        view === "organizations" ||
+        view === "journey"
+      ? (view as JourneyProfileView)
       : "journey";
 
   const filterVisibility: LoaiMocVisibilityMap = normalizeLoaiMocVisibility(
@@ -144,6 +162,7 @@ export async function JourneyProfilePageLoader({
         filterVisibility={filterVisibility}
         editProfileInitial={editProfileInitial}
         initialCompose={initialCompose}
+        showShop={showShop}
       />
     </div>
   );

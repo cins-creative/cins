@@ -8,9 +8,6 @@ import { useAuthGate } from "@/components/auth/AuthGateProvider";
 import { useCinsChatContext } from "@/components/cins/CinsChatProvider";
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
 import type { ChatOrgKind } from "@/lib/chat/types";
-import { truongDetailHref } from "@/lib/nganh/truong-shared";
-import { CO_SO_DEFAULT_TAB, coSoTabPath } from "@/lib/to-chuc/co-so-routes";
-import { STUDIO_DEFAULT_TAB, studioTabPath } from "@/lib/to-chuc/studio-routes";
 import type { TruongListItem } from "@/lib/truong/types";
 
 const AUTH_MESSAGE_CHAT = "Đăng nhập để nhắn tin cho tổ chức trên CINs.";
@@ -31,19 +28,6 @@ function MessageIcon() {
   );
 }
 
-function orgPageHref(
-  school: Pick<TruongListItem, "slug" | "org_loai">,
-  pathname: string,
-): string {
-  if (school.org_loai === "co_so_dao_tao") {
-    return coSoTabPath(school.slug, CO_SO_DEFAULT_TAB);
-  }
-  if (pathname.startsWith("/studio/")) {
-    return studioTabPath(school.slug, STUDIO_DEFAULT_TAB);
-  }
-  return truongDetailHref(school.slug);
-}
-
 function mapSchoolOrgKind(
   school: Pick<TruongListItem, "org_loai">,
   pathname: string,
@@ -59,7 +43,7 @@ type Props = {
   iconOnly?: boolean;
 };
 
-/** Nút nhắn tin cho khách — mở CinsChatOverlay (cần đăng nhập). */
+/** Nút nhắn tin cho khách — mở CinsChatOverlay với org (cần đăng nhập), không kèm card ngữ cảnh. */
 export function TruongUserChatLauncher({ iconOnly = false }: Props) {
   const ctx = useTruongInlineEdit();
   const pathname = usePathname() ?? "";
@@ -71,7 +55,6 @@ export function TruongUserChatLauncher({ iconOnly = false }: Props) {
   if (ctx.canEdit && ctx.isEditing) return null;
 
   const { orgId, school } = ctx;
-  const isStudio = pathname.startsWith("/studio/");
 
   async function handleMessage() {
     if (!isAuthenticated) {
@@ -89,16 +72,6 @@ export function TruongUserChatLauncher({ iconOnly = false }: Props) {
           avatarUrl: school.avatar_src ?? null,
           orgKind: mapSchoolOrgKind(school, pathname),
         },
-        nguCanh: isStudio
-          ? undefined
-          : {
-              loai: "tuyen_sinh",
-              id: school.id,
-              tieuDe: school.ten,
-              moTa: school.mo_ta?.trim() || null,
-              href: orgPageHref(school, pathname),
-              orgTen: school.ten,
-            },
       });
     } catch {
       /* openChat đã đóng overlay khi lỗi */

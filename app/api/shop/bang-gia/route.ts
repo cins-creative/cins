@@ -50,9 +50,27 @@ export async function POST(request: Request) {
               if (typeof o.idBienThe !== "string" || typeof o.gia !== "number") {
                 return null;
               }
-              return { idBienThe: o.idBienThe, gia: o.gia };
+              const giaGiam =
+                o.giaGiam === null
+                  ? null
+                  : typeof o.giaGiam === "number"
+                    ? o.giaGiam
+                    : undefined;
+              return {
+                idBienThe: o.idBienThe,
+                gia: o.gia,
+                ...(giaGiam !== undefined ? { giaGiam } : {}),
+              };
             })
-            .filter((x): x is { idBienThe: string; gia: number } => !!x)
+            .filter(
+              (
+                x,
+              ): x is {
+                idBienThe: string;
+                gia: number;
+                giaGiam?: number | null;
+              } => !!x,
+            )
         : undefined,
     });
     return NextResponse.json({ item }, { status: 201 });
@@ -60,6 +78,15 @@ export async function POST(request: Request) {
     const msg = e instanceof Error ? e.message : "";
     if (msg === "BAN_HANG_OFF") {
       return NextResponse.json({ error: "Chưa bật bán hàng." }, { status: 403 });
+    }
+    if (msg === "SHOP_NOT_READY") {
+      return NextResponse.json(
+        {
+          error:
+            "Cần thêm tài khoản nhận tiền trong Shop trước khi thêm hàng hoặc nhận đơn.",
+        },
+        { status: 403 },
+      );
     }
     return NextResponse.json({ error: "Không tạo được." }, { status: 500 });
   }

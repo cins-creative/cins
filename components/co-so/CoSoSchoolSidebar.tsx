@@ -2,10 +2,10 @@
 
 import {
   BadgeCheck,
+  BellPlus,
   Calendar,
-  MessageSquare,
+  MessageCircle,
   Pencil,
-  Shield,
 } from "lucide-react";
 
 import { CoSoOrgFollowButton } from "@/components/co-so/CoSoOrgFollowButton";
@@ -109,7 +109,7 @@ export function CoSoSchoolSidebar({
               className={`cso-ss-primary-action${
                 showAdminCta
                   ? " cso-ss-primary-action--admin"
-                  : " cso-ss-primary-action--dual"
+                  : " cso-ss-primary-action--dual cso-ss-primary-action--icons"
               }`}
             >
             {showAdminCta ? (
@@ -119,18 +119,33 @@ export function CoSoSchoolSidebar({
               </>
             ) : ctx ? (
               <>
-                <TruongUserChatLauncher />
-                <CoSoOrgFollowButton orgId={school.id} disabled={isOwner} />
+                <TruongUserChatLauncher iconOnly />
+                <CoSoOrgFollowButton
+                  orgId={school.id}
+                  disabled={isOwner}
+                  variant="icon"
+                />
                 <OrgSidebarShareButton kind="co_so" source={shareSource} />
               </>
             ) : (
               <>
-                <button type="button" className="cso-ss-btn-msg" disabled>
-                  <MessageSquare size={17} strokeWidth={2} aria-hidden />
-                  Nhắn tin
+                <button
+                  type="button"
+                  className="cso-ss-btn-msg is-icon"
+                  disabled
+                  aria-label="Nhắn tin"
+                  title="Nhắn tin"
+                >
+                  <MessageCircle size={17} strokeWidth={2} aria-hidden />
                 </button>
-                <button type="button" className="cso-ss-btn-follow" disabled>
-                  Theo dõi
+                <button
+                  type="button"
+                  className="cso-ss-btn-follow is-icon"
+                  disabled
+                  aria-label="Theo dõi"
+                  title="Theo dõi"
+                >
+                  <BellPlus size={17} strokeWidth={2} aria-hidden />
                 </button>
                 <OrgSidebarShareButton kind="co_so" source={shareSource} />
               </>
@@ -164,7 +179,9 @@ export function CoSoSchoolSidebar({
                   Xác thực
                 </div>
                 {hasStudents ? (
-                  <div className="cso-ss-stat-card-val">{hocVienXacThucCount}</div>
+                  <div className="cso-ss-stat-card-val cso-ss-stat-card-val--text">
+                    {hocVienXacThucCount}
+                  </div>
                 ) : (
                   <p className="cso-ss-stat-empty">
                     {isOwner && isEditing
@@ -185,32 +202,22 @@ export function CoSoSchoolSidebar({
               </div>
             </div>
 
-            <div
-              className={`cso-ss-verify${daVerify ? " is-verified" : " is-pending"}`}
-            >
-              <div className="cso-ss-verify-icon" aria-hidden>
-                {daVerify ? (
+            {daVerify ? (
+              <div className="cso-ss-verify is-verified">
+                <div className="cso-ss-verify-icon" aria-hidden>
                   <BadgeCheck size={18} strokeWidth={2.2} />
-                ) : (
-                  <Shield size={18} strokeWidth={2.2} />
-                )}
-              </div>
-              <div className="cso-ss-verify-copy">
-                <div className="cso-ss-verify-title">
-                  {daVerify
-                    ? "Đã xác thực giấy phép"
-                    : "Chưa xác thực giấy phép"}
                 </div>
-                <div className="cso-ss-verify-sub">
-                  {daVerify
-                    ? school.giay_phep_dao_tao?.trim() ||
-                      "CINS đã xác minh giấy phép đào tạo"
-                    : isOwner && isEditing
-                      ? "Tải GPKD / GP đào tạo để nhận huy hiệu"
-                      : "Cơ sở chưa cung cấp giấy phép"}
+                <div className="cso-ss-verify-copy">
+                  <div className="cso-ss-verify-title">
+                    Đã xác thực giấy phép
+                  </div>
+                  <div className="cso-ss-verify-sub">
+                    {school.giay_phep_dao_tao?.trim() ||
+                      "CINS đã xác minh giấy phép đào tạo"}
+                  </div>
                 </div>
               </div>
-            </div>
+            ) : null}
           </section>
           </div>
         </div>
