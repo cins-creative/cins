@@ -310,6 +310,7 @@ CINS_ORG_DELEGATION_PASSWORD   (bắt buộc để dùng panel Phân quyền /ad
 | `gridsm` | 400×225 (16:9) | cover | Lưới gallery **mobile 2 cột** |
 | `public` | 1920×1080 | scale-down | Cover banner, ảnh ngang lớn; album grid ngang |
 
+**Upload size:** trần hosted Images = **10MB** (`MAX_CLOUDFLARE_IMAGE_UPLOAD_BYTES` trong `lib/cloudflare/image-upload-limits.ts`) — khớp hard limit Cloudflare. Avatar/cover vẫn riêng (2MB / 5MB).
 URL: `https://imagedelivery.net/${NEXT_PUBLIC_CF_IMAGES_ACCOUNT_HASH}/${cloudflare_id}/${variant}`
 
 Code map: `lib/journey/images.ts` (role `gallery-grid` → `grid` + `srcset` `gridsm`/`grid`) · `lib/journey/image-grid.ts` (`gridThumbAsset` ảnh đơn dọc → `feed`/`feedsm`) · `lib/truong/images.ts` (`CfImageVariant`) · `scripts/cf-ensure-image-variants.mjs` (đồng bộ variant Dashboard). Ô lưới CSS: `aspect-ratio: 16/9` — **không** dùng `thumbnail` (vuông) hay `public` cho grid thumb ảnh dọc đơn (dùng `feed`).

@@ -218,7 +218,7 @@ export function UserAccountSettingsModal({ open, onClose }: Props) {
   return createPortal(
     <div className="uas-backdrop" role="presentation" onMouseDown={onClose}>
       <div
-        className="uas-modal"
+        className="uas-modal uas-account-modal"
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}

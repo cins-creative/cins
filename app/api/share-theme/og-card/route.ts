@@ -3,6 +3,10 @@ import { revalidatePath } from "next/cache";
 
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import { deleteCloudflareImage } from "@/lib/cloudflare/delete-image";
+import {
+  cloudflareImageTooLargeError,
+  MAX_CLOUDFLARE_IMAGE_UPLOAD_BYTES,
+} from "@/lib/cloudflare/image-upload-limits";
 import { uploadToCloudflareImages } from "@/lib/cloudflare/upload-image";
 import { deleteUnreferencedShareImage } from "@/lib/journey/share-link";
 import {
@@ -24,7 +28,7 @@ import { isTruongOrgAdmin } from "@/lib/truong/org-admin";
    ║ Form: file (PNG), key (buildShareOgSnapshotKey), orgId?          ║
    ╚══════════════════════════════════════════════════════════════════╝ */
 
-const MAX_BYTES = 8 * 1024 * 1024;
+const MAX_BYTES = MAX_CLOUDFLARE_IMAGE_UPLOAD_BYTES;
 
 const SNAPSHOT_KEY_RE =
   /^(journey|gallery)\|[a-zA-Z0-9_-]{1,40}\|[a-zA-Z0-9_-]{1,24}\|[pc][a-zA-Z0-9_-]{1,40}$/;
@@ -71,7 +75,7 @@ export async function POST(request: Request) {
   }
   if (file.size > MAX_BYTES) {
     return NextResponse.json(
-      { error: "Ảnh quá lớn (giới hạn 8MB)." },
+      { error: cloudflareImageTooLargeError() },
       { status: 413 },
     );
   }

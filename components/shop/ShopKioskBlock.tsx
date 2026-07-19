@@ -17,6 +17,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { useCinsChat } from "@/components/cins/CinsChatProvider";
+import {
+  cloudflareImageTooLargeError,
+  MAX_CLOUDFLARE_IMAGE_UPLOAD_BYTES,
+} from "@/lib/cloudflare/image-upload-limits";
 import { isAllowedUploadImageFile } from "@/lib/files/infer-image-mime";
 import { getNameInitials } from "@/lib/journey/profile";
 import { copyShareCardImage } from "@/lib/journey/share-card-export";
@@ -935,8 +939,8 @@ export function ShopKioskBlock({
       setHoaDonUploadErr("Chỉ chấp nhận JPEG, PNG, WebP hoặc GIF.");
       return;
     }
-    if (file.size > 8 * 1024 * 1024) {
-      setHoaDonUploadErr("Ảnh quá lớn (giới hạn 8MB).");
+    if (file.size > MAX_CLOUDFLARE_IMAGE_UPLOAD_BYTES) {
+      setHoaDonUploadErr(cloudflareImageTooLargeError());
       return;
     }
 

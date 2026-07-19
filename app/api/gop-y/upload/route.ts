@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 
+import {
+  cloudflareImageTooLargeError,
+  MAX_CLOUDFLARE_IMAGE_UPLOAD_BYTES,
+} from "@/lib/cloudflare/image-upload-limits";
 import { uploadToCloudflareImages } from "@/lib/cloudflare/upload-image";
 
 /**
@@ -7,9 +11,9 @@ import { uploadToCloudflareImages } from "@/lib/cloudflare/upload-image";
  * gửi được như chính form góp ý). Dán ảnh từ clipboard hoặc chọn từ máy.
  * Trả về `{ url }` (imagedelivery.net) để lưu vào `anh_url`.
  *
- * Giới hạn 8MB — khớp `uploadToCloudflareImages`.
+ * Giới hạn = MAX_CLOUDFLARE_IMAGE_UPLOAD_BYTES (trần CF Images).
  */
-const MAX_BYTES = 8 * 1024 * 1024;
+const MAX_BYTES = MAX_CLOUDFLARE_IMAGE_UPLOAD_BYTES;
 
 export async function POST(request: Request) {
   let form: FormData;
@@ -25,7 +29,7 @@ export async function POST(request: Request) {
   }
   if (file.size > MAX_BYTES) {
     return NextResponse.json(
-      { error: "Ảnh quá lớn (giới hạn 8MB)." },
+      { error: cloudflareImageTooLargeError() },
       { status: 413 },
     );
   }

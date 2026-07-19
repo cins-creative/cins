@@ -3,11 +3,12 @@
  * Dùng auto-cover embed (OG / oEmbed / YouTube thumb).
  */
 
+import { MAX_CLOUDFLARE_IMAGE_UPLOAD_BYTES } from "@/lib/cloudflare/image-upload-limits";
 import { uploadToCloudflareImages } from "@/lib/cloudflare/upload-image";
 import { isSafePublicHttpUrl } from "@/lib/link/og-preview";
 
 const FETCH_TIMEOUT_MS = 10_000;
-const MAX_BYTES = 8 * 1024 * 1024;
+const MAX_BYTES = MAX_CLOUDFLARE_IMAGE_UPLOAD_BYTES;
 
 const ALLOWED_MIME = new Set([
   "image/jpeg",

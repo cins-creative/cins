@@ -5,13 +5,17 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react"
 import { createPortal } from "react-dom";
 
 import { isAllowedUploadImageFile } from "@/lib/files/infer-image-mime";
+import {
+  cloudflareImageTooLargeError,
+  MAX_CLOUDFLARE_IMAGE_UPLOAD_BYTES,
+} from "@/lib/cloudflare/image-upload-limits";
 import type { ShopEvidence, ShopQuaySuKien } from "@/lib/shop/types";
 import { SHOP_TRANG_THAI_QUAY_LABEL } from "@/lib/shop/types";
 import { formatTimelineDate } from "@/lib/truong/timeline";
 
 import "./shop-dashboard.css";
 
-const UPLOAD_MAX_BYTES = 8 * 1024 * 1024;
+const UPLOAD_MAX_BYTES = MAX_CLOUDFLARE_IMAGE_UPLOAD_BYTES;
 
 type SuKienOpt = {
   id: string;
@@ -164,7 +168,7 @@ export function ShopXinQuayModal({ open, milestoneId, onClose }: Props) {
       return;
     }
     if (file.size > UPLOAD_MAX_BYTES) {
-      setErr("Ảnh quá lớn (giới hạn 8MB).");
+      setErr(cloudflareImageTooLargeError());
       return;
     }
 

@@ -10,6 +10,7 @@ import {
 } from "@/lib/admin/mon-thi-display";
 import type { AdminMonThiRow } from "@/lib/admin/mon-thi-server";
 import { rememberCfAccountHashFromDeliveryUrl } from "@/lib/cloudflare/account-hash";
+import { cloudflareImageTooLargeError } from "@/lib/cloudflare/image-upload-limits";
 import { monThiPlaceholderInitials, monThiPlaceholderStyle } from "@/lib/truong/mon-thi-thumbnail";
 
 type Props = {
@@ -128,7 +129,7 @@ export function AdminMonThiThumb({
         setError(
           json?.error ??
             (resp.status === 413
-              ? "Ảnh quá lớn (giới hạn 8MB)."
+              ? cloudflareImageTooLargeError()
               : `Upload thất bại (${resp.status}).`),
         );
         setNotice(null);

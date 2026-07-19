@@ -1,4 +1,8 @@
-const MAX_BYTES = 8 * 1024 * 1024;
+import {
+  MAX_CLOUDFLARE_IMAGE_UPLOAD_BYTES,
+  MAX_CLOUDFLARE_IMAGE_UPLOAD_MB,
+} from "@/lib/cloudflare/image-upload-limits";
+
 const UPLOAD_TIMEOUT_MS = 60_000;
 
 /** Tải ảnh lên Cloudflare qua `/api/article-inline-image`. */
@@ -13,8 +17,11 @@ export async function uploadNganhInlineImage(
         "Thiếu NEXT_PUBLIC_ARTICLE_INLINE_IMAGE_UPLOAD_TOKEN — không tải được ảnh.",
     };
   }
-  if (file.size > MAX_BYTES) {
-    return { ok: false, message: "Ảnh quá lớn (tối đa 8 MB)." };
+  if (file.size > MAX_CLOUDFLARE_IMAGE_UPLOAD_BYTES) {
+    return {
+      ok: false,
+      message: `Ảnh quá lớn (tối đa ${MAX_CLOUDFLARE_IMAGE_UPLOAD_MB} MB).`,
+    };
   }
 
   const fd = new FormData();

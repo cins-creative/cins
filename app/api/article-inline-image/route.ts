@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 
 import { pickImageDeliveryUrl } from "@/lib/cloudflare/pick-image-delivery-url";
+import { MAX_CLOUDFLARE_IMAGE_UPLOAD_BYTES } from "@/lib/cloudflare/image-upload-limits";
 import { isInlineArticleEditEnabled } from "@/lib/dev/inline-article-edit";
 
-const MAX_BYTES = 8 * 1024 * 1024;
+const MAX_BYTES = MAX_CLOUDFLARE_IMAGE_UPLOAD_BYTES;
 const ALLOWED_TYPES = new Set([
   "image/jpeg",
   "image/png",

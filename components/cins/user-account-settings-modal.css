@@ -24,6 +24,12 @@
   font-family: var(--font-sans);
 }
 
+/* Chiều cao cố định — body scroll bên trong, không nhảy khi đổi tab. */
+.uas-modal.uas-account-modal {
+  height: min(90vh, 760px);
+  max-height: min(90vh, 760px);
+}
+
 .uas-head {
   display: flex;
   align-items: center;
@@ -836,6 +842,11 @@
     max-width: 100%;
     max-height: 92vh;
     border-radius: var(--radius-lg, 20px) var(--radius-lg, 20px) 0 0;
+  }
+
+  .uas-modal.uas-account-modal {
+    height: min(92vh, 760px);
+    max-height: min(92vh, 760px);
   }
 
   .uas-layout {

@@ -3,12 +3,16 @@ import { NextResponse } from "next/server";
 
 import { persistMonThiCloudflareThumbnail } from "@/lib/admin/mon-thi-thumbnail-persist";
 import { getCurrentUserIsCinsAdmin } from "@/lib/auth/cins-admin-server";
+import {
+  cloudflareImageTooLargeError,
+  MAX_CLOUDFLARE_IMAGE_UPLOAD_BYTES,
+} from "@/lib/cloudflare/image-upload-limits";
 import { uploadToCloudflareImages } from "@/lib/cloudflare/upload-image";
 import { hasServiceRoleEnv } from "@/lib/supabase/service-role";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
-const MAX_BYTES = 8 * 1024 * 1024;
+const MAX_BYTES = MAX_CLOUDFLARE_IMAGE_UPLOAD_BYTES;
 
 export async function POST(request: Request, context: RouteContext) {
   if (!hasServiceRoleEnv()) {
@@ -43,7 +47,7 @@ export async function POST(request: Request, context: RouteContext) {
   }
   if (file.size > MAX_BYTES) {
     return NextResponse.json(
-      { error: "Ảnh quá lớn (giới hạn 8MB)." },
+      { error: cloudflareImageTooLargeError() },
       { status: 413 },
     );
   }

@@ -1,10 +1,11 @@
+import { MAX_CLOUDFLARE_IMAGE_UPLOAD_BYTES } from "@/lib/cloudflare/image-upload-limits";
 import { pickImageDeliveryUrl } from "@/lib/cloudflare/pick-image-delivery-url";
 import {
   inferImageMime,
   UPLOAD_IMAGE_MIMES,
 } from "@/lib/files/infer-image-mime";
 
-const MAX_BYTES = 8 * 1024 * 1024;
+const MAX_BYTES = MAX_CLOUDFLARE_IMAGE_UPLOAD_BYTES;
 
 export type CloudflareUploadResult = {
   imageId: string;

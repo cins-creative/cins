@@ -17,6 +17,7 @@ import { ArcImagePlaceholder } from "@/components/article/draft/arcImagePlacehol
 import { ArcSiteHeading } from "@/components/article/draft/arcSiteHeadingExtension";
 import { ARTICLE_ARC_BLOCK_EXTENSIONS } from "@/components/article/draft/articleArcBlockExtensions";
 import { BlockPerLine } from "@/lib/tiptap/block-per-line-extension";
+import { MAX_CLOUDFLARE_IMAGE_UPLOAD_BYTES } from "@/lib/cloudflare/image-upload-limits";
 import { prepareHtmlForTiptapEditor } from "@/lib/tiptap/split-block-breaks";
 import {
   hydrateEditorInChunks,
@@ -70,7 +71,7 @@ function tiptapContentHtml(
 }
 
 const MAX_ARTICLE_IMAGE_DATA_URL = 1_500_000;
-const MAX_ARTICLE_IMAGE_UPLOAD = 8 * 1024 * 1024;
+const MAX_ARTICLE_IMAGE_UPLOAD = MAX_CLOUDFLARE_IMAGE_UPLOAD_BYTES;
 
 function replaceImageSrcIfMatch(
   ed: Editor,

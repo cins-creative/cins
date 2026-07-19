@@ -32,8 +32,12 @@ import {
   notifyStatusLabel,
 } from "@/lib/truong/milestone-tag-notify-mock";
 import { orgPublicHref } from "@/lib/search/helpers";
+import {
+  MAX_CLOUDFLARE_IMAGE_UPLOAD_MB,
+} from "@/lib/cloudflare/image-upload-limits";
 
 const ORG_TAG_CHANGED = "journey-org-tag-changed";
+const ORG_ATTACH_IMAGE_TOO_LARGE = `Không upload được ảnh (tối đa ${MAX_CLOUDFLARE_IMAGE_UPLOAD_MB}MB).`;
 
 export function dispatchJourneyOrgTagChanged(cotMocId: string) {
   window.dispatchEvent(
@@ -165,7 +169,7 @@ function OrgAttachEvidenceImageField({
       onUploadStart();
       const uploaded = await uploadEvidenceImage(file);
       if (!uploaded) {
-        onUploadError("Không upload được ảnh (tối đa 8MB).");
+        onUploadError(ORG_ATTACH_IMAGE_TOO_LARGE);
         return;
       }
       onUploaded(uploaded.url, uploaded.imageId);
@@ -689,7 +693,7 @@ export function JourneyOrgAttachTrigger({
       void uploadEvidenceImage(file)
         .then((uploaded) => {
           if (!uploaded) {
-            setMessage("Không upload được ảnh (tối đa 8MB).");
+            setMessage(ORG_ATTACH_IMAGE_TOO_LARGE);
             return;
           }
           setEvidence((prev) => {

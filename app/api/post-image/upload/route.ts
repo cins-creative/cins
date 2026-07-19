@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
+import {
+  cloudflareImageTooLargeError,
+  MAX_CLOUDFLARE_IMAGE_UPLOAD_BYTES,
+} from "@/lib/cloudflare/image-upload-limits";
 import { uploadToCloudflareImages } from "@/lib/cloudflare/upload-image";
 
 /* ╔══════════════════════════════════════════════════════════════════╗
@@ -12,10 +16,10 @@ import { uploadToCloudflareImages } from "@/lib/cloudflare/upload-image";
    ║ render qua `ph()` / `imgSrcForSeed()` (detect UUID → trỏ tới     ║
    ║ `imagedelivery.net`).                                            ║
    ║                                                                  ║
-   ║ Limit 8MB — khớp `uploadToCloudflareImages` MAX_BYTES (8MB).     ║
+   ║ Limit = MAX_CLOUDFLARE_IMAGE_UPLOAD_BYTES (trần CF Images 10MB). ║
    ╚══════════════════════════════════════════════════════════════════╝ */
 
-const MAX_BYTES = 8 * 1024 * 1024;
+const MAX_BYTES = MAX_CLOUDFLARE_IMAGE_UPLOAD_BYTES;
 
 export async function POST(request: Request) {
   const session = await getCurrentSessionAndProfile();
@@ -39,7 +43,7 @@ export async function POST(request: Request) {
   }
   if (file.size > MAX_BYTES) {
     return NextResponse.json(
-      { error: "Ảnh quá lớn (giới hạn 8MB)." },
+      { error: cloudflareImageTooLargeError() },
       { status: 413 },
     );
   }
