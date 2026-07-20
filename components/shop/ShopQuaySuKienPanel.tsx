@@ -1,7 +1,7 @@
 "use client";
 
-import { Check, Loader2, X } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Check, Loader2, Search, X } from "lucide-react";
+import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
 
 import { ContentSurfaceViewToggle } from "@/components/cins/ContentSurfaceViewToggle";
 import { GalleryVideoPlayBadge } from "@/components/journey/GalleryItemVisual";
@@ -17,10 +17,112 @@ import {
   isGalleryVideoCoverSrc,
   milestoneCardCaptionPlain,
 } from "@/lib/journey/post-media";
-import type { ShopEvidence, ShopQuaySuKien } from "@/lib/shop/types";
+import { normalizeSearchText } from "@/lib/search/normalize";
+import type {
+  ShopEvidence,
+  ShopQuayHangSearch,
+  ShopQuaySuKien,
+} from "@/lib/shop/types";
 
 import "./shop-dashboard.css";
+import "./shop-kiosk-block.css";
 
+function quaySearchHaystack(q: ShopQuaySuKien): string {
+  const m = q.cotMoc;
+  const parts: Array<string | null | undefined> = [
+    q.nguoiDungTen,
+    q.nguoiDungSlug,
+    m?.title,
+    m?.lensOwnerName,
+    m?.postOwnerSlug,
+    milestoneCardCaptionPlain(m?.tacPhamMoTa ?? m?.body, m?.noiDungBlocks),
+  ];
+  for (const h of q.hangSearch ?? []) {
+    parts.push(h.tenSanPham, h.nhanBienThe, h.phanLoai, h.phanLoai2);
+  }
+  return normalizeSearchText(parts.filter(Boolean).join(" "));
+}
+
+function hangSearchHaystack(
+  h: ShopQuayHangSearch,
+  seller?: { ten?: string | null; slug?: string | null },
+): string {
+  return normalizeSearchText(
+    [
+      h.tenSanPham,
+      h.nhanBienThe,
+      h.phanLoai,
+      h.phanLoai2,
+      seller?.ten,
+      seller?.slug,
+    ]
+      .filter(Boolean)
+      .join(" "),
+  );
+}
+
+function filterQuayBySearch(
+  items: ReadonlyArray<ShopQuaySuKien>,
+  query: string,
+): ShopQuaySuKien[] {
+  const q = normalizeSearchText(query);
+  if (!q) return [...items];
+  return items.filter((item) => quaySearchHaystack(item).includes(q));
+}
+
+type QuayHangCard = ShopQuayHangSearch & {
+  quayId: string;
+  milestoneId: string;
+  sellerName: string | null;
+};
+
+function collectHangCards(
+  items: ReadonlyArray<ShopQuaySuKien>,
+  query: string,
+): QuayHangCard[] {
+  const q = normalizeSearchText(query);
+  const out: QuayHangCard[] = [];
+  const seen = new Set<string>();
+  for (const item of items) {
+    if (item.trangThai !== "da_duyet") continue;
+    const milestoneId = item.idCotMoc?.trim();
+    if (!milestoneId) continue;
+    for (const h of item.hangSearch ?? []) {
+      if (
+        q &&
+        !hangSearchHaystack(h, {
+          ten: item.nguoiDungTen,
+          slug: item.nguoiDungSlug,
+        }).includes(q)
+      ) {
+        continue;
+      }
+      const key = `${h.idBienThe}:${milestoneId}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push({
+        ...h,
+        quayId: item.id,
+        milestoneId,
+        sellerName: item.nguoiDungTen?.trim() || null,
+      });
+    }
+  }
+  return out;
+}
+
+function groupHangByLoai(
+  cards: ReadonlyArray<QuayHangCard>,
+): Array<{ loai: string; items: QuayHangCard[] }> {
+  const map = new Map<string, QuayHangCard[]>();
+  for (const c of cards) {
+    const loai = c.phanLoai?.trim() || "Khác";
+    const list = map.get(loai) ?? [];
+    list.push(c);
+    map.set(loai, list);
+  }
+  return [...map.entries()].map(([loai, items]) => ({ loai, items }));
+}
 /** Bài gắn quầy — đủ lens owner để datebar entity giống Journey. */
 function quayMilestoneCard(q: ShopQuaySuKien): MilestoneItem | null {
   const m = q.cotMoc;
@@ -114,6 +216,7 @@ type Props = {
   canManage?: boolean;
   /** Hiện section kể cả khi chưa có quầy (dùng trong bảng quản lý). */
   alwaysShow?: boolean;
+  /** Giữ tương thích caller cũ — toolbar hiện ô tìm kiếm. */
   title?: string;
   /** Báo số quầy đang chờ duyệt (sau mỗi lần tải danh sách). */
   onPendingCountChange?: (count: number) => void;
@@ -316,11 +419,107 @@ function QuayApprovedGridView({
   );
 }
 
+function QuayHangCatalogView({
+  cards,
+  onOpen,
+}: {
+  cards: ReadonlyArray<QuayHangCard>;
+  onOpen: (milestoneId: string) => void;
+}) {
+  const groups = groupHangByLoai(cards);
+  if (groups.length === 0) {
+    return (
+      <p className="shop-dash-hint">Không có hàng khớp tìm kiếm.</p>
+    );
+  }
+
+  return (
+    <div
+      className="shop-kiosk-catalog-body shop-quay-hang-catalog"
+      aria-label="Kết quả tìm hàng sự kiện"
+    >
+      {groups.map((group) => (
+        <section key={group.loai} className="shop-kiosk-catalog-group">
+          <h4 className="shop-kiosk-catalog-group-title">
+            {group.loai}
+            <span>{group.items.length}</span>
+          </h4>
+          <ul className="shop-kiosk-catalog-grid">
+            {group.items.map((it) => {
+              const outOfStock = it.hetHang || it.soLuongTon <= 0;
+              const showLowStock =
+                !outOfStock &&
+                Number.isFinite(it.soLuongTon) &&
+                it.soLuongTon > 0 &&
+                it.soLuongTon < 5;
+              return (
+                <li key={`${it.hangId}:${it.milestoneId}`} className="shop-kiosk-catalog-card">
+                  {it.anhUrl ? (
+                    <button
+                      type="button"
+                      className="shop-kiosk-catalog-thumb-btn"
+                      onClick={() => onOpen(it.milestoneId)}
+                      aria-label={`Xem bài bán ${it.tenSanPham}`}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={it.anhUrl} alt="" loading="lazy" />
+                      {showLowStock ? (
+                        <span className="shop-kiosk-catalog-low-stock">
+                          SL:{it.soLuongTon}
+                        </span>
+                      ) : null}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="shop-kiosk-catalog-thumb is-empty"
+                      onClick={() => onOpen(it.milestoneId)}
+                      aria-label={`Xem bài bán ${it.tenSanPham}`}
+                    >
+                      {showLowStock ? (
+                        <span className="shop-kiosk-catalog-low-stock">
+                          SL:{it.soLuongTon}
+                        </span>
+                      ) : null}
+                    </button>
+                  )}
+                  <div className="shop-kiosk-catalog-card-body">
+                    <div className="shop-kiosk-catalog-card-name">
+                      {it.tenSanPham}
+                      {it.nhanBienThe !== "Mặc định" ? (
+                        <span> · {it.nhanBienThe}</span>
+                      ) : null}
+                    </div>
+                    <div className="shop-kiosk-catalog-card-foot">
+                      <strong>
+                        {it.giaHienThi.toLocaleString("vi-VN")} {it.tienTe}
+                      </strong>
+                    </div>
+                    <div className="shop-kiosk-catalog-action">
+                      <span className="shop-kiosk-catalog-stock">
+                        Bán: {it.soLuongBan}
+                      </span>
+                      {it.sellerName ? (
+                        <span className="shop-quay-hang-seller">
+                          {it.sellerName}
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ))}
+    </div>
+  );
+}
+
 export function ShopQuaySuKienPanel({
   suKienId,
   canManage = false,
   alwaysShow = false,
-  title = "Nội dung đóng góp sự kiện",
   onPendingCountChange,
 }: Props) {
   const [items, setItems] = useState<ShopQuaySuKien[]>([]);
@@ -329,6 +528,9 @@ export function ShopQuaySuKienPanel({
   const [busyId, setBusyId] = useState<string | null>(null);
   const [view, setView] = useState<ContentSurfaceView>("timeline");
   const [pendingFocusId, setPendingFocusId] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const deferredSearch = useDeferredValue(search);
+  const [searchHang, setSearchHang] = useState(true);
   const [reasonTarget, setReasonTarget] = useState<{
     id: string;
     mode: "reject" | "revoke";
@@ -439,17 +641,34 @@ export function ShopQuaySuKienPanel({
     await respond(reasonTarget.id, "reject", lyDo);
   }
 
-  const approved = items.filter((i) => i.trangThai === "da_duyet");
-  const pending = items.filter((i) => i.trangThai === "cho_xu_ly");
-  const gridItems = useMemo(
+  const filteredItems = useMemo(
+    () => filterQuayBySearch(items, deferredSearch),
+    [items, deferredSearch],
+  );
+  const approved = useMemo(
+    () => filteredItems.filter((i) => i.trangThai === "da_duyet"),
+    [filteredItems],
+  );
+  const pending = useMemo(
+    () => filteredItems.filter((i) => i.trangThai === "cho_xu_ly"),
+    [filteredItems],
+  );
+  const searchActive = normalizeSearchText(deferredSearch).length > 0;
+  const showHangCatalog = searchHang && searchActive && !canManage;
+  const hangCards = useMemo(
     () =>
-      quayApprovedGridItems(
-        items.filter((i) => i.trangThai === "da_duyet"),
-      ),
-    [items],
+      showHangCatalog
+        ? collectHangCards(items, deferredSearch)
+        : [],
+    [showHangCatalog, items, deferredSearch],
+  );
+  const gridItems = useMemo(
+    () => quayApprovedGridItems(approved),
+    [approved],
   );
 
   const openFromGrid = useCallback((milestoneId: string) => {
+    setSearch("");
     setView("timeline");
     setPendingFocusId(milestoneId);
   }, []);
@@ -462,29 +681,83 @@ export function ShopQuaySuKienPanel({
     );
   }
 
-  if (!approved.length && !(canManage && pending.length) && !alwaysShow) {
+  const hasAny = items.some(
+    (i) =>
+      i.trangThai === "da_duyet" ||
+      (canManage && i.trangThai === "cho_xu_ly"),
+  );
+  if (!hasAny && !alwaysShow) {
     return null;
   }
 
-  const showPublicSurface = !canManage && approved.length > 0;
+  const hasApprovedAll = items.some((i) => i.trangThai === "da_duyet");
+  const showPublicSurface = !canManage && hasApprovedAll;
+  const showSearch = hasAny || alwaysShow;
 
   return (
     <section
       className="shop-quay-panel"
       style={{ marginTop: alwaysShow ? 0 : 16 }}
+      aria-label="Đóng góp sự kiện"
     >
       <div className="j-tlb shop-quay-tlb">
         <span className="j-tlb-streak-slow" aria-hidden="true" />
         <div className="j-tlb-date">
-          <h3 className="shop-quay-tlb-label">{title}</h3>
+          {showSearch ? (
+            <>
+              <label className="shop-quay-search">
+                <Search size={14} strokeWidth={2.25} aria-hidden />
+                <input
+                  type="search"
+                  value={search}
+                  placeholder="Tìm kiếm"
+                  aria-label="Tìm theo tên người, sản phẩm hoặc phân loại"
+                  autoComplete="off"
+                  spellCheck={false}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+                {search ? (
+                  <button
+                    type="button"
+                    className="shop-quay-search-clear"
+                    aria-label="Xóa tìm kiếm"
+                    onClick={() => setSearch("")}
+                  >
+                    <X size={13} strokeWidth={2.25} aria-hidden />
+                  </button>
+                ) : null}
+              </label>
+              {!canManage ? (
+                <button
+                  type="button"
+                  className={`shop-quay-hang-toggle${searchHang ? " is-active" : ""}`}
+                  aria-pressed={searchHang}
+                  title={
+                    searchHang
+                      ? "Đang tìm hàng — tắt để tìm bài đóng góp"
+                      : "Bật để hiện lưới hàng khi tìm"
+                  }
+                  onClick={() => setSearchHang((v) => !v)}
+                >
+                  Search hàng
+                </button>
+              ) : null}
+            </>
+          ) : null}
         </div>
-        {showPublicSurface ? (
+        {showPublicSurface && !showHangCatalog ? (
           <ContentSurfaceViewToggle view={view} onViewChange={setView} />
         ) : null}
       </div>
 
       {!canManage ? (
-        approved.length ? (
+        showHangCatalog ? (
+          hangCards.length ? (
+            <QuayHangCatalogView cards={hangCards} onOpen={openFromGrid} />
+          ) : (
+            <p className="shop-dash-hint">Không có hàng khớp tìm kiếm.</p>
+          )
+        ) : approved.length ? (
           view === "timeline" ? (
             <ul className="shop-dash-list shop-quay-review-list">
               {approved.map((q) => (
@@ -502,8 +775,12 @@ export function ShopQuaySuKienPanel({
               onOpen={openFromGrid}
             />
           )
-        ) : alwaysShow ? (
-          <p className="shop-dash-hint">Chưa có nội dung được duyệt.</p>
+        ) : alwaysShow || searchActive ? (
+          <p className="shop-dash-hint">
+            {searchActive
+              ? "Không có đóng góp khớp tìm kiếm."
+              : "Chưa có nội dung được duyệt."}
+          </p>
         ) : null
       ) : (
         <>
@@ -580,7 +857,11 @@ export function ShopQuaySuKienPanel({
               })}
             </ul>
           ) : (
-            <p className="shop-dash-hint">Chưa có nội dung được duyệt.</p>
+            <p className="shop-dash-hint">
+              {searchActive
+                ? "Không có đóng góp đã duyệt khớp tìm kiếm."
+                : "Chưa có nội dung được duyệt."}
+            </p>
           )}
 
           {pending.length > 0 ? (
@@ -681,7 +962,9 @@ export function ShopQuaySuKienPanel({
             </>
           ) : alwaysShow ? (
             <p className="shop-dash-hint" style={{ marginTop: 10 }}>
-              Không có nội dung đang chờ duyệt.
+              {searchActive
+                ? "Không có nội dung chờ duyệt khớp tìm kiếm."
+                : "Không có nội dung đang chờ duyệt."}
             </p>
           ) : null}
         </>

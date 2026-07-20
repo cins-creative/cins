@@ -11,7 +11,13 @@ import {
   syncShopQuayPendingAdminNotifications,
 } from "@/lib/shop/quay-notify";
 import { assertShopReady } from "@/lib/shop/cua-hang";
-import type { ShopEvidence, ShopQuaySuKien, ShopTrangThaiQuay } from "@/lib/shop/types";
+import { shopImageUrl } from "@/lib/shop/settings";
+import type {
+  ShopEvidence,
+  ShopQuayHangSearch,
+  ShopQuaySuKien,
+  ShopTrangThaiQuay,
+} from "@/lib/shop/types";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { canViewerManageSuKien } from "@/lib/to-chuc/su-kien";
 
@@ -131,11 +137,160 @@ export async function listQuaySuKien(
     if (id) cotMocById.set(id, item);
   }
 
-  return items.map((i) =>
+  const withCotMoc = items.map((i) =>
     i.idCotMoc && cotMocById.has(i.idCotMoc)
       ? { ...i, cotMoc: cotMocById.get(i.idCotMoc)! }
       : i,
   );
+
+  const hangByCotMoc = await loadHangSearchByCotMoc(cotMocIds);
+  return withCotMoc.map((i) => {
+    if (!i.idCotMoc) return i;
+    const hang = hangByCotMoc.get(i.idCotMoc);
+    return hang?.length ? { ...i, hangSearch: hang } : i;
+  });
+}
+
+/** Batch `shop_post_hang` → card catalog (giá / ảnh / bán / phân loại). */
+async function loadHangSearchByCotMoc(
+  cotMocIds: string[],
+): Promise<Map<string, ShopQuayHangSearch[]>> {
+  const out = new Map<string, ShopQuayHangSearch[]>();
+  if (cotMocIds.length === 0) return out;
+
+  const admin = createServiceRoleClient();
+  const { data: hangs, error } = await admin
+    .from("shop_post_hang")
+    .select(
+      "id, id_cot_moc, id_bien_the, gia_hien_thi, tien_te, thu_tu",
+    )
+    .in("id_cot_moc", cotMocIds)
+    .order("thu_tu", { ascending: true })
+    .limit(500);
+  if (error) {
+    console.error("[shop] listQuay hangSearch", error);
+    return out;
+  }
+  const hangRows = (hangs ?? []) as Array<{
+    id: string;
+    id_cot_moc: string;
+    id_bien_the: string;
+    gia_hien_thi: number | string;
+    tien_te: string;
+    thu_tu: number;
+  }>;
+  if (hangRows.length === 0) return out;
+
+  const btIds = [...new Set(hangRows.map((h) => h.id_bien_the))];
+  const { data: bts } = await admin
+    .from("shop_bien_the")
+    .select("id, id_san_pham, nhan, so_luong_ton, anh_id, da_xoa")
+    .in("id", btIds);
+  const btMap = new Map(
+    (
+      (bts ?? []) as Array<{
+        id: string;
+        id_san_pham: string;
+        nhan: string;
+        so_luong_ton: number;
+        anh_id: string | null;
+        da_xoa: boolean;
+      }>
+    ).map((b) => [b.id, b]),
+  );
+
+  const spIds = [
+    ...new Set(
+      [...btMap.values()]
+        .filter((b) => !b.da_xoa)
+        .map((b) => b.id_san_pham)
+        .filter(Boolean),
+    ),
+  ];
+  if (spIds.length === 0) return out;
+
+  const { data: sps } = await admin
+    .from("shop_san_pham")
+    .select("id, ten, anh_id, phan_loai, phan_loai_2, da_xoa, dang_ban")
+    .in("id", spIds);
+  const spMap = new Map(
+    (
+      (sps ?? []) as Array<{
+        id: string;
+        ten: string;
+        anh_id: string | null;
+        phan_loai: string | null;
+        phan_loai_2: string | null;
+        da_xoa: boolean;
+        dang_ban: boolean;
+      }>
+    ).map((s) => [s.id, s]),
+  );
+
+  const soldByBienThe = new Map<string, number>();
+  {
+    const { data: dongBan, error: soldErr } = await admin
+      .from("shop_don_hang_dong")
+      .select("id_bien_the, so_luong, shop_don_hang!inner(trang_thai)")
+      .in("id_bien_the", btIds);
+    if (soldErr) {
+      console.error("[shop] listQuay hangSearch sold", soldErr);
+    } else {
+      for (const row of (dongBan ?? []) as Array<{
+        id_bien_the: string | null;
+        so_luong: number;
+        shop_don_hang:
+          | { trang_thai: string }
+          | { trang_thai: string }[]
+          | null;
+      }>) {
+        if (!row.id_bien_the) continue;
+        const don = Array.isArray(row.shop_don_hang)
+          ? row.shop_don_hang[0]
+          : row.shop_don_hang;
+        if (!don) continue;
+        if (
+          don.trang_thai !== "cho_xac_nhan" &&
+          don.trang_thai !== "da_nhan_tien" &&
+          don.trang_thai !== "da_giao_tai_su_kien"
+        ) {
+          continue;
+        }
+        const qty = Math.max(0, Math.trunc(Number(row.so_luong) || 0));
+        soldByBienThe.set(
+          row.id_bien_the,
+          (soldByBienThe.get(row.id_bien_the) ?? 0) + qty,
+        );
+      }
+    }
+  }
+
+  for (const h of hangRows) {
+    const bt = btMap.get(h.id_bien_the);
+    if (!bt || bt.da_xoa) continue;
+    const sp = spMap.get(bt.id_san_pham);
+    if (!sp || sp.da_xoa || !sp.dang_ban) continue;
+    const ton = bt.so_luong_ton;
+    const card: ShopQuayHangSearch = {
+      hangId: h.id,
+      idBienThe: bt.id,
+      idSanPham: sp.id,
+      tenSanPham: sp.ten,
+      nhanBienThe: bt.nhan,
+      phanLoai: sp.phan_loai?.trim() || null,
+      phanLoai2: sp.phan_loai_2?.trim() || null,
+      anhUrl: shopImageUrl(bt.anh_id ?? sp.anh_id),
+      soLuongTon: ton,
+      soLuongBan: soldByBienThe.get(bt.id) ?? 0,
+      giaHienThi: Number(h.gia_hien_thi),
+      tienTe: h.tien_te,
+      hetHang: ton <= 0,
+    };
+    const list = out.get(h.id_cot_moc) ?? [];
+    list.push(card);
+    out.set(h.id_cot_moc, list);
+  }
+  return out;
 }
 
 export async function xinLamQuay(

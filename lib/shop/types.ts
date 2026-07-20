@@ -284,6 +284,23 @@ export type ShopDonHang = {
   thanhToanSnapshot?: ShopThanhToanSnapshot | null;
 };
 
+/** Hàng gắn bài quầy — haystack tìm + card catalog khi Search hàng. */
+export type ShopQuayHangSearch = {
+  hangId: string;
+  idBienThe: string;
+  idSanPham: string;
+  tenSanPham: string;
+  nhanBienThe: string;
+  phanLoai: string | null;
+  phanLoai2: string | null;
+  anhUrl: string | null;
+  soLuongTon: number;
+  soLuongBan: number;
+  giaHienThi: number;
+  tienTe: string;
+  hetHang: boolean;
+};
+
 export type ShopQuaySuKien = {
   id: string;
   idSuKien: string;
@@ -305,6 +322,8 @@ export type ShopQuaySuKien = {
    * (tab Sự kiện xem bài đã duyệt; tab Quản lý duyệt chờ xử lý).
    */
   cotMoc?: MilestoneItem | null;
+  /** Sản phẩm gắn `shop_post_hang` trên cột mốc — haystack tìm kiếm. */
+  hangSearch?: ShopQuayHangSearch[];
 };
 
 export const SHOP_LOAI_DON_LABEL: Record<ShopLoaiDon, string> = {
