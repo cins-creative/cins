@@ -1,6 +1,10 @@
 /**
  * Giữ vị trí viewport khi xổ bài dài — neo theo khoảng cách từ mép trên
  * viewport tới card (không chỉ snapshot `scrollY` một lần).
+ *
+ * Chỉ re-pin trong cửa sổ `holdMs` (layout/ảnh đổ vào). Sau đó dừng hẳn;
+ * nếu user cuộn thì hủy pin ngay — tránh giật về đầu bài khi scroll xuống
+ * và ảnh lazy load kích ResizeObserver.
  */
 
 export type ExpandScrollPin = {
@@ -33,6 +37,17 @@ type SubscribeOptions = {
   holdMs?: number;
 };
 
+const SCROLL_INTENT_KEYS = new Set([
+  "ArrowDown",
+  "ArrowUp",
+  "PageDown",
+  "PageUp",
+  "Home",
+  "End",
+  " ",
+  "Spacebar",
+]);
+
 /**
  * Re-pin ngay + rAF + ResizeObserver + vài nhịp sau khi ảnh/detail đổ vào.
  * Trả cleanup.
@@ -47,30 +62,56 @@ export function subscribeExpandScrollPin(
   const resizeTarget = opts.resizeTarget ?? el;
   const holdMs = opts.holdMs ?? 2500;
   let cancelled = false;
+  let restoring = false;
   let raf1 = 0;
   let raf2 = 0;
   const timeouts: number[] = [];
+  let ro: ResizeObserver | null = null;
+
+  const detachListeners = () => {
+    ro?.disconnect();
+    ro = null;
+    el.removeEventListener("load", onLoad, true);
+    window.removeEventListener("wheel", onUserIntent);
+    window.removeEventListener("touchmove", onUserIntent);
+    window.removeEventListener("keydown", onKeyIntent);
+    window.removeEventListener("scroll", onScroll, true);
+  };
+
+  const stopPinning = () => {
+    if (cancelled) return;
+    cancelled = true;
+    window.cancelAnimationFrame(raf1);
+    window.cancelAnimationFrame(raf2);
+    for (const id of timeouts) window.clearTimeout(id);
+    timeouts.length = 0;
+    detachListeners();
+  };
+
+  const onUserIntent = () => {
+    stopPinning();
+  };
+
+  const onKeyIntent = (event: KeyboardEvent) => {
+    if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) {
+      return;
+    }
+    if (SCROLL_INTENT_KEYS.has(event.key)) stopPinning();
+  };
+
+  const onScroll = () => {
+    if (cancelled || restoring) return;
+    stopPinning();
+  };
 
   const restore = () => {
     if (cancelled) return;
+    restoring = true;
     restoreExpandScrollPin(el, pin);
+    window.requestAnimationFrame(() => {
+      restoring = false;
+    });
   };
-
-  restore();
-  raf1 = window.requestAnimationFrame(() => {
-    restore();
-    raf2 = window.requestAnimationFrame(restore);
-  });
-
-  for (const delay of [50, 150, 350, 700, 1200, holdMs]) {
-    timeouts.push(window.setTimeout(restore, delay));
-  }
-
-  let ro: ResizeObserver | null = null;
-  if (typeof ResizeObserver !== "undefined" && resizeTarget) {
-    ro = new ResizeObserver(() => restore());
-    ro.observe(resizeTarget);
-  }
 
   const onLoad = (event: Event) => {
     const target = event.target;
@@ -80,14 +121,30 @@ export function subscribeExpandScrollPin(
       restore();
     }
   };
-  el.addEventListener("load", onLoad, true);
 
-  return () => {
-    cancelled = true;
-    window.cancelAnimationFrame(raf1);
-    window.cancelAnimationFrame(raf2);
-    for (const id of timeouts) window.clearTimeout(id);
-    ro?.disconnect();
-    el.removeEventListener("load", onLoad, true);
-  };
+  restore();
+  raf1 = window.requestAnimationFrame(() => {
+    restore();
+    raf2 = window.requestAnimationFrame(restore);
+  });
+
+  for (const delay of [50, 150, 350, 700, 1200]) {
+    timeouts.push(window.setTimeout(restore, delay));
+  }
+
+  /* Hết cửa sổ settle → ngắt RO/load listener (không re-pin mãi khi đã xổ). */
+  timeouts.push(window.setTimeout(stopPinning, holdMs));
+
+  if (typeof ResizeObserver !== "undefined" && resizeTarget) {
+    ro = new ResizeObserver(() => restore());
+    ro.observe(resizeTarget);
+  }
+
+  el.addEventListener("load", onLoad, true);
+  window.addEventListener("wheel", onUserIntent, { passive: true });
+  window.addEventListener("touchmove", onUserIntent, { passive: true });
+  window.addEventListener("keydown", onKeyIntent);
+  window.addEventListener("scroll", onScroll, true);
+
+  return stopPinning;
 }
