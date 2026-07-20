@@ -689,6 +689,7 @@ button.j-avatar.j-avatar-viewable:focus-visible {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  padding: 6px 2px;
 }
 .j-profile-shop-switch {
   display: block;
@@ -8995,7 +8996,8 @@ button.j-g-item:disabled {
   }
   .cins-journey-page .j-profile-switch-stack {
     margin-top: 12px;
-    gap: 6px;
+    gap: 8px;
+    padding: 10px 4px;
   }
   .cins-journey-page .j-profile-shop-switch {
     border-radius: 14px;
@@ -9006,7 +9008,7 @@ button.j-g-item:disabled {
   }
   .cins-journey-page .j-profile-shop-switch-row {
     gap: 8px;
-    padding: 10px 8px 10px 10px;
+    padding: 12px 10px 12px 12px;
   }
   .cins-journey-page .j-profile-shop-switch-avatar {
     width: 40px;
@@ -9024,12 +9026,12 @@ button.j-g-item:disabled {
   }
   .cins-journey-page .j-profile-switch {
     margin-top: 0;
-    gap: 3px;
-    padding: 3px;
+    gap: 4px;
+    padding: 6px;
   }
   .cins-journey-page .j-profile-switch-btn {
     min-height: 52px;
-    padding: 7px 2px;
+    padding: 8px 4px;
     gap: 4px;
   }
   .cins-journey-page .j-profile-switch-label-text {

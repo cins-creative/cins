@@ -37,6 +37,7 @@
   position: relative;
   z-index: 1;
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-end;
   gap: 14px;
   padding: 0 4px 8px 40px;
@@ -47,7 +48,7 @@
 
 .j-shop-sf-hero-main {
   min-width: 0;
-  flex: 1;
+  flex: 1 1 160px;
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
@@ -61,6 +62,8 @@
   flex-wrap: wrap;
   gap: 6px;
   justify-content: flex-end;
+  flex-shrink: 0;
+  align-self: flex-end;
 }
 
 .j-shop-sf-guest-actions {
@@ -1070,18 +1073,19 @@
 
   .j-shop-sf-hero-body {
     align-items: flex-end;
-    gap: 12px;
+    gap: 12px 12px;
     margin-top: -36px;
-    padding: 0 12px 6px;
+    padding: 0 12px 10px;
   }
 
   .j-shop-sf-hero-main {
+    flex: 1 1 0;
+    min-width: 0;
     flex-direction: column;
     align-items: stretch;
     justify-content: flex-end;
     gap: 8px;
     padding-bottom: 0;
-    min-width: 0;
   }
 
   .j-shop-sf-hero-copy {
@@ -1102,9 +1106,15 @@
     -webkit-line-clamp: 3;
   }
 
-  .j-shop-sf-actions {
+  .j-shop-sf-actions,
+  .j-shop-sf-guest-actions {
+    flex: 1 1 100%;
+    width: 100%;
+    max-width: 100%;
     justify-content: flex-start;
+    align-self: stretch;
     gap: 4px 10px;
+    padding-top: 2px;
   }
 
   .j-shop-sf-guest-actions {
@@ -1157,17 +1167,92 @@
     font-size: 0.76rem;
   }
 
-  .j-shop-sf-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px 8px;
-  }
-
+  .j-shop-sf-grid,
   .j-shop-sf-grid--feature {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px 6px;
   }
 
-  .j-shop-sf-card-body {
-    padding: 10px 10px 12px;
+  .j-shop-sf-grid .j-shop-sf-card-body {
+    gap: 3px;
+    padding: 7px 7px 9px;
+  }
+
+  .j-shop-sf-grid .j-shop-sf-card-name {
+    font-size: 0.7rem;
+    line-height: 1.28;
+  }
+
+  .j-shop-sf-grid .j-shop-sf-card-var {
+    font-size: 0.62rem;
+  }
+
+  .j-shop-sf-grid .j-shop-sf-card-price {
+    font-size: 0.76rem;
+  }
+
+  .j-shop-sf-grid .j-shop-sf-card-price.is-sale {
+    font-size: 0.82rem;
+  }
+
+  .j-shop-sf-grid .j-shop-sf-card-price-goc {
+    font-size: 0.56rem;
+  }
+
+  .j-shop-sf-grid .j-shop-sf-card-price.is-empty {
+    font-size: 0.66rem;
+  }
+
+  .j-shop-sf-grid .j-shop-sf-card-stock {
+    font-size: 0.62rem;
+  }
+
+  .j-shop-sf-grid .j-shop-sf-card-action {
+    gap: 4px;
+    min-height: 24px;
+    margin-top: 2px;
+  }
+
+  .j-shop-sf-grid .j-shop-sf-qty {
+    min-width: 62px;
+  }
+
+  .j-shop-sf-grid .j-shop-sf-qty > span {
+    flex-basis: 16px;
+    width: 16px;
+    font-size: 11px;
+  }
+
+  .j-shop-sf-grid .j-shop-sf-qty button {
+    flex-basis: 22px;
+    width: 22px;
+    height: 22px;
+  }
+
+  .j-shop-sf-grid .j-shop-sf-add {
+    flex-basis: 22px;
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+  }
+
+  .j-shop-sf-grid--feature .j-shop-sf-card-feature-badge {
+    top: 5px;
+    left: 5px;
+  }
+
+  .j-shop-sf-grid--feature .j-shop-sf-card-feature-badge svg {
+    width: 12px;
+    height: 12px;
+  }
+
+  .j-shop-sf-catalog {
+    padding-inline: 14px;
+  }
+
+  .j-shop-sf-loading,
+  .j-shop-sf-empty {
+    padding-inline: 14px;
   }
 }
 

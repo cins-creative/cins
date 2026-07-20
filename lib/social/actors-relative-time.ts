@@ -24,7 +24,7 @@ export function formatActorRelativeTime(iso: string | null | undefined): string 
 /**
  * Thời gian đăng trên chip author (Journey datebar):
  * trong 24h → "Vừa xong" / "N phút trước" / "N giờ trước";
- * quá 24h hoặc thiếu ISO → null (không hiện).
+ * quá 24h hoặc thiếu ISO → null (caller fallback sang ngày đăng).
  */
 export function formatPostedWithin24h(
   iso: string | null | undefined,

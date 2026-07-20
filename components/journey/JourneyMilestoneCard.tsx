@@ -556,8 +556,9 @@ export function JourneyMilestoneCard({
   }, [isOwner]);
 
   const displayDate = `${String(day).padStart(2, "0")}-${String(month).padStart(2, "0")}-${year}`;
-  /** Chip author: chỉ hiện trong 24h kể từ `tao_luc`. */
+  /** Chip author: trong 24h → relative; sau đó → ngày đăng (DD-MM-YYYY). */
   const postedAgoLabel = formatPostedWithin24h(milestone.createdAt);
+  const authorChipDateLabel = postedAgoLabel ?? displayDate;
   const bookmarkSavedDateLabel = milestone.bookmarkSavedAt
     ? formatIsoToDisplayDate(milestone.bookmarkSavedAt)
     : null;
@@ -1840,7 +1841,7 @@ export function JourneyMilestoneCard({
                         {entityPosterLabel ||
                           (ownerSlug ? `@${ownerSlug}` : "Tổ chức")}
                       </strong>
-                      {postedAgoLabel ? <small>{postedAgoLabel}</small> : null}
+                      <small title="Ngày đăng">{authorChipDateLabel}</small>
                     </span>
                   </span>
                 </JourneyOrgPopover>
@@ -1878,7 +1879,7 @@ export function JourneyMilestoneCard({
                           (ownerSlug ? `@${ownerSlug}` : "Người dùng")}
                         <VerifiedTick slug={entityPosterSlug} />
                       </strong>
-                      {postedAgoLabel ? <small>{postedAgoLabel}</small> : null}
+                      <small title="Ngày đăng">{authorChipDateLabel}</small>
                     </span>
                   </span>
                 </JourneyUserPopover>
@@ -2041,7 +2042,7 @@ export function JourneyMilestoneCard({
                           {authorName || `@${ownerSlug ?? ""}`}
                           <VerifiedTick slug={ownerSlug} />
                         </strong>
-                        {postedAgoLabel ? <small>{postedAgoLabel}</small> : null}
+                        <small title="Ngày đăng">{authorChipDateLabel}</small>
                       </span>
                     </span>
                   </JourneyUserPopover>
@@ -2057,7 +2058,7 @@ export function JourneyMilestoneCard({
                     </span>
                     <span className="org-copy">
                       <strong>{authorName || "Người dùng"}</strong>
-                      {postedAgoLabel ? <small>{postedAgoLabel}</small> : null}
+                      <small title="Ngày đăng">{authorChipDateLabel}</small>
                     </span>
                   </span>
                 )
@@ -2220,13 +2221,13 @@ export function JourneyMilestoneCard({
                         {authorName || `@${ownerSlug ?? ""}`}
                         <VerifiedTick slug={ownerSlug} />
                       </strong>
-                      {postedAgoLabel ? <small>{postedAgoLabel}</small> : null}
+                      <small title="Ngày đăng">{authorChipDateLabel}</small>
                     </span>
                   </span>
                 </JourneyUserPopover>
               ) : (
                 <span className="org-copy">
-                  {postedAgoLabel ? <small>{postedAgoLabel}</small> : null}
+                  <small title="Ngày đăng">{authorChipDateLabel}</small>
                 </span>
               )}
               <span className="badge-row">
@@ -2309,7 +2310,7 @@ export function JourneyMilestoneCard({
                       {authorName || `@${ownerSlug ?? ""}`}
                       <VerifiedTick slug={ownerSlug} />
                     </strong>
-                    {postedAgoLabel ? <small>{postedAgoLabel}</small> : null}
+                    <small title="Ngày đăng">{authorChipDateLabel}</small>
                   </span>
                 </span>
               </JourneyUserPopover>

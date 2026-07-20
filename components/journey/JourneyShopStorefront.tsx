@@ -781,8 +781,8 @@ export function JourneyShopStorefront({
               <h2>{shopName}</h2>
               {shopMoTa ? <p>{shopMoTa}</p> : null}
             </div>
-            {ownerChrome?.actions ?? guestChrome?.actions}
           </div>
+          {ownerChrome?.actions ?? guestChrome?.actions}
         </div>
       </header>
 

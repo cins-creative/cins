@@ -5,9 +5,9 @@
  * Đổi nguồn → client gọi lại `GET /api/world-journey/feed?source=…` (cùng
  * `filter` / `linhVuc` nếu đang bật).
  *
- * - `all`       → Khám phá tất cả (mọi nguồn, kể cả khám phá người lạ).
+ * - `all`       → Khám phá tất cả (mọi nguồn, kể cả khám phá người lạ). Mặc định.
  * - `following` → Theo dõi (chỉ bạn bè + người/org/cộng đồng đang theo dõi).
- * - `user-only` → Chỉ người dùng (ẩn nội dung org; bài cộng đồng vẫn hiện). Mặc định.
+ * - `user-only` → Chỉ người dùng (ẩn nội dung org; bài cộng đồng vẫn hiện).
  * - `org-only`  → Chỉ tổ chức (chỉ nội dung org; ẩn người dùng & cộng đồng).
  *
  * Mặc định lưu localStorage (device-local) như `home-feed-layout`. Khi đổi trong
@@ -31,7 +31,7 @@ export type FeedSourceTag = {
   feedFollowing?: boolean;
 };
 
-export const FEED_SOURCE_DEFAULT: FeedSourceFilter = "user-only";
+export const FEED_SOURCE_DEFAULT: FeedSourceFilter = "all";
 
 export const FEED_SOURCE_STORAGE_KEY = "cins-feed-source";
 
