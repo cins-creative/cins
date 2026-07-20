@@ -14503,15 +14503,88 @@ select.j-edit-input {
 }
 .jcard-viewer-menu .j-m-menu-pop--friends {
   width: min(300px, calc(100vw - 16px));
-  max-height: min(420px, 70vh);
-  overflow-y: auto;
-  scrollbar-width: none;
+  max-height: min(520px, 78vh);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 .jcard-viewer-menu .j-m-menu-pop--friends::-webkit-scrollbar {
   display: none;
   width: 0;
   height: 0;
 }
+/* Panel chia sẻ bạn bè: list cuộn, nút gửi luôn thấy */
+.j-m-menu-pop--friends > .j-m-share-friends,
+.j-share-link-menu-pop.j-m-menu-pop--friends > .j-m-share-friends,
+.post-byline-share--friends > .j-m-share-friends {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.j-m-menu-pop--friends .j-m-share-friends-list,
+.j-share-link-menu-pop.j-m-menu-pop--friends .j-m-share-friends-list,
+.post-byline-share--friends .j-m-share-friends-list {
+  flex: 1 1 auto;
+  max-height: none;
+  min-height: 72px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+.j-m-menu-pop--friends .j-m-share-friends-send,
+.j-share-link-menu-pop.j-m-menu-pop--friends .j-m-share-friends-send,
+.post-byline-share--friends .j-m-share-friends-send {
+  flex-shrink: 0;
+}
+
+/* Mobile: panel gửi bạn bè — overlay giữa màn hình */
+.j-m-share-friends-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 11000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  box-sizing: border-box;
+}
+.j-m-share-friends-overlay-backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  background: rgba(15, 23, 42, 0.48);
+  cursor: pointer;
+}
+.j-m-share-friends-overlay-sheet {
+  position: relative;
+  z-index: 1;
+  width: min(360px, calc(100vw - 28px));
+  max-height: min(80vh, 560px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-strong, var(--border));
+  border-radius: var(--radius-md, 14px);
+  box-shadow: var(--shadow-md, 0 16px 40px rgba(15, 23, 42, 0.22));
+  padding: 6px;
+  gap: 2px;
+}
+.j-m-share-friends-overlay-sheet > .j-m-share-friends {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.j-m-share-friends-overlay-sheet .j-m-share-friends-list {
+  flex: 1 1 auto;
+  max-height: none;
+  min-height: 72px;
+  overflow-y: auto;
+}
+.j-m-share-friends-overlay-sheet .j-m-share-friends-send {
+  flex-shrink: 0;
+}
+
 /* Panel chia sẻ trong menu viewer — icon MXH gọn hơn modal share. */
 .jcard-viewer-menu .j-m-share-item {
   gap: 12px;
@@ -14686,6 +14759,13 @@ select.j-edit-input {
 /* Nhóm chat: avatar bo góc vuông để phân biệt với bạn bè (tròn) */
 .j-m-share-friends-avatar.is-group {
   border-radius: 9px;
+}
+.j-m-share-friends-group-avatar.cins-chat-group-avatar {
+  flex-shrink: 0;
+  border-radius: 9px;
+}
+.j-m-share-friends-group-avatar .cins-chat-group-avatar-badge {
+  display: none;
 }
 /* Tổ chức: bo góc vừa phải, khác nhóm và bạn bè */
 .j-m-share-friends-avatar.is-org {
@@ -18404,14 +18484,31 @@ a.action-btn-part {
 .jcard-actions .jcard-share .post-byline-share--friends {
   width: min(300px, calc(100vw - 24px));
   max-width: min(300px, calc(100vw - 24px));
-  max-height: min(420px, 70vh);
-  overflow-y: auto;
-  scrollbar-width: none;
+  max-height: min(520px, 78vh);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 .jcard-actions .jcard-share .post-byline-share--friends::-webkit-scrollbar {
   display: none;
   width: 0;
   height: 0;
+}
+
+@media (max-width: 640px) {
+  .post-byline-share-wrap.is-friends .post-byline-share--friends {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    right: auto;
+    bottom: auto;
+    transform: translate(-50%, -50%);
+    width: min(360px, calc(100vw - 28px));
+    max-width: min(360px, calc(100vw - 28px));
+    max-height: min(80vh, 560px);
+    z-index: 11010;
+    box-shadow: var(--shadow-md, 0 16px 40px rgba(15, 23, 42, 0.22));
+  }
 }
 .jcard-actions .jcard-share .post-byline-share-item {
   display: flex;

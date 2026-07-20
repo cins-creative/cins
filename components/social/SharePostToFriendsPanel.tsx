@@ -2,9 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 
+import { ChatGroupAvatar } from "@/components/cins/ChatGroupAvatar";
 import { useCinsChatContext } from "@/components/cins/CinsChatProvider";
 import {
   CHAT_ORG_KIND_LABEL,
+  type ChatGroupMemberAvatar,
   type ChatThread,
 } from "@/lib/chat/types";
 import type { MutualFriendProfile } from "@/lib/social/types";
@@ -30,6 +32,8 @@ type ShareTarget = {
   subtitle: string;
   /** Mốc chat gần nhất — sắp xếp giảm dần. */
   lastAt: number;
+  /** Mosaic avatar thành viên (nhóm chưa có ảnh tuỳ chỉnh). */
+  memberAvatars?: ChatGroupMemberAvatar[];
 };
 
 type ShareKindFilter = "all" | "friend" | "group" | "org";
@@ -89,6 +93,7 @@ function buildTargets(
         initial: name.charAt(0).toUpperCase(),
         subtitle: count > 0 ? `Nhóm · ${count} thành viên` : "Nhóm chat",
         lastAt: Number.isFinite(ts) ? ts : 0,
+        memberAvatars: thread.memberAvatars ?? [],
       });
       continue;
     }
@@ -456,7 +461,14 @@ export function SharePostToFriendsPanel({
                 }
                 onClick={() => toggle(target.key)}
               >
-                {target.avatarUrl ? (
+                {target.kind === "group" ? (
+                  <ChatGroupAvatar
+                    size={32}
+                    avatarUrl={target.avatarUrl}
+                    members={target.memberAvatars}
+                    className="j-m-share-friends-group-avatar"
+                  />
+                ) : target.avatarUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={target.avatarUrl}

@@ -90,6 +90,18 @@ export function ShareLinkMenu({
       const menuH = menu?.offsetHeight || 200;
       const gap = 6;
       const pad = 8;
+      const isMobile = window.matchMedia("(max-width: 640px)").matches;
+
+      if (isMobile && panel === "friends") {
+        const w = Math.min(360, window.innerWidth - 28);
+        const h = Math.min(menuH || 480, window.innerHeight * 0.8);
+        setPos({
+          top: Math.max(pad, (window.innerHeight - h) / 2),
+          left: Math.max(pad, (window.innerWidth - w) / 2),
+          width: w,
+        });
+        return;
+      }
 
       let left = rect.right - menuW;
       left = Math.max(pad, Math.min(left, window.innerWidth - menuW - pad));

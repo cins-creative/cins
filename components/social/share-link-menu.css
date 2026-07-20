@@ -28,8 +28,10 @@
 }
 
 .j-share-link-menu-pop.j-m-menu-pop--friends {
-  max-height: min(420px, 70vh);
-  overflow-y: auto;
+  max-height: min(520px, 78vh);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
   scrollbar-width: none;
 }
 
@@ -37,6 +39,14 @@
   display: none;
   width: 0;
   height: 0;
+}
+
+@media (max-width: 640px) {
+  .j-share-link-menu-pop.j-m-menu-pop--friends {
+    width: min(360px, calc(100vw - 28px)) !important;
+    max-height: min(80vh, 560px);
+    box-shadow: var(--shadow-md, 0 16px 40px rgba(15, 23, 42, 0.22));
+  }
 }
 
 .j-share-link-menu-pop .j-m-menu-item {

@@ -9,7 +9,8 @@ import {
   MoreHorizontal,
   Share2,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 
 import { useOptionalAuthGate } from "@/components/auth/AuthGateProvider";
 import { ReportModal } from "@/components/social/ReportModal";
@@ -32,6 +33,8 @@ type Props = {
 
 type MenuPanel = "main" | "share" | "friends";
 
+const MOBILE_MQ = "(max-width: 640px)";
+
 /** Menu "..." cho người xem nội dung của người khác: mở, chia sẻ, báo cáo. */
 export function JourneyMilestoneViewerMenu({
   reportTargetId,
@@ -46,7 +49,10 @@ export function JourneyMilestoneViewerMenu({
   const [copied, setCopied] = useState(false);
   const [flash, setFlash] = useState<string | null>(null);
   const [reportOpen, setReportOpen] = useState(false);
+  const [mobileOverlay, setMobileOverlay] = useState(false);
+  const [portalReady, setPortalReady] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  const friendsSheetRef = useRef<HTMLDivElement>(null);
 
   function closeMenu() {
     setOpen(false);
@@ -55,11 +61,22 @@ export function JourneyMilestoneViewerMenu({
   }
 
   useEffect(() => {
+    setPortalReady(true);
+    const mq = window.matchMedia(MOBILE_MQ);
+    const sync = () => setMobileOverlay(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+
+  useEffect(() => {
     if (!open) return;
     let removeListeners: (() => void) | undefined;
     const timer = window.setTimeout(() => {
       const onDocPointerDown = (e: PointerEvent) => {
-        if (rootRef.current?.contains(e.target as Node)) return;
+        const t = e.target as Node;
+        if (rootRef.current?.contains(t)) return;
+        if (friendsSheetRef.current?.contains(t)) return;
         closeMenu();
       };
       const onKey = (e: KeyboardEvent) => {
@@ -147,6 +164,70 @@ export function JourneyMilestoneViewerMenu({
         )
       : [];
 
+  const friendsBody: ReactNode =
+    panel === "friends" ? (
+      <>
+        <button
+          type="button"
+          className="j-m-menu-item"
+          role="menuitem"
+          onClick={() => {
+            setFlash(null);
+            setPanel("share");
+          }}
+        >
+          <span className="j-m-menu-ico" aria-hidden>
+            <ChevronLeft size={14} strokeWidth={1.7} />
+          </span>
+          <span className="j-m-menu-lbl">Quay lại</span>
+        </button>
+        <div className="j-m-menu-sep" aria-hidden />
+        {flash ? (
+          <p className="j-m-share-friends-flash" role="status">
+            {flash}
+          </p>
+        ) : null}
+        {shareUrl ? (
+          <SharePostToFriendsPanel
+            shareUrl={shareUrl}
+            shareTitle={reportTargetTitle}
+            onDone={(message) => {
+              setFlash(message);
+              window.setTimeout(() => closeMenu(), 900);
+            }}
+          />
+        ) : null}
+      </>
+    ) : null;
+
+  const friendsOverlay =
+    open &&
+    panel === "friends" &&
+    mobileOverlay &&
+    portalReady &&
+    typeof document !== "undefined"
+      ? createPortal(
+          <div className="j-m-share-friends-overlay" role="presentation">
+            <button
+              type="button"
+              className="j-m-share-friends-overlay-backdrop"
+              aria-label="Đóng"
+              onClick={closeMenu}
+            />
+            <div
+              ref={friendsSheetRef}
+              className="j-m-share-friends-overlay-sheet"
+              role="menu"
+              onClick={(e) => e.stopPropagation()}
+              onPointerDown={(e) => e.stopPropagation()}
+            >
+              {friendsBody}
+            </div>
+          </div>,
+          document.body,
+        )
+      : null;
+
   return (
     <div
       className={className ? `j-m-menu ${className}` : "j-m-menu"}
@@ -172,7 +253,7 @@ export function JourneyMilestoneViewerMenu({
         <MoreHorizontal size={18} strokeWidth={2} aria-hidden />
       </button>
 
-      {open ? (
+      {open && !(panel === "friends" && mobileOverlay) ? (
         <div
           className={
             "j-m-menu-pop" +
@@ -181,38 +262,7 @@ export function JourneyMilestoneViewerMenu({
           role="menu"
         >
           {panel === "friends" ? (
-            <>
-              <button
-                type="button"
-                className="j-m-menu-item"
-                role="menuitem"
-                onClick={() => {
-                  setFlash(null);
-                  setPanel("share");
-                }}
-              >
-                <span className="j-m-menu-ico" aria-hidden>
-                  <ChevronLeft size={14} strokeWidth={1.7} />
-                </span>
-                <span className="j-m-menu-lbl">Quay lại</span>
-              </button>
-              <div className="j-m-menu-sep" aria-hidden />
-              {flash ? (
-                <p className="j-m-share-friends-flash" role="status">
-                  {flash}
-                </p>
-              ) : null}
-              {shareUrl ? (
-                <SharePostToFriendsPanel
-                  shareUrl={shareUrl}
-                  shareTitle={reportTargetTitle}
-                  onDone={(message) => {
-                    setFlash(message);
-                    window.setTimeout(() => closeMenu(), 900);
-                  }}
-                />
-              ) : null}
-            </>
+            friendsBody
           ) : panel === "share" ? (
             <>
               <button
@@ -339,6 +389,8 @@ export function JourneyMilestoneViewerMenu({
           )}
         </div>
       ) : null}
+
+      {friendsOverlay}
 
       <ReportModal
         open={reportOpen}
