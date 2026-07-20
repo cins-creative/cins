@@ -2,9 +2,10 @@
 
 import {
   BellOff,
+  Bookmark,
   CalendarDays,
   ChevronDown,
-  Image as ImageIcon,
+  Frame,
   MessageSquareQuote,
   PanelRightOpen,
   Pin,
@@ -13,7 +14,6 @@ import {
   Search,
   Send,
   Settings2,
-  Tag,
   MessageSquarePlus,
   Users,
   X,
@@ -26,9 +26,19 @@ import {
   useRef,
   useState,
   type ClipboardEvent,
+  type DragEvent as ReactDragEvent,
 } from "react";
 import { createPortal } from "react-dom";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
+
+const ChatCanvasBoard = dynamic(
+  () => import("@/components/cins/canvas/ChatCanvasBoard"),
+  {
+    ssr: false,
+    loading: () => <p className="cins-chat-side-empty">Đang tải canvas…</p>,
+  },
+);
 
 import { ChatCreateGroupModal } from "@/components/cins/ChatCreateGroupModal";
 import {
@@ -39,12 +49,8 @@ import { ChatComposeToolsMenu } from "@/components/cins/ChatComposeToolsMenu";
 import { ChatGroupAvatar } from "@/components/cins/ChatGroupAvatar";
 import { ChatGroupManageModal } from "@/components/cins/ChatGroupManageModal";
 import { ChatRenameGroupModal } from "@/components/cins/ChatRenameGroupModal";
-import { ChatImageLightbox } from "@/components/cins/ChatImageLightbox";
 import { ChatMessageThreadItems } from "@/components/cins/ChatMessageThreadItems";
-import {
-  ChatRoomMocsPanel,
-  ChatRoomResourcesPanel,
-} from "@/components/cins/ChatRoomWorkspacePanels";
+import { ChatRoomMocsPanel } from "@/components/cins/ChatRoomWorkspacePanels";
 import { ChatStickerPicker } from "@/components/cins/ChatStickerPicker";
 import { ChatReplyComposeBar } from "@/components/cins/ChatReplyComposeBar";
 import {
@@ -53,6 +59,8 @@ import {
   useThreadLongPress,
 } from "@/components/cins/ChatThreadRowMenu";
 import type { ChatMessageActionHandlers } from "@/components/cins/ChatMessageActions";
+import { canvasBridge } from "@/components/cins/canvas/canvas-bridge";
+import { addChatMessageToCanvas } from "@/lib/chat/canvas/add-message-client";
 import { useCinsChat } from "@/components/cins/CinsChatProvider";
 import {
   avatarBg,
@@ -104,7 +112,6 @@ import {
   patchThreadMessages,
   updateMessageInList,
 } from "@/lib/chat/patch-thread-messages";
-import { chatMessageMediaEntries } from "@/lib/chat/message-albums";
 import {
   preserveThreadMessages,
   threadLikelyHasMessages,
@@ -135,6 +142,12 @@ import type { UserEmojiMuc } from "@/lib/user-emoji/types";
 import { userEmojiDeliveryUrl } from "@/lib/user-emoji/delivery-url";
 import { imageFilesFromClipboard } from "@/lib/files/clipboard-images";
 import { isAllowedUploadImageFile } from "@/lib/files/infer-image-mime";
+import {
+  hasShareDragData,
+  readShareDragData,
+  type CinsSharePayload,
+} from "@/lib/cins/share-drag";
+import { chatImageDeliveryUrl } from "@/lib/chat/image-url";
 import {
   CHAT_ORG_KIND_LABEL,
   CHAT_PARTICIPANT_KIND_LABEL,
@@ -209,7 +222,7 @@ function mergeLaunchThread(
   return [merged, ...rest];
 }
 
-type ChatSidePanel = "pin" | "media" | "resources" | "mocs";
+type ChatSidePanel = "pin" | "mocs" | "canvas";
 
 type BanBeListFilter = "all" | "nhom" | "ca_nhan";
 
@@ -223,23 +236,24 @@ const BAN_BE_FILTER_LABEL: Record<BanBeListFilter, string> = {
 
 const SIDE_PANEL_LABEL: Record<ChatSidePanel, string> = {
   pin: "Tin đã ghim",
-  media: "Ảnh",
-  resources: "Tài nguyên",
   mocs: "Mốc",
+  canvas: "Canvas",
 };
 
-const SIDE_PANEL_ORDER: ChatSidePanel[] = ["pin", "media", "resources", "mocs"];
+const SIDE_PANEL_ORDER: ChatSidePanel[] = [
+  "pin",
+  "mocs",
+  "canvas",
+];
 
 function sidePanelIcon(panel: ChatSidePanel) {
   switch (panel) {
     case "pin":
       return Pin;
-    case "media":
-      return ImageIcon;
-    case "resources":
-      return Tag;
     case "mocs":
       return CalendarDays;
+    case "canvas":
+      return Frame;
   }
 }
 
@@ -412,6 +426,8 @@ function ChatThreadRow({
   activeProjectCount = 0,
   projectsExpanded = false,
   onToggleProjects,
+  shareDropActive = false,
+  onShareDrop,
 }: {
   thread: ChatThread;
   isActive: boolean;
@@ -435,7 +451,11 @@ function ChatThreadRow({
   activeProjectCount?: number;
   projectsExpanded?: boolean;
   onToggleProjects?: () => void;
+  /** Drop mode chia sẻ — row nhận thả để gửi vào phòng. */
+  shareDropActive?: boolean;
+  onShareDrop?: (thread: ChatThread, payload: CinsSharePayload) => void;
 }) {
+  const [isShareTarget, setIsShareTarget] = useState(false);
   const preview = thread.typing ? "… đang gõ" : thread.preview;
   const { touchHandlers, consumeLongPress } = useThreadLongPress(
     () => onMenuOpenChange(true),
@@ -495,10 +515,33 @@ function ChatThreadRow({
 
   return (
     <li
-      className={`cins-chat-thread-item${isListPinned ? " is-list-pinned" : ""}${isMenuOpen ? " is-menu-open" : ""}${isMuted ? " is-muted" : ""}${isProjectChild ? " is-project-child" : ""}${isProjectParent ? " is-project-parent" : ""}${isProjectParent && projectsExpanded ? " is-projects-expanded" : ""}`}
+      className={`cins-chat-thread-item${thread.isSelf ? " is-self-item" : ""}${isListPinned ? " is-list-pinned" : ""}${isMenuOpen ? " is-menu-open" : ""}${isMuted ? " is-muted" : ""}${isProjectChild ? " is-project-child" : ""}${isProjectParent ? " is-project-parent" : ""}${isProjectParent && projectsExpanded ? " is-projects-expanded" : ""}${isShareTarget ? " is-share-target" : ""}`}
       onContextMenu={(event) => {
         if (canShowMenu) event.preventDefault();
       }}
+      {...(shareDropActive
+        ? {
+            onDragOver: (event: ReactDragEvent<HTMLLIElement>) => {
+              if (!hasShareDragData(event.dataTransfer)) return;
+              event.preventDefault();
+              event.dataTransfer.dropEffect = "copy";
+              if (!isShareTarget) setIsShareTarget(true);
+            },
+            onDragLeave: (event: ReactDragEvent<HTMLLIElement>) => {
+              if (event.currentTarget.contains(event.relatedTarget as Node)) {
+                return;
+              }
+              setIsShareTarget(false);
+            },
+            onDrop: (event: ReactDragEvent<HTMLLIElement>) => {
+              setIsShareTarget(false);
+              const payload = readShareDragData(event.dataTransfer);
+              if (!payload) return;
+              event.preventDefault();
+              onShareDrop?.(thread, payload);
+            },
+          }
+        : {})}
       {...touchHandlers}
     >
       <div
@@ -514,7 +557,7 @@ function ChatThreadRow({
         ) : null}
         <button
           type="button"
-          className={`cins-chat-thread${isActive ? " is-active" : ""}${thread.kind === "org" ? " is-org-thread" : " is-user-thread"}${thread.isGroup ? " is-group-thread" : ""}${isProjectChild ? " is-project-thread" : ""}${isProjectParent ? " is-project-parent-thread" : ""}`}
+          className={`cins-chat-thread${isActive ? " is-active" : ""}${thread.kind === "org" ? " is-org-thread" : " is-user-thread"}${thread.isSelf ? " is-self-thread" : ""}${thread.isGroup ? " is-group-thread" : ""}${isProjectChild ? " is-project-thread" : ""}${isProjectParent ? " is-project-parent-thread" : ""}`}
           onClick={() => {
             if (consumeLongPress()) return;
             onSelect(thread);
@@ -590,13 +633,19 @@ function ChatThreadRow({
             </>
           ) : (
             <>
-              <ChatAvatar
-                initial={thread.avatarInitial}
-                hue={thread.avatarHue}
-                kind={thread.kind}
-                verified={thread.verified}
-                avatarUrl={thread.avatarUrl}
-              />
+              {thread.isSelf ? (
+                <span className="cins-chat-self-avatar" aria-hidden>
+                  <Bookmark size={20} strokeWidth={2.2} />
+                </span>
+              ) : (
+                <ChatAvatar
+                  initial={thread.avatarInitial}
+                  hue={thread.avatarHue}
+                  kind={thread.kind}
+                  verified={thread.verified}
+                  avatarUrl={thread.avatarUrl}
+                />
+              )}
               <span className="cins-chat-thread-main">
                 <span className="cins-chat-thread-top">
                   <span className="cins-chat-thread-name">
@@ -701,6 +750,8 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     hiddenRoomIds,
     hideRoom,
     unhideRoom,
+    shareDropMode,
+    completeShareDrop,
   } = useCinsChat();
   const [threads, setThreads] = useState<ChatThread[]>(() =>
     launch?.thread ? [launch.thread] : [],
@@ -732,9 +783,6 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
   const skipPersistSidePanelRef = useRef(true);
   /** Tab cuối khi panel đang mở — dùng khi bấm "Mở rộng" lại sau khi đóng. */
   const lastSidePanelRef = useRef<ChatSidePanel>("mocs");
-  const [sideMediaLightboxIndex, setSideMediaLightboxIndex] = useState<number | null>(
-    null,
-  );
   const [composeToolsOpen, setComposeToolsOpen] = useState(false);
   const [mocFormOpenKey, setMocFormOpenKey] = useState(0);
   const [replyTarget, setReplyTarget] = useState<ChatMessage | null>(null);
@@ -825,18 +873,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     [threads, activeId],
   );
 
-  const sharedMedia = useMemo(() => {
-    if (!active) return [];
-    return chatMessageMediaEntries(active.messages).reverse();
-  }, [active]);
-
-  const sharedMediaUrls = useMemo(
-    () => sharedMedia.map((entry) => entry.src),
-    [sharedMedia],
-  );
-
   useEffect(() => {
-    setSideMediaLightboxIndex(null);
     setReplyTarget(null);
     setEditingMessageId(null);
     setEditingDraft("");
@@ -1071,7 +1108,12 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
+    // «Gửi riêng cho tôi» — không lọc theo tab/sub-filter/ẩn, luôn đầu danh sách.
+    const selfThread = threads.find(
+      (t) => t.isSelf && threadMatchesQuery(t, q),
+    );
     const list = threads.filter((t) => {
+      if (t.isSelf) return false;
       if (t.group !== activeTab) return false;
       if (hiddenRoomIds.includes(t.roomId)) return false;
       if (activeTab === "ban_be") {
@@ -1081,7 +1123,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
       return threadMatchesQuery(t, q);
     });
 
-    return nestGroupThreads(
+    const nested = nestGroupThreads(
       [...list].sort((a, b) => {
         const aIdx = pinnedListRoomIds.indexOf(a.roomId);
         const bIdx = pinnedListRoomIds.indexOf(b.roomId);
@@ -1094,6 +1136,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
       // Đang tìm kiếm → hiện hết project khớp query
       q ? undefined : { expandedParentIds: expandedProjectParentIds },
     );
+    return selfThread ? [selfThread, ...nested] : nested;
   }, [
     threads,
     query,
@@ -1107,7 +1150,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
   const banBeFilterCounts = useMemo(() => {
     const q = query.trim().toLowerCase();
     const inTab = threads.filter(
-      (t) => t.group === "ban_be" && threadMatchesQuery(t, q),
+      (t) => !t.isSelf && t.group === "ban_be" && threadMatchesQuery(t, q),
     );
     return {
       all: inTab.length,
@@ -2109,6 +2152,26 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     setSidePanel(panel);
   }, []);
 
+  useEffect(() => {
+    canvasBridge.ingestCommentNotice = (message) => {
+      setThreads((prev) =>
+        prev.map((t) => {
+          if (t.roomId !== active?.roomId) return t;
+          const messages = reconcileChatMessage(t.messages, message);
+          return {
+            ...t,
+            messages,
+            preview: message.body.trim() || t.preview,
+            lastAt: message.sentAt || t.lastAt,
+          };
+        }),
+      );
+    };
+    return () => {
+      canvasBridge.ingestCommentNotice = null;
+    };
+  }, [active?.roomId]);
+
   const sendableImages = pendingImages.filter((image) => !image.error);
   const rawPendingCard = active?.roomId
     ? pendingCardByRoom[active.roomId] ?? null
@@ -2142,6 +2205,38 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
       setThreads((prev) => patchThreadMessages(prev, active.id, updater));
     },
     [active],
+  );
+
+  const openCanvasComments = useCallback(
+    (nodeIds: string[], messageId: string) => {
+      const ids = nodeIds.filter(Boolean);
+      if (sidePanel === "canvas" && canvasBridge.highlightNodes) {
+        canvasBridge.highlightNodes(ids);
+      } else {
+        canvasBridge.pendingHighlightNodeIds = ids.length > 0 ? ids : null;
+      }
+      setSidePanel("canvas");
+
+      if (!active?.roomId || !messageId) return;
+      const roomId = active.roomId;
+      const removed = active.messages.find((m) => m.id === messageId);
+      patchActiveThreadMessages((msgs) => msgs.filter((m) => m.id !== messageId));
+      void patchChatMessage(roomId, messageId, {
+        action: "dismiss_canvas_notice",
+      }).then((res) => {
+        if (res.error && removed) {
+          patchActiveThreadMessages((msgs) =>
+            msgs.some((m) => m.id === messageId)
+              ? msgs
+              : [...msgs, removed].sort(
+                  (a, b) =>
+                    new Date(a.sentAt).getTime() - new Date(b.sentAt).getTime(),
+                ),
+          );
+        }
+      });
+    },
+    [active, patchActiveThreadMessages, sidePanel],
   );
 
   const handlePollUpdated = useCallback(
@@ -2376,8 +2471,25 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
           }
         });
       },
+      onAddToCanvas: (msg) => {
+        if (!active?.roomId) return;
+        const roomId = active.roomId;
+        const openCanvas = sidePanel === "canvas";
+        void addChatMessageToCanvas(roomId, msg.id).then((res) => {
+          if ("error" in res) {
+            setLoadError(res.error);
+            return;
+          }
+          if (openCanvas) {
+            canvasBridge.ingestNode?.(res.node);
+          } else {
+            canvasBridge.pendingFocusNodeId = res.node.id;
+            setSidePanel("canvas");
+          }
+        });
+      },
     }),
-    [active, patchActiveThreadMessages, pinnedByRoom, refreshPinnedForRoom],
+    [active, patchActiveThreadMessages, pinnedByRoom, refreshPinnedForRoom, sidePanel],
   );
 
   const handleSaveEdit = useCallback(
@@ -2503,6 +2615,49 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
       }
     },
     [viewerProfileId],
+  );
+
+  /** Thả nội dung chia sẻ (post/ảnh) vào một thread — gửi ngay vào phòng đó. */
+  const handleShareDrop = useCallback(
+    (thread: ChatThread, payload: CinsSharePayload) => {
+      completeShareDrop();
+      selectThread(thread);
+
+      if (payload.kind === "image") {
+        const imageUrl =
+          chatImageDeliveryUrl(payload.imageId) ?? payload.url ?? null;
+        const optimistic: ChatMessage = {
+          ...createOptimisticChatMessage({
+            body: "",
+            kind: "media",
+            imageId: payload.imageId,
+            imageUrl,
+          }),
+          senderUserId: viewerProfileId ?? undefined,
+        };
+        appendOptimisticMessages(thread, [optimistic]);
+        void submitRoomMessage(
+          thread,
+          { cloudflare_image_id: payload.imageId },
+          optimistic.id,
+        );
+        return;
+      }
+
+      const optimistic: ChatMessage = {
+        ...createOptimisticChatMessage({ body: payload.url, kind: "text" }),
+        senderUserId: viewerProfileId ?? undefined,
+      };
+      appendOptimisticMessages(thread, [optimistic]);
+      void submitRoomMessage(thread, { noi_dung: payload.url }, optimistic.id);
+    },
+    [
+      appendOptimisticMessages,
+      completeShareDrop,
+      selectThread,
+      submitRoomMessage,
+      viewerProfileId,
+    ],
   );
 
   const submitAlbumBatch = useCallback(
@@ -2903,7 +3058,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
   const panel = (
     <div
       ref={chatRootRef}
-      className="cins-chat-root"
+      className={`cins-chat-root${shareDropMode ? " is-share-drop-root" : ""}`}
       role="presentation"
       onClick={(e) => {
         // Chỉ đóng khi click đúng vùng ngoài panel — tránh nút header
@@ -2914,15 +3069,20 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
       <div className="cins-chat-backdrop" aria-hidden="true" />
 
       <section
-        className={`cins-chat-panel${sidePanel ? " has-side-panel" : ""}`}
+        className={`cins-chat-panel${sidePanel ? " has-side-panel" : ""}${sidePanel === "canvas" ? " has-canvas" : ""}${shareDropMode ? " is-share-drop" : ""}`}
         role="dialog"
         aria-modal="true"
         aria-label="Tin nhắn"
         onClick={(e) => e.stopPropagation()}
       >
         <aside
-          className={`cins-chat-list${mobileShowThread ? " is-hidden-mobile" : ""}`}
+          className={`cins-chat-list${mobileShowThread && !shareDropMode ? " is-hidden-mobile" : ""}`}
         >
+          {shareDropMode ? (
+            <p className="cins-chat-share-drop-hint" role="status">
+              Thả vào một hội thoại để gửi
+            </p>
+          ) : null}
           <header className="cins-chat-list-head">
             <div>
               <h2 className="cins-chat-title">Tin nhắn</h2>
@@ -3018,6 +3178,21 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
             role="tabpanel"
             id={`cins-chat-tabpanel-${activeTab}`}
             aria-labelledby={`cins-chat-tab-${activeTab}`}
+            onDragOver={
+              shareDropMode
+                ? (event) => {
+                    // Auto-scroll danh sách khi kéo sát mép trên/dưới.
+                    const el = event.currentTarget;
+                    const rect = el.getBoundingClientRect();
+                    const zone = 48;
+                    if (event.clientY < rect.top + zone) {
+                      el.scrollTop -= 12;
+                    } else if (event.clientY > rect.bottom - zone) {
+                      el.scrollTop += 12;
+                    }
+                  }
+                : undefined
+            }
           >
             {loadingThreads ? (
               <p className="cins-chat-threads-empty">Đang tải hội thoại…</p>
@@ -3036,7 +3211,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                     isActive={thread.id === activeId}
                     isListPinned={isListPinned(thread.roomId)}
                     isMuted={isRoomMuted(thread.roomId)}
-                    canShowMenu={!isPendingRoomId(thread.roomId)}
+                    canShowMenu={!thread.isSelf && !isPendingRoomId(thread.roomId)}
                     isMenuOpen={threadMenuRoomId === thread.roomId}
                     onMenuOpenChange={(open) =>
                       setThreadMenuRoomId(open ? thread.roomId : null)
@@ -3059,6 +3234,8 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                         ? () => toggleProjectParentExpanded(thread.roomId)
                         : undefined
                     }
+                    shareDropActive={shareDropMode}
+                    onShareDrop={handleShareDrop}
                   />
                   );
                 })}
@@ -3286,6 +3463,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                 viewerUserId={viewerProfileId}
                 onPollUpdated={handlePollUpdated}
                 onJumpToMessage={(id) => void scrollToMessage(id)}
+                onOpenCanvasComments={openCanvasComments}
                 readCursors={
                   active.roomId
                     ? (readCursorsByRoom[active.roomId] ?? [])
@@ -3554,7 +3732,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
 
           {sidePanel && active ? (
             <aside
-              className="cins-chat-side"
+              className={`cins-chat-side${sidePanel === "canvas" ? " is-canvas" : ""}`}
               aria-label={SIDE_PANEL_LABEL[sidePanel]}
             >
               <header className="cins-chat-side-head">
@@ -3639,46 +3817,6 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                   </ul>
                 ) : null}
 
-                {sidePanel === "media" ? (
-                  <>
-                    <div className="cins-chat-side-media">
-                      {sharedMedia.length === 0 ? (
-                        <p className="cins-chat-side-empty">
-                          Chưa có ảnh trong hội thoại.
-                        </p>
-                      ) : (
-                        sharedMedia.map((entry, index) => (
-                          <button
-                            key={entry.id}
-                            type="button"
-                            className="cins-chat-side-media-cell"
-                            aria-label={`Xem ảnh ${index + 1}`}
-                            onClick={() => setSideMediaLightboxIndex(index)}
-                          >
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={entry.src} alt="Ảnh đính kèm" />
-                          </button>
-                        ))
-                      )}
-                    </div>
-                    {sideMediaLightboxIndex != null && sharedMediaUrls.length > 0 ? (
-                      <ChatImageLightbox
-                        images={sharedMediaUrls}
-                        index={sideMediaLightboxIndex}
-                        onClose={() => setSideMediaLightboxIndex(null)}
-                        onIndexChange={setSideMediaLightboxIndex}
-                      />
-                    ) : null}
-                  </>
-                ) : null}
-
-                {sidePanel === "resources" && active.roomId ? (
-                  <ChatRoomResourcesPanel
-                    roomId={active.roomId}
-                    onJumpToMessage={(id) => void scrollToMessage(id)}
-                  />
-                ) : null}
-
                 {sidePanel === "mocs" && active.roomId ? (
                   <ChatRoomMocsPanel
                     roomId={active.roomId}
@@ -3729,6 +3867,14 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                         ),
                       );
                     }}
+                  />
+                ) : null}
+
+                {sidePanel === "canvas" && active.roomId ? (
+                  <ChatCanvasBoard
+                    key={active.roomId}
+                    roomId={active.roomId}
+                    onJumpToMessage={(id) => void scrollToMessage(id)}
                   />
                 ) : null}
               </div>

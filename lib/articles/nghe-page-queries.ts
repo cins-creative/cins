@@ -22,7 +22,29 @@ export type NgheArticleMeta = {
   merged_vao_id: string | null;
 };
 
-/** Metadata nhẹ — không tải `noi_dung`. */
+function mapNgheMetaRow(r: Record<string, unknown>): NgheArticleMeta {
+  return {
+    id: String(r.id),
+    slug: String(r.slug ?? ""),
+    tieu_de: String(r.tieu_de ?? "").trim() || "Không tiêu đề",
+    tieu_de_viet:
+      r.tieu_de_viet == null ? null : String(r.tieu_de_viet).trim() || null,
+    tieu_de_eng:
+      r.tieu_de_eng == null ? null : String(r.tieu_de_eng).trim() || null,
+    meta_title: (r.meta_title as string | null) ?? null,
+    meta_description: (r.meta_description as string | null) ?? null,
+    tom_tat: (r.tom_tat as string | null) ?? null,
+    loai_bai_viet: String(r.loai_bai_viet ?? ""),
+    trang_thai_noi_dung: String(r.trang_thai_noi_dung ?? ""),
+    merged_vao_id:
+      r.merged_vao_id == null ? null : String(r.merged_vao_id).trim() || null,
+  };
+}
+
+/**
+ * Metadata nhẹ — không tải `noi_dung`.
+ * Gồm cả `published` và `merged` để gate 308 redirect slug cũ.
+ */
 export async function getNgheArticleMetaBySlug(
   slug: string,
 ): Promise<NgheArticleMeta | null> {
@@ -34,26 +56,10 @@ export async function getNgheArticleMetaBySlug(
       .select(NGHE_META_SELECT)
       .eq("slug", slug)
       .eq("loai_bai_viet", "nghe")
-      .eq("trang_thai_noi_dung", "published")
+      .in("trang_thai_noi_dung", ["published", "merged"])
       .maybeSingle();
     if (error || !data) return null;
-    const r = data as Record<string, unknown>;
-    return {
-      id: String(r.id),
-      slug: String(r.slug ?? ""),
-      tieu_de: String(r.tieu_de ?? "").trim() || "Không tiêu đề",
-      tieu_de_viet:
-        r.tieu_de_viet == null ? null : String(r.tieu_de_viet).trim() || null,
-      tieu_de_eng:
-        r.tieu_de_eng == null ? null : String(r.tieu_de_eng).trim() || null,
-      meta_title: (r.meta_title as string | null) ?? null,
-      meta_description: (r.meta_description as string | null) ?? null,
-      tom_tat: (r.tom_tat as string | null) ?? null,
-      loai_bai_viet: String(r.loai_bai_viet ?? ""),
-      trang_thai_noi_dung: String(r.trang_thai_noi_dung ?? ""),
-      merged_vao_id:
-        r.merged_vao_id == null ? null : String(r.merged_vao_id).trim() || null,
-    };
+    return mapNgheMetaRow(data as Record<string, unknown>);
   } catch {
     return null;
   }

@@ -1,4 +1,5 @@
 import { getCfAccountHash } from "@/lib/cloudflare/account-hash";
+import { extractCfImageIdFromDeliveryUrl } from "@/lib/cloudflare/image-id-from-url";
 import {
   isBrokenCfDeliveryUrl,
   isExternalHttpImageRef,
@@ -34,7 +35,21 @@ export function getCoverOgUrl(
 ): string | null {
   const trimmed = coverId?.trim();
   if (!trimmed) return null;
-  /* URL ngoài không crop được qua CF — dùng null để caller fallback Satori 1200×630. */
-  if (isExternalHttpImageRef(trimmed)) return null;
+  if (isExternalHttpImageRef(trimmed)) {
+    /* URL imagedelivery đầy đủ → lấy UUID rồi crop; URL ngoài thật → null (Satori). */
+    const cfId = extractCfImageIdFromDeliveryUrl(trimmed);
+    if (!cfId) return null;
+    return getCoverUrl(cfId, OG_COVER_CF_VARIANT);
+  }
   return getCoverUrl(trimmed, OG_COVER_CF_VARIANT);
+}
+
+/**
+ * Cover cho UI card (chat / preview nội bộ): ưu tiên crop OG, không được thì
+ * dùng `/public` hoặc URL ngoài — tránh mất thumbnail khi cover_id là https.
+ */
+export function getCoverPreviewUrl(
+  coverId: string | null | undefined,
+): string | null {
+  return getCoverOgUrl(coverId) ?? getCoverUrl(coverId);
 }

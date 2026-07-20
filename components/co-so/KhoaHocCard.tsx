@@ -30,6 +30,8 @@ type Props = {
   href?: string;
   canManage?: boolean;
   onClick?: () => void;
+  /** Click trong shell — `preventDefault` trên Link (tránh soft-nav 404). */
+  onNavigate?: () => void;
   onManage?: () => void;
   onEdit?: () => void;
   onDuplicate?: () => void;
@@ -41,6 +43,7 @@ export function KhoaHocCard({
   href,
   canManage = false,
   onClick,
+  onNavigate,
   onManage,
   onEdit,
   onDuplicate,
@@ -141,7 +144,26 @@ export function KhoaHocCard({
   if (href) {
     return (
       <article className={cardClass}>
-        <Link href={href} scroll={false} className="cso-kh-card-link">
+        <Link
+          href={href}
+          scroll={false}
+          className="cso-kh-card-link"
+          onClick={(event) => {
+            if (!onNavigate) return;
+            // Giữ modifier / middle-click mở tab mới qua href thật.
+            if (
+              event.metaKey ||
+              event.ctrlKey ||
+              event.shiftKey ||
+              event.altKey ||
+              event.button !== 0
+            ) {
+              return;
+            }
+            event.preventDefault();
+            onNavigate();
+          }}
+        >
           {cardContent}
         </Link>
         {menuNode}

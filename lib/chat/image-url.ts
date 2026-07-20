@@ -17,3 +17,21 @@ export function chatImageDeliveryUrl(
   if (!hash) return null;
   return `https://imagedelivery.net/${hash}/${id}/${variant}`;
 }
+
+/** Lấy Cloudflare image id từ URL delivery (hoặc chuỗi UUID thuần). */
+export function cloudflareImageIdFromUrlOrId(
+  value: string | null | undefined,
+): string | null {
+  const raw = value?.trim();
+  if (!raw) return null;
+  if (isCloudflareImageId(raw)) return raw;
+  try {
+    const u = new URL(raw);
+    if (!u.hostname.includes("imagedelivery.net")) return null;
+    const parts = u.pathname.split("/").filter(Boolean);
+    const id = parts[1]?.trim() || null;
+    return id && isCloudflareImageId(id) ? id : null;
+  } catch {
+    return null;
+  }
+}

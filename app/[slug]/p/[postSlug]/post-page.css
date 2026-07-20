@@ -2619,6 +2619,18 @@
   font-weight: 700;
   line-height: 1;
 }
+.cins-post-view .post-byline-act-count--actors {
+  cursor: pointer;
+  border-radius: 5px;
+  padding: 1px 3px;
+  margin: -1px -3px;
+  transition: background 120ms ease;
+}
+.cins-post-view .post-byline-act-count--actors:hover,
+.cins-post-view .post-byline-act-count--actors:focus-visible {
+  background: color-mix(in srgb, currentColor 14%, transparent);
+  outline: none;
+}
 .cins-post-view .post-byline-share-wrap {
   position: relative;
 }

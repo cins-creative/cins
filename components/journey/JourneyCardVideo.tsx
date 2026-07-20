@@ -20,6 +20,7 @@ import {
   bunnyVideoIdFromBlocks,
   resolveBunnyEmbed,
 } from "@/lib/journey/video-embed";
+import { setShareDragData } from "@/lib/cins/share-drag";
 import { useOffscreenMedia } from "@/lib/journey/use-offscreen-media";
 import { useResolvedVideoCanvas } from "@/lib/journey/use-resolved-video-canvas-ratio";
 import {
@@ -232,6 +233,12 @@ export function JourneyCardVideo({
       onClick={(e) => {
         e.stopPropagation();
         setPlaying(true);
+      }}
+      /* Kéo poster video → gửi URL video vào chat (desktop). */
+      draggable
+      onDragStart={(e) => {
+        e.stopPropagation();
+        setShareDragData(e.dataTransfer, { kind: "url", url });
       }}
     >
       {posterSrc ? (

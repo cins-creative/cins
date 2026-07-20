@@ -19,6 +19,7 @@ import type { ChatMessageActionHandlers } from "@/components/cins/ChatMessageAct
 import { ChatMessageThreadItems } from "@/components/cins/ChatMessageThreadItems";
 import { ChatReplyComposeBar } from "@/components/cins/ChatReplyComposeBar";
 import { ChatStickerPicker } from "@/components/cins/ChatStickerPicker";
+import { addChatMessageToCanvas } from "@/lib/chat/canvas/add-message-client";
 import { avatarBg, avatarHueFromSeed, avatarInitialFromName } from "@/lib/chat/avatar";
 import { writeChatThreadsCache, writeRoomMessagesCache } from "@/lib/chat/chat-session-cache";
 import {
@@ -604,6 +605,13 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
               updateMessageInList(msgs, msg.id, { reactions: res.reactions }),
             );
           }
+        });
+      },
+      onAddToCanvas: (msg) => {
+        const roomId = miniRoomIdRef.current;
+        if (!roomId) return;
+        void addChatMessageToCanvas(roomId, msg.id).then((res) => {
+          if ("error" in res) setLoadError(res.error);
         });
       },
     }),

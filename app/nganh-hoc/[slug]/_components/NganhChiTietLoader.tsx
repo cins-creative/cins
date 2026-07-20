@@ -1,4 +1,5 @@
 import { NganhChiTietPageShell } from "@/components/nganh/NganhChiTietPageShell";
+import { NganhSeoJsonLd } from "@/components/nganh/NganhSeoJsonLd";
 import { CinsShell } from "@/components/cins/CinsShell";
 import { SiteFooter } from "@/components/cins/SiteFooter";
 import { getNganhAdminStatus } from "@/lib/nganh/article-admin";
@@ -23,6 +24,7 @@ export async function NganhChiTietLoader({ slug }: Props) {
 
   return (
     <CinsShell data-screen-label="Nganh-chi-tiet">
+      <NganhSeoJsonLd article={bundle.article} />
       <NganhChiTietPageShell
         canEdit={canEdit}
         persistEnabled={persistEnabled}

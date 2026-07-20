@@ -38,6 +38,8 @@ import {
   snapFromPointer,
   type DragSnapTarget,
 } from "@/lib/editor/image-slot-dnd";
+import { setShareDragData } from "@/lib/cins/share-drag";
+import { isCloudflareImageId } from "@/lib/chat/image-url";
 
 /** CF variant nhỏ/crop có thể 403 hoặc lệch — thử `public` trước khi ẩn ảnh. */
 function handleGridThumbError(e: { currentTarget: HTMLImageElement }): void {
@@ -221,6 +223,29 @@ function ImageGridCell({
     composeSlotActions?.onReorderImages?.(from, to);
   };
 
+  /* Chế độ xem: kéo ảnh thả vào chat (share) — không đụng compose reorder. */
+  const shareDnD =
+    !composeSlotActions && thumbSrc
+      ? {
+          draggable: true as const,
+          onDragStart: (e: DragEvent) => {
+            e.stopPropagation();
+            const seed = image.id.trim();
+            if (isCloudflareImageId(seed)) {
+              setShareDragData(e.dataTransfer, {
+                kind: "image",
+                imageId: seed,
+                url: thumbSrc,
+              });
+            } else if (/^https?:\/\//i.test(seed)) {
+              setShareDragData(e.dataTransfer, { kind: "url", url: seed });
+            } else {
+              e.preventDefault();
+            }
+          },
+        }
+      : null;
+
   const reorderDnD =
     canReorder && composeSlotActions?.onReorderImages
       ? cellDraggable
@@ -271,7 +296,7 @@ function ImageGridCell({
         : { "aria-hidden": true as const })}
       className={cellClasses}
       style={cellStyle}
-      {...reorderDnD}
+      {...(reorderDnD ?? shareDnD)}
     >
       {snapHere ? (
         <span className="ed-drag-snap" aria-hidden />

@@ -4,7 +4,8 @@ export type ChatMessageKind =
   | "sticker"
   | "context"
   | "binh_chon"
-  | "moc_nhac";
+  | "moc_nhac"
+  | "canvas_binh_luan";
 
 export type ChatMocNoticeSuKien = "tao" | "nhac_truoc" | "den_han";
 
@@ -16,6 +17,15 @@ export type ChatMocNotice = {
   thoiDiem: string;
   url?: string | null;
   moTa?: string | null;
+};
+
+/** Tin hệ thống: có bình luận mới trên canvas (`ngu_canh.loai=canvas_binh_luan`). */
+export type ChatCanvasBinhLuanNotice = {
+  canvasId: string;
+  soLuong: number;
+  nodeIds: string[];
+  tenNguoi: string;
+  avatarUrl?: string | null;
 };
 
 export type ChatPollOption = {
@@ -108,6 +118,8 @@ export type ChatMessage = {
   poll?: ChatPollSummary | null;
   /** Nhắc mốc hệ thống trong phòng. */
   mocNhac?: ChatMocNotice | null;
+  /** Bình luận trên canvas — dòng nhỏ trong feed. */
+  canvasBinhLuan?: ChatCanvasBinhLuanNotice | null;
 };
 
 /** Cursor «đã xem tới tin này» của một thành viên khác trong phòng. */
@@ -192,6 +204,8 @@ export type ChatThread = {
   peerUserId?: string;
   /** Slug Journey của đối phương (DM cá nhân) — dùng «Xem người dùng». */
   peerSlug?: string;
+  /** Phòng «Gửi riêng cho tôi» — chat với chính mình, luôn ghim đầu danh sách. */
+  isSelf?: boolean;
   /** Phòng nhóm bạn bè (loai_phong = nhom). */
   isGroup?: boolean;
   memberCount?: number;
@@ -238,6 +252,9 @@ export const CHAT_PARTICIPANT_KIND_LABEL: Record<ChatParticipantKind, string> = 
   user: "Cá nhân",
   org: "Tổ chức",
 };
+
+/** Tên hiển thị phòng chat với chính mình. */
+export const CHAT_SELF_THREAD_NAME = "Gửi riêng cho tôi";
 
 export const CHAT_THREAD_GROUP_ORDER: ChatThreadGroup[] = [
   "ban_be",

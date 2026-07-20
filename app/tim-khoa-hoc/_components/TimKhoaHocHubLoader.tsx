@@ -3,6 +3,10 @@ import { ArrowRight, University } from "lucide-react";
 
 import { TimKhoaHocHubShell } from "@/app/tim-khoa-hoc/_components/TimKhoaHocHubShell";
 import {
+  TKH_KHOA_PAGE_SIZE,
+  TKH_NGANH_HUB_SAMPLE,
+} from "@/app/tim-khoa-hoc/_components/tim-khoa-hoc-page-size";
+import {
   timKhoaHocHubHref,
   type TimKhoaHocLoai,
 } from "@/app/tim-khoa-hoc/_components/tim-khoa-hoc-params";
@@ -22,22 +26,30 @@ export async function TimKhoaHocHubLoader({ q, loai }: Props) {
   const showNganh = loai === "all" || loai === "nganh";
 
   const [khoaListing, nganhListing] = await Promise.all([
-    showKhoa ? loadKhoaHocListing(200, 0, q || undefined) : Promise.resolve({ items: [], total: 0 }),
-    showNganh ? loadNganhHubListing({ q: q || undefined }) : Promise.resolve({
-      searchQuery: q,
-      nganhSidebarGroups: [],
-      activeNhomId: "",
-      activeNhomLabel: null,
-      nganhGroups: [],
-      sampleNganh: [],
-      listError: undefined,
-    }),
+    showKhoa
+      ? loadKhoaHocListing(TKH_KHOA_PAGE_SIZE, 0, q || undefined)
+      : Promise.resolve({ items: [], total: 0 }),
+    showNganh
+      ? loadNganhHubListing({
+          q: q || undefined,
+          limit: TKH_NGANH_HUB_SAMPLE,
+        })
+      : Promise.resolve({
+          searchQuery: q,
+          nganhSidebarGroups: [],
+          activeNhomId: "",
+          activeNhomLabel: null,
+          nganhGroups: [],
+          sampleNganh: [],
+          listError: undefined,
+        }),
   ]);
 
   const { items: khoaItems, total: khoaTotal } = khoaListing;
   const { nganhGroups, listError: nganhListError } = nganhListing;
   const nganhCount = nganhListing.sampleNganh.length;
   const hasQuery = q.length > 0;
+  const nganhTruncated = showNganh && nganhCount >= TKH_NGANH_HUB_SAMPLE;
 
   const resultsBar = hasQuery ? (
     <p className="tkh-results-bar" role="status">
@@ -50,6 +62,7 @@ export async function TimKhoaHocHubLoader({ q, loai }: Props) {
             <>
               {" "}
               · <strong>{nganhCount}</strong> ngành
+              {nganhTruncated ? "+" : ""}
             </>
           ) : null}
         </>
@@ -62,6 +75,7 @@ export async function TimKhoaHocHubLoader({ q, loai }: Props) {
         <>
           {" "}
           — <strong>{nganhCount}</strong> ngành
+          {nganhTruncated ? "+" : ""}
         </>
       )}
       {" · "}
@@ -86,7 +100,8 @@ export async function TimKhoaHocHubLoader({ q, loai }: Props) {
         </h2>
         {!hasQuery && nganhCount > 0 ? (
           <p className="tkh-section-meta">
-            <strong>{nganhCount}</strong> ngành
+            <strong>{nganhCount}</strong>
+            {nganhTruncated ? "+" : ""} ngành trên hub
           </p>
         ) : null}
       </header>
@@ -164,7 +179,11 @@ export async function TimKhoaHocHubLoader({ q, loai }: Props) {
         className="tkh-section-link"
         prefetch={false}
       >
-        {hasQuery ? "Xem thêm ngành trên hub ngành học" : "Xem đầy đủ ngành học"}
+        {hasQuery
+          ? "Xem thêm ngành trên hub ngành học"
+          : nganhTruncated
+            ? "Xem đầy đủ ngành học"
+            : "Mở hub ngành học"}
         <ArrowRight size={14} strokeWidth={2.2} aria-hidden />
       </Link>
     </section>

@@ -41,7 +41,7 @@ type RolePreset = {
 
 /**
  * Kích thước theo layout Journey v2 (@2x retina):
- *   • Gallery aside pinned ~340px → 560×315 (16:9) — variant `public`
+ *   • Gallery aside pinned ~340px → 560×315 (16:9) — `grid` + srcset `gridsm`/`grid`/`public` (retina 2x cần ~680px)
  *   • Gallery grid ~320px ô → 640×360 (16:9) — variant `grid` + `gridsm`
  *   • Milestone card preview ~680px feed → 640×360 layout — variant `public` (+ `grid`/`gridsm` srcset nhỏ)
  *
@@ -54,7 +54,11 @@ const ROLE_PRESETS: Record<JourneyImageRole, RolePreset> = {
     width: 560,
     height: 315,
     defaultVariant: "grid",
-    srcSetVariants: [{ name: "gridsm", w: 400 }],
+    srcSetVariants: [
+      { name: "gridsm", w: 400 },
+      { name: "grid", w: 640 },
+      { name: "public", w: 1366 },
+    ],
   },
   "gallery-grid": {
     width: 640,

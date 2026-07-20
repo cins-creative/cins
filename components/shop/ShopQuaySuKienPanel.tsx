@@ -1,9 +1,17 @@
 "use client";
 
-import { Check, Loader2, Search, X } from "lucide-react";
-import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
+import { Check, Loader2, Minus, Plus, Search, X } from "lucide-react";
+import {
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import { ContentSurfaceViewToggle } from "@/components/cins/ContentSurfaceViewToggle";
+import { GIO_CHUNG_CHANGED_EVENT } from "@/components/shop/ShopGioChungButton";
 import { GalleryVideoPlayBadge } from "@/components/journey/GalleryItemVisual";
 import { JourneyMilestoneCard } from "@/components/journey/JourneyMilestoneCard";
 import type { MilestoneItem } from "@/components/journey/milestone-types";
@@ -20,6 +28,7 @@ import {
 import { normalizeSearchText } from "@/lib/search/normalize";
 import type {
   ShopEvidence,
+  ShopGioChung,
   ShopQuayHangSearch,
   ShopQuaySuKien,
 } from "@/lib/shop/types";
@@ -74,6 +83,8 @@ type QuayHangCard = ShopQuayHangSearch & {
   quayId: string;
   milestoneId: string;
   sellerName: string | null;
+  /** Chủ quầy = seller (product owner). */
+  idNguoiBan: string;
 };
 
 function collectHangCards(
@@ -105,6 +116,7 @@ function collectHangCards(
         quayId: item.id,
         milestoneId,
         sellerName: item.nguoiDungTen?.trim() || null,
+        idNguoiBan: item.idNguoiDung,
       });
     }
   }
@@ -422,11 +434,142 @@ function QuayApprovedGridView({
 function QuayHangCatalogView({
   cards,
   onOpen,
+  viewerProfileId,
 }: {
   cards: ReadonlyArray<QuayHangCard>;
   onOpen: (milestoneId: string) => void;
+  viewerProfileId: string | null;
 }) {
   const groups = groupHangByLoai(cards);
+  const [qtyByBt, setQtyByBt] = useState<Map<string, number>>(new Map());
+  const [cartErr, setCartErr] = useState<string | null>(null);
+
+  const cardsRef = useRef(cards);
+  cardsRef.current = cards;
+  /** idBienThe → số lượng chờ sync (sau debounce). */
+  const pendingQtyRef = useRef(new Map<string, number>());
+  const syncTimersRef = useRef(
+    new Map<string, ReturnType<typeof setTimeout>>(),
+  );
+  /** Tăng mỗi lần đổi qty — bỏ qua PATCH response cũ. */
+  const qtyEpochRef = useRef(new Map<string, number>());
+
+  const loadGio = useCallback(async () => {
+    if (!viewerProfileId) return;
+    try {
+      const res = await fetch("/api/shop/gio-chung", { cache: "no-store" });
+      const json = (await res.json().catch(() => null)) as {
+        gio?: ShopGioChung;
+      } | null;
+      if (!res.ok || !json?.gio) return;
+      const map = new Map<string, number>();
+      for (const nhom of json.gio.nhom) {
+        for (const d of nhom.dong) map.set(d.idBienThe, d.soLuong);
+      }
+      /* Giữ giá trị đang chờ sync. */
+      for (const [bt, q] of pendingQtyRef.current) {
+        if (q <= 0) map.delete(bt);
+        else map.set(bt, q);
+      }
+      setQtyByBt(map);
+    } catch {
+      /* ignore */
+    }
+  }, [viewerProfileId]);
+
+  useEffect(() => {
+    void loadGio();
+    const onChanged = () => void loadGio();
+    window.addEventListener(GIO_CHUNG_CHANGED_EVENT, onChanged);
+    return () => window.removeEventListener(GIO_CHUNG_CHANGED_EVENT, onChanged);
+  }, [loadGio]);
+
+  useEffect(() => {
+    const timers = syncTimersRef.current;
+    const pending = pendingQtyRef.current;
+    return () => {
+      for (const t of timers.values()) clearTimeout(t);
+      timers.clear();
+      pending.clear();
+    };
+  }, []);
+
+  const flushQtySync = useCallback(
+    async (idBienThe: string) => {
+      const soLuong = pendingQtyRef.current.get(idBienThe);
+      if (soLuong === undefined) return;
+      pendingQtyRef.current.delete(idBienThe);
+      const epoch = qtyEpochRef.current.get(idBienThe) ?? 0;
+      try {
+        const res = await fetch("/api/shop/gio-chung", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ idBienThe, soLuong }),
+        });
+        const json = (await res.json().catch(() => null)) as {
+          gio?: ShopGioChung;
+          error?: string;
+        } | null;
+        if ((qtyEpochRef.current.get(idBienThe) ?? 0) !== epoch) return;
+        if (!res.ok || !json?.gio) {
+          setCartErr(json?.error ?? "Không thêm được vào giỏ.");
+          await loadGio();
+          return;
+        }
+        const map = new Map<string, number>();
+        for (const nhom of json.gio.nhom) {
+          for (const d of nhom.dong) map.set(d.idBienThe, d.soLuong);
+        }
+        for (const [bt, q] of pendingQtyRef.current) {
+          if (q <= 0) map.delete(bt);
+          else map.set(bt, q);
+        }
+        setQtyByBt(map);
+        window.dispatchEvent(new Event(GIO_CHUNG_CHANGED_EVENT));
+      } catch {
+        if ((qtyEpochRef.current.get(idBienThe) ?? 0) !== epoch) return;
+        setCartErr("Không thêm được vào giỏ.");
+        await loadGio();
+      }
+    },
+    [loadGio],
+  );
+
+  const patchQty = useCallback(
+    (idBienThe: string, soLuong: number) => {
+      const card = cardsRef.current.find((c) => c.idBienThe === idBienThe);
+      const cap = card ? Math.max(0, card.soLuongTon) : Math.max(0, soLuong);
+      const qty = Math.min(Math.max(0, Math.trunc(soLuong)), cap);
+      if (card && soLuong > qty && card.soLuongTon > 0) {
+        setCartErr(`Chỉ còn ${card.soLuongTon} trong kho.`);
+      } else {
+        setCartErr(null);
+      }
+      qtyEpochRef.current.set(
+        idBienThe,
+        (qtyEpochRef.current.get(idBienThe) ?? 0) + 1,
+      );
+      /* Phản hồi tức thì — không chờ mạng. */
+      setQtyByBt((prev) => {
+        const next = new Map(prev);
+        if (qty <= 0) next.delete(idBienThe);
+        else next.set(idBienThe, qty);
+        return next;
+      });
+      pendingQtyRef.current.set(idBienThe, qty);
+      const prevTimer = syncTimersRef.current.get(idBienThe);
+      if (prevTimer) clearTimeout(prevTimer);
+      syncTimersRef.current.set(
+        idBienThe,
+        setTimeout(() => {
+          syncTimersRef.current.delete(idBienThe);
+          void flushQtySync(idBienThe);
+        }, 200),
+      );
+    },
+    [flushQtySync],
+  );
+
   if (groups.length === 0) {
     return (
       <p className="shop-dash-hint">Không có hàng khớp tìm kiếm.</p>
@@ -438,6 +581,11 @@ function QuayHangCatalogView({
       className="shop-kiosk-catalog-body shop-quay-hang-catalog"
       aria-label="Kết quả tìm hàng sự kiện"
     >
+      {cartErr ? (
+        <p className="shop-kiosk-catalog-err" role="alert">
+          {cartErr}
+        </p>
+      ) : null}
       {groups.map((group) => (
         <section key={group.loai} className="shop-kiosk-catalog-group">
           <h4 className="shop-kiosk-catalog-group-title">
@@ -452,6 +600,10 @@ function QuayHangCatalogView({
                 Number.isFinite(it.soLuongTon) &&
                 it.soLuongTon > 0 &&
                 it.soLuongTon < 5;
+              const qty = qtyByBt.get(it.idBienThe) ?? 0;
+              const canInc = !outOfStock && qty < it.soLuongTon;
+              const isOwnItem =
+                Boolean(viewerProfileId) && it.idNguoiBan === viewerProfileId;
               return (
                 <li key={`${it.hangId}:${it.milestoneId}`} className="shop-kiosk-catalog-card">
                   {it.anhUrl ? (
@@ -503,6 +655,50 @@ function QuayHangCatalogView({
                         <span className="shop-quay-hang-seller">
                           {it.sellerName}
                         </span>
+                      ) : null}
+                      {viewerProfileId && !isOwnItem ? (
+                        qty > 0 ? (
+                          <div className="shop-kiosk-qty shop-kiosk-catalog-qty">
+                            <button
+                              type="button"
+                              aria-label="Bớt"
+                              onClick={() =>
+                                void patchQty(it.idBienThe, qty - 1)
+                              }
+                            >
+                              <Minus size={14} />
+                            </button>
+                            <span>{qty}</span>
+                            <button
+                              type="button"
+                              aria-label="Thêm"
+                              disabled={!canInc}
+                              title={
+                                !canInc && !outOfStock
+                                  ? `Tối đa ${it.soLuongTon} (tồn kho)`
+                                  : outOfStock
+                                    ? "Hết hàng"
+                                    : undefined
+                              }
+                              onClick={() =>
+                                void patchQty(it.idBienThe, qty + 1)
+                              }
+                            >
+                              <Plus size={14} />
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            className="shop-kiosk-catalog-add"
+                            disabled={outOfStock}
+                            aria-label="Thêm vào giỏ chờ mua"
+                            title={outOfStock ? "Hết hàng" : "Thêm vào giỏ"}
+                            onClick={() => void patchQty(it.idBienThe, 1)}
+                          >
+                            <Plus size={14} strokeWidth={2.4} aria-hidden />
+                          </button>
+                        )
                       ) : null}
                     </div>
                   </div>
@@ -753,7 +949,11 @@ export function ShopQuaySuKienPanel({
       {!canManage ? (
         showHangCatalog ? (
           hangCards.length ? (
-            <QuayHangCatalogView cards={hangCards} onOpen={openFromGrid} />
+            <QuayHangCatalogView
+              cards={hangCards}
+              onOpen={openFromGrid}
+              viewerProfileId={viewerProfileId}
+            />
           ) : (
             <p className="shop-dash-hint">Không có hàng khớp tìm kiếm.</p>
           )

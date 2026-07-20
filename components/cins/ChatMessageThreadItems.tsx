@@ -56,6 +56,7 @@ type ChatMessageThreadItemsProps = {
   viewerUserId?: string | null;
   onPollUpdated?: (messageId: string, poll: ChatPollSummary) => void;
   onJumpToMessage?: (messageId: string) => void;
+  onOpenCanvasComments?: (nodeIds: string[], messageId: string) => void;
 };
 
 function recalledLabel(msg: ChatMessage): string {
@@ -284,6 +285,7 @@ function SingleMessageBubble({
   viewerUserId,
   onPollUpdated,
   onJumpToMessage,
+  onOpenCanvasComments,
 }: {
   msg: ChatMessage;
   seenBy?: ChatReadCursor[];
@@ -299,6 +301,7 @@ function SingleMessageBubble({
   viewerUserId?: string | null;
   onPollUpdated?: (messageId: string, poll: ChatPollSummary) => void;
   onJumpToMessage?: (messageId: string) => void;
+  onOpenCanvasComments?: (nodeIds: string[], messageId: string) => void;
 }) {
   const isMe = msg.from === "me";
   const isEditing = editingMessageId === msg.id;
@@ -340,6 +343,26 @@ function SingleMessageBubble({
           <ChatSeenAvatars cursors={seenBy} align={isMe ? "me" : "them"} />
         ) : null}
       </>
+    );
+  }
+
+  if (msg.kind === "canvas_binh_luan" || msg.canvasBinhLuan) {
+    if (msg.deleted) return null;
+    return (
+      <div
+        id={messageRowId(msg.id)}
+        className="cins-chat-bubble-row is-canvas-comment-notice"
+      >
+        <div className="cins-chat-bubble is-canvas-comment-notice">
+          <ChatMessageBody
+            msg={msg}
+            roomId={roomId}
+            viewerUserId={viewerUserId}
+            onPollUpdated={onPollUpdated}
+            onOpenCanvasComments={onOpenCanvasComments}
+          />
+        </div>
+      </div>
     );
   }
 
@@ -600,6 +623,7 @@ export function ChatMessageThreadItems({
   viewerUserId,
   onPollUpdated,
   onJumpToMessage,
+  onOpenCanvasComments,
 }: ChatMessageThreadItemsProps) {
   const items = useMemo(() => groupChatMessages(messages), [messages]);
   const byMessage = useMemo(
@@ -629,6 +653,7 @@ export function ChatMessageThreadItems({
               viewerUserId={viewerUserId}
               onPollUpdated={onPollUpdated}
               onJumpToMessage={onJumpToMessage}
+              onOpenCanvasComments={onOpenCanvasComments}
             />
           );
         }
@@ -652,6 +677,7 @@ export function ChatMessageThreadItems({
               viewerUserId={viewerUserId}
               onPollUpdated={onPollUpdated}
               onJumpToMessage={onJumpToMessage}
+              onOpenCanvasComments={onOpenCanvasComments}
             />
           );
         }

@@ -922,12 +922,12 @@ export async function attachSocialState(
     viewerId
       ? admin
           .from("social_reaction")
-          .select("id_doi_tuong")
+          .select("id_doi_tuong, emoji")
           .eq("id_nguoi_dung", viewerId)
           .eq("loai_doi_tuong", "cot_moc")
-          .eq("emoji", "heart")
+          .neq("emoji", "dislike")
           .in("id_doi_tuong", cotMocIds)
-      : Promise.resolve({ data: [] }),
+      : Promise.resolve({ data: [] as Array<{ id_doi_tuong: string; emoji: string }> }),
     viewerId
       ? admin
           .from("social_reaction")
@@ -958,7 +958,7 @@ export async function attachSocialState(
       .from("social_reaction")
       .select("id_doi_tuong")
       .eq("loai_doi_tuong", "cot_moc")
-      .eq("emoji", "heart")
+      .neq("emoji", "dislike")
       .in("id_doi_tuong", cotMocIds),
     admin
       .from("social_reaction")
@@ -979,7 +979,15 @@ export async function attachSocialState(
       .in("id_doi_tuong", cotMocIds),
   ]);
 
-  const likedIds = new Set((viewerLikes.data ?? []).map((row) => row.id_doi_tuong as string));
+  const likedIds = new Set(
+    (viewerLikes.data ?? []).map((row) => row.id_doi_tuong as string),
+  );
+  const viewerEmojiById = new Map<string, string>();
+  for (const row of viewerLikes.data ?? []) {
+    const id = row.id_doi_tuong as string;
+    const emoji = typeof row.emoji === "string" ? row.emoji : "";
+    if (id && emoji) viewerEmojiById.set(id, emoji);
+  }
   const dislikedIds = new Set(
     (viewerDislikes.data ?? []).map((row) => row.id_doi_tuong as string),
   );
@@ -1004,6 +1012,7 @@ export async function attachSocialState(
         viewerDisliked: dislikedIds.has(id),
         viewerBookmarked: bookmarkedIds.has(id),
         viewerCommented: commentedIds.has(id),
+        viewerReactionEmoji: viewerEmojiById.get(id) ?? null,
         likeCount: likeCounts.get(id) ?? 0,
         dislikeCount: dislikeCounts.get(id) ?? 0,
         bookmarkCount: bookmarkCounts.get(id) ?? 0,

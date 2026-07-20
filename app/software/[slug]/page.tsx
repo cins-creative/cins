@@ -10,6 +10,7 @@ import {
   getArticleById,
   getPhanMemArticleBySlug,
 } from "@/lib/articles/queries";
+import { buildPublicPageMetadata } from "@/lib/seo/build-article-metadata";
 import { parseTagAggSort } from "@/lib/tag/aggregation-queries";
 import {
   fetchEntityMilestones,
@@ -24,21 +25,38 @@ type Props = {
   searchParams: Promise<{ sort?: string }>;
 };
 
+function softwarePath(slug: string): string {
+  return `/software/${encodeURIComponent(slug)}`;
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   if (!hasSupabaseEnv()) {
-    return { title: "Phần mềm | CINs" };
+    return buildPublicPageMetadata({
+      path: softwarePath(slug),
+      title: "Phần mềm | CINs",
+      noIndex: true,
+    });
   }
   const article = await getPhanMemArticleBySlug(slug);
   if (!article) {
-    return { title: "Không tìm thấy | CINs" };
+    return buildPublicPageMetadata({
+      path: softwarePath(slug),
+      title: "Không tìm thấy | CINs",
+      noIndex: true,
+    });
   }
   const title =
     article.meta_title?.trim() ||
     `${article.tieu_de_viet?.trim() || article.tieu_de} | CINs`;
   const description =
     article.meta_description?.trim() || article.tom_tat?.trim() || undefined;
-  return { title, description };
+  return buildPublicPageMetadata({
+    path: softwarePath(slug),
+    title,
+    description,
+    ogType: "article",
+  });
 }
 
 export default async function SoftwareDetailPage({
@@ -62,6 +80,10 @@ export default async function SoftwareDetailPage({
     if (target?.slug) {
       permanentRedirect(`/software/${encodeURIComponent(target.slug)}`);
     }
+    notFound();
+  }
+
+  if (article.trang_thai_noi_dung !== "published") {
     notFound();
   }
 

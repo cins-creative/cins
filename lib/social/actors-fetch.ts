@@ -243,7 +243,11 @@ function resolveReactionEmoji(
     return trimmed;
   }
   if (!trimmed) return null;
-  if (kind === "like" && trimmed === REACTION_EMOJI.LIKE) return trimmed;
+  if (kind === "like") {
+    if (!COMMENT_REACTION_KEYS.has(trimmed)) return "invalid";
+    if (trimmed === REACTION_EMOJI.DISLIKE) return "invalid";
+    return trimmed;
+  }
   if (kind === "dislike" && trimmed === REACTION_EMOJI.DISLIKE) return trimmed;
   return "invalid";
 }
@@ -256,14 +260,19 @@ async function loadActorRows(
   emoji: string | null,
 ): Promise<ActorRow[]> {
   if (kind === "like") {
-    const { data } = await admin
+    let query = admin
       .from("social_reaction")
       .select("id_nguoi_dung, tao_luc")
       .eq("loai_doi_tuong", loaiDoiTuong)
       .eq("id_doi_tuong", idDoiTuong)
-      .eq("emoji", emoji ?? REACTION_EMOJI.LIKE)
-      .order("tao_luc", { ascending: false })
-      .returns<Array<{ id_nguoi_dung: string; tao_luc: string | null }>>();
+      .order("tao_luc", { ascending: false });
+    /* Không chỉ định emoji → mọi cảm xúc tích cực (tim / 😂 / …). */
+    query = emoji
+      ? query.eq("emoji", emoji)
+      : query.neq("emoji", REACTION_EMOJI.DISLIKE);
+    const { data } = await query.returns<
+      Array<{ id_nguoi_dung: string; tao_luc: string | null }>
+    >();
 
     return (data ?? []).map((row) => ({
       idNguoiDung: row.id_nguoi_dung,

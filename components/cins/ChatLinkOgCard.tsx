@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { JourneyCoverImage } from "@/components/journey/JourneyCoverImage";
 import type { LinkOgPreview } from "@/lib/link/og-preview";
 
 type Props = {
@@ -11,7 +12,8 @@ type Props = {
 };
 
 const clientCache = new Map<string, LinkOgPreview | null>();
-const CLIENT_CACHE_VER = "v2";
+/** Bump khi đổi quy luật thumb (gallery / CF fallback) — bỏ cache client cũ. */
+const CLIENT_CACHE_VER = "v7";
 
 function cacheKey(url: string): string {
   return `${CLIENT_CACHE_VER}:${url}`;
@@ -60,6 +62,23 @@ function isBaiVietPath(url: string): boolean {
   }
 }
 
+function isBaiVietPreview(preview: LinkOgPreview): boolean {
+  if (preview.kind === "bai_viet") return true;
+  return isBaiVietPath(preview.url);
+}
+
+/**
+ * Preview bài cần refetch: thiếu ảnh, hoặc còn URL CF flexible crop (OG Facebook)
+ * — variant này hay 403 trên card chat trong khi Gallery dùng `/grid` + fallback `/public`.
+ */
+function isStalePostPreview(preview: LinkOgPreview | null): boolean {
+  if (!preview?.title || preview.source !== "cins") return false;
+  if (!isBaiVietPreview(preview)) return false;
+  const image = preview.image?.trim() || "";
+  if (!image) return true;
+  return /imagedelivery\.net\/[^/]+\/[^/]+\/w=\d+/i.test(image);
+}
+
 function RichCinsCard({
   data,
   tone,
@@ -67,11 +86,19 @@ function RichCinsCard({
   data: LinkOgPreview;
   tone: "me" | "them";
 }) {
-  const isPost = data.kind === "bai_viet" || isBaiVietPath(data.url);
+  const isPost = isBaiVietPreview(data);
   const showAvatar =
     !isPost &&
     ENTITY_AVATAR_KINDS.has(data.kind ?? "") &&
     Boolean(data.avatar);
+  const [imageBroken, setImageBroken] = useState(false);
+  const imageSrc = data.image?.trim() || null;
+
+  useEffect(() => {
+    setImageBroken(false);
+  }, [imageSrc]);
+
+  const showImage = Boolean(imageSrc) && !imageBroken;
 
   return (
     <a
@@ -80,15 +107,12 @@ function RichCinsCard({
       target="_blank"
       rel="noopener noreferrer"
     >
-      {data.image ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
+      {showImage ? (
+        <JourneyCoverImage
           className="cins-chat-og-card-img"
-          src={data.image}
+          src={imageSrc!}
           alt=""
-          loading="lazy"
-          decoding="async"
-          referrerPolicy="no-referrer"
+          onFinalError={() => setImageBroken(true)}
         />
       ) : (
         <span className="cins-chat-og-card-cover-fallback" aria-hidden />
@@ -118,14 +142,24 @@ function RichCinsCard({
 
 export function ChatLinkOgCard({ url, tone = "them" }: Props) {
   const key = cacheKey(url);
-  const [data, setData] = useState<LinkOgPreview | null>(() =>
-    clientCache.has(key) ? clientCache.get(key)! : null,
-  );
+  const [data, setData] = useState<LinkOgPreview | null>(() => {
+    if (!clientCache.has(key)) return null;
+    const cached = clientCache.get(key) ?? null;
+    if (isStalePostPreview(cached)) {
+      clientCache.delete(key);
+      return null;
+    }
+    return cached;
+  });
 
   useEffect(() => {
     if (clientCache.has(key)) {
-      setData(clientCache.get(key) ?? null);
-      return;
+      const cached = clientCache.get(key) ?? null;
+      if (!isStalePostPreview(cached)) {
+        setData(cached);
+        return;
+      }
+      clientCache.delete(key);
     }
 
     let cancelled = false;
@@ -146,7 +180,12 @@ export function ChatLinkOgCard({ url, tone = "them" }: Props) {
           setData(null);
           return;
         }
-        clientCache.set(key, preview);
+        /* Thiếu/ảnh CF crop cũ: hiện card nhưng không cache — lần sau fetch lại. */
+        if (isStalePostPreview(preview)) {
+          clientCache.delete(key);
+        } else {
+          clientCache.set(key, preview);
+        }
         setData(preview);
       })
       .catch(() => {
@@ -185,14 +224,10 @@ export function ChatLinkOgCard({ url, tone = "them" }: Props) {
       rel="noopener noreferrer"
     >
       {data.image ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
+        <JourneyCoverImage
           className="cins-chat-og-card-img"
           src={data.image}
           alt=""
-          loading="lazy"
-          decoding="async"
-          referrerPolicy="no-referrer"
         />
       ) : null}
       <span className="cins-chat-og-card-body">

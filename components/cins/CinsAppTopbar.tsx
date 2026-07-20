@@ -7,6 +7,7 @@ import { CinsTopbarSearch } from "@/components/cins/CinsTopbarSearch";
 import { SessionRestorer } from "@/components/cins/SessionRestorer";
 import { UserAccountMenu } from "@/components/cins/UserAccountMenu";
 import { JourneyNotifications } from "@/components/journey/JourneyNotifications";
+import { ShopGioChungButton } from "@/components/shop/ShopGioChungButton";
 import { ShopTopbarButton } from "@/components/shop/ShopTopbarButton";
 import { countAdminInboxStats } from "@/lib/admin/admin-inbox-stats";
 import { EMPTY_ADMIN_INBOX_STATS } from "@/lib/admin/admin-inbox-stats-types";
@@ -92,6 +93,7 @@ export async function CinsAppTopbar() {
             className="tb-page-slot"
             aria-live="polite"
           />
+          {session?.profile ? <ShopGioChungButton /> : null}
           {banHangEnabled ? <ShopTopbarButton /> : null}
           {adminInboxStats ? (
             <AdminInboxButton initialStats={adminInboxStats} />

@@ -1,39 +1,41 @@
 import type { ArticleBaiViet } from "@/lib/articles/types";
-
-function siteOrigin(): string {
-  const u = process.env.NEXT_PUBLIC_SITE_URL?.trim();
-  if (u) return u.replace(/\/$/, "");
-  return "https://cins.vn";
-}
+import {
+  articleJsonLd,
+  learningResourceJsonLd,
+} from "@/lib/seo/json-ld";
+import { JsonLdScript } from "@/components/seo/JsonLdScript";
 
 export function ArticleJsonLd({
   article,
   slugPath,
+  variant = "article",
 }: {
   article: ArticleBaiViet;
   slugPath: string;
+  /** `learningResource` cho môn học. */
+  variant?: "article" | "learningResource";
 }) {
-  const base = siteOrigin();
-  if (!base) return null;
+  const headline =
+    article.tieu_de_viet?.trim() || article.tieu_de.trim() || "CINs";
+  const description =
+    article.tom_tat ?? article.meta_description ?? undefined;
 
-  const url = `${base}${slugPath}`;
-  const schema = {
-    "@context": "https://schema.org",
-    "@type": "Article",
-    headline: article.tieu_de,
-    description: article.tom_tat ?? article.meta_description ?? undefined,
-    dateModified: article.cap_nhat_luc,
-    datePublished: article.tao_luc,
-    mainEntityOfPage: { "@type": "WebPage", "@id": url },
-    url,
-    author: { "@type": "Organization", name: "CINs" },
-    publisher: { "@type": "Organization", name: "CINs" },
-  };
+  const data =
+    variant === "learningResource"
+      ? learningResourceJsonLd({
+          name: headline,
+          description,
+          urlPath: slugPath,
+          datePublished: article.tao_luc,
+          dateModified: article.cap_nhat_luc,
+        })
+      : articleJsonLd({
+          headline: article.tieu_de,
+          description,
+          urlPath: slugPath,
+          datePublished: article.tao_luc,
+          dateModified: article.cap_nhat_luc,
+        });
 
-  return (
-    <script
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
-    />
-  );
+  return <JsonLdScript data={data} />;
 }

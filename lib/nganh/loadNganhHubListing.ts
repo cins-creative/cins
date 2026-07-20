@@ -9,6 +9,8 @@ import type { NganhHubItem, NganhHubSection, NganhSidebarGroup } from "@/lib/nga
 export type NganhHubListingParams = {
   q?: string;
   nhom?: string;
+  /** Giới hạn catalog (hub `/tim-khoa-hoc` dùng mẫu nhỏ; hub ngành mặc định 500). */
+  limit?: number;
 };
 
 export type NganhHubListingData = {
@@ -27,7 +29,11 @@ export async function loadNganhHubListing(
   const searchQuery = (params.q ?? "").trim();
   const nhomParam = (params.nhom ?? "").trim();
 
-  const catalogResult = await listNganhArticlesForHub({ limit: 500 });
+  const catalogLimit =
+    typeof params.limit === "number" && Number.isFinite(params.limit)
+      ? Math.min(500, Math.max(1, Math.floor(params.limit)))
+      : 500;
+  const catalogResult = await listNganhArticlesForHub({ limit: catalogLimit });
   const allNganh = catalogResult.ok ? catalogResult.items : [];
   const nganhSidebarGroups = groupNhomNganhForSidebar(allNganh);
 

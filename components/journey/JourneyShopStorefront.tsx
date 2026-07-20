@@ -12,12 +12,13 @@ import {
 } from "react";
 
 import { useAuthGate } from "@/components/auth/AuthGateProvider";
-import { ShopKioskBlock } from "@/components/shop/ShopKioskBlock";
+import {
+  GIO_CHUNG_CHANGED_EVENT,
+  GIO_CHUNG_OPEN_EVENT,
+} from "@/components/shop/ShopGioChungButton";
 import { parseShopNhomMoTa } from "@/lib/shop/nhom-mo-ta";
 import type {
-  ShopGio,
-  ShopGioDong,
-  ShopPostHangItem,
+  ShopGioChung,
   ShopStorefrontItem,
 } from "@/lib/shop/types";
 import {
@@ -126,31 +127,19 @@ type Props = {
   guestChrome?: HeroChrome | null;
 };
 
-type StorefrontCartLine = ShopGioDong;
+type StorefrontCartLine = { idBienThe: string; soLuong: number };
 
-function toHangItems(items: ShopStorefrontItem[]): ShopPostHangItem[] {
-  const out: ShopPostHangItem[] = [];
-  for (const [idx, it] of items.entries()) {
-    if (!it.idBienThe || it.giaHienThi == null) continue;
-    out.push({
-      id: it.hangId ?? it.idBienThe,
-      idBienThe: it.idBienThe,
-      idSanPham: it.sanPhamId,
-      tenSanPham: it.tenSanPham,
-      nhanBienThe: it.nhanBienThe ?? "Mặc định",
-      phanLoai: it.phanLoai,
-      phanLoai2: it.phanLoai2,
-      anhUrl: it.anhUrl,
-      soLuongTon: it.soLuongTon,
-      soLuongBan: it.soLuongBan,
-      giaHienThi: it.giaHienThi,
-      tienTe: it.tienTe,
-      idBangGia: null,
-      thuTu: idx,
-      hetHang: it.hetHang,
-    });
-  }
-  return out;
+/** Lấy dòng giỏ chung thuộc riêng seller này để hiện qty trên storefront. */
+function linesForSeller(
+  gio: ShopGioChung,
+  sellerId: string,
+): StorefrontCartLine[] {
+  const nhom = gio.nhom.find((n) => n.idNguoiBan === sellerId);
+  if (!nhom) return [];
+  return nhom.dong.map((d) => ({
+    idBienThe: d.idBienThe,
+    soLuong: d.soLuong,
+  }));
 }
 
 type PhanLoaiGroup = {
@@ -553,29 +542,28 @@ export function JourneyShopStorefront({
   const [search, setSearch] = useState("");
   const deferredSearch = useDeferredValue(search);
   const [cartLines, setCartLines] = useState<StorefrontCartLine[]>([]);
-  const [cartOpen, setCartOpen] = useState(false);
   const [cartErr, setCartErr] = useState<string | null>(null);
   const canShop = !isOwner && Boolean(cuaHangId);
 
-  const applyGio = useCallback((gio: ShopGio) => {
-    setCartLines(gio.dong);
-  }, []);
+  const applyGio = useCallback(
+    (gio: ShopGioChung) => {
+      setCartLines(linesForSeller(gio, ownerId));
+    },
+    [ownerId],
+  );
 
   const refreshGio = useCallback(async () => {
-    if (!canShop || !viewerProfileId || !cuaHangId) return;
+    if (!canShop || !viewerProfileId) return;
     try {
-      const gRes = await fetch(
-        `/api/shop/gio?cuaHangId=${encodeURIComponent(cuaHangId)}`,
-        { cache: "no-store" },
-      );
+      const gRes = await fetch("/api/shop/gio-chung", { cache: "no-store" });
       const gJson = (await gRes.json().catch(() => null)) as {
-        gio?: ShopGio;
+        gio?: ShopGioChung;
       } | null;
       if (gRes.ok && gJson?.gio) applyGio(gJson.gio);
     } catch {
       /* ignore */
     }
-  }, [canShop, viewerProfileId, cuaHangId, applyGio]);
+  }, [canShop, viewerProfileId, applyGio]);
 
   useEffect(() => {
     let cancelled = false;
@@ -597,20 +585,13 @@ export function JourneyShopStorefront({
         const next = res.ok ? (json?.items ?? []) : [];
         if (!cancelled) setItems(next);
 
-        if (
-          !cancelled &&
-          canShop &&
-          viewerProfileId &&
-          cuaHangId &&
-          next.length > 0
-        ) {
+        if (!cancelled && canShop && viewerProfileId && next.length > 0) {
           try {
-            const gRes = await fetch(
-              `/api/shop/gio?cuaHangId=${encodeURIComponent(cuaHangId)}`,
-              { cache: "no-store" },
-            );
+            const gRes = await fetch("/api/shop/gio-chung", {
+              cache: "no-store",
+            });
             const gJson = (await gRes.json().catch(() => null)) as {
-              gio?: ShopGio;
+              gio?: ShopGioChung;
             } | null;
             if (gRes.ok && gJson?.gio && !cancelled) {
               applyGio(gJson.gio);
@@ -628,7 +609,15 @@ export function JourneyShopStorefront({
     return () => {
       cancelled = true;
     };
-  }, [ownerSlug, canShop, viewerProfileId, cuaHangId, applyGio]);
+  }, [ownerSlug, canShop, viewerProfileId, applyGio]);
+
+  /* Đồng bộ khi giỏ chung đổi từ nơi khác (panel topbar…). */
+  useEffect(() => {
+    if (!canShop || !viewerProfileId) return;
+    const onChanged = () => void refreshGio();
+    window.addEventListener(GIO_CHUNG_CHANGED_EVENT, onChanged);
+    return () => window.removeEventListener(GIO_CHUNG_CHANGED_EVENT, onChanged);
+  }, [canShop, viewerProfileId, refreshGio]);
 
   const qtyByBienThe = useMemo(() => {
     const map = new Map<string, number>();
@@ -641,11 +630,9 @@ export function JourneyShopStorefront({
     [cartLines],
   );
 
-  const hangItems = useMemo(() => toHangItems(items ?? []), [items]);
-
   const patchQty = useCallback(
     (item: ShopStorefrontItem, soLuong: number) => {
-      if (!canShop || !cuaHangId) return;
+      if (!canShop) return;
       if (!viewerProfileId) {
         openAuthModal("Đăng nhập để thêm vào giỏ.");
         return;
@@ -662,34 +649,18 @@ export function JourneyShopStorefront({
       setCartLines((prev) => {
         const without = prev.filter((l) => l.idBienThe !== idBienThe);
         if (capped <= 0) return without;
-        return [
-          ...without,
-          {
-            idBienThe,
-            soLuong: capped,
-            tenSanPham: item.tenSanPham,
-            nhanBienThe: item.nhanBienThe ?? "Mặc định",
-            giaHienThi: item.giaHienThi ?? 0,
-            tienTe: item.tienTe,
-            anhUrl: item.anhUrl,
-            soLuongTon: item.soLuongTon,
-          },
-        ];
+        return [...without, { idBienThe, soLuong: capped }];
       });
 
       void (async () => {
         try {
-          const res = await fetch("/api/shop/gio", {
+          const res = await fetch("/api/shop/gio-chung", {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              cuaHangId,
-              idBienThe,
-              soLuong: capped,
-            }),
+            body: JSON.stringify({ idBienThe, soLuong: capped }),
           });
           const json = (await res.json().catch(() => null)) as {
-            gio?: ShopGio;
+            gio?: ShopGioChung;
             error?: string;
           } | null;
           if (!res.ok || !json?.gio) {
@@ -698,19 +669,13 @@ export function JourneyShopStorefront({
             return;
           }
           applyGio(json.gio);
+          window.dispatchEvent(new Event(GIO_CHUNG_CHANGED_EVENT));
         } catch {
           setCartErr("Không cập nhật giỏ.");
         }
       })();
     },
-    [
-      canShop,
-      cuaHangId,
-      viewerProfileId,
-      openAuthModal,
-      applyGio,
-      refreshGio,
-    ],
+    [canShop, viewerProfileId, openAuthModal, applyGio, refreshGio],
   );
 
   const openCartDialog = useCallback(() => {
@@ -718,7 +683,7 @@ export function JourneyShopStorefront({
       openAuthModal("Đăng nhập để xem giỏ.");
       return;
     }
-    setCartOpen(true);
+    window.dispatchEvent(new Event(GIO_CHUNG_OPEN_EVENT));
   }, [viewerProfileId, openAuthModal]);
 
   const filterOptions1 = useMemo(
@@ -838,9 +803,8 @@ export function JourneyShopStorefront({
           {canShop ? (
             <button
               type="button"
-              className={`j-shop-sf-cart-btn${cartCount > 0 ? " has-items" : ""}${cartOpen ? " is-open" : ""}`}
-              aria-expanded={cartOpen}
-              aria-label="Giỏ hàng"
+              className={`j-shop-sf-cart-btn${cartCount > 0 ? " has-items" : ""}`}
+              aria-label="Giỏ chờ mua"
               onClick={openCartDialog}
             >
               <ShoppingBag size={33} strokeWidth={2} aria-hidden />
@@ -856,25 +820,6 @@ export function JourneyShopStorefront({
         <p className="j-shop-sf-cart-err" role="alert">
           {cartErr}
         </p>
-      ) : null}
-
-      {canShop && cuaHangId ? (
-        <ShopKioskBlock
-          dialogOnly
-          open={cartOpen}
-          onOpenChange={(next) => {
-            setCartOpen(next);
-            if (!next) void refreshGio();
-          }}
-          initialTab="gio"
-          cuaHangId={cuaHangId}
-          hangItems={hangItems}
-          sellerUserId={ownerId}
-          viewerProfileId={viewerProfileId}
-          sellerAvatarUrl={shopAvatarUrl}
-          sellerName={shopName}
-          sellerSlug={ownerSlug}
-        />
       ) : null}
 
       {loading ? (

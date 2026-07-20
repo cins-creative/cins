@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { HaOrgUpCountdown } from "@/components/cins/home-adaptive/HaOrgUpCountdown";
@@ -44,7 +44,6 @@ import {
   type CoSoLopTimelinePin,
 } from "@/lib/to-chuc/co-so-timeline-lop";
 import { mocDateSortKey } from "@/lib/truong/timeline-moc";
-import { coSoKhoaHocDetailPath } from "@/lib/to-chuc/co-so-routes";
 import type { KhoaHocCardData } from "@/lib/to-chuc/khoa-hoc-types";
 import { currentCalendarYear } from "@/lib/truong/diem-chuan";
 import {
@@ -72,6 +71,8 @@ type Props = {
   isMobileShellActive?: boolean;
   /** Báo số mốc sắp tới lên cha (badge FAB) — không phụ thuộc `showPastSteps`. */
   onUpcomingCountChange?: (count: number) => void;
+  /** Mở chi tiết khóa trong shell (pushState) — tránh soft-nav 404. */
+  onOpenKhoa?: (khoaSlug: string) => void;
 };
 
 type StepRole = "past" | "current" | "next" | "default";
@@ -302,10 +303,10 @@ export function CoSoUpcomingSidebar({
   isMobileShell = false,
   isMobileShellActive = false,
   onUpcomingCountChange,
+  onOpenKhoa,
 }: Props) {
   const ctx = useTruongInlineEdit();
   const pathname = usePathname();
-  const router = useRouter();
   const isManaging = canManageKhoaHoc && (ctx?.isEditing ?? false);
 
   const [khoaList, setKhoaList] = useState<KhoaHocCardData[]>([]);
@@ -584,7 +585,7 @@ export function CoSoUpcomingSidebar({
       }
       setMocModal(null);
       setEditingKhoa(null);
-      router.push(coSoKhoaHocDetailPath(orgSlug, pin.khoaSlug));
+      onOpenKhoa?.(pin.khoaSlug);
       return;
     }
 

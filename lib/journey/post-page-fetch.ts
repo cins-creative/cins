@@ -150,7 +150,7 @@ async function fetchMilestoneSocial(
       .select("id", { count: "exact", head: true })
       .eq("loai_doi_tuong", "cot_moc")
       .eq("id_doi_tuong", milestoneId)
-      .eq("emoji", "heart"),
+      .neq("emoji", "dislike"),
     admin
       .from("social_reaction")
       .select("id", { count: "exact", head: true })
@@ -176,7 +176,7 @@ async function fetchMilestoneSocial(
           .eq("id_nguoi_dung", viewerId)
           .eq("loai_doi_tuong", "cot_moc")
           .eq("id_doi_tuong", milestoneId)
-          .eq("emoji", "heart")
+          .neq("emoji", "dislike")
           .maybeSingle()
           .then(({ data }) => Boolean(data))
       : Promise.resolve(false),

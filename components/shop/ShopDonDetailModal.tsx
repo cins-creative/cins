@@ -288,6 +288,23 @@ export function ShopDonDetailModal({
               </div>
             ) : null}
 
+            {don.bienLaiAnhUrl ? (
+              <div className="shop-don-detail-bill">
+                <span className="shop-don-detail-note-label">
+                  Biên lai chuyển khoản
+                </span>
+                <a
+                  href={don.bienLaiAnhUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="shop-don-detail-bill-link"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={don.bienLaiAnhUrl} alt="Biên lai chuyển khoản" />
+                </a>
+              </div>
+            ) : null}
+
             {err ? (
               <p className="shop-don-detail-err" role="alert">
                 {err}

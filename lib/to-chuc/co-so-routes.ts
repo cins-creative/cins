@@ -50,6 +50,23 @@ export type CoSoPathState = {
   suKienId: string | null;
 };
 
+/** Pathname từ state tab/deep-link — dùng với `history.pushState` trong shell. */
+export function coSoPathFromState(orgSlug: string, state: CoSoPathState): string {
+  if (state.khoaSlug) {
+    return coSoKhoaHocDetailPath(orgSlug, state.khoaSlug);
+  }
+  if (state.baiDangId) {
+    return coSoBaiDangPostPath(orgSlug, state.baiDangId);
+  }
+  if (state.jobId) {
+    return coSoJobPath(orgSlug, state.jobId);
+  }
+  if (state.suKienId) {
+    return coSoSuKienPath(orgSlug, state.suKienId);
+  }
+  return coSoTabPath(orgSlug, state.tab);
+}
+
 const DEFAULT_PATH_STATE: CoSoPathState = {
   tab: CO_SO_DEFAULT_TAB,
   khoaSlug: null,

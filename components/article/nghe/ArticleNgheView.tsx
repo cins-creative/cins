@@ -6,7 +6,6 @@ import type { MilestoneItem } from "@/components/journey/milestone-types";
 import type { TagAggSort, TagAggUser } from "@/lib/tag/aggregation-types";
 import { getVideoUrlFromArticleMeta } from "@/lib/articles/lead-video-url";
 import { resolveArticleThumbnailOnlySync } from "@/lib/bai-viet/thumbnail";
-import { ArticleJsonLd } from "@/components/article/ArticleJsonLd";
 import { ContributionTabPanel } from "@/components/article/contribution/ContributionTabPanel";
 import { EntityArticleAttribution } from "@/components/article/entity/EntityArticleAttribution";
 import { InlineArticleDraftBar } from "@/components/article/InlineArticleDraftBar";
@@ -17,6 +16,7 @@ import {
   NgheLeadInlineDraft,
 } from "@/components/article/nghe/NgheHeroLeadInlineDraft";
 import { NgheRolePeopleSection } from "@/components/article/nghe/NgheRolePeopleSection";
+import { NgheSeoJsonLd } from "@/components/article/nghe/NgheSeoJsonLd";
 import { NgheLayoutStatic } from "@/components/article/nghe/static/NgheLayoutStatic";
 import { ngheNghiepDetailHref } from "@/lib/cins/hubPaths";
 import {
@@ -115,7 +115,7 @@ export async function ArticleNgheView({
 
   return (
     <div className="article-page arv2 arv2-nghe">
-      <ArticleJsonLd article={article} slugPath={slugPath} />
+      <NgheSeoJsonLd article={article} slugPath={slugPath} />
       {showDraftBar ? (
         <NgheArticleDraftProvider
           article={article}

@@ -27,4 +27,16 @@ export const MAX_ROOM_RESOURCE_TAGS = 30;
 /** Số mốc timeline tối đa mỗi phòng. */
 export const MAX_ROOM_MOCS = 50;
 
+/** Số node tối đa trên một canvas (chặn board phình vô hạn). */
+export const MAX_CANVAS_NODES = 500;
+
+/** Độ dài tối đa nội dung sticky / nhãn frame trên canvas. */
+export const MAX_CANVAS_STICKY_LEN = 2000;
+
+/** Độ dài tối đa JSON bảng / nét vẽ (`contentKind` table|draw). */
+export const MAX_CANVAS_STRUCTURED_LEN = 48000;
+
+/** Số tin nhắn gần nhất quét để auto-import lên canvas. */
+export const CANVAS_SYNC_MESSAGE_LIMIT = 300;
+
 export const SOCIAL_LOAI_CHAT_TIN_NHAN = "chat_tin_nhan";

@@ -2411,6 +2411,32 @@
   height: 3px;
 }
 
+/* Dark: --neutral-800 đảo sáng → dải tháng thành nền sáng + chữ trắng = mất chữ.
+   Ép nền tối + chữ trắng (khớp .ha-org-up-date-month). */
+:root[data-theme="dark"] .world-journey-home .wj-feed-timeline .j-osk-date-month {
+  background: var(--neutral-0, #12151d);
+  color: #fff;
+}
+
+/* Dark: countdown trộn với `white` cứng → dải sáng chói trên card tối. */
+:root[data-theme="dark"]
+  .world-journey-home
+  .wj-feed-timeline
+  .j-osk-date-badge
+  .ha-org-up-countdown {
+  color: var(--ink3);
+  background: color-mix(in srgb, var(--neutral-50, #171b24) 88%, black);
+}
+
+:root[data-theme="dark"]
+  .world-journey-home
+  .wj-feed-timeline
+  .j-osk-date-badge
+  .ha-org-up-countdown--live {
+  color: var(--mint, #34d399);
+  background: color-mix(in srgb, var(--mint) 16%, transparent);
+}
+
 .world-journey-home .wj-feed-timeline .j-osk-hero-badges {
   position: absolute;
   top: 10px;

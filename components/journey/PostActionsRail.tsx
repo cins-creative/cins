@@ -1,7 +1,9 @@
 "use client";
 
 import { useOptionalAuthGate } from "@/components/auth/AuthGateProvider";
+import { JourneySocialActorsModal } from "@/components/journey/JourneySocialActorsModal";
 import { SharePostToFriendsPanel } from "@/components/social/SharePostToFriendsPanel";
+import { SOCIAL_LOAI_DOI_TUONG } from "@/lib/cong-dong/constants";
 import {
   Bookmark,
   BookmarkCheck,
@@ -311,7 +313,7 @@ export function PostShareMenu({
                 >
                   <MessageCircle size={14} strokeWidth={2} />
                 </span>
-                <span>Gửi bạn bè</span>
+                <span>Gửi bạn bè, nhóm, tổ chức</span>
               </button>
               {shareItems.map((item) =>
                 item.href ? (
@@ -399,6 +401,7 @@ export function PostActionsRail({
   const [commented, setCommented] = useState(initialCommented);
   const [likes, setLikes] = useState(likeCount);
   const [bookmarks, setBookmarks] = useState(bookmarkCount);
+  const [likeActorsOpen, setLikeActorsOpen] = useState(false);
   const [pending, startTransition] = useTransition();
 
   useEffect(() => {
@@ -561,13 +564,39 @@ export function PostActionsRail({
         />
         {showLabels ? <span className="post-byline-act-label">Thích</span> : null}
         {showCounts ? (
-          <span
-            className={
-              "post-byline-act-count" + (isVertical ? " post-byline-act-n" : "")
-            }
-          >
-            {likes}
-          </span>
+          likes > 0 ? (
+            <span
+              className={
+                "post-byline-act-count post-byline-act-count--actors" +
+                (isVertical ? " post-byline-act-n" : "")
+              }
+              role="button"
+              tabIndex={0}
+              aria-label="Xem người thích"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setLikeActorsOpen(true);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setLikeActorsOpen(true);
+                }
+              }}
+            >
+              {likes}
+            </span>
+          ) : (
+            <span
+              className={
+                "post-byline-act-count" + (isVertical ? " post-byline-act-n" : "")
+              }
+            >
+              {likes}
+            </span>
+          )
         ) : null}
       </button>
 
@@ -641,6 +670,14 @@ export function PostActionsRail({
           className={isVertical ? "post-byline-share-vertical" : ""}
         />
       )}
+
+      <JourneySocialActorsModal
+        open={likeActorsOpen}
+        onClose={() => setLikeActorsOpen(false)}
+        kind="like"
+        loaiDoiTuong={SOCIAL_LOAI_DOI_TUONG.COT_MOC}
+        idDoiTuong={milestoneId}
+      />
     </div>
   );
 }

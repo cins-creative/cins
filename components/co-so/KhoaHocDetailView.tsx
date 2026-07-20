@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 
 import { CoSoKhoaHocOrgFooter } from "@/components/co-so/CoSoKhoaHocOrgFooter";
@@ -1178,7 +1178,6 @@ export function KhoaHocDetailView({
   canManageKhoaHoc = false,
   onKhoaUpdated,
 }: Props) {
-  const router = useRouter();
   const chat = useCinsChatContext();
   const ctx = useTruongInlineEdit();
   const searchParams = useSearchParams();
@@ -1474,11 +1473,6 @@ export function KhoaHocDetailView({
     onKhoaUpdated?.(updated);
     notifyCoSoKhoaListChanged(orgId);
     setKhoaEditOpen(false);
-    if (updated.slug !== khoa.slug) {
-      router.replace(coSoKhoaHocDetailPath(orgSlug, updated.slug), {
-        scroll: false,
-      });
-    }
   }
 
   useEffect(() => {

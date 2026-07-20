@@ -14,6 +14,7 @@ import {
   Plus,
   Save,
   Star,
+  Tags,
   Trash2,
   X,
 } from "lucide-react";
@@ -72,14 +73,17 @@ export function ShopKhoClient() {
   const [uploading, setUploading] = useState(false);
   const [bangGiaId, setBangGiaId] = useState<string>("");
   const [saving, setSaving] = useState(false);
+  /** Lọc multi theo cột phân loại 1 / 2 (`__none__` = chưa gán). */
   const [filterLoai, setFilterLoai] = useState<string[]>([]);
+  const [filterLoai2, setFilterLoai2] = useState<string[]>([]);
   /** Sắp xếp theo tồn: none · còn nhiều trước · hết hàng trước. */
   const [sortTon, setSortTon] = useState<SortTon>("none");
   const [khoEditing, setKhoEditing] = useState(false);
   const [drafts, setDrafts] = useState<Record<string, RowDraft>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
   const [thumbMenuKey, setThumbMenuKey] = useState<string | null>(null);
-  const [filterMenuOpen, setFilterMenuOpen] = useState(false);
+  /** Popup lọc trên header cột: 1 | 2 | đóng. */
+  const [filterMenuOpen, setFilterMenuOpen] = useState<1 | 2 | null>(null);
   const [bangGiaMenuOpen, setBangGiaMenuOpen] = useState(false);
   const [renamingBangId, setRenamingBangId] = useState<string | null>(null);
   const [renameBangDraft, setRenameBangDraft] = useState("");
@@ -106,9 +110,14 @@ export function ShopKhoClient() {
     SHOP_NHAN_PHAN_LOAI_2_DEFAULT,
   );
   const [savingNhanLoai, setSavingNhanLoai] = useState(false);
-  /** Loại hàng (truc=1) — quản lý tên + mô tả ngắn. */
+  /** Nhóm thẻ phân loại (truc 1 / 2) — tên + mô tả ngắn. */
   const [nhoms, setNhoms] = useState<ShopNhom[]>([]);
-  const [nhomPanelOpen, setNhomPanelOpen] = useState(false);
+  /** Popup thẻ phân loại: null = đóng; 1|2 = tab đang mở. */
+  const [nhomPanelTruc, setNhomPanelTruc] = useState<1 | 2 | null>(null);
+  /** Nhóm đang xổ mô tả ngắn trong popup (null = chỉ hiện tên). */
+  const [expandedNhomId, setExpandedNhomId] = useState<string | null>(null);
+  /** Đang thêm dòng mới (chưa lưu API). */
+  const [draftingNhom, setDraftingNhom] = useState(false);
   const [newNhomNhan, setNewNhomNhan] = useState("");
   const [newNhomMoTa, setNewNhomMoTa] = useState("");
   const [creatingNhom, setCreatingNhom] = useState(false);
@@ -210,7 +219,7 @@ export function ShopKhoClient() {
         fetch("/api/shop/san-pham", { cache: "no-store" }),
         fetch("/api/shop/bang-gia", { cache: "no-store" }),
         fetch("/api/shop/cua-hang", { cache: "no-store" }),
-        fetch("/api/shop/nhom?truc=1", { cache: "no-store" }),
+        fetch("/api/shop/nhom", { cache: "no-store" }),
       ]);
       setEnabled(status.enabled);
       if (!status.enabled) return;
@@ -312,9 +321,28 @@ export function ShopKhoClient() {
     void load();
   }, [load]);
 
+  useEffect(() => {
+    if (nhomPanelTruc == null) return;
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") closeNhomPanel();
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [nhomPanelTruc]);
+
+  /** Nhóm theo trục — nguồn danh sách cho mỗi tab thẻ phân loại. */
+  const nhomsByTruc = useMemo(
+    () => ({
+      1: nhoms.filter((n) => n.truc === 1),
+      2: nhoms.filter((n) => n.truc === 2),
+    }),
+    [nhoms],
+  );
+
   const categoryOptions = useMemo(() => {
     const set = new Set<string>();
     for (const n of nhoms) {
+      if (n.truc !== 1) continue;
       const t = n.nhan?.trim();
       if (t) set.add(t);
     }
@@ -327,12 +355,17 @@ export function ShopKhoClient() {
 
   const categoryOptions2 = useMemo(() => {
     const set = new Set<string>();
+    for (const n of nhoms) {
+      if (n.truc !== 2) continue;
+      const t = n.nhan?.trim();
+      if (t) set.add(t);
+    }
     for (const p of products) {
       const t = p.phanLoai2?.trim();
       if (t) set.add(t);
     }
     return [...set].sort((a, b) => a.localeCompare(b, "vi"));
-  }, [products]);
+  }, [products, nhoms]);
 
   const saveNhomMoTa = useCallback(
     async (nhomId: string) => {
@@ -375,72 +408,91 @@ export function ShopKhoClient() {
     [nhoms, nhomMoTaDrafts],
   );
 
-  const createLoaiHang = useCallback(async () => {
-    const nhan = newNhomNhan.trim();
-    if (!nhan) {
-      setErr(`Nhập tên ${nhanPhanLoai.toLowerCase()}.`);
-      return;
-    }
-    setCreatingNhom(true);
-    setErr(null);
-    try {
-      const res = await fetch("/api/shop/nhom", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          truc: 1,
-          nhan,
-          moTa: newNhomMoTa.trim() || null,
-        }),
-      });
-      const json = (await res.json().catch(() => null)) as {
-        item?: ShopNhom;
-        error?: string;
-      } | null;
-      if (!res.ok || !json?.item) {
-        setErr(json?.error ?? "Không tạo được loại hàng.");
-        return;
+  const createLoaiHang = useCallback(
+    async (truc: 1 | 2) => {
+      const nhan = newNhomNhan.trim();
+      const label = truc === 1 ? nhanPhanLoai : nhanPhanLoai2;
+      if (!nhan) {
+        setErr(`Nhập tên ${label.toLowerCase()}.`);
+        return false;
       }
-      const item = json.item;
-      setNhoms((prev) => {
-        const without = prev.filter((n) => n.id !== item.id);
-        return [...without, item].sort((a, b) =>
-          a.nhan.localeCompare(b.nhan, "vi"),
-        );
-      });
-      setNhomMoTaDrafts((d) => ({ ...d, [item.id]: item.moTa ?? "" }));
-      setNewNhomNhan("");
-      setNewNhomMoTa("");
-      setNhomPanelOpen(true);
-    } catch {
-      setErr("Không tạo được loại hàng.");
-    } finally {
-      setCreatingNhom(false);
-    }
-  }, [newNhomNhan, newNhomMoTa, nhanPhanLoai]);
+      setCreatingNhom(true);
+      setErr(null);
+      try {
+        const res = await fetch("/api/shop/nhom", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            truc,
+            nhan,
+            moTa: newNhomMoTa.trim() || null,
+          }),
+        });
+        const json = (await res.json().catch(() => null)) as {
+          item?: ShopNhom;
+          error?: string;
+        } | null;
+        if (!res.ok || !json?.item) {
+          setErr(json?.error ?? "Không tạo được loại hàng.");
+          return false;
+        }
+        const item = json.item;
+        setNhoms((prev) => {
+          const without = prev.filter((n) => n.id !== item.id);
+          return [...without, item].sort((a, b) =>
+            a.nhan.localeCompare(b.nhan, "vi"),
+          );
+        });
+        setNhomMoTaDrafts((d) => ({ ...d, [item.id]: item.moTa ?? "" }));
+        setNewNhomNhan("");
+        setNewNhomMoTa("");
+        setDraftingNhom(false);
+        setExpandedNhomId(item.id);
+        setNhomPanelTruc(truc);
+        return true;
+      } catch {
+        setErr("Không tạo được loại hàng.");
+        return false;
+      } finally {
+        setCreatingNhom(false);
+      }
+    },
+    [newNhomNhan, newNhomMoTa, nhanPhanLoai, nhanPhanLoai2],
+  );
 
   const hasUncategorized = useMemo(
     () => products.some((p) => !p.phanLoai?.trim()),
     [products],
   );
 
-  /** Tất cả + loại + (Chưa phân loại) — >7 thẻ → dropdown. */
-  const filterChipCount =
-    1 + categoryOptions.length + (hasUncategorized ? 1 : 0);
-  const useFilterDropdown = filterChipCount > 7;
+  const hasUncategorized2 = useMemo(
+    () => products.some((p) => !p.phanLoai2?.trim()),
+    [products],
+  );
 
   const filteredProducts = useMemo(() => {
-    let list: ShopSanPham[];
-    if (filterLoai.length === 0) {
-      list = products;
-    } else {
-      const selected = new Set(filterLoai);
-      list = products.filter((p) => {
+    const selected1 = filterLoai.length > 0 ? new Set(filterLoai) : null;
+    const selected2 = filterLoai2.length > 0 ? new Set(filterLoai2) : null;
+
+    const list = products.filter((p) => {
+      if (selected1) {
         const loai = p.phanLoai?.trim();
-        if (!loai) return selected.has("__none__");
-        return selected.has(loai);
-      });
-    }
+        if (!loai) {
+          if (!selected1.has("__none__")) return false;
+        } else if (!selected1.has(loai)) {
+          return false;
+        }
+      }
+      if (selected2) {
+        const loai2 = p.phanLoai2?.trim();
+        if (!loai2) {
+          if (!selected2.has("__none__")) return false;
+        } else if (!selected2.has(loai2)) {
+          return false;
+        }
+      }
+      return true;
+    });
 
     const dangBanOf = (p: ShopSanPham): boolean => {
       const draft = drafts[p.id];
@@ -467,7 +519,7 @@ export function ShopKhoClient() {
       const diff = tonOf(a) - tonOf(b);
       return sortTon === "het" ? diff : -diff;
     });
-  }, [products, filterLoai, sortTon, drafts]);
+  }, [products, filterLoai, filterLoai2, sortTon, drafts]);
 
   useEffect(() => {
     setSelectedIds((prev) => {
@@ -535,36 +587,77 @@ export function ShopKhoClient() {
     lastSelectIndexRef.current = null;
   }, []);
 
-  function toggleFilterLoai(key: string) {
+  /** Mở popup thẻ phân loại (tab mặc định = phân loại 1). */
+  function openNhomPanel() {
+    setNewNhomNhan("");
+    setNewNhomMoTa("");
+    setNhanPhanLoaiDraft(nhanPhanLoai);
+    setNhanPhanLoai2Draft(nhanPhanLoai2);
+    setNhomPanelTruc(1);
+  }
+
+  function closeNhomPanel() {
+    setNhomPanelTruc(null);
+    setExpandedNhomId(null);
+    setDraftingNhom(false);
+    setNewNhomNhan("");
+    setNewNhomMoTa("");
+  }
+
+  function selectNhomPanelTab(truc: 1 | 2) {
+    if (truc === nhomPanelTruc) return;
+    if (nhomPanelTruc != null) void saveNhanPhanLoai(nhomPanelTruc);
+    setExpandedNhomId(null);
+    setDraftingNhom(false);
+    setNewNhomNhan("");
+    setNewNhomMoTa("");
+    setNhomPanelTruc(truc);
+  }
+
+  function startDraftNhom() {
+    if (creatingNhom) return;
+    setExpandedNhomId(null);
+    setNewNhomNhan("");
+    setNewNhomMoTa("");
+    setDraftingNhom(true);
+  }
+
+  function cancelDraftNhom() {
+    if (creatingNhom) return;
+    setDraftingNhom(false);
+    setNewNhomNhan("");
+    setNewNhomMoTa("");
+  }
+
+  function toggleFilterLoai(truc: 1 | 2, key: string) {
+    const setFilter = truc === 1 ? setFilterLoai : setFilterLoai2;
     if (key === "all") {
-      setFilterLoai([]);
+      setFilter([]);
       return;
     }
-    setFilterLoai((prev) => {
+    setFilter((prev) => {
       if (prev.includes(key)) return prev.filter((x) => x !== key);
       return [...prev, key];
     });
   }
 
-  function filterLoaiLabel(): string {
-    if (filterLoai.length === 0) return `Tất cả ${nhanPhanLoai.toLowerCase()}`;
-    const labels = filterLoai.map((k) =>
-      k === "__none__" ? `Chưa có ${nhanPhanLoai.toLowerCase()}` : k,
-    );
-    if (labels.length <= 2) return labels.join(", ");
-    return `Đã chọn ${labels.length} loại`;
-  }
-
   useEffect(() => {
-    if (!filterMenuOpen) return;
+    if (filterMenuOpen == null) return;
     function onPointerDown(e: PointerEvent) {
       const t = e.target;
       if (!(t instanceof Element)) return;
       if (t.closest("[data-shop-filter-menu]")) return;
-      setFilterMenuOpen(false);
+      setFilterMenuOpen(null);
+    }
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setFilterMenuOpen(null);
     }
     document.addEventListener("pointerdown", onPointerDown);
-    return () => document.removeEventListener("pointerdown", onPointerDown);
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("keydown", onKeyDown);
+    };
   }, [filterMenuOpen]);
 
   useEffect(() => {
@@ -1475,6 +1568,103 @@ export function ShopKhoClient() {
     }
   }
 
+  function renderLoaiColHeader(truc: 1 | 2) {
+    const label = truc === 1 ? nhanPhanLoai : nhanPhanLoai2;
+    const draft = truc === 1 ? nhanPhanLoaiDraft : nhanPhanLoai2Draft;
+    const setDraft =
+      truc === 1 ? setNhanPhanLoaiDraft : setNhanPhanLoai2Draft;
+    const placeholder =
+      truc === 1
+        ? SHOP_NHAN_PHAN_LOAI_DEFAULT
+        : SHOP_NHAN_PHAN_LOAI_2_DEFAULT;
+    const options = truc === 1 ? categoryOptions : categoryOptions2;
+    const selected = truc === 1 ? filterLoai : filterLoai2;
+    const hasNone = truc === 1 ? hasUncategorized : hasUncategorized2;
+    const open = filterMenuOpen === truc;
+    const renameAria =
+      truc === 1 ? "Đổi tên cột phân loại" : "Đổi tên cột phân loại 2";
+
+    return (
+      <th scope="col" className="shop-grid-col-loai">
+        <div className="shop-grid-col-filter" data-shop-filter-menu>
+          {khoEditing ? (
+            <input
+              className="shop-grid-col-rename"
+              value={draft}
+              maxLength={40}
+              disabled={savingNhanLoai}
+              aria-label={renameAria}
+              title="Đổi tên cột này"
+              placeholder={placeholder}
+              onChange={(e) => setDraft(e.target.value)}
+              onBlur={() => void saveNhanPhanLoai(truc)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  (e.target as HTMLInputElement).blur();
+                }
+              }}
+            />
+          ) : null}
+          <button
+            type="button"
+            className={`shop-grid-filter-btn${selected.length > 0 ? " is-active" : ""}${open ? " is-open" : ""}${khoEditing ? " is-icon" : ""}`}
+            aria-expanded={open}
+            aria-haspopup="listbox"
+            aria-label={`Lọc theo ${label.toLowerCase()}`}
+            title={`Lọc theo ${label.toLowerCase()}`}
+            onClick={() =>
+              setFilterMenuOpen((cur) => (cur === truc ? null : truc))
+            }
+          >
+            {!khoEditing ? <span>{label}</span> : null}
+            <ChevronDown size={13} strokeWidth={2.25} aria-hidden />
+            {selected.length > 0 ? (
+              <span className="shop-grid-filter-count">{selected.length}</span>
+            ) : null}
+          </button>
+          {open ? (
+            <div
+              className="shop-filter-dropdown-panel shop-grid-filter-panel"
+              role="listbox"
+              aria-multiselectable
+              aria-label={`Chọn ${label.toLowerCase()}`}
+            >
+              <label className="shop-filter-dropdown-opt">
+                <input
+                  type="checkbox"
+                  checked={selected.length === 0}
+                  onChange={() => toggleFilterLoai(truc, "all")}
+                />
+                <span>Tất cả</span>
+              </label>
+              {options.map((c) => (
+                <label key={c} className="shop-filter-dropdown-opt">
+                  <input
+                    type="checkbox"
+                    checked={selected.includes(c)}
+                    onChange={() => toggleFilterLoai(truc, c)}
+                  />
+                  <span>{c}</span>
+                </label>
+              ))}
+              {hasNone ? (
+                <label className="shop-filter-dropdown-opt">
+                  <input
+                    type="checkbox"
+                    checked={selected.includes("__none__")}
+                    onChange={() => toggleFilterLoai(truc, "__none__")}
+                  />
+                  <span>Chưa có {label.toLowerCase()}</span>
+                </label>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+      </th>
+    );
+  }
+
   if (loading) {
     return (
       <div className="shop-dash">
@@ -1512,8 +1702,67 @@ export function ShopKhoClient() {
             <h2>
               Kho hàng (
               {filteredProducts.length}
-              {filterLoai.length > 0 ? ` / ${products.length}` : ""})
+              {filterLoai.length > 0 || filterLoai2.length > 0
+                ? ` / ${products.length}`
+                : ""}
+              )
             </h2>
+          </div>
+          {khoEditing && selectedIds.length > 0 ? (
+            <div
+              className="shop-kho-bulk"
+              role="toolbar"
+              aria-label="Sửa hàng loạt"
+            >
+              <span className="shop-kho-bulk-count">
+                Đã chọn <strong>{selectedIds.length}</strong>
+              </span>
+              {(() => {
+                const source = lastEditedId
+                  ? products.find((p) => p.id === lastEditedId)
+                  : null;
+                const changed = source ? getChangedDraftPatch(source) : null;
+                if (!source || !changed) {
+                  return (
+                    <span className="shop-kho-bulk-hint">
+                      Sửa một dòng → chọn dòng khác → bấm Áp dụng trên ô đã sửa
+                    </span>
+                  );
+                }
+                const tenHien =
+                  getDraft(source).ten.trim() || source.ten || "…";
+                return (
+                  <span className="shop-kho-bulk-hint">
+                    Theo «{tenHien}»: {describeChangedFields(changed)} — bấm
+                    Áp dụng trên ô cam
+                  </span>
+                );
+              })()}
+              <button
+                type="button"
+                className="shop-don-bulk-btn"
+                disabled={bulkApplying || deleting}
+                onClick={() => {
+                  const items = products
+                    .filter((p) => selectedIdSet.has(p.id))
+                    .map((p) => ({ id: p.id, ten: p.ten }));
+                  if (items.length > 0) setDeleteTargets(items);
+                }}
+              >
+                <Trash2 size={14} strokeWidth={2} aria-hidden />
+                Xóa
+              </button>
+              <button
+                type="button"
+                className="shop-don-bulk-btn"
+                disabled={bulkApplying}
+                onClick={clearSelection}
+              >
+                Bỏ chọn
+              </button>
+            </div>
+          ) : null}
+          <div className="shop-kho-toolbar">
             <div className="shop-kho-bang-gia" role="group" aria-label="Bảng giá">
               <div
                 className="shop-kho-bang-gia-dropdown"
@@ -1693,152 +1942,6 @@ export function ShopKhoClient() {
                 </span>
               ) : null}
             </div>
-          </div>
-          {khoEditing && selectedIds.length > 0 ? (
-            <div
-              className="shop-kho-bulk"
-              role="toolbar"
-              aria-label="Sửa hàng loạt"
-            >
-              <span className="shop-kho-bulk-count">
-                Đã chọn <strong>{selectedIds.length}</strong>
-              </span>
-              {(() => {
-                const source = lastEditedId
-                  ? products.find((p) => p.id === lastEditedId)
-                  : null;
-                const changed = source ? getChangedDraftPatch(source) : null;
-                if (!source || !changed) {
-                  return (
-                    <span className="shop-kho-bulk-hint">
-                      Sửa một dòng → chọn dòng khác → bấm Áp dụng trên ô đã sửa
-                    </span>
-                  );
-                }
-                const tenHien =
-                  getDraft(source).ten.trim() || source.ten || "…";
-                return (
-                  <span className="shop-kho-bulk-hint">
-                    Theo «{tenHien}»: {describeChangedFields(changed)} — bấm
-                    Áp dụng trên ô cam
-                  </span>
-                );
-              })()}
-              <button
-                type="button"
-                className="shop-don-bulk-btn"
-                disabled={bulkApplying || deleting}
-                onClick={() => {
-                  const items = products
-                    .filter((p) => selectedIdSet.has(p.id))
-                    .map((p) => ({ id: p.id, ten: p.ten }));
-                  if (items.length > 0) setDeleteTargets(items);
-                }}
-              >
-                <Trash2 size={14} strokeWidth={2} aria-hidden />
-                Xóa
-              </button>
-              <button
-                type="button"
-                className="shop-don-bulk-btn"
-                disabled={bulkApplying}
-                onClick={clearSelection}
-              >
-                Bỏ chọn
-              </button>
-            </div>
-          ) : null}
-          <div className="shop-kho-toolbar">
-            {filterChipCount > 1 ? (
-              useFilterDropdown ? (
-                <div className="shop-filter-dropdown" data-shop-filter-menu>
-                  <button
-                    type="button"
-                    className={`shop-filter-dropdown-trigger${filterLoai.length > 0 ? " is-active" : ""}${filterMenuOpen ? " is-open" : ""}`}
-                    aria-expanded={filterMenuOpen}
-                    aria-haspopup="listbox"
-                    aria-label={`Lọc theo ${nhanPhanLoai.toLowerCase()}`}
-                    onClick={() => setFilterMenuOpen((o) => !o)}
-                  >
-                    <span>{filterLoaiLabel()}</span>
-                    <ChevronDown size={15} strokeWidth={2.25} aria-hidden />
-                  </button>
-                  {filterMenuOpen ? (
-                    <div
-                      className="shop-filter-dropdown-panel"
-                      role="listbox"
-                      aria-multiselectable
-                      aria-label={`Chọn ${nhanPhanLoai.toLowerCase()}`}
-                    >
-                      <label className="shop-filter-dropdown-opt">
-                        <input
-                          type="checkbox"
-                          checked={filterLoai.length === 0}
-                          onChange={() => toggleFilterLoai("all")}
-                        />
-                        <span>Tất cả</span>
-                      </label>
-                      {categoryOptions.map((c) => (
-                        <label key={c} className="shop-filter-dropdown-opt">
-                          <input
-                            type="checkbox"
-                            checked={filterLoai.includes(c)}
-                            onChange={() => toggleFilterLoai(c)}
-                          />
-                          <span>{c}</span>
-                        </label>
-                      ))}
-                      {hasUncategorized ? (
-                        <label className="shop-filter-dropdown-opt">
-                          <input
-                            type="checkbox"
-                            checked={filterLoai.includes("__none__")}
-                            onChange={() => toggleFilterLoai("__none__")}
-                          />
-                          <span>Chưa có {nhanPhanLoai.toLowerCase()}</span>
-                        </label>
-                      ) : null}
-                    </div>
-                  ) : null}
-                </div>
-              ) : (
-                <div
-                  className="shop-filter-chips"
-                  role="group"
-                  aria-label={`Lọc theo ${nhanPhanLoai.toLowerCase()}`}
-                >
-                  <button
-                    type="button"
-                    className={`shop-filter-chip${filterLoai.length === 0 ? " is-active" : ""}`}
-                    aria-pressed={filterLoai.length === 0}
-                    onClick={() => toggleFilterLoai("all")}
-                  >
-                    Tất cả
-                  </button>
-                  {categoryOptions.map((c) => (
-                    <button
-                      key={c}
-                      type="button"
-                      className={`shop-filter-chip${filterLoai.includes(c) ? " is-active" : ""}`}
-                      aria-pressed={filterLoai.includes(c)}
-                      onClick={() => toggleFilterLoai(c)}
-                    >
-                      {c}
-                    </button>
-                  ))}
-                  {hasUncategorized ? (
-                    <button
-                      type="button"
-                      className={`shop-filter-chip${filterLoai.includes("__none__") ? " is-active" : ""}`}
-                      aria-pressed={filterLoai.includes("__none__")}
-                      onClick={() => toggleFilterLoai("__none__")}
-                    >
-                      Chưa có {nhanPhanLoai.toLowerCase()}
-                    </button>
-                  ) : null}
-                </div>
-              )
-            ) : null}
             <div className="shop-kho-toolbar-actions">
               {khoEditing ? (
                 <>
@@ -1881,15 +1984,21 @@ export function ShopKhoClient() {
               ) : null}
               <button
                 type="button"
-                className={`shop-dash-kho-edit-btn${nhomPanelOpen ? " is-active" : ""}`}
-                aria-pressed={nhomPanelOpen}
-                onClick={() => setNhomPanelOpen((o) => !o)}
+                className={`shop-dash-kho-edit-btn${nhomPanelTruc != null ? " is-active" : ""}`}
+                aria-pressed={nhomPanelTruc != null}
+                aria-haspopup="dialog"
+                title="Quản lý thẻ phân loại — đặt tên nhóm và mô tả ngắn"
+                onClick={() => {
+                  if (nhomPanelTruc != null) closeNhomPanel();
+                  else openNhomPanel();
+                }}
               >
-                {nhanPhanLoai}
+                <Tags size={15} strokeWidth={2} aria-hidden />
+                Thẻ phân loại
               </button>
               <button
                 type="button"
-                className={`shop-dash-kho-edit-btn${khoEditing ? " is-active" : ""}`}
+                className={`shop-dash-kho-edit-btn shop-dash-kho-edit-btn--primary${khoEditing ? " is-active" : ""}`}
                 aria-pressed={khoEditing}
                 disabled={exitingSave}
                 onClick={() => {
@@ -1912,80 +2021,6 @@ export function ShopKhoClient() {
             </div>
           </div>
         </div>
-
-        {nhomPanelOpen ? (
-          <div className="shop-kho-nhom-panel" aria-label={`Quản lý ${nhanPhanLoai.toLowerCase()}`}>
-            <p className="shop-kho-nhom-lead">
-              Tạo {nhanPhanLoai.toLowerCase()} và mô tả ngắn — hiện dưới tiêu đề
-              nhóm trên trang shop. Gán vào sản phẩm ở cột bảng bên dưới.
-            </p>
-            {nhoms.length > 0 ? (
-              <ul className="shop-kho-nhom-list">
-                {nhoms.map((n) => (
-                  <li key={n.id} className="shop-kho-nhom-row">
-                    <div className="shop-kho-nhom-name">{n.nhan}</div>
-                    <ShopNhomMoTaField
-                      value={nhomMoTaDrafts[n.id] ?? ""}
-                      disabled={savingNhomId === n.id}
-                      aria-label={`Mô tả ${n.nhan}`}
-                      onChange={(next) =>
-                        setNhomMoTaDrafts((d) => ({
-                          ...d,
-                          [n.id]: next,
-                        }))
-                      }
-                      onBlur={() => void saveNhomMoTa(n.id)}
-                    />
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="shop-kho-nhom-empty">
-                Chưa có {nhanPhanLoai.toLowerCase()}. Thêm bên dưới hoặc gõ
-                tên mới khi sửa cột sản phẩm.
-              </p>
-            )}
-            <form
-              className="shop-kho-nhom-create"
-              onSubmit={(e) => {
-                e.preventDefault();
-                void createLoaiHang();
-              }}
-            >
-              <input
-                type="text"
-                className="shop-kho-nhom-create-nhan"
-                value={newNhomNhan}
-                maxLength={40}
-                placeholder={`Tên ${nhanPhanLoai.toLowerCase()}`}
-                aria-label={`Tên ${nhanPhanLoai.toLowerCase()} mới`}
-                disabled={creatingNhom}
-                onChange={(e) => setNewNhomNhan(e.target.value)}
-              />
-              <ShopNhomMoTaField
-                className="shop-kho-nhom-create-mota-wrap"
-                value={newNhomMoTa}
-                disabled={creatingNhom}
-                placeholder="Mô tả ngắn (tuỳ chọn)"
-                aria-label="Mô tả ngắn loại hàng mới"
-                rows={2}
-                onChange={setNewNhomMoTa}
-              />
-              <button
-                type="submit"
-                className="shop-kho-nhom-create-btn"
-                disabled={creatingNhom || !newNhomNhan.trim()}
-              >
-                {creatingNhom ? (
-                  <Loader2 size={14} className="shop-spin" aria-hidden />
-                ) : (
-                  <Plus size={14} strokeWidth={2.25} aria-hidden />
-                )}
-                Thêm {nhanPhanLoai.toLowerCase()}
-              </button>
-            </form>
-          </div>
-        ) : null}
 
         <div className="shop-grid-wrap">
           <table className={`shop-grid${khoEditing ? "" : " shop-grid--readonly"}`}>
@@ -2023,52 +2058,8 @@ export function ShopKhoClient() {
                     </span>
                   </span>
                 </th>
-                <th scope="col" className="shop-grid-col-loai">
-                  {khoEditing ? (
-                    <input
-                      className="shop-grid-col-rename"
-                      value={nhanPhanLoaiDraft}
-                      maxLength={40}
-                      disabled={savingNhanLoai}
-                      aria-label="Đổi tên cột phân loại"
-                      title="Đổi tên cột này"
-                      placeholder={SHOP_NHAN_PHAN_LOAI_DEFAULT}
-                      onChange={(e) => setNhanPhanLoaiDraft(e.target.value)}
-                      onBlur={() => void saveNhanPhanLoai(1)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          (e.target as HTMLInputElement).blur();
-                        }
-                      }}
-                    />
-                  ) : (
-                    nhanPhanLoai
-                  )}
-                </th>
-                <th scope="col" className="shop-grid-col-loai">
-                  {khoEditing ? (
-                    <input
-                      className="shop-grid-col-rename"
-                      value={nhanPhanLoai2Draft}
-                      maxLength={40}
-                      disabled={savingNhanLoai}
-                      aria-label="Đổi tên cột phân loại 2"
-                      title="Đổi tên cột này"
-                      placeholder={SHOP_NHAN_PHAN_LOAI_2_DEFAULT}
-                      onChange={(e) => setNhanPhanLoai2Draft(e.target.value)}
-                      onBlur={() => void saveNhanPhanLoai(2)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          (e.target as HTMLInputElement).blur();
-                        }
-                      }}
-                    />
-                  ) : (
-                    nhanPhanLoai2
-                  )}
-                </th>
+                {renderLoaiColHeader(1)}
+                {renderLoaiColHeader(2)}
                 <th scope="col" className="shop-grid-col-ton">
                   <button
                     type="button"
@@ -2749,6 +2740,256 @@ export function ShopKhoClient() {
           </table>
         </div>
       </section>
+
+      {nhomPanelTruc != null && typeof document !== "undefined"
+        ? createPortal(
+            (() => {
+              const truc = nhomPanelTruc;
+              const label = truc === 1 ? nhanPhanLoai : nhanPhanLoai2;
+              const list = nhomsByTruc[truc];
+              const renameDraft =
+                truc === 1 ? nhanPhanLoaiDraft : nhanPhanLoai2Draft;
+              const renamePlaceholder =
+                truc === 1
+                  ? SHOP_NHAN_PHAN_LOAI_DEFAULT
+                  : SHOP_NHAN_PHAN_LOAI_2_DEFAULT;
+              return (
+                <div
+                  className="shop-kho-nhom-backdrop"
+                  role="presentation"
+                  onMouseDown={(e) => {
+                    if (e.target === e.currentTarget) closeNhomPanel();
+                  }}
+                >
+                  <div
+                    className="shop-kho-nhom-dialog"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="shop-kho-nhom-title"
+                    onMouseDown={(e) => e.stopPropagation()}
+                  >
+                    <header className="shop-kho-nhom-dialog-head">
+                      <h3 id="shop-kho-nhom-title">Thẻ phân loại</h3>
+                      <button
+                        type="button"
+                        className="shop-kho-nhom-dialog-close"
+                        aria-label="Đóng"
+                        onClick={closeNhomPanel}
+                      >
+                        <X size={16} strokeWidth={2} aria-hidden />
+                      </button>
+                    </header>
+
+                    <div
+                      className="shop-kho-nhom-tabs"
+                      role="tablist"
+                      aria-label="Chọn thẻ phân loại"
+                    >
+                      <button
+                        type="button"
+                        role="tab"
+                        id="shop-kho-nhom-tab-1"
+                        aria-controls="shop-kho-nhom-panel"
+                        aria-selected={truc === 1}
+                        className={`shop-kho-nhom-tab${truc === 1 ? " is-active" : ""}`}
+                        onClick={() => selectNhomPanelTab(1)}
+                      >
+                        {nhanPhanLoai}
+                      </button>
+                      <button
+                        type="button"
+                        role="tab"
+                        id="shop-kho-nhom-tab-2"
+                        aria-controls="shop-kho-nhom-panel"
+                        aria-selected={truc === 2}
+                        className={`shop-kho-nhom-tab${truc === 2 ? " is-active" : ""}`}
+                        onClick={() => selectNhomPanelTab(2)}
+                      >
+                        {nhanPhanLoai2}
+                      </button>
+                    </div>
+
+                    <div
+                      className="shop-kho-nhom-panel"
+                      role="tabpanel"
+                      id="shop-kho-nhom-panel"
+                      aria-labelledby={`shop-kho-nhom-tab-${truc}`}
+                    >
+                      <label className="shop-kho-nhom-rename">
+                        <span className="shop-kho-nhom-rename-label">
+                          Đổi tên thẻ
+                        </span>
+                        <input
+                          type="text"
+                          className="shop-kho-nhom-rename-input"
+                          value={renameDraft}
+                          maxLength={40}
+                          disabled={savingNhanLoai}
+                          placeholder={renamePlaceholder}
+                          aria-label={`Đổi tên thẻ ${label}`}
+                          onChange={(e) => {
+                            if (truc === 1) setNhanPhanLoaiDraft(e.target.value);
+                            else setNhanPhanLoai2Draft(e.target.value);
+                          }}
+                          onBlur={() => void saveNhanPhanLoai(truc)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              (e.target as HTMLInputElement).blur();
+                            }
+                          }}
+                        />
+                      </label>
+
+                      {list.length > 0 || draftingNhom ? (
+                        <ul className="shop-kho-nhom-list">
+                          {draftingNhom ? (
+                            <li className="shop-kho-nhom-row is-open is-draft">
+                              <div className="shop-kho-nhom-row-toggle is-static">
+                                <input
+                                  type="text"
+                                  className="shop-kho-nhom-name-input"
+                                  value={newNhomNhan}
+                                  maxLength={40}
+                                  autoFocus
+                                  disabled={creatingNhom}
+                                  placeholder={`Tên ${label.toLowerCase()}`}
+                                  aria-label={`Tên ${label.toLowerCase()} mới`}
+                                  onChange={(e) =>
+                                    setNewNhomNhan(e.target.value)
+                                  }
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                      e.preventDefault();
+                                      void createLoaiHang(truc);
+                                    } else if (e.key === "Escape") {
+                                      e.preventDefault();
+                                      cancelDraftNhom();
+                                    }
+                                  }}
+                                  onBlur={() => {
+                                    window.setTimeout(() => {
+                                      const active = document.activeElement;
+                                      if (
+                                        active?.closest(
+                                          ".shop-kho-nhom-row.is-draft",
+                                        )
+                                      ) {
+                                        return;
+                                      }
+                                      if (newNhomNhan.trim()) {
+                                        void createLoaiHang(truc);
+                                      } else {
+                                        cancelDraftNhom();
+                                      }
+                                    }, 0);
+                                  }}
+                                />
+                                <button
+                                  type="button"
+                                  className="shop-kho-nhom-draft-cancel"
+                                  aria-label="Hủy dòng mới"
+                                  disabled={creatingNhom}
+                                  onMouseDown={(e) => e.preventDefault()}
+                                  onClick={cancelDraftNhom}
+                                >
+                                  <X size={14} strokeWidth={2} aria-hidden />
+                                </button>
+                              </div>
+                              <div className="shop-kho-nhom-row-body">
+                                <ShopNhomMoTaField
+                                  value={newNhomMoTa}
+                                  disabled={creatingNhom}
+                                  placeholder="Mô tả ngắn (tuỳ chọn)"
+                                  aria-label="Mô tả ngắn loại hàng mới"
+                                  rows={2}
+                                  onChange={setNewNhomMoTa}
+                                />
+                              </div>
+                            </li>
+                          ) : null}
+                          {list.map((n) => {
+                            const open = expandedNhomId === n.id;
+                            return (
+                              <li
+                                key={n.id}
+                                className={`shop-kho-nhom-row${open ? " is-open" : ""}`}
+                              >
+                                <button
+                                  type="button"
+                                  className="shop-kho-nhom-row-toggle"
+                                  aria-expanded={open}
+                                  aria-controls={`shop-kho-nhom-mota-${n.id}`}
+                                  id={`shop-kho-nhom-toggle-${n.id}`}
+                                  onClick={() =>
+                                    setExpandedNhomId((cur) =>
+                                      cur === n.id ? null : n.id,
+                                    )
+                                  }
+                                >
+                                  <span className="shop-kho-nhom-name">
+                                    {n.nhan}
+                                  </span>
+                                  <ChevronDown
+                                    size={16}
+                                    strokeWidth={2}
+                                    className="shop-kho-nhom-row-chevron"
+                                    aria-hidden
+                                  />
+                                </button>
+                                {open ? (
+                                  <div
+                                    className="shop-kho-nhom-row-body"
+                                    id={`shop-kho-nhom-mota-${n.id}`}
+                                    role="region"
+                                    aria-labelledby={`shop-kho-nhom-toggle-${n.id}`}
+                                  >
+                                    <ShopNhomMoTaField
+                                      value={nhomMoTaDrafts[n.id] ?? ""}
+                                      disabled={savingNhomId === n.id}
+                                      aria-label={`Mô tả ${n.nhan}`}
+                                      onChange={(next) =>
+                                        setNhomMoTaDrafts((d) => ({
+                                          ...d,
+                                          [n.id]: next,
+                                        }))
+                                      }
+                                      onBlur={() => void saveNhomMoTa(n.id)}
+                                    />
+                                  </div>
+                                ) : null}
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      ) : (
+                        <p className="shop-kho-nhom-empty">
+                          Chưa có {label.toLowerCase()}. Bấm + để thêm.
+                        </p>
+                      )}
+
+                      <button
+                        type="button"
+                        className="shop-kho-nhom-add-btn"
+                        disabled={creatingNhom || draftingNhom}
+                        aria-label={`Thêm ${label.toLowerCase()}`}
+                        title={`Thêm ${label.toLowerCase()}`}
+                        onClick={startDraftNhom}
+                      >
+                        {creatingNhom ? (
+                          <Loader2 size={16} className="shop-spin" aria-hidden />
+                        ) : (
+                          <Plus size={16} strokeWidth={2.25} aria-hidden />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })(),
+            document.body,
+          )
+        : null}
 
       {deleteTargets.length > 0 && typeof document !== "undefined"
         ? createPortal(

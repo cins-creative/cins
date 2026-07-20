@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { CoSoTabId } from "@/lib/to-chuc/co-so-page-cau-hinh";
 import {
   CO_SO_DEFAULT_TAB,
+  coSoPathFromState,
   coSoTabPath,
   parseCoSoRouteFromPathname,
   type CoSoPathState,
@@ -19,7 +20,13 @@ const DEFAULT_STATE: CoSoPathState = {
   suKienId: null,
 };
 
-/** Tab cơ sở đào tạo — `pushState` cho tab top-level; deep link giữ pathname. */
+type NavigateMode = "push" | "replace";
+
+/**
+ * Tab / deep-link cơ sở đào tạo.
+ * Dùng `history.pushState` / `replaceState` trong shell — tránh soft-nav Next
+ * vào `[tab]` ↔ `khoa-hoc/[khoaSlug]` (RSC 404 lần đầu, F5 mới vào được).
+ */
 export function useCoSoTabNav(orgSlug: string) {
   const pathname = usePathname();
   const pathState = useMemo(
@@ -39,6 +46,19 @@ export function useCoSoTabNav(orgSlug: string) {
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
   }, []);
+
+  const navigate = useCallback(
+    (next: CoSoPathState, mode: NavigateMode = "push") => {
+      const href = coSoPathFromState(orgSlug, next);
+      setRoute(next);
+      if (mode === "replace") {
+        window.history.replaceState(null, "", href);
+      } else {
+        window.history.pushState(null, "", href);
+      }
+    },
+    [orgSlug],
+  );
 
   const selectTab = useCallback(
     (next: CoSoTabId) => {
@@ -65,6 +85,38 @@ export function useCoSoTabNav(orgSlug: string) {
     [orgSlug],
   );
 
+  const openKhoa = useCallback(
+    (khoaSlug: string, mode: NavigateMode = "push") => {
+      navigate(
+        {
+          tab: "khoa-hoc",
+          khoaSlug,
+          jobId: null,
+          baiDangId: null,
+          suKienId: null,
+        },
+        mode,
+      );
+    },
+    [navigate],
+  );
+
+  const closeKhoa = useCallback(
+    (mode: NavigateMode = "push") => {
+      navigate(
+        {
+          tab: "khoa-hoc",
+          khoaSlug: null,
+          jobId: null,
+          baiDangId: null,
+          suKienId: null,
+        },
+        mode,
+      );
+    },
+    [navigate],
+  );
+
   return {
     tab: route.tab,
     khoaSlug: route.khoaSlug,
@@ -72,5 +124,7 @@ export function useCoSoTabNav(orgSlug: string) {
     baiDangId: route.baiDangId,
     suKienId: route.suKienId,
     selectTab,
+    openKhoa,
+    closeKhoa,
   };
 }

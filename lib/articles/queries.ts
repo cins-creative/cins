@@ -105,7 +105,12 @@ export async function getKeywordArticleBySlug(
 ): Promise<ArticleBaiViet | null> {
   const article = await getArticleBySlug(slug);
   if (!article || article.loai_bai_viet !== "keyword") return null;
-  if (article.trang_thai_noi_dung !== "published") return null;
+  if (
+    article.trang_thai_noi_dung !== "published" &&
+    article.trang_thai_noi_dung !== "merged"
+  ) {
+    return null;
+  }
   return article;
 }
 
@@ -114,7 +119,12 @@ export async function getPhanMemArticleBySlug(
 ): Promise<ArticleBaiViet | null> {
   const article = await getArticleBySlug(slug);
   if (!article || article.loai_bai_viet !== "phan_mem") return null;
-  if (article.trang_thai_noi_dung !== "published") return null;
+  if (
+    article.trang_thai_noi_dung !== "published" &&
+    article.trang_thai_noi_dung !== "merged"
+  ) {
+    return null;
+  }
   return article;
 }
 

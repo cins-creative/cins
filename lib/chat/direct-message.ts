@@ -21,7 +21,7 @@ import {
 import { listRoomReadCursors } from "@/lib/chat/read-cursors";
 import { loadPollsForMessages } from "@/lib/chat/room-poll";
 import { resolveOwnedUserEmojiMuc } from "@/lib/user-emoji/resolve-owned";
-import { parseChatMocNhac, parseChatNguCanh, parseChatMessageMentions } from "@/lib/chat/message-perspective";
+import { parseChatCanvasBinhLuan, parseChatMocNhac, parseChatNguCanh, parseChatMessageMentions } from "@/lib/chat/message-perspective";
 import type {
   ChatContextCard,
   ChatMessage,
@@ -32,6 +32,7 @@ import type {
   ChatThread,
   ChatThreadGroup,
 } from "@/lib/chat/types";
+import { CHAT_SELF_THREAD_NAME } from "@/lib/chat/types";
 import {
   buildNguCanhPayload,
   countUnreadMentions,
@@ -104,6 +105,19 @@ type ReadRow = {
 export function messagePreview(row: MessageRow): string {
   if (row.da_xoa) return "Đã thu hồi tin nhắn";
   const normalized = normalizeMessageRow(row);
+  const canvasBinhLuan = parseChatCanvasBinhLuan(normalized.ngu_canh);
+  if (canvasBinhLuan) {
+    return (
+      normalized.noi_dung?.trim() ||
+      (canvasBinhLuan.soLuong <= 1
+        ? `${canvasBinhLuan.tenNguoi} vừa có một bình luận`
+        : `${canvasBinhLuan.tenNguoi} vừa có ${canvasBinhLuan.soLuong} bình luận`)
+    );
+  }
+  const mocNhac = parseChatMocNhac(normalized.ngu_canh);
+  if (mocNhac) {
+    return normalized.noi_dung?.trim() || `Nhắc mốc: ${mocNhac.ten}`;
+  }
   const nguCanh = parseNguCanh(normalized.ngu_canh);
   if (nguCanh) {
     return `Trao đổi về: ${nguCanh.tieuDe}`;
@@ -117,8 +131,7 @@ export function messagePreview(row: MessageRow): string {
   if (normalized.loai_tin === "binh_chon") {
     return `Bình chọn: ${normalized.noi_dung?.trim() || ""}`;
   }
-  const mocNhac = parseChatMocNhac(normalized.ngu_canh);
-  if (mocNhac || normalized.loai_tin === "system") {
+  if (normalized.loai_tin === "system") {
     return normalized.noi_dung?.trim() || "Nhắc mốc";
   }
   return normalized.noi_dung?.trim() || "";
@@ -151,24 +164,31 @@ export function mapMessageFromRow(
   extras: MapMessageExtras = {},
 ): ChatMessage {
   const normalized = normalizeMessageRow(row);
-  const mocNhac = parseChatMocNhac(normalized.ngu_canh);
-  const nguCanh = mocNhac ? null : parseNguCanh(normalized.ngu_canh);
-  const mentions = mocNhac
-    ? []
-    : parseChatMessageMentions(normalized.ngu_canh);
-  const kind: ChatMessageKind = mocNhac
-    ? "moc_nhac"
-    : nguCanh
-      ? "context"
-      : normalized.loai_tin === "sticker"
-        ? "sticker"
-        : normalized.loai_tin === "media"
-          ? "media"
-          : normalized.loai_tin === "binh_chon"
-            ? "binh_chon"
-            : normalized.loai_tin === "system"
-              ? "moc_nhac"
-              : "text";
+  const canvasBinhLuan = parseChatCanvasBinhLuan(normalized.ngu_canh);
+  const mocNhac = canvasBinhLuan
+    ? null
+    : parseChatMocNhac(normalized.ngu_canh);
+  const nguCanh =
+    canvasBinhLuan || mocNhac ? null : parseNguCanh(normalized.ngu_canh);
+  const mentions =
+    canvasBinhLuan || mocNhac
+      ? []
+      : parseChatMessageMentions(normalized.ngu_canh);
+  const kind: ChatMessageKind = canvasBinhLuan
+    ? "canvas_binh_luan"
+    : mocNhac
+      ? "moc_nhac"
+      : nguCanh
+        ? "context"
+        : normalized.loai_tin === "sticker"
+          ? "sticker"
+          : normalized.loai_tin === "media"
+            ? "media"
+            : normalized.loai_tin === "binh_chon"
+              ? "binh_chon"
+              : normalized.loai_tin === "system"
+                ? "moc_nhac"
+                : "text";
   const imageId =
     kind === "media" || kind === "sticker" ? resolveImageId(normalized) : null;
   let body = normalized.noi_dung?.trim() || "";
@@ -199,6 +219,7 @@ export function mapMessageFromRow(
     mentions: mentions.length > 0 ? mentions : undefined,
     poll: null,
     mocNhac,
+    canvasBinhLuan,
   };
 }
 
@@ -342,6 +363,135 @@ function buildUserThread(
   };
 }
 
+/**
+ * Thread «Gửi riêng cho tôi» — phòng 1_1 chỉ có 1 membership của chính viewer.
+ * Kho lưu cá nhân (link, ảnh, ghi chú); luôn ghim đầu danh sách phía client.
+ */
+function buildSelfThread(
+  roomId: string,
+  me: ProfileRow,
+  preview: string,
+  lastAt: string,
+): ChatThread {
+  return {
+    id: roomId,
+    roomId,
+    peerUserId: me.id,
+    peerSlug: me.slug?.trim() || undefined,
+    isSelf: true,
+    name: CHAT_SELF_THREAD_NAME,
+    group: "ban_be",
+    kind: "user",
+    role: "Chỉ mình bạn thấy",
+    avatarInitial: avatarInitialFromName(me.ten_hien_thi?.trim() || me.slug),
+    avatarHue: avatarHueFromSeed(me.id),
+    avatarUrl: getAvatarUrl(me.avatar_id),
+    preview,
+    lastAt,
+    unread: 0,
+    messages: [],
+  };
+}
+
+const SELF_THREAD_EMPTY_PREVIEW = "Lưu ghi chú, link và ảnh cho riêng bạn";
+
+/**
+ * Tìm phòng self của viewer: phòng 1_1 mà viewer là thành viên, và phòng đó
+ * chỉ có đúng 1 membership (kể cả đã rời) — phân biệt với DM mà peer đã rời.
+ */
+async function findSelfRoomId(viewerId: string): Promise<string | null> {
+  const admin = createServiceRoleClient();
+
+  const { data: myMemberships } = await admin
+    .from("chat_thanh_vien")
+    .select("id_phong, chat_phong!inner(loai_phong)")
+    .eq("id_nguoi_dung", viewerId)
+    .is("roi_luc", null)
+    .eq("chat_phong.loai_phong", DM_ROOM);
+
+  const roomIds = (myMemberships ?? []).map((row) => row.id_phong);
+  if (roomIds.length === 0) return null;
+
+  const { data: allRows } = await admin
+    .from("chat_thanh_vien")
+    .select("id_phong, id_nguoi_dung")
+    .in("id_phong", roomIds);
+
+  const membersByRoom = new Map<string, Set<string>>();
+  for (const row of allRows ?? []) {
+    const set = membersByRoom.get(row.id_phong) ?? new Set<string>();
+    set.add(row.id_nguoi_dung);
+    membersByRoom.set(row.id_phong, set);
+  }
+
+  for (const roomId of roomIds) {
+    const members = membersByRoom.get(roomId);
+    if (members && members.size === 1 && members.has(viewerId)) {
+      return roomId;
+    }
+  }
+  return null;
+}
+
+/** Mở (hoặc tạo) phòng «Gửi riêng cho tôi». */
+export async function openSelfRoom(
+  viewerId: string,
+): Promise<{ ok: true; thread: ChatThread } | { ok: false; error: string }> {
+  const admin = createServiceRoleClient();
+
+  const { data: me } = await admin
+    .from("user_nguoi_dung")
+    .select("id, slug, ten_hien_thi, avatar_id, giai_doan")
+    .eq("id", viewerId)
+    .maybeSingle<ProfileRow>();
+
+  if (!me) {
+    return { ok: false, error: "Không tìm thấy người dùng." };
+  }
+
+  let roomId = await findSelfRoomId(viewerId);
+
+  if (!roomId) {
+    const { data: room, error: roomError } = await admin
+      .from("chat_phong")
+      .insert({ loai_phong: DM_ROOM })
+      .select("id")
+      .single<{ id: string }>();
+
+    if (roomError || !room) {
+      return { ok: false, error: "Không tạo được phòng chat." };
+    }
+
+    roomId = room.id;
+    const { error: memberError } = await admin
+      .from("chat_thanh_vien")
+      .insert([{ id_phong: roomId, id_nguoi_dung: viewerId }]);
+
+    if (memberError) {
+      return { ok: false, error: "Không thêm thành viên phòng chat." };
+    }
+  }
+
+  const { data: lastMessage } = await admin
+    .from("chat_tin_nhan")
+    .select(MESSAGE_SELECT)
+    .eq("id_phong", roomId)
+    .eq("da_xoa", false)
+    .order("tao_luc", { ascending: false })
+    .limit(1)
+    .maybeSingle<MessageRow>();
+
+  return {
+    ok: true,
+    thread: buildSelfThread(
+      roomId,
+      me,
+      lastMessage ? messagePreview(lastMessage) : SELF_THREAD_EMPTY_PREVIEW,
+      lastMessage?.tao_luc ?? new Date().toISOString(),
+    ),
+  };
+}
+
 async function loadAcceptedFriendIds(viewerId: string): Promise<Set<string>> {
   const admin = createServiceRoleClient();
   const { data } = await admin
@@ -435,6 +585,11 @@ export async function openDirectRoom(
   viewerId: string,
   targetUserId: string,
 ): Promise<{ ok: true; thread: ChatThread } | { ok: false; error: string }> {
+  // Chat với chính mình = phòng «Gửi riêng cho tôi» (nhánh riêng, 1 membership).
+  if (viewerId === targetUserId) {
+    return openSelfRoom(viewerId);
+  }
+
   const allowed = await assertCanDirectMessage(viewerId, targetUserId);
   if (!allowed.ok) return allowed;
 
@@ -498,9 +653,47 @@ async function getDirectThread(
     .eq("id_phong", roomId)
     .is("roi_luc", null);
 
-  const peerId = (members ?? [])
-    .map((row) => row.id_nguoi_dung)
-    .find((id) => id !== viewerId);
+  const memberIds = (members ?? []).map((row) => row.id_nguoi_dung);
+  const peerId = memberIds.find((id) => id !== viewerId);
+
+  // Phòng self: đúng 1 membership (kể cả đã rời) của chính viewer —
+  // phân biệt với DM mà peer đã rời phòng.
+  const { count: totalMemberships } = !peerId
+    ? await admin
+        .from("chat_thanh_vien")
+        .select("id", { count: "exact", head: true })
+        .eq("id_phong", roomId)
+    : { count: null };
+
+  if (
+    !peerId &&
+    memberIds.length === 1 &&
+    memberIds[0] === viewerId &&
+    totalMemberships === 1
+  ) {
+    const { data: me } = await admin
+      .from("user_nguoi_dung")
+      .select("id, slug, ten_hien_thi, avatar_id, giai_doan")
+      .eq("id", viewerId)
+      .maybeSingle<ProfileRow>();
+    if (!me) return null;
+
+    const { data: lastSelf } = await admin
+      .from("chat_tin_nhan")
+      .select(MESSAGE_SELECT)
+      .eq("id_phong", roomId)
+      .eq("da_xoa", false)
+      .order("tao_luc", { ascending: false })
+      .limit(1)
+      .maybeSingle<MessageRow>();
+
+    return buildSelfThread(
+      roomId,
+      me,
+      lastSelf ? messagePreview(lastSelf) : SELF_THREAD_EMPTY_PREVIEW,
+      lastSelf?.tao_luc ?? room.cap_nhat_luc,
+    );
+  }
 
   if (!peerId) return null;
 
@@ -676,7 +869,10 @@ export async function listDirectThreads(viewerId: string): Promise<ChatThread[]>
     .eq("chat_phong.loai_phong", DM_ROOM);
 
   const roomIds = (memberships ?? []).map((row) => row.id_phong);
-  if (roomIds.length === 0) return [];
+  if (roomIds.length === 0) {
+    const created = await openSelfRoom(viewerId);
+    return created.ok ? [created.thread] : [];
+  }
 
   const { data: allMembers } = await admin
     .from("chat_thanh_vien")
@@ -772,7 +968,54 @@ export async function listDirectThreads(viewerId: string): Promise<ChatThread[]>
     (a, b) => new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime(),
   );
 
-  return threads;
+  // «Gửi riêng cho tôi»: phòng 1_1 không có peer, đúng 1 membership của viewer.
+  // Chưa có thì tạo — mỗi user luôn có đúng 1 phòng self, đứng đầu danh sách.
+  let selfThread: ChatThread | null = null;
+  const noPeerRoomIds = roomIds.filter((id) => !peerByRoom.has(id));
+  if (noPeerRoomIds.length > 0) {
+    const { data: totalRows } = await admin
+      .from("chat_thanh_vien")
+      .select("id_phong, id_nguoi_dung")
+      .in("id_phong", noPeerRoomIds);
+
+    const rowsByRoom = new Map<string, Array<string>>();
+    for (const row of totalRows ?? []) {
+      const list = rowsByRoom.get(row.id_phong) ?? [];
+      list.push(row.id_nguoi_dung);
+      rowsByRoom.set(row.id_phong, list);
+    }
+
+    const selfRoomId = noPeerRoomIds.find((id) => {
+      const rows = rowsByRoom.get(id);
+      return rows && rows.length === 1 && rows[0] === viewerId;
+    });
+
+    if (selfRoomId) {
+      const { data: me } = await admin
+        .from("user_nguoi_dung")
+        .select("id, slug, ten_hien_thi, avatar_id, giai_doan")
+        .eq("id", viewerId)
+        .maybeSingle<ProfileRow>();
+      if (me) {
+        const last = lastByRoom.get(selfRoomId);
+        selfThread = buildSelfThread(
+          selfRoomId,
+          me,
+          last ? messagePreview(last) : SELF_THREAD_EMPTY_PREVIEW,
+          last?.tao_luc ??
+            roomUpdatedAt.get(selfRoomId) ??
+            new Date().toISOString(),
+        );
+      }
+    }
+  }
+
+  if (!selfThread) {
+    const created = await openSelfRoom(viewerId);
+    if (created.ok) selfThread = created.thread;
+  }
+
+  return selfThread ? [selfThread, ...threads] : threads;
 }
 
 export async function listRoomMessages(

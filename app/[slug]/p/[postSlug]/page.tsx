@@ -5,8 +5,8 @@ import { PostPageArticle } from "@/app/[slug]/p/[postSlug]/_components/PostPageA
 import { PostPageInstantFallback } from "@/app/[slug]/p/[postSlug]/_components/PostPageInstantFallback";
 import { PostPageShell } from "@/app/[slug]/p/[postSlug]/_components/PostPageShell";
 import { CinsShell } from "@/components/cins/CinsShell";
-import { getCoverOgUrl } from "@/lib/articles/cover";
 import { getConfiguredSiteOrigin } from "@/lib/auth/auth-origin";
+import { resolvePostCoverPreviewUrl } from "@/lib/journey/post-cover-preview";
 import { getCachedPostPageCore } from "@/lib/journey/post-page-cache";
 
 export const dynamic = "force-dynamic";
@@ -41,10 +41,12 @@ export async function generateMetadata({
   const shortDesc = desc.slice(0, 200);
   const pagePath = `/${encodeURIComponent(slug)}/p/${encodeURIComponent(postSlug)}`;
   /**
-   * OG phải ~1200×630 (1.91:1). Cover `/public` thường vuông → FB card nhỏ.
-   * Dùng CF `w=1200,h=630,fit=cover` (= thumbnail crop landscape).
+   * Không cover → ảnh đầu trong bài. Prefer crop 1200×630 cho FB large card.
    */
-  const coverOgUrl = getCoverOgUrl(posts[0]?.coverId ?? null);
+  const coverOgUrl = resolvePostCoverPreviewUrl(
+    posts[0]?.coverId,
+    posts[0]?.noiDungBlocks,
+  );
   const fallbackOg = `${pagePath}/opengraph-image?v=thumb2`;
   const ogImage = coverOgUrl ?? fallbackOg;
 

@@ -1,6 +1,15 @@
 "use client";
 
-import { CornerUpLeft, Copy, MoreHorizontal, Pencil, Pin, Smile, Trash2 } from "lucide-react";
+import {
+  CornerUpLeft,
+  Copy,
+  LayoutGrid,
+  MoreHorizontal,
+  Pencil,
+  Pin,
+  Smile,
+  Trash2,
+} from "lucide-react";
 import {
   useCallback,
   useEffect,
@@ -12,6 +21,7 @@ import {
 import { createPortal } from "react-dom";
 
 import { CHAT_ACTION_WINDOW_MS, CHAT_REACTION_EMOJIS } from "@/lib/chat/constants";
+import { isOptimisticMessageId } from "@/lib/chat/optimistic-message";
 import type { ChatMessage } from "@/lib/chat/types";
 
 export type ChatMessageActionHandlers = {
@@ -20,6 +30,7 @@ export type ChatMessageActionHandlers = {
   onEdit: (msg: ChatMessage) => void;
   onPin: (msg: ChatMessage, pinned: boolean) => void;
   onReaction: (msg: ChatMessage, emoji: string, active: boolean) => void;
+  onAddToCanvas?: (msg: ChatMessage) => void;
 };
 
 type Props = {
@@ -128,6 +139,13 @@ export function ChatMessageActions({ msg, handlers }: Props) {
 
   const modifiable = canModify(msg);
   const isText = msg.kind !== "media" && !msg.imageId;
+  const canAddToCanvas =
+    Boolean(handlers.onAddToCanvas) &&
+    !isOptimisticMessageId(msg.id) &&
+    msg.kind !== "sticker" &&
+    msg.kind !== "moc_nhac" &&
+    msg.kind !== "canvas_binh_luan" &&
+    (Boolean(msg.body.trim()) || Boolean(msg.imageUrl) || Boolean(msg.albumImages?.length));
 
   const copyText = async () => {
     const text =
@@ -209,6 +227,19 @@ export function ChatMessageActions({ msg, handlers }: Props) {
               <Pin size={14} aria-hidden />
               {msg.pinned ? "Bỏ ghim" : "Ghim"}
             </button>
+            {canAddToCanvas ? (
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  handlers.onAddToCanvas?.(msg);
+                  setOpen(false);
+                }}
+              >
+                <LayoutGrid size={14} aria-hidden />
+                Thêm vào canvas
+              </button>
+            ) : null}
             {modifiable ? (
               <button
                 type="button"

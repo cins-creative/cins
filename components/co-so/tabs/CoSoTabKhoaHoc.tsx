@@ -1,7 +1,6 @@
 "use client";
 
 import { GraduationCap, Plus } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import { KhoaHocAddTile, KhoaHocCard } from "@/components/co-so/KhoaHocCard";
@@ -15,10 +14,7 @@ import {
 } from "@/lib/to-chuc/khoa-hoc-detail-mock";
 import type { KhoaHocCardData } from "@/lib/to-chuc/khoa-hoc-types";
 import { notifyCoSoKhoaListChanged } from "@/lib/to-chuc/co-so-khoa-events";
-import {
-  coSoKhoaHocDetailPath,
-  coSoTabPath,
-} from "@/lib/to-chuc/co-so-routes";
+import { coSoKhoaHocDetailPath } from "@/lib/to-chuc/co-so-routes";
 
 type Props = {
   orgId: string;
@@ -28,6 +24,10 @@ type Props = {
   orgVerified?: boolean;
   canManageKhoaHoc: boolean;
   khoaSlug?: string | null;
+  /** Shell navigate — tránh soft-nav Next (404 lần đầu). */
+  onOpenKhoa?: (khoaSlug: string) => void;
+  onCloseKhoa?: (mode?: "push" | "replace") => void;
+  onReplaceKhoa?: (khoaSlug: string) => void;
 };
 
 export function CoSoTabKhoaHoc({
@@ -38,8 +38,10 @@ export function CoSoTabKhoaHoc({
   orgVerified = false,
   canManageKhoaHoc,
   khoaSlug = null,
+  onOpenKhoa,
+  onCloseKhoa,
+  onReplaceKhoa,
 }: Props) {
-  const router = useRouter();
   const [items, setItems] = useState<KhoaHocCardData[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -96,9 +98,9 @@ export function CoSoTabKhoaHoc({
     if (!khoaSlug || items.length === 0 || isMockupRoute) return;
     const exists = items.some((k) => k.slug === khoaSlug);
     if (!exists) {
-      router.replace(coSoTabPath(orgSlug, "khoa-hoc"), { scroll: false });
+      onCloseKhoa?.("replace");
     }
-  }, [items, khoaSlug, orgSlug, router, isMockupRoute]);
+  }, [items, khoaSlug, isMockupRoute, onCloseKhoa]);
 
   const totals = useMemo(() => {
     const hocVien = items.reduce((sum, k) => sum + k.soHocVien, 0);
@@ -111,7 +113,7 @@ export function CoSoTabKhoaHoc({
   }
 
   function openKhoa(khoa: KhoaHocCardData) {
-    router.push(coSoKhoaHocDetailPath(orgSlug, khoa.slug), { scroll: false });
+    onOpenKhoa?.(khoa.slug);
   }
 
   const khoaDetailHref = (khoa: KhoaHocCardData) =>
@@ -120,7 +122,7 @@ export function CoSoTabKhoaHoc({
   function handleCreated(khoa: KhoaHocCardData) {
     setItems((prev) => [khoa, ...prev.filter((k) => k.id !== khoa.id)]);
     notifyCoSoKhoaListChanged(orgId);
-    router.push(coSoKhoaHocDetailPath(orgSlug, khoa.slug), { scroll: false });
+    onOpenKhoa?.(khoa.slug);
   }
 
   function handleUpdated(khoa: KhoaHocCardData) {
@@ -129,7 +131,7 @@ export function CoSoTabKhoaHoc({
     );
     notifyCoSoKhoaListChanged(orgId);
     if (khoaSlug === khoa.slug || selected?.id === khoa.id) {
-      router.replace(coSoKhoaHocDetailPath(orgSlug, khoa.slug), { scroll: false });
+      onReplaceKhoa?.(khoa.slug);
     }
   }
 
@@ -138,7 +140,7 @@ export function CoSoTabKhoaHoc({
     setItems((prev) => prev.filter((k) => k.id !== khoaId));
     notifyCoSoKhoaListChanged(orgId);
     if (wasSelected) {
-      router.replace(coSoTabPath(orgSlug, "khoa-hoc"), { scroll: false });
+      onCloseKhoa?.("replace");
     }
   }
 
@@ -246,6 +248,7 @@ export function CoSoTabKhoaHoc({
                 key={khoa.id}
                 khoa={khoa}
                 href={khoaDetailHref(khoa)}
+                onNavigate={onOpenKhoa ? () => openKhoa(khoa) : undefined}
                 canManage={canManageKhoaHoc}
                 onManage={() => openKhoa(khoa)}
                 onEdit={() => {

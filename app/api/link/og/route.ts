@@ -19,7 +19,25 @@ const memoryCache = new Map<
 const CACHE_TTL_MS = 30 * 60 * 1000;
 const CACHE_MAX = 200;
 /** Bump khi đổi shape preview (vd. kind / avatar bài viết) để bỏ cache cũ. */
-const CACHE_VER = "v2";
+const CACHE_VER = "v7";
+
+/** Preview bài thiếu ảnh hoặc còn URL CF flexible crop — không giữ cache. */
+function isStalePostPreview(preview: LinkOgPreview | null): boolean {
+  if (!preview?.title || preview.source !== "cins") return false;
+  const isPost =
+    preview.kind === "bai_viet" ||
+    (() => {
+      try {
+        return /^\/[^/]+\/p\/[^/]+\/?$/.test(new URL(preview.url).pathname);
+      } catch {
+        return false;
+      }
+    })();
+  if (!isPost) return false;
+  const image = preview.image?.trim() || "";
+  if (!image) return true;
+  return /imagedelivery\.net\/[^/]+\/[^/]+\/w=\d+/i.test(image);
+}
 
 export async function GET(req: Request) {
   const session = await getCurrentSessionAndProfile();
@@ -55,9 +73,12 @@ export async function GET(req: Request) {
         { status: 404 },
       );
     }
-    return NextResponse.json(cached.value, {
-      headers: { "Cache-Control": "private, max-age=3600" },
-    });
+    if (!isStalePostPreview(cached.value)) {
+      return NextResponse.json(cached.value, {
+        headers: { "Cache-Control": "private, max-age=3600" },
+      });
+    }
+    memoryCache.delete(key);
   }
 
   /* CINs nội bộ: resolve DB (avatar/cover/meta) — không scrape HTML.
@@ -71,7 +92,10 @@ export async function GET(req: Request) {
     const oldest = memoryCache.keys().next().value;
     if (oldest) memoryCache.delete(oldest);
   }
-  memoryCache.set(key, { at: Date.now(), value: preview });
+  /* Không cache preview bài thiếu ảnh — tránh kẹt bản lỗi 30 phút. */
+  if (!isStalePostPreview(preview)) {
+    memoryCache.set(key, { at: Date.now(), value: preview });
+  }
 
   if (!preview) {
     return NextResponse.json(

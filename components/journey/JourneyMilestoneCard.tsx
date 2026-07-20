@@ -32,6 +32,7 @@ import { JourneyAuthorRowFriendAction } from "@/components/journey/JourneyAuthor
 import { JourneyOwnCoAuthorRoleEditor } from "@/components/journey/JourneyOwnCoAuthorRoleEditor";
 import { JourneyBookmarkListingCard } from "@/components/journey/JourneyBookmarkListingCard";
 import { JourneyMilestoneCardBodyContent } from "@/components/journey/JourneyMilestoneCardBodyContent";
+import { setShareDragData } from "@/lib/cins/share-drag";
 import { JourneyMilestoneUnfold } from "@/components/journey/JourneyMilestoneUnfold";
 import { JourneyUnfoldArticleContent } from "@/components/journey/JourneyUnfoldArticleContent";
 import { VerifiedTick } from "@/components/journey/VerifiedTick";
@@ -956,6 +957,7 @@ export function JourneyMilestoneCard({
      `social` từ server thì trạng thái local bị mất. */
   const [liveSocial, setLiveSocial] = useState(() => ({
     viewerLiked: social?.viewerLiked ?? false,
+    viewerReactionEmoji: social?.viewerReactionEmoji ?? null,
     likeCount: social?.likeCount ?? 0,
     viewerDisliked: social?.viewerDisliked ?? false,
     dislikeCount: social?.dislikeCount ?? 0,
@@ -1011,6 +1013,7 @@ export function JourneyMilestoneCard({
   useEffect(() => {
     setLiveSocial({
       viewerLiked: social?.viewerLiked ?? false,
+      viewerReactionEmoji: social?.viewerReactionEmoji ?? null,
       likeCount: social?.likeCount ?? 0,
       viewerDisliked: social?.viewerDisliked ?? false,
       dislikeCount: social?.dislikeCount ?? 0,
@@ -1020,6 +1023,7 @@ export function JourneyMilestoneCard({
     });
   }, [
     social?.viewerLiked,
+    social?.viewerReactionEmoji,
     social?.likeCount,
     social?.viewerDisliked,
     social?.dislikeCount,
@@ -1035,6 +1039,7 @@ export function JourneyMilestoneCard({
           milestoneId?: string;
           liked?: boolean;
           likeCount?: number;
+          reactionEmoji?: string | null;
           disliked?: boolean;
           dislikeCount?: number;
           bookmarked?: boolean;
@@ -1050,6 +1055,11 @@ export function JourneyMilestoneCard({
         ...(typeof detail.likeCount === "number"
           ? { likeCount: detail.likeCount }
           : {}),
+        ...(detail.reactionEmoji !== undefined
+          ? { viewerReactionEmoji: detail.reactionEmoji }
+          : typeof detail.liked === "boolean" && !detail.liked
+            ? { viewerReactionEmoji: null }
+            : {}),
         ...(typeof detail.disliked === "boolean"
           ? { viewerDisliked: detail.disliked }
           : {}),
@@ -1402,10 +1412,9 @@ export function JourneyMilestoneCard({
         milestoneId={milestoneId}
         initialLiked={liveSocial.viewerLiked}
         initialCount={liveSocial.likeCount}
+        initialReactionEmoji={liveSocial.viewerReactionEmoji}
         showCount={liveSocial.showCounts}
         actorsMediaLabel={likeActorsMediaLabel}
-        sharePath={viewerPostHref}
-        shareTitle={title}
       />
       <JourneyDislikeButton
         milestoneId={milestoneId}
@@ -1522,6 +1531,27 @@ export function JourneyMilestoneCard({
       data-group={type}
       data-post-slug={postSlug ?? undefined}
       data-post-owner-slug={postOwnerSlug ?? undefined}
+      /* Kéo card từ vùng datebar → chia sẻ URL bài vào chat (desktop). */
+      draggable={Boolean(viewerPostHref)}
+      onDragStart={(e) => {
+        if (!viewerPostHref || e.defaultPrevented) return;
+        const target = e.target as HTMLElement;
+        if (e.currentTarget !== target && !target.closest(".jcard-datebar")) {
+          // Chỉ nắm kéo từ datebar — vùng khác không khởi động drag card.
+          e.preventDefault();
+          return;
+        }
+        setShareDragData(e.dataTransfer, {
+          kind: "post",
+          url: window.location.origin + viewerPostHref,
+          title,
+        });
+        // Ghost gọn: kéo theo thanh datebar thay vì snapshot cả card.
+        const bar = target.closest(".jcard-datebar");
+        if (bar instanceof HTMLElement) {
+          e.dataTransfer.setDragImage(bar, 24, 24);
+        }
+      }}
     >
       <div className="j-m-body-wrap">
         {useForeignFrame ? (

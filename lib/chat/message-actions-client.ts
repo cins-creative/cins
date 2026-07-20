@@ -3,8 +3,12 @@ import type { ChatMessage, ChatReactionSummary } from "@/lib/chat/types";
 export async function patchChatMessage(
   roomId: string,
   messageId: string,
-  body: { action: "recall" | "edit" | "pin"; noi_dung?: string; pinned?: boolean },
-): Promise<{ message?: ChatMessage; pinned?: boolean; error?: string }> {
+  body: {
+    action: "recall" | "edit" | "pin" | "dismiss_canvas_notice";
+    noi_dung?: string;
+    pinned?: boolean;
+  },
+): Promise<{ message?: ChatMessage; pinned?: boolean; ok?: boolean; error?: string }> {
   const res = await fetch(`/api/chat/rooms/${roomId}/messages/${messageId}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },

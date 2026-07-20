@@ -280,7 +280,7 @@ export function ShareLinkMenu({
                   >
                     <MessageCircle size={12} strokeWidth={2.2} />
                   </span>
-                  <span className="j-m-menu-lbl">Gửi bạn bè</span>
+                  <span className="j-m-menu-lbl">Gửi bạn bè, nhóm, tổ chức</span>
                 </button>
 
                 <div className="j-m-menu-sep" aria-hidden />

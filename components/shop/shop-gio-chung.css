@@ -1,0 +1,738 @@
+.gio-chung {
+  /* Theme shop = cam (brand orange). */
+  --shop-accent: var(--cins-orange, #fdad4c);
+  --shop-accent-strong: var(--cins-orange-strong, #f07800);
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.gio-chung-trigger {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill, 999px);
+  background: var(--bg-surface);
+  color: var(--ink-body);
+  cursor: pointer;
+  transition: all var(--app-nav-dur, 0.18s) var(--app-nav-ease, ease);
+}
+
+.gio-chung-trigger:hover,
+.gio-chung-trigger.is-open,
+.gio-chung-trigger.has-items {
+  border-color: color-mix(in srgb, var(--shop-accent-strong) 55%, var(--border));
+  color: color-mix(in srgb, var(--shop-accent-strong) 55%, var(--ink-display));
+  background: color-mix(in srgb, var(--shop-accent) 22%, transparent);
+}
+
+.gio-chung-count {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  pointer-events: none;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--shop-accent-strong);
+  color: #fff;
+  box-shadow: 0 0 0 2px var(--bg-surface, #fff);
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 17px;
+  text-align: center;
+}
+
+/* ── Overlay + drawer ─────────────────────────────────────────── */
+.gio-chung-overlay {
+  /* Panel portal ra body — cần khai báo lại token cam. */
+  --shop-accent: var(--cins-orange, #fdad4c);
+  --shop-accent-strong: var(--cins-orange-strong, #f07800);
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: flex;
+  justify-content: flex-end;
+  background: color-mix(in srgb, #0b1220 42%, transparent);
+  backdrop-filter: blur(2px);
+}
+
+.gio-chung-panel {
+  width: min(440px, 100vw);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-surface);
+  border-left: 1px solid var(--border);
+  box-shadow: var(--shadow-lg, -16px 0 40px rgba(15, 23, 42, 0.18));
+  animation: gio-chung-slide 0.2s ease;
+}
+
+@keyframes gio-chung-slide {
+  from {
+    transform: translateX(24px);
+    opacity: 0.4;
+  }
+}
+
+.gio-chung-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.gio-chung-kicker {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--shop-accent-strong);
+}
+
+.gio-chung-hdr h2 {
+  margin: 2px 0 0;
+  font-size: 18px;
+  font-weight: 750;
+  color: var(--ink-display);
+}
+
+.gio-chung-hdr-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.gio-chung-close,
+.gio-chung-history-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-surface);
+  color: var(--ink-muted);
+  cursor: pointer;
+}
+
+.gio-chung-close:hover,
+.gio-chung-history-btn:hover {
+  color: var(--ink-display);
+  border-color: color-mix(in srgb, var(--ink-muted) 40%, var(--border));
+}
+
+.gio-chung-history-btn:hover {
+  color: var(--shop-accent-strong);
+  border-color: color-mix(in srgb, var(--shop-accent-strong) 45%, var(--border));
+}
+
+.gio-chung-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px 16px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.gio-chung-err {
+  margin: 0;
+  padding: 8px 16px;
+  font-size: 13px;
+  color: #b42318;
+}
+
+.gio-chung-muted {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+
+.gio-chung-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 48px 16px;
+  color: var(--ink-muted);
+  text-align: center;
+}
+
+.gio-chung-empty p {
+  margin: 6px 0 0;
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--ink-display);
+}
+
+.gio-chung-empty span {
+  font-size: 13px;
+}
+
+/* ── Group ────────────────────────────────────────────────────── */
+.gio-chung-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--bg-surface);
+}
+
+.gio-chung-group.is-sent {
+  border-color: color-mix(in srgb, #16a34a 45%, var(--border));
+  background: color-mix(in srgb, #16a34a 8%, transparent);
+}
+
+.gio-chung-group-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.gio-chung-shop {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink-display);
+}
+
+.is-sent .gio-chung-shop {
+  color: #15803d;
+}
+
+.gio-chung-shop-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.gio-chung-shop-link {
+  color: inherit;
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gio-chung-shop-link:hover {
+  text-decoration: underline;
+}
+
+.gio-chung-group-total {
+  flex-shrink: 0;
+  font-size: 14px;
+  font-weight: 750;
+  color: var(--ink-display);
+}
+
+.gio-chung-sent-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: #16a34a;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.gio-chung-sent-ma {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink-body);
+}
+
+.gio-chung-sent-ma strong {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: var(--ink-display);
+}
+
+.gio-chung-sent-note {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+/* ── Lines ────────────────────────────────────────────────────── */
+.gio-chung-lines {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.gio-chung-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.gio-chung-line.is-off {
+  opacity: 0.6;
+}
+
+.gio-chung-thumb {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  border-radius: 9px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--ink-muted) 12%, transparent);
+  color: var(--ink-muted);
+}
+
+.gio-chung-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.gio-chung-line-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.gio-chung-line-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-display);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gio-chung-line-var {
+  color: var(--ink-muted);
+  font-weight: 500;
+}
+
+.gio-chung-line-price {
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+.gio-chung-line-warn {
+  font-size: 12px;
+  font-weight: 650;
+  color: #b42318;
+}
+
+.gio-chung-qty {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+.gio-chung-qty button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink-body);
+  cursor: pointer;
+}
+
+.gio-chung-qty button:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--ink-muted) 14%, transparent);
+}
+
+.gio-chung-qty button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.gio-chung-line-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink-muted);
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.gio-chung-line-remove:hover:not(:disabled) {
+  background: color-mix(in srgb, #b42318 12%, transparent);
+  color: #b42318;
+}
+
+.gio-chung-line-remove:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.gio-chung-qty span {
+  min-width: 16px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-display);
+}
+
+/* ── Warn / pay button ────────────────────────────────────────── */
+.gio-chung-group-warn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #b45309;
+}
+
+.gio-chung-pay-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  border: 0;
+  border-radius: 11px;
+  background: var(--shop-accent-strong);
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.gio-chung-pay-btn:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+
+.gio-chung-pay-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Checkout inline ──────────────────────────────────────────── */
+.gio-chung-checkout {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 4px;
+  border-top: 1px dashed var(--border);
+}
+
+.gio-chung-checkout-title {
+  margin: 6px 0 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-display);
+}
+
+.gio-chung-pay {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--shop-accent) 14%, transparent);
+}
+
+.is-sent .gio-chung-pay {
+  background: color-mix(in srgb, #16a34a 6%, transparent);
+}
+
+.gio-chung-pay-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.gio-chung-pay-info p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink-body);
+}
+
+.gio-chung-pay-info strong {
+  color: var(--ink-display);
+}
+
+.gio-chung-pay-policy {
+  margin-top: 4px !important;
+  font-size: 12px !important;
+  color: var(--ink-muted) !important;
+}
+
+.gio-chung-qr {
+  width: 96px;
+  height: 96px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: #fff;
+}
+
+.gio-chung-bill {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.gio-chung-bill-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-body);
+}
+
+.gio-chung-bill-label b {
+  color: #b42318;
+}
+
+.gio-chung-bill-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  align-self: flex-start;
+  padding: 8px 14px;
+  border: 1px dashed var(--border);
+  border-radius: 9px;
+  background: var(--bg-surface);
+  color: var(--ink-body);
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.gio-chung-bill-btn:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--shop-accent-strong) 55%, var(--border));
+  color: color-mix(in srgb, var(--shop-accent-strong) 55%, var(--ink-display));
+}
+
+.gio-chung-bill-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.gio-chung-bill-preview {
+  position: relative;
+  align-self: flex-start;
+  max-width: 160px;
+  border-radius: 9px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.gio-chung-bill-preview img {
+  display: block;
+  width: 100%;
+  max-height: 220px;
+  object-fit: contain;
+  background: color-mix(in srgb, var(--ink-muted) 8%, transparent);
+}
+
+.gio-chung-bill-busy {
+  position: absolute;
+  inset: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: color-mix(in srgb, #0b1220 55%, transparent);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.gio-chung-bill-remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 50%;
+  background: color-mix(in srgb, #0b1220 62%, transparent);
+  color: #fff;
+  cursor: pointer;
+}
+
+.gio-chung-bill-remove:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.gio-chung-send-hint {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #b4530e;
+}
+
+.gio-chung-sent-bill {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.gio-chung-sent-bill-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink-muted);
+}
+
+.gio-chung-sent-bill img {
+  display: block;
+  max-width: 140px;
+  max-height: 180px;
+  object-fit: contain;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--ink-muted) 8%, transparent);
+}
+
+.gio-chung-note {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-body);
+}
+
+.gio-chung-note textarea {
+  resize: vertical;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--bg-surface);
+  color: var(--ink-display);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.gio-chung-accept {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink-body);
+}
+
+.gio-chung-accept input {
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.gio-chung-checkout-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.gio-chung-submit {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  border: 0;
+  border-radius: 11px;
+  background: var(--shop-accent-strong);
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.gio-chung-submit:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+
+.gio-chung-submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.gio-chung-cancel {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 16px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: var(--bg-surface);
+  color: var(--ink-body);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.gio-chung-spin {
+  animation: gio-chung-spin 0.8s linear infinite;
+}
+
+@keyframes gio-chung-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+:root[data-theme="dark"] .gio-chung-overlay {
+  background: color-mix(in srgb, #000 55%, transparent);
+}
+
+:root[data-theme="dark"] .gio-chung-qr {
+  border-color: transparent;
+}

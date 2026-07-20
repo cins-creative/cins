@@ -2282,12 +2282,17 @@
   height: 26px;
   border: none;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.94);
+  background: rgba(15, 23, 42, 0.78);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--ink-title, rgba(0, 0, 0, 0.6));
+  color: rgba(255, 255, 255, 0.92);
   cursor: pointer;
+}
+
+.tdh-page--cso .cso-kh-card-menu:hover {
+  background: rgba(15, 23, 42, 0.9);
+  color: #fff;
 }
 
 .tdh-page--cso .cso-kh-card-menu-dots {

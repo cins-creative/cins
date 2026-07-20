@@ -173,6 +173,41 @@ export type ShopGio = {
   tienTe: string;
 };
 
+/** Dòng trong giỏ chung — kèm seller để nhóm theo cửa hàng. */
+export type ShopGioChungDong = ShopGioDong & {
+  idSanPham: string;
+  /** Chủ sản phẩm (seller). */
+  idNguoiBan: string;
+  /** true khi sản phẩm/biến thể đã ngừng bán hoặc bị xóa. */
+  ngungBan: boolean;
+};
+
+/** Một nhóm hàng cùng một cửa hàng trong giỏ chung — checkout theo nhóm. */
+export type ShopGioChungNhom = {
+  idNguoiBan: string;
+  /** shop_cua_hang.id của seller — dùng cho checkout + link mặt tiền. */
+  idCuaHang: string | null;
+  tenCuaHang: string;
+  /** slug user để link `/{slug}/shop`. */
+  sellerSlug: string | null;
+  avatarUrl: string | null;
+  /** Seller đã có phương thức nhận tiền → mới gửi đơn được. */
+  coThanhToan: boolean;
+  dong: ShopGioChungDong[];
+  tongTien: number;
+  tienTe: string;
+  /** Có ít nhất một dòng hết tồn / ngừng bán. */
+  coVanDe: boolean;
+};
+
+/** Giỏ chung (giỏ chờ mua) — gom mọi cửa hàng, nhóm theo seller. */
+export type ShopGioChung = {
+  id: string | null;
+  nhom: ShopGioChungNhom[];
+  /** Tổng số dòng (badge). */
+  tongSoDong: number;
+};
+
 export type ShopDonHangDong = {
   id: string;
   idBienThe: string | null;
@@ -282,6 +317,9 @@ export type ShopDonHang = {
   nguoiMuaChapNhanPhienBan?: string | null;
   /** Snapshot nhận tiền lúc tạo đơn (`mua_ngay`). */
   thanhToanSnapshot?: ShopThanhToanSnapshot | null;
+  /** Ảnh biên lai chuyển khoản buyer đính kèm lúc gửi đơn (giỏ chung). */
+  bienLaiAnhUrl?: string | null;
+  bienLaiAnhId?: string | null;
 };
 
 /** Hàng gắn bài quầy — haystack tìm + card catalog khi Search hàng. */

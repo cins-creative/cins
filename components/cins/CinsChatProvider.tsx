@@ -45,6 +45,7 @@ import {
   toRealtimeMessageEvent,
   type ChatRealtimeMessageEvent,
 } from "@/lib/chat/realtime";
+import { hasShareDragData } from "@/lib/cins/share-drag";
 import { useChatRealtime } from "@/lib/chat/use-chat-realtime";
 import type {
   ChatContextCard,
@@ -129,6 +130,10 @@ type CinsChatContextValue = {
   hiddenRoomIds: string[];
   hideRoom: (roomId: string) => void;
   unhideRoom: (roomId: string) => void;
+  /** Đang kéo nội dung chia sẻ — overlay hiện dạng cột danh sách nhận thả. */
+  shareDropMode: boolean;
+  /** Overlay gọi khi đã nhận drop thành công (giữ overlay mở, thoát drop mode). */
+  completeShareDrop: () => void;
 };
 
 const CinsChatContext = createContext<CinsChatContextValue | null>(null);
@@ -165,6 +170,16 @@ export function CinsChatProvider({
   >({});
   const [pendingBubbleThread, setPendingBubbleThread] =
     useState<ChatThread | null>(null);
+  const [shareDropMode, setShareDropMode] = useState(false);
+  /** Overlay có đang mở sẵn trước khi kéo không — kéo hụt thì đóng lại. */
+  const shareDropWasOpenRef = useRef(false);
+  const shareDropDoneRef = useRef(false);
+  const shareDropActiveRef = useRef(false);
+  const openRef = useRef(false);
+
+  useEffect(() => {
+    openRef.current = open;
+  }, [open]);
   const listenersRef = useRef(new Set<ChatMessageListener>());
   const focusRef = useRef<{ roomId: string | null; surface: ChatFocusSurface }>({
     roomId: null,
@@ -660,6 +675,46 @@ export function CinsChatProvider({
     [resolveDirectRoom, resolveOrgRoom, router, viewerProfileId],
   );
 
+  /* ---- Kéo-thả chia sẻ (desktop): dragstart payload CINs → mở overlay drop mode ---- */
+
+  const completeShareDrop = useCallback(() => {
+    shareDropDoneRef.current = true;
+    setShareDropMode(false);
+  }, []);
+
+  useEffect(() => {
+    if (!viewerProfileId) return;
+
+    const onDragEnter = (event: globalThis.DragEvent) => {
+      if (!hasShareDragData(event.dataTransfer)) return;
+      if (shareDropActiveRef.current) return;
+      shareDropActiveRef.current = true;
+      shareDropDoneRef.current = false;
+      shareDropWasOpenRef.current = openRef.current;
+      setShareDropMode(true);
+      setOpen(true);
+    };
+
+    const onDragEnd = () => {
+      if (!shareDropActiveRef.current) return;
+      shareDropActiveRef.current = false;
+      setShareDropMode(false);
+      if (!shareDropDoneRef.current && !shareDropWasOpenRef.current) {
+        setOpen(false);
+      }
+    };
+
+    window.addEventListener("dragenter", onDragEnter);
+    window.addEventListener("dragend", onDragEnd);
+    // Thả ra ngoài vùng nhận (trình duyệt hủy) — drop không bubble tới row.
+    window.addEventListener("drop", onDragEnd);
+    return () => {
+      window.removeEventListener("dragenter", onDragEnter);
+      window.removeEventListener("dragend", onDragEnd);
+      window.removeEventListener("drop", onDragEnd);
+    };
+  }, [viewerProfileId]);
+
   const value = useMemo(
     () => ({
       open,
@@ -693,6 +748,8 @@ export function CinsChatProvider({
       hiddenRoomIds,
       hideRoom,
       unhideRoom,
+      shareDropMode,
+      completeShareDrop,
     }),
     [
       open,
@@ -725,6 +782,8 @@ export function CinsChatProvider({
       hiddenRoomIds,
       hideRoom,
       unhideRoom,
+      shareDropMode,
+      completeShareDrop,
     ],
   );
 

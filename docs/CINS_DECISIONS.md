@@ -38,7 +38,27 @@
 
 ## LOG — quyết định đã chốt
 
-### Shop storefront — giỏ theo cửa hàng (2026-07-20)
+### SEO chuẩn hóa articles + Khám phá nghề (2026-07-20)
+
+- **Chốt:** lớp SEO dùng chung `lib/seo/` (`buildPublicPageMetadata`, JSON-LD typed); `app/robots.ts` + `app/sitemap.ts` trên App Router (host `cins.vn`).
+- **Nghề:** URL canonical `/nghe-nghiep/[slug]`; schema `Article` + `Occupation` + `BreadcrumbList`; hub filter `?q=` → `noindex,follow` + canonical hub sạch; meta query gồm `merged` để 308 slug cũ.
+- **Ngành:** `/nganh-hoc` dùng `meta_title`/`meta_description`; `/bai-viet/[slug]` 308 `nganh_dao_tao` → `/nganh-hoc/...` (cùng keyword/software/nghe).
+- **Không** index Journey profile `/[slug]` trong sitemap đợt này (giữ `noindex` hiện có).
+- *Hệ quả:* IMPLEMENTATION §2 `seo/` + §6 SEO public; audit `scripts/audit-nghe-seo.mjs`.
+
+### Shop — giỏ chung (giỏ chờ mua) toàn buyer (2026-07-20)
+
+- **Bổ sung L33:** ngoài giỏ post-kiosk / giỏ cửa hàng, thêm **giỏ chung** — một giỏ / buyer, gom hàng của **nhiều cửa hàng**, không gắn sự kiện / không gắn bài. Người mua "cứ bỏ vào giỏ", chờ xử lý sau.
+  • **Schema:** `shop_gio` thêm scope thứ ba `id_cot_moc IS NULL AND id_cua_hang IS NULL` (nới `shop_gio_scope_chk`); unique partial `shop_gio_buyer_chung_uidx` (một giỏ chung / buyer). Migration `migration_shop_gio_chung.sql`. Dòng vẫn `shop_gio_dong` → `id_bien_the`; **seller suy từ biến thể** (product owner).
+  • **Giá:** lấy **giá đang bán** (ưu tiên giá giảm — `gia_giam ?? gia` từ bảng giá mới nhất còn dòng), **không snapshot lúc thêm** — resolve realtime khi đọc giỏ / lúc gửi đơn.
+  • **Checkout tách theo seller:** mỗi cửa hàng = một `shop_don_hang` (`createDonChungForSeller`). Trừ kho atomic như `createDonFromGio`; sau khi tạo chỉ xóa dòng của seller đó khỏi giỏ chung.
+  • **Bắt buộc biên lai chuyển khoản:** checkout giỏ chung phải **đính kèm ảnh biên lai** (`/api/post-image/upload` → `{url, imageId}`) **và** tích xác nhận rủi ro mới gửi được đơn (`canSend`). Lưu trên đơn: `shop_don_hang.bien_lai_anh_url` + `bien_lai_anh_id` (migration `migration_shop_don_bien_lai.sql`); `createDonChungForSeller` ném `RECEIPT_REQUIRED` nếu thiếu / URL còn `blob:`. Hiện lại ở card "đã gửi" (buyer) và `ShopDonDetailModal` (seller + buyer).
+  • **Lịch sử mua hàng (buyer):** nút icon lịch sử trên header panel giỏ chung mở `ShopMuaHistory` — liệt kê **toàn bộ đơn của buyer** (`GET /api/shop/don?role=buyer`), filter Tất cả / Chưa TT (`cho_xac_nhan`) / Đã TT (`da_nhan_tien`); mỗi đơn **xổ sẵn** dòng hàng của shop. **Multi-select** (checkbox từng đơn + chọn tất cả, UX như `ShopKhoClient`). **Chia sẻ** đơn đã chọn = gửi text tóm tắt qua chat tới hội thoại chọn từ picker (`/api/chat/threads` → `POST /api/chat/rooms/{roomId}/messages {noi_dung}`; chỉ hội thoại đã có). **Xuất PDF** = mở cửa sổ in tự chứa (`window.print`, giữ dấu tiếng Việt) cho các đơn đã chọn.
+  • **Luồng buyer khác luồng cũ:** gửi đơn từ giỏ chung **không mở chat**, **không đóng panel** — row cửa hàng chuyển **xanh "đã gửi đơn"** + hiện STK/QR để chuyển khoản; buyer tiếp tục shop khác. (Luồng kiosk post cũ vẫn mở chat.) Seller nhận đơn qua danh sách đơn (`/ban-hang/don` + topbar), không cần tin chat.
+  • **API:** `GET/PATCH/DELETE /api/shop/gio-chung` (PATCH `{idBienThe, soLuong}`) · `POST /api/shop/gio-chung/don` (`{sellerId, ghiChu, nguoiMuaChapNhanRuiRo}`). Lib `lib/shop/gio-chung.ts`.
+  • **UI:** nút giỏ trên topbar (`ShopGioChungButton`, hiện mọi user đã đăng nhập) mở panel nhóm theo cửa hàng, checkout từng shop. **Storefront `/{slug}/shop`, search quầy sự kiện, và post-kiosk trên milestone (`ShopKioskBlock`) đều đã chuyển sang giỏ chung.** `ShopKioskBlock` giờ **catalog-only**: ticker + dialog "Hàng bán", "Thêm vào giỏ" đổ vào giỏ chung (`PATCH /api/shop/gio-chung`) + phát `GIO_CHUNG_CHANGED_EVENT`; **bỏ tab "Giỏ hàng" riêng, hóa đơn/thanh toán/chat checkout cũ** — buyer checkout ở panel giỏ chung trên topbar. Badge ticker = số dòng của seller này trong giỏ chung. Giữ nút "Nhắn người bán".
+
+### Shop storefront — giỏ theo cửa hàng (2026-07-20, thay bằng giỏ chung phía trên)
 
 - **Bổ sung L33:** mua thẳng từ `/{slug}/shop` không cần `shop_post_hang`. Post-kiosk vẫn gắn subset. Schema `shop_gio`: XOR `id_cot_moc` | `id_cua_hang`. API `shop/gio` · `shop/don` nhận một trong hai scope. UI: `JourneyShopStorefront` thêm giỏ + gửi đơn.
 

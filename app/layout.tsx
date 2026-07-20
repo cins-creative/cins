@@ -4,6 +4,7 @@ import { Anton, Be_Vietnam_Pro } from "next/font/google";
 import { AuthSessionRemember } from "@/components/auth/AuthSessionRemember";
 import { ThemeRoot } from "@/components/cins/ThemeRoot";
 import { GopYButton } from "@/components/feedback/GopYButton";
+import { HardNavGuard } from "@/components/navigation/HardNavGuard";
 import { getConfiguredSiteOrigin } from "@/lib/auth/auth-origin";
 import "./globals.css";
 import "./cins-design-tokens.css";
@@ -96,6 +97,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
         <ThemeRoot />
+        <HardNavGuard />
         <AuthSessionRemember />
         {children}
         <GopYButton />

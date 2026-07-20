@@ -1,6 +1,7 @@
 import { parseChatMentions } from "@/lib/chat/mentions";
 import type {
   ChatContextCard,
+  ChatCanvasBinhLuanNotice,
   ChatMentionRef,
   ChatMessage,
   ChatMocNotice,
@@ -17,7 +18,7 @@ export function parseChatNguCanh(raw: unknown): ChatContextCard | null {
   const tieuDe = typeof r.tieuDe === "string" ? r.tieuDe : null;
   const loai = typeof r.loai === "string" ? r.loai : null;
   if (!id || !tieuDe || !loai) return null;
-  if (loai === "moc") return null;
+  if (loai === "moc" || loai === "canvas_binh_luan") return null;
   return {
     loai,
     id,
@@ -54,6 +55,32 @@ export function parseChatMocNhac(raw: unknown): ChatMocNotice | null {
     thoiDiem,
     url: typeof r.href === "string" ? r.href : null,
     moTa: typeof r.moTa === "string" ? r.moTa : null,
+  };
+}
+
+/** Parse tin «vừa có bình luận» trên canvas. */
+export function parseChatCanvasBinhLuan(
+  raw: unknown,
+): ChatCanvasBinhLuanNotice | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  if (r.loai !== "canvas_binh_luan") return null;
+  const canvasId = typeof r.id === "string" ? r.id : null;
+  const tenNguoi = typeof r.tieuDe === "string" ? r.tieuDe.trim() : "";
+  if (!canvasId || !tenNguoi) return null;
+  const nodeIds = Array.isArray(r.nodeIds)
+    ? r.nodeIds.filter((id): id is string => typeof id === "string")
+    : [];
+  const soLuong =
+    typeof r.soLuong === "number" && Number.isFinite(r.soLuong)
+      ? Math.max(1, Math.floor(r.soLuong))
+      : Math.max(1, nodeIds.length);
+  return {
+    canvasId,
+    soLuong,
+    nodeIds,
+    tenNguoi,
+    avatarUrl: typeof r.avatarUrl === "string" ? r.avatarUrl : null,
   };
 }
 

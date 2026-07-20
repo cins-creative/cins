@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { ChatCanvasBinhLuanNoticeBubble } from "@/components/cins/ChatCanvasBinhLuanNotice";
 import { ChatDonHangCard } from "@/components/cins/ChatDonHangCard";
 import { ChatImageLightbox } from "@/components/cins/ChatImageLightbox";
 import { ChatLinkOgCard } from "@/components/cins/ChatLinkOgCard";
@@ -33,6 +34,7 @@ type ChatMessageBodyProps = {
   roomId?: string;
   viewerUserId?: string | null;
   onPollUpdated?: (messageId: string, poll: ChatPollSummary) => void;
+  onOpenCanvasComments?: (nodeIds: string[], messageId: string) => void;
 };
 
 function MessageCaption({
@@ -62,6 +64,7 @@ export function ChatMessageBody({
   roomId,
   viewerUserId,
   onPollUpdated,
+  onOpenCanvasComments,
 }: ChatMessageBodyProps) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const isSticker = msg.kind === "sticker";
@@ -90,6 +93,24 @@ export function ChatMessageBody({
   }
 
   const showCaption = !mediaOnly && !isSticker && Boolean(displayText);
+
+  if (msg.kind === "canvas_binh_luan" || msg.canvasBinhLuan) {
+    if (msg.canvasBinhLuan) {
+      return (
+        <ChatCanvasBinhLuanNoticeBubble
+          notice={msg.canvasBinhLuan}
+          messageId={msg.id}
+          fallbackBody={msg.body}
+          onOpen={onOpenCanvasComments}
+        />
+      );
+    }
+    return (
+      <p className="cins-chat-canvas-comment-notice-fallback">
+        {msg.body || "Bình luận trên canvas"}
+      </p>
+    );
+  }
 
   if (msg.kind === "moc_nhac" || msg.mocNhac) {
     if (msg.mocNhac) {

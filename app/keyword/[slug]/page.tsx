@@ -11,6 +11,7 @@ import {
   getArticleById,
   getKeywordArticleBySlug,
 } from "@/lib/articles/queries";
+import { buildPublicPageMetadata } from "@/lib/seo/build-article-metadata";
 import { parseTagAggSort } from "@/lib/tag/aggregation-queries";
 import {
   fetchEntityMilestones,
@@ -25,21 +26,38 @@ type Props = {
   searchParams: Promise<{ sort?: string }>;
 };
 
+function keywordPath(slug: string): string {
+  return `/keyword/${encodeURIComponent(slug)}`;
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   if (!hasSupabaseEnv()) {
-    return { title: "Keyword | CINs" };
+    return buildPublicPageMetadata({
+      path: keywordPath(slug),
+      title: "Keyword | CINs",
+      noIndex: true,
+    });
   }
   const article = await getKeywordArticleBySlug(slug);
   if (!article) {
-    return { title: "Không tìm thấy | CINs" };
+    return buildPublicPageMetadata({
+      path: keywordPath(slug),
+      title: "Không tìm thấy | CINs",
+      noIndex: true,
+    });
   }
   const title =
     article.meta_title?.trim() ||
     `${article.tieu_de_viet?.trim() || article.tieu_de} | CINs`;
   const description =
     article.meta_description?.trim() || article.tom_tat?.trim() || undefined;
-  return { title, description };
+  return buildPublicPageMetadata({
+    path: keywordPath(slug),
+    title,
+    description,
+    ogType: "article",
+  });
 }
 
 export default async function KeywordDetailPage({ params, searchParams }: Props) {
@@ -60,6 +78,10 @@ export default async function KeywordDetailPage({ params, searchParams }: Props)
     if (target?.slug) {
       permanentRedirect(`/keyword/${encodeURIComponent(target.slug)}`);
     }
+    notFound();
+  }
+
+  if (article.trang_thai_noi_dung !== "published") {
     notFound();
   }
 

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
+import { dismissCanvasCommentNotice } from "@/lib/chat/canvas/comment-notice";
 import {
   editRoomMessage,
   recallRoomMessage,
@@ -34,6 +35,18 @@ export async function PATCH(req: Request, context: RouteContext) {
       return NextResponse.json({ error: result.error }, { status: 400 });
     }
     return NextResponse.json({ message: result.message });
+  }
+
+  if (action === "dismiss_canvas_notice") {
+    const result = await dismissCanvasCommentNotice({
+      roomId,
+      messageId,
+      viewerId: session.profile.id,
+    });
+    if (!result.ok) {
+      return NextResponse.json({ error: result.error }, { status: 400 });
+    }
+    return NextResponse.json({ ok: true });
   }
 
   if (action === "edit") {

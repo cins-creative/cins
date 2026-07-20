@@ -11,18 +11,19 @@ import {
   fetchBlogNhomForArticle,
   fetchBlogRelatedArticles,
 } from "@/lib/bai-viet/queries";
+import { articlePublicHref } from "@/lib/articles/article-href";
 import {
   fetchRelatedArticles,
-  fetchTruongDaoTaoForNganh,
   fetchTacPhamGalleryForArticle,
   getArticleById,
   getArticleBySlug,
 } from "@/lib/articles/queries";
 import "@/app/cins-bai-viet-detail.css";
 import { isInlineArticleEditEnabled } from "@/lib/dev/inline-article-edit";
+import { buildPublicPageMetadata } from "@/lib/seo/build-article-metadata";
 import { hasSupabaseEnv } from "@/lib/supabase/server";
 import { hasServiceRoleEnv } from "@/lib/supabase/service-role";
-import type { ArticleBaiViet, LoaiBaiViet } from "@/lib/articles/types";
+import type { ArticleBaiViet, LoaiBaiViet, TruongNganhRow } from "@/lib/articles/types";
 import { ngheNghiepDetailHref } from "@/lib/cins/hubPaths";
 import {
   fetchEntityMilestones,
@@ -56,21 +57,41 @@ function normalizeArticle(article: ArticleBaiViet): ArticleBaiViet {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
+  const fallbackPath = `/bai-viet/${encodeURIComponent(slug)}`;
   if (!hasSupabaseEnv()) {
-    return { title: "Bài viết | CINs" };
+    return buildPublicPageMetadata({
+      path: fallbackPath,
+      title: "Bài viết | CINs",
+      noIndex: true,
+    });
   }
   const raw = await getArticleBySlug(slug);
-  if (!raw) return { title: "Bài viết | CINs" };
+  if (!raw) {
+    return buildPublicPageMetadata({
+      path: fallbackPath,
+      title: "Bài viết | CINs",
+      noIndex: true,
+    });
+  }
   const article = normalizeArticle(raw);
   if (article.trang_thai_noi_dung !== "published") {
-    return { title: "Bài viết | CINs" };
+    return buildPublicPageMetadata({
+      path: fallbackPath,
+      title: "Bài viết | CINs",
+      noIndex: true,
+    });
   }
+  const path = articlePublicHref(article.loai_bai_viet, article.slug);
   const title =
-    article.meta_title?.trim() ||
-    `${article.tieu_de} | CINs`;
+    article.meta_title?.trim() || `${article.tieu_de} | CINs`;
   const desc =
     article.meta_description?.trim() || article.tom_tat?.trim() || undefined;
-  return { title, description: desc };
+  return buildPublicPageMetadata({
+    path,
+    title,
+    description: desc,
+    ogType: "article",
+  });
 }
 
 export default async function BaiVietSlugPage({ params }: Props) {
@@ -90,7 +111,7 @@ export default async function BaiVietSlugPage({ params }: Props) {
   if (article.trang_thai_noi_dung === "merged" && article.merged_vao_id) {
     const target = await getArticleById(article.merged_vao_id);
     if (target?.slug) {
-      permanentRedirect(`/bai-viet/${target.slug}`);
+      permanentRedirect(articlePublicHref(target.loai_bai_viet, target.slug));
     }
     notFound();
   }
@@ -109,6 +130,10 @@ export default async function BaiVietSlugPage({ params }: Props) {
 
   if (article.loai_bai_viet === "nghe") {
     permanentRedirect(ngheNghiepDetailHref(article.slug));
+  }
+
+  if (article.loai_bai_viet === "nganh_dao_tao") {
+    permanentRedirect(articlePublicHref("nganh_dao_tao", article.slug));
   }
 
   const draftUiEnabled = isInlineArticleEditEnabled();
@@ -136,13 +161,11 @@ export default async function BaiVietSlugPage({ params }: Props) {
     );
   }
 
-  const [lienQuan, tacPham, truongRows] = await Promise.all([
+  const [lienQuan, tacPham] = await Promise.all([
     fetchRelatedArticles(article.id),
     fetchTacPhamGalleryForArticle(article.id),
-    article.loai_bai_viet === "nganh_dao_tao"
-      ? fetchTruongDaoTaoForNganh(article.id)
-      : Promise.resolve([]),
   ]);
+  const truongRows: TruongNganhRow[] = [];
 
   const session = await getCurrentSessionAndProfile();
   const viewerProfileId = session?.profile?.id ?? null;

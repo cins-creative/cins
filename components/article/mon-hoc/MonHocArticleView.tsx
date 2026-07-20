@@ -141,7 +141,11 @@ export async function MonHocArticleView({
 
   return (
     <div className="article-page arv2 arv2-nghe arv2-mon-hoc">
-      <ArticleJsonLd article={article} slugPath={slugPath} />
+      <ArticleJsonLd
+        article={article}
+        slugPath={slugPath}
+        variant="learningResource"
+      />
       <EntityArticleLayout
         pageClassName="ent-page--mon-hoc"
         header={

@@ -6,8 +6,7 @@ import { SOCIAL_LOAI_DOI_TUONG } from "@/lib/cong-dong/constants";
 import {
   ALLOWED_REACTION_EMOJIS,
   REACTION_EMOJI,
-  counterpartReactionEmoji,
-  type ReactionEmoji,
+  isPositiveReactionEmoji,
 } from "@/lib/social/reaction-emoji";
 import { SOCIAL_LOAI_ORG_BAI_DANG } from "@/lib/truong/social-constants";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
@@ -49,7 +48,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Thông tin reaction không hợp lệ." }, { status: 400 });
   }
 
-  const emoji = emojiRaw as ReactionEmoji;
+  const emoji = emojiRaw;
   const admin = createServiceRoleClient();
   const userId = session.profile.id;
 
@@ -65,15 +64,14 @@ export async function POST(req: Request) {
     );
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
-    /* Like và dislike loại trừ lẫn nhau — mỗi user tối đa một trong hai. */
-    const other = counterpartReactionEmoji(emoji);
+    /* Mỗi user tối đa một cảm xúc trên một đối tượng — xóa mọi emoji khác. */
     const { error: clearErr } = await admin
       .from("social_reaction")
       .delete()
       .eq("id_nguoi_dung", userId)
       .eq("loai_doi_tuong", loaiDoiTuong)
       .eq("id_doi_tuong", idDoiTuong)
-      .eq("emoji", other);
+      .neq("emoji", emoji);
     if (clearErr) return NextResponse.json({ error: clearErr.message }, { status: 400 });
   } else {
     const { error } = await admin
@@ -89,7 +87,7 @@ export async function POST(req: Request) {
   const [
     { count: likeCount },
     { count: dislikeCount },
-    { data: viewerHeart },
+    { data: viewerPositive },
     { data: viewerDislike },
   ] = await Promise.all([
     admin
@@ -97,7 +95,7 @@ export async function POST(req: Request) {
       .select("id", { count: "exact", head: true })
       .eq("loai_doi_tuong", loaiDoiTuong)
       .eq("id_doi_tuong", idDoiTuong)
-      .eq("emoji", REACTION_EMOJI.LIKE),
+      .neq("emoji", REACTION_EMOJI.DISLIKE),
     admin
       .from("social_reaction")
       .select("id", { count: "exact", head: true })
@@ -106,11 +104,11 @@ export async function POST(req: Request) {
       .eq("emoji", REACTION_EMOJI.DISLIKE),
     admin
       .from("social_reaction")
-      .select("id")
+      .select("emoji")
       .eq("id_nguoi_dung", userId)
       .eq("loai_doi_tuong", loaiDoiTuong)
       .eq("id_doi_tuong", idDoiTuong)
-      .eq("emoji", REACTION_EMOJI.LIKE)
+      .neq("emoji", REACTION_EMOJI.DISLIKE)
       .maybeSingle(),
     admin
       .from("social_reaction")
@@ -124,18 +122,26 @@ export async function POST(req: Request) {
 
   await markEngagementCanTinhLaiForTarget(loaiDoiTuong, idDoiTuong);
 
-  const liked = Boolean(viewerHeart);
+  const viewerEmoji =
+    typeof viewerPositive?.emoji === "string" &&
+    isPositiveReactionEmoji(viewerPositive.emoji)
+      ? viewerPositive.emoji
+      : null;
+  const liked = Boolean(viewerEmoji);
   const disliked = Boolean(viewerDislike);
 
   return NextResponse.json({
     ok: true,
     emoji,
+    viewerEmoji,
     liked,
     disliked,
     likeCount: likeCount ?? 0,
     dislikeCount: dislikeCount ?? 0,
     /* Giữ field cũ cho client chưa cập nhật. */
-    count: emoji === REACTION_EMOJI.LIKE ? (likeCount ?? 0) : (dislikeCount ?? 0),
-    active: emoji === REACTION_EMOJI.LIKE ? liked : disliked,
+    count: isPositiveReactionEmoji(emoji)
+      ? (likeCount ?? 0)
+      : (dislikeCount ?? 0),
+    active: isPositiveReactionEmoji(emoji) ? liked : disliked,
   });
 }

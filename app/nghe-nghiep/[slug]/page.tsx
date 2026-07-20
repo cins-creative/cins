@@ -7,7 +7,8 @@ import {
   getArticleSlugById,
   getNgheArticleMetaBySlug,
 } from "@/lib/articles/nghe-page-queries";
-import { getConfiguredSiteOrigin } from "@/lib/auth/auth-origin";
+import { ngheNghiepDetailHref } from "@/lib/cins/hubPaths";
+import { buildPublicPageMetadata } from "@/lib/seo/build-article-metadata";
 import { parseTagAggSort } from "@/lib/tag/aggregation-queries";
 import type { TagAggSort } from "@/lib/tag/aggregation-types";
 import { hasSupabaseEnv } from "@/lib/supabase/server";
@@ -23,16 +24,43 @@ type Props = {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const siteOrigin = getConfiguredSiteOrigin() ?? "https://cins.vn";
-  const metadataBase = new URL(siteOrigin);
 
   if (!hasSupabaseEnv()) {
-    return { metadataBase, title: "Nghề nghiệp | CINs" };
+    return buildPublicPageMetadata({
+      path: ngheNghiepDetailHref(slug),
+      title: "Nghề nghiệp | CINs",
+      noIndex: true,
+    });
   }
 
   const meta = await getNgheArticleMetaBySlug(slug);
   if (!meta) {
-    return { metadataBase, title: "Không tìm thấy | CINs" };
+    return buildPublicPageMetadata({
+      path: ngheNghiepDetailHref(slug),
+      title: "Không tìm thấy | CINs",
+      noIndex: true,
+    });
+  }
+
+  if (meta.trang_thai_noi_dung === "merged" && meta.merged_vao_id) {
+    const targetSlug = await getArticleSlugById(meta.merged_vao_id);
+    if (targetSlug) {
+      const targetPath = ngheNghiepDetailHref(targetSlug);
+      return buildPublicPageMetadata({
+        path: targetPath,
+        title:
+          meta.meta_title?.trim() ||
+          `${meta.tieu_de_viet?.trim() || meta.tieu_de} | CINs`,
+        description:
+          meta.meta_description?.trim() || meta.tom_tat?.trim() || undefined,
+        noIndex: true,
+      });
+    }
+    return buildPublicPageMetadata({
+      path: ngheNghiepDetailHref(slug),
+      title: "Không tìm thấy | CINs",
+      noIndex: true,
+    });
   }
 
   const title =
@@ -41,29 +69,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const description =
     meta.meta_description?.trim() || meta.tom_tat?.trim() || undefined;
 
-  const pagePath = `/nghe-nghiep/${encodeURIComponent(slug)}`;
+  const pagePath = ngheNghiepDetailHref(slug);
   const ogImagePath = `${pagePath}/opengraph-image`;
 
-  return {
-    metadataBase,
+  return buildPublicPageMetadata({
+    path: pagePath,
     title,
     description,
-    openGraph: {
-      type: "article",
-      siteName: "CINs",
-      locale: "vi_VN",
-      url: pagePath,
-      title,
-      description,
-      images: [{ url: ogImagePath, alt: title }],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-      images: [ogImagePath],
-    },
-  };
+    ogImagePath,
+    ogType: "article",
+  });
 }
 
 async function NgheNghiepDetailGate({
@@ -81,8 +96,12 @@ async function NgheNghiepDetailGate({
   if (meta.trang_thai_noi_dung === "merged" && meta.merged_vao_id) {
     const targetSlug = await getArticleSlugById(meta.merged_vao_id);
     if (targetSlug) {
-      permanentRedirect(`/nghe-nghiep/${encodeURIComponent(targetSlug)}`);
+      permanentRedirect(ngheNghiepDetailHref(targetSlug));
     }
+    notFound();
+  }
+
+  if (meta.trang_thai_noi_dung !== "published") {
     notFound();
   }
 

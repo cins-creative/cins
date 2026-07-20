@@ -82,6 +82,16 @@ export function messagePreviewText(message: ChatMessage): string {
   if (message.kind === "moc_nhac" || message.mocNhac) {
     return message.body.trim() || `Nhắc mốc: ${message.mocNhac?.ten ?? ""}`;
   }
+  if (message.kind === "canvas_binh_luan" || message.canvasBinhLuan) {
+    return (
+      message.body.trim() ||
+      (message.canvasBinhLuan
+        ? message.canvasBinhLuan.soLuong <= 1
+          ? `${message.canvasBinhLuan.tenNguoi} vừa có một bình luận`
+          : `${message.canvasBinhLuan.tenNguoi} vừa có ${message.canvasBinhLuan.soLuong} bình luận`
+        : "Bình luận trên canvas")
+    );
+  }
   if (message.kind === "binh_chon" || message.poll) {
     const q = message.poll?.question?.trim() || message.body.trim();
     return q ? `Bình chọn: ${q}` : "Bình chọn";

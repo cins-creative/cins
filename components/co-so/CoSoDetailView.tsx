@@ -106,8 +106,16 @@ function CoSoDetailViewInner({
   const baseSchool = ctx?.school ?? payload.school;
   const school = { ...baseSchool, ...schoolExtra };
   const orgSlug = school.slug;
-  const { tab, khoaSlug, jobId, baiDangId, suKienId, selectTab } =
-    useCoSoTabNav(orgSlug);
+  const {
+    tab,
+    khoaSlug,
+    jobId,
+    baiDangId,
+    suKienId,
+    selectTab,
+    openKhoa,
+    closeKhoa,
+  } = useCoSoTabNav(orgSlug);
   const { jobs } = useOrgStudioJobs(school.id);
   const [mountedTabs, setMountedTabs] = useState<Set<CoSoTabId>>(
     () => new Set([tab]),
@@ -336,6 +344,9 @@ function CoSoDetailViewInner({
                   orgVerified={daVerify}
                   canManageKhoaHoc={canManageKhoaHoc}
                   khoaSlug={khoaSlug}
+                  onOpenKhoa={openKhoa}
+                  onCloseKhoa={closeKhoa}
+                  onReplaceKhoa={(slug) => openKhoa(slug, "replace")}
                 />
               ) : null}
               {t.id === "su-kien" ? (
@@ -385,6 +396,7 @@ function CoSoDetailViewInner({
         canManageKhoaHoc={canManageKhoaHoc}
         isMobileShell={isMobileShell}
         isMobileShellActive
+        onOpenKhoa={openKhoa}
       />
       </div>
 

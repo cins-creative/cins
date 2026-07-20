@@ -1,6 +1,7 @@
 import "server-only";
 
 import { getGio, getGioCuaHang } from "@/lib/shop/gio";
+import { clearGioChungCuaSeller, getGioChung } from "@/lib/shop/gio-chung";
 import {
   buildThanhToanSnapshot,
   getShopCheckoutPayment,
@@ -46,10 +47,12 @@ type DonRow = {
   nguoi_mua_chap_nhan_van_ban?: string | null;
   nguoi_mua_chap_nhan_phien_ban?: string | null;
   thanh_toan_snapshot?: ShopThanhToanSnapshot | null;
+  bien_lai_anh_url?: string | null;
+  bien_lai_anh_id?: string | null;
 };
 
 const DON_SELECT =
-  "id, ma_don, id_nguoi_mua, id_nguoi_ban, id_cot_moc, id_su_kien, loai_don, trang_thai, tien_te, tong_tien, ghi_chu, da_tru_kho, tao_luc, xac_nhan_luc, nguoi_mua_chap_nhan_luc, nguoi_mua_chap_nhan_van_ban, nguoi_mua_chap_nhan_phien_ban, thanh_toan_snapshot";
+  "id, ma_don, id_nguoi_mua, id_nguoi_ban, id_cot_moc, id_su_kien, loai_don, trang_thai, tien_te, tong_tien, ghi_chu, da_tru_kho, tao_luc, xac_nhan_luc, nguoi_mua_chap_nhan_luc, nguoi_mua_chap_nhan_van_ban, nguoi_mua_chap_nhan_phien_ban, thanh_toan_snapshot, bien_lai_anh_url, bien_lai_anh_id";
 
 function normalizeThanhToanSnapshot(
   raw: unknown,
@@ -218,6 +221,8 @@ async function attachDong(dons: DonRow[]): Promise<ShopDonHang[]> {
     nguoiMuaChapNhanVanBan: d.nguoi_mua_chap_nhan_van_ban ?? null,
     nguoiMuaChapNhanPhienBan: d.nguoi_mua_chap_nhan_phien_ban ?? null,
     thanhToanSnapshot: normalizeThanhToanSnapshot(d.thanh_toan_snapshot),
+    bienLaiAnhUrl: d.bien_lai_anh_url ?? null,
+    bienLaiAnhId: d.bien_lai_anh_id ?? null,
   }));
 }
 
@@ -451,6 +456,176 @@ export async function createDonFromGio(
   if (gio.id) {
     await admin.from("shop_gio_dong").delete().eq("id_gio", gio.id);
   }
+
+  const fresh = await getDonHang(don.id);
+  if (!fresh) throw new Error("CREATE_FAILED");
+  return fresh;
+}
+
+/**
+ * Tạo đơn từ **giỏ chung** cho MỘT seller (checkout theo shop).
+ * Khác `createDonFromGio`: đọc từ giỏ chung (không scope post/shop), chỉ lấy
+ * dòng thuộc `sellerId`, và sau khi tạo xong chỉ xóa dòng của seller đó khỏi
+ * giỏ chung. Đơn + card chat cho seller vẫn tạo như thường; phía UI buyer
+ * KHÔNG mở chat (gửi xong là xong, row chuyển xanh).
+ */
+export async function createDonChungForSeller(
+  buyerId: string,
+  input: {
+    sellerId: string;
+    ghiChu?: string | null;
+    maDon?: string | null;
+    nguoiMuaChapNhanRuiRo?: boolean;
+    bienLaiAnhUrl?: string | null;
+    bienLaiAnhId?: string | null;
+  },
+): Promise<ShopDonHang> {
+  const sellerId = input.sellerId?.trim();
+  if (!sellerId) throw new Error("CART_SCOPE_REQUIRED");
+  if (sellerId === buyerId) throw new Error("CANNOT_BUY_OWN");
+
+  const gio = await getGioChung(buyerId);
+  const nhom = gio.nhom.find((n) => n.idNguoiBan === sellerId);
+  if (!nhom || nhom.dong.length === 0) throw new Error("CART_EMPTY");
+
+  if (input.nguoiMuaChapNhanRuiRo !== true) {
+    throw new Error("BUYER_ACCEPTANCE_REQUIRED");
+  }
+
+  const bienLaiAnhUrl = input.bienLaiAnhUrl?.trim() || null;
+  const bienLaiAnhId = input.bienLaiAnhId?.trim() || null;
+  /* Bắt buộc đính kèm biên lai chuyển khoản (không nhận URL tạm blob:). */
+  if (!bienLaiAnhUrl || bienLaiAnhUrl.startsWith("blob:")) {
+    throw new Error("RECEIPT_REQUIRED");
+  }
+
+  for (const d of nhom.dong) {
+    if (d.ngungBan) throw new Error("ITEM_UNAVAILABLE");
+    if (d.soLuongTon <= 0) throw new Error("STOCK_EMPTY");
+    if (d.soLuong > d.soLuongTon) throw new Error("STOCK_INSUFFICIENT");
+  }
+
+  const admin = createServiceRoleClient();
+  const { data: buyer } = await admin
+    .from("user_nguoi_dung")
+    .select("ten_hien_thi, slug")
+    .eq("id", buyerId)
+    .maybeSingle<{ ten_hien_thi: string | null; slug: string | null }>();
+  const buyerLabel =
+    buyer?.ten_hien_thi?.trim() || buyer?.slug?.trim() || "BUYER";
+
+  const buyerPrefix = shopMaDonPrefix(buyerLabel);
+  const clientMa =
+    typeof input.maDon === "string" && isValidShopMaDon(input.maDon)
+      ? normalizeShopMaDon(input.maDon)
+      : null;
+  let maDon =
+    clientMa && clientMa.startsWith(`${buyerPrefix}-`)
+      ? clientMa
+      : buildShopMaDon(buyerLabel);
+
+  const { payment } = await getShopCheckoutPayment(sellerId);
+  if (!payment) throw new Error("PAYMENT_REQUIRED");
+
+  const thanhToanSnapshot = buildThanhToanSnapshot(
+    payment,
+    maDon,
+    nhom.tongTien,
+    nhom.tienTe,
+  );
+
+  const chapNhan = {
+    nguoi_mua_chap_nhan_luc: new Date().toISOString(),
+    nguoi_mua_chap_nhan_van_ban: SHOP_BUYER_TRANSFER_DISCLAIMER,
+    nguoi_mua_chap_nhan_phien_ban: SHOP_BUYER_TRANSFER_DISCLAIMER_VERSION,
+  };
+
+  let don: DonRow | null = null;
+  let lastError: unknown = null;
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const snapshotForAttempt = { ...thanhToanSnapshot, noiDungCk: maDon };
+    const { data, error } = await admin
+      .from("shop_don_hang")
+      .insert({
+        id_nguoi_mua: buyerId,
+        id_nguoi_ban: sellerId,
+        id_cot_moc: null,
+        id_su_kien: null,
+        loai_don: "mua_ngay",
+        trang_thai: "cho_xac_nhan",
+        tien_te: nhom.tienTe,
+        tong_tien: nhom.tongTien,
+        ghi_chu: input.ghiChu?.trim() || null,
+        ma_don: maDon,
+        dieu_khoan_snapshot: shopTermsSnapshot(),
+        da_tru_kho: false,
+        thanh_toan_snapshot: snapshotForAttempt,
+        bien_lai_anh_url: bienLaiAnhUrl,
+        bien_lai_anh_id: bienLaiAnhId,
+        ...chapNhan,
+      })
+      .select(DON_SELECT)
+      .single<DonRow>();
+    if (!error && data) {
+      don = data;
+      break;
+    }
+    lastError = error;
+    const code =
+      error && typeof error === "object" && "code" in error
+        ? String((error as { code?: string }).code)
+        : "";
+    if (code !== "23505") break;
+    maDon = buildShopMaDon(buyerLabel);
+  }
+  if (!don) {
+    console.error("[shop] createDonChung", lastError);
+    throw new Error("CREATE_FAILED");
+  }
+
+  const { error: dongErr } = await admin.from("shop_don_hang_dong").insert(
+    nhom.dong.map((d) => ({
+      id_don_hang: don.id,
+      id_bien_the: d.idBienThe,
+      ten_snapshot: d.tenSanPham,
+      nhan_snapshot: d.nhanBienThe,
+      so_luong: d.soLuong,
+      gia_don_vi: d.giaHienThi,
+    })),
+  );
+  if (dongErr) {
+    console.error("[shop] createDonChungDong", dongErr);
+    await admin.from("shop_don_hang").delete().eq("id", don.id);
+    throw new Error("CREATE_FAILED");
+  }
+
+  /* Trừ kho ngay (atomic). */
+  {
+    const deducted: Array<{ idBienThe: string; soLuong: number }> = [];
+    try {
+      for (const d of nhom.dong) {
+        const ok = await truKhoBienThe(d.idBienThe, d.soLuong);
+        if (!ok) throw new Error("STOCK_INSUFFICIENT");
+        deducted.push({ idBienThe: d.idBienThe, soLuong: d.soLuong });
+      }
+      const { error: flagErr } = await admin
+        .from("shop_don_hang")
+        .update({ da_tru_kho: true, cap_nhat_luc: new Date().toISOString() })
+        .eq("id", don.id);
+      if (flagErr) throw new Error("CREATE_FAILED");
+    } catch (e) {
+      for (const x of deducted.reverse()) {
+        await hoanKhoBienThe(x.idBienThe, x.soLuong);
+      }
+      await admin.from("shop_don_hang").delete().eq("id", don.id);
+      if (e instanceof Error && e.message === "STOCK_INSUFFICIENT") throw e;
+      console.error("[shop] createDonChungTruKho", e);
+      throw new Error("CREATE_FAILED");
+    }
+  }
+
+  /* Chỉ xóa dòng của seller này khỏi giỏ chung — các shop khác giữ nguyên. */
+  await clearGioChungCuaSeller(buyerId, sellerId);
 
   const fresh = await getDonHang(don.id);
   if (!fresh) throw new Error("CREATE_FAILED");
