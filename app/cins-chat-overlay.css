@@ -980,6 +980,24 @@
   font-size: 13px;
 }
 
+.cins-chat-canvas-notice {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 0 8px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  color: #065f46;
+  font-size: 13px;
+  font-weight: 600;
+}
+
 .cins-chat-mention-banner-actions {
   display: inline-flex;
   align-items: center;
@@ -3466,16 +3484,6 @@ button.cins-canvas-table-cell-text {
   padding-right: 0;
 }
 
-.cins-chat-bubble-wrap:hover .cins-chat-msg-actions,
-.cins-chat-bubble-wrap:focus-within .cins-chat-msg-actions,
-.cins-chat-bubble-wrap:has(.cins-chat-msg-actions.is-open) .cins-chat-msg-actions,
-.cins-chat-bubble.has-media-actions:hover .cins-chat-msg-actions,
-.cins-chat-bubble.has-media-actions:focus-within .cins-chat-msg-actions,
-.cins-chat-bubble.has-media-actions:has(.cins-chat-msg-actions.is-open) .cins-chat-msg-actions {
-  opacity: 1;
-  pointer-events: auto;
-}
-
 .cins-chat-bubble.has-media-actions {
   overflow: visible;
 }
@@ -3620,9 +3628,8 @@ button.cins-canvas-table-cell-text {
   gap: 2px;
   flex-shrink: 0;
   align-self: center;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.15s ease;
+  opacity: 1;
+  pointer-events: auto;
   z-index: 2;
 }
 
@@ -3661,11 +3668,6 @@ button.cins-canvas-table-cell-text {
   bottom: auto;
   transform: none;
   z-index: 12050;
-}
-
-.cins-chat-msg-actions.is-open {
-  opacity: 1;
-  pointer-events: auto;
 }
 
 .cins-chat-msg-menu {

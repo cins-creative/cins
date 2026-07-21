@@ -71,6 +71,23 @@ export function findFirstOgPreviewUrl(text: string): string | null {
   return null;
 }
 
+/**
+ * URL http(s) đầu tiên trong text — gồm cả YouTube/Vimeo.
+ * Dùng khi đưa tin lên canvas (link card), khác OG chat (bỏ video vì đã có embed).
+ */
+export function findFirstHttpUrl(text: string): string | null {
+  for (const url of extractUrlsFromText(text)) {
+    try {
+      const parsed = new URL(url);
+      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") continue;
+      return parsed.href;
+    } catch {
+      continue;
+    }
+  }
+  return null;
+}
+
 export function isUrlOnlyBody(body: string, url: string): boolean {
   const trimmed = body.trim();
   const u = trimUrlTrailingPunctuation(url.trim());

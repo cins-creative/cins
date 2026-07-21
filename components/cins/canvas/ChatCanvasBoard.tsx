@@ -109,6 +109,18 @@ export default function ChatCanvasBoard({ roomId, onJumpToMessage }: Props) {
     };
   }, []);
 
+  // Flush node thêm lúc board chưa mount / chưa hydrate.
+  useEffect(() => {
+    if (nodes === null) return;
+    const pending = canvasBridge.pendingIngestNode;
+    if (!pending) return;
+    canvasBridge.pendingIngestNode = null;
+    const id = window.requestAnimationFrame(() => {
+      boardRef.current?.ingestNode(pending);
+    });
+    return () => window.cancelAnimationFrame(id);
+  }, [nodes]);
+
   useEffect(() => {
     canvasBridge.highlightNodes = (ids) =>
       boardRef.current?.highlightNodes(ids);

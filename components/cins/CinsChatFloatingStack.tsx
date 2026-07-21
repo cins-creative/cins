@@ -20,6 +20,7 @@ import { ChatMessageThreadItems } from "@/components/cins/ChatMessageThreadItems
 import { ChatReplyComposeBar } from "@/components/cins/ChatReplyComposeBar";
 import { ChatStickerPicker } from "@/components/cins/ChatStickerPicker";
 import { addChatMessageToCanvas } from "@/lib/chat/canvas/add-message-client";
+import { canvasBridge } from "@/components/cins/canvas/canvas-bridge";
 import { avatarBg, avatarHueFromSeed, avatarInitialFromName } from "@/lib/chat/avatar";
 import { writeChatThreadsCache, writeRoomMessagesCache } from "@/lib/chat/chat-session-cache";
 import {
@@ -611,11 +612,21 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
         const roomId = miniRoomIdRef.current;
         if (!roomId) return;
         void addChatMessageToCanvas(roomId, msg.id).then((res) => {
-          if ("error" in res) setLoadError(res.error);
+          if ("error" in res) {
+            setLoadError(res.error);
+            return;
+          }
+          canvasBridge.pendingFocusNodeId = res.node.id;
+          canvasBridge.pendingIngestNode = res.node;
+          canvasBridge.pendingOpenCanvas = true;
+          void openChat({
+            roomId,
+            tab: miniThreadRef.current?.group,
+          });
         });
       },
     }),
-    [patchActiveRoomMessages],
+    [openChat, patchActiveRoomMessages],
   );
 
   const handleSaveEdit = useCallback(

@@ -231,9 +231,14 @@ export function ChatMessageActions({ msg, handlers }: Props) {
               <button
                 type="button"
                 role="menuitem"
-                onClick={() => {
+                onPointerDown={(e) => {
+                  if (e.button !== 0) return;
+                  // pointerdown — tránh mất click khi menu portal đóng giữa mousedown→click.
+                  e.preventDefault();
+                  e.stopPropagation();
                   handlers.onAddToCanvas?.(msg);
                   setOpen(false);
+                  setShowReact(false);
                 }}
               >
                 <Frame size={14} aria-hidden />

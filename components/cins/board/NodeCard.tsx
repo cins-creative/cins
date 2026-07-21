@@ -6,7 +6,7 @@
  * phụ (mở tin gốc, mở link, edit sticky) dừng propagation.
  */
 
-import { ExternalLink, GripHorizontal, Link2, Minus, Plus } from "lucide-react";
+import { Eye, GripHorizontal, Link2, Minus, Plus } from "lucide-react";
 import {
   useCallback,
   useEffect,
@@ -952,7 +952,7 @@ export function NodeCard({
             onJumpToMessage(messageId);
           }}
         >
-          <ExternalLink size={14} strokeWidth={2.2} aria-hidden />
+          <Eye size={14} strokeWidth={2.2} aria-hidden />
         </button>
       ) : null}
       {loai === "link" && url ? (

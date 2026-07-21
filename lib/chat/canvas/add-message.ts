@@ -11,7 +11,7 @@ import type {
 } from "@/lib/chat/canvas/types";
 import { MAX_CANVAS_NODES, MAX_CANVAS_STICKY_LEN } from "@/lib/chat/constants";
 import { chatImageDeliveryUrl } from "@/lib/chat/image-url";
-import { findFirstOgPreviewUrl } from "@/lib/link/og-preview";
+import { findFirstHttpUrl } from "@/lib/link/og-preview";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 const GRID_COLS = 4;
@@ -101,7 +101,7 @@ function imageUrlFromRow(row: MessageRow): string | null {
 
 /**
  * Thêm một tin nhắn lên canvas phòng (idempotent theo id_tin_nhan).
- * - Ảnh → node `anh`; URL trong nội dung → `link`; còn lại → sticky text.
+ * - Ảnh → node `anh`; URL trong nội dung (kể cả YouTube) → `link`; còn lại → sticky text.
  * - Bỏ ẩn tin nếu trước đó đã bị ẩn khỏi canvas.
  */
 export async function addMessageToCanvas(
@@ -150,22 +150,9 @@ export async function addMessageToCanvas(
     .eq("id_tin_nhan", messageId)
     .maybeSingle<NodeRow>();
 
-  if (existing) {
-    return { ok: true, node: mapNode(existing), created: false };
-  }
-
-  const { count } = await admin
-    .from("chat_canvas_node")
-    .select("id", { count: "exact", head: true })
-    .eq("id_canvas", canvasId);
-
-  if ((count ?? 0) >= MAX_CANVAS_NODES) {
-    return { ok: false, error: `Canvas tối đa ${MAX_CANVAS_NODES} block.` };
-  }
-
   const body = typeof msg.noi_dung === "string" ? msg.noi_dung : "";
   const imageUrl = imageUrlFromRow(msg);
-  const linkUrl = imageUrl ? null : findFirstOgPreviewUrl(body);
+  const linkUrl = imageUrl ? null : findFirstHttpUrl(body);
   const text = body.trim();
 
   let loai: "anh" | "link" | "sticky";
@@ -185,6 +172,39 @@ export async function addMessageToCanvas(
     }
   } else {
     return { ok: false, error: "Tin không có nội dung để đưa lên canvas." };
+  }
+
+  // Node cũ (vd. sticky do bỏ sót YouTube) → nâng lên anh/link đúng loại.
+  if (existing) {
+    const needsUpgrade =
+      (loai === "link" || loai === "anh") &&
+      (existing.loai !== loai || existing.url !== url);
+    if (needsUpgrade) {
+      const { data: upgraded, error: upgradeError } = await admin
+        .from("chat_canvas_node")
+        .update({
+          loai,
+          url,
+          noi_dung: noiDung,
+          cap_nhat_luc: new Date().toISOString(),
+        })
+        .eq("id", existing.id)
+        .select(NODE_SELECT)
+        .maybeSingle<NodeRow>();
+      if (!upgradeError && upgraded) {
+        return { ok: true, node: mapNode(upgraded), created: false };
+      }
+    }
+    return { ok: true, node: mapNode(existing), created: false };
+  }
+
+  const { count } = await admin
+    .from("chat_canvas_node")
+    .select("id", { count: "exact", head: true })
+    .eq("id_canvas", canvasId);
+
+  if ((count ?? 0) >= MAX_CANVAS_NODES) {
+    return { ok: false, error: `Canvas tối đa ${MAX_CANVAS_NODES} block.` };
   }
 
   const created = await createNode(canvasId, viewerId, {

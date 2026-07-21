@@ -829,6 +829,13 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     Record<string, "idle" | "loading" | "ready" | "error">
   >({});
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [canvasNotice, setCanvasNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!canvasNotice) return;
+    const t = window.setTimeout(() => setCanvasNotice(null), 3200);
+    return () => window.clearTimeout(t);
+  }, [canvasNotice]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const chatRootRef = useRef<HTMLDivElement>(null);
@@ -877,6 +884,12 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     () => threads.find((t) => t.id === activeId) ?? null,
     [threads, activeId],
   );
+
+  useEffect(() => {
+    if (!canvasBridge.pendingOpenCanvas) return;
+    canvasBridge.pendingOpenCanvas = false;
+    setSidePanel("canvas");
+  }, [active?.roomId, portalReady]);
 
   useEffect(() => {
     setReplyTarget(null);
@@ -2479,22 +2492,33 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
       onAddToCanvas: (msg) => {
         if (!active?.roomId) return;
         const roomId = active.roomId;
-        const openCanvas = sidePanel === "canvas";
         void addChatMessageToCanvas(roomId, msg.id).then((res) => {
           if ("error" in res) {
             setLoadError(res.error);
+            setCanvasNotice(res.error);
             return;
           }
-          if (openCanvas) {
-            canvasBridge.ingestNode?.(res.node);
+          // Luôn mở canvas + focus node — kể cả khi đã có sẵn trên board.
+          canvasBridge.pendingFocusNodeId = res.node.id;
+          if (canvasBridge.ingestNode) {
+            canvasBridge.ingestNode(res.node);
           } else {
-            canvasBridge.pendingFocusNodeId = res.node.id;
-            setSidePanel("canvas");
+            canvasBridge.pendingIngestNode = res.node;
           }
+          canvasBridge.pendingOpenCanvas = true;
+          setSidePanel("canvas");
+          // Board vừa mount: thử ingest lại sau 1 nhịp.
+          window.setTimeout(() => {
+            canvasBridge.ingestNode?.(res.node);
+            canvasBridge.highlightNodes?.([res.node.id]);
+          }, 120);
+          setCanvasNotice(
+            res.created ? "Đã thêm lên canvas." : "Đã mở trên canvas.",
+          );
         });
       },
     }),
-    [active, patchActiveThreadMessages, pinnedByRoom, refreshPinnedForRoom, sidePanel],
+    [active, patchActiveThreadMessages, pinnedByRoom, refreshPinnedForRoom],
   );
 
   const handleSaveEdit = useCallback(
@@ -3448,6 +3472,19 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
             ref={messagesContainerRef}
             onScroll={handleMessagesScroll}
           >
+            {canvasNotice ? (
+              <div className="cins-chat-canvas-notice" role="status">
+                <span>{canvasNotice}</span>
+                <button
+                  type="button"
+                  className="cins-chat-mention-banner-dismiss"
+                  aria-label="Đóng"
+                  onClick={() => setCanvasNotice(null)}
+                >
+                  <X size={14} strokeWidth={2.2} aria-hidden />
+                </button>
+              </div>
+            ) : null}
             {mentionBanner &&
             mentionBanner.roomId === active.roomId ? (
               <div className="cins-chat-mention-banner" role="status">

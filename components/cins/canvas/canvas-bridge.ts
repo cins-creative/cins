@@ -16,6 +16,13 @@ export const canvasBridge: {
   ingestNode: IngestCanvasNodeFn | null;
   /** Node vừa thêm từ menu tin — board zoom tới sau khi hydrate. */
   pendingFocusNodeId: string | null;
+  /**
+   * Node chờ ingest khi board chưa mount (vd. vừa bật tab canvas).
+   * ChatCanvasBoard flush sau khi nodes hydrate.
+   */
+  pendingIngestNode: ChatCanvasNode | null;
+  /** Overlay nên mở tab canvas (set từ mini chat / menu tin). */
+  pendingOpenCanvas: boolean;
   /** Node bình luận cần highlight khi mở canvas từ tin feed. */
   pendingHighlightNodeIds: string[] | null;
   /** Board đang mở — highlight ngay (không chờ remount). */
@@ -26,6 +33,8 @@ export const canvasBridge: {
   jumpToMessage: null,
   ingestNode: null,
   pendingFocusNodeId: null,
+  pendingIngestNode: null,
+  pendingOpenCanvas: false,
   pendingHighlightNodeIds: null,
   highlightNodes: null,
   ingestCommentNotice: null,

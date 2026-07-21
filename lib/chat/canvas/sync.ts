@@ -4,7 +4,7 @@ import { loadCanvasContext } from "@/lib/chat/canvas/access";
 import type { CanvasNodeLayout, CanvasResult } from "@/lib/chat/canvas/types";
 import { CANVAS_SYNC_MESSAGE_LIMIT } from "@/lib/chat/constants";
 import { chatImageDeliveryUrl } from "@/lib/chat/image-url";
-import { findFirstOgPreviewUrl } from "@/lib/link/og-preview";
+import { findFirstHttpUrl } from "@/lib/link/og-preview";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 const GRID_COLS = 4;
@@ -117,7 +117,7 @@ export async function syncCanvasFromMessages(
       continue;
     }
 
-    const linkUrl = findFirstOgPreviewUrl(body);
+    const linkUrl = findFirstHttpUrl(body);
     if (linkUrl) {
       rows.push({
         id_canvas: canvasId,

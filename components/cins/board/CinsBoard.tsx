@@ -939,19 +939,6 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
       [commitNodes, emitSelection, history, setSelection, zoomToNode],
     );
 
-    const ingestNode = useCallback(
-      (node: BoardNode) => {
-        const existing = nodesRef.current.find((n) => n.id === node.id);
-        if (existing) {
-          setSelection(new Set([existing.id]));
-          zoomToNode(existing);
-          return;
-        }
-        addNodeInternal(node, false);
-      },
-      [addNodeInternal, setSelection, zoomToNode],
-    );
-
     const addSticky = useCallback(
       async (mau: string) => {
         if (lockedRef.current) return;
@@ -1105,6 +1092,28 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
         });
       }, 4200);
     }, [emitSelection, setSelection, zoomToNode]);
+
+    const ingestNode = useCallback(
+      (node: BoardNode) => {
+        const existing = nodesRef.current.find((n) => n.id === node.id);
+        if (existing) {
+          const merged: BoardNode = {
+            ...existing,
+            ...node,
+            layout: { ...existing.layout, ...node.layout },
+          };
+          // commitNodes — giữ nodesRef đồng bộ (setNodes thuần sẽ lệch ref).
+          commitNodes(
+            nodesRef.current.map((n) => (n.id === node.id ? merged : n)),
+          );
+          highlightNodes([merged.id]);
+          return;
+        }
+        addNodeInternal(node, false);
+        highlightNodes([node.id]);
+      },
+      [addNodeInternal, commitNodes, highlightNodes],
+    );
 
     /* ---------- nối dây (connector) ---------- */
 
