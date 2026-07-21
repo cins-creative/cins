@@ -8,7 +8,7 @@ import {
   updateShopCuaHang,
   upsertShopPhuongThucTt,
 } from "@/lib/shop/cua-hang";
-import { getBanHangEnabled } from "@/lib/shop/settings";
+import { getBanHangEnabled, getShopHienThi } from "@/lib/shop/settings";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 async function resolveOwnerId(opts: {
@@ -30,7 +30,7 @@ async function resolveOwnerId(opts: {
 /**
  * GET /api/shop/cua-hang?slug=… | ?userId=…
  * - Chủ: luôn trả shop (tạo trống nếu chưa có) khi đã đăng nhập đúng owner.
- * - Khách: chỉ khi seller bật bán hàng.
+ * - Khách: chỉ khi seller bật bán hàng + «Hiển thị shop».
  */
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -45,16 +45,32 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Thiếu đăng nhập." }, { status: 401 });
     }
     const shop = await getOrCreateShopCuaHang(session.profile.id);
-    const banHangBat = await getBanHangEnabled(session.profile.id);
-    return NextResponse.json({ shop, banHangBat, isOwner: true });
+    const [banHangBat, shopVisible] = await Promise.all([
+      getBanHangEnabled(session.profile.id),
+      getShopHienThi(session.profile.id),
+    ]);
+    return NextResponse.json({
+      shop,
+      banHangBat,
+      shopVisible,
+      isOwner: true,
+    });
   }
 
   const isOwner = session?.profile?.id === ownerId;
-  const banHangBat = await getBanHangEnabled(ownerId);
+  const [banHangBat, shopVisible] = await Promise.all([
+    getBanHangEnabled(ownerId),
+    getShopHienThi(ownerId),
+  ]);
 
-  if (!isOwner && !banHangBat) {
+  if (!isOwner && !shopVisible) {
     return NextResponse.json(
-      { error: "Cửa hàng chưa mở.", shop: null, banHangBat: false },
+      {
+        error: "Cửa hàng chưa mở.",
+        shop: null,
+        banHangBat: false,
+        shopVisible: false,
+      },
       { status: 404 },
     );
   }
@@ -66,6 +82,7 @@ export async function GET(request: Request) {
   return NextResponse.json({
     shop,
     banHangBat,
+    shopVisible,
     isOwner,
   });
 }

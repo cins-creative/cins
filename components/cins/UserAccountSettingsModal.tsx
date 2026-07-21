@@ -659,6 +659,7 @@ function LichSuMuaHangSection({ titleId }: { titleId: string }) {
 function BanHangSettingsSection({ titleId }: { titleId: string }) {
   const router = useRouter();
   const [enabled, setEnabled] = useState(false);
+  const [shopVisible, setShopVisible] = useState(false);
   const [shopReady, setShopReady] = useState(false);
   const [shopSetupHref, setShopSetupHref] = useState<string | null>(null);
   const [acceptTerms, setAcceptTerms] = useState(false);
@@ -668,29 +669,38 @@ function BanHangSettingsSection({ titleId }: { titleId: string }) {
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
+  type BanHangJson = {
+    enabled?: boolean;
+    shopVisible?: boolean;
+    shopReady?: boolean;
+    shopSetupHref?: string | null;
+    terms?: { title?: string; body?: string };
+    error?: string;
+  };
+
+  function applyBanHangJson(json: BanHangJson | null) {
+    const next = json?.enabled === true;
+    setEnabled(next);
+    setShopVisible(next && json?.shopVisible === true);
+    setShopReady(json?.shopReady === true);
+    setShopSetupHref(
+      typeof json?.shopSetupHref === "string" ? json.shopSetupHref : null,
+    );
+  }
+
   useEffect(() => {
     let cancelled = false;
     void (async () => {
       setLoading(true);
       try {
         const res = await fetch("/api/user/ban-hang", { cache: "no-store" });
-        const json = (await res.json().catch(() => null)) as {
-          enabled?: boolean;
-          shopReady?: boolean;
-          shopSetupHref?: string | null;
-          terms?: { title?: string; body?: string };
-          error?: string;
-        } | null;
+        const json = (await res.json().catch(() => null)) as BanHangJson | null;
         if (cancelled) return;
         if (!res.ok) {
           setErr(json?.error ?? "Không tải được.");
           return;
         }
-        setEnabled(json?.enabled === true);
-        setShopReady(json?.shopReady === true);
-        setShopSetupHref(
-          typeof json?.shopSetupHref === "string" ? json.shopSetupHref : null,
-        );
+        applyBanHangJson(json);
         setAcceptTerms(json?.enabled === true);
         if (json?.terms?.title) setTermsTitle(json.terms.title);
         if (json?.terms?.body) setTermsBody(json.terms.body);
@@ -705,48 +715,50 @@ function BanHangSettingsSection({ titleId }: { titleId: string }) {
     };
   }, []);
 
-  async function save(nextEnabled: boolean) {
-    if (nextEnabled && !acceptTerms) {
-      setErr("Cần chấp nhận điều khoản trước khi bật.");
-      return;
-    }
+  async function patchBanHang(body: Record<string, unknown>) {
     setSaving(true);
     setErr(null);
     try {
       const res = await fetch("/api/user/ban-hang", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          enabled: nextEnabled,
-          acceptTerms: nextEnabled ? true : false,
-        }),
+        body: JSON.stringify(body),
       });
-      const json = (await res.json().catch(() => null)) as {
-        enabled?: boolean;
-        shopReady?: boolean;
-        shopSetupHref?: string | null;
-        error?: string;
-      } | null;
+      const json = (await res.json().catch(() => null)) as BanHangJson | null;
       if (!res.ok) {
         setErr(json?.error ?? "Không lưu được.");
         return;
       }
+      applyBanHangJson(json);
       const next = json?.enabled === true;
-      setEnabled(next);
-      setShopReady(json?.shopReady === true);
-      setShopSetupHref(
-        typeof json?.shopSetupHref === "string" ? json.shopSetupHref : null,
-      );
       window.dispatchEvent(
         new CustomEvent("cins:ban-hang-changed", {
-          detail: { enabled: next },
+          detail: {
+            enabled: next,
+            shopVisible: next && json?.shopVisible === true,
+          },
         }),
       );
-      // Topbar (ShopTopbarButton) lấy cờ từ server — refresh RSC để hiện/ẩn UI người bán.
+      // Topbar (ShopTopbarButton) + Journey shop tab lấy cờ từ server.
       router.refresh();
     } finally {
       setSaving(false);
     }
+  }
+
+  async function saveEnabled(nextEnabled: boolean) {
+    if (nextEnabled && !acceptTerms) {
+      setErr("Cần chấp nhận điều khoản trước khi bật.");
+      return;
+    }
+    await patchBanHang({
+      enabled: nextEnabled,
+      acceptTerms: nextEnabled ? true : false,
+    });
+  }
+
+  async function saveShopVisible(nextVisible: boolean) {
+    await patchBanHang({ shopVisible: nextVisible });
   }
 
   return (
@@ -773,8 +785,8 @@ function BanHangSettingsSection({ titleId }: { titleId: string }) {
             <span className="uas-toggle-text">
               <span className="uas-toggle-label">Bật chức năng bán hàng</span>
               <span className="uas-toggle-desc">
-                Bật để bán trên bài. Cần thiết lập tài khoản nhận tiền (Shop)
-                trước khi thêm hàng và nhận đơn.
+                Bật để dùng kho hàng, quản lý bán và nhận đơn. Cần thiết lập
+                tài khoản nhận tiền (Shop) trước khi thêm hàng.
               </span>
             </span>
             <button
@@ -784,11 +796,34 @@ function BanHangSettingsSection({ titleId }: { titleId: string }) {
               aria-checked={enabled}
               aria-label="Bật chức năng bán hàng"
               disabled={saving}
-              onClick={() => void save(!enabled)}
+              onClick={() => void saveEnabled(!enabled)}
             >
               <span className="uas-switch-knob" aria-hidden />
             </button>
           </div>
+
+          {enabled ? (
+            <div className="uas-toggle-row" style={{ marginBottom: 12 }}>
+              <span className="uas-toggle-text">
+                <span className="uas-toggle-label">Hiển thị shop</span>
+                <span className="uas-toggle-desc">
+                  Hiện tab Shop và sản phẩm trên Journey. Tắt để chuẩn bị kho
+                  mà người khác chưa thấy.
+                </span>
+              </span>
+              <button
+                type="button"
+                className={`uas-switch${shopVisible ? " on" : ""}`}
+                role="switch"
+                aria-checked={shopVisible}
+                aria-label="Hiển thị shop"
+                disabled={saving}
+                onClick={() => void saveShopVisible(!shopVisible)}
+              >
+                <span className="uas-switch-knob" aria-hidden />
+              </button>
+            </div>
+          ) : null}
 
           {!enabled ? (
             <label

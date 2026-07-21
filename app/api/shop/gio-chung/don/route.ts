@@ -4,9 +4,8 @@ import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import { createDonChungForSeller } from "@/lib/shop/don-hang";
 
 /**
- * Checkout MỘT shop từ giỏ chung. Khác `/api/shop/don`: không trả chatContext
- * (UI buyer không mở chat) — gửi xong đơn nằm trong danh sách đơn của seller,
- * phía buyer row shop chuyển "đã gửi".
+ * Checkout MỘT shop từ giỏ chung. Tự gửi card đơn (+ biên lai) vào inbox
+ * chat seller phía server; UI buyer giữ panel / row "đã gửi" (không bắt mở chat).
  */
 export async function POST(request: Request) {
   const session = await getCurrentSessionAndProfile();

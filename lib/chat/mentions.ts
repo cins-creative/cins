@@ -9,6 +9,37 @@ export {
   parseCommentMentionSegments,
 } from "@/lib/social/comments/mention-parse";
 
+/** Token @all / @everyone trong tin nhóm → nhắc mọi thành viên phòng. */
+export const CHAT_MENTION_ALL_SLUGS = new Set(["all", "everyone"]);
+
+export function isChatMentionAllSlug(
+  slug: string | null | undefined,
+): boolean {
+  const s = slug?.trim().toLowerCase() ?? "";
+  return CHAT_MENTION_ALL_SLUGS.has(s);
+}
+
+/** Query gõ sau `@` có khớp gợi ý «Mọi người» không. */
+export function chatMentionAllQueryMatches(query: string): boolean {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+  const keys = [
+    "all",
+    "everyone",
+    "every",
+    "moi",
+    "mọi",
+    "nguoi",
+    "người",
+    "moi nguoi",
+    "mọi người",
+    "moi-nguoi",
+  ];
+  return keys.some(
+    (k) => k.startsWith(q) || q.startsWith(k) || k.includes(q) || q.includes(k),
+  );
+}
+
 export function extractMentionSlugs(text: string): string[] {
   if (!text.trim()) return [];
   const seen = new Set<string>();
@@ -88,7 +119,10 @@ export type ChatMentionMember = {
   tenHienThi: string;
 };
 
-/** Resolve @slug trong text ∩ danh sách thành viên phòng (không tin ngoài phòng). */
+/**
+ * Resolve @slug trong text ∩ danh sách thành viên phòng (không tin ngoài phòng).
+ * `@all` / `@everyone` → mọi thành viên (trừ `excludeUserId` nếu có).
+ */
 export function resolveMentionsAgainstMembers(
   text: string,
   members: ReadonlyArray<ChatMentionMember>,
@@ -107,17 +141,28 @@ export function resolveMentionsAgainstMembers(
   const exclude = options?.excludeUserId?.trim() || null;
   const out: ChatMentionRef[] = [];
   const seen = new Set<string>();
-  for (const slug of slugs) {
-    const member = bySlug.get(slug);
-    if (!member) continue;
-    if (exclude && member.userId === exclude) continue;
-    if (seen.has(member.userId)) continue;
+
+  const pushMember = (member: ChatMentionMember) => {
+    if (exclude && member.userId === exclude) return;
+    if (seen.has(member.userId)) return;
     seen.add(member.userId);
+    const slug = member.slug.trim().toLowerCase();
     out.push({
       id: member.userId,
       slug,
       ten: member.tenHienThi.trim() || slug,
     });
+  };
+
+  if (slugs.some(isChatMentionAllSlug)) {
+    for (const member of members) pushMember(member);
+  }
+
+  for (const slug of slugs) {
+    if (isChatMentionAllSlug(slug)) continue;
+    const member = bySlug.get(slug);
+    if (!member) continue;
+    pushMember(member);
   }
   return out;
 }

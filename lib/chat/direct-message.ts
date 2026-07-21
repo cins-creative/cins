@@ -1162,7 +1162,9 @@ export async function sendRoomMessage(
   const mentionMembers = body
     ? await loadGroupMentionMembers(roomId)
     : [];
-  const mentions = resolveMentionsAgainstMembers(body, mentionMembers);
+  const mentions = resolveMentionsAgainstMembers(body, mentionMembers, {
+    excludeUserId: viewerId,
+  });
   const nguCanhPayload = buildNguCanhPayload(
     contextCard as Record<string, unknown> | null,
     mentions,

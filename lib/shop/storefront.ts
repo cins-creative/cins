@@ -1,6 +1,6 @@
 import "server-only";
 
-import { getBanHangEnabled, shopImageUrl } from "@/lib/shop/settings";
+import { getShopHienThi, shopImageUrl } from "@/lib/shop/settings";
 import type { ShopStorefrontItem } from "@/lib/shop/types";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
@@ -60,13 +60,14 @@ type HangRow = {
 export async function listShopStorefrontItems(opts: {
   sellerId: string;
   ownerSlug: string;
-  /** Chủ shop xem preview kể cả khi `ban_hang_bat` tắt. */
+  /** Chủ shop xem preview kể cả khi chưa công khai / tắt bán hàng. */
   asOwner?: boolean;
   limit?: number;
 }): Promise<ShopStorefrontItem[]> {
-  const banHangBat = await getBanHangEnabled(opts.sellerId);
-  if (!banHangBat && !opts.asOwner) return [];
-
+  if (!opts.asOwner) {
+    const publicVisible = await getShopHienThi(opts.sellerId);
+    if (!publicVisible) return [];
+  }
   const limit = Math.min(Math.max(opts.limit ?? 100, 1), 200);
   const admin = createServiceRoleClient();
 

@@ -4,6 +4,8 @@ import { type ReactNode, useMemo } from "react";
 
 import {
   chatTextHasMentions,
+  isChatMentionAllSlug,
+  mentionsIncludeUser,
   parseCommentMentionSegments,
 } from "@/lib/chat/mentions";
 import type { ChatMentionRef } from "@/lib/chat/types";
@@ -80,6 +82,18 @@ export function ChatMentionText({
           return (
             <span key={`t-${index}`}>
               {linkifyPlainText(segment.value, `t-${index}`)}
+            </span>
+          );
+        }
+        if (isChatMentionAllSlug(segment.slug)) {
+          const isSelf = mentionsIncludeUser(mentions, viewerUserId);
+          return (
+            <span
+              key={`m-all-${index}`}
+              className={`cins-chat-mention-chip is-everyone${isSelf ? " is-self" : ""}${tone === "me" ? " is-me" : ""}`}
+              title="@all"
+            >
+              @mọi người
             </span>
           );
         }

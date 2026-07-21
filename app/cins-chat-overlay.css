@@ -1045,12 +1045,32 @@
   padding: 0 2px;
 }
 
+.cins-chat-mention-chip.is-everyone {
+  color: #b45309;
+}
+
+.cins-chat-mention-chip.is-everyone.is-self {
+  background: rgba(180, 83, 9, 0.14);
+}
+
 .cins-chat-bubble.is-me .cins-chat-mention-chip {
   color: #1e3a8a;
 }
 
 .cins-chat-bubble.is-me .cins-chat-mention-chip.is-self {
   background: rgba(255, 255, 255, 0.35);
+}
+
+.cins-chat-bubble.is-me .cins-chat-mention-chip.is-everyone {
+  color: #92400e;
+}
+
+.cins-chat-at-menu-item.is-all .cins-chat-at-menu-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--cins-orange, #fdad4c) 28%, #fff);
+  color: #92400e;
 }
 
 .cins-chat-at-menu {

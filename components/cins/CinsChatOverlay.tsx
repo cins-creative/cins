@@ -47,6 +47,7 @@ import { ChatGroupMembersPopover } from "@/components/cins/ChatGroupMembersPopov
 import {
   ChatAtMentionMenu,
   filterChatAtMembers,
+  isChatAtMentionAll,
 } from "@/components/cins/ChatAtMentionMenu";
 import { ChatComposeToolsMenu } from "@/components/cins/ChatComposeToolsMenu";
 import { ChatGroupAvatar } from "@/components/cins/ChatGroupAvatar";
@@ -2926,7 +2927,9 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
           tenHienThi: m.tenHienThi,
         }))
       : [];
-    const mentions = resolveMentionsAgainstMembers(text, mentionMembers);
+    const mentions = resolveMentionsAgainstMembers(text, mentionMembers, {
+      excludeUserId: viewerProfileId,
+    });
 
     const plan = buildChatSendPlan({
       text,
@@ -3065,7 +3068,8 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     (member: ChatGroupMember) => {
       const ta = inputRef.current;
       if (!ta || !atMentionTrigger) return;
-      const insert = `@${member.slug} `;
+      const slug = isChatAtMentionAll(member) ? "all" : member.slug;
+      const insert = `@${slug} `;
       const next =
         draft.slice(0, atMentionTrigger.start) +
         insert +

@@ -1942,6 +1942,20 @@ export function ShopKhoClient() {
                 </span>
               ) : null}
             </div>
+            <button
+              type="button"
+              className={`shop-dash-kho-edit-btn${nhomPanelTruc != null ? " is-active" : ""}`}
+              aria-pressed={nhomPanelTruc != null}
+              aria-haspopup="dialog"
+              title="Quản lý thẻ phân loại — đặt tên nhóm và mô tả ngắn"
+              onClick={() => {
+                if (nhomPanelTruc != null) closeNhomPanel();
+                else openNhomPanel();
+              }}
+            >
+              <Tags size={15} strokeWidth={2} aria-hidden />
+              Thẻ phân loại
+            </button>
             <div className="shop-kho-toolbar-actions">
               {khoEditing ? (
                 <>
@@ -1982,20 +1996,6 @@ export function ShopKhoClient() {
                   </button>
                 </>
               ) : null}
-              <button
-                type="button"
-                className={`shop-dash-kho-edit-btn${nhomPanelTruc != null ? " is-active" : ""}`}
-                aria-pressed={nhomPanelTruc != null}
-                aria-haspopup="dialog"
-                title="Quản lý thẻ phân loại — đặt tên nhóm và mô tả ngắn"
-                onClick={() => {
-                  if (nhomPanelTruc != null) closeNhomPanel();
-                  else openNhomPanel();
-                }}
-              >
-                <Tags size={15} strokeWidth={2} aria-hidden />
-                Thẻ phân loại
-              </button>
               <button
                 type="button"
                 className={`shop-dash-kho-edit-btn shop-dash-kho-edit-btn--primary${khoEditing ? " is-active" : ""}`}

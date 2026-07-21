@@ -92,7 +92,9 @@ export async function JourneyProfilePageLoader({
   const emailForView = isOwner || emailPublic ? owner.email_lien_he : null;
 
   const banHangBat = owner.ban_hang_bat === true;
-  const showShop = isOwner || banHangBat;
+  const shopHienThi = owner.shop_hien_thi === true;
+  /* Chủ xem trước khi công khai; khách chỉ thấy khi bật «Hiển thị shop». */
+  const showShop = banHangBat && (isOwner || shopHienThi);
 
   if (storefront) {
     if (!showShop) notFound();

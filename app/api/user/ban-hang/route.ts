@@ -5,6 +5,7 @@ import { getShopReady, shopSetupHref } from "@/lib/shop/cua-hang";
 import {
   getBanHangSettings,
   setBanHangEnabled,
+  setShopHienThi,
 } from "@/lib/shop/settings";
 import {
   SHOP_TERMS_BODY,
@@ -40,21 +41,44 @@ export async function PATCH(request: Request) {
   if (!session?.profile) {
     return NextResponse.json({ error: "Chưa đăng nhập." }, { status: 401 });
   }
-  let body: { enabled?: unknown; acceptTerms?: unknown };
+  let body: {
+    enabled?: unknown;
+    acceptTerms?: unknown;
+    shopVisible?: unknown;
+  };
   try {
     body = (await request.json()) as typeof body;
   } catch {
     return NextResponse.json({ error: "JSON không hợp lệ." }, { status: 400 });
   }
-  if (typeof body.enabled !== "boolean") {
-    return NextResponse.json({ error: "Thiếu enabled." }, { status: 422 });
-  }
-  try {
-    const settings = await setBanHangEnabled(
-      session.profile.id,
-      body.enabled,
-      body.acceptTerms === true,
+
+  const hasEnabled = typeof body.enabled === "boolean";
+  const hasShopVisible = typeof body.shopVisible === "boolean";
+  if (!hasEnabled && !hasShopVisible) {
+    return NextResponse.json(
+      { error: "Thiếu enabled hoặc shopVisible." },
+      { status: 422 },
     );
+  }
+
+  try {
+    let settings = await getBanHangSettings(session.profile.id);
+
+    if (hasEnabled) {
+      settings = await setBanHangEnabled(
+        session.profile.id,
+        body.enabled === true,
+        body.acceptTerms === true,
+      );
+    }
+
+    if (hasShopVisible) {
+      settings = await setShopHienThi(
+        session.profile.id,
+        body.shopVisible === true,
+      );
+    }
+
     const ready = await getShopReady(session.profile.id);
     const slug = session.profile.slug?.trim() || "";
     return NextResponse.json({
@@ -68,6 +92,12 @@ export async function PATCH(request: Request) {
     if (msg === "TERMS_REQUIRED") {
       return NextResponse.json(
         { error: "Cần chấp nhận điều khoản để bật bán hàng." },
+        { status: 422 },
+      );
+    }
+    if (msg === "BAN_HANG_OFF") {
+      return NextResponse.json(
+        { error: "Cần bật chức năng bán hàng trước khi hiện Shop." },
         { status: 422 },
       );
     }

@@ -1512,7 +1512,7 @@
 .shop-kho-bang-gia-panel {
   position: absolute;
   top: calc(100% + 4px);
-  right: 0;
+  left: 0;
   z-index: 30;
   width: max(220px, 100%);
   min-width: 200px;

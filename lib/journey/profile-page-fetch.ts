@@ -29,10 +29,11 @@ export type JourneyOwnerRow = {
   theme: string | null;
   /** Opt-in bán hàng UGC (L33). */
   ban_hang_bat: boolean | null;
+  shop_hien_thi: boolean | null;
 };
 
 const OWNER_SELECT =
-  "id, auth_user_id, slug, ten_hien_thi, avatar_id, cover_id, bio, ai_summary_journey, giai_doan, tinh_thanh, email_lien_he, visibility_email, mxh_links, cho_phep_chat_an_danh, journey_loai_moc_visibility, journey_mac_dinh_view, journey_mac_dinh_ap_dung_toi, theme, ban_hang_bat";
+  "id, auth_user_id, slug, ten_hien_thi, avatar_id, cover_id, bio, ai_summary_journey, giai_doan, tinh_thanh, email_lien_he, visibility_email, mxh_links, cho_phep_chat_an_danh, journey_loai_moc_visibility, journey_mac_dinh_view, journey_mac_dinh_ap_dung_toi, theme, ban_hang_bat, shop_hien_thi";
 
 export const fetchOwnerBySlug = cache(async (slug: string) => {
   const admin = createServiceRoleClient();

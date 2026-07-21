@@ -45,6 +45,7 @@ export function JourneyShopView({
 }: Props) {
   const [shop, setShop] = useState<ShopCuaHang | null>(null);
   const [banHangBat, setBanHangBat] = useState(false);
+  const [shopVisible, setShopVisible] = useState(false);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
 
@@ -54,6 +55,7 @@ export function JourneyShopView({
     try {
       const data = await fetchShopCuaHangClient({ slug: ownerSlug });
       setBanHangBat(data.banHangBat);
+      setShopVisible(data.shopVisible);
       setShop(data.shop);
       window.dispatchEvent(
         new CustomEvent("cins:shop-profile-changed", {
@@ -64,6 +66,7 @@ export function JourneyShopView({
       setErr(e instanceof Error ? e.message : "Không tải được cửa hàng.");
       setShop(null);
       setBanHangBat(false);
+      setShopVisible(false);
     } finally {
       setLoading(false);
     }
@@ -108,7 +111,7 @@ export function JourneyShopView({
     );
   }
 
-  if (!isOwner && !banHangBat) {
+  if (!isOwner && !shopVisible) {
     return (
       <section className="j-shop">
         <p className="j-shop-empty">Cửa hàng chưa mở.</p>
@@ -120,8 +123,15 @@ export function JourneyShopView({
     <section className="j-shop" aria-label="Cửa hàng">
       {!banHangBat && isOwner ? (
         <p className="j-shop-banner-warn">
-          Bán hàng đang tắt — bật trong Cài đặt tài khoản → Bán hàng để khách thấy
-          Shop và đặt đơn.
+          Bán hàng đang tắt — bật trong Cài đặt tài khoản → Bán hàng để dùng kho
+          và nhận đơn.
+        </p>
+      ) : null}
+
+      {banHangBat && !shopVisible && isOwner ? (
+        <p className="j-shop-banner-warn">
+          Shop chưa hiện với người khác — bật «Hiển thị shop» trong Cài đặt tài
+          khoản → Bán hàng.
         </p>
       ) : null}
 

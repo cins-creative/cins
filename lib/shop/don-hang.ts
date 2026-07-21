@@ -1,5 +1,6 @@
 import "server-only";
 
+import { openDirectRoom, sendRoomMessage } from "@/lib/chat/direct-message";
 import { getGio, getGioCuaHang } from "@/lib/shop/gio";
 import { clearGioChungCuaSeller, getGioChung } from "@/lib/shop/gio-chung";
 import {
@@ -466,8 +467,8 @@ export async function createDonFromGio(
  * Tạo đơn từ **giỏ chung** cho MỘT seller (checkout theo shop).
  * Khác `createDonFromGio`: đọc từ giỏ chung (không scope post/shop), chỉ lấy
  * dòng thuộc `sellerId`, và sau khi tạo xong chỉ xóa dòng của seller đó khỏi
- * giỏ chung. Đơn + card chat cho seller vẫn tạo như thường; phía UI buyer
- * KHÔNG mở chat (gửi xong là xong, row chuyển xanh).
+ * giỏ chung. Tự gửi card đơn (+ biên lai) vào inbox chat 1-1 với seller;
+ * UI buyer không bắt buộc mở chat (row chuyển xanh).
  */
 export async function createDonChungForSeller(
   buyerId: string,
@@ -629,6 +630,10 @@ export async function createDonChungForSeller(
 
   const fresh = await getDonHang(don.id);
   if (!fresh) throw new Error("CREATE_FAILED");
+
+  /* Inbox seller: tổng hợp đơn + biên lai. Lỗi chat không rollback đơn. */
+  await notifySellerDonHangChat(fresh);
+
   return fresh;
 }
 
@@ -749,7 +754,11 @@ async function bumpDonHangChatMessage(
   const msg = rows?.[0] as
     | { id: string; id_phong: string; ngu_canh: unknown }
     | undefined;
-  if (!msg) return;
+  if (!msg) {
+    /* Chưa có card (đơn cũ / chat lỗi lúc tạo) — tạo mới từ phía seller. */
+    await notifySellerDonHangChat(don, { asSenderId: actorId });
+    return;
+  }
 
   const prev =
     msg.ngu_canh && typeof msg.ngu_canh === "object"
@@ -778,6 +787,53 @@ async function bumpDonHangChatMessage(
     .from("chat_phong")
     .update({ cap_nhat_luc: now })
     .eq("id", msg.id_phong);
+}
+
+/**
+ * Mở DM buyer↔seller và gửi card đơn đã tổng hợp (+ ảnh biên lai nếu có).
+ * Không throw — lỗi chat chỉ log.
+ */
+export async function notifySellerDonHangChat(
+  don: ShopDonHang,
+  opts?: { asSenderId?: string },
+): Promise<void> {
+  const senderId = opts?.asSenderId?.trim() || don.idNguoiMua;
+  const peerId =
+    senderId === don.idNguoiMua ? don.idNguoiBan : don.idNguoiMua;
+  if (!senderId || !peerId || senderId === peerId) return;
+
+  try {
+    const opened = await openDirectRoom(senderId, peerId);
+    if (!opened.ok) {
+      console.error("[shop] notifyDonHangChat open", opened.error);
+      return;
+    }
+    const roomId = opened.thread.roomId;
+    if (!roomId) return;
+
+    const ctx = donHangToChatContext(don);
+    const card = await sendRoomMessage(roomId, senderId, {
+      body: ctx.tieuDe,
+      nguCanh: ctx,
+    });
+    if (!card.ok) {
+      console.error("[shop] notifyDonHangChat card", card.error);
+      return;
+    }
+
+    const imageId = don.bienLaiAnhId?.trim();
+    if (imageId) {
+      const media = await sendRoomMessage(roomId, senderId, {
+        cloudflareImageId: imageId,
+        body: "Biên lai chuyển khoản",
+      });
+      if (!media.ok) {
+        console.error("[shop] notifyDonHangChat bienLai", media.error);
+      }
+    }
+  } catch (e) {
+    console.error("[shop] notifyDonHangChat", e);
+  }
 }
 
 export function donHangToChatContext(don: ShopDonHang): {

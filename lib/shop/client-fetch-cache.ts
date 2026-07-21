@@ -10,6 +10,7 @@ const CUA_HANG_TTL_MS = 30_000;
 
 export type BanHangClientStatus = {
   enabled: boolean;
+  shopVisible: boolean;
   shopReady: boolean;
   shopSetupHref: string | null;
 };
@@ -24,6 +25,7 @@ type CuaHangCache = {
   data: {
     shop: ShopCuaHang | null;
     banHangBat: boolean;
+    shopVisible: boolean;
     isOwner: boolean;
   };
 };
@@ -71,6 +73,7 @@ export async function fetchBanHangClientStatus(opts?: {
     const res = await fetch("/api/user/ban-hang", { cache: "no-store" });
     const json = (await res.json().catch(() => null)) as {
       enabled?: boolean;
+      shopVisible?: boolean;
       shopReady?: boolean;
       shopSetupHref?: string | null;
       error?: string;
@@ -80,6 +83,7 @@ export async function fetchBanHangClientStatus(opts?: {
     }
     const data: BanHangClientStatus = {
       enabled: json?.enabled === true,
+      shopVisible: json?.enabled === true && json?.shopVisible === true,
       shopReady: json?.shopReady === true,
       shopSetupHref:
         typeof json?.shopSetupHref === "string" ? json.shopSetupHref : null,
@@ -126,6 +130,7 @@ export async function fetchShopCuaHangClient(opts?: {
     const json = (await res.json().catch(() => null)) as {
       shop?: ShopCuaHang | null;
       banHangBat?: boolean;
+      shopVisible?: boolean;
       isOwner?: boolean;
       error?: string;
     } | null;
@@ -135,6 +140,7 @@ export async function fetchShopCuaHangClient(opts?: {
     const data = {
       shop: json?.shop ?? null,
       banHangBat: json?.banHangBat === true,
+      shopVisible: json?.shopVisible === true,
       isOwner: json?.isOwner === true,
     };
     cuaHangByKey.set(key, { at: Date.now(), data });
@@ -155,7 +161,12 @@ export function prefetchShopCuaHangClient(slug?: string | null) {
 
 export function writeShopCuaHangCache(
   shop: ShopCuaHang | null,
-  opts?: { slug?: string | null; banHangBat?: boolean; isOwner?: boolean },
+  opts?: {
+    slug?: string | null;
+    banHangBat?: boolean;
+    shopVisible?: boolean;
+    isOwner?: boolean;
+  },
 ) {
   const key = cuaHangKey(opts?.slug);
   const prev = cuaHangByKey.get(key)?.data;
@@ -164,6 +175,7 @@ export function writeShopCuaHangCache(
     data: {
       shop,
       banHangBat: opts?.banHangBat ?? prev?.banHangBat ?? false,
+      shopVisible: opts?.shopVisible ?? prev?.shopVisible ?? false,
       isOwner: opts?.isOwner ?? prev?.isOwner ?? true,
     },
   });
