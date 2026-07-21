@@ -164,13 +164,18 @@
   border-radius: var(--radius-pill);
   background: var(--cins-blue);
   border-color: var(--cins-blue);
-  box-shadow: var(--shadow-pop);
+  box-shadow: none;
 }
 
 .gh-login-panel .cins-login-pw-submit:hover:not(:disabled) {
   background: var(--cins-blue-dark);
   border-color: var(--cins-blue-dark);
   transform: translateY(-1px);
+  box-shadow: none;
+}
+
+.gh-login-panel .cins-login-pw-submit:active:not(:disabled) {
+  box-shadow: none;
 }
 
 .gh-login-panel .cins-login-pw-error,
@@ -178,6 +183,11 @@
   font-size: var(--text-xs);
   position: relative;
   z-index: 1;
+}
+
+.gh-login-panel .cins-login-pw-forgot {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
 }
 
 .gh-login-panel .cins-login-pw-notice {

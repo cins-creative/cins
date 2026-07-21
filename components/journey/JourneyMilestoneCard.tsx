@@ -49,8 +49,6 @@ import {
   milestoneCardPhotoGrid,
 } from "@/lib/journey/milestone-card-kind";
 import { JourneyCommentLink } from "@/components/journey/JourneyCommentLink";
-import { JourneyArticleTagManager } from "@/components/journey/JourneyArticleTagManager";
-import { JourneyCoAuthorProposal } from "@/components/journey/JourneyCoAuthorProposal";
 import { JourneyOrgAttachTrigger } from "@/components/journey/JourneyOrgAttachTrigger";
 import { JourneyBookmarkButton } from "@/components/journey/JourneyBookmarkButton";
 import { JourneyMilestoneInlineControls } from "@/components/journey/JourneyMilestoneInlineControls";
@@ -482,7 +480,6 @@ export function JourneyMilestoneCard({
     postOwnerId,
     cotMocId,
     tacPhamId,
-    canProposeCoAuthor,
     social,
     noiDungBlocks,
     orgBaiDangRef,
@@ -512,10 +509,6 @@ export function JourneyMilestoneCard({
   useEffect(() => {
     setLiveArticleTags([...articleTags]);
   }, [articleTagsKey]);
-
-  const handleArticleTagsSaved = useCallback((tags: ArticleTagRef[]) => {
-    setLiveArticleTags(tags);
-  }, []);
 
   const worldBoostAdmin = useWorldBoostAdminOptional();
   const [banHangEnabled, setBanHangEnabled] = useState(false);
@@ -854,13 +847,6 @@ export function JourneyMilestoneCard({
   const showMilestoneVerifyBadge =
     !showsTruongVerifyBar &&
     (showOrgVerifyBadge || Boolean(verifiedBy?.trim()));
-  const canManageArticleTags = canManageCoAuthors;
-  const coAuthorExcludeOwnerId =
-    variant === "tagged" && postOwnerId && !isSelfAuthoredTagged
-      ? postOwnerId
-      : ownerProfileId ?? "";
-  const canShowCoAuthorAction =
-    (canProposeCoAuthor || canManageCoAuthors) && Boolean(tacPhamId);
   /** Id để PATCH vị trí — tác phẩm user hoặc bài đăng org (tagged). */
   const roleEditTargetId = tacPhamId ?? orgBaiDangRef?.postId ?? null;
   const visibleCoAuthors = coAuthorCredits.slice(0, MAX_VISIBLE_COAUTHORS);
@@ -1455,20 +1441,6 @@ export function JourneyMilestoneCard({
         />
       ) : null}
       <span className="action-spacer" />
-      {canManageArticleTags && tacPhamId ? (
-        <JourneyArticleTagManager
-          tacPhamId={tacPhamId}
-          initialTags={liveArticleTags}
-          onTagsSaved={handleArticleTagsSaved}
-        />
-      ) : null}
-      {canShowCoAuthorAction && tacPhamId && !isCongDongPost ? (
-        <JourneyCoAuthorProposal
-          tacPhamId={tacPhamId}
-          mode={canManageCoAuthors ? "owner" : "proposal"}
-          ownerId={coAuthorExcludeOwnerId}
-        />
-      ) : null}
       {canManageCoAuthors && tacPhamId && !isCongDongPost && ownerSlug && orgAttachCotMocId ? (
         <JourneyOrgAttachTrigger
           tacPhamId={tacPhamId}
@@ -1516,6 +1488,61 @@ export function JourneyMilestoneCard({
         >
           <PersonalFilterBadge filter={primaryPersonalFilter} />
         </span>
+      </JourneyMilestoneInlineControls>
+    );
+  }
+
+  /** Icon khả năng hiển thị — luôn trong badge-row (cùng nhóm loại). */
+  function renderVisibilityInlineControl(opts?: {
+    congDongIconOnly?: boolean;
+  }) {
+    if (!vis) return null;
+    const congDongIconOnly = Boolean(opts?.congDongIconOnly);
+    return (
+      <JourneyMilestoneInlineControls
+        kind="visibility"
+        milestoneId={cotMocId ?? milestone.id}
+        current={visibility ?? "public"}
+        visibilityCustom={milestone.visibilityCustom}
+        options={
+          foreignJourneyContext
+            ? FOREIGN_JOURNEY_VIS_OPTIONS
+            : congDongIconOnly
+              ? CONG_DONG_GRADUATE_VIS_OPTIONS
+              : EDITABLE_VIS_OPTIONS
+        }
+        foreignJourney={foreignJourneyContext}
+        congDongPost={
+          congDongIconOnly
+            ? congDongInlineContext(congDongOrg, title)
+            : undefined
+        }
+      >
+        {congDongIconOnly ? (
+          <span
+            className="ctx-badge j-vis-cong-dong j-vis-cong-dong--icon"
+            title={vis.label}
+            aria-label={vis.label}
+          >
+            <vis.Icon size={11} strokeWidth={1.8} aria-hidden />
+          </span>
+        ) : (
+          <span
+            className={`ctx-badge j-vis-${vis.badgeKey}`}
+            title={vis.label}
+            aria-label={vis.label}
+          >
+            <vis.Icon
+              size={11}
+              strokeWidth={1.8}
+              aria-hidden
+              {...(vis.badgeKey === "feature"
+                ? { fill: "currentColor" }
+                : {})}
+            />
+            {vis.badgeKey === "feature" ? "Feature" : vis.label}
+          </span>
+        )}
       </JourneyMilestoneInlineControls>
     );
   }
@@ -1655,53 +1682,11 @@ export function JourneyMilestoneCard({
                   </span>
                 </JourneyMilestoneInlineControls>
               )}
-              {vis ? (
-                <JourneyMilestoneInlineControls
-                  kind="visibility"
-                  milestoneId={cotMocId ?? milestone.id}
-                  current={visibility ?? "public"}
-                  visibilityCustom={milestone.visibilityCustom}
-                  options={
-                    foreignJourneyContext
-                      ? FOREIGN_JOURNEY_VIS_OPTIONS
-                      : isCongDongSelfPost
-                        ? CONG_DONG_GRADUATE_VIS_OPTIONS
-                        : EDITABLE_VIS_OPTIONS
-                  }
-                  foreignJourney={foreignJourneyContext}
-                  congDongPost={
-                    isCongDongSelfPost
-                      ? congDongInlineContext(congDongOrg, title)
-                      : undefined
-                  }
-                >
-                  {isCongDongSelfPost ? (
-                    <span
-                      className="ctx-badge j-vis-cong-dong j-vis-cong-dong--icon"
-                      title={vis.label}
-                      aria-label={vis.label}
-                    >
-                      <vis.Icon size={11} strokeWidth={1.8} aria-hidden />
-                    </span>
-                  ) : (
-                    <span
-                      className={`ctx-badge j-vis-${vis.badgeKey}`}
-                      title={vis.label}
-                      aria-label={vis.label}
-                    >
-                      <vis.Icon
-                        size={11}
-                        strokeWidth={1.8}
-                        aria-hidden
-                        {...(vis.badgeKey === "feature"
-                          ? { fill: "currentColor" }
-                          : {})}
-                      />
-                      {vis.badgeKey === "feature" ? "Feature" : vis.label}
-                    </span>
-                  )}
-                </JourneyMilestoneInlineControls>
-              ) : null}
+              {vis
+                ? renderVisibilityInlineControl({
+                    congDongIconOnly: isCongDongSelfPost,
+                  })
+                : null}
             </>
           ) : (
             <>
@@ -1950,36 +1935,9 @@ export function JourneyMilestoneCard({
                   {showMilestoneVerifyBadge && (!showOrgVerifyBadge || isSelfAuthoredTagged) ? (
                     <MilestoneVerifyBadge />
                   ) : null}
-                  {vis && !isCongDongPost ? (
-                    <JourneyMilestoneInlineControls
-                      kind="visibility"
-                      milestoneId={cotMocId ?? milestone.id}
-                      current={visibility ?? "public"}
-                      visibilityCustom={milestone.visibilityCustom}
-                      options={
-                        foreignJourneyContext
-                          ? FOREIGN_JOURNEY_VIS_OPTIONS
-                          : EDITABLE_VIS_OPTIONS
-                      }
-                      foreignJourney={foreignJourneyContext}
-                    >
-                      <span
-                        className={`ctx-badge j-vis-${vis.badgeKey}`}
-                        title={vis.label}
-                        aria-label={vis.label}
-                      >
-                        <vis.Icon
-                          size={11}
-                          strokeWidth={1.8}
-                          aria-hidden
-                          {...(vis.badgeKey === "feature"
-                            ? { fill: "currentColor" }
-                            : {})}
-                        />
-                        {vis.badgeKey === "feature" ? "Feature" : vis.label}
-                      </span>
-                    </JourneyMilestoneInlineControls>
-                  ) : null}
+                  {vis && !isCongDongPost
+                    ? renderVisibilityInlineControl()
+                    : null}
                 </span>
               ) : null}
               {viewerCornerActionsNode}
@@ -2136,53 +2094,9 @@ export function JourneyMilestoneCard({
                     {showMilestoneVerifyBadge && (!showOrgVerifyBadge || isSelfAuthoredTagged) ? (
                       <MilestoneVerifyBadge />
                     ) : null}
-                    {vis ? (
-                      <JourneyMilestoneInlineControls
-                        kind="visibility"
-                        milestoneId={cotMocId ?? milestone.id}
-                        current={visibility ?? "public"}
-                        visibilityCustom={milestone.visibilityCustom}
-                        options={
-                          foreignJourneyContext
-                            ? FOREIGN_JOURNEY_VIS_OPTIONS
-                            : isCongDongPost
-                              ? CONG_DONG_GRADUATE_VIS_OPTIONS
-                              : EDITABLE_VIS_OPTIONS
-                        }
-                        foreignJourney={foreignJourneyContext}
-                        congDongPost={
-                          isCongDongPost
-                            ? congDongInlineContext(congDongOrg, title)
-                            : undefined
-                        }
-                      >
-                        {isCongDongPost ? (
-                          <span
-                            className="ctx-badge j-vis-cong-dong j-vis-cong-dong--icon"
-                            title={vis.label}
-                            aria-label={vis.label}
-                          >
-                            <vis.Icon size={11} strokeWidth={1.8} aria-hidden />
-                          </span>
-                        ) : (
-                          <span
-                            className={`ctx-badge j-vis-${vis.badgeKey}`}
-                            title={vis.label}
-                            aria-label={vis.label}
-                          >
-                            <vis.Icon
-                              size={11}
-                              strokeWidth={1.8}
-                              aria-hidden
-                              {...(vis.badgeKey === "feature"
-                                ? { fill: "currentColor" }
-                                : {})}
-                            />
-                            {vis.badgeKey === "feature" ? "Feature" : vis.label}
-                          </span>
-                        )}
-                      </JourneyMilestoneInlineControls>
-                    ) : null}
+                    {renderVisibilityInlineControl({
+                      congDongIconOnly: isCongDongPost,
+                    })}
                   </span>
                   <JourneyMilestoneOwnerMenu
                     milestoneId={personalFilterMenuId}

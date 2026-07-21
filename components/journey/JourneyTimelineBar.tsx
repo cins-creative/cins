@@ -27,10 +27,8 @@ import {
 import { createPortal } from "react-dom";
 
 import { updateLoaiMocVisibility } from "@/app/[slug]/journey/visibility-actions";
-import { GalleryMediaFilterDropdown } from "@/components/journey/GalleryMediaFilterDropdown";
 import { JourneyFilterShareButton } from "@/components/journey/JourneyFilterShareButton";
 import { useJourneyFilterShareOptional } from "@/components/journey/JourneyFilterShareContext";
-import { useJourneyFeaturedAsideFilterOptional } from "@/components/journey/JourneyFeaturedAsideFilterContext";
 import { JourneyPersonalFilterMenuSection } from "@/components/journey/JourneyPersonalFilterMenuSection";
 import { useJourneyPersonalFilterOptional } from "@/components/journey/JourneyPersonalFilterContext";
 import { JourneySurfaceViewToggle } from "@/components/journey/JourneySurfaceViewToggle";
@@ -170,7 +168,6 @@ export function JourneyTimelineBar({
   embed = false,
 }: Props) {
   const personalFilter = useJourneyPersonalFilterOptional();
-  const asideMediaFilter = useJourneyFeaturedAsideFilterOptional();
   const journeyView = useJourneyViewOptional();
   const showSurfaceToggle = Boolean(journeyView) && !embed;
   const activePersonalFilter = personalFilter?.activeSlug
@@ -428,19 +425,6 @@ export function JourneyTimelineBar({
     );
   }
 
-  const filterCluster = asideMediaFilter ? (
-      <div className="j-tlb-filters">
-        {filterControl}
-        <GalleryMediaFilterDropdown
-          filter={asideMediaFilter.mediaFilter}
-          onFilterChange={asideMediaFilter.setMediaFilter}
-          variant="icon"
-        />
-      </div>
-    ) : (
-      filterControl
-    );
-
   return (
     <div className="j-tlb">
       <span className="j-tlb-streak-slow" aria-hidden="true" />
@@ -453,7 +437,7 @@ export function JourneyTimelineBar({
           {month || "—"}
         </div>
       </div>
-      {filterCluster}
+      {filterControl}
       {showSurfaceToggle ? <JourneySurfaceViewToggle /> : null}
       {portalReady && menu ? createPortal(menu, document.body) : null}
     </div>

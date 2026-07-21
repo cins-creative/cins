@@ -6156,7 +6156,7 @@ function AutosizeTextarea({
   );
 }
 
-/** Textarea + floating format bubble (markdown / emoji), render đậm/nghiêng… */
+/** Textarea + emoji góc dưới phải; Enter tiếp tục list `- ` / `1. `. */
 function TextFieldWithFormat({
   className,
   value,
@@ -6183,7 +6183,7 @@ function TextFieldWithFormat({
   const [taEl, setTaEl] = useState<HTMLTextAreaElement | null>(null);
 
   return (
-    <>
+    <div className="ed-mota-field-wrap">
       <MinimalBodyFormatBar
         value={value}
         onChange={onChange}
@@ -6217,7 +6217,7 @@ function TextFieldWithFormat({
           }
         />
       </MoTaFormattedField>
-    </>
+    </div>
   );
 }
 

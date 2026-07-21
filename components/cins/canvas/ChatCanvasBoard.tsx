@@ -63,6 +63,7 @@ export default function ChatCanvasBoard({ roomId, onJumpToMessage }: Props) {
   const [syncing, setSyncing] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const [stickyColor, setStickyColor] = useState(STICKY_PALETTE[0]!);
+  const [paletteOpen, setPaletteOpen] = useState(false);
   const [tool, setTool] = useState<BoardTool>("select");
   const [selection, setSelection] = useState<BoardSelectionSummary>({
     selectedCount: 0,
@@ -76,6 +77,7 @@ export default function ChatCanvasBoard({ roomId, onJumpToMessage }: Props) {
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
 
   const wrapRef = useRef<HTMLDivElement>(null);
+  const paletteRef = useRef<HTMLDivElement>(null);
   const boardRef = useRef<BoardHandle>(null);
   // Node cần zoom tới sau hydrate (mở canvas từ menu «Xem trên canvas»).
   const [pendingFocusNodeId] = useState<string | null>(() => {
@@ -130,6 +132,28 @@ export default function ChatCanvasBoard({ roomId, onJumpToMessage }: Props) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [clearConfirmOpen]);
+
+  useEffect(() => {
+    if (!paletteOpen) return;
+    const onPointerDown = (e: PointerEvent) => {
+      if (!paletteRef.current?.contains(e.target as Node)) {
+        setPaletteOpen(false);
+      }
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setPaletteOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [paletteOpen]);
+
+  useEffect(() => {
+    if (locked) setPaletteOpen(false);
+  }, [locked]);
 
   const toggleFullscreen = useCallback(() => {
     const el = wrapRef.current;
@@ -324,6 +348,7 @@ export default function ChatCanvasBoard({ roomId, onJumpToMessage }: Props) {
             <Pencil size={15} strokeWidth={1.9} aria-hidden />
           </button>
         </div>
+        <span className="cins-canvas-tool-sep" aria-hidden />
         <div
           className="cins-canvas-tool-seg"
           role="group"
@@ -402,88 +427,128 @@ export default function ChatCanvasBoard({ roomId, onJumpToMessage }: Props) {
             />
           </button>
         </div>
-        <div
-          className="cins-canvas-palette"
-          role="group"
-          aria-label="Màu ghi chú / hình / nét vẽ"
-          title="Màu — chọn trước khi thêm ghi chú, hình hoặc vẽ"
-        >
-          {STICKY_PALETTE.map((color) => (
-            <button
-              key={color}
-              type="button"
-              className={
-                "cins-canvas-swatch" +
-                (stickyColor === color ? " is-active" : "")
-              }
-              style={{ background: color }}
-              disabled={locked}
-              aria-label={`Màu ${color}`}
-              aria-pressed={stickyColor === color}
-              onClick={() => setStickyColor(color)}
-            />
-          ))}
-          <CustomColorSwatch
-            value={stickyColor}
-            isActive={!isPresetPaletteColor(stickyColor, STICKY_PALETTE)}
+        <span className="cins-canvas-tool-sep" aria-hidden />
+        <div className="cins-canvas-palette" ref={paletteRef}>
+          <button
+            type="button"
+            className={
+              "cins-canvas-colorwheel" + (paletteOpen ? " is-open" : "")
+            }
             disabled={locked}
-            ariaLabel="Màu tùy chọn"
-            onPick={setStickyColor}
-          />
+            aria-label="Màu ghi chú / hình / nét vẽ"
+            aria-expanded={paletteOpen}
+            aria-haspopup="dialog"
+            title="Màu — chọn trước khi thêm ghi chú, hình hoặc vẽ"
+            onClick={() => setPaletteOpen((open) => !open)}
+          >
+            <span className="cins-canvas-colorwheel-ring" aria-hidden />
+            <span
+              className="cins-canvas-colorwheel-current"
+              style={{ background: stickyColor }}
+              aria-hidden
+            />
+          </button>
+          {paletteOpen ? (
+            <div
+              className="cins-canvas-palette-pop"
+              role="group"
+              aria-label="Bảng màu"
+            >
+              {STICKY_PALETTE.map((color) => (
+                <button
+                  key={color}
+                  type="button"
+                  className={
+                    "cins-canvas-swatch" +
+                    (stickyColor === color ? " is-active" : "")
+                  }
+                  style={{ background: color }}
+                  aria-label={`Màu ${color}`}
+                  aria-pressed={stickyColor === color}
+                  onClick={() => {
+                    setStickyColor(color);
+                    setPaletteOpen(false);
+                  }}
+                />
+              ))}
+              <CustomColorSwatch
+                value={stickyColor}
+                isActive={!isPresetPaletteColor(stickyColor, STICKY_PALETTE)}
+                ariaLabel="Màu tùy chọn"
+                onPick={(hex) => {
+                  setStickyColor(hex);
+                  setPaletteOpen(false);
+                }}
+              />
+            </div>
+          ) : null}
         </div>
-        <span className="cins-canvas-toolbar-spacer" aria-hidden />
-        <button
-          type="button"
-          className="cins-canvas-tool-btn cins-canvas-tool-btn--icon cins-canvas-tool-btn--danger"
-          onClick={() => setClearConfirmOpen(true)}
-          disabled={locked || selection.nodeCount === 0}
-          title={
-            locked
-              ? "Canvas đang khóa"
-              : selection.nodeCount === 0
-                ? "Canvas trống"
-                : "Xóa hết nội dung trên canvas"
-          }
-          aria-label="Xóa hết canvas"
+        <span className="cins-canvas-tool-sep" aria-hidden />
+        <div
+          className="cins-canvas-tool-seg"
+          role="group"
+          aria-label="Chỉnh sửa"
         >
-          <Eraser size={15} strokeWidth={1.9} aria-hidden />
-        </button>
-        <button
-          type="button"
-          className="cins-canvas-tool-btn cins-canvas-tool-btn--icon"
-          onClick={() => boardRef.current?.undo()}
-          disabled={!selection.canUndo || locked}
-          title="Hoàn tác (Ctrl+Z)"
-          aria-label="Hoàn tác"
+          <button
+            type="button"
+            className="cins-canvas-tool-btn cins-canvas-tool-btn--icon cins-canvas-tool-btn--danger"
+            onClick={() => setClearConfirmOpen(true)}
+            disabled={locked || selection.nodeCount === 0}
+            title={
+              locked
+                ? "Canvas đang khóa"
+                : selection.nodeCount === 0
+                  ? "Canvas trống"
+                  : "Xóa hết nội dung trên canvas"
+            }
+            aria-label="Xóa hết canvas"
+          >
+            <Eraser size={15} strokeWidth={1.9} aria-hidden />
+          </button>
+          <button
+            type="button"
+            className="cins-canvas-tool-btn cins-canvas-tool-btn--icon"
+            onClick={() => boardRef.current?.undo()}
+            disabled={!selection.canUndo || locked}
+            title="Hoàn tác (Ctrl+Z)"
+            aria-label="Hoàn tác"
+          >
+            <Undo2 size={15} strokeWidth={1.9} aria-hidden />
+          </button>
+          <button
+            type="button"
+            className="cins-canvas-tool-btn cins-canvas-tool-btn--icon"
+            onClick={() => boardRef.current?.redo()}
+            disabled={!selection.canRedo || locked}
+            title="Làm lại (Ctrl+Shift+Z)"
+            aria-label="Làm lại"
+          >
+            <Redo2 size={15} strokeWidth={1.9} aria-hidden />
+          </button>
+        </div>
+        <span className="cins-canvas-tool-sep" aria-hidden />
+        <div
+          className="cins-canvas-tool-seg"
+          role="group"
+          aria-label="Xem"
         >
-          <Undo2 size={15} strokeWidth={1.9} aria-hidden />
-        </button>
-        <button
-          type="button"
-          className="cins-canvas-tool-btn cins-canvas-tool-btn--icon"
-          onClick={() => boardRef.current?.redo()}
-          disabled={!selection.canRedo || locked}
-          title="Làm lại (Ctrl+Shift+Z)"
-          aria-label="Làm lại"
-        >
-          <Redo2 size={15} strokeWidth={1.9} aria-hidden />
-        </button>
-        {locked ? (
-          <span className="cins-canvas-lock-badge">Đã khóa</span>
-        ) : null}
-        <button
-          type="button"
-          className="cins-canvas-tool-btn cins-canvas-tool-btn--icon"
-          onClick={toggleFullscreen}
-          title={fullscreen ? "Thoát toàn màn hình" : "Toàn màn hình"}
-          aria-label={fullscreen ? "Thoát toàn màn hình" : "Toàn màn hình"}
-        >
-          {fullscreen ? (
-            <Minimize2 size={15} strokeWidth={1.9} aria-hidden />
-          ) : (
-            <Maximize2 size={15} strokeWidth={1.9} aria-hidden />
-          )}
-        </button>
+          {locked ? (
+            <span className="cins-canvas-lock-badge">Đã khóa</span>
+          ) : null}
+          <button
+            type="button"
+            className="cins-canvas-tool-btn cins-canvas-tool-btn--icon"
+            onClick={toggleFullscreen}
+            title={fullscreen ? "Thoát toàn màn hình" : "Toàn màn hình"}
+            aria-label={fullscreen ? "Thoát toàn màn hình" : "Toàn màn hình"}
+          >
+            {fullscreen ? (
+              <Minimize2 size={15} strokeWidth={1.9} aria-hidden />
+            ) : (
+              <Maximize2 size={15} strokeWidth={1.9} aria-hidden />
+            )}
+          </button>
+        </div>
       </div>
       {clearConfirmOpen ? (
         <div

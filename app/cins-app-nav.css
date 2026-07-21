@@ -153,6 +153,64 @@
   display: none;
 }
 
+.cins-app-sidebar .sb-search-li {
+  list-style: none;
+  margin: 0 0 4px;
+}
+
+.cins-app-sidebar .sb-search {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  margin: 0;
+  padding: 11px 8px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--ink-display, #0f172a) 4%, var(--bg-surface, #fff));
+  color: var(--ink-body);
+  cursor: text;
+  transition:
+    background var(--app-nav-dur) var(--app-nav-ease),
+    color var(--app-nav-dur) var(--app-nav-ease);
+}
+
+.cins-app-sidebar .sb-search:hover,
+.cins-app-sidebar .sb-search:focus-within {
+  background: var(--cins-blue-soft);
+  color: var(--cins-blue);
+}
+
+.cins-app-sidebar .sb-search-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 180px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--ink-display);
+  opacity: 1;
+  outline: none;
+  transition:
+    max-width 0.26s var(--app-nav-ease),
+    opacity 0.18s var(--app-nav-ease),
+    transform 0.22s var(--app-nav-ease);
+}
+
+.cins-app-sidebar .sb-search-input::placeholder {
+  color: var(--ink-muted);
+  font-weight: 500;
+}
+
+.cins-app-sidebar .sb-search--fallback {
+  pointer-events: none;
+  min-height: 46px;
+}
+
 .cins-app-sidebar .sb-item {
   display: flex;
   align-items: center;
@@ -613,6 +671,23 @@
     box-sizing: border-box;
     padding-left: 0;
     padding-right: 0;
+  }
+
+  .cins-app-sidebar.sidebar:not(:hover):not(:focus-within):not(:has(.sb-user.open)) .sb-search {
+    justify-content: center;
+    gap: 0;
+    width: 100%;
+    box-sizing: border-box;
+    padding-left: 0;
+    padding-right: 0;
+    background: transparent;
+  }
+
+  .cins-app-sidebar.sidebar:not(:hover):not(:focus-within):not(:has(.sb-user.open)) .sb-search-input {
+    max-width: 0;
+    opacity: 0;
+    transform: translateX(-4px);
+    pointer-events: none;
   }
 
   .cins-app-sidebar.sidebar:not(:hover):not(:focus-within):not(:has(.sb-user.open)) .sb-label {

@@ -37,7 +37,13 @@ import {
   type CanvasTableData,
 } from "@/components/cins/board/content-kinds";
 
-export const STICKY_PALETTE = ["#FDE859", "#6EFEC0", "#FFB85C", "#BB89F8"];
+export const STICKY_PALETTE = ["#F7F383", "#6EFEC0", "#FFB85C", "#BB89F8"];
+
+/** Sticky vàng cũ → giấy kẻ mới (hiển thị). */
+export function stickyPaperColor(mau: string | null | undefined): string {
+  const base = mau?.trim() || STICKY_PALETTE[0]!;
+  return toHexColor(base).toUpperCase() === "#FDE859" ? "#F7F383" : base;
+}
 
 /** Sticky với mau này = khối chữ thuần (không nền) — «+ Chữ». */
 export const TEXT_STICKY_MAU = "transparent";
@@ -884,12 +890,13 @@ export function NodeCard({
   } else {
     const shapeKind = normalizeShapeKind(node.layout.shapeKind);
     const isText = !shapeKind && mau === TEXT_STICKY_MAU;
+    const paperMau = stickyPaperColor(mau);
     if (shapeKind) {
       body = (
         <div className={`cins-canvas-card cins-canvas-card-shape is-${shapeKind}`}>
           <div
             className="cins-canvas-shape-fill"
-            style={{ background: mau || STICKY_PALETTE[0] }}
+            style={{ background: paperMau }}
             aria-hidden
           />
           {editing && !locked ? (
@@ -911,7 +918,7 @@ export function NodeCard({
             (isText ? " is-text" : "")
           }
           style={{
-            background: isText ? "transparent" : mau || STICKY_PALETTE[0],
+            backgroundColor: isText ? "transparent" : paperMau,
           }}
         >
           {editing && !locked ? (

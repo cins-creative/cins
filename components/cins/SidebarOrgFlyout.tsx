@@ -6,9 +6,7 @@ import { useEffect, useState } from "react";
 
 import { SidebarNavIcon } from "@/components/cins/SidebarNavIcon";
 import { getNameInitials } from "@/lib/journey/profile";
-import type { MainNavItem } from "@/lib/cins/mainNav";
-
-export type OrgFlyoutKind = "education" | "community" | "studio";
+import type { MainNavItem, OrgFlyoutKind } from "@/lib/cins/mainNav";
 
 type MyOrg = {
   id: string;
@@ -32,12 +30,12 @@ const KIND_CONFIG: Record<
     createLabel: string;
   }
 > = {
-  education: {
-    types: ["co_so_dao_tao", "truong_dai_hoc"],
-    title: "Tổ chức giáo dục của bạn",
-    emptyText: "Bạn chưa quản lý cơ sở đào tạo nào.",
-    createHref: "/tao-to-chuc/co-so",
-    createLabel: "Tạo cơ sở đào tạo",
+  org: {
+    types: ["co_so_dao_tao", "truong_dai_hoc", "studio", "doanh_nghiep"],
+    title: "Tổ chức của bạn",
+    emptyText: "Bạn chưa quản lý tổ chức nào.",
+    createHref: "/tao-to-chuc",
+    createLabel: "Tạo tổ chức",
   },
   community: {
     types: ["cong_dong"],
@@ -45,13 +43,6 @@ const KIND_CONFIG: Record<
     emptyText: "Bạn chưa quản lý cộng đồng nào.",
     createHref: "/cong-dong/tao",
     createLabel: "Tạo cộng đồng",
-  },
-  studio: {
-    types: ["studio", "doanh_nghiep"],
-    title: "Studio của bạn",
-    emptyText: "Bạn chưa có studio nào.",
-    createHref: "/tao-to-chuc/studio",
-    createLabel: "Tạo studio",
   },
 };
 

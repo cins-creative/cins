@@ -494,6 +494,32 @@
   color: var(--cins-blue);
 }
 
+.cins-login-pw-forgot-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: -4px;
+}
+.cins-login-pw-forgot {
+  padding: 0;
+  border: none;
+  background: transparent;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: var(--weight-medium);
+  color: var(--cins-blue);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.cins-login-pw-forgot:hover:not(:disabled) {
+  color: var(--cins-blue-dark);
+}
+.cins-login-pw-forgot:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  text-decoration: none;
+}
+
 .cins-login-pw-error {
   margin: 0;
   font-size: 13px;

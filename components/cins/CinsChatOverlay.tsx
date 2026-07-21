@@ -11,12 +11,14 @@ import {
   Pin,
   PictureInPicture2,
   PinOff,
+  Plus,
   Search,
   Send,
   Settings2,
-  MessageSquarePlus,
   Users,
   X,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 import {
   type ChangeEvent,
@@ -41,6 +43,7 @@ const ChatCanvasBoard = dynamic(
 );
 
 import { ChatCreateGroupModal } from "@/components/cins/ChatCreateGroupModal";
+import { ChatGroupMembersPopover } from "@/components/cins/ChatGroupMembersPopover";
 import {
   ChatAtMentionMenu,
   filterChatAtMembers,
@@ -498,7 +501,9 @@ function ChatThreadRow({
     onRenameGroup: () => onRenameGroup(thread),
     canCreateProject,
     onCreateProject: () => onCreateProject(thread),
-    onManageGroup: () => onManageGroup(thread),
+    onManageGroup: thread.isGroupAdmin
+      ? () => onManageGroup(thread)
+      : undefined,
     onLeaveGroup: () => onLeaveGroup(thread),
     onDeleteGroup: () => onDeleteGroup(thread),
     onHideThread: () => onHideThread(thread),
@@ -780,6 +785,8 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
   const autoSentNguCanhRef = useRef<string | null>(null);
   const [mobileShowThread, setMobileShowThread] = useState(() => Boolean(launch?.thread));
   const [sidePanel, setSidePanel] = useState<ChatSidePanel | null>(null);
+  const [chatFullscreen, setChatFullscreen] = useState(false);
+  const [membersPopoverOpen, setMembersPopoverOpen] = useState(false);
   const skipPersistSidePanelRef = useRef(true);
   /** Tab cuối khi panel đang mở — dùng khi bấm "Mở rộng" lại sau khi đóng. */
   const lastSidePanelRef = useRef<ChatSidePanel>("mocs");
@@ -858,8 +865,6 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
   scrollMessagesToBottomRef.current = scrollMessagesToBottom;
   const forcedEmptyReloadRef = useRef<Set<string>>(new Set());
   const highlightTimerRef = useRef<number | null>(null);
-  /** Đã tự mở thread đầu (hoặc có launch) — chỉ một lần mỗi lần mở overlay. */
-  const autoOpenedTopRef = useRef(Boolean(launch?.thread));
 
   pendingImagesRef.current = pendingImages;
 
@@ -878,6 +883,18 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     setEditingMessageId(null);
     setEditingDraft("");
   }, [active?.roomId]);
+
+  useEffect(() => {
+    if (!active && sidePanel) {
+      // Chỉ ẩn panel UI — không ghi null vào preference (canvas vẫn nhớ khi expand lại).
+      skipPersistSidePanelRef.current = true;
+      setSidePanel(null);
+    }
+  }, [active, sidePanel]);
+
+  useEffect(() => {
+    if (!sidePanel) setChatFullscreen(false);
+  }, [sidePanel]);
 
   activeRoomIdRef.current = active?.roomId ?? null;
 
@@ -1197,7 +1214,9 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     skipPersistSidePanelRef.current = true;
     const restored = readChatSidePanel(viewerProfileId);
     if (restored) lastSidePanelRef.current = restored;
-    setSidePanel(restored);
+    // Không mở canvas/side khi chưa chọn hội thoại — `.has-canvas` ẩn list
+    // và chỉ còn "Chọn hội thoại…". Preference vẫn ở lastSidePanelRef (nút expand).
+    setSidePanel(null);
   }, [viewerProfileId]);
 
   useEffect(() => {
@@ -1227,6 +1246,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
 
   useEffect(() => {
     setComposeToolsOpen(false);
+    setMembersPopoverOpen(false);
   }, [activeId]);
 
   useEffect(() => {
@@ -1566,7 +1586,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
         });
         onUnreadChange(cached.totalUnread);
         setLoadingThreads(false);
-        // Không set activeId ở đây — effect auto-open chọn thread đầu danh sách đã sort.
+        // Không set activeId — FAB chỉ mở list; launch effect chọn thread khi có target.
       } else if (!launchRef.current?.thread) {
         setLoadingThreads(true);
       }
@@ -1593,7 +1613,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
           return next;
         });
         onUnreadChange(snapshot.totalUnread);
-        // activeId: launch effect hoặc auto-open top thread.
+        // activeId chỉ đổi qua launch effect hoặc user chọn trong list.
       } catch (error) {
         if (!launchRef.current?.thread && !cached?.threads.length) {
           setLoadError(
@@ -1656,6 +1676,10 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
+      if (chatFullscreen) {
+        setChatFullscreen(false);
+        return;
+      }
       if (sidePanel) {
         setSidePanel(null);
         return;
@@ -1664,7 +1688,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onClose, sidePanel]);
+  }, [onClose, sidePanel, chatFullscreen]);
 
   const loadMessages = useCallback(
     async (roomId: string, options?: { force?: boolean }) => {
@@ -1891,25 +1915,6 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     },
     [draft, loadMessages, pendingImages, restoreComposeForRoom, scrollMessagesToBottom],
   );
-
-  // Mặc định mở hội thoại trên cùng của tab hiện tại (sau khi list sẵn sàng).
-  useEffect(() => {
-    if (autoOpenedTopRef.current) return;
-    if (launch?.thread) {
-      autoOpenedTopRef.current = true;
-      return;
-    }
-    if (loadingThreads) return;
-
-    const top = filtered[0];
-    if (!top) {
-      if (threads.length === 0) autoOpenedTopRef.current = true;
-      return;
-    }
-
-    autoOpenedTopRef.current = true;
-    selectThread(top);
-  }, [filtered, launch?.thread, loadingThreads, selectThread, threads.length]);
 
   const removeThreadFromSidebar = useCallback(
     (thread: ChatThread) => {
@@ -3058,7 +3063,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
   const panel = (
     <div
       ref={chatRootRef}
-      className={`cins-chat-root${shareDropMode ? " is-share-drop-root" : ""}`}
+      className={`cins-chat-root${shareDropMode ? " is-share-drop-root" : ""}${chatFullscreen ? " is-chat-fullscreen" : ""}`}
       role="presentation"
       onClick={(e) => {
         // Chỉ đóng khi click đúng vùng ngoài panel — tránh nút header
@@ -3069,7 +3074,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
       <div className="cins-chat-backdrop" aria-hidden="true" />
 
       <section
-        className={`cins-chat-panel${sidePanel ? " has-side-panel" : ""}${sidePanel === "canvas" ? " has-canvas" : ""}${shareDropMode ? " is-share-drop" : ""}`}
+        className={`cins-chat-panel${sidePanel && active ? " has-side-panel" : ""}${sidePanel === "canvas" && active ? " has-canvas" : ""}${shareDropMode ? " is-share-drop" : ""}${chatFullscreen ? " is-chat-fullscreen" : ""}`}
         role="dialog"
         aria-modal="true"
         aria-label="Tin nhắn"
@@ -3094,22 +3099,14 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
               {activeTab === "ban_be" ? (
                 <button
                   type="button"
-                  className="cins-chat-icon-btn"
+                  className="cins-chat-icon-btn is-plain"
                   aria-label="Tin nhắn mới"
                   title="Tin nhắn mới"
                   onClick={() => setGroupModalOpen(true)}
                 >
-                  <MessageSquarePlus size={18} strokeWidth={1.8} aria-hidden />
+                  <Plus size={22} strokeWidth={2} aria-hidden />
                 </button>
               ) : null}
-              <button
-                type="button"
-                className="cins-chat-icon-btn"
-                aria-label="Đóng"
-                onClick={onClose}
-              >
-                <X size={18} strokeWidth={1.8} aria-hidden />
-              </button>
             </div>
           </header>
 
@@ -3310,13 +3307,22 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                 ) : null}
               </span>
               {active.isGroup && active.memberCount ? (
-                <button
-                  type="button"
-                  className="cins-chat-convo-members-btn"
-                  onClick={() => handleManageGroup(active)}
-                >
-                  {active.memberCount} thành viên
-                </button>
+                <div className="cins-chat-convo-members-wrap">
+                  <button
+                    type="button"
+                    className="cins-chat-convo-members-btn"
+                    aria-expanded={membersPopoverOpen}
+                    aria-haspopup="dialog"
+                    onClick={() => setMembersPopoverOpen((v) => !v)}
+                  >
+                    {active.memberCount} thành viên
+                  </button>
+                  <ChatGroupMembersPopover
+                    open={membersPopoverOpen}
+                    members={activeAtMembers}
+                    onClose={() => setMembersPopoverOpen(false)}
+                  />
+                </div>
               ) : active.online ? (
                 <span>
                   <span className="cins-chat-online-dot" aria-hidden />
@@ -3327,7 +3333,10 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
               ) : null}
             </div>
             <div className="cins-chat-convo-actions">
-              {active.isGroup && active.roomId && !isPendingRoomId(active.roomId) ? (
+              {active.isGroup &&
+              active.isGroupAdmin &&
+              active.roomId &&
+              !isPendingRoomId(active.roomId) ? (
                 <button
                   type="button"
                   className="cins-chat-icon-btn"
@@ -3377,10 +3386,38 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                   <PictureInPicture2
                     size={16}
                     strokeWidth={1.9}
+                    strokeDasharray="3.5 2.5"
                     aria-hidden
                   />
                 </button>
               ) : null}
+              <button
+                type="button"
+                className={`cins-chat-icon-btn${chatFullscreen ? " is-active" : ""}`}
+                aria-label={
+                  chatFullscreen
+                    ? "Thu nhỏ bảng chat"
+                    : "Toàn màn hình bảng chat"
+                }
+                title={
+                  chatFullscreen
+                    ? "Thu nhỏ bảng chat"
+                    : "Toàn màn hình bảng chat"
+                }
+                aria-pressed={chatFullscreen}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setChatFullscreen((v) => !v);
+                }}
+                onMouseDown={(e) => e.stopPropagation()}
+              >
+                {chatFullscreen ? (
+                  <Minimize2 size={16} strokeWidth={1.8} aria-hidden />
+                ) : (
+                  <Maximize2 size={16} strokeWidth={1.8} aria-hidden />
+                )}
+              </button>
               <button
                 type="button"
                 className={`cins-chat-icon-btn${sidePanel ? " is-active" : ""}`}
@@ -3656,9 +3693,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                 placeholder={
                   connecting || isPendingRoom
                     ? "Đang kết nối hội thoại…"
-                    : active.isGroup
-                      ? "Viết tin nhắn… Gõ @ để nhắc"
-                      : "Viết tin nhắn…"
+                    : "Soạn tin..."
                 }
                 onFocus={() => {
                   // Tránh browser đẩy cả overlay; giữ khung theo visualViewport.
@@ -3765,7 +3800,10 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                   type="button"
                   className="cins-chat-icon-btn"
                   aria-label="Đóng panel"
-                  onClick={() => setSidePanel(null)}
+                  onClick={() => {
+                    setChatFullscreen(false);
+                    setSidePanel(null);
+                  }}
                 >
                   <X size={16} strokeWidth={1.8} aria-hidden />
                 </button>

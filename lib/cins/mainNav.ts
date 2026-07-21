@@ -23,7 +23,16 @@ export type MainNavIcon =
   | "project"
   | "settings";
 
-export type OrgFlyoutKind = "education" | "community" | "studio";
+export type OrgFlyoutKind = "org" | "community";
+
+function isToChucNavPath(pathname: string): boolean {
+  return (
+    isCoSoDaoTaoHubPath(pathname) ||
+    pathname === "/studio" ||
+    pathname.startsWith("/studio/") ||
+    pathname.startsWith("/co-so/")
+  );
+}
 
 export type MainNavItem = {
   id: string;
@@ -60,13 +69,13 @@ export const MAIN_NAV_ITEMS: MainNavItem[] = [
     isActive: isNgheNghiepHubPath,
   },
   {
-    id: "education",
+    id: "org",
     href: CO_SO_DAO_TAO_HUB_PATH,
-    label: "Tổ chức giáo dục",
-    tip: "Trường đại học và cơ sở đào tạo ngành sáng tạo — học phí, chương trình, học bổng và open day",
-    icon: "education",
-    isActive: isCoSoDaoTaoHubPath,
-    flyout: "education",
+    label: "Tổ chức",
+    tip: "Cơ sở đào tạo, trường đại học, studio và doanh nghiệp — tổ chức bạn quản lý và khám phá trên CINs",
+    icon: "business",
+    isActive: isToChucNavPath,
+    flyout: "org",
   },
   {
     id: "courses",
@@ -84,15 +93,6 @@ export const MAIN_NAV_ITEMS: MainNavItem[] = [
     icon: "community",
     isActive: (p) => p === "/cong-dong" || p.startsWith("/cong-dong/"),
     flyout: "community",
-  },
-  {
-    id: "business",
-    href: "/studio",
-    label: "Studio",
-    tip: "Studio, agency và doanh nghiệp ngành sáng tạo — khám phá đội ngũ, dự án và cơ hội hợp tác",
-    icon: "business",
-    isActive: (p) => p === "/studio" || p.startsWith("/studio/"),
-    flyout: "studio",
   },
   {
     id: "jobs",

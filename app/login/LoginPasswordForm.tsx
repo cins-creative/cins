@@ -3,13 +3,14 @@
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { type FormEvent, useState } from "react";
 
+import { ForgotPasswordForm } from "@/app/login/ForgotPasswordForm";
 import { EmailOtpVerification } from "@/components/auth/EmailOtpVerification";
 import { authOriginMismatchMessage } from "@/lib/auth/auth-origin";
 import { stashOAuthIntent } from "@/lib/auth/oauth-intent-client";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 type Mode = "login" | "register";
-type Step = "credentials" | "verify-otp";
+type Step = "credentials" | "verify-otp" | "forgot";
 
 type Props = {
   /** URL quay lại sau đăng nhập (từ `?next=`). */
@@ -73,6 +74,21 @@ export function LoginPasswordForm({
     setOtpSendOnMount(false);
     setError(null);
     setNotice(null);
+  }
+
+  function openForgot() {
+    setStep("forgot");
+    setError(null);
+    setNotice(null);
+    setBusyState(false);
+  }
+
+  function backFromForgot() {
+    setStep("credentials");
+    setMode("login");
+    setError(null);
+    setNotice(null);
+    setBusyState(false);
   }
 
   function openOtpStep(targetEmail: string) {
@@ -191,6 +207,19 @@ export function LoginPasswordForm({
     );
   }
 
+  if (step === "forgot") {
+    return (
+      <ForgotPasswordForm
+        initialIdentifier={identifier}
+        returnPath={returnPath}
+        disabled={disabled}
+        onBusyChange={onBusyChange}
+        onBack={backFromForgot}
+        onDoneNotice={setNotice}
+      />
+    );
+  }
+
   return (
     <form className="cins-login-pw" onSubmit={onSubmit} noValidate>
       <div className="cins-login-pw-tabs" role="tablist" aria-label="Chọn cách dùng email">
@@ -273,6 +302,19 @@ export function LoginPasswordForm({
           </button>
         </div>
       </label>
+
+      {mode === "login" ? (
+        <div className="cins-login-pw-forgot-row">
+          <button
+            type="button"
+            className="cins-login-pw-forgot"
+            onClick={openForgot}
+            disabled={lock}
+          >
+            Quên mật khẩu?
+          </button>
+        </div>
+      ) : null}
 
       {error ? (
         <p className="cins-login-pw-error" role="alert">

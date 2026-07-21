@@ -1,22 +1,6 @@
 "use client";
 
-import {
-  ArrowDownNarrowWide,
-  Building2,
-  Check,
-  ChevronLeft,
-  Code2,
-  FileText,
-  Globe,
-  Image as ImageIcon,
-  LayoutGrid,
-  Search,
-  Sparkles,
-  User,
-  Users,
-  Video,
-  Waypoints,
-} from "lucide-react";
+import { LayoutGrid, Search, Sparkles, Waypoints } from "lucide-react";
 import {
   useCallback,
   useEffect,
@@ -39,19 +23,11 @@ import { OrgNotifyFabHost } from "@/components/org/OrgNotifyFab";
 import {
   buildWorldJourneyFeedQuery,
   findWorldJourneyFilterChip,
-  parseWorldJourneyEmbedFilterPlatforms,
-  toggleWorldJourneyEmbedFilterPlatform,
-  worldJourneyEmbedFilterId,
   worldJourneyMilestoneMatchesFilter,
   worldJourneyMilestoneMatchesLinhVuc,
   WORLD_JOURNEY_SORT_OPTIONS,
   type WjFilterChip,
 } from "@/lib/cins/worldJourneyFeedFilters";
-import {
-  EMBED_PLATFORM_GROUPS,
-  getTier1PlatformsByGroup,
-} from "@/lib/editor/embed-providers";
-import { EMBED_PLATFORM_LOGO } from "@/lib/editor/embed-platform-logos";
 import {
   WORLD_JOURNEY_FEED_PAGE_SIZE,
   WORLD_JOURNEY_FIRST_IMPRESSION_CAP,
@@ -70,7 +46,6 @@ import {
 import {
   FEED_SOURCE_CHANGE_EVENT,
   FEED_SOURCE_DEFAULT,
-  FEED_SOURCE_OPTIONS,
   matchesFeedSource,
   readFeedSourceDefault,
   type FeedSourceFilter,
@@ -133,356 +108,22 @@ function feedViewHref(view: FeedSurfaceView): string {
   return q ? `${url.pathname}?${q}` : url.pathname;
 }
 
-function feedSourceIcon(icon: string) {
-  const props = { size: 15, strokeWidth: 2 };
-  switch (icon) {
-    case "globe":
-      return <Globe {...props} />;
-    case "users":
-      return <Users {...props} />;
-    case "user":
-      return <User {...props} />;
-    case "building":
-      return <Building2 {...props} />;
-    default:
-      return null;
-  }
-}
-
 function WorldJourneyFilterBar({
-  chips,
-  activeFilter,
-  onFilter,
-  feedSource,
-  onFeedSource,
-  sort,
-  onSort,
-  sortOpen,
-  onSortOpen,
   surfaceView,
   onSurfaceView,
 }: {
-  chips: WjFilterChip[];
-  activeFilter: string;
-  onFilter: (id: string) => void;
-  feedSource: FeedSourceFilter;
-  onFeedSource: (value: FeedSourceFilter) => void;
-  sort: (typeof WORLD_JOURNEY_SORT_OPTIONS)[number];
-  onSort: (s: (typeof WORLD_JOURNEY_SORT_OPTIONS)[number]) => void;
-  sortOpen: boolean;
-  onSortOpen: (open: boolean) => void;
   surfaceView: FeedSurfaceView;
   onSurfaceView: (view: FeedSurfaceView) => void;
 }) {
-  const sortRef = useRef<HTMLDivElement>(null);
-  const filterRef = useRef<HTMLDivElement>(null);
-  const sourceRef = useRef<HTMLDivElement>(null);
-  const [filterOpen, setFilterOpen] = useState(false);
-  const [filterPanel, setFilterPanel] = useState<"main" | "embed">("main");
-  const [sourceOpen, setSourceOpen] = useState(false);
-  const isGallery = surfaceView === "gallery";
-
-  useEffect(() => {
-    if (!sortOpen) return;
-    const onDoc = (e: MouseEvent) => {
-      if (!sortRef.current?.contains(e.target as Node)) onSortOpen(false);
-    };
-    document.addEventListener("mousedown", onDoc);
-    return () => document.removeEventListener("mousedown", onDoc);
-  }, [sortOpen, onSortOpen]);
-
-  useEffect(() => {
-    if (!filterOpen) {
-      setFilterPanel("main");
-      return;
-    }
-    const onDoc = (e: MouseEvent) => {
-      if (!filterRef.current?.contains(e.target as Node)) setFilterOpen(false);
-    };
-    document.addEventListener("mousedown", onDoc);
-    return () => document.removeEventListener("mousedown", onDoc);
-  }, [filterOpen]);
-
-  useEffect(() => {
-    if (!sourceOpen) return;
-    const onDoc = (e: MouseEvent) => {
-      if (!sourceRef.current?.contains(e.target as Node)) setSourceOpen(false);
-    };
-    document.addEventListener("mousedown", onDoc);
-    return () => document.removeEventListener("mousedown", onDoc);
-  }, [sourceOpen]);
-
-  const activeChip =
-    findWorldJourneyFilterChip(chips, activeFilter) ?? chips[0];
-  const isEmbedFilterActive =
-    activeFilter === "embed" || activeFilter.startsWith("embed:");
-  const selectedEmbedPlatforms =
-    parseWorldJourneyEmbedFilterPlatforms(activeFilter) ?? [];
-  const activeSource =
-    FEED_SOURCE_OPTIONS.find((o) => o.value === feedSource) ??
-    FEED_SOURCE_OPTIONS[0];
-
-  const chipIcon = (icon: string) => {
-    const props = { size: 15, strokeWidth: 2 };
-    switch (icon) {
-      case "sparkles":
-        return <Sparkles {...props} />;
-      case "image":
-        return <ImageIcon {...props} />;
-      case "video":
-        return <Video {...props} />;
-      case "file-text":
-        return <FileText {...props} />;
-      case "code-2":
-        return <Code2 {...props} />;
-      default:
-        return null;
-    }
-  };
-
   return (
     <div className="wj-filter-bar">
-      <div className="wj-filter-wrap wj-source-wrap" ref={sourceRef}>
-        <button
-          type="button"
-          className="wj-filter-btn"
-          aria-haspopup="menu"
-          aria-expanded={sourceOpen}
-          aria-label={activeSource.label}
-          title={activeSource.label}
-          onClick={(e) => {
-            e.stopPropagation();
-            setSourceOpen((v) => !v);
-          }}
-        >
-          {feedSourceIcon(activeSource.icon)}
-        </button>
-        {sourceOpen ? (
-          <div className="wj-filter-pop wj-source-pop" role="menu">
-            {FEED_SOURCE_OPTIONS.map((opt) => (
-              <button
-                key={opt.value}
-                type="button"
-                className={feedSource === opt.value ? "sel" : undefined}
-                role="menuitem"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onFeedSource(opt.value);
-                  setSourceOpen(false);
-                }}
-              >
-                {feedSourceIcon(opt.icon)}
-                <span>{opt.label}</span>
-                <Check className="wj-filter-check" size={13} />
-              </button>
-            ))}
-          </div>
-        ) : null}
-      </div>
-      <div className="wj-filter-wrap" ref={filterRef}>
-        <button
-          type="button"
-          className="wj-filter-btn"
-          aria-haspopup="menu"
-          aria-expanded={filterOpen}
-          aria-label={activeChip.label}
-          title={activeChip.label}
-          onClick={(e) => {
-            e.stopPropagation();
-            setFilterOpen((v) => {
-              if (v) setFilterPanel("main");
-              return !v;
-            });
-          }}
-        >
-          {chipIcon(activeChip.icon)}
-        </button>
-        {filterOpen ? (
-          <div
-            className={
-              "wj-filter-pop" +
-              (filterPanel === "embed" ? " is-embed-panel" : "")
-            }
-            role="menu"
-            aria-label={
-              filterPanel === "embed"
-                ? "Lọc theo nền tảng nhúng"
-                : "Lọc loại nội dung"
-            }
-          >
-            {filterPanel === "embed" ? (
-              <>
-                <div className="wj-filter-embed-head">
-                  <button
-                    type="button"
-                    className="wj-filter-embed-back"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setFilterPanel("main");
-                    }}
-                  >
-                    <ChevronLeft size={14} strokeWidth={2.2} aria-hidden />
-                    Loại
-                  </button>
-                  <span className="wj-filter-embed-head-title">Nhúng</span>
-                </div>
-                <button
-                  type="button"
-                  className={
-                    isEmbedFilterActive && selectedEmbedPlatforms.length === 0
-                      ? "sel"
-                      : undefined
-                  }
-                  role="menuitemcheckbox"
-                  aria-checked={
-                    isEmbedFilterActive && selectedEmbedPlatforms.length === 0
-                  }
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onFilter(worldJourneyEmbedFilterId(null));
-                  }}
-                >
-                  <Code2 size={13} strokeWidth={2} aria-hidden />
-                  <span>Tất cả nền tảng</span>
-                  <Check className="wj-filter-check" size={13} />
-                </button>
-                {EMBED_PLATFORM_GROUPS.map((group) => {
-                  const platforms = getTier1PlatformsByGroup(group.id);
-                  if (!platforms.length) return null;
-                  return (
-                    <div key={group.id} className="wj-filter-embed-group">
-                      <div className="wj-filter-embed-group-label">
-                        {group.label}
-                      </div>
-                      {platforms.map((platform) => {
-                        const selected = selectedEmbedPlatforms.includes(
-                          platform.id,
-                        );
-                        return (
-                          <button
-                            key={platform.id}
-                            type="button"
-                            className={selected ? "sel" : undefined}
-                            role="menuitemcheckbox"
-                            aria-checked={selected}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onFilter(
-                                toggleWorldJourneyEmbedFilterPlatform(
-                                  isEmbedFilterActive ? activeFilter : "embed",
-                                  platform.id,
-                                ),
-                              );
-                            }}
-                          >
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                              className="wj-filter-embed-logo"
-                              src={EMBED_PLATFORM_LOGO[platform.id]}
-                              alt=""
-                              width={16}
-                              height={16}
-                              loading="lazy"
-                              decoding="async"
-                            />
-                            <span>{platform.label}</span>
-                            <Check className="wj-filter-check" size={13} />
-                          </button>
-                        );
-                      })}
-                    </div>
-                  );
-                })}
-              </>
-            ) : (
-              chips.map((chip) => {
-                if (chip.kind === "embed") {
-                  return (
-                    <button
-                      key={chip.id}
-                      type="button"
-                      className={isEmbedFilterActive ? "sel" : undefined}
-                      role="menuitem"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (!isEmbedFilterActive) {
-                          onFilter(worldJourneyEmbedFilterId(null));
-                        }
-                        setFilterPanel("embed");
-                      }}
-                    >
-                      {chipIcon(chip.icon)}
-                      <span>{chip.label}</span>
-                      <Check className="wj-filter-check" size={13} />
-                    </button>
-                  );
-                }
-
-                return (
-                  <button
-                    key={chip.id}
-                    type="button"
-                    className={activeFilter === chip.id ? "sel" : undefined}
-                    role="menuitem"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onFilter(chip.id);
-                      setFilterOpen(false);
-                    }}
-                  >
-                    {chipIcon(chip.icon)}
-                    <span>{chip.label}</span>
-                    <Check className="wj-filter-check" size={13} />
-                  </button>
-                );
-              })
-            )}
-          </div>
-        ) : null}
-      </div>
-      {!isGallery ? (
-        <div className="wj-sort-wrap" ref={sortRef}>
-          <button
-            type="button"
-            className="wj-sort-btn"
-            aria-expanded={sortOpen}
-            aria-haspopup="menu"
-            aria-label={`Sắp xếp: ${sort}`}
-            title={`Sắp xếp: ${sort}`}
-            onClick={(e) => {
-              e.stopPropagation();
-              onSortOpen(!sortOpen);
-            }}
-          >
-            <ArrowDownNarrowWide size={15} strokeWidth={2} aria-hidden />
-          </button>
-          {sortOpen ? (
-            <div className="wj-sort-pop" role="menu">
-              {WORLD_JOURNEY_SORT_OPTIONS.map((opt) => (
-                <button
-                  key={opt}
-                  type="button"
-                  className={sort === opt ? "sel" : undefined}
-                  role="menuitem"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onSort(opt);
-                    onSortOpen(false);
-                  }}
-                >
-                  {opt}
-                  <Check className="wj-filter-check" size={13} />
-                </button>
-              ))}
-            </div>
-          ) : null}
-        </div>
-      ) : null}
-      <span className="wj-filter-spacer" />
-      <div className="wj-filter-trail">
-        {/* Mobile/tablet: briefcase + lịch portal vào các slot này. */}
+      {/* Mobile/tablet: briefcase + lịch — mép trái. Desktop ≥1200px ẩn. */}
+      <div className="wj-filter-trail-start">
         <OrgNotifyFabHost slot="jobs" className="wj-notify-fab-host" />
         <OrgNotifyFabHost slot="notify" className="wj-notify-fab-host" />
+      </div>
+      <span className="wj-filter-spacer" />
+      <div className="wj-filter-trail">
         <div className="wj-view-toggle" role="group" aria-label="Chế độ xem">
           <button
             type="button"
@@ -598,16 +239,15 @@ export function WorldJourneyFeed({
   feedPromos?: FeedPromoVariant[];
 }) {
   const [surfaceView, setSurfaceView] = useState<FeedSurfaceView>("journey");
-  const [activeFilter, setActiveFilter] = useState("all");
+  /** Loại nội dung cố định «Tất cả» — UI lọc đã gỡ. */
+  const activeFilter = "all";
   const [feedSource, setFeedSource] =
     useState<FeedSourceFilter>(FEED_SOURCE_DEFAULT);
   const [activeLinhVucSlug, setActiveLinhVucSlug] = useState<string | null>(
     null,
   );
-  const [sort, setSort] = useState<(typeof WORLD_JOURNEY_SORT_OPTIONS)[number]>(
-    WORLD_JOURNEY_SORT_OPTIONS[0],
-  );
-  const [sortOpen, setSortOpen] = useState(false);
+  /** Sắp xếp cố định «Mới nhất» — UI sort đã gỡ. */
+  const sort = WORLD_JOURNEY_SORT_OPTIONS[0];
   const [feedMilestones, setFeedMilestones] = useState(milestones);
   const [hasMore, setHasMore] = useState(feedHasMore);
   const [nextOffset, setNextOffset] = useState(feedNextOffset);
@@ -661,7 +301,7 @@ export function WorldJourneyFeed({
       if (!(target instanceof Element)) return;
       if (
         target.closest(
-          "button, a, input, textarea, select, [role='menu'], [role='menuitem'], .wj-filter-pop, .wj-sort-pop, .wj-source-pop",
+          "button, a, input, textarea, select, [role='menu'], [role='menuitem']",
         )
       ) {
         return;
@@ -1096,15 +736,6 @@ export function WorldJourneyFeed({
           >
             <span className="j-tlb-streak-slow" aria-hidden="true" />
             <WorldJourneyFilterBar
-              chips={filterChips}
-              activeFilter={activeFilter}
-              onFilter={setActiveFilter}
-              feedSource={feedSource}
-              onFeedSource={setFeedSource}
-              sort={sort}
-              onSort={setSort}
-              sortOpen={sortOpen}
-              onSortOpen={setSortOpen}
               surfaceView={surfaceView}
               onSurfaceView={handleSurfaceView}
             />

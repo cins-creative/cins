@@ -3,7 +3,7 @@
 import {
   CornerUpLeft,
   Copy,
-  LayoutGrid,
+  Frame,
   MoreHorizontal,
   Pencil,
   Pin,
@@ -236,7 +236,7 @@ export function ChatMessageActions({ msg, handlers }: Props) {
                   setOpen(false);
                 }}
               >
-                <LayoutGrid size={14} aria-hidden />
+                <Frame size={14} aria-hidden />
                 Thêm vào canvas
               </button>
             ) : null}

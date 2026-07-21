@@ -1153,21 +1153,38 @@ button.j-avatar.j-avatar-viewable:focus-visible {
 .j-gallery-main .j-tlb {
   margin-bottom: 16px;
   overflow: visible;
+  grid-template-columns: minmax(0, 1fr) auto;
 }
 .j-gallery-main .j-tlb > .j-tlb-filter,
 .j-gallery-main .j-tlb > .j-tlb-filters {
-  grid-column: 3;
+  grid-column: 2;
   justify-self: end;
 }
 .j-gallery-main .j-tlb-filters {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   flex-wrap: wrap;
   justify-content: flex-end;
 }
 .j-gallery-main .j-tlb-filters > .j-tlb-filter {
   position: relative;
+}
+/* Đường kẻ mỏng giữa filter loại ↔ toggle timeline/gallery */
+.j-gallery-main .j-tlb-filters:has(> .j-tlb-filter) > .j-surface-view-toggle {
+  position: relative;
+}
+.j-gallery-main
+  .j-tlb-filters:has(> .j-tlb-filter)
+  > .j-surface-view-toggle::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: -7px;
+  width: 1px;
+  height: 16px;
+  background: var(--border, #e4e6eb);
+  transform: translateY(-50%);
 }
 /* Gallery toolbar — dropdown gọn, cao khớp .j-gallery-view-toggle (36px) */
 .j-gallery-main .j-tlb-filters .j-tlb-dd-btn {
@@ -2411,26 +2428,28 @@ a.j-main-gallery-item:focus-visible,
     display: none;
   }
   .cins-journey-page .j-gallery-main .j-tlb > .j-tlb-filters {
-    grid-column: unset;
-    justify-self: unset;
-    width: 100%;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
-    gap: 6px;
-    align-items: center;
+    grid-column: 2;
+    justify-self: end;
+    width: auto;
+    max-width: 100%;
+    margin-left: auto;
+    display: flex;
     flex-wrap: nowrap;
+    justify-content: flex-end;
+    gap: 12px;
+    align-items: center;
   }
   .cins-journey-page
     .j-gallery-main
     .j-tlb
     > .j-tlb-filters:has(> .j-tlb-filter > .j-tlb-dd-btn.is-icon) {
-    grid-template-columns: auto auto minmax(0, 1fr);
+    grid-template-columns: unset;
   }
   .cins-journey-page
     .j-gallery-main
     .j-tlb-filters
     > .j-surface-view-toggle {
-    justify-self: end;
+    justify-self: unset;
   }
   .cins-journey-page .j-gallery-main .j-tlb-filters > .j-tlb-filter {
     min-width: 0;
@@ -2445,6 +2464,22 @@ a.j-main-gallery-item:focus-visible,
     gap: 4px;
     font-size: 11px;
   }
+  .cins-journey-page .j-gallery-main .j-tlb-filters .j-tlb-dd-btn.is-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    min-width: 32px;
+    height: 32px;
+    padding: 0;
+    gap: 0;
+  }
+  .cins-journey-page .j-gallery-main .j-tlb-filters .j-tlb-dd-btn.is-icon .j-tlb-dd-ico {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+  }
   .cins-journey-page .j-gallery-main .j-tlb-filters .j-tlb-dd-dot,
   .cins-journey-page .j-gallery-main .j-tlb-filters .j-tlb-dd-count,
   .cins-journey-page .j-gallery-main .j-tlb-filters .j-tlb-dd-caret {
@@ -2453,7 +2488,7 @@ a.j-main-gallery-item:focus-visible,
   .cins-journey-page
     .j-gallery-main
     .j-tlb-filters
-    .j-tlb-dd-btn
+    .j-tlb-dd-btn:not(.is-icon)
     > span:not(.j-tlb-dd-dot):not(.j-tlb-dd-count):not(.j-tlb-dd-caret) {
     flex: 1 1 auto;
     min-width: 0;
@@ -8127,7 +8162,7 @@ button.j-m-card-hit {
 .j-gallery-all:hover {
   text-decoration: underline;
 }
-/* Pinned section — cao theo ảnh; >8 bài → masonry 2 cột xen kẽ (1 phải, 2 trái…) */
+/* Pinned section — cao theo ảnh; mặc định masonry 2 cột xen kẽ (1 phải, 2 trái…) */
 .j-g-pinned {
   display: flex;
   flex-direction: column;
@@ -8760,10 +8795,16 @@ button.j-g-item:disabled {
   }
 
   .cins-journey-page .j-sidebar > .j-profile-info {
-    width: 80%;
-    max-width: 80%;
+    width: fit-content;
+    max-width: calc(100% - 32px);
     margin-left: auto;
     margin-right: auto;
+    align-items: stretch;
+  }
+
+  .cins-journey-page .j-sidebar > .j-profile-info .j-info-row {
+    justify-content: flex-start;
+    text-align: left;
   }
 
   .cins-journey-page .j-timeline,
@@ -10892,7 +10933,8 @@ select.j-edit-input {
   color: var(--ink-display, #111827);
 }
 
-.ed-minimal-body-wrap {
+.ed-minimal-body-wrap,
+.ed-mota-field-wrap {
   width: 100%;
   position: relative;
 }
@@ -11016,38 +11058,6 @@ select.j-edit-input {
   caret-color: var(--ink-display, #111827);
 }
 
-.ed-mota-format-bar {
-  display: flex;
-  flex-wrap: nowrap;
-  align-items: center;
-  gap: 2px;
-  padding: 4px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: var(--bg-surface, #fff);
-  box-shadow: 0 8px 28px rgba(15, 23, 42, 0.16);
-}
-
-.ed-mota-format-bar--float {
-  position: fixed;
-  z-index: 10050;
-  margin: 0;
-  transform: translateX(-20%);
-  animation: ed-mota-bubble-in 0.12s ease-out;
-  pointer-events: auto;
-}
-
-@keyframes ed-mota-bubble-in {
-  from {
-    opacity: 0;
-    transform: translateX(-20%) translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(-20%) translateY(0);
-  }
-}
-
 .ed-mota-fmt-btn {
   display: inline-flex;
   align-items: center;
@@ -11067,15 +11077,30 @@ select.j-edit-input {
   color: var(--cins-blue, #2563eb);
 }
 
-.ed-mota-fmt-sep {
-  width: 1px;
-  height: 18px;
-  margin: 0 4px;
-  background: var(--border);
-}
-
 .ed-mota-emoji-wrap {
   position: relative;
+}
+
+/* Nút emoji góc phải dưới ô mô tả */
+.ed-mota-emoji-wrap--corner {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  z-index: 3;
+}
+
+.ed-mota-emoji-wrap--corner .ed-mota-fmt-btn {
+  background: color-mix(in srgb, var(--bg-surface, #fff) 88%, transparent);
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.08);
+}
+
+/* Chừa chỗ góc phải dưới để chữ không đè nút emoji */
+.ed-minimal-body-wrap .ed-md-field.ed-minimal-body > .ed-md-highlight,
+.ed-minimal-body-wrap .ed-md-field.ed-minimal-body > textarea.ed-md-input,
+.ed-mota-field-wrap .ed-md-field > .ed-md-highlight,
+.ed-mota-field-wrap .ed-md-field > textarea.ed-md-input {
+  padding-right: 44px;
+  padding-bottom: 40px;
 }
 
 .ed-emoji-popover {
@@ -11092,6 +11117,13 @@ select.j-edit-input {
   background: var(--bg-surface, #fff);
   box-shadow: 0 12px 32px rgba(15, 23, 42, 0.14);
   overflow: hidden;
+}
+
+.ed-emoji-popover--top-end {
+  left: auto;
+  right: 0;
+  top: auto;
+  bottom: calc(100% + 6px);
 }
 
 .ed-emoji-tabs {

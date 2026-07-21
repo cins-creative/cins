@@ -13,6 +13,8 @@ type Props = {
   onPick: (emoji: string) => void;
   /** Neo: phần tử nút emoji trên format bar. */
   anchorRef: RefObject<HTMLElement | null>;
+  /** Mặc định dưới neo; `top-end` mở lên và neo góc phải (nút góc dưới ô mô tả). */
+  placement?: "bottom" | "top-end";
 };
 
 export function EmojiPickerPopover({
@@ -20,6 +22,7 @@ export function EmojiPickerPopover({
   onClose,
   onPick,
   anchorRef,
+  placement = "bottom",
 }: Props) {
   const panelId = useId();
   const panelRef = useRef<HTMLDivElement | null>(null);
@@ -51,7 +54,7 @@ export function EmojiPickerPopover({
     <div
       ref={panelRef}
       id={panelId}
-      className="ed-emoji-popover"
+      className={`ed-emoji-popover${placement === "top-end" ? " ed-emoji-popover--top-end" : ""}`}
       role="dialog"
       aria-label="Chèn emoji"
     >

@@ -112,12 +112,19 @@
   margin-top: calc(-1 * var(--wj-feed-pad-top, 0px));
 }
 
-/* Cụm phải filter: lịch + chế độ xem (dồn cuối hàng / mobile). */
+/* Cụm trái: lịch / jobs (mobile–tablet; desktop ≥1200px ẩn host). */
+.wj-filter-trail-start {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* Cụm phải: chế độ xem. */
 .wj-filter-trail {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin-left: auto;
   flex-shrink: 0;
 }
 
@@ -134,10 +141,39 @@
 .wj-filter-bar .wj-notify-fab-host .org-notify-fab {
   width: 34px;
   height: 34px;
+  border-radius: 6px;
+  background: #0f172a;
+  color: #fff;
+  box-shadow: none;
+}
+
+.wj-filter-bar .wj-notify-fab-host .org-notify-fab:hover,
+.wj-filter-bar .wj-notify-fab-host .org-notify-fab:focus-visible {
+  background: #1e293b;
+  box-shadow: none;
+}
+
+.wj-filter-bar .wj-notify-fab-host .org-notify-fab.is-open {
+  background: #000;
+}
+
+.wj-filter-bar .wj-notify-fab-host .org-notify-fab-badge {
+  top: -3px;
+  right: -3px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  font-size: 9px;
+  line-height: 14px;
+  box-shadow: none;
 }
 
 @media (min-width: 1200px) {
   .wj-filter-bar .wj-notify-fab-host {
+    display: none;
+  }
+
+  .wj-filter-trail-start {
     display: none;
   }
 }
@@ -4037,6 +4073,11 @@
     gap: var(--wj-feed-gap);
   }
 
+  .world-journey-home .wj-feed-header {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
   .world-journey-home .wj-feed .wj-feed-timeline.j-timeline {
     background: var(--bg-page);
     gap: var(--j-timeline-stack-gap);
@@ -4159,7 +4200,7 @@
 
 @media (max-width: 780px) {
   .wj-feed-header {
-    padding: 12px 0;
+    padding: 12px 20px;
     gap: 6px;
   }
 
@@ -4193,28 +4234,43 @@
 
 @media (max-width: 640px) {
   .world-journey-home {
-    /* Filter bar có thể xuống 2 hàng trên mobile. */
-    --wj-feed-header-h: 92px;
+    --wj-feed-header-h: 56px;
   }
 
   .wj-vt-btn span {
     display: none;
   }
 
-  .wj-vt-btn {
-    padding: 6px 12px;
-  }
-
-  /* Header lọc mobile: gói gọn để không tràn / mất nội dung. */
+  /* Mobile: notify trái — toggle thu gọn bên phải. */
   .world-journey-home .wj-filter-bar {
-    flex-wrap: wrap;
-    row-gap: 8px;
+    flex-wrap: nowrap;
+    gap: 8px;
   }
 
   .world-journey-home .wj-filter-spacer {
     display: none;
   }
 
+  .world-journey-home .wj-filter-trail {
+    margin-left: auto;
+    flex: 0 0 auto;
+  }
+
+  .world-journey-home .wj-view-toggle {
+    flex: 0 0 auto;
+    width: auto;
+    background: var(--neutral-100, #f1f2f5);
+    border-radius: var(--r-pill);
+    padding: 2px;
+    gap: 0;
+  }
+
+  .world-journey-home .wj-vt-btn {
+    flex: 0 0 auto;
+    width: 34px;
+    height: 30px;
+    padding: 0;
+  }
 }
 
 @media (max-width: 560px) {

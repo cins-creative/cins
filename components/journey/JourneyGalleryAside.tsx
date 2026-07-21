@@ -250,7 +250,7 @@ export function JourneyGalleryAside({
     : orderedPinned.length === 0 && items.length === 0;
   const filteredEmpty =
     !empty && filteredPinned.length === 0 && filteredItems.length === 0;
-  /* Cột nổi bật: filter media nằm trên `.j-tlb`; head chỉ còn nút sửa. */
+  /* Cột nổi bật: không còn filter media trên tlb — head chỉ nút sửa (hoặc filter local khi không share context). */
   const showLocalMediaFilter =
     !useSharedMediaFilter &&
     (featuredOnly ? orderedPinned.length > 0 : totalTacPham > 0);
@@ -342,7 +342,7 @@ export function JourneyGalleryAside({
     syncAsideAfterMenuChange();
   };
 
-  const useMasonry = filteredPinned.length > 8;
+  const useMasonry = true;
   /* Masonry 2 cột xen kẽ: 1 phải, 2 trái, 3 phải, 4 trái… (không dùng CSS columns dọc). */
   const masonryRight = useMasonry
     ? filteredPinned

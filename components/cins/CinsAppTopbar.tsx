@@ -1,9 +1,7 @@
-import { Suspense } from "react";
 import { Menu as MenuIcon } from "lucide-react";
 import Link from "next/link";
 
 import { AdminInboxButton } from "@/components/admin/AdminInboxButton";
-import { CinsTopbarSearch } from "@/components/cins/CinsTopbarSearch";
 import { SessionRestorer } from "@/components/cins/SessionRestorer";
 import { UserAccountMenu } from "@/components/cins/UserAccountMenu";
 import { JourneyNotifications } from "@/components/journey/JourneyNotifications";
@@ -77,15 +75,6 @@ export async function CinsAppTopbar() {
           >
             <MenuIcon size={20} strokeWidth={1.8} aria-hidden />
           </button>
-          <Suspense
-            fallback={
-              <div className="tb-search tb-search--fallback" aria-hidden>
-                <span className="tb-search-toggle" />
-              </div>
-            }
-          >
-            <CinsTopbarSearch />
-          </Suspense>
         </div>
         <div className="tb-right">
           <div

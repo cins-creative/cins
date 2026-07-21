@@ -1213,6 +1213,123 @@
   text-decoration: underline;
 }
 
+.cins-chat-convo-members-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.cins-chat-members-pop {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  width: min(280px, calc(100vw - 48px));
+  max-height: min(320px, 50vh);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-surface, #fff);
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.16);
+}
+
+.cins-chat-members-pop-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.cins-chat-members-pop-head strong {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-display);
+}
+
+.cins-chat-members-pop-head span {
+  font-size: 12px;
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.cins-chat-members-pop-empty {
+  margin: 0;
+  padding: 16px 12px;
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+
+.cins-chat-members-pop-list {
+  list-style: none;
+  margin: 0;
+  padding: 6px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cins-chat-members-pop-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border-radius: 8px;
+}
+
+.cins-chat-members-pop-avatar {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 700;
+  color: #0f172a;
+  overflow: hidden;
+}
+
+.cins-chat-members-pop-avatar.has-image {
+  background: transparent;
+}
+
+.cins-chat-members-pop-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cins-chat-members-pop-meta {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.cins-chat-members-pop-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-display);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cins-chat-members-pop-role {
+  font-size: 11.5px;
+  color: var(--ink-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .cins-chat-online-dot {
   width: 7px;
   height: 7px;
@@ -1260,6 +1377,18 @@
   background: var(--cins-blue-soft);
 }
 
+.cins-chat-icon-btn.is-plain {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.cins-chat-icon-btn.is-plain:hover {
+  border: 0;
+  background: transparent;
+  color: var(--cins-blue);
+}
+
 .cins-chat-side {
   width: 300px;
   flex-shrink: 0;
@@ -1284,6 +1413,50 @@
   gap: 8px;
   padding: 10px 12px;
   border-bottom: 1px solid var(--border);
+}
+
+.cins-chat-side-head-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+/* Phóng to bảng chat — lấp đầy viewport trong overlay */
+.cins-chat-root.is-chat-fullscreen {
+  padding: 0;
+  align-items: stretch;
+  justify-content: stretch;
+}
+
+.cins-chat-panel.is-chat-fullscreen {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  border-radius: 0;
+}
+
+.cins-chat-panel.is-chat-fullscreen .cins-chat-list {
+  border-radius: 0;
+}
+
+.cins-chat-panel.is-chat-fullscreen .cins-chat-main,
+.cins-chat-panel.is-chat-fullscreen.has-canvas .cins-chat-main {
+  border-radius: 0;
+}
+
+.cins-chat-panel.is-chat-fullscreen .cins-chat-convo,
+.cins-chat-panel.is-chat-fullscreen.has-canvas .cins-chat-convo {
+  border-radius: 0;
+}
+
+.cins-chat-panel.is-chat-fullscreen .cins-chat-convo-head,
+.cins-chat-panel.is-chat-fullscreen.has-canvas .cins-chat-convo-head,
+.cins-chat-panel.is-chat-fullscreen .cins-chat-compose,
+.cins-chat-panel.is-chat-fullscreen.has-canvas .cins-chat-compose,
+.cins-chat-panel.is-chat-fullscreen .cins-chat-side,
+.cins-chat-panel.is-chat-fullscreen .cins-chat-side.is-canvas {
+  border-radius: 0;
 }
 
 .cins-chat-side-tabs {
@@ -1339,17 +1512,21 @@
 }
 
 /* ---- Canvas ý tưởng (tldraw) ----
-   Ẩn list hội thoại, giữ chatbox + canvas cạnh nhau (đủ chỗ cho cả hai). */
+   Desktop rộng: chatbox + canvas cạnh nhau.
+   Viewport / panel hẹp: chỉ focus canvas (ẩn khung chat). */
 .cins-chat-panel.has-canvas .cins-chat-list {
   display: none;
 }
 
 .cins-chat-panel.has-canvas .cins-chat-main {
+  position: relative;
   flex: 1;
   min-width: 0;
   width: 100%;
   overflow: hidden;
   border-radius: var(--radius-xl);
+  container-type: inline-size;
+  container-name: cins-chat-canvas-main;
 }
 
 .cins-chat-panel.has-canvas .cins-chat-convo {
@@ -1386,6 +1563,65 @@
   display: flex;
 }
 
+/* Panel hẹp (tablet / cửa sổ nhỏ): ẩn chat, canvas full */
+@container cins-chat-canvas-main (max-width: 899.98px) {
+  .cins-chat-convo {
+    display: none !important;
+  }
+
+  .cins-chat-side.is-canvas {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    flex: none;
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    border-left: 0;
+    border-radius: 0;
+  }
+}
+
+/* Viewport tablet / mobile: cùng hành vi (không phụ thuộc container) */
+@media (max-width: 1023.98px) {
+  .cins-chat-panel.has-canvas .cins-chat-convo {
+    display: none !important;
+  }
+
+  .cins-chat-panel.has-canvas .cins-chat-side.is-canvas {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    flex: none;
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    border-left: 0;
+    border-radius: 0;
+  }
+
+  .cins-chat-panel.has-canvas .cins-chat-main {
+    border-radius: 0;
+    position: relative;
+  }
+
+  .cins-chat-panel.has-canvas .cins-canvas-toolbar {
+    bottom: max(10px, env(safe-area-inset-bottom, 0px));
+    max-width: calc(100% - 12px);
+  }
+
+  .cins-chat-panel.has-canvas .cins-canvas-tool-sep {
+    margin: 0 5px;
+    height: 14px;
+  }
+
+  .cins-chat-panel.has-canvas .cins-canvas-tool-btn--icon {
+    min-height: 36px;
+    min-width: 36px;
+    padding: 8px;
+  }
+}
+
 .cins-canvas-wrap {
   position: relative;
   display: flex;
@@ -1402,19 +1638,25 @@
   z-index: 20;
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   justify-content: center;
-  gap: 6px;
-  max-width: calc(100% - 24px);
-  padding: 8px 10px;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--bg-surface, #fff) 92%, transparent);
-  box-shadow: 0 8px 28px rgba(15, 23, 42, 0.14);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  gap: 0;
+  max-width: calc(100% - 16px);
+  padding: 2px 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   transform: translateX(-50%);
   pointer-events: auto;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.cins-canvas-toolbar::-webkit-scrollbar {
+  display: none;
 }
 
 .cins-canvas-tool-btn {
@@ -1432,6 +1674,17 @@
   cursor: pointer;
 }
 
+.cins-canvas-toolbar .cins-canvas-tool-btn {
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+.cins-canvas-toolbar .cins-canvas-tool-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--ink) 8%, transparent);
+  border-color: transparent;
+}
+
 .cins-canvas-tool-btn:hover:not(:disabled) {
   border-color: var(--cins-blue);
   color: var(--cins-blue);
@@ -1446,33 +1699,33 @@
   font-size: 12px;
   color: var(--ink-muted);
   white-space: nowrap;
+  padding: 0 6px;
 }
 
 .cins-canvas-tool-btn--icon {
   padding: 6px 9px;
 }
 
-/* Cụm nút dính nhau (công cụ chọn/bàn tay, thêm nội dung) */
+/* Cụm nút trên toolbar */
 .cins-canvas-tool-seg {
   display: inline-flex;
   align-items: center;
+  gap: 1px;
+  flex-shrink: 0;
 }
 
-.cins-canvas-tool-seg .cins-canvas-tool-btn {
+.cins-canvas-toolbar .cins-canvas-tool-seg .cins-canvas-tool-btn {
   margin-left: 0;
-  border-radius: 0;
+  border-radius: var(--radius-md);
 }
 
-.cins-canvas-tool-seg > :first-child {
-  border-radius: var(--radius-md) 0 0 var(--radius-md);
-}
-
-.cins-canvas-tool-seg > :last-child {
-  border-radius: 0 var(--radius-md) var(--radius-md) 0;
-}
-
-.cins-canvas-tool-seg > * + * {
-  margin-left: -1px;
+.cins-canvas-tool-sep {
+  align-self: center;
+  width: 1px;
+  height: 16px;
+  margin: 0 8px;
+  flex-shrink: 0;
+  background: color-mix(in srgb, var(--ink-muted, #64748b) 42%, transparent);
 }
 
 .cins-canvas-tool-btn.is-active {
@@ -1483,9 +1736,18 @@
   z-index: 1;
 }
 
+.cins-canvas-toolbar .cins-canvas-tool-btn.is-active {
+  border-color: transparent;
+}
+
 .cins-canvas-tool-btn--danger:hover:not(:disabled) {
   border-color: #b91c1c;
   color: #b91c1c;
+}
+
+.cins-canvas-toolbar .cins-canvas-tool-btn--danger:hover:not(:disabled) {
+  border-color: transparent;
+  background: color-mix(in srgb, #b91c1c 10%, transparent);
 }
 
 .cins-canvas-clear-backdrop {
@@ -1594,13 +1856,83 @@
   color: var(--cins-blue, #1f74c9);
 }
 
-/* Bảng màu sticky — luôn hiện trên toolbar (kể cả side panel thu gọn) */
+/* Nút color wheel — click mở bảng màu */
 .cins-canvas-palette {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  margin-left: 4px;
+}
+
+.cins-canvas-colorwheel {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--bg-surface);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.cins-canvas-colorwheel:hover:not(:disabled) {
+  border-color: var(--cins-blue, #1f74c9);
+}
+
+.cins-canvas-colorwheel.is-open {
+  border-color: var(--cins-blue, #1f74c9);
+  box-shadow: 0 0 0 2px rgba(31, 116, 201, 0.2);
+}
+
+.cins-canvas-colorwheel:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.cins-canvas-colorwheel-ring {
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    #ff3b30,
+    #ff9500,
+    #ffcc00,
+    #34c759,
+    #5ac8fa,
+    #007aff,
+    #af52de,
+    #ff2d55,
+    #ff3b30
+  );
+}
+
+.cins-canvas-colorwheel-current {
+  position: absolute;
+  inset: 8px;
+  border-radius: 50%;
+  border: 1.5px solid #fff;
+  box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.2);
+}
+
+.cins-canvas-palette-pop {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  z-index: 30;
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  margin-left: 4px;
-  padding: 2px 4px;
+  padding: 8px 9px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-surface, #fff);
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.18);
+  transform: translateX(-50%);
 }
 
 .cins-canvas-swatch {
@@ -1933,8 +2265,52 @@
 }
 
 .cins-canvas-card-sticky {
-  padding: 12px;
+  --sticky-lh: 24px;
+  --sticky-pad-y: 6px;
+  --sticky-pad-x: 16px;
+  position: relative;
+  padding: var(--sticky-pad-y) var(--sticky-pad-x);
   border: none;
+  isolation: isolate;
+}
+
+/* Giấy kẻ sách — line khớp line-height chữ / textarea */
+.cins-canvas-card-sticky:not(.is-text)::before {
+  content: "";
+  position: absolute;
+  inset: var(--sticky-pad-y) var(--sticky-pad-x);
+  z-index: 0;
+  pointer-events: none;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent calc(var(--sticky-lh) - 1px),
+    rgba(80, 110, 170, 0.28) calc(var(--sticky-lh) - 1px),
+    rgba(80, 110, 170, 0.28) var(--sticky-lh)
+  );
+}
+
+/* Lề đỏ nhẹ kiểu sổ */
+.cins-canvas-card-sticky:not(.is-text)::after {
+  content: "";
+  position: absolute;
+  top: var(--sticky-pad-y);
+  bottom: var(--sticky-pad-y);
+  left: 11px;
+  z-index: 0;
+  width: 1px;
+  background: rgba(220, 90, 90, 0.38);
+  pointer-events: none;
+}
+
+.cins-canvas-card-sticky:not(.is-text) .cins-canvas-sticky-text,
+.cins-canvas-card-sticky:not(.is-text) .cins-canvas-sticky-editor {
+  position: relative;
+  z-index: 1;
+  font-size: 14px;
+  line-height: var(--sticky-lh);
+  margin: 0;
+  padding: 0;
 }
 
 /* Hình học trên canvas (rect / ellipse / diamond) */
@@ -2266,6 +2642,10 @@ button.cins-canvas-table-cell-text {
   color: rgba(0, 0, 0, 0.78);
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+.cins-canvas-card-sticky:not(.is-text) .cins-canvas-sticky-text {
+  line-height: var(--sticky-lh, 24px);
 }
 
 .cins-canvas-card-frame {
@@ -2680,6 +3060,8 @@ button.cins-canvas-table-cell-text {
 
 .cins-board-selbar .cins-canvas-palette {
   margin-left: 0;
+  gap: 5px;
+  padding: 2px 4px;
 }
 
 /* Nhóm nút chọn kiểu / mũi tên dây nối */
@@ -2769,6 +3151,10 @@ button.cins-canvas-table-cell-text {
   color: rgba(0, 0, 0, 0.82);
 }
 
+.cins-canvas-card-sticky:not(.is-text) .cins-canvas-sticky-editor {
+  line-height: var(--sticky-lh, 24px);
+}
+
 .cins-canvas-toolbar-spacer {
   display: none;
 }
@@ -2777,9 +3163,13 @@ button.cins-canvas-table-cell-text {
   margin-left: 0;
 }
 
+.cins-canvas-toolbar .cins-canvas-palette {
+  margin-left: 0;
+}
+
 [data-theme="dark"] .cins-canvas-toolbar {
-  background: color-mix(in srgb, var(--bg-surface, #1a1a1a) 90%, transparent);
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.4);
+  background: transparent;
+  box-shadow: none;
 }
 
 .cins-canvas-loading {
@@ -6510,34 +6900,7 @@ a.cins-chat-don-card.is-paid:hover {
     border-radius: 0;
   }
 
-  /* Canvas mobile: vẫn cạnh chatbox, không phủ kín */
-  .cins-chat-panel.has-canvas .cins-chat-side.is-canvas {
-    position: relative;
-    inset: auto;
-    z-index: auto;
-    flex: 1 1 0;
-    width: auto;
-    min-width: 0;
-    border-left: 1px solid var(--border);
-    border-radius: 0;
-  }
-
-  .cins-chat-panel.has-canvas .cins-chat-convo {
-    flex: 0 1 46%;
-    width: auto;
-    min-width: 0;
-    max-width: none;
-    border-radius: 0;
-  }
-
-  .cins-chat-panel.has-canvas .cins-chat-convo-head,
-  .cins-chat-panel.has-canvas .cins-chat-compose {
-    border-radius: 0;
-  }
-
-  .cins-chat-panel.has-canvas .cins-chat-main {
-    border-radius: 0;
-  }
+  /* Canvas mobile: rule chính ở @media (max-width: 1023.98px) + @container */
 
   .cins-chat-bubble-row {
     max-width: 90%;

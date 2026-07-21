@@ -20,7 +20,6 @@ import { MoTaMarkdown } from "@/components/editor/compose/MoTaMarkdown";
 import { GalleryAuthorCornerBadge } from "@/components/journey/GalleryAuthorCornerBadge";
 import { GalleryItemVisual, GalleryEmbedPlatformBadge, GalleryVideoPlayBadge } from "@/components/journey/GalleryItemVisual";
 import { GalleryMainHoverOverlay } from "@/components/journey/GalleryMainHoverOverlay";
-import { GalleryMediaFilterDropdown } from "@/components/journey/GalleryMediaFilterDropdown";
 import { GalleryOrgCreateCardBody } from "@/components/journey/GalleryOrgCreateCardBody";
 import { GalleryVerifiedBadge } from "@/components/journey/GalleryVerifiedBadge";
 import { coverThumbAspectCss } from "@/lib/journey/cover-thumb";
@@ -44,11 +43,6 @@ import {
   filterByGroup,
 } from "@/lib/journey/milestone-filter-options";
 import type { MilestoneFilterCounts } from "@/lib/journey/milestones-page-fetch";
-import {
-  galleryMediaFilterLabel,
-  matchesGalleryMediaFilter,
-  type GalleryMediaFilter,
-} from "@/lib/journey/post-media";
 import { matchesPersonalFilterSlug } from "@/lib/filter/client-utils";
 import {
   matchesFeedSource,
@@ -561,7 +555,6 @@ export function JourneyGalleryGridView({
     );
     window.history.replaceState(window.history.state, "", href);
   }, []);
-  const [mediaFilter, setMediaFilter] = useState<GalleryMediaFilter>("all");
   const effectiveView: GalleryViewMode = hideToolbar ? "grid" : displayView;
   const [galleryItems, setGalleryItems] = useState<GalleryMainItem[]>(() =>
     legacyAll ? [...legacyAll] : [...(initialItems ?? [])],
@@ -688,8 +681,8 @@ export function JourneyGalleryGridView({
 
   const baseForTypeCounts = useMemo(() => {
     return visibleItems.filter((item) => {
+      if (isOrgCreateGalleryItem(item)) return false;
       if (!matchesFeedSource(item, sourceFilter)) return false;
-      if (!matchesGalleryMediaFilter(item.mediaKind, mediaFilter)) return false;
       if (
         personalFilter?.activeSlug &&
         !matchesPersonalFilterSlug(item.personalFilterSlugs, personalFilter.activeSlug)
@@ -698,16 +691,15 @@ export function JourneyGalleryGridView({
       }
       return true;
     });
-  }, [visibleItems, sourceFilter, mediaFilter, personalFilter?.activeSlug]);
+  }, [visibleItems, sourceFilter, personalFilter?.activeSlug]);
 
   const typeCounts = useMemo((): MilestoneFilterCounts => {
-    if (scrollLoad?.filterCounts && mediaFilter === "all" && !personalFilter?.activeSlug) {
+    if (scrollLoad?.filterCounts && !personalFilter?.activeSlug) {
       return scrollLoad.filterCounts;
     }
     return computeFilterCounts(baseForTypeCounts);
   }, [
     scrollLoad?.filterCounts,
-    mediaFilter,
     personalFilter?.activeSlug,
     baseForTypeCounts,
   ]);
@@ -722,8 +714,9 @@ export function JourneyGalleryGridView({
       );
     }
     rows = filterByGroup(rows, typeFilter);
-    return rows.filter((item) => matchesGalleryMediaFilter(item.mediaKind, mediaFilter));
-  }, [visibleItems, sourceFilter, typeFilter, mediaFilter, personalFilter?.activeSlug]);
+    /* Gallery (grid/card): không hiện card tạo org / cộng đồng / studio. */
+    return rows.filter((item) => !isOrgCreateGalleryItem(item));
+  }, [visibleItems, sourceFilter, typeFilter, personalFilter?.activeSlug]);
 
   const showPortraitRail = effectiveView === "card" && !hideToolbar;
   const showMasonry = effectiveView === "grid";
@@ -830,12 +823,10 @@ export function JourneyGalleryGridView({
   ) : null;
 
   const emptyFilterLabel = activePersonalFilter?.ten
-    ? `${activePersonalFilter.ten}${mediaFilter !== "all" ? ` · ${galleryMediaFilterLabel(mediaFilter)}` : ""}`
-    : mediaFilter !== "all"
-      ? galleryMediaFilterLabel(mediaFilter)
-      : typeFilter === "all"
-        ? "Nhãn"
-        : typeOptions.find((o) => o.group === typeFilter)?.label ?? "đã chọn";
+    ? activePersonalFilter.ten
+    : typeFilter === "all"
+      ? "Nhãn"
+      : typeOptions.find((o) => o.group === typeFilter)?.label ?? "đã chọn";
 
   return (
     <div
@@ -850,22 +841,15 @@ export function JourneyGalleryGridView({
           {hasData || journeyView ? (
             <div className="j-tlb-filters">
               {hasData ? (
-                <>
-                  <JourneyTimelineBar
-                    embed
-                    filter={typeFilter}
-                    onFilterChange={handleTypeFilterChange}
-                    options={typeOptions}
-                    enabled={hasData}
-                    isOwner={isOwner}
-                    filterVisibility={filterVisibility}
-                  />
-                  <GalleryMediaFilterDropdown
-                    filter={mediaFilter}
-                    onFilterChange={setMediaFilter}
-                    variant="icon"
-                  />
-                </>
+                <JourneyTimelineBar
+                  embed
+                  filter={typeFilter}
+                  onFilterChange={handleTypeFilterChange}
+                  options={typeOptions}
+                  enabled={hasData}
+                  isOwner={isOwner}
+                  filterVisibility={filterVisibility}
+                />
               ) : null}
               {journeyView ? <JourneySurfaceViewToggle /> : null}
             </div>

@@ -13,6 +13,10 @@
 | Route | Việc |
 |---|---|
 | `auth/session-profile` | Lấy profile từ session |
+| `auth/login` | Đăng nhập email/username + mật khẩu (rate limit IP; username→email service role) |
+| `auth/resend-signup-otp` | Gửi lại mã OTP xác nhận đăng ký |
+| `auth/forgot-password` | Gửi OTP khôi phục mật khẩu (`resetPasswordForEmail`); email ghi cookie httpOnly `cins-pw-recovery`; anti-enumeration |
+| `auth/reset-password` | `verifyOtp` type `recovery` + `updateUser({ password })`; đọc email từ cookie recovery |
 | `users/preview` · `users/search` | Card preview user · tìm user (cho tag, kết bạn) |
 | `avatar/upload` · `cover/upload` | Upload ảnh đại diện / cover → Cloudflare |
 | `user/ban-hang` | GET/PATCH opt-in bán hàng (`ban_hang_bat` + chấp nhận điều khoản) — L33 |
@@ -161,7 +165,7 @@
 | Folder | Vai trò chính | File đáng chú ý |
 |---|---|---|
 | `supabase/` | Client server/browser/service-role, env, cookie, error | `service-role.ts`, `route-handler.ts`, `env.ts` |
-| `auth/` | Google OAuth, session, login-intent, **vai trò hệ thống** | `google-oauth.ts`, `in-app-browser.ts`, `oauth-errors.ts`, `session.ts`, `oauth-intent-*`, `cins-admin*`, `system-role.ts` |
+| `auth/` | Google OAuth, session, login-intent, OTP signup/recovery, **vai trò hệ thống** | `google-oauth.ts`, `in-app-browser.ts`, `oauth-errors.ts`, `session.ts`, `oauth-intent-*`, `email-otp.ts`, `send-signup-otp.ts`, `send-recovery-otp.ts`, `recovery-cookie.ts`, `cins-admin*`, `system-role.ts` |
 | `social/` | Kết bạn, follow entity, notification, co-author, video-ready | `ket-ban.ts`, `follow.ts`, `follow-entity.ts` ⚠️§5, `thong-bao-insert.ts` |
 | `journey/` | Milestone, timeline, gallery, video processing, co-author credit, cache | `timeline-merge.ts`, `milestone-verify.ts`, `foreign-milestone-visibility.ts`, `video-upload-session.ts`, `sync-tac-pham-tags.ts` |
 | `cong-dong/` | Tạo org, membership, thảo luận, filter, sidebar, mirror tác phẩm, **quản lý thành viên**, categories, event rail, **branding** | `org-create.ts`, `org-profile.ts`, `membership.ts`, `members.ts`, `vai-tro.ts`, `categories.ts`, `event-rail.ts`, `creator-milestone.ts`, `sync-from-publish.ts`, `tac-pham-mirror.ts` ⚠️§5 |
@@ -335,7 +339,7 @@ Code map: `lib/journey/images.ts` (role `gallery-grid` → `grid` + `srcset` `gr
     - **Xóa** mọi URL `*.vercel.app` / host Vercel cũ — lệch domain → mất cookie PKCE verifier. Branding consent Google: cấu hình OAuth Client riêng trên Google Cloud + (khuyến nghị) Supabase Custom Domain `auth.cins.vn` — chi tiết bảng *Journey & auth* → *OAuth branding*.
   - Request body lớn: video KHÔNG đi qua server (browser upload thẳng Bunny qua TUS; server chỉ `post-video/prepare` ký request).
 - **Video flow**: `prepare` (tạo object + ký) → browser TUS upload → Bunny re-encode HLS → webhook/poll `status`/`processing` → `complete` → `notifications/video-ready`.
-- **Auth**: Google OAuth (+ email/password OTP), `/login` với cookie intent phân biệt đăng ký/đăng nhập; onboarding modal overlay khi `giai_doan IS NULL`; trigger `handle_new_user()` `SECURITY DEFINER`. In-app browser bị chặn sớm (`in-app-browser.ts`) để tránh Google 403 `disallowed_useragent`.
+- **Auth**: Google OAuth (+ email/password OTP đăng ký + **quên mật khẩu**), `/login` với cookie intent phân biệt đăng ký/đăng nhập; onboarding modal overlay khi `giai_doan IS NULL`; trigger `handle_new_user()` `SECURITY DEFINER`. In-app browser bị chặn sớm (`in-app-browser.ts`) để tránh Google 403 `disallowed_useragent`.
 
 ---
 
@@ -415,6 +419,7 @@ API phụ: `GET /api/embed/thumbnail?url=` (auth). SSRF: `isSafePublicHttpUrl` (
 
 Code map: `lib/editor/embed-thumbnail.ts` · `resolve-embed-thumbnail-server.ts` · `ensure-embed-auto-cover.ts` · `lib/cloudflare/upload-image-from-url.ts` · `lib/journey/post-content-kind.ts` (`resolvePostGridEntry`).
 | Email/password + OTP | Đăng ký email → Supabase gửi **mã 6 số** (không magic link). UI: `components/auth/EmailOtpVerification.tsx` + `app/login/LoginPasswordForm.tsx`. Template HTML: `supabase/email-templates/confirm-signup.html` — dán vào Supabase Dashboard → Authentication → Email Templates → **Confirm signup**. Subject gợi ý: `Mã xác nhận C.INS của bạn`. Template **phải** có `{{ .Token }}` (OTP); **không** dùng `{{ .ConfirmationURL }}`. Bật **Confirm email** (Providers → Email). **Sender name** đặt `C.INS` (hoặc SMTP custom `noreply@cins.vn`) để tránh hiển thị «Supabase Auth». Resend: `supabase.auth.resend({ type: 'signup', email })`. |
+| Quên / lấy lại mật khẩu | UI: link «Quên mật khẩu?» trên `LoginPasswordForm` → `ForgotPasswordForm` (OTP + mật khẩu mới). API: `POST /api/auth/forgot-password` · `POST /api/auth/reset-password`. Lib: `send-recovery-otp.ts`, `recovery-cookie.ts` (cookie `cins-pw-recovery`). Template: `supabase/email-templates/reset-password.html` → Dashboard → **Reset password**. Subject gợi ý: `Mã lấy lại mật khẩu C.INS của bạn`. Cũng **phải** `{{ .Token }}`, không magic link. Rate limit IP; thông báo chung chống enumeration. |
 | Co-author trên Journey | Tagged/bookmark: `che_do_hien_thi_journey` — user tự đặt Nổi bật trên timeline của mình. Migration: `migration_journey_foreign_visibility.sql` |
 | Like count | Hiển thị công khai mặc định (`attachSocialState`, `PostActionsRail`) |
 

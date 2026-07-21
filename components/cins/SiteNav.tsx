@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Fragment, useState } from "react";
+import { Fragment, Suspense, useState } from "react";
 
 import { CinsComingSoonModal } from "@/components/cins/CinsComingSoonModal";
 import { CinsSidebarRiveBrand } from "@/components/cins/CinsSidebarRiveBrand";
+import { CinsTopbarSearch } from "@/components/cins/CinsTopbarSearch";
 import { SidebarNavIcon } from "@/components/cins/SidebarNavIcon";
 import { SidebarOrgFlyout } from "@/components/cins/SidebarOrgFlyout";
 import { UserAccountSettingsModal } from "@/components/cins/UserAccountSettingsModal";
@@ -119,6 +120,17 @@ export function CinsAppSidebar() {
       >
         <CinsSidebarRiveBrand sidebarId="app-sidebar" />
         <ul className="sb-list">
+          <li className="sb-search-li">
+            <Suspense
+              fallback={
+                <div className="sb-search sb-search--fallback" aria-hidden>
+                  <span className="sb-ico" />
+                </div>
+              }
+            >
+              <CinsTopbarSearch />
+            </Suspense>
+          </li>
           {MAIN_NAV_ITEMS.map((item) => (
             <Fragment key={item.id}>
               <SidebarLink item={item} pathname={pathname} />
