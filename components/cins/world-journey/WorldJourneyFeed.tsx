@@ -128,12 +128,12 @@ function WorldJourneyFilterBar({
           <button
             type="button"
             className={`wj-vt-btn${surfaceView === "journey" ? " active" : ""}`}
-            aria-label="Dòng thời gian"
+            aria-label="Timeline"
             aria-pressed={surfaceView === "journey"}
             title={
               surfaceView === "journey"
                 ? "Cuộn lên đầu và tải nội dung mới"
-                : "Dòng thời gian"
+                : "Timeline"
             }
             onClick={(e) => {
               e.stopPropagation();

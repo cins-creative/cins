@@ -486,6 +486,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 6px;
   padding: 6px 14px;
   font-size: 12px;
   font-weight: 500;
@@ -4235,10 +4236,6 @@
 @media (max-width: 640px) {
   .world-journey-home {
     --wj-feed-header-h: 56px;
-  }
-
-  .wj-vt-btn span {
-    display: none;
   }
 
   /* Mobile: notify trái — toggle thu gọn bên phải. */

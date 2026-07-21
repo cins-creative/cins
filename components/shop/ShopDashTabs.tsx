@@ -2,9 +2,15 @@
 
 import { ArrowLeft, ClipboardList, Package, Store } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 
-import { prefetchBanHangClientStatus } from "@/lib/shop/client-fetch-cache";
+import {
+  fetchBanHangClientStatus,
+  invalidateBanHangClientCache,
+  peekBanHangClientStatus,
+  prefetchBanHangClientStatus,
+} from "@/lib/shop/client-fetch-cache";
 import { shopPublicHref } from "@/lib/shop/cua-hang-href";
 
 type ShopDashTab = "kho" | "don" | "cua-hang";
@@ -23,6 +29,9 @@ const TAB_COPY: Record<ShopDashTab, { href: string; label: string }> = {
     label: "Quản lý cửa hàng",
   },
 };
+
+const SHOP_VISIBLE_HINT =
+  "Hiện tab Shop và sản phẩm trên Journey. Tắt để chuẩn bị kho mà người khác chưa thấy.";
 
 function TabLink({
   href,
@@ -46,6 +55,124 @@ function TabLink({
       {icon}
       {label}
     </Link>
+  );
+}
+
+function ShopVisibleToggle() {
+  const router = useRouter();
+  const cached = peekBanHangClientStatus();
+  const [shopVisible, setShopVisible] = useState(
+    () => cached?.shopVisible === true,
+  );
+  const [ready, setReady] = useState(() => cached != null);
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const data = await fetchBanHangClientStatus();
+        if (cancelled) return;
+        setShopVisible(data.shopVisible);
+        setReady(true);
+      } catch {
+        if (!cancelled) setReady(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    const onChanged = (event: Event) => {
+      const detail = (event as CustomEvent<{ shopVisible?: boolean }>).detail;
+      if (typeof detail?.shopVisible === "boolean") {
+        setShopVisible(detail.shopVisible);
+      } else {
+        invalidateBanHangClientCache();
+        void fetchBanHangClientStatus({ force: true })
+          .then((data) => setShopVisible(data.shopVisible))
+          .catch(() => undefined);
+      }
+    };
+    window.addEventListener("cins:ban-hang-changed", onChanged);
+    return () =>
+      window.removeEventListener("cins:ban-hang-changed", onChanged);
+  }, []);
+
+  async function saveShopVisible(nextVisible: boolean) {
+    setSaving(true);
+    setErr(null);
+    try {
+      const res = await fetch("/api/user/ban-hang", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ shopVisible: nextVisible }),
+      });
+      const json = (await res.json().catch(() => null)) as {
+        enabled?: boolean;
+        shopVisible?: boolean;
+        error?: string;
+      } | null;
+      if (!res.ok) {
+        setErr(json?.error ?? "Không lưu được.");
+        return;
+      }
+      const next =
+        json?.enabled === true && json?.shopVisible === true;
+      setShopVisible(next);
+      invalidateBanHangClientCache();
+      window.dispatchEvent(
+        new CustomEvent("cins:ban-hang-changed", {
+          detail: {
+            enabled: json?.enabled === true,
+            shopVisible: next,
+          },
+        }),
+      );
+      router.refresh();
+    } catch {
+      setErr("Không lưu được.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (!ready) {
+    return (
+      <div className="shop-dash-visible is-pending" aria-hidden>
+        <span className="shop-dash-visible-label">Hiển thị shop</span>
+        <span className="shop-dash-switch" />
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="shop-dash-visible"
+      title={err ?? SHOP_VISIBLE_HINT}
+    >
+      <span className="shop-dash-visible-label">Hiển thị shop</span>
+      <button
+        type="button"
+        className={`shop-dash-switch${shopVisible ? " on" : ""}`}
+        role="switch"
+        aria-checked={shopVisible}
+        aria-label="Hiển thị shop"
+        title={err ?? SHOP_VISIBLE_HINT}
+        disabled={saving}
+        onClick={() => void saveShopVisible(!shopVisible)}
+      >
+        <span className="shop-dash-switch-knob" aria-hidden />
+      </button>
+      {err ? (
+        <span className="shop-dash-visible-err" role="alert">
+          {err}
+        </span>
+      ) : null}
+    </div>
   );
 }
 
@@ -114,11 +241,12 @@ export function ShopDashTabs({
             icon={<Store size={18} strokeWidth={2} aria-hidden />}
           />
         </nav>
-        {actions ? (
-          <div className="shop-dash-head-end">
+        <div className="shop-dash-head-end">
+          <ShopVisibleToggle />
+          {actions ? (
             <div className="shop-dash-head-actions">{actions}</div>
-          </div>
-        ) : null}
+          ) : null}
+        </div>
       </div>
     </header>
   );
