@@ -34,6 +34,10 @@ import {
 import type { MutualFriendProfile } from "@/lib/social/types";
 
 import {
+  readAdminInboxVisible,
+  setAdminInboxVisible,
+} from "@/lib/admin/admin-inbox-visibility";
+import {
   HOME_FEED_LAYOUT_OPTIONS,
   readHomeFeedLayout,
   setHomeFeedLayout,
@@ -58,13 +62,20 @@ type SettingsSection =
   | "journey-display"
   | "lich-su-mua"
   | "ban-hang"
+  | "admin"
   | "user-management"
   | "security-2fa";
 
-const NAV: ReadonlyArray<{ id: SettingsSection; label: string }> = [
+const NAV: ReadonlyArray<{
+  id: SettingsSection;
+  label: string;
+  /** Chỉ hiện với `super_admin` / `admin` hệ thống. */
+  adminOnly?: boolean;
+}> = [
   { id: "journey-display", label: "Cài đặt bố cục" },
   { id: "lich-su-mua", label: "Lịch sử mua hàng" },
   { id: "ban-hang", label: "Bán hàng" },
+  { id: "admin", label: "Admin", adminOnly: true },
   { id: "user-management", label: "Quản lý người dùng" },
   { id: "security-2fa", label: "Bảo mật 2 lớp" },
 ];
@@ -109,6 +120,7 @@ export function UserAccountSettingsModal({ open, onClose }: Props) {
   const [initial, setInitial] = useState<JourneyDefaultView>("timeline");
   const [applyToMe, setApplyToMe] = useState(false);
   const [initialApplyToMe, setInitialApplyToMe] = useState(false);
+  const [isCinsAdmin, setIsCinsAdmin] = useState(false);
 
   const loadSettings = useCallback(async () => {
     setLoading(true);
@@ -146,8 +158,28 @@ export function UserAccountSettingsModal({ open, onClose }: Props) {
     setSavedTick(false);
     setHomeLayout(readHomeFeedLayout());
     setFeedSource(readFeedSourceDefault());
+    setIsCinsAdmin(false);
     void loadSettings();
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch("/api/auth/session-profile", {
+          cache: "no-store",
+        });
+        const json = (await res.json().catch(() => null)) as {
+          isCinsAdmin?: boolean;
+        } | null;
+        if (!cancelled) setIsCinsAdmin(json?.isCinsAdmin === true);
+      } catch {
+        if (!cancelled) setIsCinsAdmin(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [open, loadSettings]);
+
+  const navItems = NAV.filter((item) => !item.adminOnly || isCinsAdmin);
 
   const chooseHomeLayout = useCallback((layout: HomeFeedLayout) => {
     setHomeLayout(layout);
@@ -243,7 +275,7 @@ export function UserAccountSettingsModal({ open, onClose }: Props) {
 
         <div className="uas-layout">
           <nav className="uas-nav" aria-label="Mục cài đặt">
-            {NAV.map(({ id, label }) => (
+            {navItems.map(({ id, label }) => (
               <button
                 key={id}
                 type="button"
@@ -487,6 +519,10 @@ export function UserAccountSettingsModal({ open, onClose }: Props) {
               <BanHangSettingsSection titleId={`${titleId}-bh`} />
             ) : null}
 
+            {section === "admin" && isCinsAdmin ? (
+              <AdminSettingsSection titleId={`${titleId}-admin`} />
+            ) : null}
+
             {section === "user-management" ? (
               <UserManagementSection titleId={`${titleId}-um`} />
             ) : null}
@@ -652,6 +688,50 @@ function LichSuMuaHangSection({ titleId }: { titleId: string }) {
           );
         }}
       />
+    </section>
+  );
+}
+
+function AdminSettingsSection({ titleId }: { titleId: string }) {
+  const [inboxVisible, setInboxVisible] = useState(() =>
+    readAdminInboxVisible(),
+  );
+
+  return (
+    <section className="uas-section" aria-labelledby={titleId}>
+      <div className="uas-section-head">
+        <h3 id={titleId} className="uas-section-title">
+          Admin
+        </h3>
+        <p className="uas-section-hint">
+          Tuỳ chọn hiển thị công cụ quản trị trên topbar. Chỉ tài khoản admin
+          hệ thống mới thấy mục này.
+        </p>
+      </div>
+
+      <div className="uas-toggle-row" style={{ marginBottom: 12 }}>
+        <span className="uas-toggle-text">
+          <span className="uas-toggle-label">Hộp thư việc cần xử lý</span>
+          <span className="uas-toggle-desc">
+            Hiện nút briefcase trên topbar (báo cáo, góp ý, đóng góp chờ duyệt…).
+            Tắt để gọn thanh điều hướng khi không cần theo dõi.
+          </span>
+        </span>
+        <button
+          type="button"
+          className={`uas-switch${inboxVisible ? " on" : ""}`}
+          role="switch"
+          aria-checked={inboxVisible}
+          aria-label="Hộp thư việc cần xử lý"
+          onClick={() => {
+            const next = !inboxVisible;
+            setInboxVisible(next);
+            setAdminInboxVisible(next);
+          }}
+        >
+          <span className="uas-switch-knob" aria-hidden />
+        </button>
+      </div>
     </section>
   );
 }

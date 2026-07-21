@@ -19,6 +19,10 @@ import { createPortal } from "react-dom";
 
 import type { AdminInboxStats } from "@/lib/admin/admin-inbox-stats-types";
 import { EMPTY_ADMIN_INBOX_STATS } from "@/lib/admin/admin-inbox-stats-types";
+import {
+  ADMIN_INBOX_VISIBLE_CHANGE_EVENT,
+  readAdminInboxVisible,
+} from "@/lib/admin/admin-inbox-visibility";
 import { computeFixedMenuPosition } from "@/lib/ui/clamp-fixed-menu-position";
 
 const MENU_WIDTH = 340;
@@ -100,6 +104,7 @@ export function AdminInboxButton({ initialStats }: Props) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [portalReady, setPortalReady] = useState(false);
+  const [inboxVisible, setInboxVisible] = useState(true);
   const [menuStyle, setMenuStyle] = useState<{ top: number; left: number } | null>(
     null,
   );
@@ -121,20 +126,38 @@ export function AdminInboxButton({ initialStats }: Props) {
 
   useEffect(() => {
     setPortalReady(true);
+    setInboxVisible(readAdminInboxVisible());
+    const onPrefChange = (event: Event) => {
+      const detail = (event as CustomEvent<boolean>).detail;
+      setInboxVisible(
+        typeof detail === "boolean" ? detail : readAdminInboxVisible(),
+      );
+    };
+    window.addEventListener(ADMIN_INBOX_VISIBLE_CHANGE_EVENT, onPrefChange);
+    return () =>
+      window.removeEventListener(
+        ADMIN_INBOX_VISIBLE_CHANGE_EVENT,
+        onPrefChange,
+      );
   }, []);
 
   useEffect(() => {
-    if (!open) return;
-    void refresh();
-  }, [open, refresh]);
+    if (!inboxVisible) setOpen(false);
+  }, [inboxVisible]);
 
   useEffect(() => {
+    if (!open || !inboxVisible) return;
+    void refresh();
+  }, [open, inboxVisible, refresh]);
+
+  useEffect(() => {
+    if (!inboxVisible) return;
     const onVisible = () => {
       if (document.visibilityState === "visible") void refresh();
     };
     document.addEventListener("visibilitychange", onVisible);
     return () => document.removeEventListener("visibilitychange", onVisible);
-  }, [refresh]);
+  }, [inboxVisible, refresh]);
 
   useLayoutEffect(() => {
     if (!open) {
@@ -257,6 +280,8 @@ export function AdminInboxButton({ initialStats }: Props) {
         )}
       </div>
     ) : null;
+
+  if (!inboxVisible) return null;
 
   return (
     <div className="admin-inbox">

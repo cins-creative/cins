@@ -5,7 +5,6 @@ import {
   ExternalLink,
   Loader2,
   Package,
-  ShoppingBag,
   Store,
 } from "lucide-react";
 import Link from "next/link";
@@ -383,7 +382,7 @@ export function ShopTopbarButton() {
         aria-haspopup="dialog"
         onClick={() => setOpen((v) => !v)}
       >
-        <ShoppingBag size={18} strokeWidth={1.9} aria-hidden />
+        <Store size={18} strokeWidth={1.9} aria-hidden />
         {pendingCount > 0 ? (
           <span className="shop-topbar-count" aria-hidden>
             {formatBadge(pendingCount)}
