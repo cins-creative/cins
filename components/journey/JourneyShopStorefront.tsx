@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, Loader2, Minus, Plus, Search, ShoppingBag, Star, X } from "lucide-react";
+import { Loader2, Plus, Search, ShoppingBag, Star, X } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import {
@@ -12,73 +12,48 @@ import {
 } from "react";
 
 import { useAuthGate } from "@/components/auth/AuthGateProvider";
+import { JourneyShopSfHero } from "@/components/journey/JourneyShopSfHero";
 import {
   GIO_CHUNG_CHANGED_EVENT,
   GIO_CHUNG_OPEN_EVENT,
 } from "@/components/shop/ShopGioChungButton";
+import { ShopTamDongOverlay } from "@/components/shop/ShopTamDongOverlay";
+import { shopLoaiHref, shopLoaiMauHref } from "@/lib/shop/cua-hang-href";
 import { parseShopNhomMoTa } from "@/lib/shop/nhom-mo-ta";
-import type {
-  ShopGioChung,
-  ShopStorefrontItem,
-} from "@/lib/shop/types";
 import {
-  SHOP_NHAN_PHAN_LOAI_2_DEFAULT,
-  SHOP_NHAN_PHAN_LOAI_DEFAULT,
+  SHOP_STOREFRONT_KHAC_SLUG,
+  type ShopGioChung,
+  type ShopStorefrontItem,
+  type ShopStorefrontNhomCard,
 } from "@/lib/shop/types";
+import { isShopTamDongActive } from "@/lib/shop/tam-dong";
 
-const FILTER_ALL = "__all";
-const FILTER_KHAC = "__khac";
+type HeroChrome = {
+  actions: ReactNode;
+};
 
-function GroupHeadDesc({ moTa }: { moTa: string }) {
-  const blocks = parseShopNhomMoTa(moTa);
-  if (blocks.length === 0) return null;
-  return (
-    <div className="j-shop-sf-group-desc">
-      {blocks.map((b, i) => {
-        if (b.type === "p") {
-          return (
-            <p key={`p-${i}`} className="j-shop-sf-group-desc-p">
-              {b.text}
-            </p>
-          );
-        }
-        if (b.type === "ul") {
-          return (
-            <ul key={`ul-${i}`} className="j-shop-sf-group-desc-ul">
-              {b.items.map((item, j) => (
-                <li key={j}>{item}</li>
-              ))}
-            </ul>
-          );
-        }
-        return (
-          <ol key={`ol-${i}`} className="j-shop-sf-group-desc-ol">
-            {b.items.map((item, j) => (
-              <li key={j}>{item}</li>
-            ))}
-          </ol>
-        );
-      })}
-    </div>
-  );
-}
-
-function GroupHead({
-  label,
-  moTa,
-}: {
-  label: string;
-  moTa: string | null;
-}) {
-  return (
-    <div className="j-shop-sf-group-head">
-      <div className="j-shop-sf-group-head-title">
-        <h4>{label}</h4>
-      </div>
-      {moTa ? <GroupHeadDesc moTa={moTa} /> : null}
-    </div>
-  );
-}
+type Props = {
+  ownerSlug: string;
+  ownerId: string;
+  cuaHangId: string | null;
+  shopName: string;
+  shopMoTa: string | null;
+  shopAvatarUrl: string | null;
+  shopCoverUrl: string | null;
+  initials: string;
+  /** Legacy — giữ prop để JourneyShopView không vỡ; UI lọc theo trục đã bỏ trên mặt tiền. */
+  nhanPhanLoai?: string;
+  nhanPhanLoai2?: string;
+  isOwner?: boolean;
+  viewerProfileId?: string | null;
+  ownerChrome?: HeroChrome | null;
+  guestChrome?: HeroChrome | null;
+  /** Shop đang tạm đóng — khóa catalog. */
+  tamDongActive?: boolean;
+  tamDongTu?: string | null;
+  tamDongDen?: string | null;
+  tamDongLyDo?: string | null;
+};
 
 function formatGia(gia: number, tienTe: string): string {
   const n = Number.isFinite(gia) ? gia : 0;
@@ -93,428 +68,171 @@ function formatGia(gia: number, tienTe: string): string {
   }
 }
 
-/** Giá gốc gạch ngang — chỉ số, không đơn vị. */
-function formatGiaSo(gia: number): string {
-  const n = Number.isFinite(gia) ? gia : 0;
-  return n.toLocaleString("vi-VN", {
-    maximumFractionDigits: Number.isInteger(n) ? 0 : 2,
-  });
+function CardMoTa({ moTa }: { moTa: string }) {
+  const blocks = parseShopNhomMoTa(moTa);
+  const first = blocks.find((b) => b.type === "p");
+  const text =
+    first && first.type === "p" ? first.text.trim() : moTa.trim();
+  if (!text) return null;
+  return <p className="j-shop-sf-type-desc">{text}</p>;
 }
 
-type HeroChrome = {
-  actions: ReactNode;
-};
-
-type Props = {
-  ownerSlug: string;
-  ownerId: string;
-  /** `shop_cua_hang.id` — giỏ / đặt hàng theo cửa hàng. */
-  cuaHangId: string | null;
-  shopName: string;
-  shopMoTa: string | null;
-  shopAvatarUrl: string | null;
-  shopCoverUrl: string | null;
-  initials: string;
-  /** Nhãn trục phân loại 1 (vd. Loại hàng). */
-  nhanPhanLoai?: string;
-  /** Nhãn trục phân loại 2 (vd. Game). */
-  nhanPhanLoai2?: string;
-  isOwner?: boolean;
-  viewerProfileId?: string | null;
-  /** Chủ shop: nút Quản lý / Kho / Đơn trên hero. */
-  ownerChrome?: HeroChrome | null;
-  /** Khách: Chia sẻ / Nhắn tin trên hero. */
-  guestChrome?: HeroChrome | null;
-};
-
-type StorefrontCartLine = { idBienThe: string; soLuong: number };
-
-/** Lấy dòng giỏ chung thuộc riêng seller này để hiện qty trên storefront. */
-function linesForSeller(
-  gio: ShopGioChung,
-  sellerId: string,
-): StorefrontCartLine[] {
-  const nhom = gio.nhom.find((n) => n.idNguoiBan === sellerId);
-  if (!nhom) return [];
-  return nhom.dong.map((d) => ({
-    idBienThe: d.idBienThe,
-    soLuong: d.soLuong,
-  }));
-}
-
-type PhanLoaiGroup = {
-  key: string;
-  label: string;
-  idNhom: string | null;
-  moTa: string | null;
-  items: ShopStorefrontItem[];
-};
-
-type FilterOption = {
-  key: string;
-  label: string;
-};
-
-function groupByPhanLoai(items: ShopStorefrontItem[]): PhanLoaiGroup[] {
-  const map = new Map<string, ShopStorefrontItem[]>();
-  for (const item of items) {
-    const key = item.phanLoai?.trim() || "";
-    const list = map.get(key) ?? [];
-    list.push(item);
-    map.set(key, list);
-  }
-
-  const named = [...map.entries()]
-    .filter(([k]) => k !== "")
-    .sort(([a], [b]) => a.localeCompare(b, "vi", { sensitivity: "base" }))
-    .map(([key, groupItems]) => {
-      const withNhom = groupItems.find((i) => i.idNhom);
-      return {
-        key,
-        label: key,
-        idNhom: withNhom?.idNhom ?? null,
-        moTa: withNhom?.phanLoaiMoTa ?? null,
-        items: groupItems,
-      };
-    });
-
-  const other = map.get("");
-  if (other && other.length > 0) {
-    named.push({
-      key: FILTER_KHAC,
-      label: named.length > 0 ? "Khác" : "Sản phẩm",
-      idNhom: null,
-      moTa: null,
-      items: other,
-    });
-  }
-  return named;
-}
-
-function buildFilterOptions(
-  items: ShopStorefrontItem[],
-  getValue: (item: ShopStorefrontItem) => string | null | undefined,
-): FilterOption[] {
-  const named = new Set<string>();
-  let hasOther = false;
-  for (const item of items) {
-    const key = getValue(item)?.trim() || "";
-    if (key) named.add(key);
-    else hasOther = true;
-  }
-  const options: FilterOption[] = [{ key: FILTER_ALL, label: "Tất cả" }];
-  for (const label of [...named].sort((a, b) =>
-    a.localeCompare(b, "vi", { sensitivity: "base" }),
-  )) {
-    options.push({ key: label, label });
-  }
-  if (hasOther && named.size > 0) {
-    options.push({ key: FILTER_KHAC, label: "Khác" });
-  }
-  return options;
-}
-
-function applyAxisFilter(
-  items: ShopStorefrontItem[],
-  filter: string,
-  getValue: (item: ShopStorefrontItem) => string | null | undefined,
-): ShopStorefrontItem[] {
-  if (filter === FILTER_ALL) return items;
-  if (filter === FILTER_KHAC) {
-    return items.filter((i) => !(getValue(i)?.trim()));
-  }
-  return items.filter((i) => (getValue(i)?.trim() || "") === filter);
-}
-
-function normalizeSearch(s: string): string {
-  return s
-    .normalize("NFD")
-    .replace(/\p{M}/gu, "")
-    .toLowerCase()
-    .trim();
-}
-
-function applySearchFilter(
-  items: ShopStorefrontItem[],
-  query: string,
-): ShopStorefrontItem[] {
-  const q = normalizeSearch(query);
-  if (!q) return items;
-  return items.filter((i) => {
-    const hay = normalizeSearch(
-      [
-        i.tenSanPham,
-        i.nhanBienThe,
-        i.phanLoai,
-        i.phanLoai2,
-      ]
-        .filter(Boolean)
-        .join(" "),
-    );
-    return hay.includes(q);
-  });
-}
-
-function ProductCard({
-  item,
-  featured = false,
-  qty,
-  canShop,
-  onPatchQty,
+function TypeCard({
+  card,
+  ownerSlug,
 }: {
-  item: ShopStorefrontItem;
-  featured?: boolean;
-  qty: number;
-  canShop: boolean;
-  onPatchQty: (item: ShopStorefrontItem, soLuong: number) => void;
+  card: ShopStorefrontNhomCard;
+  ownerSlug: string;
 }) {
-  const nhanBienThe =
-    item.nhanBienThe && item.nhanBienThe !== "Mặc định"
-      ? item.nhanBienThe
-      : null;
-  const showLowStock =
-    !item.hetHang &&
-    Number.isFinite(item.soLuongTon) &&
-    item.soLuongTon > 0 &&
-    item.soLuongTon < 5;
-  const canIncrease =
-    canShop &&
-    !item.hetHang &&
-    item.idBienThe != null &&
-    qty < item.soLuongTon;
-  const canAddFirst =
-    canShop &&
-    !item.hetHang &&
-    item.idBienThe != null &&
-    item.soLuongTon > 0 &&
-    item.giaHienThi != null;
+  const giaLabel =
+    card.giaTu != null
+      ? card.giaDen != null && card.giaDen !== card.giaTu
+        ? `Từ ${formatGia(card.giaTu, card.tienTe)}`
+        : formatGia(card.giaTu, card.tienTe)
+      : "Chưa có giá";
+  const href =
+    card.href?.trim() || shopLoaiHref(ownerSlug, card.id);
 
   return (
-    <div
-      className={`j-shop-sf-card is-static${item.hetHang ? " is-soldout" : ""}${featured ? " is-feature" : ""}`}
+    <Link
+      href={href}
+      className={`j-shop-sf-card j-shop-sf-type-card${card.hetHang ? " is-soldout" : ""}`}
     >
-      <span className="j-shop-sf-card-media">
-        {item.postHref ? (
-          <Link
-            href={item.postHref}
-            className="j-shop-sf-card-media-link"
-            aria-label={`Xem ${item.tenSanPham}`}
-          >
-            {item.anhUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={item.anhUrl} alt="" loading="lazy" />
-            ) : (
-              <span className="j-shop-sf-card-ph" aria-hidden />
-            )}
-          </Link>
-        ) : item.anhUrl ? (
+      <span className="j-shop-sf-card-media" aria-hidden>
+        {card.anhUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={item.anhUrl} alt="" loading="lazy" />
+          <img src={card.anhUrl} alt="" loading="lazy" />
         ) : (
-          <span className="j-shop-sf-card-ph" aria-hidden />
+          <span className="j-shop-sf-card-ph" />
         )}
-        {featured ? (
-          <span
-            className="j-shop-sf-card-feature-badge"
-            title="Ngôi sao"
-            aria-label="Ngôi sao"
-          >
-            <Star size={18} strokeWidth={2} fill="currentColor" aria-hidden />
-          </span>
-        ) : null}
-        {item.hetHang ? (
+        {card.hetHang ? (
           <span className="j-shop-sf-soldout">Hết hàng</span>
-        ) : showLowStock ? (
-          <span className="j-shop-sf-low-stock">SL:{item.soLuongTon}</span>
         ) : null}
       </span>
       <span className="j-shop-sf-card-body">
-        <span className="j-shop-sf-card-name">{item.tenSanPham}</span>
-        {nhanBienThe ? (
-          <span className="j-shop-sf-card-var">{nhanBienThe}</span>
-        ) : null}
-        {item.giaHienThi != null ? (
+        <span className="j-shop-sf-card-name">{card.nhan}</span>
+        {card.moTa ? <CardMoTa moTa={card.moTa} /> : null}
+        <span className="j-shop-sf-type-meta">
+          <span>{card.soMau} mẫu</span>
+          {card.diemTrungBinh != null ? (
+            <span
+              className="j-shop-sf-type-rating"
+              aria-label={`${card.diemTrungBinh} trên 5 sao${card.tongDanhGia > 0 ? `, ${card.tongDanhGia} đánh giá` : ""}`}
+            >
+              <Star size={11} strokeWidth={2} fill="currentColor" aria-hidden />
+              <span>{card.diemTrungBinh}</span>
+              {card.tongDanhGia > 0 ? (
+                <span className="j-shop-sf-type-rating-count">
+                  ({card.tongDanhGia})
+                </span>
+              ) : null}
+            </span>
+          ) : null}
+        </span>
+        <span
+          className={`j-shop-sf-card-price${card.giaTu == null ? " is-empty" : ""}`}
+        >
+          {giaLabel}
+        </span>
+      </span>
+    </Link>
+  );
+}
+
+function ItemCard({
+  item,
+  ownerSlug,
+  canShop,
+  adding,
+  onAdd,
+  featured = false,
+}: {
+  item: ShopStorefrontItem;
+  ownerSlug: string;
+  canShop: boolean;
+  adding: boolean;
+  onAdd: (item: ShopStorefrontItem) => void;
+  featured?: boolean;
+}) {
+  const nhomId = item.idNhom?.trim() || SHOP_STOREFRONT_KHAC_SLUG;
+  const href = shopLoaiMauHref(ownerSlug, nhomId, item.sanPhamId);
+  const giaLabel =
+    item.giaHienThi != null
+      ? formatGia(item.giaHienThi, item.tienTe)
+      : "Chưa có giá";
+  const sub = [item.phanLoai, item.nhanBienThe]
+    .map((t) => t?.trim())
+    .filter((t): t is string => Boolean(t) && t !== "Mặc định")
+    .join(" · ");
+  const canBuy =
+    canShop &&
+    Boolean(item.idBienThe) &&
+    !item.hetHang &&
+    item.giaHienThi != null;
+  const showFeature = featured || item.noiBat;
+
+  return (
+    <article
+      className={`j-shop-sf-card j-shop-sf-item-card${item.hetHang ? " is-soldout" : ""}${showFeature ? " is-feature" : ""}`}
+    >
+      <Link href={href} className="j-shop-sf-card-media-link">
+        <span className="j-shop-sf-card-media" aria-hidden>
+          {item.anhUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={item.anhUrl} alt="" loading="lazy" />
+          ) : (
+            <span className="j-shop-sf-card-ph" />
+          )}
+          {showFeature ? (
+            <span
+              className="j-shop-sf-card-feature-badge"
+              title="Feature"
+              aria-label="Feature"
+            >
+              <Star size={18} strokeWidth={2} fill="currentColor" aria-hidden />
+            </span>
+          ) : null}
+          {item.hetHang ? (
+            <span className="j-shop-sf-soldout">Hết hàng</span>
+          ) : null}
+        </span>
+      </Link>
+      <span className="j-shop-sf-card-body">
+        <Link href={href} className="j-shop-sf-card-name">
+          {item.tenSanPham}
+        </Link>
+        {sub ? <span className="j-shop-sf-type-meta">{sub}</span> : null}
+        <span className="j-shop-sf-card-action">
           <span className="j-shop-sf-card-price-row">
             {item.giaGoc != null ? (
               <span className="j-shop-sf-card-price-goc">
-                {formatGiaSo(item.giaGoc)}
+                {formatGia(item.giaGoc, item.tienTe)}
               </span>
             ) : null}
             <span
-              className={`j-shop-sf-card-price${item.giaGoc != null ? " is-sale" : ""}`}
+              className={`j-shop-sf-card-price${item.giaHienThi == null ? " is-empty" : ""}${item.giaGoc != null ? " is-sale" : ""}`}
             >
-              {formatGia(item.giaHienThi, item.tienTe)}
+              {giaLabel}
             </span>
           </span>
-        ) : (
-          <span className="j-shop-sf-card-price is-empty">Chưa có giá</span>
-        )}
-        {canShop ? (
-          <span className="j-shop-sf-card-action">
-            <span className="j-shop-sf-card-stock">Bán: {item.soLuongBan}</span>
-            {qty > 0 ? (
-              <span className="j-shop-sf-qty">
-                <button
-                  type="button"
-                  aria-label="Bớt"
-                  onClick={() => onPatchQty(item, qty - 1)}
-                >
-                  <Minus size={14} />
-                </button>
-                <span>{qty}</span>
-                <button
-                  type="button"
-                  aria-label="Thêm"
-                  disabled={!canIncrease}
-                  title={
-                    !canIncrease && !item.hetHang
-                      ? `Tối đa ${item.soLuongTon} (tồn kho)`
-                      : item.hetHang
-                        ? "Hết hàng"
-                        : undefined
-                  }
-                  onClick={() => onPatchQty(item, qty + 1)}
-                >
-                  <Plus size={14} />
-                </button>
-              </span>
-            ) : (
-              <button
-                type="button"
-                className="j-shop-sf-add"
-                disabled={!canAddFirst}
-                aria-label="Thêm vào giỏ"
-                title={
-                  item.hetHang
-                    ? "Hết hàng"
-                    : item.giaHienThi == null
-                      ? "Chưa có giá"
-                      : "Thêm vào giỏ"
-                }
-                onClick={() => onPatchQty(item, 1)}
-              >
-                <Plus size={14} strokeWidth={2.4} aria-hidden />
-              </button>
-            )}
-          </span>
-        ) : (
-          <span className="j-shop-sf-card-action">
-            <span className="j-shop-sf-card-stock">Bán: {item.soLuongBan}</span>
-          </span>
-        )}
-      </span>
-    </div>
-  );
-}
-
-function ProductGrid({
-  items,
-  featured = false,
-  qtyByBienThe,
-  canShop,
-  onPatchQty,
-}: {
-  items: ShopStorefrontItem[];
-  featured?: boolean;
-  qtyByBienThe: Map<string, number>;
-  canShop: boolean;
-  onPatchQty: (item: ShopStorefrontItem, soLuong: number) => void;
-}) {
-  return (
-    <ul className={`j-shop-sf-grid${featured ? " j-shop-sf-grid--feature" : ""}`}>
-      {items.map((item) => (
-        <li key={item.sanPhamId}>
-          <ProductCard
-            item={item}
-            featured={featured}
-            qty={
-              item.idBienThe ? (qtyByBienThe.get(item.idBienThe) ?? 0) : 0
-            }
-            canShop={canShop}
-            onPatchQty={onPatchQty}
-          />
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-function FilterDropdown({
-  axisLabel,
-  options,
-  value,
-  onChange,
-}: {
-  axisLabel: string;
-  options: FilterOption[];
-  value: string;
-  onChange: (key: string) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const selected =
-    options.find((o) => o.key === value) ?? options[0] ?? { key: FILTER_ALL, label: "Tất cả" };
-  const isFiltered = value !== FILTER_ALL;
-
-  useEffect(() => {
-    if (!open) return;
-    function onPointerDown(e: PointerEvent) {
-      const t = e.target;
-      if (!(t instanceof Element)) return;
-      if (t.closest(`[data-sf-filter="${axisLabel}"]`)) return;
-      setOpen(false);
-    }
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
-    }
-    document.addEventListener("pointerdown", onPointerDown);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("pointerdown", onPointerDown);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [open, axisLabel]);
-
-  return (
-    <div
-      className="j-shop-sf-dd"
-      data-sf-filter={axisLabel}
-    >
-      <button
-        type="button"
-        className={`j-shop-sf-dd-trigger${isFiltered ? " is-active" : ""}${open ? " is-open" : ""}`}
-        aria-expanded={open}
-        aria-haspopup="listbox"
-        aria-label={`Lọc theo ${axisLabel}`}
-        onClick={() => setOpen((o) => !o)}
-      >
-        <span className="j-shop-sf-dd-axis">{axisLabel}</span>
-        <span className="j-shop-sf-dd-value">{selected.label}</span>
-        <ChevronDown size={14} strokeWidth={2.25} aria-hidden />
-      </button>
-      {open ? (
-        <div
-          className="j-shop-sf-dd-panel"
-          role="listbox"
-          aria-label={axisLabel}
-        >
-          {options.map((opt) => (
+          {canShop ? (
             <button
-              key={opt.key}
               type="button"
-              role="option"
-              aria-selected={value === opt.key}
-              className={`j-shop-sf-dd-opt${value === opt.key ? " is-active" : ""}`}
-              onClick={() => {
-                onChange(opt.key);
-                setOpen(false);
-              }}
+              className="j-shop-sf-add"
+              disabled={!canBuy || adding}
+              aria-label={`Thêm ${item.tenSanPham} vào giỏ`}
+              onClick={() => onAdd(item)}
             >
-              {opt.label}
+              {adding ? (
+                <Loader2 size={14} className="shop-spin" aria-hidden />
+              ) : (
+                <Plus size={15} strokeWidth={2.5} aria-hidden />
+              )}
             </button>
-          ))}
-        </div>
-      ) : null}
-    </div>
+          ) : null}
+        </span>
+      </span>
+    </article>
   );
 }
 
@@ -527,81 +245,129 @@ export function JourneyShopStorefront({
   shopAvatarUrl,
   shopCoverUrl,
   initials,
-  nhanPhanLoai = SHOP_NHAN_PHAN_LOAI_DEFAULT,
-  nhanPhanLoai2 = SHOP_NHAN_PHAN_LOAI_2_DEFAULT,
   isOwner = false,
   viewerProfileId = null,
   ownerChrome = null,
   guestChrome = null,
+  tamDongActive = false,
+  tamDongTu = null,
+  tamDongDen = null,
+  tamDongLyDo = null,
 }: Props) {
   const { openAuthModal } = useAuthGate();
-  const [items, setItems] = useState<ShopStorefrontItem[] | null>(null);
+  const [cards, setCards] = useState<ShopStorefrontNhomCard[] | null>(null);
+  const [items, setItems] = useState<ShopStorefrontItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filterLoai, setFilterLoai] = useState(FILTER_ALL);
-  const [filterLoai2, setFilterLoai2] = useState(FILTER_ALL);
   const [search, setSearch] = useState("");
   const deferredSearch = useDeferredValue(search);
-  const [cartLines, setCartLines] = useState<StorefrontCartLine[]>([]);
-  const [cartErr, setCartErr] = useState<string | null>(null);
-  const canShop = !isOwner && Boolean(cuaHangId);
+  const [cartCount, setCartCount] = useState(0);
+  const [addingId, setAddingId] = useState<string | null>(null);
+  const [addErr, setAddErr] = useState<string | null>(null);
+  const [now, setNow] = useState(() => Date.now());
+  const tamDongFields = {
+    tamDong: tamDongActive,
+    tamDongTu,
+    tamDongDen,
+    tamDongLyDo,
+  };
+  const shopClosed = isShopTamDongActive(tamDongFields, now);
+  const canShop = !isOwner && Boolean(cuaHangId) && !shopClosed;
 
-  const applyGio = useCallback(
-    (gio: ShopGioChung) => {
-      setCartLines(linesForSeller(gio, ownerId));
+  useEffect(() => {
+    if (!tamDongActive || !tamDongDen) return;
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, [tamDongActive, tamDongDen]);
+
+  const applyGioCount = useCallback(
+    (gio: ShopGioChung | null | undefined) => {
+      if (!gio) return;
+      const nhom = gio.nhom.find((n) => n.idNguoiBan === ownerId);
+      const n = nhom
+        ? nhom.dong.reduce((s, d) => s + d.soLuong, 0)
+        : 0;
+      setCartCount(n);
     },
     [ownerId],
   );
 
-  const refreshGio = useCallback(async () => {
+  const refreshGioCount = useCallback(async () => {
     if (!canShop || !viewerProfileId) return;
     try {
       const gRes = await fetch("/api/shop/gio-chung", { cache: "no-store" });
       const gJson = (await gRes.json().catch(() => null)) as {
         gio?: ShopGioChung;
       } | null;
-      if (gRes.ok && gJson?.gio) applyGio(gJson.gio);
+      if (!gRes.ok || !gJson?.gio) return;
+      applyGioCount(gJson.gio);
     } catch {
       /* ignore */
     }
-  }, [canShop, viewerProfileId, applyGio]);
+  }, [canShop, viewerProfileId, applyGioCount]);
+
+  const addItemToCart = useCallback(
+    async (item: ShopStorefrontItem) => {
+      if (!viewerProfileId) {
+        openAuthModal("Đăng nhập để thêm vào giỏ.");
+        return;
+      }
+      if (!item.idBienThe || item.hetHang || item.giaHienThi == null) return;
+      setAddingId(item.sanPhamId);
+      setAddErr(null);
+      setCartCount((c) => c + 1);
+      try {
+        const res = await fetch("/api/shop/gio-chung", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ idBienThe: item.idBienThe, delta: 1 }),
+        });
+        const json = (await res.json().catch(() => null)) as {
+          gio?: ShopGioChung;
+          error?: string;
+        } | null;
+        if (!res.ok) {
+          setCartCount((c) => Math.max(0, c - 1));
+          setAddErr(json?.error ?? "Không thêm vào giỏ.");
+          return;
+        }
+        applyGioCount(json?.gio);
+        window.dispatchEvent(new Event(GIO_CHUNG_CHANGED_EVENT));
+      } catch {
+        setCartCount((c) => Math.max(0, c - 1));
+        setAddErr("Không thêm vào giỏ.");
+      } finally {
+        setAddingId(null);
+      }
+    },
+    [viewerProfileId, openAuthModal, applyGioCount],
+  );
 
   useEffect(() => {
     let cancelled = false;
     void (async () => {
       setLoading(true);
-      setFilterLoai(FILTER_ALL);
-      setFilterLoai2(FILTER_ALL);
       setSearch("");
-      setCartLines([]);
-      setCartErr(null);
       try {
         const res = await fetch(
           `/api/shop/cua-hang/mat-hang?slug=${encodeURIComponent(ownerSlug)}`,
           { cache: "no-store" },
         );
         const json = (await res.json().catch(() => null)) as {
+          nhomCards?: ShopStorefrontNhomCard[];
           items?: ShopStorefrontItem[];
         } | null;
-        const next = res.ok ? (json?.items ?? []) : [];
-        if (!cancelled) setItems(next);
-
-        if (!cancelled && canShop && viewerProfileId && next.length > 0) {
-          try {
-            const gRes = await fetch("/api/shop/gio-chung", {
-              cache: "no-store",
-            });
-            const gJson = (await gRes.json().catch(() => null)) as {
-              gio?: ShopGioChung;
-            } | null;
-            if (gRes.ok && gJson?.gio && !cancelled) {
-              applyGio(gJson.gio);
-            }
-          } catch {
-            /* ignore */
-          }
+        if (!cancelled) {
+          setCards(res.ok ? (json?.nhomCards ?? []) : []);
+          setItems(res.ok ? (json?.items ?? []) : []);
+        }
+        if (!cancelled && canShop && viewerProfileId) {
+          await refreshGioCount();
         }
       } catch {
-        if (!cancelled) setItems([]);
+        if (!cancelled) {
+          setCards([]);
+          setItems([]);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -609,74 +375,14 @@ export function JourneyShopStorefront({
     return () => {
       cancelled = true;
     };
-  }, [ownerSlug, canShop, viewerProfileId, applyGio]);
+  }, [ownerSlug, canShop, viewerProfileId, refreshGioCount]);
 
-  /* Đồng bộ khi giỏ chung đổi từ nơi khác (panel topbar…). */
   useEffect(() => {
     if (!canShop || !viewerProfileId) return;
-    const onChanged = () => void refreshGio();
+    const onChanged = () => void refreshGioCount();
     window.addEventListener(GIO_CHUNG_CHANGED_EVENT, onChanged);
     return () => window.removeEventListener(GIO_CHUNG_CHANGED_EVENT, onChanged);
-  }, [canShop, viewerProfileId, refreshGio]);
-
-  const qtyByBienThe = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const line of cartLines) map.set(line.idBienThe, line.soLuong);
-    return map;
-  }, [cartLines]);
-
-  const cartCount = useMemo(
-    () => cartLines.reduce((s, l) => s + l.soLuong, 0),
-    [cartLines],
-  );
-
-  const patchQty = useCallback(
-    (item: ShopStorefrontItem, soLuong: number) => {
-      if (!canShop) return;
-      if (!viewerProfileId) {
-        openAuthModal("Đăng nhập để thêm vào giỏ.");
-        return;
-      }
-      if (!item.idBienThe || item.giaHienThi == null) {
-        setCartErr("Sản phẩm chưa có giá — chưa thêm giỏ được.");
-        return;
-      }
-      const qty = Math.max(0, Math.trunc(soLuong));
-      const capped = item.soLuongTon > 0 ? Math.min(qty, item.soLuongTon) : 0;
-      const idBienThe = item.idBienThe;
-
-      setCartErr(null);
-      setCartLines((prev) => {
-        const without = prev.filter((l) => l.idBienThe !== idBienThe);
-        if (capped <= 0) return without;
-        return [...without, { idBienThe, soLuong: capped }];
-      });
-
-      void (async () => {
-        try {
-          const res = await fetch("/api/shop/gio-chung", {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ idBienThe, soLuong: capped }),
-          });
-          const json = (await res.json().catch(() => null)) as {
-            gio?: ShopGioChung;
-            error?: string;
-          } | null;
-          if (!res.ok || !json?.gio) {
-            setCartErr(json?.error ?? "Không cập nhật giỏ.");
-            await refreshGio();
-            return;
-          }
-          applyGio(json.gio);
-          window.dispatchEvent(new Event(GIO_CHUNG_CHANGED_EVENT));
-        } catch {
-          setCartErr("Không cập nhật giỏ.");
-        }
-      })();
-    },
-    [canShop, viewerProfileId, openAuthModal, applyGio, refreshGio],
-  );
+  }, [canShop, viewerProfileId, refreshGioCount]);
 
   const openCartDialog = useCallback(() => {
     if (!viewerProfileId) {
@@ -686,83 +392,72 @@ export function JourneyShopStorefront({
     window.dispatchEvent(new Event(GIO_CHUNG_OPEN_EVENT));
   }, [viewerProfileId, openAuthModal]);
 
-  const filterOptions1 = useMemo(
-    () => buildFilterOptions(items ?? [], (i) => i.phanLoai),
-    [items],
-  );
-  const filterOptions2 = useMemo(
-    () => buildFilterOptions(items ?? [], (i) => i.phanLoai2),
-    [items],
-  );
-
-  const showFilter1 = filterOptions1.length > 2;
-  const showFilter2 = filterOptions2.length > 2;
-  const showFilters = showFilter1 || showFilter2;
-
-  const { featured, groups, filteredCount } = useMemo(() => {
-    const list = items ?? [];
-    const afterSearch = applySearchFilter(list, deferredSearch);
-    const after1 = applyAxisFilter(afterSearch, filterLoai, (i) => i.phanLoai);
-    const filtered = applyAxisFilter(after1, filterLoai2, (i) => i.phanLoai2);
-    const feat = filtered.filter((i) => i.noiBat);
-    const rest = filtered.filter((i) => !i.noiBat);
-    return {
-      featured: feat,
-      groups: groupByPhanLoai(rest),
-      filteredCount: filtered.length,
-    };
-  }, [items, filterLoai, filterLoai2, deferredSearch]);
-
-  const hasProducts = (items?.length ?? 0) > 0;
   const searchActive = deferredSearch.trim().length > 0;
-  const showGroupHeads =
-    filterLoai === FILTER_ALL &&
-    filterLoai2 === FILTER_ALL &&
-    !searchActive;
+  const searchQ = deferredSearch.trim().toLowerCase();
+
+  const filteredCards = useMemo(() => {
+    const list = cards ?? [];
+    if (!searchQ) return list;
+    return list.filter((c) => {
+      const hay = [c.nhan, c.moTa].filter(Boolean).join(" ").toLowerCase();
+      return hay.includes(searchQ);
+    });
+  }, [cards, searchQ]);
+
+  const filteredItems = useMemo(() => {
+    if (!searchQ) return [];
+    return items
+      .filter((i) => {
+        const hay = [i.tenSanPham, i.nhanBienThe, i.phanLoai, i.phanLoai2]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        return hay.includes(searchQ);
+      })
+      .sort((a, b) => Number(b.noiBat) - Number(a.noiBat));
+  }, [items, searchQ]);
+
+  const featuredItems = useMemo(
+    () => items.filter((i) => i.noiBat),
+    [items],
+  );
+
+  useEffect(() => {
+    setAddErr(null);
+  }, [deferredSearch]);
+
+  const hasCards = (cards?.length ?? 0) > 0;
+  const hasFeatured = !searchActive && featuredItems.length > 0;
+  const showItemResults = searchActive && filteredItems.length > 0;
+  const showTypeResults =
+    !searchActive || (!showItemResults && filteredCards.length > 0);
+  const hasCatalog = hasCards || featuredItems.length > 0 || items.length > 0;
+  const catalogEmpty = searchActive
+    ? filteredItems.length === 0 && filteredCards.length === 0
+    : !hasCards && featuredItems.length === 0;
 
   return (
     <div className="j-shop-storefront">
-      <header className="j-shop-sf-hero">
-        <div
-          className={`j-shop-sf-cover${shopCoverUrl ? " has-img" : ""}`}
-          style={
-            shopCoverUrl
-              ? { backgroundImage: `url(${shopCoverUrl})` }
-              : undefined
-          }
-          aria-hidden
-        />
-        <div className="j-shop-sf-hero-body">
-          <div className="j-shop-sf-avatar" aria-hidden>
-            {shopAvatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={shopAvatarUrl} alt="" />
-            ) : (
-              <span>{initials}</span>
-            )}
-          </div>
-          <div className="j-shop-sf-hero-main">
-            <div className="j-shop-sf-hero-copy">
-              <h2>{shopName}</h2>
-              {shopMoTa ? <p>{shopMoTa}</p> : null}
-            </div>
-          </div>
-          {ownerChrome?.actions ?? guestChrome?.actions}
-        </div>
-      </header>
+      <JourneyShopSfHero
+        shopName={shopName}
+        shopMoTa={shopMoTa}
+        shopAvatarUrl={shopAvatarUrl}
+        shopCoverUrl={shopCoverUrl}
+        initials={initials}
+      />
 
       <div className="j-shop-sf-section-head">
         <span className="j-tlb-streak-slow" aria-hidden="true" />
         <div className="j-shop-sf-section-tools">
-          {!loading && hasProducts ? (
+          {!loading && hasCards && !shopClosed ? (
             <div className="j-shop-sf-dd-row">
               <label className="j-shop-sf-search">
                 <Search size={14} strokeWidth={2.25} aria-hidden />
                 <input
                   type="search"
                   value={search}
-                  placeholder="Tìm sản phẩm…"
-                  aria-label="Tìm sản phẩm"
+                  placeholder="Tìm hàng…"
+                  aria-label="Tìm hàng bán"
                   autoComplete="off"
                   spellCheck={false}
                   onChange={(e) => setSearch(e.target.value)}
@@ -778,98 +473,130 @@ export function JourneyShopStorefront({
                   </button>
                 ) : null}
               </label>
-              {showFilters ? (
-                <>
-                  {showFilter1 ? (
-                    <FilterDropdown
-                      axisLabel={nhanPhanLoai}
-                      options={filterOptions1}
-                      value={filterLoai}
-                      onChange={setFilterLoai}
-                    />
-                  ) : null}
-                  {showFilter2 ? (
-                    <FilterDropdown
-                      axisLabel={nhanPhanLoai2}
-                      options={filterOptions2}
-                      value={filterLoai2}
-                      onChange={setFilterLoai2}
-                    />
-                  ) : null}
-                </>
-              ) : null}
             </div>
-          ) : null}
+          ) : (
+            <span className="j-shop-sf-section-spacer" aria-hidden />
+          )}
+          {ownerChrome?.actions ?? guestChrome?.actions}
           {canShop ? (
             <button
               type="button"
               className={`j-shop-sf-cart-btn${cartCount > 0 ? " has-items" : ""}`}
-              aria-label="Giỏ chờ mua"
+              aria-label={
+                cartCount > 0
+                  ? `Giỏ chờ mua, ${cartCount} món`
+                  : "Giỏ chờ mua"
+              }
               onClick={openCartDialog}
             >
-              <ShoppingBag size={33} strokeWidth={2} aria-hidden />
+              <ShoppingBag size={18} strokeWidth={2} aria-hidden />
               {cartCount > 0 ? (
-                <span className="j-shop-sf-cart-count">{cartCount}</span>
+                <span className="j-shop-sf-cart-count" aria-hidden>
+                  {cartCount > 99 ? "99+" : cartCount}
+                </span>
               ) : null}
             </button>
           ) : null}
         </div>
       </div>
 
-      {cartErr ? (
-        <p className="j-shop-sf-cart-err" role="alert">
-          {cartErr}
-        </p>
-      ) : null}
-
       {loading ? (
         <div className="j-shop-sf-loading" aria-busy="true">
           <Loader2 size={18} className="shop-spin" aria-hidden />
           Đang tải hàng…
         </div>
-      ) : hasProducts ? (
-        filteredCount > 0 ? (
-          <div className="j-shop-sf-catalog">
-            {featured.length > 0 ? (
-              <section className="j-shop-sf-group j-shop-sf-group--feature">
-                <div className="j-shop-sf-group-head">
-                  <div className="j-shop-sf-group-head-title">
-                    <Star size={14} strokeWidth={2.25} aria-hidden />
-                    <h4>Ngôi sao</h4>
-                  </div>
-                </div>
-                <ProductGrid
-                  items={featured}
-                  featured
-                  qtyByBienThe={qtyByBienThe}
-                  canShop={canShop}
-                  onPatchQty={patchQty}
-                />
-              </section>
-            ) : null}
-
-            {groups.map((group) => (
-              <section key={group.key} className="j-shop-sf-group">
-                {(groups.length > 1 || featured.length > 0) &&
-                showGroupHeads ? (
-                  <GroupHead label={group.label} moTa={group.moTa} />
-                ) : null}
-                <ProductGrid
-                  items={group.items}
-                  qtyByBienThe={qtyByBienThe}
-                  canShop={canShop}
-                  onPatchQty={patchQty}
-                />
-              </section>
-            ))}
-          </div>
-        ) : (
+      ) : hasCatalog ? (
+        catalogEmpty && !shopClosed ? (
           <p className="j-shop-sf-empty">
             {searchActive
-              ? "Không tìm thấy sản phẩm khớp."
-              : "Không có sản phẩm trong mục này."}
+              ? "Không tìm thấy hàng khớp."
+              : "Không có loại hàng."}
           </p>
+        ) : (
+          <div
+            className={`j-shop-sf-catalog${shopClosed ? " is-tam-dong" : ""}`}
+          >
+            {shopClosed ? (
+              <ShopTamDongOverlay shop={tamDongFields} />
+            ) : null}
+            <div
+              className="j-shop-sf-catalog-body"
+              inert={shopClosed ? true : undefined}
+              aria-hidden={shopClosed || undefined}
+            >
+            {hasFeatured ? (
+              <section className="j-shop-sf-group j-shop-sf-group--feature">
+                <div className="j-shop-sf-group-head">
+                  <p className="j-shop-sf-group-kicker">Các mặt hàng phổ biến</p>
+                  <div className="j-shop-sf-group-head-title">
+                    <Star size={14} strokeWidth={2.25} aria-hidden />
+                    <h4>Feature</h4>
+                  </div>
+                </div>
+                {addErr && !showItemResults ? (
+                  <p className="j-shop-sf-empty" role="alert">
+                    {addErr}
+                  </p>
+                ) : null}
+                <ul className="j-shop-sf-grid j-shop-sf-grid--feature">
+                  {featuredItems.map((item) => (
+                    <li key={item.sanPhamId}>
+                      <ItemCard
+                        item={item}
+                        ownerSlug={ownerSlug}
+                        canShop={canShop}
+                        adding={addingId === item.sanPhamId}
+                        onAdd={addItemToCart}
+                        featured
+                      />
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
+            {showItemResults ? (
+              <>
+                {addErr ? (
+                  <p className="j-shop-sf-empty" role="alert">
+                    {addErr}
+                  </p>
+                ) : null}
+                <ul className="j-shop-sf-grid">
+                  {filteredItems.map((item) => (
+                    <li key={item.sanPhamId}>
+                      <ItemCard
+                        item={item}
+                        ownerSlug={ownerSlug}
+                        canShop={canShop}
+                        adding={addingId === item.sanPhamId}
+                        onAdd={addItemToCart}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : null}
+            {showTypeResults ? (
+              <section className="j-shop-sf-group">
+                <div className="j-shop-sf-group-head">
+                  <p className="j-shop-sf-group-kicker">Các loại hàng</p>
+                </div>
+                <ul className="j-shop-sf-grid">
+                  {filteredCards.map((card) => (
+                    <li key={card.id}>
+                      <TypeCard card={card} ownerSlug={ownerSlug} />
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
+            </div>
+          </div>
         )
+      ) : shopClosed ? (
+        <div className="j-shop-sf-catalog is-tam-dong is-empty-closed">
+          <ShopTamDongOverlay shop={tamDongFields} />
+        </div>
       ) : (
         <p className="j-shop-sf-empty">
           Cửa hàng chưa có sản phẩm đang bán.

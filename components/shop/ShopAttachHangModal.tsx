@@ -47,6 +47,34 @@ function filterLabel(selected: string[], emptyLabel: string): string {
   return `Đã chọn ${labels.length}`;
 }
 
+function AttachGroupCheckbox({
+  ids,
+  selected,
+  onToggle,
+  ariaLabel,
+}: {
+  ids: string[];
+  selected: Set<string>;
+  onToggle: () => void;
+  ariaLabel: string;
+}) {
+  const ref = useRef<HTMLInputElement>(null);
+  const allOn = ids.length > 0 && ids.every((id) => selected.has(id));
+  const someOn = ids.some((id) => selected.has(id)) && !allOn;
+  useEffect(() => {
+    if (ref.current) ref.current.indeterminate = someOn;
+  }, [someOn]);
+  return (
+    <input
+      ref={ref}
+      type="checkbox"
+      checked={allOn}
+      onChange={onToggle}
+      aria-label={ariaLabel}
+    />
+  );
+}
+
 export function ShopAttachHangModal({
   open,
   milestoneId,
@@ -182,6 +210,39 @@ export function ShopAttachHangModal({
     [filteredProducts],
   );
 
+  /** Nhóm theo loại hàng (truc=1) — parent tick = mọi biến thể trong nhóm. */
+  const productGroups = useMemo(() => {
+    type Group = {
+      key: string;
+      label: string;
+      products: ShopSanPham[];
+      bienTheIds: string[];
+    };
+    const map = new Map<string, Group>();
+    for (const p of filteredProducts) {
+      const idNhom = p.idNhom?.trim();
+      const label = p.phanLoai?.trim() || null;
+      const key = idNhom || (label ? `l:${label}` : "__none__");
+      let g = map.get(key);
+      if (!g) {
+        g = {
+          key,
+          label: label ?? "Chưa phân loại",
+          products: [],
+          bienTheIds: [],
+        };
+        map.set(key, g);
+      }
+      g.products.push(p);
+      for (const bt of p.bienThe) g.bienTheIds.push(bt.id);
+    }
+    return [...map.values()].sort((a, b) => {
+      if (a.key === "__none__") return 1;
+      if (b.key === "__none__") return -1;
+      return a.label.localeCompare(b.label, "vi");
+    });
+  }, [filteredProducts]);
+
   const allFilteredSelected =
     filteredBienTheIds.length > 0 &&
     filteredBienTheIds.every((id) => selected.has(id));
@@ -216,20 +277,22 @@ export function ShopAttachHangModal({
     });
   }
 
-  function toggleSelectAll() {
+  function toggleIds(ids: string[]) {
+    if (ids.length === 0) return;
     setSelected((prev) => {
-      if (
-        filteredBienTheIds.length > 0 &&
-        filteredBienTheIds.every((id) => prev.has(id))
-      ) {
-        const next = new Set(prev);
-        for (const id of filteredBienTheIds) next.delete(id);
-        return next;
-      }
+      const allOn = ids.every((id) => prev.has(id));
       const next = new Set(prev);
-      for (const id of filteredBienTheIds) next.add(id);
+      if (allOn) {
+        for (const id of ids) next.delete(id);
+      } else {
+        for (const id of ids) next.add(id);
+      }
       return next;
     });
+  }
+
+  function toggleSelectAll() {
+    toggleIds(filteredBienTheIds);
   }
 
   function resolveGia(idBienThe: string): { gia: number; tienTe: string } | null {
@@ -455,59 +518,82 @@ export function ShopAttachHangModal({
                 </label>
               ) : null}
               <ul className="shop-dash-list shop-attach-list">
-                {filteredProducts.flatMap((p) =>
-                  p.bienThe.map((bt) => {
-                    const thumb = bt.anhUrl ?? p.anhUrl;
-                    const price = resolveGia(bt.id);
-                    return (
-                      <li key={bt.id} className="shop-dash-item shop-attach-item">
-                        <label className="shop-attach-label">
-                          <input
-                            type="checkbox"
-                            checked={selected.has(bt.id)}
-                            onChange={() => toggle(bt.id)}
-                          />
-                          {thumb ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={thumb}
-                              alt=""
-                              className="shop-attach-thumb"
-                            />
-                          ) : (
-                            <span
-                              className="shop-attach-thumb shop-attach-thumb--empty"
-                              aria-hidden
+                {productGroups.map((group) => (
+                  <li
+                    key={group.key}
+                    className="shop-attach-group"
+                  >
+                    <label className="shop-attach-group-head">
+                      <AttachGroupCheckbox
+                        ids={group.bienTheIds}
+                        selected={selected}
+                        onToggle={() => toggleIds(group.bienTheIds)}
+                        ariaLabel={`Chọn cả loại ${group.label}`}
+                      />
+                      <span className="shop-attach-group-name">
+                        {group.label}
+                      </span>
+                      <span className="shop-attach-group-count">
+                        {group.bienTheIds.length} hàng
+                      </span>
+                    </label>
+                    <ul className="shop-attach-group-items">
+                      {group.products.flatMap((p) =>
+                        p.bienThe.map((bt) => {
+                          const thumb = bt.anhUrl ?? p.anhUrl;
+                          const price = resolveGia(bt.id);
+                          const loai2 = p.phanLoai2?.trim();
+                          return (
+                            <li
+                              key={bt.id}
+                              className="shop-dash-item shop-attach-item"
                             >
-                              <ImagePlus size={16} />
-                            </span>
-                          )}
-                          <span className="shop-attach-meta">
-                            <span className="shop-attach-name">
-                              {p.ten}
-                              {bt.nhan !== "Mặc định" ? ` · ${bt.nhan}` : ""}
-                            </span>
-                            <span className="shop-attach-sub">
-                              {[p.phanLoai, p.phanLoai2]
-                                .map((t) => t?.trim())
-                                .filter(Boolean)
-                                .join(" · ")}
-                              {[p.phanLoai, p.phanLoai2].some((t) => t?.trim())
-                                ? " · "
-                                : ""}
-                              tồn {bt.soLuongTon}
-                            </span>
-                          </span>
-                          <span className="shop-attach-price">
-                            {price
-                              ? `${price.gia.toLocaleString("vi-VN")} ${price.tienTe}`
-                              : "Chưa có giá"}
-                          </span>
-                        </label>
-                      </li>
-                    );
-                  }),
-                )}
+                              <label className="shop-attach-label">
+                                <input
+                                  type="checkbox"
+                                  checked={selected.has(bt.id)}
+                                  onChange={() => toggle(bt.id)}
+                                />
+                                {thumb ? (
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  <img
+                                    src={thumb}
+                                    alt=""
+                                    className="shop-attach-thumb"
+                                  />
+                                ) : (
+                                  <span
+                                    className="shop-attach-thumb shop-attach-thumb--empty"
+                                    aria-hidden
+                                  >
+                                    <ImagePlus size={16} />
+                                  </span>
+                                )}
+                                <span className="shop-attach-meta">
+                                  <span className="shop-attach-name">
+                                    {p.ten}
+                                    {bt.nhan !== "Mặc định"
+                                      ? ` · ${bt.nhan}`
+                                      : ""}
+                                  </span>
+                                  <span className="shop-attach-sub">
+                                    {loai2 ? `${loai2} · ` : ""}
+                                    tồn {bt.soLuongTon}
+                                  </span>
+                                </span>
+                                <span className="shop-attach-price">
+                                  {price
+                                    ? `${price.gia.toLocaleString("vi-VN")} ${price.tienTe}`
+                                    : "Chưa có giá"}
+                                </span>
+                              </label>
+                            </li>
+                          );
+                        }),
+                      )}
+                    </ul>
+                  </li>
+                ))}
               </ul>
               {products.length === 0 ? (
                 <p className="shop-dash-hint">

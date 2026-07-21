@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import {
+  deleteShopCuaHang,
   deleteShopPhuongThucTt,
   getOrCreateShopCuaHang,
   getShopCuaHangByUserId,
@@ -162,6 +163,32 @@ export async function PATCH(request: Request) {
           : body.nhanPhanLoai2 === null || typeof body.nhanPhanLoai2 === "string"
             ? (body.nhanPhanLoai2 as string | null)
             : undefined,
+      tamDong:
+        body.tamDong === undefined
+          ? undefined
+          : body.tamDong === true
+            ? true
+            : body.tamDong === false
+              ? false
+              : undefined,
+      tamDongTu:
+        body.tamDongTu === undefined
+          ? undefined
+          : body.tamDongTu === null || typeof body.tamDongTu === "string"
+            ? (body.tamDongTu as string | null)
+            : undefined,
+      tamDongDen:
+        body.tamDongDen === undefined
+          ? undefined
+          : body.tamDongDen === null || typeof body.tamDongDen === "string"
+            ? (body.tamDongDen as string | null)
+            : undefined,
+      tamDongLyDo:
+        body.tamDongLyDo === undefined
+          ? undefined
+          : body.tamDongLyDo === null || typeof body.tamDongLyDo === "string"
+            ? (body.tamDongLyDo as string | null)
+            : undefined,
     });
     return NextResponse.json({ shop });
   } catch (e) {
@@ -172,7 +199,46 @@ export async function PATCH(request: Request) {
         { status: 400 },
       );
     }
+    if (msg === "PTTT_LIMIT") {
+      return NextResponse.json(
+        { error: "Chỉ được lưu một tài khoản nhận tiền. Hãy sửa tài khoản hiện có." },
+        { status: 400 },
+      );
+    }
+    if (msg === "TAM_DONG_RANGE_REQUIRED") {
+      return NextResponse.json(
+        { error: "Cần chọn thời gian nghỉ từ." },
+        { status: 400 },
+      );
+    }
+    if (msg === "TAM_DONG_RANGE_INVALID") {
+      return NextResponse.json(
+        { error: "Thời gian mở lại phải sau thời gian bắt đầu nghỉ." },
+        { status: 400 },
+      );
+    }
     console.error("[api/shop/cua-hang] PATCH", e);
     return NextResponse.json({ error: "Không lưu được." }, { status: 500 });
+  }
+}
+
+/**
+ * DELETE /api/shop/cua-hang — chủ xóa cửa hàng (catalog soft-delete + tắt bán hàng).
+ */
+export async function DELETE() {
+  const session = await getCurrentSessionAndProfile();
+  if (!session?.profile) {
+    return NextResponse.json({ error: "Thiếu đăng nhập." }, { status: 401 });
+  }
+
+  try {
+    await deleteShopCuaHang(session.profile.id);
+    return NextResponse.json({ ok: true });
+  } catch (e) {
+    console.error("[api/shop/cua-hang] DELETE", e);
+    return NextResponse.json(
+      { error: "Không xóa được cửa hàng." },
+      { status: 500 },
+    );
   }
 }

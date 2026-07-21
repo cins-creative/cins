@@ -4,6 +4,7 @@ import { openDirectRoom, sendRoomMessage } from "@/lib/chat/direct-message";
 import { getGio, getGioCuaHang } from "@/lib/shop/gio";
 import { clearGioChungCuaSeller, getGioChung } from "@/lib/shop/gio-chung";
 import {
+  assertShopNotTamDong,
   buildThanhToanSnapshot,
   getShopCheckoutPayment,
 } from "@/lib/shop/cua-hang";
@@ -307,6 +308,7 @@ export async function createDonFromGio(
       .from("shop_cua_hang")
       .select("id, id_nguoi_dung")
       .eq("id", cuaHangId!)
+      .eq("da_xoa", false)
       .maybeSingle<{ id: string; id_nguoi_dung: string }>();
     if (!shop) throw new Error("SHOP_NOT_FOUND");
     sellerId = shop.id_nguoi_dung;
@@ -316,6 +318,8 @@ export async function createDonFromGio(
   if (input.loaiDon !== "mua_ngay") {
     throw new Error("LOAI_DON_UNSUPPORTED");
   }
+
+  await assertShopNotTamDong(sellerId);
 
   if (input.nguoiMuaChapNhanRuiRo !== true) {
     throw new Error("BUYER_ACCEPTANCE_REQUIRED");
@@ -484,6 +488,8 @@ export async function createDonChungForSeller(
   const sellerId = input.sellerId?.trim();
   if (!sellerId) throw new Error("CART_SCOPE_REQUIRED");
   if (sellerId === buyerId) throw new Error("CANNOT_BUY_OWN");
+
+  await assertShopNotTamDong(sellerId);
 
   const gio = await getGioChung(buyerId);
   const nhom = gio.nhom.find((n) => n.idNguoiBan === sellerId);

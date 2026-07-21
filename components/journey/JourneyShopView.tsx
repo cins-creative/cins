@@ -15,6 +15,7 @@ import {
   prefetchBanHangClientStatus,
   writeShopCuaHangCache,
 } from "@/lib/shop/client-fetch-cache";
+import { isShopTamDongActive } from "@/lib/shop/tam-dong";
 import { JourneyShopGuestActions } from "@/components/journey/JourneyShopGuestActions";
 import { JourneyShopStorefront } from "@/components/journey/JourneyShopStorefront";
 
@@ -175,6 +176,10 @@ export function JourneyShopView({
           nhanPhanLoai2={resolveShopNhanPhanLoai2(shop)}
           isOwner={isOwner}
           viewerProfileId={viewerProfileId}
+          tamDongActive={isShopTamDongActive(shop)}
+          tamDongTu={shop?.tamDongTu ?? null}
+          tamDongDen={shop?.tamDongDen ?? null}
+          tamDongLyDo={shop?.tamDongLyDo ?? null}
           ownerChrome={
             isOwner
               ? {
@@ -186,40 +191,53 @@ export function JourneyShopView({
                       <Link
                         href="/ban-hang/cua-hang"
                         className="j-shop-action-btn"
+                        aria-label="Quản lý cửa hàng"
                         onMouseEnter={warmPrefetchBanHang}
                         onFocus={warmPrefetchBanHang}
                       >
                         <Settings2 size={13} aria-hidden />
-                        Quản lý cửa hàng
+                        <span className="j-shop-action-btn-label">
+                          Quản lý cửa hàng
+                        </span>
                       </Link>
                       {ready ? (
                         <>
                           <Link
                             href="/ban-hang/kho"
                             className="j-shop-action-btn"
+                            aria-label="Kho hàng"
                             onMouseEnter={warmPrefetchBanHang}
                             onFocus={warmPrefetchBanHang}
                           >
                             <Package size={13} aria-hidden />
-                            Kho hàng
+                            <span className="j-shop-action-btn-label">
+                              Kho hàng
+                            </span>
                           </Link>
                           <Link
                             href="/ban-hang/don"
                             className="j-shop-action-btn"
+                            aria-label="Đơn hàng"
                             onMouseEnter={warmPrefetchBanHang}
                             onFocus={warmPrefetchBanHang}
                           >
                             <ClipboardList size={13} aria-hidden />
-                            Đơn hàng
+                            <span className="j-shop-action-btn-label">
+                              Đơn hàng
+                            </span>
                           </Link>
                         </>
                       ) : (
                         <span
                           className="j-shop-action-btn is-disabled"
                           aria-disabled="true"
+                          aria-label="Kho (cần STK)"
+                          title="Kho (cần STK)"
                         >
                           <Package size={13} aria-hidden />
-                          Kho (cần STK)
+                          <span className="j-shop-action-btn-label">
+                            Kho (cần STK)
+                          </span>
                         </span>
                       )}
                     </nav>

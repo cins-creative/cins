@@ -36,10 +36,13 @@ export async function JourneyProfilePageLoader({
   searchParams,
   /** Trang `/{slug}/shop` — không redirect vòng, ép view shop. */
   storefront = false,
+  /** Trang `/{slug}/shop/loai/[nhomId]` — panel chính = chi tiết loại. */
+  shopNhomId = null,
 }: {
   params: Params;
   searchParams: SearchParams;
   storefront?: boolean;
+  shopNhomId?: string | null;
 }) {
   const { slug } = await params;
   const { welcome, view, compose, edit } = await searchParams;
@@ -165,6 +168,7 @@ export async function JourneyProfilePageLoader({
         editProfileInitial={editProfileInitial}
         initialCompose={initialCompose}
         showShop={showShop}
+        shopNhomId={shopNhomId}
       />
     </div>
   );

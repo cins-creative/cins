@@ -42,6 +42,20 @@ export const JourneyShopViewLazy = dynamic(
   },
 );
 
+export const JourneyShopLoaiClientLazy = dynamic(
+  () =>
+    import("@/components/journey/JourneyShopLoaiClient").then(
+      (m) => m.JourneyShopLoaiClient,
+    ),
+  {
+    loading: () => (
+      <section className="j-shop" aria-busy="true">
+        <div className="j-shop-loading">Đang tải loại hàng…</div>
+      </section>
+    ),
+  },
+);
+
 export function prefetchJourneyGalleryView() {
   void import("@/components/journey/JourneyGalleryGridView");
 }

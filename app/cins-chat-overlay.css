@@ -9066,6 +9066,34 @@ button.cins-chat-project-card-mark:hover {
 :root[data-theme="dark"] .cins-chat-at-menu-empty {
   color: var(--ink-muted);
 }
+
+/* @mention chip — dark: xanh sáng trên bubble đối phương; trắng trên bubble mình */
+:root[data-theme="dark"] .cins-chat-mention-chip {
+  color: #93c5fd;
+}
+:root[data-theme="dark"] .cins-chat-mention-chip.is-self {
+  background: rgba(147, 197, 253, 0.18);
+}
+:root[data-theme="dark"] .cins-chat-mention-chip.is-everyone {
+  color: #fbbf24;
+}
+:root[data-theme="dark"] .cins-chat-mention-chip.is-everyone.is-self {
+  background: rgba(251, 191, 36, 0.18);
+}
+:root[data-theme="dark"] .cins-chat-bubble.is-me .cins-chat-mention-chip,
+:root[data-theme="dark"] .cins-chat-mention-chip.is-me {
+  color: #fff;
+}
+:root[data-theme="dark"] .cins-chat-bubble.is-me .cins-chat-mention-chip.is-self,
+:root[data-theme="dark"] .cins-chat-mention-chip.is-me.is-self {
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff;
+}
+:root[data-theme="dark"] .cins-chat-bubble.is-me .cins-chat-mention-chip.is-everyone,
+:root[data-theme="dark"] .cins-chat-mention-chip.is-me.is-everyone {
+  color: #ffe0a3;
+}
+
 :root[data-theme="dark"] .cins-chat-attach {
   color: var(--ink-muted);
 }

@@ -64,6 +64,10 @@ export async function POST(request: Request) {
         422,
         "Người bán chưa thêm tài khoản nhận tiền — chưa nhận đơn được.",
       ],
+      SHOP_TAM_DONG: [
+        422,
+        "Shop đang tạm đóng cửa — chưa nhận đơn.",
+      ],
     };
     const hit = map[msg];
     if (hit) return NextResponse.json({ error: hit[1] }, { status: hit[0] });

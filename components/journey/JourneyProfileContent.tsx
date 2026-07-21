@@ -10,6 +10,7 @@ import {
   JourneyFriendsViewLazy,
   JourneyGalleryGridViewLazy,
   JourneyOrganizationsViewLazy,
+  JourneyShopLoaiClientLazy,
   JourneyShopViewLazy,
   prefetchJourneyFriendsView,
   prefetchJourneyGalleryView,
@@ -18,7 +19,10 @@ import {
 } from "@/components/journey/journey-profile-lazy-views";
 import { JourneyFilterShareProvider } from "@/components/journey/JourneyFilterShareContext";
 import { JourneyTimeline } from "@/components/journey/JourneyTimeline";
-import { useJourneyView } from "@/components/journey/JourneyViewContext";
+import {
+  shopNhomIdFromPathname,
+  useJourneyView,
+} from "@/components/journey/JourneyViewContext";
 import type { MilestoneItem } from "@/components/journey/milestone-types";
 import type { LoaiMocVisibilityMap } from "@/lib/journey/filter-visibility";
 import { galleryItemThumbSrc } from "@/lib/journey/gallery-filter-share";
@@ -113,6 +117,8 @@ type Props = {
   isOwner: boolean;
   viewerProfileId: string | null;
   filterVisibility: LoaiMocVisibilityMap;
+  /** SSR từ `/{slug}/shop/loai/[nhomId]` — client sync lại theo URL. */
+  shopNhomId?: string | null;
 };
 
 export function JourneyProfileContent({
@@ -125,8 +131,36 @@ export function JourneyProfileContent({
   isOwner,
   viewerProfileId,
   filterVisibility,
+  shopNhomId: initialShopNhomId = null,
 }: Props) {
   const { view } = useJourneyView();
+  const [shopNhomId, setShopNhomId] = useState<string | null>(
+    () => initialShopNhomId,
+  );
+
+  useEffect(() => {
+    setShopNhomId(initialShopNhomId);
+  }, [initialShopNhomId]);
+
+  useEffect(() => {
+    const sync = (pathname?: string) => {
+      const path =
+        pathname ??
+        (typeof window !== "undefined" ? window.location.pathname : "");
+      setShopNhomId(shopNhomIdFromPathname(path, ownerSlug));
+    };
+    const onPath = (event: Event) => {
+      const detail = (event as CustomEvent<{ pathname?: string }>).detail;
+      sync(detail?.pathname);
+    };
+    const onPop = () => sync();
+    window.addEventListener("cins:journey-path", onPath);
+    window.addEventListener("popstate", onPop);
+    return () => {
+      window.removeEventListener("cins:journey-path", onPath);
+      window.removeEventListener("popstate", onPop);
+    };
+  }, [ownerSlug]);
 
   const [galleryCache, setGalleryCache] = useState<PanelState<JourneyGalleryPanelData>>(() =>
     initialData.gallery ??
@@ -742,14 +776,26 @@ export function JourneyProfileContent({
           <JourneyOrganizationsViewLazy data={organizationsCache} />
         )
       ) : view === "shop" ? (
-        <JourneyShopViewLazy
-          ownerId={ownerId}
-          ownerSlug={ownerSlug}
-          ownerName={ownerName}
-          isOwner={isOwner}
-          viewerProfileId={viewerProfileId}
-          ownerAvatarUrl={ownerAvatarUrl}
-        />
+        shopNhomId ? (
+          <JourneyShopLoaiClientLazy
+            ownerSlug={ownerSlug}
+            nhomId={shopNhomId}
+            ownerId={ownerId}
+            ownerName={ownerName}
+            isOwner={isOwner}
+            viewerProfileId={viewerProfileId}
+            ownerAvatarUrl={ownerAvatarUrl}
+          />
+        ) : (
+          <JourneyShopViewLazy
+            ownerId={ownerId}
+            ownerSlug={ownerSlug}
+            ownerName={ownerName}
+            isOwner={isOwner}
+            viewerProfileId={viewerProfileId}
+            ownerAvatarUrl={ownerAvatarUrl}
+          />
+        )
       ) : timelineCache === "loading" || timelineCache === null ? (
         <JourneyTimelineSectionSkeleton />
       ) : timelineCache === "error" ? (

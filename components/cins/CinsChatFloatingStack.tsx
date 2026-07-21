@@ -619,9 +619,11 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
           canvasBridge.pendingFocusNodeId = res.node.id;
           canvasBridge.pendingIngestNode = res.node;
           canvasBridge.pendingOpenCanvas = true;
+          const thread = miniThreadRef.current;
           void openChat({
+            thread: thread ?? undefined,
             roomId,
-            tab: miniThreadRef.current?.group,
+            tab: thread?.group,
           });
         });
       },
@@ -1837,6 +1839,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
                 title="Mở rộng"
                 onClick={() =>
                   void openChat({
+                    thread: miniThread,
                     roomId: miniThread.roomId,
                     tab: miniThread.group,
                   })

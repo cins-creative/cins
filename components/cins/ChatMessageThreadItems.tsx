@@ -59,10 +59,6 @@ type ChatMessageThreadItemsProps = {
   onOpenCanvasComments?: (nodeIds: string[], messageId: string) => void;
 };
 
-function recalledLabel(msg: ChatMessage): string {
-  return msg.from === "me" ? "Bạn đã thu hồi tin nhắn" : "Tin nhắn đã được thu hồi";
-}
-
 function PinBadge() {
   return (
     <span className="cins-chat-pin-badge" aria-label="Tin đã ghim">
@@ -309,42 +305,8 @@ function SingleMessageBubble({
   const actionsInBubble = chatMessageHasInteractiveMedia(msg) && !isEditing;
   const caption = layout === "media-caption" ? msg.body.trim() : "";
 
-  if (msg.deleted) {
-    const useCluster = !isMe && Boolean(showSenderNames);
-    return (
-      <>
-        <div
-          id={messageRowId(msg.id)}
-          className={`cins-chat-bubble-row ${isMe ? "is-me" : "is-them"}${msg.pinned ? " is-pinned-row" : ""}${useCluster ? " has-sender-cluster" : ""}`}
-        >
-          {useCluster ? (
-            <div className="cins-chat-msg-stack">
-              <SenderCluster
-                msg={msg}
-                renderTheirAvatar={renderTheirAvatar}
-                showSenderNames={showSenderNames}
-                showTime
-              />
-              <div className={`cins-chat-bubble is-recalled${isMe ? " is-me" : " is-them"}`}>
-                <p className="cins-chat-recalled">{recalledLabel(msg)}</p>
-              </div>
-            </div>
-          ) : (
-            <>
-              {msg.from === "them" ? renderTheirAvatar?.(msg) : null}
-              <div className={`cins-chat-bubble is-recalled${isMe ? " is-me" : " is-them"}`}>
-                <p className="cins-chat-recalled">{recalledLabel(msg)}</p>
-                <BubbleMeta msg={msg} />
-              </div>
-            </>
-          )}
-        </div>
-        {seenBy?.length ? (
-          <ChatSeenAvatars cursors={seenBy} align={isMe ? "me" : "them"} />
-        ) : null}
-      </>
-    );
-  }
+  /* Thu hồi → ẩn hẳn khỏi dòng chat (reply quote vẫn có thể ghi «đã thu hồi»). */
+  if (msg.deleted) return null;
 
   if (msg.kind === "canvas_binh_luan" || msg.canvasBinhLuan) {
     if (msg.deleted) return null;
@@ -661,26 +623,7 @@ export function ChatMessageThreadItems({
         const firstId = item.messages[0].id;
         const isMe = item.from === "me";
         const activeMessages = item.messages.filter((m) => !m.deleted);
-        const allRecalled = activeMessages.length === 0;
-
-        if (allRecalled) {
-          const msg = item.messages[0];
-          return (
-            <SingleMessageBubble
-              key={`recalled-album-${firstId}`}
-              msg={{ ...msg, deleted: true }}
-              seenBy={byMessage.get(msg.id)}
-              renderTheirAvatar={renderTheirAvatar}
-              showSenderNames={showSenderNames}
-              actionHandlers={actionHandlers}
-              roomId={roomId}
-              viewerUserId={viewerUserId}
-              onPollUpdated={onPollUpdated}
-              onJumpToMessage={onJumpToMessage}
-              onOpenCanvasComments={onOpenCanvasComments}
-            />
-          );
-        }
+        if (activeMessages.length === 0) return null;
 
         const captionMsg = item.messages.find((m) => m.body.trim() && !m.deleted);
         const caption = captionMsg?.body.trim() ?? "";

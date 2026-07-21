@@ -3,6 +3,7 @@
 import {
   ClipboardList,
   ExternalLink,
+  Home,
   Loader2,
   Package,
   Store,
@@ -209,7 +210,7 @@ export function ShopTopbarButton() {
                   title="Mở quản lý đơn hàng"
                   onClick={() => setOpen(false)}
                 >
-                  <ExternalLink size={15} strokeWidth={2} aria-hidden />
+                  <Home size={15} strokeWidth={2} aria-hidden />
                 </a>
               ) : null}
             </div>

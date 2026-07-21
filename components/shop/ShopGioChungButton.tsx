@@ -7,7 +7,7 @@ import {
   Minus,
   Package,
   Plus,
-  ShoppingCart,
+  ShoppingBag,
   Store,
   Trash2,
   TriangleAlert,
@@ -216,7 +216,7 @@ export function ShopGioChungButton() {
                   </p>
                 ) : pendingGroups.length === 0 && sentDons.length === 0 ? (
                   <div className="gio-chung-empty">
-                    <ShoppingCart size={26} strokeWidth={1.6} aria-hidden />
+                    <ShoppingBag size={26} strokeWidth={2} aria-hidden />
                     <p>Giỏ chờ mua còn trống</p>
                     <span>Thêm hàng từ các cửa hàng để gom vào đây.</span>
                   </div>
@@ -255,7 +255,7 @@ export function ShopGioChungButton() {
             aria-haspopup="dialog"
             onClick={() => setOpen((v) => !v)}
           >
-            <ShoppingCart size={18} strokeWidth={1.9} aria-hidden />
+            <ShoppingBag size={18} strokeWidth={2} aria-hidden />
             {count > 0 ? (
               <span className="gio-chung-count" aria-hidden>
                 {count > 99 ? "99+" : count}

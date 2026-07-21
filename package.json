@@ -27,7 +27,12 @@
     "migrate:diem-uu-tien": "node scripts/run-content-diem-feed-uu-tien-migration.mjs",
     "migrate:shop": "node scripts/run-shop-ban-hang-migration.mjs",
     "migrate:shop-chap-nhan": "node scripts/run-shop-don-chap-nhan-migration.mjs",
-    "migrate:shop-nhom": "node scripts/run-shop-nhom-migration.mjs"
+    "migrate:shop-nhom": "node scripts/run-shop-nhom-migration.mjs",
+    "migrate:shop-nhom-storefront-v2": "node scripts/run-shop-nhom-storefront-v2-migration.mjs",
+    "migrate:shop-nhom-gia": "node scripts/run-shop-nhom-gia-mac-dinh-migration.mjs",
+    "migrate:shop-nhom-overlay": "node scripts/run-shop-nhom-overlay-migration.mjs",
+    "migrate:shop-nhom-anh-phu": "node scripts/run-shop-nhom-anh-phu-migration.mjs",
+    "migrate:shop-nhom-video-phu": "node scripts/run-shop-nhom-video-phu-migration.mjs"
   },
   "dependencies": {
     "@rive-app/canvas": "^2.38.3",

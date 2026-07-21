@@ -56,6 +56,8 @@ type Props = {
   initialCompose?: JourneyComposeState | null;
   /** Hiện tab Shop (bật bán hàng, hoặc chính chủ). */
   showShop?: boolean;
+  /** Chi tiết loại hàng trong panel shop (`/{slug}/shop/loai/...`). */
+  shopNhomId?: string | null;
 };
 
 async function loadInitialData(
@@ -132,6 +134,7 @@ async function JourneyProfileInitialLoader({
   isOwner,
   viewerProfileId,
   filterVisibility,
+  shopNhomId = null,
 }: {
   activeView: JourneyProfileView;
   ownerId: string;
@@ -142,6 +145,7 @@ async function JourneyProfileInitialLoader({
   isOwner: boolean;
   viewerProfileId: string | null;
   filterVisibility: LoaiMocVisibilityMap;
+  shopNhomId?: string | null;
 }) {
   const initialData = await loadInitialData(activeView, {
     ownerId,
@@ -161,6 +165,7 @@ async function JourneyProfileInitialLoader({
       isOwner={isOwner}
       viewerProfileId={viewerProfileId}
       filterVisibility={filterVisibility}
+      shopNhomId={shopNhomId}
     />
   );
 }
@@ -179,6 +184,7 @@ export function JourneyProfileShell({
   editProfileInitial,
   initialCompose = null,
   showShop = false,
+  shopNhomId = null,
 }: Props) {
   const countsPromise = getCachedJourneySwitchNavCounts({ ownerId: owner.id }).then(
     ({ friendCount, orgCount }) => ({ friendCount, orgCount }),
@@ -233,6 +239,7 @@ export function JourneyProfileShell({
             isOwner={isOwner}
             viewerProfileId={viewerProfileId}
             filterVisibility={filterVisibility}
+            shopNhomId={shopNhomId}
           />
         </Suspense>
       }

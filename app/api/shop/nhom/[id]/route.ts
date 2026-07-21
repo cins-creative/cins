@@ -18,16 +18,35 @@ export async function PATCH(request: Request, ctx: Ctx) {
     return NextResponse.json({ error: "Thiếu id nhóm." }, { status: 422 });
   }
 
-  let body: { moTa?: unknown; nhan?: unknown };
+  let body: {
+    moTa?: unknown;
+    nhan?: unknown;
+    anhId?: unknown;
+    overlayAnhId?: unknown;
+    anhPhuIds?: unknown;
+    videoPhuId?: unknown;
+    giaMacDinh?: unknown;
+  };
   try {
     body = (await request.json()) as typeof body;
   } catch {
     return NextResponse.json({ error: "JSON không hợp lệ." }, { status: 400 });
   }
 
-  if (body.moTa === undefined && body.nhan === undefined) {
+  if (
+    body.moTa === undefined &&
+    body.nhan === undefined &&
+    body.anhId === undefined &&
+    body.overlayAnhId === undefined &&
+    body.anhPhuIds === undefined &&
+    body.videoPhuId === undefined &&
+    body.giaMacDinh === undefined
+  ) {
     return NextResponse.json(
-      { error: "Cần moTa hoặc nhan." },
+      {
+        error:
+          "Cần moTa, nhan, anhId, overlayAnhId, anhPhuIds, videoPhuId hoặc giaMacDinh.",
+      },
       { status: 422 },
     );
   }
@@ -43,6 +62,46 @@ export async function PATCH(request: Request, ctx: Ctx) {
               ? null
               : undefined,
       nhan: typeof body.nhan === "string" ? body.nhan : undefined,
+      anhId:
+        body.anhId === undefined
+          ? undefined
+          : typeof body.anhId === "string"
+            ? body.anhId
+            : body.anhId === null
+              ? null
+              : undefined,
+      overlayAnhId:
+        body.overlayAnhId === undefined
+          ? undefined
+          : typeof body.overlayAnhId === "string"
+            ? body.overlayAnhId
+            : body.overlayAnhId === null
+              ? null
+              : undefined,
+      anhPhuIds:
+        body.anhPhuIds === undefined
+          ? undefined
+          : Array.isArray(body.anhPhuIds)
+            ? body.anhPhuIds.filter(
+                (x): x is string => typeof x === "string",
+              )
+            : undefined,
+      videoPhuId:
+        body.videoPhuId === undefined
+          ? undefined
+          : typeof body.videoPhuId === "string"
+            ? body.videoPhuId
+            : body.videoPhuId === null
+              ? null
+              : undefined,
+      giaMacDinh:
+        body.giaMacDinh === undefined
+          ? undefined
+          : body.giaMacDinh === null
+            ? null
+            : typeof body.giaMacDinh === "number"
+              ? body.giaMacDinh
+              : Number(body.giaMacDinh),
     });
     return NextResponse.json({ item });
   } catch (e) {
@@ -63,6 +122,12 @@ export async function PATCH(request: Request, ctx: Ctx) {
       return NextResponse.json(
         { error: "Tên nhóm đã tồn tại." },
         { status: 409 },
+      );
+    }
+    if (msg === "GIA_INVALID") {
+      return NextResponse.json(
+        { error: "Giá mặc định không hợp lệ." },
+        { status: 422 },
       );
     }
     console.error("[api/shop/nhom/[id]]", e);

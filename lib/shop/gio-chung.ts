@@ -1,5 +1,8 @@
 import "server-only";
 
+import {
+  assertShopNotTamDong,
+} from "@/lib/shop/cua-hang";
 import { shopImageUrl } from "@/lib/shop/settings";
 import type {
   ShopGioChung,
@@ -191,7 +194,8 @@ async function resolveNguoiBan(
   const { data: shopRows } = await admin
     .from("shop_cua_hang")
     .select("id, id_nguoi_dung, ten, avatar_id")
-    .in("id_nguoi_dung", sellerIds);
+    .in("id_nguoi_dung", sellerIds)
+    .eq("da_xoa", false);
   const shopBySeller = new Map(
     ((shopRows ?? []) as Array<{
       id: string;
@@ -372,8 +376,46 @@ export async function setGioChungDong(
   if (info.ngungBan) throw new Error("ITEM_UNAVAILABLE");
   if (info.soLuongTon <= 0) throw new Error("STOCK_EMPTY");
   if (qty > info.soLuongTon) throw new Error("STOCK_INSUFFICIENT");
+  await assertShopNotTamDong(info.idNguoiBan);
 
   const gioId = await getOrCreateGioChungId(buyerId);
+  await upsertDong(gioId, idBienThe, qty);
+  await touchGio(gioId);
+  return getGioChung(buyerId);
+}
+
+/**
+ * Cộng thêm `delta` vào dòng giỏ (không cần client GET trước).
+ * Chặn vượt tồn kho.
+ */
+export async function addGioChungDong(
+  buyerId: string,
+  idBienThe: string,
+  delta: number,
+): Promise<ShopGioChung> {
+  const d = Math.trunc(delta);
+  if (d <= 0) throw new Error("INVALID_QTY");
+
+  const info = (await resolveBienThe([idBienThe])).get(idBienThe);
+  if (!info) throw new Error("ITEM_NOT_FOUND");
+  if (info.idNguoiBan === buyerId) throw new Error("CANNOT_BUY_OWN");
+  if (info.ngungBan) throw new Error("ITEM_UNAVAILABLE");
+  if (info.soLuongTon <= 0) throw new Error("STOCK_EMPTY");
+  await assertShopNotTamDong(info.idNguoiBan);
+
+  const gioId = await getOrCreateGioChungId(buyerId);
+  const admin = createServiceRoleClient();
+  const { data: existing } = await admin
+    .from("shop_gio_dong")
+    .select("id, so_luong")
+    .eq("id_gio", gioId)
+    .eq("id_bien_the", idBienThe)
+    .maybeSingle<{ id: string; so_luong: number }>();
+
+  const current = Math.max(0, Math.trunc(existing?.so_luong ?? 0));
+  const qty = Math.min(current + d, info.soLuongTon);
+  if (qty <= current) throw new Error("STOCK_INSUFFICIENT");
+
   await upsertDong(gioId, idBienThe, qty);
   await touchGio(gioId);
   return getGioChung(buyerId);

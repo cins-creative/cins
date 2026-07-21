@@ -199,6 +199,7 @@
 | `audit_nghe_seo.sql` | **Readonly audit SEO nghề** — meta/tom_tat/noi_dung/bo_phan. Chạy: `node scripts/audit-nghe-seo.mjs` → `scripts/nghe-content/_audit-seo-report.json`. |
 | `migration_shop_gio_cua_hang.sql` | Giỏ storefront: `shop_gio.id_cua_hang` + `id_cot_moc` nullable; CHECK XOR scope; unique partial (buyer+moc) / (buyer+cua_hang). Chạy: `node scripts/run-shop-gio-cua-hang-migration.mjs`. |
 | `migration_shop_cua_hang_nhan_phan_loai.sql` | Cột `shop_cua_hang.nhan_phan_loai` / `nhan_phan_loai_2` (đổi tên trục phân loại). Chạy: `node scripts/run-shop-cua-hang-nhan-phan-loai-migration.mjs`. |
+| `migration_shop_cua_hang_tam_dong.sql` | Cột `shop_cua_hang.tam_dong` / `tam_dong_tu` / `tam_dong_den` — nghỉ tạm theo lịch; storefront xám + countdown; chặn giỏ/đơn. Chạy: `node scripts/run-shop-cua-hang-tam-dong-migration.mjs`. |
 | `migration_shop_san_pham_phan_loai_2.sql` | Cột `shop_san_pham.phan_loai_2` (nhãn nhóm thứ hai). Chạy: `node scripts/run-shop-san-pham-phan-loai-2-migration.mjs`. |
 | `migration_shop_san_pham_phan_loai.sql` | Cột `shop_san_pham.phan_loai` (nhãn nhóm sản phẩm). Chạy: `node scripts/run-shop-san-pham-phan-loai-migration.mjs`. |
 | `migration_shop_nhom.sql` | Bảng `shop_nhom` (nhãn + mô tả) + `shop_san_pham.id_nhom` / `id_nhom_2`; backfill từ text. Chạy: `npm run migrate:shop-nhom`. |

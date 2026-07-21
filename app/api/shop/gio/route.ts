@@ -122,6 +122,12 @@ export async function PATCH(request: Request) {
         { status: 422 },
       );
     }
+    if (msg === "SHOP_TAM_DONG") {
+      return NextResponse.json(
+        { error: "Shop đang tạm đóng cửa — chưa nhận đơn." },
+        { status: 422 },
+      );
+    }
     return NextResponse.json({ error: "Không cập nhật giỏ." }, { status: 500 });
   }
 }

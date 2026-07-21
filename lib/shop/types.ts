@@ -35,15 +35,123 @@ export type ShopBienThe = {
 /** Trục nhóm: 1 = phân loại 1 (group storefront); 2 = phân loại 2. */
 export type ShopNhomTruc = 1 | 2;
 
-/** Nhóm phân loại (`shop_nhom`) — có mô tả ngắn. */
+/** Nhóm phân loại (`shop_nhom`) — có mô tả ngắn + ảnh card loại. */
 export type ShopNhom = {
   id: string;
   truc: ShopNhomTruc;
   nhan: string;
   moTa: string | null;
+  anhId: string | null;
+  anhUrl: string | null;
+  /** Ảnh chồng lên hình mẫu sản phẩm (storefront). */
+  overlayAnhId: string | null;
+  overlayAnhUrl: string | null;
+  /** Ảnh thật sản phẩm phụ (Cloudflare ids). */
+  anhPhuIds: string[];
+  anhPhuUrls: string[];
+  /** Video phụ Bunny Stream (tối đa 1). */
+  videoPhuId: string | null;
+  videoPhuEmbedUrl: string | null;
+  videoPhuThumbUrl: string | null;
+  /**
+   * Giá gốc mặc định (truc=1). Mẫu kế thừa vào `bang_gia_dong.gia` (không sửa ở mẫu);
+   * mẫu chỉ được chỉnh `gia_giam`.
+   */
+  giaMacDinh: number | null;
   thuTu: number;
   taoLuc: string;
 };
+
+/** Segment route cho SP không gắn nhóm trên storefront. */
+export const SHOP_STOREFRONT_KHAC_SLUG = "khac";
+
+/** Card loại hàng trên `/{slug}/shop`. */
+export type ShopStorefrontNhomCard = {
+  /** UUID nhóm, hoặc `SHOP_STOREFRONT_KHAC_SLUG` cho orphan. */
+  id: string;
+  nhan: string;
+  moTa: string | null;
+  anhUrl: string | null;
+  soMau: number;
+  giaTu: number | null;
+  giaDen: number | null;
+  tienTe: string;
+  soLuongBan: number;
+  hetHang: boolean;
+  href: string;
+  /** Trung bình điểm đánh giá (1 chữ số thập phân), null nếu chưa có. */
+  diemTrungBinh: number | null;
+  tongDanhGia: number;
+};
+
+/** Mẫu (san_pham) trên trang loại. */
+export type ShopStorefrontMau = {
+  sanPhamId: string;
+  ten: string;
+  anhUrl: string | null;
+  /** Feature / nổi bật — đẩy lên đầu + highlight trên chip mẫu. */
+  noiBat: boolean;
+  /** Nhãn thẻ lọc trục 1 (`shop_san_pham.phan_loai`). */
+  phanLoai: string | null;
+  /** Nhãn thẻ lọc trục 2 (`shop_san_pham.phan_loai_2`). */
+  phanLoai2: string | null;
+  bienThe: Array<{
+    id: string;
+    nhan: string;
+    anhUrl: string | null;
+    soLuongTon: number;
+    soLuongBan: number;
+    giaHienThi: number | null;
+    giaGoc: number | null;
+    tienTe: string;
+    hetHang: boolean;
+  }>;
+};
+
+export type ShopStorefrontNhomDetail = {
+  id: string;
+  nhan: string;
+  moTa: string | null;
+  anhUrl: string | null;
+  /** Lớp chồng lên ảnh mẫu trên trang loại. */
+  overlayAnhUrl: string | null;
+  /** Ảnh thật sản phẩm phụ. */
+  anhPhuUrls: string[];
+  /** Video phụ Bunny (tối đa 1). */
+  videoPhuId: string | null;
+  videoPhuEmbedUrl: string | null;
+  videoPhuThumbUrl: string | null;
+  /** Giá gốc mặc định loại (`shop_nhom.gia_mac_dinh`). */
+  giaMacDinh: number | null;
+  /** Giá thấp nhất / cao nhất trong mẫu (fallback khi chưa đặt giaMacDinh). */
+  giaTu: number | null;
+  giaDen: number | null;
+  tienTe: string;
+  sellerId: string;
+  ownerSlug: string;
+  mau: ShopStorefrontMau[];
+  isKhac: boolean;
+};
+
+export type ShopNhomDanhGia = {
+  id: string;
+  idNhom: string;
+  idNguoiDung: string;
+  tenHienThi: string | null;
+  slug: string | null;
+  avatarUrl: string | null;
+  diem: number;
+  noiDung: string | null;
+  anhUrls: string[];
+  mauDaMua: string[];
+  taoLuc: string;
+  isMine: boolean;
+};
+
+export const SHOP_NHOM_DANH_GIA_NOI_DUNG_MAX = 2000;
+export const SHOP_NHOM_DANH_GIA_ANH_MAX = 6;
+/** Ảnh thật phụ trên loại hàng (`shop_nhom.anh_phu_ids`). */
+export const SHOP_NHOM_ANH_PHU_MAX = 8;
 
 export type ShopSanPham = {
   id: string;
@@ -273,6 +381,14 @@ export type ShopCuaHang = {
   nhanPhanLoai: string | null;
   /** Tên cột/trục phân loại 2 (`shop_cua_hang.nhan_phan_loai_2`). */
   nhanPhanLoai2: string | null;
+  /** Seller bật chế độ nghỉ tạm (`shop_cua_hang.tam_dong`). */
+  tamDong: boolean;
+  /** Bắt đầu nghỉ — ISO timestamptz. */
+  tamDongTu: string | null;
+  /** Mở lại — ISO timestamptz. */
+  tamDongDen: string | null;
+  /** Lý do nghỉ tạm (tuỳ chọn). */
+  tamDongLyDo: string | null;
   phuongThucTt: ShopPhuongThucTt[];
   /** Có ≥1 phương thức nhận tiền đang bật. */
   sanSangNhanDon: boolean;

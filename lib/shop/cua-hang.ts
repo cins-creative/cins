@@ -1,11 +1,16 @@
 import "server-only";
 
-import { getBanHangEnabled, shopImageUrl } from "@/lib/shop/settings";
+import {
+  getBanHangEnabled,
+  setBanHangEnabled,
+  shopImageUrl,
+} from "@/lib/shop/settings";
 import type {
   ShopCuaHang,
   ShopPhuongThucTt,
   ShopThanhToanSnapshot,
 } from "@/lib/shop/types";
+import { isShopTamDongActive, normalizeShopTamDongLyDo } from "@/lib/shop/tam-dong";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 type CuaHangRow = {
@@ -19,6 +24,11 @@ type CuaHangRow = {
   lien_he: string | null;
   nhan_phan_loai: string | null;
   nhan_phan_loai_2: string | null;
+  tam_dong: boolean | null;
+  tam_dong_tu: string | null;
+  tam_dong_den: string | null;
+  tam_dong_ly_do: string | null;
+  da_xoa: boolean | null;
   tao_luc: string;
   cap_nhat_luc: string;
 };
@@ -37,7 +47,7 @@ type PtttRow = {
 };
 
 const CUA_HANG_SELECT =
-  "id, id_nguoi_dung, ten, mo_ta, avatar_id, cover_id, chinh_sach, lien_he, nhan_phan_loai, nhan_phan_loai_2, tao_luc, cap_nhat_luc";
+  "id, id_nguoi_dung, ten, mo_ta, avatar_id, cover_id, chinh_sach, lien_he, nhan_phan_loai, nhan_phan_loai_2, tam_dong, tam_dong_tu, tam_dong_den, tam_dong_ly_do, da_xoa, tao_luc, cap_nhat_luc";
 
 const PTTT_SELECT =
   "id, id_cua_hang, ngan_hang, so_tai_khoan, ten_chu_tai_khoan, qr_anh_id, mac_dinh, kich_hoat, thu_tu, tao_luc";
@@ -72,6 +82,10 @@ function mapCuaHang(row: CuaHangRow, pttt: ShopPhuongThucTt[]): ShopCuaHang {
     lienHe: row.lien_he,
     nhanPhanLoai: row.nhan_phan_loai?.trim() || null,
     nhanPhanLoai2: row.nhan_phan_loai_2?.trim() || null,
+    tamDong: row.tam_dong === true,
+    tamDongTu: row.tam_dong_tu ?? null,
+    tamDongDen: row.tam_dong_den ?? null,
+    tamDongLyDo: row.tam_dong_ly_do?.trim() || null,
     phuongThucTt: pttt,
     sanSangNhanDon: pttt.some(
       (p) =>
@@ -109,6 +123,7 @@ async function fetchCuaHangRow(
     .from("shop_cua_hang")
     .select(CUA_HANG_SELECT)
     .eq("id_nguoi_dung", userId)
+    .eq("da_xoa", false)
     .maybeSingle<CuaHangRow>();
   if (error) {
     console.error("[shop] fetchCuaHangRow", error);
@@ -126,7 +141,7 @@ export async function getShopCuaHangByUserId(
   return mapCuaHang(row, pttt);
 }
 
-/** Chủ shop: tạo hàng trống nếu chưa có. */
+/** Chủ shop: tạo hàng trống nếu chưa có; khôi phục soft-delete nếu còn row. */
 export async function getOrCreateShopCuaHang(
   userId: string,
 ): Promise<ShopCuaHang> {
@@ -134,6 +149,32 @@ export async function getOrCreateShopCuaHang(
   if (existing) return existing;
 
   const admin = createServiceRoleClient();
+  const { data: deleted, error: delErr } = await admin
+    .from("shop_cua_hang")
+    .select(CUA_HANG_SELECT)
+    .eq("id_nguoi_dung", userId)
+    .eq("da_xoa", true)
+    .maybeSingle<CuaHangRow>();
+  if (delErr) {
+    console.error("[shop] getOrCreateShopCuaHang find-deleted", delErr);
+    throw new Error("LOAD_FAILED");
+  }
+  if (deleted) {
+    const now = new Date().toISOString();
+    const { error: restoreErr } = await admin
+      .from("shop_cua_hang")
+      .update({ da_xoa: false, cap_nhat_luc: now })
+      .eq("id", deleted.id)
+      .eq("id_nguoi_dung", userId);
+    if (restoreErr) {
+      console.error("[shop] getOrCreateShopCuaHang restore", restoreErr);
+      throw new Error("CREATE_FAILED");
+    }
+    const restored = await getShopCuaHangByUserId(userId);
+    if (restored) return restored;
+    throw new Error("CREATE_FAILED");
+  }
+
   const { data, error } = await admin
     .from("shop_cua_hang")
     .insert({ id_nguoi_dung: userId })
@@ -164,6 +205,10 @@ export type ShopCuaHangPatch = {
   lienHe?: string | null;
   nhanPhanLoai?: string | null;
   nhanPhanLoai2?: string | null;
+  tamDong?: boolean;
+  tamDongTu?: string | null;
+  tamDongDen?: string | null;
+  tamDongLyDo?: string | null;
 };
 
 export async function updateShopCuaHang(
@@ -204,6 +249,45 @@ export async function updateShopCuaHang(
   if (patch.nhanPhanLoai2 !== undefined) {
     const t = patch.nhanPhanLoai2?.trim() || null;
     row.nhan_phan_loai_2 = t && t.length > 40 ? t.slice(0, 40) : t;
+  }
+  if (patch.tamDong !== undefined) {
+    row.tam_dong = patch.tamDong === true;
+  }
+  if (patch.tamDongTu !== undefined) {
+    row.tam_dong_tu = patch.tamDongTu?.trim() || null;
+  }
+  if (patch.tamDongDen !== undefined) {
+    row.tam_dong_den = patch.tamDongDen?.trim() || null;
+  }
+  if (patch.tamDongLyDo !== undefined) {
+    row.tam_dong_ly_do = normalizeShopTamDongLyDo(patch.tamDongLyDo);
+  }
+
+  const nextTamDong =
+    patch.tamDong !== undefined ? patch.tamDong === true : shop.tamDong;
+  const nextTu =
+    patch.tamDongTu !== undefined
+      ? patch.tamDongTu?.trim() || null
+      : shop.tamDongTu;
+  const nextDen =
+    patch.tamDongDen !== undefined
+      ? patch.tamDongDen?.trim() || null
+      : shop.tamDongDen;
+  if (nextTamDong) {
+    if (!nextTu) throw new Error("TAM_DONG_RANGE_REQUIRED");
+    const tuMs = Date.parse(nextTu);
+    if (!Number.isFinite(tuMs)) throw new Error("TAM_DONG_RANGE_INVALID");
+    if (nextDen) {
+      const denMs = Date.parse(nextDen);
+      if (!Number.isFinite(denMs) || denMs <= tuMs) {
+        throw new Error("TAM_DONG_RANGE_INVALID");
+      }
+    }
+  } else if (patch.tamDong === false) {
+    /* Tắt nghỉ → xoá lịch + lý do. */
+    row.tam_dong_tu = null;
+    row.tam_dong_den = null;
+    row.tam_dong_ly_do = null;
   }
 
   const { error } = await admin
@@ -279,10 +363,13 @@ export async function upsertShopPhuongThucTt(
       throw new Error("UPDATE_FAILED");
     }
   } else {
+    if (shop.phuongThucTt.length > 0) {
+      throw new Error("PTTT_LIMIT");
+    }
     const { error } = await admin.from("shop_phuong_thuc_tt").insert({
       id_cua_hang: shop.id,
       ...payload,
-      thu_tu: shop.phuongThucTt.length,
+      thu_tu: 0,
     });
     if (error) {
       console.error("[shop] insertPttt", error);
@@ -293,6 +380,71 @@ export async function upsertShopPhuongThucTt(
   const next = await getShopCuaHangByUserId(userId);
   if (!next) throw new Error("UPDATE_FAILED");
   return next;
+}
+
+/**
+ * Soft-delete cửa hàng của chủ sở hữu:
+ * - `shop_cua_hang.da_xoa = true` (giữ row + STK)
+ * - soft-delete catalog + bảng giá + nhóm
+ * - tắt `ban_hang_bat` / ẩn shop công khai
+ * Đơn hàng lịch sử giữ nguyên.
+ */
+export async function deleteShopCuaHang(userId: string): Promise<void> {
+  const shop = await getShopCuaHangByUserId(userId);
+  const admin = createServiceRoleClient();
+  const now = new Date().toISOString();
+
+  const { error: spErr } = await admin
+    .from("shop_san_pham")
+    .update({ da_xoa: true, cap_nhat_luc: now })
+    .eq("id_nguoi_dung", userId)
+    .eq("da_xoa", false);
+  if (spErr) {
+    console.error("[shop] deleteShopCuaHang san_pham", spErr);
+    throw new Error("DELETE_FAILED");
+  }
+
+  const { error: bgErr } = await admin
+    .from("shop_bang_gia")
+    .update({ da_xoa: true, cap_nhat_luc: now })
+    .eq("id_nguoi_dung", userId)
+    .eq("da_xoa", false);
+  if (bgErr) {
+    console.error("[shop] deleteShopCuaHang bang_gia", bgErr);
+    throw new Error("DELETE_FAILED");
+  }
+
+  const { error: nhomErr } = await admin
+    .from("shop_nhom")
+    .update({ da_xoa: true, cap_nhat_luc: now })
+    .eq("id_nguoi_dung", userId)
+    .eq("da_xoa", false);
+  if (nhomErr) {
+    console.error("[shop] deleteShopCuaHang nhom", nhomErr);
+    throw new Error("DELETE_FAILED");
+  }
+
+  if (shop) {
+    const { error } = await admin
+      .from("shop_cua_hang")
+      .update({
+        da_xoa: true,
+        tam_dong: false,
+        tam_dong_tu: null,
+        tam_dong_den: null,
+        tam_dong_ly_do: null,
+        cap_nhat_luc: now,
+      })
+      .eq("id", shop.id)
+      .eq("id_nguoi_dung", userId)
+      .eq("da_xoa", false);
+    if (error) {
+      console.error("[shop] deleteShopCuaHang cua_hang", error);
+      throw new Error("DELETE_FAILED");
+    }
+  }
+
+  await setBanHangEnabled(userId, false, false);
 }
 
 export async function deleteShopPhuongThucTt(
@@ -412,6 +564,41 @@ export async function assertShopReady(userId: string): Promise<void> {
   }
 }
 
+/** Chặn mua / thêm giỏ khi shop đang trong cửa sổ tạm đóng. */
+export async function assertShopNotTamDong(
+  sellerUserId: string,
+): Promise<void> {
+  const shop = await getShopCuaHangByUserId(sellerUserId);
+  if (isShopTamDongActive(shop)) {
+    throw new Error("SHOP_TAM_DONG");
+  }
+}
+
+export async function assertShopNotTamDongByCuaHangId(
+  cuaHangId: string,
+): Promise<void> {
+  const admin = createServiceRoleClient();
+  const { data } = await admin
+    .from("shop_cua_hang")
+    .select("tam_dong, tam_dong_tu, tam_dong_den")
+    .eq("id", cuaHangId)
+    .eq("da_xoa", false)
+    .maybeSingle<{
+      tam_dong: boolean | null;
+      tam_dong_tu: string | null;
+      tam_dong_den: string | null;
+    }>();
+  if (
+    isShopTamDongActive({
+      tamDong: data?.tam_dong === true,
+      tamDongTu: data?.tam_dong_tu ?? null,
+      tamDongDen: data?.tam_dong_den ?? null,
+    })
+  ) {
+    throw new Error("SHOP_TAM_DONG");
+  }
+}
+
 export {
   shopPublicHref,
   shopSetupHref,
@@ -419,3 +606,6 @@ export {
 
 export const SHOP_NOT_READY_MESSAGE =
   "Cần thêm tài khoản nhận tiền trong Shop trước khi thêm hàng hoặc nhận đơn.";
+
+export const SHOP_TAM_DONG_MESSAGE =
+  "Shop đang tạm đóng cửa — chưa nhận đơn.";

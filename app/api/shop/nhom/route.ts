@@ -40,7 +40,13 @@ export async function POST(request: Request) {
   if (!session?.profile) {
     return NextResponse.json({ error: "Chưa đăng nhập." }, { status: 401 });
   }
-  let body: { truc?: unknown; nhan?: unknown; moTa?: unknown };
+  let body: {
+    truc?: unknown;
+    nhan?: unknown;
+    moTa?: unknown;
+    anhId?: unknown;
+    giaMacDinh?: unknown;
+  };
   try {
     body = (await request.json()) as typeof body;
   } catch {
@@ -63,6 +69,22 @@ export async function POST(request: Request) {
             : body.moTa === null
               ? null
               : undefined,
+      anhId:
+        body.anhId === undefined
+          ? undefined
+          : typeof body.anhId === "string"
+            ? body.anhId
+            : body.anhId === null
+              ? null
+              : undefined,
+      giaMacDinh:
+        body.giaMacDinh === undefined
+          ? undefined
+          : body.giaMacDinh === null
+            ? null
+            : typeof body.giaMacDinh === "number"
+              ? body.giaMacDinh
+              : Number(body.giaMacDinh),
     });
     return NextResponse.json({ item }, { status: 201 });
   } catch (e) {
@@ -80,6 +102,12 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: "Tên loại hàng đã tồn tại." },
         { status: 409 },
+      );
+    }
+    if (msg === "GIA_INVALID") {
+      return NextResponse.json(
+        { error: "Giá mặc định không hợp lệ." },
+        { status: 422 },
       );
     }
     console.error("[api/shop/nhom POST]", e);

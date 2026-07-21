@@ -175,6 +175,19 @@ type Props = {
   onUnreadChange: (count: number) => void;
 };
 
+/** Stub roomId-only từ openChat — không được đè tên/nhóm/avatar đã hydrate. */
+function isSparseLaunchThread(thread: ChatThread): boolean {
+  return (
+    thread.name === "Hội thoại" &&
+    thread.avatarInitial === "?" &&
+    thread.messages.length === 0 &&
+    !thread.isGroup &&
+    !thread.peerUserId &&
+    !thread.orgId &&
+    !thread.isSelf
+  );
+}
+
 function mergeLaunchThread(
   prev: ChatThread[],
   incoming: ChatThread,
@@ -190,13 +203,27 @@ function mergeLaunchThread(
         thread.orgId === incoming.orgId) ||
       (incoming.isGroup && thread.isGroup && thread.roomId === incoming.roomId),
   );
-  const merged: ChatThread = {
-    ...incoming,
-    messages:
-      existing && existing.messages.length > 0
-        ? existing.messages
-        : incoming.messages,
-  };
+  const merged: ChatThread = !existing
+    ? incoming
+    : isSparseLaunchThread(incoming)
+      ? {
+          ...incoming,
+          ...existing,
+          id: existing.id,
+          roomId: existing.roomId || incoming.roomId,
+          messages:
+            existing.messages.length > 0
+              ? existing.messages
+              : incoming.messages,
+        }
+      : {
+          ...existing,
+          ...incoming,
+          messages:
+            incoming.messages.length > 0
+              ? incoming.messages
+              : existing.messages,
+        };
   // Chỉ loại trùng identity — KHÔNG so sánh peerUserId khi cả hai undefined
   // (nhóm/org không có peer → trước đây xóa sạch mọi nhóm khi merge 1 project).
   const rest = prev.filter((thread) => {
@@ -881,10 +908,12 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
   const launchRef = useRef(launch);
   launchRef.current = launch;
 
-  const active = useMemo(
-    () => threads.find((t) => t.id === activeId) ?? null,
-    [threads, activeId],
-  );
+  const active = useMemo(() => {
+    const byId = threads.find((t) => t.id === activeId);
+    if (byId) return byId;
+    /* Launch stub dùng roomId làm id — khớp cả roomId khi list API khác id. */
+    return threads.find((t) => t.roomId === activeId) ?? null;
+  }, [threads, activeId]);
 
   useEffect(() => {
     if (!canvasBridge.pendingOpenCanvas) return;
@@ -2228,7 +2257,10 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
       activePendingCard != null);
 
   const activePinnedMessages = useMemo(
-    () => (active?.roomId ? pinnedByRoom[active.roomId] ?? [] : []),
+    () =>
+      (active?.roomId ? pinnedByRoom[active.roomId] ?? [] : []).filter(
+        (msg) => !msg.deleted,
+      ),
     [active?.roomId, pinnedByRoom],
   );
 
@@ -3888,10 +3920,8 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                             </time>
                           </div>
                           <p>
-                            {msg.deleted
-                              ? "Tin đã thu hồi"
-                              : msg.body.trim() ||
-                                (msg.imageUrl ? "Ảnh đính kèm" : "Tin nhắn")}
+                            {msg.body.trim() ||
+                              (msg.imageUrl ? "Ảnh đính kèm" : "Tin nhắn")}
                           </p>
                         </button>
                         <button

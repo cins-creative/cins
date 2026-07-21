@@ -1,7 +1,7 @@
 "use client";
 
 import { MessageCircle } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { useCinsChat } from "@/components/cins/CinsChatProvider";
@@ -18,9 +18,14 @@ type Props = {
   viewerProfileId: string | null;
   /** Tiêu đề khi chia sẻ — mặc định tên shop. */
   shareTitle?: string | null;
+  /**
+   * Path chia sẻ — mặc định URL trang hiện tại (loại hàng / storefront…).
+   * Chỉ override khi cần share path khác pathname.
+   */
+  sharePath?: string | null;
 };
 
-/** CTA khách trên storefront: chia sẻ shop + nhắn tin chủ shop. */
+/** CTA khách trên storefront: chia sẻ trang hiện tại + nhắn tin chủ shop. */
 export function JourneyShopGuestActions({
   ownerId,
   ownerSlug,
@@ -28,13 +33,18 @@ export function JourneyShopGuestActions({
   ownerAvatarUrl,
   viewerProfileId,
   shareTitle = null,
+  sharePath: sharePathProp = null,
 }: Props) {
   const router = useRouter();
+  const pathname = usePathname();
   const { openChat } = useCinsChat();
   const [error, setError] = useState<string | null>(null);
   const ketBan = useKetBanStatus(ownerId, viewerProfileId);
   const isSelf = Boolean(viewerProfileId) && viewerProfileId === ownerId;
-  const sharePath = shopPublicHref(ownerSlug);
+  const sharePath =
+    sharePathProp?.trim() ||
+    pathname?.trim() ||
+    shopPublicHref(ownerSlug);
   const displayName = ownerName.trim() || ownerSlug;
 
   const openMessage = () => {

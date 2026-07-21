@@ -25,6 +25,8 @@ import {
   fetchShopCuaHangClient,
   prefetchShopCuaHangClient,
 } from "@/lib/shop/client-fetch-cache";
+import { isShopTamDongActive } from "@/lib/shop/tam-dong";
+import { ShopTamDongOverlay } from "@/components/shop/ShopTamDongOverlay";
 
 type Props = {
   slug: string;
@@ -95,6 +97,7 @@ function ShopSwitchCard({
   onSelect: () => void;
 }) {
   const [shop, setShop] = useState<ShopCuaHang | null>(null);
+  const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
     let cancelled = false;
@@ -123,11 +126,19 @@ function ShopSwitchCard({
       window.removeEventListener("cins:shop-profile-changed", onShop);
   }, []);
 
+  useEffect(() => {
+    if (!shop?.tamDong || !shop.tamDongDen) return;
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, [shop?.tamDong, shop?.tamDongDen]);
+
   const shopName = shop?.ten?.trim() || null;
   const href = journeyHrefForView(slug, "shop");
+  const tamDong = isShopTamDongActive(shop, now);
   const faceClass = [
     "j-profile-shop-switch-btn",
     active ? "is-active" : "",
+    tamDong ? "is-tam-dong" : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -143,7 +154,15 @@ function ShopSwitchCard({
         href={href}
         className={faceClass}
         aria-current={active ? "page" : undefined}
-        aria-label={shopName ? `Shop ${shopName}` : "Shop"}
+        aria-label={
+          shopName
+            ? tamDong
+              ? `Shop ${shopName} — tạm đóng`
+              : `Shop ${shopName}`
+            : tamDong
+              ? "Shop — tạm đóng"
+              : "Shop"
+        }
         onMouseEnter={warmShop}
         onFocus={warmShop}
         onClick={(event) => {
@@ -189,6 +208,9 @@ function ShopSwitchCard({
             </span>
           </span>
         </span>
+        {tamDong ? (
+          <ShopTamDongOverlay shop={shop} variant="badge" />
+        ) : null}
       </a>
     </nav>
   );

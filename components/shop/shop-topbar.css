@@ -12,9 +12,6 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-pill);
-  background: var(--bg-surface);
   color: var(--ink-body);
   cursor: pointer;
   transition: all var(--app-nav-dur, 0.18s) var(--app-nav-ease, ease);
@@ -25,11 +22,17 @@
   width: 38px;
   height: 38px;
   z-index: 2;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--bg-surface);
 }
 
 .shop-topbar-ext {
   width: 30px;
   height: 30px;
+  border: none;
+  border-radius: 0;
+  background: transparent;
   color: var(--ink-muted);
 }
 
@@ -42,9 +45,8 @@
 }
 
 .shop-topbar-ext:hover {
-  border-color: color-mix(in srgb, var(--cins-orange, #fdad4c) 45%, var(--border));
   color: color-mix(in srgb, var(--cins-orange, #fdad4c) 30%, #5c3200);
-  background: color-mix(in srgb, var(--cins-orange, #fdad4c) 10%, transparent);
+  background: transparent;
 }
 
 .shop-topbar-count {

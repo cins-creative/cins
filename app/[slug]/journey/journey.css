@@ -93,7 +93,8 @@
 .j-shell > .j-sidebar,
 .j-shell > .j-timeline,
 .j-shell > .j-gallery,
-.j-shell > .j-gallery-main {
+.j-shell > .j-gallery-main,
+.j-shell > .j-shop {
   min-width: 0;
 }
 
@@ -727,6 +728,38 @@ button.j-avatar.j-avatar-viewable:focus-visible {
 }
 .j-profile-shop-switch-btn.is-active {
   box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--cins-orange, #fdad4c) 75%, white);
+}
+.j-profile-shop-switch-btn.is-tam-dong .j-profile-shop-switch-cover,
+.j-profile-shop-switch-btn.is-tam-dong .j-profile-shop-switch-row {
+  filter: grayscale(1);
+}
+.j-profile-shop-switch-btn.is-tam-dong .j-profile-shop-switch-scrim {
+  background: linear-gradient(
+    180deg,
+    rgb(100 116 139 / 40%) 0%,
+    rgb(71 85 105 / 78%) 100%
+  );
+}
+.j-shop-tam-dong-badge {
+  position: absolute;
+  right: 10px;
+  bottom: 8px;
+  z-index: 3;
+}
+.j-shop-tam-dong-badge-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 22px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--cins-orange, #fdad4c) 92%, #fff);
+  color: #5c3200;
+  font-size: 11px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.2);
 }
 .j-profile-shop-switch-cover {
   position: absolute;

@@ -67,6 +67,11 @@ type OpenChatOptions = {
   targetUserId?: string;
   peerPreview?: Omit<ChatPeerPreview, "userId">;
   roomId?: string;
+  /**
+   * Snapshot hội thoại đầy đủ (vd. mini «Mở rộng»).
+   * Tránh stub `Hội thoại`/`?` ghi đè tên, nhóm, tin đã hydrate.
+   */
+  thread?: ChatThread;
   tab?: ChatThreadGroup;
   /** Mở hội thoại với 1 TỔ CHỨC (user → org). */
   orgId?: string;
@@ -649,10 +654,21 @@ export function CinsChatProvider({
         return;
       }
 
-      setLaunch(
-        options?.roomId
-          ? {
-              thread: {
+      if (options?.thread) {
+        setLaunch({
+          thread: options.thread,
+          tab: options.tab ?? options.thread.group,
+        });
+        setOpen(true);
+        return;
+      }
+
+      if (options?.roomId) {
+        const pinned = pinnedThreadSnapshots[options.roomId];
+        setLaunch({
+          thread: pinned
+            ? { ...pinned }
+            : {
                 id: options.roomId,
                 roomId: options.roomId,
                 name: "Hội thoại",
@@ -666,13 +682,22 @@ export function CinsChatProvider({
                 unread: 0,
                 messages: [],
               },
-              tab: options.tab,
-            }
-          : null,
-      );
+          tab: options.tab ?? pinned?.group,
+        });
+        setOpen(true);
+        return;
+      }
+
+      setLaunch(null);
       setOpen(true);
     },
-    [resolveDirectRoom, resolveOrgRoom, router, viewerProfileId],
+    [
+      pinnedThreadSnapshots,
+      resolveDirectRoom,
+      resolveOrgRoom,
+      router,
+      viewerProfileId,
+    ],
   );
 
   /* ---- Kéo-thả chia sẻ (desktop): dragstart payload CINs → mở overlay drop mode ---- */

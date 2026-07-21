@@ -1,5 +1,6 @@
 import "server-only";
 
+import { assertShopNotTamDong } from "@/lib/shop/cua-hang";
 import { listPostHang } from "@/lib/shop/post-hang";
 import { listShopStorefrontItems } from "@/lib/shop/storefront";
 import type { ShopGio, ShopGioDong, ShopStorefrontItem } from "@/lib/shop/types";
@@ -13,6 +14,7 @@ async function resolveCuaHang(cuaHangId: string): Promise<CuaHangScope | null> {
     .from("shop_cua_hang")
     .select("id, id_nguoi_dung")
     .eq("id", cuaHangId)
+    .eq("da_xoa", false)
     .maybeSingle<{ id: string; id_nguoi_dung: string }>();
   if (!data) return null;
   return { id: data.id, sellerId: data.id_nguoi_dung };
@@ -220,6 +222,7 @@ export async function setGioDongCuaHang(
   const scope = await resolveCuaHang(cuaHangId);
   if (!scope) throw new Error("SHOP_NOT_FOUND");
   if (scope.sellerId === buyerId) throw new Error("CANNOT_BUY_OWN");
+  if (qty > 0) await assertShopNotTamDong(scope.sellerId);
 
   const catalog = await listShopStorefrontItems({
     sellerId: scope.sellerId,

@@ -18,14 +18,43 @@ import {
 } from "@/lib/journey/gallery-display-url";
 import { shopPublicHref } from "@/lib/shop/cua-hang-href";
 
+function slugSegmentMatches(segment: string, slug: string): boolean {
+  try {
+    return decodeURIComponent(segment) === slug;
+  } catch {
+    return segment === slug;
+  }
+}
+
+/** `/{slug}/shop` hoặc `/{slug}/shop/...` (vd. loại hàng). */
 function isShopPathname(pathname: string, slug: string): boolean {
+  const segments = pathname.replace(/\/+$/, "").split("/").filter(Boolean);
+  if (segments.length < 2) return false;
+  if (segments[1] !== "shop") return false;
+  return slugSegmentMatches(segments[0]!, slug);
+}
+
+/** Đúng root storefront `/{slug}/shop` — không gồm `/shop/loai/...`. */
+function isShopRootPathname(pathname: string, slug: string): boolean {
   const segments = pathname.replace(/\/+$/, "").split("/").filter(Boolean);
   if (segments.length !== 2) return false;
   if (segments[1] !== "shop") return false;
+  return slugSegmentMatches(segments[0]!, slug);
+}
+
+/** Id loại hàng từ `/{slug}/shop/loai/[nhomId]`. */
+export function shopNhomIdFromPathname(
+  pathname: string,
+  slug: string,
+): string | null {
+  const segments = pathname.replace(/\/+$/, "").split("/").filter(Boolean);
+  if (segments.length < 4) return null;
+  if (segments[1] !== "shop" || segments[2] !== "loai") return null;
+  if (!slugSegmentMatches(segments[0]!, slug)) return null;
   try {
-    return decodeURIComponent(segments[0]!) === slug;
+    return decodeURIComponent(segments[3]!) || null;
   } catch {
-    return segments[0] === slug;
+    return segments[3] || null;
   }
 }
 
@@ -174,15 +203,21 @@ export function JourneyViewProvider({
     (next: JourneyProfileView) => {
       const href = journeyHrefForView(slug, next, window.location.search);
       const onShop = isShopPathname(window.location.pathname, slug);
+      const onShopRoot = isShopRootPathname(window.location.pathname, slug);
       /* Shop là path riêng nhưng cùng shell hồ sơ — soft pushState như tab
          Gallery/Friends, tránh router.push remount + fetch owner lại. */
       if (next === "shop" || onShop) {
-        if (next === "shop" && onShop) return;
+        if (next === "shop" && onShopRoot) return;
         setViewState(next);
         setContentSurfaceState(
           contentSurfaceFromProfile(next, window.location.search),
         );
         window.history.pushState({ journeyView: next }, "", href);
+        window.dispatchEvent(
+          new CustomEvent("cins:journey-path", {
+            detail: { pathname: new URL(href, window.location.origin).pathname },
+          }),
+        );
         return;
       }
       setViewState(next);
@@ -202,6 +237,13 @@ export function JourneyViewProvider({
           setContentSurfaceState("timeline");
           const href = journeyHrefForView(slug, "journey", window.location.search);
           window.history.pushState({ journeyView: "journey" }, "", href);
+          window.dispatchEvent(
+            new CustomEvent("cins:journey-path", {
+              detail: {
+                pathname: new URL(href, window.location.origin).pathname,
+              },
+            }),
+          );
           return;
         }
         const display = galleryDisplayForSurface(surface);
@@ -215,6 +257,13 @@ export function JourneyViewProvider({
         );
         window.dispatchEvent(
           new CustomEvent("cins:gallery-display", { detail: display }),
+        );
+        window.dispatchEvent(
+          new CustomEvent("cins:journey-path", {
+            detail: {
+              pathname: new URL(href, window.location.origin).pathname,
+            },
+          }),
         );
         return;
       }
