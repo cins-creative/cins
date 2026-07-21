@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import { capNhatSuKien, xoaSuKien } from "@/lib/to-chuc/su-kien";
+import { parseLoaiVeBody } from "@/lib/to-chuc/su-kien-parse-loai-ve";
 
 type RouteContext = { params: Promise<{ orgId: string; suKienId: string }> };
 
@@ -64,6 +65,15 @@ export async function PATCH(req: Request, ctx: RouteContext) {
         : body.giaVe === undefined
           ? undefined
           : Number(body.giaVe),
+    loaiVe: parseLoaiVeBody(body.loaiVe),
+    cachMuaVe:
+      body.cachMuaVe === null
+        ? null
+        : body.cachMuaVe === undefined
+          ? undefined
+          : typeof body.cachMuaVe === "string"
+            ? body.cachMuaVe
+            : undefined,
     slotToiDa:
       body.slotToiDa === null
         ? null

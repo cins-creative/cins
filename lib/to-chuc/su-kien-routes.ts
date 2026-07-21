@@ -1,3 +1,7 @@
+import {
+  congDongRootPath,
+  congDongSuKienManagePath,
+} from "@/lib/cong-dong/routes";
 import { coSoSuKienManagePath, coSoTabPath } from "@/lib/to-chuc/co-so-routes";
 import { studioSuKienManagePath, studioTabPath } from "@/lib/to-chuc/studio-routes";
 import {
@@ -25,6 +29,7 @@ export function suKienManageHref(
   if (orgLoai === "studio" || orgLoai === "doanh_nghiep") {
     return studioSuKienManagePath(slug, id);
   }
+  if (orgLoai === "cong_dong") return congDongSuKienManagePath(slug, id);
   return `${suKienDetailPath(id)}?manage=1`;
 }
 
@@ -32,7 +37,7 @@ export function suKienManageHref(
 export function orgSuKienHref(loaiToChuc: string, orgSlug: string): string {
   const slug = orgSlug.trim();
   if (loaiToChuc === "co_so_dao_tao") return coSoTabPath(slug, "su-kien");
-  if (loaiToChuc === "cong_dong") return `/cong-dong/${encodeURIComponent(slug)}`;
+  if (loaiToChuc === "cong_dong") return congDongRootPath(slug);
   if (loaiToChuc === "studio" || loaiToChuc === "doanh_nghiep") {
     return studioTabPath(slug, "su-kien");
   }

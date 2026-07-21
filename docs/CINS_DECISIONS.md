@@ -24,7 +24,7 @@
 | O15 | Tỉ lệ chèn bài org chưa-follow vào feed giữa + có nên chèn không? | **Tạm 1 org / 10 người, tối đa 1 bài/org, gắn nhãn "Gợi ý", không engagement-sort** (L21 #3) | Khi đo được feed thật: org-post có bị bỏ qua / báo phiền không. Có thể hạ về 0 (chỉ giữ kênh gợi ý + attribution) nếu chèn feed gây loãng. Chốt trước khi scale ngoài cohort đầu. |
 | O16 | Dedupe phòng nhóm trùng tập thành viên | **Defer** — quản lý nhóm cơ bản + project workspace đã có (L25/L28) | Khi có báo cáo spam hoặc nhiều phòng trùng thành viên từ cohort thật. |
 | O17 | Nhắc mốc chat (`chat_moc`) — tin system trong phòng khi tạo / tới lúc nhắc / đến hạn; tick client + `POST /api/chat/mocs/tick` | **Partial** — chưa push/email ngoài app | Mở rộng push/email khi có worker ổn định. |
-| O18 | Report shop (báo cáo người bán) sau giao dịch P2P? | **Defer** — ưu tiên không làm phân xử tiền; nếu làm thì chỉ trust/safety (lừa đảo hàng loạt), không hoàn tiền | Khi có ≥ vài case lừa thật từ cohort, hoặc trước mở shop rộng ngoài circle quen. Không mở nếu báo cáo = kỳ vọng CINs hoàn tiền. |
+| O19 | Bán vé sự kiện / tồn kho / gắn `id_loai_ve` vào `org_dang_ky_su_kien` / QR check-in? | **Defer** — phase 1 chỉ catalog loại vé (`org_su_kien_loai_ve`) | Khi chốt mô hình tiền (P2P như shop hoặc ngoài CINs) + nhu cầu cohort thật. Không mở payment trên CINs trước đó. |
 
 > O7 (lớp "uy tín/hữu ích" cho `content_thao_luan`) → **đã đóng / không còn áp dụng** (xem L12): `content_thao_luan` đã bỏ, thảo luận giờ là comment trên cột mốc.
 
@@ -37,6 +37,13 @@
 ---
 
 ## LOG — quyết định đã chốt
+
+### Catalog loại vé sự kiện (2026-07-22)
+
+- **Chốt phase 1:** sự kiện «Tính phí» dùng bảng con `org_su_kien_loai_ve` (tên, mô tả, giá VND, `cover_id`, `thu_tu`) — **catalog hiển thị**, chưa bán/thanh toán/tồn kho trên CINs.
+- `org_su_kien.gia_ve` = denormalize **min(gia)** các loại; card/label «Từ X đ» khi >1 loại. Miễn phí → xóa loại vé.
+- UI: khối quản lý vé trong `SuKienCreateModal`; chi tiết sự kiện liệt kê loại vé. Migration `migration_org_su_kien_loai_ve.sql`.
+- Phase 2 (O19): gắn đăng ký / bán vé / QR — treo.
 
 ### SEO chuẩn hóa articles + Khám phá nghề (2026-07-20)
 

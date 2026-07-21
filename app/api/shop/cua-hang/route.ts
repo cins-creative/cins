@@ -145,6 +145,18 @@ export async function PATCH(request: Request) {
           : (body.avatarId as string | null),
       coverId:
         body.coverId === undefined ? undefined : (body.coverId as string | null),
+      bannerSuKienId:
+        body.bannerSuKienId === undefined
+          ? undefined
+          : (body.bannerSuKienId as string | null),
+      bannerSuKienHien:
+        body.bannerSuKienHien === undefined
+          ? undefined
+          : body.bannerSuKienHien === true
+            ? true
+            : body.bannerSuKienHien === false
+              ? false
+              : undefined,
       chinhSach:
         body.chinhSach === undefined
           ? undefined

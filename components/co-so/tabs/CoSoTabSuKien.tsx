@@ -404,7 +404,7 @@ export function CoSoTabSuKien({
                         {formatRange(sk.batDau, sk.ketThuc)}
                       </span>
                       <span className="cso-sk-meta-item cso-sk-meta-item--tag">
-                        {labelSuKienVe(sk.mienPhi, sk.giaVe)}
+                        {labelSuKienVe(sk.mienPhi, sk.giaVe, sk.loaiVe?.length)}
                       </span>
                     </div>
                     {diaDiemLabel ? (

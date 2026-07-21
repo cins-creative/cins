@@ -1,11 +1,20 @@
 "use client";
 
-import { Building2, Layers3, Settings2, Tags, Users, X } from "lucide-react";
+import {
+  Building2,
+  CalendarDays,
+  Layers3,
+  Settings2,
+  Tags,
+  Users,
+  X,
+} from "lucide-react";
 import { useEffect, useId, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { CongDongFilterAdminPanel } from "@/components/cong-dong/CongDongFilterAdmin";
 import { CongDongGroupSettingsPanel } from "@/components/cong-dong/CongDongGroupSettingsModal";
+import { CongDongManageSuKienPanel } from "@/components/cong-dong/CongDongManageSuKienPanel";
 import { CongDongMembersModal } from "@/components/cong-dong/CongDongMembersModal";
 import { CongDongOrganizationSection } from "@/components/cong-dong/CongDongOrganizationSection";
 import type {
@@ -18,6 +27,7 @@ import type { StudioHoatDongStatus } from "@/lib/to-chuc/studio-lifecycle.shared
 export type CongDongManageSection =
   | "chu_de"
   | "nhan"
+  | "su_kien"
   | "thanh_vien"
   | "to_chuc";
 
@@ -31,6 +41,7 @@ type Props = {
   viewerIsOwner: boolean;
   canTopics: boolean;
   canLabels: boolean;
+  canSuKien: boolean;
   canMembers: boolean;
   trangThaiHoatDong: StudioHoatDongStatus;
   categories: CongDongCategory[];
@@ -43,6 +54,9 @@ type Props = {
   }) => void;
   onHoatDongChange: (next: StudioHoatDongStatus) => void;
   onOwnershipTransferred: () => void;
+  /** Tổng nội dung sự kiện chờ duyệt — badge nav + đồng bộ topbar. */
+  suKienChoDuyet?: number;
+  onSuKienChoDuyetChange?: (count: number) => void;
 };
 
 type NavItem = {
@@ -50,7 +64,12 @@ type NavItem = {
   label: string;
   blurb: string;
   icon: typeof Layers3;
+  badge?: number;
 };
+
+function formatBadge(n: number): string {
+  return n > 99 ? "99+" : String(n);
+}
 
 export function CongDongManageModal({
   open,
@@ -62,6 +81,7 @@ export function CongDongManageModal({
   viewerIsOwner,
   canTopics,
   canLabels,
+  canSuKien,
   canMembers,
   trangThaiHoatDong,
   categories,
@@ -71,6 +91,8 @@ export function CongDongManageModal({
   onTopicsSaved,
   onHoatDongChange,
   onOwnershipTransferred,
+  suKienChoDuyet = 0,
+  onSuKienChoDuyetChange,
 }: Props) {
   const titleId = useId();
 
@@ -92,6 +114,15 @@ export function CongDongManageModal({
         icon: Tags,
       });
     }
+    if (canSuKien) {
+      items.push({
+        id: "su_kien",
+        label: "Sự kiện",
+        blurb: "Duyệt và quản lý người tham gia",
+        icon: CalendarDays,
+        badge: suKienChoDuyet > 0 ? suKienChoDuyet : undefined,
+      });
+    }
     if (canMembers) {
       items.push({
         id: "thanh_vien",
@@ -109,7 +140,14 @@ export function CongDongManageModal({
       });
     }
     return items;
-  }, [canTopics, canLabels, canMembers, viewerIsOwner]);
+  }, [
+    canTopics,
+    canLabels,
+    canSuKien,
+    canMembers,
+    viewerIsOwner,
+    suKienChoDuyet,
+  ]);
 
   const resolvedInitial = useMemo(() => {
     if (initialSection && nav.some((n) => n.id === initialSection)) {
@@ -199,7 +237,17 @@ export function CongDongManageModal({
                     <Icon size={16} strokeWidth={2} />
                   </span>
                   <span className="cd-manage-nav-copy">
-                    <span className="cd-manage-nav-label">{item.label}</span>
+                    <span className="cd-manage-nav-label-row">
+                      <span className="cd-manage-nav-label">{item.label}</span>
+                      {item.badge != null ? (
+                        <span
+                          className="cd-manage-nav-badge"
+                          aria-label={`${item.badge} nội dung chờ duyệt`}
+                        >
+                          {formatBadge(item.badge)}
+                        </span>
+                      ) : null}
+                    </span>
                     <span className="cd-manage-nav-blurb">{item.blurb}</span>
                   </span>
                 </button>
@@ -235,6 +283,14 @@ export function CongDongManageModal({
                     onChange={onFiltersChange}
                   />
                 </div>
+              ) : null}
+
+              {canSuKien && section === "su_kien" ? (
+                <CongDongManageSuKienPanel
+                  orgId={orgId}
+                  active={open && section === "su_kien"}
+                  onTongChoDuyetChange={onSuKienChoDuyetChange}
+                />
               ) : null}
 
               {canMembers && section === "thanh_vien" ? (

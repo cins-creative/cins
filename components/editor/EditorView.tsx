@@ -3394,9 +3394,15 @@ export function EditorView({
           loaiMoc,
           thoiDiem: initial.thoiDiem,
           blocks: publishBlocks,
-          personalFilterIds,
+          personalFilterIds: congDongCompose ? undefined : personalFilterIds,
           coAuthors: collaborators,
           ownerVaiTro,
+          congDong: congDongCompose
+            ? {
+                orgId: congDongCompose.orgId,
+                filterSlugs: composeFilterSlugs,
+              }
+            : undefined,
         });
         if (!result.ok) {
           setToast(result.error || "Không lưu được bài viết.");

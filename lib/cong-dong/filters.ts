@@ -2,6 +2,7 @@ import "server-only";
 
 import { CONG_DONG_FILTER_CONTEXT } from "@/lib/cong-dong/constants";
 import { ensureDefaultCongDongFilters } from "@/lib/cong-dong/default-filters";
+import { normalizeCongDongFilterIcon } from "@/lib/cong-dong/filter-icons";
 import { isCongDongAdmin } from "@/lib/cong-dong/membership";
 import { slugifyOrgName } from "@/lib/cong-dong/org-slug";
 import type { CongDongFilter } from "@/lib/cong-dong/types";
@@ -211,6 +212,9 @@ export async function createCongDongFilter(params: {
   const mau = normalizeMau(params.mau);
   if (!mau) return { ok: false, error: "Màu nhãn không hợp lệ (#RRGGBB)." };
 
+  const iconNorm = normalizeCongDongFilterIcon(params.icon);
+  if (!iconNorm.ok) return { ok: false, error: iconNorm.error };
+
   const admin = createServiceRoleClient();
   const { count } = await admin
     .from("cong_dong_filter")
@@ -243,7 +247,7 @@ export async function createCongDongFilter(params: {
       ten,
       slug,
       mau,
-      icon: params.icon?.trim() || null,
+      icon: iconNorm.icon,
       thu_tu: params.thuTu ?? (count ?? 0),
     })
     .select("id, ten, slug, mau, icon, thu_tu")

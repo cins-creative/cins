@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import { listSuKienCuaOrg, taoSuKien } from "@/lib/to-chuc/su-kien";
+import { parseLoaiVeBody } from "@/lib/to-chuc/su-kien-parse-loai-ve";
 
 type RouteContext = { params: Promise<{ orgId: string }> };
 
@@ -55,6 +56,13 @@ export async function POST(req: Request, ctx: RouteContext) {
         : body.giaVe == null
           ? null
           : Number(body.giaVe),
+    loaiVe: parseLoaiVeBody(body.loaiVe),
+    cachMuaVe:
+      body.cachMuaVe === null
+        ? null
+        : typeof body.cachMuaVe === "string"
+          ? body.cachMuaVe
+          : null,
     slotToiDa:
       typeof body.slotToiDa === "number"
         ? body.slotToiDa

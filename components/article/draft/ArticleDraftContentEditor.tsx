@@ -252,14 +252,12 @@ function ArticleDraftContentEditorFull({
         </p>
       ) : null}
 
-      {imagePasteStatus.phase !== "idle" ? (
+      {imagePasteStatus.phase !== "idle" &&
+      imagePasteStatus.phase !== "cf_ok" &&
+      imagePasteStatus.phase !== "uploading_cf" ? (
         <p
           className={clsx(
             "article-draft-tiptap__image-status",
-            imagePasteStatus.phase === "uploading_cf" &&
-              "article-draft-tiptap__image-status--busy",
-            imagePasteStatus.phase === "cf_ok" &&
-              "article-draft-tiptap__image-status--ok",
             imagePasteStatus.phase === "base64_ok" &&
               "article-draft-tiptap__image-status--warn",
             (imagePasteStatus.phase === "cf_fail" ||
@@ -269,20 +267,6 @@ function ArticleDraftContentEditorFull({
           role="status"
           aria-live="polite"
         >
-          {imagePasteStatus.phase === "uploading_cf" ? (
-            <>
-              Đang tải ảnh lên Cloudflare Images… Ảnh xem trước đã chèn; đợi URL
-              imagedelivery.net thay thế.
-            </>
-          ) : null}
-          {imagePasteStatus.phase === "cf_ok" ? (
-            <>
-              <strong>Đã upload Cloudflare Images.</strong>
-              <span className="article-draft-tiptap__image-status-url">
-                {imagePasteStatus.url}
-              </span>
-            </>
-          ) : null}
           {imagePasteStatus.phase === "cf_fail" ? (
             <>
               <strong>Không upload được Cloudflare.</strong> {imagePasteStatus.message}

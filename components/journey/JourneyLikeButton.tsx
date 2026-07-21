@@ -358,9 +358,6 @@ export function JourneyLikeButton({
           </button>
         );
       })}
-      <p className="j-reaction-picker-hint">
-        Chọn emoji khác nếu muốn · chạm ra ngoài để giữ tim
-      </p>
       {pickerErr ? (
         <p className="j-reaction-picker-err" role="alert">
           {pickerErr}

@@ -184,16 +184,18 @@ export function SuKienPhanHoiActions({
         </p>
       ) : null}
       <div className="cso-sk-detail-actions">
-        <button
-          type="button"
-          className={`cso-sk-detail-btn cso-sk-detail-btn--interest${loai === "quan_tam" ? " is-active" : ""}`}
-          aria-pressed={loai === "quan_tam"}
-          disabled={!loaded || pending || !enabled}
-          onClick={() => handlePhanHoi("quan_tam")}
-        >
-          <Heart size={16} aria-hidden />
-          {loai === "quan_tam" ? "Đang quan tâm" : "Quan tâm"}
-        </button>
+        {loai !== "se_tham_gia" ? (
+          <button
+            type="button"
+            className={`cso-sk-detail-btn cso-sk-detail-btn--interest${loai === "quan_tam" ? " is-active" : ""}`}
+            aria-pressed={loai === "quan_tam"}
+            disabled={!loaded || pending || !enabled}
+            onClick={() => handlePhanHoi("quan_tam")}
+          >
+            <Heart size={16} aria-hidden />
+            {loai === "quan_tam" ? "Đang quan tâm" : "Quan tâm"}
+          </button>
+        ) : null}
         <button
           type="button"
           className={`cso-sk-detail-btn cso-sk-detail-btn--join${loai === "se_tham_gia" ? " is-active" : ""}`}

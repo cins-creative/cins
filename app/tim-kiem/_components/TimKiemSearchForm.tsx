@@ -1,6 +1,10 @@
+"use client";
+
 import { Search } from "lucide-react";
+import type { FormEvent } from "react";
 
 import { TIM_KIEM_PATH } from "@/lib/search/paths";
+import { pushRecentSearch } from "@/lib/search/recent-searches-storage";
 
 type Props = {
   query: string;
@@ -8,8 +12,20 @@ type Props = {
 };
 
 export function TimKiemSearchForm({ query, kind }: Props) {
+  function onSubmit(event: FormEvent<HTMLFormElement>) {
+    const fd = new FormData(event.currentTarget);
+    const q = String(fd.get("q") ?? "").trim();
+    if (q) pushRecentSearch(q);
+  }
+
   return (
-    <form action={TIM_KIEM_PATH} method="get" className="tk-search-form" role="search">
+    <form
+      action={TIM_KIEM_PATH}
+      method="get"
+      className="tk-search-form"
+      role="search"
+      onSubmit={onSubmit}
+    >
       {kind && kind !== "all" ? (
         <input type="hidden" name="kind" value={kind} />
       ) : null}

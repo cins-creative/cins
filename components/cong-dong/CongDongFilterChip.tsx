@@ -3,6 +3,7 @@ import {
   hasCongDongFilterLucideIcon,
 } from "@/components/cong-dong/CongDongFilterIcon";
 import type { CongDongFilter } from "@/lib/cong-dong/types";
+import type { CSSProperties } from "react";
 
 /** Toolbar: bỏ emoji đầu chuỗi — đã có lucide icon, tránh nhãn dài khó đọc. */
 export function filterToolbarLabel(ten: string): string {
@@ -15,6 +16,8 @@ type Props = {
   active?: boolean;
   onClick?: () => void;
   size?: "sm" | "md" | "toolbar";
+  /** Không nền/viền — màu nhãn trộn với ink theo theme. */
+  plain?: boolean;
 };
 
 export function CongDongFilterChip({
@@ -22,11 +25,13 @@ export function CongDongFilterChip({
   active = false,
   onClick,
   size = "md",
+  plain = false,
 }: Props) {
   const className = [
     "cd-filter-chip",
     size === "sm" ? "cd-filter-chip--sm" : "",
     size === "toolbar" ? "cd-v4-chip" : "",
+    plain ? "cd-filter-chip--plain" : "",
     active ? "is-active" : "",
     onClick ? "is-clickable" : "",
   ]
@@ -34,23 +39,25 @@ export function CongDongFilterChip({
     .join(" ");
 
   const isToolbar = size === "toolbar";
-  const style = isToolbar
-    ? active
-      ? {
-          borderColor: filter.mau,
-          color: "#fff",
-          backgroundColor: filter.mau,
-        }
+  const style: CSSProperties = plain
+    ? { ["--cd-filter-mau" as string]: filter.mau }
+    : isToolbar
+      ? active
+        ? {
+            borderColor: filter.mau,
+            color: "#fff",
+            backgroundColor: filter.mau,
+          }
+        : {
+            borderColor: filter.mau,
+            color: "var(--ink-display, #1b2333)",
+            backgroundColor: "var(--bg-surface, #fff)",
+          }
       : {
           borderColor: filter.mau,
-          color: "var(--ink-display, #1b2333)",
-          backgroundColor: "var(--bg-surface, #fff)",
-        }
-    : {
-        borderColor: filter.mau,
-        color: active ? "#fff" : filter.mau,
-        backgroundColor: active ? filter.mau : `${filter.mau}18`,
-      };
+          color: active ? "#fff" : filter.mau,
+          backgroundColor: active ? filter.mau : `${filter.mau}18`,
+        };
 
   const hasLucideIcon = hasCongDongFilterLucideIcon(filter.icon);
   const displayTen =

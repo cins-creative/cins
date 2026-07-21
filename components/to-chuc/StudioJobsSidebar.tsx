@@ -93,7 +93,7 @@ function buildStudioSuKienSteps(
     if (status === "active") dateLabel = `${dateLabel} · Đang diễn ra`;
     const descParts = [
       labelLoaiSuKien(ev.loaiSuKien),
-      labelSuKienVe(ev.mienPhi, ev.giaVe),
+      labelSuKienVe(ev.mienPhi, ev.giaVe, ev.loaiVe?.length),
     ];
     const diaDiemLabel = formatSuKienDiaDiemDisplay(ev.tinhThanh, ev.diaDiem);
     if (diaDiemLabel) descParts.push(diaDiemLabel);

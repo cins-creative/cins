@@ -58,6 +58,8 @@ export type ShopNhom = {
    * mẫu chỉ được chỉnh `gia_giam`.
    */
   giaMacDinh: number | null;
+  /** Feature / nổi bật loại hàng (`shop_nhom.noi_bat`, truc=1). */
+  noiBat: boolean;
   thuTu: number;
   taoLuc: string;
 };
@@ -75,6 +77,8 @@ export type ShopStorefrontNhomCard = {
   soMau: number;
   giaTu: number | null;
   giaDen: number | null;
+  /** Giá gốc mặc định loại (`shop_nhom.gia_mac_dinh`) — ưu tiên hiện trên card. */
+  giaMacDinh: number | null;
   tienTe: string;
   soLuongBan: number;
   hetHang: boolean;
@@ -82,6 +86,8 @@ export type ShopStorefrontNhomCard = {
   /** Trung bình điểm đánh giá (1 chữ số thập phân), null nếu chưa có. */
   diemTrungBinh: number | null;
   tongDanhGia: number;
+  /** Feature / nổi bật loại hàng. */
+  noiBat: boolean;
 };
 
 /** Mẫu (san_pham) trên trang loại. */
@@ -175,7 +181,10 @@ export type ShopSanPham = {
 };
 
 /** Tối đa sản phẩm được đánh Feature trên một cửa hàng. */
-export const SHOP_FEATURE_MAX = 4;
+export const SHOP_FEATURE_MAX = 12;
+
+/** Tối đa loại hàng (truc=1) được đánh Feature trên một cửa hàng. */
+export const SHOP_NHOM_FEATURE_MAX = 4;
 
 export type ShopBangGiaDong = {
   id: string;
@@ -375,6 +384,11 @@ export type ShopCuaHang = {
   avatarUrl: string | null;
   coverId: string | null;
   coverUrl: string | null;
+  /** Banner sự kiện trên mặt tiền (`shop_cua_hang.banner_su_kien_id`). */
+  bannerSuKienId: string | null;
+  bannerSuKienUrl: string | null;
+  /** Hiện banner sự kiện trên mặt tiền (`shop_cua_hang.banner_su_kien_hien`). */
+  bannerSuKienHien: boolean;
   chinhSach: string | null;
   lienHe: string | null;
   /** Tên cột/trục phân loại 1 (`shop_cua_hang.nhan_phan_loai`). Null → mặc định UI. */

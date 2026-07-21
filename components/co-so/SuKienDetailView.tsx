@@ -7,31 +7,246 @@ import {
   Heart,
   ImageIcon,
   MapPin,
+  Pencil,
   Share2,
   Ticket,
   Users,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useId, useState, useTransition } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useState,
+  useTransition,
+} from "react";
 
 import { ArticleRichBody } from "@/components/article/ArticleRichBody";
 import { useAuthGate } from "@/components/auth/AuthGateProvider";
 import { ShopQuaySuKienPanel } from "@/components/shop/ShopQuaySuKienPanel";
 import { SuKienManagePanel } from "@/components/co-so/SuKienManagePanel";
 import { ShareLinkMenu } from "@/components/social/ShareLinkMenu";
+import { orgLoaiLabel } from "@/lib/cins/home-adaptive/suggestions-display";
 import type { LoaiPhanHoiSuKien } from "@/lib/to-chuc/su-kien-dang-ky";
 import {
+  formatGiaVnd,
   labelLoaiSuKien,
   labelSuKienVe,
   type SuKienCardData,
+  type SuKienLoaiVe,
 } from "@/lib/to-chuc/su-kien-constants";
 import {
   SU_KIEN_LISTING_PATH,
   suKienDetailPath,
 } from "@/lib/to-chuc/su-kien-routes";
 import { formatSuKienDiaDiemDisplay } from "@/lib/truong/contact";
-import { hasTruongGioiThieuContent } from "@/lib/truong/gioi-thieu";
+import {
+  hasTruongGioiThieuContent,
+} from "@/lib/truong/gioi-thieu";
+
+function SuKienLoaiVeList({
+  items,
+  cachMuaVe,
+}: {
+  items: SuKienLoaiVe[];
+  cachMuaVe?: string | null;
+}) {
+  if (items.length === 0 && !cachMuaVe?.trim()) {
+    return (
+      <p className="sk-detail-empty-copy">
+        Chưa có thông tin loại vé. Theo dõi tổ chức để nhận cập nhật.
+      </p>
+    );
+  }
+  return (
+    <section className="sk-detail-ve-list" aria-label="Các loại vé">
+      {items.length > 0 ? (
+        <ul className="sk-detail-ve-ul">
+          {items.map((ve) => (
+            <li key={ve.id} className="sk-detail-ve-li">
+              {ve.coverSrc ? (
+                <div className="sk-detail-ve-thumb">
+                  <Image
+                    src={ve.coverSrc}
+                    alt=""
+                    width={740}
+                    height={185}
+                    unoptimized
+                  />
+                </div>
+              ) : (
+                <span className="sk-detail-ve-thumb sk-detail-ve-thumb--ph" aria-hidden>
+                  <Ticket size={22} />
+                </span>
+              )}
+              <div className="sk-detail-ve-body">
+                <div className="sk-detail-ve-top">
+                  <strong>{ve.ten}</strong>
+                  <span>{formatGiaVnd(ve.gia)}</span>
+                </div>
+                {ve.moTa && hasTruongGioiThieuContent(ve.moTa) ? (
+                  <ArticleRichBody
+                    source={ve.moTa}
+                    className="sk-detail-ve-mota article-rich-content"
+                    emptyMessage=""
+                  />
+                ) : null}
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {cachMuaVe?.trim() ? (
+        <div className="sk-detail-cach-mua">
+          <h3 className="sk-detail-cach-mua-title">Cách mua vé</h3>
+          <p className="sk-detail-cach-mua-body">{cachMuaVe.trim()}</p>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+type SuKienDetailMainTabId = "quay" | "thong_tin" | "ve";
+
+/** Tab nội dung chính: Quầy (nếu có tag) · Thông tin · Vé (nếu tính phí). */
+function SuKienDetailMainTabs({
+  suKien,
+  hasDetail,
+  classPrefix = "sk-detail",
+}: {
+  suKien: SuKienCardData;
+  hasDetail: boolean;
+  /** `sk-detail` (trang) hoặc `cso-sk-detail` (panel). */
+  classPrefix?: "sk-detail" | "cso-sk-detail";
+}) {
+  const uid = useId().replace(/:/g, "");
+  const [hasQuay, setHasQuay] = useState(false);
+  const [active, setActive] = useState<SuKienDetailMainTabId | null>(null);
+  const showVe = !suKien.mienPhi;
+
+  useEffect(() => {
+    let cancelled = false;
+    setHasQuay(false);
+    setActive(null);
+    void (async () => {
+      try {
+        const res = await fetch(
+          `/api/su-kien/${encodeURIComponent(suKien.id)}/quay`,
+          { cache: "no-store" },
+        );
+        const json = (await res.json().catch(() => null)) as {
+          items?: unknown[];
+        } | null;
+        if (!cancelled) {
+          setHasQuay(Array.isArray(json?.items) && json.items.length > 0);
+        }
+      } catch {
+        if (!cancelled) setHasQuay(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [suKien.id]);
+
+  const tabs = useMemo(() => {
+    const next: Array<{ id: SuKienDetailMainTabId; label: string }> = [];
+    if (hasQuay) next.push({ id: "quay", label: "Quầy sự kiện" });
+    next.push({ id: "thong_tin", label: "Thông tin sự kiện" });
+    if (showVe) next.push({ id: "ve", label: "Vé sự kiện" });
+    return next;
+  }, [hasQuay, showVe]);
+
+  const activeId =
+    (active && tabs.some((t) => t.id === active) ? active : null) ??
+    tabs[0]?.id ??
+    "thong_tin";
+
+  const showTablist = tabs.length > 1;
+  const richClass =
+    classPrefix === "sk-detail"
+      ? "sk-detail-rich article-rich-content article-content-html"
+      : "cso-sk-detail-rich article-rich-content article-content-html";
+
+  return (
+    <div className={`${classPrefix}-main-tabs`}>
+      {showTablist ? (
+        <div
+          className="sk-detail-tabs"
+          role="tablist"
+          aria-label="Nội dung sự kiện"
+        >
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              id={`${uid}-tab-${tab.id}`}
+              aria-selected={activeId === tab.id}
+              aria-controls={`${uid}-panel-${tab.id}`}
+              tabIndex={activeId === tab.id ? 0 : -1}
+              className={`sk-detail-tab${activeId === tab.id ? " is-active" : ""}`}
+              onClick={() => setActive(tab.id)}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
+
+      {hasQuay ? (
+        <div
+          id={`${uid}-panel-quay`}
+          role="tabpanel"
+          aria-labelledby={`${uid}-tab-quay`}
+          hidden={activeId !== "quay"}
+          className="sk-detail-tab-panel"
+        >
+          {activeId === "quay" ? (
+            <ShopQuaySuKienPanel suKienId={suKien.id} canManage={false} />
+          ) : null}
+        </div>
+      ) : null}
+
+      <div
+        id={`${uid}-panel-thong_tin`}
+        role="tabpanel"
+        aria-labelledby={
+          showTablist ? `${uid}-tab-thong_tin` : undefined
+        }
+        hidden={activeId !== "thong_tin"}
+        className="sk-detail-tab-panel"
+      >
+        {hasDetail ? (
+          <section className="sk-detail-section" aria-label="Chi tiết">
+            <ArticleRichBody source={suKien.noiDung!} className={richClass} />
+          </section>
+        ) : suKien.moTa ? null : (
+          <p className="sk-detail-empty-copy">
+            Chưa có nội dung chi tiết. Theo dõi tổ chức để nhận cập nhật.
+          </p>
+        )}
+      </div>
+
+      {showVe ? (
+        <div
+          id={`${uid}-panel-ve`}
+          role="tabpanel"
+          aria-labelledby={`${uid}-tab-ve`}
+          hidden={activeId !== "ve"}
+          className="sk-detail-tab-panel"
+        >
+          <SuKienLoaiVeList
+            items={suKien.loaiVe}
+            cachMuaVe={suKien.cachMuaVe}
+          />
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 export type SuKienDetailViewProps = {
   orgId: string;
@@ -40,9 +255,14 @@ export type SuKienDetailViewProps = {
   variant: "page" | "panel";
   backHref?: string;
   onBack?: () => void;
+  /** Mở form sửa metadata (panel + canManage). */
+  onEdit?: () => void;
   onSoDangKyChange?: (suKienId: string, soDangKy: number) => void;
   orgTen?: string | null;
   orgHref?: string | null;
+  /** `org_to_chuc.loai_to_chuc` — dùng nhãn «Cộng đồng …» vs org khác. */
+  orgLoai?: string | null;
+  orgAvatarUrl?: string | null;
   /** Mở sẵn tab quản lý (panel + canManage). */
   initialPanelTab?: "detail" | "manage";
 };
@@ -213,6 +433,17 @@ function BackControl({
   );
 }
 
+function orgTopbarLabel(loai: string | null | undefined, ten: string): string {
+  const type = orgLoaiLabel(loai ?? "");
+  const trimmed = ten.trim();
+  if (!trimmed) return type;
+  const lower = trimmed.toLowerCase();
+  if (lower.startsWith(type.toLowerCase() + " ") || lower === type.toLowerCase()) {
+    return trimmed;
+  }
+  return `${type} ${trimmed}`;
+}
+
 export function SuKienDetailView({
   orgId,
   suKien,
@@ -220,9 +451,12 @@ export function SuKienDetailView({
   variant,
   backHref,
   onBack,
+  onEdit,
   onSoDangKyChange,
   orgTen = null,
   orgHref = null,
+  orgLoai = null,
+  orgAvatarUrl = null,
   initialPanelTab = "detail",
 }: SuKienDetailViewProps) {
   const titleId = useId();
@@ -348,7 +582,11 @@ export function SuKienDetailView({
   const rangeLabel = formatRange(suKien.batDau, suKien.ketThuc);
   const timeLabel = formatTimeOnly(suKien.batDau, suKien.ketThuc);
   const cal = calendarParts(suKien.batDau);
-  const veLabel = labelSuKienVe(suKien.mienPhi, suKien.giaVe);
+  const veLabel = labelSuKienVe(
+    suKien.mienPhi,
+    suKien.giaVe,
+    suKien.loaiVe?.length,
+  );
   const loaiLabel = labelLoaiSuKien(suKien.loaiSuKien);
 
   const rsvp = (
@@ -376,7 +614,19 @@ export function SuKienDetailView({
           />
           {orgTen && orgHref ? (
             <Link href={orgHref} className="sk-detail-org">
-              {orgTen}
+              <span className="sk-detail-org-logo" aria-hidden>
+                {orgAvatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={orgAvatarUrl} alt="" />
+                ) : (
+                  <span className="sk-detail-org-logo-fallback">
+                    {orgTen.trim().charAt(0).toUpperCase() || "?"}
+                  </span>
+                )}
+              </span>
+              <span className="sk-detail-org-name">
+                {orgTopbarLabel(orgLoai, orgTen)}
+              </span>
             </Link>
           ) : null}
         </div>
@@ -461,25 +711,11 @@ export function SuKienDetailView({
           </aside>
 
           <div className="sk-detail-main">
-            {hasDetail ? (
-              <section className="sk-detail-section" aria-label="Chi tiết">
-                <ArticleRichBody
-                  source={suKien.noiDung!}
-                  className="sk-detail-rich article-rich-content article-content-html"
-                />
-              </section>
-            ) : suKien.moTa ? null : (
-              <p className="sk-detail-empty-copy">
-                Chưa có nội dung chi tiết. Theo dõi tổ chức để nhận cập nhật.
-              </p>
-            )}
-
-            <section className="sk-detail-section sk-detail-section--quay">
-              <ShopQuaySuKienPanel
-                suKienId={suKien.id}
-                canManage={false}
-              />
-            </section>
+            <SuKienDetailMainTabs
+              suKien={suKien}
+              hasDetail={hasDetail}
+              classPrefix="sk-detail"
+            />
           </div>
         </div>
       </article>
@@ -497,44 +733,56 @@ export function SuKienDetailView({
           href={resolvedBack}
           className="cso-sk-detail-back"
         />
-        {canManage ? (
-          <div
-            className="cso-sk-detail-tabs"
-            role="tablist"
-            aria-label="Chế độ xem sự kiện"
-          >
+        <div className="cso-sk-detail-toolbar-end">
+          {canManage && onEdit ? (
             <button
               type="button"
-              role="tab"
-              id="cso-sk-tab-detail"
-              aria-selected={panelTab === "detail"}
-              aria-controls="cso-sk-panel-detail"
-              className={`cso-sk-detail-tab${panelTab === "detail" ? " is-active" : ""}`}
-              onClick={() => setPanelTab("detail")}
+              className="cso-sk-detail-edit"
+              onClick={onEdit}
             >
-              Sự kiện
+              <Pencil size={14} strokeWidth={2.25} aria-hidden />
+              Sửa
             </button>
-            <button
-              type="button"
-              role="tab"
-              id="cso-sk-tab-manage"
-              aria-selected={panelTab === "manage"}
-              aria-controls="cso-sk-panel-manage"
-              className={`cso-sk-detail-tab${panelTab === "manage" ? " is-active" : ""}`}
-              onClick={() => setPanelTab("manage")}
+          ) : null}
+          {canManage ? (
+            <div
+              className="cso-sk-detail-tabs"
+              role="tablist"
+              aria-label="Chế độ xem sự kiện"
             >
-              Quản lý
-              {pendingReviewCount > 0 ? (
-                <span
-                  className="cso-sk-detail-tab-count"
-                  aria-label={`${pendingReviewCount} nội dung chờ duyệt`}
-                >
-                  {pendingReviewCount > 99 ? "99+" : pendingReviewCount}
-                </span>
-              ) : null}
-            </button>
-          </div>
-        ) : null}
+              <button
+                type="button"
+                role="tab"
+                id="cso-sk-tab-detail"
+                aria-selected={panelTab === "detail"}
+                aria-controls="cso-sk-panel-detail"
+                className={`cso-sk-detail-tab${panelTab === "detail" ? " is-active" : ""}`}
+                onClick={() => setPanelTab("detail")}
+              >
+                Sự kiện
+              </button>
+              <button
+                type="button"
+                role="tab"
+                id="cso-sk-tab-manage"
+                aria-selected={panelTab === "manage"}
+                aria-controls="cso-sk-panel-manage"
+                className={`cso-sk-detail-tab${panelTab === "manage" ? " is-active" : ""}`}
+                onClick={() => setPanelTab("manage")}
+              >
+                Quản lý
+                {pendingReviewCount > 0 ? (
+                  <span
+                    className="cso-sk-detail-tab-count"
+                    aria-label={`${pendingReviewCount} nội dung chờ duyệt`}
+                  >
+                    {pendingReviewCount > 99 ? "99+" : pendingReviewCount}
+                  </span>
+                ) : null}
+              </button>
+            </div>
+          ) : null}
+        </div>
       </div>
 
       {panelTab === "manage" && canManage ? (
@@ -621,20 +869,10 @@ export function SuKienDetailView({
               <p className="cso-sk-detail-lead">{suKien.moTa}</p>
             ) : null}
 
-            {hasDetail ? (
-              <div className="cso-sk-detail-rich-wrap">
-                <ArticleRichBody
-                  source={suKien.noiDung!}
-                  className="cso-sk-detail-rich article-rich-content article-content-html"
-                />
-              </div>
-            ) : null}
-          </div>
-
-          <div className="cso-sk-detail-quay">
-            <ShopQuaySuKienPanel
-              suKienId={suKien.id}
-              canManage={false}
+            <SuKienDetailMainTabs
+              suKien={suKien}
+              hasDetail={hasDetail}
+              classPrefix="cso-sk-detail"
             />
           </div>
         </div>

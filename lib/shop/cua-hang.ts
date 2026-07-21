@@ -20,6 +20,8 @@ type CuaHangRow = {
   mo_ta: string | null;
   avatar_id: string | null;
   cover_id: string | null;
+  banner_su_kien_id: string | null;
+  banner_su_kien_hien: boolean | null;
   chinh_sach: string | null;
   lien_he: string | null;
   nhan_phan_loai: string | null;
@@ -47,7 +49,7 @@ type PtttRow = {
 };
 
 const CUA_HANG_SELECT =
-  "id, id_nguoi_dung, ten, mo_ta, avatar_id, cover_id, chinh_sach, lien_he, nhan_phan_loai, nhan_phan_loai_2, tam_dong, tam_dong_tu, tam_dong_den, tam_dong_ly_do, da_xoa, tao_luc, cap_nhat_luc";
+  "id, id_nguoi_dung, ten, mo_ta, avatar_id, cover_id, banner_su_kien_id, banner_su_kien_hien, chinh_sach, lien_he, nhan_phan_loai, nhan_phan_loai_2, tam_dong, tam_dong_tu, tam_dong_den, tam_dong_ly_do, da_xoa, tao_luc, cap_nhat_luc";
 
 const PTTT_SELECT =
   "id, id_cua_hang, ngan_hang, so_tai_khoan, ten_chu_tai_khoan, qr_anh_id, mac_dinh, kich_hoat, thu_tu, tao_luc";
@@ -78,6 +80,9 @@ function mapCuaHang(row: CuaHangRow, pttt: ShopPhuongThucTt[]): ShopCuaHang {
     avatarUrl: shopImageUrl(row.avatar_id),
     coverId: row.cover_id,
     coverUrl: shopImageUrl(row.cover_id),
+    bannerSuKienId: row.banner_su_kien_id,
+    bannerSuKienUrl: shopImageUrl(row.banner_su_kien_id),
+    bannerSuKienHien: row.banner_su_kien_hien !== false,
     chinhSach: row.chinh_sach,
     lienHe: row.lien_he,
     nhanPhanLoai: row.nhan_phan_loai?.trim() || null,
@@ -201,6 +206,8 @@ export type ShopCuaHangPatch = {
   moTa?: string | null;
   avatarId?: string | null;
   coverId?: string | null;
+  bannerSuKienId?: string | null;
+  bannerSuKienHien?: boolean;
   chinhSach?: string | null;
   lienHe?: string | null;
   nhanPhanLoai?: string | null;
@@ -233,6 +240,12 @@ export async function updateShopCuaHang(
   }
   if (patch.coverId !== undefined) {
     row.cover_id = patch.coverId?.trim() || null;
+  }
+  if (patch.bannerSuKienId !== undefined) {
+    row.banner_su_kien_id = patch.bannerSuKienId?.trim() || null;
+  }
+  if (patch.bannerSuKienHien !== undefined) {
+    row.banner_su_kien_hien = patch.bannerSuKienHien === true;
   }
   if (patch.chinhSach !== undefined) {
     const t = patch.chinhSach?.trim() || null;

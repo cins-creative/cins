@@ -2501,10 +2501,10 @@ a.j-main-gallery-item:focus-visible,
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    min-width: 32px;
-    height: 32px;
-    padding: 0;
+    width: auto;
+    min-width: 0;
+    height: auto;
+    padding: 6px 14px;
     gap: 0;
   }
   .cins-journey-page .j-gallery-main .j-tlb-filters .j-tlb-dd-btn.is-icon .j-tlb-dd-ico {
@@ -3459,7 +3459,7 @@ a.j-main-gallery-item:focus-visible,
   height: var(--j-ctx-h);
   min-width: 0;
   max-width: 100%;
-  padding: 0 14px 0 calc(var(--j-rail-x) + 2px);
+  padding: 0 14px 0 calc(var(--j-rail-x) + 24px);
 }
 .j-timeline > .j-tlb {
   grid-template-columns: minmax(0, 1fr) auto auto;
@@ -3525,6 +3525,7 @@ a.j-main-gallery-item:focus-visible,
   background: var(--border);
   transform: translateY(-50%);
 }
+.j-timeline > .j-tlb > .j-tlb-filter .j-tlb-dd-btn.is-icon,
 .j-timeline > .j-tlb .j-tlb-filters .j-tlb-dd-btn.is-icon,
 .cins-journey-page
   .j-gallery-main
@@ -3533,24 +3534,39 @@ a.j-main-gallery-item:focus-visible,
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: auto;
+  height: auto;
   min-width: 0;
-  padding: 0;
+  min-height: 0;
+  padding: 6px 14px;
   gap: 0;
   border: 0;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-pill);
   background: transparent;
-  color: var(--ink-display);
+  color: var(--ink-title);
+  box-shadow: none;
 }
+.j-timeline > .j-tlb > .j-tlb-filter .j-tlb-dd-btn.is-icon:hover:not(:disabled),
 .j-timeline > .j-tlb .j-tlb-filters .j-tlb-dd-btn.is-icon:hover:not(:disabled),
 .cins-journey-page
   .j-gallery-main
   .j-tlb-filters
   .j-tlb-dd-btn.is-icon:hover:not(:disabled) {
-  color: var(--cins-blue);
+  color: var(--ink-display);
   background: transparent;
 }
+.j-timeline > .j-tlb > .j-tlb-filter.is-open .j-tlb-dd-btn.is-icon,
+.j-timeline > .j-tlb .j-tlb-filters .j-tlb-filter.is-open .j-tlb-dd-btn.is-icon,
+.cins-journey-page
+  .j-gallery-main
+  .j-tlb-filters
+  .j-tlb-filter.is-open
+  .j-tlb-dd-btn.is-icon {
+  background: var(--bg-surface);
+  color: var(--cins-blue);
+  box-shadow: var(--shadow-xs);
+}
+.j-timeline > .j-tlb > .j-tlb-filter .j-tlb-dd-btn.is-icon .j-tlb-dd-caret,
 .j-timeline > .j-tlb .j-tlb-filters .j-tlb-dd-btn.is-icon .j-tlb-dd-caret,
 .cins-journey-page
   .j-gallery-main
@@ -3559,6 +3575,7 @@ a.j-main-gallery-item:focus-visible,
   .j-tlb-dd-caret {
   display: none;
 }
+.j-timeline > .j-tlb > .j-tlb-filter .j-tlb-dd-btn.is-icon .j-tlb-dd-ico svg,
 .j-timeline > .j-tlb .j-tlb-filters .j-tlb-dd-btn.is-icon .j-tlb-dd-ico svg,
 .cins-journey-page
   .j-gallery-main
@@ -17982,6 +17999,8 @@ a.action-btn {
   border: none;
   border-radius: 8px;
   background: var(--bg-surface, #fff);
+  color: inherit;
+  opacity: 1;
   cursor: pointer;
 }
 .j-reaction-btn-emoji {
@@ -17991,13 +18010,16 @@ a.action-btn {
   font-size: 15px;
   line-height: 1;
   font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", emoji;
+  /* Không dùng filter — trên Windows filter làm emoji color bị mờ/xám. */
+  filter: none;
+  opacity: 1;
 }
 .j-reaction-picker-opt:hover:not(:disabled),
 .j-reaction-picker-opt.is-active {
   background: var(--neutral-100, #f5f5f5);
 }
 .j-reaction-picker-opt:disabled {
-  opacity: 0.55;
+  /* Giữ emoji rõ; chỉ báo chờ bằng cursor. */
   cursor: wait;
 }
 .j-reaction-picker-opt-emoji {
@@ -18005,9 +18027,11 @@ a.action-btn {
   font-size: 20px;
   line-height: 1;
   font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", emoji;
-  filter: saturate(1.2) contrast(1.04);
+  filter: none;
+  opacity: 1;
+  color: inherit;
+  -webkit-text-fill-color: initial;
 }
-.j-reaction-picker-hint,
 .j-reaction-picker-err {
   grid-column: 1 / -1;
   margin: 2px 0 0;
@@ -18016,11 +18040,6 @@ a.action-btn {
   font-weight: 400;
   line-height: 1.3;
   text-align: center;
-}
-.j-reaction-picker-hint {
-  color: var(--ink-muted, rgba(0, 0, 0, 0.4));
-}
-.j-reaction-picker-err {
   color: #b42318;
 }
 .action-btn.is-disliked {

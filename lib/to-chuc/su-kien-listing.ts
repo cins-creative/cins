@@ -9,10 +9,12 @@ import { getStepStatus, type TimelineStepStatus } from "@/lib/truong/timeline";
 
 import { orgSuKienHref } from "./su-kien-routes";
 import { demDangKySeThamGia } from "./su-kien-dang-ky";
+import { listLoaiVeBySuKienIds, minGiaTuLoaiVe } from "./su-kien-loai-ve";
 import {
   isLoaiSuKien,
   type LoaiSuKien,
   type SuKienCardData,
+  type SuKienLoaiVe,
 } from "./su-kien-constants";
 
 export type SuKienListItem = SuKienCardData & {
@@ -38,6 +40,7 @@ type SuKienRow = {
   dia_diem: string | null;
   mien_phi: boolean | null;
   gia_ve: number | null;
+  cach_mua_ve: string | null;
   slot_toi_da: number | null;
   id_to_chuc: string;
   org_to_chuc:
@@ -61,7 +64,7 @@ type SuKienRow = {
 };
 
 const SU_KIEN_LISTING_SELECT =
-  "id, ten, loai_su_kien, mo_ta, noi_dung, cover_id, bat_dau, ket_thuc, tinh_thanh, dia_diem, mien_phi, gia_ve, slot_toi_da, id_to_chuc, org_to_chuc!inner ( id, slug, ten, loai_to_chuc, avatar_id, logo_id )";
+  "id, ten, loai_su_kien, mo_ta, noi_dung, cover_id, bat_dau, ket_thuc, tinh_thanh, dia_diem, mien_phi, gia_ve, cach_mua_ve, slot_toi_da, id_to_chuc, org_to_chuc!inner ( id, slug, ten, loai_to_chuc, avatar_id, logo_id )";
 
 function readOrg(row: SuKienRow) {
   const embed = row.org_to_chuc;
@@ -81,6 +84,7 @@ function readOrg(row: SuKienRow) {
 function mapRow(
   row: SuKienRow,
   soDangKy: number,
+  loaiVe: SuKienLoaiVe[] = [],
 ): SuKienListItem | null {
   const org = readOrg(row);
   if (!org) return null;
@@ -89,6 +93,8 @@ function mapRow(
     ? row.loai_su_kien
     : "meetup";
   const status = getStepStatus(row.bat_dau, row.ket_thuc);
+  const mienPhi = row.mien_phi !== false;
+  const giaFromLoai = !mienPhi ? minGiaTuLoaiVe(loaiVe) : null;
 
   return {
     id: row.id,
@@ -104,8 +110,15 @@ function mapRow(
     ketThuc: row.ket_thuc,
     tinhThanh: row.tinh_thanh?.trim() || null,
     diaDiem: row.dia_diem?.trim() || null,
-    mienPhi: row.mien_phi !== false,
-    giaVe: typeof row.gia_ve === "number" && row.gia_ve > 0 ? row.gia_ve : null,
+    mienPhi,
+    giaVe:
+      giaFromLoai != null
+        ? giaFromLoai
+        : typeof row.gia_ve === "number" && row.gia_ve >= 0
+          ? row.gia_ve
+          : null,
+    loaiVe: mienPhi ? [] : loaiVe,
+    cachMuaVe: mienPhi ? null : row.cach_mua_ve?.trim() || null,
     slotToiDa: typeof row.slot_toi_da === "number" ? row.slot_toi_da : null,
     soDangKy,
     orgId: org.id,
@@ -142,10 +155,15 @@ export const listSuKienForListing = cache(async function listSuKienForListing():
   if (error || !data?.length) return [];
 
   const counts = await demDangKySeThamGia(data.map((row) => row.id));
+  const loaiVeMap = await listLoaiVeBySuKienIds(data.map((row) => row.id));
   const items: SuKienListItem[] = [];
 
   for (const row of data) {
-    const mapped = mapRow(row, counts.get(row.id) ?? 0);
+    const mapped = mapRow(
+      row,
+      counts.get(row.id) ?? 0,
+      loaiVeMap.get(row.id) ?? [],
+    );
     if (mapped) items.push(mapped);
   }
 

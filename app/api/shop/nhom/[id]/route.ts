@@ -26,6 +26,7 @@ export async function PATCH(request: Request, ctx: Ctx) {
     anhPhuIds?: unknown;
     videoPhuId?: unknown;
     giaMacDinh?: unknown;
+    noiBat?: unknown;
   };
   try {
     body = (await request.json()) as typeof body;
@@ -40,12 +41,13 @@ export async function PATCH(request: Request, ctx: Ctx) {
     body.overlayAnhId === undefined &&
     body.anhPhuIds === undefined &&
     body.videoPhuId === undefined &&
-    body.giaMacDinh === undefined
+    body.giaMacDinh === undefined &&
+    body.noiBat === undefined
   ) {
     return NextResponse.json(
       {
         error:
-          "Cần moTa, nhan, anhId, overlayAnhId, anhPhuIds, videoPhuId hoặc giaMacDinh.",
+          "Cần moTa, nhan, anhId, overlayAnhId, anhPhuIds, videoPhuId, giaMacDinh hoặc noiBat.",
       },
       { status: 422 },
     );
@@ -102,6 +104,7 @@ export async function PATCH(request: Request, ctx: Ctx) {
             : typeof body.giaMacDinh === "number"
               ? body.giaMacDinh
               : Number(body.giaMacDinh),
+      noiBat: typeof body.noiBat === "boolean" ? body.noiBat : undefined,
     });
     return NextResponse.json({ item });
   } catch (e) {
@@ -127,6 +130,18 @@ export async function PATCH(request: Request, ctx: Ctx) {
     if (msg === "GIA_INVALID") {
       return NextResponse.json(
         { error: "Giá mặc định không hợp lệ." },
+        { status: 422 },
+      );
+    }
+    if (msg === "FEATURE_LIMIT") {
+      return NextResponse.json(
+        { error: "Đã đủ số loại hàng Feature." },
+        { status: 422 },
+      );
+    }
+    if (msg === "FEATURE_TRUC") {
+      return NextResponse.json(
+        { error: "Chỉ loại hàng (trục 1) mới gắn Feature." },
         { status: 422 },
       );
     }

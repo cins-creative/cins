@@ -94,6 +94,31 @@
   color: var(--cins-priv-accent-ink);
 }
 
+.cins-app-topbar .tb-cong-dong-admin .tb-truong-admin-btn--icon {
+  position: relative;
+}
+
+.cins-app-topbar .tb-cong-dong-admin .tb-truong-admin-btn--icon.has-pending {
+  border-color: color-mix(in srgb, var(--cins-orange, #fdad4c) 55%, var(--cins-priv-accent-border));
+}
+
+.cins-app-topbar .tb-cong-dong-admin-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  pointer-events: none;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--cins-orange, #fdad4c);
+  color: #5c3200;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 17px;
+  text-align: center;
+}
+
 /* Badge vai trò + toggle xem/sửa */
 .cins-app-topbar .tb-truong-role-btn {
   padding-inline: 10px 6px;

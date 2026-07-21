@@ -1,6 +1,6 @@
 "use client";
 
-import { ClipboardPaste, ImagePlus, Loader2, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, ClipboardPaste, ImagePlus, Loader2, Ticket, X } from "lucide-react";
 import Image from "next/image";
 import { useCallback, useEffect, useId, useRef, useState, type ClipboardEvent } from "react";
 
@@ -29,6 +29,12 @@ import {
   saveSuKienDraft,
   suKienDraftHasContent,
 } from "@/lib/to-chuc/su-kien-draft-storage";
+import {
+  loaiVeDraftsFromCard,
+  loaiVeDraftsToPayload,
+  SuKienLoaiVeManager,
+  type SuKienLoaiVeDraft,
+} from "@/components/co-so/SuKienLoaiVeManager";
 import {
   TINH_THANH_SELECT_OPTIONS,
   normalizeTinhThanhForDb,
@@ -80,7 +86,9 @@ export function SuKienCreateModal({
   const [tinhThanh, setTinhThanh] = useState(defaultTinhThanh);
   const [diaDiem, setDiaDiem] = useState("");
   const [mienPhi, setMienPhi] = useState(true);
-  const [giaVe, setGiaVe] = useState("");
+  const [loaiVe, setLoaiVe] = useState<SuKienLoaiVeDraft[]>([]);
+  const [cachMuaVe, setCachMuaVe] = useState("");
+  const [vePanelOpen, setVePanelOpen] = useState(false);
   const [moTa, setMoTa] = useState("");
   const [noiDung, setNoiDung] = useState("<p></p>");
   const [slotToiDa, setSlotToiDa] = useState("");
@@ -101,7 +109,9 @@ export function SuKienCreateModal({
     setTinhThanh(defaultTinhThanh);
     setDiaDiem("");
     setMienPhi(true);
-    setGiaVe("");
+    setLoaiVe([]);
+    setCachMuaVe("");
+    setVePanelOpen(false);
     setMoTa("");
     setNoiDung("<p></p>");
     setSlotToiDa("");
@@ -117,7 +127,16 @@ export function SuKienCreateModal({
       tinhThanh,
       diaDiem,
       mienPhi,
-      giaVe,
+      giaVe: "",
+      loaiVe: loaiVe.map((v) => ({
+        key: v.key,
+        ten: v.ten,
+        moTa: v.moTa ?? "",
+        gia: v.gia,
+        coverImageId: v.coverId ?? null,
+        coverPreviewUrl: v.coverPreviewUrl ?? null,
+      })),
+      cachMuaVe,
       moTa,
       noiDung,
       slotToiDa,
@@ -131,7 +150,8 @@ export function SuKienCreateModal({
       tinhThanh,
       diaDiem,
       mienPhi,
-      giaVe,
+      loaiVe,
+      cachMuaVe,
       moTa,
       noiDung,
       slotToiDa,
@@ -139,16 +159,6 @@ export function SuKienCreateModal({
       cover.previewUrl,
     ],
   );
-
-  const persistDraft = useCallback(() => {
-    if (isEdit) return;
-    const snap = buildDraftSnapshot();
-    if (!suKienDraftHasContent(snap)) {
-      clearSuKienDraft(orgId);
-      return;
-    }
-    saveSuKienDraft(orgId, snap);
-  }, [isEdit, buildDraftSnapshot, orgId]);
 
   async function handleCoverPick(file: File) {
     const localPreview = URL.createObjectURL(file);
@@ -214,7 +224,19 @@ export function SuKienCreateModal({
         );
         setDiaDiem(draft.diaDiem);
         setMienPhi(draft.mienPhi);
-        setGiaVe(draft.giaVe);
+        setLoaiVe(
+          draft.loaiVe.map((v) => ({
+            key: v.key,
+            ten: v.ten,
+            moTa: v.moTa,
+            gia: v.gia,
+            coverId: v.coverImageId,
+            coverPreviewUrl: v.coverPreviewUrl,
+            thuTu: 0,
+          })),
+        );
+        setCachMuaVe(draft.cachMuaVe ?? "");
+        setVePanelOpen(false);
         setMoTa(draft.moTa);
         setNoiDung(draft.noiDung?.trim() || "<p></p>");
         setSlotToiDa(draft.slotToiDa);
@@ -238,7 +260,9 @@ export function SuKienCreateModal({
     );
     setDiaDiem(editing.diaDiem ?? "");
     setMienPhi(editing.mienPhi);
-    setGiaVe(editing.giaVe != null ? String(editing.giaVe) : "");
+    setLoaiVe(loaiVeDraftsFromCard(editing.loaiVe ?? []));
+    setCachMuaVe(editing.cachMuaVe ?? "");
+    setVePanelOpen(false);
     setMoTa(editing.moTa ?? "");
     setNoiDung(editing.noiDung?.trim() || "<p></p>");
     setSlotToiDa(editing.slotToiDa != null ? String(editing.slotToiDa) : "");
@@ -276,15 +300,6 @@ export function SuKienCreateModal({
     onClose();
   }
 
-  /** Click nền ngoài — tự lưu nháp rồi đóng (chỉ create). */
-  function handleBackdropClose() {
-    if (submitting || deleting) return;
-    if (!isEdit) persistDraft();
-    setConfirmDelete(false);
-    reset();
-    onClose();
-  }
-
   async function handleDelete() {
     if (!onDelete || submitting || deleting) return;
     if (!confirmDelete) {
@@ -312,9 +327,8 @@ export function SuKienCreateModal({
     if (!normalizeTinhThanhForDb(tinhThanh)) {
       return "Cần chọn khu vực tổ chức sự kiện.";
     }
-    if (!mienPhi && giaVe.trim()) {
-      const n = Number.parseInt(giaVe.trim(), 10);
-      if (!Number.isInteger(n) || n < 0) return "Giá vé không hợp lệ.";
+    if (!mienPhi && loaiVe.length === 0) {
+      return "Sự kiện tính phí cần ít nhất một loại vé.";
     }
     if (!cover.imageId) return "Cần ảnh bìa sự kiện.";
     return null;
@@ -326,14 +340,13 @@ export function SuKienCreateModal({
     const clientErr = validateClient();
     if (clientErr) {
       setError(clientErr);
+      if (!mienPhi && loaiVe.length === 0) setVePanelOpen(true);
       return;
     }
 
     const slotNum = slotToiDa.trim()
       ? Number.parseInt(slotToiDa.trim(), 10)
       : null;
-    const giaVeNum =
-      !mienPhi && giaVe.trim() ? Number.parseInt(giaVe.trim(), 10) : null;
 
     const payload = {
       ten: ten.trim(),
@@ -343,7 +356,8 @@ export function SuKienCreateModal({
       tinhThanh: normalizeTinhThanhForDb(tinhThanh),
       diaDiem: diaDiem.trim() || null,
       mienPhi,
-      giaVe: giaVeNum,
+      loaiVe: mienPhi ? [] : loaiVeDraftsToPayload(loaiVe),
+      cachMuaVe: mienPhi ? null : cachMuaVe.trim() || null,
       moTa: moTa.trim() || null,
       noiDung,
       slotToiDa: slotNum,
@@ -384,29 +398,79 @@ export function SuKienCreateModal({
   return (
     <TruongInlineModal
       open={open}
-      onClose={handleBackdropClose}
-      closeOnBackdrop
+      onClose={handleCancelClose}
       className="tdh-inline-modal--wide cso-kh-create-modal"
       labelledBy={titleId}
       showClose={false}
     >
       <div className="cso-kh-create-head">
         <h2 id={titleId} className="tdh-inline-modal-title">
-          {isEdit ? "Sửa sự kiện" : "Thêm sự kiện"}
+          {vePanelOpen
+            ? "Quản lý vé"
+            : isEdit
+              ? "Sửa sự kiện"
+              : "Thêm sự kiện"}
         </h2>
         <button
           type="button"
           className="cso-kh-create-close"
-          aria-label="Đóng"
-          onClick={handleCancelClose}
+          aria-label={vePanelOpen ? "Quay lại form sự kiện" : "Đóng"}
+          onClick={() => {
+            if (vePanelOpen) {
+              setVePanelOpen(false);
+              return;
+            }
+            handleCancelClose();
+          }}
           disabled={submitting}
         >
-          <X size={18} aria-hidden />
+          {vePanelOpen ? (
+            <ChevronLeft size={18} aria-hidden />
+          ) : (
+            <X size={18} aria-hidden />
+          )}
         </button>
       </div>
 
       <form className="cso-kh-create-form" onSubmit={handleSubmit}>
         <div className="cso-kh-create-body">
+          {vePanelOpen ? (
+            <>
+              <label className="cso-kh-field">
+                <span className="cso-kh-label">Cách mua vé</span>
+                <textarea
+                  className="cso-kh-textarea cso-kh-textarea--short"
+                  rows={3}
+                  maxLength={2000}
+                  value={cachMuaVe}
+                  disabled={submitting || deleting}
+                  onChange={(e) => setCachMuaVe(e.target.value)}
+                  placeholder="Link form, chuyển khoản, inbox fanpage, quầy bán vé…"
+                />
+                <span className="cso-kh-hint">
+                  CINs không thu tiền — ghi rõ cách mua ngoài nền tảng.
+                </span>
+              </label>
+
+              <SuKienLoaiVeManager
+                items={loaiVe}
+                onChange={setLoaiVe}
+                disabled={submitting || deleting}
+              />
+
+              <div className="cso-sk-ve-panel-done">
+                <button
+                  type="button"
+                  className="cso-kh-foot-btn cso-kh-foot-btn--primary"
+                  onClick={() => setVePanelOpen(false)}
+                  disabled={submitting || deleting}
+                >
+                  Xong
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
           <label className="cso-kh-field">
             <span className="cso-kh-label">
               Tên sự kiện <span className="cso-kh-req">*</span>
@@ -544,7 +608,13 @@ export function SuKienCreateModal({
             </p>
           </div>
 
-          <div className="cso-kh-field-row">
+          <div
+            className={
+              mienPhi
+                ? "cso-kh-field-row cso-kh-field-row--single"
+                : "cso-kh-field-row cso-kh-field-row--ve"
+            }
+          >
             <label className="cso-kh-field">
               <span className="cso-kh-label">
                 Hình thức vé <span className="cso-kh-req">*</span>
@@ -552,24 +622,55 @@ export function SuKienCreateModal({
               <select
                 className="cso-kh-input"
                 value={mienPhi ? "mien_phi" : "tinh_phi"}
-                onChange={(e) => setMienPhi(e.target.value === "mien_phi")}
+                onChange={(e) => {
+                  const nextFree = e.target.value === "mien_phi";
+                  if (nextFree && (loaiVe.length > 0 || cachMuaVe.trim())) {
+                    const ok = window.confirm(
+                      "Chuyển sang miễn phí sẽ xóa các loại vé và cách mua vé đã thêm. Tiếp tục?",
+                    );
+                    if (!ok) return;
+                    setLoaiVe([]);
+                    setCachMuaVe("");
+                    setVePanelOpen(false);
+                  }
+                  setMienPhi(nextFree);
+                }}
               >
                 <option value="mien_phi">Miễn phí</option>
                 <option value="tinh_phi">Tính phí</option>
               </select>
             </label>
+
             {!mienPhi ? (
-              <label className="cso-kh-field">
-                <span className="cso-kh-label">Giá vé (VND)</span>
-                <input
-                  type="number"
-                  min={0}
-                  className="cso-kh-input"
-                  value={giaVe}
-                  onChange={(e) => setGiaVe(e.target.value)}
-                  placeholder="Tuỳ chọn — để trống nếu chưa công bố"
-                />
-              </label>
+              <div className="cso-sk-ve-entry cso-sk-ve-entry--inline">
+                <span className="cso-kh-label cso-sk-ve-entry-label">
+                  Vé &amp; cách mua
+                </span>
+                <button
+                  type="button"
+                  className="cso-sk-ve-entry-btn"
+                  onClick={() => setVePanelOpen(true)}
+                  disabled={submitting || deleting}
+                >
+                  <span className="cso-sk-ve-entry-icon" aria-hidden>
+                    <Ticket size={16} strokeWidth={2} />
+                  </span>
+                  <span className="cso-sk-ve-entry-copy">
+                    <span className="cso-sk-ve-entry-title">Quản lý vé</span>
+                    <span className="cso-sk-ve-entry-meta">
+                      {loaiVe.length > 0
+                        ? `${loaiVe.length} loại`
+                        : "Chưa có loại"}
+                    </span>
+                  </span>
+                  <ChevronRight
+                    className="cso-sk-ve-entry-chevron"
+                    size={16}
+                    strokeWidth={2.25}
+                    aria-hidden
+                  />
+                </button>
+              </div>
             ) : null}
           </div>
 
@@ -640,6 +741,8 @@ export function SuKienCreateModal({
               placeholder="Bỏ trống nếu không giới hạn"
             />
           </label>
+            </>
+          )}
 
           {error ? <p className="cso-kh-form-err">{error}</p> : null}
         </div>
@@ -683,7 +786,8 @@ export function SuKienCreateModal({
               !ten.trim() ||
               !when.start.trim() ||
               !tinhThanh ||
-              !cover.imageId
+              !cover.imageId ||
+              (!mienPhi && loaiVe.length === 0)
             }
           >
             {submitting ? (

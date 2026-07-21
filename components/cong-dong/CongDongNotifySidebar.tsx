@@ -13,6 +13,7 @@ import {
   loadCongDongTimelineMoc,
   saveCongDongTimelineMoc,
 } from "@/lib/cong-dong/timeline-moc-storage";
+import { congDongSuKienPath } from "@/lib/cong-dong/routes";
 import {
   labelLoaiSuKien,
   labelSuKienVe,
@@ -39,8 +40,10 @@ import { isValidTruongYear } from "@/lib/truong/year-tabs";
 
 type Props = {
   orgId: string;
+  orgSlug: string;
   orgTinhThanh?: string | null;
   canManage?: boolean;
+  activeSuKienId?: string | null;
   onUpcomingCountChange?: (count: number) => void;
 };
 
@@ -59,7 +62,10 @@ function parseSuKienStepId(stepId: string): string | null {
     : null;
 }
 
-function buildCongDongSuKienSteps(events: SuKienCardData[]): TuyenSinhTimelineStep[] {
+function buildCongDongSuKienSteps(
+  events: SuKienCardData[],
+  orgSlug: string,
+): TuyenSinhTimelineStep[] {
   return events.map((ev) => {
     const status = getStepStatus(ev.batDau, ev.ketThuc);
     const startLabel = formatTimelineDate(ev.batDau) ?? "";
@@ -71,7 +77,7 @@ function buildCongDongSuKienSteps(events: SuKienCardData[]): TuyenSinhTimelineSt
     if (status === "active") dateLabel = `${dateLabel} · Đang diễn ra`;
     const descParts = [
       labelLoaiSuKien(ev.loaiSuKien),
-      labelSuKienVe(ev.mienPhi, ev.giaVe),
+      labelSuKienVe(ev.mienPhi, ev.giaVe, ev.loaiVe?.length),
     ];
     const diaDiemLabel = formatSuKienDiaDiemDisplay(ev.tinhThanh, ev.diaDiem);
     if (diaDiemLabel) descParts.push(diaDiemLabel);
@@ -80,7 +86,7 @@ function buildCongDongSuKienSteps(events: SuKienCardData[]): TuyenSinhTimelineSt
       label: ev.ten,
       dateLabel,
       desc: descParts.join(" · "),
-      link: null,
+      link: congDongSuKienPath(orgSlug, ev.id),
       status,
       dot: status === "done" ? "✓" : status === "active" ? "→" : "★",
       coverSrc: ev.coverSrc,
@@ -110,12 +116,14 @@ function TimelineStepItem({
   isEditing,
   onEdit,
   editHint = "Bấm để sửa hoặc xóa",
+  isActive = false,
 }: {
   step: TuyenSinhTimelineStep;
   role: StepRole;
   isEditing?: boolean;
   onEdit?: () => void;
   editHint?: string;
+  isActive?: boolean;
 }) {
   const className = [
     "timeline-item",
@@ -125,6 +133,7 @@ function TimelineStepItem({
     role === "current" ? "timeline-item--focus timeline-item--current" : "",
     role === "next" ? "timeline-item--focus timeline-item--next" : "",
     isEditing ? "timeline-item--editable" : "",
+    isActive ? "timeline-item--active" : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -140,9 +149,25 @@ function TimelineStepItem({
     />
   ) : null;
 
-  const bannerNode = bannerImage ? (
-    <div className="timeline-event-banner-link">{bannerImage}</div>
-  ) : null;
+  const bannerNode =
+    bannerImage && step.link && !isEditing ? (
+      step.link.startsWith("/") ? (
+        <Link href={step.link} className="timeline-event-banner-link">
+          {bannerImage}
+        </Link>
+      ) : (
+        <a
+          href={timelineLinkHref(step.link)}
+          className="timeline-event-banner-link"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          {bannerImage}
+        </a>
+      )
+    ) : bannerImage ? (
+      <div className="timeline-event-banner-link">{bannerImage}</div>
+    ) : null;
 
   const labelNode =
     step.link && !isEditing ? (
@@ -225,8 +250,10 @@ function TimelineStepItem({
 
 export function CongDongNotifySidebar({
   orgId,
+  orgSlug,
   orgTinhThanh = null,
   canManage = false,
+  activeSuKienId = null,
   onUpcomingCountChange,
 }: Props) {
   const [suKienList, setSuKienList] = useState<SuKienCardData[]>([]);
@@ -234,7 +261,6 @@ export function CongDongNotifySidebar({
   const [showPastSteps, setShowPastSteps] = useState(false);
   const [mocModal, setMocModal] = useState<MocModalMode | null>(null);
   const [suKienModalOpen, setSuKienModalOpen] = useState(false);
-  const [editingSuKien, setEditingSuKien] = useState<SuKienCardData | null>(null);
   const [timelineYear, setTimelineYear] = useState(currentCalendarYear());
   const [toast, setToast] = useState<string | null>(null);
 
@@ -263,6 +289,21 @@ export function CongDongNotifySidebar({
   }, [loadSuKien]);
 
   useEffect(() => {
+    function onSuKienChanged(ev: Event) {
+      const detail = (ev as CustomEvent<{ orgId?: string }>).detail;
+      if (detail?.orgId && detail.orgId !== orgId) return;
+      void loadSuKien();
+    }
+    window.addEventListener("cins:cong-dong-su-kien-changed", onSuKienChanged);
+    return () => {
+      window.removeEventListener(
+        "cins:cong-dong-su-kien-changed",
+        onSuKienChanged,
+      );
+    };
+  }, [orgId, loadSuKien]);
+
+  useEffect(() => {
     setTimelineMoc(loadCongDongTimelineMoc(orgId));
   }, [orgId]);
 
@@ -270,7 +311,6 @@ export function CongDongNotifySidebar({
     if (!canManage) {
       setMocModal(null);
       setSuKienModalOpen(false);
-      setEditingSuKien(null);
     }
   }, [canManage]);
 
@@ -284,8 +324,8 @@ export function CongDongNotifySidebar({
   );
 
   const suKienSteps = useMemo(
-    () => buildCongDongSuKienSteps(suKienOfYear),
-    [suKienOfYear],
+    () => buildCongDongSuKienSteps(suKienOfYear, orgSlug),
+    [suKienOfYear, orgSlug],
   );
 
   const suKienYears = useMemo(
@@ -377,26 +417,12 @@ export function CongDongNotifySidebar({
     return "default";
   }
 
-  function stepEditHint(step: TuyenSinhTimelineStep): string {
-    if (parseSuKienStepId(step.id)) return "Bấm để sửa hoặc xóa sự kiện";
+  function stepEditHint(_step: TuyenSinhTimelineStep): string {
     return "Bấm để sửa hoặc xóa mốc thông báo";
   }
 
   function handleEditStep(step: TuyenSinhTimelineStep) {
-    const suKienId = parseSuKienStepId(step.id);
-    if (suKienId) {
-      const ev = suKienList.find((e) => e.id === suKienId);
-      if (!ev) {
-        showToast("Không tìm thấy sự kiện — thử tải lại trang.");
-        void loadSuKien();
-        return;
-      }
-      setMocModal(null);
-      setSuKienModalOpen(false);
-      setEditingSuKien(ev);
-      return;
-    }
-    setEditingSuKien(null);
+    if (parseSuKienStepId(step.id)) return;
     setMocModal({ kind: "edit", mocId: step.id });
   }
 
@@ -434,37 +460,6 @@ export function CongDongNotifySidebar({
     setTimelineMoc(next);
     setMocModal(null);
     showToast("Đã cập nhật mốc thông báo");
-  }
-
-  function handleSuKienUpdated(updated: SuKienCardData) {
-    setSuKienList((prev) =>
-      prev.map((e) => (e.id === updated.id ? updated : e)),
-    );
-    setEditingSuKien(null);
-    showToast("Đã cập nhật sự kiện");
-  }
-
-  async function handleDeleteSuKien() {
-    if (!editingSuKien) return;
-    const id = editingSuKien.id;
-    try {
-      const res = await fetch(
-        `/api/org/${encodeURIComponent(orgId)}/su-kien/${encodeURIComponent(id)}`,
-        { method: "DELETE", credentials: "include" },
-      );
-      if (!res.ok) {
-        const json = (await res.json().catch(() => null)) as {
-          error?: string;
-        } | null;
-        showToast(json?.error ?? "Không xóa được sự kiện.");
-        return;
-      }
-      setSuKienList((prev) => prev.filter((e) => e.id !== id));
-      setEditingSuKien(null);
-      showToast("Đã xóa sự kiện");
-    } catch {
-      showToast("Lỗi mạng — thử lại sau.");
-    }
   }
 
   function handleDeleteMoc() {
@@ -524,16 +519,28 @@ export function CongDongNotifySidebar({
                   </button>
                 ) : null}
 
-                {visibleSteps.map((step) => (
-                  <TimelineStepItem
-                    key={step.id}
-                    step={step}
-                    role={stepRole(step)}
-                    isEditing={canManage}
-                    editHint={stepEditHint(step)}
-                    onEdit={canManage ? () => handleEditStep(step) : undefined}
-                  />
-                ))}
+                {visibleSteps.map((step) => {
+                  const isSuKien = Boolean(parseSuKienStepId(step.id));
+                  const stepSuKienId = parseSuKienStepId(step.id);
+                  const canEditMoc = canManage && !isSuKien;
+                  return (
+                    <TimelineStepItem
+                      key={step.id}
+                      step={step}
+                      role={stepRole(step)}
+                      isEditing={canEditMoc}
+                      editHint={stepEditHint(step)}
+                      onEdit={canEditMoc ? () => handleEditStep(step) : undefined}
+                      isActive={
+                        Boolean(
+                          stepSuKienId &&
+                            activeSuKienId &&
+                            stepSuKienId === activeSuKienId,
+                        )
+                      }
+                    />
+                  );
+                })}
 
                 {canManage && timelineSteps.length === 0 ? (
                   <p className="ptxt-empty-text tdh-admission-side-empty">
@@ -547,7 +554,6 @@ export function CongDongNotifySidebar({
                     type="button"
                     className="timeline-item timeline-add-moc"
                     onClick={() => {
-                      setEditingSuKien(null);
                       setMocModal({ kind: "new" });
                     }}
                   >
@@ -593,21 +599,24 @@ export function CongDongNotifySidebar({
 
       {canManage ? (
         <SuKienCreateModal
-          open={suKienModalOpen || Boolean(editingSuKien)}
+          open={suKienModalOpen}
           orgId={orgId}
           orgTinhThanh={orgTinhThanh}
-          editing={editingSuKien}
           onClose={() => {
             setSuKienModalOpen(false);
-            setEditingSuKien(null);
           }}
           onCreated={(created) => {
             setSuKienList((prev) => [created, ...prev]);
             setSuKienModalOpen(false);
             showToast("Đã thêm sự kiện");
+            if (typeof window !== "undefined") {
+              window.dispatchEvent(
+                new CustomEvent("cins:cong-dong-su-kien-changed", {
+                  detail: { orgId, action: "created", suKien: created },
+                }),
+              );
+            }
           }}
-          onUpdated={handleSuKienUpdated}
-          onDelete={editingSuKien ? handleDeleteSuKien : undefined}
         />
       ) : null}
 

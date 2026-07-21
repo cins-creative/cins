@@ -942,7 +942,13 @@ export function MediaComposeView({
           loaiMoc,
           thoiDiem: editInitial.thoiDiem,
           blocks,
-          personalFilterIds,
+          personalFilterIds: congDongCompose ? undefined : personalFilterIds,
+          congDong: congDongCompose
+            ? {
+                orgId: congDongCompose.orgId,
+                filterSlugs: composeFilterSlugs,
+              }
+            : undefined,
         });
         if (!res.ok) {
           setError(res.error);

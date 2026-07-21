@@ -20,3 +20,20 @@ export type SuKienQuanLyPayload = {
   stats: SuKienQuanLyStats;
   thanhVien: SuKienQuanLyThanhVien[];
 };
+
+/** Sự kiện đang / sắp diễn ra trong bảng quản lý org. */
+export type SuKienQuanLyOrgItem = {
+  id: string;
+  ten: string;
+  batDau: string;
+  ketThuc: string | null;
+  coverSrc: string | null;
+  status: "active" | "upcoming";
+  soSeThamGia: number;
+  soChoDuyetNoiDung: number;
+};
+
+export type SuKienQuanLyOrgPayload = {
+  suKien: SuKienQuanLyOrgItem[];
+  tongChoDuyet: number;
+};

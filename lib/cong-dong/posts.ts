@@ -704,12 +704,12 @@ export async function updateCongDongPost(params: {
     return { ok: false, error: "Chỉ quản trị viên mới ghim bài.", status: 403 };
   }
 
-  const hasContentPatch =
-    params.noiDung !== undefined ||
-    params.tieuDe !== undefined ||
-    params.filterIds !== undefined;
+  const hasProsePatch =
+    params.noiDung !== undefined || params.tieuDe !== undefined;
+  const hasFilterPatch = params.filterIds !== undefined;
 
-  if (hasContentPatch && (await milestoneHasTacPham(params.postId))) {
+  // Bài mirror Journey: vẫn cho đổi nhãn cộng đồng; prose sửa trên Journey.
+  if (hasProsePatch && (await milestoneHasTacPham(params.postId))) {
     return {
       ok: false,
       error: "Bài gắn tác phẩm — sửa trên trang Journey của bạn.",
@@ -717,7 +717,7 @@ export async function updateCongDongPost(params: {
     };
   }
 
-  if (hasContentPatch && !isAuthor && !isModerator) {
+  if ((hasProsePatch || hasFilterPatch) && !isAuthor && !isModerator) {
     return { ok: false, error: "Bạn không có quyền sửa bài này.", status: 403 };
   }
 

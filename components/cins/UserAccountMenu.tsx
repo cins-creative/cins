@@ -24,6 +24,7 @@ import { SidebarNavIcon } from "@/components/cins/SidebarNavIcon";
 import { UserAccountSettingsModal } from "@/components/cins/UserAccountSettingsModal";
 import { clearAllWorldJourneyFirstImpressionSeen } from "@/lib/cins/worldJourneyFirstImpression";
 import { getNameInitials } from "@/lib/journey/profile";
+import { clearRecentSearches } from "@/lib/search/recent-searches-storage";
 import {
   THEME_CHANGE_EVENT,
   THEME_MODE_OPTIONS,
@@ -325,6 +326,7 @@ export function UserAccountMenu({
             className="app-user-menu-form"
             onSubmit={() => {
               clearAllWorldJourneyFirstImpressionSeen();
+              clearRecentSearches();
             }}
           >
             <button

@@ -8,6 +8,7 @@ import {
   ImagePlus,
   Loader2,
   Plus,
+  Star,
   Tags,
   X,
 } from "lucide-react";
@@ -15,7 +16,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { readImageFilesFromClipboard } from "@/lib/files/clipboard-images";
 import type { ShopNhom } from "@/lib/shop/types";
-import { SHOP_NHOM_ANH_PHU_MAX, SHOP_NHOM_MO_TA_MAX } from "@/lib/shop/types";
+import {
+  SHOP_NHOM_ANH_PHU_MAX,
+  SHOP_NHOM_FEATURE_MAX,
+  SHOP_NHOM_MO_TA_MAX,
+} from "@/lib/shop/types";
 
 import { ShopNhomMoTaField } from "./ShopNhomMoTaField";
 
@@ -34,15 +39,6 @@ type Props = {
   onError: (msg: string | null) => void;
 };
 
-function formatGia(gia: number | null): string {
-  if (gia == null) return "Chưa đặt giá";
-  return new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
-    maximumFractionDigits: 0,
-  }).format(gia);
-}
-
 export function ShopKhoLoaiHub({
   nhoms,
   mauCountByNhomId,
@@ -54,8 +50,10 @@ export function ShopKhoLoaiHub({
   onError,
 }: Props) {
   const loaiList = nhoms.filter((n) => n.truc === 1);
+  const featureCount = loaiList.filter((n) => n.noiBat).length;
   const [creating, setCreating] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [featureBusyId, setFeatureBusyId] = useState<string | null>(null);
   const [nhan, setNhan] = useState("");
   const [moTa, setMoTa] = useState("");
   const [gia, setGia] = useState("");
@@ -169,11 +167,51 @@ export function ShopKhoLoaiHub({
     }
   }
 
+  async function toggleFeature(n: ShopNhom) {
+    const next = !n.noiBat;
+    if (next && featureCount >= SHOP_NHOM_FEATURE_MAX) {
+      onError(
+        `Chỉ được gắn ngôi sao tối đa ${SHOP_NHOM_FEATURE_MAX} loại hàng.`,
+      );
+      return;
+    }
+    setFeatureBusyId(n.id);
+    onError(null);
+    try {
+      const res = await fetch(`/api/shop/nhom/${encodeURIComponent(n.id)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ noiBat: next }),
+      });
+      const json = (await res.json().catch(() => null)) as {
+        item?: ShopNhom;
+        error?: string;
+      } | null;
+      if (!res.ok || !json?.item) {
+        onError(json?.error ?? "Không gắn ngôi sao được.");
+        return;
+      }
+      onNhomsChanged(
+        nhoms.map((x) => (x.id === json.item!.id ? json.item! : x)),
+      );
+    } catch {
+      onError("Không gắn ngôi sao được.");
+    } finally {
+      setFeatureBusyId(null);
+    }
+  }
+
   return (
     <div className="shop-kho-loai-hub">
       <div className="shop-kho-loai-hub-head">
         <div>
           <h2>Loại hàng</h2>
+          <p className="shop-feature-count" title={`Tối đa ${SHOP_NHOM_FEATURE_MAX} loại Feature`}>
+            Feature{" "}
+            <strong>
+              {featureCount}/{SHOP_NHOM_FEATURE_MAX}
+            </strong>
+          </p>
         </div>
         <button
           type="button"
@@ -278,53 +316,83 @@ export function ShopKhoLoaiHub({
       ) : null}
 
       <ul className="shop-kho-loai-grid">
-        {loaiList.map((n) => (
-          <li key={n.id}>
-            <button
-              type="button"
-              className="shop-kho-loai-card"
-              onClick={() => onOpenNhom(n.id)}
-            >
-              <span className="shop-kho-loai-card-media">
-                {n.anhUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={n.anhUrl} alt="" />
-                ) : (
+        {loaiList.map((n) => {
+          const featBusy = featureBusyId === n.id;
+          const capped = !n.noiBat && featureCount >= SHOP_NHOM_FEATURE_MAX;
+          return (
+            <li key={n.id}>
+              <div
+                className={`shop-kho-loai-card${n.noiBat ? " is-feature" : ""}`}
+              >
+                <button
+                  type="button"
+                  className="shop-kho-loai-card-open"
+                  onClick={() => onOpenNhom(n.id)}
+                >
+                  <span className="shop-kho-loai-card-media">
+                    {n.anhUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={n.anhUrl} alt="" />
+                    ) : (
+                      <span className="shop-kho-loai-card-ph" aria-hidden>
+                        <Tags size={20} />
+                      </span>
+                    )}
+                  </span>
+                  <span className="shop-kho-loai-card-body">
+                    <strong>{n.nhan}</strong>
+                    <span>{mauCountByNhomId[n.id] ?? 0} mẫu</span>
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  className={`shop-kho-loai-feature-btn${n.noiBat ? " is-on" : ""}${capped ? " is-capped" : ""}`}
+                  disabled={busy || featBusy || capped}
+                  aria-pressed={n.noiBat}
+                  aria-label={n.noiBat ? "Bỏ ngôi sao" : "Gắn ngôi sao"}
+                  title={
+                    capped
+                      ? `Đã đủ ${SHOP_NHOM_FEATURE_MAX} ngôi sao — bỏ chọn một loại khác trước`
+                      : n.noiBat
+                        ? "Bỏ ngôi sao"
+                        : "Gắn ngôi sao"
+                  }
+                  onClick={() => void toggleFeature(n)}
+                >
+                  {featBusy ? (
+                    <Loader2 size={14} className="shop-spin" aria-hidden />
+                  ) : (
+                    <Star
+                      size={14}
+                      strokeWidth={2.25}
+                      fill={n.noiBat ? "currentColor" : "none"}
+                      aria-hidden
+                    />
+                  )}
+                </button>
+              </div>
+            </li>
+          );
+        })}
+        {orphanCount > 0 ? (
+          <li>
+            <div className="shop-kho-loai-card is-orphan">
+              <button
+                type="button"
+                className="shop-kho-loai-card-open"
+                onClick={onOpenOrphans}
+              >
+                <span className="shop-kho-loai-card-media">
                   <span className="shop-kho-loai-card-ph" aria-hidden>
                     <Tags size={20} />
                   </span>
-                )}
-              </span>
-              <span className="shop-kho-loai-card-body">
-                <strong>{n.nhan}</strong>
-                <span>{mauCountByNhomId[n.id] ?? 0} mẫu</span>
-                <span className="shop-kho-loai-card-gia">
-                  {formatGia(n.giaMacDinh)}
                 </span>
-              </span>
-            </button>
-          </li>
-        ))}
-        {orphanCount > 0 ? (
-          <li>
-            <button
-              type="button"
-              className="shop-kho-loai-card is-orphan"
-              onClick={onOpenOrphans}
-            >
-              <span className="shop-kho-loai-card-media">
-                <span className="shop-kho-loai-card-ph" aria-hidden>
-                  <Tags size={20} />
+                <span className="shop-kho-loai-card-body">
+                  <strong>Chưa gán loại</strong>
+                  <span>{orphanCount} mẫu</span>
                 </span>
-              </span>
-              <span className="shop-kho-loai-card-body">
-                <strong>Chưa gán loại</strong>
-                <span>{orphanCount} mẫu</span>
-                <span className="shop-kho-loai-card-gia">
-                  Gán vào loại để bán trên mặt tiền
-                </span>
-              </span>
-            </button>
+              </button>
+            </div>
           </li>
         ) : null}
       </ul>
@@ -440,9 +508,7 @@ export function ShopKhoLoaiMeta({
       setNhan(json.item.nhan);
       setMoTa(json.item.moTa ?? "");
       giaDirtyRef.current = false;
-      setGia(
-        giaInputValue(json.item.giaMacDinh, suggestedGiaMacDinh),
-      );
+      setGia(giaInputValue(json.item.giaMacDinh, suggestedGiaMacDinh));
       if (json.item.anhPhuIds && json.item.anhPhuUrls) {
         setAnhPhu(
           json.item.anhPhuIds

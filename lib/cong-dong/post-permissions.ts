@@ -1,6 +1,6 @@
 import type { CongDongPost } from "@/lib/cong-dong/types";
 import {
-  canManageCommunityContent,
+  canManageLabels,
   type CongDongVaiTro,
 } from "@/lib/cong-dong/vai-tro";
 
@@ -12,6 +12,8 @@ export type CongDongPostMenuPermissions = {
   canUnpin: boolean;
   canEditNative: boolean;
   canEditJourney: boolean;
+  /** Đổi nhãn cộng đồng trên card (kể cả bài mirror Journey). */
+  canEditFilters: boolean;
   canDelete: boolean;
   canViewJourney: boolean;
 };
@@ -24,11 +26,12 @@ const CLOSED: CongDongPostMenuPermissions = {
   canUnpin: false,
   canEditNative: false,
   canEditJourney: false,
+  canEditFilters: false,
   canDelete: false,
   canViewJourney: false,
 };
 
-/** Quyền menu ⋯ trên card bài — tác giả vs quản trị nội dung/admin. */
+/** Quyền menu ⋯ trên card bài — tác giả vs owner/admin/QL nội dung. */
 export function getCongDongPostMenuPermissions(
   viewerId: string | null,
   viewerVaiTro: CongDongVaiTro | null,
@@ -37,7 +40,8 @@ export function getCongDongPostMenuPermissions(
   if (!viewerId) return CLOSED;
 
   const isAuthor = post.author.id === viewerId;
-  const isModerator = canManageCommunityContent(viewerVaiTro);
+  /** Khớp `isCongDongAdmin` (owner · admin · quan_ly_noi_dung). */
+  const isModerator = canManageLabels(viewerVaiTro);
   const canManage = isAuthor || isModerator;
   if (!canManage) return CLOSED;
 
@@ -51,6 +55,7 @@ export function getCongDongPostMenuPermissions(
     canUnpin: isModerator && post.ghim,
     canEditNative: canManage && !hasMirror,
     canEditJourney: isAuthor && hasMirror,
+    canEditFilters: canManage,
     canDelete: canManage,
     canViewJourney: hasMirror,
   };

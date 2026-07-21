@@ -377,12 +377,14 @@ export async function listShopStorefrontNhomCards(opts: {
     mo_ta: string | null;
     anh_id: string | null;
     thu_tu: number;
+    noi_bat: boolean;
+    gia_mac_dinh: number | string | null;
   };
   const nhomById = new Map<string, NhomMeta>();
   if (nhomIds.length > 0) {
     const { data } = await admin
       .from("shop_nhom")
-      .select("id, nhan, mo_ta, anh_id, thu_tu")
+      .select("id, nhan, mo_ta, anh_id, thu_tu, noi_bat, gia_mac_dinh")
       .in("id", nhomIds)
       .eq("da_xoa", false)
       .eq("truc", 1);
@@ -398,6 +400,8 @@ export async function listShopStorefrontNhomCards(opts: {
     /** Chỉ ảnh loại (`shop_nhom.anh_id`) — không fallback ảnh mẫu. */
     anhUrl: string | null;
     thuTu: number;
+    noiBat: boolean;
+    giaMacDinh: number | null;
     soMau: number;
     giaTu: number | null;
     giaDen: number | null;
@@ -415,12 +419,20 @@ export async function listShopStorefrontNhomCards(opts: {
     const nhom = key === SHOP_STOREFRONT_KHAC_SLUG ? null : nhomById.get(key);
     let agg = byKey.get(key);
     if (!agg) {
+      const rawGia = nhom?.gia_mac_dinh;
+      const giaN =
+        rawGia == null || rawGia === ""
+          ? null
+          : Number(rawGia);
       agg = {
         id: key,
         nhan: nhom?.nhan ?? "Khác",
         moTa: nhom?.mo_ta?.trim() || null,
         anhUrl: shopImageUrl(nhom?.anh_id ?? null),
         thuTu: nhom?.thu_tu ?? 9999,
+        noiBat: nhom?.noi_bat === true,
+        giaMacDinh:
+          giaN != null && Number.isFinite(giaN) && giaN >= 0 ? giaN : null,
         soMau: 0,
         giaTu: null,
         giaDen: null,
@@ -433,15 +445,13 @@ export async function listShopStorefrontNhomCards(opts: {
     agg.soMau += 1;
     agg.soLuongBan += item.soLuongBan;
     if (!item.hetHang) agg.anyInStock = true;
-    if (item.giaHienThi != null) {
+    /* Min/max theo giá gốc niêm yết (không lấy giá giảm). */
+    const giaGocMau = item.giaGoc ?? item.giaHienThi;
+    if (giaGocMau != null) {
       agg.giaTu =
-        agg.giaTu == null
-          ? item.giaHienThi
-          : Math.min(agg.giaTu, item.giaHienThi);
+        agg.giaTu == null ? giaGocMau : Math.min(agg.giaTu, giaGocMau);
       agg.giaDen =
-        agg.giaDen == null
-          ? item.giaHienThi
-          : Math.max(agg.giaDen, item.giaHienThi);
+        agg.giaDen == null ? giaGocMau : Math.max(agg.giaDen, giaGocMau);
       agg.tienTe = item.tienTe || agg.tienTe;
     }
   }
@@ -468,6 +478,7 @@ export async function listShopStorefrontNhomCards(opts: {
     .sort((a, b) => {
       if (a.id === SHOP_STOREFRONT_KHAC_SLUG) return 1;
       if (b.id === SHOP_STOREFRONT_KHAC_SLUG) return -1;
+      if (a.noiBat !== b.noiBat) return Number(b.noiBat) - Number(a.noiBat);
       if (a.thuTu !== b.thuTu) return a.thuTu - b.thuTu;
       return a.nhan.localeCompare(b.nhan, "vi");
     })
@@ -483,14 +494,16 @@ export async function listShopStorefrontNhomCards(opts: {
         moTa: a.moTa,
         anhUrl: a.anhUrl,
         soMau: a.soMau,
-        giaTu: a.giaTu,
-        giaDen: a.giaDen,
+        giaTu: a.giaMacDinh ?? a.giaTu,
+        giaDen: a.giaMacDinh ?? a.giaDen,
+        giaMacDinh: a.giaMacDinh,
         tienTe: a.tienTe,
         soLuongBan: a.soLuongBan,
         hetHang: !a.anyInStock,
         href: shopLoaiHref(opts.ownerSlug, a.id),
         diemTrungBinh,
         tongDanhGia: rating?.tong ?? 0,
+        noiBat: a.noiBat,
       };
     });
 }

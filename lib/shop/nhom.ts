@@ -6,13 +6,17 @@ import {
 } from "@/lib/bunny/embed";
 import { assertBanHangEnabled, shopImageUrl } from "@/lib/shop/settings";
 import type { ShopNhom, ShopNhomTruc } from "@/lib/shop/types";
-import { SHOP_NHOM_ANH_PHU_MAX, SHOP_NHOM_MO_TA_MAX } from "@/lib/shop/types";
+import {
+  SHOP_NHOM_ANH_PHU_MAX,
+  SHOP_NHOM_FEATURE_MAX,
+  SHOP_NHOM_MO_TA_MAX,
+} from "@/lib/shop/types";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 export const SHOP_NHOM_NHAN_MAX = 40;
 
 const NHOM_SELECT =
-  "id, id_nguoi_dung, truc, nhan, mo_ta, anh_id, overlay_anh_id, anh_phu_ids, video_phu_id, gia_mac_dinh, thu_tu, tao_luc";
+  "id, id_nguoi_dung, truc, nhan, mo_ta, anh_id, overlay_anh_id, anh_phu_ids, video_phu_id, gia_mac_dinh, noi_bat, thu_tu, tao_luc";
 
 type NhomRow = {
   id: string;
@@ -25,6 +29,7 @@ type NhomRow = {
   anh_phu_ids: string[] | null;
   video_phu_id: string | null;
   gia_mac_dinh: number | string | null;
+  noi_bat: boolean;
   thu_tu: number;
   tao_luc: string;
 };
@@ -88,6 +93,7 @@ function mapNhom(row: NhomRow): ShopNhom {
     ...video,
     giaMacDinh:
       gia != null && Number.isFinite(gia) && gia >= 0 ? gia : null,
+    noiBat: row.noi_bat === true,
     thuTu: row.thu_tu,
     taoLuc: row.tao_luc,
   };
@@ -128,6 +134,7 @@ export async function listNhom(
     .select(NHOM_SELECT)
     .eq("id_nguoi_dung", ownerId)
     .eq("da_xoa", false)
+    .order("noi_bat", { ascending: false })
     .order("thu_tu", { ascending: true })
     .order("nhan", { ascending: true })
     .limit(200);
@@ -354,6 +361,7 @@ export async function updateNhom(
     anhPhuIds?: string[];
     videoPhuId?: string | null;
     giaMacDinh?: number | null;
+    noiBat?: boolean;
   },
 ): Promise<ShopNhom> {
   await assertBanHangEnabled(ownerId);
@@ -404,6 +412,28 @@ export async function updateNhom(
       patch.nhan = n;
       nextNhan = n;
     }
+  }
+  if (typeof input.noiBat === "boolean") {
+    if (input.noiBat === true) {
+      const truc = row.truc === 2 ? 2 : 1;
+      if (truc !== 1) throw new Error("FEATURE_TRUC");
+      const { count: featuredCount, error: featErr } = await admin
+        .from("shop_nhom")
+        .select("id", { count: "exact", head: true })
+        .eq("id_nguoi_dung", ownerId)
+        .eq("da_xoa", false)
+        .eq("truc", 1)
+        .eq("noi_bat", true)
+        .neq("id", nhomId);
+      if (featErr) {
+        console.error("[shop] updateNhom feature count", featErr);
+        throw new Error("UPDATE_NHOM_FAILED");
+      }
+      if ((featuredCount ?? 0) >= SHOP_NHOM_FEATURE_MAX) {
+        throw new Error("FEATURE_LIMIT");
+      }
+    }
+    patch.noi_bat = input.noiBat;
   }
 
   const { data: updated, error } = await admin

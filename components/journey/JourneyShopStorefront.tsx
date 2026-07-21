@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2, Plus, Search, ShoppingBag, Star, X } from "lucide-react";
+import { Camera, Loader2, Plus, Search, ShoppingBag, Star, X } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import {
@@ -8,6 +8,7 @@ import {
   useDeferredValue,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -18,10 +19,12 @@ import {
   GIO_CHUNG_OPEN_EVENT,
 } from "@/components/shop/ShopGioChungButton";
 import { ShopTamDongOverlay } from "@/components/shop/ShopTamDongOverlay";
+import { writeShopCuaHangCache } from "@/lib/shop/client-fetch-cache";
 import { shopLoaiHref, shopLoaiMauHref } from "@/lib/shop/cua-hang-href";
 import { parseShopNhomMoTa } from "@/lib/shop/nhom-mo-ta";
 import {
   SHOP_STOREFRONT_KHAC_SLUG,
+  type ShopCuaHang,
   type ShopGioChung,
   type ShopStorefrontItem,
   type ShopStorefrontNhomCard,
@@ -40,6 +43,8 @@ type Props = {
   shopMoTa: string | null;
   shopAvatarUrl: string | null;
   shopCoverUrl: string | null;
+  shopBannerSuKienUrl?: string | null;
+  shopBannerSuKienHien?: boolean;
   initials: string;
   /** Legacy — giữ prop để JourneyShopView không vỡ; UI lọc theo trục đã bỏ trên mặt tiền. */
   nhanPhanLoai?: string;
@@ -80,23 +85,29 @@ function CardMoTa({ moTa }: { moTa: string }) {
 function TypeCard({
   card,
   ownerSlug,
+  featureChrome = false,
 }: {
   card: ShopStorefrontNhomCard;
   ownerSlug: string;
+  /** Hiển thị viền/badge Feature — chỉ block «Các mặt hàng phổ biến». */
+  featureChrome?: boolean;
 }) {
   const giaLabel =
-    card.giaTu != null
-      ? card.giaDen != null && card.giaDen !== card.giaTu
-        ? `Từ ${formatGia(card.giaTu, card.tienTe)}`
-        : formatGia(card.giaTu, card.tienTe)
-      : "Chưa có giá";
+    card.giaMacDinh != null
+      ? formatGia(card.giaMacDinh, card.tienTe)
+      : card.giaTu != null
+        ? card.giaDen != null && card.giaDen !== card.giaTu
+          ? `Từ ${formatGia(card.giaTu, card.tienTe)}`
+          : formatGia(card.giaTu, card.tienTe)
+        : "Chưa có giá";
   const href =
     card.href?.trim() || shopLoaiHref(ownerSlug, card.id);
+  const showFeature = featureChrome && card.noiBat;
 
   return (
     <Link
       href={href}
-      className={`j-shop-sf-card j-shop-sf-type-card${card.hetHang ? " is-soldout" : ""}`}
+      className={`j-shop-sf-card j-shop-sf-type-card${card.hetHang ? " is-soldout" : ""}${showFeature ? " is-feature" : ""}`}
     >
       <span className="j-shop-sf-card-media" aria-hidden>
         {card.anhUrl ? (
@@ -105,6 +116,15 @@ function TypeCard({
         ) : (
           <span className="j-shop-sf-card-ph" />
         )}
+        {showFeature ? (
+          <span
+            className="j-shop-sf-card-feature-badge"
+            title="Feature"
+            aria-label="Feature"
+          >
+            <Star size={18} strokeWidth={2} fill="currentColor" aria-hidden />
+          </span>
+        ) : null}
         {card.hetHang ? (
           <span className="j-shop-sf-soldout">Hết hàng</span>
         ) : null}
@@ -169,11 +189,12 @@ function ItemCard({
     Boolean(item.idBienThe) &&
     !item.hetHang &&
     item.giaHienThi != null;
-  const showFeature = featured || item.noiBat;
+  /** Badge ngôi sao — không dùng stroke chạy (`.is-feature`). */
+  const showBadge = featured || item.noiBat;
 
   return (
     <article
-      className={`j-shop-sf-card j-shop-sf-item-card${item.hetHang ? " is-soldout" : ""}${showFeature ? " is-feature" : ""}`}
+      className={`j-shop-sf-card j-shop-sf-item-card${item.hetHang ? " is-soldout" : ""}`}
     >
       <Link href={href} className="j-shop-sf-card-media-link">
         <span className="j-shop-sf-card-media" aria-hidden>
@@ -183,7 +204,7 @@ function ItemCard({
           ) : (
             <span className="j-shop-sf-card-ph" />
           )}
-          {showFeature ? (
+          {showBadge ? (
             <span
               className="j-shop-sf-card-feature-badge"
               title="Feature"
@@ -236,6 +257,199 @@ function ItemCard({
   );
 }
 
+function ShopEventBanner({
+  ownerSlug,
+  bannerUrl,
+  bannerHien = true,
+  isOwner,
+}: {
+  ownerSlug: string;
+  bannerUrl: string | null;
+  bannerHien?: boolean;
+  isOwner: boolean;
+}) {
+  const [url, setUrl] = useState(bannerUrl);
+  const [hien, setHien] = useState(bannerHien);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const previewRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    setUrl(bannerUrl);
+  }, [bannerUrl]);
+
+  useEffect(() => {
+    setHien(bannerHien);
+  }, [bannerHien]);
+
+  useEffect(() => {
+    return () => {
+      if (previewRef.current) URL.revokeObjectURL(previewRef.current);
+    };
+  }, []);
+
+  async function patchShop(body: {
+    bannerSuKienId?: string | null;
+    bannerSuKienHien?: boolean;
+  }) {
+    setBusy(true);
+    setErr(null);
+    try {
+      const res = await fetch("/api/shop/cua-hang", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const json = (await res.json().catch(() => null)) as {
+        shop?: ShopCuaHang;
+        error?: string;
+      } | null;
+      if (!res.ok || !json?.shop) {
+        setErr(json?.error ?? "Không lưu được banner.");
+        setUrl(bannerUrl);
+        setHien(bannerHien);
+        return;
+      }
+      const next = json.shop;
+      setUrl(next.bannerSuKienUrl);
+      setHien(next.bannerSuKienHien);
+      writeShopCuaHangCache(next, { slug: ownerSlug, isOwner: true });
+      window.dispatchEvent(
+        new CustomEvent("cins:shop-profile-changed", {
+          detail: { ownerId: next.idNguoiDung, shop: next },
+        }),
+      );
+    } catch {
+      setErr("Không lưu được banner.");
+      setUrl(bannerUrl);
+      setHien(bannerHien);
+    } finally {
+      setBusy(false);
+      if (previewRef.current) {
+        URL.revokeObjectURL(previewRef.current);
+        previewRef.current = null;
+      }
+    }
+  }
+
+  async function onPick(file: File | undefined) {
+    if (!file || !isOwner) return;
+    if (previewRef.current) URL.revokeObjectURL(previewRef.current);
+    const local = URL.createObjectURL(file);
+    previewRef.current = local;
+    setUrl(local);
+    setBusy(true);
+    setErr(null);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const up = await fetch("/api/post-image/upload", {
+        method: "POST",
+        body: fd,
+      });
+      const upJson = (await up.json().catch(() => null)) as {
+        imageId?: string;
+        url?: string;
+        error?: string;
+      } | null;
+      if (!up.ok || !upJson?.imageId) {
+        setErr(upJson?.error ?? "Upload thất bại.");
+        setUrl(bannerUrl);
+        setBusy(false);
+        return;
+      }
+      await patchShop({ bannerSuKienId: upJson.imageId, bannerSuKienHien: true });
+    } catch {
+      setErr("Upload thất bại.");
+      setUrl(bannerUrl);
+      setBusy(false);
+    }
+  }
+
+  /* Khách: chỉ hiện khi có ảnh + đang bật. Owner luôn thấy để chỉnh. */
+  if (!isOwner && (!url || !hien)) return null;
+
+  return (
+    <section className="j-shop-sf-group j-shop-sf-group--banner">
+      <div
+        className={`j-shop-sf-event-banner${url ? " has-img" : ""}${isOwner ? " is-editable" : ""}${busy ? " is-busy" : ""}${isOwner && url && !hien ? " is-hidden" : ""}`}
+      >
+        {url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={url} alt="Banner sự kiện" />
+        ) : (
+          <span className="j-shop-sf-event-banner-ph">
+            <Camera size={22} aria-hidden />
+            Thêm ảnh banner sự kiện
+          </span>
+        )}
+        {isOwner ? (
+          <>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              hidden
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                e.target.value = "";
+                void onPick(f);
+              }}
+            />
+            <div className="j-shop-sf-event-banner-actions">
+              <button
+                type="button"
+                className={`j-shop-sf-event-banner-switch${hien ? " is-on" : ""}`}
+                disabled={busy || !url}
+                role="switch"
+                aria-checked={hien}
+                aria-label={hien ? "Ẩn banner" : "Hiện banner"}
+                title={hien ? "Ẩn banner" : "Hiện banner"}
+                onClick={() => {
+                  const next = !hien;
+                  setHien(next);
+                  void patchShop({ bannerSuKienHien: next });
+                }}
+              >
+                <span className="j-shop-sf-event-banner-switch-knob" aria-hidden />
+              </button>
+              <button
+                type="button"
+                className="j-shop-sf-event-banner-btn"
+                disabled={busy}
+                onClick={() => fileRef.current?.click()}
+              >
+                {busy ? (
+                  <Loader2 size={14} className="shop-spin" aria-hidden />
+                ) : (
+                  <Camera size={14} aria-hidden />
+                )}
+                {url ? "Đổi ảnh" : "Thêm ảnh"}
+              </button>
+              {url ? (
+                <button
+                  type="button"
+                  className="j-shop-sf-event-banner-btn is-muted"
+                  disabled={busy}
+                  onClick={() => void patchShop({ bannerSuKienId: null })}
+                >
+                  Xóa
+                </button>
+              ) : null}
+            </div>
+          </>
+        ) : null}
+      </div>
+      {err ? (
+        <p className="j-shop-sf-empty" role="alert">
+          {err}
+        </p>
+      ) : null}
+    </section>
+  );
+}
+
 export function JourneyShopStorefront({
   ownerSlug,
   ownerId,
@@ -244,6 +458,8 @@ export function JourneyShopStorefront({
   shopMoTa,
   shopAvatarUrl,
   shopCoverUrl,
+  shopBannerSuKienUrl = null,
+  shopBannerSuKienHien = true,
   initials,
   isOwner = false,
   viewerProfileId = null,
@@ -397,12 +613,21 @@ export function JourneyShopStorefront({
 
   const filteredCards = useMemo(() => {
     const list = cards ?? [];
-    if (!searchQ) return list;
-    return list.filter((c) => {
-      const hay = [c.nhan, c.moTa].filter(Boolean).join(" ").toLowerCase();
-      return hay.includes(searchQ);
-    });
+    const filtered = !searchQ
+      ? list
+      : list.filter((c) => {
+          const hay = [c.nhan, c.moTa].filter(Boolean).join(" ").toLowerCase();
+          return hay.includes(searchQ);
+        });
+    return [...filtered].sort(
+      (a, b) => Number(b.noiBat) - Number(a.noiBat),
+    );
   }, [cards, searchQ]);
+
+  const featuredTypeCards = useMemo(
+    () => filteredCards.filter((c) => c.noiBat),
+    [filteredCards],
+  );
 
   const filteredItems = useMemo(() => {
     if (!searchQ) return [];
@@ -427,11 +652,15 @@ export function JourneyShopStorefront({
   }, [deferredSearch]);
 
   const hasCards = (cards?.length ?? 0) > 0;
-  const hasFeatured = !searchActive && featuredItems.length > 0;
   const showItemResults = searchActive && filteredItems.length > 0;
-  const showTypeResults =
-    !searchActive || (!showItemResults && filteredCards.length > 0);
-  const hasCatalog = hasCards || featuredItems.length > 0 || items.length > 0;
+  const hasFeaturedTypes = !searchActive && featuredTypeCards.length > 0;
+  const hasFeaturedItems = !searchActive && featuredItems.length > 0;
+  const hasAllTypes = !searchActive && filteredCards.length > 0;
+  const showSearchTypeResults =
+    searchActive && !showItemResults && filteredCards.length > 0;
+  const showBanner = !searchActive;
+  const hasCatalog =
+    hasCards || featuredItems.length > 0 || items.length > 0;
   const catalogEmpty = searchActive
     ? filteredItems.length === 0 && filteredCards.length === 0
     : !hasCards && featuredItems.length === 0;
@@ -524,14 +753,38 @@ export function JourneyShopStorefront({
               inert={shopClosed ? true : undefined}
               aria-hidden={shopClosed || undefined}
             >
-            {hasFeatured ? (
+            {hasFeaturedTypes ? (
               <section className="j-shop-sf-group j-shop-sf-group--feature">
                 <div className="j-shop-sf-group-head">
-                  <p className="j-shop-sf-group-kicker">Các mặt hàng phổ biến</p>
-                  <div className="j-shop-sf-group-head-title">
-                    <Star size={14} strokeWidth={2.25} aria-hidden />
-                    <h4>Feature</h4>
-                  </div>
+                  <p className="j-shop-sf-group-kicker">
+                    Các mặt hàng phổ biến
+                  </p>
+                </div>
+                <ul className="j-shop-sf-grid">
+                  {featuredTypeCards.map((card) => (
+                    <li key={card.id}>
+                      <TypeCard
+                        card={card}
+                        ownerSlug={ownerSlug}
+                        featureChrome
+                      />
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
+            {showBanner ? (
+              <ShopEventBanner
+                ownerSlug={ownerSlug}
+                bannerUrl={shopBannerSuKienUrl}
+                bannerHien={shopBannerSuKienHien}
+                isOwner={isOwner}
+              />
+            ) : null}
+            {hasFeaturedItems ? (
+              <section className="j-shop-sf-group j-shop-sf-group--feature-items">
+                <div className="j-shop-sf-group-head">
+                  <p className="j-shop-sf-group-kicker">Sản phẩm nổi bật</p>
                 </div>
                 {addErr && !showItemResults ? (
                   <p className="j-shop-sf-empty" role="alert">
@@ -561,7 +814,7 @@ export function JourneyShopStorefront({
                     {addErr}
                   </p>
                 ) : null}
-                <ul className="j-shop-sf-grid">
+                <ul className="j-shop-sf-grid j-shop-sf-grid--feature">
                   {filteredItems.map((item) => (
                     <li key={item.sanPhamId}>
                       <ItemCard
@@ -576,10 +829,12 @@ export function JourneyShopStorefront({
                 </ul>
               </>
             ) : null}
-            {showTypeResults ? (
+            {hasAllTypes || showSearchTypeResults ? (
               <section className="j-shop-sf-group">
                 <div className="j-shop-sf-group-head">
-                  <p className="j-shop-sf-group-kicker">Các loại hàng</p>
+                  <p className="j-shop-sf-group-kicker">
+                    {searchActive ? "Các loại hàng" : "Các hàng bán chạy"}
+                  </p>
                 </div>
                 <ul className="j-shop-sf-grid">
                   {filteredCards.map((card) => (

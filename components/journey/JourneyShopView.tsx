@@ -171,6 +171,8 @@ export function JourneyShopView({
           shopMoTa={shop?.moTa ?? null}
           shopAvatarUrl={shop?.avatarUrl ?? null}
           shopCoverUrl={shop?.coverUrl ?? null}
+          shopBannerSuKienUrl={shop?.bannerSuKienUrl ?? null}
+          shopBannerSuKienHien={shop?.bannerSuKienHien !== false}
           initials={initials}
           nhanPhanLoai={resolveShopNhanPhanLoai(shop)}
           nhanPhanLoai2={resolveShopNhanPhanLoai2(shop)}

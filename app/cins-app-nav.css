@@ -156,6 +156,12 @@
 .cins-app-sidebar .sb-search-li {
   list-style: none;
   margin: 0 0 4px;
+  position: relative;
+  z-index: 2;
+}
+
+.cins-app-sidebar .sb-search-wrap {
+  position: relative;
 }
 
 .cins-app-sidebar .sb-search {
@@ -173,6 +179,107 @@
   transition:
     background var(--app-nav-dur) var(--app-nav-ease),
     color var(--app-nav-dur) var(--app-nav-ease);
+}
+
+.cins-app-sidebar .sb-search-history {
+  margin-top: 4px;
+  padding: 6px 0;
+  border-radius: var(--radius-md);
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border, rgba(15, 23, 42, 0.1));
+  box-shadow: var(--shadow-md, 0 8px 24px rgba(15, 23, 42, 0.08));
+}
+
+.cins-app-sidebar .sb-search-history-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 10px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--ink-muted);
+}
+
+.cins-app-sidebar .sb-search-history-clear {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--cins-blue);
+  cursor: pointer;
+}
+
+.cins-app-sidebar .sb-search-history-clear:hover {
+  text-decoration: underline;
+}
+
+.cins-app-sidebar .sb-search-history-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.cins-app-sidebar .sb-search-history-list > li {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 4px;
+}
+
+.cins-app-sidebar .sb-search-history-item {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 8px 6px;
+  border: none;
+  border-radius: var(--radius-sm, 6px);
+  background: transparent;
+  color: var(--ink-body);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cins-app-sidebar .sb-search-history-item:hover,
+.cins-app-sidebar .sb-search-history-item.is-active {
+  background: var(--cins-blue-soft);
+  color: var(--cins-blue);
+}
+
+.cins-app-sidebar .sb-search-history-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cins-app-sidebar .sb-search-history-remove {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink-muted);
+  cursor: pointer;
+}
+
+.cins-app-sidebar .sb-search-history-remove:hover {
+  background: color-mix(in srgb, var(--ink-display, #0f172a) 6%, transparent);
+  color: var(--ink-display);
 }
 
 .cins-app-sidebar .sb-search:hover,
@@ -688,6 +795,10 @@
     opacity: 0;
     transform: translateX(-4px);
     pointer-events: none;
+  }
+
+  .cins-app-sidebar.sidebar:not(:hover):not(:focus-within):not(:has(.sb-user.open)) .sb-search-history {
+    display: none;
   }
 
   .cins-app-sidebar.sidebar:not(:hover):not(:focus-within):not(:has(.sb-user.open)) .sb-label {

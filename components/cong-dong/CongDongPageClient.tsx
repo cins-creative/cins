@@ -27,6 +27,7 @@ import { congDongFeedPostCoverUrl } from "@/lib/cong-dong/feed-post-cover";
 import type { ContentSurfaceView } from "@/lib/cins/content-surface-view";
 import {
   CongDongManageModal,
+  type CongDongManageSection,
 } from "@/components/cong-dong/CongDongManageModal";
 import { CongDongRosterModal } from "@/components/cong-dong/CongDongRosterModal";
 import {
@@ -34,13 +35,11 @@ import {
   CongDongOrgBrandingCover,
 } from "@/components/cong-dong/CongDongOrgBranding";
 import { CongDongFeedFilterDropdown } from "@/components/cong-dong/CongDongFeedFilterDropdown";
-import {
-  CongDongFeedSortDropdown,
-  type CongDongFeedSortMode,
-} from "@/components/cong-dong/CongDongFeedSortDropdown";
 import { CongDongNotifySidebar } from "@/components/cong-dong/CongDongNotifySidebar";
+import { CongDongSuKienDetailHost } from "@/components/cong-dong/CongDongSuKienDetailHost";
 import { CongDongFeedPostContent } from "@/components/cong-dong/CongDongFeedPostContent";
 import { CongDongFilterChip } from "@/components/cong-dong/CongDongFilterChip";
+import { CongDongPostFilterChips } from "@/components/cong-dong/CongDongPostFilterChips";
 import { CongDongPostMenu } from "@/components/cong-dong/CongDongPostMenu";
 import { JourneyArticleTagManager } from "@/components/journey/JourneyArticleTagManager";
 import { JourneyMilestoneUnfold } from "@/components/journey/JourneyMilestoneUnfold";
@@ -60,6 +59,7 @@ import {
   canManageMembers,
   type CongDongVaiTro,
 } from "@/lib/cong-dong/vai-tro";
+import { getCongDongPostMenuPermissions } from "@/lib/cong-dong/post-permissions";
 import type { OrgNotifyLevel } from "@/lib/social/org-notify";
 import type {
   CongDongCareerSegment,
@@ -81,19 +81,14 @@ import {
   removeCommentFromThreads,
   updateCommentInThreads,
 } from "@/lib/social/comments/client-tree";
-import {
-  computeScrollSpyFromMarkers,
-  scrollSpyAnchorBelowBar,
-  timelineScrollSpyFromParts,
-  type TimelineScrollSpy,
-} from "@/lib/journey/timeline-scroll-spy";
 
 type Props = {
   initial: CongDongPageData;
+  /** Khi có — cột main hiện chi tiết/quản lý sự kiện thay feed. */
+  activeSuKienId?: string | null;
 };
 
 type FeedView = ContentSurfaceView;
-type SortMode = CongDongFeedSortMode;
 
 const FACEPILE_COLORS = [
   "var(--cins-violet, #7c5cfc)",
@@ -125,31 +120,18 @@ function postsMatchingFilterSlugs(
   );
 }
 
-function sortPosts(posts: CongDongPost[], mode: SortMode): CongDongPost[] {
-  const copy = [...posts];
-  if (mode === "tuongtac") {
-    return copy.sort(
-      (a, b) =>
-        b.likeCount + b.commentCount - (a.likeCount + a.commentCount),
-    );
-  }
-  if (mode === "az") {
-    return copy.sort((a, b) => {
-      const ta = (a.tieuDe || a.noiDung).localeCompare(
-        b.tieuDe || b.noiDung,
-        "vi",
-      );
-      return ta;
-    });
-  }
-  return copy.sort(compareCongDongPostsByMilestoneDate);
+function sortPosts(posts: CongDongPost[]): CongDongPost[] {
+  return [...posts].sort(compareCongDongPostsByMilestoneDate);
 }
 
 function postTimelineParts(thoiDiem: string): { year: string; month: string } {
   return congDongPostTimelineParts(thoiDiem);
 }
 
-export function CongDongPageClient({ initial }: Props) {
+export function CongDongPageClient({
+  initial,
+  activeSuKienId = null,
+}: Props) {
   const [org, setOrg] = useState(initial.org);
   const [isThanhVien, setIsThanhVien] = useState(initial.isThanhVien);
   const [joinPending, setJoinPending] = useState(initial.joinPending);
@@ -162,6 +144,8 @@ export function CongDongPageClient({ initial }: Props) {
   const canManageLabelsView = canManageLabels(viewerVaiTro) || isCinsAdmin;
   const canManageMembersView = canManageMembers(viewerVaiTro) || isCinsAdmin;
   const canManageTopicsView = initial.isAdmin;
+  /** Cùng quyền quản lý sự kiện trên tab / chi tiết (owner · admin · quản lý nội dung). */
+  const canManageSuKienView = canManageLabelsView;
   const canOpenManage =
     canManageLabelsView ||
     canManageMembersView ||
@@ -181,7 +165,6 @@ export function CongDongPageClient({ initial }: Props) {
   const [posts, setPosts] = useState(initial.initialPosts);
   const [nextCursor, setNextCursor] = useState(initial.nextCursor);
   const [view, setView] = useState<FeedView>("timeline");
-  const [sortMode, setSortMode] = useState<SortMode>("moi");
   const [loadPending, startLoadMore] = useTransition();
   const [filterPending, startFilter] = useTransition();
   const filterAbortRef = useRef<AbortController | null>(null);
@@ -190,6 +173,10 @@ export function CongDongPageClient({ initial }: Props) {
     nextCursor: initial.nextCursor,
   });
   const [manageOpen, setManageOpen] = useState(false);
+  const [manageSection, setManageSection] = useState<
+    CongDongManageSection | undefined
+  >(undefined);
+  const [suKienChoDuyet, setSuKienChoDuyet] = useState(0);
   const [rosterOpen, setRosterOpen] = useState(false);
   const [categories, setCategories] = useState<CongDongCategory[]>(
     initial.categories,
@@ -232,6 +219,45 @@ export function CongDongPageClient({ initial }: Props) {
     };
   }, [org.id]);
 
+  useEffect(() => {
+    if (!canManageSuKienView) {
+      setSuKienChoDuyet(0);
+      return;
+    }
+    let cancelled = false;
+    void fetch(`/api/org/${encodeURIComponent(org.id)}/su-kien/quan-ly`, {
+      credentials: "include",
+      cache: "no-store",
+    })
+      .then(async (res) => {
+        if (!res.ok || cancelled) return;
+        const json = (await res.json().catch(() => null)) as {
+          tongChoDuyet?: number;
+        } | null;
+        if (cancelled) return;
+        setSuKienChoDuyet(
+          typeof json?.tongChoDuyet === "number" ? json.tongChoDuyet : 0,
+        );
+      })
+      .catch(() => {
+        /* giữ số cũ */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [canManageSuKienView, org.id, manageOpen]);
+
+  const openManage = useCallback(
+    (section?: CongDongManageSection) => {
+      const next =
+        section ??
+        (canManageSuKienView && suKienChoDuyet > 0 ? "su_kien" : undefined);
+      setManageSection(next);
+      setManageOpen(true);
+    },
+    [canManageSuKienView, suKienChoDuyet],
+  );
+
   const handlePostUpdated = useCallback((updated: CongDongPost) => {
     setPosts((prev) =>
       prev.map((p) => (p.id === updated.id ? updated : p)),
@@ -242,38 +268,8 @@ export function CongDongPageClient({ initial }: Props) {
     setPosts((prev) => prev.filter((p) => p.id !== postId));
   }, []);
 
-  const sortedPosts = useMemo(
-    () => sortPosts(posts, sortMode),
-    [posts, sortMode],
-  );
+  const sortedPosts = useMemo(() => sortPosts(posts), [posts]);
   const feedBarRef = useRef<HTMLDivElement>(null);
-  const yearNow = String(new Date().getFullYear());
-  const firstPostParts = sortedPosts[0]
-    ? postTimelineParts(sortedPosts[0].thoiDiem)
-    : null;
-  const showFeedTimeline = view === "timeline" && sortedPosts.length > 0;
-  const [timelineSpy, setTimelineSpy] = useState<TimelineScrollSpy>(() =>
-    timelineScrollSpyFromParts(
-      firstPostParts?.year,
-      firstPostParts?.month,
-      yearNow,
-    ),
-  );
-
-  useEffect(() => {
-    const parts = sortedPosts[0]
-      ? postTimelineParts(sortedPosts[0].thoiDiem)
-      : null;
-    setTimelineSpy(
-      timelineScrollSpyFromParts(parts?.year, parts?.month, yearNow),
-    );
-  }, [sortedPosts[0]?.id, sortedPosts.length, yearNow]);
-
-  const handleTimelineSpyChange = useCallback((next: TimelineScrollSpy) => {
-    setTimelineSpy((prev) =>
-      prev.year === next.year && prev.month === next.month ? prev : next,
-    );
-  }, []);
 
   const onJoined = useCallback((vaiTro: CongDongVaiTro) => {
     setIsThanhVien(true);
@@ -439,7 +435,8 @@ export function CongDongPageClient({ initial }: Props) {
       initialNotifyLevel={notifyLevel}
       onNotifyLevelChange={setNotifyLevel}
       onLeft={onLeftCommunity}
-      onOpenManage={() => setManageOpen(true)}
+      onOpenManage={() => openManage()}
+      suKienChoDuyet={canManageSuKienView ? suKienChoDuyet : 0}
     />
     <div className="cd-v4-page">
       <div className="cd-v4-layout">
@@ -549,15 +546,23 @@ export function CongDongPageClient({ initial }: Props) {
         </aside>
 
         <div className="cd-v4-main">
+          {activeSuKienId ? (
+            <CongDongSuKienDetailHost
+              orgId={org.id}
+              orgSlug={org.slug}
+              orgTen={org.ten}
+              orgTinhThanh={org.tinhThanh}
+              orgAvatarId={org.avatarId}
+              canManage={canManageLabelsView}
+              activeSuKienId={activeSuKienId}
+            />
+          ) : (
+            <>
           <CongDongFeedStickyBar
             barRef={feedBarRef}
-            showTimeline={showFeedTimeline}
-            timelineSpy={timelineSpy}
             filters={filters}
             activeFilterSlugs={activeFilterSlugs}
             onFilterChange={applyFeedFilter}
-            sortMode={sortMode}
-            onSortModeChange={setSortMode}
             view={view}
             onViewChange={setView}
           />
@@ -612,8 +617,6 @@ export function CongDongPageClient({ initial }: Props) {
                 onJoined={onJoined}
                 onPostUpdated={handlePostUpdated}
                 onPostDeleted={handlePostDeleted}
-                barRef={feedBarRef}
-                onSpyChange={handleTimelineSpyChange}
               />
             ) : (
               <GridFeed
@@ -635,12 +638,16 @@ export function CongDongPageClient({ initial }: Props) {
               {loadPending ? "Đang tải…" : "Xem thêm"}
             </button>
           ) : null}
+            </>
+          )}
         </div>
 
         <CongDongNotifySidebar
           orgId={org.id}
+          orgSlug={org.slug}
           orgTinhThanh={org.tinhThanh}
           canManage={canManageLabelsView}
+          activeSuKienId={activeSuKienId}
         />
       </div>
 
@@ -649,13 +656,18 @@ export function CongDongPageClient({ initial }: Props) {
     {canOpenManage ? (
       <CongDongManageModal
         open={manageOpen}
-        onClose={() => setManageOpen(false)}
+        onClose={() => {
+          setManageOpen(false);
+          setManageSection(undefined);
+        }}
+        initialSection={manageSection}
         orgId={org.id}
         orgSlug={org.slug}
         orgLabel={org.ten}
         viewerIsOwner={viewerVaiTro === "owner"}
         canTopics={canManageTopicsView}
         canLabels={canManageLabelsView}
+        canSuKien={canManageSuKienView}
         canMembers={canManageMembersView}
         trangThaiHoatDong={org.trangThaiHoatDong}
         categories={categories}
@@ -672,6 +684,8 @@ export function CongDongPageClient({ initial }: Props) {
         onOwnershipTransferred={() => {
           setViewerVaiTro("admin");
         }}
+        suKienChoDuyet={suKienChoDuyet}
+        onSuKienChoDuyetChange={setSuKienChoDuyet}
       />
     ) : null}
     <CongDongRosterModal
@@ -779,26 +793,18 @@ function FacepileAvatar({
 
 type FeedStickyBarProps = {
   barRef: React.RefObject<HTMLDivElement | null>;
-  showTimeline: boolean;
-  timelineSpy: TimelineScrollSpy;
   filters: CongDongFilter[];
   activeFilterSlugs: string[];
   onFilterChange: (slugs: string[]) => void;
-  sortMode: SortMode;
-  onSortModeChange: (mode: SortMode) => void;
   view: FeedView;
   onViewChange: (view: FeedView) => void;
 };
 
 function CongDongFeedStickyBar({
   barRef,
-  showTimeline,
-  timelineSpy,
   filters,
   activeFilterSlugs,
   onFilterChange,
-  sortMode,
-  onSortModeChange,
   view,
   onViewChange,
 }: FeedStickyBarProps) {
@@ -806,40 +812,19 @@ function CongDongFeedStickyBar({
     <div
       ref={barRef}
       className="j-tlb cd-v4-moc-bar"
-      aria-live={showTimeline ? "polite" : undefined}
-      aria-label={
-        showTimeline
-          ? `Thời gian: ${timelineSpy.year}, ${timelineSpy.month || "—"}`
-          : "Bộ lọc và sắp xếp bài đăng"
-      }
+      aria-label="Bộ lọc bài đăng"
     >
       <span className="j-tlb-streak-slow" aria-hidden="true" />
-      <div className="j-tlb-date">
-        <div className="j-tlb-year">{timelineSpy.year}</div>
-        <div
-          className="j-tlb-month"
-          style={{
-            visibility:
-              showTimeline && timelineSpy.month ? "visible" : "hidden",
-          }}
-        >
-          {timelineSpy.month || "—"}
-        </div>
-      </div>
       <div
         className="j-tlb-filters cd-v4-feed-controls"
         role="toolbar"
-        aria-label="Lọc và sắp xếp bài đăng"
+        aria-label="Lọc bài đăng"
       >
         <CongDongFeedFilterDropdown
           filters={filters}
           activeFilterSlugs={activeFilterSlugs}
           onChange={onFilterChange}
           appearance="tlb"
-        />
-        <CongDongFeedSortDropdown
-          sortMode={sortMode}
-          onSortModeChange={onSortModeChange}
         />
       </div>
       <ContentSurfaceViewToggle
@@ -861,8 +846,6 @@ function JourneyFeed({
   onJoined,
   onPostUpdated,
   onPostDeleted,
-  barRef,
-  onSpyChange,
 }: {
   posts: CongDongPost[];
   orgId: string;
@@ -873,44 +856,9 @@ function JourneyFeed({
   onJoined: (vaiTro: CongDongVaiTro) => void;
   onPostUpdated: (post: CongDongPost) => void;
   onPostDeleted: (postId: string) => void;
-  barRef: React.RefObject<HTMLDivElement | null>;
-  onSpyChange: (spy: TimelineScrollSpy) => void;
 }) {
-  const rootRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const root = rootRef.current;
-    if (!root || posts.length === 0) return;
-
-    let raf = 0;
-    const sync = () => {
-      raf = 0;
-      const anchor = scrollSpyAnchorBelowBar(barRef.current, 120);
-      const next = computeScrollSpyFromMarkers(
-        root,
-        ".cd-v4-jcard[data-year][data-month]",
-        anchor,
-      );
-      if (!next) return;
-      onSpyChange(next);
-    };
-    const schedule = () => {
-      if (raf) return;
-      raf = window.requestAnimationFrame(sync);
-    };
-
-    sync();
-    window.addEventListener("scroll", schedule, { passive: true });
-    window.addEventListener("resize", schedule);
-    return () => {
-      window.removeEventListener("scroll", schedule);
-      window.removeEventListener("resize", schedule);
-      if (raf) window.cancelAnimationFrame(raf);
-    };
-  }, [posts, barRef, onSpyChange]);
-
   return (
-    <div ref={rootRef} className="cd-v4-journey-feed">
+    <div className="cd-v4-journey-feed">
       {posts.map((post) => (
         <CongDongJourneyPostCard
           key={post.id}
@@ -1153,6 +1101,11 @@ function CongDongJourneyPostCard({
     mirror?.tieuDe || post.tieuDe || post.noiDung.slice(0, 80);
   const canManageArticleTags =
     Boolean(mirror) && viewerId === post.author.id;
+  const canEditFilters = getCongDongPostMenuPermissions(
+    viewerId,
+    viewerVaiTro,
+    post,
+  ).canEditFilters;
 
   function toggleContent() {
     setContentOpen((open) => !open);
@@ -1163,7 +1116,7 @@ function CongDongJourneyPostCard({
     const target = e.target as Element;
     if (
       target?.closest(
-        "a, button, input, textarea, select, summary, .j-m-menu, .authors-details, .image-grid-cell, .jcard-video-trigger, .jcard-actions",
+        "a, button, input, textarea, select, summary, .j-m-menu, .authors-details, .image-grid-cell, .jcard-video-trigger, .jcard-actions, .cd-v4-jcard-filter-edit, .cd-v4-post-menu-wrap",
       )
     ) {
       return;
@@ -1177,7 +1130,7 @@ function CongDongJourneyPostCard({
     const target = e.target as Element;
     if (
       target?.closest(
-        "a, button, input, textarea, select, summary, .j-m-menu, .authors-details, .image-grid-cell, .jcard-video-trigger, .jcard-actions",
+        "a, button, input, textarea, select, summary, .j-m-menu, .authors-details, .image-grid-cell, .jcard-video-trigger, .jcard-actions, .cd-v4-jcard-filter-edit, .cd-v4-post-menu-wrap",
       )
     ) {
       return;
@@ -1227,9 +1180,13 @@ function CongDongJourneyPostCard({
           {post.author.vaiTroLabel ? (
             <span className="cd-v4-jcard-badge">{post.author.vaiTroLabel}</span>
           ) : null}
-          {post.filters.map((filter) => (
-            <CongDongFilterChip key={filter.id} filter={filter} size="sm" />
-          ))}
+          <CongDongPostFilterChips
+            orgId={orgId}
+            post={post}
+            filters={filters}
+            canEdit={canEditFilters}
+            onUpdated={onPostUpdated}
+          />
         </div>
 
         <CongDongPostMenu

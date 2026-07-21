@@ -34,6 +34,11 @@ import { buildMilestoneItemForCotMoc } from "@/lib/journey/milestones-fetch";
 import type { MilestoneItem } from "@/components/journey/milestone-types";
 import { ensureEmbedAutoCover } from "@/lib/editor/ensure-embed-auto-cover";
 import {
+  replaceFiltersOnPost,
+  resolveFilterIdsBySlugs,
+} from "@/lib/cong-dong/filters";
+import { CHE_DO_MOC_CONG_DONG } from "@/lib/journey/journey-visible-clause";
+import {
   clearVisibilityNgoaiLe,
   isVisibilityNgoaiLeLoai,
   replaceVisibilityNgoaiLe,
@@ -75,6 +80,14 @@ export type UpdatePostInput = {
   ownerVaiTro?: string;
   coAuthors?: CoAuthorDraft[];
   personalFilterIds?: string[];
+  /**
+   * Sửa bài đang thuộc feed cộng đồng — giữ `che_do_hien_thi=cong_dong`
+   * và đồng bộ nhãn `cong_dong_filter` (không ghi đè thành `public`).
+   */
+  congDong?: {
+    orgId: string;
+    filterSlugs: string[];
+  };
 };
 
 export type UpdatePostResult =
@@ -215,15 +228,42 @@ export async function updatePost(
 
   const { data: cmRow, error: cmFetchErr } = await admin
     .from("content_cot_moc")
-    .select("id, id_nguoi_dung")
+    .select("id, id_nguoi_dung, che_do_hien_thi, id_to_chuc")
     .eq("id", input.cotMocId)
-    .maybeSingle<{ id: string; id_nguoi_dung: string }>();
+    .maybeSingle<{
+      id: string;
+      id_nguoi_dung: string;
+      che_do_hien_thi: string;
+      id_to_chuc: string | null;
+    }>();
 
   if (cmFetchErr || !cmRow) {
     return { ok: false, error: "Không tìm thấy cột mốc liên kết." };
   }
   if (cmRow.id_nguoi_dung !== session.profile.id) {
     return { ok: false, error: "Bạn không có quyền sửa cột mốc này." };
+  }
+
+  /* Bài cộng đồng phải giữ `cong_dong` — UI compose map visibility → `public`
+     nên không được ghi đè (sẽ biến mất khỏi feed nhóm). */
+  const keepCongDong =
+    Boolean(input.congDong) ||
+    cmRow.che_do_hien_thi === CHE_DO_MOC_CONG_DONG;
+  const writeCheDo = keepCongDong
+    ? CHE_DO_MOC_CONG_DONG
+    : effectiveVisibility;
+
+  if (input.congDong) {
+    const orgId = input.congDong.orgId.trim();
+    if (
+      cmRow.id_to_chuc &&
+      cmRow.id_to_chuc !== orgId
+    ) {
+      return {
+        ok: false,
+        error: "Bài đăng không thuộc cộng đồng đang sửa.",
+      };
+    }
   }
 
   /* 5. UPDATE content_tac_pham (giữ slug). */
@@ -233,7 +273,7 @@ export async function updatePost(
       tieu_de: tieuDe,
       mo_ta: moTaFinal || null,
       cover_id: coverId,
-      che_do_hien_thi: effectiveVisibility,
+      che_do_hien_thi: writeCheDo,
       noi_dung_blocks: publishBlocks,
       noi_dung_html: noiDungHtml,
       meta_title: tieuDe.slice(0, 120),
@@ -251,7 +291,7 @@ export async function updatePost(
     .update({
       tieu_de: tieuDe,
       mo_ta: moTaFinal || null,
-      che_do_hien_thi: effectiveVisibility,
+      che_do_hien_thi: writeCheDo,
       loai_moc: input.loaiMoc,
       thoi_diem: input.thoiDiem,
     })
@@ -331,7 +371,22 @@ export async function updatePost(
     }
   }
 
-  if (input.personalFilterIds !== undefined) {
+  if (input.congDong) {
+    const filterIds = await resolveFilterIdsBySlugs(
+      input.congDong.orgId,
+      input.congDong.filterSlugs,
+    );
+    if (input.congDong.filterSlugs.length > 0 && filterIds.length === 0) {
+      return { ok: false, error: "Nhãn bài đăng không hợp lệ." };
+    }
+    const filterSync = await replaceFiltersOnPost(
+      input.cotMocId,
+      filterIds,
+    );
+    if (!filterSync.ok) {
+      return { ok: false, error: filterSync.error };
+    }
+  } else if (input.personalFilterIds !== undefined && !keepCongDong) {
     const filterSync = await setMilestonePersonalFilters({
       milestoneId: input.cotMocId,
       userId: session.profile.id,
@@ -342,18 +397,20 @@ export async function updatePost(
     }
   }
 
-  if (useCustom && customInput) {
-    const ngoaiLe = await replaceVisibilityNgoaiLe({
-      cotMocId: input.cotMocId,
-      mode: customInput.mode,
-      peopleIds: customInput.peopleIds,
-      ownerId: session.profile.id,
-    });
-    if (!ngoaiLe.ok) {
-      return { ok: false, error: ngoaiLe.error };
+  if (!keepCongDong) {
+    if (useCustom && customInput) {
+      const ngoaiLe = await replaceVisibilityNgoaiLe({
+        cotMocId: input.cotMocId,
+        mode: customInput.mode,
+        peopleIds: customInput.peopleIds,
+        ownerId: session.profile.id,
+      });
+      if (!ngoaiLe.ok) {
+        return { ok: false, error: ngoaiLe.error };
+      }
+    } else if (input.visibilityCustom === null || !useCustom) {
+      await clearVisibilityNgoaiLe(input.cotMocId);
     }
-  } else if (input.visibilityCustom === null || !useCustom) {
-    await clearVisibilityNgoaiLe(input.cotMocId);
   }
 
   const tagIdsForScore =

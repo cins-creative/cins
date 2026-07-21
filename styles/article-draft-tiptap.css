@@ -273,6 +273,59 @@
   box-sizing: border-box;
 }
 
+.article-draft-tiptap__img-wrap {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  vertical-align: top;
+}
+
+.article-draft-tiptap__img-wrap img {
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 10px;
+  box-sizing: border-box;
+}
+
+.article-draft-tiptap__img-wrap[data-status="busy"] img {
+  outline: 2px dashed rgba(148, 163, 184, 0.95);
+  outline-offset: 2px;
+}
+
+.article-draft-tiptap__img-badge {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  max-width: calc(100% - 20px);
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: center;
+  pointer-events: none;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.18);
+}
+
+.article-draft-tiptap__img-wrap[data-status="busy"] .article-draft-tiptap__img-badge {
+  background: rgba(15, 23, 42, 0.78);
+  color: #f8fafc;
+}
+
+.article-draft-tiptap__img-wrap[data-status="ok"] .article-draft-tiptap__img-badge {
+  background: rgba(6, 95, 70, 0.92);
+  color: #ecfdf5;
+}
+
+.article-draft-tiptap__img-wrap[data-status="info"] .article-draft-tiptap__img-badge {
+  background: rgba(146, 64, 14, 0.9);
+  color: #fffbeb;
+}
+
 .article-draft-tiptap .ProseMirror img[title*="Đang tải lên Cloudflare"] {
   outline: 2px dashed rgba(148, 163, 184, 0.95);
   outline-offset: 2px;

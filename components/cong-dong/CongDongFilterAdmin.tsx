@@ -4,6 +4,12 @@ import { Plus, Tags, Trash2, X } from "lucide-react";
 import { useEffect, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 
+import { CongDongFilterChip } from "@/components/cong-dong/CongDongFilterChip";
+import {
+  CongDongFilterIconGlyph,
+  CONG_DONG_FILTER_ICON_IDS,
+  type CongDongFilterIconId,
+} from "@/components/cong-dong/CongDongFilterIcon";
 import type { CongDongFilter } from "@/lib/cong-dong/types";
 
 const PRESET_COLORS = [
@@ -22,10 +28,30 @@ type PanelProps = {
 };
 
 export function CongDongFilterAdminPanel({ orgId, filters, onChange }: PanelProps) {
+  const [creating, setCreating] = useState(false);
   const [ten, setTen] = useState("");
   const [mau, setMau] = useState(PRESET_COLORS[0]!);
+  const [icon, setIcon] = useState<CongDongFilterIconId>("tag");
   const [err, setErr] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+
+  function resetCreateForm() {
+    setTen("");
+    setMau(PRESET_COLORS[0]!);
+    setIcon("tag");
+    setErr(null);
+  }
+
+  function openCreate() {
+    resetCreateForm();
+    setCreating(true);
+  }
+
+  function cancelCreate() {
+    if (pending) return;
+    resetCreateForm();
+    setCreating(false);
+  }
 
   function onCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -34,7 +60,12 @@ export function CongDongFilterAdminPanel({ orgId, filters, onChange }: PanelProp
       const res = await fetch(`/api/cong-dong/${orgId}/filters`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ten, mau, thu_tu: filters.length }),
+        body: JSON.stringify({
+          ten,
+          mau,
+          icon,
+          thu_tu: filters.length,
+        }),
       });
       const json = (await res.json().catch(() => null)) as {
         filter?: CongDongFilter;
@@ -45,7 +76,8 @@ export function CongDongFilterAdminPanel({ orgId, filters, onChange }: PanelProp
         return;
       }
       onChange([...filters, json.filter].sort((a, b) => a.thuTu - b.thuTu));
-      setTen("");
+      resetCreateForm();
+      setCreating(false);
     });
   }
 
@@ -76,16 +108,7 @@ export function CongDongFilterAdminPanel({ orgId, filters, onChange }: PanelProp
         <ul className="cd-filter-admin-list">
           {filters.map((filter) => (
             <li key={filter.id}>
-              <span
-                className="cd-filter-chip cd-filter-chip--static"
-                style={{
-                  borderColor: filter.mau,
-                  color: filter.mau,
-                  backgroundColor: `${filter.mau}18`,
-                }}
-              >
-                {filter.ten}
-              </span>
+              <CongDongFilterChip filter={filter} size="sm" plain />
               <span className="cd-filter-admin-slug">/{filter.slug}</span>
               <button
                 type="button"
@@ -103,32 +126,74 @@ export function CongDongFilterAdminPanel({ orgId, filters, onChange }: PanelProp
         <p className="cd-filter-admin-empty">Chưa có nhãn nào.</p>
       )}
 
-      <form className="cd-filter-admin-form" onSubmit={onCreate}>
-        <input
-          value={ten}
-          onChange={(e) => setTen(e.target.value)}
-          placeholder="Tên nhãn (vd: Hỏi đáp)"
-          maxLength={40}
-          required
-        />
-        <div className="cd-filter-admin-colors" role="group" aria-label="Màu nhãn">
-          {PRESET_COLORS.map((color) => (
+      {creating ? (
+        <form className="cd-filter-admin-form is-open" onSubmit={onCreate}>
+          <input
+            value={ten}
+            onChange={(e) => setTen(e.target.value)}
+            placeholder="Tên nhãn (vd: Hỏi đáp)"
+            maxLength={40}
+            required
+            autoFocus
+          />
+          <div className="cd-filter-admin-colors" role="group" aria-label="Màu nhãn">
+            {PRESET_COLORS.map((color) => (
+              <button
+                key={color}
+                type="button"
+                className={`cd-filter-color-swatch${mau === color ? " is-active" : ""}`}
+                style={{ backgroundColor: color }}
+                onClick={() => setMau(color)}
+                aria-label={`Màu ${color}`}
+                aria-pressed={mau === color}
+              />
+            ))}
+          </div>
+          <div
+            className="cd-filter-admin-icons"
+            role="group"
+            aria-label="Icon nhãn"
+          >
+            {CONG_DONG_FILTER_ICON_IDS.map((id) => (
+              <button
+                key={id}
+                type="button"
+                className={`cd-filter-icon-swatch${icon === id ? " is-active" : ""}`}
+                onClick={() => setIcon(id)}
+                aria-label={`Icon ${id}`}
+                aria-pressed={icon === id}
+                title={id}
+              >
+                <CongDongFilterIconGlyph name={id} size={16} />
+              </button>
+            ))}
+          </div>
+          <div className="cd-filter-admin-form-actions">
             <button
-              key={color}
               type="button"
-              className={`cd-filter-color-swatch${mau === color ? " is-active" : ""}`}
-              style={{ backgroundColor: color }}
-              onClick={() => setMau(color)}
-              aria-label={`Màu ${color}`}
-              aria-pressed={mau === color}
-            />
-          ))}
-        </div>
-        <button type="submit" disabled={pending || !ten.trim()}>
+              className="cd-filter-admin-cancel"
+              onClick={cancelCreate}
+              disabled={pending}
+            >
+              Huỷ
+            </button>
+            <button type="submit" disabled={pending || !ten.trim()}>
+              <Plus size={16} aria-hidden />
+              {pending ? "Đang lưu…" : "Lưu nhãn"}
+            </button>
+          </div>
+        </form>
+      ) : (
+        <button
+          type="button"
+          className="cd-filter-admin-add"
+          onClick={openCreate}
+          disabled={pending}
+        >
           <Plus size={16} aria-hidden />
           Thêm nhãn
         </button>
-      </form>
+      )}
       {err ? <p className="cd-filter-admin-err">{err}</p> : null}
     </div>
   );

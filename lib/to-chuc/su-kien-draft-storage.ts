@@ -11,6 +11,15 @@ export type SuKienDraftWhen = {
   withTime: boolean;
 };
 
+export type SuKienDraftLoaiVe = {
+  key: string;
+  ten: string;
+  moTa: string;
+  gia: number;
+  coverImageId: string | null;
+  coverPreviewUrl: string | null;
+};
+
 export type SuKienFormDraft = {
   ten: string;
   loaiSuKien: LoaiSuKien;
@@ -18,7 +27,11 @@ export type SuKienFormDraft = {
   tinhThanh: string;
   diaDiem: string;
   mienPhi: boolean;
+  /** @deprecated giữ để đọc nháp cũ */
   giaVe: string;
+  loaiVe: SuKienDraftLoaiVe[];
+  /** Hướng dẫn mua vé ngoài CINs. */
+  cachMuaVe: string;
   moTa: string;
   noiDung: string;
   slotToiDa: string;
@@ -53,6 +66,40 @@ function parseWhen(raw: unknown): SuKienDraftWhen {
   };
 }
 
+function parseLoaiVe(raw: unknown): SuKienDraftLoaiVe[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((item, i) => {
+      if (!item || typeof item !== "object") return null;
+      const o = item as Record<string, unknown>;
+      const ten = typeof o.ten === "string" ? o.ten : "";
+      const gia = typeof o.gia === "number" ? o.gia : Number(o.gia);
+      if (!ten.trim() && !(Number.isInteger(gia) && gia > 0)) return null;
+      const coverPreviewUrl =
+        typeof o.coverPreviewUrl === "string" &&
+        !o.coverPreviewUrl.startsWith("blob:")
+          ? o.coverPreviewUrl
+          : null;
+      return {
+        key:
+          typeof o.key === "string" && o.key.trim()
+            ? o.key
+            : `draft-${i}-${ten}`,
+        ten,
+        moTa: typeof o.moTa === "string" ? o.moTa : "",
+        gia: Number.isInteger(gia) && gia >= 0 ? gia : 0,
+        coverImageId:
+          typeof o.coverImageId === "string" && o.coverImageId.trim()
+            ? o.coverImageId.trim()
+            : typeof o.coverId === "string" && o.coverId.trim()
+              ? o.coverId.trim()
+              : null,
+        coverPreviewUrl,
+      } satisfies SuKienDraftLoaiVe;
+    })
+    .filter((x): x is SuKienDraftLoaiVe => Boolean(x));
+}
+
 /** Có nội dung đáng lưu nháp (không phải form trống). */
 export function suKienDraftHasContent(
   draft: Pick<
@@ -63,6 +110,8 @@ export function suKienDraftHasContent(
     | "moTa"
     | "noiDung"
     | "giaVe"
+    | "loaiVe"
+    | "cachMuaVe"
     | "slotToiDa"
     | "coverImageId"
     | "mienPhi"
@@ -74,6 +123,8 @@ export function suKienDraftHasContent(
   if (draft.moTa.trim()) return true;
   if (!isBlankHtml(draft.noiDung)) return true;
   if (draft.giaVe.trim()) return true;
+  if (draft.loaiVe.length > 0) return true;
+  if (draft.cachMuaVe.trim()) return true;
   if (draft.slotToiDa.trim()) return true;
   if (draft.coverImageId) return true;
   if (!draft.mienPhi) return true;
@@ -100,6 +151,29 @@ export function loadSuKienDraft(orgId: string): SuKienFormDraft | null {
         ? parsed.coverImageId.trim()
         : null;
 
+    let loaiVe = parseLoaiVe(parsed.loaiVe);
+    // Nháp cũ chỉ có giaVe string → một loại «Vé thường».
+    if (
+      loaiVe.length === 0 &&
+      parsed.mienPhi === false &&
+      typeof parsed.giaVe === "string" &&
+      parsed.giaVe.trim()
+    ) {
+      const n = Number.parseInt(parsed.giaVe.trim(), 10);
+      if (Number.isInteger(n) && n >= 0) {
+        loaiVe = [
+          {
+            key: "legacy-gia-ve",
+            ten: "Vé thường",
+            moTa: "",
+            gia: n,
+            coverImageId: null,
+            coverPreviewUrl: null,
+          },
+        ];
+      }
+    }
+
     return {
       ten: typeof parsed.ten === "string" ? parsed.ten : "",
       loaiSuKien: loai,
@@ -108,6 +182,8 @@ export function loadSuKienDraft(orgId: string): SuKienFormDraft | null {
       diaDiem: typeof parsed.diaDiem === "string" ? parsed.diaDiem : "",
       mienPhi: parsed.mienPhi !== false,
       giaVe: typeof parsed.giaVe === "string" ? parsed.giaVe : "",
+      loaiVe,
+      cachMuaVe: typeof parsed.cachMuaVe === "string" ? parsed.cachMuaVe : "",
       moTa: typeof parsed.moTa === "string" ? parsed.moTa : "",
       noiDung:
         typeof parsed.noiDung === "string" && parsed.noiDung.trim()
@@ -136,10 +212,18 @@ export function saveSuKienDraft(
       draft.coverPreviewUrl && !draft.coverPreviewUrl.startsWith("blob:")
         ? draft.coverPreviewUrl
         : null;
+    const loaiVe = draft.loaiVe.map((v) => ({
+      ...v,
+      coverPreviewUrl:
+        v.coverPreviewUrl && !v.coverPreviewUrl.startsWith("blob:")
+          ? v.coverPreviewUrl
+          : null,
+    }));
     const payload: SuKienFormDraft = {
       ...draft,
       coverPreviewUrl,
       coverImageId: draft.coverImageId,
+      loaiVe,
       savedAt: new Date().toISOString(),
     };
     localStorage.setItem(storageKey(orgId), JSON.stringify(payload));

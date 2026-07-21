@@ -8,7 +8,7 @@
 .j-shop-storefront {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
   margin-top: 4px;
 }
 
@@ -499,6 +499,17 @@
   gap: 22px;
 }
 
+.j-shop-sf-catalog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
+}
+
+.j-shop-sf-catalog-body > .j-shop-sf-group--banner {
+  /* Banner full-bleed: hơi nới khỏi khối Feature trên/dưới */
+  margin-block: 4px;
+}
+
 .j-shop-sf-catalog.is-tam-dong {
   position: relative;
   gap: 14px;
@@ -582,7 +593,7 @@
 .j-shop-sf-group {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 .j-shop-sf-group-head {
@@ -629,6 +640,129 @@
 .j-shop-sf-group--feature .j-shop-sf-group-head h4 {
   font-weight: 650;
   font-size: 0.84rem;
+}
+
+.j-shop-sf-group--feature-items .j-shop-sf-group-head-title {
+  color: color-mix(in srgb, var(--cins-orange, #fdad4c) 42%, #9a3412);
+}
+
+.j-shop-sf-event-banner {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 21 / 7;
+  min-height: 120px;
+  max-height: 280px;
+  border-radius: 0;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--ink-body, #0f172a) 6%, var(--bg-page, #f8fafc));
+}
+
+.j-shop-sf-event-banner.is-hidden {
+  opacity: 0.45;
+  filter: grayscale(0.35);
+}
+
+.j-shop-sf-event-banner img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.j-shop-sf-event-banner-ph {
+  width: 100%;
+  height: 100%;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+.j-shop-sf-event-banner.is-editable .j-shop-sf-event-banner-actions {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.j-shop-sf-event-banner-switch {
+  position: relative;
+  flex-shrink: 0;
+  width: 40px;
+  height: 24px;
+  border: 0;
+  border-radius: 999px;
+  padding: 0;
+  background: color-mix(in srgb, var(--ink-body, #0f172a) 28%, #fff);
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.14);
+  transition: background 0.15s ease;
+}
+
+.j-shop-sf-event-banner-switch.is-on {
+  background: var(--cins-orange, #fdad4c);
+}
+
+.j-shop-sf-event-banner-switch:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.j-shop-sf-event-banner-switch-knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.25);
+  transition: transform 0.15s ease;
+}
+
+.j-shop-sf-event-banner-switch.is-on .j-shop-sf-event-banner-switch-knob {
+  transform: translateX(16px);
+}
+
+.j-shop-sf-event-banner-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg-surface, #fff) 92%, transparent);
+  color: var(--ink-display);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 650;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.14);
+}
+
+.j-shop-sf-event-banner-btn.is-muted {
+  color: var(--ink-muted);
+}
+
+.j-shop-sf-event-banner-btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.j-shop-sf-event-banner.is-busy::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--bg-page, #fff) 35%, transparent);
 }
 
 .j-shop-sf-group-desc {
@@ -717,7 +851,7 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: 8px 2px 4px;
+  padding: 8px 12px 12px;
   min-height: 0;
 }
 
@@ -1100,34 +1234,9 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: 8px 2px 4px;
-}
-
-.j-shop-sf-item-card.is-feature {
-  --sf-feature-r: 12px;
-  --sf-feature-stroke: 2px;
-  --sf-feature-r-inner: calc(var(--sf-feature-r) - var(--sf-feature-stroke));
-  background: transparent;
-  box-shadow: none;
-  overflow: hidden;
-  padding: var(--sf-feature-stroke);
-  border-radius: var(--sf-feature-r);
-}
-
-.j-shop-sf-item-card.is-feature .j-shop-sf-card-media-link {
-  border-radius: var(--sf-feature-r-inner) var(--sf-feature-r-inner) 0 0;
-  overflow: hidden;
-}
-
-.j-shop-sf-item-card.is-feature .j-shop-sf-card-media {
-  border-radius: var(--sf-feature-r-inner) var(--sf-feature-r-inner) 0 0;
-}
-
-.j-shop-sf-item-card.is-feature .j-shop-sf-card-body {
-  border-radius: 0 0 var(--sf-feature-r-inner) var(--sf-feature-r-inner);
-  background: #fff;
-  margin: 0;
   padding: 8px 6px 6px;
+  min-width: 0;
+  background: #fff;
 }
 
 .j-shop-sf-item-card .j-shop-sf-card-name {
@@ -1145,11 +1254,7 @@
   background: color-mix(in srgb, #fff 6%, var(--bg-page, #0f131a));
 }
 
-:root[data-theme="dark"] .j-shop-sf-item-card.is-feature {
-  background: transparent;
-}
-
-:root[data-theme="dark"] .j-shop-sf-item-card.is-feature .j-shop-sf-card-body {
+:root[data-theme="dark"] .j-shop-sf-item-card .j-shop-sf-card-body {
   background: color-mix(in srgb, #fff 6%, var(--bg-page, #0f131a));
 }
 
@@ -3471,19 +3576,19 @@
 .j-shop-loai-more-ticker-group {
   display: flex;
   flex-shrink: 0;
-  gap: 10px;
-  padding-right: 10px;
+  gap: 14px;
+  padding-right: 14px;
 }
 
 .j-shop-loai-more-card {
-  flex: 0 0 148px;
+  flex: 0 0 200px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   min-width: 0;
-  padding: 5px;
+  padding: 8px;
   box-sizing: border-box;
-  border-radius: 10px;
+  border-radius: 12px;
   background: #fff;
   text-decoration: none;
   color: inherit;
@@ -3523,7 +3628,7 @@
   display: block;
   width: 100%;
   aspect-ratio: 1;
-  border-radius: 6px;
+  border-radius: 8px;
   overflow: hidden;
   background: color-mix(in srgb, var(--ink-body, #0f172a) 6%, var(--bg-page, #f8fafc));
 }
@@ -3551,10 +3656,10 @@
 .j-shop-loai-more-soldout {
   position: absolute;
   inset: auto 0 0 0;
-  padding: 5px 8px;
+  padding: 6px 10px;
   background: rgb(15 23 42 / 62%);
   color: #fff;
-  font-size: 0.62rem;
+  font-size: 0.7rem;
   font-weight: 600;
   letter-spacing: 0.02em;
   line-height: 1;
@@ -3563,12 +3668,13 @@
 .j-shop-loai-more-body {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
   min-width: 0;
+  padding: 0 2px 2px;
 }
 
 .j-shop-loai-more-name {
-  font-size: 0.84rem;
+  font-size: 0.95rem;
   font-weight: 700;
   line-height: 1.25;
   display: -webkit-box;
@@ -3586,7 +3692,7 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 6px;
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   color: var(--ink-muted, #64748b);
 }
 
@@ -3601,7 +3707,7 @@
 
 .j-shop-loai-more-price {
   margin-top: 2px;
-  font-size: 0.84rem;
+  font-size: 0.95rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--ink-display, var(--ink-body));
@@ -4184,6 +4290,6 @@
   }
 
   .j-shop-loai-more-card {
-    flex-basis: 128px;
+    flex-basis: 168px;
   }
 }

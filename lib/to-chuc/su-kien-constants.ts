@@ -43,6 +43,25 @@ export function labelLoaiSuKien(value: string | null | undefined): string {
   return "Sự kiện";
 }
 
+export type SuKienLoaiVe = {
+  id: string;
+  ten: string;
+  moTa: string | null;
+  gia: number;
+  coverId: string | null;
+  coverSrc: string | null;
+  thuTu: number;
+};
+
+/** Payload tạo/sửa loại vé (chưa có id khi tạo mới trong form). */
+export type SuKienLoaiVeInput = {
+  ten: string;
+  moTa?: string | null;
+  gia: number;
+  coverId?: string | null;
+  thuTu?: number;
+};
+
 export type SuKienCardData = {
   id: string;
   ten: string;
@@ -60,7 +79,12 @@ export type SuKienCardData = {
   /** Địa chỉ chi tiết hoặc link online. */
   diaDiem: string | null;
   mienPhi: boolean;
+  /** Denormalize min giá loại vé khi tính phí. */
   giaVe: number | null;
+  /** Catalog loại vé (có thể rỗng nếu miễn phí). */
+  loaiVe: SuKienLoaiVe[];
+  /** Hướng dẫn mua vé ngoài CINs (chỉ khi tính phí). */
+  cachMuaVe: string | null;
   slotToiDa: number | null;
   soDangKy: number;
 };
@@ -75,18 +99,29 @@ export type TaoSuKienInput = {
   tinhThanh?: string | null;
   diaDiem?: string | null;
   mienPhi?: boolean;
+  /** Legacy — bỏ qua nếu có `loaiVe`; server suy từ min(loaiVe). */
   giaVe?: number | null;
+  loaiVe?: SuKienLoaiVeInput[];
+  /** Hướng dẫn mua vé (text, tối đa ~2000). */
+  cachMuaVe?: string | null;
   slotToiDa?: number | null;
   coverId?: string | null;
 };
 
+export function formatGiaVnd(gia: number): string {
+  return `${new Intl.NumberFormat("vi-VN").format(gia)} đ`;
+}
+
 export function labelSuKienVe(
   mienPhi: boolean,
   giaVe: number | null | undefined,
+  loaiVeCount?: number,
 ): string {
   if (mienPhi) return "Miễn phí";
-  if (typeof giaVe === "number" && giaVe > 0) {
-    return `${new Intl.NumberFormat("vi-VN").format(giaVe)} đ`;
+  if (typeof giaVe === "number" && giaVe >= 0) {
+    const count = loaiVeCount ?? 0;
+    if (count > 1) return `Từ ${formatGiaVnd(giaVe)}`;
+    return formatGiaVnd(giaVe);
   }
   return "Tính phí";
 }

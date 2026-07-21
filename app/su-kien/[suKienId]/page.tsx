@@ -81,6 +81,8 @@ export default async function SuKienDetailPage({ params }: Props) {
         canManage={canManage}
         variant="page"
         orgTen={detail.orgTen}
+        orgLoai={detail.orgLoai}
+        orgAvatarUrl={detail.orgAvatarUrl}
         orgHref={orgSuKienHref(detail.orgLoai, detail.orgSlug)}
       />
     </CinsShell>

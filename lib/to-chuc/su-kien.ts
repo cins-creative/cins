@@ -9,10 +9,19 @@ import { normalizeTinhThanhForDb } from "@/lib/truong/contact";
 import { normalizeTruongGioiThieuHtml } from "@/lib/truong/gioi-thieu";
 import { demDangKySeThamGia } from "./su-kien-dang-ky";
 import {
+  listLoaiVeBySuKienIds,
+  listLoaiVeCuaSuKien,
+  minGiaTuLoaiVe,
+  replaceLoaiVeCuaSuKien,
+  validateLoaiVeInputs,
+} from "./su-kien-loai-ve";
+import {
   isLoaiSuKien,
   type LoaiSuKien,
   type CapNhatSuKienInput,
   type SuKienCardData,
+  type SuKienLoaiVe,
+  type SuKienLoaiVeInput,
   type TaoSuKienInput,
 } from "./su-kien-constants";
 
@@ -42,16 +51,23 @@ type SuKienRow = {
   dia_diem: string | null;
   mien_phi: boolean | null;
   gia_ve: number | null;
+  cach_mua_ve: string | null;
   slot_toi_da: number | null;
 };
 
 const SU_KIEN_SELECT =
-  "id, ten, loai_su_kien, mo_ta, noi_dung, cover_id, bat_dau, ket_thuc, tinh_thanh, dia_diem, mien_phi, gia_ve, slot_toi_da";
+  "id, ten, loai_su_kien, mo_ta, noi_dung, cover_id, bat_dau, ket_thuc, tinh_thanh, dia_diem, mien_phi, gia_ve, cach_mua_ve, slot_toi_da";
 
-function mapRow(row: SuKienRow, soDangKy: number): SuKienCardData {
+function mapRow(
+  row: SuKienRow,
+  soDangKy: number,
+  loaiVe: SuKienLoaiVe[] = [],
+): SuKienCardData {
   const loai: LoaiSuKien = isLoaiSuKien(row.loai_su_kien)
     ? row.loai_su_kien
     : "meetup";
+  const mienPhi = row.mien_phi !== false;
+  const giaFromLoai = !mienPhi ? minGiaTuLoaiVe(loaiVe) : null;
   return {
     id: row.id,
     ten: row.ten,
@@ -66,8 +82,15 @@ function mapRow(row: SuKienRow, soDangKy: number): SuKienCardData {
     ketThuc: row.ket_thuc,
     tinhThanh: row.tinh_thanh?.trim() || null,
     diaDiem: row.dia_diem?.trim() || null,
-    mienPhi: row.mien_phi !== false,
-    giaVe: typeof row.gia_ve === "number" && row.gia_ve > 0 ? row.gia_ve : null,
+    mienPhi,
+    giaVe:
+      giaFromLoai != null
+        ? giaFromLoai
+        : typeof row.gia_ve === "number" && row.gia_ve >= 0
+          ? row.gia_ve
+          : null,
+    loaiVe: mienPhi ? [] : loaiVe,
+    cachMuaVe: mienPhi ? null : row.cach_mua_ve?.trim() || null,
     slotToiDa: typeof row.slot_toi_da === "number" ? row.slot_toi_da : null,
     soDangKy,
   };
@@ -114,9 +137,12 @@ export async function listSuKienCuaOrg(
 
   const rows = (data ?? []) as SuKienRow[];
   const counts = await demDangKySeThamGia(rows.map((r) => r.id));
+  const loaiVeMap = await listLoaiVeBySuKienIds(rows.map((r) => r.id));
   return {
     ok: true,
-    suKien: rows.map((row) => mapRow(row, counts.get(row.id) ?? 0)),
+    suKien: rows.map((row) =>
+      mapRow(row, counts.get(row.id) ?? 0, loaiVeMap.get(row.id) ?? []),
+    ),
   };
 }
 
@@ -139,13 +165,20 @@ type ValidInsert = {
   dia_diem: string | null;
   mien_phi: boolean;
   gia_ve: number | null;
+  cach_mua_ve: string | null;
   slot_toi_da: number | null;
   cover_id: string | null;
 };
 
 function validateInput(
   input: TaoSuKienInput,
-): { ok: true; data: ValidInsert } | { ok: false; error: string } {
+):
+  | {
+      ok: true;
+      data: ValidInsert;
+      loaiVe: SuKienLoaiVeInput[];
+    }
+  | { ok: false; error: string } {
   const ten = input.ten?.trim();
   if (!ten || ten.length < 2) {
     return { ok: false, error: "Tên sự kiện phải có ít nhất 2 ký tự." };
@@ -169,13 +202,16 @@ function validateInput(
     return { ok: false, error: "Cần chọn khu vực tổ chức sự kiện." };
   }
   const mienPhi = input.mienPhi !== false;
-  let giaVe: number | null = null;
-  if (!mienPhi && input.giaVe != null && input.giaVe !== undefined) {
-    const n = Number(input.giaVe);
-    if (!Number.isInteger(n) || n < 0) {
-      return { ok: false, error: "Giá vé không hợp lệ." };
+  const loaiVeCheck = validateLoaiVeInputs(mienPhi, input.loaiVe);
+  if (!loaiVeCheck.ok) return loaiVeCheck;
+  const giaVe = mienPhi ? null : minGiaTuLoaiVe(loaiVeCheck.items);
+  let cachMuaVe: string | null = null;
+  if (!mienPhi) {
+    const raw = input.cachMuaVe?.trim() || null;
+    if (raw && raw.length > 2000) {
+      return { ok: false, error: "Cách mua vé tối đa 2000 ký tự." };
     }
-    giaVe = n > 0 ? n : null;
+    cachMuaVe = raw;
   }
   let slot: number | null = null;
   if (input.slotToiDa != null && input.slotToiDa !== undefined) {
@@ -201,10 +237,12 @@ function validateInput(
       tinh_thanh: tinhThanh,
       dia_diem: input.diaDiem?.trim() || null,
       mien_phi: mienPhi,
-      gia_ve: mienPhi ? null : giaVe,
+      gia_ve: giaVe,
+      cach_mua_ve: cachMuaVe,
       slot_toi_da: slot,
       cover_id: coverId,
     },
+    loaiVe: loaiVeCheck.items,
   };
 }
 
@@ -235,7 +273,15 @@ export async function taoSuKien(
   if (error || !data) {
     return { ok: false, error: error?.message ?? "Không tạo được sự kiện." };
   }
-  return { ok: true, suKien: mapRow(data, 0) };
+
+  const syncVe = await replaceLoaiVeCuaSuKien(data.id, validated.loaiVe);
+  if (!syncVe.ok) {
+    await admin.from("org_su_kien").delete().eq("id", data.id);
+    return { ok: false, error: syncVe.error };
+  }
+
+  const loaiVe = await listLoaiVeCuaSuKien(data.id);
+  return { ok: true, suKien: mapRow(data, 0, loaiVe) };
 }
 
 async function getSuKienOrgId(suKienId: string): Promise<string | null> {
@@ -254,6 +300,7 @@ export type SuKienPublicDetail = {
   orgSlug: string;
   orgTen: string;
   orgLoai: string;
+  orgAvatarUrl: string | null;
 };
 
 /** Chi tiết sự kiện công khai theo id — cho trang `/su-kien/[id]`. */
@@ -267,7 +314,7 @@ export async function getSuKienByIdPublic(
   const { data, error } = await admin
     .from("org_su_kien")
     .select(
-      `${SU_KIEN_SELECT}, id_to_chuc, org_to_chuc!inner ( id, slug, ten, loai_to_chuc )`,
+      `${SU_KIEN_SELECT}, id_to_chuc, org_to_chuc!inner ( id, slug, ten, loai_to_chuc, avatar_id, logo_id )`,
     )
     .eq("id", id)
     .maybeSingle();
@@ -277,8 +324,22 @@ export async function getSuKienByIdPublic(
   const row = data as SuKienRow & {
     id_to_chuc: string;
     org_to_chuc:
-      | { id: string; slug: string | null; ten: string | null; loai_to_chuc: string | null }
-      | { id: string; slug: string | null; ten: string | null; loai_to_chuc: string | null }[];
+      | {
+          id: string;
+          slug: string | null;
+          ten: string | null;
+          loai_to_chuc: string | null;
+          avatar_id: string | null;
+          logo_id: string | null;
+        }
+      | {
+          id: string;
+          slug: string | null;
+          ten: string | null;
+          loai_to_chuc: string | null;
+          avatar_id: string | null;
+          logo_id: string | null;
+        }[];
   };
 
   const org = Array.isArray(row.org_to_chuc)
@@ -286,13 +347,18 @@ export async function getSuKienByIdPublic(
     : row.org_to_chuc;
   if (!org?.slug?.trim() || !org.ten?.trim()) return null;
 
+  const orgAvatarId = org.avatar_id ?? org.logo_id;
   const counts = await demDangKySeThamGia([row.id]);
+  const loaiVe = await listLoaiVeCuaSuKien(row.id);
   return {
-    suKien: mapRow(row, counts.get(row.id) ?? 0),
+    suKien: mapRow(row, counts.get(row.id) ?? 0, loaiVe),
     orgId: row.id_to_chuc,
     orgSlug: org.slug.trim(),
     orgTen: org.ten.trim(),
     orgLoai: org.loai_to_chuc?.trim() || "studio",
+    orgAvatarUrl: orgAvatarId
+      ? resolveTruongImageSrcSync(orgAvatarId, ["public", "avatar"])
+      : null,
   };
 }
 
@@ -332,6 +398,18 @@ export async function capNhatSuKien(
     mienPhi:
       input.mienPhi !== undefined ? input.mienPhi : current.mien_phi !== false,
     giaVe: input.giaVe !== undefined ? input.giaVe : current.gia_ve,
+    loaiVe:
+      input.loaiVe !== undefined
+        ? input.loaiVe
+        : (await listLoaiVeCuaSuKien(suKienId)).map((v) => ({
+            ten: v.ten,
+            moTa: v.moTa,
+            gia: v.gia,
+            coverId: v.coverId,
+            thuTu: v.thuTu,
+          })),
+    cachMuaVe:
+      input.cachMuaVe !== undefined ? input.cachMuaVe : current.cach_mua_ve,
     slotToiDa:
       input.slotToiDa !== undefined ? input.slotToiDa : current.slot_toi_da,
     coverId: input.coverId !== undefined ? input.coverId : current.cover_id,
@@ -350,8 +428,15 @@ export async function capNhatSuKien(
   if (error || !data) {
     return { ok: false, error: error?.message ?? "Không lưu được sự kiện." };
   }
+
+  if (input.loaiVe !== undefined || input.mienPhi !== undefined) {
+    const syncVe = await replaceLoaiVeCuaSuKien(suKienId, validated.loaiVe);
+    if (!syncVe.ok) return { ok: false, error: syncVe.error };
+  }
+
   const counts = await demDangKySeThamGia([suKienId]);
-  return { ok: true, suKien: mapRow(data, counts.get(suKienId) ?? 0) };
+  const loaiVe = await listLoaiVeCuaSuKien(suKienId);
+  return { ok: true, suKien: mapRow(data, counts.get(suKienId) ?? 0, loaiVe) };
 }
 
 export async function xoaSuKien(

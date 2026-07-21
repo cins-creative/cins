@@ -2,7 +2,6 @@
 
 import { EditorContent, useEditor, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import Image from "@tiptap/extension-image";
 import Link from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
 import { Table, TableCell, TableHeader, TableRow } from "@tiptap/extension-table";
@@ -13,6 +12,7 @@ import type {
   ArticleDraftEditorVariant,
   ArticleImagePasteStatus,
 } from "@/components/article/draft/article-draft-editor-types";
+import { ArticleDraftImage } from "@/components/article/draft/ArticleDraftImage";
 import { ArcImagePlaceholder } from "@/components/article/draft/arcImagePlaceholderExtension";
 import { ArcSiteHeading } from "@/components/article/draft/arcSiteHeadingExtension";
 import { ARTICLE_ARC_BLOCK_EXTENSIONS } from "@/components/article/draft/articleArcBlockExtensions";
@@ -97,7 +97,7 @@ function replaceImageSrcIfMatch(
       tr.setNodeMarkup(foundPos!, undefined, {
         ...node.attrs,
         src: next.src,
-        title: next.title ?? node.attrs.title,
+        title: "title" in next ? next.title : node.attrs.title,
       });
       return true;
     })
@@ -170,7 +170,7 @@ async function insertImageFromFile(
       if (res.ok && data.url) {
         const patched = replaceImageSrcIfMatch(ed, previewUrl, {
           src: data.url,
-          title: "Đã upload — Cloudflare Images",
+          title: "Tải lên thành công",
         });
         URL.revokeObjectURL(previewUrl);
         if (!patched) {
@@ -180,6 +180,12 @@ async function insertImageFromFile(
           });
           return;
         }
+        window.setTimeout(() => {
+          replaceImageSrcIfMatch(ed, data.url!, {
+            src: data.url!,
+            title: null,
+          });
+        }, 2500);
         report({ phase: "cf_ok", url: data.url });
         return;
       }
@@ -278,7 +284,7 @@ export function ArticleDraftVisualPane({
               ? "Soạn bản đóng góp — dùng khối layout phía trên hoặc tab HTML."
               : "Gõ thủ công – hoặc dán HTML ở tab HTML để giữ layout từ Claude / CMS.",
         }),
-        Image.configure({
+        ArticleDraftImage.configure({
           inline: true,
           allowBase64: true,
         }),

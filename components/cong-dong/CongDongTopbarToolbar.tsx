@@ -67,6 +67,8 @@ type Props = {
   onNotifyLevelChange: (level: OrgNotifyLevel) => void;
   onLeft: () => void;
   onOpenManage: () => void;
+  /** Tổng nội dung sự kiện chờ duyệt — badge nút quản lý. */
+  suKienChoDuyet?: number;
 };
 
 function roleKeyForTopbar(
@@ -109,6 +111,7 @@ export function CongDongTopbarToolbar({
   onNotifyLevelChange,
   onLeft,
   onOpenManage,
+  suKienChoDuyet = 0,
 }: Props) {
   const slot = useTopbarPageSlot();
   const { requireCongDongAuth } = useCongDongAuthGate();
@@ -354,12 +357,25 @@ export function CongDongTopbarToolbar({
       {canManage ? (
         <button
           type="button"
-          className="tb-truong-admin-btn tb-truong-admin-btn--icon"
-          aria-label="Quản lý cộng đồng"
-          title="Quản lý cộng đồng"
+          className={`tb-truong-admin-btn tb-truong-admin-btn--icon${suKienChoDuyet > 0 ? " has-pending" : ""}`}
+          aria-label={
+            suKienChoDuyet > 0
+              ? `Quản lý cộng đồng, ${suKienChoDuyet} nội dung sự kiện chờ duyệt`
+              : "Quản lý cộng đồng"
+          }
+          title={
+            suKienChoDuyet > 0
+              ? `Quản lý cộng đồng · ${suKienChoDuyet} chờ duyệt`
+              : "Quản lý cộng đồng"
+          }
           onClick={onOpenManage}
         >
           <Settings2 size={16} strokeWidth={2} aria-hidden />
+          {suKienChoDuyet > 0 ? (
+            <span className="tb-cong-dong-admin-badge" aria-hidden>
+              {suKienChoDuyet > 99 ? "99+" : suKienChoDuyet}
+            </span>
+          ) : null}
         </button>
       ) : null}
 

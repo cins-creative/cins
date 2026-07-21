@@ -15,6 +15,7 @@ export function GioiThieuContentEditor({ value, onChange }: Props) {
     <ArticleDraftContentEditor
       value={value?.trim() || "<p></p>"}
       onChange={onChange}
+      hideHint
     />
   );
 }
