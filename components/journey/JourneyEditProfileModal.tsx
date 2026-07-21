@@ -5,6 +5,7 @@ import { useEffect, useId, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 
 import {
+  checkSlugAvailable,
   updateProfile,
   type EmailVisibility,
   type ProfileLinkInput,
@@ -13,6 +14,19 @@ import type { GiaiDoan } from "@/lib/auth/session";
 import { TINH_THANH_OPTIONS } from "@/lib/truong/contact";
 
 type AccentTone = "yellow" | "mint" | "orange" | "violet" | "blue";
+
+type SlugStatus =
+  | { kind: "idle" }
+  | { kind: "checking" }
+  | { kind: "ok"; slug: string }
+  | { kind: "error"; message: string };
+
+function normalizeSlugInput(raw: string): string {
+  return raw
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9_-]/g, "");
+}
 
 const GIAI_DOAN_OPTIONS: ReadonlyArray<{
   value: GiaiDoan;
@@ -79,11 +93,10 @@ type Props = {
 /**
  * Modal "Chỉnh sửa hồ sơ" mở từ Journey sidebar.
  *
- * Cập nhật các field mà owner tự khai: tên, bio, tỉnh thành, email + visibility,
- * link mạng xã hội (tối đa 8), giai đoạn (có thể đổi lại sau onboarding).
+ * Cập nhật các field mà owner tự khai: tên, địa chỉ Journey (slug), bio,
+ * tỉnh thành, email + visibility, link mạng xã hội (tối đa 8), giai đoạn.
  *
- * KHÔNG đụng slug (đổi slug = đổi URL Journey → flow riêng).
- * KHÔNG đụng avatar / cover (cần upload Cloudflare — lượt sau).
+ * Đổi slug → redirect sang URL mới. KHÔNG đụng avatar / cover (upload Cloudflare).
  */
 export function JourneyEditProfileModal({
   open,
@@ -95,6 +108,8 @@ export function JourneyEditProfileModal({
   const titleId = useId();
 
   const [tenHienThi, setTenHienThi] = useState(initial.tenHienThi);
+  const [slug, setSlug] = useState(ownerSlug);
+  const [slugStatus, setSlugStatus] = useState<SlugStatus>({ kind: "idle" });
   const [bio, setBio] = useState(initial.bio);
   const [tinhThanh, setTinhThanh] = useState(initial.tinhThanh);
   const [emailLienHe, setEmailLienHe] = useState(initial.emailLienHe);
@@ -130,6 +145,8 @@ export function JourneyEditProfileModal({
   useEffect(() => {
     if (!open) return;
     setTenHienThi(initial.tenHienThi);
+    setSlug(ownerSlug);
+    setSlugStatus({ kind: "idle" });
     setBio(initial.bio);
     setTinhThanh(initial.tinhThanh);
     setEmailLienHe(initial.emailLienHe);
@@ -142,7 +159,48 @@ export function JourneyEditProfileModal({
     setGiaiDoan(initial.giaiDoan);
     setSubmitError(null);
     setSavedFlash(false);
-  }, [open, initial]);
+  }, [open, initial, ownerSlug]);
+
+  async function runSlugCheck(value: string): Promise<boolean> {
+    setSlugStatus({ kind: "checking" });
+    const result = await checkSlugAvailable(value);
+    if (!result.ok) {
+      setSlugStatus({ kind: "error", message: result.error });
+      return false;
+    }
+    if (!result.data.available) {
+      setSlugStatus({
+        kind: "error",
+        message:
+          "Địa chỉ này đã có người dùng — thử thêm số (vd: " +
+          result.data.slug +
+          "-2).",
+      });
+      return false;
+    }
+    setSlugStatus({ kind: "ok", slug: result.data.slug });
+    return true;
+  }
+
+  function onSlugChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setSlug(normalizeSlugInput(e.target.value));
+    setSlugStatus({ kind: "idle" });
+  }
+
+  function onSlugBlur() {
+    if (!slug.trim()) {
+      setSlugStatus({
+        kind: "error",
+        message: "Địa chỉ Journey không được để trống.",
+      });
+      return;
+    }
+    if (normalizeSlugInput(slug) === ownerSlug) {
+      setSlugStatus({ kind: "idle" });
+      return;
+    }
+    void runSlugCheck(slug);
+  }
 
   /* Khóa scroll body khi modal mở + close on Esc. */
   useEffect(() => {
@@ -193,6 +251,23 @@ export function JourneyEditProfileModal({
 
   async function onSubmit() {
     setSubmitError(null);
+    const nextSlug = normalizeSlugInput(slug);
+    if (!nextSlug) {
+      setSlugStatus({
+        kind: "error",
+        message: "Địa chỉ Journey không được để trống.",
+      });
+      setSubmitError("Hãy nhập địa chỉ Journey.");
+      return;
+    }
+    if (slugStatus.kind === "error") {
+      setSubmitError(slugStatus.message);
+      return;
+    }
+    if (slugStatus.kind === "checking") {
+      setSubmitError("Đang kiểm tra địa chỉ — chờ giây lát.");
+      return;
+    }
     /* Lọc trống ngay client để tránh trip server validator. */
     const cleanLinks = links
       .map((l) => ({
@@ -202,8 +277,17 @@ export function JourneyEditProfileModal({
       .filter((l) => l.url.length > 0);
 
     startTransition(async () => {
+      if (nextSlug !== ownerSlug && slugStatus.kind !== "ok") {
+        const ok = await runSlugCheck(nextSlug);
+        if (!ok) {
+          setSubmitError("Địa chỉ Journey chưa khả dụng.");
+          return;
+        }
+      }
+
       const result = await updateProfile({
         tenHienThi,
+        slug: nextSlug,
         bio,
         tinhThanh,
         emailLienHe,
@@ -214,6 +298,9 @@ export function JourneyEditProfileModal({
       if (!result.ok) {
         console.error("[JourneyEditProfileModal] save failed:", result);
         setSubmitError(result.error);
+        if (result.field === "slug") {
+          setSlugStatus({ kind: "error", message: result.error });
+        }
         /* Scroll banner lỗi vào view (modal body có scroll riêng). */
         requestAnimationFrame(() =>
           noticeRef.current?.scrollIntoView({
@@ -224,8 +311,18 @@ export function JourneyEditProfileModal({
         return;
       }
       /* Server action đã `revalidatePath` — refresh ngay để sidebar/journey
-       * reflect dữ liệu mới. Hiện flash success ~1.2s rồi tự đóng modal. */
+       * reflect dữ liệu mới. Hiện flash success ~1.2s rồi tự đóng modal.
+       * Đổi slug → chuyển sang URL mới (slug cũ sẽ 404). */
       setSavedFlash(true);
+      const savedSlug = result.data.slug;
+      if (savedSlug !== ownerSlug) {
+        if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+        closeTimerRef.current = setTimeout(() => {
+          handleClose();
+          router.replace(`/${encodeURIComponent(savedSlug)}`);
+        }, 900);
+        return;
+      }
       router.refresh();
       requestAnimationFrame(() =>
         noticeRef.current?.scrollIntoView({
@@ -260,7 +357,7 @@ export function JourneyEditProfileModal({
               Chỉnh sửa hồ sơ
             </h2>
             <p className="j-edit-sub">
-              cins.vn/<strong>{ownerSlug}</strong>
+              cins.vn/<strong>{slug || ownerSlug}</strong>
             </p>
           </div>
           <button
@@ -290,6 +387,46 @@ export function JourneyEditProfileModal({
               autoComplete="name"
             />
             <p className="j-edit-hint">Tên hiện trên Journey và mọi nơi bạn xuất hiện trên CINs.</p>
+          </div>
+
+          <div className="j-edit-field">
+            <label htmlFor="ep-slug" className="j-edit-label">
+              Địa chỉ Journey <span aria-hidden>*</span>
+            </label>
+            <div className="j-edit-slug-row">
+              <span className="j-edit-slug-prefix">cins.vn/</span>
+              <input
+                id="ep-slug"
+                type="text"
+                className="j-edit-input j-edit-input--slug"
+                value={slug}
+                onChange={onSlugChange}
+                onBlur={onSlugBlur}
+                maxLength={48}
+                placeholder="vd: mai-anh"
+                autoCorrect="off"
+                autoCapitalize="none"
+                spellCheck={false}
+                disabled={isPending || savedFlash}
+              />
+            </div>
+            {slugStatus.kind === "checking" ? (
+              <p className="j-edit-hint">Đang kiểm tra…</p>
+            ) : slugStatus.kind === "ok" ? (
+              <p className="j-edit-hint j-edit-hint--ok">
+                ✓ Địa chỉ còn trống — dùng được.
+              </p>
+            ) : slugStatus.kind === "error" ? (
+              <p className="j-edit-hint j-edit-hint--err" role="alert">
+                {slugStatus.message}
+              </p>
+            ) : (
+              <p className="j-edit-hint">
+                Link công khai trên sidebar. Chữ thường, số, dấu{" "}
+                <code>-</code> hoặc <code>_</code>. Đổi xong sẽ chuyển sang URL
+                mới.
+              </p>
+            )}
           </div>
 
           <div className="j-edit-field">

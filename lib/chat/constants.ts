@@ -3,7 +3,7 @@ export const CHAT_REACTION_EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "
 
 export type ChatReactionEmoji = (typeof CHAT_REACTION_EMOJIS)[number];
 
-/** Cửa sổ sửa / thu hồi tin (ms). */
+/** Cửa sổ sửa tin (ms). Thu hồi tin của mình không giới hạn thời gian. */
 export const CHAT_ACTION_WINDOW_MS = 15 * 60 * 1000;
 
 /** Số tin ghim tối đa mỗi phòng 1-1. */

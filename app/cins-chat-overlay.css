@@ -235,22 +235,57 @@
 
 /* ---- Drop mode chia sẻ — kéo post/ảnh từ feed vào chat (desktop) ---- */
 
-/* Cột danh sách dán sát mép phải, từ dưới topbar tới đáy màn hình. */
+/* Thu hẹp trang sang trái để sidebar chat không che nội dung đang kéo. */
+html.is-cins-share-dropping {
+  --cins-share-drop-rail: min(380px, 94vw);
+}
+
+html.is-cins-share-dropping .cins-shell {
+  padding-right: var(--cins-share-drop-rail);
+  transition: padding-right 220ms ease-out;
+}
+
+html.is-cins-share-dropping .j-chat-dock {
+  right: calc(var(--cins-share-drop-rail) + 16px);
+  transition: right 220ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.is-cins-share-dropping .cins-shell,
+  html.is-cins-share-dropping .j-chat-dock {
+    transition: none;
+  }
+}
+
+/* Rail phải: chỉ panel nhận pointer/drop; trang nền vẫn thấy & kéo được. */
 .cins-chat-root.is-share-drop-root {
   padding: 0;
   align-items: stretch;
   justify-content: flex-end;
+  pointer-events: none;
+  cursor: default;
+}
+
+.cins-chat-root.is-share-drop-root .cins-chat-backdrop {
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.cins-chat-root.is-share-drop-root .cins-chat-panel {
+  pointer-events: auto;
 }
 
 .cins-chat-panel.is-share-drop {
-  width: min(380px, 94vw);
-  height: auto;
-  max-height: none;
+  width: var(--cins-share-drop-rail, min(380px, 94vw));
+  height: calc(100dvh - var(--site-nav-height, 64px));
+  max-height: calc(100dvh - var(--site-nav-height, 64px));
   margin-top: var(--site-nav-height, 64px);
   margin-left: auto;
   border-radius: 0;
   border-right: 0;
   border-bottom: 0;
+  overflow: hidden;
   animation: cins-share-drop-wipe 220ms ease-out;
 }
 
@@ -272,7 +307,9 @@
 
 .cins-chat-panel.is-share-drop .cins-chat-list {
   width: 100%;
+  height: 100%;
   min-width: 0;
+  min-height: 0;
   border-right: 0;
   border-radius: 0;
 }
@@ -8996,6 +9033,37 @@ button.cins-chat-project-card-mark:hover {
   -webkit-text-fill-color: var(--ink-display);
 }
 :root[data-theme="dark"] .cins-chat-input-wrap textarea::placeholder {
+  color: var(--ink-muted);
+}
+
+/* Menu @nhắc — bỏ nền #fff / hover slate sáng */
+:root[data-theme="dark"] .cins-chat-at-menu {
+  background: var(--bg-surface);
+  border-color: var(--border);
+  box-shadow:
+    0 10px 28px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255, 255, 255, 0.06) inset;
+}
+:root[data-theme="dark"] .cins-chat-at-menu-item {
+  color: var(--ink-display);
+}
+:root[data-theme="dark"] .cins-chat-at-menu-item.is-active,
+:root[data-theme="dark"] .cins-chat-at-menu-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+:root[data-theme="dark"] .cins-chat-at-menu-avatar {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--ink-display);
+}
+:root[data-theme="dark"] .cins-chat-at-menu-item.is-all .cins-chat-at-menu-avatar {
+  background: color-mix(in srgb, var(--cins-orange, #fdad4c) 28%, var(--neutral-100, #151a24));
+  color: var(--cins-orange, #ffc078);
+}
+:root[data-theme="dark"] .cins-chat-at-menu-meta strong {
+  color: var(--ink-display);
+}
+:root[data-theme="dark"] .cins-chat-at-menu-meta em,
+:root[data-theme="dark"] .cins-chat-at-menu-empty {
   color: var(--ink-muted);
 }
 :root[data-theme="dark"] .cins-chat-attach {

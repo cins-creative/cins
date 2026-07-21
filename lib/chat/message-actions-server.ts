@@ -51,10 +51,6 @@ export async function recallRoomMessage(
     return { ok: false, error: "Tin đã được thu hồi." };
   }
 
-  if (!withinActionWindow(row.tao_luc)) {
-    return { ok: false, error: "Đã quá thời gian thu hồi (15 phút)." };
-  }
-
   const { data: updated, error } = await admin
     .from("chat_tin_nhan")
     .update({ da_xoa: true })

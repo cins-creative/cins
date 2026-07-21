@@ -8,7 +8,7 @@ import {
   Pencil,
   Pin,
   Smile,
-  Trash2,
+  Undo2,
 } from "lucide-react";
 import {
   useCallback,
@@ -38,9 +38,20 @@ type Props = {
   handlers: ChatMessageActionHandlers;
 };
 
-function canModify(msg: ChatMessage): boolean {
+/** Sửa nội dung — chỉ tin của mình trong cửa sổ thời gian. */
+function canEditMessage(msg: ChatMessage): boolean {
   if (msg.from !== "me" || msg.deleted) return false;
+  if (isOptimisticMessageId(msg.id)) return false;
   return Date.now() - new Date(msg.sentAt).getTime() <= CHAT_ACTION_WINDOW_MS;
+}
+
+/** Thu hồi — mọi tin của mình đã lưu server (soft-delete `da_xoa`). */
+function canRecallMessage(msg: ChatMessage): boolean {
+  return (
+    msg.from === "me" &&
+    !msg.deleted &&
+    !isOptimisticMessageId(msg.id)
+  );
 }
 
 /** Neo popup fixed trong visualViewport — tránh bị overflow chat cắt trên mobile. */
@@ -137,7 +148,8 @@ export function ChatMessageActions({ msg, handlers }: Props) {
 
   if (msg.deleted) return null;
 
-  const modifiable = canModify(msg);
+  const editable = canEditMessage(msg);
+  const recallable = canRecallMessage(msg);
   const isText = msg.kind !== "media" && !msg.imageId;
   const canAddToCanvas =
     Boolean(handlers.onAddToCanvas) &&
@@ -203,11 +215,14 @@ export function ChatMessageActions({ msg, handlers }: Props) {
               <Copy size={14} aria-hidden />
               Sao chép
             </button>
-            {modifiable && isText ? (
+            {editable && isText ? (
               <button
                 type="button"
                 role="menuitem"
-                onClick={() => {
+                onPointerDown={(e) => {
+                  if (e.button !== 0) return;
+                  e.preventDefault();
+                  e.stopPropagation();
                   handlers.onEdit(msg);
                   setOpen(false);
                 }}
@@ -219,7 +234,10 @@ export function ChatMessageActions({ msg, handlers }: Props) {
             <button
               type="button"
               role="menuitem"
-              onClick={() => {
+              onPointerDown={(e) => {
+                if (e.button !== 0) return;
+                e.preventDefault();
+                e.stopPropagation();
                 handlers.onPin(msg, !msg.pinned);
                 setOpen(false);
               }}
@@ -245,17 +263,21 @@ export function ChatMessageActions({ msg, handlers }: Props) {
                 Thêm vào canvas
               </button>
             ) : null}
-            {modifiable ? (
+            {recallable ? (
               <button
                 type="button"
                 role="menuitem"
                 className="is-danger"
-                onClick={() => {
+                onPointerDown={(e) => {
+                  if (e.button !== 0) return;
+                  e.preventDefault();
+                  e.stopPropagation();
                   handlers.onRecall(msg);
                   setOpen(false);
+                  setShowReact(false);
                 }}
               >
-                <Trash2 size={14} aria-hidden />
+                <Undo2 size={14} aria-hidden />
                 Thu hồi
               </button>
             ) : null}

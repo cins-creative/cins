@@ -350,12 +350,12 @@ export async function submitOnboarding(
  * updateProfile — modal "Chỉnh sửa hồ sơ" trên Journey sidebar.
  *
  * Cập nhật các field tự nhập của owner:
- *   - ten_hien_thi · bio · tinh_thanh
+ *   - ten_hien_thi · slug · bio · tinh_thanh
  *   - email_lien_he · visibility_email
  *   - mxh_links (JSONB array dạng `[{ label, url }, …]`)
  *   - giai_doan (chip select, có thể đổi lại sau onboarding)
  *
- * KHÔNG đụng `slug` (đổi slug = đổi URL Journey → cần flow riêng).
+ * Đổi slug → URL Journey đổi; client redirect sang `/{slug}` mới.
  * KHÔNG đụng `avatar_id` / `cover_id` (cần upload Cloudflare — lượt sau).
  * ────────────────────────────────────────────────────────────────────── */
 
@@ -368,6 +368,8 @@ export type ProfileLinkInput = { label?: string; url: string };
 
 export type UpdateProfileInput = {
   tenHienThi: string;
+  /** Địa chỉ Journey `cins.vn/{slug}` — normalize + unique như onboarding. */
+  slug: string;
   bio: string;
   tinhThanh: string;
   emailLienHe: string;
@@ -411,6 +413,10 @@ export async function updateProfile(
       field: "ten_hien_thi",
     };
   }
+
+  const slug = normalizeSlug(input.slug ?? "");
+  const slugFmtErr = validateSlugFormat(slug);
+  if (slugFmtErr) return { ok: false, error: slugFmtErr, field: "slug" };
 
   const bio = (input.bio ?? "").trim();
   if (bio.length > 280) {
@@ -481,10 +487,36 @@ export async function updateProfile(
   }
 
   const admin = createServiceRoleClient();
+  const slugChanged = slug !== session.profile.slug;
+
+  if (slugChanged) {
+    const { data: clash, error: clashErr } = await admin
+      .from("user_nguoi_dung")
+      .select("id")
+      .eq("slug", slug)
+      .maybeSingle<{ id: string }>();
+    if (clashErr) {
+      return {
+        ok: false,
+        error: "Không kiểm tra được địa chỉ. Thử lại sau.",
+        field: "slug",
+      };
+    }
+    if (clash && clash.id !== session.profile.id) {
+      return {
+        ok: false,
+        error:
+          "Địa chỉ này đã có người dùng — thử thêm số hoặc dấu gạch.",
+        field: "slug",
+      };
+    }
+  }
+
   const { error: updateErr } = await admin
     .from("user_nguoi_dung")
     .update({
       ten_hien_thi: tenHienThi,
+      slug,
       bio: bio || null,
       tinh_thanh: tinhThanh || null,
       email_lien_he: emailLienHe || null,
@@ -498,6 +530,14 @@ export async function updateProfile(
     /* Log đầy đủ để dev đọc terminal; client chỉ thấy thông điệp tóm tắt. */
     console.error("[updateProfile] supabase error:", updateErr);
     const raw = updateErr.message || "";
+    const isUnique = (updateErr as { code?: string }).code === "23505";
+    if (isUnique || raw.includes("user_nguoi_dung_slug_key")) {
+      return {
+        ok: false,
+        error: "Địa chỉ này vừa bị người khác chiếm — thử thêm số.",
+        field: "slug",
+      };
+    }
     if (raw.includes("tinh_thanh_vn_enum")) {
       return {
         ok: false,
@@ -523,7 +563,10 @@ export async function updateProfile(
   }
 
   revalidatePath(`/${session.profile.slug}`);
-  return { ok: true, data: { slug: session.profile.slug } };
+  if (slugChanged) {
+    revalidatePath(`/${slug}`);
+  }
+  return { ok: true, data: { slug } };
 }
 
 /* ──────────────────────────────────────────────────────────────────────

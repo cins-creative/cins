@@ -1642,11 +1642,25 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
   }, []);
 
   useEffect(() => {
+    if (shareDropMode) {
+      document.body.style.overflow = "";
+      return;
+    }
     document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = "";
     };
-  }, []);
+  }, [shareDropMode]);
+
+  /** Share-drop: thu hẹp shell + rail full-height; gỡ khi hết kéo. */
+  useEffect(() => {
+    if (!shareDropMode) return;
+    const root = document.documentElement;
+    root.classList.add("is-cins-share-dropping");
+    return () => {
+      root.classList.remove("is-cins-share-dropping");
+    };
+  }, [shareDropMode]);
 
   /** Mobile keyboard — neo overlay theo visualViewport để không đẩy mất header/tin. */
   useEffect(() => {

@@ -9234,6 +9234,58 @@ button.j-g-item:disabled {
   line-height: 1.5;
 }
 
+.j-edit-hint--ok {
+  color: #0f766e;
+}
+
+.j-edit-hint--err {
+  color: #b42318;
+}
+
+.j-edit-slug-row {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-page);
+  overflow: hidden;
+  transition: border-color 120ms var(--j-ease, ease),
+    box-shadow 120ms var(--j-ease, ease);
+}
+
+.j-edit-slug-row:focus-within {
+  border-color: var(--cins-blue);
+  background: var(--bg-surface);
+  box-shadow: 0 0 0 3px var(--cins-blue-soft);
+}
+
+.j-edit-slug-prefix {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 0 0 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-muted);
+  white-space: nowrap;
+  user-select: none;
+}
+
+.j-edit-input.j-edit-input--slug {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  padding-left: 4px;
+}
+
+.j-edit-input.j-edit-input--slug:focus {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
 .j-edit-input,
 .j-edit-textarea {
   width: 100%;
