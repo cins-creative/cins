@@ -169,9 +169,13 @@ function collectModelDrafts(
   dataRoot: Record<string, unknown>,
 ): ShopeeMauDraft[] {
   const models: ShopeeMauDraft[] = [];
+  const seen = new Set<string>();
   const pushModel = (ten: string, imageKey: string | null) => {
     const name = ten.trim();
     if (!name) return;
+    const key = name.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
     const img = imageKey ? shopeeImageUrl(imageKey) : null;
     models.push({
       ten: name,
@@ -190,7 +194,7 @@ function collectModelDrafts(
   for (const m of modelArrays) {
     if (!m || typeof m !== "object") continue;
     const o = m as Record<string, unknown>;
-    const ten = pickStr(o, ["name", "model_name"]);
+    const ten = pickStr(o, ["name", "model_name", "model_name_tr"]);
     const imgKey =
       typeof o.image === "string"
         ? o.image
@@ -202,17 +206,42 @@ function collectModelDrafts(
 
   if (models.length > 0) return models;
 
-  // tier_variations (legacy + một số wire hiện đại)
-  const tiers = Array.isArray(item.tier_variations)
-    ? item.tier_variations
-    : [];
-  for (const tier of tiers) {
+  // tier_variations — trên item hoặc product_attributes (fan-out hiện đại)
+  const tierSources: unknown[] = [];
+  if (Array.isArray(item.tier_variations)) {
+    tierSources.push(...item.tier_variations);
+  }
+  if (attrs && typeof attrs === "object") {
+    const tv = (attrs as Record<string, unknown>).tier_variations;
+    if (Array.isArray(tv)) tierSources.push(...tv);
+  }
+
+  for (const tier of tierSources) {
     if (!tier || typeof tier !== "object") continue;
     const t = tier as Record<string, unknown>;
     const opts = Array.isArray(t.options) ? t.options : [];
     const imgs = readImageKeys(t.images);
     opts.forEach((opt, i) => {
-      pushModel(String(opt ?? ""), imgs[i] ?? null);
+      let ten = "";
+      let imgKey: string | null = imgs[i] ?? null;
+      if (typeof opt === "string") {
+        ten = opt;
+      } else if (opt && typeof opt === "object") {
+        const o = opt as Record<string, unknown>;
+        ten = pickStr(o, ["name", "option", "value", "display_name"]);
+        if (!imgKey) {
+          const img =
+            typeof o.image === "string"
+              ? o.image
+              : typeof o.image_id === "string"
+                ? o.image_id
+                : null;
+          imgKey = img;
+        }
+      } else {
+        ten = String(opt ?? "");
+      }
+      pushModel(ten, imgKey);
     });
   }
 
@@ -323,6 +352,16 @@ function draftFromGetPcPayload(
   const priceMin = collectPriceMin(item, dataRoot, models, rawModelList);
   const description = pickStr(item, ["description"]);
 
+  const warnings: string[] = [];
+  if (imageUrls.length === 0) {
+    warnings.push("Không tìm thấy ảnh trong dữ liệu Shopee (get_pc).");
+  }
+  if (models.length === 0) {
+    warnings.push(
+      "Shopee không trả danh sách mẫu trong get_pc — thử lại trợ lý AI khi đang đăng nhập shopee.vn.",
+    );
+  }
+
   return {
     shopId: ids.shopId,
     itemId: ids.itemId,
@@ -333,10 +372,7 @@ function draftFromGetPcPayload(
     imageUrls,
     models,
     source: "api",
-    warnings:
-      imageUrls.length === 0
-        ? ["Không tìm thấy ảnh trong dữ liệu Shopee (get_pc)."]
-        : [],
+    warnings,
   };
 }
 
@@ -367,7 +403,8 @@ function draftFromOgHtml(
   }
 
   const warnings = [
-    "Shopee chặn API sản phẩm từ server — chỉ lấy được tiêu đề + ảnh (OG). Bật trợ lý AI để lấy đủ giá và mẫu.",
+    "Shopee chặn API sản phẩm từ server — chỉ lấy được tiêu đề + ảnh (OG), không có danh sách mẫu/giá.",
+    "Bật trợ lý AI (extension) rồi bấm «Để trợ lý AI lấy hàng» để lấy đủ ~40 mẫu biến thể.",
   ];
 
   return {

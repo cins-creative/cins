@@ -25,7 +25,7 @@ import type {
 } from "./types";
 import { uploadShopeeImageToCloudflare } from "./upload-image";
 
-const MAX_MODELS = 40;
+const MAX_MODELS = 80;
 
 async function uploadImages(
   urls: string[],
@@ -137,7 +137,18 @@ export async function applyShopeeImport(
   });
 
   const products: ShopSanPham[] = [];
-  for (const m of preview.models) {
+  const modelRows =
+    preview.models.length > 0
+      ? preview.models
+      : [
+          {
+            ten: preview.nhan.slice(0, 80) || "Mẫu mặc định",
+            anhId: thumb?.imageId ?? null,
+            anhUrl: thumb?.url ?? null,
+          },
+        ];
+
+  for (const m of modelRows) {
     const item = await createSanPham(ownerId, {
       ten: m.ten,
       anhId: m.anhId,

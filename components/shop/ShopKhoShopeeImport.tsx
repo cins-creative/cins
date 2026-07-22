@@ -634,8 +634,16 @@ export function ShopKhoShopeeImportButton({
                         {preview.draft.source === "raw" ||
                         preview.draft.source === "api"
                           ? "đủ dữ liệu"
-                          : "tên + ảnh"}
+                          : "chỉ tên + ảnh"}
                       </p>
+                      {preview.models.length === 0 ? (
+                        <p className="shop-shopee-import-meta" role="status">
+                          Chưa có mẫu biến thể.{" "}
+                          {preview.draft.source === "og"
+                            ? "Cần trợ lý AI để lấy danh sách mẫu từ Shopee — nếu lưu giờ chỉ tạo 1 mẫu mặc định."
+                            : "get_pc không trả mẫu; thử lại khi đã đăng nhập shopee.vn."}
+                        </p>
+                      ) : null}
                       {preview.moTa ? (
                         <p className="shop-shopee-import-mota">{preview.moTa}</p>
                       ) : null}
