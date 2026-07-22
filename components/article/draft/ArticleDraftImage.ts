@@ -44,7 +44,8 @@ export const ArticleDraftImage = Image.extend({
       badge.setAttribute("aria-live", "polite");
 
       syncImageBadge(wrap, img, badge, node);
-      wrap.append(img, badge);
+      wrap.appendChild(img);
+      wrap.appendChild(badge);
 
       return {
         dom: wrap,

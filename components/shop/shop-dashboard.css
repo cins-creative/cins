@@ -841,6 +841,371 @@
   font-size: 1.1rem;
 }
 
+.shop-kho-loai-hub-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.shop-shopee-import-trigger {
+  border-color: color-mix(in srgb, var(--cins-orange, #fdad4c) 55%, var(--border, #e2e8f0));
+  color: color-mix(in srgb, var(--ink-display, #0f172a) 88%, var(--cins-orange, #fdad4c));
+}
+
+.shop-shopee-import-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.shop-shopee-import-modal {
+  width: min(520px, 100%);
+  max-height: min(90vh, 720px);
+  overflow: auto;
+  border-radius: 16px;
+  background: var(--bg-surface, #fff);
+  color: var(--ink, #0f172a);
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.22);
+  padding: 18px 18px 16px;
+}
+
+.shop-shopee-import-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.shop-shopee-import-head h2 {
+  margin: 0;
+  font-size: 1.05rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.shop-shopee-import-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-muted);
+  cursor: pointer;
+}
+
+.shop-shopee-import-hint {
+  margin: 0 0 12px;
+  font-size: 0.88rem;
+  color: var(--ink-muted);
+  line-height: 1.45;
+}
+
+.shop-shopee-import-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.shop-shopee-import-field input {
+  font: inherit;
+  font-weight: 400;
+  padding: 10px 12px;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 10px;
+  background: var(--bg-muted, #f8fafc);
+}
+
+.shop-shopee-import-err {
+  margin: 10px 0 0;
+  color: #b91c1c;
+  font-size: 0.88rem;
+}
+
+.shop-shopee-import-preview {
+  margin-top: 14px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border, #e2e8f0);
+  background: var(--bg-muted, #f8fafc);
+}
+
+.shop-shopee-import-preview-main {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.shop-shopee-import-thumb {
+  width: 72px;
+  height: 72px;
+  border-radius: 10px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: #e2e8f0;
+}
+
+.shop-shopee-import-thumb.is-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  color: var(--ink-muted);
+  text-align: center;
+  padding: 6px;
+}
+
+.shop-shopee-import-nhan {
+  margin: 0 0 4px;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.shop-shopee-import-meta {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--ink-muted);
+}
+
+.shop-shopee-import-mota {
+  margin: 8px 0 0;
+  font-size: 0.82rem;
+  white-space: pre-wrap;
+  line-height: 1.4;
+}
+
+.shop-shopee-import-warn {
+  margin: 10px 0 0;
+  padding-left: 18px;
+  font-size: 0.78rem;
+  color: #a16207;
+  line-height: 1.4;
+}
+
+.shop-shopee-import-maus {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.shop-shopee-import-mau {
+  font-size: 0.75rem;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border, #e2e8f0);
+}
+
+.shop-shopee-import-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.shop-shopee-import-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--cins-orange, #fdad4c);
+  color: #1a1208;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.shop-shopee-import-primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.shop-shopee-import-advanced {
+  margin-top: 12px;
+  font-size: 0.85rem;
+}
+
+.shop-shopee-import-advanced summary {
+  cursor: pointer;
+  color: var(--ink-muted);
+  font-weight: 600;
+}
+
+.shop-shopee-import-raw {
+  width: 100%;
+  margin-top: 8px;
+  font: inherit;
+  font-size: 0.78rem;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border, #e2e8f0);
+  background: var(--bg-muted, #f8fafc);
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.shop-shopee-import-ext {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border, #e2e8f0);
+  background: var(--bg-muted, #f8fafc);
+}
+
+.shop-shopee-import-ext.is-ready {
+  border-color: color-mix(in srgb, #16a34a 35%, var(--border, #e2e8f0));
+  background: color-mix(in srgb, #16a34a 8%, var(--bg-surface, #fff));
+}
+
+.shop-shopee-import-ext-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.shop-shopee-import-ext-label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.shop-shopee-import-ext-step {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.shop-shopee-import-ext-status {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.shop-shopee-import-ext-ok {
+  margin: 8px 0 0;
+  font-size: 0.8rem;
+  color: #15803d;
+}
+
+.shop-shopee-import-field > span {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.shop-shopee-import-ext-acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.shop-shopee-import-ext-acts a.shop-dash-kho-edit-btn {
+  text-decoration: none;
+}
+
+.shop-shopee-import-ext-steps {
+  margin: 10px 0 0;
+  padding-left: 18px;
+  font-size: 0.8rem;
+  color: var(--ink-muted);
+  line-height: 1.45;
+}
+
+.shop-shopee-import-ext-steps code {
+  font-size: 0.78em;
+}
+
+:root[data-theme="dark"] .shop-shopee-import-backdrop {
+  background: rgba(0, 0, 0, 0.62);
+}
+
+:root[data-theme="dark"] .shop-shopee-import-modal {
+  background: var(--surface-raised, #1c1c1c);
+  color: var(--ink-body, #eee);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.55);
+  border: 1px solid var(--border, #333);
+}
+
+:root[data-theme="dark"] .shop-shopee-import-head h2 {
+  color: var(--ink-display, rgba(255, 255, 255, 0.92));
+}
+
+:root[data-theme="dark"] .shop-shopee-import-close:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--ink-display, #fff);
+}
+
+:root[data-theme="dark"] .shop-shopee-import-field input,
+:root[data-theme="dark"] .shop-shopee-import-raw {
+  background: var(--bg-surface, #1a1a1a);
+  border-color: var(--border, #333);
+  color: var(--ink-body, #eee);
+}
+
+:root[data-theme="dark"] .shop-shopee-import-field input::placeholder {
+  color: var(--ink-muted, #888);
+}
+
+:root[data-theme="dark"] .shop-shopee-import-ext,
+:root[data-theme="dark"] .shop-shopee-import-preview {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--border, #333);
+}
+
+:root[data-theme="dark"] .shop-shopee-import-ext.is-ready {
+  border-color: color-mix(in srgb, #22c55e 40%, var(--border, #333));
+  background: color-mix(in srgb, #22c55e 12%, var(--surface-raised, #1c1c1c));
+}
+
+:root[data-theme="dark"] .shop-shopee-import-ext-ok {
+  color: #4ade80;
+}
+
+:root[data-theme="dark"] .shop-shopee-import-thumb.is-empty,
+:root[data-theme="dark"] .shop-shopee-import-mau {
+  background: var(--bg-surface, #1a1a1a);
+  border-color: var(--border, #333);
+  color: var(--ink-muted, #aaa);
+}
+
+:root[data-theme="dark"] .shop-shopee-import-nhan {
+  color: var(--ink-display, rgba(255, 255, 255, 0.92));
+}
+
+:root[data-theme="dark"] .shop-shopee-import-err {
+  color: #f87171;
+}
+
+:root[data-theme="dark"] .shop-shopee-import-warn {
+  color: #fbbf24;
+}
+
+:root[data-theme="dark"] .shop-shopee-import-trigger {
+  color: color-mix(in srgb, var(--ink-display, #fff) 88%, var(--cins-orange, #fdad4c));
+}
+
 .shop-kho-loai-grid {
   list-style: none;
   margin: 0;
@@ -974,11 +1339,17 @@
   display: grid;
   grid-template-columns: 120px minmax(0, 1fr);
   gap: 12px;
+  align-items: start;
   padding: 12px;
   margin-bottom: 14px;
   border: 1px solid var(--border);
   border-radius: 14px;
   background: color-mix(in srgb, var(--cins-orange, #fdad4c) 6%, var(--bg-surface));
+}
+
+.shop-kho-loai-create > .shop-kho-loai-meta-anh-wrap {
+  width: 120px;
+  height: 120px;
 }
 
 .shop-kho-loai-create-anh {
@@ -1057,6 +1428,14 @@
   border-bottom: 1px solid var(--border);
 }
 
+.shop-kho-loai-meta-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
 .shop-kho-loai-back {
   display: inline-flex;
   align-items: center;
@@ -1071,8 +1450,72 @@
   padding: 0;
 }
 
+.shop-kho-loai-meta-head .shop-kho-loai-back {
+  margin-bottom: 0;
+}
+
 .shop-kho-loai-back:hover {
   color: color-mix(in srgb, var(--cins-orange, #fdad4c) 40%, var(--ink-body));
+}
+
+.shop-kho-loai-delete {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid color-mix(in srgb, #c0392b 28%, var(--border));
+  border-radius: 8px;
+  background: color-mix(in srgb, #c0392b 6%, var(--bg-surface));
+  color: #a93226;
+  font-size: 0.8rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.shop-kho-loai-delete:hover:not(:disabled) {
+  background: color-mix(in srgb, #c0392b 12%, var(--bg-surface));
+}
+
+.shop-kho-loai-delete:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.shop-kho-loai-delete-wrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+  max-width: min(280px, 100%);
+}
+
+.shop-kho-loai-delete-hint {
+  margin: 0;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, #c0392b 22%, var(--border));
+  background: color-mix(in srgb, #c0392b 8%, var(--bg-surface));
+  color: #922b21;
+  font-size: 0.75rem;
+  font-weight: 550;
+  line-height: 1.35;
+  text-align: right;
+}
+
+:root[data-theme="dark"] .shop-kho-loai-delete {
+  border-color: color-mix(in srgb, #e74c3c 35%, var(--border));
+  background: color-mix(in srgb, #e74c3c 10%, var(--bg-surface));
+  color: #f1948a;
+}
+
+:root[data-theme="dark"] .shop-kho-loai-delete-hint {
+  border-color: color-mix(in srgb, #e74c3c 30%, var(--border));
+  background: color-mix(in srgb, #e74c3c 12%, var(--bg-surface));
+  color: #f5b7b1;
 }
 
 .shop-kho-loai-meta-grid {

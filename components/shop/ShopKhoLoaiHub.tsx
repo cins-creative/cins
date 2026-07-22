@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  AlertTriangle,
   ArrowLeft,
   Camera,
   ClipboardPaste,
@@ -10,18 +11,21 @@ import {
   Plus,
   Star,
   Tags,
+  Trash2,
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { readImageFilesFromClipboard } from "@/lib/files/clipboard-images";
-import type { ShopNhom } from "@/lib/shop/types";
+import type { ShopNhom, ShopSanPham } from "@/lib/shop/types";
 import {
   SHOP_NHOM_ANH_PHU_MAX,
   SHOP_NHOM_FEATURE_MAX,
   SHOP_NHOM_MO_TA_MAX,
 } from "@/lib/shop/types";
 
+import { ShopKhoShopeeImportButton } from "./ShopKhoShopeeImport";
 import { ShopNhomMoTaField } from "./ShopNhomMoTaField";
 
 const MAX_SHOP_VIDEO_BYTES = 500 * 1024 * 1024;
@@ -37,6 +41,11 @@ type Props = {
   onOpenOrphans: () => void;
   onNhomsChanged: (next: ShopNhom[]) => void;
   onError: (msg: string | null) => void;
+  /** Sau import Shopee: cập nhật kho + mở loại vừa tạo. */
+  onShopeeImported?: (payload: {
+    nhom: ShopNhom;
+    products: ShopSanPham[];
+  }) => void;
 };
 
 export function ShopKhoLoaiHub({
@@ -48,6 +57,7 @@ export function ShopKhoLoaiHub({
   onOpenOrphans,
   onNhomsChanged,
   onError,
+  onShopeeImported,
 }: Props) {
   const loaiList = nhoms.filter((n) => n.truc === 1);
   const featureCount = loaiList.filter((n) => n.noiBat).length;
@@ -213,53 +223,98 @@ export function ShopKhoLoaiHub({
             </strong>
           </p>
         </div>
-        <button
-          type="button"
-          className="shop-dash-kho-edit-btn"
-          disabled={busy || creating}
-          onClick={() => setCreating(true)}
-        >
-          <Plus size={15} aria-hidden />
-          Thêm loại hàng
-        </button>
+        <div className="shop-kho-loai-hub-actions">
+          <ShopKhoShopeeImportButton
+            disabled={busy || creating}
+            onError={onError}
+            onImported={(payload) => {
+              const item = payload.nhom;
+              const next = [
+                ...loaiList.filter((n) => n.id !== item.id),
+                item,
+              ].sort((a, b) => a.nhan.localeCompare(b.nhan, "vi"));
+              const truc2 = nhoms.filter((n) => n.truc === 2);
+              onNhomsChanged([...next, ...truc2]);
+              if (onShopeeImported) {
+                onShopeeImported(payload);
+              } else {
+                onOpenNhom(item.id);
+              }
+            }}
+          />
+          <button
+            type="button"
+            className="shop-dash-kho-edit-btn"
+            disabled={busy || creating}
+            onClick={() => setCreating(true)}
+          >
+            <Plus size={15} aria-hidden />
+            Thêm loại hàng
+          </button>
+        </div>
       </div>
 
       {creating ? (
         <div className="shop-kho-loai-create">
-          <button
-            type="button"
-            className={`shop-kho-loai-create-anh${uploading ? " is-busy" : ""}`}
-            disabled={uploading || busy}
-            aria-busy={uploading}
-            onClick={() => fileRef.current?.click()}
-          >
-            {anhUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={anhUrl} alt="" />
-            ) : (
-              <>
-                <Camera size={16} aria-hidden />
-                Ảnh loại
-              </>
-            )}
-            {uploading ? (
-              <span className="shop-kho-loai-anh-overlay" aria-hidden>
-                <Loader2 size={20} className="shop-spin" />
-                <span>Đang tải…</span>
-              </span>
-            ) : null}
-          </button>
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            hidden
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              e.target.value = "";
-              if (f) void uploadAnh(f);
-            }}
-          />
+          <div className="shop-kho-loai-meta-anh-wrap">
+            <button
+              type="button"
+              className={`shop-kho-loai-create-anh${uploading ? " is-busy" : ""}`}
+              disabled={uploading || busy}
+              aria-busy={uploading}
+              onClick={() => fileRef.current?.click()}
+            >
+              {anhUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={anhUrl} alt="" />
+              ) : (
+                <>
+                  <Camera size={16} aria-hidden />
+                  Ảnh loại
+                </>
+              )}
+              {uploading ? (
+                <span className="shop-kho-loai-anh-overlay" aria-hidden>
+                  <Loader2 size={20} className="shop-spin" />
+                  <span>Đang tải…</span>
+                </span>
+              ) : null}
+            </button>
+            <button
+              type="button"
+              className="shop-kho-loai-meta-corner-paste"
+              disabled={uploading || busy}
+              aria-label="Dán ảnh loại từ bộ nhớ tạm"
+              title="Dán ảnh"
+              onClick={(e) => {
+                e.stopPropagation();
+                void (async () => {
+                  const files = await readImageFilesFromClipboard();
+                  const file = files[0];
+                  if (!file) {
+                    onError(
+                      "Không đọc được ảnh từ bộ nhớ tạm. Hãy copy ảnh rồi thử lại.",
+                    );
+                    return;
+                  }
+                  void uploadAnh(file);
+                })();
+              }}
+            >
+              <ClipboardPaste size={11} strokeWidth={2.25} aria-hidden />
+            </button>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              hidden
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                e.target.value = "";
+                if (f) void uploadAnh(f);
+              }}
+            />
+          </div>
           <div className="shop-kho-loai-create-fields">
             <label>
               <span>Tên loại</span>
@@ -408,10 +463,13 @@ export function ShopKhoLoaiHub({
 
 type MetaProps = {
   nhom: ShopNhom;
+  /** Số mẫu còn gắn loại (da_xoa=false). Xóa loại chỉ khi = 0. */
+  mauCount: number;
   /** Giá suy từ bảng giá mẫu khi loại chưa có `giaMacDinh`. */
   suggestedGiaMacDinh?: number | null;
   onBack: () => void;
   onUpdated: (n: ShopNhom) => void;
+  onDeleted: () => void;
   onError: (msg: string | null) => void;
 };
 
@@ -426,9 +484,11 @@ function giaInputValue(
 
 export function ShopKhoLoaiMeta({
   nhom,
+  mauCount,
   suggestedGiaMacDinh = null,
   onBack,
   onUpdated,
+  onDeleted,
   onError,
 }: MetaProps) {
   const [nhan, setNhan] = useState(nhom.nhan);
@@ -437,6 +497,9 @@ export function ShopKhoLoaiMeta({
     giaInputValue(nhom.giaMacDinh, suggestedGiaMacDinh),
   );
   const [saving, setSaving] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteHint, setDeleteHint] = useState(false);
   const [uploadingAnh, setUploadingAnh] = useState(false);
   const [uploadingPhu, setUploadingPhu] = useState(false);
   const [uploadingVideo, setUploadingVideo] = useState(false);
@@ -478,6 +541,25 @@ export function ShopKhoLoaiMeta({
     if (giaDirtyRef.current) return;
     setGia(giaInputValue(nhom.giaMacDinh, suggestedGiaMacDinh));
   }, [nhom.id, nhom.giaMacDinh, suggestedGiaMacDinh]);
+
+  useEffect(() => {
+    if (!deleteHint) return;
+    const t = window.setTimeout(() => setDeleteHint(false), 4200);
+    return () => window.clearTimeout(t);
+  }, [deleteHint]);
+
+  useEffect(() => {
+    if (mauCount === 0) setDeleteHint(false);
+  }, [mauCount]);
+
+  useEffect(() => {
+    if (!deleteOpen) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape" && !deleting) setDeleteOpen(false);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [deleteOpen, deleting]);
 
   function clearPreviewAnh() {
     if (previewAnhRef.current) {
@@ -719,15 +801,74 @@ export function ShopKhoLoaiMeta({
     if (ok) setVideoPhu(null);
   }
 
+  async function confirmDeleteLoai() {
+    if (mauCount > 0 || deleting) return;
+    setDeleting(true);
+    onError(null);
+    try {
+      const res = await fetch(`/api/shop/nhom/${encodeURIComponent(nhom.id)}`, {
+        method: "DELETE",
+      });
+      const json = (await res.json().catch(() => null)) as {
+        ok?: boolean;
+        error?: string;
+      } | null;
+      if (!res.ok || !json?.ok) {
+        onError(json?.error ?? "Không xóa được loại hàng.");
+        setDeleteOpen(false);
+        return;
+      }
+      setDeleteOpen(false);
+      onDeleted();
+    } catch {
+      onError("Không xóa được loại hàng.");
+      setDeleteOpen(false);
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   const displayAnhUrl = previewAnhUrl || nhom.anhUrl;
   const mediaBusy = uploadingAnh || uploadingPhu || uploadingVideo || saving;
 
   return (
     <div className="shop-kho-loai-meta">
-      <button type="button" className="shop-kho-loai-back" onClick={onBack}>
-        <ArrowLeft size={15} aria-hidden />
-        Tất cả loại hàng
-      </button>
+      <div className="shop-kho-loai-meta-head">
+        <button type="button" className="shop-kho-loai-back" onClick={onBack}>
+          <ArrowLeft size={15} aria-hidden />
+          Tất cả loại hàng
+        </button>
+        <div className="shop-kho-loai-delete-wrap">
+          <button
+            type="button"
+            className="shop-kho-loai-delete"
+            disabled={mediaBusy || deleting}
+            title="Xóa mặt hàng này"
+            aria-label="Xóa mặt hàng này"
+            aria-describedby={deleteHint ? "shop-kho-loai-delete-hint" : undefined}
+            onClick={() => {
+              if (mauCount > 0) {
+                setDeleteHint(true);
+                return;
+              }
+              setDeleteHint(false);
+              setDeleteOpen(true);
+            }}
+          >
+            <Trash2 size={14} strokeWidth={2} aria-hidden />
+            Xóa mặt hàng này
+          </button>
+          {deleteHint ? (
+            <p
+              id="shop-kho-loai-delete-hint"
+              className="shop-kho-loai-delete-hint"
+              role="status"
+            >
+              Cần xóa tất cả sản phẩm trước khi xóa mặt hàng này.
+            </p>
+          ) : null}
+        </div>
+      </div>
 
       <div className="shop-kho-loai-meta-grid">
         <div className="shop-kho-loai-meta-media">
@@ -1003,6 +1144,65 @@ export function ShopKhoLoaiMeta({
           />
         </div>
       </div>
+
+      {deleteOpen && typeof document !== "undefined"
+        ? createPortal(
+            <div
+              className="shop-kho-delete-backdrop"
+              role="presentation"
+              onMouseDown={(e) => {
+                if (e.target === e.currentTarget && !deleting) {
+                  setDeleteOpen(false);
+                }
+              }}
+            >
+              <div
+                className="shop-kho-delete-dialog"
+                role="alertdialog"
+                aria-modal="true"
+                aria-labelledby="shop-kho-loai-delete-title"
+                aria-describedby="shop-kho-loai-delete-desc"
+                onMouseDown={(e) => e.stopPropagation()}
+              >
+                <div className="shop-kho-delete-icon" aria-hidden>
+                  <AlertTriangle size={22} strokeWidth={2.2} />
+                </div>
+                <h3 id="shop-kho-loai-delete-title">Xóa mặt hàng này?</h3>
+                <p
+                  id="shop-kho-loai-delete-desc"
+                  className="shop-kho-delete-desc"
+                >
+                  Bạn sắp xóa «{nhom.nhan}» khỏi kho. Mặt hàng này sẽ không còn
+                  hiện trên mặt tiền.
+                </p>
+                <div className="shop-kho-delete-actions">
+                  <button
+                    type="button"
+                    className="shop-kho-delete-cancel"
+                    disabled={deleting}
+                    onClick={() => setDeleteOpen(false)}
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    type="button"
+                    className="shop-dash-danger shop-kho-delete-confirm"
+                    disabled={deleting}
+                    onClick={() => void confirmDeleteLoai()}
+                  >
+                    {deleting ? (
+                      <Loader2 className="shop-spin" size={16} />
+                    ) : (
+                      <Trash2 size={16} />
+                    )}
+                    Xóa mặt hàng này
+                  </button>
+                </div>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }

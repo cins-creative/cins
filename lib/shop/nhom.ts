@@ -481,6 +481,54 @@ export async function updateNhom(
   return mapNhom(updated);
 }
 
+/**
+ * Soft-delete loại hàng / thẻ phân loại.
+ * Chỉ khi không còn `shop_san_pham` (da_xoa=false) gắn `id_nhom` / `id_nhom_2`.
+ */
+export async function softDeleteNhom(
+  ownerId: string,
+  nhomId: string,
+): Promise<void> {
+  await assertBanHangEnabled(ownerId);
+  const admin = createServiceRoleClient();
+
+  const { data: row, error: findErr } = await admin
+    .from("shop_nhom")
+    .select("id, truc")
+    .eq("id", nhomId)
+    .eq("id_nguoi_dung", ownerId)
+    .eq("da_xoa", false)
+    .maybeSingle<{ id: string; truc: number }>();
+  if (findErr || !row) throw new Error("NHOM_NOT_FOUND");
+
+  const fkCol = row.truc === 2 ? "id_nhom_2" : "id_nhom";
+  const { count, error: countErr } = await admin
+    .from("shop_san_pham")
+    .select("id", { count: "exact", head: true })
+    .eq("id_nguoi_dung", ownerId)
+    .eq(fkCol, nhomId)
+    .eq("da_xoa", false);
+  if (countErr) {
+    console.error("[shop] softDeleteNhom count", countErr);
+    throw new Error("DELETE_FAILED");
+  }
+  if ((count ?? 0) > 0) throw new Error("NHOM_HAS_PRODUCTS");
+
+  const { error, count: deleted } = await admin
+    .from("shop_nhom")
+    .update(
+      { da_xoa: true, cap_nhat_luc: new Date().toISOString() },
+      { count: "exact" },
+    )
+    .eq("id", nhomId)
+    .eq("id_nguoi_dung", ownerId)
+    .eq("da_xoa", false);
+  if (error || !deleted) {
+    console.error("[shop] softDeleteNhom", error);
+    throw new Error("DELETE_FAILED");
+  }
+}
+
 /** Resolve nhãn → cột FK + text denormalized trên shop_san_pham. */
 export async function resolvePhanLoaiPatch(
   ownerId: string,

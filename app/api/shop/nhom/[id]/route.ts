@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
-import { updateNhom } from "@/lib/shop/nhom";
+import { softDeleteNhom, updateNhom } from "@/lib/shop/nhom";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -147,5 +147,46 @@ export async function PATCH(request: Request, ctx: Ctx) {
     }
     console.error("[api/shop/nhom/[id]]", e);
     return NextResponse.json({ error: "Không lưu được nhóm." }, { status: 500 });
+  }
+}
+
+/**
+ * DELETE /api/shop/nhom/[id] — soft-delete loại hàng khi không còn mẫu.
+ */
+export async function DELETE(_request: Request, ctx: Ctx) {
+  const session = await getCurrentSessionAndProfile();
+  if (!session?.profile) {
+    return NextResponse.json({ error: "Chưa đăng nhập." }, { status: 401 });
+  }
+  const { id } = await ctx.params;
+  if (!id?.trim()) {
+    return NextResponse.json({ error: "Thiếu id nhóm." }, { status: 422 });
+  }
+
+  try {
+    await softDeleteNhom(session.profile.id, id.trim());
+    return NextResponse.json({ ok: true });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "";
+    if (msg === "BAN_HANG_OFF") {
+      return NextResponse.json(
+        { error: "Hãy bật bán hàng trong cài đặt trước." },
+        { status: 403 },
+      );
+    }
+    if (msg === "NHOM_NOT_FOUND") {
+      return NextResponse.json({ error: "Không tìm thấy nhóm." }, { status: 404 });
+    }
+    if (msg === "NHOM_HAS_PRODUCTS") {
+      return NextResponse.json(
+        {
+          error:
+            "Còn mẫu trong loại này. Xóa hết sản phẩm trước khi xóa loại hàng.",
+        },
+        { status: 409 },
+      );
+    }
+    console.error("[api/shop/nhom/[id]] DELETE", e);
+    return NextResponse.json({ error: "Không xóa được loại hàng." }, { status: 500 });
   }
 }

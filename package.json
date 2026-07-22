@@ -35,7 +35,8 @@
     "migrate:shop-nhom-video-phu": "node scripts/run-shop-nhom-video-phu-migration.mjs",
     "migrate:shop-nhom-feature": "node scripts/run-shop-nhom-feature-migration.mjs",
     "migrate:shop-cua-hang-banner": "node scripts/run-shop-cua-hang-banner-su-kien-migration.mjs",
-    "migrate:shop-cua-hang-banner-hien": "node scripts/run-shop-cua-hang-banner-su-kien-hien-migration.mjs"
+    "migrate:shop-cua-hang-banner-hien": "node scripts/run-shop-cua-hang-banner-su-kien-hien-migration.mjs",
+    "pack:shopee-ext": "node scripts/pack-shopee-extension.mjs"
   },
   "dependencies": {
     "@rive-app/canvas": "^2.38.3",

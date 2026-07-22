@@ -25,7 +25,8 @@
 | Route | Việc |
 |---|---|
 | `shop/san-pham` · `shop/san-pham/[id]` | CRUD catalog + biến thể / tồn kho (seller) |
-| `shop/nhom` · `shop/nhom/[id]` | GET/POST list·tạo nhóm; PATCH mô tả/nhãn (`shop_nhom` — mô tả dưới tiêu đề group storefront; quản lý trong Kho) |
+| `shop/nhom` · `shop/nhom/[id]` | GET/POST list·tạo nhóm; PATCH mô tả/nhãn; **DELETE** soft-delete loại khi không còn `shop_san_pham` gắn (`shop_nhom` — mô tả dưới tiêu đề group storefront; quản lý trong Kho) |
+| `shop/import-shopee` | **POST** (seller) — import loại hàng từ URL Shopee: preview (`apply:false`) hoặc tạo `shop_nhom` + mẫu (`apply:true`). Body `{ url?, apply?, raw?, preview? }`. Lib `lib/shop/shopee/`. UI: `/ban-hang/kho` → **AI · Shopee**. Xem ghi chú *Import Shopee* bên dưới. |
 | `shop/bang-gia` · `shop/bang-gia/[id]` | CRUD bảng giá + dòng giá theo biến thể |
 | `shop/gio` | GET/PATCH/DELETE giỏ buyer — scope **XOR** `cotMocId` (post-kiosk) **hoặc** `cuaHangId` (storefront `/{slug}/shop`) |
 | `shop/don` · `shop/don/[id]` | Tạo đơn từ giỏ (`cotMocId` **hoặc** `cuaHangId`) · seller xác nhận (trừ kho) · list đơn seller/buyer — **không** hủy đơn trên API |
@@ -33,6 +34,24 @@
 | `milestone/[milestoneId]/shop-hang` | GET public hàng gắn post (**ẩn nếu owner `ban_hang_bat=false`**) · PUT gắn/gỡ (owner + `ban_hang_bat`) |
 | `su-kien/[suKienId]/quay` · `…/quay/[quayId]` | Xin làm quầy + bằng chứng · owner duyệt/từ chối/gỡ (kèm lý do) · seller rút (`action=withdraw`) · list quầy đã duyệt |
 | `shop/quay/cua-toi` | GET — quầy đang/đã tham gia của seller (`cho_xu_ly` + `da_duyet`) |
+
+#### Import Shopee → kho (`shop/import-shopee`, 2026-07-22)
+
+Pipeline **riêng** (không reuse blog-import Sine Art). Seller-only (session + `ban_hang_bat` / shop ready như các route `shop/*` khác).
+
+| Bước | Việc |
+|---|---|
+| Parse URL | `…-i.{shopId}.{itemId}` / `/product/{shop}/{item}` — `lib/shop/shopee/parse-url.ts` |
+| Fetch | (1) thử `get_pc` qua Worker; (2) fallback HTML crawler UA Facebook → title + gallery ảnh. Shopee anti-bot **90309999** thường chặn API từ datacenter. |
+| Chuẩn hoá | Claude (`ANTHROPIC_API_KEY`, model `claude-sonnet-4-5`) rút `nhan` ≤ 40 + `moTa` ≤ 280 khi chuỗi dài; không thì heuristic |
+| Ảnh | Re-upload CDN Shopee → Cloudflare Images (`uploadCloudflareImageFromUrl`); bỏ video / `promo-dim-*`; thumb = ảnh đầu, còn lại → `anh_phu_ids` (cap `SHOP_NHOM_ANH_PHU_MAX`) |
+| Apply | `createNhom` + `updateNhom(anhPhuIds)` + `createSanPham` từng mẫu + `syncNhomGiaMacDinhToMau` nếu có `priceMin` |
+
+**Body:** `{ url?, apply?: boolean, raw?: object, preview? }`. `apply:false` → preview (đã CF). `apply:true` + `preview` → ghi DB. `raw` = JSON `get_pc` (Network DevTools) khi cần đủ **giá + danh sách mẫu + mô tả chi tiết**.
+
+**UI:** `ShopKhoShopeeImport` trên `/ban-hang/kho` (hub loại hàng). **Env:** `ANTHROPIC_API_KEY`, `SINE_ART_WORKER_URL`, `SINE_ART_WORKER_SECRET` (alias `CINS_FETCH_WORKER_*`). Deploy production: set secret Worker trên Cloudflare Worker `cins` nếu dùng import ở prod.
+
+**Extension nội bộ (không Store):** nguồn `extensions/cins-shopee-import/` → zip `public/downloads/cins-shopee-import.zip` (`npm run pack:shopee-ext`). User tải → Load unpacked. Content script bridge `postMessage` trên CINs; background mở tab Shopee gọi `get_pc` rồi trả JSON vào `raw` của API trên. Không adopt công khai.
 
 ### Kết bạn & social
 | Route | Việc |
@@ -160,7 +179,7 @@
 
 | Domain | Path |
 |---|---|
-| Shop UGC (L33) | `lib/shop/` — types, terms, catalog, giá, giỏ (post + cửa hàng), đơn, storefront, quầy, post-hang, cửa hàng |
+| Shop UGC (L33) | `lib/shop/` — types, terms, catalog, giá, giỏ (post + cửa hàng), đơn, storefront, quầy, post-hang, cửa hàng, **`shopee/`** (import Shopee → kho) |
 
 | Folder | Vai trò chính | File đáng chú ý |
 |---|---|---|
@@ -301,6 +320,14 @@ BUNNY_STREAM_API_KEY
 
 # Cloudflare Images
 CLOUDFLARE_*             (account hash, API token)
+
+# Anthropic Claude (server-only) — rút tên/mô tả khi import Shopee; dùng chung key Sine Art được
+ANTHROPIC_API_KEY
+
+# Fetch Worker (Sine Art) — HTML/OG Shopee khi API nội bộ bị chặn; secret trùng Worker
+SINE_ART_WORKER_URL      (vd. https://sine-art-api.…workers.dev)
+SINE_ART_WORKER_SECRET
+# Alias tuỳ chọn: CINS_FETCH_WORKER_URL / CINS_FETCH_WORKER_SECRET
 
 # Google OAuth (login only)
 GOOGLE_CLIENT_ID / SECRET

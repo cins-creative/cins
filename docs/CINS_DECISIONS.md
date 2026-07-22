@@ -38,6 +38,16 @@
 
 ## LOG — quyết định đã chốt
 
+### Shop — import Shopee vào kho (2026-07-22)
+
+- **Bổ sung L33:** seller import loại hàng từ URL Shopee trên `/ban-hang/kho` (nút **AI · Shopee**).
+  • Pipeline **riêng** `POST /api/shop/import-shopee` + `lib/shop/shopee/` — không reuse blog-import Sine Art (HTML blog ≠ SPA Shopee).
+  • Claude key **dùng chung** Sine Art (`ANTHROPIC_API_KEY`) chỉ để rút tên ≤ 40 / mô tả ≤ 280; scrape chính = Worker `fetch-url` + crawler UA / optional JSON `get_pc`.
+  • Shopee anti-bot (90309999) chặn `get_pc` từ server → mặc định lấy title + gallery ảnh (OG); đủ giá/mẫu khi seller dán `raw` JSON từ DevTools.
+  • Ảnh re-upload Cloudflare CINs; map → `shop_nhom` (thumb + `anh_phu_ids` + `gia_mac_dinh`) + `shop_san_pham` theo mẫu.
+  • Extension nội bộ (zip tải về, Load unpacked — không Chrome Web Store): lấy `get_pc` từ trình duyệt user rồi đưa vào `raw`. Không adopt mọi user.
+  • *Hệ quả file:* IMPLEMENTATION §1 `shop/import-shopee` + env Anthropic/Worker + `extensions/cins-shopee-import/`.
+
 ### Catalog loại vé sự kiện (2026-07-22)
 
 - **Chốt phase 1:** sự kiện «Tính phí» dùng bảng con `org_su_kien_loai_ve` (tên, mô tả, giá VND, `cover_id`, `thu_tu`) — **catalog hiển thị**, chưa bán/thanh toán/tồn kho trên CINs.

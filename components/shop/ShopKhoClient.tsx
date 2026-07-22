@@ -1782,6 +1782,17 @@ export function ShopKhoClient() {
             onOpenOrphans={() => setActiveNhomId(KHO_ORPHAN_KEY)}
             onNhomsChanged={setNhoms}
             onError={setErr}
+            onShopeeImported={({ nhom, products: created }) => {
+              setProducts((prev) => {
+                const ids = new Set(created.map((p) => p.id));
+                return [
+                  ...created,
+                  ...prev.filter((p) => !ids.has(p.id)),
+                ];
+              });
+              setActiveNhomId(nhom.id);
+              void load({ silent: true });
+            }}
           />
         </section>
       </div>
@@ -1799,10 +1810,16 @@ export function ShopKhoClient() {
           <ShopKhoLoaiMeta
             key={activeNhom.id}
             nhom={activeNhom}
+            mauCount={mauCountByNhomId[activeNhom.id] ?? 0}
             suggestedGiaMacDinh={suggestedGiaMacDinh}
             onBack={() => setActiveNhomId(null)}
             onUpdated={(n) => {
               setNhoms((prev) => prev.map((x) => (x.id === n.id ? n : x)));
+              void load({ silent: true });
+            }}
+            onDeleted={() => {
+              setNhoms((prev) => prev.filter((x) => x.id !== activeNhom.id));
+              setActiveNhomId(null);
               void load({ silent: true });
             }}
             onError={setErr}

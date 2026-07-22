@@ -47,7 +47,7 @@ Thứ tự ưu tiên khi xung đột: **DB thật (đọc trực tiếp) > CINS_
 
 ## Thay đổi lớn gần đây (tóm tắt — chi tiết ở DECISIONS)
 
-**Shop UGC / preorder (2026-07-18 · giỏ storefront 2026-07-20):** Module `shop_*` opt-in — catalog, bảng giá, post-kiosk (subset), **mua thẳng từ `/{slug}/shop`** (giỏ theo cửa hàng), đơn cứng + chat `don_hang`, quầy sự kiện. CINs không cầm tiền. Xem DECISIONS **L33**.
+**Shop UGC / preorder (2026-07-18 · giỏ storefront 2026-07-20 · import Shopee 2026-07-22):** Module `shop_*` opt-in — catalog, bảng giá, post-kiosk (subset), **mua thẳng từ `/{slug}/shop`** (giỏ theo cửa hàng), đơn cứng + chat `don_hang`, quầy sự kiện; **import loại hàng từ URL Shopee** (`/api/shop/import-shopee`). CINs không cầm tiền. Xem DECISIONS **L33** + LOG import Shopee.
 
 **Cộng đồng topbar role (2026-07-18):** Vai trò + cài đặt lên `#app-topbar-page-slot` (cam priv, giống cơ sở/trường); sidebar chỉ join/share. Xem DECISIONS L32 + IMPLEMENTATION *Topbar quản trị*.
 

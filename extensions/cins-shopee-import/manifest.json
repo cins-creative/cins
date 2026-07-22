@@ -1,0 +1,37 @@
+{
+  "manifest_version": 3,
+  "name": "CINs · Import Shopee",
+  "version": "1.0.0",
+  "description": "Trợ lý nội bộ CINs: lấy dữ liệu sản phẩm Shopee (get_pc) để import vào kho. Không phân phối công khai.",
+  "icons": {
+    "64": "icon-64.png",
+    "128": "icon-128.png"
+  },
+  "action": {
+    "default_title": "CINs · Import Shopee",
+    "default_icon": {
+      "64": "icon-64.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "permissions": ["tabs", "scripting"],
+  "host_permissions": [
+    "https://shopee.vn/*",
+    "https://*.shopee.vn/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "http://localhost:3001/*",
+        "http://127.0.0.1:3001/*",
+        "https://cins.vn/*",
+        "https://www.cins.vn/*",
+        "https://cins.info-cins-vn.workers.dev/*"
+      ],
+      "js": ["content-cins.js"],
+      "run_at": "document_start"
+    }
+  ]
+}

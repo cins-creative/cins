@@ -5,6 +5,7 @@ import {
   Camera,
   Check,
   Loader2,
+  Pencil,
   Trash2,
   Wallet,
 } from "lucide-react";
@@ -475,8 +476,13 @@ export function ShopOwnerEditor({ ownerSlug, ownerName }: Props) {
                     <p className="j-shop-pay-stk">{p.soTaiKhoan}</p>
                     <p className="j-shop-pay-holder">{p.tenChuTaiKhoan}</p>
                     <div className="j-shop-pay-actions">
-                      <button type="button" onClick={() => fillPtttForm(p)}>
-                        Sửa
+                      <button
+                        type="button"
+                        aria-label="Sửa tài khoản"
+                        title="Sửa"
+                        onClick={() => fillPtttForm(p)}
+                      >
+                        <Pencil size={14} aria-hidden />
                       </button>
                       <button
                         type="button"
@@ -536,9 +542,10 @@ export function ShopOwnerEditor({ ownerSlug, ownerName }: Props) {
                   <input
                     value={tenChuTk}
                     onChange={(e) => {
-                      setTenChuTk(e.target.value);
+                      setTenChuTk(e.target.value.toLocaleUpperCase("vi-VN"));
                       setPaySavedMsg(null);
                     }}
+                    autoCapitalize="characters"
                     required
                     placeholder="Đúng như trên app ngân hàng"
                   />
