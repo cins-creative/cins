@@ -106,18 +106,16 @@
   grid-area: back;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   justify-self: start;
-  gap: 6px;
+  min-width: 44px;
   min-height: 44px;
-  padding: 8px 10px 8px 6px;
+  padding: 8px;
   margin: 0 4px 0 -6px;
   border-radius: 9px;
   color: var(--ink-muted, rgba(0, 0, 0, 0.55));
-  font-size: 14px;
-  font-weight: 600;
   text-decoration: none;
-  line-height: 1.2;
-  white-space: nowrap;
+  line-height: 1;
   box-sizing: border-box;
 }
 
@@ -6425,23 +6423,7 @@
   }
 
   .shop-dash-back {
-    min-width: 44px;
-    min-height: 44px;
-    justify-content: center;
-    padding: 8px;
     margin: 0;
-  }
-
-  .shop-dash-back-text {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
   }
 
   .shop-dash-visible-label {

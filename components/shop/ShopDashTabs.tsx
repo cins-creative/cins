@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, CalendarClock, ClipboardList, Package, Store, X } from "lucide-react";
+import { CalendarClock, ClipboardList, Package, Store, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
@@ -573,14 +573,13 @@ export function ShopDashTabs({
             href={shopHref}
             className="shop-dash-back"
             aria-label="Về cửa hàng"
+            title="Về cửa hàng"
           >
-            <ArrowLeft size={16} strokeWidth={2.2} aria-hidden />
-            <span className="shop-dash-back-text">Về cửa hàng</span>
+            <Store size={18} strokeWidth={2.2} aria-hidden />
           </Link>
         ) : (
           <span className="shop-dash-back is-pending" aria-hidden>
-            <ArrowLeft size={16} strokeWidth={2.2} />
-            <span className="shop-dash-back-text">Về cửa hàng</span>
+            <Store size={18} strokeWidth={2.2} />
           </span>
         )}
         <nav className="shop-dash-tabs" aria-label="Quản lý bán hàng">
