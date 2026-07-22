@@ -6,7 +6,7 @@
 
 const PAGE_SOURCE = "cins-shopee-page";
 const EXT_SOURCE = "cins-shopee-ext";
-const VERSION = "1.1.0";
+const VERSION = "1.1.2";
 
 function reply(payload) {
   window.postMessage({ source: EXT_SOURCE, ...payload }, "*");

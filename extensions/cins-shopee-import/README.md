@@ -1,6 +1,6 @@
 # CINs · Import Shopee (trợ lý AI nội bộ)
 
-Chỉ dùng nội bộ — không lên Chrome Web Store. Phiên bản **1.1.0**: kéo 1 SP hoặc cả shop.
+Chỉ dùng nội bộ — không lên Chrome Web Store. Phiên bản **1.1.2**: kéo 1 SP hoặc cả shop (bỏ qua Sold out; sửa lỗi quét rỗng).
 
 ## Cài vào Chrome / Edge
 
@@ -15,4 +15,4 @@ Chỉ dùng nội bộ — không lên Chrome Web Store. Phiên bản **1.1.0**:
 `/ban-hang/kho` → **AI · Shopee**
 
 - **Một sản phẩm**: dán link `…-i.shop.item`
-- **Cả shop**: dán `https://shopee.vn/ten-shop` → Quét shop → chọn SP → Kéo về kho
+- **Cả shop**: dán `https://shopee.vn/ten-shop` → Quét shop → chọn SP → Kéo về kho (không lấy SP hết hàng / Sold out)

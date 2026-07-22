@@ -496,48 +496,26 @@ export function ShopKhoShopeeImportButton({
                         <Download size={15} aria-hidden />
                         Tải trợ lý AI
                       </a>
-                    ) : null}
-                    <button
-                      type="button"
-                      className="shop-dash-kho-edit-btn"
-                      disabled={busy}
-                      onClick={() => void refreshExt()}
-                    >
-                      {extReady ? "Kiểm tra lại" : "Tôi đã bật xong"}
-                    </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className="shop-dash-kho-edit-btn"
+                        disabled={busy}
+                        onClick={() => void refreshExt()}
+                      >
+                        Kiểm tra lại
+                      </button>
+                    )}
                   </div>
                 </div>
-                {!extReady ? (
-                  <>
-                    <p className="shop-shopee-import-ext-shared">
-                      Một trợ lý cho cả <strong>một sản phẩm</strong> và{" "}
-                      <strong>cả shop</strong> — chỉ tải / cài một lần.
-                    </p>
-                    <ol className="shop-shopee-import-ext-steps">
-                      <li>
-                        Bấm <strong>Tải trợ lý AI</strong> → giải nén file zip.
-                      </li>
-                      <li>
-                        Vào Chrome, gõ trên thanh địa chỉ:{" "}
-                        <code>chrome://extensions</code>
-                      </li>
-                      <li>
-                        Bật <strong>Chế độ dành cho nhà phát triển</strong> (góc
-                        phải).
-                      </li>
-                      <li>
-                        Bấm <strong>Tải tiện ích đã giải nén</strong> → chọn thư
-                        mục <code>cins-shopee-import</code>.
-                      </li>
-                      <li>
-                        Quay lại đây → bấm <strong>Tôi đã bật xong</strong>.
-                      </li>
-                    </ol>
-                  </>
-                ) : (
+                {extReady ? (
                   <p className="shop-shopee-import-ext-ok">
                     Đã sẵn sàng cho cả một sản phẩm và cả shop — chọn tab bên
                     dưới.
+                  </p>
+                ) : (
+                  <p className="shop-shopee-import-ext-guide">
+                    Xem hướng dẫn cách tạo cả shop nhanh
                   </p>
                 )}
               </div>
@@ -568,7 +546,7 @@ export function ShopKhoShopeeImportButton({
               <p className="shop-shopee-import-hint">
                 {mode === "product"
                   ? "Dán link sản phẩm Shopee. Có trợ lý AI thì lấy đủ giá và mẫu; chưa bật vẫn lấy được tên với ảnh."
-                  : `Dán link shop (vd. shopee.vn/ten-shop). Cần trợ lý AI — quét tối đa ${CINS_SHOPEE_SHOP_MAX_ITEMS} SP; mỗi SP thành một loại hàng (cùng tên thì cập nhật).`}
+                  : `Dán link shop (vd. shopee.vn/ten-shop). Cần trợ lý AI — quét tối đa ${CINS_SHOPEE_SHOP_MAX_ITEMS} SP còn hàng (bỏ Sold out); mỗi SP thành một loại hàng (cùng tên thì cập nhật).`}
               </p>
 
               <label className="shop-shopee-import-field">

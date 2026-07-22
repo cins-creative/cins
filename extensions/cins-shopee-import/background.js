@@ -240,8 +240,28 @@ async function listShopItems(pageUrl, username, shopIdHint, maxItems) {
         let offset = 0;
         let guard = 0;
 
+        function firstItemArray(...candidates) {
+          for (const c of candidates) {
+            if (Array.isArray(c) && c.length > 0) return c;
+          }
+          for (const c of candidates) {
+            if (Array.isArray(c)) return c;
+          }
+          return [];
+        }
+
+        function isSoldOutFlag(basic, row) {
+          // Chỉ tin cờ boolean — không dùng stock===0 (shop list thường thiếu/stock 0 giả).
+          return (
+            basic?.is_sold_out === true ||
+            row?.is_sold_out === true ||
+            basic?.sold_out === true
+          );
+        }
+
         while (items.length < max && guard < 40) {
           guard += 1;
+          // filter_sold_out=1: nhờ API ẩn hết hàng (kèm skip cờ is_sold_out bên dưới).
           const q = new URLSearchParams({
             filter_sold_out: "1",
             limit: String(limit),
@@ -252,23 +272,41 @@ async function listShopItems(pageUrl, username, shopIdHint, maxItems) {
             use_case: "4",
           });
           const page = await jfetch(`/api/v4/shop/search_items?${q}`);
-          const arr =
-            page.json?.data?.items ||
-            page.json?.items ||
-            page.json?.data?.item ||
-            [];
+          const j = page.json || {};
+          const d = j.data || {};
+          const arr = firstItemArray(
+            d.items,
+            j.items,
+            d.item,
+            j.item,
+            d.centralize_item_card?.item_cards,
+            j.centralize_item_card?.item_cards,
+          );
           if (!Array.isArray(arr) || arr.length === 0) break;
 
           for (const row of arr) {
             const basic = row.item_basic || row.item || row;
+            if (isSoldOutFlag(basic, row)) continue;
             const itemId = String(
               basic.itemid ?? basic.item_id ?? row.itemid ?? "",
             );
             if (!itemId) continue;
-            const name = String(basic.name || basic.title || "Sản phẩm").trim();
-            const imageKey = basic.image || basic.cover || "";
+            const name = String(
+              basic.name ||
+                basic.title ||
+                row.item_card_displayed_asset?.name ||
+                "Sản phẩm",
+            ).trim();
+            const imageKey =
+              basic.image ||
+              basic.cover ||
+              row.item_card_displayed_asset?.image ||
+              "";
             const priceRaw =
-              basic.price_min ?? basic.price ?? basic.price_before_discount;
+              basic.price_min ??
+              basic.price ??
+              basic.price_before_discount ??
+              row.item_card_display_price?.price;
             let priceMin = null;
             if (typeof priceRaw === "number" && priceRaw > 0) {
               priceMin =
@@ -289,7 +327,11 @@ async function listShopItems(pageUrl, username, shopIdHint, maxItems) {
             if (items.length >= max) break;
           }
 
-          if (arr.length < limit) break;
+          const noMore =
+            d.nomore === true ||
+            d.no_more === true ||
+            j.nomore === true;
+          if (noMore || arr.length < limit) break;
           offset += limit;
           await new Promise((r) => setTimeout(r, 250));
         }
