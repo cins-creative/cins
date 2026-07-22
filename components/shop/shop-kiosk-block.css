@@ -13,9 +13,10 @@
 
 .shop-kiosk--ticker {
   --shop-kiosk-ticker-size: 120px;
-  /* N?t m? h?ng ? l?n h?n m?c 1/3 c? (40), ~1/2 ticker */
+  /* Nút mở hàng ~1/2 ticker */
   --shop-kiosk-ticker-label-size: 56px;
   position: relative;
+  margin: 12px 0 4px;
   padding: 0;
   overflow: hidden;
   border: none;

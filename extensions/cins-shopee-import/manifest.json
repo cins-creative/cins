@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "CINs · Import Shopee",
-  "version": "1.0.0",
-  "description": "Trợ lý nội bộ CINs: lấy dữ liệu sản phẩm Shopee (get_pc) để import vào kho. Không phân phối công khai.",
+  "version": "1.1.0",
+  "description": "Trợ lý nội bộ CINs: lấy 1 sản phẩm hoặc cả shop Shopee để import vào kho. Không phân phối công khai.",
   "icons": {
     "64": "icon-64.png",
     "128": "icon-128.png"

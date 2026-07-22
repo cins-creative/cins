@@ -1,15 +1,18 @@
-# CINs · Import Shopee (extension nội bộ)
+# CINs · Import Shopee (trợ lý AI nội bộ)
 
-Chỉ dùng nội bộ — không lên Chrome Web Store.
+Chỉ dùng nội bộ — không lên Chrome Web Store. Phiên bản **1.1.0**: kéo 1 SP hoặc cả shop.
 
 ## Cài vào Chrome / Edge
 
-1. Giải nén file zip → được thư mục `cins-shopee-import`.
+1. Giải nén file zip → thư mục `cins-shopee-import`.
 2. Mở `chrome://extensions` (Edge: `edge://extensions`).
-3. Bật **Chế độ dành cho nhà phát triển** (Developer mode).
-4. Bấm **Tải tiện ích đã giải nén** → chọn thư mục `cins-shopee-import`.
-5. Về CINs → `/ban-hang/kho` → **AI · Shopee** → dán link → **Lấy đủ dữ liệu**.
+3. Bật **Chế độ dành cho nhà phát triển**.
+4. **Tải tiện ích đã giải nén** → chọn thư mục `cins-shopee-import`.
+5. Nếu đã cài bản cũ: **Remove** rồi tải lại (hoặc Reload trên thẻ extension).
 
-## Gỡ
+## Dùng trên CINs
 
-`chrome://extensions` → Remove.
+`/ban-hang/kho` → **AI · Shopee**
+
+- **Một sản phẩm**: dán link `…-i.shop.item`
+- **Cả shop**: dán `https://shopee.vn/ten-shop` → Quét shop → chọn SP → Kéo về kho

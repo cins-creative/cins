@@ -46,6 +46,7 @@
   • Shopee anti-bot (90309999) chặn `get_pc` từ server → mặc định lấy title + gallery ảnh (OG); đủ giá/mẫu khi seller dán `raw` JSON từ DevTools.
   • Ảnh re-upload Cloudflare CINs; map → `shop_nhom` (thumb + `anh_phu_ids` + `gia_mac_dinh`) + `shop_san_pham` theo mẫu.
   • Extension nội bộ (zip tải về, Load unpacked — không Chrome Web Store): lấy `get_pc` từ trình duyệt user rồi đưa vào `raw`. Không adopt mọi user.
+  • **Cả shop (v1.1.0):** quét `search_items` ≤100 → chọn SP → batch `get_pc` → loop import; 1 SP ≈ 1 loại; trùng tên cập nhật.
   • *Hệ quả file:* IMPLEMENTATION §1 `shop/import-shopee` + env Anthropic/Worker + `extensions/cins-shopee-import/`.
 
 ### Catalog loại vé sự kiện (2026-07-22)

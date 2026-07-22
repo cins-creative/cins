@@ -235,6 +235,7 @@ export function ShopKhoLoaiHub({
               ].sort((a, b) => a.nhan.localeCompare(b.nhan, "vi"));
               const truc2 = nhoms.filter((n) => n.truc === 2);
               onNhomsChanged([...next, ...truc2]);
+              if (payload.stayOnList) return;
               if (onShopeeImported) {
                 onShopeeImported(payload);
               } else {

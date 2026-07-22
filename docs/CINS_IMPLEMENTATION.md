@@ -49,9 +49,9 @@ Pipeline **riêng** (không reuse blog-import Sine Art). Seller-only (session + 
 
 **Body:** `{ url?, apply?: boolean, raw?: object, preview? }`. `apply:false` → preview (đã CF). `apply:true` + `preview` → ghi DB. `raw` = JSON `get_pc` (Network DevTools) khi cần đủ **giá + danh sách mẫu + mô tả chi tiết**.
 
-**UI:** `ShopKhoShopeeImport` trên `/ban-hang/kho` (hub loại hàng). **Env:** `ANTHROPIC_API_KEY`, `SINE_ART_WORKER_URL`, `SINE_ART_WORKER_SECRET` (alias `CINS_FETCH_WORKER_*`). Deploy production: set secret Worker trên Cloudflare Worker `cins` nếu dùng import ở prod.
+**UI:** `ShopKhoShopeeImport` trên `/ban-hang/kho` — tab **Một sản phẩm** | **Cả shop** (quét ≤100 SP qua extension `LIST_SHOP_ITEMS` + `FETCH_GET_PC_BATCH`, rồi loop `import-shopee` từng SP; 1 SP ≈ 1 loại; trùng tên → cập nhật). **Env:** `ANTHROPIC_API_KEY`, `SINE_ART_WORKER_URL`, `SINE_ART_WORKER_SECRET` (alias `CINS_FETCH_WORKER_*`). Deploy production: set secret Worker trên Cloudflare Worker `cins` nếu dùng import ở prod.
 
-**Extension nội bộ (không Store):** nguồn `extensions/cins-shopee-import/` → zip `public/downloads/cins-shopee-import.zip` (`npm run pack:shopee-ext`). User tải → Load unpacked. Content script bridge `postMessage` trên CINs; background mở tab Shopee gọi `get_pc` rồi trả JSON vào `raw` của API trên. Không adopt công khai.
+**Extension nội bộ (không Store):** nguồn `extensions/cins-shopee-import/` (v1.1.0) → zip `public/downloads/cins-shopee-import.zip` (`npm run pack:shopee-ext`). User tải → Load unpacked. Bridge `postMessage`: `FETCH_GET_PC` · `LIST_SHOP_ITEMS` · `FETCH_GET_PC_BATCH`. Không adopt công khai.
 
 ### Kết bạn & social
 | Route | Việc |

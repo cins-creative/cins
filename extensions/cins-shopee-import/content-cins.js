@@ -6,6 +6,11 @@
 
 const PAGE_SOURCE = "cins-shopee-page";
 const EXT_SOURCE = "cins-shopee-ext";
+const VERSION = "1.1.0";
+
+function reply(payload) {
+  window.postMessage({ source: EXT_SOURCE, ...payload }, "*");
+}
 
 window.addEventListener("message", (event) => {
   if (event.source !== window) return;
@@ -13,40 +18,46 @@ window.addEventListener("message", (event) => {
   if (!data || data.source !== PAGE_SOURCE) return;
 
   if (data.type === "PING") {
-    window.postMessage(
-      { source: EXT_SOURCE, type: "PONG", version: "1.0.0" },
-      "*",
-    );
+    reply({ type: "PONG", version: VERSION });
     return;
   }
 
-  if (data.type === "FETCH_GET_PC") {
-    const requestId = data.requestId;
-    chrome.runtime.sendMessage(
-      { type: "FETCH_GET_PC", url: data.url },
-      (response) => {
-        const err = chrome.runtime.lastError;
-        window.postMessage(
-          {
-            source: EXT_SOURCE,
-            type: "FETCH_GET_PC_RESULT",
-            requestId,
-            ok: !err && response?.ok === true,
-            data: response?.data ?? null,
-            error:
-              err?.message ||
-              response?.error ||
-              (!response ? "Trợ lý AI không phản hồi." : null),
-          },
-          "*",
-        );
-      },
-    );
-  }
+  const requestId = data.requestId;
+  const types = new Set([
+    "FETCH_GET_PC",
+    "LIST_SHOP_ITEMS",
+    "FETCH_GET_PC_BATCH",
+  ]);
+  if (!types.has(data.type)) return;
+
+  const msg =
+    data.type === "FETCH_GET_PC"
+      ? { type: data.type, url: data.url }
+      : data.type === "LIST_SHOP_ITEMS"
+        ? { type: data.type, url: data.url, maxItems: data.maxItems }
+        : { type: data.type, entries: data.entries };
+
+  chrome.runtime.sendMessage(msg, (response) => {
+    const err = chrome.runtime.lastError;
+    const resultType =
+      data.type === "FETCH_GET_PC"
+        ? "FETCH_GET_PC_RESULT"
+        : data.type === "LIST_SHOP_ITEMS"
+          ? "LIST_SHOP_ITEMS_RESULT"
+          : "FETCH_GET_PC_BATCH_RESULT";
+
+    reply({
+      type: resultType,
+      requestId,
+      ok: !err && response?.ok === true,
+      data: response?.data ?? null,
+      results: response?.results ?? null,
+      error:
+        err?.message ||
+        response?.error ||
+        (!response ? "Trợ lý AI không phản hồi." : null),
+    });
+  });
 });
 
-// Báo sẵn sàng sớm (trang reload / HMR)
-window.postMessage(
-  { source: EXT_SOURCE, type: "READY", version: "1.0.0" },
-  "*",
-);
+reply({ type: "READY", version: VERSION });
