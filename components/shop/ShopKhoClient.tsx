@@ -411,20 +411,55 @@ export function ShopKhoClient() {
     return map;
   }, [products]);
 
+  /** Khi mở 1 loại: kéo thêm mẫu theo id_nhom (tránh lệch do list kho limit 200). */
+  useEffect(() => {
+    if (!activeNhomId || activeNhomId === KHO_ORPHAN_KEY) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch(
+          `/api/shop/san-pham?nhomId=${encodeURIComponent(activeNhomId)}`,
+          { cache: "no-store" },
+        );
+        const json = (await res.json().catch(() => null)) as {
+          items?: ShopSanPham[];
+        } | null;
+        if (!res.ok || cancelled || !json?.items) return;
+        setProducts((prev) => {
+          const byId = new Map(prev.map((p) => [p.id, p]));
+          for (const item of json.items!) byId.set(item.id, item);
+          return [...byId.values()].sort((a, b) =>
+            (b.taoLuc ?? "").localeCompare(a.taoLuc ?? ""),
+          );
+        });
+      } catch {
+        /* giữ list hiện có */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeNhomId]);
+
   const orphanCount = useMemo(
     () => products.filter((p) => !p.idNhom?.trim()).length,
     [products],
   );
 
   const filteredProducts = useMemo(() => {
-    const selected1 = filterLoai.length > 0 ? new Set(filterLoai) : null;
-    const selected2 = filterLoai2.length > 0 ? new Set(filterLoai2) : null;
+    /* Trong 1 loại / orphan: chỉ scope theo idNhom — không áp filter cột
+       (tránh list trống trong khi mauCount vẫn > 0 → không xóa được mặt hàng). */
+    const scopedToNhom = Boolean(activeNhomId);
+    const selected1 =
+      !scopedToNhom && filterLoai.length > 0 ? new Set(filterLoai) : null;
+    const selected2 =
+      !scopedToNhom && filterLoai2.length > 0 ? new Set(filterLoai2) : null;
 
     const list = products.filter((p) => {
       if (activeNhomId === KHO_ORPHAN_KEY) {
         if (p.idNhom?.trim()) return false;
       } else if (activeNhomId) {
-        if (p.idNhom !== activeNhomId) return false;
+        if (p.idNhom?.trim() !== activeNhomId) return false;
       }
       if (selected1) {
         const loai = p.phanLoai?.trim();
@@ -1778,8 +1813,16 @@ export function ShopKhoClient() {
             orphanCount={orphanCount}
             nhanPhanLoai={nhanPhanLoai}
             nhanPhanLoai2={nhanPhanLoai2}
-            onOpenNhom={(id) => setActiveNhomId(id)}
-            onOpenOrphans={() => setActiveNhomId(KHO_ORPHAN_KEY)}
+            onOpenNhom={(id) => {
+              setFilterLoai([]);
+              setFilterLoai2([]);
+              setActiveNhomId(id);
+            }}
+            onOpenOrphans={() => {
+              setFilterLoai([]);
+              setFilterLoai2([]);
+              setActiveNhomId(KHO_ORPHAN_KEY);
+            }}
             onNhomsChanged={setNhoms}
             onError={setErr}
             onShopeeImported={({ nhom, products: created }) => {
@@ -1823,6 +1866,7 @@ export function ShopKhoClient() {
               void load({ silent: true });
             }}
             onError={setErr}
+            onRefreshMau={() => void load({ silent: true })}
           />
         ) : (
           <div className="shop-kho-loai-meta">

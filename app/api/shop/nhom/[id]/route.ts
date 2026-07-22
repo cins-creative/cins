@@ -178,10 +178,17 @@ export async function DELETE(_request: Request, ctx: Ctx) {
       return NextResponse.json({ error: "Không tìm thấy nhóm." }, { status: 404 });
     }
     if (msg === "NHOM_HAS_PRODUCTS") {
+      const count =
+        e instanceof Error && "count" in e
+          ? Number((e as Error & { count?: number }).count)
+          : undefined;
       return NextResponse.json(
         {
           error:
-            "Còn mẫu trong loại này. Xóa hết sản phẩm trước khi xóa loại hàng.",
+            count != null && Number.isFinite(count) && count > 0
+              ? `Còn ${count} mẫu trong loại này. Xóa hết sản phẩm trước khi xóa loại hàng.`
+              : "Còn mẫu trong loại này. Xóa hết sản phẩm trước khi xóa loại hàng.",
+          count: count ?? null,
         },
         { status: 409 },
       );

@@ -68,6 +68,17 @@
   top: auto;
 }
 
+/* Hub loại hàng: không có toolbar — scroll trong card, tabs giữ cố định. */
+.shop-dash:has(> .shop-dash-card .shop-kho-loai-hub) > .shop-dash-card {
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.shop-kho-loai-hub {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
 .shop-dash h1 {
   margin: 0 0 6px;
   font-size: 22px;
@@ -5449,7 +5460,7 @@
 .shop-kho-delete-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 1200;
+  z-index: 13000;
   display: flex;
   align-items: center;
   justify-content: center;

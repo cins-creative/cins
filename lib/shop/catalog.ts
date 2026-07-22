@@ -45,15 +45,21 @@ function mapBienThe(row: BtRow): ShopBienThe {
   };
 }
 
-export async function listSanPham(ownerId: string): Promise<ShopSanPham[]> {
+export async function listSanPham(
+  ownerId: string,
+  opts?: { idNhom?: string },
+): Promise<ShopSanPham[]> {
   const admin = createServiceRoleClient();
-  const { data: sps, error } = await admin
+  const idNhom = opts?.idNhom?.trim() || null;
+  let q = admin
     .from("shop_san_pham")
     .select(SP_SELECT)
     .eq("id_nguoi_dung", ownerId)
     .eq("da_xoa", false)
     .order("tao_luc", { ascending: false })
     .limit(200);
+  if (idNhom) q = q.eq("id_nhom", idNhom);
+  const { data: sps, error } = await q;
   if (error) {
     console.error("[shop] listSanPham", error);
     throw new Error("LIST_FAILED");
@@ -88,6 +94,25 @@ export async function listSanPham(ownerId: string): Promise<ShopSanPham[]> {
     bienThe: bySp.get(r.id) ?? [],
     taoLuc: r.tao_luc,
   }));
+}
+
+/** Đếm mẫu (da_xoa=false) đang gắn `id_nhom` — dùng gate xóa loại hàng. */
+export async function countSanPhamByNhom(
+  ownerId: string,
+  nhomId: string,
+): Promise<number> {
+  const admin = createServiceRoleClient();
+  const { count, error } = await admin
+    .from("shop_san_pham")
+    .select("id", { count: "exact", head: true })
+    .eq("id_nguoi_dung", ownerId)
+    .eq("id_nhom", nhomId)
+    .eq("da_xoa", false);
+  if (error) {
+    console.error("[shop] countSanPhamByNhom", error);
+    throw new Error("COUNT_FAILED");
+  }
+  return count ?? 0;
 }
 
 export async function createSanPham(

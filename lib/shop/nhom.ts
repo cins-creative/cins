@@ -512,7 +512,12 @@ export async function softDeleteNhom(
     console.error("[shop] softDeleteNhom count", countErr);
     throw new Error("DELETE_FAILED");
   }
-  if ((count ?? 0) > 0) throw new Error("NHOM_HAS_PRODUCTS");
+  const remaining = count ?? 0;
+  if (remaining > 0) {
+    const err = new Error("NHOM_HAS_PRODUCTS");
+    (err as Error & { count?: number }).count = remaining;
+    throw err;
+  }
 
   const { error, count: deleted } = await admin
     .from("shop_nhom")
@@ -523,8 +528,13 @@ export async function softDeleteNhom(
     .eq("id", nhomId)
     .eq("id_nguoi_dung", ownerId)
     .eq("da_xoa", false);
-  if (error || !deleted) {
+  if (error) {
     console.error("[shop] softDeleteNhom", error);
+    throw new Error("DELETE_FAILED");
+  }
+  /* Một số môi trường không trả count trên UPDATE — chỉ fail khi chắc chắn 0. */
+  if (deleted === 0) {
+    console.error("[shop] softDeleteNhom", "no rows updated");
     throw new Error("DELETE_FAILED");
   }
 }

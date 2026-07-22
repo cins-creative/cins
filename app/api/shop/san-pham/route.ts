@@ -1,15 +1,26 @@
 import { NextResponse } from "next/server";
 
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
-import { createSanPham, listSanPham } from "@/lib/shop/catalog";
+import {
+  countSanPhamByNhom,
+  createSanPham,
+  listSanPham,
+} from "@/lib/shop/catalog";
 
-export async function GET() {
+export async function GET(request: Request) {
   const session = await getCurrentSessionAndProfile();
   if (!session?.profile) {
     return NextResponse.json({ error: "Chưa đăng nhập." }, { status: 401 });
   }
   try {
-    const items = await listSanPham(session.profile.id);
+    const url = new URL(request.url);
+    const idNhom = url.searchParams.get("nhomId")?.trim() || undefined;
+    const countOnly = url.searchParams.get("countOnly") === "1";
+    if (countOnly && idNhom) {
+      const count = await countSanPhamByNhom(session.profile.id, idNhom);
+      return NextResponse.json({ count });
+    }
+    const items = await listSanPham(session.profile.id, { idNhom });
     return NextResponse.json({ items });
   } catch {
     return NextResponse.json({ error: "Không tải được kho." }, { status: 500 });

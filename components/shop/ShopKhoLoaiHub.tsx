@@ -472,6 +472,8 @@ type MetaProps = {
   onUpdated: (n: ShopNhom) => void;
   onDeleted: () => void;
   onError: (msg: string | null) => void;
+  /** Khi server báo còn mẫu nhưng client đang thấy 0 — tải lại kho. */
+  onRefreshMau?: () => void;
 };
 
 function giaInputValue(
@@ -491,6 +493,7 @@ export function ShopKhoLoaiMeta({
   onUpdated,
   onDeleted,
   onError,
+  onRefreshMau,
 }: MetaProps) {
   const [nhan, setNhan] = useState(nhom.nhan);
   const [moTa, setMoTa] = useState(nhom.moTa ?? "");
@@ -813,9 +816,19 @@ export function ShopKhoLoaiMeta({
       const json = (await res.json().catch(() => null)) as {
         ok?: boolean;
         error?: string;
+        count?: number;
       } | null;
       if (!res.ok || !json?.ok) {
-        onError(json?.error ?? "Không xóa được loại hàng.");
+        if (res.status === 409) {
+          onRefreshMau?.();
+          setDeleteHint(true);
+          onError(
+            json?.error ??
+              "Còn mẫu gắn mặt hàng này. Xóa hết sản phẩm trong danh sách bên dưới rồi thử lại.",
+          );
+        } else {
+          onError(json?.error ?? "Không xóa được loại hàng.");
+        }
         setDeleteOpen(false);
         return;
       }
@@ -832,6 +845,33 @@ export function ShopKhoLoaiMeta({
   const displayAnhUrl = previewAnhUrl || nhom.anhUrl;
   const mediaBusy = uploadingAnh || uploadingPhu || uploadingVideo || saving;
 
+  async function onDeleteClick() {
+    if (mediaBusy || deleting) return;
+    if (mauCount > 0) {
+      setDeleteHint(true);
+      return;
+    }
+    /* Client thấy 0 — hỏi server để tránh xóa khi còn mẫu ngoài list. */
+    try {
+      const res = await fetch(
+        `/api/shop/san-pham?nhomId=${encodeURIComponent(nhom.id)}&countOnly=1`,
+        { cache: "no-store" },
+      );
+      const json = (await res.json().catch(() => null)) as {
+        count?: number;
+      } | null;
+      if (res.ok && (json?.count ?? 0) > 0) {
+        setDeleteHint(true);
+        onRefreshMau?.();
+        return;
+      }
+    } catch {
+      /* mở dialog; API DELETE sẽ chặn nếu còn mẫu */
+    }
+    setDeleteHint(false);
+    setDeleteOpen(true);
+  }
+
   return (
     <div className="shop-kho-loai-meta">
       <div className="shop-kho-loai-meta-head">
@@ -847,14 +887,7 @@ export function ShopKhoLoaiMeta({
             title="Xóa mặt hàng này"
             aria-label="Xóa mặt hàng này"
             aria-describedby={deleteHint ? "shop-kho-loai-delete-hint" : undefined}
-            onClick={() => {
-              if (mauCount > 0) {
-                setDeleteHint(true);
-                return;
-              }
-              setDeleteHint(false);
-              setDeleteOpen(true);
-            }}
+            onClick={() => void onDeleteClick()}
           >
             <Trash2 size={14} strokeWidth={2} aria-hidden />
             Xóa mặt hàng này
