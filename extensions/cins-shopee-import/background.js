@@ -223,7 +223,6 @@ async function listShopItems(pageUrl, username, shopIdHint, maxItems) {
         }
 
         if (!shopId) {
-          // Thử đọc từ URL hiện tại / DOM state
           const m = location.pathname.match(/\/shop\/(\d+)/);
           if (m) shopId = m[1];
         }
@@ -235,105 +234,196 @@ async function listShopItems(pageUrl, username, shopIdHint, maxItems) {
           };
         }
 
-        const items = [];
-        const limit = 30;
-        let offset = 0;
-        let guard = 0;
-
-        function firstItemArray(...candidates) {
-          for (const c of candidates) {
-            if (Array.isArray(c) && c.length > 0) return c;
-          }
-          for (const c of candidates) {
-            if (Array.isArray(c)) return c;
-          }
-          return [];
-        }
-
         function isSoldOutFlag(basic, row) {
-          // Chỉ tin cờ boolean — không dùng stock===0 (shop list thường thiếu/stock 0 giả).
-          return (
+          if (
             basic?.is_sold_out === true ||
             row?.is_sold_out === true ||
             basic?.sold_out === true
-          );
+          ) {
+            return true;
+          }
+          // Legacy item_basic: hết hàng thường stock === 0
+          const stock = basic?.stock;
+          if (typeof stock === "number" && stock === 0) return true;
+          return false;
         }
 
-        while (items.length < max && guard < 40) {
-          guard += 1;
-          // filter_sold_out=1: nhờ API ẩn hết hàng (kèm skip cờ is_sold_out bên dưới).
-          const q = new URLSearchParams({
-            filter_sold_out: "1",
-            limit: String(limit),
-            offset: String(offset),
-            order: "desc",
-            shopid: shopId,
-            sortBy: "pop",
-            use_case: "4",
-          });
-          const page = await jfetch(`/api/v4/shop/search_items?${q}`);
-          const j = page.json || {};
-          const d = j.data || {};
-          const arr = firstItemArray(
-            d.items,
-            j.items,
-            d.item,
-            j.item,
-            d.centralize_item_card?.item_cards,
-            j.centralize_item_card?.item_cards,
+        function pushItem(items, shopId, basic, row) {
+          if (!basic || isSoldOutFlag(basic, row)) return false;
+          const itemId = String(
+            basic.itemid ?? basic.item_id ?? row?.itemid ?? "",
           );
-          if (!Array.isArray(arr) || arr.length === 0) break;
+          if (!itemId) return false;
+          const name = String(
+            basic.name ||
+              basic.title ||
+              row?.item_card_displayed_asset?.name ||
+              "Sản phẩm",
+          ).trim();
+          const imageKey =
+            basic.image ||
+            basic.cover ||
+            row?.item_card_displayed_asset?.image ||
+            "";
+          const priceRaw =
+            basic.price_min ??
+            basic.price ??
+            basic.price_before_discount ??
+            row?.item_card_display_price?.price;
+          let priceMin = null;
+          if (typeof priceRaw === "number" && priceRaw > 0) {
+            priceMin =
+              priceRaw >= 100000
+                ? Math.round(priceRaw / 100000)
+                : Math.round(priceRaw);
+          }
+          items.push({
+            shopId,
+            itemId,
+            name,
+            imageUrl: imageKey
+              ? `https://down-vn.img.susercontent.com/file/${imageKey}`
+              : null,
+            priceMin,
+            productUrl: `https://shopee.vn/product/${shopId}/${itemId}`,
+          });
+          return true;
+        }
 
-          for (const row of arr) {
-            const basic = row.item_basic || row.item || row;
-            if (isSoldOutFlag(basic, row)) continue;
-            const itemId = String(
-              basic.itemid ?? basic.item_id ?? row.itemid ?? "",
-            );
-            if (!itemId) continue;
-            const name = String(
-              basic.name ||
-                basic.title ||
-                row.item_card_displayed_asset?.name ||
-                "Sản phẩm",
-            ).trim();
-            const imageKey =
-              basic.image ||
-              basic.cover ||
-              row.item_card_displayed_asset?.image ||
-              "";
-            const priceRaw =
-              basic.price_min ??
-              basic.price ??
-              basic.price_before_discount ??
-              row.item_card_display_price?.price;
-            let priceMin = null;
-            if (typeof priceRaw === "number" && priceRaw > 0) {
-              priceMin =
-                priceRaw >= 100000
-                  ? Math.round(priceRaw / 100000)
-                  : Math.round(priceRaw);
-            }
-            items.push({
-              shopId,
-              itemId,
-              name,
-              imageUrl: imageKey
-                ? `https://down-vn.img.susercontent.com/file/${imageKey}`
-                : null,
-              priceMin,
-              productUrl: `https://shopee.vn/product/${shopId}/${itemId}`,
+        /**
+         * Tab Sản phẩm shop (#product_list): recommend trả 2 section —
+         * main (còn hàng) + *_sosec (SOLD OUT). Chỉ lấy section không phải sold-out.
+         * @see shop_page_product_tab_main_sosec
+         */
+        async function listViaRecommend() {
+          const items = [];
+          const limit = 30;
+          let offset = 0;
+          let guard = 0;
+          let sawMain = false;
+
+          while (items.length < max && guard < 40) {
+            guard += 1;
+            const q = new URLSearchParams({
+              bundle: "shop_page_product_tab_main",
+              limit: String(limit),
+              offset: String(offset),
+              shopid: shopId,
             });
+            const page = await jfetch(`/api/v4/recommend/recommend?${q}`);
+            if (page.json?.error && page.json.error !== 0) {
+              return { ok: false, items, error: page.json.error };
+            }
+            const sections = page.json?.data?.sections;
+            if (!Array.isArray(sections) || sections.length === 0) {
+              break;
+            }
+
+            let mainHasMore = false;
+            let mainCount = 0;
+
+            for (const sec of sections) {
+              const key = String(sec.key || "");
+              // Mục SOLD OUT trên UI — bỏ cả section, không lấy tiếp phía dưới.
+              if (/sosec|_so\b|sold.?out/i.test(key)) {
+                continue;
+              }
+              const arr = sec.data?.item || sec.data?.items || [];
+              if (!Array.isArray(arr) || arr.length === 0) continue;
+              sawMain = true;
+              mainCount += arr.length;
+              if (sec.has_more === true) mainHasMore = true;
+
+              for (const row of arr) {
+                const basic = row.item_basic || row.item || row;
+                pushItem(items, shopId, basic, row);
+                if (items.length >= max) break;
+              }
+              if (items.length >= max) break;
+            }
+
             if (items.length >= max) break;
+            if (!mainHasMore || mainCount === 0) break;
+            offset += limit;
+            await new Promise((r) => setTimeout(r, 250));
           }
 
-          const noMore =
-            d.nomore === true ||
-            d.no_more === true ||
-            j.nomore === true;
-          if (noMore || arr.length < limit) break;
-          offset += limit;
-          await new Promise((r) => setTimeout(r, 250));
+          return { ok: sawMain || items.length > 0, items };
+        }
+
+        /** Fallback search_items — bỏ is_sold_out; gặp sold-out thì dừng (đoạn SOLD OUT phía dưới). */
+        async function listViaSearchItems() {
+          const items = [];
+          const limit = 30;
+          let offset = 0;
+          let guard = 0;
+          let hitSoldOutSection = false;
+
+          function firstItemArray(...candidates) {
+            for (const c of candidates) {
+              if (Array.isArray(c) && c.length > 0) return c;
+            }
+            for (const c of candidates) {
+              if (Array.isArray(c)) return c;
+            }
+            return [];
+          }
+
+          while (items.length < max && guard < 40 && !hitSoldOutSection) {
+            guard += 1;
+            // filter_sold_out=0: không kéo mục hết hàng (1 = vẫn hiện Sold out trên shop).
+            const q = new URLSearchParams({
+              filter_sold_out: "0",
+              limit: String(limit),
+              offset: String(offset),
+              order: "desc",
+              shopid: shopId,
+              sortBy: "pop",
+              use_case: "4",
+            });
+            const page = await jfetch(`/api/v4/shop/search_items?${q}`);
+            const j = page.json || {};
+            const d = j.data || {};
+            const arr = firstItemArray(
+              d.centralize_item_card?.item_cards,
+              j.centralize_item_card?.item_cards,
+              d.items,
+              j.items,
+              d.item,
+              j.item,
+            );
+            if (!Array.isArray(arr) || arr.length === 0) break;
+
+            for (const row of arr) {
+              const basic = row.item_basic || row.item || row;
+              if (isSoldOutFlag(basic, row)) {
+                // Từ SOLD OUT trở xuống: dừng hẳn (cùng thứ tự UI shop).
+                hitSoldOutSection = true;
+                break;
+              }
+              pushItem(items, shopId, basic, row);
+              if (items.length >= max) break;
+            }
+
+            if (hitSoldOutSection || items.length >= max) break;
+            const noMore =
+              d.nomore === true ||
+              d.no_more === true ||
+              j.nomore === true;
+            if (noMore || arr.length < limit) break;
+            offset += limit;
+            await new Promise((r) => setTimeout(r, 250));
+          }
+
+          return items;
+        }
+
+        let items = [];
+        const viaRec = await listViaRecommend();
+        if (viaRec.ok && viaRec.items.length > 0) {
+          items = viaRec.items;
+        } else {
+          items = await listViaSearchItems();
         }
 
         return {

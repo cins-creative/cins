@@ -1,6 +1,6 @@
 # CINs · Import Shopee (trợ lý AI nội bộ)
 
-Chỉ dùng nội bộ — không lên Chrome Web Store. Phiên bản **1.1.2**: kéo 1 SP hoặc cả shop (bỏ qua Sold out; sửa lỗi quét rỗng).
+Chỉ dùng nội bộ — không lên Chrome Web Store. Phiên bản **1.1.3**: kéo 1 SP hoặc cả shop — **không** lấy mục SOLD OUT trên trang shop.
 
 ## Cài vào Chrome / Edge
 

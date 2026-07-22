@@ -363,7 +363,7 @@ export function ShopKhoShopeeImportButton({
       }
 
       const byKey = new Map(
-        batch.map((r) => [`${r.shopId}.${r.itemId}`, r] as const),
+        batch.map((r) => [`${r.shopId}.${r.itemId}`, r] as [string, (typeof batch)[number]]),
       );
 
       setShopProgress({
@@ -542,12 +542,6 @@ export function ShopKhoShopeeImportButton({
                   Cả shop
                 </button>
               </div>
-
-              <p className="shop-shopee-import-hint">
-                {mode === "product"
-                  ? "Dán link sản phẩm Shopee. Có trợ lý AI thì lấy đủ giá và mẫu; chưa bật vẫn lấy được tên với ảnh."
-                  : `Dán link shop (vd. shopee.vn/ten-shop). Cần trợ lý AI — quét tối đa ${CINS_SHOPEE_SHOP_MAX_ITEMS} SP còn hàng (bỏ Sold out); mỗi SP thành một loại hàng (cùng tên thì cập nhật).`}
-              </p>
 
               <label className="shop-shopee-import-field">
                 <span>
