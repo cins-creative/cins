@@ -279,7 +279,7 @@ type Props = {
   initialNhomSlug?: string | null;
   initialPhienSlug?: string | null;
   guideCatalog?: HuongDanCatalogPublic;
-  /** Đồng bộ URL khi đổi tab / nhóm / phiên (trang `/ho-tro`). */
+  /** Đồng bộ URL khi đổi tab / nhóm (trang `/ho-tro`). Phần nội dung không có URL. */
   syncUrl?: boolean;
   /** Admin / super_admin — cho phép tạo·sửa hướng dẫn trong modal. */
   isCinsAdmin?: boolean;
@@ -312,19 +312,19 @@ export function HelpCenterModal({
     setGuidePhien(initialPhienSlug);
   }, [open, initialMode, initialNhomSlug, initialPhienSlug]);
 
-  function replaceUrl(nextMode: HelpMode, nhom: string | null, phien: string | null) {
+  function replaceUrl(nextMode: HelpMode, nhom: string | null) {
     if (!syncUrl) return;
     if (nextMode === "help") {
       router.replace("/ho-tro");
       return;
     }
-    router.replace(huongDanHref(nhom, phien));
+    router.replace(huongDanHref(nhom));
   }
 
   function changeMode(next: HelpMode) {
     setMode(next);
     if (next === "help") {
-      replaceUrl("help", null, null);
+      replaceUrl("help", null);
       return;
     }
     const firstNhom = guideCatalog.nhom[0] ?? null;
@@ -336,7 +336,7 @@ export function HelpCenterModal({
       null;
     setGuideNhom(nhom);
     setGuidePhien(phien);
-    replaceUrl("guide", nhom, phien);
+    replaceUrl("guide", nhom);
   }
 
   useEffect(() => {
@@ -423,7 +423,7 @@ export function HelpCenterModal({
               onNavigate={(nhom, phien) => {
                 setGuideNhom(nhom);
                 setGuidePhien(phien);
-                replaceUrl("guide", nhom, phien);
+                replaceUrl("guide", nhom);
               }}
             />
           </div>

@@ -8,7 +8,6 @@ import type { HuongDanCatalogPublic } from "@/lib/huong-dan/types";
 type Props = {
   initialMode?: "help" | "guide";
   initialNhomSlug?: string | null;
-  initialPhienSlug?: string | null;
   guideCatalog: HuongDanCatalogPublic;
   isCinsAdmin?: boolean;
 };
@@ -16,7 +15,6 @@ type Props = {
 export function HoTroClient({
   initialMode = "help",
   initialNhomSlug = null,
-  initialPhienSlug = null,
   guideCatalog,
   isCinsAdmin = false,
 }: Props) {
@@ -28,7 +26,6 @@ export function HoTroClient({
       syncUrl
       initialMode={initialMode}
       initialNhomSlug={initialNhomSlug}
-      initialPhienSlug={initialPhienSlug}
       guideCatalog={guideCatalog}
       isCinsAdmin={isCinsAdmin}
       onClose={() => {

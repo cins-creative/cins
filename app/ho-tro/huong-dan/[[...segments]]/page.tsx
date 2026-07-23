@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 
 import { HoTroClient } from "@/app/ho-tro/HoTroClient";
 import { CinsShell } from "@/components/cins/CinsShell";
 import { getCurrentUserIsCinsAdmin } from "@/lib/auth/cins-admin-server";
 import { listHuongDanPublic } from "@/lib/huong-dan/huong-dan";
+import { huongDanHref } from "@/lib/huong-dan/slug";
 
 import "@/styles/article-rich-content.css";
 
@@ -15,12 +17,8 @@ type Props = {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { segments = [] } = await params;
-  const [nhom, phien] = segments;
-  const path = phien
-    ? `/ho-tro/huong-dan/${nhom}/${phien}`
-    : nhom
-      ? `/ho-tro/huong-dan/${nhom}`
-      : "/ho-tro/huong-dan";
+  const nhom = segments[0];
+  const path = huongDanHref(nhom ?? null);
 
   return {
     title: "Hướng dẫn — CINs",
@@ -40,7 +38,13 @@ export const dynamic = "force-dynamic";
 
 export default async function HoTroHuongDanPage({ params }: Props) {
   const { segments = [] } = await params;
-  const [nhomSlug = null, phienSlug = null] = segments;
+  const nhomSlug = segments[0] ?? null;
+
+  // URL chỉ tới nhóm; deep-link cũ `/nhom/phien` → `/nhom`.
+  if (segments.length >= 2 && nhomSlug) {
+    redirect(huongDanHref(nhomSlug));
+  }
+
   const [guideCatalog, isCinsAdmin] = await Promise.all([
     listHuongDanPublic(),
     getCurrentUserIsCinsAdmin(),
@@ -51,7 +55,6 @@ export default async function HoTroHuongDanPage({ params }: Props) {
       <HoTroClient
         initialMode="guide"
         initialNhomSlug={nhomSlug}
-        initialPhienSlug={phienSlug}
         guideCatalog={guideCatalog}
         isCinsAdmin={isCinsAdmin}
       />

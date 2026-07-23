@@ -15,13 +15,12 @@ export function isValidHuongDanSlug(value: string): boolean {
   return /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value.trim());
 }
 
-export function huongDanHref(
-  nhomSlug?: string | null,
-  phienSlug?: string | null,
-): string {
+/**
+ * Deep-link chỉ tới nhóm (tab sidebar). Phần nội dung trong nhóm không có URL riêng —
+ * người dùng cuộn trong panel.
+ */
+export function huongDanHref(nhomSlug?: string | null): string {
   const nhom = nhomSlug?.trim();
   if (!nhom) return "/ho-tro/huong-dan";
-  const phien = phienSlug?.trim();
-  if (!phien) return `/ho-tro/huong-dan/${encodeURIComponent(nhom)}`;
-  return `/ho-tro/huong-dan/${encodeURIComponent(nhom)}/${encodeURIComponent(phien)}`;
+  return `/ho-tro/huong-dan/${encodeURIComponent(nhom)}`;
 }

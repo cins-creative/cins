@@ -480,7 +480,7 @@ export function AdminHuongDanScreen({ initialNhom }: Props) {
                   <p className="hd-permalink">
                     Deep-link:{" "}
                     <code>
-                      {huongDanHref(activeNhom.slug, draft.slug || undefined)}
+                      {huongDanHref(activeNhom.slug)}
                     </code>
                   </p>
                 ) : null}

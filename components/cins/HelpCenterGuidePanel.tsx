@@ -2,10 +2,11 @@
 
 import {
   BookOpen,
+  Check,
   Loader2,
   Pencil,
-  PlayCircle,
   Plus,
+  Share2,
   Trash2,
   X,
 } from "lucide-react";
@@ -146,6 +147,7 @@ export function HelpCenterGuidePanel({
   const [newNhomSlug, setNewNhomSlug] = useState("");
   const [draft, setDraft] = useState<EditorDraft | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
+  const [shareCopied, setShareCopied] = useState(false);
   const [pending, startTransition] = useTransition();
 
   const refreshAdmin = useCallback(async () => {
@@ -244,6 +246,7 @@ export function HelpCenterGuidePanel({
     setEditing(false);
     setDraft(null);
     setCreatingNhom(false);
+    setShareCopied(false);
     onNavigate?.(slug, first);
   }
 
@@ -390,6 +393,30 @@ export function HelpCenterGuidePanel({
       setPhienSlug(nextPhien ?? "");
       onNavigate?.(nextNhom?.slug ?? null, nextPhien);
     });
+  }
+
+  async function shareNhom(nhom: ViewNhom) {
+    const path = huongDanHref(nhom.slug);
+    const url =
+      typeof window !== "undefined"
+        ? new URL(path, window.location.origin).toString()
+        : path;
+    const title = `Hướng dẫn — ${nhom.ten}`;
+    try {
+      if (typeof navigator !== "undefined" && navigator.share) {
+        await navigator.share({ title, url, text: title });
+        return;
+      }
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      setShareCopied(true);
+      window.setTimeout(() => setShareCopied(false), 1800);
+    } catch {
+      setMsg("Không sao chép được liên kết. Thử lại sau.");
+    }
   }
 
   if (isCinsAdmin && adminLoading && !adminNhom) {
@@ -605,8 +632,25 @@ export function HelpCenterGuidePanel({
                 </p>
                 {msg ? <p className="help-guide-admin-msg">{msg}</p> : null}
               </div>
-              {isCinsAdmin ? (
-                <div className="help-guide-toolbar">
+              <div className="help-guide-toolbar">
+                <button
+                  type="button"
+                  className="help-guide-tool-btn"
+                  onClick={() => void shareNhom(activeNhom)}
+                  aria-label={
+                    shareCopied
+                      ? "Đã sao chép liên kết"
+                      : `Chia sẻ hướng dẫn ${activeNhom.ten}`
+                  }
+                >
+                  {shareCopied ? (
+                    <Check size={14} aria-hidden />
+                  ) : (
+                    <Share2 size={14} aria-hidden />
+                  )}
+                  {shareCopied ? "Đã sao chép" : "Chia sẻ"}
+                </button>
+                {isCinsAdmin ? (
                   <button
                     type="button"
                     className="help-guide-tool-btn primary"
@@ -615,8 +659,8 @@ export function HelpCenterGuidePanel({
                     <Plus size={14} aria-hidden />
                     Thêm phần
                   </button>
-                </div>
-              ) : null}
+                ) : null}
+              </div>
             </div>
             ) : null}
 
@@ -881,14 +925,6 @@ export function HelpCenterGuidePanel({
 
                         {phien.videoUrl ? (
                           <div className="help-guide-video-block">
-                            <div className="help-guide-video-label">
-                              <PlayCircle
-                                size={15}
-                                strokeWidth={2}
-                                aria-hidden
-                              />
-                              Video hướng dẫn
-                            </div>
                             <GuideVideo
                               url={phien.videoUrl}
                               title={phien.tieuDe}
@@ -902,13 +938,6 @@ export function HelpCenterGuidePanel({
                             emptyMessage="Nội dung đang được cập nhật."
                           />
                         </div>
-
-                        <p className="help-footnote help-guide-permalink">
-                          Liên kết:{" "}
-                          <code className="help-code">
-                            {huongDanHref(activeNhom.slug, phien.slug)}
-                          </code>
-                        </p>
                       </section>
                     ))}
                   </div>

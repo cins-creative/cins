@@ -267,30 +267,32 @@
 .help-guide-phien-stack {
   display: flex;
   flex-direction: column;
+  gap: 14px;
 }
 
 .help-guide-phien {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  padding: 20px 0;
-  border-bottom: 1px solid var(--border, #e4e6eb);
+  padding: 18px 16px;
+  border: 1px solid var(--border, #e4e6eb);
+  border-radius: 14px;
+  background: var(--bg-page, #f4f5f8);
   scroll-margin-top: 12px;
 }
 
 .help-guide-phien:last-child {
-  border-bottom: 0;
-  padding-bottom: 8px;
+  padding-bottom: 18px;
 }
 
 .help-guide-phien.is-target {
-  border-radius: 14px;
-  outline: 1px solid color-mix(in srgb, var(--cins-blue, #1f74c9) 28%, transparent);
-  background: color-mix(in srgb, var(--cins-blue-soft, #e7f0fb) 35%, transparent);
-  padding-left: 12px;
-  padding-right: 12px;
-  margin-left: -12px;
-  margin-right: -12px;
+  border-color: color-mix(in srgb, var(--cins-blue, #1f74c9) 40%, var(--border, #e4e6eb));
+  background: color-mix(in srgb, var(--cins-blue-soft, #e7f0fb) 55%, var(--bg-surface, #fff));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--cins-blue, #1f74c9) 18%, transparent);
+  margin-left: 0;
+  margin-right: 0;
+  padding-left: 16px;
+  padding-right: 16px;
 }
 
 .help-guide-phien-head {
@@ -358,17 +360,6 @@
   gap: 8px;
 }
 
-.help-guide-video-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11.5px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  color: var(--ink-muted, rgba(0, 0, 0, 0.45));
-}
-
 .help-guide-video {
   position: relative;
   width: 100%;
@@ -392,11 +383,6 @@
   font-size: 13.5px;
   line-height: 1.6;
   color: var(--ink-body, rgba(0, 0, 0, 0.58));
-}
-
-.help-guide-permalink {
-  word-break: break-all;
-  margin-top: 8px;
 }
 
 /* —— Editor (admin inline) —— */
@@ -720,8 +706,15 @@
   }
 }
 
+:root[data-theme="dark"] .help-guide-phien {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--border, #333);
+}
+
 :root[data-theme="dark"] .help-guide-phien.is-target {
-  background: color-mix(in srgb, var(--cins-blue, #1f74c9) 12%, transparent);
+  background: color-mix(in srgb, var(--cins-blue, #1f74c9) 14%, transparent);
+  border-color: color-mix(in srgb, var(--cins-blue, #1f74c9) 45%, var(--border, #333));
+  box-shadow: none;
 }
 
 :root[data-theme="dark"] .help-guide-editor-head,
