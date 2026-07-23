@@ -188,6 +188,24 @@
   color: #fff;
 }
 
+.help-guide-tool-btn.danger {
+  color: #b42318;
+}
+
+.help-guide-tool-btn.danger:hover {
+  border-color: color-mix(in srgb, #b42318 35%, var(--border, #e4e6eb));
+  background: #fef3f2;
+  color: #912018;
+}
+
+.help-guide-phien-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
 .help-guide-nav-add {
   display: inline-flex !important;
   align-items: center;
@@ -195,6 +213,55 @@
   margin-top: 8px;
   color: var(--cins-blue, #1f74c9) !important;
   font-weight: 600 !important;
+}
+
+.help-guide-nav-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+
+.help-guide-nav-row .uas-nav-btn {
+  flex: 1;
+  min-width: 0;
+}
+
+.help-guide-nav-del {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.4));
+  cursor: pointer;
+  flex-shrink: 0;
+  opacity: 0.45;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.help-guide-nav-row:hover .help-guide-nav-del,
+.help-guide-nav-row.on .help-guide-nav-del,
+.help-guide-nav-del:focus-visible {
+  opacity: 1;
+}
+
+.help-guide-nav-del:hover:not(:disabled) {
+  background: #fef3f2;
+  color: #b42318;
+}
+
+.help-guide-nav-del:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
 }
 
 .help-guide-phien-stack {
@@ -570,7 +637,7 @@
 
 .help-guide-editor-foot {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   align-items: center;
   gap: 8px;
   padding: 10px 20px 14px;
@@ -578,11 +645,27 @@
   background: color-mix(in srgb, var(--bg-page, #f4f5f8) 65%, #fff);
 }
 
+.help-guide-editor-foot-end {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
 .help-guide-editor-foot .uas-btn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   min-height: 36px;
+}
+
+.help-guide-delete-btn {
+  color: #b42318 !important;
+}
+
+.help-guide-delete-btn:hover:not(:disabled) {
+  background: #fef3f2 !important;
+  color: #912018 !important;
 }
 
 .help-guide-admin-msg {
@@ -652,6 +735,17 @@
 
 :root[data-theme="dark"] .help-guide-publish {
   background: var(--bg-page);
+}
+
+:root[data-theme="dark"] .help-guide-tool-btn.danger:hover,
+:root[data-theme="dark"] .help-guide-delete-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, #f04438 16%, transparent) !important;
+  color: #fda29b !important;
+}
+
+:root[data-theme="dark"] .help-guide-nav-del:hover:not(:disabled) {
+  background: color-mix(in srgb, #f04438 16%, transparent);
+  color: #fda29b;
 }
 
 .help-faq {

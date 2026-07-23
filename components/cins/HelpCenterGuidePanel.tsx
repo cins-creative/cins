@@ -6,12 +6,15 @@ import {
   Pencil,
   PlayCircle,
   Plus,
+  Trash2,
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 
 import {
   adminCreateHuongDanNhom,
+  adminDeleteHuongDanNhom,
+  adminDeleteHuongDanPhien,
   adminSaveHuongDanPhien,
 } from "@/app/admin/huong-dan/actions";
 import { ArticleDraftContentEditor } from "@/components/article/draft/ArticleDraftContentEditor";
@@ -335,6 +338,60 @@ export function HelpCenterGuidePanel({
     });
   }
 
+  function deletePhien(phien: ViewPhien) {
+    if (!activeNhom || !phien.id) return;
+    if (
+      !window.confirm(
+        `Xoá phần «${phien.tieuDe}»? Phần sẽ ẩn khỏi hướng dẫn công khai.`,
+      )
+    ) {
+      return;
+    }
+    setMsg(null);
+    const remaining = activeNhom.phien.filter((p) => p.id !== phien.id);
+    const nextPhien = remaining[0]?.slug ?? null;
+    startTransition(async () => {
+      const res = await adminDeleteHuongDanPhien(phien.id);
+      if (!res.ok) {
+        setMsg(res.message);
+        return;
+      }
+      await refreshAdmin();
+      setEditing(false);
+      setDraft(null);
+      setPhienSlug(nextPhien ?? "");
+      onNavigate?.(activeNhom.slug, nextPhien);
+    });
+  }
+
+  function deleteNhom(nhom: ViewNhom) {
+    if (
+      !window.confirm(
+        `Xoá nhóm «${nhom.ten}» và mọi phần bên trong? Nhóm sẽ ẩn khỏi hướng dẫn công khai.`,
+      )
+    ) {
+      return;
+    }
+    setMsg(null);
+    const remaining = nhomList.filter((n) => n.slug !== nhom.slug);
+    const nextNhom = remaining[0] ?? null;
+    const nextPhien = nextNhom?.phien[0]?.slug ?? null;
+    startTransition(async () => {
+      const res = await adminDeleteHuongDanNhom(nhom.slug);
+      if (!res.ok) {
+        setMsg(res.message);
+        return;
+      }
+      await refreshAdmin();
+      setCreatingNhom(false);
+      setEditing(false);
+      setDraft(null);
+      setNhomSlug(nextNhom?.slug ?? "");
+      setPhienSlug(nextPhien ?? "");
+      onNavigate?.(nextNhom?.slug ?? null, nextPhien);
+    });
+  }
+
   if (isCinsAdmin && adminLoading && !adminNhom) {
     return (
       <div className="uas-layout help-guide-layout">
@@ -404,17 +461,50 @@ export function HelpCenterGuidePanel({
   return (
     <div className="uas-layout help-guide-layout">
       <nav className="uas-nav" aria-label="Nhóm hướng dẫn">
-        {nhomList.map((nhom) => (
-          <button
-            key={nhom.slug}
-            type="button"
-            className={`uas-nav-btn${activeNhom?.slug === nhom.slug ? " on" : ""}`}
-            aria-current={activeNhom?.slug === nhom.slug ? "true" : undefined}
-            onClick={() => selectNhom(nhom.slug)}
-          >
-            {nhom.ten}
-          </button>
-        ))}
+        {nhomList.map((nhom) => {
+          const active = activeNhom?.slug === nhom.slug;
+          if (!isCinsAdmin) {
+            return (
+              <button
+                key={nhom.slug}
+                type="button"
+                className={`uas-nav-btn${active ? " on" : ""}`}
+                aria-current={active ? "true" : undefined}
+                onClick={() => selectNhom(nhom.slug)}
+              >
+                {nhom.ten}
+              </button>
+            );
+          }
+          return (
+            <div
+              key={nhom.slug}
+              className={`help-guide-nav-row${active ? " on" : ""}`}
+            >
+              <button
+                type="button"
+                className={`uas-nav-btn${active ? " on" : ""}`}
+                aria-current={active ? "true" : undefined}
+                onClick={() => selectNhom(nhom.slug)}
+              >
+                {nhom.ten}
+              </button>
+              <button
+                type="button"
+                className="help-guide-nav-del"
+                disabled={pending}
+                aria-label={`Xoá nhóm ${nhom.ten}`}
+                title="Xoá nhóm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  deleteNhom(nhom);
+                }}
+              >
+                <Trash2 size={13} aria-hidden />
+              </button>
+            </div>
+          );
+        })}
         {isCinsAdmin ? (
           <button
             type="button"
@@ -513,6 +603,7 @@ export function HelpCenterGuidePanel({
                     ? "Cuộn xem từng phần · thêm hoặc sửa nội dung hướng dẫn."
                     : "Cuộn xuống để xem lần lượt từng phần hướng dẫn."}
                 </p>
+                {msg ? <p className="help-guide-admin-msg">{msg}</p> : null}
               </div>
               {isCinsAdmin ? (
                 <div className="help-guide-toolbar">
@@ -674,32 +765,57 @@ export function HelpCenterGuidePanel({
                 </div>
 
                 <footer className="help-guide-editor-foot">
-                  <button
-                    type="button"
-                    className="uas-btn ghost"
-                    disabled={pending}
-                    onClick={() => {
-                      setEditing(false);
-                      setDraft(null);
-                    }}
-                  >
-                    Huỷ
-                  </button>
-                  <button
-                    type="button"
-                    className="uas-btn primary"
-                    disabled={pending || !draft.tieuDe.trim()}
-                    onClick={savePhien}
-                  >
-                    {pending ? (
-                      <Loader2
-                        size={15}
-                        className="help-guide-spin"
-                        aria-hidden
-                      />
-                    ) : null}
-                    Lưu phần
-                  </button>
+                  {draft.id ? (
+                    <button
+                      type="button"
+                      className="uas-btn ghost help-guide-delete-btn"
+                      disabled={pending}
+                      onClick={() =>
+                        deletePhien({
+                          id: draft.id!,
+                          slug: draft.slug,
+                          tieuDe: draft.tieuDe,
+                          videoUrl: draft.videoUrl,
+                          noiDungHtml: draft.noiDungHtml,
+                          thuTu: draft.thuTu,
+                          daXuatBan: draft.daXuatBan,
+                        })
+                      }
+                    >
+                      <Trash2 size={14} aria-hidden />
+                      Xoá phần
+                    </button>
+                  ) : (
+                    <span />
+                  )}
+                  <div className="help-guide-editor-foot-end">
+                    <button
+                      type="button"
+                      className="uas-btn ghost"
+                      disabled={pending}
+                      onClick={() => {
+                        setEditing(false);
+                        setDraft(null);
+                      }}
+                    >
+                      Huỷ
+                    </button>
+                    <button
+                      type="button"
+                      className="uas-btn primary"
+                      disabled={pending || !draft.tieuDe.trim()}
+                      onClick={savePhien}
+                    >
+                      {pending ? (
+                        <Loader2
+                          size={15}
+                          className="help-guide-spin"
+                          aria-hidden
+                        />
+                      ) : null}
+                      Lưu phần
+                    </button>
+                  </div>
                 </footer>
               </section>
             ) : (
@@ -736,17 +852,30 @@ export function HelpCenterGuidePanel({
                             </div>
                           </div>
                           {isCinsAdmin ? (
-                            <button
-                              type="button"
-                              className="help-guide-tool-btn"
-                              onClick={() => {
-                                selectPhien(phien.slug);
-                                startEdit(phien);
-                              }}
-                            >
-                              <Pencil size={14} aria-hidden />
-                              Sửa
-                            </button>
+                            <div className="help-guide-phien-actions">
+                              <button
+                                type="button"
+                                className="help-guide-tool-btn"
+                                disabled={pending}
+                                onClick={() => {
+                                  selectPhien(phien.slug);
+                                  startEdit(phien);
+                                }}
+                              >
+                                <Pencil size={14} aria-hidden />
+                                Sửa
+                              </button>
+                              <button
+                                type="button"
+                                className="help-guide-tool-btn danger"
+                                disabled={pending}
+                                aria-label={`Xoá phần ${phien.tieuDe}`}
+                                onClick={() => deletePhien(phien)}
+                              >
+                                <Trash2 size={14} aria-hidden />
+                                Xoá
+                              </button>
+                            </div>
                           ) : null}
                         </header>
 
