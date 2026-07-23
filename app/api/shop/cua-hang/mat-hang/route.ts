@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
 
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
-import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { getShopCuaHangByUserId } from "@/lib/shop/cua-hang";
+import { shopSlugFromTen } from "@/lib/shop/cua-hang-href";
 import {
   listShopStorefrontItems,
   listShopStorefrontNhomCards,
 } from "@/lib/shop/storefront";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 async function resolveOwner(opts: {
   userId?: string | null;
@@ -49,21 +51,22 @@ export async function GET(request: Request) {
   const asOwner = session?.profile?.id === owner.id;
 
   try {
+    const shop = await getShopCuaHangByUserId(owner.id);
+    const shopSlug = shopSlugFromTen(shop?.ten, owner.slug);
     const [nhomCards, items] = await Promise.all([
       listShopStorefrontNhomCards({
         sellerId: owner.id,
         ownerSlug: owner.slug,
+        shopSlug,
         asOwner,
-        limit: 100,
       }),
       listShopStorefrontItems({
         sellerId: owner.id,
         ownerSlug: owner.slug,
         asOwner,
-        limit: 100,
       }),
     ]);
-    return NextResponse.json({ nhomCards, items });
+    return NextResponse.json({ nhomCards, items, shopSlug });
   } catch (e) {
     console.error("[api/shop/cua-hang/mat-hang]", e);
     return NextResponse.json({ error: "Không tải được hàng." }, { status: 500 });

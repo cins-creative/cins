@@ -9,6 +9,8 @@ type Props = {
   autoIntent?: "login" | "register" | null;
   resumeAfterRedirect?: boolean;
   returnPath?: string | null;
+  /** «Thêm tài khoản» từ menu user — `/login?them=1`. */
+  addAccount?: boolean;
 };
 
 /** Thẻ đăng nhập dùng chung — trang /login và cột sticky trên home guest. */
@@ -19,6 +21,7 @@ export function HomeLoginCard({
   autoIntent = null,
   resumeAfterRedirect = false,
   returnPath = null,
+  addAccount = false,
 }: Props) {
   return (
     <section
@@ -43,6 +46,7 @@ export function HomeLoginCard({
         autoIntent={autoIntent}
         resumeAfterRedirect={resumeAfterRedirect}
         returnPath={returnPath}
+        addAccount={addAccount}
       />
 
       <ul className="cins-login-bullets" aria-label="Lợi ích tài khoản CINs">

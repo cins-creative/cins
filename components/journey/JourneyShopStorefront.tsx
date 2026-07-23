@@ -1,6 +1,14 @@
 "use client";
 
-import { Camera, Loader2, Plus, Search, ShoppingBag, Star, X } from "lucide-react";
+import {
+  Camera,
+  Loader2,
+  Minus,
+  Plus,
+  Search,
+  Star,
+  X,
+} from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import {
@@ -16,7 +24,6 @@ import { useAuthGate } from "@/components/auth/AuthGateProvider";
 import { JourneyShopSfHero } from "@/components/journey/JourneyShopSfHero";
 import {
   GIO_CHUNG_CHANGED_EVENT,
-  GIO_CHUNG_OPEN_EVENT,
 } from "@/components/shop/ShopGioChungButton";
 import { ShopTamDongOverlay } from "@/components/shop/ShopTamDongOverlay";
 import { writeShopCuaHangCache } from "@/lib/shop/client-fetch-cache";
@@ -31,6 +38,8 @@ import {
 } from "@/lib/shop/types";
 import { isShopTamDongActive } from "@/lib/shop/tam-dong";
 
+/** Debounce sync giỏ — gộp nhiều lần bấm ± thành 1 PATCH. */
+const QTY_SYNC_MS = 200;
 type HeroChrome = {
   actions: ReactNode;
 };
@@ -38,6 +47,8 @@ type HeroChrome = {
 type Props = {
   ownerSlug: string;
   ownerId: string;
+  /** Segment URL cửa hàng (slugify từ tên). */
+  shopSlug: string;
   cuaHangId: string | null;
   shopName: string;
   shopMoTa: string | null;
@@ -85,10 +96,12 @@ function CardMoTa({ moTa }: { moTa: string }) {
 function TypeCard({
   card,
   ownerSlug,
+  shopSlug,
   featureChrome = false,
 }: {
   card: ShopStorefrontNhomCard;
   ownerSlug: string;
+  shopSlug: string;
   /** Hiển thị viền/badge Feature — chỉ block «Các mặt hàng phổ biến». */
   featureChrome?: boolean;
 }) {
@@ -101,7 +114,7 @@ function TypeCard({
           : formatGia(card.giaTu, card.tienTe)
         : "Chưa có giá";
   const href =
-    card.href?.trim() || shopLoaiHref(ownerSlug, card.id);
+    card.href?.trim() || shopLoaiHref(ownerSlug, shopSlug, card.id);
   const showFeature = featureChrome && card.noiBat;
 
   return (
@@ -162,20 +175,22 @@ function TypeCard({
 function ItemCard({
   item,
   ownerSlug,
+  shopSlug,
   canShop,
-  adding,
-  onAdd,
+  qty,
+  onQtyChange,
   featured = false,
 }: {
   item: ShopStorefrontItem;
   ownerSlug: string;
+  shopSlug: string;
   canShop: boolean;
-  adding: boolean;
-  onAdd: (item: ShopStorefrontItem) => void;
+  qty: number;
+  onQtyChange: (item: ShopStorefrontItem, next: number) => void;
   featured?: boolean;
 }) {
   const nhomId = item.idNhom?.trim() || SHOP_STOREFRONT_KHAC_SLUG;
-  const href = shopLoaiMauHref(ownerSlug, nhomId, item.sanPhamId);
+  const href = shopLoaiMauHref(ownerSlug, shopSlug, nhomId, item.sanPhamId);
   const giaLabel =
     item.giaHienThi != null
       ? formatGia(item.giaHienThi, item.tienTe)
@@ -189,6 +204,7 @@ function ItemCard({
     Boolean(item.idBienThe) &&
     !item.hetHang &&
     item.giaHienThi != null;
+  const maxQty = Math.max(0, item.soLuongTon);
   /** Badge ngôi sao — không dùng stroke chạy (`.is-feature`). */
   const showBadge = featured || item.noiBat;
 
@@ -237,19 +253,37 @@ function ItemCard({
             </span>
           </span>
           {canShop ? (
-            <button
-              type="button"
-              className="j-shop-sf-add"
-              disabled={!canBuy || adding}
-              aria-label={`Thêm ${item.tenSanPham} vào giỏ`}
-              onClick={() => onAdd(item)}
-            >
-              {adding ? (
-                <Loader2 size={14} className="shop-spin" aria-hidden />
-              ) : (
+            qty > 0 ? (
+              <span className="j-shop-sf-qty">
+                <button
+                  type="button"
+                  aria-label="Bớt"
+                  disabled={qty <= 0}
+                  onClick={() => onQtyChange(item, qty - 1)}
+                >
+                  <Minus size={12} strokeWidth={2.5} aria-hidden />
+                </button>
+                <span>{qty}</span>
+                <button
+                  type="button"
+                  aria-label="Thêm"
+                  disabled={qty >= maxQty}
+                  onClick={() => onQtyChange(item, qty + 1)}
+                >
+                  <Plus size={12} strokeWidth={2.5} aria-hidden />
+                </button>
+              </span>
+            ) : (
+              <button
+                type="button"
+                className="j-shop-sf-add"
+                disabled={!canBuy}
+                aria-label={`Thêm ${item.tenSanPham} vào giỏ`}
+                onClick={() => onQtyChange(item, 1)}
+              >
                 <Plus size={15} strokeWidth={2.5} aria-hidden />
-              )}
-            </button>
+              </button>
+            )
           ) : null}
         </span>
       </span>
@@ -453,6 +487,7 @@ function ShopEventBanner({
 export function JourneyShopStorefront({
   ownerSlug,
   ownerId,
+  shopSlug,
   cuaHangId,
   shopName,
   shopMoTa,
@@ -476,10 +511,15 @@ export function JourneyShopStorefront({
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const deferredSearch = useDeferredValue(search);
-  const [cartCount, setCartCount] = useState(0);
-  const [addingId, setAddingId] = useState<string | null>(null);
+  /** idBienThe → số lượng trong giỏ (seller này). */
+  const [qtyByBt, setQtyByBt] = useState<Map<string, number>>(new Map());
   const [addErr, setAddErr] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
+  const pendingQtyRef = useRef(new Map<string, number>());
+  const syncTimersRef = useRef(
+    new Map<string, ReturnType<typeof setTimeout>>(),
+  );
+  const qtyEpochRef = useRef(new Map<string, number>());
   const tamDongFields = {
     tamDong: tamDongActive,
     tamDongTu,
@@ -495,19 +535,34 @@ export function JourneyShopStorefront({
     return () => window.clearInterval(id);
   }, [tamDongActive, tamDongDen]);
 
-  const applyGioCount = useCallback(
+  useEffect(() => {
+    const timers = syncTimersRef.current;
+    const pending = pendingQtyRef.current;
+    return () => {
+      for (const t of timers.values()) clearTimeout(t);
+      timers.clear();
+      pending.clear();
+    };
+  }, []);
+
+  const applyGio = useCallback(
     (gio: ShopGioChung | null | undefined) => {
       if (!gio) return;
       const nhom = gio.nhom.find((n) => n.idNguoiBan === ownerId);
-      const n = nhom
-        ? nhom.dong.reduce((s, d) => s + d.soLuong, 0)
-        : 0;
-      setCartCount(n);
+      const map = new Map<string, number>();
+      for (const d of nhom?.dong ?? []) {
+        map.set(d.idBienThe, d.soLuong);
+      }
+      for (const [bt, q] of pendingQtyRef.current) {
+        if (q <= 0) map.delete(bt);
+        else map.set(bt, q);
+      }
+      setQtyByBt(map);
     },
     [ownerId],
   );
 
-  const refreshGioCount = useCallback(async () => {
+  const refreshGio = useCallback(async () => {
     if (!canShop || !viewerProfileId) return;
     try {
       const gRes = await fetch("/api/shop/gio-chung", { cache: "no-store" });
@@ -515,47 +570,86 @@ export function JourneyShopStorefront({
         gio?: ShopGioChung;
       } | null;
       if (!gRes.ok || !gJson?.gio) return;
-      applyGioCount(gJson.gio);
+      applyGio(gJson.gio);
     } catch {
       /* ignore */
     }
-  }, [canShop, viewerProfileId, applyGioCount]);
+  }, [canShop, viewerProfileId, applyGio]);
 
-  const addItemToCart = useCallback(
-    async (item: ShopStorefrontItem) => {
-      if (!viewerProfileId) {
-        openAuthModal("Đăng nhập để thêm vào giỏ.");
-        return;
-      }
-      if (!item.idBienThe || item.hetHang || item.giaHienThi == null) return;
-      setAddingId(item.sanPhamId);
-      setAddErr(null);
-      setCartCount((c) => c + 1);
+  const flushQtySync = useCallback(
+    async (idBienThe: string) => {
+      const soLuong = pendingQtyRef.current.get(idBienThe);
+      if (soLuong === undefined) return;
+      pendingQtyRef.current.delete(idBienThe);
+      const epoch = qtyEpochRef.current.get(idBienThe) ?? 0;
       try {
         const res = await fetch("/api/shop/gio-chung", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ idBienThe: item.idBienThe, delta: 1 }),
+          body: JSON.stringify({ idBienThe, soLuong }),
         });
         const json = (await res.json().catch(() => null)) as {
           gio?: ShopGioChung;
           error?: string;
         } | null;
-        if (!res.ok) {
-          setCartCount((c) => Math.max(0, c - 1));
-          setAddErr(json?.error ?? "Không thêm vào giỏ.");
+        if ((qtyEpochRef.current.get(idBienThe) ?? 0) !== epoch) return;
+        if (!res.ok || !json?.gio) {
+          setAddErr(json?.error ?? "Không cập nhật giỏ.");
+          await refreshGio();
           return;
         }
-        applyGioCount(json?.gio);
+        applyGio(json.gio);
         window.dispatchEvent(new Event(GIO_CHUNG_CHANGED_EVENT));
       } catch {
-        setCartCount((c) => Math.max(0, c - 1));
-        setAddErr("Không thêm vào giỏ.");
-      } finally {
-        setAddingId(null);
+        if ((qtyEpochRef.current.get(idBienThe) ?? 0) !== epoch) return;
+        setAddErr("Không cập nhật giỏ.");
+        await refreshGio();
       }
     },
-    [viewerProfileId, openAuthModal, applyGioCount],
+    [applyGio, refreshGio],
+  );
+
+  const patchQty = useCallback(
+    (item: ShopStorefrontItem, soLuong: number) => {
+      if (!viewerProfileId) {
+        openAuthModal("Đăng nhập để thêm vào giỏ.");
+        return;
+      }
+      if (!item.idBienThe || item.giaHienThi == null) return;
+      const idBienThe = item.idBienThe;
+      const cap = Math.max(0, item.soLuongTon);
+      const qty = Math.min(Math.max(0, Math.trunc(soLuong)), cap);
+      if (soLuong > qty && item.soLuongTon > 0) {
+        setAddErr(`Chỉ còn ${item.soLuongTon} trong kho.`);
+      } else if (item.soLuongTon <= 0 && soLuong > 0) {
+        setAddErr("Hết hàng — không thêm vào giỏ được.");
+      } else {
+        setAddErr(null);
+      }
+
+      qtyEpochRef.current.set(
+        idBienThe,
+        (qtyEpochRef.current.get(idBienThe) ?? 0) + 1,
+      );
+      setQtyByBt((prev) => {
+        const next = new Map(prev);
+        if (qty <= 0) next.delete(idBienThe);
+        else next.set(idBienThe, qty);
+        return next;
+      });
+
+      pendingQtyRef.current.set(idBienThe, qty);
+      const prevTimer = syncTimersRef.current.get(idBienThe);
+      if (prevTimer) clearTimeout(prevTimer);
+      syncTimersRef.current.set(
+        idBienThe,
+        setTimeout(() => {
+          syncTimersRef.current.delete(idBienThe);
+          void flushQtySync(idBienThe);
+        }, QTY_SYNC_MS),
+      );
+    },
+    [viewerProfileId, openAuthModal, flushQtySync],
   );
 
   useEffect(() => {
@@ -577,7 +671,7 @@ export function JourneyShopStorefront({
           setItems(res.ok ? (json?.items ?? []) : []);
         }
         if (!cancelled && canShop && viewerProfileId) {
-          await refreshGioCount();
+          await refreshGio();
         }
       } catch {
         if (!cancelled) {
@@ -591,22 +685,17 @@ export function JourneyShopStorefront({
     return () => {
       cancelled = true;
     };
-  }, [ownerSlug, canShop, viewerProfileId, refreshGioCount]);
+  }, [ownerSlug, canShop, viewerProfileId, refreshGio]);
 
   useEffect(() => {
-    if (!canShop || !viewerProfileId) return;
-    const onChanged = () => void refreshGioCount();
-    window.addEventListener(GIO_CHUNG_CHANGED_EVENT, onChanged);
-    return () => window.removeEventListener(GIO_CHUNG_CHANGED_EVENT, onChanged);
-  }, [canShop, viewerProfileId, refreshGioCount]);
-
-  const openCartDialog = useCallback(() => {
-    if (!viewerProfileId) {
-      openAuthModal("Đăng nhập để xem giỏ.");
+    if (!canShop || !viewerProfileId) {
+      setQtyByBt(new Map());
       return;
     }
-    window.dispatchEvent(new Event(GIO_CHUNG_OPEN_EVENT));
-  }, [viewerProfileId, openAuthModal]);
+    const onChanged = () => void refreshGio();
+    window.addEventListener(GIO_CHUNG_CHANGED_EVENT, onChanged);
+    return () => window.removeEventListener(GIO_CHUNG_CHANGED_EVENT, onChanged);
+  }, [canShop, viewerProfileId, refreshGio]);
 
   const searchActive = deferredSearch.trim().length > 0;
   const searchQ = deferredSearch.trim().toLowerCase();
@@ -673,6 +762,8 @@ export function JourneyShopStorefront({
         shopAvatarUrl={shopAvatarUrl}
         shopCoverUrl={shopCoverUrl}
         initials={initials}
+        ownerSlug={ownerSlug}
+        showBackProfile
       />
 
       <div className="j-shop-sf-section-head">
@@ -707,25 +798,6 @@ export function JourneyShopStorefront({
             <span className="j-shop-sf-section-spacer" aria-hidden />
           )}
           {ownerChrome?.actions ?? guestChrome?.actions}
-          {canShop ? (
-            <button
-              type="button"
-              className={`j-shop-sf-cart-btn${cartCount > 0 ? " has-items" : ""}`}
-              aria-label={
-                cartCount > 0
-                  ? `Giỏ chờ mua, ${cartCount} món`
-                  : "Giỏ chờ mua"
-              }
-              onClick={openCartDialog}
-            >
-              <ShoppingBag size={18} strokeWidth={2} aria-hidden />
-              {cartCount > 0 ? (
-                <span className="j-shop-sf-cart-count" aria-hidden>
-                  {cartCount > 99 ? "99+" : cartCount}
-                </span>
-              ) : null}
-            </button>
-          ) : null}
         </div>
       </div>
 
@@ -766,6 +838,7 @@ export function JourneyShopStorefront({
                       <TypeCard
                         card={card}
                         ownerSlug={ownerSlug}
+                        shopSlug={shopSlug}
                         featureChrome
                       />
                     </li>
@@ -797,9 +870,14 @@ export function JourneyShopStorefront({
                       <ItemCard
                         item={item}
                         ownerSlug={ownerSlug}
+                        shopSlug={shopSlug}
                         canShop={canShop}
-                        adding={addingId === item.sanPhamId}
-                        onAdd={addItemToCart}
+                        qty={
+                          item.idBienThe
+                            ? (qtyByBt.get(item.idBienThe) ?? 0)
+                            : 0
+                        }
+                        onQtyChange={patchQty}
                         featured
                       />
                     </li>
@@ -820,9 +898,14 @@ export function JourneyShopStorefront({
                       <ItemCard
                         item={item}
                         ownerSlug={ownerSlug}
+                        shopSlug={shopSlug}
                         canShop={canShop}
-                        adding={addingId === item.sanPhamId}
-                        onAdd={addItemToCart}
+                        qty={
+                          item.idBienThe
+                            ? (qtyByBt.get(item.idBienThe) ?? 0)
+                            : 0
+                        }
+                        onQtyChange={patchQty}
                       />
                     </li>
                   ))}
@@ -839,7 +922,11 @@ export function JourneyShopStorefront({
                 <ul className="j-shop-sf-grid">
                   {filteredCards.map((card) => (
                     <li key={card.id}>
-                      <TypeCard card={card} ownerSlug={ownerSlug} />
+                      <TypeCard
+                        card={card}
+                        ownerSlug={ownerSlug}
+                        shopSlug={shopSlug}
+                      />
                     </li>
                   ))}
                 </ul>

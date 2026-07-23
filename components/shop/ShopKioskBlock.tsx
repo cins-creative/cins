@@ -9,11 +9,23 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type MouseEvent as ReactMouseEvent,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 import { createPortal } from "react-dom";
 
 import { useCinsChat } from "@/components/cins/CinsChatProvider";
 import { GIO_CHUNG_CHANGED_EVENT } from "@/components/shop/ShopGioChungButton";
+import {
+  shopPublicHref,
+  shopSlugFromTen,
+} from "@/lib/shop/cua-hang-href";
 import type { ShopGioChung, ShopPostHangItem } from "@/lib/shop/types";
 
 import "./shop-kiosk-block.css";
@@ -81,6 +93,157 @@ export function ShopKioskBlock({
   );
   /** Tăng mỗi lần đổi qty — bỏ qua PATCH response cũ. */
   const qtyEpochRef = useRef(new Map<string, number>());
+
+  const tickerTrackRef = useRef<HTMLDivElement>(null);
+  const tickerDragRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    originX: number;
+    active: boolean;
+  } | null>(null);
+  const tickerSuppressClickRef = useRef(false);
+  const [tickerDragging, setTickerDragging] = useState(false);
+
+  const TICKER_DUR_SEC = 32;
+
+  const readTickerX = useCallback((el: HTMLElement) => {
+    const t = getComputedStyle(el).transform;
+    if (!t || t === "none") return 0;
+    try {
+      return new DOMMatrixReadOnly(t).m41;
+    } catch {
+      return 0;
+    }
+  }, []);
+
+  const normalizeTickerX = useCallback((x: number, shift: number) => {
+    if (shift <= 0) return x;
+    let n = ((x % shift) + shift) % shift;
+    if (n > 0) n -= shift;
+    return n;
+  }, []);
+
+  const resumeTickerAt = useCallback((track: HTMLElement, x: number) => {
+    const shift = track.offsetWidth / 2;
+    const pos = normalizeTickerX(x, shift);
+    const progress =
+      shift > 0 ? Math.min(1, Math.max(0, -pos / shift)) : 0;
+    const delaySec = -progress * TICKER_DUR_SEC;
+    track.style.animation = "none";
+    track.style.transform = `translateX(${pos}px)`;
+    void track.offsetWidth;
+    track.style.removeProperty("transform");
+    track.style.removeProperty("animation");
+    track.style.animationDelay = `${delaySec}s`;
+  }, [normalizeTickerX]);
+
+  const onTickerPointerDown = useCallback(
+    (e: ReactPointerEvent<HTMLDivElement>) => {
+      if (e.button !== 0) return;
+      if (
+        typeof window !== "undefined" &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      ) {
+        return;
+      }
+      const track = tickerTrackRef.current;
+      if (!track || track.offsetWidth / 2 <= 0) return;
+      const x = readTickerX(track);
+      track.style.animation = "none";
+      track.style.transform = `translateX(${x}px)`;
+      tickerDragRef.current = {
+        pointerId: e.pointerId,
+        startX: e.clientX,
+        startY: e.clientY,
+        originX: x,
+        active: false,
+      };
+    },
+    [readTickerX],
+  );
+
+  const onTickerPointerMove = useCallback(
+    (e: ReactPointerEvent<HTMLDivElement>) => {
+      const drag = tickerDragRef.current;
+      const track = tickerTrackRef.current;
+      if (!drag || drag.pointerId !== e.pointerId || !track) return;
+      const shift = track.offsetWidth / 2;
+      const dx = e.clientX - drag.startX;
+      const dy = e.clientY - drag.startY;
+
+      if (!drag.active) {
+        if (Math.abs(dy) > 8 && Math.abs(dy) > Math.abs(dx)) {
+          tickerDragRef.current = null;
+          setTickerDragging(false);
+          resumeTickerAt(track, drag.originX);
+          return;
+        }
+      }
+
+      const next = normalizeTickerX(drag.originX + dx, shift);
+      track.style.transform = `translateX(${next}px)`;
+
+      if (!drag.active && Math.abs(dx) >= 2) {
+        drag.active = true;
+        setTickerDragging(true);
+        try {
+          e.currentTarget.setPointerCapture(e.pointerId);
+        } catch {
+          /* ignore */
+        }
+      }
+    },
+    [normalizeTickerX, resumeTickerAt],
+  );
+
+  const finishTickerDrag = useCallback(
+    (e: ReactPointerEvent<HTMLDivElement>) => {
+      const drag = tickerDragRef.current;
+      if (!drag || drag.pointerId !== e.pointerId) return;
+      tickerDragRef.current = null;
+      setTickerDragging(false);
+      if (e.currentTarget.hasPointerCapture?.(e.pointerId)) {
+        try {
+          e.currentTarget.releasePointerCapture(e.pointerId);
+        } catch {
+          /* ignore */
+        }
+      }
+
+      const track = tickerTrackRef.current;
+      if (!track) return;
+
+      if (!drag.active) {
+        resumeTickerAt(track, drag.originX);
+        return;
+      }
+
+      tickerSuppressClickRef.current = true;
+      const dx = e.clientX - drag.startX;
+      resumeTickerAt(track, drag.originX + dx);
+    },
+    [resumeTickerAt],
+  );
+
+  const onTickerLostPointerCapture = useCallback(
+    (e: ReactPointerEvent<HTMLDivElement>) => {
+      const drag = tickerDragRef.current;
+      if (!drag || drag.pointerId !== e.pointerId) return;
+      finishTickerDrag(e);
+    },
+    [finishTickerDrag],
+  );
+
+  const onTickerClickCapture = useCallback(
+    (e: ReactMouseEvent<HTMLDivElement>) => {
+      if (!tickerSuppressClickRef.current) return;
+      tickerSuppressClickRef.current = false;
+      e.preventDefault();
+      e.stopPropagation();
+    },
+    [],
+  );
 
   const isOwner =
     Boolean(viewerProfileId) &&
@@ -467,7 +630,10 @@ export function ShopKioskBlock({
                 <div>
                   {sellerSlug?.trim() ? (
                     <Link
-                      href={`/${sellerSlug.trim()}/shop`}
+                      href={shopPublicHref(
+                        sellerSlug.trim(),
+                        shopSlugFromTen(sellerLabel, sellerSlug.trim()),
+                      )}
                       className="shop-kiosk-catalog-kicker shop-kiosk-catalog-kicker-link"
                       onClick={(e) => e.stopPropagation()}
                     >
@@ -681,12 +847,15 @@ export function ShopKioskBlock({
           aria-label={`Hàng bán · ${items.length} sản phẩm`}
         >
           <div
-            className="shop-kiosk-ticker is-scroll"
-            onPointerDown={(e) => {
-              e.currentTarget.classList.add("is-paused");
-            }}
+            className={`shop-kiosk-ticker is-scroll${tickerDragging ? " is-dragging" : ""}`}
+            onPointerDown={onTickerPointerDown}
+            onPointerMove={onTickerPointerMove}
+            onPointerUp={finishTickerDrag}
+            onPointerCancel={finishTickerDrag}
+            onLostPointerCapture={onTickerLostPointerCapture}
+            onClickCapture={onTickerClickCapture}
           >
-            <div className="shop-kiosk-ticker-track">
+            <div ref={tickerTrackRef} className="shop-kiosk-ticker-track">
               {tickerItems.map((it, i) =>
                 it.anhUrl ? (
                   <button

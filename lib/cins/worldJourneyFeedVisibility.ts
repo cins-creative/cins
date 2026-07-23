@@ -3,6 +3,7 @@ import {
   applyVisibilityNgoaiLe,
   type VisibilityNgoaiLeEntry,
 } from "@/lib/journey/milestone-visibility-custom.shared";
+import { WORLD_JOURNEY_PUBLIC_GLOBAL_FEED } from "@/lib/cins/worldJourneyFeedConstants";
 
 /** Quan hệ viewer ↔ chủ cột mốc — dùng lọc feed trang chủ World Journey. */
 export type WorldJourneyViewerRelation = {
@@ -42,7 +43,8 @@ export const WORLD_JOURNEY_VISIBILITY_LABEL: Record<
  * Feed trang chủ World Journey — 3 lớp công khai (+ chỉ mình + cộng đồng scoped):
  *
  * • `feature` — portfolio / khoe: mọi người thấy (kể cả không bạn bè, không theo dõi).
- * • `public` — bạn bè hoặc người đang theo dõi tác giả.
+ * • `public` — cold start (`WORLD_JOURNEY_PUBLIC_GLOBAL_FEED`): mọi viewer;
+ *   tắt flag → L18 (bạn bè hoặc đang theo dõi tác giả).
  * • `theo_nhom` — chỉ bạn bè (2 chiều).
  * • `chi_minh` — chỉ chủ bài; không lên feed người khác.
  * • `cong_dong` — phân bổ theo quan hệ phòng (member / follow công khai / gợi ý).
@@ -66,7 +68,9 @@ export function isVisibleOnWorldJourneyFeed(
   } else if (cheDoHienThi === "feature") {
     baseVisible = true;
   } else if (cheDoHienThi === "public") {
-    baseVisible = viewerIsFriend || viewerIsFollowing;
+    baseVisible = WORLD_JOURNEY_PUBLIC_GLOBAL_FEED
+      ? true
+      : viewerIsFriend || viewerIsFollowing;
   } else if (cheDoHienThi === "theo_nhom") {
     baseVisible = viewerIsFriend;
   }

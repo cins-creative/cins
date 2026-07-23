@@ -25,6 +25,10 @@ import {
   MAX_CLOUDFLARE_IMAGE_UPLOAD_BYTES,
 } from "@/lib/cloudflare/image-upload-limits";
 import { isAllowedUploadImageFile } from "@/lib/files/infer-image-mime";
+import {
+  shopPublicHref,
+  shopSlugFromTen,
+} from "@/lib/shop/cua-hang-href";
 import { SHOP_BUYER_TRANSFER_DISCLAIMER } from "@/lib/shop/terms";
 import type {
   ShopDonHang,
@@ -543,7 +547,13 @@ function ShopGioChungGroup({ group, busyBt, onQty, onSent }: GroupProps) {
             <Store size={15} strokeWidth={1.9} aria-hidden />
           )}
           {group.sellerSlug ? (
-            <Link href={`/${group.sellerSlug}/shop`} className="gio-chung-shop-link">
+            <Link
+              href={shopPublicHref(
+                group.sellerSlug,
+                shopSlugFromTen(group.tenCuaHang, group.sellerSlug),
+              )}
+              className="gio-chung-shop-link"
+            >
               {group.tenCuaHang}
             </Link>
           ) : (

@@ -15,12 +15,15 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { getNameInitials } from "@/lib/journey/profile";
-import { shopPublicHref } from "@/lib/shop/cua-hang-href";
 import {
   fetchShopCuaHangClient,
   invalidateBanHangClientCache,
   writeShopCuaHangCache,
 } from "@/lib/shop/client-fetch-cache";
+import {
+  shopPublicHref,
+  shopSlugFromTen,
+} from "@/lib/shop/cua-hang-href";
 import type { ShopCuaHang, ShopPhuongThucTt } from "@/lib/shop/types";
 
 import "@/components/journey/journey-shop-view.css";
@@ -283,7 +286,9 @@ export function ShopOwnerEditor({ ownerSlug, ownerName }: Props) {
 
       {slug ? (
         <p className="j-shop-owner-editor-view">
-          <Link href={shopPublicHref(slug)}>Xem mặt tiền cửa hàng</Link>
+          <Link href={shopPublicHref(slug, shopSlugFromTen(ten || shop?.ten, slug))}>
+            Xem mặt tiền cửa hàng
+          </Link>
         </p>
       ) : null}
 

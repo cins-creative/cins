@@ -18,6 +18,11 @@ import {
 import { isShopTamDongActive } from "@/lib/shop/tam-dong";
 import { JourneyShopGuestActions } from "@/components/journey/JourneyShopGuestActions";
 import { JourneyShopStorefront } from "@/components/journey/JourneyShopStorefront";
+import { useJourneyViewOptional } from "@/components/journey/JourneyViewContext";
+import {
+  shopPublicHref,
+  shopSlugFromTen,
+} from "@/lib/shop/cua-hang-href";
 
 import "@/components/shop/shop-dashboard.css";
 import "./journey-shop-view.css";
@@ -44,11 +49,40 @@ export function JourneyShopView({
   viewerProfileId = null,
   ownerAvatarUrl = null,
 }: Props) {
+  const journeyView = useJourneyViewOptional();
+  const setShopSlugCtx = journeyView?.setShopSlug;
   const [shop, setShop] = useState<ShopCuaHang | null>(null);
   const [banHangBat, setBanHangBat] = useState(false);
   const [shopVisible, setShopVisible] = useState(false);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
+
+  const shopSlug = shopSlugFromTen(shop?.ten, ownerSlug);
+
+  useEffect(() => {
+    if (loading) return;
+    setShopSlugCtx?.(shopSlug);
+    if (typeof window === "undefined") return;
+    const canon = shopPublicHref(ownerSlug, shopSlug);
+    const path = window.location.pathname.replace(/\/+$/, "");
+    const entry = `/${encodeURIComponent(ownerSlug)}/shop`;
+    if (path.includes("/loai/")) return;
+    const onEntry = path === entry;
+    const onWrongSlug =
+      path.startsWith(`${entry}/`) && path !== canon;
+    if (onEntry || onWrongSlug) {
+      window.history.replaceState(
+        { journeyView: "shop", shopSlug },
+        "",
+        canon,
+      );
+      window.dispatchEvent(
+        new CustomEvent("cins:journey-path", {
+          detail: { pathname: canon },
+        }),
+      );
+    }
+  }, [loading, setShopSlugCtx, ownerSlug, shopSlug]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -166,6 +200,7 @@ export function JourneyShopView({
         <JourneyShopStorefront
           ownerSlug={ownerSlug}
           ownerId={ownerId}
+          shopSlug={shopSlug}
           cuaHangId={shop?.id ?? null}
           shopName={shopLabel}
           shopMoTa={shop?.moTa ?? null}
@@ -254,6 +289,7 @@ export function JourneyShopView({
                     <JourneyShopGuestActions
                       ownerId={ownerId}
                       ownerSlug={ownerSlug}
+                      shopSlug={shopSlug}
                       ownerName={ownerName}
                       ownerAvatarUrl={ownerAvatarUrl ?? shop?.avatarUrl ?? null}
                       viewerProfileId={viewerProfileId}

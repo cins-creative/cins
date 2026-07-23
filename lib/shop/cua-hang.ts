@@ -1,6 +1,10 @@
 import "server-only";
 
 import {
+  shopPublicHref as buildShopPublicHref,
+  shopSlugFromTen as buildShopSlugFromTen,
+} from "@/lib/shop/cua-hang-href";
+import {
   getBanHangEnabled,
   setBanHangEnabled,
   shopImageUrl,
@@ -613,9 +617,38 @@ export async function assertShopNotTamDongByCuaHangId(
 }
 
 export {
+  shopEntryHref,
   shopPublicHref,
   shopSetupHref,
+  shopSlugFromTen,
 } from "@/lib/shop/cua-hang-href";
+
+/** Resolve slug cửa hàng + href canonical từ slug hồ sơ chủ. */
+export async function resolveShopSlugForOwnerSlug(
+  ownerSlug: string,
+): Promise<{ shopSlug: string; href: string; ten: string | null } | null> {
+  const slug = ownerSlug.trim();
+  if (!slug) return null;
+  const admin = createServiceRoleClient();
+  const { data: owner, error: ownerErr } = await admin
+    .from("user_nguoi_dung")
+    .select("id, slug")
+    .eq("slug", slug)
+    .maybeSingle<{ id: string; slug: string }>();
+  if (ownerErr || !owner) return null;
+  const { data: shop } = await admin
+    .from("shop_cua_hang")
+    .select("ten")
+    .eq("id_nguoi_dung", owner.id)
+    .eq("da_xoa", false)
+    .maybeSingle<{ ten: string | null }>();
+  const shopSlug = buildShopSlugFromTen(shop?.ten, owner.slug);
+  return {
+    shopSlug,
+    href: buildShopPublicHref(owner.slug, shopSlug),
+    ten: shop?.ten ?? null,
+  };
+}
 
 export const SHOP_NOT_READY_MESSAGE =
   "Cần thêm tài khoản nhận tiền trong Shop trước khi thêm hàng hoặc nhận đơn.";

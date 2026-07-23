@@ -95,10 +95,17 @@ export function CoAuthorRoleInput({
     const node = inputRef.current;
     if (!node) return;
     const rect = node.getBoundingClientRect();
+    const gutter = 12;
+    const maxW = Math.max(160, window.innerWidth - gutter * 2);
+    const width = Math.min(Math.max(rect.width, 280), maxW);
+    const left = Math.min(
+      Math.max(gutter, rect.left),
+      window.innerWidth - gutter - width,
+    );
     setTipPos({
       top: rect.bottom + 6,
-      left: rect.left,
-      width: Math.max(rect.width, 280),
+      left,
+      width,
     });
   }, []);
 
@@ -239,12 +246,12 @@ export function CoAuthorRoleInput({
                     onClick={() => selectOption(option)}
                     onMouseEnter={() => setActiveIndex(index)}
                   >
-                    <span className="ed-coauthor-role-option-main">
-                      {option.linhVucTen ? (
-                        <span className="ed-coauthor-role-option-lv">
-                          {option.linhVucTen}
-                        </span>
-                      ) : null}
+                    {option.linhVucTen ? (
+                      <span className="ed-coauthor-role-option-lv">
+                        {option.linhVucTen}
+                      </span>
+                    ) : null}
+                    <span className="ed-coauthor-role-option-body">
                       <span className="ed-coauthor-role-option-title">
                         {option.roleShort}
                       </span>

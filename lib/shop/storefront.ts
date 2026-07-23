@@ -63,6 +63,10 @@ type HangRow = {
   thu_tu: number;
 };
 
+/** Trần an toàn — tránh một shop kéo vô hạn; phân trang 1000/lần. */
+const STOREFRONT_SP_MAX = 5000;
+const STOREFRONT_SP_PAGE = 1000;
+
 /**
  * Catalog mặt tiền cửa hàng: mọi sản phẩm đang bán (`dang_ban`),
  * không phụ thuộc gắn bài kiosk. Feature (`noi_bat`) + phân loại 1 để UI layout.
@@ -73,31 +77,51 @@ export async function listShopStorefrontItems(opts: {
   ownerSlug: string;
   /** Chủ shop xem preview kể cả khi chưa công khai / tắt bán hàng. */
   asOwner?: boolean;
+  /**
+   * Giới hạn số SP (mặc định lấy hết tới `STOREFRONT_SP_MAX`).
+   * Trước đây mặc định 100 / trần 200 khiến shop nhiều mẫu Shopee bị cắt.
+   */
   limit?: number;
+  /** Chỉ SP thuộc loại (`id_nhom`) — dùng trang chi tiết loại. */
+  idNhom?: string | null;
 }): Promise<ShopStorefrontItem[]> {
   if (!opts.asOwner) {
     const publicVisible = await getShopHienThi(opts.sellerId);
     if (!publicVisible) return [];
   }
-  const limit = Math.min(Math.max(opts.limit ?? 100, 1), 200);
+  const limit = Math.min(
+    Math.max(opts.limit ?? STOREFRONT_SP_MAX, 1),
+    STOREFRONT_SP_MAX,
+  );
+  const idNhom = opts.idNhom?.trim() || null;
   const admin = createServiceRoleClient();
 
-  const { data: spRows, error: spErr } = await admin
-    .from("shop_san_pham")
-    .select(
-      "id, ten, anh_id, phan_loai, phan_loai_2, id_nhom, dang_ban, noi_bat, tao_luc",
-    )
-    .eq("id_nguoi_dung", opts.sellerId)
-    .eq("da_xoa", false)
-    .eq("dang_ban", true)
-    .order("noi_bat", { ascending: false })
-    .order("tao_luc", { ascending: false })
-    .limit(limit);
-  if (spErr) {
-    console.error("[shop] listShopStorefrontItems sp", spErr);
-    return [];
+  const sps: SpRow[] = [];
+  let from = 0;
+  while (sps.length < limit) {
+    const pageSize = Math.min(STOREFRONT_SP_PAGE, limit - sps.length);
+    let q = admin
+      .from("shop_san_pham")
+      .select(
+        "id, ten, anh_id, phan_loai, phan_loai_2, id_nhom, dang_ban, noi_bat, tao_luc",
+      )
+      .eq("id_nguoi_dung", opts.sellerId)
+      .eq("da_xoa", false)
+      .eq("dang_ban", true)
+      .order("noi_bat", { ascending: false })
+      .order("tao_luc", { ascending: false })
+      .range(from, from + pageSize - 1);
+    if (idNhom) q = q.eq("id_nhom", idNhom);
+    const { data: spRows, error: spErr } = await q;
+    if (spErr) {
+      console.error("[shop] listShopStorefrontItems sp", spErr);
+      return [];
+    }
+    const batch = (spRows ?? []) as SpRow[];
+    sps.push(...batch);
+    if (batch.length < pageSize) break;
+    from += pageSize;
   }
-  const sps = (spRows ?? []) as SpRow[];
   if (sps.length === 0) return [];
 
   const nhomIds = [
@@ -118,12 +142,17 @@ export async function listShopStorefrontItems(opts: {
   }
 
   const spIds = sps.map((s) => s.id);
-  const { data: btRows } = await admin
-    .from("shop_bien_the")
-    .select("id, id_san_pham, nhan, so_luong_ton, anh_id")
-    .in("id_san_pham", spIds)
-    .eq("da_xoa", false);
-  const bts = (btRows ?? []) as BtRow[];
+  const bts: BtRow[] = [];
+  const IN_CHUNK = 120;
+  for (let i = 0; i < spIds.length; i += IN_CHUNK) {
+    const chunk = spIds.slice(i, i + IN_CHUNK);
+    const { data: btRows } = await admin
+      .from("shop_bien_the")
+      .select("id, id_san_pham, nhan, so_luong_ton, anh_id")
+      .in("id_san_pham", chunk)
+      .eq("da_xoa", false);
+    bts.push(...((btRows ?? []) as BtRow[]));
+  }
   const btBySp = new Map<string, BtRow[]>();
   for (const bt of bts) {
     const list = btBySp.get(bt.id_san_pham) ?? [];
@@ -181,13 +210,17 @@ export async function listShopStorefrontItems(opts: {
   >();
   const btIds = bts.map((b) => b.id);
   if (btIds.length > 0) {
-    const { data: hangRows } = await admin
-      .from("shop_post_hang")
-      .select("id, id_cot_moc, id_bien_the, thu_tu")
-      .in("id_bien_the", btIds)
-      .order("thu_tu", { ascending: true })
-      .limit(400);
-    const hangs = (hangRows ?? []) as HangRow[];
+    const hangs: HangRow[] = [];
+    for (let i = 0; i < btIds.length; i += IN_CHUNK) {
+      const chunk = btIds.slice(i, i + IN_CHUNK);
+      const { data: hangRows } = await admin
+        .from("shop_post_hang")
+        .select("id, id_cot_moc, id_bien_the, thu_tu")
+        .in("id_bien_the", chunk)
+        .order("thu_tu", { ascending: true })
+        .limit(400);
+      hangs.push(...((hangRows ?? []) as HangRow[]));
+    }
     if (hangs.length > 0) {
       const mocIds = [...new Set(hangs.map((h) => h.id_cot_moc))];
       const { data: mocRows } = await admin
@@ -252,21 +285,32 @@ export async function listShopStorefrontItems(opts: {
   /* Tổng SL đã bán theo biến thể. */
   const soldByBienThe = new Map<string, number>();
   if (btIds.length > 0) {
-    const { data: dongBan, error: soldErr } = await admin
-      .from("shop_don_hang_dong")
-      .select("id_bien_the, so_luong, shop_don_hang!inner(trang_thai)")
-      .in("id_bien_the", btIds);
+    type SoldRow = {
+      id_bien_the: string | null;
+      so_luong: number;
+      shop_don_hang:
+        | { trang_thai: string }
+        | { trang_thai: string }[]
+        | null;
+    };
+    const dongBan: SoldRow[] = [];
+    let soldErr: { message?: string } | null = null;
+    for (let i = 0; i < btIds.length; i += IN_CHUNK) {
+      const chunk = btIds.slice(i, i + IN_CHUNK);
+      const { data, error } = await admin
+        .from("shop_don_hang_dong")
+        .select("id_bien_the, so_luong, shop_don_hang!inner(trang_thai)")
+        .in("id_bien_the", chunk);
+      if (error) {
+        soldErr = error;
+        break;
+      }
+      dongBan.push(...((data ?? []) as SoldRow[]));
+    }
     if (soldErr) {
       console.error("[shop] listShopStorefrontItems sold", soldErr);
     } else {
-      for (const row of (dongBan ?? []) as Array<{
-        id_bien_the: string | null;
-        so_luong: number;
-        shop_don_hang:
-          | { trang_thai: string }
-          | { trang_thai: string }[]
-          | null;
-      }>) {
+      for (const row of dongBan) {
         if (!row.id_bien_the) continue;
         const don = Array.isArray(row.shop_don_hang)
           ? row.shop_don_hang[0]
@@ -356,6 +400,8 @@ export async function listShopStorefrontItems(opts: {
 export async function listShopStorefrontNhomCards(opts: {
   sellerId: string;
   ownerSlug: string;
+  /** Segment URL cửa hàng — bắt buộc cho href loại. */
+  shopSlug: string;
   asOwner?: boolean;
   limit?: number;
 }): Promise<ShopStorefrontNhomCard[]> {
@@ -500,7 +546,7 @@ export async function listShopStorefrontNhomCards(opts: {
         tienTe: a.tienTe,
         soLuongBan: a.soLuongBan,
         hetHang: !a.anyInStock,
-        href: shopLoaiHref(opts.ownerSlug, a.id),
+        href: shopLoaiHref(opts.ownerSlug, opts.shopSlug, a.id),
         diemTrungBinh,
         tongDanhGia: rating?.tong ?? 0,
         noiBat: a.noiBat,
@@ -680,43 +726,128 @@ export async function getShopStorefrontNhomDetail(opts: {
   nhomIdOrKhac: string;
   asOwner?: boolean;
 }): Promise<ShopStorefrontNhomDetail | null> {
+  const isKhac = opts.nhomIdOrKhac === SHOP_STOREFRONT_KHAC_SLUG;
+
+  /* Loại cụ thể: fetch đúng theo id_nhom (không lọc từ catalog toàn shop bị cắt). */
+  if (!isKhac) {
+    const filtered = await listShopStorefrontItems({
+      sellerId: opts.sellerId,
+      ownerSlug: opts.ownerSlug,
+      asOwner: opts.asOwner,
+      idNhom: opts.nhomIdOrKhac,
+    });
+    if (filtered.length === 0) return null;
+
+    let giaTu: number | null = null;
+    let giaDen: number | null = null;
+    let tienTe = "VND";
+    for (const item of filtered) {
+      if (item.giaHienThi == null) continue;
+      giaTu =
+        giaTu == null ? item.giaHienThi : Math.min(giaTu, item.giaHienThi);
+      giaDen =
+        giaDen == null ? item.giaHienThi : Math.max(giaDen, item.giaHienThi);
+      tienTe = item.tienTe || tienTe;
+    }
+
+    const admin = createServiceRoleClient();
+    const { data: nhom } = await admin
+      .from("shop_nhom")
+      .select(
+        "id, nhan, mo_ta, anh_id, overlay_anh_id, anh_phu_ids, video_phu_id, gia_mac_dinh, id_nguoi_dung, truc",
+      )
+      .eq("id", opts.nhomIdOrKhac)
+      .eq("id_nguoi_dung", opts.sellerId)
+      .eq("da_xoa", false)
+      .maybeSingle<{
+        id: string;
+        nhan: string;
+        mo_ta: string | null;
+        anh_id: string | null;
+        overlay_anh_id: string | null;
+        anh_phu_ids: string[] | null;
+        video_phu_id: string | null;
+        gia_mac_dinh: number | string | null;
+        id_nguoi_dung: string;
+        truc: number;
+      }>();
+    if (!nhom || nhom.truc !== 1) return null;
+
+    const mau = await buildMauFromItems(filtered);
+    const coverFallback =
+      mau.find((m) => m.anhUrl)?.anhUrl ??
+      mau.flatMap((m) => m.bienThe).find((b) => b.anhUrl)?.anhUrl ??
+      null;
+    const rawGia = nhom.gia_mac_dinh;
+    const giaN =
+      rawGia == null || rawGia === "" ? null : Number(rawGia);
+    const giaMacDinh =
+      giaN != null && Number.isFinite(giaN) && giaN >= 0 ? giaN : null;
+    const anhPhuIds = Array.isArray(nhom.anh_phu_ids)
+      ? nhom.anh_phu_ids
+          .filter((id): id is string => typeof id === "string" && Boolean(id.trim()))
+          .slice(0, 8)
+      : [];
+    const videoPhuId = nhom.video_phu_id?.trim() || null;
+    const libraryId = process.env.NEXT_PUBLIC_BUNNY_LIBRARY_ID?.trim();
+
+    return {
+      id: nhom.id,
+      nhan: nhom.nhan,
+      moTa: nhom.mo_ta?.trim() || null,
+      anhUrl: shopImageUrl(nhom.anh_id) ?? coverFallback,
+      overlayAnhUrl: shopImageUrl(nhom.overlay_anh_id),
+      anhPhuUrls: anhPhuIds
+        .map((id) => shopImageUrl(id))
+        .filter((u): u is string => Boolean(u)),
+      videoPhuId,
+      videoPhuEmbedUrl:
+        videoPhuId && libraryId
+          ? buildBunnyEmbedUrl(libraryId, videoPhuId)
+          : null,
+      videoPhuThumbUrl: videoPhuId
+        ? buildBunnyVideoThumbnailUrl(videoPhuId)
+        : null,
+      giaMacDinh,
+      giaTu: giaMacDinh ?? giaTu,
+      giaDen: giaMacDinh ?? giaDen,
+      tienTe,
+      sellerId: opts.sellerId,
+      ownerSlug: opts.ownerSlug,
+      mau,
+      isKhac: false,
+    };
+  }
+
   const items = await listShopStorefrontItems({
     sellerId: opts.sellerId,
     ownerSlug: opts.ownerSlug,
     asOwner: opts.asOwner,
-    limit: 200,
   });
   if (items.length === 0) return null;
 
-  const isKhac = opts.nhomIdOrKhac === SHOP_STOREFRONT_KHAC_SLUG;
-
-  let filtered: ShopStorefrontItem[];
-  if (isKhac) {
-    const linkedIds = [
-      ...new Set(
-        items
-          .map((i) => i.idNhom)
-          .filter((id): id is string => Boolean(id)),
-      ),
-    ];
-    const validNhom = new Set<string>();
-    if (linkedIds.length > 0) {
-      const admin = createServiceRoleClient();
-      const { data } = await admin
-        .from("shop_nhom")
-        .select("id")
-        .in("id", linkedIds)
-        .eq("da_xoa", false)
-        .eq("truc", 1)
-        .eq("id_nguoi_dung", opts.sellerId);
-      for (const n of (data ?? []) as Array<{ id: string }>) {
-        validNhom.add(n.id);
-      }
+  const linkedIds = [
+    ...new Set(
+      items
+        .map((i) => i.idNhom)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+  const validNhom = new Set<string>();
+  if (linkedIds.length > 0) {
+    const admin = createServiceRoleClient();
+    const { data } = await admin
+      .from("shop_nhom")
+      .select("id")
+      .in("id", linkedIds)
+      .eq("da_xoa", false)
+      .eq("truc", 1)
+      .eq("id_nguoi_dung", opts.sellerId);
+    for (const n of (data ?? []) as Array<{ id: string }>) {
+      validNhom.add(n.id);
     }
-    filtered = items.filter((i) => !i.idNhom || !validNhom.has(i.idNhom));
-  } else {
-    filtered = items.filter((i) => i.idNhom === opts.nhomIdOrKhac);
   }
+  const filtered = items.filter((i) => !i.idNhom || !validNhom.has(i.idNhom));
 
   if (filtered.length === 0) return null;
 
@@ -732,93 +863,28 @@ export async function getShopStorefrontNhomDetail(opts: {
     tienTe = item.tienTe || tienTe;
   }
 
-  if (isKhac) {
-    const mau = await buildMauFromItems(filtered);
-    const cover =
-      mau.find((m) => m.anhUrl)?.anhUrl ??
-      mau.flatMap((m) => m.bienThe).find((b) => b.anhUrl)?.anhUrl ??
-      null;
-    return {
-      id: SHOP_STOREFRONT_KHAC_SLUG,
-      nhan: "Khác",
-      moTa: null,
-      anhUrl: cover,
-      overlayAnhUrl: null,
-      anhPhuUrls: [],
-      videoPhuId: null,
-      videoPhuEmbedUrl: null,
-      videoPhuThumbUrl: null,
-      giaMacDinh: null,
-      giaTu,
-      giaDen,
-      tienTe,
-      sellerId: opts.sellerId,
-      ownerSlug: opts.ownerSlug,
-      mau,
-      isKhac: true,
-    };
-  }
-
-  const admin = createServiceRoleClient();
-  const { data: nhom } = await admin
-    .from("shop_nhom")
-    .select(
-      "id, nhan, mo_ta, anh_id, overlay_anh_id, anh_phu_ids, video_phu_id, gia_mac_dinh, id_nguoi_dung, truc",
-    )
-    .eq("id", opts.nhomIdOrKhac)
-    .eq("id_nguoi_dung", opts.sellerId)
-    .eq("da_xoa", false)
-    .maybeSingle<{
-      id: string;
-      nhan: string;
-      mo_ta: string | null;
-      anh_id: string | null;
-      overlay_anh_id: string | null;
-      anh_phu_ids: string[] | null;
-      video_phu_id: string | null;
-      gia_mac_dinh: number | string | null;
-      id_nguoi_dung: string;
-      truc: number;
-    }>();
-  if (!nhom || nhom.truc !== 1) return null;
-
   const mau = await buildMauFromItems(filtered);
-  const coverFallback =
+  const cover =
     mau.find((m) => m.anhUrl)?.anhUrl ??
     mau.flatMap((m) => m.bienThe).find((b) => b.anhUrl)?.anhUrl ??
     null;
-  const anhPhuUrls = (nhom.anh_phu_ids ?? [])
-    .filter((id): id is string => typeof id === "string" && Boolean(id.trim()))
-    .slice(0, 8)
-    .map((id) => shopImageUrl(id))
-    .filter((url): url is string => Boolean(url));
-  const videoId = nhom.video_phu_id?.trim() || null;
-  const libraryId = process.env.NEXT_PUBLIC_BUNNY_LIBRARY_ID?.trim();
-  const giaMac =
-    nhom.gia_mac_dinh == null || nhom.gia_mac_dinh === ""
-      ? null
-      : Number(nhom.gia_mac_dinh);
-  const giaMacDinh =
-    giaMac != null && Number.isFinite(giaMac) && giaMac >= 0 ? giaMac : null;
-
   return {
-    id: nhom.id,
-    nhan: nhom.nhan,
-    moTa: nhom.mo_ta?.trim() || null,
-    anhUrl: shopImageUrl(nhom.anh_id) ?? coverFallback,
-    overlayAnhUrl: shopImageUrl(nhom.overlay_anh_id),
-    anhPhuUrls,
-    videoPhuId: videoId,
-    videoPhuEmbedUrl:
-      videoId && libraryId ? buildBunnyEmbedUrl(libraryId, videoId) : null,
-    videoPhuThumbUrl: videoId ? buildBunnyVideoThumbnailUrl(videoId) : null,
-    giaMacDinh,
-    giaTu: giaMacDinh ?? giaTu,
-    giaDen: giaMacDinh ?? giaDen,
+    id: SHOP_STOREFRONT_KHAC_SLUG,
+    nhan: "Khác",
+    moTa: null,
+    anhUrl: cover,
+    overlayAnhUrl: null,
+    anhPhuUrls: [],
+    videoPhuId: null,
+    videoPhuEmbedUrl: null,
+    videoPhuThumbUrl: null,
+    giaMacDinh: null,
+    giaTu,
+    giaDen,
     tienTe,
     sellerId: opts.sellerId,
     ownerSlug: opts.ownerSlug,
     mau,
-    isKhac: false,
+    isKhac: true,
   };
 }

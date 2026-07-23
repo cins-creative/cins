@@ -27,12 +27,14 @@ import {
   useMemo,
   useRef,
   useState,
+  type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react";
 
 import { useAuthGate } from "@/components/auth/AuthGateProvider";
 import { JourneyShopGuestActions } from "@/components/journey/JourneyShopGuestActions";
 import { JourneyShopSfHero } from "@/components/journey/JourneyShopSfHero";
+import { useJourneyViewOptional } from "@/components/journey/JourneyViewContext";
 import {
   GIO_CHUNG_CHANGED_EVENT,
 } from "@/components/shop/ShopGioChungButton";
@@ -42,7 +44,7 @@ import {
   prefetchBanHangClientStatus,
 } from "@/lib/shop/client-fetch-cache";
 import { getNameInitials } from "@/lib/journey/profile";
-import { shopLoaiHref } from "@/lib/shop/cua-hang-href";
+import { shopLoaiHref, shopPublicHref, shopSlugFromTen } from "@/lib/shop/cua-hang-href";
 import { parseShopNhomMoTa } from "@/lib/shop/nhom-mo-ta";
 import { isShopTamDongActive } from "@/lib/shop/tam-dong";
 import { ShopTamDongOverlay } from "@/components/shop/ShopTamDongOverlay";
@@ -268,6 +270,7 @@ export function JourneyShopLoaiClient({
   ownerAvatarUrl = null,
 }: Props) {
   const { openAuthModal } = useAuthGate();
+  const setShopSlugCtx = useJourneyViewOptional()?.setShopSlug;
   const searchParams = useSearchParams();
   const mauFromQuery = searchParams.get("mau")?.trim() || null;
   const [detail, setDetail] = useState<ShopStorefrontNhomDetail | null>(null);
@@ -290,6 +293,17 @@ export function JourneyShopLoaiClient({
   const [otherNhom, setOtherNhom] = useState<ShopStorefrontNhomCard[]>([]);
   const moreTrackRef = useRef<HTMLDivElement>(null);
   const moreGroupRef = useRef<HTMLDivElement>(null);
+  const moreTickerRef = useRef<HTMLDivElement>(null);
+  const moreDragRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    originX: number;
+    /** Đã vuốt ngang → kéo thật (chặn click card). */
+    active: boolean;
+  } | null>(null);
+  const moreSuppressClickRef = useRef(false);
+  const [moreDragging, setMoreDragging] = useState(false);
   /** Số lần lặp list trong mỗi nửa ticker — đủ rộng để loop liền. */
   const [moreRepeat, setMoreRepeat] = useState(2);
   /** Pixel dịch đúng 1 nửa (tránh -50% lệch do padding/gap). */
@@ -321,7 +335,12 @@ export function JourneyShopLoaiClient({
   const [reviewErr, setReviewErr] = useState<string | null>(null);
   const reviewFileRef = useRef<HTMLInputElement>(null);
 
-  const shopHref = `/${encodeURIComponent(ownerSlug)}/shop`;
+  const shopSlug = shopSlugFromTen(shop?.ten, ownerSlug);
+  const shopHref = shopPublicHref(ownerSlug, shopSlug);
+
+  useEffect(() => {
+    setShopSlugCtx?.(shopSlug);
+  }, [setShopSlugCtx, shopSlug]);
 
   useLayoutEffect(() => {
     if (otherNhom.length === 0) return;
@@ -329,7 +348,7 @@ export function JourneyShopLoaiClient({
     const group = moreGroupRef.current;
     if (!track || !group) return;
 
-    const GAP = 10;
+    const GAP = 6;
     const update = () => {
       const trackW = track.offsetWidth;
       const cards = group.querySelectorAll<HTMLElement>(
@@ -369,6 +388,160 @@ export function JourneyShopLoaiClient({
     }
     return out;
   }, [otherNhom, moreRepeat]);
+
+  const moreDurSec = Math.max(
+    22,
+    moreShiftPx > 0
+      ? Math.round(moreShiftPx / 45)
+      : Math.max(moreSegment.length * 4, 22),
+  );
+
+  const readMoreTickerX = useCallback((el: HTMLElement) => {
+    const t = getComputedStyle(el).transform;
+    if (!t || t === "none") return 0;
+    try {
+      return new DOMMatrixReadOnly(t).m41;
+    } catch {
+      return 0;
+    }
+  }, []);
+
+  const normalizeMoreX = useCallback((x: number, shift: number) => {
+    if (shift <= 0) return x;
+    let n = ((x % shift) + shift) % shift;
+    if (n > 0) n -= shift;
+    return n;
+  }, []);
+
+  const onMorePointerDown = useCallback(
+    (e: ReactPointerEvent<HTMLDivElement>) => {
+      if (e.button !== 0) return;
+      if (
+        typeof window !== "undefined" &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      ) {
+        return;
+      }
+      const ticker = moreTickerRef.current;
+      if (!ticker || moreShiftPx <= 0) return;
+      const x = readMoreTickerX(ticker);
+      /* Đóng băng ngay → vuốt kéo liền; tap vẫn mở card (chưa capture). */
+      ticker.style.animation = "none";
+      ticker.style.transform = `translate3d(${x}px, 0, 0)`;
+      moreDragRef.current = {
+        pointerId: e.pointerId,
+        startX: e.clientX,
+        startY: e.clientY,
+        originX: x,
+        active: false,
+      };
+    },
+    [moreShiftPx, readMoreTickerX],
+  );
+
+  const resumeMoreTickerAt = useCallback(
+    (ticker: HTMLElement, x: number) => {
+      const pos = normalizeMoreX(x, moreShiftPx);
+      const progress =
+        moreShiftPx > 0
+          ? Math.min(1, Math.max(0, -pos / moreShiftPx))
+          : 0;
+      const delaySec = -progress * moreDurSec;
+      ticker.style.animation = "none";
+      ticker.style.transform = `translate3d(${pos}px, 0, 0)`;
+      void ticker.offsetWidth;
+      ticker.style.removeProperty("transform");
+      ticker.style.removeProperty("animation");
+      ticker.style.animationDelay = `${delaySec}s`;
+    },
+    [moreDurSec, moreShiftPx, normalizeMoreX],
+  );
+
+  const onMorePointerMove = useCallback(
+    (e: ReactPointerEvent<HTMLDivElement>) => {
+      const drag = moreDragRef.current;
+      const ticker = moreTickerRef.current;
+      if (!drag || drag.pointerId !== e.pointerId || !ticker) return;
+
+      const dx = e.clientX - drag.startX;
+      const dy = e.clientY - drag.startY;
+
+      if (!drag.active) {
+        /* Vuốt dọc trang → hủy kéo, trả animation. */
+        if (Math.abs(dy) > 8 && Math.abs(dy) > Math.abs(dx)) {
+          moreDragRef.current = null;
+          setMoreDragging(false);
+          resumeMoreTickerAt(ticker, drag.originX);
+          return;
+        }
+      }
+
+      /* Cập nhật transform ngay từ pixel đầu — cảm giác kéo liền. */
+      const next = normalizeMoreX(drag.originX + dx, moreShiftPx);
+      ticker.style.transform = `translate3d(${next}px, 0, 0)`;
+
+      if (!drag.active && Math.abs(dx) >= 2) {
+        drag.active = true;
+        setMoreDragging(true);
+        try {
+          e.currentTarget.setPointerCapture(e.pointerId);
+        } catch {
+          /* ignore */
+        }
+      }
+    },
+    [moreShiftPx, normalizeMoreX, resumeMoreTickerAt],
+  );
+
+  const finishMoreDrag = useCallback(
+    (e: ReactPointerEvent<HTMLDivElement>) => {
+      const drag = moreDragRef.current;
+      if (!drag || drag.pointerId !== e.pointerId) return;
+      moreDragRef.current = null;
+      setMoreDragging(false);
+
+      if (e.currentTarget.hasPointerCapture?.(e.pointerId)) {
+        try {
+          e.currentTarget.releasePointerCapture(e.pointerId);
+        } catch {
+          /* ignore */
+        }
+      }
+
+      const ticker = moreTickerRef.current;
+      if (!ticker) return;
+
+      if (!drag.active) {
+        /* Tap — chạy lại marquee, không chặn click Link. */
+        resumeMoreTickerAt(ticker, drag.originX);
+        return;
+      }
+
+      moreSuppressClickRef.current = true;
+      const dx = e.clientX - drag.startX;
+      resumeMoreTickerAt(ticker, drag.originX + dx);
+    },
+    [resumeMoreTickerAt],
+  );
+
+  const onMoreLostPointerCapture = useCallback(
+    (e: ReactPointerEvent<HTMLDivElement>) => {
+      const drag = moreDragRef.current;
+      if (!drag || drag.pointerId !== e.pointerId) return;
+      finishMoreDrag(e);
+    },
+    [finishMoreDrag],
+  );
+
+  const onMoreClickCapture = useCallback(
+    (e: ReactMouseEvent<HTMLDivElement>) => {
+      if (!moreSuppressClickRef.current) return;
+      moreSuppressClickRef.current = false;
+      e.preventDefault();
+      e.stopPropagation();
+    },
+    [],
+  );
 
   const loadSession = useCallback(async () => {
     if (viewerProfileIdProp != null || isOwnerProp != null) {
@@ -649,7 +822,7 @@ export function JourneyShopLoaiClient({
     return null;
   }, [detail, selectedBt]);
 
-  /** Có chọn mẫu → ảnh mẫu/biến thể; không chọn → ảnh loại + ảnh/video phụ. */
+  /** Có chọn mẫu → chỉ ảnh mẫu/biến thể; không chọn → ảnh loại + ảnh/video phụ. */
   const galleryItems = useMemo(() => {
     type Item =
       | { kind: "image"; key: string; url: string }
@@ -671,38 +844,83 @@ export function JourneyShopLoaiClient({
     if (selectedSpId) {
       pushImage(selectedBt?.anhUrl);
       pushImage(selectedMau?.anhUrl);
+      /* Fallback nếu mẫu chưa có ảnh riêng. */
+      if (items.length === 0) pushImage(detail?.anhUrl);
+      return items;
     }
     pushImage(detail?.anhUrl);
-    if (!selectedSpId) {
-      if (detail?.videoPhuId && detail.videoPhuEmbedUrl) {
-        items.push({
-          kind: "video",
-          key: `v-${detail.videoPhuId}`,
-          videoId: detail.videoPhuId,
-          embedUrl: detail.videoPhuEmbedUrl,
-          thumbUrl: detail.videoPhuThumbUrl,
-        });
-      }
-      for (const u of detail?.anhPhuUrls ?? []) pushImage(u);
+    if (detail?.videoPhuId && detail.videoPhuEmbedUrl) {
+      items.push({
+        kind: "video",
+        key: `v-${detail.videoPhuId}`,
+        videoId: detail.videoPhuId,
+        embedUrl: detail.videoPhuEmbedUrl,
+        thumbUrl: detail.videoPhuThumbUrl,
+      });
     }
+    for (const u of detail?.anhPhuUrls ?? []) pushImage(u);
     return items;
   }, [detail, selectedSpId, selectedMau, selectedBt]);
 
   const [galleryIdx, setGalleryIdx] = useState(0);
+  const gallerySwipeRef = useRef<{
+    x: number;
+    y: number;
+    id: number;
+  } | null>(null);
+  /** Tạm dừng auto-advance sau swipe / chọn thumb (ms epoch). */
+  const galleryAutoPauseUntilRef = useRef(0);
+  const galleryHoverRef = useRef(false);
+
+  const pauseGalleryAuto = useCallback((ms = 8000) => {
+    galleryAutoPauseUntilRef.current = Date.now() + ms;
+  }, []);
 
   useEffect(() => {
     setGalleryIdx(0);
-  }, [nhomId, selectedSpId]);
+    pauseGalleryAuto(6000);
+  }, [nhomId, selectedSpId, pauseGalleryAuto]);
 
-  const activeGallery =
-    galleryItems[Math.min(galleryIdx, Math.max(galleryItems.length - 1, 0))] ??
-    null;
+  const safeGalleryIdx = Math.min(
+    galleryIdx,
+    Math.max(galleryItems.length - 1, 0),
+  );
+  const activeGallery = galleryItems[safeGalleryIdx] ?? null;
   const galleryUrl =
     activeGallery?.kind === "image" ? activeGallery.url : null;
   const showOverlay =
     Boolean(detail?.overlayAnhUrl) &&
     Boolean(detail?.anhUrl) &&
     galleryUrl === detail?.anhUrl;
+
+  /* Mỗi 4s chuyển ảnh; dừng khi hover / reduced-motion / user vừa thao tác. */
+  useEffect(() => {
+    if (galleryItems.length <= 1) return;
+    if (
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      return;
+    }
+    const id = window.setInterval(() => {
+      if (document.hidden) return;
+      if (galleryHoverRef.current) return;
+      if (Date.now() < galleryAutoPauseUntilRef.current) return;
+      setGalleryIdx((i) => {
+        const len = galleryItems.length;
+        if (len <= 1) return i;
+        let next = (Math.min(i, len - 1) + 1) % len;
+        /* Bỏ qua video trong vòng auto — user chọn bằng thumb/dot. */
+        for (let step = 0; step < len; step++) {
+          const item = galleryItems[next];
+          if (item?.kind !== "video") break;
+          next = (next + 1) % len;
+        }
+        return next;
+      });
+    }, 4000);
+    return () => window.clearInterval(id);
+  }, [galleryItems]);
 
   const clearMauSelection = useCallback(() => {
     setSelectedSpId(null);
@@ -712,15 +930,72 @@ export function JourneyShopLoaiClient({
     setGalleryIdx(0);
   }, []);
 
+  const onGalleryPointerDown = useCallback(
+    (e: ReactPointerEvent<HTMLDivElement>) => {
+      if (galleryItems.length <= 1) return;
+      if (activeGallery?.kind === "video") return;
+      if ((e.target as Element | null)?.closest?.(".j-shop-loai-gallery-dot")) {
+        return;
+      }
+      gallerySwipeRef.current = {
+        x: e.clientX,
+        y: e.clientY,
+        id: e.pointerId,
+      };
+      e.currentTarget.setPointerCapture(e.pointerId);
+    },
+    [galleryItems.length, activeGallery?.kind],
+  );
+
+  const onGalleryPointerUp = useCallback(
+    (e: ReactPointerEvent<HTMLDivElement>) => {
+      const start = gallerySwipeRef.current;
+      gallerySwipeRef.current = null;
+      if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      }
+      if (!start || start.id !== e.pointerId) return;
+      if (galleryItems.length <= 1) return;
+      const dx = e.clientX - start.x;
+      const dy = e.clientY - start.y;
+      if (Math.abs(dx) < 48 || Math.abs(dx) <= Math.abs(dy)) return;
+      pauseGalleryAuto();
+      if (dx < 0) {
+        setGalleryIdx((i) => Math.min(galleryItems.length - 1, i + 1));
+      } else {
+        setGalleryIdx((i) => Math.max(0, i - 1));
+      }
+    },
+    [galleryItems.length, pauseGalleryAuto],
+  );
+
+  const onGalleryPointerCancel = useCallback(
+    (e: ReactPointerEvent<HTMLDivElement>) => {
+      gallerySwipeRef.current = null;
+      if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      }
+    },
+    [],
+  );
+
+  const selectGalleryIdx = useCallback(
+    (i: number) => {
+      pauseGalleryAuto();
+      setGalleryIdx(i);
+    },
+    [pauseGalleryAuto],
+  );
+
   const onLoaiMainPointerDown = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
       if (!selectedSpId) return;
       const t = e.target;
       if (!(t instanceof Element)) return;
-      /* Giữ chọn khi thao tác chip / số lượng / thêm giỏ. */
+      /* Giữ chọn khi thao tác chip / số lượng / thêm giỏ / swipe gallery. */
       if (
         t.closest(
-          ".j-shop-loai-chips, .j-shop-loai-qty-row, .j-shop-loai-add, .j-shop-loai-filters",
+          ".j-shop-loai-chips, .j-shop-loai-qty-row, .j-shop-loai-add, .j-shop-loai-buy-bar, .j-shop-loai-filters, .j-shop-loai-gallery, .j-shop-loai-gallery-thumbs",
         )
       ) {
         return;
@@ -935,6 +1210,7 @@ export function JourneyShopLoaiClient({
     <JourneyShopGuestActions
       ownerId={ownerId}
       ownerSlug={ownerSlug}
+      shopSlug={shopSlug}
       ownerName={ownerName}
       ownerAvatarUrl={ownerAvatarUrl ?? shop?.avatarUrl ?? null}
       viewerProfileId={viewerId}
@@ -1011,7 +1287,25 @@ export function JourneyShopLoaiClient({
         onPointerDown={onLoaiMainPointerDown}
       >
         <div className="j-shop-loai-gallery-col">
-          <div className="j-shop-loai-gallery">
+          <div
+            className={`j-shop-loai-gallery${galleryItems.length > 1 ? " is-swipeable" : ""}`}
+            role={galleryItems.length > 1 ? "region" : undefined}
+            aria-roledescription={
+              galleryItems.length > 1 ? "carousel" : undefined
+            }
+            aria-label={
+              galleryItems.length > 1 ? "Ảnh và video sản phẩm" : undefined
+            }
+            onPointerDown={onGalleryPointerDown}
+            onPointerUp={onGalleryPointerUp}
+            onPointerCancel={onGalleryPointerCancel}
+            onPointerEnter={() => {
+              galleryHoverRef.current = true;
+            }}
+            onPointerLeave={() => {
+              galleryHoverRef.current = false;
+            }}
+          >
             {activeGallery?.kind === "video" ? (
               <iframe
                 className="j-shop-loai-gallery-video"
@@ -1022,7 +1316,12 @@ export function JourneyShopLoaiClient({
               />
             ) : galleryUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img className="j-shop-loai-gallery-base" src={galleryUrl} alt="" />
+              <img
+                key={galleryUrl}
+                className="j-shop-loai-gallery-base"
+                src={galleryUrl}
+                alt=""
+              />
             ) : (
               <div className="j-shop-loai-gallery-ph" aria-hidden />
             )}
@@ -1034,6 +1333,25 @@ export function JourneyShopLoaiClient({
                 alt=""
                 aria-hidden
               />
+            ) : null}
+            {galleryItems.length > 1 ? (
+              <div
+                className="j-shop-loai-gallery-dots"
+                role="tablist"
+                aria-label="Chỉ số ảnh"
+              >
+                {galleryItems.map((item, i) => (
+                  <button
+                    key={item.key}
+                    type="button"
+                    role="tab"
+                    aria-selected={i === safeGalleryIdx}
+                    aria-label={`Ảnh ${i + 1}`}
+                    className={`j-shop-loai-gallery-dot${i === safeGalleryIdx ? " is-active" : ""}`}
+                    onClick={() => selectGalleryIdx(i)}
+                  />
+                ))}
+              </div>
             ) : null}
           </div>
           {galleryItems.length > 1 ? (
@@ -1047,9 +1365,9 @@ export function JourneyShopLoaiClient({
                   key={item.key}
                   type="button"
                   role="option"
-                  aria-selected={i === galleryIdx}
-                  className={`j-shop-loai-gallery-thumb${i === galleryIdx ? " is-active" : ""}${item.kind === "video" ? " is-video" : ""}`}
-                  onClick={() => setGalleryIdx(i)}
+                  aria-selected={i === safeGalleryIdx}
+                  className={`j-shop-loai-gallery-thumb${i === safeGalleryIdx ? " is-active" : ""}${item.kind === "video" ? " is-video" : ""}`}
+                  onClick={() => selectGalleryIdx(i)}
                 >
                   {item.kind === "video" ? (
                     item.thumbUrl ? (
@@ -1233,62 +1551,66 @@ export function JourneyShopLoaiClient({
             </div>
           ) : null}
 
-          {canShop ? (
-            <div className="j-shop-loai-qty-row">
-              <span>Số lượng</span>
-              <span className="j-shop-sf-qty">
-                <button
-                  type="button"
-                  aria-label="Bớt"
-                  disabled={qty <= 1}
-                  onClick={() => setQty((q) => Math.max(1, q - 1))}
-                >
-                  <Minus size={14} />
-                </button>
-                <span>{qty}</span>
-                <button
-                  type="button"
-                  aria-label="Thêm"
-                  disabled={qty >= maxQty}
-                  onClick={() =>
-                    setQty((q) => Math.min(maxQty || 1, q + 1))
-                  }
-                >
-                  <Plus size={14} />
-                </button>
-              </span>
-              {selectedBt ? (
-                <span className="j-shop-loai-ton">
-                  Còn {selectedBt.soLuongTon}
-                </span>
+          {canShop || isOwner ? (
+            <div className="j-shop-loai-buy-bar">
+              {canShop ? (
+                <div className="j-shop-loai-qty-row">
+                  <span>Số lượng</span>
+                  <span className="j-shop-sf-qty">
+                    <button
+                      type="button"
+                      aria-label="Bớt"
+                      disabled={qty <= 1}
+                      onClick={() => setQty((q) => Math.max(1, q - 1))}
+                    >
+                      <Minus size={14} />
+                    </button>
+                    <span>{qty}</span>
+                    <button
+                      type="button"
+                      aria-label="Thêm"
+                      disabled={qty >= maxQty}
+                      onClick={() =>
+                        setQty((q) => Math.min(maxQty || 1, q + 1))
+                      }
+                    >
+                      <Plus size={14} />
+                    </button>
+                  </span>
+                  {selectedBt ? (
+                    <span className="j-shop-loai-ton">
+                      Còn {selectedBt.soLuongTon}
+                    </span>
+                  ) : null}
+                </div>
               ) : null}
-            </div>
-          ) : null}
 
-          {cartErr ? (
-            <p className="j-shop-sf-cart-err" role="alert">
-              {cartErr}
-            </p>
-          ) : null}
+              {cartErr ? (
+                <p className="j-shop-sf-cart-err" role="alert">
+                  {cartErr}
+                </p>
+              ) : null}
 
-          {canShop ? (
-            <button
-              type="button"
-              className="j-shop-loai-add"
-              disabled={!canAdd || cartBusy}
-              onClick={() => void addToCart()}
-            >
-              {cartBusy ? (
-                <Loader2 size={16} className="shop-spin" aria-hidden />
+              {canShop ? (
+                <button
+                  type="button"
+                  className="j-shop-loai-add"
+                  disabled={!canAdd || cartBusy}
+                  onClick={() => void addToCart()}
+                >
+                  {cartBusy ? (
+                    <Loader2 size={16} className="shop-spin" aria-hidden />
+                  ) : (
+                    <ShoppingBag size={16} aria-hidden />
+                  )}
+                  Thêm vào giỏ
+                </button>
               ) : (
-                <ShoppingBag size={16} aria-hidden />
+                <p className="j-shop-loai-owner-hint">
+                  Đây là cửa hàng của bạn — khách sẽ thêm hàng vào giỏ tại đây.
+                </p>
               )}
-              Thêm vào giỏ
-            </button>
-          ) : isOwner ? (
-            <p className="j-shop-loai-owner-hint">
-              Đây là cửa hàng của bạn — khách sẽ thêm hàng vào giỏ tại đây.
-            </p>
+            </div>
           ) : null}
         </div>
       </div>
@@ -1306,19 +1628,20 @@ export function JourneyShopLoaiClient({
           </header>
           <div
             ref={moreTrackRef}
-            className="j-shop-loai-more-track"
+            className={`j-shop-loai-more-track${moreDragging ? " is-dragging" : ""}`}
             style={{
-              ["--j-shop-loai-more-dur" as string]: `${Math.max(
-                22,
-                moreShiftPx > 0
-                  ? Math.round(moreShiftPx / 45)
-                  : moreSegment.length * 4,
-              )}s`,
+              ["--j-shop-loai-more-dur" as string]: `${moreDurSec}s`,
               ["--j-shop-loai-more-shift" as string]:
                 moreShiftPx > 0 ? `${moreShiftPx}px` : "50%",
             }}
+            onPointerDown={onMorePointerDown}
+            onPointerMove={onMorePointerMove}
+            onPointerUp={finishMoreDrag}
+            onPointerCancel={finishMoreDrag}
+            onLostPointerCapture={onMoreLostPointerCapture}
+            onClickCapture={onMoreClickCapture}
           >
-            <div className="j-shop-loai-more-ticker">
+            <div ref={moreTickerRef} className="j-shop-loai-more-ticker">
               {[0, 1].map((copy) => (
                 <div
                   key={copy}
@@ -1329,7 +1652,8 @@ export function JourneyShopLoaiClient({
                 >
                   {moreSegment.map(({ card, key }) => {
                     const href =
-                      card.href?.trim() || shopLoaiHref(ownerSlug, card.id);
+                      card.href?.trim() ||
+                      shopLoaiHref(ownerSlug, shopSlug, card.id);
                     const giaLabel =
                       card.giaTu != null
                         ? card.giaDen != null && card.giaDen !== card.giaTu

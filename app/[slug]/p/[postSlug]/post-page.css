@@ -4990,6 +4990,10 @@
     height: auto;
     max-height: none;
     border-top: none;
+    /* Tránh nuốt gesture: cột không còn là scrollport riêng trên mobile. */
+    overflow: visible;
+    overscroll-behavior: auto;
+    -webkit-overflow-scrolling: auto;
   }
 
   .cins-post-view.post-canvas--media.post-canvas--split .post-rail-blk--comments,
@@ -5003,12 +5007,18 @@
   .cins-post-view .post-canvas--split .post-view-content--media .post-view-content-inner {
     flex: 0 0 auto;
     min-height: 0;
+    height: auto;
+    max-height: none;
+    overflow: visible;
   }
 
   .cins-post-view.post-canvas--split .post-view-content--media .post-blocks-fb,
   .cins-post-view .post-canvas--split .post-view-content--media .post-blocks-fb {
     flex: 0 0 auto;
     min-height: 0;
+    height: auto;
+    max-height: none;
+    overflow: visible;
   }
 
   .cins-post-view.post-canvas--split .post-view-content--media .image-album-carousel,
@@ -5052,19 +5062,45 @@
     background: var(--bg-surface, #ffffff);
   }
 
-  .j-post-page:has(.post-canvas--media.post-canvas--split) .post-view-layout--2col {
+  /* Chuỗi flex desktop (min-height:0 + height:100%) khóa scroll trang trên mobile. */
+  .j-post-page:has(.post-canvas--media.post-canvas--split) .j-post-page-inner,
+  .j-post-page:has(.post-canvas--media.post-canvas--split) .j-post-page-body,
+  .j-post-page:has(.post-canvas--media.post-canvas--split)
+    .cins-post-view.post-canvas--media.post-canvas--split {
+    flex: 0 0 auto;
+    min-height: 0;
     height: auto;
-    min-height: calc(100dvh - var(--cins-topbar-h, 56px));
-    align-items: stretch;
+    max-height: none;
+    overflow: visible;
   }
 
-  /* Carousel / album không ImageGrid — giữ khung ~62dvh */
+  .j-post-page:has(.post-canvas--media.post-canvas--split) .post-view-layout--2col {
+    height: auto;
+    min-height: 0;
+    max-height: none;
+    align-items: stretch;
+    overflow: visible;
+  }
+
+  .j-post-page:has(.post-canvas--media.post-canvas--split) .post-view-content--media {
+    flex: 0 0 auto;
+    height: auto;
+    min-height: 0;
+    max-height: none;
+    overflow: visible;
+    overscroll-behavior: auto;
+    -webkit-overflow-scrolling: auto;
+    touch-action: pan-y;
+  }
+
+  /* Carousel / album không ImageGrid — cao theo nội dung, trần ~68dvh */
   .j-post-page:has(.post-canvas--media.post-canvas--split)
     .post-view-content--media:not(:has(.image-grid)) {
     flex: 0 0 auto;
-    min-height: min(62dvh, 560px);
-    height: min(62dvh, 560px);
-    max-height: min(62dvh, 560px);
+    min-height: 0;
+    height: auto;
+    max-height: none;
+    overflow: visible;
   }
 
   .j-post-page:has(.post-canvas--media.post-canvas--split)
@@ -5075,6 +5111,24 @@
     .post-blocks-fb,
   .j-post-page:has(.post-canvas--media.post-canvas--split)
     .post-view-content--media:not(:has(.image-grid))
+    .post-blocks-fb
+    > .block,
+  .j-post-page:has(.post-canvas--media.post-canvas--split)
+    .post-view-content--media:not(:has(.image-grid))
+    .post-blocks-fb
+    > .block
+    > .block-inner,
+  .j-post-page:has(.post-canvas--media.post-canvas--split)
+    .post-view-content--media:not(:has(.image-grid))
+    .post-blocks-fb
+    .block[data-block-type="embed"],
+  .j-post-page:has(.post-canvas--media.post-canvas--split)
+    .post-view-content--media:not(:has(.image-grid))
+    .post-blocks-fb
+    .block[data-block-type="embed"]
+    .block-inner,
+  .j-post-page:has(.post-canvas--media.post-canvas--split)
+    .post-view-content--media:not(:has(.image-grid))
     .image-album-carousel,
   .j-post-page:has(.post-canvas--media.post-canvas--split)
     .post-view-content--media:not(:has(.image-grid))
@@ -5082,10 +5136,11 @@
   .j-post-page:has(.post-canvas--media.post-canvas--split)
     .post-view-content--media:not(:has(.image-grid))
     .image-album-carousel-figure {
-    flex: 1 1 auto;
+    flex: 0 0 auto;
     min-height: 0;
-    height: 100%;
-    max-height: 100%;
+    height: auto;
+    max-height: none;
+    overflow: visible;
   }
 
   /* ImageGrid (justified…) — co theo nội dung, không ép viewport */
@@ -5098,14 +5153,78 @@
     overflow: visible;
   }
 
-  /* 1 ảnh đơn mobile — full ngang, khung cao vừa nhìn, ảnh căn giữa */
+  /* 1 ảnh đơn mobile — fit content (không ép khung 72dvh), ảnh max ngang */
   .j-post-page:has(.post-canvas--media.post-canvas--split)
     .post-view-content--media:has(.image-grid--single) {
     flex: 0 0 auto;
-    min-height: min(62dvh, 560px);
-    height: min(72dvh, 720px);
-    max-height: min(72dvh, 720px);
-    overflow: hidden;
+    min-height: 0;
+    height: auto;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .j-post-page:has(.post-canvas--media.post-canvas--split)
+    .post-view-content--media:has(.image-grid--single)
+    .post-view-content-inner,
+  .j-post-page:has(.post-canvas--media.post-canvas--split)
+    .post-view-content--media:has(.image-grid--single)
+    .post-blocks-fb,
+  .j-post-page:has(.post-canvas--media.post-canvas--split)
+    .post-view-content--media:has(.image-grid--single)
+    .post-blocks-fb
+    > .block.block-image-grid,
+  .j-post-page:has(.post-canvas--media.post-canvas--split)
+    .post-view-content--media:has(.image-grid--single)
+    .post-blocks-fb
+    .block-image-grid,
+  .j-post-page:has(.post-canvas--media.post-canvas--split)
+    .post-view-content--media:has(.image-grid--single)
+    .post-blocks-fb
+    .block-image-grid
+    .block-inner,
+  .j-post-page:has(.post-canvas--media.post-canvas--split)
+    .post-view-content--media:has(.image-grid--single)
+    .image-grid--single {
+    flex: 0 0 auto;
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    max-height: none;
+    overflow: visible;
+    justify-content: flex-start;
+    align-items: stretch;
+  }
+
+  .j-post-page:has(.post-canvas--media.post-canvas--split)
+    .post-view-content--media:has(.image-grid--single)
+    .image-grid--single
+    .image-grid-cell {
+    width: 100%;
+    height: auto;
+    max-height: none;
+    min-height: 0;
+  }
+
+  .j-post-page:has(.post-canvas--media.post-canvas--split)
+    .post-view-content--media:has(.image-grid--single)
+    .image-grid--single
+    .image-grid-cell
+    img,
+  .j-post-page:has(.post-canvas--media.post-canvas--split)
+    .post-view-content--media:has(.image-grid--single)
+    .image-grid--single:not(.is-portrait)
+    .image-grid-cell
+    img,
+  .j-post-page:has(.post-canvas--media.post-canvas--split)
+    .post-view-content--media:has(.image-grid--single)
+    .image-grid--single.is-portrait
+    .image-grid-cell
+    img {
+    width: 100%;
+    height: auto;
+    max-width: 100%;
+    max-height: min(80dvh, 900px);
+    object-fit: contain;
   }
 
   .j-post-page:has(.post-canvas--media.post-canvas--split)
@@ -5134,6 +5253,7 @@
     height: auto;
     min-height: 0;
     max-height: none;
+    overflow: visible;
   }
 
   .j-post-page:has(.post-canvas--media.post-canvas--split)
@@ -5141,7 +5261,8 @@
     .image-album-carousel-figure
     img {
     max-width: 100%;
-    max-height: 100%;
+    max-height: min(68dvh, 720px);
+    height: auto;
   }
 
   /* ── Native video trong split (mobile) ──────────────────────────────────
@@ -5155,6 +5276,7 @@
     height: auto;
     min-height: 0;
     max-height: none;
+    overflow: visible;
   }
 
   .j-post-page:has(.post-canvas--media.post-canvas--split)
@@ -5166,6 +5288,7 @@
     flex: 0 0 auto;
     height: auto;
     max-height: none;
+    overflow: visible;
   }
 
   .j-post-page:has(.post-canvas--media.post-canvas--split)
@@ -5205,6 +5328,16 @@
     width: auto;
     height: min(72dvh, 680px);
     max-width: 100%;
+  }
+
+  .j-post-page:has(.post-canvas--media.post-canvas--split)
+    .post-view-content--media
+    [data-viewport-gated] {
+    flex: 0 0 auto;
+    height: auto;
+    min-height: 0;
+    max-height: none;
+    align-self: stretch;
   }
 }
 

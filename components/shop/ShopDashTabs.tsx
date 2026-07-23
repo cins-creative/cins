@@ -14,7 +14,7 @@ import {
   prefetchBanHangClientStatus,
   writeShopCuaHangCache,
 } from "@/lib/shop/client-fetch-cache";
-import { shopPublicHref } from "@/lib/shop/cua-hang-href";
+import { shopEntryHref, shopPublicHref, shopSlugFromTen } from "@/lib/shop/cua-hang-href";
 import {
   datetimeLocalValueToIso,
   isoToDatetimeLocalValue,
@@ -555,7 +555,22 @@ export function ShopDashTabs({
           profile?: { slug?: string | null } | null;
         } | null;
         const slug = json?.profile?.slug?.trim();
-        if (!cancelled && slug) setShopHref(shopPublicHref(slug));
+        if (!slug || cancelled) return;
+        /* Entry path — server redirect sang shopSlug; fallback nếu fetch shop fail. */
+        setShopHref(shopEntryHref(slug));
+        try {
+          const shopRes = await fetch("/api/shop/cua-hang", { cache: "no-store" });
+          const shopJson = (await shopRes.json().catch(() => null)) as {
+            shop?: { ten?: string | null } | null;
+          } | null;
+          if (!cancelled && shopRes.ok) {
+            setShopHref(
+              shopPublicHref(slug, shopSlugFromTen(shopJson?.shop?.ten, slug)),
+            );
+          }
+        } catch {
+          /* giữ entry href */
+        }
       } catch {
         /* ignore */
       }

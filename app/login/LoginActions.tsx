@@ -27,6 +27,11 @@ type Props = {
   returnPath?: string | null;
   /** Ẩn nút "Tiếp tục với …" — dùng trên home guest (chỉ /login mới hiện). */
   showRememberedAccount?: boolean;
+  /**
+   * «Thêm tài khoản» (`/login?them=1`) — ẩn card tài khoản đã nhớ và ép Google
+   * hiện picker để không tái dùng session Google của tài khoản đang mở.
+   */
+  addAccount?: boolean;
   /** Đặt nút Google sau form email — dùng trên home guest. */
   googleLoginAfterPassword?: boolean;
   className?: string;
@@ -84,6 +89,7 @@ export function LoginActions({
   resumeAfterRedirect = false,
   returnPath = null,
   showRememberedAccount = true,
+  addAccount = false,
   googleLoginAfterPassword = false,
   className,
 }: Props) {
@@ -94,8 +100,12 @@ export function LoginActions({
   const triggered = useRef(false);
 
   useEffect(() => {
+    if (addAccount) {
+      setRemembered(null);
+      return;
+    }
     setRemembered(readRememberedAccount());
-  }, []);
+  }, [addAccount]);
 
   const runLogin = (intent: LoginIntent) => {
     if (triggered.current || busy) return;
@@ -104,6 +114,7 @@ export function LoginActions({
     setError(null);
     void startGoogleLogin(intent, {
       returnTo: returnPath ?? undefined,
+      forceAccountPicker: addAccount,
     }).then(({ error: oauthErr }) => {
       if (oauthErr) {
         setError(oauthErr);
@@ -114,7 +125,8 @@ export function LoginActions({
   };
 
   useEffect(() => {
-    if (triggered.current || initialError) return;
+    /* Thêm tài khoản: không auto-login lại tài khoản đã nhớ. */
+    if (triggered.current || initialError || addAccount) return;
 
     if (autoIntent === "register") {
       runLogin("register");
@@ -127,7 +139,7 @@ export function LoginActions({
     if (!shouldAuto) return;
 
     runLogin("login");
-  }, [autoIntent, initialError, resumeAfterRedirect]);
+  }, [autoIntent, initialError, resumeAfterRedirect, addAccount]);
 
   const loginGoogleButton = (
     <LoginGoogleButton
@@ -136,6 +148,7 @@ export function LoginActions({
       label="Đăng nhập với Google"
       disabled={busy}
       returnTo={returnPath}
+      forceAccountPicker={addAccount}
       onLoadingChange={setBusy}
       onError={(m) => setError(m || null)}
     />

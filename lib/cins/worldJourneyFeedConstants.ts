@@ -50,3 +50,10 @@ export const WORLD_JOURNEY_CONG_DONG_SUGGEST_LIMIT = 5;
 
 /** Cache rank feed theo viewer (giây) — ngắn để điểm / first-impression phản hồi nhanh. */
 export const WORLD_JOURNEY_FEED_RANK_REVALIDATE_SEC = 20;
+
+/**
+ * Cold start: bài `public` (Công khai) lên World Timeline cho mọi viewer —
+ * không cần bạn bè / theo dõi (nới tạm L18).
+ * Tắt (`false`) → quay L18: `public` chỉ friend/follow; pool global chỉ `feature`.
+ */
+export const WORLD_JOURNEY_PUBLIC_GLOBAL_FEED = true;

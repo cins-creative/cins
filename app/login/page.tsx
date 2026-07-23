@@ -64,6 +64,7 @@ export default async function LoginPage({
           autoIntent={autoIntent}
           resumeAfterRedirect={Boolean(safeNext && !errorMsg)}
           returnPath={safeNext}
+          addAccount={addAccount}
         />
       </main>
 

@@ -45,6 +45,7 @@ import {
   WORLD_JOURNEY_FEED_PAGE_SIZE,
   WORLD_JOURNEY_FEED_RANK_REVALIDATE_SEC,
   WORLD_JOURNEY_FIRST_IMPRESSION_CAP,
+  WORLD_JOURNEY_PUBLIC_GLOBAL_FEED,
 } from "@/lib/cins/worldJourneyFeedConstants";
 import {
   resolveWorldJourneyFeedFilterChip,
@@ -118,7 +119,7 @@ async function listFollowingTagIds(viewerId: string): Promise<string[]> {
 
 /**
  * Cột mốc gắn các thẻ đang theo dõi (qua `article_gan_cot_moc`).
- * Visibility helper sẽ tự lọc: `feature` từ mọi người, `public` chỉ bạn bè/đang theo dõi.
+ * Visibility helper tự lọc theo `che_do_hien_thi` (+ cold-start public global).
  */
 async function fetchLinkRowsForFollowedTags(
   tagIds: string[],
@@ -183,12 +184,23 @@ async function fetchLinkRowsForAuthors(
   return data ?? [];
 }
 
-async function fetchGlobalFeatureLinkRows(): Promise<LinkRow[]> {
+/**
+ * Pool discovery toàn cục từ người lạ — `feature` luôn;
+ * cold start thêm `public` (Công khai) để timeline không trống khi chưa có bạn/follow.
+ */
+async function fetchGlobalDiscoverLinkRows(): Promise<LinkRow[]> {
   const admin = createServiceRoleClient();
+  const modes = WORLD_JOURNEY_PUBLIC_GLOBAL_FEED
+    ? ["feature", "public"]
+    : ["feature"];
   const { data } = await admin
     .from("content_tac_pham_thuoc_moc")
     .select(`id_cot_moc, content_cot_moc:content_cot_moc!inner(${COT_MOC_FEED_SELECT})`)
-    .eq("content_cot_moc.che_do_hien_thi", "feature")
+    .in("content_cot_moc.che_do_hien_thi", modes)
+    .order("thoi_diem", {
+      referencedTable: "content_cot_moc",
+      ascending: false,
+    })
     .limit(QUERY_LIMIT)
     .returns<LinkRow[]>();
 
@@ -385,7 +397,7 @@ async function buildWorldJourneyFeedRanked(
     ownLinks,
     friendLinks,
     followingLinks,
-    featureLinks,
+    discoverLinks,
     tagLinks,
     orgMilestones,
     orgSuKienMilestonesAll,
@@ -399,7 +411,7 @@ async function buildWorldJourneyFeedRanked(
     ),
     fetchLinkRowsForAuthors(friendIds, ["feature", "public", "theo_nhom"]),
     fetchLinkRowsForAuthors(followingOnlyIds, ["feature", "public"]),
-    fetchGlobalFeatureLinkRows(),
+    fetchGlobalDiscoverLinkRows(),
     fetchLinkRowsForFollowedTags(followingTagIds),
     fetchWorldJourneyOrgBaiDangMilestones(followingOrgIds),
     fetchFollowedOrgSuKienMilestones(followingOrgIds, friendIds),
@@ -428,7 +440,7 @@ async function buildWorldJourneyFeedRanked(
   const friendSuKienSuggestions =
     friendSuKienSuggestionsAll.filter(dropRespondedSuKien);
 
-  const strangerFeatureLinks = featureLinks.filter((row) => {
+  const strangerDiscoverLinks = discoverLinks.filter((row) => {
     const ownerId = row.content_cot_moc?.id_nguoi_dung;
     return ownerId ? !knownAuthorIds.has(ownerId) : false;
   });
@@ -437,7 +449,7 @@ async function buildWorldJourneyFeedRanked(
     ...ownLinks,
     ...friendLinks,
     ...followingLinks,
-    ...strangerFeatureLinks,
+    ...strangerDiscoverLinks,
     ...tagLinks,
     ...choPhepLinks,
   ];
@@ -546,8 +558,8 @@ async function buildExplorePool(
   followingSet: Set<string>,
   knownAuthorIds: Set<string>,
 ): Promise<MilestoneItem[]> {
-  const featureLinks = await fetchGlobalFeatureLinkRows();
-  const strangerLinks = featureLinks.filter((row) => {
+  const discoverLinks = await fetchGlobalDiscoverLinkRows();
+  const strangerLinks = discoverLinks.filter((row) => {
     const ownerId = row.content_cot_moc?.id_nguoi_dung;
     return ownerId ? !knownAuthorIds.has(ownerId) : false;
   });
@@ -657,7 +669,7 @@ export async function fetchWorldJourneyFeedPageCached(
   return sliceWorldJourneyFeedPage(filtered, offset, limit);
 }
 
-/** Tab Khám phá — chỉ bài Nổi bật toàn cục từ người chưa follow/bạn bè. */
+/** Tab Khám phá — bài discovery toàn cục (`feature` + cold-start `public`) từ người chưa follow/bạn bè. */
 export async function fetchWorldJourneyExploreMilestones(
   viewerId: string,
 ): Promise<MilestoneItem[]> {

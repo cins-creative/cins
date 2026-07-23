@@ -139,7 +139,6 @@ export async function getGioCuaHang(
     sellerId: scope.sellerId,
     ownerSlug: "",
     asOwner: false,
-    limit: 200,
   });
 
   const admin = createServiceRoleClient();
@@ -228,7 +227,6 @@ export async function setGioDongCuaHang(
     sellerId: scope.sellerId,
     ownerSlug: "",
     asOwner: false,
-    limit: 200,
   });
   const item = catalog.find((h) => h.idBienThe === idBienThe);
   if (!item || item.giaHienThi == null) throw new Error("ITEM_NOT_IN_SHOP");

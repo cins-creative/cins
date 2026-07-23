@@ -133,14 +133,22 @@
   overflow: hidden;
   line-height: 0;
   padding: 0;
+  cursor: grab;
+  touch-action: pan-y;
+  user-select: none;
+}
+
+.shop-kiosk-ticker.is-dragging {
+  cursor: grabbing;
 }
 
 .shop-kiosk-ticker-track {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 3px;
   width: max-content;
   height: var(--shop-kiosk-ticker-size);
+  will-change: transform;
 }
 
 .shop-kiosk-ticker.is-scroll .shop-kiosk-ticker-track {
@@ -149,7 +157,8 @@
 
 .shop-kiosk-ticker.is-scroll:hover .shop-kiosk-ticker-track,
 .shop-kiosk-ticker.is-scroll:focus-within .shop-kiosk-ticker-track,
-.shop-kiosk-ticker.is-scroll.is-paused .shop-kiosk-ticker-track {
+.shop-kiosk-ticker.is-scroll.is-paused .shop-kiosk-ticker-track,
+.shop-kiosk-ticker.is-scroll.is-dragging .shop-kiosk-ticker-track {
   animation-play-state: paused;
 }
 
@@ -184,6 +193,7 @@
   background: var(--border, #e4e6eb);
   border: 1px solid var(--border, #e4e6eb);
   pointer-events: none;
+  -webkit-user-drag: none;
 }
 
 .shop-kiosk-ticker-thumb--empty {

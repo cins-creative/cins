@@ -7,12 +7,14 @@ import { useState } from "react";
 import { useCinsChat } from "@/components/cins/CinsChatProvider";
 import { ShareLinkMenu } from "@/components/social/ShareLinkMenu";
 import { avatarHueFromSeed, avatarInitialFromName } from "@/lib/chat/avatar";
-import { shopPublicHref } from "@/lib/shop/cua-hang-href";
+import { shopEntryHref, shopPublicHref } from "@/lib/shop/cua-hang-href";
 import { useKetBanStatus } from "@/lib/social/use-ket-ban-status";
 
 type Props = {
   ownerId: string;
   ownerSlug: string;
+  /** Segment URL cửa hàng — dùng khi share fallback. */
+  shopSlug?: string | null;
   ownerName: string;
   ownerAvatarUrl: string | null;
   viewerProfileId: string | null;
@@ -29,6 +31,7 @@ type Props = {
 export function JourneyShopGuestActions({
   ownerId,
   ownerSlug,
+  shopSlug = null,
   ownerName,
   ownerAvatarUrl,
   viewerProfileId,
@@ -44,7 +47,9 @@ export function JourneyShopGuestActions({
   const sharePath =
     sharePathProp?.trim() ||
     pathname?.trim() ||
-    shopPublicHref(ownerSlug);
+    (shopSlug?.trim()
+      ? shopPublicHref(ownerSlug, shopSlug.trim())
+      : shopEntryHref(ownerSlug));
   const displayName = ownerName.trim() || ownerSlug;
 
   const openMessage = () => {

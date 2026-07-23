@@ -16,7 +16,10 @@ import {
   galleryDisplayHref,
   type GalleryDisplay,
 } from "@/lib/journey/gallery-display-url";
-import { shopPublicHref } from "@/lib/shop/cua-hang-href";
+import {
+  shopEntryHref,
+  shopPublicHref,
+} from "@/lib/shop/cua-hang-href";
 
 function slugSegmentMatches(segment: string, slug: string): boolean {
   try {
@@ -26,7 +29,7 @@ function slugSegmentMatches(segment: string, slug: string): boolean {
   }
 }
 
-/** `/{slug}/shop` hoặc `/{slug}/shop/...` (vd. loại hàng). */
+/** `/{slug}/shop` hoặc `/{slug}/shop/...` (shopSlug / loại hàng). */
 function isShopPathname(pathname: string, slug: string): boolean {
   const segments = pathname.replace(/\/+$/, "").split("/").filter(Boolean);
   if (segments.length < 2) return false;
@@ -34,27 +37,61 @@ function isShopPathname(pathname: string, slug: string): boolean {
   return slugSegmentMatches(segments[0]!, slug);
 }
 
-/** Đúng root storefront `/{slug}/shop` — không gồm `/shop/loai/...`. */
+/**
+ * Root storefront: `/{slug}/shop` (entry) hoặc `/{slug}/shop/{shopSlug}`.
+ * Không gồm `.../loai/...`.
+ */
 function isShopRootPathname(pathname: string, slug: string): boolean {
   const segments = pathname.replace(/\/+$/, "").split("/").filter(Boolean);
-  if (segments.length !== 2) return false;
+  if (!slugSegmentMatches(segments[0] ?? "", slug)) return false;
   if (segments[1] !== "shop") return false;
-  return slugSegmentMatches(segments[0]!, slug);
+  if (segments.length === 2) return true;
+  if (segments.length === 3 && segments[2] !== "loai") return true;
+  return false;
 }
 
-/** Id loại hàng từ `/{slug}/shop/loai/[nhomId]`. */
+/** Id loại hàng từ `/{slug}/shop/{shopSlug}/loai/[nhomId]` (hoặc legacy không shopSlug). */
 export function shopNhomIdFromPathname(
   pathname: string,
   slug: string,
 ): string | null {
   const segments = pathname.replace(/\/+$/, "").split("/").filter(Boolean);
-  if (segments.length < 4) return null;
-  if (segments[1] !== "shop" || segments[2] !== "loai") return null;
-  if (!slugSegmentMatches(segments[0]!, slug)) return null;
+  if (!slugSegmentMatches(segments[0] ?? "", slug)) return null;
+  if (segments[1] !== "shop") return null;
+
+  /* Canonical: /{slug}/shop/{shopSlug}/loai/{nhomId} */
+  if (segments.length >= 5 && segments[3] === "loai") {
+    try {
+      return decodeURIComponent(segments[4]!) || null;
+    } catch {
+      return segments[4] || null;
+    }
+  }
+  /* Legacy: /{slug}/shop/loai/{nhomId} */
+  if (segments.length >= 4 && segments[2] === "loai") {
+    try {
+      return decodeURIComponent(segments[3]!) || null;
+    } catch {
+      return segments[3] || null;
+    }
+  }
+  return null;
+}
+
+/** shopSlug từ `/{slug}/shop/{shopSlug}` (null trên entry / loai-only legacy). */
+export function shopSlugFromPathname(
+  pathname: string,
+  slug: string,
+): string | null {
+  const segments = pathname.replace(/\/+$/, "").split("/").filter(Boolean);
+  if (!slugSegmentMatches(segments[0] ?? "", slug)) return null;
+  if (segments[1] !== "shop") return null;
+  if (segments.length < 3) return null;
+  if (segments[2] === "loai") return null;
   try {
-    return decodeURIComponent(segments[3]!) || null;
+    return decodeURIComponent(segments[2]!) || null;
   } catch {
-    return segments[3] || null;
+    return segments[2] || null;
   }
 }
 
@@ -94,14 +131,16 @@ function isBareProfilePath(pathname: string, slug: string): boolean {
  *  like / comment không bị server áp lại chế độ mặc định của chủ trang. Bare
  *  `/{slug}` chỉ dành cho lần vào từ trang khác → loader mới redirect theo
  *  `journey_mac_dinh_view`.
- *  Shop = path riêng `/{slug}/shop` (chia sẻ storefront độc lập). */
+ *  Shop = path riêng `/{slug}/shop/{shopSlug}` (hoặc entry `/{slug}/shop`). */
 export function journeyHrefForView(
   slug: string,
   view: JourneyProfileView,
   baseSearch = "",
+  shopSlug?: string | null,
 ): string {
   if (view === "shop") {
-    return shopPublicHref(slug);
+    const s = shopSlug?.trim();
+    return s ? shopPublicHref(slug, s) : shopEntryHref(slug);
   }
   const params = new URLSearchParams(
     baseSearch.startsWith("?") ? baseSearch.slice(1) : baseSearch,
@@ -135,6 +174,9 @@ type ContextValue = {
   contentSurface: ContentSurfaceView;
   setContentSurface: (surface: ContentSurfaceView) => void;
   slug: string;
+  /** Slug cửa hàng (canonical URL) — set khi storefront load xong. */
+  shopSlug: string | null;
+  setShopSlug: (shopSlug: string | null) => void;
 };
 
 const JourneyViewContext = createContext<ContextValue | null>(null);
@@ -151,6 +193,11 @@ export function JourneyViewProvider({
   children,
 }: ProviderProps) {
   const [view, setViewState] = useState(initialView);
+  const [shopSlug, setShopSlugState] = useState<string | null>(() =>
+    typeof window !== "undefined"
+      ? shopSlugFromPathname(window.location.pathname, slug)
+      : null,
+  );
   const [contentSurface, setContentSurfaceState] = useState<ContentSurfaceView>(
     () =>
       contentSurfaceFromProfile(
@@ -158,6 +205,10 @@ export function JourneyViewProvider({
         typeof window !== "undefined" ? window.location.search : "",
       ),
   );
+
+  const setShopSlug = useCallback((next: string | null) => {
+    setShopSlugState(next?.trim() || null);
+  }, []);
 
   useEffect(() => {
     setViewState(initialView);
@@ -167,7 +218,10 @@ export function JourneyViewProvider({
         typeof window !== "undefined" ? window.location.search : "",
       ),
     );
-  }, [initialView]);
+    if (typeof window !== "undefined") {
+      setShopSlugState(shopSlugFromPathname(window.location.pathname, slug));
+    }
+  }, [initialView, slug]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -182,6 +236,7 @@ export function JourneyViewProvider({
     setContentSurfaceState(
       contentSurfaceFromProfile(fromUrl, window.location.search),
     );
+    setShopSlugState(shopSlugFromPathname(window.location.pathname, slug));
 
     // Đang xem Journey trên bare `/{slug}` (thiếu ?view=) — pin `?view=journey`
     // để F5 / router.refresh sau action không bị redirect về layout mặc định.
@@ -201,7 +256,12 @@ export function JourneyViewProvider({
 
   const setView = useCallback(
     (next: JourneyProfileView) => {
-      const href = journeyHrefForView(slug, next, window.location.search);
+      const href = journeyHrefForView(
+        slug,
+        next,
+        window.location.search,
+        shopSlug,
+      );
       const onShop = isShopPathname(window.location.pathname, slug);
       const onShopRoot = isShopRootPathname(window.location.pathname, slug);
       /* Shop là path riêng nhưng cùng shell hồ sơ — soft pushState như tab
@@ -226,7 +286,7 @@ export function JourneyViewProvider({
       );
       window.history.pushState({ journeyView: next }, "", href);
     },
-    [slug],
+    [slug, shopSlug],
   );
 
   const setContentSurface = useCallback(
@@ -301,6 +361,7 @@ export function JourneyViewProvider({
       setContentSurfaceState(
         contentSurfaceFromProfile(nextView, window.location.search),
       );
+      setShopSlugState(shopSlugFromPathname(window.location.pathname, slug));
     };
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
@@ -308,7 +369,15 @@ export function JourneyViewProvider({
 
   return (
     <JourneyViewContext.Provider
-      value={{ view, setView, contentSurface, setContentSurface, slug }}
+      value={{
+        view,
+        setView,
+        contentSurface,
+        setContentSurface,
+        slug,
+        shopSlug,
+        setShopSlug,
+      }}
     >
       {children}
     </JourneyViewContext.Provider>

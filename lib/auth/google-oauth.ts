@@ -25,7 +25,14 @@ export type { LoginIntent } from "@/lib/auth/login-intent";
  */
 export async function startGoogleLogin(
   intent: LoginIntent,
-  options?: { returnTo?: string },
+  options?: {
+    returnTo?: string;
+    /**
+     * Ép Google hiện picker tài khoản — dùng khi đăng ký hoặc «Thêm tài khoản»
+     * (`/login?them=1`). Không set thì đăng nhập lại tái dùng Google session đã nhớ.
+     */
+    forceAccountPicker?: boolean;
+  },
 ): Promise<{ error?: string }> {
   if (typeof window === "undefined") {
     return { error: "Phải chạy ở client để khởi tạo OAuth." };
@@ -52,14 +59,16 @@ export async function startGoogleLogin(
     /* redirectTo KHÔNG thêm query — OAuth redirect_uri phải khớp chính xác Supabase allowlist. */
     const redirectTo = `${origin}/auth/callback`;
 
+    const pickAccount =
+      intent === "register" || Boolean(options?.forceAccountPicker);
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
         redirectTo,
         queryParams: {
           access_type: "offline",
-          /* Chỉ bắt chọn tài khoản khi đăng ký — đăng nhập lại dùng Google session đã nhớ. */
-          ...(intent === "register" ? { prompt: "select_account" } : {}),
+          ...(pickAccount ? { prompt: "select_account" } : {}),
         },
         skipBrowserRedirect: false,
       },

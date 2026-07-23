@@ -102,7 +102,7 @@ export async function JourneyProfilePageLoader({
   if (storefront) {
     if (!showShop) notFound();
   } else if (view === "shop") {
-    /* Legacy `?view=shop` → path storefront. */
+    /* Legacy `?view=shop` → entry storefront (redirect tiếp sang shopSlug). */
     redirect(`/${encodeURIComponent(slug)}/shop`);
   }
 

@@ -109,6 +109,32 @@ export async function GET(request: NextRequest) {
     redirectResponse,
   );
 
+  /* Chụp phiên đang mở (nếu có) vào kho TRƯỚC khi exchange ghi đè —
+   * cần cho «Thêm tài khoản» để còn chuyển lại tài khoản cũ. */
+  let vault = decodeVault(request.cookies.get(ACCOUNT_VAULT_COOKIE)?.value);
+  const { data: priorSessionData } = await supabase.auth.getSession();
+  const priorSession = priorSessionData.session;
+  if (priorSession?.refresh_token && priorSession.user?.id) {
+    const { data: priorProfile } = await supabase
+      .from("user_nguoi_dung")
+      .select("slug, ten_hien_thi, avatar_id")
+      .eq("auth_user_id", priorSession.user.id)
+      .maybeSingle<{
+        slug: string;
+        ten_hien_thi: string | null;
+        avatar_id: string | null;
+      }>();
+    if (priorProfile?.slug) {
+      vault = upsertAccount(vault, {
+        slug: priorProfile.slug,
+        tenHienThi: priorProfile.ten_hien_thi,
+        avatarId: priorProfile.avatar_id,
+        refreshToken: priorSession.refresh_token,
+        addedAt: Date.now(),
+      });
+    }
+  }
+
   const { data: exchangeData, error: exchangeErr } =
     await supabase.auth.exchangeCodeForSession(code);
   if (exchangeErr) {
@@ -141,6 +167,9 @@ export async function GET(request: NextRequest) {
   if (intent === "register") {
     destination = new URL("/onboarding", origin);
     destination.searchParams.set("intent", "register");
+    if (vault.length > 0) {
+      setAccountVaultOnResponse(redirectResponse, vault);
+    }
   } else {
     const { data: profile } = await supabase
       .from("user_nguoi_dung")
@@ -165,9 +194,6 @@ export async function GET(request: NextRequest) {
     // Ghi nhớ tài khoản vừa đăng nhập (Google) vào kho chuyển nhanh.
     const refreshToken = exchangeData.session?.refresh_token;
     if (profile?.slug && refreshToken) {
-      const vault = decodeVault(
-        request.cookies.get(ACCOUNT_VAULT_COOKIE)?.value,
-      );
       setAccountVaultOnResponse(
         redirectResponse,
         upsertAccount(vault, {
@@ -179,6 +205,9 @@ export async function GET(request: NextRequest) {
         }),
       );
       setRestoreHintOnResponse(redirectResponse);
+    } else if (vault.length > 0) {
+      /* Vẫn giữ kho đã chụp tài khoản trước đó (onboarding / thiếu refresh). */
+      setAccountVaultOnResponse(redirectResponse, vault);
     }
   }
 

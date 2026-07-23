@@ -33,6 +33,7 @@ import { JourneyOwnCoAuthorRoleEditor } from "@/components/journey/JourneyOwnCoA
 import { JourneyBookmarkListingCard } from "@/components/journey/JourneyBookmarkListingCard";
 import { JourneyMilestoneCardBodyContent } from "@/components/journey/JourneyMilestoneCardBodyContent";
 import { setShareDragData } from "@/lib/cins/share-drag";
+import { useCoarsePointer } from "@/lib/ui/use-coarse-pointer";
 import { JourneyMilestoneUnfold } from "@/components/journey/JourneyMilestoneUnfold";
 import { JourneyUnfoldArticleContent } from "@/components/journey/JourneyUnfoldArticleContent";
 import { VerifiedTick } from "@/components/journey/VerifiedTick";
@@ -62,6 +63,7 @@ import { JourneyMilestoneViewerMenu } from "@/components/social/JourneyMilestone
 import { WorldBoostToggle } from "@/components/cins/world-journey/WorldBoostToggle";
 import { useWorldBoostAdminOptional } from "@/components/cins/world-journey/WorldBoostAdminContext";
 import { worldBoostTargetFromMilestoneLike } from "@/lib/cins/world-boost-client";
+import { orgPostHref } from "@/lib/search/helpers";
 import { IdentityPendingMilestoneCard } from "@/components/journey/IdentityPendingMilestoneCard";
 import { IdentityVerifiedMilestoneCard } from "@/components/journey/IdentityVerifiedMilestoneCard";
 import {
@@ -512,6 +514,7 @@ export function JourneyMilestoneCard({
 
   const worldBoostAdmin = useWorldBoostAdminOptional();
   const [banHangEnabled, setBanHangEnabled] = useState(false);
+  const coarsePointer = useCoarsePointer();
 
   useEffect(() => {
     if (!isOwner || !viewerProfileId) {
@@ -1177,17 +1180,36 @@ export function JourneyMilestoneCard({
 
   /* Người xem nội dung của người khác → menu "..." (mở / chia sẻ / copy / báo cáo).
    * Chỉ hiện khi viewer KHÔNG quản lý được nội dung và đây không phải bài của
-   * chính họ. Báo cáo gắn vào cột mốc (`cot_moc`). */
+   * chính họ. Báo cáo gắn vào cột mốc (`cot_moc`) hoặc org bài đăng. */
   const viewerReportTargetId = cotMocId ?? milestone.id;
   const viewerPostOwnerSlug =
     postOwnerSlug?.trim() ||
     entityPosterSlug ||
     ownerSlug?.trim() ||
     null;
-  const viewerPostHref =
-    postSlug && viewerPostOwnerSlug
-      ? `/${viewerPostOwnerSlug}/p/${postSlug}`
-      : null;
+  const viewerPostHref = (() => {
+    if (postSlug && viewerPostOwnerSlug) {
+      return `/${viewerPostOwnerSlug}/p/${postSlug}`;
+    }
+    /* Bài org (`j-tagged` trên World feed) — không có `/user/p/slug`. */
+    if (orgBaiDangRef?.postId && orgBaiDangRef.orgSlug?.trim()) {
+      const loai =
+        orgBaiDangRef.orgKind === "co_so_dao_tao"
+          ? "co_so_dao_tao"
+          : orgBaiDangRef.orgKind === "studio"
+            ? "studio"
+            : orgBaiDangRef.orgKind === "cong_dong"
+              ? "cong_dong"
+              : "truong_dai_hoc";
+      return orgPostHref(loai, orgBaiDangRef.orgSlug.trim(), orgBaiDangRef.postId);
+    }
+    if (orgSuKienRef?.href?.trim()) {
+      return orgSuKienRef.href.trim();
+    }
+    return null;
+  })();
+  /* Kéo datebar → chat chỉ desktop (pointer fine); tránh cản scroll trên touch. */
+  const canShareDragToChat = Boolean(viewerPostHref) && !coarsePointer;
   const isOwnContent =
     Boolean(viewerProfileId) &&
     (viewerProfileId === postOwnerId || viewerProfileId === ownerProfileId);
@@ -1558,10 +1580,13 @@ export function JourneyMilestoneCard({
       data-group={type}
       data-post-slug={postSlug ?? undefined}
       data-post-owner-slug={postOwnerSlug ?? undefined}
-      /* Kéo card từ vùng datebar → chia sẻ URL bài vào chat (desktop). */
-      draggable={Boolean(viewerPostHref)}
+      /* Kéo card từ vùng datebar → chia sẻ URL bài vào chat (desktop only). */
+      draggable={canShareDragToChat}
       onDragStart={(e) => {
-        if (!viewerPostHref || e.defaultPrevented) return;
+        if (!canShareDragToChat || !viewerPostHref || e.defaultPrevented) {
+          e.preventDefault();
+          return;
+        }
         const target = e.target as HTMLElement;
         if (e.currentTarget !== target && !target.closest(".jcard-datebar")) {
           // Chỉ nắm kéo từ datebar — vùng khác không khởi động drag card.

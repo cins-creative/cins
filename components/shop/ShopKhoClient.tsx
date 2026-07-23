@@ -24,7 +24,7 @@ import { createPortal } from "react-dom";
 
 import {
   imageFilesFromClipboard,
-  readImageFileFromClipboard,
+  readImageFilesFromClipboard,
 } from "@/lib/files/clipboard-images";
 import type { ShopBangGia, ShopCuaHang, ShopNhom, ShopSanPham } from "@/lib/shop/types";
 import {
@@ -96,7 +96,8 @@ export function ShopKhoClient() {
   const [deleting, setDeleting] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const lastSelectIndexRef = useRef<number | null>(null);
-  const shiftHeldRef = useRef(false);
+  /** Modifiers lúc mousedown trên checkbox (onChange không có shift/ctrl). */
+  const selectModsRef = useRef({ shift: false, ctrl: false });
   /** Dòng vừa sửa gần nhất — nguồn cho Áp dụng hàng loạt. */
   const [lastEditedId, setLastEditedId] = useState<string | null>(null);
   const [bulkApplying, setBulkApplying] = useState(false);
@@ -540,7 +541,7 @@ export function ShopKhoClient() {
   );
 
   const applySelect = useCallback(
-    (id: string, index: number, shiftKey: boolean) => {
+    (id: string, index: number, shiftKey: boolean, ctrlKey = false) => {
       setSelectedIds((prev) => {
         if (shiftKey && lastSelectIndexRef.current != null) {
           const a = Math.min(lastSelectIndexRef.current, index);
@@ -552,7 +553,12 @@ export function ShopKhoClient() {
           }
           return [...next];
         }
-        /* Không Shift: bỏ selection cũ, chỉ giữ ô vừa pick.
+        /* Ctrl/Cmd: bật/tắt từng ô, giữ các ô đã chọn khác. */
+        if (ctrlKey) {
+          if (prev.includes(id)) return prev.filter((x) => x !== id);
+          return [...prev, id];
+        }
+        /* Không modifier: bỏ selection cũ, chỉ giữ ô vừa pick.
            Click lại đúng ô đang chọn duy nhất → bỏ chọn. */
         if (prev.length === 1 && prev[0] === id) return [];
         return [id];
@@ -1036,7 +1042,21 @@ export function ShopKhoClient() {
   }
 
   /**
-   * Chọn ảnh (1 hoặc nhiều) → tạo sản phẩm tương ứng (tên = tên file).
+   * Ảnh đang hiển thị trên dòng (ưu tiên draft chưa lưu).
+   */
+  function rowDisplayAnh(p: ShopSanPham): string | null {
+    const d = drafts[p.id];
+    if (d?.anhId !== undefined) return d.anhUrl ?? null;
+    return p.anhUrl ?? null;
+  }
+
+  function rowHasAnh(p: ShopSanPham): boolean {
+    return Boolean(rowDisplayAnh(p));
+  }
+
+  /**
+   * Chọn ảnh (1 hoặc nhiều) → ưu tiên gắn vào dòng trống đang lọc,
+   * còn thừa mới tạo sản phẩm mới (tên = tên file).
    */
   async function handleAddImages(files: File[]) {
     const list = files.filter((f) => f.size > 0);
@@ -1048,15 +1068,37 @@ export function ShopKhoClient() {
     setErr(null);
     setThumbMenuKey(null);
 
+    const emptySlots = filteredProducts.filter((p) => !rowHasAnh(p));
     const created: ShopSanPham[] = [];
+    let filledEmpty = 0;
     let failUpload = 0;
     let failCreate = 0;
 
     try {
-      for (const file of list) {
+      const draftPatches: Array<{
+        id: string;
+        base: RowDraft;
+        anhId: string;
+        anhUrl: string;
+      }> = [];
+
+      for (let i = 0; i < list.length; i++) {
+        const file = list[i]!;
         const uploaded = await uploadThumb(file);
         if (!uploaded) {
           failUpload += 1;
+          continue;
+        }
+
+        const emptyTarget = emptySlots[filledEmpty];
+        if (emptyTarget) {
+          draftPatches.push({
+            id: emptyTarget.id,
+            base: baseDraftForProduct(emptyTarget),
+            anhId: uploaded.imageId,
+            anhUrl: uploaded.url,
+          });
+          filledEmpty += 1;
           continue;
         }
 
@@ -1094,21 +1136,37 @@ export function ShopKhoClient() {
         created.push(item);
       }
 
+      if (draftPatches.length > 0) {
+        setLastEditedId(draftPatches[0]!.id);
+        setDrafts((prev) => {
+          const next = { ...prev };
+          for (const patch of draftPatches) {
+            next[patch.id] = {
+              ...(prev[patch.id] ?? patch.base),
+              anhId: patch.anhId,
+              anhUrl: patch.anhUrl,
+            };
+          }
+          return next;
+        });
+      }
+
       if (created.length > 0) {
         setProducts((prev) => {
           const ids = new Set(created.map((p) => p.id));
           return [...created, ...prev.filter((p) => !ids.has(p.id))];
         });
-        setLastEditedId(created[0]!.id);
+        if (draftPatches.length === 0) setLastEditedId(created[0]!.id);
         await load({ silent: true });
       }
 
       const fail = failUpload + failCreate;
       if (fail > 0) {
+        const ok = filledEmpty + created.length;
         setErr(
-          created.length === 0
+          ok === 0
             ? "Không thêm được sản phẩm từ ảnh."
-            : `Đã thêm ${created.length} sản phẩm — ${fail} ảnh lỗi.`,
+            : `Đã gắn/thêm ${ok} ảnh — ${fail} ảnh lỗi.`,
         );
       }
     } finally {
@@ -1678,30 +1736,103 @@ export function ShopKhoClient() {
     }
   }
 
-  async function pickRowThumb(p: ShopSanPham, file: File) {
+  /**
+   * Đổi ảnh trên một dòng. Chọn nhiều file → ảnh đầu gắn dòng này,
+   * các ảnh sau xoay lần lượt vào các dòng đang trống (trong danh sách lọc).
+   * Thừa hơn số dòng trống → tạo mẫu mới.
+   */
+  async function pickRowThumbs(anchor: ShopSanPham, files: File[]) {
+    const list = files.filter((f) => f.size > 0);
+    if (list.length === 0) return;
+
     setUploading(true);
     setErr(null);
     try {
-      const form = new FormData();
-      form.append("file", file);
-      const res = await fetch("/api/post-image/upload", {
-        method: "POST",
-        body: form,
-      });
-      const json = (await res.json().catch(() => null)) as {
-        imageId?: string;
-        url?: string;
-        error?: string;
-      } | null;
-      if (!res.ok || !json?.imageId || !json.url) {
-        setErr(json?.error ?? "Không tải ảnh được.");
-        return;
+      const uploaded: Array<{ imageId: string; url: string; file: File }> = [];
+      let failUpload = 0;
+      for (const file of list) {
+        const u = await uploadThumb(file);
+        if (!u) {
+          failUpload += 1;
+          continue;
+        }
+        uploaded.push({ ...u, file });
       }
-      patchDraft(
-        p.id,
-        { anhId: json.imageId, anhUrl: json.url },
-        baseDraftForProduct(p),
+      if (uploaded.length === 0) return;
+
+      const emptyOthers = filteredProducts.filter(
+        (p) => p.id !== anchor.id && !rowHasAnh(p),
       );
+      const draftTargets: ShopSanPham[] = [anchor, ...emptyOthers];
+      const toDraft = uploaded.slice(0, draftTargets.length);
+      const leftovers = uploaded.slice(draftTargets.length);
+
+      setLastEditedId(anchor.id);
+      setDrafts((prev) => {
+        const next = { ...prev };
+        for (let i = 0; i < toDraft.length; i++) {
+          const p = draftTargets[i]!;
+          const u = toDraft[i]!;
+          next[p.id] = {
+            ...(prev[p.id] ?? baseDraftForProduct(p)),
+            anhId: u.imageId,
+            anhUrl: u.url,
+          };
+        }
+        return next;
+      });
+
+      const created: ShopSanPham[] = [];
+      let failCreate = 0;
+      for (const u of leftovers) {
+        const res = await fetch("/api/shop/san-pham", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ten: nameFromImageFile(u.file),
+            anhId: u.imageId,
+            phanLoai: activeNhom?.nhan ?? null,
+            phanLoai2: null,
+            bienThe: [{ nhan: "Mặc định", soLuongTon: 0 }],
+          }),
+        });
+        const json = (await res.json().catch(() => null)) as {
+          item?: ShopSanPham;
+          error?: string;
+        } | null;
+        if (!res.ok || !json?.item) {
+          failCreate += 1;
+          continue;
+        }
+        const item = json.item;
+        const bt0 = item.bienThe[0];
+        if (
+          bt0 &&
+          activeNhom?.giaMacDinh != null &&
+          Number.isFinite(activeNhom.giaMacDinh)
+        ) {
+          await saveGiaForBienThe(bt0.id, {
+            gia: activeNhom.giaMacDinh,
+            giaGiam: null,
+          });
+        }
+        created.push(item);
+      }
+
+      if (created.length > 0) {
+        setProducts((prev) => {
+          const ids = new Set(created.map((p) => p.id));
+          return [...created, ...prev.filter((p) => !ids.has(p.id))];
+        });
+        await load({ silent: true });
+      }
+
+      const fail = failUpload + failCreate;
+      if (fail > 0) {
+        setErr(
+          `Đã gắn ${toDraft.length + created.length} ảnh — ${fail} ảnh lỗi.`,
+        );
+      }
     } finally {
       setUploading(false);
     }
@@ -2158,6 +2289,29 @@ export function ShopKhoClient() {
                       void handleAddImages(files);
                     }}
                   />
+                  {selectedIds.length > 0 ? (
+                    <button
+                      type="button"
+                      className="shop-kho-bulk-delete-btn"
+                      disabled={saving || uploading || deleting || bulkApplying}
+                      title={`Xóa ${selectedIds.length} mẫu đã chọn`}
+                      aria-label={`Xóa ${selectedIds.length} mẫu đã chọn`}
+                      onClick={() => {
+                        const items = products
+                          .filter((p) => selectedIdSet.has(p.id))
+                          .map((p) => ({ id: p.id, ten: p.ten }));
+                        if (items.length > 0) setDeleteTargets(items);
+                      }}
+                    >
+                      <Trash2 size={15} strokeWidth={2} aria-hidden />
+                      Xóa
+                      {selectedIds.length > 1 ? (
+                        <span className="shop-kho-bulk-delete-count">
+                          {selectedIds.length}
+                        </span>
+                      ) : null}
+                    </button>
+                  ) : null}
                   <button
                     type="button"
                     className="shop-kho-add-btn"
@@ -2175,7 +2329,7 @@ export function ShopKhoClient() {
                     type="button"
                     className="shop-kho-add-images-btn"
                     disabled={saving || uploading}
-                    title="Thêm hàng loạt từ ảnh"
+                    title="Thêm ảnh — ưu tiên dòng trống, thừa thì tạo mẫu mới"
                     aria-label="Thêm hàng loạt từ ảnh"
                     onClick={() => fileRef.current?.click()}
                   >
@@ -2393,7 +2547,12 @@ export function ShopKhoClient() {
                             if ((e.target as HTMLElement).closest("input")) {
                               return;
                             }
-                            applySelect(p.id, rowIndex, e.shiftKey);
+                            applySelect(
+                              p.id,
+                              rowIndex,
+                              e.shiftKey,
+                              e.ctrlKey || e.metaKey,
+                            );
                           }}
                         >
                           <input
@@ -2401,16 +2560,24 @@ export function ShopKhoClient() {
                             checked={isSelected}
                             disabled={rowSaving || bulkApplying || deleting}
                             aria-label={`Chọn ${p.ten}`}
+                            title="Click chọn · Ctrl chọn nhiều · Shift chọn dải"
                             onMouseDown={(e) => {
-                              shiftHeldRef.current = e.shiftKey;
+                              selectModsRef.current = {
+                                shift: e.shiftKey,
+                                ctrl: e.ctrlKey || e.metaKey,
+                              };
                             }}
                             onChange={() => {
                               applySelect(
                                 p.id,
                                 rowIndex,
-                                shiftHeldRef.current,
+                                selectModsRef.current.shift,
+                                selectModsRef.current.ctrl,
                               );
-                              shiftHeldRef.current = false;
+                              selectModsRef.current = {
+                                shift: false,
+                                ctrl: false,
+                              };
                             }}
                           />
                         </td>
@@ -2442,24 +2609,26 @@ export function ShopKhoClient() {
                           tabIndex={0}
                           onPaste={(e) => {
                             if (uploading || rowSaving) return;
-                            const file =
-                              imageFilesFromClipboard(e.clipboardData)[0];
-                            if (!file) return;
+                            const files = imageFilesFromClipboard(
+                              e.clipboardData,
+                            );
+                            if (files.length === 0) return;
                             e.preventDefault();
                             e.stopPropagation();
-                            void pickRowThumb(p, file);
+                            void pickRowThumbs(p, files);
                           }}
                         >
                           <input
                             id={rowFileId}
                             type="file"
                             accept="image/*"
+                            multiple
                             hidden
                             disabled={uploading || rowSaving}
                             onChange={(e) => {
-                              const f = e.target.files?.[0];
+                              const files = Array.from(e.target.files ?? []);
                               e.target.value = "";
-                              if (f) void pickRowThumb(p, f);
+                              if (files.length > 0) void pickRowThumbs(p, files);
                               setThumbMenuKey(null);
                             }}
                           />
@@ -2506,19 +2675,19 @@ export function ShopKhoClient() {
                                   type="button"
                                   className="shop-thumb-placeholder shop-thumb-placeholder--paste"
                                   aria-label="Dán ảnh từ bộ nhớ tạm"
-                                  title="Dán ảnh"
+                                  title="Dán ảnh (nhiều ảnh → dòng trống)"
                                   disabled={uploading || rowSaving}
                                   onClick={() => {
                                     void (async () => {
-                                      const file =
-                                        await readImageFileFromClipboard();
-                                      if (!file) {
+                                      const files =
+                                        await readImageFilesFromClipboard();
+                                      if (files.length === 0) {
                                         setErr(
                                           "Không đọc được ảnh từ bộ nhớ tạm. Hãy copy ảnh rồi thử lại.",
                                         );
                                         return;
                                       }
-                                      void pickRowThumb(p, file);
+                                      void pickRowThumbs(p, files);
                                     })();
                                   }}
                                 >
@@ -2555,7 +2724,7 @@ export function ShopKhoClient() {
                                 htmlFor={rowFileId}
                                 className="shop-thumb-act"
                                 aria-label="Chọn ảnh từ máy"
-                                title="Đổi ảnh"
+                                title="Đổi ảnh — chọn nhiều để gắn vào dòng trống"
                               >
                                 <ImagePlus size={14} strokeWidth={2} />
                               </label>
@@ -2565,20 +2734,20 @@ export function ShopKhoClient() {
                                 disabled={uploading || rowSaving}
                                 onClick={() => {
                                   void (async () => {
-                                    const file =
-                                      await readImageFileFromClipboard();
-                                    if (!file) {
+                                    const files =
+                                      await readImageFilesFromClipboard();
+                                    if (files.length === 0) {
                                       setErr(
                                         "Không đọc được ảnh từ bộ nhớ tạm. Hãy copy ảnh rồi thử lại, hoặc Ctrl+V khi focus ô ảnh.",
                                       );
                                       return;
                                     }
-                                    void pickRowThumb(p, file);
+                                    void pickRowThumbs(p, files);
                                     setThumbMenuKey(null);
                                   })();
                                 }}
                                 aria-label="Dán ảnh từ bộ nhớ tạm"
-                                title="Dán ảnh"
+                                title="Dán ảnh (nhiều ảnh → dòng trống)"
                               >
                                 <ClipboardPaste size={14} strokeWidth={2} />
                               </button>

@@ -21,7 +21,9 @@
 .j-shop-sf-cover {
   position: relative;
   z-index: 0;
-  height: 140px;
+  width: 100%;
+  aspect-ratio: 3 / 1;
+  height: auto;
   border-radius: 0;
   background:
     linear-gradient(145deg, #0f172a 0%, #1e293b 42%, #0f766e 100%);
@@ -177,6 +179,15 @@
   filter: none;
 }
 
+.j-shop-sf-identity {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 6px;
+  min-width: 0;
+}
+
 .j-shop-sf-avatar {
   width: 104px;
   height: 104px;
@@ -196,6 +207,11 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+/* Mobile: thay chip «Chủ shop» — hiện khi sidebar Journey bị ẩn. */
+.j-shop-sf-back-profile {
+  display: none;
 }
 
 .j-shop-sf-hero-copy {
@@ -1511,7 +1527,8 @@
   }
 
   .j-shop-sf-cover {
-    height: 112px;
+    aspect-ratio: 3 / 1;
+    height: auto;
     border-radius: 0;
     width: 100vw;
     max-width: 100vw;
@@ -1528,7 +1545,7 @@
   }
 
   .j-shop-sf-hero-body {
-    align-items: flex-end;
+    align-items: flex-start;
     gap: 12px 12px;
     margin-top: -36px;
     padding: 0 12px 10px;
@@ -2888,9 +2905,36 @@
   background: var(--neutral-100);
 }
 
-/* —— Trang loại hàng /{slug}/shop/loai/[id] (trong j-shell) —— */
+/* —— Trang loại hàng /{slug}/shop/{shopSlug}/loai/[id] (trong j-shell) —— */
 .j-shell > .j-shop {
   min-width: 0;
+}
+
+/* Mobile shop: ẩn sidebar hồ sơ — link «← Trang cá nhân» dưới avatar thay thế. */
+@media (max-width: 991.98px) {
+  .cins-journey-page .j-shell:has(> .j-shop) > .j-sidebar {
+    display: none;
+  }
+
+  .j-shop-sf-back-profile {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    max-width: 100%;
+    padding: 2px 0;
+    font-size: 0.72rem;
+    font-weight: 650;
+    line-height: 1.25;
+    color: var(--ink-muted, #64748b);
+    text-decoration: none;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .j-shop-sf-back-profile:hover,
+  .j-shop-sf-back-profile:active {
+    color: color-mix(in srgb, var(--cins-orange, #fdad4c) 42%, var(--ink-body));
+  }
 }
 
 .j-shop-loai-page {
@@ -2957,6 +3001,42 @@
   aspect-ratio: 1;
 }
 
+.j-shop-loai-gallery.is-swipeable {
+  touch-action: pan-y;
+  user-select: none;
+}
+
+.j-shop-loai-gallery-dots {
+  display: none;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 10px;
+  z-index: 2;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.j-shop-loai-gallery-dot {
+  pointer-events: auto;
+  width: 7px;
+  height: 7px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, #fff 55%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, #0f172a 28%, transparent);
+  cursor: pointer;
+}
+
+.j-shop-loai-gallery-dot.is-active {
+  width: 18px;
+  background: #fff;
+  box-shadow: 0 0 0 1px color-mix(in srgb, #0f172a 35%, transparent);
+}
+
 .j-shop-loai-gallery-thumbs {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -3011,6 +3091,25 @@
   display: block;
 }
 
+.j-shop-loai-gallery-base {
+  animation: j-shop-loai-gallery-pan 0.4s ease-out;
+}
+
+@keyframes j-shop-loai-gallery-pan {
+  from {
+    transform: translateX(18%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .j-shop-loai-gallery-base {
+    animation: none;
+  }
+}
+
 .j-shop-loai-gallery-video {
   width: 100%;
   height: 100%;
@@ -3044,8 +3143,9 @@
 .j-shop-loai-buy h1 {
   margin: 0 0 8px;
   font-family: var(--font-sans);
-  font-size: 1.6rem;
-  font-weight: 750;
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.3;
   color: var(--ink-display, var(--ink-body));
 }
 
@@ -3494,6 +3594,36 @@
   font-size: 0.8rem;
 }
 
+.j-shop-loai-buy-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 6;
+  margin: 12px -4px 0;
+  padding: 10px 4px
+    calc(10px + env(safe-area-inset-bottom, 0px));
+  background: color-mix(in srgb, var(--bg-page, #fff) 92%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-top: 1px solid color-mix(in srgb, var(--border, #e2e8f0) 80%, transparent);
+  box-shadow: 0 -8px 24px -16px rgb(15 23 42 / 28%);
+}
+
+.j-shop-loai-buy-bar .j-shop-loai-qty-row {
+  margin: 0 0 10px;
+}
+
+.j-shop-loai-buy-bar .j-shop-loai-add {
+  margin: 0;
+}
+
+.j-shop-loai-buy-bar .j-shop-sf-cart-err {
+  margin: 0 0 8px;
+}
+
+.j-shop-loai-buy-bar .j-shop-loai-owner-hint {
+  margin: 0;
+}
+
 .j-shop-loai-add {
   display: inline-flex;
   align-items: center;
@@ -3558,6 +3688,18 @@
   position: relative;
   overflow: hidden;
   padding: 2px 0 8px;
+  cursor: grab;
+  touch-action: pan-y;
+  user-select: none;
+}
+
+.j-shop-loai-more-track.is-dragging {
+  cursor: grabbing;
+  touch-action: none;
+}
+
+.j-shop-loai-more-track.is-dragging .j-shop-loai-more-ticker {
+  animation-play-state: paused;
 }
 
 .j-shop-loai-more-ticker {
@@ -3576,8 +3718,8 @@
 .j-shop-loai-more-ticker-group {
   display: flex;
   flex-shrink: 0;
-  gap: 14px;
-  padding-right: 14px;
+  gap: 6px;
+  padding-right: 6px;
 }
 
 .j-shop-loai-more-card {
@@ -3638,6 +3780,8 @@
   height: 100%;
   object-fit: cover;
   display: block;
+  pointer-events: none;
+  -webkit-user-drag: none;
 }
 
 .j-shop-loai-more-ph {
@@ -4177,6 +4321,12 @@
     );
 }
 
+:root[data-theme="dark"] .j-shop-loai-buy-bar {
+  background: color-mix(in srgb, var(--bg-page, #0f131a) 90%, transparent);
+  border-top-color: color-mix(in srgb, #fff 12%, transparent);
+  box-shadow: 0 -8px 24px -16px rgb(0 0 0 / 55%);
+}
+
 :root[data-theme="dark"] .j-shop-loai-price {
   color: var(--ink-display, #f1f5f9);
 }
@@ -4278,6 +4428,12 @@
   background: color-mix(in srgb, #fff 6%, var(--bg-page));
 }
 
+/* Trang chi tiết loại — ẩn FAB góp ý + chat (thay bằng sticky thêm giỏ). */
+body:has(.j-shop-loai-page) .gopy-fab,
+body:has(.j-shop-loai-page) .j-chat-dock {
+  display: none !important;
+}
+
 @media (max-width: 800px) {
   .j-shop-loai-main {
     grid-template-columns: 1fr;
@@ -4287,6 +4443,56 @@
     position: relative;
     top: auto;
     z-index: auto;
+  }
+
+  /* Mobile: swipe ảnh chính — ẩn thumbs, hiện dots. */
+  .j-shop-loai-gallery-thumbs {
+    display: none;
+  }
+
+  .j-shop-loai-gallery-dots {
+    display: flex;
+  }
+
+  /*
+   * Thứ tự mobile: gallery (đã ở trên) → tên → giá → mẫu/biến thể
+   * → số lượng + thêm giỏ → mô tả.
+   */
+  .j-shop-loai-buy {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .j-shop-loai-buy h1 {
+    order: 1;
+    font-size: 1.12rem;
+    line-height: 1.35;
+  }
+
+  .j-shop-loai-price {
+    order: 2;
+  }
+
+  .j-shop-loai-filters {
+    order: 3;
+  }
+
+  .j-shop-loai-section {
+    order: 4;
+  }
+
+  .j-shop-loai-buy-bar {
+    order: 5;
+    margin-left: -14px;
+    margin-right: -14px;
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .j-shop-loai-mota {
+    order: 8;
+    margin-top: 16px;
+    margin-bottom: 0;
   }
 
   .j-shop-loai-more-card {

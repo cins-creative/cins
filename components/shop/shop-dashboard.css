@@ -3585,6 +3585,57 @@
   cursor: not-allowed;
 }
 
+.shop-kho-bulk-delete-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 0 12px;
+  border: 1px solid color-mix(in srgb, #c0392b 35%, var(--border, #e4e6eb));
+  border-radius: 999px;
+  background: color-mix(in srgb, #c0392b 8%, var(--bg-surface, #fff));
+  color: #a1271c;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.shop-kho-bulk-delete-btn:hover:not(:disabled) {
+  border-color: #c0392b;
+  background: color-mix(in srgb, #c0392b 14%, var(--bg-surface, #fff));
+}
+
+.shop-kho-bulk-delete-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.shop-kho-bulk-delete-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: color-mix(in srgb, #c0392b 18%, transparent);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+:root[data-theme="dark"] .shop-kho-bulk-delete-btn {
+  border-color: color-mix(in srgb, #e57373 40%, var(--border, #2a3040));
+  background: color-mix(in srgb, #e57373 12%, var(--bg-surface, #151a24));
+  color: #f0a8a0;
+}
+
+:root[data-theme="dark"] .shop-kho-bulk-delete-btn:hover:not(:disabled) {
+  border-color: #e57373;
+  background: color-mix(in srgb, #e57373 18%, var(--bg-surface, #151a24));
+}
+
 .shop-filter-dropdown-panel {
   position: absolute;
   top: calc(100% + 4px);
