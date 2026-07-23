@@ -18195,8 +18195,8 @@ a.action-btn-part {
     flex: none;
   }
   .jcard-actions .action-btn--split {
-    gap: 2px;
-    padding: 4px 6px;
+    gap: 4px;
+    padding: 8px 12px;
   }
   .jcard-actions .action-btn-part--icon {
     display: inline-flex;
@@ -18227,8 +18227,8 @@ a.action-btn-part {
 /* Viewport hẹp (DevTools / tablet) — icon và số không bị đẩy xa. */
 @media (max-width: 640px) {
   .jcard-actions .action-btn--split {
-    gap: 2px;
-    padding: 4px 6px;
+    gap: 4px;
+    padding: 8px 12px;
   }
   .jcard-actions .action-btn {
     gap: 3px;

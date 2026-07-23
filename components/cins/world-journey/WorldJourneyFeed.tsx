@@ -140,7 +140,7 @@ function WorldJourneyFilterBar({
               onSurfaceView("journey");
             }}
           >
-            <Waypoints size={24} strokeWidth={2.25} aria-hidden />
+            <Waypoints size={16} strokeWidth={2.25} aria-hidden />
           </button>
           <button
             type="button"
@@ -157,7 +157,7 @@ function WorldJourneyFilterBar({
               onSurfaceView("gallery");
             }}
           >
-            <LayoutGrid size={24} strokeWidth={2.25} aria-hidden />
+            <LayoutGrid size={16} strokeWidth={2.25} aria-hidden />
           </button>
         </div>
       </div>
