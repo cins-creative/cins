@@ -78,4 +78,8 @@ export type WorldBoostGrowth = {
   series: WorldBoostGrowthPoint[];
   totals: WorldBoostGrowthTotals;
   prevTotals: WorldBoostGrowthTotals;
+  /** Tổng nội dung mới hôm nay (VN). */
+  today: number;
+  last7: number;
+  last30: number;
 };

@@ -36,11 +36,29 @@ export const FEED_SCORE = {
   CONTENT_PART: DEFAULT_FEED_SCORE_CONFIG.CONTENT_PART,
 } as const;
 
-/** Cộng tay admin (nút +) — không hoàn lại, không bị tắt đẩy xóa. */
+/**
+ * Cộng/trừ tay admin (`diem_uu_tien`) — không bị tắt đẩy xóa.
+ * UI mặc định ±STEP; `BUMP` giữ tương thích API cũ (+10).
+ */
 export const ADMIN_DIEM_UU_TIEN = {
+  STEP: 5,
   BUMP: 10,
+  ALLOWED_DELTAS: [-5, 5, 10] as const,
+  MIN: 0,
   MAX: 200,
 } as const;
+
+export type AdminDiemUuTienDelta =
+  (typeof ADMIN_DIEM_UU_TIEN.ALLOWED_DELTAS)[number];
+
+export function isAdminDiemUuTienDelta(
+  n: unknown,
+): n is AdminDiemUuTienDelta {
+  return (
+    typeof n === "number" &&
+    (ADMIN_DIEM_UU_TIEN.ALLOWED_DELTAS as readonly number[]).includes(n)
+  );
+}
 
 /** Giây mặc định 7 ngày — runtime dùng `feedScoreDecaySeconds(cfg)`. */
 export const FEED_SCORE_DECAY_SECONDS = FEED_SCORE.DECAY_HOURS * 3600;
@@ -53,7 +71,7 @@ export type ContentDiemFeed = {
   diem_noi_dung: number;
   diem_verify: number;
   diem_engagement: number;
-  /** Ưu tiên admin cộng tay — không hoàn lại. */
+  /** Ưu tiên admin chỉnh tay (±STEP). */
   diem_uu_tien?: number;
   bat_dau_luc: Date | string;
 };

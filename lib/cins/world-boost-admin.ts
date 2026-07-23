@@ -155,13 +155,29 @@ function countByDay(times: string[]): Map<string, number> {
   return map;
 }
 
+function sumTotalForKeys(
+  cotByDay: Map<string, number>,
+  orgByDay: Map<string, number>,
+  suKienByDay: Map<string, number>,
+  keys: string[],
+): number {
+  let n = 0;
+  for (const k of keys) {
+    n +=
+      (cotByDay.get(k) ?? 0) +
+      (orgByDay.get(k) ?? 0) +
+      (suKienByDay.get(k) ?? 0);
+  }
+  return n;
+}
+
 export async function fetchWorldBoostGrowth(
   daysInput: number = 30,
 ): Promise<WorldBoostGrowth> {
   const days: WorldBoostGrowthDays = daysInput <= 7 ? 7 : 30;
   const admin = createServiceRoleClient();
-  /* Hai cửa sổ liền kề: hiện tại `days` ngày + cửa sổ trước cùng độ dài */
-  const sinceIso = daysAgoIso(days * 2);
+  /* Cần ≥30 ngày cho last30; hai cửa sổ liền kề cho so sánh kỳ. */
+  const sinceIso = daysAgoIso(Math.max(60, days * 2));
 
   /* org_su_kien không có tao_luc — dùng bat_dau (ngày sự kiện) làm proxy. */
   const [cotTimes, orgTimes, suKienTimes] = await Promise.all([
@@ -206,6 +222,10 @@ export async function fetchWorldBoostGrowth(
   const windowKeys = lastNDateKeysVn(days * 2);
   const prevKeys = windowKeys.slice(0, days);
   const currentKeys = windowKeys.slice(days);
+  const keys30 = lastNDateKeysVn(30);
+  const keys7 = lastNDateKeysVn(7);
+  const todayKey =
+    keys7[keys7.length - 1] ?? dateKeyVn(new Date().toISOString());
 
   const buildSeries = (keys: string[]): WorldBoostGrowthPoint[] =>
     keys.map((date) => {
@@ -229,6 +249,9 @@ export async function fetchWorldBoostGrowth(
     series,
     totals: sumSeries(series),
     prevTotals: sumSeries(prevSeries),
+    today: sumTotalForKeys(cotByDay, orgByDay, suKienByDay, [todayKey]),
+    last7: sumTotalForKeys(cotByDay, orgByDay, suKienByDay, keys7),
+    last30: sumTotalForKeys(cotByDay, orgByDay, suKienByDay, keys30),
   };
 }
 

@@ -1,7 +1,9 @@
 "use client";
 
+import { ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useId, useRef, useState } from "react";
 
 const NAV = [
   { section: "Nội dung" },
@@ -22,6 +24,22 @@ const NAV = [
   { href: "/admin/linh-vuc", label: "Lĩnh vực", icon: "grid" },
   { href: "/admin/analytics", label: "Analytics", icon: "chart" },
 ] as const;
+
+function activeLabel(pathname: string): string {
+  let best: { href: string; label: string } | null = null;
+  for (const item of NAV) {
+    if (!("href" in item)) continue;
+    if (
+      pathname === item.href ||
+      pathname.startsWith(`${item.href}/`)
+    ) {
+      if (!best || item.href.length > best.href.length) {
+        best = { href: item.href, label: item.label };
+      }
+    }
+  }
+  return best?.label ?? "Admin";
+}
 
 function NavIcon({ name }: { name: string }) {
   const p = {
@@ -153,10 +171,43 @@ function NavIcon({ name }: { name: string }) {
 
 export function AdminSidebar() {
   const pathname = usePathname();
+  const [open, setOpen] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const menuId = useId();
+  const currentLabel = activeLabel(pathname);
+
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    const onPointer = (e: MouseEvent | TouchEvent) => {
+      const el = panelRef.current;
+      if (!el) return;
+      if (e.target instanceof Node && !el.contains(e.target)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("mousedown", onPointer);
+    document.addEventListener("touchstart", onPointer);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("mousedown", onPointer);
+      document.removeEventListener("touchstart", onPointer);
+    };
+  }, [open]);
 
   return (
     <aside className="admin-sidebar-col" aria-label="Điều hướng admin">
-      <div className="admin-sidebar-panel">
+      <div
+        ref={panelRef}
+        className={`admin-sidebar-panel${open ? " is-nav-open" : ""}`}
+      >
         <div className="sidebar-logo">
           <Link href="/" className="sidebar-logo-link">
             <img
@@ -168,7 +219,25 @@ export function AdminSidebar() {
           </Link>
         </div>
 
-        <nav className="sidebar-nav">
+        <button
+          type="button"
+          className="admin-nav-top-trigger"
+          aria-expanded={open}
+          aria-controls={menuId}
+          onClick={() => setOpen((v) => !v)}
+        >
+          <span className="admin-nav-top-trigger-text">
+            <span className="admin-nav-top-trigger-kicker">Menu admin</span>
+            <strong>{currentLabel}</strong>
+          </span>
+          <ChevronDown
+            size={18}
+            className="admin-nav-top-trigger-chevron"
+            aria-hidden
+          />
+        </button>
+
+        <nav id={menuId} className="sidebar-nav">
           {NAV.map((item, i) => {
             if ("section" in item) {
               return (
@@ -184,6 +253,7 @@ export function AdminSidebar() {
                 key={item.href}
                 href={item.href}
                 className={`nav-item${active ? " active" : ""}`}
+                onClick={() => setOpen(false)}
               >
                 <NavIcon name={item.icon} />
                 <span className="nav-item-label">{item.label}</span>

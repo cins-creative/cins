@@ -198,6 +198,11 @@
   font-family: var(--font-mono);
 }
 
+/* Mobile top-nav trigger — hidden on desktop */
+.cins-admin .admin-nav-top-trigger {
+  display: none;
+}
+
 /* ── Main column ── */
 .cins-admin .main {
   display: flex;
@@ -3305,21 +3310,118 @@
 }
 
 @media (max-width: 980px) {
-  .cins-admin .admin-layout {
-    padding: var(--space-4);
+  .cins-admin .admin-sidebar-col {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: auto;
+    z-index: 50;
+    width: 100%;
+    max-height: none;
+    margin: 0;
+    padding-top: env(safe-area-inset-top, 0px);
+    background: var(--bg-surface);
   }
 
-  .cins-admin .admin-sidebar-col {
-    position: static;
-    width: auto;
-    max-height: none;
-    margin-bottom: var(--space-4);
+  .cins-admin .admin-layout {
+    padding: 8px;
+    /* Chừa chỗ cho fixed top nav (~58px) + safe area */
+    padding-top: calc(58px + env(safe-area-inset-top, 0px) + 8px);
   }
 
   .cins-admin .admin-sidebar-panel {
+    position: relative;
     height: auto;
-    border-radius: var(--radius-lg);
+    width: 100%;
+    border-radius: 0;
+    border-left: 0;
+    border-right: 0;
+    border-top: 0;
     max-height: none;
+    overflow: visible;
+    box-shadow: 0 1px 0 var(--border), 0 8px 20px rgb(15 23 42 / 6%);
+  }
+
+  .cins-admin .sidebar-logo {
+    display: none;
+  }
+
+  .cins-admin .admin-nav-top-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    min-height: 58px;
+    margin: 0;
+    padding: 10px 16px;
+    border: 0;
+    background: transparent;
+    color: var(--fg-1);
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .cins-admin .admin-nav-top-trigger-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .cins-admin .admin-nav-top-trigger-kicker {
+    font-size: 10px;
+    font-family: var(--font-mono);
+    font-weight: var(--weight-bold);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--fg-4);
+  }
+
+  .cins-admin .admin-nav-top-trigger strong {
+    font-size: var(--text-sm);
+    font-weight: var(--weight-bold);
+    color: var(--fg-1);
+    line-height: 1.2;
+  }
+
+  .cins-admin .admin-nav-top-trigger-chevron {
+    flex-shrink: 0;
+    color: var(--fg-3);
+    transition: transform 0.15s ease;
+  }
+
+  .cins-admin .admin-sidebar-panel.is-nav-open .admin-nav-top-trigger-chevron {
+    transform: rotate(180deg);
+  }
+
+  .cins-admin .admin-sidebar-panel .sidebar-nav,
+  .cins-admin .admin-sidebar-panel .sidebar-bottom {
+    display: none;
+  }
+
+  .cins-admin .admin-sidebar-panel.is-nav-open .sidebar-nav {
+    display: flex;
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 100%;
+    z-index: 60;
+    max-height: min(70vh, 520px);
+    overflow-y: auto;
+    margin: 0;
+    padding: var(--space-2);
+    border: 0;
+    border-top: 1px solid var(--border);
+    border-radius: 0;
+    background: var(--bg-surface);
+    box-shadow: 0 12px 28px rgb(15 23 42 / 14%);
+  }
+
+  .cins-admin .admin-sidebar-panel.is-nav-open .sidebar-bottom {
+    display: none;
   }
 
   .cins-admin .stats-grid {
@@ -4911,7 +5013,7 @@
 
 .cins-admin .admin-to-chuc-stats {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -5867,6 +5969,84 @@
   color: var(--fg-2);
 }
 
+.cins-admin .admin-nguoi-dung-noi-dung {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  text-decoration: none;
+  color: var(--fg-1);
+  font-variant-numeric: tabular-nums;
+}
+
+.cins-admin .admin-nguoi-dung-noi-dung strong {
+  font-size: 14px;
+  font-weight: var(--weight-bold);
+}
+
+.cins-admin .admin-nguoi-dung-noi-dung span {
+  font-size: 11px;
+  color: var(--fg-4);
+}
+
+.cins-admin .admin-nguoi-dung-noi-dung:hover strong {
+  color: var(--cins-blue);
+}
+
+.cins-admin .admin-nguoi-dung-shop-filters {
+  margin-top: -8px;
+}
+
+.cins-admin .admin-nguoi-dung-shop {
+  display: inline-flex;
+  max-width: 180px;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  border: 1px solid color-mix(in srgb, #0d9488 28%, var(--border));
+  border-radius: 999px;
+  background: color-mix(in srgb, #14b8a6 10%, var(--bg-surface));
+  color: #0f766e;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  line-height: 1.2;
+}
+
+.cins-admin .admin-nguoi-dung-shop:hover {
+  border-color: color-mix(in srgb, #0d9488 45%, var(--border));
+  background: color-mix(in srgb, #14b8a6 16%, var(--bg-surface));
+}
+
+.cins-admin .admin-nguoi-dung-shop.is-public {
+  border-color: color-mix(in srgb, #16a34a 35%, var(--border));
+  background: color-mix(in srgb, #22c55e 12%, var(--bg-surface));
+  color: #15803d;
+}
+
+.cins-admin .admin-nguoi-dung-shop.is-off {
+  border-color: var(--border);
+  background: var(--neutral-50, #fafafa);
+  color: var(--fg-3);
+}
+
+.cins-admin .admin-nguoi-dung-shop-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cins-admin .admin-nguoi-dung-shop-tag {
+  flex-shrink: 0;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--fg-1) 8%, transparent);
+  font-size: 10px;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
 .cins-admin .admin-nguoi-dung-status {
   font-size: 12px;
   color: var(--fg-3);
@@ -6737,29 +6917,70 @@
 }
 
 /* L29 — /admin/noi-dung-dang */
+.cins-admin .ndd-page {
+  min-height: 100%;
+  min-width: 0;
+}
+.cins-admin .ndd-head {
+  align-items: stretch;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+}
+.cins-admin .ndd-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
 .cins-admin .ndd-view-toggle {
   display: inline-flex;
+  flex-wrap: wrap;
   gap: 6px;
+  margin-left: 0;
+  width: 100%;
+  max-width: 100%;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--neutral-50, #fafafa);
 }
 .cins-admin .ndd-view-toggle button,
 .cins-admin .ndd-view-toggle a {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 7px 12px;
-  border: 1px solid var(--border);
+  min-height: 36px;
+  padding: 6px 12px;
+  border: 1px solid transparent;
   border-radius: 8px;
-  background: var(--bg-surface);
+  background: transparent;
   color: var(--fg-3);
   font-size: 13px;
+  font-weight: 650;
   cursor: pointer;
   text-decoration: none;
+  white-space: nowrap;
+  transition:
+    background 0.12s ease,
+    color 0.12s ease,
+    border-color 0.12s ease;
+}
+.cins-admin .ndd-view-toggle button:hover,
+.cins-admin .ndd-view-toggle a:hover {
+  color: var(--fg-1);
+  background: var(--bg-surface);
 }
 .cins-admin .ndd-view-toggle button.is-active,
 .cins-admin .ndd-view-toggle a.is-active {
-  border-color: #16a34a;
+  border-color: color-mix(in srgb, #16a34a 35%, var(--border));
   background: #f0fdf4;
   color: #15803d;
+  box-shadow: 0 1px 2px color-mix(in srgb, #16a34a 12%, transparent);
+}
+.cins-admin .ndd-tab-short {
+  display: none;
 }
 .cins-admin .ndd-tab-badge {
   display: inline-flex;
@@ -7178,55 +7399,108 @@
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 10px;
-  margin: 0 0 16px;
 }
 .cins-admin .ndd-stat {
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 12px 14px;
   background: var(--bg-surface);
+  box-shadow: var(--shadow-xs);
 }
-.cins-admin .ndd-stat strong {
+.cins-admin .ndd-stat-k {
   display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--fg-4);
+  line-height: 1.3;
+}
+.cins-admin .ndd-stat-v {
+  display: block;
+  margin-top: 6px;
   font-size: 22px;
+  font-weight: 800;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   line-height: 1.1;
   color: var(--fg-1);
 }
-.cins-admin .ndd-stat span {
-  font-size: 12px;
-  color: var(--fg-4);
+.cins-admin .ndd-stat--boost {
+  border-color: #bbf7d0;
+  background: linear-gradient(180deg, #f0fdf4 0%, var(--bg-surface) 100%);
+}
+.cins-admin .ndd-stat--boost .ndd-stat-v {
+  color: #15803d;
+}
+.cins-admin .ndd-stat--soon {
+  border-color: #fde68a;
+  background: linear-gradient(180deg, #fffbeb 0%, var(--bg-surface) 100%);
+}
+.cins-admin .ndd-stat--soon .ndd-stat-v {
+  color: #b45309;
+}
+.cins-admin .ndd-panel {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-xs);
+  overflow: hidden;
+  min-width: 0;
 }
 .cins-admin .ndd-filters {
   display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  align-items: center;
-  margin-bottom: 16px;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(
+    180deg,
+    var(--neutral-50) 0%,
+    var(--bg-surface) 100%
+  );
 }
 .cins-admin .ndd-search {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  min-height: 42px;
   border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 0 10px;
+  border-radius: 10px;
+  padding: 0 12px;
   background: var(--bg-surface);
   color: var(--fg-4);
-  min-width: 240px;
+  width: 100%;
+  max-width: 420px;
+  transition:
+    border-color 0.12s ease,
+    box-shadow 0.12s ease;
+}
+.cins-admin .ndd-search:focus-within {
+  border-color: var(--cins-blue);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cins-blue) 13%, transparent);
 }
 .cins-admin .ndd-search input {
   border: 0;
   outline: none;
-  padding: 8px 0;
+  min-width: 0;
   flex: 1;
+  padding: 8px 0;
   font-size: 13px;
   background: transparent;
   color: var(--fg-1);
 }
+.cins-admin .ndd-filter-selects {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
 .cins-admin .ndd-filters select {
+  min-height: 40px;
   border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 8px 10px;
+  border-radius: 10px;
+  padding: 8px 12px;
   font-size: 13px;
   background: var(--bg-surface);
   color: var(--fg-2);
@@ -7234,15 +7508,35 @@
 .cins-admin .ndd-check {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 4px;
   font-size: 13px;
+  font-weight: 600;
   color: var(--fg-3);
+  cursor: pointer;
 }
-.cins-admin .ndd-error { color: #b91c1c; font-size: 13px; }
+.cins-admin .ndd-check input {
+  width: 16px;
+  height: 16px;
+  accent-color: #16a34a;
+}
+.cins-admin .ndd-error {
+  margin: 0;
+  padding: 10px 16px;
+  color: #b91c1c;
+  font-size: 13px;
+  background: #fef2f2;
+  border-bottom: 1px solid #fecaca;
+}
+.cins-admin .ndd-panel-body {
+  padding: 14px 16px 16px;
+  min-width: 0;
+}
 .cins-admin .ndd-grid {
   display: grid;
-  grid-template-columns: repeat(var(--ndd-cols, 4), minmax(0, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
 }
 .cins-admin .ndd-card {
   position: relative;
@@ -7486,8 +7780,8 @@
   gap: 6px;
 }
 .cins-admin .ndd-card-mark {
-  width: 18px;
-  height: 18px;
+  width: 28px;
+  height: 28px;
   padding: 0;
   border-radius: 50%;
   background: rgba(255,255,255,0.9);
@@ -7495,23 +7789,43 @@
   cursor: pointer;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
 }
+.cins-admin .ndd-score-delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
 .cins-admin .ndd-card-bump {
-  width: 20px;
-  height: 20px;
-  padding: 0;
+  min-width: 28px;
+  height: 22px;
+  padding: 0 5px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
+  border-radius: 6px;
   background: rgba(255, 255, 255, 0.95);
   border: 1.5px solid #f59e0b;
   color: #b45309;
+  font-size: 10px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
   cursor: pointer;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
 }
+.cins-admin .ndd-card-bump.is-minus {
+  border-color: #94a3b8;
+  color: #475569;
+}
+.cins-admin .ndd-card-bump.is-plus {
+  border-color: #f59e0b;
+  color: #b45309;
+}
 .cins-admin .ndd-card-bump:hover {
   background: #fffbeb;
-  transform: scale(1.06);
+  transform: scale(1.04);
+}
+.cins-admin .ndd-card-bump.is-minus:hover {
+  background: #f8fafc;
 }
 .cins-admin .ndd-card-bump:disabled {
   cursor: not-allowed;
@@ -7540,21 +7854,121 @@
   gap: 6px;
 }
 .cins-admin .ndd-list-bump {
-  min-width: 28px;
+  min-width: 32px;
   height: 28px;
-  padding: 0 6px;
+  padding: 0 7px;
   border-radius: 8px;
   border: 1px solid #f59e0b;
   background: #fffbeb;
   color: #b45309;
-  font-size: 14px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
   line-height: 1;
   cursor: pointer;
+}
+.cins-admin .ndd-list-bump.is-minus {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+  color: #475569;
+}
+.cins-admin .ndd-list-bump.is-plus {
+  border-color: #f59e0b;
+  background: #fffbeb;
+  color: #b45309;
 }
 .cins-admin .ndd-list-bump:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+.cins-admin .ndd-list-mobile {
+  display: none;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.cins-admin .ndd-mobile-row {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-surface);
+}
+.cins-admin .ndd-mobile-row + .ndd-mobile-row {
+  margin-top: 10px;
+}
+.cins-admin .ndd-mobile-row.is-boosted {
+  border-color: #86efac;
+  background: #f7fef9;
+}
+.cins-admin .ndd-mobile-row.is-verified {
+  box-shadow: inset 3px 0 0 #2563eb;
+}
+.cins-admin .ndd-mobile-thumb {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 10px;
+  background: var(--neutral-100, #f1f5f9);
+  color: var(--fg-4);
+  font-size: 12px;
+  font-weight: 750;
+}
+.cins-admin .ndd-mobile-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.cins-admin .ndd-mobile-main {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  align-content: start;
+}
+.cins-admin .ndd-mobile-title {
+  min-width: 0;
+  color: var(--fg-1);
+  font-size: 14px;
+  line-height: 1.35;
+}
+.cins-admin .ndd-mobile-title a {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: inherit;
+  text-decoration: none;
+}
+.cins-admin .ndd-mobile-title a:hover {
+  color: var(--cins-blue);
+}
+.cins-admin .ndd-mobile-meta,
+.cins-admin .ndd-mobile-score,
+.cins-admin .ndd-mobile-dates {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  color: var(--fg-4);
+  font-size: 12px;
+}
+.cins-admin .ndd-mobile-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border);
+}
+.cins-admin .ndd-mobile-actions .ndd-list-bump,
+.cins-admin .ndd-mobile-actions .ndd-list-toggle {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 14px;
 }
 .cins-admin .ndd-card-body {
   padding: 10px 12px 12px;
@@ -7672,6 +8086,13 @@
   font-size: 12px;
   color: #64748b;
 }
+.cins-admin .ndd-dash-section-label {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #475569;
+  letter-spacing: 0.01em;
+}
 .cins-admin .ndd-dash-range {
   display: inline-flex;
   gap: 0;
@@ -7777,6 +8198,7 @@
   fill: rgb(148 163 184 / 14%);
 }
 .cins-admin .ndd-dash-line {
+  fill: none;
   stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -8085,19 +8507,149 @@
 }
 
 @media (max-width: 1100px) {
-  .cins-admin .ndd-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .cins-admin .ndd-grid { --ndd-cols: 3; }
-  .cins-admin .ndd-dash-deltas { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cins-admin .ndd-stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .cins-admin .ndd-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .cins-admin .ndd-dash-deltas {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
+
+@media (max-width: 900px) {
+  .cins-admin .ndd-head {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+  }
+  .cins-admin .ndd-view-toggle {
+    margin-left: 0;
+    width: 100%;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+  .cins-admin .ndd-view-toggle a,
+  .cins-admin .ndd-view-toggle button {
+    min-height: 40px;
+    flex: 0 0 auto;
+    padding: 6px 10px;
+  }
+  .cins-admin .ndd-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+  .cins-admin .ndd-stat {
+    padding: 8px 10px;
+  }
+  .cins-admin .ndd-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px;
+  }
+  .cins-admin .ndd-body {
+    gap: 10px;
+  }
+  .cins-admin .ndd-search {
+    max-width: none;
+  }
+  .cins-admin .ndd-filter-selects {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .cins-admin .ndd-filter-selects select,
+  .cins-admin .ndd-filter-selects .ndd-check {
+    width: 100%;
+  }
+  .cins-admin .ndd-list-desktop {
+    display: none;
+  }
+  .cins-admin .ndd-list-mobile {
+    display: block;
+  }
+  .cins-admin .ndd-panel-body {
+    padding: 8px;
+  }
+  .cins-admin .ndd-filters {
+    padding: 8px;
+    gap: 8px;
+  }
+  .cins-admin .ndd-card-mark-row {
+    top: 4px;
+    right: 4px;
+    gap: 3px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    max-width: calc(100% - 8px);
+  }
+  .cins-admin .ndd-card-mark {
+    width: 22px;
+    height: 22px;
+  }
+  .cins-admin .ndd-card-bump {
+    min-width: 26px;
+    height: 20px;
+    padding: 0 4px;
+    font-size: 9px;
+  }
+  .cins-admin .ndd-card-open {
+    width: 22px;
+    height: 22px;
+    top: 4px;
+    left: 4px;
+  }
+  .cins-admin .ndd-card-body {
+    padding: 6px 7px 8px;
+    gap: 2px;
+  }
+  .cins-admin .ndd-card-body strong {
+    font-size: 11px;
+  }
+  .cins-admin .ndd-card-body small {
+    font-size: 10px;
+  }
+}
+
 @media (max-width: 720px) {
-  .cins-admin .ndd-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .cins-admin .ndd-grid { --ndd-cols: 2; }
-  .cins-admin .ndd-dash-deltas { grid-template-columns: 1fr; }
+  .cins-admin .ndd-dash-deltas {
+    grid-template-columns: 1fr;
+  }
   .cins-admin .ndd-dash-bar-row {
     grid-template-columns: 1fr;
     gap: 4px;
   }
-  .cins-admin .ndd-dash-bar-row strong { text-align: left; }
+  .cins-admin .ndd-dash-bar-row strong {
+    text-align: left;
+  }
+  .cins-admin .ndd-tab-full {
+    display: none;
+  }
+  .cins-admin .ndd-tab-short {
+    display: inline;
+  }
+  .cins-admin .ndd-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .cins-admin .ndd-stats {
+    grid-template-columns: 1fr 1fr;
+  }
+  .cins-admin .ndd-stats .ndd-stat:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+  .cins-admin .ndd-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 3px;
+  }
+  .cins-admin .ndd-filter-selects {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 1080px) {
@@ -8123,16 +8675,6 @@
 }
 
 @media (max-width: 720px) {
-  .cins-admin .ndd-view-toggle {
-    width: 100%;
-    overflow-x: auto;
-    padding-bottom: 2px;
-  }
-  .cins-admin .ndd-view-toggle a,
-  .cins-admin .ndd-view-toggle button {
-    min-height: 44px;
-    flex: 0 0 auto;
-  }
   .cins-admin .ndd-review-overview {
     grid-template-columns: auto minmax(0, 1fr);
   }
@@ -8431,6 +8973,72 @@
   border-radius: 8px;
   background: var(--bg-2, #f8fafc);
 }
+
+.cins-admin .admin-gd-shop-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0 0 14px;
+}
+
+.cins-admin .admin-gd-shop-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 10px;
+  background: var(--bg-1, #fff);
+}
+
+.cins-admin .admin-gd-shop-stat-k {
+  font-size: 11px;
+  font-weight: 650;
+  color: var(--fg-4, #94a3b8);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.cins-admin .admin-gd-shop-stat strong {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--fg-1, #0f172a);
+  font-variant-numeric: tabular-nums;
+}
+
+.cins-admin .admin-gd-shop-stat-hint {
+  font-size: 11px;
+  color: var(--fg-4, #94a3b8);
+}
+
+.cins-admin .admin-gd-shop-table .admin-gd-num {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.cins-admin .admin-gd-shop-name {
+  font-weight: 650;
+}
+
+.cins-admin .admin-gd-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.cins-admin .admin-gd-badge.is-ok {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.cins-admin .admin-gd-badge.is-pause {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
 @media (max-width: 960px) {
   .cins-admin .admin-gd-layout {
     grid-template-columns: 1fr;
@@ -8438,5 +9046,8 @@
   .cins-admin .admin-gd-detail {
     position: static;
     max-height: none;
+  }
+  .cins-admin .admin-gd-shop-summary {
+    grid-template-columns: 1fr;
   }
 }

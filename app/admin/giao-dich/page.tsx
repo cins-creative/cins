@@ -10,7 +10,8 @@ export const revalidate = 0;
 type SearchParams = Promise<{ tab?: string; page?: string }>;
 
 function parseTab(raw: string | undefined): AdminGiaoDichTab {
-  return raw === "chap-nhan" ? "chap-nhan" : "don";
+  if (raw === "shop") return "shop";
+  return "don";
 }
 
 function parsePage(raw: string | undefined): number {

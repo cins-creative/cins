@@ -8,6 +8,7 @@ import type {
   AdminUserGrowth,
   AdminUserGrowthDays,
 } from "@/lib/admin/nguoi-dung-growth-types";
+import type { WorldBoostGrowth } from "@/lib/cins/world-boost-types";
 
 function fmtPct(curr: number, prev: number): { text: string; tone: string } {
   if (prev === 0 && curr === 0) return { text: "0%", tone: "is-flat" };
@@ -81,6 +82,9 @@ function areaPath(
 export function AdminNguoiDungGrowthDashboard() {
   const [days, setDays] = useState<AdminUserGrowthDays>(30);
   const [growth, setGrowth] = useState<AdminUserGrowth | null>(null);
+  const [contentGrowth, setContentGrowth] = useState<WorldBoostGrowth | null>(
+    null,
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
@@ -91,27 +95,39 @@ export function AdminNguoiDungGrowthDashboard() {
     setError(null);
     void (async () => {
       try {
-        const res = await fetch(
-          `/api/admin/nguoi-dung/growth?days=${days}`,
-        );
-        if (!res.ok) {
+        const [userRes, contentRes] = await Promise.all([
+          fetch(`/api/admin/nguoi-dung/growth?days=${days}`),
+          fetch(`/api/admin/world-boost?growth=1&days=${days}`),
+        ]);
+        if (!userRes.ok) {
           let detail = "Không tải được báo cáo tài khoản mới.";
           try {
-            const body = (await res.json()) as { error?: string };
+            const body = (await userRes.json()) as { error?: string };
             if (body.error?.trim()) detail = body.error.trim();
           } catch {
             /* giữ mặc định */
           }
           throw new Error(detail);
         }
-        const json = (await res.json()) as { growth: AdminUserGrowth };
-        if (!cancelled) setGrowth(json.growth);
+        const userJson = (await userRes.json()) as { growth: AdminUserGrowth };
+        let nextContent: WorldBoostGrowth | null = null;
+        if (contentRes.ok) {
+          const contentJson = (await contentRes.json()) as {
+            growth: WorldBoostGrowth;
+          };
+          nextContent = contentJson.growth;
+        }
+        if (!cancelled) {
+          setGrowth(userJson.growth);
+          setContentGrowth(nextContent);
+        }
       } catch (e) {
         if (!cancelled) {
           setError(
             e instanceof Error ? e.message : "Lỗi tải báo cáo tài khoản.",
           );
           setGrowth(null);
+          setContentGrowth(null);
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -153,6 +169,10 @@ export function AdminNguoiDungGrowthDashboard() {
     growth?.totals.current ?? 0,
     growth?.totals.previous ?? 0,
   );
+  const contentDelta = fmtPct(
+    contentGrowth?.totals.total ?? 0,
+    contentGrowth?.prevTotals.total ?? 0,
+  );
   const hoverPoint =
     hoverIdx != null && growth?.series[hoverIdx]
       ? growth.series[hoverIdx]
@@ -193,30 +213,69 @@ export function AdminNguoiDungGrowthDashboard() {
         </p>
       ) : growth ? (
         <>
-          <div className="ndd-dash-deltas" aria-label="Tóm tắt đăng ký">
-            <div className="ndd-dash-delta">
-              <span className="ndd-dash-delta-label">Hôm nay</span>
-              <strong>{growth.today}</strong>
-              <span className="ndd-dash-delta-pct is-flat">theo giờ VN</span>
-            </div>
-            <div className="ndd-dash-delta">
-              <span className="ndd-dash-delta-label">7 ngày</span>
-              <strong>{growth.last7}</strong>
-              <span className="ndd-dash-delta-pct is-flat">tài khoản mới</span>
-            </div>
-            <div className="ndd-dash-delta">
-              <span className="ndd-dash-delta-label">30 ngày</span>
-              <strong>{growth.last30}</strong>
-              <span className="ndd-dash-delta-pct is-flat">tài khoản mới</span>
-            </div>
-            <div className="ndd-dash-delta">
-              <span className="ndd-dash-delta-label">Kỳ đang xem</span>
-              <strong>{growth.totals.current}</strong>
-              <span className={`ndd-dash-delta-pct ${delta.tone}`}>
-                {delta.text} so với kỳ trước
-              </span>
+          <div>
+            <h3 className="ndd-dash-section-label">Tài khoản mới</h3>
+            <div className="ndd-dash-deltas" aria-label="Tóm tắt đăng ký">
+              <div className="ndd-dash-delta">
+                <span className="ndd-dash-delta-label">Hôm nay</span>
+                <strong>{growth.today}</strong>
+                <span className="ndd-dash-delta-pct is-flat">theo giờ VN</span>
+              </div>
+              <div className="ndd-dash-delta">
+                <span className="ndd-dash-delta-label">7 ngày</span>
+                <strong>{growth.last7}</strong>
+                <span className="ndd-dash-delta-pct is-flat">tài khoản mới</span>
+              </div>
+              <div className="ndd-dash-delta">
+                <span className="ndd-dash-delta-label">30 ngày</span>
+                <strong>{growth.last30}</strong>
+                <span className="ndd-dash-delta-pct is-flat">tài khoản mới</span>
+              </div>
+              <div className="ndd-dash-delta">
+                <span className="ndd-dash-delta-label">Kỳ đang xem</span>
+                <strong>{growth.totals.current}</strong>
+                <span className={`ndd-dash-delta-pct ${delta.tone}`}>
+                  {delta.text} so với kỳ trước
+                </span>
+              </div>
             </div>
           </div>
+
+          {contentGrowth ? (
+            <div>
+              <h3 className="ndd-dash-section-label">Nội dung mới</h3>
+              <div className="ndd-dash-deltas" aria-label="Tóm tắt nội dung mới">
+                <div className="ndd-dash-delta">
+                  <span className="ndd-dash-delta-label">Hôm nay</span>
+                  <strong>{contentGrowth.today}</strong>
+                  <span className="ndd-dash-delta-pct is-flat">
+                    bài + sự kiện
+                  </span>
+                </div>
+                <div className="ndd-dash-delta">
+                  <span className="ndd-dash-delta-label">7 ngày</span>
+                  <strong>{contentGrowth.last7}</strong>
+                  <span className="ndd-dash-delta-pct is-flat">
+                    bài + sự kiện
+                  </span>
+                </div>
+                <div className="ndd-dash-delta">
+                  <span className="ndd-dash-delta-label">30 ngày</span>
+                  <strong>{contentGrowth.last30}</strong>
+                  <span className="ndd-dash-delta-pct is-flat">
+                    bài + sự kiện
+                  </span>
+                </div>
+                <div className="ndd-dash-delta">
+                  <span className="ndd-dash-delta-label">Kỳ đang xem</span>
+                  <strong>{contentGrowth.totals.total}</strong>
+                  <span className={`ndd-dash-delta-pct ${contentDelta.tone}`}>
+                    {contentDelta.text} so với kỳ trước
+                  </span>
+                </div>
+              </div>
+            </div>
+          ) : null}
 
           <div className="ndd-dash-chart-card">
             <div className="ndd-dash-legend" aria-hidden>
@@ -257,6 +316,7 @@ export function AdminNguoiDungGrowthDashboard() {
                 <path d={chart.area} className="ndd-dash-area" />
                 <polyline
                   points={chart.line}
+                  fill="none"
                   className="ndd-dash-line is-total"
                   style={{ stroke: "#2563eb" }}
                 />

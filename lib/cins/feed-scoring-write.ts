@@ -5,6 +5,7 @@ import { loadFeedScoreConfig } from "@/lib/cins/feed-scoring-config-db";
 import {
   ADMIN_DIEM_UU_TIEN,
   clampDiemThanhPhan,
+  isAdminDiemUuTienDelta,
   tinhDiemEngagement,
   tinhDiemNoiDung,
   tinhDiemVerify,
@@ -329,7 +330,7 @@ export async function applyAdminDayBaiDiemFeed(input: {
 }
 
 /**
- * Cộng điểm ưu tiên admin (+BUMP, không hoàn lại).
+ * Cộng/trừ điểm ưu tiên admin (±STEP / +BUMP trong ALLOWED_DELTAS).
  * Không đụng L29 boost; vẫn giữ khi ON/OFF đẩy (cột riêng diem_uu_tien).
  * Đồng thời reset bat_dau_luc = now để đẩy bài lên đầu cửa sổ decay.
  */
@@ -337,6 +338,8 @@ export async function bumpAdminDiemUuTien(input: {
   loai: FeedScoringLoai;
   id: string;
   actorProfileId: string;
+  /** Mặc định +BUMP (10) — UI dùng ±STEP (5). */
+  delta?: number;
 }): Promise<
   | {
       ok: true;
@@ -348,12 +351,21 @@ export async function bumpAdminDiemUuTien(input: {
   if (input.loai !== "cot_moc" && input.loai !== "org_bai_dang") {
     return {
       ok: false,
-      message: "Chỉ cộng điểm cho bài user / bài org (không sự kiện).",
+      message: "Chỉ chỉnh điểm cho bài user / bài org (không sự kiện).",
     };
   }
 
   const id = input.id.trim();
   if (!id) return { ok: false, message: "Thiếu id đối tượng." };
+
+  const delta =
+    input.delta === undefined ? ADMIN_DIEM_UU_TIEN.BUMP : input.delta;
+  if (!isAdminDiemUuTienDelta(delta)) {
+    return {
+      ok: false,
+      message: `Delta không hợp lệ (cho phép: ${ADMIN_DIEM_UU_TIEN.ALLOWED_DELTAS.join(", ")}).`,
+    };
+  }
 
   const admin = createServiceRoleClient();
   const now = new Date();
@@ -367,6 +379,9 @@ export async function bumpAdminDiemUuTien(input: {
     .maybeSingle<{ diem_uu_tien: number | null }>();
 
   if (!existing) {
+    if (delta < 0) {
+      return { ok: false, message: "Chưa có điểm ưu tiên để trừ." };
+    }
     const snap = await loadContentSnapshotForDiem(input.loai, id);
     const cfg = await loadFeedScoreConfig();
     const inserted = await upsertContentDiemFeed({
@@ -386,19 +401,31 @@ export async function bumpAdminDiemUuTien(input: {
     }
   }
 
-  const current = Math.max(0, Math.round(existing?.diem_uu_tien ?? 0));
-  if (current >= ADMIN_DIEM_UU_TIEN.MAX) {
+  const current = Math.max(
+    ADMIN_DIEM_UU_TIEN.MIN,
+    Math.round(existing?.diem_uu_tien ?? 0),
+  );
+  if (delta > 0 && current >= ADMIN_DIEM_UU_TIEN.MAX) {
     return {
       ok: false,
       message: `Đã đạt trần ưu tiên (${ADMIN_DIEM_UU_TIEN.MAX}).`,
     };
   }
+  if (delta < 0 && current <= ADMIN_DIEM_UU_TIEN.MIN) {
+    return {
+      ok: false,
+      message: "Điểm ưu tiên đã về 0.",
+    };
+  }
 
   const next = Math.min(
     ADMIN_DIEM_UU_TIEN.MAX,
-    current + ADMIN_DIEM_UU_TIEN.BUMP,
+    Math.max(ADMIN_DIEM_UU_TIEN.MIN, current + delta),
   );
   const bumped = next - current;
+  if (bumped === 0) {
+    return { ok: true, diemUuTien: next, bumped: 0 };
+  }
 
   const { error } = await admin
     .from("content_diem_feed")

@@ -3605,7 +3605,6 @@
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border-top: 1px solid color-mix(in srgb, var(--border, #e2e8f0) 80%, transparent);
-  box-shadow: 0 -8px 24px -16px rgb(15 23 42 / 28%);
 }
 
 .j-shop-loai-buy-bar .j-shop-loai-qty-row {
@@ -3691,6 +3690,7 @@
   cursor: grab;
   touch-action: pan-y;
   user-select: none;
+  -webkit-user-select: none;
 }
 
 .j-shop-loai-more-track.is-dragging {
@@ -3699,19 +3699,20 @@
 }
 
 .j-shop-loai-more-track.is-dragging .j-shop-loai-more-ticker {
-  animation-play-state: paused;
+  animation: none !important;
 }
 
 .j-shop-loai-more-ticker {
   display: flex;
   width: max-content;
   will-change: transform;
+  backface-visibility: hidden;
   animation: j-shop-loai-more-ticker var(--j-shop-loai-more-dur, 28s) linear
     infinite;
 }
 
-.j-shop-loai-more-track:hover .j-shop-loai-more-ticker,
-.j-shop-loai-more-track:focus-within .j-shop-loai-more-ticker {
+.j-shop-loai-more-track:hover:not(.is-dragging) .j-shop-loai-more-ticker,
+.j-shop-loai-more-track:focus-within:not(.is-dragging) .j-shop-loai-more-ticker {
   animation-play-state: paused;
 }
 
@@ -3885,10 +3886,7 @@
   align-items: flex-start;
   gap: 14px 18px;
   margin: 0 0 14px;
-  padding: 10px 12px;
-  border: 1px solid color-mix(in srgb, var(--cins-orange, #fdad4c) 28%, var(--border, #e2e8f0));
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--cins-orange, #fdad4c) 8%, var(--bg-page, #fff));
+  padding: 0;
 }
 
 .j-shop-loai-review-score {
@@ -4004,7 +4002,6 @@
   .j-shop-loai-review-board {
     flex-direction: column;
     gap: 10px;
-    padding: 10px;
   }
 
   .j-shop-loai-review-filters {
@@ -4324,7 +4321,6 @@
 :root[data-theme="dark"] .j-shop-loai-buy-bar {
   background: color-mix(in srgb, var(--bg-page, #0f131a) 90%, transparent);
   border-top-color: color-mix(in srgb, #fff 12%, transparent);
-  box-shadow: 0 -8px 24px -16px rgb(0 0 0 / 55%);
 }
 
 :root[data-theme="dark"] .j-shop-loai-price {
@@ -4371,11 +4367,6 @@
 :root[data-theme="dark"] .j-shop-loai-add {
   background: color-mix(in srgb, var(--cins-orange, #fdad4c) 82%, #ea580c);
   color: #1a0f00;
-}
-
-:root[data-theme="dark"] .j-shop-loai-review-board {
-  background: color-mix(in srgb, var(--cins-orange, #fdad4c) 10%, var(--bg-page, #0f131a));
-  border-color: color-mix(in srgb, var(--cins-orange, #fdad4c) 28%, var(--border, #333));
 }
 
 :root[data-theme="dark"] .j-shop-loai-review-score-num strong {

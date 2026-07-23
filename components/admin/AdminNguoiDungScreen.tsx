@@ -1,6 +1,6 @@
 "use client";
 
-import { BadgeCheck, BarChart3, List, Loader2, Search, Shield } from "lucide-react";
+import { BadgeCheck, BarChart3, List, Loader2, Search, Shield, Store } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
@@ -11,13 +11,25 @@ import {
   type AdminGiaiDoanStats,
 } from "@/lib/admin/nguoi-dung-giai-doan";
 import type {
+  AdminShopFilter,
   AdminUserListResponse,
   AdminUserListRow,
 } from "@/lib/admin/nguoi-dung-roles";
 import type { SystemRole } from "@/lib/auth/system-role";
+import {
+  shopEntryHref,
+  shopPublicHref,
+  shopSlugFromTen,
+} from "@/lib/shop/cua-hang-href";
 
 type ViewMode = "list" | "dashboard";
 type GiaiDoanFilterId = (typeof ADMIN_GIAI_DOAN_FILTERS)[number]["id"];
+
+const SHOP_FILTERS: { id: AdminShopFilter; label: string }[] = [
+  { id: "all", label: "Tất cả shop" },
+  { id: "co_shop", label: "Có shop" },
+  { id: "khong_shop", label: "Chưa có shop" },
+];
 
 const ROLE_OPTIONS: { value: SystemRole; label: string }[] = [
   { value: "super_admin", label: "Admin tối cao" },
@@ -42,6 +54,11 @@ function fmtLanCuoiHoatDong(iso: string | null | undefined): string {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+function shopHrefForRow(row: AdminUserListRow): string {
+  if (!row.coShopCaNhan) return shopEntryHref(row.slug);
+  return shopPublicHref(row.slug, shopSlugFromTen(row.shopTen, row.slug));
 }
 
 function RoleBadge({ role }: { role: SystemRole }) {
@@ -126,6 +143,7 @@ export function AdminNguoiDungScreen() {
   const [query, setQuery] = useState("");
   const [giaiDoanFilter, setGiaiDoanFilter] =
     useState<GiaiDoanFilterId>("all");
+  const [shopFilter, setShopFilter] = useState<AdminShopFilter>("all");
   const [rows, setRows] = useState<AdminUserListRow[]>([]);
   const [total, setTotal] = useState(0);
   const [actorRole, setActorRole] = useState<SystemRole>("thanh_vien");
@@ -139,6 +157,7 @@ export function AdminNguoiDungScreen() {
   const [giaiDoanStats, setGiaiDoanStats] = useState<AdminGiaiDoanStats>(
     emptyAdminGiaiDoanStats,
   );
+  const [shopStats, setShopStats] = useState({ coShop: 0, khongShop: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [savingId, setSavingId] = useState<string | null>(null);
@@ -153,6 +172,7 @@ export function AdminNguoiDungScreen() {
       const qs = new URLSearchParams();
       if (query.trim()) qs.set("q", query.trim());
       if (giaiDoanFilter !== "all") qs.set("giaiDoan", giaiDoanFilter);
+      if (shopFilter !== "all") qs.set("shop", shopFilter);
       const res = await fetch(`/api/admin/nguoi-dung/list?${qs.toString()}`);
       if (!res.ok) {
         const json = (await res.json()) as { error?: string };
@@ -172,15 +192,17 @@ export function AdminNguoiDungScreen() {
         },
       );
       setGiaiDoanStats(data.giaiDoanStats ?? emptyAdminGiaiDoanStats());
+      setShopStats(data.shopStats ?? { coShop: 0, khongShop: 0 });
     } catch (e) {
       setRows([]);
       setTotal(0);
       setGiaiDoanStats(emptyAdminGiaiDoanStats());
+      setShopStats({ coShop: 0, khongShop: 0 });
       setError(e instanceof Error ? e.message : "Lỗi không xác định.");
     } finally {
       setLoading(false);
     }
-  }, [query, giaiDoanFilter, view]);
+  }, [query, giaiDoanFilter, shopFilter, view]);
 
   useEffect(() => {
     if (view !== "list") return;
@@ -306,6 +328,12 @@ export function AdminNguoiDungScreen() {
             <span className="admin-to-chuc-stat-k">Thành viên</span>
             <strong className="admin-to-chuc-stat-v">{roleStats.thanh_vien}</strong>
           </article>
+          <article
+            className={`admin-to-chuc-stat${shopFilter === "co_shop" ? " admin-to-chuc-stat--ok" : ""}`}
+          >
+            <span className="admin-to-chuc-stat-k">Có shop cá nhân</span>
+            <strong className="admin-to-chuc-stat-v">{shopStats.coShop}</strong>
+          </article>
         </div>
 
         <div
@@ -325,6 +353,32 @@ export function AdminNguoiDungScreen() {
               {filter.label}
               <span className="admin-to-chuc-filter-count">
                 {giaiDoanStats[filter.id]}
+              </span>
+            </button>
+          ))}
+        </div>
+
+        <div
+          className="admin-to-chuc-filters admin-nguoi-dung-shop-filters"
+          role="group"
+          aria-label="Lọc theo shop cá nhân"
+        >
+          {SHOP_FILTERS.map((filter) => (
+            <button
+              key={filter.id}
+              type="button"
+              className={`admin-to-chuc-filter${
+                shopFilter === filter.id ? " is-active" : ""
+              }`}
+              onClick={() => setShopFilter(filter.id)}
+            >
+              {filter.label}
+              <span className="admin-to-chuc-filter-count">
+                {filter.id === "co_shop"
+                  ? shopStats.coShop
+                  : filter.id === "khong_shop"
+                    ? shopStats.khongShop
+                    : shopStats.coShop + shopStats.khongShop}
               </span>
             </button>
           ))}
@@ -389,6 +443,8 @@ export function AdminNguoiDungScreen() {
                 <tr>
                   <th>Người dùng</th>
                   <th>Email</th>
+                  <th>Nội dung</th>
+                  <th>Shop</th>
                   <th>Lần cuối hoạt động</th>
                   <th>Tình trạng</th>
                   <th>Tick xanh</th>
@@ -398,7 +454,7 @@ export function AdminNguoiDungScreen() {
               <tbody>
                 {!loading && rows.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="admin-table-empty">
+                    <td colSpan={8} className="admin-table-empty">
                       Không có user phù hợp bộ lọc.
                     </td>
                   </tr>
@@ -425,6 +481,49 @@ export function AdminNguoiDungScreen() {
                       </td>
                       <td className="admin-nguoi-dung-muted">
                         {row.email ?? "—"}
+                      </td>
+                      <td>
+                        <Link
+                          href={`/${encodeURIComponent(row.slug)}/journey`}
+                          className="admin-nguoi-dung-noi-dung"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="Xem Journey"
+                        >
+                          <strong>{row.soNoiDung ?? 0}</strong>
+                          <span>bài</span>
+                        </Link>
+                      </td>
+                      <td>
+                        {row.coShopCaNhan ? (
+                          <Link
+                            href={shopHrefForRow(row)}
+                            className={`admin-nguoi-dung-shop${
+                              row.shopHienThi ? " is-public" : ""
+                            }${row.banHangBat ? "" : " is-off"}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title={
+                              row.shopHienThi
+                                ? "Shop công khai — mở storefront"
+                                : row.banHangBat
+                                  ? "Có shop · đang ẩn trên Journey"
+                                  : "Có cửa hàng · bán hàng đang tắt"
+                            }
+                          >
+                            <Store size={14} strokeWidth={2.2} aria-hidden />
+                            <span className="admin-nguoi-dung-shop-name">
+                              {row.shopTen?.trim() || "Shop"}
+                            </span>
+                            {!row.banHangBat ? (
+                              <span className="admin-nguoi-dung-shop-tag">Tắt</span>
+                            ) : !row.shopHienThi ? (
+                              <span className="admin-nguoi-dung-shop-tag">Ẩn</span>
+                            ) : null}
+                          </Link>
+                        ) : (
+                          <span className="admin-nguoi-dung-muted">—</span>
+                        )}
                       </td>
                       <td className="admin-nguoi-dung-muted">
                         {fmtLanCuoiHoatDong(row.lanCuoiHoatDong)}

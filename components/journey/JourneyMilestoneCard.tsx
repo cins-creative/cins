@@ -1203,9 +1203,7 @@ export function JourneyMilestoneCard({
               : "truong_dai_hoc";
       return orgPostHref(loai, orgBaiDangRef.orgSlug.trim(), orgBaiDangRef.postId);
     }
-    if (orgSuKienRef?.href?.trim()) {
-      return orgSuKienRef.href.trim();
-    }
+    /* orgSuKienRef đã return sớm → OrgSuKienFeedMilestoneCard; không còn nhánh href ở đây. */
     return null;
   })();
   /* Kéo datebar → chat chỉ desktop (pointer fine); tránh cản scroll trên touch. */

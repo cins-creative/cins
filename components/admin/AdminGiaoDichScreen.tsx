@@ -6,14 +6,18 @@ import { useMemo, useState } from "react";
 import type {
   AdminGiaoDichTab,
   AdminShopDonRow,
+  AdminShopListingRow,
 } from "@/lib/admin/shop-giao-dich";
 
 type Props = {
   tab: AdminGiaoDichTab;
   items: AdminShopDonRow[];
+  shops: AdminShopListingRow[];
   total: number;
   page: number;
   pageSize: number;
+  tongDoanhThu?: number;
+  tongGiaoDich?: number;
 };
 
 function fmtDate(iso: string | null): string {
@@ -31,6 +35,14 @@ function fmtDate(iso: string | null): string {
 
 function fmtMoney(n: number, tienTe: string): string {
   return `${n.toLocaleString("vi-VN")} ${tienTe}`;
+}
+
+function tabHref(tab: AdminGiaoDichTab, page?: number): string {
+  const params = new URLSearchParams();
+  if (tab !== "don") params.set("tab", tab);
+  if (page != null && page > 1) params.set("page", String(page));
+  const qs = params.toString();
+  return qs ? `/admin/giao-dich?${qs}` : "/admin/giao-dich";
 }
 
 function UserCell({
@@ -53,9 +65,12 @@ function UserCell({
 export function AdminGiaoDichScreen({
   tab,
   items,
+  shops,
   total,
   page,
   pageSize,
+  tongDoanhThu = 0,
+  tongGiaoDich = 0,
 }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(items[0]?.id ?? null);
   const selected = useMemo(
@@ -71,35 +86,135 @@ export function AdminGiaoDichScreen({
         <div className="admin-bai-viet-header__copy">
           <h1 className="page-title">Quản lý giao dịch</h1>
           <p className="page-subtitle">
-            Đơn shop UGC (CINs không cầm tiền). Tab bằng chứng lưu snapshot khi
-            người mua tick chấp nhận rủi ro chuyển khoản.
+            Đơn shop UGC (CINs không cầm tiền). Snapshot chấp nhận rủi ro hiện
+            trong chi tiết từng đơn.
           </p>
         </div>
       </header>
 
       <nav className="admin-bai-viet-tabs" aria-label="Phân loại giao dịch">
         <Link
-          href="/admin/giao-dich"
+          href={tabHref("don")}
           className={`admin-bai-viet-tab${tab === "don" ? " is-active" : ""}`}
           aria-current={tab === "don" ? "page" : undefined}
         >
           Đơn hàng
         </Link>
         <Link
-          href="/admin/giao-dich?tab=chap-nhan"
-          className={`admin-bai-viet-tab${tab === "chap-nhan" ? " is-active" : ""}`}
-          aria-current={tab === "chap-nhan" ? "page" : undefined}
+          href={tabHref("shop")}
+          className={`admin-bai-viet-tab${tab === "shop" ? " is-active" : ""}`}
+          aria-current={tab === "shop" ? "page" : undefined}
         >
-          Bằng chứng chấp nhận
+          Shop
         </Link>
       </nav>
 
-      {items.length === 0 ? (
-        <p className="admin-table-empty">
-          {tab === "chap-nhan"
-            ? "Chưa có đơn nào có snapshot chấp nhận rủi ro."
-            : "Chưa có đơn hàng."}
-        </p>
+      {tab === "shop" ? (
+        <>
+          <div className="admin-gd-shop-summary" aria-label="Tổng quan shop">
+            <div className="admin-gd-shop-stat">
+              <span className="admin-gd-shop-stat-k">Số shop</span>
+              <strong>{total.toLocaleString("vi-VN")}</strong>
+            </div>
+            <div className="admin-gd-shop-stat">
+              <span className="admin-gd-shop-stat-k">Doanh thu hoàn tất</span>
+              <strong>{fmtMoney(tongDoanhThu, "VND")}</strong>
+              <span className="admin-gd-shop-stat-hint">
+                Đã nhận tiền / đã giao tại sự kiện
+              </span>
+            </div>
+            <div className="admin-gd-shop-stat">
+              <span className="admin-gd-shop-stat-k">Tổng giao dịch</span>
+              <strong>{fmtMoney(tongGiaoDich, "VND")}</strong>
+              <span className="admin-gd-shop-stat-hint">
+                Mọi đơn không nháp / hủy
+              </span>
+            </div>
+          </div>
+
+          {shops.length === 0 ? (
+            <p className="admin-table-empty">
+              Chưa có shop đủ điều kiện (bật bán hàng + STK chuyển khoản + có
+              hàng đang bán).
+            </p>
+          ) : (
+            <div className="admin-gd-table-wrap">
+              <table className="admin-table admin-gd-shop-table">
+                <thead>
+                  <tr>
+                    <th>Shop</th>
+                    <th>Chủ shop</th>
+                    <th>Đơn</th>
+                    <th>Hoàn tất</th>
+                    <th>Doanh thu</th>
+                    <th>Tổng giao dịch</th>
+                    <th>Trạng thái</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {shops.map((shop) => (
+                    <tr key={shop.id}>
+                      <td>
+                        <div className="admin-gd-shop-name">
+                          {shop.shopHref ? (
+                            <Link
+                              href={shop.shopHref}
+                              className="admin-gd-user-link"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              {shop.ten || "Shop chưa đặt tên"}
+                            </Link>
+                          ) : (
+                            <strong>{shop.ten || "Shop chưa đặt tên"}</strong>
+                          )}
+                        </div>
+                      </td>
+                      <td>
+                        <UserCell ten={shop.owner.ten} slug={shop.owner.slug} />
+                      </td>
+                      <td className="admin-gd-num">{shop.soDon}</td>
+                      <td className="admin-gd-num">{shop.soDonHoanTat}</td>
+                      <td className="admin-gd-num">
+                        {fmtMoney(shop.doanhThu, shop.tienTe)}
+                      </td>
+                      <td className="admin-gd-num">
+                        {fmtMoney(shop.tongGiaoDich, shop.tienTe)}
+                      </td>
+                      <td>
+                        {shop.tamDong ? (
+                          <span className="admin-gd-badge is-pause">Tạm đóng</span>
+                        ) : (
+                          <span className="admin-gd-badge is-ok">Đang mở</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {totalPages > 1 ? (
+                <div className="admin-gd-pager">
+                  {page > 1 ? (
+                    <Link href={tabHref("shop", page - 1)}>← Trước</Link>
+                  ) : (
+                    <span />
+                  )}
+                  <span>
+                    Trang {page}/{totalPages} · {total} shop
+                  </span>
+                  {page < totalPages ? (
+                    <Link href={tabHref("shop", page + 1)}>Sau →</Link>
+                  ) : (
+                    <span />
+                  )}
+                </div>
+              ) : null}
+            </div>
+          )}
+        </>
+      ) : items.length === 0 ? (
+        <p className="admin-table-empty">Chưa có đơn hàng.</p>
       ) : (
         <div className="admin-gd-layout">
           <div className="admin-gd-table-wrap">
@@ -111,9 +226,7 @@ export function AdminGiaoDichScreen({
                   <th>Loại</th>
                   <th>Tổng</th>
                   <th>Trạng thái</th>
-                  <th>
-                    {tab === "chap-nhan" ? "Chấp nhận" : "Tạo lúc"}
-                  </th>
+                  <th>Tạo lúc</th>
                 </tr>
               </thead>
               <tbody>
@@ -140,13 +253,7 @@ export function AdminGiaoDichScreen({
                       <td>{row.loaiDonLabel}</td>
                       <td>{fmtMoney(row.tongTien, row.tienTe)}</td>
                       <td>{row.trangThaiLabel}</td>
-                      <td>
-                        {fmtDate(
-                          tab === "chap-nhan"
-                            ? row.nguoiMuaChapNhanLuc
-                            : row.taoLuc,
-                        )}
-                      </td>
+                      <td>{fmtDate(row.taoLuc)}</td>
                     </tr>
                   );
                 })}
@@ -156,15 +263,7 @@ export function AdminGiaoDichScreen({
             {totalPages > 1 ? (
               <div className="admin-gd-pager">
                 {page > 1 ? (
-                  <Link
-                    href={
-                      tab === "chap-nhan"
-                        ? `/admin/giao-dich?tab=chap-nhan&page=${page - 1}`
-                        : `/admin/giao-dich?page=${page - 1}`
-                    }
-                  >
-                    ← Trước
-                  </Link>
+                  <Link href={tabHref(tab, page - 1)}>← Trước</Link>
                 ) : (
                   <span />
                 )}
@@ -172,15 +271,7 @@ export function AdminGiaoDichScreen({
                   Trang {page}/{totalPages} · {total} đơn
                 </span>
                 {page < totalPages ? (
-                  <Link
-                    href={
-                      tab === "chap-nhan"
-                        ? `/admin/giao-dich?tab=chap-nhan&page=${page + 1}`
-                        : `/admin/giao-dich?page=${page + 1}`
-                    }
-                  >
-                    Sau →
-                  </Link>
+                  <Link href={tabHref(tab, page + 1)}>Sau →</Link>
                 ) : (
                   <span />
                 )}

@@ -301,9 +301,14 @@ export function JourneyShopLoaiClient({
     originX: number;
     /** Đã vuốt ngang → kéo thật (chặn click card). */
     active: boolean;
+    lastX: number;
+    lastT: number;
+    velocity: number;
   } | null>(null);
+  const moreDragRafRef = useRef<number | null>(null);
+  const moreInertiaRafRef = useRef<number | null>(null);
+  const morePendingXRef = useRef<number | null>(null);
   const moreSuppressClickRef = useRef(false);
-  const [moreDragging, setMoreDragging] = useState(false);
   /** Số lần lặp list trong mỗi nửa ticker — đủ rộng để loop liền. */
   const [moreRepeat, setMoreRepeat] = useState(2);
   /** Pixel dịch đúng 1 nửa (tránh -50% lệch do padding/gap). */
@@ -406,6 +411,7 @@ export function JourneyShopLoaiClient({
     }
   }, []);
 
+  /** Giữ x trong (-shift, 0] — loop liền khi 2 nửa ticker giống nhau. */
   const normalizeMoreX = useCallback((x: number, shift: number) => {
     if (shift <= 0) return x;
     let n = ((x % shift) + shift) % shift;
@@ -413,34 +419,56 @@ export function JourneyShopLoaiClient({
     return n;
   }, []);
 
-  const onMorePointerDown = useCallback(
-    (e: ReactPointerEvent<HTMLDivElement>) => {
-      if (e.button !== 0) return;
-      if (
-        typeof window !== "undefined" &&
-        window.matchMedia("(prefers-reduced-motion: reduce)").matches
-      ) {
-        return;
-      }
-      const ticker = moreTickerRef.current;
-      if (!ticker || moreShiftPx <= 0) return;
-      const x = readMoreTickerX(ticker);
-      /* Đóng băng ngay → vuốt kéo liền; tap vẫn mở card (chưa capture). */
-      ticker.style.animation = "none";
-      ticker.style.transform = `translate3d(${x}px, 0, 0)`;
-      moreDragRef.current = {
-        pointerId: e.pointerId,
-        startX: e.clientX,
-        startY: e.clientY,
-        originX: x,
-        active: false,
-      };
+  const setMoreDraggingClass = useCallback((on: boolean) => {
+    moreTrackRef.current?.classList.toggle("is-dragging", on);
+  }, []);
+
+  const cancelMoreInertia = useCallback(() => {
+    if (moreInertiaRafRef.current != null) {
+      cancelAnimationFrame(moreInertiaRafRef.current);
+      moreInertiaRafRef.current = null;
+    }
+  }, []);
+
+  const cancelMoreDragRaf = useCallback(() => {
+    if (moreDragRafRef.current != null) {
+      cancelAnimationFrame(moreDragRafRef.current);
+      moreDragRafRef.current = null;
+    }
+    morePendingXRef.current = null;
+  }, []);
+
+  const applyMoreTickerX = useCallback(
+    (ticker: HTMLElement, x: number) => {
+      const next = normalizeMoreX(x, moreShiftPx);
+      ticker.style.transform = `translate3d(${next}px, 0, 0)`;
+      return next;
     },
-    [moreShiftPx, readMoreTickerX],
+    [moreShiftPx, normalizeMoreX],
+  );
+
+  const flushMorePendingX = useCallback(() => {
+    moreDragRafRef.current = null;
+    const ticker = moreTickerRef.current;
+    const pending = morePendingXRef.current;
+    if (!ticker || pending == null) return;
+    morePendingXRef.current = null;
+    applyMoreTickerX(ticker, pending);
+  }, [applyMoreTickerX]);
+
+  const scheduleMoreTickerX = useCallback(
+    (x: number) => {
+      morePendingXRef.current = x;
+      if (moreDragRafRef.current != null) return;
+      moreDragRafRef.current = requestAnimationFrame(flushMorePendingX);
+    },
+    [flushMorePendingX],
   );
 
   const resumeMoreTickerAt = useCallback(
     (ticker: HTMLElement, x: number) => {
+      cancelMoreDragRaf();
+      cancelMoreInertia();
       const pos = normalizeMoreX(x, moreShiftPx);
       const progress =
         moreShiftPx > 0
@@ -453,8 +481,83 @@ export function JourneyShopLoaiClient({
       ticker.style.removeProperty("transform");
       ticker.style.removeProperty("animation");
       ticker.style.animationDelay = `${delaySec}s`;
+      setMoreDraggingClass(false);
     },
-    [moreDurSec, moreShiftPx, normalizeMoreX],
+    [
+      cancelMoreDragRaf,
+      cancelMoreInertia,
+      moreDurSec,
+      moreShiftPx,
+      normalizeMoreX,
+      setMoreDraggingClass,
+    ],
+  );
+
+  const runMoreInertia = useCallback(
+    (ticker: HTMLElement, startX: number, velocityPxPerMs: number) => {
+      cancelMoreInertia();
+      let x = startX;
+      let v = velocityPxPerMs;
+      let lastT = performance.now();
+
+      const step = (now: number) => {
+        const dt = Math.min(32, now - lastT);
+        lastT = now;
+        x += v * dt;
+        /* Ma sát nhẹ — hết quán tính thì trả marquee. */
+        v *= Math.pow(0.0025, dt / 1000);
+        applyMoreTickerX(ticker, x);
+
+        if (Math.abs(v) < 0.04) {
+          moreInertiaRafRef.current = null;
+          resumeMoreTickerAt(ticker, x);
+          return;
+        }
+        moreInertiaRafRef.current = requestAnimationFrame(step);
+      };
+
+      moreInertiaRafRef.current = requestAnimationFrame(step);
+    },
+    [applyMoreTickerX, cancelMoreInertia, resumeMoreTickerAt],
+  );
+
+  const onMorePointerDown = useCallback(
+    (e: ReactPointerEvent<HTMLDivElement>) => {
+      if (e.button !== 0) return;
+      if (
+        typeof window !== "undefined" &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      ) {
+        return;
+      }
+      const ticker = moreTickerRef.current;
+      if (!ticker || moreShiftPx <= 0) return;
+
+      cancelMoreInertia();
+      cancelMoreDragRaf();
+
+      const x = normalizeMoreX(readMoreTickerX(ticker), moreShiftPx);
+      /* Đóng băng ngay 1 frame — tránh nhảy về 0 khi tắt animation. */
+      ticker.style.animation = "none";
+      ticker.style.transform = `translate3d(${x}px, 0, 0)`;
+      moreDragRef.current = {
+        pointerId: e.pointerId,
+        startX: e.clientX,
+        startY: e.clientY,
+        originX: x,
+        active: false,
+        lastX: e.clientX,
+        lastT: performance.now(),
+        velocity: 0,
+      };
+    },
+    [
+      cancelMoreDragRaf,
+      cancelMoreInertia,
+      moreShiftPx,
+      normalizeMoreX,
+      readMoreTickerX,
+    ],
   );
 
   const onMorePointerMove = useCallback(
@@ -465,32 +568,50 @@ export function JourneyShopLoaiClient({
 
       const dx = e.clientX - drag.startX;
       const dy = e.clientY - drag.startY;
+      const now = performance.now();
+      const dt = now - drag.lastT;
 
       if (!drag.active) {
         /* Vuốt dọc trang → hủy kéo, trả animation. */
-        if (Math.abs(dy) > 8 && Math.abs(dy) > Math.abs(dx)) {
+        if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx) * 1.15) {
           moreDragRef.current = null;
-          setMoreDragging(false);
+          cancelMoreDragRaf();
+          setMoreDraggingClass(false);
           resumeMoreTickerAt(ticker, drag.originX);
           return;
         }
       }
 
-      /* Cập nhật transform ngay từ pixel đầu — cảm giác kéo liền. */
-      const next = normalizeMoreX(drag.originX + dx, moreShiftPx);
-      ticker.style.transform = `translate3d(${next}px, 0, 0)`;
+      if (dt > 0) {
+        const instant = (e.clientX - drag.lastX) / dt;
+        drag.velocity = drag.velocity * 0.7 + instant * 0.3;
+      }
+      drag.lastX = e.clientX;
+      drag.lastT = now;
 
-      if (!drag.active && Math.abs(dx) >= 2) {
+      /* 1 transform / frame — không normalize rời rạc mỗi event (giảm giật). */
+      scheduleMoreTickerX(drag.originX + dx);
+
+      if (!drag.active && Math.abs(dx) >= 3) {
         drag.active = true;
-        setMoreDragging(true);
+        setMoreDraggingClass(true);
         try {
           e.currentTarget.setPointerCapture(e.pointerId);
         } catch {
           /* ignore */
         }
       }
+
+      if (drag.active) {
+        e.preventDefault();
+      }
     },
-    [moreShiftPx, normalizeMoreX, resumeMoreTickerAt],
+    [
+      cancelMoreDragRaf,
+      resumeMoreTickerAt,
+      scheduleMoreTickerX,
+      setMoreDraggingClass,
+    ],
   );
 
   const finishMoreDrag = useCallback(
@@ -498,7 +619,6 @@ export function JourneyShopLoaiClient({
       const drag = moreDragRef.current;
       if (!drag || drag.pointerId !== e.pointerId) return;
       moreDragRef.current = null;
-      setMoreDragging(false);
 
       if (e.currentTarget.hasPointerCapture?.(e.pointerId)) {
         try {
@@ -511,6 +631,13 @@ export function JourneyShopLoaiClient({
       const ticker = moreTickerRef.current;
       if (!ticker) return;
 
+      /* Đọc pending trước khi cancel xóa — tránh nhảy về origin khi thả tay. */
+      const pendingX = morePendingXRef.current;
+      cancelMoreDragRaf();
+      const endX =
+        pendingX ??
+        normalizeMoreX(drag.originX + (e.clientX - drag.startX), moreShiftPx);
+
       if (!drag.active) {
         /* Tap — chạy lại marquee, không chặn click Link. */
         resumeMoreTickerAt(ticker, drag.originX);
@@ -518,10 +645,23 @@ export function JourneyShopLoaiClient({
       }
 
       moreSuppressClickRef.current = true;
-      const dx = e.clientX - drag.startX;
-      resumeMoreTickerAt(ticker, drag.originX + dx);
+      applyMoreTickerX(ticker, endX);
+
+      /* Quán tính ngắn nếu còn tốc độ ngang. */
+      if (Math.abs(drag.velocity) >= 0.08) {
+        runMoreInertia(ticker, endX, drag.velocity);
+      } else {
+        resumeMoreTickerAt(ticker, endX);
+      }
     },
-    [resumeMoreTickerAt],
+    [
+      applyMoreTickerX,
+      cancelMoreDragRaf,
+      moreShiftPx,
+      normalizeMoreX,
+      resumeMoreTickerAt,
+      runMoreInertia,
+    ],
   );
 
   const onMoreLostPointerCapture = useCallback(
@@ -532,6 +672,13 @@ export function JourneyShopLoaiClient({
     },
     [finishMoreDrag],
   );
+
+  useEffect(() => {
+    return () => {
+      cancelMoreDragRaf();
+      cancelMoreInertia();
+    };
+  }, [cancelMoreDragRaf, cancelMoreInertia]);
 
   const onMoreClickCapture = useCallback(
     (e: ReactMouseEvent<HTMLDivElement>) => {
@@ -1628,7 +1775,7 @@ export function JourneyShopLoaiClient({
           </header>
           <div
             ref={moreTrackRef}
-            className={`j-shop-loai-more-track${moreDragging ? " is-dragging" : ""}`}
+            className="j-shop-loai-more-track"
             style={{
               ["--j-shop-loai-more-dur" as string]: `${moreDurSec}s`,
               ["--j-shop-loai-more-shift" as string]:
@@ -1666,6 +1813,8 @@ export function JourneyShopLoaiClient({
                         role={copy === 0 ? "listitem" : undefined}
                         href={href}
                         tabIndex={copy === 1 ? -1 : undefined}
+                        draggable={false}
+                        onDragStart={(ev) => ev.preventDefault()}
                         className={`j-shop-loai-more-card${card.hetHang ? " is-soldout" : ""}`}
                       >
                         <span className="j-shop-loai-more-media" aria-hidden>

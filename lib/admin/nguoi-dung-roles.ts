@@ -43,6 +43,16 @@ export type AdminUserListRow = {
   /** `user_nguoi_dung.giai_doan` — tình trạng học/làm. */
   giaiDoan: GiaiDoan | null;
   giaiDoanLabel: string;
+  /** Số `content_cot_moc` user đã đăng (mọi chế độ hiển thị). */
+  soNoiDung: number;
+  /** Có `shop_cua_hang` chưa xóa (shop cá nhân L33). */
+  coShopCaNhan: boolean;
+  /** Tên cửa hàng nếu có; null khi chưa đặt tên. */
+  shopTen: string | null;
+  /** `user_nguoi_dung.ban_hang_bat`. */
+  banHangBat: boolean;
+  /** Shop hiện công khai trên Journey (`ban_hang_bat` ∧ `shop_hien_thi`). */
+  shopHienThi: boolean;
 };
 
 export type AdminUserListResponse = {
@@ -52,7 +62,11 @@ export type AdminUserListResponse = {
   canGrantAdmin: boolean;
   roleStats: Record<SystemRole, number>;
   giaiDoanStats: AdminGiaiDoanStats;
+  /** Số user có shop cá nhân (trong LIST_LIMIT). */
+  shopStats: { coShop: number; khongShop: number };
 };
+
+export type AdminShopFilter = "all" | "co_shop" | "khong_shop";
 
 export type SetUserRoleInput = {
   actorRole: SystemRole;
@@ -73,6 +87,14 @@ type ProfileRow = {
   tao_luc: string;
   lan_cuoi_active: string | null;
   giai_doan: GiaiDoan | null;
+  ban_hang_bat: boolean | null;
+  shop_hien_thi: boolean | null;
+};
+
+type ShopCuaHangLite = {
+  id_nguoi_dung: string;
+  ten: string | null;
+  da_xoa: boolean | null;
 };
 
 const GIAI_DOAN_SET = new Set<string>(
@@ -98,6 +120,21 @@ function matchesGiaiDoanFilter(
   if (!filter) return true;
   if (filter === "chua_chon") return row.giaiDoan == null;
   return row.giaiDoan === filter;
+}
+
+function parseShopFilter(raw: string | undefined): AdminShopFilter {
+  const v = raw?.trim() ?? "";
+  if (v === "co_shop" || v === "khong_shop") return v;
+  return "all";
+}
+
+function matchesShopFilter(
+  row: AdminUserListRow,
+  filter: AdminShopFilter,
+): boolean {
+  if (filter === "co_shop") return row.coShopCaNhan;
+  if (filter === "khong_shop") return !row.coShopCaNhan;
+  return true;
 }
 
 function adminGiaiDoanLabel(giaiDoan: GiaiDoan | null): string {
@@ -141,6 +178,69 @@ async function buildAuthMetaMap(): Promise<Map<string, AuthUserMeta>> {
   return map;
 }
 
+/** Đếm số cột mốc / bài user theo `id_nguoi_dung`. */
+async function buildCotMocCountByUser(): Promise<Map<string, number>> {
+  const admin = createServiceRoleClient();
+  const map = new Map<string, number>();
+  const pageSize = 1000;
+  let from = 0;
+
+  for (;;) {
+    const { data, error } = await admin
+      .from("content_cot_moc")
+      .select("id_nguoi_dung")
+      .order("id", { ascending: true })
+      .range(from, from + pageSize - 1)
+      .returns<Array<{ id_nguoi_dung: string | null }>>();
+
+    if (error) break;
+    const rows = data ?? [];
+    for (const row of rows) {
+      const id = row.id_nguoi_dung?.trim();
+      if (!id) continue;
+      map.set(id, (map.get(id) ?? 0) + 1);
+    }
+    if (rows.length < pageSize) break;
+    from += pageSize;
+    if (from > 100_000) break;
+  }
+
+  return map;
+}
+
+/** Shop cá nhân còn sống (`shop_cua_hang.da_xoa` ≠ true). */
+async function buildShopByUser(): Promise<
+  Map<string, { ten: string | null }>
+> {
+  const admin = createServiceRoleClient();
+  const map = new Map<string, { ten: string | null }>();
+  const pageSize = 1000;
+  let from = 0;
+
+  for (;;) {
+    const { data, error } = await admin
+      .from("shop_cua_hang")
+      .select("id_nguoi_dung, ten, da_xoa")
+      .order("id", { ascending: true })
+      .range(from, from + pageSize - 1)
+      .returns<ShopCuaHangLite[]>();
+
+    if (error) break;
+    const rows = data ?? [];
+    for (const row of rows) {
+      if (row.da_xoa === true) continue;
+      const id = row.id_nguoi_dung?.trim();
+      if (!id || map.has(id)) continue;
+      map.set(id, { ten: row.ten?.trim() || null });
+    }
+    if (rows.length < pageSize) break;
+    from += pageSize;
+    if (from > 50_000) break;
+  }
+
+  return map;
+}
+
 function matchesQuery(
   row: AdminUserListRow,
   q: string,
@@ -151,7 +251,8 @@ function matchesQuery(
     row.tenHienThi.toLowerCase().includes(needle) ||
     row.slug.toLowerCase().includes(needle) ||
     (row.email?.toLowerCase().includes(needle) ?? false) ||
-    row.roleLabel.toLowerCase().includes(needle)
+    row.roleLabel.toLowerCase().includes(needle) ||
+    (row.shopTen?.toLowerCase().includes(needle) ?? false)
   );
 }
 
@@ -167,18 +268,27 @@ function isRoleLocked(
 export async function fetchAdminUserList(params: {
   q?: string;
   giaiDoan?: string;
+  shop?: string;
   actorRole: SystemRole;
 }): Promise<AdminUserListResponse> {
   const admin = createServiceRoleClient();
   const q = params.q?.trim() ?? "";
   const giaiDoanFilter = parseGiaiDoanFilter(params.giaiDoan);
+  const shopFilter = parseShopFilter(params.shop);
 
-  const [{ data: profiles, error: profileErr }, authMetaMap, { data: roleRows }] =
-    await Promise.all([
+  const emptyShopStats = { coShop: 0, khongShop: 0 };
+
+  const [
+    { data: profiles, error: profileErr },
+    authMetaMap,
+    { data: roleRows },
+    cotMocCountByUser,
+    shopByUser,
+  ] = await Promise.all([
       admin
         .from("user_nguoi_dung")
         .select(
-          "id, auth_user_id, slug, ten_hien_thi, avatar_id, email_lien_he, trang_thai_tai_khoan, da_xac_minh, tao_luc, lan_cuoi_active, giai_doan",
+          "id, auth_user_id, slug, ten_hien_thi, avatar_id, email_lien_he, trang_thai_tai_khoan, da_xac_minh, tao_luc, lan_cuoi_active, giai_doan, ban_hang_bat, shop_hien_thi",
         )
         .order("tao_luc", { ascending: false })
         .limit(LIST_LIMIT)
@@ -188,6 +298,8 @@ export async function fetchAdminUserList(params: {
         .from("user_quyen_he_thong")
         .select("id_nguoi_dung, vai_tro")
         .returns<RoleRow[]>(),
+      buildCotMocCountByUser(),
+      buildShopByUser(),
     ]);
 
   if (profileErr) {
@@ -203,6 +315,7 @@ export async function fetchAdminUserList(params: {
         thanh_vien: 0,
       },
       giaiDoanStats: emptyAdminGiaiDoanStats(),
+      shopStats: emptyShopStats,
     };
   }
 
@@ -223,6 +336,8 @@ export async function fetchAdminUserList(params: {
       authMeta?.lastSignInAt?.trim() ||
       null;
     const giaiDoan = profile.giai_doan ?? null;
+    const shop = shopByUser.get(profile.id) ?? null;
+    const banHangBat = profile.ban_hang_bat === true;
 
     return {
       id: profile.id,
@@ -239,11 +354,19 @@ export async function fetchAdminUserList(params: {
       lanCuoiHoatDong,
       giaiDoan,
       giaiDoanLabel: adminGiaiDoanLabel(giaiDoan),
+      soNoiDung: cotMocCountByUser.get(profile.id) ?? 0,
+      coShopCaNhan: Boolean(shop),
+      shopTen: shop?.ten ?? null,
+      banHangBat,
+      shopHienThi: banHangBat && profile.shop_hien_thi === true,
     };
   });
 
   const rows = allRows.filter(
-    (row) => matchesQuery(row, q) && matchesGiaiDoanFilter(row, giaiDoanFilter),
+    (row) =>
+      matchesQuery(row, q) &&
+      matchesGiaiDoanFilter(row, giaiDoanFilter) &&
+      matchesShopFilter(row, shopFilter),
   );
 
   const roleStats: Record<SystemRole, number> = {
@@ -253,6 +376,7 @@ export async function fetchAdminUserList(params: {
     thanh_vien: 0,
   };
   const giaiDoanStats = emptyAdminGiaiDoanStats();
+  const shopStats = { ...emptyShopStats };
   for (const row of allRows) {
     roleStats[row.role] += 1;
     giaiDoanStats.all += 1;
@@ -261,6 +385,8 @@ export async function fetchAdminUserList(params: {
     } else {
       giaiDoanStats[row.giaiDoan] += 1;
     }
+    if (row.coShopCaNhan) shopStats.coShop += 1;
+    else shopStats.khongShop += 1;
   }
 
   return {
@@ -270,6 +396,7 @@ export async function fetchAdminUserList(params: {
     canGrantAdmin: canGrantAdmin(params.actorRole),
     roleStats,
     giaiDoanStats,
+    shopStats,
   };
 }
 

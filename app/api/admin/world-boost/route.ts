@@ -151,21 +151,35 @@ export async function POST(request: Request) {
     );
   }
 
-  /* Cộng điểm ưu tiên không hoàn lại (+10, trần 200). */
+  /* Cộng/trừ điểm ưu tiên (±5 / +10, trần 200). */
   if (action === "bump") {
     if (loai !== "cot_moc" && loai !== "org_bai_dang") {
       return NextResponse.json(
-        { error: "Chỉ cộng điểm cho bài user / bài org." },
+        { error: "Chỉ chỉnh điểm cho bài user / bài org." },
         { status: 422 },
       );
     }
+    const rawDelta = rec.delta;
+    const delta =
+      typeof rawDelta === "number"
+        ? rawDelta
+        : typeof rawDelta === "string" && rawDelta.trim() !== ""
+          ? Number(rawDelta)
+          : undefined;
     const bump = await bumpAdminDiemUuTien({
       loai: loai as FeedScoringLoai,
       id,
       actorProfileId: gate.profileId,
+      delta,
     });
     if (!bump.ok) {
-      const status = bump.message.includes("trần") ? 422 : 500;
+      const status =
+        bump.message.includes("trần") ||
+        bump.message.includes("hợp lệ") ||
+        bump.message.includes("về 0") ||
+        bump.message.includes("Chưa có")
+          ? 422
+          : 500;
       return NextResponse.json({ error: bump.message }, { status });
     }
     return NextResponse.json({

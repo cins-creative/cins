@@ -7,7 +7,6 @@ import {
   LayoutGrid,
   List,
   Loader2,
-  Plus,
   Scale,
   Search,
 } from "lucide-react";
@@ -28,7 +27,10 @@ import {
   viewFromNoiDungDangPath,
   type NoiDungDangView,
 } from "@/lib/admin/noi-dung-dang-views";
-import { ADMIN_DIEM_UU_TIEN } from "@/lib/cins/feed-scoring";
+import {
+  ADMIN_DIEM_UU_TIEN,
+  type AdminDiemUuTienDelta,
+} from "@/lib/cins/feed-scoring";
 import type { FeedScoreConfig } from "@/lib/cins/feed-scoring-config";
 import type {
   WorldBoostCatalogItem,
@@ -324,27 +326,25 @@ export function AdminNoiDungDangScreen({ initialView }: Props) {
     })();
   }
 
-  function bumpScore(item: WorldBoostCatalogItem) {
+  function bumpScore(item: WorldBoostCatalogItem, delta: AdminDiemUuTienDelta) {
     if (!canBumpScore(item) || isBusy(item.key)) return;
     const uu = item.diemFeed?.diem_uu_tien ?? 0;
-    if (uu >= ADMIN_DIEM_UU_TIEN.MAX) {
+    if (delta > 0 && uu >= ADMIN_DIEM_UU_TIEN.MAX) {
       setError(`Đã đạt trần ưu tiên (+${ADMIN_DIEM_UU_TIEN.MAX}).`);
       return;
     }
-    if (
-      !window.confirm(
-        `Cộng +${ADMIN_DIEM_UU_TIEN.BUMP} điểm ưu tiên cho «${item.tieuDe}»?\nKhông hoàn lại được · đồng thời refresh decay.`,
-      )
-    ) {
+    if (delta < 0 && uu <= ADMIN_DIEM_UU_TIEN.MIN) {
+      setError("Điểm ưu tiên đã về 0.");
       return;
     }
 
     const prevItem = item;
     const nextUu = Math.min(
       ADMIN_DIEM_UU_TIEN.MAX,
-      uu + ADMIN_DIEM_UU_TIEN.BUMP,
+      Math.max(ADMIN_DIEM_UU_TIEN.MIN, uu + delta),
     );
     const nowIso = new Date().toISOString();
+    const deltaLabel = delta > 0 ? `+${delta}` : `${delta}`;
 
     setError(null);
     setBumpingKeys((prev) => toggleKeyInSet(prev, item.key, true));
@@ -377,6 +377,7 @@ export function AdminNoiDungDangScreen({ initialView }: Props) {
             action: "bump",
             loai: item.loai,
             id: item.id,
+            delta,
           }),
         });
         const json = (await res.json()) as {
@@ -387,7 +388,7 @@ export function AdminNoiDungDangScreen({ initialView }: Props) {
           setItems((prev) =>
             prev.map((row) => (row.key === prevItem.key ? prevItem : row)),
           );
-          setError(json.error ?? "Không cộng được điểm ưu tiên.");
+          setError(json.error ?? `Không chỉnh được điểm (${deltaLabel}).`);
           return;
         }
         if (typeof json.diemUuTien === "number") {
@@ -409,410 +410,520 @@ export function AdminNoiDungDangScreen({ initialView }: Props) {
         setItems((prev) =>
           prev.map((row) => (row.key === prevItem.key ? prevItem : row)),
         );
-        setError("Không cộng được điểm ưu tiên.");
+        setError(`Không chỉnh được điểm (${deltaLabel}).`);
       } finally {
         setBumpingKeys((prev) => toggleKeyInSet(prev, item.key, false));
       }
     })();
   }
 
+  function scoreDeltaButtons(item: WorldBoostCatalogItem, variant: "card" | "list") {
+    const uu = item.diemFeed?.diem_uu_tien ?? 0;
+    const busy = isBusy(item.key);
+    const bumping = bumpingKeys.has(item.key);
+    const step = ADMIN_DIEM_UU_TIEN.STEP;
+    const btnClass = variant === "card" ? "ndd-card-bump" : "ndd-list-bump";
+
+    return (
+      <span className="ndd-score-delta" role="group" aria-label="Chỉnh điểm ưu tiên">
+        <button
+          type="button"
+          className={`${btnClass} is-minus`}
+          onClick={() => bumpScore(item, -step as AdminDiemUuTienDelta)}
+          disabled={busy || uu <= ADMIN_DIEM_UU_TIEN.MIN}
+          title={`Trừ ${step} điểm ưu tiên${uu > 0 ? ` · hiện ${uu}` : ""}`}
+          aria-label={`Trừ ${step} điểm: ${item.tieuDe}`}
+        >
+          {bumping ? "…" : `−${step}`}
+        </button>
+        <button
+          type="button"
+          className={`${btnClass} is-plus`}
+          onClick={() => bumpScore(item, step as AdminDiemUuTienDelta)}
+          disabled={busy || uu >= ADMIN_DIEM_UU_TIEN.MAX}
+          title={`Cộng +${step} điểm ưu tiên${uu > 0 ? ` · hiện ${uu}` : ""}`}
+          aria-label={`Cộng ${step} điểm: ${item.tieuDe}`}
+        >
+          {bumping ? "…" : `+${step}`}
+        </button>
+      </span>
+    );
+  }
+
   return (
-    <>
-      <header className="page-header">
-        <div>
-          <h1 className="page-title">
-            {view === "pendingVerify"
-              ? "Nội dung chờ xác thực"
-              : "Nội dung đăng (World)"}
-          </h1>
-          <p className="page-subtitle">
-            {view === "pendingVerify"
-              ? "Xem bằng chứng và xử lý nhanh yêu cầu gắn nội dung với tổ chức."
-              : "Đẩy ẩn (TTL 3 ngày) · nút + cộng điểm ưu tiên không hoàn lại · không hiện nhãn với user."}
-          </p>
-        </div>
-        <div className="page-header-actions ndd-view-toggle">
+    <div className="ndd-page">
+      <header className="page-header ndd-head">
+        <nav className="ndd-view-toggle" aria-label="Chế độ xem">
           <Link
             href={pathForNoiDungDangView("grid")}
             className={view === "grid" ? "is-active" : undefined}
             aria-current={view === "grid" ? "page" : undefined}
           >
-            <LayoutGrid size={16} /> Lưới
+            <LayoutGrid size={16} aria-hidden />
+            <span>Lưới</span>
           </Link>
           <Link
             href={pathForNoiDungDangView("listing")}
             className={view === "listing" ? "is-active" : undefined}
             aria-current={view === "listing" ? "page" : undefined}
           >
-            <List size={16} /> Listing
+            <List size={16} aria-hidden />
+            <span>Listing</span>
           </Link>
           <Link
             href={pathForNoiDungDangView("dashboard")}
             className={view === "dashboard" ? "is-active" : undefined}
             aria-current={view === "dashboard" ? "page" : undefined}
           >
-            <BarChart3 size={16} /> Dashboard
+            <BarChart3 size={16} aria-hidden />
+            <span>Dashboard</span>
           </Link>
           <Link
             href={pathForNoiDungDangView("score")}
             className={view === "score" ? "is-active" : undefined}
             aria-current={view === "score" ? "page" : undefined}
           >
-            <Scale size={16} /> Công thức
+            <Scale size={16} aria-hidden />
+            <span className="ndd-tab-full">Công thức</span>
+            <span className="ndd-tab-short" aria-hidden>
+              CT
+            </span>
           </Link>
           <Link
             href={pathForNoiDungDangView("pendingVerify")}
             className={view === "pendingVerify" ? "is-active" : undefined}
             aria-current={view === "pendingVerify" ? "page" : undefined}
+            aria-label={`Nội dung chờ xác thực${
+              pendingVerifyCount > 0 ? ` (${pendingVerifyCount})` : ""
+            }`}
           >
-            <BadgeCheck size={16} />
-            Nội dung chờ xác thực
+            <BadgeCheck size={16} aria-hidden />
+            <span className="ndd-tab-full">Chờ xác thực</span>
+            <span className="ndd-tab-short" aria-hidden>
+              Chờ XT
+            </span>
             {pendingVerifyCount > 0 ? (
               <span className="ndd-tab-badge">
                 {pendingVerifyCount > 99 ? "99+" : pendingVerifyCount}
               </span>
             ) : null}
           </Link>
-        </div>
+        </nav>
       </header>
 
-      {view !== "pendingVerify" && stats ? (
-        <div className="ndd-stats" aria-label="Thống kê nội dung">
-          <div className="ndd-stat">
-            <strong>{stats.dangBoost}</strong>
-            <span>Đang đẩy</span>
+      <div className="ndd-body">
+        {view !== "pendingVerify" && stats ? (
+          <div className="ndd-stats" aria-label="Thống kê nội dung">
+            <article className="ndd-stat ndd-stat--boost">
+              <span className="ndd-stat-k">Đang đẩy</span>
+              <strong className="ndd-stat-v">{stats.dangBoost}</strong>
+            </article>
+            <article className="ndd-stat ndd-stat--soon">
+              <span className="ndd-stat-k">Sắp hết hạn (24h)</span>
+              <strong className="ndd-stat-v">{stats.sapHetHan24h}</strong>
+            </article>
+            <article className="ndd-stat">
+              <span className="ndd-stat-k">Bài user mới (7 ngày)</span>
+              <strong className="ndd-stat-v">{stats.cotMocMoi7n}</strong>
+            </article>
+            <article className="ndd-stat">
+              <span className="ndd-stat-k">Bài org mới (7 ngày)</span>
+              <strong className="ndd-stat-v">{stats.orgBaiDangMoi7n}</strong>
+            </article>
+            <article className="ndd-stat">
+              <span className="ndd-stat-k">Sự kiện mới (7 ngày)</span>
+              <strong className="ndd-stat-v">{stats.suKienMoi7n}</strong>
+            </article>
           </div>
-          <div className="ndd-stat">
-            <strong>{stats.sapHetHan24h}</strong>
-            <span>Sắp hết hạn (24h)</span>
-          </div>
-          <div className="ndd-stat">
-            <strong>{stats.cotMocMoi7n}</strong>
-            <span>Bài user mới (7 ngày)</span>
-          </div>
-          <div className="ndd-stat">
-            <strong>{stats.orgBaiDangMoi7n}</strong>
-            <span>Bài org mới (7 ngày)</span>
-          </div>
-          <div className="ndd-stat">
-            <strong>{stats.suKienMoi7n}</strong>
-            <span>Sự kiện mới (7 ngày)</span>
-          </div>
-        </div>
-      ) : null}
+        ) : null}
 
-      {view === "dashboard" ? (
-        <AdminNoiDungGrowthDashboard stats={stats} />
-      ) : view === "score" ? (
-        <AdminNoiDungFeedScoreRules onConfigSaved={setScoreConfig} />
-      ) : view === "pendingVerify" ? (
-        <AdminPendingContentVerifyQueue
-          items={pendingItems}
-          total={pendingVerifyCount}
-          loading={loading}
-          error={error}
-          onRetry={() => void loadPending()}
-          onResolved={(requestId) => {
-            setPendingItems((current) =>
-              current.filter((item) => item.requestId !== requestId),
-            );
-            setPendingVerifyCount((current) => Math.max(0, current - 1));
-          }}
-        />
-      ) : (
-        <>
-          <div className="ndd-filters">
-            <label className="ndd-search">
-              <Search size={16} aria-hidden />
-              <input
-                type="search"
-                placeholder="Lọc tiêu đề / tác giả…"
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-              />
-            </label>
-            <select
-              value={nguon}
-              onChange={(e) =>
-                setNguon(e.target.value as "all" | "user" | "org")
-              }
-              aria-label="Nguồn đăng"
-            >
-              <option value="all">Tất cả nguồn</option>
-              <option value="user">User</option>
-              <option value="org">Tổ chức</option>
-            </select>
-            <select
-              value={dinhDang}
-              onChange={(e) =>
-                setDinhDang(e.target.value as WorldBoostDinhDangFilter)
-              }
-              aria-label="Định dạng nội dung"
-            >
-              <option value="all">Tất cả định dạng</option>
-              <option value="photo">Album ảnh</option>
-              <option value="video">Video</option>
-              <option value="article">Bài viết</option>
-              <option value="embed">File nhúng</option>
-            </select>
-            <select
-              value={xacThuc}
-              onChange={(e) =>
-                setXacThuc(e.target.value as WorldBoostXacThucFilter)
-              }
-              aria-label="Xác thực tổ chức"
-            >
-              <option value="all">Tất cả xác thực</option>
-              <option value="verified">Đã xác thực (org)</option>
-              <option value="unverified">Chưa xác thực</option>
-            </select>
-            <label className="ndd-check">
-              <input
-                type="checkbox"
-                checked={chiBoost}
-                onChange={(e) => setChiBoost(e.target.checked)}
-              />
-              Chỉ đang đẩy
-            </label>
-          </div>
-
-          {error ? <p className="ndd-error">{error}</p> : null}
-
-          {loading ? (
-            <p className="admin-panel-loading">
-              <Loader2 className="bc-spin" size={18} /> Đang tải…
-            </p>
-          ) : items.length === 0 ? (
-            <div className="bc-empty">
-              <p>Không có nội dung khớp bộ lọc.</p>
-            </div>
-          ) : view === "grid" ? (
-            <div className="ndd-grid" style={{ ["--ndd-cols" as string]: 4 }}>
-              {items.map((item) => (
-                <article
-                  key={item.key}
-                  className={[
-                    "ndd-card",
-                    item.dangBoost ? "is-boosted" : "",
-                    item.daXacThuc ? "is-verified" : "",
-                  ]
-                    .filter(Boolean)
-                    .join(" ")}
+        {view === "dashboard" ? (
+          <AdminNoiDungGrowthDashboard stats={stats} />
+        ) : view === "score" ? (
+          <AdminNoiDungFeedScoreRules onConfigSaved={setScoreConfig} />
+        ) : view === "pendingVerify" ? (
+          <AdminPendingContentVerifyQueue
+            items={pendingItems}
+            total={pendingVerifyCount}
+            loading={loading}
+            error={error}
+            onRetry={() => void loadPending()}
+            onResolved={(requestId) => {
+              setPendingItems((current) =>
+                current.filter((item) => item.requestId !== requestId),
+              );
+              setPendingVerifyCount((current) => Math.max(0, current - 1));
+            }}
+          />
+        ) : (
+          <section className="ndd-panel">
+            <div className="ndd-filters">
+              <label className="ndd-search">
+                <Search size={16} aria-hidden />
+                <input
+                  type="search"
+                  placeholder="Lọc tiêu đề / tác giả…"
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                />
+              </label>
+              <div className="ndd-filter-selects">
+                <select
+                  value={nguon}
+                  onChange={(e) =>
+                    setNguon(e.target.value as "all" | "user" | "org")
+                  }
+                  aria-label="Nguồn đăng"
                 >
-                  <div className="ndd-card-hit">
-                    <span className="ndd-card-thumb">
-                      {item.thumbUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={item.thumbUrl} alt="" loading="lazy" />
-                      ) : (
-                        <span className="ndd-card-fallback" aria-hidden>
-                          {item.tieuDe.slice(0, 2).toUpperCase()}
-                        </span>
-                      )}
-                      <span className="ndd-card-mark-row">
-                        {canBumpScore(item) ? (
-                          <button
-                            type="button"
-                            className="ndd-card-bump"
-                            onClick={() => bumpScore(item)}
-                            disabled={
-                              isBusy(item.key) ||
-                              (item.diemFeed?.diem_uu_tien ?? 0) >=
-                                ADMIN_DIEM_UU_TIEN.MAX
-                            }
-                            title={`Cộng +${ADMIN_DIEM_UU_TIEN.BUMP} điểm ưu tiên (không hoàn lại)${
-                              (item.diemFeed?.diem_uu_tien ?? 0) > 0
-                                ? ` · hiện ${item.diemFeed?.diem_uu_tien}`
-                                : ""
-                            }`}
-                            aria-label={`Cộng điểm ưu tiên: ${item.tieuDe}`}
-                          >
-                            {bumpingKeys.has(item.key) ? (
-                              <Loader2 size={12} className="bc-spin" />
-                            ) : (
-                              <Plus size={12} strokeWidth={3} aria-hidden />
-                            )}
-                          </button>
-                        ) : null}
-                        <button
-                          type="button"
-                          className="ndd-card-mark"
-                          onClick={() => toggleBoost(item)}
-                          disabled={isBusy(item.key)}
-                          aria-pressed={item.dangBoost}
-                          aria-label={
-                            item.dangBoost
-                              ? `Tắt đẩy: ${item.tieuDe}`
-                              : `Đẩy nội dung: ${item.tieuDe}`
-                          }
-                        />
-                      </span>
-                      {item.daXacThuc ? (
-                        <span className="ndd-card-verified">Đã xác thực</span>
-                      ) : null}
-                    </span>
-                    <span className="ndd-card-body">
-                      <strong>{item.tieuDe}</strong>
-                      <small>
-                        {item.tacGiaTen ?? "—"} · {item.dinhDangLabel}
-                      </small>
-                      <span className="ndd-card-score-row">
-                      <AdminFeedScoreCell
-                        diemFeed={item.diemFeed}
-                        variant="compact"
-                        scoreConfig={scoreConfig}
-                      />
-                      <small className="ndd-card-con-lai">
-                        {item.diemFeed
-                          ? `Còn ${fmtAdminFeedGioConLai(item.diemFeed, scoreConfig)}`
-                          : "—"}
-                      </small>
-                      </span>
-                    </span>
-                  </div>
-                  {item.moBaiUrl ? (
-                    <a
-                      className="ndd-card-open"
-                      href={item.moBaiUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      title="Mở bài viết"
-                      aria-label={`Mở bài viết: ${item.tieuDe}`}
-                    >
-                      <ExternalLink size={12} aria-hidden />
-                    </a>
-                  ) : null}
-                </article>
-              ))}
+                  <option value="all">Tất cả nguồn</option>
+                  <option value="user">User</option>
+                  <option value="org">Tổ chức</option>
+                </select>
+                <select
+                  value={dinhDang}
+                  onChange={(e) =>
+                    setDinhDang(e.target.value as WorldBoostDinhDangFilter)
+                  }
+                  aria-label="Định dạng nội dung"
+                >
+                  <option value="all">Tất cả định dạng</option>
+                  <option value="photo">Album ảnh</option>
+                  <option value="video">Video</option>
+                  <option value="article">Bài viết</option>
+                  <option value="embed">File nhúng</option>
+                </select>
+                <select
+                  value={xacThuc}
+                  onChange={(e) =>
+                    setXacThuc(e.target.value as WorldBoostXacThucFilter)
+                  }
+                  aria-label="Xác thực tổ chức"
+                >
+                  <option value="all">Tất cả xác thực</option>
+                  <option value="verified">Đã xác thực (org)</option>
+                  <option value="unverified">Chưa xác thực</option>
+                </select>
+                <label className="ndd-check">
+                  <input
+                    type="checkbox"
+                    checked={chiBoost}
+                    onChange={(e) => setChiBoost(e.target.checked)}
+                  />
+                  Chỉ đang đẩy
+                </label>
+              </div>
             </div>
-          ) : (
-            <div className="table-wrap table-wrap--ndd">
-              <table className="data-table ndd-list-table">
-                <thead>
-                  <tr>
-                    <th className="ndd-list-col-boost">Đẩy</th>
-                    <th className="ndd-list-col-thumb" aria-label="Ảnh" />
-                    <th>Nội dung</th>
-                    <th className="ndd-list-col-score">Điểm</th>
-                    <th className="ndd-list-col-remain">Còn lại</th>
-                    <th className="ndd-list-col-meta">Trạng thái</th>
-                    <th className="ndd-list-col-dates">Thời gian</th>
-                  </tr>
-                </thead>
-                <tbody>
+
+            {error ? (
+              <p className="ndd-error" role="alert">
+                {error}
+              </p>
+            ) : null}
+
+            <div className="ndd-panel-body">
+              {loading ? (
+                <p className="admin-panel-loading">
+                  <Loader2 className="bc-spin" size={18} /> Đang tải…
+                </p>
+              ) : items.length === 0 ? (
+                <div className="bc-empty">
+                  <p>Không có nội dung khớp bộ lọc.</p>
+                </div>
+              ) : view === "grid" ? (
+                <div className="ndd-grid">
                   {items.map((item) => (
-                    <tr
+                    <article
                       key={item.key}
                       className={[
-                        item.dangBoost ? "ndd-row-boosted" : "",
-                        item.daXacThuc ? "ndd-row-verified" : "",
+                        "ndd-card",
+                        item.dangBoost ? "is-boosted" : "",
+                        item.daXacThuc ? "is-verified" : "",
                       ]
                         .filter(Boolean)
-                        .join(" ") || undefined}
+                        .join(" ")}
                     >
-                      <td className="ndd-list-col-boost">
-                        <span className="ndd-list-boost-actions">
-                          {canBumpScore(item) ? (
-                            <button
-                              type="button"
-                              className="ndd-list-bump"
-                              onClick={() => bumpScore(item)}
-                              disabled={
-                                isBusy(item.key) ||
-                                (item.diemFeed?.diem_uu_tien ?? 0) >=
-                                  ADMIN_DIEM_UU_TIEN.MAX
-                              }
-                              title={`Cộng +${ADMIN_DIEM_UU_TIEN.BUMP} (không hoàn lại)`}
-                              aria-label={`Cộng điểm: ${item.tieuDe}`}
-                            >
-                              {bumpingKeys.has(item.key) ? "…" : "+"}
-                            </button>
-                          ) : null}
-                          <button
-                            type="button"
-                            className={`ndd-list-toggle${item.dangBoost ? " is-on" : ""}`}
-                            onClick={() => toggleBoost(item)}
-                            disabled={isBusy(item.key)}
-                            aria-pressed={item.dangBoost}
-                          >
-                            {item.dangBoost ? "Bật" : "Tắt"}
-                          </button>
-                        </span>
-                      </td>
-                      <td className="ndd-list-col-thumb">
-                        <span className="ndd-list-thumb">
+                      <div className="ndd-card-hit">
+                        <span className="ndd-card-thumb">
                           {item.thumbUrl ? (
                             // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={item.thumbUrl}
-                              alt=""
-                              loading="lazy"
-                            />
+                            <img src={item.thumbUrl} alt="" loading="lazy" />
                           ) : (
-                            <span className="ndd-list-thumb-fallback" aria-hidden>
+                            <span className="ndd-card-fallback" aria-hidden>
+                              {item.tieuDe.slice(0, 2).toUpperCase()}
+                            </span>
+                          )}
+                          <span className="ndd-card-mark-row">
+                            {canBumpScore(item)
+                              ? scoreDeltaButtons(item, "card")
+                              : null}
+                            <button
+                              type="button"
+                              className="ndd-card-mark"
+                              onClick={() => toggleBoost(item)}
+                              disabled={isBusy(item.key)}
+                              aria-pressed={item.dangBoost}
+                              aria-label={
+                                item.dangBoost
+                                  ? `Tắt đẩy: ${item.tieuDe}`
+                                  : `Đẩy nội dung: ${item.tieuDe}`
+                              }
+                            />
+                          </span>
+                          {item.daXacThuc ? (
+                            <span className="ndd-card-verified">Đã xác thực</span>
+                          ) : null}
+                        </span>
+                        <span className="ndd-card-body">
+                          <strong>{item.tieuDe}</strong>
+                          <small>
+                            {item.tacGiaTen ?? "—"} · {item.dinhDangLabel}
+                          </small>
+                          <span className="ndd-card-score-row">
+                            <AdminFeedScoreCell
+                              diemFeed={item.diemFeed}
+                              variant="compact"
+                              scoreConfig={scoreConfig}
+                            />
+                            <small className="ndd-card-con-lai">
+                              {item.diemFeed
+                                ? `Còn ${fmtAdminFeedGioConLai(item.diemFeed, scoreConfig)}`
+                                : "—"}
+                            </small>
+                          </span>
+                        </span>
+                      </div>
+                      {item.moBaiUrl ? (
+                        <a
+                          className="ndd-card-open"
+                          href={item.moBaiUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="Mở bài viết"
+                          aria-label={`Mở bài viết: ${item.tieuDe}`}
+                        >
+                          <ExternalLink size={12} aria-hidden />
+                        </a>
+                      ) : null}
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <>
+                  <div className="table-wrap table-wrap--ndd ndd-list-desktop">
+                    <table className="data-table ndd-list-table">
+                      <thead>
+                        <tr>
+                          <th className="ndd-list-col-boost">Đẩy</th>
+                          <th className="ndd-list-col-thumb" aria-label="Ảnh" />
+                          <th>Nội dung</th>
+                          <th className="ndd-list-col-score">Điểm</th>
+                          <th className="ndd-list-col-remain">Còn lại</th>
+                          <th className="ndd-list-col-meta">Trạng thái</th>
+                          <th className="ndd-list-col-dates">Thời gian</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {items.map((item) => (
+                          <tr
+                            key={item.key}
+                            className={[
+                              item.dangBoost ? "ndd-row-boosted" : "",
+                              item.daXacThuc ? "ndd-row-verified" : "",
+                            ]
+                              .filter(Boolean)
+                              .join(" ") || undefined}
+                          >
+                            <td className="ndd-list-col-boost">
+                              <span className="ndd-list-boost-actions">
+                                {canBumpScore(item)
+                                  ? scoreDeltaButtons(item, "list")
+                                  : null}
+                                <button
+                                  type="button"
+                                  className={`ndd-list-toggle${item.dangBoost ? " is-on" : ""}`}
+                                  onClick={() => toggleBoost(item)}
+                                  disabled={isBusy(item.key)}
+                                  aria-pressed={item.dangBoost}
+                                >
+                                  {item.dangBoost ? "Bật" : "Tắt"}
+                                </button>
+                              </span>
+                            </td>
+                            <td className="ndd-list-col-thumb">
+                              <span className="ndd-list-thumb">
+                                {item.thumbUrl ? (
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  <img
+                                    src={item.thumbUrl}
+                                    alt=""
+                                    loading="lazy"
+                                  />
+                                ) : (
+                                  <span
+                                    className="ndd-list-thumb-fallback"
+                                    aria-hidden
+                                  >
+                                    {item.tieuDe.slice(0, 2).toUpperCase()}
+                                  </span>
+                                )}
+                              </span>
+                            </td>
+                            <td className="ndd-list-content">
+                              <strong className="ndd-list-title">
+                                {item.moBaiUrl ? (
+                                  <a
+                                    className="ndd-list-open-title"
+                                    href={item.moBaiUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                  >
+                                    {item.tieuDe}
+                                    <ExternalLink size={12} aria-hidden />
+                                  </a>
+                                ) : (
+                                  item.tieuDe
+                                )}
+                              </strong>
+                              <span className="ndd-list-meta">
+                                <span className="ndd-list-chip">
+                                  {item.dinhDangLabel}
+                                </span>
+                                <span>
+                                  {item.nguon === "user" ? "User" : "Org"}
+                                  {" · "}
+                                  {item.tacGiaTen ?? "—"}
+                                </span>
+                              </span>
+                            </td>
+                            <td className="ndd-list-col-score">
+                              <AdminFeedScoreCell
+                                diemFeed={item.diemFeed}
+                                variant="table"
+                                scoreConfig={scoreConfig}
+                              />
+                            </td>
+                            <td className="ndd-list-col-remain">
+                              {fmtAdminFeedGioConLai(item.diemFeed, scoreConfig)}
+                            </td>
+                            <td className="ndd-list-col-meta">
+                              {item.daXacThuc ? (
+                                <span className="ndd-verified-pill">
+                                  Đã xác thực
+                                </span>
+                              ) : (
+                                <span className="ndd-list-muted">
+                                  Chưa xác thực
+                                </span>
+                              )}
+                            </td>
+                            <td className="ndd-list-col-dates">
+                              <span className="ndd-list-date-stack">
+                                <span title="Ngày tạo">
+                                  {fmtDate(item.taoLuc)}
+                                </span>
+                                <small title="Hết hạn boost">
+                                  Boost: {fmtDate(item.hetHanLuc)}
+                                </small>
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <ul className="ndd-list-mobile">
+                    {items.map((item) => (
+                      <li
+                        key={item.key}
+                        className={[
+                          "ndd-mobile-row",
+                          item.dangBoost ? "is-boosted" : "",
+                          item.daXacThuc ? "is-verified" : "",
+                        ]
+                          .filter(Boolean)
+                          .join(" ")}
+                      >
+                        <span className="ndd-mobile-thumb">
+                          {item.thumbUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={item.thumbUrl} alt="" loading="lazy" />
+                          ) : (
+                            <span aria-hidden>
                               {item.tieuDe.slice(0, 2).toUpperCase()}
                             </span>
                           )}
                         </span>
-                      </td>
-                      <td className="ndd-list-content">
-                        <strong className="ndd-list-title">
-                          {item.moBaiUrl ? (
-                            <a
-                              className="ndd-list-open-title"
-                              href={item.moBaiUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                              {item.tieuDe}
-                              <ExternalLink size={12} aria-hidden />
-                            </a>
-                          ) : (
-                            item.tieuDe
-                          )}
-                        </strong>
-                        <span className="ndd-list-meta">
-                          <span className="ndd-list-chip">{item.dinhDangLabel}</span>
-                          <span>
-                            {item.nguon === "user" ? "User" : "Org"}
-                            {" · "}
-                            {item.tacGiaTen ?? "—"}
+                        <div className="ndd-mobile-main">
+                          <strong className="ndd-mobile-title">
+                            {item.moBaiUrl ? (
+                              <a
+                                href={item.moBaiUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                {item.tieuDe}
+                                <ExternalLink size={12} aria-hidden />
+                              </a>
+                            ) : (
+                              item.tieuDe
+                            )}
+                          </strong>
+                          <span className="ndd-mobile-meta">
+                            <span className="ndd-list-chip">
+                              {item.dinhDangLabel}
+                            </span>
+                            <span>
+                              {item.nguon === "user" ? "User" : "Org"} ·{" "}
+                              {item.tacGiaTen ?? "—"}
+                            </span>
                           </span>
-                        </span>
-                      </td>
-                      <td className="ndd-list-col-score">
-                        <AdminFeedScoreCell
-                          diemFeed={item.diemFeed}
-                          variant="table"
-                          scoreConfig={scoreConfig}
-                        />
-                      </td>
-                      <td className="ndd-list-col-remain">
-                        {fmtAdminFeedGioConLai(item.diemFeed, scoreConfig)}
-                      </td>
-                      <td className="ndd-list-col-meta">
-                        {item.daXacThuc ? (
-                          <span className="ndd-verified-pill">Đã xác thực</span>
-                        ) : (
-                          <span className="ndd-list-muted">Chưa xác thực</span>
-                        )}
-                      </td>
-                      <td className="ndd-list-col-dates">
-                        <span className="ndd-list-date-stack">
-                          <span title="Ngày tạo">{fmtDate(item.taoLuc)}</span>
-                          <small title="Hết hạn boost">
-                            Boost: {fmtDate(item.hetHanLuc)}
-                          </small>
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                          <span className="ndd-mobile-score">
+                            <AdminFeedScoreCell
+                              diemFeed={item.diemFeed}
+                              variant="compact"
+                              scoreConfig={scoreConfig}
+                            />
+                            <small>
+                              Còn{" "}
+                              {fmtAdminFeedGioConLai(item.diemFeed, scoreConfig)}
+                            </small>
+                          </span>
+                          <span className="ndd-mobile-dates">
+                            {fmtDate(item.taoLuc)}
+                            {item.hetHanLuc
+                              ? ` · Boost ${fmtDate(item.hetHanLuc)}`
+                              : ""}
+                          </span>
+                        </div>
+                        <div className="ndd-mobile-actions">
+                          {item.daXacThuc ? (
+                            <span className="ndd-verified-pill">Đã XT</span>
+                          ) : null}
+                          <span className="ndd-list-boost-actions">
+                            {canBumpScore(item)
+                              ? scoreDeltaButtons(item, "list")
+                              : null}
+                            <button
+                              type="button"
+                              className={`ndd-list-toggle${item.dangBoost ? " is-on" : ""}`}
+                              onClick={() => toggleBoost(item)}
+                              disabled={isBusy(item.key)}
+                              aria-pressed={item.dangBoost}
+                            >
+                              {item.dangBoost ? "Bật" : "Tắt"}
+                            </button>
+                          </span>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
             </div>
-          )}
-        </>
-      )}
-    </>
+          </section>
+        )}
+      </div>
+    </div>
   );
 }
