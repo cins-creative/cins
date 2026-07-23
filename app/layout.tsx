@@ -6,6 +6,7 @@ import { ThemeRoot } from "@/components/cins/ThemeRoot";
 import { GopYButton } from "@/components/feedback/GopYButton";
 import { HardNavGuard } from "@/components/navigation/HardNavGuard";
 import { getConfiguredSiteOrigin } from "@/lib/auth/auth-origin";
+import { THEME_NO_FLASH_SCRIPT } from "@/lib/theme/theme-mode";
 import "./globals.css";
 import "./cins-design-tokens.css";
 import "./cins-font-bridge.css";
@@ -72,7 +73,13 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <head>
-        {/* Theme no-flash: ThemeRoot inject qua useServerInsertedHTML (tránh React 19 warning <script>). */}
+        {/* No-flash theme: một script tĩnh trong <head>. Không dùng useServerInsertedHTML
+            (streaming SSR gọi callback mỗi chunk → chèn hàng chục script, phá RSC/hydration). */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: THEME_NO_FLASH_SCRIPT,
+          }}
+        />
         {/* Load Material Symbols in <head> — @import in CSS is easy to block or apply late; icon text shows as words if the font never loads. */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link

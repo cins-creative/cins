@@ -1,11 +1,9 @@
 "use client";
 
 import { useLayoutEffect, useRef } from "react";
-import { useServerInsertedHTML } from "next/navigation";
 
 import {
   THEME_CHANGE_EVENT,
-  THEME_NO_FLASH_SCRIPT,
   THEME_STORAGE_KEY,
   applyResolvedTheme,
   isForceLightThemeActive,
@@ -17,17 +15,14 @@ import {
 /**
  * Neo theme phía client — chạy trong root layout.
  *
- * Script no-flash (useServerInsertedHTML) áp data-theme trước paint; component này:
+ * Script no-flash trong <head> (app/layout.tsx) đã áp data-theme trước paint;
+ * component này:
  * 1. Sync lại sau hydrate / soft-nav (phòng attribute bị lệch).
  * 2. Theo dõi prefers-color-scheme khi mode = "system" (không phụ thuộc modal cài đặt).
  * 3. Phản ứng khi tab khác đổi localStorage hoặc setThemeMode phát event.
  */
 export function ThemeRoot() {
   const unwatchRef = useRef<(() => void) | null>(null);
-
-  useServerInsertedHTML(() => (
-    <script dangerouslySetInnerHTML={{ __html: THEME_NO_FLASH_SCRIPT }} />
-  ));
 
   useLayoutEffect(() => {
     const bindSystemWatch = () => {
