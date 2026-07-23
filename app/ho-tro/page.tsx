@@ -2,6 +2,10 @@ import type { Metadata } from "next";
 
 import { HoTroClient } from "@/app/ho-tro/HoTroClient";
 import { CinsShell } from "@/components/cins/CinsShell";
+import { getCurrentUserIsCinsAdmin } from "@/lib/auth/cins-admin-server";
+import { listHuongDanPublic } from "@/lib/huong-dan/huong-dan";
+
+import "@/styles/article-rich-content.css";
 
 export const metadata: Metadata = {
   title: "Trợ giúp — CINs",
@@ -19,10 +23,20 @@ export const metadata: Metadata = {
   },
 };
 
-export default function HoTroPage() {
+export const dynamic = "force-dynamic";
+
+export default async function HoTroPage() {
+  const [guideCatalog, isCinsAdmin] = await Promise.all([
+    listHuongDanPublic(),
+    getCurrentUserIsCinsAdmin(),
+  ]);
   return (
     <CinsShell data-screen-label="Ho-tro">
-      <HoTroClient />
+      <HoTroClient
+        initialMode="help"
+        guideCatalog={guideCatalog}
+        isCinsAdmin={isCinsAdmin}
+      />
     </CinsShell>
   );
 }

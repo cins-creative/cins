@@ -72,12 +72,7 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <head>
-        {/* No-flash theme: áp data-theme trước khi paint để tránh nháy nền. Khớp key với lib/theme/theme-mode.ts */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `(function(){try{var m=localStorage.getItem("cins-theme");if(m!=="light"&&m!=="dark"&&m!=="system")m="system";var d=m==="dark"||(m==="system"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);var t=d?"dark":"light";var r=document.documentElement;r.setAttribute("data-theme",t);r.style.colorScheme=t;}catch(e){}})();`,
-          }}
-        />
+        {/* Theme no-flash: ThemeRoot inject qua useServerInsertedHTML (tránh React 19 warning <script>). */}
         {/* Load Material Symbols in <head> — @import in CSS is easy to block or apply late; icon text shows as words if the font never loads. */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link

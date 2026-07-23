@@ -3,7 +3,7 @@
  *
  * - Lưu lựa chọn của người dùng vào localStorage (device-local, không đồng bộ server).
  * - Áp trực tiếp lên <html data-theme="..."> + color-scheme để token CSS phản ứng ngay.
- * - Script no-flash trong layout đọc cùng key này trước khi paint.
+ * - Script no-flash (ThemeRoot + useServerInsertedHTML) đọc cùng key này trước khi paint.
  * - ThemeRoot (client) sync lại sau hydrate + theo dõi prefers-color-scheme.
  * - Guest home có thể khoá nền sáng tạm thời qua acquireForceLightTheme().
  */
@@ -13,6 +13,16 @@ export type ResolvedTheme = "light" | "dark";
 
 export const THEME_STORAGE_KEY = "cins-theme";
 export const THEME_CHANGE_EVENT = "cins:theme-change";
+
+/**
+ * Inline script no-flash — inject qua useServerInsertedHTML (không render
+ * <script> trong cây React: React 19 cảnh báo / không chạy trên client).
+ */
+export const THEME_NO_FLASH_SCRIPT = `(function(){try{var m=localStorage.getItem(${JSON.stringify(THEME_STORAGE_KEY)});if(m!=="light"&&m!=="dark"&&m!=="system")m="system";var d=m==="dark"||(m==="system"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);var t=d?"dark":"light";var r=document.documentElement;r.setAttribute("data-theme",t);r.style.colorScheme=t;}catch(e){}})();`;
+
+/** Ghi đè nền sáng trước paint (guest home) — cùng cơ chế inject như trên. */
+export const FORCE_LIGHT_THEME_SCRIPT =
+  '(function(){try{var r=document.documentElement;r.setAttribute("data-theme","light");r.style.colorScheme="light";}catch(e){}})();';
 
 export const THEME_MODE_OPTIONS: ReadonlyArray<{
   value: ThemeMode;

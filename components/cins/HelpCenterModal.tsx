@@ -23,17 +23,23 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useId, useState } from "react";
 import { createPortal } from "react-dom";
 
+import { HelpCenterGuidePanel } from "@/components/cins/HelpCenterGuidePanel";
 import {
   FEED_SCORE_FORMULA,
   FEED_SCORE_SCOPE,
 } from "@/lib/cins/feed-scoring-catalog";
 import { DEFAULT_FEED_SCORE_CONFIG } from "@/lib/cins/feed-scoring-config";
+import { huongDanHref } from "@/lib/huong-dan/slug";
+import type { HuongDanCatalogPublic } from "@/lib/huong-dan/types";
 
 import "./user-account-settings-modal.css";
 import "./help-center-modal.css";
+
+type HelpMode = "help" | "guide";
 
 type HelpSection =
   | "faq"
@@ -42,6 +48,15 @@ type HelpSection =
   | "account"
   | "terms"
   | "contact";
+
+const MODE_TABS: ReadonlyArray<{
+  id: HelpMode;
+  label: string;
+  icon: typeof CircleHelp;
+}> = [
+  { id: "help", label: "Trợ giúp", icon: CircleHelp },
+  { id: "guide", label: "Hướng dẫn", icon: BookOpen },
+];
 
 const NAV: ReadonlyArray<{ id: HelpSection; label: string }> = [
   { id: "faq", label: "Câu hỏi thường gặp" },
@@ -259,18 +274,70 @@ const ACCOUNT_TIPS: ReadonlyArray<{
 type Props = {
   open: boolean;
   onClose: () => void;
+  /** Tab mặc định khi mở — deep-link `/ho-tro/huong-dan…`. */
+  initialMode?: HelpMode;
+  initialNhomSlug?: string | null;
+  initialPhienSlug?: string | null;
+  guideCatalog?: HuongDanCatalogPublic;
+  /** Đồng bộ URL khi đổi tab / nhóm / phiên (trang `/ho-tro`). */
+  syncUrl?: boolean;
+  /** Admin / super_admin — cho phép tạo·sửa hướng dẫn trong modal. */
+  isCinsAdmin?: boolean;
 };
 
-export function HelpCenterModal({ open, onClose }: Props) {
+export function HelpCenterModal({
+  open,
+  onClose,
+  initialMode = "help",
+  initialNhomSlug = null,
+  initialPhienSlug = null,
+  guideCatalog = { nhom: [] },
+  syncUrl = false,
+  isCinsAdmin = false,
+}: Props) {
   const titleId = useId();
+  const router = useRouter();
+  const [mode, setMode] = useState<HelpMode>(initialMode);
   const [section, setSection] = useState<HelpSection>("faq");
   const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const [guideNhom, setGuideNhom] = useState<string | null>(initialNhomSlug);
+  const [guidePhien, setGuidePhien] = useState<string | null>(initialPhienSlug);
 
   useEffect(() => {
     if (!open) return;
+    setMode(initialMode);
     setSection("faq");
     setOpenFaq(0);
-  }, [open]);
+    setGuideNhom(initialNhomSlug);
+    setGuidePhien(initialPhienSlug);
+  }, [open, initialMode, initialNhomSlug, initialPhienSlug]);
+
+  function replaceUrl(nextMode: HelpMode, nhom: string | null, phien: string | null) {
+    if (!syncUrl) return;
+    if (nextMode === "help") {
+      router.replace("/ho-tro");
+      return;
+    }
+    router.replace(huongDanHref(nhom, phien));
+  }
+
+  function changeMode(next: HelpMode) {
+    setMode(next);
+    if (next === "help") {
+      replaceUrl("help", null, null);
+      return;
+    }
+    const firstNhom = guideCatalog.nhom[0] ?? null;
+    const nhom = guideNhom || firstNhom?.slug || null;
+    const matched = guideCatalog.nhom.find((n) => n.slug === nhom) ?? firstNhom;
+    const phien =
+      (matched && guideNhom === matched.slug ? guidePhien : null) ||
+      matched?.phien[0]?.slug ||
+      null;
+    setGuideNhom(nhom);
+    setGuidePhien(phien);
+    replaceUrl("guide", nhom, phien);
+  }
 
   useEffect(() => {
     if (!open) return;
@@ -302,11 +369,33 @@ export function HelpCenterModal({ open, onClose }: Props) {
         onMouseDown={(e) => e.stopPropagation()}
       >
         <header className="uas-head">
-          <div className="uas-head-copy">
-            <CircleHelp size={18} strokeWidth={2} aria-hidden />
-            <h2 id={titleId} className="uas-title">
-              Trợ giúp
+          <div
+            className="help-center-tabs"
+            role="tablist"
+            aria-label="Trung tâm trợ giúp"
+          >
+            <h2 id={titleId} className="sr-only">
+              {mode === "help" ? "Trợ giúp" : "Hướng dẫn"}
             </h2>
+            {MODE_TABS.map(({ id, label, icon: Icon }) => {
+              const selected = mode === id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  role="tab"
+                  id={`${titleId}-mode-${id}`}
+                  aria-selected={selected}
+                  aria-controls={`${titleId}-panel-${id}`}
+                  tabIndex={selected ? 0 : -1}
+                  className={`uas-tab help-center-tab${selected ? " on" : ""}`}
+                  onClick={() => changeMode(id)}
+                >
+                  <Icon size={15} strokeWidth={2} aria-hidden />
+                  {label}
+                </button>
+              );
+            })}
           </div>
           <button
             type="button"
@@ -318,7 +407,33 @@ export function HelpCenterModal({ open, onClose }: Props) {
           </button>
         </header>
 
-        <div className="uas-layout">
+        {mode === "guide" ? (
+          <div
+            role="tabpanel"
+            id={`${titleId}-panel-guide`}
+            aria-labelledby={`${titleId}-mode-guide`}
+            className="help-center-guide-shell"
+          >
+            <HelpCenterGuidePanel
+              titleId={titleId}
+              catalog={guideCatalog}
+              initialNhomSlug={guideNhom}
+              initialPhienSlug={guidePhien}
+              isCinsAdmin={isCinsAdmin}
+              onNavigate={(nhom, phien) => {
+                setGuideNhom(nhom);
+                setGuidePhien(phien);
+                replaceUrl("guide", nhom, phien);
+              }}
+            />
+          </div>
+        ) : (
+        <div
+          className="uas-layout"
+          role="tabpanel"
+          id={`${titleId}-panel-help`}
+          aria-labelledby={`${titleId}-mode-help`}
+        >
           <nav className="uas-nav" aria-label="Mục trợ giúp">
             {NAV.map(({ id, label }) => (
               <button
@@ -726,6 +841,7 @@ export function HelpCenterModal({ open, onClose }: Props) {
             ) : null}
           </div>
         </div>
+        )}
 
         <footer className="uas-foot">
           <span />
@@ -733,7 +849,7 @@ export function HelpCenterModal({ open, onClose }: Props) {
             <button type="button" className="uas-btn ghost" onClick={onClose}>
               Đóng
             </button>
-            {section === "terms" ? (
+            {mode === "help" && section === "terms" ? (
               <Link
                 className="uas-btn primary"
                 href={TERMS_PATH}
@@ -742,7 +858,7 @@ export function HelpCenterModal({ open, onClose }: Props) {
                 Xem trang
               </Link>
             ) : null}
-            {section === "contact" ? (
+            {mode === "help" && section === "contact" ? (
               <a
                 className="uas-btn primary"
                 href="mailto:info.cins.vn@gmail.com"

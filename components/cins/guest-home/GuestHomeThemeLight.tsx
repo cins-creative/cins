@@ -1,24 +1,29 @@
 "use client";
 
 import { useLayoutEffect } from "react";
+import { useServerInsertedHTML } from "next/navigation";
 
-import { acquireForceLightTheme } from "@/lib/theme/theme-mode";
+import {
+  FORCE_LIGHT_THEME_SCRIPT,
+  acquireForceLightTheme,
+} from "@/lib/theme/theme-mode";
 
 /**
  * Trang chủ khi chưa đăng nhập luôn dùng nền sáng, bất kể lựa chọn đã lưu
  * hay cài đặt hệ điều hành.
  *
- * - Inline script chạy ngay khi trình duyệt parse HTML (trước paint) để tránh
- *   nháy nền trong lần tải đầu — ghi đè giá trị mà script no-flash ở layout đặt.
- * - `useLayoutEffect` + `acquireForceLightTheme` xử lý soft-nav và Strict Mode
+ * - useServerInsertedHTML inject script trước paint (tránh nháy + React 19
+ *   warning khi return <script> từ client component).
+ * - useLayoutEffect + acquireForceLightTheme xử lý soft-nav và Strict Mode
  *   (cleanup microtask không nháy dark giữa hai lần mount).
  * - Khi rời trang, trả theme về lựa chọn đã lưu.
  */
-const FORCE_LIGHT_SCRIPT =
-  '(function(){try{var r=document.documentElement;r.setAttribute("data-theme","light");r.style.colorScheme="light";}catch(e){}})();';
-
 export function GuestHomeThemeLight() {
+  useServerInsertedHTML(() => (
+    <script dangerouslySetInnerHTML={{ __html: FORCE_LIGHT_THEME_SCRIPT }} />
+  ));
+
   useLayoutEffect(() => acquireForceLightTheme(), []);
 
-  return <script dangerouslySetInnerHTML={{ __html: FORCE_LIGHT_SCRIPT }} />;
+  return null;
 }

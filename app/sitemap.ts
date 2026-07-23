@@ -20,6 +20,7 @@ const STATIC_HUBS: ReadonlyArray<{
   { path: CO_SO_DAO_TAO_HUB_PATH, changeFrequency: "weekly", priority: 0.8 },
   { path: TIM_KHOA_HOC_HUB_PATH, changeFrequency: "weekly", priority: 0.8 },
   { path: "/ho-tro", changeFrequency: "monthly", priority: 0.4 },
+  { path: "/ho-tro/huong-dan", changeFrequency: "weekly", priority: 0.45 },
   { path: "/termandservice", changeFrequency: "yearly", priority: 0.2 },
 ];
 
