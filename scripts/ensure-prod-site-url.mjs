@@ -51,6 +51,22 @@ if (!rest) {
 ensureProductionSiteUrl();
 console.log(`[deploy] NEXT_PUBLIC_SITE_URL=${process.env.NEXT_PUBLIC_SITE_URL}`);
 
+/* OpenNext/wrangler yêu cầu Hyperdrive local string kể cả khi deploy remote. */
+if (
+  !process.env.CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE?.trim() &&
+  process.env.DATABASE_URL?.trim()
+) {
+  process.env.CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE =
+    process.env.DATABASE_URL.trim();
+}
+if (
+  !process.env.WRANGLER_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE?.trim() &&
+  process.env.CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE?.trim()
+) {
+  process.env.WRANGLER_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE =
+    process.env.CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE.trim();
+}
+
 const result = spawnSync(rest, {
   stdio: "inherit",
   shell: true,
