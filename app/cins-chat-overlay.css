@@ -1128,12 +1128,22 @@ html.is-cins-share-dropping {
   bottom: calc(100% + 6px);
   z-index: 8;
   max-height: 220px;
-  overflow: auto;
+  overflow-y: auto;
   padding: 6px;
   border-radius: 12px;
   background: #fff;
   border: 1px solid rgba(15, 23, 42, 0.1);
   box-shadow: 0 10px 28px rgba(15, 23, 42, 0.14);
+  /* Ẩn scrollbar (Firefox / IE) — vẫn cuộn được. */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+/* Ẩn scrollbar (WebKit / Chromium). */
+.cins-chat-at-menu::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
 }
 
 .cins-chat-at-menu-empty {
@@ -1352,7 +1362,8 @@ html.is-cins-share-dropping {
   color: var(--ink-display);
 }
 
-.cins-chat-members-pop-count {
+.cins-chat-members-pop .cins-chat-members-pop-count {
+  display: inline-flex;
   font-size: 12px;
   color: var(--ink-muted);
   font-variant-numeric: tabular-nums;
@@ -1388,15 +1399,29 @@ html.is-cins-share-dropping {
   list-style: none;
   margin: 0;
   padding: 6px;
-  overflow: auto;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
+  align-items: stretch;
+  text-align: left;
   gap: 2px;
+  /* Ẩn scrollbar (Firefox / IE) — vẫn cuộn được. */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+/* Ẩn scrollbar (WebKit / Chromium). */
+.cins-chat-members-pop-list::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
 }
 
 .cins-chat-members-pop-row {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
+  text-align: left;
   gap: 10px;
   padding: 8px;
   border-radius: 8px;
@@ -1426,25 +1451,38 @@ html.is-cins-share-dropping {
   object-fit: cover;
 }
 
-.cins-chat-members-pop-meta {
+/*
+ * Scope dưới `.cins-chat-members-pop` để thắng `.cins-chat-convo-meta span`
+ * (modal render bên trong header meta — rule đó ép inline-flex/align center/màu).
+ */
+.cins-chat-members-pop .cins-chat-members-pop-meta {
   min-width: 0;
+  flex: 1 1 auto;
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
   gap: 1px;
 }
 
-.cins-chat-members-pop-name {
+.cins-chat-members-pop .cins-chat-members-pop-name {
+  display: block;
+  width: 100%;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--ink-display);
+  text-align: left;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.cins-chat-members-pop-role {
+.cins-chat-members-pop .cins-chat-members-pop-role {
+  display: block;
+  width: 100%;
   font-size: 11.5px;
   color: var(--ink-muted);
+  text-align: left;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
