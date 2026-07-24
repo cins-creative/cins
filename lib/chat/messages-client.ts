@@ -13,12 +13,15 @@ export type RoomMessagesPage = {
 
 export async function fetchRoomMessagesPage(
   roomId: string,
-  options?: { before?: string; limit?: number },
+  options?: { before?: string; limit?: number; markRead?: boolean },
 ): Promise<RoomMessagesPage | null> {
   const params = new URLSearchParams();
   params.set("limit", String(options?.limit ?? CHAT_MESSAGES_PAGE_SIZE));
   if (options?.before) {
     params.set("before", options.before);
+  }
+  if (options?.markRead) {
+    params.set("mark_read", "1");
   }
 
   try {

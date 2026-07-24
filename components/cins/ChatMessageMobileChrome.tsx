@@ -30,20 +30,15 @@ import {
 import { isOptimisticMessageId } from "@/lib/chat/optimistic-message";
 import type { ChatMessage } from "@/lib/chat/types";
 
-type Mode = "react" | "sheet" | null;
-
 type Props = {
   msg: ChatMessage;
   handlers: ChatMessageActionHandlers;
-  mode: Mode;
+  open: boolean;
   anchorRef: RefObject<HTMLElement | null>;
   onClose: () => void;
 };
 
-function placeReactBar(
-  anchor: HTMLElement,
-  panel: HTMLElement,
-) {
+function placeReactBar(anchor: HTMLElement, panel: HTMLElement) {
   const rect = anchor.getBoundingClientRect();
   const mw = panel.offsetWidth;
   const mh = panel.offsetHeight;
@@ -58,9 +53,13 @@ function placeReactBar(
   let left = rect.left + rect.width / 2 - mw / 2;
 
   if (left < vLeft + pad) left = vLeft + pad;
-  if (left + mw > vLeft + vw - pad) left = Math.max(vLeft + pad, vLeft + vw - pad - mw);
+  if (left + mw > vLeft + vw - pad) {
+    left = Math.max(vLeft + pad, vLeft + vw - pad - mw);
+  }
   if (top < vTop + pad) top = rect.bottom + 10;
-  if (top + mh > vTop + vh - pad) top = Math.max(vTop + pad, vTop + vh - pad - mh);
+  if (top + mh > vTop + vh - pad) {
+    top = Math.max(vTop + pad, vTop + vh - pad - mh);
+  }
 
   panel.style.position = "fixed";
   panel.style.top = `${Math.round(top)}px`;
@@ -70,27 +69,38 @@ function placeReactBar(
   panel.style.zIndex = "13060";
 }
 
+/** Tap bubble → emoji phía trên + tab chức năng phía dưới. */
 export function ChatMessageMobileChrome({
   msg,
   handlers,
-  mode,
+  open,
   anchorRef,
   onClose,
 }: Props) {
   const [portalReady, setPortalReady] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const reactRef = useRef<HTMLDivElement>(null);
+  const mountedAtRef = useRef(Date.now());
 
   useEffect(() => {
     setPortalReady(true);
   }, []);
 
   useEffect(() => {
-    if (!mode) setMoreOpen(false);
-  }, [mode]);
+    if (!open) {
+      setMoreOpen(false);
+      return;
+    }
+    mountedAtRef.current = Date.now();
+  }, [open]);
+
+  const guardedClose = useCallback(() => {
+    if (Date.now() - mountedAtRef.current < 400) return;
+    onClose();
+  }, [onClose]);
 
   useLayoutEffect(() => {
-    if (mode !== "react") return;
+    if (!open) return;
     const anchor = anchorRef.current;
     const panel = reactRef.current;
     if (!anchor || !panel) return;
@@ -109,16 +119,16 @@ export function ChatMessageMobileChrome({
       vv?.removeEventListener("resize", place);
       vv?.removeEventListener("scroll", place);
     };
-  }, [anchorRef, mode, msg.id]);
+  }, [anchorRef, open, msg.id]);
 
   useEffect(() => {
-    if (!mode) return;
+    if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") guardedClose();
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [mode, onClose]);
+  }, [open, guardedClose]);
 
   const copyText = useCallback(async () => {
     const text = msg.body.trim() || (msg.imageUrl ? msg.imageUrl : "");
@@ -131,7 +141,7 @@ export function ChatMessageMobileChrome({
     onClose();
   }, [msg.body, msg.imageUrl, onClose]);
 
-  if (!portalReady || !mode || msg.deleted) return null;
+  if (!portalReady || !open || msg.deleted) return null;
 
   const editable = canEditMessage(msg);
   const recallable = canRecallMessage(msg);
@@ -143,45 +153,9 @@ export function ChatMessageMobileChrome({
     msg.kind !== "sticker" &&
     msg.kind !== "moc_nhac" &&
     msg.kind !== "canvas_binh_luan" &&
-    (Boolean(msg.body.trim()) || Boolean(msg.imageUrl) || Boolean(msg.albumImages?.length));
-
-  if (mode === "react") {
-    return createPortal(
-      <>
-        <button
-          type="button"
-          className="cins-chat-msg-mobile-scrim"
-          aria-label="Đóng"
-          onClick={onClose}
-        />
-        <div
-          ref={reactRef}
-          className="cins-chat-msg-react-picker is-floating is-mobile-tap"
-          role="menu"
-        >
-          {CHAT_REACTION_EMOJIS.map((emoji) => {
-            const existing = msg.reactions?.find((r) => r.emoji === emoji);
-            return (
-              <button
-                key={emoji}
-                type="button"
-                role="menuitem"
-                className={existing?.viewerReacted ? "is-active" : undefined}
-                aria-label={`Reaction ${emoji}`}
-                onClick={() => {
-                  handlers.onReaction(msg, emoji, !existing?.viewerReacted);
-                  onClose();
-                }}
-              >
-                {emoji}
-              </button>
-            );
-          })}
-        </div>
-      </>,
-      document.body,
-    );
-  }
+    (Boolean(msg.body.trim()) ||
+      Boolean(msg.imageUrl) ||
+      Boolean(msg.albumImages?.length));
 
   return createPortal(
     <div className="cins-chat-msg-sheet-root" role="presentation">
@@ -189,8 +163,33 @@ export function ChatMessageMobileChrome({
         type="button"
         className="cins-chat-msg-mobile-scrim is-sheet"
         aria-label="Đóng"
-        onClick={onClose}
+        onClick={guardedClose}
       />
+      <div
+        ref={reactRef}
+        className="cins-chat-msg-react-picker is-floating is-mobile-tap"
+        role="menu"
+        aria-label="Thả reaction"
+      >
+        {CHAT_REACTION_EMOJIS.map((emoji) => {
+          const existing = msg.reactions?.find((r) => r.emoji === emoji);
+          return (
+            <button
+              key={emoji}
+              type="button"
+              role="menuitem"
+              className={existing?.viewerReacted ? "is-active" : undefined}
+              aria-label={`Reaction ${emoji}`}
+              onClick={() => {
+                handlers.onReaction(msg, emoji, !existing?.viewerReacted);
+                onClose();
+              }}
+            >
+              {emoji}
+            </button>
+          );
+        })}
+      </div>
       <div
         className="cins-chat-msg-sheet"
         role="dialog"

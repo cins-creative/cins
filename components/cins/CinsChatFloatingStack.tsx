@@ -1366,6 +1366,29 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
     saveComposeForRoom,
   ]);
 
+  /**
+   * Mở overlay đầy đủ. Defer `openChat` — nếu setOpen(true) ngay trong cùng
+   * click, mini unmount và click «lọt» xuống link dưới (thường → trang 404).
+   */
+  const expandMiniToFullChat = useCallback(
+    (event?: { preventDefault?: () => void; stopPropagation?: () => void }) => {
+      event?.preventDefault?.();
+      event?.stopPropagation?.();
+      const thread = miniThreadRef.current;
+      if (!thread) return;
+      saveComposeForRoom(thread.roomId);
+      const snapshot = thread;
+      window.setTimeout(() => {
+        void openChat({
+          thread: snapshot,
+          roomId: snapshot.roomId,
+          tab: snapshot.group,
+        });
+      }, 0);
+    },
+    [openChat, saveComposeForRoom],
+  );
+
   const finishCloseMini = useCallback(() => {
     if (!miniLeavingRef.current) return;
     miniLeavingRef.current = false;
@@ -1872,21 +1895,10 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
             tabIndex={0}
             aria-label={`Mở bảng tin nhắn với ${miniDisplayTitle}`}
             title="Mở bảng tin nhắn"
-            onClick={() => {
-              void openChat({
-                thread: miniThread,
-                roomId: miniThread.roomId,
-                tab: miniThread.group,
-              });
-            }}
+            onClick={(event) => expandMiniToFullChat(event)}
             onKeyDown={(event) => {
               if (event.key !== "Enter" && event.key !== " ") return;
-              event.preventDefault();
-              void openChat({
-                thread: miniThread,
-                roomId: miniThread.roomId,
-                tab: miniThread.group,
-              });
+              expandMiniToFullChat(event);
             }}
           >
             <MiniAvatar
@@ -1908,13 +1920,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
                 className="j-chat-mini-icon-btn"
                 aria-label="Mở cửa sổ tin nhắn đầy đủ"
                 title="Mở rộng"
-                onClick={() =>
-                  void openChat({
-                    thread: miniThread,
-                    roomId: miniThread.roomId,
-                    tab: miniThread.group,
-                  })
-                }
+                onClick={(event) => expandMiniToFullChat(event)}
               >
                 <Maximize2 size={15} strokeWidth={2} aria-hidden />
               </button>

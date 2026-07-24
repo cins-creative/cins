@@ -924,6 +924,22 @@ export async function attachArticleNhomFromGanNhom(
  * Danh sách bài nghề (`loai_bai_viet = nghe`, `published`) cho hub `/nghe-nghiep`.
  * Lọc lĩnh vực qua `article_bai_viet.id_linh_vuc` (không qua `article_gan_nhom`).
  */
+/** Đếm số bài nghề đã publish — dùng cho stats (rẻ hơn kéo full rows). */
+export async function countNgheArticlesForHub(): Promise<number> {
+  if (!hasSupabaseEnv()) return 0;
+  try {
+    const supabase = createPublicSupabaseClient();
+    const { count } = await supabase
+      .from("article_bai_viet")
+      .select("id", { count: "exact", head: true })
+      .eq("loai_bai_viet", "nghe")
+      .eq("trang_thai_noi_dung", "published");
+    return count ?? 0;
+  } catch {
+    return 0;
+  }
+}
+
 export async function listNgheArticlesForHub(options?: {
   limit?: number;
   linhVucId?: string;

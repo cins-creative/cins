@@ -1,7 +1,10 @@
 import "server-only";
 
+import { unstable_cache } from "next/cache";
+
 import { getCoverUrl } from "@/lib/articles/cover";
 import {
+  countNgheArticlesForHub,
   fetchRecentTacPhamGallery,
   listNgheArticlesForHub,
 } from "@/lib/articles/queries";
@@ -12,11 +15,31 @@ import { loadUpcomingEventsForHome } from "@/lib/cong-dong/events";
 import { congDongBannerImageUrl } from "@/lib/cong-dong/images";
 import type { CongDongEvent } from "@/lib/cong-dong/types";
 import { loadKhoaHocGoiY, type KhoaHocGoiYItem } from "@/lib/cins/home-adaptive/fetches";
-import { listNganhArticlesForHub } from "@/lib/nganh/queries";
+import {
+  countNganhArticlesForHub,
+  listNganhArticlesForHub,
+} from "@/lib/nganh/queries";
 import type { NganhHubItem } from "@/lib/nganh/types";
-import { listCoSoDaoTaoForListing } from "@/lib/to-chuc/listing-queries";
+import { countCoSoDaoTao } from "@/lib/to-chuc/listing-queries";
 import { listTruongDaiHoc } from "@/lib/truong/queries";
 import type { TruongListItem } from "@/lib/truong/types";
+
+/** Số item hiển thị trên trang chủ khách — fetch đúng chừng này, không kéo dư. */
+const HOME_CAREER_LIMIT = 8;
+const HOME_MAJOR_LIMIT = 6;
+const HOME_SCHOOL_LIMIT = 6;
+const HOME_EVENT_LIMIT = 6;
+const HOME_COURSE_LIMIT = 6;
+const HOME_WORK_LIMIT = 8;
+
+/**
+ * Cache dùng chung cho khách vãng lai (không phụ thuộc session).
+ * Revalidate 5 phút; nội dung (ngành/nghề/trường/sự kiện) đổi chậm.
+ * Invalidation: revalidateTag("guest-home") khi publish nội dung mới,
+ * hoặc chờ hết `revalidate`.
+ */
+const GUEST_HOME_CACHE_TAG = "guest-home";
+const GUEST_HOME_REVALIDATE_SECONDS = 300;
 
 export type GuestHomeStats = {
   nghe: number;
@@ -52,7 +75,6 @@ export type GuestHomeData = {
   careers: NgheNghiepHubItem[];
   majors: NganhHubItem[];
   schools: TruongListItem[];
-  coSo: TruongListItem[];
   courses: KhoaHocGoiYItem[];
   events: GuestHomeEvent[];
   works: GuestHomeWork[];
@@ -64,41 +86,35 @@ function pickSchools(items: TruongListItem[], limit: number): TruongListItem[] {
     .slice(0, limit);
 }
 
-function pickCoSo(items: TruongListItem[], limit: number): TruongListItem[] {
-  return [...items]
-    .sort(
-      (a, b) =>
-        (b.khoaHocCount ?? 0) - (a.khoaHocCount ?? 0) ||
-        a.ten.localeCompare(b.ten, "vi"),
-    )
-    .slice(0, limit);
-}
-
-export async function loadGuestHomeData(): Promise<GuestHomeData> {
+async function loadGuestHomeDataUncached(): Promise<GuestHomeData> {
   const [
     truong,
-    coSoAll,
     ngheResult,
     nganhResult,
     linhVucsRaw,
     eventsRaw,
     courses,
     worksRaw,
+    ngheCount,
+    nganhCount,
+    coSoCount,
   ] = await Promise.all([
     listTruongDaiHoc(),
-    listCoSoDaoTaoForListing(),
-    listNgheArticlesForHub({ limit: 500 }),
-    listNganhArticlesForHub({ limit: 500 }),
+    listNgheArticlesForHub({ limit: HOME_CAREER_LIMIT }),
+    listNganhArticlesForHub({ limit: HOME_MAJOR_LIMIT }),
     listLinhVucForHub(),
-    loadUpcomingEventsForHome([], 6),
-    loadKhoaHocGoiY(6),
-    fetchRecentTacPhamGallery(8),
+    loadUpcomingEventsForHome([], HOME_EVENT_LIMIT),
+    loadKhoaHocGoiY(HOME_COURSE_LIMIT),
+    fetchRecentTacPhamGallery(HOME_WORK_LIMIT),
+    countNgheArticlesForHub(),
+    countNganhArticlesForHub(),
+    countCoSoDaoTao(),
   ]);
 
   const ngheRows = ngheResult.ok ? ngheResult.items : [];
   const nganhRows = nganhResult.ok ? nganhResult.items : [];
-  const careers = mapNgheArticlesToHubItems(ngheRows).slice(0, 8);
-  const majors = nganhRows.slice(0, 6);
+  const careers = mapNgheArticlesToHubItems(ngheRows);
+  const majors = nganhRows;
 
   const linhVucs: GuestHomeLinhVuc[] = linhVucsRaw
     .filter((lv) => lv.slug?.trim())
@@ -125,19 +141,24 @@ export async function loadGuestHomeData(): Promise<GuestHomeData> {
 
   return {
     stats: {
-      nghe: ngheRows.length,
-      nganh: nganhRows.length,
+      nghe: ngheCount,
+      nganh: nganhCount,
       truong: truong.length,
-      coSo: coSoAll.length,
+      coSo: coSoCount,
       linhVuc: linhVucs.length,
     },
     linhVucs,
     careers,
     majors,
-    schools: pickSchools(truong, 6),
-    coSo: pickCoSo(coSoAll, 4),
+    schools: pickSchools(truong, HOME_SCHOOL_LIMIT),
     courses,
     events,
     works,
   };
 }
+
+export const loadGuestHomeData = unstable_cache(
+  loadGuestHomeDataUncached,
+  ["guest-home-data"],
+  { revalidate: GUEST_HOME_REVALIDATE_SECONDS, tags: [GUEST_HOME_CACHE_TAG] },
+);

@@ -27,12 +27,17 @@ export async function GET(req: Request, context: RouteContext) {
     80,
   );
   const before = url.searchParams.get("before")?.trim() || undefined;
+  /* Chỉ đánh dấu đã xem khi client chủ động (mở phòng) — không prefetch. */
+  const markRead =
+    !before &&
+    (url.searchParams.get("mark_read") === "1" ||
+      url.searchParams.get("mark_read") === "true");
 
   try {
     const result = await listRoomMessages(roomId, session.profile.id, {
       limit,
       before,
-      markRead: !before,
+      markRead,
     });
     return NextResponse.json(result);
   } catch (error) {

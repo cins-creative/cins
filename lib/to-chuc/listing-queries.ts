@@ -54,6 +54,24 @@ function enrichMedia(item: TruongListItem): TruongListItem {
   };
 }
 
+/** Đếm số cơ sở đào tạo — dùng cho stats (rẻ hơn kéo full rows + media). */
+export async function countCoSoDaoTao(): Promise<number> {
+  if (!hasSupabaseEnv()) return 0;
+  try {
+    const supabase = createPublicSupabaseClient();
+    const { count } = await supabase
+      .from("org_to_chuc")
+      .select("id, org_co_so_dao_tao!inner(ma_co_so)", {
+        count: "exact",
+        head: true,
+      })
+      .eq("loai_to_chuc", "co_so_dao_tao");
+    return count ?? 0;
+  } catch {
+    return 0;
+  }
+}
+
 /** Cơ sở đào tạo user/CINS tạo — hiển thị trên hub `/truong-dai-hoc`. */
 export async function listCoSoDaoTaoForListing(): Promise<TruongListItem[]> {
   if (!hasSupabaseEnv()) return [];

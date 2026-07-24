@@ -13,6 +13,7 @@ export const metadata: Metadata = {
   title: "CINs — Khám phá ngành sáng tạo thị giác tại Việt Nam",
   description:
     "Khám phá nghề, ngành đào tạo, trường học, khóa học và sự kiện ngành sáng tạo thị giác — dữ liệu thật trên CINs.",
+  alternates: { canonical: "/" },
 };
 
 export default async function Home() {

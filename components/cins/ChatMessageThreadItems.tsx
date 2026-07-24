@@ -8,10 +8,9 @@ import {
   useRef,
   useState,
   type MouseEvent,
-  type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from "react";
-import { Pin, Forward } from "lucide-react";
+import { Pin } from "lucide-react";
 
 import {
   ChatMessageActions,
@@ -43,13 +42,14 @@ import type {
   ChatReadCursor,
 } from "@/lib/chat/types";
 
-const MOBILE_LONG_PRESS_MS = 480;
-const MOBILE_MOVE_CANCEL_PX = 12;
+const MOBILE_MOVE_CANCEL_PX = 14;
+/** Chặn scrim/doc đóng ngay sau gesture mở (synthetic click). */
+const MOBILE_DISMISS_GUARD_MS = 400;
 
 function usePreferTouchChatActions() {
   const [touch, setTouch] = useState(false);
   useEffect(() => {
-    const mq = window.matchMedia("(hover: none) and (pointer: coarse)");
+    const mq = window.matchMedia("(hover: none), (pointer: coarse)");
     const sync = () => setTouch(mq.matches);
     sync();
     mq.addEventListener("change", sync);
@@ -58,25 +58,31 @@ function usePreferTouchChatActions() {
   return touch;
 }
 
-/** Desktop: click bubble → hiện action. Mobile: tap → emoji; long-press → sheet. */
-function useRevealMessageActions(enabled: boolean, touchMode: boolean) {
-  const [visible, setVisible] = useState(false);
-  const [mobileMode, setMobileMode] = useState<"react" | "sheet" | null>(null);
+/** Click/tap bubble → emoji + tab chức năng. Desktop vẫn hover hiện 3 nút phụ. */
+function useRevealMessageActions(enabled: boolean, touchUi: boolean) {
+  const [mobileOpen, setMobileOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement | null>(null);
-  const longTimerRef = useRef<number | null>(null);
-  const longFiredRef = useRef(false);
-  const startRef = useRef<{ x: number; y: number } | null>(null);
+  const ignoreClickRef = useRef(false);
+  const openedAtRef = useRef(0);
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
 
-  const clearLongTimer = useCallback(() => {
-    if (longTimerRef.current != null) {
-      window.clearTimeout(longTimerRef.current);
-      longTimerRef.current = null;
-    }
+  const closeMobile = useCallback(() => {
+    if (Date.now() - openedAtRef.current < MOBILE_DISMISS_GUARD_MS) return;
+    setMobileOpen(false);
+  }, []);
+
+  const toggleMobile = useCallback(() => {
+    setMobileOpen((prev) => {
+      if (prev) return false;
+      openedAtRef.current = Date.now();
+      return true;
+    });
   }, []);
 
   useEffect(() => {
-    if (!visible && !mobileMode) return;
+    if (!mobileOpen) return;
     const onDoc = (event: PointerEvent) => {
+      if (Date.now() - openedAtRef.current < MOBILE_DISMISS_GUARD_MS) return;
       const target = event.target;
       if (!(target instanceof Node)) return;
       if (wrapRef.current?.contains(target)) return;
@@ -95,19 +101,16 @@ function useRevealMessageActions(enabled: boolean, touchMode: boolean) {
       ) {
         return;
       }
-      setVisible(false);
-      setMobileMode(null);
+      setMobileOpen(false);
     };
     const timer = window.setTimeout(() => {
       document.addEventListener("pointerdown", onDoc);
-    }, 0);
+    }, MOBILE_DISMISS_GUARD_MS);
     return () => {
       window.clearTimeout(timer);
       document.removeEventListener("pointerdown", onDoc);
     };
-  }, [mobileMode, visible]);
-
-  useEffect(() => () => clearLongTimer(), [clearLongTimer]);
+  }, [mobileOpen]);
 
   const isInteractiveTarget = useCallback((target: Element) => {
     return Boolean(
@@ -132,87 +135,87 @@ function useRevealMessageActions(enabled: boolean, touchMode: boolean) {
     );
   }, []);
 
-  const onWrapClick = useCallback(
-    (event: MouseEvent<HTMLDivElement>) => {
-      if (!enabled || touchMode) return;
-      const target = event.target;
-      if (!(target instanceof Element)) return;
-      if (isInteractiveTarget(target)) return;
-      setVisible((prev) => !prev);
-    },
-    [enabled, isInteractiveTarget, touchMode],
-  );
+  /* Native touch tap → mở emoji + sheet (tránh chờ synthetic click trên iOS). */
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el || !enabled) return;
 
-  const onPointerDown = useCallback(
-    (event: ReactPointerEvent<HTMLDivElement>) => {
-      if (!enabled || !touchMode) return;
-      if (event.pointerType === "mouse") return;
+    const onTouchStart = (event: TouchEvent) => {
+      if (event.touches.length !== 1) return;
+      const target = event.target;
+      if (!(target instanceof Element) || isInteractiveTarget(target)) {
+        touchStartRef.current = null;
+        return;
+      }
+      const t = event.touches[0]!;
+      touchStartRef.current = { x: t.clientX, y: t.clientY };
+    };
+
+    const onTouchMove = (event: TouchEvent) => {
+      if (!touchStartRef.current || event.touches.length === 0) return;
+      const t = event.touches[0]!;
+      if (
+        Math.abs(t.clientX - touchStartRef.current.x) > MOBILE_MOVE_CANCEL_PX ||
+        Math.abs(t.clientY - touchStartRef.current.y) > MOBILE_MOVE_CANCEL_PX
+      ) {
+        touchStartRef.current = null;
+      }
+    };
+
+    const onTouchEnd = (event: TouchEvent) => {
+      if (!touchStartRef.current) return;
+      touchStartRef.current = null;
       const target = event.target;
       if (!(target instanceof Element) || isInteractiveTarget(target)) return;
+      event.preventDefault();
+      ignoreClickRef.current = true;
+      toggleMobile();
+    };
 
-      longFiredRef.current = false;
-      startRef.current = { x: event.clientX, y: event.clientY };
-      clearLongTimer();
-      longTimerRef.current = window.setTimeout(() => {
-        longFiredRef.current = true;
-        setVisible(false);
-        setMobileMode("sheet");
-        if (typeof navigator !== "undefined" && "vibrate" in navigator) {
-          try {
-            navigator.vibrate(12);
-          } catch {
-            /* ignore */
-          }
-        }
-      }, MOBILE_LONG_PRESS_MS);
-    },
-    [clearLongTimer, enabled, isInteractiveTarget, touchMode],
-  );
+    const onTouchCancel = () => {
+      touchStartRef.current = null;
+    };
 
-  const onPointerMove = useCallback(
-    (event: ReactPointerEvent<HTMLDivElement>) => {
-      if (!touchMode || !startRef.current || longTimerRef.current == null) return;
-      const dx = event.clientX - startRef.current.x;
-      const dy = event.clientY - startRef.current.y;
-      if (dx * dx + dy * dy > MOBILE_MOVE_CANCEL_PX * MOBILE_MOVE_CANCEL_PX) {
-        clearLongTimer();
-        startRef.current = null;
-      }
-    },
-    [clearLongTimer, touchMode],
-  );
+    el.addEventListener("touchstart", onTouchStart, { passive: true });
+    el.addEventListener("touchmove", onTouchMove, { passive: true });
+    el.addEventListener("touchend", onTouchEnd, { passive: false });
+    el.addEventListener("touchcancel", onTouchCancel, { passive: true });
 
-  const onPointerEnd = useCallback(
-    (event: ReactPointerEvent<HTMLDivElement>) => {
-      if (!enabled || !touchMode) return;
-      if (event.pointerType === "mouse") return;
-      clearLongTimer();
-      const wasLong = longFiredRef.current;
-      longFiredRef.current = false;
-      startRef.current = null;
-      if (wasLong) {
+    return () => {
+      el.removeEventListener("touchstart", onTouchStart);
+      el.removeEventListener("touchmove", onTouchMove);
+      el.removeEventListener("touchend", onTouchEnd);
+      el.removeEventListener("touchcancel", onTouchCancel);
+    };
+  }, [enabled, isInteractiveTarget, toggleMobile]);
+
+  const onWrapClick = useCallback(
+    (event: MouseEvent<HTMLDivElement>) => {
+      if (!enabled) return;
+      if (ignoreClickRef.current) {
+        ignoreClickRef.current = false;
         event.preventDefault();
+        event.stopPropagation();
         return;
       }
       const target = event.target;
-      if (!(target instanceof Element) || isInteractiveTarget(target)) return;
-      if (event.type === "pointercancel") return;
-      setVisible(false);
-      setMobileMode((prev) => (prev === "react" ? null : "react"));
+      if (!(target instanceof Element)) return;
+      if (isInteractiveTarget(target)) return;
+
+      /* Click/tap luôn mở emoji + tab — không phụ thuộc media query. */
+      toggleMobile();
     },
-    [clearLongTimer, enabled, isInteractiveTarget, touchMode],
+    [enabled, isInteractiveTarget, toggleMobile],
   );
 
   return {
     wrapRef,
     onWrapClick,
-    onPointerDown,
-    onPointerMove,
-    onPointerUp: onPointerEnd,
-    onPointerCancel: onPointerEnd,
-    actionsVisible: enabled && visible && !touchMode,
-    mobileMode: enabled && touchMode ? mobileMode : null,
-    closeMobile: () => setMobileMode(null),
+    /* Desktop hover CSS vẫn hiện 3 nút; class này chỉ khi cần force-visible. */
+    actionsVisible: false,
+    mobileOpen: enabled && mobileOpen,
+    closeMobile,
+    touchUi,
   };
 }
 
@@ -229,35 +232,28 @@ function ChatBubbleActionsHost({
   handlers?: ChatMessageActionHandlers;
   children: ReactNode;
 }) {
-  const touchMode = usePreferTouchChatActions();
+  const touchUi = usePreferTouchChatActions();
   const {
     wrapRef,
     onWrapClick,
-    onPointerDown,
-    onPointerMove,
-    onPointerUp,
-    onPointerCancel,
     actionsVisible,
-    mobileMode,
+    mobileOpen,
     closeMobile,
-  } = useRevealMessageActions(enabled, touchMode);
+    touchUi: touchMode,
+  } = useRevealMessageActions(enabled, touchUi);
 
   return (
     <div
       ref={wrapRef}
-      className={`${className ?? ""}${actionsVisible ? " is-actions-visible" : ""}${touchMode ? " is-touch-actions" : ""}`.trim()}
+      className={`${className ?? ""}${actionsVisible ? " is-actions-visible" : ""}${enabled ? " has-bubble-actions" : ""}${touchMode || mobileOpen ? " is-touch-actions" : ""}`.trim()}
       onClick={onWrapClick}
-      onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={onPointerUp}
-      onPointerCancel={onPointerCancel}
     >
       {children}
-      {msg && handlers && mobileMode ? (
+      {msg && handlers && mobileOpen ? (
         <ChatMessageMobileChrome
           msg={msg}
           handlers={handlers}
-          mode={mobileMode}
+          open={mobileOpen}
           anchorRef={wrapRef}
           onClose={closeMobile}
         />

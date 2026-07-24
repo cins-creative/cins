@@ -1666,11 +1666,6 @@
     box-shadow 0.15s var(--ease);
 }
 
-.world-journey-home .wj-feed-promo-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--sh-sm, 0 4px 14px color-mix(in srgb, var(--ink1) 8%, transparent));
-}
-
 /* Khóa học / ngành / sự kiện — card dọc, cover 4:3 */
 .world-journey-home .wj-feed-promo-card.is-course,
 .world-journey-home .wj-feed-promo-card.is-career,
@@ -1875,11 +1870,6 @@
 :root[data-theme="dark"] .world-journey-home .wj-feed-promo-card.is-person::after {
   background: linear-gradient(160deg, rgba(255, 255, 255, 0.05), transparent 42%);
   opacity: 0.5;
-}
-
-.world-journey-home .wj-feed-promo-card.is-person:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 10px 24px color-mix(in srgb, var(--ink1) 10%, transparent);
 }
 
 .world-journey-home .wj-feed-promo-person-cover {
@@ -5522,11 +5512,6 @@
   text-decoration: none;
   color: inherit;
   box-shadow: none;
-}
-
-.world-journey-home .ha-org-up-list-row:hover {
-  border-color: var(--border);
-  background: var(--surface);
 }
 
 .world-journey-home .ha-org-up-item--interest .ha-org-up-list-row {

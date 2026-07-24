@@ -1821,6 +1821,17 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
           [roomId]: page.readCursors ?? [],
         }));
         patchRoomStatus(roomId, "ready");
+
+        if (activeRoomIdRef.current === roomId && page.messages.length > 0) {
+          const lastId = page.messages.at(-1)?.id;
+          if (lastId) {
+            void fetch(`/api/chat/rooms/${roomId}/read`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ id_tin_nhan_cuoi: lastId }),
+            });
+          }
+        }
       } catch (error) {
         if (cached?.length) {
           patchRoomStatus(roomId, "ready");

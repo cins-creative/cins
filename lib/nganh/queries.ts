@@ -166,6 +166,22 @@ async function fetchNganhHubRawRows(options?: {
   return base;
 }
 
+/** Đếm số bài ngành đào tạo đã publish — dùng cho stats (rẻ hơn kéo full rows). */
+export async function countNganhArticlesForHub(): Promise<number> {
+  if (!hasSupabaseEnv()) return 0;
+  try {
+    const supabase = createPublicSupabaseClient();
+    const { count } = await supabase
+      .from("article_bai_viet")
+      .select("id", { count: "exact", head: true })
+      .eq("loai_bai_viet", "nganh_dao_tao")
+      .eq("trang_thai_noi_dung", "published");
+    return count ?? 0;
+  } catch {
+    return 0;
+  }
+}
+
 export async function listNganhArticlesForHub(options?: {
   limit?: number;
   nhomNganhId?: string;

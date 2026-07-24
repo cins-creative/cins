@@ -22,6 +22,7 @@ import type { GuestHomeData } from "@/lib/cins/guest-home/loadGuestHomeData";
 import { coSoKhoaHocDetailPath } from "@/lib/to-chuc/co-so-routes";
 import { articlePublicHref } from "@/lib/articles/article-href";
 import { railGroupThemeClass } from "@/lib/career/hubRailTheme";
+import { suKienDetailPath } from "@/lib/to-chuc/su-kien-routes";
 import { truongListingHref } from "@/lib/truong/listing-href";
 
 import "@/app/guest-home.css";
@@ -29,6 +30,11 @@ import "@/app/guest-home.css";
 type Props = {
   data: GuestHomeData;
 };
+
+/** Ảnh Cloudflare Images đã tối ưu sẵn — bỏ qua Next image proxy. */
+function isCloudflareImage(src: string | null | undefined): boolean {
+  return Boolean(src && src.includes("imagedelivery.net"));
+}
 
 function formatStat(n: number): string {
   if (n <= 0) return "—";
@@ -151,7 +157,7 @@ export function GuestHomeView({ data }: Props) {
                 linkLabel="Khám phá ngành"
               />
               <ul className="gh-major-grid" id="gh-majors">
-                {data.majors.map((major) => {
+                {data.majors.map((major, index) => {
                   const title =
                     major.titleVi?.trim() || major.title?.trim() || major.slug;
                   return (
@@ -164,13 +170,12 @@ export function GuestHomeView({ data }: Props) {
                           <div className="gh-major-cover">
                             <Image
                               src={major.cover_src}
-                              alt=""
+                              alt={title}
                               fill
                               className="gh-major-cover-img"
                               sizes="(max-width:640px) 100vw, 240px"
-                              unoptimized={
-                                major.cover_src.includes("imagedelivery.net")
-                              }
+                              priority={index < 3}
+                              unoptimized={isCloudflareImage(major.cover_src)}
                             />
                           </div>
                         ) : (
@@ -251,7 +256,7 @@ export function GuestHomeView({ data }: Props) {
                               fill
                               className="gh-career-img"
                               sizes="70px"
-                              unoptimized={thumb.includes("imagedelivery.net")}
+                              unoptimized={isCloudflareImage(thumb)}
                             />
                           ) : (
                             <Sparkles size={28} strokeWidth={1.6} aria-hidden />
@@ -299,7 +304,7 @@ export function GuestHomeView({ data }: Props) {
                   const { day, mon } = formatEventDate(ev.batDau);
                   return (
                     <li key={ev.id}>
-                      <Link href="/su-kien" className="gh-event-card">
+                      <Link href={suKienDetailPath(ev.id)} className="gh-event-card">
                         <div className="gh-event-date">
                           <span className="gh-event-day">{day}</span>
                           <span className="gh-event-mon">{mon}</span>
@@ -324,7 +329,7 @@ export function GuestHomeView({ data }: Props) {
                               fill
                               className="gh-event-cover-img"
                               sizes="80px"
-                              unoptimized
+                              unoptimized={isCloudflareImage(ev.coverSrc)}
                             />
                           </div>
                         ) : (
@@ -365,9 +370,7 @@ export function GuestHomeView({ data }: Props) {
                             fill
                             className="gh-course-thumb-img"
                             sizes="96px"
-                            unoptimized={
-                              course.thumbnailUrl.includes("imagedelivery.net")
-                            }
+                            unoptimized={isCloudflareImage(course.thumbnailUrl)}
                           />
                         ) : course.orgAvatarUrl ? (
                           <Image
@@ -376,9 +379,7 @@ export function GuestHomeView({ data }: Props) {
                             width={40}
                             height={40}
                             className="gh-course-org-ava"
-                            unoptimized={
-                              course.orgAvatarUrl.includes("imagedelivery.net")
-                            }
+                            unoptimized={isCloudflareImage(course.orgAvatarUrl)}
                           />
                         ) : null}
                       </div>
@@ -415,13 +416,11 @@ export function GuestHomeView({ data }: Props) {
                           {work.coverSrc ? (
                             <Image
                               src={work.coverSrc}
-                              alt=""
+                              alt={work.title}
                               fill
                               className="gh-work-cover-img"
                               sizes="(max-width:640px) 50vw, 200px"
-                              unoptimized={
-                                work.coverSrc.includes("imagedelivery.net")
-                              }
+                              unoptimized={isCloudflareImage(work.coverSrc)}
                             />
                           ) : (
                             <Sparkles size={22} aria-hidden />
