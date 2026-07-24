@@ -1,9 +1,9 @@
 "use client";
 
 import {
-  ArrowLeft,
   BadgeCheck,
   ChevronDown,
+  ChevronLeft,
   ClipboardList,
   ImagePlus,
   Loader2,
@@ -1112,7 +1112,7 @@ export function JourneyShopLoaiClient({
         <span className="j-tlb-streak-slow" aria-hidden="true" />
         <div className="j-shop-sf-section-tools">
           <Link href={shopHref} className="j-shop-loai-back">
-            <ArrowLeft size={16} aria-hidden />
+            <ChevronLeft size={16} aria-hidden />
             Về cửa hàng
           </Link>
           {sectionActions}

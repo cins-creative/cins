@@ -1,6 +1,7 @@
 import "server-only";
 
 import { openDirectRoom, sendRoomMessage } from "@/lib/chat/direct-message";
+import { chatImageDeliveryUrl } from "@/lib/chat/image-url";
 import { getGio, getGioCuaHang } from "@/lib/shop/gio";
 import { clearGioChungCuaSeller, getGioChung } from "@/lib/shop/gio-chung";
 import {
@@ -774,6 +775,15 @@ async function bumpDonHangChatMessage(
   if (prev && Array.isArray(prev.mentions)) {
     nextNguCanh.mentions = prev.mentions;
   }
+  /* Giữ ảnh biên lai đã gắn trên tin cũ nếu đơn chưa có URL (hiếm). */
+  if (
+    !nextNguCanh.anh &&
+    prev &&
+    typeof prev.anh === "string" &&
+    prev.anh.trim()
+  ) {
+    nextNguCanh.anh = prev.anh.trim();
+  }
 
   const { error: updErr } = await admin
     .from("chat_tin_nhan")
@@ -796,8 +806,8 @@ async function bumpDonHangChatMessage(
 }
 
 /**
- * Mở DM buyer↔seller và gửi card đơn đã tổng hợp (+ ảnh biên lai nếu có).
- * Không throw — lỗi chat chỉ log.
+ * Mở DM buyer↔seller và gửi card đơn đã tổng hợp.
+ * Biên lai gắn trong `ngu_canh.anh` — không gửi tin ảnh tách riêng.
  */
 export async function notifySellerDonHangChat(
   don: ShopDonHang,
@@ -824,18 +834,6 @@ export async function notifySellerDonHangChat(
     });
     if (!card.ok) {
       console.error("[shop] notifyDonHangChat card", card.error);
-      return;
-    }
-
-    const imageId = don.bienLaiAnhId?.trim();
-    if (imageId) {
-      const media = await sendRoomMessage(roomId, senderId, {
-        cloudflareImageId: imageId,
-        body: "Biên lai chuyển khoản",
-      });
-      if (!media.ok) {
-        console.error("[shop] notifyDonHangChat bienLai", media.error);
-      }
     }
   } catch (e) {
     console.error("[shop] notifyDonHangChat", e);
@@ -848,6 +846,7 @@ export function donHangToChatContext(don: ShopDonHang): {
   tieuDe: string;
   moTa: string;
   href: string;
+  anh?: string | null;
 } {
   const ma = don.maDon?.trim() || don.id.slice(0, 8);
   const loaiLabel =
@@ -876,11 +875,18 @@ export function donHangToChatContext(don: ShopDonHang): {
     lines,
   ];
   if (ghiChu) parts.push(`Ghi chú: ${ghiChu}`);
+  const bienLaiAnh =
+    don.bienLaiAnhUrl?.trim() ||
+    (don.bienLaiAnhId?.trim()
+      ? chatImageDeliveryUrl(don.bienLaiAnhId.trim())
+      : null) ||
+    null;
   return {
     loai: "don_hang",
     id: don.id,
     tieuDe: `Đơn ${ma}`,
     moTa: parts.filter(Boolean).join("\n"),
     href: `/ban-hang/don?id=${don.id}`,
+    ...(bienLaiAnh ? { anh: bienLaiAnh } : {}),
   };
 }

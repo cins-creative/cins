@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
@@ -56,7 +57,8 @@ export function JourneyShopSfHero({
           </div>
           {profileHref ? (
             <Link href={profileHref} className="j-shop-sf-back-profile">
-              ← Trang cá nhân
+              <ChevronLeft size={16} strokeWidth={2} aria-hidden />
+              Trang cá nhân
             </Link>
           ) : null}
         </div>

@@ -2920,6 +2920,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    gap: 3px;
     max-width: 100%;
     padding: 2px 0;
     font-size: 0.72rem;

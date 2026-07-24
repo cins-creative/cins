@@ -77,6 +77,11 @@
   flex-shrink: 0;
 }
 
+/* Nút đóng bảng chat — chỉ hiện ở mobile (desktop có nút đóng riêng). */
+.cins-chat-close-mobile {
+  display: none;
+}
+
 .cins-chat-title {
   margin: 0;
   font-size: 20px;
@@ -3548,6 +3553,7 @@ button.cins-canvas-table-cell-text {
 .cins-chat-bubble-wrap.has-bubble-actions .cins-chat-reaction-chip,
 .cins-chat-bubble-wrap.has-bubble-actions .cins-chat-msg-actions,
 .cins-chat-bubble-wrap.has-bubble-actions .cins-chat-msg-actions button,
+.cins-chat-bubble-wrap.has-bubble-actions .cins-chat-don-card-shell,
 .cins-chat-bubble-wrap.has-bubble-actions input,
 .cins-chat-bubble-wrap.has-bubble-actions textarea,
 .cins-chat-bubble-wrap.has-bubble-actions select,
@@ -3836,7 +3842,8 @@ button.cins-canvas-table-cell-text {
 .cins-chat-msg-mobile-scrim {
   position: fixed;
   inset: 0;
-  z-index: 13040;
+  /* Trong stacking context của sheet-root — phải thấp hơn sheet + emoji. */
+  z-index: 1;
   border: 0;
   padding: 0;
   margin: 0;
@@ -3849,17 +3856,18 @@ button.cins-canvas-table-cell-text {
 }
 
 .cins-chat-msg-react-picker.is-mobile-tap {
-  z-index: 13060;
   /* Nằm trong sheet-root nhưng neo fixed theo bubble — không theo flex đáy. */
   flex: none;
   align-self: center;
   margin: 0;
+  z-index: 3;
 }
 
 .cins-chat-msg-sheet-root {
   position: fixed;
   inset: 0;
-  z-index: 13050;
+  /* Trên chat overlay (11000), shop kiosk (20000), mọi modal thường. */
+  z-index: 50000;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
@@ -3872,7 +3880,7 @@ button.cins-canvas-table-cell-text {
 
 .cins-chat-msg-sheet {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   margin: 0;
   padding: 10px 12px calc(12px + env(safe-area-inset-bottom, 0px));
   border-radius: 18px 18px 0 0;
@@ -5559,6 +5567,15 @@ a.cins-chat-og-card.is-me:hover {
   gap: 8px;
 }
 
+.cins-chat-don-card-shell {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
 .cins-chat-don-card {
   display: flex;
   flex-direction: column;
@@ -5583,6 +5600,12 @@ a.cins-chat-og-card.is-me:hover {
   box-sizing: border-box;
   position: relative;
   overflow: hidden;
+}
+
+.cins-chat-don-card-shell:has(.cins-chat-don-card-bill) .cins-chat-don-card {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  border-bottom-width: 0;
 }
 
 button.cins-chat-don-card:hover,
@@ -5835,6 +5858,59 @@ a.cins-chat-don-card.is-paid:hover {
   font-size: 11px;
   font-weight: 700;
   color: color-mix(in srgb, var(--cins-orange, #fdad4c) 40%, #9a3412);
+}
+
+.cins-chat-don-card-bill {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 12px 12px;
+  border: 1px solid color-mix(in srgb, var(--cins-orange, #fdad4c) 28%, #e4e6eb);
+  border-top: 1px dashed color-mix(in srgb, var(--cins-orange, #fdad4c) 28%, #e4e6eb);
+  border-radius: 0 0 14px 14px;
+  background: #fff;
+  box-sizing: border-box;
+}
+
+.cins-chat-don-card-shell:has(.cins-chat-don-card.is-paid) .cins-chat-don-card-bill {
+  border-color: color-mix(in srgb, #16a34a 28%, #e4e6eb);
+  border-top-color: color-mix(in srgb, #16a34a 28%, #e4e6eb);
+}
+
+.cins-chat-don-card-bill-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  margin: 0;
+  padding: 8px 10px 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: color-mix(in srgb, var(--cins-blue, #1f74c9) 70%, #0f172a);
+  cursor: pointer;
+}
+
+.cins-chat-don-card-bill-toggle:hover {
+  color: var(--cins-blue, #1f74c9);
+}
+
+.cins-chat-don-card-bill-link {
+  display: block;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: #f8fafc;
+}
+
+.cins-chat-don-card-bill-img {
+  display: block;
+  width: 100%;
+  max-height: 280px;
+  object-fit: contain;
+  background: #f8fafc;
 }
 
 .cins-chat-compose-ctx {
@@ -7327,7 +7403,7 @@ a.cins-chat-don-card.is-paid:hover {
 
 .j-chat-mini-compose-row {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   gap: 8px;
 }
 
@@ -7546,6 +7622,12 @@ a.cins-chat-don-card.is-paid:hover {
   }
 
   .cins-chat-back-mobile {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .cins-chat-close-mobile {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -9821,6 +9903,25 @@ button.cins-chat-project-card-mark:hover {
 }
 :root[data-theme="dark"] .cins-chat-don-card-cta {
   color: var(--cins-orange, #ffc078);
+}
+:root[data-theme="dark"] .cins-chat-don-card-bill {
+  background: var(--neutral-100, #151a24);
+  border-color: color-mix(in srgb, var(--cins-orange, #fdad4c) 32%, var(--border, #2a3040));
+  border-top-color: color-mix(in srgb, var(--cins-orange, #fdad4c) 32%, var(--border, #2a3040));
+}
+:root[data-theme="dark"] .cins-chat-don-card-shell:has(.cins-chat-don-card.is-paid) .cins-chat-don-card-bill {
+  border-color: color-mix(in srgb, #22c55e 32%, var(--border, #2a3040));
+  border-top-color: color-mix(in srgb, #22c55e 32%, var(--border, #2a3040));
+}
+:root[data-theme="dark"] .cins-chat-don-card-bill-toggle {
+  color: color-mix(in srgb, var(--cins-blue, #5ba3e0) 70%, #e2e8f0);
+}
+:root[data-theme="dark"] .cins-chat-don-card-bill-link {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: #0f141d;
+}
+:root[data-theme="dark"] .cins-chat-don-card-bill-img {
+  background: #0f141d;
 }
 :root[data-theme="dark"] .cins-chat-don-card-anh {
   background: rgba(255, 255, 255, 0.06);

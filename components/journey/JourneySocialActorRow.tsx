@@ -123,7 +123,18 @@ export function JourneySocialActorRow({
               ) : null}
               {when ? (
                 <span className="jsa-when">
-                  {verb} {when}
+                  {verb ? (
+                    <span
+                      className={
+                        reactionEmoji
+                          ? "jsa-when-verb jsa-when-verb--emoji"
+                          : "jsa-when-verb"
+                      }
+                    >
+                      {verb}
+                    </span>
+                  ) : null}{" "}
+                  {when}
                 </span>
               ) : null}
             </span>

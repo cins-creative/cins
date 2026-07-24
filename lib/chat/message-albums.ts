@@ -2,6 +2,7 @@ import { chatImageDeliveryUrl } from "@/lib/chat/image-url";
 import type { ChatMessage } from "@/lib/chat/types";
 
 const ALBUM_MAX_GAP_MS = 2 * 60 * 1000;
+const BIEN_LAI_BODY_RE = /^biên lai chuyển khoản$/i;
 
 export type ChatMessageListItem =
   | { type: "single"; message: ChatMessage }
@@ -40,6 +41,55 @@ function isImageMessage(message: ChatMessage): boolean {
   return Boolean(chatMessageImageSrc(message));
 }
 
+function isBienLaiReceiptMessage(message: ChatMessage): boolean {
+  if (message.deleted) return false;
+  if (!chatMessageImageSrc(message)) return false;
+  return BIEN_LAI_BODY_RE.test(message.body.trim());
+}
+
+/**
+ * Gom tin ảnh "Biên lai chuyển khoản" ngay sau card đơn vào `ngu_canh.anh`
+ * (tin cũ từng gửi tách riêng).
+ */
+export function foldDonHangBienLaiMessages(
+  messages: ChatMessage[],
+): ChatMessage[] {
+  if (messages.length < 2) return messages;
+
+  const out: ChatMessage[] = [];
+  for (let i = 0; i < messages.length; i++) {
+    const msg = messages[i]!;
+    const next = messages[i + 1];
+    if (
+      msg.nguCanh?.loai === "don_hang" &&
+      !msg.deleted &&
+      next &&
+      isBienLaiReceiptMessage(next) &&
+      next.from === msg.from &&
+      (!msg.senderUserId ||
+        !next.senderUserId ||
+        msg.senderUserId === next.senderUserId)
+    ) {
+      const gap =
+        new Date(next.sentAt).getTime() - new Date(msg.sentAt).getTime();
+      if (gap >= 0 && gap <= ALBUM_MAX_GAP_MS) {
+        const src = chatMessageImageSrc(next);
+        out.push({
+          ...msg,
+          nguCanh: {
+            ...msg.nguCanh,
+            anh: msg.nguCanh.anh?.trim() || src,
+          },
+        });
+        i += 1;
+        continue;
+      }
+    }
+    out.push(msg);
+  }
+  return out;
+}
+
 function albumPartsFromMessage(message: ChatMessage): ChatMessage[] {
   if (message.albumImages?.length) {
     return message.albumImages.map((image, index) => ({
@@ -66,11 +116,12 @@ function canExtendAlbum(album: ChatMessage[], next: ChatMessage): boolean {
 
 /** Gom các tin ảnh liên tiếp (cùng người gửi) thành album để render grid. */
 export function groupChatMessages(messages: ChatMessage[]): ChatMessageListItem[] {
+  const folded = foldDonHangBienLaiMessages(messages);
   const items: ChatMessageListItem[] = [];
   let index = 0;
 
-  while (index < messages.length) {
-    const message = messages[index];
+  while (index < folded.length) {
+    const message = folded[index];
 
     if (message.albumImages?.length) {
       const album = albumPartsFromMessage(message);
@@ -96,8 +147,8 @@ export function groupChatMessages(messages: ChatMessage[]): ChatMessageListItem[
 
     const album: ChatMessage[] = [message];
     let cursor = index + 1;
-    while (cursor < messages.length && canExtendAlbum(album, messages[cursor])) {
-      album.push(messages[cursor]);
+    while (cursor < folded.length && canExtendAlbum(album, folded[cursor])) {
+      album.push(folded[cursor]);
       cursor += 1;
     }
 

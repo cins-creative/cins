@@ -79,6 +79,7 @@ type Props = {
 
 export function ChatDonHangCard({ card, tone = "them" }: Props) {
   const [detailOpen, setDetailOpen] = useState(false);
+  const [billOpen, setBillOpen] = useState(false);
   const { ma, loaiThanhToan, trangThai, tong, items, ghiChu } =
     parseDonHangCard(card);
   const visibleItems = items.slice(0, 3);
@@ -92,6 +93,7 @@ export function ChatDonHangCard({ card, tone = "them" }: Props) {
       ? "Thanh toán sau"
       : loaiThanhToan;
   const donId = card.id?.trim() || null;
+  const bienLaiUrl = card.anh?.trim() || null;
   const statusDone =
     trangThai === "Đã nhận tiền" ||
     trangThai === "Thanh toán khi nhận hàng" ||
@@ -109,72 +111,102 @@ export function ChatDonHangCard({ card, tone = "them" }: Props) {
 
   return (
     <>
-      <button
-        type="button"
-        className={className}
-        onClick={() => {
-          if (donId) setDetailOpen(true);
-        }}
-      >
-        <span className="cins-chat-don-card-top">
-          <span className="cins-chat-don-card-icon" aria-hidden>
-            <ShoppingBag size={14} strokeWidth={2.2} />
-          </span>
-          <span className="cins-chat-don-card-head">
-            <span className="cins-chat-don-card-label">Đơn hàng</span>
-            {badgeLabel ? (
-              <span
-                className={`cins-chat-don-card-badge${isPayLater ? " is-later" : ""}${isPaid ? " is-paid" : !isPayLater ? " is-now" : ""}`}
-              >
-                {badgeLabel}
-              </span>
-            ) : null}
-          </span>
-        </span>
-
-        <span className="cins-chat-don-card-ma">{ma}</span>
-
-        {trangThai ? (
-          <span
-            className={`cins-chat-don-card-status${statusDone ? " is-done" : ""}${statusPending ? " is-pending" : ""}`}
-          >
-            {trangThai}
-          </span>
-        ) : null}
-
-        {tong ? (
-          <span className="cins-chat-don-card-tong">
-            <span className="cins-chat-don-card-tong-label">Tổng</span>
-            <strong>{tong}</strong>
-          </span>
-        ) : null}
-
-        {visibleItems.length > 0 ? (
-          <span className="cins-chat-don-card-mid">
-            <span className="cins-chat-don-card-items">
-              {visibleItems.map((item) => (
-                <span key={item} className="cins-chat-don-card-item">
-                  {item}
-                </span>
-              ))}
-              {moreCount > 0 ? (
-                <span className="cins-chat-don-card-more">
-                  +{moreCount} mặt hàng nữa
+      <div className="cins-chat-don-card-shell">
+        <button
+          type="button"
+          className={className}
+          onClick={() => {
+            if (donId) setDetailOpen(true);
+          }}
+        >
+          <span className="cins-chat-don-card-top">
+            <span className="cins-chat-don-card-icon" aria-hidden>
+              <ShoppingBag size={14} strokeWidth={2.2} />
+            </span>
+            <span className="cins-chat-don-card-head">
+              <span className="cins-chat-don-card-label">Đơn hàng</span>
+              {badgeLabel ? (
+                <span
+                  className={`cins-chat-don-card-badge${isPayLater ? " is-later" : ""}${isPaid ? " is-paid" : !isPayLater ? " is-now" : ""}`}
+                >
+                  {badgeLabel}
                 </span>
               ) : null}
             </span>
           </span>
-        ) : null}
 
-        {ghiChu ? (
-          <span className="cins-chat-don-card-note">
-            <span className="cins-chat-don-card-note-label">Lời nhắn</span>
-            <span className="cins-chat-don-card-note-text">{ghiChu}</span>
-          </span>
-        ) : null}
+          <span className="cins-chat-don-card-ma">{ma}</span>
 
-        <span className="cins-chat-don-card-cta">Xem chi tiết đơn</span>
-      </button>
+          {trangThai ? (
+            <span
+              className={`cins-chat-don-card-status${statusDone ? " is-done" : ""}${statusPending ? " is-pending" : ""}`}
+            >
+              {trangThai}
+            </span>
+          ) : null}
+
+          {tong ? (
+            <span className="cins-chat-don-card-tong">
+              <span className="cins-chat-don-card-tong-label">Tổng</span>
+              <strong>{tong}</strong>
+            </span>
+          ) : null}
+
+          {visibleItems.length > 0 ? (
+            <span className="cins-chat-don-card-mid">
+              <span className="cins-chat-don-card-items">
+                {visibleItems.map((item) => (
+                  <span key={item} className="cins-chat-don-card-item">
+                    {item}
+                  </span>
+                ))}
+                {moreCount > 0 ? (
+                  <span className="cins-chat-don-card-more">
+                    +{moreCount} mặt hàng nữa
+                  </span>
+                ) : null}
+              </span>
+            </span>
+          ) : null}
+
+          {ghiChu ? (
+            <span className="cins-chat-don-card-note">
+              <span className="cins-chat-don-card-note-label">Lời nhắn</span>
+              <span className="cins-chat-don-card-note-text">{ghiChu}</span>
+            </span>
+          ) : null}
+
+          <span className="cins-chat-don-card-cta">Xem chi tiết đơn</span>
+        </button>
+
+        {bienLaiUrl ? (
+          <div className="cins-chat-don-card-bill">
+            <button
+              type="button"
+              className="cins-chat-don-card-bill-toggle"
+              aria-expanded={billOpen}
+              onClick={() => setBillOpen((v) => !v)}
+            >
+              {billOpen ? "Ẩn biên lai" : "Xem biên lai"}
+            </button>
+            {billOpen ? (
+              <a
+                href={bienLaiUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="cins-chat-don-card-bill-link"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={bienLaiUrl}
+                  alt="Biên lai chuyển khoản"
+                  className="cins-chat-don-card-bill-img"
+                />
+              </a>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
 
       <ShopDonDetailModal
         donId={donId}

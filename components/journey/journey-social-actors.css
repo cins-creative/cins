@@ -4,18 +4,11 @@
   inset: 0;
   z-index: 10850;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
-  padding: 0;
+  padding: 16px;
   background: rgba(15, 23, 42, 0.55);
   backdrop-filter: blur(2px);
-}
-
-@media (min-width: 520px) {
-  .jsa-backdrop {
-    align-items: center;
-    padding: 16px;
-  }
 }
 
 .jsa-modal {
@@ -26,27 +19,9 @@
   flex-direction: column;
   background: var(--bg-surface, #fff);
   color: var(--ink-display, #0f172a);
-  border-radius: 16px 16px 0 0;
+  border-radius: 16px;
   box-shadow: 0 24px 60px rgba(2, 6, 23, 0.35);
-  animation: jsa-modal-rise 0.18s ease-out;
-}
-
-@media (min-width: 520px) {
-  .jsa-modal {
-    border-radius: 16px;
-    animation: jsa-modal-pop 0.16s ease-out;
-  }
-}
-
-@keyframes jsa-modal-rise {
-  from {
-    opacity: 0;
-    transform: translateY(100%);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
+  animation: jsa-modal-pop 0.16s ease-out;
 }
 
 @keyframes jsa-modal-pop {
@@ -329,6 +304,15 @@
 .jsa-mutual {
   color: var(--cins-blue, #2563eb);
   font-weight: 600;
+}
+
+/* Emoji cảm xúc trên dòng thời gian — to & rõ hơn chữ xám mờ bên cạnh. */
+.jsa-when-verb--emoji {
+  font-size: 15px;
+  line-height: 1;
+  vertical-align: -2px;
+  filter: none;
+  opacity: 1;
 }
 
 .jsa-item.is-expandable {

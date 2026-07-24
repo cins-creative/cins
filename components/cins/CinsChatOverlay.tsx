@@ -5,6 +5,7 @@ import {
   Bookmark,
   CalendarDays,
   ChevronDown,
+  ChevronLeft,
   Frame,
   MessageSquareQuote,
   PanelRightOpen,
@@ -2904,7 +2905,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     [appendOptimisticMessages, viewerProfileId],
   );
 
-  /* Tự gửi card đơn (+ biên lai ảnh) khi openChat({ autoSendNguCanh: true }). */
+  /* Tự gửi card đơn (biên lai trong ngu_canh.anh) khi openChat({ autoSendNguCanh: true }). */
   useEffect(() => {
     if (!launch?.autoSendNguCanh) return;
     if (launch.resolving) return;
@@ -2930,29 +2931,16 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     autoSentNguCanhRef.current = key;
 
     const imageId = launch.autoSendImageId?.trim() || null;
-    const imageUrl = launch.autoSendImageUrl?.trim() || null;
-    const thread = active;
+    const imageUrl =
+      launch.autoSendImageUrl?.trim() ||
+      (imageId ? chatImageDeliveryUrl(imageId) : null) ||
+      null;
+    const cardWithBill =
+      imageUrl && !pending.anh?.trim()
+        ? { ...pending, anh: imageUrl }
+        : pending;
 
-    void (async () => {
-      await sendPendingCard(thread, pending);
-      if (!imageId) return;
-
-      const optimistic = {
-        ...createOptimisticChatMessage({
-          body: "",
-          kind: "media",
-          imageId,
-          imageUrl,
-        }),
-        senderUserId: viewerProfileId ?? undefined,
-      };
-      appendOptimisticMessages(thread, [optimistic]);
-      await submitRoomMessage(
-        thread,
-        { cloudflare_image_id: imageId },
-        optimistic.id,
-      );
-    })();
+    void sendPendingCard(active, cardWithBill);
   }, [
     launch?.autoSendNguCanh,
     launch?.resolving,
@@ -2963,9 +2951,6 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     active,
     pendingCardByRoom,
     sendPendingCard,
-    appendOptimisticMessages,
-    submitRoomMessage,
-    viewerProfileId,
   ]);
 
   const sendMessage = useCallback(() => {
@@ -3224,6 +3209,20 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                   <Maximize2 size={16} strokeWidth={1.8} aria-hidden />
                 )}
               </button>
+              <button
+                type="button"
+                className="cins-chat-icon-btn cins-chat-close-mobile"
+                aria-label="Đóng bảng chat"
+                title="Đóng"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onClose();
+                }}
+                onMouseDown={(e) => e.stopPropagation()}
+              >
+                <X size={18} strokeWidth={1.8} aria-hidden />
+              </button>
             </div>
           </header>
 
@@ -3380,7 +3379,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
               aria-label="Quay lại danh sách"
               onClick={() => setMobileShowThread(false)}
             >
-              ←
+              <ChevronLeft size={24} strokeWidth={2.25} aria-hidden />
             </button>
             {active.isGroup ? (
               <span className="cins-chat-avatar-wrap">

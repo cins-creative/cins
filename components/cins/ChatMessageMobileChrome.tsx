@@ -66,7 +66,7 @@ function placeReactBar(anchor: HTMLElement, panel: HTMLElement) {
   panel.style.left = `${Math.round(left)}px`;
   panel.style.right = "auto";
   panel.style.bottom = "auto";
-  panel.style.zIndex = "13060";
+  panel.style.zIndex = "3";
 }
 
 /** Tap bubble → emoji phía trên + tab chức năng phía dưới. */
@@ -161,7 +161,11 @@ export function ChatMessageMobileChrome({
       Boolean(msg.albumImages?.length));
 
   return createPortal(
-    <div className="cins-chat-msg-sheet-root" role="presentation">
+    <div
+      className="cins-chat-msg-sheet-root"
+      role="presentation"
+      style={{ zIndex: 50000 }}
+    >
       <button
         type="button"
         className="cins-chat-msg-mobile-scrim is-sheet"

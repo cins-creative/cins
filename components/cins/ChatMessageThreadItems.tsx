@@ -53,7 +53,7 @@ function isIgnoredActionTarget(target: EventTarget | null): boolean {
         ? target.parentElement
         : null;
   if (!el) return false;
-  /* Không match role=button trên chính bubble wrap (host cũng dùng role=button). */
+  /* Không dùng [role=dialog]/[role=button] — panel chat / bubble host cũng mang role đó. */
   return Boolean(
     el.closest(
       [
@@ -72,7 +72,6 @@ function isIgnoredActionTarget(target: EventTarget | null): boolean {
         "select",
         "button",
         "[role='menuitem']",
-        "[role='dialog']",
       ].join(","),
     ),
   );
@@ -80,12 +79,13 @@ function isIgnoredActionTarget(target: EventTarget | null): boolean {
 
 /**
  * Tap/click bubble → emoji + bottom sheet.
- * Dùng click (mobile vẫn fire sau touch) — không preventDefault touch để tránh nuốt gesture.
+ * Chỉ mở (không toggle đóng) — tránh click đôi / contextmenu+click đóng ngay.
  */
 function useBubbleTapActions(enabled: boolean) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const openedAtRef = useRef(0);
+  const ignoreClickUntilRef = useRef(0);
 
   const closeMobile = useCallback(() => {
     if (Date.now() - openedAtRef.current < DISMISS_GUARD_MS) return;
@@ -94,15 +94,8 @@ function useBubbleTapActions(enabled: boolean) {
 
   const openMobile = useCallback(() => {
     openedAtRef.current = Date.now();
+    ignoreClickUntilRef.current = Date.now() + DISMISS_GUARD_MS;
     setMobileOpen(true);
-  }, []);
-
-  const toggleMobile = useCallback(() => {
-    setMobileOpen((prev) => {
-      if (prev) return false;
-      openedAtRef.current = Date.now();
-      return true;
-    });
   }, []);
 
   useEffect(() => {
@@ -139,15 +132,19 @@ function useBubbleTapActions(enabled: boolean) {
     (event: MouseEvent<HTMLDivElement>) => {
       if (!enabled) return;
       if (isIgnoredActionTarget(event.target)) return;
-      toggleMobile();
+      event.stopPropagation();
+      if (Date.now() < ignoreClickUntilRef.current) return;
+      if (mobileOpen) return;
+      openMobile();
     },
-    [enabled, toggleMobile],
+    [enabled, mobileOpen, openMobile],
   );
 
   const onContextMenu = useCallback(
     (event: MouseEvent<HTMLDivElement>) => {
       if (!enabled) return;
       event.preventDefault();
+      event.stopPropagation();
       if (isIgnoredActionTarget(event.target)) return;
       openMobile();
     },
@@ -159,9 +156,10 @@ function useBubbleTapActions(enabled: boolean) {
       if (!enabled) return;
       if (event.key !== "Enter" && event.key !== " ") return;
       event.preventDefault();
-      toggleMobile();
+      if (mobileOpen) return;
+      openMobile();
     },
-    [enabled, toggleMobile],
+    [enabled, mobileOpen, openMobile],
   );
 
   return {
