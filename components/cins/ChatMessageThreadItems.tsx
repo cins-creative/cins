@@ -7,6 +7,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type KeyboardEvent,
   type MouseEvent,
   type ReactNode,
 } from "react";
@@ -42,33 +43,58 @@ import type {
   ChatReadCursor,
 } from "@/lib/chat/types";
 
-const MOBILE_MOVE_CANCEL_PX = 14;
-/** Chặn scrim/doc đóng ngay sau gesture mở (synthetic click). */
-const MOBILE_DISMISS_GUARD_MS = 400;
+const DISMISS_GUARD_MS = 450;
 
-function usePreferTouchChatActions() {
-  const [touch, setTouch] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia("(hover: none), (pointer: coarse)");
-    const sync = () => setTouch(mq.matches);
-    sync();
-    mq.addEventListener("change", sync);
-    return () => mq.removeEventListener("change", sync);
-  }, []);
-  return touch;
+function isIgnoredActionTarget(target: EventTarget | null): boolean {
+  const el =
+    target instanceof Element
+      ? target
+      : target instanceof Node
+        ? target.parentElement
+        : null;
+  if (!el) return false;
+  /* Không match role=button trên chính bubble wrap (host cũng dùng role=button). */
+  return Boolean(
+    el.closest(
+      [
+        ".cins-chat-msg-actions",
+        ".cins-chat-msg-menu",
+        ".cins-chat-msg-react-picker",
+        ".cins-chat-reaction-actors",
+        ".cins-chat-reaction-chip",
+        ".cins-chat-reaction-tab",
+        ".cins-chat-msg-sheet",
+        ".cins-chat-msg-mobile-scrim",
+        ".cins-chat-msg-sheet-root",
+        "a[href]",
+        "input",
+        "textarea",
+        "select",
+        "button",
+        "[role='menuitem']",
+        "[role='dialog']",
+      ].join(","),
+    ),
+  );
 }
 
-/** Click/tap bubble → emoji + tab chức năng. Desktop vẫn hover hiện 3 nút phụ. */
-function useRevealMessageActions(enabled: boolean, touchUi: boolean) {
+/**
+ * Tap/click bubble → emoji + bottom sheet.
+ * Dùng click (mobile vẫn fire sau touch) — không preventDefault touch để tránh nuốt gesture.
+ */
+function useBubbleTapActions(enabled: boolean) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement | null>(null);
-  const ignoreClickRef = useRef(false);
   const openedAtRef = useRef(0);
-  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
 
   const closeMobile = useCallback(() => {
-    if (Date.now() - openedAtRef.current < MOBILE_DISMISS_GUARD_MS) return;
+    if (Date.now() - openedAtRef.current < DISMISS_GUARD_MS) return;
     setMobileOpen(false);
+  }, []);
+
+  const openMobile = useCallback(() => {
+    openedAtRef.current = Date.now();
+    setMobileOpen(true);
   }, []);
 
   const toggleMobile = useCallback(() => {
@@ -82,20 +108,17 @@ function useRevealMessageActions(enabled: boolean, touchUi: boolean) {
   useEffect(() => {
     if (!mobileOpen) return;
     const onDoc = (event: PointerEvent) => {
-      if (Date.now() - openedAtRef.current < MOBILE_DISMISS_GUARD_MS) return;
+      if (Date.now() - openedAtRef.current < DISMISS_GUARD_MS) return;
       const target = event.target;
       if (!(target instanceof Node)) return;
-      if (wrapRef.current?.contains(target)) return;
       if (
         target instanceof Element &&
         target.closest(
           [
-            ".cins-chat-msg-menu.is-floating",
-            ".cins-chat-msg-react-picker.is-floating",
-            ".cins-chat-reaction-actors.is-floating",
+            ".cins-chat-msg-react-picker",
             ".cins-chat-msg-sheet",
             ".cins-chat-msg-mobile-scrim",
-            ".cins-chat-reaction-tab",
+            ".cins-chat-msg-sheet-root",
           ].join(","),
         )
       ) {
@@ -104,118 +127,50 @@ function useRevealMessageActions(enabled: boolean, touchUi: boolean) {
       setMobileOpen(false);
     };
     const timer = window.setTimeout(() => {
-      document.addEventListener("pointerdown", onDoc);
-    }, MOBILE_DISMISS_GUARD_MS);
+      document.addEventListener("pointerdown", onDoc, true);
+    }, DISMISS_GUARD_MS);
     return () => {
       window.clearTimeout(timer);
-      document.removeEventListener("pointerdown", onDoc);
+      document.removeEventListener("pointerdown", onDoc, true);
     };
   }, [mobileOpen]);
 
-  const isInteractiveTarget = useCallback((target: Element) => {
-    return Boolean(
-      target.closest(
-        [
-          ".cins-chat-msg-actions",
-          ".cins-chat-msg-menu",
-          ".cins-chat-msg-react-picker",
-          ".cins-chat-reaction-actors",
-          ".cins-chat-reaction-chip",
-          ".cins-chat-reaction-tab",
-          ".cins-chat-msg-sheet",
-          "a[href]",
-          "input",
-          "textarea",
-          "select",
-          "button",
-          "[role='menuitem']",
-          "[role='dialog']",
-        ].join(","),
-      ),
-    );
-  }, []);
-
-  /* Native touch tap → mở emoji + sheet (tránh chờ synthetic click trên iOS). */
-  useEffect(() => {
-    const el = wrapRef.current;
-    if (!el || !enabled) return;
-
-    const onTouchStart = (event: TouchEvent) => {
-      if (event.touches.length !== 1) return;
-      const target = event.target;
-      if (!(target instanceof Element) || isInteractiveTarget(target)) {
-        touchStartRef.current = null;
-        return;
-      }
-      const t = event.touches[0]!;
-      touchStartRef.current = { x: t.clientX, y: t.clientY };
-    };
-
-    const onTouchMove = (event: TouchEvent) => {
-      if (!touchStartRef.current || event.touches.length === 0) return;
-      const t = event.touches[0]!;
-      if (
-        Math.abs(t.clientX - touchStartRef.current.x) > MOBILE_MOVE_CANCEL_PX ||
-        Math.abs(t.clientY - touchStartRef.current.y) > MOBILE_MOVE_CANCEL_PX
-      ) {
-        touchStartRef.current = null;
-      }
-    };
-
-    const onTouchEnd = (event: TouchEvent) => {
-      if (!touchStartRef.current) return;
-      touchStartRef.current = null;
-      const target = event.target;
-      if (!(target instanceof Element) || isInteractiveTarget(target)) return;
-      event.preventDefault();
-      ignoreClickRef.current = true;
-      toggleMobile();
-    };
-
-    const onTouchCancel = () => {
-      touchStartRef.current = null;
-    };
-
-    el.addEventListener("touchstart", onTouchStart, { passive: true });
-    el.addEventListener("touchmove", onTouchMove, { passive: true });
-    el.addEventListener("touchend", onTouchEnd, { passive: false });
-    el.addEventListener("touchcancel", onTouchCancel, { passive: true });
-
-    return () => {
-      el.removeEventListener("touchstart", onTouchStart);
-      el.removeEventListener("touchmove", onTouchMove);
-      el.removeEventListener("touchend", onTouchEnd);
-      el.removeEventListener("touchcancel", onTouchCancel);
-    };
-  }, [enabled, isInteractiveTarget, toggleMobile]);
-
-  const onWrapClick = useCallback(
+  const onClick = useCallback(
     (event: MouseEvent<HTMLDivElement>) => {
       if (!enabled) return;
-      if (ignoreClickRef.current) {
-        ignoreClickRef.current = false;
-        event.preventDefault();
-        event.stopPropagation();
-        return;
-      }
-      const target = event.target;
-      if (!(target instanceof Element)) return;
-      if (isInteractiveTarget(target)) return;
-
-      /* Click/tap luôn mở emoji + tab — không phụ thuộc media query. */
+      if (isIgnoredActionTarget(event.target)) return;
       toggleMobile();
     },
-    [enabled, isInteractiveTarget, toggleMobile],
+    [enabled, toggleMobile],
+  );
+
+  const onContextMenu = useCallback(
+    (event: MouseEvent<HTMLDivElement>) => {
+      if (!enabled) return;
+      event.preventDefault();
+      if (isIgnoredActionTarget(event.target)) return;
+      openMobile();
+    },
+    [enabled, openMobile],
+  );
+
+  const onKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLDivElement>) => {
+      if (!enabled) return;
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      toggleMobile();
+    },
+    [enabled, toggleMobile],
   );
 
   return {
     wrapRef,
-    onWrapClick,
-    /* Desktop hover CSS vẫn hiện 3 nút; class này chỉ khi cần force-visible. */
-    actionsVisible: false,
     mobileOpen: enabled && mobileOpen,
     closeMobile,
-    touchUi,
+    onClick,
+    onContextMenu,
+    onKeyDown,
   };
 }
 
@@ -232,21 +187,25 @@ function ChatBubbleActionsHost({
   handlers?: ChatMessageActionHandlers;
   children: ReactNode;
 }) {
-  const touchUi = usePreferTouchChatActions();
   const {
     wrapRef,
-    onWrapClick,
-    actionsVisible,
     mobileOpen,
     closeMobile,
-    touchUi: touchMode,
-  } = useRevealMessageActions(enabled, touchUi);
+    onClick,
+    onContextMenu,
+    onKeyDown,
+  } = useBubbleTapActions(enabled);
 
   return (
     <div
       ref={wrapRef}
-      className={`${className ?? ""}${actionsVisible ? " is-actions-visible" : ""}${enabled ? " has-bubble-actions" : ""}${touchMode || mobileOpen ? " is-touch-actions" : ""}`.trim()}
-      onClick={onWrapClick}
+      role={enabled ? "button" : undefined}
+      tabIndex={enabled ? 0 : undefined}
+      aria-label={enabled ? "Hành động tin nhắn" : undefined}
+      className={`${className ?? ""}${enabled ? " has-bubble-actions" : ""}${mobileOpen ? " is-touch-actions is-actions-open" : ""}`.trim()}
+      onClick={onClick}
+      onContextMenu={onContextMenu}
+      onKeyDown={onKeyDown}
     >
       {children}
       {msg && handlers && mobileOpen ? (

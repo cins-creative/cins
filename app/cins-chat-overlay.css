@@ -3529,6 +3529,30 @@ button.cins-canvas-table-cell-text {
 .cins-chat-bubble-wrap.has-bubble-actions {
   touch-action: manipulation;
   -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  cursor: pointer;
+  position: relative;
+  z-index: 1;
+}
+
+/* Nội dung bubble không chặn hit — tap luôn về wrap (trừ interactive bên dưới). */
+.cins-chat-bubble-wrap.has-bubble-actions .cins-chat-bubble,
+.cins-chat-bubble-wrap.has-bubble-actions .cins-chat-don-hang-body,
+.cins-chat-bubble-wrap.has-bubble-actions .cins-chat-bare-media-body {
+  pointer-events: none;
+}
+
+.cins-chat-bubble-wrap.has-bubble-actions a[href],
+.cins-chat-bubble-wrap.has-bubble-actions .cins-chat-msg-image-link,
+.cins-chat-bubble-wrap.has-bubble-actions .cins-chat-reaction-chip,
+.cins-chat-bubble-wrap.has-bubble-actions .cins-chat-msg-actions,
+.cins-chat-bubble-wrap.has-bubble-actions .cins-chat-msg-actions button,
+.cins-chat-bubble-wrap.has-bubble-actions input,
+.cins-chat-bubble-wrap.has-bubble-actions textarea,
+.cins-chat-bubble-wrap.has-bubble-actions select,
+.cins-chat-bubble-wrap.has-bubble-actions [role="button"] {
+  pointer-events: auto;
 }
 
 .cins-chat-bubble-row.is-me .cins-chat-bubble-wrap {

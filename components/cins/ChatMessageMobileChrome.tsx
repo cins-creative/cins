@@ -77,13 +77,16 @@ export function ChatMessageMobileChrome({
   anchorRef,
   onClose,
 }: Props) {
-  const [portalReady, setPortalReady] = useState(false);
+  const [portalReady, setPortalReady] = useState(
+    () => typeof document !== "undefined",
+  );
   const [moreOpen, setMoreOpen] = useState(false);
   const reactRef = useRef<HTMLDivElement>(null);
   const mountedAtRef = useRef(Date.now());
 
   useEffect(() => {
     setPortalReady(true);
+    mountedAtRef.current = Date.now();
   }, []);
 
   useEffect(() => {
