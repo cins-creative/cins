@@ -24,10 +24,10 @@ import { createPortal } from "react-dom";
 import { CHAT_REACTION_EMOJIS } from "@/lib/chat/constants";
 import { canForwardMessage } from "@/lib/chat/forward-message-client";
 import {
+  canAddMessageToCanvas,
   canEditMessage,
   canRecallMessage,
 } from "@/lib/chat/message-action-capabilities";
-import { isOptimisticMessageId } from "@/lib/chat/optimistic-message";
 import type { ChatMessage } from "@/lib/chat/types";
 
 export type ChatMessageActionHandlers = {
@@ -148,12 +148,7 @@ export function ChatMessageActions({ msg, handlers }: Props) {
   const forwardable = canForwardMessage(msg) && Boolean(handlers.onForward);
   const isText = msg.kind !== "media" && !msg.imageId;
   const canAddToCanvas =
-    Boolean(handlers.onAddToCanvas) &&
-    !isOptimisticMessageId(msg.id) &&
-    msg.kind !== "sticker" &&
-    msg.kind !== "moc_nhac" &&
-    msg.kind !== "canvas_binh_luan" &&
-    (Boolean(msg.body.trim()) || Boolean(msg.imageUrl) || Boolean(msg.albumImages?.length));
+    Boolean(handlers.onAddToCanvas) && canAddMessageToCanvas(msg);
 
   const copyText = async () => {
     const text =

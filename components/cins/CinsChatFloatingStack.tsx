@@ -1826,10 +1826,12 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
         if (miniPanelRef.current?.contains(target)) return;
         /* Bubble / FAB tự xử lý toggle — không đóng bằng outside-click. */
         if (dockControlsRef.current?.contains(target)) return;
-        /* Sheet/emoji portal body — chỉ đóng action, không đóng mini chat. */
+        /* Sheet/emoji/forward portal body — chỉ đóng action, không đóng mini chat. */
         if (
           target instanceof Element &&
-          target.closest(".cins-chat-msg-sheet-root")
+          target.closest(
+            ".cins-chat-msg-sheet-root, .cins-chat-forward-root, .cins-chat-group-modal-root",
+          )
         ) {
           return;
         }

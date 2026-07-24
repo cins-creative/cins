@@ -25,10 +25,10 @@ import type { ChatMessageActionHandlers } from "@/components/cins/ChatMessageAct
 import { CHAT_REACTION_EMOJIS } from "@/lib/chat/constants";
 import { canForwardMessage } from "@/lib/chat/forward-message-client";
 import {
+  canAddMessageToCanvas,
   canEditMessage,
   canRecallMessage,
 } from "@/lib/chat/message-action-capabilities";
-import { isOptimisticMessageId } from "@/lib/chat/optimistic-message";
 import type { ChatMessage } from "@/lib/chat/types";
 
 type Props = {
@@ -166,6 +166,17 @@ export function ChatMessageMobileChrome({
     onClose();
   }, [msg.body, msg.imageUrl, onClose]);
 
+  const startForward = useCallback(
+    (event: ReactPointerEvent<HTMLButtonElement>) => {
+      if (event.button !== 0) return;
+      event.preventDefault();
+      event.stopPropagation();
+      handlers.onForward?.(msg);
+      onClose();
+    },
+    [handlers, msg, onClose],
+  );
+
   if (!portalReady || !open || msg.deleted) return null;
 
   const editable = canEditMessage(msg);
@@ -173,14 +184,15 @@ export function ChatMessageMobileChrome({
   const forwardable = canForwardMessage(msg) && Boolean(handlers.onForward);
   const isText = msg.kind !== "media" && !msg.imageId;
   const canAddToCanvas =
-    Boolean(handlers.onAddToCanvas) &&
-    !isOptimisticMessageId(msg.id) &&
-    msg.kind !== "sticker" &&
-    msg.kind !== "moc_nhac" &&
-    msg.kind !== "canvas_binh_luan" &&
-    (Boolean(msg.body.trim()) ||
-      Boolean(msg.imageUrl) ||
-      Boolean(msg.albumImages?.length));
+    Boolean(handlers.onAddToCanvas) && canAddMessageToCanvas(msg);
+  /* Tin chữ (không canvas): đưa «Chuyển tiếp» ra ô Khác trên lưới. */
+  const promoteForward = forwardable && !canAddToCanvas;
+  const morePin = recallable;
+  const moreEdit = editable && isText;
+  const moreForward = forwardable && !promoteForward;
+  const moreCanvas = canAddToCanvas;
+  const hasMoreItems = morePin || moreEdit || moreForward || moreCanvas;
+  const showMorePanel = hasMoreItems && (promoteForward || moreOpen);
 
   return createPortal(
     <div
@@ -228,7 +240,6 @@ export function ChatMessageMobileChrome({
         aria-modal="true"
         aria-label="Hành động tin nhắn"
       >
-        <div className="cins-chat-msg-sheet-handle" aria-hidden />
         <div className="cins-chat-msg-sheet-grid">
           <button
             type="button"
@@ -274,20 +285,31 @@ export function ChatMessageMobileChrome({
               <span>{msg.pinned ? "Bỏ ghim" : "Ghim"}</span>
             </button>
           )}
-          <button
-            type="button"
-            className="cins-chat-msg-sheet-btn"
-            aria-expanded={moreOpen}
-            onClick={() => setMoreOpen((v) => !v)}
-          >
-            <Menu size={22} strokeWidth={1.8} aria-hidden />
-            <span>Khác</span>
-          </button>
+          {promoteForward ? (
+            <button
+              type="button"
+              className="cins-chat-msg-sheet-btn"
+              onPointerDown={startForward}
+            >
+              <Forward size={22} strokeWidth={1.8} aria-hidden />
+              <span>Chuyển tiếp</span>
+            </button>
+          ) : hasMoreItems ? (
+            <button
+              type="button"
+              className="cins-chat-msg-sheet-btn"
+              aria-expanded={moreOpen}
+              onClick={() => setMoreOpen((v) => !v)}
+            >
+              <Menu size={22} strokeWidth={1.8} aria-hidden />
+              <span>Khác</span>
+            </button>
+          ) : null}
         </div>
 
-        {moreOpen ? (
+        {showMorePanel ? (
           <div className="cins-chat-msg-sheet-more" role="menu">
-            {recallable ? (
+            {morePin ? (
               <button
                 type="button"
                 role="menuitem"
@@ -300,20 +322,17 @@ export function ChatMessageMobileChrome({
                 {msg.pinned ? "Bỏ ghim" : "Ghim"}
               </button>
             ) : null}
-            {forwardable ? (
+            {moreForward ? (
               <button
                 type="button"
                 role="menuitem"
-                onClick={() => {
-                  handlers.onForward?.(msg);
-                  onClose();
-                }}
+                onPointerDown={startForward}
               >
                 <Forward size={16} aria-hidden />
                 Chuyển tiếp
               </button>
             ) : null}
-            {editable && isText ? (
+            {moreEdit ? (
               <button
                 type="button"
                 role="menuitem"
@@ -326,7 +345,7 @@ export function ChatMessageMobileChrome({
                 Sửa
               </button>
             ) : null}
-            {canAddToCanvas ? (
+            {moreCanvas ? (
               <button
                 type="button"
                 role="menuitem"

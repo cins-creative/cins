@@ -100,7 +100,10 @@ export function ChatForwardPicker({
   if (!portalReady) return null;
 
   return createPortal(
-    <div className="cins-chat-group-modal-root" role="presentation">
+    <div
+      className="cins-chat-group-modal-root cins-chat-forward-root"
+      role="presentation"
+    >
       <button
         type="button"
         className="cins-chat-group-modal-backdrop"
