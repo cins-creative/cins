@@ -96,6 +96,7 @@ export function ShopKioskBlock({
   const qtyEpochRef = useRef(new Map<string, number>());
 
   const tickerScrollRef = useRef<HTMLDivElement>(null);
+  const tickerTrackRef = useRef<HTMLDivElement>(null);
   const tickerDragRef = useRef<{
     pointerId: number;
     startX: number;
@@ -105,11 +106,60 @@ export function ShopKioskBlock({
   const tickerSuppressClickRef = useRef(false);
   const [tickerDragging, setTickerDragging] = useState(false);
 
-  /** Đặt scrollLeft vào giữa để 2 mép L & R crop → gợi ý kéo được. */
-  const centerTicker = useCallback(() => {
+  /** Bật vòng lặp vô tận khi dải hàng tràn khung → nhân 3 bản để cuộn liền mạch. */
+  const [tickerLoop, setTickerLoop] = useState(false);
+  const tickerLoopRef = useRef(false);
+  tickerLoopRef.current = tickerLoop;
+  /** Bề rộng 1 bản danh sách (track = 3 bản khi loop). */
+  const tickerSetWidthRef = useRef(0);
+  const TICKER_COPIES = 3;
+
+  /**
+   * Đo dải hàng: nếu 1 bản tràn khung → bật loop (nhân 3 bản, neo bản giữa);
+   * nếu vừa khung → canh giữa, tắt loop. Đủ nội dung mới cho cuộn vô tận.
+   */
+  const measureTicker = useCallback(() => {
     const el = tickerScrollRef.current;
-    if (!el) return;
+    const track = tickerTrackRef.current;
+    if (!el || !track) return;
+
+    if (tickerLoopRef.current) {
+      const oneSet = track.scrollWidth / TICKER_COPIES;
+      tickerSetWidthRef.current = oneSet;
+      /* Hàng bị gỡ bớt → không còn tràn → về chế độ canh giữa. */
+      if (oneSet <= el.clientWidth + 4) {
+        setTickerLoop(false);
+        return;
+      }
+      if (el.scrollLeft < oneSet || el.scrollLeft >= oneSet * 2) {
+        el.scrollLeft = oneSet;
+      }
+      return;
+    }
+
+    const setWidth = track.scrollWidth;
+    if (setWidth > el.clientWidth + 4) {
+      setTickerLoop(true);
+      return;
+    }
+    /* Ít hàng → canh giữa để 2 mép crop, gợi ý kéo được. */
     el.scrollLeft = Math.max(0, (el.scrollWidth - el.clientWidth) / 2);
+  }, []);
+
+  /** Cuộn qua mép bản giữa → dời scrollLeft đúng 1 bản (liền mạch vì trùng nội dung). */
+  const normalizeTickerLoop = useCallback(() => {
+    const el = tickerScrollRef.current;
+    const oneSet = tickerSetWidthRef.current;
+    if (!el || !tickerLoopRef.current || oneSet <= 0) return;
+    if (el.scrollLeft >= oneSet * 2) {
+      el.scrollLeft -= oneSet;
+      const drag = tickerDragRef.current;
+      if (drag) drag.startScroll -= oneSet;
+    } else if (el.scrollLeft < oneSet) {
+      el.scrollLeft += oneSet;
+      const drag = tickerDragRef.current;
+      if (drag) drag.startScroll += oneSet;
+    }
   }, []);
 
   const onTickerPointerDown = useCallback(
@@ -148,9 +198,10 @@ export function ShopKioskBlock({
       }
 
       el.scrollLeft = drag.startScroll - dx;
+      normalizeTickerLoop();
       e.preventDefault();
     },
-    [],
+    [normalizeTickerLoop],
   );
 
   const finishTickerDrag = useCallback(
@@ -361,10 +412,19 @@ export function ShopKioskBlock({
     }
   }, [hangItems]);
 
-  /* Canh giữa strip mỗi khi danh sách hàng đổi. */
+  /* Đo lại dải hàng mỗi khi danh sách đổi hoặc bật/tắt loop. */
   useLayoutEffect(() => {
-    centerTicker();
-  }, [items, centerTicker]);
+    measureTicker();
+  }, [items, tickerLoop, measureTicker]);
+
+  /* Khung đổi kích thước (resize / layout) → đo lại để bật/tắt loop cho đúng. */
+  useEffect(() => {
+    const el = tickerScrollRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => measureTicker());
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [measureTicker]);
 
   /* Dọn timer debounce khi unmount. */
   useEffect(() => {
@@ -799,36 +859,45 @@ export function ShopKioskBlock({
             onPointerCancel={finishTickerDrag}
             onLostPointerCapture={onTickerLostPointerCapture}
             onClickCapture={onTickerClickCapture}
+            onScroll={normalizeTickerLoop}
           >
-            <div className="shop-kiosk-ticker-track">
-              {items.map((it, i) =>
-                it.anhUrl ? (
-                  <button
-                    key={`${it.id}-${i}`}
-                    type="button"
-                    className="shop-kiosk-ticker-thumb-btn"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setPreview({ src: it.anhUrl!, name: it.tenSanPham });
-                    }}
-                    aria-label={`Xem ảnh ${it.tenSanPham}`}
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={it.anhUrl}
-                      alt=""
-                      className="shop-kiosk-ticker-thumb"
-                      draggable={false}
-                    />
-                  </button>
-                ) : (
-                  <span
-                    key={`${it.id}-${i}`}
-                    className="shop-kiosk-ticker-thumb shop-kiosk-ticker-thumb--empty"
-                    aria-hidden
-                  />
-                ),
+            <div ref={tickerTrackRef} className="shop-kiosk-ticker-track">
+              {Array.from({ length: tickerLoop ? TICKER_COPIES : 1 }).flatMap(
+                (_, copy) =>
+                  items.map((it, i) => {
+                    /* Bản nhân đôi (copy > 0) ẩn với trợ năng, khỏi lặp tab/đọc. */
+                    const dup = copy > 0;
+                    const key = `${it.id}-${copy}-${i}`;
+                    return it.anhUrl ? (
+                      <button
+                        key={key}
+                        type="button"
+                        className="shop-kiosk-ticker-thumb-btn"
+                        tabIndex={dup ? -1 : undefined}
+                        aria-hidden={dup || undefined}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setPreview({ src: it.anhUrl!, name: it.tenSanPham });
+                        }}
+                        aria-label={`Xem ảnh ${it.tenSanPham}`}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={it.anhUrl}
+                          alt=""
+                          className="shop-kiosk-ticker-thumb"
+                          draggable={false}
+                        />
+                      </button>
+                    ) : (
+                      <span
+                        key={key}
+                        className="shop-kiosk-ticker-thumb shop-kiosk-ticker-thumb--empty"
+                        aria-hidden
+                      />
+                    );
+                  }),
               )}
             </div>
           </div>
