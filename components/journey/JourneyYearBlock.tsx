@@ -197,13 +197,14 @@ function resolveEntityCardContext(params: {
   }
 
   const slug = m.lensOwnerSlug ?? m.postOwnerSlug ?? "";
+  const ownerId = m.lensOwnerId ?? m.postOwnerId ?? null;
   return {
     isOwner:
       viewerProfileId != null &&
-      m.lensOwnerId != null &&
-      viewerProfileId === m.lensOwnerId,
+      ownerId != null &&
+      viewerProfileId === ownerId,
     ownerSlug: slug,
-    ownerProfileId: m.lensOwnerId ?? undefined,
+    ownerProfileId: ownerId ?? undefined,
     authorAvatarUrl: m.lensOwnerAvatarUrl ?? null,
     authorName: m.lensOwnerName ?? null,
     keyOwnerSlug: slug,

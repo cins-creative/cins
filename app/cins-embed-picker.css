@@ -405,7 +405,33 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
+  flex: 1 1 auto;
   min-width: 0;
+}
+
+.ed-embed-compose-tab-clear {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin: 0 -4px 0 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink-muted, #6b7280);
+  cursor: pointer;
+}
+
+.ed-embed-compose-tab-clear:hover {
+  background: rgba(15, 23, 42, 0.06);
+  color: var(--ink-display, #111827);
+}
+
+.ed-embed-compose-tab-clear:focus-visible {
+  outline: 2px solid var(--cins-blue, #2563eb);
+  outline-offset: 1px;
 }
 
 .ed-embed-compose-tab-label {

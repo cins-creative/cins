@@ -32,7 +32,10 @@ import { JourneyAuthorRowFriendAction } from "@/components/journey/JourneyAuthor
 import { JourneyOwnCoAuthorRoleEditor } from "@/components/journey/JourneyOwnCoAuthorRoleEditor";
 import { JourneyBookmarkListingCard } from "@/components/journey/JourneyBookmarkListingCard";
 import { JourneyMilestoneCardBodyContent } from "@/components/journey/JourneyMilestoneCardBodyContent";
-import { setShareDragData } from "@/lib/cins/share-drag";
+import {
+  setScaledShareDragImage,
+  setShareDragData,
+} from "@/lib/cins/share-drag";
 import { useCoarsePointer } from "@/lib/ui/use-coarse-pointer";
 import { JourneyMilestoneUnfold } from "@/components/journey/JourneyMilestoneUnfold";
 import { JourneyUnfoldArticleContent } from "@/components/journey/JourneyUnfoldArticleContent";
@@ -1596,11 +1599,12 @@ export function JourneyMilestoneCard({
           url: window.location.origin + viewerPostHref,
           title,
         });
-        // Ghost gọn: kéo theo thanh datebar thay vì snapshot cả card.
-        const bar = target.closest(".jcard-datebar");
-        if (bar instanceof HTMLElement) {
-          e.dataTransfer.setDragImage(bar, 24, 24);
-        }
+        // Ghost = cả bài scale nhỏ — tránh snapshot full-size che feed/inbox.
+        setScaledShareDragImage(e.dataTransfer, e.currentTarget);
+        e.currentTarget.classList.add("is-share-dragging");
+      }}
+      onDragEnd={(e) => {
+        e.currentTarget.classList.remove("is-share-dragging");
       }}
     >
       <div className="j-m-body-wrap">
@@ -2340,10 +2344,12 @@ export function JourneyMilestoneCard({
                   : "overlay"
               }
               canEditChiChuNen={
-                canManageSelf &&
-                variant === "self" &&
+                /* Theo tác giả bài (`postOwnerId`), không theo `canManageSelf`
+                   (World feed / khung cộng đồng dễ mất ownerSlug → ẩn picker). */
                 cardContentKind === "text" &&
-                Boolean(tacPhamId)
+                Boolean(tacPhamId) &&
+                Boolean(viewerProfileId) &&
+                viewerProfileId === postOwnerId
               }
               tacPhamId={tacPhamId}
               chiChuExpanded={

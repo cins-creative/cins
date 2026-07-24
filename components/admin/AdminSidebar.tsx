@@ -23,6 +23,7 @@ const NAV = [
   { href: "/admin/nguoi-dung", label: "Người dùng", icon: "users" },
   { section: "Hệ thống" },
   { href: "/admin/linh-vuc", label: "Lĩnh vực", icon: "grid" },
+  { href: "/admin/schema", label: "Schema DB", icon: "sql" },
   { href: "/admin/analytics", label: "Analytics", icon: "chart" },
 ] as const;
 

@@ -20,7 +20,7 @@
 | O9 | Reviews / đánh giá khóa học | **Defer** | Khi nhu cầu social proof vượt "tác phẩm verified + số học viên hoàn thành". Cân nhắc *pull external* (Google reviews) thay vì tự xây hệ sao. Phản vanity → thận trọng. |
 | O10 | Gom nhiều khóa → "Chương trình học" (lộ trình 6–12 tháng, kiểu Keyframe CTH) | **Defer cứng** | Khi có org thật cần track dài hạn nhiều khóa nối tiếp. Sine Art không cần (dạy theo môn rời). |
 | O11 | `org_giao_trinh.loai` (phân loại bài: bắt buộc / tùy chọn / project) | **Defer** | Khi org thật yêu cầu phân loại bài trong lộ trình; hiện `mo_ta_chi_tiet` + `thu_tu` + `so_buoi` đủ. |
-| O12 | Học phí theo gói tháng (1/2/3/6) cho mô hình liên tục | **Defer** | `org_khoa_hoc.hoc_phi` đọc là giá/tháng ở MVP. Thêm bảng giá bundle khi có nhu cầu thật. |
+| O12 | Học phí theo gói tháng (1/2/3/6) cho mô hình liên tục | **Mở lại — thiết kế** (L34): catalog `org_goi_hoc_phi` (tháng/khóa); **bỏ gói theo buổi** phase này; entitlement = **ngày lịch** | Chốt cột bảng mới + ALTER (nếu có) trước migration; đóng khi seed gói Sine Art chạy được. |
 | O15 | Tỉ lệ chèn bài org chưa-follow vào feed giữa + có nên chèn không? | **Tạm 1 org / 10 người, tối đa 1 bài/org, gắn nhãn "Gợi ý", không engagement-sort** (L21 #3) | Khi đo được feed thật: org-post có bị bỏ qua / báo phiền không. Có thể hạ về 0 (chỉ giữ kênh gợi ý + attribution) nếu chèn feed gây loãng. Chốt trước khi scale ngoài cohort đầu. |
 | O16 | Dedupe phòng nhóm trùng tập thành viên | **Defer** — quản lý nhóm cơ bản + project workspace đã có (L25/L28) | Khi có báo cáo spam hoặc nhiều phòng trùng thành viên từ cohort thật. |
 | O17 | Nhắc mốc chat (`chat_moc`) — tin system trong phòng khi tạo / tới lúc nhắc / đến hạn; tick client + `POST /api/chat/mocs/tick` | **Partial** — chưa push/email ngoài app | Mở rộng push/email khi có worker ổn định. |
@@ -37,6 +37,29 @@
 ---
 
 ## LOG — quyết định đã chốt
+
+### L34 — CSĐT vận hành học (chat-first) + gate ALTER cột cũ (2026-07-24)
+
+- **Bối cảnh:** Hạ tầng học cho `co_so_dao_tao` (partner Sine Art): tư vấn `1_org` → đơn HP → phòng lớp cố định → freeze theo ngày → Journey verify sau đóng tiền; dashboard org (HV, thu tiền mặt/QR, điểm danh, doanh thu, chi nhánh). **Không** clone ERP Sine Art; **không** ghi học phí vào `shop_*`; **không** reuse `edu_*` (điểm xét tuyển ĐH).
+- **Luật làm việc (user chốt):** Mọi thay đổi đụng **cột/bảng đã có** (`ALTER TABLE`, đổi kiểu, rename, drop cột, đổi enum dùng chung, đổi FK/CHECK) → agent/dev **báo cáo lại user trước** → ghi vào inventory dưới đây → **chỉ chạy migration sau khi user xác nhận**. Tạo bảng mới vẫn cần brief, nhưng gate riêng cho sửa cột cũ chặt hơn. Rule code: `CINS_DEV_RULES.md` §1; router: `CINS_INSTRUCTION.md` luật 6.
+- **Chốt sản phẩm liên quan:** 1 phòng chat / lớp; kỳ = ngày lịch; freeze 00:00 hết ngày; HV freeze vẫn trong roster; VietQR + tiền mặt đều cộng ngày; verify “bắt đầu học” sau đóng tiền; Curator org = chỉ tab Bài đăng + comment-as-org (ACL app, không thêm enum bắt buộc); thông báo mở khóa = `org_bai_dang` + `loai=thong_bao`; bỏ gói theo buổi tạm thời.
+- **Bảng mới (dự kiến — chưa migration):** `org_chi_nhanh`, `org_goi_hoc_phi`, `org_don_hoc_phi`, `org_ky_hoc`, `org_tien_do_bai`, `org_nop_bai`, `org_diem_danh`. (Chi tiết cột chốt khi soạn SQL.)
+- **Không tính là ALTER cột:** ghi key vào `org_to_chuc.cau_hinh` jsonb hiện có (VD `thanh_toan`); quy ước dùng cột `chat_phong` đã có (`loai_phong='lop_hoc'`, `id_context` = id lớp).
+
+#### Inventory ALTER đề xuất — **CHƯA CHẠY** (chờ user duyệt từng dòng)
+
+| # | Bảng | Thay đổi | Kiểu / FK gợi ý | Nullable | Lý do | Ảnh hưởng dữ liệu cũ | Trạng thái |
+|---|---|---|---|---|---|---|---|
+| A1 | `org_lop_hoc` | Thêm `id_chat_phong` | `uuid` → `chat_phong.id` | YES | 1 lớp = 1 phòng chat cố định | Row cũ = NULL đến khi backfill / tạo phòng | **Chờ duyệt** |
+| A2 | `org_lop_hoc` | Thêm `id_chi_nhanh` | `uuid` → `org_chi_nhanh.id` (sau khi có bảng) | YES | Lọc HV / doanh thu / lớp theo chi nhánh | Row cũ = NULL | **Chờ duyệt** (phụ thuộc bảng mới) |
+| A3 | `org_lop_hoc` | Thêm `meeting_url` | `text` | YES | Link Meet mặc định lớp (card chat có thể override) | Row cũ = NULL | **Chờ duyệt** — có thể bỏ nếu chỉ lưu link trong tin Meet |
+| A4 | `user_hoc_vien_lop` | *(không ALTER nếu dùng `org_tien_do_bai`)* | — | — | Tiến độ bài tách bảng mới | — | **Ưu tiên không ALTER**; chỉ đề xuất cột nếu sau này bỏ bảng tiến độ |
+| A5 | Enum `loai_mo_hinh_khoa_enum` | **Không** thêm giá trị “theo buổi” | — | — | Phase này bỏ gói buổi | — | **Không đổi** |
+| A6 | Enum `loai_tin_nhan_enum` / `vai_tro_to_chuc_enum` | **Không** bắt buộc đổi phase 1 | Card qua `ngu_canh` jsonb; Curator = ACL trên vai sẵn có | — | Tránh phá client cũ | — | **Không đổi** trừ khi user duyệt riêng |
+
+> Khi user duyệt một dòng → đổi **Trạng thái** thành `Đã duyệt YYYY-MM-DD` rồi mới viết/chạy file migration. Khi đã apply trên DB → `Đã chạy` + tên file SQL. Mọi ALTER phát sinh thêm ngoài bảng này → **thêm dòng mới vào inventory trước**, không lén vào migration khác.
+
+- *Hệ quả file:* DEV_RULES §1 (gate ALTER); INSTRUCTION luật 6; brief build [`cursor_brief_csdt_van_hanh_hoc.md`](./cursor_brief_csdt_van_hanh_hoc.md); FOUNDATIONS §O “không LMS” sẽ cập nhật riêng khi chốt wording “LMS mỏng chat-first” (chưa sửa trong L34).
 
 ### Shop — import Shopee vào kho (2026-07-22)
 

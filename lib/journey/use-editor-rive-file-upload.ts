@@ -78,11 +78,22 @@ export function useEditorRiveFileUpload() {
     }
   }, []);
 
+  const clearRiveUpload = useCallback(() => {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    uploadSeqRef.current += 1;
+    setRiveAssetUrl("");
+    setRiveUploading(false);
+    setRiveUploadError(null);
+    setRiveUploadProgress(0);
+  }, []);
+
   return {
     riveAssetUrl,
     riveUploading,
     riveUploadError,
     riveUploadProgress,
     uploadRiveFile,
+    clearRiveUpload,
   };
 }

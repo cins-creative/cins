@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
+import { Loader2, X } from "lucide-react";
 import { createElement, useEffect, useMemo, useState } from "react";
 
 import { ensureDotLottieWc } from "@/lib/cins/lottie-runtime";
@@ -14,6 +14,8 @@ type Props = {
   uploading?: boolean;
   uploadError?: string | null;
   uploadedUrl?: string;
+  /** Xóa nền tảng nhúng — quay về toolbar compose mặc định. */
+  onClear?: () => void;
 };
 
 export function EditorLottieFileEmbedPanel({
@@ -22,6 +24,7 @@ export function EditorLottieFileEmbedPanel({
   uploading = false,
   uploadError = null,
   uploadedUrl = "",
+  onClear,
 }: Props) {
   const [playerReady, setPlayerReady] = useState(false);
 
@@ -85,6 +88,17 @@ export function EditorLottieFileEmbedPanel({
             File .lottie — lưu trên Cloudflare R2
           </span>
         </span>
+        {onClear ? (
+          <button
+            type="button"
+            className="ed-embed-compose-tab-clear"
+            onClick={onClear}
+            aria-label="Xóa nền tảng nhúng"
+            title="Xóa nền tảng nhúng"
+          >
+            <X size={16} strokeWidth={2} aria-hidden />
+          </button>
+        ) : null}
       </div>
       <div className="ed-embed-compose-field">
         <span className="ed-embed-compose-field-label">File đã chọn</span>

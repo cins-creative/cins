@@ -13,6 +13,7 @@ import { chiChuBodyPlain } from "@/lib/journey/post-media";
 import {
   splitChiChuParagraphs,
   chiChuNeedsCollapse,
+  type ChiChuNenId,
 } from "@/lib/journey/plain-text-bg";
 
 type ExpandTriggerProps = {
@@ -31,6 +32,12 @@ type Props = {
   expandTrigger?: ExpandTriggerProps;
   unfold?: ReactNode;
   onCollapse?: () => void;
+  /** Tác giả bài — quyền đổi màu (picker có thể render ngoài). */
+  canEditChiChuNen?: boolean;
+  tacPhamId?: string | null;
+  chiChuNenPickerPlacement?: "in-body" | "none";
+  chiChuNen?: ChiChuNenId;
+  onChiChuNenChange?: (nen: ChiChuNenId) => void;
 };
 
 export function CongDongFeedPostContent({
@@ -41,6 +48,11 @@ export function CongDongFeedPostContent({
   expandTrigger,
   unfold,
   onCollapse,
+  canEditChiChuNen = false,
+  tacPhamId = null,
+  chiChuNenPickerPlacement = "in-body",
+  chiChuNen,
+  onChiChuNenChange,
 }: Props) {
   if (journeyMirror) {
     return (
@@ -49,6 +61,11 @@ export function CongDongFeedPostContent({
         expandTrigger={expandTrigger}
         unfold={unfold}
         onCollapse={onCollapse}
+        canEditChiChuNen={canEditChiChuNen}
+        tacPhamId={tacPhamId ?? journeyMirror.tacPhamId}
+        chiChuNenPickerPlacement={chiChuNenPickerPlacement}
+        chiChuNen={chiChuNen}
+        onChiChuNenChange={onChiChuNenChange}
       />
     );
   }
@@ -94,11 +111,21 @@ function JourneyMirrorBody({
   expandTrigger,
   unfold,
   onCollapse,
+  canEditChiChuNen = false,
+  tacPhamId = null,
+  chiChuNenPickerPlacement = "in-body",
+  chiChuNen,
+  onChiChuNenChange,
 }: {
   mirror: CongDongJourneyMirror;
   expandTrigger?: ExpandTriggerProps;
   unfold?: ReactNode;
   onCollapse?: () => void;
+  canEditChiChuNen?: boolean;
+  tacPhamId?: string | null;
+  chiChuNenPickerPlacement?: "in-body" | "none";
+  chiChuNen?: ChiChuNenId;
+  onChiChuNenChange?: (nen: ChiChuNenId) => void;
 }) {
   const blocks = mirror.noiDungBlocks;
   const hasCoverPreview = Boolean(mirror.previewMedia?.src);
@@ -176,6 +203,13 @@ function JourneyMirrorBody({
           captionExpandMode={
             cardKind === "photo" || cardKind === "video" ? "inline" : "overlay"
           }
+          canEditChiChuNen={
+            canEditChiChuNen && cardKind === "text" && Boolean(tacPhamId)
+          }
+          chiChuNenPickerPlacement={chiChuNenPickerPlacement}
+          chiChuNen={chiChuNen}
+          onChiChuNenChange={onChiChuNenChange}
+          tacPhamId={tacPhamId ?? undefined}
           chiChuExpanded={
             chiChuCollapsible ? chiChuExpanded : undefined
           }

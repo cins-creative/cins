@@ -1323,6 +1323,7 @@ export function EditorView({
     riveUploading,
     riveUploadError,
     uploadRiveFile,
+    clearRiveUpload,
   } = useEditorRiveFileUpload();
 
   const {
@@ -1330,6 +1331,7 @@ export function EditorView({
     lottieUploading,
     lottieUploadError,
     uploadLottieFile,
+    clearLottieUpload,
   } = useEditorLottieFileUpload();
 
   const initialRiveStartedRef = useRef(false);
@@ -2560,13 +2562,27 @@ export function EditorView({
 
   useEffect(() => {
     if (!riveAssetUrl) return;
+    if (!isRiveFileEmbedComposeIntent) return;
     ensureEmbedBlock(riveAssetUrl);
-  }, [riveAssetUrl, ensureEmbedBlock]);
+  }, [riveAssetUrl, ensureEmbedBlock, isRiveFileEmbedComposeIntent]);
 
   useEffect(() => {
     if (!lottieAssetUrl) return;
+    if (!isLottieFileEmbedComposeIntent) return;
     ensureEmbedBlock(lottieAssetUrl);
-  }, [lottieAssetUrl, ensureEmbedBlock]);
+  }, [lottieAssetUrl, ensureEmbedBlock, isLottieFileEmbedComposeIntent]);
+
+  const clearExternalEmbedCompose = useCallback(() => {
+    pushHistory();
+    setEmbedPlatform(undefined);
+    setRiveSource("url");
+    setPickedRiveFile(undefined);
+    setPickedLottieFile(undefined);
+    clearRiveUpload();
+    clearLottieUpload();
+    embedBlockIdRef.current = null;
+    setBlocks((prev) => prev.filter((b) => b.t !== "embed"));
+  }, [pushHistory, clearRiveUpload, clearLottieUpload]);
 
   const beginEmbedFromPicker = useCallback(
     (selection: EmbedPlatformPickerSelection) => {
@@ -3832,6 +3848,7 @@ export function EditorView({
                     uploading={riveUploading}
                     uploadError={riveUploadError}
                     uploadedUrl={riveAssetUrl}
+                    onClear={clearExternalEmbedCompose}
                   />
                 ) : isLottieFileEmbedCompose ? (
                   <EditorLottieFileEmbedPanel
@@ -3840,6 +3857,7 @@ export function EditorView({
                     uploading={lottieUploading}
                     uploadError={lottieUploadError}
                     uploadedUrl={lottieAssetUrl}
+                    onClear={clearExternalEmbedCompose}
                   />
                 ) : (
                   <EditorExternalEmbedPanel
@@ -3848,6 +3866,7 @@ export function EditorView({
                     onChangeEmbedUrl={(url) => {
                       ensureEmbedBlock(url);
                     }}
+                    onClear={clearExternalEmbedCompose}
                   />
                 )}
               </>

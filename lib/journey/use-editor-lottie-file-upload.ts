@@ -82,11 +82,22 @@ export function useEditorLottieFileUpload() {
     }
   }, []);
 
+  const clearLottieUpload = useCallback(() => {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    uploadSeqRef.current += 1;
+    setLottieAssetUrl("");
+    setLottieUploading(false);
+    setLottieUploadError(null);
+    setLottieUploadProgress(0);
+  }, []);
+
   return {
     lottieAssetUrl,
     lottieUploading,
     lottieUploadError,
     lottieUploadProgress,
     uploadLottieFile,
+    clearLottieUpload,
   };
 }

@@ -43,6 +43,7 @@ const ChatCanvasBoard = dynamic(
 );
 
 import { ChatCreateGroupModal } from "@/components/cins/ChatCreateGroupModal";
+import { ChatForwardPicker } from "@/components/cins/ChatForwardPicker";
 import { ChatGroupMembersPopover } from "@/components/cins/ChatGroupMembersPopover";
 import {
   ChatAtMentionMenu,
@@ -821,6 +822,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
   const [composeToolsOpen, setComposeToolsOpen] = useState(false);
   const [mocFormOpenKey, setMocFormOpenKey] = useState(0);
   const [replyTarget, setReplyTarget] = useState<ChatMessage | null>(null);
+  const [forwardTarget, setForwardTarget] = useState<ChatMessage | null>(null);
   const [stickerPickerOpen, setStickerPickerOpen] = useState(false);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editingDraft, setEditingDraft] = useState("");
@@ -1681,7 +1683,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     };
   }, [shareDropMode]);
 
-  /** Share-drop: thu hẹp shell + rail full-height; gỡ khi hết kéo. */
+  /** Share-drop: rail fixed (không reflow shell); gỡ class khi hết kéo. */
   useEffect(() => {
     if (!shareDropMode) return;
     const root = document.documentElement;
@@ -2564,6 +2566,9 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
           );
         });
       },
+      onForward: (msg) => {
+        setForwardTarget(msg);
+      },
     }),
     [active, patchActiveThreadMessages, pinnedByRoom, refreshPinnedForRoom],
   );
@@ -3181,6 +3186,33 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                   <Plus size={22} strokeWidth={2} aria-hidden />
                 </button>
               ) : null}
+              <button
+                type="button"
+                className={`cins-chat-icon-btn${chatFullscreen ? " is-active" : ""}`}
+                aria-label={
+                  chatFullscreen
+                    ? "Thu nhỏ bảng chat"
+                    : "Toàn màn hình bảng chat"
+                }
+                title={
+                  chatFullscreen
+                    ? "Thu nhỏ bảng chat"
+                    : "Toàn màn hình bảng chat"
+                }
+                aria-pressed={chatFullscreen}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setChatFullscreen((v) => !v);
+                }}
+                onMouseDown={(e) => e.stopPropagation()}
+              >
+                {chatFullscreen ? (
+                  <Minimize2 size={16} strokeWidth={1.8} aria-hidden />
+                ) : (
+                  <Maximize2 size={16} strokeWidth={1.8} aria-hidden />
+                )}
+              </button>
             </div>
           </header>
 
@@ -3465,33 +3497,6 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                   />
                 </button>
               ) : null}
-              <button
-                type="button"
-                className={`cins-chat-icon-btn${chatFullscreen ? " is-active" : ""}`}
-                aria-label={
-                  chatFullscreen
-                    ? "Thu nhỏ bảng chat"
-                    : "Toàn màn hình bảng chat"
-                }
-                title={
-                  chatFullscreen
-                    ? "Thu nhỏ bảng chat"
-                    : "Toàn màn hình bảng chat"
-                }
-                aria-pressed={chatFullscreen}
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setChatFullscreen((v) => !v);
-                }}
-                onMouseDown={(e) => e.stopPropagation()}
-              >
-                {chatFullscreen ? (
-                  <Minimize2 size={16} strokeWidth={1.8} aria-hidden />
-                ) : (
-                  <Maximize2 size={16} strokeWidth={1.8} aria-hidden />
-                )}
-              </button>
               <button
                 type="button"
                 className={`cins-chat-icon-btn${sidePanel ? " is-active" : ""}`}
@@ -4011,6 +4016,50 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
         onClose={() => setGroupModalOpen(false)}
         onCreated={handleGroupCreated}
       />
+
+      {forwardTarget ? (
+        <ChatForwardPicker
+          message={forwardTarget}
+          excludeRoomId={active?.roomId}
+          onClose={() => setForwardTarget(null)}
+          onError={(error) => setLoadError(error)}
+          onDone={(thread, messages) => {
+            const last = messages.at(-1);
+            setThreads((prev) => {
+              const existing = prev.find((t) => t.roomId === thread.roomId);
+              const base = existing?.messages ?? thread.messages ?? [];
+              const ids = new Set(base.map((m) => m.id));
+              const added = messages.filter((m) => !ids.has(m.id));
+              const mergedMessages =
+                added.length > 0 ? [...base, ...added] : base;
+              const updated: ChatThread = {
+                ...(existing ?? thread),
+                messages: mergedMessages,
+                preview: last
+                  ? messagePreviewText(last)
+                  : (existing ?? thread).preview,
+                lastAt: last?.sentAt ?? (existing ?? thread).lastAt,
+              };
+              if (viewerProfileId) {
+                writeRoomMessagesCache(
+                  viewerProfileId,
+                  thread.roomId,
+                  mergedMessages,
+                );
+              }
+              queueMicrotask(() => {
+                selectThread(updated);
+              });
+              if (!existing) {
+                return mergeLaunchThread(prev, updated);
+              }
+              return prev.map((t) =>
+                t.roomId === thread.roomId ? updated : t,
+              );
+            });
+          }}
+        />
+      ) : null}
 
       <ChatRenameGroupModal
         open={Boolean(renameGroupThread)}

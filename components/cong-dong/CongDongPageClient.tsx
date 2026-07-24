@@ -42,6 +42,7 @@ import { CongDongFilterChip } from "@/components/cong-dong/CongDongFilterChip";
 import { CongDongPostFilterChips } from "@/components/cong-dong/CongDongPostFilterChips";
 import { CongDongPostMenu } from "@/components/cong-dong/CongDongPostMenu";
 import { JourneyArticleTagManager } from "@/components/journey/JourneyArticleTagManager";
+import { JourneyChiChuNenPicker } from "@/components/journey/JourneyChiChuNenPicker";
 import { JourneyMilestoneUnfold } from "@/components/journey/JourneyMilestoneUnfold";
 import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
 import { JourneyPostCommentsBlock } from "@/components/journey/JourneyPostBody";
@@ -71,8 +72,15 @@ import type {
   CongDongPageData,
   CongDongPost,
 } from "@/lib/cong-dong/types";
-import { isMilestoneArticleCard } from "@/lib/journey/milestone-card-kind";
+import {
+  isMilestoneArticleCard,
+  milestoneCardContentKind,
+} from "@/lib/journey/milestone-card-kind";
 import { articleCardHasExpandableContent } from "@/lib/journey/post-media";
+import {
+  resolveChiChuNen,
+  type ChiChuNenId,
+} from "@/lib/journey/plain-text-bg";
 import type { MilestonePostComment } from "@/lib/journey/milestone-post-types";
 import { getAvatarUrl } from "@/lib/journey/profile";
 import {
@@ -1095,6 +1103,34 @@ function CongDongJourneyPostCard({
       mirror?.moTa,
     ) &&
     articleCardHasExpandableContent(mirror?.moTa, mirror?.noiDungBlocks);
+  const isTextMirror =
+    Boolean(mirror) &&
+    milestoneCardContentKind(
+      mirror?.noiDungBlocks,
+      Boolean(mirror?.previewMedia?.src),
+      mirror?.moTa,
+    ) === "text";
+  const canEditChiChuNen =
+    isTextMirror &&
+    Boolean(mirror?.tacPhamId) &&
+    Boolean(viewerId) &&
+    viewerId === post.author.id;
+  const chiChuSeed =
+    (mirror?.tieuDe || "").trim() ||
+    (mirror?.moTa || "").trim() ||
+    mirror?.tacPhamId ||
+    "cins-chi-chu";
+  const [chiChuNen, setChiChuNen] = useState<ChiChuNenId>(() =>
+    resolveChiChuNen(mirror?.noiDungBlocks, chiChuSeed),
+  );
+
+  useEffect(() => {
+    if (!isTextMirror || !mirror?.tacPhamId) return;
+    setChiChuNen(resolveChiChuNen(mirror.noiDungBlocks, chiChuSeed));
+    // Chỉ theo identity bài — không ghi đè khi đang chọn màu local.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- seed/blocks đổi khi gõ title không reset màu
+  }, [isTextMirror, mirror?.tacPhamId]);
+
   const postOwnerSlug = mirror?.ownerSlug || post.author.slug;
   const postSlug = mirror?.postSlug || null;
   const cardTitle =
@@ -1116,7 +1152,7 @@ function CongDongJourneyPostCard({
     const target = e.target as Element;
     if (
       target?.closest(
-        "a, button, input, textarea, select, summary, .j-m-menu, .authors-details, .image-grid-cell, .jcard-video-trigger, .jcard-actions, .cd-v4-jcard-filter-edit, .cd-v4-post-menu-wrap",
+        "a, button, input, textarea, select, summary, .j-m-menu, .authors-details, .image-grid-cell, .jcard-video-trigger, .jcard-actions, .cd-v4-jcard-filter-edit, .cd-v4-post-menu-wrap, .jcard-chi-chu-nen-wrap, .cd-v4-jcard-nen-bar",
       )
     ) {
       return;
@@ -1130,7 +1166,7 @@ function CongDongJourneyPostCard({
     const target = e.target as Element;
     if (
       target?.closest(
-        "a, button, input, textarea, select, summary, .j-m-menu, .authors-details, .image-grid-cell, .jcard-video-trigger, .jcard-actions, .cd-v4-jcard-filter-edit, .cd-v4-post-menu-wrap",
+        "a, button, input, textarea, select, summary, .j-m-menu, .authors-details, .image-grid-cell, .jcard-video-trigger, .jcard-actions, .cd-v4-jcard-filter-edit, .cd-v4-post-menu-wrap, .jcard-chi-chu-nen-wrap, .cd-v4-jcard-nen-bar",
       )
     ) {
       return;
@@ -1206,6 +1242,11 @@ function CongDongJourneyPostCard({
           fallbackTitle={post.tieuDe}
           fallbackBody={post.noiDung}
           fallbackMedia={post.media}
+          canEditChiChuNen={canEditChiChuNen}
+          tacPhamId={mirror?.tacPhamId ?? null}
+          chiChuNenPickerPlacement="none"
+          chiChuNen={canEditChiChuNen ? chiChuNen : undefined}
+          onChiChuNenChange={canEditChiChuNen ? setChiChuNen : undefined}
           expandTrigger={
             isArticleMirror
               ? contentOpen
@@ -1237,6 +1278,16 @@ function CongDongJourneyPostCard({
           }
         />
       </div>
+
+      {canEditChiChuNen && mirror?.tacPhamId ? (
+        <div className="cd-v4-jcard-nen-bar">
+          <JourneyChiChuNenPicker
+            tacPhamId={mirror.tacPhamId}
+            nen={chiChuNen}
+            onNenChange={setChiChuNen}
+          />
+        </div>
+      ) : null}
 
       <footer className="cd-v4-jcard-foot">
         <div className="cd-v4-jcard-act-group">

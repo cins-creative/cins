@@ -2106,7 +2106,7 @@
   height: 16px;
 }
 .cins-editor-page .b-spacer.m {
-  height: 36px;
+  height: 18px;
 }
 .cins-editor-page .b-spacer.l {
   height: 64px;
@@ -2393,7 +2393,7 @@
   display: block;
   transition: opacity 0.18s ease;
 }
-/* justified: ảnh phủ ô — bản đọc ghi đè contain (post-page / unfold). */
+/* justified: ảnh phủ ô (khớp hàng `.imgwrap-jrow`). */
 .cins-editor-page .imgwrap.justified .ph img {
   height: 100%;
   width: 100%;
@@ -5780,7 +5780,7 @@
   .j-m-unfold-post:not(.j-m-unfold-post--media)
   .blocks-readonly
   .b-spacer.m {
-  height: 27px;
+  height: 14px;
 }
 .cins-editor-page
   .ed-cp-journey-live

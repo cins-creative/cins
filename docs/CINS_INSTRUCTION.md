@@ -19,7 +19,7 @@ CINS = **mạng xã hội chuyên môn** cho ngành sáng tạo Việt Nam (Next
 
 Thứ tự ưu tiên khi xung đột: **DB thật (đọc trực tiếp) > CINS_FOUNDATIONS.md > các file khác**. Không bao giờ tin prose schema hơn DB.
 
-**Map chuyên sâu:** [`cursor_map_truong.md`](./cursor_map_truong.md) · [`cursor_brief_truong_trang_data_map.md`](./cursor_brief_truong_trang_data_map.md) *(bulk SQL field→UI, không tab Bài đăng)* · [`cursor_map_admin.md`](./cursor_map_admin.md) · [`cursor_map_inline_edit.md`](./cursor_map_inline_edit.md) · [`cursor_brief_dong_gop_noi_dung.md`](./cursor_brief_dong_gop_noi_dung.md) *(đóng góp canonical — session plan)* · [`cursor_brief_journey_blocks_css.md`](./cursor_brief_journey_blocks_css.md) *(block JSON + CSS render bài Journey)*
+**Map chuyên sâu:** [`cursor_map_truong.md`](./cursor_map_truong.md) · [`cursor_brief_truong_trang_data_map.md`](./cursor_brief_truong_trang_data_map.md) *(bulk SQL field→UI, không tab Bài đăng)* · [`cursor_map_admin.md`](./cursor_map_admin.md) · [`cursor_map_inline_edit.md`](./cursor_map_inline_edit.md) · [`cursor_brief_dong_gop_noi_dung.md`](./cursor_brief_dong_gop_noi_dung.md) *(đóng góp canonical — session plan)* · [`cursor_brief_journey_blocks_css.md`](./cursor_brief_journey_blocks_css.md) *(block JSON + CSS render bài Journey)* · [`cursor_brief_csdt_van_hanh_hoc.md`](./cursor_brief_csdt_van_hanh_hoc.md) *(CSĐT chat-first · L34)*
 
 ---
 
@@ -34,6 +34,8 @@ Thứ tự ưu tiên khi xung đột: **DB thật (đọc trực tiếp) > CINS_
 4. **Quy ước hội thoại** (đầy đủ ở FOUNDATIONS §6): confirm từng bước với quyết định có hệ quả lớn · "sao cũng được" = tự quyết · "khoan sửa" = defer · review 1 sample trước bulk · push back có reasoning · trả lời ngắn gọn.
 
 5. **Đọc DEV_RULES trước khi code** — security, performance, streaming, design tokens.
+
+6. **ALTER cột/bảng cũ:** mọi sửa schema trên bảng đã có → **báo cáo user trước** + ghi DECISIONS (inventory ALTER) → chỉ migration sau khi được xác nhận. Xem DEV_RULES §1 + DECISIONS **L34**.
 
 ---
 

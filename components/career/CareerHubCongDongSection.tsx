@@ -64,7 +64,7 @@ export function CareerHubCongDongSection({
                   )}
                 </span>
                 <span className="hn-cong-dong-meta">
-                  <strong className="hn-cong-dong-name">{org.ten}</strong>
+                  <span className="hn-cong-dong-name">{org.ten}</span>
                   <span className="hn-cong-dong-stat">
                     <Users size={13} strokeWidth={2} aria-hidden />
                     {formatMemberCount(org.soThanhVien)} thành viên

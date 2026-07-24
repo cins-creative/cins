@@ -41,6 +41,40 @@ function isSafeHttpUrl(href: string): boolean {
   }
 }
 
+/**
+ * Emoji / ZWJ / cờ / keycap — bọc `.mota-md-emoji` để không kế thừa
+ * alpha của `--ink-title` / `--ink-body` (Windows: glyph mờ).
+ */
+const MOTA_EMOJI_RE =
+  /(?:\p{Extended_Pictographic}(?:\uFE0F|\uFE0E)?(?:\u200D\p{Extended_Pictographic}(?:\uFE0F|\uFE0E)?)*)|\p{Regional_Indicator}{2}|[#*0-9]\uFE0F?\u20E3/gu;
+
+function splitEmojiToNodes(text: string, keyPrefix: string): ReactNode[] {
+  if (!text) return [];
+  const nodes: ReactNode[] = [];
+  const re = new RegExp(MOTA_EMOJI_RE.source, "gu");
+  let last = 0;
+  let m: RegExpExecArray | null;
+  let i = 0;
+
+  while ((m = re.exec(text)) !== null) {
+    if (m.index > last) {
+      nodes.push(text.slice(last, m.index));
+    }
+    nodes.push(
+      createElement(
+        "span",
+        { key: `${keyPrefix}-e${i++}`, className: "mota-md-emoji" },
+        m[0],
+      ),
+    );
+    last = m.index + m[0].length;
+  }
+
+  if (last < text.length) nodes.push(text.slice(last));
+  if (nodes.length === 0) nodes.push(text);
+  return nodes;
+}
+
 function linkifyToNodes(text: string, keyPrefix: string): ReactNode[] {
   const nodes: ReactNode[] = [];
   const re = new RegExp(MOTA_URL_RE.source, "gi");
@@ -52,7 +86,9 @@ function linkifyToNodes(text: string, keyPrefix: string): ReactNode[] {
     const raw = m[0]!;
     const { href, trailing } = splitTrailingUrlJunk(raw);
     if (m.index > last) {
-      nodes.push(text.slice(last, m.index));
+      nodes.push(
+        ...splitEmojiToNodes(text.slice(last, m.index), `${keyPrefix}-t${i}`),
+      );
     }
     if (href && isSafeHttpUrl(href)) {
       nodes.push(
@@ -68,15 +104,21 @@ function linkifyToNodes(text: string, keyPrefix: string): ReactNode[] {
           href,
         ),
       );
-      if (trailing) nodes.push(trailing);
+      if (trailing) {
+        nodes.push(...splitEmojiToNodes(trailing, `${keyPrefix}-tr${i}`));
+      }
     } else {
-      nodes.push(raw);
+      nodes.push(...splitEmojiToNodes(raw, `${keyPrefix}-raw${i++}`));
     }
     last = m.index + raw.length;
   }
 
-  if (last < text.length) nodes.push(text.slice(last));
-  if (nodes.length === 0 && text.length > 0) nodes.push(text);
+  if (last < text.length) {
+    nodes.push(...splitEmojiToNodes(text.slice(last), `${keyPrefix}-end`));
+  }
+  if (nodes.length === 0 && text.length > 0) {
+    nodes.push(...splitEmojiToNodes(text, `${keyPrefix}-all`));
+  }
   return nodes;
 }
 
@@ -144,7 +186,8 @@ function textToNodes(
   keyPrefix: string,
   linkify: boolean,
 ): ReactNode[] {
-  if (!linkify) return text ? [text] : [];
+  if (!text) return [];
+  if (!linkify) return splitEmojiToNodes(text, keyPrefix);
   return linkifyToNodes(text, keyPrefix);
 }
 

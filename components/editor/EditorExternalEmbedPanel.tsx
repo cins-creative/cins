@@ -17,6 +17,8 @@ type Props = {
   platform: Tier1EmbedPlatformId;
   embedUrl: string;
   onChangeEmbedUrl: (url: string) => void;
+  /** Xóa nền tảng nhúng — quay về toolbar compose mặc định. */
+  onClear?: () => void;
 };
 
 function SplinePlaySettingsGuideDialog({
@@ -153,6 +155,7 @@ export function EditorExternalEmbedPanel({
   platform,
   embedUrl,
   onChangeEmbedUrl,
+  onClear,
 }: Props) {
   const meta = getTier1EmbedPlatformMeta(platform);
   const trimmed = embedUrl.trim();
@@ -181,6 +184,17 @@ export function EditorExternalEmbedPanel({
           <span className="ed-embed-compose-tab-label">{meta.label}</span>
           <span className="ed-embed-compose-tab-hint">{meta.hint}</span>
         </span>
+        {onClear ? (
+          <button
+            type="button"
+            className="ed-embed-compose-tab-clear"
+            onClick={onClear}
+            aria-label="Xóa nền tảng nhúng"
+            title="Xóa nền tảng nhúng"
+          >
+            <X size={16} strokeWidth={2} aria-hidden />
+          </button>
+        ) : null}
       </div>
       <div className="ed-embed-compose-field">
         <div className="ed-embed-compose-field-label-row">

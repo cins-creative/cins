@@ -1,3 +1,24 @@
+/*
+ * Emoji trong caption/dek — không kế thừa rgba alpha của --ink-*
+ * (Windows: color emoji bị nhuộm/mờ). Khớp chat/reaction picker.
+ */
+span.mota-md-emoji {
+  font-family:
+    "Apple Color Emoji",
+    "Segoe UI Emoji",
+    "Noto Color Emoji",
+    emoji,
+    sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-variant-emoji: emoji;
+  line-height: 1;
+  opacity: 1;
+  filter: none;
+  -webkit-text-fill-color: initial;
+  color: inherit;
+}
+
 /* Autolink trong MoTaMarkdown — URL http(s) click được. */
 a.mota-md-a {
   color: var(--cins-blue, #1f74c9);
@@ -8,4 +29,41 @@ a.mota-md-a {
 
 a.mota-md-a:hover {
   color: var(--cins-blue-dark, #1656a0);
+}
+
+/*
+ * List styles — cần explicit vì parent caption hay dùng -webkit-box
+ * (line-clamp) làm mất marker / padding mặc định của ul/ol.
+ */
+ul.mota-md-ul,
+ol.mota-md-ol {
+  display: block;
+  margin: 0.4em 0 0.65em;
+  padding-left: 1.35em;
+}
+
+ul.mota-md-ul {
+  list-style: disc outside;
+}
+
+ol.mota-md-ol {
+  list-style: decimal outside;
+}
+
+ul.mota-md-ul > li,
+ol.mota-md-ol > li {
+  display: list-item;
+  margin: 0.15em 0;
+}
+
+span.mota-md-p {
+  display: block;
+}
+
+span.mota-md-p + span.mota-md-p,
+span.mota-md-p + ul.mota-md-ul,
+span.mota-md-p + ol.mota-md-ol,
+ul.mota-md-ul + span.mota-md-p,
+ol.mota-md-ol + span.mota-md-p {
+  margin-top: 0.65em;
 }

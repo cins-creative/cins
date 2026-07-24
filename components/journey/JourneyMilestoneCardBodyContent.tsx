@@ -81,6 +81,14 @@ type Props = {
   /** Chủ Journey — hiện nút chọn nền màu bài chỉ chữ. */
   canEditChiChuNen?: boolean;
   tacPhamId?: string | null;
+  /**
+   * `in-body` — strip sau panel chữ (timeline).
+   * `none` — parent tự render picker (vd. bar giữa body/foot cộng đồng).
+   */
+  chiChuNenPickerPlacement?: "in-body" | "none";
+  /** Controlled nền (khi picker ở ngoài BodyContent). */
+  chiChuNen?: ChiChuNenId;
+  onChiChuNenChange?: (nen: ChiChuNenId) => void;
   expandTrigger?: ExpandTriggerProps;
   /** Bài chỉ chữ — trạng thái mở rộng (controlled từ `JourneyMilestoneCard` / actions). */
   chiChuExpanded?: boolean;
@@ -101,7 +109,7 @@ type Props = {
 function shouldIgnoreBodyTrigger(target: Element | null): boolean {
   return Boolean(
     target?.closest(
-      "a, button, input, textarea, select, summary, .j-m-menu, .authors-details, .image-grid-cell, .jcard-video-trigger, .jcard-video-native, .jcard-video-root, .jcard-actions",
+      "a, button, input, textarea, select, summary, .j-m-menu, .authors-details, .image-grid-cell, .jcard-video-trigger, .jcard-video-native, .jcard-video-root, .jcard-actions, .jcard-chi-chu-nen-wrap",
     ),
   );
 }
@@ -116,6 +124,9 @@ export function JourneyMilestoneCardBodyContent({
   contentKind,
   canEditChiChuNen = false,
   tacPhamId = null,
+  chiChuNenPickerPlacement = "in-body",
+  chiChuNen: chiChuNenProp,
+  onChiChuNenChange,
   expandTrigger,
   chiChuExpanded: chiChuExpandedProp,
   onChiChuExpandedChange,
@@ -185,9 +196,20 @@ export function JourneyMilestoneCardBodyContent({
     title.trim() ||
     plainTextCardPlain(body, blocks) ||
     "cins-chi-chu";
-  const [chiChuNen, setChiChuNen] = useState<ChiChuNenId>(() =>
+  const [internalChiChuNen, setInternalChiChuNen] = useState<ChiChuNenId>(() =>
     resolveChiChuNen(blocks, chiChuSeed),
   );
+  const chiChuNenControlled = onChiChuNenChange !== undefined;
+  const chiChuNen = chiChuNenControlled
+    ? (chiChuNenProp ?? resolveChiChuNen(blocks, chiChuSeed))
+    : internalChiChuNen;
+  const setChiChuNen = chiChuNenControlled
+    ? onChiChuNenChange
+    : setInternalChiChuNen;
+  const showChiChuNenPicker =
+    canEditChiChuNen &&
+    Boolean(tacPhamId) &&
+    chiChuNenPickerPlacement === "in-body";
   const [internalChiChuExpanded, setInternalChiChuExpanded] = useState(false);
   const [captionExpanded, setCaptionExpanded] = useState(false);
   const chiChuExpandedControlled = onChiChuExpandedChange !== undefined;
@@ -200,14 +222,15 @@ export function JourneyMilestoneCardBodyContent({
 
   /* Nền đã chọn / đã lưu trong blocks. */
   useEffect(() => {
+    if (chiChuNenControlled) return;
     const fromBlocks = readChiChuNenFromBlocks(blocks);
-    if (fromBlocks != null) setChiChuNen(fromBlocks);
-  }, [blocks]);
+    if (fromBlocks != null) setInternalChiChuNen(fromBlocks);
+  }, [blocks, chiChuNenControlled]);
 
   /* Đổi bài trên timeline — resolve lại; compose (không tacPhamId) giữ sticky khi gõ. */
   useEffect(() => {
-    if (!tacPhamId) return;
-    setChiChuNen(
+    if (chiChuNenControlled || !tacPhamId) return;
+    setInternalChiChuNen(
       resolveChiChuNen(
         blocks,
         title.trim() ||
@@ -216,7 +239,7 @@ export function JourneyMilestoneCardBodyContent({
       ),
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps -- chỉ theo identity bài
-  }, [tacPhamId]);
+  }, [tacPhamId, chiChuNenControlled]);
 
   const chiChuCardText = useMemo(() => {
     if (!isTextCard) return null;
@@ -481,7 +504,7 @@ export function JourneyMilestoneCardBodyContent({
           {chiChuParagraphs.length > 0 ? (
             <div className="jcard-chi-chu-body">
               {chiChuParagraphs.map((para, idx) => (
-                <MoTaMarkdown key={idx} text={para} className="" />
+                <MoTaMarkdown key={idx} text={para} className="" as="div" />
               ))}
             </div>
           ) : emptyFallback ? (
@@ -495,9 +518,9 @@ export function JourneyMilestoneCardBodyContent({
           ) : null}
         </div>
 
-        {canEditChiChuNen && tacPhamId ? (
+        {showChiChuNenPicker ? (
           <JourneyChiChuNenPicker
-            tacPhamId={tacPhamId}
+            tacPhamId={tacPhamId!}
             nen={chiChuNen}
             onNenChange={setChiChuNen}
           />
@@ -593,7 +616,7 @@ export function JourneyMilestoneCardBodyContent({
                     onClick={expandCaption}
                     aria-label={`Xem thêm: ${stripMoTaMarkdown(cardCaption!).slice(0, 80)}`}
                   >
-                    Xem thêm
+                    ...Xem thêm
                   </button>
                 ) : null}
                 {isCaptionCollapsed && !captionExpandInline ? (

@@ -3,6 +3,7 @@
 import {
   CornerUpLeft,
   Copy,
+  Forward,
   Frame,
   MoreHorizontal,
   Pencil,
@@ -20,7 +21,12 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 
-import { CHAT_ACTION_WINDOW_MS, CHAT_REACTION_EMOJIS } from "@/lib/chat/constants";
+import { CHAT_REACTION_EMOJIS } from "@/lib/chat/constants";
+import { canForwardMessage } from "@/lib/chat/forward-message-client";
+import {
+  canEditMessage,
+  canRecallMessage,
+} from "@/lib/chat/message-action-capabilities";
 import { isOptimisticMessageId } from "@/lib/chat/optimistic-message";
 import type { ChatMessage } from "@/lib/chat/types";
 
@@ -31,28 +37,15 @@ export type ChatMessageActionHandlers = {
   onPin: (msg: ChatMessage, pinned: boolean) => void;
   onReaction: (msg: ChatMessage, emoji: string, active: boolean) => void;
   onAddToCanvas?: (msg: ChatMessage) => void;
+  onForward?: (msg: ChatMessage) => void;
 };
+
+export { canEditMessage, canRecallMessage };
 
 type Props = {
   msg: ChatMessage;
   handlers: ChatMessageActionHandlers;
 };
-
-/** Sửa nội dung — chỉ tin của mình trong cửa sổ thời gian. */
-function canEditMessage(msg: ChatMessage): boolean {
-  if (msg.from !== "me" || msg.deleted) return false;
-  if (isOptimisticMessageId(msg.id)) return false;
-  return Date.now() - new Date(msg.sentAt).getTime() <= CHAT_ACTION_WINDOW_MS;
-}
-
-/** Thu hồi — mọi tin của mình đã lưu server (soft-delete `da_xoa`). */
-function canRecallMessage(msg: ChatMessage): boolean {
-  return (
-    msg.from === "me" &&
-    !msg.deleted &&
-    !isOptimisticMessageId(msg.id)
-  );
-}
 
 /** Neo popup fixed trong visualViewport — tránh bị overflow chat cắt trên mobile. */
 function useFloatingPanel(
@@ -93,7 +86,9 @@ function useFloatingPanel(
     panel.style.right = "auto";
     panel.style.bottom = "auto";
     panel.style.transform = "none";
-    panel.style.zIndex = "12050";
+    panel.style.opacity = "1";
+    panel.style.filter = "none";
+    panel.style.zIndex = "13050";
   }, [align, anchorRef, panelRef]);
 
   useLayoutEffect(() => {
@@ -150,6 +145,7 @@ export function ChatMessageActions({ msg, handlers }: Props) {
 
   const editable = canEditMessage(msg);
   const recallable = canRecallMessage(msg);
+  const forwardable = canForwardMessage(msg) && Boolean(handlers.onForward);
   const isText = msg.kind !== "media" && !msg.imageId;
   const canAddToCanvas =
     Boolean(handlers.onAddToCanvas) &&
@@ -215,6 +211,23 @@ export function ChatMessageActions({ msg, handlers }: Props) {
               <Copy size={14} aria-hidden />
               Sao chép
             </button>
+            {forwardable ? (
+              <button
+                type="button"
+                role="menuitem"
+                onPointerDown={(e) => {
+                  if (e.button !== 0) return;
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handlers.onForward?.(msg);
+                  setOpen(false);
+                  setShowReact(false);
+                }}
+              >
+                <Forward size={14} aria-hidden />
+                Chuyển tiếp
+              </button>
+            ) : null}
             {editable && isText ? (
               <button
                 type="button"
@@ -251,7 +264,6 @@ export function ChatMessageActions({ msg, handlers }: Props) {
                 role="menuitem"
                 onPointerDown={(e) => {
                   if (e.button !== 0) return;
-                  // pointerdown — tránh mất click khi menu portal đóng giữa mousedown→click.
                   e.preventDefault();
                   e.stopPropagation();
                   handlers.onAddToCanvas?.(msg);

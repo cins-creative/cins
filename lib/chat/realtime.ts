@@ -3,7 +3,13 @@ import {
   chatImageDeliveryUrl,
   isCloudflareImageId,
 } from "@/lib/chat/image-url";
-import { parseChatCanvasBinhLuan, parseChatMocNhac, parseChatNguCanh, parseChatMessageMentions } from "@/lib/chat/message-perspective";
+import {
+  parseChatCanvasBinhLuan,
+  parseChatForwarded,
+  parseChatMocNhac,
+  parseChatNguCanh,
+  parseChatMessageMentions,
+} from "@/lib/chat/message-perspective";
 import { mentionsIncludeUser } from "@/lib/chat/mentions";
 import { isOptimisticAlbumMessage, isOptimisticMessageId } from "@/lib/chat/optimistic-message";
 
@@ -38,6 +44,7 @@ export function mapRealtimeRow(row: ChatRealtimeRow, viewerId: string): ChatMess
     canvasBinhLuan || mocNhac ? null : parseChatNguCanh(row.ngu_canh);
   const mentions =
     canvasBinhLuan || mocNhac ? [] : parseChatMessageMentions(row.ngu_canh);
+  const forwarded = parseChatForwarded(row.ngu_canh);
   const kind = canvasBinhLuan
     ? "canvas_binh_luan"
     : mocNhac
@@ -90,6 +97,7 @@ export function mapRealtimeRow(row: ChatRealtimeRow, viewerId: string): ChatMess
     poll: null,
     mocNhac,
     canvasBinhLuan,
+    forwarded: forwarded || undefined,
   };
 }
 

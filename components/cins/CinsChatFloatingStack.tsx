@@ -14,6 +14,7 @@ import {
 } from "react";
 
 import { useCinsChat } from "@/components/cins/CinsChatProvider";
+import { ChatForwardPicker } from "@/components/cins/ChatForwardPicker";
 import { ChatGroupAvatar } from "@/components/cins/ChatGroupAvatar";
 import type { ChatMessageActionHandlers } from "@/components/cins/ChatMessageActions";
 import { ChatMessageThreadItems } from "@/components/cins/ChatMessageThreadItems";
@@ -316,6 +317,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
   const [loadError, setLoadError] = useState<string | null>(null);
   const [stickerPickerOpen, setStickerPickerOpen] = useState(false);
   const [replyTarget, setReplyTarget] = useState<ChatMessage | null>(null);
+  const [forwardTarget, setForwardTarget] = useState<ChatMessage | null>(null);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editingDraft, setEditingDraft] = useState("");
   const dismissedPeekRef = useRef<Set<string>>(new Set());
@@ -626,6 +628,9 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
             tab: thread?.group,
           });
         });
+      },
+      onForward: (msg) => {
+        setForwardTarget(msg);
       },
     }),
     [openChat, patchActiveRoomMessages],
@@ -1480,6 +1485,48 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
     [scrollMessagesToBottom],
   );
 
+  const ingestForwardedMessages = useCallback(
+    (roomId: string, messages: ChatMessage[]) => {
+      if (messages.length === 0) return;
+      const last = messages[messages.length - 1]!;
+      setRoomStates((prev) => {
+        const current = prev[roomId] ?? {
+          messages: [],
+          hasMore: true,
+          hydrated: true,
+        };
+        const ids = new Set(current.messages.map((m) => m.id));
+        const added = messages.filter((m) => !ids.has(m.id));
+        const nextMessages =
+          added.length > 0
+            ? [...current.messages, ...added]
+            : current.messages;
+        if (viewerProfileId) {
+          writeRoomMessagesCache(viewerProfileId, roomId, nextMessages);
+        }
+        return {
+          ...prev,
+          [roomId]: {
+            ...current,
+            messages: nextMessages,
+            hydrated: true,
+          },
+        };
+      });
+      hydratedRoomsRef.current.add(roomId);
+      setMiniThread((prev) =>
+        prev && prev.roomId === roomId
+          ? {
+              ...prev,
+              preview: messagePreviewText(last),
+              lastAt: last.sentAt,
+            }
+          : prev,
+      );
+    },
+    [viewerProfileId],
+  );
+
   const submitRoomMessage = useCallback(
     async (roomId: string, payload: ChatSendPayload, optimisticId: string) => {
       try {
@@ -1821,6 +1868,26 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
             ]
               .filter(Boolean)
               .join(" ")}
+            role="button"
+            tabIndex={0}
+            aria-label={`Mở bảng tin nhắn với ${miniDisplayTitle}`}
+            title="Mở bảng tin nhắn"
+            onClick={() => {
+              void openChat({
+                thread: miniThread,
+                roomId: miniThread.roomId,
+                tab: miniThread.group,
+              });
+            }}
+            onKeyDown={(event) => {
+              if (event.key !== "Enter" && event.key !== " ") return;
+              event.preventDefault();
+              void openChat({
+                thread: miniThread,
+                roomId: miniThread.roomId,
+                tab: miniThread.group,
+              });
+            }}
           >
             <MiniAvatar
               thread={miniThread}
@@ -1831,7 +1898,11 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
               <strong>{miniDisplayTitle}</strong>
               <span>{miniThread.role || "Tin nhắn trực tiếp"}</span>
             </div>
-            <div className="j-chat-mini-actions">
+            <div
+              className="j-chat-mini-actions"
+              onClick={(event) => event.stopPropagation()}
+              onKeyDown={(event) => event.stopPropagation()}
+            >
               <button
                 type="button"
                 className="j-chat-mini-icon-btn"
@@ -2185,6 +2256,20 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
         ) : null}
         {launcher}
       </div>
+      {forwardTarget ? (
+        <ChatForwardPicker
+          message={forwardTarget}
+          excludeRoomId={miniRoomIdRef.current}
+          onClose={() => setForwardTarget(null)}
+          onError={(error) => setLoadError(error)}
+          onDone={(thread, messages) => {
+            ingestForwardedMessages(thread.roomId, messages);
+            openMini(thread);
+            shouldScrollToBottomRef.current = true;
+            scheduleScrollToBottom("smooth");
+          }}
+        />
+      ) : null}
     </>
   );
 }

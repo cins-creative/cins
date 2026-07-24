@@ -84,6 +84,12 @@ export function parseChatCanvasBinhLuan(
   };
 }
 
+/** Cờ tin chuyển tiếp — `ngu_canh.chuyenTiep` (không phải card ngữ cảnh). */
+export function parseChatForwarded(raw: unknown): boolean {
+  if (!raw || typeof raw !== "object") return false;
+  return (raw as Record<string, unknown>).chuyenTiep === true;
+}
+
 /** Chuẩn hoá `from` theo viewer — tránh bubble lệch khi cache/realtime lệch id. */
 export function applyChatViewerPerspective(
   messages: ChatMessage[],

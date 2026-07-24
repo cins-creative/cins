@@ -126,9 +126,24 @@ export function PostMetaRail({
       <span className="post-rail-author-copy">
         <span className="post-rail-author-top">
           <strong>{owner.tenHienThi}</strong>
-          <time className="post-rail-date" dateTime={milestone.thoiDiem}>
-            {dateLabel}
-          </time>
+          <span className="post-rail-author-sub">
+            <time className="post-rail-date" dateTime={milestone.thoiDiem}>
+              {dateLabel}
+            </time>
+            <span
+              className="post-rail-meta-icons"
+              aria-label={`${typeLabel} · ${vis.text}`}
+            >
+              <span className="post-rail-meta-ico" title={typeLabel}>
+                <TypeIcon size={12} strokeWidth={2} aria-hidden />
+                <span className="post-rail-meta-ico-label">{typeLabel}</span>
+              </span>
+              <span className="post-rail-meta-ico" title={vis.text}>
+                <vis.Icon size={12} strokeWidth={2} aria-hidden />
+                <span className="post-rail-meta-ico-label">{vis.text}</span>
+              </span>
+            </span>
+          </span>
         </span>
       </span>
     </>
@@ -173,16 +188,6 @@ export function PostMetaRail({
           ) : null}
         </div>
         <div className="post-rail-meta-row">
-          <div className="post-rail-meta-chips" aria-label="Thông tin bài viết">
-            <span className="post-rail-chip">
-              <TypeIcon size={12} strokeWidth={2} aria-hidden />
-              {typeLabel}
-            </span>
-            <span className="post-rail-chip">
-              <vis.Icon size={12} strokeWidth={2} aria-hidden />
-              {vis.text}
-            </span>
-          </div>
           {verifier ? <PostRailVerifierCallout verifier={verifier} /> : null}
         </div>
         {heroRail ? <div className="post-rail-hero">{heroRail}</div> : null}

@@ -13794,10 +13794,11 @@ select.j-edit-input {
   color: var(--jcard-ink);
   font-family: var(--font-sans);
 }
-/* Menu / bảng emoji mở → không clip popover; nâng card lên trên milestone kế tiếp. */
+/* Menu / bảng emoji / chia sẻ mở → không clip popover; nâng card lên trên milestone kế tiếp. */
 .j-m-card.jcard:has(.j-m-menu-btn[aria-expanded="true"]),
 .j-m-card.jcard:has(.j-inline-control-trigger[aria-expanded="true"]),
-.j-m-card.jcard:has(.is-picker-open) {
+.j-m-card.jcard:has(.is-picker-open),
+.j-m-card.jcard:has(.post-byline-share-wrap.is-open) {
   overflow: visible;
   z-index: 20;
 }
@@ -13805,7 +13806,8 @@ select.j-edit-input {
   z-index: 20;
 }
 .j-m-card.jcard.is-expanded:has(.j-m-menu-btn[aria-expanded="true"]),
-.j-m-card.jcard.is-expanded:has(.j-inline-control-trigger[aria-expanded="true"]) {
+.j-m-card.jcard.is-expanded:has(.j-inline-control-trigger[aria-expanded="true"]),
+.j-m-card.jcard.is-expanded:has(.post-byline-share-wrap.is-open) {
   overflow: visible;
 }
 /* Bo góc dưới khi xổ — phần tử cuối (actions / tags) khớp radius card. */
@@ -13815,6 +13817,11 @@ select.j-edit-input {
   border-bottom-left-radius: 22px;
   border-bottom-right-radius: 22px;
   overflow: hidden;
+}
+/* Share/reaction popover mở lên trên peek — không clip trong actions. */
+.j-m-card.jcard.is-expanded:has(.post-byline-share-wrap.is-open) > .jcard-actions,
+.j-m-card.jcard.is-expanded:has(.is-picker-open) > .jcard-actions {
+  overflow: visible;
 }
 .j-m-card.jcard.is-expanded > .jcard-actions {
   position: relative;
@@ -13870,6 +13877,10 @@ select.j-edit-input {
   .j-milestone[draggable="true"] .jcard-datebar:active {
     cursor: grabbing;
   }
+}
+/* Nguồn đang kéo: mờ nhẹ — ghost đã scale riêng qua setDragImage. */
+.j-milestone.is-share-dragging {
+  opacity: 0.55;
 }
 .jcard-datebar--tagged {
   padding: 10px 14px 12px;
@@ -16065,11 +16076,19 @@ button.j-user-pop-close svg {
 }
 .jcard-desc .mota-md-ul,
 .jcard-desc .mota-md-ol {
+  display: block;
   margin: 0.4em 0 0.65em;
   padding-left: 1.35em;
 }
+.jcard-desc .mota-md-ul {
+  list-style: disc outside;
+}
+.jcard-desc .mota-md-ol {
+  list-style: decimal outside;
+}
 .jcard-desc .mota-md-ul li,
 .jcard-desc .mota-md-ol li {
+  display: list-item;
   margin: 0.15em 0;
 }
 .jcard-desc strong {
@@ -16115,6 +16134,33 @@ button.j-user-pop-close svg {
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 4;
   overflow: hidden;
+}
+/*
+ * Caption có list: bỏ line-clamp/-webkit-box (phá bullet) và bỏ max-height
+ * (cắt ngang chữ). Thu gọn bằng ẩn li thừa — luôn cắt giữa các mục.
+ */
+.jcard--photo .jcard-lead.is-caption-collapsed .jcard-desc:has(.mota-md-ul),
+.jcard--photo .jcard-lead.is-caption-collapsed .jcard-desc:has(.mota-md-ol),
+.jcard--video .jcard-lead.is-caption-collapsed .jcard-desc:has(.mota-md-ul),
+.jcard--video .jcard-lead.is-caption-collapsed .jcard-desc:has(.mota-md-ol) {
+  display: block;
+  -webkit-box-orient: initial;
+  -webkit-line-clamp: unset;
+  line-clamp: unset;
+  max-height: none;
+  overflow: visible;
+}
+.jcard--photo .jcard-lead.is-caption-collapsed .jcard-desc > .mota-md-ul > li:nth-child(n + 3),
+.jcard--photo .jcard-lead.is-caption-collapsed .jcard-desc > .mota-md-ol > li:nth-child(n + 3),
+.jcard--video .jcard-lead.is-caption-collapsed .jcard-desc > .mota-md-ul > li:nth-child(n + 3),
+.jcard--video .jcard-lead.is-caption-collapsed .jcard-desc > .mota-md-ol > li:nth-child(n + 3) {
+  display: none;
+}
+.jcard--photo .jcard-lead.is-caption-collapsed .jcard-desc > .mota-md-ul ~ *,
+.jcard--photo .jcard-lead.is-caption-collapsed .jcard-desc > .mota-md-ol ~ *,
+.jcard--video .jcard-lead.is-caption-collapsed .jcard-desc > .mota-md-ul ~ *,
+.jcard--video .jcard-lead.is-caption-collapsed .jcard-desc > .mota-md-ol ~ * {
+  display: none;
 }
 .jcard--photo .jcard-lead.is-caption-expanded .jcard-desc,
 .jcard--video .jcard-lead.is-caption-expanded .jcard-desc {
@@ -16196,6 +16242,29 @@ button.j-user-pop-close svg {
   max-height: none;
   transition: color 0.28s ease;
 }
+/*
+ * Caption có <ul>/<ol>:
+ * - Không dùng -webkit-box (mất bullet) hay max-height (cắt ngang glyph).
+ * - Thu gọn khi collapsed: hiện intro + 2 mục list đầy đủ; ẩn li còn lại
+ *   và block sau list. «Xem thêm» / expand mở hết.
+ */
+.jcard--article .jcard-desc:has(.mota-md-ul),
+.jcard--article .jcard-desc:has(.mota-md-ol) {
+  display: block;
+  -webkit-box-orient: initial;
+  -webkit-line-clamp: unset;
+  line-clamp: unset;
+  max-height: none;
+  overflow: visible;
+}
+.jcard--article .jcard-lead.is-caption-collapsed .jcard-desc > .mota-md-ul > li:nth-child(n + 3),
+.jcard--article .jcard-lead.is-caption-collapsed .jcard-desc > .mota-md-ol > li:nth-child(n + 3) {
+  display: none;
+}
+.jcard--article .jcard-lead.is-caption-collapsed .jcard-desc > .mota-md-ul ~ *,
+.jcard--article .jcard-lead.is-caption-collapsed .jcard-desc > .mota-md-ol ~ * {
+  display: none;
+}
 .jcard--article .jcard-desc strong {
   color: var(--jcard-ink, var(--ink-display));
   font-weight: 700;
@@ -16211,6 +16280,13 @@ button.j-user-pop-close svg {
   margin-bottom: 0;
   padding-right: 0.35em;
 }
+.jcard--article .jcard-lead.is-caption-expand-inline.is-caption-collapsed .jcard-desc:has(.mota-md-ul),
+.jcard--article .jcard-lead.is-caption-expand-inline.is-caption-collapsed .jcard-desc:has(.mota-md-ol) {
+  -webkit-line-clamp: unset;
+  line-clamp: unset;
+  max-height: none;
+  overflow: visible;
+}
 .jcard--article .jcard-lead.is-caption-expand-inline .jcard-caption-more {
   font-size: 14px;
   line-height: 1.58;
@@ -16221,6 +16297,7 @@ button.j-user-pop-close svg {
 .j-m-card.jcard--article.is-expanded .jcard-lead .jcard-desc,
 .j-m-card.jcard--article.is-expanded .jcard-desc {
   -webkit-line-clamp: unset;
+  line-clamp: unset;
   display: block;
   overflow: visible;
   max-height: none;
@@ -16235,6 +16312,7 @@ button.j-user-pop-close svg {
   margin-bottom: 0;
 }
 .jcard-chi-chu {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -16246,6 +16324,9 @@ button.j-user-pop-close svg {
   aspect-ratio: 5 / 3;
   width: 100%;
   box-sizing: border-box;
+  transition:
+    background 160ms ease,
+    color 160ms ease;
 }
 .jcard-chi-chu-title {
   margin: 0;
@@ -16430,16 +16511,35 @@ button.j-user-pop-close svg {
     #0f172a 100%
   );
 }
+/* Tab chọn màu — strip riêng sau panel chữ (timeline / in-body). */
 .jcard-chi-chu-nen-wrap {
-  padding: 10px 16px 12px;
-  border-top: 1px solid var(--border, #e4e6eb);
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  margin: 0;
+  padding: 10px 12px;
+  box-sizing: border-box;
   background: var(--bg-surface, #fff);
+  border-top: 1px solid rgba(148, 163, 184, 0.16);
+  pointer-events: none;
 }
 .jcard-chi-chu-nen-picker {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   align-items: center;
+  justify-content: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: var(--bg-surface, #fff);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.08);
+  pointer-events: auto;
 }
 .jcard-chi-chu-nen-btn {
   width: 22px;
@@ -16482,9 +16582,14 @@ button.j-user-pop-close svg {
   background: linear-gradient(135deg, #475569, #0f172a);
 }
 .jcard-chi-chu-nen-err {
-  margin: 8px 0 0;
+  margin: 0;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(148, 163, 184, 0.22);
   font-size: 12px;
   color: #dc2626;
+  pointer-events: auto;
 }
 @media (max-width: 767.98px) {
   .jcard-chi-chu {
@@ -17965,13 +18070,21 @@ a.action-btn {
   display: inline-flex;
   align-items: center;
 }
-/* Picker mở lên trên article peek / expand CTA (media zone). */
+/* Picker / share mở lên trên article peek / expand CTA (media zone). */
 .j-reaction-wrap:has(> .j-reaction-picker),
 .j-m-card.jcard:has(.is-picker-open) > .jcard-actions,
-.j-m-card.jcard:has(.is-picker-open) .jcard-actions {
+.j-m-card.jcard:has(.is-picker-open) .jcard-actions,
+.j-m-card.jcard:has(.post-byline-share-wrap.is-open) > .jcard-actions,
+.j-m-card.jcard:has(.post-byline-share-wrap.is-open) .jcard-actions {
   z-index: 50;
 }
-.j-m-card.jcard:has(.is-picker-open) > .j-m-card-main {
+.j-m-card.jcard:has(.is-picker-open) > .j-m-card-main,
+.j-m-card.jcard:has(.post-byline-share-wrap.is-open) > .j-m-card-main {
+  z-index: 0;
+}
+.j-m-card.jcard:has(.post-byline-share-wrap.is-open) > .jcard-body,
+.j-m-card.jcard:has(.post-byline-share-wrap.is-open) .jcard-body {
+  position: relative;
   z-index: 0;
 }
 .j-reaction-picker {
@@ -18248,6 +18361,9 @@ a.action-btn-part {
   flex: 0 0 auto;
   margin-left: 2px;
   z-index: 3;
+}
+.jcard-actions .jcard-share.is-open {
+  z-index: 60;
 }
 .jcard-actions .jcard-share .share-btn {
   min-width: 36px;

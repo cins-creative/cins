@@ -12,7 +12,7 @@ import type { CSSProperties } from "react";
 import { HaOrgSuggestionRow } from "@/components/cins/home-adaptive/HaOrgSuggestionRow";
 import { HaUpdateProjectButton } from "@/components/cins/home-adaptive/HaUpdateProjectButton";
 import { HaUserSuggestionRow } from "@/components/cins/home-adaptive/HaUserSuggestionRow";
-import { ModuleCard, ModuleEmpty } from "@/components/cins/home-adaptive/ModuleCard";
+import { ModuleCard } from "@/components/cins/home-adaptive/ModuleCard";
 import { WorldJourneyJobsFab } from "@/components/cins/home-adaptive/WorldJourneyJobsFab";
 import type { HomeModuleCtx } from "@/components/cins/home-adaptive/types";
 import { loadCoHoiForHome, type CoHoiItem } from "@/lib/cins/home-adaptive/co-hoi";
@@ -29,11 +29,14 @@ export async function HoSoCuaBanModule({ ctx }: { ctx: HomeModuleCtx }) {
   const nextStep = missing[0];
   const ready = percent >= 100;
 
+  /* Đủ 100% — ẩn card nudge (không còn việc cần làm). */
+  if (ready) return null;
+
   return (
     <ModuleCard
       icon={Route}
       title="Hồ sơ của bạn"
-      badge={ready ? "Sẵn sàng" : `${percent}%`}
+      badge={`${percent}%`}
       className={
         ctx.seeking ? "ha-card--profile ha-card--accent" : "ha-card--profile"
       }
@@ -48,13 +51,11 @@ export async function HoSoCuaBanModule({ ctx }: { ctx: HomeModuleCtx }) {
             <span className="ha-profile-pct">{percent}%</span>
           </div>
           <div className="ha-profile-copy">
-            <p className="ha-profile-status">
-              {ready ? "Hồ sơ đã hoàn thiện" : "Đang hoàn thiện hồ sơ"}
-            </p>
+            <p className="ha-profile-status">Đang hoàn thiện hồ sơ</p>
             <p className="ha-profile-hint">
               {nextStep
                 ? `${nextStep} để studio dễ tìm thấy bạn.`
-                : "Hồ sơ của bạn đã sẵn sàng để studio tìm thấy."}
+                : "Tiếp tục cập nhật để studio dễ tìm thấy bạn."}
             </p>
           </div>
         </div>
@@ -75,32 +76,29 @@ export async function HoSoCuaBanModule({ ctx }: { ctx: HomeModuleCtx }) {
 /** LÀM · Người cùng ngành — gợi ý kết nối. */
 export async function NguoiCungNganhModule({ ctx }: { ctx: HomeModuleCtx }) {
   const people = await loadFollowSuggestions(ctx.viewerId, 4);
+  if (people.length === 0) return null;
 
   return (
     <ModuleCard icon={Users} title="Người cùng ngành" className="ha-card--people">
-      {people.length === 0 ? (
-        <ModuleEmpty>Chưa có gợi ý kết nối.</ModuleEmpty>
-      ) : (
-        <div className="ha-people-list">
-          {people.map((p) => (
-            <HaUserSuggestionRow
-              key={p.id}
-              variant="person"
-              slug={p.slug}
-              name={p.name}
-              avatarUrl={p.avatarUrl}
-              targetUserId={p.id}
-              viewerProfileId={ctx.viewerId}
-              isFriend={p.isFriend}
-              subtitle={
-                p.mutualCount > 0
-                  ? `${p.mutualCount} bạn chung`
-                  : giaiDoanLabel(p.giaiDoan)
-              }
-            />
-          ))}
-        </div>
-      )}
+      <div className="ha-people-list">
+        {people.map((p) => (
+          <HaUserSuggestionRow
+            key={p.id}
+            variant="person"
+            slug={p.slug}
+            name={p.name}
+            avatarUrl={p.avatarUrl}
+            targetUserId={p.id}
+            viewerProfileId={ctx.viewerId}
+            isFriend={p.isFriend}
+            subtitle={
+              p.mutualCount > 0
+                ? `${p.mutualCount} bạn chung`
+                : giaiDoanLabel(p.giaiDoan)
+            }
+          />
+        ))}
+      </div>
     </ModuleCard>
   );
 }
@@ -179,6 +177,8 @@ function CoHoiJobRow({ job }: { job: CoHoiItem }) {
 
 export async function CoHoiModule({ ctx }: { ctx: HomeModuleCtx }) {
   const jobs = await loadCoHoiForHome(ctx.giaiDoan, 3);
+  if (jobs.length === 0) return null;
+
   return (
     <WorldJourneyJobsFab count={jobs.length}>
       <ModuleCard
@@ -188,18 +188,11 @@ export async function CoHoiModule({ ctx }: { ctx: HomeModuleCtx }) {
         moreHref="/tuyen-dung"
         moreLabel="Xem thêm"
       >
-        {jobs.length === 0 ? (
-          <ModuleEmpty>
-            Chưa có tin tuyển dụng phù hợp giai đoạn của bạn. Theo dõi studio để
-            nhận thông báo khi có vị trí mới.
-          </ModuleEmpty>
-        ) : (
-          <div className="ha-job-list">
-            {jobs.map((job) => (
-              <CoHoiJobRow key={job.id} job={job} />
-            ))}
-          </div>
-        )}
+        <div className="ha-job-list">
+          {jobs.map((job) => (
+            <CoHoiJobRow key={job.id} job={job} />
+          ))}
+        </div>
       </ModuleCard>
     </WorldJourneyJobsFab>
   );

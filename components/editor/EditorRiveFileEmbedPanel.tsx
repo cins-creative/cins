@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
+import { Loader2, X } from "lucide-react";
 import { useEffect, useMemo } from "react";
 
 import { ensureRiveRuntime } from "@/lib/cins/rive-runtime";
@@ -19,6 +19,8 @@ type Props = {
   uploading?: boolean;
   uploadError?: string | null;
   uploadedUrl?: string;
+  /** Xóa nền tảng nhúng — quay về toolbar compose mặc định. */
+  onClear?: () => void;
 };
 
 export function EditorRiveFileEmbedPanel({
@@ -27,6 +29,7 @@ export function EditorRiveFileEmbedPanel({
   uploading = false,
   uploadError = null,
   uploadedUrl = "",
+  onClear,
 }: Props) {
   const previewSrc = useMemo(() => {
     const saved = previewSrcProp?.trim() || uploadedUrl.trim();
@@ -76,6 +79,17 @@ export function EditorRiveFileEmbedPanel({
             File .riv — lưu trên Cloudflare R2
           </span>
         </span>
+        {onClear ? (
+          <button
+            type="button"
+            className="ed-embed-compose-tab-clear"
+            onClick={onClear}
+            aria-label="Xóa nền tảng nhúng"
+            title="Xóa nền tảng nhúng"
+          >
+            <X size={16} strokeWidth={2} aria-hidden />
+          </button>
+        ) : null}
       </div>
       <div className="ed-embed-compose-field">
         <span className="ed-embed-compose-field-label">File đã chọn</span>

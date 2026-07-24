@@ -1,7 +1,7 @@
 import { CalendarDays } from "lucide-react";
 
 import { HaOrgUpcomingEventsPanel } from "@/components/cins/home-adaptive/HaOrgUpcomingEventsPanel";
-import { ModuleCard, ModuleEmpty } from "@/components/cins/home-adaptive/ModuleCard";
+import { ModuleCard } from "@/components/cins/home-adaptive/ModuleCard";
 import { WorldJourneyNotifyFab } from "@/components/cins/home-adaptive/WorldJourneyNotifyFab";
 import type { HomeModuleCtx } from "@/components/cins/home-adaptive/types";
 import { loadSidebarUpcomingEvents } from "@/lib/cins/home-adaptive/sidebar-upcoming-events";
@@ -14,6 +14,8 @@ export async function TheoDoiOrgModule({ ctx }: { ctx: HomeModuleCtx }) {
     3,
   );
 
+  if (items.length === 0) return null;
+
   /** Badge: tổng sự kiện của bạn nếu có; không thì số mục đang hiển thị. */
   const notifyCount = myEventsTotal > 0 ? myEventsTotal : items.length;
 
@@ -24,18 +26,10 @@ export async function TheoDoiOrgModule({ ctx }: { ctx: HomeModuleCtx }) {
         title="Sự kiện & thông báo"
         className="ha-card--notify"
       >
-        {items.length === 0 ? (
-          <ModuleEmpty>
-            Chưa có sự kiện hay mốc thông báo sắp tới từ tổ chức — bấm Quan tâm
-            hoặc Sẽ tham gia trên feed, hoặc theo dõi trường/cơ sở để ưu tiên
-            nhận tin tại đây.
-          </ModuleEmpty>
-        ) : (
-          <HaOrgUpcomingEventsPanel
-            items={items}
-            myEventsTotal={myEventsTotal}
-          />
-        )}
+        <HaOrgUpcomingEventsPanel
+          items={items}
+          myEventsTotal={myEventsTotal}
+        />
       </ModuleCard>
     </WorldJourneyNotifyFab>
   );

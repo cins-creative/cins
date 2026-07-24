@@ -326,20 +326,6 @@ export function CareerHub({
               ))
             )}
 
-            <section className="hn-foot-strip" aria-labelledby="hn-nganh-foot-title">
-              <div>
-                <h3 id="hn-nganh-foot-title">
-                  Chưa chắc ngành nào <em>phù hợp</em>? Làm bài quiz 2 phút.
-                </h3>
-                <p>
-                  Gợi ý hướng ngành dựa trên sở thích — kết hợp với khám phá nghề
-                  nghiệp trên CINs.
-                </p>
-              </div>
-              <Link href="#" className="hn-foot-btn">
-                Làm quiz miễn phí <span aria-hidden="true">→</span>
-              </Link>
-            </section>
           </div>
         </div>
       </div>
@@ -382,72 +368,70 @@ export function CareerHub({
                   đã xuất bản.
                 </p>
               ) : null}
-              <div className="hn-ad-stats">
-                <div className="hn-ad-stat">
-                  <span className="n">{careerCount}</span>
-                  <span className="l">vị trí nghề</span>
+              <div className="hn-ad-meta">
+                <div className="hn-ad-stats" role="group" aria-label="Thống kê lĩnh vực">
+                  <div className="hn-ad-stat">
+                    <span className="n">{careerCount}</span>
+                    <span className="l">vị trí nghề</span>
+                  </div>
+                  <div className="hn-ad-stat">
+                    <span className="n">{deptCount}</span>
+                    <span className="l">bộ phận</span>
+                  </div>
+                  <div className="hn-ad-stat">
+                    <span className="n">{linhVucCount}</span>
+                    <span className="l">lĩnh vực</span>
+                  </div>
                 </div>
-                <div className="hn-ad-stat">
-                  <span className="n">{deptCount}</span>
-                  <span className="l">bộ phận</span>
-                </div>
-                <div className="hn-ad-stat">
-                  <span className="n">{linhVucCount}</span>
-                  <span className="l">lĩnh vực</span>
-                </div>
-              </div>
-              {tab === "nghe" && slugForLink ? (
-                <Link
-                  href={congDongHref}
-                  className={`hn-hero-cong-dong${
-                    communityCount > 0 ? " hn-hero-cong-dong--pile" : ""
-                  }`}
-                  aria-label={`Xem cộng đồng trong lĩnh vực ${heroTitleVi}`}
-                >
-                  {communityCount > 0 ? (
-                    <span className="hn-hero-cong-dong-avatars" aria-hidden>
-                      {communities.map((org) => {
-                        const avatarUrl = getAvatarUrl(org.avatarId);
-                        return (
-                          <span
-                            key={org.id}
-                            className="hn-hero-cong-dong-avatar"
-                            title={org.ten}
-                          >
-                            {avatarUrl ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img src={avatarUrl} alt="" />
-                            ) : (
-                              <span>{org.ten.charAt(0).toUpperCase()}</span>
-                            )}
-                          </span>
-                        );
-                      })}
-                    </span>
-                  ) : (
-                    <span className="hn-hero-cong-dong-icon" aria-hidden>
-                      <Users size={18} strokeWidth={2} />
-                    </span>
-                  )}
-                  <span className="hn-hero-cong-dong-body">
-                    <span className="hn-hero-cong-dong-copy">
-                      <strong>
-                        {communityCount > 0
-                          ? `${communityCount} cộng đồng`
-                          : "Cộng đồng"}
-                      </strong>
-                      <span>
-                        {communityCount > 0
-                          ? `đang hoạt động quanh ${heroTitleVi}`
-                          : `Khám phá nhóm quanh ${heroTitleVi}`}
+                {tab === "nghe" && slugForLink ? (
+                  <Link
+                    href={congDongHref}
+                    className={`hn-hero-cong-dong${
+                      communityCount > 0 ? " hn-hero-cong-dong--pile" : ""
+                    }`}
+                    aria-label={`Xem cộng đồng trong lĩnh vực ${heroTitleVi}`}
+                  >
+                    {communityCount > 0 ? (
+                      <span className="hn-hero-cong-dong-avatars" aria-hidden>
+                        {communities.map((org) => {
+                          const avatarUrl = getAvatarUrl(org.avatarId);
+                          return (
+                            <span
+                              key={org.id}
+                              className="hn-hero-cong-dong-avatar"
+                              title={org.ten}
+                            >
+                              {avatarUrl ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={avatarUrl} alt="" />
+                              ) : (
+                                <span>{org.ten.charAt(0).toUpperCase()}</span>
+                              )}
+                            </span>
+                          );
+                        })}
+                      </span>
+                    ) : (
+                      <span className="hn-hero-cong-dong-icon" aria-hidden>
+                        <Users size={18} strokeWidth={2} />
+                      </span>
+                    )}
+                    <span className="hn-hero-cong-dong-body">
+                      <span className="hn-hero-cong-dong-copy">
+                        <strong>
+                          {communityCount > 0
+                            ? `${communityCount} cộng đồng`
+                            : "Cộng đồng"}
+                        </strong>
+                        <span>quanh {heroTitleVi}</span>
+                      </span>
+                      <span className="hn-hero-cong-dong-go" aria-hidden>
+                        Xem
                       </span>
                     </span>
-                    <span className="hn-hero-cong-dong-go" aria-hidden>
-                      Xem →
-                    </span>
-                  </span>
-                </Link>
-              ) : null}
+                  </Link>
+                ) : null}
+              </div>
             </div>
             <div className="hn-ad-hero-visual" aria-hidden>
               <Image
@@ -534,21 +518,6 @@ export function CareerHub({
             />
           ) : null}
 
-          <section className="hn-foot-strip" aria-labelledby="hn-foot-title">
-            <div>
-              <h3 id="hn-foot-title">
-                Vẫn đang phân vân giữa các <em>vị trí nghề</em>? Làm bài quiz 2
-                phút.
-              </h3>
-              <p>
-                15 câu hỏi nhanh dựa trên tính cách và sở thích — kết quả gợi ý
-                hướng phát triển phù hợp trên CINs.
-              </p>
-            </div>
-            <Link href="#" className="hn-foot-btn">
-              Làm quiz miễn phí <span aria-hidden="true">→</span>
-            </Link>
-          </section>
         </div>
       </div>
     </div>

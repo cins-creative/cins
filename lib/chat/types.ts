@@ -68,10 +68,19 @@ export type ChatMentionRef = {
   ten: string;
 };
 
+/** Người đã thả một emoji trên tin — dùng popover xem ai react. */
+export type ChatReactionActor = {
+  userId: string;
+  name: string;
+  avatarUrl?: string | null;
+};
+
 export type ChatReactionSummary = {
   emoji: string;
   count: number;
   viewerReacted: boolean;
+  /** Danh sách người thả (theo tao_luc mới → cũ). */
+  actors?: ChatReactionActor[];
 };
 
 export type ChatMessageReplyPreview = {
@@ -120,6 +129,8 @@ export type ChatMessage = {
   mocNhac?: ChatMocNotice | null;
   /** Bình luận trên canvas — dòng nhỏ trong feed. */
   canvasBinhLuan?: ChatCanvasBinhLuanNotice | null;
+  /** Tin được chuyển tiếp từ hội thoại khác (`ngu_canh.chuyenTiep`). */
+  forwarded?: boolean;
 };
 
 /** Cursor «đã xem tới tin này» của một thành viên khác trong phòng. */

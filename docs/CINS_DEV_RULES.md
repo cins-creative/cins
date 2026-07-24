@@ -28,6 +28,8 @@
 
 **Task lớn** (>5 bước / sửa >3 file / đụng schema) → báo user & plan trước, **không** tự làm hết.
 
+**ALTER bảng/cột đã có (BẮT BUỘC):** Mọi `ALTER TABLE` trên bảng đang live (thêm/đổi/xóa cột, đổi kiểu, đổi/thêm enum value dùng chung, đổi FK/CHECK, rename) → **báo cáo user trước** (bảng · cột · kiểu · nullable · lý do · ảnh hưởng dữ liệu cũ) → ghi / cập nhật inventory trong `CINS_DECISIONS.md` (mục CSĐT / ALTER) → **chỉ chạy migration sau khi user xác nhận**. Tạo bảng mới (`CREATE TABLE`) vẫn cần plan, nhưng không cùng mức gate với sửa cột cũ. Không tự ý ALTER “tiện tay”. Chi tiết inventory đề xuất: DECISIONS **L34**.
+
 **Quy ước làm việc:** tiếng Việt, ngắn gọn. "Khoan sửa" → defer. "Sao cũng được" → tự quyết, không hỏi lại. Push back khi agent over-engineer hoặc sai semantic.
 
 ---

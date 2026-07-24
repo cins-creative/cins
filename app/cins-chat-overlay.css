@@ -235,26 +235,9 @@
 
 /* ---- Drop mode chia sẻ — kéo post/ảnh từ feed vào chat (desktop) ---- */
 
-/* Thu hẹp trang sang trái để sidebar chat không che nội dung đang kéo. */
+/* Rail fixed overlay — không padding shell (tránh reflow relative). */
 html.is-cins-share-dropping {
   --cins-share-drop-rail: min(380px, 94vw);
-}
-
-html.is-cins-share-dropping .cins-shell {
-  padding-right: var(--cins-share-drop-rail);
-  transition: padding-right 220ms ease-out;
-}
-
-html.is-cins-share-dropping .j-chat-dock {
-  right: calc(var(--cins-share-drop-rail) + 16px);
-  transition: right 220ms ease-out;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  html.is-cins-share-dropping .cins-shell,
-  html.is-cins-share-dropping .j-chat-dock {
-    transition: none;
-  }
 }
 
 /* Rail phải: chỉ panel nhận pointer/drop; trang nền vẫn thấy & kéo được. */
@@ -277,11 +260,15 @@ html.is-cins-share-dropping .j-chat-dock {
 }
 
 .cins-chat-panel.is-share-drop {
+  position: fixed;
+  top: var(--site-nav-height, 64px);
+  right: 0;
+  bottom: 0;
+  left: auto;
   width: var(--cins-share-drop-rail, min(380px, 94vw));
-  height: calc(100dvh - var(--site-nav-height, 64px));
-  max-height: calc(100dvh - var(--site-nav-height, 64px));
-  margin-top: var(--site-nav-height, 64px);
-  margin-left: auto;
+  height: auto;
+  max-height: none;
+  margin: 0;
   border-radius: 0;
   border-right: 0;
   border-bottom: 0;
@@ -611,6 +598,17 @@ html.is-cins-share-dropping .j-chat-dock {
   border: 1px solid var(--border);
   background: var(--bg-surface);
   box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
+}
+
+/* Portal fixed — không bị .cins-chat-threads / .cins-chat-list overflow cắt */
+.cins-chat-thread-menu-panel.is-floating {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: auto;
+  bottom: auto;
+  transform: none;
+  z-index: 12050;
 }
 
 .cins-chat-thread-menu-item {
@@ -1090,16 +1088,24 @@ html.is-cins-share-dropping .j-chat-dock {
   background: rgba(180, 83, 9, 0.14);
 }
 
-.cins-chat-bubble.is-me .cins-chat-mention-chip {
-  color: #1e3a8a;
+.cins-chat-bubble.is-me .cins-chat-mention-chip,
+.cins-chat-mention-chip.is-me {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.22);
+  border-radius: 4px;
+  padding: 0 3px;
 }
 
-.cins-chat-bubble.is-me .cins-chat-mention-chip.is-self {
-  background: rgba(255, 255, 255, 0.35);
+.cins-chat-bubble.is-me .cins-chat-mention-chip.is-self,
+.cins-chat-mention-chip.is-me.is-self {
+  background: rgba(255, 255, 255, 0.32);
+  color: #fff;
 }
 
-.cins-chat-bubble.is-me .cins-chat-mention-chip.is-everyone {
-  color: #92400e;
+.cins-chat-bubble.is-me .cins-chat-mention-chip.is-everyone,
+.cins-chat-mention-chip.is-me.is-everyone {
+  color: #fff7d6;
+  background: rgba(255, 247, 214, 0.22);
 }
 
 .cins-chat-at-menu-item.is-all .cins-chat-at-menu-avatar {
@@ -3533,7 +3539,8 @@ button.cins-canvas-table-cell-text {
   margin-bottom: 6px;
 }
 
-.cins-chat-bubble:has(.cins-chat-reactions.is-corner) {
+.cins-chat-bubble:has(.cins-chat-reactions.is-corner),
+.cins-chat-bare-media-frame:has(.cins-chat-reactions.is-corner) {
   overflow: visible;
 }
 
@@ -3679,15 +3686,288 @@ button.cins-canvas-table-cell-text {
 }
 
 .cins-chat-msg-actions {
+  /* In-flow cạnh bubble — tránh absolute bị overflow mini-chat cắt mất */
   position: relative;
   display: flex;
   flex-direction: row;
-  gap: 2px;
+  align-items: center;
+  gap: 0;
   flex-shrink: 0;
   align-self: center;
-  opacity: 1;
-  pointer-events: auto;
+  width: 0;
+  max-width: 0;
+  margin: 0;
+  overflow: hidden;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
   z-index: 2;
+  transition:
+    opacity 120ms ease,
+    visibility 120ms ease,
+    max-width 120ms ease;
+}
+
+/* Click bubble → hiện; giữ hiện khi menu / reaction picker mở. */
+.cins-chat-bubble-wrap.is-actions-visible > .cins-chat-msg-actions,
+.cins-chat-don-hang-wrap.is-actions-visible > .cins-chat-msg-actions,
+.cins-chat-bare-media-wrap.is-actions-visible > .cins-chat-msg-actions,
+.cins-chat-bubble.has-media-actions .cins-chat-msg-actions.is-open,
+.cins-chat-bubble-wrap.is-actions-visible .cins-chat-bubble.has-media-actions .cins-chat-msg-actions,
+.cins-chat-msg-actions.is-open {
+  width: auto;
+  max-width: 120px;
+  gap: 2px;
+  overflow: visible;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+/*
+ * Desktop: cha (stack / wrap) fill ngang — bubble | 3 nút.
+ * Hover cha → hiện nút (giữ chỗ sẵn để không bị .j-chat-mini overflow cắt).
+ */
+@media (hover: hover) and (pointer: fine) {
+  .cins-chat-msg-stack {
+    width: 100%;
+  }
+
+  .cins-chat-bubble-row.has-sender-cluster {
+    width: 100%;
+  }
+
+  .cins-chat-msg-stack > .cins-chat-bubble-wrap,
+  .cins-chat-bubble-row.has-sender-cluster .cins-chat-bubble-wrap {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .cins-chat-bubble-wrap > .cins-chat-bubble,
+  .cins-chat-bubble-wrap > .cins-chat-don-hang-body,
+  .cins-chat-bubble-wrap > .cins-chat-bare-media-body {
+    min-width: 0;
+    flex: 0 1 auto;
+    max-width: calc(100% - 78px);
+  }
+
+  .cins-chat-msg-actions {
+    width: auto;
+    max-width: 120px;
+    gap: 2px;
+    overflow: visible;
+  }
+
+  .cins-chat-msg-stack:hover .cins-chat-msg-actions,
+  .cins-chat-bubble-wrap:hover > .cins-chat-msg-actions,
+  .cins-chat-don-hang-wrap:hover > .cins-chat-msg-actions,
+  .cins-chat-bare-media-wrap:hover > .cins-chat-msg-actions,
+  .cins-chat-bubble-wrap:hover .cins-chat-bubble.has-media-actions .cins-chat-msg-actions {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cins-chat-msg-actions {
+    transition: none;
+  }
+}
+
+/* Mobile: ẩn 3 nút desktop; tap/long-press qua ChatMessageMobileChrome */
+@media (hover: none) and (pointer: coarse) {
+  .cins-chat-msg-actions {
+    display: none !important;
+  }
+
+  .cins-chat-bubble-wrap.is-touch-actions,
+  .cins-chat-bubble-wrap.is-touch-actions .cins-chat-bubble,
+  .cins-chat-bubble-wrap.is-touch-actions .cins-chat-don-hang-body,
+  .cins-chat-bubble-wrap.is-touch-actions .cins-chat-bare-media-body {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  .cins-chat-bubble-wrap.is-touch-actions > .cins-chat-bubble,
+  .cins-chat-bubble-wrap.is-touch-actions > .cins-chat-don-hang-body,
+  .cins-chat-bubble-wrap.is-touch-actions > .cins-chat-bare-media-body {
+    max-width: 100%;
+  }
+}
+
+.cins-chat-msg-mobile-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 13040;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  cursor: default;
+}
+
+.cins-chat-msg-mobile-scrim.is-sheet {
+  background: rgba(15, 23, 42, 0.35);
+}
+
+.cins-chat-msg-react-picker.is-mobile-tap {
+  z-index: 13060;
+}
+
+.cins-chat-msg-sheet-root {
+  position: fixed;
+  inset: 0;
+  z-index: 13050;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  pointer-events: none;
+}
+
+.cins-chat-msg-sheet-root > * {
+  pointer-events: auto;
+}
+
+.cins-chat-msg-sheet {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  padding: 10px 12px calc(12px + env(safe-area-inset-bottom, 0px));
+  border-radius: 18px 18px 0 0;
+  background: var(--bg-surface, #fff);
+  box-shadow: 0 -8px 32px rgba(15, 23, 42, 0.18);
+  color: var(--ink-display);
+}
+
+.cins-chat-msg-sheet-handle {
+  width: 36px;
+  height: 4px;
+  margin: 0 auto 12px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.16);
+}
+
+.cins-chat-msg-sheet-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.cins-chat-msg-sheet-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 72px;
+  padding: 10px 6px;
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
+  color: var(--cins-blue, #1f74c9);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.cins-chat-msg-sheet-btn span {
+  color: var(--ink-body, #334155);
+  font-weight: 500;
+}
+
+.cins-chat-msg-sheet-btn.is-danger,
+.cins-chat-msg-sheet-btn.is-danger span {
+  color: #dc2626;
+}
+
+.cins-chat-msg-sheet-btn:active {
+  background: rgba(15, 23, 42, 0.06);
+}
+
+.cins-chat-msg-sheet-more {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.cins-chat-msg-sheet-more button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  padding: 12px 10px;
+  border-radius: 12px;
+  font: inherit;
+  font-size: 14px;
+  color: var(--ink-body);
+  cursor: pointer;
+  text-align: left;
+}
+
+.cins-chat-msg-sheet-more button:active {
+  background: rgba(15, 23, 42, 0.06);
+}
+
+.cins-chat-msg-sheet-more button.is-danger {
+  color: #dc2626;
+}
+
+:root[data-theme="dark"] .cins-chat-msg-mobile-scrim.is-sheet {
+  background: rgba(0, 0, 0, 0.55);
+}
+
+:root[data-theme="dark"] .cins-chat-msg-sheet {
+  background: var(--neutral-100, #151a24);
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.45);
+}
+
+:root[data-theme="dark"] .cins-chat-msg-sheet-handle {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+:root[data-theme="dark"] .cins-chat-msg-sheet-btn span {
+  color: var(--ink-display);
+}
+
+:root[data-theme="dark"] .cins-chat-msg-sheet-btn:active,
+:root[data-theme="dark"] .cins-chat-msg-sheet-more button:active {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.cins-chat-forwarded-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0 0 4px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+  opacity: 0.78;
+}
+
+.cins-chat-bubble.is-me .cins-chat-forwarded-label {
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.cins-chat-bubble.is-them .cins-chat-forwarded-label,
+.cins-chat-bare-media-body .cins-chat-forwarded-label,
+.cins-chat-don-hang-body .cins-chat-forwarded-label {
+  color: var(--ink-muted, #64748b);
+}
+
+.cins-chat-forward-modal {
+  max-height: min(560px, calc(100dvh - 48px));
 }
 
 .cins-chat-msg-action-btn {
@@ -3716,8 +3996,7 @@ button.cins-canvas-table-cell-text {
 }
 
 /* Portal fixed — clamp trong viewport (mobile không bị cắt mép) */
-.cins-chat-msg-menu.is-floating,
-.cins-chat-msg-react-picker.is-floating {
+.cins-chat-msg-menu.is-floating {
   position: fixed;
   top: 0;
   left: 0;
@@ -3748,17 +4027,37 @@ button.cins-canvas-table-cell-text {
   gap: 0;
   min-width: 0;
   width: max-content;
-  padding: 4px 6px;
-  border: 1px solid rgba(15, 23, 42, 0.16);
+  padding: 5px 7px;
+  border: 1px solid rgba(15, 23, 42, 0.14);
   border-radius: 999px;
-  background: #fff;
+  /* Solid — tránh nền trong suốt / color-mix làm emoji trông mờ. */
+  background: #ffffff;
+  opacity: 1;
+  filter: none;
+  isolation: isolate;
   box-shadow:
-    0 10px 32px rgba(15, 23, 42, 0.18),
-    0 2px 8px rgba(15, 23, 42, 0.1),
-    0 0 0 1px rgba(255, 255, 255, 0.8) inset;
+    0 8px 24px rgba(15, 23, 42, 0.2),
+    0 2px 6px rgba(15, 23, 42, 0.12);
+}
+
+.cins-chat-msg-react-picker.is-floating {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: auto;
+  bottom: auto;
+  transform: none;
+  /* Trên overlay chat (11000) + tránh bị panel che → trông như opacity thấp. */
+  z-index: 13050;
+  opacity: 1;
+  filter: none;
+  background: #ffffff;
 }
 
 .cins-chat-msg-react-picker button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: 0;
   background: transparent;
   font-size: 22px;
@@ -3766,18 +4065,30 @@ button.cins-canvas-table-cell-text {
   cursor: pointer;
   border-radius: 999px;
   padding: 5px 6px;
-  transition:
-    transform 120ms ease,
-    background 120ms ease;
+  opacity: 1;
+  /* Windows + filter/opacity trên glyph → emoji xám/mờ (cùng bug Journey picker). */
+  filter: none;
+  color: inherit;
+  font-family:
+    "Apple Color Emoji",
+    "Segoe UI Emoji",
+    "Noto Color Emoji",
+    emoji,
+    sans-serif;
+  transition: background 120ms ease, transform 120ms ease;
 }
 
 .cins-chat-msg-react-picker button:hover {
   background: rgba(15, 23, 42, 0.07);
   transform: scale(1.12);
+  opacity: 1;
+  filter: none;
 }
 
 .cins-chat-msg-react-picker button.is-active {
   background: rgba(31, 116, 201, 0.16);
+  opacity: 1;
+  filter: none;
 }
 
 .cins-chat-msg-menu button {
@@ -3856,9 +4167,11 @@ button.cins-canvas-table-cell-text {
 
 .cins-chat-reply-quote {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   margin: 0 0 8px;
   padding: 6px 8px;
   border: 0;
@@ -3868,8 +4181,23 @@ button.cins-canvas-table-cell-text {
   color: inherit;
   font: inherit;
   font-size: 12px;
+  line-height: 1.4;
   text-align: left;
   cursor: default;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.cins-chat-reply-quote > span {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: pre-wrap;
 }
 
 .cins-chat-reply-quote.is-jumpable {
@@ -3894,6 +4222,7 @@ button.cins-canvas-table-cell-text {
 .cins-chat-reply-quote img {
   width: 32px;
   height: 32px;
+  margin-top: 1px;
   border-radius: var(--radius-sm);
   object-fit: cover;
   flex-shrink: 0;
@@ -3906,20 +4235,30 @@ button.cins-canvas-table-cell-text {
   margin-top: 6px;
 }
 
+.cins-chat-reaction-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
 .cins-chat-reactions.is-corner {
   position: absolute;
   right: 4px;
-  bottom: -12px;
+  bottom: -10px;
   display: flex;
   flex-direction: row;
   flex-wrap: nowrap;
   align-items: center;
-  gap: 1px;
+  gap: 0;
   margin: 0;
   padding: 0;
+  border-radius: 0;
   background: none;
+  box-shadow: none;
   z-index: 2;
   pointer-events: auto;
+  isolation: isolate;
+  opacity: 1;
+  filter: none;
 }
 
 .cins-chat-bubble-row.is-me .cins-chat-reactions.is-corner {
@@ -3927,19 +4266,97 @@ button.cins-canvas-table-cell-text {
   left: auto;
 }
 
-.cins-chat-reactions.is-corner .cins-chat-reaction-chip {
-  padding: 0;
-  border: 0;
-  background: transparent;
-  box-shadow: none;
-  font-size: 15px;
-  line-height: 1;
+/* Một tab gom mọi emoji — click mở bảng người thả chung. */
+.cins-chat-reactions.is-corner .cins-chat-reaction-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin: 0;
+  padding: 2px 6px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
   cursor: pointer;
+  opacity: 1;
+  filter: none;
+  color: #111;
+  line-height: 1;
 }
 
-.cins-chat-reactions.is-corner .cins-chat-reaction-chip.is-mine {
-  border: 0;
-  background: transparent;
+.cins-chat-reactions.is-corner .cins-chat-reaction-tab-emojis {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  font-size: 15px;
+  line-height: 1;
+  font-family:
+    "Segoe UI Emoji",
+    "Apple Color Emoji",
+    "Noto Color Emoji",
+    emoji,
+    sans-serif;
+  opacity: 1;
+  filter: none;
+  -webkit-text-fill-color: #111;
+}
+
+.cins-chat-reactions.is-corner .cins-chat-reaction-tab-emojis span {
+  display: inline-block;
+  margin-left: -2px;
+  opacity: 1 !important;
+  filter: none !important;
+}
+
+.cins-chat-reactions.is-corner .cins-chat-reaction-tab-emojis span:first-child {
+  margin-left: 0;
+}
+
+.cins-chat-reactions.is-corner .cins-chat-reaction-tab-count {
+  font-size: 10px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-muted, #667085);
+  opacity: 1;
+}
+
+:root[data-theme="dark"] .cins-chat-reactions.is-corner .cins-chat-reaction-tab {
+  background: #1b1f27;
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  color: #fff;
+}
+
+:root[data-theme="dark"] .cins-chat-reactions.is-corner .cins-chat-reaction-tab-emojis {
+  color: #fff;
+  -webkit-text-fill-color: #fff;
+}
+
+:root[data-theme="dark"] .cins-chat-reactions.is-corner .cins-chat-reaction-tab-count {
+  color: var(--ink-muted, #94a3b8);
+}
+
+.cins-chat-reaction-actors-emojis {
+  font-family:
+    "Segoe UI Emoji",
+    "Apple Color Emoji",
+    "Noto Color Emoji",
+    emoji,
+    sans-serif;
+  letter-spacing: 1px;
+}
+
+.cins-chat-reaction-actor-emoji {
+  margin-left: auto;
+  flex-shrink: 0;
+  font-size: 14px;
+  line-height: 1;
+  font-family:
+    "Segoe UI Emoji",
+    "Apple Color Emoji",
+    "Noto Color Emoji",
+    emoji,
+    sans-serif;
 }
 
 .cins-chat-reaction-chip {
@@ -3963,6 +4380,100 @@ button.cins-canvas-table-cell-text {
 .cins-chat-reaction-count {
   font-size: 10px;
   opacity: 0.85;
+}
+
+/* Popover — ai đã thả reaction (tin của mình). */
+.cins-chat-reaction-actors {
+  min-width: 168px;
+  max-width: min(240px, 70vw);
+  max-height: 220px;
+  overflow: auto;
+  padding: 8px;
+  border-radius: 12px;
+  border: 1px solid var(--border, #d7dbe3);
+  background: var(--bg-surface, #fff);
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.16);
+  color: var(--ink, #1a1d24);
+}
+
+.cins-chat-reaction-actors.is-floating {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: auto;
+  bottom: auto;
+  transform: none;
+  z-index: 12050;
+}
+
+.cins-chat-reaction-actors-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 6px;
+  padding: 0 2px 6px;
+  border-bottom: 1px solid var(--border, #e4e6eb);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-muted, #667085);
+}
+
+.cins-chat-reaction-actors-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cins-chat-reaction-actor {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 4px 2px;
+}
+
+.cins-chat-reaction-actor-av {
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: var(--neutral-100, #f2f4f7);
+}
+
+.cins-chat-reaction-actor-av.is-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink-muted, #667085);
+}
+
+.cins-chat-reaction-actor-name {
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cins-chat-reaction-actors-empty {
+  margin: 0;
+  padding: 4px 2px;
+  font-size: 12px;
+  color: var(--ink-muted, #667085);
+}
+
+:root[data-theme="dark"] .cins-chat-reaction-actors {
+  background: var(--bg-surface, #1b1f27);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
 }
 
 .cins-chat-edit-form textarea {
@@ -4117,23 +4628,27 @@ button.cins-canvas-table-cell-text {
   --cins-chat-sender-gap: 8px;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: stretch;
   gap: 0;
   min-width: 0;
+  width: 100%;
   max-width: 100%;
 }
 
-/* Bubble căn trái theo tên, không theo mép avatar. */
+/* Bubble căn trái theo tên, không theo mép avatar — padding để width 100% không tràn. */
 .cins-chat-msg-stack > .cins-chat-bubble-wrap,
 .cins-chat-msg-stack > .cins-chat-bubble {
-  margin-left: calc(
+  margin-left: 0;
+  padding-left: calc(
     var(--cins-chat-sender-avatar) + var(--cins-chat-sender-gap)
   );
+  box-sizing: border-box;
 }
 
 .cins-chat-sender-cluster {
   display: inline-flex;
   align-items: center;
+  align-self: flex-start;
   min-width: 0;
   max-width: 100%;
 }
@@ -4201,7 +4716,7 @@ button.cins-canvas-table-cell-text {
 
 .cins-chat-bubble-row.has-sender-cluster {
   align-items: flex-start;
-  width: fit-content;
+  width: 100%;
   max-width: 86%;
 }
 
@@ -4534,6 +5049,17 @@ button.cins-canvas-table-cell-text {
   position: relative;
   width: fit-content;
   max-width: 100%;
+}
+
+.cins-chat-bare-media-frame {
+  position: relative;
+  width: fit-content;
+  max-width: 100%;
+  overflow: visible;
+}
+
+.cins-chat-bare-media-body .cins-chat-media-block {
+  overflow: visible;
 }
 
 .cins-chat-bubble-row.is-bare-media-row.is-sticker-row .cins-chat-media-block {
@@ -5871,6 +6397,10 @@ a.cins-chat-don-card.is-paid:hover {
   position: absolute;
   top: -3px;
   right: -3px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-width: 20px;
   height: 20px;
   padding: 0 5px;
@@ -5879,7 +6409,8 @@ a.cins-chat-don-card.is-paid:hover {
   color: #fff;
   font-size: 10px;
   font-weight: 800;
-  line-height: 20px;
+  line-height: 1;
+  letter-spacing: 0;
   text-align: center;
   border: 2px solid #fff;
   box-shadow: 0 2px 8px rgba(239, 68, 68, 0.45);
@@ -6515,6 +7046,12 @@ a.cins-chat-don-card.is-paid:hover {
   padding: 12px 12px 10px;
   border-bottom: 1px solid var(--border);
   background: linear-gradient(180deg, #fff 0%, var(--neutral-50, #f8f9fb) 100%);
+  cursor: pointer;
+}
+
+.j-chat-mini-head:focus-visible {
+  outline: 2px solid rgba(31, 116, 201, 0.45);
+  outline-offset: -2px;
 }
 
 /* Project con — header cam (khớp theme list / dock bubble) */
@@ -9106,12 +9643,13 @@ button.cins-chat-project-card-mark:hover {
 
 /* Picker reaction (thanh tròn nổi) */
 :root[data-theme="dark"] .cins-chat-msg-react-picker {
-  background: var(--bg-surface);
-  border-color: var(--border);
+  background: #1b1f27;
+  border-color: rgba(255, 255, 255, 0.14);
+  opacity: 1;
+  filter: none;
   box-shadow:
     0 10px 32px rgba(0, 0, 0, 0.5),
-    0 2px 8px rgba(0, 0, 0, 0.4),
-    0 0 0 1px rgba(255, 255, 255, 0.06) inset;
+    0 2px 8px rgba(0, 0, 0, 0.4);
 }
 :root[data-theme="dark"] .cins-chat-msg-react-picker button.is-active {
   background: var(--cins-blue-soft);
@@ -9387,13 +9925,8 @@ button.cins-chat-project-card-mark:hover {
 }
 
 .cins-chat-thread.is-project-thread.is-active {
-  background: color-mix(
-    in srgb,
-    var(--cins-project-active, #fdad4c) 28%,
-    #fff7ed
-  );
-  box-shadow: inset 0 0 0 1px
-    color-mix(in srgb, var(--cins-project-active, #fdad4c) 55%, transparent);
+  background: transparent;
+  box-shadow: none;
 }
 
 .cins-chat-thread-main.is-project-simple {
@@ -9490,8 +10023,8 @@ button.cins-chat-project-card-mark:hover {
 
 .cins-chat-thread.is-project-thread.is-active .cins-chat-project-hash,
 .cins-chat-thread.is-project-thread.is-active .cins-chat-thread-name strong {
-  color: #9a3412;
-  font-weight: 650;
+  color: #c2410c;
+  font-weight: 700;
 }
 
 .cins-chat-thread.is-project-thread.is-active .cins-chat-project-hash {
@@ -9499,8 +10032,9 @@ button.cins-chat-project-card-mark:hover {
 }
 
 .cins-chat-thread.is-project-thread.is-active .cins-chat-project-thumb {
-  box-shadow: 0 0 0 1.5px
-    color-mix(in srgb, var(--cins-project-active, #fdad4c) 65%, transparent);
+  box-shadow: 0 0 0 2px
+    color-mix(in srgb, var(--cins-project-active, #fdad4c) 85%, #ea580c);
+  background: color-mix(in srgb, var(--cins-project-active, #fdad4c) 28%, #fff);
 }
 
 :root[data-theme="dark"] .cins-chat-thread.is-project-thread:hover {
@@ -9512,13 +10046,8 @@ button.cins-chat-project-card-mark:hover {
 }
 
 :root[data-theme="dark"] .cins-chat-thread.is-project-thread.is-active {
-  background: color-mix(
-    in srgb,
-    var(--cins-project-active, #fdad4c) 22%,
-    transparent
-  );
-  box-shadow: inset 0 0 0 1px
-    color-mix(in srgb, var(--cins-project-active, #fdad4c) 45%, transparent);
+  background: transparent;
+  box-shadow: none;
 }
 
 :root[data-theme="dark"]
@@ -9529,6 +10058,18 @@ button.cins-chat-project-card-mark:hover {
   .cins-chat-thread-name
   strong {
   color: #fdba74;
+}
+
+:root[data-theme="dark"]
+  .cins-chat-thread.is-project-thread.is-active
+  .cins-chat-project-thumb {
+  box-shadow: 0 0 0 2px
+    color-mix(in srgb, var(--cins-project-active, #fdad4c) 80%, #fdba74);
+  background: color-mix(
+    in srgb,
+    var(--cins-project-active, #fdad4c) 22%,
+    transparent
+  );
 }
 
 :root[data-theme="dark"] .cins-chat-thread-main.is-project-simple .cins-chat-thread-name strong {

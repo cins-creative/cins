@@ -1,7 +1,17 @@
 "use client";
 
-import { Fragment, useMemo, type ReactNode } from "react";
-import { Pin } from "lucide-react";
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type MouseEvent,
+  type PointerEvent as ReactPointerEvent,
+  type ReactNode,
+} from "react";
+import { Pin, Forward } from "lucide-react";
 
 import {
   ChatMessageActions,
@@ -10,6 +20,7 @@ import {
 import { ChatMessageAlbum } from "@/components/cins/ChatMessageAlbum";
 import { ChatMessageBody } from "@/components/cins/ChatMessageBody";
 import { ChatMentionText } from "@/components/cins/ChatMentionText";
+import { ChatMessageMobileChrome } from "@/components/cins/ChatMessageMobileChrome";
 import { ChatMessageReactions } from "@/components/cins/ChatMessageReactions";
 import { ChatMessageReplyQuote } from "@/components/cins/ChatMessageReplyQuote";
 import { JourneyOrgPopover } from "@/components/journey/JourneyOrgPopover";
@@ -23,6 +34,7 @@ import {
 import {
   CHAT_SEEN_AVATARS_MAX,
   groupReadCursorsByMessage,
+  snapReadCursorsToOwnMessages,
 } from "@/lib/chat/read-cursors-client";
 import type {
   ChatMessage,
@@ -30,6 +42,229 @@ import type {
   ChatPollSummary,
   ChatReadCursor,
 } from "@/lib/chat/types";
+
+const MOBILE_LONG_PRESS_MS = 480;
+const MOBILE_MOVE_CANCEL_PX = 12;
+
+function usePreferTouchChatActions() {
+  const [touch, setTouch] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(hover: none) and (pointer: coarse)");
+    const sync = () => setTouch(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+  return touch;
+}
+
+/** Desktop: click bubble → hiện action. Mobile: tap → emoji; long-press → sheet. */
+function useRevealMessageActions(enabled: boolean, touchMode: boolean) {
+  const [visible, setVisible] = useState(false);
+  const [mobileMode, setMobileMode] = useState<"react" | "sheet" | null>(null);
+  const wrapRef = useRef<HTMLDivElement | null>(null);
+  const longTimerRef = useRef<number | null>(null);
+  const longFiredRef = useRef(false);
+  const startRef = useRef<{ x: number; y: number } | null>(null);
+
+  const clearLongTimer = useCallback(() => {
+    if (longTimerRef.current != null) {
+      window.clearTimeout(longTimerRef.current);
+      longTimerRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!visible && !mobileMode) return;
+    const onDoc = (event: PointerEvent) => {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+      if (wrapRef.current?.contains(target)) return;
+      if (
+        target instanceof Element &&
+        target.closest(
+          [
+            ".cins-chat-msg-menu.is-floating",
+            ".cins-chat-msg-react-picker.is-floating",
+            ".cins-chat-reaction-actors.is-floating",
+            ".cins-chat-msg-sheet",
+            ".cins-chat-msg-mobile-scrim",
+            ".cins-chat-reaction-tab",
+          ].join(","),
+        )
+      ) {
+        return;
+      }
+      setVisible(false);
+      setMobileMode(null);
+    };
+    const timer = window.setTimeout(() => {
+      document.addEventListener("pointerdown", onDoc);
+    }, 0);
+    return () => {
+      window.clearTimeout(timer);
+      document.removeEventListener("pointerdown", onDoc);
+    };
+  }, [mobileMode, visible]);
+
+  useEffect(() => () => clearLongTimer(), [clearLongTimer]);
+
+  const isInteractiveTarget = useCallback((target: Element) => {
+    return Boolean(
+      target.closest(
+        [
+          ".cins-chat-msg-actions",
+          ".cins-chat-msg-menu",
+          ".cins-chat-msg-react-picker",
+          ".cins-chat-reaction-actors",
+          ".cins-chat-reaction-chip",
+          ".cins-chat-reaction-tab",
+          ".cins-chat-msg-sheet",
+          "a[href]",
+          "input",
+          "textarea",
+          "select",
+          "button",
+          "[role='menuitem']",
+          "[role='dialog']",
+        ].join(","),
+      ),
+    );
+  }, []);
+
+  const onWrapClick = useCallback(
+    (event: MouseEvent<HTMLDivElement>) => {
+      if (!enabled || touchMode) return;
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      if (isInteractiveTarget(target)) return;
+      setVisible((prev) => !prev);
+    },
+    [enabled, isInteractiveTarget, touchMode],
+  );
+
+  const onPointerDown = useCallback(
+    (event: ReactPointerEvent<HTMLDivElement>) => {
+      if (!enabled || !touchMode) return;
+      if (event.pointerType === "mouse") return;
+      const target = event.target;
+      if (!(target instanceof Element) || isInteractiveTarget(target)) return;
+
+      longFiredRef.current = false;
+      startRef.current = { x: event.clientX, y: event.clientY };
+      clearLongTimer();
+      longTimerRef.current = window.setTimeout(() => {
+        longFiredRef.current = true;
+        setVisible(false);
+        setMobileMode("sheet");
+        if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+          try {
+            navigator.vibrate(12);
+          } catch {
+            /* ignore */
+          }
+        }
+      }, MOBILE_LONG_PRESS_MS);
+    },
+    [clearLongTimer, enabled, isInteractiveTarget, touchMode],
+  );
+
+  const onPointerMove = useCallback(
+    (event: ReactPointerEvent<HTMLDivElement>) => {
+      if (!touchMode || !startRef.current || longTimerRef.current == null) return;
+      const dx = event.clientX - startRef.current.x;
+      const dy = event.clientY - startRef.current.y;
+      if (dx * dx + dy * dy > MOBILE_MOVE_CANCEL_PX * MOBILE_MOVE_CANCEL_PX) {
+        clearLongTimer();
+        startRef.current = null;
+      }
+    },
+    [clearLongTimer, touchMode],
+  );
+
+  const onPointerEnd = useCallback(
+    (event: ReactPointerEvent<HTMLDivElement>) => {
+      if (!enabled || !touchMode) return;
+      if (event.pointerType === "mouse") return;
+      clearLongTimer();
+      const wasLong = longFiredRef.current;
+      longFiredRef.current = false;
+      startRef.current = null;
+      if (wasLong) {
+        event.preventDefault();
+        return;
+      }
+      const target = event.target;
+      if (!(target instanceof Element) || isInteractiveTarget(target)) return;
+      if (event.type === "pointercancel") return;
+      setVisible(false);
+      setMobileMode((prev) => (prev === "react" ? null : "react"));
+    },
+    [clearLongTimer, enabled, isInteractiveTarget, touchMode],
+  );
+
+  return {
+    wrapRef,
+    onWrapClick,
+    onPointerDown,
+    onPointerMove,
+    onPointerUp: onPointerEnd,
+    onPointerCancel: onPointerEnd,
+    actionsVisible: enabled && visible && !touchMode,
+    mobileMode: enabled && touchMode ? mobileMode : null,
+    closeMobile: () => setMobileMode(null),
+  };
+}
+
+function ChatBubbleActionsHost({
+  className,
+  enabled,
+  msg,
+  handlers,
+  children,
+}: {
+  className?: string;
+  enabled: boolean;
+  msg?: ChatMessage;
+  handlers?: ChatMessageActionHandlers;
+  children: ReactNode;
+}) {
+  const touchMode = usePreferTouchChatActions();
+  const {
+    wrapRef,
+    onWrapClick,
+    onPointerDown,
+    onPointerMove,
+    onPointerUp,
+    onPointerCancel,
+    actionsVisible,
+    mobileMode,
+    closeMobile,
+  } = useRevealMessageActions(enabled, touchMode);
+
+  return (
+    <div
+      ref={wrapRef}
+      className={`${className ?? ""}${actionsVisible ? " is-actions-visible" : ""}${touchMode ? " is-touch-actions" : ""}`.trim()}
+      onClick={onWrapClick}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerCancel}
+    >
+      {children}
+      {msg && handlers && mobileMode ? (
+        <ChatMessageMobileChrome
+          msg={msg}
+          handlers={handlers}
+          mode={mobileMode}
+          anchorRef={wrapRef}
+          onClose={closeMobile}
+        />
+      ) : null}
+    </div>
+  );
+}
 
 function orgPopoverKind(
   orgKind: ChatOrgKind | undefined,
@@ -63,6 +298,16 @@ function PinBadge() {
   return (
     <span className="cins-chat-pin-badge" aria-label="Tin đã ghim">
       <Pin size={11} strokeWidth={2.2} fill="currentColor" aria-hidden />
+    </span>
+  );
+}
+
+function ForwardedBadge({ msg }: { msg: ChatMessage }) {
+  if (!msg.forwarded) return null;
+  return (
+    <span className="cins-chat-forwarded-label">
+      <Forward size={11} strokeWidth={2.2} aria-hidden />
+      Đã chuyển tiếp
     </span>
   );
 }
@@ -167,9 +412,10 @@ function SeenUnderMessage({
   from: "me" | "them";
   byMessage: Map<string, ChatReadCursor[]>;
 }) {
+  if (from !== "me") return null;
   const cursors = byMessage.get(messageId);
   if (!cursors?.length) return null;
-  return <ChatSeenAvatars cursors={cursors} align={from} />;
+  return <ChatSeenAvatars cursors={cursors} align="me" />;
 }
 
 function SenderCluster({
@@ -445,10 +691,18 @@ function SingleMessageBubble({
     </>
   );
 
+  const actionsEnabled = Boolean(actionHandlers) && !isEditing;
+
   const bubbleBlock = isDonHangCard ? (
-    <div className="cins-chat-bubble-wrap cins-chat-don-hang-wrap">
+    <ChatBubbleActionsHost
+      className="cins-chat-bubble-wrap cins-chat-don-hang-wrap"
+      enabled={actionsEnabled}
+      msg={msg}
+      handlers={actionHandlers}
+    >
       <div className="cins-chat-don-hang-body">
         {msg.pinned ? <PinBadge /> : null}
+        <ForwardedBadge msg={msg} />
         {msg.replyTo ? (
           <ChatMessageReplyQuote
             reply={msg.replyTo}
@@ -472,6 +726,7 @@ function SingleMessageBubble({
           <ChatMessageReactions
             placement="corner"
             reactions={msg.reactions}
+            revealActorsOnClick={isMe}
             onToggle={(emoji, active) =>
               actionHandlers.onReaction(msg, emoji, active)
             }
@@ -481,11 +736,17 @@ function SingleMessageBubble({
       {actionHandlers ? (
         <ChatMessageActions msg={msg} handlers={actionHandlers} />
       ) : null}
-    </div>
+    </ChatBubbleActionsHost>
   ) : isBareMedia ? (
-    <div className="cins-chat-bubble-wrap cins-chat-bare-media-wrap">
+    <ChatBubbleActionsHost
+      className="cins-chat-bubble-wrap cins-chat-bare-media-wrap"
+      enabled={actionsEnabled}
+      msg={msg}
+      handlers={actionHandlers}
+    >
       <div className="cins-chat-bare-media-body">
         {msg.pinned ? <PinBadge /> : null}
+        <ForwardedBadge msg={msg} />
         {msg.replyTo ? (
           <ChatMessageReplyQuote
             reply={msg.replyTo}
@@ -496,25 +757,43 @@ function SingleMessageBubble({
             }
           />
         ) : null}
-        {bodyContent}
-        {!isEditing && msg.reactions?.length && actionHandlers ? (
-          <ChatMessageReactions
-            placement="corner"
-            reactions={msg.reactions}
-            onToggle={(emoji, active) =>
-              actionHandlers.onReaction(msg, emoji, active)
-            }
-          />
-        ) : null}
+        <div className="cins-chat-media-block">
+          {/* Frame neo reaction vào ảnh — không gồm dòng thời gian. */}
+          <div className="cins-chat-bare-media-frame">
+            <ChatMessageBody
+              msg={msg}
+              roomId={roomId}
+              viewerUserId={viewerUserId}
+              onPollUpdated={onPollUpdated}
+            />
+            {!isEditing && msg.reactions?.length && actionHandlers ? (
+              <ChatMessageReactions
+                placement="corner"
+                reactions={msg.reactions}
+                revealActorsOnClick={isMe}
+                onToggle={(emoji, active) =>
+                  actionHandlers.onReaction(msg, emoji, active)
+                }
+              />
+            ) : null}
+          </div>
+          {metaBelowMedia}
+        </div>
       </div>
       {actionHandlers ? (
         <ChatMessageActions msg={msg} handlers={actionHandlers} />
       ) : null}
-    </div>
+    </ChatBubbleActionsHost>
   ) : (
-    <div className="cins-chat-bubble-wrap">
+    <ChatBubbleActionsHost
+      className="cins-chat-bubble-wrap"
+      enabled={actionsEnabled}
+      msg={msg}
+      handlers={actionHandlers}
+    >
       <div className={bubbleClassName(msg, isMe, isEditing)}>
         {msg.pinned && !isEditing ? <PinBadge /> : null}
+        <ForwardedBadge msg={msg} />
         {msg.replyTo ? (
           <ChatMessageReplyQuote
             reply={msg.replyTo}
@@ -530,6 +809,7 @@ function SingleMessageBubble({
           <ChatMessageReactions
             placement="corner"
             reactions={msg.reactions}
+            revealActorsOnClick={isMe}
             onToggle={(emoji, active) => actionHandlers.onReaction(msg, emoji, active)}
           />
         ) : null}
@@ -540,7 +820,7 @@ function SingleMessageBubble({
       {actionHandlers && !actionsInBubble ? (
         <ChatMessageActions msg={msg} handlers={actionHandlers} />
       ) : null}
-    </div>
+    </ChatBubbleActionsHost>
   );
 
   return (
@@ -563,8 +843,8 @@ function SingleMessageBubble({
           </>
         )}
       </div>
-      {seenBy?.length ? (
-        <ChatSeenAvatars cursors={seenBy} align={isMe ? "me" : "them"} />
+      {seenBy?.length && isMe ? (
+        <ChatSeenAvatars cursors={seenBy} align="me" />
       ) : null}
     </>
   );
@@ -589,8 +869,11 @@ export function ChatMessageThreadItems({
 }: ChatMessageThreadItemsProps) {
   const items = useMemo(() => groupChatMessages(messages), [messages]);
   const byMessage = useMemo(
-    () => groupReadCursorsByMessage(readCursors),
-    [readCursors],
+    () =>
+      groupReadCursorsByMessage(
+        snapReadCursorsToOwnMessages(readCursors, messages),
+      ),
+    [readCursors, messages],
   );
 
   return (
@@ -648,7 +931,12 @@ export function ChatMessageThreadItems({
                       showSenderNames={showSenderNames}
                       showTime
                     />
-                    <div className="cins-chat-bubble-wrap">
+                    <ChatBubbleActionsHost
+                      className="cins-chat-bubble-wrap"
+                      enabled={Boolean(actionHandlers)}
+                      msg={albumActionMsg}
+                      handlers={actionHandlers}
+                    >
                       <div
                         className={`cins-chat-bubble${isMe ? " is-me" : " is-them"} has-media-actions${captionMsg?.pinned ? " is-pinned" : ""}`}
                       >
@@ -668,14 +956,19 @@ export function ChatMessageThreadItems({
                           />
                         ) : null}
                       </div>
-                    </div>
+                    </ChatBubbleActionsHost>
                   </div>
                 ) : (
                   <>
                     {item.from === "them"
                       ? renderTheirAvatar?.(captionMsg ?? item.messages[0])
                       : null}
-                    <div className="cins-chat-bubble-wrap">
+                    <ChatBubbleActionsHost
+                      className="cins-chat-bubble-wrap"
+                      enabled={Boolean(actionHandlers)}
+                      msg={albumActionMsg}
+                      handlers={actionHandlers}
+                    >
                       <div
                         className={`cins-chat-bubble${isMe ? " is-me" : " is-them"} has-media-actions${captionMsg?.pinned ? " is-pinned" : ""}`}
                       >
@@ -696,7 +989,7 @@ export function ChatMessageThreadItems({
                           />
                         ) : null}
                       </div>
-                    </div>
+                    </ChatBubbleActionsHost>
                   </>
                 )}
               </div>
@@ -724,7 +1017,12 @@ export function ChatMessageThreadItems({
                     showSenderNames={showSenderNames}
                     showTime
                   />
-                  <div className="cins-chat-bubble-wrap">
+                  <ChatBubbleActionsHost
+                    className="cins-chat-bubble-wrap"
+                    enabled={Boolean(actionHandlers) && !caption}
+                    msg={albumActionMsg}
+                    handlers={actionHandlers}
+                  >
                     <div
                       className={`cins-chat-bubble has-album has-media-actions${isMe ? " is-me" : " is-them"}${!caption && albumActionMsg?.pinned ? " is-pinned" : ""}`}
                     >
@@ -739,14 +1037,19 @@ export function ChatMessageThreadItems({
                         />
                       ) : null}
                     </div>
-                  </div>
+                  </ChatBubbleActionsHost>
                 </div>
               ) : (
                 <>
                   {item.from === "them" && !caption
                     ? renderTheirAvatar?.(albumActionMsg ?? item.messages[0])
                     : null}
-                  <div className="cins-chat-bubble-wrap">
+                  <ChatBubbleActionsHost
+                    className="cins-chat-bubble-wrap"
+                    enabled={Boolean(actionHandlers) && !caption}
+                    msg={albumActionMsg}
+                    handlers={actionHandlers}
+                  >
                     <div
                       className={`cins-chat-bubble has-album has-media-actions${isMe ? " is-me" : " is-them"}${!caption && albumActionMsg?.pinned ? " is-pinned" : ""}`}
                     >
@@ -774,7 +1077,7 @@ export function ChatMessageThreadItems({
                         />
                       ) : null}
                     </div>
-                  </div>
+                  </ChatBubbleActionsHost>
                 </>
               )}
             </div>

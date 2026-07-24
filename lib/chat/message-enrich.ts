@@ -4,9 +4,27 @@ import {
   CHAT_PIN_LIMIT,
   SOCIAL_LOAI_CHAT_TIN_NHAN,
 } from "@/lib/chat/constants";
+import { getAvatarUrl } from "@/lib/journey/profile";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
-import type { ChatReactionSummary } from "@/lib/chat/types";
+import type {
+  ChatReactionActor,
+  ChatReactionSummary,
+} from "@/lib/chat/types";
+
+type ReactionRow = {
+  id_doi_tuong: string;
+  emoji: string;
+  id_nguoi_dung: string;
+  tao_luc: string | null;
+};
+
+type ProfileRow = {
+  id: string;
+  slug: string;
+  ten_hien_thi: string | null;
+  avatar_id: string | null;
+};
 
 export async function loadReactionsForMessages(
   messageIds: string[],
@@ -18,29 +36,64 @@ export async function loadReactionsForMessages(
   const admin = createServiceRoleClient();
   const { data } = await admin
     .from("social_reaction")
-    .select("id_doi_tuong, emoji, id_nguoi_dung")
+    .select("id_doi_tuong, emoji, id_nguoi_dung, tao_luc")
     .eq("loai_doi_tuong", SOCIAL_LOAI_CHAT_TIN_NHAN)
-    .in("id_doi_tuong", messageIds);
+    .in("id_doi_tuong", messageIds)
+    .order("tao_luc", { ascending: false })
+    .returns<ReactionRow[]>();
 
-  const buckets = new Map<string, Map<string, { count: number; viewer: boolean }>>();
-  for (const row of data ?? []) {
-    const id = row.id_doi_tuong as string;
-    const emoji = row.emoji as string;
+  const rows = data ?? [];
+  const userIds = [...new Set(rows.map((row) => row.id_nguoi_dung))];
+  const profileById = new Map<string, ProfileRow>();
+
+  if (userIds.length > 0) {
+    const { data: profiles } = await admin
+      .from("user_nguoi_dung")
+      .select("id, slug, ten_hien_thi, avatar_id")
+      .in("id", userIds)
+      .returns<ProfileRow[]>();
+    for (const profile of profiles ?? []) {
+      profileById.set(profile.id, profile);
+    }
+  }
+
+  type Bucket = {
+    count: number;
+    viewer: boolean;
+    actors: ChatReactionActor[];
+  };
+
+  const buckets = new Map<string, Map<string, Bucket>>();
+  for (const row of rows) {
+    const id = row.id_doi_tuong;
+    const emoji = row.emoji;
     if (!buckets.has(id)) buckets.set(id, new Map());
     const emojiMap = buckets.get(id)!;
-    const cur = emojiMap.get(emoji) ?? { count: 0, viewer: false };
+    const cur = emojiMap.get(emoji) ?? {
+      count: 0,
+      viewer: false,
+      actors: [],
+    };
     cur.count += 1;
     if (row.id_nguoi_dung === viewerId) cur.viewer = true;
+
+    const profile = profileById.get(row.id_nguoi_dung);
+    cur.actors.push({
+      userId: row.id_nguoi_dung,
+      name: profile?.ten_hien_thi?.trim() || profile?.slug || "Thành viên",
+      avatarUrl: getAvatarUrl(profile?.avatar_id ?? null),
+    });
     emojiMap.set(emoji, cur);
   }
 
   for (const [id, emojiMap] of buckets) {
     result.set(
       id,
-      [...emojiMap.entries()].map(([emoji, { count, viewer }]) => ({
+      [...emojiMap.entries()].map(([emoji, { count, viewer, actors }]) => ({
         emoji,
         count,
         viewerReacted: viewer,
+        actors,
       })),
     );
   }

@@ -4446,7 +4446,13 @@
 }
 
 .world-journey-home .ha-card--notify .ha-org-up-list {
-  padding: 0 12px 12px 8px;
+  padding: 10px 12px 12px 8px;
+}
+
+.world-journey-home .ha-card--notify .ha-org-up-list-row,
+.world-journey-home .ha-card--notify .ha-org-up-date,
+.world-journey-home .ha-card--notify .ha-org-up-list-badge {
+  box-shadow: none;
 }
 
 .world-journey-home .ha-card--notify .ha-org-up-more {
@@ -5515,14 +5521,12 @@
   background: var(--surface);
   text-decoration: none;
   color: inherit;
-  transition:
-    border-color 0.15s ease,
-    background 0.15s ease;
+  box-shadow: none;
 }
 
 .world-journey-home .ha-org-up-list-row:hover {
-  border-color: color-mix(in srgb, var(--blue) 28%, var(--border));
-  background: var(--neutral-50, #f8f9fb);
+  border-color: var(--border);
+  background: var(--surface);
 }
 
 .world-journey-home .ha-org-up-item--interest .ha-org-up-list-row {

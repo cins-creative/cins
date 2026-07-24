@@ -21,7 +21,7 @@ import {
 import { listRoomReadCursors } from "@/lib/chat/read-cursors";
 import { loadPollsForMessages } from "@/lib/chat/room-poll";
 import { resolveOwnedUserEmojiMuc } from "@/lib/user-emoji/resolve-owned";
-import { parseChatCanvasBinhLuan, parseChatMocNhac, parseChatNguCanh, parseChatMessageMentions } from "@/lib/chat/message-perspective";
+import { parseChatCanvasBinhLuan, parseChatForwarded, parseChatMocNhac, parseChatNguCanh, parseChatMessageMentions } from "@/lib/chat/message-perspective";
 import type {
   ChatContextCard,
   ChatMessage,
@@ -174,6 +174,7 @@ export function mapMessageFromRow(
     canvasBinhLuan || mocNhac
       ? []
       : parseChatMessageMentions(normalized.ngu_canh);
+  const forwarded = parseChatForwarded(normalized.ngu_canh);
   const kind: ChatMessageKind = canvasBinhLuan
     ? "canvas_binh_luan"
     : mocNhac
@@ -220,6 +221,7 @@ export function mapMessageFromRow(
     poll: null,
     mocNhac,
     canvasBinhLuan,
+    forwarded: forwarded || undefined,
   };
 }
 
@@ -1137,6 +1139,8 @@ export async function sendRoomMessage(
     typeof input === "string" ? undefined : input.replyToId?.trim();
   const contextCard =
     typeof input === "string" ? null : parseNguCanh(input.nguCanh);
+  const chuyenTiep =
+    typeof input !== "string" && parseChatForwarded(input.nguCanh);
 
   if (!body && !cloudflareImageId && !emojiMucId && !contextCard) {
     return { ok: false, error: "Tin nhắn trống." };
@@ -1165,10 +1169,13 @@ export async function sendRoomMessage(
   const mentions = resolveMentionsAgainstMembers(body, mentionMembers, {
     excludeUserId: viewerId,
   });
-  const nguCanhPayload = buildNguCanhPayload(
+  const baseNguCanh = buildNguCanhPayload(
     contextCard as Record<string, unknown> | null,
     mentions,
   );
+  const nguCanhPayload = chuyenTiep
+    ? { ...(baseNguCanh ?? {}), chuyenTiep: true }
+    : baseNguCanh;
 
   if (replyToId) {
     const { data: replyRow } = await admin

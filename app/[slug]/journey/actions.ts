@@ -1444,9 +1444,6 @@ export async function updateChiChuNen(
     return { ok: false, error: "Không lưu được màu nền: " + updErr.message };
   }
 
-  if (session.profile.slug) {
-    revalidatePath(`/${session.profile.slug}`);
-  }
-
+  /* Không revalidatePath — client đã optimistic; tránh làm chậm mỗi lần đổi màu. */
   return { ok: true, data: { nen } };
 }

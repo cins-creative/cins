@@ -45,6 +45,7 @@ import {
   toRealtimeMessageEvent,
   type ChatRealtimeMessageEvent,
 } from "@/lib/chat/realtime";
+import { playIncomingMessageSound } from "@/lib/chat/play-incoming-message-sound";
 import { hasShareDragData } from "@/lib/cins/share-drag";
 import { useChatRealtime } from "@/lib/chat/use-chat-realtime";
 import type {
@@ -460,6 +461,8 @@ export function CinsChatProvider({
       const fromPeer = event.senderId !== viewerProfileId;
       if (!fromPeer) return;
 
+      playIncomingMessageSound({ muted: isRoomMuted(event.roomId) });
+
       const focus = focusRef.current;
       const isViewing =
         focus.surface !== null && focus.roomId === event.roomId;
@@ -468,7 +471,7 @@ export function CinsChatProvider({
         setTotalUnread((count) => count + 1);
       }
     },
-    [viewerProfileId],
+    [viewerProfileId, isRoomMuted],
   );
 
   const handleRealtimeUpdate = useCallback(
@@ -488,6 +491,7 @@ export function CinsChatProvider({
       ) {
         return;
       }
+      playIncomingMessageSound({ muted: isRoomMuted(event.roomId) });
       const focus = focusRef.current;
       const isViewing =
         focus.surface !== null && focus.roomId === event.roomId;
@@ -495,7 +499,7 @@ export function CinsChatProvider({
         setTotalUnread((count) => count + 1);
       }
     },
-    [viewerProfileId],
+    [viewerProfileId, isRoomMuted],
   );
 
   useChatRealtime(viewerProfileId, handleRealtimeInsert, handleRealtimeUpdate);
