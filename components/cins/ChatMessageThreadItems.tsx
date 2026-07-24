@@ -140,6 +140,16 @@ function useBubbleTapActions(enabled: boolean) {
     [enabled, mobileOpen, openMobile],
   );
 
+  /* Chặn focus khi tap — tránh scrollIntoView làm bubble/list bị đẩy xổ. */
+  const onMouseDown = useCallback(
+    (event: MouseEvent<HTMLDivElement>) => {
+      if (!enabled) return;
+      if (isIgnoredActionTarget(event.target)) return;
+      event.preventDefault();
+    },
+    [enabled],
+  );
+
   const onContextMenu = useCallback(
     (event: MouseEvent<HTMLDivElement>) => {
       if (!enabled) return;
@@ -167,6 +177,7 @@ function useBubbleTapActions(enabled: boolean) {
     mobileOpen: enabled && mobileOpen,
     closeMobile,
     onClick,
+    onMouseDown,
     onContextMenu,
     onKeyDown,
   };
@@ -190,6 +201,7 @@ function ChatBubbleActionsHost({
     mobileOpen,
     closeMobile,
     onClick,
+    onMouseDown,
     onContextMenu,
     onKeyDown,
   } = useBubbleTapActions(enabled);
@@ -197,13 +209,11 @@ function ChatBubbleActionsHost({
   return (
     <div
       ref={wrapRef}
-      role={enabled ? "button" : undefined}
-      tabIndex={enabled ? 0 : undefined}
-      aria-label={enabled ? "Hành động tin nhắn" : undefined}
       className={`${className ?? ""}${enabled ? " has-bubble-actions" : ""}${mobileOpen ? " is-touch-actions is-actions-open" : ""}`.trim()}
       onClick={onClick}
+      onMouseDown={onMouseDown}
       onContextMenu={onContextMenu}
-      onKeyDown={onKeyDown}
+      onKeyDown={enabled ? onKeyDown : undefined}
     >
       {children}
       {msg && handlers && mobileOpen ? (

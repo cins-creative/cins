@@ -29,6 +29,10 @@ import {
   markEngagementCanTinhLaiForTarget,
   recalcDiemNoiDung,
 } from "@/lib/cins/feed-scoring-write";
+import {
+  pickTopReactionEmoji,
+  REACTION_EMOJI,
+} from "@/lib/social/reaction-emoji";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 const MAX_POST_LEN = 8000;
@@ -140,25 +144,81 @@ async function loadMilestoneMedia(
 async function loadReactionMeta(
   postIds: string[],
   viewerId: string | null,
-): Promise<Map<string, { count: number; liked: boolean }>> {
-  const out = new Map<string, { count: number; liked: boolean }>();
-  for (const id of postIds) out.set(id, { count: 0, liked: false });
+): Promise<
+  Map<
+    string,
+    {
+      count: number;
+      liked: boolean;
+      viewerReactionEmoji: string | null;
+      topReactionEmoji: string | null;
+    }
+  >
+> {
+  const empty = {
+    count: 0,
+    liked: false,
+    viewerReactionEmoji: null as string | null,
+    topReactionEmoji: null as string | null,
+  };
+  const out = new Map<string, typeof empty>();
+  for (const id of postIds) out.set(id, { ...empty });
   if (postIds.length === 0) return out;
 
   const admin = createServiceRoleClient();
-  const { data: reactions } = await admin
-    .from("social_reaction")
-    .select("id_doi_tuong, id_nguoi_dung")
-    .eq("loai_doi_tuong", SOCIAL_LOAI_DOI_TUONG.COT_MOC)
-    .in("id_doi_tuong", postIds)
-    .eq("emoji", "heart")
-    .returns<Array<{ id_doi_tuong: string; id_nguoi_dung: string }>>();
+  const [{ data: reactions }, viewerLikesResult] = await Promise.all([
+    admin
+      .from("social_reaction")
+      .select("id_doi_tuong, emoji")
+      .eq("loai_doi_tuong", SOCIAL_LOAI_DOI_TUONG.COT_MOC)
+      .neq("emoji", REACTION_EMOJI.DISLIKE)
+      .in("id_doi_tuong", postIds)
+      .returns<Array<{ id_doi_tuong: string; emoji: string | null }>>(),
+    viewerId
+      ? admin
+          .from("social_reaction")
+          .select("id_doi_tuong, emoji")
+          .eq("id_nguoi_dung", viewerId)
+          .eq("loai_doi_tuong", SOCIAL_LOAI_DOI_TUONG.COT_MOC)
+          .neq("emoji", REACTION_EMOJI.DISLIKE)
+          .in("id_doi_tuong", postIds)
+          .returns<Array<{ id_doi_tuong: string; emoji: string | null }>>()
+      : Promise.resolve({
+          data: [] as Array<{ id_doi_tuong: string; emoji: string | null }>,
+        }),
+  ]);
 
+  const emojiCountsByTarget = new Map<string, Map<string, number>>();
   for (const row of reactions ?? []) {
-    const prev = out.get(row.id_doi_tuong) ?? { count: 0, liked: false };
+    const id = row.id_doi_tuong;
+    const emoji = typeof row.emoji === "string" ? row.emoji : "";
+    if (!id || !emoji) continue;
+    const prev = out.get(id) ?? { ...empty };
     prev.count += 1;
-    if (viewerId && row.id_nguoi_dung === viewerId) prev.liked = true;
-    out.set(row.id_doi_tuong, prev);
+    out.set(id, prev);
+    let counts = emojiCountsByTarget.get(id);
+    if (!counts) {
+      counts = new Map<string, number>();
+      emojiCountsByTarget.set(id, counts);
+    }
+    counts.set(emoji, (counts.get(emoji) ?? 0) + 1);
+  }
+
+  for (const [id, counts] of emojiCountsByTarget) {
+    const top = pickTopReactionEmoji(counts);
+    const prev = out.get(id) ?? { ...empty };
+    prev.topReactionEmoji = top;
+    out.set(id, prev);
+  }
+
+  for (const row of viewerLikesResult.data ?? []) {
+    const id = row.id_doi_tuong;
+    const emoji = typeof row.emoji === "string" ? row.emoji : "";
+    if (!id || !emoji) continue;
+    const prev = out.get(id) ?? { ...empty };
+    prev.liked = true;
+    prev.viewerReactionEmoji = emoji;
+    out.set(id, prev);
   }
 
   return out;
@@ -233,7 +293,12 @@ async function mapPosts(
       soBaiVietTrongNhom:
         authorPostCountsInOrg.get(row.id_nguoi_dung)?.count ?? 0,
     };
-    const reaction = reactions.get(row.id) ?? { count: 0, liked: false };
+    const reaction = reactions.get(row.id) ?? {
+      count: 0,
+      liked: false,
+      viewerReactionEmoji: null,
+      topReactionEmoji: null,
+    };
     const journeyMirror = journeyMirrors.get(row.id) ?? null;
 
     return {
@@ -250,6 +315,8 @@ async function mapPosts(
       likeCount: reaction.count,
       commentCount: commentCounts.get(row.id) ?? 0,
       viewerLiked: reaction.liked,
+      viewerReactionEmoji: reaction.viewerReactionEmoji,
+      topReactionEmoji: reaction.topReactionEmoji,
       viewerBookmarked: viewerBookmarkedMilestones.has(row.id),
     };
   });

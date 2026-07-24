@@ -25,8 +25,14 @@ export function useChatRealtime(
       return;
     }
 
+    /* Topic duy nhất mỗi lần subscribe — tránh tái dùng channel đã
+       `subscribe()` (StrictMode double-invoke / remount nhanh) gây lỗi
+       «cannot add postgres_changes callbacks after subscribe()». */
+    const uniqueTopic = `cins-chat:${viewerProfileId}:${Math.random()
+      .toString(36)
+      .slice(2)}`;
     const channel = supabase
-      .channel(`cins-chat:${viewerProfileId}`)
+      .channel(uniqueTopic)
       .on(
         "postgres_changes",
         {

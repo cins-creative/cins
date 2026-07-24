@@ -16,6 +16,7 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  type PointerEvent as ReactPointerEvent,
   type RefObject,
 } from "react";
 import { createPortal } from "react-dom";
@@ -102,6 +103,27 @@ export function ChatMessageMobileChrome({
     onClose();
   }, [onClose]);
 
+  /** Đóng sheet + chặn click xuyên xuống chat (tránh đóng overlay/mini). */
+  const dismissScrim = useCallback(
+    (event: ReactPointerEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (Date.now() - mountedAtRef.current < 400) return;
+      onClose();
+      const blockThrough = (ev: Event) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+      };
+      document.addEventListener("click", blockThrough, true);
+      document.addEventListener("pointerup", blockThrough, true);
+      window.setTimeout(() => {
+        document.removeEventListener("click", blockThrough, true);
+        document.removeEventListener("pointerup", blockThrough, true);
+      }, 400);
+    },
+    [onClose],
+  );
+
   useLayoutEffect(() => {
     if (!open) return;
     const anchor = anchorRef.current;
@@ -170,7 +192,10 @@ export function ChatMessageMobileChrome({
         type="button"
         className="cins-chat-msg-mobile-scrim is-sheet"
         aria-label="Đóng"
-        onClick={guardedClose}
+        onPointerDown={(event) => {
+          if (event.pointerType === "mouse" && event.button !== 0) return;
+          dismissScrim(event);
+        }}
       />
       <div
         ref={reactRef}

@@ -5602,6 +5602,22 @@ a.cd-v4-role-menu-btn {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+/* Đồng bộ nút thích Journey (split + emoji) trong footer card cộng đồng */
+.cd-v4-jcard-foot .jcard-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.cd-v4-jcard-foot .j-reaction-wrap,
+.cd-v4-jcard-foot .action-btn--split {
+  flex-shrink: 0;
 }
 
 .cd-v4-jcard-act {

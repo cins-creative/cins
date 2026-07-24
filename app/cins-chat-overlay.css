@@ -1305,42 +1305,76 @@ html.is-cins-share-dropping {
   align-items: center;
 }
 
-.cins-chat-members-pop {
+.cins-chat-members-root {
+  position: fixed;
+  inset: 0;
+  z-index: calc(var(--cins-chat-z, 1200) + 2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.cins-chat-members-backdrop {
   position: absolute;
-  top: calc(100% + 8px);
-  left: 0;
-  z-index: 40;
+  inset: 0;
+  border: 0;
+  background: rgba(15, 23, 42, 0.42);
+  cursor: pointer;
+}
+
+.cins-chat-members-pop {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
-  width: min(280px, calc(100vw - 48px));
-  max-height: min(320px, 50vh);
+  width: min(400px, 100%);
+  max-height: min(70vh, calc(100vh - 32px));
   overflow: hidden;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 16px;
   background: var(--bg-surface, #fff);
-  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.16);
+  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.18);
 }
 
 .cins-chat-members-pop-head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 8px;
-  padding: 10px 12px;
+  padding: 14px 14px 12px 16px;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
 
 .cins-chat-members-pop-head strong {
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 15px;
+  font-weight: 800;
   color: var(--ink-display);
 }
 
-.cins-chat-members-pop-head span {
+.cins-chat-members-pop-count {
   font-size: 12px;
   color: var(--ink-muted);
   font-variant-numeric: tabular-nums;
+}
+
+.cins-chat-members-pop-close {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink-muted);
+  cursor: pointer;
+}
+
+.cins-chat-members-pop-close:hover {
+  background: var(--bg-subtle, rgba(15, 23, 42, 0.06));
+  color: var(--ink-display);
 }
 
 .cins-chat-members-pop-empty {
@@ -3813,8 +3847,43 @@ button.cins-canvas-table-cell-text {
 
 /* Mobile: ẩn 3 nút desktop; tap/long-press qua ChatMessageMobileChrome */
 .cins-chat-bubble-wrap.is-touch-actions > .cins-chat-msg-actions,
-.cins-chat-bubble-wrap.is-touch-actions .cins-chat-msg-actions {
+.cins-chat-bubble-wrap.is-touch-actions .cins-chat-msg-actions,
+.cins-chat-bubble-wrap.is-actions-open > .cins-chat-msg-actions,
+.cins-chat-bubble-wrap.is-actions-open .cins-chat-msg-actions {
   display: none !important;
+  width: 0 !important;
+  max-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Sheet mở: giữ kích thước bubble — không để hàng nút / width 100%-78px làm text xổ thêm dòng */
+.cins-chat-bubble-wrap.is-actions-open,
+.cins-chat-bubble-wrap.is-touch-actions {
+  flex-wrap: nowrap;
+}
+
+.cins-chat-bubble-wrap.is-actions-open > .cins-chat-bubble,
+.cins-chat-bubble-wrap.is-actions-open > .cins-chat-don-hang-body,
+.cins-chat-bubble-wrap.is-actions-open > .cins-chat-bare-media-body,
+.cins-chat-bubble-wrap.is-touch-actions > .cins-chat-bubble,
+.cins-chat-bubble-wrap.is-touch-actions > .cins-chat-don-hang-body,
+.cins-chat-bubble-wrap.is-touch-actions > .cins-chat-bare-media-body {
+  max-width: 100% !important;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .cins-chat-bubble-wrap.is-actions-open:hover > .cins-chat-msg-actions,
+  .cins-chat-bubble-wrap.is-touch-actions:hover > .cins-chat-msg-actions,
+  .cins-chat-msg-stack:has(.is-actions-open):hover .cins-chat-msg-actions,
+  .cins-chat-msg-stack:has(.is-touch-actions):hover .cins-chat-msg-actions {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
 }
 
 @media (hover: none), (pointer: coarse) {
@@ -3836,6 +3905,27 @@ button.cins-canvas-table-cell-text {
   .cins-chat-bubble-wrap.is-touch-actions > .cins-chat-don-hang-body,
   .cins-chat-bubble-wrap.is-touch-actions > .cins-chat-bare-media-body {
     max-width: 100%;
+  }
+}
+
+/*
+ * Thiết bị có hover (desktop / laptop cảm ứng): 3 nút desktop luôn reserve chỗ
+ * ngang (ẩn tới khi hover). Khi tap mở sheet, chỉ ẩn thị giác — GIỮ chỗ reserve,
+ * không collapse width — để bubble `fit-content` không co ngang (~78px).
+ */
+@media (hover: hover) and (pointer: fine) {
+  .cins-chat-bubble-wrap.is-actions-open > .cins-chat-msg-actions,
+  .cins-chat-bubble-wrap.is-touch-actions > .cins-chat-msg-actions,
+  .cins-chat-bubble-wrap.is-actions-open:hover > .cins-chat-msg-actions,
+  .cins-chat-bubble-wrap.is-touch-actions:hover > .cins-chat-msg-actions {
+    display: flex !important;
+    width: auto !important;
+    max-width: 120px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
   }
 }
 

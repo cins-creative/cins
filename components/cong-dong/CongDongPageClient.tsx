@@ -21,6 +21,7 @@ import { useCongDongAuthGate } from "@/components/cong-dong/useCongDongAuthGate"
 import { BunnyVideoProcessingPoller } from "@/components/journey/BunnyVideoProcessingPoller";
 import { JourneyComposeProvider } from "@/components/journey/JourneyComposeContext";
 import { JourneyCreateComposer } from "@/components/journey/JourneyCreateComposer";
+import { JourneyLikeButton } from "@/components/journey/JourneyLikeButton";
 import { CongDongAuthorMetaLine } from "@/components/cong-dong/CongDongAuthorMetaLine";
 import { CongDongTopicsAside } from "@/components/cong-dong/CongDongTopicsAside";
 import { congDongFeedPostCoverUrl } from "@/lib/cong-dong/feed-post-cover";
@@ -917,6 +918,29 @@ function usePostSocial(orgId: string, post: CongDongPost, canInteract: boolean) 
   const [commentCount, setCommentCount] = useState(post.commentCount);
   const [pending, startTransition] = useTransition();
 
+  useEffect(() => {
+    setLiked(post.viewerLiked);
+    setLikeCount(post.likeCount);
+    setCommentCount(post.commentCount);
+  }, [post.id, post.viewerLiked, post.likeCount, post.commentCount]);
+
+  useEffect(() => {
+    const onSocial = (event: Event) => {
+      const detail = (
+        event as CustomEvent<{
+          milestoneId: string;
+          liked?: boolean;
+          likeCount?: number;
+        }>
+      ).detail;
+      if (detail.milestoneId !== post.id) return;
+      if (typeof detail.liked === "boolean") setLiked(detail.liked);
+      if (typeof detail.likeCount === "number") setLikeCount(detail.likeCount);
+    };
+    window.addEventListener("cins:social-action", onSocial);
+    return () => window.removeEventListener("cins:social-action", onSocial);
+  }, [post.id]);
+
   const toggleLike = () => {
     requireCongDongAuth(() => {
       const next = !liked;
@@ -932,8 +956,19 @@ function usePostSocial(orgId: string, post: CongDongPost, canInteract: boolean) 
             active: next,
           }),
         });
-        const json = (await res.json().catch(() => null)) as { count?: number } | null;
-        if (res.ok && typeof json?.count === "number") setLikeCount(json.count);
+        const json = (await res.json().catch(() => null)) as {
+          count?: number;
+          likeCount?: number;
+        } | null;
+        if (res.ok) {
+          const synced =
+            typeof json?.likeCount === "number"
+              ? json.likeCount
+              : typeof json?.count === "number"
+                ? json.count
+                : null;
+          if (synced !== null) setLikeCount(synced);
+        }
       });
     });
   };
@@ -1086,6 +1121,7 @@ function CongDongJourneyPostCard({
   onPostDeleted: (postId: string) => void;
 }) {
   const [contentOpen, setContentOpen] = useState(false);
+  const { requireCongDongAuth } = useCongDongAuthGate();
   const social = usePostSocial(orgId, post, canInteract);
   const avatarUrl = getAvatarUrl(post.author.avatarId);
   const initial = post.author.tenHienThi.charAt(0).toUpperCase();
@@ -1290,23 +1326,16 @@ function CongDongJourneyPostCard({
       ) : null}
 
       <footer className="cd-v4-jcard-foot">
-        <div className="cd-v4-jcard-act-group">
-          <button
-            type="button"
-            className={`cd-v4-jcard-act${social.liked ? " is-liked" : ""}`}
-            aria-label="Thích"
-            onClick={social.toggleLike}
-          >
-            <Heart
-              size={18}
-              strokeWidth={2}
-              fill={social.liked ? "currentColor" : "none"}
-              aria-hidden
-            />
-            {social.likeCount > 0 ? (
-              <span className="cd-v4-jcard-act-count">{social.likeCount}</span>
-            ) : null}
-          </button>
+        <div className="cd-v4-jcard-act-group jcard-actions">
+          <JourneyLikeButton
+            milestoneId={post.id}
+            initialLiked={post.viewerLiked}
+            initialCount={post.likeCount}
+            initialReactionEmoji={post.viewerReactionEmoji}
+            initialTopReactionEmoji={post.topReactionEmoji}
+            showCount
+            onRequireAuth={requireCongDongAuth}
+          />
           <button
             type="button"
             className="cd-v4-jcard-act"

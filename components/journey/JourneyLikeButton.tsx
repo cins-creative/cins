@@ -49,6 +49,8 @@ type Props = {
   sharePath?: string | null;
   shareTitle?: string | null;
   commentCount?: number;
+  /** Gate đăng nhập tùy chỉnh (vd. cộng đồng). */
+  onRequireAuth?: (then: () => void) => void;
 };
 
 type SocialEvent = CustomEvent<{
@@ -72,18 +74,23 @@ export function JourneyLikeButton({
   loaiDoiTuong = SOCIAL_LOAI_DOI_TUONG.COT_MOC,
   actorsMediaLabel,
   disableActorsReveal = false,
+  onRequireAuth,
 }: Props) {
   const authGate = useOptionalAuthGate();
   const router = useRouter();
   const requireAuth = useCallback(
     (action: () => void) => {
+      if (onRequireAuth) {
+        onRequireAuth(action);
+        return;
+      }
       if (authGate) {
         authGate.requireAuth(action);
         return;
       }
       router.push("/login");
     },
-    [authGate, router],
+    [authGate, onRequireAuth, router],
   );
   const isCoarse = useCoarsePointer();
   const [liked, setLiked] = useState(initialLiked);

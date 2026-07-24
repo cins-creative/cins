@@ -1367,8 +1367,9 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
   ]);
 
   /**
-   * Mở overlay đầy đủ. Defer `openChat` — nếu setOpen(true) ngay trong cùng
-   * click, mini unmount và click «lọt» xuống link dưới (thường → trang 404).
+   * Mở overlay đầy đủ cho đúng thread. `openChat({ thread })` chỉ set state
+   * (setLaunch + setOpen) — không điều hướng. React commit unmount mini +
+   * mount overlay trong cùng một pass, nên không có khe «lọt click» xuống dưới.
    */
   const expandMiniToFullChat = useCallback(
     (event?: { preventDefault?: () => void; stopPropagation?: () => void }) => {
@@ -1377,14 +1378,11 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
       const thread = miniThreadRef.current;
       if (!thread) return;
       saveComposeForRoom(thread.roomId);
-      const snapshot = thread;
-      window.setTimeout(() => {
-        void openChat({
-          thread: snapshot,
-          roomId: snapshot.roomId,
-          tab: snapshot.group,
-        });
-      }, 0);
+      void openChat({
+        thread,
+        roomId: thread.roomId,
+        tab: thread.group,
+      });
     },
     [openChat, saveComposeForRoom],
   );
@@ -1828,6 +1826,13 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
         if (miniPanelRef.current?.contains(target)) return;
         /* Bubble / FAB tự xử lý toggle — không đóng bằng outside-click. */
         if (dockControlsRef.current?.contains(target)) return;
+        /* Sheet/emoji portal body — chỉ đóng action, không đóng mini chat. */
+        if (
+          target instanceof Element &&
+          target.closest(".cins-chat-msg-sheet-root")
+        ) {
+          return;
+        }
         closeMini();
       }
       function onKey(event: KeyboardEvent) {

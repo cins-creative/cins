@@ -38,6 +38,8 @@ export function ShopDonDetailModal({
   const [busy, setBusy] = useState(false);
   const [portalReady, setPortalReady] = useState(false);
   const [viewerId, setViewerId] = useState<string | null>(null);
+  /** Phóng to biên lai ngay trong modal — không mở tab mới. */
+  const [billZoom, setBillZoom] = useState(false);
 
   useEffect(() => {
     setPortalReady(true);
@@ -76,11 +78,20 @@ export function ShopDonDetailModal({
   }, [open, donId, load]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      setBillZoom(false);
+      return;
+    }
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key !== "Escape") return;
+      /* Đóng lớp phóng biên lai trước, chưa đóng cả modal. */
+      setBillZoom((zoom) => {
+        if (zoom) return false;
+        onClose();
+        return zoom;
+      });
     };
     window.addEventListener("keydown", onKey);
     return () => {
@@ -165,8 +176,13 @@ export function ShopDonDetailModal({
       className="shop-don-detail"
       role="presentation"
       onMouseDown={(e) => {
+        /* Portal: chặn event rò lên React-tree cha (vd. ChatBubbleActionsHost
+           mở overlay thả emoji khi bắt click/contextmenu của card đơn). */
+        e.stopPropagation();
         if (e.target === e.currentTarget) onClose();
       }}
+      onClick={(e) => e.stopPropagation()}
+      onContextMenu={(e) => e.stopPropagation()}
     >
       <div
         className={`shop-don-detail-panel${isPaid ? " is-paid" : isLater ? " is-later" : ""}`}
@@ -293,15 +309,15 @@ export function ShopDonDetailModal({
                 <span className="shop-don-detail-note-label">
                   Biên lai chuyển khoản
                 </span>
-                <a
-                  href={don.bienLaiAnhUrl}
-                  target="_blank"
-                  rel="noreferrer"
+                <button
+                  type="button"
                   className="shop-don-detail-bill-link"
+                  onClick={() => setBillZoom(true)}
+                  aria-label="Phóng to biên lai chuyển khoản"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={don.bienLaiAnhUrl} alt="Biên lai chuyển khoản" />
-                </a>
+                </button>
               </div>
             ) : null}
 
@@ -366,6 +382,31 @@ export function ShopDonDetailModal({
           </>
         ) : null}
       </div>
+
+      {billZoom && don?.bienLaiAnhUrl ? (
+        <div
+          className="shop-don-detail-bill-zoom"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Biên lai chuyển khoản"
+          onMouseDown={() => setBillZoom(false)}
+        >
+          <button
+            type="button"
+            className="shop-don-detail-bill-zoom-close"
+            aria-label="Đóng"
+            onClick={() => setBillZoom(false)}
+          >
+            <X size={20} strokeWidth={2} aria-hidden />
+          </button>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={don.bienLaiAnhUrl}
+            alt="Biên lai chuyển khoản"
+            onMouseDown={(e) => e.stopPropagation()}
+          />
+        </div>
+      ) : null}
     </div>,
     document.body,
   );

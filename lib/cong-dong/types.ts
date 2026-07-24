@@ -239,6 +239,10 @@ export type CongDongPost = {
   likeCount: number;
   commentCount: number;
   viewerLiked: boolean;
+  /** Emoji cảm xúc hiện tại của viewer (`heart`, `joy`, …). */
+  viewerReactionEmoji: string | null;
+  /** Emoji được thả nhiều nhất — hiện trên nút khi viewer chưa thả. */
+  topReactionEmoji: string | null;
   viewerBookmarked: boolean;
 };
 

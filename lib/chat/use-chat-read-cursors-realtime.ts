@@ -34,8 +34,14 @@ export function useChatReadCursorsRealtime(
       return;
     }
 
+    /* Topic duy nhất mỗi lần subscribe — mini + overlay (hoặc StrictMode
+       double-invoke) cùng phòng không đụng channel đã `subscribe()`, tránh lỗi
+       «cannot add postgres_changes callbacks after subscribe()». */
+    const uniqueTopic = `cins-chat-read:${id}:${Math.random()
+      .toString(36)
+      .slice(2)}`;
     const channel = supabase
-      .channel(`cins-chat-read:${id}`)
+      .channel(uniqueTopic)
       .on(
         "postgres_changes",
         {
