@@ -39,6 +39,7 @@ function personToFallbackActor(person: NgheRolePerson): SocialActorProfile {
     quanHe: "none",
     ketBanId: null,
     dangTheoDoi: false,
+    reactionEmoji: null,
   };
 }
 

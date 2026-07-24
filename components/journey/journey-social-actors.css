@@ -135,6 +135,70 @@
   background: var(--neutral-100, #f1f5f9);
 }
 
+.jsa-filters {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--border, #e2e8f0);
+  flex: none;
+  scrollbar-width: none;
+}
+.jsa-filters::-webkit-scrollbar {
+  display: none;
+}
+
+.jsa-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: none;
+  padding: 5px 11px;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-muted, #64748b);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease,
+    color 0.12s ease;
+}
+
+.jsa-filter:hover {
+  background: var(--neutral-100, #f1f5f9);
+}
+
+.jsa-filter.is-active {
+  border-color: var(--cins-blue, #2563eb);
+  color: var(--cins-blue, #2563eb);
+  background: color-mix(in srgb, var(--cins-blue, #2563eb) 10%, transparent);
+}
+
+.jsa-filter-emoji {
+  font-size: 15px;
+  line-height: 1;
+}
+
+.jsa-filter-count {
+  font-variant-numeric: tabular-nums;
+}
+
+:root[data-theme="dark"] .jsa-filter:hover {
+  background: var(--neutral-100, #1c212c);
+}
+
+:root[data-theme="dark"] .jsa-filter.is-active {
+  border-color: var(--cins-blue, #4f9be8);
+  color: var(--cins-blue, #4f9be8);
+  background: color-mix(in srgb, var(--cins-blue, #4f9be8) 16%, transparent);
+}
+
 .jsa-msg {
   display: flex;
   align-items: center;

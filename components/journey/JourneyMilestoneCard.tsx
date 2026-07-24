@@ -950,6 +950,7 @@ export function JourneyMilestoneCard({
   const [liveSocial, setLiveSocial] = useState(() => ({
     viewerLiked: social?.viewerLiked ?? false,
     viewerReactionEmoji: social?.viewerReactionEmoji ?? null,
+    topReactionEmoji: social?.topReactionEmoji ?? null,
     likeCount: social?.likeCount ?? 0,
     viewerDisliked: social?.viewerDisliked ?? false,
     dislikeCount: social?.dislikeCount ?? 0,
@@ -1006,6 +1007,7 @@ export function JourneyMilestoneCard({
     setLiveSocial({
       viewerLiked: social?.viewerLiked ?? false,
       viewerReactionEmoji: social?.viewerReactionEmoji ?? null,
+      topReactionEmoji: social?.topReactionEmoji ?? null,
       likeCount: social?.likeCount ?? 0,
       viewerDisliked: social?.viewerDisliked ?? false,
       dislikeCount: social?.dislikeCount ?? 0,
@@ -1016,6 +1018,7 @@ export function JourneyMilestoneCard({
   }, [
     social?.viewerLiked,
     social?.viewerReactionEmoji,
+    social?.topReactionEmoji,
     social?.likeCount,
     social?.viewerDisliked,
     social?.dislikeCount,
@@ -1422,6 +1425,7 @@ export function JourneyMilestoneCard({
         initialLiked={liveSocial.viewerLiked}
         initialCount={liveSocial.likeCount}
         initialReactionEmoji={liveSocial.viewerReactionEmoji}
+        initialTopReactionEmoji={liveSocial.topReactionEmoji}
         showCount={liveSocial.showCounts}
         actorsMediaLabel={likeActorsMediaLabel}
       />

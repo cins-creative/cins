@@ -8,6 +8,7 @@ import {
   getGiaiDoanLabel,
 } from "@/lib/journey/profile";
 import type {
+  ReactionBreakdownEntry,
   SocialActorProfile,
   SocialActorsPage,
   SocialInteractionKind,
@@ -50,6 +51,13 @@ type ProfileRow = {
 type ActorRow = {
   idNguoiDung: string;
   tuongTacLuc: string | null;
+  /** Emoji actor đã thả — chỉ có với reaction "like". */
+  emoji: string | null;
+};
+
+type ActorRowsResult = {
+  rows: ActorRow[];
+  breakdown: ReactionBreakdownEntry[];
 };
 
 export async function fetchSocialActorsPage(params: {
@@ -79,7 +87,7 @@ export async function fetchSocialActorsPage(params: {
   }
 
   const admin = createServiceRoleClient();
-  const actorRows = await loadActorRows(
+  const { rows: actorRows, breakdown } = await loadActorRows(
     admin,
     kind,
     loaiDoiTuong,
@@ -90,7 +98,7 @@ export async function fetchSocialActorsPage(params: {
   const slice = actorRows.slice(offset, offset + limit);
 
   if (slice.length === 0) {
-    return { actors: [], total, hasMore: false, viewerId };
+    return { actors: [], total, hasMore: false, viewerId, reactionBreakdown: breakdown };
   }
 
   const userIds = slice.map((row) => row.idNguoiDung);
@@ -123,6 +131,7 @@ export async function fetchSocialActorsPage(params: {
       quanHe: "none",
       ketBanId: null,
       dangTheoDoi: false,
+      reactionEmoji: row.emoji,
     });
   }
 
@@ -133,6 +142,7 @@ export async function fetchSocialActorsPage(params: {
     total,
     hasMore: offset + limit < total,
     viewerId,
+    reactionBreakdown: breakdown,
   };
 }
 
@@ -215,6 +225,7 @@ export async function fetchSocialActorProfilesByIds(params: {
       quanHe: "none",
       ketBanId: null,
       dangTheoDoi: false,
+      reactionEmoji: null,
     });
   }
 
@@ -258,26 +269,35 @@ async function loadActorRows(
   loaiDoiTuong: string,
   idDoiTuong: string,
   emoji: string | null,
-): Promise<ActorRow[]> {
+): Promise<ActorRowsResult> {
   if (kind === "like") {
-    let query = admin
+    /* Luôn nạp mọi cảm xúc tích cực (tim / 😂 / …) để dựng phân bố emoji;
+       lọc theo `emoji` (nếu có) thực hiện trong bộ nhớ để giữ breakdown đầy đủ. */
+    const { data } = await admin
       .from("social_reaction")
-      .select("id_nguoi_dung, tao_luc")
+      .select("id_nguoi_dung, tao_luc, emoji")
       .eq("loai_doi_tuong", loaiDoiTuong)
       .eq("id_doi_tuong", idDoiTuong)
-      .order("tao_luc", { ascending: false });
-    /* Không chỉ định emoji → mọi cảm xúc tích cực (tim / 😂 / …). */
-    query = emoji
-      ? query.eq("emoji", emoji)
-      : query.neq("emoji", REACTION_EMOJI.DISLIKE);
-    const { data } = await query.returns<
-      Array<{ id_nguoi_dung: string; tao_luc: string | null }>
-    >();
+      .neq("emoji", REACTION_EMOJI.DISLIKE)
+      .order("tao_luc", { ascending: false })
+      .returns<
+        Array<{ id_nguoi_dung: string; tao_luc: string | null; emoji: string }>
+      >();
 
-    return (data ?? []).map((row) => ({
-      idNguoiDung: row.id_nguoi_dung,
-      tuongTacLuc: row.tao_luc,
-    }));
+    const allRows = data ?? [];
+    const breakdown = buildBreakdown(allRows.map((row) => row.emoji));
+    const filtered = emoji
+      ? allRows.filter((row) => row.emoji === emoji)
+      : allRows;
+
+    return {
+      rows: filtered.map((row) => ({
+        idNguoiDung: row.id_nguoi_dung,
+        tuongTacLuc: row.tao_luc,
+        emoji: row.emoji,
+      })),
+      breakdown,
+    };
   }
 
   if (kind === "dislike") {
@@ -290,10 +310,14 @@ async function loadActorRows(
       .order("tao_luc", { ascending: false })
       .returns<Array<{ id_nguoi_dung: string; tao_luc: string | null }>>();
 
-    return (data ?? []).map((row) => ({
-      idNguoiDung: row.id_nguoi_dung,
-      tuongTacLuc: row.tao_luc,
-    }));
+    return {
+      rows: (data ?? []).map((row) => ({
+        idNguoiDung: row.id_nguoi_dung,
+        tuongTacLuc: row.tao_luc,
+        emoji: null,
+      })),
+      breakdown: [],
+    };
   }
 
   if (kind === "bookmark") {
@@ -306,10 +330,14 @@ async function loadActorRows(
       .order("tao_luc", { ascending: false })
       .returns<Array<{ id_nguoi_dung: string; tao_luc: string | null }>>();
 
-    return (data ?? []).map((row) => ({
-      idNguoiDung: row.id_nguoi_dung,
-      tuongTacLuc: row.tao_luc,
-    }));
+    return {
+      rows: (data ?? []).map((row) => ({
+        idNguoiDung: row.id_nguoi_dung,
+        tuongTacLuc: row.tao_luc,
+        emoji: null,
+      })),
+      breakdown: [],
+    };
   }
 
   const { data } = await admin
@@ -327,7 +355,26 @@ async function loadActorRows(
     latestByUser.set(row.nguoi_binh_luan, row.tao_luc);
   }
 
-  return [...latestByUser.entries()]
-    .map(([idNguoiDung, tuongTacLuc]) => ({ idNguoiDung, tuongTacLuc }))
-    .sort((a, b) => (b.tuongTacLuc ?? "").localeCompare(a.tuongTacLuc ?? ""));
+  return {
+    rows: [...latestByUser.entries()]
+      .map(([idNguoiDung, tuongTacLuc]) => ({
+        idNguoiDung,
+        tuongTacLuc,
+        emoji: null,
+      }))
+      .sort((a, b) => (b.tuongTacLuc ?? "").localeCompare(a.tuongTacLuc ?? "")),
+    breakdown: [],
+  };
+}
+
+/** Đếm emoji → danh sách giảm dần theo số lượt (giữ chỉ count > 0). */
+function buildBreakdown(emojis: string[]): ReactionBreakdownEntry[] {
+  const counts = new Map<string, number>();
+  for (const emoji of emojis) {
+    if (!emoji) continue;
+    counts.set(emoji, (counts.get(emoji) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .map(([emoji, count]) => ({ emoji, count }))
+    .sort((a, b) => b.count - a.count);
 }

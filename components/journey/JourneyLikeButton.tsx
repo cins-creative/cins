@@ -40,6 +40,8 @@ type Props = {
   initialCount?: number;
   /** Emoji cảm xúc hiện tại của viewer (`heart`, `joy`, …). */
   initialReactionEmoji?: string | null;
+  /** Emoji được thả nhiều nhất — hiện trên nút khi viewer chưa thả cảm xúc. */
+  initialTopReactionEmoji?: string | null;
   showCount?: boolean;
   loaiDoiTuong?: string;
   actorsMediaLabel?: JourneyActionActorsConfig["mediaLabel"];
@@ -65,6 +67,7 @@ export function JourneyLikeButton({
   initialLiked = false,
   initialCount = 0,
   initialReactionEmoji = null,
+  initialTopReactionEmoji = null,
   showCount = false,
   loaiDoiTuong = SOCIAL_LOAI_DOI_TUONG.COT_MOC,
   actorsMediaLabel,
@@ -366,15 +369,28 @@ export function JourneyLikeButton({
     </div>
   ) : null;
 
-  const showEmojiGlyph =
+  /* Ưu tiên cảm xúc của chính viewer; nếu chưa thả → emoji được thả nhiều nhất
+     (chủ journey thấy được mọi người đang bày tỏ emoji gì). Tim là icon mặc định. */
+  const ownEmojiGlyph =
     liked &&
     reactionEmoji &&
     reactionEmoji !== REACTION_EMOJI.LIKE &&
-    isPositiveReactionEmoji(reactionEmoji);
+    isPositiveReactionEmoji(reactionEmoji)
+      ? reactionEmoji
+      : null;
+  const topEmojiGlyph =
+    !liked &&
+    count > 0 &&
+    initialTopReactionEmoji &&
+    initialTopReactionEmoji !== REACTION_EMOJI.LIKE &&
+    isPositiveReactionEmoji(initialTopReactionEmoji)
+      ? initialTopReactionEmoji
+      : null;
+  const glyphEmoji = ownEmojiGlyph ?? topEmojiGlyph;
 
-  const heartIcon = showEmojiGlyph ? (
+  const heartIcon = glyphEmoji ? (
     <span className="j-reaction-btn-emoji" aria-hidden>
-      {reactionEmojiLabel(reactionEmoji)}
+      {reactionEmojiLabel(glyphEmoji)}
     </span>
   ) : (
     <Heart

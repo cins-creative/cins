@@ -39,3 +39,32 @@ export function reactionEmojiLabel(key: string): string {
     COMMENT_REACTION_EMOJIS.find((e) => e.key === key)?.label ?? key
   );
 }
+
+/** Thứ tự ưu tiên hiển thị khi hòa số lượt — theo bảng emoji chuẩn. */
+const REACTION_EMOJI_ORDER = new Map<string, number>(
+  POSITIVE_REACTION_EMOJIS.map((key, index) => [key, index]),
+);
+
+/**
+ * Emoji cảm xúc tích cực được thả nhiều nhất trên một đối tượng.
+ * Hòa số lượt → ưu tiên theo `REACTION_EMOJI_ORDER` (tim trước).
+ */
+export function pickTopReactionEmoji(
+  counts: Iterable<[string, number]>,
+): string | null {
+  let topEmoji: string | null = null;
+  let topCount = 0;
+  let topOrder = Number.POSITIVE_INFINITY;
+
+  for (const [emoji, count] of counts) {
+    if (count <= 0 || !isPositiveReactionEmoji(emoji)) continue;
+    const order = REACTION_EMOJI_ORDER.get(emoji) ?? Number.MAX_SAFE_INTEGER;
+    if (count > topCount || (count === topCount && order < topOrder)) {
+      topEmoji = emoji;
+      topCount = count;
+      topOrder = order;
+    }
+  }
+
+  return topEmoji;
+}

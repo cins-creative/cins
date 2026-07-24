@@ -53,6 +53,7 @@ function memberToFallbackActor(member: CongDongRosterMember): SocialActorProfile
     quanHe: "none",
     ketBanId: null,
     dangTheoDoi: false,
+    reactionEmoji: null,
   };
 }
 

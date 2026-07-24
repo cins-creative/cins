@@ -97,6 +97,10 @@ export type MilestonePostDetail = {
     viewerBookmarked: boolean;
     /** True khi viewer còn ít nhất một bình luận chưa xóa trên cột mốc. */
     viewerCommented: boolean;
+    /** Emoji cảm xúc tích cực của viewer (`heart`, `joy`, …). */
+    viewerReactionEmoji?: string | null;
+    /** Emoji được thả nhiều nhất trên cột mốc. */
+    topReactionEmoji?: string | null;
     likeCount: number;
     dislikeCount: number;
     bookmarkCount: number;

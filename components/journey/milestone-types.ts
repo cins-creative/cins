@@ -417,6 +417,8 @@ export type MilestoneItem = {
     viewerCommented?: boolean;
     /** Emoji cảm xúc tích cực của viewer (`heart`, `joy`, …). */
     viewerReactionEmoji?: string | null;
+    /** Emoji được thả nhiều nhất trên cột mốc — hiện trên nút khi viewer chưa thả. */
+    topReactionEmoji?: string | null;
     likeCount: number;
     dislikeCount?: number;
     bookmarkCount: number;

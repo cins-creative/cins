@@ -12,6 +12,7 @@ import Link from "next/link";
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -94,97 +95,49 @@ export function ShopKioskBlock({
   /** Tăng mỗi lần đổi qty — bỏ qua PATCH response cũ. */
   const qtyEpochRef = useRef(new Map<string, number>());
 
-  const tickerTrackRef = useRef<HTMLDivElement>(null);
+  const tickerScrollRef = useRef<HTMLDivElement>(null);
   const tickerDragRef = useRef<{
     pointerId: number;
     startX: number;
-    startY: number;
-    originX: number;
+    startScroll: number;
     active: boolean;
   } | null>(null);
   const tickerSuppressClickRef = useRef(false);
   const [tickerDragging, setTickerDragging] = useState(false);
 
-  const TICKER_DUR_SEC = 32;
-
-  const readTickerX = useCallback((el: HTMLElement) => {
-    const t = getComputedStyle(el).transform;
-    if (!t || t === "none") return 0;
-    try {
-      return new DOMMatrixReadOnly(t).m41;
-    } catch {
-      return 0;
-    }
+  /** Đặt scrollLeft vào giữa để 2 mép L & R crop → gợi ý kéo được. */
+  const centerTicker = useCallback(() => {
+    const el = tickerScrollRef.current;
+    if (!el) return;
+    el.scrollLeft = Math.max(0, (el.scrollWidth - el.clientWidth) / 2);
   }, []);
-
-  const normalizeTickerX = useCallback((x: number, shift: number) => {
-    if (shift <= 0) return x;
-    let n = ((x % shift) + shift) % shift;
-    if (n > 0) n -= shift;
-    return n;
-  }, []);
-
-  const resumeTickerAt = useCallback((track: HTMLElement, x: number) => {
-    const shift = track.offsetWidth / 2;
-    const pos = normalizeTickerX(x, shift);
-    const progress =
-      shift > 0 ? Math.min(1, Math.max(0, -pos / shift)) : 0;
-    const delaySec = -progress * TICKER_DUR_SEC;
-    track.style.animation = "none";
-    track.style.transform = `translateX(${pos}px)`;
-    void track.offsetWidth;
-    track.style.removeProperty("transform");
-    track.style.removeProperty("animation");
-    track.style.animationDelay = `${delaySec}s`;
-  }, [normalizeTickerX]);
 
   const onTickerPointerDown = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
+      /* Touch: cuộn ngang tự nhiên của trình duyệt. Chuột: kéo bằng JS. */
+      if (e.pointerType !== "mouse") return;
       if (e.button !== 0) return;
-      if (
-        typeof window !== "undefined" &&
-        window.matchMedia("(prefers-reduced-motion: reduce)").matches
-      ) {
-        return;
-      }
-      const track = tickerTrackRef.current;
-      if (!track || track.offsetWidth / 2 <= 0) return;
-      const x = readTickerX(track);
-      track.style.animation = "none";
-      track.style.transform = `translateX(${x}px)`;
+      const el = tickerScrollRef.current;
+      if (!el) return;
       tickerDragRef.current = {
         pointerId: e.pointerId,
         startX: e.clientX,
-        startY: e.clientY,
-        originX: x,
+        startScroll: el.scrollLeft,
         active: false,
       };
     },
-    [readTickerX],
+    [],
   );
 
   const onTickerPointerMove = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
       const drag = tickerDragRef.current;
-      const track = tickerTrackRef.current;
-      if (!drag || drag.pointerId !== e.pointerId || !track) return;
-      const shift = track.offsetWidth / 2;
+      const el = tickerScrollRef.current;
+      if (!drag || drag.pointerId !== e.pointerId || !el) return;
       const dx = e.clientX - drag.startX;
-      const dy = e.clientY - drag.startY;
 
       if (!drag.active) {
-        if (Math.abs(dy) > 8 && Math.abs(dy) > Math.abs(dx)) {
-          tickerDragRef.current = null;
-          setTickerDragging(false);
-          resumeTickerAt(track, drag.originX);
-          return;
-        }
-      }
-
-      const next = normalizeTickerX(drag.originX + dx, shift);
-      track.style.transform = `translateX(${next}px)`;
-
-      if (!drag.active && Math.abs(dx) >= 2) {
+        if (Math.abs(dx) < 3) return;
         drag.active = true;
         setTickerDragging(true);
         try {
@@ -193,8 +146,11 @@ export function ShopKioskBlock({
           /* ignore */
         }
       }
+
+      el.scrollLeft = drag.startScroll - dx;
+      e.preventDefault();
     },
-    [normalizeTickerX, resumeTickerAt],
+    [],
   );
 
   const finishTickerDrag = useCallback(
@@ -202,7 +158,6 @@ export function ShopKioskBlock({
       const drag = tickerDragRef.current;
       if (!drag || drag.pointerId !== e.pointerId) return;
       tickerDragRef.current = null;
-      setTickerDragging(false);
       if (e.currentTarget.hasPointerCapture?.(e.pointerId)) {
         try {
           e.currentTarget.releasePointerCapture(e.pointerId);
@@ -210,20 +165,10 @@ export function ShopKioskBlock({
           /* ignore */
         }
       }
-
-      const track = tickerTrackRef.current;
-      if (!track) return;
-
-      if (!drag.active) {
-        resumeTickerAt(track, drag.originX);
-        return;
-      }
-
-      tickerSuppressClickRef.current = true;
-      const dx = e.clientX - drag.startX;
-      resumeTickerAt(track, drag.originX + dx);
+      if (drag.active) tickerSuppressClickRef.current = true;
+      setTickerDragging(false);
     },
-    [resumeTickerAt],
+    [],
   );
 
   const onTickerLostPointerCapture = useCallback(
@@ -416,6 +361,11 @@ export function ShopKioskBlock({
     }
   }, [hangItems]);
 
+  /* Canh giữa strip mỗi khi danh sách hàng đổi. */
+  useLayoutEffect(() => {
+    centerTicker();
+  }, [items, centerTicker]);
+
   /* Dọn timer debounce khi unmount. */
   useEffect(() => {
     const timers = syncTimersRef.current;
@@ -561,12 +511,6 @@ export function ShopKioskBlock({
 
   if (loading) return null;
   if (items.length === 0) return null;
-
-  const tickerHalf: ShopPostHangItem[] = [];
-  while (tickerHalf.length < Math.max(8, items.length)) {
-    tickerHalf.push(...items);
-  }
-  const tickerItems = [...tickerHalf, ...tickerHalf];
 
   const previewPortal =
     portalReady && preview
@@ -847,7 +791,8 @@ export function ShopKioskBlock({
           aria-label={`Hàng bán · ${items.length} sản phẩm`}
         >
           <div
-            className={`shop-kiosk-ticker is-scroll${tickerDragging ? " is-dragging" : ""}`}
+            ref={tickerScrollRef}
+            className={`shop-kiosk-ticker${tickerDragging ? " is-dragging" : ""}`}
             onPointerDown={onTickerPointerDown}
             onPointerMove={onTickerPointerMove}
             onPointerUp={finishTickerDrag}
@@ -855,8 +800,8 @@ export function ShopKioskBlock({
             onLostPointerCapture={onTickerLostPointerCapture}
             onClickCapture={onTickerClickCapture}
           >
-            <div ref={tickerTrackRef} className="shop-kiosk-ticker-track">
-              {tickerItems.map((it, i) =>
+            <div className="shop-kiosk-ticker-track">
+              {items.map((it, i) =>
                 it.anhUrl ? (
                   <button
                     key={`${it.id}-${i}`}

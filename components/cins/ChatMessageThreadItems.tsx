@@ -10,7 +10,7 @@ import {
   type MouseEvent,
   type ReactNode,
 } from "react";
-import { Pin } from "lucide-react";
+import { Forward, Pin } from "lucide-react";
 
 import {
   ChatMessageActions,

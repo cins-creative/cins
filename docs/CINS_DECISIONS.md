@@ -52,7 +52,7 @@
 |---|---|---|---|---|---|---|---|
 | A1 | `org_lop_hoc` | Thêm `id_chat_phong` | `uuid` → `chat_phong.id` | YES | 1 lớp = 1 phòng chat cố định | Row cũ = NULL đến khi backfill / tạo phòng | **Chờ duyệt** |
 | A2 | `org_lop_hoc` | Thêm `id_chi_nhanh` | `uuid` → `org_chi_nhanh.id` (sau khi có bảng) | YES | Lọc HV / doanh thu / lớp theo chi nhánh | Row cũ = NULL | **Chờ duyệt** (phụ thuộc bảng mới) |
-| A3 | `org_lop_hoc` | Thêm `meeting_url` | `text` | YES | Link Meet mặc định lớp (card chat có thể override) | Row cũ = NULL | **Chờ duyệt** — có thể bỏ nếu chỉ lưu link trong tin Meet |
+| A3 | `org_lop_hoc` | ~~`meeting_url`~~ | — | **Hủy** — call = LiveKit OSS trên Hetzner `sin` (L34) | — | **Đã hủy** |
 | A4 | `user_hoc_vien_lop` | *(không ALTER nếu dùng `org_tien_do_bai`)* | — | — | Tiến độ bài tách bảng mới | — | **Ưu tiên không ALTER**; chỉ đề xuất cột nếu sau này bỏ bảng tiến độ |
 | A5 | Enum `loai_mo_hinh_khoa_enum` | **Không** thêm giá trị “theo buổi” | — | — | Phase này bỏ gói buổi | — | **Không đổi** |
 | A6 | Enum `loai_tin_nhan_enum` / `vai_tro_to_chuc_enum` | **Không** bắt buộc đổi phase 1 | Card qua `ngu_canh` jsonb; Curator = ACL trên vai sẵn có | — | Tránh phá client cũ | — | **Không đổi** trừ khi user duyệt riêng |
@@ -60,6 +60,15 @@
 > Khi user duyệt một dòng → đổi **Trạng thái** thành `Đã duyệt YYYY-MM-DD` rồi mới viết/chạy file migration. Khi đã apply trên DB → `Đã chạy` + tên file SQL. Mọi ALTER phát sinh thêm ngoài bảng này → **thêm dòng mới vào inventory trước**, không lén vào migration khác.
 
 - *Hệ quả file:* DEV_RULES §1 (gate ALTER); INSTRUCTION luật 6; brief build [`cursor_brief_csdt_van_hanh_hoc.md`](./cursor_brief_csdt_van_hanh_hoc.md); FOUNDATIONS §O “không LMS” sẽ cập nhật riêng khi chốt wording “LMS mỏng chat-first” (chưa sửa trong L34).
+
+#### Bổ sung L34 — Call / phòng học = LiveKit self-host · Hetzner Singapore (2026-07-24)
+
+- **Chốt stack (giữ sẵn):** **LiveKit OSS self-host** trên **Hetzner Cloud `sin` (Singapore)**. Không Meet/Zoom đường chính; không LiveKit Cloud. Phòng học = A/V + share màn trong chat lớp. Cùng SFU sau → call 1-1 / nhóm.
+- **Thanh toán (khi làm Plan 2):** bill Hetzner + domain/TLS/ops; license LiveKit = $0. SIN đắt máy hơn EU; traffic/overage cao → cap bitrate, HV tắt cam mặc định.
+- **Tách giai đoạn (user 2026-07-24):**  
+  • **Plan 1 (NOW):** tư vấn · đơn HP · phòng chat lớp · freeze · VietQR · pedagogy · dashboard — **không** call / share màn / Meet / provision Hetzner.  
+  • **Plan 2 (LATER):** toàn bộ LiveKit — **chỉ khi user báo `ready`**.  
+- Brief: [`cursor_brief_csdt_van_hanh_hoc.md`](./cursor_brief_csdt_van_hanh_hoc.md) (2 plan tách rõ). A3 `meeting_url` **hủy**.
 
 ### Shop — import Shopee vào kho (2026-07-22)
 

@@ -3685,42 +3685,32 @@
 
 .j-shop-loai-more-track {
   position: relative;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
   padding: 2px 0 8px;
   cursor: grab;
-  touch-action: pan-y;
   user-select: none;
   -webkit-user-select: none;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  overscroll-behavior-x: contain;
+}
+
+.j-shop-loai-more-track::-webkit-scrollbar {
+  display: none;
 }
 
 .j-shop-loai-more-track.is-dragging {
   cursor: grabbing;
-  touch-action: none;
-}
-
-.j-shop-loai-more-track.is-dragging .j-shop-loai-more-ticker {
-  animation: none !important;
+  scroll-behavior: auto;
 }
 
 .j-shop-loai-more-ticker {
   display: flex;
-  width: max-content;
-  will-change: transform;
-  backface-visibility: hidden;
-  animation: j-shop-loai-more-ticker var(--j-shop-loai-more-dur, 28s) linear
-    infinite;
-}
-
-.j-shop-loai-more-track:hover:not(.is-dragging) .j-shop-loai-more-ticker,
-.j-shop-loai-more-track:focus-within:not(.is-dragging) .j-shop-loai-more-ticker {
-  animation-play-state: paused;
-}
-
-.j-shop-loai-more-ticker-group {
-  display: flex;
-  flex-shrink: 0;
   gap: 6px;
-  padding-right: 6px;
+  width: max-content;
+  /* Ít card → canh giữa; nhiều hơn khung → JS đặt scrollLeft vào giữa. */
+  margin-inline: auto;
 }
 
 .j-shop-loai-more-card {
@@ -3735,35 +3725,6 @@
   background: #fff;
   text-decoration: none;
   color: inherit;
-}
-
-@keyframes j-shop-loai-more-ticker {
-  from {
-    transform: translate3d(0, 0, 0);
-  }
-  to {
-    transform: translate3d(
-      calc(-1 * var(--j-shop-loai-more-shift, 50%)),
-      0,
-      0
-    );
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .j-shop-loai-more-track {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: thin;
-  }
-
-  .j-shop-loai-more-ticker {
-    animation: none;
-  }
-
-  .j-shop-loai-more-ticker-group[aria-hidden="true"] {
-    display: none;
-  }
 }
 
 .j-shop-loai-more-media {

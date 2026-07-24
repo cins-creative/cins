@@ -292,27 +292,15 @@ export function JourneyShopLoaiClient({
 
   const [otherNhom, setOtherNhom] = useState<ShopStorefrontNhomCard[]>([]);
   const moreTrackRef = useRef<HTMLDivElement>(null);
-  const moreGroupRef = useRef<HTMLDivElement>(null);
-  const moreTickerRef = useRef<HTMLDivElement>(null);
   const moreDragRef = useRef<{
     pointerId: number;
     startX: number;
-    startY: number;
-    originX: number;
+    startScroll: number;
     /** Đã vuốt ngang → kéo thật (chặn click card). */
     active: boolean;
-    lastX: number;
-    lastT: number;
-    velocity: number;
   } | null>(null);
-  const moreDragRafRef = useRef<number | null>(null);
-  const moreInertiaRafRef = useRef<number | null>(null);
-  const morePendingXRef = useRef<number | null>(null);
   const moreSuppressClickRef = useRef(false);
-  /** Số lần lặp list trong mỗi nửa ticker — đủ rộng để loop liền. */
-  const [moreRepeat, setMoreRepeat] = useState(2);
-  /** Pixel dịch đúng 1 nửa (tránh -50% lệch do padding/gap). */
-  const [moreShiftPx, setMoreShiftPx] = useState(0);
+  const [moreDragging, setMoreDragging] = useState(false);
   const [reviews, setReviews] = useState<ShopNhomDanhGia[]>([]);
   const [diemTb, setDiemTb] = useState<number | null>(null);
   const [tongDg, setTongDg] = useState(0);
@@ -347,254 +335,45 @@ export function JourneyShopLoaiClient({
     setShopSlugCtx?.(shopSlug);
   }, [setShopSlugCtx, shopSlug]);
 
+  /** Canh giữa hàng "Loại khác" để 2 mép L & R crop → gợi ý kéo được. */
+  const centerMore = useCallback(() => {
+    const el = moreTrackRef.current;
+    if (!el) return;
+    el.scrollLeft = Math.max(0, (el.scrollWidth - el.clientWidth) / 2);
+  }, []);
+
   useLayoutEffect(() => {
-    if (otherNhom.length === 0) return;
-    const track = moreTrackRef.current;
-    const group = moreGroupRef.current;
-    if (!track || !group) return;
-
-    const GAP = 6;
-    const update = () => {
-      const trackW = track.offsetWidth;
-      const cards = group.querySelectorAll<HTMLElement>(
-        ":scope > .j-shop-loai-more-card",
-      );
-      const perSet = otherNhom.length;
-      if (trackW <= 0 || perSet <= 0 || cards.length < perSet) return;
-
-      let oneW = 0;
-      for (let i = 0; i < perSet; i++) {
-        oneW += cards[i]!.offsetWidth;
-      }
-      oneW += GAP * Math.max(0, perSet - 1);
-      if (oneW <= 0) return;
-
-      // +1: mỗi nửa luôn rộng hơn viewport → không hụt khoảng trống khi loop.
-      const next = Math.max(2, Math.ceil(trackW / oneW) + 1);
-      setMoreRepeat((prev) => (prev === next ? prev : next));
-
-      const shift = group.offsetWidth;
-      if (shift > 0) setMoreShiftPx((prev) => (prev === shift ? prev : shift));
-    };
-
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(track);
-    ro.observe(group);
-    return () => ro.disconnect();
-  }, [otherNhom, moreRepeat]);
-
-  const moreSegment = useMemo(() => {
-    const out: Array<{ card: ShopStorefrontNhomCard; key: string }> = [];
-    for (let r = 0; r < moreRepeat; r++) {
-      for (const card of otherNhom) {
-        out.push({ card, key: `${r}-${card.id}` });
-      }
-    }
-    return out;
-  }, [otherNhom, moreRepeat]);
-
-  const moreDurSec = Math.max(
-    22,
-    moreShiftPx > 0
-      ? Math.round(moreShiftPx / 45)
-      : Math.max(moreSegment.length * 4, 22),
-  );
-
-  const readMoreTickerX = useCallback((el: HTMLElement) => {
-    const t = getComputedStyle(el).transform;
-    if (!t || t === "none") return 0;
-    try {
-      return new DOMMatrixReadOnly(t).m41;
-    } catch {
-      return 0;
-    }
-  }, []);
-
-  /** Giữ x trong (-shift, 0] — loop liền khi 2 nửa ticker giống nhau. */
-  const normalizeMoreX = useCallback((x: number, shift: number) => {
-    if (shift <= 0) return x;
-    let n = ((x % shift) + shift) % shift;
-    if (n > 0) n -= shift;
-    return n;
-  }, []);
-
-  const setMoreDraggingClass = useCallback((on: boolean) => {
-    moreTrackRef.current?.classList.toggle("is-dragging", on);
-  }, []);
-
-  const cancelMoreInertia = useCallback(() => {
-    if (moreInertiaRafRef.current != null) {
-      cancelAnimationFrame(moreInertiaRafRef.current);
-      moreInertiaRafRef.current = null;
-    }
-  }, []);
-
-  const cancelMoreDragRaf = useCallback(() => {
-    if (moreDragRafRef.current != null) {
-      cancelAnimationFrame(moreDragRafRef.current);
-      moreDragRafRef.current = null;
-    }
-    morePendingXRef.current = null;
-  }, []);
-
-  const applyMoreTickerX = useCallback(
-    (ticker: HTMLElement, x: number) => {
-      const next = normalizeMoreX(x, moreShiftPx);
-      ticker.style.transform = `translate3d(${next}px, 0, 0)`;
-      return next;
-    },
-    [moreShiftPx, normalizeMoreX],
-  );
-
-  const flushMorePendingX = useCallback(() => {
-    moreDragRafRef.current = null;
-    const ticker = moreTickerRef.current;
-    const pending = morePendingXRef.current;
-    if (!ticker || pending == null) return;
-    morePendingXRef.current = null;
-    applyMoreTickerX(ticker, pending);
-  }, [applyMoreTickerX]);
-
-  const scheduleMoreTickerX = useCallback(
-    (x: number) => {
-      morePendingXRef.current = x;
-      if (moreDragRafRef.current != null) return;
-      moreDragRafRef.current = requestAnimationFrame(flushMorePendingX);
-    },
-    [flushMorePendingX],
-  );
-
-  const resumeMoreTickerAt = useCallback(
-    (ticker: HTMLElement, x: number) => {
-      cancelMoreDragRaf();
-      cancelMoreInertia();
-      const pos = normalizeMoreX(x, moreShiftPx);
-      const progress =
-        moreShiftPx > 0
-          ? Math.min(1, Math.max(0, -pos / moreShiftPx))
-          : 0;
-      const delaySec = -progress * moreDurSec;
-      ticker.style.animation = "none";
-      ticker.style.transform = `translate3d(${pos}px, 0, 0)`;
-      void ticker.offsetWidth;
-      ticker.style.removeProperty("transform");
-      ticker.style.removeProperty("animation");
-      ticker.style.animationDelay = `${delaySec}s`;
-      setMoreDraggingClass(false);
-    },
-    [
-      cancelMoreDragRaf,
-      cancelMoreInertia,
-      moreDurSec,
-      moreShiftPx,
-      normalizeMoreX,
-      setMoreDraggingClass,
-    ],
-  );
-
-  const runMoreInertia = useCallback(
-    (ticker: HTMLElement, startX: number, velocityPxPerMs: number) => {
-      cancelMoreInertia();
-      let x = startX;
-      let v = velocityPxPerMs;
-      let lastT = performance.now();
-
-      const step = (now: number) => {
-        const dt = Math.min(32, now - lastT);
-        lastT = now;
-        x += v * dt;
-        /* Ma sát nhẹ — hết quán tính thì trả marquee. */
-        v *= Math.pow(0.0025, dt / 1000);
-        applyMoreTickerX(ticker, x);
-
-        if (Math.abs(v) < 0.04) {
-          moreInertiaRafRef.current = null;
-          resumeMoreTickerAt(ticker, x);
-          return;
-        }
-        moreInertiaRafRef.current = requestAnimationFrame(step);
-      };
-
-      moreInertiaRafRef.current = requestAnimationFrame(step);
-    },
-    [applyMoreTickerX, cancelMoreInertia, resumeMoreTickerAt],
-  );
+    centerMore();
+  }, [otherNhom, centerMore]);
 
   const onMorePointerDown = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
+      /* Touch: cuộn ngang tự nhiên. Chuột: kéo bằng JS. */
+      if (e.pointerType !== "mouse") return;
       if (e.button !== 0) return;
-      if (
-        typeof window !== "undefined" &&
-        window.matchMedia("(prefers-reduced-motion: reduce)").matches
-      ) {
-        return;
-      }
-      const ticker = moreTickerRef.current;
-      if (!ticker || moreShiftPx <= 0) return;
-
-      cancelMoreInertia();
-      cancelMoreDragRaf();
-
-      const x = normalizeMoreX(readMoreTickerX(ticker), moreShiftPx);
-      /* Đóng băng ngay 1 frame — tránh nhảy về 0 khi tắt animation. */
-      ticker.style.animation = "none";
-      ticker.style.transform = `translate3d(${x}px, 0, 0)`;
+      const el = moreTrackRef.current;
+      if (!el) return;
       moreDragRef.current = {
         pointerId: e.pointerId,
         startX: e.clientX,
-        startY: e.clientY,
-        originX: x,
+        startScroll: el.scrollLeft,
         active: false,
-        lastX: e.clientX,
-        lastT: performance.now(),
-        velocity: 0,
       };
     },
-    [
-      cancelMoreDragRaf,
-      cancelMoreInertia,
-      moreShiftPx,
-      normalizeMoreX,
-      readMoreTickerX,
-    ],
+    [],
   );
 
   const onMorePointerMove = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
       const drag = moreDragRef.current;
-      const ticker = moreTickerRef.current;
-      if (!drag || drag.pointerId !== e.pointerId || !ticker) return;
-
+      const el = moreTrackRef.current;
+      if (!drag || drag.pointerId !== e.pointerId || !el) return;
       const dx = e.clientX - drag.startX;
-      const dy = e.clientY - drag.startY;
-      const now = performance.now();
-      const dt = now - drag.lastT;
 
       if (!drag.active) {
-        /* Vuốt dọc trang → hủy kéo, trả animation. */
-        if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx) * 1.15) {
-          moreDragRef.current = null;
-          cancelMoreDragRaf();
-          setMoreDraggingClass(false);
-          resumeMoreTickerAt(ticker, drag.originX);
-          return;
-        }
-      }
-
-      if (dt > 0) {
-        const instant = (e.clientX - drag.lastX) / dt;
-        drag.velocity = drag.velocity * 0.7 + instant * 0.3;
-      }
-      drag.lastX = e.clientX;
-      drag.lastT = now;
-
-      /* 1 transform / frame — không normalize rời rạc mỗi event (giảm giật). */
-      scheduleMoreTickerX(drag.originX + dx);
-
-      if (!drag.active && Math.abs(dx) >= 3) {
+        if (Math.abs(dx) < 3) return;
         drag.active = true;
-        setMoreDraggingClass(true);
+        setMoreDragging(true);
         try {
           e.currentTarget.setPointerCapture(e.pointerId);
         } catch {
@@ -602,16 +381,10 @@ export function JourneyShopLoaiClient({
         }
       }
 
-      if (drag.active) {
-        e.preventDefault();
-      }
+      el.scrollLeft = drag.startScroll - dx;
+      e.preventDefault();
     },
-    [
-      cancelMoreDragRaf,
-      resumeMoreTickerAt,
-      scheduleMoreTickerX,
-      setMoreDraggingClass,
-    ],
+    [],
   );
 
   const finishMoreDrag = useCallback(
@@ -619,7 +392,6 @@ export function JourneyShopLoaiClient({
       const drag = moreDragRef.current;
       if (!drag || drag.pointerId !== e.pointerId) return;
       moreDragRef.current = null;
-
       if (e.currentTarget.hasPointerCapture?.(e.pointerId)) {
         try {
           e.currentTarget.releasePointerCapture(e.pointerId);
@@ -627,41 +399,10 @@ export function JourneyShopLoaiClient({
           /* ignore */
         }
       }
-
-      const ticker = moreTickerRef.current;
-      if (!ticker) return;
-
-      /* Đọc pending trước khi cancel xóa — tránh nhảy về origin khi thả tay. */
-      const pendingX = morePendingXRef.current;
-      cancelMoreDragRaf();
-      const endX =
-        pendingX ??
-        normalizeMoreX(drag.originX + (e.clientX - drag.startX), moreShiftPx);
-
-      if (!drag.active) {
-        /* Tap — chạy lại marquee, không chặn click Link. */
-        resumeMoreTickerAt(ticker, drag.originX);
-        return;
-      }
-
-      moreSuppressClickRef.current = true;
-      applyMoreTickerX(ticker, endX);
-
-      /* Quán tính ngắn nếu còn tốc độ ngang. */
-      if (Math.abs(drag.velocity) >= 0.08) {
-        runMoreInertia(ticker, endX, drag.velocity);
-      } else {
-        resumeMoreTickerAt(ticker, endX);
-      }
+      if (drag.active) moreSuppressClickRef.current = true;
+      setMoreDragging(false);
     },
-    [
-      applyMoreTickerX,
-      cancelMoreDragRaf,
-      moreShiftPx,
-      normalizeMoreX,
-      resumeMoreTickerAt,
-      runMoreInertia,
-    ],
+    [],
   );
 
   const onMoreLostPointerCapture = useCallback(
@@ -672,13 +413,6 @@ export function JourneyShopLoaiClient({
     },
     [finishMoreDrag],
   );
-
-  useEffect(() => {
-    return () => {
-      cancelMoreDragRaf();
-      cancelMoreInertia();
-    };
-  }, [cancelMoreDragRaf, cancelMoreInertia]);
 
   const onMoreClickCapture = useCallback(
     (e: ReactMouseEvent<HTMLDivElement>) => {
@@ -1775,12 +1509,7 @@ export function JourneyShopLoaiClient({
           </header>
           <div
             ref={moreTrackRef}
-            className="j-shop-loai-more-track"
-            style={{
-              ["--j-shop-loai-more-dur" as string]: `${moreDurSec}s`,
-              ["--j-shop-loai-more-shift" as string]:
-                moreShiftPx > 0 ? `${moreShiftPx}px` : "50%",
-            }}
+            className={`j-shop-loai-more-track${moreDragging ? " is-dragging" : ""}`}
             onPointerDown={onMorePointerDown}
             onPointerMove={onMorePointerMove}
             onPointerUp={finishMoreDrag}
@@ -1788,77 +1517,66 @@ export function JourneyShopLoaiClient({
             onLostPointerCapture={onMoreLostPointerCapture}
             onClickCapture={onMoreClickCapture}
           >
-            <div ref={moreTickerRef} className="j-shop-loai-more-ticker">
-              {[0, 1].map((copy) => (
-                <div
-                  key={copy}
-                  ref={copy === 0 ? moreGroupRef : undefined}
-                  className="j-shop-loai-more-ticker-group"
-                  role={copy === 0 ? "list" : undefined}
-                  aria-hidden={copy === 1 ? true : undefined}
-                >
-                  {moreSegment.map(({ card, key }) => {
-                    const href =
-                      card.href?.trim() ||
-                      shopLoaiHref(ownerSlug, shopSlug, card.id);
-                    const giaLabel =
-                      card.giaTu != null
-                        ? card.giaDen != null && card.giaDen !== card.giaTu
-                          ? `Từ ${formatGia(card.giaTu, card.tienTe)}`
-                          : formatGia(card.giaTu, card.tienTe)
-                        : "Chưa có giá";
-                    return (
-                      <Link
-                        key={`${copy}-${key}`}
-                        role={copy === 0 ? "listitem" : undefined}
-                        href={href}
-                        tabIndex={copy === 1 ? -1 : undefined}
-                        draggable={false}
-                        onDragStart={(ev) => ev.preventDefault()}
-                        className={`j-shop-loai-more-card${card.hetHang ? " is-soldout" : ""}`}
+            <div className="j-shop-loai-more-ticker" role="list">
+              {otherNhom.map((card) => {
+                const href =
+                  card.href?.trim() ||
+                  shopLoaiHref(ownerSlug, shopSlug, card.id);
+                const giaLabel =
+                  card.giaTu != null
+                    ? card.giaDen != null && card.giaDen !== card.giaTu
+                      ? `Từ ${formatGia(card.giaTu, card.tienTe)}`
+                      : formatGia(card.giaTu, card.tienTe)
+                    : "Chưa có giá";
+                return (
+                  <Link
+                    key={card.id}
+                    role="listitem"
+                    href={href}
+                    draggable={false}
+                    onDragStart={(ev) => ev.preventDefault()}
+                    className={`j-shop-loai-more-card${card.hetHang ? " is-soldout" : ""}`}
+                  >
+                    <span className="j-shop-loai-more-media" aria-hidden>
+                      {card.anhUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={card.anhUrl} alt="" loading="lazy" />
+                      ) : (
+                        <span className="j-shop-loai-more-ph" />
+                      )}
+                      {card.hetHang ? (
+                        <span className="j-shop-loai-more-soldout">
+                          Hết hàng
+                        </span>
+                      ) : null}
+                    </span>
+                    <span className="j-shop-loai-more-body">
+                      <span className="j-shop-loai-more-name">
+                        {card.nhan}
+                      </span>
+                      <span className="j-shop-loai-more-meta">
+                        {card.soMau} mẫu
+                        {card.diemTrungBinh != null ? (
+                          <span className="j-shop-loai-more-rating">
+                            <Star
+                              size={11}
+                              strokeWidth={2}
+                              fill="currentColor"
+                              aria-hidden
+                            />
+                            {card.diemTrungBinh}
+                          </span>
+                        ) : null}
+                      </span>
+                      <span
+                        className={`j-shop-loai-more-price${card.giaTu == null ? " is-empty" : ""}`}
                       >
-                        <span className="j-shop-loai-more-media" aria-hidden>
-                          {card.anhUrl ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={card.anhUrl} alt="" loading="lazy" />
-                          ) : (
-                            <span className="j-shop-loai-more-ph" />
-                          )}
-                          {card.hetHang ? (
-                            <span className="j-shop-loai-more-soldout">
-                              Hết hàng
-                            </span>
-                          ) : null}
-                        </span>
-                        <span className="j-shop-loai-more-body">
-                          <span className="j-shop-loai-more-name">
-                            {card.nhan}
-                          </span>
-                          <span className="j-shop-loai-more-meta">
-                            {card.soMau} mẫu
-                            {card.diemTrungBinh != null ? (
-                              <span className="j-shop-loai-more-rating">
-                                <Star
-                                  size={11}
-                                  strokeWidth={2}
-                                  fill="currentColor"
-                                  aria-hidden
-                                />
-                                {card.diemTrungBinh}
-                              </span>
-                            ) : null}
-                          </span>
-                          <span
-                            className={`j-shop-loai-more-price${card.giaTu == null ? " is-empty" : ""}`}
-                          >
-                            {giaLabel}
-                          </span>
-                        </span>
-                      </Link>
-                    );
-                  })}
-                </div>
-              ))}
+                        {giaLabel}
+                      </span>
+                    </span>
+                  </Link>
+                );
+              })}
             </div>
           </div>
         </section>

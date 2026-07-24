@@ -1,180 +1,152 @@
 # Brief — CSĐT vận hành học (chat-first)
 
-> **Trạng thái:** Plan build · chưa migration  
-> **Neo quyết định:** `CINS_DECISIONS.md` **L34** · gate ALTER `CINS_DEV_RULES.md` §1  
+> **Trạng thái:** Plan cuối · **tách 2 giai đoạn**  
+> **Neo:** `CINS_DECISIONS.md` **L34** · gate ALTER `CINS_DEV_RULES.md` §1  
 > **Partner:** Sine Art (`co_so_dao_tao`)  
 > **Cập nhật:** 2026-07-24
 
 ---
 
-## Mục tiêu sản phẩm
+## Hai plan (không làm lẫn)
 
-Học viên: trang cơ sở → khóa → `1_org` (thẻ khóa) → đóng học phí → vào phòng lớp (tab Tổ chức) → học / Meet / nộp bài → gia hạn VietQR · freeze 00:00 nếu hết ngày.
+| | **Plan 1 — Vận hành học (NOW)** | **Plan 2 — LiveKit / WebRTC (LATER)** |
+|---|---|---|
+| Khi nào | Làm ngay | **Chỉ khi user báo `ready`** |
+| Phạm vi | Tư vấn `1_org` · đơn HP · phòng lớp chat · freeze · VietQR · pedagogy · dashboard | LiveKit self-host Hetzner `sin` · in-chat call · share màn · FaceTime-like |
+| Call / Meet / share màn | **Không** — không UI call, không provision Hetzner | **Có** — toàn bộ Track B cũ |
+| Phụ thuộc | ALTER A1 (+ A2), schema `org_*` HP/kỳ | Plan 1 đã có `chat_phong` lớp + kỳ học (để gate token) |
 
-Org: dashboard (HV đa lớp, thu tiền mặt/QR cộng ngày, lớp–bài tập, điểm danh, doanh thu, marketing, chi nhánh).
-
-**Không:** clone ERP Sine Art · ghi HP vào `shop_*` · reuse `edu_*` ĐH · gói theo buổi (phase này).
+**Chốt stack Plan 2 (giữ sẵn, không triển khai sớm):** LiveKit OSS · Hetzner Singapore (`sin`) · room = `chat_phong.id` · bill Hetzner only.
 
 ---
 
-## Nguyên tắc kỹ thuật
+## Mục tiêu Plan 1 (sản phẩm)
+
+Học viên: trang cơ sở → khóa → `1_org` (thẻ khóa) → TV gửi đơn HP → đóng tiền (QR/cash) → **vào phòng chat lớp** (tab Tổ chức) → chào mừng · ping lịch (text) · nộp bài trong chat · GV duyệt + gán tiến độ trên dashboard · popup Journey · gia hạn VietQR · **freeze 00:00** (không call).
+
+Org: dashboard HV · thu tiền · lớp/bài · điểm danh · doanh thu · marketing · chi nhánh.
+
+**Cố ý chưa có trong Plan 1:** chia sẻ màn hình, call, Meet/Zoom-as-product, LiveKit, máy Hetzner.
+
+---
+
+## Nguyên tắc (cả hai plan)
 
 1. Chat = mặt vận hành; dashboard = control plane.
-2. Nguồn “đang học” = `org_ky_hoc` (khoảng ngày), không dual status.
-3. Visibility tin phòng lớp: `chat_tin_nhan.tao_luc` ∈ các khoảng đã trả của member; gap freeze = không thấy mãi.
-4. Mọi ALTER bảng cũ → báo cáo + duyệt inventory L34 trước khi SQL.
-5. Đối chiếu DB thật trước mỗi migration.
+2. Nguồn “đang học” = `org_ky_hoc` (ngày lịch); freeze 00:00 hết ngày.
+3. Visibility tin lớp = `tao_luc` ∈ khoảng đã trả; gap freeze không lộ.
+4. ALTER cột cũ → báo cáo + duyệt L34 trước SQL.
+5. Plan 2 không đụng schema HP; chỉ thêm media plane + token API + UI call.
 
 ---
 
-## Gate trước Phase 1 (bắt buộc)
+# PLAN 1 — Vận hành học (làm trước)
 
-| Gate | Việc | Ai |
+## Gate
+
+| Gate | Việc | Trạng thái |
 |---|---|---|
-| G1 | Duyệt ALTER **A1** (`org_lop_hoc.id_chat_phong`) | User |
-| G2 | Duyệt / bỏ **A3** (`meeting_url`) — khuyến nghị **bỏ** (link chỉ trong tin Meet) | User |
-| G3 | Duyệt **A2** sau khi chốt cột `org_chi_nhanh` | User |
-| G4 | Cập nhật FOUNDATIONS §O: “LMS mỏng chat-first” (thay “không LMS”) | User confirm doc |
-| G5 | Chốt tên file migration + RLS outline | Dev sau G1 |
+| G1 | Duyệt ALTER **A1** `org_lop_hoc.id_chat_phong` | Chờ user |
+| G2 | A3 `meeting_url` | **Hủy** (Plan 2 không dùng URL Meet) |
+| G3 | Duyệt **A2** `id_chi_nhanh` sau bảng chi nhánh | Chờ |
+| G4 | FOUNDATIONS §O → “LMS mỏng chat-first” (chưa call) | Chờ confirm doc |
+
+## Phase P0 — ACL & shell (0.5–1 ngày)
+
+- [ ] Curator: chỉ Bài đăng + comment-as-org
+- [ ] Map vai trò admin / TV / GV / nội dung
+- [ ] Shell dashboard CSĐT (path chốt: `/co-so/[slug]/quan-ly` hoặc tương đương)
+
+## Phase P1 — Schema (1–2 ngày) — sau G1
+
+**CREATE:** `org_chi_nhanh`, `org_goi_hoc_phi`, `org_don_hoc_phi`, `org_ky_hoc`, `org_tien_do_bai`, `org_nop_bai`, `org_diem_danh`  
+**ALTER:** A1 · A2  
+**Lib:** `lib/co-so/ky-hoc.ts`, `don-hoc-phi.ts`
+
+## Phase P2 — Tư vấn + phòng lớp chat (1–2 ngày)
+
+- [ ] `1_org` giữ thẻ khóa (đã có) · mở rộng card đơn HP (P3)
+- [ ] Tạo lớp trên trang khóa → `chat_phong` `loai_phong='lop_hoc'` + `id_chat_phong`
+- [ ] Tab Tổ chức: list phòng lớp
+- [ ] Sau đóng tiền lần đầu: join phòng + tin chào mừng
+- [ ] Mở khóa → `org_bai_dang` `thong_bao`
+- [ ] **Không** nút call / share màn
+
+## Phase P3 — Thu học phí (2–3 ngày)
+
+- [ ] Catalog gói (tháng/khóa — không buổi)
+- [ ] Card `don_hoc_phi` trong `1_org` (TV tạo lần đầu)
+- [ ] Dashboard HV: thu **tiền mặt** / CK thủ công → cộng ngày
+- [ ] `xacNhanDonHocPhi()` → kỳ + join + Journey verify “bắt đầu học”
+- [ ] `cau_hinh.thanh_toan` (STK) — không ALTER cột
+
+## Phase P4 — Freeze + visibility (1–2 ngày)
+
+- [ ] Hết ngày → phòng xám 00:00; vẫn trong roster
+- [ ] Filter tin theo `org_ky_hoc`; cấm gửi tin khi freeze
+- [ ] CTA Gia hạn luôn hiện khi freeze
+- [ ] Gap tin trong freeze: mãi không thấy sau khi mở lại
+
+## Phase P5 — Gia hạn VietQR (2 ngày)
+
+- [ ] Banner gia hạn · `ma_don` · đối soát → cộng ngày / unfreeze
+
+## Phase P6 — Pedagogy trong chat (không WebRTC) (2 ngày)
+
+- [ ] Ping trước giờ 15’ (**tin system / `chat_moc`** — không mở call)
+- [ ] Nộp bài trong chat → `org_nop_bai`
+- [ ] Dashboard: duyệt + gán `org_tien_do_bai`
+- [ ] Popup đăng Journey + chế độ hiển thị
+- [ ] Unlock `org_bai_tap` trên trang khóa
+
+## Phase P7 — Dashboard ops (2 ngày)
+
+- [ ] Điểm danh · doanh thu · marketing queries · CRUD chi nhánh
+
+## Phase P8 — Partner Sine Art (sau P1–P7 ổn)
+
+- [ ] ETL / seed gói–lớp · đo funnel
+
+### Done Plan 1 khi
+
+Luồng tư vấn → tiền → phòng lớp chat → freeze/gia hạn → nộp/duyệt/tiến độ → dashboard chạy end-to-end **không** cần LiveKit.
 
 ---
 
-## Phase build
+# PLAN 2 — LiveKit WebRTC (chỉ khi user báo `ready`)
 
-### Phase 0 — Doc & ACL product (0.5–1 ngày)
+> Không provision Hetzner, không merge UI call, không env LiveKit prod cho đến tín hiệu **ready**.
 
-- [ ] Curator = ACL app: `quan_ly_noi_dung` / nhãn Curator chỉ Bài đăng + comment-as-org trên CSĐT.
-- [ ] Map vai trò dashboard: `admin` full · `quan_ly_tuyen_sinh` tư vấn+đơn · `giao_vien` lớp/tiến độ/điểm danh · `quan_ly_noi_dung` bài tập+bài đăng.
-- [ ] Shell route dashboard org CSĐT (path đề xuất: `/co-so/[slug]/quan-ly` hoặc `/ban-hang`-style `/dao-tao/...` — chốt 1 trước code).
+## Nhắc lại chốt (khi tới lúc)
 
-**Done khi:** Nav + gate vai trò trống chạy được trên 1 org seed.
+- LiveKit OSS self-host · Hetzner **`sin`**
+- Phòng học = share màn + A/V **trong** chat lớp
+- Token: membership + kỳ active; freeze → 403
+- HV tắt cam mặc định; monitor traffic SIN (overage đắt)
 
----
+## Phase L0–L5 (khi ready)
 
-### Phase 1 — Schema xương sống (1–2 ngày)
-
-**Bảng mới** (CREATE — không ALTER):
-
-| Bảng | Việc |
+| Phase | Việc |
 |---|---|
-| `org_chi_nhanh` | Chi nhánh |
-| `org_goi_hoc_phi` | Gói tháng/khóa → `so_ngay` + giá |
-| `org_don_hoc_phi` | Đơn thu (vietqr \| tien_mat \| ck_thu_cong) |
-| `org_ky_hoc` | `ngay_dau` / `ngay_cuoi` per `user_hoc_vien_lop` |
-| `org_tien_do_bai` | Con trỏ bài hiện tại |
-| `org_nop_bai` | Nộp / duyệt |
-| `org_diem_danh` | Điểm danh |
+| L0 | Provision Hetzner `sin` |
+| L1 | LiveKit + coturn + TLS + secrets |
+| L2 | API token CINs (`chat_phong` + kỳ) |
+| L3 | UI in-chat: Vào phòng học / share màn |
+| L4 | Harden ~200 concurrent nhiều lớp |
+| L5 | Call 1-1 / nhóm (FaceTime-like) cùng SFU |
 
-**ALTER (chỉ sau duyệt L34):**
-
-- A1 `org_lop_hoc.id_chat_phong`
-- A2 `org_lop_hoc.id_chi_nhanh` (sau `org_chi_nhanh`)
-
-**Lib:** `lib/co-so/ky-hoc.ts` (active? freeze? còn N ngày) · `lib/co-so/don-hoc-phi.ts`.
-
-**Done khi:** Migration idempotent chạy trên DB staging/dev; helper kỳ học có unit-smoke.
+Chi tiết ops/cost giữ trong L34 DECISIONS; mở rộng checklist khi bắt đầu Plan 2.
 
 ---
 
-### Phase 2 — Lớp ↔ phòng chat cố định (1–2 ngày)
+## Ngoài scope (cả hai plan hiện tại)
 
-- [ ] Tạo/ cập nhật lớp trên trang khóa → đảm bảo `chat_phong` `loai_phong='lop_hoc'`, `id_context=lop.id`, `id_org_dai_dien`, ghi `id_chat_phong`.
-- [ ] Tab Tổ chức: list phòng lớp user là member (và staff org).
-- [ ] Sau đóng tiền lần đầu: insert `chat_thanh_vien` + tin system chào mừng.
-- [ ] Mở khóa → tạo `org_bai_dang` `loai=thong_bao` (optional hook).
-
-**Done khi:** TV/admin tạo lớp → phòng xuất hiện; HV chưa trả không vào được phòng.
+- Meet/Zoom đường chính · LiveKit Cloud trả phút · gói theo buổi · lương/BCTC/họa cụ · guest chưa login · O9/O10
 
 ---
 
-### Phase 3 — Thu học phí (cash + đơn trong `1_org`) (2–3 ngày)
+## Checkpoint
 
-- [ ] Catalog gói trên dashboard / gắn khóa.
-- [ ] Card `ngu_canh.loai=don_hoc_phi` trong `1_org` (TV tạo đơn lần đầu).
-- [ ] Dashboard **Quản lý học viên**: 1 HV nhiều lớp; form **Thu tiền mặt** → tạo `org_don_hoc_phi` + kéo dài `org_ky_hoc`.
-- [ ] Pipeline chung `xacNhanDonHocPhi()`: cộng ngày · join phòng nếu lần đầu · tạo Journey `sinh_tu_hoc_vien_lop` + verify org.
-- [ ] `cau_hinh.thanh_toan` (STK/NH) — không ALTER cột.
-
-**Done khi:** Cash trên dashboard và đơn chat cùng cộng ngày + verify bắt đầu học.
-
----
-
-### Phase 4 — Freeze 00:00 + visibility (1–2 ngày)
-
-- [ ] Cron/edge hoặc lazy-check: hết `ngay_cuoi` (ngày VN) → UI phòng xám.
-- [ ] Query tin: filter theo khoảng `org_ky_hoc` của viewer (staff org thấy full).
-- [ ] Freeze: không gửi tin / không Meet; **vẫn hiện CTA Gia hạn**.
-- [ ] Sau gia hạn: thấy tin mới sau `ngay_dau` kỳ mới; gap freeze không lộ.
-
-**Done khi:** Test 2 kỳ cách nhau 3 ngày — HV không đọc được tin trong gap.
-
----
-
-### Phase 5 — Gia hạn VietQR tự động (2 ngày)
-
-- [ ] UI “Gia hạn học phí” (banner phòng xám + optional `1_org`).
-- [ ] Sinh `ma_don` + VietQR (reuse `lib/shop/vietqr` pattern).
-- [ ] Webhook/đối soát (SePay hoặc polling) → `xacNhanDonHocPhi`.
-- [ ] Nhắc sắp hết hạn (system msg / `chat_moc` style) trước N ngày.
-
-**Done khi:** Quét đúng mã → auto cộng ngày, unfreeze, không cần TV bấm.
-
----
-
-### Phase 6 — Buổi học trong chat (2–3 ngày)
-
-- [ ] Ping trước giờ 15’ (`chat_moc` + tick; chỉ member kỳ active).
-- [ ] Card Meet trong phòng (GV tạo; không host WebRTC phase này).
-- [ ] Nộp bài trong chat → `org_nop_bai` + `ngu_canh`.
-- [ ] Dashboard: duyệt đạt/làm lại + gán `org_tien_do_bai` (một thao tác “Đạt + mở bài tiếp”).
-- [ ] Popup HV: đăng Journey? + `che_do_hien_thi`.
-- [ ] Trang khóa: unlock `org_bai_tap` theo tiến độ (đã có bảng bài tập).
-
-**Done khi:** Vòng họp → nộp → duyệt → mở bài → popup Journey chạy end-to-end trên 1 lớp seed.
-
----
-
-### Phase 7 — Ops còn lại dashboard (2 ngày)
-
-- [ ] Lịch điểm danh (`org_diem_danh`).
-- [ ] Doanh thu: aggregate `org_don_hoc_phi` theo chi nhánh / kỳ.
-- [ ] Marketing số liệu: lead `1_org` → đóng tiền → gia hạn / churn freeze (query layer).
-- [ ] CRUD chi nhánh + gắn lớp.
-
-**Done khi:** Admin CSĐT dùng được 6 mục nav đã mô tả (HV, điểm danh, doanh thu, marketing, khóa/lớp, chi nhánh).
-
----
-
-### Phase 8 — Partner Sine Art (sau ổn định)
-
-- [ ] ETL/sync HV–kỳ từ DB Sine Art → CINs (không embed admin Sine Art).
-- [ ] Seed gói + lớp mẫu trên org Sine Art đã verify.
-- [ ] Đo funnel thật → chỉnh O12 gói tháng.
-
----
-
-## Thứ tự dependency (tóm tắt)
-
-```text
-G1–G3 duyệt ALTER
-  → P1 schema
-  → P2 phòng lớp
-  → P3 thu tiền + verify
-  → P4 freeze
-  → P5 VietQR gia hạn
-  → P6 buổi học / bài tập / Journey
-  → P7 dashboard ops
-  → P8 sync Sine Art
-```
-
----
-
-## Ngoài scope (cố ý)
-
-- Lương GV, BCTC đầy đủ, họa cụ, LiveKit native, guest chat chưa login, gói theo buổi, reviews khóa (O9), chương trình đa khóa (O10).
-
----
-
-## Checkpoint với user mỗi phase
-
-Trước khi sang phase sau: demo 1 luồng trên org seed + cập nhật L34 (ALTER đã chạy) + IMPLEMENTATION (route/SQL). Không gộp P3+P4+P5 trong một PR lớn.
+- Mỗi phase Plan 1: demo + cập nhật L34 ALTER + IMPLEMENTATION.
+- **Không** bắt đầu Plan 2 trừ khi user viết rõ **ready** (hoặc tương đương).
+- Không gộp P3+P4+P5 một PR; không ALTER lén ngoài inventory.

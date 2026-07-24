@@ -7,6 +7,7 @@ import { createPortal } from "react-dom";
 import { JourneySocialActorRow } from "@/components/journey/JourneySocialActorRow";
 import { commentReactionLabel } from "@/lib/social/comments/types";
 import type {
+  ReactionBreakdownEntry,
   SocialActorProfile,
   SocialInteractionKind,
 } from "@/lib/social/actors-types";
@@ -107,6 +108,10 @@ export function JourneySocialActorsModal({
 }: Props) {
   const [mounted, setMounted] = useState(false);
   const [state, setState] = useState<FetchState>({ status: "idle" });
+  /** Emoji đang lọc (`null` = tất cả). Khởi tạo theo prop `emoji`. */
+  const [activeEmoji, setActiveEmoji] = useState<string | null>(emoji ?? null);
+  /** Phân bố emoji đầy đủ — dựng chip lọc, không đổi theo lựa chọn. */
+  const [breakdown, setBreakdown] = useState<ReactionBreakdownEntry[]>([]);
 
   useEffect(() => {
     queueMicrotask(() => setMounted(true));
@@ -130,7 +135,7 @@ export function JourneySocialActorsModal({
         id_doi_tuong: idDoiTuong,
         offset: String(offset),
       });
-      if (emoji) qs.set("emoji", emoji);
+      if (activeEmoji) qs.set("emoji", activeEmoji);
 
       try {
         const res = await fetch(`/api/social/actors?${qs.toString()}`);
@@ -139,6 +144,7 @@ export function JourneySocialActorsModal({
           total?: number;
           hasMore?: boolean;
           viewerId?: string | null;
+          reactionBreakdown?: ReactionBreakdownEntry[];
           error?: string;
         } | null;
 
@@ -154,6 +160,9 @@ export function JourneySocialActorsModal({
         const total = json?.total ?? actors.length;
         const hasMore = Boolean(json?.hasMore);
         const viewerId = json?.viewerId ?? null;
+        if (!append && Array.isArray(json?.reactionBreakdown)) {
+          setBreakdown(json.reactionBreakdown);
+        }
 
         setState((prev) => {
           const prevActors =
@@ -167,16 +176,20 @@ export function JourneySocialActorsModal({
         setState({ status: "error", message: "Lỗi mạng." });
       }
     },
-    [kind, loaiDoiTuong, idDoiTuong, emoji],
+    [kind, loaiDoiTuong, idDoiTuong, activeEmoji],
   );
 
   useEffect(() => {
     if (!open) {
-      queueMicrotask(() => setState({ status: "idle" }));
+      queueMicrotask(() => {
+        setState({ status: "idle" });
+        setActiveEmoji(emoji ?? null);
+        setBreakdown([]);
+      });
       return;
     }
     void loadPage(0, false);
-  }, [open, loadPage]);
+  }, [open, loadPage, emoji]);
 
   useEffect(() => {
     if (!open) return;
@@ -194,13 +207,16 @@ export function JourneySocialActorsModal({
 
   if (!mounted || !open) return null;
 
-  const title = modalTitle(kind, mediaLabel, emoji);
+  const title = modalTitle(kind, mediaLabel, activeEmoji ?? undefined);
   const actorCount =
     state.status === "ok" || state.status === "loadingMore" ? state.total : null;
   const viewerId =
     state.status === "ok" || state.status === "loadingMore"
       ? state.viewerId
       : null;
+  /* Chip lọc chỉ khi có nhiều loại emoji — emoji không ai thả sẽ không xuất hiện. */
+  const showFilters = kind === "like" && breakdown.length > 1;
+  const totalReactions = breakdown.reduce((sum, entry) => sum + entry.count, 0);
 
   return createPortal(
     <div className="jsa-backdrop" role="presentation" onClick={onClose}>
@@ -228,6 +244,37 @@ export function JourneySocialActorsModal({
           </button>
         </div>
 
+        {showFilters ? (
+          <div className="jsa-filters" role="tablist" aria-label="Lọc theo cảm xúc">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeEmoji === null}
+              className={`jsa-filter${activeEmoji === null ? " is-active" : ""}`}
+              onClick={() => setActiveEmoji(null)}
+            >
+              <span className="jsa-filter-label">Tất cả</span>
+              <span className="jsa-filter-count">{totalReactions}</span>
+            </button>
+            {breakdown.map((entry) => (
+              <button
+                key={entry.emoji}
+                type="button"
+                role="tab"
+                aria-selected={activeEmoji === entry.emoji}
+                aria-label={`${commentReactionLabel(entry.emoji)} ${entry.count}`}
+                className={`jsa-filter${activeEmoji === entry.emoji ? " is-active" : ""}`}
+                onClick={() => setActiveEmoji(entry.emoji)}
+              >
+                <span className="jsa-filter-emoji" aria-hidden>
+                  {commentReactionLabel(entry.emoji)}
+                </span>
+                <span className="jsa-filter-count">{entry.count}</span>
+              </button>
+            ))}
+          </div>
+        ) : null}
+
         {state.status === "loading" ? (
           <p className="jsa-msg">Đang tải…</p>
         ) : state.status === "error" ? (
@@ -247,7 +294,7 @@ export function JourneySocialActorsModal({
                     actor={actor}
                     viewerId={viewerId}
                     kind={kind}
-                    reactionEmoji={emoji}
+                    reactionEmoji={actor.reactionEmoji ?? activeEmoji ?? undefined}
                   />
                 ))}
               </ul>

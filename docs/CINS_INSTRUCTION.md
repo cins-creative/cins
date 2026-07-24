@@ -49,6 +49,8 @@ Thứ tự ưu tiên khi xung đột: **DB thật (đọc trực tiếp) > CINS_
 
 ## Thay đổi lớn gần đây (tóm tắt — chi tiết ở DECISIONS)
 
+**L34 — CSĐT chat-first + LiveKit Hetzner SIN (2026-07-24):** Vận hành học cơ sở. **Plan 1 (NOW):** tư vấn · phòng lớp chat · HP/freeze/VietQR/dashboard — **chưa** call/WebRTC. **Plan 2:** LiveKit OSS trên Hetzner Singapore — **chỉ khi user báo `ready`**. Gate ALTER cột cũ. Brief: [`cursor_brief_csdt_van_hanh_hoc.md`](./cursor_brief_csdt_van_hanh_hoc.md). FOUNDATIONS §O / IMPLEMENTATION khóa học — chờ confirm wording.
+
 **Shop UGC / preorder (2026-07-18 · giỏ storefront 2026-07-20 · import Shopee 2026-07-22):** Module `shop_*` opt-in — catalog, bảng giá, post-kiosk (subset), **mua thẳng từ `/{slug}/shop`** (giỏ theo cửa hàng), đơn cứng + chat `don_hang`, quầy sự kiện; **import loại hàng từ URL Shopee** (`/api/shop/import-shopee`). CINs không cầm tiền. Xem DECISIONS **L33** + LOG import Shopee.
 
 **Cộng đồng topbar role (2026-07-18):** Vai trò + cài đặt lên `#app-topbar-page-slot` (cam priv, giống cơ sở/trường); sidebar chỉ join/share. Xem DECISIONS L32 + IMPLEMENTATION *Topbar quản trị*.

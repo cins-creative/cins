@@ -44,6 +44,7 @@ import { fetchBookmarkedOrgKhoaHocMilestones } from "@/lib/to-chuc/khoa-hoc-book
 import { fetchBookmarkedOrgTuyenDungMilestones } from "@/lib/to-chuc/tuyen-dung-bookmark";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { hideProcessingVideoFromViewer } from "@/lib/journey/video-processing-meta";
+import { pickTopReactionEmoji } from "@/lib/social/reaction-emoji";
 
 /* ╔══════════════════════════════════════════════════════════════════╗
    ║ Fetch milestones cho 1 user (Journey center column).             ║
@@ -956,7 +957,7 @@ export async function attachSocialState(
       : Promise.resolve({ data: [] }),
     admin
       .from("social_reaction")
-      .select("id_doi_tuong")
+      .select("id_doi_tuong, emoji")
       .eq("loai_doi_tuong", "cot_moc")
       .neq("emoji", "dislike")
       .in("id_doi_tuong", cotMocIds),
@@ -998,6 +999,9 @@ export async function attachSocialState(
     (viewerComments.data ?? []).map((row) => row.id_doi_tuong as string),
   );
   const likeCounts = countByTarget(allLikes.data ?? []);
+  const topEmojiByTarget = topReactionEmojiByTarget(
+    (allLikes.data ?? []) as Array<{ id_doi_tuong?: string | null; emoji?: string | null }>,
+  );
   const dislikeCounts = countByTarget(allDislikes.data ?? []);
   const bookmarkCounts = countByTarget(allBookmarks.data ?? []);
   const commentCounts = countByTarget(allComments.data ?? []);
@@ -1013,6 +1017,7 @@ export async function attachSocialState(
         viewerBookmarked: bookmarkedIds.has(id),
         viewerCommented: commentedIds.has(id),
         viewerReactionEmoji: viewerEmojiById.get(id) ?? null,
+        topReactionEmoji: topEmojiByTarget.get(id) ?? null,
         likeCount: likeCounts.get(id) ?? 0,
         dislikeCount: dislikeCounts.get(id) ?? 0,
         bookmarkCount: bookmarkCounts.get(id) ?? 0,
@@ -1028,6 +1033,31 @@ function countByTarget(rows: Array<{ id_doi_tuong?: string | null }>): Map<strin
   for (const row of rows) {
     if (!row.id_doi_tuong) continue;
     out.set(row.id_doi_tuong, (out.get(row.id_doi_tuong) ?? 0) + 1);
+  }
+  return out;
+}
+
+/** Emoji cảm xúc được thả nhiều nhất trên mỗi cột mốc (để hiện trên nút tim). */
+function topReactionEmojiByTarget(
+  rows: Array<{ id_doi_tuong?: string | null; emoji?: string | null }>,
+): Map<string, string> {
+  const countsByTarget = new Map<string, Map<string, number>>();
+  for (const row of rows) {
+    const id = row.id_doi_tuong;
+    const emoji = row.emoji;
+    if (!id || !emoji) continue;
+    let counts = countsByTarget.get(id);
+    if (!counts) {
+      counts = new Map<string, number>();
+      countsByTarget.set(id, counts);
+    }
+    counts.set(emoji, (counts.get(emoji) ?? 0) + 1);
+  }
+
+  const out = new Map<string, string>();
+  for (const [id, counts] of countsByTarget) {
+    const top = pickTopReactionEmoji(counts);
+    if (top) out.set(id, top);
   }
   return out;
 }
