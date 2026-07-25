@@ -675,8 +675,11 @@ export async function listWorldBoostCatalog(
   const scoreOf = (item: WorldBoostCatalogItem): number =>
     item.diemFeed ? tinhDiemHienTai(item.diemFeed, nowMs, scoreCfg) : 0;
 
-  /* Chỉ giữ bài còn điểm > 0 (decay 7 ngày về 0 — không còn xếp Timeline). */
-  items = items.filter((i) => scoreOf(i) > 0);
+  /* Giữ bài còn điểm > 0 (decay 7 ngày về 0 — không còn xếp Timeline).
+   * Vẫn giữ bài bị admin dìm (diem_uu_tien < 0) để còn chỉnh / khôi phục được. */
+  items = items.filter(
+    (i) => scoreOf(i) > 0 || (i.diemFeed?.diem_uu_tien ?? 0) < 0,
+  );
 
   items.sort((a, b) => {
     const diff = scoreOf(b) - scoreOf(a);

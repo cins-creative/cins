@@ -1,5 +1,3 @@
-import { Anton } from "next/font/google";
-
 import "./journey.css";
 import "./image-grid.css";
 import "@/styles/article-rich-content.css";
@@ -8,19 +6,6 @@ import "@/styles/article-rich-content.css";
    post-page.css ở layout journey để modal style đúng. */
 import "../p/new/editor.css";
 import "../p/[postSlug]/post-page.css";
-
-/**
- * Font Anton chỉ dùng làm `--font-j-anton` cho các số liệu / năm / nhãn lớn
- * trên trang Journey. Mọi text khác dùng `--font-sans` (Be Vietnam Pro) /
- * `--font-serif` (Crimson Pro) / `--font-mono` (JetBrains Mono) đã có sẵn
- * từ `cins-design-tokens.css`.
- */
-const anton = Anton({
-  variable: "--font-j-anton",
-  subsets: ["latin", "vietnamese"],
-  weight: ["400"],
-  display: "swap",
-});
 
 /**
  * Parallel route slot `@modal` — nhận intercepted route khi user click cột
@@ -37,5 +22,5 @@ export default function JourneyLayout({
   modal: React.ReactNode;
 }>) {
   void _modal;
-  return <div className={anton.variable}>{children}</div>;
+  return children;
 }

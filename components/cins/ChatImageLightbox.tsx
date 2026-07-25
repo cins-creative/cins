@@ -4,6 +4,8 @@ import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { useCallback, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 
+import { chatImageVariantUrl } from "@/lib/chat/image-url";
+
 type ChatImageLightboxProps = {
   images: string[];
   index: number;
@@ -18,6 +20,7 @@ export function ChatImageLightbox({
   onIndexChange,
 }: ChatImageLightboxProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const activeThumbRef = useRef<HTMLButtonElement>(null);
   const total = images.length;
   const current = images[index];
 
@@ -51,6 +54,14 @@ export function ChatImageLightbox({
     return () => document.removeEventListener("keydown", onKey);
   }, [index, onClose, onIndexChange, total]);
 
+  useEffect(() => {
+    activeThumbRef.current?.scrollIntoView({
+      behavior: "smooth",
+      inline: "center",
+      block: "nearest",
+    });
+  }, [index]);
+
   const goPrev = useCallback(() => {
     onIndexChange((index - 1 + total) % total);
   }, [index, onIndexChange, total]);
@@ -61,10 +72,12 @@ export function ChatImageLightbox({
 
   if (!current || typeof document === "undefined") return null;
 
+  const hasFilmstrip = total > 1;
+
   return createPortal(
     <dialog
       ref={dialogRef}
-      className="cins-chat-lightbox"
+      className={`cins-chat-lightbox${hasFilmstrip ? " has-filmstrip" : ""}`}
       aria-label="Xem ảnh"
       onCancel={(e) => {
         e.preventDefault();
@@ -84,7 +97,7 @@ export function ChatImageLightbox({
           <X size={22} strokeWidth={2} aria-hidden />
         </button>
 
-        {total > 1 ? (
+        {hasFilmstrip ? (
           <>
             <button
               type="button"
@@ -112,6 +125,33 @@ export function ChatImageLightbox({
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={current} alt="Ảnh đính kèm" decoding="async" />
         </figure>
+
+        {hasFilmstrip ? (
+          <div className="cins-chat-lightbox-filmstrip" role="tablist" aria-label="Danh sách ảnh">
+            <div className="cins-chat-lightbox-filmstrip-track">
+              {images.map((src, i) => (
+                <button
+                  key={`${src}-${i}`}
+                  ref={i === index ? activeThumbRef : undefined}
+                  type="button"
+                  role="tab"
+                  aria-selected={i === index}
+                  aria-label={`Xem ảnh ${i + 1}/${total}`}
+                  className={`cins-chat-lightbox-thumb${i === index ? " is-active" : ""}`}
+                  onClick={() => onIndexChange(i)}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={chatImageVariantUrl(src, "thumbnail")}
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
       </div>
     </dialog>,
     document.body,

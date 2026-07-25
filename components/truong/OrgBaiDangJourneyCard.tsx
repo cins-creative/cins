@@ -34,6 +34,9 @@ import {
   chiChuNeedsCollapse,
 } from "@/lib/journey/plain-text-bg";
 import { JourneyOrgPopover } from "@/components/journey/JourneyOrgPopover";
+import { JourneyCommentLink } from "@/components/journey/JourneyCommentLink";
+import { OrgBaiDangCommentsPanel } from "@/components/truong/OrgBaiDangCommentsPanel";
+import { SOCIAL_LOAI_ORG_BAI_DANG } from "@/lib/truong/social-constants";
 import { OrgBaiDangBookmarkButton } from "@/components/truong/OrgBaiDangBookmarkButton";
 import { OrgBaiDangLikeButton } from "@/components/truong/OrgBaiDangLikeButton";
 import { OrgBaiDangLoaiBadge } from "@/components/truong/OrgBaiDangLoaiBadge";
@@ -227,7 +230,14 @@ export function OrgBaiDangJourneyCard({
       ? `/api/truong/${encodeURIComponent(orgId)}/bai-dang/${encodeURIComponent(post.id)}/tac-gia`
       : undefined;
   const [expanded, setExpanded] = useState(Boolean(initialExpanded));
+  const [commentsOpen, setCommentsOpen] = useState(false);
+  const [commentCount, setCommentCount] = useState(post.commentCount ?? 0);
+  const [viewerCommented, setViewerCommented] = useState(false);
   const articleRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    setCommentCount(post.commentCount ?? 0);
+  }, [post.id, post.commentCount]);
 
   /* Analytics tiếp cận — card này luôn trên TRANG TỔ CHỨC (org/co-so/studio)
    * → nguồn `org_page` (trong tổ chức). Người CÓ quyền sửa org là "người trong
@@ -605,6 +615,14 @@ export function OrgBaiDangJourneyCard({
           {!contentOnly ? (
             <div className="jcard-actions">
               <OrgBaiDangLikeButton postId={post.id} />
+              <JourneyCommentLink
+                commentCount={commentCount}
+                viewerCommented={viewerCommented}
+                idDoiTuong={post.id}
+                loaiDoiTuong={SOCIAL_LOAI_ORG_BAI_DANG}
+                disableActorsReveal
+                onOpenComments={() => setCommentsOpen((v) => !v)}
+              />
               <OrgBaiDangBookmarkButton
                 postId={post.id}
                 title={post.tieu_de}
@@ -638,6 +656,16 @@ export function OrgBaiDangJourneyCard({
                 />
               ) : null}
             </div>
+          ) : null}
+
+          {!contentOnly && commentsOpen ? (
+            <OrgBaiDangCommentsPanel
+              postId={post.id}
+              onCountChange={(count, commented) => {
+                setCommentCount(count);
+                setViewerCommented(commented);
+              }}
+            />
           ) : null}
         </div>
       </div>

@@ -766,9 +766,9 @@ export function WorldJourneyFeed({
                   <>
                     <b>Gallery đang trống</b>
                     <p>
-                      Dự án <strong>Nổi bật</strong> của mọi người, bài cộng
-                      đồng có media, và <strong>Showcase</strong> studio sẽ hiện
-                      ở đây.
+                      Dự án <strong>Nổi bật</strong> /{" "}
+                      <strong>Công khai</strong> có media, bài cộng đồng, và{" "}
+                      <strong>Showcase</strong> studio sẽ hiện ở đây.
                     </p>
                   </>
                 )}

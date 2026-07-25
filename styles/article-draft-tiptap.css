@@ -181,11 +181,19 @@
   height: 28px;
 }
 
+.article-draft-tiptap__toolbar .article-draft-tiptap__btn svg {
+  display: block;
+}
+
 .article-draft-tiptap__editor-wrap {
   position: relative;
   min-height: 280px;
   max-height: min(55vh, 520px);
   overflow: auto;
+}
+
+.article-draft-tiptap__editor-wrap[data-table-active="true"] .ProseMirror {
+  padding-bottom: 64px;
 }
 
 .article-draft-tiptap .ProseMirror {
@@ -366,6 +374,105 @@
 .article-draft-tiptap .ProseMirror th {
   background: #f1f5f9;
   font-weight: 700;
+}
+
+/* Thanh công cụ gắn dưới bảng đang focus */
+.article-draft-tiptap__table-controls {
+  position: absolute;
+  z-index: 4;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 4px 14px rgb(15 23 42 / 0.12);
+  box-sizing: border-box;
+}
+
+.article-draft-tiptap__table-controls[hidden] {
+  display: none;
+}
+
+.article-draft-tiptap__table-ctrl-group {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.article-draft-tiptap__table-ctrl-group--solo {
+  justify-content: flex-end;
+  padding-bottom: 0;
+}
+
+.article-draft-tiptap__table-ctrl-group-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #94a3b8;
+  line-height: 1;
+  padding-left: 2px;
+}
+
+.article-draft-tiptap__table-ctrl-group-btns {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.article-draft-tiptap__table-ctrl {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: #334155;
+  cursor: pointer;
+}
+
+.article-draft-tiptap__table-ctrl svg {
+  display: block;
+  flex-shrink: 0;
+}
+
+.article-draft-tiptap__table-ctrl:hover:not(:disabled) {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+  color: #0f172a;
+}
+
+.article-draft-tiptap__table-ctrl:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.article-draft-tiptap__table-ctrl--danger {
+  color: #b91c1c;
+}
+
+.article-draft-tiptap__table-ctrl--danger:hover:not(:disabled) {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #991b1b;
+}
+
+.article-draft-tiptap .ProseMirror table.ProseMirror-selectednode,
+.article-draft-tiptap .ProseMirror.ProseMirror-focused table:has(td.selectedCell),
+.article-draft-tiptap .ProseMirror.ProseMirror-focused table:has(.selectedCell) {
+  outline: none;
+}
+
+.article-draft-tiptap .ProseMirror td.selectedCell,
+.article-draft-tiptap .ProseMirror th.selectedCell {
+  background: rgb(31 116 201 / 0.1);
 }
 
 /* Khối placeholder ảnh (node Tiptap tùy chỉnh) — bám giao diện article-rich-content */

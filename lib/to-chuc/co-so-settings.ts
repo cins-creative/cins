@@ -121,7 +121,58 @@ async function buildViewer(
   };
 }
 
-function buildChiNhanhForSettings(org: OrgRow): TruongChiNhanh[] {
+async function loadOrgChiNhanhRows(orgId: string): Promise<TruongChiNhanh[]> {
+  const admin = createServiceRoleClient();
+  const [{ data }, { data: org }] = await Promise.all([
+    admin
+      .from("org_chi_nhanh")
+      .select(
+        "id, ten, dia_chi, tinh_thanh, dien_thoai, email, dang_hoat_dong, thu_tu",
+      )
+      .eq("id_to_chuc", orgId)
+      .eq("dang_hoat_dong", true)
+      .order("thu_tu")
+      .order("tao_luc"),
+    admin.from("org_to_chuc").select("cau_hinh").eq("id", orgId).maybeSingle(),
+  ]);
+  if (!data?.length) return [];
+  const prev = parseChiNhanhFromCauHinh(org?.cau_hinh) ?? [];
+  const coverById = new Map(
+    prev.map((p) => [p.id, p.cover_id?.trim() || null] as const),
+  );
+  const coverByKey = new Map(
+    prev.map(
+      (p) =>
+        [`${p.ten.trim()}|${p.dia_chi.trim()}`, p.cover_id?.trim() || null] as const,
+    ),
+  );
+  return data
+    .filter((r) => (r.ten as string)?.trim() && (r.dia_chi as string)?.trim())
+    .map((r) => {
+      const ten = r.ten as string;
+      const dia_chi = (r.dia_chi as string) || "";
+      return {
+        id: r.id as string,
+        ten,
+        dia_chi,
+        tinh_thanh: (r.tinh_thanh as string | null) ?? null,
+        dien_thoai: (r.dien_thoai as string | null) ?? null,
+        email: (r.email as string | null) ?? null,
+        website: null,
+        facebook: null,
+        cover_id:
+          coverById.get(r.id as string) ??
+          coverByKey.get(`${ten.trim()}|${dia_chi.trim()}`) ??
+          null,
+      };
+    });
+}
+
+function buildChiNhanhForSettings(
+  org: OrgRow,
+  fromTable: TruongChiNhanh[],
+): TruongChiNhanh[] {
+  if (fromTable.length > 0) return fromTable;
   const ext = org.org_co_so_dao_tao!;
   return hydrateChiNhanhFromSchool({
     chi_nhanh: parseChiNhanhFromCauHinh(org.cau_hinh) ?? undefined,
@@ -139,6 +190,7 @@ function mapSettings(
   filters: CoSoOrgFilter[],
   members: CoSoMemberAdmin[],
   viewer: CoSoSettingsViewer,
+  chiNhanhTable: TruongChiNhanh[],
 ): CoSoSettingsPayload {
   const ext = org.org_co_so_dao_tao!;
   return {
@@ -158,7 +210,7 @@ function mapSettings(
     dienThoai: org.dien_thoai,
     emailLienHe: org.email_lien_he,
     tinhThanh: org.tinh_thanh,
-    chiNhanh: buildChiNhanhForSettings(org),
+    chiNhanh: buildChiNhanhForSettings(org, chiNhanhTable),
     pageConfig: parseCoSoPageCauHinh(org.cau_hinh),
     filters,
     members,
@@ -179,15 +231,19 @@ export async function getCoSoSettings(
   const org = await loadCoSoOrg(orgId);
   if (!org) return { ok: false, error: "Không tìm thấy cơ sở." };
 
-  const [filters, membersResult, viewer] = await Promise.all([
+  const [filters, membersResult, viewer, chiNhanhTable] = await Promise.all([
     listCoSoOrgFilters(orgId),
     listCoSoStaffMembers({ orgId, actorId: profileId }),
     buildViewer(orgId, profileId),
+    loadOrgChiNhanhRows(orgId),
   ]);
 
   const members = membersResult.ok ? membersResult.members : [];
 
-  return { ok: true, settings: mapSettings(org, filters, members, viewer) };
+  return {
+    ok: true,
+    settings: mapSettings(org, filters, members, viewer, chiNhanhTable),
+  };
 }
 
 export type UpdateCoSoSettingsInput = {
@@ -352,16 +408,23 @@ export async function updateCoSoSettings(
   const refreshed = await loadCoSoOrg(orgId);
   if (!refreshed) return { ok: false, error: "Không tải lại được cơ sở." };
 
-  const [filters, membersResult] = await Promise.all([
+  const [filters, membersResult, chiNhanhTable] = await Promise.all([
     listCoSoOrgFilters(orgId),
     listCoSoStaffMembers({ orgId, actorId: profileId }),
+    loadOrgChiNhanhRows(orgId),
   ]);
 
   const members = membersResult.ok ? membersResult.members : [];
 
   return {
     ok: true,
-    settings: mapSettings(refreshed, filters, members, viewer),
+    settings: mapSettings(
+      refreshed,
+      filters,
+      members,
+      viewer,
+      chiNhanhTable,
+    ),
   };
 }
 

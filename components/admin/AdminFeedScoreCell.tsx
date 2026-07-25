@@ -40,7 +40,9 @@ function tooltipBreakdown(
 ): string {
   const b = breakdownDiemHienTai(diemFeed, Date.now(), cfg);
   const uu =
-    b.diemUuTien > 0 ? ` · Ưu tiên: ${b.diemUuTien}` : "";
+    b.diemUuTien !== 0
+      ? ` · Ưu tiên: ${b.diemUuTien > 0 ? "+" : ""}${b.diemUuTien}`
+      : "";
   return `Cơ bản: ${b.diemCoBan} · Nội dung: ${b.diemNoiDung} · Verify: ${b.diemVerify} · Engagement: ${b.diemEngagement}${uu} · Decay: ${b.decayPct}%`;
 }
 

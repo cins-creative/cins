@@ -99,7 +99,7 @@
   --shadow-pop: 0 8px 0 rgba(31, 116, 201, 0.18);  /* playful 'sticker' lift */
 
   /* ---------- TYPE FAMILIES ---------- */
-  /* Không dùng Anton ở đây — Anton chỉ gán cho h1 trong cins-font-bridge.css */
+  /* Display = Be Vietnam Pro (single-font); xem cins-font-bridge.css */
   --font-display: "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", Roboto,
     sans-serif;
   --font-sans: "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", Roboto,

@@ -15,7 +15,8 @@ type LoaiDoiTuong =
   | "tac_pham"
   | "du_an"
   | "thao_luan"
-  | "article_dong_gop";
+  | "article_dong_gop"
+  | "org_bai_dang";
 
 type CommentRow = {
   id: string;

@@ -1062,7 +1062,7 @@ export async function listRoomMessages(
   const pageRows = hasMore ? rows.slice(0, limit) : rows;
   const chronological = pageRows.slice().reverse();
 
-  const [readCursors, pinnedMessages] = await Promise.all([
+  const [readCursors, pinnedRaw] = await Promise.all([
     listRoomReadCursors(roomId, viewerId),
     listPinnedMessagesForRoom(roomId, viewerId, admin),
   ]);
@@ -1074,6 +1074,30 @@ export async function listRoomMessages(
   );
   if (await isGroupRoomId(roomId)) {
     messages = await enrichGroupMessageSenders(messages, chronological);
+  }
+
+  let pinnedMessages = pinnedRaw;
+  const {
+    getLopRoomAccess,
+    loadKyIntervalsForViewerInLop,
+    filterMessagesForKyVisibility,
+  } = await import("@/lib/co-so/lop-room-access");
+  const lopAccess = await getLopRoomAccess(roomId, viewerId);
+  if (lopAccess.isLopRoom && !lopAccess.canReadGap && lopAccess.lopId) {
+    const intervals = await loadKyIntervalsForViewerInLop(
+      viewerId,
+      lopAccess.lopId,
+    );
+    messages = filterMessagesForKyVisibility(
+      messages,
+      intervals,
+      (m) => m.sentAt,
+    );
+    pinnedMessages = filterMessagesForKyVisibility(
+      pinnedMessages,
+      intervals,
+      (m) => m.sentAt,
+    );
   }
 
   const shouldMarkRead = options.markRead ?? !options.before;
@@ -1158,6 +1182,15 @@ export async function sendRoomMessage(
     await assertRoomMember(roomId, viewerId);
   } catch {
     return { ok: false, error: "Không có quyền gửi tin." };
+  }
+
+  const { getLopRoomAccess } = await import("@/lib/co-so/lop-room-access");
+  const lopAccess = await getLopRoomAccess(roomId, viewerId);
+  if (lopAccess.isLopRoom && !lopAccess.canSend) {
+    return {
+      ok: false,
+      error: "Kỳ học đã hết — phòng lớp đang freeze. Gia hạn để tiếp tục nhắn.",
+    };
   }
 
   const admin = createServiceRoleClient();

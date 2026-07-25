@@ -12,6 +12,7 @@ import {
 import { createPortal } from "react-dom";
 
 import { CoSoSettingsMembersPanel } from "@/components/co-so/CoSoSettingsMembersPanel";
+import { ChiNhanhQuanLyClient } from "@/components/co-so/quan-ly/ChiNhanhQuanLyClient";
 import { GioiThieuContentEditor } from "@/components/truong/GioiThieuContentEditor";
 import { TruongChiNhanhEditor } from "@/components/truong/tuyensinh/TruongChiNhanhEditor";
 import { LOAI_CO_SO_OPTIONS } from "@/lib/to-chuc/constants";
@@ -38,7 +39,7 @@ export type CoSoSettingsSection =
   | "identity"
   | "about"
   | "contact"
-  | "verify"
+  | "verify" // deep-link cũ → identity
   | "access"
   | "filters";
 
@@ -94,16 +95,30 @@ type Props = {
     chiNhanh?: TruongChiNhanh[];
     facebook?: string | null;
   }) => void;
+  /** Nhúng trong `/quan-ly/co-so` — không portal/backdrop. */
+  variant?: "modal" | "page";
+  /**
+   * Chi nhánh do bảng riêng quản (API chi-nhánh) — nhúng dưới Danh tính
+   * trên variant=page; ẩn TruongChiNhanhEditor trong form Lưu cài đặt.
+   */
+  chiNhanhExternal?: boolean;
 };
 
 const NAV: ReadonlyArray<{ id: CoSoSettingsSection; label: string }> = [
-  { id: "identity", label: "Danh tính" },
-  { id: "about", label: "Giới thiệu" },
-  { id: "contact", label: "Liên hệ" },
-  { id: "verify", label: "Xác thực" },
+  { id: "identity", label: "Thông tin" },
   { id: "access", label: "Quyền quản trị" },
   { id: "filters", label: "Quản lý nhãn" },
 ];
+
+/** Deep-link cũ (about/contact/verify) → tab Thông tin gộp. */
+function normalizeSettingsSection(
+  section: CoSoSettingsSection,
+): CoSoSettingsSection {
+  if (section === "about" || section === "contact" || section === "verify") {
+    return "identity";
+  }
+  return section;
+}
 
 function mapFiltersToChips(
   filters: SettingsData["filters"],
@@ -120,29 +135,23 @@ function mapFiltersToChips(
 function savePayloadForSection(
   section: CoSoSettingsSection,
   draft: SettingsData,
+  opts?: { includeChiNhanh?: boolean },
 ): Record<string, unknown> {
-  switch (section) {
-    case "identity":
-      return {
+  switch (normalizeSettingsSection(section)) {
+    case "identity": {
+      const payload: Record<string, unknown> = {
         ten: draft.ten,
         slug: draft.slug,
         moTa: draft.moTa,
         loaiCoSo: draft.loaiCoSo,
         namThanhLap: draft.namThanhLap,
-      };
-    case "about":
-      return {
         gioiThieuTruong: normalizeTruongGioiThieuHtml(draft.gioiThieuTruong),
       };
-    case "contact":
-      return {
-        chiNhanh: normalizeChiNhanhList(draft.chiNhanh),
-      };
-    case "verify":
-      return {
-        tenChinhThuc: draft.tenChinhThuc,
-        giayPhepDaoTao: draft.giayPhepDaoTao,
-      };
+      if (opts?.includeChiNhanh) {
+        payload.chiNhanh = normalizeChiNhanhList(draft.chiNhanh);
+      }
+      return payload;
+    }
     default:
       return {};
   }
@@ -154,10 +163,14 @@ export function CoSoPageSettingsModal({
   initialSection = "identity",
   onClose,
   onSaved,
+  variant = "modal",
+  chiNhanhExternal = false,
 }: Props) {
   const router = useRouter();
   const titleId = useId();
-  const [section, setSection] = useState<CoSoSettingsSection>(initialSection);
+  const [section, setSection] = useState<CoSoSettingsSection>(() =>
+    normalizeSettingsSection(initialSection),
+  );
   const [loading, setLoading] = useState(false);
   const [draft, setDraft] = useState<SettingsData | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -205,28 +218,28 @@ export function CoSoPageSettingsModal({
 
   useEffect(() => {
     if (!open) return;
-    setSection(initialSection);
+    setSection(normalizeSettingsSection(initialSection));
     setNewFilterName("");
     void loadSettings();
   }, [open, initialSection, loadSettings]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || variant === "page") return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = prev;
     };
-  }, [open]);
+  }, [open, variant]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || variant === "page") return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
+  }, [open, onClose, variant]);
 
   function patchDraft(patch: Partial<SettingsData>) {
     setDraft((prev) => (prev ? { ...prev, ...patch } : prev));
@@ -256,7 +269,8 @@ export function CoSoPageSettingsModal({
   function onSaveSection(e: React.FormEvent) {
     e.preventDefault();
     if (!draft || section === "access" || section === "filters") return;
-    if (section === "contact") {
+    const includeChiNhanh = section === "identity" && !chiNhanhExternal;
+    if (includeChiNhanh) {
       const normalized = normalizeChiNhanhList(draft.chiNhanh);
       if (!normalized.length) {
         setErr("Cần ít nhất một chi nhánh có tên và địa chỉ.");
@@ -269,7 +283,9 @@ export function CoSoPageSettingsModal({
       const res = await fetch(`/api/co-so/${encodeURIComponent(orgId)}/settings`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(savePayloadForSection(section, draft)),
+        body: JSON.stringify(
+          savePayloadForSection(section, draft, { includeChiNhanh }),
+        ),
       });
       const json = (await res.json().catch(() => null)) as {
         settings?: SettingsData;
@@ -282,9 +298,17 @@ export function CoSoPageSettingsModal({
       setDraft(json.settings);
       emitSaved(json.settings);
       if (json.settings.slug !== prevSlug) {
-        router.replace(coSoTabPath(json.settings.slug, CO_SO_DEFAULT_TAB));
+        if (variant === "page") {
+          router.replace(
+            `/co-so/${encodeURIComponent(json.settings.slug)}/quan-ly/co-so`,
+          );
+        } else {
+          router.replace(coSoTabPath(json.settings.slug, CO_SO_DEFAULT_TAB));
+          onClose();
+        }
+      } else if (variant === "modal") {
+        onClose();
       }
-      onClose();
     });
   }
 
@@ -375,26 +399,27 @@ export function CoSoPageSettingsModal({
 
   const showSaveFooter = section !== "filters" && section !== "access";
 
-  if (!open || typeof document === "undefined") return null;
+  if (!open) return null;
+  if (variant === "modal" && typeof document === "undefined") return null;
 
-  return createPortal(
-    <div
-      className="tdh-inline-modal-backdrop cso-settings-backdrop"
-      role="presentation"
-    >
+  const panel = (
       <div
-        className="tdh-inline-modal tdh-inline-modal--wide cso-settings-modal"
-        role="dialog"
-        aria-modal="true"
+        className={
+          variant === "page"
+            ? "cso-settings-modal cso-settings-modal--page"
+            : "tdh-inline-modal tdh-inline-modal--wide cso-settings-modal"
+        }
+        role={variant === "page" ? undefined : "dialog"}
+        aria-modal={variant === "page" ? undefined : true}
         aria-labelledby={titleId}
-        onClick={(e) => e.stopPropagation()}
+        onClick={variant === "page" ? undefined : (e) => e.stopPropagation()}
       >
         <header className="cso-settings-head">
           <div className="cso-settings-head-copy">
             <Settings2 size={18} strokeWidth={2} aria-hidden />
             <div className="cso-settings-head-text">
               <h2 id={titleId} className="tdh-inline-modal-title cso-settings-title">
-                Quản lý cơ sở
+                {variant === "page" ? "Thông tin cơ sở" : "Quản lý cơ sở"}
               </h2>
               {draft?.viewer ? (
                 <p className="cso-settings-role-banner">
@@ -405,14 +430,16 @@ export function CoSoPageSettingsModal({
               ) : null}
             </div>
           </div>
-          <button
-            type="button"
-            className="cso-settings-close"
-            aria-label="Đóng"
-            onClick={onClose}
-          >
-            <X size={18} strokeWidth={2} aria-hidden />
-          </button>
+          {variant === "modal" ? (
+            <button
+              type="button"
+              className="cso-settings-close"
+              aria-label="Đóng"
+              onClick={onClose}
+            >
+              <X size={18} strokeWidth={2} aria-hidden />
+            </button>
+          ) : null}
         </header>
 
         <nav className="cso-settings-nav" aria-label="Mục cài đặt">
@@ -439,150 +466,131 @@ export function CoSoPageSettingsModal({
         {!loading && draft ? (
           <form className="cso-settings-body" onSubmit={onSaveSection}>
             {section === "identity" ? (
-              <section className="cso-settings-section">
-                <p className="cso-settings-hint">
-                  Tên thương hiệu và mô tả ngắn hiển thị trên sidebar trang cơ
-                  sở.
-                </p>
-                <label className="tdh-inline-field">
-                  <span>Tên hiển thị</span>
-                  <input
-                    type="text"
-                    value={draft.ten}
-                    maxLength={120}
-                    required
-                    onChange={(e) => patchDraft({ ten: e.target.value })}
-                  />
-                </label>
-                <label className="tdh-inline-field">
-                  <span>Đường dẫn</span>
-                  <input
-                    type="text"
-                    value={draft.slug}
-                    required
-                    disabled={!draft.viewer.canChangeSlug}
-                    onChange={(e) => patchDraft({ slug: e.target.value })}
-                  />
-                  <span className="cso-settings-field-note">
-                    cins.vn/co-so/{draft.slug}
-                    {!draft.viewer.canChangeSlug
-                      ? " — chỉ quản trị viên mới đổi slug"
-                      : null}
-                  </span>
-                </label>
-                <label className="tdh-inline-field">
-                  <span>Loại cơ sở</span>
-                  <select
-                    value={draft.loaiCoSo}
-                    onChange={(e) => patchDraft({ loaiCoSo: e.target.value })}
-                  >
-                    {LOAI_CO_SO_OPTIONS.map((o) => (
-                      <option key={o.value} value={o.value}>
-                        {o.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="tdh-inline-field">
-                  <span>Mô tả ngắn</span>
-                  <textarea
-                    rows={2}
-                    value={draft.moTa ?? ""}
-                    placeholder="1–2 câu tóm tắt hiển thị dưới tên cơ sở trên sidebar — VD: Trung tâm hội họa · lớp nhỏ, mentor chuyên môn"
-                    onChange={(e) =>
-                      patchDraft({ moTa: e.target.value || null })
-                    }
-                  />
-                </label>
-                <label className="tdh-inline-field">
-                  <span>Năm thành lập</span>
-                  <input
-                    type="number"
-                    min={1800}
-                    max={2100}
-                    value={draft.namThanhLap ?? ""}
-                    onChange={(e) =>
-                      patchDraft({
-                        namThanhLap: e.target.value
-                          ? Number(e.target.value)
-                          : null,
-                      })
-                    }
-                  />
-                </label>
-              </section>
-            ) : null}
+              <div className="cso-settings-section cso-settings-section--stack">
+                <div className="cso-settings-stack-cols">
+                  <section className="cso-settings-block">
+                    <h3 className="cso-settings-subhead">Danh tính</h3>
+                    <p className="cso-settings-hint">
+                      Tên thương hiệu và mô tả ngắn hiển thị trên sidebar trang
+                      cơ sở.
+                    </p>
+                    <div className="cso-settings-row">
+                      <label className="tdh-inline-field">
+                        <span>Tên hiển thị</span>
+                        <input
+                          type="text"
+                          value={draft.ten}
+                          maxLength={120}
+                          required
+                          onChange={(e) => patchDraft({ ten: e.target.value })}
+                        />
+                      </label>
+                      <label className="tdh-inline-field">
+                        <span>Đường dẫn</span>
+                        <input
+                          type="text"
+                          value={draft.slug}
+                          required
+                          disabled={!draft.viewer.canChangeSlug}
+                          onChange={(e) => patchDraft({ slug: e.target.value })}
+                        />
+                        <span className="cso-settings-field-note">
+                          cins.vn/co-so/{draft.slug}
+                          {!draft.viewer.canChangeSlug
+                            ? " — chỉ quản trị viên mới đổi slug"
+                            : null}
+                        </span>
+                      </label>
+                    </div>
+                    <div className="cso-settings-row">
+                      <label className="tdh-inline-field">
+                        <span>Loại cơ sở</span>
+                        <select
+                          value={draft.loaiCoSo}
+                          onChange={(e) =>
+                            patchDraft({ loaiCoSo: e.target.value })
+                          }
+                        >
+                          {LOAI_CO_SO_OPTIONS.map((o) => (
+                            <option key={o.value} value={o.value}>
+                              {o.label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="tdh-inline-field">
+                        <span>Năm thành lập</span>
+                        <input
+                          type="number"
+                          min={1800}
+                          max={2100}
+                          value={draft.namThanhLap ?? ""}
+                          onChange={(e) =>
+                            patchDraft({
+                              namThanhLap: e.target.value
+                                ? Number(e.target.value)
+                                : null,
+                            })
+                          }
+                        />
+                      </label>
+                    </div>
+                    <label className="tdh-inline-field">
+                      <span>Mô tả ngắn</span>
+                      <textarea
+                        rows={3}
+                        value={draft.moTa ?? ""}
+                        placeholder="1–2 câu tóm tắt hiển thị dưới tên cơ sở trên sidebar — VD: Trung tâm hội họa · lớp nhỏ, mentor chuyên môn"
+                        onChange={(e) =>
+                          patchDraft({ moTa: e.target.value || null })
+                        }
+                      />
+                    </label>
+                  </section>
 
-            {section === "about" ? (
-              <section className="cso-settings-section cso-settings-section--about">
-                <p className="cso-settings-hint">
-                  Nội dung giới thiệu chi tiết về cơ sở — hiển thị trong popup
-                  khi người xem bấm xem thêm.
-                </p>
-                <div className="tdh-inline-field tdh-inline-field--richtext">
-                  <span>Giới thiệu cơ sở</span>
-                  <GioiThieuContentEditor
-                    value={draft.gioiThieuTruong?.trim() || "<p></p>"}
-                    onChange={(html) => patchDraft({ gioiThieuTruong: html })}
-                  />
-                </div>
-              </section>
-            ) : null}
+                  <section className="cso-settings-block cso-settings-block--about">
+                    <h3 className="cso-settings-subhead">Giới thiệu</h3>
+                    <p className="cso-settings-hint">
+                      Nội dung giới thiệu chi tiết về cơ sở — hiển thị trong
+                      popup khi người xem bấm xem thêm.
+                    </p>
+                    <div className="tdh-inline-field tdh-inline-field--richtext">
+                      <span>Giới thiệu cơ sở</span>
+                      <GioiThieuContentEditor
+                        value={draft.gioiThieuTruong?.trim() || "<p></p>"}
+                        onChange={(html) =>
+                          patchDraft({ gioiThieuTruong: html })
+                        }
+                      />
+                    </div>
+                  </section>
 
-            {section === "contact" ? (
-              <section className="cso-settings-section">
-                <p className="cso-settings-hint">
-                  Quản lý chi nhánh và thông tin liên hệ hiển thị trên sidebar
-                  trang cơ sở.
-                </p>
-                <div className="tdh-inline-field">
-                  <span>Chi nhánh / cơ sở</span>
-                  <TruongChiNhanhEditor
-                    branches={draft.chiNhanh}
-                    onChange={(chiNhanh) => patchDraft({ chiNhanh })}
-                    uploadImage={uploadBranchCover}
-                    persistHint="Lưu cài đặt"
-                  />
+                  {chiNhanhExternal ? (
+                    <section className="cso-settings-block cso-settings-block--chi-nhanh">
+                      <ChiNhanhQuanLyClient orgId={orgId} />
+                    </section>
+                  ) : null}
                 </div>
-              </section>
-            ) : null}
 
-            {section === "verify" ? (
-              <section className="cso-settings-section">
-                <p className="cso-settings-hint">
-                  Thông tin pháp lý và trạng thái xác thực CINs. Huy hiệu verify
-                  do CINs duyệt sau khi kiểm tra giấy phép.
-                </p>
-                <label className="tdh-inline-field">
-                  <span>Tên pháp lý</span>
-                  <input
-                    type="text"
-                    value={draft.tenChinhThuc}
-                    required
-                    onChange={(e) =>
-                      patchDraft({ tenChinhThuc: e.target.value })
-                    }
-                  />
-                </label>
-                <label className="tdh-inline-field">
-                  <span>Giấy phép đào tạo</span>
-                  <input
-                    type="text"
-                    value={draft.giayPhepDaoTao ?? ""}
-                    placeholder="Số giấy phép / quyết định"
-                    onChange={(e) =>
-                      patchDraft({ giayPhepDaoTao: e.target.value || null })
-                    }
-                  />
-                </label>
-                <div className="cso-settings-readonly">
-                  <span>Mã cơ sở: {draft.maCoSo}</span>
-                  <span>
-                    Xác thực CINs:{" "}
-                    {draft.daVerify ? "Đã xác thực" : "Chưa xác thực"}
-                  </span>
-                </div>
-              </section>
+                {!chiNhanhExternal ? (
+                  <section className="cso-settings-block">
+                    <h3 className="cso-settings-subhead">Liên hệ</h3>
+                    <p className="cso-settings-hint">
+                      Quản lý chi nhánh và thông tin liên hệ hiển thị trên
+                      sidebar trang cơ sở.
+                    </p>
+                    <div className="tdh-inline-field">
+                      <span>Chi nhánh / cơ sở</span>
+                      <TruongChiNhanhEditor
+                        branches={draft.chiNhanh}
+                        onChange={(chiNhanh) => patchDraft({ chiNhanh })}
+                        uploadImage={uploadBranchCover}
+                        persistHint="Lưu cài đặt"
+                      />
+                    </div>
+                  </section>
+                ) : null}
+              </div>
             ) : null}
 
             {section === "access" && draft ? (
@@ -689,14 +697,16 @@ export function CoSoPageSettingsModal({
 
             {showSaveFooter ? (
               <footer className="cso-settings-foot">
-                <button
-                  type="button"
-                  className="tdh-inline-btn ghost"
-                  onClick={onClose}
-                  disabled={pending}
-                >
-                  Huỷ
-                </button>
+                {variant === "modal" ? (
+                  <button
+                    type="button"
+                    className="tdh-inline-btn ghost"
+                    onClick={onClose}
+                    disabled={pending}
+                  >
+                    Huỷ
+                  </button>
+                ) : null}
                 <button
                   type="submit"
                   className="tdh-inline-btn primary"
@@ -712,7 +722,7 @@ export function CoSoPageSettingsModal({
                   )}
                 </button>
               </footer>
-            ) : (
+            ) : variant === "modal" ? (
               <footer className="cso-settings-foot">
                 <button
                   type="button"
@@ -722,7 +732,7 @@ export function CoSoPageSettingsModal({
                   Đóng
                 </button>
               </footer>
-            )}
+            ) : null}
           </form>
         ) : null}
 
@@ -732,6 +742,16 @@ export function CoSoPageSettingsModal({
           </p>
         ) : null}
       </div>
+  );
+
+  if (variant === "page") return panel;
+
+  return createPortal(
+    <div
+      className="tdh-inline-modal-backdrop cso-settings-backdrop"
+      role="presentation"
+    >
+      {panel}
     </div>,
     document.body,
   );

@@ -29,6 +29,7 @@ import type { Block } from "@/lib/editor/types";
 import {
   WORLD_JOURNEY_FEED_RANK_REVALIDATE_SEC,
   WORLD_JOURNEY_GALLERY_PAGE_SIZE,
+  WORLD_JOURNEY_PUBLIC_GLOBAL_FEED,
 } from "@/lib/cins/worldJourneyFeedConstants";
 import {
   resolveWorldJourneyFeedFilterChip,
@@ -238,7 +239,11 @@ function featureRowToItem(
     videoPreviewSrc: grid.videoPreviewSrc,
     authorName: author?.ten_hien_thi?.trim() || author?.slug || null,
     authorAvatarUrl: getAvatarUrl(author?.avatar_id ?? null),
-    orgKicker: opts?.communityName ? "Cộng đồng" : "Nổi bật",
+    orgKicker: opts?.communityName
+      ? "Cộng đồng"
+      : cm.che_do_hien_thi === "feature"
+        ? "Nổi bật"
+        : null,
     feedSource: opts?.feedSource ?? "user",
     feedFollowing: opts?.feedFollowing ?? false,
     sortAt,
@@ -379,15 +384,26 @@ function orgBaiDangRowToItem(
   };
 }
 
-async function fetchFeatureRows(limit: number): Promise<FeatureRow[]> {
+/**
+ * Milestone user có media theo `che_do_hien_thi`.
+ * Gọi riêng `feature` / `public` — tránh một `.limit` chung nuốt hết slot bằng bài Nổi bật.
+ */
+async function fetchUserVisualRows(
+  limit: number,
+  modes: ReadonlyArray<"feature" | "public">,
+): Promise<FeatureRow[]> {
+  if (limit <= 0 || modes.length === 0) return [];
   const admin = createServiceRoleClient();
   const { data } = await admin
     .from("content_tac_pham_thuoc_moc")
     .select(
       "id_cot_moc, content_cot_moc:content_cot_moc!inner(id, thoi_diem, loai_moc, che_do_hien_thi, mo_ta, tao_luc, id_nguoi_dung, id_to_chuc), content_tac_pham:content_tac_pham!inner(id, slug, tieu_de, mo_ta, cover_id, id_nguoi_dung, noi_dung_blocks)",
     )
-    .eq("content_cot_moc.che_do_hien_thi", "feature")
-    .order("thu_tu", { ascending: true })
+    .in("content_cot_moc.che_do_hien_thi", [...modes])
+    .order("tao_luc", {
+      referencedTable: "content_cot_moc",
+      ascending: false,
+    })
     .limit(limit)
     .returns<FeatureRow[]>();
   return data ?? [];
@@ -585,8 +601,8 @@ async function attachSourceAuthorsToWjItems(
 }
 
 /**
- * Gallery trang chủ: dự án Nổi bật (user) + bài cộng đồng có media
- * + showcase studio — sắp theo thời gian đăng.
+ * Gallery trang chủ: Nổi bật + Công khai (user) + bài cộng đồng có media
+ * + showcase studio / bài org — sắp theo thời gian đăng (không ưu tiên featured).
  */
 async function buildWorldJourneyGalleryPool(
   viewerId: string,
@@ -607,29 +623,20 @@ async function buildWorldJourneyGalleryPool(
   ]);
   const congDongOrgIds = [...new Set([...memberCongDongIds, ...followingOrgIds])];
 
-  const [featureRows, congDongRows, showcaseRows, orgBaiDangRows] =
+  const [featureRows, publicRows, congDongRows, showcaseRows, orgBaiDangRows] =
     await Promise.all([
-      fetchFeatureRows(poolLimit),
+      fetchUserVisualRows(poolLimit, ["feature"]),
+      WORLD_JOURNEY_PUBLIC_GLOBAL_FEED
+        ? fetchUserVisualRows(poolLimit, ["public"])
+        : Promise.resolve([] as FeatureRow[]),
       fetchCongDongVisualRows(congDongOrgIds, Math.min(60, poolLimit)),
       fetchStudioShowcaseRows(Math.min(60, poolLimit)),
       fetchOrgBaiDangVisualRows(Math.min(60, poolLimit)),
     ]);
 
-  /* Ưu tiên feature từ mạng quan hệ; vẫn giữ feature toàn cục (discovery). */
-  const featurePrefer = featureRows.filter((r) => {
-    const owner = r.content_cot_moc?.id_nguoi_dung;
-    return owner ? knownAuthors.has(owner) : false;
-  });
-  const featureRest = featureRows.filter((r) => {
-    const owner = r.content_cot_moc?.id_nguoi_dung;
-    return owner ? !knownAuthors.has(owner) : false;
-  });
-  const orderedFeature = [...featurePrefer, ...featureRest];
+  const userRows = [...featureRows, ...publicRows];
 
-  const authorIds = [
-    ...orderedFeature,
-    ...congDongRows,
-  ]
+  const authorIds = [...userRows, ...congDongRows]
     .map((r) => r.content_tac_pham?.id_nguoi_dung)
     .filter((id): id is string => Boolean(id));
 
@@ -645,7 +652,7 @@ async function buildWorldJourneyGalleryPool(
   const items: RankedGalleryItem[] = [];
   const seen = new Set<string>();
 
-  for (const row of orderedFeature) {
+  for (const row of userRows) {
     const owner = row.content_cot_moc?.id_nguoi_dung;
     const item = featureRowToItem(row, authors, {
       feedSource: "user",
@@ -659,7 +666,6 @@ async function buildWorldJourneyGalleryPool(
   for (const row of congDongRows) {
     const orgId = row.content_cot_moc?.id_to_chuc;
     const meta = orgId ? congDongMeta.get(orgId) : null;
-    /* Pool cộng đồng chỉ lấy org mình là thành viên / đang theo dõi → luôn "theo dõi". */
     const item = featureRowToItem(row, authors, {
       communityHref: meta?.href,
       communityName: meta?.name,
@@ -672,13 +678,7 @@ async function buildWorldJourneyGalleryPool(
   }
 
   const followedOrgSet = new Set(followingOrgIds);
-  const showcasePrefer = showcaseRows.filter((r) =>
-    followedOrgSet.has(r.id_to_chuc),
-  );
-  const showcaseRest = showcaseRows.filter(
-    (r) => !followedOrgSet.has(r.id_to_chuc),
-  );
-  for (const row of [...showcasePrefer, ...showcaseRest]) {
+  for (const row of showcaseRows) {
     const item = showcaseRowToItem(row, {
       feedFollowing: followedOrgSet.has(row.id_to_chuc),
     });
@@ -687,14 +687,7 @@ async function buildWorldJourneyGalleryPool(
     items.push(item);
   }
 
-  /* Bài trường/cơ sở: ưu tiên org đang theo dõi, vẫn giữ khám phá (như dòng thời gian). */
-  const orgPostPrefer = orgBaiDangRows.filter((r) =>
-    followedOrgSet.has(r.id_to_chuc),
-  );
-  const orgPostRest = orgBaiDangRows.filter(
-    (r) => !followedOrgSet.has(r.id_to_chuc),
-  );
-  for (const row of [...orgPostPrefer, ...orgPostRest]) {
+  for (const row of orgBaiDangRows) {
     const item = orgBaiDangRowToItem(row, {
       feedFollowing: followedOrgSet.has(row.id_to_chuc),
     });
@@ -703,12 +696,16 @@ async function buildWorldJourneyGalleryPool(
     items.push(item);
   }
 
+  /* Trần gấp đôi khi đã fetch riêng public — tránh bài Công khai bị cắt hết
+     vì Nổi bật / showcase mới hơn chiếm hết slot 120. */
+  const cap =
+    publicRows.length > 0 ? Math.min(items.length, poolLimit * 2) : poolLimit;
+
   const ranked = items
-    .sort((a, b) => {
-      if (a.featured !== b.featured) return a.featured ? -1 : 1;
-      return a.sortAt > b.sortAt ? -1 : a.sortAt < b.sortAt ? 1 : 0;
-    })
-    .slice(0, poolLimit);
+    .sort((a, b) =>
+      a.sortAt > b.sortAt ? -1 : a.sortAt < b.sortAt ? 1 : 0,
+    )
+    .slice(0, cap);
 
   return attachSourceAuthorsToWjItems(ranked, authors);
 }
@@ -778,7 +775,7 @@ const buildWideCached = cache((viewerId: string) =>
 function buildForApi(viewerId: string) {
   return unstable_cache(
     () => buildWorldJourneyGalleryPool(viewerId, POOL_LIMIT),
-    ["world-journey-gallery", viewerId],
+    ["world-journey-gallery-v2", viewerId],
     { revalidate: WORLD_JOURNEY_FEED_RANK_REVALIDATE_SEC },
   )();
 }
@@ -786,7 +783,7 @@ function buildForApi(viewerId: string) {
 function buildWideForApi(viewerId: string) {
   return unstable_cache(
     () => buildWorldJourneyGalleryPool(viewerId, FILTER_POOL_LIMIT),
-    ["world-journey-gallery-wide", viewerId],
+    ["world-journey-gallery-wide-v2", viewerId],
     { revalidate: WORLD_JOURNEY_FEED_RANK_REVALIDATE_SEC },
   )();
 }

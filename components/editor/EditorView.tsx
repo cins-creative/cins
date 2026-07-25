@@ -1509,6 +1509,8 @@ export function EditorView({
 
       if (
         t.closest(".ed-editor-tag-menu") ||
+        t.closest(".tag-input-menu") ||
+        t.closest("[data-editor-tag-menu]") ||
         t.closest(".picker-portal-root")
       ) {
         return;

@@ -330,9 +330,10 @@ export async function applyAdminDayBaiDiemFeed(input: {
 }
 
 /**
- * Cộng/trừ điểm ưu tiên admin (±STEP / +BUMP trong ALLOWED_DELTAS).
+ * Cộng/trừ điểm ưu tiên admin (±STEP / ±BUMP trong ALLOWED_DELTAS, dải MIN..MAX).
+ * Dương = đẩy lên; âm = dìm nội dung không phù hợp xuống cuối feed.
  * Không đụng L29 boost; vẫn giữ khi ON/OFF đẩy (cột riêng diem_uu_tien).
- * Đồng thời reset bat_dau_luc = now để đẩy bài lên đầu cửa sổ decay.
+ * Đồng thời reset bat_dau_luc = now để đưa bài về đầu cửa sổ decay.
  */
 export async function bumpAdminDiemUuTien(input: {
   loai: FeedScoringLoai;
@@ -379,9 +380,7 @@ export async function bumpAdminDiemUuTien(input: {
     .maybeSingle<{ diem_uu_tien: number | null }>();
 
   if (!existing) {
-    if (delta < 0) {
-      return { ok: false, message: "Chưa có điểm ưu tiên để trừ." };
-    }
+    /* Chưa có dòng điểm — vẫn tạo để cộng (đẩy) hoặc trừ (dìm) được. */
     const snap = await loadContentSnapshotForDiem(input.loai, id);
     const cfg = await loadFeedScoreConfig();
     const inserted = await upsertContentDiemFeed({
@@ -401,20 +400,20 @@ export async function bumpAdminDiemUuTien(input: {
     }
   }
 
-  const current = Math.max(
-    ADMIN_DIEM_UU_TIEN.MIN,
-    Math.round(existing?.diem_uu_tien ?? 0),
+  const current = Math.min(
+    ADMIN_DIEM_UU_TIEN.MAX,
+    Math.max(ADMIN_DIEM_UU_TIEN.MIN, Math.round(existing?.diem_uu_tien ?? 0)),
   );
   if (delta > 0 && current >= ADMIN_DIEM_UU_TIEN.MAX) {
     return {
       ok: false,
-      message: `Đã đạt trần ưu tiên (${ADMIN_DIEM_UU_TIEN.MAX}).`,
+      message: `Đã đạt trần ưu tiên (+${ADMIN_DIEM_UU_TIEN.MAX}).`,
     };
   }
   if (delta < 0 && current <= ADMIN_DIEM_UU_TIEN.MIN) {
     return {
       ok: false,
-      message: "Điểm ưu tiên đã về 0.",
+      message: `Đã đạt sàn ưu tiên (${ADMIN_DIEM_UU_TIEN.MIN}).`,
     };
   }
 

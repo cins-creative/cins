@@ -48,7 +48,8 @@ export type ChatContextLoai =
   | "tuyen_dung"
   | "su_kien"
   | "tuyen_sinh"
-  | "don_hang";
+  | "don_hang"
+  | "don_hoc_phi";
 
 /** Snapshot card ngữ cảnh (lưu trong `chat_tin_nhan.ngu_canh`). */
 export type ChatContextCard = {
@@ -242,6 +243,8 @@ export type ChatThread = {
   avatarUrl?: string | null;
   /** Org đại diện — dùng dedupe thread tab Tổ chức. */
   orgId?: string;
+  /** Phòng lớp (`loai_phong=lop_hoc`) — không dedupe với 1_org. */
+  lopHocId?: string;
   preview: string;
   lastAt: string;
   unread: number;

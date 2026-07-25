@@ -11,9 +11,11 @@ import type { ChatMessage } from "@/lib/chat/types";
 
 type ChatMessageAlbumProps = {
   messages: ChatMessage[];
+  /** Mở lightbox toàn hội thoại (filmstrip xem nhanh ảnh xung quanh) tại tin này. */
+  onOpenImage?: (messageId: string) => void;
 };
 
-export function ChatMessageAlbum({ messages }: ChatMessageAlbumProps) {
+export function ChatMessageAlbum({ messages, onOpenImage }: ChatMessageAlbumProps) {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const columnClass = albumGridColumnClass(messages.length);
 
@@ -39,7 +41,9 @@ export function ChatMessageAlbum({ messages }: ChatMessageAlbumProps) {
             type="button"
             className="cins-chat-album-cell cins-chat-msg-image-link"
             aria-label={`Xem ảnh ${index + 1}`}
-            onClick={() => setLightboxIndex(index)}
+            onClick={() =>
+              onOpenImage ? onOpenImage(entry.id) : setLightboxIndex(index)
+            }
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={entry.src} alt="Ảnh đính kèm" />

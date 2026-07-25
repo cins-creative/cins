@@ -124,6 +124,8 @@ export type TruongBaiDang = {
   /** Hydrate per viewer — không cache trong `getTruongPagePayload`. */
   viewerBookmarked?: boolean;
   bookmarkCount?: number;
+  /** Số bình luận gốc (chưa xoá) — hydrate ngoài cache payload. */
+  commentCount?: number;
   /** Ghim lên đầu timeline org (`org_bai_dang.ghim`). */
   ghim?: boolean | null;
   /** Cộng sự đã chấp nhận + đang chờ — hydrate server khi fetch bài đăng. */

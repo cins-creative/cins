@@ -1,5 +1,6 @@
 import "server-only";
 
+import { ensureLopChatPhong } from "@/lib/co-so/lop-chat-phong";
 import { slugifyOrgName } from "@/lib/cong-dong/org-slug";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
@@ -161,26 +162,30 @@ async function writeLopRow(
   khoaId: string,
   lopId: string | null,
   row: Record<string, unknown>,
-): Promise<{ ok: true } | { ok: false; error: string }> {
+): Promise<
+  | { ok: true; lopId: string }
+  | { ok: false; error: string }
+> {
   const admin = createServiceRoleClient();
 
   if (mode === "insert") {
     const insertRow: Record<string, unknown> = { id_khoa_hoc: khoaId, ...row };
-    const { error } = await admin.from("org_lop_hoc").insert(insertRow);
+    const tryInsert = async (payload: Record<string, unknown>) =>
+      admin.from("org_lop_hoc").insert(payload).select("id").single<{ id: string }>();
+
+    let { data, error } = await tryInsert(insertRow);
     if (error?.message?.includes("lich_hoc")) {
       delete insertRow.lich_hoc;
-      const { error: err2 } = await admin.from("org_lop_hoc").insert(insertRow);
-      if (err2) return { ok: false, error: err2.message };
-      return { ok: true };
+      ({ data, error } = await tryInsert(insertRow));
     }
     if (error?.message?.includes("giao_vien_text")) {
       delete insertRow.giao_vien_text;
-      const { error: err2 } = await admin.from("org_lop_hoc").insert(insertRow);
-      if (err2) return { ok: false, error: err2.message };
-      return { ok: true };
+      ({ data, error } = await tryInsert(insertRow));
     }
-    if (error) return { ok: false, error: error.message };
-    return { ok: true };
+    if (error || !data?.id) {
+      return { ok: false, error: error?.message ?? "Không tạo được lớp." };
+    }
+    return { ok: true, lopId: data.id };
   }
 
   const { error } = await admin
@@ -197,7 +202,7 @@ async function writeLopRow(
       .eq("id", lopId!)
       .eq("id_khoa_hoc", khoaId);
     if (err2) return { ok: false, error: err2.message };
-    return { ok: true };
+    return { ok: true, lopId: lopId! };
   }
   if (error?.message?.includes("giao_vien_text")) {
     delete row.giao_vien_text;
@@ -207,10 +212,10 @@ async function writeLopRow(
       .eq("id", lopId!)
       .eq("id_khoa_hoc", khoaId);
     if (err2) return { ok: false, error: err2.message };
-    return { ok: true };
+    return { ok: true, lopId: lopId! };
   }
   if (error) return { ok: false, error: error.message };
-  return { ok: true };
+  return { ok: true, lopId: lopId! };
 }
 
 async function assertGiaoVienUser(
@@ -266,7 +271,18 @@ export async function taoLopHoc(
     ),
   });
 
-  return writeLopRow("insert", khoaId, null, row);
+  const written = await writeLopRow("insert", khoaId, null, row);
+  if (!written.ok) return written;
+
+  // Phòng chat lớp cố định (L34 Plan 1) — không chặn tạo lớp nếu chat lỗi tạm.
+  await ensureLopChatPhong({
+    orgId,
+    lopId: written.lopId,
+    tenPhong: `${khoa.tenKhoaHoc} · ${String(row.ma_lop ?? "")}`.trim(),
+    giaoVienUserId: data.giaoVienPhuTrach ?? null,
+  });
+
+  return { ok: true };
 }
 
 export async function capNhatLopHoc(
@@ -320,5 +336,15 @@ export async function capNhatLopHoc(
     existing.ma_lop as string,
   );
 
-  return writeLopRow("update", khoaId, lopId, row);
+  const written = await writeLopRow("update", khoaId, lopId, row);
+  if (!written.ok) return written;
+
+  await ensureLopChatPhong({
+    orgId,
+    lopId,
+    tenPhong: `${khoa.tenKhoaHoc} · ${(existing.ma_lop as string) ?? ""}`.trim(),
+    giaoVienUserId: data.giaoVienPhuTrach ?? null,
+  });
+
+  return { ok: true };
 }

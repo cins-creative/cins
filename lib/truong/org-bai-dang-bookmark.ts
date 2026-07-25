@@ -11,6 +11,7 @@ import { mapOrgLoaiToBookmarkFrameKind } from "@/lib/journey/bookmark-source-the
 import { compareTimelineOrder } from "@/lib/journey/timeline-sort";
 import { parseBaiDangBlocks } from "@/lib/truong/bai-dang-blocks";
 import { markEngagementCanTinhLaiForTarget } from "@/lib/cins/feed-scoring-write";
+import { fetchOrgBaiDangCommentCounts } from "@/lib/truong/org-bai-dang-comments";
 import { SOCIAL_LOAI_ORG_BAI_DANG } from "@/lib/truong/social-constants";
 import { resolveTruongImageSrcSync } from "@/lib/truong/media-url";
 import { orgPublicHref } from "@/lib/search/helpers";
@@ -19,6 +20,7 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 export type OrgBaiDangBookmarkSocial = {
   bookmarked: boolean;
   bookmarkCount: number;
+  commentCount: number;
 };
 
 export function orgLoaiToMilestoneType(
@@ -115,7 +117,7 @@ export async function loadOrgBaiDangBookmarkSocial(
 ): Promise<Record<string, OrgBaiDangBookmarkSocial>> {
   const out: Record<string, OrgBaiDangBookmarkSocial> = {};
   for (const id of postIds) {
-    out[id] = { bookmarked: false, bookmarkCount: 0 };
+    out[id] = { bookmarked: false, bookmarkCount: 0, commentCount: 0 };
   }
   if (postIds.length === 0) return out;
 
@@ -131,6 +133,11 @@ export async function loadOrgBaiDangBookmarkSocial(
     const id = row.id_doi_tuong;
     if (!out[id]) continue;
     out[id].bookmarkCount += 1;
+  }
+
+  const commentCounts = await fetchOrgBaiDangCommentCounts(postIds);
+  for (const [id, count] of commentCounts) {
+    if (out[id]) out[id].commentCount = count;
   }
 
   if (viewerId) {

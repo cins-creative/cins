@@ -25,6 +25,7 @@
     "migrate:feed-score-config": "node scripts/run-content-feed-score-cau-hinh-migration.mjs",
     "migrate:feed-score-phien-ban": "node scripts/run-content-feed-score-phien-ban-migration.mjs",
     "migrate:diem-uu-tien": "node scripts/run-content-diem-feed-uu-tien-migration.mjs",
+    "migrate:csdt": "node scripts/run-csdt-van-hanh-hoc-migration.mjs",
     "migrate:shop": "node scripts/run-shop-ban-hang-migration.mjs",
     "migrate:shop-chap-nhan": "node scripts/run-shop-don-chap-nhan-migration.mjs",
     "migrate:shop-nhom": "node scripts/run-shop-nhom-migration.mjs",

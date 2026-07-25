@@ -38,6 +38,7 @@ export async function TruongDetailLoader({ slug }: Props) {
         ...post,
         viewerBookmarked: social.bookmarked,
         bookmarkCount: social.bookmarkCount,
+        commentCount: social.commentCount,
       };
     }),
   };

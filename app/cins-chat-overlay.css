@@ -1020,6 +1020,60 @@ html.is-cins-share-dropping {
   font-size: 13px;
 }
 
+.cins-chat-lop-freeze-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-shrink: 0;
+  padding: 8px 14px;
+  border-bottom: 1px solid #e5e5e5;
+  background: #fafafa;
+  color: #404040;
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+
+.cins-chat-lop-freeze-banner.is-frozen {
+  background: #f5f5f5;
+  color: #525252;
+}
+
+.cins-chat-lop-freeze-cta {
+  flex-shrink: 0;
+  border: 1px solid #d4d4d4;
+  border-radius: 8px;
+  background: #fff;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #171717;
+  cursor: pointer;
+}
+
+.cins-chat-lop-freeze-cta:hover {
+  background: #f5f5f5;
+}
+
+.cins-chat-messages.is-lop-frozen {
+  filter: grayscale(0.35);
+  opacity: 0.92;
+}
+
+.cins-chat-compose.is-lop-frozen {
+  background: #f5f5f5;
+}
+
+.cins-chat-lop-freeze-compose {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 4px 10px;
+  font-size: 12.5px;
+  color: #525252;
+}
+
 .cins-chat-canvas-notice {
   position: sticky;
   top: 0;
@@ -5002,6 +5056,10 @@ button.cins-canvas-table-cell-text {
   box-sizing: border-box;
 }
 
+.cins-chat-lightbox.has-filmstrip .cins-chat-lightbox-inner {
+  padding-bottom: 116px;
+}
+
 .cins-chat-lightbox-figure {
   margin: 0;
   max-width: min(90vw, 1200px);
@@ -5011,6 +5069,10 @@ button.cins-canvas-table-cell-text {
   justify-content: center;
 }
 
+.cins-chat-lightbox.has-filmstrip .cins-chat-lightbox-figure {
+  max-height: calc(100vh - 164px);
+}
+
 .cins-chat-lightbox-figure img {
   max-width: 100%;
   max-height: calc(100vh - 96px);
@@ -5018,6 +5080,10 @@ button.cins-canvas-table-cell-text {
   height: auto;
   object-fit: contain;
   display: block;
+}
+
+.cins-chat-lightbox.has-filmstrip .cins-chat-lightbox-figure img {
+  max-height: calc(100vh - 164px);
 }
 
 .cins-chat-lightbox-close {
@@ -5079,6 +5145,94 @@ button.cins-canvas-table-cell-text {
   font-size: 14px;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.85);
+  z-index: 2;
+}
+
+.cins-chat-lightbox.has-filmstrip .cins-chat-lightbox-counter {
+  bottom: 128px;
+}
+
+.cins-chat-lightbox-filmstrip {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  padding: 14px 16px calc(14px + env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.75) 0%,
+    rgba(0, 0, 0, 0.45) 60%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  box-sizing: border-box;
+}
+
+.cins-chat-lightbox-filmstrip-track {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+  padding: 2px;
+  margin: 0 auto;
+  max-width: 100%;
+  width: fit-content;
+}
+
+.cins-chat-lightbox-filmstrip-track::-webkit-scrollbar {
+  display: none;
+}
+
+.cins-chat-lightbox-thumb {
+  flex: 0 0 auto;
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  opacity: 0.55;
+  transition: opacity 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+
+.cins-chat-lightbox-thumb:hover {
+  opacity: 0.85;
+}
+
+.cins-chat-lightbox-thumb.is-active {
+  opacity: 1;
+  border-color: #fff;
+  transform: translateY(-4px);
+}
+
+.cins-chat-lightbox-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+@media (max-width: 640px) {
+  .cins-chat-lightbox-thumb {
+    width: 44px;
+    height: 44px;
+  }
+
+  .cins-chat-lightbox.has-filmstrip .cins-chat-lightbox-inner {
+    padding-bottom: 96px;
+  }
+
+  .cins-chat-lightbox.has-filmstrip .cins-chat-lightbox-figure,
+  .cins-chat-lightbox.has-filmstrip .cins-chat-lightbox-figure img {
+    max-height: calc(100vh - 140px);
+  }
+
+  .cins-chat-lightbox.has-filmstrip .cins-chat-lightbox-counter {
+    bottom: 108px;
+  }
 }
 
 .j-chat-mini-messages .cins-chat-album-block,
@@ -7523,6 +7677,7 @@ a.cins-chat-don-card.is-paid:hover {
 }
 
 .j-chat-mini-compose-row {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 8px;

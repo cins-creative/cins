@@ -38,13 +38,15 @@ export const FEED_SCORE = {
 
 /**
  * Cộng/trừ tay admin (`diem_uu_tien`) — không bị tắt đẩy xóa.
- * UI mặc định ±STEP; `BUMP` giữ tương thích API cũ (+10).
+ * UI: nút ±STEP và ±BUMP. Cho phép điểm âm để "hạ" nội dung không phù hợp
+ * xuống dưới bài thường (bury), không chỉ về 0.
  */
 export const ADMIN_DIEM_UU_TIEN = {
   STEP: 5,
   BUMP: 10,
-  ALLOWED_DELTAS: [-5, 5, 10] as const,
-  MIN: 0,
+  ALLOWED_DELTAS: [-10, -5, 5, 10] as const,
+  /** Sàn âm — trừ để dìm nội dung xấu xuống cuối feed. */
+  MIN: -200,
   MAX: 200,
 } as const;
 
@@ -78,8 +80,12 @@ export type ContentDiemFeed = {
 
 function diemUuTienOf(row: ContentDiemFeed): number {
   const n = row.diem_uu_tien ?? 0;
-  if (!Number.isFinite(n) || n <= 0) return 0;
-  return Math.min(ADMIN_DIEM_UU_TIEN.MAX, Math.round(n));
+  if (!Number.isFinite(n)) return 0;
+  /* Cho phép âm: admin trừ điểm để dìm nội dung không phù hợp. */
+  return Math.min(
+    ADMIN_DIEM_UU_TIEN.MAX,
+    Math.max(ADMIN_DIEM_UU_TIEN.MIN, Math.round(n)),
+  );
 }
 
 function tongGocDiem(row: ContentDiemFeed): number {

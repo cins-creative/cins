@@ -18,6 +18,19 @@ export function chatImageDeliveryUrl(
   return `https://imagedelivery.net/${hash}/${id}/${variant}`;
 }
 
+const IMAGE_DELIVERY_VARIANT_RE =
+  /^(https:\/\/imagedelivery\.net\/[^/]+\/[^/]+\/)[^/]+\/?$/;
+
+/**
+ * Đổi variant của URL delivery Cloudflare Images (vd. `public` → `thumbnail`
+ * cho filmstrip lightbox). Trả về nguyên URL nếu không nhận diện được pattern.
+ */
+export function chatImageVariantUrl(url: string, variant = "thumbnail"): string {
+  const match = url.match(IMAGE_DELIVERY_VARIANT_RE);
+  if (!match) return url;
+  return `${match[1]}${variant}`;
+}
+
 /** Lấy Cloudflare image id từ URL delivery (hoặc chuỗi UUID thuần). */
 export function cloudflareImageIdFromUrlOrId(
   value: string | null | undefined,

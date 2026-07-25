@@ -316,6 +316,14 @@
   font-weight: 500;
 }
 
+.tag-input-create-error {
+  margin: 0 2px 6px;
+  font-size: 12px;
+  line-height: 1.35;
+  color: #b42318;
+  font-weight: 600;
+}
+
 .tag-input-create-loai {
   justify-content: flex-start;
   font-weight: 600;

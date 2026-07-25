@@ -91,7 +91,7 @@ Chỉ 1 CTA chính xuyên suốt trang. Secondary CTA là ghost/text link.
 
 ### Typography
 - **Font chính:** Be Vietnam Pro (Google Fonts)
-- **Font display:** Anton (chỉ dùng cho số lớn hoặc event title)
+- **Font display:** Be Vietnam Pro (weight 800 cho số lớn / event title)
 - Headline: weight 800, letter-spacing -0.5px
 - Body: weight 400–500
 - Button: weight 700
@@ -241,7 +241,7 @@ assets/
 
 fonts/
   BeVietnamPro-Regular/Medium/SemiBold/Bold/ExtraBold.ttf
-  Anton-Regular.ttf
+  Be Vietnam Pro (next/font)
 ```
 
 ---

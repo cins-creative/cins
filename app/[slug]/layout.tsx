@@ -1,5 +1,3 @@
-import { Anton } from "next/font/google";
-
 import { AuthGateRoot } from "@/components/auth/AuthGateProvider";
 import { CinsChatShellBridge } from "@/components/cins/CinsChatShellBridge";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
@@ -10,13 +8,6 @@ import "./journey/image-grid.css";
 import "@/styles/article-rich-content.css";
 import "./p/new/editor.css";
 import "./p/[postSlug]/post-page.css";
-
-const anton = Anton({
-  variable: "--font-j-anton",
-  subsets: ["latin", "vietnamese"],
-  weight: ["400"],
-  display: "swap",
-});
 
 export default async function UserProfileLayout({
   children,
@@ -29,13 +20,11 @@ export default async function UserProfileLayout({
   const initialAuthenticated = Boolean(session?.profile);
 
   return (
-    <div className={anton.variable}>
-      <AuthGateRoot initialAuthenticated={initialAuthenticated}>
-        <CinsChatShellBridge viewerProfileId={session?.profile?.id ?? null}>
-          {children}
-          {modal}
-        </CinsChatShellBridge>
-      </AuthGateRoot>
-    </div>
+    <AuthGateRoot initialAuthenticated={initialAuthenticated}>
+      <CinsChatShellBridge viewerProfileId={session?.profile?.id ?? null}>
+        {children}
+        {modal}
+      </CinsChatShellBridge>
+    </AuthGateRoot>
   );
 }

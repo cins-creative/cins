@@ -787,6 +787,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     unhideRoom,
     shareDropMode,
     completeShareDrop,
+    openChat,
   } = useCinsChat();
   const [threads, setThreads] = useState<ChatThread[]>(() =>
     launch?.thread ? [launch.thread] : [],
@@ -831,6 +832,14 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
   const [readCursorsByRoom, setReadCursorsByRoom] = useState<
     Record<string, ChatReadCursor[]>
   >({});
+  const [lopRoomAccess, setLopRoomAccess] = useState<{
+    isLopRoom: boolean;
+    frozen: boolean;
+    canSend: boolean;
+    soNgayConLai: number;
+    orgId: string | null;
+    orgTen: string | null;
+  } | null>(null);
   const [activeTab, setActiveTab] = useState<ChatThreadGroup>(
     () => launch?.tab ?? launch?.thread?.group ?? "ban_be",
   );
@@ -1934,6 +1943,39 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     loadMessages,
   ]);
 
+  useEffect(() => {
+    const roomId = active?.roomId;
+    if (!roomId || isPendingRoomId(roomId) || !active?.lopHocId) {
+      setLopRoomAccess(null);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch(`/api/chat/rooms/${roomId}/lop-access`, {
+          credentials: "include",
+          cache: "no-store",
+        });
+        if (!res.ok || cancelled) return;
+        const data = await res.json();
+        if (cancelled) return;
+        setLopRoomAccess({
+          isLopRoom: Boolean(data.isLopRoom),
+          frozen: Boolean(data.frozen),
+          canSend: data.canSend !== false,
+          soNgayConLai: Number(data.soNgayConLai) || 0,
+          orgId: typeof data.orgId === "string" ? data.orgId : null,
+          orgTen: typeof data.orgTen === "string" ? data.orgTen : null,
+        });
+      } catch {
+        if (!cancelled) setLopRoomAccess(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [active?.roomId, active?.lopHocId]);
+
   const selectThread = useCallback(
     (thread: ChatThread) => {
       const prevRoomId = activeRoomIdRef.current;
@@ -2262,10 +2304,15 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
       ),
   );
   const activePendingCard = cardAlreadyInThread ? null : rawPendingCard;
+  const lopFrozen =
+    Boolean(lopRoomAccess?.isLopRoom) &&
+    Boolean(lopRoomAccess?.frozen) &&
+    lopRoomAccess?.canSend === false;
   const canSend =
     Boolean(active) &&
     !isPendingRoom &&
     !connecting &&
+    !lopFrozen &&
     (draft.trim().length > 0 ||
       sendableImages.length > 0 ||
       activePendingCard != null);
@@ -3532,8 +3579,55 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
             </div>
           </header>
 
+          {lopRoomAccess?.isLopRoom ? (
+            <div
+              className={`cins-chat-lop-freeze-banner${lopFrozen ? " is-frozen" : ""}`}
+              role="status"
+            >
+              <span>
+                {lopFrozen
+                  ? "Kỳ học đã hết — phòng lớp đang freeze. Tin trong khoảng nghỉ sẽ không hiện lại sau khi gia hạn."
+                  : `Còn ${lopRoomAccess.soNgayConLai} ngày học trong kỳ hiện tại.`}
+              </span>
+              {lopFrozen && active.roomId ? (
+                <button
+                  type="button"
+                  className="cins-chat-lop-freeze-cta"
+                  onClick={() => {
+                    void (async () => {
+                      try {
+                        const res = await fetch(
+                          `/api/chat/rooms/${active.roomId}/gia-han`,
+                          {
+                            method: "POST",
+                            credentials: "include",
+                            headers: { "Content-Type": "application/json" },
+                            body: "{}",
+                          },
+                        );
+                        const data = await res.json();
+                        if (!res.ok) {
+                          window.alert(data.error || "Không tạo đơn gia hạn.");
+                          if (lopRoomAccess.orgId) {
+                            void openChat({ orgId: lopRoomAccess.orgId });
+                          }
+                          return;
+                        }
+                        void openChat({ orgId: data.orgId as string });
+                      } catch {
+                        window.alert("Không tạo đơn gia hạn.");
+                      }
+                    })();
+                  }}
+                >
+                  Gia hạn VietQR
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+
           <div
-            className="cins-chat-messages"
+            className={`cins-chat-messages${lopFrozen ? " is-lop-frozen" : ""}`}
             ref={messagesContainerRef}
             onScroll={handleMessagesScroll}
           >
@@ -3643,7 +3737,46 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
             <div ref={messagesEndRef} />
           </div>
 
-          <footer className="cins-chat-compose">
+          <footer className={`cins-chat-compose${lopFrozen ? " is-lop-frozen" : ""}`}>
+            {lopFrozen ? (
+              <div className="cins-chat-lop-freeze-compose" role="status">
+                <span>Phòng lớp đang freeze — không gửi tin được.</span>
+                {active.roomId ? (
+                  <button
+                    type="button"
+                    className="cins-chat-lop-freeze-cta"
+                    onClick={() => {
+                      void (async () => {
+                        try {
+                          const res = await fetch(
+                            `/api/chat/rooms/${active.roomId}/gia-han`,
+                            {
+                              method: "POST",
+                              credentials: "include",
+                              headers: { "Content-Type": "application/json" },
+                              body: "{}",
+                            },
+                          );
+                          const data = await res.json();
+                          if (!res.ok) {
+                            window.alert(data.error || "Không tạo đơn gia hạn.");
+                            if (lopRoomAccess?.orgId) {
+                              void openChat({ orgId: lopRoomAccess.orgId });
+                            }
+                            return;
+                          }
+                          void openChat({ orgId: data.orgId as string });
+                        } catch {
+                          window.alert("Không tạo đơn gia hạn.");
+                        }
+                      })();
+                    }}
+                  >
+                    Gia hạn VietQR
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
             {replyTarget ? (
               <ChatReplyComposeBar
                 target={replyTarget}
@@ -3758,7 +3891,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
               <ChatComposeToolsMenu
                 open={composeToolsOpen}
                 onOpenChange={setComposeToolsOpen}
-                disabled={connecting || isPendingRoom}
+                disabled={connecting || isPendingRoom || lopFrozen}
                 canAddMoc={Boolean(active.isGroup && active.isGroupAdmin)}
                 onAddMoc={handleComposeAddMoc}
                 onAttachImage={() => fileInputRef.current?.click()}
@@ -3770,7 +3903,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                 data-sticker-trigger
                 aria-label="Meme của tôi"
                 aria-expanded={stickerPickerOpen}
-                disabled={connecting || isPendingRoom}
+                disabled={connecting || isPendingRoom || lopFrozen}
                 onClick={() => setStickerPickerOpen((open) => !open)}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -3785,7 +3918,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                 ref={inputRef}
                 rows={1}
                 value={draft}
-                disabled={connecting || isPendingRoom}
+                disabled={connecting || isPendingRoom || lopFrozen}
                 onChange={(e) => {
                   setDraft(e.target.value);
                   requestAnimationFrame(() => syncAtMentionFromTextarea());
@@ -3793,9 +3926,11 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                 onSelect={() => syncAtMentionFromTextarea()}
                 onClick={() => syncAtMentionFromTextarea()}
                 placeholder={
-                  connecting || isPendingRoom
-                    ? "Đang kết nối hội thoại…"
-                    : "Soạn tin..."
+                  lopFrozen
+                    ? "Phòng lớp đang freeze…"
+                    : connecting || isPendingRoom
+                      ? "Đang kết nối hội thoại…"
+                      : "Soạn tin..."
                 }
                 onFocus={() => {
                   // Tránh browser đẩy cả overlay; giữ khung theo visualViewport.

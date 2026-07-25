@@ -545,11 +545,17 @@
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.18);
 }
 
-/* Portal lên body: chữ --ink-* đã tối, nền cứng #fff → chữ trắng trên trắng. */
+/* Portal lên body: ép nền surface tối (tránh fallback #fff khi token chưa kịp). */
 :root[data-theme="dark"] .tdh-inline-modal {
+  background: var(--bg-surface, #171b24);
+  color: var(--ink-display, rgba(255, 255, 255, 0.92));
   box-shadow:
     0 0 0 1px rgba(255, 255, 255, 0.08),
     0 24px 64px rgba(0, 0, 0, 0.6);
+}
+
+:root[data-theme="dark"] .tdh-inline-modal-backdrop {
+  background: rgba(0, 0, 0, 0.62);
 }
 
 :root[data-theme="dark"] .tdh-inline-modal-close {
@@ -2702,7 +2708,7 @@
   border: 1px solid var(--border2, #e4e6eb);
   border-radius: 12px;
   overflow: hidden;
-  background: #fff;
+  background: var(--bg-surface, #fff);
 }
 
 .tdh-chi-nhanh-card.is-primary {
@@ -2823,7 +2829,7 @@
   font-size: 14px;
   font-weight: 800;
   line-height: 1.35;
-  color: var(--ink);
+  color: var(--ink, var(--ink-display, #0f172a));
 }
 
 .tdh-chi-nhanh-card-index {
@@ -2833,7 +2839,7 @@
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--ink3);
+  color: var(--ink3, var(--ink-muted, rgba(0, 0, 0, 0.45)));
 }
 
 .tdh-chi-nhanh-badge {
@@ -2856,13 +2862,13 @@
   font-size: 12.5px;
   font-weight: 600;
   line-height: 1.45;
-  color: var(--ink2);
+  color: var(--ink2, var(--ink-title, rgba(0, 0, 0, 0.72)));
   overflow-wrap: anywhere;
 }
 
 .tdh-chi-nhanh-card-addr-sep {
   margin: 0 4px;
-  color: var(--ink3);
+  color: var(--ink3, var(--ink-muted, rgba(0, 0, 0, 0.45)));
 }
 
 .tdh-chi-nhanh-card-links {
@@ -2885,7 +2891,7 @@
 }
 
 .tdh-chi-nhanh-card-link.is-empty .tdh-chi-nhanh-card-link-value {
-  color: var(--ink3);
+  color: var(--ink3, var(--ink-muted, rgba(0, 0, 0, 0.45)));
 }
 
 .tdh-chi-nhanh-card-icon {
@@ -2893,11 +2899,11 @@
   width: 22px;
   height: 22px;
   border-radius: 6px;
-  background: #fff;
+  background: var(--bg-surface, #fff);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--ink3);
+  color: var(--ink3, var(--ink-muted, rgba(0, 0, 0, 0.45)));
   box-shadow: inset 0 0 0 1px var(--border2, #e4e6eb);
 }
 
@@ -2922,7 +2928,7 @@
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.02em;
-  color: var(--ink3);
+  color: var(--ink3, var(--ink-muted, rgba(0, 0, 0, 0.45)));
   white-space: nowrap;
 }
 
@@ -2937,7 +2943,7 @@
 }
 
 .tdh-chi-nhanh-card-link-value.is-muted {
-  color: var(--ink3);
+  color: var(--ink3, var(--ink-muted, rgba(0, 0, 0, 0.45)));
   font-weight: 500;
 }
 
@@ -2963,6 +2969,61 @@
   .tdh-chi-nhanh-card-links {
     grid-template-columns: 1fr;
   }
+}
+
+/* Dark: danh sách chi nhánh (modal portal body — tránh card #fff + chữ sáng). */
+:root[data-theme="dark"] .tdh-chi-nhanh-modal-title em {
+  color: var(--cins-blue, #4f9be8);
+}
+
+:root[data-theme="dark"] .tdh-chi-nhanh-card {
+  background: var(--bg-surface, #171b24);
+  border-color: var(--border, #2a3040);
+}
+
+:root[data-theme="dark"] .tdh-chi-nhanh-card.is-primary {
+  border-color: color-mix(in srgb, var(--cins-blue, #4f9be8) 40%, transparent);
+}
+
+:root[data-theme="dark"] .tdh-chi-nhanh-card-cover {
+  background: var(--neutral-100, #1c212c);
+}
+
+:root[data-theme="dark"] .tdh-chi-nhanh-card-body {
+  background: var(--neutral-100, #1c212c);
+}
+
+:root[data-theme="dark"] .tdh-chi-nhanh-card.is-primary .tdh-chi-nhanh-card-body {
+  background: color-mix(
+    in srgb,
+    var(--cins-blue, #4f9be8) 12%,
+    var(--neutral-100, #1c212c)
+  );
+}
+
+:root[data-theme="dark"] .tdh-chi-nhanh-card-links {
+  border-top-color: var(--border, #2a3040);
+}
+
+:root[data-theme="dark"] .tdh-chi-nhanh-card-icon:not(.tdh-chi-nhanh-card-icon--facebook) {
+  background: var(--neutral-0, #12151d);
+  box-shadow: inset 0 0 0 1px var(--border, #2a3040);
+  color: var(--ink-muted, rgba(255, 255, 255, 0.46));
+}
+
+:root[data-theme="dark"] .tdh-chi-nhanh-card-cover-btn {
+  background: rgba(23, 27, 36, 0.92) !important;
+  color: var(--ink-display, rgba(255, 255, 255, 0.92)) !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+}
+
+:root[data-theme="dark"] .tdh-chi-nhanh-card-cover-btn.ghost {
+  background: rgba(23, 27, 36, 0.75) !important;
+}
+
+:root[data-theme="dark"] .tdh-chi-nhanh-badge {
+  color: var(--cins-blue, #4f9be8);
+  background: color-mix(in srgb, var(--cins-blue, #4f9be8) 18%, transparent);
 }
 
 .tdh-chi-nhanh-editor {

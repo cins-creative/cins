@@ -151,7 +151,7 @@ export async function POST(request: Request) {
     );
   }
 
-  /* Cộng/trừ điểm ưu tiên (±5 / +10, trần 200). */
+  /* Cộng/trừ điểm ưu tiên (±5 / ±10, dải -200..+200). */
   if (action === "bump") {
     if (loai !== "cot_moc" && loai !== "org_bai_dang") {
       return NextResponse.json(
@@ -175,8 +175,8 @@ export async function POST(request: Request) {
     if (!bump.ok) {
       const status =
         bump.message.includes("trần") ||
+        bump.message.includes("sàn") ||
         bump.message.includes("hợp lệ") ||
-        bump.message.includes("về 0") ||
         bump.message.includes("Chưa có")
           ? 422
           : 500;

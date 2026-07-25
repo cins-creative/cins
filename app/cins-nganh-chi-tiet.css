@@ -356,7 +356,7 @@
 }
 
 .nct-page .nct-stat-value {
-  font-family: var(--font-display, Anton, sans-serif);
+  font-family: var(--font-display, var(--font-sans));
   font-size: 36px;
   color: var(--cins-blue);
   line-height: 1;
@@ -425,7 +425,7 @@
 }
 
 .nct-page .nct-sec-num {
-  font-family: var(--font-display, Anton, sans-serif);
+  font-family: var(--font-display, var(--font-sans));
   font-size: 44px;
   color: var(--cins-violet);
   line-height: 0.9;
@@ -1256,7 +1256,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--font-display, Anton, sans-serif);
+  font-family: var(--font-display, var(--font-sans));
   font-size: 14px;
   flex-shrink: 0;
 }

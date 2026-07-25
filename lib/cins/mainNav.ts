@@ -14,6 +14,7 @@ export type MainNavIcon =
   | "education"
   | "courses"
   | "community"
+  | "shop"
   | "business"
   | "jobs"
   | "events"
@@ -93,6 +94,14 @@ export const MAIN_NAV_ITEMS: MainNavItem[] = [
     icon: "community",
     isActive: (p) => p === "/cong-dong" || p.startsWith("/cong-dong/"),
     flyout: "community",
+  },
+  {
+    id: "shops",
+    href: "/cua-hang",
+    label: "Cửa hàng",
+    tip: "Cửa hàng đang mở trên CINs — goods, preorder và shop của người sáng tạo",
+    icon: "shop",
+    isActive: (p) => p === "/cua-hang" || p.startsWith("/cua-hang/"),
   },
   {
     id: "jobs",

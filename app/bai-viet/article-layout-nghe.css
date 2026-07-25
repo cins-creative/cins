@@ -502,7 +502,7 @@
 }
 
 .arv2-nghe .nghe-article-toc-index {
-  font-family: var(--font-display, var(--font-j-anton, "Anton"), var(--font-sans));
+  font-family: var(--font-display, var(--font-sans));
   font-size: 13px;
   font-weight: 400;
   line-height: 1;

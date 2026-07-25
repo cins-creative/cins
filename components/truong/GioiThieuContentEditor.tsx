@@ -9,13 +9,14 @@ type Props = {
   onChange: (html: string) => void;
 };
 
-/** Soạn giới thiệu trường / cơ sở — cùng Tiptap + tab HTML như admin bài viết. */
+/** Soạn giới thiệu trường / cơ sở — Tiptap soạn trực quan (không tab HTML). */
 export function GioiThieuContentEditor({ value, onChange }: Props) {
   return (
     <ArticleDraftContentEditor
       value={value?.trim() || "<p></p>"}
       onChange={onChange}
       hideHint
+      hideTabs
     />
   );
 }

@@ -60,11 +60,16 @@ export function resolveVietQrBankCode(nganHang: string): string | null {
 export type BuildVietQrImageUrlInput = {
   nganHang: string;
   soTaiKhoan: string;
+  /** Số tiền VND — gắn vào QR nếu > 0. */
+  amountVnd?: number | null;
+  /** Nội dung CK (vd. mã đơn) — ngân hàng hiện khi quét. */
+  addInfo?: string | null;
+  accountName?: string | null;
 };
 
 /**
- * Ảnh QR VietQR (PNG) — chỉ ngân hàng + STK.
- * Không gắn amount / addInfo / accountName vào QR.
+ * Ảnh QR VietQR (PNG).
+ * Template `compact2` khi có amount/addInfo; ngược lại `qr_only`.
  */
 export function buildVietQrImageUrl(
   input: BuildVietQrImageUrlInput,
@@ -74,5 +79,22 @@ export function buildVietQrImageUrl(
   const bank = resolveVietQrBankCode(input.nganHang);
   if (!bank) return null;
 
-  return `https://img.vietqr.io/image/${encodeURIComponent(bank)}-${encodeURIComponent(stk)}-qr_only.png`;
+  const amount =
+    typeof input.amountVnd === "number" &&
+    Number.isFinite(input.amountVnd) &&
+    input.amountVnd > 0
+      ? Math.round(input.amountVnd)
+      : null;
+  const addInfo = input.addInfo?.trim().slice(0, 100) || null;
+  const accountName = input.accountName?.trim().slice(0, 70) || null;
+  const withMeta = Boolean(amount || addInfo || accountName);
+  const template = withMeta ? "compact2" : "qr_only";
+
+  const url = new URL(
+    `https://img.vietqr.io/image/${encodeURIComponent(bank)}-${encodeURIComponent(stk)}-${template}.png`,
+  );
+  if (amount) url.searchParams.set("amount", String(amount));
+  if (addInfo) url.searchParams.set("addInfo", addInfo);
+  if (accountName) url.searchParams.set("accountName", accountName);
+  return url.toString();
 }

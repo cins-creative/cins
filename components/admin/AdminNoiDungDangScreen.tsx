@@ -334,7 +334,7 @@ export function AdminNoiDungDangScreen({ initialView }: Props) {
       return;
     }
     if (delta < 0 && uu <= ADMIN_DIEM_UU_TIEN.MIN) {
-      setError("Điểm ưu tiên đã về 0.");
+      setError(`Đã đạt sàn ưu tiên (${ADMIN_DIEM_UU_TIEN.MIN}).`);
       return;
     }
 
@@ -422,30 +422,43 @@ export function AdminNoiDungDangScreen({ initialView }: Props) {
     const busy = isBusy(item.key);
     const bumping = bumpingKeys.has(item.key);
     const step = ADMIN_DIEM_UU_TIEN.STEP;
+    const bump = ADMIN_DIEM_UU_TIEN.BUMP;
     const btnClass = variant === "card" ? "ndd-card-bump" : "ndd-list-bump";
+    const uuHint = uu !== 0 ? ` · hiện ${uu > 0 ? "+" : ""}${uu}` : "";
+    const atFloor = uu <= ADMIN_DIEM_UU_TIEN.MIN;
+    const atCeil = uu >= ADMIN_DIEM_UU_TIEN.MAX;
+
+    const minus = (amount: number, strong: boolean) => (
+      <button
+        type="button"
+        className={`${btnClass} is-minus${strong ? " is-minus-strong" : ""}`}
+        onClick={() => bumpScore(item, -amount as AdminDiemUuTienDelta)}
+        disabled={busy || atFloor}
+        title={`Trừ ${amount} điểm ưu tiên (hạ nội dung)${uuHint}`}
+        aria-label={`Trừ ${amount} điểm: ${item.tieuDe}`}
+      >
+        {bumping ? "…" : `−${amount}`}
+      </button>
+    );
+    const plus = (amount: number, strong: boolean) => (
+      <button
+        type="button"
+        className={`${btnClass} is-plus${strong ? " is-plus-strong" : ""}`}
+        onClick={() => bumpScore(item, amount as AdminDiemUuTienDelta)}
+        disabled={busy || atCeil}
+        title={`Cộng +${amount} điểm ưu tiên${uuHint}`}
+        aria-label={`Cộng ${amount} điểm: ${item.tieuDe}`}
+      >
+        {bumping ? "…" : `+${amount}`}
+      </button>
+    );
 
     return (
       <span className="ndd-score-delta" role="group" aria-label="Chỉnh điểm ưu tiên">
-        <button
-          type="button"
-          className={`${btnClass} is-minus`}
-          onClick={() => bumpScore(item, -step as AdminDiemUuTienDelta)}
-          disabled={busy || uu <= ADMIN_DIEM_UU_TIEN.MIN}
-          title={`Trừ ${step} điểm ưu tiên${uu > 0 ? ` · hiện ${uu}` : ""}`}
-          aria-label={`Trừ ${step} điểm: ${item.tieuDe}`}
-        >
-          {bumping ? "…" : `−${step}`}
-        </button>
-        <button
-          type="button"
-          className={`${btnClass} is-plus`}
-          onClick={() => bumpScore(item, step as AdminDiemUuTienDelta)}
-          disabled={busy || uu >= ADMIN_DIEM_UU_TIEN.MAX}
-          title={`Cộng +${step} điểm ưu tiên${uu > 0 ? ` · hiện ${uu}` : ""}`}
-          aria-label={`Cộng ${step} điểm: ${item.tieuDe}`}
-        >
-          {bumping ? "…" : `+${step}`}
-        </button>
+        {minus(bump, true)}
+        {minus(step, false)}
+        {plus(step, false)}
+        {plus(bump, true)}
       </span>
     );
   }

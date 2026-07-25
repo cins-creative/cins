@@ -29,6 +29,7 @@ import type {
 import { CHAT_ORG_KIND_LABEL } from "@/lib/chat/types";
 
 const ORG_ROOM = "1_org";
+const LOP_ROOM = "lop_hoc";
 const STAFF_MESSAGE_LIMIT = 80;
 
 async function pickCanonicalOrgStudentRoom(
@@ -825,25 +826,68 @@ export async function openUserOrgRoom(
   return { ok: true, thread: { ...thread, messages: [] } };
 }
 
+function buildLopThread(
+  roomId: string,
+  org: OrgRow,
+  lopId: string,
+  tenPhong: string,
+  preview: string,
+  lastAt: string,
+  unread: number,
+): ChatThread {
+  const orgKind = mapOrgLoai(org.loai_to_chuc);
+  const name = tenPhong.trim() || org.ten?.trim() || "Lớp học";
+  return {
+    id: roomId,
+    roomId,
+    orgId: org.id,
+    lopHocId: lopId,
+    name,
+    group: "to_chuc",
+    kind: "org",
+    orgKind,
+    verified: true,
+    role: "Lớp học",
+    avatarInitial: avatarInitialFromName(name),
+    avatarHue: avatarHueFromSeed(lopId),
+    avatarUrl: getAvatarUrl(org.avatar_id),
+    preview,
+    lastAt,
+    unread,
+    messages: [],
+  };
+}
+
 export async function listOrgThreadsForUser(viewerId: string): Promise<ChatThread[]> {
   const admin = createServiceRoleClient();
 
-  const { data: memberships } = await admin
+  const { data: membershipsWithRole } = await admin
     .from("chat_thanh_vien")
     .select(
-      "id_phong, chat_phong!inner(id, loai_phong, id_org_dai_dien, cap_nhat_luc)",
+      "id_phong, vai_tro, chat_phong!inner(id, loai_phong, id_org_dai_dien, id_context, ten_phong, cap_nhat_luc)",
     )
     .eq("id_nguoi_dung", viewerId)
-    .eq("vai_tro", "thanh_vien")
     .is("roi_luc", null)
-    .eq("chat_phong.loai_phong", ORG_ROOM);
+    .in("chat_phong.loai_phong", [ORG_ROOM, LOP_ROOM]);
 
-  const roomIds = (memberships ?? []).map((row) => row.id_phong);
+  const rows = membershipsWithRole ?? [];
+  const orgRows = rows.filter((r) => {
+    const room = r.chat_phong as { loai_phong?: string } | null;
+    return room?.loai_phong === ORG_ROOM && r.vai_tro === "thanh_vien";
+  });
+  const lopRows = rows.filter((r) => {
+    const room = r.chat_phong as { loai_phong?: string } | null;
+    return room?.loai_phong === LOP_ROOM;
+  });
+
+  const roomIds = [
+    ...new Set([...orgRows, ...lopRows].map((row) => row.id_phong)),
+  ];
   if (roomIds.length === 0) return [];
 
   const orgIds = [
     ...new Set(
-      (memberships ?? [])
+      [...orgRows, ...lopRows]
         .map((row) => {
           const room = row.chat_phong as { id_org_dai_dien?: string | null } | null;
           return room?.id_org_dai_dien ?? null;
@@ -902,13 +946,13 @@ export async function listOrgThreadsForUser(viewerId: string): Promise<ChatThrea
     }
   }
 
-  const threads: ChatThread[] = [];
-  const seenRoomIds = new Set<string>();
+  const orgThreads: ChatThread[] = [];
+  const seenOrgRooms = new Set<string>();
 
-  for (const row of memberships ?? []) {
+  for (const row of orgRows) {
     const roomId = row.id_phong;
-    if (seenRoomIds.has(roomId)) continue;
-    seenRoomIds.add(roomId);
+    if (seenOrgRooms.has(roomId)) continue;
+    seenOrgRooms.add(roomId);
 
     const room = row.chat_phong as {
       id_org_dai_dien?: string | null;
@@ -916,7 +960,6 @@ export async function listOrgThreadsForUser(viewerId: string): Promise<ChatThrea
     } | null;
     const orgId = room?.id_org_dai_dien;
     if (!orgId) continue;
-
     const org = orgById.get(orgId);
     if (!org) continue;
 
@@ -929,7 +972,7 @@ export async function listOrgThreadsForUser(viewerId: string): Promise<ChatThrea
         (!readAt || msg.tao_luc > readAt),
     ).length;
 
-    threads.push(
+    orgThreads.push(
       buildOrgThread(
         roomId,
         org,
@@ -940,12 +983,55 @@ export async function listOrgThreadsForUser(viewerId: string): Promise<ChatThrea
     );
   }
 
-  const deduped = dedupeOrgThreadsByOrg(threads);
-  deduped.sort(
+  const lopThreads: ChatThread[] = [];
+  const seenLopRooms = new Set<string>();
+
+  for (const row of lopRows) {
+    const roomId = row.id_phong;
+    if (seenLopRooms.has(roomId)) continue;
+    seenLopRooms.add(roomId);
+
+    const room = row.chat_phong as {
+      id_org_dai_dien?: string | null;
+      id_context?: string | null;
+      ten_phong?: string | null;
+      cap_nhat_luc?: string;
+    } | null;
+    const orgId = room?.id_org_dai_dien;
+    const lopId = room?.id_context;
+    if (!orgId || !lopId) continue;
+    const org = orgById.get(orgId);
+    if (!org) continue;
+
+    const last = lastByRoom.get(roomId);
+    const readAt = readAtByRoom.get(roomId) ?? null;
+    const unread = (messages ?? []).filter(
+      (msg) =>
+        msg.id_phong === roomId &&
+        msg.id_nguoi_gui !== viewerId &&
+        (!readAt || msg.tao_luc > readAt),
+    ).length;
+
+    lopThreads.push(
+      buildLopThread(
+        roomId,
+        org,
+        lopId,
+        room?.ten_phong || "Lớp học",
+        last ? messagePreview(last as MessageRow) : "Phòng học của lớp",
+        last?.tao_luc ?? room?.cap_nhat_luc ?? new Date(0).toISOString(),
+        unread,
+      ),
+    );
+  }
+
+  const dedupedOrg = dedupeOrgThreadsByOrg(orgThreads);
+  const merged = [...dedupedOrg, ...lopThreads];
+  merged.sort(
     (a, b) => new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime(),
   );
 
-  return deduped;
+  return merged;
 }
 
 export async function listAllChatThreads(viewerId: string): Promise<ChatThread[]> {

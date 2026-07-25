@@ -2487,7 +2487,7 @@ a.j-notify-mini-action.is-link:hover {
 }
 
 .j-notify-stats strong {
-  font-family: var(--font-j-anton, "Anton"), var(--font-sans);
+  font-family: var(--font-sans);
   color: var(--ink-display);
   font-size: 23px;
   line-height: 1;

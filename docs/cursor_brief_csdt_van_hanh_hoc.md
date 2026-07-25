@@ -46,10 +46,10 @@ Org: dashboard HV · thu tiền · lớp/bài · điểm danh · doanh thu · ma
 
 | Gate | Việc | Trạng thái |
 |---|---|---|
-| G1 | Duyệt ALTER **A1** `org_lop_hoc.id_chat_phong` | Chờ user |
+| G1 | Duyệt ALTER **A1** `org_lop_hoc.id_chat_phong` | **Đã chạy** |
 | G2 | A3 `meeting_url` | **Hủy** (Plan 2 không dùng URL Meet) |
-| G3 | Duyệt **A2** `id_chi_nhanh` sau bảng chi nhánh | Chờ |
-| G4 | FOUNDATIONS §O → “LMS mỏng chat-first” (chưa call) | Chờ confirm doc |
+| G3 | Duyệt **A2** `id_chi_nhanh` sau bảng chi nhánh | **Đã chạy** |
+| G4 | FOUNDATIONS §O → “LMS mỏng chat-first” (chưa call) | **Đã cập nhật** |
 
 ## Phase P0 — ACL & shell (0.5–1 ngày)
 

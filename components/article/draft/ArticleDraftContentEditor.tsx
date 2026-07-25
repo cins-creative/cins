@@ -9,7 +9,6 @@ import { remainderHtmlAfterNgheIntro } from "@/lib/articles/nghe-noi-dung-sectio
 
 import {
   ArticleDraftToolbar,
-  TruongTabTable,
   type TruongToolTab,
 } from "@/components/article/draft/ArticleDraftToolbar";
 import { ArticleBlockPalette } from "@/components/article/draft/ArticleBlockPalette";
@@ -32,6 +31,8 @@ type Props = {
   /** Loại bài — palette block khi `variant="dong-gop"`. */
   loaiBaiViet?: string;
   hideHint?: boolean;
+  /** Ẩn tab Soạn thảo / HTML — luôn dùng soạn trực quan. */
+  hideTabs?: boolean;
   htmlOnly?: boolean;
   defaultTab?: Tab;
   deferHeavyContent?: boolean;
@@ -87,11 +88,12 @@ function ArticleDraftContentEditorFull({
   variant = "default",
   loaiBaiViet = "nghe",
   hideHint = false,
+  hideTabs = false,
   defaultTab = "visual",
   deferHeavyContent = false,
   nganhTitleVi,
 }: Props) {
-  const [tab, setTab] = useState<Tab>(defaultTab);
+  const [tab, setTab] = useState<Tab>(hideTabs ? "visual" : defaultTab);
   const [truongToolTab, setTruongToolTab] = useState<TruongToolTab>("block");
   const [, setToolbarRev] = useState(0);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -290,26 +292,28 @@ function ArticleDraftContentEditorFull({
         </p>
       ) : null}
 
-      <div className="article-draft-tiptap__tabs" role="tablist">
-        <button
-          type="button"
-          role="tab"
-          data-active={tab === "visual" ? "true" : "false"}
-          className="article-draft-tiptap__tab"
-          onClick={openVisualTab}
-        >
-          Soạn thảo
-        </button>
-        <button
-          type="button"
-          role="tab"
-          data-active={tab === "html" ? "true" : "false"}
-          className="article-draft-tiptap__tab"
-          onClick={() => setTab("html")}
-        >
-          HTML
-        </button>
-      </div>
+      {!hideTabs ? (
+        <div className="article-draft-tiptap__tabs" role="tablist">
+          <button
+            type="button"
+            role="tab"
+            data-active={tab === "visual" ? "true" : "false"}
+            className="article-draft-tiptap__tab"
+            onClick={openVisualTab}
+          >
+            Soạn thảo
+          </button>
+          <button
+            type="button"
+            role="tab"
+            data-active={tab === "html" ? "true" : "false"}
+            className="article-draft-tiptap__tab"
+            onClick={() => setTab("html")}
+          >
+            HTML
+          </button>
+        </div>
+      ) : null}
 
       {variant === "dong-gop" &&
       tab === "visual" &&
@@ -330,6 +334,7 @@ function ArticleDraftContentEditorFull({
           layout="default"
           onOpenHtmlTab={openHtmlTab}
           onOpenPreview={() => setPreviewOpen(true)}
+          hideHtmlTab={hideTabs}
         />
       ) : null}
 
@@ -349,7 +354,6 @@ function ArticleDraftContentEditorFull({
               layout="truong-inline"
               truongToolTab={truongToolTab}
               onTruongToolTabChange={setTruongToolTab}
-              truongTableDock="bottom"
               onOpenHtmlTab={openHtmlTab}
               onOpenPreview={() => setPreviewOpen(true)}
             />
@@ -361,19 +365,6 @@ function ArticleDraftContentEditorFull({
               reportImagePaste={reportImagePaste}
               onEditorReady={onEditorReady}
             />
-            {truongToolTab === "table" ? (
-              <div
-                className="article-draft-tiptap__table-dock"
-                role="tabpanel"
-                aria-label="Bảng"
-              >
-                <TruongTabTable
-                  editor={editor}
-                  disabledVisual={disabledVisual}
-                  run={run}
-                />
-              </div>
-            ) : null}
           </div>
         ) : variant === "dong-gop" ? (
           <ArticleDongGopLeadMirror>{visualPane}</ArticleDongGopLeadMirror>

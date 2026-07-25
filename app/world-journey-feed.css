@@ -58,7 +58,7 @@
   --sh-lg: var(--shadow-lg);
   --ease: cubic-bezier(0.2, 0.7, 0.3, 1);
 
-  --font-display: "Anton", "Be Vietnam Pro", system-ui, sans-serif;
+  --font-display: var(--font-sans);
   --font-serif: "Crimson Pro", Georgia, serif;
   --wj-sticky-top: 64px;
   /* Khớp chiều cao 1 hàng `.wj-feed-header` (~58px: nội dung ~34px + pad 12×2). */
@@ -3341,7 +3341,7 @@
 }
 
 .wj-guest-sec-num {
-  font-family: var(--font-display, "Anton"), var(--font-sans);
+  font-family: var(--font-display, var(--font-sans));
   font-size: 21px;
   line-height: 1;
   color: var(--ink4);

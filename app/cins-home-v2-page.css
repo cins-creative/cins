@@ -20,7 +20,7 @@
   --sh-lg:0 14px 32px rgba(15,23,42,.10);
   --sh-pop:0 6px 0 rgba(31,116,201,.20);
   --sans:"Be Vietnam Pro",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
-  --display:"Anton","Be Vietnam Pro",sans-serif;
+  --display:var(--font-sans);
   --serif:"Crimson Pro",Georgia,serif;
   --ease:cubic-bezier(.2,.7,.3,1);
   --dur:.18s;

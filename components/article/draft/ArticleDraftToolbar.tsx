@@ -81,12 +81,11 @@ function TbSep() {
   return <span className="article-draft-tiptap__sep" aria-hidden />;
 }
 
-export type TruongToolTab = "block" | "insert" | "table";
+export type TruongToolTab = "block" | "insert";
 
 const TRUONG_TABS: { id: TruongToolTab; label: string }[] = [
   { id: "block", label: "Đoạn" },
   { id: "insert", label: "Chèn" },
-  { id: "table", label: "Bảng" },
 ];
 
 const TRUONG_HEADING_LEVELS = [1, 2, 3, 4, 5] as const;
@@ -201,11 +200,11 @@ type Props = {
   layout: "default" | "truong-inline";
   onOpenHtmlTab: () => void;
   onOpenPreview: () => void;
-  /** Tab công cụ (modal trường — dock bảng ở đáy editor). */
+  /** Ẩn nút chuyển tab HTML trên toolbar. */
+  hideHtmlTab?: boolean;
+  /** Tab công cụ (modal trường). */
   truongToolTab?: TruongToolTab;
   onTruongToolTabChange?: (tab: TruongToolTab) => void;
-  /** `bottom`: panel Bảng render ngoài toolbar (sticky dưới vùng soạn). */
-  truongTableDock?: "inline" | "bottom";
 };
 
 export function ArticleDraftToolbar({
@@ -215,9 +214,9 @@ export function ArticleDraftToolbar({
   layout,
   onOpenHtmlTab,
   onOpenPreview,
+  hideHtmlTab = false,
   truongToolTab,
   onTruongToolTabChange,
-  truongTableDock = "inline",
 }: Props) {
   if (layout === "truong-inline") {
     return (
@@ -228,7 +227,6 @@ export function ArticleDraftToolbar({
         onOpenPreview={onOpenPreview}
         activeTab={truongToolTab}
         onTabChange={onTruongToolTabChange}
-        tableDock={truongTableDock}
       />
     );
   }
@@ -240,6 +238,7 @@ export function ArticleDraftToolbar({
       run={run}
       onOpenHtmlTab={onOpenHtmlTab}
       onOpenPreview={onOpenPreview}
+      hideHtmlTab={hideHtmlTab}
     />
   );
 }
@@ -248,7 +247,6 @@ type TruongInlineToolbarProps = ToolbarCore & {
   onOpenPreview: () => void;
   activeTab?: TruongToolTab;
   onTabChange?: (tab: TruongToolTab) => void;
-  tableDock?: "inline" | "bottom";
 };
 
 function TruongInlineToolbar({
@@ -258,7 +256,6 @@ function TruongInlineToolbar({
   onOpenPreview,
   activeTab: controlledTab,
   onTabChange,
-  tableDock = "inline",
 }: TruongInlineToolbarProps) {
   const [internalTab, setInternalTab] = useState<TruongToolTab>("block");
   const tab = controlledTab ?? internalTab;
@@ -308,11 +305,10 @@ function TruongInlineToolbar({
       >
         {tab === "block" ? <TruongTabDoan {...core} /> : null}
         {tab === "insert" ? <TruongTabInsert {...core} /> : null}
-        {tab === "table" && tableDock === "inline" ? <TruongTabTable {...core} /> : null}
       </div>
 
       <p className="article-draft-tiptap__tool-foot">
-        Dán hoặc kéo thả ảnh trực tiếp vào vùng soạn bên dưới
+        Dán hoặc kéo thả ảnh trực tiếp vào vùng soạn bên dưới — click vào bảng để sửa hàng/cột
       </p>
     </div>
   );
@@ -473,15 +469,9 @@ function TruongTabInsert({ editor, disabledVisual, run }: ToolbarCore) {
       >
         <IconYoutube />
       </TbIconBtn>
-    </div>
-  );
-}
-
-export function TruongTabTable({ disabledVisual, run }: ToolbarCore) {
-  return (
-    <div className="article-draft-tiptap__tool-row article-draft-tiptap__tool-row--table">
+      <TbSep />
       <TbIconBtn
-        title="Chèn bảng 3×3"
+        title="Chèn bảng 3×3 — sửa hàng/cột trực tiếp trên bảng"
         disabled={disabledVisual}
         onClick={() =>
           run((ed) =>
@@ -490,79 +480,6 @@ export function TruongTabTable({ disabledVisual, run }: ToolbarCore) {
         }
       >
         <IconTable />
-      </TbIconBtn>
-      <TbIconBtn
-        title="Xóa bảng"
-        disabled={disabledVisual}
-        onClick={() => run((ed) => ed.chain().focus().deleteTable().run())}
-      >
-        ×
-      </TbIconBtn>
-      <TbSep />
-      <TbIconBtn
-        title="Thêm cột trái"
-        disabled={disabledVisual}
-        onClick={() => run((ed) => ed.chain().focus().addColumnBefore().run())}
-      >
-        ⊞←
-      </TbIconBtn>
-      <TbIconBtn
-        title="Thêm cột phải"
-        disabled={disabledVisual}
-        onClick={() => run((ed) => ed.chain().focus().addColumnAfter().run())}
-      >
-        →⊞
-      </TbIconBtn>
-      <TbIconBtn
-        title="Xóa cột"
-        disabled={disabledVisual}
-        onClick={() => run((ed) => ed.chain().focus().deleteColumn().run())}
-      >
-        ⊟|
-      </TbIconBtn>
-      <TbSep />
-      <TbIconBtn
-        title="Thêm hàng trên"
-        disabled={disabledVisual}
-        onClick={() => run((ed) => ed.chain().focus().addRowBefore().run())}
-      >
-        ⊞↑
-      </TbIconBtn>
-      <TbIconBtn
-        title="Thêm hàng dưới"
-        disabled={disabledVisual}
-        onClick={() => run((ed) => ed.chain().focus().addRowAfter().run())}
-      >
-        ↓⊞
-      </TbIconBtn>
-      <TbIconBtn
-        title="Xóa hàng"
-        disabled={disabledVisual}
-        onClick={() => run((ed) => ed.chain().focus().deleteRow().run())}
-      >
-        ⊟─
-      </TbIconBtn>
-      <TbSep />
-      <TbIconBtn
-        title="Gộp ô"
-        disabled={disabledVisual}
-        onClick={() => run((ed) => ed.chain().focus().mergeCells().run())}
-      >
-        ⧉
-      </TbIconBtn>
-      <TbIconBtn
-        title="Tách ô"
-        disabled={disabledVisual}
-        onClick={() => run((ed) => ed.chain().focus().splitCell().run())}
-      >
-        ⧇
-      </TbIconBtn>
-      <TbIconBtn
-        title="Hàng tiêu đề"
-        disabled={disabledVisual}
-        onClick={() => run((ed) => ed.chain().focus().toggleHeaderRow().run())}
-      >
-        TH
       </TbIconBtn>
     </div>
   );
@@ -574,6 +491,7 @@ function DefaultToolbar({
   run,
   onOpenHtmlTab,
   onOpenPreview,
+  hideHtmlTab = false,
 }: Omit<Props, "layout">) {
   return (
     <div className="article-draft-tiptap__toolbar">
@@ -677,10 +595,9 @@ function DefaultToolbar({
       </div>
 
       <div className="article-draft-tiptap__toolbar-row">
-        <span className="article-draft-tiptap__toolbar-label">BẢNG</span>
+        <span className="article-draft-tiptap__toolbar-label">MEDIA</span>
         <TbBtn
-          title="Chèn bảng 3×3"
-          compact
+          title="Chèn bảng 3×3 — sửa hàng/cột trực tiếp trên bảng"
           disabled={disabledVisual}
           onClick={() =>
             run((ed) =>
@@ -688,92 +605,8 @@ function DefaultToolbar({
             )
           }
         >
-          +Bảng
+          <IconTable />
         </TbBtn>
-        <TbBtn
-          title="Thêm cột trước"
-          compact
-          disabled={disabledVisual}
-          onClick={() => run((ed) => ed.chain().focus().addColumnBefore().run())}
-        >
-          +←Col
-        </TbBtn>
-        <TbBtn
-          title="Thêm cột sau"
-          compact
-          disabled={disabledVisual}
-          onClick={() => run((ed) => ed.chain().focus().addColumnAfter().run())}
-        >
-          Col→+
-        </TbBtn>
-        <TbBtn
-          title="Xóa cột"
-          compact
-          disabled={disabledVisual}
-          onClick={() => run((ed) => ed.chain().focus().deleteColumn().run())}
-        >
-          −Col
-        </TbBtn>
-        <TbBtn
-          title="Thêm hàng trên"
-          compact
-          disabled={disabledVisual}
-          onClick={() => run((ed) => ed.chain().focus().addRowBefore().run())}
-        >
-          +↑Row
-        </TbBtn>
-        <TbBtn
-          title="Thêm hàng dưới"
-          compact
-          disabled={disabledVisual}
-          onClick={() => run((ed) => ed.chain().focus().addRowAfter().run())}
-        >
-          Row↓+
-        </TbBtn>
-        <TbBtn
-          title="Xóa hàng"
-          compact
-          disabled={disabledVisual}
-          onClick={() => run((ed) => ed.chain().focus().deleteRow().run())}
-        >
-          −Row
-        </TbBtn>
-        <TbBtn
-          title="Gộp ô"
-          compact
-          disabled={disabledVisual}
-          onClick={() => run((ed) => ed.chain().focus().mergeCells().run())}
-        >
-          ⧉
-        </TbBtn>
-        <TbBtn
-          title="Tách ô"
-          compact
-          disabled={disabledVisual}
-          onClick={() => run((ed) => ed.chain().focus().splitCell().run())}
-        >
-          ⧇
-        </TbBtn>
-        <TbBtn
-          title="Bật/tắt hàng tiêu đề"
-          compact
-          disabled={disabledVisual}
-          onClick={() => run((ed) => ed.chain().focus().toggleHeaderRow().run())}
-        >
-          Hàng TH
-        </TbBtn>
-        <TbBtn
-          title="Xóa bảng"
-          compact
-          disabled={disabledVisual}
-          onClick={() => run((ed) => ed.chain().focus().deleteTable().run())}
-        >
-          ×Bảng
-        </TbBtn>
-      </div>
-
-      <div className="article-draft-tiptap__toolbar-row">
-        <span className="article-draft-tiptap__toolbar-label">MEDIA</span>
         <TbBtn
           title="Chèn liên kết"
           disabled={disabledVisual}
@@ -820,9 +653,11 @@ function DefaultToolbar({
         >
           YouTube
         </TbBtn>
-        <TbBtn title="Chuyển sang tab HTML" disabled={false} onClick={onOpenHtmlTab}>
-          {"{}"} HTML
-        </TbBtn>
+        {!hideHtmlTab ? (
+          <TbBtn title="Chuyển sang tab HTML" disabled={false} onClick={onOpenHtmlTab}>
+            {"{}"} HTML
+          </TbBtn>
+        ) : null}
         <TbBtn title="Xem trước HTML trên trang" disabled={false} onClick={onOpenPreview}>
           Review HTML
         </TbBtn>

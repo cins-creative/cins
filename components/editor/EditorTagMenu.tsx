@@ -8,6 +8,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type MouseEvent as ReactMouseEvent,
 } from "react";
 import { createPortal } from "react-dom";
 
@@ -120,9 +121,11 @@ export function EditorTagMenu({
   const [users, setUsers] = useState<SearchUser[]>([]);
   const [loaiFilter, setLoaiFilter] = useState<LoaiFilter>("all");
   const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
   const [pickingCreateLoai, setPickingCreateLoai] = useState(false);
   const [createLoaiIdx, setCreateLoaiIdx] = useState(0);
   const [activeIndex, setActiveIndex] = useState(0);
+  const creatingRef = useRef(false);
   const [pos, setPos] = useState<{ top: number; left: number }>(() =>
     computeCaretMenuPosition(anchorRect, menuWidth, MENU_H),
   );
@@ -156,6 +159,7 @@ export function EditorTagMenu({
       setActiveIndex(0);
       setPickingCreateLoai(false);
       setCreateLoaiIdx(0);
+      setCreateError(null);
     }
   }, [mode, query, loaiFilter]);
 
@@ -221,7 +225,16 @@ export function EditorTagMenu({
   /* ── Click ngoài → đóng ──────────────────────────────────────────── */
   useEffect(() => {
     const onDocDown = (event: MouseEvent) => {
-      if (menuRef.current?.contains(event.target as Node)) return;
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+      if (menuRef.current?.contains(target)) return;
+      // Portal + overlay: fallback khi target không còn trong cây menuRef.
+      if (
+        target instanceof Element &&
+        target.closest("[data-editor-tag-menu], .tag-input-menu, .ed-editor-tag-menu")
+      ) {
+        return;
+      }
       onClose();
     };
     document.addEventListener("mousedown", onDocDown);
@@ -295,8 +308,10 @@ export function EditorTagMenu({
 
   const createTag = useCallback(
     async (loai: CreatableTagLoai) => {
-      if (!query || creating) return;
+      if (!query || creatingRef.current) return;
+      creatingRef.current = true;
       setCreating(true);
+      setCreateError(null);
       try {
         const res = await fetch("/api/tag", {
           method: "POST",
@@ -306,7 +321,15 @@ export function EditorTagMenu({
         const json = (await res.json().catch(() => null)) as
           | { id?: string; error?: string }
           | null;
-        if (!res.ok || !json?.id) return;
+        if (!res.ok || !json?.id) {
+          setCreateError(
+            json?.error?.trim() ||
+              (res.status === 401
+                ? "Cần đăng nhập để tạo thẻ."
+                : "Không tạo được thẻ. Thử lại."),
+          );
+          return;
+        }
         onPick({
           kind: "tag",
           tag: {
@@ -317,11 +340,25 @@ export function EditorTagMenu({
             da_verify: false,
           },
         });
+      } catch {
+        setCreateError("Không tạo được thẻ. Thử lại.");
       } finally {
+        creatingRef.current = false;
         setCreating(false);
       }
     },
-    [query, creating, onPick],
+    [query, onPick],
+  );
+
+  /** Chọn ngay trên mousedown — tránh mất click khi menu/textarea race blur. */
+  const pickCreateLoaiMouseDown = useCallback(
+    (event: ReactMouseEvent, loai: CreatableTagLoai) => {
+      if (event.button !== 0) return;
+      event.preventDefault();
+      event.stopPropagation();
+      void createTag(loai);
+    },
+    [createTag],
   );
 
   const beginCreate = useCallback(() => {
@@ -502,6 +539,7 @@ export function EditorTagMenu({
       ref={menuRef}
       id={listId}
       className="tag-input-menu is-portal"
+      data-editor-tag-menu=""
       role="listbox"
       aria-label="Gắn thẻ bài viết"
       style={{
@@ -629,6 +667,11 @@ export function EditorTagMenu({
                     <p className="tag-input-create-picker-q">
                       Thẻ &ldquo;{item.label}&rdquo; thuộc nhóm nào?
                     </p>
+                    {createError ? (
+                      <p className="tag-input-create-error" role="alert">
+                        {createError}
+                      </p>
+                    ) : null}
                     {createLoaiOptions.map((loai, loaiIdx) => (
                       <button
                         key={loai}
@@ -637,9 +680,8 @@ export function EditorTagMenu({
                         role="option"
                         aria-selected={loaiIdx === createLoaiIdx}
                         disabled={creating}
-                        onMouseDown={(e) => e.preventDefault()}
                         onMouseEnter={() => setCreateLoaiIdx(loaiIdx)}
-                        onClick={() => void createTag(loai)}
+                        onMouseDown={(e) => pickCreateLoaiMouseDown(e, loai)}
                       >
                         {CREATE_LOAI_LABEL[loai]}
                       </button>

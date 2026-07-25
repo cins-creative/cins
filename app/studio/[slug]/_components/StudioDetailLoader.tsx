@@ -53,6 +53,7 @@ export async function StudioDetailLoader({ slug }: Props) {
       ...post,
       viewerBookmarked: social.bookmarked,
       bookmarkCount: social.bookmarkCount,
+      commentCount: social.commentCount,
     };
   };
 

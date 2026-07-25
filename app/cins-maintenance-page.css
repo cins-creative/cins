@@ -26,7 +26,7 @@
   --r-pill: 999px;
   --sh-sm: 0 2px 6px rgba(15, 23, 42, 0.05);
   --sh-pop: 0 8px 0 rgba(31, 116, 201, 0.18);
-  --font-display: var(--font-anton, "Anton"), var(--font-be-vietnam, "Be Vietnam Pro"),
+  --font-display: var(--font-be-vietnam, "Be Vietnam Pro"),
     system-ui, sans-serif;
   --font-sans: var(--font-be-vietnam, "Be Vietnam Pro"), system-ui, sans-serif;
   --font-serif: "Crimson Pro", Georgia, "Times New Roman", serif;

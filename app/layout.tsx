@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Anton, Be_Vietnam_Pro } from "next/font/google";
+import { Be_Vietnam_Pro } from "next/font/google";
 
 import { AuthSessionRemember } from "@/components/auth/AuthSessionRemember";
 import { ThemeRoot } from "@/components/cins/ThemeRoot";
@@ -22,12 +22,6 @@ const beVietnam = Be_Vietnam_Pro({
   variable: "--font-be-vietnam",
   subsets: ["latin", "vietnamese"],
   weight: ["400", "500", "700", "800", "900"],
-});
-
-const anton = Anton({
-  variable: "--font-anton",
-  subsets: ["latin", "vietnamese"],
-  weight: "400",
 });
 
 const siteOrigin = getConfiguredSiteOrigin() ?? "https://cins.vn";
@@ -69,7 +63,7 @@ export default function RootLayout({
   return (
     <html
       lang="vi"
-      className={`${beVietnam.variable} ${anton.variable} h-full antialiased`}
+      className={`${beVietnam.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <head>
@@ -91,9 +85,9 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap"
           rel="stylesheet"
         />
-        {/* Khớp typography trang home v2 (Anton / Be Vietnam Pro / Crimson Pro) */}
+        {/* Crimson Pro — editorial only (blockquote / long-form); UI dùng Be Vietnam Pro qua next/font */}
         <link
-          href="https://fonts.googleapis.com/css2?family=Anton&family=Be+Vietnam+Pro:wght@300;400;500;600;700;800;900&family=Crimson+Pro:ital,wght@0,400;0,600;1,400;1,600&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;1,400;1,600&display=swap"
           rel="stylesheet"
         />
       </head>

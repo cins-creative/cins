@@ -19,6 +19,7 @@ const HOME_SIDEBAR_ICONS: Record<MainNavIcon, string> = {
     '<svg viewBox="0 0 24 24"><path d="M3 4.5A1.5 1.5 0 014.5 3H11v17H4.5A1.5 1.5 0 013 18.5v-14z"/><path d="M21 4.5A1.5 1.5 0 0019.5 3H13v17h6.5a1.5 1.5 0 001.5-1.5v-14z"/><path d="M6 7h2M6 10h2M16 7h2M16 10h2"/></svg>',
   community:
     '<svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>',
+  shop: '<svg viewBox="0 0 24 24"><path d="M3 9l1.5-4.5h15L21 9"/><path d="M4 9v10a1 1 0 001 1h14a1 1 0 001-1V9"/><path d="M9 13h6"/><path d="M3 9h18"/></svg>',
   business:
     '<svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2"/><path d="M3 12h18"/></svg>',
   jobs: '<svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2"/><path d="M3 12h5"/><path d="M16 12h5"/><path d="M11 12a1 1 0 002 0"/></svg>',

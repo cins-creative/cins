@@ -7778,6 +7778,9 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  max-width: calc(100% - 16px);
 }
 .cins-admin .ndd-card-mark {
   width: 28px;
@@ -7820,12 +7823,23 @@
   border-color: #f59e0b;
   color: #b45309;
 }
+.cins-admin .ndd-card-bump.is-plus-strong {
+  border-color: #d97706;
+  color: #92400e;
+}
+.cins-admin .ndd-card-bump.is-minus-strong {
+  border-color: #ef4444;
+  color: #b91c1c;
+}
 .cins-admin .ndd-card-bump:hover {
   background: #fffbeb;
   transform: scale(1.04);
 }
 .cins-admin .ndd-card-bump.is-minus:hover {
   background: #f8fafc;
+}
+.cins-admin .ndd-card-bump.is-minus-strong:hover {
+  background: #fef2f2;
 }
 .cins-admin .ndd-card-bump:disabled {
   cursor: not-allowed;
@@ -7876,6 +7890,16 @@
   border-color: #f59e0b;
   background: #fffbeb;
   color: #b45309;
+}
+.cins-admin .ndd-list-bump.is-plus-strong {
+  border-color: #d97706;
+  background: #fffbeb;
+  color: #92400e;
+}
+.cins-admin .ndd-list-bump.is-minus-strong {
+  border-color: #ef4444;
+  background: #fef2f2;
+  color: #b91c1c;
 }
 .cins-admin .ndd-list-bump:disabled {
   opacity: 0.5;

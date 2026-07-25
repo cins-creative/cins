@@ -2,19 +2,18 @@
 
 Tài liệu ghi lại các quyết định design/dev đồng bộ với **CINs Design System** (`CINs Design System.zip`) và codebase Next.js hiện tại.
 
-## Typography — Anton chỉ cho `h1`
+## Typography — Be Vietnam Pro duy nhất
 
-> **⚠️ QUYẾT ĐỊNH MỚI (single-font) — `CINS_DEV_RULES.md` §4:** chuẩn hiện tại là **một font duy nhất Be Vietnam Pro** cho toàn UI (ngoại lệ JetBrains Mono cho code/blockquote). **Anton & Crimson Pro = DEPRECATED**, đang gỡ. Mục bên dưới mô tả trạng thái CSS **cũ** (Anton cho `h1`) — cần dọn `app/cins-font-bridge.css` (`h1` → Be Vietnam), `app/cins-design-tokens.css`, `app/layout.tsx` để khớp quyết định mới.
+Chuẩn: **một font duy nhất Be Vietnam Pro** cho toàn UI (ngoại lệ JetBrains Mono cho code). **Anton đã gỡ** khỏi runtime (`layout.tsx`, `cins-font-bridge.css`, mọi CSS app). Crimson Pro còn cho editorial dài nếu cần.
 
-- **Không dùng font Anton** cho tiêu đề bài viết, card sự kiện, excerpt hay bất kỳ `h2`–`h6` nào.
-- **Chỉ tiêu đề cấp 1 (`<h1>`)** — ví dụ headline hero — mới dùng Anton (biến `--font-anton` / `next/font` trong `app/layout.tsx`).
-- Các tiêu đề “display” marketing và **tiêu đề bài viết / card** (ví dụ `.evb-card-title`, `.ft-card-title`) dùng **Be Vietnam Pro** qua `--font-sans` / `--font-display` (đã map sang Be Vietnam, không Anton).
+- Heading H1–H6 + body + display marketing: `--font-sans` / `--font-display` → Be Vietnam Pro.
+- Không load `Anton` qua `next/font` hay Google Fonts link.
 
 File liên quan:
 
-- `app/cins-font-bridge.css` — quy tắc `h1 { font-family: var(--font-anton) … }` và `--font-display` = Be Vietnam.
-- `app/cins-design-tokens.css` — token font không gán Anton vào `--font-display`.
-- `app/cins-cmm.css` — `.evb-card-title`, `.evb-title` dùng `font-family: var(--font-sans)`.
+- `app/cins-font-bridge.css` — `--font-sans` / `--font-display` / `h1` → Be Vietnam.
+- `app/cins-design-tokens.css` — token font.
+- `app/layout.tsx` — chỉ `Be_Vietnam_Pro` (+ Crimson Pro link cho editorial).
 
 ## Icon — Material Symbols (Google Fonts), không dùng emoji trong UI component
 

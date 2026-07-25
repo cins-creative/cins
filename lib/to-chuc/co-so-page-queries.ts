@@ -25,6 +25,8 @@ import type {
 } from "@/lib/truong/types";
 import { createPublicSupabaseClient } from "@/lib/supabase/public";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import type { TruongChiNhanh } from "@/lib/truong/types";
 
 export type CoSoFilterChip = {
   id: string;
@@ -76,8 +78,13 @@ function mapCoSoToTruongDetail(
   ext: NonNullable<OrgRow["org_co_so_dao_tao"]>,
   avatar_src: string | null,
   cover_src: string | null,
+  chiNhanhFromTable: TruongChiNhanh[] | null,
 ): TruongDetail {
-  const chi_nhanh = parseChiNhanhFromCauHinh(org.cau_hinh) ?? undefined;
+  const fromJson = parseChiNhanhFromCauHinh(org.cau_hinh) ?? undefined;
+  const chi_nhanh =
+    chiNhanhFromTable && chiNhanhFromTable.length > 0
+      ? chiNhanhFromTable
+      : fromJson;
   const facebook = parseFacebookFromCauHinh(org.cau_hinh);
   return {
     id: org.id,
@@ -160,14 +167,22 @@ async function loadCoSoDetailPayload(
     }));
   }
 
-  const [baidang, hinhanh, hocVienXacThucCount] = await Promise.all([
-    fetchBaiDang(supabase, org.id),
-    fetchHinhAnh(supabase, org.id),
-    countOrgApprovedDoanTags(org.id),
-  ]);
+  const [baidang, hinhanh, hocVienXacThucCount, chiNhanhTable] =
+    await Promise.all([
+      fetchBaiDang(supabase, org.id),
+      fetchHinhAnh(supabase, org.id),
+      countOrgApprovedDoanTags(org.id),
+      loadOrgChiNhanhAsTruong(org.id),
+    ]);
 
   return {
-    school: mapCoSoToTruongDetail(org, ext, avatar_src, cover_src),
+    school: mapCoSoToTruongDetail(
+      org,
+      ext,
+      avatar_src,
+      cover_src,
+      chiNhanhTable,
+    ),
     baidang,
     hinhanh,
     loaiCoSoLabel: labelLoaiCoSo(ext.loai_co_so),
@@ -179,12 +194,67 @@ async function loadCoSoDetailPayload(
   };
 }
 
+async function loadOrgChiNhanhAsTruong(
+  orgId: string,
+): Promise<TruongChiNhanh[] | null> {
+  try {
+    const admin = createServiceRoleClient();
+    const [{ data }, { data: org }] = await Promise.all([
+      admin
+        .from("org_chi_nhanh")
+        .select(
+          "id, ten, dia_chi, tinh_thanh, dien_thoai, email, dang_hoat_dong, thu_tu",
+        )
+        .eq("id_to_chuc", orgId)
+        .eq("dang_hoat_dong", true)
+        .order("thu_tu")
+        .order("tao_luc"),
+      admin.from("org_to_chuc").select("cau_hinh").eq("id", orgId).maybeSingle(),
+    ]);
+    if (!data?.length) return null;
+    const prev = parseChiNhanhFromCauHinh(org?.cau_hinh) ?? [];
+    const coverById = new Map(
+      prev.map((p) => [p.id, p.cover_id?.trim() || null] as const),
+    );
+    const coverByKey = new Map(
+      prev.map(
+        (p) =>
+          [`${p.ten.trim()}|${p.dia_chi.trim()}`, p.cover_id?.trim() || null] as const,
+      ),
+    );
+    return data
+      .filter((r) => (r.ten as string)?.trim() && (r.dia_chi as string)?.trim())
+      .map((r) => {
+        const ten = r.ten as string;
+        const dia_chi = (r.dia_chi as string) || "";
+        return {
+          id: r.id as string,
+          ten,
+          dia_chi,
+          tinh_thanh: (r.tinh_thanh as string | null) ?? null,
+          dien_thoai: (r.dien_thoai as string | null) ?? null,
+          email: (r.email as string | null) ?? null,
+          website: null,
+          facebook: null,
+          cover_id:
+            coverById.get(r.id as string) ??
+            coverByKey.get(`${ten.trim()}|${dia_chi.trim()}`) ??
+            null,
+        };
+      });
+  } catch {
+    return null;
+  }
+}
+
 export async function getCoSoMetaBySlugCached(slug: string) {
   const payload = await getCoSoDetailPayloadCached(slug);
   if (!payload) return null;
   return {
+    id: payload.school.id,
     ten: payload.school.ten,
     moTa: payload.school.mo_ta,
+    avatarSrc: payload.school.avatar_src,
   };
 }
 

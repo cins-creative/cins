@@ -5,8 +5,34 @@
  * với localhost khi máy dev có `.env.local` trỏ :3001.
  */
 import { spawnSync } from "node:child_process";
+import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 const PRODUCTION_SITE_URL = "https://cins.vn";
+
+/** Nạp key còn thiếu từ .env.local / .dev.vars — không ghi đè biến shell. */
+function loadMissingFromEnvFiles() {
+  for (const name of [".env.local", ".dev.vars"]) {
+    const file = resolve(process.cwd(), name);
+    if (!existsSync(file)) continue;
+    for (const raw of readFileSync(file, "utf8").split(/\r?\n/)) {
+      const line = raw.trim();
+      if (!line || line.startsWith("#")) continue;
+      const eq = line.indexOf("=");
+      if (eq <= 0) continue;
+      const key = line.slice(0, eq).trim();
+      if (!key || process.env[key]?.trim()) continue;
+      let value = line.slice(eq + 1).trim();
+      if (
+        (value.startsWith('"') && value.endsWith('"')) ||
+        (value.startsWith("'") && value.endsWith("'"))
+      ) {
+        value = value.slice(1, -1);
+      }
+      process.env[key] = value;
+    }
+  }
+}
 
 function isDevSiteHost(hostname) {
   const h = hostname.toLowerCase();
@@ -48,6 +74,7 @@ if (!rest) {
   process.exit(1);
 }
 
+loadMissingFromEnvFiles();
 ensureProductionSiteUrl();
 console.log(`[deploy] NEXT_PUBLIC_SITE_URL=${process.env.NEXT_PUBLIC_SITE_URL}`);
 
@@ -65,6 +92,15 @@ if (
 ) {
   process.env.WRANGLER_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE =
     process.env.CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE.trim();
+}
+
+if (
+  !process.env.CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE?.trim()
+) {
+  console.error(
+    "[deploy] Thiếu CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE (hoặc DATABASE_URL trong .env.local).",
+  );
+  process.exit(1);
 }
 
 const result = spawnSync(rest, {

@@ -249,19 +249,19 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  /* OG image: gắn full URL vào request headers để opengraph-image đọc query
-     (`view`/`nhom`/`filter`). Next file convention không luôn truyền searchParams.
-     Đồng thời gắn Cache-Control dài hạn trên response wrapper (Vary RSC
-     được gỡ trong `withOgImageCacheHeaders` ở opengraph-image.tsx). */
-  let ogRequest = request;
+  /* Forward pathname (+ OG URL) vào request headers cho Server Components/layout. */
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-pathname", pathname);
+
   const isOgImage =
     pathname.endsWith("/opengraph-image") ||
     pathname.endsWith("/twitter-image");
   if (isOgImage) {
-    const requestHeaders = new Headers(request.headers);
+    /* OG image: full URL để opengraph-image đọc query (`view`/`nhom`/`filter`). */
     requestHeaders.set("x-url", request.nextUrl.href);
-    ogRequest = new NextRequest(request, { headers: requestHeaders });
   }
+
+  const ogRequest = new NextRequest(request, { headers: requestHeaders });
 
   const { response: sessionResponse, userId } = await resolveSession(ogRequest);
 

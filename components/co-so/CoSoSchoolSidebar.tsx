@@ -23,7 +23,6 @@ import type { TruongDetail } from "@/lib/truong/types";
 
 type Props = {
   school: TruongDetail;
-  daVerify: boolean;
   hocVienXacThucCount?: number;
   canEditMedia?: boolean;
   onOpenSettings?: (section: CoSoSettingsSection) => void;
@@ -43,7 +42,6 @@ function csoSidebarSubtitle(school: TruongDetail): string | null {
 
 export function CoSoSchoolSidebar({
   school: schoolProp,
-  daVerify,
   hocVienXacThucCount = 0,
   canEditMedia = false,
   onOpenSettings,
@@ -91,6 +89,7 @@ export function CoSoSchoolSidebar({
             </div>
 
             <div className="cso-ss-identity">
+              <p className="cso-ss-eyebrow">Cơ sở đào tạo</p>
               <h1 className="cso-ss-name">{school.ten}</h1>
               {subtitle ? <p className="cso-ss-sub">{subtitle}</p> : null}
               {isEditing && onOpenSettings ? (
@@ -201,23 +200,6 @@ export function CoSoSchoolSidebar({
                 </div>
               </div>
             </div>
-
-            {daVerify ? (
-              <div className="cso-ss-verify is-verified">
-                <div className="cso-ss-verify-icon" aria-hidden>
-                  <BadgeCheck size={18} strokeWidth={2.2} />
-                </div>
-                <div className="cso-ss-verify-copy">
-                  <div className="cso-ss-verify-title">
-                    Đã xác thực giấy phép
-                  </div>
-                  <div className="cso-ss-verify-sub">
-                    {school.giay_phep_dao_tao?.trim() ||
-                      "CINS đã xác minh giấy phép đào tạo"}
-                  </div>
-                </div>
-              </div>
-            ) : null}
           </section>
           </div>
         </div>

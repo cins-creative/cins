@@ -339,7 +339,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   align-items: center;
   justify-content: center;
   color: #fff;
-  font-family: var(--font-anton), Anton, sans-serif;
+  font-family: var(--font-sans);
   font-size: 17px;
   letter-spacing: 0.5px;
 }

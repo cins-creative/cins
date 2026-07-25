@@ -17,6 +17,7 @@ import {
   ChatMessageActions,
   type ChatMessageActionHandlers,
 } from "@/components/cins/ChatMessageActions";
+import { ChatImageLightbox } from "@/components/cins/ChatImageLightbox";
 import { ChatMessageAlbum } from "@/components/cins/ChatMessageAlbum";
 import { ChatMessageBody } from "@/components/cins/ChatMessageBody";
 import { ChatMentionText } from "@/components/cins/ChatMentionText";
@@ -25,8 +26,12 @@ import { ChatMessageReactions } from "@/components/cins/ChatMessageReactions";
 import { ChatMessageReplyQuote } from "@/components/cins/ChatMessageReplyQuote";
 import { JourneyOrgPopover } from "@/components/journey/JourneyOrgPopover";
 import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
+import { useCoarsePointer } from "@/lib/ui/use-coarse-pointer";
 import { avatarBg, formatChatTime } from "@/lib/chat/avatar";
-import { groupChatMessages } from "@/lib/chat/message-albums";
+import {
+  chatMessageMediaEntries,
+  groupChatMessages,
+} from "@/lib/chat/message-albums";
 import {
   chatMessageHasInteractiveMedia,
   chatMessageMediaLayout,
@@ -78,10 +83,13 @@ function isIgnoredActionTarget(target: EventTarget | null): boolean {
 }
 
 /**
- * Tap/click bubble → emoji + bottom sheet.
+ * Tap bubble (mobile/touch only) → emoji + bottom sheet.
  * Chỉ mở (không toggle đóng) — tránh click đôi / contextmenu+click đóng ngay.
+ * Desktop (con trỏ chuột) không có effect này — click chỉ để chọn text/link.
  */
-function useBubbleTapActions(enabled: boolean) {
+function useBubbleTapActions(enabledProp: boolean) {
+  const isCoarsePointer = useCoarsePointer();
+  const enabled = enabledProp && isCoarsePointer;
   const [mobileOpen, setMobileOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const openedAtRef = useRef(0);
@@ -173,6 +181,7 @@ function useBubbleTapActions(enabled: boolean) {
   );
 
   return {
+    enabled,
     wrapRef,
     mobileOpen: enabled && mobileOpen,
     closeMobile,
@@ -185,7 +194,7 @@ function useBubbleTapActions(enabled: boolean) {
 
 function ChatBubbleActionsHost({
   className,
-  enabled,
+  enabled: enabledProp,
   msg,
   handlers,
   children,
@@ -197,6 +206,7 @@ function ChatBubbleActionsHost({
   children: ReactNode;
 }) {
   const {
+    enabled,
     wrapRef,
     mobileOpen,
     closeMobile,
@@ -204,7 +214,7 @@ function ChatBubbleActionsHost({
     onMouseDown,
     onContextMenu,
     onKeyDown,
-  } = useBubbleTapActions(enabled);
+  } = useBubbleTapActions(enabledProp);
 
   return (
     <div
@@ -256,6 +266,17 @@ type ChatMessageThreadItemsProps = {
   onJumpToMessage?: (messageId: string) => void;
   onOpenCanvasComments?: (nodeIds: string[], messageId: string) => void;
 };
+
+function collectGalleryMessages(
+  items: ReturnType<typeof groupChatMessages>,
+): ChatMessage[] {
+  const flat: ChatMessage[] = [];
+  for (const item of items) {
+    if (item.type === "single") flat.push(item.message);
+    else flat.push(...item.messages);
+  }
+  return flat;
+}
 
 function PinBadge() {
   return (
@@ -491,6 +512,7 @@ function SingleMessageBubble({
   onPollUpdated,
   onJumpToMessage,
   onOpenCanvasComments,
+  onOpenImage,
 }: {
   msg: ChatMessage;
   seenBy?: ChatReadCursor[];
@@ -507,6 +529,7 @@ function SingleMessageBubble({
   onPollUpdated?: (messageId: string, poll: ChatPollSummary) => void;
   onJumpToMessage?: (messageId: string) => void;
   onOpenCanvasComments?: (nodeIds: string[], messageId: string) => void;
+  onOpenImage?: (messageId: string) => void;
 }) {
   const isMe = msg.from === "me";
   const isEditing = editingMessageId === msg.id;
@@ -557,7 +580,9 @@ function SingleMessageBubble({
 
   const useSenderCluster = !isMe && Boolean(showSenderNames);
   const isDonHangCard =
-    !isEditing && msg.nguCanh?.loai === "don_hang" && !msg.deleted;
+    !isEditing &&
+    (msg.nguCanh?.loai === "don_hang" || msg.nguCanh?.loai === "don_hoc_phi") &&
+    !msg.deleted;
   /** Ảnh / sticker đứng riêng — không bọc bubble chat. */
   const isBareMedia =
     !isEditing &&
@@ -616,6 +641,7 @@ function SingleMessageBubble({
           roomId={roomId}
           viewerUserId={viewerUserId}
           onPollUpdated={onPollUpdated}
+          onOpenImage={onOpenImage}
         />
       </div>
       <div className="cins-chat-media-caption">
@@ -637,6 +663,7 @@ function SingleMessageBubble({
         roomId={roomId}
         viewerUserId={viewerUserId}
         onPollUpdated={onPollUpdated}
+        onOpenImage={onOpenImage}
       />
       {metaBelowMedia}
     </div>
@@ -647,6 +674,7 @@ function SingleMessageBubble({
         roomId={roomId}
         viewerUserId={viewerUserId}
         onPollUpdated={onPollUpdated}
+        onOpenImage={onOpenImage}
       />
       {!isEditing && !useSenderCluster && !isDonHangCard ? (
         <BubbleMeta msg={msg} />
@@ -728,6 +756,7 @@ function SingleMessageBubble({
               roomId={roomId}
               viewerUserId={viewerUserId}
               onPollUpdated={onPollUpdated}
+              onOpenImage={onOpenImage}
             />
             {!isEditing && msg.reactions?.length && actionHandlers ? (
               <ChatMessageReactions
@@ -839,6 +868,20 @@ export function ChatMessageThreadItems({
     [readCursors, messages],
   );
 
+  /* Gallery toàn hội thoại — filmstrip lightbox xem nhanh ảnh xung quanh
+     (không giới hạn trong 1 tin/1 album), giống Messenger. */
+  const galleryEntries = useMemo(
+    () => chatMessageMediaEntries(collectGalleryMessages(items)),
+    [items],
+  );
+  const [openImageId, setOpenImageId] = useState<string | null>(null);
+  const openImageIndex = openImageId
+    ? galleryEntries.findIndex((entry) => entry.id === openImageId)
+    : -1;
+  const handleOpenImage = useCallback((messageId: string) => {
+    setOpenImageId(messageId);
+  }, []);
+
   return (
     <>
       {items.map((item) => {
@@ -862,6 +905,7 @@ export function ChatMessageThreadItems({
               onPollUpdated={onPollUpdated}
               onJumpToMessage={onJumpToMessage}
               onOpenCanvasComments={onOpenCanvasComments}
+              onOpenImage={handleOpenImage}
             />
           );
         }
@@ -991,7 +1035,10 @@ export function ChatMessageThreadItems({
                     >
                       {!caption && albumActionMsg?.pinned ? <PinBadge /> : null}
                       <div className="cins-chat-media-block">
-                        <ChatMessageAlbum messages={activeMessages} />
+                        <ChatMessageAlbum
+                          messages={activeMessages}
+                          onOpenImage={handleOpenImage}
+                        />
                       </div>
                       {!caption && actionHandlers && albumActionMsg ? (
                         <ChatMessageActions
@@ -1018,7 +1065,10 @@ export function ChatMessageThreadItems({
                     >
                       {!caption && albumActionMsg?.pinned ? <PinBadge /> : null}
                       <div className="cins-chat-media-block">
-                        <ChatMessageAlbum messages={activeMessages} />
+                        <ChatMessageAlbum
+                          messages={activeMessages}
+                          onOpenImage={handleOpenImage}
+                        />
                         {!caption ? (
                           <BubbleMeta
                             msg={albumActionMsg ?? item.messages[0]}
@@ -1057,6 +1107,17 @@ export function ChatMessageThreadItems({
           </Fragment>
         );
       })}
+
+      {openImageIndex >= 0 ? (
+        <ChatImageLightbox
+          images={galleryEntries.map((entry) => entry.src)}
+          index={openImageIndex}
+          onClose={() => setOpenImageId(null)}
+          onIndexChange={(nextIndex) =>
+            setOpenImageId(galleryEntries[nextIndex]?.id ?? null)
+          }
+        />
+      ) : null}
     </>
   );
 }

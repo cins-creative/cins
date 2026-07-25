@@ -13,6 +13,7 @@ import type {
   ArticleImagePasteStatus,
 } from "@/components/article/draft/article-draft-editor-types";
 import { ArticleDraftImage } from "@/components/article/draft/ArticleDraftImage";
+import { ArticleDraftTableControls } from "@/components/article/draft/ArticleDraftTableControls";
 import { ArcImagePlaceholder } from "@/components/article/draft/arcImagePlaceholderExtension";
 import { ArcSiteHeading } from "@/components/article/draft/arcSiteHeadingExtension";
 import { ARTICLE_ARC_BLOCK_EXTENSIONS } from "@/components/article/draft/articleArcBlockExtensions";
@@ -439,6 +440,7 @@ export function ArticleDraftVisualPane({
         </div>
       ) : null}
       {editor ? <EditorContent editor={editor} /> : null}
+      <ArticleDraftTableControls editor={editor} disabled={hydrating} />
     </div>
   );
 

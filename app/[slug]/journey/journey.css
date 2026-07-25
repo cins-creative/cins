@@ -8,8 +8,7 @@
    ║   • --font-sans (Be Vietnam Pro), --font-serif (Crimson Pro)    ║
    ║   • --font-mono (JetBrains Mono)                                ║
    ║                                                                  ║
-   ║ Riêng Journey load thêm `--font-j-anton` (Anton) cho các số liệu ║
-   ║ / năm / nhãn lớn — qua `journey/layout.tsx`.                    ║
+   ║ Số liệu / năm / nhãn lớn: Be Vietnam Pro 800 (`--font-sans`).   ║
    ╚══════════════════════════════════════════════════════════════════╝ */
 
 .cins-journey-page {
@@ -4336,7 +4335,7 @@ a.j-main-gallery-item:focus-visible,
   z-index: 3;
 }
 .j-year-label {
-  font-family: var(--font-j-anton, "Anton"), var(--font-sans);
+  font-family: var(--font-sans); font-weight: 800;
   font-size: 30px;
   line-height: 1;
   letter-spacing: 0.5px;
@@ -13869,12 +13868,12 @@ select.j-edit-input {
   border-bottom: 1px solid var(--jcard-border2);
 }
 
-/* Card kéo được (chia sẻ vào chat) — chỉ vùng datebar là tay nắm. */
+/* Card kéo được (chia sẻ vào chat) — chỉ datebar[draggable] là tay nắm. */
 @media (pointer: fine) {
-  .j-milestone[draggable="true"] .jcard-datebar {
+  .jcard-datebar[draggable="true"] {
     cursor: grab;
   }
-  .j-milestone[draggable="true"] .jcard-datebar:active {
+  .jcard-datebar[draggable="true"]:active {
     cursor: grabbing;
   }
 }
@@ -18026,6 +18025,14 @@ button.j-user-pop-close svg {
   background: var(--bg-surface);
   overflow: visible;
 }
+.org-baidang-comments {
+  border-top: 1px solid var(--jcard-border2);
+  background: var(--bg-surface);
+  padding: 0;
+}
+.org-baidang-comments .post-comments {
+  margin: 0;
+}
 .action-btn,
 .share-btn {
   border: 0;
@@ -18526,7 +18533,7 @@ a.action-btn-part {
   height: 32px;
   border: 1px solid var(--border);
   border-radius: 999px;
-  background: #fff;
+  background: var(--bg-surface);
   color: var(--ink-muted);
   cursor: pointer;
 }
@@ -18582,14 +18589,14 @@ a.action-btn-part {
   border: 1px solid var(--border);
   border-radius: 16px;
   padding: 11px 12px;
-  background: #fff;
+  background: var(--bg-surface);
   color: var(--ink-body);
   text-align: left;
   cursor: pointer;
 }
 .j-bookmark-visibility button.is-active {
-  border-color: #93c5fd;
-  background: #eff6ff;
+  border-color: var(--cins-blue);
+  background: var(--cins-blue-soft);
   color: var(--cins-blue);
 }
 .j-bookmark-visibility span {
@@ -18630,7 +18637,7 @@ a.action-btn-part {
   padding: 10px 12px;
   border: 1px solid var(--border);
   border-radius: 12px;
-  background: #fff;
+  background: var(--bg-surface);
   color: var(--ink-display);
   font: inherit;
   font-size: 13px;
@@ -18660,7 +18667,7 @@ a.action-btn-part {
   border: 1px solid var(--border);
   border-radius: 999px;
   padding: 9px 14px;
-  background: #fff;
+  background: var(--bg-surface);
   color: var(--ink-body);
   font-size: 12px;
   font-weight: 800;

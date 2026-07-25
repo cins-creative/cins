@@ -100,7 +100,6 @@ type Props = {
   orgTen: string;
   orgDiaChi?: string | null;
   khoa: KhoaHocCardData;
-  orgVerified?: boolean;
   /** Bỏ qua API, render mockup demo đầy đủ. */
   useMockup?: boolean;
   canManageKhoaHoc?: boolean;
@@ -706,7 +705,6 @@ function GiaoVienRow({ gv }: { gv: GiaoVienKhoaData }) {
 function DetailContent({
   detail,
   orgSlug,
-  orgVerified = false,
   isMockup = false,
   isManagingBaiTap = false,
   canEditKhoaDetail = false,
@@ -728,7 +726,6 @@ function DetailContent({
 }: {
   detail: KhoaHocDetailPayload;
   orgSlug: string;
-  orgVerified?: boolean;
   isMockup?: boolean;
   /** Quản trị bài tập — chỉ khi có quyền và đang bật chế độ quản trị. */
   isManagingBaiTap?: boolean;
@@ -867,7 +864,7 @@ function DetailContent({
             <p className="cso-khd-h-org">
               <GraduationCap size={14} aria-hidden />
               {orgTen}
-              {orgVerified || isMockup ? (
+              {isMockup ? (
                 <BadgeCheck size={14} className="cso-khd-h-org-v" aria-hidden />
               ) : null}
             </p>
@@ -1173,7 +1170,6 @@ export function KhoaHocDetailView({
   orgTen,
   orgDiaChi = null,
   khoa,
-  orgVerified = false,
   useMockup = false,
   canManageKhoaHoc = false,
   onKhoaUpdated,
@@ -1543,7 +1539,6 @@ export function KhoaHocDetailView({
       <DetailContent
         detail={detail}
         orgSlug={orgSlug}
-        orgVerified={orgVerified}
         isMockup={isMockup}
         isManagingBaiTap={isManagingBaiTap}
         canEditKhoaDetail={isManagingKhoa}

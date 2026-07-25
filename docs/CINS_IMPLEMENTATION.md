@@ -31,6 +31,7 @@
 | `shop/gio` | GET/PATCH/DELETE giỏ buyer — scope **XOR** `cotMocId` (post-kiosk) **hoặc** `cuaHangId` (storefront `/{slug}/shop`) |
 | `shop/don` · `shop/don/[id]` | Tạo đơn từ giỏ (`cotMocId` **hoặc** `cuaHangId`) · seller xác nhận (trừ kho) · list đơn seller/buyer — **không** hủy đơn trên API |
 | `shop/cua-hang` · `…/mat-hang` · `…/thanh-toan` | Hồ sơ cửa hàng · catalog storefront · STK/QR checkout |
+| *(hub listing, không API riêng)* | **`/cua-hang`** — danh sách shop công khai; SSR `listPublicShopCuaHang` (`lib/shop/cua-hang-listing.ts`). Gate: `da_xoa=false` + owner `ban_hang_bat` ∧ `shop_hien_thi`. Sort: đang mở trước, `tam_dong` sau (`isShopTamDongActive`). Nav sidebar `MAIN_NAV` id `shops`. UI: `CuaHangListingLoader` / `CuaHangListingClient` · CSS `app/cua-hang/cua-hang-listing.css`. |
 | `milestone/[milestoneId]/shop-hang` | GET public hàng gắn post (**ẩn nếu owner `ban_hang_bat=false`**) · PUT gắn/gỡ (owner + `ban_hang_bat`) |
 | `su-kien/[suKienId]/quay` · `…/quay/[quayId]` | Xin làm quầy + bằng chứng · owner duyệt/từ chối/gỡ (kèm lý do) · seller rút (`action=withdraw`) · list quầy đã duyệt |
 | `shop/quay/cua-toi` | GET — quầy đang/đã tham gia của seller (`cho_xu_ly` + `da_duyet`) |
@@ -179,7 +180,7 @@ Pipeline **riêng** (không reuse blog-import Sine Art). Seller-only (session + 
 
 | Domain | Path |
 |---|---|
-| Shop UGC (L33) | `lib/shop/` — types, terms, catalog, giá, giỏ (post + cửa hàng), đơn, storefront, quầy, post-hang, cửa hàng, **`shopee/`** (import Shopee → kho) |
+| Shop UGC (L33) | `lib/shop/` — types, terms, catalog, giá, giỏ (post + cửa hàng), đơn, storefront, quầy, post-hang, cửa hàng, **hub listing** (`cua-hang-listing.ts` + `cua-hang-listing-types.ts`), **`shopee/`** (import Shopee → kho) |
 
 | Folder | Vai trò chính | File đáng chú ý |
 |---|---|---|
@@ -246,6 +247,7 @@ Pipeline **riêng** (không reuse blog-import Sine Art). Seller-only (session + 
 | `migration_org_bai_dang_reaction.sql` | Enum `loai_doi_tuong_social_enum` + value `org_bai_dang` (like/lưu polymorphic). |
 | `migration_org_bai_dang_noi_dung_blocks.sql` | Cột `org_bai_dang.noi_dung_blocks` jsonb — nội dung Block kiểu Journey; `noi_dung` HTML legacy giữ tạm. |
 | `migration_khoa_hoc_v2.sql` | **Trang khóa học v2** (gộp, thay `migration_giao_trinh_thu_tu.sql` lẻ): `org_giao_trinh.thu_tu` + `so_buoi`; `org_lop_hoc.lich_hoc` + `giao_vien_text`; `org_khoa_hoc.noi_dung_blocks`. Idempotent + backfill `thu_tu`. Chạy xong → đối chiếu lại schema DB. |
+| `migration_csdt_van_hanh_hoc.sql` | **L34 Plan 1:** `org_chi_nhanh`, `org_goi_hoc_phi`, `org_don_hoc_phi`, `org_ky_hoc`, `org_tien_do_bai`, `org_nop_bai`, `org_diem_danh` + ALTER A1/A2 `org_lop_hoc`. Runner: `npm run migrate:csdt`. **Đã chạy** CINS 2026-07-25. |
 | `migration_org_hinh_anh_loai_expand.sql` | Mở rộng CHECK `org_hinh_anh.loai`: thêm `ngoai_khoa`, `su_kien`, `hop_tac` (UI gallery tab Hình ảnh). Chạy: `node scripts/run-org-hinh-anh-loai-migration.mjs`. |
 | `migration_org_tuyen_dung.sql` | **Trang chủ adaptive:** `org_tuyen_dung` + `org_tuyen_dung_ung_tuyen` + `org_scout_luu`; enum `loai_hinh_lam_viec_enum`, `trang_thai_tuyen_dung_enum`, `trang_thai_ung_tuyen_enum`. Chạy: `node scripts/run-org-tuyen-dung-migration.mjs`. |
 | `migration_org_tuyen_dung_id_nghe.sql` | **Gắn tin tuyển dụng với vị trí công việc chuẩn:** `org_tuyen_dung.id_nghe` (FK → `article_bai_viet` loại `nghe`, `ON DELETE SET NULL`) + index. App: options nghề `lib/to-chuc/studio-nghe-options.ts` → `GET /api/meta/nghe-vi-tri`; picker `StudioJobTitlePicker` trong `StudioJobEditModal` (chọn nghề có sẵn hoặc gõ vị trí mới). `StudioJob.idNghe/ngheSlug/ngheTieuDe`; card tab Tuyển dụng link tiêu đề tới `/huong-nghiep/nghe/[slug]`. Chạy: `node scripts/run-org-tuyen-dung-id-nghe-migration.mjs`. |
@@ -397,6 +399,7 @@ Code map: `lib/journey/images.ts` (role `gallery-grid` → `grid` + `srcset` `gr
 | **SEO public** | `app/robots.ts` · `app/sitemap.ts` (hubs + `article_bai_viet` published via `articlePublicHref`). Helper `lib/seo/*` + `buildPublicPageMetadata`. Nghề: Occupation + Breadcrumb JSON-LD; hub `?q=` → `noindex`. Audit: `node scripts/audit-nghe-seo.mjs` → `scripts/nghe-content/_audit-seo-report.json`. |
 | **Trang chủ (đã login)** | `/` → `HomeWorldJourneyMain` — layout 3 cột adaptive (`components/cins/home-adaptive/`), feed giữa `WorldJourneyFeed` (tab Đang theo dõi / Khám phá). Persona từ `giai_doan`. Brief: `cursor_brief_trang_chu_adaptive.md`. |
 | **Cộng đồng** | `/cong-dong` (listing) · `/cong-dong/tao` · `/cong-dong/[slug]` (feed v4) · `/cong-dong/[slug]/su-kien/[suKienId]` (chi tiết/quản lý sự kiện trong shell) · … |
+| **Cửa hàng (L33 hub)** | `/cua-hang` — listing shop công khai (`shop_hien_thi`); card → `/{slug}/shop/{shopSlug}` |
 | **Cơ sở đào tạo** | `/co-so` (listing) · `/co-so/[slug]` (chi tiết v6) · `/co-so/[slug]/khoa-hoc/[khoa-slug]` (trang khóa — đã có route site) |
 | **Khóa học (cơ sở đào tạo)** | Xem §6 *Khóa học — chi tiết site* |
 | API tính điểm | `GET /api/truong/{org_to_chuc.id}/cau-hinh-tinh-diem?nam=&nganh=` — `nganh` = `org_truong_nganh.id`; `PUT` lưu `org_cau_hinh_mon` |
@@ -558,7 +561,13 @@ Trang khóa standalone `/co-so/[slug]/khoa-hoc/[khoa-slug]`. Ưu tiên render m�
 - **Ghi danh** (`POST …/dang-ky`): tạo `user_hoc_vien_lop`. Cohort → gắn `id_lop_hoc`; liên tục → chỉ `id_khoa_hoc` (`id_lop_hoc` NULL). Gửi org duyệt (`trang_thai='da_dang_ky'`).
 - **Đăng tác phẩm gắn khóa** (L14): form học viên chọn **khóa** → tự suy `id_lop_hoc` từ `user_hoc_vien_lop` → tạo `content_cot_moc` (`id_khoa_hoc`, `id_lop_hoc` tự điền) + `verify_yeu_cau` Loại 2 → org duyệt → nổi ở lens Sản phẩm học viên + Journey học viên.
 - **CRUD admin** inline trên trang (org admin): thêm/sửa khóa, kéo sắp xếp bài (`thu_tu`), đổi `visibility`, thêm/sửa lớp. Quyền: `vai_tro IN ('admin','quan_ly_noi_dung')` của org.
-- **Vẫn KHÔNG phải LMS**: không nộp bài / chấm điểm / lớp học online trong CINS. Chứng chỉ hoàn thành = milestone verified `sinh_tu_hoc_vien_lop` trên Journey.
+- **Vẫn KHÔNG phải LMS đầy đủ / chưa WebRTC**: Plan 1 = kỳ HP + phòng chat lớp + nộp/duyệt qua chat/dashboard (`migration_csdt_van_hanh_hoc.sql`). Call/share màn = Plan 2 khi user báo `ready`. Chứng chỉ hoàn thành = milestone verified `sinh_tu_hoc_vien_lop` trên Journey.
+- **Dashboard quản trị (L34 IA):** mọi admin CSĐT vào `/co-so/[slug]/quan-ly` — nav nhóm: Tổng quan · Thiết lập (Cơ sở · Chi nhánh) · Học (Khóa & lớp · Học viên · Điểm danh) · Tiền (Doanh thu). Marketing gộp Tổng quan (`/quan-ly/marketing` → redirect). Trang public chỉ hiển thị + link toolbar; chi nhánh nguồn chính = `org_chi_nhanh` (đồng bộ cột liên hệ org + mirror JSON).
+- **Founder Settings — "Cài đặt tối cao" (L34, 2026-07-25):** icon bánh răng trong `CoSoQuanLyShell` (chỉ owner/admin) → `/co-so/[slug]/quan-ly/cai-dat` (route `cai-dat`, ngoài 4 cụm nav; gate `CoSoQuanLyPageGate` với `requireFounder`).
+  - **STK nhận tiền:** dời khỏi tab Doanh thu vào đây; route `GET/PATCH /api/co-so/[id]/hoc-phi/thanh-toan` siết founder-only (`isCoSoFounderTier`), không qua ma trận.
+  - **Ma trận phân quyền staff** (`CoSoCaiDatToiCaoClient` + `GET/PATCH /api/co-so/[id]/cai-dat/quyen`): bảng mới `org_thanh_vien_quyen` (`id_to_chuc, id_nguoi_dung, module, muc_quyen ∈ {xem,sua}`, unique 3 cột; **chưa apply lên Supabase** — file `supabase/sql/migration_org_thanh_vien_quyen.sql`, chờ user xác nhận trước khi chạy). Vắng row = `an`.
+  - 7 module: `co-so` · `chi-nhanh` · `khoa-lop` · `hoc-vien` · `diem-danh` · `hoc-phi-goi` · `hoc-phi-doi-soat`. Lib `lib/to-chuc/co-so-quan-ly-access.ts`: `isCoSoFounderTier`, `getCoSoQuyenMap`, `getCoSoModuleQuyen`, `canAccessCoSoQuanLyAsync` (owner/admin luôn `sua`; role dưới tra bảng). Mọi route CSĐT trong dashboard (chi-nhanh, hoc-vien, thu-tien-mat, don-chat, diem-danh, nop-bai, hoc-phi/goi, hoc-phi/doanh-thu, hoc-phi/[donId]/xac-nhan, root `hoc-phi/[donId]/xac-nhan`) đổi từ role cứng (`canThuHocPhi`/`canManageDiemDanh`, đã xoá) sang tra module quyền tương ứng.
+  - **Ngoài phạm vi ma trận** (giữ role cứng/founder-only như cũ): quản lý thành viên (`canManageCoSoMembers`), đổi slug (`canChangeCoSoSlug`), curate bài đăng org (`canCurateCoSoBaiDang`), **CRUD khóa học** (`canViewerManageKhoaHoc` — dùng chung public page inline-edit, không đổi).
 
 ---
 
@@ -593,6 +602,7 @@ Trang khóa standalone `/co-so/[slug]/khoa-hoc/[khoa-slug]`. Ưu tiên render m�
 - Like count: realtime từ `social_reaction`, hiển thị công khai. Không cache field, không toggle ẩn per-tác-phẩm.
 - Sort trong tag/nghề/Gallery: mặc định `moi_nhat` | `a_z` | `nhieu_tuong_tac`.
 - **Gallery = discovery public + follow-feed**: trộn tác phẩm public với nội dung từ người/org user theo dõi. Sắp **thời gian thực** (`tao_luc` desc) + L29 editorial — **không** dùng `content_diem_feed` (O13 đóng bởi L30 cho *Timeline*).
+- **World Gallery pool** (`lib/cins/worldJourneyGalleryFetch.ts` · `GET /api/world-journey/gallery`): milestone user `feature` và `public` fetch **riêng** (tránh một `.limit` chung bị Nổi bật chiếm hết; cùng flag `WORLD_JOURNEY_PUBLIC_GLOBAL_FEED`) · bài cộng đồng có media · showcase studio · `org_bai_dang` trường/cơ sở có media. Sort: chỉ `tao_luc` desc (không ưu tiên featured).
 - **World Timeline scoring (L30):** bảng `content_diem_feed` (`migration_content_diem_feed.sql`, runner `scripts/run-content-diem-feed-migration.mjs`) + cột `diem_uu_tien` (`npm run migrate:diem-uu-tien` — admin nút **+** cộng +10 không hoàn lại, trần 200, refresh decay; không bị xóa khi OFF đẩy). Trọng số editable: singleton `content_feed_score_cau_hinh` (`npm run migrate:feed-score-config`) + lịch sử `content_feed_score_phien_ban` (`npm run migrate:feed-score-phien-ban`). API `GET|PUT /api/admin/feed-score-config` · `POST /api/admin/world-boost` (`action: "bump"`). Lib: `feed-scoring*.ts` · publish/boost/verify/recalc + lazy engagement. Backfill: `npm run backfill:diem-feed`. Chi tiết → DECISIONS L30.
 - **World editorial boost (L29):** bảng `content_world_boost` (`migration_content_world_boost.sql`, runner `scripts/run-content-world-boost-migration.mjs`). Lib: `lib/cins/world-boost.ts` · `world-boost-admin.ts` · `world-boost-client.ts`. API: `GET|POST /api/admin/world-boost` (gate `canManageUsers`). Merge sau cache trong `worldJourneyFeedFetch` / `worldJourneyGalleryFetch`. UI: `/admin/noi-dung-dang` (Grid/Listing/Công thức L30) + toggle trên World (`WorldBoostAdminProvider`). Cap rank `WORLD_BOOST_RANK_CAP=15`. TTL 3 ngày tự gia hạn; bật đẩy → upsert điểm Timeline (`BOOST_RESET_SCORE` từ cấu hình L30).
 - **Số follower không hiển thị công khai** (phản-vanity, L18). Theo dõi là kênh nhận nội dung, không phải số đếm khoe.
@@ -607,7 +617,7 @@ Trang khóa standalone `/co-so/[slug]/khoa-hoc/[khoa-slug]`. Ưu tiên render m�
 
 - `user_theo_doi` follow `nguoi_dung` (người), `bai_viet` (tag), `to_chuc` (org). 1 chiều, **không cần đồng ý, không pending** (khác kết bạn). Không điều kiện co-author.
 - **0 migration**: enum `loai_theo_doi_enum` đã sẵn `nguoi_dung`/`the`/`to_chuc`. Bật follow-user = mở app layer + thêm `nguoi_dung` vào Gallery query, không đụng DB.
-- **Gallery query**: union content public của người/org đang theo dõi (`content_cot_moc` loại trừ `cong_dong` + `org_bai_dang`) với feed discovery. `gallery-stubs.ts` cần implement thật.
+- **Gallery query**: `worldJourneyGalleryFetch` — union `feature`+`public` (user) + cộng đồng theo dõi/thành viên + showcase / `org_bai_dang` discovery. Xem bullet **World Gallery pool** ở trên.
 - Xem DECISIONS L17/L18 + L30 (Timeline) / Gallery chronological.
 
 ### Tag system (v7)

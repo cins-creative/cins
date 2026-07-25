@@ -58,8 +58,8 @@
 
 | # | Bảng | Thay đổi | Kiểu / FK gợi ý | Nullable | Lý do | Ảnh hưởng dữ liệu cũ | Trạng thái |
 |---|---|---|---|---|---|---|---|
-| A1 | `org_lop_hoc` | Thêm `id_chat_phong` | `uuid` → `chat_phong.id` | YES | 1 lớp = 1 phòng chat cố định | Row cũ = NULL đến khi backfill / tạo phòng | **Chờ duyệt** |
-| A2 | `org_lop_hoc` | Thêm `id_chi_nhanh` | `uuid` → `org_chi_nhanh.id` (sau khi có bảng) | YES | Lọc HV / doanh thu / lớp theo chi nhánh | Row cũ = NULL | **Chờ duyệt** (phụ thuộc bảng mới) |
+| A1 | `org_lop_hoc` | Thêm `id_chat_phong` | `uuid` → `chat_phong.id` | YES | 1 lớp = 1 phòng chat cố định | Row cũ = NULL đến khi backfill / tạo phòng | **Đã chạy** 2026-07-25 · `migration_csdt_van_hanh_hoc.sql` |
+| A2 | `org_lop_hoc` | Thêm `id_chi_nhanh` | `uuid` → `org_chi_nhanh.id` | YES | Lọc HV / doanh thu / lớp theo chi nhánh | Row cũ = NULL | **Đã chạy** 2026-07-25 · cùng migration |
 | A3 | `org_lop_hoc` | ~~`meeting_url`~~ | — | **Hủy** — call = LiveKit OSS trên Hetzner `sin` (L34) | — | **Đã hủy** |
 | A4 | `user_hoc_vien_lop` | *(không ALTER nếu dùng `org_tien_do_bai`)* | — | — | Tiến độ bài tách bảng mới | — | **Ưu tiên không ALTER**; chỉ đề xuất cột nếu sau này bỏ bảng tiến độ |
 | A5 | Enum `loai_mo_hinh_khoa_enum` | **Không** thêm giá trị “theo buổi” | — | — | Phase này bỏ gói buổi | — | **Không đổi** |
@@ -77,6 +77,31 @@
   • **Plan 1 (NOW):** tư vấn · đơn HP · phòng chat lớp · freeze · VietQR · pedagogy · dashboard — **không** call / share màn / Meet / provision Hetzner.  
   • **Plan 2 (LATER):** toàn bộ LiveKit — **chỉ khi user báo `ready`**.  
 - Brief: [`cursor_brief_csdt_van_hanh_hoc.md`](./cursor_brief_csdt_van_hanh_hoc.md) (2 plan tách rõ). A3 `meeting_url` **hủy**.
+
+#### Bổ sung L34 — Admin IA gộp vào `/quan-ly` (2026-07-25)
+
+- **Chốt:** toàn bộ quản trị CSĐT trong `CoSoQuanLyShell` (`/co-so/[slug]/quan-ly/*`). Nav nhóm (IA A 2026-07-25): **Tổng quan** · **Thiết lập** (Cơ sở · Chi nhánh) · **Học** (Khóa & lớp · Học viên · Điểm danh) · **Tiền** (Doanh thu). Tab Marketing gộp vào Tổng quan; `/quan-ly/marketing` redirect.
+- Trang public: toolbar → Quản trị / Thông tin cơ sở; «Sửa thông tin» sidebar → `/quan-ly/co-so` (không modal settings trên public).
+- **Chi nhánh single source:** CRUD `org_chi_nhanh`; public + settings đọc bảng trước, fallback `cau_hinh.chi_nhanh`; sau create/update sync cột liên hệ org + mirror JSON.
+- *Hệ quả file:* `lib/to-chuc/co-so-routes.ts`, `CoSoQuanLyShell`, `quan-ly/co-so` + `KhoaHocQuanLyClient`, `ops-dashboard` sync, `co-so-page-queries` / `co-so-settings`.
+
+#### Bổ sung L34 — Founder Settings: "Cài đặt tối cao" + ma trận phân quyền staff (2026-07-25)
+
+- **Founder tier** = `vai_tro` = `owner` (hệ thống CINs) hoặc `admin` (người sáng lập/được phong). Có thể có nhiều `admin` — tất cả đều founder tier, đều vào được "Cài đặt tối cao", không cần cột "founder" riêng.
+- **Thay hẳn** `canThuHocPhi`/`canManageDiemDanh` (role cứng) bằng ma trận `org_thanh_vien_quyen` (bảng mới, chưa apply — chờ user xác nhận) cho staff dưới founder tier (`quan_ly_tuyen_sinh`, `quan_ly_noi_dung`, `giao_vien`, `nhan_vien`). Founder tier luôn `sua` mọi module, không qua bảng.
+- **7 module ma trận:** `co-so` · `chi-nhanh` · `khoa-lop` (catalog khóa/lớp + duyệt bài nộp `nop-bai`) · `hoc-vien` (ghi danh + thu tiền mặt/CK) · `diem-danh` · `hoc-phi-goi` (gói học phí) · `hoc-phi-doi-soat` (KPI doanh thu + xác nhận đơn chờ). Mỗi ô 3 mức: `an`/`xem`/`sua`, vắng row = `an`.
+- **Ngoài phạm vi ma trận** (giữ nguyên hardcode founder-only hoặc role cũ): quản lý thành viên/gán vai trò (`canManageCoSoMembers`), đổi slug (`canChangeCoSoSlug`), duyệt bài đăng nội dung công khai org (`canCurateCoSoBaiDang`), **CRUD khóa học** (`canViewerManageKhoaHoc`/`canManageKhoaHoc` — dùng chung public page inline-edit, không đổi để tránh ảnh hưởng ngoài dashboard).
+- **STK nhận tiền:** chuyển hẳn ra khỏi tab Doanh thu (`GoiVaThanhToanClient`), sống trong "Cài đặt tối cao" (`CoSoCaiDatToiCaoClient`), route `hoc-phi/thanh-toan` siết founder-only (GET + PATCH), không nằm trong ma trận.
+- **Entry point:** icon bánh răng trong header `CoSoQuanLyShell` (chỉ hiện founder tier) → `/co-so/[slug]/quan-ly/cai-dat`, route mới `cai-dat` trong `CoSoQuanLySection`, **ngoài** 4 cụm nav.
+- *Hệ quả file:* `supabase/sql/migration_org_thanh_vien_quyen.sql` (bảng mới, chưa chạy) · `lib/to-chuc/co-so-quan-ly-access.ts` (viết lại: `CoSoModuleKey`, `isCoSoFounderTier`, `getCoSoQuyenMap`, `canAccessCoSoQuanLyAsync`) · `CoSoQuanLyPageGate` (+ `requireFounder`) · `CoSoQuanLyShell` (gear icon) · route `chi-nhanh`/`hoc-vien`/`hoc-phi/{thu-tien-mat,don-chat,goi,doanh-thu,thanh-toan,[donId]/xac-nhan}`/`diem-danh`/`nop-bai`/`marketing`/`hoc-phi/[donId]/xac-nhan` (root) · mới `app/co-so/[slug]/quan-ly/cai-dat/page.tsx` + `CoSoCaiDatToiCaoClient` + `api/co-so/[id]/cai-dat/quyen`.
+
+### Shop — hub directory `/cua-hang` (2026-07-25)
+
+- **Bổ sung L33:** sidebar **Cửa hàng** → hub `/cua-hang` liệt kê mọi shop đang **Hiển thị shop** (`ban_hang_bat` ∧ `shop_hien_thi`, `shop_cua_hang.da_xoa=false`).
+  • Sort: shop đang mở trước; shop đang tạm dừng (`isShopTamDongActive`) xếp sau; trong nhóm theo `ten` (vi).
+  • Không API list riêng — SSR `lib/shop/cua-hang-listing.ts` (service role), pattern hub `/cong-dong` / `/tuyen-dung`.
+  • Card → storefront canonical `/{ownerSlug}/shop/{shopSlug}`. MVP: không filter/search.
+  • *Hệ quả file:* `MAIN_NAV` id `shops` · `app/cua-hang/` · `components/shop/CuaHangListing*` · IMPLEMENTATION §1 Shop + §2 lib + hub site.
 
 ### Shop — import Shopee vào kho (2026-07-22)
 

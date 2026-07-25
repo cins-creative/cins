@@ -21,7 +21,6 @@ type Props = {
   orgSlug: string;
   orgTen: string;
   orgDiaChi?: string | null;
-  orgVerified?: boolean;
   canManageKhoaHoc: boolean;
   khoaSlug?: string | null;
   /** Shell navigate — tránh soft-nav Next (404 lần đầu). */
@@ -35,7 +34,6 @@ export function CoSoTabKhoaHoc({
   orgSlug,
   orgTen,
   orgDiaChi = null,
-  orgVerified = false,
   canManageKhoaHoc,
   khoaSlug = null,
   onOpenKhoa,
@@ -160,7 +158,6 @@ export function CoSoTabKhoaHoc({
         orgTen={orgTen}
         orgDiaChi={orgDiaChi}
         khoa={selected ?? mockKhoa}
-        orgVerified={orgVerified}
         useMockup={isMockupRoute}
         canManageKhoaHoc={canManageKhoaHoc}
         onKhoaUpdated={handleUpdated}

@@ -115,7 +115,7 @@ mint #6EFEC0 · orange #FFB85C · violet #BB89F8 · yellow #FDE859
 ```
 - Be Vietnam Pro tự host qua **`next/font/google`**, phơi ra CSS variable, map `--font-sans` → `font-sans` mặc định. **CHỈ load weight thực dùng** (vd 300/400/500/600/700), không load cả 9 weight × italic.
 - Font weight ưu tiên: **300 / 400 / 500** (theo demo production).
-- **DEPRECATED — đang gỡ:** `Anton` (`--font-display`) & `Crimson Pro` (`--font-serif`). KHÔNG dùng cho code/UI mới. Để hiện thực hóa single-font, cần dọn code: `app/cins-font-bridge.css` (`h1 { font-family: var(--font-anton) }` → Be Vietnam), `app/cins-design-tokens.css`, font loader `app/layout.tsx`, và `docs/CINs-design-conventions.md` §Typography.
+- **DEPRECATED — đã gỡ Anton:** `--font-display` & loader `Anton` không còn trong runtime. Crimson Pro (`--font-serif`) chỉ editorial. Single-font: Be Vietnam Pro qua `app/cins-font-bridge.css` + `app/layout.tsx`.
 
 ### Shape & shadow
 ```
@@ -391,7 +391,7 @@ Tách 2 mục tiêu — cơ chế khác nhau, đừng gộp:
 - [ ] Ảnh optimize + lazy; upload dùng optimistic + Direct Upload.
 - [ ] Không import thư viện thừa.
 - [ ] Đổi schema → migration idempotent, không sửa DB tay.
-- [ ] Design tokens CINS (blue/Lucide/**Be Vietnam Pro duy nhất**, mono chỉ cho code), không peach/Feather/gray mặc định, không Anton/Crimson (deprecated).
+- [ ] Design tokens CINS (blue/Lucide/**Be Vietnam Pro duy nhất**, mono chỉ cho code), không peach/Feather/gray mặc định; Anton đã gỡ khỏi runtime.
 - [ ] Lighthouse > 85 cho trang vừa sửa (trang public).
 
 ---

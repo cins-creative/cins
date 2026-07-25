@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { ChatCanvasBinhLuanNoticeBubble } from "@/components/cins/ChatCanvasBinhLuanNotice";
 import { ChatDonHangCard } from "@/components/cins/ChatDonHangCard";
+import { ChatDonHocPhiCard } from "@/components/cins/ChatDonHocPhiCard";
 import { ChatImageLightbox } from "@/components/cins/ChatImageLightbox";
 import { ChatLinkOgCard } from "@/components/cins/ChatLinkOgCard";
 import { ChatMentionText } from "@/components/cins/ChatMentionText";
@@ -25,6 +26,7 @@ const CHAT_CONTEXT_LABEL: Record<string, string> = {
   tuyen_sinh: "Tuyển sinh",
   khoa_hoc: "Khóa học",
   don_hang: "Đơn hàng",
+  don_hoc_phi: "Học phí",
 };
 
 type ChatMessageBodyProps = {
@@ -35,6 +37,8 @@ type ChatMessageBodyProps = {
   viewerUserId?: string | null;
   onPollUpdated?: (messageId: string, poll: ChatPollSummary) => void;
   onOpenCanvasComments?: (nodeIds: string[], messageId: string) => void;
+  /** Mở lightbox toàn hội thoại (filmstrip xem nhanh ảnh xung quanh) tại tin này. */
+  onOpenImage?: (messageId: string) => void;
 };
 
 function MessageCaption({
@@ -65,6 +69,7 @@ export function ChatMessageBody({
   viewerUserId,
   onPollUpdated,
   onOpenCanvasComments,
+  onOpenImage,
 }: ChatMessageBodyProps) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const isSticker = msg.kind === "sticker";
@@ -158,6 +163,27 @@ export function ChatMessageBody({
       );
     }
 
+    if (card.loai === "don_hoc_phi") {
+      return (
+        <span className="cins-chat-ctx-card-wrap cins-chat-ctx-card-wrap--don">
+          <span className="cins-chat-ctx-card-note">
+            {isMe ? "Bạn vừa gửi đơn học phí" : "Đơn học phí"}
+          </span>
+          <ChatDonHocPhiCard
+            card={card}
+            tone={isMe ? "me" : "them"}
+          />
+          {displayText ? (
+            <MessageCaption
+              text={displayText}
+              msg={msg}
+              viewerUserId={viewerUserId}
+            />
+          ) : null}
+        </span>
+      );
+    }
+
     const kindLabel = CHAT_CONTEXT_LABEL[card.loai] ?? "Nội dung";
     const inner = (
       <>
@@ -229,7 +255,9 @@ export function ChatMessageBody({
             src={imageSrc}
             alt={msg.body.trim() || "Ảnh đính kèm"}
             stacked={mediaOnly}
-            onClick={() => setLightboxOpen(true)}
+            onClick={() =>
+              onOpenImage ? onOpenImage(msg.id) : setLightboxOpen(true)
+            }
           />
         )
       ) : null}

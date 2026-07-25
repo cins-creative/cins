@@ -487,7 +487,8 @@ export function CinsChatProvider({
       const fromPeer = event.senderId !== viewerProfileId;
       if (
         !fromPeer ||
-        event.message.nguCanh?.loai !== "don_hang"
+        event.message.nguCanh?.loai !== "don_hang" &&
+        event.message.nguCanh?.loai !== "don_hoc_phi"
       ) {
         return;
       }

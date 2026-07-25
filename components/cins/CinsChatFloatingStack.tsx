@@ -14,6 +14,11 @@ import {
 } from "react";
 
 import { useCinsChat } from "@/components/cins/CinsChatProvider";
+import {
+  ChatAtMentionMenu,
+  filterChatAtMembers,
+  isChatAtMentionAll,
+} from "@/components/cins/ChatAtMentionMenu";
 import { ChatForwardPicker } from "@/components/cins/ChatForwardPicker";
 import { ChatGroupAvatar } from "@/components/cins/ChatGroupAvatar";
 import type { ChatMessageActionHandlers } from "@/components/cins/ChatMessageActions";
@@ -41,6 +46,7 @@ import {
   patchChatMessage,
   toggleChatReaction,
 } from "@/lib/chat/message-actions-client";
+import { resolveMentionsAgainstMembers } from "@/lib/chat/mentions";
 import {
   createOptimisticChatMessage,
   messagePreviewText,
@@ -59,7 +65,12 @@ import { applyChatViewerPerspective } from "@/lib/chat/message-perspective";
 import { applyKnownGroupSender } from "@/lib/chat/apply-known-group-sender";
 import { replaceOptimisticAlbumWithRealMessages } from "@/lib/chat/replace-album-batch";
 import { imageFilesFromClipboard } from "@/lib/files/clipboard-images";
+import {
+  getAtHashTrigger,
+  type AtHashTrigger,
+} from "@/lib/editor/use-at-hash-trigger";
 import type {
+  ChatGroupMember,
   ChatMessage,
   ChatMessageReplyPreview,
   ChatReadCursor,
@@ -320,6 +331,13 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
   const [forwardTarget, setForwardTarget] = useState<ChatMessage | null>(null);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editingDraft, setEditingDraft] = useState("");
+  const [groupMembersByRoom, setGroupMembersByRoom] = useState<
+    Record<string, ChatGroupMember[]>
+  >({});
+  const [atMentionTrigger, setAtMentionTrigger] = useState<AtHashTrigger | null>(
+    null,
+  );
+  const [atMentionIndex, setAtMentionIndex] = useState(0);
   const dismissedPeekRef = useRef<Set<string>>(new Set());
   const viewedRoomsRef = useRef<Set<string>>(new Set());
   const hydratedRoomsRef = useRef<Set<string>>(new Set());
@@ -479,6 +497,83 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
     handleReadCursorRealtime,
   );
   miniLeavingRef.current = miniLeaving;
+
+  /** Load members nhóm để gợi ý @ trong mini chat. */
+  useEffect(() => {
+    const roomId = miniThread?.roomId;
+    if (!roomId || !miniThread?.isGroup) return;
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch(`/api/chat/rooms/${roomId}/members`, {
+          cache: "no-store",
+        });
+        if (!res.ok || cancelled) return;
+        const json = (await res.json()) as { members?: ChatGroupMember[] };
+        if (cancelled || !json.members) return;
+        setGroupMembersByRoom((prev) => ({ ...prev, [roomId]: json.members! }));
+      } catch {
+        /* ignore */
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [miniThread?.roomId, miniThread?.isGroup]);
+
+  useEffect(() => {
+    setAtMentionTrigger(null);
+    setAtMentionIndex(0);
+  }, [miniThread?.roomId]);
+
+  const activeAtMembers = useMemo(() => {
+    if (!miniThread?.isGroup || !miniThread.roomId) return [];
+    return groupMembersByRoom[miniThread.roomId] ?? [];
+  }, [miniThread?.isGroup, miniThread?.roomId, groupMembersByRoom]);
+
+  const filteredAtMembers = useMemo(() => {
+    if (!atMentionTrigger || atMentionTrigger.char !== "@") return [];
+    return filterChatAtMembers(activeAtMembers, atMentionTrigger.query);
+  }, [activeAtMembers, atMentionTrigger]);
+
+  const syncAtMentionFromTextarea = useCallback(() => {
+    const ta = inputRef.current;
+    if (!ta || !miniThread?.isGroup) {
+      setAtMentionTrigger(null);
+      return;
+    }
+    const trigger = getAtHashTrigger(ta.value, ta.selectionStart);
+    if (!trigger || trigger.char !== "@") {
+      setAtMentionTrigger(null);
+      return;
+    }
+    setAtMentionTrigger(trigger);
+    setAtMentionIndex(0);
+  }, [miniThread?.isGroup]);
+
+  const insertAtMention = useCallback(
+    (member: ChatGroupMember) => {
+      const ta = inputRef.current;
+      if (!ta || !atMentionTrigger) return;
+      const slug = isChatAtMentionAll(member) ? "all" : member.slug;
+      const insert = `@${slug} `;
+      const next =
+        draft.slice(0, atMentionTrigger.start) +
+        insert +
+        draft.slice(atMentionTrigger.end);
+      setDraft(next);
+      setAtMentionTrigger(null);
+      setAtMentionIndex(0);
+      requestAnimationFrame(() => {
+        const caret = atMentionTrigger.start + insert.length;
+        ta.focus();
+        ta.setSelectionRange(caret, caret);
+      });
+    },
+    [atMentionTrigger, draft],
+  );
 
   useEffect(() => {
     return () => {
@@ -1725,6 +1820,17 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
     const snapshotReply = replyTarget;
     const roomId = miniThread.roomId;
 
+    const mentionMembers = miniThread.isGroup
+      ? (groupMembersByRoom[roomId] ?? []).map((m) => ({
+          userId: m.userId,
+          slug: m.slug,
+          tenHienThi: m.tenHienThi,
+        }))
+      : [];
+    const mentions = resolveMentionsAgainstMembers(text, mentionMembers, {
+      excludeUserId: viewerProfileId,
+    });
+
     const plan = buildChatSendPlan({
       text,
       images: snapshotImages.map((image) => ({
@@ -1733,6 +1839,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
         previewUrl: image.previewUrl,
       })),
       replyTo: snapshotReply ? messageToReplyPreview(snapshotReply) : null,
+      mentions,
     });
     const optimistics = optimisticMessagesFromPlan(plan);
     if (optimistics.length === 0) return;
@@ -1803,11 +1910,13 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
     appendOptimisticMessages,
     canSend,
     draft,
+    groupMembersByRoom,
     miniThread,
     replyTarget,
     sendableImages,
     submitAlbumBatch,
     submitRoomMessage,
+    viewerProfileId,
   ]);
 
   useEffect(() => {
@@ -1817,44 +1926,22 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
   }, [miniOpen]);
 
   useEffect(() => {
-    /* Full overlay chat đang mở — mini ẩn, không dismiss bằng outside-click. */
+    /*
+     * Mini chat kiểu Messenger: nổi cố định, không tự đóng khi click ra ngoài
+     * (đọc/scroll trang khác không được đóng chat). Chỉ đóng qua nút X hoặc Escape.
+     */
     if (!miniOpen || miniLeaving || open) return;
-    let removeListeners: (() => void) | undefined;
-    const timer = window.setTimeout(() => {
-      function onDocPointerDown(event: PointerEvent) {
-        const target = event.target as Node;
-        if (miniPanelRef.current?.contains(target)) return;
-        /* Bubble / FAB tự xử lý toggle — không đóng bằng outside-click. */
-        if (dockControlsRef.current?.contains(target)) return;
-        /* Sheet/emoji/forward portal body — chỉ đóng action, không đóng mini chat. */
-        if (
-          target instanceof Element &&
-          target.closest(
-            ".cins-chat-msg-sheet-root, .cins-chat-forward-root, .cins-chat-group-modal-root",
-          )
-        ) {
-          return;
-        }
-        closeMini();
+    function onKey(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      if (stickerPickerOpen) {
+        setStickerPickerOpen(false);
+        return;
       }
-      function onKey(event: KeyboardEvent) {
-        if (event.key !== "Escape") return;
-        if (stickerPickerOpen) {
-          setStickerPickerOpen(false);
-          return;
-        }
-        closeMini();
-      }
-      document.addEventListener("pointerdown", onDocPointerDown, true);
-      document.addEventListener("keydown", onKey);
-      removeListeners = () => {
-        document.removeEventListener("pointerdown", onDocPointerDown, true);
-        document.removeEventListener("keydown", onKey);
-      };
-    }, 0);
+      closeMini();
+    }
+    document.addEventListener("keydown", onKey);
     return () => {
-      window.clearTimeout(timer);
-      removeListeners?.();
+      document.removeEventListener("keydown", onKey);
     };
   }, [closeMini, miniLeaving, miniOpen, open, stickerPickerOpen]);
 
@@ -2049,6 +2136,15 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
               />
             ) : null}
             <div className="j-chat-mini-compose-row">
+              {atMentionTrigger && miniThread.isGroup ? (
+                <ChatAtMentionMenu
+                  members={activeAtMembers}
+                  query={atMentionTrigger.query}
+                  activeIndex={atMentionIndex}
+                  onHoverIndex={setAtMentionIndex}
+                  onSelect={insertAtMention}
+                />
+              ) : null}
               <input
                 ref={fileInputRef}
                 type="file"
@@ -2091,10 +2187,47 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
                 ref={inputRef}
                 rows={1}
                 value={draft}
-                onChange={(e) => setDraft(e.target.value)}
+                onChange={(e) => {
+                  setDraft(e.target.value);
+                  requestAnimationFrame(() => syncAtMentionFromTextarea());
+                }}
+                onSelect={() => syncAtMentionFromTextarea()}
+                onClick={() => syncAtMentionFromTextarea()}
                 placeholder="Viết tin nhắn…"
                 onPaste={handleComposePaste}
                 onKeyDown={(e) => {
+                  if (atMentionTrigger && filteredAtMembers.length > 0) {
+                    if (e.key === "ArrowDown") {
+                      e.preventDefault();
+                      setAtMentionIndex(
+                        (i) => (i + 1) % filteredAtMembers.length,
+                      );
+                      return;
+                    }
+                    if (e.key === "ArrowUp") {
+                      e.preventDefault();
+                      setAtMentionIndex(
+                        (i) =>
+                          (i - 1 + filteredAtMembers.length) %
+                          filteredAtMembers.length,
+                      );
+                      return;
+                    }
+                    if (e.key === "Enter" || e.key === "Tab") {
+                      e.preventDefault();
+                      const pick =
+                        filteredAtMembers[
+                          Math.min(atMentionIndex, filteredAtMembers.length - 1)
+                        ];
+                      if (pick) insertAtMention(pick);
+                      return;
+                    }
+                    if (e.key === "Escape") {
+                      e.preventDefault();
+                      setAtMentionTrigger(null);
+                      return;
+                    }
+                  }
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
                     void sendMessage();

@@ -12,6 +12,7 @@ import {
   type LucideIcon,
   Newspaper,
   Settings,
+  Store,
   UserCircle,
   Users,
 } from "lucide-react";
@@ -33,6 +34,7 @@ const ICON_MAP: Record<MainNavIcon, LucideIcon> = {
   education: GraduationCap,
   courses: FileText,
   community: Users,
+  shop: Store,
   business: Briefcase,
   jobs: BriefcaseBusiness,
   events: Calendar,

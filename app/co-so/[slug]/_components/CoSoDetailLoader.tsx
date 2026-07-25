@@ -41,6 +41,7 @@ export async function CoSoDetailLoader({ slug }: Props) {
         ...post,
         viewerBookmarked: social.bookmarked,
         bookmarkCount: social.bookmarkCount,
+        commentCount: social.commentCount,
       };
     }),
   };
