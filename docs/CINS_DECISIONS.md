@@ -38,6 +38,14 @@
 
 ## LOG — quyết định đã chốt
 
+### L35 — Fix chat Realtime "im lặng chết" — badge/tin không tự cập nhật (2026-07-25)
+
+- **Triệu chứng báo cáo:** gửi tin cho người khác → người nhận không có báo hiệu gì (badge/âm thanh), phải tự bấm mở khung chat mới thấy tin mới; có case người dùng báo gửi tin nhưng người nhận không thấy dù đang mở sẵn hội thoại.
+- **Đã kiểm tra và loại trừ phía DB/RLS** (script `scripts/check-chat-realtime.mjs`, read-only): `chat_tin_nhan` đã nằm trong publication `supabase_realtime`, `REPLICA IDENTITY FULL`, RLS + policy `is_chat_room_member`/`current_profile_id()` đúng thiết kế, 318/318 user có `auth_user_id`, **không có phòng 1-1 trùng lặp** giữa cùng một cặp user (loại kịch bản split-brain phòng).
+- **Nguyên nhân thật (client):** `lib/chat/use-chat-realtime.ts` (và `use-chat-read-cursors-realtime.ts`) chỉ gọi `.subscribe()` một lần, không theo dõi trạng thái kênh. Khi socket "chết lâm sàng" (máy ngủ, tab bị hệ điều hành suspend trên mobile, mất mạng chớp nhoáng) mà không bắn lỗi rõ ràng, app không tự nối lại → mất hết `INSERT`/`UPDATE` real-time cho tới khi user thao tác thứ gì đó gọi lại REST (mở khung chat) mới đồng bộ.
+- **Đã sửa:** cả hai hook theo dõi `.subscribe(status => ...)` — `CHANNEL_ERROR`/`TIMED_OUT` tự tạo lại kênh (backoff 1s→2s→…→tối đa 15s); thêm listener `visibilitychange` (tab về foreground) và `online` (có mạng lại) để chủ động dọn kênh cũ + mở kênh mới, phòng socket "treo" im lặng không báo lỗi. Không đổi logic nghiệp vụ (mapping tin, unread, âm thanh, watermark đã đọc).
+- *Hệ quả file:* `lib/chat/use-chat-realtime.ts`, `lib/chat/use-chat-read-cursors-realtime.ts`, script chẩn đoán mới `scripts/check-chat-realtime.mjs` (giữ lại để tái sử dụng khi nghi ngờ lần sau).
+
 ### L34 — CSĐT vận hành học (chat-first) + gate ALTER cột cũ (2026-07-24)
 
 - **Bối cảnh:** Hạ tầng học cho `co_so_dao_tao` (partner Sine Art): tư vấn `1_org` → đơn HP → phòng lớp cố định → freeze theo ngày → Journey verify sau đóng tiền; dashboard org (HV, thu tiền mặt/QR, điểm danh, doanh thu, chi nhánh). **Không** clone ERP Sine Art; **không** ghi học phí vào `shop_*`; **không** reuse `edu_*` (điểm xét tuyển ĐH).
