@@ -69,6 +69,7 @@ Pipeline **riêng** (không reuse blog-import Sine Art). Seller-only (session + 
 | `journey/[slug]/gallery` · `gallery-aside` | Tab Gallery của Journey + aside |
 | `journey/[slug]/friends` | Bạn bè hiển thị trên Journey |
 | `journey/[slug]/p/[postSlug]` · `.../edit` | Trang post · sửa post |
+| `noi-bo/tac-pham/dang` | **Autopilot Giai đoạn 0** — `POST` đăng Journey cho nick seed; Bearer `CINS_NOI_BO_DANG_BAI_SECRET`; khối embed nguồn Behance/ArtStation. Brief: `cursor_brief_seed_autopilot_handoff.md` §3b. Lib: `lib/editor/dang-bai-journey.ts` · `khoi-bai-nguon.ts` · `lib/noi-bo/*` |
 
 ### Filter cá nhân (`filters`) — đề xuất, Cursor chỉnh tên nếu trùng
 | Route | Việc |
@@ -339,6 +340,10 @@ GOOGLE_CLIENT_ID / SECRET
 
 # Admin — ủy quyền gán quyền org (chỉ super_admin, server-only)
 CINS_ORG_DELEGATION_PASSWORD   (bắt buộc để dùng panel Phân quyền /admin/to-chuc; không commit)
+
+# Autopilot / đăng bài nội bộ (server-only) — Giai đoạn 0
+CINS_NOI_BO_DANG_BAI_SECRET    (Bearer cho POST /api/noi-bo/tac-pham/dang)
+CINS_NICK_SEED_SLUGS           (tuỳ chọn — csv slug bổ sung allowlist nick seed)
 ```
 
 **Cloudflare Images — variants** (Dashboard → Images → Variants; cập nhật 2026-07-04):
@@ -447,7 +452,7 @@ Bài nhúng Tier 1 (YouTube, Vimeo, Sketchfab, Spline, PlayCanvas, Figma, …) /
 |---|---|
 | **Ưu tiên** | `content_tac_pham.cover_id` (user upload / crop) — không auto đè |
 | **Gallery read** (`resolvePostGridEntry`) | (1) `config.thumbnailUrl` trên block embed · (2) YouTube sync `i.ytimg.com/vi/{id}/hqdefault.jpg` · (3) logo platform CF (`embed-platform-logos`) |
-| **Publish / edit** (`ensureEmbedAutoCover`) | Nếu chưa cover: resolve URL (YouTube sync · Vimeo/Sketchfab oEmbed · OG HTML) → `uploadCloudflareImageFromUrl` → ghi `cover_id` + `thumbnailUrl` trên block. Wire: `publishPost` · `updatePost` · `POST /api/truong/[id]/bai-dang` |
+| **Publish / edit** (`ensureEmbedAutoCover`) | Nếu chưa cover: resolve URL (YouTube sync · Vimeo/Sketchfab oEmbed · OG HTML) → `uploadCloudflareImageFromUrl` → ghi `cover_id` + `thumbnailUrl` trên block. Wire: `publishPost` · `updatePost` · `POST /api/truong/[id]/bai-dang` · `POST /api/noi-bo/tac-pham/dang` |
 | **Rive file** | Client `captureRiveFrameAsFile` lúc đăng (`EditorView`) → `/api/post-image/upload`. Lottie file: chưa capture (logo / user upload) |
 | **Không làm** | Screenshot iframe cross-origin (Spline/Sketchfab…) — browser chặn; không headless browser |
 
