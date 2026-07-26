@@ -71,6 +71,14 @@ Pipeline **riêng** (không reuse blog-import Sine Art). Seller-only (session + 
 | `journey/[slug]/p/[postSlug]` · `.../edit` | Trang post · sửa post |
 | `noi-bo/tac-pham/dang` | **Autopilot Giai đoạn 0** — `POST` đăng Journey cho nick seed; Bearer `CINS_NOI_BO_DANG_BAI_SECRET`; khối embed nguồn Behance/ArtStation. Brief: `cursor_brief_seed_autopilot_handoff.md` §3b. Lib: `lib/editor/dang-bai-journey.ts` · `khoi-bai-nguon.ts` · `lib/noi-bo/*` |
 
+### Autopilot worker (Giai đoạn 1)
+
+| Thành phần | Việc |
+|---|---|
+| SQL `migration_autopilot_giai_doan_1.sql` | 7 bảng `auto_*` (tai_khoan/nguon/muc/ban_thao/da_dang/han_muc/viec) — RLS deny client, chỉ `service_role` |
+| `npm run migrate:autopilot` | Runner Postgres |
+| `npm run autopilot -- …` | CLI skeleton: `trang-thai` · `dong-bo-nick` · `them-nguon` · `liet-ke` · `tao-viec` — code `tools/autopilot/` |
+
 ### Filter cá nhân (`filters`) — đề xuất, Cursor chỉnh tên nếu trùng
 | Route | Việc |
 |---|---|
@@ -268,6 +276,7 @@ Pipeline **riêng** (không reuse blog-import Sine Art). Seller-only (session + 
 | `migration_org_truong_nganh_mon.sql` | **L31 môn chuyên ngành chương trình trường:** bảng `org_truong_nganh_mon` (`id_truong_nganh`, `id_mon_hoc` → `article_bai_viet`, `thu_tu`, unique cặp) + RLS select public / write `is_admin_to_chuc`. Seed mẫu MTS TKĐH: `org-truong-seed-nganh-mon-mts-thiet-ke-do-hoa.sql`. **Đã chạy trên CINs** (`ospzzzxcomrmhqrnkoiw`) 2026-07-14 — đối chiếu DB nếu nghi ngờ. |
 | `migration_user_gallery_noi_bat.sql` | **Thứ tự Nội dung nổi bật (cột aside Journey):** bảng `user_gallery_noi_bat` (`id_nguoi_dung`, `id_cot_moc`, `thu_tu`, PK cặp). `id_cot_moc` **polymorphic** (`content_cot_moc` hoặc `org_bai_dang`) — xem `migration_user_gallery_noi_bat_polymorphic_id.sql` (đã chạy CINs). Chỉ chủ Journey `PATCH /api/journey/[slug]/gallery-aside` `{ cotMocIds }`; mọi viewer đọc cùng thứ tự. Không đổi sort Gallery chính. App: `lib/journey/gallery-noi-bat-order.ts`, DnD trong `JourneyGalleryAside` (`featuredOnly` + `canReorder`). Chạy: `node scripts/run-user-gallery-noi-bat-migration.mjs` (+ polymorphic: `node scripts/run-user-gallery-noi-bat-polymorphic-id.mjs`). |
 | `migration_content_share_link.sql` | **Facebook OG cache-bust + short-link:** bảng server-only `content_share_link` (`token`, creator/org, `target_path`, title/description, Cloudflare `image_id`/`image_url`). Mỗi lần share card tạo token mới; `/s/[token]` có `og:url` riêng và ảnh snapshot cố định, người thật soft-redirect về URL gốc có `?s=`. Ảnh chỉ bị xóa khi không còn link tham chiếu. Chạy: `node scripts/run-content-share-link-migration.mjs`. **Đã chạy CINS `ospzzzxcomrmhqrnkoiw` 2026-07-17.** |
+| `migration_autopilot_giai_doan_1.sql` | **Autopilot Giai đoạn 1:** 7 bảng server-only `auto_tai_khoan` · `auto_nguon` · `auto_muc` · `auto_ban_thao` · `auto_da_dang` · `auto_han_muc` · `auto_viec`. RLS deny anon/authenticated. Chạy: `npm run migrate:autopilot`. CLI: `npm run autopilot`. |
 
 **Org bài đăng — blocks (app, sau migration):** `lib/truong/bai-dang-blocks.ts` · API `bai-dang` POST/PATCH nhận `noi_dung_blocks` · fetch `queries.ts` · card có blocks → `JourneyMilestoneCardBodyContent` + `PostBlockRenderer`; không blocks → HTML legacy. Compose org vẫn Tiptap/HTML — chưa ghi blocks từ UI.
 

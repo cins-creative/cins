@@ -83,7 +83,7 @@ Repo tool (có thể repo mới hoặc thư mục/`apps` sau) + GitHub Actions c
 | Giai đoạn | Việc |
 |---|---|
 | **0** ✅ | Chốt API đăng bài nội bộ + format khối link/embed |
-| **1** | Khung worker + CLI + bảng `tai_khoan` / `nguon` / `muc` / `ban_thao` / `da_dang` / `han_muc` / `viec` |
+| **1** ✅ | Khung worker + CLI + bảng `auto_*` (monorepo `tools/autopilot`) |
 | **2** | Thu thập ArtStation (ưu tiên) rồi Behance — theo danh sách theo dõi |
 | **3** | Ghép niche + hạn mức 10×3/ngày (múi giờ VN) |
 | **4** | Soạn bài AI (prompt cấm xưng tác giả gốc) |
@@ -96,7 +96,30 @@ Repo tool (có thể repo mới hoặc thư mục/`apps` sau) + GitHub Actions c
 1. Đăng bằng **API nội bộ** hay **phiên đăng nhập 10 nick**? → **Đã chọn API nội bộ** (Giai đoạn 0).
 2. Duyệt tay bản thảo giai đoạn đầu: có/không?
 3. Danh sách theo dõi ban đầu: ai chọn 50–200 artist/niche?
-4. Tool để **repo mới** hay monorepo trong `cins`?
+4. Tool để **repo mới** hay monorepo trong `cins`? → **Đã chọn monorepo** `tools/autopilot`.
+
+---
+
+## 3c. Giai đoạn 1 — khung worker (đã ship)
+
+### Bảng (prefix `auto_`, service role only)
+
+`auto_tai_khoan` · `auto_nguon` · `auto_muc` · `auto_ban_thao` · `auto_da_dang` · `auto_han_muc` · `auto_viec`
+
+SQL: `supabase/sql/migration_autopilot_giai_doan_1.sql`  
+Runner: `npm run migrate:autopilot`
+
+### CLI
+
+```bash
+npm run autopilot -- trang-thai
+npm run autopilot -- dong-bo-nick
+npm run autopilot -- them-nguon --nen-tang artstation --url 'https://…' --niche fantasy
+npm run autopilot -- liet-ke nguon|nick|muc
+npm run autopilot -- tao-viec --loai quet_nguon
+```
+
+Code: `tools/autopilot/` · README cùng thư mục.
 
 ---
 
