@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
-import { updateCongDongBranding } from "@/lib/cong-dong/org-profile";
+import { updateCongDongProfile } from "@/lib/cong-dong/org-profile";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -17,7 +17,7 @@ async function getCongDongOrg(orgId: string) {
   return data;
 }
 
-/** PATCH /api/cong-dong/:id/profile — admin cập nhật avatar_id / cover_id */
+/** PATCH /api/cong-dong/:id/profile — admin cập nhật ten / mo_ta / avatar / cover */
 export async function PATCH(req: Request, ctx: RouteContext) {
   const session = await getCurrentSessionAndProfile();
   if (!session?.profile) {
@@ -34,6 +34,9 @@ export async function PATCH(req: Request, ctx: RouteContext) {
     avatar_id?: string | null;
     coverId?: string | null;
     cover_id?: string | null;
+    ten?: string;
+    moTa?: string | null;
+    mo_ta?: string | null;
   };
   try {
     body = await req.json();
@@ -44,19 +47,28 @@ export async function PATCH(req: Request, ctx: RouteContext) {
   const avatarId =
     body.avatarId !== undefined ? body.avatarId : body.avatar_id;
   const coverId = body.coverId !== undefined ? body.coverId : body.cover_id;
+  const ten = body.ten;
+  const moTa = body.moTa !== undefined ? body.moTa : body.mo_ta;
 
-  if (avatarId === undefined && coverId === undefined) {
+  if (
+    avatarId === undefined &&
+    coverId === undefined &&
+    ten === undefined &&
+    moTa === undefined
+  ) {
     return NextResponse.json(
-      { error: "Cần avatarId hoặc coverId." },
+      { error: "Cần ít nhất một trường: ten, moTa, avatarId hoặc coverId." },
       { status: 400 },
     );
   }
 
-  const result = await updateCongDongBranding({
+  const result = await updateCongDongProfile({
     orgId,
     adminId: session.profile.id,
     avatarId,
     coverId,
+    ten,
+    moTa,
   });
 
   if (!result.ok) {
@@ -66,7 +78,9 @@ export async function PATCH(req: Request, ctx: RouteContext) {
 
   return NextResponse.json({
     ok: true,
-    avatarId: result.avatarId,
-    coverId: result.coverId,
+    avatarId: result.data.avatarId,
+    coverId: result.data.coverId,
+    ten: result.data.ten,
+    moTa: result.data.moTa,
   });
 }

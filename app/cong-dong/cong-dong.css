@@ -3469,6 +3469,100 @@
   min-width: 0;
 }
 
+.cd-manage-profile {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.cd-manage-profile-err {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--danger, #f0656a) 12%, var(--bg-surface, #fff));
+  color: var(--danger, #c0392b);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.cd-manage-profile-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.cd-manage-profile-lbl {
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--ink-display, rgba(0, 0, 0, 0.86));
+}
+
+.cd-manage-profile-inp,
+.cd-manage-profile-txt {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--border, #e4e6eb);
+  border-radius: 10px;
+  background: var(--bg-surface, #fff);
+  color: var(--ink-display, rgba(0, 0, 0, 0.88));
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.45;
+  transition: border-color 0.15s ease;
+}
+
+.cd-manage-profile-inp {
+  height: 40px;
+  padding: 0 12px;
+}
+
+.cd-manage-profile-txt {
+  padding: 10px 12px;
+  resize: vertical;
+  min-height: 96px;
+}
+
+.cd-manage-profile-inp:focus,
+.cd-manage-profile-txt:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--cins-blue, #1f74c9) 55%, var(--border, #e4e6eb));
+}
+
+.cd-manage-profile-inp:disabled,
+.cd-manage-profile-txt:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.cd-manage-profile-hint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.45));
+}
+
+.cd-manage-profile-foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 4px;
+  padding-top: 4px;
+}
+
+.cd-manage-profile-foot-spacer {
+  flex: 1;
+}
+
+.cd-manage-profile-ok {
+  margin-right: auto;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cins-blue, #1f74c9);
+}
+
 .cd-manage-topics-form .cd-v4-group-settings-foot {
   position: sticky;
   bottom: 0;
@@ -3669,6 +3763,13 @@
 :root[data-theme="dark"] .cd-manage-head,
 :root[data-theme="dark"] .cd-manage-nav {
   border-color: var(--border, #2a3040);
+}
+
+:root[data-theme="dark"] .cd-manage-profile-inp,
+:root[data-theme="dark"] .cd-manage-profile-txt {
+  background: var(--bg-surface, #171b24);
+  border-color: var(--border, #2a3040);
+  color: var(--ink-display, rgba(255, 255, 255, 0.92));
 }
 
 :root[data-theme="dark"] .cd-manage-nav {

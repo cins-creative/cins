@@ -432,6 +432,17 @@ export function CongDongPageClient({
     [],
   );
 
+  const onProfileSaved = useCallback(
+    (next: { ten: string; moTa: string | null }) => {
+      setOrg((prev) => ({
+        ...prev,
+        ten: next.ten,
+        moTa: next.moTa,
+      }));
+    },
+    [],
+  );
+
   const page = (
     <>
     <CongDongTopbarToolbar
@@ -673,7 +684,13 @@ export function CongDongPageClient({
         orgId={org.id}
         orgSlug={org.slug}
         orgLabel={org.ten}
+        orgMoTa={org.moTa}
         viewerIsOwner={viewerVaiTro === "owner"}
+        canProfile={
+          initial.isAdmin ||
+          canManageLabelsView ||
+          viewerVaiTro === "owner"
+        }
         canTopics={canManageTopicsView}
         canLabels={canManageLabelsView}
         canSuKien={canManageSuKienView}
@@ -687,6 +704,7 @@ export function CongDongPageClient({
           setCategories(next.categories);
           setLinhVucs(next.linhVucs);
         }}
+        onProfileSaved={onProfileSaved}
         onHoatDongChange={(next) => {
           setOrg((prev) => ({ ...prev, trangThaiHoatDong: next }));
         }}

@@ -3,6 +3,7 @@
 import {
   Building2,
   CalendarDays,
+  Info,
   Layers3,
   Settings2,
   Tags,
@@ -17,6 +18,7 @@ import { CongDongGroupSettingsPanel } from "@/components/cong-dong/CongDongGroup
 import { CongDongManageSuKienPanel } from "@/components/cong-dong/CongDongManageSuKienPanel";
 import { CongDongMembersModal } from "@/components/cong-dong/CongDongMembersModal";
 import { CongDongOrganizationSection } from "@/components/cong-dong/CongDongOrganizationSection";
+import { CongDongProfileSection } from "@/components/cong-dong/CongDongProfileSection";
 import type {
   CongDongCategory,
   CongDongFilter,
@@ -25,6 +27,7 @@ import type {
 import type { StudioHoatDongStatus } from "@/lib/to-chuc/studio-lifecycle.shared";
 
 export type CongDongManageSection =
+  | "thong_tin"
   | "chu_de"
   | "nhan"
   | "su_kien"
@@ -38,7 +41,10 @@ type Props = {
   orgId: string;
   orgSlug: string;
   orgLabel: string;
+  orgMoTa: string | null;
   viewerIsOwner: boolean;
+  /** owner · admin · quan_ly_noi_dung — đổi tên / mô tả. */
+  canProfile: boolean;
   canTopics: boolean;
   canLabels: boolean;
   canSuKien: boolean;
@@ -52,6 +58,7 @@ type Props = {
     categories: CongDongCategory[];
     linhVucs: CongDongLinhVuc[];
   }) => void;
+  onProfileSaved: (next: { ten: string; moTa: string | null }) => void;
   onHoatDongChange: (next: StudioHoatDongStatus) => void;
   onOwnershipTransferred: () => void;
   /** Tổng nội dung sự kiện chờ duyệt — badge nav + đồng bộ topbar. */
@@ -78,7 +85,9 @@ export function CongDongManageModal({
   orgId,
   orgSlug,
   orgLabel,
+  orgMoTa,
   viewerIsOwner,
+  canProfile,
   canTopics,
   canLabels,
   canSuKien,
@@ -89,6 +98,7 @@ export function CongDongManageModal({
   filters,
   onFiltersChange,
   onTopicsSaved,
+  onProfileSaved,
   onHoatDongChange,
   onOwnershipTransferred,
   suKienChoDuyet = 0,
@@ -98,6 +108,14 @@ export function CongDongManageModal({
 
   const nav = useMemo(() => {
     const items: NavItem[] = [];
+    if (canProfile) {
+      items.push({
+        id: "thong_tin",
+        label: "Thông tin",
+        blurb: "Tên và mô tả cộng đồng",
+        icon: Info,
+      });
+    }
     if (canTopics) {
       items.push({
         id: "chu_de",
@@ -141,6 +159,7 @@ export function CongDongManageModal({
     }
     return items;
   }, [
+    canProfile,
     canTopics,
     canLabels,
     canSuKien,
@@ -153,7 +172,7 @@ export function CongDongManageModal({
     if (initialSection && nav.some((n) => n.id === initialSection)) {
       return initialSection;
     }
-    return nav[0]?.id ?? "chu_de";
+    return nav[0]?.id ?? "thong_tin";
   }, [initialSection, nav]);
 
   const [section, setSection] = useState<CongDongManageSection>(resolvedInitial);
@@ -264,6 +283,15 @@ export function CongDongManageModal({
             ) : null}
 
             <div className="cd-manage-pane-body">
+              {canProfile && section === "thong_tin" ? (
+                <CongDongProfileSection
+                  orgId={orgId}
+                  ten={orgLabel}
+                  moTa={orgMoTa}
+                  onSaved={onProfileSaved}
+                />
+              ) : null}
+
               {canTopics && section === "chu_de" ? (
                 <CongDongGroupSettingsPanel
                   active={open && section === "chu_de"}
