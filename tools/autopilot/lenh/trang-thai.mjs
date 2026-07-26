@@ -42,6 +42,6 @@ export async function chayTrangThai(db) {
     `  CINS_NOI_BO_DANG_BAI_SECRET: ${hasSecret ? "SET" : "MISSING"}`,
   );
   console.log(
-    `  NEXT_PUBLIC_SITE_URL: ${process.env.NEXT_PUBLIC_SITE_URL || "(mặc định localhost:3001)"}`,
+    `  NEXT_PUBLIC_SITE_URL: ${process.env.NEXT_PUBLIC_SITE_URL ? "SET" : "MISSING"}`,
   );
 }

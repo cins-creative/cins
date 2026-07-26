@@ -77,7 +77,8 @@ Pipeline **riêng** (không reuse blog-import Sine Art). Seller-only (session + 
 |---|---|
 | SQL `migration_autopilot_giai_doan_1.sql` | 7 bảng `auto_*` (tai_khoan/nguon/muc/ban_thao/da_dang/han_muc/viec) — RLS deny client, chỉ `service_role` |
 | `npm run migrate:autopilot` | Runner Postgres |
-| `npm run autopilot -- …` | CLI skeleton: `trang-thai` · `dong-bo-nick` · `them-nguon` · `liet-ke` · `tao-viec` — code `tools/autopilot/` |
+| `npm run autopilot -- …` | CLI: `trang-thai` · `dong-bo-nick` · `them-nguon` · `quet-nguon` · `nhap-muc` · `liet-ke` · `tao-viec` — code `tools/autopilot/` |
+| Thu thập Giai đoạn 2 | ArtStation RSS `/{user}.rss` qua `SINE_ART_WORKER_*` → `auto_muc`. Behance CF-chặn → `nhap-muc` thủ công. |
 
 ### Filter cá nhân (`filters`) — đề xuất, Cursor chỉnh tên nếu trùng
 | Route | Việc |

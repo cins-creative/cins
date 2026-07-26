@@ -84,7 +84,7 @@ Repo tool (có thể repo mới hoặc thư mục/`apps` sau) + GitHub Actions c
 |---|---|
 | **0** ✅ | Chốt API đăng bài nội bộ + format khối link/embed |
 | **1** ✅ | Khung worker + CLI + bảng `auto_*` (monorepo `tools/autopilot`) |
-| **2** | Thu thập ArtStation (ưu tiên) rồi Behance — theo danh sách theo dõi |
+| **2** ✅ | Thu thập ArtStation (RSS) + Behance (nhập tay khi CF chặn) |
 | **3** | Ghép niche + hạn mức 10×3/ngày (múi giờ VN) |
 | **4** | Soạn bài AI (prompt cấm xưng tác giả gốc) |
 | **5** | Đăng lên CINs; idempotent; ghi log lỗi |
@@ -120,6 +120,27 @@ npm run autopilot -- tao-viec --loai quet_nguon
 ```
 
 Code: `tools/autopilot/` · README cùng thư mục.
+
+---
+
+## 3d. Giai đoạn 2 — thu thập
+
+### ArtStation (ưu tiên)
+
+- Feed: `https://www.artstation.com/{username}.rss` qua `SINE_ART_WORKER_URL` / `SINE_ART_WORKER_SECRET`
+- CLI: `npm run autopilot -- quet-nguon --nen-tang artstation [--gioi-han 30] [--chi-xem]`
+- Ghi `auto_muc` (`url_canonic` unique, `trang_thai=moi`); cập nhật `auto_nguon.lan_quet_luc`
+
+### Behance
+
+- JSON/RSS/HTML từ môi trường cloud hiện **bị Cloudflare 403**
+- Tạm: `npm run autopilot -- nhap-muc --url 'https://www.behance.net/gallery/…' --tieu-de '…' --tac-gia '…'`
+- Khi feed mở lại: cùng lệnh `quet-nguon --nen-tang behance`
+
+### Code map Giai đoạn 2
+
+- `tools/autopilot/lib/artstation.mjs` · `behance.mjs` · `fetch-html.mjs` · `luu-muc.mjs`
+- `tools/autopilot/lenh/quet-nguon.mjs` · `nhap-muc.mjs`
 
 ---
 
