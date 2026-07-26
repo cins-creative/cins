@@ -136,8 +136,17 @@
   align-items: center;
   justify-content: flex-end;
   justify-self: end;
-  gap: 8px 12px;
+  gap: 6px 8px;
   min-width: 0;
+}
+
+.shop-dash-head-toggles {
+  display: inline-flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
 .shop-dash-head-actions {
@@ -201,10 +210,10 @@
   position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
   flex-shrink: 0;
-  padding: 6px 10px;
-  border-radius: 10px;
+  padding: 4px 8px;
+  border-radius: 8px;
   border: 1px solid var(--border, #e4e6eb);
   background: var(--bg-surface, #fff);
 }
@@ -215,7 +224,7 @@
 }
 
 .shop-dash-visible-label {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--ink-display, rgba(0, 0, 0, 0.85));
   white-space: nowrap;
@@ -225,8 +234,8 @@
 .shop-dash-switch {
   position: relative;
   flex-shrink: 0;
-  width: 40px;
-  height: 24px;
+  width: 32px;
+  height: 18px;
   border: none;
   border-radius: 999px;
   padding: 0;
@@ -246,10 +255,10 @@
 
 .shop-dash-switch-knob {
   position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 18px;
-  height: 18px;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
   background: #fff;
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.25);
@@ -257,7 +266,7 @@
 }
 
 .shop-dash-switch.on .shop-dash-switch-knob {
-  transform: translateX(16px);
+  transform: translateX(14px);
 }
 
 .shop-dash-visible-err {
@@ -287,19 +296,19 @@
 }
 
 .shop-dash-tam-dong .shop-dash-visible {
-  gap: 8px;
+  gap: 6px;
 }
 
 .shop-dash-tam-dong-edit {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 26px;
+  height: 26px;
   margin: 0;
   padding: 0;
   border: 1px solid var(--border, #e4e6eb);
-  border-radius: 8px;
+  border-radius: 7px;
   background: var(--bg-surface, #fff);
   color: var(--ink-muted, rgba(0, 0, 0, 0.55));
   cursor: pointer;
@@ -5210,41 +5219,6 @@
   color: var(--ink-display, rgba(0, 0, 0, 0.85));
 }
 
-.shop-quay-hang-toggle {
-  flex-shrink: 0;
-  margin: 0;
-  padding: 5px 10px;
-  border: 1px solid
-    color-mix(in srgb, var(--border, #e4e6eb) 88%, transparent);
-  border-radius: 7px;
-  background: color-mix(in srgb, var(--bg-surface, #fff) 72%, transparent);
-  color: var(--ink-muted, rgba(0, 0, 0, 0.4));
-  font: inherit;
-  font-size: 0.8rem;
-  font-weight: 650;
-  line-height: 1.2;
-  white-space: nowrap;
-  cursor: pointer;
-  transition:
-    border-color 0.15s ease,
-    color 0.15s ease,
-    background 0.15s ease;
-}
-
-.shop-quay-hang-toggle:hover {
-  color: var(--ink-display, rgba(0, 0, 0, 0.85));
-}
-
-.shop-quay-hang-toggle.is-active {
-  border-color: color-mix(
-    in srgb,
-    var(--cins-blue, #1f74c9) 35%,
-    var(--border, #e4e6eb)
-  );
-  background: color-mix(in srgb, var(--cins-blue-soft, #e7f0fb) 80%, #fff);
-  color: var(--cins-blue, #1f74c9);
-}
-
 .shop-quay-hang-catalog.shop-kiosk-catalog-body {
   margin: 0;
   padding: 12px 4px 8px;
@@ -5296,8 +5270,12 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 6px 14px;
+  gap: 5px;
+  padding: 6px 12px;
   font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 650;
+  line-height: 1.2;
   color: var(--ink-title, rgba(0, 0, 0, 0.6));
   background: transparent;
   border: 0;
@@ -5310,8 +5288,9 @@
 }
 
 .shop-quay-tlb .j-svt-btn svg {
-  width: 15px;
-  height: 15px;
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
 }
 
 .shop-quay-tlb .j-svt-btn:hover {
@@ -5402,6 +5381,86 @@
 .shop-quay-user-copy strong {
   font-size: 14px;
   line-height: 1.25;
+}
+
+.shop-quay-shop-grid {
+  margin-top: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 560px) {
+  .shop-quay-shop-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.shop-quay-shop-grid .ch-list-card-title {
+  font-size: 1rem;
+}
+
+.shop-quay-shop-booth {
+  list-style: none;
+}
+
+.shop-quay-shop-booth--pending {
+  margin-top: 8px;
+}
+
+.shop-quay-shop-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border, #e4e6eb);
+  background: var(--bg-page, #f7f8fa);
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.shop-quay-shop-link:not(.is-static):hover {
+  border-color: color-mix(in srgb, var(--cins-blue, #1f74c9) 40%, var(--border));
+  background: color-mix(in srgb, var(--cins-blue-soft, #e7f0fb) 60%, #fff);
+}
+
+.shop-quay-shop-avatar {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--bg-muted, #f3f4f6);
+  color: var(--text-secondary, #52525b);
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.shop-quay-shop-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.shop-quay-shop-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.shop-quay-shop-copy strong {
+  font-size: 14px;
+  line-height: 1.25;
+}
+
+.shop-quay-shop-copy .shop-dash-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .shop-quay-review-post {
@@ -5963,7 +6022,32 @@
   }
 }
 
-/* Xin / tham gia sự kiện — chọn từ list */
+/* Xin / tham gia sự kiện — panel tab /ban-hang/su-kien */
+.shop-xin-quay-panel {
+  padding: 0;
+  overflow: hidden;
+}
+
+.shop-xin-quay-panel .shop-xin-quay-tabs {
+  padding: 14px 16px 10px;
+}
+
+.shop-xin-quay-panel .shop-xin-quay-body {
+  max-height: none;
+}
+
+.shop-xin-quay-panel .visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .shop-xin-quay-modal.uas-modal {
   max-width: min(560px, calc(100vw - 24px));
   max-height: min(92vh, 820px);
@@ -6248,25 +6332,101 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  max-height: min(280px, 36vh);
+  max-height: min(520px, 62vh);
   overflow-y: auto;
   scrollbar-width: thin;
+}
+
+.shop-xin-quay-item-main {
+  appearance: none;
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+
+.shop-xin-quay-open {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  margin-left: 4px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.45));
+  text-decoration: none;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.shop-xin-quay-open:hover {
+  border-color: color-mix(in srgb, var(--cins-blue, #1f74c9) 36%, var(--border));
+  background: color-mix(in srgb, var(--cins-blue-soft, #e7f0fb) 70%, #fff);
+  color: var(--cins-blue-dark, #1656a0);
+}
+
+.shop-xin-quay-apply-target {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-bottom: 4px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border, #e4e6eb);
+  background: var(--bg-page, #f7f8fa);
+}
+
+.shop-xin-quay-apply-target strong {
+  font-size: 14px;
+  line-height: 1.3;
+}
+
+.shop-xin-quay-ok-again {
+  appearance: none;
+  margin-left: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--cins-blue, #1f74c9);
+  font: inherit;
+  font-weight: 650;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.shop-xin-quay-mine-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
 }
 
 .shop-xin-quay-item {
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 14px;
+  gap: 8px;
   width: 100%;
   min-height: 84px;
   margin: 0;
-  padding: 12px 14px;
+  padding: 12px 10px 12px 14px;
   border: 1px solid var(--border, #e4e6eb);
   border-radius: 14px;
   background: var(--bg-surface, #fff);
   text-align: left;
-  cursor: pointer;
   font: inherit;
   color: inherit;
   transition:
@@ -6661,6 +6821,10 @@
     gap: 8px;
   }
 
+  .shop-dash-head-toggles {
+    gap: 6px;
+  }
+
   .shop-dash-head-row:has(.shop-dash-head-actions) .shop-dash-head-end {
     justify-self: stretch;
     justify-content: flex-start;
@@ -6709,13 +6873,17 @@
   }
 
   .shop-dash-visible {
-    padding: 6px;
+    padding: 5px;
     gap: 0;
-    min-height: 44px;
+    min-height: 36px;
   }
 
   .shop-dash-head-end {
-    gap: 6px;
+    gap: 5px;
+  }
+
+  .shop-dash-head-toggles {
+    gap: 5px;
   }
 
   .shop-dash-head-actions {

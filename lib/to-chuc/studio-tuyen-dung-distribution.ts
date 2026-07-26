@@ -8,11 +8,6 @@ export const TUYEN_DUNG_GIAI_DOAN_OPTIONS: ReadonlyArray<{
   hint: string;
 }> = [
   {
-    value: "moi_bat_dau",
-    label: "Mới bắt đầu",
-    hint: "Người mới vào ngành sáng tạo",
-  },
-  {
     value: "dang_hoc",
     label: "Đang học",
     hint: "Sinh viên / đang đào tạo",

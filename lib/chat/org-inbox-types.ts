@@ -4,6 +4,14 @@ import type { ChatMessage } from "@/lib/chat/types";
 /** Hội thoại org ↔ user trong inbox staff (tab Tin nhắn trang org). */
 export type OrgInboxThreadStatus = "open" | "replied";
 
+export type OrgInboxEnrollment = {
+  hocVienLopId: string;
+  khoaId: string;
+  tenKhoa: string;
+  lopId: string | null;
+  maLop: string | null;
+};
+
 export type OrgInboxThread = {
   roomId: string;
   studentUserId: string;
@@ -24,6 +32,10 @@ export type OrgInboxThread = {
   status: OrgInboxThreadStatus;
   /** Cột mốc danh tính chờ org duyệt — hiển thị card trong thread. */
   pendingVerification: OrgMembershipMilestoneRequestItem | null;
+  /** Có đơn học phí `cho_thanh_toan` gắn HV này. */
+  pendingDonHocPhi: boolean;
+  /** Ghi danh khóa/lớp hiện có — dùng CTA gửi đơn / mở lớp. */
+  enrollments: OrgInboxEnrollment[];
 };
 
 export type OrgInboxThreadDetail = OrgInboxThread & {
@@ -31,5 +43,9 @@ export type OrgInboxThreadDetail = OrgInboxThread & {
 };
 
 export function inboxThreadNeedsAction(thread: OrgInboxThread): boolean {
-  return thread.unread || Boolean(thread.pendingVerification);
+  return (
+    thread.unread ||
+    Boolean(thread.pendingVerification) ||
+    thread.pendingDonHocPhi
+  );
 }

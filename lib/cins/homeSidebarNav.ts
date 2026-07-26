@@ -45,8 +45,7 @@ function escapeHtml(value: string): string {
 
 function renderNavAnchor(item: MainNavItem, pathname: string): string {
   const active = item.isActive(pathname);
-  const highlight = item.highlight ? " sb-item--highlight" : "";
-  return `<a href="${escapeHtml(item.href)}" class="sb-item${active ? " active" : ""}${highlight}" data-tip="${escapeHtml(item.tip)}">
+  return `<a href="${escapeHtml(item.href)}" class="sb-item${active ? " active" : ""}" data-tip="${escapeHtml(item.tip)}">
       <span class="sb-ico">${HOME_SIDEBAR_ICONS[item.icon]}</span>
       <span class="sb-label">${escapeHtml(item.label)}</span></a>`;
 }
@@ -62,10 +61,15 @@ function renderMainNavListHtml(pathname: string): string {
 }
 
 function renderMainNavFootHtml(pathname: string): string {
-  const links = MAIN_NAV_FOOT_ITEMS.map((item) =>
-    renderNavAnchor(item, pathname),
-  ).join("\n    ");
-  return `<div class="sb-foot">\n    ${links}\n  </div>`;
+  const links = MAIN_NAV_FOOT_ITEMS.map((item, index) => {
+    const active = item.isActive(pathname);
+    const sep =
+      index > 0 ? `<span class="sb-foot-sep" aria-hidden="true">·</span>` : "";
+    return `${sep}<a href="${escapeHtml(item.href)}" class="sb-foot-link${active ? " is-active" : ""}" title="${escapeHtml(item.tip)}"${active ? ' aria-current="page"' : ""}>${escapeHtml(item.label)}</a>`;
+  }).join("");
+  return `<div class="sb-foot">
+    <nav class="sb-foot-meta" aria-label="Liên kết phụ">${links}</nav>
+  </div>`;
 }
 
 /** Thay sidebar nav home v2 bằng cùng nguồn MAIN_NAV_* như CinsAppSidebar. */

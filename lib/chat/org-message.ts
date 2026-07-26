@@ -64,7 +64,13 @@ function mergeOrgThreadPair(primary: ChatThread, secondary: ChatThread): ChatThr
 
 function dedupeOrgThreadsByOrg(threads: ChatThread[]): ChatThread[] {
   const byOrg = new Map<string, ChatThread>();
+  const hubs: ChatThread[] = [];
   for (const thread of threads) {
+    // Hub CSĐT không dedupe với phòng tư vấn 1_org.
+    if (thread.isOrgHub) {
+      hubs.push(thread);
+      continue;
+    }
     const orgId = thread.orgId;
     if (!orgId) {
       byOrg.set(thread.roomId, thread);
@@ -82,7 +88,7 @@ function dedupeOrgThreadsByOrg(threads: ChatThread[]): ChatThread[] {
       mergeOrgThreadPair(keepIncoming ? thread : existing, keepIncoming ? existing : thread),
     );
   }
-  return [...byOrg.values()];
+  return [...hubs, ...byOrg.values()];
 }
 
 type OrgRow = {
@@ -106,9 +112,11 @@ function buildOrgThread(
   preview: string,
   lastAt: string,
   unread: number,
+  options?: { isOrgHub?: boolean },
 ): ChatThread {
   const orgKind = mapOrgLoai(org.loai_to_chuc);
   const name = org.ten?.trim() || "Tổ chức";
+  const isOrgHub = Boolean(options?.isOrgHub);
   return {
     id: roomId,
     roomId,
@@ -118,13 +126,17 @@ function buildOrgThread(
     kind: "org",
     orgKind,
     verified: true,
-    role: orgKind ? CHAT_ORG_KIND_LABEL[orgKind] : "Tổ chức",
+    role: isOrgHub
+      ? "Chat cơ sở · mọi thành viên liên quan"
+      : "Tư vấn riêng với cơ sở",
     avatarInitial: avatarInitialFromName(name),
     avatarHue: avatarHueFromSeed(org.id),
     avatarUrl: getAvatarUrl(org.avatar_id),
     preview,
     lastAt,
     unread,
+    isOrgHub,
+    isOrgAdvisory: !isOrgHub,
     messages: [],
   };
 }
@@ -137,11 +149,14 @@ export async function findOrCreateOrgStudentRoom(
 
   const { data: memberships } = await admin
     .from("chat_thanh_vien")
-    .select("id_phong, chat_phong!inner(loai_phong, id_org_dai_dien)")
+    .select(
+      "id_phong, chat_phong!inner(loai_phong, loai_context, id_org_dai_dien)",
+    )
     .eq("id_nguoi_dung", studentUserId)
     .is("roi_luc", null)
     .eq("chat_phong.loai_phong", ORG_ROOM)
-    .eq("chat_phong.id_org_dai_dien", orgId);
+    .eq("chat_phong.id_org_dai_dien", orgId)
+    .neq("chat_phong.loai_context", "csdt_hub");
 
   const roomIds = [
     ...new Set((memberships ?? []).map((row) => row.id_phong).filter(Boolean)),
@@ -292,6 +307,8 @@ function buildInboxThread(params: {
     unreadCount,
     status,
     pendingVerification: null,
+    pendingDonHocPhi: false,
+    enrollments: [],
   };
 }
 
@@ -318,6 +335,8 @@ function buildInboxThreadFromVerification(params: {
     unreadCount: 0,
     status: "open",
     pendingVerification: params.request,
+    pendingDonHocPhi: false,
+    enrollments: [],
   };
 }
 
@@ -385,14 +404,17 @@ export async function listOrgInboxThreadsForStaff(
   const admin = createServiceRoleClient();
   const { data: rooms, error: roomError } = await admin
     .from("chat_phong")
-    .select("id, cap_nhat_luc")
+    .select("id, cap_nhat_luc, loai_context")
     .eq("loai_phong", ORG_ROOM)
     .eq("id_org_dai_dien", orgId)
-    .returns<Array<{ id: string; cap_nhat_luc: string }>>();
+    .returns<
+      Array<{ id: string; cap_nhat_luc: string; loai_context: string | null }>
+    >();
 
   if (roomError) return { ok: false, error: roomError.message };
 
-  const roomList = rooms ?? [];
+  // Inbox tư vấn — không gồm hub CSĐT.
+  const roomList = (rooms ?? []).filter((r) => r.loai_context !== "csdt_hub");
   const roomIds = roomList.map((room) => room.id);
 
   const { data: members } = roomIds.length
@@ -612,7 +634,113 @@ export async function listOrgInboxThreadsForStaff(
     (a, b) => new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime(),
   );
 
+  await enrichOrgInboxThreadsOps(admin, orgId, threads);
+
   return { ok: true, threads };
+}
+
+/** Gắn ghi danh + cờ đơn HP chờ TT cho inbox staff. */
+async function enrichOrgInboxThreadsOps(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  orgId: string,
+  threads: OrgInboxThread[],
+): Promise<void> {
+  if (threads.length === 0) return;
+
+  const studentIds = [...new Set(threads.map((t) => t.studentUserId))];
+
+  const { data: khoaRows } = await admin
+    .from("org_khoa_hoc")
+    .select("id, ten_khoa_hoc")
+    .eq("id_to_chuc", orgId)
+    .returns<Array<{ id: string; ten_khoa_hoc: string }>>();
+
+  const khoaIds = (khoaRows ?? []).map((k) => k.id);
+  const khoaTenById = new Map(
+    (khoaRows ?? []).map((k) => [k.id, k.ten_khoa_hoc] as const),
+  );
+
+  if (khoaIds.length === 0) {
+    for (const thread of threads) {
+      thread.enrollments = [];
+      thread.pendingDonHocPhi = false;
+    }
+    return;
+  }
+
+  const { data: hvlRows } = await admin
+    .from("user_hoc_vien_lop")
+    .select("id, id_nguoi_dung, id_khoa_hoc, id_lop_hoc")
+    .in("id_khoa_hoc", khoaIds)
+    .in("id_nguoi_dung", studentIds)
+    .returns<
+      Array<{
+        id: string;
+        id_nguoi_dung: string;
+        id_khoa_hoc: string;
+        id_lop_hoc: string | null;
+      }>
+    >();
+
+  const lopIds = [
+    ...new Set(
+      (hvlRows ?? [])
+        .map((r) => r.id_lop_hoc)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+  const maLopById = new Map<string, string | null>();
+  if (lopIds.length > 0) {
+    const { data: lopRows } = await admin
+      .from("org_lop_hoc")
+      .select("id, ma_lop")
+      .in("id", lopIds)
+      .returns<Array<{ id: string; ma_lop: string | null }>>();
+    for (const lop of lopRows ?? []) {
+      maLopById.set(lop.id, lop.ma_lop);
+    }
+  }
+
+  const enrollmentsByUser = new Map<string, OrgInboxThread["enrollments"]>();
+  const hvlIds: string[] = [];
+  for (const row of hvlRows ?? []) {
+    hvlIds.push(row.id);
+    const list = enrollmentsByUser.get(row.id_nguoi_dung) ?? [];
+    list.push({
+      hocVienLopId: row.id,
+      khoaId: row.id_khoa_hoc,
+      tenKhoa: khoaTenById.get(row.id_khoa_hoc)?.trim() || "Khóa học",
+      lopId: row.id_lop_hoc,
+      maLop: row.id_lop_hoc
+        ? maLopById.get(row.id_lop_hoc)?.trim() || null
+        : null,
+    });
+    enrollmentsByUser.set(row.id_nguoi_dung, list);
+  }
+
+  const pendingUserIds = new Set<string>();
+  if (hvlIds.length > 0) {
+    const { data: donRows } = await admin
+      .from("org_don_hoc_phi")
+      .select("id_hoc_vien_lop")
+      .eq("id_to_chuc", orgId)
+      .eq("trang_thai", "cho_thanh_toan")
+      .in("id_hoc_vien_lop", hvlIds)
+      .returns<Array<{ id_hoc_vien_lop: string }>>();
+
+    const hvlToUser = new Map(
+      (hvlRows ?? []).map((r) => [r.id, r.id_nguoi_dung] as const),
+    );
+    for (const don of donRows ?? []) {
+      const uid = hvlToUser.get(don.id_hoc_vien_lop);
+      if (uid) pendingUserIds.add(uid);
+    }
+  }
+
+  for (const thread of threads) {
+    thread.enrollments = enrollmentsByUser.get(thread.studentUserId) ?? [];
+    thread.pendingDonHocPhi = pendingUserIds.has(thread.studentUserId);
+  }
 }
 
 export async function listOrgStudentMessagesForStaff(params: {
@@ -715,6 +843,9 @@ export async function sendOrgMessageToStudent(params: {
   body?: string;
   cloudflareImageId?: string;
   emojiMucId?: string;
+  /** Phòng đang mở trên inbox — tránh gửi lệch phòng khác cùng cặp org↔HV. */
+  roomId?: string | null;
+  replyToId?: string | null;
 }): Promise<
   | { ok: true; roomId: string; message: ChatMessage }
   | { ok: false; error: string }
@@ -722,6 +853,7 @@ export async function sendOrgMessageToStudent(params: {
   const text = params.body?.trim() ?? "";
   const cloudflareImageId = params.cloudflareImageId?.trim();
   const emojiMucId = params.emojiMucId?.trim();
+  const replyToId = params.replyToId?.trim() || undefined;
 
   if (!text && !cloudflareImageId && !emojiMucId) {
     return { ok: false, error: "Tin nhắn trống." };
@@ -747,10 +879,44 @@ export async function sendOrgMessageToStudent(params: {
   }
 
   try {
-    const roomId = await findOrCreateOrgStudentRoom(
-      params.orgId,
-      params.studentUserId,
-    );
+    let roomId = params.roomId?.trim() || "";
+
+    if (roomId) {
+      const { data: room } = await admin
+        .from("chat_phong")
+        .select("id, loai_phong, id_org_dai_dien")
+        .eq("id", roomId)
+        .maybeSingle<{
+          id: string;
+          loai_phong: string;
+          id_org_dai_dien: string | null;
+        }>();
+
+      const { data: studentMember } = await admin
+        .from("chat_thanh_vien")
+        .select("id")
+        .eq("id_phong", roomId)
+        .eq("id_nguoi_dung", params.studentUserId)
+        .is("roi_luc", null)
+        .maybeSingle<{ id: string }>();
+
+      if (
+        !room ||
+        room.loai_phong !== ORG_ROOM ||
+        room.id_org_dai_dien !== params.orgId ||
+        !studentMember?.id
+      ) {
+        roomId = "";
+      }
+    }
+
+    if (!roomId) {
+      roomId = await findOrCreateOrgStudentRoom(
+        params.orgId,
+        params.studentUserId,
+      );
+    }
+
     await ensureStaffOrgRoomMember(admin, roomId, params.staffUserId);
 
     const { sendRoomMessage } = await import("@/lib/chat/direct-message");
@@ -758,6 +924,7 @@ export async function sendOrgMessageToStudent(params: {
       body: text,
       cloudflareImageId,
       emojiMucId,
+      replyToId,
     });
 
     if (!result.ok) {
@@ -834,6 +1001,8 @@ function buildLopThread(
   preview: string,
   lastAt: string,
   unread: number,
+  parentRoomId?: string | null,
+  roomAvatarId?: string | null,
 ): ChatThread {
   const orgKind = mapOrgLoai(org.loai_to_chuc);
   const name = tenPhong.trim() || org.ten?.trim() || "Lớp học";
@@ -842,15 +1011,17 @@ function buildLopThread(
     roomId,
     orgId: org.id,
     lopHocId: lopId,
+    parentRoomId: parentRoomId ?? null,
     name,
     group: "to_chuc",
     kind: "org",
     orgKind,
     verified: true,
-    role: "Lớp học",
+    role: "Phòng học của lớp",
     avatarInitial: avatarInitialFromName(name),
     avatarHue: avatarHueFromSeed(lopId),
-    avatarUrl: getAvatarUrl(org.avatar_id),
+    // Thumbnail riêng phòng lớp; fallback logo org.
+    avatarUrl: getAvatarUrl(roomAvatarId ?? org.avatar_id),
     preview,
     lastAt,
     unread,
@@ -860,36 +1031,176 @@ function buildLopThread(
 
 export async function listOrgThreadsForUser(viewerId: string): Promise<ChatThread[]> {
   const admin = createServiceRoleClient();
+  const { isCoSoStaffRole } = await import("@/lib/to-chuc/co-so-vai-tro");
+  const {
+    ensureStaffMemberInLopRoom,
+    backfillLopRoomsParentHub,
+  } = await import("@/lib/co-so/lop-chat-phong");
+  const {
+    CSDT_HUB_CONTEXT,
+    ensureOrgHubPhong,
+  } = await import("@/lib/co-so/org-hub-phong");
 
   const { data: membershipsWithRole } = await admin
     .from("chat_thanh_vien")
     .select(
-      "id_phong, vai_tro, chat_phong!inner(id, loai_phong, id_org_dai_dien, id_context, ten_phong, cap_nhat_luc)",
+      "id_phong, vai_tro, chat_phong!inner(id, loai_phong, loai_context, id_org_dai_dien, id_context, id_phong_cha, ten_phong, avatar_id, cap_nhat_luc)",
     )
     .eq("id_nguoi_dung", viewerId)
     .is("roi_luc", null)
     .in("chat_phong.loai_phong", [ORG_ROOM, LOP_ROOM]);
 
+  type RoomMeta = {
+    loai_phong?: string;
+    loai_context?: string | null;
+    id_org_dai_dien?: string | null;
+    id_context?: string | null;
+    id_phong_cha?: string | null;
+    ten_phong?: string | null;
+    avatar_id?: string | null;
+    cap_nhat_luc?: string;
+  };
+
   const rows = membershipsWithRole ?? [];
-  const orgRows = rows.filter((r) => {
-    const room = r.chat_phong as { loai_phong?: string } | null;
-    return room?.loai_phong === ORG_ROOM && r.vai_tro === "thanh_vien";
+  const hubRows = rows.filter((r) => {
+    const room = r.chat_phong as RoomMeta | null;
+    return (
+      room?.loai_phong === ORG_ROOM && room.loai_context === CSDT_HUB_CONTEXT
+    );
   });
-  const lopRows = rows.filter((r) => {
-    const room = r.chat_phong as { loai_phong?: string } | null;
+  // Tư vấn 1_org: phía user (thanh_vien), không gồm hub.
+  const orgStudentRows = rows.filter((r) => {
+    const room = r.chat_phong as RoomMeta | null;
+    return (
+      room?.loai_phong === ORG_ROOM &&
+      room.loai_context !== CSDT_HUB_CONTEXT &&
+      r.vai_tro === "thanh_vien"
+    );
+  });
+  const lopRowsFromMembership = rows.filter((r) => {
+    const room = r.chat_phong as RoomMeta | null;
     return room?.loai_phong === LOP_ROOM;
   });
 
+  const { data: staffMemberships } = await admin
+    .from("user_thanh_vien_to_chuc")
+    .select("id_to_chuc, vai_tro")
+    .eq("id_nguoi_dung", viewerId)
+    .eq("trang_thai", "active");
+
+  const staffOrgIds = [
+    ...new Set(
+      (staffMemberships ?? [])
+        .filter((m) => isCoSoStaffRole(m.vai_tro as string))
+        .map((m) => m.id_to_chuc as string)
+        .filter(Boolean),
+    ),
+  ];
+
+  // Staff / HV: đảm bảo hub tồn tại + membership.
+  const hubEnsureOrgs = [
+    ...new Set([
+      ...staffOrgIds,
+      ...hubRows
+        .map((r) => (r.chat_phong as RoomMeta | null)?.id_org_dai_dien)
+        .filter((id): id is string => Boolean(id)),
+      ...lopRowsFromMembership
+        .map((r) => (r.chat_phong as RoomMeta | null)?.id_org_dai_dien)
+        .filter((id): id is string => Boolean(id)),
+    ]),
+  ];
+  await Promise.all(
+    hubEnsureOrgs.map(async (orgId) => {
+      await ensureOrgHubPhong(orgId).catch(() => undefined);
+      await backfillLopRoomsParentHub(orgId).catch(() => undefined);
+    }),
+  );
+
+  type LopRoomRow = {
+    id: string;
+    id_org_dai_dien: string | null;
+    id_context: string | null;
+    id_phong_cha: string | null;
+    ten_phong: string | null;
+    avatar_id: string | null;
+    cap_nhat_luc: string | null;
+  };
+
+  let staffLopRooms: LopRoomRow[] = [];
+  if (staffOrgIds.length > 0) {
+    const { data: rooms } = await admin
+      .from("chat_phong")
+      .select(
+        "id, id_org_dai_dien, id_context, id_phong_cha, ten_phong, avatar_id, cap_nhat_luc",
+      )
+      .eq("loai_phong", LOP_ROOM)
+      .in("id_org_dai_dien", staffOrgIds)
+      .returns<LopRoomRow[]>();
+    staffLopRooms = rooms ?? [];
+
+    const alreadyMember = new Set(
+      lopRowsFromMembership.map((r) => r.id_phong as string),
+    );
+    await Promise.all(
+      staffLopRooms
+        .filter((r) => r.id && !alreadyMember.has(r.id))
+        .map((r) =>
+          ensureStaffMemberInLopRoom(r.id_org_dai_dien!, r.id, viewerId),
+        ),
+    );
+  }
+
+  // Reload hub memberships sau ensure (staff mới join).
+  let hubRowsFinal = hubRows;
+  if (hubEnsureOrgs.length > 0) {
+    const { data: hubMemberships } = await admin
+      .from("chat_thanh_vien")
+      .select(
+        "id_phong, vai_tro, chat_phong!inner(id, loai_phong, loai_context, id_org_dai_dien, id_context, id_phong_cha, ten_phong, avatar_id, cap_nhat_luc)",
+      )
+      .eq("id_nguoi_dung", viewerId)
+      .is("roi_luc", null)
+      .eq("chat_phong.loai_phong", ORG_ROOM)
+      .eq("chat_phong.loai_context", CSDT_HUB_CONTEXT);
+    hubRowsFinal = hubMemberships ?? [];
+  }
+
+  const lopRows = [
+    ...lopRowsFromMembership,
+    ...staffLopRooms
+      .filter(
+        (r) => !lopRowsFromMembership.some((m) => m.id_phong === r.id),
+      )
+      .map((r) => ({
+        id_phong: r.id,
+        vai_tro: "admin",
+        chat_phong: {
+          loai_phong: LOP_ROOM,
+          loai_context: "lop_hoc",
+          id_org_dai_dien: r.id_org_dai_dien,
+          id_context: r.id_context,
+          id_phong_cha: r.id_phong_cha,
+          ten_phong: r.ten_phong,
+          avatar_id: r.avatar_id,
+          cap_nhat_luc: r.cap_nhat_luc,
+        } satisfies RoomMeta,
+      })),
+  ];
+
   const roomIds = [
-    ...new Set([...orgRows, ...lopRows].map((row) => row.id_phong)),
+    ...new Set(
+      [...hubRowsFinal, ...orgStudentRows, ...lopRows].map(
+        (row) => row.id_phong as string,
+      ),
+    ),
   ];
   if (roomIds.length === 0) return [];
 
   const orgIds = [
     ...new Set(
-      [...orgRows, ...lopRows]
+      [...hubRowsFinal, ...orgStudentRows, ...lopRows]
         .map((row) => {
-          const room = row.chat_phong as { id_org_dai_dien?: string | null } | null;
+          const room = row.chat_phong as RoomMeta | null;
           return room?.id_org_dai_dien ?? null;
         })
         .filter((id): id is string => Boolean(id)),
@@ -949,20 +1260,15 @@ export async function listOrgThreadsForUser(viewerId: string): Promise<ChatThrea
   const orgThreads: ChatThread[] = [];
   const seenOrgRooms = new Set<string>();
 
-  for (const row of orgRows) {
-    const roomId = row.id_phong;
+  for (const row of hubRowsFinal) {
+    const roomId = row.id_phong as string;
     if (seenOrgRooms.has(roomId)) continue;
     seenOrgRooms.add(roomId);
-
-    const room = row.chat_phong as {
-      id_org_dai_dien?: string | null;
-      cap_nhat_luc?: string;
-    } | null;
+    const room = row.chat_phong as RoomMeta | null;
     const orgId = room?.id_org_dai_dien;
     if (!orgId) continue;
     const org = orgById.get(orgId);
     if (!org) continue;
-
     const last = lastByRoom.get(roomId);
     const readAt = readAtByRoom.get(roomId) ?? null;
     const unread = (messages ?? []).filter(
@@ -971,7 +1277,35 @@ export async function listOrgThreadsForUser(viewerId: string): Promise<ChatThrea
         msg.id_nguoi_gui !== viewerId &&
         (!readAt || msg.tao_luc > readAt),
     ).length;
+    orgThreads.push(
+      buildOrgThread(
+        roomId,
+        org,
+        last ? messagePreview(last as MessageRow) : "Phòng chat cơ sở",
+        last?.tao_luc ?? room?.cap_nhat_luc ?? new Date(0).toISOString(),
+        unread,
+        { isOrgHub: true },
+      ),
+    );
+  }
 
+  for (const row of orgStudentRows) {
+    const roomId = row.id_phong as string;
+    if (seenOrgRooms.has(roomId)) continue;
+    seenOrgRooms.add(roomId);
+    const room = row.chat_phong as RoomMeta | null;
+    const orgId = room?.id_org_dai_dien;
+    if (!orgId) continue;
+    const org = orgById.get(orgId);
+    if (!org) continue;
+    const last = lastByRoom.get(roomId);
+    const readAt = readAtByRoom.get(roomId) ?? null;
+    const unread = (messages ?? []).filter(
+      (msg) =>
+        msg.id_phong === roomId &&
+        msg.id_nguoi_gui !== viewerId &&
+        (!readAt || msg.tao_luc > readAt),
+    ).length;
     orgThreads.push(
       buildOrgThread(
         roomId,
@@ -983,20 +1317,20 @@ export async function listOrgThreadsForUser(viewerId: string): Promise<ChatThrea
     );
   }
 
+  const hubIdByOrg = new Map<string, string>();
+  for (const t of orgThreads) {
+    if (t.isOrgHub && t.orgId) hubIdByOrg.set(t.orgId, t.roomId);
+  }
+
   const lopThreads: ChatThread[] = [];
   const seenLopRooms = new Set<string>();
 
   for (const row of lopRows) {
-    const roomId = row.id_phong;
+    const roomId = row.id_phong as string;
     if (seenLopRooms.has(roomId)) continue;
     seenLopRooms.add(roomId);
 
-    const room = row.chat_phong as {
-      id_org_dai_dien?: string | null;
-      id_context?: string | null;
-      ten_phong?: string | null;
-      cap_nhat_luc?: string;
-    } | null;
+    const room = row.chat_phong as RoomMeta | null;
     const orgId = room?.id_org_dai_dien;
     const lopId = room?.id_context;
     if (!orgId || !lopId) continue;
@@ -1012,6 +1346,9 @@ export async function listOrgThreadsForUser(viewerId: string): Promise<ChatThrea
         (!readAt || msg.tao_luc > readAt),
     ).length;
 
+    const parentRoomId =
+      room?.id_phong_cha?.trim() || hubIdByOrg.get(orgId) || null;
+
     lopThreads.push(
       buildLopThread(
         roomId,
@@ -1021,6 +1358,8 @@ export async function listOrgThreadsForUser(viewerId: string): Promise<ChatThrea
         last ? messagePreview(last as MessageRow) : "Phòng học của lớp",
         last?.tao_luc ?? room?.cap_nhat_luc ?? new Date(0).toISOString(),
         unread,
+        parentRoomId,
+        room?.avatar_id,
       ),
     );
   }

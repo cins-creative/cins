@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import type { SuKienListItem } from "@/lib/to-chuc/su-kien-listing";
-import { suKienDetailPath } from "@/lib/to-chuc/su-kien-routes";
+import { suKienCardPath } from "@/lib/to-chuc/su-kien-routes";
 
 type Props = {
   events: SuKienListItem[];
@@ -128,7 +128,7 @@ export function SuKienHeroCarousel({ events }: Props) {
       {active ? (
         <div className="sk-hero-cta-wrap">
           <Link
-            href={suKienDetailPath(active.id)}
+            href={suKienCardPath(active)}
             className="sk-hero-cta"
             prefetch={false}
           >

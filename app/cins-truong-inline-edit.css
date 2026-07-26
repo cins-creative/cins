@@ -6481,9 +6481,10 @@ a.tdh-milestone-tag-student:hover {
 
 .tdh-message-inbox-layout {
   display: grid;
-  grid-template-columns: minmax(260px, 320px) 1fr;
+  grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
   gap: 0;
   flex: 1;
+  min-width: 0;
   min-height: 0;
   border: 1px solid var(--border, #e4e6eb);
   border-radius: 14px;
@@ -6508,6 +6509,7 @@ a.tdh-milestone-tag-student:hover {
 .tdh-message-inbox-list-pane {
   display: flex;
   flex-direction: column;
+  min-width: 0;
   min-height: 0;
   border-right: 1px solid var(--border, #e4e6eb);
   background: var(--neutral-50, #f8fafc);
@@ -6659,8 +6661,10 @@ a.tdh-milestone-tag-student:hover {
   display: inline-flex;
   align-items: center;
   flex-shrink: 0;
-  padding: 2px 8px;
-  border-radius: 999px;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
   font-size: 10px;
   font-weight: 700;
   line-height: 1.25;
@@ -6684,33 +6688,26 @@ a.tdh-milestone-tag-student:hover {
 
 .tdh-message-inbox-contact-badge--hoc_vien {
   color: #1d4ed8;
-  background: #dbeafe;
 }
 
 .tdh-message-inbox-contact-badge--giao_vien {
   color: #6d28d9;
-  background: #ede9fe;
 }
 
 .tdh-message-inbox-contact-badge--nhan_vien {
   color: #334155;
-  background: #e2e8f0;
 }
 
 .tdh-message-inbox-contact-badge--admin {
   color: #b45309;
-  background: #fef3c7;
 }
 
 .tdh-message-inbox-contact-badge--nguoi_la {
   color: #64748b;
-  background: #f8fafc;
-  border: 1px dashed #cbd5e1;
 }
 
 .tdh-message-inbox-contact-badge--default {
   color: #475569;
-  background: #f1f5f9;
 }
 
 .tdh-message-inbox-thread-time {
@@ -6957,7 +6954,9 @@ a.tdh-message-inbox-verify-name:hover {
 .tdh-message-inbox-detail-pane {
   display: flex;
   flex-direction: column;
+  min-width: 0;
   min-height: 0;
+  overflow: hidden;
   background: var(--bg-surface, #fff);
 }
 
@@ -7018,11 +7017,16 @@ a.tdh-message-inbox-verify-name:hover {
   margin: 0;
   padding: 20px 18px;
   flex: 1;
+  min-width: 0;
   min-height: 0;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 18px;
+  box-sizing: border-box;
   background: var(--neutral-50, #f8fafc);
   /* Tin cũ trên · tin mới dưới (giống overlay) */
   --cins-chat-media-max-w: 300px;
@@ -7040,11 +7044,87 @@ a.tdh-message-inbox-verify-name:hover {
 }
 
 .tdh-message-inbox-messages.cins-chat-messages .cins-chat-bubble-row {
-  max-width: 82%;
+  max-width: min(82%, 520px);
+  min-width: 0;
+}
+
+.tdh-message-inbox-messages.cins-chat-messages .cins-chat-bubble-wrap,
+.tdh-message-inbox-messages.cins-chat-messages .cins-chat-bubble {
+  width: max-content;
+  max-width: 100%;
+}
+
+/*
+ * Desktop: giữ chỗ action hover — chỉ tin chữ (không sticker/ảnh bare).
+ * Ép width:100% lên sticker → flex min-width:0 co meme thành ~47×16.
+ */
+@media (hover: hover) and (pointer: fine) {
+  .tdh-message-inbox-messages.cins-chat-messages
+    .cins-chat-bubble-row:not(.is-sticker-row):not(.is-bare-media-row):not(.is-media-row) {
+    width: 100%;
+    max-width: min(92%, 560px);
+  }
+
+  .tdh-message-inbox-messages.cins-chat-messages
+    .cins-chat-bubble-row:not(.is-sticker-row):not(.is-bare-media-row):not(.is-media-row)
+    .cins-chat-bubble-wrap {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .tdh-message-inbox-messages.cins-chat-messages
+    .cins-chat-bubble-row:not(.is-sticker-row):not(.is-bare-media-row):not(.is-media-row)
+    .cins-chat-bubble-wrap
+    > .cins-chat-bubble {
+    max-width: calc(100% - 78px);
+  }
+}
+
+.tdh-message-inbox-messages.cins-chat-messages .cins-chat-bubble-row.is-sticker-row {
+  width: fit-content;
+  max-width: min(calc(var(--cins-chat-sticker-max, 200px) + 88px), 92%);
+}
+
+.tdh-message-inbox-messages.cins-chat-messages
+  .cins-chat-bubble-row.is-sticker-row
+  .cins-chat-bubble-wrap,
+.tdh-message-inbox-messages.cins-chat-messages
+  .cins-chat-bubble-row.is-sticker-row
+  .cins-chat-bare-media-body,
+.tdh-message-inbox-messages.cins-chat-messages
+  .cins-chat-bubble-row.is-sticker-row
+  .cins-chat-bare-media-frame,
+.tdh-message-inbox-messages.cins-chat-messages
+  .cins-chat-bubble-row.is-sticker-row
+  .cins-chat-media-block {
+  width: fit-content;
+  max-width: min(var(--cins-chat-sticker-max, 200px), 100%);
+  min-width: auto;
+  flex: 0 0 auto;
+}
+
+.tdh-message-inbox-messages.cins-chat-messages .cins-chat-msg-sticker-btn,
+.tdh-message-inbox-messages.cins-chat-messages .cins-chat-msg-sticker {
+  max-width: var(--cins-chat-sticker-max, 200px);
+  max-height: var(--cins-chat-sticker-max, 200px);
+  width: auto;
+  height: auto;
 }
 
 .tdh-message-inbox-messages.cins-chat-messages .cins-chat-bubble-row.is-media-row {
   max-width: min(calc(var(--cins-chat-media-max-w) + 24px), 88%);
+}
+
+.tdh-message-inbox-messages.cins-chat-messages
+  .cins-chat-bubble-row.is-bare-media-row:not(.is-sticker-row)
+  .cins-chat-bubble-wrap,
+.tdh-message-inbox-messages.cins-chat-messages
+  .cins-chat-bubble-row.is-bare-media-row:not(.is-sticker-row)
+  .cins-chat-bare-media-body {
+  width: fit-content;
+  max-width: 100%;
+  min-width: auto;
+  flex: 0 0 auto;
 }
 
 .tdh-message-inbox-messages.cins-chat-messages .cins-chat-bubble-row.is-me {
@@ -7227,33 +7307,33 @@ a.tdh-message-inbox-verify-name:hover {
 
 :root[data-theme="dark"] .tdh-message-inbox-contact-badge--hoc_vien {
   color: #93c5fd;
-  background: rgba(59, 130, 246, 0.22);
+  background: transparent;
 }
 
 :root[data-theme="dark"] .tdh-message-inbox-contact-badge--giao_vien {
   color: #c4b5fd;
-  background: rgba(139, 92, 246, 0.22);
+  background: transparent;
 }
 
 :root[data-theme="dark"] .tdh-message-inbox-contact-badge--nhan_vien {
   color: var(--ink-title, rgba(255, 255, 255, 0.72));
-  background: rgba(255, 255, 255, 0.08);
+  background: transparent;
 }
 
 :root[data-theme="dark"] .tdh-message-inbox-contact-badge--admin {
   color: #fcd34d;
-  background: rgba(245, 158, 11, 0.22);
+  background: transparent;
 }
 
 :root[data-theme="dark"] .tdh-message-inbox-contact-badge--nguoi_la {
   color: var(--ink-muted, rgba(255, 255, 255, 0.46));
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(255, 255, 255, 0.2);
+  background: transparent;
+  border: none;
 }
 
 :root[data-theme="dark"] .tdh-message-inbox-contact-badge--default {
   color: var(--ink-body, rgba(255, 255, 255, 0.64));
-  background: rgba(255, 255, 255, 0.08);
+  background: transparent;
 }
 
 :root[data-theme="dark"] .tdh-message-inbox-evidence-modal-empty {

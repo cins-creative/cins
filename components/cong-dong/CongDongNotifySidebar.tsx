@@ -13,7 +13,7 @@ import {
   loadCongDongTimelineMoc,
   saveCongDongTimelineMoc,
 } from "@/lib/cong-dong/timeline-moc-storage";
-import { congDongSuKienPath } from "@/lib/cong-dong/routes";
+import { congDongSuKienCardPath } from "@/lib/cong-dong/routes";
 import {
   labelLoaiSuKien,
   labelSuKienVe,
@@ -86,7 +86,7 @@ function buildCongDongSuKienSteps(
       label: ev.ten,
       dateLabel,
       desc: descParts.join(" · "),
-      link: congDongSuKienPath(orgSlug, ev.id),
+      link: congDongSuKienCardPath(orgSlug, ev),
       status,
       dot: status === "done" ? "✓" : status === "active" ? "→" : "★",
       coverSrc: ev.coverSrc,

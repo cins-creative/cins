@@ -1,6 +1,13 @@
 "use client";
 
-import { CalendarClock, ClipboardList, Package, Store, X } from "lucide-react";
+import {
+  Calendar,
+  CalendarClock,
+  ClipboardList,
+  Package,
+  Store,
+  X,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
@@ -23,7 +30,7 @@ import {
 } from "@/lib/shop/tam-dong";
 import type { ShopCuaHang } from "@/lib/shop/types";
 
-type ShopDashTab = "kho" | "don" | "cua-hang";
+type ShopDashTab = "kho" | "don" | "su-kien" | "cua-hang";
 
 const TAB_COPY: Record<
   ShopDashTab,
@@ -38,6 +45,11 @@ const TAB_COPY: Record<
     href: "/ban-hang/don",
     label: "Đơn hàng",
     shortLabel: "Đơn",
+  },
+  "su-kien": {
+    href: "/ban-hang/su-kien",
+    label: "Sự kiện",
+    shortLabel: "Sự kiện",
   },
   "cua-hang": {
     href: "/ban-hang/cua-hang",
@@ -170,7 +182,7 @@ function ShopVisibleToggle() {
   if (!ready) {
     return (
       <div className="shop-dash-visible is-pending" aria-hidden>
-        <span className="shop-dash-visible-label">Hiển thị shop</span>
+        <span className="shop-dash-visible-label">Hiển thị</span>
         <span className="shop-dash-switch" />
       </div>
     );
@@ -181,13 +193,13 @@ function ShopVisibleToggle() {
       className="shop-dash-visible"
       title={err ?? SHOP_VISIBLE_HINT}
     >
-      <span className="shop-dash-visible-label">Hiển thị shop</span>
+      <span className="shop-dash-visible-label">Hiển thị</span>
       <button
         type="button"
         className={`shop-dash-switch${shopVisible ? " on" : ""}`}
         role="switch"
         aria-checked={shopVisible}
-        aria-label="Hiển thị shop"
+        aria-label="Hiển thị"
         title={err ?? SHOP_VISIBLE_HINT}
         disabled={saving}
         onClick={() => void saveShopVisible(!shopVisible)}
@@ -400,7 +412,7 @@ function ShopTamDongToggle() {
   if (!ready) {
     return (
       <div className="shop-dash-visible is-pending" aria-hidden>
-        <span className="shop-dash-visible-label">Shop tạm đóng</span>
+        <span className="shop-dash-visible-label">Tạm đóng</span>
         <span className="shop-dash-switch" />
       </div>
     );
@@ -413,13 +425,13 @@ function ShopTamDongToggle() {
       title={err ?? SHOP_TAM_DONG_HINT}
     >
       <div className="shop-dash-visible">
-        <span className="shop-dash-visible-label">Shop tạm đóng</span>
+        <span className="shop-dash-visible-label">Tạm đóng</span>
         <button
           type="button"
           className={`shop-dash-switch${tamDong ? " on" : ""}`}
           role="switch"
           aria-checked={tamDong}
-          aria-label="Shop tạm đóng"
+          aria-label="Tạm đóng"
           title={err ?? SHOP_TAM_DONG_HINT}
           disabled={saving}
           onClick={() => void onToggle()}
@@ -435,7 +447,7 @@ function ShopTamDongToggle() {
             disabled={saving}
             onClick={openPanel}
           >
-            <CalendarClock size={16} strokeWidth={2.2} aria-hidden />
+            <CalendarClock size={14} strokeWidth={2.2} aria-hidden />
           </button>
         ) : null}
       </div>
@@ -613,6 +625,13 @@ export function ShopDashTabs({
             icon={<ClipboardList size={18} strokeWidth={2} aria-hidden />}
           />
           <TabLink
+            href={TAB_COPY["su-kien"].href}
+            label={TAB_COPY["su-kien"].label}
+            shortLabel={TAB_COPY["su-kien"].shortLabel}
+            active={active === "su-kien"}
+            icon={<Calendar size={18} strokeWidth={2} aria-hidden />}
+          />
+          <TabLink
             href={TAB_COPY["cua-hang"].href}
             label={TAB_COPY["cua-hang"].label}
             shortLabel={TAB_COPY["cua-hang"].shortLabel}
@@ -621,8 +640,10 @@ export function ShopDashTabs({
           />
         </nav>
         <div className="shop-dash-head-end">
-          <ShopVisibleToggle />
-          <ShopTamDongToggle />
+          <div className="shop-dash-head-toggles">
+            <ShopVisibleToggle />
+            <ShopTamDongToggle />
+          </div>
           {actions ? (
             <div className="shop-dash-head-actions">{actions}</div>
           ) : null}

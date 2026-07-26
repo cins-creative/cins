@@ -27,9 +27,10 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { CoSoKhoaHocOrgFooter } from "@/components/co-so/CoSoKhoaHocOrgFooter";
+import { BaiTapKhoaCard } from "@/components/co-so/BaiTapKhoaCard";
 import {
   KhoaHocFeePicker,
   selectedGoiDurationLabel,
@@ -69,7 +70,6 @@ import {
   loadBaiTapSectionDisplay,
   saveBaiTapSectionDisplay,
 } from "@/lib/to-chuc/bai-tap-section-display-storage";
-import { isInlineBaiTapThumbnail } from "@/lib/to-chuc/bai-tap-thumbnail";
 import { notifyCoSoKhoaListChanged } from "@/lib/to-chuc/co-so-khoa-events";
 import { resolveGoiHocPhiForDisplay } from "@/lib/to-chuc/khoa-hoc-goi-phi";
 import {
@@ -77,7 +77,6 @@ import {
   coSoKhoaHocDetailPath,
   coSoTabPath,
 } from "@/lib/to-chuc/co-so-routes";
-import { getYoutubeId } from "@/lib/youtube";
 import {
   formatKhaiGiangCard,
   isScaffoldLopHoc,
@@ -106,154 +105,6 @@ type Props = {
   onKhoaUpdated?: (khoa: KhoaHocCardData) => void;
 };
 
-function BaiTapYoutubeIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <rect x="2" y="6" width="20" height="12" rx="3" stroke="currentColor" strokeWidth="2" />
-      <path d="M10 9.5v5l5-2.5-5-2.5z" fill="currentColor" />
-    </svg>
-  );
-}
-
-function BaiTapCard({
-  item,
-  index,
-  canManage = false,
-  onEdit,
-}: {
-  item: BaiTapKhoaData;
-  index: number;
-  canManage?: boolean;
-  onEdit?: (item: BaiTapKhoaData) => void;
-}) {
-  const [expanded, setExpanded] = useState(false);
-  const youtubeId = item.videoYoutubeUrl
-    ? getYoutubeId(item.videoYoutubeUrl)
-    : null;
-  const hasVideo = Boolean(youtubeId);
-
-  function toggleExpand() {
-    if (!hasVideo) return;
-    setExpanded((v) => !v);
-  }
-
-  function onMainKeyDown(e: KeyboardEvent<HTMLDivElement>) {
-    if (!hasVideo) return;
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      toggleExpand();
-    }
-  }
-
-  return (
-    <article
-      className={[
-        "cso-khd-bt-card",
-        hasVideo ? "cso-khd-bt-card--expandable" : "",
-        canManage ? "cso-khd-bt-card--manage" : "",
-        expanded ? "is-open" : "",
-      ]
-        .filter(Boolean)
-        .join(" ")}
-    >
-      <div
-        className="cso-khd-bt-card-main"
-        role={hasVideo ? "button" : undefined}
-        tabIndex={hasVideo ? 0 : undefined}
-        aria-expanded={hasVideo ? expanded : undefined}
-        aria-label={
-          hasVideo
-            ? item.visible
-              ? `${expanded ? "Thu gọn" : "Xem"} bài tập: ${item.tenBaiTap}`
-              : `${expanded ? "Thu gọn" : "Xem"} bài tập (cần đăng ký): ${item.tenBaiTap}`
-            : undefined
-        }
-        onClick={hasVideo ? toggleExpand : undefined}
-        onKeyDown={onMainKeyDown}
-      >
-        <div
-          className={`cso-khd-bt-card-thumb c${(index % 3) + 1}${item.thumbnailUrl ? " has-img" : ""}`}
-        >
-          {item.thumbnailUrl ? (
-            <Image
-              src={item.thumbnailUrl}
-              alt=""
-              fill
-              className="cso-khd-bt-card-thumb-img"
-              sizes="80px"
-              unoptimized={isInlineBaiTapThumbnail(item.thumbnailUrl)}
-            />
-          ) : null}
-        </div>
-        <div className="cso-khd-bt-card-body">
-          <div className="cso-khd-bt-card-title-row">
-            <h3 className="cso-khd-bt-card-title">
-              <span className="cso-khd-bt-card-order">Bài {index + 1}</span>
-              <span className="cso-khd-bt-card-title-text">{item.tenBaiTap}</span>
-            </h3>
-            {canManage || (hasVideo && item.visible) ? (
-              <div className="cso-khd-bt-card-title-actions">
-                {canManage ? (
-                  <button
-                    type="button"
-                    className="cso-khd-bt-card-edit-bt"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onEdit?.(item);
-                    }}
-                    aria-label={`Sửa bài tập: ${item.tenBaiTap}`}
-                    title="Sửa bài tập"
-                  >
-                    <Pencil size={15} aria-hidden />
-                  </button>
-                ) : null}
-                {hasVideo && item.visible ? (
-                  <span
-                    className={[
-                      "cso-khd-bt-card-view-bt",
-                      expanded ? "is-open" : "",
-                    ]
-                      .filter(Boolean)
-                      .join(" ")}
-                    aria-hidden
-                  >
-                    <BaiTapYoutubeIcon />
-                  </span>
-                ) : null}
-              </div>
-            ) : null}
-          </div>
-          {item.moTa ? (
-            <p className="cso-khd-bt-card-desc">{item.moTa}</p>
-          ) : null}
-        </div>
-      </div>
-      {expanded && hasVideo ? (
-        <div className="cso-khd-bt-card-expand">
-          {item.visible ? (
-            <div className="cso-khd-bt-card-vid">
-              <iframe
-                src={`https://www.youtube-nocookie.com/embed/${youtubeId}`}
-                title={`Video: ${item.tenBaiTap}`}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                referrerPolicy="strict-origin-when-cross-origin"
-                allowFullScreen
-              />
-            </div>
-          ) : (
-            <div className="cso-khd-bt-card-lock" role="status">
-              <Lock size={18} aria-hidden />
-              <p>
-                Vui lòng đăng ký khóa học để xem đầy đủ
-              </p>
-            </div>
-          )}
-        </div>
-      ) : null}
-    </article>
-  );
-}
-
 const BAI_TAP_DISPLAY_OPTIONS: BaiTapSectionDisplayMode[] = [
   "an",
   "mot_phan",
@@ -262,18 +113,14 @@ const BAI_TAP_DISPLAY_OPTIONS: BaiTapSectionDisplayMode[] = [
 
 function BaiTapVisitorSection({
   baiTapList,
-  giaoTrinh,
   displayMode,
-  tenKhoaHoc,
-  onSaveBaiTap,
 }: {
   baiTapList: BaiTapKhoaData[];
-  giaoTrinh: GiaoTrinhBaiData[];
   displayMode: BaiTapSectionDisplayMode;
-  tenKhoaHoc: string;
-  onSaveBaiTap: (draft: BaiTapKhoaDraft) => void;
 }) {
-  const total = baiTapList.length;
+  /** Khách chỉ thấy bài `visible` — đồng bộ soft-delete từ tab Giáo trình. */
+  const list = baiTapList.filter((bt) => bt.visible);
+  const total = list.length;
 
   if (displayMode === "an") {
     return (
@@ -283,16 +130,24 @@ function BaiTapVisitorSection({
     );
   }
 
+  if (total === 0) {
+    return (
+      <div className="cso-khd-bt-contact-panel" role="status">
+        <p>Giáo trình đang được cập nhật.</p>
+      </div>
+    );
+  }
+
   if (displayMode === "mot_phan" && total > BAI_TAP_PARTIAL_VISIBLE_COUNT) {
-    const previewItems = baiTapList.slice(0, BAI_TAP_PARTIAL_VISIBLE_COUNT);
-    const restItems = baiTapList.slice(BAI_TAP_PARTIAL_VISIBLE_COUNT);
+    const previewItems = list.slice(0, BAI_TAP_PARTIAL_VISIBLE_COUNT);
+    const restItems = list.slice(BAI_TAP_PARTIAL_VISIBLE_COUNT);
 
     return (
       <div className="cso-khd-bt-partial">
         <div className="cso-khd-bt-partial-preview">
           <div className="cso-khd-bt-list">
             {previewItems.map((bt, i) => (
-              <BaiTapCard key={bt.id} item={bt} index={i} />
+              <BaiTapKhoaCard key={bt.id} item={bt} index={i} />
             ))}
           </div>
         </div>
@@ -300,7 +155,7 @@ function BaiTapVisitorSection({
           <div className="cso-khd-bt-partial-rest">
             <div className="cso-khd-bt-list">
               {restItems.map((bt, i) => (
-                <BaiTapCard
+                <BaiTapKhoaCard
                   key={bt.id}
                   item={bt}
                   index={i + BAI_TAP_PARTIAL_VISIBLE_COUNT}
@@ -320,18 +175,8 @@ function BaiTapVisitorSection({
 
   return (
     <div className="cso-khd-bt-list">
-      {baiTapList.map((bt, i) => (
-        <BaiTapCard key={bt.id} item={bt} index={i} />
-      ))}
-      {giaoTrinh.map((bai, i) => (
-        <GiaoTrinhBaiTapRow
-          key={bai.id}
-          bai={bai}
-          index={i}
-          canManage={false}
-          tenKhoaHoc={tenKhoaHoc}
-          onAddBaiTap={onSaveBaiTap}
-        />
+      {list.map((bt, i) => (
+        <BaiTapKhoaCard key={bt.id} item={bt} index={i} />
       ))}
     </div>
   );
@@ -1017,7 +862,7 @@ function DetailContent({
                       {baiTapList.length > 0 ? (
                         <div className="cso-khd-bt-list">
                           {baiTapList.map((bt, i) => (
-                            <BaiTapCard
+                            <BaiTapKhoaCard
                               key={bt.id}
                               item={bt}
                               index={i}
@@ -1058,10 +903,7 @@ function DetailContent({
                   ) : (
                     <BaiTapVisitorSection
                       baiTapList={baiTapList}
-                      giaoTrinh={giaoTrinh}
                       displayMode={baiTapDisplayMode}
-                      tenKhoaHoc={khoa.tenKhoaHoc}
-                      onSaveBaiTap={onSaveBaiTap}
                     />
                   )}
                 </div>

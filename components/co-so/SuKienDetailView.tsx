@@ -39,7 +39,7 @@ import {
 } from "@/lib/to-chuc/su-kien-constants";
 import {
   SU_KIEN_LISTING_PATH,
-  suKienDetailPath,
+  suKienCardPath,
 } from "@/lib/to-chuc/su-kien-routes";
 import { formatSuKienDiaDiemDisplay } from "@/lib/truong/contact";
 import {
@@ -597,13 +597,96 @@ export function SuKienDetailView({
       slotFull={slotFull}
       actionError={actionError}
       onPhanHoi={handlePhanHoi}
-      sharePath={suKienDetailPath(suKien.id)}
+      sharePath={suKienCardPath(suKien)}
       shareTitle={suKien.ten}
       viewerLoggedIn={isAuthenticated}
     />
   );
 
+  const manageToolbarEnd =
+    canManage ? (
+      <div className="cso-sk-detail-toolbar-end">
+        {onEdit ? (
+          <button
+            type="button"
+            className="cso-sk-detail-edit"
+            onClick={onEdit}
+          >
+            <Pencil size={14} strokeWidth={2.25} aria-hidden />
+            Sửa
+          </button>
+        ) : null}
+        <div
+          className="cso-sk-detail-tabs"
+          role="tablist"
+          aria-label="Chế độ xem sự kiện"
+        >
+          <button
+            type="button"
+            role="tab"
+            id="cso-sk-tab-detail"
+            aria-selected={panelTab === "detail"}
+            aria-controls="cso-sk-panel-detail"
+            className={`cso-sk-detail-tab${panelTab === "detail" ? " is-active" : ""}`}
+            onClick={() => setPanelTab("detail")}
+          >
+            Sự kiện
+          </button>
+          <button
+            type="button"
+            role="tab"
+            id="cso-sk-tab-manage"
+            aria-selected={panelTab === "manage"}
+            aria-controls="cso-sk-panel-manage"
+            className={`cso-sk-detail-tab${panelTab === "manage" ? " is-active" : ""}`}
+            onClick={() => setPanelTab("manage")}
+          >
+            Quản lý
+            {pendingReviewCount > 0 ? (
+              <span
+                className="cso-sk-detail-tab-count"
+                aria-label={`${pendingReviewCount} nội dung chờ duyệt`}
+              >
+                {pendingReviewCount > 99 ? "99+" : pendingReviewCount}
+              </span>
+            ) : null}
+          </button>
+        </div>
+      </div>
+    ) : null;
+
   if (variant === "page") {
+    if (panelTab === "manage" && canManage) {
+      return (
+        <article className="sk-detail" aria-labelledby={titleId}>
+          <div className="sk-detail-topbar">
+            <BackControl
+              onBack={onBack}
+              href={resolvedBack}
+              className="sk-detail-back"
+            />
+            {manageToolbarEnd}
+          </div>
+          <div
+            id="cso-sk-panel-manage"
+            role="tabpanel"
+            aria-labelledby="cso-sk-tab-manage"
+            className="cso-sk-detail-manage-wrap sk-detail-manage-wrap"
+          >
+            <h1 id={titleId} className="cso-sk-detail-manage-title">
+              Quản lý · {suKien.ten}
+            </h1>
+            <SuKienManagePanel
+              orgId={orgId}
+              suKienId={suKien.id}
+              active={panelTab === "manage"}
+              onPendingReviewCountChange={setPendingReviewCount}
+            />
+          </div>
+        </article>
+      );
+    }
+
     return (
       <article className="sk-detail" aria-labelledby={titleId}>
         <div className="sk-detail-topbar">
@@ -629,6 +712,7 @@ export function SuKienDetailView({
               </span>
             </Link>
           ) : null}
+          {manageToolbarEnd}
         </div>
 
         <header className="sk-detail-hero">
@@ -733,56 +817,7 @@ export function SuKienDetailView({
           href={resolvedBack}
           className="cso-sk-detail-back"
         />
-        <div className="cso-sk-detail-toolbar-end">
-          {canManage && onEdit ? (
-            <button
-              type="button"
-              className="cso-sk-detail-edit"
-              onClick={onEdit}
-            >
-              <Pencil size={14} strokeWidth={2.25} aria-hidden />
-              Sửa
-            </button>
-          ) : null}
-          {canManage ? (
-            <div
-              className="cso-sk-detail-tabs"
-              role="tablist"
-              aria-label="Chế độ xem sự kiện"
-            >
-              <button
-                type="button"
-                role="tab"
-                id="cso-sk-tab-detail"
-                aria-selected={panelTab === "detail"}
-                aria-controls="cso-sk-panel-detail"
-                className={`cso-sk-detail-tab${panelTab === "detail" ? " is-active" : ""}`}
-                onClick={() => setPanelTab("detail")}
-              >
-                Sự kiện
-              </button>
-              <button
-                type="button"
-                role="tab"
-                id="cso-sk-tab-manage"
-                aria-selected={panelTab === "manage"}
-                aria-controls="cso-sk-panel-manage"
-                className={`cso-sk-detail-tab${panelTab === "manage" ? " is-active" : ""}`}
-                onClick={() => setPanelTab("manage")}
-              >
-                Quản lý
-                {pendingReviewCount > 0 ? (
-                  <span
-                    className="cso-sk-detail-tab-count"
-                    aria-label={`${pendingReviewCount} nội dung chờ duyệt`}
-                  >
-                    {pendingReviewCount > 99 ? "99+" : pendingReviewCount}
-                  </span>
-                ) : null}
-              </button>
-            </div>
-          ) : null}
-        </div>
+        {manageToolbarEnd}
       </div>
 
       {panelTab === "manage" && canManage ? (
@@ -844,7 +879,7 @@ export function SuKienDetailView({
                   slotFull={slotFull}
                   actionError={actionError}
                   onPhanHoi={handlePhanHoi}
-                  sharePath={suKienDetailPath(suKien.id)}
+                  sharePath={suKienCardPath(suKien)}
                   shareTitle={suKien.ten}
                   viewerLoggedIn={isAuthenticated}
                   compact

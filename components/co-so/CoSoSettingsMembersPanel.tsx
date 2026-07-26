@@ -1,7 +1,16 @@
 "use client";
 
-import { Crown, Loader2, Search, Trash2, UserPlus } from "lucide-react";
+import {
+  AlertTriangle,
+  Crown,
+  Loader2,
+  Search,
+  Trash2,
+  UserPlus,
+  X,
+} from "lucide-react";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 
 import { TransferOwnerModal } from "@/components/to-chuc/TransferOwnerModal";
 import { getAvatarUrl } from "@/lib/journey/profile";
@@ -76,6 +85,7 @@ export function CoSoSettingsMembersPanel({
   onError,
 }: Props) {
   const base = apiBase ?? `/api/co-so/${encodeURIComponent(orgId)}`;
+  const [addOpen, setAddOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchUser[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
@@ -87,7 +97,12 @@ export function CoSoSettingsMembersPanel({
   );
   const [transferPending, setTransferPending] = useState(false);
   const [transferError, setTransferError] = useState<string | null>(null);
+  const [removeTarget, setRemoveTarget] = useState<CoSoMemberAdmin | null>(
+    null,
+  );
+  const [removeError, setRemoveError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const normalizedMembers = useMemo(
     () => members.map(normalizeMember),
@@ -127,6 +142,7 @@ export function CoSoSettingsMembersPanel({
   );
 
   useEffect(() => {
+    if (!addOpen) return;
     const q = query.trim();
     if (q.length < 1) {
       setResults([]);
@@ -147,7 +163,37 @@ export function CoSoSettingsMembersPanel({
       }
     }, 250);
     return () => clearTimeout(t);
-  }, [query]);
+  }, [addOpen, query]);
+
+  useEffect(() => {
+    if (!addOpen) return;
+    const t = setTimeout(() => searchInputRef.current?.focus(), 40);
+    return () => clearTimeout(t);
+  }, [addOpen]);
+
+  useEffect(() => {
+    if (!addOpen) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape" && !memberPending && !pending) {
+        resetAddModal();
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [addOpen, memberPending, pending]);
+
+  function resetAddModal() {
+    setAddOpen(false);
+    setQuery("");
+    setResults([]);
+    setInviteTarget(null);
+    setAddRole("nhan_vien");
+  }
+
+  function closeAddModal() {
+    if (memberPending || pending) return;
+    resetAddModal();
+  }
 
   function upsertMember(next: CoSoMemberAdmin) {
     onMembersChange(
@@ -170,10 +216,6 @@ export function CoSoSettingsMembersPanel({
     setInviteTarget(user);
   }
 
-  function onCancelInvite() {
-    setInviteTarget(null);
-  }
-
   function onConfirmInvite() {
     if (!inviteTarget) return;
     onError(null);
@@ -194,9 +236,7 @@ export function CoSoSettingsMembersPanel({
           return;
         }
         upsertMember(normalizeMember(json.member));
-        setInviteTarget(null);
-        setQuery("");
-        setResults([]);
+        resetAddModal();
       } finally {
         setMemberPending(false);
       }
@@ -237,21 +277,32 @@ export function CoSoSettingsMembersPanel({
     }
   }
 
-  async function onRemove(member: CoSoMemberAdmin) {
-    if (!canManage || !member.editable) return;
+  function askRemove(member: CoSoMemberAdmin) {
+    if (!canManage || !member.editable || member.isSelf) return;
     onError(null);
+    setRemoveError(null);
+    setRemoveTarget(member);
+  }
+
+  async function confirmRemove() {
+    if (!removeTarget || !canManage || !removeTarget.editable) return;
+    onError(null);
+    setRemoveError(null);
     setMemberPending(true);
     try {
       const res = await fetch(
-        `${base}/members/${encodeURIComponent(member.id)}`,
+        `${base}/members/${encodeURIComponent(removeTarget.id)}`,
         { method: "DELETE" },
       );
-      const json = (await res.json().catch(() => null)) as { error?: string } | null;
+      const json = (await res.json().catch(() => null)) as {
+        error?: string;
+      } | null;
       if (!res.ok) {
-        onError(json?.error ?? "Không gỡ được thành viên.");
+        setRemoveError(json?.error ?? "Không gỡ được thành viên.");
         return;
       }
-      onMembersChange(members.filter((m) => m.id !== member.id));
+      onMembersChange(members.filter((m) => m.id !== removeTarget.id));
+      setRemoveTarget(null);
     } finally {
       setMemberPending(false);
     }
@@ -290,12 +341,243 @@ export function CoSoSettingsMembersPanel({
   const inviteTargetName =
     inviteTarget?.ten_hien_thi?.trim() || inviteTarget?.slug || "";
 
+  const addModal =
+    addOpen && typeof document !== "undefined"
+      ? createPortal(
+          <div
+            className="cso-settings-add-backdrop"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="cso-settings-add-title"
+            onMouseDown={(e) => {
+              if (e.target === e.currentTarget) closeAddModal();
+            }}
+          >
+            <div className="cso-settings-add-modal">
+              <div className="cso-settings-add-head">
+                <div>
+                  <h3
+                    id="cso-settings-add-title"
+                    className="cso-settings-add-title"
+                  >
+                    Thêm vai trò
+                  </h3>
+                  <p className="cso-settings-add-sub">
+                    Tìm người trên CINs và chọn vai trò quản trị cơ sở. Họ cần
+                    chấp nhận lời mời trong thông báo.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="cso-settings-add-close"
+                  aria-label="Đóng"
+                  disabled={memberPending || pending}
+                  onClick={closeAddModal}
+                >
+                  <X size={18} aria-hidden />
+                </button>
+              </div>
+
+              <div className="cso-settings-add-body">
+                <div className="cso-settings-member-search-wrap">
+                  <Search
+                    size={15}
+                    className="cso-settings-member-search-icon"
+                    aria-hidden
+                  />
+                  <input
+                    ref={searchInputRef}
+                    type="search"
+                    className="cso-settings-member-search"
+                    placeholder="Tìm theo tên hoặc @slug…"
+                    value={query}
+                    disabled={memberPending || pending}
+                    onChange={(e) => {
+                      setQuery(e.target.value);
+                      if (inviteTarget) setInviteTarget(null);
+                    }}
+                  />
+                  {searchLoading ? (
+                    <Loader2
+                      size={15}
+                      className="cso-settings-spin cso-settings-add-spin"
+                      aria-hidden
+                    />
+                  ) : null}
+                </div>
+
+                <label className="cso-settings-member-add-role cso-settings-add-role">
+                  <span>Vai trò gán</span>
+                  <select
+                    value={addRole}
+                    disabled={memberPending || pending}
+                    onChange={(e) =>
+                      setAddRole(e.target.value as CoSoStaffVaiTro)
+                    }
+                  >
+                    {CO_SO_ASSIGNABLE_ROLES.map((role) => (
+                      <option key={role} value={role}>
+                        {coSoAssignableRoleLabel(role)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <div className="cso-settings-add-table-wrap">
+                  <table className="cso-settings-add-table">
+                    <thead>
+                      <tr>
+                        <th scope="col">Người dùng</th>
+                        <th scope="col">Slug</th>
+                        <th scope="col">Chọn</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {query.trim().length < 1 ? (
+                        <tr>
+                          <td colSpan={3}>
+                            <p className="cso-settings-add-empty">
+                              Nhập tên hoặc @slug để tìm người.
+                            </p>
+                          </td>
+                        </tr>
+                      ) : searchLoading ? (
+                        <tr>
+                          <td colSpan={3}>
+                            <p className="cso-settings-add-empty">Đang tìm…</p>
+                          </td>
+                        </tr>
+                      ) : visibleResults.length === 0 ? (
+                        <tr>
+                          <td colSpan={3}>
+                            <p className="cso-settings-add-empty">
+                              {results.length > 0
+                                ? "Mọi người trùng tên đã có trong danh sách."
+                                : "Không thấy tài khoản phù hợp."}
+                            </p>
+                          </td>
+                        </tr>
+                      ) : (
+                        visibleResults.map((user) => {
+                          const name = user.ten_hien_thi?.trim() || user.slug;
+                          const selected = inviteTarget?.id === user.id;
+                          return (
+                            <tr
+                              key={user.id}
+                              className={
+                                selected
+                                  ? "cso-settings-add-row is-selected"
+                                  : "cso-settings-add-row"
+                              }
+                            >
+                              <td>
+                                <div className="cso-settings-add-user">
+                                  <MemberAvatar
+                                    avatarId={user.avatar_id}
+                                    name={name}
+                                  />
+                                  <span className="cso-settings-member-name">
+                                    {name}
+                                  </span>
+                                </div>
+                              </td>
+                              <td>
+                                <span className="cso-settings-member-slug">
+                                  @{user.slug}
+                                </span>
+                              </td>
+                              <td>
+                                <button
+                                  type="button"
+                                  className={
+                                    selected
+                                      ? "cso-settings-add-pick is-on"
+                                      : "cso-settings-add-pick"
+                                  }
+                                  disabled={memberPending || pending}
+                                  onClick={() => onSelectInviteTarget(user)}
+                                >
+                                  {selected ? "Đã chọn" : "Chọn"}
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {inviteTarget ? (
+                  <div className="cso-settings-member-confirm">
+                    <div className="cso-settings-member-confirm-copy">
+                      <MemberAvatar
+                        avatarId={inviteTarget.avatar_id}
+                        name={inviteTargetName}
+                      />
+                      <div>
+                        <strong>{inviteTargetName}</strong>
+                        <span className="cso-settings-member-slug">
+                          {" "}
+                          @{inviteTarget.slug}
+                        </span>
+                        <p className="cso-settings-member-confirm-note">
+                          Gửi lời mời với vai trò{" "}
+                          <strong>{coSoAssignableRoleLabel(addRole)}</strong>.
+                          Người này cần chấp nhận trong thông báo CINs.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="cso-settings-add-foot">
+                <button
+                  type="button"
+                  className="cso-kh-foot-btn cso-kh-foot-btn--ghost"
+                  disabled={memberPending || pending}
+                  onClick={closeAddModal}
+                >
+                  Hủy
+                </button>
+                <button
+                  type="button"
+                  className="cso-kh-foot-btn cso-kh-foot-btn--primary"
+                  disabled={!inviteTarget || memberPending || pending}
+                  onClick={() => onConfirmInvite()}
+                >
+                  {memberPending || pending ? "Đang gửi…" : "Gửi lời mời"}
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )
+      : null;
+
   return (
     <section className="cso-settings-section">
-      <p className="cso-settings-hint">
-        Mời người quản trị trang cơ sở. Họ cần chấp nhận lời mời trong thông
-        báo CINs trước khi quyền có hiệu lực.
-      </p>
+      <div className="cso-settings-member-head">
+        <p className="cso-settings-hint">
+          Mời người quản trị trang cơ sở. Họ cần chấp nhận lời mời trong thông
+          báo CINs trước khi quyền có hiệu lực.
+        </p>
+        {canManage ? (
+          <button
+            type="button"
+            className="cso-settings-add-trigger"
+            disabled={memberPending || pending}
+            onClick={() => {
+              onError(null);
+              setAddOpen(true);
+            }}
+          >
+            <UserPlus size={15} strokeWidth={2.3} aria-hidden />
+            Thêm vai trò
+          </button>
+        ) : null}
+      </div>
 
       <ul className="cso-settings-member-list">
         {normalizedMembers.map((member) => (
@@ -345,175 +627,140 @@ export function CoSoSettingsMembersPanel({
                 {coSoVaiTroLabel(member.vaiTro)}
               </span>
             )}
-            {viewerIsOwner &&
-            member.editable &&
-            !member.isSelf &&
-            member.trangThai === "active" ? (
-              <button
-                type="button"
-                className="cso-settings-member-transfer"
-                title={`Bàn giao quyền sở hữu cho ${member.tenHienThi}`}
-                aria-label={`Bàn giao quyền sở hữu cho ${member.tenHienThi}`}
-                disabled={memberPending || pending}
-                onClick={() => {
-                  setTransferError(null);
-                  setTransferTarget(member);
-                }}
-              >
-                <Crown size={14} aria-hidden />
-              </button>
-            ) : null}
-            {canManage && member.editable && !member.isSelf ? (
-              <button
-                type="button"
-                className="cso-settings-member-del"
-                aria-label={
-                  isPendingMember(member)
-                    ? `Hủy lời mời ${member.tenHienThi}`
-                    : `Gỡ ${member.tenHienThi}`
-                }
-                disabled={memberPending || pending}
-                onClick={() => void onRemove(member)}
-              >
-                <Trash2 size={14} aria-hidden />
-              </button>
-            ) : null}
+            <div className="cso-settings-member-side">
+              {viewerIsOwner &&
+              member.editable &&
+              !member.isSelf &&
+              member.trangThai === "active" ? (
+                <button
+                  type="button"
+                  className="cso-settings-member-transfer"
+                  title={`Bàn giao quyền sở hữu cho ${member.tenHienThi}`}
+                  aria-label={`Bàn giao quyền sở hữu cho ${member.tenHienThi}`}
+                  disabled={memberPending || pending}
+                  onClick={() => {
+                    setTransferError(null);
+                    setTransferTarget(member);
+                  }}
+                >
+                  <Crown size={14} aria-hidden />
+                </button>
+              ) : null}
+              {canManage && member.editable && !member.isSelf ? (
+                <button
+                  type="button"
+                  className="cso-settings-member-del"
+                  aria-label={
+                    isPendingMember(member)
+                      ? `Hủy lời mời ${member.tenHienThi}`
+                      : `Gỡ quyền ${member.tenHienThi}`
+                  }
+                  title={
+                    isPendingMember(member) ? "Hủy lời mời" : "Gỡ quyền"
+                  }
+                  disabled={memberPending || pending}
+                  onClick={() => askRemove(member)}
+                >
+                  <Trash2 size={14} aria-hidden />
+                </button>
+              ) : null}
+            </div>
           </li>
         ))}
       </ul>
 
-      {canManage ? (
-        <div className="cso-settings-member-add">
-          <div className="cso-settings-member-search-wrap">
-            <Search size={15} className="cso-settings-member-search-icon" aria-hidden />
-            <input
-              type="search"
-              className="cso-settings-member-search"
-              placeholder="Tìm theo tên hoặc @slug…"
-              value={query}
-              disabled={memberPending || pending}
-              onChange={(e) => {
-                setQuery(e.target.value);
-                if (inviteTarget) setInviteTarget(null);
-              }}
-            />
-            {searchLoading ? (
-              <Loader2 size={15} className="cso-settings-spin" aria-hidden />
-            ) : null}
-          </div>
-
-          {inviteTarget ? (
-            <div className="cso-settings-member-confirm">
-              <div className="cso-settings-member-confirm-copy">
-                <MemberAvatar
-                  avatarId={inviteTarget.avatar_id}
-                  name={inviteTargetName}
-                />
-                <div>
-                  <strong>{inviteTargetName}</strong>
-                  <span className="cso-settings-member-slug">
-                    {" "}
-                    @{inviteTarget.slug}
-                  </span>
-                  <p className="cso-settings-member-confirm-note">
-                    Gửi lời mời tham gia quản trị cơ sở. Người này cần chấp nhận
-                    trong thông báo CINs.
-                  </p>
-                </div>
-              </div>
-              <label className="cso-settings-member-add-role">
-                <span>Vai trò</span>
-                <select
-                  value={addRole}
-                  disabled={memberPending || pending}
-                  onChange={(e) => setAddRole(e.target.value as CoSoStaffVaiTro)}
-                >
-                  {CO_SO_ASSIGNABLE_ROLES.map((role) => (
-                    <option key={role} value={role}>
-                      {coSoAssignableRoleLabel(role)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <div className="cso-settings-member-confirm-actions">
-                <button
-                  type="button"
-                  className="cso-kh-foot-btn cso-kh-foot-btn--ghost"
-                  disabled={memberPending || pending}
-                  onClick={onCancelInvite}
-                >
-                  Hủy
-                </button>
-                <button
-                  type="button"
-                  className="cso-kh-foot-btn cso-kh-foot-btn--primary"
-                  disabled={memberPending || pending}
-                  onClick={() => onConfirmInvite()}
-                >
-                  {memberPending || pending ? "Đang gửi…" : "Gửi lời mời"}
-                </button>
-              </div>
-            </div>
-          ) : null}
-
-          {!inviteTarget && visibleResults.length > 0 ? (
-            <ul className="cso-settings-member-results">
-              {visibleResults.map((user) => (
-                <li key={user.id}>
-                  <button
-                    type="button"
-                    className="cso-settings-member-result"
-                    disabled={memberPending || pending}
-                    onClick={() => onSelectInviteTarget(user)}
-                  >
-                    <MemberAvatar
-                      avatarId={user.avatar_id}
-                      name={user.ten_hien_thi?.trim() || user.slug}
-                    />
-                    <span>
-                      {user.ten_hien_thi?.trim() || user.slug}
-                      <span className="cso-settings-member-slug"> @{user.slug}</span>
-                    </span>
-                    <UserPlus size={15} aria-hidden />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-
-          {!inviteTarget &&
-          query.trim().length >= 1 &&
-          !searchLoading &&
-          visibleResults.length === 0 ? (
-            <p className="cso-settings-field-note">
-              {results.length > 0
-                ? "Mọi người trùng tên đã có trong danh sách."
-                : "Không thấy tài khoản phù hợp."}
-            </p>
-          ) : null}
-
-          {!inviteTarget ? (
-            <label className="cso-settings-member-add-role">
-              <span>Vai trò khi mời</span>
-              <select
-                value={addRole}
-                disabled={memberPending || pending}
-                onChange={(e) => setAddRole(e.target.value as CoSoStaffVaiTro)}
-              >
-                {CO_SO_ASSIGNABLE_ROLES.map((role) => (
-                  <option key={role} value={role}>
-                    {coSoAssignableRoleLabel(role)}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : null}
-        </div>
-      ) : (
+      {!canManage ? (
         <p className="cso-settings-field-note">
           Chỉ quản trị viên mới mời hoặc đổi quyền người khác.
         </p>
-      )}
+      ) : null}
+
+      {addModal}
+
+      {removeTarget && typeof document !== "undefined"
+        ? createPortal(
+            <div
+              className="cso-settings-warn-backdrop"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="cso-settings-remove-title"
+              onMouseDown={(e) => {
+                if (
+                  e.target === e.currentTarget &&
+                  !memberPending &&
+                  !pending
+                ) {
+                  setRemoveTarget(null);
+                  setRemoveError(null);
+                }
+              }}
+            >
+              <div className="cso-settings-warn-modal">
+                <div className="cso-settings-warn-icon" aria-hidden>
+                  <AlertTriangle size={22} strokeWidth={2.2} />
+                </div>
+                <h3
+                  id="cso-settings-remove-title"
+                  className="cso-settings-warn-title"
+                >
+                  {isPendingMember(removeTarget)
+                    ? "Hủy lời mời?"
+                    : "Gỡ quyền quản trị?"}
+                </h3>
+                <p className="cso-settings-warn-body">
+                  {isPendingMember(removeTarget) ? (
+                    <>
+                      Hủy lời mời gửi tới{" "}
+                      <strong>{removeTarget.tenHienThi}</strong> (
+                      {coSoAssignableRoleLabel(removeTarget.vaiTro)}). Họ sẽ
+                      không còn thấy lời mời này.
+                    </>
+                  ) : (
+                    <>
+                      Gỡ{" "}
+                      <strong>
+                        {coSoVaiTroLabel(removeTarget.vaiTro)}
+                      </strong>{" "}
+                      của <strong>{removeTarget.tenHienThi}</strong> khỏi{" "}
+                      <strong>{orgLabel}</strong>. Người này mất quyền quản trị
+                      cơ sở ngay — gồm dashboard, phòng lớp chat và cài đặt —
+                      cho đến khi được mời lại.
+                    </>
+                  )}
+                </p>
+                {removeError ? (
+                  <p className="cso-settings-warn-error">{removeError}</p>
+                ) : null}
+                <div className="cso-settings-warn-actions">
+                  <button
+                    type="button"
+                    className="cso-kh-foot-btn cso-kh-foot-btn--ghost"
+                    disabled={memberPending || pending}
+                    onClick={() => {
+                      setRemoveTarget(null);
+                      setRemoveError(null);
+                    }}
+                  >
+                    Không
+                  </button>
+                  <button
+                    type="button"
+                    className="cso-settings-warn-danger"
+                    disabled={memberPending || pending}
+                    onClick={() => void confirmRemove()}
+                  >
+                    {memberPending || pending
+                      ? "Đang gỡ…"
+                      : isPendingMember(removeTarget)
+                        ? "Hủy lời mời"
+                        : "Gỡ quyền"}
+                  </button>
+                </div>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
 
       <TransferOwnerModal
         open={Boolean(transferTarget)}

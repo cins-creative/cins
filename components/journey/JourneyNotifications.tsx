@@ -211,8 +211,8 @@ function shopQuayPendingNotifyLabel(
     <>
       <strong>{notice.orgTen}</strong>
       {n === 1
-        ? " có 1 nội dung chờ duyệt"
-        : ` có ${n} nội dung chờ duyệt`}
+        ? " — 1 cửa hàng xin làm quầy"
+        : ` — ${n} cửa hàng xin làm quầy`}
       <small>{notice.suKienTen}</small>
     </>
   );
@@ -228,7 +228,8 @@ function countPendingActionItems(feed: NotificationFeed): number {
     feed.coAuthorInvites.length +
     feed.coAuthorReviews.length +
     feed.coSoStaffInvites.length +
-    feed.congDongInvites.length
+    feed.congDongInvites.length +
+    feed.shopQuayPending.length
   );
 }
 
@@ -262,7 +263,6 @@ type InfoNotificationSnapshot = Pick<
   | "orgMilestoneTagApproved"
   | "membershipMilestoneResolved"
   | "shopQuayResolved"
-  | "shopQuayPending"
   | "dongGopFeedback"
   | "dongGopPromoted"
 >;
@@ -275,7 +275,6 @@ function extractInfoSnapshot(feed: NotificationFeed): InfoNotificationSnapshot {
     orgMilestoneTagApproved: feed.orgMilestoneTagApproved,
     membershipMilestoneResolved: feed.membershipMilestoneResolved,
     shopQuayResolved: feed.shopQuayResolved,
-    shopQuayPending: feed.shopQuayPending,
     dongGopFeedback: feed.dongGopFeedback,
     dongGopPromoted: feed.dongGopPromoted,
   };
@@ -289,7 +288,6 @@ function countInfoItems(info: InfoNotificationSnapshot): number {
     info.orgMilestoneTagApproved.length +
     info.membershipMilestoneResolved.length +
     info.shopQuayResolved.length +
-    info.shopQuayPending.length +
     info.dongGopFeedback.length +
     info.dongGopPromoted.length
   );
@@ -354,20 +352,6 @@ function renderInfoTimelineEntry(entry: InfoTimelineEntry): ReactNode {
               ) : (
                 <XCircle size={16} strokeWidth={2} />
               )}
-            </span>
-          }
-        />
-      );
-    case "shopQuayPending":
-      return (
-        <HistoryInfoItem
-          key={entry.item.notificationId}
-          href={entry.item.manageHref || "#"}
-          label={shopQuayPendingNotifyLabel(entry.item)}
-          time={formatNotifyTime(entry.item.taoLuc)}
-          avatar={
-            <span className="j-notify-avatar is-verified" aria-hidden>
-              <ClipboardList size={16} strokeWidth={2} />
             </span>
           }
         />
@@ -526,11 +510,24 @@ function renderHistoryTimelineEntry(entry: HistoryTimelineEntry): ReactNode {
       return (
         <HistoryCoAuthorItem key={entry.item.notificationId} review={entry.item} />
       );
+    case "shopQuayPending":
+      return (
+        <HistoryInfoItem
+          key={entry.item.notificationId}
+          href={entry.item.manageHref || "#"}
+          label={shopQuayPendingNotifyLabel(entry.item)}
+          time={formatNotifyTime(entry.item.taoLuc)}
+          avatar={
+            <span className="j-notify-avatar is-verified" aria-hidden>
+              <ClipboardList size={16} strokeWidth={2} />
+            </span>
+          }
+        />
+      );
     case "accepted":
     case "comment":
     case "membershipMilestoneResolved":
     case "shopQuayResolved":
-    case "shopQuayPending":
     case "orgMilestoneTagApproved":
     case "videoReady":
     case "dongGopFeedback":
@@ -1364,6 +1361,27 @@ export function JourneyNotifications({
                           <small>@{request.slug}</small>
                         </span>
                       </button>
+                    </li>
+                  ))}
+                  {activeFeed.shopQuayPending.map((notice) => (
+                    <li key={notice.notificationId}>
+                      <div className="j-notify-item is-coauthor-invite">
+                        <span className="j-notify-avatar is-verified" aria-hidden>
+                          <ClipboardList size={16} strokeWidth={2} />
+                        </span>
+                        <span className="j-notify-coauthor-invite-text">
+                          {shopQuayPendingNotifyLabel(notice)}
+                          <small>{formatNotifyTime(notice.taoLuc)}</small>
+                        </span>
+                        <div className="j-notify-inline-actions">
+                          <Link
+                            href={notice.manageHref || "#"}
+                            className="j-notify-mini-action is-accept is-link"
+                          >
+                            Duyệt quầy
+                          </Link>
+                        </div>
+                      </div>
                     </li>
                   ))}
                   {visibleInfoTimeline.map((entry) => renderInfoTimelineEntry(entry))}

@@ -22,7 +22,7 @@ import type { GuestHomeData } from "@/lib/cins/guest-home/loadGuestHomeData";
 import { coSoKhoaHocDetailPath } from "@/lib/to-chuc/co-so-routes";
 import { articlePublicHref } from "@/lib/articles/article-href";
 import { railGroupThemeClass } from "@/lib/career/hubRailTheme";
-import { suKienDetailPath } from "@/lib/to-chuc/su-kien-routes";
+import { suKienCardPath } from "@/lib/to-chuc/su-kien-routes";
 import { truongListingHref } from "@/lib/truong/listing-href";
 
 import "@/app/guest-home.css";
@@ -304,7 +304,7 @@ export function GuestHomeView({ data }: Props) {
                   const { day, mon } = formatEventDate(ev.batDau);
                   return (
                     <li key={ev.id}>
-                      <Link href={suKienDetailPath(ev.id)} className="gh-event-card">
+                      <Link href={suKienCardPath(ev)} className="gh-event-card">
                         <div className="gh-event-date">
                           <span className="gh-event-day">{day}</span>
                           <span className="gh-event-mon">{mon}</span>

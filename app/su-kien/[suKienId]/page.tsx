@@ -1,16 +1,21 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 
-import { SuKienDetailView } from "@/components/co-so/SuKienDetailView";
 import { CinsShell } from "@/components/cins/CinsShell";
+import { SuKienStandaloneDetailHost } from "@/components/su-kien/SuKienStandaloneDetailHost";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import { getConfiguredSiteOrigin } from "@/lib/auth/auth-origin";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import {
   canViewerManageSuKien,
-  getSuKienByIdPublic,
+  getSuKienByPublicKey,
 } from "@/lib/to-chuc/su-kien";
-import { orgSuKienHref, suKienDetailPath } from "@/lib/to-chuc/su-kien-routes";
+import {
+  orgSuKienHref,
+  suKienCardPath,
+  suKienDetailPath,
+} from "@/lib/to-chuc/su-kien-routes";
+import { looksLikeUuid } from "@/lib/to-chuc/su-kien-slug";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +29,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     return { metadataBase, title: "Sự kiện | CINs" };
   }
 
-  const detail = await getSuKienByIdPublic(suKienId);
+  const detail = await getSuKienByPublicKey(suKienId);
   if (!detail) {
     return { metadataBase, title: "Không tìm thấy sự kiện | CINs" };
   }
@@ -33,7 +38,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const description =
     detail.suKien.moTa?.trim() ||
     `Sự kiện ${detail.suKien.ten} tại ${detail.orgTen} trên CINs.`;
-  const pagePath = suKienDetailPath(detail.suKien.id);
+  const pagePath = suKienCardPath(detail.suKien);
   const images = detail.suKien.coverSrc
     ? [{ url: detail.suKien.coverSrc, alt: detail.suKien.ten }]
     : undefined;
@@ -63,9 +68,26 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function SuKienDetailPage({ params }: Props) {
   if (!hasSupabaseEnv()) notFound();
 
-  const { suKienId } = await params;
-  const detail = await getSuKienByIdPublic(suKienId);
+  const { suKienId: rawKey } = await params;
+  const key = rawKey?.trim() ?? "";
+  const detail = await getSuKienByPublicKey(key);
   if (!detail) notFound();
+
+  const canonical = suKienCardPath(detail.suKien);
+  if (
+    looksLikeUuid(key) &&
+    detail.suKien.slug?.trim() &&
+    key.toLowerCase() !== detail.suKien.slug.trim().toLowerCase()
+  ) {
+    permanentRedirect(canonical);
+  }
+  if (
+    detail.suKien.slug?.trim() &&
+    key !== detail.suKien.slug.trim() &&
+    !looksLikeUuid(key)
+  ) {
+    permanentRedirect(suKienDetailPath(detail.suKien.slug.trim()));
+  }
 
   const session = await getCurrentSessionAndProfile();
   const canManage = await canViewerManageSuKien(
@@ -75,15 +97,15 @@ export default async function SuKienDetailPage({ params }: Props) {
 
   return (
     <CinsShell data-screen-label="Su-kien-detail">
-      <SuKienDetailView
+      <SuKienStandaloneDetailHost
         orgId={detail.orgId}
-        suKien={detail.suKien}
-        canManage={canManage}
-        variant="page"
         orgTen={detail.orgTen}
         orgLoai={detail.orgLoai}
         orgAvatarUrl={detail.orgAvatarUrl}
         orgHref={orgSuKienHref(detail.orgLoai, detail.orgSlug)}
+        orgTinhThanh={detail.orgTinhThanh}
+        canManage={canManage}
+        suKien={detail.suKien}
       />
     </CinsShell>
   );

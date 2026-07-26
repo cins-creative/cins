@@ -130,7 +130,7 @@ export async function JourneyProfilePageLoader({
           label: l.label,
           url: l.url,
         })),
-        giaiDoan: owner.giai_doan ?? "moi_bat_dau",
+        giaiDoan: owner.giai_doan ?? "dang_hoc",
       }
     : undefined;
 

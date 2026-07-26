@@ -137,6 +137,13 @@ export async function xacNhanDonHocPhi(
     joinedPhong = join.ok && join.joined;
   }
 
+  // HV dang_hoc → vào hub chat cơ sở (không chặn request chính nếu lỗi tạm).
+  await import("@/lib/co-so/org-hub-phong")
+    .then(({ syncUserOrgHubMembership }) =>
+      syncUserOrgHubMembership(don.id_to_chuc, hvl.id_nguoi_dung),
+    )
+    .catch(() => undefined);
+
   const [{ data: org }, { data: khoa }] = await Promise.all([
     admin
       .from("org_to_chuc")

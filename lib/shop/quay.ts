@@ -1,25 +1,25 @@
 import "server-only";
 
-import type { MilestoneItem } from "@/components/journey/milestone-types";
 import { getAvatarUrl } from "@/lib/journey/profile";
-import {
-  attachSocialState,
-  buildMilestoneItemForCotMoc,
-} from "@/lib/journey/milestones-fetch";
+import { listShopListingCardsByOwnerIds } from "@/lib/shop/cua-hang-listing";
 import {
   notifyShopQuayResolved,
   syncShopQuayPendingAdminNotifications,
 } from "@/lib/shop/quay-notify";
 import { assertShopReady } from "@/lib/shop/cua-hang";
-import { shopImageUrl } from "@/lib/shop/settings";
+import { listShopStorefrontItems } from "@/lib/shop/storefront";
 import type {
   ShopEvidence,
   ShopQuayHangSearch,
+  ShopQuaySapCoMat,
   ShopQuaySuKien,
   ShopTrangThaiQuay,
 } from "@/lib/shop/types";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { canViewerManageSuKien } from "@/lib/to-chuc/su-kien";
+import { suKienDetailPath } from "@/lib/to-chuc/su-kien-routes";
+import { getStepStatus } from "@/lib/truong/timeline";
+import { resolveTruongImageSrcSync } from "@/lib/truong/media-url";
 
 type QuayRow = {
   id: string;
@@ -111,186 +111,155 @@ export async function listQuaySuKien(
     return [];
   }
   const items = await mapQuay((data ?? []) as QuayRow[]);
+  if (items.length === 0) return [];
 
-  const cotMocIds = [
-    ...new Set(
-      items.filter((i) => i.idCotMoc).map((i) => i.idCotMoc as string),
-    ),
-  ];
-  if (cotMocIds.length === 0) return items;
+  const sellerIds = [...new Set(items.map((i) => i.idNguoiDung))];
+  const [shopByOwner, hangBySeller] = await Promise.all([
+    listShopListingCardsByOwnerIds(sellerIds),
+    loadHangSearchBySeller(sellerIds, items),
+  ]);
 
-  const cotMocById = new Map<string, MilestoneItem>();
-  await Promise.all(
-    cotMocIds.map(async (id) => {
-      const item = await buildMilestoneItemForCotMoc(admin, id);
-      if (item) cotMocById.set(id, item);
-    }),
-  );
-
-  const withSocial = await attachSocialState(
-    admin,
-    [...cotMocById.values()],
-    opts?.actorId ?? null,
-  );
-  for (const item of withSocial) {
-    const id = item.cotMocId?.trim() || item.id.trim();
-    if (id) cotMocById.set(id, item);
-  }
-
-  const withCotMoc = items.map((i) =>
-    i.idCotMoc && cotMocById.has(i.idCotMoc)
-      ? { ...i, cotMoc: cotMocById.get(i.idCotMoc)! }
-      : i,
-  );
-
-  const hangByCotMoc = await loadHangSearchByCotMoc(cotMocIds);
-  return withCotMoc.map((i) => {
-    if (!i.idCotMoc) return i;
-    const hang = hangByCotMoc.get(i.idCotMoc);
-    return hang?.length ? { ...i, hangSearch: hang } : i;
+  return items.map((i) => {
+    const hang = hangBySeller.get(i.idNguoiDung);
+    return {
+      ...i,
+      shop: shopByOwner.get(i.idNguoiDung) ?? null,
+      hangSearch: hang?.length ? hang : undefined,
+    };
   });
 }
 
-/** Batch `shop_post_hang` → card catalog (giá / ảnh / bán / phân loại). */
-async function loadHangSearchByCotMoc(
-  cotMocIds: string[],
+/** Catalog shop đang bán → haystack quầy khi không gắn bài. */
+async function loadHangSearchBySeller(
+  sellerIds: string[],
+  quayItems: ShopQuaySuKien[],
 ): Promise<Map<string, ShopQuayHangSearch[]>> {
   const out = new Map<string, ShopQuayHangSearch[]>();
-  if (cotMocIds.length === 0) return out;
+  if (sellerIds.length === 0) return out;
 
-  const admin = createServiceRoleClient();
-  const { data: hangs, error } = await admin
-    .from("shop_post_hang")
-    .select(
-      "id, id_cot_moc, id_bien_the, gia_hien_thi, tien_te, thu_tu",
-    )
-    .in("id_cot_moc", cotMocIds)
-    .order("thu_tu", { ascending: true })
-    .limit(500);
-  if (error) {
-    console.error("[shop] listQuay hangSearch", error);
-    return out;
-  }
-  const hangRows = (hangs ?? []) as Array<{
-    id: string;
-    id_cot_moc: string;
-    id_bien_the: string;
-    gia_hien_thi: number | string;
-    tien_te: string;
-    thu_tu: number;
-  }>;
-  if (hangRows.length === 0) return out;
-
-  const btIds = [...new Set(hangRows.map((h) => h.id_bien_the))];
-  const { data: bts } = await admin
-    .from("shop_bien_the")
-    .select("id, id_san_pham, nhan, so_luong_ton, anh_id, da_xoa")
-    .in("id", btIds);
-  const btMap = new Map(
-    (
-      (bts ?? []) as Array<{
-        id: string;
-        id_san_pham: string;
-        nhan: string;
-        so_luong_ton: number;
-        anh_id: string | null;
-        da_xoa: boolean;
-      }>
-    ).map((b) => [b.id, b]),
-  );
-
-  const spIds = [
-    ...new Set(
-      [...btMap.values()]
-        .filter((b) => !b.da_xoa)
-        .map((b) => b.id_san_pham)
-        .filter(Boolean),
-    ),
-  ];
-  if (spIds.length === 0) return out;
-
-  const { data: sps } = await admin
-    .from("shop_san_pham")
-    .select("id, ten, anh_id, phan_loai, phan_loai_2, da_xoa, dang_ban")
-    .in("id", spIds);
-  const spMap = new Map(
-    (
-      (sps ?? []) as Array<{
-        id: string;
-        ten: string;
-        anh_id: string | null;
-        phan_loai: string | null;
-        phan_loai_2: string | null;
-        da_xoa: boolean;
-        dang_ban: boolean;
-      }>
-    ).map((s) => [s.id, s]),
-  );
-
-  const soldByBienThe = new Map<string, number>();
-  {
-    const { data: dongBan, error: soldErr } = await admin
-      .from("shop_don_hang_dong")
-      .select("id_bien_the, so_luong, shop_don_hang!inner(trang_thai)")
-      .in("id_bien_the", btIds);
-    if (soldErr) {
-      console.error("[shop] listQuay hangSearch sold", soldErr);
-    } else {
-      for (const row of (dongBan ?? []) as Array<{
-        id_bien_the: string | null;
-        so_luong: number;
-        shop_don_hang:
-          | { trang_thai: string }
-          | { trang_thai: string }[]
-          | null;
-      }>) {
-        if (!row.id_bien_the) continue;
-        const don = Array.isArray(row.shop_don_hang)
-          ? row.shop_don_hang[0]
-          : row.shop_don_hang;
-        if (!don) continue;
-        if (
-          don.trang_thai !== "cho_xac_nhan" &&
-          don.trang_thai !== "da_nhan_tien" &&
-          don.trang_thai !== "da_giao_tai_su_kien"
-        ) {
-          continue;
-        }
-        const qty = Math.max(0, Math.trunc(Number(row.so_luong) || 0));
-        soldByBienThe.set(
-          row.id_bien_the,
-          (soldByBienThe.get(row.id_bien_the) ?? 0) + qty,
-        );
-      }
+  const slugBySeller = new Map<string, string>();
+  for (const q of quayItems) {
+    if (q.nguoiDungSlug) {
+      slugBySeller.set(q.idNguoiDung, q.nguoiDungSlug);
     }
   }
 
-  for (const h of hangRows) {
-    const bt = btMap.get(h.id_bien_the);
-    if (!bt || bt.da_xoa) continue;
-    const sp = spMap.get(bt.id_san_pham);
-    if (!sp || sp.da_xoa || !sp.dang_ban) continue;
-    const ton = bt.so_luong_ton;
-    const card: ShopQuayHangSearch = {
-      hangId: h.id,
-      idBienThe: bt.id,
-      idSanPham: sp.id,
-      tenSanPham: sp.ten,
-      nhanBienThe: bt.nhan,
-      phanLoai: sp.phan_loai?.trim() || null,
-      phanLoai2: sp.phan_loai_2?.trim() || null,
-      anhUrl: shopImageUrl(bt.anh_id ?? sp.anh_id),
-      soLuongTon: ton,
-      soLuongBan: soldByBienThe.get(bt.id) ?? 0,
-      giaHienThi: Number(h.gia_hien_thi),
-      tienTe: h.tien_te,
-      hetHang: ton <= 0,
-    };
-    const list = out.get(h.id_cot_moc) ?? [];
-    list.push(card);
-    out.set(h.id_cot_moc, list);
-  }
+  await Promise.all(
+    sellerIds.map(async (sellerId) => {
+      const slug = slugBySeller.get(sellerId) ?? "shop";
+      const items = await listShopStorefrontItems({
+        sellerId,
+        ownerSlug: slug,
+        asOwner: true,
+        limit: 80,
+      });
+      const cards: ShopQuayHangSearch[] = [];
+      for (const it of items) {
+        if (!it.idBienThe || it.giaHienThi == null) continue;
+        cards.push({
+          hangId: it.hangId ?? `shop:${it.idBienThe}`,
+          idBienThe: it.idBienThe,
+          idSanPham: it.sanPhamId,
+          tenSanPham: it.tenSanPham,
+          nhanBienThe: it.nhanBienThe?.trim() || "Mặc định",
+          phanLoai: it.phanLoai,
+          phanLoai2: it.phanLoai2,
+          anhUrl: it.anhUrl,
+          soLuongTon: it.soLuongTon,
+          soLuongBan: it.soLuongBan,
+          giaHienThi: it.giaHienThi,
+          tienTe: it.tienTe,
+          hetHang: it.hetHang,
+        });
+      }
+      if (cards.length) out.set(sellerId, cards);
+    }),
+  );
   return out;
+}
+
+export async function listQuaySapCoMat(
+  ownerUserId: string,
+  opts?: { limit?: number },
+): Promise<ShopQuaySapCoMat[]> {
+  const limit = Math.min(Math.max(opts?.limit ?? 8, 1), 24);
+  const admin = createServiceRoleClient();
+  const { data, error } = await admin
+    .from("shop_quay_su_kien")
+    .select("id, id_su_kien")
+    .eq("id_nguoi_dung", ownerUserId)
+    .eq("trang_thai", "da_duyet")
+    .order("tao_luc", { ascending: false })
+    .limit(50);
+
+  if (error) {
+    console.error("[shop] listQuaySapCoMat", error);
+    return [];
+  }
+  const quayRows = (data ?? []) as Array<{ id: string; id_su_kien: string }>;
+  if (quayRows.length === 0) return [];
+
+  const suKienIds = [...new Set(quayRows.map((r) => r.id_su_kien))];
+  const { data: skRows } = await admin
+    .from("org_su_kien")
+    .select("id, slug, ten, bat_dau, ket_thuc, cover_id, id_to_chuc")
+    .in("id", suKienIds)
+    .returns<
+      Array<{
+        id: string;
+        slug: string | null;
+        ten: string | null;
+        bat_dau: string | null;
+        ket_thuc: string | null;
+        cover_id: string | null;
+        id_to_chuc: string;
+      }>
+    >();
+
+  const skMap = new Map((skRows ?? []).map((s) => [s.id, s]));
+  const orgIds = [
+    ...new Set((skRows ?? []).map((s) => s.id_to_chuc).filter(Boolean)),
+  ];
+  const { data: orgRows } = orgIds.length
+    ? await admin
+        .from("org_to_chuc")
+        .select("id, ten")
+        .in("id", orgIds)
+        .returns<Array<{ id: string; ten: string | null }>>()
+    : { data: [] as Array<{ id: string; ten: string | null }> };
+  const orgMap = new Map((orgRows ?? []).map((o) => [o.id, o.ten]));
+
+  const out: ShopQuaySapCoMat[] = [];
+  for (const q of quayRows) {
+    const sk = skMap.get(q.id_su_kien);
+    if (!sk) continue;
+    const status = getStepStatus(sk.bat_dau, sk.ket_thuc);
+    if (status !== "upcoming" && status !== "active") continue;
+    out.push({
+      id: q.id,
+      idSuKien: sk.id,
+      ten: sk.ten?.trim() || "Sự kiện",
+      batDau: sk.bat_dau,
+      ketThuc: sk.ket_thuc,
+      orgTen: orgMap.get(sk.id_to_chuc)?.trim() || null,
+      coverSrc: sk.cover_id
+        ? resolveTruongImageSrcSync(sk.cover_id, ["public", "cover", "medium"])
+        : null,
+      href: suKienDetailPath(sk.slug?.trim() || sk.id),
+      status,
+    });
+  }
+
+  out.sort((a, b) => {
+    const rank = (s: "upcoming" | "active") => (s === "active" ? 0 : 1);
+    const dr = rank(a.status) - rank(b.status);
+    if (dr !== 0) return dr;
+    const ta = a.batDau ? Date.parse(a.batDau) : Number.POSITIVE_INFINITY;
+    const tb = b.batDau ? Date.parse(b.batDau) : Number.POSITIVE_INFINITY;
+    return ta - tb;
+  });
+
+  return out.slice(0, limit);
 }
 
 export async function xinLamQuay(
@@ -469,11 +438,12 @@ export async function listQuayCuaToi(
   const suKienIds = [...new Set(items.map((i) => i.idSuKien))];
   const { data: skRows } = await admin
     .from("org_su_kien")
-    .select("id, ten, bat_dau, id_to_chuc")
+    .select("id, slug, ten, bat_dau, id_to_chuc")
     .in("id", suKienIds)
     .returns<
       Array<{
         id: string;
+        slug: string | null;
         ten: string | null;
         bat_dau: string | null;
         id_to_chuc: string;
@@ -497,6 +467,7 @@ export async function listQuayCuaToi(
     return {
       ...i,
       suKienTen: sk?.ten?.trim() || null,
+      suKienSlug: sk?.slug?.trim() || null,
       suKienBatDau: sk?.bat_dau ?? null,
       orgTen: sk ? orgMap.get(sk.id_to_chuc)?.trim() || null : null,
     };

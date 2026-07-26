@@ -581,7 +581,6 @@ export async function markAllInfoNotificationsRead(
       "membership_milestone_rejected",
       "shop_quay_approved",
       "shop_quay_rejected",
-      "shop_quay_pending",
       "video_ready",
       "article_dong_gop_feedback",
       "article_dong_gop_promoted",

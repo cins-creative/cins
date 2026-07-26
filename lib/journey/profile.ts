@@ -175,7 +175,6 @@ export function getNameInitials(
 
 /** Stage label cho dòng "vai trò" dưới tên. */
 const GIAI_DOAN_LABEL: Record<GiaiDoan, string> = {
-  moi_bat_dau: "Mới bắt đầu",
   dang_hoc: "Đang học",
   dang_lam: "Đang làm",
   tim_viec: "Đang tìm việc",

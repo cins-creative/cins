@@ -338,16 +338,16 @@ html.is-cins-share-dropping {
 
 .cins-chat-thread.is-self-thread {
   padding: 13px 10px;
-  background: rgba(31, 116, 201, 0.07);
+  background: transparent;
   border: 0;
 }
 
 .cins-chat-thread.is-self-thread:hover {
-  background: rgba(31, 116, 201, 0.12);
+  background: rgba(255, 255, 255, 0.72);
 }
 
 .cins-chat-thread.is-self-thread.is-active {
-  background: rgba(31, 116, 201, 0.16);
+  background: var(--bg-surface);
   box-shadow: var(--shadow-xs);
 }
 
@@ -368,16 +368,16 @@ html.is-cins-share-dropping {
 }
 
 :root[data-theme="dark"] .cins-chat-thread.is-self-thread {
-  background: rgba(79, 155, 232, 0.1);
+  background: transparent;
   border: 0;
 }
 
 :root[data-theme="dark"] .cins-chat-thread.is-self-thread:hover {
-  background: rgba(79, 155, 232, 0.16);
+  background: color-mix(in srgb, var(--cins-blue, #1f74c9) 10%, transparent);
 }
 
 :root[data-theme="dark"] .cins-chat-thread.is-self-thread.is-active {
-  background: rgba(79, 155, 232, 0.22);
+  background: var(--bg-surface);
 }
 
 .cins-chat-thread-row {
@@ -399,6 +399,12 @@ html.is-cins-share-dropping {
 
 .cins-chat-thread-row.is-group-row:has(.cins-chat-thread.is-active) {
   background: color-mix(in srgb, var(--cins-blue, #1f74c9) 6%, var(--bg-surface, #fff));
+  box-shadow: var(--shadow-xs);
+}
+
+/* Hub CSĐT được chọn — xanh nhẹ */
+.cins-chat-thread-row.is-org-hub-row:has(.cins-chat-thread.is-active) {
+  background: rgba(31, 116, 201, 0.1);
   box-shadow: var(--shadow-xs);
 }
 
@@ -525,6 +531,11 @@ html.is-cins-share-dropping {
 
 :root[data-theme="dark"] .cins-chat-thread-row.is-group-row:has(.cins-chat-thread.is-active) {
   background: color-mix(in srgb, var(--cins-blue, #1f74c9) 14%, rgba(15, 23, 42, 0.72));
+}
+
+:root[data-theme="dark"]
+  .cins-chat-thread-row.is-org-hub-row:has(.cins-chat-thread.is-active) {
+  background: rgba(79, 155, 232, 0.16);
 }
 
 :root[data-theme="dark"] .cins-chat-thread-row.is-group-row.has-project-toggle:not(:has(.cins-chat-thread.is-active)) {
@@ -887,6 +898,21 @@ html.is-cins-share-dropping {
   color: #047857;
 }
 
+.cins-chat-kind-pill.is-org-hub {
+  background: rgba(15, 118, 110, 0.14);
+  color: #0f766e;
+}
+
+.cins-chat-kind-pill.is-org-advisory {
+  background: rgba(37, 99, 235, 0.12);
+  color: #1d4ed8;
+}
+
+.cins-chat-kind-pill.is-org-lop {
+  background: rgba(100, 116, 139, 0.14);
+  color: #475569;
+}
+
 .cins-chat-kind-pill.is-truong_dai_hoc {
   background: rgba(31, 116, 201, 0.12);
   color: #1a5fa8;
@@ -903,11 +929,7 @@ html.is-cins-share-dropping {
 }
 
 .cins-chat-thread.is-org-thread {
-  border-left: 3px solid transparent;
-}
-
-.cins-chat-thread.is-org-thread.is-active {
-  border-left-color: var(--cins-blue);
+  border-left: none;
 }
 
 .cins-chat-thread-role {
@@ -946,13 +968,93 @@ html.is-cins-share-dropping {
 }
 
 .cins-chat-thread-top .cins-chat-thread-name strong {
-  flex: 0 1 auto;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Org / hub: tên dòng 1, pill xuống dòng preview — tránh cắt tên */
+.cins-chat-thread-main.is-org-card .cins-chat-thread-top {
+  align-items: baseline;
+  gap: 8px;
+}
+
+.cins-chat-thread-main.is-org-card .cins-chat-thread-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  gap: 5px;
+}
+
+.cins-chat-thread-main.is-org-card .cins-chat-thread-name strong {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.cins-chat-thread-main.is-org-card .cins-chat-thread-top time {
+  flex-shrink: 0;
+  margin-right: 0;
+  font-size: 10px;
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+.cins-chat-thread-main.is-org-card .cins-chat-thread-bottom {
+  gap: 6px;
+  min-width: 0;
+  justify-content: flex-start;
+}
+
+.cins-chat-thread-main.is-org-card .cins-chat-thread-bottom .cins-chat-kind-pill {
+  flex-shrink: 0;
+}
+
+.cins-chat-thread-main.is-org-card .cins-chat-thread-preview {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.cins-chat-thread-main.is-org-card .cins-chat-thread-badges,
+.cins-chat-thread-main.is-org-card .cins-chat-unread {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.cins-chat-thread-row.has-project-toggle .cins-chat-thread.is-org-hub-thread {
+  padding-right: 4px;
+}
+
+.cins-chat-project-toggle.is-org-hub-toggle .cins-chat-project-toggle-count {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  line-height: 1.05;
+  font-size: 10px;
+  padding: 4px 6px;
+  min-width: 36px;
+}
+
+.cins-chat-project-toggle.is-org-hub-toggle .cins-chat-project-toggle-num {
+  font-size: 12px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.cins-chat-project-toggle.is-org-hub-toggle .cins-chat-project-toggle-unit {
+  font-size: 9px;
+  font-weight: 700;
+  opacity: 0.85;
+  text-transform: lowercase;
+}
+
+.cins-chat-project-toggle.is-org-hub-toggle .cins-chat-project-toggle-chevron {
+  margin-top: 1px;
 }
 
 .cins-chat-thread-top time {
   flex-shrink: 0;
   margin-right: 14px;
-  font-size: 11px;
+  font-size: 10px;
+  font-weight: 400;
   color: var(--ink-muted);
   font-variant-numeric: tabular-nums;
 }
@@ -3567,7 +3669,9 @@ button.cins-canvas-table-cell-text {
   position: relative;
   padding: 10px 14px;
   border-radius: 18px;
+  width: max-content;
   max-width: 100%;
+  box-sizing: border-box;
 }
 
 .cins-chat-bubble.is-pinned {
@@ -3635,7 +3739,10 @@ button.cins-canvas-table-cell-text {
   font-size: 13px;
   line-height: 1.5;
   white-space: pre-wrap;
-  word-break: break-word;
+  /* Không dùng word-break: break-word — làm min-content = 1 ký tự
+     → bubble co ~30px (tin ngắn dọc từng chữ) khi row width: fit-content. */
+  overflow-wrap: break-word;
+  word-break: normal;
 }
 
 .cins-chat-bubble time {
@@ -3652,9 +3759,8 @@ button.cins-canvas-table-cell-text {
   flex-direction: row;
   align-items: center;
   gap: 2px;
-  width: fit-content;
+  width: max-content;
   max-width: 100%;
-  min-width: 0;
 }
 
 .cins-chat-bubble-wrap.has-bubble-actions {
@@ -8477,8 +8583,8 @@ a.cins-chat-don-card.is-paid:hover {
 
 .cins-chat-thread-main.is-group-card .cins-chat-thread-top time {
   flex-shrink: 0;
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 10px;
+  font-weight: 400;
   color: var(--ink-muted, #6b7280);
   white-space: nowrap;
 }
@@ -10295,6 +10401,18 @@ button.cins-chat-project-card-mark:hover {
 :root[data-theme="dark"] .cins-chat-kind-pill.is-co_so_dao_tao {
   background: rgba(16, 185, 129, 0.18);
   color: #4ade80;
+}
+:root[data-theme="dark"] .cins-chat-kind-pill.is-org-hub {
+  background: rgba(45, 212, 191, 0.16);
+  color: #5eead4;
+}
+:root[data-theme="dark"] .cins-chat-kind-pill.is-org-advisory {
+  background: rgba(96, 165, 250, 0.18);
+  color: #93c5fd;
+}
+:root[data-theme="dark"] .cins-chat-kind-pill.is-org-lop {
+  background: rgba(148, 163, 184, 0.2);
+  color: #cbd5e1;
 }
 :root[data-theme="dark"] .cins-chat-kind-pill.is-truong_dai_hoc {
   background: rgba(79, 155, 232, 0.2);

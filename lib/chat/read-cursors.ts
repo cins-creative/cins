@@ -22,8 +22,11 @@ type ProfileRow = {
 
 type RoomMeta = {
   loai_phong: string;
+  loai_context: string | null;
   id_org_dai_dien: string | null;
 };
+
+const CSDT_HUB_CONTEXT = "csdt_hub";
 
 type MemberRoleRow = {
   id_nguoi_dung: string;
@@ -70,7 +73,7 @@ export async function listRoomReadCursors(
 
   const { data: room } = await admin
     .from("chat_phong")
-    .select("loai_phong, id_org_dai_dien")
+    .select("loai_phong, loai_context, id_org_dai_dien")
     .eq("id", roomId)
     .maybeSingle<RoomMeta>();
 
@@ -100,10 +103,14 @@ export async function listRoomReadCursors(
   );
   if (withMessage.length === 0) return [];
 
-  const isOrgRoom =
-    room?.loai_phong === ORG_ROOM && Boolean(room.id_org_dai_dien);
+  // Hub CSĐT + phòng thường: cursor cá nhân (hiện tên từng người).
+  // Chỉ tư vấn 1_org (org_student) mới mask phía org.
+  const isOrgAdvisory =
+    room?.loai_phong === ORG_ROOM &&
+    Boolean(room.id_org_dai_dien) &&
+    room.loai_context !== CSDT_HUB_CONTEXT;
 
-  if (!isOrgRoom) {
+  if (!isOrgAdvisory) {
     return buildPersonalCursors(admin, withMessage);
   }
 

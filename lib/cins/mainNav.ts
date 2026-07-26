@@ -42,14 +42,10 @@ export type MainNavItem = {
   tip: string;
   icon: MainNavIcon;
   isActive: (pathname: string) => boolean;
-  /** Nhấn mạnh nhẹ trong sidebar (vd. mục foot quan trọng). */
-  highlight?: boolean;
   /** Nếu có: hover item sẽ xổ ngang danh sách tổ chức của user theo nhóm này. */
   flyout?: OrgFlyoutKind;
   /** Chưa có trang — click mở overlay thông báo. */
   comingSoon?: boolean;
-  /** Click mở modal cài đặt tài khoản (giống menu user ở topbar). */
-  opensSettings?: boolean;
 };
 
 export const MAIN_NAV_ITEMS: MainNavItem[] = [
@@ -131,7 +127,6 @@ export const MAIN_NAV_FOOT_ITEMS: MainNavItem[] = [
     label: "Thông tin dự án",
     tip: "Tầm nhìn, triết lý sản phẩm và hướng phát triển của CINs",
     icon: "project",
-    highlight: true,
     isActive: (p) => p === "/thong-tin-du-an",
   },
   {
@@ -141,14 +136,5 @@ export const MAIN_NAV_FOOT_ITEMS: MainNavItem[] = [
     tip: "Câu hỏi thường gặp, hỗ trợ tài khoản và liên hệ với đội ngũ CINs",
     icon: "help",
     isActive: (p) => p === "/ho-tro" || p.startsWith("/ho-tro/"),
-  },
-  {
-    id: "settings",
-    href: "/#settings",
-    label: "Cài đặt",
-    tip: "Cập nhật thông tin cá nhân, thông báo, quyền riêng tư và ngôn ngữ",
-    icon: "settings",
-    isActive: () => false,
-    opensSettings: true,
   },
 ];

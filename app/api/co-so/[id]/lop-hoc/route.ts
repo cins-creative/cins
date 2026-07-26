@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
+import { ensureMissingLopChatPhongForOrg } from "@/lib/co-so/lop-chat-phong";
 import { getViewerCoSoVaiTro } from "@/lib/to-chuc/co-so-membership";
 import { getCoSoModuleQuyen } from "@/lib/to-chuc/co-so-quan-ly-access";
 import { listLopHocQuanLy } from "@/lib/to-chuc/lop-hoc-quan-ly";
@@ -23,6 +24,11 @@ export async function GET(_req: Request, ctx: Ctx) {
   }
 
   try {
+    // Backfill phòng chat lớp còn thiếu (L34) — không chặn list nếu lỗi tạm.
+    if (quyen === "sua") {
+      await ensureMissingLopChatPhongForOrg(orgId).catch(() => undefined);
+    }
+
     const lopHoc = await listLopHocQuanLy(orgId);
     return NextResponse.json({
       lopHoc,

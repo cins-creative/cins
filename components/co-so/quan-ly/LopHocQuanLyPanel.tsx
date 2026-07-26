@@ -1,11 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { Plus } from "lucide-react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ChangeEvent,
+} from "react";
+import { ExternalLink, ImagePlus, Pencil, Plus, Trash2 } from "lucide-react";
 
 import { LopHocEditModal } from "@/components/co-so/LopHocEditModal";
 import { PedagogyQuanLyClient } from "@/components/co-so/quan-ly/PedagogyQuanLyClient";
+import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
+import { isAllowedUploadImageFile } from "@/lib/files/infer-image-mime";
 import { coSoKhoaHocDetailPath } from "@/lib/to-chuc/co-so-routes";
 import {
   labelHinhThucLop,
@@ -59,16 +68,58 @@ function toLopDetail(row: LopHocQuanLyRow): LopHocDetailData {
     giaoVien: {
       key: row.giaoVienPhuTrach ?? `text:${ten}`,
       ten,
-      slug: null,
+      slug: row.giaoVienSlug,
       verified: Boolean(row.giaoVienPhuTrach),
       initials: initials(ten),
       vaiTro: null,
       pendingProfile: !row.giaoVienPhuTrach && Boolean(row.giaoVienText),
-      avatarUrl: null,
-      avatarId: null,
+      avatarUrl: row.giaoVienAvatarUrl,
+      avatarId: row.giaoVienAvatarId,
     },
     diaChiHoc: null,
   };
+}
+
+function GiaoVienCell({ row }: { row: LopHocQuanLyRow }) {
+  const ten = row.giaoVienTen?.trim();
+  if (!ten) {
+    return <p className="cso-hv-lop">Chưa gán</p>;
+  }
+
+  const body = (
+    <span className="cso-hv-person cso-lh-gv-cell">
+      <span className="cso-hv-ava cso-lh-gv-ava" aria-hidden>
+        {row.giaoVienAvatarUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={row.giaoVienAvatarUrl} alt="" />
+        ) : (
+          initials(ten)
+        )}
+      </span>
+      <span className="cso-hv-person-meta">
+        <span className="cso-hv-name">{ten}</span>
+        {row.giaoVienSlug ? (
+          <span className="cso-hv-slug">@{row.giaoVienSlug}</span>
+        ) : row.giaoVienText ? (
+          <span className="cso-hv-lop">Tên thủ công</span>
+        ) : null}
+      </span>
+    </span>
+  );
+
+  if (!row.giaoVienSlug) {
+    return body;
+  }
+
+  return (
+    <JourneyUserPopover
+      slug={row.giaoVienSlug}
+      fallbackName={ten}
+      fallbackAvatarUrl={row.giaoVienAvatarUrl}
+    >
+      <span className="cso-lh-gv-open">{body}</span>
+    </JourneyUserPopover>
+  );
 }
 
 function formatNgay(iso: string): string {
@@ -101,6 +152,10 @@ export function LopHocQuanLyPanel({ orgId, orgSlug, khoaOptions }: Props) {
   const [createOpen, setCreateOpen] = useState(false);
   const [pickOpen, setPickOpen] = useState(false);
   const [createKhoaId, setCreateKhoaId] = useState("");
+  const [uploadingLopId, setUploadingLopId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const thumbInputRef = useRef<HTMLInputElement>(null);
+  const thumbTargetLopIdRef = useRef<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -176,8 +231,119 @@ export function LopHocQuanLyPanel({ orgId, orgSlug, khoaOptions }: Props) {
     setCreateKhoaId("");
   }
 
+  function openThumbPicker(lopId: string) {
+    if (!canEdit || uploadingLopId) return;
+    thumbTargetLopIdRef.current = lopId;
+    thumbInputRef.current?.click();
+  }
+
+  async function softDeleteLop(row: LopHocQuanLyRow) {
+    if (!canEdit || deletingId) return;
+    const label = row.maLop || row.lichHoc || "lớp này";
+    const ok = window.confirm(
+      `Ẩn lớp «${label}»?\n\nĐây là soft delete — lớp chuyển sang «Đã hủy», dữ liệu học viên được giữ. Có thể khôi phục bằng cách sửa trạng thái lớp.`,
+    );
+    if (!ok) return;
+    setDeletingId(row.id);
+    setError(null);
+    try {
+      const res = await fetch(
+        `/api/co-so/${encodeURIComponent(orgId)}/khoa-hoc/${encodeURIComponent(row.khoaId)}/lop/${encodeURIComponent(row.id)}`,
+        { method: "DELETE", credentials: "include" },
+      );
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(
+          (data as { error?: string } | null)?.error || "Không xóa được lớp.",
+        );
+      }
+      setRows((prev) =>
+        prev.map((r) =>
+          r.id === row.id ? { ...r, trangThaiLop: "huy" } : r,
+        ),
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Lỗi xóa lớp.");
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
+  async function onThumbFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    const lopId = thumbTargetLopIdRef.current;
+    event.target.value = "";
+    thumbTargetLopIdRef.current = null;
+    if (!file || !lopId) return;
+    if (!isAllowedUploadImageFile(file)) {
+      window.alert("Chỉ chọn ảnh JPG, PNG, WebP hoặc GIF.");
+      return;
+    }
+
+    setUploadingLopId(lopId);
+    setError(null);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const uploadRes = await fetch("/api/avatar/upload", {
+        method: "POST",
+        body: form,
+        credentials: "include",
+      });
+      const uploadJson = (await uploadRes.json()) as {
+        imageId?: string;
+        error?: string;
+      };
+      if (!uploadRes.ok || !uploadJson.imageId) {
+        throw new Error(uploadJson.error || "Không tải được ảnh.");
+      }
+
+      const patchRes = await fetch(
+        `/api/co-so/${encodeURIComponent(orgId)}/lop-hoc/${encodeURIComponent(lopId)}/avatar`,
+        {
+          method: "PATCH",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ avatarId: uploadJson.imageId }),
+        },
+      );
+      const patchJson = (await patchRes.json()) as {
+        avatarId?: string | null;
+        avatarUrl?: string | null;
+        error?: string;
+      };
+      if (!patchRes.ok) {
+        throw new Error(patchJson.error || "Không lưu được ảnh lớp.");
+      }
+
+      setRows((prev) =>
+        prev.map((row) =>
+          row.id === lopId
+            ? {
+                ...row,
+                avatarId: patchJson.avatarId ?? null,
+                avatarUrl: patchJson.avatarUrl ?? null,
+              }
+            : row,
+        ),
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Không đổi được ảnh lớp.");
+    } finally {
+      setUploadingLopId(null);
+    }
+  }
+
   return (
     <>
+      <input
+        ref={thumbInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        className="sr-only"
+        tabIndex={-1}
+        onChange={(e) => void onThumbFileChange(e)}
+      />
       <section className="cso-dt-kpis cso-lh-kpis" aria-label="Tóm tắt lớp học">
         <div className="cso-dt-kpi cso-dt-kpi--hero">
           <p className="cso-dt-kpi-label">Lớp học</p>
@@ -232,6 +398,7 @@ export function LopHocQuanLyPanel({ orgId, orgSlug, khoaOptions }: Props) {
                 <tr>
                   <th scope="col">Lớp</th>
                   <th scope="col">Khóa</th>
+                  <th scope="col">Giáo viên</th>
                   <th scope="col">Khai giảng</th>
                   <th scope="col">HV</th>
                   <th scope="col">Trạng thái</th>
@@ -243,13 +410,13 @@ export function LopHocQuanLyPanel({ orgId, orgSlug, khoaOptions }: Props) {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={6}>
+                    <td colSpan={7}>
                       <div className="cso-hv-loading">Đang tải…</div>
                     </td>
                   </tr>
                 ) : rows.length === 0 ? (
                   <tr>
-                    <td colSpan={6}>
+                    <td colSpan={7}>
                       <div className="cso-hv-empty">
                         <strong>Chưa có lớp</strong>
                         {khoaOptions.length === 0
@@ -262,16 +429,48 @@ export function LopHocQuanLyPanel({ orgId, orgSlug, khoaOptions }: Props) {
                   rows.map((r) => (
                     <tr key={r.id}>
                       <td>
-                        <p className="cso-hv-name">
-                          {r.maLop || r.lichHoc || "Lớp"}
-                        </p>
-                        <p className="cso-hv-lop">
-                          {labelHinhThucLop(r.hinhThuc)}
-                          {r.giaoVienTen ? ` · ${r.giaoVienTen}` : ""}
-                        </p>
+                        <div className="cso-hv-person">
+                          {canEdit ? (
+                            <button
+                              type="button"
+                              className={`cso-hv-ava cso-lh-thumb${uploadingLopId === r.id ? " is-uploading" : ""}`}
+                              title="Đổi ảnh lớp (dùng trong chat)"
+                              aria-label={`Đổi ảnh lớp ${r.maLop || r.lichHoc || ""}`}
+                              disabled={uploadingLopId === r.id}
+                              onClick={() => openThumbPicker(r.id)}
+                            >
+                              {r.avatarUrl ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={r.avatarUrl} alt="" />
+                              ) : (
+                                <ImagePlus size={16} strokeWidth={2.2} aria-hidden />
+                              )}
+                            </button>
+                          ) : (
+                            <span className="cso-hv-ava cso-lh-thumb" aria-hidden>
+                              {r.avatarUrl ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={r.avatarUrl} alt="" />
+                              ) : (
+                                initials(r.maLop || r.lichHoc || r.tenKhoa || "L")
+                              )}
+                            </span>
+                          )}
+                          <div className="cso-hv-person-meta">
+                            <p className="cso-hv-name">
+                              {r.maLop || r.lichHoc || "Lớp"}
+                            </p>
+                            <p className="cso-hv-lop">
+                              {labelHinhThucLop(r.hinhThuc)}
+                            </p>
+                          </div>
+                        </div>
                       </td>
                       <td>
                         <p className="cso-hv-course">{r.tenKhoa}</p>
+                      </td>
+                      <td>
+                        <GiaoVienCell row={r} />
                       </td>
                       <td>
                         <p className="cso-hv-lop">{formatNgay(r.ngayKhaiGiang)}</p>
@@ -300,22 +499,40 @@ export function LopHocQuanLyPanel({ orgId, orgSlug, khoaOptions }: Props) {
                               orgSlug,
                               r.khoaSlug || r.khoaId,
                             )}
-                            className="cso-ql-btn cso-ql-btn--ghost cso-ql-btn--sm"
+                            className="cso-ql-btn cso-ql-btn--ghost cso-ql-btn--icon"
+                            title="Mở trang khóa"
+                            aria-label={`Mở khóa ${r.tenKhoa}`}
                           >
-                            Mở khóa
+                            <ExternalLink size={15} strokeWidth={2.2} aria-hidden />
                           </Link>
                           {canEdit ? (
-                            <button
-                              type="button"
-                              className="cso-ql-btn cso-ql-btn--ghost cso-ql-btn--sm"
-                              onClick={() => {
-                                setCreateOpen(false);
-                                setPickOpen(false);
-                                setEditing(r);
-                              }}
-                            >
-                              Sửa
-                            </button>
+                            <>
+                              <button
+                                type="button"
+                                className="cso-ql-btn cso-ql-btn--ghost cso-ql-btn--icon"
+                                title="Sửa lớp"
+                                aria-label={`Sửa lớp ${r.maLop || r.lichHoc || ""}`}
+                                onClick={() => {
+                                  setCreateOpen(false);
+                                  setPickOpen(false);
+                                  setEditing(r);
+                                }}
+                              >
+                                <Pencil size={15} strokeWidth={2.2} aria-hidden />
+                              </button>
+                              <button
+                                type="button"
+                                className="cso-ql-btn cso-ql-btn--ghost cso-ql-btn--icon cso-ql-btn--danger-icon"
+                                title="Ẩn lớp (soft delete)"
+                                aria-label={`Ẩn lớp ${r.maLop || r.lichHoc || ""}`}
+                                disabled={
+                                  deletingId === r.id || r.trangThaiLop === "huy"
+                                }
+                                onClick={() => void softDeleteLop(r)}
+                              >
+                                <Trash2 size={15} strokeWidth={2.2} aria-hidden />
+                              </button>
+                            </>
                           ) : null}
                         </div>
                       </td>

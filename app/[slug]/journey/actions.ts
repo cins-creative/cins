@@ -48,7 +48,6 @@ import { notifyMilestoneComment } from "@/lib/social/follow";
 import { TINH_THANH_CODE_SET } from "@/lib/truong/contact";
 
 const GIAI_DOAN_VALID = new Set<GiaiDoan>([
-  "moi_bat_dau",
   "dang_hoc",
   "dang_lam",
   "tim_viec",

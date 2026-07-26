@@ -5,7 +5,8 @@ import type { CongDongEvent } from "@/lib/cong-dong/types";
 
 type SuKienRow = {
   id: string;
-  tieu_de: string | null;
+  slug: string | null;
+  ten: string | null;
   mo_ta: string | null;
   cover_id: string | null;
   bat_dau: string;
@@ -33,8 +34,9 @@ function mapRow(row: SuKienRow): CongDongEvent {
   const loai = row.loai_su_kien?.trim() ?? "";
   return {
     id: row.id,
+    slug: row.slug?.trim() || null,
     tieuDe:
-      row.tieu_de?.trim() ||
+      row.ten?.trim() ||
       row.mo_ta?.trim().slice(0, 80) ||
       "Sự kiện cộng đồng",
     moTa: row.mo_ta,
@@ -46,6 +48,9 @@ function mapRow(row: SuKienRow): CongDongEvent {
   };
 }
 
+const SU_KIEN_SELECT =
+  "id, slug, ten, mo_ta, cover_id, bat_dau, ket_thuc, dia_diem, loai_su_kien";
+
 /** Sự kiện sắp diễn ra / đang mở — hiển thị cột banner dọc. */
 export async function loadUpcomingCongDongEvents(
   orgId: string,
@@ -56,9 +61,7 @@ export async function loadUpcomingCongDongEvents(
 
   const { data, error } = await admin
     .from("org_su_kien")
-    .select(
-      "id, tieu_de, mo_ta, cover_id, bat_dau, ket_thuc, dia_diem, loai_su_kien",
-    )
+    .select(SU_KIEN_SELECT)
     .eq("id_to_chuc", orgId)
     .or(`ket_thuc.is.null,ket_thuc.gte.${now}`)
     .order("bat_dau", { ascending: true })
@@ -82,9 +85,7 @@ export async function loadUpcomingEventsForHome(
 
   let query = admin
     .from("org_su_kien")
-    .select(
-      "id, tieu_de, mo_ta, cover_id, bat_dau, ket_thuc, dia_diem, loai_su_kien",
-    )
+    .select(SU_KIEN_SELECT)
     .or(`ket_thuc.is.null,ket_thuc.gte.${now}`)
     .order("bat_dau", { ascending: true })
     .limit(limit);

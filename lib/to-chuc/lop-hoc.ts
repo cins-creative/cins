@@ -348,3 +348,47 @@ export async function capNhatLopHoc(
 
   return { ok: true };
 }
+
+/** Soft delete lớp — đặt `trang_thai = huy`, giữ row + lịch sử. */
+export async function softDeleteLopHoc(
+  orgId: string,
+  khoaId: string,
+  lopId: string,
+  actorId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!(await canViewerManageKhoaHoc(actorId, orgId))) {
+    return { ok: false, error: "Bạn không có quyền xóa lớp học." };
+  }
+
+  const khoa = await fetchKhoaContext(orgId, khoaId);
+  if (!khoa) {
+    return { ok: false, error: "Không tìm thấy khóa học." };
+  }
+
+  const admin = createServiceRoleClient();
+  const { data: existing } = await admin
+    .from("org_lop_hoc")
+    .select("id, trang_thai")
+    .eq("id", lopId)
+    .eq("id_khoa_hoc", khoaId)
+    .maybeSingle();
+  if (!existing?.id) {
+    return { ok: false, error: "Không tìm thấy lớp học." };
+  }
+
+  if (existing.trang_thai === "huy") {
+    return { ok: true };
+  }
+
+  const { error } = await admin
+    .from("org_lop_hoc")
+    .update({ trang_thai: "huy" })
+    .eq("id", lopId)
+    .eq("id_khoa_hoc", khoaId);
+
+  if (error) {
+    return { ok: false, error: error.message };
+  }
+
+  return { ok: true };
+}

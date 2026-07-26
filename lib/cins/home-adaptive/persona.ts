@@ -7,7 +7,6 @@
 
 /** Enum `giai_doan_enum` (DB: `user_nguoi_dung.giai_doan` — đọc trực tiếp). */
 export type GiaiDoan =
-  | "moi_bat_dau"
   | "dang_hoc"
   | "dang_lam"
   | "tim_viec"
@@ -43,7 +42,6 @@ export type ModuleId =
  */
 export function resolvePersona(giaiDoan: GiaiDoan | null | undefined): Persona {
   switch (giaiDoan) {
-    case "moi_bat_dau":
     case "dang_hoc":
       return "hoc";
     case "dang_day":

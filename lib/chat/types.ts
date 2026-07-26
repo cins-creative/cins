@@ -245,6 +245,10 @@ export type ChatThread = {
   orgId?: string;
   /** Phòng lớp (`loai_phong=lop_hoc`) — không dedupe với 1_org. */
   lopHocId?: string;
+  /** Hub chat chung CSĐT (`loai_context=csdt_hub`) — cha của phòng lớp. */
+  isOrgHub?: boolean;
+  /** Phòng tư vấn 1_org (`org_student`) — tách UI với hub. */
+  isOrgAdvisory?: boolean;
   preview: string;
   lastAt: string;
   unread: number;

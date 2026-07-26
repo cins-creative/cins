@@ -417,95 +417,52 @@
 }
 
 .cins-app-sidebar .sb-foot {
-  padding: 10px 8px 14px;
+  padding: 8px 14px 12px;
   border-top: 1px solid var(--border);
   flex-shrink: 0;
+}
+
+.cins-app-sidebar .sb-foot-meta {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.cins-app-sidebar .sb-foot .sb-item {
-  font-size: 12.5px;
-  color: var(--ink-muted);
-}
-
-@keyframes sb-cta-icon-pulse {
-  0%,
-  100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.14);
-  }
-}
-
-@keyframes sb-cta-icon-ring {
-  0% {
-    transform: scale(0.72);
-    opacity: 0.55;
-  }
-  70%,
-  100% {
-    transform: scale(1.55);
-    opacity: 0;
-  }
-}
-
-.cins-app-sidebar .sb-foot .sb-item.sb-item--highlight {
-  color: #fff;
-  font-weight: 600;
-  background: var(--cins-blue, #1f74c9);
-  border: none;
-  box-shadow: none;
-  transition:
-    background var(--app-nav-dur) var(--app-nav-ease),
-    color var(--app-nav-dur) var(--app-nav-ease);
-}
-
-.cins-app-sidebar .sb-foot .sb-item.sb-item--highlight:hover {
-  background: var(--cins-blue-dark, #1656a0);
-  color: #fff;
-  box-shadow: none;
-}
-
-.cins-app-sidebar .sb-foot .sb-item.sb-item--highlight.active {
-  font-weight: 700;
-  background: var(--cins-blue-dark, #1656a0);
-  color: #fff;
-  box-shadow: none;
-}
-
-.cins-app-sidebar .sb-foot .sb-item.sb-item--highlight.active::before {
-  display: none;
-}
-
-.cins-app-sidebar .sb-foot .sb-item.sb-item--highlight .sb-ico {
-  position: relative;
-}
-
-.cins-app-sidebar .sb-foot .sb-item.sb-item--highlight .sb-ico::after {
-  content: "";
-  position: absolute;
-  inset: -1px;
-  border-radius: 50%;
-  border: 1.5px solid rgba(255, 255, 255, 0.55);
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 5px;
+  line-height: 1.35;
+  opacity: 0;
+  transform: translateY(2px);
   pointer-events: none;
-  animation: sb-cta-icon-ring 2.4s ease-out infinite;
+  transition:
+    opacity 0.18s var(--app-nav-ease) 0.04s,
+    transform 0.18s var(--app-nav-ease) 0.04s;
 }
 
-.cins-app-sidebar .sb-foot .sb-item.sb-item--highlight .sb-ico svg,
-.cins-app-sidebar .sb-foot .sb-item.sb-item--highlight .sb-ico .sb-mage-icon {
-  animation: sb-cta-icon-pulse 2.4s ease-in-out infinite;
-  transform-origin: center;
+.cins-app-sidebar.sidebar:hover .sb-foot-meta,
+.cins-app-sidebar.sidebar:focus-within .sb-foot-meta,
+.cins-app-sidebar.sidebar:has(.sb-user.open) .sb-foot-meta {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .cins-app-sidebar .sb-foot .sb-item.sb-item--highlight .sb-ico::after,
-  .cins-app-sidebar .sb-foot .sb-item.sb-item--highlight .sb-ico svg,
-  .cins-app-sidebar .sb-foot .sb-item.sb-item--highlight .sb-ico .sb-mage-icon {
-    animation: none;
-  }
+.cins-app-sidebar .sb-foot-link {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ink-muted);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color var(--app-nav-dur) var(--app-nav-ease);
+}
+
+.cins-app-sidebar .sb-foot-link:hover,
+.cins-app-sidebar .sb-foot-link.is-active {
+  color: var(--cins-blue);
+}
+
+.cins-app-sidebar .sb-foot-sep {
+  font-size: 11px;
+  color: var(--ink-muted);
+  opacity: 0.55;
+  user-select: none;
 }
 
 /* ── Org quick-access — xổ inline (accordion) ngay trong sidebar ── */
@@ -806,15 +763,7 @@
   }
 
   .cins-app-sidebar.sidebar:not(:hover):not(:focus-within):not(:has(.sb-user.open)) .sb-foot {
-    /* Giữ padding như bản mở rộng — không thu về 0 */
-    padding: 10px 8px 14px;
-  }
-
-  .cins-app-sidebar.sidebar:not(:hover):not(:focus-within):not(:has(.sb-user.open)) .sb-foot .sb-item {
-    justify-content: center;
-    gap: 0;
-    padding-left: 0;
-    padding-right: 0;
+    padding: 8px 14px 12px;
   }
 
   .cins-app-sidebar.sidebar:not(:hover):not(:focus-within):not(:has(.sb-user.open)) .sb-user-pill {
@@ -3030,6 +2979,12 @@ a.j-notify-mini-action.is-link:hover {
      clips labels to max-width:0 for the desktop hover-rail, undo it here). */
   .cins-app-sidebar.sidebar .sb-label {
     max-width: 180px;
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
+  }
+
+  .cins-app-sidebar.sidebar .sb-foot-meta {
     opacity: 1;
     transform: none;
     pointer-events: auto;

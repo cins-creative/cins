@@ -42,6 +42,7 @@ function promoEventDate(iso: string): { month: string; day: string } {
 
 type SuKienPromoRow = {
   id: string;
+  slug: string | null;
   ten: string;
   cover_id: string | null;
   bat_dau: string;
@@ -74,7 +75,7 @@ async function queryUpcomingSuKienPromoRows(
   let query = admin
     .from("org_su_kien")
     .select(
-      "id, ten, cover_id, bat_dau, loai_su_kien, id_to_chuc, org_to_chuc!inner ( slug, ten, loai_to_chuc, avatar_id, logo_id )",
+      "id, slug, ten, cover_id, bat_dau, loai_su_kien, id_to_chuc, org_to_chuc!inner ( slug, ten, loai_to_chuc, avatar_id, logo_id )",
     )
     .or(`ket_thuc.is.null,ket_thuc.gte.${now}`)
     .gte("bat_dau", now)
@@ -146,7 +147,7 @@ async function loadFeedPromoEvents(
       const org = Array.isArray(orgRaw) ? orgRaw[0] : orgRaw;
       const orgTen = org?.ten?.trim() ?? "Tổ chức";
       const loaiLabel = labelLoaiSuKien(row.loai_su_kien);
-      const href = suKienDetailPath(row.id);
+      const href = suKienDetailPath(row.slug?.trim() || row.id);
       const coverSrc = row.cover_id
         ? resolveTruongImageSrcSync(row.cover_id, ["public", "cover", "medium"])
         : null;

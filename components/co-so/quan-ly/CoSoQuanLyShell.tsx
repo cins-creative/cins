@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { ArrowLeft, Settings } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 
+import { CoSoTinNhanNavLink } from "@/components/co-so/quan-ly/CoSoTinNhanNavLink";
+import { TruongMilestoneTagNotify } from "@/components/truong/TruongMilestoneTagNotify";
 import {
   coSoQuanLyPath,
   resolveCoSoQuanLySection,
@@ -11,7 +13,7 @@ import {
 } from "@/lib/to-chuc/co-so-routes";
 
 type NavItem = {
-  id: Exclude<CoSoQuanLySection, "marketing">;
+  id: Exclude<CoSoQuanLySection, "marketing" | "tin-nhan" | "cai-dat">;
   label: string;
 };
 
@@ -28,14 +30,13 @@ const NAV_GROUPS: NavGroup[] = [
   },
   {
     id: "thiet-lap",
-    items: [
-      { id: "co-so", label: "Cơ sở" },
-    ],
+    items: [{ id: "co-so", label: "Cơ sở" }],
   },
   {
     id: "hoc",
     items: [
       { id: "lop-hoc", label: "Khóa & lớp" },
+      { id: "giao-trinh", label: "Giáo trình" },
       { id: "hoc-vien", label: "Học viên" },
       { id: "diem-danh", label: "Điểm danh" },
     ],
@@ -47,15 +48,17 @@ const NAV_GROUPS: NavGroup[] = [
 ];
 
 type Props = {
+  orgId: string;
   orgSlug: string;
   orgTen: string;
   active: CoSoQuanLySection;
-  /** Founder tier (owner/admin) — hiện icon Cài đặt tối cao. */
+  /** Founder tier (owner/admin) — hiện link Cài đặt tối cao bên phải nav. */
   isFounder?: boolean;
   children: ReactNode;
 };
 
 export function CoSoQuanLyShell({
+  orgId,
   orgSlug,
   orgTen,
   active,
@@ -64,32 +67,24 @@ export function CoSoQuanLyShell({
 }: Props) {
   const resolved = resolveCoSoQuanLySection(active);
   const isCaiDat = active === "cai-dat";
+  const isTinNhan = active === "tin-nhan";
 
   return (
-    <div className="cso-ql">
+    <div className={`cso-ql${isTinNhan ? " cso-ql--tin-nhan" : ""}`}>
       <div className="cso-ql-inner">
-        <header className="cso-ql-header">
-          <div>
-            <Link
-              href={`/co-so/${encodeURIComponent(orgSlug)}`}
-              className="cso-ql-back"
-            >
-              <ArrowLeft size={14} strokeWidth={2.2} aria-hidden />
-              {orgTen}
-            </Link>
-          </div>
-          {isFounder ? (
-            <Link
-              href={coSoQuanLyPath(orgSlug, "cai-dat")}
-              className={`cso-ql-settings-btn${isCaiDat ? " is-active" : ""}`}
-              aria-current={isCaiDat ? "page" : undefined}
-              title="Cài đặt tối cao"
-            >
-              <Settings size={16} strokeWidth={2.2} aria-hidden />
-              <span>Cài đặt tối cao</span>
-            </Link>
-          ) : null}
-        </header>
+        {!isTinNhan ? (
+          <header className="cso-ql-header">
+            <div>
+              <Link
+                href={`/co-so/${encodeURIComponent(orgSlug)}`}
+                className="cso-ql-back"
+              >
+                <ArrowLeft size={14} strokeWidth={2.2} aria-hidden />
+                {orgTen}
+              </Link>
+            </div>
+          </header>
+        ) : null}
 
         <nav className="cso-ql-nav" aria-label="Mục quản lý">
           {NAV_GROUPS.map((group, groupIndex) => (
@@ -115,6 +110,29 @@ export function CoSoQuanLyShell({
               </div>
             </div>
           ))}
+          <div className="cso-ql-nav-group cso-ql-nav-group--trail">
+            <div className="cso-ql-nav-group-links cso-ql-nav-tools">
+              <CoSoTinNhanNavLink
+                orgId={orgId}
+                orgSlug={orgSlug}
+                active={isTinNhan}
+              />
+              <TruongMilestoneTagNotify
+                orgId={orgId}
+                variant="nav"
+                alwaysAvailable
+              />
+              {isFounder ? (
+                <Link
+                  href={coSoQuanLyPath(orgSlug, "cai-dat")}
+                  className={`cso-ql-nav-link${isCaiDat ? " is-active" : ""}`}
+                  aria-current={isCaiDat ? "page" : undefined}
+                >
+                  Cài đặt tối cao
+                </Link>
+              ) : null}
+            </div>
+          </div>
         </nav>
 
         <div className="cso-ql-body">{children}</div>

@@ -16,6 +16,7 @@ import {
   Search,
   Send,
   Settings2,
+  Building2,
   Users,
   X,
   Maximize2,
@@ -190,6 +191,24 @@ function isSparseLaunchThread(thread: ChatThread): boolean {
   );
 }
 
+/** Cùng «slot» org trên tab Tổ chức — không gộp hub / tư vấn / lớp. */
+function isSameOrgThreadSlot(a: ChatThread, b: ChatThread): boolean {
+  if (a.kind !== "org" || b.kind !== "org") return false;
+  if (!a.orgId || a.orgId !== b.orgId) return false;
+  if (a.roomId && b.roomId && a.roomId === b.roomId) return true;
+  if (a.lopHocId || b.lopHocId) {
+    return Boolean(a.lopHocId && a.lopHocId === b.lopHocId);
+  }
+  if (a.isOrgHub || b.isOrgHub) {
+    return Boolean(a.isOrgHub && b.isOrgHub);
+  }
+  if (a.isOrgAdvisory || b.isOrgAdvisory) {
+    return Boolean(a.isOrgAdvisory && b.isOrgAdvisory);
+  }
+  // Legacy 1_org không gắn flag — chỉ khớp khi không phải hub/lớp.
+  return !a.isOrgHub && !b.isOrgHub && !a.lopHocId && !b.lopHocId;
+}
+
 function mergeLaunchThread(
   prev: ChatThread[],
   incoming: ChatThread,
@@ -199,10 +218,7 @@ function mergeLaunchThread(
       thread.roomId === incoming.roomId ||
       thread.id === incoming.id ||
       (incoming.peerUserId != null && thread.peerUserId === incoming.peerUserId) ||
-      (incoming.kind === "org" &&
-        thread.kind === "org" &&
-        incoming.orgId != null &&
-        thread.orgId === incoming.orgId) ||
+      isSameOrgThreadSlot(incoming, thread) ||
       (incoming.isGroup && thread.isGroup && thread.roomId === incoming.roomId),
   );
   const merged: ChatThread = !existing
@@ -242,12 +258,7 @@ function mergeLaunchThread(
     ) {
       return false;
     }
-    if (
-      merged.kind === "org" &&
-      thread.kind === "org" &&
-      merged.orgId != null &&
-      thread.orgId === merged.orgId
-    ) {
+    if (isSameOrgThreadSlot(merged, thread)) {
       return false;
     }
     return true;
@@ -290,7 +301,7 @@ function sidePanelIcon(panel: ChatSidePanel) {
   }
 }
 
-/** Sắp list: nhóm cha rồi project con indent ngay dưới. */
+/** Sắp list: cha (nhóm / hub org) rồi con (project / lớp) indent ngay dưới. */
 function nestGroupThreads(
   list: ChatThread[],
   options?: { expandedParentIds?: Set<string> },
@@ -300,7 +311,7 @@ function nestGroupThreads(
 
   for (const t of list) {
     const parentId = t.parentRoomId?.trim();
-    if (t.isGroup && parentId) {
+    if (parentId) {
       const arr = childrenByParent.get(parentId) ?? [];
       arr.push(t);
       childrenByParent.set(parentId, arr);
@@ -327,7 +338,7 @@ function nestGroupThreads(
     }
   }
 
-  // Project mà cha không có trong list (lọc / ẩn) — vẫn hiện ở cuối
+  // Con mà cha không có trong list (lọc / ẩn) — vẫn hiện ở cuối
   for (const [parentId, kids] of childrenByParent) {
     if (roots.some((r) => r.roomId === parentId)) continue;
     for (const kid of kids) {
@@ -338,21 +349,30 @@ function nestGroupThreads(
   return out;
 }
 
-/** Số project đang hoạt động (không ẩn) theo id nhóm cha. */
+/** Số con đang hoạt động (không ẩn) theo id phòng cha — project nhóm hoặc lớp dưới hub. */
 function countActiveProjectsByParent(
   threads: ChatThread[],
 ): Map<string, number> {
   const map = new Map<string, number>();
   for (const t of threads) {
     const parentId = t.parentRoomId?.trim();
-    if (!t.isGroup || !parentId) continue;
+    if (!parentId) continue;
     if (t.roomTrangThai === "an") continue;
     map.set(parentId, (map.get(parentId) ?? 0) + 1);
   }
   return map;
 }
 
+function formatLopKyDate(ymd: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(ymd.trim());
+  if (!m) return ymd;
+  return `${m[3]}/${m[2]}/${m[1]}`;
+}
+
 function threadKindLabel(thread: ChatThread): string {
+  if (thread.isOrgHub) return "Chat cơ sở";
+  if (thread.lopHocId) return "Lớp";
+  if (thread.isOrgAdvisory) return "Tư vấn";
   if (thread.kind === "org" && thread.orgKind) {
     return CHAT_ORG_KIND_LABEL[thread.orgKind];
   }
@@ -379,6 +399,9 @@ function threadMatchesQuery(thread: ChatThread, q: string): boolean {
 }
 
 function threadKindClass(thread: ChatThread): string {
+  if (thread.isOrgHub) return " is-org is-org-hub";
+  if (thread.lopHocId) return " is-org is-org-lop";
+  if (thread.isOrgAdvisory) return " is-org is-org-advisory";
   if (thread.kind === "org" && thread.orgKind) {
     return ` is-org is-${thread.orgKind}`;
   }
@@ -508,11 +531,15 @@ function ChatThreadRow({
   const canCreateProject =
     Boolean(thread.isGroup) &&
     Boolean(thread.isGroupAdmin) &&
-    !thread.parentRoomId;
+    !thread.parentRoomId &&
+    !thread.isOrgHub;
 
   const isProjectChild = Boolean(thread.parentRoomId);
   const isProjectParent =
-    Boolean(thread.isGroup) && !thread.parentRoomId && activeProjectCount > 0;
+    !thread.parentRoomId &&
+    activeProjectCount > 0 &&
+    (Boolean(thread.isGroup) || Boolean(thread.isOrgHub));
+  const childUnitLabel = thread.isOrgHub ? "lớp" : "nhóm";
 
   const menuActions = buildThreadMenuActions({
     isListPinned,
@@ -580,7 +607,7 @@ function ChatThreadRow({
       {...touchHandlers}
     >
       <div
-        className={`cins-chat-thread-row${thread.isGroup && !isProjectChild ? " is-group-row" : ""}${isProjectParent ? " has-project-toggle" : ""}`}
+        className={`cins-chat-thread-row${(thread.isGroup || thread.isOrgHub) && !isProjectChild ? " is-group-row" : ""}${isProjectParent ? " has-project-toggle" : ""}${thread.isOrgHub ? " is-org-hub-row" : ""}${thread.isOrgAdvisory ? " is-org-advisory-row" : ""}${thread.lopHocId ? " is-org-lop-row" : ""}`}
       >
         {isListPinned ? (
           <Pin
@@ -592,7 +619,7 @@ function ChatThreadRow({
         ) : null}
         <button
           type="button"
-          className={`cins-chat-thread${isActive ? " is-active" : ""}${thread.kind === "org" ? " is-org-thread" : " is-user-thread"}${thread.isSelf ? " is-self-thread" : ""}${thread.isGroup ? " is-group-thread" : ""}${isProjectChild ? " is-project-thread" : ""}${isProjectParent ? " is-project-parent-thread" : ""}`}
+          className={`cins-chat-thread${isActive ? " is-active" : ""}${thread.kind === "org" ? " is-org-thread" : " is-user-thread"}${thread.isSelf ? " is-self-thread" : ""}${thread.isGroup ? " is-group-thread" : ""}${thread.isOrgHub ? " is-org-hub-thread" : ""}${thread.isOrgAdvisory ? " is-org-advisory-thread" : ""}${isProjectChild ? " is-project-thread" : ""}${isProjectParent ? " is-project-parent-thread" : ""}`}
           onClick={() => {
             if (consumeLongPress()) return;
             onSelect(thread);
@@ -614,7 +641,7 @@ function ChatThreadRow({
                 ) : (
                   <span className="cins-chat-project-hash">#</span>
                 )}
-                <strong>{thread.name}</strong>
+                <strong title={thread.name}>{thread.name}</strong>
               </span>
               {thread.unread > 0 && !isMuted ? (
                 <span className="cins-chat-unread">{thread.unread}</span>
@@ -625,30 +652,53 @@ function ChatThreadRow({
                 </span>
               ) : null}
             </span>
-          ) : thread.isGroup ? (
+          ) : thread.isGroup || thread.isOrgHub ? (
             <>
-              <ChatGroupAvatar
-                size={44}
-                avatarUrl={thread.avatarUrl}
-                members={thread.memberAvatars ?? []}
-              />
-              <span className="cins-chat-thread-main is-group-card">
+              {thread.isOrgHub ? (
+                <ChatAvatar
+                  initial={thread.avatarInitial}
+                  hue={thread.avatarHue}
+                  size={44}
+                  kind="org"
+                  verified={thread.verified}
+                  avatarUrl={thread.avatarUrl}
+                />
+              ) : (
+                <ChatGroupAvatar
+                  size={44}
+                  avatarUrl={thread.avatarUrl}
+                  members={thread.memberAvatars ?? []}
+                />
+              )}
+              <span
+                className={`cins-chat-thread-main is-group-card${thread.isOrgHub ? " is-org-card" : ""}`}
+              >
                 <span className="cins-chat-thread-top">
                   <span className="cins-chat-thread-name">
                     {nameStatusIcons}
-                    <Users
-                      size={13}
-                      strokeWidth={2.3}
-                      className="cins-chat-group-name-icon"
-                      aria-hidden
-                    />
-                    <strong>{thread.name}</strong>
+                    {thread.isOrgHub ? (
+                      <Building2
+                        size={13}
+                        strokeWidth={2.3}
+                        className="cins-chat-group-name-icon"
+                        aria-hidden
+                      />
+                    ) : (
+                      <Users
+                        size={13}
+                        strokeWidth={2.3}
+                        className="cins-chat-group-name-icon"
+                        aria-hidden
+                      />
+                    )}
+                    <strong title={thread.name}>{thread.name}</strong>
                   </span>
                   <time dateTime={thread.lastAt}>
                     {formatChatTime(thread.lastAt)}
                   </time>
                 </span>
                 <span className="cins-chat-thread-bottom">
+                  {thread.isOrgHub ? <ChatKindPill thread={thread} /> : null}
                   <span className="cins-chat-thread-preview">{preview}</span>
                   <span className="cins-chat-thread-badges">
                     {(thread.unreadMentions ?? 0) > 0 && !isMuted ? (
@@ -681,18 +731,24 @@ function ChatThreadRow({
                   avatarUrl={thread.avatarUrl}
                 />
               )}
-              <span className="cins-chat-thread-main">
+              <span
+                className={`cins-chat-thread-main${thread.kind === "org" ? " is-org-card" : ""}`}
+              >
                 <span className="cins-chat-thread-top">
                   <span className="cins-chat-thread-name">
                     {nameStatusIcons}
-                    <strong>{thread.name}</strong>
-                    <ChatKindPill thread={thread} />
+                    <strong title={thread.name}>{thread.name}</strong>
                   </span>
                   <time dateTime={thread.lastAt}>
                     {formatChatTime(thread.lastAt)}
                   </time>
                 </span>
                 <span className="cins-chat-thread-bottom">
+                  {thread.kind === "org" &&
+                  !thread.isOrgAdvisory &&
+                  !thread.isOrgHub ? (
+                    <ChatKindPill thread={thread} />
+                  ) : null}
                   <span className="cins-chat-thread-preview">{preview}</span>
                   {thread.unread > 0 && !isMuted ? (
                     <span className="cins-chat-unread">{thread.unread}</span>
@@ -713,17 +769,17 @@ function ChatThreadRow({
             ) : null}
             <button
               type="button"
-              className={`cins-chat-project-toggle${projectsExpanded ? " is-expanded" : ""}`}
+              className={`cins-chat-project-toggle${projectsExpanded ? " is-expanded" : ""}${thread.isOrgHub ? " is-org-hub-toggle" : ""}`}
               aria-expanded={projectsExpanded}
               title={
                 projectsExpanded
-                  ? `Thu gọn ${activeProjectCount} nhóm`
-                  : `Xổ ${activeProjectCount} nhóm`
+                  ? `Thu gọn ${activeProjectCount} ${childUnitLabel}`
+                  : `Xổ ${activeProjectCount} ${childUnitLabel}`
               }
               aria-label={
                 projectsExpanded
-                  ? `Thu gọn ${activeProjectCount} nhóm`
-                  : `Xổ ${activeProjectCount} nhóm`
+                  ? `Thu gọn ${activeProjectCount} ${childUnitLabel}`
+                  : `Xổ ${activeProjectCount} ${childUnitLabel}`
               }
               onClick={(event) => {
                 event.stopPropagation();
@@ -731,7 +787,20 @@ function ChatThreadRow({
               }}
             >
               <span className="cins-chat-project-toggle-count" aria-hidden>
-                {activeProjectCount} nhóm
+                {thread.isOrgHub ? (
+                  <>
+                    <span className="cins-chat-project-toggle-num">
+                      {activeProjectCount}
+                    </span>
+                    <span className="cins-chat-project-toggle-unit">
+                      {childUnitLabel}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    {activeProjectCount} {childUnitLabel}
+                  </>
+                )}
                 <ChevronDown
                   size={10}
                   strokeWidth={2.6}
@@ -837,6 +906,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     frozen: boolean;
     canSend: boolean;
     soNgayConLai: number;
+    ngayCuoiKy: string | null;
     orgId: string | null;
     orgTen: string | null;
   } | null>(null);
@@ -1964,6 +2034,8 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
           frozen: Boolean(data.frozen),
           canSend: data.canSend !== false,
           soNgayConLai: Number(data.soNgayConLai) || 0,
+          ngayCuoiKy:
+            typeof data.ngayCuoiKy === "string" ? data.ngayCuoiKy : null,
           orgId: typeof data.orgId === "string" ? data.orgId : null,
           orgTen: typeof data.orgTen === "string" ? data.orgTen : null,
         });
@@ -3586,8 +3658,12 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
             >
               <span>
                 {lopFrozen
-                  ? "Kỳ học đã hết — phòng lớp đang freeze. Tin trong khoảng nghỉ sẽ không hiện lại sau khi gia hạn."
-                  : `Còn ${lopRoomAccess.soNgayConLai} ngày học trong kỳ hiện tại.`}
+                  ? `Kỳ học đã hết — còn ${lopRoomAccess.soNgayConLai} ngày học. Phòng lớp đang freeze; tin trong khoảng nghỉ sẽ không hiện lại sau khi gia hạn.`
+                  : `Còn ${lopRoomAccess.soNgayConLai} ngày học${
+                      lopRoomAccess.ngayCuoiKy
+                        ? ` · đến ${formatLopKyDate(lopRoomAccess.ngayCuoiKy)}`
+                        : ""
+                    }.`}
               </span>
               {lopFrozen && active.roomId ? (
                 <button
@@ -3702,7 +3778,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                     ? (readCursorsByRoom[active.roomId] ?? [])
                     : []
                 }
-                showSenderNames={Boolean(active.isGroup)}
+                showSenderNames={Boolean(active.isGroup || active.isOrgHub)}
                 actionHandlers={messageActionHandlers}
                 editingMessageId={editingMessageId}
                 editingDraft={editingDraft}
@@ -3740,7 +3816,10 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
           <footer className={`cins-chat-compose${lopFrozen ? " is-lop-frozen" : ""}`}>
             {lopFrozen ? (
               <div className="cins-chat-lop-freeze-compose" role="status">
-                <span>Phòng lớp đang freeze — không gửi tin được.</span>
+                <span>
+                  Phòng lớp đang freeze — còn {lopRoomAccess?.soNgayConLai ?? 0}{" "}
+                  ngày học; không gửi tin được.
+                </span>
                 {active.roomId ? (
                   <button
                     type="button"

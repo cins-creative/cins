@@ -107,15 +107,20 @@ async function loadSuKienNotifyContext(
 ): Promise<{
   orgId: string;
   suKienTen: string;
+  suKienSlug: string | null;
   orgTen: string;
   orgSlug: string;
   orgLoai: string;
 } | null> {
   const { data: sk } = await admin
     .from("org_su_kien")
-    .select("id_to_chuc, ten")
+    .select("id_to_chuc, ten, slug")
     .eq("id", suKienId)
-    .maybeSingle<{ id_to_chuc: string; ten: string | null }>();
+    .maybeSingle<{
+      id_to_chuc: string;
+      ten: string | null;
+      slug: string | null;
+    }>();
   if (!sk?.id_to_chuc) return null;
 
   const { data: org } = await admin
@@ -132,6 +137,7 @@ async function loadSuKienNotifyContext(
   return {
     orgId: sk.id_to_chuc,
     suKienTen: sk.ten?.trim() || "Sự kiện",
+    suKienSlug: sk.slug?.trim() || null,
     orgTen: org.ten?.trim() || "Ban tổ chức",
     orgSlug: org.slug.trim(),
     orgLoai: org.loai_to_chuc?.trim() || "studio",
@@ -157,7 +163,12 @@ export async function syncShopQuayPendingAdminNotifications(params: {
   );
   if (recipients.length === 0) return;
 
-  const manageHref = suKienManageHref(ctx.orgLoai, ctx.orgSlug, params.suKienId);
+  const manageHref = suKienManageHref(
+    ctx.orgLoai,
+    ctx.orgSlug,
+    params.suKienId,
+    ctx.suKienSlug,
+  );
   const body = JSON.stringify({
     suKienTen: ctx.suKienTen,
     manageHref,
@@ -177,12 +188,22 @@ export async function syncShopQuayPendingAdminNotifications(params: {
         .maybeSingle<{ id: string }>();
 
       if (existing?.id) {
+        if (pendingCount === 0) {
+          const { error } = await admin
+            .from("social_thong_bao")
+            .delete()
+            .eq("id", existing.id);
+          if (error) {
+            console.error("[syncShopQuayPendingAdminNotifications] delete", error);
+          }
+          return;
+        }
         const { error } = await admin
           .from("social_thong_bao")
           .update({
             noi_dung: body,
             tao_luc: ts,
-            da_doc: pendingCount === 0,
+            da_doc: false,
           })
           .eq("id", existing.id);
         if (error) {
@@ -230,9 +251,10 @@ export async function notifyShopQuayResolved(params: {
 
   if (existing?.id) return;
 
+  const ctx = await loadSuKienNotifyContext(admin, params.suKienId);
   const body: ResolvedPayload = {
     suKienTen: params.suKienTen,
-    suKienHref: suKienDetailPath(params.suKienId),
+    suKienHref: suKienDetailPath(ctx?.suKienSlug || params.suKienId),
     orgTen: params.orgTen,
     action: params.action,
     lyDoTuChoi: params.action === "rejected" ? params.lyDoTuChoi ?? null : null,
@@ -309,9 +331,8 @@ export async function listShopQuayPendingNotifications(
     .order("tao_luc", { ascending: false })
     .limit(rowLimit);
 
-  if (options.unreadOnly) {
-    query = query.eq("da_doc", false);
-  } else if (options.historyOnly) {
+  /* Unread/action: không lọc da_doc — còn chờ duyệt thì luôn hiện (kể cả mark_all cũ). */
+  if (options.historyOnly) {
     query = query.eq("da_doc", true);
   }
 
@@ -324,6 +345,8 @@ export async function listShopQuayPendingNotifications(
     if (!suKienId) continue;
     const parsed = parsePendingPayload(row.noi_dung as string | null);
     if (!parsed || parsed.pendingCount <= 0) continue;
+    /* History: chỉ giữ tin đã đóng (da_doc) — pendingCount>0 hiếm khi da_doc. */
+    if (options.historyOnly && !row.da_doc) continue;
     items.push({
       notificationId: row.id as string,
       suKienId,

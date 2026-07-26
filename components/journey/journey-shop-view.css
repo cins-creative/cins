@@ -662,6 +662,95 @@
   color: color-mix(in srgb, var(--cins-orange, #fdad4c) 42%, #9a3412);
 }
 
+.j-shop-sf-group--events {
+  margin: 8px 0 18px;
+}
+
+.j-shop-sf-events {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 640px) {
+  .j-shop-sf-events {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.j-shop-sf-event-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 64px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--border, #e4e6eb) 90%, transparent);
+  background: color-mix(in srgb, var(--bg-surface, #fff) 88%, transparent);
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.j-shop-sf-event-card:hover {
+  border-color: color-mix(in srgb, var(--cins-blue, #1f74c9) 40%, var(--border, #e4e6eb));
+  background: color-mix(in srgb, var(--cins-blue-soft, #e7f0fb) 55%, var(--bg-surface, #fff));
+}
+
+.j-shop-sf-event-thumb {
+  flex: 0 0 56px;
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--bg-page, #f4f5f8);
+}
+
+.j-shop-sf-event-thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.j-shop-sf-event-thumb.is-empty {
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--cins-blue, #1f74c9) 18%, transparent),
+      color-mix(in srgb, var(--cins-orange, #fdad4c) 22%, transparent)
+    );
+}
+
+.j-shop-sf-event-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.j-shop-sf-event-ten {
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--ink-display, var(--ink-body));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.j-shop-sf-event-meta {
+  font-size: 0.78rem;
+  color: var(--ink-muted, #64748b);
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .j-shop-sf-event-banner {
   position: relative;
   display: block;

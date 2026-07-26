@@ -2052,7 +2052,9 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
               <ChatMessageThreadItems
                 messages={messages}
                 readCursors={readCursors}
-                showSenderNames={Boolean(miniThread.isGroup)}
+                showSenderNames={Boolean(
+                  miniThread.isGroup || miniThread.isOrgHub,
+                )}
                 actionHandlers={messageActionHandlers}
                 editingMessageId={editingMessageId}
                 editingDraft={editingDraft}

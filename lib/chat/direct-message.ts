@@ -1072,7 +1072,10 @@ export async function listRoomMessages(
   const { isGroupRoomId, enrichGroupMessageSenders } = await import(
     "@/lib/chat/group-message"
   );
-  if (await isGroupRoomId(roomId)) {
+  const { isCsdtHubRoom } = await import("@/lib/co-so/org-hub-phong");
+  const showNamedSenders =
+    (await isGroupRoomId(roomId)) || (await isCsdtHubRoom(roomId));
+  if (showNamedSenders) {
     messages = await enrichGroupMessageSenders(messages, chronological);
   }
 

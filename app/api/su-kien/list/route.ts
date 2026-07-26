@@ -33,6 +33,7 @@ export async function GET(request: Request) {
         null;
       return {
         id: ev.id,
+        slug: ev.slug ?? null,
         ten: ev.ten,
         orgTen: ev.orgTen,
         batDau: ev.batDau,

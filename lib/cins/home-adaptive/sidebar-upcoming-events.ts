@@ -51,7 +51,7 @@ export function sidebarSuKienId(item: SidebarUpcomingEvent): string {
 
 export function sidebarEventHref(item: SidebarUpcomingEvent): string {
   if (item.kind === "su_kien") {
-    return suKienDetailPath(sidebarSuKienId(item));
+    return suKienDetailPath(item.suKienSlug || sidebarSuKienId(item));
   }
   return item.href;
 }
@@ -63,6 +63,8 @@ export type SidebarUpcomingEvent = FollowedOrgUpcomingItem & {
   orgAvatarUrl: string | null;
   batDauIso: string;
   ketThucIso: string | null;
+  /** Slug URL `/su-kien/{slug}` khi có. */
+  suKienSlug?: string | null;
 };
 
 type OrgEmbed = {
@@ -75,6 +77,7 @@ type OrgEmbed = {
 
 type SuKienRow = {
   id: string;
+  slug: string | null;
   ten: string;
   loai_su_kien: string | null;
   bat_dau: string;
@@ -155,6 +158,7 @@ function mapSuKienRow(
       : null,
     batDauIso: row.bat_dau,
     ketThucIso: row.ket_thuc,
+    suKienSlug: row.slug?.trim() || null,
   };
 }
 
@@ -173,7 +177,7 @@ async function fetchUpcomingSuKienRows(
   let query = admin
     .from("org_su_kien")
     .select(
-      "id, ten, loai_su_kien, bat_dau, ket_thuc, cover_id, id_to_chuc, org_to_chuc!inner ( slug, ten, loai_to_chuc, avatar_id, logo_id )",
+      "id, slug, ten, loai_su_kien, bat_dau, ket_thuc, cover_id, id_to_chuc, org_to_chuc!inner ( slug, ten, loai_to_chuc, avatar_id, logo_id )",
     )
     .or(`ket_thuc.is.null,ket_thuc.gte.${now}`)
     .order("bat_dau", { ascending: true })

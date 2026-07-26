@@ -103,9 +103,7 @@ type NhomCatalogRow = {
 };
 
 type NhomCatalogByOwner = {
-  /** Tối đa 3 loại trên card: Feature trước, thiếu thì loại thường. */
-  previewHang: PublicShopListingHang[];
-  /** Toàn bộ loại (cap) — search + hiện khớp. */
+  /** Toàn bộ loại — Feature trước, rồi thường (có ảnh ưu tiên trong từng nhóm). */
   catalogHang: PublicShopListingHang[];
 };
 
@@ -133,7 +131,7 @@ function sortNhomForPreview(a: NhomCatalogRow, b: NhomCatalogRow): number {
 }
 
 /**
- * Catalog loại (truc=1): preview card (Feature → fallback thường) + list search.
+ * Catalog loại (truc=1), sắp Feature → thường — dùng cho card + search.
  */
 async function nhomCatalogByOwner(
   admin: ReturnType<typeof createServiceRoleClient>,
@@ -165,28 +163,59 @@ async function nhomCatalogByOwner(
   }
 
   for (const [ownerId, rows] of buckets) {
-    const catalogHang = rows.map(mapNhomToHang);
-
     const starred = rows
       .filter((r) => r.noi_bat === true)
       .sort(sortNhomForPreview);
     const regular = rows
       .filter((r) => r.noi_bat !== true)
       .sort(sortNhomForPreview);
+    out.set(ownerId, {
+      catalogHang: [...starred, ...regular].map(mapNhomToHang),
+    });
+  }
 
-    const picked: NhomCatalogRow[] = [];
-    const seen = new Set<string>();
-    for (const r of [...starred, ...regular]) {
-      if (picked.length >= FEATURED_HANG_PER_CARD) break;
-      if (seen.has(r.id)) continue;
-      seen.add(r.id);
-      picked.push(r);
+  return out;
+}
+
+/**
+ * Loại có ≥1 mẫu đang bán — phân trang theo `id_nhom` (không cắt sớm như catalog mẫu).
+ */
+async function nhomIdsWithHangBanByOwner(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  ownerIds: string[],
+): Promise<Map<string, Set<string>>> {
+  const out = new Map<string, Set<string>>();
+  if (ownerIds.length === 0) return out;
+
+  const pageSize = 1000;
+  let from = 0;
+  for (;;) {
+    const { data, error } = await admin
+      .from("shop_san_pham")
+      .select("id_nguoi_dung, id_nhom")
+      .in("id_nguoi_dung", ownerIds)
+      .eq("da_xoa", false)
+      .eq("dang_ban", true)
+      .not("id_nhom", "is", null)
+      .range(from, from + pageSize - 1)
+      .returns<Array<{ id_nguoi_dung: string; id_nhom: string | null }>>();
+
+    if (error) {
+      console.error("[shop] listPublicShopCuaHang nhom-with-hang", error);
+      break;
+    }
+    if (!data?.length) break;
+
+    for (const row of data) {
+      const nhomId = row.id_nhom?.trim();
+      if (!nhomId) continue;
+      const set = out.get(row.id_nguoi_dung) ?? new Set<string>();
+      set.add(nhomId);
+      out.set(row.id_nguoi_dung, set);
     }
 
-    out.set(ownerId, {
-      previewHang: picked.map(mapNhomToHang),
-      catalogHang,
-    });
+    if (data.length < pageSize) break;
+    from += pageSize;
   }
 
   return out;
@@ -251,23 +280,15 @@ function buildSearchHaystack(parts: Array<string | null | undefined>): string {
 
 function filterNhomWithMau(
   nhom: NhomCatalogByOwner | undefined,
-  mau: PublicShopListingHang[],
-): NhomCatalogByOwner {
-  const empty: NhomCatalogByOwner = { previewHang: [], catalogHang: [] };
-  if (!nhom) return empty;
-  const nhomIdsWithMau = new Set(
-    mau.map((m) => m.idNhom?.trim()).filter((id): id is string => Boolean(id)),
-  );
-  /** Chỉ loại có ≥1 mẫu đang bán — khớp storefront (build từ san_pham). */
+  nhomIdsWithMau: Set<string> | undefined,
+): { previewHang: PublicShopListingHang[]; catalogHang: PublicShopListingHang[] } {
+  const empty = { previewHang: [] as PublicShopListingHang[], catalogHang: [] as PublicShopListingHang[] };
+  if (!nhom || !nhomIdsWithMau?.size) return empty;
+  /** Chỉ loại có ≥1 mẫu đang bán — khớp storefront. */
   const catalogHang = nhom.catalogHang.filter((h) => nhomIdsWithMau.has(h.id));
-  const allowed = new Set(catalogHang.map((h) => h.id));
-  const previewHang = nhom.previewHang.filter((h) => allowed.has(h.id));
-  /* Nếu preview hết (Feature trống) nhưng vẫn còn loại có mẫu → lấy từ catalog. */
-  const preview =
-    previewHang.length > 0
-      ? previewHang
-      : catalogHang.slice(0, FEATURED_HANG_PER_CARD);
-  return { previewHang: preview, catalogHang };
+  /** Card: tối đa 3 — Feature trước (đã sort), thiếu thì loại thường. */
+  const previewHang = catalogHang.slice(0, FEATURED_HANG_PER_CARD);
+  return { previewHang, catalogHang };
 }
 
 /** Gắn giá loại lên mẫu (khi chưa có bảng giá chi tiết trên hub). */
@@ -340,11 +361,13 @@ export async function listPublicShopCuaHang(): Promise<PublicShopListingItem[]> 
 
   const shopRows = shops ?? [];
   const shopOwnerIds = [...new Set(shopRows.map((r) => r.id_nguoi_dung))];
-  const [ownersWithHang, nhomByOwnerRaw, mauByOwner] = await Promise.all([
-    ownersWithHangBan(admin, shopOwnerIds),
-    nhomCatalogByOwner(admin, shopOwnerIds),
-    sanPhamCatalogByOwner(admin, shopOwnerIds),
-  ]);
+  const [ownersWithHang, nhomByOwnerRaw, nhomIdsWithHang, mauByOwner] =
+    await Promise.all([
+      ownersWithHangBan(admin, shopOwnerIds),
+      nhomCatalogByOwner(admin, shopOwnerIds),
+      nhomIdsWithHangBanByOwner(admin, shopOwnerIds),
+      sanPhamCatalogByOwner(admin, shopOwnerIds),
+    ]);
 
   const items: ListingDraft[] = [];
   for (const row of shopRows) {
@@ -370,7 +393,7 @@ export async function listPublicShopCuaHang(): Promise<PublicShopListingItem[]> 
     const catalogMauRaw = mauByOwner.get(row.id_nguoi_dung) ?? [];
     const nhomCat = filterNhomWithMau(
       nhomByOwnerRaw.get(row.id_nguoi_dung),
-      catalogMauRaw,
+      nhomIdsWithHang.get(row.id_nguoi_dung),
     );
     const catalogHang = nhomCat.catalogHang;
     const catalogMau = attachMauGiaFromNhom(catalogMauRaw, catalogHang);
@@ -427,4 +450,128 @@ export async function listPublicShopCuaHang(): Promise<PublicShopListingItem[]> 
   });
 
   return items.map(({ completeness: _c, hasHang: _h, ...item }) => item);
+}
+
+/**
+ * Card shop theo owner (quầy sự kiện) — không bắt `shop_hien_thi`.
+ * Key map = `id_nguoi_dung`.
+ */
+export async function listShopListingCardsByOwnerIds(
+  ownerIds: string[],
+): Promise<Map<string, PublicShopListingItem>> {
+  const unique = [...new Set(ownerIds.filter(Boolean))];
+  const out = new Map<string, PublicShopListingItem>();
+  if (unique.length === 0) return out;
+
+  const admin = createServiceRoleClient();
+  const nowMs = Date.now();
+
+  const { data: owners, error: ownerErr } = await admin
+    .from("user_nguoi_dung")
+    .select("id, slug, ten_hien_thi")
+    .in("id", unique)
+    .returns<OwnerRow[]>();
+  if (ownerErr) {
+    console.error("[shop] listShopListingCardsByOwnerIds owners", ownerErr);
+    return out;
+  }
+
+  const ownerById = new Map(
+    (owners ?? [])
+      .filter((o) => Boolean(o.slug?.trim()))
+      .map((o) => [o.id, o]),
+  );
+  if (ownerById.size === 0) return out;
+
+  const resolvedOwnerIds = [...ownerById.keys()];
+  const { data: shops, error: shopErr } = await admin
+    .from("shop_cua_hang")
+    .select(
+      "id, id_nguoi_dung, ten, mo_ta, avatar_id, cover_id, tam_dong, tam_dong_tu, tam_dong_den, tam_dong_ly_do, tao_luc",
+    )
+    .eq("da_xoa", false)
+    .in("id_nguoi_dung", resolvedOwnerIds)
+    .order("tao_luc", { ascending: false })
+    .limit(Math.min(resolvedOwnerIds.length * 2, LIST_LIMIT))
+    .returns<ShopRow[]>();
+  if (shopErr) {
+    console.error("[shop] listShopListingCardsByOwnerIds", shopErr);
+    return out;
+  }
+
+  /** Một shop / owner — lấy bản ghi mới nhất. */
+  const shopByOwner = new Map<string, ShopRow>();
+  for (const row of shops ?? []) {
+    if (!shopByOwner.has(row.id_nguoi_dung)) {
+      shopByOwner.set(row.id_nguoi_dung, row);
+    }
+  }
+  if (shopByOwner.size === 0) return out;
+
+  const shopOwnerIds = [...shopByOwner.keys()];
+  const [ownersWithHang, nhomByOwnerRaw, nhomIdsWithHang, mauByOwner] =
+    await Promise.all([
+      ownersWithHangBan(admin, shopOwnerIds),
+      nhomCatalogByOwner(admin, shopOwnerIds),
+      nhomIdsWithHangBanByOwner(admin, shopOwnerIds),
+      sanPhamCatalogByOwner(admin, shopOwnerIds),
+    ]);
+
+  for (const [ownerId, row] of shopByOwner) {
+    const owner = ownerById.get(ownerId);
+    const ownerSlug = owner?.slug?.trim();
+    if (!owner || !ownerSlug) continue;
+
+    const ten = (row.ten?.trim() || owner.ten_hien_thi?.trim() || ownerSlug).trim();
+    const shopSlug = shopSlugFromTen(row.ten, ownerSlug);
+    const dangTamDong = isShopTamDongActive(
+      {
+        tamDong: row.tam_dong === true,
+        tamDongTu: row.tam_dong_tu,
+        tamDongDen: row.tam_dong_den,
+        tamDongLyDo: row.tam_dong_ly_do,
+      },
+      nowMs,
+    );
+    const moTa = row.mo_ta?.trim() || null;
+    const avatarUrl = shopImageUrl(row.avatar_id);
+    const coverUrl = shopImageUrl(row.cover_id);
+    const catalogMauRaw = mauByOwner.get(ownerId) ?? [];
+    const nhomCat = filterNhomWithMau(
+      nhomByOwnerRaw.get(ownerId),
+      nhomIdsWithHang.get(ownerId),
+    );
+    const catalogHang = nhomCat.catalogHang;
+    const catalogMau = attachMauGiaFromNhom(catalogMauRaw, catalogHang);
+    const ownerTen = owner.ten_hien_thi?.trim() || null;
+    void ownersWithHang;
+
+    out.set(ownerId, {
+      id: row.id,
+      ten,
+      moTa,
+      href: shopPublicHref(ownerSlug, shopSlug),
+      shopSlug,
+      avatarUrl,
+      coverUrl,
+      ownerSlug,
+      ownerTen,
+      dangTamDong,
+      tamDongLyDo: dangTamDong ? row.tam_dong_ly_do?.trim() || null : null,
+      featuredHang: nhomCat.previewHang,
+      catalogHang,
+      catalogMau,
+      searchHaystack: buildSearchHaystack([
+        ten,
+        moTa,
+        ownerTen,
+        ownerSlug,
+        shopSlug,
+        ...catalogHang.map((h) => h.ten),
+        ...catalogMau.map((m) => m.ten),
+      ]),
+    });
+  }
+
+  return out;
 }

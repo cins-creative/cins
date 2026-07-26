@@ -117,7 +117,6 @@ export function appendHistoryTimeline(
 export type InfoTimelineEntry =
   | { kind: "membershipMilestoneResolved"; item: MembershipMilestoneResolvedNotification }
   | { kind: "shopQuayResolved"; item: ShopQuayResolvedNotification }
-  | { kind: "shopQuayPending"; item: ShopQuayPendingNotification }
   | { kind: "orgMilestoneTagApproved"; item: OrgMilestoneTagApprovedNotification }
   | { kind: "accepted"; item: FollowAcceptedNotification }
   | { kind: "comment"; item: CommentNotification }
@@ -241,7 +240,6 @@ export function buildInfoTimeline(info: {
   orgMilestoneTagApproved: OrgMilestoneTagApprovedNotification[];
   membershipMilestoneResolved: MembershipMilestoneResolvedNotification[];
   shopQuayResolved: ShopQuayResolvedNotification[];
-  shopQuayPending: ShopQuayPendingNotification[];
   dongGopFeedback: ArticleDongGopFeedbackNotification[];
   dongGopPromoted: ArticleDongGopPromotedNotification[];
 }): InfoTimelineEntry[] {
@@ -285,13 +283,6 @@ export function buildInfoTimeline(info: {
   for (const item of info.shopQuayResolved) {
     entries.push({
       kind: "shopQuayResolved",
-      item,
-      sortTime: notificationSortTime(item.taoLuc),
-    });
-  }
-  for (const item of info.shopQuayPending) {
-    entries.push({
-      kind: "shopQuayPending",
       item,
       sortTime: notificationSortTime(item.taoLuc),
     });

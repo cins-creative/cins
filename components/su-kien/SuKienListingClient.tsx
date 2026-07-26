@@ -16,7 +16,7 @@ import {
 } from "@/lib/to-chuc/su-kien-constants";
 import type { LoaiPhanHoiSuKien } from "@/lib/to-chuc/su-kien-dang-ky";
 import type { SuKienListItem } from "@/lib/to-chuc/su-kien-listing";
-import { suKienDetailPath } from "@/lib/to-chuc/su-kien-routes";
+import { suKienCardPath } from "@/lib/to-chuc/su-kien-routes";
 import {
   TINH_THANH_SELECT_OPTIONS,
   formatSuKienDiaDiemDisplay,
@@ -118,7 +118,7 @@ function SuKienListCard({
   const location = formatSuKienDiaDiemDisplay(item.tinhThanh, item.diaDiem);
   const time = formatTimeRange(item.batDau, item.ketThuc);
   const rsvpEnabled = item.status !== "done";
-  const href = suKienDetailPath(item.id);
+  const href = suKienCardPath(item);
 
   return (
     <article

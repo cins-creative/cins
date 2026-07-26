@@ -94,10 +94,11 @@ export function CoSoTabSuKien({
       ? coSoTabPath(orgSlug, "su-kien")
       : studioTabPath(orgSlug, "su-kien");
 
-  function detailHref(suKienId: string) {
+  function detailHref(sk: { id: string; slug?: string | null }) {
+    const key = sk.slug?.trim() || sk.id;
     return detailPathMode === "co-so"
-      ? coSoSuKienPath(orgSlug, suKienId)
-      : studioSuKienPath(orgSlug, suKienId);
+      ? coSoSuKienPath(orgSlug, key)
+      : studioSuKienPath(orgSlug, key);
   }
 
   useEffect(() => {
@@ -192,7 +193,7 @@ export function CoSoTabSuKien({
   }
 
   function openDetail(suKien: SuKienCardData) {
-    router.push(detailHref(suKien.id), { scroll: false });
+    router.push(detailHref(suKien), { scroll: false });
   }
 
   if (loading) {

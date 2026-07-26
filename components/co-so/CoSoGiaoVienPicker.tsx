@@ -1,10 +1,9 @@
 "use client";
 
-import { Loader2, Search, UserRound, X } from "lucide-react";
+import { Loader2, Search, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { getAvatarUrl } from "@/lib/journey/profile";
-import type { CoSoMemberAdmin } from "@/lib/to-chuc/co-so-settings-types";
 
 export type CoSoGiaoVienPick = {
   userId: string;
@@ -74,31 +73,19 @@ function UserAvatar({
   );
 }
 
-const STAFF_ROLES = new Set([
-  "owner",
-  "admin",
-  "quan_ly_noi_dung",
-  "quan_ly_tuyen_sinh",
-  "giao_vien",
-  "nhan_vien",
-]);
-
 export function CoSoGiaoVienPicker({
-  orgId,
+  orgId: _orgId,
   value,
   onChange,
   manualText = "",
   onManualTextChange,
   disabled = false,
 }: Props) {
+  const canManual = Boolean(onManualTextChange);
   const [mode, setMode] = useState<"user" | "manual">("user");
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchUser[]>([]);
-  const [staffSuggestions, setStaffSuggestions] = useState<CoSoGiaoVienPick[]>(
-    [],
-  );
   const [searchLoading, setSearchLoading] = useState(false);
-  const [staffLoading, setStaffLoading] = useState(false);
 
   useEffect(() => {
     if (manualText.trim() && !value) {
@@ -107,43 +94,8 @@ export function CoSoGiaoVienPicker({
   }, [manualText, value]);
 
   useEffect(() => {
-    let cancelled = false;
-    setStaffLoading(true);
-    void (async () => {
-      try {
-        const res = await fetch(`/api/co-so/${encodeURIComponent(orgId)}/members`);
-        const json = (await res.json().catch(() => null)) as {
-          members?: CoSoMemberAdmin[];
-        } | null;
-        if (cancelled || !res.ok || !json?.members) return;
-        const picks = json.members
-          .filter(
-            (m) =>
-              m.trangThai === "active" &&
-              STAFF_ROLES.has(m.vaiTro) &&
-              m.userId !== value?.userId,
-          )
-          .map((m) =>
-            toPick({
-              id: m.userId,
-              slug: m.slug,
-              tenHienThi: m.tenHienThi,
-              avatarId: m.avatarId,
-            }),
-          );
-        setStaffSuggestions(picks);
-      } finally {
-        if (!cancelled) setStaffLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [orgId, value?.userId]);
-
-  useEffect(() => {
     const q = query.trim();
-    if (q.length < 1) {
+    if (q.length < 1 || mode !== "user") {
       setResults([]);
       return;
     }
@@ -162,7 +114,7 @@ export function CoSoGiaoVienPicker({
       }
     }, 250);
     return () => window.clearTimeout(timer);
-  }, [query]);
+  }, [query, mode]);
 
   const visibleResults = useMemo(
     () =>
@@ -184,39 +136,21 @@ export function CoSoGiaoVienPicker({
     onChange(null);
   }
 
-  if (mode === "manual") {
-    return (
-      <div className="cso-gv-picker">
-        <input
-          type="text"
-          className="cso-kh-input"
-          value={manualText}
-          onChange={(e) => onManualTextChange?.(e.target.value)}
-          placeholder="Tên giảng viên (chưa có tài khoản CINS)"
-          disabled={disabled}
-        />
-        <button
-          type="button"
-          className="cso-gv-picker-mode-link"
-          disabled={disabled}
-          onClick={() => {
-            setMode("user");
-            onManualTextChange?.("");
-          }}
-        >
-          Chọn tài khoản CINS thay thế
-        </button>
-        <p className="cso-kh-field-hint">
-          Dùng khi GV chưa đăng ký. Nên ưu tiên gán user để liên kết hồ sơ sau
-          này.
-        </p>
-      </div>
-    );
+  function switchMode(next: "user" | "manual") {
+    if (next === mode || disabled) return;
+    setMode(next);
+    if (next === "manual") {
+      clearUser();
+      setQuery("");
+      setResults([]);
+    } else {
+      onManualTextChange?.("");
+    }
   }
 
-  return (
-    <div className="cso-gv-picker">
-      {value ? (
+  if (value) {
+    return (
+      <div className="cso-gv-picker">
         <div className="cso-gv-picker-selected">
           <UserAvatar avatarId={value.avatarId} name={value.tenHienThi} />
           <div className="cso-gv-picker-selected-meta">
@@ -233,8 +167,43 @@ export function CoSoGiaoVienPicker({
             <X size={16} aria-hidden />
           </button>
         </div>
-      ) : (
-        <>
+      </div>
+    );
+  }
+
+  return (
+    <div className="cso-gv-picker">
+      <div className={`cso-gv-picker-entry${canManual ? " has-switch" : ""}`}>
+        {canManual ? (
+          <div
+            className="cso-gv-picker-switch"
+            role="tablist"
+            aria-label="Cách chọn giảng viên"
+          >
+            <button
+              type="button"
+              role="tab"
+              className={`cso-gv-picker-switch-btn${mode === "user" ? " on" : ""}`}
+              aria-selected={mode === "user"}
+              disabled={disabled}
+              onClick={() => switchMode("user")}
+            >
+              Tài khoản
+            </button>
+            <button
+              type="button"
+              role="tab"
+              className={`cso-gv-picker-switch-btn${mode === "manual" ? " on" : ""}`}
+              aria-selected={mode === "manual"}
+              disabled={disabled}
+              onClick={() => switchMode("manual")}
+            >
+              Tên thủ công
+            </button>
+          </div>
+        ) : null}
+
+        {mode === "user" ? (
           <div className="cso-gv-picker-search-wrap">
             <Search size={16} className="cso-gv-picker-search-icon" aria-hidden />
             <input
@@ -245,86 +214,67 @@ export function CoSoGiaoVienPicker({
               placeholder="Tìm theo tên hoặc @slug…"
               disabled={disabled}
               autoComplete="off"
+              aria-label="Tìm tài khoản CINS"
             />
             {searchLoading ? (
-              <Loader2 size={16} className="cso-gv-picker-spin tdh-spin" aria-hidden />
+              <Loader2
+                size={16}
+                className="cso-gv-picker-spin tdh-spin"
+                aria-hidden
+              />
             ) : null}
           </div>
+        ) : (
+          <div className="cso-gv-picker-search-wrap">
+            <input
+              type="text"
+              className="cso-gv-picker-search cso-gv-picker-search--manual"
+              value={manualText}
+              onChange={(e) => onManualTextChange?.(e.target.value)}
+              placeholder="Tên giảng viên…"
+              disabled={disabled}
+              autoComplete="off"
+              aria-label="Nhập tên giảng viên thủ công"
+            />
+          </div>
+        )}
+      </div>
 
-          {staffSuggestions.length > 0 && !query.trim() ? (
-            <div className="cso-gv-picker-section">
-              <p className="cso-gv-picker-section-k">Nhân sự cơ sở</p>
-              <ul className="cso-gv-picker-list">
-                {staffSuggestions.map((pick) => (
-                  <li key={pick.userId}>
-                    <button
-                      type="button"
-                      className="cso-gv-picker-option"
-                      disabled={disabled}
-                      onClick={() => selectUser(pick)}
-                    >
-                      <UserAvatar avatarId={pick.avatarId} name={pick.tenHienThi} size={32} />
-                      <span className="cso-gv-picker-option-meta">
-                        <strong>{pick.tenHienThi}</strong>
-                        <small>@{pick.slug}</small>
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : staffLoading && !query.trim() ? (
-            <p className="cso-kh-field-hint">Đang tải nhân sự…</p>
-          ) : null}
-
-          {visibleResults.length > 0 ? (
-            <div className="cso-gv-picker-section">
-              <p className="cso-gv-picker-section-k">Kết quả tìm kiếm</p>
-              <ul className="cso-gv-picker-list">
-                {visibleResults.map((pick) => (
-                  <li key={pick.userId}>
-                    <button
-                      type="button"
-                      className="cso-gv-picker-option"
-                      disabled={disabled}
-                      onClick={() => selectUser(pick)}
-                    >
-                      <UserAvatar avatarId={pick.avatarId} name={pick.tenHienThi} size={32} />
-                      <span className="cso-gv-picker-option-meta">
-                        <strong>{pick.tenHienThi}</strong>
-                        <small>@{pick.slug}</small>
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : query.trim() && !searchLoading ? (
-            <p className="cso-kh-field-hint">Không tìm thấy user phù hợp.</p>
-          ) : null}
-
-          {!query.trim() && !staffLoading ? (
-            <p className="cso-kh-field-hint">
-              <UserRound size={13} aria-hidden /> Có thể chọn user chưa có Journey
-              — hồ sơ sẽ hiển thị «Chưa có hồ sơ CINS» cho đến khi họ tạo.
-            </p>
-          ) : null}
-        </>
+      {mode === "user" ? (
+        visibleResults.length > 0 ? (
+          <div className="cso-gv-picker-section">
+            <p className="cso-gv-picker-section-k">Kết quả tìm kiếm</p>
+            <ul className="cso-gv-picker-list">
+              {visibleResults.map((pick) => (
+                <li key={pick.userId}>
+                  <button
+                    type="button"
+                    className="cso-gv-picker-option"
+                    disabled={disabled}
+                    onClick={() => selectUser(pick)}
+                  >
+                    <UserAvatar
+                      avatarId={pick.avatarId}
+                      name={pick.tenHienThi}
+                      size={32}
+                    />
+                    <span className="cso-gv-picker-option-meta">
+                      <strong>{pick.tenHienThi}</strong>
+                      <small>@{pick.slug}</small>
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : query.trim() && !searchLoading ? (
+          <p className="cso-kh-field-hint">Không tìm thấy user phù hợp.</p>
+        ) : null
+      ) : (
+        <p className="cso-kh-field-hint">
+          Dùng khi GV chưa có tài khoản CINS.
+        </p>
       )}
-
-      {onManualTextChange ? (
-        <button
-          type="button"
-          className="cso-gv-picker-mode-link"
-          disabled={disabled}
-          onClick={() => {
-            clearUser();
-            setMode("manual");
-          }}
-        >
-          GV chưa có tài khoản — nhập tên thủ công
-        </button>
-      ) : null}
     </div>
   );
 }

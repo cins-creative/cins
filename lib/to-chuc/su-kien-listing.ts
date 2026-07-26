@@ -29,6 +29,7 @@ export type SuKienListItem = SuKienCardData & {
 
 type SuKienRow = {
   id: string;
+  slug: string | null;
   ten: string;
   loai_su_kien: string;
   mo_ta: string | null;
@@ -64,7 +65,7 @@ type SuKienRow = {
 };
 
 const SU_KIEN_LISTING_SELECT =
-  "id, ten, loai_su_kien, mo_ta, noi_dung, cover_id, bat_dau, ket_thuc, tinh_thanh, dia_diem, mien_phi, gia_ve, cach_mua_ve, slot_toi_da, id_to_chuc, org_to_chuc!inner ( id, slug, ten, loai_to_chuc, avatar_id, logo_id )";
+  "id, slug, ten, loai_su_kien, mo_ta, noi_dung, cover_id, bat_dau, ket_thuc, tinh_thanh, dia_diem, mien_phi, gia_ve, cach_mua_ve, slot_toi_da, id_to_chuc, org_to_chuc!inner ( id, slug, ten, loai_to_chuc, avatar_id, logo_id )";
 
 function readOrg(row: SuKienRow) {
   const embed = row.org_to_chuc;
@@ -98,6 +99,7 @@ function mapRow(
 
   return {
     id: row.id,
+    slug: row.slug?.trim() || null,
     ten: row.ten,
     loaiSuKien: loai,
     moTa: row.mo_ta?.trim() || null,

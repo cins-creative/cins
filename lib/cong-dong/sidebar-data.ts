@@ -17,7 +17,6 @@ const GIAI_DOAN_ORDER: GiaiDoan[] = [
   "freelance",
   "dang_day",
   "tim_viec",
-  "moi_bat_dau",
 ];
 
 const GIAI_DOAN_COLOR: Record<GiaiDoan, string> = {
@@ -26,7 +25,6 @@ const GIAI_DOAN_COLOR: Record<GiaiDoan, string> = {
   freelance: "var(--cins-orange, #FDAD4C)",
   dang_day: "var(--cins-violet, #7c5cfc)",
   tim_viec: "#e85d75",
-  moi_bat_dau: "#94a3b8",
 };
 
 async function loadMemberUserIds(orgId: string): Promise<string[]> {

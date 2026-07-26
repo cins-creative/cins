@@ -30,16 +30,34 @@ const PAGE_SIZE = 20;
 
 export async function listHocVienCuaOrg(
   orgId: string,
-  opts?: { q?: string; page?: number },
+  opts?: {
+    q?: string;
+    page?: number;
+    /** Lọc 1 khóa (quản lý catalog). */
+    khoaId?: string;
+    /** Lọc trạng thái ghi danh — VD `dang_hoc`. */
+    trangThai?: string | string[];
+    pageSize?: number;
+  },
 ): Promise<{ rows: HocVienEnrollmentRow[]; total: number; page: number }> {
   const admin = createServiceRoleClient();
   const page = Math.max(1, opts?.page ?? 1);
+  const pageSize = Math.min(Math.max(opts?.pageSize ?? PAGE_SIZE, 1), 200);
   const q = opts?.q?.trim().toLowerCase() ?? "";
+  const filterKhoaId = opts?.khoaId?.trim() || null;
+  const trangThaiFilter = Array.isArray(opts?.trangThai)
+    ? opts!.trangThai!.map((s) => s.trim()).filter(Boolean)
+    : opts?.trangThai?.trim()
+      ? [opts.trangThai.trim()]
+      : [];
 
-  const { data: khoaRows } = await admin
+  let khoaQuery = admin
     .from("org_khoa_hoc")
     .select("id, ten_khoa_hoc")
     .eq("id_to_chuc", orgId);
+  if (filterKhoaId) khoaQuery = khoaQuery.eq("id", filterKhoaId);
+
+  const { data: khoaRows } = await khoaQuery;
 
   const khoaIds = (khoaRows ?? []).map((k) => k.id as string);
   if (khoaIds.length === 0) {
@@ -50,13 +68,20 @@ export async function listHocVienCuaOrg(
     (khoaRows ?? []).map((k) => [k.id as string, k.ten_khoa_hoc as string]),
   );
 
-  const { data: hvlRows, error } = await admin
+  let hvlQuery = admin
     .from("user_hoc_vien_lop")
     .select(
       "id, id_nguoi_dung, id_khoa_hoc, id_lop_hoc, trang_thai, ngay_dang_ky",
     )
     .in("id_khoa_hoc", khoaIds)
     .order("ngay_dang_ky", { ascending: false });
+  if (trangThaiFilter.length === 1) {
+    hvlQuery = hvlQuery.eq("trang_thai", trangThaiFilter[0]!);
+  } else if (trangThaiFilter.length > 1) {
+    hvlQuery = hvlQuery.in("trang_thai", trangThaiFilter);
+  }
+
+  const { data: hvlRows, error } = await hvlQuery;
 
   if (error) throw new Error(error.message);
 
@@ -160,8 +185,8 @@ export async function listHocVienCuaOrg(
   }
 
   const total = mapped.length;
-  const from = (page - 1) * PAGE_SIZE;
-  const rows = mapped.slice(from, from + PAGE_SIZE);
+  const from = (page - 1) * pageSize;
+  const rows = mapped.slice(from, from + pageSize);
   return { rows, total, page };
 }
 

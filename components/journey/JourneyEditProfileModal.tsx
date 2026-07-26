@@ -35,12 +35,6 @@ const GIAI_DOAN_OPTIONS: ReadonlyArray<{
   accent: AccentTone;
 }> = [
   {
-    value: "moi_bat_dau",
-    label: "Mới bắt đầu",
-    hint: "Đang tìm hiểu, chưa rõ hướng đi.",
-    accent: "yellow",
-  },
-  {
     value: "dang_hoc",
     label: "Đang học",
     hint: "Sinh viên, học sinh, đang theo khóa học.",

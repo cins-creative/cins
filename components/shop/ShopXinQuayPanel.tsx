@@ -1,7 +1,15 @@
 "use client";
 
-import { ImagePlus, Loader2, X } from "lucide-react";
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { ExternalLink, ImagePlus, Loader2, X } from "lucide-react";
+import Link from "next/link";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { createPortal } from "react-dom";
 
 import { isAllowedUploadImageFile } from "@/lib/files/infer-image-mime";
@@ -11,14 +19,17 @@ import {
 } from "@/lib/cloudflare/image-upload-limits";
 import type { ShopEvidence, ShopQuaySuKien } from "@/lib/shop/types";
 import { SHOP_TRANG_THAI_QUAY_LABEL } from "@/lib/shop/types";
+import { suKienCardPath, suKienDetailPath } from "@/lib/to-chuc/su-kien-routes";
 import { formatTimelineDate } from "@/lib/truong/timeline";
 
+import "@/components/cins/user-account-settings-modal.css";
 import "./shop-dashboard.css";
 
 const UPLOAD_MAX_BYTES = MAX_CLOUDFLARE_IMAGE_UPLOAD_BYTES;
 
 type SuKienOpt = {
   id: string;
+  slug?: string | null;
   ten: string;
   orgTen?: string;
   batDau?: string;
@@ -27,25 +38,28 @@ type SuKienOpt = {
   orgAvatarUrl?: string | null;
 };
 
-type ModalTab = "xin" | "quan-ly";
+type PanelTab = "xin" | "quan-ly";
 
 type Props = {
-  open: boolean;
-  milestoneId: string;
-  onClose: () => void;
+  /** Khi false — không fetch (dùng nếu bọc lazy). Mặc định true. */
+  active?: boolean;
 };
 
-export function ShopXinQuayModal({ open, milestoneId, onClose }: Props) {
-  const titleId = useId();
+/**
+ * Xin / quản lý quầy sự kiện theo shop (`id_cot_moc = null`).
+ * Dùng trên tab `/ban-hang/su-kien`.
+ */
+export function ShopXinQuayPanel({ active = true }: Props) {
   const listId = useId();
+  const titleId = useId();
   const fileRef = useRef<HTMLInputElement>(null);
   const localUrlRef = useRef<string | null>(null);
 
-  const [tab, setTab] = useState<ModalTab>("xin");
+  const [tab, setTab] = useState<PanelTab>("xin");
   const [events, setEvents] = useState<SuKienOpt[]>([]);
   const [mine, setMine] = useState<ShopQuaySuKien[]>([]);
   const [query, setQuery] = useState("");
-  const [suKienId, setSuKienId] = useState("");
+  const [applyEvent, setApplyEvent] = useState<SuKienOpt | null>(null);
   const [note, setNote] = useState("");
   const [anhUrl, setAnhUrl] = useState<string | null>(null);
   const [anhId, setAnhId] = useState<string | null>(null);
@@ -57,7 +71,9 @@ export function ShopXinQuayModal({ open, milestoneId, onClose }: Props) {
   const [withdrawId, setWithdrawId] = useState<string | null>(null);
   const [withdrawLyDo, setWithdrawLyDo] = useState("");
   const [err, setErr] = useState<string | null>(null);
+  const [modalErr, setModalErr] = useState<string | null>(null);
   const [ok, setOk] = useState(false);
+  const [portalReady, setPortalReady] = useState(false);
 
   function clearLocalPreview() {
     if (localUrlRef.current) {
@@ -75,6 +91,21 @@ export function ShopXinQuayModal({ open, milestoneId, onClose }: Props) {
     if (fileRef.current) fileRef.current.value = "";
   }
 
+  function closeApplyModal() {
+    if (saving || uploading) return;
+    setApplyEvent(null);
+    setModalErr(null);
+    resetEvidence();
+  }
+
+  function openApplyModal(ev: SuKienOpt) {
+    setOk(false);
+    setErr(null);
+    setModalErr(null);
+    resetEvidence();
+    setApplyEvent(ev);
+  }
+
   const loadMine = useCallback(async () => {
     setMineLoading(true);
     try {
@@ -89,11 +120,16 @@ export function ShopXinQuayModal({ open, milestoneId, onClose }: Props) {
   }, []);
 
   useEffect(() => {
-    if (!open) return;
+    setPortalReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (!active) return;
     setOk(false);
     setErr(null);
+    setModalErr(null);
     setQuery("");
-    setSuKienId("");
+    setApplyEvent(null);
     setTab("xin");
     setWithdrawId(null);
     setWithdrawLyDo("");
@@ -101,13 +137,14 @@ export function ShopXinQuayModal({ open, milestoneId, onClose }: Props) {
     setLoading(true);
     void (async () => {
       try {
-        const res = await fetch("/api/su-kien/list?upcoming=1&limit=8", {
+        const res = await fetch("/api/su-kien/list?upcoming=1&limit=24", {
           cache: "no-store",
         }).catch(() => null);
         if (res?.ok) {
           const json = (await res.json()) as {
             items?: Array<{
               id?: unknown;
+              slug?: unknown;
               ten?: unknown;
               orgTen?: unknown;
               batDau?: unknown;
@@ -123,6 +160,7 @@ export function ShopXinQuayModal({ open, milestoneId, onClose }: Props) {
             )
             .map((it) => ({
               id: it.id,
+              slug: typeof it.slug === "string" ? it.slug : null,
               ten: it.ten,
               orgTen: typeof it.orgTen === "string" ? it.orgTen : undefined,
               batDau: typeof it.batDau === "string" ? it.batDau : undefined,
@@ -137,7 +175,6 @@ export function ShopXinQuayModal({ open, milestoneId, onClose }: Props) {
                   : null,
             }));
           setEvents(items);
-          if (items[0]) setSuKienId(items[0].id);
         } else {
           setEvents([]);
         }
@@ -149,8 +186,18 @@ export function ShopXinQuayModal({ open, milestoneId, onClose }: Props) {
     return () => {
       clearLocalPreview();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only when modal opens
-  }, [open, loadMine]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset when panel becomes active
+  }, [active, loadMine]);
+
+  useEffect(() => {
+    if (!applyEvent) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeApplyModal();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- close uses latest saving/uploading
+  }, [applyEvent, saving, uploading]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -164,11 +211,11 @@ export function ShopXinQuayModal({ open, milestoneId, onClose }: Props) {
   async function onPickImage(file: File | null) {
     if (!file) return;
     if (!isAllowedUploadImageFile(file)) {
-      setErr("Chỉ chấp nhận JPEG, PNG, WebP hoặc GIF.");
+      setModalErr("Chỉ chấp nhận JPEG, PNG, WebP hoặc GIF.");
       return;
     }
     if (file.size > UPLOAD_MAX_BYTES) {
-      setErr(cloudflareImageTooLargeError());
+      setModalErr(cloudflareImageTooLargeError());
       return;
     }
 
@@ -178,7 +225,7 @@ export function ShopXinQuayModal({ open, milestoneId, onClose }: Props) {
     setAnhUrl(localUrl);
     setAnhId(null);
     setUploading(true);
-    setErr(null);
+    setModalErr(null);
 
     try {
       const form = new FormData();
@@ -203,7 +250,7 @@ export function ShopXinQuayModal({ open, milestoneId, onClose }: Props) {
       clearLocalPreview();
       setAnhUrl(null);
       setAnhId(null);
-      setErr(e instanceof Error ? e.message : "Không tải ảnh được.");
+      setModalErr(e instanceof Error ? e.message : "Không tải ảnh được.");
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = "";
@@ -211,16 +258,16 @@ export function ShopXinQuayModal({ open, milestoneId, onClose }: Props) {
   }
 
   async function submit() {
-    if (!suKienId.trim()) {
-      setErr("Chọn sự kiện sắp diễn ra.");
+    if (!applyEvent) {
+      setModalErr("Chọn sự kiện sắp diễn ra.");
       return;
     }
     if (uploading) {
-      setErr("Đợi ảnh tải xong rồi gửi.");
+      setModalErr("Đợi ảnh tải xong rồi gửi.");
       return;
     }
     setSaving(true);
-    setErr(null);
+    setModalErr(null);
     try {
       const bangChung: ShopEvidence[] = [];
       if (anhUrl && anhId) {
@@ -245,21 +292,20 @@ export function ShopXinQuayModal({ open, milestoneId, onClose }: Props) {
         });
       }
 
-      const res = await fetch(`/api/su-kien/${suKienId}/quay`, {
+      const res = await fetch(`/api/su-kien/${applyEvent.id}/quay`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          cotMocId: milestoneId,
-          bangChung,
-        }),
+        body: JSON.stringify({ bangChung }),
       });
       const json = (await res.json().catch(() => null)) as {
         error?: string;
       } | null;
       if (!res.ok) {
-        setErr(json?.error ?? "Không gửi được.");
+        setModalErr(json?.error ?? "Không gửi được.");
         return;
       }
+      setApplyEvent(null);
+      resetEvidence();
       setOk(true);
       void loadMine();
     } finally {
@@ -299,26 +345,174 @@ export function ShopXinQuayModal({ open, milestoneId, onClose }: Props) {
     }
   }
 
-  if (!open) return null;
+  const applyModal =
+    portalReady && applyEvent
+      ? createPortal(
+          <div
+            className="uas-backdrop"
+            role="presentation"
+            onClick={closeApplyModal}
+          >
+            <div
+              className="uas-modal shop-xin-quay-modal"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby={titleId}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <header className="uas-head">
+                <h2 id={titleId} className="uas-title">
+                  Xin tham gia
+                </h2>
+                <button
+                  type="button"
+                  className="uas-close"
+                  onClick={closeApplyModal}
+                  disabled={saving || uploading}
+                  aria-label="Đóng"
+                >
+                  <X size={18} />
+                </button>
+              </header>
 
-  return createPortal(
-    <div className="uas-backdrop" role="presentation" onClick={onClose}>
-      <div
-        className="uas-modal shop-xin-quay-modal"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        onClick={(e) => e.stopPropagation()}
+              <div className="shop-xin-quay-body">
+                <div className="shop-xin-quay-apply-target">
+                  <strong>{applyEvent.ten}</strong>
+                  <span className="shop-xin-quay-item-meta">
+                    {formatTimelineDate(applyEvent.batDau)}
+                    {applyEvent.orgTen
+                      ? ` · ${applyEvent.orgTen}`
+                      : null}
+                    {applyEvent.status === "active"
+                      ? " · Đang diễn ra"
+                      : null}
+                  </span>
+                </div>
+
+                {modalErr ? (
+                  <p className="shop-xin-quay-err" role="alert">
+                    {modalErr}
+                  </p>
+                ) : null}
+
+                <section className="shop-xin-quay-section">
+                  <header className="shop-xin-quay-section-head">
+                    <h3 className="shop-xin-quay-section-title">
+                      Bằng chứng xác thực
+                      <span className="shop-xin-quay-optional">Tuỳ chọn</span>
+                    </h3>
+                    <p className="shop-xin-quay-section-desc">
+                      Ảnh hoặc ghi chú giúp ban tổ chức nhận đúng shop đăng ký.
+                    </p>
+                  </header>
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    className="shop-xin-quay-file"
+                    disabled={uploading || saving}
+                    onChange={(e) =>
+                      void onPickImage(e.target.files?.[0] ?? null)
+                    }
+                  />
+                  {anhUrl ? (
+                    <div className="shop-xin-quay-preview">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={anhUrl} alt="Ảnh bằng chứng xác thực" />
+                      {uploading ? (
+                        <div className="shop-xin-quay-preview-busy">
+                          <Loader2
+                            size={16}
+                            className="shop-spin"
+                            aria-hidden
+                          />
+                          Đang tải lên…
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          className="shop-xin-quay-preview-clear"
+                          disabled={saving}
+                          onClick={() => {
+                            clearLocalPreview();
+                            setAnhUrl(null);
+                            setAnhId(null);
+                            if (fileRef.current) fileRef.current.value = "";
+                          }}
+                        >
+                          Gỡ ảnh
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      className="shop-xin-quay-upload-btn"
+                      disabled={uploading || saving}
+                      onClick={() => fileRef.current?.click()}
+                    >
+                      {uploading ? (
+                        <>
+                          <Loader2
+                            size={16}
+                            className="shop-spin"
+                            aria-hidden
+                          />
+                          Đang tải…
+                        </>
+                      ) : (
+                        <>
+                          <ImagePlus size={16} strokeWidth={2} aria-hidden />
+                          Tải ảnh lên
+                        </>
+                      )}
+                    </button>
+                  )}
+                  <textarea
+                    className="shop-xin-quay-note"
+                    rows={3}
+                    value={note}
+                    disabled={saving}
+                    onChange={(e) => setNote(e.target.value)}
+                    placeholder="Ghi chú thêm cho ban tổ chức…"
+                  />
+                </section>
+              </div>
+
+              <footer className="shop-xin-quay-foot">
+                <button
+                  type="button"
+                  className="shop-xin-quay-withdraw-cancel"
+                  disabled={saving || uploading}
+                  onClick={closeApplyModal}
+                >
+                  Huỷ
+                </button>
+                <button
+                  type="button"
+                  className="shop-xin-quay-submit"
+                  disabled={saving || uploading}
+                  onClick={() => void submit()}
+                >
+                  {saving ? (
+                    <Loader2 className="shop-spin" size={16} />
+                  ) : (
+                    "Gửi duyệt"
+                  )}
+                </button>
+              </footer>
+            </div>
+          </div>,
+          document.body,
+        )
+      : null;
+
+  return (
+    <>
+      <section
+        className="shop-dash-card shop-xin-quay-panel"
+        aria-label="Sự kiện"
       >
-        <header className="uas-head">
-          <h2 id={titleId} className="uas-title">
-            Tham gia sự kiện
-          </h2>
-          <button type="button" className="uas-close" onClick={onClose}>
-            <X size={18} />
-          </button>
-        </header>
-
         <div
           className="shop-xin-quay-tabs"
           role="tablist"
@@ -329,9 +523,7 @@ export function ShopXinQuayModal({ open, milestoneId, onClose }: Props) {
             role="tab"
             aria-selected={tab === "xin"}
             className={
-              tab === "xin"
-                ? "shop-xin-quay-tab is-active"
-                : "shop-xin-quay-tab"
+              tab === "xin" ? "shop-xin-quay-tab is-active" : "shop-xin-quay-tab"
             }
             onClick={() => {
               setTab("xin");
@@ -353,6 +545,7 @@ export function ShopXinQuayModal({ open, milestoneId, onClose }: Props) {
               setTab("quan-ly");
               setErr(null);
               setOk(false);
+              setApplyEvent(null);
               void loadMine();
             }}
           >
@@ -373,55 +566,65 @@ export function ShopXinQuayModal({ open, milestoneId, onClose }: Props) {
           {tab === "xin" ? (
             ok ? (
               <p className="shop-xin-quay-ok">
-                Đã gửi yêu cầu. Chờ ban tổ chức duyệt.
+                Đã gửi yêu cầu. Chờ ban tổ chức duyệt. Shop sẽ hiện trên mặt tiền
+                khi được duyệt.{" "}
+                <button
+                  type="button"
+                  className="shop-xin-quay-ok-again"
+                  onClick={() => setOk(false)}
+                >
+                  Xin thêm sự kiện khác
+                </button>
               </p>
             ) : loading ? (
               <p className="shop-xin-quay-loading">
                 <Loader2 className="shop-spin" size={16} /> Đang tải…
               </p>
             ) : (
-              <>
-                <section className="shop-xin-quay-section">
-                  <header className="shop-xin-quay-section-head">
-                    <h3 className="shop-xin-quay-section-title">Chọn sự kiện</h3>
-                    <p className="shop-xin-quay-section-desc">
-                      Tìm và chọn sự kiện sắp diễn ra gần nhất.
-                    </p>
-                  </header>
-                  <label className="shop-xin-quay-search">
-                    <span className="visually-hidden">Tìm sự kiện</span>
-                    <input
-                      type="search"
-                      value={query}
-                      onChange={(e) => setQuery(e.target.value)}
-                      placeholder="Tìm theo tên sự kiện…"
-                      autoComplete="off"
-                      aria-controls={listId}
-                    />
-                  </label>
-                  {filtered.length > 0 ? (
-                    <ul
-                      id={listId}
-                      className="shop-xin-quay-list"
-                      role="listbox"
-                      aria-label="Sự kiện sắp diễn ra"
-                    >
-                      {filtered.map((ev) => {
-                        const selected = ev.id === suKienId;
-                        const dateLbl = formatTimelineDate(ev.batDau);
-                        const thumbSrc = ev.coverSrc || ev.orgAvatarUrl || null;
-                        return (
-                          <li key={ev.id}>
+              <section className="shop-xin-quay-section">
+                <header className="shop-xin-quay-section-head">
+                  <h3 className="shop-xin-quay-section-title">Chọn sự kiện</h3>
+                  <p className="shop-xin-quay-section-desc">
+                    Bấm sự kiện để đăng ký cửa hàng. Icon mở trang sự kiện.
+                  </p>
+                </header>
+                <label className="shop-xin-quay-search">
+                  <span className="visually-hidden">Tìm sự kiện</span>
+                  <input
+                    type="search"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Tìm theo tên sự kiện…"
+                    autoComplete="off"
+                    aria-controls={listId}
+                  />
+                </label>
+                {filtered.length > 0 ? (
+                  <ul
+                    id={listId}
+                    className="shop-xin-quay-list"
+                    role="listbox"
+                    aria-label="Sự kiện sắp diễn ra"
+                  >
+                    {filtered.map((ev) => {
+                      const dateLbl = formatTimelineDate(ev.batDau);
+                      const thumbSrc = ev.coverSrc || ev.orgAvatarUrl || null;
+                      const href = suKienCardPath(ev);
+                      return (
+                        <li key={ev.id}>
+                          <div
+                            role="option"
+                            aria-selected={applyEvent?.id === ev.id}
+                            className={
+                              applyEvent?.id === ev.id
+                                ? "shop-xin-quay-item is-selected"
+                                : "shop-xin-quay-item"
+                            }
+                          >
                             <button
                               type="button"
-                              role="option"
-                              aria-selected={selected}
-                              className={
-                                selected
-                                  ? "shop-xin-quay-item is-selected"
-                                  : "shop-xin-quay-item"
-                              }
-                              onClick={() => setSuKienId(ev.id)}
+                              className="shop-xin-quay-item-main"
+                              onClick={() => openApplyModal(ev)}
                             >
                               <span
                                 className={
@@ -472,100 +675,34 @@ export function ShopXinQuayModal({ open, milestoneId, onClose }: Props) {
                                 </span>
                               </span>
                             </button>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  ) : (
-                    <p className="shop-xin-quay-empty">
-                      {events.length === 0
-                        ? "Chưa có sự kiện sắp diễn ra."
-                        : "Không khớp tên sự kiện trong danh sách."}
-                    </p>
-                  )}
-                </section>
-
-                <section className="shop-xin-quay-section">
-                  <header className="shop-xin-quay-section-head">
-                    <h3 className="shop-xin-quay-section-title">
-                      Bằng chứng xác thực
-                      <span className="shop-xin-quay-optional">Tuỳ chọn</span>
-                    </h3>
-                    <p className="shop-xin-quay-section-desc">
-                      Ảnh hoặc ghi chú giúp ban tổ chức nhận đúng người đăng ký.
-                    </p>
-                  </header>
-                  <input
-                    ref={fileRef}
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp,image/gif"
-                    className="shop-xin-quay-file"
-                    disabled={uploading}
-                    onChange={(e) =>
-                      void onPickImage(e.target.files?.[0] ?? null)
-                    }
-                  />
-                  {anhUrl ? (
-                    <div className="shop-xin-quay-preview">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={anhUrl} alt="Ảnh bằng chứng xác thực" />
-                      {uploading ? (
-                        <div className="shop-xin-quay-preview-busy">
-                          <Loader2
-                            size={16}
-                            className="shop-spin"
-                            aria-hidden
-                          />
-                          Đang tải lên…
-                        </div>
-                      ) : (
-                        <button
-                          type="button"
-                          className="shop-xin-quay-preview-clear"
-                          onClick={() => {
-                            clearLocalPreview();
-                            setAnhUrl(null);
-                            setAnhId(null);
-                            if (fileRef.current) fileRef.current.value = "";
-                          }}
-                        >
-                          Gỡ ảnh
-                        </button>
-                      )}
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      className="shop-xin-quay-upload-btn"
-                      disabled={uploading}
-                      onClick={() => fileRef.current?.click()}
-                    >
-                      {uploading ? (
-                        <>
-                          <Loader2
-                            size={16}
-                            className="shop-spin"
-                            aria-hidden
-                          />
-                          Đang tải…
-                        </>
-                      ) : (
-                        <>
-                          <ImagePlus size={16} strokeWidth={2} aria-hidden />
-                          Tải ảnh lên
-                        </>
-                      )}
-                    </button>
-                  )}
-                  <textarea
-                    className="shop-xin-quay-note"
-                    rows={3}
-                    value={note}
-                    onChange={(e) => setNote(e.target.value)}
-                    placeholder="Ghi chú thêm cho ban tổ chức…"
-                  />
-                </section>
-              </>
+                            <Link
+                              href={href}
+                              className="shop-xin-quay-open"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              aria-label={`Mở trang sự kiện ${ev.ten}`}
+                              title="Mở trang sự kiện"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <ExternalLink
+                                size={16}
+                                strokeWidth={2}
+                                aria-hidden
+                              />
+                            </Link>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                ) : (
+                  <p className="shop-xin-quay-empty">
+                    {events.length === 0
+                      ? "Chưa có sự kiện sắp diễn ra."
+                      : "Không khớp tên sự kiện trong danh sách."}
+                  </p>
+                )}
+              </section>
             )
           ) : mineLoading ? (
             <p className="shop-xin-quay-loading">
@@ -573,26 +710,24 @@ export function ShopXinQuayModal({ open, milestoneId, onClose }: Props) {
             </p>
           ) : mine.length === 0 ? (
             <p className="shop-xin-quay-empty">
-              Bạn chưa có quầy đang chờ duyệt hoặc đã được duyệt.
+              Shop chưa có quầy đang chờ duyệt hoặc đã được duyệt.
             </p>
           ) : (
             <ul className="shop-xin-quay-mine-list">
               {mine.map((q) => {
                 const dateLbl = formatTimelineDate(q.suKienBatDau);
-                const isWithdraw = withdrawId === q.id;
+                const isReWithdraw = withdrawId === q.id;
                 return (
                   <li key={q.id} className="shop-xin-quay-mine-item">
                     <div className="shop-xin-quay-mine-copy">
-                      <strong>
-                        {q.suKienTen?.trim() || "Sự kiện"}
-                      </strong>
+                      <strong>{q.suKienTen?.trim() || "Sự kiện"}</strong>
                       <span className="shop-xin-quay-item-meta">
                         {SHOP_TRANG_THAI_QUAY_LABEL[q.trangThai]}
                         {dateLbl ? ` · ${dateLbl}` : null}
                         {q.orgTen ? ` · ${q.orgTen}` : null}
                       </span>
                     </div>
-                    {isWithdraw ? (
+                    {isReWithdraw ? (
                       <div className="shop-xin-quay-withdraw">
                         <textarea
                           className="shop-xin-quay-note"
@@ -631,18 +766,34 @@ export function ShopXinQuayModal({ open, milestoneId, onClose }: Props) {
                         </div>
                       </div>
                     ) : (
-                      <button
-                        type="button"
-                        className="shop-xin-quay-withdraw-btn"
-                        disabled={busyQuayId === q.id}
-                        onClick={() => {
-                          setWithdrawId(q.id);
-                          setWithdrawLyDo("");
-                          setErr(null);
-                        }}
-                      >
-                        Rút khỏi sự kiện
-                      </button>
+                      <div className="shop-xin-quay-mine-actions">
+                        <Link
+                          href={suKienDetailPath(q.suKienSlug || q.idSuKien)}
+                          className="shop-xin-quay-open"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label="Mở trang sự kiện"
+                          title="Mở trang sự kiện"
+                        >
+                          <ExternalLink
+                            size={16}
+                            strokeWidth={2}
+                            aria-hidden
+                          />
+                        </Link>
+                        <button
+                          type="button"
+                          className="shop-xin-quay-withdraw-btn"
+                          disabled={busyQuayId === q.id}
+                          onClick={() => {
+                            setWithdrawId(q.id);
+                            setWithdrawLyDo("");
+                            setErr(null);
+                          }}
+                        >
+                          Rút khỏi sự kiện
+                        </button>
+                      </div>
                     )}
                   </li>
                 );
@@ -650,25 +801,8 @@ export function ShopXinQuayModal({ open, milestoneId, onClose }: Props) {
             </ul>
           )}
         </div>
-
-        {tab === "xin" && !ok ? (
-          <footer className="shop-xin-quay-foot">
-            <button
-              type="button"
-              className="shop-xin-quay-submit"
-              disabled={saving || uploading || !suKienId}
-              onClick={() => void submit()}
-            >
-              {saving ? (
-                <Loader2 className="shop-spin" size={16} />
-              ) : (
-                "Gửi duyệt"
-              )}
-            </button>
-          </footer>
-        ) : null}
-      </div>
-    </div>,
-    document.body,
+      </section>
+      {applyModal}
+    </>
   );
 }

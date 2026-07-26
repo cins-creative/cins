@@ -1,10 +1,14 @@
 "use client";
 
-import { Eye, EyeOff, ImagePlus, Loader2, X } from "lucide-react";
+import { ClipboardPaste, Eye, EyeOff, ImagePlus, Loader2, X } from "lucide-react";
 import Image from "next/image";
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, type ClipboardEvent } from "react";
 
 import { TruongInlineModal } from "@/components/truong/inline/TruongInlineModal";
+import {
+  imageFilesFromClipboard,
+  readImageFileFromClipboard,
+} from "@/lib/files/clipboard-images";
 import {
   isInlineBaiTapThumbnail,
   persistBaiTapThumbnailUrl,
@@ -26,7 +30,6 @@ type Props = {
   onSave: (draft: BaiTapKhoaDraft) => void;
 };
 
-const BAI_TAP_THUMB_CARD_PX = 72;
 const BAI_TAP_THUMB_RECOMMENDED_PX = 288;
 const BAI_TAP_THUMB_MAX_BYTES = 5 * 1024 * 1024;
 const BAI_TAP_THUMB_ACCEPT = [
@@ -196,6 +199,29 @@ export function GiaoTrinhBaiTapPanel({
     }
   }
 
+  function handleThumbPaste(e: ClipboardEvent) {
+    if (thumbStatus === "loading" || saving) return;
+    const file = imageFilesFromClipboard(e.clipboardData)[0];
+    if (!file) return;
+    e.preventDefault();
+    e.stopPropagation();
+    void handleThumbPick(file);
+  }
+
+  async function handleThumbPasteClick() {
+    if (thumbStatus === "loading" || saving) return;
+    const file = await readImageFileFromClipboard();
+    if (file) {
+      void handleThumbPick(file);
+      return;
+    }
+    setThumbStatus("error");
+    setThumbError(
+      "Không đọc được ảnh từ bộ nhớ tạm — copy ảnh rồi thử lại, hoặc Ctrl+V trên khung thumbnail.",
+    );
+    setThumbMeta(null);
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!tenBaiTap.trim() || saving) return;
@@ -220,7 +246,7 @@ export function GiaoTrinhBaiTapPanel({
     ? `Bài ${(baiIndex ?? 0) + 1}: ${bai.tieuDe}${tenKhoaHoc ? ` · ${tenKhoaHoc}` : ""}`
     : tenKhoaHoc || null;
 
-  const thumbHint = `Tuỳ chọn · 1:1 · hiển thị ${BAI_TAP_THUMB_CARD_PX}×${BAI_TAP_THUMB_CARD_PX}px trên card · khuyến nghị ≥${BAI_TAP_THUMB_RECOMMENDED_PX}×${BAI_TAP_THUMB_RECOMMENDED_PX}px`;
+  const thumbHint = `Tuỳ chọn · 1:1 · chọn ảnh hoặc dán (Ctrl+V) · khuyến nghị ≥${BAI_TAP_THUMB_RECOMMENDED_PX}×${BAI_TAP_THUMB_RECOMMENDED_PX}px`;
 
   const thumbStatusText =
     thumbStatus === "loading"
@@ -305,7 +331,13 @@ export function GiaoTrinhBaiTapPanel({
         <div className="cso-kh-field">
           <span className="cso-kh-label">Thumbnail bài tập</span>
           <div className="cso-kh-cover-pick">
-            <div className="cso-kh-cover-preview cso-khd-bt-thumb-preview c1">
+            <div
+              className="cso-kh-cover-preview cso-khd-bt-thumb-preview c1"
+              tabIndex={0}
+              role="group"
+              aria-label="Thumbnail bài tập — chọn hoặc dán ảnh"
+              onPaste={handleThumbPaste}
+            >
               {thumbnailUrl ? (
                 <Image
                   src={thumbnailUrl}
@@ -338,24 +370,34 @@ export function GiaoTrinhBaiTapPanel({
                   e.target.value = "";
                 }}
               />
-              <button
-                type="button"
-                className="cso-kh-cover-btn"
-                disabled={thumbStatus === "loading" || saving}
-                onClick={() => thumbInputRef.current?.click()}
-              >
-                {thumbStatus === "loading" ? (
-                  <>
-                    <Loader2 size={14} className="tdh-spin" aria-hidden />
-                    Đang tải…
-                  </>
-                ) : (
-                  <>
-                    <ImagePlus size={14} aria-hidden />
-                    {thumbnailUrl ? "Đổi thumbnail" : "Chọn thumbnail"}
-                  </>
-                )}
-              </button>
+              <div className="cso-khd-bt-thumb-btns">
+                <button
+                  type="button"
+                  className="cso-kh-cover-btn cso-kh-cover-btn--icon"
+                  disabled={thumbStatus === "loading" || saving}
+                  title={thumbnailUrl ? "Đổi thumbnail" : "Chọn thumbnail"}
+                  aria-label={
+                    thumbnailUrl ? "Đổi thumbnail" : "Chọn thumbnail"
+                  }
+                  onClick={() => thumbInputRef.current?.click()}
+                >
+                  {thumbStatus === "loading" ? (
+                    <Loader2 size={16} className="tdh-spin" aria-hidden />
+                  ) : (
+                    <ImagePlus size={16} strokeWidth={2} aria-hidden />
+                  )}
+                </button>
+                <button
+                  type="button"
+                  className="cso-kh-cover-btn cso-kh-cover-btn--icon"
+                  disabled={thumbStatus === "loading" || saving}
+                  title="Dán ảnh từ bộ nhớ tạm"
+                  aria-label="Dán ảnh từ bộ nhớ tạm"
+                  onClick={() => void handleThumbPasteClick()}
+                >
+                  <ClipboardPaste size={16} strokeWidth={2} aria-hidden />
+                </button>
+              </div>
               <p className="cso-kh-cover-hint">{thumbHint}</p>
               {thumbStatusText ? (
                 <p

@@ -1,6 +1,7 @@
 /** L33 — Shop UGC types (không payment gateway). */
 
 import type { MilestoneItem } from "@/components/journey/milestone-types";
+import type { PublicShopListingItem } from "@/lib/shop/cua-hang-listing-types";
 
 export type ShopLoaiDon = "mua_ngay" | "dat_truoc_nhan_su_kien";
 
@@ -452,6 +453,19 @@ export type ShopDonHang = {
   bienLaiAnhId?: string | null;
 };
 
+/** Sự kiện sắp/đang diễn ra mà shop đã được duyệt quầy — mặt tiền công khai. */
+export type ShopQuaySapCoMat = {
+  id: string;
+  idSuKien: string;
+  ten: string;
+  batDau: string | null;
+  ketThuc: string | null;
+  orgTen: string | null;
+  coverSrc: string | null;
+  href: string;
+  status: "upcoming" | "active";
+};
+
 /** Hàng gắn bài quầy — haystack tìm + card catalog khi Search hàng. */
 export type ShopQuayHangSearch = {
   hangId: string;
@@ -482,15 +496,17 @@ export type ShopQuaySuKien = {
   nguoiDungAvatarUrl?: string | null;
   /** Meta sự kiện — list “quầy của tôi”. */
   suKienTen?: string | null;
+  suKienSlug?: string | null;
   suKienBatDau?: string | null;
   orgTen?: string | null;
   taoLuc: string;
+  /** Card shop (listing `/cua-hang`) — mặt tiền quầy sự kiện. */
+  shop?: PublicShopListingItem | null;
   /**
-   * Snapshot cột mốc gắn quầy — hydrate khi list có `idCotMoc`
-   * (tab Sự kiện xem bài đã duyệt; tab Quản lý duyệt chờ xử lý).
+   * Legacy — bài gắn quầy (không còn hydrate ở list quầy công khai).
    */
   cotMoc?: MilestoneItem | null;
-  /** Sản phẩm gắn `shop_post_hang` trên cột mốc — haystack tìm kiếm. */
+  /** Catalog shop / post-kiosk — haystack chế độ xem Hàng. */
   hangSearch?: ShopQuayHangSearch[];
 };
 

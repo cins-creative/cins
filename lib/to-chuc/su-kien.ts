@@ -24,6 +24,10 @@ import {
   type SuKienLoaiVeInput,
   type TaoSuKienInput,
 } from "./su-kien-constants";
+import {
+  looksLikeUuid,
+  uniqueSuKienSlug,
+} from "./su-kien-slug";
 
 export type {
   LoaiSuKien,
@@ -40,6 +44,7 @@ export {
 
 type SuKienRow = {
   id: string;
+  slug: string | null;
   ten: string;
   loai_su_kien: string;
   mo_ta: string | null;
@@ -56,7 +61,7 @@ type SuKienRow = {
 };
 
 const SU_KIEN_SELECT =
-  "id, ten, loai_su_kien, mo_ta, noi_dung, cover_id, bat_dau, ket_thuc, tinh_thanh, dia_diem, mien_phi, gia_ve, cach_mua_ve, slot_toi_da";
+  "id, slug, ten, loai_su_kien, mo_ta, noi_dung, cover_id, bat_dau, ket_thuc, tinh_thanh, dia_diem, mien_phi, gia_ve, cach_mua_ve, slot_toi_da";
 
 function mapRow(
   row: SuKienRow,
@@ -70,6 +75,7 @@ function mapRow(
   const giaFromLoai = !mienPhi ? minGiaTuLoaiVe(loaiVe) : null;
   return {
     id: row.id,
+    slug: row.slug?.trim() || null,
     ten: row.ten,
     loaiSuKien: loai,
     moTa: row.mo_ta?.trim() || null,
@@ -263,10 +269,11 @@ export async function taoSuKien(
   const validated = validateInput(input);
   if (!validated.ok) return validated;
 
+  const slug = await uniqueSuKienSlug({ baseSlug: validated.data.ten });
   const admin = createServiceRoleClient();
   const { data, error } = await admin
     .from("org_su_kien")
-    .insert({ id_to_chuc: orgId, ...validated.data })
+    .insert({ id_to_chuc: orgId, slug, ...validated.data })
     .select(SU_KIEN_SELECT)
     .single<SuKienRow>();
 
@@ -301,9 +308,57 @@ export type SuKienPublicDetail = {
   orgTen: string;
   orgLoai: string;
   orgAvatarUrl: string | null;
+  orgTinhThanh: string | null;
 };
 
-/** Chi tiết sự kiện công khai theo id — cho trang `/su-kien/[id]`. */
+type SuKienPublicRow = SuKienRow & {
+  id_to_chuc: string;
+  org_to_chuc:
+    | {
+        id: string;
+        slug: string | null;
+        ten: string | null;
+        loai_to_chuc: string | null;
+        avatar_id: string | null;
+        logo_id: string | null;
+      }
+    | {
+        id: string;
+        slug: string | null;
+        ten: string | null;
+        loai_to_chuc: string | null;
+        avatar_id: string | null;
+        logo_id: string | null;
+      }[];
+};
+
+async function mapPublicDetail(
+  data: SuKienPublicRow,
+): Promise<SuKienPublicDetail | null> {
+  const org = Array.isArray(data.org_to_chuc)
+    ? data.org_to_chuc[0]
+    : data.org_to_chuc;
+  if (!org?.slug?.trim() || !org.ten?.trim()) return null;
+
+  const orgAvatarId = org.avatar_id ?? org.logo_id;
+  const counts = await demDangKySeThamGia([data.id]);
+  const loaiVe = await listLoaiVeCuaSuKien(data.id);
+  return {
+    suKien: mapRow(data, counts.get(data.id) ?? 0, loaiVe),
+    orgId: data.id_to_chuc,
+    orgSlug: org.slug.trim(),
+    orgTen: org.ten.trim(),
+    orgLoai: org.loai_to_chuc?.trim() || "studio",
+    orgAvatarUrl: orgAvatarId
+      ? resolveTruongImageSrcSync(orgAvatarId, ["public", "avatar"])
+      : null,
+    orgTinhThanh: null,
+  };
+}
+
+const SU_KIEN_PUBLIC_SELECT = `${SU_KIEN_SELECT}, id_to_chuc, org_to_chuc!inner ( id, slug, ten, loai_to_chuc, avatar_id, logo_id )`;
+
+/** Chi tiết sự kiện công khai theo id — legacy / API nội bộ. */
 export async function getSuKienByIdPublic(
   suKienId: string,
 ): Promise<SuKienPublicDetail | null> {
@@ -313,53 +368,31 @@ export async function getSuKienByIdPublic(
   const admin = createServiceRoleClient();
   const { data, error } = await admin
     .from("org_su_kien")
-    .select(
-      `${SU_KIEN_SELECT}, id_to_chuc, org_to_chuc!inner ( id, slug, ten, loai_to_chuc, avatar_id, logo_id )`,
-    )
+    .select(SU_KIEN_PUBLIC_SELECT)
     .eq("id", id)
     .maybeSingle();
 
   if (error || !data) return null;
+  return mapPublicDetail(data as SuKienPublicRow);
+}
 
-  const row = data as SuKienRow & {
-    id_to_chuc: string;
-    org_to_chuc:
-      | {
-          id: string;
-          slug: string | null;
-          ten: string | null;
-          loai_to_chuc: string | null;
-          avatar_id: string | null;
-          logo_id: string | null;
-        }
-      | {
-          id: string;
-          slug: string | null;
-          ten: string | null;
-          loai_to_chuc: string | null;
-          avatar_id: string | null;
-          logo_id: string | null;
-        }[];
-  };
+/** Chi tiết theo slug URL hoặc UUID (redirect UUID → slug ở page). */
+export async function getSuKienByPublicKey(
+  key: string,
+): Promise<SuKienPublicDetail | null> {
+  const raw = key?.trim();
+  if (!raw) return null;
+  if (looksLikeUuid(raw)) return getSuKienByIdPublic(raw);
 
-  const org = Array.isArray(row.org_to_chuc)
-    ? row.org_to_chuc[0]
-    : row.org_to_chuc;
-  if (!org?.slug?.trim() || !org.ten?.trim()) return null;
+  const admin = createServiceRoleClient();
+  const { data, error } = await admin
+    .from("org_su_kien")
+    .select(SU_KIEN_PUBLIC_SELECT)
+    .eq("slug", raw)
+    .maybeSingle();
 
-  const orgAvatarId = org.avatar_id ?? org.logo_id;
-  const counts = await demDangKySeThamGia([row.id]);
-  const loaiVe = await listLoaiVeCuaSuKien(row.id);
-  return {
-    suKien: mapRow(row, counts.get(row.id) ?? 0, loaiVe),
-    orgId: row.id_to_chuc,
-    orgSlug: org.slug.trim(),
-    orgTen: org.ten.trim(),
-    orgLoai: org.loai_to_chuc?.trim() || "studio",
-    orgAvatarUrl: orgAvatarId
-      ? resolveTruongImageSrcSync(orgAvatarId, ["public", "avatar"])
-      : null,
-  };
+  if (error || !data) return null;
+  return mapPublicDetail(data as SuKienPublicRow);
 }
 
 export async function capNhatSuKien(
@@ -418,9 +451,21 @@ export async function capNhatSuKien(
   const validated = validateInput(merged);
   if (!validated.ok) return validated;
 
+  const tenChanged = validated.data.ten !== current.ten;
+  const slug = tenChanged
+    ? await uniqueSuKienSlug({
+        baseSlug: validated.data.ten,
+        excludeId: suKienId,
+      })
+    : current.slug?.trim() ||
+      (await uniqueSuKienSlug({
+        baseSlug: validated.data.ten,
+        excludeId: suKienId,
+      }));
+
   const { data, error } = await admin
     .from("org_su_kien")
-    .update(validated.data)
+    .update({ ...validated.data, slug })
     .eq("id", suKienId)
     .select(SU_KIEN_SELECT)
     .single<SuKienRow>();

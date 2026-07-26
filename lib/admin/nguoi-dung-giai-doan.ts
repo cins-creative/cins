@@ -10,7 +10,6 @@ export const ADMIN_GIAI_DOAN_FILTERS: ReadonlyArray<{
   label: string;
 }> = [
   { id: "all", label: "Tất cả" },
-  { id: "moi_bat_dau", label: "Mới bắt đầu" },
   { id: "dang_hoc", label: "Đang học" },
   { id: "dang_lam", label: "Đang đi làm" },
   { id: "tim_viec", label: "Đang tìm việc" },
@@ -22,7 +21,6 @@ export const ADMIN_GIAI_DOAN_FILTERS: ReadonlyArray<{
 export function emptyAdminGiaiDoanStats(): AdminGiaiDoanStats {
   return {
     all: 0,
-    moi_bat_dau: 0,
     dang_hoc: 0,
     dang_lam: 0,
     tim_viec: 0,

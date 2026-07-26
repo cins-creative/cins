@@ -1,9 +1,6 @@
-import {
-  congDongRootPath,
-  congDongSuKienManagePath,
-} from "@/lib/cong-dong/routes";
-import { coSoSuKienManagePath, coSoTabPath } from "@/lib/to-chuc/co-so-routes";
-import { studioSuKienManagePath, studioTabPath } from "@/lib/to-chuc/studio-routes";
+import { congDongRootPath } from "@/lib/cong-dong/routes";
+import { coSoTabPath } from "@/lib/to-chuc/co-so-routes";
+import { studioTabPath } from "@/lib/to-chuc/studio-routes";
 import {
   TRUONG_DEFAULT_TAB,
   truongTabPath,
@@ -11,26 +8,33 @@ import {
 
 export const SU_KIEN_LISTING_PATH = "/su-kien";
 
-/** Trang chi tiết sự kiện độc lập: `/su-kien/:suKienId`. */
-export function suKienDetailPath(suKienId: string): string {
-  return `${SU_KIEN_LISTING_PATH}/${encodeURIComponent(suKienId.trim())}`;
+/** Trang chi tiết sự kiện độc lập: `/su-kien/:slug` (hoặc id khi chưa có slug). */
+export function suKienDetailPath(slugOrId: string): string {
+  return `${SU_KIEN_LISTING_PATH}/${encodeURIComponent(slugOrId.trim())}`;
 }
 
-/** Deep-link tab quản lý theo loại org (admin duyệt nội dung quầy). */
+/** Ưu tiên `slug` công khai; fallback `id` (UUID / legacy). */
+export function suKienCardPath(sk: {
+  id: string;
+  slug?: string | null;
+}): string {
+  const key = sk.slug?.trim() || sk.id.trim();
+  return suKienDetailPath(key);
+}
+
+/**
+ * Deep-link tab Quản lý trên trang sự kiện độc lập (`/su-kien/{slug}?manage=1`).
+ * `orgLoai` / `orgSlug` giữ để tương thích caller; không còn bắt buộc.
+ */
 export function suKienManageHref(
-  orgLoai: string,
-  orgSlug: string,
+  _orgLoai: string,
+  _orgSlug: string,
   suKienId: string,
+  suKienSlug?: string | null,
 ): string {
-  const slug = orgSlug.trim();
-  const id = suKienId.trim();
-  if (!slug || !id) return suKienDetailPath(suKienId);
-  if (orgLoai === "co_so_dao_tao") return coSoSuKienManagePath(slug, id);
-  if (orgLoai === "studio" || orgLoai === "doanh_nghiep") {
-    return studioSuKienManagePath(slug, id);
-  }
-  if (orgLoai === "cong_dong") return congDongSuKienManagePath(slug, id);
-  return `${suKienDetailPath(id)}?manage=1`;
+  const publicKey = suKienSlug?.trim() || suKienId.trim();
+  if (!publicKey) return SU_KIEN_LISTING_PATH;
+  return `${suKienDetailPath(publicKey)}?manage=1`;
 }
 
 /** Trang sự kiện của org — tab hoặc trang gốc tuỳ loại tổ chức. */

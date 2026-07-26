@@ -24,7 +24,6 @@ import {
   UserCircle2,
   Users,
   ShoppingBag,
-  Store,
   type LucideIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -55,7 +54,6 @@ import type {
 import { mapCheDoToMilestoneVisibility } from "@/lib/journey/milestone-ui-map";
 import { VISIBILITY_CUSTOM_BASE } from "@/lib/journey/milestone-visibility-custom.shared";
 import { ShopAttachHangModal } from "@/components/shop/ShopAttachHangModal";
-import { ShopXinQuayModal } from "@/components/shop/ShopXinQuayModal";
 import type { FilterLoaiDoiTuong } from "@/lib/filter/types";
 import type { LoaiMoc, Visibility } from "@/lib/editor/types";
 import { JOURNEY_MILESTONE_TYPE_OPTIONS } from "@/lib/journey/milestone-type-options";
@@ -214,7 +212,6 @@ export function JourneyMilestoneOwnerMenu({
   const [customOpen, setCustomOpen] = useState(false);
   const [customError, setCustomError] = useState<string | null>(null);
   const [attachHangOpen, setAttachHangOpen] = useState(false);
-  const [xinQuayOpen, setXinQuayOpen] = useState(false);
   const [sub, setSub] = useState<SubMenu>("none");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -894,20 +891,6 @@ export function JourneyMilestoneOwnerMenu({
               </span>
               <span className="j-m-menu-lbl">Gắn sản phẩm</span>
             </button>
-            <button
-              type="button"
-              className="j-m-menu-item is-shop"
-              role="menuitem"
-              onClick={() => {
-                close();
-                setXinQuayOpen(true);
-              }}
-            >
-              <span className="j-m-menu-ico" aria-hidden>
-                <Store size={14} strokeWidth={1.7} />
-              </span>
-              <span className="j-m-menu-lbl">Tham gia sự kiện</span>
-            </button>
           </>
         ) : null}
 
@@ -1004,11 +987,6 @@ export function JourneyMilestoneOwnerMenu({
         onSaved={() => {
           onAfterChange?.();
         }}
-      />
-      <ShopXinQuayModal
-        open={xinQuayOpen}
-        milestoneId={milestoneId}
-        onClose={() => setXinQuayOpen(false)}
       />
       {!foreignJourney ? (
         <MilestoneVisibilityCustomModal

@@ -276,7 +276,7 @@ nguon_goc_moc_enum       : tu_tao / sinh_tu_du_an / sinh_tu_su_kien / sinh_tu_or
 che_do_hien_thi_moc_enum : feature / public / theo_nhom / chi_minh / cong_dong
 loai_bai_viet_enum       : linh_vuc / nghe / keyword / phan_mem / mon_hoc / blog / event / nganh_dao_tao
 loai_to_chuc_enum        : truong_dai_hoc / co_so_dao_tao / studio / doanh_nghiep / cong_dong   (doanh_nghiep ẩn UI)
-giai_doan_enum           : moi_bat_dau / dang_hoc / dang_lam / tim_viec / freelance / dang_day
+giai_doan_enum           : dang_hoc / dang_lam / tim_viec / freelance / dang_day
 loai_phong_chat_enum     : 1_1 / 1_1_an_danh / 1_org / nhom / du_an / lop_hoc / su_kien
 loai_mo_hinh_khoa_enum   : cohort_co_dinh / lien_tuc_theo_thang
 visibility_giao_trinh_enum : public / chi_hoc_vien / private

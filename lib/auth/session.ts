@@ -5,7 +5,6 @@ import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 
 export type GiaiDoan =
-  | "moi_bat_dau"
   | "dang_hoc"
   | "dang_lam"
   | "tim_viec"

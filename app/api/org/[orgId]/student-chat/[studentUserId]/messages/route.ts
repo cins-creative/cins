@@ -56,6 +56,8 @@ export async function POST(req: Request, context: RouteContext) {
     noi_dung?: string;
     cloudflare_image_id?: string;
     id_emoji_muc?: string;
+    roomId?: string;
+    id_tin_tra_loi?: string;
   };
   try {
     body = (await req.json()) as typeof body;
@@ -70,6 +72,8 @@ export async function POST(req: Request, context: RouteContext) {
     body: body.noi_dung ?? "",
     cloudflareImageId: body.cloudflare_image_id,
     emojiMucId: body.id_emoji_muc,
+    roomId: body.roomId,
+    replyToId: body.id_tin_tra_loi,
   });
 
   if (!result.ok) {

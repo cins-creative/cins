@@ -56,6 +56,7 @@ export type CongDongCareerSegment = {
 
 export type CongDongEvent = {
   id: string;
+  slug?: string | null;
   tieuDe: string;
   moTa: string | null;
   coverId: string | null;

@@ -1,5 +1,7 @@
 import "server-only";
 
+import { syncStaffUserToAllLopChatRooms } from "@/lib/co-so/lop-chat-phong";
+import { syncUserOrgHubMembership } from "@/lib/co-so/org-hub-phong";
 import { getAvatarUrl } from "@/lib/journey/profile";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { insertSocialThongBao } from "@/lib/social/thong-bao-insert";
@@ -307,10 +309,10 @@ export async function respondCoSoStaffInvite(params: {
 
   const { data: org } = await admin
     .from("org_to_chuc")
-    .select("id")
+    .select("id, loai_to_chuc")
     .eq("id", row.id_to_chuc)
     .in("loai_to_chuc", STAFF_INVITE_ORG_TYPES)
-    .maybeSingle<{ id: string }>();
+    .maybeSingle<{ id: string; loai_to_chuc: string }>();
   if (!org?.id) {
     return { ok: false, error: "Không tìm thấy tổ chức." };
   }
@@ -322,6 +324,16 @@ export async function respondCoSoStaffInvite(params: {
       .update({ trang_thai: "active" })
       .eq("id", row.id);
     if (error) return { ok: false, error: error.message };
+
+    // CSĐT: staff vừa active → join hub + mọi phòng lớp.
+    if (org.loai_to_chuc === "co_so_dao_tao") {
+      await syncStaffUserToAllLopChatRooms(org.id, params.viewerId).catch(
+        () => undefined,
+      );
+      await syncUserOrgHubMembership(org.id, params.viewerId).catch(
+        () => undefined,
+      );
+    }
   } else {
     const { error } = await admin
       .from("user_thanh_vien_to_chuc")

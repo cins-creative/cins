@@ -545,10 +545,21 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  flex-wrap: wrap;
+  gap: 12px 16px;
   max-width: 1120px;
   margin: 0 auto;
   padding: 14px 20px 10px;
+}
+
+.sk-detail-topbar .cso-sk-detail-toolbar-end {
+  margin-left: auto;
+}
+
+.sk-detail-manage-wrap {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 8px 20px 48px;
 }
 
 .sk-detail-back,

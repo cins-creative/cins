@@ -1,5 +1,7 @@
 import "server-only";
 
+import { syncStaffUserToAllLopChatRooms } from "@/lib/co-so/lop-chat-phong";
+import { syncUserOrgHubMembership } from "@/lib/co-so/org-hub-phong";
 import { getAvatarUrl } from "@/lib/journey/profile";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
@@ -12,6 +14,14 @@ import {
 import type { CoSoMemberAdmin } from "./co-so-settings-types";
 import { getViewerCoSoVaiTro, isCoSoOrgAdmin } from "./co-so-membership";
 import { notifyCoSoStaffInvite } from "./co-so-staff-invite";
+
+async function syncStaffIntoOrgChatsQuietly(
+  orgId: string,
+  userId: string,
+): Promise<void> {
+  await syncStaffUserToAllLopChatRooms(orgId, userId).catch(() => undefined);
+  await syncUserOrgHubMembership(orgId, userId).catch(() => undefined);
+}
 
 type MemberRow = {
   id: string;
@@ -329,6 +339,8 @@ export async function addCoSoStaffMember(params: {
       if (!notified.ok) {
         return { ok: false, error: notified.error };
       }
+    } else {
+      await syncStaffIntoOrgChatsQuietly(params.orgId, profile.id);
     }
 
     return {
@@ -377,6 +389,8 @@ export async function addCoSoStaffMember(params: {
     if (!notified.ok) {
       return { ok: false, error: notified.error };
     }
+  } else {
+    await syncStaffIntoOrgChatsQuietly(params.orgId, profile.id);
   }
 
   return {
@@ -564,6 +578,10 @@ export async function transferCoSoOwnership(params: {
     return { ok: false, error: promoteError.message };
   }
 
+  // Owner / admin cũ vẫn staff → đảm bảo cả hai trong hub + mọi phòng lớp.
+  await syncStaffIntoOrgChatsQuietly(params.orgId, target.id_nguoi_dung);
+  await syncStaffIntoOrgChatsQuietly(params.orgId, params.actorId);
+
   const refreshed = await listCoSoStaffMembers({
     orgId: params.orgId,
     actorId: params.actorId,
@@ -608,5 +626,10 @@ export async function removeCoSoStaffMember(params: {
     .eq("id", params.membershipId);
 
   if (error) return { ok: false, error: error.message };
+
+  // Rời hub nếu không còn điều kiện (staff / HV dang_hoc).
+  await syncUserOrgHubMembership(params.orgId, row.id_nguoi_dung).catch(
+    () => undefined,
+  );
   return { ok: true };
 }

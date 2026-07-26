@@ -45,9 +45,12 @@ export type CoSoQuanLySection =
   | "co-so"
   | "chi-nhanh"
   | "lop-hoc"
+  | "giao-trinh"
   | "hoc-vien"
   | "diem-danh"
   | "doanh-thu"
+  /** Inbox tư vấn + hub/lớp — trail Tin nhắn (không modal). */
+  | "tin-nhan"
   /** Founder-only, ngoài 4 cụm nav — xem CoSoQuanLyShell. */
   | "cai-dat"
   /** @deprecated alias → tong-quan (IA A 2026-07-25) */

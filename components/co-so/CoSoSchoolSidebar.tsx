@@ -12,8 +12,6 @@ import { CoSoOrgFollowButton } from "@/components/co-so/CoSoOrgFollowButton";
 import type { CoSoSettingsSection } from "@/components/co-so/CoSoPageSettingsModal";
 import { OrgSidebarShareButton } from "@/components/org/OrgSidebarShareButton";
 import { useOrgSidebarShareSource } from "@/components/org/useOrgSidebarShareSource";
-import { TruongMessageInbox } from "@/components/truong/TruongMessageInbox";
-import { TruongMilestoneTagNotify } from "@/components/truong/TruongMilestoneTagNotify";
 import { TruongOrgCover } from "@/components/truong/TruongOrgCover";
 import { TruongOrgAvatar } from "@/components/truong/TruongOrgAvatar";
 import { TruongSchoolContact } from "@/components/truong/TruongSchoolContact";
@@ -53,8 +51,6 @@ export function CoSoSchoolSidebar({
   const isEditing = Boolean(canEditMedia && ctx?.isEditing);
   // isOwner (member trục 2): khoá theo dõi/nhắn tin chính org của mình.
   const isOwner = Boolean(ctx?.isOrgMember);
-  /** Tin nhắn + tag đồ án: mọi admin org (member trục 2 hoặc CINs trục 1). */
-  const showAdminCta = isEditing && Boolean(ctx?.canEdit);
   const editable = canEditMedia;
   const subtitle = csoSidebarSubtitle(school);
   const shareSource = useOrgSidebarShareSource(school);
@@ -105,18 +101,9 @@ export function CoSoSchoolSidebar({
             </div>
 
             <div
-              className={`cso-ss-primary-action${
-                showAdminCta
-                  ? " cso-ss-primary-action--admin"
-                  : " cso-ss-primary-action--dual cso-ss-primary-action--icons"
-              }`}
+              className="cso-ss-primary-action cso-ss-primary-action--dual cso-ss-primary-action--icons"
             >
-            {showAdminCta ? (
-              <>
-                <TruongMessageInbox />
-                <TruongMilestoneTagNotify />
-              </>
-            ) : ctx ? (
+            {ctx ? (
               <>
                 <TruongUserChatLauncher iconOnly />
                 <CoSoOrgFollowButton

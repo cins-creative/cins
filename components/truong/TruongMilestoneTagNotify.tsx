@@ -125,8 +125,30 @@ function parsePostHref(
 
 type FilterKey = "all" | OrgMilestoneTagStatus;
 
-export function TruongMilestoneTagNotify() {
+type TruongMilestoneTagNotifyProps = {
+  orgId?: string;
+  variant?: "sidebar" | "nav";
+  alwaysAvailable?: boolean;
+};
+
+export function TruongMilestoneTagNotify({
+  orgId: orgIdProp,
+  variant = "sidebar",
+  alwaysAvailable = false,
+}: TruongMilestoneTagNotifyProps = {}) {
   const ctx = useTruongInlineEdit();
+  const orgId = orgIdProp ?? ctx?.orgId ?? null;
+  const canUse = alwaysAvailable
+    ? Boolean(orgId)
+    : Boolean(ctx?.canEdit && ctx.isEditing && orgId);
+
+  const toast = useCallback(
+    (message: string) => {
+      ctx?.showToast?.(message);
+    },
+    [ctx],
+  );
+
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<OrgMilestoneTagRequestItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -136,14 +158,14 @@ export function TruongMilestoneTagNotify() {
   const [mobileShowDetail, setMobileShowDetail] = useState(false);
 
   const loadItems = useCallback(async (options?: { silent?: boolean }) => {
-    if (!ctx?.orgId) return;
+    if (!orgId) return;
     const silent = options?.silent ?? false;
     if (!silent) {
       setLoading(true);
       setLoadError(null);
     }
     try {
-      const res = await fetch(`/api/org/${ctx.orgId}/milestone-tag-requests`, {
+      const res = await fetch(`/api/org/${orgId}/milestone-tag-requests`, {
         cache: "no-store",
       });
       const json = (await res.json()) as {
@@ -168,7 +190,7 @@ export function TruongMilestoneTagNotify() {
         setLoading(false);
       }
     }
-  }, [ctx?.orgId]);
+  }, [orgId]);
 
   useEffect(() => {
     if (open) {
@@ -181,7 +203,7 @@ export function TruongMilestoneTagNotify() {
   }, [open, loadItems]);
 
   useEffect(() => {
-    if (!ctx?.canEdit || !ctx.isEditing || !ctx.orgId) return;
+    if (!canUse || !orgId) return;
     const refresh = () => void loadItems({ silent: true });
     const intervalId = window.setInterval(refresh, 60_000);
     window.addEventListener("focus", refresh);
@@ -189,7 +211,7 @@ export function TruongMilestoneTagNotify() {
       window.clearInterval(intervalId);
       window.removeEventListener("focus", refresh);
     };
-  }, [ctx?.canEdit, ctx?.isEditing, ctx?.orgId, loadItems]);
+  }, [canUse, orgId, loadItems]);
 
   const tagPendingCount = useMemo(
     () => items.filter((i) => i.status === "pending").length,
@@ -219,13 +241,13 @@ export function TruongMilestoneTagNotify() {
   const selectedRow =
     filtered.find((r) => r.id === selectedId) ?? filtered[0] ?? null;
 
-  if (!ctx?.canEdit || !ctx.isEditing) return null;
+  if (!canUse || !orgId) return null;
 
   async function respondRequest(
     id: string,
     action: "approve" | "reject" | "detach",
   ) {
-    if (!ctx?.orgId) return;
+    if (!orgId) return;
     if (
       action === "detach" &&
       !window.confirm(
@@ -236,7 +258,7 @@ export function TruongMilestoneTagNotify() {
     }
     try {
       const res = await fetch(
-        `/api/org/${ctx.orgId}/milestone-tag-requests/${id}`,
+        `/api/org/${orgId}/milestone-tag-requests/${id}`,
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -245,7 +267,7 @@ export function TruongMilestoneTagNotify() {
       );
       const json = (await res.json()) as { error?: string };
       if (!res.ok) {
-        ctx.showToast(json.error ?? "Không cập nhật được.");
+        toast(json.error ?? "Không cập nhật được.");
         return;
       }
       const nextStatus: OrgMilestoneTagStatus =
@@ -257,7 +279,7 @@ export function TruongMilestoneTagNotify() {
       setItems((list) =>
         list.map((row) => (row.id === id ? { ...row, status: nextStatus } : row)),
       );
-      ctx.showToast(
+      toast(
         action === "approve"
           ? "Đã gắn milestone lên trang tổ chức"
           : action === "detach"
@@ -265,7 +287,7 @@ export function TruongMilestoneTagNotify() {
             : "Đã từ chối tag",
       );
     } catch {
-      ctx.showToast("Lỗi mạng.");
+      toast("Lỗi mạng.");
     }
   }
 
@@ -278,7 +300,11 @@ export function TruongMilestoneTagNotify() {
     <>
       <button
         type="button"
-        className="ss-btn ss-btn-notify"
+        className={
+          variant === "nav"
+            ? "cso-ql-nav-tool ss-btn-notify"
+            : "ss-btn ss-btn-notify"
+        }
         onClick={() => setOpen(true)}
         aria-label={
           tagPendingCount > 0
@@ -389,7 +415,7 @@ export function TruongMilestoneTagNotify() {
             {selectedRow ? (
               <MilestoneTagDetail
                 row={selectedRow}
-                orgId={ctx.orgId}
+                orgId={orgId}
                 showBack={mobileShowDetail}
                 onBack={() => setMobileShowDetail(false)}
                 onApprove={() => void respondRequest(selectedRow.id, "approve")}

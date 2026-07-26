@@ -209,120 +209,122 @@ export function LopHocEditModal({
 
       <form className="cso-kh-create-form" onSubmit={handleSubmit}>
         <div className="cso-kh-create-body">
-        <p className="cso-kh-field-hint" style={{ marginTop: 0 }}>
-          Khóa: <b>{tenKhoaHoc}</b>
-        </p>
-
-        <label className="cso-kh-field">
-          <span className="cso-kh-label">Mã lớp</span>
-          <input
-            type="text"
-            className="cso-kh-input"
-            value={maLop}
-            onChange={(e) => setMaLop(e.target.value)}
-            placeholder="VD: HHK30"
-            maxLength={48}
-          />
-          <p className="cso-kh-field-hint">
-            Tuỳ chọn. Để trống sẽ tự sinh mã nội bộ.
+          <p className="cso-kh-field-hint cso-lh-modal-khoa">
+            Khóa: <b>{tenKhoaHoc}</b>
           </p>
-        </label>
 
-        <label className="cso-kh-field">
-          <span className="cso-kh-label">
-            Ngày khai giảng <span className="cso-kh-req">*</span>
-          </span>
-          <input
-            type="date"
-            className="cso-kh-input"
-            value={ngayKhaiGiang}
-            onChange={(e) => setNgayKhaiGiang(e.target.value)}
-            required
-          />
-          <p className="cso-kh-field-hint">
-            Mỗi lớp có ngày riêng — tự động hiện trên mốc thông báo bên phải.
-          </p>
-        </label>
+          <section className="cso-kh-section" aria-label="Lịch học">
+            <h3 className="cso-kh-section-title">Lịch học</h3>
 
-        <div className="cso-kh-field">
-          <span className="cso-kh-label">Lịch / ca học</span>
-          <LichCaHocFields value={lichHoc} onChange={setLichHoc} />
-          {loaiMoHinh === "cohort_co_dinh" ? (
-            <p className="cso-kh-field-hint">
-              Tuỳ chọn — bổ sung ca và khung giờ cố định của lớp cohort.
-            </p>
-          ) : (
-            <p className="cso-kh-field-hint">
-              Khóa liên tục: mô tả ca cụ thể (VD ca tối T2-4-6). Để trống sẽ
-              hiển thị «Khai giảng hàng tuần».
-            </p>
-          )}
-        </div>
+            <label className="cso-kh-field">
+              <span className="cso-kh-label">
+                Ngày khai giảng <span className="cso-kh-req">*</span>
+              </span>
+              <input
+                type="date"
+                className="cso-kh-input"
+                value={ngayKhaiGiang}
+                onChange={(e) => setNgayKhaiGiang(e.target.value)}
+                required
+                autoFocus={!isEdit}
+              />
+            </label>
 
-        <fieldset className="cso-kh-field">
-          <legend className="cso-kh-label">Hình thức</legend>
-          <div className="cso-kh-model-grid">
-            {HINH_THUC_LOP_OPTIONS.map((opt) => (
-              <label
-                key={opt.value}
-                className={`cso-kh-model-opt${hinhThuc === opt.value ? " on" : ""}`}
-              >
+            <div className="cso-kh-field">
+              <span className="cso-kh-label">Ca &amp; khung giờ</span>
+              <LichCaHocFields value={lichHoc} onChange={setLichHoc} />
+              <p className="cso-kh-field-hint">
+                {loaiMoHinh === "cohort_co_dinh"
+                  ? "Tuỳ chọn — ca và khung giờ cố định của lớp."
+                  : "Tuỳ chọn. Để trống sẽ hiện «Khai giảng hàng tuần»."}
+              </p>
+            </div>
+          </section>
+
+          <section className="cso-kh-section" aria-label="Hình thức">
+            <h3 className="cso-kh-section-title">Hình thức</h3>
+            <fieldset className="cso-kh-field">
+              <legend className="sr-only">Hình thức học</legend>
+              <div className="cso-kh-model-grid">
+                {HINH_THUC_LOP_OPTIONS.map((opt) => (
+                  <label
+                    key={opt.value}
+                    className={`cso-kh-model-opt${hinhThuc === opt.value ? " on" : ""}`}
+                  >
+                    <input
+                      type="radio"
+                      name="hinhThucLop"
+                      value={opt.value}
+                      checked={hinhThuc === opt.value}
+                      onChange={() => setHinhThuc(opt.value)}
+                    />
+                    <span className="cso-kh-model-title">{opt.label}</span>
+                    <span className="cso-kh-model-hint">{opt.hint}</span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          </section>
+
+          <section className="cso-kh-section" aria-label="Giảng viên">
+            <h3 className="cso-kh-section-title">Giảng viên</h3>
+            <div className="cso-kh-field">
+              <CoSoGiaoVienPicker
+                orgId={orgId}
+                value={giaoVienUser}
+                onChange={setGiaoVienUser}
+                manualText={giaoVienText}
+                onManualTextChange={setGiaoVienText}
+                disabled={submitting}
+              />
+            </div>
+          </section>
+
+          <section className="cso-kh-section" aria-label="Vận hành">
+            <h3 className="cso-kh-section-title">Vận hành</h3>
+            <div className="cso-kh-field-row">
+              <label className="cso-kh-field">
+                <span className="cso-kh-label">Mã lớp</span>
                 <input
-                  type="radio"
-                  name="hinhThucLop"
-                  value={opt.value}
-                  checked={hinhThuc === opt.value}
-                  onChange={() => setHinhThuc(opt.value)}
+                  type="text"
+                  className="cso-kh-input"
+                  value={maLop}
+                  onChange={(e) => setMaLop(e.target.value)}
+                  placeholder="Tự sinh nếu trống"
+                  maxLength={48}
                 />
-                <span className="cso-kh-model-title">{opt.label}</span>
-                <span className="cso-kh-model-hint">{opt.hint}</span>
               </label>
-            ))}
-          </div>
-        </fieldset>
+              <label className="cso-kh-field">
+                <span className="cso-kh-label">Sĩ số tối đa</span>
+                <input
+                  type="number"
+                  className="cso-kh-input"
+                  value={slotToiDa}
+                  onChange={(e) => setSlotToiDa(e.target.value)}
+                  min={1}
+                  placeholder="VD: 12"
+                />
+              </label>
+            </div>
+            <label className="cso-kh-field">
+              <span className="cso-kh-label">Trạng thái lớp</span>
+              <select
+                className="cso-kh-input"
+                value={trangThaiLop}
+                onChange={(e) =>
+                  setTrangThaiLop(e.target.value as TrangThaiLop)
+                }
+              >
+                {TRANG_THAI_LOP_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </section>
 
-        <div className="cso-kh-field">
-          <span className="cso-kh-label">Giảng viên</span>
-          <CoSoGiaoVienPicker
-            orgId={orgId}
-            value={giaoVienUser}
-            onChange={setGiaoVienUser}
-            manualText={giaoVienText}
-            onManualTextChange={setGiaoVienText}
-            disabled={submitting}
-          />
-        </div>
-
-        <label className="cso-kh-field">
-          <span className="cso-kh-label">Sĩ số tối đa</span>
-          <input
-            type="number"
-            className="cso-kh-input"
-            value={slotToiDa}
-            onChange={(e) => setSlotToiDa(e.target.value)}
-            min={1}
-            placeholder="VD: 12"
-          />
-        </label>
-
-        <label className="cso-kh-field">
-          <span className="cso-kh-label">Trạng thái lớp</span>
-          <select
-            className="cso-kh-input"
-            value={trangThaiLop}
-            onChange={(e) =>
-              setTrangThaiLop(e.target.value as TrangThaiLop)
-            }
-          >
-            {TRANG_THAI_LOP_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        {error ? <p className="cso-kh-err">{error}</p> : null}
+          {error ? <p className="cso-kh-err">{error}</p> : null}
         </div>
 
         <div className="cso-kh-create-foot">

@@ -9,6 +9,7 @@ import {
   BookOpen,
   Building2,
   GraduationCap,
+  ListChecks,
   Users,
 } from "lucide-react";
 
@@ -76,6 +77,7 @@ const LANES: Array<{
     hrefKey:
       | "co-so"
       | "lop-hoc"
+      | "giao-trinh"
       | "hoc-vien"
       | "diem-danh"
       | "doanh-thu"
@@ -99,13 +101,19 @@ const LANES: Array<{
   },
   {
     title: "Học",
-    desc: "Catalog lớp, học viên và điểm danh trong ngày.",
+    desc: "Catalog lớp, giáo trình, học viên và điểm danh.",
     items: [
       {
         hrefKey: "lop-hoc",
         label: "Khóa & lớp",
-        hint: "Catalog · giáo trình · duyệt bài",
+        hint: "Catalog · lớp · duyệt bài",
         Icon: BookOpen,
+      },
+      {
+        hrefKey: "giao-trinh",
+        label: "Giáo trình",
+        hint: "Lộ trình bài theo khóa",
+        Icon: ListChecks,
       },
       {
         hrefKey: "hoc-vien",

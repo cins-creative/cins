@@ -1,5 +1,6 @@
 import "server-only";
 
+import { ensureLopChatPhong } from "@/lib/co-so/lop-chat-phong";
 import { slugifyOrgName } from "@/lib/cong-dong/org-slug";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { resolveTruongImageSrcSync } from "@/lib/truong/media-url";
@@ -294,6 +295,7 @@ function resolveLichHoc(
 }
 
 async function upsertLopDauTien(
+  orgId: string,
   khoaId: string,
   tenKhoa: string,
   loaiMoHinh: LoaiMoHinhKhoa,
@@ -303,7 +305,7 @@ async function upsertLopDauTien(
     hinhThuc?: HinhThucLop;
     lichHoc?: string | null;
   },
-): Promise<{ ok: true } | { ok: false; error: string }> {
+): Promise<{ ok: true; lopId: string } | { ok: false; error: string }> {
   const hinhThuc = input.hinhThuc ?? "truc_tiep";
   const ngay = resolveNgayKhaiGiang(loaiMoHinh, input.ngayKhaiGiang);
   if (!ngay) {
@@ -319,40 +321,66 @@ async function upsertLopDauTien(
   };
   if (lichHoc != null) lopRow.lich_hoc = lichHoc;
 
-  if (input.lopId) {
+  let lopId = input.lopId?.trim() || null;
+  let maLop = buildMaLop(tenKhoa, ngay);
+
+  if (lopId) {
     const { error } = await admin
       .from("org_lop_hoc")
       .update(lopRow)
-      .eq("id", input.lopId)
+      .eq("id", lopId)
       .eq("id_khoa_hoc", khoaId);
     if (error?.message?.includes("lich_hoc")) {
       delete lopRow.lich_hoc;
       const { error: err2 } = await admin
         .from("org_lop_hoc")
         .update(lopRow)
-        .eq("id", input.lopId)
+        .eq("id", lopId)
         .eq("id_khoa_hoc", khoaId);
       if (err2) return { ok: false, error: err2.message };
-      return { ok: true };
+    } else if (error) {
+      return { ok: false, error: error.message };
     }
-    if (error) return { ok: false, error: error.message };
-    return { ok: true };
+
+    const { data: existing } = await admin
+      .from("org_lop_hoc")
+      .select("ma_lop")
+      .eq("id", lopId)
+      .maybeSingle<{ ma_lop: string | null }>();
+    if (existing?.ma_lop?.trim()) maLop = existing.ma_lop.trim();
+  } else {
+    const insertRow: Record<string, unknown> = {
+      id_khoa_hoc: khoaId,
+      ma_lop: maLop,
+      ...lopRow,
+    };
+    const tryInsert = async (payload: Record<string, unknown>) =>
+      admin
+        .from("org_lop_hoc")
+        .insert(payload)
+        .select("id, ma_lop")
+        .single<{ id: string; ma_lop: string | null }>();
+
+    let { data, error } = await tryInsert(insertRow);
+    if (error?.message?.includes("lich_hoc")) {
+      delete insertRow.lich_hoc;
+      ({ data, error } = await tryInsert(insertRow));
+    }
+    if (error || !data?.id) {
+      return { ok: false, error: error?.message ?? "Không tạo được lớp." };
+    }
+    lopId = data.id;
+    if (data.ma_lop?.trim()) maLop = data.ma_lop.trim();
   }
 
-  const insertRow: Record<string, unknown> = {
-    id_khoa_hoc: khoaId,
-    ma_lop: buildMaLop(tenKhoa, ngay),
-    ...lopRow,
-  };
-  const { error } = await admin.from("org_lop_hoc").insert(insertRow);
-  if (error?.message?.includes("lich_hoc")) {
-    delete insertRow.lich_hoc;
-    const { error: err2 } = await admin.from("org_lop_hoc").insert(insertRow);
-    if (err2) return { ok: false, error: err2.message };
-    return { ok: true };
-  }
-  if (error) return { ok: false, error: error.message };
-  return { ok: true };
+  // Phòng chat lớp (L34) — không chặn tạo khóa nếu chat lỗi tạm.
+  await ensureLopChatPhong({
+    orgId,
+    lopId,
+    tenPhong: `${tenKhoa} · ${maLop}`.trim(),
+  });
+
+  return { ok: true, lopId };
 }
 
 function mapRowToCard(
@@ -631,11 +659,17 @@ export async function taoKhoaHoc(
     row = inserted as KhoaHocRow;
   }
 
-  const lopResult = await upsertLopDauTien(row.id, data.tenKhoaHoc, data.loaiMoHinh, {
-    ngayKhaiGiang: data.ngayKhaiGiang,
-    hinhThuc,
-    lichHoc: data.lichHoc,
-  });
+  const lopResult = await upsertLopDauTien(
+    orgId,
+    row.id,
+    data.tenKhoaHoc,
+    data.loaiMoHinh,
+    {
+      ngayKhaiGiang: data.ngayKhaiGiang,
+      hinhThuc,
+      lichHoc: data.lichHoc,
+    },
+  );
   if (!lopResult.ok) {
     await admin.from("org_khoa_hoc").delete().eq("id", row.id);
     return lopResult;
@@ -779,6 +813,7 @@ export async function capNhatKhoaHoc(
 
   const lopMap = await fetchLopMetaForKhoa([khoaId]);
   const lopResult = await upsertLopDauTien(
+    orgId,
     khoaId,
     data.tenKhoaHoc,
     data.loaiMoHinh,
@@ -816,7 +851,7 @@ export async function xoaKhoaHoc(
 
   const { data: khoa } = await admin
     .from("org_khoa_hoc")
-    .select("id")
+    .select("id, trang_thai_khoa_hoc")
     .eq("id_to_chuc", orgId)
     .eq("id", khoaId)
     .maybeSingle();
@@ -824,59 +859,14 @@ export async function xoaKhoaHoc(
     return { ok: false, error: "Không tìm thấy khóa học." };
   }
 
-  let resolvedLopRows: ScaffoldLopDbRow[] = [];
-  const { data: lopRows, error: lopListError } = await admin
-    .from("org_lop_hoc")
-    .select("id, ma_lop, giao_vien_phu_trach, giao_vien_text")
-    .eq("id_khoa_hoc", khoaId);
-
-  if (lopListError?.message?.includes("giao_vien_text")) {
-    const fallback = await admin
-      .from("org_lop_hoc")
-      .select("id, ma_lop, giao_vien_phu_trach")
-      .eq("id_khoa_hoc", khoaId);
-    if (fallback.error) {
-      return { ok: false, error: fallback.error.message };
-    }
-    resolvedLopRows = fallback.data ?? [];
-  } else if (lopListError) {
-    return { ok: false, error: lopListError.message };
-  } else {
-    resolvedLopRows = lopRows ?? [];
-  }
-
-  const realLopRows = resolvedLopRows.filter((row) => !isScaffoldLopDbRow(row));
-  if (realLopRows.length > 0) {
-    return {
-      ok: false,
-      error: "Không xóa được — khóa đã có lớp học. Hãy xóa hoặc chuyển lớp trước.",
-    };
-  }
-
-  if (resolvedLopRows.length > 0) {
-    const { error: lopDeleteError } = await admin
-      .from("org_lop_hoc")
-      .delete()
-      .eq("id_khoa_hoc", khoaId);
-    if (lopDeleteError) {
-      return { ok: false, error: lopDeleteError.message };
-    }
-  }
-
-  const { count: hvCount } = await admin
-    .from("user_hoc_vien_lop")
-    .select("id", { count: "exact", head: true })
-    .eq("id_khoa_hoc", khoaId);
-  if ((hvCount ?? 0) > 0) {
-    return {
-      ok: false,
-      error: "Không xóa được — khóa đã có học viên đăng ký.",
-    };
+  /** Soft delete — không DROP row; đặt trạng thái tạm dừng. */
+  if (khoa.trang_thai_khoa_hoc === "tam_dung") {
+    return { ok: true };
   }
 
   const { error } = await admin
     .from("org_khoa_hoc")
-    .delete()
+    .update({ trang_thai_khoa_hoc: "tam_dung" })
     .eq("id_to_chuc", orgId)
     .eq("id", khoaId);
 
@@ -1093,6 +1083,7 @@ export async function nhanBanKhoaHoc(
   const usedMa = new Set<string>();
   if (lopRows.length === 0) {
     const scaffold = await upsertLopDauTien(
+      orgId,
       newRow.id,
       tenMoi,
       source.loai_mo_hinh,
@@ -1115,12 +1106,13 @@ export async function nhanBanKhoaHoc(
       const maBase = lop.ma_lop?.trim()
         ? `${lop.ma_lop.trim()}-ban-sao`
         : buildMaLop(tenMoi, ngay);
+      const maLop = uniquifyMaLopInBatch(maBase, usedMa);
       const insertLop: Record<string, unknown> = {
         id_khoa_hoc: newRow.id,
         hinh_thuc: lop.hinh_thuc ?? "truc_tiep",
         ngay_khai_giang: ngay,
         trang_thai: lop.trang_thai ?? "sap_khai_giang",
-        ma_lop: uniquifyMaLopInBatch(maBase, usedMa),
+        ma_lop: maLop,
       };
       if (lop.lich_hoc != null) insertLop.lich_hoc = lop.lich_hoc;
       if (lop.slot_toi_da != null) insertLop.slot_toi_da = lop.slot_toi_da;
@@ -1130,26 +1122,37 @@ export async function nhanBanKhoaHoc(
         insertLop.giao_vien_text = lop.giao_vien_text.trim();
       }
 
-      let { error: lopInsErr } = await admin
-        .from("org_lop_hoc")
-        .insert(insertLop);
+      const tryInsert = async (payload: Record<string, unknown>) =>
+        admin
+          .from("org_lop_hoc")
+          .insert(payload)
+          .select("id")
+          .single<{ id: string }>();
+
+      let { data: insertedLop, error: lopInsErr } = await tryInsert(insertLop);
       if (lopInsErr?.message?.includes("lich_hoc")) {
         delete insertLop.lich_hoc;
-        ({ error: lopInsErr } = await admin
-          .from("org_lop_hoc")
-          .insert(insertLop));
+        ({ data: insertedLop, error: lopInsErr } = await tryInsert(insertLop));
       }
       if (lopInsErr?.message?.includes("giao_vien_text")) {
         delete insertLop.giao_vien_text;
-        ({ error: lopInsErr } = await admin
-          .from("org_lop_hoc")
-          .insert(insertLop));
+        ({ data: insertedLop, error: lopInsErr } = await tryInsert(insertLop));
       }
-      if (lopInsErr) {
+      if (lopInsErr || !insertedLop?.id) {
         await admin.from("org_lop_hoc").delete().eq("id_khoa_hoc", newRow.id);
         await admin.from("org_khoa_hoc").delete().eq("id", newRow.id);
-        return { ok: false, error: lopInsErr.message };
+        return {
+          ok: false,
+          error: lopInsErr?.message ?? "Không nhân bản được lớp.",
+        };
       }
+
+      await ensureLopChatPhong({
+        orgId,
+        lopId: insertedLop.id,
+        tenPhong: `${tenMoi} · ${maLop}`.trim(),
+        giaoVienUserId: lop.giao_vien_phu_trach ?? null,
+      });
     }
   }
 

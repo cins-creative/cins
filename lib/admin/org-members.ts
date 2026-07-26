@@ -287,6 +287,19 @@ export async function addAdminOrgMember(params: {
       .eq("id", existing.id);
     if (error) return { ok: false, error: error.message };
 
+    if (org.loai_to_chuc === "co_so_dao_tao" && isCoSoStaffRole(vaiTro)) {
+      const { syncStaffUserToAllLopChatRooms } = await import(
+        "@/lib/co-so/lop-chat-phong"
+      );
+      const { syncUserOrgHubMembership } = await import(
+        "@/lib/co-so/org-hub-phong"
+      );
+      await syncStaffUserToAllLopChatRooms(org.id, profile.id).catch(
+        () => undefined,
+      );
+      await syncUserOrgHubMembership(org.id, profile.id).catch(() => undefined);
+    }
+
     return {
       ok: true,
       member: {
@@ -315,6 +328,19 @@ export async function addAdminOrgMember(params: {
 
   if (error || !inserted) {
     return { ok: false, error: error?.message ?? "Không thêm được thành viên." };
+  }
+
+  if (org.loai_to_chuc === "co_so_dao_tao" && isCoSoStaffRole(vaiTro)) {
+    const { syncStaffUserToAllLopChatRooms } = await import(
+      "@/lib/co-so/lop-chat-phong"
+    );
+    const { syncUserOrgHubMembership } = await import(
+      "@/lib/co-so/org-hub-phong"
+    );
+    await syncStaffUserToAllLopChatRooms(org.id, profile.id).catch(
+      () => undefined,
+    );
+    await syncUserOrgHubMembership(org.id, profile.id).catch(() => undefined);
   }
 
   return {
@@ -400,10 +426,10 @@ export async function removeAdminOrgMember(params: {
   const admin = createServiceRoleClient();
   const { data: row } = await admin
     .from("user_thanh_vien_to_chuc")
-    .select("id, vai_tro")
+    .select("id, id_nguoi_dung, vai_tro")
     .eq("id", params.membershipId)
     .eq("id_to_chuc", org.id)
-    .maybeSingle<{ id: string; vai_tro: string }>();
+    .maybeSingle<{ id: string; id_nguoi_dung: string; vai_tro: string }>();
 
   if (!row) return { ok: false, error: "Không tìm thấy thành viên." };
   if (row.vai_tro === "owner") {
@@ -419,6 +445,15 @@ export async function removeAdminOrgMember(params: {
     .eq("id", row.id);
 
   if (error) return { ok: false, error: error.message };
+
+  if (org.loai_to_chuc === "co_so_dao_tao") {
+    const { syncUserOrgHubMembership } = await import(
+      "@/lib/co-so/org-hub-phong"
+    );
+    await syncUserOrgHubMembership(org.id, row.id_nguoi_dung).catch(
+      () => undefined,
+    );
+  }
   return { ok: true };
 }
 
@@ -568,6 +603,17 @@ export async function setAdminOrgOwner(params: {
       trang_thai: "active",
     });
     if (error) return { ok: false, error: error.message };
+  }
+
+  if (org.loai_to_chuc === "co_so_dao_tao") {
+    const { syncStaffUserToAllLopChatRooms } = await import(
+      "@/lib/co-so/lop-chat-phong"
+    );
+    const { syncUserOrgHubMembership } = await import(
+      "@/lib/co-so/org-hub-phong"
+    );
+    await syncStaffUserToAllLopChatRooms(org.id, userId).catch(() => undefined);
+    await syncUserOrgHubMembership(org.id, userId).catch(() => undefined);
   }
 
   const payload = await getAdminOrgMembersPayload(org.id);

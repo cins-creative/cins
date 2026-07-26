@@ -38,6 +38,13 @@
 
 ## LOG — quyết định đã chốt
 
+### L36 — Bỏ giai đoạn `moi_bat_dau` ("Mới bắt đầu") (2026-07-26)
+
+- **Chốt:** Không còn trạng thái Journey **Mới bắt đầu** trên toàn CINs (onboarding, sửa hồ sơ, CareerMap cộng đồng, admin filter, phân phối tin tuyển dụng, persona trang chủ).
+- **Dữ liệu:** `user_nguoi_dung.giai_doan` `moi_bat_dau` → `dang_hoc` (73 user); scrub `org_tuyen_dung.giai_doan_muc_tieu` nếu có.
+- **ALTER enum (đã duyệt + đã chạy):** recreate `giai_doan_enum` = `dang_hoc` / `dang_lam` / `tim_viec` / `freelance` / `dang_day`. File: `migration_drop_giai_doan_moi_bat_dau.sql` · runner `scripts/run-drop-giai-doan-moi-bat-dau-migration.mjs`.
+- *Hệ quả file:* FOUNDATIONS §7; IMPLEMENTATION §3 SQL; type/label app (`lib/auth/session.ts`, `persona.ts`, onboarding, …).
+
 ### L35 — Fix chat Realtime "im lặng chết" — badge/tin không tự cập nhật (2026-07-25)
 
 - **Triệu chứng báo cáo:** gửi tin cho người khác → người nhận không có báo hiệu gì (badge/âm thanh), phải tự bấm mở khung chat mới thấy tin mới; có case người dùng báo gửi tin nhưng người nhận không thấy dù đang mở sẵn hội thoại.
@@ -64,6 +71,8 @@
 | A4 | `user_hoc_vien_lop` | *(không ALTER nếu dùng `org_tien_do_bai`)* | — | — | Tiến độ bài tách bảng mới | — | **Ưu tiên không ALTER**; chỉ đề xuất cột nếu sau này bỏ bảng tiến độ |
 | A5 | Enum `loai_mo_hinh_khoa_enum` | **Không** thêm giá trị “theo buổi” | — | — | Phase này bỏ gói buổi | — | **Không đổi** |
 | A6 | Enum `loai_tin_nhan_enum` / `vai_tro_to_chuc_enum` | **Không** bắt buộc đổi phase 1 | Card qua `ngu_canh` jsonb; Curator = ACL trên vai sẵn có | — | Tránh phá client cũ | — | **Không đổi** trừ khi user duyệt riêng |
+| A7 | `org_su_kien` | Thêm `slug` + UNIQUE | `text NOT NULL` · unique index | NO (sau backfill) | URL công khai `/su-kien/{slug}` thay UUID | Backfill slugify(`ten`) (+ `-2`… nếu trùng); UUID cũ 301 → slug | **Đã chạy** 2026-07-26 · `migration_org_su_kien_slug.sql` |
+| A8 | Enum `giai_doan_enum` | Bỏ value `moi_bat_dau` (recreate type) | còn `dang_hoc`/`dang_lam`/`tim_viec`/`freelance`/`dang_day` | — | Không còn “Mới bắt đầu” trên CINs | 73 user → `dang_hoc` trước ALTER | **Đã chạy** 2026-07-26 · `migration_drop_giai_doan_moi_bat_dau.sql` (L36) |
 
 > Khi user duyệt một dòng → đổi **Trạng thái** thành `Đã duyệt YYYY-MM-DD` rồi mới viết/chạy file migration. Khi đã apply trên DB → `Đã chạy` + tên file SQL. Mọi ALTER phát sinh thêm ngoài bảng này → **thêm dòng mới vào inventory trước**, không lén vào migration khác.
 

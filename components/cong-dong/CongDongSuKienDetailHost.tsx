@@ -7,6 +7,7 @@ import { SuKienCreateModal } from "@/components/co-so/SuKienCreateModal";
 import { SuKienDetailView } from "@/components/co-so/SuKienDetailView";
 import {
   congDongRootPath,
+  congDongSuKienCardPath,
 } from "@/lib/cong-dong/routes";
 import { getAvatarUrl } from "@/lib/journey/profile";
 import type { SuKienCardData } from "@/lib/to-chuc/su-kien-constants";
@@ -96,7 +97,11 @@ export function CongDongSuKienDetailHost({
   }, [orgId]);
 
   const activeSuKien =
-    items.find((s) => s.id === activeSuKienId) ?? null;
+    items.find(
+      (s) =>
+        s.id === activeSuKienId ||
+        (s.slug?.trim() && s.slug.trim() === activeSuKienId),
+    ) ?? null;
 
   function handleUpdated(suKien: SuKienCardData) {
     setItems((prev) =>
@@ -109,6 +114,14 @@ export function CongDongSuKienDetailHost({
           detail: { orgId, action: "updated", suKien },
         }),
       );
+    }
+    const nextPath = congDongSuKienCardPath(orgSlug, suKien);
+    const current =
+      typeof window !== "undefined"
+        ? window.location.pathname + window.location.search
+        : "";
+    if (current && !current.startsWith(nextPath.split("?")[0]!)) {
+      router.replace(nextPath);
     }
   }
 

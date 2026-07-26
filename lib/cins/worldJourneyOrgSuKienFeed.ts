@@ -33,6 +33,7 @@ type OrgEmbed = {
 
 type SuKienFeedRow = {
   id: string;
+  slug: string | null;
   ten: string;
   mo_ta: string | null;
   cover_id: string | null;
@@ -102,7 +103,7 @@ function mapSuKienToMilestone(
   const avatarUrl = avatarId
     ? resolveTruongImageSrcSync(avatarId, ["public", "avatar"])
     : null;
-  const href = suKienDetailPath(row.id);
+  const href = suKienDetailPath(row.slug?.trim() || row.id);
   const coverSrc = row.cover_id
     ? resolveTruongImageSrcSync(row.cover_id, ["public", "cover", "medium"])
     : null;
@@ -184,6 +185,7 @@ async function fetchUpcomingSuKienRows(params: {
     .select(
       `
       id,
+      slug,
       ten,
       mo_ta,
       cover_id,

@@ -1,14 +1,15 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 
 import { CinsShell } from "@/components/cins/CinsShell";
 import { CongDongPageClient } from "@/components/cong-dong/CongDongPageClient";
 import { getConfiguredSiteOrigin } from "@/lib/auth/auth-origin";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
-import { congDongSuKienPath } from "@/lib/cong-dong/routes";
+import { congDongSuKienCardPath, congDongSuKienPath } from "@/lib/cong-dong/routes";
 import { loadCongDongPageData } from "@/lib/cong-dong/queries";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
-import { getSuKienByIdPublic } from "@/lib/to-chuc/su-kien";
+import { getSuKienByPublicKey } from "@/lib/to-chuc/su-kien";
+import { looksLikeUuid } from "@/lib/to-chuc/su-kien-slug";
 
 export const dynamic = "force-dynamic";
 
@@ -22,14 +23,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     return { metadataBase, title: "Cộng đồng | CINs" };
   }
 
-  const detail = await getSuKienByIdPublic(suKienId);
+  const detail = await getSuKienByPublicKey(suKienId);
   const title = detail?.suKien.ten
     ? `${detail.suKien.ten} — Cộng đồng | CINs`
     : `Sự kiện — Cộng đồng | CINs`;
   const description =
     detail?.suKien.moTa?.trim() ||
     `Sự kiện tại cộng đồng trên CINs.`;
-  const pagePath = congDongSuKienPath(slug, suKienId);
+  const pagePath = detail
+    ? congDongSuKienCardPath(slug, detail.suKien)
+    : congDongSuKienPath(slug, suKienId);
 
   return {
     metadataBase,
@@ -58,8 +61,28 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function CongDongSuKienDetailPage({ params }: Props) {
   if (!hasSupabaseEnv()) notFound();
 
-  const { slug, suKienId } = await params;
-  if (!suKienId?.trim()) notFound();
+  const { slug, suKienId: rawKey } = await params;
+  const key = rawKey?.trim() ?? "";
+  if (!key) notFound();
+
+  const detail = await getSuKienByPublicKey(key);
+  if (!detail || detail.orgSlug !== slug.trim()) notFound();
+
+  const canonical = congDongSuKienCardPath(slug, detail.suKien);
+  if (
+    looksLikeUuid(key) &&
+    detail.suKien.slug?.trim() &&
+    key.toLowerCase() !== detail.suKien.slug.trim().toLowerCase()
+  ) {
+    permanentRedirect(canonical);
+  }
+  if (
+    detail.suKien.slug?.trim() &&
+    key !== detail.suKien.slug.trim() &&
+    !looksLikeUuid(key)
+  ) {
+    permanentRedirect(congDongSuKienPath(slug, detail.suKien.slug.trim()));
+  }
 
   const session = await getCurrentSessionAndProfile();
   const data = await loadCongDongPageData({
@@ -73,7 +96,7 @@ export default async function CongDongSuKienDetailPage({ params }: Props) {
     <CinsShell data-screen-label={`Cong-dong-${slug}-su-kien`}>
       <CongDongPageClient
         initial={data}
-        activeSuKienId={suKienId.trim()}
+        activeSuKienId={detail.suKien.id}
       />
     </CinsShell>
   );

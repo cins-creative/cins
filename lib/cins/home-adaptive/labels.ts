@@ -1,7 +1,6 @@
 import type { GiaiDoan } from "@/lib/cins/home-adaptive/persona";
 
 const GIAI_DOAN_LABEL: Record<GiaiDoan, string> = {
-  moi_bat_dau: "Mới bắt đầu",
   dang_hoc: "Đang học",
   dang_lam: "Đang đi làm",
   tim_viec: "Đang tìm việc",

@@ -51,6 +51,7 @@ export async function CoSoQuanLyPageGate({
   return (
     <CinsShell data-screen-label="Co-so-quan-ly">
       <CoSoQuanLyShell
+        orgId={meta.id}
         orgSlug={slug}
         orgTen={meta.ten}
         active={section}

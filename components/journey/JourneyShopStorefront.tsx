@@ -33,10 +33,12 @@ import {
   SHOP_STOREFRONT_KHAC_SLUG,
   type ShopCuaHang,
   type ShopGioChung,
+  type ShopQuaySapCoMat,
   type ShopStorefrontItem,
   type ShopStorefrontNhomCard,
 } from "@/lib/shop/types";
 import { isShopTamDongActive } from "@/lib/shop/tam-dong";
+import { formatTimelineDate } from "@/lib/truong/timeline";
 
 /** Debounce sync giỏ — gộp nhiều lần bấm ± thành 1 PATCH. */
 const QTY_SYNC_MS = 200;
@@ -508,6 +510,7 @@ export function JourneyShopStorefront({
   const { openAuthModal } = useAuthGate();
   const [cards, setCards] = useState<ShopStorefrontNhomCard[] | null>(null);
   const [items, setItems] = useState<ShopStorefrontItem[]>([]);
+  const [upcomingEvents, setUpcomingEvents] = useState<ShopQuaySapCoMat[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const deferredSearch = useDeferredValue(search);
@@ -658,17 +661,27 @@ export function JourneyShopStorefront({
       setLoading(true);
       setSearch("");
       try {
-        const res = await fetch(
-          `/api/shop/cua-hang/mat-hang?slug=${encodeURIComponent(ownerSlug)}`,
-          { cache: "no-store" },
-        );
-        const json = (await res.json().catch(() => null)) as {
+        const [matHangRes, eventsRes] = await Promise.all([
+          fetch(
+            `/api/shop/cua-hang/mat-hang?slug=${encodeURIComponent(ownerSlug)}`,
+            { cache: "no-store" },
+          ),
+          fetch(
+            `/api/shop/quay/sap-co-mat?slug=${encodeURIComponent(ownerSlug)}`,
+            { cache: "no-store" },
+          ),
+        ]);
+        const json = (await matHangRes.json().catch(() => null)) as {
           nhomCards?: ShopStorefrontNhomCard[];
           items?: ShopStorefrontItem[];
         } | null;
+        const evJson = (await eventsRes.json().catch(() => null)) as {
+          items?: ShopQuaySapCoMat[];
+        } | null;
         if (!cancelled) {
-          setCards(res.ok ? (json?.nhomCards ?? []) : []);
-          setItems(res.ok ? (json?.items ?? []) : []);
+          setCards(matHangRes.ok ? (json?.nhomCards ?? []) : []);
+          setItems(matHangRes.ok ? (json?.items ?? []) : []);
+          setUpcomingEvents(eventsRes.ok ? (evJson?.items ?? []) : []);
         }
         if (!cancelled && canShop && viewerProfileId) {
           await refreshGio();
@@ -677,6 +690,7 @@ export function JourneyShopStorefront({
         if (!cancelled) {
           setCards([]);
           setItems([]);
+          setUpcomingEvents([]);
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -800,6 +814,50 @@ export function JourneyShopStorefront({
           {ownerChrome?.actions ?? guestChrome?.actions}
         </div>
       </div>
+
+      {!loading && upcomingEvents.length > 0 && !searchActive ? (
+        <section
+          className="j-shop-sf-group j-shop-sf-group--events"
+          aria-label="Các sự kiện sắp có mặt"
+        >
+          <div className="j-shop-sf-group-head">
+            <p className="j-shop-sf-group-kicker">Các sự kiện sắp có mặt</p>
+          </div>
+          <ul className="j-shop-sf-events">
+            {upcomingEvents.map((ev) => {
+              const dateLbl = formatTimelineDate(ev.batDau);
+              return (
+                <li key={ev.id}>
+                  <Link href={ev.href} className="j-shop-sf-event-card">
+                    <span
+                      className={
+                        ev.coverSrc
+                          ? "j-shop-sf-event-thumb"
+                          : "j-shop-sf-event-thumb is-empty"
+                      }
+                      aria-hidden
+                    >
+                      {ev.coverSrc ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={ev.coverSrc} alt="" loading="lazy" />
+                      ) : null}
+                    </span>
+                    <span className="j-shop-sf-event-copy">
+                      <span className="j-shop-sf-event-ten">{ev.ten}</span>
+                      <span className="j-shop-sf-event-meta">
+                        {dateLbl}
+                        {dateLbl && ev.orgTen ? " · " : null}
+                        {ev.orgTen}
+                        {ev.status === "active" ? " · Đang diễn ra" : null}
+                      </span>
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ) : null}
 
       {loading ? (
         <div className="j-shop-sf-loading" aria-busy="true">
