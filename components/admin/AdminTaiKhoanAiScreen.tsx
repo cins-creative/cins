@@ -2,6 +2,7 @@
 
 import {
   Check,
+  Download,
   ExternalLink,
   Loader2,
   RefreshCw,
