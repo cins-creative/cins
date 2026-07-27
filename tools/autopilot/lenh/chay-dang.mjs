@@ -1,0 +1,206 @@
+import { goiApiDangBai } from "../lib/dang-bai-api.mjs";
+import { layHanMucHomNay, tangHanMuc } from "../lib/han-muc.mjs";
+import { ngayVn } from "../lib/ngay-vn.mjs";
+
+/**
+ * Đăng bản thảo san_sang qua API nội bộ, tôn trọng hạn mức/ngày (VN).
+ *
+ * Flags: --gioi-han N · --chi-xem · --slug <nick>
+ */
+export async function chayDang(db, flags = {}) {
+  const gioiHan = Math.min(
+    100,
+    Math.max(1, Number(flags.gioiHan || flags["gioi-han"] || 30) || 30),
+  );
+  const chiXem = Boolean(flags.chiXem || flags["chi-xem"]);
+  const slugFilter = String(flags.slug || "")
+    .trim()
+    .toLowerCase();
+
+  console.log(`Ngày VN: ${ngayVn()}`);
+
+  let q = db
+    .from("auto_ban_thao")
+    .select(
+      `
+      id, tieu_de, mo_ta, dong_ghi_nguon, trang_thai,
+      id_tai_khoan, id_muc,
+      auto_tai_khoan ( id, slug, dang_bat, han_muc_ngay ),
+      auto_muc ( id, url_canonic, nen_tang, ten_tac_gia, trang_thai )
+    `,
+    )
+    .eq("trang_thai", "san_sang")
+    .order("tao_luc", { ascending: true })
+    .limit(200);
+
+  const { data: rows, error } = await q;
+  if (error) throw new Error(error.message);
+
+  let hang = (rows || []).filter((r) => {
+    const tk = r.auto_tai_khoan;
+    const muc = r.auto_muc;
+    if (!tk?.dang_bat || !muc?.url_canonic) return false;
+    if (slugFilter && tk.slug !== slugFilter) return false;
+    return true;
+  });
+
+  if (!hang.length) {
+    console.log("Không có bản thảo san_sang.");
+    return { dang: 0, boQua: 0, loi: 0 };
+  }
+
+  /* Bỏ URL đã đăng thành công trước đó */
+  const urls = hang.map((r) => r.auto_muc.url_canonic);
+  const { data: daDangOk } = await db
+    .from("auto_da_dang")
+    .select("url_canonic")
+    .eq("thanh_cong", true)
+    .in("url_canonic", urls);
+  const urlDaDang = new Set((daDangOk || []).map((r) => r.url_canonic));
+  if (urlDaDang.size) {
+    for (const r of hang.filter((x) => urlDaDang.has(x.auto_muc.url_canonic))) {
+      await db
+        .from("auto_ban_thao")
+        .update({
+          trang_thai: "da_dung",
+          cap_nhat_luc: new Date().toISOString(),
+        })
+        .eq("id", r.id);
+      await db
+        .from("auto_muc")
+        .update({
+          trang_thai: "da_dang",
+          cap_nhat_luc: new Date().toISOString(),
+        })
+        .eq("id", r.auto_muc.id);
+      console.log(`  skip đã đăng: ${r.auto_muc.url_canonic.slice(0, 64)}…`);
+    }
+    hang = hang.filter((r) => !urlDaDang.has(r.auto_muc.url_canonic));
+  }
+
+  if (!hang.length) {
+    console.log("Không còn bản thảo mới cần đăng.");
+    return { dang: 0, boQua: 0, loi: 0 };
+  }
+
+  /* Nhóm theo nick để áp hạn mức */
+  const theoNick = new Map();
+  for (const r of hang) {
+    const slug = r.auto_tai_khoan.slug;
+    if (!theoNick.has(slug)) theoNick.set(slug, []);
+    theoNick.get(slug).push(r);
+  }
+
+  let dang = 0;
+  let boQua = 0;
+  let loi = 0;
+  let conTong = gioiHan;
+
+  for (const [slug, list] of theoNick) {
+    if (conTong <= 0) break;
+    const tk = list[0].auto_tai_khoan;
+    const hm = await layHanMucHomNay(db, tk);
+    let conNick = hm.conLai;
+    console.log(
+      `@${slug}: hạn ${hm.soDaDang}/${hm.hanMuc} (còn ${conNick}) · chờ ${list.length}`,
+    );
+
+    for (const bt of list) {
+      if (conTong <= 0 || conNick <= 0) {
+        boQua += 1;
+        continue;
+      }
+
+      const muc = bt.auto_muc;
+      const payload = {
+        slugChu: slug,
+        urlNguon: muc.url_canonic,
+        tieuDe: bt.tieu_de || "",
+        moTa: bt.mo_ta || "",
+        nenTang: muc.nen_tang,
+        tenTacGiaNguon: muc.ten_tac_gia || undefined,
+        dongGhiNguon: bt.dong_ghi_nguon || undefined,
+        chiKiemTra: chiXem,
+      };
+
+      console.log(`  → ${muc.url_canonic.slice(0, 64)}…`);
+
+      if (chiXem) {
+        const { status, data } = await goiApiDangBai(payload);
+        if (!data?.ok) {
+          console.error(`    dry-run lỗi HTTP ${status}:`, data?.error || data);
+          loi += 1;
+        } else {
+          console.log(`    dry-run ok`);
+          dang += 1;
+          conNick -= 1;
+          conTong -= 1;
+        }
+        continue;
+      }
+
+      const { status, data } = await goiApiDangBai(payload);
+
+      await db.from("auto_da_dang").insert({
+        id_ban_thao: bt.id,
+        id_tai_khoan: tk.id,
+        id_muc: muc.id,
+        url_canonic: muc.url_canonic,
+        id_tac_pham: data?.idTacPham || null,
+        id_cot_moc: data?.idCotMoc || null,
+        slug_bai: data?.slugBai || null,
+        duong_dan: data?.duongDan || null,
+        thanh_cong: Boolean(data?.ok),
+        loi: data?.ok ? null : data?.error || `HTTP ${status}`,
+        phan_hoi: data || { status },
+      });
+
+      if (!data?.ok) {
+        console.error(`    lỗi HTTP ${status}:`, data?.error || data);
+        await db
+          .from("auto_ban_thao")
+          .update({
+            trang_thai: "san_sang",
+            cap_nhat_luc: new Date().toISOString(),
+          })
+          .eq("id", bt.id);
+        await db
+          .from("auto_muc")
+          .update({
+            trang_thai: "loi",
+            cap_nhat_luc: new Date().toISOString(),
+          })
+          .eq("id", muc.id);
+        loi += 1;
+        continue;
+      }
+
+      await db
+        .from("auto_ban_thao")
+        .update({
+          trang_thai: "da_dung",
+          cap_nhat_luc: new Date().toISOString(),
+        })
+        .eq("id", bt.id);
+      await db
+        .from("auto_muc")
+        .update({
+          trang_thai: "da_dang",
+          cap_nhat_luc: new Date().toISOString(),
+        })
+        .eq("id", muc.id);
+
+      hm.soDaDang += 1;
+      await tangHanMuc(db, hm.id, hm.soDaDang);
+      console.log(`    ok ${data.duongDan || data.slugBai}`);
+      dang += 1;
+      conNick -= 1;
+      conTong -= 1;
+    }
+  }
+
+  console.log(
+    `\n${chiXem ? "[chi-xem] " : ""}đăng ${dang} · bỏ qua hạn mức ${boQua} · lỗi ${loi}`,
+  );
+  return { dang, boQua, loi };
+}

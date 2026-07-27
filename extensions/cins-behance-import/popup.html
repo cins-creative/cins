@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <title>CINs Behance</title>
+    <style>
+      body {
+        font: 13px/1.4 system-ui, sans-serif;
+        margin: 0;
+        padding: 12px;
+        width: 320px;
+        color: #1a1a1a;
+        background: #f7f5f2;
+      }
+      h1 {
+        font-size: 14px;
+        margin: 0 0 8px;
+        font-weight: 700;
+      }
+      label {
+        display: block;
+        font-size: 11px;
+        font-weight: 600;
+        margin: 8px 0 3px;
+        color: #444;
+      }
+      input {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 6px 8px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        font: inherit;
+      }
+      .row {
+        display: flex;
+        gap: 8px;
+        margin-top: 12px;
+      }
+      button {
+        flex: 1;
+        padding: 8px 10px;
+        border: 0;
+        border-radius: 8px;
+        background: #1a5cff;
+        color: #fff;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      button.secondary {
+        background: #3a3a3a;
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
+      .hint {
+        font-size: 11px;
+        color: #666;
+        margin-top: 8px;
+      }
+      #status {
+        margin-top: 10px;
+        font-size: 12px;
+        white-space: pre-wrap;
+      }
+      .ok {
+        color: #0a7a3e;
+      }
+      .err {
+        color: #b00020;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>CINs · Behance → Autopilot</h1>
+    <label for="apiBase">API base (CINs)</label>
+    <input id="apiBase" placeholder="https://cins.vn" />
+    <label for="secret">Bearer secret</label>
+    <input id="secret" type="password" placeholder="CINS_NOI_BO_DANG_BAI_SECRET" />
+    <label for="niche">Niche (tuỳ chọn, phẩy)</label>
+    <input id="niche" placeholder="character, pastel, webtoon…" />
+    <div class="row">
+      <button id="save" type="button" class="secondary">Lưu</button>
+      <button id="scan" type="button">Quét trang</button>
+    </div>
+    <div class="row">
+      <button id="send" type="button">Gửi vào hàng đợi</button>
+    </div>
+    <p class="hint">
+      Mở hồ sơ Behance /projects, scroll load card → Quét → Gửi. Chrome chỉ cần mở lúc scrap;
+      lịch đăng chạy CLI/Actions sau.
+    </p>
+    <div id="status"></div>
+    <script src="popup.js"></script>
+  </body>
+</html>
