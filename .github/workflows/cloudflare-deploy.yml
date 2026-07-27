@@ -37,6 +37,8 @@ jobs:
           CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE: ${{ secrets.CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          # Cần lúc `next build` (prerender một số route server) — secret đã có trong repo
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           NEXT_PUBLIC_CF_IMAGES_ACCOUNT_HASH: ${{ secrets.NEXT_PUBLIC_CF_IMAGES_ACCOUNT_HASH }}
           NEXT_PUBLIC_BUNNY_LIBRARY_ID: ${{ secrets.NEXT_PUBLIC_BUNNY_LIBRARY_ID }}
           BUNNY_LIBRARY_ID: ${{ secrets.BUNNY_LIBRARY_ID }}
@@ -49,4 +51,7 @@ jobs:
         run: bash scripts/ci-prepare-deploy-env.sh
 
       - name: Deploy to Cloudflare Workers
+        env:
+          # Giữ lại nếu prepare chưa ghi GITHUB_ENV (phòng runner cache)
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: npm run deploy
