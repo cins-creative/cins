@@ -38,5 +38,19 @@ export async function chayLietKe(db, loai) {
     return;
   }
 
-  throw new Error("liet-ke cần: nguon | nick | muc");
+  if (loai === "ban-thao" || loai === "ban_thao") {
+    const { data, error } = await db
+      .from("auto_ban_thao")
+      .select(
+        "id, tieu_de, trang_thai, id_muc, id_tai_khoan, tao_luc, auto_tai_khoan(slug), auto_muc(url_canonic, nen_tang)",
+      )
+      .order("tao_luc", { ascending: false })
+      .limit(50);
+    if (error) throw new Error(error.message);
+    console.log(JSON.stringify(data || [], null, 2));
+    console.log(`\n(${(data || []).length} bản thảo gần nhất)`);
+    return;
+  }
+
+  throw new Error("liet-ke cần: nguon | nick | muc | ban-thao");
 }

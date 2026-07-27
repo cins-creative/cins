@@ -1,0 +1,51 @@
+# Autopilot: soạn bản thảo + đăng Journey (hạn mức/ngày VN).
+# Cần secrets: NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY,
+# NEXT_PUBLIC_SITE_URL, CINS_NOI_BO_DANG_BAI_SECRET
+name: Autopilot chay-dang
+
+on:
+  schedule:
+    # 01:00, 07:00, 13:00 UTC ≈ 08:00 / 14:00 / 20:00 VN
+    - cron: "0 1,7,13 * * *"
+  workflow_dispatch:
+    inputs:
+      gioi_han:
+        description: "Tối đa bài đăng trong lần chạy"
+        required: false
+        default: "20"
+      chi_xem:
+        description: "Dry-run (true/false)"
+        required: false
+        default: "false"
+
+jobs:
+  dang:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install deps
+        run: npm ci
+      - name: chuan-bi-dang
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: npm run autopilot -- chuan-bi-dang --gioi-han 40
+      - name: chay-dang
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          NEXT_PUBLIC_SITE_URL: ${{ secrets.NEXT_PUBLIC_SITE_URL }}
+          CINS_NOI_BO_DANG_BAI_SECRET: ${{ secrets.CINS_NOI_BO_DANG_BAI_SECRET }}
+        run: |
+          GIOI="${{ github.event.inputs.gioi_han || '20' }}"
+          CHI="${{ github.event.inputs.chi_xem || 'false' }}"
+          if [ "$CHI" = "true" ]; then
+            npm run autopilot -- chay-dang --gioi-han "$GIOI" --chi-xem
+          else
+            npm run autopilot -- chay-dang --gioi-han "$GIOI"
+          fi

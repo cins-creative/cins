@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "CINs · Behance → Autopilot",
+  "version": "0.1.0",
+  "description": "Quét project Behance (tab đang mở) và đẩy vào hàng đợi Autopilot CINs.",
+  "icons": {
+    "64": "icon-64.png",
+    "128": "icon-128.png"
+  },
+  "action": {
+    "default_title": "CINs · Behance import",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "64": "icon-64.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "permissions": ["storage", "activeTab", "scripting"],
+  "host_permissions": [
+    "https://www.behance.net/*",
+    "https://behance.net/*",
+    "https://cins.vn/*",
+    "https://www.cins.vn/*"
+  ],
+  "optional_host_permissions": [
+    "http://127.0.0.1/*"
+  ]
+}

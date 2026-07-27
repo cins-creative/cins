@@ -70,15 +70,17 @@ Pipeline **riêng** (không reuse blog-import Sine Art). Seller-only (session + 
 | `journey/[slug]/friends` | Bạn bè hiển thị trên Journey |
 | `journey/[slug]/p/[postSlug]` · `.../edit` | Trang post · sửa post |
 | `noi-bo/tac-pham/dang` | **Autopilot Giai đoạn 0** — `POST` đăng Journey cho nick seed; Bearer `CINS_NOI_BO_DANG_BAI_SECRET`; khối embed nguồn Behance/ArtStation. Brief: `cursor_brief_seed_autopilot_handoff.md` §3b. Lib: `lib/editor/dang-bai-journey.ts` · `khoi-bai-nguon.ts` · `lib/noi-bo/*` |
+| `noi-bo/auto/muc` | **Autopilot** — `POST` batch mục → `auto_muc` (Bearer cùng secret); extension Behance / worker. Lib: `lib/autopilot/luu-muc-batch.ts` · `dam-bao-nguon.ts` |
 
-### Autopilot worker (Giai đoạn 1)
+### Autopilot worker (Giai đoạn 1–3)
 
 | Thành phần | Việc |
 |---|---|
 | SQL `migration_autopilot_giai_doan_1.sql` | 7 bảng `auto_*` (tai_khoan/nguon/muc/ban_thao/da_dang/han_muc/viec) — RLS deny client, chỉ `service_role` |
 | `npm run migrate:autopilot` | Runner Postgres |
-| `npm run autopilot -- …` | CLI: `trang-thai` · `dong-bo-nick` · `them-nguon` · `quet-nguon` · `nhap-muc` · `liet-ke` · `tao-viec` — code `tools/autopilot/` |
-| Thu thập Giai đoạn 2 | ArtStation RSS `/{user}.rss` qua `SINE_ART_WORKER_*` → `auto_muc`. Behance CF-chặn → `nhap-muc` thủ công. |
+| `npm run autopilot -- …` | CLI: `trang-thai` · `dong-bo-nick` · `them-nguon` · `quet-nguon` · `nhap-muc` · `chuan-bi-dang` · `chay-dang` · `liet-ke` · `tao-viec` — code `tools/autopilot/` |
+| Thu thập | ArtStation RSS qua `SINE_ART_WORKER_*`. Behance: extension `extensions/cins-behance-import` → `POST /api/noi-bo/auto/muc` (CF chặn server). Pack: `npm run pack:behance-ext` |
+| Lịch đăng | `chuan-bi-dang` (ghép niche) → `chay-dang` (hạn mức/ngày VN + API đăng). Cron: `.github/workflows/autopilot-chay-dang.yml` |
 
 ### Filter cá nhân (`filters`) — đề xuất, Cursor chỉnh tên nếu trùng
 | Route | Việc |

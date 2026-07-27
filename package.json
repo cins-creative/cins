@@ -39,7 +39,8 @@
     "migrate:shop-cua-hang-banner-hien": "node scripts/run-shop-cua-hang-banner-su-kien-hien-migration.mjs",
     "migrate:autopilot": "node scripts/run-autopilot-giai-doan-1-migration.mjs",
     "autopilot": "node tools/autopilot/cli.mjs",
-    "pack:shopee-ext": "node scripts/pack-shopee-extension.mjs"
+    "pack:shopee-ext": "node scripts/pack-shopee-extension.mjs",
+    "pack:behance-ext": "node scripts/pack-behance-extension.mjs"
   },
   "dependencies": {
     "@rive-app/canvas": "^2.38.3",

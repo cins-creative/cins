@@ -134,13 +134,37 @@ Code: `tools/autopilot/` · README cùng thư mục.
 ### Behance
 
 - JSON/RSS/HTML từ môi trường cloud hiện **bị Cloudflare 403**
-- Tạm: `npm run autopilot -- nhap-muc --url 'https://www.behance.net/gallery/…' --tieu-de '…' --tac-gia '…'`
-- Khi feed mở lại: cùng lệnh `quet-nguon --nen-tang behance`
+- **Cách chính:** Chrome extension `extensions/cins-behance-import` — quét tab Behance đang mở → `POST /api/noi-bo/auto/muc` → `auto_muc` (+ tự tạo `auto_nguon` từ username)
+- Tạm CLI: `npm run autopilot -- nhap-muc --url 'https://www.behance.net/gallery/…' --tieu-de '…' --tac-gia '…'`
+- Pack zip: `npm run pack:behance-ext`
 
 ### Code map Giai đoạn 2
 
 - `tools/autopilot/lib/artstation.mjs` · `behance.mjs` · `fetch-html.mjs` · `luu-muc.mjs`
 - `tools/autopilot/lenh/quet-nguon.mjs` · `nhap-muc.mjs`
+- API: `app/api/noi-bo/auto/muc/route.ts` · `lib/autopilot/luu-muc-batch.ts` · `dam-bao-nguon.ts`
+- Extension: `extensions/cins-behance-import/`
+
+---
+
+## 3e. Giai đoạn 3 — soạn + lịch đăng
+
+Luồng: scrap nhiều (ArtStation CLI / Behance extension) → hàng đợi `auto_muc` → ghép nick → đăng theo hạn mức.
+
+```bash
+npm run autopilot -- chuan-bi-dang [--gioi-han 30] [--chi-xem] [--slug nick]
+npm run autopilot -- chay-dang [--gioi-han 30] [--chi-xem] [--slug nick]
+npm run autopilot -- liet-ke ban-thao
+```
+
+| Bước | Việc |
+|---|---|
+| `chuan-bi-dang` | `auto_muc` (`moi`) → `auto_ban_thao` (`san_sang`); ghép nick theo overlap `niche` (meta/nguồn ↔ `auto_tai_khoan`), không khớp thì round-robin |
+| `chay-dang` | Gọi `POST /api/noi-bo/tac-pham/dang`; tôn trọng `auto_han_muc` (ngày `Asia/Ho_Chi_Minh`, mặc định 3/nick); ghi `auto_da_dang` |
+
+Cron: `.github/workflows/autopilot-chay-dang.yml` (01/07/13 UTC) — cần secrets site + Supabase + `CINS_NOI_BO_DANG_BAI_SECRET`.
+
+Chưa có bước duyệt tay bắt buộc (`cho_duyet`) — có thể bật sau.
 
 ---
 

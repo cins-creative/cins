@@ -1,18 +1,22 @@
 #!/usr/bin/env node
 /**
- * CLI Autopilot CINs — Giai đoạn 1–2.
+ * CLI Autopilot CINs — Giai đoạn 1–3.
  *
  * Usage:
  *   npm run autopilot -- trang-thai
  *   npm run autopilot -- dong-bo-nick
- *   npm run autopilot -- liet-ke nguon|nick|muc
+ *   npm run autopilot -- liet-ke nguon|nick|muc|ban-thao
  *   npm run autopilot -- them-nguon --nen-tang artstation --url https://…
  *   npm run autopilot -- quet-nguon [--nen-tang artstation] [--gioi-han 30] [--chi-xem]
  *   npm run autopilot -- nhap-muc --url https://… [--tieu-de] [--tac-gia] [--nen-tang]
+ *   npm run autopilot -- chuan-bi-dang [--gioi-han 30] [--chi-xem] [--slug nick]
+ *   npm run autopilot -- chay-dang [--gioi-han 30] [--chi-xem] [--slug nick]
  *   npm run autopilot -- tao-viec --loai quet_nguon
  */
 
 import { taoClientAutopilot } from "./lib/db.mjs";
+import { chayDang } from "./lenh/chay-dang.mjs";
+import { chayChuanBiDang } from "./lenh/chuan-bi-dang.mjs";
 import { chayDongBoNick } from "./lenh/dong-bo-nick.mjs";
 import { chayLietKe } from "./lenh/liet-ke.mjs";
 import { chayNhapMuc } from "./lenh/nhap-muc.mjs";
@@ -22,19 +26,25 @@ import { chayThemNguon } from "./lenh/them-nguon.mjs";
 import { chayTrangThai } from "./lenh/trang-thai.mjs";
 
 function inHuongDan() {
-  console.log(`Autopilot CLI (Giai đoạn 1–2)
+  console.log(`Autopilot CLI (Giai đoạn 1–3)
 
 Lệnh:
   trang-thai                         Đếm bảng + nick + env
   dong-bo-nick                       Upsert 10 nick seeding → auto_tai_khoan
-  liet-ke <nguon|nick|muc>           Liệt kê
+  liet-ke <nguon|nick|muc|ban-thao>  Liệt kê
   them-nguon --nen-tang <t> --url <u> [--ma-ngoai] [--ten] [--niche]
   quet-nguon [--nen-tang artstation|behance] [--id UUID] [--gioi-han N] [--chi-xem]
   nhap-muc --url <u> [--nen-tang] [--tieu-de] [--tac-gia] [--mo-ta] [--anh-bia]
+  chuan-bi-dang [--gioi-han N] [--chi-xem] [--slug nick]
+  chay-dang [--gioi-han N] [--chi-xem] [--slug nick]
   tao-viec --loai <loai> [--payload JSON]
 
-ArtStation: RSS https://www.artstation.com/{user}.rss qua fetch-worker.
-Behance: CF đang chặn → dùng nhap-muc thủ công.
+ArtStation: RSS qua fetch-worker (quet-nguon).
+Behance: Chrome extension extensions/cins-behance-import → POST /api/noi-bo/auto/muc
+
+Luồng đăng:
+  chuan-bi-dang  → auto_ban_thao san_sang (ghép niche)
+  chay-dang      → POST /api/noi-bo/tac-pham/dang (hạn mức/ngày VN)
 
 Migration:
   npm run migrate:autopilot
@@ -100,6 +110,12 @@ async function main() {
       break;
     case "nhap-muc":
       await chayNhapMuc(db, f);
+      break;
+    case "chuan-bi-dang":
+      await chayChuanBiDang(db, f);
+      break;
+    case "chay-dang":
+      await chayDang(db, f);
       break;
     case "tao-viec":
       await chayTaoViec(db, f);
