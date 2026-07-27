@@ -14,9 +14,9 @@ const ENV_SECRET = "CINS_NOI_BO_DANG_BAI_SECRET";
 const MAX_ITEMS = 200;
 
 type BodyMuc = {
-  nenTang?: "artstation" | "behance" | "khac";
+  nenTang?: "artstation" | "behance" | "pixiv" | "khac";
   idNguon?: string | null;
-  /** Username Behance/ArtStation — tự tạo/gắn auto_nguon nếu chưa có idNguon. */
+  /** Username AS/BH hoặc user id Pixiv — tự tạo/gắn auto_nguon nếu chưa có idNguon. */
   maNgoai?: string | null;
   /** Niche gợi ý (string hoặc mảng) — lưu meta + auto_nguon.niche. */
   niche?: string | string[] | null;
@@ -51,7 +51,7 @@ function chuanHoaNiche(raw: BodyMuc["niche"]): string | null {
 
 /**
  * POST /api/noi-bo/auto/muc
- * Extension Behance / worker đẩy batch mục → auto_muc.
+ * Extension Behance/Pixiv / worker đẩy batch mục → auto_muc.
  * Header: Authorization: Bearer <CINS_NOI_BO_DANG_BAI_SECRET>
  */
 export async function POST(request: Request) {
@@ -81,7 +81,7 @@ export async function POST(request: Request) {
   }
 
   const nenTang = body.nenTang || "behance";
-  if (!["artstation", "behance", "khac"].includes(nenTang)) {
+  if (!["artstation", "behance", "pixiv", "khac"].includes(nenTang)) {
     return NextResponse.json(
       { ok: false, error: "nenTang không hợp lệ.", field: "nenTang" },
       { status: 400 },
@@ -110,7 +110,13 @@ export async function POST(request: Request) {
   const admin = createServiceRoleClient();
 
   let idNguon = body.idNguon?.trim() || null;
-  if (!idNguon && maNgoai && (nenTang === "behance" || nenTang === "artstation")) {
+  if (
+    !idNguon &&
+    maNgoai &&
+    (nenTang === "behance" ||
+      nenTang === "artstation" ||
+      nenTang === "pixiv")
+  ) {
     try {
       idNguon = await damBaoNguonTuMaNgoai(admin, {
         nenTang,

@@ -2,7 +2,7 @@ import { NICK_SEED, nicheVoiKenh } from "../lib/nick-seed.mjs";
 
 /**
  * Upsert 10 nick seeding vào auto_tai_khoan (map id_nguoi_dung từ slug).
- * Gắn tag nguon:artstation|behance|truyen trong niche.
+ * Gắn tag nguon:artstation|behance|pixiv|truyen trong niche.
  */
 export async function chayDongBoNick(db) {
   const slugs = NICK_SEED.map((n) => n.slug);
@@ -17,7 +17,7 @@ export async function chayDongBoNick(db) {
   let ok = 0;
   let thieu = 0;
 
-  console.log("Phân kênh: 4 ArtStation · 4 Behance · 2 truyện (tắt tạm)\n");
+  console.log("Phân kênh: 3 ArtStation · 3 Behance · 3 Pixiv · 1 truyện\n");
 
   for (const nick of NICK_SEED) {
     const idNguoiDung = bySlug.get(nick.slug) || null;

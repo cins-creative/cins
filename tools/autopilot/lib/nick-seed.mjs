@@ -1,10 +1,9 @@
 /**
- * 10 nick seeding — phân kênh nguồn:
- *   4 ArtStation · 4 Behance · 2 truyện tranh (brief sau → dang_bat false)
- * Đồng bộ niche tag `nguon:artstation|behance|truyen` để router chuan-bi-dang.
+ * 10 nick seeding — phân kênh:
+ *   3 ArtStation · 3 Behance · 3 Pixiv · 1 truyện tranh
  */
 
-/** @typedef {'artstation'|'behance'|'truyen'} KenhNguon */
+/** @typedef {'artstation'|'behance'|'pixiv'|'truyen'} KenhNguon */
 
 /** @type {Array<{
  *   slug: string,
@@ -14,7 +13,7 @@
  *   dangBat?: boolean,
  * }>} */
 export const NICK_SEED = [
-  /* —— 4 ArtStation —— */
+  /* —— 3 ArtStation —— */
   {
     slug: "kiritominh",
     kenh: "artstation",
@@ -33,13 +32,7 @@ export const NICK_SEED = [
     niche: ["weapon", "armor", "concept", "silhouette"],
     ghiChu: "ArtStation · weapon / armor concept",
   },
-  {
-    slug: "itachihung",
-    kenh: "artstation",
-    niche: ["3d-character", "dark", "ninja", "mobile-game"],
-    ghiChu: "ArtStation · 3D character / dark",
-  },
-  /* —— 4 Behance —— */
+  /* —— 3 Behance —— */
   {
     slug: "yukitrang",
     kenh: "behance",
@@ -58,30 +51,35 @@ export const NICK_SEED = [
     niche: ["character-design", "portfolio"],
     ghiChu: "Behance · character design / portfolio",
   },
+  /* —— 3 Pixiv —— */
+  {
+    slug: "itachihung",
+    kenh: "pixiv",
+    niche: ["3d-character", "dark", "ninja", "illustration"],
+    ghiChu: "Pixiv · illustration / dark character",
+  },
   {
     slug: "mikungoc",
-    kenh: "behance",
+    kenh: "pixiv",
     niche: ["chibi", "teach", "anime-kids"],
-    ghiChu: "Behance · chibi / teach anime",
+    ghiChu: "Pixiv · chibi / anime kids",
   },
-  /* —— 2 truyện tranh — chờ brief —— */
+  {
+    slug: "nezukochi",
+    kenh: "pixiv",
+    niche: ["webtoon", "color", "warm-palette", "illustration"],
+    ghiChu: "Pixiv · color / warm illustration",
+  },
+  /* —— 1 truyện tranh —— */
   {
     slug: "zorobao",
     kenh: "truyen",
     niche: ["manga", "storyboard", "black-white"],
-    ghiChu: "Truyện · manga B&W (chờ brief — tạm tắt Autopilot)",
-    dangBat: false,
-  },
-  {
-    slug: "nezukochi",
-    kenh: "truyen",
-    niche: ["webtoon", "color", "warm-palette"],
-    ghiChu: "Truyện · webtoon color (chờ brief — tạm tắt Autopilot)",
+    ghiChu: "Truyện · manga B&W (chờ brief nguồn)",
     dangBat: false,
   },
 ];
 
-/** Tag niche đánh dấu kênh — dùng khi upsert + match. */
 export function nicheVoiKenh(nick) {
   const tag = `nguon:${nick.kenh}`;
   const base = (nick.niche || []).filter((t) => !String(t).startsWith("nguon:"));
@@ -90,7 +88,7 @@ export function nicheVoiKenh(nick) {
 
 export function kenhTuNiche(nicheArr) {
   for (const t of nicheArr || []) {
-    const m = String(t).match(/^nguon:(artstation|behance|truyen)$/);
+    const m = String(t).match(/^nguon:(artstation|behance|pixiv|truyen)$/);
     if (m) return m[1];
   }
   return null;

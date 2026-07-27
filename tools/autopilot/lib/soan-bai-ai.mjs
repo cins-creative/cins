@@ -17,6 +17,7 @@ function truncate(s, max) {
 function tenNenTang(nen) {
   if (nen === "artstation") return "ArtStation";
   if (nen === "behance") return "Behance";
+  if (nen === "pixiv") return "Pixiv";
   return "nguồn ngoài";
 }
 

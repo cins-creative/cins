@@ -120,6 +120,7 @@ export async function POST(request: Request) {
   const nenTang: NenTangNguon =
     body.nenTang === "artstation" ||
     body.nenTang === "behance" ||
+    body.nenTang === "pixiv" ||
     body.nenTang === "khac"
       ? body.nenTang
       : doanNenTangTuUrl(urlNguon);

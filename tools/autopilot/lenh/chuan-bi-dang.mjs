@@ -7,12 +7,11 @@ import {
 } from "../lib/soan-bai-ai.mjs";
 
 /**
- * Cùng kênh (artstation/behance) → chia đều round-robin giữa các nick kênh đó.
- * Niche chỉ để ghi chú (không gom hết về 1 nick).
- * Truyện (nguon:truyen) không nhận ArtStation/Behance.
+ * Cùng kênh (artstation/behance/pixiv) → chia đều RR trong nhóm nick kênh đó.
+ * Truyện (nguon:truyen) không nhận nguồn ngoài AS/BH/Pixiv.
  */
 function chonNick(muc, nicks, roundRobinIdx) {
-  const nen = muc.nen_tang; // artstation | behance | khac
+  const nen = muc.nen_tang; // artstation | behance | pixiv | khac
   const metaNiche = tachNiche(muc.meta?.niche);
   const nguonNiche = tachNiche(muc._nguonNiche);
   const mucNiche = [...new Set([...metaNiche, ...nguonNiche])].filter(
@@ -23,7 +22,8 @@ function chonNick(muc, nicks, roundRobinIdx) {
     const k = kenhTuNiche(n.niche);
     if (nen === "artstation") return k === "artstation";
     if (nen === "behance") return k === "behance";
-    return k === "artstation" || k === "behance";
+    if (nen === "pixiv") return k === "pixiv";
+    return k === "artstation" || k === "behance" || k === "pixiv";
   });
   const pool = cungKenh.length
     ? cungKenh

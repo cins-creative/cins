@@ -14,10 +14,11 @@ export async function chayNhapMuc(db, flags = {}) {
   if (!nenTang) {
     if (url.includes("artstation.com")) nenTang = "artstation";
     else if (url.includes("behance.net")) nenTang = "behance";
+    else if (url.includes("pixiv.net")) nenTang = "pixiv";
     else nenTang = "khac";
   }
-  if (!["artstation", "behance", "khac"].includes(nenTang)) {
-    throw new Error("--nen-tang: artstation | behance | khac");
+  if (!["artstation", "behance", "pixiv", "khac"].includes(nenTang)) {
+    throw new Error("--nen-tang: artstation | behance | pixiv | khac");
   }
 
   const item = {

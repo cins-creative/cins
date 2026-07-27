@@ -33,7 +33,7 @@ export async function luuMucBatch(
   admin: SupabaseClient,
   params: {
     idNguon?: string | null;
-    nenTang: "artstation" | "behance" | "khac";
+    nenTang: "artstation" | "behance" | "pixiv" | "khac";
     items: MucNhapVao[];
   },
 ): Promise<LuuMucBatchResult> {
