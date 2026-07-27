@@ -697,12 +697,39 @@ export function resolvePostDisplayKind(
         blocks,
       );
     }
+    /*
+     * Cover + caption / embed link (Behance·ArtStation·Pixiv — không iframe peek):
+     * phải hiện ảnh bìa, không rơi xuống card chữ nền màu (chi_chu).
+     */
+    if (coverOk) {
+      return finalizePostContentResolution(
+        {
+          kind: "article",
+          effectiveMoTa,
+          gridVisible: true,
+          gridThumbSource: "cover",
+        },
+        blocks,
+      );
+    }
     return finalizePostContentResolution(
       {
         kind: "text",
         effectiveMoTa,
         gridVisible: false,
         gridThumbSource: null,
+      },
+      blocks,
+    );
+  }
+
+  if (coverOk) {
+    return finalizePostContentResolution(
+      {
+        kind: "article",
+        effectiveMoTa,
+        gridVisible: true,
+        gridThumbSource: "cover",
       },
       blocks,
     );
