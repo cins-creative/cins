@@ -818,7 +818,7 @@ export function blocksForArticleCardUnfold(
 ): Block[] {
   if (!blocks?.length) return [];
 
-  const captionPlain = milestoneCardCaptionPlain(body, blocks)?.trim();
+  const captionPlain = milestoneCardCaptionPlain(body, blocks)?.trim() ?? null;
   const captionWithNguon = gopCaptionVoiDongNguonTuBlocks(
     captionPlain,
     blocks,
