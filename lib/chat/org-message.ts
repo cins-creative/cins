@@ -1058,7 +1058,7 @@ export async function listOrgThreadsForUser(viewerId: string): Promise<ChatThrea
     id_phong_cha?: string | null;
     ten_phong?: string | null;
     avatar_id?: string | null;
-    cap_nhat_luc?: string;
+    cap_nhat_luc?: string | null;
   };
 
   const rows = membershipsWithRole ?? [];
