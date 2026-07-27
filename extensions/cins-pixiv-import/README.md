@@ -12,7 +12,7 @@ Server-side ajax Pixiv thường **403** (giống Behance) — scrap trong brows
 
 ## Dùng
 
-1. Điền **API base** (`https://www.cins.vn`) + secret `CINS_NOI_BO_DANG_BAI_SECRET`
+1. Điền **API base** (production CINs origin) + secret `CINS_NOI_BO_DANG_BAI_SECRET`
 2. Niche gợi ý (phẩy): khớp `auto_tai_khoan.niche` khi chạy `chuan-bi-dang`
 3. Mở hồ sơ Pixiv (`pixiv.net/users/{id}`) — scroll để load card
 4. **Quét trang** → **Gửi vào hàng đợi**

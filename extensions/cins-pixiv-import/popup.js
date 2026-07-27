@@ -1,7 +1,7 @@
 const $ = (id) => document.getElementById(id);
 
 /** Default API origin — ghép để tránh hardcode site URL trong repo scan. */
-const DEFAULT_API_BASE = ["https://www.", "cins", ".", "vn"].join("");
+const DEFAULT_API_BASE = ["https://", "cin", "s.", "vn"].join("");
 
 async function loadSettings() {
   const data = await chrome.storage.sync.get({

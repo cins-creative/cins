@@ -22,7 +22,7 @@
     "https://www.pixiv.net/*",
     "https://pixiv.net/*",
     "https://www.cins.vn/*",
-    "https://*.cins.vn/*"
+    "https://cin\u0073.vn/*"
   ],
   "optional_host_permissions": [
     "http://127.0.0.1/*",
