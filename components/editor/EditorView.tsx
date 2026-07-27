@@ -1421,9 +1421,7 @@ export function EditorView({
         tags,
         composeFilterSlugs: congDongCompose ? composeFilterSlugs : undefined,
         composeLoaiBaiDang: orgBaiDangCompose ? composeLoaiBaiDang : undefined,
-        composeSchedulePublishAt: orgBaiDangCompose
-          ? composeSchedulePublishAt
-          : undefined,
+        composeSchedulePublishAt,
         editorExpanded,
         minimalCoverVisible,
         albumGridCompose,
@@ -3415,6 +3413,7 @@ export function EditorView({
           personalFilterIds: congDongCompose ? undefined : personalFilterIds,
           coAuthors: collaborators,
           ownerVaiTro,
+          schedulePublishAt: composeSchedulePublishAt,
           congDong: congDongCompose
             ? {
                 orgId: congDongCompose.orgId,
@@ -3427,7 +3426,11 @@ export function EditorView({
           return;
         }
         setSavedFlash(true);
-        setToast("✓ Đã lưu thay đổi.");
+        setToast(
+          composeScheduleActive
+            ? `✓ Đã hẹn đăng ${formatOrgBaiDangScheduleLabel(composeSchedulePublishAt)}.`
+            : "✓ Đã lưu thay đổi.",
+        );
         const publishDetail: ComposePublishedDetail = {
           ownerSlug,
           postSlug: result.postSlug ?? postSlug,
@@ -3465,6 +3468,7 @@ export function EditorView({
         personalFilterIds,
         coAuthors: collaborators.length > 0 ? collaborators : undefined,
         ownerVaiTro: ownerVaiTro.trim() || undefined,
+        schedulePublishAt: composeSchedulePublishAt,
         congDong: congDongCompose
           ? {
               orgId: congDongCompose.orgId,
@@ -3479,7 +3483,11 @@ export function EditorView({
       }
 
       setSavedFlash(true);
-      setToast("✓ Đã đăng bài.");
+      setToast(
+        composeScheduleActive
+          ? `✓ Đã hẹn đăng ${formatOrgBaiDangScheduleLabel(composeSchedulePublishAt)}.`
+          : "✓ Đã đăng bài.",
+      );
       finishComposeDraftAfterPublish();
       const publishDetail: ComposePublishedDetail = {
         ownerSlug,
@@ -3563,14 +3571,21 @@ export function EditorView({
           <span className="ed-spacer" />
 
           {congDongCompose ? (
-            <CongDongFeedFilterDropdown
-              filters={sortedCongDongFilters}
-              activeFilterSlugs={composeFilterSlugs}
-              onChange={setComposeFilterSlugs}
-              variant="compose"
-              className="cd-v4-filter-dd--editor"
-              menuZIndex={9200}
-            />
+            <div className="ed-topbar-actions-cluster">
+              <CongDongFeedFilterDropdown
+                filters={sortedCongDongFilters}
+                activeFilterSlugs={composeFilterSlugs}
+                onChange={setComposeFilterSlugs}
+                variant="compose"
+                className="cd-v4-filter-dd--editor"
+                menuZIndex={9200}
+              />
+              <OrgBaiDangScheduleComposeButton
+                value={composeSchedulePublishAt}
+                onChange={setComposeSchedulePublishAt}
+                menuZIndex={9210}
+              />
+            </div>
           ) : orgBaiDangCompose ? (
             <div className="ed-topbar-actions-cluster">
               {orgBaiDangCompose.forceLoaiBaiDang ? null : (
@@ -3602,6 +3617,11 @@ export function EditorView({
                 onChange={setVis}
                 visibilityCustom={visCustom}
                 onCustomChange={setVisCustom}
+              />
+              <OrgBaiDangScheduleComposeButton
+                value={composeSchedulePublishAt}
+                onChange={setComposeSchedulePublishAt}
+                menuZIndex={9610}
               />
             </div>
           )}
@@ -3667,7 +3687,7 @@ export function EditorView({
                 />{" "}
                 Đang lưu
               </>
-            ) : orgBaiDangCompose && composeScheduleActive ? (
+            ) : composeScheduleActive ? (
               <>
                 <CalendarClock size={14} strokeWidth={2} aria-hidden /> Hẹn đăng
               </>

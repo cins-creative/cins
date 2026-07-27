@@ -118,7 +118,7 @@ Pipeline **riêng** (không reuse blog-import Sine Art). Seller-only (session + 
 | `[id]/tham-gia` · `[id]/theo-doi` · `[id]/sidebar-live` | Tham gia · theo dõi · sidebar realtime |
 | `[id]/categories` | GET/PATCH gắn tối đa 3 ngành đào tạo (`cau_hinh.danh_muc`) — admin org |
 | `[id]/linh-vuc` | GET/PATCH gắn tối đa 3 lĩnh vực (`cau_hinh.linh_vuc`) — admin org |
-| `[id]/profile` | PATCH `avatar_id` / `cover_id` trên `org_to_chuc` — admin org (`isCongDongAdmin`) |
+| `[id]/profile` | PATCH `ten` / `mo_ta` / `avatar_id` / `cover_id` trên `org_to_chuc` — admin org (`isCongDongAdmin`); slug không đổi khi đổi tên. Lib `updateCongDongProfile` · UI tab **Thông tin** trong `CongDongManageModal` (`CongDongProfileSection`) |
 | `[id]/event-rail` | GET/PATCH banner sự kiện dọc (`org_su_kien` trong `org_to_chuc.cau_hinh`) — admin/quản trị nội dung |
 | `cong-dong/[id]/members` · `[id]/members/[membershipId]` | GET danh sách + `pending` xin tham gia · POST thêm/cập nhật theo user · PATCH đổi `vai_tro` hoặc `{ action: "approve"|"reject" }` — **chỉ admin** (`canManageCommunity`) |
 | `category-articles/search` | Tìm ngành đào tạo cho picker chủ đề nhóm |
@@ -472,10 +472,21 @@ Bài nhúng Tier 1 (YouTube, Vimeo, Sketchfab, Spline, PlayCanvas, Figma, …) /
 API phụ: `GET /api/embed/thumbnail?url=` (auth). SSRF: `isSafePublicHttpUrl` (`lib/link/og-preview.ts`).
 
 Code map: `lib/editor/embed-thumbnail.ts` · `resolve-embed-thumbnail-server.ts` · `ensure-embed-auto-cover.ts` · `lib/cloudflare/upload-image-from-url.ts` · `lib/journey/post-content-kind.ts` (`resolvePostGridEntry`).
-| Email/password + OTP | Đăng ký email → Supabase gửi **mã 6 số** (không magic link). UI: `components/auth/EmailOtpVerification.tsx` + `app/login/LoginPasswordForm.tsx`. Template HTML: `supabase/email-templates/confirm-signup.html` — dán vào Supabase Dashboard → Authentication → Email Templates → **Confirm signup**. Subject gợi ý: `Mã xác nhận C.INS của bạn`. Template **phải** có `{{ .Token }}` (OTP); **không** dùng `{{ .ConfirmationURL }}`. Bật **Confirm email** (Providers → Email). **Sender name** đặt `C.INS` (hoặc SMTP custom `noreply@cins.vn`) để tránh hiển thị «Supabase Auth». Resend: `supabase.auth.resend({ type: 'signup', email })`. |
-| Quên / lấy lại mật khẩu | UI: link «Quên mật khẩu?» trên `LoginPasswordForm` → `ForgotPasswordForm` (OTP + mật khẩu mới). API: `POST /api/auth/forgot-password` · `POST /api/auth/reset-password`. Lib: `send-recovery-otp.ts`, `recovery-cookie.ts` (cookie `cins-pw-recovery`). Template: `supabase/email-templates/reset-password.html` → Dashboard → **Reset password**. Subject gợi ý: `Mã lấy lại mật khẩu C.INS của bạn`. Cũng **phải** `{{ .Token }}`, không magic link. Rate limit IP; thông báo chung chống enumeration. |
+| Email/password + OTP | Đăng ký email → Supabase gửi **mã 8 số** (không magic link; độ dài khớp Dashboard → Auth → Email → OTP length). UI: `components/auth/EmailOtpVerification.tsx` + `app/login/LoginPasswordForm.tsx`. Hằng số: `EMAIL_OTP_LENGTH` trong `lib/auth/email-otp.ts`. Template HTML: `supabase/email-templates/confirm-signup.html` — dán vào Supabase Dashboard → Authentication → Email Templates → **Confirm signup**. Subject gợi ý: `Mã xác nhận CINs của bạn`. Template **phải** có `{{ .Token }}` (OTP); **không** dùng `{{ .ConfirmationURL }}`. Bật **Confirm email** (Providers → Email). **Sender name** đặt `CINs` (hoặc SMTP custom `noreply@cins.vn`) — **không** `C.INS` (FOUNDATIONS §4). Resend: `supabase.auth.resend({ type: 'signup', email })`. |
+| Quên / lấy lại mật khẩu | UI: link «Quên mật khẩu?» trên `LoginPasswordForm` → `ForgotPasswordForm` (OTP + mật khẩu mới). API: `POST /api/auth/forgot-password` · `POST /api/auth/reset-password`. Lib: `send-recovery-otp.ts`, `recovery-cookie.ts` (cookie `cins-pw-recovery`). Template: `supabase/email-templates/reset-password.html` → Dashboard → **Reset password**. Subject gợi ý: `Mã lấy lại mật khẩu CINs của bạn`. Cũng **phải** `{{ .Token }}`, không magic link. Rate limit IP; thông báo chung chống enumeration. Copy thương hiệu = **CINs** (không `C.INS`). |
 | Co-author trên Journey | Tagged/bookmark: `che_do_hien_thi_journey` — user tự đặt Nổi bật trên timeline của mình. Migration: `migration_journey_foreign_visibility.sql` |
 | Like count | Hiển thị công khai mặc định (`attachSocialState`, `PostActionsRail`) |
+
+#### Hẹn đăng bài Journey / cộng đồng (2026-07-27)
+
+Cùng UI nút **Hẹn đăng** với org (`OrgBaiDangScheduleComposeButton` trên topbar `EditorView` / `MediaComposeView`).
+
+| Luồng | Cách lưu | Hiển thị |
+|---|---|---|
+| **Org** (`org_bai_dang`) | `trang_thai=nhap` + `tao_luc` = giờ hẹn; lazy flip `da_dang` khi đến giờ (`publish-due-org-bai-dang.ts`) | Chỉ admin tab / timeline org khi còn hẹn |
+| **Cá nhân / cộng đồng** (`content_cot_moc`) | **Không ALTER** — ghi `tao_luc` = giờ hẹn; đến giờ tự hiện (không cron) | Chủ Journey / tác giả cộng đồng vẫn thấy + chip «Hẹn đăng · …»; khách / World / Gallery / feed cộng đồng khác ẩn khi `tao_luc` còn tương lai |
+
+Wire: `schedulePublishAt` trên `publishPost` / `updatePost` · helper `lib/journey/cot-moc-schedule.ts` · lọc `isCotMocDueForPublic` / `lte(tao_luc, now)` ở milestones, World feed/gallery, cộng đồng, post page.
 
 ### Trang chủ adaptive (`giai_doan`)
 
@@ -523,6 +534,8 @@ Portal dropdown khi mở badge vai trò trên topbar:
 | Thông báo | Thành viên (kể cả system owner) | PATCH `/api/cong-dong/:id/theo-doi` (`muc_thong_bao`) |
 | Quản lý cộng đồng | `canManageLabels` / `canManageMembers` / CINs admin | Mở `CongDongManageModal` |
 | Rời cộng đồng | `thanh_vien` | DELETE `/api/cong-dong/:id/tham-gia` |
+
+**`CongDongManageModal` tabs:** Thông tin (`ten`/`mo_ta`, `canProfile` = `isCongDongAdmin`) · Chủ đề · Nhãn feed · Sự kiện · Thành viên · Tổ chức (owner).
 
 Helper vai trò: `lib/cong-dong/vai-tro.ts` (`canManageLabels`, `canManageMembers`, `CONG_DONG_ASSIGNABLE_ROLES`, …).
 

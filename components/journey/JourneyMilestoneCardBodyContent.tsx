@@ -146,10 +146,12 @@ export function JourneyMilestoneCardBodyContent({
    */
   const hasCoverPreview = Boolean(preview?.src);
   const photoGridImages = photoGridOverride ?? null;
-  const albumLayoutMode = useMemo(
-    () => albumLayoutModeFromBlocks(blocks),
-    [blocks],
-  );
+  const albumLayoutMode = useMemo(() => {
+    const mode = albumLayoutModeFromBlocks(blocks);
+    /* Timeline: không xổ stack Behance full chiều cao — justified gọn; stack giữ trên /p/. */
+    if (mode === "stack") return "justified";
+    return mode;
+  }, [blocks]);
   const singlePortraitMedia = Boolean(
     photoGridImages?.length === 1 &&
       isPortraitGridImage(photoGridImages[0]),
@@ -333,9 +335,13 @@ export function JourneyMilestoneCardBodyContent({
     videoEmbedUrlForArticle &&
       classifyBunnyVideoUrl(videoEmbedUrlForArticle),
   );
-  /* Bunny + bài viết dài: hiện full peek (video + block dưới), không chỉ embed. */
+  /* Bunny + bài viết dài: hiện full peek (video + block dưới), không chỉ embed.
+     Bài đã có ảnh bìa: ưu tiên thumbnail cover (không khung embed đen 16:9).
+     Đã xổ nội dung: embed nằm trong unfold — ẩn peek trùng. */
   const showArticleEmbedBlocksPeek =
     isArticle &&
+    !isContentOpen &&
+    !hasCoverPreview &&
     !isEmbedInteractivePeek &&
     !hasBunnyInArticle &&
     articleCardPeekHasEmbedMedia(body, blocks);
@@ -356,10 +362,10 @@ export function JourneyMilestoneCardBodyContent({
     if (!articleNeedsDepth || !blocks?.length) return [];
     return articleCardPeekBlocks(body, blocks);
   }, [articleNeedsDepth, body, blocks]);
-  const articleEmbedPeekBlocks = useMemo(
-    () => articlePeekBlocks.filter((b) => b.loai === "embed"),
-    [articlePeekBlocks],
-  );
+  const articleEmbedPeekBlocks = useMemo(() => {
+    const firstEmbed = articlePeekBlocks.find((b) => b.loai === "embed");
+    return firstEmbed ? [firstEmbed] : [];
+  }, [articlePeekBlocks]);
   /* Peek chữ thuần: không dump h2/body vào khung 480px — CTA overlay teaser
      (title/caption), block chỉ hiện khi xổ — đồng bộ bài có cover. */
   const peekIsTextOnly =

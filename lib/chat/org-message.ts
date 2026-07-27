@@ -1182,7 +1182,7 @@ export async function listOrgThreadsForUser(viewerId: string): Promise<ChatThrea
           id_phong_cha: r.id_phong_cha,
           ten_phong: r.ten_phong,
           avatar_id: r.avatar_id,
-          cap_nhat_luc: r.cap_nhat_luc,
+          cap_nhat_luc: r.cap_nhat_luc ?? undefined,
         } satisfies RoomMeta,
       })),
   ];

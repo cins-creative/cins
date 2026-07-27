@@ -10,6 +10,18 @@ export type MilestonePostAuthor = {
   slug: string;
   tenHienThi: string;
   avatarId: string | null;
+  /**
+   * Bình luận dưới danh nghĩa org — hiện avatar/tên org; `id`/`isOwn` vẫn theo
+   * người gửi thật (`nguoi_binh_luan`).
+   */
+  asOrg?: {
+    id: string;
+    slug: string;
+    ten: string;
+    loaiToChuc: string;
+    avatarId: string | null;
+    href: string | null;
+  } | null;
 };
 
 export type MilestonePostContent = {

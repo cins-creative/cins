@@ -49,6 +49,8 @@ Thứ tự ưu tiên khi xung đột: **DB thật (đọc trực tiếp) > CINS_
 
 ## Thay đổi lớn gần đây (tóm tắt — chi tiết ở DECISIONS)
 
+**Hẹn đăng Journey / cộng đồng (2026-07-27):** Nút «Hẹn đăng» trên compose cá nhân + cộng đồng; lưu `content_cot_moc.tao_luc` tương lai (không ALTER). Org vẫn `nhap` + lazy promote. Xem DECISIONS LOG + IMPLEMENTATION *Hẹn đăng bài Journey*.
+
 **L36 — Bỏ `moi_bat_dau` / “Mới bắt đầu” (2026-07-26):** Enum `giai_doan` còn 5 value (`dang_hoc`…`dang_day`); user cũ migrate → `dang_hoc`. Xem DECISIONS **L36**.
 
 **L34 — CSĐT chat-first + LiveKit Hetzner SIN (2026-07-24):** Vận hành học cơ sở. **Plan 1 (NOW):** tư vấn · phòng lớp chat · HP/freeze/VietQR/dashboard — **chưa** call/WebRTC. **Plan 2:** LiveKit OSS trên Hetzner Singapore — **chỉ khi user báo `ready`**. Gate ALTER cột cũ. Brief: [`cursor_brief_csdt_van_hanh_hoc.md`](./cursor_brief_csdt_van_hanh_hoc.md). FOUNDATIONS §O / IMPLEMENTATION khóa học — chờ confirm wording.

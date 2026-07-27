@@ -33,6 +33,118 @@ button.admin-bai-viet-tab {
   background: var(--bg-surface);
 }
 
+.tkai-stat--btn {
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  width: 100%;
+}
+
+.tkai-stat--btn:hover {
+  border-color: var(--cins-blue, #2563eb);
+}
+
+.tkai-pipeline-steps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.tkai-pipeline-step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  cursor: pointer;
+  font: inherit;
+  color: var(--fg-2);
+  text-align: left;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease,
+    color 0.12s ease;
+}
+
+.tkai-pipeline-step:hover {
+  color: var(--fg-1);
+  background: var(--neutral-50);
+  border-color: var(--border);
+}
+
+.tkai-pipeline-step.is-active {
+  border-color: var(--cins-blue);
+  background: var(--cins-blue-soft);
+  color: var(--cins-blue);
+}
+
+.tkai-pipeline-step__n {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--neutral-50);
+  color: var(--fg-3);
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.tkai-pipeline-step.is-active .tkai-pipeline-step__n {
+  background: var(--cins-blue);
+  color: #fff;
+}
+
+.tkai-pipeline-step__label {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 600;
+  min-width: 0;
+}
+
+.tkai-pipeline-step__count {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--fg-3);
+}
+
+.tkai-pipeline-step.is-active .tkai-pipeline-step__count {
+  color: var(--cins-blue);
+}
+
+.tkai-pipeline-hint {
+  margin-top: 0;
+}
+
+.tkai-collapse-toggle {
+  display: inline-block;
+  margin-top: 16px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--cins-blue, #2563eb);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.tkai-ext-block {
+  margin-top: 12px;
+}
+
+@media (max-width: 900px) {
+  .tkai-pipeline-steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 .tkai-stat__v {
   font-size: 22px;
   font-weight: var(--weight-bold);
@@ -216,6 +328,215 @@ button.admin-bai-viet-tab {
   -webkit-line-clamp: 2 !important;
 }
 
+.tkai-chip--nick {
+  padding-left: 4px;
+  gap: 6px;
+}
+
+.tkai-chip__ava {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  font-size: 9px;
+  font-weight: 700;
+  background: var(--accent-bg, #eef2ff);
+  color: var(--fg-2);
+  overflow: hidden;
+}
+
+.tkai-chip__ava.has-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.tkai-card__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.tkai-card__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  padding: 4px 8px;
+  text-decoration: none;
+}
+
+.tkai-card__icon-btn {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  margin: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--neutral-50, #f5f5f5);
+  color: var(--fg-1, #1a1a1a);
+  text-decoration: none;
+  line-height: 0;
+  flex-shrink: 0;
+}
+
+.tkai-card__icon-btn svg {
+  display: block;
+  width: 15px;
+  height: 15px;
+  stroke: currentColor;
+  flex-shrink: 0;
+}
+
+.tkai-card__icon-btn:hover {
+  color: var(--cins-blue, #1a6fbf);
+  border-color: var(--cins-blue, #1a6fbf);
+  background: var(--bg-surface, #fff);
+}
+
+.tkai-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: var(--space-3);
+  padding: 10px 12px;
+  border: 1px solid #f0d2a0;
+  border-radius: var(--radius-md);
+  background: #fff8ee;
+}
+
+.tkai-banner p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--fg-2);
+  line-height: 1.45;
+  flex: 1 1 220px;
+}
+
+.tkai-duyet-hint {
+  margin: 0 0 var(--space-3);
+}
+
+.tkai-du-kien {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--fg-2);
+  line-height: 1.4;
+}
+
+.tkai-du-kien strong {
+  color: var(--fg-1);
+  font-weight: var(--weight-semibold);
+}
+
+.tkai-preview-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.tkai-journey-preview-shell {
+  margin: 0 -8px;
+  border: 1px solid var(--border, #e5e5e5);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--bg, #fff);
+}
+
+.tkai-journey-preview-shell .tkai-preview__badge {
+  border-radius: 0;
+}
+
+.tkai-journey-preview-shell__note {
+  color: var(--fg-3);
+  font-weight: 400;
+}
+
+.tkai-journey-preview {
+  /* Full-bleed trong khung admin — layout split giống permalink */
+  width: 100%;
+  min-width: 0;
+}
+
+.tkai-journey-preview__comments-note {
+  margin: 0;
+  padding: 12px 0 4px;
+  font-size: 13px;
+  color: var(--fg-3);
+}
+
+.tkai-preview {
+  max-width: 720px;
+  border: 1px solid var(--border, #e5e5e5);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--bg, #fff);
+}
+
+.tkai-preview__badge {
+  padding: 8px 14px;
+  font-size: 12px;
+  color: var(--fg-3);
+  background: var(--neutral-50, #fafafa);
+  border-bottom: 1px solid var(--border, #e5e5e5);
+}
+
+.tkai-preview__cover {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  display: block;
+  background: var(--neutral-50, #f5f5f5);
+}
+
+.tkai-preview__cover--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--fg-3);
+  font-size: 13px;
+}
+
+.tkai-preview__body {
+  padding: 16px 18px 20px;
+}
+
+.tkai-preview__nick {
+  margin: 0 0 6px;
+  font-size: 13px;
+  color: var(--fg-2);
+}
+
+.tkai-preview__body h2 {
+  margin: 0 0 10px;
+  font-size: 22px;
+  line-height: 1.3;
+}
+
+.tkai-preview__mo-ta {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--fg-1);
+  white-space: pre-wrap;
+}
+
+.tkai-preview__attr {
+  margin: 14px 0 0;
+  font-size: 13px;
+  color: var(--fg-3);
+}
+
 .tkai-check {
   display: inline-flex;
   align-items: center;
@@ -241,6 +562,28 @@ button.admin-bai-viet-tab {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+}
+
+.tkai-body .admin-nguoi-dung-user a {
+  font-weight: 600;
+  color: var(--fg-1);
+  text-decoration: none;
+}
+
+.tkai-body .admin-nguoi-dung-user a:hover {
+  text-decoration: underline;
+}
+
+.tkai-url {
+  max-width: 280px;
+  font-size: 12px;
+  color: var(--fg-2);
+}
+
+.tkai-url__text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .tkai-section-title {

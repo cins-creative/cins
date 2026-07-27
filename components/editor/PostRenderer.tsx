@@ -17,6 +17,7 @@ import {
 } from "@/lib/bunny/embed";
 import { VideoProcessingPlaceholder } from "@/components/journey/VideoProcessingPlaceholder";
 import { PostBunnyEmbed } from "@/components/journey/PostBunnyEmbed";
+import { PostVimeoEmbed } from "@/components/journey/PostVimeoEmbed";
 import { PostRiveFileEmbed } from "@/components/journey/PostRiveFileEmbed";
 import { PostLottieFileEmbed } from "@/components/journey/PostLottieFileEmbed";
 import { ViewportGatedEmbed } from "@/components/journey/ViewportGatedEmbed";
@@ -27,7 +28,10 @@ import {
 } from "@/lib/editor/resolve-image-seed-url";
 import type { Block } from "@/lib/editor/types";
 import { resolveBunnyEmbed } from "@/lib/journey/video-embed";
-import { videoCanvasRatioClass } from "@/lib/journey/video-canvas-ratio";
+import {
+  parseVideoCanvasRatio,
+  videoCanvasRatioClass,
+} from "@/lib/journey/video-canvas-ratio";
 import {
   buildEmbedIframeSrc,
   classifyEmbedUrl,
@@ -341,6 +345,16 @@ function ReadOnlyBlock({
           loading={mediaAutoplay ? "eager" : "lazy"}
         />
       );
+      if (cls.provider === "vimeo") {
+        return (
+          <PostVimeoEmbed
+            url={cls.url}
+            storedRatio={parseVideoCanvasRatio(cfg.videoCanvasRatio)}
+          >
+            {iframe}
+          </PostVimeoEmbed>
+        );
+      }
       return (
         <ViewportGatedEmbed
           className={

@@ -50,6 +50,7 @@ import {
 } from "@/lib/journey/milestone-verify";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { getAvatarUrl } from "@/lib/journey/profile";
+import { isCotMocDueForPublic } from "@/lib/journey/cot-moc-schedule";
 import { parseBaiDangBlocks } from "@/lib/truong/bai-dang-blocks";
 import { baiDangGridPreviewUrl } from "@/lib/truong/bai-dang-cover";
 import { orgLoaiToMilestoneType } from "@/lib/truong/org-bai-dang-bookmark";
@@ -275,6 +276,7 @@ function mergeGallerySelfRows(
   for (const r of selfRows) {
     const cm = r.content_cot_moc;
     if (!cm) continue;
+    if (!ctx.isOwner && !isCotMocDueForPublic(cm.tao_luc)) continue;
     if (
       !isSelfMilestoneVisibleToViewer({
         cheDoHienThi: cm.che_do_hien_thi,

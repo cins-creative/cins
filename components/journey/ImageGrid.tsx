@@ -87,6 +87,11 @@ type Props = {
   lightboxImages?: GridImage[];
   /** Cộng thêm vào index ô grid khi mở lightbox. */
   lightboxIndexOffset?: number;
+  /**
+   * Parent render ImageLightbox (gallery toàn bài).
+   * Vẫn gọi onLightboxIndexChange khi click; không mount lightbox riêng.
+   */
+  suppressLightbox?: boolean;
   /** Compose album — đổi / dán / xóa / kéo sắp xếp từng ô. */
   composeSlotActions?: {
     onPickImage: (slotIndex: number) => void;
@@ -119,6 +124,10 @@ type CellProps = {
   onNaturalAspect?: (slotIndex: number, aspect: number) => void;
   composeSlotActions?: Props["composeSlotActions"];
   singlePortrait?: boolean;
+  /** Stack / xem lớn — dùng CF variant `public` (không crop grid/thumb). */
+  preferPublicSrc?: boolean;
+  /** Stack — cắt chiều cao sheet dài (lightbox xem đủ). */
+  tallClip?: boolean;
   canReorder?: boolean;
   dragFrom?: number | null;
   dragSnap?: DragSnapTarget | null;
@@ -142,6 +151,8 @@ function ImageGridCell({
   onNaturalAspect,
   composeSlotActions,
   singlePortrait = false,
+  preferPublicSrc = false,
+  tallClip = false,
   canReorder = false,
   dragFrom = null,
   dragSnap = null,
@@ -154,7 +165,7 @@ function ImageGridCell({
   // local nữa kẻo lệch với aspect-ratio hàng.
   const cellStyle = style;
 
-  const thumb = gridThumbAsset(image, { singlePortrait });
+  const thumb = gridThumbAsset(image, { singlePortrait, preferPublic: preferPublicSrc });
   const thumbSrc = thumb.src;
   const uploadActive = uploadState?.status === "uploading";
   const uploadDone = uploadState?.status === "done";
@@ -170,6 +181,7 @@ function ImageGridCell({
     insertIndexFromSnap(dragFrom, dragSnap) != null;
   const cellClasses = [
     "image-grid-cell",
+    tallClip ? "image-grid-cell--tall" : "",
     !thumbSrc ? "is-compose-pending" : "",
     composeSlotActions ? "is-compose-editable" : "",
     cellDraggable ? "is-draggable" : "",
@@ -308,8 +320,8 @@ function ImageGridCell({
           srcSet={thumb.srcSet}
           sizes={thumb.srcSet ? thumb.sizes : undefined}
           alt=""
-          width={image.width}
-          height={image.height}
+          width={preferPublicSrc ? undefined : image.width}
+          height={preferPublicSrc ? undefined : image.height}
           loading={isFirstGroup && slotIndex === 0 ? "eager" : "lazy"}
           decoding="async"
           draggable={false}
@@ -419,6 +431,7 @@ export function ImageGrid({
   onLightboxIndexChange,
   lightboxImages: lightboxImagesProp,
   lightboxIndexOffset = 0,
+  suppressLightbox = false,
   composeSlotActions,
   albumLayoutMode = DEFAULT_ALBUM_LAYOUT_MODE,
 }: Props) {
@@ -499,6 +512,8 @@ export function ImageGrid({
       overlay?: boolean;
       remaining?: number;
       singlePortrait?: boolean;
+      preferPublicSrc?: boolean;
+      tallClip?: boolean;
     },
   ) => {
     const image = images[slotIndex];
@@ -522,6 +537,8 @@ export function ImageGrid({
         onNaturalAspect={reportNaturalAspect}
         composeSlotActions={composeSlotActions}
         singlePortrait={opts?.singlePortrait}
+        preferPublicSrc={opts?.preferPublicSrc}
+        tallClip={opts?.tallClip}
         canReorder={canReorder}
         dragFrom={dragFrom}
         dragSnap={dragSnap}
@@ -602,13 +619,20 @@ export function ImageGrid({
   } else if (layout.kind === "stack") {
     body = (
       <div className="image-grid image-grid-col image-grid--stack" data-count={total}>
-        {layout.cells.map((c: AlbumCell) =>
-          renderCell(c.index, {
-            style: { aspectRatio: String(resolveCellAspect(c)) },
+        {layout.cells.map((c: AlbumCell) => {
+          const img = images[c.index];
+          const w = img?.width ?? 0;
+          const h = img?.height ?? 0;
+          const tallClip =
+            (w > 0 && h > 0 && h / w >= 2.5) || h >= 2200;
+          return renderCell(c.index, {
+            /* Không ép aspect-ratio từ metadata mặc định 1200×800 — vỡ tỉ lệ stack. */
             overlay: layout.overlaySlotIndex === c.index,
             remaining: layout.remaining,
-          }),
-        )}
+            preferPublicSrc: true,
+            tallClip,
+          });
+        })}
       </div>
     );
   } else if (layout.kind === "columns2") {
@@ -720,7 +744,9 @@ export function ImageGrid({
     <>
       {body}
 
-      {lightboxEnabled && lightboxIndex !== null ? (
+      {lightboxEnabled &&
+      !suppressLightbox &&
+      lightboxIndex !== null ? (
         <ImageLightbox
           images={lightboxPool}
           index={lightboxIndex}

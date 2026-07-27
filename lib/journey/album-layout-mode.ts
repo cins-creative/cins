@@ -59,3 +59,17 @@ export function albumLayoutModeFromBlocks(
   }
   return DEFAULT_ALBUM_LAYOUT_MODE;
 }
+
+/** Album có preset `stack` (Behance xếp dọc full-width). */
+export function blocksHaveStackAlbumLayout(
+  blocks: ReadonlyArray<Block> | null | undefined,
+): boolean {
+  if (!blocks?.length) return false;
+  for (const block of blocks) {
+    if (!isServerAlbumGridImgBlock(block, blocks)) continue;
+    if (albumLayoutModeFromConfig(block.config ?? undefined) === "stack") {
+      return true;
+    }
+  }
+  return false;
+}

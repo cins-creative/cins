@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  ChevronDown,
   Copy,
   ImagePlus,
   Loader2,
@@ -42,6 +43,7 @@ import { CommentMentionText } from "@/components/journey/CommentMentionText";
 import { CommentReactionPill } from "@/components/journey/CommentReactionPill";
 import { CommentVoteButtons } from "@/components/journey/CommentVoteButtons";
 import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
+import { JourneyOrgPopover } from "@/components/journey/JourneyOrgPopover";
 import { InlineExternalVideoEmbed } from "@/components/shared/InlineExternalVideoEmbed";
 import { rememberCfAccountHashFromDeliveryUrl } from "@/lib/cloudflare/account-hash";
 import { imageFilesFromClipboard } from "@/lib/files/clipboard-images";
@@ -51,11 +53,12 @@ import {
   MAX_COMMENT_ATTACHMENTS,
   sanitizeCommentImageIds,
 } from "@/lib/social/comments/attachments";
+import { canCommentAsOrgVaiTro } from "@/lib/social/comments/vai-tro-label";
 import { composeReplyMentionPrefix } from "@/lib/social/comments/mention-parse";
 import { applyViewerReactionToggle } from "@/lib/social/comments/reactions";
 import { countCommentThreads } from "@/lib/social/comments/client-tree";
 import type { MilestonePostComment } from "@/lib/journey/milestone-post-types";
-import { getAvatarUrl } from "@/lib/journey/profile";
+import { getAvatarUrl, getNameInitials } from "@/lib/journey/profile";
 import { emitNotificationsChanged } from "@/lib/journey/notifications-client";
 import { REACTION_EMOJI } from "@/lib/social/reaction-emoji";
 import type { UserEmojiMuc } from "@/lib/user-emoji/types";
@@ -97,6 +100,7 @@ export type CommentBlockProps = {
     text: string,
     replyToId?: string | null,
     anhDinhKem?: string[],
+    idToChuc?: string | null,
   ) => Promise<CommentSubmitResult>;
   /** Split rail — ô nhập luôn dính đáy, danh sách BL scroll phía trên. */
   pinCompose?: boolean;
@@ -167,17 +171,27 @@ export function CommentBlock(props: CommentBlockProps) {
     }
   }
 
-  function handleSend(payload: { text: string; imageIds: string[] }) {
+  function handleSend(payload: {
+    text: string;
+    imageIds: string[];
+    idToChuc?: string | null;
+  }) {
     const value = payload.text.trim();
     const imageIds = sanitizeCommentImageIds(payload.imageIds);
     if (!value && imageIds.length === 0) return;
     setErr(null);
     startTransition(async () => {
       const res = submitComment
-        ? await submitComment(value, replyTo?.id ?? null, imageIds)
+        ? await submitComment(
+            value,
+            replyTo?.id ?? null,
+            imageIds,
+            payload.idToChuc ?? null,
+          )
         : await addMilestoneCommentV1(milestoneId, value, {
             replyToId: replyTo?.id ?? null,
             anhDinhKem: imageIds,
+            idToChuc: payload.idToChuc ?? null,
           });
       if (!res.ok) {
         setErr(res.error);
@@ -189,7 +203,9 @@ export function CommentBlock(props: CommentBlockProps) {
         taoLuc: res.data.taoLuc,
         idCha: res.data.idCha ?? null,
         anhDinhKem: res.data.anhDinhKem ?? imageIds,
-        author: res.data.author ? { ...res.data.author, badge: null } : null,
+        author: res.data.author
+          ? { ...res.data.author, badge: null }
+          : null,
         isOwn: true,
         reactions: [],
         replies: [],
@@ -312,12 +328,75 @@ type ComposeProps = {
   setText: (value: string) => void;
   replyTo: MilestonePostComment | null;
   onCancelReply: () => void;
-  onSend: (payload: { text: string; imageIds: string[] }) => void;
+  onSend: (payload: {
+    text: string;
+    imageIds: string[];
+    idToChuc?: string | null;
+  }) => void;
   pending: boolean;
   inputRef: React.RefObject<HTMLTextAreaElement | null>;
   composeResetKey?: number;
   inline?: boolean;
 };
+
+type CommentIdentityOrg = {
+  id: string;
+  ten: string;
+  avatarUrl: string | null;
+  vaiTroLabel: string;
+};
+
+type CommentIdentityPersonal = {
+  id: string;
+  tenHienThi: string;
+  avatarUrl: string | null;
+};
+
+type CommentIdentityChoice =
+  | { kind: "personal" }
+  | { kind: "org"; orgId: string };
+
+type OrgPopoverKind = "cong_dong" | "co_so_dao_tao" | "truong" | "studio";
+
+function orgPopoverKindFromLoai(loai: string | null | undefined): OrgPopoverKind | null {
+  if (loai === "truong_dai_hoc") return "truong";
+  if (loai === "co_so_dao_tao") return "co_so_dao_tao";
+  if (loai === "studio") return "studio";
+  if (loai === "cong_dong") return "cong_dong";
+  return null;
+}
+
+function commentInitial(name: string): string {
+  return getNameInitials(name, "") || name.charAt(0).toUpperCase() || "?";
+}
+
+function commentDisplayAuthor(comment: MilestonePostComment): {
+  name: string;
+  initial: string;
+  avatarUrl: string | null;
+  asOrg: NonNullable<NonNullable<MilestonePostComment["author"]>["asOrg"]> | null;
+} {
+  const asOrg = comment.author?.asOrg ?? null;
+  if (asOrg) {
+    const name = asOrg.ten?.trim() || "Tổ chức";
+    return {
+      name,
+      initial: commentInitial(name),
+      avatarUrl: getAvatarUrl(asOrg.avatarId),
+      asOrg,
+    };
+  }
+  const name =
+    comment.author?.tenHienThi?.trim() ||
+    comment.author?.slug?.trim() ||
+    "Người dùng";
+  return {
+    name,
+    initial: name.charAt(0).toUpperCase(),
+    avatarUrl: getAvatarUrl(comment.author?.avatarId ?? null),
+    asOrg: null,
+  };
+}
 
 type MentionSuggestUser = {
   id: string;
@@ -426,8 +505,21 @@ function CommentComposeForm({
   } | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const composeRef = useRef<HTMLDivElement | null>(null);
+  const identityWrapRef = useRef<HTMLDivElement | null>(null);
+  const identityMenuRef = useRef<HTMLDivElement | null>(null);
   const attachmentsRef = useRef(attachments);
   attachmentsRef.current = attachments;
+
+  const [personal, setPersonal] = useState<CommentIdentityPersonal | null>(null);
+  const [orgs, setOrgs] = useState<CommentIdentityOrg[]>([]);
+  const [identity, setIdentity] = useState<CommentIdentityChoice>({
+    kind: "personal",
+  });
+  const [identityMenuOpen, setIdentityMenuOpen] = useState(false);
+  /** Ưu tiên xổ xuống; chạm đáy viewport thì xổ lên. */
+  const [identityMenuPlacement, setIdentityMenuPlacement] = useState<
+    "down" | "up"
+  >("down");
 
   useEffect(() => {
     return () => {
@@ -438,6 +530,110 @@ function CommentComposeForm({
       }
     };
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const [profileRes, orgsRes] = await Promise.all([
+          fetch("/api/auth/session-profile", { credentials: "same-origin" }),
+          fetch("/api/me/organizations", { credentials: "same-origin" }),
+        ]);
+        if (cancelled) return;
+
+        if (profileRes.ok) {
+          const profileJson = (await profileRes.json()) as {
+            profile?: {
+              id?: string;
+              tenHienThi?: string | null;
+              avatarUrl?: string | null;
+            } | null;
+          };
+          const p = profileJson.profile;
+          if (p?.id) {
+            setPersonal({
+              id: p.id,
+              tenHienThi: p.tenHienThi?.trim() || "Bạn",
+              avatarUrl: p.avatarUrl ?? null,
+            });
+          }
+        }
+
+        if (orgsRes.ok) {
+          const orgsJson = (await orgsRes.json()) as {
+            orgs?: Array<{
+              id: string;
+              ten: string;
+              avatarUrl: string | null;
+              vaiTro: string;
+              vaiTroLabel: string;
+              loaiToChuc?: string;
+            }>;
+          };
+          const eligible = (orgsJson.orgs ?? [])
+            .filter(
+              (o) =>
+                o.loaiToChuc !== "cong_dong" && canCommentAsOrgVaiTro(o.vaiTro),
+            )
+            .map((o) => ({
+              id: o.id,
+              ten: o.ten,
+              avatarUrl: o.avatarUrl,
+              vaiTroLabel: o.vaiTroLabel,
+            }));
+          setOrgs(eligible);
+        }
+      } catch {
+        /* ignore — compose vẫn gửi được dưới danh nghĩa cá nhân */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!identityMenuOpen) return;
+    const onDoc = (e: MouseEvent) => {
+      if (
+        identityWrapRef.current &&
+        !identityWrapRef.current.contains(e.target as Node)
+      ) {
+        setIdentityMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [identityMenuOpen]);
+
+  useLayoutEffect(() => {
+    if (!identityMenuOpen) {
+      setIdentityMenuPlacement("down");
+      return;
+    }
+    const wrap = identityWrapRef.current;
+    const menu = identityMenuRef.current;
+    if (!wrap || !menu) return;
+
+    const gap = 6;
+    const pad = 8;
+    const trigger = wrap.getBoundingClientRect();
+    const menuH = menu.offsetHeight;
+    const spaceBelow = window.innerHeight - trigger.bottom - gap - pad;
+    setIdentityMenuPlacement(spaceBelow < menuH ? "up" : "down");
+  }, [identityMenuOpen, orgs.length]);
+
+  const selectedOrg =
+    identity.kind === "org"
+      ? (orgs.find((o) => o.id === identity.orgId) ?? null)
+      : null;
+  const activeAvatarUrl = selectedOrg?.avatarUrl ?? personal?.avatarUrl ?? null;
+  const activeName =
+    selectedOrg?.ten ?? personal?.tenHienThi ?? "Bạn";
+  const activeInitial = commentInitial(activeName);
+  const showIdentityPicker = orgs.length > 0;
+  const idToChuc =
+    identity.kind === "org" && selectedOrg ? selectedOrg.id : null;
 
   const uploadAttachment = useCallback(async (file: File, localId: string) => {
     if (!isAllowedUploadImageFile(file)) {
@@ -530,13 +726,20 @@ function CommentComposeForm({
     });
   }, []);
 
+  const sendPayload = useCallback(
+    (payload: { text: string; imageIds: string[] }) => {
+      onSend({ ...payload, idToChuc });
+    },
+    [idToChuc, onSend],
+  );
+
   const sendMeme = useCallback(
     (item: UserEmojiMuc) => {
       if (pending || !item.cloudflareId) return;
       setStickerPickerOpen(false);
-      onSend({ text: "", imageIds: [item.cloudflareId] });
+      sendPayload({ text: "", imageIds: [item.cloudflareId] });
     },
-    [onSend, pending],
+    [pending, sendPayload],
   );
 
   const readyImageIds = attachments
@@ -714,6 +917,11 @@ function CommentComposeForm({
       </div>
     ) : null;
 
+  const replyDisplayName =
+    replyTo?.author?.asOrg?.ten?.trim() ||
+    replyTo?.author?.tenHienThi ||
+    "người dùng";
+
   return (
     <form
       className={
@@ -722,7 +930,7 @@ function CommentComposeForm({
       onSubmit={(e) => {
         e.preventDefault();
         if (!canSend) return;
-        onSend({ text, imageIds: readyImageIds });
+        sendPayload({ text, imageIds: readyImageIds });
       }}
     >
       <div className="post-comments-compose-row">
@@ -739,8 +947,7 @@ function CommentComposeForm({
             <div className="post-comments-reply-context">
               <Reply size={14} strokeWidth={2} aria-hidden />
               <span className="post-comments-reply-context-text">
-                Trả lời{" "}
-                <strong>{replyTo.author?.tenHienThi ?? "người dùng"}</strong>
+                Trả lời <strong>{replyDisplayName}</strong>
               </span>
               <button
                 type="button"
@@ -782,13 +989,123 @@ function CommentComposeForm({
             </div>
           ) : null}
           <div className="post-comments-compose-input-wrap">
+            {showIdentityPicker ? (
+              <div
+                className={`post-comments-identity${identityMenuOpen ? " is-open" : ""}`}
+                ref={identityWrapRef}
+              >
+                <button
+                  type="button"
+                  className="post-comments-identity-trigger"
+                  aria-label={`Bình luận với tư cách ${activeName}`}
+                  aria-haspopup="menu"
+                  aria-expanded={identityMenuOpen}
+                  disabled={pending}
+                  onClick={() =>
+                    setIdentityMenuOpen((v) => {
+                      if (!v) setIdentityMenuPlacement("down");
+                      return !v;
+                    })
+                  }
+                >
+                  <span className="post-comments-identity-avatar" aria-hidden>
+                    {activeAvatarUrl ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img src={activeAvatarUrl} alt="" />
+                    ) : (
+                      activeInitial
+                    )}
+                  </span>
+                  <ChevronDown
+                    size={10}
+                    strokeWidth={2.4}
+                    className="post-comments-identity-caret"
+                    aria-hidden
+                  />
+                </button>
+                {identityMenuOpen ? (
+                  <div
+                    ref={identityMenuRef}
+                    className={
+                      "post-comments-identity-menu" +
+                      (identityMenuPlacement === "up" ? " is-up" : "")
+                    }
+                    role="menu"
+                  >
+                    <button
+                      type="button"
+                      role="menuitemradio"
+                      aria-checked={identity.kind === "personal"}
+                      className={
+                        "post-comments-identity-opt" +
+                        (identity.kind === "personal" ? " is-active" : "")
+                      }
+                      onClick={() => {
+                        setIdentity({ kind: "personal" });
+                        setIdentityMenuOpen(false);
+                      }}
+                    >
+                      <span className="post-comments-identity-opt-avatar" aria-hidden>
+                        {personal?.avatarUrl ? (
+                          /* eslint-disable-next-line @next/next/no-img-element */
+                          <img src={personal.avatarUrl} alt="" />
+                        ) : (
+                          getNameInitials(personal?.tenHienThi || "Bạn", "") ||
+                          "B"
+                        )}
+                      </span>
+                      <span className="post-comments-identity-opt-copy">
+                        <strong>{personal?.tenHienThi || "Cá nhân"}</strong>
+                        <small>Cá nhân</small>
+                      </span>
+                    </button>
+                    {orgs.map((org) => {
+                      const active =
+                        identity.kind === "org" && identity.orgId === org.id;
+                      return (
+                        <button
+                          key={org.id}
+                          type="button"
+                          role="menuitemradio"
+                          aria-checked={active}
+                          className={
+                            "post-comments-identity-opt" +
+                            (active ? " is-active" : "")
+                          }
+                          onClick={() => {
+                            setIdentity({ kind: "org", orgId: org.id });
+                            setIdentityMenuOpen(false);
+                          }}
+                        >
+                          <span
+                            className="post-comments-identity-opt-avatar"
+                            aria-hidden
+                          >
+                            {org.avatarUrl ? (
+                              /* eslint-disable-next-line @next/next/no-img-element */
+                              <img src={org.avatarUrl} alt="" />
+                            ) : (
+                              commentInitial(org.ten)
+                            )}
+                          </span>
+                          <span className="post-comments-identity-opt-copy">
+                            <strong>{org.ten}</strong>
+                            <small>{org.vaiTroLabel}</small>
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
             <textarea
               ref={inputRef}
               className="post-comments-input post-comments-textarea"
               placeholder={
                 replyTo
                   ? "Viết trả lời… @ để tìm bạn bè"
-                  : "Viết bình luận… @ để tìm bạn bè"
+                  : "Bình luận..."
               }
               value={text}
               onChange={(e) => {
@@ -822,6 +1139,11 @@ function CommentComposeForm({
                   }
                 }
                 if (e.key === "Escape") {
+                  if (identityMenuOpen) {
+                    e.preventDefault();
+                    setIdentityMenuOpen(false);
+                    return;
+                  }
                   if (stickerPickerOpen) {
                     e.preventDefault();
                     setStickerPickerOpen(false);
@@ -845,7 +1167,7 @@ function CommentComposeForm({
                   }
                   e.preventDefault();
                   if (!canSend) return;
-                  onSend({ text, imageIds: readyImageIds });
+                  sendPayload({ text, imageIds: readyImageIds });
                 }
               }}
               onClick={(e) => {
@@ -1084,10 +1406,11 @@ function CommentRow({
   const wrapRef = useRef<HTMLDivElement>(null);
   const editInputRef = useRef<HTMLTextAreaElement>(null);
 
-  const initial = (comment.author?.tenHienThi || comment.author?.slug || "?")
-    .charAt(0)
-    .toUpperCase();
-  const avatarUrl = getAvatarUrl(comment.author?.avatarId ?? null);
+  const display = commentDisplayAuthor(comment);
+  const asOrg = display.asOrg;
+  const orgKind = asOrg
+    ? orgPopoverKindFromLoai(asOrg.loaiToChuc)
+    : null;
   const canEditOwn =
     comment.isOwn && !comment.daXoa && Boolean(comment.noiDung?.trim());
   const canDeleteOwn = comment.isOwn && !comment.daXoa;
@@ -1133,6 +1456,21 @@ function CommentRow({
 
   const ItemTag = isReply ? "li" : inThread ? "div" : "li";
 
+  const avatarEl = (
+    <span className="post-comments-avatar la-avatar" aria-hidden>
+      {display.avatarUrl ? (
+        /* eslint-disable-next-line @next/next/no-img-element */
+        <img src={display.avatarUrl} alt="" />
+      ) : (
+        display.initial
+      )}
+    </span>
+  );
+
+  const nameEl = (
+    <span className="post-comments-name la-name">{display.name}</span>
+  );
+
   return (
     <ItemTag
       className={
@@ -1144,45 +1482,53 @@ function CommentRow({
       }
     >
       <div className="post-comments-row">
-        {comment.author?.slug ? (
+        {asOrg && orgKind ? (
+          <JourneyOrgPopover
+            slug={asOrg.slug}
+            orgKind={orgKind}
+            fallbackName={asOrg.ten}
+            fallbackAvatarUrl={display.avatarUrl}
+            href={asOrg.href}
+          >
+            {avatarEl}
+          </JourneyOrgPopover>
+        ) : asOrg ? (
+          avatarEl
+        ) : comment.author?.slug ? (
           <JourneyUserPopover
             slug={comment.author.slug}
             fallbackName={comment.author.tenHienThi}
-            fallbackAvatarUrl={avatarUrl}
+            fallbackAvatarUrl={display.avatarUrl}
           >
-            <span className="post-comments-avatar la-avatar" aria-hidden>
-              {avatarUrl ? (
-                /* eslint-disable-next-line @next/next/no-img-element */
-                <img src={avatarUrl} alt="" />
-              ) : (
-                initial
-              )}
-            </span>
+            {avatarEl}
           </JourneyUserPopover>
         ) : (
-          <span className="post-comments-avatar la-avatar" aria-hidden>
-            {avatarUrl ? (
-              /* eslint-disable-next-line @next/next/no-img-element */
-              <img src={avatarUrl} alt="" />
-            ) : (
-              initial
-            )}
-          </span>
+          avatarEl
         )}
         <div className="post-comments-body">
           <div className="post-comments-meta">
-            {comment.author?.slug ? (
+            {asOrg && orgKind ? (
+              <JourneyOrgPopover
+                slug={asOrg.slug}
+                orgKind={orgKind}
+                fallbackName={asOrg.ten}
+                fallbackAvatarUrl={display.avatarUrl}
+                href={asOrg.href}
+              >
+                {nameEl}
+              </JourneyOrgPopover>
+            ) : asOrg ? (
+              nameEl
+            ) : comment.author?.slug ? (
               <JourneyUserPopover
                 slug={comment.author.slug}
                 fallbackName={comment.author.tenHienThi}
-                fallbackAvatarUrl={avatarUrl}
+                fallbackAvatarUrl={display.avatarUrl}
               >
-                <span className="post-comments-name la-name">
-                  {comment.author.tenHienThi}
-                </span>
+                {nameEl}
               </JourneyUserPopover>
             ) : (
-              <span className="post-comments-name la-name">Người dùng</span>
+              nameEl
             )}
             <span className="post-comments-time">{formatRelative(comment.taoLuc)}</span>
             {comment.ghimLuc ? (

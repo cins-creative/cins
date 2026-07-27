@@ -26,7 +26,7 @@ export async function chayDang(db, flags = {}) {
       id, tieu_de, mo_ta, dong_ghi_nguon, trang_thai,
       id_tai_khoan, id_muc,
       auto_tai_khoan ( id, slug, dang_bat, han_muc_ngay ),
-      auto_muc ( id, url_canonic, nen_tang, ten_tac_gia, anh_bia_url, trang_thai )
+      auto_muc ( id, url_canonic, nen_tang, ten_tac_gia, anh_bia_url, trang_thai, meta )
     `,
     )
     .eq("trang_thai", "san_sang")
@@ -102,9 +102,10 @@ export async function chayDang(db, flags = {}) {
     if (conTong <= 0) break;
     const tk = list[0].auto_tai_khoan;
     const hm = await layHanMucHomNay(db, tk);
-    let conNick = hm.conLai;
+    // 1 bài / nick / lần cron (08·14·20) — khớp chia lịch 3×/ngày
+    let conNick = Math.min(1, hm.conLai);
     console.log(
-      `@${slug}: hạn ${hm.soDaDang}/${hm.hanMuc} (còn ${conNick}) · chờ ${list.length}`,
+      `@${slug}: hạn ${hm.soDaDang}/${hm.hanMuc} (còn ${hm.conLai}, lấy ${conNick}/lần) · chờ ${list.length}`,
     );
 
     for (const bt of list) {
@@ -163,21 +164,34 @@ export async function chayDang(db, flags = {}) {
 
       if (!data?.ok) {
         console.error(`    lỗi HTTP ${status}:`, data?.error || data);
+        const lyDoBoQua =
+          data?.code === "anh_qua_dai"
+            ? data.code
+            : null;
         await db
           .from("auto_ban_thao")
           .update({
-            trang_thai: "san_sang",
+            trang_thai: lyDoBoQua ? "huy" : "san_sang",
             cap_nhat_luc: new Date().toISOString(),
           })
           .eq("id", bt.id);
-        await db
-          .from("auto_muc")
-          .update({
-            trang_thai: "loi",
-            cap_nhat_luc: new Date().toISOString(),
-          })
-          .eq("id", muc.id);
-        loi += 1;
+        const mucPatch = {
+          trang_thai: lyDoBoQua ? "bo_qua" : "loi",
+          cap_nhat_luc: new Date().toISOString(),
+        };
+        if (lyDoBoQua) {
+          mucPatch.meta = {
+            ...(typeof muc.meta === "object" && muc.meta ? muc.meta : {}),
+            lyDoBoQua,
+          };
+        }
+        await db.from("auto_muc").update(mucPatch).eq("id", muc.id);
+        if (lyDoBoQua) {
+          console.log(`    bỏ qua: ${lyDoBoQua}`);
+          boQua += 1;
+        } else {
+          loi += 1;
+        }
         continue;
       }
 

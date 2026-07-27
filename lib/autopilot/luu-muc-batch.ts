@@ -2,6 +2,8 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { laTieuDeThoBehance } from "@/lib/autopilot/behance-assets";
+
 export type MucNhapVao = {
   urlCanonic: string;
   tieuDeGoc?: string | null;
@@ -62,15 +64,54 @@ export async function luuMucBatch(
   const urls = cleaned.map((r) => r.url_canonic);
   const { data: existing, error: exErr } = await admin
     .from("auto_muc")
-    .select("url_canonic")
+    .select("id, url_canonic, anh_bia_url, tieu_de_goc")
     .in("url_canonic", urls);
 
   if (exErr) {
     throw new Error(`Đọc auto_muc: ${exErr.message}`);
   }
 
-  const daCo = new Set((existing || []).map((r) => r.url_canonic as string));
-  const moi = cleaned.filter((r) => !daCo.has(r.url_canonic));
+  const byUrl = new Map(
+    (existing || []).map((r) => [r.url_canonic as string, r]),
+  );
+  const moi = cleaned.filter((r) => !byUrl.has(r.url_canonic));
+
+  /* Trùng URL nhưng thiếu cover / title thô → bổ sung từ lần quét mới. */
+  for (const r of cleaned) {
+    const cu = byUrl.get(r.url_canonic);
+    if (!cu) continue;
+    const patch: Record<string, string> = {};
+    if (!cu.anh_bia_url && r.anh_bia_url) {
+      patch.anh_bia_url = r.anh_bia_url;
+    }
+    const tieuCu = String(cu.tieu_de_goc || "");
+    const tieuMoi = String(r.tieu_de_goc || "");
+    if (
+      tieuMoi &&
+      !laTieuDeThoBehance(tieuMoi) &&
+      !/^https?:/i.test(tieuMoi) &&
+      (laTieuDeThoBehance(tieuCu) || !tieuCu || /^https?:/i.test(tieuCu))
+    ) {
+      patch.tieu_de_goc = tieuMoi.slice(0, 500);
+    }
+    if (Object.keys(patch).length) {
+      await admin.from("auto_muc").update(patch).eq("id", cu.id);
+      if (patch.tieu_de_goc) {
+        /* Đồng bộ bản thảo còn tiêu đề thô `Behance {id}`. */
+        const { data: banThaos } = await admin
+          .from("auto_ban_thao")
+          .select("id, tieu_de")
+          .eq("id_muc", cu.id);
+        for (const bt of banThaos || []) {
+          if (!laTieuDeThoBehance(bt.tieu_de as string | null)) continue;
+          await admin
+            .from("auto_ban_thao")
+            .update({ tieu_de: patch.tieu_de_goc.slice(0, 200) })
+            .eq("id", bt.id);
+        }
+      }
+    }
+  }
 
   let them = 0;
   let loi = 0;

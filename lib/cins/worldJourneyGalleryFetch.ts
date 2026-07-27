@@ -387,6 +387,9 @@ function orgBaiDangRowToItem(
 /**
  * Milestone user có media theo `che_do_hien_thi`.
  * Gọi riêng `feature` / `public` — tránh một `.limit` chung nuốt hết slot bằng bài Nổi bật.
+ *
+ * Query từ `content_cot_moc` (order `tao_luc`) — không order `referencedTable`
+ * từ bảng nối (PostgREST bỏ qua / đảo chiều → chỉ còn bài cũ).
  */
 async function fetchUserVisualRows(
   limit: number,
@@ -394,19 +397,70 @@ async function fetchUserVisualRows(
 ): Promise<FeatureRow[]> {
   if (limit <= 0 || modes.length === 0) return [];
   const admin = createServiceRoleClient();
+  const nowIso = new Date().toISOString();
   const { data } = await admin
-    .from("content_tac_pham_thuoc_moc")
+    .from("content_cot_moc")
     .select(
-      "id_cot_moc, content_cot_moc:content_cot_moc!inner(id, thoi_diem, loai_moc, che_do_hien_thi, mo_ta, tao_luc, id_nguoi_dung, id_to_chuc), content_tac_pham:content_tac_pham!inner(id, slug, tieu_de, mo_ta, cover_id, id_nguoi_dung, noi_dung_blocks)",
+      `
+      id, thoi_diem, loai_moc, che_do_hien_thi, mo_ta, tao_luc, id_nguoi_dung, id_to_chuc,
+      content_tac_pham_thuoc_moc!inner(
+        id_tac_pham,
+        content_tac_pham!inner(id, slug, tieu_de, mo_ta, cover_id, id_nguoi_dung, noi_dung_blocks)
+      )
+    `,
     )
-    .in("content_cot_moc.che_do_hien_thi", [...modes])
-    .order("tao_luc", {
-      referencedTable: "content_cot_moc",
-      ascending: false,
-    })
+    .in("che_do_hien_thi", [...modes])
+    .lte("tao_luc", nowIso)
+    .order("tao_luc", { ascending: false })
     .limit(limit)
-    .returns<FeatureRow[]>();
-  return data ?? [];
+    .returns<
+      Array<{
+        id: string;
+        thoi_diem: string;
+        loai_moc: string;
+        che_do_hien_thi: string;
+        mo_ta: string | null;
+        tao_luc: string | null;
+        id_nguoi_dung: string;
+        id_to_chuc?: string | null;
+        content_tac_pham_thuoc_moc:
+          | Array<{
+              id_tac_pham: string;
+              content_tac_pham: FeatureRow["content_tac_pham"];
+            }>
+          | {
+              id_tac_pham: string;
+              content_tac_pham: FeatureRow["content_tac_pham"];
+            }
+          | null;
+      }>
+    >();
+
+  const out: FeatureRow[] = [];
+  for (const row of data ?? []) {
+    const links = Array.isArray(row.content_tac_pham_thuoc_moc)
+      ? row.content_tac_pham_thuoc_moc
+      : row.content_tac_pham_thuoc_moc
+        ? [row.content_tac_pham_thuoc_moc]
+        : [];
+    const link = links[0];
+    if (!link?.content_tac_pham) continue;
+    out.push({
+      id_cot_moc: row.id,
+      content_cot_moc: {
+        id: row.id,
+        thoi_diem: row.thoi_diem,
+        loai_moc: row.loai_moc,
+        che_do_hien_thi: row.che_do_hien_thi,
+        mo_ta: row.mo_ta,
+        tao_luc: row.tao_luc,
+        id_nguoi_dung: row.id_nguoi_dung,
+        id_to_chuc: row.id_to_chuc,
+      },
+      content_tac_pham: link.content_tac_pham,
+    });
+  }
+  return out;
 }
 
 async function fetchCongDongVisualRows(
@@ -415,6 +469,7 @@ async function fetchCongDongVisualRows(
 ): Promise<FeatureRow[]> {
   if (orgIds.length === 0) return [];
   const admin = createServiceRoleClient();
+  const nowIso = new Date().toISOString();
   const { data } = await admin
     .from("content_tac_pham_thuoc_moc")
     .select(
@@ -422,6 +477,7 @@ async function fetchCongDongVisualRows(
     )
     .eq("content_cot_moc.che_do_hien_thi", CHE_DO_MOC_CONG_DONG)
     .in("content_cot_moc.id_to_chuc", orgIds)
+    .lte("content_cot_moc.tao_luc", nowIso)
     .order("thu_tu", { ascending: true })
     .limit(limit)
     .returns<FeatureRow[]>();

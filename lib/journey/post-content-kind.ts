@@ -17,6 +17,7 @@ import {
   hasArticleProseStructure,
   type GalleryMediaKind,
 } from "@/lib/journey/post-block-helpers";
+import { blocksHaveStackAlbumLayout } from "@/lib/journey/album-layout-mode";
 import { extractVideoProcessingMeta } from "@/lib/journey/video-processing-meta";
 import {
   resolveBunnyVideoPreviewMp4FromBlocks,
@@ -535,6 +536,23 @@ export function resolvePostDisplayKind(
         effectiveMoTa,
         gridVisible: false,
         gridThumbSource: null,
+      },
+      blocks,
+    );
+  }
+
+  /*
+   * Album preset `stack` (Behance curator): trang project dạng bài viết dài.
+   * Feed = article (cover + CTA), không dump stack full-height kiểu photo grid.
+   * Permalink `/p/` vẫn xếp stack trong JourneyPostBody.
+   */
+  if (blocksHaveStackAlbumLayout(blocks) && imageIds.length > 0) {
+    return finalizePostContentResolution(
+      {
+        kind: "article",
+        effectiveMoTa,
+        gridVisible: true,
+        gridThumbSource: coverOk ? "cover" : "first_image",
       },
       blocks,
     );

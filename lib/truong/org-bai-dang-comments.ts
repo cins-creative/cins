@@ -4,6 +4,7 @@ import type { MilestonePostComment } from "@/lib/journey/milestone-post-types";
 import { sanitizeCommentImageIds } from "@/lib/social/comments/attachments";
 import { resolveCommentRootId } from "@/lib/social/comments/build-tree";
 import { fetchCommentsForSocialObject } from "@/lib/social/comments/fetch-for-object";
+import { resolveCommentAsOrgIdentity } from "@/lib/social/comments/comment-as-org";
 import {
   notifyCommentMentions,
   prefixReplyMention,
@@ -71,6 +72,7 @@ export async function insertOrgBaiDangComment(input: {
   noiDung: string;
   idCha?: string | null;
   anhDinhKem?: string[];
+  idToChuc?: string | null;
 }): Promise<
   | {
       ok: true;
@@ -79,6 +81,7 @@ export async function insertOrgBaiDangComment(input: {
       noiDung: string;
       idCha: string | null;
       anhDinhKem: string[];
+      asOrg: import("@/lib/social/comments/comment-as-org").CommentAsOrgIdentity | null;
     }
   | { ok: false; message: string }
 > {
@@ -166,6 +169,15 @@ export async function insertOrgBaiDangComment(input: {
     }
   }
 
+  const asOrgResolved = await resolveCommentAsOrgIdentity({
+    userId: input.idNguoiBinhLuan,
+    orgId: input.idToChuc,
+  });
+  if (!asOrgResolved.ok) {
+    return { ok: false, message: asOrgResolved.error };
+  }
+  const asOrg = asOrgResolved.org;
+
   const { data, error } = await admin
     .from("social_binh_luan")
     .insert({
@@ -175,6 +187,7 @@ export async function insertOrgBaiDangComment(input: {
       noi_dung: text,
       id_cha: idCha,
       anh_dinh_kem: anhDinhKem.length > 0 ? anhDinhKem : null,
+      id_to_chuc: asOrg?.id ?? null,
     })
     .select("id, tao_luc, noi_dung, id_cha")
     .single<{
@@ -215,5 +228,6 @@ export async function insertOrgBaiDangComment(input: {
     noiDung: data.noi_dung,
     idCha: data.id_cha,
     anhDinhKem,
+    asOrg,
   };
 }

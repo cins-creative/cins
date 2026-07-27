@@ -13,6 +13,7 @@ import {
 import {
   appendSetCookieHeaders,
   createSupabaseRouteHandlerClient,
+  flushDeferredAuthCookies,
 } from "@/lib/supabase/route-handler";
 
 export const dynamic = "force-dynamic";
@@ -57,6 +58,8 @@ export async function POST(request: NextRequest) {
       list = removeAccount(list, target.slug);
       continue;
     }
+
+    await flushDeferredAuthCookies();
 
     const rotated = upsertAccount(list, {
       ...target,

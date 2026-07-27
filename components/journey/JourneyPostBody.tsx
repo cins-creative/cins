@@ -29,6 +29,10 @@ import { PostCover } from "@/components/editor/PostRenderer";
 import { MoTaMarkdown } from "@/components/editor/compose/MoTaMarkdown";
 import { findCoverThumbMeta } from "@/lib/journey/cover-thumb";
 import { JourneyArticleTagLink } from "@/components/journey/JourneyArticleTagLink";
+import { JourneyBookmarkButton } from "@/components/journey/JourneyBookmarkButton";
+import { JourneyCommentLink } from "@/components/journey/JourneyCommentLink";
+import { JourneyDislikeButton } from "@/components/journey/JourneyDislikeButton";
+import { JourneyLikeButton } from "@/components/journey/JourneyLikeButton";
 import { JourneyMilestoneCardBodyContent } from "@/components/journey/JourneyMilestoneCardBodyContent";
 import { JourneyMilestoneOwnerMenu } from "@/components/journey/JourneyMilestoneOwnerMenu";
 import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
@@ -57,6 +61,7 @@ import {
   shouldMovePostTextToSplitRail,
   shouldShowMilestoneCardTitle,
 } from "@/lib/journey/post-media";
+import { blocksHaveStackAlbumLayout } from "@/lib/journey/album-layout-mode";
 import {
   postDisplayKindToMilestoneCardKind,
   readShowCoverInPost,
@@ -64,7 +69,7 @@ import {
 } from "@/lib/journey/post-content-kind";
 import { getAvatarUrl } from "@/lib/journey/profile";
 
-import { PostActionsRail, PostShareMenu } from "./PostActionsRail";
+import { PostShareMenu } from "./PostActionsRail";
 import { PostMetaRail } from "./PostMetaRail";
 
 /* ╔══════════════════════════════════════════════════════════════════╗
@@ -81,7 +86,8 @@ import { PostMetaRail } from "./PostMetaRail";
    ║ Wrap = `main.cins-editor-page.cins-post-view.editor-canvas` — một    ║
    ║ khối duy nhất (modal + permalink), không wrapper thừa bên ngoài.  ║
    ║                                                                  ║
-   ║ Cạnh phải byline: `PostActionsRail` (Thích · Lưu · BL · Chia sẻ).  ║
+   ║ Rail actions = cùng `.jcard-actions` timeline (Like · Dislike ·  ║
+   ║ BL · Lưu · Share).                                               ║
    ╚══════════════════════════════════════════════════════════════════╝ */
 
 const TYPE_LABEL: Record<string, string> = {
@@ -238,7 +244,13 @@ export function JourneyPostBody({
   });
   /** Đồng bộ loại card timeline (`jcard--photo` / video / article / text). */
   const cardKind = postDisplayKindToMilestoneCardKind(postDisplayKind.kind);
-  const mediaPost = cardKind === "photo" || cardKind === "video";
+  /**
+   * Album `stack` (Behance) — giữ thứ tự chữ+ảnh full-width như trang gốc;
+   * không đẩy body sang rail (tránh mất «Nguồn» / text module).
+   */
+  const stackAlbum = blocksHaveStackAlbumLayout(blocks);
+  const mediaPost =
+    (cardKind === "photo" || cardKind === "video") && !stackAlbum;
   /** Bài chỉ chữ — đồng bộ panel `.jcard-chi-chu` với timeline card. */
   const isTextPost = cardKind === "text";
   const showHeroTitle = shouldShowMilestoneCardTitle(
@@ -351,38 +363,55 @@ export function JourneyPostBody({
     ) : null;
 
   const actionsRail = (
-    <PostActionsRail
-      milestoneId={milestone.id}
-      initialLiked={social.viewerLiked}
-      initialBookmarked={social.viewerBookmarked}
-      initialCommented={social.viewerCommented}
-      likeCount={social.likeCount}
-      bookmarkCount={social.bookmarkCount}
-      commentCount={displayCommentCount}
-      showCounts
-      canBookmark={!isOwner}
-      sharePath={sharePath}
-      shareTitle={heroTitle}
-      hideShare={isSplit}
-    />
+    <div className="jcard-actions">
+      <JourneyLikeButton
+        milestoneId={milestone.id}
+        initialLiked={social.viewerLiked}
+        initialCount={social.likeCount}
+        initialReactionEmoji={social.viewerReactionEmoji}
+        initialTopReactionEmoji={social.topReactionEmoji}
+        showCount
+      />
+      <JourneyDislikeButton
+        milestoneId={milestone.id}
+        initialDisliked={social.viewerDisliked}
+        initialCount={social.dislikeCount}
+        showCount
+      />
+      <JourneyCommentLink
+        commentCount={displayCommentCount}
+        viewerCommented={social.viewerCommented}
+        idDoiTuong={milestone.id}
+        sharePath={sharePath}
+        shareTitle={heroTitle}
+        onOpenComments={() => {
+          document
+            .getElementById(commentsSectionId)
+            ?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }}
+      />
+      {!isOwner ? (
+        <JourneyBookmarkButton
+          milestoneId={milestone.id}
+          title={heroTitle}
+          initialSaved={social.viewerBookmarked}
+          initialCount={social.bookmarkCount}
+          showCount
+        />
+      ) : null}
+      <span className="action-spacer" />
+      {sharePath ? (
+        <PostShareMenu
+          sharePath={sharePath}
+          shareTitle={heroTitle}
+          className="jcard-share"
+          buttonClassName="share-btn"
+        />
+      ) : null}
+    </div>
   );
 
-  const actionsRailCompact = (
-    <PostActionsRail
-      milestoneId={milestone.id}
-      initialLiked={social.viewerLiked}
-      initialBookmarked={social.viewerBookmarked}
-      initialCommented={social.viewerCommented}
-      likeCount={social.likeCount}
-      bookmarkCount={social.bookmarkCount}
-      commentCount={displayCommentCount}
-      showCounts
-      canBookmark={!isOwner}
-      sharePath={sharePath}
-      shareTitle={heroTitle}
-      orientation="horizontal"
-    />
-  );
+  const actionsRailCompact = actionsRail;
 
   /** Kicker chỉ khi có thẻ bài viết — không dùng loại cột mốc (Cá nhân…) như card. */
   const kickerLabel = mainPost?.articleTags[0]?.tieu_de ?? null;
@@ -502,14 +531,6 @@ export function JourneyPostBody({
           </Link>
         ) : null}
         {actionsRail}
-        {isSplit ? (
-          <PostShareMenu
-            sharePath={sharePath}
-            shareTitle={heroTitle}
-            showLabel
-            className="post-byline-share-standalone"
-          />
-        ) : null}
       </div>
     </div>
   ) : null;
@@ -578,6 +599,7 @@ export function JourneyPostBody({
   const moveTextToRail =
     isSplit &&
     !hideSplitRail &&
+    !stackAlbum &&
     (mediaPost || shouldMovePostTextToSplitRail(blocks));
   const splitBlockParts = useMemo(() => {
     if (!moveTextToRail) {
@@ -590,6 +612,8 @@ export function JourneyPostBody({
   }, [blocks, moveTextToRail, mediaPost]);
 
   const mediaAutoplay = variant === "full";
+  /** Permalink / stack Behance — hiện đủ ảnh album, không cắt 6 +N. */
+  const showAllAlbumImages = variant === "full" || stackAlbum;
 
   function renderPostBlocks(
     blockList: ReadonlyArray<Block> | null | undefined,
@@ -600,7 +624,7 @@ export function JourneyPostBody({
       <PostBlockRenderer
         blocks={blockList}
         mediaAutoplay={mediaAutoplay}
-        showAllImages={opts?.showAllImages}
+        showAllImages={opts?.showAllImages ?? showAllAlbumImages}
       />
     );
   }
@@ -668,6 +692,7 @@ export function JourneyPostBody({
       <PostBlockRenderer
         blocks={contentBlocks}
         mediaAutoplay={mediaAutoplay}
+        showAllImages={showAllAlbumImages}
       />
     ) : !isTextPost && showBlocks && mainPost?.noiDungHtml ? (
       <div

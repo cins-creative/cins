@@ -1,6 +1,6 @@
 "use client";
 
-import { ClipboardList, Eye, Pencil, Settings2, Shield, ShieldCheck } from "lucide-react";
+import { ClipboardList, Eye, Pencil, Shield, ShieldCheck } from "lucide-react";
 import { createPortal } from "react-dom";
 
 import { useTopbarPageSlot } from "@/components/cins/useTopbarPageSlot";
@@ -11,17 +11,10 @@ import {
 } from "@/lib/auth/system-role-labels";
 
 type Props = {
-  onOpenSettings?: () => void;
   quanLyHref?: string | null;
-  /** Link thẳng tới tab Cơ sở trong Quản trị (ưu tiên hơn modal). */
-  coSoSettingsHref?: string | null;
 };
 
-export function CoSoAdminToolbar({
-  onOpenSettings,
-  quanLyHref,
-  coSoSettingsHref,
-}: Props) {
+export function CoSoAdminToolbar({ quanLyHref }: Props) {
   const ctx = useTruongInlineEdit();
   const slot = useTopbarPageSlot();
 
@@ -56,26 +49,6 @@ export function CoSoAdminToolbar({
         >
           <ClipboardList size={16} strokeWidth={2} aria-hidden />
         </a>
-      ) : null}
-      {coSoSettingsHref ? (
-        <a
-          href={coSoSettingsHref}
-          className="tb-truong-admin-btn tb-truong-admin-btn--icon"
-          aria-label="Thông tin cơ sở"
-          title="Thông tin cơ sở"
-        >
-          <Settings2 size={16} strokeWidth={2} aria-hidden />
-        </a>
-      ) : onOpenSettings ? (
-        <button
-          type="button"
-          className="tb-truong-admin-btn tb-truong-admin-btn--icon"
-          aria-label="Quản lý cơ sở"
-          title="Quản lý cơ sở"
-          onClick={onOpenSettings}
-        >
-          <Settings2 size={16} strokeWidth={2} aria-hidden />
-        </button>
       ) : null}
       {ctx?.canEdit ? (
         <button

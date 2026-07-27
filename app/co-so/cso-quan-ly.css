@@ -158,16 +158,19 @@
 
 .cso-ql-nav-tool .ss-btn-messages-badge,
 .cso-ql-nav-tool .ss-btn-notify-badge {
+  top: -4px;
+  right: -6px;
   min-width: 18px;
   height: 18px;
   padding: 0 5px;
   border-radius: 999px;
-  background: var(--cso-ql-rail, #1f74c9);
+  background: #e11d48;
   color: #fff;
   font-size: 10px;
   font-weight: 700;
   line-height: 18px;
   text-align: center;
+  pointer-events: none;
 }
 
 .cso-ql-nav-group-links {

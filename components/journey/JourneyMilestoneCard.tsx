@@ -28,6 +28,10 @@ import {
   joinVaiTroPositions,
   parseVaiTroPositions,
 } from "@/lib/social/vai-tro";
+import {
+  formatCotMocScheduleLabel,
+  isCotMocScheduledDraft,
+} from "@/lib/journey/cot-moc-schedule";
 import { JourneyAuthorRowFriendAction } from "@/components/journey/JourneyAuthorRowFriendAction";
 import { JourneyOwnCoAuthorRoleEditor } from "@/components/journey/JourneyOwnCoAuthorRoleEditor";
 import { JourneyBookmarkListingCard } from "@/components/journey/JourneyBookmarkListingCard";
@@ -559,7 +563,13 @@ export function JourneyMilestoneCard({
   const displayDate = `${String(day).padStart(2, "0")}-${String(month).padStart(2, "0")}-${year}`;
   /** Chip author: trong 24h → relative; sau đó → ngày đăng (DD-MM-YYYY). */
   const postedAgoLabel = formatPostedWithin24h(milestone.createdAt);
-  const authorChipDateLabel = postedAgoLabel ?? displayDate;
+  const scheduledPublishLabel =
+    isOwner && isCotMocScheduledDraft(milestone.createdAt)
+      ? formatCotMocScheduleLabel(milestone.createdAt)
+      : null;
+  const authorChipDateLabel = scheduledPublishLabel
+    ? `Hẹn đăng · ${scheduledPublishLabel}`
+    : (postedAgoLabel ?? displayDate);
   const bookmarkSavedDateLabel = milestone.bookmarkSavedAt
     ? formatIsoToDisplayDate(milestone.bookmarkSavedAt)
     : null;

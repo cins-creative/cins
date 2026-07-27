@@ -11,6 +11,7 @@ import {
   huyBanThao,
   nhapMuc,
   themNguon,
+  thuHoiBanThao,
 } from "@/lib/admin/autopilot";
 import {
   canManageUsers,
@@ -172,6 +173,15 @@ export async function POST(req: Request) {
             ? [body.id]
             : [];
         const result = await huyBanThao(ids);
+        return NextResponse.json({ ok: true, ...result });
+      }
+      case "thu_hoi_ban_thao": {
+        const ids = Array.isArray(body.ids)
+          ? body.ids
+          : body.id
+            ? [body.id]
+            : [];
+        const result = await thuHoiBanThao(ids);
         return NextResponse.json({ ok: true, ...result });
       }
       case "chay_dang": {

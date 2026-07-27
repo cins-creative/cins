@@ -6,6 +6,7 @@ import { type FormEvent, useState } from "react";
 import { ForgotPasswordForm } from "@/app/login/ForgotPasswordForm";
 import { EmailOtpVerification } from "@/components/auth/EmailOtpVerification";
 import { authOriginMismatchMessage } from "@/lib/auth/auth-origin";
+import { EMAIL_OTP_LENGTH } from "@/lib/auth/email-otp";
 import { stashOAuthIntent } from "@/lib/auth/oauth-intent-client";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
@@ -28,7 +29,7 @@ function mapAuthError(message: string): string {
     return "Sai tài khoản hoặc mật khẩu.";
   }
   if (lower.includes("email not confirmed")) {
-    return "Email chưa được xác nhận. Nhập mã 6 số đã gửi tới email của bạn.";
+    return `Email chưa được xác nhận. Nhập mã ${EMAIL_OTP_LENGTH} số đã gửi tới email của bạn.`;
   }
   if (lower.includes("password should be")) {
     return `Mật khẩu cần tối thiểu ${MIN_PASSWORD} ký tự.`;

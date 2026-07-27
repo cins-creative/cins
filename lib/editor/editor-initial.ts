@@ -32,6 +32,9 @@ export type EditorInitial = {
   personalFilterIds?: string[];
   /** `org_bai_dang.loai_bai_dang` khi sửa bài trường. */
   orgBaiDangLoai?: BaiDangLoai;
-  /** Giờ hẹn đăng (`nhap` + `tao_luc` tương lai). */
+  /**
+   * Giờ hẹn đăng còn trong tương lai.
+   * Org: `nhap` + `tao_luc`. Cá nhân / cộng đồng: `content_cot_moc.tao_luc`.
+   */
   orgBaiDangSchedulePublishAt?: string | null;
 };

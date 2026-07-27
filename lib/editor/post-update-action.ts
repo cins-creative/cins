@@ -44,6 +44,10 @@ import {
   replaceVisibilityNgoaiLe,
   VISIBILITY_CUSTOM_BASE,
 } from "@/lib/journey/milestone-visibility-custom";
+import {
+  isCotMocScheduledDraft,
+  resolveCotMocScheduleTaoLuc,
+} from "@/lib/journey/cot-moc-schedule";
 
 /* ╔══════════════════════════════════════════════════════════════════╗
    ║ Server Action: updatePost                                        ║
@@ -88,6 +92,11 @@ export type UpdatePostInput = {
     orgId: string;
     filterSlugs: string[];
   };
+  /**
+   * ISO giờ hẹn — null/ past = đăng ngay (`tao_luc` = now nếu đang hẹn);
+   * tương lai = cập nhật `tao_luc`. Bỏ qua khi không truyền.
+   */
+  schedulePublishAt?: string | null;
 };
 
 export type UpdatePostResult =
@@ -228,13 +237,14 @@ export async function updatePost(
 
   const { data: cmRow, error: cmFetchErr } = await admin
     .from("content_cot_moc")
-    .select("id, id_nguoi_dung, che_do_hien_thi, id_to_chuc")
+    .select("id, id_nguoi_dung, che_do_hien_thi, id_to_chuc, tao_luc")
     .eq("id", input.cotMocId)
     .maybeSingle<{
       id: string;
       id_nguoi_dung: string;
       che_do_hien_thi: string;
       id_to_chuc: string | null;
+      tao_luc: string | null;
     }>();
 
   if (cmFetchErr || !cmRow) {
@@ -286,15 +296,26 @@ export async function updatePost(
   }
 
   /* 6. UPDATE content_cot_moc — mirror metadata. */
+  const cotMocUpdate: Record<string, unknown> = {
+    tieu_de: tieuDe,
+    mo_ta: moTaFinal || null,
+    che_do_hien_thi: writeCheDo,
+    loai_moc: input.loaiMoc,
+    thoi_diem: input.thoiDiem,
+  };
+  if (input.schedulePublishAt !== undefined) {
+    const nextSchedule = resolveCotMocScheduleTaoLuc(input.schedulePublishAt);
+    if (nextSchedule) {
+      cotMocUpdate.tao_luc = nextSchedule;
+      cotMocUpdate.thoi_diem = isoDateFromIso(nextSchedule);
+    } else if (isCotMocScheduledDraft(cmRow.tao_luc)) {
+      /* Bỏ hẹn → đăng ngay. */
+      cotMocUpdate.tao_luc = new Date().toISOString();
+    }
+  }
   const { error: cmUpdErr } = await admin
     .from("content_cot_moc")
-    .update({
-      tieu_de: tieuDe,
-      mo_ta: moTaFinal || null,
-      che_do_hien_thi: writeCheDo,
-      loai_moc: input.loaiMoc,
-      thoi_diem: input.thoiDiem,
-    })
+    .update(cotMocUpdate)
     .eq("id", input.cotMocId);
 
   if (cmUpdErr) {
@@ -501,6 +522,21 @@ function sanitizeTagIds(tags: unknown): string[] {
     seen.add(trimmed);
   }
   return Array.from(seen);
+}
+
+function isoDateFromIso(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) {
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, "0");
+    const dd = String(now.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  }
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
 }
 
 function dbErrorMessage(error: unknown): string {

@@ -38,6 +38,12 @@
 
 ## LOG — quyết định đã chốt
 
+### Hẹn đăng bài cá nhân / cộng đồng — `tao_luc` tương lai, không ALTER (2026-07-27)
+
+- **Chốt:** reuse nút compose org; lưu giờ hẹn bằng `content_cot_moc.tao_luc` (không thêm `trang_thai` như `org_bai_dang`).
+- **Vì sao:** đủ để ẩn khỏi khách/World/Gallery đến giờ đăng; tránh migration cột cũ.
+- **Khác org:** org vẫn `nhap` + lazy promote; cá nhân không flip status — đến giờ tự due.
+
 ### L36 — Bỏ giai đoạn `moi_bat_dau` ("Mới bắt đầu") (2026-07-26)
 
 - **Chốt:** Không còn trạng thái Journey **Mới bắt đầu** trên toàn CINs (onboarding, sửa hồ sơ, CareerMap cộng đồng, admin filter, phân phối tin tuyển dụng, persona trang chủ).
@@ -73,6 +79,7 @@
 | A6 | Enum `loai_tin_nhan_enum` / `vai_tro_to_chuc_enum` | **Không** bắt buộc đổi phase 1 | Card qua `ngu_canh` jsonb; Curator = ACL trên vai sẵn có | — | Tránh phá client cũ | — | **Không đổi** trừ khi user duyệt riêng |
 | A7 | `org_su_kien` | Thêm `slug` + UNIQUE | `text NOT NULL` · unique index | NO (sau backfill) | URL công khai `/su-kien/{slug}` thay UUID | Backfill slugify(`ten`) (+ `-2`… nếu trùng); UUID cũ 301 → slug | **Đã chạy** 2026-07-26 · `migration_org_su_kien_slug.sql` |
 | A8 | Enum `giai_doan_enum` | Bỏ value `moi_bat_dau` (recreate type) | còn `dang_hoc`/`dang_lam`/`tim_viec`/`freelance`/`dang_day` | — | Không còn “Mới bắt đầu” trên CINs | 73 user → `dang_hoc` trước ALTER | **Đã chạy** 2026-07-26 · `migration_drop_giai_doan_moi_bat_dau.sql` (L36) |
+| A9 | `social_binh_luan` | Thêm `id_to_chuc` | `uuid` → `org_to_chuc.id` | YES | Comment dưới danh nghĩa org (owner/admin) | Row cũ = NULL (cá nhân) | **Đã chạy** 2026-07-27 · `migration_social_binh_luan_id_to_chuc.sql` |
 
 > Khi user duyệt một dòng → đổi **Trạng thái** thành `Đã duyệt YYYY-MM-DD` rồi mới viết/chạy file migration. Khi đã apply trên DB → `Đã chạy` + tên file SQL. Mọi ALTER phát sinh thêm ngoài bảng này → **thêm dòng mới vào inventory trước**, không lén vào migration khác.
 

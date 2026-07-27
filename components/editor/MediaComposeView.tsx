@@ -333,7 +333,7 @@ export function MediaComposeView({
       ? "Thêm ảnh"
       : "Thêm video";
   const publishLabel =
-    orgBaiDangCompose && composeScheduleActive
+    composeScheduleActive
       ? "Hẹn đăng"
       : isEdit
         ? "Lưu"
@@ -943,6 +943,7 @@ export function MediaComposeView({
           thoiDiem: editInitial.thoiDiem,
           blocks,
           personalFilterIds: congDongCompose ? undefined : personalFilterIds,
+          schedulePublishAt: composeSchedulePublishAt,
           congDong: congDongCompose
             ? {
                 orgId: congDongCompose.orgId,
@@ -987,6 +988,7 @@ export function MediaComposeView({
         thoiDiem: new Date().toISOString().slice(0, 10),
         blocks,
         personalFilterIds,
+        schedulePublishAt: composeSchedulePublishAt,
         congDong: congDongCompose
           ? {
               orgId: congDongCompose.orgId,
@@ -1050,14 +1052,21 @@ export function MediaComposeView({
           ) : null}
           <div className="mc-compose-top-actions">
             {congDongCompose ? (
-              <CongDongFeedFilterDropdown
-                filters={sortedCongDongFilters}
-                activeFilterSlugs={composeFilterSlugs}
-                onChange={setComposeFilterSlugs}
-                variant="compose"
-                className="cd-v4-filter-dd--editor"
-                menuZIndex={9200}
-              />
+              <div className="ed-topbar-actions-cluster">
+                <CongDongFeedFilterDropdown
+                  filters={sortedCongDongFilters}
+                  activeFilterSlugs={composeFilterSlugs}
+                  onChange={setComposeFilterSlugs}
+                  variant="compose"
+                  className="cd-v4-filter-dd--editor"
+                  menuZIndex={9200}
+                />
+                <OrgBaiDangScheduleComposeButton
+                  value={composeSchedulePublishAt}
+                  onChange={setComposeSchedulePublishAt}
+                  menuZIndex={9210}
+                />
+              </div>
             ) : orgBaiDangCompose ? (
               <div className="ed-topbar-actions-cluster">
                 {orgBaiDangCompose.forceLoaiBaiDang ? null : (
@@ -1128,6 +1137,11 @@ export function MediaComposeView({
                     </div>
                   ) : null}
                 </div>
+                <OrgBaiDangScheduleComposeButton
+                  value={composeSchedulePublishAt}
+                  onChange={setComposeSchedulePublishAt}
+                  menuZIndex={9610}
+                />
               </div>
             )}
             <button

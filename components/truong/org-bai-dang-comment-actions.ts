@@ -23,7 +23,11 @@ export type AddOrgBaiDangCommentResult =
 export async function addOrgBaiDangCommentAction(
   postId: string,
   noiDung: string,
-  opts?: { replyToId?: string | null; anhDinhKem?: string[] },
+  opts?: {
+    replyToId?: string | null;
+    anhDinhKem?: string[];
+    idToChuc?: string | null;
+  },
 ): Promise<AddOrgBaiDangCommentResult> {
   if (!hasServiceRoleEnv()) {
     return { ok: false, error: "Hệ thống chưa sẵn sàng nhận bình luận." };
@@ -34,24 +38,36 @@ export async function addOrgBaiDangCommentAction(
     return { ok: false, error: "Cần đăng nhập để bình luận." };
   }
 
-  const author: MilestonePostAuthor = {
-    id: session.profile.id,
-    slug: session.profile.slug,
-    tenHienThi: session.profile.ten_hien_thi || session.profile.slug,
-    avatarId: session.profile.avatar_id,
-  };
-
   const result = await insertOrgBaiDangComment({
     postId,
     idNguoiBinhLuan: session.profile.id,
     noiDung,
     idCha: opts?.replyToId ?? null,
     anhDinhKem: opts?.anhDinhKem,
+    idToChuc: opts?.idToChuc,
   });
 
   if (!result.ok) {
     return { ok: false, error: result.message };
   }
+
+  const asOrg = result.asOrg;
+  const author: MilestonePostAuthor = {
+    id: session.profile.id,
+    slug: session.profile.slug,
+    tenHienThi: session.profile.ten_hien_thi || session.profile.slug,
+    avatarId: session.profile.avatar_id,
+    asOrg: asOrg
+      ? {
+          id: asOrg.id,
+          slug: asOrg.slug,
+          ten: asOrg.ten,
+          loaiToChuc: asOrg.loaiToChuc,
+          avatarId: asOrg.avatarId,
+          href: asOrg.href,
+        }
+      : null,
+  };
 
   return {
     ok: true,

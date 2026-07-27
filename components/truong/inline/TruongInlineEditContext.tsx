@@ -162,15 +162,27 @@ export function TruongInlineEditProvider({
     null,
   );
   const storageKey = editModeStorageKey(initial.school.slug);
-  // Luôn false lúc SSR + render đầu — khôi phục từ sessionStorage sau mount (tránh hydration mismatch).
+  // Luôn false lúc SSR + render đầu — sau mount: mặc định bật nếu canEdit
+  // (trừ khi sessionStorage đã ghi "0" = user chọn xem như người dùng).
   const [editMode, setEditModeState] = useState(false);
 
   useEffect(() => {
-    if (!canEdit) return;
+    if (!canEdit) {
+      setEditModeState(false);
+      return;
+    }
     try {
-      setEditModeState(sessionStorage.getItem(storageKey) === "1");
+      const stored = sessionStorage.getItem(storageKey);
+      if (stored === "0") {
+        setEditModeState(false);
+        return;
+      }
+      setEditModeState(true);
+      if (stored !== "1") {
+        sessionStorage.setItem(storageKey, "1");
+      }
     } catch {
-      /* private mode */
+      setEditModeState(true);
     }
   }, [canEdit, storageKey]);
 

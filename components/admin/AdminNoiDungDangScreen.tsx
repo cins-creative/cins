@@ -651,6 +651,7 @@ export function AdminNoiDungDangScreen({ initialView }: Props) {
                         "ndd-card",
                         item.dangBoost ? "is-boosted" : "",
                         item.daXacThuc ? "is-verified" : "",
+                        item.laNickSeed ? "is-nick-seed" : "",
                       ]
                         .filter(Boolean)
                         .join(" ")}
@@ -682,6 +683,9 @@ export function AdminNoiDungDangScreen({ initialView }: Props) {
                               }
                             />
                           </span>
+                          {item.laNickSeed ? (
+                            <span className="ndd-card-seed">Nick seed</span>
+                          ) : null}
                           {item.daXacThuc ? (
                             <span className="ndd-card-verified">Đã xác thực</span>
                           ) : null}
@@ -742,6 +746,7 @@ export function AdminNoiDungDangScreen({ initialView }: Props) {
                             className={[
                               item.dangBoost ? "ndd-row-boosted" : "",
                               item.daXacThuc ? "ndd-row-verified" : "",
+                              item.laNickSeed ? "ndd-row-nick-seed" : "",
                             ]
                               .filter(Boolean)
                               .join(" ") || undefined}
@@ -801,6 +806,9 @@ export function AdminNoiDungDangScreen({ initialView }: Props) {
                                 <span className="ndd-list-chip">
                                   {item.dinhDangLabel}
                                 </span>
+                                {item.laNickSeed ? (
+                                  <span className="ndd-seed-pill">Nick seed</span>
+                                ) : null}
                                 <span>
                                   {item.nguon === "user" ? "User" : "Org"}
                                   {" · "}
@@ -853,6 +861,7 @@ export function AdminNoiDungDangScreen({ initialView }: Props) {
                           "ndd-mobile-row",
                           item.dangBoost ? "is-boosted" : "",
                           item.daXacThuc ? "is-verified" : "",
+                          item.laNickSeed ? "is-nick-seed" : "",
                         ]
                           .filter(Boolean)
                           .join(" ")}
@@ -886,6 +895,9 @@ export function AdminNoiDungDangScreen({ initialView }: Props) {
                             <span className="ndd-list-chip">
                               {item.dinhDangLabel}
                             </span>
+                            {item.laNickSeed ? (
+                              <span className="ndd-seed-pill">Nick seed</span>
+                            ) : null}
                             <span>
                               {item.nguon === "user" ? "User" : "Org"} ·{" "}
                               {item.tacGiaTen ?? "—"}

@@ -73,6 +73,26 @@ async function fetchVimeoOEmbedThumbnail(embedUrl: string): Promise<string | nul
   return oEmbedThumbnail(await fetchJsonWithTimeout(endpoint));
 }
 
+/**
+ * Kích thước thật của video Vimeo qua oEmbed (`width`/`height`) — dùng để suy
+ * tỉ lệ khung read-only thay vì ép 16/9. Không đọc được pixel iframe cross-origin.
+ */
+export async function fetchVimeoOEmbedDimensions(
+  embedUrl: string,
+): Promise<{ width: number; height: number } | null> {
+  const id = extractVimeoId(embedUrl);
+  if (!id) return null;
+  const endpoint = `https://vimeo.com/api/oembed.json?url=${encodeURIComponent(
+    `https://vimeo.com/${id}`,
+  )}`;
+  const payload = await fetchJsonWithTimeout(endpoint);
+  if (!payload) return null;
+  const width = Number(payload.width);
+  const height = Number(payload.height);
+  if (!(width > 0) || !(height > 0)) return null;
+  return { width, height };
+}
+
 async function fetchSketchfabOEmbedThumbnail(
   embedUrl: string,
 ): Promise<string | null> {

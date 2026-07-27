@@ -209,11 +209,12 @@ export function partitionBlocksForSplitRail(
     return {
       railBlocks: blocks.filter(
         (b) =>
-          b.loai === "body" ||
-          b.loai === "h2" ||
-          b.loai === "h3" ||
-          b.loai === "quote" ||
-          b.loai === "spacer",
+          !isDongGhiNguonBodyBlock(b) &&
+          (b.loai === "body" ||
+            b.loai === "h2" ||
+            b.loai === "h3" ||
+            b.loai === "quote" ||
+            b.loai === "spacer"),
       ),
       mediaBlocks: blocks.filter(
         (b) => b.loai === "imgs" || b.loai === "embed",
@@ -700,9 +701,9 @@ function stripRepeatedTitlePrefix(caption: string, title: string): string {
   return rest;
 }
 
-/**
- * Caption card photo/video/article — ưu tiên blocks, bỏ đoạn trùng `title` khi
+/** Caption card photo/video/article — ưu tiên blocks, bỏ đoạn trùng `title` khi
  * tiêu đề hiện riêng (cùng logic org `OrgBaiDangJourneyCard`).
+ * Gộp body «Nguồn:…» (seed Autopilot) vào mô tả ngắn.
  */
 export function milestoneCardCaptionForDisplay(
   title: string,
@@ -711,10 +712,51 @@ export function milestoneCardCaptionForDisplay(
 ): string | null {
   const displayBody = milestoneCardBodyForDisplay(body, blocks);
   const caption = milestoneCardCaptionPlain(displayBody, blocks);
-  if (!caption) return null;
-  if (!shouldShowMilestoneCardTitle(title, blocks, body)) return caption;
-  const stripped = stripRepeatedTitlePrefix(caption, title);
+  const withNguon = gopCaptionVoiDongNguonTuBlocks(caption, blocks);
+  if (!withNguon) return null;
+  if (!shouldShowMilestoneCardTitle(title, blocks, body)) return withNguon;
+  const stripped = stripRepeatedTitlePrefix(withNguon, title);
   return stripped.trim() || null;
+}
+
+/** Body chỉ còn dòng attribution «Nguồn:» / «Giới thiệu từ …». */
+export function isDongGhiNguonBodyBlock(block: Block): boolean {
+  if (block.loai !== "body") return false;
+  const html = block.config?.html;
+  if (typeof html !== "string") return false;
+  const plain = htmlFragmentToPlainText(html).trim();
+  if (!plain) return false;
+  return (
+    /^Nguồn:\s*https?:\/\//i.test(plain) ||
+    /^Giới thiệu từ\s+/i.test(plain)
+  );
+}
+
+function extractDongGhiNguonFromBlocks(
+  blocks: ReadonlyArray<Block> | null | undefined,
+): string | null {
+  if (!blocks?.length) return null;
+  const parts: string[] = [];
+  for (const block of blocks) {
+    if (!isDongGhiNguonBodyBlock(block)) continue;
+    const html = block.config?.html;
+    if (typeof html !== "string") continue;
+    const plain = htmlFragmentToPlainText(html).trim();
+    if (plain) parts.push(plain);
+  }
+  return parts.length ? parts.join("\n\n") : null;
+}
+
+function gopCaptionVoiDongNguonTuBlocks(
+  caption: string | null,
+  blocks: ReadonlyArray<Block> | null | undefined,
+): string | null {
+  const nguon = extractDongGhiNguonFromBlocks(blocks);
+  if (!nguon) return caption;
+  const a = caption?.trim() || "";
+  if (!a) return nguon;
+  if (a.includes(nguon)) return a;
+  return `${a}\n\n${nguon}`;
 }
 
 function plainTextFromBlocks(
@@ -777,17 +819,27 @@ export function blocksForArticleCardUnfold(
   if (!blocks?.length) return [];
 
   const captionPlain = milestoneCardCaptionPlain(body, blocks)?.trim();
-  if (!captionPlain) return [...blocks];
+  const captionWithNguon = gopCaptionVoiDongNguonTuBlocks(
+    captionPlain,
+    blocks,
+  )?.trim();
 
   const result: Block[] = [];
   let leadHandled = false;
 
   for (const block of blocks) {
+    if (isDongGhiNguonBodyBlock(block)) {
+      /* Đã gộp vào caption — không render lại. */
+      continue;
+    }
     if (!leadHandled && block.loai === "body") {
       const html = block.config?.html;
       if (typeof html === "string") {
         const blockPlain = htmlFragmentToPlainText(html);
-        if (blockPlain === captionPlain) {
+        if (
+          (captionPlain && blockPlain === captionPlain) ||
+          (captionWithNguon && blockPlain === captionWithNguon)
+        ) {
           leadHandled = true;
           continue;
         }

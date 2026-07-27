@@ -1032,6 +1032,7 @@ function usePostSocial(orgId: string, post: CongDongPost, canInteract: boolean) 
       text: string,
       replyToId?: string | null,
       anhDinhKem?: string[],
+      idToChuc?: string | null,
     ) => {
       const res = await fetch(
         `/api/cong-dong/${orgId}/posts/${post.id}/comments`,
@@ -1042,6 +1043,7 @@ function usePostSocial(orgId: string, post: CongDongPost, canInteract: boolean) 
             noi_dung: text,
             id_cha: replyToId ?? null,
             anh_dinh_kem: anhDinhKem ?? [],
+            id_to_chuc: idToChuc ?? null,
           }),
         },
       );
@@ -1072,6 +1074,7 @@ function usePostSocial(orgId: string, post: CongDongPost, canInteract: boolean) 
             slug: comment.author.slug,
             tenHienThi: comment.author.tenHienThi,
             avatarId: comment.author.avatarId,
+            asOrg: comment.author.asOrg ?? null,
           },
         },
       };

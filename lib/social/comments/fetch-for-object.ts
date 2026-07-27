@@ -6,6 +6,7 @@ import {
   groupReactionsByComment,
 } from "@/lib/social/comments/build-tree";
 import { parseCommentImageIdsFromRow } from "@/lib/social/comments/attachments";
+import { loadCommentAsOrgIdentities } from "@/lib/social/comments/comment-as-org";
 import { loadCommentIdentityBadges } from "@/lib/social/comments/identity-badges";
 import type { CommentAuthor } from "@/lib/social/comments/types";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
@@ -27,6 +28,7 @@ type CommentRow = {
   da_xoa: boolean;
   ghim_luc: string | null;
   anh_dinh_kem: string[] | null;
+  id_to_chuc: string | null;
 };
 
 type ProfileRow = {
@@ -46,7 +48,7 @@ export async function fetchCommentsForSocialObject(
   const { data: cmtRows } = await admin
     .from("social_binh_luan")
     .select(
-      "id, nguoi_binh_luan, noi_dung, id_cha, tao_luc, da_xoa, ghim_luc, anh_dinh_kem",
+      "id, nguoi_binh_luan, noi_dung, id_cha, tao_luc, da_xoa, ghim_luc, anh_dinh_kem, id_to_chuc",
     )
     .eq("loai_doi_tuong", loaiDoiTuong)
     .eq("id_doi_tuong", idDoiTuong)
@@ -57,22 +59,33 @@ export async function fetchCommentsForSocialObject(
   if (rows.length === 0) return [];
 
   const userIds = [...new Set(rows.map((r) => r.nguoi_binh_luan))];
+  const orgIds = [
+    ...new Set(
+      rows
+        .map((r) => r.id_to_chuc)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
   const commentIds = rows.map((r) => r.id);
 
-  const [{ data: profiles }, badges, reactionResult] = await Promise.all([
-    admin
-      .from("user_nguoi_dung")
-      .select("id, slug, ten_hien_thi, avatar_id")
-      .in("id", userIds)
-      .returns<ProfileRow[]>(),
-    loadCommentIdentityBadges(userIds),
-    admin
-      .from("social_reaction")
-      .select("id_doi_tuong, emoji, id_nguoi_dung")
-      .eq("loai_doi_tuong", "binh_luan")
-      .in("id_doi_tuong", commentIds)
-      .returns<Array<{ id_doi_tuong: string; emoji: string; id_nguoi_dung: string }>>(),
-  ]);
+  const [{ data: profiles }, badges, orgsById, reactionResult] =
+    await Promise.all([
+      admin
+        .from("user_nguoi_dung")
+        .select("id, slug, ten_hien_thi, avatar_id")
+        .in("id", userIds)
+        .returns<ProfileRow[]>(),
+      loadCommentIdentityBadges(userIds),
+      loadCommentAsOrgIdentities(orgIds),
+      admin
+        .from("social_reaction")
+        .select("id_doi_tuong, emoji, id_nguoi_dung")
+        .eq("loai_doi_tuong", "binh_luan")
+        .in("id_doi_tuong", commentIds)
+        .returns<
+          Array<{ id_doi_tuong: string; emoji: string; id_nguoi_dung: string }>
+        >(),
+    ]);
 
   const reactionRows = reactionResult.error ? [] : (reactionResult.data ?? []);
 
@@ -81,7 +94,10 @@ export async function fetchCommentsForSocialObject(
 
   const threads = buildCommentThreads(rows, (row, replies) => {
     const p = profileById[row.nguoi_binh_luan];
-    const badge = badges.get(row.nguoi_binh_luan) ?? null;
+    const asOrg = row.id_to_chuc
+      ? orgsById.get(row.id_to_chuc) ?? null
+      : null;
+    const badge = asOrg ? null : (badges.get(row.nguoi_binh_luan) ?? null);
     const author: CommentAuthor | null = p
       ? {
           id: p.id,
@@ -89,6 +105,16 @@ export async function fetchCommentsForSocialObject(
           tenHienThi: p.ten_hien_thi?.trim() || p.slug,
           avatarId: p.avatar_id,
           badge,
+          asOrg: asOrg
+            ? {
+                id: asOrg.id,
+                slug: asOrg.slug,
+                ten: asOrg.ten,
+                loaiToChuc: asOrg.loaiToChuc,
+                avatarId: asOrg.avatarId,
+                href: asOrg.href,
+              }
+            : null,
         }
       : null;
 

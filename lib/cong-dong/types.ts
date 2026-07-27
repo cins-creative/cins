@@ -257,6 +257,14 @@ export type CongDongComment = {
     slug: string;
     tenHienThi: string;
     avatarId: string | null;
+    asOrg?: {
+      id: string;
+      slug: string;
+      ten: string;
+      loaiToChuc: string;
+      avatarId: string | null;
+      href: string | null;
+    } | null;
   };
 };
 

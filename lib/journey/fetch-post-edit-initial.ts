@@ -9,6 +9,7 @@ import { parseServerBlocks } from "@/lib/journey/parse-server-blocks";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { sanitizePersistableCoverId } from "@/lib/truong/image-ref";
 import { loadVisibilityCustomStates } from "@/lib/journey/milestone-visibility-custom";
+import { isCotMocScheduledDraft } from "@/lib/journey/cot-moc-schedule";
 
 type TacPhamRow = {
   id: string;
@@ -28,6 +29,7 @@ type CotMocRow = {
   che_do_hien_thi: Visibility | null;
   thoi_diem: string | null;
   mo_ta: string | null;
+  tao_luc: string | null;
 };
 
 export type PostEditInitialResult =
@@ -116,7 +118,9 @@ export async function fetchPostEditInitial(params: {
 
   const { data: cm, error: cmErr } = await admin
     .from("content_cot_moc")
-    .select("id, id_nguoi_dung, loai_moc, che_do_hien_thi, thoi_diem, mo_ta")
+    .select(
+      "id, id_nguoi_dung, loai_moc, che_do_hien_thi, thoi_diem, mo_ta, tao_luc",
+    )
     .eq("id", firstCotMocId)
     .maybeSingle<CotMocRow>();
 
@@ -189,6 +193,9 @@ export async function fetchPostEditInitial(params: {
       ownerVaiTro: ownerRow?.vaiTro ?? "",
       coAuthors,
       personalFilterIds,
+      orgBaiDangSchedulePublishAt: isCotMocScheduledDraft(cm.tao_luc)
+        ? cm.tao_luc
+        : null,
     },
   };
 }

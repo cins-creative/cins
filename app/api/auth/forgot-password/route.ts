@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { normalizeDevBindAllOrigin } from "@/lib/auth/auth-origin";
+import { EMAIL_OTP_LENGTH } from "@/lib/auth/email-otp";
 import {
   clearRecoveryEmailCookie,
   setRecoveryEmailCookie,
@@ -16,8 +17,7 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 /* Thông báo chung — không lộ email/username có tồn tại. */
-const GENERIC_OK =
-  "Nếu tài khoản tồn tại, chúng tôi đã gửi mã 6 số tới email liên kết. Kiểm tra hộp thư và mục Spam/Quảng cáo.";
+const GENERIC_OK = `Nếu tài khoản tồn tại, chúng tôi đã gửi mã ${EMAIL_OTP_LENGTH} số tới email liên kết. Kiểm tra hộp thư và mục Spam/Quảng cáo.`;
 
 const WINDOW_MS = 60_000;
 const MAX_PER_WINDOW = 5;

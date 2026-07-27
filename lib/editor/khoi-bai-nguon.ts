@@ -22,7 +22,7 @@ export function nhanNenTang(nenTang: NenTangNguon): string {
   return "nguồn ngoài";
 }
 
-/** Dòng attribution — tránh giọng “tôi vẽ / portfolio của mình”. */
+/** Dòng attribution — ngắn: «Nguồn:» + URL. */
 export function taoDongGhiNguon(params: {
   urlNguon: string;
   nenTang?: NenTangNguon;
@@ -31,21 +31,26 @@ export function taoDongGhiNguon(params: {
 }): string {
   const override = params.dongGhiNguon?.trim();
   if (override) return override;
+  return `Nguồn: ${params.urlNguon.trim()}`;
+}
 
-  const nen = params.nenTang ?? doanNenTangTuUrl(params.urlNguon);
-  const nhan = nhanNenTang(nen);
-  const tacGia = params.tenTacGiaNguon?.trim();
-  if (tacGia) {
-    return `Giới thiệu từ ${nhan} — ${tacGia}. Xem bản gốc: ${params.urlNguon.trim()}`;
-  }
-  return `Giới thiệu từ ${nhan}. Xem bản gốc: ${params.urlNguon.trim()}`;
+/** Gộp dòng nguồn vào mô tả ngắn (một khối caption, không tách body). */
+export function gopMoTaVoiDongNguon(
+  moTa: string | null | undefined,
+  dongNguon: string | null | undefined,
+): string {
+  const a = moTa?.trim() || "";
+  const b = dongNguon?.trim() || "";
+  if (!b) return a;
+  if (!a) return b;
+  if (a.includes(b)) return a;
+  return `${a}\n\n${b}`;
 }
 
 /**
- * Khối mặc định:
- * 1. body — mô tả ngắn
- * 2. embed — URL nguồn (card link)
- * 3. body — dòng ghi nguồn
+ * Khối mặc định (fallback khi chưa có ảnh CF):
+ * 1. embed — URL nguồn (card link)
+ * Caption / dòng Nguồn → `mo_ta` (caller dùng `gopMoTaVoiDongNguon`).
  */
 export function taoKhoiBaiNguon(params: {
   moTa?: string | null;
@@ -54,38 +59,174 @@ export function taoKhoiBaiNguon(params: {
   tenTacGiaNguon?: string | null;
   dongGhiNguon?: string | null;
 }): Block[] {
+  void params.moTa;
+  void params.nenTang;
+  void params.tenTacGiaNguon;
+  void params.dongGhiNguon;
   const url = params.urlNguon.trim();
-  const moTa = params.moTa?.trim() || "";
-  const ghiNguon = taoDongGhiNguon({
-    urlNguon: url,
-    nenTang: params.nenTang,
-    tenTacGiaNguon: params.tenTacGiaNguon,
-    dongGhiNguon: params.dongGhiNguon,
-  });
+  return [
+    {
+      id: "b-0",
+      loai: "embed",
+      thu_tu: 0,
+      config: { url },
+    },
+  ];
+}
+
+export type AnhAlbumNguon = {
+  /** Cloudflare Images id (ưu tiên) hoặc URL https. */
+  seed: string;
+  width?: number | null;
+  height?: number | null;
+};
+
+/**
+ * Album ảnh (giống MediaCompose photo):
+ * - mỗi ảnh = 1 block `imgs` layout full
+ * - mô tả + dòng Nguồn → `mo_ta` (caller `gopMoTaVoiDongNguon`)
+ * → resolvePostDisplayKind = album (media caption).
+ *
+ * `albumLayout`: preset feed (Behance → `stack` xếp dọc như trang gốc;
+ * bỏ trống → justified mặc định khi gom grid).
+ */
+export function taoKhoiBaiAlbumNguon(params: {
+  anh: AnhAlbumNguon[];
+  moTa?: string | null;
+  urlNguon: string;
+  nenTang?: NenTangNguon;
+  tenTacGiaNguon?: string | null;
+  dongGhiNguon?: string | null;
+  albumLayout?: "justified" | "masonry" | "columns2" | "square" | "stack" | null;
+}): Block[] {
+  void params.moTa;
+  void params.urlNguon;
+  void params.tenTacGiaNguon;
+  void params.dongGhiNguon;
+  const anh = params.anh.filter((a) => a.seed?.trim());
+  if (!anh.length) {
+    return taoKhoiBaiNguon(params);
+  }
+
+  const albumLayout = params.albumLayout
+    ? params.albumLayout
+    : params.nenTang === "behance"
+      ? "stack"
+      : null;
 
   const blocks: Block[] = [];
   let i = 0;
-  if (moTa) {
+
+  for (const item of anh) {
+    const seed = item.seed.trim();
+    const cfg: Record<string, unknown> = {
+      layout: "full",
+      rounded: false,
+      gap: 2,
+      cap: "",
+      imgs: [seed],
+      albumGridCell: true,
+    };
+    if (albumLayout) cfg.albumLayout = albumLayout;
+    if (item.width && item.width > 0) cfg.width = item.width;
+    if (item.height && item.height > 0) cfg.height = item.height;
     blocks.push({
       id: `b-${i}`,
-      loai: "body",
+      loai: "imgs",
       thu_tu: i,
-      config: { html: moTa },
+      config: cfg,
     });
     i += 1;
   }
-  blocks.push({
-    id: `b-${i}`,
-    loai: "embed",
-    thu_tu: i,
-    config: { url },
-  });
-  i += 1;
-  blocks.push({
-    id: `b-${i}`,
-    loai: "body",
-    thu_tu: i,
-    config: { html: ghiNguon },
-  });
+
+  return blocks;
+}
+
+/**
+ * Behance: giữ thứ tự module (chữ → ảnh → video embed…).
+ * Dòng Nguồn → `mo_ta` (caller `gopMoTaVoiDongNguon`), không tách body.
+ * Video (YouTube/Vimeo) → block `embed` tự nhúng.
+ */
+export function taoKhoiBaiBehanceNguon(params: {
+  modules: Array<
+    | { kind: "text"; text: string }
+    | {
+        kind: "image";
+        seed: string;
+        width?: number | null;
+        height?: number | null;
+      }
+    | { kind: "video"; url: string }
+  >;
+  urlNguon: string;
+  tenTacGiaNguon?: string | null;
+  dongGhiNguon?: string | null;
+}): Block[] {
+  const blocks: Block[] = [];
+  let i = 0;
+  let coMedia = false;
+
+  for (const mod of params.modules) {
+    if (mod.kind === "text") {
+      const text = mod.text.trim();
+      if (!text) continue;
+      blocks.push({
+        id: `b-${i}`,
+        loai: "body",
+        thu_tu: i,
+        config: { html: text.slice(0, 8000) },
+      });
+      i += 1;
+      continue;
+    }
+    if (mod.kind === "video") {
+      const url = mod.url.trim();
+      if (!url) continue;
+      coMedia = true;
+      blocks.push({
+        id: `b-${i}`,
+        loai: "embed",
+        thu_tu: i,
+        config: { url },
+      });
+      i += 1;
+      continue;
+    }
+    const seed = mod.seed.trim();
+    if (!seed) continue;
+    coMedia = true;
+    const cfg: Record<string, unknown> = {
+      layout: "full",
+      rounded: false,
+      gap: 2,
+      cap: "",
+      imgs: [seed],
+      albumGridCell: true,
+      albumLayout: "stack",
+    };
+    if (mod.width && mod.width > 0) cfg.width = mod.width;
+    if (mod.height && mod.height > 0) cfg.height = mod.height;
+    blocks.push({
+      id: `b-${i}`,
+      loai: "imgs",
+      thu_tu: i,
+      config: cfg,
+    });
+    i += 1;
+  }
+
+  if (!coMedia) {
+    return taoKhoiBaiNguon({
+      moTa: params.modules
+        .filter((m): m is { kind: "text"; text: string } => m.kind === "text")
+        .map((m) => m.text)
+        .join("\n\n"),
+      urlNguon: params.urlNguon,
+      nenTang: "behance",
+      tenTacGiaNguon: params.tenTacGiaNguon,
+      dongGhiNguon: params.dongGhiNguon,
+    });
+  }
+
   return blocks;
 }

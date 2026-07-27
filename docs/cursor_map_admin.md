@@ -63,7 +63,7 @@ Tổ chức
 Người dùng
   /admin/nguoi-dung          → user_nguoi_dung + user_quyen_he_thong (phân quyền hệ thống)
   /admin/tai-khoan-ai        → **Autopilot seeding** (10 nick AI curator)
-      · Tabs: Tổng quan · Nick · Nguồn · Hàng đợi · Duyệt · Đã đăng
+      · Tabs: Tổng quan · Pipeline (Hàng đợi → Chờ duyệt → Đã duyệt → Đã đăng) · Nick
       · Gate: `canManageUsers` (super_admin | admin) — curator không
       · API: `GET /api/admin/autopilot?view=` · `POST /api/admin/autopilot/action`
       · Lib: `lib/admin/autopilot.ts` · UI `AdminTaiKhoanAiScreen`

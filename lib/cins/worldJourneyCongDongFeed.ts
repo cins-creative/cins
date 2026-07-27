@@ -168,11 +168,13 @@ export async function fetchWorldJourneyMemberCongDongMilestones(
   if (allowedOrgIds.length === 0) return [];
 
   const admin = createServiceRoleClient();
+  const nowIso = new Date().toISOString();
   const { data } = await admin
     .from("content_cot_moc")
     .select(COT_MOC_FEED_SELECT)
     .in("id_to_chuc", allowedOrgIds)
     .eq("che_do_hien_thi", CHE_DO_MOC_CONG_DONG)
+    .lte("tao_luc", nowIso)
     .order("tao_luc", { ascending: false })
     .limit(QUERY_LIMIT)
     .returns<CotMocFeedRow[]>();
@@ -209,11 +211,13 @@ export async function fetchWorldJourneySuggestedCongDongMilestones(
 
   if (congKhaiIds.length === 0) return [];
 
+  const nowIso = new Date().toISOString();
   const { data } = await admin
     .from("content_cot_moc")
     .select(COT_MOC_FEED_SELECT)
     .in("id_to_chuc", congKhaiIds)
     .eq("che_do_hien_thi", CHE_DO_MOC_CONG_DONG)
+    .lte("tao_luc", nowIso)
     .order("tao_luc", { ascending: false })
     .limit(safeLimit * 3)
     .returns<CotMocFeedRow[]>();

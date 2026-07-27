@@ -29,20 +29,44 @@ import {
 
 type Props = {
   block: Block;
+  /** Gallery toàn bài — pool + controlled index từ PostBlockRenderer. */
+  lightboxImages?: GridImage[];
+  lightboxIndex?: number | null;
+  onLightboxIndexChange?: (index: number | null) => void;
+  lightboxIndexOffset?: number;
+  /** Parent đã mount ImageLightbox. */
+  suppressLightbox?: boolean;
 };
 
 /**
  * Block `imgs` read-only (layout full/grid3/justified…) — giữ markup `.b-imgs`
  * như EditorView. Justified dùng `.imgwrap-jrow` + aspect thật (không crop).
  */
-export function PostReadOnlyImgs({ block }: Props) {
+export function PostReadOnlyImgs({
+  block,
+  lightboxImages: lightboxImagesProp,
+  lightboxIndex: controlledLightboxIndex,
+  onLightboxIndexChange,
+  lightboxIndexOffset = 0,
+  suppressLightbox = false,
+}: Props) {
   const cfg = block.config || {};
   const layout: ImgLayout = normalizeLegacyLayout(cfg.layout);
   const rounded = !!cfg.rounded;
   const gap = normalizeImgSlotGap(cfg.gap);
   const cap = typeof cfg.cap === "string" ? cfg.cap : "";
-  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [internalLightboxIndex, setInternalLightboxIndex] = useState<
+    number | null
+  >(null);
   const [aspectBySlot, setAspectBySlot] = useState<Record<number, number>>({});
+
+  const lightboxControlled = typeof onLightboxIndexChange === "function";
+  const lightboxIndex = lightboxControlled
+    ? (controlledLightboxIndex ?? null)
+    : internalLightboxIndex;
+  const setLightboxIndex = lightboxControlled
+    ? onLightboxIndexChange
+    : setInternalLightboxIndex;
 
   const rawImgs = Array.isArray(cfg.imgs)
     ? (cfg.imgs as unknown[])
@@ -84,6 +108,11 @@ export function PostReadOnlyImgs({ block }: Props) {
       ? Math.round(cfg.height)
       : GRID_IMAGE_DEFAULT_HEIGHT;
   const gridImages: GridImage[] = imgs.map((id) => ({ id, width, height }));
+  const lightboxPool = lightboxImagesProp ?? gridImages;
+
+  const openAt = (localIndex: number) => {
+    setLightboxIndex(localIndex + lightboxIndexOffset);
+  };
 
   const renderSlot = (
     seed: string,
@@ -96,7 +125,7 @@ export function PostReadOnlyImgs({ block }: Props) {
       className="ph is-lightbox"
       aria-label="Xem ảnh lớn"
       style={style}
-      onClick={() => setLightboxIndex(index)}
+      onClick={() => openAt(index)}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
@@ -152,9 +181,9 @@ export function PostReadOnlyImgs({ block }: Props) {
           : imgs.map((seed, i) => renderSlot(seed, i))}
       </div>
       {cap ? <div className="img-cap img-cap-ro">{cap}</div> : null}
-      {lightboxIndex !== null ? (
+      {!suppressLightbox && lightboxIndex !== null ? (
         <ImageLightbox
-          images={gridImages}
+          images={lightboxPool}
           index={lightboxIndex}
           onClose={() => setLightboxIndex(null)}
           onIndexChange={setLightboxIndex}

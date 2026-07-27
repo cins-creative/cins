@@ -7,7 +7,11 @@ import {
   setRestoreHintOnResponse,
   upsertAccount,
 } from "@/lib/auth/account-vault";
-import { mapOtpError } from "@/lib/auth/email-otp";
+import {
+  EMAIL_OTP_DIGIT_PATTERN,
+  EMAIL_OTP_LENGTH,
+  mapOtpError,
+} from "@/lib/auth/email-otp";
 import { normalizeOAuthReturnPath } from "@/lib/auth/oauth-return-path";
 import {
   clearRecoveryEmailCookie,
@@ -16,6 +20,7 @@ import {
 import {
   appendSetCookieHeaders,
   createSupabaseRouteHandlerClient,
+  flushDeferredAuthCookies,
 } from "@/lib/supabase/route-handler";
 
 export const dynamic = "force-dynamic";
@@ -84,9 +89,9 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  if (!/^\d{6}$/.test(token)) {
+  if (!EMAIL_OTP_DIGIT_PATTERN.test(token)) {
     return NextResponse.json(
-      { error: "Nhập đủ 6 số trong email." },
+      { error: `Nhập đủ ${EMAIL_OTP_LENGTH} số trong email.` },
       { status: 400 },
     );
   }
@@ -128,6 +133,8 @@ export async function POST(request: NextRequest) {
       { status: 422 },
     );
   }
+
+  await flushDeferredAuthCookies();
 
   const { data: profile } = await supabase
     .from("user_nguoi_dung")

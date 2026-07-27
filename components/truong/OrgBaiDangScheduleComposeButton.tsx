@@ -202,9 +202,6 @@ export function OrgBaiDangScheduleComposeButton({
                   </span>
                   <div className="org-compose-schedule-header-text">
                     <span className="org-compose-schedule-title">Hẹn lịch đăng</span>
-                    <span className="org-compose-schedule-subtitle">
-                      Bài chỉ hiện trên trang trường khi đến giờ
-                    </span>
                   </div>
                 </div>
                 <button

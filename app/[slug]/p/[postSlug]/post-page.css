@@ -86,6 +86,8 @@
   flex: 1;
   min-height: 0;
   height: 100%;
+  width: 100%;
+  gap: 0;
   border: none;
   border-radius: 0;
   box-shadow: none;
@@ -234,13 +236,13 @@
 .j-post-page:has(.post-canvas--media.post-canvas--split)
   .post-view-content--media:has(.image-grid--single)
   .image-grid--single {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
+  width: auto;
   max-width: 100%;
-  height: 100%;
+  height: auto;
   max-height: 100%;
   min-height: 0;
   margin: 0 auto;
@@ -249,33 +251,38 @@
   overflow: hidden;
 }
 
+/* Portrait: cao tối đa khung cinema, ngang theo tỉ lệ gốc — không letterbox ngang. */
 .j-post-page:has(.post-canvas--media.post-canvas--split)
   .post-view-content--media:has(.image-grid--single)
   .image-grid--single.is-portrait {
-  width: min(
-    100%,
-    calc(
-      100% * var(--media-natural-aspect, var(--media-canvas-max-aspect)) /
-        var(--media-canvas-max-aspect)
-    )
-  );
-  max-height: 100%;
+  width: auto;
   height: 100%;
-  aspect-ratio: auto;
+  max-width: 100%;
+  max-height: 100%;
+  aspect-ratio: var(--media-natural-aspect, 0.75);
+}
+
+/* Landscape: rộng tối đa, cao theo tỉ lệ, không vượt khung. */
+.j-post-page:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media:has(.image-grid--single)
+  .image-grid--single:not(.is-portrait) {
+  width: 100%;
+  height: auto;
+  max-height: 100%;
+  aspect-ratio: var(--media-natural-aspect, 16 / 9);
 }
 
 .j-post-page:has(.post-canvas--media.post-canvas--split)
   .post-view-content--media:has(.image-grid--single)
   .image-grid--single
   .image-grid-cell {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: block;
   width: 100%;
   height: 100%;
   max-width: 100%;
   max-height: 100%;
   min-height: 0;
+  padding: 0;
   background: transparent;
 }
 
@@ -295,8 +302,8 @@
   .image-grid-cell
   img {
   display: block;
-  width: auto;
-  height: auto;
+  width: 100%;
+  height: 100%;
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
@@ -385,6 +392,71 @@
   height: auto;
   display: flex;
   flex-direction: column;
+}
+
+.j-post-page:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media
+  .image-grid--stack {
+  gap: 2px;
+  background: #000;
+}
+
+.j-post-page:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media
+  .image-grid--stack
+  .image-grid-cell {
+  width: 100%;
+  height: auto;
+  aspect-ratio: auto !important;
+  background: #000;
+  position: relative;
+}
+
+.j-post-page:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media
+  .image-grid--stack
+  .image-grid-cell
+  img {
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+  object-fit: contain;
+  object-position: center top;
+  display: block;
+}
+
+.j-post-page:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media
+  .image-grid--stack
+  .image-grid-cell--tall {
+  max-height: min(80vh, 960px);
+  overflow: hidden;
+}
+
+.j-post-page:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media
+  .image-grid--stack
+  .image-grid-cell--tall
+  img {
+  width: 100%;
+  height: 100%;
+  min-height: min(80vh, 960px);
+  object-fit: cover;
+  object-position: center top;
+}
+
+.j-post-page:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media
+  .image-grid--stack
+  .image-grid-cell--tall::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 72px;
+  pointer-events: none;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.55), transparent);
 }
 
 .j-post-page:has(.post-canvas--media.post-canvas--split)
@@ -755,7 +827,8 @@
   --post-rail-w: 340px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) var(--post-rail-w);
-  gap: 10px;
+  gap: 0;
+  width: 100%;
   align-items: stretch;
   border: none;
   border-radius: 0;
@@ -768,7 +841,8 @@
   grid-column: 1;
   grid-row: 1;
   min-width: 0;
-  padding: 28px 32px 32px;
+  /* L/R = 1/3 của 32px trước đây */
+  padding: 28px calc(32px / 3) 32px;
   border-radius: 16px;
   background: var(--bg-surface, #ffffff);
 }
@@ -1536,12 +1610,14 @@
   margin-top: 14px;
 }
 
+/* Attribution / body trên rail — đồng bộ `.jcard-desc` (không thụt, không 13px). */
 .cins-post-view .post-rail-body .post-blocks-fb,
 .cins-post-view .post-rail-body .blocks {
   padding: 0;
 }
 
-.cins-post-view .post-rail-body .block {
+.cins-post-view .post-rail-body .block,
+.cins-post-view .post-rail-body .block[data-block-type="body"] {
   margin: 0;
   padding: 0;
 }
@@ -1550,29 +1626,46 @@
   padding: 0;
 }
 
-.cins-post-view .post-rail-body .b-text-ro {
-  margin-top: 0;
-  font-family: var(--font-sans);
-  font-size: 13px;
+.cins-post-view .post-rail-body .b-text-ro,
+.cins-post-view .post-rail-body .block[data-block-type="body"] .b-text-ro {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-sans, "Be Vietnam Pro", system-ui, sans-serif);
+  font-size: 15px;
   font-weight: 400;
-  line-height: 1.4;
-  letter-spacing: normal;
-  color: var(--ink-body);
-  white-space: pre-wrap;
+  line-height: 1.55;
+  letter-spacing: -0.01em;
+  color: var(--jcard-ink2, var(--ink-body));
+  white-space: normal;
   word-break: break-word;
 }
 
+.cins-post-view .post-rail-body .b-text-ro .mota-md-p {
+  margin: 0;
+  color: inherit;
+  font: inherit;
+}
+
+.cins-post-view .post-rail-body .b-text-ro .mota-md-p + .mota-md-p {
+  margin-top: 0.65em;
+}
+
+.cins-post-view .post-rail-body .b-text-ro a.mota-md-a {
+  color: var(--cins-blue, #1f74c9);
+  font-weight: 500;
+}
+
 .cins-post-view .post-rail-body .b-text-ro.h2 {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
-  line-height: 1.4;
+  line-height: 1.55;
   color: var(--ink-display);
 }
 
 .cins-post-view .post-rail-body .b-text-ro.h3 {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
-  line-height: 1.4;
+  line-height: 1.55;
   color: var(--ink-display);
 }
 
@@ -1612,8 +1705,124 @@
 .cins-post-view .post-rail-blk--actions {
   position: relative;
   overflow: visible;
-  padding-top: 10px;
-  padding-bottom: 10px;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  z-index: 1;
+}
+
+/*
+ * Rail hẹp (~300px) — 1 hàng đều cột (Thích · Dislike · BL · Lưu · Share),
+ * không wrap như timeline card rộng.
+ */
+.cins-post-view .post-rail-blk--actions .jcard-actions {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 2px;
+  width: 100%;
+  margin: 0;
+  padding: 4px;
+  border: none;
+  border-radius: 12px;
+  background: var(--neutral-50, #f5f6f8);
+  overflow: visible;
+}
+
+.cins-post-view .post-rail-blk--actions:has(.j-reaction-picker),
+.cins-post-view .post-rail-blk--actions:has(.post-byline-share-wrap.is-open),
+.cins-post-view .post-rail-blk--actions:has(.is-picker-open) {
+  z-index: 50;
+  overflow: visible;
+}
+
+/* Bảng emoji trên rail — nền đặc, emoji không kế thừa màu muted của action-btn. */
+.cins-post-view .post-rail-blk--actions .j-reaction-wrap:has(> .j-reaction-picker) {
+  position: relative;
+  z-index: 60;
+}
+
+.cins-post-view .post-rail-blk--actions .j-reaction-picker {
+  z-index: 70;
+  background: #ffffff;
+  border: 1px solid var(--border, rgba(15, 23, 42, 0.1));
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18);
+  color: #0f172a;
+  opacity: 1;
+  isolation: isolate;
+}
+
+.cins-post-view .post-rail-blk--actions .j-reaction-picker-opt,
+.cins-post-view .post-rail-blk--actions .j-reaction-picker-opt-emoji {
+  opacity: 1;
+  filter: none;
+  color: initial;
+  -webkit-text-fill-color: initial;
+}
+
+:root[data-theme="dark"] .cins-post-view .post-rail-blk--actions .j-reaction-picker {
+  background: var(--bg-surface, #1a1b1e);
+  color: var(--ink-display, #f8fafc);
+}
+
+.cins-post-view .post-rail-blk--actions .jcard-actions > .action-btn,
+.cins-post-view .post-rail-blk--actions .jcard-actions > .action-btn--split,
+.cins-post-view .post-rail-blk--actions .jcard-actions > a.action-btn,
+.cins-post-view .post-rail-blk--actions .jcard-actions > .j-reaction-wrap,
+.cins-post-view .post-rail-blk--actions .jcard-actions > .jcard-share,
+.cins-post-view .post-rail-blk--actions .jcard-actions > .post-byline-share-wrap {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: none;
+  justify-content: center;
+}
+
+.cins-post-view .post-rail-blk--actions .jcard-actions .j-reaction-wrap,
+.cins-post-view .post-rail-blk--actions .jcard-actions .jcard-share,
+.cins-post-view .post-rail-blk--actions .jcard-actions .post-byline-share-wrap {
+  display: flex;
+  align-items: stretch;
+}
+
+.cins-post-view .post-rail-blk--actions .jcard-actions .j-reaction-wrap > .action-btn,
+.cins-post-view .post-rail-blk--actions .jcard-actions .jcard-share > .share-btn,
+.cins-post-view .post-rail-blk--actions .jcard-actions .jcard-share > .post-byline-act,
+.cins-post-view .post-rail-blk--actions .jcard-actions .post-byline-share-wrap > .share-btn,
+.cins-post-view .post-rail-blk--actions .jcard-actions .post-byline-share-wrap > .post-byline-act {
+  flex: 1 1 auto;
+  width: 100%;
+  justify-content: center;
+}
+
+.cins-post-view .post-rail-blk--actions .jcard-actions .action-btn,
+.cins-post-view .post-rail-blk--actions .jcard-actions .share-btn,
+.cins-post-view .post-rail-blk--actions .jcard-actions .action-btn--split {
+  gap: 3px;
+  min-height: 40px;
+  padding: 6px 2px;
+  border-radius: 9px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.cins-post-view .post-rail-blk--actions .jcard-actions .action-btn:hover,
+.cins-post-view .post-rail-blk--actions .jcard-actions .share-btn:hover,
+.cins-post-view .post-rail-blk--actions .jcard-actions .action-btn--split:hover {
+  background: var(--bg-surface, #fff);
+}
+
+.cins-post-view .post-rail-blk--actions .jcard-actions .action-btn-count,
+.cins-post-view .post-rail-blk--actions .jcard-actions .action-btn-count--static {
+  min-width: 0;
+  padding: 0;
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.cins-post-view .post-rail-blk--actions .jcard-actions .action-spacer {
+  display: none;
 }
 
 .cins-post-view .post-rail-blk--actions .post-byline-actions {
@@ -1707,8 +1916,13 @@
 .cins-post-view.post-canvas--split .post-view-rail:has(.post-byline-share-wrap.is-open),
 .cins-post-view .post-canvas--split .post-view-rail:has(.post-byline-share-wrap.is-open),
 .cins-post-view.post-canvas--split .post-rail-scroll:has(.post-byline-share-wrap.is-open),
-.cins-post-view .post-canvas--split .post-rail-scroll:has(.post-byline-share-wrap.is-open) {
+.cins-post-view .post-canvas--split .post-rail-scroll:has(.post-byline-share-wrap.is-open),
+.cins-post-view.post-canvas--split .post-view-rail:has(.j-reaction-picker),
+.cins-post-view .post-canvas--split .post-view-rail:has(.j-reaction-picker),
+.cins-post-view.post-canvas--split .post-rail-scroll:has(.j-reaction-picker),
+.cins-post-view .post-canvas--split .post-rail-scroll:has(.j-reaction-picker) {
   overflow: visible;
+  z-index: 40;
 }
 
 .cins-post-view .post-rail-menu.j-m-menu {
@@ -2111,6 +2325,8 @@
 .cins-post-view.post-canvas--media.post-canvas--split .post-view-layout--2col,
 .cins-post-view .post-canvas--media.post-canvas--split .post-view-layout--2col {
   min-height: 0;
+  width: 100%;
+  gap: 0;
   align-items: stretch;
   background: var(--bg-surface, #ffffff);
 }
@@ -2229,18 +2445,28 @@
   margin-bottom: 24px;
 }
 
-.cins-post-view.post-canvas--media .post-blocks-fb,
-.cins-post-view .post-canvas--media .post-blocks-fb {
-  padding: 0 12px;
+/* Chỉ cột nội dung media — không áp padding lên blocks trong rail. */
+.cins-post-view.post-canvas--media .post-view-content .post-blocks-fb,
+.cins-post-view .post-canvas--media .post-view-content .post-blocks-fb {
+  padding: 0;
 }
 
-.cins-post-view.post-canvas--media .post-blocks-fb .block[data-block-type="body"],
-.cins-post-view .post-canvas--media .post-blocks-fb .block[data-block-type="body"] {
+.cins-post-view.post-canvas--media .post-view-content .post-blocks-fb .block[data-block-type="body"],
+.cins-post-view .post-canvas--media .post-view-content .post-blocks-fb .block[data-block-type="body"] {
   margin-bottom: 20px;
 }
 
-.cins-post-view.post-canvas--media .post-blocks-fb .block[data-block-type="body"] .b-text-ro,
-.cins-post-view .post-canvas--media .post-blocks-fb .block[data-block-type="body"] .b-text-ro {
+.cins-post-view.post-canvas--media
+  .post-view-content
+  .post-blocks-fb
+  .block[data-block-type="body"]
+  .b-text-ro,
+.cins-post-view
+  .post-canvas--media
+  .post-view-content
+  .post-blocks-fb
+  .block[data-block-type="body"]
+  .b-text-ro {
   padding: 0 4px;
 }
 
@@ -2294,6 +2520,22 @@
   .block-image-grid
   .image-grid-cell
   img {
+  border-radius: 0;
+}
+
+/*
+ * Stack album / permalink thường (không phải post-canvas--media) —
+ * mọi block media trong cột nội dung cũng không bo góc.
+ */
+.cins-post-view .post-view-content .image-grid,
+.cins-post-view .post-view-content .image-grid-cell,
+.cins-post-view .post-view-content .image-grid-cell img,
+.cins-post-view .post-view-content .imgwrap,
+.cins-post-view .post-view-content .imgwrap.rounded,
+.cins-post-view .post-view-content .imgwrap .ph,
+.cins-post-view .post-view-content .imgwrap .ph img,
+.cins-post-view .post-view-content .b-embed-ro,
+.cins-post-view .post-view-content .b-embed.b-embed-ro {
   border-radius: 0;
 }
 
@@ -2452,6 +2694,12 @@
 }
 .cins-post-view .post-byline-foot .post-byline-action {
   align-self: flex-start;
+}
+.cins-post-view .post-byline-foot .jcard-actions {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
 }
 .cins-post-view .post-byline--sidebar .post-byline-foot {
   gap: 10px;
@@ -4062,6 +4310,16 @@
   overflow: visible;
   z-index: 6;
 }
+.cins-post-view .post-comments-v1 .post-comments-compose:has(.post-comments-identity.is-open) {
+  overflow: visible;
+  z-index: 8;
+}
+.cins-post-view .post-comments-v1 .post-comments-form:has(.post-comments-identity.is-open),
+.cins-post-view .post-comments-v1:has(.post-comments-identity.is-open) {
+  position: relative;
+  z-index: 8;
+  overflow: visible;
+}
 .cins-post-view .post-comments-v1 .post-comments-compose:focus-within {
   border-color: var(--cins-blue, #1f74c9);
   box-shadow: 0 0 0 3px rgba(31, 116, 201, 0.12);
@@ -4136,6 +4394,162 @@
 .cins-post-view .post-comments-v1 .post-comments-compose-input-wrap .post-comments-textarea {
   flex: 1;
   min-width: 0;
+}
+.cins-post-view .post-comments-v1 .post-comments-identity {
+  position: relative;
+  flex-shrink: 0;
+  align-self: center;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+  line-height: 0;
+}
+.cins-post-view .post-comments-v1 .post-comments-identity-trigger {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 999px;
+  color: var(--ink-muted, #6b7280);
+  line-height: 0;
+  vertical-align: middle;
+}
+.cins-post-view .post-comments-v1 .post-comments-identity-trigger:hover:not(:disabled),
+.cins-post-view .post-comments-v1 .post-comments-identity.is-open .post-comments-identity-trigger {
+  color: var(--cins-blue, #1f74c9);
+}
+.cins-post-view .post-comments-v1 .post-comments-identity-trigger:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.cins-post-view .post-comments-v1 .post-comments-identity-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--cins-blue-soft, #e8f1fb);
+  color: var(--cins-blue-dark, #0f4d8a);
+  font-size: 11px;
+  font-weight: 600;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.cins-post-view .post-comments-v1 .post-comments-identity-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.cins-post-view .post-comments-v1 .post-comments-identity-caret {
+  position: absolute;
+  right: -6px;
+  bottom: -6px;
+  z-index: 1;
+  display: block;
+  width: 14px;
+  height: 14px;
+  padding: 1px;
+  box-sizing: border-box;
+  border-radius: 999px;
+  background: transparent;
+  box-shadow: none;
+  color: inherit;
+  pointer-events: none;
+  transition: transform 140ms ease;
+}
+.cins-post-view .post-comments-v1 .post-comments-identity.is-open .post-comments-identity-caret {
+  transform: rotate(180deg);
+}
+.cins-post-view .post-comments-v1 .post-comments-identity-menu {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 6px);
+  bottom: auto;
+  z-index: 60;
+  min-width: 220px;
+  max-width: min(280px, 70vw);
+  padding: 6px;
+  border-radius: 12px;
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border, rgba(15, 23, 42, 0.08));
+  box-shadow: 0 10px 28px color-mix(in srgb, var(--ink-display, #0f172a) 16%, transparent);
+  color: var(--ink-display);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.cins-post-view .post-comments-v1 .post-comments-identity-menu.is-up {
+  top: auto;
+  bottom: calc(100% + 6px);
+}
+.cins-post-view .post-comments-v1 .post-comments-identity-opt {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+}
+.cins-post-view .post-comments-v1 .post-comments-identity-opt:hover,
+.cins-post-view .post-comments-v1 .post-comments-identity-opt.is-active {
+  background: color-mix(in srgb, var(--cins-blue, #1f74c9) 12%, transparent);
+}
+.cins-post-view .post-comments-v1 .post-comments-identity-opt-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--cins-blue-soft, #e8f1fb);
+  color: var(--cins-blue-dark, #0f4d8a);
+  font-size: 11px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.cins-post-view .post-comments-v1 .post-comments-identity-opt-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.cins-post-view .post-comments-v1 .post-comments-identity-opt-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.cins-post-view .post-comments-v1 .post-comments-identity-opt-copy strong {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cins-post-view .post-comments-v1 .post-comments-identity-opt-copy small {
+  font-size: 11px;
+  color: var(--ink-muted, #6b7280);
+  line-height: 1.2;
 }
 .cins-post-view .post-comments-v1 .post-comments-attach-btn {
   display: inline-flex;
@@ -4873,7 +5287,20 @@
     padding-bottom: 8px;
   }
 
-  /* Mobile — hàng ngang (Thích · Lưu · BL · Chia sẻ), không xếp dọc */
+  /* Mobile — giữ 1 hàng đều cột */
+  .cins-post-view .post-rail-blk--actions .jcard-actions {
+    flex-wrap: nowrap;
+    gap: 2px;
+    padding: 4px;
+  }
+
+  .cins-post-view .post-rail-blk--actions .jcard-actions .action-btn,
+  .cins-post-view .post-rail-blk--actions .jcard-actions .share-btn,
+  .cins-post-view .post-rail-blk--actions .jcard-actions .action-btn--split {
+    min-height: 36px;
+    padding: 4px 2px;
+  }
+
   .cins-post-view .post-rail-blk--actions .post-byline-actions {
     display: flex;
     flex-direction: row;

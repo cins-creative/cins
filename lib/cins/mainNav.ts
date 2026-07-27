@@ -48,6 +48,21 @@ export type MainNavItem = {
   comingSoon?: boolean;
 };
 
+/**
+ * Tạm ẩn tab Tuyển dụng trên sidebar.
+ * Đặt `true` khi muốn bật lại.
+ */
+export const SHOW_MAIN_NAV_JOBS = false;
+
+const MAIN_NAV_JOBS_ITEM: MainNavItem = {
+  id: "jobs",
+  href: "/tuyen-dung",
+  label: "Tuyển dụng",
+  tip: "Tin tuyển dụng đang mở từ studio, agency và doanh nghiệp ngành sáng tạo — vị trí, mức lương và hạn nộp",
+  icon: "jobs",
+  isActive: (p) => p === "/tuyen-dung" || p.startsWith("/tuyen-dung/"),
+};
+
 export const MAIN_NAV_ITEMS: MainNavItem[] = [
   {
     id: "home",
@@ -99,14 +114,7 @@ export const MAIN_NAV_ITEMS: MainNavItem[] = [
     icon: "shop",
     isActive: (p) => p === "/cua-hang" || p.startsWith("/cua-hang/"),
   },
-  {
-    id: "jobs",
-    href: "/tuyen-dung",
-    label: "Tuyển dụng",
-    tip: "Tin tuyển dụng đang mở từ studio, agency và doanh nghiệp ngành sáng tạo — vị trí, mức lương và hạn nộp",
-    icon: "jobs",
-    isActive: (p) => p === "/tuyen-dung" || p.startsWith("/tuyen-dung/"),
-  },
+  ...(SHOW_MAIN_NAV_JOBS ? [MAIN_NAV_JOBS_ITEM] : []),
   {
     id: "events",
     href: "/su-kien",
@@ -118,7 +126,11 @@ export const MAIN_NAV_ITEMS: MainNavItem[] = [
 ];
 
 /** id item KẾT THÚC một cụm — chèn đường kẻ ngay sau (trừ item cuối). */
-export const MAIN_NAV_GROUP_BREAK_AFTER = new Set(["home", "courses", "jobs"]);
+export const MAIN_NAV_GROUP_BREAK_AFTER = new Set([
+  "home",
+  "courses",
+  SHOW_MAIN_NAV_JOBS ? "jobs" : "shops",
+]);
 
 export const MAIN_NAV_FOOT_ITEMS: MainNavItem[] = [
   {

@@ -1,18 +1,29 @@
 import { NextResponse } from "next/server";
 
+import { layAnhArtstationTuUrl } from "@/lib/autopilot/artstation-assets";
+import { layAnhBehanceTuUrl } from "@/lib/autopilot/behance-assets";
+import {
+  layAnhPixivTuUrl,
+  pixivImageFetchHeaders,
+} from "@/lib/autopilot/pixiv-assets";
 import { uploadCloudflareImageFromUrl } from "@/lib/cloudflare/upload-image-from-url";
 import {
   chuanHoaBlocks,
   dangBaiJourneyChoUser,
 } from "@/lib/editor/dang-bai-journey";
-import { attachEmbedThumbnailUrlToBlocks } from "@/lib/editor/embed-thumbnail";
 import {
   doanNenTangTuUrl,
+  gopMoTaVoiDongNguon,
+  taoDongGhiNguon,
+  taoKhoiBaiAlbumNguon,
+  taoKhoiBaiBehanceNguon,
   taoKhoiBaiNguon,
+  type AnhAlbumNguon,
   type NenTangNguon,
 } from "@/lib/editor/khoi-bai-nguon";
 import type { Block, LoaiMoc, Visibility } from "@/lib/editor/types";
 import { VALID_LOAI_MOC, VALID_VIS } from "@/lib/editor/types";
+import { attachThamKhaoPersonalFilter } from "@/lib/filter/tham-khao-personal-filter";
 import { laNickSeedChoPhep } from "@/lib/noi-bo/danh-sach-nick-seed";
 import { xacThucBearerSecret } from "@/lib/noi-bo/xac-thuc-bearer";
 import {
@@ -46,6 +57,11 @@ type BodyDangBai = {
   blocks?: Block[];
   /** Dry-run: validate + ghép khối, không ghi DB. */
   chiKiemTra?: boolean;
+  /**
+   * Cho phép đăng Pixiv strip cao (bỏ lọc anh_qua_dai).
+   * Chỉ dùng qua bearer secret — cron thường không set.
+   */
+  choPhepAnhQuaDai?: boolean;
 };
 
 function badRequest(message: string, field?: string) {
@@ -70,6 +86,7 @@ function isHttpUrl(value: string): boolean {
  * Header: `Authorization: Bearer <CINS_NOI_BO_DANG_BAI_SECRET>`
  *
  * Contract Phase 0 — đăng bài Journey curator (link/embed nguồn ngoài).
+ * Mặc định `cheDoHienThi: "feature"` (Nổi bật) cho nick seeding.
  */
 export async function POST(request: Request) {
   const auth = xacThucBearerSecret(request, ENV_SECRET);
@@ -114,8 +131,8 @@ export async function POST(request: Request) {
     return badRequest("urlNguon phải là URL http(s) hợp lệ.", "urlNguon");
   }
 
-  const tieuDe = typeof body.tieuDe === "string" ? body.tieuDe : "";
-  const moTa = typeof body.moTa === "string" ? body.moTa : "";
+  let tieuDe = typeof body.tieuDe === "string" ? body.tieuDe.trim() : "";
+  let moTa = typeof body.moTa === "string" ? body.moTa : "";
 
   const nenTang: NenTangNguon =
     body.nenTang === "artstation" ||
@@ -124,23 +141,6 @@ export async function POST(request: Request) {
     body.nenTang === "khac"
       ? body.nenTang
       : doanNenTangTuUrl(urlNguon);
-
-  let blocks: Block[];
-  if (Array.isArray(body.blocks) && body.blocks.length > 0) {
-    const normalized = chuanHoaBlocks(body.blocks);
-    if (!normalized || normalized.length === 0) {
-      return badRequest("blocks không hợp lệ.", "blocks");
-    }
-    blocks = normalized;
-  } else {
-    blocks = taoKhoiBaiNguon({
-      moTa,
-      urlNguon,
-      nenTang,
-      tenTacGiaNguon: body.tenTacGiaNguon,
-      dongGhiNguon: body.dongGhiNguon,
-    });
-  }
 
   const loaiMoc = body.loaiMoc;
   if (loaiMoc != null && !VALID_LOAI_MOC.includes(loaiMoc)) {
@@ -151,23 +151,117 @@ export async function POST(request: Request) {
     return badRequest("cheDoHienThi không hợp lệ.", "cheDoHienThi");
   }
 
+  let blocks: Block[];
   let coverId = body.coverId?.trim() || null;
-  const anhBiaUrl = body.anhBiaUrl?.trim() || "";
-  if (!coverId && anhBiaUrl && isHttpUrl(anhBiaUrl)) {
-    try {
-      const uploaded = await uploadCloudflareImageFromUrl(anhBiaUrl);
-      if (uploaded?.imageId) {
-        coverId = uploaded.imageId;
-        blocks = attachEmbedThumbnailUrlToBlocks(
-          blocks,
-          urlNguon,
-          uploaded.url || anhBiaUrl,
+  let dungAlbumAnh = false;
+
+  if (Array.isArray(body.blocks) && body.blocks.length > 0) {
+    const normalized = chuanHoaBlocks(body.blocks);
+    if (!normalized || normalized.length === 0) {
+      return badRequest("blocks không hợp lệ.", "blocks");
+    }
+    blocks = normalized;
+  } else if (
+    nenTang === "artstation" ||
+    nenTang === "behance" ||
+    nenTang === "pixiv"
+  ) {
+    /* ArtStation / Behance / Pixiv: kéo album ảnh → khối imgs. */
+    const album =
+      nenTang === "artstation"
+        ? await buildArtstationAlbumBlocks({
+            urlNguon,
+            tenTacGiaNguon: body.tenTacGiaNguon,
+            dongGhiNguon: body.dongGhiNguon,
+          })
+        : nenTang === "behance"
+          ? await buildBehanceAlbumBlocks({
+              urlNguon,
+              tenTacGiaNguon: body.tenTacGiaNguon,
+              dongGhiNguon: body.dongGhiNguon,
+            })
+          : await buildPixivAlbumBlocks({
+              urlNguon,
+              tenTacGiaNguon: body.tenTacGiaNguon,
+              dongGhiNguon: body.dongGhiNguon,
+              choPhepAnhQuaDai: Boolean(body.choPhepAnhQuaDai),
+            });
+    if (
+      album &&
+      "code" in album &&
+      (album.code === "anh_qua_dai" ||
+        album.code === "r18" ||
+        album.code === "ugoira")
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: album.error,
+          code: album.code,
+          field: "urlNguon",
+        },
+        { status: 422 },
+      );
+    }
+    if (album && "blocks" in album) {
+      blocks = album.blocks;
+      if (!coverId && album.coverId) coverId = album.coverId;
+      dungAlbumAnh = true;
+      const tieuDeAlbum =
+        "tieuDeGoiY" in album && typeof album.tieuDeGoiY === "string"
+          ? album.tieuDeGoiY.trim()
+          : "";
+      if (!tieuDe && tieuDeAlbum) tieuDe = tieuDeAlbum;
+      const moTaAlbum =
+        "moTaGoiY" in album && typeof album.moTaGoiY === "string"
+          ? album.moTaGoiY.trim()
+          : "";
+      if (moTaAlbum && !moTa.trim()) moTa = moTaAlbum;
+    } else {
+      blocks = taoKhoiBaiNguon({
+        moTa,
+        urlNguon,
+        nenTang,
+        tenTacGiaNguon: body.tenTacGiaNguon,
+        dongGhiNguon: body.dongGhiNguon,
+      });
+    }
+  } else {
+    blocks = taoKhoiBaiNguon({
+      moTa,
+      urlNguon,
+      nenTang,
+      tenTacGiaNguon: body.tenTacGiaNguon,
+      dongGhiNguon: body.dongGhiNguon,
+    });
+  }
+
+  /* Cover nguồn → CF Images (khi chưa có coverId từ client / album). */
+  if (!coverId && typeof body.anhBiaUrl === "string") {
+    const anhBia = body.anhBiaUrl.trim();
+    if (isHttpUrl(anhBia)) {
+      try {
+        const uploaded = await uploadCloudflareImageFromUrl(
+          anhBia,
+          nenTang === "pixiv" ? { headers: pixivImageFetchHeaders() } : undefined,
         );
+        if (uploaded?.imageId) coverId = uploaded.imageId;
+      } catch {
+        /* thiếu cover — nền chữ màu vẫn ổn */
       }
-    } catch {
-      /* best-effort — vẫn đăng được, thiếu cover */
     }
   }
+
+  /* Dòng Nguồn gộp vào mô tả ngắn — không tách block body riêng. */
+  moTa = gopMoTaVoiDongNguon(
+    moTa,
+    taoDongGhiNguon({
+      urlNguon,
+      nenTang,
+      tenTacGiaNguon: body.tenTacGiaNguon,
+      dongGhiNguon: body.dongGhiNguon,
+    }),
+  );
 
   const admin = createServiceRoleClient();
   const { data: profile, error: profileErr } = await admin
@@ -202,6 +296,7 @@ export async function POST(request: Request) {
     );
   }
 
+  /* Nick seeding: mặc định Feature (Nổi bật Journey / Gallery) — có thể ghi đè body. */
   const result = await dangBaiJourneyChoUser({
     idNguoiDung: profile.id,
     slugChu: profile.slug,
@@ -209,7 +304,7 @@ export async function POST(request: Request) {
     moTa,
     coverId,
     loaiMoc: loaiMoc ?? "du_an",
-    cheDoHienThi: cheDoHienThi ?? "public",
+    cheDoHienThi: cheDoHienThi ?? "feature",
     thoiDiem: body.thoiDiem,
     blocks,
     chiKiemTra: Boolean(body.chiKiemTra),
@@ -222,6 +317,20 @@ export async function POST(request: Request) {
     );
   }
 
+  /* Nick seeding: mọi bài gắn nhãn riêng «Tham khảo». */
+  if (!body.chiKiemTra && result.idCotMoc) {
+    const gan = await attachThamKhaoPersonalFilter({
+      milestoneId: result.idCotMoc,
+      userId: profile.id,
+    });
+    if (!gan.ok) {
+      console.warn(
+        `[noi-bo/tac-pham/dang] gắn Tham khảo thất bại @${profile.slug}:`,
+        gan.error,
+      );
+    }
+  }
+
   return NextResponse.json(
     {
       ok: true,
@@ -232,8 +341,222 @@ export async function POST(request: Request) {
       duongDan: result.duongDan,
       nenTang,
       urlNguon,
+      albumAnh: dungAlbumAnh,
       chiKiemTra: Boolean(body.chiKiemTra),
     },
     { status: body.chiKiemTra ? 200 : 201 },
   );
+}
+
+/**
+ * Fetch JSON ArtStation → upload CF → khối album imgs.
+ * Fail → null (caller fallback embed link).
+ */
+async function buildArtstationAlbumBlocks(params: {
+  urlNguon: string;
+  tenTacGiaNguon?: string | null;
+  dongGhiNguon?: string | null;
+}): Promise<{ blocks: Block[]; coverId: string | null } | null> {
+  const fetched = await layAnhArtstationTuUrl(params.urlNguon);
+  if (!fetched.ok) return null;
+
+  const anh: AnhAlbumNguon[] = [];
+  let coverId: string | null = null;
+
+  for (const item of fetched.data.anh) {
+    try {
+      const uploaded = await uploadCloudflareImageFromUrl(item.imageUrl);
+      if (!uploaded?.imageId) continue;
+      anh.push({
+        seed: uploaded.imageId,
+        width: item.width,
+        height: item.height,
+      });
+      if (!coverId) coverId = uploaded.imageId;
+    } catch {
+      /* bỏ ảnh lỗi, tiếp tục */
+    }
+  }
+
+  if (!anh.length) return null;
+
+  /* Caption giữ ở `mo_ta` bài — khối chỉ imgs + dòng ghi nguồn. */
+  const blocks = taoKhoiBaiAlbumNguon({
+    anh,
+    moTa: null,
+    urlNguon: params.urlNguon,
+    nenTang: "artstation",
+    tenTacGiaNguon: params.tenTacGiaNguon,
+    dongGhiNguon: params.dongGhiNguon,
+  });
+
+  return { blocks, coverId };
+}
+
+/**
+ * Fetch HTML Behance → chữ + ảnh + video embed theo modules → upload CF → stack.
+ * Fail → null (caller fallback embed link).
+ */
+async function buildBehanceAlbumBlocks(params: {
+  urlNguon: string;
+  tenTacGiaNguon?: string | null;
+  dongGhiNguon?: string | null;
+}): Promise<
+  | { blocks: Block[]; coverId: string | null; tieuDeGoiY?: string | null }
+  | { code: "anh_qua_dai"; error: string }
+  | null
+> {
+  const fetched = await layAnhBehanceTuUrl(params.urlNguon);
+  if (!fetched.ok) {
+    if (fetched.code === "anh_qua_dai") {
+      return { code: fetched.code, error: fetched.error };
+    }
+    return null;
+  }
+
+  const seedByUrl = new Map<string, AnhAlbumNguon>();
+  let coverId: string | null = null;
+
+  for (const item of fetched.data.anh) {
+    try {
+      const uploaded = await uploadCloudflareImageFromUrl(item.imageUrl);
+      if (!uploaded?.imageId) continue;
+      const mapped: AnhAlbumNguon = {
+        seed: uploaded.imageId,
+        width: item.width,
+        height: item.height,
+      };
+      seedByUrl.set(item.imageUrl, mapped);
+      if (!coverId) coverId = uploaded.imageId;
+    } catch {
+      /* bỏ ảnh lỗi */
+    }
+  }
+
+  let modules = fetched.data.modules
+    .map((mod) => {
+      if (mod.kind === "text") return mod;
+      if (mod.kind === "video") return mod;
+      const mapped = seedByUrl.get(mod.anh.imageUrl);
+      if (!mapped) return null;
+      return {
+        kind: "image" as const,
+        seed: mapped.seed,
+        width: mapped.width,
+        height: mapped.height,
+      };
+    })
+    .filter((m): m is NonNullable<typeof m> => Boolean(m));
+
+  const coAnh = modules.some((m) => m.kind === "image");
+
+  /* Ảnh upload được nhưng map module mất — ghép album seed + video còn lại. */
+  if (!coAnh && seedByUrl.size) {
+    const anhMods = [...seedByUrl.values()].map((a) => ({
+      kind: "image" as const,
+      seed: a.seed,
+      width: a.width,
+      height: a.height,
+    }));
+    const videoMods = modules.filter(
+      (m): m is { kind: "video"; url: string } => m.kind === "video",
+    );
+    const textMods = modules.filter(
+      (m): m is { kind: "text"; text: string } => m.kind === "text",
+    );
+    modules = [...textMods, ...anhMods, ...videoMods];
+  }
+
+  if (
+    !modules.some((m) => m.kind === "image") &&
+    !modules.some((m) => m.kind === "video")
+  ) {
+    return null;
+  }
+
+  return {
+    blocks: taoKhoiBaiBehanceNguon({
+      modules,
+      urlNguon: params.urlNguon,
+      tenTacGiaNguon: params.tenTacGiaNguon,
+      dongGhiNguon: params.dongGhiNguon,
+    }),
+    coverId,
+    tieuDeGoiY: fetched.data.title,
+  };
+}
+
+/**
+ * Fetch ajax Pixiv → upload CF (Referer pximg) → album justified.
+ * Fail / reject → code hoặc null.
+ */
+async function buildPixivAlbumBlocks(params: {
+  urlNguon: string;
+  tenTacGiaNguon?: string | null;
+  dongGhiNguon?: string | null;
+  choPhepAnhQuaDai?: boolean;
+}): Promise<
+  | {
+      blocks: Block[];
+      coverId: string | null;
+      tieuDeGoiY?: string | null;
+      moTaGoiY?: string | null;
+    }
+  | { code: "anh_qua_dai" | "r18" | "ugoira"; error: string }
+  | null
+> {
+  const fetched = await layAnhPixivTuUrl(params.urlNguon, {
+    choPhepAnhQuaDai: params.choPhepAnhQuaDai,
+  });
+  if (!fetched.ok) {
+    if (
+      fetched.code === "anh_qua_dai" ||
+      fetched.code === "r18" ||
+      fetched.code === "ugoira"
+    ) {
+      return { code: fetched.code, error: fetched.error };
+    }
+    return null;
+  }
+
+  const imgHeaders = pixivImageFetchHeaders();
+  const anh: AnhAlbumNguon[] = [];
+  let coverId: string | null = null;
+
+  for (const item of fetched.data.anh) {
+    try {
+      const uploaded = await uploadCloudflareImageFromUrl(item.imageUrl, {
+        headers: imgHeaders,
+      });
+      if (!uploaded?.imageId) continue;
+      anh.push({
+        seed: uploaded.imageId,
+        width: item.width,
+        height: item.height,
+      });
+      if (!coverId) coverId = uploaded.imageId;
+    } catch {
+      /* bỏ ảnh lỗi */
+    }
+  }
+
+  if (!anh.length) return null;
+
+  const tenTacGia =
+    params.tenTacGiaNguon?.trim() || fetched.data.userName || null;
+  const moTaKhoi = fetched.data.descriptionPlain?.slice(0, 2000) || null;
+
+  return {
+    blocks: taoKhoiBaiAlbumNguon({
+      anh,
+      moTa: null,
+      urlNguon: params.urlNguon,
+      nenTang: "pixiv",
+      tenTacGiaNguon: tenTacGia,
+      dongGhiNguon: params.dongGhiNguon,
+    }),
+    coverId,
+    tieuDeGoiY: fetched.data.title,
+    moTaGoiY: moTaKhoi,
+  };
 }

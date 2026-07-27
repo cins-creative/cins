@@ -55,6 +55,15 @@ Kết nối giữa người có chuyên môn là giá trị cốt lõi; **phân 
 
 ## 4. Naming Convention
 
+### Thương hiệu (copy UI / email / aria / subject)
+
+- **Tên hiển thị chuẩn: `CINs`** (C + I + N + s). Dùng trong email OTP, footer, aria-label, subject, terms, sender name.
+- **Không dùng `C.INS`** (có dấu chấm) — dạng cũ / sai; khi gặp trong template hay UI → sửa thành `CINs`.
+- Viết tắt kỹ thuật / prefix code vẫn `cins` / `CINS` (slug, class CSS `cins-*`, file `CINS_*.md`, env) — không đổi thành `CINs` trong identifier.
+- Domain: `cins.vn`. Sender SMTP gợi ý: `CINs` + `noreply@cins.vn`.
+
+### Schema / code
+
 - Tiền tố tiếng Anh: `user_` / `org_` / `content_` / `article_` / `project_` / `verify_` / `social_` / `chat_` / `vector_` / `edu_`. Ngoại lệ: `linh_vuc` (bảng danh mục, không thuộc nhóm).
 - Tên bảng/field tiếng Việt không dấu: `cot_moc`, `tac_pham`, `dong_gop`, `xac_nhan`, `ket_ban`.
 - Timestamp: `tao_luc`, `cap_nhat_luc`, `xu_ly_luc` (không dùng `created_at`/`updated_at` trừ bảng mới từ migration v2/v3).

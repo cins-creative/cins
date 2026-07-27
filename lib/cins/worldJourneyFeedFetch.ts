@@ -163,25 +163,76 @@ async function fetchLinkRowsForCotMocIds(
   return data ?? [];
 }
 
+/**
+ * Query từ `content_cot_moc` + inner link tác phẩm.
+ * Không order qua `referencedTable` từ bảng nối — PostgREST bỏ qua /
+ * đảo chiều → pool chỉ còn bài cũ, bài seeding mới biến mất khỏi Timeline.
+ */
+async function fetchLinkRowsFromCotMoc(params: {
+  cheDoModes: string[];
+  authorIds?: string[];
+  limit?: number;
+}): Promise<LinkRow[]> {
+  const admin = createServiceRoleClient();
+  const limit = params.limit ?? QUERY_LIMIT;
+  let q = admin
+    .from("content_cot_moc")
+    .select(
+      `${COT_MOC_FEED_SELECT}, content_tac_pham_thuoc_moc!inner(id_tac_pham)`,
+    )
+    .in("che_do_hien_thi", params.cheDoModes)
+    .order("tao_luc", { ascending: false })
+    .limit(limit);
+
+  if (params.authorIds?.length) {
+    q = q.in("id_nguoi_dung", params.authorIds);
+  }
+
+  const { data } = await q.returns<
+    Array<
+      CotMocFeedRow & {
+        content_tac_pham_thuoc_moc?: unknown;
+      }
+    >
+  >();
+
+  return (data ?? []).map((row) => {
+    const {
+      id,
+      loai_moc,
+      nguon_goc,
+      tieu_de,
+      mo_ta,
+      thoi_diem,
+      che_do_hien_thi,
+      tao_luc,
+      id_nguoi_dung,
+      id_to_chuc,
+    } = row;
+    return {
+      id_cot_moc: id,
+      content_cot_moc: {
+        id,
+        loai_moc,
+        nguon_goc,
+        tieu_de,
+        mo_ta,
+        thoi_diem,
+        che_do_hien_thi,
+        tao_luc,
+        id_nguoi_dung,
+        id_to_chuc,
+      },
+    };
+  });
+}
+
 async function fetchLinkRowsForAuthors(
   authorIds: string[],
   cheDoModes: string[],
 ): Promise<LinkRow[]> {
   if (authorIds.length === 0) return [];
-  const admin = createServiceRoleClient();
-  const { data } = await admin
-    .from("content_tac_pham_thuoc_moc")
-    .select(`id_cot_moc, content_cot_moc:content_cot_moc!inner(${COT_MOC_FEED_SELECT})`)
-    .in("content_cot_moc.id_nguoi_dung", authorIds)
-    .in("content_cot_moc.che_do_hien_thi", cheDoModes)
-    .order("thoi_diem", {
-      referencedTable: "content_cot_moc",
-      ascending: false,
-    })
-    .limit(QUERY_LIMIT)
-    .returns<LinkRow[]>();
-
-  return data ?? [];
+  return fetchLinkRowsFromCotMoc({ cheDoModes, authorIds });
 }
 
 /**
@@ -189,22 +240,10 @@ async function fetchLinkRowsForAuthors(
  * cold start thêm `public` (Công khai) để timeline không trống khi chưa có bạn/follow.
  */
 async function fetchGlobalDiscoverLinkRows(): Promise<LinkRow[]> {
-  const admin = createServiceRoleClient();
   const modes = WORLD_JOURNEY_PUBLIC_GLOBAL_FEED
     ? ["feature", "public"]
     : ["feature"];
-  const { data } = await admin
-    .from("content_tac_pham_thuoc_moc")
-    .select(`id_cot_moc, content_cot_moc:content_cot_moc!inner(${COT_MOC_FEED_SELECT})`)
-    .in("content_cot_moc.che_do_hien_thi", modes)
-    .order("thoi_diem", {
-      referencedTable: "content_cot_moc",
-      ascending: false,
-    })
-    .limit(QUERY_LIMIT)
-    .returns<LinkRow[]>();
-
-  return data ?? [];
+  return fetchLinkRowsFromCotMoc({ cheDoModes: modes });
 }
 
 function dedupeCotMocs(rows: LinkRow[]): CotMocFeedRow[] {
@@ -231,6 +270,7 @@ function isVisibleCotMoc(
     viewerIsFriend: friendSet.has(cm.id_nguoi_dung),
     viewerIsFollowing: followingSet.has(cm.id_nguoi_dung),
     ngoaiLe: ngoaiLeIndex?.get(cm.id) ?? null,
+    taoLuc: cm.tao_luc,
   });
 }
 

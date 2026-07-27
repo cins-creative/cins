@@ -4,8 +4,10 @@ import {
   Check,
   Download,
   ExternalLink,
+  FileText,
   Loader2,
   RefreshCw,
+  RotateCcw,
   X,
 } from "lucide-react";
 import Link from "next/link";
@@ -15,19 +17,27 @@ import type {
   AutopilotBanThaoRow,
   AutopilotDaDangRow,
   AutopilotMucRow,
-  AutopilotNguonRow,
   AutopilotNickRow,
   AutopilotOverview,
+  AutopilotPipelineBuoc,
   AutopilotTab,
 } from "@/lib/admin/autopilot-types";
 
 const TABS: { id: AutopilotTab; label: string }[] = [
   { id: "tong-quan", label: "Tổng quan" },
+  { id: "pipeline", label: "Pipeline" },
   { id: "nick", label: "Nick" },
-  { id: "nguon", label: "Nguồn" },
-  { id: "muc", label: "Hàng đợi" },
-  { id: "duyet", label: "Duyệt" },
-  { id: "da-dang", label: "Đã đăng" },
+];
+
+const PIPELINE_BUOC: {
+  id: AutopilotPipelineBuoc;
+  label: string;
+  hint: string;
+}[] = [
+  { id: "moi", label: "Hàng đợi", hint: "Mục mới — chưa soạn" },
+  { id: "cho_duyet", label: "Chờ duyệt", hint: "Bản thảo chờ bạn duyệt" },
+  { id: "san_sang", label: "Đã duyệt", hint: "Sẵn sàng · cron đăng" },
+  { id: "da_dang", label: "Đã đăng", hint: "Nhật ký publish" },
 ];
 
 function fmt(iso: string | null | undefined): string {
@@ -41,6 +51,11 @@ function fmt(iso: string | null | undefined): string {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+function nickInitial(slug: string, tenHienThi: string | null): string {
+  const src = (tenHienThi || slug || "?").trim();
+  return src.charAt(0).toUpperCase() || "?";
 }
 
 function kenhLabel(k: string | null | undefined): string {
@@ -91,10 +106,10 @@ async function postAction(
 }
 
 export function AdminTaiKhoanAiScreen() {
-  const [tab, setTab] = useState<AutopilotTab>("tong-quan");
+  const [tab, setTab] = useState<AutopilotTab>("pipeline");
+  const [buoc, setBuoc] = useState<AutopilotPipelineBuoc>("cho_duyet");
   const [overview, setOverview] = useState<AutopilotOverview | null>(null);
   const [nicks, setNicks] = useState<AutopilotNickRow[]>([]);
-  const [nguons, setNguons] = useState<AutopilotNguonRow[]>([]);
   const [mucs, setMucs] = useState<AutopilotMucRow[]>([]);
   const [banThaos, setBanThaos] = useState<AutopilotBanThaoRow[]>([]);
   const [daDangs, setDaDangs] = useState<AutopilotDaDangRow[]>([]);
@@ -103,76 +118,111 @@ export function AdminTaiKhoanAiScreen() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [showExt, setShowExt] = useState(false);
 
-  const [formNguon, setFormNguon] = useState({
-    nenTang: "artstation",
-    urlHoSo: "",
-    niche: "",
-    tenHienThi: "",
-  });
   const [formMuc, setFormMuc] = useState({
     url: "",
     tieuDe: "",
     tacGia: "",
   });
 
-  const load = useCallback(async (view: AutopilotTab) => {
-    setLoading(true);
-    setErr(null);
-    try {
-      if (view === "tong-quan") {
-        const data = await getJson<{ overview: AutopilotOverview }>(
-          "/api/admin/autopilot?view=tong-quan",
-        );
-        setOverview(data.overview);
-      } else if (view === "nick") {
-        const data = await getJson<{ items: AutopilotNickRow[] }>(
-          "/api/admin/autopilot?view=nick",
-        );
-        setNicks(data.items);
-      } else if (view === "nguon") {
-        const data = await getJson<{ items: AutopilotNguonRow[] }>(
-          "/api/admin/autopilot?view=nguon",
-        );
-        setNguons(data.items);
-      } else if (view === "muc") {
-        const data = await getJson<{ items: AutopilotMucRow[] }>(
-          "/api/admin/autopilot?view=muc&trangThai=moi&limit=80",
-        );
-        setMucs(data.items);
-      } else if (view === "duyet") {
-        const data = await getJson<{ items: AutopilotBanThaoRow[] }>(
-          "/api/admin/autopilot?view=duyet&trangThai=cho_duyet&limit=80",
-        );
-        setBanThaos(data.items);
-        setSelected(new Set());
-      } else if (view === "da-dang") {
-        const data = await getJson<{ items: AutopilotDaDangRow[] }>(
-          "/api/admin/autopilot?view=da-dang&limit=60",
-        );
-        setDaDangs(data.items);
-      }
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : "Lỗi tải dữ liệu");
-    } finally {
-      setLoading(false);
-    }
+  const refreshOverview = useCallback(async () => {
+    const ov = await getJson<{ overview: AutopilotOverview }>(
+      "/api/admin/autopilot?view=tong-quan",
+    );
+    setOverview(ov.overview);
   }, []);
 
+  const loadPipeline = useCallback(
+    async (step: AutopilotPipelineBuoc) => {
+      setLoading(true);
+      setErr(null);
+      try {
+        await refreshOverview();
+        if (step === "moi") {
+          const data = await getJson<{ items: AutopilotMucRow[] }>(
+            "/api/admin/autopilot?view=muc&trangThai=moi&limit=80",
+          );
+          setMucs(data.items);
+        } else if (step === "cho_duyet" || step === "san_sang") {
+          const data = await getJson<{ items: AutopilotBanThaoRow[] }>(
+            `/api/admin/autopilot?view=duyet&trangThai=${step}&limit=80`,
+          );
+          setBanThaos(data.items);
+          setSelected(new Set());
+        } else {
+          const data = await getJson<{ items: AutopilotDaDangRow[] }>(
+            "/api/admin/autopilot?view=da-dang&limit=60",
+          );
+          setDaDangs(data.items);
+        }
+      } catch (e) {
+        setErr(e instanceof Error ? e.message : "Lỗi tải dữ liệu");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [refreshOverview],
+  );
+
+  const load = useCallback(
+    async (view: AutopilotTab, step: AutopilotPipelineBuoc) => {
+      if (view === "pipeline") {
+        await loadPipeline(step);
+        return;
+      }
+      setLoading(true);
+      setErr(null);
+      try {
+        if (view === "tong-quan") {
+          await refreshOverview();
+        } else if (view === "nick") {
+          const data = await getJson<{ items: AutopilotNickRow[] }>(
+            "/api/admin/autopilot?view=nick",
+          );
+          setNicks(data.items);
+          await refreshOverview();
+        }
+      } catch (e) {
+        setErr(e instanceof Error ? e.message : "Lỗi tải dữ liệu");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [loadPipeline, refreshOverview],
+  );
+
   useEffect(() => {
-    void load(tab);
-  }, [tab, load]);
+    void load(tab, buoc);
+  }, [tab, buoc, load]);
+
+  const goPipeline = useCallback((step: AutopilotPipelineBuoc) => {
+    setBuoc(step);
+    setTab("pipeline");
+  }, []);
 
   const run = useCallback(
-    async (body: Record<string, unknown>, okMsg?: string) => {
+    async (
+      body: Record<string, unknown>,
+      opts?: { okMsg?: string; nextBuoc?: AutopilotPipelineBuoc },
+    ) => {
       setBusy(true);
       setErr(null);
       setMsg(null);
       try {
         const data = await postAction(body);
-        setMsg(okMsg || "Đã xong.");
-        if (typeof data.tao === "number") setMsg(`Đã soạn ${data.tao} bản thảo.`);
-        if (typeof data.duyet === "number") setMsg(`Đã duyệt ${data.duyet}.`);
+        setMsg(opts?.okMsg || "Đã xong.");
+        if (typeof data.tao === "number") {
+          setMsg(`Đã soạn ${data.tao} bản thảo → Chờ duyệt.`);
+        }
+        if (typeof data.duyet === "number") {
+          setMsg(
+            `Đã duyệt ${data.duyet} → Đã duyệt (sẵn sàng). Cron 08/14/20 VN · 1 bài/nick/lần.`,
+          );
+        }
+        if (typeof data.thuHoi === "number") {
+          setMsg(`Thu hồi ${data.thuHoi} → Chờ duyệt.`);
+        }
         if (typeof data.huy === "number") setMsg(`Đã hủy ${data.huy}.`);
         if (typeof data.dang === "number") {
           setMsg(
@@ -184,12 +234,11 @@ export function AdminTaiKhoanAiScreen() {
             `Đồng bộ ${data.synced} nick (thiếu profile: ${data.thieu ?? 0}).`,
           );
         }
-        await load(tab);
-        if (tab !== "tong-quan") {
-          const ov = await getJson<{ overview: AutopilotOverview }>(
-            "/api/admin/autopilot?view=tong-quan",
-          );
-          setOverview(ov.overview);
+        if (opts?.nextBuoc) {
+          setBuoc(opts.nextBuoc);
+          setTab("pipeline");
+        } else {
+          await load(tab, buoc);
         }
       } catch (e) {
         setErr(e instanceof Error ? e.message : "Thao tác thất bại");
@@ -197,15 +246,37 @@ export function AdminTaiKhoanAiScreen() {
         setBusy(false);
       }
     },
-    [load, tab],
+    [load, tab, buoc],
   );
 
-  const badgeDuyet = overview?.dem.choDuyet ?? 0;
+  const dem = overview?.dem;
+  const buocCount = (id: AutopilotPipelineBuoc): number => {
+    if (!dem) return 0;
+    switch (id) {
+      case "moi":
+        return dem.mucMoi;
+      case "cho_duyet":
+        return dem.choDuyet;
+      case "san_sang":
+        return dem.sanSang;
+      case "da_dang":
+        return dem.daDangOk;
+    }
+  };
 
   const allSelected = useMemo(
     () => banThaos.length > 0 && banThaos.every((b) => selected.has(b.id)),
     [banThaos, selected],
   );
+
+  const toggleSelect = (id: string, on: boolean) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (on) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  };
 
   return (
     <>
@@ -213,8 +284,7 @@ export function AdminTaiKhoanAiScreen() {
         <div className="admin-bai-viet-header__copy">
           <h1 className="page-title">Tài khoản AI</h1>
           <p className="page-subtitle">
-            Autopilot seeding — nick curator ArtStation / Behance / Pixiv, duyệt
-            bản thảo rồi đăng Journey.
+            Autopilot seeding — một pipeline: hàng đợi → duyệt → đăng Journey.
           </p>
         </div>
         <div className="page-header-actions">
@@ -222,7 +292,7 @@ export function AdminTaiKhoanAiScreen() {
             type="button"
             className="btn btn-ghost"
             disabled={loading || busy}
-            onClick={() => void load(tab)}
+            onClick={() => void load(tab, buoc)}
           >
             <RefreshCw size={14} />
             Làm mới
@@ -239,9 +309,9 @@ export function AdminTaiKhoanAiScreen() {
             onClick={() => setTab(t.id)}
           >
             {t.label}
-            {t.id === "duyet" && badgeDuyet > 0 ? (
+            {t.id === "pipeline" && (dem?.choDuyet ?? 0) > 0 ? (
               <span className="admin-bai-viet-tab-badge">
-                {badgeDuyet > 99 ? "99+" : badgeDuyet}
+                {(dem?.choDuyet ?? 0) > 99 ? "99+" : dem?.choDuyet}
               </span>
             ) : null}
           </button>
@@ -267,12 +337,44 @@ export function AdminTaiKhoanAiScreen() {
         {!loading && tab === "tong-quan" && overview ? (
           <section className="tkai-overview">
             <div className="tkai-stats">
-              <Stat label="Nick bật" value={`${overview.dem.nickBat}/${overview.dem.nick}`} />
-              <Stat label="Nguồn bật" value={`${overview.dem.nguonBat}/${overview.dem.nguon}`} />
-              <Stat label="Mục mới" value={overview.dem.mucMoi} />
-              <Stat label="Chờ duyệt" value={overview.dem.choDuyet} />
-              <Stat label="Sẵn sàng" value={overview.dem.sanSang} />
-              <Stat label="Đã đăng OK" value={overview.dem.daDangOk} />
+              <button
+                type="button"
+                className="tkai-stat tkai-stat--btn"
+                onClick={() => goPipeline("moi")}
+              >
+                <div className="tkai-stat__v">{overview.dem.mucMoi}</div>
+                <div className="tkai-stat__l">Hàng đợi</div>
+              </button>
+              <button
+                type="button"
+                className="tkai-stat tkai-stat--btn"
+                onClick={() => goPipeline("cho_duyet")}
+              >
+                <div className="tkai-stat__v">{overview.dem.choDuyet}</div>
+                <div className="tkai-stat__l">Chờ duyệt</div>
+              </button>
+              <button
+                type="button"
+                className="tkai-stat tkai-stat--btn"
+                onClick={() => goPipeline("san_sang")}
+              >
+                <div className="tkai-stat__v">{overview.dem.sanSang}</div>
+                <div className="tkai-stat__l">Đã duyệt</div>
+              </button>
+              <button
+                type="button"
+                className="tkai-stat tkai-stat--btn"
+                onClick={() => goPipeline("da_dang")}
+              >
+                <div className="tkai-stat__v">{overview.dem.daDangOk}</div>
+                <div className="tkai-stat__l">Đã đăng OK</div>
+              </button>
+              <div className="tkai-stat">
+                <div className="tkai-stat__v">
+                  {overview.dem.nickBat}/{overview.dem.nick}
+                </div>
+                <div className="tkai-stat__l">Nick bật</div>
+              </div>
             </div>
             <p className="tkai-meta">
               Ngày VN: <strong>{overview.ngayVn}</strong>
@@ -281,122 +383,532 @@ export function AdminTaiKhoanAiScreen() {
               {" · "}
               Site URL: {overview.env.coSiteUrl ? "có" : "thiếu"}
             </p>
-            <div className="tkai-kenh">
-              {Object.entries(overview.theoKenh).map(([k, n]) =>
-                n > 0 ? (
-                  <span key={k} className="tkai-chip">
-                    {kenhLabel(k)} ×{n}
-                  </span>
-                ) : null,
-              )}
-            </div>
+            <p className="tkai-meta">
+              Pipeline: soạn → duyệt tay → cron{" "}
+              <strong>08:00 / 14:00 / 20:00 VN</strong> · 1 bài/nick/lần.
+            </p>
             <div className="tkai-actions">
               <button
                 type="button"
                 className="btn btn-primary"
-                disabled={busy}
-                onClick={() => void run({ action: "dong_bo_nick" })}
+                disabled={busy || overview.dem.choDuyet === 0}
+                onClick={() => goPipeline("cho_duyet")}
               >
-                Đồng bộ 10 nick
+                Đi duyệt ({overview.dem.choDuyet})
               </button>
               <button
                 type="button"
                 className="btn btn-ghost"
                 disabled={busy || overview.dem.mucMoi === 0}
-                onClick={() => void run({ action: "chuan_bi", gioiHan: 20 })}
+                onClick={() => goPipeline("moi")}
               >
-                Soạn bản thảo (20)
-              </button>
-              <button
-                type="button"
-                className="btn btn-ghost"
-                disabled={busy || overview.dem.sanSang === 0}
-                onClick={() => {
-                  if (
-                    !window.confirm(
-                      `Đăng tối đa 10 bản thảo san_sang theo hạn mức hôm nay?`,
-                    )
-                  )
-                    return;
-                  void run({ action: "chay_dang", gioiHan: 10 });
-                }}
-              >
-                Đăng sẵn sàng (10)
+                Hàng đợi ({overview.dem.mucMoi})
               </button>
             </div>
-            <ol className="tkai-flow">
-              <li>Extension Behance/Pixiv hoặc CLI quét ArtStation → hàng đợi mục</li>
-              <li>Soạn bản thảo → chờ duyệt</li>
-              <li>Duyệt tay → sẵn sàng → đăng (hạn mức/ngày VN)</li>
-            </ol>
 
-            <h2 className="tkai-section-title">Chrome extension (scrap nguồn)</h2>
-            <p className="tkai-meta">
-              Không lên Chrome Store — tải zip → giải nén →{" "}
-              <code>chrome://extensions</code> → bật Developer mode →{" "}
-              <strong>Load unpacked</strong>. Điền API base (origin CINs) + secret{" "}
-              <code>CINS_NOI_BO_DANG_BAI_SECRET</code>.
+            <button
+              type="button"
+              className="tkai-collapse-toggle"
+              onClick={() => setShowExt((v) => !v)}
+            >
+              {showExt ? "Ẩn" : "Hiện"} công cụ extension scrap
+            </button>
+            {showExt ? (
+              <div className="tkai-ext-block">
+                <p className="tkai-meta">
+                  Tải zip → <code>chrome://extensions</code> → Load unpacked.
+                  Secret: <code>CINS_NOI_BO_DANG_BAI_SECRET</code>.
+                </p>
+                <div className="tkai-ext-grid">
+                  <article className="tkai-ext-card">
+                    <h3>Behance</h3>
+                    <div className="tkai-ext-card__actions">
+                      <a
+                        className="btn btn-primary"
+                        href="/downloads/cins-behance-import.zip"
+                        download
+                      >
+                        <Download size={14} />
+                        Tải zip
+                      </a>
+                    </div>
+                  </article>
+                  <article className="tkai-ext-card">
+                    <h3>Pixiv</h3>
+                    <div className="tkai-ext-card__actions">
+                      <a
+                        className="btn btn-primary"
+                        href="/downloads/cins-pixiv-import.zip"
+                        download
+                      >
+                        <Download size={14} />
+                        Tải zip
+                      </a>
+                    </div>
+                  </article>
+                </div>
+              </div>
+            ) : null}
+          </section>
+        ) : null}
+
+        {!loading && tab === "pipeline" ? (
+          <section className="tkai-pipeline">
+            <nav className="tkai-pipeline-steps" aria-label="Pipeline đăng bài">
+              {PIPELINE_BUOC.map((s, i) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  className={`tkai-pipeline-step${buoc === s.id ? " is-active" : ""}`}
+                  onClick={() => setBuoc(s.id)}
+                  title={s.hint}
+                >
+                  <span className="tkai-pipeline-step__n">{i + 1}</span>
+                  <span className="tkai-pipeline-step__label">{s.label}</span>
+                  <span className="tkai-pipeline-step__count">
+                    {buocCount(s.id)}
+                  </span>
+                </button>
+              ))}
+            </nav>
+            <p className="tkai-meta tkai-pipeline-hint">
+              {PIPELINE_BUOC.find((s) => s.id === buoc)?.hint}
+              {" · "}
+              Chuyển trạng thái bằng nút trên từng thẻ hoặc thanh hành động.
             </p>
-            <div className="tkai-ext-grid">
-              <article className="tkai-ext-card">
-                <h3>Behance → Autopilot</h3>
-                <p>
-                  Mở hồ sơ /projects trên Behance, scroll load card → Quét → Gửi
-                  vào hàng đợi.
-                </p>
-                <div className="tkai-ext-card__actions">
-                  <a
+
+            {buoc === "moi" ? (
+              <>
+                <div className="tkai-actions">
+                  <button
+                    type="button"
                     className="btn btn-primary"
-                    href="/downloads/cins-behance-import.zip"
-                    download
+                    disabled={busy || mucs.length === 0}
+                    onClick={() =>
+                      void run(
+                        { action: "chuan_bi", gioiHan: 20 },
+                        { nextBuoc: "cho_duyet" },
+                      )
+                    }
                   >
-                    <Download size={14} />
-                    Tải zip
-                  </a>
-                  <a
-                    className="btn btn-ghost"
-                    href="https://www.behance.net"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    Mở Behance
-                    <ExternalLink size={12} />
-                  </a>
+                    Soạn → Chờ duyệt (20)
+                  </button>
                 </div>
-                <p className="tkai-muted">
-                  Repo: <code>extensions/cins-behance-import</code>
-                </p>
-              </article>
-              <article className="tkai-ext-card">
-                <h3>Pixiv → Autopilot</h3>
-                <p>
-                  Mở <code>/users/{"{id}"}</code> trên Pixiv, scroll artwork →
-                  Quét → Gửi (ajax server bị 403).
-                </p>
-                <div className="tkai-ext-card__actions">
-                  <a
-                    className="btn btn-primary"
-                    href="/downloads/cins-pixiv-import.zip"
-                    download
-                  >
-                    <Download size={14} />
-                    Tải zip
-                  </a>
-                  <a
+                <form
+                  className="tkai-form"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    void run(
+                      {
+                        action: "nhap_muc",
+                        url: formMuc.url,
+                        tieuDe: formMuc.tieuDe || null,
+                        tacGia: formMuc.tacGia || null,
+                      },
+                      { okMsg: "Đã thêm mục." },
+                    ).then(() =>
+                      setFormMuc({ url: "", tieuDe: "", tacGia: "" }),
+                    );
+                  }}
+                >
+                  <input
+                    required
+                    placeholder="URL artwork / gallery"
+                    value={formMuc.url}
+                    onChange={(e) =>
+                      setFormMuc((f) => ({ ...f, url: e.target.value }))
+                    }
+                  />
+                  <input
+                    placeholder="Tiêu đề"
+                    value={formMuc.tieuDe}
+                    onChange={(e) =>
+                      setFormMuc((f) => ({ ...f, tieuDe: e.target.value }))
+                    }
+                  />
+                  <input
+                    placeholder="Tác giả nguồn"
+                    value={formMuc.tacGia}
+                    onChange={(e) =>
+                      setFormMuc((f) => ({ ...f, tacGia: e.target.value }))
+                    }
+                  />
+                  <button
+                    type="submit"
                     className="btn btn-ghost"
-                    href="https://www.pixiv.net"
-                    target="_blank"
-                    rel="noreferrer"
+                    disabled={busy}
                   >
-                    Mở Pixiv
-                    <ExternalLink size={12} />
-                  </a>
+                    Nhập tay
+                  </button>
+                </form>
+                <div className="table-wrap">
+                  <table className="admin-table">
+                    <thead>
+                      <tr>
+                        <th>Cover</th>
+                        <th>Tiêu đề</th>
+                        <th>URL</th>
+                        <th>Kênh</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {mucs.map((m) => (
+                        <tr key={m.id}>
+                          <td>
+                            {m.anhBiaUrl ? (
+                              /* eslint-disable-next-line @next/next/no-img-element */
+                              <img
+                                src={m.anhBiaUrl}
+                                alt=""
+                                className="tkai-thumb"
+                              />
+                            ) : (
+                              <span className="tkai-muted">—</span>
+                            )}
+                          </td>
+                          <td>{m.tieuDeGoc || "—"}</td>
+                          <td>
+                            <a
+                              href={m.urlCanonic}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="tkai-url"
+                              title={m.urlCanonic}
+                            >
+                              <span className="tkai-url__text">
+                                {m.urlCanonic}
+                              </span>
+                              <ExternalLink size={12} />
+                            </a>
+                          </td>
+                          <td>{kenhLabel(m.nenTang)}</td>
+                          <td>
+                            <button
+                              type="button"
+                              className="btn btn-ghost"
+                              disabled={busy}
+                              onClick={() =>
+                                void run({ action: "bo_qua_muc", id: m.id })
+                              }
+                            >
+                              Bỏ qua
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                      {!mucs.length ? (
+                        <tr>
+                          <td colSpan={5} className="tkai-muted">
+                            Hàng đợi trống.
+                          </td>
+                        </tr>
+                      ) : null}
+                    </tbody>
+                  </table>
                 </div>
-                <p className="tkai-muted">
-                  Repo: <code>extensions/cins-pixiv-import</code>
-                </p>
-              </article>
-            </div>
+              </>
+            ) : null}
+
+            {buoc === "cho_duyet" || buoc === "san_sang" ? (
+              <>
+                <div className="tkai-actions">
+                  <label className="tkai-check">
+                    <input
+                      type="checkbox"
+                      checked={allSelected}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelected(new Set(banThaos.map((b) => b.id)));
+                        } else setSelected(new Set());
+                      }}
+                    />
+                    Chọn ({selected.size}/{banThaos.length})
+                  </label>
+                  {buoc === "cho_duyet" ? (
+                    <>
+                      <button
+                        type="button"
+                        className="btn btn-primary"
+                        disabled={busy || selected.size === 0}
+                        onClick={() =>
+                          void run(
+                            {
+                              action: "duyet_ban_thao",
+                              ids: [...selected],
+                            },
+                            { nextBuoc: "san_sang" },
+                          )
+                        }
+                      >
+                        <Check size={14} /> Duyệt → Đã duyệt ({selected.size})
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-ghost"
+                        disabled={busy || selected.size === 0}
+                        onClick={() =>
+                          void run({
+                            action: "huy_ban_thao",
+                            ids: [...selected],
+                          })
+                        }
+                      >
+                        <X size={14} /> Hủy
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        className="btn btn-ghost"
+                        disabled={busy || selected.size === 0}
+                        onClick={() =>
+                          void run(
+                            {
+                              action: "thu_hoi_ban_thao",
+                              ids: [...selected],
+                            },
+                            { nextBuoc: "cho_duyet" },
+                          )
+                        }
+                      >
+                        <RotateCcw size={14} /> Thu hồi → Chờ duyệt (
+                        {selected.size})
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-primary"
+                        disabled={busy || (dem?.sanSang ?? 0) === 0}
+                        onClick={() => {
+                          if (!window.confirm("Đăng tối đa 10 bản đã duyệt?"))
+                            return;
+                          void run(
+                            { action: "chay_dang", gioiHan: 10 },
+                            { nextBuoc: "da_dang" },
+                          );
+                        }}
+                      >
+                        Đăng ngay (10)
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-ghost"
+                        disabled={busy || selected.size === 0}
+                        onClick={() =>
+                          void run({
+                            action: "huy_ban_thao",
+                            ids: [...selected],
+                          })
+                        }
+                      >
+                        <X size={14} /> Hủy
+                      </button>
+                    </>
+                  )}
+                </div>
+                {buoc === "san_sang" ? (
+                  <p className="tkai-meta tkai-duyet-hint">
+                    Cron tự đăng <strong>08:00 / 14:00 / 20:00 VN</strong>, tối
+                    đa <strong>1 bài/nick/lần</strong>. Thu hồi nếu chưa muốn
+                    xếp lịch.
+                  </p>
+                ) : null}
+                <div className="tkai-cards">
+                  {banThaos.map((b) => (
+                    <article key={b.id} className="tkai-card">
+                      <label className="tkai-card__check">
+                        <input
+                          type="checkbox"
+                          checked={selected.has(b.id)}
+                          onChange={(e) =>
+                            toggleSelect(b.id, e.target.checked)
+                          }
+                        />
+                      </label>
+                      {b.anhBiaUrl ? (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img
+                          src={b.anhBiaUrl}
+                          alt=""
+                          className="tkai-card__img"
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : (
+                        <div className="tkai-card__img tkai-card__img--empty">
+                          Không cover
+                        </div>
+                      )}
+                      <div className="tkai-card__body">
+                        <div className="tkai-card__meta">
+                          <span className="tkai-chip tkai-chip--nick">
+                            <span
+                              className={`tkai-chip__ava${b.avatarUrl ? " has-img" : ""}`}
+                              aria-hidden
+                            >
+                              {b.avatarUrl ? (
+                                /* eslint-disable-next-line @next/next/no-img-element */
+                                <img src={b.avatarUrl} alt="" />
+                              ) : (
+                                nickInitial(b.slug || "?", b.tenHienThi)
+                              )}
+                            </span>
+                            @{b.slug || "?"}
+                          </span>
+                          <span className="tkai-chip">
+                            {kenhLabel(b.nenTang)}
+                          </span>
+                          {!b.anhBiaUrl ? (
+                            <span className="tkai-chip tkai-chip--warn">
+                              thiếu ảnh
+                            </span>
+                          ) : null}
+                        </div>
+                        <h3>{b.tieuDe || "(không tiêu đề)"}</h3>
+                        <p>{b.moTa || "—"}</p>
+                        <p className="tkai-muted tkai-attr">{b.dongGhiNguon}</p>
+                        {b.duKienDang ? (
+                          <p className="tkai-du-kien">
+                            Dự kiến: <strong>{b.duKienDang}</strong>
+                            {b.hanMucConLai != null ? (
+                              <span className="tkai-muted">
+                                {" "}
+                                · slot còn {b.hanMucConLai}
+                              </span>
+                            ) : null}
+                          </p>
+                        ) : null}
+                        <div className="tkai-card__links">
+                          <Link
+                            href={`/admin/tai-khoan-ai/ban-thao/${b.id}`}
+                            target="_blank"
+                            className="tkai-card__icon-btn"
+                            title="Xem bài viết"
+                            aria-label="Xem bài viết"
+                          >
+                            <FileText size={15} strokeWidth={2.25} />
+                          </Link>
+                          {b.urlCanonic ? (
+                            <a
+                              href={b.urlCanonic}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="tkai-card__icon-btn"
+                              title="Nguồn gốc"
+                              aria-label="Nguồn gốc"
+                            >
+                              <ExternalLink size={15} strokeWidth={2.25} />
+                            </a>
+                          ) : null}
+                          {buoc === "cho_duyet" ? (
+                            <button
+                              type="button"
+                              className="btn btn-ghost tkai-card__link"
+                              disabled={busy}
+                              onClick={() =>
+                                void run({
+                                  action: "duyet_ban_thao",
+                                  ids: [b.id],
+                                })
+                              }
+                            >
+                              <Check size={14} /> Duyệt
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              className="btn btn-ghost tkai-card__link"
+                              disabled={busy}
+                              onClick={() =>
+                                void run({
+                                  action: "thu_hoi_ban_thao",
+                                  ids: [b.id],
+                                })
+                              }
+                            >
+                              <RotateCcw size={14} /> Thu hồi
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </article>
+                  ))}
+                  {!banThaos.length ? (
+                    <p className="tkai-muted">
+                      {buoc === "cho_duyet"
+                        ? "Không có bản thảo chờ duyệt."
+                        : "Không có bản đã duyệt."}
+                    </p>
+                  ) : null}
+                </div>
+              </>
+            ) : null}
+
+            {buoc === "da_dang" ? (
+              <div className="table-wrap">
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Lúc</th>
+                      <th>Nick</th>
+                      <th>Kết quả</th>
+                      <th>Bài / nguồn</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {daDangs.map((d) => (
+                      <tr key={d.id}>
+                        <td>{fmt(d.taoLuc)}</td>
+                        <td>@{d.slugNick || "?"}</td>
+                        <td>
+                          {d.thanhCong ? (
+                            <span className="tkai-chip is-ok">OK</span>
+                          ) : (
+                            <span className="tkai-chip tkai-chip--warn">
+                              {d.loi || "Lỗi"}
+                            </span>
+                          )}
+                        </td>
+                        <td>
+                          <div className="tkai-card__links">
+                            {d.duongDan ? (
+                              <a
+                                href={d.duongDan}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="btn btn-ghost tkai-card__link"
+                              >
+                                <ExternalLink size={14} />
+                                Xem bài
+                              </a>
+                            ) : null}
+                            {d.urlCanonic ? (
+                              <a
+                                href={d.urlCanonic}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="btn btn-ghost tkai-card__link"
+                              >
+                                <ExternalLink size={14} />
+                                Nguồn
+                              </a>
+                            ) : null}
+                            {!d.duongDan && !d.urlCanonic ? "—" : null}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                    {!daDangs.length ? (
+                      <tr>
+                        <td colSpan={4} className="tkai-muted">
+                          Chưa có nhật ký đăng.
+                        </td>
+                      </tr>
+                    ) : null}
+                  </tbody>
+                </table>
+              </div>
+            ) : null}
           </section>
         ) : null}
 
@@ -428,9 +940,22 @@ export function AdminTaiKhoanAiScreen() {
                   {nicks.map((n) => (
                     <tr key={n.id}>
                       <td>
-                        <Link href={`/${n.slug}/journey`} target="_blank">
-                          @{n.slug}
-                        </Link>
+                        <div className="admin-nguoi-dung-user">
+                          <span
+                            className={`admin-nguoi-dung-ava${n.avatarUrl ? " admin-nguoi-dung-ava--has-img" : ""}`}
+                            aria-hidden
+                          >
+                            {n.avatarUrl ? (
+                              /* eslint-disable-next-line @next/next/no-img-element */
+                              <img src={n.avatarUrl} alt="" />
+                            ) : (
+                              nickInitial(n.slug, n.tenHienThi)
+                            )}
+                          </span>
+                          <Link href={`/${n.slug}/journey`} target="_blank">
+                            @{n.slug}
+                          </Link>
+                        </div>
                       </td>
                       <td>
                         <span className="tkai-chip">{kenhLabel(n.kenh)}</span>
@@ -481,395 +1006,7 @@ export function AdminTaiKhoanAiScreen() {
             </div>
           </section>
         ) : null}
-
-        {!loading && tab === "nguon" ? (
-          <section>
-            <form
-              className="tkai-form"
-              onSubmit={(e) => {
-                e.preventDefault();
-                void run(
-                  {
-                    action: "them_nguon",
-                    nenTang: formNguon.nenTang,
-                    urlHoSo: formNguon.urlHoSo,
-                    niche: formNguon.niche || null,
-                    tenHienThi: formNguon.tenHienThi || null,
-                  },
-                  "Đã lưu nguồn.",
-                ).then(() =>
-                  setFormNguon((f) => ({ ...f, urlHoSo: "", tenHienThi: "" })),
-                );
-              }}
-            >
-              <select
-                value={formNguon.nenTang}
-                onChange={(e) =>
-                  setFormNguon((f) => ({ ...f, nenTang: e.target.value }))
-                }
-              >
-                <option value="artstation">ArtStation</option>
-                <option value="behance">Behance</option>
-                <option value="pixiv">Pixiv</option>
-              </select>
-              <input
-                required
-                placeholder="https://…/users/… hoặc profile"
-                value={formNguon.urlHoSo}
-                onChange={(e) =>
-                  setFormNguon((f) => ({ ...f, urlHoSo: e.target.value }))
-                }
-              />
-              <input
-                placeholder="Tên hiển thị"
-                value={formNguon.tenHienThi}
-                onChange={(e) =>
-                  setFormNguon((f) => ({ ...f, tenHienThi: e.target.value }))
-                }
-              />
-              <input
-                placeholder="niche, phẩy"
-                value={formNguon.niche}
-                onChange={(e) =>
-                  setFormNguon((f) => ({ ...f, niche: e.target.value }))
-                }
-              />
-              <button type="submit" className="btn btn-primary" disabled={busy}>
-                Thêm nguồn
-              </button>
-            </form>
-            <div className="table-wrap">
-              <table className="admin-table">
-                <thead>
-                  <tr>
-                    <th>Nền tảng</th>
-                    <th>Hồ sơ</th>
-                    <th>Niche</th>
-                    <th>Quét lần cuối</th>
-                    <th>Bật</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {nguons.map((n) => (
-                    <tr key={n.id}>
-                      <td>{kenhLabel(n.nenTang)}</td>
-                      <td>
-                        <a href={n.urlHoSo} target="_blank" rel="noreferrer">
-                          {n.tenHienThi || n.maNgoai || n.urlHoSo}
-                          <ExternalLink size={12} />
-                        </a>
-                      </td>
-                      <td className="tkai-muted">{n.niche || "—"}</td>
-                      <td>{fmt(n.lanQuetLuc)}</td>
-                      <td>
-                        <button
-                          type="button"
-                          className={`btn btn-ghost tkai-toggle${n.dangBat ? " is-on" : ""}`}
-                          disabled={busy}
-                          onClick={() =>
-                            void run({
-                              action: "cap_nhat_nguon",
-                              id: n.id,
-                              dangBat: !n.dangBat,
-                            })
-                          }
-                        >
-                          {n.dangBat ? "ON" : "OFF"}
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        ) : null}
-
-        {!loading && tab === "muc" ? (
-          <section>
-            <form
-              className="tkai-form"
-              onSubmit={(e) => {
-                e.preventDefault();
-                void run(
-                  {
-                    action: "nhap_muc",
-                    url: formMuc.url,
-                    tieuDe: formMuc.tieuDe || null,
-                    tacGia: formMuc.tacGia || null,
-                  },
-                  "Đã thêm mục.",
-                ).then(() => setFormMuc({ url: "", tieuDe: "", tacGia: "" }));
-              }}
-            >
-              <input
-                required
-                placeholder="URL artwork / gallery"
-                value={formMuc.url}
-                onChange={(e) =>
-                  setFormMuc((f) => ({ ...f, url: e.target.value }))
-                }
-              />
-              <input
-                placeholder="Tiêu đề"
-                value={formMuc.tieuDe}
-                onChange={(e) =>
-                  setFormMuc((f) => ({ ...f, tieuDe: e.target.value }))
-                }
-              />
-              <input
-                placeholder="Tác giả nguồn"
-                value={formMuc.tacGia}
-                onChange={(e) =>
-                  setFormMuc((f) => ({ ...f, tacGia: e.target.value }))
-                }
-              />
-              <button type="submit" className="btn btn-primary" disabled={busy}>
-                Nhập mục
-              </button>
-              <button
-                type="button"
-                className="btn btn-ghost"
-                disabled={busy || mucs.length === 0}
-                onClick={() => void run({ action: "chuan_bi", gioiHan: 20 })}
-              >
-                Soạn → chờ duyệt
-              </button>
-            </form>
-            <div className="table-wrap">
-              <table className="admin-table">
-                <thead>
-                  <tr>
-                    <th>Cover</th>
-                    <th>Tiêu đề</th>
-                    <th>Nguồn</th>
-                    <th>Tác giả</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {mucs.map((m) => (
-                    <tr key={m.id}>
-                      <td>
-                        {m.anhBiaUrl ? (
-                          /* eslint-disable-next-line @next/next/no-img-element */
-                          <img
-                            src={m.anhBiaUrl}
-                            alt=""
-                            className="tkai-thumb"
-                          />
-                        ) : (
-                          <span className="tkai-muted">—</span>
-                        )}
-                      </td>
-                      <td>
-                        <a href={m.urlCanonic} target="_blank" rel="noreferrer">
-                          {m.tieuDeGoc || m.urlCanonic}
-                        </a>
-                      </td>
-                      <td>{kenhLabel(m.nenTang)}</td>
-                      <td className="tkai-muted">{m.tenTacGia || "—"}</td>
-                      <td>
-                        <button
-                          type="button"
-                          className="btn btn-ghost"
-                          disabled={busy}
-                          onClick={() =>
-                            void run({ action: "bo_qua_muc", id: m.id })
-                          }
-                        >
-                          Bỏ qua
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                  {!mucs.length ? (
-                    <tr>
-                      <td colSpan={5} className="tkai-muted">
-                        Không có mục mới.
-                      </td>
-                    </tr>
-                  ) : null}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        ) : null}
-
-        {!loading && tab === "duyet" ? (
-          <section>
-            <div className="tkai-actions">
-              <label className="tkai-check">
-                <input
-                  type="checkbox"
-                  checked={allSelected}
-                  onChange={(e) => {
-                    if (e.target.checked) {
-                      setSelected(new Set(banThaos.map((b) => b.id)));
-                    } else setSelected(new Set());
-                  }}
-                />
-                Chọn tất cả ({banThaos.length})
-              </label>
-              <button
-                type="button"
-                className="btn btn-primary"
-                disabled={busy || selected.size === 0}
-                onClick={() =>
-                  void run({
-                    action: "duyet_ban_thao",
-                    ids: [...selected],
-                  })
-                }
-              >
-                <Check size={14} /> Duyệt ({selected.size})
-              </button>
-              <button
-                type="button"
-                className="btn btn-ghost"
-                disabled={busy || selected.size === 0}
-                onClick={() =>
-                  void run({
-                    action: "huy_ban_thao",
-                    ids: [...selected],
-                  })
-                }
-              >
-                <X size={14} /> Hủy
-              </button>
-              <button
-                type="button"
-                className="btn btn-ghost"
-                disabled={busy}
-                onClick={() => {
-                  if (!window.confirm("Đăng tối đa 10 bản đã duyệt?")) return;
-                  void run({ action: "chay_dang", gioiHan: 10 });
-                }}
-              >
-                Đăng sẵn sàng
-              </button>
-            </div>
-            <div className="tkai-cards">
-              {banThaos.map((b) => (
-                <article key={b.id} className="tkai-card">
-                  <label className="tkai-card__check">
-                    <input
-                      type="checkbox"
-                      checked={selected.has(b.id)}
-                      onChange={(e) => {
-                        setSelected((prev) => {
-                          const next = new Set(prev);
-                          if (e.target.checked) next.add(b.id);
-                          else next.delete(b.id);
-                          return next;
-                        });
-                      }}
-                    />
-                  </label>
-                  {b.anhBiaUrl ? (
-                    /* eslint-disable-next-line @next/next/no-img-element */
-                    <img src={b.anhBiaUrl} alt="" className="tkai-card__img" />
-                  ) : (
-                    <div className="tkai-card__img tkai-card__img--empty">
-                      Không cover
-                    </div>
-                  )}
-                  <div className="tkai-card__body">
-                    <div className="tkai-card__meta">
-                      <span className="tkai-chip">@{b.slug || "?"}</span>
-                      <span className="tkai-chip">{kenhLabel(b.nenTang)}</span>
-                      {!b.anhBiaUrl ? (
-                        <span className="tkai-chip tkai-chip--warn">
-                          thiếu ảnh
-                        </span>
-                      ) : null}
-                    </div>
-                    <h3>{b.tieuDe || "(không tiêu đề)"}</h3>
-                    <p>{b.moTa || "—"}</p>
-                    {b.urlCanonic ? (
-                      <a href={b.urlCanonic} target="_blank" rel="noreferrer">
-                        Xem nguồn gốc
-                      </a>
-                    ) : null}
-                    <p className="tkai-muted tkai-attr">{b.dongGhiNguon}</p>
-                  </div>
-                </article>
-              ))}
-              {!banThaos.length ? (
-                <p className="tkai-muted">Không có bản thảo chờ duyệt.</p>
-              ) : null}
-            </div>
-          </section>
-        ) : null}
-
-        {!loading && tab === "da-dang" ? (
-          <section>
-            <div className="table-wrap">
-              <table className="admin-table">
-                <thead>
-                  <tr>
-                    <th>Lúc</th>
-                    <th>Nick</th>
-                    <th>Kết quả</th>
-                    <th>Bài / nguồn</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {daDangs.map((d) => (
-                    <tr key={d.id}>
-                      <td>{fmt(d.taoLuc)}</td>
-                      <td>@{d.slugNick || "?"}</td>
-                      <td>
-                        {d.thanhCong ? (
-                          <span className="tkai-chip is-ok">OK</span>
-                        ) : (
-                          <span className="tkai-chip tkai-chip--warn">
-                            {d.loi || "Lỗi"}
-                          </span>
-                        )}
-                      </td>
-                      <td>
-                        {d.duongDan ? (
-                          <a href={d.duongDan} target="_blank" rel="noreferrer">
-                            {d.slugBai || d.duongDan}
-                          </a>
-                        ) : d.urlCanonic ? (
-                          <a
-                            href={d.urlCanonic}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="tkai-muted"
-                          >
-                            {d.urlCanonic}
-                          </a>
-                        ) : (
-                          "—"
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                  {!daDangs.length ? (
-                    <tr>
-                      <td colSpan={4} className="tkai-muted">
-                        Chưa có nhật ký đăng.
-                      </td>
-                    </tr>
-                  ) : null}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        ) : null}
       </div>
     </>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: string | number }) {
-  return (
-    <div className="tkai-stat">
-      <div className="tkai-stat__v">{value}</div>
-      <div className="tkai-stat__l">{label}</div>
-    </div>
   );
 }

@@ -7,10 +7,12 @@ import {
   setRestoreHintOnResponse,
   upsertAccount,
 } from "@/lib/auth/account-vault";
+import { EMAIL_OTP_LENGTH } from "@/lib/auth/email-otp";
 import { normalizeOAuthReturnPath } from "@/lib/auth/oauth-return-path";
 import {
   appendSetCookieHeaders,
   createSupabaseRouteHandlerClient,
+  flushDeferredAuthCookies,
 } from "@/lib/supabase/route-handler";
 import {
   createServiceRoleClient,
@@ -131,7 +133,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           error:
-            "Email chưa được xác nhận. Nhập mã 6 số đã gửi tới email của bạn.",
+            `Email chưa được xác nhận. Nhập mã ${EMAIL_OTP_LENGTH} số đã gửi tới email của bạn.`,
           code: "email_not_confirmed",
           email,
         },
@@ -140,6 +142,10 @@ export async function POST(request: NextRequest) {
     }
     return NextResponse.json({ error: GENERIC_AUTH_ERR }, { status: 401 });
   }
+
+  /* supabase-js >= 2.91 hoãn ghi cookie SIGNED_IN qua setTimeout(0) —
+   * phải flush trước khi copy Set-Cookie sang response JSON (giống OAuth callback). */
+  await flushDeferredAuthCookies();
 
   const { data: profile } = await supabase
     .from("user_nguoi_dung")

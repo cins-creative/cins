@@ -2,11 +2,10 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 
 import { CoSoAdminToolbar } from "@/components/co-so/CoSoAdminToolbar";
 import { useCoSoMobileShell } from "@/components/co-so/useCoSoMobileShell";
-import type { CoSoSettingsSection } from "@/components/co-so/CoSoPageSettingsModal";
 import { CoSoTabBaidang } from "@/components/co-so/tabs/CoSoTabBaidang";
 import {
   CoSoTabHinhanhLazy,
@@ -67,10 +66,7 @@ function CoSoDetailViewInner({
   canEdit = false,
   canManageKhoaHoc = false,
   viewerLoggedIn = false,
-  onOpenSettings,
-}: Props & {
-  onOpenSettings?: (section: CoSoSettingsSection) => void;
-}) {
+}: Props) {
   const ctx = useTruongInlineEdit();
   const school = ctx?.school ?? payload.school;
   const orgSlug = school.slug;
@@ -158,7 +154,6 @@ function CoSoDetailViewInner({
         school={school}
         hocVienXacThucCount={payload.hocVienXacThucCount}
         canEditMedia={canEdit}
-        onOpenSettings={onOpenSettings}
         isMobileShell={isMobileShell}
         isMobileShellActive
       />
@@ -324,23 +319,13 @@ function CoSoDetailViewBody({
   canManageKhoaHoc,
   viewerLoggedIn,
 }: Props) {
-  const router = useRouter();
   const orgSlug = payload.school.slug;
-
-  function openSettings(section: CoSoSettingsSection = "identity") {
-    if (section === "contact") {
-      router.push(coSoQuanLyPath(orgSlug, "co-so"));
-      return;
-    }
-    router.push(coSoQuanLyPath(orgSlug, "co-so"));
-  }
 
   return (
     <>
       {canEdit ? (
         <CoSoAdminToolbar
           quanLyHref={coSoQuanLyPath(orgSlug)}
-          coSoSettingsHref={coSoQuanLyPath(orgSlug, "co-so")}
         />
       ) : null}
       <CoSoDetailViewInner
@@ -348,7 +333,6 @@ function CoSoDetailViewBody({
         canEdit={canEdit}
         canManageKhoaHoc={canManageKhoaHoc}
         viewerLoggedIn={viewerLoggedIn}
-        onOpenSettings={canEdit ? openSettings : undefined}
       />
     </>
   );

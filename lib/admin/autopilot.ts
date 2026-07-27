@@ -17,13 +17,28 @@ import {
   NICK_SEED,
   nicheVoiKenh,
 } from "@/lib/autopilot/nick-seed";
-import { diemTrungNiche, ngayVn, tachNiche } from "@/lib/autopilot/ngay-vn";
+import { diemTrungNiche, ngayVn, tachNiche, uocLuongDangSauDuyet } from "@/lib/autopilot/ngay-vn";
 import {
   doanNenTangTuUrl,
-  nhanNenTang,
   taoDongGhiNguon,
   type NenTangNguon,
 } from "@/lib/editor/khoi-bai-nguon";
+import type { Block } from "@/lib/editor/types";
+import { xayBlocksXemTruocBanThao } from "@/lib/admin/autopilot-ban-thao-preview";
+import {
+  laTieuDeThoBehance,
+  layBehanceMetaTuUrl,
+  tieuDeTuSlugUrlBehance,
+} from "@/lib/autopilot/behance-assets";
+import { layAnhArtstationTuUrl } from "@/lib/autopilot/artstation-assets";
+import { layAnhPixivTuUrl } from "@/lib/autopilot/pixiv-assets";
+import {
+  laMoTaBotCurator,
+  laMoTaKieuNoteAi,
+  soanBaiCuratorTheoNick,
+  soanBaiHeuristicTheoNick,
+} from "@/lib/autopilot/soan-bai-nick";
+import { getAvatarUrl } from "@/lib/journey/profile";
 import {
   createServiceRoleClient,
   hasServiceRoleEnv,
@@ -54,40 +69,211 @@ function secretDangBai(): string {
   return s;
 }
 
-function truncate(s: string, max: number): string {
-  const t = String(s || "")
-    .replace(/\s+/g, " ")
-    .trim();
-  if (t.length <= max) return t;
-  return `${t.slice(0, max - 1).trimEnd()}…`;
+const BEHANCE_META_CONCURRENCY = 4;
+const BEHANCE_META_MOI_LAN_LIET_KE = 12;
+const COVER_MOI_LAN_LIET_KE = 16;
+const COVER_CONCURRENCY = 4;
+const CAPTION_LAM_MOI_MOI_LAN = 60;
+
+function anhUrlTuMetaMuc(meta: unknown): string | null {
+  if (!meta || typeof meta !== "object") return null;
+  const anhUrls = (meta as { anhUrls?: unknown }).anhUrls;
+  if (!Array.isArray(anhUrls)) return null;
+  for (const u of anhUrls) {
+    const s = String(u || "").trim();
+    if (/^https:\/\//i.test(s)) return s;
+  }
+  return null;
 }
 
-function soanHeuristic(params: {
-  tieuDeGoc?: string | null;
-  moTaGoc?: string | null;
-  tenTacGia?: string | null;
-  nenTang: string;
-}): { tieuDe: string; moTa: string } {
-  const nen = nhanNenTang(
-    (["artstation", "behance", "pixiv", "khac"].includes(params.nenTang)
-      ? params.nenTang
-      : "khac") as NenTangNguon,
-  );
-  const goc = truncate(params.tieuDeGoc || "", 120);
-  const tacGia = String(params.tenTacGia || "").trim();
-  const tieuDe =
-    goc && !/^https?:/i.test(goc)
-      ? goc
-      : tacGia
-        ? `Gợi ý từ ${nen}: ${tacGia}`
-        : `Gợi ý từ ${nen}`;
-  let moTa = truncate(params.moTaGoc || "", 400);
-  if (!moTa) {
-    moTa = tacGia
-      ? `Chia sẻ tác phẩm của ${tacGia} trên ${nen} — tham khảo phong cách, không phải portfolio cá nhân.`
-      : `Chia sẻ tác phẩm đáng chú ý trên ${nen} — xem bản gốc qua liên kết.`;
+async function layCoverTuNguon(
+  nenTang: string | null,
+  url: string,
+): Promise<string | null> {
+  if (nenTang === "behance") {
+    const meta = await layBehanceMetaTuUrl(url);
+    return meta.coverUrl;
   }
-  return { tieuDe: truncate(tieuDe, 120), moTa };
+  if (nenTang === "artstation") {
+    const fetched = await layAnhArtstationTuUrl(url);
+    if (!fetched.ok) return null;
+    return fetched.data.coverUrl || fetched.data.anh[0]?.imageUrl || null;
+  }
+  if (nenTang === "pixiv") {
+    const fetched = await layAnhPixivTuUrl(url, { gioiHan: 1 });
+    if (!fetched.ok) return null;
+    return fetched.data.coverUrl || fetched.data.anh[0]?.imageUrl || null;
+  }
+  return null;
+}
+
+/**
+ * Card thiếu `anh_bia_url` → thumbnail từ meta.anhUrls hoặc fetch nguồn.
+ * Persist vào auto_muc để lần sau không fetch lại.
+ */
+async function boSungAnhBiaBanThao(
+  db: SupabaseClient,
+  rows: Array<AutopilotBanThaoRow & { _mucMeta?: unknown }>,
+): Promise<void> {
+  const thieu = rows.filter((r) => !r.anhBiaUrl && r.urlCanonic);
+  if (!thieu.length) return;
+
+  /* 1) Instant — album URLs extension đã gửi trong meta. */
+  for (const row of thieu) {
+    const tuMeta = anhUrlTuMetaMuc(row._mucMeta);
+    if (!tuMeta) continue;
+    row.anhBiaUrl = tuMeta;
+    await db
+      .from("auto_muc")
+      .update({ anh_bia_url: tuMeta })
+      .eq("url_canonic", row.urlCanonic!.split("?")[0]!);
+  }
+
+  /* 2) Fetch nguồn (giới hạn / request). */
+  const still = thieu
+    .filter((r) => !r.anhBiaUrl)
+    .slice(0, COVER_MOI_LAN_LIET_KE);
+  for (let i = 0; i < still.length; i += COVER_CONCURRENCY) {
+    const chunk = still.slice(i, i + COVER_CONCURRENCY);
+    const covers = await Promise.all(
+      chunk.map((r) => layCoverTuNguon(r.nenTang, r.urlCanonic!)),
+    );
+    for (let j = 0; j < chunk.length; j++) {
+      const cover = covers[j];
+      if (!cover || !/^https:\/\//i.test(cover)) continue;
+      const row = chunk[j]!;
+      row.anhBiaUrl = cover;
+      await db
+        .from("auto_muc")
+        .update({ anh_bia_url: cover })
+        .eq("url_canonic", row.urlCanonic!.split("?")[0]!);
+    }
+  }
+}
+
+/**
+ * Bản thảo còn tiêu đề `Behance {id}` → đổi sang tên project (slug URL hoặc og:title).
+ * Persist vào auto_ban_thao + auto_muc.
+ */
+async function boSungTieuDeThoBehance(
+  db: SupabaseClient,
+  rows: AutopilotBanThaoRow[],
+): Promise<void> {
+  const can = rows.filter(
+    (r) =>
+      r.nenTang === "behance" &&
+      Boolean(r.urlCanonic) &&
+      laTieuDeThoBehance(r.tieuDe),
+  );
+  if (!can.length) return;
+
+  for (const row of can) {
+    const slugTitle = tieuDeTuSlugUrlBehance(row.urlCanonic!);
+    if (!slugTitle) continue;
+    row.tieuDe = slugTitle;
+    await Promise.all([
+      db
+        .from("auto_ban_thao")
+        .update({ tieu_de: slugTitle.slice(0, 200) })
+        .eq("id", row.id),
+      db
+        .from("auto_muc")
+        .update({ tieu_de_goc: slugTitle.slice(0, 500) })
+        .eq("url_canonic", row.urlCanonic!.split("?")[0]!),
+    ]);
+  }
+
+  const still = can
+    .filter((r) => laTieuDeThoBehance(r.tieuDe))
+    .slice(0, BEHANCE_META_MOI_LAN_LIET_KE);
+  for (let i = 0; i < still.length; i += BEHANCE_META_CONCURRENCY) {
+    const chunk = still.slice(i, i + BEHANCE_META_CONCURRENCY);
+    const metas = await Promise.all(
+      chunk.map((r) => layBehanceMetaTuUrl(r.urlCanonic!)),
+    );
+    for (let j = 0; j < chunk.length; j++) {
+      const meta = metas[j];
+      const row = chunk[j]!;
+      const title = meta?.title?.trim();
+      if (title && !laTieuDeThoBehance(title)) {
+        const tieuDe = title.slice(0, 200);
+        row.tieuDe = tieuDe;
+        await Promise.all([
+          db.from("auto_ban_thao").update({ tieu_de: tieuDe }).eq("id", row.id),
+          db
+            .from("auto_muc")
+            .update({ tieu_de_goc: title.slice(0, 500) })
+            .eq("url_canonic", row.urlCanonic!.split("?")[0]!),
+        ]);
+      }
+      /* Cùng lần fetch — gắn cover nếu card còn trống. */
+      if (!row.anhBiaUrl && meta?.coverUrl && /^https:\/\//i.test(meta.coverUrl)) {
+        row.anhBiaUrl = meta.coverUrl;
+        await db
+          .from("auto_muc")
+          .update({ anh_bia_url: meta.coverUrl })
+          .eq("url_canonic", row.urlCanonic!.split("?")[0]!);
+      }
+    }
+  }
+}
+
+/**
+ * Caption bot «Chia sẻ tác phẩm…» → viết lại theo voice nick (+ Claude nếu có key).
+ */
+async function lamMoiCaptionBotBanThao(
+  db: SupabaseClient,
+  rows: AutopilotBanThaoRow[],
+): Promise<void> {
+  const can = rows
+    .filter(
+      (r) =>
+        Boolean(r.slug) &&
+        Boolean(r.urlCanonic) &&
+        (laMoTaBotCurator(r.moTa) ||
+          laMoTaKieuNoteAi(r.moTa) ||
+          laTieuDeThoBehance(r.tieuDe)),
+    )
+    .slice(0, CAPTION_LAM_MOI_MOI_LAN);
+  if (!can.length) return;
+
+  for (const row of can) {
+    let tieuDeGoc = row.tieuDe;
+    if (row.nenTang === "behance" && laTieuDeThoBehance(tieuDeGoc)) {
+      tieuDeGoc =
+        tieuDeTuSlugUrlBehance(row.urlCanonic!) ||
+        (await layBehanceMetaTuUrl(row.urlCanonic!)).title ||
+        tieuDeGoc;
+    }
+    const soan = soanBaiHeuristicTheoNick({
+      tieuDeGoc,
+      moTaGoc: null,
+      tenTacGia: row.tenTacGia,
+      nenTang: row.nenTang || "khac",
+      urlCanonic: row.urlCanonic!,
+      slugNick: row.slug!,
+    });
+    row.tieuDe = soan.tieuDe;
+    row.moTa = soan.moTa;
+    await db
+      .from("auto_ban_thao")
+      .update({
+        tieu_de: soan.tieuDe.slice(0, 200),
+        mo_ta: soan.moTa,
+        cap_nhat_luc: new Date().toISOString(),
+      })
+      .eq("id", row.id);
+    if (
+      tieuDeGoc &&
+      !laTieuDeThoBehance(tieuDeGoc) &&
+      row.urlCanonic
+    ) {
+      await db
+        .from("auto_muc")
+        .update({ tieu_de_goc: tieuDeGoc.slice(0, 500) })
+        .eq("url_canonic", row.urlCanonic.split("?")[0]!);
+    }
+  }
 }
 
 type NickRowDb = {
@@ -146,6 +332,7 @@ export async function layAutopilotOverview(): Promise<AutopilotOverview> {
     sanSang,
     daDangOk,
     nicks,
+    mucMoiRows,
   ] = await Promise.all([
     db.from("auto_tai_khoan").select("id", { count: "exact", head: true }),
     db
@@ -174,6 +361,7 @@ export async function layAutopilotOverview(): Promise<AutopilotOverview> {
       .select("id", { count: "exact", head: true })
       .eq("thanh_cong", true),
     db.from("auto_tai_khoan").select("niche").eq("dang_bat", true),
+    db.from("auto_muc").select("nen_tang").eq("trang_thai", "moi"),
   ]);
 
   const theoKenh: Record<string, number> = {
@@ -186,6 +374,17 @@ export async function layAutopilotOverview(): Promise<AutopilotOverview> {
   for (const n of nicks.data || []) {
     const k = kenhTuNiche((n as { niche: string[] }).niche) || "khac";
     theoKenh[k] = (theoKenh[k] || 0) + 1;
+  }
+
+  const mucMoiTheoKenh: Record<string, number> = {
+    artstation: 0,
+    behance: 0,
+    pixiv: 0,
+    khac: 0,
+  };
+  for (const m of mucMoiRows.data || []) {
+    const k = String((m as { nen_tang?: string }).nen_tang || "khac");
+    mucMoiTheoKenh[k] = (mucMoiTheoKenh[k] || 0) + 1;
   }
 
   return {
@@ -206,6 +405,7 @@ export async function layAutopilotOverview(): Promise<AutopilotOverview> {
       coAnthropic: Boolean(process.env.ANTHROPIC_API_KEY?.trim()),
     },
     theoKenh,
+    mucMoiTheoKenh,
   };
 }
 
@@ -219,12 +419,33 @@ export async function lietKeNick(): Promise<AutopilotNickRow[]> {
     .order("slug");
   if (error) throw new Error(error.message);
 
+  const list = data || [];
+  const slugs = list.map((r) => r.slug as string).filter(Boolean);
+  const profileBySlug = new Map<
+    string,
+    { avatarUrl: string | null; tenHienThi: string | null }
+  >();
+  if (slugs.length) {
+    const { data: profiles, error: pErr } = await db
+      .from("user_nguoi_dung")
+      .select("slug, avatar_id, ten_hien_thi")
+      .in("slug", slugs);
+    if (pErr) throw new Error(pErr.message);
+    for (const p of profiles || []) {
+      profileBySlug.set(p.slug, {
+        avatarUrl: getAvatarUrl(p.avatar_id),
+        tenHienThi: p.ten_hien_thi ?? null,
+      });
+    }
+  }
+
   const rows: AutopilotNickRow[] = [];
-  for (const r of data || []) {
+  for (const r of list) {
     const hm = await layHanMucHomNay(db, {
       id: r.id,
       han_muc_ngay: r.han_muc_ngay,
     });
+    const profile = profileBySlug.get(r.slug);
     rows.push({
       id: r.id,
       slug: r.slug,
@@ -236,6 +457,8 @@ export async function lietKeNick(): Promise<AutopilotNickRow[]> {
       ghiChu: r.ghi_chu,
       homNayDaDang: hm.soDaDang,
       homNayHanMuc: hm.hanMuc,
+      avatarUrl: profile?.avatarUrl ?? null,
+      tenHienThi: profile?.tenHienThi ?? null,
     });
   }
   return rows;
@@ -478,7 +701,7 @@ export async function lietKeBanThao(opts?: {
       `
       id, tieu_de, mo_ta, dong_ghi_nguon, trang_thai, tao_luc,
       auto_tai_khoan ( slug ),
-      auto_muc ( url_canonic, nen_tang, anh_bia_url, ten_tac_gia )
+      auto_muc ( url_canonic, nen_tang, anh_bia_url, ten_tac_gia, meta )
     `,
     )
     .eq("trang_thai", trangThai)
@@ -486,7 +709,7 @@ export async function lietKeBanThao(opts?: {
     .limit(limit);
   if (error) throw new Error(error.message);
 
-  return (data || []).map((r) => {
+  const mapped = (data || []).map((r) => {
     const tk = asOne(r.auto_tai_khoan as { slug?: string } | { slug?: string }[]);
     const muc = asOne(
       r.auto_muc as
@@ -495,12 +718,14 @@ export async function lietKeBanThao(opts?: {
             nen_tang?: string;
             anh_bia_url?: string;
             ten_tac_gia?: string;
+            meta?: unknown;
           }
         | {
             url_canonic?: string;
             nen_tang?: string;
             anh_bia_url?: string;
             ten_tac_gia?: string;
+            meta?: unknown;
           }[],
     );
     return {
@@ -515,8 +740,256 @@ export async function lietKeBanThao(opts?: {
       nenTang: muc?.nen_tang || null,
       anhBiaUrl: muc?.anh_bia_url || null,
       tenTacGia: muc?.ten_tac_gia || null,
+      avatarUrl: null as string | null,
+      tenHienThi: null as string | null,
+      duKienDang: null as string | null,
+      hanMucConLai: null as number | null,
+      sanSangTruoc: null as number | null,
+      _mucMeta: muc?.meta ?? null,
     };
   });
+
+  const slugs = [
+    ...new Set(mapped.map((r) => r.slug).filter((s): s is string => Boolean(s))),
+  ];
+  if (slugs.length) {
+    const { data: profiles, error: pErr } = await db
+      .from("user_nguoi_dung")
+      .select("slug, avatar_id, ten_hien_thi")
+      .in("slug", slugs);
+    if (pErr) throw new Error(pErr.message);
+    const bySlug = new Map(
+      (profiles || []).map((p) => [
+        p.slug as string,
+        {
+          avatarUrl: getAvatarUrl(p.avatar_id),
+          tenHienThi: (p.ten_hien_thi as string | null) ?? null,
+        },
+      ]),
+    );
+    for (const row of mapped) {
+      if (!row.slug) continue;
+      const p = bySlug.get(row.slug);
+      if (!p) continue;
+      row.avatarUrl = p.avatarUrl;
+      row.tenHienThi = p.tenHienThi;
+    }
+
+    const [{ data: tkRows }, { data: sanSangRows }] = await Promise.all([
+      db
+        .from("auto_tai_khoan")
+        .select("id, slug, han_muc_ngay")
+        .in("slug", slugs),
+      db
+        .from("auto_ban_thao")
+        .select("id, id_tai_khoan, auto_tai_khoan ( slug )")
+        .eq("trang_thai", "san_sang"),
+    ]);
+
+    const sanSangBySlug = new Map<string, number>();
+    for (const r of sanSangRows || []) {
+      const tk = asOne(
+        r.auto_tai_khoan as { slug?: string } | { slug?: string }[],
+      );
+      const slug = tk?.slug;
+      if (!slug) continue;
+      sanSangBySlug.set(slug, (sanSangBySlug.get(slug) || 0) + 1);
+    }
+
+    const hmBySlug = new Map<
+      string,
+      { conLai: number; hanMuc: number }
+    >();
+    for (const tk of tkRows || []) {
+      const hm = await layHanMucHomNay(db, {
+        id: tk.id,
+        han_muc_ngay: tk.han_muc_ngay,
+      });
+      hmBySlug.set(tk.slug, { conLai: hm.conLai, hanMuc: hm.hanMuc });
+    }
+
+    // Thứ tự cho_duyet theo nick (FIFO = thứ tự mapped đã sort tao_luc)
+    const choDuyetIdxBySlug = new Map<string, number>();
+    for (const row of mapped) {
+      if (!row.slug) continue;
+      const hm = hmBySlug.get(row.slug);
+      const ahead = sanSangBySlug.get(row.slug) || 0;
+      const choTruoc = choDuyetIdxBySlug.get(row.slug) || 0;
+      choDuyetIdxBySlug.set(row.slug, choTruoc + 1);
+      row.sanSangTruoc = ahead;
+      row.hanMucConLai = hm?.conLai ?? null;
+      row.duKienDang = uocLuongDangSauDuyet({
+        sanSangTruoc: ahead,
+        choDuyetTruoc: choTruoc,
+        hanMucConLai: hm?.conLai ?? 0,
+        hanMucNgay: hm?.hanMuc ?? 3,
+      });
+    }
+  }
+
+  await boSungAnhBiaBanThao(db, mapped);
+  await boSungTieuDeThoBehance(db, mapped);
+  await lamMoiCaptionBotBanThao(db, mapped);
+
+  for (const row of mapped) {
+    delete (row as { _mucMeta?: unknown })._mucMeta;
+  }
+  return mapped;
+}
+
+/** Chi tiết bản thảo — trang xem trước trên CINs (admin). */
+export async function layBanThaoChiTiet(id: string): Promise<{
+  id: string;
+  tieuDe: string | null;
+  moTa: string | null;
+  dongGhiNguon: string | null;
+  trangThai: string;
+  taoLuc: string;
+  slug: string | null;
+  urlCanonic: string | null;
+  nenTang: string | null;
+  anhBiaUrl: string | null;
+  tenTacGia: string | null;
+  duongDanDaDang: string | null;
+  /** Blocks ghép tạm từ URL nguồn (chưa CF). */
+  blocks: Block[];
+  coverSeed: string | null;
+  previewNote: string;
+  owner: {
+    id: string;
+    slug: string;
+    tenHienThi: string;
+    avatarId: string | null;
+  } | null;
+} | null> {
+  const db = adminDb();
+  const { data, error } = await db
+    .from("auto_ban_thao")
+    .select(
+      `
+      id, tieu_de, mo_ta, dong_ghi_nguon, trang_thai, tao_luc, id_muc,
+      auto_tai_khoan ( slug, id_nguoi_dung ),
+      auto_muc ( url_canonic, nen_tang, anh_bia_url, ten_tac_gia )
+    `,
+    )
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) return null;
+
+  const tk = asOne(
+    data.auto_tai_khoan as
+      | { slug?: string; id_nguoi_dung?: string | null }
+      | { slug?: string; id_nguoi_dung?: string | null }[],
+  );
+  const muc = asOne(
+    data.auto_muc as
+      | {
+          url_canonic?: string;
+          nen_tang?: string;
+          anh_bia_url?: string;
+          ten_tac_gia?: string;
+        }
+      | {
+          url_canonic?: string;
+          nen_tang?: string;
+          anh_bia_url?: string;
+          ten_tac_gia?: string;
+        }[],
+  );
+
+  let duongDanDaDang: string | null = null;
+  if (data.id_muc) {
+    const { data: dd } = await db
+      .from("auto_da_dang")
+      .select("duong_dan")
+      .eq("id_muc", data.id_muc)
+      .eq("thanh_cong", true)
+      .order("tao_luc", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    duongDanDaDang = dd?.duong_dan || null;
+  }
+  if (!duongDanDaDang) {
+    const { data: dd2 } = await db
+      .from("auto_da_dang")
+      .select("duong_dan")
+      .eq("id_ban_thao", id)
+      .eq("thanh_cong", true)
+      .maybeSingle();
+    duongDanDaDang = dd2?.duong_dan || null;
+  }
+
+  const slug = tk?.slug?.trim() || null;
+  let owner: {
+    id: string;
+    slug: string;
+    tenHienThi: string;
+    avatarId: string | null;
+  } | null = null;
+
+  if (slug) {
+    const { data: profile } = await db
+      .from("user_nguoi_dung")
+      .select("id, slug, ten_hien_thi, avatar_id")
+      .eq("slug", slug)
+      .maybeSingle();
+    if (profile?.id && profile.slug) {
+      owner = {
+        id: profile.id as string,
+        slug: profile.slug as string,
+        tenHienThi:
+          (profile.ten_hien_thi as string | null)?.trim() ||
+          (profile.slug as string),
+        avatarId: (profile.avatar_id as string | null) ?? null,
+      };
+    } else if (tk?.id_nguoi_dung) {
+      owner = {
+        id: tk.id_nguoi_dung,
+        slug,
+        tenHienThi: slug,
+        avatarId: null,
+      };
+    }
+  }
+
+  const urlCanonic = muc?.url_canonic?.trim() || null;
+  let blocks: Block[] = [];
+  let coverSeed: string | null = muc?.anh_bia_url?.trim() || null;
+  let previewNote = "Chưa có URL nguồn";
+
+  if (urlCanonic) {
+    const preview = await xayBlocksXemTruocBanThao({
+      urlNguon: urlCanonic,
+      nenTang: muc?.nen_tang,
+      moTa: data.mo_ta,
+      dongGhiNguon: data.dong_ghi_nguon,
+      tenTacGia: muc?.ten_tac_gia,
+      anhBiaUrl: muc?.anh_bia_url,
+    });
+    blocks = preview.blocks;
+    coverSeed = preview.coverSeed || coverSeed;
+    previewNote = preview.previewNote;
+  }
+
+  return {
+    id: data.id,
+    tieuDe: data.tieu_de,
+    moTa: data.mo_ta,
+    dongGhiNguon: data.dong_ghi_nguon,
+    trangThai: data.trang_thai,
+    taoLuc: data.tao_luc,
+    slug,
+    urlCanonic,
+    nenTang: muc?.nen_tang || null,
+    anhBiaUrl: muc?.anh_bia_url || null,
+    tenTacGia: muc?.ten_tac_gia || null,
+    duongDanDaDang,
+    blocks,
+    coverSeed,
+    previewNote,
+    owner,
+  };
 }
 
 export async function duyetBanThao(ids: string[]): Promise<{ duyet: number }> {
@@ -560,6 +1033,54 @@ export async function duyetBanThao(ids: string[]): Promise<{ duyet: number }> {
     duyet += 1;
   }
   return { duyet };
+}
+
+/**
+ * Thu hồi duyệt: `san_sang` → `cho_duyet` (đưa lại bước Duyệt trong pipeline).
+ */
+export async function thuHoiBanThao(
+  ids: string[],
+): Promise<{ thuHoi: number }> {
+  const db = adminDb();
+  const unique = [...new Set(ids.map((x) => x.trim()).filter(Boolean))].slice(
+    0,
+    100,
+  );
+  if (!unique.length) return { thuHoi: 0 };
+
+  let thuHoi = 0;
+  for (const id of unique) {
+    const { data: bt, error } = await db
+      .from("auto_ban_thao")
+      .select("id, id_muc")
+      .eq("id", id)
+      .eq("trang_thai", "san_sang")
+      .maybeSingle<{ id: string; id_muc: string }>();
+    if (error) throw new Error(error.message);
+    if (!bt) continue;
+
+    const { error: upBt } = await db
+      .from("auto_ban_thao")
+      .update({
+        trang_thai: "cho_duyet",
+        cap_nhat_luc: new Date().toISOString(),
+      })
+      .eq("id", bt.id)
+      .eq("trang_thai", "san_sang");
+    if (upBt) throw new Error(upBt.message);
+
+    if (bt.id_muc) {
+      await db
+        .from("auto_muc")
+        .update({
+          trang_thai: "cho_duyet",
+          cap_nhat_luc: new Date().toISOString(),
+        })
+        .eq("id", bt.id_muc);
+    }
+    thuHoi += 1;
+  }
+  return { thuHoi };
 }
 
 export async function huyBanThao(ids: string[]): Promise<{ huy: number }> {
@@ -664,11 +1185,36 @@ export async function chuanBiDang(opts?: {
     );
     rr += 1;
 
-    const soan = soanHeuristic({
-      tieuDeGoc: muc.tieu_de_goc,
+    let tieuDeGoc = muc.tieu_de_goc as string | null;
+    if (
+      muc.nen_tang === "behance" &&
+      muc.url_canonic &&
+      laTieuDeThoBehance(tieuDeGoc)
+    ) {
+      const tuSlug = tieuDeTuSlugUrlBehance(muc.url_canonic);
+      if (tuSlug) {
+        tieuDeGoc = tuSlug;
+      } else {
+        const meta = await layBehanceMetaTuUrl(muc.url_canonic);
+        if (meta.title && !laTieuDeThoBehance(meta.title)) {
+          tieuDeGoc = meta.title;
+        }
+      }
+      if (tieuDeGoc && tieuDeGoc !== muc.tieu_de_goc) {
+        await db
+          .from("auto_muc")
+          .update({ tieu_de_goc: tieuDeGoc.slice(0, 500) })
+          .eq("id", muc.id);
+      }
+    }
+
+    const soan = await soanBaiCuratorTheoNick({
+      tieuDeGoc,
       moTaGoc: muc.mo_ta_goc,
       tenTacGia: muc.ten_tac_gia,
       nenTang: muc.nen_tang,
+      urlCanonic: muc.url_canonic,
+      slugNick: nick.slug,
     });
     const dongGhiNguon = taoDongGhiNguon({
       urlNguon: muc.url_canonic,
@@ -825,7 +1371,8 @@ export async function chayDang(opts?: {
     if (conTong <= 0) break;
     const tk = list[0]!.tk;
     const hm = await layHanMucHomNay(db, tk);
-    let conNick = hm.conLai;
+    // 1 bài / nick / lần cron (08·14·20) — không xả hết hạn mức một lần
+    let conNick = Math.min(1, hm.conLai);
 
     for (const bt of list) {
       if (conTong <= 0 || conNick <= 0) {
@@ -849,6 +1396,7 @@ export async function chayDang(opts?: {
           tenTacGiaNguon: muc.ten_tac_gia || undefined,
           dongGhiNguon: bt.dong_ghi_nguon || undefined,
           anhBiaUrl: muc.anh_bia_url || undefined,
+          cheDoHienThi: "feature",
         }),
       });
       const data = (await res.json().catch(() => null)) as {

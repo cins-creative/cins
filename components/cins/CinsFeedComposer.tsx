@@ -8,6 +8,7 @@ import {
   useRef,
   useState,
   type ChangeEvent,
+  type DragEvent,
   type ReactNode,
 } from "react";
 import Link from "next/link";
@@ -15,7 +16,13 @@ import { useRouter } from "next/navigation";
 
 import { EmbedPlatformPicker } from "@/components/cins/EmbedPlatformPicker";
 import { useJourneyCompose } from "@/components/journey/JourneyComposeContext";
+import { imageFilesFromClipboard } from "@/lib/files/clipboard-images";
 import { getNameInitials } from "@/lib/journey/profile";
+
+function dataTransferHasFiles(dt: DataTransfer | null): boolean {
+  if (!dt) return false;
+  return Array.from(dt.types).includes("Files");
+}
 
 type Props = {
   ownerSlug?: string;
@@ -62,6 +69,8 @@ export function CinsFeedComposer({
   const [embedPickerOpen, setEmbedPickerOpen] = useState(false);
   const [hasRiveFileDraft, setHasRiveFileDraft] = useState(false);
   const [hasLottieFileDraft, setHasLottieFileDraft] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+  const dragDepthRef = useRef(0);
 
   useEffect(() => {
     if (!embedPickerOpen) return;
@@ -73,6 +82,44 @@ export function CinsFeedComposer({
   const videoInputRef = useRef<HTMLInputElement>(null);
 
   const initials = getNameInitials(ownerName, ownerSlug);
+
+  const clearDragOver = () => {
+    dragDepthRef.current = 0;
+    setDragOver(false);
+  };
+
+  const onComposerDragEnter = (e: DragEvent<HTMLDivElement>) => {
+    if (!canCompose || !dataTransferHasFiles(e.dataTransfer)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    dragDepthRef.current += 1;
+    setDragOver(true);
+  };
+
+  const onComposerDragOver = (e: DragEvent<HTMLDivElement>) => {
+    if (!canCompose || !dataTransferHasFiles(e.dataTransfer)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = "copy";
+  };
+
+  const onComposerDragLeave = (e: DragEvent<HTMLDivElement>) => {
+    if (!canCompose || !dataTransferHasFiles(e.dataTransfer)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+    if (dragDepthRef.current === 0) setDragOver(false);
+  };
+
+  const onComposerDrop = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    clearDragOver();
+    if (!canCompose) return;
+    const files = imageFilesFromClipboard(e.dataTransfer);
+    if (files.length === 0) return;
+    openComposeWithPhotos(files);
+  };
 
   const openMinimal = () => {
     if (canCompose) {
@@ -119,7 +166,13 @@ export function CinsFeedComposer({
     <div
       className={`cins-feed-composer-row${layout === "journey" ? " cins-feed-composer-row--journey" : ""}`}
     >
-      <div className="wj-composer">
+      <div
+        className={`wj-composer${dragOver ? " is-dragover" : ""}`}
+        onDragEnter={onComposerDragEnter}
+        onDragOver={onComposerDragOver}
+        onDragLeave={onComposerDragLeave}
+        onDrop={onComposerDrop}
+      >
         {avatar ?? (
           <Link
             href={`/${ownerSlug}`}

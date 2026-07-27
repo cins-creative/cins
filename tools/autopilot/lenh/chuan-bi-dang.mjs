@@ -5,7 +5,38 @@ import {
   soanBaiHeuristic,
   taoDongGhiNguon,
 } from "../lib/soan-bai-ai.mjs";
+import { htmlBehanceCoAnhQuaDai } from "../lib/anh-qua-dai.mjs";
+import { fetchQuaWorker, coFetchWorker } from "../lib/fetch-html.mjs";
 
+const UA =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
+
+async function behanceCanBoQua(url) {
+  try {
+    let html = null;
+    const direct = await fetch(url, {
+      headers: { "User-Agent": UA, Accept: "text/html" },
+      redirect: "follow",
+    });
+    if (direct.ok) {
+      const t = await direct.text();
+      if (t.length > 500) html = t;
+    }
+    if (!html && coFetchWorker()) {
+      const w = await fetchQuaWorker(url, {
+        "User-Agent": UA,
+        Accept: "text/html",
+      });
+      if (w.ok && w.text?.length > 500) html = w.text;
+    }
+    if (!html) return null;
+    /* Video YouTube/Vimeo: giữ — đăng bài dài sẽ nhúng embed. Chỉ bỏ strip quá dài. */
+    if (htmlBehanceCoAnhQuaDai(html)) return "anh_qua_dai";
+    return null;
+  } catch {
+    return null;
+  }
+}
 /**
  * Cùng kênh (artstation/behance/pixiv) → chia đều RR trong nhóm nick kênh đó.
  * Truyện (nguon:truyen) không nhận nguồn ngoài AS/BH/Pixiv.
@@ -133,8 +164,33 @@ export async function chayChuanBiDang(db, flags = {}) {
   let rr = 0;
   let tao = 0;
   let dungAi = 0;
+  let boQuaLoc = 0;
 
   for (const muc of hangDoi) {
+    if (muc.nen_tang === "behance") {
+      const lyDo = await behanceCanBoQua(muc.url_canonic);
+      if (lyDo) {
+        console.log(
+          `  skip ${lyDo}: ${muc.url_canonic.slice(0, 64)}…`,
+        );
+        if (!chiXem) {
+          await db
+            .from("auto_muc")
+            .update({
+              trang_thai: "bo_qua",
+              meta: {
+                ...(typeof muc.meta === "object" && muc.meta ? muc.meta : {}),
+                lyDoBoQua: lyDo,
+              },
+              cap_nhat_luc: new Date().toISOString(),
+            })
+            .eq("id", muc.id);
+        }
+        boQuaLoc += 1;
+        continue;
+      }
+    }
+
     muc._nguonNiche = nguonNicheMap.get(muc.id_nguon) || null;
     const { nick, lyDo } = chonNick(muc, nicks, rr);
     rr += 1;
@@ -203,8 +259,14 @@ export async function chayChuanBiDang(db, flags = {}) {
 
   console.log(
     chiXem
-      ? `\n[chi-xem] sẽ tạo ~${hangDoi.length} bản thảo ${trangThaiBanThao} (AI thử: ${dungAi})`
-      : `\nĐã tạo ${tao} bản thảo ${trangThaiBanThao} (Claude: ${dungAi}).`,
+      ? `\n[chi-xem] sẽ tạo ~${hangDoi.length - boQuaLoc} bản thảo ${trangThaiBanThao} (AI thử: ${dungAi}; bỏ lọc: ${boQuaLoc})`
+      : `\nĐã tạo ${tao} bản thảo ${trangThaiBanThao} (Claude: ${dungAi}; bỏ lọc: ${boQuaLoc}).`,
   );
-  return { tao: chiXem ? 0 : tao, xem: hangDoi.length, dungAi, trangThaiBanThao };
+  return {
+    tao: chiXem ? 0 : tao,
+    xem: hangDoi.length,
+    dungAi,
+    trangThaiBanThao,
+    boQuaLoc,
+  };
 }

@@ -18,6 +18,7 @@ import { notifyCommentReply } from "@/lib/social/comments/reply-notify";
 import { COMMENT_REACTION_KEYS } from "@/lib/social/comments/types";
 import { markEngagementCanTinhLaiForTarget } from "@/lib/cins/feed-scoring-write";
 import { notifyMilestoneComment } from "@/lib/social/follow";
+import { resolveCommentAsOrgIdentity } from "@/lib/social/comments/comment-as-org";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 const MAX_COMMENT_LEN = 1000;
@@ -100,7 +101,12 @@ async function loadCommentContentOwner(
 export async function addMilestoneCommentV1(
   milestoneId: string,
   noiDung: string,
-  opts?: { replyToId?: string | null; anhDinhKem?: string[] },
+  opts?: {
+    replyToId?: string | null;
+    anhDinhKem?: string[];
+    /** Org danh nghĩa — chỉ owner/admin. */
+    idToChuc?: string | null;
+  },
 ): Promise<
   ActionResult<{
     id: string;
@@ -194,6 +200,15 @@ export async function addMilestoneCommentV1(
     }
   }
 
+  const asOrgResolved = await resolveCommentAsOrgIdentity({
+    userId: session.profile.id,
+    orgId: opts?.idToChuc,
+  });
+  if (!asOrgResolved.ok) {
+    return { ok: false, error: asOrgResolved.error };
+  }
+  const asOrg = asOrgResolved.org;
+
   const { data: inserted, error } = await admin
     .from("social_binh_luan")
     .insert({
@@ -203,6 +218,7 @@ export async function addMilestoneCommentV1(
       noi_dung: text,
       id_cha: idCha,
       anh_dinh_kem: anhDinhKem.length > 0 ? anhDinhKem : null,
+      id_to_chuc: asOrg?.id ?? null,
     })
     .select("id, tao_luc, noi_dung, id_cha")
     .single<{ id: string; tao_luc: string; noi_dung: string; id_cha: string | null }>();
@@ -258,6 +274,16 @@ export async function addMilestoneCommentV1(
         slug: session.profile.slug,
         tenHienThi: session.profile.ten_hien_thi || session.profile.slug,
         avatarId: session.profile.avatar_id,
+        asOrg: asOrg
+          ? {
+              id: asOrg.id,
+              slug: asOrg.slug,
+              ten: asOrg.ten,
+              loaiToChuc: asOrg.loaiToChuc,
+              avatarId: asOrg.avatarId,
+              href: asOrg.href,
+            }
+          : null,
       },
     },
   };

@@ -1,6 +1,11 @@
-export const EMAIL_OTP_LENGTH = 6;
+/** Độ dài OTP email Supabase Auth (Dashboard → Auth → Email → OTP length). */
+export const EMAIL_OTP_LENGTH = 8;
 
 export const EMAIL_OTP_RESEND_COOLDOWN_SEC = 60;
+
+export const EMAIL_OTP_DIGIT_PATTERN = new RegExp(
+  `^\\d{${EMAIL_OTP_LENGTH}}$`,
+);
 
 export function normalizeOtpInput(raw: string): string {
   return raw.replace(/\D/g, "").slice(0, EMAIL_OTP_LENGTH);
@@ -32,7 +37,7 @@ export function mapOtpError(message: string): string {
     lower.includes("token") ||
     lower.includes("otp")
   ) {
-    return "Mã không đúng. Kiểm tra lại 6 số trong email.";
+    return `Mã không đúng. Kiểm tra lại ${EMAIL_OTP_LENGTH} số trong email.`;
   }
   if (lower.includes("rate limit") || lower.includes("too many")) {
     return "Bạn thao tác quá nhanh. Vui lòng đợi một lát rồi thử lại.";

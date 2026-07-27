@@ -25,6 +25,7 @@ export async function POST(req: Request, ctx: RouteContext) {
     noi_dung?: string;
     anh_dinh_kem?: string[];
     id_cha?: string | null;
+    id_to_chuc?: string | null;
   };
   try {
     body = await req.json();
@@ -39,6 +40,7 @@ export async function POST(req: Request, ctx: RouteContext) {
     noiDung: body.noi_dung ?? "",
     anhDinhKem: body.anh_dinh_kem,
     idCha: body.id_cha ?? null,
+    idToChuc: body.id_to_chuc ?? null,
   });
 
   if (!result.ok) {

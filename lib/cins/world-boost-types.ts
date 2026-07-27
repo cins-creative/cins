@@ -36,6 +36,8 @@ export type WorldBoostCatalogItem = {
   daXacThuc: boolean;
   tacGiaTen: string | null;
   tacGiaSlug: string | null;
+  /** Cột mốc thuộc nick seeding Autopilot (fake / curator). */
+  laNickSeed: boolean;
   /** Permalink mở bài / trang org (null nếu thiếu slug). */
   moBaiUrl: string | null;
   taoLuc: string;

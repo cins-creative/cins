@@ -20,6 +20,8 @@ import { loadAuthorOrgPostMetaInOrg } from "@/lib/cong-dong/stats";
 import type { CongDongComment, CongDongPost } from "@/lib/cong-dong/types";
 import { attachCongDongPersonalFilter } from "@/lib/filter/cong-dong-personal-filter";
 import { CHE_DO_MOC_CONG_DONG } from "@/lib/journey/journey-visible-clause";
+import { isCotMocDueForPublic } from "@/lib/journey/cot-moc-schedule";
+import { resolveCommentAsOrgIdentity } from "@/lib/social/comments/comment-as-org";
 import {
   parseCommentImageIdsFromRow,
   sanitizeCommentImageIds,
@@ -384,7 +386,11 @@ export async function listCongDongPosts(params: {
   const mergedRows = [
     ...(params.cursor ? [] : (pinned ?? [])),
     ...pageRows.filter((r) => !pinnedIds.has(r.id)),
-  ];
+  ].filter(
+    (r) =>
+      isCotMocDueForPublic(r.tao_luc) ||
+      (params.viewerId != null && r.id_nguoi_dung === params.viewerId),
+  );
 
   const posts = await mapPosts(mergedRows, params.orgId, params.viewerId ?? null);
   const nextCursor =
@@ -623,6 +629,8 @@ export async function addCongDongPostComment(params: {
   noiDung: string;
   anhDinhKem?: string[];
   idCha?: string | null;
+  /** Bình luận dưới danh nghĩa org (owner/admin) — có thể khác phòng cộng đồng. */
+  idToChuc?: string | null;
 }): Promise<
   | { ok: true; data: CongDongComment }
   | { ok: false; error: string }
@@ -660,6 +668,15 @@ export async function addCongDongPostComment(params: {
     return { ok: false, error: "Chỉ thành viên mới được bình luận." };
   }
 
+  const asOrgResolved = await resolveCommentAsOrgIdentity({
+    userId: params.authorId,
+    orgId: params.idToChuc,
+  });
+  if (!asOrgResolved.ok) {
+    return { ok: false, error: asOrgResolved.error };
+  }
+  const asOrg = asOrgResolved.org;
+
   const { data: inserted, error } = await admin
     .from("social_binh_luan")
     .insert({
@@ -669,6 +686,7 @@ export async function addCongDongPostComment(params: {
       noi_dung: text,
       id_cha: params.idCha ?? null,
       anh_dinh_kem: anhDinhKem.length > 0 ? anhDinhKem : null,
+      id_to_chuc: asOrg?.id ?? null,
     })
     .select("id, noi_dung, tao_luc, nguoi_binh_luan")
     .single<{
@@ -702,6 +720,16 @@ export async function addCongDongPostComment(params: {
         slug: author?.slug ?? "user",
         tenHienThi: author?.tenHienThi ?? "Thành viên",
         avatarId: author?.avatarId ?? null,
+        asOrg: asOrg
+          ? {
+              id: asOrg.id,
+              slug: asOrg.slug,
+              ten: asOrg.ten,
+              loaiToChuc: asOrg.loaiToChuc,
+              avatarId: asOrg.avatarId,
+              href: asOrg.href,
+            }
+          : null,
       },
     },
   };

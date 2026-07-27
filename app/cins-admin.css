@@ -7601,6 +7601,43 @@
     0 0 0 1px #16a34a inset,
     0 0 0 3px rgb(37 99 235 / 22%);
 }
+/* Nick seeding / fake — nền xám, tách khỏi bài user thật */
+.cins-admin .ndd-card.is-nick-seed {
+  border-color: #94a3b8;
+  background: #f1f5f9;
+  box-shadow: none;
+}
+.cins-admin .ndd-card.is-nick-seed .ndd-card-thumb {
+  filter: grayscale(0.35);
+  opacity: 0.92;
+}
+.cins-admin .ndd-card.is-nick-seed .ndd-card-body strong,
+.cins-admin .ndd-card.is-nick-seed .ndd-card-body small {
+  color: #64748b;
+}
+.cins-admin .ndd-card.is-nick-seed.is-boosted {
+  border-color: #16a34a;
+  box-shadow: 0 0 0 1px #16a34a inset;
+  background: #eef6f0;
+}
+.cins-admin .ndd-card-seed {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  z-index: 1;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #475569;
+  background: rgb(226 232 240 / 94%);
+  border: 1px solid rgb(148 163 184 / 45%);
+  pointer-events: none;
+}
+.cins-admin .ndd-card.is-nick-seed .ndd-card-open {
+  top: 36px;
+}
 .cins-admin .ndd-card-verified {
   position: absolute;
   left: 8px;
@@ -7613,6 +7650,17 @@
   color: #1d4ed8;
   background: rgb(239 246 255 / 94%);
   border: 1px solid rgb(37 99 235 / 35%);
+}
+.cins-admin .ndd-seed-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #475569;
+  background: #e2e8f0;
+  border: 1px solid #cbd5e1;
 }
 .cins-admin .ndd-verified-pill {
   display: inline-flex;
@@ -7633,6 +7681,13 @@
 }
 .cins-admin .ndd-row-boosted.ndd-row-verified td {
   background: linear-gradient(90deg, #f7fef9 0%, #f8fbff 100%);
+}
+.cins-admin .ndd-row-nick-seed td {
+  background: #f1f5f9;
+  color: #64748b;
+}
+.cins-admin .ndd-row-boosted.ndd-row-nick-seed td {
+  background: #eef6f0;
 }
 .cins-admin .ndd-list-table tbody tr {
   vertical-align: middle;
@@ -7929,6 +7984,15 @@
 }
 .cins-admin .ndd-mobile-row.is-verified {
   box-shadow: inset 3px 0 0 #2563eb;
+}
+.cins-admin .ndd-mobile-row.is-nick-seed {
+  border-color: #94a3b8;
+  background: #f1f5f9;
+  color: #64748b;
+}
+.cins-admin .ndd-mobile-row.is-nick-seed.is-boosted {
+  border-color: #86efac;
+  background: #eef6f0;
 }
 .cins-admin .ndd-mobile-thumb {
   display: grid;

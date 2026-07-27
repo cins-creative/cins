@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "CINs · Behance → Autopilot",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "Quét project Behance (tab đang mở) và đẩy vào hàng đợi Autopilot CINs.",
   "icons": {
     "64": "icon-64.png",

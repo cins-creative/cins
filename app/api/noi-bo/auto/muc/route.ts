@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 
 import { damBaoNguonTuMaNgoai } from "@/lib/autopilot/dam-bao-nguon";
+import {
+  laTieuDeThoBehance,
+  layBehanceMetaTuUrl,
+  tieuDeTuSlugUrlBehance,
+} from "@/lib/autopilot/behance-assets";
 import { luuMucBatch } from "@/lib/autopilot/luu-muc-batch";
 import { xacThucBearerSecret } from "@/lib/noi-bo/xac-thuc-bearer";
 import {
@@ -12,6 +17,7 @@ export const runtime = "nodejs";
 
 const ENV_SECRET = "CINS_NOI_BO_DANG_BAI_SECRET";
 const MAX_ITEMS = 200;
+const COVER_CONCURRENCY = 4;
 
 type BodyMuc = {
   nenTang?: "artstation" | "behance" | "pixiv" | "khac";
@@ -31,6 +37,8 @@ type BodyMuc = {
     tacGia?: string;
     anhBiaUrl?: string;
     anhBia?: string;
+    /** Album ảnh (extension quét trang gallery). */
+    anhUrls?: string[];
   }>;
 };
 
@@ -135,18 +143,65 @@ export async function POST(request: Request) {
     }
   }
 
-  const items = body.items.map((raw) => ({
-    urlCanonic: String(raw.urlCanonic || raw.url || "").trim(),
-    tieuDeGoc: raw.tieuDeGoc || raw.tieuDe || null,
-    moTaGoc: raw.moTaGoc || raw.moTa || null,
-    tenTacGia: raw.tenTacGia || raw.tacGia || maNgoai || null,
-    anhBiaUrl: raw.anhBiaUrl || raw.anhBia || null,
-    meta: {
-      tuExtension: true,
-      niche,
-      maNgoai,
-    },
-  }));
+  const items = body.items.map((raw) => {
+    const anhUrls = Array.isArray(raw.anhUrls)
+      ? raw.anhUrls
+          .map((u) => String(u || "").trim())
+          .filter((u) => /^https:\/\//i.test(u))
+          .slice(0, 12)
+      : [];
+    return {
+      urlCanonic: String(raw.urlCanonic || raw.url || "").trim(),
+      tieuDeGoc: raw.tieuDeGoc || raw.tieuDe || null,
+      moTaGoc: raw.moTaGoc || raw.moTa || null,
+      tenTacGia: raw.tenTacGia || raw.tacGia || maNgoai || null,
+      anhBiaUrl: raw.anhBiaUrl || raw.anhBia || anhUrls[0] || null,
+      meta: {
+        tuExtension: true,
+        niche,
+        maNgoai,
+        ...(anhUrls.length ? { anhUrls } : {}),
+      },
+    };
+  });
+
+  /* Behance: thiếu cover / tiêu đề thô `Behance {id}` → meta từ HTML. */
+  if (nenTang === "behance") {
+    for (const it of items) {
+      if (!it.urlCanonic) continue;
+      if (laTieuDeThoBehance(it.tieuDeGoc) || !it.tieuDeGoc) {
+        const tuSlug = tieuDeTuSlugUrlBehance(it.urlCanonic);
+        if (tuSlug) it.tieuDeGoc = tuSlug;
+      }
+    }
+    const thieu = items
+      .map((it, i) => ({ it, i }))
+      .filter(
+        ({ it }) =>
+          it.urlCanonic &&
+          (!it.anhBiaUrl || laTieuDeThoBehance(it.tieuDeGoc) || !it.tieuDeGoc),
+      );
+    for (let i = 0; i < thieu.length; i += COVER_CONCURRENCY) {
+      const chunk = thieu.slice(i, i + COVER_CONCURRENCY);
+      const metas = await Promise.all(
+        chunk.map(({ it }) => layBehanceMetaTuUrl(it.urlCanonic)),
+      );
+      for (let j = 0; j < chunk.length; j++) {
+        const meta = metas[j];
+        const idx = chunk[j].i;
+        if (!meta) continue;
+        if (!items[idx].anhBiaUrl && meta.coverUrl) {
+          items[idx].anhBiaUrl = meta.coverUrl;
+        }
+        if (
+          meta.title &&
+          (!items[idx].tieuDeGoc || laTieuDeThoBehance(items[idx].tieuDeGoc))
+        ) {
+          items[idx].tieuDeGoc = meta.title;
+        }
+      }
+    }
+  }
 
   try {
     const result = await luuMucBatch(admin, {

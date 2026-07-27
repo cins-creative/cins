@@ -107,6 +107,7 @@ Sau khi user trả lời → mới sinh **RLS policy + query (`auth.uid()`) + gu
 mint #6EFEC0 · orange #FFB85C · violet #BB89F8 · yellow #FDE859
 ```
 - Logo CINs **chỉ** đặt trên nền trắng. Nền khác → bọc card/box trắng trước.
+- **Thương hiệu copy:** viết **`CINs`**, không `C.INS` — chi tiết FOUNDATIONS §4.
 
 ### Chữ — MỘT font duy nhất: Be Vietnam Pro
 ```

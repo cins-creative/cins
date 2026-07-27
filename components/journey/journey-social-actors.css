@@ -306,13 +306,24 @@
   font-weight: 600;
 }
 
-/* Emoji cảm xúc trên dòng thời gian — to & rõ hơn chữ xám mờ bên cạnh. */
+/* Emoji cảm xúc — không kế thừa ink-muted (Windows nhuộm emoji xám). */
 .jsa-when-verb--emoji {
+  font-family:
+    "Apple Color Emoji",
+    "Segoe UI Emoji",
+    "Noto Color Emoji",
+    emoji,
+    sans-serif;
   font-size: 15px;
+  font-style: normal;
+  font-weight: 400;
   line-height: 1;
   vertical-align: -2px;
   filter: none;
   opacity: 1;
+  color: initial;
+  -webkit-text-fill-color: initial;
+  font-variant-emoji: emoji;
 }
 
 .jsa-item.is-expandable {

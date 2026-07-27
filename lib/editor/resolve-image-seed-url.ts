@@ -5,6 +5,7 @@ import {
   FEED_PORTRAIT_SRCSET_WIDTHS,
 } from "@/lib/cloudflare/cf-image-variants";
 import {
+  isAdminImageProxyRef,
   isCfImageUuid,
   isExternalHttpImageRef,
   isTemporaryImageRef,
@@ -51,6 +52,7 @@ export function resolveImageSeedUrl(
   if (isEditorStockImageSeed(trimmed)) return "";
   if (isTemporaryImageRef(trimmed)) return trimmed;
   if (isExternalHttpImageRef(trimmed)) return trimmed;
+  if (isAdminImageProxyRef(trimmed)) return trimmed;
   if (isCfImageUuid(trimmed)) {
     const fromCf = cfDeliveryUrl(trimmed, "public");
     if (fromCf) return fromCf;
@@ -69,6 +71,7 @@ export function resolveImageSeedThumbUrl(
   if (isEditorStockImageSeed(trimmed)) return "";
   if (isTemporaryImageRef(trimmed)) return trimmed;
   if (isExternalHttpImageRef(trimmed)) return trimmed;
+  if (isAdminImageProxyRef(trimmed)) return trimmed;
   if (isCfImageUuid(trimmed)) {
     const fromCf = cfDeliveryUrlWithFallbacks(trimmed, [
       "public",
@@ -97,6 +100,7 @@ export function resolveImageSeedFeedAsset(
   if (isEditorStockImageSeed(trimmed)) return { src: "" };
   if (isTemporaryImageRef(trimmed)) return { src: trimmed };
   if (isExternalHttpImageRef(trimmed)) return { src: trimmed };
+  if (isAdminImageProxyRef(trimmed)) return { src: trimmed };
   if (isCfImageUuid(trimmed)) {
     const feed = cfDeliveryUrl(trimmed, "feed");
     const feedsm = cfDeliveryUrl(trimmed, "feedsm");
@@ -119,25 +123,25 @@ export function resolveImageSeedFeedAsset(
   return { src: picsum };
 }
 
-/** Lightbox — variant lớn hơn khi có. */
+/** Lightbox — luôn `public` (đủ khung, không crop như `feed` 9:16). */
 export function resolveImageSeedLightboxUrl(
   seed: string,
   w: number,
   h: number,
-  portrait = false,
+  _portrait = false,
 ): string {
   const trimmed = (seed || "").trim();
   if (!trimmed) return "";
   if (isEditorStockImageSeed(trimmed)) return "";
   if (isTemporaryImageRef(trimmed)) return trimmed;
   if (isExternalHttpImageRef(trimmed)) return trimmed;
+  if (isAdminImageProxyRef(trimmed)) return trimmed;
   if (isCfImageUuid(trimmed)) {
-    const fromCf = cfDeliveryUrlWithFallbacks(
-      trimmed,
-      portrait
-        ? ["feed", "public", "cover", "medium"]
-        : ["public", "cover", "medium"],
-    );
+    const fromCf = cfDeliveryUrlWithFallbacks(trimmed, [
+      "public",
+      "cover",
+      "medium",
+    ]);
     if (fromCf) return fromCf;
   }
   return `${PICSUM_BASE}${encodeURIComponent(trimmed)}/${w}/${h}`;

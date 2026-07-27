@@ -66,7 +66,7 @@ Pack: `npm run pack:behance-ext` · `npm run pack:pixiv-ext`
 
 ## Admin UI
 
-`/admin/tai-khoan-ai` (super_admin | admin) — Tổng quan · Nick · Nguồn · Hàng đợi · Duyệt · Đã đăng.
+`/admin/tai-khoan-ai` (super_admin | admin) — Tổng quan · Pipeline (Hàng đợi → Chờ duyệt → Đã duyệt → Đã đăng) · Nick.
 
 API: `GET /api/admin/autopilot?view=` · `POST /api/admin/autopilot/action`
 

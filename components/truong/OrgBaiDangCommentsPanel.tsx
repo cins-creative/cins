@@ -79,10 +79,16 @@ export function OrgBaiDangCommentsPanel({ postId, onCountChange }: Props) {
   );
 
   const submitComment = useCallback(
-    (text: string, replyToId?: string | null, anhDinhKem?: string[]) =>
+    (
+      text: string,
+      replyToId?: string | null,
+      anhDinhKem?: string[],
+      idToChuc?: string | null,
+    ) =>
       addOrgBaiDangCommentAction(postId, text, {
         replyToId: replyToId ?? null,
         anhDinhKem,
+        idToChuc,
       }),
     [postId],
   );

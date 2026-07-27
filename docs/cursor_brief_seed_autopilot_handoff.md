@@ -51,12 +51,71 @@ Sau khi xong avatar/cover → **báo cáo các bước tiếp theo** (mục 3 b�
 
 ---
 
+## 1b. Văn phong caption 10 nick (đã duyệt 2026-07-27)
+
+> Dùng khi soạn `tieu_de` / `mo_ta` Autopilot (AI hoặc heuristic). **Đã wire:** `lib/autopilot/soan-bai-nick.ts` (admin «Soạn → chờ duyệt») · `tools/autopilot/lib/soan-bai-ai.mjs` (CLI). Caption bot cũ tự viết lại khi mở tab Duyệt.
+
+### Texture (mạng sáng tạo Việt)
+
+- Có emoji khi hợp giọng nick; có chỗ xin feedback / hỏi tip; dài ngắn **lệch** (không đều 2 câu ấm mỗi bài).
+- Giống status người thật share ref — **không** giọng bot “Chia sẻ tác phẩm của X trên… tham khảo phong cách…”.
+- Tiêu đề: ưu tiên **tên gốc** artwork; tránh suffix kiểu AI (`— note light & pose`).
+
+### Cấm / được
+
+| Cấm (về ảnh đang share) | Được |
+|---|---|
+| tôi vẽ · tranh mình · portfolio mình · mình làm · commission mình | mình thấy / save / đang học / cho lớp xem **ref** / xin feedback về cách nhìn |
+| Nhận là tác giả nguồn ArtStation / Behance / Pixiv | Nhắc artist nguồn trong caption hoặc để dòng `dong_ghi_nguon` |
+
+Attribution bắt buộc vẫn qua `dong_ghi_nguon` (template), tách khỏi caption.
+
+### Phân bố độ dài (cảm giác, không hard quota mỗi lần chạy)
+
+| Kiểu | ~ |
+|---|---|
+| Siêu ngắn (1 dòng / gần không chữ) | 25% — hay gặp ở Levi, Itachi |
+| 2–4 dòng + emoji | 50% |
+| Đoạn kể chuyện / tâm sự (vẫn không xưng tác giả tranh) | 15% |
+| Có hỏi tương tác (feedback, tip) | 10–20% — **không** bài nào cũng hỏi |
+
+### Voice card theo nick
+
+| Nick | Giọng | Caption thường |
+|---|---|---|
+| `kiritominh` | Bạn học, hứng, hơi dài | Share vì đang tìm ref; có thể kể lúc lướt AS |
+| `hinatavy` | Êm, cảm xúc | Nhìn tranh yên; thỉnh thoảng “save rồi quên” |
+| `levikhoa` | Ít chữ | “Sạch. Để ref.” — ít emoji |
+| `yukitrang` | Nghề nhưng nói thường | Có thể mệt + xin feedback ☕🙏 |
+| `sakuralinh` | Dễ thương, browse | Khen vibe cover; emoji 🤡✨ được |
+| `remnhi` | Thật thà, đang dựng folio | “Đang thiếu… nên lưu”; không nhận mình vẽ |
+| `itachihung` | Cực ngắn | Gần như tên bài + “ổn.” |
+| `mikungoc` | Nhẹ, rõ | Thỉnh thoảng “cho lớp xem” — vẫn ghi artist |
+| `nezukochi` | Màu một chút | “ưng bảng này” + emoji nhẹ |
+| `zorobao` | Đọc tranh | “một trang là hết / không rối” (kênh truyện — chờ brief) |
+
+### Mẫu chuẩn (cùng bài *Noon* — WLOP) — neo giọng
+
+- **kiritominh:** *lượn ArtStation lúc 2h sáng thấy cái này / ánh sáng chiều kiểu này mình đang tìm cho mấy bài fantasy… cứu deadline moodboard luôn 😭*
+- **hinatavy:** *hôm nay chỉ muốn nhìn tranh yên ẻm / Noon của WLOP — ngồi nhìn một lúc hết buồn luôn ✨*
+- **levikhoa:** *ref sạch. để đó.*
+- **yukitrang:** *học lại bộ môn quan sát weight trong pose đứng… mệt quá ☕ / cái này đứng yên mà vẫn thấy “có lực” — có cao nhân nào nhìn giúp mình với 🙏*
+- **sakuralinh:** *\|Một vài ref cover vibe dịu mình save dạo này\| / Noon (WLOP) — màu kiểu chapter buồn buồn là hết nước chấm 🤡✨*
+- **remnhi:** *folio mình đang thiếu bài “ánh sáng rõ ràng” nên cứ thấy cái nào ổn là đăng lại để tự soi / cái này đẹp thật… mình chưa làm được đoạn sáng trên vải 🥲*
+- **itachihung:** *Noon — WLOP / ổn.*
+- **mikungoc:** *mai cho lớp xem ảnh này / để ý sáng đổ trên mặt là đủ chiều sâu rồi… ☀️*
+- **nezukochi:** *tone ấm mà không bị vàng cháy… ưng bảng này quá / đang lấy ref color cho chap webtoon 🔥*
+- **zorobao:** *đọc như splash 1 trang là hết / không rối. thích.*
+
+---
+
 ## 1. Bối cảnh chiến lược (đã chốt hướng)
 
 - Acquisition giai đoạn này: **artist / wibu** — shop + Journey portfolio; **không** lấy user bằng focus CSĐT.
 - Định vị **đổi theo giai đoạn** (xương sống Journey/sáng tạo giữ; câu ra ngoài giai đoạn 1 ≈ tìm/mua artist).
-- Cold start content: hướng **curator / giới thiệu** từ **ArtStation + Behance + Pixiv** — link/embed + attribution về nguồn; AI soạn tiêu đề & mô tả ngắn.
-- **10 nick** ở trên dùng làm mặt đăng (seed). Caption AI phải tránh giọng “tôi là tác giả ảnh gốc” khi chỉ dẫn nguồn ngoài.
+- Cold start content: hướng **curator / giới thiệu** từ **ArtStation + Behance + Pixiv** — album ảnh + attribution về nguồn; AI soạn tiêu đề & mô tả theo **§1b văn phong 10 nick** (không xưng tác giả gốc; texture mạng sáng tạo Việt).
+- **Behance stack** trên feed = **bài viết dài** (`article`: cover + «Xem đầy đủ»), không dump toàn bộ ảnh xếp dọc như photo grid. Stack full chỉ trên permalink `/p/…`.
+- **10 nick** ở trên dùng làm mặt đăng (seed). Caption: xem §1b — cấm “tôi vẽ / portfolio mình” khi chỉ dẫn nguồn ngoài.
 - Tương tác ảo (AI like/comment): **kỹ thuật làm được**; trust/ops user tự siết sau — **không** nằm trong MVP publish.
 - Import Shopee: cần Chrome + extension (không cài được trên Cursor browser / Chrome mobile đầy đủ). Mobile chỉ «Chỉ lấy tên + ảnh». Multi-account seed Shopee: Chrome multi-profile.
 
@@ -150,14 +209,17 @@ Code: `tools/autopilot/` · README cùng thư mục.
 - **Cách chính:** Chrome extension `extensions/cins-behance-import` — quét tab Behance đang mở → `POST /api/noi-bo/auto/muc` → `auto_muc` (+ tự tạo `auto_nguon` từ username)
 - Tạm CLI: `npm run autopilot -- nhap-muc --url 'https://www.behance.net/gallery/…' --tieu-de '…' --tac-gia '…'`
 - Pack zip: `npm run pack:behance-ext`
+- **Lọc ảnh strip quá dài:** project có ảnh `height/width ≥ 3` hoặc `height ≥ 3500px` (vd. collage poster 1200×4476, icon sheet 1200×6690) → **không** đưa vào feed. Extension bỏ khi quét gallery; `chuan-bi-dang` đánh `auto_muc.bo_qua` (`lyDoBoQua=anh_qua_dai`); API đăng trả `422` + `code=anh_qua_dai`. Stack UI vẫn `max-height` + lightbox đề phòng. Helper: `lib/autopilot/anh-qua-dai.ts`.
+- **Lọc video:** ~~bỏ project có Vimeo/YouTube~~ — **không còn**. Behance = bài dài: `EmbedModule` / `VideoModule` → block `embed` (YouTube/Vimeo) xen trong stack chữ+ảnh.
 
 ### Pixiv
 
-- Ajax server-side thường **403** — scrap trong browser
-- **Cách chính:** Chrome extension `extensions/cins-pixiv-import` — mở `/users/{id}` → Quét → Gửi → `POST /api/noi-bo/auto/muc` (`nenTang: "pixiv"`)
+- Ajax server-side thường **403** trên worker — **fetch trực tiếp từ runtime app** (local/CF Workers outbound) được; ảnh `i.pximg.net` cần `Referer: https://www.pixiv.net/`.
+- **Cách chính thu thập:** Chrome extension `extensions/cins-pixiv-import` — mở `/users/{id}` → Quét → Gửi → `POST /api/noi-bo/auto/muc` (`nenTang: "pixiv"`)
 - CLI: `npm run autopilot -- nhap-muc --url 'https://www.pixiv.net/artworks/…' --tieu-de '…' --tac-gia '…'`
 - Pack zip: `npm run pack:pixiv-ext`
 - Migrate CHECK: `npm run migrate:autopilot-pixiv`
+- **Đăng album:** `POST /api/noi-bo/tac-pham/dang` → `lib/autopilot/pixiv-assets.ts` (ajax `/illust/{id}` + `/pages`) → CF Images. Reject: **R18** (`xRestrict>0`), **ugoira**, ảnh quá dài (cùng ngưỡng Behance).
 
 ### Code map Giai đoạn 2
 
@@ -197,6 +259,8 @@ Cron: `.github/workflows/autopilot-chay-dang.yml` — soạn `cho_duyet` + chỉ
 `POST /api/noi-bo/tac-pham/dang`
 
 Header: `Authorization: Bearer <CINS_NOI_BO_DANG_BAI_SECRET>`
+
+**Nhãn Journey:** mọi bài đăng qua endpoint này (nick seeding) tự gắn nhãn riêng `tham-khao` / **Tham khảo** (`filter_nhan` + `filter_gan`) — lọc ở dropdown «Nhãn riêng». Helper: `lib/filter/tham-khao-personal-filter.ts`. Backfill: `node scripts/backfill-tham-khao-seed.mjs`.
 
 ### Body (JSON)
 

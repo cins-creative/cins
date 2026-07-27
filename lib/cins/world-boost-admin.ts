@@ -20,6 +20,7 @@ import {
   type WorldBoostLoai,
 } from "@/lib/cins/world-boost";
 import { healOrphanBoostDiemFeedScores } from "@/lib/cins/feed-scoring-write";
+import { laNickSeedChoPhep } from "@/lib/noi-bo/danh-sach-nick-seed";
 import type {
   WorldBoostCatalogItem,
   WorldBoostCatalogNguon,
@@ -504,6 +505,7 @@ export async function listWorldBoostCatalog(
         daXacThuc: verifiedIds.has(r.id),
         tacGiaTen: u?.ten_hien_thi ?? u?.slug ?? null,
         tacGiaSlug: ownerSlug,
+        laNickSeed: laNickSeedChoPhep(ownerSlug),
         moBaiUrl:
           ownerSlug && postSlug ? userPostHref(ownerSlug, postSlug) : null,
         taoLuc: r.tao_luc,
@@ -566,6 +568,7 @@ export async function listWorldBoostCatalog(
         daXacThuc: false,
         tacGiaTen: org?.ten ?? org?.slug ?? null,
         tacGiaSlug: orgSlug,
+        laNickSeed: false,
         moBaiUrl:
           orgSlug && org?.loai_to_chuc
             ? orgPostHref(org.loai_to_chuc, orgSlug, r.id)
@@ -623,6 +626,7 @@ export async function listWorldBoostCatalog(
         daXacThuc: false,
         tacGiaTen: org?.ten ?? org?.slug ?? null,
         tacGiaSlug: orgSlug,
+        laNickSeed: false,
         moBaiUrl:
           orgSlug && org?.loai_to_chuc
             ? orgSuKienHref(org.loai_to_chuc, orgSlug)

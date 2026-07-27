@@ -22,6 +22,11 @@ export function isExternalHttpImageRef(value: string): boolean {
   return /^https?:\/\//i.test(value.trim());
 }
 
+/** Proxy ảnh admin (Pixiv) — path relative cùng origin, không qua CF. */
+export function isAdminImageProxyRef(value: string): boolean {
+  return /^\/api\/admin\/autopilot\/pixiv-proxy\?/i.test(value.trim());
+}
+
 /** URL imagedelivery bị sai khi `cover_id` là blob:/data: hoặc URL ngoài bị ghép vào path. */
 export function isBrokenCfDeliveryUrl(url: string): boolean {
   if (isTemporaryImageRef(url)) return true;
@@ -41,7 +46,11 @@ export function isPersistedImageSeed(value: string): boolean {
   if (isTemporaryImageRef(trimmed)) return false;
   if (isPlaceholderImageSeed(trimmed)) return false;
   if (/^(b-|extra-|m-)/.test(trimmed)) return false;
-  return isCfImageUuid(trimmed) || isExternalHttpImageRef(trimmed);
+  return (
+    isCfImageUuid(trimmed) ||
+    isExternalHttpImageRef(trimmed) ||
+    isAdminImageProxyRef(trimmed)
+  );
 }
 
 /** UUID Cloudflare đầu tiên trong block album — fallback cover khi blob chưa upload xong. */

@@ -1,10 +1,11 @@
-export type AutopilotTab =
-  | "tong-quan"
-  | "nick"
-  | "nguon"
-  | "muc"
-  | "duyet"
-  | "da-dang";
+export type AutopilotTab = "tong-quan" | "pipeline" | "nick";
+
+/** Bước trong pipeline đăng bài (một process). */
+export type AutopilotPipelineBuoc =
+  | "moi"
+  | "cho_duyet"
+  | "san_sang"
+  | "da_dang";
 
 export type NenTangAuto = "artstation" | "behance" | "pixiv" | "khac";
 
@@ -25,7 +26,10 @@ export type AutopilotOverview = {
     coSiteUrl: boolean;
     coAnthropic: boolean;
   };
+  /** Nick bật theo kênh (nguon:…). */
   theoKenh: Record<string, number>;
+  /** Mục `moi` trong hàng đợi theo nền tảng. */
+  mucMoiTheoKenh: Record<string, number>;
 };
 
 export type AutopilotNickRow = {
@@ -39,6 +43,8 @@ export type AutopilotNickRow = {
   ghiChu: string | null;
   homNayDaDang: number;
   homNayHanMuc: number;
+  avatarUrl: string | null;
+  tenHienThi: string | null;
 };
 
 export type AutopilotNguonRow = {
@@ -76,6 +82,12 @@ export type AutopilotBanThaoRow = {
   nenTang: string | null;
   anhBiaUrl: string | null;
   tenTacGia: string | null;
+  avatarUrl: string | null;
+  tenHienThi: string | null;
+  /** Gợi ý giờ đăng thật sau khi duyệt (cron + hạn mức nick). */
+  duKienDang: string | null;
+  hanMucConLai: number | null;
+  sanSangTruoc: number | null;
 };
 
 export type AutopilotDaDangRow = {

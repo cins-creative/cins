@@ -5,11 +5,9 @@ import {
   BellPlus,
   Calendar,
   MessageCircle,
-  Pencil,
 } from "lucide-react";
 
 import { CoSoOrgFollowButton } from "@/components/co-so/CoSoOrgFollowButton";
-import type { CoSoSettingsSection } from "@/components/co-so/CoSoPageSettingsModal";
 import { OrgSidebarShareButton } from "@/components/org/OrgSidebarShareButton";
 import { useOrgSidebarShareSource } from "@/components/org/useOrgSidebarShareSource";
 import { TruongOrgCover } from "@/components/truong/TruongOrgCover";
@@ -23,7 +21,6 @@ type Props = {
   school: TruongDetail;
   hocVienXacThucCount?: number;
   canEditMedia?: boolean;
-  onOpenSettings?: (section: CoSoSettingsSection) => void;
   isMobileShell?: boolean;
   isMobileShellActive?: boolean;
 };
@@ -42,7 +39,6 @@ export function CoSoSchoolSidebar({
   school: schoolProp,
   hocVienXacThucCount = 0,
   canEditMedia = false,
-  onOpenSettings,
   isMobileShell = false,
   isMobileShellActive = false,
 }: Props) {
@@ -88,16 +84,6 @@ export function CoSoSchoolSidebar({
               <p className="cso-ss-eyebrow">Cơ sở đào tạo</p>
               <h1 className="cso-ss-name">{school.ten}</h1>
               {subtitle ? <p className="cso-ss-sub">{subtitle}</p> : null}
-              {isEditing && onOpenSettings ? (
-                <button
-                  type="button"
-                  className="cso-ss-edit-info-btn"
-                  onClick={() => onOpenSettings("identity")}
-                >
-                  <Pencil size={14} strokeWidth={2.2} aria-hidden />
-                  Sửa thông tin cơ sở
-                </button>
-              ) : null}
             </div>
 
             <div

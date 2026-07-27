@@ -42,6 +42,7 @@ import {
   replaceVisibilityNgoaiLe,
   VISIBILITY_CUSTOM_BASE,
 } from "@/lib/journey/milestone-visibility-custom";
+import { resolveCotMocScheduleTaoLuc } from "@/lib/journey/cot-moc-schedule";
 
 /* ╔══════════════════════════════════════════════════════════════════╗
    ║ Server Action: publishPost                                       ║
@@ -92,6 +93,11 @@ export type PublishPostInput = {
   };
   /** Nhãn cá nhân gắn lên cột mốc mới tạo. */
   personalFilterIds?: string[];
+  /**
+   * ISO giờ hẹn — nếu trong tương lai: ghi `content_cot_moc.tao_luc` = giờ hẹn
+   * (ẩn khỏi khách/World/Gallery đến khi đến giờ).
+   */
+  schedulePublishAt?: string | null;
 };
 
 export type PublishPostResult =
@@ -177,9 +183,12 @@ export async function publishPost(
   const effectiveVisibility: Visibility = useCustom
     ? VISIBILITY_CUSTOM_BASE[customInput!.mode]
     : input.visibility;
-  const thoiDiem = isValidIsoDate(input.thoiDiem)
-    ? input.thoiDiem
-    : todayIso();
+  const scheduleTaoLuc = resolveCotMocScheduleTaoLuc(input.schedulePublishAt);
+  const thoiDiem = scheduleTaoLuc
+    ? isoDateFromIso(scheduleTaoLuc)
+    : isValidIsoDate(input.thoiDiem)
+      ? input.thoiDiem
+      : todayIso();
 
   /* Block schema integrity. */
   const normalized = normalizeBlocks(input.blocks);
@@ -252,6 +261,7 @@ export async function publishPost(
         mo_ta: moTaFinal || null,
         thoi_diem: thoiDiem,
         che_do_hien_thi: "cong_dong",
+        ...(scheduleTaoLuc ? { tao_luc: scheduleTaoLuc } : {}),
       })
       .select("id")
       .single<{ id: string }>();
@@ -347,6 +357,7 @@ export async function publishPost(
       mo_ta: moTaFinal || null,
       thoi_diem: thoiDiem,
       che_do_hien_thi: effectiveVisibility,
+      ...(scheduleTaoLuc ? { tao_luc: scheduleTaoLuc } : {}),
     })
     .select("id")
     .single<{ id: string }>();
@@ -488,6 +499,15 @@ function isValidIsoDate(s: string | undefined): s is string {
 
 function todayIso(): string {
   const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function isoDateFromIso(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return todayIso();
   const yyyy = d.getFullYear();
   const mm = String(d.getMonth() + 1).padStart(2, "0");
   const dd = String(d.getDate()).padStart(2, "0");

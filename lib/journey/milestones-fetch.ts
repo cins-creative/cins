@@ -44,6 +44,7 @@ import { fetchBookmarkedOrgKhoaHocMilestones } from "@/lib/to-chuc/khoa-hoc-book
 import { fetchBookmarkedOrgTuyenDungMilestones } from "@/lib/to-chuc/tuyen-dung-bookmark";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { hideProcessingVideoFromViewer } from "@/lib/journey/video-processing-meta";
+import { isCotMocDueForPublic } from "@/lib/journey/cot-moc-schedule";
 import { pickTopReactionEmoji } from "@/lib/social/reaction-emoji";
 
 /* ╔══════════════════════════════════════════════════════════════════╗
@@ -466,12 +467,14 @@ export async function fetchMilestonesForUser(params: {
     };
   }
 
-  /* Lọc theo visibility. Owner thấy tất cả; guest bỏ `chi_minh` + `cong_dong`. */
+  /* Lọc theo visibility. Owner thấy tất cả (kể cả hẹn đăng);
+     guest bỏ `chi_minh` + `cong_dong` + bài hẹn chưa đến giờ. */
   const visible = isOwner
     ? cotMocs
     : cotMocs.filter(
         (m) =>
           m.che_do_hien_thi !== "chi_minh" &&
+          isCotMocDueForPublic(m.tao_luc) &&
           isMilestoneVisibleOnPublicJourney({
             cheDoHienThi: m.che_do_hien_thi,
             isOwner: false,

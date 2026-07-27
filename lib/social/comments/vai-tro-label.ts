@@ -1,3 +1,12 @@
+/** Vai trò được bình luận dưới danh nghĩa org (không curator). */
+export const COMMENT_AS_ORG_VAI_TRO = new Set(["owner", "admin"]);
+
+export function canCommentAsOrgVaiTro(
+  vaiTro: string | null | undefined,
+): boolean {
+  return Boolean(vaiTro && COMMENT_AS_ORG_VAI_TRO.has(vaiTro));
+}
+
 /** Map `user_thanh_vien_to_chuc.vai_tro` → nhãn badge (Comment Block v1). */
 export function commentVaiTroLabel(vaiTro: string): string {
   switch (vaiTro) {

@@ -6,7 +6,7 @@ import {
   ChevronRight,
   LogOut,
   Pencil,
-  Settings2,
+  Settings,
   Shield,
   ShieldCheck,
   Users,
@@ -370,7 +370,7 @@ export function CongDongTopbarToolbar({
           }
           onClick={onOpenManage}
         >
-          <Settings2 size={16} strokeWidth={2} aria-hidden />
+          <Settings size={16} strokeWidth={2} aria-hidden />
           {suKienChoDuyet > 0 ? (
             <span className="tb-cong-dong-admin-badge" aria-hidden>
               {suKienChoDuyet > 99 ? "99+" : suKienChoDuyet}

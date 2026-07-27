@@ -1,4 +1,5 @@
-# Autopilot: soạn bản thảo (AI) + đăng Journey (hạn mức/ngày VN).
+# Autopilot: soạn bản thảo (AI) + đăng Journey.
+# 1 bài / nick / lần cron — khớp hạn mức ~3 bài/ngày (08:00 / 14:00 / 20:00 VN).
 # Secrets: NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY,
 # NEXT_PUBLIC_SITE_URL (= https://cins.vn), CINS_NOI_BO_DANG_BAI_SECRET,
 # ANTHROPIC_API_KEY (tuỳ chọn — thiếu thì heuristic)

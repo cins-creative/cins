@@ -35,8 +35,22 @@ export const CONG_DONG_PERSONAL_FILTER_SLUG = "cong-dong";
 export const CONG_DONG_PERSONAL_FILTER_TEN = "Cộng đồng";
 export const CONG_DONG_PERSONAL_FILTER_MAU = "#1F74C9";
 
+/** Nhãn Autopilot seeding — chỉ ensure trên nick fake; gắn mọi bài nguồn ngoài. */
+export const THAM_KHAO_PERSONAL_FILTER_SLUG = "tham-khao";
+export const THAM_KHAO_PERSONAL_FILTER_TEN = "Tham khảo";
+export const THAM_KHAO_PERSONAL_FILTER_MAU = "#7C6F64";
+export const THAM_KHAO_PERSONAL_FILTER_DEF: DefaultPersonalFilterDef = {
+  slug: THAM_KHAO_PERSONAL_FILTER_SLUG,
+  ten: THAM_KHAO_PERSONAL_FILTER_TEN,
+  mau: THAM_KHAO_PERSONAL_FILTER_MAU,
+  thuTu: -5,
+};
+
 export function isSystemPersonalFilterSlug(slug: string): boolean {
-  return SYSTEM_PERSONAL_FILTER_SLUGS.has(slug);
+  return (
+    SYSTEM_PERSONAL_FILTER_SLUGS.has(slug) ||
+    slug === THAM_KHAO_PERSONAL_FILTER_SLUG
+  );
 }
 
 /** Nhãn hệ thống trùng slug loại cột mốc (không gồm cộng đồng). */
@@ -45,11 +59,14 @@ export function isTypeMirrorPersonalFilterSlug(slug: string): boolean {
 }
 
 /**
- * Nhãn chỉ gắn server khi bài thuộc cộng đồng — không chọn tay trong menu gắn.
- * Vẫn hiện ở filter timeline để lọc bài cộng đồng.
+ * Nhãn chỉ gắn server (không chọn tay trong menu gắn).
+ * Vẫn hiện ở filter timeline để lọc.
  */
 export function isAutoAttachedPersonalFilterSlug(slug: string): boolean {
-  return slug === CONG_DONG_PERSONAL_FILTER_SLUG;
+  return (
+    slug === CONG_DONG_PERSONAL_FILTER_SLUG ||
+    slug === THAM_KHAO_PERSONAL_FILTER_SLUG
+  );
 }
 
 /** @deprecated Dùng {@link isSystemPersonalFilterSlug}. */
@@ -86,9 +103,12 @@ export function countUserPersonalFilters<
 }
 
 function sortSystemFiltersFirst(list: PersonalFilter[]): PersonalFilter[] {
-  const systemOrder = new Map(
-    DEFAULT_PERSONAL_FILTER_DEFS.map((def, index) => [def.slug, index]),
-  );
+  const systemOrder = new Map<string, number>([
+    ...DEFAULT_PERSONAL_FILTER_DEFS.map(
+      (def, index) => [def.slug, index] as [string, number],
+    ),
+    [THAM_KHAO_PERSONAL_FILTER_SLUG, DEFAULT_PERSONAL_FILTER_DEFS.length],
+  ]);
   return [...list].sort((a, b) => {
     const aSys = systemOrder.get(a.slug);
     const bSys = systemOrder.get(b.slug);

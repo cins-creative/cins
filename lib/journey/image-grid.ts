@@ -3,6 +3,7 @@ import {
   resolveImageSeedFeedAsset,
   resolveImageSeedLightboxUrl,
   resolveImageSeedThumbUrl,
+  resolveImageSeedUrl,
   type ImageSeedDeliveryAsset,
 } from "@/lib/editor/resolve-image-seed-url";
 import {
@@ -13,6 +14,7 @@ import {
 } from "@/lib/journey/album-layout-mode";
 import { detectMediaPostKind } from "@/lib/journey/post-media";
 import { isServerAlbumGridImgBlock } from "@/lib/editor/album-grid-block";
+import { flattenMosaicCells } from "@/lib/editor/image-layout";
 import { isPersistedImageSeed } from "@/lib/truong/image-ref";
 
 export type { AlbumLayoutMode } from "@/lib/journey/album-layout-mode";
@@ -49,11 +51,10 @@ function isMosaicImgsBlock(block: Block): boolean {
   return block.loai === "imgs" && block.config?.layout === "mosaic";
 }
 
-/** Trích ảnh từ block `imgs` thường (không mosaic). */
+/** Trích ảnh từ block `imgs` (kể cả mosaic / cells legacy). */
 export function extractImagesFromImgsBlock(block: Block): GridImage[] {
-  if (block.loai !== "imgs" || isMosaicImgsBlock(block)) return [];
+  if (block.loai !== "imgs") return [];
   const cfg = block.config || {};
-  const raw = Array.isArray(cfg.imgs) ? cfg.imgs : [];
   const width =
     typeof cfg.width === "number" && cfg.width > 0
       ? Math.round(cfg.width)
@@ -63,9 +64,18 @@ export function extractImagesFromImgsBlock(block: Block): GridImage[] {
       ? Math.round(cfg.height)
       : GRID_IMAGE_DEFAULT_HEIGHT;
 
+  const fromImgs = Array.isArray(cfg.imgs)
+    ? cfg.imgs.filter(
+        (s): s is string => typeof s === "string" && s.trim().length > 0,
+      )
+    : [];
+  const raw =
+    fromImgs.length > 0 ? fromImgs : flattenMosaicCells(cfg.cells);
+
   return raw
-    .filter((s): s is string => typeof s === "string" && isPersistedImageSeed(s))
-    .map((id) => ({ id: id.trim(), width, height }));
+    .map((s) => s.trim())
+    .filter((id) => isPersistedImageSeed(id))
+    .map((id) => ({ id, width, height }));
 }
 
 /** Gom các block album (`albumGridCell`) liên tiếp — ảnh inline render riêng. */
@@ -512,11 +522,16 @@ export function gridThumbSrc(image: GridImage): string {
 
 export function gridThumbAsset(
   image: GridImage,
-  options?: { singlePortrait?: boolean },
+  options?: { singlePortrait?: boolean; preferPublic?: boolean },
 ): ImageSeedDeliveryAsset {
   const preview = image.previewSrc?.trim();
   if (preview) return { src: preview };
   if (image.composePending) return { src: "" };
+  if (options?.preferPublic) {
+    return {
+      src: resolveImageSeedUrl(image.id, image.width, image.height),
+    };
+  }
   if (options?.singlePortrait && isPortraitGridImage(image)) {
     return resolveImageSeedFeedAsset(image.id, image.width, image.height);
   }

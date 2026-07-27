@@ -34,6 +34,7 @@ function normalizeMime(raw: string | null): string | null {
 
 export async function uploadCloudflareImageFromUrl(
   imageUrl: string,
+  opts?: { headers?: Record<string, string> },
 ): Promise<{ imageId: string; url: string } | null> {
   if (!isSafePublicHttpUrl(imageUrl)) return null;
 
@@ -47,6 +48,7 @@ export async function uploadCloudflareImageFromUrl(
       headers: {
         Accept: "image/*,*/*;q=0.8",
         "User-Agent": "CINSEmbedThumb/1.0 (+https://cins.vn)",
+        ...(opts?.headers || {}),
       },
     });
     if (!res.ok) return null;

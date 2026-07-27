@@ -12,9 +12,11 @@ import { fetchArticleTagsForTacPham } from "@/lib/journey/article-tags-batch";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import { isFriend } from "@/lib/social/ket-ban";
 import { fetchCommentsForSocialObject } from "@/lib/social/comments/fetch-for-object";
+import { pickTopReactionEmoji } from "@/lib/social/reaction-emoji";
 import { loadVerifiedMetaForCotMocs } from "@/lib/journey/milestone-verify";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { enrichBlocksVideoCanvasRatio } from "@/lib/journey/enrich-blocks-video-canvas-ratio";
+import { isCotMocDueForPublic } from "@/lib/journey/cot-moc-schedule";
 
 export type PostFetchResult =
   | { ok: true; data: MilestonePostDetail }
@@ -28,6 +30,7 @@ type CotMocDetailRow = {
   thoi_diem: string;
   loai_moc: string;
   che_do_hien_thi: "public" | "theo_nhom" | "chi_minh" | "feature" | "cong_dong";
+  tao_luc: string | null;
 };
 
 type TacPhamRow = {
@@ -140,10 +143,11 @@ async function fetchMilestoneSocial(
     { count: dislikeCount },
     { count: bookmarkCount },
     { count: commentCount },
-    viewerLiked,
+    viewerReaction,
     viewerDisliked,
     viewerBookmarked,
     viewerCommented,
+    allPositiveReactions,
   ] = await Promise.all([
     admin
       .from("social_reaction")
@@ -172,14 +176,14 @@ async function fetchMilestoneSocial(
     viewerId
       ? admin
           .from("social_reaction")
-          .select("id")
+          .select("emoji")
           .eq("id_nguoi_dung", viewerId)
           .eq("loai_doi_tuong", "cot_moc")
           .eq("id_doi_tuong", milestoneId)
           .neq("emoji", "dislike")
-          .maybeSingle()
-          .then(({ data }) => Boolean(data))
-      : Promise.resolve(false),
+          .maybeSingle<{ emoji: string | null }>()
+          .then(({ data }) => data)
+      : Promise.resolve(null),
     viewerId
       ? admin
           .from("social_reaction")
@@ -212,13 +216,34 @@ async function fetchMilestoneSocial(
           .limit(1)
           .then(({ data }) => (data?.length ?? 0) > 0)
       : Promise.resolve(false),
+    admin
+      .from("social_reaction")
+      .select("emoji")
+      .eq("loai_doi_tuong", "cot_moc")
+      .eq("id_doi_tuong", milestoneId)
+      .neq("emoji", "dislike")
+      .returns<Array<{ emoji: string | null }>>(),
   ]);
 
+  const emojiCounts = new Map<string, number>();
+  for (const row of allPositiveReactions.data ?? []) {
+    const emoji = row.emoji?.trim();
+    if (!emoji) continue;
+    emojiCounts.set(emoji, (emojiCounts.get(emoji) ?? 0) + 1);
+  }
+
+  const viewerReactionEmoji =
+    typeof viewerReaction?.emoji === "string" && viewerReaction.emoji.trim()
+      ? viewerReaction.emoji.trim()
+      : null;
+
   return {
-    viewerLiked,
+    viewerLiked: Boolean(viewerReaction),
     viewerDisliked,
     viewerBookmarked,
     viewerCommented,
+    viewerReactionEmoji,
+    topReactionEmoji: pickTopReactionEmoji(emojiCounts),
     likeCount: likeCount ?? 0,
     dislikeCount: dislikeCount ?? 0,
     bookmarkCount: bookmarkCount ?? 0,
@@ -321,7 +346,7 @@ export async function fetchMilestonePostDetail(
   const { data: cotMoc, error: cmErr } = await admin
     .from("content_cot_moc")
     .select(
-      "id, id_nguoi_dung, tieu_de, mo_ta, thoi_diem, loai_moc, che_do_hien_thi",
+      "id, id_nguoi_dung, tieu_de, mo_ta, thoi_diem, loai_moc, che_do_hien_thi, tao_luc",
     )
     .eq("id", milestoneId)
     .maybeSingle<CotMocDetailRow>();
@@ -331,6 +356,9 @@ export async function fetchMilestonePostDetail(
   }
 
   const isOwner = viewerId === cotMoc.id_nguoi_dung;
+  if (!isOwner && !isCotMocDueForPublic(cotMoc.tao_luc)) {
+    return { ok: false, error: "Cột mốc không tồn tại hoặc đã bị xoá." };
+  }
   if (cotMoc.che_do_hien_thi === "chi_minh" && !isOwner) {
     return { ok: false, error: "Cột mốc này đang ở chế độ riêng tư." };
   }
