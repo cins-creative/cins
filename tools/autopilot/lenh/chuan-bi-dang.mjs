@@ -1,3 +1,4 @@
+import { kenhTuNiche } from "../lib/nick-seed.mjs";
 import { diemTrungNiche, tachNiche } from "../lib/ngay-vn.mjs";
 import {
   soanBaiCurator,
@@ -5,37 +6,44 @@ import {
   taoDongGhiNguon,
 } from "../lib/soan-bai-ai.mjs";
 
+/**
+ * Cùng kênh (artstation/behance) → chia đều round-robin giữa các nick kênh đó.
+ * Niche chỉ để ghi chú (không gom hết về 1 nick).
+ * Truyện (nguon:truyen) không nhận ArtStation/Behance.
+ */
 function chonNick(muc, nicks, roundRobinIdx) {
+  const nen = muc.nen_tang; // artstation | behance | khac
   const metaNiche = tachNiche(muc.meta?.niche);
   const nguonNiche = tachNiche(muc._nguonNiche);
-  const mucNiche = [...new Set([...metaNiche, ...nguonNiche])];
+  const mucNiche = [...new Set([...metaNiche, ...nguonNiche])].filter(
+    (t) => !String(t).startsWith("nguon:"),
+  );
 
-  let bestScore = 0;
-  const candidates = [];
-  for (const nick of nicks) {
-    const score = diemTrungNiche(mucNiche, nick.niche || []);
-    if (score > bestScore) {
-      bestScore = score;
-      candidates.length = 0;
-      candidates.push(nick);
-    } else if (score > 0 && score === bestScore) {
-      candidates.push(nick);
-    }
+  const cungKenh = nicks.filter((n) => {
+    const k = kenhTuNiche(n.niche);
+    if (nen === "artstation") return k === "artstation";
+    if (nen === "behance") return k === "behance";
+    return k === "artstation" || k === "behance";
+  });
+  const pool = cungKenh.length
+    ? cungKenh
+    : nicks.filter((n) => kenhTuNiche(n.niche) !== "truyen");
+  if (!pool.length) {
+    return { nick: nicks[0], lyDo: "fallback" };
   }
 
-  if (bestScore > 0 && candidates.length) {
-    const nick = candidates[roundRobinIdx % candidates.length];
-    return {
-      nick,
-      lyDo:
-        candidates.length > 1
-          ? `niche×${bestScore}/rr`
-          : `niche×${bestScore}`,
-    };
-  }
-
-  const nick = nicks[roundRobinIdx % nicks.length];
-  return { nick, lyDo: "round-robin" };
+  /* Sắp theo slug ổn định rồi RR — chia đều 4 nick/kênh */
+  const sorted = [...pool].sort((a, b) => a.slug.localeCompare(b.slug));
+  const nick = sorted[roundRobinIdx % sorted.length];
+  const nickNiche = (nick.niche || []).filter(
+    (t) => !String(t).startsWith("nguon:"),
+  );
+  const score = diemTrungNiche(mucNiche, nickNiche);
+  const kenh = kenhTuNiche(nick.niche) || "?";
+  return {
+    nick,
+    lyDo: score > 0 ? `${kenh}/rr+niche×${score}` : `${kenh}/rr`,
+  };
 }
 
 /**

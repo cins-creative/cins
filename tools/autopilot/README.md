@@ -19,17 +19,23 @@ Monorepo trong `cins` (`tools/autopilot`).
 ```bash
 npm run migrate:autopilot
 npm run autopilot -- dong-bo-nick
+npm run autopilot -- them-nguon-mau          # nhiều artist AS + Behance (không chỉ WLOP)
 npm run autopilot -- trang-thai
-npm run autopilot -- them-nguon --nen-tang artstation --url 'https://www.artstation.com/wlop' --niche fantasy
 npm run autopilot -- quet-nguon --nen-tang artstation --gioi-han 30
 npm run autopilot -- liet-ke muc
-npm run autopilot -- nhap-muc --url 'https://www.behance.net/gallery/…' --tieu-de '…' --tac-gia '…'
-npm run autopilot -- chuan-bi-dang --gioi-han 30
-npm run autopilot -- duyet-ban-thao --chi-xem   # xem hàng chờ duyệt
+npm run autopilot -- chuan-bi-dang --gioi-han 30   # chia đều nick cùng kênh
+npm run autopilot -- duyet-ban-thao --chi-xem
 npm run autopilot -- duyet-ban-thao --gioi-han 10
 npm run autopilot -- chay-dang
-npm run autopilot -- liet-ke ban-thao
 ```
+
+## Phân kênh 10 nick
+
+| Kênh | Nick | Ghi chú |
+|---|---|---|
+| ArtStation ×4 | kiritominh · hinatavy · levikhoa · itachihung | RSS `quet-nguon` |
+| Behance ×4 | yukitrang · sakuralinh · remnhi · mikungoc | Extension scrap |
+| Truyện ×2 | zorobao · nezukochi | Tắt tạm — chờ brief |
 
 ## Thu thập
 
