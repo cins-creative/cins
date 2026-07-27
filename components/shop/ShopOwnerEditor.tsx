@@ -504,9 +504,7 @@ export function ShopOwnerEditor({ ownerSlug, ownerName }: Props) {
                 </li>
               ))}
             </ul>
-          ) : (
-            <p className="j-shop-pay-empty">Chưa có tài khoản nhận tiền.</p>
-          )}
+          ) : null}
 
           {!shop?.phuongThucTt.length || editingPtttId ? (
             <form

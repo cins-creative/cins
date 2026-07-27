@@ -17,10 +17,6 @@ import {
 } from "@/lib/cins/home-adaptive/persona";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import {
-  canManageUsers,
-  getCurrentUserSystemRole,
-} from "@/lib/auth/system-role";
-import {
   getAvatarUrl,
   getProfileCoverUrl,
 } from "@/lib/journey/profile";
@@ -62,7 +58,6 @@ export async function HomeWorldJourneyMain() {
     membershipPendingOutbound,
     dongGopFeedbackPending,
     feedPromos,
-    systemRole,
   ] = await Promise.all([
     fetchWorldJourneyFeedPageCached(
       session.profile.id,
@@ -81,9 +76,7 @@ export async function HomeWorldJourneyMain() {
     getCachedOutboundMembershipPending(session.profile.id),
     listPendingDongGopFeedbackBanners(session.profile.id),
     loadFeedInlinePromos(session.profile.id, resolvePersona(giaiDoan)),
-    getCurrentUserSystemRole(),
   ]);
-  const canWorldBoost = canManageUsers(systemRole);
 
   const moduleCtx: HomeModuleCtx = {
     viewerId: session.profile.id,
@@ -134,7 +127,6 @@ export async function HomeWorldJourneyMain() {
       galleryHasMore={galleryPage.hasMore}
       galleryNextOffset={galleryPage.nextOffset}
       feedPromos={feedPromos}
-      canWorldBoost={canWorldBoost}
     />
   );
 }

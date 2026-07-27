@@ -1162,6 +1162,86 @@
   transition: width 0.2s ease;
 }
 
+.shop-shopee-import-scan {
+  margin-top: 14px;
+}
+
+.shop-shopee-import-scan-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 12px;
+  background: var(--bg-muted, #f8fafc);
+}
+
+.shop-shopee-import-scan-thumbs {
+  display: flex;
+  flex-shrink: 0;
+}
+
+.shop-shopee-import-scan-thumb {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: #e2e8f0;
+  border: 2px solid var(--bg-surface, #fff);
+  flex-shrink: 0;
+}
+
+.shop-shopee-import-scan-thumb:not(:first-child) {
+  margin-left: -14px;
+}
+
+.shop-shopee-import-scan-thumb.is-empty {
+  display: inline-block;
+}
+
+.shop-shopee-import-scan-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.shop-shopee-import-scan-name {
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.shop-shopee-import-scan-count {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--brand, #2563eb);
+}
+
+.shop-shopee-import-scan-toggle {
+  flex-shrink: 0;
+  border: 1px solid var(--border, #e2e8f0);
+  background: var(--bg-surface, #fff);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  color: inherit;
+}
+
+.shop-shopee-import-scan-toggle:hover {
+  background: var(--bg-muted, #f1f5f9);
+}
+
+.shop-shopee-import-scan .shop-shopee-import-shop {
+  margin-top: 10px;
+}
+
 .shop-shopee-import-shop {
   margin-top: 14px;
   border: 1px solid var(--border, #e2e8f0);
@@ -1569,9 +1649,19 @@
 }
 
 :root[data-theme="dark"] .shop-shopee-import-shop,
-:root[data-theme="dark"] .shop-shopee-import-shop-head {
+:root[data-theme="dark"] .shop-shopee-import-shop-head,
+:root[data-theme="dark"] .shop-shopee-import-scan-card {
   background: rgba(255, 255, 255, 0.04);
   border-color: var(--border, #333);
+}
+
+:root[data-theme="dark"] .shop-shopee-import-scan-toggle {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--border, #333);
+}
+
+:root[data-theme="dark"] .shop-shopee-import-scan-thumb {
+  border-color: #1e1e1e;
 }
 
 :root[data-theme="dark"] .shop-shopee-import-shop-name {

@@ -1,0 +1,86 @@
+[
+  {
+    "id": "a1604e20-c414-444e-a163-74f3c9257a4f",
+    "slug": "kien-truc",
+    "tieu_de": "Kiến trúc",
+    "tieu_de_eng": null,
+    "loai_bai_viet": "nganh_dao_tao",
+    "tom_tat": null,
+    "cover_id": "7f6785d2-d8c7-4e50-fc1b-52be71330900",
+    "noi_dung": "\r\n<section class=\"sec-intro\">\r\n  <h3>Kiến trúc là gì?</h3>\r\n  <p><strong>Kiến trúc (Architecture)</strong> là ngành thiết kế và xây dựng không gian sống — từ ngôi nhà, tòa nhà văn phòng, khu nghỉ dưỡng đến toàn bộ khu đô thị. Kiến trúc sư không chỉ vẽ ra hình dáng công trình mà còn phải đảm bảo công trình an toàn, bền vững, tiết kiệm năng lượng và phù hợp với môi trường xung quanh.</p>\r\n  <p>Đây là ngành đặc biệt vì đòi hỏi cả <strong>tư duy nghệ thuật lẫn kiến thức kỹ thuật</strong>. Một kiến trúc sư vừa phải có gu thẩm mỹ để tạo ra công trình đẹp, vừa phải hiểu kết cấu, vật liệu và quy chuẩn xây dựng để công trình đứng vững hàng chục năm. Ra trường, kiến trúc sư phải thi và có chứng chỉ hành nghề mới được ký bản vẽ chính thức.</p>\r\n  <blockquote>\"Kiến trúc là nhạc đông đặc — âm nhạc là kiến trúc tan chảy.\"</blockquote>\r\n\r\n  <h3>Học trong bao lâu?</h3>\r\n  <p>Kiến trúc là ngành đào tạo <strong>5 năm</strong> — dài hơn hầu hết các ngành mỹ thuật khác. Chương trình bao gồm cả nền tảng mỹ thuật, kỹ thuật xây dựng, lịch sử kiến trúc, quy hoạch và thực hành đồ án từ quy mô nhỏ đến lớn. Năm cuối thực hiện đồ án tốt nghiệp — thường là thiết kế một công trình hoàn chỉnh.</p>\r\n\r\n  <h3>Thi vào cần chuẩn bị gì?</h3>\r\n  <p>Kiến trúc thi theo khối <strong>V00</strong> — Toán, Vật lý, Vẽ mỹ thuật. Môn vẽ năng khiếu gồm vẽ kỹ thuật (phối cảnh, hình chiếu) và vẽ mỹ thuật (hình họa hoặc bố cục). Khác với các ngành mỹ thuật khác, Kiến trúc yêu cầu Toán và Vật lý — nên cần chuẩn bị cả hai hướng từ sớm.</p>\r\n\r\n  <h3>Ngành này hợp với ai?</h3>\r\n  <ul>\r\n    <li>Thích quan sát và phân tích không gian — để ý đến thiết kế của những tòa nhà xung quanh</li>\r\n    <li>Tư duy không gian tốt — hình dung được hình khối 3D từ bản vẽ 2D</li>\r\n    <li>Học tốt cả Toán, Lý lẫn có khiếu thẩm mỹ — ngành này cần cả hai</li>\r\n    <li>Kiên nhẫn với đồ án dài hơi — một dự án kiến trúc có thể mất hàng tháng</li>\r\n    <li>Muốn tạo ra công trình tồn tại hàng chục năm và ảnh hưởng đến cuộc sống nhiều người</li>\r\n  </ul>\r\n</section>\r\n\r\n<section class=\"sec-compare\">\r\n  <h2>Dễ nhầm với ngành nào?</h2>\r\n\r\n  <div class=\"compare-item this\">\r\n    <h3>Kiến trúc <span class=\"code\">7580101</span></h3>\r\n    <p>Thiết kế <strong>công trình xây dựng toàn diện</strong> — từ nhà ở, văn phòng đến khu đô thị. Kết hợp mỹ thuật, kỹ thuật xây dựng và quy hoạch. Đào tạo 5 năm, cần chứng chỉ hành nghề.</p>\r\n  </div>\r\n\r\n  <div class=\"compare-item\">\r\n    <h3>Thiết kế nội thất <span class=\"code\">7580108</span></h3>\r\n    <p>Tập trung vào <strong>không gian bên trong công trình</strong> — bố trí nội thất, vật liệu hoàn thiện, ánh sáng. Ít kết cấu và kỹ thuật xây dựng hơn Kiến trúc. Nếu bạn thích không gian sống hơn là công trình tổng thể, đây phù hợp hơn.</p>\r\n  </div>\r\n\r\n  <div class=\"compare-item\">\r\n    <h3>Kiến trúc cảnh quan <span class=\"code\">7580102</span></h3>\r\n    <p>Tập trung vào <strong>không gian ngoài trời</strong> — công viên, vườn, cảnh quan đô thị. Gần với thiên nhiên và môi trường hơn Kiến trúc công trình. Nếu bạn thích làm việc với cây xanh và không gian mở, đây là hướng khác biệt.</p>\r\n  </div>\r\n\r\n  <div class=\"compare-item\">\r\n    <h3>Quy hoạch vùng và đô thị <span class=\"code\">7580105</span></h3>\r\n    <p>Làm việc ở <strong>quy mô lớn hơn</strong> — quy hoạch cả khu đô thị, vùng lãnh thổ. Ít thiết kế công trình cụ thể hơn Kiến trúc, nhiều chính sách và quản lý đô thị hơn.</p>\r\n  </div>\r\n</section>\r\n",
+    "meta": {
+      "khoi_thi": [
+        "V00",
+        "A00",
+        "A01"
+      ],
+      "ma_nganh": "7580101",
+      "mon_nang_khieu": [
+        "Vẽ kỹ thuật",
+        "Vẽ mỹ thuật"
+      ],
+      "editorial_images": [
+        "https://images.unsplash.com/photo-1486325212027-8081e485255e?w=1200",
+        "https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=1200",
+        "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=1200",
+        "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1200",
+        "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1200"
+      ],
+      "thoi_gian_dao_tao": "5 năm"
+    },
+    "trang_thai_noi_dung": "published",
+    "merged_vao_id": null,
+    "luot_xem": 0,
+    "meta_title": null,
+    "meta_description": null,
+    "tao_luc": "2026-05-17T17:37:37.270328+00:00",
+    "cap_nhat_luc": "2026-05-20T05:11:26.113+00:00",
+    "tieu_de_viet": "Kiến trúc",
+    "main_video": null,
+    "thumbnail": null,
+    "id_linh_vuc": null,
+    "da_verify": false
+  },
+  {
+    "id": "116e6e34-a811-4be2-a2ba-6741d0f5ecec",
+    "slug": "kien-truc-canh-quan",
+    "tieu_de": "Kiến trúc cảnh quan",
+    "tieu_de_eng": null,
+    "loai_bai_viet": "nganh_dao_tao",
+    "tom_tat": null,
+    "cover_id": "0394de61-6410-4188-1b85-6f1488797100",
+    "noi_dung": "\r\n<section class=\"sec-intro\">\r\n  <h3>Kiến trúc cảnh quan là gì?</h3>\r\n  <p><strong>Kiến trúc cảnh quan (Landscape Architecture)</strong> là ngành thiết kế không gian ngoài trời — công viên, vườn, quảng trường, khu nghỉ dưỡng, hành lang xanh đô thị và cảnh quan ven sông. Người học kết hợp kiến thức về thực vật, địa hình, vật liệu xây dựng và tư duy thẩm mỹ để tạo ra những không gian xanh có chức năng và đẹp mắt.</p>\r\n  <p>Khác với Kiến trúc công trình tập trung vào tòa nhà, Kiến trúc cảnh quan tập trung vào <strong>không gian sống bên ngoài</strong> — nơi con người nghỉ ngơi, vui chơi và kết nối với thiên nhiên. Trong bối cảnh đô thị hóa nhanh, đây là ngành ngày càng được coi trọng trong quy hoạch đô thị bền vững.</p>\r\n  <blockquote>\"Thiết kế với thiên nhiên — không phải chống lại thiên nhiên.\"</blockquote>\r\n\r\n  <h3>Học trong bao lâu?</h3>\r\n  <p>Chương trình đào tạo kéo dài <strong>4 đến 5 năm</strong>. Năm đầu học nền tảng mỹ thuật, tạo hình và kiến thức cơ sở về cây xanh, địa hình. Từ năm 2 tiếp cận thiết kế cảnh quan, quy hoạch công viên và hệ thống kỹ thuật đô thị. Năm 3-5 thực hành đồ án cảnh quan từ quy mô nhỏ đến khu đô thị.</p>\r\n\r\n  <h3>Thi vào cần chuẩn bị gì?</h3>\r\n  <p>Thi theo khối <strong>V00</strong> — Toán, Vật lý, Vẽ mỹ thuật — hoặc <strong>H00</strong> tùy trường. Môn vẽ năng khiếu gồm vẽ kỹ thuật phối cảnh và vẽ mỹ thuật. Cần chuẩn bị cả Toán và kỹ năng vẽ từ sớm.</p>\r\n\r\n  <h3>Ngành này hợp với ai?</h3>\r\n  <ul>\r\n    <li>Yêu thiên nhiên, cây xanh và không gian ngoài trời</li>\r\n    <li>Quan tâm đến môi trường và phát triển đô thị bền vững</li>\r\n    <li>Tư duy không gian tốt — hình dung được cảnh quan tổng thể từ bản vẽ</li>\r\n    <li>Thích làm việc kết hợp giữa nghệ thuật, kỹ thuật và sinh thái</li>\r\n    <li>Muốn tạo ra không gian công cộng có ích cho cộng đồng</li>\r\n  </ul>\r\n</section>\r\n\r\n<section class=\"sec-compare\">\r\n  <h2>Dễ nhầm với ngành nào?</h2>\r\n\r\n  <div class=\"compare-item this\">\r\n    <h3>Kiến trúc cảnh quan <span class=\"code\">7580102</span></h3>\r\n    <p>Thiết kế <strong>không gian ngoài trời</strong> — công viên, vườn, quảng trường, cảnh quan đô thị. Kết hợp thẩm mỹ, sinh thái và kỹ thuật xây dựng ngoài trời.</p>\r\n  </div>\r\n\r\n  <div class=\"compare-item\">\r\n    <h3>Kiến trúc <span class=\"code\">7580101</span></h3>\r\n    <p>Thiết kế <strong>công trình xây dựng</strong> — nhà ở, văn phòng, tòa nhà. Ít không gian xanh và sinh thái hơn. Nếu bạn muốn thiết kế công trình cụ thể hơn là không gian ngoài trời, đây phù hợp hơn.</p>\r\n  </div>\r\n\r\n  <div class=\"compare-item\">\r\n    <h3>Quy hoạch vùng và đô thị <span class=\"code\">7580105</span></h3>\r\n    <p>Làm việc ở <strong>quy mô vĩ mô</strong> — quy hoạch cả vùng đô thị, chính sách sử dụng đất. Ít thiết kế không gian cụ thể hơn Kiến trúc cảnh quan, nhiều phân tích và quản lý hơn.</p>\r\n  </div>\r\n\r\n  <div class=\"compare-item\">\r\n    <h3>Mỹ thuật đô thị <span class=\"code\">7210110</span></h3>\r\n    <p>Tập trung vào <strong>nghệ thuật công cộng và thẩm mỹ đô thị</strong> — tranh tường, điêu khắc công cộng, không gian nghệ thuật. Ít kỹ thuật xây dựng và sinh thái hơn Kiến trúc cảnh quan.</p>\r\n  </div>\r\n</section>\r\n",
+    "meta": {
+      "khoi_thi": [
+        "V00",
+        "A00",
+        "H00"
+      ],
+      "ma_nganh": "7580102",
+      "mon_nang_khieu": [
+        "Vẽ kỹ thuật",
+        "Vẽ mỹ thuật"
+      ],
+      "editorial_images": [
+        "https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?w=1200",
+        "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=1200",
+        "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1200",
+        "https://images.unsplash.com/photo-1600240644455-3edc55c375fe?w=1200",
+        "https://images.unsplash.com/photo-1573408301185-9519f94815c6?w=1200"
+      ],
+      "thoi_gian_dao_tao": "4 – 5 năm"
+    },
+    "trang_thai_noi_dung": "published",
+    "merged_vao_id": null,
+    "luot_xem": 0,
+    "meta_title": null,
+    "meta_description": null,
+    "tao_luc": "2026-05-17T17:37:37.270328+00:00",
+    "cap_nhat_luc": "2026-05-20T05:11:33.158+00:00",
+    "tieu_de_viet": "Kiến trúc cảnh quan",
+    "main_video": null,
+    "thumbnail": null,
+    "id_linh_vuc": null,
+    "da_verify": false
+  }
+]

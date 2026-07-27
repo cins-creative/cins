@@ -353,7 +353,7 @@
   padding: 0;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-3);
+  gap: var(--space-2);
 }
 
 @container gh-main (min-width: 520px) {
@@ -464,21 +464,58 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-4);
 }
 
 .gh-event-card {
-  display: grid;
-  grid-template-columns: 64px 1fr auto;
-  gap: var(--space-4);
-  align-items: center;
-  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
+/* Large banner on top of the card */
+.gh-event-banner {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 6;
+  background: linear-gradient(
+    135deg,
+    rgba(31, 116, 201, 0.14),
+    rgba(31, 116, 201, 0.04)
+  );
+  overflow: hidden;
+}
+
+.gh-event-cover-img {
+  object-fit: cover;
+  transition: transform var(--gh-dur) var(--gh-ease);
+}
+
+.gh-event-card:hover .gh-event-cover-img {
+  transform: scale(1.04);
+}
+
+.gh-event-banner-fallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--cins-blue);
+  opacity: 0.5;
+}
+
+/* Date pill overlaid on the banner */
 .gh-event-date {
+  position: absolute;
+  top: var(--space-3);
+  left: var(--space-3);
   text-align: center;
-  padding-right: var(--space-4);
-  border-right: 1px dashed var(--border);
+  min-width: 54px;
+  padding: 8px 10px;
+  background: var(--bg-surface);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
 }
 
 .gh-event-day {
@@ -499,6 +536,10 @@
   margin-top: 2px;
 }
 
+.gh-event-body {
+  padding: var(--space-4);
+}
+
 .gh-event-type {
   font-size: 10.5px;
   font-weight: var(--weight-bold);
@@ -509,7 +550,7 @@
 
 .gh-event-title {
   margin: 4px 0 0;
-  font-size: var(--text-sm);
+  font-size: var(--text-base);
   font-weight: var(--weight-bold);
   line-height: 1.35;
   color: var(--ink-display);
@@ -519,28 +560,9 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  margin: 6px 0 0;
+  margin: 8px 0 0;
   font-size: var(--text-xs);
   color: var(--ink-body);
-}
-
-.gh-event-cover {
-  position: relative;
-  width: 56px;
-  height: 56px;
-  border-radius: var(--radius-sm);
-  overflow: hidden;
-  flex-shrink: 0;
-  border: 1px solid var(--border);
-}
-
-.gh-event-cover-img {
-  object-fit: cover;
-}
-
-.gh-event-ico {
-  color: var(--ink-muted);
-  flex-shrink: 0;
 }
 
 /* ── Majors ── */
@@ -550,7 +572,7 @@
   padding: 0;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-3);
+  gap: var(--space-2);
 }
 
 .gh-major-card {
@@ -617,7 +639,7 @@
   padding: 0;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-4);
+  gap: var(--space-2);
 }
 
 @container gh-main (min-width: 540px) {
@@ -993,7 +1015,7 @@
 
 @container gh-main (max-width: 539px) {
   .gh-school-grid {
-    gap: var(--space-3);
+    gap: var(--space-2);
   }
 }
 
@@ -1002,38 +1024,45 @@
   list-style: none;
   margin: 0;
   padding: 0;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--space-2);
 }
 
 .gh-course-card {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  gap: var(--space-3);
-  align-items: center;
-  padding: var(--space-3) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0;
 }
 
 .gh-course-thumb {
   position: relative;
-  width: 96px;
-  aspect-ratio: 4 / 3;
+  width: 100%;
+  aspect-ratio: 16 / 9;
   height: auto;
-  border-radius: var(--radius-sm);
   overflow: hidden;
   background: var(--neutral-50);
   display: grid;
   place-items: center;
-  border: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
 }
 
 .gh-course-thumb-img {
   object-fit: cover;
+  transition: transform var(--gh-dur) var(--gh-ease);
+}
+
+.gh-course-card:hover .gh-course-thumb-img {
+  transform: scale(1.04);
 }
 
 .gh-course-org-ava {
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-sm);
+}
+
+.gh-course-body {
+  padding: var(--space-3) var(--space-4);
 }
 
 .gh-course-org {
@@ -1048,23 +1077,18 @@
   font-weight: var(--weight-bold);
   color: var(--ink-display);
   line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .gh-course-sub {
   font-size: 11px;
   color: var(--cins-blue);
   font-weight: var(--weight-semibold);
-  margin-top: 4px;
+  margin-top: 6px;
   display: block;
-}
-
-.gh-course-arrow {
-  color: var(--ink-muted);
-  transition: color var(--gh-dur) var(--gh-ease);
-}
-
-.gh-course-card:hover .gh-course-arrow {
-  color: var(--cins-blue);
 }
 
 /* ── Works ── */
@@ -1074,7 +1098,7 @@
   padding: 0;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--space-3);
+  gap: var(--space-2);
 }
 
 .gh-work-card {
@@ -1227,13 +1251,13 @@
 .gh-course-card,
 .gh-work-card,
 .gh-blog-card {
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
 }
 
 .gh-event-card,
 .gh-major-card,
 .gh-school-card {
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
 }
 
 .gh-career-card:hover,
@@ -1313,7 +1337,8 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .gh-work-grid {
+  .gh-work-grid,
+  .gh-course-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -1324,16 +1349,12 @@
   }
 
   .gh-major-grid,
-  .gh-work-grid {
+  .gh-work-grid,
+  .gh-course-grid {
     grid-template-columns: 1fr;
   }
 
-  .gh-event-card {
-    grid-template-columns: 56px 1fr;
-  }
-
-  .gh-event-cover,
-  .gh-event-ico {
-    display: none;
+  .gh-event-banner {
+    aspect-ratio: 16 / 9;
   }
 }

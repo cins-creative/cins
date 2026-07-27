@@ -2,10 +2,39 @@ import { goiApiDangBai } from "../lib/dang-bai-api.mjs";
 import { layHanMucHomNay, tangHanMuc } from "../lib/han-muc.mjs";
 import { ngayVn } from "../lib/ngay-vn.mjs";
 
+/** Mặc định cửa sổ rải giờ đăng (phút) — mỗi bài lệch nhau trong khoảng này. */
+const GIAN_CACH_PHUT_MAC_DINH = 240;
+
+/**
+ * Trộn mảng tại chỗ (Fisher–Yates) — random thứ tự nick mỗi lần chạy.
+ */
+function tronMang(arr) {
+  for (let i = arr.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+/**
+ * Thời điểm đăng rải rác: lệch ngẫu nhiên [0, windowPhut] phút về quá khứ.
+ * → mỗi bài một mốc «N phút/giờ trước» khác nhau, không đồng loạt.
+ */
+function taoLucRaiRac(windowPhut) {
+  if (!windowPhut || windowPhut <= 0) return undefined;
+  const lechMs = Math.floor(Math.random() * windowPhut * 60 * 1000);
+  return new Date(Date.now() - lechMs).toISOString();
+}
+
 /**
  * Đăng bản thảo san_sang qua API nội bộ, tôn trọng hạn mức/ngày (VN).
  *
- * Flags: --gioi-han N · --chi-xem · --slug <nick>
+ * Flags:
+ *   --gioi-han N        · tối đa bài đăng lần chạy
+ *   --chi-xem           · dry-run
+ *   --slug <nick>       · chỉ 1 nick
+ *   --gian-cach-phut N  · cửa sổ rải giờ đăng (mặc định 240′); 0 = đăng ngay
+ *   --khong-gian-cach   · tắt rải giờ (tao_luc = now cho tất cả)
  */
 export async function chayDang(db, flags = {}) {
   const gioiHan = Math.min(
@@ -16,8 +45,24 @@ export async function chayDang(db, flags = {}) {
   const slugFilter = String(flags.slug || "")
     .trim()
     .toLowerCase();
+  const gianCachPhut =
+    flags.khongGianCach || flags["khong-gian-cach"]
+      ? 0
+      : Math.max(
+          0,
+          Number(
+            flags.gianCachPhut ??
+              flags["gian-cach-phut"] ??
+              GIAN_CACH_PHUT_MAC_DINH,
+          ) || GIAN_CACH_PHUT_MAC_DINH,
+        );
 
   console.log(`Ngày VN: ${ngayVn()}`);
+  console.log(
+    gianCachPhut > 0
+      ? `Rải giờ đăng: mỗi bài lệch ngẫu nhiên trong ${gianCachPhut}′ gần nhất.`
+      : "Rải giờ đăng: TẮT (mọi bài dùng thời điểm hiện tại).",
+  );
 
   let q = db
     .from("auto_ban_thao")
@@ -98,7 +143,10 @@ export async function chayDang(db, flags = {}) {
   let loi = 0;
   let conTong = gioiHan;
 
-  for (const [slug, list] of theoNick) {
+  /* Random thứ tự nick mỗi lần chạy — không luôn cùng một trình tự. */
+  const nickTheoThuTu = tronMang([...theoNick.entries()]);
+
+  for (const [slug, list] of nickTheoThuTu) {
     if (conTong <= 0) break;
     const tk = list[0].auto_tai_khoan;
     const hm = await layHanMucHomNay(db, tk);
@@ -115,6 +163,7 @@ export async function chayDang(db, flags = {}) {
       }
 
       const muc = bt.auto_muc;
+      const taoLuc = taoLucRaiRac(gianCachPhut);
       const payload = {
         slugChu: slug,
         urlNguon: muc.url_canonic,
@@ -124,12 +173,17 @@ export async function chayDang(db, flags = {}) {
         tenTacGiaNguon: muc.ten_tac_gia || undefined,
         dongGhiNguon: bt.dong_ghi_nguon || undefined,
         anhBiaUrl: muc.anh_bia_url || undefined,
+        taoLuc,
         chiKiemTra: chiXem,
       };
 
+      const lechPhut = taoLuc
+        ? Math.round((Date.now() - Date.parse(taoLuc)) / 60000)
+        : 0;
       console.log(
         `  → ${muc.url_canonic.slice(0, 64)}…` +
-          (muc.anh_bia_url ? " · +anh_bia" : " · không anh_bia"),
+          (muc.anh_bia_url ? " · +anh_bia" : " · không anh_bia") +
+          (taoLuc ? ` · -${lechPhut}′` : ""),
       );
 
       if (chiXem) {
@@ -164,6 +218,22 @@ export async function chayDang(db, flags = {}) {
 
       if (!data?.ok) {
         console.error(`    lỗi HTTP ${status}:`, data?.error || data);
+
+        /* Thiếu ảnh (fetch nguồn fail) → giữ san_sang, không đổi trạng muc,
+           để cron sau thử lại khi worker/nguồn phục hồi. */
+        if (data?.code === "thieu_media") {
+          await db
+            .from("auto_ban_thao")
+            .update({
+              trang_thai: "san_sang",
+              cap_nhat_luc: new Date().toISOString(),
+            })
+            .eq("id", bt.id);
+          console.log("    bỏ qua: thiếu ảnh (giữ san_sang, thử lại lần sau)");
+          boQua += 1;
+          continue;
+        }
+
         const lyDoBoQua =
           data?.code === "anh_qua_dai"
             ? data.code

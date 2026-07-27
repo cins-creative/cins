@@ -30,6 +30,8 @@ export async function GET(req: Request) {
   const trangThai = url.searchParams.get("trangThai") || undefined;
   const nenTang = url.searchParams.get("nenTang") || undefined;
   const limit = Number(url.searchParams.get("limit") || 0) || undefined;
+  const offsetRaw = Number(url.searchParams.get("offset") || 0);
+  const offset = Number.isFinite(offsetRaw) && offsetRaw > 0 ? offsetRaw : 0;
 
   try {
     switch (view) {
@@ -45,24 +47,34 @@ export async function GET(req: Request) {
           ok: true,
           items: await lietKeNguon({ nenTang, limit }),
         });
-      case "muc":
+      case "muc": {
+        const muc = await lietKeMuc({ trangThai, nenTang, limit, offset });
         return NextResponse.json({
           ok: true,
-          items: await lietKeMuc({ trangThai, nenTang, limit }),
+          items: muc.items,
+          total: muc.total,
         });
-      case "duyet":
+      }
+      case "duyet": {
+        const duyet = await lietKeBanThao({
+          trangThai: trangThai || "cho_duyet",
+          limit,
+          offset,
+        });
         return NextResponse.json({
           ok: true,
-          items: await lietKeBanThao({
-            trangThai: trangThai || "cho_duyet",
-            limit,
-          }),
+          items: duyet.items,
+          total: duyet.total,
         });
-      case "da-dang":
+      }
+      case "da-dang": {
+        const daDang = await lietKeDaDang({ limit, offset });
         return NextResponse.json({
           ok: true,
-          items: await lietKeDaDang({ limit }),
+          items: daDang.items,
+          total: daDang.total,
         });
+      }
       default:
         return NextResponse.json(
           { error: "view không hợp lệ." },

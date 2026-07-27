@@ -1,0 +1,62 @@
+[
+  {
+    "id": "82f6b758-aa00-4597-a144-e181e72242fd",
+    "id_to_chuc": "eb825d71-5ac1-4c9f-934f-870402923b91",
+    "id_nganh": "653c7500-1a31-424a-a1a0-6a5ed51d19fc",
+    "article_bai_viet": {
+      "id": "653c7500-1a31-424a-a1a0-6a5ed51d19fc",
+      "slug": "ly-luan-lich-su-va-phe-binh-my-thuat",
+      "tieu_de": "Lý luận, lịch sử và phê bình mỹ thuật",
+      "id_linh_vuc": null,
+      "loai_bai_viet": "nganh_dao_tao"
+    }
+  },
+  {
+    "id": "08fc8b70-36e1-4a57-bc6c-d6483df36214",
+    "id_to_chuc": "eb825d71-5ac1-4c9f-934f-870402923b91",
+    "id_nganh": "66543f9c-8f05-41a6-8638-ad4043ee9bad",
+    "article_bai_viet": {
+      "id": "66543f9c-8f05-41a6-8638-ad4043ee9bad",
+      "slug": "su-pham-my-thuat",
+      "tieu_de": "Sư phạm Mỹ thuật",
+      "id_linh_vuc": null,
+      "loai_bai_viet": "nganh_dao_tao"
+    }
+  },
+  {
+    "id": "be66ebb8-54b5-4252-bddc-e579745e4824",
+    "id_to_chuc": "eb825d71-5ac1-4c9f-934f-870402923b91",
+    "id_nganh": "abcde45b-7365-407c-9926-cb5b5a953a0e",
+    "article_bai_viet": {
+      "id": "abcde45b-7365-407c-9926-cb5b5a953a0e",
+      "slug": "do-hoa",
+      "tieu_de": "Đồ hoạ",
+      "id_linh_vuc": null,
+      "loai_bai_viet": "nganh_dao_tao"
+    }
+  },
+  {
+    "id": "dc1f5d04-d98a-4dcd-abba-5ae5e8be0e9b",
+    "id_to_chuc": "eb825d71-5ac1-4c9f-934f-870402923b91",
+    "id_nganh": "1bf8f4c9-d06f-436d-948c-b1977b36c082",
+    "article_bai_viet": {
+      "id": "1bf8f4c9-d06f-436d-948c-b1977b36c082",
+      "slug": "thiet-ke-do-hoa",
+      "tieu_de": "Thiết kế đồ hoạ",
+      "id_linh_vuc": null,
+      "loai_bai_viet": "nganh_dao_tao"
+    }
+  },
+  {
+    "id": "727ff2d9-c0ed-4a45-b16e-e08d23d89939",
+    "id_to_chuc": "eb825d71-5ac1-4c9f-934f-870402923b91",
+    "id_nganh": "73ef66b3-49dc-4ba1-b75f-befbf33fa4ba",
+    "article_bai_viet": {
+      "id": "73ef66b3-49dc-4ba1-b75f-befbf33fa4ba",
+      "slug": "my-thuat-da-phuong-tien",
+      "tieu_de": "Mỹ thuật đa phương tiện",
+      "id_linh_vuc": null,
+      "loai_bai_viet": "nganh_dao_tao"
+    }
+  }
+]

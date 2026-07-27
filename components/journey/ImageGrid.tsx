@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, ClipboardPaste, Loader2, Replace, X } from "lucide-react";
+import { Check, ClipboardPaste, ImagePlus, Loader2, X } from "lucide-react";
 import {
   useCallback,
   useEffect,
@@ -383,7 +383,7 @@ function ImageGridCell({
                 composeSlotActions.onPickImage(slotIndex);
               }}
             >
-              <Replace size={18} strokeWidth={1.8} aria-hidden />
+              <ImagePlus size={18} strokeWidth={1.8} aria-hidden />
             </button>
             <button
               type="button"

@@ -1666,6 +1666,14 @@
     box-shadow 0.15s var(--ease);
 }
 
+/* Desktop/tablet: mỗi card promo tối đa 1/3 hàng (grid 3 cột mặc định) —
+   1 studio lẻ không phình full width; rail nhiều card (người/cơ sở) vẫn co đều. */
+@media (min-width: 781px) {
+  .world-journey-home .wj-feed-promo-rail .wj-feed-promo-rail-track > .wj-feed-promo-card {
+    max-width: calc((100% - 16px) / 3);
+  }
+}
+
 /* Khóa học / ngành / sự kiện — card dọc, cover 4:3 */
 .world-journey-home .wj-feed-promo-card.is-course,
 .world-journey-home .wj-feed-promo-card.is-career,

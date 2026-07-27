@@ -156,14 +156,15 @@ export async function POST(request: NextRequest) {
     redirectTo = "/";
   }
 
-  const response = NextResponse.json({ ok: true, redirect: redirectTo });
-  appendSetCookieHeaders(carrier, response);
-  clearRecoveryEmailCookie(response);
+  /* Mọi cookie ghi lên `carrier` (chỉ cookies.set) rồi copy một lần sang response.
+   * Không mix headers.append (auth cookie) + cookies.set trên cùng response —
+   * ResponseCookies re-parse header đã append sẽ làm rớt cookie phiên bị chunk. */
+  clearRecoveryEmailCookie(carrier);
 
   if (profile?.slug && verifyData.session?.refresh_token) {
     const vault = decodeVault(request.cookies.get(ACCOUNT_VAULT_COOKIE)?.value);
     setAccountVaultOnResponse(
-      response,
+      carrier,
       upsertAccount(vault, {
         slug: profile.slug,
         tenHienThi: profile.ten_hien_thi,
@@ -172,8 +173,10 @@ export async function POST(request: NextRequest) {
         addedAt: Date.now(),
       }),
     );
-    setRestoreHintOnResponse(response);
+    setRestoreHintOnResponse(carrier);
   }
 
+  const response = NextResponse.json({ ok: true, redirect: redirectTo });
+  appendSetCookieHeaders(carrier, response);
   return response;
 }

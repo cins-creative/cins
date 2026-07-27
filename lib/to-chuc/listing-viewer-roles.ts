@@ -43,6 +43,29 @@ export async function loadViewerOrgStaffRolesByOrgIds(
   return out;
 }
 
+/** Số bài đăng đã đăng (`org_bai_dang.trang_thai = da_dang`) theo org — để sort ưu tiên org nhiều dữ liệu. */
+export async function loadOrgBaiDangCountByOrgIds(
+  orgIds: string[],
+): Promise<Map<string, number>> {
+  const out = new Map<string, number>();
+  const unique = [...new Set(orgIds.filter(Boolean))];
+  if (!unique.length || !hasServiceRoleEnv()) return out;
+
+  const admin = createServiceRoleClient();
+  const { data } = await admin
+    .from("org_bai_dang")
+    .select("id_to_chuc")
+    .eq("trang_thai", "da_dang")
+    .in("id_to_chuc", unique);
+
+  for (const row of data ?? []) {
+    const orgId = row.id_to_chuc as string;
+    if (!orgId) continue;
+    out.set(orgId, (out.get(orgId) ?? 0) + 1);
+  }
+  return out;
+}
+
 /** Org trong danh sách mà viewer đang theo dõi (`user_theo_doi.loai_doi_tuong = to_chuc`). */
 export async function loadViewerFollowingOrgIdSet(
   viewerId: string | null | undefined,

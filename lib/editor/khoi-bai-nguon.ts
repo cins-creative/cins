@@ -22,6 +22,16 @@ export function nhanNenTang(nenTang: NenTangNguon): string {
   return "nguồn ngoài";
 }
 
+/**
+ * Nhận diện dòng attribution kiểu cũ (trước 42b23a0):
+ * «Giới thiệu từ {nền} — {tác giả}. Xem bản gốc: {url}».
+ * Các bản thảo cũ còn đóng băng chuỗi này trong `auto_ban_thao.dong_ghi_nguon`
+ * → bỏ qua để sinh lại dòng ngắn «Nguồn: …», tránh lặp boilerplate.
+ */
+export function laDongGhiNguonCu(s: string): boolean {
+  return /^Giới thiệu từ\s.*Xem bản gốc:/is.test(s.trim());
+}
+
 /** Dòng attribution — ngắn: «Nguồn:» + URL. */
 export function taoDongGhiNguon(params: {
   urlNguon: string;
@@ -30,7 +40,7 @@ export function taoDongGhiNguon(params: {
   dongGhiNguon?: string | null;
 }): string {
   const override = params.dongGhiNguon?.trim();
-  if (override) return override;
+  if (override && !laDongGhiNguonCu(override)) return override;
   return `Nguồn: ${params.urlNguon.trim()}`;
 }
 
@@ -122,7 +132,9 @@ export function taoKhoiBaiAlbumNguon(params: {
     const cfg: Record<string, unknown> = {
       layout: "full",
       rounded: false,
-      gap: 2,
+      /* Seed bài curator (Behance/ArtStation/Pixiv) → album liền mạch: gap 0.
+         User vẫn chỉnh riêng qua nút gap-toggle sau khi seed. */
+      gap: 0,
       cap: "",
       imgs: [seed],
       albumGridCell: true,
@@ -198,7 +210,8 @@ export function taoKhoiBaiBehanceNguon(params: {
     const cfg: Record<string, unknown> = {
       layout: "full",
       rounded: false,
-      gap: 2,
+      /* Seed Behance (module order) → album liền mạch: gap 0. */
+      gap: 0,
       cap: "",
       imgs: [seed],
       albumGridCell: true,

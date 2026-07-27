@@ -1,0 +1,52 @@
+[
+  {
+    "id": "38352d8a-5983-4c3c-8a50-7047e2ae7d37",
+    "slug": "ky-thuat-xay-dung",
+    "tieu_de": "Kỹ thuật xây dựng",
+    "tieu_de_eng": null,
+    "loai_bai_viet": "nganh_dao_tao",
+    "tom_tat": null,
+    "cover_id": null,
+    "noi_dung": null,
+    "meta": {
+      "ma_nganh": "7580201"
+    },
+    "trang_thai_noi_dung": "published",
+    "merged_vao_id": null,
+    "luot_xem": 0,
+    "meta_title": null,
+    "meta_description": null,
+    "tao_luc": "2026-06-09T11:26:58.220491+00:00",
+    "cap_nhat_luc": "2026-06-09T11:26:58.220491+00:00",
+    "tieu_de_viet": "Kỹ thuật xây dựng",
+    "main_video": null,
+    "thumbnail": null,
+    "id_linh_vuc": null,
+    "da_verify": false
+  },
+  {
+    "id": "8ad76980-bc43-4718-8a1e-96023b7d71da",
+    "slug": "ky-thuat-co-so-ha-tang",
+    "tieu_de": "Kỹ thuật cơ sở hạ tầng",
+    "tieu_de_eng": null,
+    "loai_bai_viet": "nganh_dao_tao",
+    "tom_tat": null,
+    "cover_id": null,
+    "noi_dung": null,
+    "meta": {
+      "ma_nganh": "7580210"
+    },
+    "trang_thai_noi_dung": "published",
+    "merged_vao_id": null,
+    "luot_xem": 0,
+    "meta_title": null,
+    "meta_description": null,
+    "tao_luc": "2026-06-09T11:26:58.220491+00:00",
+    "cap_nhat_luc": "2026-06-09T11:26:58.220491+00:00",
+    "tieu_de_viet": "Kỹ thuật cơ sở hạ tầng",
+    "main_video": null,
+    "thumbnail": null,
+    "id_linh_vuc": null,
+    "da_verify": false
+  }
+]

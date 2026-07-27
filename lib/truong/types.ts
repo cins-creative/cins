@@ -60,6 +60,8 @@ export type TruongListItem = {
   nganhTags: string[];
   /** Số khóa học của cơ sở đào tạo (`org_khoa_hoc`). Chỉ set cho cơ sở. */
   khoaHocCount?: number | null;
+  /** Số bài đăng đã đăng (`org_bai_dang`) — hydrate ở listing để sort ưu tiên org nhiều dữ liệu. */
+  baiDangCount?: number | null;
   /** Vai trò staff của viewer (null = chưa thuộc org). */
   viewerVaiTro?: CoSoStaffVaiTro | null;
   /** Viewer đang theo dõi org (`user_theo_doi`). */

@@ -41,7 +41,6 @@ import {
   Pencil,
   Play,
   Plus,
-  Replace,
   Save,
   SlidersHorizontal,
   SquareRoundCorner,
@@ -5164,7 +5163,7 @@ function PhImageActions({
           onPick();
         }}
       >
-        <Replace size={18} strokeWidth={1.8} aria-hidden />
+        <ImagePlus size={18} strokeWidth={1.8} aria-hidden />
       </button>
       <button
         type="button"

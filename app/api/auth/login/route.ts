@@ -167,14 +167,14 @@ export async function POST(request: NextRequest) {
     redirectTo = "/";
   }
 
-  const response = NextResponse.json({ ok: true, redirect: redirectTo });
-  appendSetCookieHeaders(carrier, response);
-
-  // Ghi nhớ tài khoản vừa đăng nhập vào kho để chuyển nhanh sau này.
+  /* Ghi vault + hint lên `carrier` (chỉ dùng cookies.set) TRƯỚC khi copy.
+   * Không set cookie trực tiếp lên `response` sau khi đã append Set-Cookie thô:
+   * ResponseCookies sẽ re-parse header đã append (split theo dấu phẩy) và làm
+   * hỏng/rớt cookie phiên bị chunk → mất session → nhảy về trang khách. */
   if (profile?.slug && data.session?.refresh_token) {
     const vault = decodeVault(request.cookies.get(ACCOUNT_VAULT_COOKIE)?.value);
     setAccountVaultOnResponse(
-      response,
+      carrier,
       upsertAccount(vault, {
         slug: profile.slug,
         tenHienThi: profile.ten_hien_thi,
@@ -183,8 +183,10 @@ export async function POST(request: NextRequest) {
         addedAt: Date.now(),
       }),
     );
-    setRestoreHintOnResponse(response);
+    setRestoreHintOnResponse(carrier);
   }
 
+  const response = NextResponse.json({ ok: true, redirect: redirectTo });
+  appendSetCookieHeaders(carrier, response);
   return response;
 }

@@ -1,0 +1,191 @@
+[
+  {
+    "id": "1a1429ab-4224-400f-9aca-65c496944c8f",
+    "id_to_chuc": "eb825d71-5ac1-4c9f-934f-870402923b91",
+    "loai_bai_dang": "thong_bao",
+    "tieu_de": "THÔNG BÁO DANH SÁCH PHÒNG THI KỲ THI TUYỂN SINH ĐHCQ 2026",
+    "noi_dung": null,
+    "ghim": false,
+    "trang_thai": "da_dang",
+    "tao_luc": "2026-06-10T02:00:00+00:00",
+    "cap_nhat_luc": "2026-06-09T10:46:38.745963+00:00",
+    "tom_tat": "Trường Đại học Mỹ thuật TP.HCM thông báo danh sách phòng thi, kỳ thi tuyển sinh đại học chính quy năm 2026 và sơ đồ phòng thi.",
+    "cover_id": "8d89acb7-a3cc-4751-0ea9-d55346de7000",
+    "thoi_diem": null,
+    "noi_dung_blocks": [
+      {
+        "id": "b-mqb04qq0-13",
+        "loai": "divider",
+        "config": {
+          "len": 98,
+          "thick": "thick"
+        },
+        "thu_tu": 0
+      },
+      {
+        "id": "b-mqb0d8od-4",
+        "loai": "spacer",
+        "config": {
+          "size": "m"
+        },
+        "thu_tu": 1
+      },
+      {
+        "id": "b-mqb0b9af-2",
+        "loai": "h3",
+        "config": {
+          "html": "Ngành thiết kế đồ họa tập trung làm thủ tục dự thi ngày 15/06/2026. Thi ngày 16 và 17/06/2026"
+        },
+        "thu_tu": 2
+      },
+      {
+        "id": "b-mqb00rfh-2",
+        "loai": "imgs",
+        "config": {
+          "cap": "",
+          "imgs": [
+            "771216ee-2e40-4589-670b-5cf821bd7600"
+          ],
+          "layout": "full",
+          "rounded": false
+        },
+        "thu_tu": 3
+      },
+      {
+        "id": "b-mqb02b6w-5",
+        "loai": "body",
+        "config": {
+          "html": "- Khu C - Phòng thi số: 01 đến phòng thi số 42 \n- Khu A - Phòng thi số: 43 đến phòng thi số 61 \n- Khu D - Phòng thi số: 62 đến phòng thi số 65 "
+        },
+        "thu_tu": 4
+      },
+      {
+        "id": "b-mqb0306u-7",
+        "loai": "spacer",
+        "config": {
+          "size": "m"
+        },
+        "thu_tu": 5
+      },
+      {
+        "id": "b-mqb02jxm-6",
+        "loai": "h3",
+        "config": {
+          "html": "Danh sách phòng thi ngành Thiết kế đồ họa\n"
+        },
+        "thu_tu": 6
+      },
+      {
+        "id": "b-mqb03er0-8",
+        "loai": "imgs",
+        "config": {
+          "cap": "",
+          "imgs": [
+            "74931486-ab38-4252-8298-387bcc57ea00"
+          ],
+          "layout": "full",
+          "rounded": false
+        },
+        "thu_tu": 7
+      },
+      {
+        "id": "b-mqb0fd0o-5",
+        "loai": "spacer",
+        "config": {
+          "size": "m"
+        },
+        "thu_tu": 8
+      },
+      {
+        "id": "b-mqb08s5x-1",
+        "loai": "h3",
+        "config": {
+          "html": "Ngành Hội họa, Đồ họa, Điêu khắc, Lý luận lịch sử và phê bình mỹ thuật tập trung làm thủ tục dự thi ngày 20/06/2026. Thi ngày 21 đến 23/06/2026"
+        },
+        "thu_tu": 9
+      },
+      {
+        "id": "b-mqb05b6j-15",
+        "loai": "body",
+        "config": {
+          "html": "Khu C     - Phòng thi số: 66 đến phòng thi số 67 Ngành Điêu khắc\n                 - Phòng thi số: 68 đến phòng thi số 70 Ngành lý luận lịch sử và phê bình mỹ thuật\n                 - Phòng thi số: 71 đến phòng thi số 83 Ngành Hội họa\n                 - Phòng thi số: 84 đến phòng thi số 104 Ngành Đồ họa\n"
+        },
+        "thu_tu": 10
+      },
+      {
+        "id": "b-mqb0c0r9-3",
+        "loai": "h3",
+        "config": {
+          "html": "Danh sách phòng thi các ngành còn lại\n"
+        },
+        "thu_tu": 11
+      },
+      {
+        "id": "b-mqb06ax4-16",
+        "loai": "imgs",
+        "config": {
+          "cap": "",
+          "imgs": [
+            "3cbda693-e5fa-4bca-2e3e-0eb00af5a200"
+          ],
+          "layout": "full",
+          "rounded": false
+        },
+        "thu_tu": 12
+      }
+    ]
+  },
+  {
+    "id": "f7f345a1-4b2a-4f00-b36e-fa1b3683f36e",
+    "id_to_chuc": "eb825d71-5ac1-4c9f-934f-870402923b91",
+    "loai_bai_dang": "khac",
+    "tieu_de": "Tuyển sinh 2026",
+    "noi_dung": null,
+    "ghim": false,
+    "trang_thai": "da_dang",
+    "tao_luc": "2026-06-08T18:26:52.239205+00:00",
+    "cap_nhat_luc": "2026-06-08T18:26:52.239205+00:00",
+    "tom_tat": "Thông tin tuyển sinh 2026 cập nhật lúc 3h chiều",
+    "cover_id": "a8fc453e-0688-4215-175e-ddddae760a00",
+    "thoi_diem": null,
+    "noi_dung_blocks": [
+      {
+        "id": "b-mq5jl6fo-1",
+        "loai": "imgs",
+        "config": {
+          "cap": "",
+          "imgs": [
+            "new-b-mq5jl6fo-1",
+            "extra-b-mq5jl6fo-1-1",
+            "extra-b-mq5jl6fo-1-2",
+            "extra-b-mq5jl6fo-1-3"
+          ],
+          "layout": "grid4",
+          "rounded": false
+        },
+        "thu_tu": 0
+      },
+      {
+        "id": "b-mq5jlehv-2",
+        "loai": "h2",
+        "config": {
+          "html": "asdsdafwafs"
+        },
+        "thu_tu": 1
+      },
+      {
+        "id": "b-mq5jlink-3",
+        "loai": "imgs",
+        "config": {
+          "cap": "",
+          "imgs": [
+            "new-b-mq5jlink-3"
+          ],
+          "layout": "full",
+          "rounded": false
+        },
+        "thu_tu": 2
+      }
+    ]
+  }
+]

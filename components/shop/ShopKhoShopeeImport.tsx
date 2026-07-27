@@ -60,6 +60,7 @@ export function ShopKhoShopeeImportButton({
   } | null>(null);
   const [rowStatus, setRowStatus] = useState<Record<string, ShopRowStatus>>({});
   const [shopSummary, setShopSummary] = useState<string | null>(null);
+  const [showList, setShowList] = useState(false);
 
   const refreshExt = useCallback(async () => {
     const ok = await pingShopeeExtension();
@@ -73,6 +74,7 @@ export function ShopKhoShopeeImportButton({
     setShopProgress(null);
     setRowStatus({});
     setShopSummary(null);
+    setShowList(false);
   }, []);
 
   const close = useCallback(() => {
@@ -234,6 +236,7 @@ export function ShopKhoShopeeImportButton({
     onError(null);
     setShopSummary(null);
     setRowStatus({});
+    setShowList(false);
     try {
       const list = await listShopeeShopViaExtension(
         trimmed,
@@ -674,11 +677,13 @@ export function ShopKhoShopeeImportButton({
               ) : null}
 
               {mode === "shop" && shopList ? (
-                <ShopItemPicker
+                <ShopScanResult
                   list={shopList}
                   selected={selected}
                   rowStatus={rowStatus}
                   disabled={busy}
+                  showList={showList}
+                  onToggleList={() => setShowList((v) => !v)}
                   onToggle={toggleItem}
                   onSelectAll={selectAll}
                   itemKey={itemKey}
@@ -822,6 +827,86 @@ export function ShopKhoShopeeImportButton({
       </button>
       {modal}
     </>
+  );
+}
+
+function ShopScanResult({
+  list,
+  selected,
+  rowStatus,
+  disabled,
+  showList,
+  onToggleList,
+  onToggle,
+  onSelectAll,
+  itemKey,
+}: {
+  list: ShopeeShopListResult;
+  selected: Set<string>;
+  rowStatus: Record<string, ShopRowStatus>;
+  disabled: boolean;
+  showList: boolean;
+  onToggleList: () => void;
+  onToggle: (key: string) => void;
+  onSelectAll: (on: boolean) => void;
+  itemKey: (it: ShopeeShopListItem) => string;
+}) {
+  const total = list.items.length;
+  const thumbs = list.items
+    .map((it) => it.imageUrl)
+    .filter((u): u is string => Boolean(u))
+    .slice(0, 5);
+
+  return (
+    <div className="shop-shopee-import-scan">
+      <div className="shop-shopee-import-scan-card">
+        <div className="shop-shopee-import-scan-thumbs">
+          {thumbs.length > 0 ? (
+            thumbs.map((u, i) => (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                key={`${u}-${i}`}
+                src={u}
+                alt=""
+                className="shop-shopee-import-scan-thumb"
+              />
+            ))
+          ) : (
+            <span className="shop-shopee-import-scan-thumb is-empty" />
+          )}
+        </div>
+        <div className="shop-shopee-import-scan-info">
+          <span className="shop-shopee-import-scan-name">
+            {list.shopName || list.shopId}
+          </span>
+          <span className="shop-shopee-import-scan-count">
+            {total} sản phẩm
+            {list.truncated ? ` (tối đa ${CINS_SHOPEE_SHOP_MAX_ITEMS})` : ""}
+          </span>
+        </div>
+        {total > 0 ? (
+          <button
+            type="button"
+            className="shop-shopee-import-scan-toggle"
+            onClick={onToggleList}
+          >
+            {showList ? "Ẩn danh sách" : "Chọn sản phẩm"}
+          </button>
+        ) : null}
+      </div>
+
+      {showList ? (
+        <ShopItemPicker
+          list={list}
+          selected={selected}
+          rowStatus={rowStatus}
+          disabled={disabled}
+          onToggle={onToggle}
+          onSelectAll={onSelectAll}
+          itemKey={itemKey}
+        />
+      ) : null}
+    </div>
   );
 }
 

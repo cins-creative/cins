@@ -67,14 +67,17 @@ export async function POST(request: NextRequest) {
       addedAt: Date.now(),
     });
 
+    /* Vault + hint ghi lên `carrier` (chỉ cookies.set) rồi copy một lần — tránh
+     * mix headers.append + cookies.set làm rớt cookie phiên bị chunk (loop khách). */
+    setAccountVaultOnResponse(carrier, rotated);
+    setRestoreHintOnResponse(carrier);
+
     const response = NextResponse.json({
       ok: true,
       restored: true,
       slug: target.slug,
     });
     appendSetCookieHeaders(carrier, response);
-    setAccountVaultOnResponse(response, rotated);
-    setRestoreHintOnResponse(response);
     return response;
   }
 

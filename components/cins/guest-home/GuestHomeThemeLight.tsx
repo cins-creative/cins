@@ -1,27 +1,23 @@
-"use client";
-
-import { useLayoutEffect } from "react";
-
-import {
-  FORCE_LIGHT_THEME_SCRIPT,
-  acquireForceLightTheme,
-} from "@/lib/theme/theme-mode";
+import { GuestHomeForceLightEffect } from "@/components/cins/guest-home/GuestHomeForceLightEffect";
+import { FORCE_LIGHT_THEME_SCRIPT } from "@/lib/theme/theme-mode";
 
 /**
  * Trang chủ khi chưa đăng nhập luôn dùng nền sáng, bất kể lựa chọn đã lưu
  * hay cài đặt hệ điều hành.
  *
- * - Inline <script> trong output của component (SSR một lần tại vị trí guest home)
- *   ghi đè data-theme trước paint — không dùng useServerInsertedHTML (streaming
- *   gọi callback mỗi chunk → nhân bản script / phá hydration).
- * - useLayoutEffect + acquireForceLightTheme xử lý soft-nav và Strict Mode
- *   (cleanup microtask không nháy dark giữa hai lần mount).
- * - Khi rời trang, trả theme về lựa chọn đã lưu.
+ * - Server component: inline <script> chỉ nằm trong HTML SSR (chạy trước paint
+ *   khi tải cứng) và được hydrate khớp — KHÔNG re-render trên client. Trước đây
+ *   component này là "use client" nên React tạo lại thẻ <script> khi render phía
+ *   client → cảnh báo "Encountered a script tag…" và phá hydration của cả
+ *   <main> (form đăng nhập mất onSubmit → bấm "Đăng nhập" không phản ứng).
+ * - `GuestHomeForceLightEffect` (client) giữ nền sáng ở runtime: soft-nav,
+ *   Strict Mode và trả theme về cũ khi rời trang.
  */
 export function GuestHomeThemeLight() {
-  useLayoutEffect(() => acquireForceLightTheme(), []);
-
   return (
-    <script dangerouslySetInnerHTML={{ __html: FORCE_LIGHT_THEME_SCRIPT }} />
+    <>
+      <script dangerouslySetInnerHTML={{ __html: FORCE_LIGHT_THEME_SCRIPT }} />
+      <GuestHomeForceLightEffect />
+    </>
   );
 }

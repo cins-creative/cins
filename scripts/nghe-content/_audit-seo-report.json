@@ -1,0 +1,221 @@
+{
+  "generatedAt": "2026-07-20T08:09:31.291Z",
+  "total": 288,
+  "ok": 269,
+  "issueCounts": {
+    "meta_desc_too_long": 12,
+    "missing_bo_phan": 7,
+    "ok": 269
+  },
+  "backlog": [
+    {
+      "id": "b4fdb280-a26e-49ee-87b1-682284faf0ba",
+      "slug": "nghe-dohoa-structural-packaging-designer",
+      "ten": "Nhà thiết kế cấu trúc bao bì",
+      "trang_thai_noi_dung": "published",
+      "priority_issue": "meta_desc_too_long",
+      "meta_desc_len": 162,
+      "noi_dung_len": 13859,
+      "has_bo_phan": true,
+      "has_cover_or_thumb": true
+    },
+    {
+      "id": "05d38b60-d1d4-4fe6-a0e8-c6e8f49a2ca9",
+      "slug": "nghe-game-sound-designer",
+      "ten": "Nhà thiết kế âm thanh",
+      "trang_thai_noi_dung": "published",
+      "priority_issue": "meta_desc_too_long",
+      "meta_desc_len": 165,
+      "noi_dung_len": 15501,
+      "has_bo_phan": true,
+      "has_cover_or_thumb": true
+    },
+    {
+      "id": "af47b90a-04ce-473d-82a9-1e626d009962",
+      "slug": "nghe-hoat-hinh-concept-artist",
+      "ten": "Họa sĩ concept",
+      "trang_thai_noi_dung": "published",
+      "priority_issue": "meta_desc_too_long",
+      "meta_desc_len": 174,
+      "noi_dung_len": 16681,
+      "has_bo_phan": true,
+      "has_cover_or_thumb": true
+    },
+    {
+      "id": "38105b54-bebf-4a0f-b295-31025a9c6783",
+      "slug": "nghe-hoat-hinh-environment-artist",
+      "ten": "Họa sĩ dựng môi trường",
+      "trang_thai_noi_dung": "published",
+      "priority_issue": "meta_desc_too_long",
+      "meta_desc_len": 175,
+      "noi_dung_len": 16425,
+      "has_bo_phan": true,
+      "has_cover_or_thumb": true
+    },
+    {
+      "id": "42920cdc-be88-48c4-80f7-e900a8588871",
+      "slug": "nghe-hoat-hinh-environment-concept-artist",
+      "ten": "Họa sĩ concept môi trường",
+      "trang_thai_noi_dung": "published",
+      "priority_issue": "meta_desc_too_long",
+      "meta_desc_len": 165,
+      "noi_dung_len": 16881,
+      "has_bo_phan": true,
+      "has_cover_or_thumb": true
+    },
+    {
+      "id": "789cbd5a-3e78-4c0d-9747-852dc803598c",
+      "slug": "nghe-hoat-hinh-pipeline-td",
+      "ten": "Kỹ thuật viên pipeline",
+      "trang_thai_noi_dung": "published",
+      "priority_issue": "meta_desc_too_long",
+      "meta_desc_len": 176,
+      "noi_dung_len": 15934,
+      "has_bo_phan": true,
+      "has_cover_or_thumb": true
+    },
+    {
+      "id": "988edd2d-4abc-4575-801d-fad13b6c1a14",
+      "slug": "nghe-hoat-hinh-sound-designer",
+      "ten": "Nhà thiết kế âm thanh",
+      "trang_thai_noi_dung": "published",
+      "priority_issue": "meta_desc_too_long",
+      "meta_desc_len": 175,
+      "noi_dung_len": 16556,
+      "has_bo_phan": true,
+      "has_cover_or_thumb": true
+    },
+    {
+      "id": "3f840fa9-2f8e-488b-aef7-9d7760049c6b",
+      "slug": "nghe-hoat-hinh-technical-director-td",
+      "ten": "Giám đốc kỹ thuật",
+      "trang_thai_noi_dung": "published",
+      "priority_issue": "meta_desc_too_long",
+      "meta_desc_len": 165,
+      "noi_dung_len": 16455,
+      "has_bo_phan": true,
+      "has_cover_or_thumb": true
+    },
+    {
+      "id": "50c5ba7a-b166-402e-8423-679b01007bc6",
+      "slug": "nghe-hoat-hinh-writer-screenwriter",
+      "ten": "Biên kịch hoạt hình",
+      "trang_thai_noi_dung": "published",
+      "priority_issue": "meta_desc_too_long",
+      "meta_desc_len": 184,
+      "noi_dung_len": 16603,
+      "has_bo_phan": true,
+      "has_cover_or_thumb": true
+    },
+    {
+      "id": "6ee32c3e-e7ef-48f9-b5ef-ade03cb9866f",
+      "slug": "nghe-phim-set-designer",
+      "ten": "Họa sĩ thiết kế bối cảnh",
+      "trang_thai_noi_dung": "published",
+      "priority_issue": "meta_desc_too_long",
+      "meta_desc_len": 170,
+      "noi_dung_len": 16495,
+      "has_bo_phan": true,
+      "has_cover_or_thumb": true
+    },
+    {
+      "id": "3c1eebeb-b7de-4848-bea4-f7f9ecc201b5",
+      "slug": "nghe-phim-story-developer",
+      "ten": "Chuyên viên phát triển câu chuyện",
+      "trang_thai_noi_dung": "published",
+      "priority_issue": "meta_desc_too_long",
+      "meta_desc_len": 176,
+      "noi_dung_len": 16484,
+      "has_bo_phan": true,
+      "has_cover_or_thumb": true
+    },
+    {
+      "id": "89910194-c4d3-4762-8092-496b22b9060d",
+      "slug": "nghe-uiux-product-designer",
+      "ten": "Nhà thiết kế sản phẩm số",
+      "trang_thai_noi_dung": "published",
+      "priority_issue": "meta_desc_too_long",
+      "meta_desc_len": 161,
+      "noi_dung_len": 14039,
+      "has_bo_phan": true,
+      "has_cover_or_thumb": true
+    },
+    {
+      "id": "857c90b7-6924-4578-9596-c0e955fa0a95",
+      "slug": "ai-programmer",
+      "ten": "Lập trình viên AI",
+      "trang_thai_noi_dung": "published",
+      "priority_issue": "missing_bo_phan",
+      "meta_desc_len": 131,
+      "noi_dung_len": 14585,
+      "has_bo_phan": false,
+      "has_cover_or_thumb": true
+    },
+    {
+      "id": "27847058-58ed-4c4d-af10-b4db15931787",
+      "slug": "build-engineer",
+      "ten": "Kỹ sư build",
+      "trang_thai_noi_dung": "published",
+      "priority_issue": "missing_bo_phan",
+      "meta_desc_len": 134,
+      "noi_dung_len": 2732,
+      "has_bo_phan": false,
+      "has_cover_or_thumb": true
+    },
+    {
+      "id": "f3546d84-e480-4d97-9176-53d6c65823e0",
+      "slug": "engine-programmer",
+      "ten": "Lập trình viên engine",
+      "trang_thai_noi_dung": "published",
+      "priority_issue": "missing_bo_phan",
+      "meta_desc_len": 152,
+      "noi_dung_len": 15715,
+      "has_bo_phan": false,
+      "has_cover_or_thumb": true
+    },
+    {
+      "id": "c4483db1-e1fb-4e28-b45f-cdb76a4e07b7",
+      "slug": "gameplay-programmer",
+      "ten": "Lập trình viên gameplay",
+      "trang_thai_noi_dung": "published",
+      "priority_issue": "missing_bo_phan",
+      "meta_desc_len": 138,
+      "noi_dung_len": 2788,
+      "has_bo_phan": false,
+      "has_cover_or_thumb": true
+    },
+    {
+      "id": "45f1553b-7b7d-4398-b440-aa2e1ea53387",
+      "slug": "graphics-programmer",
+      "ten": "Lập trình viên đồ họa",
+      "trang_thai_noi_dung": "published",
+      "priority_issue": "missing_bo_phan",
+      "meta_desc_len": 141,
+      "noi_dung_len": 2792,
+      "has_bo_phan": false,
+      "has_cover_or_thumb": true
+    },
+    {
+      "id": "0c0abe26-65d2-43e0-bae9-3a1ff6cc5bdb",
+      "slug": "network-programmer",
+      "ten": "Lập trình viên mạng",
+      "trang_thai_noi_dung": "published",
+      "priority_issue": "missing_bo_phan",
+      "meta_desc_len": 138,
+      "noi_dung_len": 15654,
+      "has_bo_phan": false,
+      "has_cover_or_thumb": true
+    },
+    {
+      "id": "9a8125de-d83c-4d83-8b0a-2bba7d3abc7f",
+      "slug": "tools-programmer",
+      "ten": "Lập trình viên công cụ",
+      "trang_thai_noi_dung": "published",
+      "priority_issue": "missing_bo_phan",
+      "meta_desc_len": 144,
+      "noi_dung_len": 16633,
+      "has_bo_phan": false,
+      "has_cover_or_thumb": true
+    }
+  ]
+}

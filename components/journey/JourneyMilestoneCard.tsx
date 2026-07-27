@@ -48,6 +48,7 @@ import { PostBlockRenderer } from "@/components/journey/PostBlockRenderer";
 import { POST_COMMENTS_SYNC_EVENT } from "@/lib/journey/comments-sync-client";
 import {
   captureExpandScrollPin,
+  scrollElementsToViewportCenter,
   subscribeExpandScrollPin,
   type ExpandScrollPin,
 } from "@/lib/journey/expand-scroll-pin";
@@ -1115,14 +1116,78 @@ export function JourneyMilestoneCard({
       captureExpandScrollPin(articleRef.current);
     if (!pin) return;
     expandScrollPinRef.current = pin;
-    const unfoldEl = articleRef.current?.querySelector<HTMLElement>(
-      ".j-m-card-unfold",
-    );
-    return subscribeExpandScrollPin(articleRef.current, pin, {
-      resizeTarget: unfoldEl ?? articleRef.current,
+    const article = articleRef.current;
+    const unfoldEl = article?.querySelector<HTMLElement>(".j-m-card-unfold");
+    const datebar = article?.querySelector<HTMLElement>(".jcard-datebar");
+    const body = article?.querySelector<HTMLElement>(".jcard-body");
+    return subscribeExpandScrollPin(article, pin, {
+      resizeTarget: unfoldEl ?? article,
       holdMs: 3200,
+      /* Cụm datebar + text/peek căn giữa viewport khi xổ bài dài. */
+      centerTopEl: datebar ?? body ?? article,
+      centerBottomEl: body ?? datebar ?? article,
     });
   }, [showUnfold, unfoldReady, showContent]);
+
+  const wasContentOpenRef = useRef(false);
+  useLayoutEffect(() => {
+    const wasOpen = wasContentOpenRef.current;
+    wasContentOpenRef.current = showContent;
+    if (!wasOpen || showContent) return;
+    /* Thu gọn — đưa thanh action vào giữa viewport sau khi layout đóng. */
+    const article = articleRef.current;
+    if (!article) return;
+    let raf2 = 0;
+    const raf1 = window.requestAnimationFrame(() => {
+      raf2 = window.requestAnimationFrame(() => {
+        const actions = article.querySelector<HTMLElement>(".jcard-actions");
+        scrollElementsToViewportCenter(actions, null, { behavior: "smooth" });
+      });
+    });
+    return () => {
+      window.cancelAnimationFrame(raf1);
+      window.cancelAnimationFrame(raf2);
+    };
+  }, [showContent]);
+
+  /* Bình luận (không kèm mở nội dung):
+   *  - Mở: neo giữ mép trên card → panel BL đẩy xuống dưới, view giữ nguyên.
+   *  - Thu gọn: đưa thanh action vào giữa viewport (như thu gọn nội dung). */
+  const wasCommentsOnlyOpenRef = useRef(false);
+  useLayoutEffect(() => {
+    const wasOpen = wasCommentsOnlyOpenRef.current;
+    const isOpen = showComments && !showContent;
+    wasCommentsOnlyOpenRef.current = isOpen;
+    const article = articleRef.current;
+    if (!article) return;
+    if (!wasOpen && isOpen) {
+      const pin = captureExpandScrollPin(article);
+      if (!pin) return;
+      const unfoldEl = article.querySelector<HTMLElement>(".j-m-card-unfold");
+      return subscribeExpandScrollPin(article, pin, {
+        resizeTarget: unfoldEl ?? article,
+        holdMs: 3200,
+      });
+    }
+    if (wasOpen && !isOpen && !showContent) {
+      let raf2 = 0;
+      const raf1 = window.requestAnimationFrame(() => {
+        raf2 = window.requestAnimationFrame(() => {
+          const actions = article.querySelector<HTMLElement>(".jcard-actions");
+          if (!actions) return;
+          /* Chỉ căn giữa khi card còn trong viewport — tránh giật về card cũ
+             khi mở BL ở card khác (state expand dùng chung một card). */
+          const r = actions.getBoundingClientRect();
+          if (r.bottom <= 0 || r.top >= window.innerHeight) return;
+          scrollElementsToViewportCenter(actions, null, { behavior: "smooth" });
+        });
+      });
+      return () => {
+        window.cancelAnimationFrame(raf1);
+        window.cancelAnimationFrame(raf2);
+      };
+    }
+  }, [showComments, showContent]);
 
   useEffect(() => {
     function onCommentsSync(event: Event) {

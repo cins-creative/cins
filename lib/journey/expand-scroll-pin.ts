@@ -5,6 +5,9 @@
  * Chỉ re-pin trong cửa sổ `holdMs` (layout/ảnh đổ vào). Sau đó dừng hẳn;
  * nếu user cuộn thì hủy pin ngay — tránh giật về đầu bài khi scroll xuống
  * và ảnh lazy load kích ResizeObserver.
+ *
+ * Expand nội dung bài viết dài: neo **tâm cụm** datebar + body (peek/text)
+ * giữa viewport. Thu gọn: đưa thanh action vào giữa viewport.
  */
 
 export type ExpandScrollPin = {
@@ -30,11 +33,41 @@ export function restoreExpandScrollPin(
   window.scrollBy({ top: delta, left: 0, behavior: "auto" });
 }
 
+/** Đưa tâm phần tử (hoặc cụm top→bottom) vào giữa chiều cao viewport. */
+export function scrollElementsToViewportCenter(
+  topEl: HTMLElement | null | undefined,
+  bottomEl?: HTMLElement | null,
+  opts?: { behavior?: ScrollBehavior },
+): void {
+  if (typeof window === "undefined") return;
+  const a = topEl ?? bottomEl ?? null;
+  if (!a) return;
+  const b = bottomEl && topEl ? bottomEl : a;
+  const ra = a.getBoundingClientRect();
+  const rb = b.getBoundingClientRect();
+  const top = Math.min(ra.top, rb.top);
+  const bottom = Math.max(ra.bottom, rb.bottom);
+  const elCenter = top + (bottom - top) / 2;
+  const delta = elCenter - window.innerHeight / 2;
+  if (Math.abs(delta) < 1) return;
+  window.scrollBy({
+    top: delta,
+    left: 0,
+    behavior: opts?.behavior ?? "smooth",
+  });
+}
+
 type SubscribeOptions = {
   /** Theo dõi resize của node này (mặc định = el). */
   resizeTarget?: HTMLElement | null;
   /** Thời gian tối đa tiếp tục re-pin sau load async / ảnh (ms). */
   holdMs?: number;
+  /**
+   * Neo tâm cụm (topEl…bottomEl) giữa viewport thay vì mép trên `el`.
+   * Dùng khi xổ bài dài — cụm datebar + body/peek giữ giữa màn hình.
+   */
+  centerTopEl?: HTMLElement | null;
+  centerBottomEl?: HTMLElement | null;
 };
 
 const SCROLL_INTENT_KEYS = new Set([
@@ -61,6 +94,9 @@ export function subscribeExpandScrollPin(
 
   const resizeTarget = opts.resizeTarget ?? el;
   const holdMs = opts.holdMs ?? 2500;
+  const centerTop = opts.centerTopEl ?? null;
+  const centerBottom = opts.centerBottomEl ?? null;
+  const useCenter = Boolean(centerTop || centerBottom);
   let cancelled = false;
   let restoring = false;
   let raf1 = 0;
@@ -107,7 +143,13 @@ export function subscribeExpandScrollPin(
   const restore = () => {
     if (cancelled) return;
     restoring = true;
-    restoreExpandScrollPin(el, pin);
+    if (useCenter) {
+      scrollElementsToViewportCenter(centerTop ?? centerBottom, centerBottom, {
+        behavior: "auto",
+      });
+    } else {
+      restoreExpandScrollPin(el, pin);
+    }
     window.requestAnimationFrame(() => {
       restoring = false;
     });

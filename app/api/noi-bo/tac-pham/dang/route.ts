@@ -53,6 +53,11 @@ type BodyDangBai = {
   loaiMoc?: LoaiMoc;
   cheDoHienThi?: Visibility;
   thoiDiem?: string;
+  /**
+   * Thời điểm tạo (ISO datetime) — ghi đè mốc «N giờ trước». Autopilot truyền giá
+   * trị rải rác để nick không cùng một mốc giờ. Chỉ nhận quá khứ (≤ now).
+   */
+  taoLuc?: string;
   /** Nếu bỏ trống → tự ghép body + embed + dòng ghi nguồn. */
   blocks?: Block[];
   /** Dry-run: validate + ghép khối, không ghi DB. */
@@ -252,6 +257,29 @@ export async function POST(request: Request) {
     }
   }
 
+  /*
+   * Guard thiếu media — nền ngoài (ArtStation/Behance/Pixiv) mà fetch ảnh thất
+   * bại và không có cover → KHÔNG đăng thẻ gradient rỗng. Trả code để worker giữ
+   * bản thảo `san_sang` thử lại lần sau. Bỏ qua khi client tự cấp `blocks`.
+   */
+  const laNenNgoai =
+    nenTang === "artstation" || nenTang === "behance" || nenTang === "pixiv";
+  const clientCungCapBlocks =
+    Array.isArray(body.blocks) && body.blocks.length > 0;
+  const coAnhTrongBlocks = blocks.some((b) => b.loai === "imgs");
+  if (laNenNgoai && !clientCungCapBlocks && !coAnhTrongBlocks && !coverId) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error:
+          "Không lấy được ảnh tác phẩm và không có ảnh bìa — bỏ qua để thử lại.",
+        code: "thieu_media",
+        field: "urlNguon",
+      },
+      { status: 422 },
+    );
+  }
+
   /* Dòng Nguồn gộp vào mô tả ngắn — không tách block body riêng. */
   moTa = gopMoTaVoiDongNguon(
     moTa,
@@ -306,6 +334,7 @@ export async function POST(request: Request) {
     loaiMoc: loaiMoc ?? "du_an",
     cheDoHienThi: cheDoHienThi ?? "feature",
     thoiDiem: body.thoiDiem,
+    taoLuc: typeof body.taoLuc === "string" ? body.taoLuc : undefined,
     blocks,
     chiKiemTra: Boolean(body.chiKiemTra),
   });

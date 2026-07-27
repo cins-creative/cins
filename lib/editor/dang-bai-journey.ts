@@ -53,6 +53,12 @@ export type DangBaiJourneyInput = {
   cheDoHienThi?: Visibility;
   loaiMoc?: LoaiMoc;
   thoiDiem?: string;
+  /**
+   * Thời điểm tạo (ISO datetime) — ghi đè `content_cot_moc.tao_luc` (mốc «N giờ trước»).
+   * Dùng cho Autopilot rải rác giờ đăng để nick không cùng một mốc thời gian.
+   * Chỉ nhận quá khứ (≤ now, ≤ 30 ngày trước); bỏ trống → DB default now().
+   */
+  taoLuc?: string;
   blocks: Block[];
 };
 
@@ -101,6 +107,20 @@ function todayIso(): string {
   const mm = String(d.getMonth() + 1).padStart(2, "0");
   const dd = String(d.getDate()).padStart(2, "0");
   return `${yyyy}-${mm}-${dd}`;
+}
+
+/**
+ * Chuẩn hoá `taoLuc` override: ISO datetime hợp lệ, kẹp về không vượt quá hiện
+ * tại và không cũ quá 30 ngày. Không hợp lệ → null (dùng DB default now()).
+ */
+function normalizeTaoLuc(raw: string | undefined): string | null {
+  if (!raw || typeof raw !== "string") return null;
+  const t = Date.parse(raw);
+  if (Number.isNaN(t)) return null;
+  const now = Date.now();
+  const clamped = Math.min(t, now);
+  if (clamped < now - 30 * 24 * 60 * 60 * 1000) return null;
+  return new Date(clamped).toISOString();
 }
 
 function dbErrorMessage(error: unknown): string {
@@ -175,6 +195,8 @@ export async function dangBaiJourneyChoUser(
     ? input.thoiDiem
     : todayIso();
 
+  const taoLucOverride = normalizeTaoLuc(input.taoLuc);
+
   const normalized = chuanHoaBlocks(input.blocks);
   if (!normalized || normalized.length === 0) {
     return {
@@ -236,17 +258,20 @@ export async function dangBaiJourneyChoUser(
   const noiDungHtml = blocksToHtml(publishBlocks);
   const admin = createServiceRoleClient();
 
+  const cotMocInsert: Record<string, unknown> = {
+    id_nguoi_dung: input.idNguoiDung,
+    loai_moc: loaiMoc,
+    nguon_goc: "tu_tao",
+    tieu_de: tieuDe,
+    mo_ta: moTaFinal || null,
+    thoi_diem: thoiDiem,
+    che_do_hien_thi: cheDo,
+  };
+  if (taoLucOverride) cotMocInsert.tao_luc = taoLucOverride;
+
   const { data: cotMoc, error: cotMocErr } = await admin
     .from("content_cot_moc")
-    .insert({
-      id_nguoi_dung: input.idNguoiDung,
-      loai_moc: loaiMoc,
-      nguon_goc: "tu_tao",
-      tieu_de: tieuDe,
-      mo_ta: moTaFinal || null,
-      thoi_diem: thoiDiem,
-      che_do_hien_thi: cheDo,
-    })
+    .insert(cotMocInsert)
     .select("id")
     .single<{ id: string }>();
 

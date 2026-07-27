@@ -240,7 +240,7 @@ export function flattenMosaicCells(cells: unknown): string[] {
 /** Khe giữa ô ảnh trong block — chu kỳ LayBar: 2 → 4 → 0 → 2. */
 export type ImgSlotGap = 0 | 2 | 4;
 
-export const IMG_SLOT_GAP_DEFAULT: ImgSlotGap = 2;
+export const IMG_SLOT_GAP_DEFAULT: ImgSlotGap = 0;
 
 const IMG_SLOT_GAP_CYCLE: readonly ImgSlotGap[] = [2, 4, 0];
 

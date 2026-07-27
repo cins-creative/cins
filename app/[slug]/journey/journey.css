@@ -18264,6 +18264,10 @@ a.action-btn {
   /* Không dùng filter — trên Windows filter làm emoji color bị mờ/xám. */
   filter: none;
   opacity: 1;
+  /* Nút chưa react có color muted (alpha 0.40); trình duyệt áp alpha đó lên
+     color-emoji khiến glyph bị mờ. Reset về màu đặc để emoji đủ opacity. */
+  color: initial;
+  -webkit-text-fill-color: initial;
 }
 .j-reaction-picker-opt:hover:not(:disabled),
 .j-reaction-picker-opt.is-active {

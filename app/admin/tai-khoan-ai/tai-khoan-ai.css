@@ -82,25 +82,6 @@ button.admin-bai-viet-tab {
   color: var(--cins-blue);
 }
 
-.tkai-pipeline-step__n {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 999px;
-  background: var(--neutral-50);
-  color: var(--fg-3);
-  font-size: 12px;
-  font-weight: 700;
-  flex-shrink: 0;
-}
-
-.tkai-pipeline-step.is-active .tkai-pipeline-step__n {
-  background: var(--cins-blue);
-  color: #fff;
-}
-
 .tkai-pipeline-step__label {
   flex: 1;
   font-size: 13px;
@@ -257,6 +238,11 @@ button.admin-bai-viet-tab {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 12px;
+}
+
+.tkai-pagination {
+  margin-top: 12px;
+  border-radius: 8px;
 }
 
 .tkai-card {

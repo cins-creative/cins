@@ -34,7 +34,9 @@
 }
 
 .j-post-page:has(.post-canvas--split) .j-post-page-inner {
-  max-width: 1080px;
+  /* Split text/link — fill hết bề ngang khả dụng; chỉ chừa padding trang
+     hai bên. Rail giữ 340px; phần còn lại dồn cho cột nội dung (1fr). */
+  max-width: none;
 }
 
 .j-post-page:has(.post-canvas--split) .j-post-page-toolbar {
@@ -3250,8 +3252,8 @@
 .cins-editor-page.cins-post-view .blocks-readonly .image-grid--masonry,
 .cins-editor-page.cins-post-view .blocks-readonly .image-grid--masonry .image-grid-mcol,
 .cins-editor-page.cins-post-view .blocks-readonly .image-grid-jrow {
-  gap: var(--cins-img-slot-gap, 2px);
-  column-gap: var(--cins-img-slot-gap, 2px);
+  gap: var(--cins-img-slot-gap, 0px);
+  column-gap: var(--cins-img-slot-gap, 0px);
 }
 /* Block "Khoảng trống" do người dùng chủ động thêm → bản đọc phải tôn trọng
    chiều cao (khớp editor: s=16 / m=18 / l=64). Đường kẻ đứt chỉ dùng khi soạn

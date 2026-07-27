@@ -1,0 +1,38 @@
+[
+  {
+    "id": "a7663a5e-869c-4a6d-b838-a3920ecf2ee0",
+    "id_to_chuc": "70bc1388-0511-44c3-8c31-58d7978eaa2b",
+    "id_nganh": "1bf8f4c9-d06f-436d-948c-b1977b36c082",
+    "article_bai_viet": {
+      "id": "1bf8f4c9-d06f-436d-948c-b1977b36c082",
+      "slug": "thiet-ke-do-hoa",
+      "tieu_de": "Thiết kế đồ hoạ",
+      "id_linh_vuc": null,
+      "loai_bai_viet": "nganh_dao_tao"
+    }
+  },
+  {
+    "id": "6cd3ec63-227d-498c-866b-28452c2ab819",
+    "id_to_chuc": "70bc1388-0511-44c3-8c31-58d7978eaa2b",
+    "id_nganh": "fbc97f2c-f353-4e59-9950-7608baa7c331",
+    "article_bai_viet": {
+      "id": "fbc97f2c-f353-4e59-9950-7608baa7c331",
+      "slug": "thiet-ke-noi-that",
+      "tieu_de": "Thiết kế nội thất",
+      "id_linh_vuc": null,
+      "loai_bai_viet": "nganh_dao_tao"
+    }
+  },
+  {
+    "id": "a8870331-b467-41aa-ba98-3fea02227c0b",
+    "id_to_chuc": "70bc1388-0511-44c3-8c31-58d7978eaa2b",
+    "id_nganh": "d3f6c7b6-5a49-43c2-9d3c-126749a852fd",
+    "article_bai_viet": {
+      "id": "d3f6c7b6-5a49-43c2-9d3c-126749a852fd",
+      "slug": "thiet-ke-thoi-trang",
+      "tieu_de": "Thiết kế thời trang",
+      "id_linh_vuc": null,
+      "loai_bai_viet": "nganh_dao_tao"
+    }
+  }
+]

@@ -988,7 +988,23 @@
   .tdh-page .tdh-list-pills {
     overflow-x: auto;
     flex-wrap: nowrap;
-    padding-bottom: 2px;
+    padding-bottom: 4px;
+    margin: 0 calc(-1 * var(--tdh-list-pad-x));
+    padding-left: var(--tdh-list-pad-x);
+    padding-right: var(--tdh-list-pad-x);
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x proximity;
+  }
+
+  .tdh-page .tdh-list-pills::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tdh-page .tdh-list-pill,
+  .tdh-page .tdh-list-mine-chip {
+    flex-shrink: 0;
+    scroll-snap-align: start;
   }
 
   .tdh-page .tdh-list-search {
@@ -1119,37 +1135,136 @@
     height: 12px;
   }
 
-  /* Studio / cơ sở: vẫn căn giữa nhẹ, nhưng không xếp foot dọc */
+  /* Studio / cơ sở: gọn + căn trái, đồng bộ với card trường (không căn giữa,
+     không xếp dọc) để 2 cột trên mobile nhìn nhất quán. */
+  .tdh-page .tdh-coso-cover {
+    height: 68px;
+  }
+
+  .tdh-page .tdh-coso-body {
+    padding: 6px 10px 10px;
+  }
+
   .tdh-page .tdh-coso-head {
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
+    flex-direction: row;
+    align-items: flex-start;
+    text-align: left;
     gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .tdh-page .tdh-coso-avatar {
+    width: 40px;
+    height: 40px;
+    margin-top: -22px;
+    border-radius: 10px;
+    border-width: 2px;
   }
 
   .tdh-page .tdh-coso-head-text {
-    width: 100%;
-    padding-top: 0;
+    width: auto;
+    padding-top: 2px;
   }
 
   .tdh-page .tdh-coso-title-block {
-    align-items: center;
+    align-items: flex-start;
+    gap: 1px;
+  }
+
+  .tdh-page .tdh-coso-name {
+    font-size: 12.5px;
+    line-height: 1.25;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Tiết kiệm chiều cao trên cột hẹp: ẩn tên phụ + badge loại (đã có kicker
+     trên cover) + mô tả dài. */
+  .tdh-page .tdh-coso-subtitle,
+  .tdh-page .tdh-coso-type,
+  .tdh-page .tdh-coso-desc {
+    display: none;
   }
 
   .tdh-page .tdh-coso-meta {
-    justify-content: center;
+    justify-content: flex-start;
+    gap: 6px;
+    margin-bottom: 8px;
   }
 
-  .tdh-page .tdh-coso-desc {
-    text-align: center;
+  .tdh-page .tdh-coso-loc {
+    font-size: 10px;
+  }
+
+  .tdh-page .tdh-coso-kicker {
+    top: 8px;
+    left: 8px;
+    padding: 3px 8px 3px 6px;
+    font-size: 9.5px;
+    gap: 4px;
+  }
+
+  .tdh-page .tdh-coso-kicker svg {
+    width: 11px;
+    height: 11px;
+  }
+
+  .tdh-page .tdh-coso-role-badge {
+    top: 8px;
+    right: 8px;
+    padding: 3px 8px;
+    font-size: 9.5px;
   }
 
   .tdh-page .tdh-coso-foot {
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
+    gap: 6px;
+    padding-top: 8px;
     text-align: left;
+  }
+
+  .tdh-page .tdh-coso-foot-label {
+    font-size: 11px;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .tdh-page .tdh-coso-foot-arrow {
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+  }
+
+  .tdh-page .tdh-coso-foot-arrow svg {
+    width: 14px;
+    height: 14px;
+  }
+}
+
+/* ── Điện thoại rất hẹp: giữ 2 cột nhưng thu gọn khoảng cách/viền ── */
+@media (max-width: 380px) {
+  .tdh-page .tdh-list {
+    --tdh-list-pad-x: 12px;
+  }
+
+  .tdh-page .tdh-list-grid {
+    gap: 8px;
+  }
+
+  .tdh-page .tdh-list-body {
+    padding-top: var(--space-6);
+  }
+
+  .tdh-page .tdh-card--listing .tdh-card-body,
+  .tdh-page .tdh-coso-body {
+    padding-left: 8px;
+    padding-right: 8px;
   }
 }
 

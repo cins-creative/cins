@@ -305,9 +305,25 @@ export function GuestHomeView({ data }: Props) {
                   return (
                     <li key={ev.id}>
                       <Link href={suKienCardPath(ev)} className="gh-event-card">
-                        <div className="gh-event-date">
-                          <span className="gh-event-day">{day}</span>
-                          <span className="gh-event-mon">{mon}</span>
+                        <div className="gh-event-banner">
+                          {ev.coverSrc ? (
+                            <Image
+                              src={ev.coverSrc}
+                              alt=""
+                              fill
+                              className="gh-event-cover-img"
+                              sizes="(max-width: 860px) 100vw, 860px"
+                              unoptimized={isCloudflareImage(ev.coverSrc)}
+                            />
+                          ) : (
+                            <div className="gh-event-banner-fallback">
+                              <Calendar size={32} aria-hidden />
+                            </div>
+                          )}
+                          <div className="gh-event-date">
+                            <span className="gh-event-day">{day}</span>
+                            <span className="gh-event-mon">{mon}</span>
+                          </div>
                         </div>
                         <div className="gh-event-body">
                           {ev.loaiLabel ? (
@@ -321,24 +337,6 @@ export function GuestHomeView({ data }: Props) {
                             </p>
                           ) : null}
                         </div>
-                        {ev.coverSrc ? (
-                          <div className="gh-event-cover">
-                            <Image
-                              src={ev.coverSrc}
-                              alt=""
-                              fill
-                              className="gh-event-cover-img"
-                              sizes="80px"
-                              unoptimized={isCloudflareImage(ev.coverSrc)}
-                            />
-                          </div>
-                        ) : (
-                          <Calendar
-                            size={20}
-                            className="gh-event-ico"
-                            aria-hidden
-                          />
-                        )}
                       </Link>
                     </li>
                   );
@@ -369,15 +367,15 @@ export function GuestHomeView({ data }: Props) {
                             alt=""
                             fill
                             className="gh-course-thumb-img"
-                            sizes="96px"
+                            sizes="(max-width: 700px) 100vw, 420px"
                             unoptimized={isCloudflareImage(course.thumbnailUrl)}
                           />
                         ) : course.orgAvatarUrl ? (
                           <Image
                             src={course.orgAvatarUrl}
                             alt=""
-                            width={40}
-                            height={40}
+                            width={48}
+                            height={48}
                             className="gh-course-org-ava"
                             unoptimized={isCloudflareImage(course.orgAvatarUrl)}
                           />
@@ -388,7 +386,6 @@ export function GuestHomeView({ data }: Props) {
                         <h3 className="gh-course-title">{course.ten}</h3>
                         <span className="gh-course-sub">{course.sub}</span>
                       </div>
-                      <ArrowRight size={16} className="gh-course-arrow" aria-hidden />
                     </Link>
                   </li>
                 ))}

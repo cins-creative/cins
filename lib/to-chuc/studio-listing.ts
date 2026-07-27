@@ -22,6 +22,8 @@ export type StudioListItem = {
   viewerVaiTro?: CoSoStaffVaiTro | null;
   /** Viewer đang theo dõi org (`user_theo_doi`). */
   viewerDangTheoDoi?: boolean;
+  /** Số bài đăng đã đăng (`org_bai_dang`) — hydrate ở listing để sort ưu tiên. */
+  baiDangCount?: number | null;
 };
 
 type RawStudio = {

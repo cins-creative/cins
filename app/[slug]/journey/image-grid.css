@@ -8,6 +8,18 @@
   --cins-img-slot-gap: 2px;
 }
 
+/* Bài viết dài (đọc/expand): permalink `.post-canvas`, modal, unfold
+   `.j-m-unfold-post` — đều là `.cins-post-view`. Mặc định gap ô ảnh = 0
+   (liền mạch) trừ khi block set `gap` custom (inline var đè lên).
+   Card timeline thu gọn KHÔNG phải `.cins-post-view` → vẫn giữ 2px. */
+.cins-post-view .image-grid,
+.cins-post-view .image-grid-row,
+.cins-post-view .image-grid-jrow,
+.cins-post-view .image-grid--masonry .image-grid-mcol,
+.cins-post-view .image-grid[data-count="3"] .image-grid-side {
+  --cins-img-slot-gap: 0px;
+}
+
 .image-grid {
   display: flex;
   gap: var(--cins-img-slot-gap);

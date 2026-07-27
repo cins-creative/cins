@@ -2162,7 +2162,9 @@
   position: relative;
 }
 .cins-editor-page {
-  --cins-img-slot-gap: 2px;
+  /* Mặc định gap giữa ô ảnh = 0 (liền mạch); user chỉnh riêng qua nút
+     gap-toggle (ImageLayoutBar) → lưu `block.gap` (2px / 4px). */
+  --cins-img-slot-gap: 0px;
 }
 .cins-editor-page .imgwrap {
   display: block;

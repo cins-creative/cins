@@ -1,0 +1,101 @@
+[
+  {
+    "id": "54e53c6b-453a-4b67-88e1-6c57492cbbbd",
+    "slug": "3d-art-visualization",
+    "ten": "3D Art & Visualization",
+    "ten_eng": "3D Art & Visualization",
+    "nhom": "Thiết kế thị giác",
+    "trang_thai": "active",
+    "thu_tu": 9
+  },
+  {
+    "id": "f7e2c6d8-5a67-4c34-9a88-424d0053f774",
+    "slug": "comic-truyen-tranh",
+    "ten": "Comic & Truyện tranh",
+    "ten_eng": "Comics & Manga",
+    "nhom": "Sản xuất & Giải trí",
+    "trang_thai": "active",
+    "thu_tu": 7
+  },
+  {
+    "id": "13106668-2bc1-41f3-8a9d-30816d083311",
+    "slug": "game",
+    "ten": "Game",
+    "ten_eng": "Game Development",
+    "nhom": "Sản xuất & Giải trí",
+    "trang_thai": "active",
+    "thu_tu": 3
+  },
+  {
+    "id": "2a571492-82fb-4b7a-87f7-2eb16786cc84",
+    "slug": "hoat-hinh",
+    "ten": "Hoạt hình",
+    "ten_eng": "Animation",
+    "nhom": "Sản xuất & Giải trí",
+    "trang_thai": "active",
+    "thu_tu": 1
+  },
+  {
+    "id": "2e5215e1-77e1-4ca0-8236-59610be7ff10",
+    "slug": "kien-truc-noi-that",
+    "ten": "Kiến trúc & Nội thất",
+    "ten_eng": "Architecture & Interior",
+    "nhom": "Thiết kế không gian & Sản phẩm",
+    "trang_thai": "active",
+    "thu_tu": 10
+  },
+  {
+    "id": "0903df1c-89fa-4ea8-87ff-e72a487f5d7b",
+    "slug": "minh-hoa",
+    "ten": "Minh họa",
+    "ten_eng": "Illustration",
+    "nhom": "Thiết kế thị giác",
+    "trang_thai": "active",
+    "thu_tu": 6
+  },
+  {
+    "id": "e4eeabc4-330a-4f10-bfdc-d82ed402618d",
+    "slug": "phim-dien-anh",
+    "ten": "Phim & Điện ảnh",
+    "ten_eng": "Film & Cinema",
+    "nhom": "Sản xuất & Giải trí",
+    "trang_thai": "active",
+    "thu_tu": 2
+  },
+  {
+    "id": "ea38204d-f622-4ff1-b94a-0aea49713383",
+    "slug": "thiet-ke-do-hoa",
+    "ten": "Thiết kế đồ họa",
+    "ten_eng": "Graphic Design",
+    "nhom": "Thiết kế thị giác",
+    "trang_thai": "active",
+    "thu_tu": 5
+  },
+  {
+    "id": "9a7f49ea-883f-4d88-96d9-472ba827f1cc",
+    "slug": "thiet-ke-thoi-trang",
+    "ten": "Thiết kế thời trang",
+    "ten_eng": "Fashion Design",
+    "nhom": "Thiết kế không gian & Sản phẩm",
+    "trang_thai": "active",
+    "thu_tu": 11
+  },
+  {
+    "id": "fed157ba-c5ca-4374-b291-81396255ddcd",
+    "slug": "ui-ux-design",
+    "ten": "UI/UX Design",
+    "ten_eng": "UI/UX Design",
+    "nhom": "Thiết kế thị giác",
+    "trang_thai": "active",
+    "thu_tu": 8
+  },
+  {
+    "id": "042a0565-f00b-433d-ab46-6b9f47aef134",
+    "slug": "vfx-motion-graphics",
+    "ten": "VFX & Motion Graphics",
+    "ten_eng": "VFX & Motion Graphics",
+    "nhom": "Sản xuất & Giải trí",
+    "trang_thai": "active",
+    "thu_tu": 4
+  }
+]
