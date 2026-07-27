@@ -64,4 +64,10 @@ Pack: `npm run pack:behance-ext` · `npm run pack:pixiv-ext`
 - `ANTHROPIC_API_KEY` (caption AI; thiếu → heuristic)
 - `NEXT_PUBLIC_SITE_URL` (`https://cins.vn` khi đăng prod) + `CINS_NOI_BO_DANG_BAI_SECRET`
 
+## Admin UI
+
+`/admin/tai-khoan-ai` (super_admin | admin) — Tổng quan · Nick · Nguồn · Hàng đợi · Duyệt · Đã đăng.
+
+API: `GET /api/admin/autopilot?view=` · `POST /api/admin/autopilot/action`
+
 Brief: `docs/cursor_brief_seed_autopilot_handoff.md`

@@ -30,6 +30,8 @@
 
 Tag niche: `nguon:artstation` / `nguon:behance` / `nguon:pixiv` / `nguon:truyen`. Router `chuan-bi-dang` chỉ gán mục cùng kênh.
 
+**Admin UI:** `/admin/tai-khoan-ai` — quản lý nick / nguồn / hàng đợi / duyệt / đăng (gate admin).
+
 Watchlist mẫu: `npm run autopilot -- them-nguon-mau` (nhiều artist, không chỉ WLOP).
 
 | # | Tên hiển thị | Slug | Email | `giai_doan` | Giới thiệu (đã set) | Kênh |

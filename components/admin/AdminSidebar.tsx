@@ -21,6 +21,7 @@ const NAV = [
   { href: "/admin/mon-thi", label: "Môn & khối thi", icon: "subject" },
   { section: "Users" },
   { href: "/admin/nguoi-dung", label: "Người dùng", icon: "users" },
+  { href: "/admin/tai-khoan-ai", label: "Tài khoản AI", icon: "bot" },
   { section: "Hệ thống" },
   { href: "/admin/linh-vuc", label: "Lĩnh vực", icon: "grid" },
   { href: "/admin/schema", label: "Schema DB", icon: "sql" },
@@ -111,6 +112,16 @@ function NavIcon({ name }: { name: string }) {
           <circle cx="9" cy="7" r="4" />
           <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
           <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+        </svg>
+      );
+    case "bot":
+      return (
+        <svg {...p}>
+          <rect x="3" y="11" width="18" height="10" rx="2" />
+          <circle cx="12" cy="5" r="2" />
+          <path d="M12 7v4" />
+          <line x1="8" y1="16" x2="8.01" y2="16" />
+          <line x1="16" y1="16" x2="16.01" y2="16" />
         </svg>
       );
     case "grid":

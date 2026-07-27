@@ -1,0 +1,244 @@
+button.admin-bai-viet-tab {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+}
+
+.tkai-flash {
+  margin: 0 0 var(--space-3);
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: var(--cins-blue-soft);
+  color: var(--cins-blue-dark);
+  font-size: 13px;
+}
+
+.tkai-flash--err {
+  background: #fde8e8;
+  color: #9b1c1c;
+}
+
+.tkai-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
+  margin-bottom: var(--space-4);
+}
+
+.tkai-stat {
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+}
+
+.tkai-stat__v {
+  font-size: 22px;
+  font-weight: var(--weight-bold);
+  font-family: var(--font-mono);
+  color: var(--fg-1);
+}
+
+.tkai-stat__l {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--fg-3);
+}
+
+.tkai-meta {
+  font-size: 13px;
+  color: var(--fg-2);
+  margin: 0 0 var(--space-3);
+}
+
+.tkai-kenh,
+.tkai-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: var(--space-4);
+  align-items: center;
+}
+
+.tkai-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--neutral-50);
+  border: 1px solid var(--border);
+  font-size: 11px;
+  font-weight: var(--weight-semibold);
+  color: var(--fg-2);
+}
+
+.tkai-chip.is-ok {
+  background: #e8f7ef;
+  color: #0a7a3e;
+  border-color: #b7e4c7;
+}
+
+.tkai-chip--warn {
+  background: #fff4e5;
+  color: #9a5b00;
+  border-color: #f0d2a0;
+}
+
+.tkai-flow {
+  margin: 0;
+  padding-left: 1.2rem;
+  font-size: 13px;
+  color: var(--fg-2);
+  line-height: 1.55;
+}
+
+.tkai-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: var(--space-4);
+  align-items: center;
+}
+
+.tkai-form input,
+.tkai-form select,
+.tkai-input-sm {
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: 13px;
+  background: var(--bg-surface);
+  color: var(--fg-1);
+  min-width: 0;
+}
+
+.tkai-form input {
+  flex: 1 1 180px;
+}
+
+.tkai-input-sm {
+  width: 64px;
+}
+
+.tkai-toggle.is-on {
+  color: #0a7a3e;
+  font-weight: var(--weight-bold);
+}
+
+.tkai-muted {
+  color: var(--fg-3);
+  font-size: 12px;
+}
+
+.tkai-thumb {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 6px;
+  background: var(--neutral-50);
+}
+
+.tkai-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.tkai-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  overflow: hidden;
+}
+
+.tkai-card__check {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 1;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 4px;
+  padding: 2px;
+}
+
+.tkai-card__img {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  background: var(--neutral-50);
+}
+
+.tkai-card__img--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: var(--fg-3);
+}
+
+.tkai-card__body {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tkai-card__body h3 {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.tkai-card__body p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--fg-2);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.tkai-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.tkai-attr {
+  margin-top: 4px !important;
+  -webkit-line-clamp: 2 !important;
+}
+
+.tkai-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--fg-2);
+}
+
+.tkai-spin {
+  animation: tkai-spin 0.8s linear infinite;
+  display: inline-block;
+  vertical-align: -2px;
+  margin-right: 6px;
+}
+
+@keyframes tkai-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.tkai-body .admin-table a {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
