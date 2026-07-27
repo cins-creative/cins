@@ -1,10 +1,10 @@
 import type { MetadataRoute } from "next";
 
 import {
-  CO_SO_DAO_TAO_HUB_PATH,
   NGANH_HOC_HUB_PATH,
   NGHE_NGHIEP_HUB_PATH,
   TIM_KHOA_HOC_HUB_PATH,
+  TO_CHUC_HUB_PATH,
 } from "@/lib/cins/hubPaths";
 import { listPublishedArticlesForSitemap } from "@/lib/seo/sitemap-articles";
 import { seoAbsoluteUrl, seoSiteOrigin } from "@/lib/seo/site";
@@ -17,7 +17,7 @@ const STATIC_HUBS: ReadonlyArray<{
   { path: "/", changeFrequency: "daily", priority: 1 },
   { path: NGHE_NGHIEP_HUB_PATH, changeFrequency: "weekly", priority: 0.9 },
   { path: NGANH_HOC_HUB_PATH, changeFrequency: "weekly", priority: 0.9 },
-  { path: CO_SO_DAO_TAO_HUB_PATH, changeFrequency: "weekly", priority: 0.8 },
+  { path: TO_CHUC_HUB_PATH, changeFrequency: "weekly", priority: 0.8 },
   { path: TIM_KHOA_HOC_HUB_PATH, changeFrequency: "weekly", priority: 0.8 },
   { path: "/ho-tro", changeFrequency: "monthly", priority: 0.4 },
   { path: "/ho-tro/huong-dan", changeFrequency: "weekly", priority: 0.45 },

@@ -38,6 +38,13 @@
 
 ## LOG — quyết định đã chốt
 
+### Gộp hub tổ chức về `/to-chuc` — theo pha (2026-07-27)
+
+- **Chốt (Phase 1 — đã ship):** listing tổ chức gộp về **`/to-chuc`** (trước là `/co-so-dao-tao` gộp trường+cơ sở, và `/studio` riêng). Thêm tab **Studio** vào bộ lọc (Tất cả / Trường ĐH / Cơ sở đào tạo / Studio + chip "Tổ chức của tôi"). Redirect **308** exact: `/co-so-dao-tao`, `/studio`, `/truong-dai-hoc` → `/to-chuc` (không đụng `/:slug` detail).
+- **Không đổi trang chi tiết ở Phase 1:** card vẫn trỏ URL cũ (`/co-so-dao-tao/{slug}`, `/co-so/{slug}`, `/studio/{slug}`). Tách constant `TO_CHUC_HUB_PATH` cho listing/nav; giữ `CO_SO_DAO_TAO_HUB_PATH` làm base của `truongRootPath`.
+- **`doanh_nghiep` ẩn khỏi hub** (đúng luật ẩn UI) — chỉ hiện `studio`; vẫn vào được qua URL trực tiếp.
+- **Phase 2 (chưa làm):** đổi trang chi tiết sang **`/to-chuc/{loại}/{slug}`** với quy ước ngắn `dai-hoc` / `co-so` / `studio` (doanh_nghiep gộp studio); khi đó mới sửa `truongRootPath`/`coSoRootPath`/`studioRootPath`, `orgPublicHref`, middleware tab-redirect, `orgSlugFromPromoHref` (parser 3 đoạn), OG/canonical/link-preview detail.
+
 ### Hẹn đăng bài cá nhân / cộng đồng — `tao_luc` tương lai, không ALTER (2026-07-27)
 
 - **Chốt:** reuse nút compose org; lưu giờ hẹn bằng `content_cot_moc.tao_luc` (không thêm `trang_thai` như `org_bai_dang`).

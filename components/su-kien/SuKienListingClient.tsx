@@ -419,9 +419,7 @@ export function SuKienListingClient({
 
       <p className="sk-list-foot">
         Sự kiện do tổ chức đăng trên trang của họ.{" "}
-        <Link href="/co-so-dao-tao">Khám phá cơ sở đào tạo</Link>
-        {" · "}
-        <Link href="/studio">Studio & doanh nghiệp</Link>
+        <Link href="/to-chuc">Khám phá tổ chức</Link>
       </p>
       </div>
       </div>

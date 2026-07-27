@@ -115,7 +115,7 @@ export async function GoiYStudioModule({ ctx }: { ctx: HomeModuleCtx }) {
     <ModuleCard
       icon={Building2}
       title="Studio & doanh nghiệp"
-      moreHref="/studio"
+      moreHref="/to-chuc"
       className="ha-card--studio"
     >
       <div className="ha-studio-list">

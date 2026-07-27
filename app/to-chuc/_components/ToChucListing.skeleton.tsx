@@ -1,6 +1,10 @@
-export function TruongListingSkeleton() {
+export function ToChucListingSkeleton() {
   return (
-    <div className="tdh-page" aria-busy="true" aria-label="Đang tải danh sách trường">
+    <div
+      className="tdh-page"
+      aria-busy="true"
+      aria-label="Đang tải danh sách tổ chức"
+    >
       <div className="tdh-list">
         <div className="tdh-list-stats">
           <div className="tdh-list-stats-grid">

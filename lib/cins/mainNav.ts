@@ -1,10 +1,11 @@
 import {
-  CO_SO_DAO_TAO_HUB_PATH,
   isCoSoDaoTaoHubPath,
   isNgheNghiepHubPath,
   isTimKhoaHocHubPath,
+  isToChucHubPath,
   NGHE_NGHIEP_HUB_PATH,
   TIM_KHOA_HOC_HUB_PATH,
+  TO_CHUC_HUB_PATH,
 } from "@/lib/cins/hubPaths";
 
 export type MainNavIcon =
@@ -28,6 +29,7 @@ export type OrgFlyoutKind = "org" | "community";
 
 function isToChucNavPath(pathname: string): boolean {
   return (
+    isToChucHubPath(pathname) ||
     isCoSoDaoTaoHubPath(pathname) ||
     pathname === "/studio" ||
     pathname.startsWith("/studio/") ||
@@ -82,7 +84,7 @@ export const MAIN_NAV_ITEMS: MainNavItem[] = [
   },
   {
     id: "org",
-    href: CO_SO_DAO_TAO_HUB_PATH,
+    href: TO_CHUC_HUB_PATH,
     label: "Tổ chức",
     tip: "Cơ sở đào tạo, trường đại học, studio và doanh nghiệp — tổ chức bạn quản lý và khám phá trên CINs",
     icon: "business",

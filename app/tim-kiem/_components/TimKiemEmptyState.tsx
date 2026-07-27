@@ -2,9 +2,9 @@ import Link from "next/link";
 import { Compass, SearchX } from "lucide-react";
 
 import {
-  CO_SO_DAO_TAO_HUB_PATH,
   NGANH_HOC_HUB_PATH,
   NGHE_NGHIEP_HUB_PATH,
+  TO_CHUC_HUB_PATH,
 } from "@/lib/cins/hubPaths";
 
 export function TimKiemEmptyState({ hasQuery }: { hasQuery: boolean }) {
@@ -41,7 +41,7 @@ export function TimKiemEmptyState({ hasQuery }: { hasQuery: boolean }) {
           <Link href={NGANH_HOC_HUB_PATH}>Ngành học</Link>
         </li>
         <li>
-          <Link href={CO_SO_DAO_TAO_HUB_PATH}>Tổ chức giáo dục</Link>
+          <Link href={TO_CHUC_HUB_PATH}>Tổ chức</Link>
         </li>
         <li>
           <Link href="/cong-dong">Cộng đồng</Link>

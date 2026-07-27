@@ -14,7 +14,7 @@ import {
 
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
-export const alt = "Studio & doanh nghiệp ngành sáng tạo trên CINs";
+export const alt = "Tổ chức ngành sáng tạo tại Việt Nam trên CINs";
 
 function siteOrigin(): string {
   return getConfiguredSiteOrigin() ?? "https://cins.vn";
@@ -48,17 +48,17 @@ export default async function Image() {
               gap: 20,
             }}
           >
-            <OgEyebrow label="Studio & Doanh nghiệp" />
+            <OgEyebrow label="Tổ chức" />
             <div
               style={{
-                fontSize: 60,
+                fontSize: 62,
                 fontWeight: 800,
                 color: OG_INK,
                 lineHeight: 1.02,
                 letterSpacing: "-0.025em",
               }}
             >
-              Studio ngành sáng tạo
+              Trường, cơ sở đào tạo & studio
             </div>
             <div
               style={{
@@ -69,8 +69,8 @@ export default async function Image() {
                 maxWidth: 620,
               }}
             >
-              Khám phá đội ngũ, dự án và cơ hội hợp tác từ studio, agency và doanh
-              nghiệp ngành sáng tạo tại Việt Nam.
+              Khám phá trường đại học, cơ sở đào tạo và studio ngành sáng tạo
+              tại Việt Nam trên CINs.
             </div>
           </div>
 
@@ -81,7 +81,7 @@ export default async function Image() {
               justifyContent: "space-between",
             }}
           >
-            <OgUrlPill>cins.vn/studio</OgUrlPill>
+            <OgUrlPill>cins.vn/to-chuc</OgUrlPill>
             <span style={{ fontSize: 16, color: OG_MUTED, fontWeight: 600 }}>
               Ngành sáng tạo thị giác
             </span>

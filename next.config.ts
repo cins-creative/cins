@@ -16,6 +16,22 @@ function pickEnv(...keys: string[]): string {
 const nextConfig: NextConfig = {
   async redirects() {
     return [
+      /* Hub tổ chức gộp về /to-chuc — chỉ khớp path listing (exact), không đụng /:slug detail. */
+      {
+        source: "/co-so-dao-tao",
+        destination: "/to-chuc",
+        permanent: true,
+      },
+      {
+        source: "/studio",
+        destination: "/to-chuc",
+        permanent: true,
+      },
+      {
+        source: "/truong-dai-hoc",
+        destination: "/to-chuc",
+        permanent: true,
+      },
       {
         source: "/dieu-khoan",
         destination: "/termandservice",

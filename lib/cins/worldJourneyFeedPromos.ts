@@ -177,7 +177,7 @@ function mapCourses(
   return {
     kind: "courses",
     title,
-    moreHref: "/co-so-dao-tao",
+    moreHref: "/to-chuc",
     items: courses.map((k) => ({
       id: k.id,
       title: k.ten,
@@ -278,7 +278,7 @@ export async function loadFeedInlinePromos(
     people: mapPeople(people) ?? undefined,
     events: events ?? undefined,
     studios:
-      mapOrgs(studios, "studios", "Studio gợi ý", "/studio", "studio") ??
+      mapOrgs(studios, "studios", "Studio gợi ý", "/to-chuc", "studio") ??
       undefined,
     courses: mapCourses(courses, "Khóa học gợi ý") ?? undefined,
     schools:
@@ -286,7 +286,7 @@ export async function loadFeedInlinePromos(
         schools,
         "schools",
         "Cơ sở đào tạo",
-        "/co-so-dao-tao",
+        "/to-chuc",
         "co_so_dao_tao",
       ) ?? undefined,
   };

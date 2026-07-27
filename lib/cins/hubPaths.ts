@@ -1,8 +1,11 @@
 /** Hub khám phá nghề — URL canonical. */
 export const NGHE_NGHIEP_HUB_PATH = "/nghe-nghiep";
 
-/** Hub trường / cơ sở đào tạo — URL canonical. */
+/** Hub trường / cơ sở đào tạo — base route của trang chi tiết trường (giữ cho `truongRootPath`). */
 export const CO_SO_DAO_TAO_HUB_PATH = "/co-so-dao-tao";
+
+/** Hub tổ chức gộp (trường ĐH + cơ sở đào tạo + studio) — URL listing canonical. */
+export const TO_CHUC_HUB_PATH = "/to-chuc";
 
 /** Hub tìm khóa học — URL canonical. */
 export const TIM_KHOA_HOC_HUB_PATH = "/tim-khoa-hoc";
@@ -29,6 +32,13 @@ export function isCoSoDaoTaoHubPath(pathname: string): boolean {
     pathname.startsWith(`${CO_SO_DAO_TAO_HUB_PATH}/`) ||
     pathname === "/truong-dai-hoc" ||
     pathname.startsWith("/truong-dai-hoc/")
+  );
+}
+
+export function isToChucHubPath(pathname: string): boolean {
+  return (
+    pathname === TO_CHUC_HUB_PATH ||
+    pathname.startsWith(`${TO_CHUC_HUB_PATH}/`)
   );
 }
 

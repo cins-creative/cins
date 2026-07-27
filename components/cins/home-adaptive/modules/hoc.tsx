@@ -54,7 +54,7 @@ export async function DuongToiDoModule({ ctx }: { ctx: HomeModuleCtx }) {
 
   if (suggested.length > 0) {
     return (
-      <ModuleCard icon={GraduationCap} title="Cơ sở đào tạo" moreHref="/co-so-dao-tao">
+      <ModuleCard icon={GraduationCap} title="Cơ sở đào tạo" moreHref="/to-chuc">
         {suggested.map((o) => (
           <HaOrgSuggestionRow key={o.id} org={o} />
         ))}
@@ -66,7 +66,7 @@ export async function DuongToiDoModule({ ctx }: { ctx: HomeModuleCtx }) {
   if (schools.length === 0) return null;
 
   return (
-    <ModuleCard icon={GraduationCap} title="Cơ sở đào tạo" moreHref="/co-so-dao-tao">
+    <ModuleCard icon={GraduationCap} title="Cơ sở đào tạo" moreHref="/to-chuc">
       {schools.map((s) => (
         <Link
           key={s.id}

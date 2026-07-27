@@ -109,9 +109,9 @@ export function WorldJourneyGuestLeftAside({
           ))}
         </div>
         <div className="wj-guest-cat-links">
-          <Link href="/co-so-dao-tao" className="wj-guest-cat-link" prefetch={false}>
+          <Link href="/to-chuc" className="wj-guest-cat-link" prefetch={false}>
             <Building2 size={17} strokeWidth={2} aria-hidden />
-            Trường đào tạo
+            Tổ chức
             <ArrowRight size={15} strokeWidth={2} className="wj-guest-cat-arr" aria-hidden />
           </Link>
           <Link href={NGHE_NGHIEP_HUB_PATH} className="wj-guest-cat-link" prefetch={false}>

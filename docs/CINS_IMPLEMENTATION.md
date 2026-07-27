@@ -416,7 +416,8 @@ Code map: `lib/journey/images.ts` (role `gallery-grid` → `grid` + `srcset` `gr
 |---|---|
 | Route trường | `/truong-dai-hoc/[slug]` — layout v6 (`tdh-page--v6`) |
 | Route Journey | `/{slug}` timeline · `/{slug}/p/{postSlug}` bài viết · `/{slug}/p/new` tạo (cần login) |
-| Hub công khai | `/`, `/nganh-hoc`, `/nghe-nghiep`, `/truong-dai-hoc`, `/bai-viet`, … |
+| Hub công khai | `/`, `/nganh-hoc`, `/nghe-nghiep`, `/to-chuc`, `/bai-viet`, … |
+| **Hub tổ chức `/to-chuc` (Phase 1)** | Listing gộp trường ĐH + cơ sở đào tạo + studio (`app/to-chuc/`, `ToChucListingClient` — tab Tất cả / Trường ĐH / Cơ sở đào tạo / Studio + chip "Tổ chức của tôi", render dual card). `doanh_nghiep` ẩn. Redirect 308 (`next.config.ts`): `/co-so-dao-tao`·`/studio`·`/truong-dai-hoc` → `/to-chuc` (exact). Constant `TO_CHUC_HUB_PATH`; **trang chi tiết giữ URL cũ** (Phase 2 mới đổi `/to-chuc/{loại}/{slug}` — xem DECISIONS 2026-07-27). |
 | **SEO public** | `app/robots.ts` · `app/sitemap.ts` (hubs + `article_bai_viet` published via `articlePublicHref`). Helper `lib/seo/*` + `buildPublicPageMetadata`. Nghề: Occupation + Breadcrumb JSON-LD; hub `?q=` → `noindex`. Audit: `node scripts/audit-nghe-seo.mjs` → `scripts/nghe-content/_audit-seo-report.json`. |
 | **Trang chủ (đã login)** | `/` → `HomeWorldJourneyMain` — layout 3 cột adaptive (`components/cins/home-adaptive/`), feed giữa `WorldJourneyFeed` (tab Đang theo dõi / Khám phá). Persona từ `giai_doan`. Brief: `cursor_brief_trang_chu_adaptive.md`. |
 | **Cộng đồng** | `/cong-dong` (listing) · `/cong-dong/tao` · `/cong-dong/[slug]` (feed v4) · `/cong-dong/[slug]/su-kien/[suKienId]` (chi tiết/quản lý sự kiện trong shell) · … |

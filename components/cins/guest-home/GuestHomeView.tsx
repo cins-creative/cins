@@ -12,11 +12,11 @@ import {
 import { GuestHomeSchoolCard } from "@/components/cins/guest-home/GuestHomeSchoolCard";
 import { GuestHomeLoginPanel } from "@/components/cins/home-v2/GuestHomeLoginPanel";
 import {
-  CO_SO_DAO_TAO_HUB_PATH,
   NGANH_HOC_HUB_PATH,
   NGHE_NGHIEP_HUB_PATH,
   ngheNghiepDetailHref,
   TIM_KHOA_HOC_HUB_PATH,
+  TO_CHUC_HUB_PATH,
 } from "@/lib/cins/hubPaths";
 import type { GuestHomeData } from "@/lib/cins/guest-home/loadGuestHomeData";
 import { coSoKhoaHocDetailPath } from "@/lib/to-chuc/co-so-routes";
@@ -207,7 +207,7 @@ export function GuestHomeView({ data }: Props) {
               <SectionHead
                 eyebrow="trường đại học"
                 title="Cơ sở đào tạo nổi bật"
-                href={CO_SO_DAO_TAO_HUB_PATH}
+                href={TO_CHUC_HUB_PATH}
                 linkLabel="Xem danh sách"
               />
               <ul className="gh-school-grid" id="gh-schools">
