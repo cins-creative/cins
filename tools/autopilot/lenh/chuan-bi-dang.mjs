@@ -39,9 +39,10 @@ function chonNick(muc, nicks, roundRobinIdx) {
 }
 
 /**
- * Ghép auto_muc (moi) → auto_ban_thao (san_sang) theo niche nick + AI caption.
+ * Ghép auto_muc (moi) → auto_ban_thao theo niche nick + AI caption.
+ * Mặc định trang_thai = cho_duyet (duyệt tay trước khi đăng).
  *
- * Flags: --gioi-han N · --chi-xem · --slug <nick> · --khong-ai
+ * Flags: --gioi-han N · --chi-xem · --slug <nick> · --khong-ai · --san-sang
  */
 export async function chayChuanBiDang(db, flags = {}) {
   const gioiHan = Math.min(
@@ -50,6 +51,9 @@ export async function chayChuanBiDang(db, flags = {}) {
   );
   const chiXem = Boolean(flags.chiXem || flags["chi-xem"]);
   const khongAi = Boolean(flags.khongAi || flags["khong-ai"]);
+  /** Bỏ qua duyệt tay — chỉ dùng khi cố ý auto full. */
+  const boDuyet = Boolean(flags.sanSang || flags["san-sang"]);
+  const trangThaiBanThao = boDuyet ? "san_sang" : "cho_duyet";
   const slugFilter = String(flags.slug || "")
     .trim()
     .toLowerCase();
@@ -113,6 +117,10 @@ export async function chayChuanBiDang(db, flags = {}) {
         ? "Soạn caption: Claude"
         : "Soạn caption: heuristic (thiếu ANTHROPIC_API_KEY)",
   );
+  console.log(
+    `Trạng thái bản thảo: ${trangThaiBanThao}` +
+      (boDuyet ? " (--san-sang, bỏ duyệt tay)" : " (cần duyet-ban-thao)"),
+  );
 
   let rr = 0;
   let tao = 0;
@@ -160,7 +168,7 @@ export async function chayChuanBiDang(db, flags = {}) {
         mo_ta: soan.moTa,
         dong_ghi_nguon: dongGhiNguon,
         blocks: null,
-        trang_thai: "san_sang",
+        trang_thai: trangThaiBanThao,
       })
       .select("id")
       .single();
@@ -173,7 +181,7 @@ export async function chayChuanBiDang(db, flags = {}) {
     const { error: upErr } = await db
       .from("auto_muc")
       .update({
-        trang_thai: "san_sang",
+        trang_thai: trangThaiBanThao,
         cap_nhat_luc: new Date().toISOString(),
       })
       .eq("id", muc.id);
@@ -187,8 +195,8 @@ export async function chayChuanBiDang(db, flags = {}) {
 
   console.log(
     chiXem
-      ? `\n[chi-xem] sẽ tạo ~${hangDoi.length} bản thảo (AI thử: ${dungAi})`
-      : `\nĐã tạo ${tao} bản thảo san_sang (Claude: ${dungAi}).`,
+      ? `\n[chi-xem] sẽ tạo ~${hangDoi.length} bản thảo ${trangThaiBanThao} (AI thử: ${dungAi})`
+      : `\nĐã tạo ${tao} bản thảo ${trangThaiBanThao} (Claude: ${dungAi}).`,
   );
-  return { tao: chiXem ? 0 : tao, xem: hangDoi.length, dungAi };
+  return { tao: chiXem ? 0 : tao, xem: hangDoi.length, dungAi, trangThaiBanThao };
 }

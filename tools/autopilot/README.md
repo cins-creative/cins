@@ -25,7 +25,8 @@ npm run autopilot -- quet-nguon --nen-tang artstation --gioi-han 30
 npm run autopilot -- liet-ke muc
 npm run autopilot -- nhap-muc --url 'https://www.behance.net/gallery/…' --tieu-de '…' --tac-gia '…'
 npm run autopilot -- chuan-bi-dang --gioi-han 30
-npm run autopilot -- chuan-bi-dang --khong-ai   # bỏ Claude
+npm run autopilot -- duyet-ban-thao --chi-xem   # xem hàng chờ duyệt
+npm run autopilot -- duyet-ban-thao --gioi-han 10
 npm run autopilot -- chay-dang
 npm run autopilot -- liet-ke ban-thao
 ```
@@ -37,11 +38,12 @@ npm run autopilot -- liet-ke ban-thao
 | ArtStation | RSS `/{user}.rss` qua `SINE_ART_WORKER_*` → `quet-nguon` |
 | Behance | Chrome extension `extensions/cins-behance-import` → `POST /api/noi-bo/auto/muc` (CF chặn server-side) |
 
-## Đăng
+## Đăng (duyệt tay)
 
-1. `chuan-bi-dang` — AI caption (Claude) + ghép niche → `auto_ban_thao` `san_sang`
-2. `chay-dang` — gọi API đăng nội bộ, hạn 3 bài/nick/ngày (VN)
-3. GitHub Actions: `autopilot-chay-dang.yml`
+1. `chuan-bi-dang` — AI caption → `cho_duyet`
+2. `duyet-ban-thao` — bạn duyệt → `san_sang`
+3. `chay-dang` — đăng + cover từ `anh_bia_url` (ArtStation RSS)
+4. Actions cron chỉ soạn + đăng bài đã duyệt (không tự `duyet`)
 
 ## Env
 

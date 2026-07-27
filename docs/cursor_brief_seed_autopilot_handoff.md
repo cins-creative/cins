@@ -159,14 +159,13 @@ npm run autopilot -- liet-ke ban-thao
 
 | Bước | Việc |
 |---|---|
-| `chuan-bi-dang` | `auto_muc` (`moi`) → AI/heuristic caption → `auto_ban_thao` (`san_sang`); ghép nick theo overlap `niche`; attribution template (không AI) |
-| `chay-dang` | Gọi `POST /api/noi-bo/tac-pham/dang`; tôn trọng `auto_han_muc` (ngày `Asia/Ho_Chi_Minh`, mặc định 3/nick); ghi `auto_da_dang` |
+| `chuan-bi-dang` | `auto_muc` (`moi`) → AI caption → `auto_ban_thao` **`cho_duyet`** (mặc định); `--san-sang` bỏ duyệt |
+| `duyet-ban-thao` | `cho_duyet` → `san_sang` (duyệt tay trước khi đăng) |
+| `chay-dang` | Chỉ `san_sang` → API đăng; gửi `anhBiaUrl` từ `auto_muc.anh_bia_url` làm cover CF; hạn mức/ngày VN |
 
-Cron: `.github/workflows/autopilot-chay-dang.yml` (01/07/13 UTC) — secrets: site (`https://cins.vn`) + Supabase + `CINS_NOI_BO_DANG_BAI_SECRET` + `ANTHROPIC_API_KEY` (tuỳ chọn).
+Cron: `.github/workflows/autopilot-chay-dang.yml` — soạn `cho_duyet` + chỉ đăng bài đã duyệt `san_sang`.
 
-**Cloudflare Worker `cins`:** bắt buộc có `CINS_NOI_BO_DANG_BAI_SECRET` (Variables and Secrets) — `wrangler secret list` phải thấy tên này sau khi thêm.
-
-Chưa có bước duyệt tay bắt buộc (`cho_duyet`) — có thể bật sau.
+**Ảnh:** ArtStation không phải Tier-1 iframe; cover lấy từ `anh_bia_url` (RSS) → upload CF. Không có `anh_bia_url` → nền chữ màu (như bản thử trước).
 
 ---
 

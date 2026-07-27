@@ -9,7 +9,8 @@
  *   npm run autopilot -- them-nguon --nen-tang artstation --url https://…
  *   npm run autopilot -- quet-nguon [--nen-tang artstation] [--gioi-han 30] [--chi-xem]
  *   npm run autopilot -- nhap-muc --url https://… [--tieu-de] [--tac-gia] [--nen-tang]
- *   npm run autopilot -- chuan-bi-dang [--gioi-han 30] [--chi-xem] [--slug nick] [--khong-ai]
+ *   npm run autopilot -- chuan-bi-dang [--gioi-han 30] [--chi-xem] [--slug nick] [--khong-ai] [--san-sang]
+ *   npm run autopilot -- duyet-ban-thao [--gioi-han 20] [--slug nick] [--tat-ca] [--chi-xem]
  *   npm run autopilot -- chay-dang [--gioi-han 30] [--chi-xem] [--slug nick]
  *   npm run autopilot -- tao-viec --loai quet_nguon
  */
@@ -18,6 +19,7 @@ import { taoClientAutopilot } from "./lib/db.mjs";
 import { chayDang } from "./lenh/chay-dang.mjs";
 import { chayChuanBiDang } from "./lenh/chuan-bi-dang.mjs";
 import { chayDongBoNick } from "./lenh/dong-bo-nick.mjs";
+import { chayDuyetBanThao } from "./lenh/duyet-ban-thao.mjs";
 import { chayLietKe } from "./lenh/liet-ke.mjs";
 import { chayNhapMuc } from "./lenh/nhap-muc.mjs";
 import { chayQuetNguon } from "./lenh/quet-nguon.mjs";
@@ -35,17 +37,19 @@ Lệnh:
   them-nguon --nen-tang <t> --url <u> [--ma-ngoai] [--ten] [--niche]
   quet-nguon [--nen-tang artstation|behance] [--id UUID] [--gioi-han N] [--chi-xem]
   nhap-muc --url <u> [--nen-tang] [--tieu-de] [--tac-gia] [--mo-ta] [--anh-bia]
-  chuan-bi-dang [--gioi-han N] [--chi-xem] [--slug nick] [--khong-ai]
+  chuan-bi-dang [--gioi-han N] [--chi-xem] [--slug nick] [--khong-ai] [--san-sang]
+  duyet-ban-thao [--gioi-han N] [--slug nick] [--tat-ca] [--id UUID] [--chi-xem]
   chay-dang [--gioi-han N] [--chi-xem] [--slug nick]
   tao-viec --loai <loai> [--payload JSON]
 
 ArtStation: RSS qua fetch-worker (quet-nguon).
 Behance: Chrome extension extensions/cins-behance-import → POST /api/noi-bo/auto/muc
 
-Luồng đăng:
-  chuan-bi-dang  → AI caption + ghép niche → auto_ban_thao san_sang
-  chay-dang      → POST /api/noi-bo/tac-pham/dang (hạn mức/ngày VN)
-  Env AI: ANTHROPIC_API_KEY (fallback heuristic nếu thiếu / --khong-ai)
+Luồng đăng (duyệt tay mặc định):
+  chuan-bi-dang   → AI caption → auto_ban_thao cho_duyet
+  duyet-ban-thao  → cho_duyet → san_sang
+  chay-dang       → POST API (cover từ anh_bia_url) + hạn mức/ngày VN
+  --san-sang trên chuan-bi-dang = bỏ bước duyệt (không khuyến nghị)
 
 Migration:
   npm run migrate:autopilot
@@ -114,6 +118,9 @@ async function main() {
       break;
     case "chuan-bi-dang":
       await chayChuanBiDang(db, f);
+      break;
+    case "duyet-ban-thao":
+      await chayDuyetBanThao(db, f);
       break;
     case "chay-dang":
       await chayDang(db, f);
