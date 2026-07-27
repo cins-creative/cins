@@ -3,17 +3,17 @@
  *   3 ArtStation · 3 Behance · 3 Pixiv · 1 truyện tranh
  */
 
-/** @typedef {'artstation'|'behance'|'pixiv'|'truyen'} KenhNguon */
+export type KenhNguon = "artstation" | "behance" | "pixiv" | "truyen";
 
-/** @type {Array<{
- *   slug: string,
- *   kenh: KenhNguon,
- *   niche: string[],
- *   ghiChu: string,
- *   dangBat?: boolean,
- * }>} */
-export const NICK_SEED = [
-  /* —— 3 ArtStation —— */
+export type NickSeedDef = {
+  slug: string;
+  kenh: KenhNguon;
+  niche: string[];
+  ghiChu: string;
+  dangBat?: boolean;
+};
+
+export const NICK_SEED: NickSeedDef[] = [
   {
     slug: "kiritominh",
     kenh: "artstation",
@@ -32,7 +32,6 @@ export const NICK_SEED = [
     niche: ["weapon", "armor", "concept", "silhouette"],
     ghiChu: "ArtStation · weapon / armor concept",
   },
-  /* —— 3 Behance —— */
   {
     slug: "yukitrang",
     kenh: "behance",
@@ -51,7 +50,6 @@ export const NICK_SEED = [
     niche: ["character-design", "portfolio"],
     ghiChu: "Behance · character design / portfolio",
   },
-  /* —— 3 Pixiv —— */
   {
     slug: "itachihung",
     kenh: "pixiv",
@@ -70,7 +68,6 @@ export const NICK_SEED = [
     niche: ["webtoon", "color", "warm-palette", "illustration"],
     ghiChu: "Pixiv · color / warm illustration",
   },
-  /* —— 1 truyện tranh —— */
   {
     slug: "zorobao",
     kenh: "truyen",
@@ -80,16 +77,16 @@ export const NICK_SEED = [
   },
 ];
 
-export function nicheVoiKenh(nick) {
+export function nicheVoiKenh(nick: NickSeedDef): string[] {
   const tag = `nguon:${nick.kenh}`;
   const base = (nick.niche || []).filter((t) => !String(t).startsWith("nguon:"));
   return [tag, ...base];
 }
 
-export function kenhTuNiche(nicheArr) {
+export function kenhTuNiche(nicheArr: string[] | null | undefined): KenhNguon | null {
   for (const t of nicheArr || []) {
     const m = String(t).match(/^nguon:(artstation|behance|pixiv|truyen)$/);
-    if (m) return m[1];
+    if (m) return m[1] as KenhNguon;
   }
   return null;
 }

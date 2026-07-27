@@ -23,11 +23,14 @@
 
 | Kênh | Nick | Việc |
 |---|---|---|
-| **ArtStation** (4) | `kiritominh` · `hinatavy` · `levikhoa` · `itachihung` | Curator tranh AS |
-| **Behance** (4) | `yukitrang` · `sakuralinh` · `remnhi` · `mikungoc` | Curator Behance (extension) |
-| **Truyện** (2) | `zorobao` · `nezukochi` | **Chờ brief** — Autopilot `dang_bat=false` |
+| **ArtStation** (3) | `kiritominh` · `hinatavy` · `levikhoa` | Curator tranh AS |
+| **Behance** (3) | `yukitrang` · `sakuralinh` · `remnhi` | Curator Behance (extension) |
+| **Pixiv** (3) | `itachihung` · `mikungoc` · `nezukochi` | Curator Pixiv (extension) |
+| **Truyện** (1) | `zorobao` | **Chờ brief** — Autopilot `dang_bat=false` |
 
-Tag niche: `nguon:artstation` / `nguon:behance` / `nguon:truyen`. Router `chuan-bi-dang` chỉ gán mục cùng kênh.
+Tag niche: `nguon:artstation` / `nguon:behance` / `nguon:pixiv` / `nguon:truyen`. Router `chuan-bi-dang` chỉ gán mục cùng kênh.
+
+**Admin UI:** `/admin/tai-khoan-ai` — quản lý nick / nguồn / hàng đợi / duyệt / đăng (gate admin).
 
 Watchlist mẫu: `npm run autopilot -- them-nguon-mau` (nhiều artist, không chỉ WLOP).
 
@@ -37,12 +40,12 @@ Watchlist mẫu: `npm run autopilot -- them-nguon-mau` (nhiều artist, không c
 | 2 | Hinata Vy | `hinatavy` | hinatavy@cins.vn | dang_hoc | Digital painting, ánh sáng chiều; fan slice of life | ArtStation |
 | 3 | Yuki Trang | `yukitrang` | yukitrang@cins.vn | dang_lam | 2D animator studio nhỏ; cut-out + frame-by-frame | Behance |
 | 4 | Levi Khoa | `levikhoa` | levikhoa@cins.vn | dang_lam | Concept vũ khí/giáp; silhouette sạch | ArtStation |
-| 5 | Itachi Hùng | `itachihung` | itachihung@cins.vn | dang_lam | 3D character game mobile; tone tối/ninja | ArtStation |
+| 5 | Itachi Hùng | `itachihung` | itachihung@cins.vn | dang_lam | 3D character game mobile; tone tối/ninja | Pixiv |
 | 6 | Sakura Linh | `sakuralinh` | sakuralinh@cins.vn | freelance | Fanart + bìa LN; pastel, commission | Behance |
 | 7 | Zoro Bảo | `zorobao` | zorobao@cins.vn | freelance | Manga B&W + storyboard | Truyện (sau) |
 | 8 | Rem Nhi | `remnhi` | remnhi@cins.vn | tim_viec | Mới tốt nghiệp; character design; đang cân portfolio | Behance |
-| 9 | Nezuko Chi | `nezukochi` | nezukochi@cins.vn | tim_viec | Colorist webtoon; bảng cam hồng | Truyện (sau) |
-| 10 | Miku Ngọc | `mikungoc` | mikungoc@cins.vn | dang_day | Dạy vẽ anime thiếu nhi; chibi commission | Behance |
+| 9 | Nezuko Chi | `nezukochi` | nezukochi@cins.vn | tim_viec | Colorist webtoon; bảng cam hồng | Pixiv |
+| 10 | Miku Ngọc | `mikungoc` | mikungoc@cins.vn | dang_day | Dạy vẽ anime thiếu nhi; chibi commission | Pixiv |
 
 Sau khi xong avatar/cover → **báo cáo các bước tiếp theo** (mục 3 bên dưới), không nhất thiết implement hết trong một turn.
 
@@ -52,8 +55,8 @@ Sau khi xong avatar/cover → **báo cáo các bước tiếp theo** (mục 3 b�
 
 - Acquisition giai đoạn này: **artist / wibu** — shop + Journey portfolio; **không** lấy user bằng focus CSĐT.
 - Định vị **đổi theo giai đoạn** (xương sống Journey/sáng tạo giữ; câu ra ngoài giai đoạn 1 ≈ tìm/mua artist).
-- Cold start content: hướng **curator / giới thiệu** từ **Behance (bài dài/case) + ArtStation (album)** — link/embed + attribution về nguồn; AI soạn tiêu đề & mô tả ngắn.
-- **10 nick** ở trên dùng làm mặt đăng (seed). Caption AI phải tránh giọng “tôi là tác giả ảnh gốc” khi chỉ dẫn nguồn Behance/ArtStation.
+- Cold start content: hướng **curator / giới thiệu** từ **ArtStation + Behance + Pixiv** — link/embed + attribution về nguồn; AI soạn tiêu đề & mô tả ngắn.
+- **10 nick** ở trên dùng làm mặt đăng (seed). Caption AI phải tránh giọng “tôi là tác giả ảnh gốc” khi chỉ dẫn nguồn ngoài.
 - Tương tác ảo (AI like/comment): **kỹ thuật làm được**; trust/ops user tự siết sau — **không** nằm trong MVP publish.
 - Import Shopee: cần Chrome + extension (không cài được trên Cursor browser / Chrome mobile đầy đủ). Mobile chỉ «Chỉ lấy tên + ảnh». Multi-account seed Shopee: Chrome multi-profile.
 
@@ -94,7 +97,7 @@ Repo tool (có thể repo mới hoặc thư mục/`apps` sau) + GitHub Actions c
 |---|---|
 | **0** ✅ | Chốt API đăng bài nội bộ + format khối link/embed |
 | **1** ✅ | Khung worker + CLI + bảng `auto_*` (monorepo `tools/autopilot`) |
-| **2** ✅ | Thu thập ArtStation (RSS) + Behance (extension / `nhap-muc`) |
+| **2** ✅ | Thu thập ArtStation (RSS) + Behance/Pixiv (extension / `nhap-muc`) |
 | **3** ✅ | Ghép niche + hạn mức 10×3/ngày (múi giờ VN) — `chuan-bi-dang` / `chay-dang` |
 | **4** ✅ | Soạn bài AI (`tools/autopilot/lib/soan-bai-ai.mjs`, cấm xưng tác giả gốc; `--khong-ai`) |
 | **5** ✅ | Đăng CINs qua API + `auto_da_dang` idempotent URL |
@@ -148,18 +151,26 @@ Code: `tools/autopilot/` · README cùng thư mục.
 - Tạm CLI: `npm run autopilot -- nhap-muc --url 'https://www.behance.net/gallery/…' --tieu-de '…' --tac-gia '…'`
 - Pack zip: `npm run pack:behance-ext`
 
+### Pixiv
+
+- Ajax server-side thường **403** — scrap trong browser
+- **Cách chính:** Chrome extension `extensions/cins-pixiv-import` — mở `/users/{id}` → Quét → Gửi → `POST /api/noi-bo/auto/muc` (`nenTang: "pixiv"`)
+- CLI: `npm run autopilot -- nhap-muc --url 'https://www.pixiv.net/artworks/…' --tieu-de '…' --tac-gia '…'`
+- Pack zip: `npm run pack:pixiv-ext`
+- Migrate CHECK: `npm run migrate:autopilot-pixiv`
+
 ### Code map Giai đoạn 2
 
-- `tools/autopilot/lib/artstation.mjs` · `behance.mjs` · `fetch-html.mjs` · `luu-muc.mjs`
+- `tools/autopilot/lib/artstation.mjs` · `behance.mjs` · `pixiv.mjs` · `fetch-html.mjs` · `luu-muc.mjs`
 - `tools/autopilot/lenh/quet-nguon.mjs` · `nhap-muc.mjs`
 - API: `app/api/noi-bo/auto/muc/route.ts` · `lib/autopilot/luu-muc-batch.ts` · `dam-bao-nguon.ts`
-- Extension: `extensions/cins-behance-import/`
+- Extension: `extensions/cins-behance-import/` · `extensions/cins-pixiv-import/`
 
 ---
 
 ## 3e. Giai đoạn 3 — soạn + lịch đăng
 
-Luồng: scrap nhiều (ArtStation CLI / Behance extension) → hàng đợi `auto_muc` → ghép nick → đăng theo hạn mức.
+Luồng: scrap nhiều (ArtStation CLI / Behance·Pixiv extension) → hàng đợi `auto_muc` → ghép nick → đăng theo hạn mức.
 
 ```bash
 npm run autopilot -- chuan-bi-dang [--gioi-han 30] [--chi-xem] [--slug nick]
@@ -192,7 +203,7 @@ Header: `Authorization: Bearer <CINS_NOI_BO_DANG_BAI_SECRET>`
 | Field | Bắt buộc | Ý nghĩa |
 |---|---|---|
 | `slugChu` | ✅ | Nick seeding (allowlist 10 slug) |
-| `urlNguon` | ✅ | URL Behance / ArtStation (http/s) |
+| `urlNguon` | ✅ | URL Behance / ArtStation / Pixiv (http/s) |
 | `tieuDe` | ✅* | Tiêu đề (*rỗng → mặc định app) |
 | `moTa` | | Mô tả ngắn (AI sau) |
 | `nenTang` | | `artstation` \| `behance` \| `khac` (tự đoán từ URL nếu bỏ) |
@@ -208,8 +219,8 @@ Header: `Authorization: Bearer <CINS_NOI_BO_DANG_BAI_SECRET>`
 ### Khối mặc định (khi không gửi `blocks`)
 
 1. `body` — `moTa` (nếu có)
-2. `embed` — `{ url: urlNguon }` (Behance/ArtStation = card link, không iframe)
-3. `body` — dòng ghi nguồn dạng *«Giới thiệu từ ArtStation — {tác giả}. Xem bản gốc: …»*
+2. `embed` — `{ url: urlNguon }` (Behance/ArtStation/Pixiv = card link, không iframe)
+3. `body` — dòng ghi nguồn dạng *«Giới thiệu từ Pixiv — {tác giả}. Xem bản gốc: …»*
 
 ### Response
 

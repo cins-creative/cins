@@ -18,8 +18,9 @@ Monorepo trong `cins` (`tools/autopilot`).
 
 ```bash
 npm run migrate:autopilot
+npm run migrate:autopilot-pixiv          # CHECK nen_tang + pixiv
 npm run autopilot -- dong-bo-nick
-npm run autopilot -- them-nguon-mau          # nhiều artist AS + Behance (không chỉ WLOP)
+npm run autopilot -- them-nguon-mau          # AS + Behance + Pixiv mẫu
 npm run autopilot -- trang-thai
 npm run autopilot -- quet-nguon --nen-tang artstation --gioi-han 30
 npm run autopilot -- liet-ke muc
@@ -33,22 +34,26 @@ npm run autopilot -- chay-dang
 
 | Kênh | Nick | Ghi chú |
 |---|---|---|
-| ArtStation ×4 | kiritominh · hinatavy · levikhoa · itachihung | RSS `quet-nguon` |
-| Behance ×4 | yukitrang · sakuralinh · remnhi · mikungoc | Extension scrap |
-| Truyện ×2 | zorobao · nezukochi | Tắt tạm — chờ brief |
+| ArtStation ×3 | kiritominh · hinatavy · levikhoa | RSS `quet-nguon` |
+| Behance ×3 | yukitrang · sakuralinh · remnhi | Extension scrap |
+| Pixiv ×3 | itachihung · mikungoc · nezukochi | Extension scrap |
+| Truyện ×1 | zorobao | Tắt tạm — chờ brief |
 
 ## Thu thập
 
 | Nền tảng | Cách |
 |---|---|
 | ArtStation | RSS `/{user}.rss` qua `SINE_ART_WORKER_*` → `quet-nguon` |
-| Behance | Chrome extension `extensions/cins-behance-import` → `POST /api/noi-bo/auto/muc` (CF chặn server-side) |
+| Behance | Chrome extension `extensions/cins-behance-import` → `POST /api/noi-bo/auto/muc` |
+| Pixiv | Chrome extension `extensions/cins-pixiv-import` → `POST /api/noi-bo/auto/muc` (ajax server 403) |
+
+Pack: `npm run pack:behance-ext` · `npm run pack:pixiv-ext`
 
 ## Đăng (duyệt tay)
 
 1. `chuan-bi-dang` — AI caption → `cho_duyet`
 2. `duyet-ban-thao` — bạn duyệt → `san_sang`
-3. `chay-dang` — đăng + cover từ `anh_bia_url` (ArtStation RSS)
+3. `chay-dang` — đăng + cover từ `anh_bia_url`
 4. Actions cron chỉ soạn + đăng bài đã duyệt (không tự `duyet`)
 
 ## Env
@@ -58,5 +63,11 @@ npm run autopilot -- chay-dang
 - `SINE_ART_WORKER_URL` + `SINE_ART_WORKER_SECRET` (ArtStation RSS)
 - `ANTHROPIC_API_KEY` (caption AI; thiếu → heuristic)
 - `NEXT_PUBLIC_SITE_URL` (`https://cins.vn` khi đăng prod) + `CINS_NOI_BO_DANG_BAI_SECRET`
+
+## Admin UI
+
+`/admin/tai-khoan-ai` (super_admin | admin) — Tổng quan · Nick · Nguồn · Hàng đợi · Duyệt · Đã đăng.
+
+API: `GET /api/admin/autopilot?view=` · `POST /api/admin/autopilot/action`
 
 Brief: `docs/cursor_brief_seed_autopilot_handoff.md`

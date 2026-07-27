@@ -69,8 +69,8 @@ Pipeline **riêng** (không reuse blog-import Sine Art). Seller-only (session + 
 | `journey/[slug]/gallery` · `gallery-aside` | Tab Gallery của Journey + aside |
 | `journey/[slug]/friends` | Bạn bè hiển thị trên Journey |
 | `journey/[slug]/p/[postSlug]` · `.../edit` | Trang post · sửa post |
-| `noi-bo/tac-pham/dang` | **Autopilot Giai đoạn 0** — `POST` đăng Journey cho nick seed; Bearer `CINS_NOI_BO_DANG_BAI_SECRET`; khối embed nguồn Behance/ArtStation. Brief: `cursor_brief_seed_autopilot_handoff.md` §3b. Lib: `lib/editor/dang-bai-journey.ts` · `khoi-bai-nguon.ts` · `lib/noi-bo/*` |
-| `noi-bo/auto/muc` | **Autopilot** — `POST` batch mục → `auto_muc` (Bearer cùng secret); extension Behance / worker. Lib: `lib/autopilot/luu-muc-batch.ts` · `dam-bao-nguon.ts` |
+| `noi-bo/tac-pham/dang` | **Autopilot Giai đoạn 0** — `POST` đăng Journey cho nick seed; Bearer `CINS_NOI_BO_DANG_BAI_SECRET`; khối embed nguồn Behance/ArtStation/Pixiv. Brief: `cursor_brief_seed_autopilot_handoff.md` §3b. Lib: `lib/editor/dang-bai-journey.ts` · `khoi-bai-nguon.ts` · `lib/noi-bo/*` |
+| `noi-bo/auto/muc` | **Autopilot** — `POST` batch mục → `auto_muc` (Bearer cùng secret); extension Behance/Pixiv / worker. Lib: `lib/autopilot/luu-muc-batch.ts` · `dam-bao-nguon.ts` |
 
 ### Autopilot worker (Giai đoạn 1–3)
 
@@ -79,8 +79,9 @@ Pipeline **riêng** (không reuse blog-import Sine Art). Seller-only (session + 
 | SQL `migration_autopilot_giai_doan_1.sql` | 7 bảng `auto_*` (tai_khoan/nguon/muc/ban_thao/da_dang/han_muc/viec) — RLS deny client, chỉ `service_role` |
 | `npm run migrate:autopilot` | Runner Postgres |
 | `npm run autopilot -- …` | CLI: `trang-thai` · `dong-bo-nick` · `them-nguon` · `quet-nguon` · `nhap-muc` · `chuan-bi-dang` · `chay-dang` · `liet-ke` · `tao-viec` — code `tools/autopilot/` |
-| Thu thập | ArtStation RSS qua `SINE_ART_WORKER_*`. Behance: extension `extensions/cins-behance-import` → `POST /api/noi-bo/auto/muc` (CF chặn server). Pack: `npm run pack:behance-ext` |
+| Thu thập | ArtStation RSS qua `SINE_ART_WORKER_*`. Behance/Pixiv: extension `extensions/cins-behance-import` · `cins-pixiv-import` → `POST /api/noi-bo/auto/muc` (server chặn). Pack: `npm run pack:behance-ext` · `pack:pixiv-ext`. Migrate Pixiv CHECK: `npm run migrate:autopilot-pixiv` |
 | Lịch đăng | `chuan-bi-dang` (AI caption + niche) → `chay-dang` (hạn mức/ngày VN + API đăng). Cron: `.github/workflows/autopilot-chay-dang.yml`. Lib AI: `tools/autopilot/lib/soan-bai-ai.mjs` |
+| Admin UI | `/admin/tai-khoan-ai` — tab Tổng quan / Nick / Nguồn / Hàng đợi / Duyệt / Đã đăng. Gate `canManageUsers`. API: `GET/POST /api/admin/autopilot` · `…/action`. Lib: `lib/admin/autopilot.ts` · `lib/autopilot/nick-seed.ts` |
 
 ### Filter cá nhân (`filters`) — đề xuất, Cursor chỉnh tên nếu trùng
 | Route | Việc |

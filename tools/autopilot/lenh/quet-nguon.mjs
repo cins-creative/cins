@@ -2,6 +2,7 @@ import { thuThapArtstation, artstationUsernameTuUrl } from "../lib/artstation.mj
 import { thuThapBehance } from "../lib/behance.mjs";
 import { coFetchWorker } from "../lib/fetch-html.mjs";
 import { capNhatLanQuet, luuMucMoi } from "../lib/luu-muc.mjs";
+import { pixivUserIdTuUrl, thuThapPixiv } from "../lib/pixiv.mjs";
 
 /**
  * Quét auto_nguon đang bật → thu thập → auto_muc.
@@ -54,12 +55,21 @@ export async function chayQuetNguon(db, flags = {}) {
         nguon.ma_ngoai = u;
       }
     }
+    if (!nguon.ma_ngoai && nguon.nen_tang === "pixiv") {
+      const u = pixivUserIdTuUrl(nguon.url_ho_so);
+      if (u) {
+        await db.from("auto_nguon").update({ ma_ngoai: u }).eq("id", nguon.id);
+        nguon.ma_ngoai = u;
+      }
+    }
 
     let ketQua;
     if (nguon.nen_tang === "artstation") {
       ketQua = await thuThapArtstation(nguon.url_ho_so, { gioiHan });
     } else if (nguon.nen_tang === "behance") {
       ketQua = await thuThapBehance(nguon.url_ho_so, { gioiHan });
+    } else if (nguon.nen_tang === "pixiv") {
+      ketQua = await thuThapPixiv(nguon.url_ho_so, { gioiHan });
     } else {
       console.log("  bỏ qua nền tảng không hỗ trợ");
       continue;

@@ -2,26 +2,45 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+export type NenTangAutoNguon = "artstation" | "behance" | "pixiv";
+
+function chuanHoaMaNgoai(
+  nenTang: NenTangAutoNguon,
+  maNgoai: string,
+): string {
+  const raw = maNgoai.trim().replace(/^@/, "");
+  if (nenTang === "pixiv") {
+    if (!/^\d{1,12}$/.test(raw)) {
+      throw new Error("maNgoai Pixiv phải là user id số (/users/{id}).");
+    }
+    return raw;
+  }
+  const ma = raw.toLowerCase();
+  if (!ma || !/^[a-z0-9][a-z0-9_-]{0,63}$/i.test(ma)) {
+    throw new Error("maNgoai không hợp lệ.");
+  }
+  return ma;
+}
+
+function urlHoSoTuMa(nenTang: NenTangAutoNguon, ma: string): string {
+  if (nenTang === "behance") return `https://www.behance.net/${ma}`;
+  if (nenTang === "pixiv") return `https://www.pixiv.net/users/${ma}`;
+  return `https://www.artstation.com/${ma}`;
+}
+
 /**
- * Tìm hoặc tạo auto_nguon từ ma_ngoai (username Behance/ArtStation).
+ * Tìm hoặc tạo auto_nguon từ ma_ngoai (username AS/BH hoặc user id Pixiv).
  */
 export async function damBaoNguonTuMaNgoai(
   admin: SupabaseClient,
   params: {
-    nenTang: "artstation" | "behance";
+    nenTang: NenTangAutoNguon;
     maNgoai: string;
     niche?: string | null;
   },
 ): Promise<string> {
-  const ma = params.maNgoai.trim().toLowerCase().replace(/^@/, "");
-  if (!ma || !/^[a-z0-9][a-z0-9_-]{0,63}$/i.test(ma)) {
-    throw new Error("maNgoai không hợp lệ.");
-  }
-
-  const urlHoSo =
-    params.nenTang === "behance"
-      ? `https://www.behance.net/${ma}`
-      : `https://www.artstation.com/${ma}`;
+  const ma = chuanHoaMaNgoai(params.nenTang, params.maNgoai);
+  const urlHoSo = urlHoSoTuMa(params.nenTang, ma);
 
   const { data: existing, error: findErr } = await admin
     .from("auto_nguon")

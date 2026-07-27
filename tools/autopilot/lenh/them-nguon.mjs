@@ -1,3 +1,5 @@
+import { pixivUserIdTuUrl } from "../lib/pixiv.mjs";
+
 /**
  * Thêm / cập nhật nguồn theo dõi.
  * args: { nenTang, url, maNgoai?, ten?, niche?, ghiChu? }
@@ -5,17 +7,22 @@
 export async function chayThemNguon(db, args) {
   const nenTang = String(args.nenTang || "").trim().toLowerCase();
   const url = String(args.url || "").trim();
-  if (nenTang !== "artstation" && nenTang !== "behance") {
-    throw new Error("--nen-tang phải là artstation | behance");
+  if (!["artstation", "behance", "pixiv"].includes(nenTang)) {
+    throw new Error("--nen-tang phải là artstation | behance | pixiv");
   }
   if (!/^https:\/\//i.test(url)) {
     throw new Error("--url phải là https://…");
   }
 
+  let maNgoai = args.maNgoai?.trim() || null;
+  if (!maNgoai && nenTang === "pixiv") {
+    maNgoai = pixivUserIdTuUrl(url);
+  }
+
   const row = {
     nen_tang: nenTang,
     url_ho_so: url,
-    ma_ngoai: args.maNgoai?.trim() || null,
+    ma_ngoai: maNgoai,
     ten_hien_thi: args.ten?.trim() || null,
     niche: args.niche?.trim() || null,
     ghi_chu: args.ghiChu?.trim() || null,

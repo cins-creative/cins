@@ -1,22 +1,24 @@
 /**
- * Ghép khối Journey chuẩn cho bài curator từ Behance / ArtStation.
+ * Ghép khối Journey chuẩn cho bài curator từ Behance / ArtStation / Pixiv.
  * Không xưng là tác giả gốc — dòng ghi nguồn bắt buộc.
  */
 
 import type { Block } from "@/lib/editor/types";
 
-export type NenTangNguon = "artstation" | "behance" | "khac";
+export type NenTangNguon = "artstation" | "behance" | "pixiv" | "khac";
 
 export function doanNenTangTuUrl(url: string): NenTangNguon {
   const u = url.trim().toLowerCase();
   if (u.includes("artstation.com")) return "artstation";
   if (u.includes("behance.net")) return "behance";
+  if (u.includes("pixiv.net")) return "pixiv";
   return "khac";
 }
 
 export function nhanNenTang(nenTang: NenTangNguon): string {
   if (nenTang === "artstation") return "ArtStation";
   if (nenTang === "behance") return "Behance";
+  if (nenTang === "pixiv") return "Pixiv";
   return "nguồn ngoài";
 }
 
@@ -40,9 +42,9 @@ export function taoDongGhiNguon(params: {
 }
 
 /**
- * Khối mặc định Phase 0:
- * 1. body — mô tả ngắn (AI sau)
- * 2. embed — URL nguồn (Behance/ArtStation → card link, không iframe)
+ * Khối mặc định:
+ * 1. body — mô tả ngắn
+ * 2. embed — URL nguồn (card link)
  * 3. body — dòng ghi nguồn
  */
 export function taoKhoiBaiNguon(params: {

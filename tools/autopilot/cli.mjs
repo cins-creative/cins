@@ -37,7 +37,7 @@ Lệnh:
   liet-ke <nguon|nick|muc|ban-thao>  Liệt kê
   them-nguon --nen-tang <t> --url <u> [--ma-ngoai] [--ten] [--niche]
   them-nguon-mau [--chi-xem]             Seed watchlist mẫu (nhiều artist)
-  quet-nguon [--nen-tang artstation|behance] [--id UUID] [--gioi-han N] [--chi-xem]
+  quet-nguon [--nen-tang artstation|behance|pixiv] [--id UUID] [--gioi-han N] [--chi-xem]
   nhap-muc --url <u> [--nen-tang] [--tieu-de] [--tac-gia] [--mo-ta] [--anh-bia]
   chuan-bi-dang [--gioi-han N] [--chi-xem] [--slug nick] [--khong-ai] [--san-sang]
   duyet-ban-thao [--gioi-han N] [--slug nick] [--tat-ca] [--id UUID] [--chi-xem]
@@ -46,6 +46,7 @@ Lệnh:
 
 ArtStation: RSS qua fetch-worker (quet-nguon).
 Behance: Chrome extension extensions/cins-behance-import → POST /api/noi-bo/auto/muc
+Pixiv: Chrome extension extensions/cins-pixiv-import → POST /api/noi-bo/auto/muc
 
 Luồng đăng (duyệt tay mặc định):
   chuan-bi-dang   → AI caption → auto_ban_thao cho_duyet

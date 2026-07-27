@@ -62,6 +62,11 @@ Tổ chức
 
 Người dùng
   /admin/nguoi-dung          → user_nguoi_dung + user_quyen_he_thong (phân quyền hệ thống)
+  /admin/tai-khoan-ai        → **Autopilot seeding** (10 nick AI curator)
+      · Tabs: Tổng quan · Nick · Nguồn · Hàng đợi · Duyệt · Đã đăng
+      · Gate: `canManageUsers` (super_admin | admin) — curator không
+      · API: `GET /api/admin/autopilot?view=` · `POST /api/admin/autopilot/action`
+      · Lib: `lib/admin/autopilot.ts` · UI `AdminTaiKhoanAiScreen`
 
 Hệ thống
   /admin/linh-vuc
@@ -79,7 +84,7 @@ Hệ thống
 // super_admin: info.cins.vn@gmail.com (hardcoded, không DB)
 // admin/curator: user_quyen_he_thong + legacy CINS_ADMIN_EMAILS → admin
 // Panel /admin: canAccessAdminPanel (super_admin | admin | curator)
-// Tab /admin/nguoi-dung: canManageUsers (super_admin | admin)
+// Tab /admin/nguoi-dung · /admin/tai-khoan-ai: canManageUsers (super_admin | admin)
 // Tab /admin/noi-dung-dang + toggle boost World feed (L29): canManageUsers (super_admin | admin) — curator không
 // Phân quyền org /admin/to-chuc: canGrantAdmin (super_admin only) + CINS_ORG_DELEGATION_PASSWORD + delegationPassword mỗi mutation (L22)
 // Sửa nội dung: canEditContent (super_admin | admin | curator)
