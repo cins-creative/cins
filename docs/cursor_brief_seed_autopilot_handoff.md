@@ -84,11 +84,11 @@ Repo tool (có thể repo mới hoặc thư mục/`apps` sau) + GitHub Actions c
 |---|---|
 | **0** ✅ | Chốt API đăng bài nội bộ + format khối link/embed |
 | **1** ✅ | Khung worker + CLI + bảng `auto_*` (monorepo `tools/autopilot`) |
-| **2** ✅ | Thu thập ArtStation (RSS) + Behance (nhập tay khi CF chặn) |
-| **3** | Ghép niche + hạn mức 10×3/ngày (múi giờ VN) |
-| **4** | Soạn bài AI (prompt cấm xưng tác giả gốc) |
-| **5** | Đăng lên CINs; idempotent; ghi log lỗi |
-| **6** | GitHub Actions `schedule` (runner Linux) + secrets GH; không cần mở PC |
+| **2** ✅ | Thu thập ArtStation (RSS) + Behance (extension / `nhap-muc`) |
+| **3** ✅ | Ghép niche + hạn mức 10×3/ngày (múi giờ VN) — `chuan-bi-dang` / `chay-dang` |
+| **4** ✅ | Soạn bài AI (`tools/autopilot/lib/soan-bai-ai.mjs`, cấm xưng tác giả gốc; `--khong-ai`) |
+| **5** ✅ | Đăng CINs qua API + `auto_da_dang` idempotent URL |
+| **6** ✅ | GitHub Actions `autopilot-chay-dang.yml` (cần secrets GH + merge) |
 | **7** | (Sau) tương tác ảo like/comment — tắt mặc định |
 
 ### Việc user cần chốt khi build
@@ -159,10 +159,12 @@ npm run autopilot -- liet-ke ban-thao
 
 | Bước | Việc |
 |---|---|
-| `chuan-bi-dang` | `auto_muc` (`moi`) → `auto_ban_thao` (`san_sang`); ghép nick theo overlap `niche` (meta/nguồn ↔ `auto_tai_khoan`), không khớp thì round-robin |
+| `chuan-bi-dang` | `auto_muc` (`moi`) → AI/heuristic caption → `auto_ban_thao` (`san_sang`); ghép nick theo overlap `niche`; attribution template (không AI) |
 | `chay-dang` | Gọi `POST /api/noi-bo/tac-pham/dang`; tôn trọng `auto_han_muc` (ngày `Asia/Ho_Chi_Minh`, mặc định 3/nick); ghi `auto_da_dang` |
 
-Cron: `.github/workflows/autopilot-chay-dang.yml` (01/07/13 UTC) — cần secrets site + Supabase + `CINS_NOI_BO_DANG_BAI_SECRET`.
+Cron: `.github/workflows/autopilot-chay-dang.yml` (01/07/13 UTC) — secrets: site (`https://cins.vn`) + Supabase + `CINS_NOI_BO_DANG_BAI_SECRET` + `ANTHROPIC_API_KEY` (tuỳ chọn).
+
+**Cloudflare Worker `cins`:** bắt buộc có `CINS_NOI_BO_DANG_BAI_SECRET` (Variables and Secrets) — `wrangler secret list` phải thấy tên này sau khi thêm.
 
 Chưa có bước duyệt tay bắt buộc (`cho_duyet`) — có thể bật sau.
 

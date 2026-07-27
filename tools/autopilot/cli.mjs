@@ -9,7 +9,7 @@
  *   npm run autopilot -- them-nguon --nen-tang artstation --url https://…
  *   npm run autopilot -- quet-nguon [--nen-tang artstation] [--gioi-han 30] [--chi-xem]
  *   npm run autopilot -- nhap-muc --url https://… [--tieu-de] [--tac-gia] [--nen-tang]
- *   npm run autopilot -- chuan-bi-dang [--gioi-han 30] [--chi-xem] [--slug nick]
+ *   npm run autopilot -- chuan-bi-dang [--gioi-han 30] [--chi-xem] [--slug nick] [--khong-ai]
  *   npm run autopilot -- chay-dang [--gioi-han 30] [--chi-xem] [--slug nick]
  *   npm run autopilot -- tao-viec --loai quet_nguon
  */
@@ -35,7 +35,7 @@ Lệnh:
   them-nguon --nen-tang <t> --url <u> [--ma-ngoai] [--ten] [--niche]
   quet-nguon [--nen-tang artstation|behance] [--id UUID] [--gioi-han N] [--chi-xem]
   nhap-muc --url <u> [--nen-tang] [--tieu-de] [--tac-gia] [--mo-ta] [--anh-bia]
-  chuan-bi-dang [--gioi-han N] [--chi-xem] [--slug nick]
+  chuan-bi-dang [--gioi-han N] [--chi-xem] [--slug nick] [--khong-ai]
   chay-dang [--gioi-han N] [--chi-xem] [--slug nick]
   tao-viec --loai <loai> [--payload JSON]
 
@@ -43,8 +43,9 @@ ArtStation: RSS qua fetch-worker (quet-nguon).
 Behance: Chrome extension extensions/cins-behance-import → POST /api/noi-bo/auto/muc
 
 Luồng đăng:
-  chuan-bi-dang  → auto_ban_thao san_sang (ghép niche)
+  chuan-bi-dang  → AI caption + ghép niche → auto_ban_thao san_sang
   chay-dang      → POST /api/noi-bo/tac-pham/dang (hạn mức/ngày VN)
+  Env AI: ANTHROPIC_API_KEY (fallback heuristic nếu thiếu / --khong-ai)
 
 Migration:
   npm run migrate:autopilot

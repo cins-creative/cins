@@ -80,7 +80,7 @@ Pipeline **riêng** (không reuse blog-import Sine Art). Seller-only (session + 
 | `npm run migrate:autopilot` | Runner Postgres |
 | `npm run autopilot -- …` | CLI: `trang-thai` · `dong-bo-nick` · `them-nguon` · `quet-nguon` · `nhap-muc` · `chuan-bi-dang` · `chay-dang` · `liet-ke` · `tao-viec` — code `tools/autopilot/` |
 | Thu thập | ArtStation RSS qua `SINE_ART_WORKER_*`. Behance: extension `extensions/cins-behance-import` → `POST /api/noi-bo/auto/muc` (CF chặn server). Pack: `npm run pack:behance-ext` |
-| Lịch đăng | `chuan-bi-dang` (ghép niche) → `chay-dang` (hạn mức/ngày VN + API đăng). Cron: `.github/workflows/autopilot-chay-dang.yml` |
+| Lịch đăng | `chuan-bi-dang` (AI caption + niche) → `chay-dang` (hạn mức/ngày VN + API đăng). Cron: `.github/workflows/autopilot-chay-dang.yml`. Lib AI: `tools/autopilot/lib/soan-bai-ai.mjs` |
 
 ### Filter cá nhân (`filters`) — đề xuất, Cursor chỉnh tên nếu trùng
 | Route | Việc |

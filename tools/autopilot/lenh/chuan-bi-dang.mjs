@@ -1,10 +1,9 @@
 import { diemTrungNiche, tachNiche } from "../lib/ngay-vn.mjs";
-
-function tenNenTang(nen) {
-  if (nen === "artstation") return "ArtStation";
-  if (nen === "behance") return "Behance";
-  return "nguồn ngoài";
-}
+import {
+  soanBaiCurator,
+  soanBaiHeuristic,
+  taoDongGhiNguon,
+} from "../lib/soan-bai-ai.mjs";
 
 function chonNick(muc, nicks, roundRobinIdx) {
   const metaNiche = tachNiche(muc.meta?.niche);
@@ -35,15 +34,14 @@ function chonNick(muc, nicks, roundRobinIdx) {
     };
   }
 
-  /* không khớp → round-robin nick đang bật */
   const nick = nicks[roundRobinIdx % nicks.length];
   return { nick, lyDo: "round-robin" };
 }
 
 /**
- * Ghép auto_muc (moi) → auto_ban_thao (san_sang) theo niche nick.
+ * Ghép auto_muc (moi) → auto_ban_thao (san_sang) theo niche nick + AI caption.
  *
- * Flags: --gioi-han N · --chi-xem · --slug <nick>
+ * Flags: --gioi-han N · --chi-xem · --slug <nick> · --khong-ai
  */
 export async function chayChuanBiDang(db, flags = {}) {
   const gioiHan = Math.min(
@@ -51,6 +49,7 @@ export async function chayChuanBiDang(db, flags = {}) {
     Math.max(1, Number(flags.gioiHan || flags["gioi-han"] || 30) || 30),
   );
   const chiXem = Boolean(flags.chiXem || flags["chi-xem"]);
+  const khongAi = Boolean(flags.khongAi || flags["khong-ai"]);
   const slugFilter = String(flags.slug || "")
     .trim()
     .toLowerCase();
@@ -72,7 +71,6 @@ export async function chayChuanBiDang(db, flags = {}) {
     );
   }
 
-  /* Mục đã có bản thảo thì bỏ */
   const { data: daCoBanThao, error: btErr } = await db
     .from("auto_ban_thao")
     .select("id_muc")
@@ -96,7 +94,6 @@ export async function chayChuanBiDang(db, flags = {}) {
     return { tao: 0 };
   }
 
-  /* Niche nguồn (nếu có) */
   const idNguons = [
     ...new Set(hangDoi.map((m) => m.id_nguon).filter(Boolean)),
   ];
@@ -109,27 +106,48 @@ export async function chayChuanBiDang(db, flags = {}) {
     for (const n of nguons || []) nguonNicheMap.set(n.id, n.niche);
   }
 
+  console.log(
+    khongAi
+      ? "Soạn caption: heuristic (--khong-ai)"
+      : process.env.ANTHROPIC_API_KEY?.trim()
+        ? "Soạn caption: Claude"
+        : "Soạn caption: heuristic (thiếu ANTHROPIC_API_KEY)",
+  );
+
   let rr = 0;
   let tao = 0;
+  let dungAi = 0;
 
   for (const muc of hangDoi) {
     muc._nguonNiche = nguonNicheMap.get(muc.id_nguon) || null;
     const { nick, lyDo } = chonNick(muc, nicks, rr);
     rr += 1;
 
-    const nen = tenNenTang(muc.nen_tang);
-    const tieuDe =
-      (muc.tieu_de_goc || "").trim() ||
-      `Giới thiệu từ ${nen}`;
-    const moTa = (muc.mo_ta_goc || "").trim() || null;
-    const tacGia = (muc.ten_tac_gia || "").trim();
-    const dongGhiNguon = tacGia
-      ? `Giới thiệu từ ${nen} — ${tacGia}. Xem bản gốc: ${muc.url_canonic}`
-      : `Giới thiệu từ ${nen}. Xem bản gốc: ${muc.url_canonic}`;
+    const soanInput = {
+      tieuDeGoc: muc.tieu_de_goc,
+      moTaGoc: muc.mo_ta_goc,
+      tenTacGia: muc.ten_tac_gia,
+      nenTang: muc.nen_tang,
+      urlCanonic: muc.url_canonic,
+      slugNick: nick.slug,
+    };
+
+    const soan = khongAi
+      ? soanBaiHeuristic(soanInput)
+      : await soanBaiCurator(soanInput);
+    if (soan.usedClaude) dungAi += 1;
+
+    const dongGhiNguon = taoDongGhiNguon({
+      nenTang: muc.nen_tang,
+      tenTacGia: muc.ten_tac_gia,
+      urlCanonic: muc.url_canonic,
+    });
 
     console.log(
-      `  ${muc.url_canonic.slice(0, 60)}… → @${nick.slug} (${lyDo})`,
+      `  ${muc.url_canonic.slice(0, 56)}… → @${nick.slug} (${lyDo}` +
+        `${soan.usedClaude ? ", AI" : ", heuristic"})`,
     );
+    console.log(`    «${soan.tieuDe}»`);
 
     if (chiXem) continue;
 
@@ -138,8 +156,8 @@ export async function chayChuanBiDang(db, flags = {}) {
       .insert({
         id_muc: muc.id,
         id_tai_khoan: nick.id,
-        tieu_de: tieuDe.slice(0, 200),
-        mo_ta: moTa,
+        tieu_de: soan.tieuDe.slice(0, 200),
+        mo_ta: soan.moTa,
         dong_ghi_nguon: dongGhiNguon,
         blocks: null,
         trang_thai: "san_sang",
@@ -169,8 +187,8 @@ export async function chayChuanBiDang(db, flags = {}) {
 
   console.log(
     chiXem
-      ? `\n[chi-xem] sẽ tạo ~${hangDoi.length} bản thảo`
-      : `\nĐã tạo ${tao} bản thảo san_sang.`,
+      ? `\n[chi-xem] sẽ tạo ~${hangDoi.length} bản thảo (AI thử: ${dungAi})`
+      : `\nĐã tạo ${tao} bản thảo san_sang (Claude: ${dungAi}).`,
   );
-  return { tao: chiXem ? 0 : tao, xem: hangDoi.length };
+  return { tao: chiXem ? 0 : tao, xem: hangDoi.length, dungAi };
 }

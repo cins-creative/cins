@@ -25,6 +25,7 @@ npm run autopilot -- quet-nguon --nen-tang artstation --gioi-han 30
 npm run autopilot -- liet-ke muc
 npm run autopilot -- nhap-muc --url 'https://www.behance.net/gallery/…' --tieu-de '…' --tac-gia '…'
 npm run autopilot -- chuan-bi-dang --gioi-han 30
+npm run autopilot -- chuan-bi-dang --khong-ai   # bỏ Claude
 npm run autopilot -- chay-dang
 npm run autopilot -- liet-ke ban-thao
 ```
@@ -38,7 +39,7 @@ npm run autopilot -- liet-ke ban-thao
 
 ## Đăng
 
-1. `chuan-bi-dang` — ghép niche → `auto_ban_thao` `san_sang`
+1. `chuan-bi-dang` — AI caption (Claude) + ghép niche → `auto_ban_thao` `san_sang`
 2. `chay-dang` — gọi API đăng nội bộ, hạn 3 bài/nick/ngày (VN)
 3. GitHub Actions: `autopilot-chay-dang.yml`
 
@@ -47,6 +48,7 @@ npm run autopilot -- liet-ke ban-thao
 - `NEXT_PUBLIC_SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY`
 - `DATABASE_URL` (chỉ khi migrate)
 - `SINE_ART_WORKER_URL` + `SINE_ART_WORKER_SECRET` (ArtStation RSS)
-- `NEXT_PUBLIC_SITE_URL` + `CINS_NOI_BO_DANG_BAI_SECRET` (khi `chay-dang`)
+- `ANTHROPIC_API_KEY` (caption AI; thiếu → heuristic)
+- `NEXT_PUBLIC_SITE_URL` (`https://cins.vn` khi đăng prod) + `CINS_NOI_BO_DANG_BAI_SECRET`
 
 Brief: `docs/cursor_brief_seed_autopilot_handoff.md`
