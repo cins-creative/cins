@@ -2,6 +2,7 @@
 
 import {
   Check,
+  Download,
   ExternalLink,
   Loader2,
   RefreshCw,
@@ -328,6 +329,74 @@ export function AdminTaiKhoanAiScreen() {
               <li>Soạn bản thảo → chờ duyệt</li>
               <li>Duyệt tay → sẵn sàng → đăng (hạn mức/ngày VN)</li>
             </ol>
+
+            <h2 className="tkai-section-title">Chrome extension (scrap nguồn)</h2>
+            <p className="tkai-meta">
+              Không lên Chrome Store — tải zip → giải nén →{" "}
+              <code>chrome://extensions</code> → bật Developer mode →{" "}
+              <strong>Load unpacked</strong>. Điền API base (origin CINs) + secret{" "}
+              <code>CINS_NOI_BO_DANG_BAI_SECRET</code>.
+            </p>
+            <div className="tkai-ext-grid">
+              <article className="tkai-ext-card">
+                <h3>Behance → Autopilot</h3>
+                <p>
+                  Mở hồ sơ /projects trên Behance, scroll load card → Quét → Gửi
+                  vào hàng đợi.
+                </p>
+                <div className="tkai-ext-card__actions">
+                  <a
+                    className="btn btn-primary"
+                    href="/downloads/cins-behance-import.zip"
+                    download
+                  >
+                    <Download size={14} />
+                    Tải zip
+                  </a>
+                  <a
+                    className="btn btn-ghost"
+                    href="https://www.behance.net"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Mở Behance
+                    <ExternalLink size={12} />
+                  </a>
+                </div>
+                <p className="tkai-muted">
+                  Repo: <code>extensions/cins-behance-import</code>
+                </p>
+              </article>
+              <article className="tkai-ext-card">
+                <h3>Pixiv → Autopilot</h3>
+                <p>
+                  Mở <code>/users/{"{id}"}</code> trên Pixiv, scroll artwork →
+                  Quét → Gửi (ajax server bị 403).
+                </p>
+                <div className="tkai-ext-card__actions">
+                  <a
+                    className="btn btn-primary"
+                    href="/downloads/cins-pixiv-import.zip"
+                    download
+                  >
+                    <Download size={14} />
+                    Tải zip
+                  </a>
+                  <a
+                    className="btn btn-ghost"
+                    href="https://www.pixiv.net"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Mở Pixiv
+                    <ExternalLink size={12} />
+                  </a>
+                </div>
+                <p className="tkai-muted">
+                  Repo: <code>extensions/cins-pixiv-import</code>
+                </p>
+              </article>
+            </div>
           </section>
         ) : null}
 

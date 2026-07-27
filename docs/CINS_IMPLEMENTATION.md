@@ -81,7 +81,7 @@ Pipeline **riêng** (không reuse blog-import Sine Art). Seller-only (session + 
 | `npm run autopilot -- …` | CLI: `trang-thai` · `dong-bo-nick` · `them-nguon` · `quet-nguon` · `nhap-muc` · `chuan-bi-dang` · `chay-dang` · `liet-ke` · `tao-viec` — code `tools/autopilot/` |
 | Thu thập | ArtStation RSS qua `SINE_ART_WORKER_*`. Behance/Pixiv: extension `extensions/cins-behance-import` · `cins-pixiv-import` → `POST /api/noi-bo/auto/muc` (server chặn). Pack: `npm run pack:behance-ext` · `pack:pixiv-ext`. Migrate Pixiv CHECK: `npm run migrate:autopilot-pixiv` |
 | Lịch đăng | `chuan-bi-dang` (AI caption + niche) → `chay-dang` (hạn mức/ngày VN + API đăng). Cron: `.github/workflows/autopilot-chay-dang.yml`. Lib AI: `tools/autopilot/lib/soan-bai-ai.mjs` |
-| Admin UI | `/admin/tai-khoan-ai` — tab Tổng quan / Nick / Nguồn / Hàng đợi / Duyệt / Đã đăng. Gate `canManageUsers`. API: `GET/POST /api/admin/autopilot` · `…/action`. Lib: `lib/admin/autopilot.ts` · `lib/autopilot/nick-seed.ts` |
+| Admin UI | `/admin/tai-khoan-ai` — tab Tổng quan / Nick / Nguồn / Hàng đợi / Duyệt / Đã đăng. Gate `canManageUsers`. API: `GET/POST /api/admin/autopilot` · `…/action`. Lib: `lib/admin/autopilot.ts` · `lib/autopilot/nick-seed.ts`. Tổng quan có tải zip extension Behance/Pixiv (`/downloads/cins-*-import.zip`) |
 
 ### Filter cá nhân (`filters`) — đề xuất, Cursor chỉnh tên nếu trùng
 | Route | Việc |
