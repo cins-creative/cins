@@ -25,6 +25,7 @@ import { chayNhapMuc } from "./lenh/nhap-muc.mjs";
 import { chayQuetNguon } from "./lenh/quet-nguon.mjs";
 import { chayTaoViec } from "./lenh/tao-viec.mjs";
 import { chayThemNguon } from "./lenh/them-nguon.mjs";
+import { chayThemNguonMau } from "./lenh/them-nguon-mau.mjs";
 import { chayTrangThai } from "./lenh/trang-thai.mjs";
 
 function inHuongDan() {
@@ -35,6 +36,7 @@ Lệnh:
   dong-bo-nick                       Upsert 10 nick seeding → auto_tai_khoan
   liet-ke <nguon|nick|muc|ban-thao>  Liệt kê
   them-nguon --nen-tang <t> --url <u> [--ma-ngoai] [--ten] [--niche]
+  them-nguon-mau [--chi-xem]             Seed watchlist mẫu (nhiều artist)
   quet-nguon [--nen-tang artstation|behance] [--id UUID] [--gioi-han N] [--chi-xem]
   nhap-muc --url <u> [--nen-tang] [--tieu-de] [--tac-gia] [--mo-ta] [--anh-bia]
   chuan-bi-dang [--gioi-han N] [--chi-xem] [--slug nick] [--khong-ai] [--san-sang]
@@ -109,6 +111,9 @@ async function main() {
       break;
     case "them-nguon":
       await chayThemNguon(db, f);
+      break;
+    case "them-nguon-mau":
+      await chayThemNguonMau(db, f);
       break;
     case "quet-nguon":
       await chayQuetNguon(db, f);

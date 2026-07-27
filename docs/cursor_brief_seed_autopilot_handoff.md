@@ -19,20 +19,30 @@
 
 **Không** commit mật khẩu vào git. Login/script nếu cần: đọc từ Cursor Runtime Secret (VD `CINS_SEED_PASSWORD`) — user đã tạo 10 nick; mật khẩu chung từng gửi trong chat cũ → **nên đã/đổi và chỉ để trong Secrets**.
 
-### Roster seeding (đã tạo)
+### Roster seeding (đã tạo) — phân kênh Autopilot
 
-| # | Tên hiển thị | Slug | Email | `giai_doan` | Giới thiệu (đã set) | Niche gợi ý router |
+| Kênh | Nick | Việc |
+|---|---|---|
+| **ArtStation** (4) | `kiritominh` · `hinatavy` · `levikhoa` · `itachihung` | Curator tranh AS |
+| **Behance** (4) | `yukitrang` · `sakuralinh` · `remnhi` · `mikungoc` | Curator Behance (extension) |
+| **Truyện** (2) | `zorobao` · `nezukochi` | **Chờ brief** — Autopilot `dang_bat=false` |
+
+Tag niche: `nguon:artstation` / `nguon:behance` / `nguon:truyen`. Router `chuan-bi-dang` chỉ gán mục cùng kênh.
+
+Watchlist mẫu: `npm run autopilot -- them-nguon-mau` (nhiều artist, không chỉ WLOP).
+
+| # | Tên hiển thị | Slug | Email | `giai_doan` | Giới thiệu (đã set) | Kênh |
 |---|---|---|---|---|---|---|
-| 1 | Kirito Minh | `kiritominh` | kiritominh@cins.vn | dang_hoc | Sinh viên năm 3 thiết kế, nhân vật fantasy, rigging; fan isekai | Fantasy character / isekai |
-| 2 | Hinata Vy | `hinatavy` | hinatavy@cins.vn | dang_hoc | Digital painting, ánh sáng chiều; fan slice of life | Digital paint / SoL |
-| 3 | Yuki Trang | `yukitrang` | yukitrang@cins.vn | dang_lam | 2D animator studio nhỏ; cut-out + frame-by-frame | 2D animation |
-| 4 | Levi Khoa | `levikhoa` | levikhoa@cins.vn | dang_lam | Concept vũ khí/giáp; silhouette sạch | Weapon / armor concept |
-| 5 | Itachi Hùng | `itachihung` | itachihung@cins.vn | dang_lam | 3D character game mobile; tone tối/ninja | 3D character / dark |
-| 6 | Sakura Linh | `sakuralinh` | sakuralinh@cins.vn | freelance | Fanart + bìa LN; pastel, commission | Fanart / LN cover |
-| 7 | Zoro Bảo | `zorobao` | zorobao@cins.vn | freelance | Manga B&W + storyboard | Manga / storyboard |
-| 8 | Rem Nhi | `remnhi` | remnhi@cins.vn | tim_viec | Mới tốt nghiệp; character design; đang cân portfolio | Character design |
-| 9 | Nezuko Chi | `nezukochi` | nezukochi@cins.vn | tim_viec | Colorist webtoon; bảng cam hồng | Webtoon color |
-| 10 | Miku Ngọc | `mikungoc` | mikungoc@cins.vn | dang_day | Dạy vẽ anime thiếu nhi; chibi commission | Chibi / teach anime |
+| 1 | Kirito Minh | `kiritominh` | kiritominh@cins.vn | dang_hoc | Sinh viên năm 3 thiết kế, nhân vật fantasy, rigging; fan isekai | ArtStation |
+| 2 | Hinata Vy | `hinatavy` | hinatavy@cins.vn | dang_hoc | Digital painting, ánh sáng chiều; fan slice of life | ArtStation |
+| 3 | Yuki Trang | `yukitrang` | yukitrang@cins.vn | dang_lam | 2D animator studio nhỏ; cut-out + frame-by-frame | Behance |
+| 4 | Levi Khoa | `levikhoa` | levikhoa@cins.vn | dang_lam | Concept vũ khí/giáp; silhouette sạch | ArtStation |
+| 5 | Itachi Hùng | `itachihung` | itachihung@cins.vn | dang_lam | 3D character game mobile; tone tối/ninja | ArtStation |
+| 6 | Sakura Linh | `sakuralinh` | sakuralinh@cins.vn | freelance | Fanart + bìa LN; pastel, commission | Behance |
+| 7 | Zoro Bảo | `zorobao` | zorobao@cins.vn | freelance | Manga B&W + storyboard | Truyện (sau) |
+| 8 | Rem Nhi | `remnhi` | remnhi@cins.vn | tim_viec | Mới tốt nghiệp; character design; đang cân portfolio | Behance |
+| 9 | Nezuko Chi | `nezukochi` | nezukochi@cins.vn | tim_viec | Colorist webtoon; bảng cam hồng | Truyện (sau) |
+| 10 | Miku Ngọc | `mikungoc` | mikungoc@cins.vn | dang_day | Dạy vẽ anime thiếu nhi; chibi commission | Behance |
 
 Sau khi xong avatar/cover → **báo cáo các bước tiếp theo** (mục 3 bên dưới), không nhất thiết implement hết trong một turn.
 

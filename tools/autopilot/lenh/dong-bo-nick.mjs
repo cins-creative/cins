@@ -1,7 +1,8 @@
-import { NICK_SEED } from "../lib/nick-seed.mjs";
+import { NICK_SEED, nicheVoiKenh } from "../lib/nick-seed.mjs";
 
 /**
  * Upsert 10 nick seeding vào auto_tai_khoan (map id_nguoi_dung từ slug).
+ * Gắn tag nguon:artstation|behance|truyen trong niche.
  */
 export async function chayDongBoNick(db) {
   const slugs = NICK_SEED.map((n) => n.slug);
@@ -16,6 +17,8 @@ export async function chayDongBoNick(db) {
   let ok = 0;
   let thieu = 0;
 
+  console.log("Phân kênh: 4 ArtStation · 4 Behance · 2 truyện (tắt tạm)\n");
+
   for (const nick of NICK_SEED) {
     const idNguoiDung = bySlug.get(nick.slug) || null;
     if (!idNguoiDung) {
@@ -23,12 +26,13 @@ export async function chayDongBoNick(db) {
       thieu += 1;
     }
 
+    const dangBat = nick.dangBat !== false;
     const { error } = await db.from("auto_tai_khoan").upsert(
       {
         slug: nick.slug,
         id_nguoi_dung: idNguoiDung,
-        niche: nick.niche,
-        dang_bat: true,
+        niche: nicheVoiKenh(nick),
+        dang_bat: dangBat,
         han_muc_ngay: 3,
         ghi_chu: nick.ghiChu,
         cap_nhat_luc: new Date().toISOString(),
@@ -39,7 +43,11 @@ export async function chayDongBoNick(db) {
     if (error) {
       console.error(`  ✗ ${nick.slug}: ${error.message}`);
     } else {
-      console.log(`  ✓ ${nick.slug}${idNguoiDung ? "" : " (chưa map user)"}`);
+      const flag = dangBat ? "ON" : "OFF";
+      console.log(
+        `  ✓ [${flag}] ${nick.slug} · ${nick.kenh}` +
+          (idNguoiDung ? "" : " (chưa map user)"),
+      );
       ok += 1;
     }
   }
