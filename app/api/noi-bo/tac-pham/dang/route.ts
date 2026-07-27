@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 
+import { uploadCloudflareImageFromUrl } from "@/lib/cloudflare/upload-image-from-url";
 import {
   chuanHoaBlocks,
   dangBaiJourneyChoUser,
 } from "@/lib/editor/dang-bai-journey";
+import { attachEmbedThumbnailUrlToBlocks } from "@/lib/editor/embed-thumbnail";
 import {
   doanNenTangTuUrl,
   taoKhoiBaiNguon,
@@ -35,6 +37,8 @@ type BodyDangBai = {
   /** Ghi đè dòng attribution. */
   dongGhiNguon?: string;
   coverId?: string | null;
+  /** URL ảnh bìa nguồn (RSS/OG ArtStation/Behance) — upload CF làm cover nếu chưa có coverId. */
+  anhBiaUrl?: string | null;
   loaiMoc?: LoaiMoc;
   cheDoHienThi?: Visibility;
   thoiDiem?: string;
@@ -146,6 +150,24 @@ export async function POST(request: Request) {
     return badRequest("cheDoHienThi không hợp lệ.", "cheDoHienThi");
   }
 
+  let coverId = body.coverId?.trim() || null;
+  const anhBiaUrl = body.anhBiaUrl?.trim() || "";
+  if (!coverId && anhBiaUrl && isHttpUrl(anhBiaUrl)) {
+    try {
+      const uploaded = await uploadCloudflareImageFromUrl(anhBiaUrl);
+      if (uploaded?.imageId) {
+        coverId = uploaded.imageId;
+        blocks = attachEmbedThumbnailUrlToBlocks(
+          blocks,
+          urlNguon,
+          uploaded.url || anhBiaUrl,
+        );
+      }
+    } catch {
+      /* best-effort — vẫn đăng được, thiếu cover */
+    }
+  }
+
   const admin = createServiceRoleClient();
   const { data: profile, error: profileErr } = await admin
     .from("user_nguoi_dung")
@@ -184,7 +206,7 @@ export async function POST(request: Request) {
     slugChu: profile.slug,
     tieuDe,
     moTa,
-    coverId: body.coverId ?? null,
+    coverId,
     loaiMoc: loaiMoc ?? "du_an",
     cheDoHienThi: cheDoHienThi ?? "public",
     thoiDiem: body.thoiDiem,

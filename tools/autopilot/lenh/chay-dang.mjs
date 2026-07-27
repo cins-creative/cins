@@ -26,7 +26,7 @@ export async function chayDang(db, flags = {}) {
       id, tieu_de, mo_ta, dong_ghi_nguon, trang_thai,
       id_tai_khoan, id_muc,
       auto_tai_khoan ( id, slug, dang_bat, han_muc_ngay ),
-      auto_muc ( id, url_canonic, nen_tang, ten_tac_gia, trang_thai )
+      auto_muc ( id, url_canonic, nen_tang, ten_tac_gia, anh_bia_url, trang_thai )
     `,
     )
     .eq("trang_thai", "san_sang")
@@ -45,7 +45,9 @@ export async function chayDang(db, flags = {}) {
   });
 
   if (!hang.length) {
-    console.log("Không có bản thảo san_sang.");
+    console.log(
+      "Không có bản thảo san_sang. (Dùng: npm run autopilot -- duyet-ban-thao)",
+    );
     return { dang: 0, boQua: 0, loi: 0 };
   }
 
@@ -120,10 +122,14 @@ export async function chayDang(db, flags = {}) {
         nenTang: muc.nen_tang,
         tenTacGiaNguon: muc.ten_tac_gia || undefined,
         dongGhiNguon: bt.dong_ghi_nguon || undefined,
+        anhBiaUrl: muc.anh_bia_url || undefined,
         chiKiemTra: chiXem,
       };
 
-      console.log(`  → ${muc.url_canonic.slice(0, 64)}…`);
+      console.log(
+        `  → ${muc.url_canonic.slice(0, 64)}…` +
+          (muc.anh_bia_url ? " · +anh_bia" : " · không anh_bia"),
+      );
 
       if (chiXem) {
         const { status, data } = await goiApiDangBai(payload);

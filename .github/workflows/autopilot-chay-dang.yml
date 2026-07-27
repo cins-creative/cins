@@ -31,13 +31,16 @@ jobs:
           cache: npm
       - name: Install deps
         run: npm ci
+      # Chỉ soạn bản thảo cho_duyet — không auto duyệt / đăng.
+      # Duyệt tay: npm run autopilot -- duyet-ban-thao
+      # Đăng sau duyệt: workflow_dispatch hoặc npm run autopilot -- chay-dang
       - name: chuan-bi-dang
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: npm run autopilot -- chuan-bi-dang --gioi-han 40
-      - name: chay-dang
+      - name: chay-dang (chỉ bản đã duyệt san_sang)
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
