@@ -161,7 +161,19 @@ Repo tool (có thể repo mới hoặc thư mục/`apps` sau) + GitHub Actions c
 | **4** ✅ | Soạn bài AI (`tools/autopilot/lib/soan-bai-ai.mjs`, cấm xưng tác giả gốc; `--khong-ai`) |
 | **5** ✅ | Đăng CINs qua API + `auto_da_dang` idempotent URL |
 | **6** ✅ | GitHub Actions `autopilot-chay-dang.yml` (cần secrets GH + merge) |
-| **7** | (Sau) tương tác ảo like/comment — tắt mặc định |
+| **7** ✅ | Tương tác ảo emoji/comment — `tuong-tac` + workflow hourly; **bật/tắt per-nick** ở admin (cột `auto_tai_khoan.tuong_tac_bat`, mặc định tắt) |
+
+### Giai đoạn 7 — tương tác ảo (đã ship, tắt mặc định)
+
+Không migration — ghi thẳng `social_reaction` + `social_binh_luan` (service role).
+
+- **Nick ghé 4 phiên/ngày**, gap lệch nhau (jitter theo `slug|ngày`, khung 07–11/11–15/15–19/19–24 VN). Cron hourly; nick chỉ hành động khi tới cữ trong cửa sổ 90′.
+- **Emoji chỉ tích cực** (bỏ angry/dislike/sad), phân bố theo giọng; **xác suất** theo độ hoạt bát + khớp niche, clamp `[0.4,0.95]` (tránh 100% lộ bot). Quyết định ổn định (seeded RNG).
+- **~30% comment** khen chung theo pool giọng nick.
+- Phạm vi: bài `public` mới ≤48h, cả người thật lẫn seed, trừ bài của chính nick.
+- Idempotent: unique `social_reaction` + dedup `social_binh_luan`.
+- **Bật/tắt:** toggle **per-nick** ở `/admin/tai-khoan-ai` tab Nick (cột Tương tác) → cột `auto_tai_khoan.tuong_tac_bat`. Migration: `npm run migrate:autopilot-tuong-tac`. Cron chỉ chạy nick `tuong_tac_bat=true`. `CINS_SEED_TUONG_TAC=off` = kill-switch khẩn cấp.
+- Code: `tools/autopilot/lib/nick-tuong-tac.mjs` · `tools/autopilot/lenh/tuong-tac.mjs` · CLI `tuong-tac` / `lich-ghe-tham` · `.github/workflows/autopilot-tuong-tac.yml` · admin `lib/admin/autopilot.ts` (`capNhatNick.tuongTacBat`) + `AdminTaiKhoanAiScreen`.
 
 ### Việc user cần chốt khi build
 

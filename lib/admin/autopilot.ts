@@ -414,7 +414,7 @@ export async function lietKeNick(): Promise<AutopilotNickRow[]> {
   const { data, error } = await db
     .from("auto_tai_khoan")
     .select(
-      "id, slug, id_nguoi_dung, niche, dang_bat, han_muc_ngay, ghi_chu",
+      "id, slug, id_nguoi_dung, niche, dang_bat, tuong_tac_bat, han_muc_ngay, ghi_chu",
     )
     .order("slug");
   if (error) throw new Error(error.message);
@@ -453,6 +453,7 @@ export async function lietKeNick(): Promise<AutopilotNickRow[]> {
       niche: r.niche || [],
       kenh: kenhTuNiche(r.niche || []),
       dangBat: r.dang_bat,
+      tuongTacBat: Boolean(r.tuong_tac_bat),
       hanMucNgay: r.han_muc_ngay,
       ghiChu: r.ghi_chu,
       homNayDaDang: hm.soDaDang,
@@ -501,6 +502,7 @@ export async function dongBoNick(): Promise<{ synced: number; thieu: number }> {
 export async function capNhatNick(params: {
   id: string;
   dangBat?: boolean;
+  tuongTacBat?: boolean;
   hanMucNgay?: number;
 }): Promise<void> {
   const db = adminDb();
@@ -508,6 +510,9 @@ export async function capNhatNick(params: {
     cap_nhat_luc: new Date().toISOString(),
   };
   if (typeof params.dangBat === "boolean") patch.dang_bat = params.dangBat;
+  if (typeof params.tuongTacBat === "boolean") {
+    patch.tuong_tac_bat = params.tuongTacBat;
+  }
   if (typeof params.hanMucNgay === "number") {
     const n = Math.min(50, Math.max(0, Math.floor(params.hanMucNgay)));
     patch.han_muc_ngay = n;
@@ -611,30 +616,37 @@ export async function lietKeMuc(opts?: {
   trangThai?: string;
   nenTang?: string;
   limit?: number;
-}): Promise<AutopilotMucRow[]> {
+  offset?: number;
+}): Promise<{ items: AutopilotMucRow[]; total: number }> {
   const db = adminDb();
   const limit = Math.min(200, Math.max(1, opts?.limit ?? 50));
+  const offset = Math.max(0, opts?.offset ?? 0);
   let q = db
     .from("auto_muc")
     .select(
       "id, url_canonic, nen_tang, tieu_de_goc, ten_tac_gia, anh_bia_url, trang_thai, tao_luc",
+      { count: "exact" },
     )
-    .order("tao_luc", { ascending: false })
-    .limit(limit);
+    // FIFO: mục cũ (sắp soạn) trước
+    .order("tao_luc", { ascending: true })
+    .range(offset, offset + limit - 1);
   if (opts?.trangThai) q = q.eq("trang_thai", opts.trangThai);
   if (opts?.nenTang) q = q.eq("nen_tang", opts.nenTang);
-  const { data, error } = await q;
+  const { data, error, count } = await q;
   if (error) throw new Error(error.message);
-  return (data || []).map((r) => ({
-    id: r.id,
-    urlCanonic: r.url_canonic,
-    nenTang: r.nen_tang,
-    tieuDeGoc: r.tieu_de_goc,
-    tenTacGia: r.ten_tac_gia,
-    anhBiaUrl: r.anh_bia_url,
-    trangThai: r.trang_thai,
-    taoLuc: r.tao_luc,
-  }));
+  return {
+    total: count ?? 0,
+    items: (data || []).map((r) => ({
+      id: r.id,
+      urlCanonic: r.url_canonic,
+      nenTang: r.nen_tang,
+      tieuDeGoc: r.tieu_de_goc,
+      tenTacGia: r.ten_tac_gia,
+      anhBiaUrl: r.anh_bia_url,
+      trangThai: r.trang_thai,
+      taoLuc: r.tao_luc,
+    })),
+  };
 }
 
 export async function boQuaMuc(id: string): Promise<void> {
@@ -691,11 +703,14 @@ export async function nhapMuc(params: {
 export async function lietKeBanThao(opts?: {
   trangThai?: string;
   limit?: number;
-}): Promise<AutopilotBanThaoRow[]> {
+  offset?: number;
+}): Promise<{ items: AutopilotBanThaoRow[]; total: number }> {
   const db = adminDb();
   const limit = Math.min(200, Math.max(1, opts?.limit ?? 50));
+  const offset = Math.max(0, opts?.offset ?? 0);
   const trangThai = opts?.trangThai || "cho_duyet";
-  const { data, error } = await db
+  // FIFO: cũ trước = sắp đăng / sắp duyệt trước (khớp chayDang)
+  const { data, error, count } = await db
     .from("auto_ban_thao")
     .select(
       `
@@ -703,10 +718,11 @@ export async function lietKeBanThao(opts?: {
       auto_tai_khoan ( slug ),
       auto_muc ( url_canonic, nen_tang, anh_bia_url, ten_tac_gia, meta )
     `,
+      { count: "exact" },
     )
     .eq("trang_thai", trangThai)
     .order("tao_luc", { ascending: true })
-    .limit(limit);
+    .range(offset, offset + limit - 1);
   if (error) throw new Error(error.message);
 
   const mapped = (data || []).map((r) => {
@@ -775,26 +791,67 @@ export async function lietKeBanThao(opts?: {
       row.tenHienThi = p.tenHienThi;
     }
 
-    const [{ data: tkRows }, { data: sanSangRows }] = await Promise.all([
-      db
-        .from("auto_tai_khoan")
-        .select("id, slug, han_muc_ngay")
-        .in("slug", slugs),
-      db
-        .from("auto_ban_thao")
-        .select("id, id_tai_khoan, auto_tai_khoan ( slug )")
-        .eq("trang_thai", "san_sang"),
-    ]);
+    const needChoDuyetPos = trangThai === "cho_duyet";
+    const [{ data: tkRows }, { data: sanSangRows }, { data: choDuyetRows }] =
+      await Promise.all([
+        db
+          .from("auto_tai_khoan")
+          .select("id, slug, han_muc_ngay")
+          .in("slug", slugs),
+        db
+          .from("auto_ban_thao")
+          .select("tao_luc, auto_tai_khoan ( slug )")
+          .eq("trang_thai", "san_sang"),
+        needChoDuyetPos
+          ? db
+              .from("auto_ban_thao")
+              .select("tao_luc, auto_tai_khoan ( slug )")
+              .eq("trang_thai", "cho_duyet")
+          : Promise.resolve({ data: [] as { tao_luc: string }[] }),
+      ]);
 
-    const sanSangBySlug = new Map<string, number>();
-    for (const r of sanSangRows || []) {
-      const tk = asOne(
-        r.auto_tai_khoan as { slug?: string } | { slug?: string }[],
-      );
-      const slug = tk?.slug;
-      if (!slug) continue;
-      sanSangBySlug.set(slug, (sanSangBySlug.get(slug) || 0) + 1);
-    }
+    /** slug → danh sách tao_luc (đã sort tăng) để tính vị trí FIFO toàn cục. */
+    const taoLucBySlug = (
+      rows: { tao_luc: string; auto_tai_khoan?: unknown }[] | null,
+    ) => {
+      const map = new Map<string, string[]>();
+      for (const r of rows || []) {
+        const tk = asOne(
+          r.auto_tai_khoan as { slug?: string } | { slug?: string }[],
+        );
+        const slug = tk?.slug;
+        if (!slug) continue;
+        const arr = map.get(slug) || [];
+        arr.push(String(r.tao_luc));
+        map.set(slug, arr);
+      }
+      for (const [slug, arr] of map) {
+        arr.sort((a, b) => a.localeCompare(b));
+        map.set(slug, arr);
+      }
+      return map;
+    };
+
+    const sanSangTaoLuc = taoLucBySlug(
+      sanSangRows as { tao_luc: string; auto_tai_khoan?: unknown }[] | null,
+    );
+    const choDuyetTaoLuc = needChoDuyetPos
+      ? taoLucBySlug(
+          choDuyetRows as
+            | { tao_luc: string; auto_tai_khoan?: unknown }[]
+            | null,
+        )
+      : new Map<string, string[]>();
+
+    const demTruoc = (arr: string[] | undefined, taoLuc: string) => {
+      if (!arr?.length) return 0;
+      let n = 0;
+      for (const t of arr) {
+        if (t < taoLuc) n += 1;
+        else break;
+      }
+      return n;
+    };
 
     const hmBySlug = new Map<
       string,
@@ -808,19 +865,25 @@ export async function lietKeBanThao(opts?: {
       hmBySlug.set(tk.slug, { conLai: hm.conLai, hanMuc: hm.hanMuc });
     }
 
-    // Thứ tự cho_duyet theo nick (FIFO = thứ tự mapped đã sort tao_luc)
-    const choDuyetIdxBySlug = new Map<string, number>();
+    // Ước lượng đăng theo FIFO / nick — vị trí toàn cục (đúng cả khi paginate).
     for (const row of mapped) {
       if (!row.slug) continue;
       const hm = hmBySlug.get(row.slug);
-      const ahead = sanSangBySlug.get(row.slug) || 0;
-      const choTruoc = choDuyetIdxBySlug.get(row.slug) || 0;
-      choDuyetIdxBySlug.set(row.slug, choTruoc + 1);
-      row.sanSangTruoc = ahead;
+      const taoLuc = String(row.taoLuc);
+      let sanSangTruoc: number;
+      let choDuyetTruoc: number;
+      if (trangThai === "san_sang") {
+        sanSangTruoc = demTruoc(sanSangTaoLuc.get(row.slug), taoLuc);
+        choDuyetTruoc = 0;
+      } else {
+        sanSangTruoc = sanSangTaoLuc.get(row.slug)?.length ?? 0;
+        choDuyetTruoc = demTruoc(choDuyetTaoLuc.get(row.slug), taoLuc);
+      }
+      row.sanSangTruoc = sanSangTruoc;
       row.hanMucConLai = hm?.conLai ?? null;
       row.duKienDang = uocLuongDangSauDuyet({
-        sanSangTruoc: ahead,
-        choDuyetTruoc: choTruoc,
+        sanSangTruoc,
+        choDuyetTruoc,
         hanMucConLai: hm?.conLai ?? 0,
         hanMucNgay: hm?.hanMuc ?? 3,
       });
@@ -834,7 +897,7 @@ export async function lietKeBanThao(opts?: {
   for (const row of mapped) {
     delete (row as { _mucMeta?: unknown })._mucMeta;
   }
-  return mapped;
+  return { items: mapped, total: count ?? 0 };
 }
 
 /** Chi tiết bản thảo — trang xem trước trên CINs (admin). */
@@ -1247,33 +1310,41 @@ export async function chuanBiDang(opts?: {
 
 export async function lietKeDaDang(opts?: {
   limit?: number;
-}): Promise<AutopilotDaDangRow[]> {
+  offset?: number;
+}): Promise<{ items: AutopilotDaDangRow[]; total: number }> {
   const db = adminDb();
   const limit = Math.min(100, Math.max(1, opts?.limit ?? 40));
-  const { data, error } = await db
+  const offset = Math.max(0, opts?.offset ?? 0);
+  const { data, error, count } = await db
     .from("auto_da_dang")
     .select(
       `
       id, url_canonic, thanh_cong, loi, duong_dan, slug_bai, tao_luc,
       auto_tai_khoan ( slug )
     `,
+      { count: "exact" },
     )
     .order("tao_luc", { ascending: false })
-    .limit(limit);
+    .range(offset, offset + limit - 1);
   if (error) throw new Error(error.message);
-  return (data || []).map((r) => {
-    const tk = asOne(r.auto_tai_khoan as { slug?: string } | { slug?: string }[]);
-    return {
-      id: r.id,
-      urlCanonic: r.url_canonic,
-      thanhCong: r.thanh_cong,
-      loi: r.loi,
-      duongDan: r.duong_dan,
-      slugBai: r.slug_bai,
-      taoLuc: r.tao_luc,
-      slugNick: tk?.slug || null,
-    };
-  });
+  return {
+    total: count ?? 0,
+    items: (data || []).map((r) => {
+      const tk = asOne(
+        r.auto_tai_khoan as { slug?: string } | { slug?: string }[],
+      );
+      return {
+        id: r.id,
+        urlCanonic: r.url_canonic,
+        thanhCong: r.thanh_cong,
+        loi: r.loi,
+        duongDan: r.duong_dan,
+        slugBai: r.slug_bai,
+        taoLuc: r.tao_luc,
+        slugNick: tk?.slug || null,
+      };
+    }),
+  };
 }
 
 type BanThaoDang = {

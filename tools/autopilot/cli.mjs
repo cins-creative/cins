@@ -27,6 +27,7 @@ import { chayTaoViec } from "./lenh/tao-viec.mjs";
 import { chayThemNguon } from "./lenh/them-nguon.mjs";
 import { chayThemNguonMau } from "./lenh/them-nguon-mau.mjs";
 import { chayTrangThai } from "./lenh/trang-thai.mjs";
+import { chayLichGheTham, chayTuongTac } from "./lenh/tuong-tac.mjs";
 
 function inHuongDan() {
   console.log(`Autopilot CLI (Giai đoạn 1–3)
@@ -42,6 +43,8 @@ Lệnh:
   chuan-bi-dang [--gioi-han N] [--chi-xem] [--slug nick] [--khong-ai] [--san-sang]
   duyet-ban-thao [--gioi-han N] [--slug nick] [--tat-ca] [--id UUID] [--chi-xem]
   chay-dang [--gioi-han N] [--chi-xem] [--slug nick]
+  tuong-tac [--cua-so 90] [--nhin-lai 48] [--gioi-han 40] [--ti-le-comment 0.3] [--slug nick] [--tat-ca] [--chi-xem] [--ep]
+  lich-ghe-tham [--slug nick]
   tao-viec --loai <loai> [--payload JSON]
 
 ArtStation: RSS qua fetch-worker (quet-nguon).
@@ -53,6 +56,12 @@ Luồng đăng (duyệt tay mặc định):
   duyet-ban-thao  → cho_duyet → san_sang
   chay-dang       → POST API (cover từ anh_bia_url) + hạn mức/ngày VN
   --san-sang trên chuan-bi-dang = bỏ bước duyệt (không khuyến nghị)
+
+Tương tác ảo (Giai đoạn 7 — TẮT mặc định):
+  tuong-tac       nick "ghé" theo lịch → thả emoji tích cực (xác suất theo niche)
+                  lên bài công khai mới chưa tương tác; ~30% kèm bình luận khen.
+                  Cần env CINS_SEED_TUONG_TAC=on (hoặc --ep). --chi-xem để thử.
+  lich-ghe-tham   xem 4 khung giờ ghé/ngày của từng nick.
 
 Migration:
   npm run migrate:autopilot
@@ -130,6 +139,12 @@ async function main() {
       break;
     case "chay-dang":
       await chayDang(db, f);
+      break;
+    case "tuong-tac":
+      await chayTuongTac(db, f);
+      break;
+    case "lich-ghe-tham":
+      await chayLichGheTham(db, f);
       break;
     case "tao-viec":
       await chayTaoViec(db, f);

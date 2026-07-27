@@ -23,9 +23,11 @@ import type {
   AutopilotTab,
 } from "@/lib/admin/autopilot-types";
 
+const PIPELINE_PAGE_SIZE = 20;
+
 const TABS: { id: AutopilotTab; label: string }[] = [
-  { id: "tong-quan", label: "Tổng quan" },
   { id: "pipeline", label: "Pipeline" },
+  { id: "tong-quan", label: "Tổng quan" },
   { id: "nick", label: "Nick" },
 ];
 
@@ -114,6 +116,8 @@ export function AdminTaiKhoanAiScreen() {
   const [banThaos, setBanThaos] = useState<AutopilotBanThaoRow[]>([]);
   const [daDangs, setDaDangs] = useState<AutopilotDaDangRow[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [pipelinePage, setPipelinePage] = useState(1);
+  const [pipelineTotal, setPipelineTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -134,27 +138,35 @@ export function AdminTaiKhoanAiScreen() {
   }, []);
 
   const loadPipeline = useCallback(
-    async (step: AutopilotPipelineBuoc) => {
+    async (step: AutopilotPipelineBuoc, page: number) => {
       setLoading(true);
       setErr(null);
       try {
         await refreshOverview();
+        const safePage = Math.max(1, page);
+        const offset = (safePage - 1) * PIPELINE_PAGE_SIZE;
+        const q = `limit=${PIPELINE_PAGE_SIZE}&offset=${offset}`;
         if (step === "moi") {
-          const data = await getJson<{ items: AutopilotMucRow[] }>(
-            "/api/admin/autopilot?view=muc&trangThai=moi&limit=80",
+          const data = await getJson<{ items: AutopilotMucRow[]; total: number }>(
+            `/api/admin/autopilot?view=muc&trangThai=moi&${q}`,
           );
           setMucs(data.items);
+          setPipelineTotal(data.total ?? 0);
         } else if (step === "cho_duyet" || step === "san_sang") {
-          const data = await getJson<{ items: AutopilotBanThaoRow[] }>(
-            `/api/admin/autopilot?view=duyet&trangThai=${step}&limit=80`,
-          );
+          const data = await getJson<{
+            items: AutopilotBanThaoRow[];
+            total: number;
+          }>(`/api/admin/autopilot?view=duyet&trangThai=${step}&${q}`);
           setBanThaos(data.items);
+          setPipelineTotal(data.total ?? 0);
           setSelected(new Set());
         } else {
-          const data = await getJson<{ items: AutopilotDaDangRow[] }>(
-            "/api/admin/autopilot?view=da-dang&limit=60",
-          );
+          const data = await getJson<{
+            items: AutopilotDaDangRow[];
+            total: number;
+          }>(`/api/admin/autopilot?view=da-dang&${q}`);
           setDaDangs(data.items);
+          setPipelineTotal(data.total ?? 0);
         }
       } catch (e) {
         setErr(e instanceof Error ? e.message : "Lỗi tải dữ liệu");
@@ -166,9 +178,13 @@ export function AdminTaiKhoanAiScreen() {
   );
 
   const load = useCallback(
-    async (view: AutopilotTab, step: AutopilotPipelineBuoc) => {
+    async (
+      view: AutopilotTab,
+      step: AutopilotPipelineBuoc,
+      page: number,
+    ) => {
       if (view === "pipeline") {
-        await loadPipeline(step);
+        await loadPipeline(step, page);
         return;
       }
       setLoading(true);
@@ -193,12 +209,13 @@ export function AdminTaiKhoanAiScreen() {
   );
 
   useEffect(() => {
-    void load(tab, buoc);
-  }, [tab, buoc, load]);
+    void load(tab, buoc, pipelinePage);
+  }, [tab, buoc, pipelinePage, load]);
 
   const goPipeline = useCallback((step: AutopilotPipelineBuoc) => {
     setBuoc(step);
     setTab("pipeline");
+    setPipelinePage(1);
   }, []);
 
   const run = useCallback(
@@ -237,8 +254,9 @@ export function AdminTaiKhoanAiScreen() {
         if (opts?.nextBuoc) {
           setBuoc(opts.nextBuoc);
           setTab("pipeline");
+          setPipelinePage(1);
         } else {
-          await load(tab, buoc);
+          await load(tab, buoc, pipelinePage);
         }
       } catch (e) {
         setErr(e instanceof Error ? e.message : "Thao tác thất bại");
@@ -246,7 +264,37 @@ export function AdminTaiKhoanAiScreen() {
         setBusy(false);
       }
     },
-    [load, tab, buoc],
+    [load, tab, buoc, pipelinePage],
+  );
+
+  /**
+   * Cập nhật nick tại chỗ (optimistic) — không reload cả bảng để tránh giựt.
+   * Đổi state ngay, gọi API nền; lỗi thì revert + báo.
+   */
+  const capNhatNickTaiCho = useCallback(
+    async (
+      n: AutopilotNickRow,
+      patch: { dangBat?: boolean; tuongTacBat?: boolean; hanMucNgay?: number },
+    ) => {
+      const truoc = {
+        dangBat: n.dangBat,
+        tuongTacBat: n.tuongTacBat,
+        hanMucNgay: n.hanMucNgay,
+      };
+      setNicks((prev) =>
+        prev.map((x) => (x.id === n.id ? { ...x, ...patch } : x)),
+      );
+      setErr(null);
+      try {
+        await postAction({ action: "cap_nhat_nick", id: n.id, ...patch });
+      } catch (e) {
+        setNicks((prev) =>
+          prev.map((x) => (x.id === n.id ? { ...x, ...truoc } : x)),
+        );
+        setErr(e instanceof Error ? e.message : "Cập nhật nick thất bại");
+      }
+    },
+    [],
   );
 
   const dem = overview?.dem;
@@ -264,6 +312,12 @@ export function AdminTaiKhoanAiScreen() {
     }
   };
 
+  const pipelineTotalPages = Math.max(
+    1,
+    Math.ceil(pipelineTotal / PIPELINE_PAGE_SIZE),
+  );
+  const safePipelinePage = Math.min(pipelinePage, pipelineTotalPages);
+
   const allSelected = useMemo(
     () => banThaos.length > 0 && banThaos.every((b) => selected.has(b.id)),
     [banThaos, selected],
@@ -277,6 +331,48 @@ export function AdminTaiKhoanAiScreen() {
       return next;
     });
   };
+
+  useEffect(() => {
+    if (pipelinePage > pipelineTotalPages) {
+      setPipelinePage(pipelineTotalPages);
+    }
+  }, [pipelinePage, pipelineTotalPages]);
+
+  const pipelinePager =
+    tab === "pipeline" && pipelineTotal > 0 ? (
+      <div className="pagination tkai-pagination">
+        <span className="pagination-info">
+          Hiển thị {(safePipelinePage - 1) * PIPELINE_PAGE_SIZE + 1}–
+          {Math.min(safePipelinePage * PIPELINE_PAGE_SIZE, pipelineTotal)} /{" "}
+          {pipelineTotal}
+        </span>
+        <div className="pagination-btns">
+          <button
+            type="button"
+            className="page-btn"
+            disabled={safePipelinePage <= 1 || loading || busy}
+            onClick={() => setPipelinePage((p) => Math.max(1, p - 1))}
+          >
+            ←
+          </button>
+          <button type="button" className="page-btn active">
+            {safePipelinePage}/{pipelineTotalPages}
+          </button>
+          <button
+            type="button"
+            className="page-btn"
+            disabled={
+              safePipelinePage >= pipelineTotalPages || loading || busy
+            }
+            onClick={() =>
+              setPipelinePage((p) => Math.min(pipelineTotalPages, p + 1))
+            }
+          >
+            →
+          </button>
+        </div>
+      </div>
+    ) : null;
 
   return (
     <>
@@ -292,7 +388,7 @@ export function AdminTaiKhoanAiScreen() {
             type="button"
             className="btn btn-ghost"
             disabled={loading || busy}
-            onClick={() => void load(tab, buoc)}
+            onClick={() => void load(tab, buoc, pipelinePage)}
           >
             <RefreshCw size={14} />
             Làm mới
@@ -455,15 +551,17 @@ export function AdminTaiKhoanAiScreen() {
         {!loading && tab === "pipeline" ? (
           <section className="tkai-pipeline">
             <nav className="tkai-pipeline-steps" aria-label="Pipeline đăng bài">
-              {PIPELINE_BUOC.map((s, i) => (
+              {PIPELINE_BUOC.map((s) => (
                 <button
                   key={s.id}
                   type="button"
                   className={`tkai-pipeline-step${buoc === s.id ? " is-active" : ""}`}
-                  onClick={() => setBuoc(s.id)}
+                  onClick={() => {
+                    setBuoc(s.id);
+                    setPipelinePage(1);
+                  }}
                   title={s.hint}
                 >
-                  <span className="tkai-pipeline-step__n">{i + 1}</span>
                   <span className="tkai-pipeline-step__label">{s.label}</span>
                   <span className="tkai-pipeline-step__count">
                     {buocCount(s.id)}
@@ -607,6 +705,7 @@ export function AdminTaiKhoanAiScreen() {
                     </tbody>
                   </table>
                 </div>
+                {pipelinePager}
               </>
             ) : null}
 
@@ -841,10 +940,12 @@ export function AdminTaiKhoanAiScreen() {
                     </p>
                   ) : null}
                 </div>
+                {pipelinePager}
               </>
             ) : null}
 
             {buoc === "da_dang" ? (
+              <>
               <div className="table-wrap">
                 <table className="admin-table">
                   <thead>
@@ -908,6 +1009,8 @@ export function AdminTaiKhoanAiScreen() {
                   </tbody>
                 </table>
               </div>
+              {pipelinePager}
+              </>
             ) : null}
           </section>
         ) : null}
@@ -932,7 +1035,8 @@ export function AdminTaiKhoanAiScreen() {
                     <th>Kênh</th>
                     <th>Hôm nay</th>
                     <th>Hạn/ngày</th>
-                    <th>Bật</th>
+                    <th>Đăng</th>
+                    <th>Tương tác</th>
                     <th>Ghi chú</th>
                   </tr>
                 </thead>
@@ -970,15 +1074,10 @@ export function AdminTaiKhoanAiScreen() {
                           max={50}
                           className="tkai-input-sm"
                           defaultValue={n.hanMucNgay}
-                          disabled={busy}
                           onBlur={(e) => {
                             const v = Number(e.target.value);
                             if (v === n.hanMucNgay || Number.isNaN(v)) return;
-                            void run({
-                              action: "cap_nhat_nick",
-                              id: n.id,
-                              hanMucNgay: v,
-                            });
+                            void capNhatNickTaiCho(n, { hanMucNgay: v });
                           }}
                         />
                       </td>
@@ -986,16 +1085,30 @@ export function AdminTaiKhoanAiScreen() {
                         <button
                           type="button"
                           className={`btn btn-ghost tkai-toggle${n.dangBat ? " is-on" : ""}`}
-                          disabled={busy}
                           onClick={() =>
-                            void run({
-                              action: "cap_nhat_nick",
-                              id: n.id,
-                              dangBat: !n.dangBat,
-                            })
+                            void capNhatNickTaiCho(n, { dangBat: !n.dangBat })
                           }
                         >
                           {n.dangBat ? "ON" : "OFF"}
+                        </button>
+                      </td>
+                      <td>
+                        <button
+                          type="button"
+                          className={`btn btn-ghost tkai-toggle${n.tuongTacBat ? " is-on" : ""}`}
+                          disabled={!n.idNguoiDung}
+                          title={
+                            n.idNguoiDung
+                              ? "Thả emoji + bình luận ảo lên bài mới"
+                              : "Chưa map user — không thể tương tác"
+                          }
+                          onClick={() =>
+                            void capNhatNickTaiCho(n, {
+                              tuongTacBat: !n.tuongTacBat,
+                            })
+                          }
+                        >
+                          {n.tuongTacBat ? "ON" : "OFF"}
                         </button>
                       </td>
                       <td className="tkai-muted">{n.ghiChu || "—"}</td>

@@ -1,0 +1,47 @@
+# Autopilot Giai đoạn 7 — tương tác ảo (emoji + comment) nick seeding.
+# Chạy mỗi giờ: nick nào "tới cữ ghé" (4 phiên/ngày, gap lệch nhau) mới hành động
+# → thả emoji tích cực lên bài công khai mới chưa tương tác; ~30% kèm bình luận khen.
+# Idempotent: dựa unique key social_reaction + dedup social_binh_luan.
+#
+# BẬT/TẮT theo từng nick tại /admin/tai-khoan-ai (cột Tương tác) — cột auto_tai_khoan.tuong_tac_bat.
+# Mặc định mọi nick TẮT → workflow no-op cho tới khi admin bật.
+# CINS_SEED_TUONG_TAC=off (tuỳ chọn) = kill-switch khẩn cấp, tắt hết bất kể toggle.
+# Secrets: NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY [, CINS_SEED_TUONG_TAC]
+name: Autopilot tuong-tac
+
+on:
+  schedule:
+    - cron: "0 * * * *" # mỗi giờ (UTC) — cửa sổ 90′ để không sót phiên khi run trễ
+  workflow_dispatch:
+    inputs:
+      chi_xem:
+        description: "Dry-run (true/false)"
+        required: false
+        default: "false"
+      tat_ca:
+        description: "Bỏ lịch ghé — mọi nick chạy ngay (true/false)"
+        required: false
+        default: "false"
+
+jobs:
+  tuong-tac:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install deps
+        run: npm ci
+      - name: tuong-tac
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          CINS_SEED_TUONG_TAC: ${{ secrets.CINS_SEED_TUONG_TAC }}
+        run: |
+          ARGS="--cua-so 90"
+          if [ "${{ github.event.inputs.chi_xem }}" = "true" ]; then ARGS="$ARGS --chi-xem"; fi
+          if [ "${{ github.event.inputs.tat_ca }}" = "true" ]; then ARGS="$ARGS --tat-ca"; fi
+          npm run autopilot -- tuong-tac $ARGS

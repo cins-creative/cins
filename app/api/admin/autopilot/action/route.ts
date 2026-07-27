@@ -25,6 +25,7 @@ type Body = {
   id?: string;
   ids?: string[];
   dangBat?: boolean;
+  tuongTacBat?: boolean;
   hanMucNgay?: number;
   nenTang?: "artstation" | "behance" | "pixiv" | "khac";
   urlHoSo?: string;
@@ -81,6 +82,7 @@ export async function POST(req: Request) {
         await capNhatNick({
           id: body.id,
           dangBat: body.dangBat,
+          tuongTacBat: body.tuongTacBat,
           hanMucNgay: body.hanMucNgay,
         });
         return NextResponse.json({ ok: true });

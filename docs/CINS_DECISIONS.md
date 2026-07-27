@@ -38,6 +38,14 @@
 
 ## LOG — quyết định đã chốt
 
+### Autopilot Giai đoạn 7 — tương tác ảo nick seeding (2026-07-27)
+
+- **Chốt:** nick seeding "ghé" **4 phiên/ngày** (gap lệch theo nick+ngày), thả **emoji tích cực** (bỏ angry/dislike/sad) lên bài `content_cot_moc` `public` mới ≤48h — **cả bài người thật lẫn seed**, trừ bài của chính nick; **xác suất** theo độ hoạt bát + khớp niche (clamp 0.4–0.95, tránh 100% lộ bot); **~30%** bài đã react kèm 1 bình luận khen chung theo giọng nick.
+- **Không bảng phụ:** idempotency dựa unique key `social_reaction` + dedup `social_binh_luan` (ghi service role). Quyết định react/skip ổn định (seeded RNG).
+- **Bật/tắt per-nick** ở `/admin/tai-khoan-ai` (cột Tương tác); `CINS_SEED_TUONG_TAC=off` = kill-switch. Cron `autopilot-tuong-tac.yml` hourly.
+- **ALTER (đã duyệt 2026-07-27):** `auto_tai_khoan` + cột `tuong_tac_bat boolean NOT NULL DEFAULT false`. File `migration_autopilot_tuong_tac.sql` · runner `npm run migrate:autopilot-tuong-tac`. Bảng `auto_*` là bảng nội bộ Autopilot (không phải bảng lõi user), thêm cột default an toàn.
+- Code: `tools/autopilot/lib/nick-tuong-tac.mjs` · `lenh/tuong-tac.mjs` · `lib/admin/autopilot.ts` (`capNhatNick.tuongTacBat`, `lietKeNick`) · `AdminTaiKhoanAiScreen`.
+
 ### Gộp hub tổ chức về `/to-chuc` — theo pha (2026-07-27)
 
 - **Chốt (Phase 1 — đã ship):** listing tổ chức gộp về **`/to-chuc`** (trước là `/co-so-dao-tao` gộp trường+cơ sở, và `/studio` riêng). Thêm tab **Studio** vào bộ lọc (Tất cả / Trường ĐH / Cơ sở đào tạo / Studio + chip "Tổ chức của tôi"). Redirect **308** exact: `/co-so-dao-tao`, `/studio`, `/truong-dai-hoc` → `/to-chuc` (không đụng `/:slug` detail).

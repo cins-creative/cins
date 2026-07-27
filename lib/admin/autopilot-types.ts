@@ -39,6 +39,8 @@ export type AutopilotNickRow = {
   niche: string[];
   kenh: string | null;
   dangBat: boolean;
+  /** Giai đoạn 7: bật thả emoji/comment ảo cho nick này. */
+  tuongTacBat: boolean;
   hanMucNgay: number;
   ghiChu: string | null;
   homNayDaDang: number;
