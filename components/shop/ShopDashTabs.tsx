@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  BarChart3,
   Calendar,
   CalendarClock,
   ClipboardList,
@@ -30,7 +31,7 @@ import {
 } from "@/lib/shop/tam-dong";
 import type { ShopCuaHang } from "@/lib/shop/types";
 
-type ShopDashTab = "kho" | "don" | "su-kien" | "cua-hang";
+type ShopDashTab = "kho" | "don" | "su-kien" | "cua-hang" | "bao-cao";
 
 const TAB_COPY: Record<
   ShopDashTab,
@@ -55,6 +56,11 @@ const TAB_COPY: Record<
     href: "/ban-hang/cua-hang",
     label: "Quản lý cửa hàng",
     shortLabel: "Cửa hàng",
+  },
+  "bao-cao": {
+    href: "/ban-hang/bao-cao",
+    label: "Báo cáo doanh thu",
+    shortLabel: "Báo cáo",
   },
 };
 
@@ -637,6 +643,13 @@ export function ShopDashTabs({
             shortLabel={TAB_COPY["cua-hang"].shortLabel}
             active={active === "cua-hang"}
             icon={<Store size={18} strokeWidth={2} aria-hidden />}
+          />
+          <TabLink
+            href={TAB_COPY["bao-cao"].href}
+            label={TAB_COPY["bao-cao"].label}
+            shortLabel={TAB_COPY["bao-cao"].shortLabel}
+            active={active === "bao-cao"}
+            icon={<BarChart3 size={18} strokeWidth={2} aria-hidden />}
           />
         </nav>
         <div className="shop-dash-head-end">
