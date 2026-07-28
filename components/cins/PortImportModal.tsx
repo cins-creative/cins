@@ -11,10 +11,31 @@ import {
   fetchWorkViaExtension,
   listProfileWorksViaExtension,
   pingPortExtension,
+  type PortPlatform,
   type PortWorkListItem,
 } from "@/lib/port/extension-bridge";
 
 import "./port-import.css";
+
+const PLATFORMS: ReadonlyArray<{
+  id: PortPlatform;
+  label: string;
+  profilePlaceholder: string;
+  projectPlaceholder: string;
+}> = [
+  {
+    id: "behance",
+    label: "Behance",
+    profilePlaceholder: "vd. johndoe hoặc behance.net/johndoe",
+    projectPlaceholder: "vd. behance.net/gallery/123456789/ten-du-an",
+  },
+  {
+    id: "artstation",
+    label: "ArtStation",
+    profilePlaceholder: "vd. johndoe hoặc artstation.com/johndoe",
+    projectPlaceholder: "vd. artstation.com/artwork/abc123",
+  },
+];
 
 type Props = {
   open: boolean;
@@ -25,13 +46,17 @@ type Props = {
 
 type RowStatus = "idle" | "ok" | "fail";
 type Phase = "idle" | "scan" | "import";
+type Mode = "one" | "all";
 
 export function PortImportModal({ open, onClose, profileSlug }: Props) {
   const titleId = useId();
   const cancelRef = useRef(false);
 
+  const [platform, setPlatform] = useState<PortPlatform>("behance");
+  const [mode, setMode] = useState<Mode>("one");
   const [extReady, setExtReady] = useState(false);
   const [username, setUsername] = useState("");
+  const [projectUrl, setProjectUrl] = useState("");
   const [busy, setBusy] = useState(false);
   const [phase, setPhase] = useState<Phase>("idle");
   const [err, setErr] = useState<string | null>(null);
@@ -58,6 +83,26 @@ export function PortImportModal({ open, onClose, profileSlug }: Props) {
     setErr(null);
   }, []);
 
+  const switchMode = useCallback(
+    (next: Mode) => {
+      if (busy || next === mode) return;
+      setMode(next);
+      reset();
+    },
+    [busy, mode, reset],
+  );
+
+  const switchPlatform = useCallback(
+    (next: PortPlatform) => {
+      if (busy || next === platform) return;
+      setPlatform(next);
+      reset();
+    },
+    [busy, platform, reset],
+  );
+
+  const meta = PLATFORMS.find((p) => p.id === platform) ?? PLATFORMS[0]!;
+
   const close = useCallback(() => {
     if (busy) return;
     reset();
@@ -80,7 +125,7 @@ export function PortImportModal({ open, onClose, profileSlug }: Props) {
   async function runScan() {
     const name = username.trim();
     if (!name) {
-      setErr("Nhập username hoặc link hồ sơ Behance.");
+      setErr(`Nhập username hoặc link hồ sơ ${meta.label}.`);
       return;
     }
     const hasExt = extReady || (await refreshExt());
@@ -95,7 +140,7 @@ export function PortImportModal({ open, onClose, profileSlug }: Props) {
     setRowStatus({});
     try {
       const list = await listProfileWorksViaExtension(
-        "behance",
+        platform,
         name,
         CINS_PORT_MAX_WORKS,
       );
@@ -110,6 +155,35 @@ export function PortImportModal({ open, onClose, profileSlug }: Props) {
     } finally {
       setBusy(false);
       setPhase("idle");
+    }
+  }
+
+  async function runImportOne() {
+    const url = projectUrl.trim();
+    if (!url) {
+      setErr(`Dán link project ${meta.label}.`);
+      return;
+    }
+    const hasExt = extReady || (await refreshExt());
+    if (!hasExt) {
+      setErr("Cần bật Trợ lý CINs để kéo project.");
+      return;
+    }
+    setBusy(true);
+    setPhase("import");
+    setErr(null);
+    setSummary(null);
+    setProgress({ done: 0, total: 1 });
+    try {
+      await importOne({ projectId: url, url, title: null, coverUrl: null });
+      setProgress({ done: 1, total: 1 });
+      setSummary("Đã tạo 1 bản nháp");
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Kéo project thất bại.");
+    } finally {
+      setBusy(false);
+      setPhase("idle");
+      setProgress(null);
     }
   }
 
@@ -128,12 +202,12 @@ export function PortImportModal({ open, onClose, profileSlug }: Props) {
   }
 
   async function importOne(work: PortWorkListItem): Promise<void> {
-    const content = await fetchWorkViaExtension("behance", work.url);
+    const content = await fetchWorkViaExtension(platform, work.url);
     const previewRes = await fetch("/api/port/import", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        platform: "behance",
+        platform,
         url: work.url,
         html: content.html,
         apply: false,
@@ -150,7 +224,7 @@ export function PortImportModal({ open, onClose, profileSlug }: Props) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        platform: "behance",
+        platform,
         url: work.url,
         apply: true,
         preview: previewJson.preview,
@@ -234,7 +308,7 @@ export function PortImportModal({ open, onClose, profileSlug }: Props) {
       >
         <header className="port-import-head">
           <h2 id={titleId}>
-            <Sparkles size={18} aria-hidden /> Nhập tác phẩm từ Behance
+            <Sparkles size={18} aria-hidden /> Nhập tác phẩm từ {meta.label}
           </h2>
           <button
             type="button"
@@ -271,22 +345,80 @@ export function PortImportModal({ open, onClose, profileSlug }: Props) {
           )}
         </div>
 
-        <label className="port-import-field">
-          <span>Username / link hồ sơ Behance</span>
-          <input
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            placeholder="vd. johndoe hoặc behance.net/johndoe"
+        <div className="port-import-platforms" role="tablist" aria-label="Nền tảng">
+          {PLATFORMS.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              role="tab"
+              aria-selected={platform === p.id}
+              className={`port-import-platform${platform === p.id ? " is-active" : ""}`}
+              disabled={busy}
+              onClick={() => switchPlatform(p.id)}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="port-import-tabs" role="tablist">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mode === "one"}
+            className={`port-import-tab${mode === "one" ? " is-active" : ""}`}
             disabled={busy}
-            autoFocus
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                void runScan();
-              }
-            }}
-          />
-        </label>
+            onClick={() => switchMode("one")}
+          >
+            Một project
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mode === "all"}
+            className={`port-import-tab${mode === "all" ? " is-active" : ""}`}
+            disabled={busy}
+            onClick={() => switchMode("all")}
+          >
+            Cả hồ sơ
+          </button>
+        </div>
+
+        {mode === "one" ? (
+          <label className="port-import-field">
+            <span>Link project {meta.label}</span>
+            <input
+              value={projectUrl}
+              onChange={(e) => setProjectUrl(e.target.value)}
+              placeholder={meta.projectPlaceholder}
+              disabled={busy}
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  void runImportOne();
+                }
+              }}
+            />
+          </label>
+        ) : (
+          <label className="port-import-field">
+            <span>Username / link hồ sơ {meta.label}</span>
+            <input
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder={meta.profilePlaceholder}
+              disabled={busy}
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  void runScan();
+                }
+              }}
+            />
+          </label>
+        )}
 
         {err ? (
           <p className="port-import-err" role="alert">
@@ -365,7 +497,21 @@ export function PortImportModal({ open, onClose, profileSlug }: Props) {
         ) : null}
 
         <footer className="port-import-actions">
-          {!works ? (
+          {mode === "one" ? (
+            <button
+              type="button"
+              className="port-import-primary"
+              disabled={busy || !projectUrl.trim() || !extReady}
+              onClick={() => void runImportOne()}
+            >
+              {busy && phase === "import" ? (
+                <Loader2 size={16} className="port-spin" aria-hidden />
+              ) : (
+                <Sparkles size={16} aria-hidden />
+              )}
+              Kéo project về nháp
+            </button>
+          ) : !works ? (
             <button
               type="button"
               className="port-import-primary"

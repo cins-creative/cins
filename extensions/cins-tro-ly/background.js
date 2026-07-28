@@ -601,6 +601,181 @@ async function fetchBehanceWork(workUrl) {
   );
 }
 
+/* ── ARTSTATION (port → Journey, album ảnh) ───────────────────────────── */
+
+/** Chuẩn hoá input → { username, pageUrl }. */
+function parseArtstationProfileRef(raw) {
+  const s = String(raw || "").trim();
+  if (!s) return null;
+  try {
+    if (/^https?:\/\//i.test(s)) {
+      const url = new URL(s);
+      const host = url.hostname.toLowerCase().replace(/^www\./, "");
+      if (host !== "artstation.com") return null;
+      const seg = url.pathname.split("/").filter(Boolean)[0];
+      if (!seg || /^(artwork|projects|search|marketplace|jobs)$/i.test(seg)) {
+        return null;
+      }
+      return { username: seg, pageUrl: `https://www.artstation.com/${seg}` };
+    }
+  } catch {
+    return null;
+  }
+  const name = s.replace(/^@/, "");
+  if (!/^[A-Za-z0-9._-]{2,50}$/.test(name)) return null;
+  return { username: name, pageUrl: `https://www.artstation.com/${name}` };
+}
+
+/** Hash project từ URL artwork/projects. */
+function parseArtstationHash(raw) {
+  try {
+    const url = new URL(String(raw || "").trim());
+    const host = url.hostname.toLowerCase().replace(/^www\./, "");
+    if (host !== "artstation.com") return null;
+    const parts = url.pathname.split("/").filter(Boolean);
+    if (parts.length < 2) return null;
+    const kind = parts[0].toLowerCase();
+    if (kind !== "artwork" && kind !== "projects") return null;
+    const hash = parts[1].replace(/\.json$/i, "").trim();
+    return /^[A-Za-z0-9_-]{4,32}$/.test(hash) ? hash : null;
+  } catch {
+    return null;
+  }
+}
+
+async function listArtstationWorks(pageUrl, username, maxItems) {
+  return withTab(
+    pageUrl,
+    async (tabId) => {
+      const injected = await chrome.scripting.executeScript({
+        target: { tabId },
+        world: "MAIN",
+        args: [username, maxItems],
+        func: async (uname, max) => {
+          const items = [];
+          const seen = new Set();
+          let page = 1;
+          let guard = 0;
+          while (items.length < max && guard < 20) {
+            guard += 1;
+            let json = null;
+            try {
+              const res = await fetch(
+                `/users/${encodeURIComponent(uname)}/projects.json?page=${page}`,
+                {
+                  credentials: "include",
+                  headers: { Accept: "application/json" },
+                },
+              );
+              json = await res.json();
+            } catch {
+              break;
+            }
+            const data = Array.isArray(json?.data) ? json.data : [];
+            if (data.length === 0) break;
+            for (const p of data) {
+              const hash = String(p?.hash_id || "").trim();
+              if (!hash || seen.has(hash)) continue;
+              seen.add(hash);
+              const permalink =
+                typeof p?.permalink === "string" && p.permalink
+                  ? p.permalink
+                  : `https://www.artstation.com/artwork/${hash}`;
+              const cover =
+                p?.cover?.thumb_url ||
+                p?.cover?.medium_image_url ||
+                p?.cover?.small_square_url ||
+                p?.icons?.image_url ||
+                null;
+              items.push({
+                projectId: hash,
+                url: permalink,
+                title:
+                  typeof p?.title === "string" && p.title.trim()
+                    ? p.title.trim().slice(0, 200)
+                    : null,
+                coverUrl: cover && /^https?:\/\//i.test(cover) ? cover : null,
+              });
+              if (items.length >= max) break;
+            }
+            const total = Number(json?.total_count) || 0;
+            if (items.length >= total) break;
+            page += 1;
+            await new Promise((r) => setTimeout(r, 300));
+          }
+          return { ok: true, items };
+        },
+      });
+      const result = injected?.[0]?.result;
+      if (!result?.ok) {
+        return { ok: false, error: "Không đọc được danh sách project ArtStation." };
+      }
+      return {
+        ok: true,
+        data: {
+          items: result.items || [],
+          truncated: (result.items || []).length >= maxItems,
+        },
+      };
+    },
+    1200,
+  );
+}
+
+/** JSON 1 project — fetch same-origin trong tab artstation.com. */
+async function fetchArtstationWork(workUrl) {
+  const hash = parseArtstationHash(workUrl);
+  if (!hash) {
+    return { ok: false, error: "URL ArtStation không phải trang artwork/project." };
+  }
+  return withTab(
+    workUrl,
+    async (tabId) => {
+      const injected = await chrome.scripting.executeScript({
+        target: { tabId },
+        world: "MAIN",
+        args: [hash],
+        func: async (h) => {
+          let text = "";
+          try {
+            const res = await fetch(`/projects/${h}.json`, {
+              credentials: "include",
+              headers: { Accept: "application/json" },
+            });
+            if (res.ok) text = await res.text();
+          } catch {
+            /* ignore */
+          }
+          let title = null;
+          let cover = null;
+          try {
+            const j = JSON.parse(text);
+            title = typeof j?.title === "string" ? j.title : null;
+            cover = typeof j?.cover_url === "string" ? j.cover_url : null;
+          } catch {
+            /* ignore */
+          }
+          return { ok: text.length > 0, html: text, title, cover };
+        },
+      });
+      const result = injected?.[0]?.result;
+      if (!result?.ok || !result.html) {
+        return { ok: false, error: "Không lấy được JSON project ArtStation." };
+      }
+      return {
+        ok: true,
+        data: {
+          url: workUrl,
+          html: result.html,
+          title: result.title,
+          coverUrl: result.cover,
+        },
+      };
+    },
+    1000,
+  );
+}
+
 /* ── Router ───────────────────────────────────────────────────────────── */
 
 function handleAsync(promise, sendResponse) {
@@ -642,33 +817,49 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       return handleAsync(fetchGetPcBatch(entries), sendResponse);
     }
 
-    /* Port — Behance */
+    /* Port — Behance / ArtStation */
     case "LIST_PROFILE_WORKS": {
-      if (message.platform !== "behance") {
-        sendResponse({ ok: false, error: "Nền tảng chưa hỗ trợ (mới có Behance)." });
-        return;
-      }
-      const ref = parseBehanceProfileRef(message.username);
-      if (!ref) {
-        sendResponse({ ok: false, error: "Username / link hồ sơ Behance không hợp lệ." });
-        return;
-      }
+      const platform = message.platform;
       const max = Math.min(
         Math.max(Number(message.maxItems) || MAX_PROFILE_WORKS_DEFAULT, 1),
         96,
       );
-      return handleAsync(listBehanceWorks(ref.pageUrl, max), sendResponse);
+      if (platform === "behance") {
+        const ref = parseBehanceProfileRef(message.username);
+        if (!ref) {
+          sendResponse({ ok: false, error: "Username / link hồ sơ Behance không hợp lệ." });
+          return;
+        }
+        return handleAsync(listBehanceWorks(ref.pageUrl, max), sendResponse);
+      }
+      if (platform === "artstation") {
+        const ref = parseArtstationProfileRef(message.username);
+        if (!ref) {
+          sendResponse({ ok: false, error: "Username / link hồ sơ ArtStation không hợp lệ." });
+          return;
+        }
+        return handleAsync(
+          listArtstationWorks(ref.pageUrl, ref.username, max),
+          sendResponse,
+        );
+      }
+      sendResponse({ ok: false, error: "Nền tảng chưa hỗ trợ." });
+      return;
     }
     case "FETCH_WORK": {
-      if (message.platform !== "behance") {
-        sendResponse({ ok: false, error: "Nền tảng chưa hỗ trợ (mới có Behance)." });
-        return;
-      }
+      const platform = message.platform;
       if (!message.url) {
         sendResponse({ ok: false, error: "Thiếu URL project." });
         return;
       }
-      return handleAsync(fetchBehanceWork(message.url), sendResponse);
+      if (platform === "behance") {
+        return handleAsync(fetchBehanceWork(message.url), sendResponse);
+      }
+      if (platform === "artstation") {
+        return handleAsync(fetchArtstationWork(message.url), sendResponse);
+      }
+      sendResponse({ ok: false, error: "Nền tảng chưa hỗ trợ." });
+      return;
     }
 
     default:

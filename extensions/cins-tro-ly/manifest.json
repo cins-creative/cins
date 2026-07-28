@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Trợ lý CINs",
-  "version": "1.0.0",
-  "description": "Trợ lý nội bộ CINs: import Shopee (kho hàng) + kéo portfolio Behance về Journey. Không phân phối công khai.",
+  "version": "1.1.0",
+  "description": "Trợ lý nội bộ CINs: import Shopee (kho hàng) + kéo portfolio Behance/ArtStation về Journey. Không phân phối công khai.",
   "action": {
     "default_title": "Trợ lý CINs"
   },
@@ -14,7 +14,9 @@
     "https://shopee.vn/*",
     "https://*.shopee.vn/*",
     "https://www.behance.net/*",
-    "https://behance.net/*"
+    "https://behance.net/*",
+    "https://www.artstation.com/*",
+    "https://artstation.com/*"
   ],
   "content_scripts": [
     {

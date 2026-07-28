@@ -3,20 +3,22 @@ import { NextResponse } from "next/server";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import {
   applyPortImport,
-  buildBehancePortPreview,
+  buildPortPreview,
   type PortImportPreview,
+  type PortPlatform,
 } from "@/lib/port/import";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
 
 const MAX_HTML_BYTES = 6_000_000;
+const PLATFORMS: readonly PortPlatform[] = ["behance", "artstation"];
 
 /**
  * POST /api/port/import
- * Body: { platform: "behance", url: string, html?: string, apply?: boolean, preview?: PortImportPreview }
+ * Body: { platform: "behance"|"artstation", url: string, html?: string, apply?: boolean, preview?: PortImportPreview }
  *
- * - apply=false (mặc định): dựng preview (mirror ảnh CF + blocks bài dài).
+ * - apply=false (mặc định): dựng preview (mirror ảnh CF + blocks).
  * - apply=true: tạo bài Journey riêng tư (che_do_hien_thi='chi_minh') để user duyệt.
  */
 export async function POST(request: Request) {
@@ -38,10 +40,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "JSON không hợp lệ." }, { status: 400 });
   }
 
-  const platform = typeof body.platform === "string" ? body.platform : "behance";
-  if (platform !== "behance") {
+  const platform = (
+    typeof body.platform === "string" ? body.platform : "behance"
+  ) as PortPlatform;
+  if (!PLATFORMS.includes(platform)) {
     return NextResponse.json(
-      { error: "Nền tảng chưa hỗ trợ (mới có Behance)." },
+      { error: "Nền tảng chưa hỗ trợ (Behance / ArtStation)." },
       { status: 400 },
     );
   }
@@ -74,7 +78,7 @@ export async function POST(request: Request) {
           { status: 413 },
         );
       }
-      preview = await buildBehancePortPreview({ url, html });
+      preview = await buildPortPreview({ platform, url, html });
     }
 
     if (!apply) {

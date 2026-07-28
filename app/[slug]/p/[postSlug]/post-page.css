@@ -383,6 +383,38 @@
   padding: 0;
 }
 
+/*
+ * Album seed «full» — 1 block `imgs` nhiều ảnh, `albumGridCell:false`
+ * (render qua PostReadOnlyImgs = `.b-imgs .imgwrap.full`, KHÔNG phải `.image-grid`).
+ * Phải xếp dọc full-width, cao tự nhiên + cuộn cột media như album grid.
+ * Nếu không, các rule fill-viewport ở trên (`:not(:has(.image-grid))`) kẹp
+ * `.post-blocks-fb` = height:100% / overflow:hidden → chỉ thấy ảnh đầu, phần
+ * còn lại bị cắt và không cuộn được.
+ */
+.j-post-page:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media:has(.b-imgs)
+  .post-view-content-inner,
+.j-post-page:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media:has(.b-imgs)
+  .post-blocks-fb,
+.j-post-page:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media:has(.b-imgs)
+  .post-blocks-fb
+  > .block,
+.j-post-page:has(.post-canvas--media.post-canvas--split)
+  .post-view-content--media:has(.b-imgs)
+  .post-blocks-fb
+  > .block
+  > .block-inner {
+  flex: 0 0 auto;
+  height: auto;
+  max-height: none;
+  overflow: visible;
+  align-items: stretch;
+  justify-content: flex-start;
+  background: #000;
+}
+
 /* block-inner fill 100% khung block — media căn giữa bên trong */
 .j-post-page:has(.post-canvas--media.post-canvas--split)
   .post-view-content--media:has(.image-grid)
@@ -4733,7 +4765,8 @@
 }
 .cins-post-view .post-comments-v1 .post-comments-attachment {
   display: block;
-  width: fit-content;
+  flex: 0 0 auto;
+  width: max-content;
   max-width: 100%;
   border-radius: 8px;
   overflow: hidden;

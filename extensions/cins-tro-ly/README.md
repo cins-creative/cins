@@ -3,9 +3,9 @@
 Một tiện ích duy nhất cho hai việc — **không** phân phối Chrome Web Store:
 
 - **Shopee → Kho hàng** (`/ban-hang/kho` → AI · Shopee): kéo 1 SP hoặc cả shop.
-- **Behance → Journey** (menu tài khoản → Nhập tác phẩm): kéo portfolio về dạng bài nháp.
+- **Behance / ArtStation → Journey** (menu tài khoản → Nhập tác phẩm): kéo portfolio về dạng bài nháp. Behance = bài viết dài (chữ + ảnh + video xen kẽ); ArtStation = album ảnh.
 
-Dùng chính **phiên đăng nhập của bạn** trên shopee.vn / behance.net để lấy dữ liệu (vượt chặn Cloudflare / login-wall). Trang CINs ↔ extension nói chuyện qua `postMessage`, không cần secret.
+Dùng chính **phiên đăng nhập của bạn** trên shopee.vn / behance.net / artstation.com để lấy dữ liệu (vượt chặn Cloudflare / login-wall). Trang CINs ↔ extension nói chuyện qua `postMessage`, không cần secret.
 
 ## Cài vào Chrome / Edge
 
@@ -18,7 +18,7 @@ Dùng chính **phiên đăng nhập của bạn** trên shopee.vn / behance.net 
 | Nguồn trang | Nguồn ext | Loại message |
 |---|---|---|
 | `cins-shopee-page` | `cins-shopee-ext` | `PING` · `FETCH_GET_PC` · `LIST_SHOP_ITEMS` · `FETCH_GET_PC_BATCH` |
-| `cins-port-page` | `cins-port-ext` | `PING` · `LIST_PROFILE_WORKS` · `FETCH_WORK` |
+| `cins-port-page` | `cins-port-ext` | `PING` · `LIST_PROFILE_WORKS` · `FETCH_WORK` (kèm `platform`: `behance` \| `artstation`) |
 
 ## Đóng gói
 

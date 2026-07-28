@@ -67,6 +67,93 @@ function preferLargeUrl(url: string): string {
 }
 
 /**
+ * Parse JSON project ArtStation (`/projects/{hash}.json`) → assets.
+ * Tách riêng để dùng cho cả worker (`layAnhArtstationTuUrl`) lẫn import qua
+ * extension (JSON fetch same-origin trong tab người dùng).
+ */
+export function parseArtstationProjectJson(
+  jsonText: string,
+  opts?: { hashId?: string | null; gioiHan?: number },
+):
+  | { ok: true; data: ArtstationProjectAssets }
+  | { ok: false; error: string } {
+  let parsed: Record<string, unknown>;
+  try {
+    parsed = JSON.parse(jsonText) as Record<string, unknown>;
+  } catch {
+    return { ok: false, error: "JSON ArtStation không hợp lệ." };
+  }
+
+  const assetsRaw = Array.isArray(parsed.assets) ? parsed.assets : [];
+  const gioiHan = Math.min(
+    ARTSTATION_ALBUM_MAX_ANH,
+    Math.max(1, opts?.gioiHan ?? ARTSTATION_ALBUM_MAX_ANH),
+  );
+
+  const anh: ArtstationAssetAnh[] = [];
+  const seen = new Set<string>();
+  for (const raw of assetsRaw) {
+    if (anh.length >= gioiHan) break;
+    if (!raw || typeof raw !== "object") continue;
+    const a = raw as Record<string, unknown>;
+    const assetType = String(a.asset_type || "").toLowerCase();
+    if (assetType && assetType !== "image") continue;
+    const imageUrlRaw =
+      typeof a.image_url === "string" ? a.image_url.trim() : "";
+    if (!imageUrlRaw || !/^https?:\/\//i.test(imageUrlRaw)) continue;
+    const imageUrl = preferLargeUrl(imageUrlRaw);
+    if (seen.has(imageUrl)) continue;
+    seen.add(imageUrl);
+    const width =
+      typeof a.width === "number" && Number.isFinite(a.width)
+        ? Math.round(a.width)
+        : null;
+    const height =
+      typeof a.height === "number" && Number.isFinite(a.height)
+        ? Math.round(a.height)
+        : null;
+    anh.push({ imageUrl, width, height });
+  }
+
+  if (!anh.length) {
+    return { ok: false, error: "Project ArtStation không có ảnh." };
+  }
+
+  const coverUrl =
+    typeof parsed.cover_url === "string" && parsed.cover_url.trim()
+      ? preferLargeUrl(parsed.cover_url.trim())
+      : anh[0]?.imageUrl || null;
+
+  return {
+    ok: true,
+    data: {
+      hashId:
+        (typeof parsed.hash_id === "string" ? parsed.hash_id : null) ||
+        opts?.hashId ||
+        "",
+      title: typeof parsed.title === "string" ? parsed.title : null,
+      permalink:
+        typeof parsed.permalink === "string" ? parsed.permalink : null,
+      coverUrl,
+      anh,
+    },
+  };
+}
+
+/** Mô tả plain-text ngắn của project (nếu có) — cho caption khi import. */
+export function moTaArtstationTuJson(jsonText: string): string | null {
+  try {
+    const parsed = JSON.parse(jsonText) as Record<string, unknown>;
+    const raw =
+      typeof parsed.description === "string" ? parsed.description : "";
+    const clean = raw.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+    return clean || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Fetch `https://www.artstation.com/projects/{hash}.json` qua worker.
  */
 export async function layAnhArtstationTuUrl(
@@ -122,62 +209,8 @@ export async function layAnhArtstationTuUrl(
     };
   }
 
-  let parsed: Record<string, unknown>;
-  try {
-    parsed = JSON.parse(payload.html) as Record<string, unknown>;
-  } catch {
-    return { ok: false, error: "JSON ArtStation không hợp lệ." };
-  }
-
-  const assetsRaw = Array.isArray(parsed.assets) ? parsed.assets : [];
-  const gioiHan = Math.min(
-    ARTSTATION_ALBUM_MAX_ANH,
-    Math.max(1, opts?.gioiHan ?? ARTSTATION_ALBUM_MAX_ANH),
-  );
-
-  const anh: ArtstationAssetAnh[] = [];
-  const seen = new Set<string>();
-  for (const raw of assetsRaw) {
-    if (anh.length >= gioiHan) break;
-    if (!raw || typeof raw !== "object") continue;
-    const a = raw as Record<string, unknown>;
-    const assetType = String(a.asset_type || "").toLowerCase();
-    if (assetType && assetType !== "image") continue;
-    const imageUrlRaw =
-      typeof a.image_url === "string" ? a.image_url.trim() : "";
-    if (!imageUrlRaw || !/^https?:\/\//i.test(imageUrlRaw)) continue;
-    const imageUrl = preferLargeUrl(imageUrlRaw);
-    if (seen.has(imageUrl)) continue;
-    seen.add(imageUrl);
-    const width =
-      typeof a.width === "number" && Number.isFinite(a.width)
-        ? Math.round(a.width)
-        : null;
-    const height =
-      typeof a.height === "number" && Number.isFinite(a.height)
-        ? Math.round(a.height)
-        : null;
-    anh.push({ imageUrl, width, height });
-  }
-
-  if (!anh.length) {
-    return { ok: false, error: "Project ArtStation không có ảnh." };
-  }
-
-  const coverUrl =
-    typeof parsed.cover_url === "string" && parsed.cover_url.trim()
-      ? preferLargeUrl(parsed.cover_url.trim())
-      : anh[0]?.imageUrl || null;
-
-  return {
-    ok: true,
-    data: {
-      hashId,
-      title: typeof parsed.title === "string" ? parsed.title : null,
-      permalink:
-        typeof parsed.permalink === "string" ? parsed.permalink : null,
-      coverUrl,
-      anh,
-    },
-  };
+  return parseArtstationProjectJson(payload.html, {
+    hashId,
+    gioiHan: opts?.gioiHan,
+  });
 }

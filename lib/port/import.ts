@@ -1,6 +1,11 @@
 import "server-only";
 
 import {
+  ARTSTATION_ALBUM_MAX_ANH,
+  moTaArtstationTuJson,
+  parseArtstationProjectJson,
+} from "@/lib/autopilot/artstation-assets";
+import {
   BEHANCE_ALBUM_MAX_ANH,
   laTieuDeThoBehance,
   parseBehanceProjectHtml,
@@ -11,10 +16,16 @@ import {
   dangBaiJourneyChoUser,
   type DangBaiJourneyResult,
 } from "@/lib/editor/dang-bai-journey";
+import {
+  gopMoTaVoiDongNguon,
+  taoDongGhiNguon,
+  taoKhoiBaiAlbumNguon,
+  taoKhoiBaiBehanceNguon,
+} from "@/lib/editor/khoi-bai-nguon";
 import type { Block } from "@/lib/editor/types";
 import { POST_MOTA_MAX, POST_TITLE_MAX } from "@/lib/journey/post-content-kind";
 
-export type PortPlatform = "behance";
+export type PortPlatform = "behance" | "artstation";
 
 /** Preview 1 project — round-trip client → apply (JSON-serializable). */
 export type PortImportPreview = {
@@ -57,6 +68,11 @@ async function mirrorImages(
   return out;
 }
 
+function chuanHoaTieuDe(raw: string | null | undefined, fallback: string): string {
+  const t = (raw || "").trim();
+  return (t || fallback).slice(0, POST_TITLE_MAX);
+}
+
 /**
  * Dựng preview cho 1 project Behance từ HTML (extension gửi về).
  * Kết quả = bài viết dài: chữ + ảnh + video xen kẽ theo thứ tự trang.
@@ -72,9 +88,7 @@ export async function buildBehancePortPreview(params: {
     throw new Error("Thiếu nội dung HTML project.");
   }
 
-  const parsed = parseBehanceProjectHtml(html, {
-    gioiHan: BEHANCE_ALBUM_MAX_ANH,
-  });
+  const parsed = parseBehanceProjectHtml(html, { gioiHan: BEHANCE_ALBUM_MAX_ANH });
 
   const imageUrls = Array.from(
     new Set(
@@ -85,40 +99,27 @@ export async function buildBehancePortPreview(params: {
   );
 
   const mirrored = await mirrorImages(imageUrls);
-
-  const blocks: Block[] = [];
   const warnings: string[] = [];
   let soAnh = 0;
   let soVideo = 0;
 
+  const modules: Parameters<typeof taoKhoiBaiBehanceNguon>[0]["modules"] = [];
   for (const mod of parsed.modules) {
     if (mod.kind === "text") {
-      if (mod.text.trim()) {
-        blocks.push({
-          id: `p-txt-${blocks.length}`,
-          loai: "body",
-          thu_tu: blocks.length,
-          config: { html: mod.text },
-        });
-      }
+      if (mod.text.trim()) modules.push({ kind: "text", text: mod.text });
     } else if (mod.kind === "image") {
       const cf = mirrored.get(mod.anh.imageUrl);
       if (cf) {
-        blocks.push({
-          id: `p-img-${blocks.length}`,
-          loai: "imgs",
-          thu_tu: blocks.length,
-          config: { imgs: [cf.imageId], layout: "single", rounded: true },
+        modules.push({
+          kind: "image",
+          seed: cf.imageId,
+          width: mod.anh.width,
+          height: mod.anh.height,
         });
         soAnh += 1;
       }
     } else if (mod.kind === "video") {
-      blocks.push({
-        id: `p-vid-${blocks.length}`,
-        loai: "embed",
-        thu_tu: blocks.length,
-        config: { url: mod.url },
-      });
+      modules.push({ kind: "video", url: mod.url });
       soVideo += 1;
     }
   }
@@ -129,31 +130,25 @@ export async function buildBehancePortPreview(params: {
     warnings.push(`Chỉ tải được ${soAnh}/${imageUrls.length} ảnh.`);
   }
 
+  const blocks = taoKhoiBaiBehanceNguon({ modules, urlNguon: sourceUrl });
+
   const firstCover = imageUrls
     .map((u) => mirrored.get(u))
     .find((x): x is { imageId: string; url: string } => Boolean(x));
-
-  /* Ghi nguồn gốc (attribution) cuối bài. */
-  if (sourceUrl) {
-    blocks.push({
-      id: `p-src-${blocks.length}`,
-      loai: "body",
-      thu_tu: blocks.length,
-      config: { html: `Nguồn gốc: ${sourceUrl}` },
-    });
-  }
 
   let tieuDe = (parsed.title || "").trim();
   if (!tieuDe || laTieuDeThoBehance(tieuDe)) {
     tieuDe = tieuDeTuSlugUrlBehance(sourceUrl) || params.fallbackTitle?.trim() || "";
   }
-  if (!tieuDe) tieuDe = "Tác phẩm Behance";
-  tieuDe = tieuDe.slice(0, POST_TITLE_MAX);
+  tieuDe = chuanHoaTieuDe(tieuDe, "Tác phẩm Behance");
 
   const firstText = parsed.modules.find(
     (m): m is Extract<typeof m, { kind: "text" }> => m.kind === "text",
   );
-  const moTa = firstText ? excerptFromText(firstText.text).slice(0, POST_MOTA_MAX) : "";
+  const moTa = gopMoTaVoiDongNguon(
+    firstText ? excerptFromText(firstText.text) : "",
+    taoDongGhiNguon({ urlNguon: sourceUrl, nenTang: "behance" }),
+  ).slice(0, POST_MOTA_MAX);
 
   return {
     platform: "behance",
@@ -167,6 +162,96 @@ export async function buildBehancePortPreview(params: {
     soVideo,
     warnings,
   };
+}
+
+/**
+ * Dựng preview cho 1 project ArtStation từ JSON (`/projects/{hash}.json`).
+ * Kết quả = album ảnh (mỗi ảnh 1 block imgs, layout album liền mạch).
+ */
+export async function buildArtstationPortPreview(params: {
+  url: string;
+  html: string;
+  fallbackTitle?: string | null;
+}): Promise<PortImportPreview> {
+  const sourceUrl = String(params.url || "").trim();
+  const json = String(params.html || "");
+  if (!json) {
+    throw new Error("Thiếu dữ liệu JSON project ArtStation.");
+  }
+
+  const parsed = parseArtstationProjectJson(json, {
+    gioiHan: ARTSTATION_ALBUM_MAX_ANH,
+  });
+  if (!parsed.ok) {
+    throw new Error(parsed.error);
+  }
+
+  const imageUrls = Array.from(new Set(parsed.data.anh.map((a) => a.imageUrl)));
+  const mirrored = await mirrorImages(imageUrls);
+  const warnings: string[] = [];
+
+  const anhAlbum = parsed.data.anh
+    .map((a) => {
+      const cf = mirrored.get(a.imageUrl);
+      if (!cf) return null;
+      return { seed: cf.imageId, width: a.width, height: a.height };
+    })
+    .filter((x): x is { seed: string; width: number | null; height: number | null } =>
+      Boolean(x),
+    );
+
+  const soAnh = anhAlbum.length;
+  if (imageUrls.length > 0 && soAnh === 0) {
+    warnings.push("Không tải được ảnh nào từ project lên Cloudflare.");
+  } else if (soAnh < imageUrls.length) {
+    warnings.push(`Chỉ tải được ${soAnh}/${imageUrls.length} ảnh.`);
+  }
+
+  const blocks = taoKhoiBaiAlbumNguon({
+    anh: anhAlbum,
+    urlNguon: sourceUrl,
+    nenTang: "artstation",
+  });
+
+  const firstCover = imageUrls
+    .map((u) => mirrored.get(u))
+    .find((x): x is { imageId: string; url: string } => Boolean(x));
+
+  const tieuDe = chuanHoaTieuDe(
+    parsed.data.title || params.fallbackTitle,
+    "Tác phẩm ArtStation",
+  );
+
+  const moTa = gopMoTaVoiDongNguon(
+    moTaArtstationTuJson(json)?.slice(0, MOTA_PREVIEW_MAX) || "",
+    taoDongGhiNguon({ urlNguon: sourceUrl, nenTang: "artstation" }),
+  ).slice(0, POST_MOTA_MAX);
+
+  return {
+    platform: "artstation",
+    sourceUrl,
+    tieuDe,
+    moTa,
+    coverId: firstCover?.imageId ?? null,
+    coverUrl: firstCover?.url ?? null,
+    blocks,
+    soAnh,
+    soVideo: 0,
+    warnings,
+  };
+}
+
+/** Dựng preview theo nền tảng. */
+export async function buildPortPreview(params: {
+  platform: PortPlatform;
+  url: string;
+  html: string;
+  fallbackTitle?: string | null;
+}): Promise<PortImportPreview> {
+  if (params.platform === "artstation") {
+    return buildArtstationPortPreview(params);
+  }
+  return buildBehancePortPreview(params);
 }
 
 /** Tạo bài Journey riêng tư (nháp để duyệt) từ preview đã dựng. */

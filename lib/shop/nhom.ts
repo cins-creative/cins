@@ -200,7 +200,7 @@ export async function listNhom(
     console.error("[shop] listNhom", error);
     throw new Error("LIST_NHOM_FAILED");
   }
-  const nhoms = ((data ?? []) as NhomRow[]).map(mapNhom);
+  const nhoms = ((data ?? []) as unknown as NhomRow[]).map(mapNhom);
   // Thiếu cột cache `so_mau` → đếm trực tiếp từ shop_san_pham để không hiện 0.
   if (!soMauSupported) await fillSoMauFromProducts(admin, ownerId, nhoms);
   return nhoms;

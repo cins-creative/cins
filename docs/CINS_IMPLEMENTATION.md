@@ -56,20 +56,20 @@ Pipeline **riêng** (không reuse blog-import Sine Art). Seller-only (session + 
 
 #### Kéo port → Journey (`port/import`, 2026-07-28)
 
-Tái dùng đúng pattern Shopee AI cho **user tự import portfolio** của chính mình. Kết quả = **bài Journey riêng tư** (`che_do_hien_thi='chi_minh'`) để user duyệt rồi tự đổi public. **Không** đổi schema, **không** reuse pipeline Autopilot nick.
+Tái dùng đúng pattern Shopee AI cho **user tự import portfolio** của chính mình. Kết quả = **bài Journey riêng tư** (`che_do_hien_thi='chi_minh'`) để user duyệt rồi tự đổi public. **Không** đổi schema, **không** reuse pipeline Autopilot nick. Nền tảng: **Behance** (bài viết dài) · **ArtStation** (album ảnh).
 
-| Bước | Việc |
-|---|---|
-| Listing | Extension mở tab hồ sơ behance.net (session user) → quét link `/gallery/{id}` (`LIST_PROFILE_WORKS`) |
-| Fetch | Extension `fetch(galleryUrl, {credentials:'include'})` trong tab behance.net → HTML (vượt Cloudflare) (`FETCH_WORK`) |
-| Parse | Server reuse `parseBehanceProjectHtml` → `modules[]` (text · image · video) theo thứ tự trang |
-| Ảnh | Mirror mỗi ảnh module → Cloudflare Images (`uploadCloudflareImageFromUrl`) |
-| Blocks | text→`body`, image→`imgs` (1 ảnh/block, giữ interleave = bài viết dài), video→`embed`; cover = ảnh đầu; ghi nguồn cuối bài |
-| Apply | `dangBaiJourneyChoUser({ cheDoHienThi:'chi_minh', loaiMoc:'du_an' })` — mỗi project = 1 bài |
+| Bước | Behance | ArtStation |
+|---|---|---|
+| Listing (`LIST_PROFILE_WORKS`) | quét tab behance.net → link `/gallery/{id}` | fetch `/users/{u}/projects.json` trong tab artstation.com → `hash_id` |
+| Fetch (`FETCH_WORK`) | `fetch(galleryUrl,{credentials:'include'})` → HTML (vượt Cloudflare) | `fetch(/projects/{hash}.json)` same-origin → JSON |
+| Parse (server) | `parseBehanceProjectHtml` → `modules[]` (text·image·video) | `parseArtstationProjectJson` → `assets[]` (chỉ image) |
+| Ảnh | mirror mỗi ảnh → Cloudflare Images (`uploadCloudflareImageFromUrl`) | như Behance |
+| Blocks | `taoKhoiBaiBehanceNguon` — text→`body`, image→`imgs`, video→`embed` (giữ interleave) | `taoKhoiBaiAlbumNguon` — mỗi ảnh 1 `imgs` album; dòng Nguồn → `mo_ta` |
+| Apply | `dangBaiJourneyChoUser({ cheDoHienThi:'chi_minh', loaiMoc:'du_an' })` — mỗi project = 1 bài | ↑ |
 
-**Route:** `POST /api/port/import` (`runtime nodejs`, `maxDuration 300`, session auth). Body `{ platform:'behance', url, html?, apply?, preview? }`. Lib: `lib/port/import.ts` · `lib/port/extension-bridge.ts`. **UI:** `PortImportModal` mở từ `UserAccountMenu` → **Nhập tác phẩm**; loop từng project (fetch HTML → preview → apply), link về `/{slug}` xem nháp.
+**Route:** `POST /api/port/import` (`runtime nodejs`, `maxDuration 300`, session auth). Body `{ platform:'behance'|'artstation', url, html?, apply?, preview? }` (`html` = HTML Behance **hoặc** JSON ArtStation). Dispatcher `buildPortPreview`. Lib: `lib/port/import.ts` · `lib/port/extension-bridge.ts` · block builder `lib/editor/khoi-bai-nguon.ts` · parser `lib/autopilot/{behance,artstation}-assets.ts`. **UI:** `PortImportModal` mở từ `UserAccountMenu` → **Nhập tác phẩm**; chọn nền tảng + tab **Một project** / **Cả hồ sơ**; loop từng project (fetch → preview → apply), link về `/{slug}` xem nháp.
 
-**Extension hợp nhất "Trợ lý CINs" (không Store):** `extensions/cins-tro-ly/` → `public/downloads/cins-tro-ly.zip` (`npm run pack:tro-ly-ext`). Gộp cả Shopee (`cins-shopee-page`) + Port (`cins-port-page`) trong 1 tiện ích; content script trả cả 2 giao thức → tương thích UI Shopee cũ. `host_permissions`: shopee.vn + behance.net.
+**Extension hợp nhất "Trợ lý CINs" (không Store):** `extensions/cins-tro-ly/` (v1.1.0) → `public/downloads/cins-tro-ly.zip` (`npm run pack:tro-ly-ext`). Gộp Shopee (`cins-shopee-page`) + Port (`cins-port-page`) trong 1 tiện ích; content script trả cả 2 giao thức → tương thích UI Shopee cũ. `host_permissions`: shopee.vn + behance.net + artstation.com. Port message kèm `platform`.
 
 ### Kết bạn & social
 | Route | Việc |

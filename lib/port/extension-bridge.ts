@@ -9,7 +9,7 @@ const EXT_SOURCE = "cins-port-ext";
 export const CINS_TRO_LY_EXT_ZIP_HREF = "/downloads/cins-tro-ly.zip";
 export const CINS_PORT_MAX_WORKS = 48;
 
-export type PortPlatform = "behance";
+export type PortPlatform = "behance" | "artstation";
 
 export type PortWorkListItem = {
   projectId: string;

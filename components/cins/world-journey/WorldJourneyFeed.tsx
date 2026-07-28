@@ -596,7 +596,7 @@ export function WorldJourneyFeed({
     [activeFilter, feedSource, activeLinhVucSlug],
   );
 
-  const loadMore = useCallback(async () => {
+  const loadMore = useCallback(async (): Promise<boolean> => {
     if (loadingMoreRef.current || !hasMoreRef.current || filterLoading) {
       return false;
     }
