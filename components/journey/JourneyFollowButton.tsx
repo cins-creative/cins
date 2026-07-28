@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Clock3, UserCheck, UserMinus, UserPlus, X, Bell, BellOff } from "lucide-react";
+import { Ban, Check, Clock3, UserCheck, UserMinus, UserPlus, X, Bell, BellOff } from "lucide-react";
 import { useCallback, useEffect, useState, useTransition } from "react";
 
 import { emitNotificationsChanged } from "@/lib/journey/notifications-client";
@@ -36,6 +36,7 @@ export function JourneyFollowButton({
 
   const quanHe: QuanHe = status?.trang_thai ?? "none";
   const ketBanId = status?.ket_ban_id ?? null;
+  const blockedByMe = status?.chan_boi_toi === true;
 
   const refreshFollowStatus = useCallback(() => {
     if (!viewerProfileId || viewerProfileId === targetUserId) return;
@@ -82,11 +83,55 @@ export function JourneyFollowButton({
     return null;
   }
 
+  const unblock = () => {
+    setError(null);
+    startTransition(async () => {
+      const res = await fetch(`/api/ket-ban/${targetUserId}/block`, {
+        method: "DELETE",
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(
+          typeof json.error === "string" ? json.error : "Không bỏ chặn được.",
+        );
+        return;
+      }
+      await refreshStatus();
+      emitNotificationsChanged();
+    });
+  };
+
   if (quanHe === "blocked") {
+    // Bên kia chặn viewer → chỉ hiện chỉ báo tĩnh (không bỏ chặn được).
+    if (!blockedByMe) {
+      return (
+        <span
+          className="j-follow-blocked is-icon"
+          title="Đã chặn"
+          aria-label="Đã chặn"
+        >
+          <Ban size={17} strokeWidth={2} aria-hidden />
+        </span>
+      );
+    }
     return (
-      <span className="j-follow-blocked" aria-label="Đã chặn">
-        Đã chặn
-      </span>
+      <div className="j-follow-wrap">
+        <button
+          type="button"
+          className="j-friend-btn is-blocked is-compact"
+          title={pending ? "Đang bỏ chặn…" : "Bỏ chặn"}
+          aria-label={pending ? "Đang bỏ chặn…" : "Bỏ chặn"}
+          disabled={pending || !ready}
+          onClick={unblock}
+        >
+          <Ban size={17} strokeWidth={2} aria-hidden />
+        </button>
+        {error ? (
+          <span className="j-follow-error" role="alert">
+            {error}
+          </span>
+        ) : null}
+      </div>
     );
   }
 
