@@ -13,6 +13,7 @@ import { createPortal } from "react-dom";
 
 import { useCinsChat } from "@/components/cins/CinsChatProvider";
 import {
+  SHOP_DON_NHAC_GIO,
   SHOP_TRANG_THAI_DON_LABEL,
   type ShopDonHang,
   type ShopLoaiDon,
@@ -47,6 +48,24 @@ function formatDonTime(iso: string): string {
 
 function tongSoLuong(d: ShopDonHang): number {
   return d.dong.reduce((sum, line) => sum + line.soLuong, 0);
+}
+
+/** Tuổi đơn `cho_xac_nhan` + mức nhắc (aging) — nền tảng nhắc, seller tự xử lý. */
+function donAging(
+  d: ShopDonHang,
+): { label: string; level: "ok" | "warn" | "overdue" } | null {
+  if (d.trangThai !== "cho_xac_nhan") return null;
+  const ageH = (Date.now() - new Date(d.taoLuc).getTime()) / 3_600_000;
+  const days = Math.floor(ageH / 24);
+  const label =
+    days >= 1
+      ? `${days} ngày`
+      : ageH >= 1
+        ? `${Math.floor(ageH)} giờ`
+        : "mới";
+  const level: "ok" | "warn" | "overdue" =
+    ageH >= SHOP_DON_NHAC_GIO ? "overdue" : ageH >= 24 ? "warn" : "ok";
+  return { label, level };
 }
 
 const PREP_LOAI_ALL = "__all__";
@@ -698,6 +717,22 @@ export function ShopDonClient() {
                       <span className={`shop-status shop-status--${d.trangThai}`}>
                         {SHOP_TRANG_THAI_DON_LABEL[d.trangThai]}
                       </span>
+                      {(() => {
+                        const aging = donAging(d);
+                        if (!aging || aging.level === "ok") return null;
+                        return (
+                          <span
+                            className={`shop-don-age shop-don-age--${aging.level}`}
+                            title={
+                              aging.level === "overdue"
+                                ? "Chờ quá lâu — nên xác nhận hoặc hủy"
+                                : "Đơn chờ đã lâu — cần đối soát"
+                            }
+                          >
+                            {aging.label}
+                          </span>
+                        );
+                      })()}
                     </td>
                     <td className="shop-don-col-mua">
                       {d.muaTen?.trim() || "—"}

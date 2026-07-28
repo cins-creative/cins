@@ -1,0 +1,32 @@
+{
+  "manifest_version": 3,
+  "name": "Trợ lý CINs",
+  "version": "1.0.0",
+  "description": "Trợ lý nội bộ CINs: import Shopee (kho hàng) + kéo portfolio Behance về Journey. Không phân phối công khai.",
+  "action": {
+    "default_title": "Trợ lý CINs"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "permissions": ["tabs", "scripting"],
+  "host_permissions": [
+    "https://shopee.vn/*",
+    "https://*.shopee.vn/*",
+    "https://www.behance.net/*",
+    "https://behance.net/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "http://localhost:3001/*",
+        "http://127.0.0.1:3001/*",
+        "https://cins.vn/*",
+        "https://www.cins.vn/*",
+        "https://cins.info-cins-vn.workers.dev/*"
+      ],
+      "js": ["content-cins.js"],
+      "run_at": "document_start"
+    }
+  ]
+}

@@ -115,6 +115,22 @@ export async function countSanPhamByNhom(
   return count ?? 0;
 }
 
+/** Đếm mẫu (da_xoa=false) CHƯA gắn loại (id_nhom IS NULL) — thẻ «Chưa gán loại». */
+export async function countOrphanSanPham(ownerId: string): Promise<number> {
+  const admin = createServiceRoleClient();
+  const { count, error } = await admin
+    .from("shop_san_pham")
+    .select("id", { count: "exact", head: true })
+    .eq("id_nguoi_dung", ownerId)
+    .eq("da_xoa", false)
+    .is("id_nhom", null);
+  if (error) {
+    console.error("[shop] countOrphanSanPham", error);
+    throw new Error("COUNT_FAILED");
+  }
+  return count ?? 0;
+}
+
 export async function createSanPham(
   ownerId: string,
   input: {

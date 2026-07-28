@@ -64,7 +64,7 @@ export async function luuMucBatch(
   const urls = cleaned.map((r) => r.url_canonic);
   const { data: existing, error: exErr } = await admin
     .from("auto_muc")
-    .select("id, url_canonic, anh_bia_url, tieu_de_goc")
+    .select("id, url_canonic, anh_bia_url, tieu_de_goc, meta")
     .in("url_canonic", urls);
 
   if (exErr) {
@@ -80,23 +80,40 @@ export async function luuMucBatch(
   for (const r of cleaned) {
     const cu = byUrl.get(r.url_canonic);
     if (!cu) continue;
-    const patch: Record<string, string> = {};
+    const patch: Record<string, unknown> = {};
     if (!cu.anh_bia_url && r.anh_bia_url) {
       patch.anh_bia_url = r.anh_bia_url;
     }
     const tieuCu = String(cu.tieu_de_goc || "");
     const tieuMoi = String(r.tieu_de_goc || "");
+    let tieuDeGocPatch: string | null = null;
     if (
       tieuMoi &&
       !laTieuDeThoBehance(tieuMoi) &&
       !/^https?:/i.test(tieuMoi) &&
       (laTieuDeThoBehance(tieuCu) || !tieuCu || /^https?:/i.test(tieuCu))
     ) {
-      patch.tieu_de_goc = tieuMoi.slice(0, 500);
+      tieuDeGocPatch = tieuMoi.slice(0, 500);
+      patch.tieu_de_goc = tieuDeGocPatch;
+    }
+    /* Bổ sung album ảnh (anhUrls) khi lần quét mới có nhiều ảnh hơn — cho phép
+       re-collect từ trang gallery để làm giàu mục đã có. */
+    const metaCu =
+      cu.meta && typeof cu.meta === "object"
+        ? (cu.meta as Record<string, unknown>)
+        : {};
+    const metaMoi =
+      r.meta && typeof r.meta === "object"
+        ? (r.meta as Record<string, unknown>)
+        : {};
+    const anhUrlsCu = Array.isArray(metaCu.anhUrls) ? metaCu.anhUrls : [];
+    const anhUrlsMoi = Array.isArray(metaMoi.anhUrls) ? metaMoi.anhUrls : [];
+    if (anhUrlsMoi.length > anhUrlsCu.length) {
+      patch.meta = { ...metaCu, ...metaMoi, anhUrls: anhUrlsMoi };
     }
     if (Object.keys(patch).length) {
       await admin.from("auto_muc").update(patch).eq("id", cu.id);
-      if (patch.tieu_de_goc) {
+      if (tieuDeGocPatch) {
         /* Đồng bộ bản thảo còn tiêu đề thô `Behance {id}`. */
         const { data: banThaos } = await admin
           .from("auto_ban_thao")
@@ -106,7 +123,7 @@ export async function luuMucBatch(
           if (!laTieuDeThoBehance(bt.tieu_de as string | null)) continue;
           await admin
             .from("auto_ban_thao")
-            .update({ tieu_de: patch.tieu_de_goc.slice(0, 200) })
+            .update({ tieu_de: tieuDeGocPatch.slice(0, 200) })
             .eq("id", bt.id);
         }
       }

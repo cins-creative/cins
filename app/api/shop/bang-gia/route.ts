@@ -41,7 +41,8 @@ export async function POST(request: Request) {
   try {
     const item = await createBangGia(session.profile.id, {
       ten: body.ten,
-      tienTe: typeof body.tienTe === "string" ? body.tienTe : "VND",
+      // Mô hình 1 bảng giá VND duy nhất — chốt VND, bỏ chọn tiền tệ.
+      tienTe: "VND",
       ghiChu: typeof body.ghiChu === "string" ? body.ghiChu : null,
       dong: Array.isArray(body.dong)
         ? body.dong

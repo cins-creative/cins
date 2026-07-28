@@ -20,7 +20,7 @@ export async function PATCH(request: Request, ctx: Ctx) {
   try {
     await updateBangGia(session.profile.id, id, {
       ten: typeof body.ten === "string" ? body.ten : undefined,
-      tienTe: typeof body.tienTe === "string" ? body.tienTe : undefined,
+      // Mô hình 1 bảng giá VND duy nhất — không cho đổi tiền tệ.
       ghiChu:
         body.ghiChu === null || typeof body.ghiChu === "string"
           ? (body.ghiChu as string | null)

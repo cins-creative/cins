@@ -342,10 +342,197 @@
   background: rgba(15, 23, 42, 0.85);
 }
 
-.shop-don-detail-actions {
+/* Chip hết hạn xác nhận. */
+.shop-don-detail-expiry {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  background: color-mix(in srgb, #f59e0b 14%, transparent);
+  color: #b45309;
+}
+
+.shop-don-detail-expiry.is-overdue {
+  background: color-mix(in srgb, #dc2626 14%, transparent);
+  color: #b91c1c;
+}
+
+/* Tín hiệu tin cậy người mua. */
+.shop-don-detail-trust {
   display: flex;
   flex-wrap: wrap;
+  gap: 6px;
+}
+
+.shop-don-detail-trust-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 650;
+  background: var(--neutral-100, #f1f5f9);
+  color: var(--ink-muted, #64748b);
+}
+
+.shop-don-detail-trust-chip.is-good {
+  background: color-mix(in srgb, #16a34a 14%, transparent);
+  color: #15803d;
+}
+
+.shop-don-detail-trust-chip.is-warn {
+  background: color-mix(in srgb, #f59e0b 16%, transparent);
+  color: #b45309;
+}
+
+/* Bảng hủy đơn. */
+.shop-don-detail-huy {
+  display: flex;
+  flex-direction: column;
   gap: 8px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, #dc2626 25%, var(--border, #e4e6eb));
+  background: color-mix(in srgb, #dc2626 5%, var(--bg-page, #f7f8fa));
+}
+
+.shop-don-detail-huy-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.shop-don-detail-huy-chip {
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border, #e4e6eb);
+  background: var(--bg-surface, #fff);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-display, rgba(0, 0, 0, 0.75));
+  cursor: pointer;
+}
+
+.shop-don-detail-huy-chip.is-active {
+  border-color: #dc2626;
+  background: color-mix(in srgb, #dc2626 12%, #fff);
+  color: #b91c1c;
+}
+
+.shop-don-detail-huy-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border, #e4e6eb);
+  background: var(--bg-surface, #fff);
+  font: inherit;
+  font-size: 13px;
+  resize: vertical;
+  color: var(--ink-display, rgba(0, 0, 0, 0.88));
+}
+
+.shop-don-detail-huy-hint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.55));
+}
+
+.shop-don-detail-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Hàng hành động cấp đơn — các nút chia đều bề ngang. */
+.shop-don-detail-actions-row {
+  display: flex;
+  gap: 8px;
+}
+
+.shop-don-detail-actions-row .shop-don-detail-btn {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+/* Vùng kiểm duyệt người mua — tách khỏi hành động đơn, nhẹ hơn. */
+.shop-don-detail-mod {
+  display: flex;
+  gap: 4px;
+  justify-content: flex-end;
+  margin-top: 2px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border, #e4e6eb);
+}
+
+.shop-don-detail-mod .shop-don-detail-btn {
+  min-height: 32px;
+  padding: 0 10px;
+  border: 0;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-muted, #64748b);
+}
+
+.shop-don-detail-mod .shop-don-detail-btn:not(:disabled):hover {
+  background: var(--neutral-100, #f1f5f9);
+  color: var(--ink-display, rgba(0, 0, 0, 0.8));
+}
+
+.shop-don-detail-mod .shop-don-detail-btn > svg {
+  margin-right: 4px;
+}
+
+.shop-don-detail-btn.danger {
+  border-color: color-mix(in srgb, #dc2626 45%, transparent);
+  background: transparent;
+  color: #b91c1c;
+}
+
+.shop-don-detail-btn.danger:not(:disabled):hover {
+  background: color-mix(in srgb, #dc2626 10%, transparent);
+}
+
+.shop-don-detail-btn > svg {
+  margin-right: 5px;
+}
+
+:root[data-theme="dark"] .shop-don-detail-trust-chip {
+  background: var(--neutral-100, #1c212c);
+  color: var(--ink-muted, #94a3b8);
+}
+
+:root[data-theme="dark"] .shop-don-detail-huy {
+  background: color-mix(in srgb, #dc2626 12%, rgba(0, 0, 0, 0.25));
+  border-color: color-mix(in srgb, #dc2626 35%, var(--border, #2a3040));
+}
+
+:root[data-theme="dark"] .shop-don-detail-huy-chip {
+  background: var(--bg-surface, #151a24);
+  border-color: var(--border, #2a3040);
+  color: var(--ink-display, rgba(255, 255, 255, 0.85));
+}
+
+:root[data-theme="dark"] .shop-don-detail-huy-input {
+  background: var(--bg-surface, #151a24);
+  border-color: var(--border, #2a3040);
+  color: var(--ink-display, rgba(255, 255, 255, 0.9));
+}
+
+:root[data-theme="dark"] .shop-don-detail-mod {
+  border-color: var(--border, #2a3040);
+}
+
+:root[data-theme="dark"] .shop-don-detail-mod .shop-don-detail-btn:not(:disabled):hover {
+  background: var(--neutral-100, #1c212c);
+  color: var(--ink-display, rgba(255, 255, 255, 0.85));
 }
 
 .shop-don-detail-btn {
@@ -377,11 +564,6 @@
 .shop-don-detail-panel.is-paid .shop-don-detail-btn.primary {
   background: #16a34a;
   color: #fff;
-}
-
-.shop-don-detail-btn.danger {
-  border-color: color-mix(in srgb, #dc2626 35%, transparent);
-  color: #b91c1c;
 }
 
 .shop-don-detail-btn.ghost {

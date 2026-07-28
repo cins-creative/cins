@@ -84,6 +84,39 @@ export async function listBangGia(ownerId: string): Promise<ShopBangGia[]> {
   }));
 }
 
+/** Tên mặc định của bảng giá canonical (1 bảng giá VND / shop). */
+export const SHOP_BANG_GIA_MAC_DINH_TEN = "Bảng giá mặc định";
+
+/**
+ * Bảng giá canonical của shop — mô hình 1 bảng giá VND duy nhất.
+ * Lấy bảng cũ nhất (deterministic khi lỡ có nhiều bảng cũ); tạo mới nếu chưa có.
+ */
+export async function getOrCreateDefaultBangGia(
+  ownerId: string,
+): Promise<{ id: string; tienTe: string }> {
+  const admin = createServiceRoleClient();
+  const { data: existing } = await admin
+    .from("shop_bang_gia")
+    .select("id, tien_te")
+    .eq("id_nguoi_dung", ownerId)
+    .eq("da_xoa", false)
+    .order("tao_luc", { ascending: true })
+    .limit(1)
+    .maybeSingle<{ id: string; tien_te: string }>();
+  if (existing) return { id: existing.id, tienTe: existing.tien_te };
+  const { data: created, error } = await admin
+    .from("shop_bang_gia")
+    .insert({
+      id_nguoi_dung: ownerId,
+      ten: SHOP_BANG_GIA_MAC_DINH_TEN,
+      tien_te: "VND",
+    })
+    .select("id, tien_te")
+    .single<{ id: string; tien_te: string }>();
+  if (error || !created) throw new Error("CREATE_FAILED");
+  return { id: created.id, tienTe: created.tien_te };
+}
+
 export async function createBangGia(
   ownerId: string,
   input: {
@@ -218,13 +251,55 @@ export async function resolveGiaBienThe(
     .eq("id_bang_gia", bangGiaId)
     .eq("id_bien_the", bienTheId)
     .maybeSingle<{ gia: number | string; gia_giam: number | string | null }>();
-  if (!dong) return null;
-  const giaBan = Number(dong.gia);
-  const giaGiam = dong.gia_giam == null ? null : Number(dong.gia_giam);
+  if (dong) {
+    const giaBan = Number(dong.gia);
+    const giaGiam = dong.gia_giam == null ? null : Number(dong.gia_giam);
+    return {
+      gia: shopGiaHieuLuc({ gia: giaBan, giaGiam }),
+      giaBan,
+      giaGiam,
+      tienTe: bg.tien_te,
+    };
+  }
+  // Lưới an toàn: bảng giá thiếu dòng → dùng giá gốc mặc định của loại
+  // (`shop_nhom.gia_mac_dinh`). Nhờ vậy Kho, modal và checkout luôn khớp.
+  const giaMacDinh = await resolveGiaMacDinhForBienThe(bienTheId);
+  if (giaMacDinh == null) return null;
   return {
-    gia: shopGiaHieuLuc({ gia: giaBan, giaGiam }),
-    giaBan,
-    giaGiam,
+    gia: giaMacDinh,
+    giaBan: giaMacDinh,
+    giaGiam: null,
     tienTe: bg.tien_te,
   };
+}
+
+/**
+ * Giá gốc mặc định của loại chứa biến thể: `shop_bien_the` → `shop_san_pham`
+ * → `shop_nhom.gia_mac_dinh`. Null nếu loại chưa đặt giá.
+ */
+async function resolveGiaMacDinhForBienThe(
+  bienTheId: string,
+): Promise<number | null> {
+  const admin = createServiceRoleClient();
+  const { data: bt } = await admin
+    .from("shop_bien_the")
+    .select("id_san_pham")
+    .eq("id", bienTheId)
+    .maybeSingle<{ id_san_pham: string | null }>();
+  if (!bt?.id_san_pham) return null;
+  const { data: sp } = await admin
+    .from("shop_san_pham")
+    .select("id_nhom")
+    .eq("id", bt.id_san_pham)
+    .maybeSingle<{ id_nhom: string | null }>();
+  if (!sp?.id_nhom) return null;
+  const { data: nhom } = await admin
+    .from("shop_nhom")
+    .select("gia_mac_dinh")
+    .eq("id", sp.id_nhom)
+    .maybeSingle<{ gia_mac_dinh: number | string | null }>();
+  const g = nhom?.gia_mac_dinh;
+  if (g == null || g === "") return null;
+  const n = Number(g);
+  return Number.isFinite(n) ? n : null;
 }

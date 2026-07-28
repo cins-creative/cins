@@ -604,8 +604,9 @@ export function WorldJourneyFeed({
     setLoadingMore(true);
     setLoadError(false);
     try {
+      const prevOffset = nextOffsetRef.current;
       const res = await fetch(
-        `/api/world-journey/feed?${feedQueryParams(nextOffsetRef.current)}`,
+        `/api/world-journey/feed?${feedQueryParams(prevOffset)}`,
       );
       if (!res.ok) throw new Error("load failed");
       const data = (await res.json()) as {
@@ -613,15 +614,28 @@ export function WorldJourneyFeed({
         hasMore: boolean;
         nextOffset: number;
       };
+      let addedCount = 0;
       setFeedMilestones((prev) => {
         const seen = new Set(prev.map((m) => m.id));
         const extra = data.milestones.filter((m) => !seen.has(m.id));
+        addedCount = extra.length;
         return [...prev, ...extra];
       });
       hasMoreRef.current = data.hasMore;
       nextOffsetRef.current = data.nextOffset;
       setHasMore(data.hasMore);
       setNextOffset(data.nextOffset);
+      /* Trang toàn bài trùng (đã có trong list) → độ dài không đổi nên observer
+         không tự kích lại. Nếu offset vẫn tiến và còn dữ liệu, tự nạp trang kế
+         để không kẹt giữa chừng (chỉ tiếp khi offset thực sự tăng → tránh loop). */
+      if (
+        addedCount === 0 &&
+        data.hasMore &&
+        data.nextOffset > prevOffset
+      ) {
+        loadingMoreRef.current = false;
+        return loadMoreRef.current();
+      }
       return data.hasMore;
     } catch {
       setLoadError(true);
@@ -631,6 +645,12 @@ export function WorldJourneyFeed({
       setLoadingMore(false);
     }
   }, [feedQueryParams, filterLoading]);
+
+  /* Ref để loadMore tự gọi lại (auto-advance) mà không đưa chính nó vào deps. */
+  const loadMoreRef = useRef(loadMore);
+  useEffect(() => {
+    loadMoreRef.current = loadMore;
+  }, [loadMore]);
 
   /** Đổi bộ lọc → query lại feed + gallery từ offset 0. */
   useEffect(() => {
@@ -700,6 +720,16 @@ export function WorldJourneyFeed({
       cancelled = true;
     };
   }, [activeFilter, feedSource, activeLinhVucSlug, refreshNonce]);
+
+  /* Ổn định reference cho timeline: object/arrow mới mỗi render sẽ khiến
+     IntersectionObserver bên trong bị hủy & tạo lại → prefetch ngừng ngẫu nhiên. */
+  const handleLoadMore = useCallback(() => {
+    void loadMore();
+  }, [loadMore]);
+  const scrollLoad = useMemo(
+    () => (hasMore ? { enabled: true } : null),
+    [hasMore],
+  );
 
   const galleryEndpoint = useMemo(() => {
     const qs = buildWorldJourneyFeedQuery({
@@ -820,10 +850,10 @@ export function WorldJourneyFeed({
               milestones={visibleMilestones}
               viewerProfileId={viewerProfileId}
               feedPromos={feedPromos}
-              scrollLoad={hasMore ? { enabled: true } : null}
+              scrollLoad={scrollLoad}
               loadingMore={loadingMore}
               loadError={loadError}
-              onLoadMore={() => void loadMore()}
+              onLoadMore={handleLoadMore}
             />
           )}
 

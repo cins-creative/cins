@@ -270,6 +270,19 @@ export type SoanBaiNickResult = {
   usedClaude: boolean;
 };
 
+/**
+ * Tên tác giả hợp lệ để hiển thị — bỏ ID số (vd. pixiv userId `69328034`) và rỗng.
+ */
+function tenTacGiaHopLe(raw: string | null | undefined): string | null {
+  const s = String(raw || "").trim();
+  if (!s || /^\d+$/.test(s)) return null;
+  /* Chuỗi chung của pixiv (quét nhầm trang, không phải tên artist). */
+  if (/^Online community for artists/i.test(s) || /^pixiv$/i.test(s)) {
+    return null;
+  }
+  return s;
+}
+
 /** Heuristic theo voice nick — không Claude. */
 export function soanBaiHeuristicTheoNick(
   params: SoanBaiNickInput,
@@ -281,11 +294,19 @@ export function soanBaiHeuristicTheoNick(
   ) as NenTangNguon;
   const nen = nhanNenTang(nenTang);
   const voice = layVoiceNick(params.slugNick);
+  const tenArtist = tenTacGiaHopLe(params.tenTacGia);
+  /*
+   * Pixiv: tiêu đề «Tham khảo {tên artist}» (không dùng tiêu đề gốc tags); tên
+   * thật lấy lại từ ajax lúc đăng, chưa có → trống (bài không tiêu đề).
+   * Nền khác: tiêu đề gốc → «Tham khảo {artist}» → trống.
+   */
   const ten =
-    chuanHoaTieuDeGoc(params) ||
-    (params.tenTacGia?.trim()
-      ? `Ref từ ${params.tenTacGia.trim()}`
-      : `Ref ${nen}`);
+    nenTang === "pixiv"
+      ? tenArtist
+        ? `Tham khảo ${tenArtist}`
+        : ""
+      : chuanHoaTieuDeGoc(params) ||
+        (tenArtist ? `Tham khảo ${tenArtist}` : "");
   const tacGia = String(params.tenTacGia || "").trim();
 
   const moTaGoc = truncate(params.moTaGoc || "", MO_TA_MAX);
@@ -399,7 +420,11 @@ export async function soanBaiCuratorTheoNick(
     const moTa = extractTag(text, "mo_ta") || fallback.moTa;
 
     return {
-      tieuDe: truncate(tieuDe, TIEU_DE_MAX) || fallback.tieuDe,
+      /* Pixiv: bỏ tiêu đề Claude (tên artwork) — dùng «Tham khảo {artist}» / trống. */
+      tieuDe:
+        params.nenTang === "pixiv"
+          ? fallback.tieuDe
+          : truncate(tieuDe, TIEU_DE_MAX) || fallback.tieuDe,
       moTa:
         truncate(lamSachMoTaCaption(moTa), MO_TA_MAX) || fallback.moTa,
       usedClaude: true,

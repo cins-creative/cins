@@ -27,7 +27,7 @@
 | `shop/san-pham` · `shop/san-pham/[id]` | CRUD catalog + biến thể / tồn kho (seller) |
 | `shop/nhom` · `shop/nhom/[id]` | GET/POST list·tạo nhóm; PATCH mô tả/nhãn; **DELETE** soft-delete loại khi không còn `shop_san_pham` gắn (`shop_nhom` — mô tả dưới tiêu đề group storefront; quản lý trong Kho) |
 | `shop/import-shopee` | **POST** (seller) — import loại hàng từ URL Shopee: preview (`apply:false`) hoặc tạo `shop_nhom` + mẫu (`apply:true`). Body `{ url?, apply?, raw?, preview? }`. Lib `lib/shop/shopee/`. UI: `/ban-hang/kho` → **AI · Shopee**. Xem ghi chú *Import Shopee* bên dưới. |
-| `shop/bang-gia` · `shop/bang-gia/[id]` | CRUD bảng giá + dòng giá theo biến thể |
+| `shop/bang-gia` · `shop/bang-gia/[id]` | CRUD bảng giá + dòng giá theo biến thể. **1 bảng giá VND / shop** (2026-07-28): POST/PATCH **ép `tien_te="VND"`**, bỏ nhận `tienTe`. Bảng canonical = `getOrCreateDefaultBangGia(ownerId)` (bảng cũ nhất; tạo "Bảng giá mặc định" VND nếu chưa có). `resolveGiaBienThe` fallback `shop_nhom.gia_mac_dinh` khi thiếu dòng → không "Chưa có giá" khi loại đã có giá gốc; `syncNhomGiaMacDinhToMau` ghi vào canonical + quét biến thể theo `id_nhom` **và** tên `phan_loai`. UI Kho/modal bỏ chọn bảng giá. |
 | `shop/gio` | GET/PATCH/DELETE giỏ buyer — scope **XOR** `cotMocId` (post-kiosk) **hoặc** `cuaHangId` (storefront `/{slug}/shop`) |
 | `shop/don` · `shop/don/[id]` | Tạo đơn từ giỏ (`cotMocId` **hoặc** `cuaHangId`) · seller xác nhận (trừ kho) · list đơn seller/buyer — **không** hủy đơn trên API |
 | `shop/cua-hang` · `…/mat-hang` · `…/thanh-toan` | Hồ sơ cửa hàng · catalog storefront · STK/QR checkout |
@@ -53,6 +53,23 @@ Pipeline **riêng** (không reuse blog-import Sine Art). Seller-only (session + 
 **UI:** `ShopKhoShopeeImport` trên `/ban-hang/kho` — tab **Một sản phẩm** | **Cả shop** (quét ≤100 SP qua extension `LIST_SHOP_ITEMS` + `FETCH_GET_PC_BATCH`, rồi loop `import-shopee` từng SP; 1 SP ≈ 1 loại; trùng tên → cập nhật). **Env:** `ANTHROPIC_API_KEY`, `SINE_ART_WORKER_URL`, `SINE_ART_WORKER_SECRET` (alias `CINS_FETCH_WORKER_*`). Deploy production: set secret Worker trên Cloudflare Worker `cins` nếu dùng import ở prod.
 
 **Extension nội bộ (không Store):** nguồn `extensions/cins-shopee-import/` (v1.1.0) → zip `public/downloads/cins-shopee-import.zip` (`npm run pack:shopee-ext`). User tải → Load unpacked. Bridge `postMessage`: `FETCH_GET_PC` · `LIST_SHOP_ITEMS` · `FETCH_GET_PC_BATCH`. Không adopt công khai.
+
+#### Kéo port → Journey (`port/import`, 2026-07-28)
+
+Tái dùng đúng pattern Shopee AI cho **user tự import portfolio** của chính mình. Kết quả = **bài Journey riêng tư** (`che_do_hien_thi='chi_minh'`) để user duyệt rồi tự đổi public. **Không** đổi schema, **không** reuse pipeline Autopilot nick.
+
+| Bước | Việc |
+|---|---|
+| Listing | Extension mở tab hồ sơ behance.net (session user) → quét link `/gallery/{id}` (`LIST_PROFILE_WORKS`) |
+| Fetch | Extension `fetch(galleryUrl, {credentials:'include'})` trong tab behance.net → HTML (vượt Cloudflare) (`FETCH_WORK`) |
+| Parse | Server reuse `parseBehanceProjectHtml` → `modules[]` (text · image · video) theo thứ tự trang |
+| Ảnh | Mirror mỗi ảnh module → Cloudflare Images (`uploadCloudflareImageFromUrl`) |
+| Blocks | text→`body`, image→`imgs` (1 ảnh/block, giữ interleave = bài viết dài), video→`embed`; cover = ảnh đầu; ghi nguồn cuối bài |
+| Apply | `dangBaiJourneyChoUser({ cheDoHienThi:'chi_minh', loaiMoc:'du_an' })` — mỗi project = 1 bài |
+
+**Route:** `POST /api/port/import` (`runtime nodejs`, `maxDuration 300`, session auth). Body `{ platform:'behance', url, html?, apply?, preview? }`. Lib: `lib/port/import.ts` · `lib/port/extension-bridge.ts`. **UI:** `PortImportModal` mở từ `UserAccountMenu` → **Nhập tác phẩm**; loop từng project (fetch HTML → preview → apply), link về `/{slug}` xem nháp.
+
+**Extension hợp nhất "Trợ lý CINs" (không Store):** `extensions/cins-tro-ly/` → `public/downloads/cins-tro-ly.zip` (`npm run pack:tro-ly-ext`). Gộp cả Shopee (`cins-shopee-page`) + Port (`cins-port-page`) trong 1 tiện ích; content script trả cả 2 giao thức → tương thích UI Shopee cũ. `host_permissions`: shopee.vn + behance.net.
 
 ### Kết bạn & social
 | Route | Việc |

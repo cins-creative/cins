@@ -39,7 +39,6 @@ import { fetchBanHangClientStatus } from "@/lib/shop/client-fetch-cache";
 import { ShopDashTabs } from "./ShopDashTabs";
 import { ShopKhoLoaiHub, ShopKhoLoaiMeta } from "./ShopKhoLoaiHub";
 import { ShopPhanLoaiInput } from "./ShopPhanLoaiInput";
-import { ShopTienTeSelect } from "./ShopTienTeSelect";
 import "./shop-dashboard.css";
 
 const KHO_ORPHAN_KEY = "__orphan__";
@@ -84,10 +83,6 @@ export function ShopKhoClient() {
   const [savingId, setSavingId] = useState<string | null>(null);
   /** Popup lọc trên header cột: 1 | 2 | đóng. */
   const [filterMenuOpen, setFilterMenuOpen] = useState<1 | 2 | null>(null);
-  const [bangGiaMenuOpen, setBangGiaMenuOpen] = useState(false);
-  const [renamingBangId, setRenamingBangId] = useState<string | null>(null);
-  const [renameBangDraft, setRenameBangDraft] = useState("");
-  const [renameBangTienTe, setRenameBangTienTe] = useState("VND");
   /** Sản phẩm đang chờ xác nhận xóa (1 hoặc nhiều). */
   const [deleteTargets, setDeleteTargets] = useState<
     Array<{ id: string; ten: string }>
@@ -113,6 +108,8 @@ export function ShopKhoClient() {
   const [savingNhanLoai, setSavingNhanLoai] = useState(false);
   /** Nhóm thẻ phân loại (truc 1 / 2) — tên + mô tả ngắn. */
   const [nhoms, setNhoms] = useState<ShopNhom[]>([]);
+  /** Cache số mẫu chưa gán loại (id_nhom NULL) — thẻ «Chưa gán loại». */
+  const [orphanCount, setOrphanCount] = useState(0);
   /** Popup bộ lọc thẻ Fandom (trục 2): null = đóng. */
   const [nhomPanelTruc, setNhomPanelTruc] = useState<2 | null>(null);
   const [nhomTagCreating, setNhomTagCreating] = useState(false);
@@ -142,6 +139,51 @@ export function ShopKhoClient() {
     setNhanPhanLoaiDraft(nhanPhanLoai);
     setNhanPhanLoai2Draft(nhanPhanLoai2);
     setKhoEditing(true);
+  }
+
+  /**
+   * Điều chỉnh cache số mẫu (nhoms.soMau + orphanCount) khi mẫu đổi loại —
+   * dùng cho các đường ghi cập-nhật-tại-chỗ (saveRow / bulk) không reload nhoms.
+   * Tạo/xóa mẫu đã gọi load() nên không cần.
+   */
+  function adjustNhomCounts(
+    moves: Array<{
+      oldNhom: string | null;
+      newNhom: string | null;
+      oldNhom2: string | null;
+      newNhom2: string | null;
+    }>,
+  ) {
+    const deltas = new Map<string, number>();
+    let orphanDelta = 0;
+    const bump = (id: string | null, d: number) => {
+      if (!id) return;
+      deltas.set(id, (deltas.get(id) ?? 0) + d);
+    };
+    for (const m of moves) {
+      if ((m.oldNhom ?? null) !== (m.newNhom ?? null)) {
+        bump(m.oldNhom, -1);
+        bump(m.newNhom, +1);
+        if (m.oldNhom && !m.newNhom) orphanDelta += 1;
+        if (!m.oldNhom && m.newNhom) orphanDelta -= 1;
+      }
+      if ((m.oldNhom2 ?? null) !== (m.newNhom2 ?? null)) {
+        bump(m.oldNhom2, -1);
+        bump(m.newNhom2, +1);
+      }
+    }
+    if (deltas.size > 0) {
+      setNhoms((prev) =>
+        prev.map((n) =>
+          deltas.has(n.id)
+            ? { ...n, soMau: Math.max(0, n.soMau + deltas.get(n.id)!) }
+            : n,
+        ),
+      );
+    }
+    if (orphanDelta !== 0) {
+      setOrphanCount((prev) => Math.max(0, prev + orphanDelta));
+    }
   }
 
   function countDirtyRows(): number {
@@ -219,6 +261,7 @@ export function ShopKhoClient() {
       } | null;
       const nhomJson = (await nhomRes.json().catch(() => null)) as {
         items?: ShopNhom[];
+        orphanCount?: number;
       } | null;
       setProducts(pJson?.items ?? []);
       const lists = bJson?.items ?? [];
@@ -232,6 +275,7 @@ export function ShopKhoClient() {
       setNhanPhanLoai2Draft(label2);
       const nextNhoms = nhomJson?.items ?? [];
       setNhoms(nextNhoms);
+      setOrphanCount(nhomJson?.orphanCount ?? 0);
     } catch {
       setErr("Không tải được kho.");
     } finally {
@@ -393,15 +437,13 @@ export function ShopKhoClient() {
     return best;
   }, [activeNhom, bangGiaId, priceLists, products]);
 
+  /* Số mẫu lấy từ cache `so_mau` (server duy trì bằng trigger) — không đếm
+     mảng `products` (bị cắt 200 → sai). Cập nhật khi thêm/sửa/xóa mẫu. */
   const mauCountByNhomId = useMemo(() => {
     const map: Record<string, number> = {};
-    for (const p of products) {
-      const id = p.idNhom?.trim();
-      if (!id) continue;
-      map[id] = (map[id] ?? 0) + 1;
-    }
+    for (const n of nhoms) map[n.id] = n.soMau ?? 0;
     return map;
-  }, [products]);
+  }, [nhoms]);
 
   /** Khi mở 1 loại: kéo thêm mẫu theo id_nhom (tránh lệch do list kho limit 200). */
   useEffect(() => {
@@ -433,10 +475,6 @@ export function ShopKhoClient() {
     };
   }, [activeNhomId]);
 
-  const orphanCount = useMemo(
-    () => products.filter((p) => !p.idNhom?.trim()).length,
-    [products],
-  );
 
   const filteredProducts = useMemo(() => {
     /* Trong 1 loại / orphan: chỉ scope theo idNhom — không áp filter cột
@@ -741,19 +779,6 @@ export function ShopKhoClient() {
     };
   }, [filterMenuOpen]);
 
-  useEffect(() => {
-    if (!bangGiaMenuOpen) return;
-    function onPointerDown(e: PointerEvent) {
-      const t = e.target;
-      if (!(t instanceof Element)) return;
-      if (t.closest("[data-shop-bang-gia-menu]")) return;
-      setBangGiaMenuOpen(false);
-      setRenamingBangId(null);
-    }
-    document.addEventListener("pointerdown", onPointerDown);
-    return () => document.removeEventListener("pointerdown", onPointerDown);
-  }, [bangGiaMenuOpen]);
-
   function cycleSortTon() {
     setSortTon((prev) => {
       if (prev === "none") return "nhieu";
@@ -920,22 +945,10 @@ export function ShopKhoClient() {
     return json.item.id;
   }
 
+  // Mô hình 1 bảng giá VND duy nhất — tiền tệ cố định.
   function currentTienTe(): string {
-    return (
-      priceLists.find((b) => b.id === bangGiaId)?.tienTe ??
-      priceLists[0]?.tienTe ??
-      "VND"
-    );
+    return "VND";
   }
-
-  const knownTienTe = useMemo(() => {
-    const set = new Set<string>();
-    for (const b of priceLists) {
-      const t = b.tienTe?.trim().toUpperCase();
-      if (t) set.add(t);
-    }
-    return [...set];
-  }, [priceLists]);
 
   async function saveGiaForBienThe(
     idBienThe: string,
@@ -990,136 +1003,6 @@ export function ShopKhoClient() {
       }),
     );
     return true;
-  }
-
-  async function createBangGia() {
-    setSaving(true);
-    setErr(null);
-    try {
-      const tienTe = currentTienTe() || "VND";
-      const ten =
-        priceLists.length === 0
-          ? "Bảng giá mặc định"
-          : `Bảng giá ${priceLists.length + 1}`;
-      const res = await fetch("/api/shop/bang-gia", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ten, tienTe }),
-      });
-      const json = (await res.json().catch(() => null)) as {
-        item?: ShopBangGia;
-        error?: string;
-      } | null;
-      if (!res.ok || !json?.item) {
-        setErr(json?.error ?? "Không tạo bảng giá.");
-        return;
-      }
-      setPriceLists((prev) => [json.item!, ...prev]);
-      setBangGiaId(json.item.id);
-      setDrafts({});
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function renameBangGia(
-    id: string,
-    tenRaw: string,
-    tienTeRaw: string,
-  ) {
-    const ten = tenRaw.trim();
-    if (!ten) {
-      setErr("Tên bảng giá không được để trống.");
-      return;
-    }
-    const tienTe =
-      tienTeRaw.trim().toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8) ||
-      "VND";
-    const current = priceLists.find((b) => b.id === id);
-    const tenChanged = !current || current.ten !== ten;
-    const tienTeChanged = !current || current.tienTe !== tienTe;
-    if (!tenChanged && !tienTeChanged) {
-      setRenamingBangId(null);
-      return;
-    }
-    setSaving(true);
-    setErr(null);
-    try {
-      const body: Record<string, string> = {};
-      if (tenChanged) body.ten = ten;
-      if (tienTeChanged) body.tienTe = tienTe;
-      const res = await fetch(`/api/shop/bang-gia/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      if (!res.ok) {
-        const json = (await res.json().catch(() => null)) as {
-          error?: string;
-        } | null;
-        setErr(json?.error ?? "Không cập nhật được bảng giá.");
-        return;
-      }
-      setPriceLists((prev) =>
-        prev.map((b) =>
-          b.id === id
-            ? {
-                ...b,
-                ...(tenChanged ? { ten } : null),
-                ...(tienTeChanged ? { tienTe } : null),
-              }
-            : b,
-        ),
-      );
-      setRenamingBangId(null);
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function removeBangGia(id?: string) {
-    const targetId = id ?? bangGiaId;
-    const bg = priceLists.find((b) => b.id === targetId);
-    if (!bg) {
-      setErr("Chọn bảng giá cần xóa.");
-      return;
-    }
-    const dongCount = bg.dong.length;
-    const ok = window.confirm(
-      [
-        `Xóa bảng giá «${bg.ten}» (${bg.tienTe})?`,
-        "",
-        dongCount > 0
-          ? `Bảng này đang có ${dongCount} dòng giá. Giá gắn với bảng này sẽ không còn dùng được cho hàng bán / post.`
-          : "Bảng này chưa có dòng giá.",
-        "",
-        "Hành động này sẽ không thể hoàn tác.",
-      ].join("\n"),
-    );
-    if (!ok) return;
-
-    setSaving(true);
-    setErr(null);
-    try {
-      const res = await fetch(`/api/shop/bang-gia/${bg.id}`, {
-        method: "DELETE",
-      });
-      if (!res.ok) {
-        const json = (await res.json().catch(() => null)) as {
-          error?: string;
-        } | null;
-        setErr(json?.error ?? "Không xóa được bảng giá.");
-        return;
-      }
-      const next = priceLists.filter((b) => b.id !== bg.id);
-      setPriceLists(next);
-      setBangGiaId((prev) =>
-        prev === bg.id ? (next[0]?.id ?? "") : prev,
-      );
-      if (renamingBangId === bg.id) setRenamingBangId(null);
-    } finally {
-      setSaving(false);
-    }
   }
 
   async function uploadThumb(
@@ -1518,6 +1401,14 @@ export function ShopKhoClient() {
           };
         }),
       );
+      adjustNhomCounts([
+        {
+          oldNhom: p.idNhom ?? null,
+          newNhom: nextIdNhom,
+          oldNhom2: p.idNhom2 ?? null,
+          newNhom2: nextIdNhom2,
+        },
+      ]);
       setDrafts((prev) => {
         const next = { ...prev };
         delete next[p.id];
@@ -1831,6 +1722,32 @@ export function ShopKhoClient() {
           return next;
         }),
       );
+      if (applyPhan || applyPhan2) {
+        const label1 = applyPhan ? changed.phanLoai!.trim() || null : null;
+        const label2 = applyPhan2 ? changed.phanLoai2!.trim() || null : null;
+        const resolve = (
+          truc: 1 | 2,
+          label: string | null,
+          fallback: string | null,
+        ) =>
+          label == null
+            ? null
+            : (nhoms.find((n) => n.truc === truc && n.nhan.trim() === label)
+                ?.id ??
+              fallback);
+        adjustNhomCounts(
+          targets.map((t) => ({
+            oldNhom: t.idNhom ?? null,
+            newNhom: applyPhan
+              ? resolve(1, label1, t.idNhom ?? null)
+              : (t.idNhom ?? null),
+            oldNhom2: t.idNhom2 ?? null,
+            newNhom2: applyPhan2
+              ? resolve(2, label2, t.idNhom2 ?? null)
+              : (t.idNhom2 ?? null),
+          })),
+        );
+      }
       setDrafts((prev) => {
         const next = { ...prev };
         delete next[source.id];
@@ -2187,185 +2104,6 @@ export function ShopKhoClient() {
             </div>
           ) : null}
           <div className="shop-kho-toolbar">
-            <div className="shop-kho-bang-gia" role="group" aria-label="Bảng giá">
-              <div
-                className="shop-kho-bang-gia-dropdown"
-                data-shop-bang-gia-menu
-              >
-                <button
-                  type="button"
-                  className={`shop-kho-bang-gia-trigger${bangGiaMenuOpen ? " is-open" : ""}`}
-                  aria-expanded={bangGiaMenuOpen}
-                  aria-haspopup="listbox"
-                  aria-label="Bảng giá đang dùng"
-                  title="Bảng giá quyết định đơn vị tiền khi sửa giá"
-                  disabled={saving}
-                  onClick={() => {
-                    setBangGiaMenuOpen((o) => {
-                      if (o) setRenamingBangId(null);
-                      return !o;
-                    });
-                  }}
-                >
-                  <span>
-                    {priceLists.length === 0
-                      ? "Chưa có bảng giá"
-                      : (() => {
-                          const bg =
-                            priceLists.find((b) => b.id === bangGiaId) ??
-                            priceLists[0];
-                          return bg
-                            ? `${bg.ten} · ${bg.tienTe}`
-                            : "Chọn bảng giá";
-                        })()}
-                  </span>
-                  <ChevronDown size={14} strokeWidth={2.25} aria-hidden />
-                </button>
-                {bangGiaMenuOpen ? (
-                  <div
-                    className="shop-kho-bang-gia-panel"
-                    role="listbox"
-                    aria-label="Chọn bảng giá"
-                  >
-                    {priceLists.map((b) => (
-                      <div
-                        key={b.id}
-                        className={`shop-kho-bang-gia-opt-row${b.id === bangGiaId ? " is-active" : ""}${renamingBangId === b.id ? " is-renaming" : ""}`}
-                      >
-                        {renamingBangId === b.id ? (
-                          <form
-                            className="shop-kho-bang-gia-rename"
-                            onSubmit={(e) => {
-                              e.preventDefault();
-                              void renameBangGia(
-                                b.id,
-                                renameBangDraft,
-                                renameBangTienTe,
-                              );
-                            }}
-                          >
-                            <input
-                              className="shop-kho-bang-gia-rename-ten"
-                              value={renameBangDraft}
-                              autoFocus
-                              disabled={saving}
-                              aria-label="Tên bảng giá"
-                              placeholder="Tên bảng giá"
-                              onChange={(e) =>
-                                setRenameBangDraft(e.target.value)
-                              }
-                              onKeyDown={(e) => {
-                                if (e.key === "Escape") {
-                                  e.preventDefault();
-                                  setRenamingBangId(null);
-                                }
-                              }}
-                            />
-                            <ShopTienTeSelect
-                              value={renameBangTienTe}
-                              knownCodes={knownTienTe}
-                              disabled={saving}
-                              onChange={setRenameBangTienTe}
-                              aria-label="Đơn vị tiền tệ"
-                              title="Mã tiền tệ của bảng giá"
-                            />
-                            <button
-                              type="submit"
-                              disabled={saving || !renameBangDraft.trim()}
-                              aria-label="Lưu bảng giá"
-                              title="Lưu"
-                            >
-                              <Check size={14} strokeWidth={2.5} />
-                            </button>
-                            <button
-                              type="button"
-                              disabled={saving}
-                              aria-label="Hủy"
-                              title="Hủy"
-                              onClick={() => setRenamingBangId(null)}
-                            >
-                              <X size={14} strokeWidth={2} />
-                            </button>
-                          </form>
-                        ) : (
-                          <>
-                            <button
-                              type="button"
-                              role="option"
-                              aria-selected={b.id === bangGiaId}
-                              className={`shop-kho-bang-gia-opt${b.id === bangGiaId ? " is-active" : ""}`}
-                              onClick={() => {
-                                setBangGiaId(b.id);
-                                setDrafts({});
-                                setBangGiaMenuOpen(false);
-                              }}
-                            >
-                              <span className="shop-kho-bang-gia-opt-name">
-                                {b.ten}
-                              </span>
-                              <span className="shop-kho-bang-gia-opt-meta">
-                                {b.tienTe} · {b.dong.length} dòng
-                              </span>
-                            </button>
-                            <button
-                              type="button"
-                              className="shop-kho-bang-gia-rename-btn"
-                              disabled={saving}
-                              aria-label={`Sửa ${b.ten}`}
-                              title="Sửa tên và tiền tệ"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setRenamingBangId(b.id);
-                                setRenameBangDraft(b.ten);
-                                setRenameBangTienTe(b.tienTe);
-                              }}
-                            >
-                              <Pencil size={13} strokeWidth={2} />
-                            </button>
-                            <button
-                              type="button"
-                              className="shop-kho-bang-gia-rename-btn is-danger"
-                              disabled={saving}
-                              aria-label={`Xóa ${b.ten}`}
-                              title="Xóa bảng giá"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                void removeBangGia(b.id);
-                              }}
-                            >
-                              <Trash2 size={13} strokeWidth={2} />
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    ))}
-                    <div className="shop-kho-bang-gia-panel-actions">
-                      <button
-                        type="button"
-                        className="shop-kho-bang-gia-action"
-                        disabled={saving}
-                        onClick={() => {
-                          setBangGiaMenuOpen(false);
-                          setRenamingBangId(null);
-                          void createBangGia();
-                        }}
-                      >
-                        <Plus size={14} strokeWidth={2.25} aria-hidden />
-                        Tạo bảng giá
-                      </button>
-                    </div>
-                  </div>
-                ) : null}
-              </div>
-              {priceLists.length > 0 ? (
-                <span
-                  className="shop-tien-te-badge"
-                  title="Đơn vị tiền tệ của bảng đang chọn — sửa trong dropdown"
-                >
-                  {currentTienTe()}
-                </span>
-              ) : null}
-            </div>
             <button
               type="button"
               className={`shop-dash-kho-edit-btn${nhomPanelTruc != null ? " is-active" : ""}`}

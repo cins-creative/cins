@@ -23,11 +23,13 @@ import { chayDuyetBanThao } from "./lenh/duyet-ban-thao.mjs";
 import { chayLietKe } from "./lenh/liet-ke.mjs";
 import { chayNhapMuc } from "./lenh/nhap-muc.mjs";
 import { chayQuetNguon } from "./lenh/quet-nguon.mjs";
+import { chaySuaPixivAlbum } from "./lenh/sua-pixiv-album.mjs";
 import { chayTaoViec } from "./lenh/tao-viec.mjs";
 import { chayThemNguon } from "./lenh/them-nguon.mjs";
 import { chayThemNguonMau } from "./lenh/them-nguon-mau.mjs";
 import { chayTrangThai } from "./lenh/trang-thai.mjs";
 import { chayLichGheTham, chayTuongTac } from "./lenh/tuong-tac.mjs";
+import { chayXoaNenTang } from "./lenh/xoa-nen-tang.mjs";
 
 function inHuongDan() {
   console.log(`Autopilot CLI (Giai đoạn 1–3)
@@ -35,7 +37,7 @@ function inHuongDan() {
 Lệnh:
   trang-thai                         Đếm bảng + nick + env
   dong-bo-nick                       Upsert 10 nick seeding → auto_tai_khoan
-  liet-ke <nguon|nick|muc|ban-thao>  Liệt kê
+  liet-ke <nguon|nick|muc|ban-thao> [nen-tang]  Liệt kê (muc: kèm số ảnh; lọc theo nền tảng)
   them-nguon --nen-tang <t> --url <u> [--ma-ngoai] [--ten] [--niche]
   them-nguon-mau [--chi-xem]             Seed watchlist mẫu (nhiều artist)
   quet-nguon [--nen-tang artstation|behance|pixiv] [--id UUID] [--gioi-han N] [--chi-xem]
@@ -43,9 +45,12 @@ Lệnh:
   chuan-bi-dang [--gioi-han N] [--chi-xem] [--slug nick] [--khong-ai] [--san-sang]
   duyet-ban-thao [--gioi-han N] [--slug nick] [--tat-ca] [--id UUID] [--chi-xem]
   chay-dang [--gioi-han N] [--chi-xem] [--slug nick]
+  sua-pixiv-album [--chi-xem] [--gioi-han N] [--slug nick] [--ep] [--cho-phep-anh-qua-dai]
+                  Sửa bài Pixiv cũ (article + embed «▶ URL») → album ảnh
   tuong-tac [--cua-so 90] [--nhin-lai 48] [--gioi-han 40] [--ti-le-comment 0.3] [--slug nick] [--tat-ca] [--chi-xem] [--ep]
   lich-ghe-tham [--slug nick]
   tao-viec --loai <loai> [--payload JSON]
+  xoa-nen-tang --nen-tang <behance|artstation|pixiv|khac> [--ca-bai-da-dang] [--gom-nhat-ky] [--xac-nhan]
 
 ArtStation: RSS qua fetch-worker (quet-nguon).
 Behance: Chrome extension extensions/cins-behance-import → POST /api/noi-bo/auto/muc
@@ -117,7 +122,7 @@ async function main() {
       await chayDongBoNick(db);
       break;
     case "liet-ke":
-      await chayLietKe(db, positional[1]);
+      await chayLietKe(db, positional[1], positional[2]);
       break;
     case "them-nguon":
       await chayThemNguon(db, f);
@@ -140,6 +145,9 @@ async function main() {
     case "chay-dang":
       await chayDang(db, f);
       break;
+    case "sua-pixiv-album":
+      await chaySuaPixivAlbum(db, f);
+      break;
     case "tuong-tac":
       await chayTuongTac(db, f);
       break;
@@ -148,6 +156,9 @@ async function main() {
       break;
     case "tao-viec":
       await chayTaoViec(db, f);
+      break;
+    case "xoa-nen-tang":
+      await chayXoaNenTang(db, f);
       break;
     default:
       console.error(`Không biết lệnh: ${lenh}`);

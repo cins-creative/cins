@@ -4,6 +4,7 @@ import {
   buildBunnyEmbedUrl,
   buildBunnyVideoThumbnailUrl,
 } from "@/lib/bunny/embed";
+import { getOrCreateDefaultBangGia } from "@/lib/shop/bang-gia";
 import { assertBanHangEnabled, shopImageUrl } from "@/lib/shop/settings";
 import type { ShopNhom, ShopNhomTruc } from "@/lib/shop/types";
 import {
@@ -15,8 +16,54 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 export const SHOP_NHOM_NHAN_MAX = 40;
 
-const NHOM_SELECT =
+const NHOM_COLS_BASE =
   "id, id_nguoi_dung, truc, nhan, mo_ta, anh_id, overlay_anh_id, anh_phu_ids, video_phu_id, gia_mac_dinh, noi_bat, thu_tu, tao_luc";
+const NHOM_COLS_SO_MAU = `${NHOM_COLS_BASE}, so_mau`;
+
+/**
+ * `so_mau` là cột cache tuỳ chọn (migration_shop_nhom_so_mau.sql). Nếu DB chưa
+ * áp migration, PostgREST trả 42703 → tự hạ cấp bỏ `so_mau` (soMau hiển thị 0)
+ * để không sập cả danh sách loại. Môi trường đã áp migration vẫn lấy số thật.
+ */
+let soMauSupported = true;
+function nhomCols(): string {
+  return soMauSupported ? NHOM_COLS_SO_MAU : NHOM_COLS_BASE;
+}
+function isMissingSoMauErr(
+  error: { code?: string; message?: string } | null,
+): boolean {
+  if (!error) return false;
+  return error.code === "42703" || /so_mau/i.test(error.message ?? "");
+}
+
+/**
+ * Đếm số mẫu (`shop_san_pham.da_xoa=false`) cho mỗi loại từ `id_nhom` +
+ * `id_nhom_2` khi DB chưa có cột cache `so_mau`. Gán trực tiếp vào `soMau`.
+ */
+async function fillSoMauFromProducts(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  ownerId: string,
+  nhoms: ShopNhom[],
+): Promise<void> {
+  if (nhoms.length === 0) return;
+  const { data } = await admin
+    .from("shop_san_pham")
+    .select("id_nhom, id_nhom_2")
+    .eq("id_nguoi_dung", ownerId)
+    .eq("da_xoa", false)
+    .limit(10000);
+  const counts = new Map<string, number>();
+  for (const r of (data ?? []) as Array<{
+    id_nhom: string | null;
+    id_nhom_2: string | null;
+  }>) {
+    if (r.id_nhom) counts.set(r.id_nhom, (counts.get(r.id_nhom) ?? 0) + 1);
+    if (r.id_nhom_2) {
+      counts.set(r.id_nhom_2, (counts.get(r.id_nhom_2) ?? 0) + 1);
+    }
+  }
+  for (const n of nhoms) n.soMau = counts.get(n.id) ?? 0;
+}
 
 type NhomRow = {
   id: string;
@@ -30,6 +77,7 @@ type NhomRow = {
   video_phu_id: string | null;
   gia_mac_dinh: number | string | null;
   noi_bat: boolean;
+  so_mau?: number | null;
   thu_tu: number;
   tao_luc: string;
 };
@@ -94,6 +142,7 @@ function mapNhom(row: NhomRow): ShopNhom {
     giaMacDinh:
       gia != null && Number.isFinite(gia) && gia >= 0 ? gia : null,
     noiBat: row.noi_bat === true,
+    soMau: Number.isFinite(Number(row.so_mau)) ? Number(row.so_mau) : 0,
     thuTu: row.thu_tu,
     taoLuc: row.tao_luc,
   };
@@ -129,34 +178,50 @@ export async function listNhom(
   truc?: ShopNhomTruc,
 ): Promise<ShopNhom[]> {
   const admin = createServiceRoleClient();
-  let q = admin
-    .from("shop_nhom")
-    .select(NHOM_SELECT)
-    .eq("id_nguoi_dung", ownerId)
-    .eq("da_xoa", false)
-    .order("noi_bat", { ascending: false })
-    .order("thu_tu", { ascending: true })
-    .order("nhan", { ascending: true })
-    .limit(200);
-  if (truc === 1 || truc === 2) q = q.eq("truc", truc);
-  const { data, error } = await q;
+  const run = () => {
+    let q = admin
+      .from("shop_nhom")
+      .select(nhomCols())
+      .eq("id_nguoi_dung", ownerId)
+      .eq("da_xoa", false)
+      .order("noi_bat", { ascending: false })
+      .order("thu_tu", { ascending: true })
+      .order("nhan", { ascending: true })
+      .limit(200);
+    if (truc === 1 || truc === 2) q = q.eq("truc", truc);
+    return q;
+  };
+  let { data, error } = await run();
+  if (error && soMauSupported && isMissingSoMauErr(error)) {
+    soMauSupported = false;
+    ({ data, error } = await run());
+  }
   if (error) {
     console.error("[shop] listNhom", error);
     throw new Error("LIST_NHOM_FAILED");
   }
-  return ((data ?? []) as NhomRow[]).map(mapNhom);
+  const nhoms = ((data ?? []) as NhomRow[]).map(mapNhom);
+  // Thiếu cột cache `so_mau` → đếm trực tiếp từ shop_san_pham để không hiện 0.
+  if (!soMauSupported) await fillSoMauFromProducts(admin, ownerId, nhoms);
+  return nhoms;
 }
 
 export async function getNhomById(
   nhomId: string,
 ): Promise<(ShopNhom & { idNguoiDung: string }) | null> {
   const admin = createServiceRoleClient();
-  const { data, error } = await admin
-    .from("shop_nhom")
-    .select(NHOM_SELECT)
-    .eq("id", nhomId)
-    .eq("da_xoa", false)
-    .maybeSingle<NhomRow>();
+  const run = () =>
+    admin
+      .from("shop_nhom")
+      .select(nhomCols())
+      .eq("id", nhomId)
+      .eq("da_xoa", false)
+      .maybeSingle<NhomRow>();
+  let { data, error } = await run();
+  if (error && soMauSupported && isMissingSoMauErr(error)) {
+    soMauSupported = false;
+    ({ data, error } = await run());
+  }
   if (error) {
     console.error("[shop] getNhomById", error);
     throw new Error("LOAD_NHOM_FAILED");
@@ -179,7 +244,7 @@ export async function ensureNhom(
   const admin = createServiceRoleClient();
   const { data: existing } = await admin
     .from("shop_nhom")
-    .select(NHOM_SELECT)
+    .select(nhomCols())
     .eq("id_nguoi_dung", ownerId)
     .eq("truc", truc)
     .eq("nhan", nhan)
@@ -194,12 +259,12 @@ export async function ensureNhom(
       truc,
       nhan,
     })
-    .select(NHOM_SELECT)
+    .select(nhomCols())
     .single<NhomRow>();
   if (error || !created) {
     const { data: again } = await admin
       .from("shop_nhom")
-      .select(NHOM_SELECT)
+      .select(nhomCols())
       .eq("id_nguoi_dung", ownerId)
       .eq("truc", truc)
       .eq("nhan", nhan)
@@ -224,13 +289,35 @@ export async function syncNhomGiaMacDinhToMau(
   if (giaMacDinh == null) return;
   const admin = createServiceRoleClient();
 
-  const { data: spRows } = await admin
-    .from("shop_san_pham")
-    .select("id")
-    .eq("id_nguoi_dung", ownerId)
-    .eq("id_nhom", nhomId)
-    .eq("da_xoa", false);
-  const spIds = ((spRows ?? []) as Array<{ id: string }>).map((s) => s.id);
+  // Tên loại — để bắt thêm sản phẩm chỉ khớp theo `phan_loai` text (FK `id_nhom`
+  // còn null), tránh sót biến thể như trước.
+  const { data: nhomRow } = await admin
+    .from("shop_nhom")
+    .select("nhan")
+    .eq("id", nhomId)
+    .maybeSingle<{ nhan: string | null }>();
+  const nhan = nhomRow?.nhan?.trim() ?? "";
+
+  const spIdSet = new Set<string>();
+  {
+    const { data: byFk } = await admin
+      .from("shop_san_pham")
+      .select("id")
+      .eq("id_nguoi_dung", ownerId)
+      .eq("id_nhom", nhomId)
+      .eq("da_xoa", false);
+    for (const s of (byFk ?? []) as Array<{ id: string }>) spIdSet.add(s.id);
+    if (nhan) {
+      const { data: byText } = await admin
+        .from("shop_san_pham")
+        .select("id")
+        .eq("id_nguoi_dung", ownerId)
+        .eq("phan_loai", nhan)
+        .eq("da_xoa", false);
+      for (const s of (byText ?? []) as Array<{ id: string }>) spIdSet.add(s.id);
+    }
+  }
+  const spIds = [...spIdSet];
   if (spIds.length === 0) return;
 
   const { data: btRows } = await admin
@@ -241,71 +328,39 @@ export async function syncNhomGiaMacDinhToMau(
   const btIds = ((btRows ?? []) as Array<{ id: string }>).map((b) => b.id);
   if (btIds.length === 0) return;
 
-  let { data: bgRows } = await admin
-    .from("shop_bang_gia")
-    .select("id")
-    .eq("id_nguoi_dung", ownerId)
-    .eq("da_xoa", false)
-    .order("tao_luc", { ascending: false })
-    .limit(20);
-  let bangIds = ((bgRows ?? []) as Array<{ id: string }>).map((b) => b.id);
+  // Mô hình 1 bảng giá VND duy nhất — ghi vào đúng bảng canonical.
+  const { id: bangId } = await getOrCreateDefaultBangGia(ownerId);
 
-  if (bangIds.length === 0) {
-    const { data: created, error } = await admin
-      .from("shop_bang_gia")
-      .insert({
-        id_nguoi_dung: ownerId,
-        ten: "Bảng giá mặc định",
-        tien_te: "VND",
-      })
-      .select("id")
-      .single<{ id: string }>();
-    if (error || !created) {
-      console.error("[shop] syncNhomGia create bang_gia", error);
-      throw new Error("SYNC_GIA_FAILED");
-    }
-    bangIds = [created.id];
-  }
-
-  const primaryBang = bangIds[0]!;
   const { data: existingDong } = await admin
     .from("shop_bang_gia_dong")
-    .select("id, id_bang_gia, id_bien_the, gia_giam")
-    .in("id_bang_gia", bangIds)
+    .select("id, id_bien_the")
+    .eq("id_bang_gia", bangId)
     .in("id_bien_the", btIds);
 
-  const dongByBt = new Map<
-    string,
-    { id: string; id_bang_gia: string; gia_giam: number | string | null }
-  >();
+  const dongIdByBt = new Map<string, string>();
   for (const d of (existingDong ?? []) as Array<{
     id: string;
-    id_bang_gia: string;
     id_bien_the: string;
-    gia_giam: number | string | null;
   }>) {
-    if (!dongByBt.has(d.id_bien_the)) dongByBt.set(d.id_bien_the, d);
+    if (!dongIdByBt.has(d.id_bien_the)) dongIdByBt.set(d.id_bien_the, d.id);
   }
 
-  const toUpdate = [...dongByBt.values()];
-  if (toUpdate.length > 0) {
-    for (const d of toUpdate) {
-      const { error } = await admin
-        .from("shop_bang_gia_dong")
-        .update({ gia: giaMacDinh })
-        .eq("id", d.id);
-      if (error) {
-        console.error("[shop] syncNhomGia update dong", error);
-        throw new Error("SYNC_GIA_FAILED");
-      }
+  for (const dongId of dongIdByBt.values()) {
+    const { error } = await admin
+      .from("shop_bang_gia_dong")
+      .update({ gia: giaMacDinh })
+      .eq("id", dongId);
+    if (error) {
+      console.error("[shop] syncNhomGia update dong", error);
+      throw new Error("SYNC_GIA_FAILED");
     }
   }
 
-  const missing = btIds.filter((id) => !dongByBt.has(id));
+  const missing = btIds.filter((id) => !dongIdByBt.has(id));
   if (missing.length > 0) {
     const { error } = await admin.from("shop_bang_gia_dong").insert(
       missing.map((idBienThe) => ({
-        id_bang_gia: primaryBang,
+        id_bang_gia: bangId,
         id_bien_the: idBienThe,
         gia: giaMacDinh,
         gia_giam: null,
@@ -369,7 +424,7 @@ export async function updateNhom(
 
   const { data: row, error: findErr } = await admin
     .from("shop_nhom")
-    .select(NHOM_SELECT)
+    .select(nhomCols())
     .eq("id", nhomId)
     .eq("id_nguoi_dung", ownerId)
     .eq("da_xoa", false)
@@ -441,7 +496,7 @@ export async function updateNhom(
     .update(patch)
     .eq("id", nhomId)
     .eq("id_nguoi_dung", ownerId)
-    .select(NHOM_SELECT)
+    .select(nhomCols())
     .single<NhomRow>();
   if (error || !updated) {
     console.error("[shop] updateNhom", error);

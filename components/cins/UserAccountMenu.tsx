@@ -2,12 +2,13 @@
 
 import {
   ChevronDown,
+  DownloadCloud,
   Monitor,
   Moon,
   PlusCircle,
+  RefreshCw,
   Sun,
   UserPlus,
-  Users,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -20,6 +21,7 @@ import {
   removeSavedAccountAction,
   switchAccountAction,
 } from "@/app/auth/switch-account-action";
+import { PortImportModal } from "@/components/cins/PortImportModal";
 import { SidebarNavIcon } from "@/components/cins/SidebarNavIcon";
 import { UserAccountSettingsModal } from "@/components/cins/UserAccountSettingsModal";
 import { clearAllWorldJourneyFirstImpressionSeen } from "@/lib/cins/worldJourneyFirstImpression";
@@ -69,6 +71,7 @@ export function UserAccountMenu({
   const [open, setOpen] = useState(false);
   const [switchOpen, setSwitchOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [portOpen, setPortOpen] = useState(false);
   const [themeMode, setThemeMode] = useState<ThemeMode>("system");
   const cardRef = useRef<HTMLDivElement | null>(null);
   const menuId = useId();
@@ -136,7 +139,7 @@ export function UserAccountMenu({
         >
           <Link
             href={`/${profile.slug}`}
-            className="app-user-menu-item app-user-menu-item-primary"
+            className="app-user-menu-item"
             role="menuitem"
             onClick={() => setOpen(false)}
           >
@@ -154,7 +157,7 @@ export function UserAccountMenu({
               onClick={() => setSwitchOpen((v) => !v)}
             >
               <span className="app-user-menu-ico" aria-hidden>
-                <Users size={18} strokeWidth={1.7} />
+                <RefreshCw size={18} strokeWidth={1.7} />
               </span>
               <span className="app-user-switch-label">Chuyển tài khoản</span>
               {savedAccounts.length > 0 ? (
@@ -276,6 +279,21 @@ export function UserAccountMenu({
             role="menuitem"
             onClick={() => {
               setOpen(false);
+              setPortOpen(true);
+            }}
+          >
+            <span className="app-user-menu-ico" aria-hidden>
+              <DownloadCloud size={18} strokeWidth={1.7} />
+            </span>
+            <span>Nhập tác phẩm</span>
+          </button>
+
+          <button
+            type="button"
+            className="app-user-menu-item"
+            role="menuitem"
+            onClick={() => {
+              setOpen(false);
               setSettingsOpen(true);
             }}
           >
@@ -382,6 +400,11 @@ export function UserAccountMenu({
       <UserAccountSettingsModal
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
+      />
+      <PortImportModal
+        open={portOpen}
+        onClose={() => setPortOpen(false)}
+        profileSlug={profile.slug}
       />
     </>
   );

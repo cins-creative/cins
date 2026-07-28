@@ -5,6 +5,18 @@ import type { PublicShopListingItem } from "@/lib/shop/cua-hang-listing-types";
 
 export type ShopLoaiDon = "mua_ngay" | "dat_truoc_nhan_su_kien";
 
+/**
+ * Số giờ một đơn `cho_xac_nhan` được coi là "chờ quá lâu" → nền tảng nhắc
+ * seller (aging UI). Nền tảng KHÔNG tự hủy; seller tự quyết định.
+ */
+export const SHOP_DON_NHAC_GIO = 48;
+
+/** Số đơn `cho_xac_nhan` tối đa một buyer được mở với cùng một seller. */
+export const SHOP_DON_PENDING_CAP = 2;
+
+/** Giới hạn ký tự lý do hủy đơn. */
+export const SHOP_LY_DO_HUY_MAX = 300;
+
 export type ShopTrangThaiDon =
   | "nhap"
   | "cho_xac_nhan"
@@ -61,6 +73,8 @@ export type ShopNhom = {
   giaMacDinh: number | null;
   /** Feature / nổi bật loại hàng (`shop_nhom.noi_bat`, truc=1). */
   noiBat: boolean;
+  /** Cache số mẫu (da_xoa=false) gắn nhóm — đồng bộ bằng trigger DB. */
+  soMau: number;
   thuTu: number;
   taoLuc: string;
 };
@@ -442,6 +456,12 @@ export type ShopDonHang = {
   banTen?: string | null;
   taoLuc: string;
   xacNhanLuc: string | null;
+  /** Thời điểm hủy (`huy`). */
+  huyLuc?: string | null;
+  /** Lý do hủy (seller nhập; hệ thống ghi "Hết hạn xác nhận"). */
+  lyDoHuy?: string | null;
+  /** Người thực hiện hủy — null nếu hệ thống auto-expire. */
+  huyBoi?: string | null;
   /** Snapshot chấp nhận rủi ro chuyển khoản (`mua_ngay`). */
   nguoiMuaChapNhanLuc?: string | null;
   nguoiMuaChapNhanVanBan?: string | null;
@@ -451,6 +471,18 @@ export type ShopDonHang = {
   /** Ảnh biên lai chuyển khoản buyer đính kèm lúc gửi đơn (giỏ chung). */
   bienLaiAnhUrl?: string | null;
   bienLaiAnhId?: string | null;
+};
+
+/** Tín hiệu tin cậy của người mua — giúp seller triage đơn (chống rác). */
+export type ShopBuyerTrust = {
+  /** Tài khoản đã được CINs xác minh. */
+  daXacMinh: boolean;
+  /** Thời điểm tạo tài khoản (ISO) — acc mới là red flag. */
+  taoLuc: string | null;
+  /** Số đơn trước đó của buyer với shop này (mọi trạng thái, trừ đơn hiện tại). */
+  soDonTruoc: number;
+  /** Số đơn đã bị hủy của buyer với shop này. */
+  soDonHuy: number;
 };
 
 /** Sự kiện sắp/đang diễn ra mà shop đã được duyệt quầy — mặt tiền công khai. */

@@ -29,7 +29,7 @@ export function nhanNenTang(nenTang: NenTangNguon): string {
  * → bỏ qua để sinh lại dòng ngắn «Nguồn: …», tránh lặp boilerplate.
  */
 export function laDongGhiNguonCu(s: string): boolean {
-  return /^Giới thiệu từ\s.*Xem bản gốc:/is.test(s.trim());
+  return /^Giới thiệu từ\s[\s\S]*Xem bản gốc:/i.test(s.trim());
 }
 
 /** Dòng attribution — ngắn: «Nguồn:» + URL. */

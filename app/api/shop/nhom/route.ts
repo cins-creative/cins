@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
+import { countOrphanSanPham } from "@/lib/shop/catalog";
 import { createNhom, listNhom } from "@/lib/shop/nhom";
 import type { ShopNhomTruc } from "@/lib/shop/types";
 
@@ -21,8 +22,11 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "truc phải là 1 hoặc 2." }, { status: 422 });
   }
   try {
-    const items = await listNhom(session.profile.id, truc);
-    return NextResponse.json({ items });
+    const [items, orphanCount] = await Promise.all([
+      listNhom(session.profile.id, truc),
+      countOrphanSanPham(session.profile.id),
+    ]);
+    return NextResponse.json({ items, orphanCount });
   } catch {
     return NextResponse.json(
       { error: "Không tải được nhóm phân loại." },

@@ -1422,7 +1422,7 @@ export function JourneyNotifications({
         aria-label={title}
         onClick={() => setOpen((v) => !v)}
       >
-        <Bell size={16} strokeWidth={1.9} aria-hidden />
+        <Bell size={20} strokeWidth={1.9} aria-hidden />
         {unreadCount > 0 ? <span className="j-notify-count">{unreadCount}</span> : null}
       </button>
 

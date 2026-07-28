@@ -126,6 +126,15 @@
 - **Entry point:** icon bánh răng trong header `CoSoQuanLyShell` (chỉ hiện founder tier) → `/co-so/[slug]/quan-ly/cai-dat`, route mới `cai-dat` trong `CoSoQuanLySection`, **ngoài** 4 cụm nav.
 - *Hệ quả file:* `supabase/sql/migration_org_thanh_vien_quyen.sql` (bảng mới, chưa chạy) · `lib/to-chuc/co-so-quan-ly-access.ts` (viết lại: `CoSoModuleKey`, `isCoSoFounderTier`, `getCoSoQuyenMap`, `canAccessCoSoQuanLyAsync`) · `CoSoQuanLyPageGate` (+ `requireFounder`) · `CoSoQuanLyShell` (gear icon) · route `chi-nhanh`/`hoc-vien`/`hoc-phi/{thu-tien-mat,don-chat,goi,doanh-thu,thanh-toan,[donId]/xac-nhan}`/`diem-danh`/`nop-bai`/`marketing`/`hoc-phi/[donId]/xac-nhan` (root) · mới `app/co-so/[slug]/quan-ly/cai-dat/page.tsx` + `CoSoCaiDatToiCaoClient` + `api/co-so/[id]/cai-dat/quyen`.
 
+### Shop — gộp về 1 bảng giá VND / shop (2026-07-28)
+
+- **Bổ sung L33 (thu hẹp "bảng giá đa ngữ cảnh"):** UI chỉ còn **1 bảng giá / shop, chốt VND**. Bỏ dropdown tạo/đổi tên/xoá/chọn bảng giá + `ShopTienTeSelect` trên trang Kho và bỏ `<select>` bảng giá trong modal đính hàng. **Schema giữ nguyên** (`shop_bang_gia` + `shop_bang_gia_dong`, cột `id_bang_gia`) — không migration; đơn cũ tiền tệ khác VND vẫn hợp lệ.
+  • **Bảng giá canonical:** `getOrCreateDefaultBangGia(ownerId)` (`lib/shop/bang-gia.ts`) trả bảng **cũ nhất** của owner (deterministic), tạo `"Bảng giá mặc định"` VND nếu chưa có. Mọi nơi cần "bảng giá" dùng helper này thay vì "newest-wins".
+  • **Nguồn lỗi đã sửa:** Kho đọc `shop_nhom.gia_mac_dinh`, modal + checkout đọc `shop_bang_gia_dong.gia` → lệch. `syncNhomGiaMacDinhToMau` (`lib/shop/nhom.ts`) nay ghi vào bảng canonical + quét biến thể **cả theo `id_nhom` lẫn tên `phan_loai`** (bắt biến thể thêm sau / FK null).
+  • **Lưới an toàn đọc giá:** `resolveGiaBienThe` fallback về `shop_nhom.gia_mac_dinh` (VND) khi thiếu dòng `shop_bang_gia_dong` → `setPostHang` hết ném `GIA_NOT_FOUND` khi loại đã có giá gốc. Modal preview cũng fallback `giaMacDinh` (fetch `/api/shop/nhom`) để khớp trang Kho.
+  • **API:** `shop/bang-gia` (POST) + `shop/bang-gia/[id]` (PATCH) ép `tien_te = "VND"`, bỏ nhận `tienTe` từ client. `storefront`/giỏ/checkout/đơn giữ nguyên (đúng 1 bảng → "newest-wins" tự thành bảng duy nhất).
+  • *Hệ quả file:* `lib/shop/bang-gia.ts` (`getOrCreateDefaultBangGia`, fallback resolve) · `lib/shop/nhom.ts` (sync) · `ShopKhoClient.tsx` · `ShopAttachHangModal.tsx` · `app/api/shop/bang-gia/*` · CSS `.shop-kho-bang-gia-*` gỡ.
+
 ### Shop — hub directory `/cua-hang` (2026-07-25)
 
 - **Bổ sung L33:** sidebar **Cửa hàng** → hub `/cua-hang` liệt kê mọi shop đang **Hiển thị shop** (`ban_hang_bat` ∧ `shop_hien_thi`, `shop_cua_hang.da_xoa=false`).

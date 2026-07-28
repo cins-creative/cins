@@ -13,7 +13,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 
-import type { ShopBangGia, ShopSanPham } from "@/lib/shop/types";
+import type { ShopBangGia, ShopNhom, ShopSanPham } from "@/lib/shop/types";
 import Link from "next/link";
 
 import "@/components/cins/user-account-settings-modal.css";
@@ -86,6 +86,10 @@ export function ShopAttachHangModal({
   const [products, setProducts] = useState<ShopSanPham[]>([]);
   const [priceLists, setPriceLists] = useState<ShopBangGia[]>([]);
   const [bangGiaId, setBangGiaId] = useState("");
+  /** Giá gốc mặc định theo loại (`shop_nhom.gia_mac_dinh`) — fallback preview. */
+  const [nhomGiaById, setNhomGiaById] = useState<Map<string, number>>(
+    () => new Map(),
+  );
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [filterLoai, setFilterLoai] = useState<string[]>([]);
   const [filterLoai2, setFilterLoai2] = useState<string[]>([]);
@@ -120,20 +124,31 @@ export function ShopAttachHangModal({
         return;
       }
 
-      const [pRes, bRes, hRes] = await Promise.all([
+      const [pRes, bRes, hRes, nRes] = await Promise.all([
         fetch("/api/shop/san-pham", { cache: "no-store" }),
         fetch("/api/shop/bang-gia", { cache: "no-store" }),
         fetch(`/api/milestone/${milestoneId}/shop-hang`, { cache: "no-store" }),
+        fetch("/api/shop/nhom", { cache: "no-store" }),
       ]);
       const pJson = (await pRes.json()) as { items?: ShopSanPham[] };
       const bJson = (await bRes.json()) as { items?: ShopBangGia[] };
       const hJson = (await hRes.json()) as {
         items?: Array<{ idBienThe: string; idBangGia: string | null }>;
       };
+      const nJson = (await nRes.json().catch(() => null)) as {
+        items?: ShopNhom[];
+      } | null;
       setProducts(pJson.items ?? []);
       const lists = bJson.items ?? [];
       setPriceLists(lists);
       setBangGiaId(lists[0]?.id ?? "");
+      const giaMap = new Map<string, number>();
+      for (const n of nJson?.items ?? []) {
+        if (n.giaMacDinh != null && Number.isFinite(n.giaMacDinh)) {
+          giaMap.set(n.id, n.giaMacDinh);
+        }
+      }
+      setNhomGiaById(giaMap);
       const sel = new Set((hJson.items ?? []).map((i) => i.idBienThe));
       setSelected(sel);
       const firstBg = hJson.items?.find((i) => i.idBangGia)?.idBangGia;
@@ -295,19 +310,24 @@ export function ShopAttachHangModal({
     toggleIds(filteredBienTheIds);
   }
 
-  function resolveGia(idBienThe: string): { gia: number; tienTe: string } | null {
-    // Chỉ lấy giá trong bảng đang chọn — không fallback sang bảng khác
-    // (tránh hiện 3.000 VND khi đang chọn bảng IDR chưa có dòng).
+  function resolveGia(
+    idBienThe: string,
+    idNhom?: string | null,
+  ): { gia: number; tienTe: string } | null {
+    // Mô hình 1 bảng giá VND duy nhất.
     const bg = bangGiaId
       ? priceLists.find((b) => b.id === bangGiaId)
       : priceLists[0];
-    if (!bg) return null;
-    const d = bg.dong.find((x) => x.idBienThe === idBienThe);
-    if (!d) return null;
-    return {
-      gia: d.giaGiam != null ? d.giaGiam : d.gia,
-      tienTe: bg.tienTe,
-    };
+    const tienTe = bg?.tienTe ?? "VND";
+    const d = bg?.dong.find((x) => x.idBienThe === idBienThe);
+    if (d) {
+      return { gia: d.giaGiam != null ? d.giaGiam : d.gia, tienTe };
+    }
+    // Lưới an toàn: bảng giá thiếu dòng → giá gốc mặc định của loại
+    // (khớp trang Kho; backend cũng fallback y hệt khi lưu).
+    const giaMacDinh = idNhom ? nhomGiaById.get(idNhom) : undefined;
+    if (giaMacDinh != null) return { gia: giaMacDinh, tienTe };
+    return null;
   }
 
   async function save() {
@@ -418,14 +438,17 @@ export function ShopAttachHangModal({
   }
 
   return createPortal(
-    <div className="uas-backdrop" role="presentation" onClick={onClose}>
+    <div
+      className="uas-backdrop shop-attach-backdrop"
+      role="presentation"
+      onClick={onClose}
+    >
       <div
-        className="uas-modal"
+        className="uas-modal shop-attach-modal"
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         onClick={(e) => e.stopPropagation()}
-        style={{ maxWidth: 520 }}
       >
         <header className="uas-head">
           <h2 id={titleId} className="uas-title">
@@ -461,19 +484,6 @@ export function ShopAttachHangModal({
               {err ? (
                 <p style={{ color: "#b42318", fontSize: 13 }}>{err}</p>
               ) : null}
-              <label className="shop-dash-field">
-                Bảng giá
-                <select
-                  value={bangGiaId}
-                  onChange={(e) => setBangGiaId(e.target.value)}
-                >
-                  {priceLists.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.ten} ({b.tienTe})
-                    </option>
-                  ))}
-                </select>
-              </label>
               {products.length > 0 && (showFilterLoai || showFilterLoai2) ? (
                 <div className="shop-attach-filters">
                   {showFilterLoai
@@ -541,7 +551,7 @@ export function ShopAttachHangModal({
                       {group.products.flatMap((p) =>
                         p.bienThe.map((bt) => {
                           const thumb = bt.anhUrl ?? p.anhUrl;
-                          const price = resolveGia(bt.id);
+                          const price = resolveGia(bt.id, p.idNhom);
                           const loai2 = p.phanLoai2?.trim();
                           return (
                             <li

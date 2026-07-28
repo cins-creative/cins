@@ -388,6 +388,30 @@ export function parseBehanceProjectHtml(
           }
           continue;
         }
+        /*
+         * MediaCollectionModule / lưới ảnh: mỗi `components[]` là 1 ảnh (có
+         * `imageSizes`). Parser cũ bỏ qua → mất nhiều ảnh trong bộ sticker/lưới.
+         */
+        if (
+          typename === "MediaCollectionModule" ||
+          Array.isArray((mod as { components?: unknown }).components)
+        ) {
+          const comps = Array.isArray((mod as { components?: unknown[] }).components)
+            ? ((mod as { components: unknown[] }).components as Array<
+                Record<string, unknown>
+              >)
+            : [];
+          for (const comp of comps) {
+            if (anh.length >= gioiHan) break;
+            if (!comp || typeof comp !== "object") continue;
+            const picked = pickImageFromModule(comp);
+            if (!picked || seenImg.has(picked.imageUrl)) continue;
+            seenImg.add(picked.imageUrl);
+            anh.push(picked);
+            modules.push({ kind: "image", anh: picked });
+          }
+          continue;
+        }
         if (
           typename === "ImageModule" ||
           mod.imageSizes ||

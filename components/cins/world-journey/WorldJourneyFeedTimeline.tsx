@@ -73,6 +73,13 @@ function canInlineExpand(milestone: MilestoneItem): boolean {
 /** Rail gợi ý ngang xen giữa feed (kết bạn / org / sự kiện…). */
 const SHOW_FEED_PROMO_RAIL = true;
 
+/**
+ * Mảng promo rỗng dùng chung — tránh tạo `[]` mới mỗi render (default param),
+ * vì identity đổi sẽ làm `promoInsertMap`/`insertAfterPostCounts` tính lại →
+ * IntersectionObserver bị hủy & tạo lại liên tục → prefetch mất.
+ */
+const EMPTY_FEED_PROMOS: FeedPromoVariant[] = [];
+
 function useFeedPromoBreakpoint(): FeedPromoBreakpoint {
   const [bp, setBp] = useState<FeedPromoBreakpoint>("lg");
 
@@ -148,7 +155,7 @@ function buildPromoInsertMap(
 export function WorldJourneyFeedTimeline({
   milestones,
   viewerProfileId,
-  feedPromos = [],
+  feedPromos = EMPTY_FEED_PROMOS,
   scrollLoad = null,
   loadingMore = false,
   loadError = false,
@@ -159,6 +166,15 @@ export function WorldJourneyFeedTimeline({
   const earlySentinelRef = useRef<HTMLDivElement>(null);
   const endSentinelRef = useRef<HTMLDivElement>(null);
   const promoBp = useFeedPromoBreakpoint();
+
+  /* Đọc onLoadMore qua ref: identity callback đổi mỗi render không được phép
+     hủy/tạo lại observer (mất callback initial async của IntersectionObserver). */
+  const onLoadMoreRef = useRef(onLoadMore);
+  useEffect(() => {
+    onLoadMoreRef.current = onLoadMore;
+  }, [onLoadMore]);
+
+  const scrollLoadEnabled = scrollLoad?.enabled ?? false;
 
   const byYear = useMemo(
     () => groupByYearPreserveOrder(milestones),
@@ -207,7 +223,7 @@ export function WorldJourneyFeedTimeline({
   }, [promoInsertMap, scrollLoad?.enabled, milestones.length]);
 
   useEffect(() => {
-    if (!scrollLoad?.enabled || !onLoadMore) return;
+    if (!scrollLoadEnabled) return;
     /* Đang xổ bài dài: sentinel dễ vào viewport → load-more đẩy feed → nhảy scroll. */
     if (inlineExpand?.showContent) return;
     if (typeof IntersectionObserver === "undefined") return;
@@ -220,7 +236,7 @@ export function WorldJourneyFeedTimeline({
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries.some((entry) => entry.isIntersecting)) {
-          onLoadMore();
+          onLoadMoreRef.current?.();
         }
       },
       {
@@ -232,8 +248,7 @@ export function WorldJourneyFeedTimeline({
     for (const node of nodes) observer.observe(node);
     return () => observer.disconnect();
   }, [
-    scrollLoad,
-    onLoadMore,
+    scrollLoadEnabled,
     milestones.length,
     inlineExpand?.showContent,
     insertAfterPostCounts,

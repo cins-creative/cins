@@ -2,10 +2,8 @@ import { NextResponse } from "next/server";
 
 import { layAnhArtstationTuUrl } from "@/lib/autopilot/artstation-assets";
 import { layAnhBehanceTuUrl } from "@/lib/autopilot/behance-assets";
-import {
-  layAnhPixivTuUrl,
-  pixivImageFetchHeaders,
-} from "@/lib/autopilot/pixiv-assets";
+import { buildPixivAlbumBlocks } from "@/lib/autopilot/pixiv-album-blocks";
+import { pixivImageFetchHeaders } from "@/lib/autopilot/pixiv-assets";
 import { uploadCloudflareImageFromUrl } from "@/lib/cloudflare/upload-image-from-url";
 import {
   chuanHoaBlocks,
@@ -50,6 +48,12 @@ type BodyDangBai = {
   coverId?: string | null;
   /** URL ảnh bìa nguồn (RSS/OG ArtStation/Behance) — upload CF làm cover nếu chưa có coverId. */
   anhBiaUrl?: string | null;
+  /**
+   * Album ảnh nguồn đã bắt sẵn (extension quét trang gallery → `auto_muc.meta.anhUrls`).
+   * Ưu tiên dùng trực tiếp (upload CF) thay vì fetch lại HTML — tránh Cloudflare chặn
+   * (Behance) và lấy đủ nhiều ảnh thay vì chỉ 1 cover.
+   */
+  anhUrls?: string[];
   loaiMoc?: LoaiMoc;
   cheDoHienThi?: Visibility;
   thoiDiem?: string;
@@ -156,41 +160,89 @@ export async function POST(request: Request) {
     return badRequest("cheDoHienThi không hợp lệ.", "cheDoHienThi");
   }
 
-  let blocks: Block[];
+  let blocks: Block[] = [];
   let coverId = body.coverId?.trim() || null;
   let dungAlbumAnh = false;
 
-  if (Array.isArray(body.blocks) && body.blocks.length > 0) {
-    const normalized = chuanHoaBlocks(body.blocks);
+  const laNenNgoai =
+    nenTang === "artstation" || nenTang === "behance" || nenTang === "pixiv";
+  const clientCungCapBlocks =
+    Array.isArray(body.blocks) && body.blocks.length > 0;
+
+  if (clientCungCapBlocks) {
+    const normalized = chuanHoaBlocks(body.blocks!);
     if (!normalized || normalized.length === 0) {
       return badRequest("blocks không hợp lệ.", "blocks");
     }
     blocks = normalized;
-  } else if (
-    nenTang === "artstation" ||
-    nenTang === "behance" ||
-    nenTang === "pixiv"
-  ) {
+  } else if (laNenNgoai) {
     /* ArtStation / Behance / Pixiv: kéo album ảnh → khối imgs. */
-    const album =
-      nenTang === "artstation"
-        ? await buildArtstationAlbumBlocks({
+    const anhUrlsExt = Array.isArray(body.anhUrls)
+      ? body.anhUrls
+          .map((u) => String(u || "").trim())
+          .filter((u) => isHttpUrl(u))
+          .slice(0, 12)
+      : [];
+
+    let album:
+      | { blocks: Block[]; coverId: string | null }
+      | { code: "anh_qua_dai" | "r18" | "ugoira"; error: string }
+      | { blocks: Block[]; coverId: string | null; tieuDeGoiY?: string | null; moTaGoiY?: string | null }
+      | null = null;
+
+    if (nenTang === "behance") {
+      /*
+       * Behance: FETCH đầy đủ album trước (khớp preview — nhiều ảnh + text/video
+       * theo modules). `anhUrls` extension chỉ là FALLBACK khi fetch bị chặn
+       * (Cloudflare) — tránh trường hợp published 1 ảnh trong khi preview đủ ảnh.
+       */
+      const fetched = await buildBehanceAlbumBlocks({
+        urlNguon,
+        tenTacGiaNguon: body.tenTacGiaNguon,
+        dongGhiNguon: body.dongGhiNguon,
+      });
+      if (fetched && "code" in fetched) {
+        album = fetched; // anh_qua_dai → 422 bên dưới (không fallback).
+      } else if (fetched && "blocks" in fetched) {
+        album = fetched;
+      } else if (anhUrlsExt.length) {
+        album = await buildAlbumBlocksFromUrls({
+          anhUrls: anhUrlsExt,
+          urlNguon,
+          nenTang,
+          tenTacGiaNguon: body.tenTacGiaNguon,
+          dongGhiNguon: body.dongGhiNguon,
+        });
+      }
+    } else {
+      /* ArtStation / Pixiv: ưu tiên album extension bắt sẵn, rồi fetch. */
+      album = anhUrlsExt.length
+        ? await buildAlbumBlocksFromUrls({
+            anhUrls: anhUrlsExt,
             urlNguon,
+            nenTang,
             tenTacGiaNguon: body.tenTacGiaNguon,
             dongGhiNguon: body.dongGhiNguon,
           })
-        : nenTang === "behance"
-          ? await buildBehanceAlbumBlocks({
-              urlNguon,
-              tenTacGiaNguon: body.tenTacGiaNguon,
-              dongGhiNguon: body.dongGhiNguon,
-            })
-          : await buildPixivAlbumBlocks({
-              urlNguon,
-              tenTacGiaNguon: body.tenTacGiaNguon,
-              dongGhiNguon: body.dongGhiNguon,
-              choPhepAnhQuaDai: Boolean(body.choPhepAnhQuaDai),
-            });
+        : null;
+
+      if (!album) {
+        album =
+          nenTang === "artstation"
+            ? await buildArtstationAlbumBlocks({
+                urlNguon,
+                tenTacGiaNguon: body.tenTacGiaNguon,
+                dongGhiNguon: body.dongGhiNguon,
+              })
+            : await buildPixivAlbumBlocks({
+                urlNguon,
+                tenTacGiaNguon: body.tenTacGiaNguon,
+                dongGhiNguon: body.dongGhiNguon,
+                choPhepAnhQuaDai: Boolean(body.choPhepAnhQuaDai),
+              });
+      }
+    }
+
     if (
       album &&
       "code" in album &&
@@ -222,16 +274,11 @@ export async function POST(request: Request) {
           ? album.moTaGoiY.trim()
           : "";
       if (moTaAlbum && !moTa.trim()) moTa = moTaAlbum;
-    } else {
-      blocks = taoKhoiBaiNguon({
-        moTa,
-        urlNguon,
-        nenTang,
-        tenTacGiaNguon: body.tenTacGiaNguon,
-        dongGhiNguon: body.dongGhiNguon,
-      });
     }
+    /* Nền ngoài KHÔNG có ảnh album → không tạo embed link «▶ …» (chỉ dành cho
+       video thật). Rơi xuống cover-only bên dưới, hoặc guard thiếu media. */
   } else {
+    /* Nguồn «khác» — embed link hợp lệ (bài viết/video ngoài). */
     blocks = taoKhoiBaiNguon({
       moTa,
       urlNguon,
@@ -257,15 +304,24 @@ export async function POST(request: Request) {
     }
   }
 
+  /* Nền ngoài không lấy được album nhưng có cover → 1 khối ảnh (không embed link). */
+  if (laNenNgoai && !dungAlbumAnh && blocks.length === 0 && coverId) {
+    blocks = taoKhoiBaiAlbumNguon({
+      anh: [{ seed: coverId }],
+      moTa: null,
+      urlNguon,
+      nenTang,
+      tenTacGiaNguon: body.tenTacGiaNguon,
+      dongGhiNguon: body.dongGhiNguon,
+    });
+    dungAlbumAnh = true;
+  }
+
   /*
    * Guard thiếu media — nền ngoài (ArtStation/Behance/Pixiv) mà fetch ảnh thất
    * bại và không có cover → KHÔNG đăng thẻ gradient rỗng. Trả code để worker giữ
    * bản thảo `san_sang` thử lại lần sau. Bỏ qua khi client tự cấp `blocks`.
    */
-  const laNenNgoai =
-    nenTang === "artstation" || nenTang === "behance" || nenTang === "pixiv";
-  const clientCungCapBlocks =
-    Array.isArray(body.blocks) && body.blocks.length > 0;
   const coAnhTrongBlocks = blocks.some((b) => b.loai === "imgs");
   if (laNenNgoai && !clientCungCapBlocks && !coAnhTrongBlocks && !coverId) {
     return NextResponse.json(
@@ -378,6 +434,52 @@ export async function POST(request: Request) {
 }
 
 /**
+ * Album từ danh sách URL ảnh đã bắt sẵn (extension quét gallery) → upload CF →
+ * khối imgs. Không fetch lại HTML nguồn (tránh Cloudflare chặn Behance) và lấy
+ * đủ nhiều ảnh thay vì 1 cover. Fail (không upload được ảnh nào) → null.
+ */
+async function buildAlbumBlocksFromUrls(params: {
+  anhUrls: string[];
+  urlNguon: string;
+  nenTang: NenTangNguon;
+  tenTacGiaNguon?: string | null;
+  dongGhiNguon?: string | null;
+}): Promise<{ blocks: Block[]; coverId: string | null } | null> {
+  const anh: AnhAlbumNguon[] = [];
+  let coverId: string | null = null;
+  const opts =
+    params.nenTang === "pixiv"
+      ? { headers: pixivImageFetchHeaders() }
+      : undefined;
+
+  for (const url of params.anhUrls) {
+    if (anh.length >= 12) break;
+    if (!isHttpUrl(url)) continue;
+    try {
+      const uploaded = await uploadCloudflareImageFromUrl(url, opts);
+      if (!uploaded?.imageId) continue;
+      anh.push({ seed: uploaded.imageId });
+      if (!coverId) coverId = uploaded.imageId;
+    } catch {
+      /* bỏ ảnh lỗi, tiếp tục */
+    }
+  }
+
+  if (!anh.length) return null;
+
+  const blocks = taoKhoiBaiAlbumNguon({
+    anh,
+    moTa: null,
+    urlNguon: params.urlNguon,
+    nenTang: params.nenTang,
+    tenTacGiaNguon: params.tenTacGiaNguon,
+    dongGhiNguon: params.dongGhiNguon,
+  });
+
+  return { blocks, coverId };
+}
+
+/**
  * Fetch JSON ArtStation → upload CF → khối album imgs.
  * Fail → null (caller fallback embed link).
  */
@@ -447,19 +549,28 @@ async function buildBehanceAlbumBlocks(params: {
   let coverId: string | null = null;
 
   for (const item of fetched.data.anh) {
+    let cfId: string | null = null;
     try {
       const uploaded = await uploadCloudflareImageFromUrl(item.imageUrl);
-      if (!uploaded?.imageId) continue;
-      const mapped: AnhAlbumNguon = {
-        seed: uploaded.imageId,
-        width: item.width,
-        height: item.height,
-      };
-      seedByUrl.set(item.imageUrl, mapped);
-      if (!coverId) coverId = uploaded.imageId;
+      if (uploaded?.imageId) cfId = uploaded.imageId;
     } catch {
-      /* bỏ ảnh lỗi */
+      /* upload lỗi → fallback URL nguồn bên dưới */
     }
+    /*
+     * CF upload fail (GIF >10MB, timeout…) → KHÔNG bỏ ảnh: dùng URL nguồn làm
+     * seed (hotlink) để bài đăng đủ ảnh như preview. Renderer hỗ trợ seed URL.
+     */
+    const mapped: AnhAlbumNguon = {
+      seed: cfId || item.imageUrl,
+      width: item.width,
+      height: item.height,
+    };
+    seedByUrl.set(item.imageUrl, mapped);
+    if (!coverId && cfId) coverId = cfId;
+  }
+  /* Chưa có cover CF (mọi ảnh hotlink) → dùng ảnh đầu làm cover. */
+  if (!coverId && seedByUrl.size) {
+    coverId = [...seedByUrl.values()][0]!.seed;
   }
 
   let modules = fetched.data.modules
@@ -512,80 +623,5 @@ async function buildBehanceAlbumBlocks(params: {
     }),
     coverId,
     tieuDeGoiY: fetched.data.title,
-  };
-}
-
-/**
- * Fetch ajax Pixiv → upload CF (Referer pximg) → album justified.
- * Fail / reject → code hoặc null.
- */
-async function buildPixivAlbumBlocks(params: {
-  urlNguon: string;
-  tenTacGiaNguon?: string | null;
-  dongGhiNguon?: string | null;
-  choPhepAnhQuaDai?: boolean;
-}): Promise<
-  | {
-      blocks: Block[];
-      coverId: string | null;
-      tieuDeGoiY?: string | null;
-      moTaGoiY?: string | null;
-    }
-  | { code: "anh_qua_dai" | "r18" | "ugoira"; error: string }
-  | null
-> {
-  const fetched = await layAnhPixivTuUrl(params.urlNguon, {
-    choPhepAnhQuaDai: params.choPhepAnhQuaDai,
-  });
-  if (!fetched.ok) {
-    if (
-      fetched.code === "anh_qua_dai" ||
-      fetched.code === "r18" ||
-      fetched.code === "ugoira"
-    ) {
-      return { code: fetched.code, error: fetched.error };
-    }
-    return null;
-  }
-
-  const imgHeaders = pixivImageFetchHeaders();
-  const anh: AnhAlbumNguon[] = [];
-  let coverId: string | null = null;
-
-  for (const item of fetched.data.anh) {
-    try {
-      const uploaded = await uploadCloudflareImageFromUrl(item.imageUrl, {
-        headers: imgHeaders,
-      });
-      if (!uploaded?.imageId) continue;
-      anh.push({
-        seed: uploaded.imageId,
-        width: item.width,
-        height: item.height,
-      });
-      if (!coverId) coverId = uploaded.imageId;
-    } catch {
-      /* bỏ ảnh lỗi */
-    }
-  }
-
-  if (!anh.length) return null;
-
-  const tenTacGia =
-    params.tenTacGiaNguon?.trim() || fetched.data.userName || null;
-  const moTaKhoi = fetched.data.descriptionPlain?.slice(0, 2000) || null;
-
-  return {
-    blocks: taoKhoiBaiAlbumNguon({
-      anh,
-      moTa: null,
-      urlNguon: params.urlNguon,
-      nenTang: "pixiv",
-      tenTacGiaNguon: tenTacGia,
-      dongGhiNguon: params.dongGhiNguon,
-    }),
-    coverId,
-    tieuDeGoiY: fetched.data.title,
-    moTaGoiY: moTaKhoi,
   };
 }

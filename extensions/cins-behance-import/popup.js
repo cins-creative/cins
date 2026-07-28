@@ -9,6 +9,11 @@ async function loadSettings() {
   $("apiBase").value = data.apiBase || "https://cins.vn";
   $("secret").value = data.secret || "";
   $("niche").value = data.niche || "";
+  try {
+    $("ver").textContent = "v" + chrome.runtime.getManifest().version;
+  } catch {
+    /* ignore */
+  }
 }
 
 async function saveSettings() {
@@ -25,251 +30,162 @@ function setStatus(text, isError = false) {
   el.className = isError ? "err" : "ok";
 }
 
-/** Chạy trong tab Behance — trả về danh sách mục. */
+/**
+ * Chạy trong tab Behance — chỉ quét ĐÚNG 1 trang project (/gallery/{id}) đang
+ * mở, trả về 1 mục với đủ ảnh module. KHÔNG gom card từ trang hồ sơ/projects
+ * (tránh quét cả loạt project chỉ có 1 ảnh bìa).
+ */
 function scanBehanceInPage() {
   const origin = location.origin;
   const path = location.pathname.replace(/\/+$/, "");
-  const parts = path.split("/").filter(Boolean);
-  const projectsIdx = parts.indexOf("projects");
-  const username =
-    projectsIdx > 0
-      ? parts[projectsIdx - 1]
-      : parts[0] &&
-          !["search", "galleries", "jobs", "assets", "gallery"].includes(
-            parts[0],
-          )
-        ? parts[0]
-        : null;
 
-  function abs(href) {
-    try {
-      return new URL(href, origin).href;
-    } catch {
-      return null;
-    }
+  const galleryMatch = path.match(/\/gallery\/(\d+)(?:\/([^/]+))?/);
+  if (!galleryMatch) {
+    return { pageUrl: location.href, items: [], khongPhaiGallery: true };
   }
+  const pid = galleryMatch[1];
+  const slug = galleryMatch[2] || "";
+  /* URL canonic = /gallery/{id}/{slug} — bỏ đuôi deep-link /modules/… nếu có. */
+  const canonicalPath = `/gallery/${pid}${slug ? `/${slug}` : ""}`;
 
-  function projectIdFromUrl(url) {
-    const m = String(url).match(/\/gallery\/(\d+)/);
-    return m ? m[1] : null;
-  }
-
-  /**
-   * Cover project từ HTML nhúng (mir-s3 …/projects/{size}/…{projectId}…).
-   * DOM card thường lazy/empty — map này ổn định hơn querySelector img.
+  const rawHtml = document.documentElement.innerHTML;
+  /*
+   * Decode `\/` + `\u002F` trước khi quét — Behance nhúng khối JSON
+   * `"modules":[…]` chứa URL của TẤT CẢ ảnh (không phụ thuộc scroll/lazy-load).
    */
-  function coverMapTuHtml(html) {
-    const decoded = String(html || "")
-      .replace(/\\u002F/g, "/")
-      .replace(/\\\//g, "/");
-    const ids = [
-      ...new Set(
-        [...decoded.matchAll(/\/gallery\/(\d+)/g)].map((m) => m[1]),
-      ),
-    ];
-    const rank = {
-      max_808: 6,
-      max_808_webp: 5,
-      808: 4,
-      "808_webp": 3,
-      404: 2,
-      "404_webp": 1,
-    };
-    const map = Object.create(null);
-    for (const id of ids) {
-      const re = new RegExp(
-        `https://mir-s3-cdn-cf\\.behance\\.net/projects/(max_808(?:_webp)?|808(?:_webp)?|404(?:_webp)?)/[a-zA-Z0-9_.%-]*${id}\\.[^"'\\\\\\s>]+`,
-        "gi",
-      );
-      let best = null;
-      let bestRank = -1;
-      let m;
-      while ((m = re.exec(decoded))) {
-        const r = rank[m[1]] || 0;
-        if (r > bestRank) {
-          bestRank = r;
-          best = m[0];
-        }
-      }
-      if (best) map[id] = best;
-    }
-    return map;
+  const html = String(rawHtml)
+    .replace(/\\u002F/gi, "/")
+    .replace(/\\\//g, "/");
+
+  /* Tác giả (username handle) — ưu tiên khối owners, fallback username đầu tiên. */
+  let username = null;
+  const ownerM = html.match(
+    /"owners"\s*:\s*\[\s*\{[^]*?"username"\s*:\s*"([^"]+)"/i,
+  );
+  if (ownerM) username = ownerM[1];
+  if (!username) {
+    const um = html.match(/"username"\s*:\s*"([^"]+)"/i);
+    if (um) username = um[1];
   }
 
-  function thumbTuThe(el) {
-    if (!el) return null;
-    const imgs = el.querySelectorAll("img");
-    for (const img of imgs) {
-      let t =
-        img.currentSrc ||
-        img.src ||
-        img.getAttribute("data-src") ||
-        img.getAttribute("data-image") ||
-        null;
-      if (!t && img.srcset) {
-        t =
-          String(img.srcset)
-            .split(",")
-            .map((s) => s.trim().split(/\s+/)[0])
-            .filter(Boolean)
-            .pop() || null;
+  /* Strip/sheet siêu cao — bỏ qua (không đọc được trên feed). Video vẫn lấy. */
+  const TY_LE_CAO = 3;
+  const CHIEU_CAO = 3500;
+  let anhQuaDai = false;
+  for (const re of [
+    /"size_[^"]+"\s*:\s*\{[^}]*?"width"\s*:\s*(\d+)[^}]*?"height"\s*:\s*(\d+)/gi,
+    /"size_[^"]+"\s*:\s*\{[^}]*?"height"\s*:\s*(\d+)[^}]*?"width"\s*:\s*(\d+)/gi,
+  ]) {
+    let sm;
+    while ((sm = re.exec(rawHtml))) {
+      const a = Number(sm[1]);
+      const b = Number(sm[2]);
+      const w = re.source.indexOf("width") < re.source.indexOf("height") ? a : b;
+      const h = w === a ? b : a;
+      if (w > 0 && h > 0 && (h >= CHIEU_CAO || h / w >= TY_LE_CAO)) {
+        anhQuaDai = true;
+        break;
       }
-      if (t && /behance\.net|mir-s3/i.test(t) && !/avatar|user/i.test(t)) {
-        return t;
-      }
-      if (t && /^https?:/i.test(t) && !/avatar|user|icon/i.test(t)) return t;
     }
-    const sources = el.querySelectorAll("source[srcset]");
-    for (const s of sources) {
-      const last = String(s.getAttribute("srcset") || "")
-        .split(",")
-        .map((x) => x.trim().split(/\s+/)[0])
-        .filter(Boolean)
-        .pop();
-      if (last && /behance\.net|mir-s3/i.test(last)) return last;
-    }
-    const bg = el.querySelector("[style*='background-image']");
-    const m = bg?.getAttribute("style")?.match(/url\(["']?([^"')]+)/);
-    return m?.[1] || null;
+    if (anhQuaDai) break;
+  }
+  if (anhQuaDai) {
+    return { maNgoai: username, pageUrl: location.href, items: [], boQuaAnhQuaDai: true };
   }
 
-  const pageHtml = document.documentElement.innerHTML;
-  const coversById = coverMapTuHtml(pageHtml);
+  const ogImg =
+    document
+      .querySelector('meta[property="og:image"]')
+      ?.getAttribute("content") || null;
 
-  const seen = new Set();
-  const items = [];
-
-  document.querySelectorAll('a[href*="/gallery/"]').forEach((a) => {
-    const href = abs(a.getAttribute("href") || "");
-    if (!href) return;
-    const id = projectIdFromUrl(href);
-    if (!id || seen.has(id)) return;
-
-    const title =
-      a.getAttribute("aria-label") ||
-      a.querySelector("img")?.getAttribute("alt") ||
-      a.textContent?.trim() ||
-      `Behance ${id}`;
-
-    const card =
-      a.closest("article, li, [class*='Project'], [class*='project']") ||
-      a.parentElement ||
-      a;
-    let thumb = coversById[id] || thumbTuThe(a) || thumbTuThe(card);
-    if (thumb && thumb.startsWith("//")) thumb = `https:${thumb}`;
-
-    /* Title từ slug URL nếu card chỉ trả "Behance {id}". */
-    let tieuDe = String(title).replace(/\s+/g, " ").trim();
-    if (!tieuDe || /^Behance\s+\d+$/i.test(tieuDe)) {
-      const slug = href.split(`/gallery/${id}/`)[1]?.split(/[?#]/)[0] || "";
-      if (slug && !/^(p|project)$/i.test(slug)) {
-        tieuDe = decodeURIComponent(slug).replace(/[-_]+/g, " ").trim();
-      }
-    }
-    /* Không gửi placeholder `Behance {id}` — server sẽ lấy og:title. */
-    if (!tieuDe || /^Behance\s+\d+$/i.test(tieuDe)) tieuDe = "";
-
-    seen.add(id);
-    items.push({
-      url: href.split("?")[0],
-      tieuDe: tieuDe.slice(0, 200),
-      tacGia: username,
-      anhBia: thumb,
-    });
-  });
-
-  /* Đang mở 1 trang gallery → quét thêm module ảnh trong project. */
-  const galleryMatch = path.match(/\/gallery\/(\d+)/);
-  if (galleryMatch) {
-    const pid = galleryMatch[1];
-    const html = document.documentElement.innerHTML;
-    /* Strip/sheet siêu cao — không đưa vào hàng đợi. Video YouTube/Vimeo vẫn lấy (nhúng khi đăng). */
-    const TY_LE_CAO = 3;
-    const CHIEU_CAO = 3500;
-    let lyDoBoQua = null;
-    {
-      const sizeRe =
-        /"size_[^"]+"\s*:\s*\{[^}]*?"width"\s*:\s*(\d+)[^}]*?"height"\s*:\s*(\d+)/gi;
-      let sm;
-      while ((sm = sizeRe.exec(html))) {
-        const w = Number(sm[1]);
-        const h = Number(sm[2]);
-        if (w > 0 && h > 0 && (h >= CHIEU_CAO || h / w >= TY_LE_CAO)) {
-          lyDoBoQua = "anh_qua_dai";
-          break;
-        }
-      }
-    }
-    if (!lyDoBoQua) {
-      const sizeRe2 =
-        /"size_[^"]+"\s*:\s*\{[^}]*?"height"\s*:\s*(\d+)[^}]*?"width"\s*:\s*(\d+)/gi;
-      let sm;
-      while ((sm = sizeRe2.exec(html))) {
-        const h = Number(sm[1]);
-        const w = Number(sm[2]);
-        if (w > 0 && h > 0 && (h >= CHIEU_CAO || h / w >= TY_LE_CAO)) {
-          lyDoBoQua = "anh_qua_dai";
-          break;
-        }
-      }
-    }
-
-    if (lyDoBoQua) {
-      for (let i = items.length - 1; i >= 0; i--) {
-        if (String(items[i].url).includes(`/gallery/${pid}/`)) {
-          items.splice(i, 1);
-        }
-      }
-      return {
-        maNgoai: username,
-        pageUrl: location.href,
-        items,
-        boQuaAnhQuaDai: true,
-      };
-    }
-
-    const ogImg =
-      document
-        .querySelector('meta[property="og:image"]')
-        ?.getAttribute("content") ||
-      coversById[pid] ||
-      null;
-    const moduleRe =
-      /https:\/\/mir-s3-cdn-cf\.behance\.net\/project_modules\/(?:max_1200|1400|disp|hd|fs)(?:_webp)?\/[a-zA-Z0-9_.%-]+\.(?:jpg|jpeg|png|webp)/gi;
-    const mods = [...new Set((html.match(moduleRe) || []).map(String))];
-    const cover = ogImg || mods[0] || null;
-    const existing = items.find((it) =>
-      String(it.url).includes(`/gallery/${pid}/`),
-    );
-    if (existing) {
-      existing.anhBia = existing.anhBia || cover;
-      if (mods.length) existing.anhUrls = mods.slice(0, 12);
-    } else if (cover || mods.length) {
-      const ogTitle =
-        document.querySelector('meta[property="og:title"]')?.getAttribute(
-          "content",
-        ) || "";
-      const cleaned = String(ogTitle).replace(/\s+/g, " ").trim();
-      items.unshift({
-        url: location.href.split("?")[0],
-        tieuDe: /^Behance\s+\d+$/i.test(cleaned) ? "" : cleaned.slice(0, 200),
-        tacGia: username,
-        anhBia: cover,
-        anhUrls: mods.slice(0, 12),
-      });
-    }
-  }
-
-  return {
-    maNgoai: username,
-    pageUrl: location.href,
-    items,
+  const moduleRe2 =
+    /https:\/\/mir-s3-cdn-cf\.behance\.net\/project_modules\/([a-z0-9_]+)\/([a-zA-Z0-9_.%-]+\.(?:jpg|jpeg|png|webp))/gi;
+  /* Ưu tiên như server (lib/autopilot/behance-assets SIZE_PREF): max_1200 tốt
+     nhất → tránh tải bản `source`/`original` quá nặng. */
+  const SIZE_RANK = {
+    max_1200: 0,
+    "1400": 1,
+    disp: 2,
+    hd: 3,
+    fs: 4,
+    max_632: 5,
+    source: 6,
+    original: 6,
   };
+  const sizeScore = (s) => {
+    const k = String(s).toLowerCase();
+    for (const key of Object.keys(SIZE_RANK)) {
+      if (k.includes(key)) return SIZE_RANK[key] + (/_webp/.test(k) ? 0.5 : 0);
+    }
+    return 80;
+  };
+  const byFile = new Map();
+  let mm;
+  while ((mm = moduleRe2.exec(html))) {
+    const size = mm[1] || "";
+    const file = mm[2] || "";
+    if (!size || !file) continue;
+    /* Bỏ thumbnail nhỏ — chỉ nhận size hiển thị feed. */
+    if (!/(source|original|fs|hd|1400|max_1200|disp|max_632)/i.test(size)) {
+      continue;
+    }
+    const prev = byFile.get(file);
+    if (!prev || sizeScore(size) < sizeScore(prev.size)) {
+      byFile.set(file, { url: mm[0], size });
+    }
+  }
+  const mods = [...byFile.values()].map((x) => x.url).slice(0, 12);
+  const cover = ogImg || mods[0] || null;
+
+  if (!cover && !mods.length) {
+    return { maNgoai: username, pageUrl: location.href, items: [] };
+  }
+
+  const ogTitle =
+    document.querySelector('meta[property="og:title"]')?.getAttribute("content") ||
+    "";
+  const cleaned = String(ogTitle).replace(/\s+/g, " ").trim();
+
+  const items = [
+    {
+      url: `${origin}${canonicalPath}`,
+      tieuDe: /^Behance\s+\d+$/i.test(cleaned) ? "" : cleaned.slice(0, 200),
+      tacGia: username,
+      anhBia: cover,
+      anhUrls: mods,
+    },
+  ];
+
+  return { maNgoai: username, pageUrl: location.href, items };
 }
 
 async function activeTab() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   return tab;
+}
+
+/** Quét tab đang mở — dùng chung cho «Quét trang» (xem trước) và «Gửi». */
+async function quetTabHienTai() {
+  const tab = await activeTab();
+  if (!tab?.id || !tab.url?.includes("behance.net")) {
+    return { loi: "Hãy mở đúng 1 trang project behance.net/gallery/…" };
+  }
+  const [{ result }] = await chrome.scripting.executeScript({
+    target: { tabId: tab.id },
+    func: scanBehanceInPage,
+  });
+  return { result };
+}
+
+/** Diễn giải kết quả quét rỗng thành thông báo. */
+function thongBaoQuetRong(result) {
+  if (result?.khongPhaiGallery) {
+    return "Chưa mở trang project. Bấm vào 1 tác phẩm để có URL dạng /gallery/… rồi quét.";
+  }
+  if (result?.boQuaAnhQuaDai) {
+    return "Project có ảnh strip quá dài — đã bỏ qua (không đọc được trên feed).";
+  }
+  return "Không lấy được ảnh từ trang này. Cuộn hết trang project rồi quét lại.";
 }
 
 $("save").addEventListener("click", async () => {
@@ -280,30 +196,22 @@ $("save").addEventListener("click", async () => {
 $("scan").addEventListener("click", async () => {
   setStatus("Đang quét trang…");
   try {
-    const tab = await activeTab();
-    if (!tab?.id || !tab.url?.includes("behance.net")) {
-      setStatus("Hãy mở tab behance.net (profile hoặc /projects).", true);
+    const { result, loi } = await quetTabHienTai();
+    if (loi) {
+      setStatus(loi, true);
       return;
     }
-    const [{ result }] = await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      func: scanBehanceInPage,
-    });
     if (!result?.items?.length) {
-      setStatus(
-        result?.boQuaAnhQuaDai
-          ? "Project có ảnh strip quá dài — đã bỏ qua (không đọc được trên feed)."
-          : "Không thấy project. Thử trang /username/projects và scroll load thêm.",
-        true,
-      );
+      setStatus(thongBaoQuetRong(result), true);
       return;
     }
-    await chrome.storage.session.set({ lastScan: result });
+    const soAnh = result.items[0]?.anhUrls?.length ?? 0;
     setStatus(
-      `Quét được ${result.items.length} project` +
+      `Quét được project này: ${soAnh} ảnh` +
         (result.maNgoai ? ` (@${result.maNgoai})` : "") +
-        (result.boQuaAnhQuaDai ? " · đã lọc" : "") +
-        ". Bấm «Gửi vào hàng đợi».",
+        (soAnh > 0
+          ? ". Bấm «Gửi vào hàng đợi»."
+          : ". ⚠ 0 ảnh — cuộn hết ảnh rồi quét lại, KHÔNG gửi."),
     );
   } catch (e) {
     setStatus(e?.message || String(e), true);
@@ -321,13 +229,36 @@ $("send").addEventListener("click", async () => {
     setStatus("Thiếu secret API.", true);
     return;
   }
-  const { lastScan } = await chrome.storage.session.get("lastScan");
-  if (!lastScan?.items?.length) {
-    setStatus("Chưa có kết quả quét — bấm «Quét trang» trước.", true);
+
+  /*
+   * QUÉT LẠI TƯƠI trang đang mở ngay lúc gửi — không đọc kết quả cũ đã lưu
+   * (tránh gửi nhầm scan cũ/nhiều mục từ phiên trước).
+   */
+  setStatus("Đang quét lại trang hiện tại…");
+  const { result, loi } = await quetTabHienTai();
+  if (loi) {
+    setStatus(loi, true);
+    return;
+  }
+  if (!result?.items?.length) {
+    setStatus(thongBaoQuetRong(result), true);
     return;
   }
 
-  setStatus(`Đang gửi ${lastScan.items.length} mục…`);
+  /* Chỉ gửi mục CÓ ảnh module — chặn mục 0 ảnh (bìa không đủ đăng). */
+  const items = result.items.filter(
+    (it) => Array.isArray(it.anhUrls) && it.anhUrls.length > 0,
+  );
+  if (!items.length) {
+    setStatus(
+      "Trang này chưa lấy được ảnh (0 ảnh). Cuộn hết ảnh rồi thử lại — không gửi mục rỗng.",
+      true,
+    );
+    return;
+  }
+
+  const soAnh = items[0].anhUrls.length;
+  setStatus(`Đang gửi 1 project (${soAnh} ảnh)…`);
   try {
     const res = await chrome.runtime.sendMessage({
       type: "GUI_MUC",
@@ -335,9 +266,9 @@ $("send").addEventListener("click", async () => {
       secret,
       body: {
         nenTang: "behance",
-        maNgoai: lastScan.maNgoai || undefined,
+        maNgoai: result.maNgoai || undefined,
         niche: niche || null,
-        items: lastScan.items,
+        items,
       },
     });
     if (!res?.ok) {
@@ -348,6 +279,7 @@ $("send").addEventListener("click", async () => {
     setStatus(
       `Xong: mới ${d.them ?? 0}, trùng ${d.boQua ?? 0}` +
         (d.loi ? `, lỗi ${d.loi}` : "") +
+        ` · ${soAnh} ảnh` +
         (d.idNguon ? ` · nguồn ${String(d.idNguon).slice(0, 8)}…` : ""),
     );
   } catch (e) {

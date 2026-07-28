@@ -1,16 +1,51 @@
 "use client";
 
-import { Loader2, Package, X } from "lucide-react";
+import {
+  Ban,
+  Clock,
+  Flag,
+  Loader2,
+  Package,
+  ShieldCheck,
+  X,
+} from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
+import { ReportModal } from "@/components/social/ReportModal";
 import {
+  SHOP_DON_NHAC_GIO,
   SHOP_LOAI_DON_LABEL,
+  SHOP_LY_DO_HUY_MAX,
   SHOP_TRANG_THAI_DON_LABEL,
+  type ShopBuyerTrust,
   type ShopDonHang,
 } from "@/lib/shop/types";
 
 import "./shop-don-detail-modal.css";
+
+const HUY_LY_DO_PRESETS = [
+  "Không nhận được tiền / biên lai không hợp lệ",
+  "Hết hàng",
+  "Người mua yêu cầu hủy",
+];
+
+/** Thời gian đã chờ từ khi tạo đơn + cờ "chờ quá lâu" (để nhắc seller). */
+function waitingSince(iso: string): { text: string; long: boolean } {
+  const ageH = (Date.now() - new Date(iso).getTime()) / 3_600_000;
+  const days = Math.floor(ageH / 24);
+  const text =
+    days >= 1 ? `${days} ngày` : ageH >= 1 ? `${Math.floor(ageH)} giờ` : "vừa gửi";
+  return { text, long: ageH >= SHOP_DON_NHAC_GIO };
+}
+
+function accountAgeLabel(iso: string): string {
+  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
+  if (days < 1) return "mới hôm nay";
+  if (days < 30) return `${days} ngày`;
+  if (days < 365) return `${Math.floor(days / 30)} tháng`;
+  return `${Math.floor(days / 365)} năm`;
+}
 
 type Props = {
   donId: string | null;
@@ -33,6 +68,7 @@ export function ShopDonDetailModal({
   onOpenChat,
 }: Props) {
   const [don, setDon] = useState<ShopDonHang | null>(null);
+  const [buyerTrust, setBuyerTrust] = useState<ShopBuyerTrust | null>(null);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -40,6 +76,11 @@ export function ShopDonDetailModal({
   const [viewerId, setViewerId] = useState<string | null>(null);
   /** Phóng to biên lai ngay trong modal — không mở tab mới. */
   const [billZoom, setBillZoom] = useState(false);
+  /** Bảng hủy đơn (seller). */
+  const [huyOpen, setHuyOpen] = useState(false);
+  const [huyLyDo, setHuyLyDo] = useState("");
+  const [blocked, setBlocked] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
 
   useEffect(() => {
     setPortalReady(true);
@@ -48,20 +89,27 @@ export function ShopDonDetailModal({
   const load = useCallback(async (id: string) => {
     setLoading(true);
     setErr(null);
+    setHuyOpen(false);
+    setHuyLyDo("");
+    setBlocked(false);
     try {
       const res = await fetch(`/api/shop/don/${id}`, { cache: "no-store" });
       const json = (await res.json().catch(() => null)) as {
         don?: ShopDonHang;
+        buyerTrust?: ShopBuyerTrust | null;
         error?: string;
       } | null;
       if (!res.ok || !json?.don) {
         setDon(null);
+        setBuyerTrust(null);
         setErr(json?.error ?? "Không tải đơn.");
         return;
       }
       setDon(json.don);
+      setBuyerTrust(json.buyerTrust ?? null);
     } catch {
       setDon(null);
+      setBuyerTrust(null);
       setErr("Không tải đơn.");
     } finally {
       setLoading(false);
@@ -159,6 +207,62 @@ export function ShopDonDetailModal({
     }
   }
 
+  async function cancelDon() {
+    if (!don) return;
+    const lyDo = huyLyDo.trim();
+    if (!lyDo) {
+      setErr("Cần nhập lý do hủy đơn.");
+      return;
+    }
+    setBusy(true);
+    setErr(null);
+    try {
+      const res = await fetch(`/api/shop/don/${don.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "huy", lyDo }),
+      });
+      const json = (await res.json().catch(() => null)) as {
+        don?: ShopDonHang;
+        error?: string;
+      } | null;
+      if (!res.ok) {
+        setErr(json?.error ?? "Không hủy được đơn.");
+        return;
+      }
+      if (json?.don) {
+        setDon(json.don);
+        onDonChange?.(json.don);
+        setHuyOpen(false);
+      } else {
+        await load(don.id);
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function blockBuyer() {
+    if (!don) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      const res = await fetch(`/api/ket-ban/${don.idNguoiMua}/block`, {
+        method: "POST",
+      });
+      if (res.ok) {
+        setBlocked(true);
+      } else {
+        const json = (await res.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        setErr(json?.error ?? "Không chặn được người mua.");
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (!portalReady || !open) return null;
 
   // Theme xanh theo loại thanh toán «Đã thanh toán» (mua_ngay), không chờ
@@ -229,6 +333,20 @@ export function ShopDonDetailModal({
                   ? "Đã thanh toán"
                   : "Thanh toán sau"}
               </span>
+              {don.trangThai === "cho_xac_nhan"
+                ? (() => {
+                    const { text, long } = waitingSince(don.taoLuc);
+                    return (
+                      <span
+                        className={`shop-don-detail-expiry${long ? " is-overdue" : ""}`}
+                        title="Đơn chờ xác nhận — bạn có thể xác nhận hoặc hủy"
+                      >
+                        <Clock size={12} strokeWidth={2.2} aria-hidden />
+                        {long ? `Chờ ${text} — nên xử lý` : `Chờ ${text}`}
+                      </span>
+                    );
+                  })()
+                : null}
             </div>
 
             <p className="shop-don-detail-parties">
@@ -246,6 +364,33 @@ export function ShopDonDetailModal({
                 </>
               )}
             </p>
+
+            {role === "seller" && buyerTrust ? (
+              <div
+                className="shop-don-detail-trust"
+                aria-label="Tín hiệu tin cậy người mua"
+              >
+                <span
+                  className={`shop-don-detail-trust-chip${buyerTrust.daXacMinh ? " is-good" : " is-warn"}`}
+                >
+                  <ShieldCheck size={12} strokeWidth={2.2} aria-hidden />
+                  {buyerTrust.daXacMinh ? "Đã xác minh" : "Chưa xác minh"}
+                </span>
+                {buyerTrust.taoLuc ? (
+                  <span className="shop-don-detail-trust-chip">
+                    TK {accountAgeLabel(buyerTrust.taoLuc)}
+                  </span>
+                ) : null}
+                <span className="shop-don-detail-trust-chip">
+                  {buyerTrust.soDonTruoc} đơn trước
+                </span>
+                {buyerTrust.soDonHuy > 0 ? (
+                  <span className="shop-don-detail-trust-chip is-warn">
+                    {buyerTrust.soDonHuy} đơn đã hủy
+                  </span>
+                ) : null}
+              </div>
+            ) : null}
 
             <ul className="shop-don-detail-lines" aria-label="Chi tiết đơn">
               {don.dong.map((line) => {
@@ -304,6 +449,13 @@ export function ShopDonDetailModal({
               </div>
             ) : null}
 
+            {don.trangThai === "huy" && don.lyDoHuy ? (
+              <div className="shop-don-detail-note">
+                <span className="shop-don-detail-note-label">Lý do hủy</span>
+                <p className="shop-don-detail-note-text">{don.lyDoHuy}</p>
+              </div>
+            ) : null}
+
             {don.bienLaiAnhUrl ? (
               <div className="shop-don-detail-bill">
                 <span className="shop-don-detail-note-label">
@@ -327,53 +479,132 @@ export function ShopDonDetailModal({
               </p>
             ) : null}
 
-            <div className="shop-don-detail-actions">
-              {don.trangThai === "cho_xac_nhan" && role === "seller" ? (
-                don.loaiDon === "mua_ngay" ? (
+            {huyOpen && role === "seller" ? (
+              <div className="shop-don-detail-huy">
+                <span className="shop-don-detail-note-label">Lý do hủy đơn</span>
+                <div className="shop-don-detail-huy-presets">
+                  {HUY_LY_DO_PRESETS.map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      className={`shop-don-detail-huy-chip${huyLyDo === preset ? " is-active" : ""}`}
+                      onClick={() => setHuyLyDo(preset)}
+                    >
+                      {preset}
+                    </button>
+                  ))}
+                </div>
+                <textarea
+                  className="shop-don-detail-huy-input"
+                  value={huyLyDo}
+                  maxLength={SHOP_LY_DO_HUY_MAX}
+                  rows={2}
+                  placeholder="Nhập lý do (bắt buộc)…"
+                  onChange={(e) => setHuyLyDo(e.target.value)}
+                />
+                <p className="shop-don-detail-huy-hint">
+                  Hủy sẽ hoàn hàng về kho và báo người mua. Nền tảng không giữ
+                  tiền — hai bên tự dàn xếp hoàn tiền.
+                </p>
+                <div className="shop-don-detail-actions-row">
+                  <button
+                    type="button"
+                    className="shop-don-detail-btn danger"
+                    disabled={busy || !huyLyDo.trim()}
+                    onClick={() => void cancelDon()}
+                  >
+                    Xác nhận hủy
+                  </button>
+                  <button
+                    type="button"
+                    className="shop-don-detail-btn ghost"
+                    disabled={busy}
+                    onClick={() => setHuyOpen(false)}
+                  >
+                    Quay lại
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="shop-don-detail-actions">
+                {don.trangThai === "cho_xac_nhan" && role === "seller" ? (
                   <button
                     type="button"
                     className="shop-don-detail-btn primary"
                     disabled={busy}
-                    onClick={() => void patch("da_nhan_tien")}
+                    onClick={() =>
+                      void patch(
+                        don.loaiDon === "mua_ngay"
+                          ? "da_nhan_tien"
+                          : "da_giao_tai_su_kien",
+                      )
+                    }
                   >
-                    Đã nhận tiền
+                    {don.loaiDon === "mua_ngay"
+                      ? "Đã nhận tiền"
+                      : "Đã giao / nhận hàng"}
                   </button>
-                ) : (
-                  <button
-                    type="button"
-                    className="shop-don-detail-btn primary"
-                    disabled={busy}
-                    onClick={() => void patch("da_giao_tai_su_kien")}
-                  >
-                    Đã giao / nhận hàng
-                  </button>
-                )
-              ) : null}
-              {onOpenChat && role === "seller" ? (
-                <button
-                  type="button"
-                  className="shop-don-detail-btn ghost"
-                  onClick={() => onOpenChat(don.idNguoiMua)}
-                >
-                  Chat người mua
-                </button>
-              ) : onOpenChat && role === "buyer" ? (
-                <button
-                  type="button"
-                  className="shop-don-detail-btn ghost"
-                  onClick={() => onOpenChat(don.idNguoiBan)}
-                >
-                  Chat người bán
-                </button>
-              ) : null}
-              <button
-                type="button"
-                className="shop-don-detail-btn ghost"
-                onClick={onClose}
-              >
-                Đóng
-              </button>
-            </div>
+                ) : null}
+
+                {(onOpenChat && (role === "seller" || role === "buyer")) ||
+                (don.trangThai === "cho_xac_nhan" && role === "seller") ? (
+                  <div className="shop-don-detail-actions-row">
+                    {onOpenChat && role === "seller" ? (
+                      <button
+                        type="button"
+                        className="shop-don-detail-btn ghost"
+                        onClick={() => onOpenChat(don.idNguoiMua)}
+                      >
+                        Chat người mua
+                      </button>
+                    ) : onOpenChat && role === "buyer" ? (
+                      <button
+                        type="button"
+                        className="shop-don-detail-btn ghost"
+                        onClick={() => onOpenChat(don.idNguoiBan)}
+                      >
+                        Chat người bán
+                      </button>
+                    ) : null}
+                    {don.trangThai === "cho_xac_nhan" && role === "seller" ? (
+                      <button
+                        type="button"
+                        className="shop-don-detail-btn danger"
+                        disabled={busy}
+                        onClick={() => {
+                          setErr(null);
+                          setHuyOpen(true);
+                        }}
+                      >
+                        Hủy đơn
+                      </button>
+                    ) : null}
+                  </div>
+                ) : null}
+
+                {role === "seller" ? (
+                  <div className="shop-don-detail-mod">
+                    <button
+                      type="button"
+                      className="shop-don-detail-btn ghost"
+                      disabled={busy || blocked}
+                      onClick={() => void blockBuyer()}
+                    >
+                      <Ban size={14} strokeWidth={2} aria-hidden />
+                      {blocked ? "Đã chặn" : "Chặn"}
+                    </button>
+                    <button
+                      type="button"
+                      className="shop-don-detail-btn ghost"
+                      onClick={() => setReportOpen(true)}
+                    >
+                      <Flag size={14} strokeWidth={2} aria-hidden />
+                      Báo cáo
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            )}
 
             <p className="shop-don-detail-foot">
               {SHOP_LOAI_DON_LABEL[don.loaiDon]} ·{" "}
@@ -406,6 +637,17 @@ export function ShopDonDetailModal({
             onMouseDown={(e) => e.stopPropagation()}
           />
         </div>
+      ) : null}
+
+      {don && role === "seller" ? (
+        <ReportModal
+          open={reportOpen}
+          onClose={() => setReportOpen(false)}
+          targetId={don.idNguoiMua}
+          targetTitle={don.muaTen ?? undefined}
+          loaiDoiTuong="user"
+          viewerLoggedIn={viewerId != null}
+        />
       ) : null}
     </div>,
     document.body,

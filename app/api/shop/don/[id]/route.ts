@@ -2,10 +2,13 @@ import { NextResponse } from "next/server";
 
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import {
+  cancelDonHang,
   confirmDonHang,
   donHangToChatContext,
+  getBuyerTrustForSeller,
   getDonHang,
 } from "@/lib/shop/don-hang";
+import { SHOP_LY_DO_HUY_MAX } from "@/lib/shop/types";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -25,9 +28,19 @@ export async function GET(_request: Request, ctx: Ctx) {
   ) {
     return NextResponse.json({ error: "Không có quyền." }, { status: 403 });
   }
+  /* Seller xem → kèm tín hiệu tin cậy người mua để triage đơn rác. */
+  const buyerTrust =
+    don.idNguoiBan === session.profile.id
+      ? await getBuyerTrustForSeller(
+          session.profile.id,
+          don.idNguoiMua,
+          don.id,
+        )
+      : null;
   return NextResponse.json({
     don,
     chatContext: donHangToChatContext(don),
+    buyerTrust,
   });
 }
 
@@ -50,6 +63,18 @@ export async function PATCH(request: Request, ctx: Ctx) {
         id,
         body.action,
       );
+      return NextResponse.json({ don, chatContext: donHangToChatContext(don) });
+    }
+    if (body.action === "huy") {
+      const lyDo =
+        typeof body.lyDo === "string" ? body.lyDo.trim().slice(0, SHOP_LY_DO_HUY_MAX) : "";
+      if (!lyDo) {
+        return NextResponse.json(
+          { error: "Cần nhập lý do hủy đơn." },
+          { status: 422 },
+        );
+      }
+      const don = await cancelDonHang(session.profile.id, id, lyDo);
       return NextResponse.json({ don, chatContext: donHangToChatContext(don) });
     }
     return NextResponse.json({ error: "action không hợp lệ." }, { status: 422 });

@@ -119,9 +119,8 @@
   align-items: center;
   gap: 0;
   flex-shrink: 0;
-  padding: 2px;
-  border-radius: var(--r-pill);
-  background: var(--neutral-100, #f1f2f5);
+  padding: 0;
+  background: transparent;
 }
 
 /* Cụm phải: chế độ xem. */
@@ -152,10 +151,10 @@
 }
 
 .wj-filter-bar .wj-notify-fab-host .org-notify-fab svg {
-  width: 18px;
-  height: 18px;
-  min-width: 18px;
-  min-height: 18px;
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  min-height: 22px;
   flex-shrink: 0;
 }
 
@@ -196,9 +195,8 @@
 /* <1200: toggle phải cùng track / size với cụm trái. */
 @media (max-width: 1199.98px) {
   .wj-view-toggle {
-    background: var(--neutral-100, #f1f2f5);
-    border-radius: var(--r-pill);
-    padding: 2px;
+    background: transparent;
+    padding: 0;
     gap: 0;
   }
 
@@ -210,10 +208,10 @@
 
   .world-journey-home .wj-view-toggle .wj-vt-btn svg,
   .wj-view-toggle .wj-vt-btn svg {
-    width: 16px;
-    height: 16px;
-    min-width: 16px;
-    min-height: 16px;
+    width: 22px;
+    height: 22px;
+    min-width: 22px;
+    min-height: 22px;
     flex-shrink: 0;
     display: block;
   }
@@ -554,10 +552,10 @@
 @media (max-width: 1199.98px) {
   .world-journey-home .wj-view-toggle .wj-vt-btn svg,
   .wj-view-toggle .wj-vt-btn svg {
-    width: 16px;
-    height: 16px;
-    min-width: 16px;
-    min-height: 16px;
+    width: 22px;
+    height: 22px;
+    min-width: 22px;
+    min-height: 22px;
   }
 }
 
@@ -566,10 +564,10 @@
 }
 
 .wj-vt-btn.active {
-  background: var(--surface);
+  background: transparent;
   color: var(--blue);
   font-weight: 600;
-  box-shadow: var(--sh-xs);
+  box-shadow: none;
 }
 
 .wj-sort-wrap {
@@ -4255,7 +4253,7 @@
 
 @media (max-width: 780px) {
   .wj-feed-header {
-    padding: 8px 12px;
+    padding: 4px 8px;
     gap: 6px;
   }
 

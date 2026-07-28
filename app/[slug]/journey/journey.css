@@ -5690,7 +5690,9 @@ a.j-main-gallery-item:focus-visible,
   .post-comments {
   padding-bottom: 20px;
 }
-/* Card expanded + overflow:visible — bo góc dưới phần tử cuối (BL) để khớp radius card */
+/* Card expanded + overflow:visible — bo góc dưới phần tử cuối (BL) để khớp radius card.
+ * Menu 3-chấm của bình luận được render qua portal (fixed) nên `overflow: hidden`
+ * ở đây không còn crop nó. */
 .j-m-card.jcard.is-expanded
   .j-m-unfold-post
   .post-comments:last-child {

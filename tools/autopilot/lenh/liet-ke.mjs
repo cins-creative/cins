@@ -1,5 +1,5 @@
 /** Liệt kê nguồn hoặc nick. */
-export async function chayLietKe(db, loai) {
+export async function chayLietKe(db, loai, locNenTang) {
   if (loai === "nguon") {
     const { data, error } = await db
       .from("auto_nguon")
@@ -25,16 +25,41 @@ export async function chayLietKe(db, loai) {
   }
 
   if (loai === "muc") {
-    const { data, error } = await db
+    let q = db
       .from("auto_muc")
       .select(
-        "id, nen_tang, url_canonic, tieu_de_goc, ten_tac_gia, trang_thai, tao_luc",
+        "id, nen_tang, url_canonic, tieu_de_goc, ten_tac_gia, trang_thai, anh_bia_url, meta, tao_luc",
       )
       .order("tao_luc", { ascending: false })
       .limit(50);
+    if (locNenTang) q = q.eq("nen_tang", locNenTang);
+    const { data, error } = await q;
     if (error) throw new Error(error.message);
-    console.log(JSON.stringify(data || [], null, 2));
-    console.log(`\n(${(data || []).length} mục gần nhất)`);
+
+    const rows = data || [];
+    for (const r of rows) {
+      const meta = r.meta && typeof r.meta === "object" ? r.meta : {};
+      const soAnh = Array.isArray(meta.anhUrls) ? meta.anhUrls.length : 0;
+      const bia = r.anh_bia_url ? "bìa✓" : "bìa✗";
+      const tieuDe = (r.tieu_de_goc || "").slice(0, 40);
+      console.log(
+        `[${r.trang_thai}] ${r.nen_tang.padEnd(10)} ${String(soAnh).padStart(2)} ảnh · ${bia} · ${r.url_canonic}` +
+          (tieuDe ? `\n    ${tieuDe}` : ""),
+      );
+    }
+
+    const thongKe = rows.reduce((acc, r) => {
+      const soAnh = Array.isArray(r.meta?.anhUrls) ? r.meta.anhUrls.length : 0;
+      acc.tong += 1;
+      if (soAnh === 0) acc.khongAnh += 1;
+      else if (soAnh === 1) acc.motAnh += 1;
+      else acc.nhieuAnh += 1;
+      return acc;
+    }, { tong: 0, khongAnh: 0, motAnh: 0, nhieuAnh: 0 });
+    console.log(
+      `\n(${thongKe.tong} mục gần nhất${locNenTang ? ` · ${locNenTang}` : ""}` +
+        ` — 0 ảnh: ${thongKe.khongAnh}, 1 ảnh: ${thongKe.motAnh}, ≥2 ảnh: ${thongKe.nhieuAnh})`,
+    );
     return;
   }
 

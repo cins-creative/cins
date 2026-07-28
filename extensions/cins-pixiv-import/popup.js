@@ -35,6 +35,25 @@ function scanPixivInPage() {
   const userMatch = path.match(/\/(?:en\/)?users\/(\d+)/i);
   const userId = userMatch ? userMatch[1] : null;
 
+  /* Tên hiển thị artist từ trang hồ sơ (og:title / document.title) — không dùng
+     userId số. Pixiv: "{Tên} - pixiv" hoặc "{Tên}のイラスト - pixiv". */
+  function tenArtistTuTrang() {
+    const og =
+      document
+        .querySelector('meta[property="og:title"]')
+        ?.getAttribute("content") || "";
+    let name = (og || document.title || "")
+      .replace(/\s*[-|]\s*pixiv\s*$/i, "")
+      .replace(/のイラストやマンガ$/i, "")
+      .replace(/のイラスト$/i, "")
+      .replace(/のプロフィール$/i, "")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (!name || /^\d+$/.test(name)) return null;
+    return name.slice(0, 120);
+  }
+  const tenArtist = tenArtistTuTrang();
+
   function abs(href) {
     try {
       return new URL(href, origin).href;
@@ -76,7 +95,7 @@ function scanPixivInPage() {
     items.push({
       url: `https://www.pixiv.net/artworks/${id}`,
       tieuDe: String(title).replace(/\s+/g, " ").trim().slice(0, 200),
-      tacGia: userId,
+      tacGia: tenArtist || userId,
       anhBia: thumb,
     });
   });

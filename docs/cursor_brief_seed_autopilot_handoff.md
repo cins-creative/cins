@@ -231,7 +231,8 @@ Code: `tools/autopilot/` · README cùng thư mục.
 - CLI: `npm run autopilot -- nhap-muc --url 'https://www.pixiv.net/artworks/…' --tieu-de '…' --tac-gia '…'`
 - Pack zip: `npm run pack:pixiv-ext`
 - Migrate CHECK: `npm run migrate:autopilot-pixiv`
-- **Đăng album:** `POST /api/noi-bo/tac-pham/dang` → `lib/autopilot/pixiv-assets.ts` (ajax `/illust/{id}` + `/pages`) → CF Images. Reject: **R18** (`xRestrict>0`), **ugoira**, ảnh quá dài (cùng ngưỡng Behance).
+- **Đăng album:** `POST /api/noi-bo/tac-pham/dang` → `lib/autopilot/pixiv-album-blocks.ts` (`buildPixivAlbumBlocks`) → `lib/autopilot/pixiv-assets.ts` (ajax `/illust/{id}` + `/pages`) → CF Images. Reject: **R18** (`xRestrict>0`), **ugoira**, ảnh quá dài (cùng ngưỡng Behance). **Không** fallback embed link — fetch fail + không cover → `422 thieu_media`.
+- **Sửa bài Pixiv cũ về album:** `npm run autopilot -- sua-pixiv-album [--chi-xem] [--gioi-han N] [--slug nick] [--ep]` — quét `auto_da_dang`(pixiv) → `POST /api/noi-bo/tac-pham/sua-pixiv-album` (`app/api/noi-bo/tac-pham/sua-pixiv-album/route.ts`).
 
 ### Code map Giai đoạn 2
 
@@ -294,9 +295,16 @@ Header: `Authorization: Bearer <CINS_NOI_BO_DANG_BAI_SECRET>`
 
 ### Khối mặc định (khi không gửi `blocks`)
 
-1. `body` — `moTa` (nếu có)
-2. `embed` — `{ url: urlNguon }` (Behance/ArtStation/Pixiv = card link, không iframe)
-3. `body` — dòng ghi nguồn dạng *«Giới thiệu từ Pixiv — {tác giả}. Xem bản gốc: …»*
+**Nền ngoài (ArtStation / Behance / Pixiv) = ALBUM ẢNH, KHÔNG có block `embed` link.**
+
+- Server fetch ảnh nguồn (ajax Pixiv · JSON AS · modules Behance) → upload CF → khối `imgs`.
+- Fetch thất bại nhưng có `anhBiaUrl`/`coverId` → 1 khối `imgs` (cover-only album).
+- Fetch thất bại và không có cover → **KHÔNG** đăng; trả `422 code=thieu_media` để worker giữ `san_sang` thử lại. **Không** tạo thẻ embed «▶ URL» rỗng.
+- Dòng ghi nguồn «Nguồn: {url}» → gộp vào `mo_ta` (caption), **không** tách block.
+
+Block `embed` link chỉ dùng cho `nenTang: "khac"` (bài/video ngoài thật sự).
+
+> **Sửa bài cũ (article + embed «▶ URL») → album:** `npm run autopilot -- sua-pixiv-album [--chi-xem]`. Endpoint `POST /api/noi-bo/tac-pham/sua-pixiv-album` fetch lại ảnh Pixiv → CF → thay `noi_dung_blocks` + `cover_id`, giữ `tieu_de`/`mo_ta`. Bài đã là album tự bỏ qua (`da_album`).
 
 ### Response
 
@@ -305,9 +313,10 @@ Header: `Authorization: Bearer <CINS_NOI_BO_DANG_BAI_SECRET>`
 
 ### Code map
 
-- `app/api/noi-bo/tac-pham/dang/route.ts`
+- `app/api/noi-bo/tac-pham/dang/route.ts` · `app/api/noi-bo/tac-pham/sua-pixiv-album/route.ts`
 - `lib/editor/dang-bai-journey.ts`
-- `lib/editor/khoi-bai-nguon.ts`
+- `lib/editor/khoi-bai-nguon.ts` · `lib/autopilot/pixiv-album-blocks.ts`
+- `tools/autopilot/lenh/sua-pixiv-album.mjs` · `tools/autopilot/lib/dang-bai-api.mjs`
 - `lib/noi-bo/xac-thuc-bearer.ts` · `danh-sach-nick-seed.ts`
 
 ---

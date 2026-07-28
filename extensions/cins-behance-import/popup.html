@@ -73,7 +73,7 @@
     </style>
   </head>
   <body>
-    <h1>CINs · Behance → Autopilot</h1>
+    <h1>CINs · Behance → Autopilot <span id="ver" style="font-weight:400;color:#888;font-size:11px"></span></h1>
     <label for="apiBase">API base (CINs)</label>
     <input id="apiBase" placeholder="https://cins.vn" />
     <label for="secret">Bearer secret</label>
@@ -88,7 +88,8 @@
       <button id="send" type="button">Gửi vào hàng đợi</button>
     </div>
     <p class="hint">
-      Mở hồ sơ Behance /projects, scroll load card → Quét → Gửi. Chrome chỉ cần mở lúc scrap;
+      Mở đúng 1 trang project (behance.net/gallery/…), cuộn hết ảnh → Quét → Gửi.
+      Mỗi lần quét chỉ lấy đúng project đang mở. Chrome chỉ cần mở lúc scrap;
       lịch đăng chạy CLI/Actions sau.
     </p>
     <div id="status"></div>

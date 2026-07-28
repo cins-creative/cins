@@ -103,10 +103,15 @@ export function ShopTopbarButton() {
       const btn = triggerRef.current;
       if (!btn) return;
       const rect = btn.getBoundingClientRect();
-      setMenuStyle({
-        top: rect.bottom + 10,
-        right: Math.max(16, window.innerWidth - rect.right),
-      });
+      const vw = window.innerWidth;
+      // Panel width mirrors CSS `min(380px, 100vw - 32px)`.
+      const menuWidth = Math.min(380, vw - 32);
+      // Align to trigger's right edge, but clamp so the panel never spills
+      // off-screen (keep ≥16px margin on both sides — critical on mobile
+      // where the trigger sits far from the viewport's right edge).
+      const maxRight = Math.max(16, vw - menuWidth - 16);
+      const right = Math.min(Math.max(16, vw - rect.right), maxRight);
+      setMenuStyle({ top: rect.bottom + 10, right });
     };
     updatePosition();
     window.addEventListener("resize", updatePosition);

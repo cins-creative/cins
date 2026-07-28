@@ -1398,12 +1398,17 @@ function CommentRow({
   contentOwnerId: string;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(
+    null,
+  );
   const [reactionErr, setReactionErr] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [editDraft, setEditDraft] = useState(comment.noiDung);
   const [editErr, setEditErr] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const wrapRef = useRef<HTMLDivElement>(null);
+  const moreBtnRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const editInputRef = useRef<HTMLTextAreaElement>(null);
 
   const display = commentDisplayAuthor(comment);
@@ -1429,12 +1434,46 @@ function CommentRow({
   useEffect(() => {
     if (!menuOpen) return;
     const onDoc = (e: MouseEvent) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
-        setMenuOpen(false);
-      }
+      const target = e.target as Node;
+      // Menu is portaled to <body>, so check both the trigger wrap and the pop.
+      if (wrapRef.current?.contains(target)) return;
+      if (menuRef.current?.contains(target)) return;
+      setMenuOpen(false);
     };
     document.addEventListener("mousedown", onDoc);
     return () => document.removeEventListener("mousedown", onDoc);
+  }, [menuOpen]);
+
+  // The menu lives inside overflow-hidden / animated unfold containers, so it's
+  // rendered in a portal with fixed positioning to avoid being clipped.
+  useLayoutEffect(() => {
+    if (!menuOpen) {
+      setMenuPos(null);
+      return;
+    }
+    const place = () => {
+      const btn = moreBtnRef.current;
+      if (!btn) return;
+      const r = btn.getBoundingClientRect();
+      const menuH = menuRef.current?.offsetHeight ?? 0;
+      const vh = window.innerHeight;
+      const below = r.bottom + 4;
+      // Flip upward when there isn't room below and there is room above.
+      const openUp =
+        menuH > 0 && below + menuH > vh - 8 && r.top - menuH - 4 > 8;
+      const top = openUp ? r.top - menuH - 4 : below;
+      setMenuPos({ top, right: Math.max(8, window.innerWidth - r.right) });
+    };
+    place();
+    // Second pass after the pop has measured height (for flip decision).
+    const raf = requestAnimationFrame(place);
+    window.addEventListener("resize", place);
+    window.addEventListener("scroll", place, true);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", place);
+      window.removeEventListener("scroll", place, true);
+    };
   }, [menuOpen]);
 
   function runToggleReaction(emoji: string, active: boolean) {
@@ -1538,6 +1577,7 @@ function CommentRow({
             ) : null}
             <div className={`post-comments-menu${menuOpen ? " open" : ""}`} ref={wrapRef}>
               <button
+                ref={moreBtnRef}
                 type="button"
                 className="post-comments-more"
                 onClick={() => setMenuOpen((v) => !v)}
@@ -1547,8 +1587,20 @@ function CommentRow({
               >
                 <MoreHorizontal size={15} strokeWidth={1.8} aria-hidden />
               </button>
-              {menuOpen ? (
-                <div className="post-comments-menu-pop" role="menu">
+              {menuOpen
+                ? createPortal(
+                <div
+                  ref={menuRef}
+                  className="post-comments-menu-pop is-portal"
+                  role="menu"
+                  style={{
+                    position: "fixed",
+                    top: menuPos?.top ?? -9999,
+                    right: menuPos?.right ?? 0,
+                    left: "auto",
+                    visibility: menuPos ? "visible" : "hidden",
+                  }}
+                >
                   <button
                     type="button"
                     role="menuitem"
@@ -1668,8 +1720,10 @@ function CommentRow({
                       <span>{comment.ghimLuc ? "Bỏ ghim" : "Ghim"}</span>
                     </button>
                   ) : null}
-                </div>
-              ) : null}
+                </div>,
+                    document.body,
+                  )
+                : null}
             </div>
           </div>
           <div className="post-comments-text-row">

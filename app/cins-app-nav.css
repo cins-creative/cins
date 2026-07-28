@@ -1589,9 +1589,9 @@
   z-index: 2;
   width: 38px;
   height: 38px;
-  border: 1px solid var(--border);
+  border: none;
   border-radius: var(--radius-pill);
-  background: var(--bg-surface);
+  background: transparent;
   color: var(--ink-body);
   display: inline-flex;
   align-items: center;
@@ -1602,9 +1602,9 @@
 
 .cins-app-topbar .j-notify-trigger:hover,
 .cins-app-topbar .j-notify-trigger.has-unread {
-  border-color: var(--cins-blue);
+  border-color: transparent;
   color: var(--cins-blue);
-  background: var(--cins-blue-soft);
+  background: transparent;
 }
 
 .cins-app-topbar .j-notify-count {
@@ -1635,9 +1635,9 @@
   z-index: 2;
   width: 38px;
   height: 38px;
-  border: 1px solid var(--border);
+  border: none;
   border-radius: var(--radius-pill);
-  background: var(--bg-surface);
+  background: transparent;
   color: var(--ink-body);
   display: inline-flex;
   align-items: center;
@@ -1648,9 +1648,9 @@
 
 .cins-app-topbar .admin-inbox-trigger:hover,
 .cins-app-topbar .admin-inbox-trigger.has-unread {
-  border-color: var(--cins-blue);
+  border-color: transparent;
   color: var(--cins-blue);
-  background: var(--cins-blue-soft);
+  background: transparent;
 }
 
 .cins-app-topbar .admin-inbox-count {
