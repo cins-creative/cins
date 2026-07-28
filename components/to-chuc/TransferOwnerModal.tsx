@@ -128,7 +128,9 @@ export function TransferOwnerModal({
 const overlayStyle: React.CSSProperties = {
   position: "fixed",
   inset: 0,
-  zIndex: 1000,
+  /* Mở TỪ TRONG modal quản lý (`.tdh-inline-modal-backdrop` z-index 10050) —
+     phải nằm trên, nếu không hộp xác nhận bị che sau lưng và không bấm được. */
+  zIndex: 11000,
   display: "flex",
   alignItems: "center",
   justifyContent: "center",

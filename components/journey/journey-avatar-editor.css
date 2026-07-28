@@ -334,14 +334,17 @@ footer.ja-foot,
   opacity: 0.55;
   cursor: not-allowed;
 }
+/* Màu cố định (không dùng token `--cins-blue` — ở dark mode token bị đổi thành
+   xanh nhạt #7db8f2 khiến nút nền nhạt + chữ trắng trông mờ). Gradient xanh
+   brand đậm như nút chính của app, rõ ở cả light/dark. */
 .ja-btn-primary {
-  background: var(--cins-blue, #2563eb);
-  border-color: var(--cins-blue, #2563eb);
+  background: linear-gradient(180deg, #2b8ae8 0%, #1f74c9 100%);
+  border-color: #1f74c9;
   color: #fff;
 }
 .ja-btn-primary:hover:not(:disabled) {
-  background: #1d4ed8;
-  border-color: #1d4ed8;
+  background: linear-gradient(180deg, #3296f0 0%, #247fd4 100%);
+  border-color: #247fd4;
   color: #fff;
 }
 .ja-btn-ghost {

@@ -19,7 +19,8 @@ export function OnboardingSignOut() {
     setBusy(true);
     try {
       const supabase = createSupabaseBrowserClient();
-      await supabase.auth.signOut();
+      // scope "local": chỉ thoát phiên thiết bị này, giữ phiên trên máy khác.
+      await supabase.auth.signOut({ scope: "local" });
       startTransition(() => {
         router.replace("/");
         router.refresh();

@@ -14,10 +14,12 @@ export const WORLD_JOURNEY_GALLERY_PAGE_SIZE = 36;
 export const WORLD_JOURNEY_FEED_PREFETCH_REMAINING_POSTS = 3;
 
 /**
- * Cushion nhỏ quanh early/end sentinel (px). Prefetch chính theo số bài
- * (`PREFETCH_REMAINING_POSTS`) — không dùng margin lớn kiểu “720px ≈ 1–2 bài”.
+ * rootMargin cho IntersectionObserver (top/right/bottom/left). Đáy nới rộng
+ * (~1000px) để prefetch sớm và bù cho cuộn quán tính (fling) trên mobile — nơi
+ * sentinel 1px dễ bị "nhảy" qua giữa 2 frame lấy mẫu của observer. Prefetch theo
+ * số bài (`PREFETCH_REMAINING_POSTS`) vẫn giữ, đây là lớp cushion bổ sung.
  */
-export const WORLD_JOURNEY_FEED_SCROLL_ROOT_MARGIN = "160px 0px";
+export const WORLD_JOURNEY_FEED_SCROLL_ROOT_MARGIN = "400px 0px 1000px 0px";
 
 /**
  * Soft quota mặc định: tối đa N bài / tác giả (hoặc org) giữ vị trí ưu tiên

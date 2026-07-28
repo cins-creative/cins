@@ -254,6 +254,43 @@ export function WorldJourneyFeedTimeline({
     insertAfterPostCounts,
   ]);
 
+  /*
+   * Fallback theo vị trí cuộn — bù cho IntersectionObserver trên mobile: cuộn
+   * quán tính (fling) có thể "nhảy" qua sentinel 1px giữa 2 frame lấy mẫu nên
+   * observer không kịp báo `isIntersecting`. Cũng lo trường hợp nội dung ngắn
+   * hơn viewport (chưa đủ để cuộn). `onLoadMore` tự chặn gọi trùng/nạp khi hết,
+   * nên gọi lặp là an toàn.
+   */
+  useEffect(() => {
+    if (!scrollLoadEnabled) return;
+    if (inlineExpand?.showContent) return;
+    if (typeof window === "undefined") return;
+
+    let frame = 0;
+    const NEAR_BOTTOM_PX = 1000;
+    const check = () => {
+      frame = 0;
+      const doc = document.documentElement;
+      const scrollBottom = window.scrollY + window.innerHeight;
+      if (doc.scrollHeight - scrollBottom <= NEAR_BOTTOM_PX) {
+        onLoadMoreRef.current?.();
+      }
+    };
+    const onScroll = () => {
+      if (frame) return;
+      frame = window.requestAnimationFrame(check);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll, { passive: true });
+    /* Kiểm tra ngay sau khi render/append: fill viewport nếu còn thiếu. */
+    onScroll();
+    return () => {
+      if (frame) window.cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+  }, [scrollLoadEnabled, inlineExpand?.showContent, milestones.length]);
+
   const handleToggleContent = useCallback((milestone: MilestoneItem) => {
     if (!canInlineExpand(milestone)) return;
 

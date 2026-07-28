@@ -124,7 +124,10 @@ export function OrgOwnerDangerConfirmModal({
 const overlayStyle: React.CSSProperties = {
   position: "fixed",
   inset: 0,
-  zIndex: 1000,
+  /* Modal xác nhận mở TỪ TRONG modal quản lý (`.tdh-inline-modal-backdrop`
+     z-index 10050) — phải nằm trên nó, nếu không hộp xác nhận bị che sau lưng
+     và không bấm được (đúng lỗi "xóa không được"). */
+  zIndex: 11000,
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
