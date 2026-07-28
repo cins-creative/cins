@@ -35,7 +35,7 @@ import {
   SHOP_NHAN_PHAN_LOAI_2_DEFAULT,
   SHOP_NHAN_PHAN_LOAI_DEFAULT,
 } from "@/lib/shop/types";
-import { fetchBanHangClientStatus } from "@/lib/shop/client-fetch-cache";
+import { fetchBanHangClientStatus, fetchShopCuaHangClient } from "@/lib/shop/client-fetch-cache";
 
 import { ShopDashTabs } from "./ShopDashTabs";
 import { ShopKhoLoaiHub, ShopKhoLoaiMeta } from "./ShopKhoLoaiHub";
@@ -241,11 +241,11 @@ export function ShopKhoClient() {
       setErr(null);
     }
     try {
-      const [status, pRes, bRes, shopRes, nhomRes] = await Promise.all([
+      const [status, pRes, bRes, shopData, nhomRes] = await Promise.all([
         fetchBanHangClientStatus(),
         fetch("/api/shop/san-pham", { cache: "no-store" }),
         fetch("/api/shop/bang-gia", { cache: "no-store" }),
-        fetch("/api/shop/cua-hang", { cache: "no-store" }),
+        fetchShopCuaHangClient(),          // 30s RAM cache — avoids redundant round-trip
         fetch("/api/shop/nhom", { cache: "no-store" }),
       ]);
       setEnabled(status.enabled);
@@ -257,9 +257,6 @@ export function ShopKhoClient() {
       const bJson = (await bRes.json().catch(() => null)) as {
         items?: ShopBangGia[];
       } | null;
-      const shopJson = (await shopRes.json().catch(() => null)) as {
-        shop?: ShopCuaHang | null;
-      } | null;
       const nhomJson = (await nhomRes.json().catch(() => null)) as {
         items?: ShopNhom[];
         orphanCount?: number;
@@ -268,8 +265,8 @@ export function ShopKhoClient() {
       const lists = bJson?.items ?? [];
       setPriceLists(lists);
       if (lists[0] && !bangGiaId) setBangGiaId(lists[0].id);
-      const label1 = resolveShopNhanPhanLoai(shopJson?.shop);
-      const label2 = resolveShopNhanPhanLoai2(shopJson?.shop);
+      const label1 = resolveShopNhanPhanLoai(shopData.shop);
+      const label2 = resolveShopNhanPhanLoai2(shopData.shop);
       setNhanPhanLoai(label1);
       setNhanPhanLoai2(label2);
       setNhanPhanLoaiDraft(label1);

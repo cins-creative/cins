@@ -15,6 +15,10 @@ import {
 import { useEffect, useState } from "react";
 
 import type { BaoCaoDoanhThu, BaoCaoNgay, BaoCaoSanPhamBanChay } from "@/app/api/shop/bao-cao/route";
+import {
+  fetchBaoCaoCached,
+  peekBaoCao,
+} from "@/lib/shop/client-fetch-cache";
 
 import { ShopDashTabs } from "./ShopDashTabs";
 import "./shop-dashboard.css";
@@ -278,25 +282,28 @@ function StatusBreakdown({ data }: { data: BaoCaoDoanhThu["trangThaiDon"] }) {
 // Main component
 // ──────────────────────────────────────────────
 export function ShopBaoCaoClient() {
-  const [data, setData] = useState<BaoCaoDoanhThu | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Seed from hover-prefetch cache for instant render
+  const [cachedData] = useState<BaoCaoDoanhThu | null>(() => peekBaoCao());
+  const [data, setData] = useState<BaoCaoDoanhThu | null>(cachedData);
+  const [loading, setLoading] = useState(cachedData === null);
   const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     void (async () => {
       try {
-        const res = await fetch("/api/shop/bao-cao", { cache: "no-store" });
-        if (!res.ok) throw new Error("api_err");
-        const json = (await res.json()) as BaoCaoDoanhThu;
+        // Silent refresh if we already have cached data
+        const json = await fetchBaoCaoCached();
         if (!cancelled) setData(json);
       } catch {
-        if (!cancelled) setErr("Không tải được báo cáo.");
+        if (!cancelled && cachedData === null) setErr("Không tải được báo cáo.");
       } finally {
         if (!cancelled) setLoading(false);
       }
     })();
     return () => { cancelled = true; };
+  // cachedData is stable (useState initializer)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Trend this month vs last month

@@ -3,10 +3,13 @@
  * ReadyGate → child cùng gọi lại `/api/user/ban-hang` khi đổi tab.
  */
 
-import type { ShopCuaHang } from "@/lib/shop/types";
+import type { BaoCaoDoanhThu } from "@/app/api/shop/bao-cao/route";
+import type { ShopCuaHang, ShopDonHang } from "@/lib/shop/types";
 
 const BAN_HANG_TTL_MS = 45_000;
 const CUA_HANG_TTL_MS = 30_000;
+const DON_HANG_TTL_MS = 20_000;
+const BAO_CAO_TTL_MS = 45_000;
 
 export type BanHangClientStatus = {
   enabled: boolean;
@@ -45,6 +48,8 @@ export function invalidateShopClientCaches() {
   invalidateBanHangClientCache();
   cuaHangByKey.clear();
   cuaHangInflight.clear();
+  invalidateDonHangCache();
+  invalidateBaoCaoCache();
 }
 
 function readBanHangCache(): BanHangClientStatus | null {
@@ -179,4 +184,120 @@ export function writeShopCuaHangCache(
       isOwner: opts?.isOwner ?? prev?.isOwner ?? true,
     },
   });
+}
+
+// ─────────────────────────────────────────────
+// Đơn hàng cache (seller list)
+// ─────────────────────────────────────────────
+
+type DonHangCache = { at: number; data: ShopDonHang[] };
+let donHangCache: DonHangCache | null = null;
+let donHangInflight: Promise<ShopDonHang[]> | null = null;
+
+function readDonHangCache(): ShopDonHang[] | null {
+  if (!donHangCache) return null;
+  if (Date.now() - donHangCache.at > DON_HANG_TTL_MS) {
+    donHangCache = null;
+    return null;
+  }
+  return donHangCache.data;
+}
+
+export function peekDonHang(): ShopDonHang[] | null {
+  return readDonHangCache();
+}
+
+export async function fetchDonHangCached(opts?: {
+  force?: boolean;
+}): Promise<ShopDonHang[]> {
+  if (!opts?.force) {
+    const hit = readDonHangCache();
+    if (hit) return hit;
+    if (donHangInflight) return donHangInflight;
+  }
+
+  const run = (async (): Promise<ShopDonHang[]> => {
+    const res = await fetch("/api/shop/don?role=seller", { cache: "no-store" });
+    const json = (await res.json().catch(() => null)) as {
+      items?: ShopDonHang[];
+      error?: string;
+    } | null;
+    if (!res.ok) throw new Error(json?.error ?? "Không tải đơn.");
+    const data = json?.items ?? [];
+    donHangCache = { at: Date.now(), data };
+    return data;
+  })();
+
+  donHangInflight = run;
+  try {
+    return await run;
+  } finally {
+    if (donHangInflight === run) donHangInflight = null;
+  }
+}
+
+/** Warm cache khi hover tab Đơn hàng — không throw. */
+export function prefetchDonHang() {
+  void fetchDonHangCached().catch(() => undefined);
+}
+
+export function invalidateDonHangCache() {
+  donHangCache = null;
+  donHangInflight = null;
+}
+
+// ─────────────────────────────────────────────
+// Báo cáo doanh thu cache
+// ─────────────────────────────────────────────
+
+type BaoCaoCache = { at: number; data: BaoCaoDoanhThu };
+let baoCaoCache: BaoCaoCache | null = null;
+let baoCaoInflight: Promise<BaoCaoDoanhThu> | null = null;
+
+function readBaoCaoCache(): BaoCaoDoanhThu | null {
+  if (!baoCaoCache) return null;
+  if (Date.now() - baoCaoCache.at > BAO_CAO_TTL_MS) {
+    baoCaoCache = null;
+    return null;
+  }
+  return baoCaoCache.data;
+}
+
+export function peekBaoCao(): BaoCaoDoanhThu | null {
+  return readBaoCaoCache();
+}
+
+export async function fetchBaoCaoCached(opts?: {
+  force?: boolean;
+}): Promise<BaoCaoDoanhThu> {
+  if (!opts?.force) {
+    const hit = readBaoCaoCache();
+    if (hit) return hit;
+    if (baoCaoInflight) return baoCaoInflight;
+  }
+
+  const run = (async (): Promise<BaoCaoDoanhThu> => {
+    const res = await fetch("/api/shop/bao-cao", { cache: "no-store" });
+    const json = (await res.json().catch(() => null)) as BaoCaoDoanhThu | null;
+    if (!res.ok || !json) throw new Error("Không tải được báo cáo.");
+    baoCaoCache = { at: Date.now(), data: json };
+    return json;
+  })();
+
+  baoCaoInflight = run;
+  try {
+    return await run;
+  } finally {
+    if (baoCaoInflight === run) baoCaoInflight = null;
+  }
+}
+
+/** Warm cache khi hover tab Báo cáo — không throw. */
+export function prefetchBaoCao() {
+  void fetchBaoCaoCached().catch(() => undefined);
+}
+
+export function invalidateBaoCaoCache() {
+  baoCaoCache = null;
+  baoCaoInflight = null;
 }

@@ -19,7 +19,10 @@ import {
   invalidateBanHangClientCache,
   invalidateShopClientCaches,
   peekBanHangClientStatus,
+  prefetchBaoCao,
   prefetchBanHangClientStatus,
+  prefetchDonHang,
+  prefetchShopCuaHangClient,
   writeShopCuaHangCache,
 } from "@/lib/shop/client-fetch-cache";
 import { shopEntryHref, shopPublicHref, shopSlugFromTen } from "@/lib/shop/cua-hang-href";
@@ -76,21 +79,28 @@ function TabLink({
   shortLabel,
   active,
   icon,
+  onDataPrefetch,
 }: {
   href: string;
   label: string;
   shortLabel: string;
   active: boolean;
   icon: ReactNode;
+  /** Tab-specific data prefetch — called alongside ban-hang status warm. */
+  onDataPrefetch?: () => void;
 }) {
+  const handlePrefetch = () => {
+    prefetchBanHangClientStatus();
+    onDataPrefetch?.();
+  };
   return (
     <Link
       href={href}
       className={`shop-dash-tab${active ? " is-active" : ""}`}
       aria-label={label}
       aria-current={active ? "page" : undefined}
-      onMouseEnter={prefetchBanHangClientStatus}
-      onFocus={prefetchBanHangClientStatus}
+      onMouseEnter={handlePrefetch}
+      onFocus={handlePrefetch}
     >
       {icon}
       <span className="shop-dash-tab-text">
@@ -561,6 +571,16 @@ export function ShopDashTabs({
 }) {
   const [shopHref, setShopHref] = useState<string | null>(null);
 
+  // Background-warm sibling tabs' data after 800ms — user likely to switch
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (active !== "don") prefetchDonHang();
+      if (active !== "bao-cao") prefetchBaoCao();
+      if (active !== "cua-hang") prefetchShopCuaHangClient(null);
+    }, 800);
+    return () => clearTimeout(t);
+  }, [active]);
+
   useEffect(() => {
     let cancelled = false;
     void (async () => {
@@ -629,6 +649,7 @@ export function ShopDashTabs({
             shortLabel={TAB_COPY.don.shortLabel}
             active={active === "don"}
             icon={<ClipboardList size={18} strokeWidth={2} aria-hidden />}
+            onDataPrefetch={prefetchDonHang}
           />
           <TabLink
             href={TAB_COPY["su-kien"].href}
@@ -643,6 +664,7 @@ export function ShopDashTabs({
             shortLabel={TAB_COPY["cua-hang"].shortLabel}
             active={active === "cua-hang"}
             icon={<Store size={18} strokeWidth={2} aria-hidden />}
+            onDataPrefetch={() => prefetchShopCuaHangClient(null)}
           />
           <TabLink
             href={TAB_COPY["bao-cao"].href}
@@ -650,6 +672,7 @@ export function ShopDashTabs({
             shortLabel={TAB_COPY["bao-cao"].shortLabel}
             active={active === "bao-cao"}
             icon={<BarChart3 size={18} strokeWidth={2} aria-hidden />}
+            onDataPrefetch={prefetchBaoCao}
           />
         </nav>
         <div className="shop-dash-head-end">

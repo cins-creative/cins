@@ -1,8 +1,10 @@
 "use client";
 
 import {
+  Check,
   ChevronDown,
   FileSpreadsheet,
+  ListFilter,
   Loader2,
   Package,
   PackageCheck,
@@ -19,6 +21,10 @@ import {
 import { createPortal } from "react-dom";
 
 import { useCinsChat } from "@/components/cins/CinsChatProvider";
+import {
+  fetchDonHangCached,
+  peekDonHang,
+} from "@/lib/shop/client-fetch-cache";
 import {
   SHOP_DON_NHAC_GIO,
   SHOP_TRANG_THAI_DON_LABEL,
@@ -171,13 +177,17 @@ function formatTimeRange(dons: ShopDonHang[]): string {
 
 export function ShopDonClient() {
   const { openChat } = useCinsChat();
-  const [items, setItems] = useState<ShopDonHang[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Seed state from hover-prefetch cache — avoids full spinner on tab switch
+  const [cachedItems] = useState<ShopDonHang[] | null>(() => peekDonHang());
+  const [items, setItems] = useState<ShopDonHang[]>(cachedItems ?? []);
+  const [loading, setLoading] = useState(cachedItems === null);
   const [err, setErr] = useState<string | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [prepOpen, setPrepOpen] = useState(false);
-  const [prepLoaiFilter, setPrepLoaiFilter] = useState(PREP_LOAI_ALL);
+  const [prepLoaiFilter, setPrepLoaiFilter] = useState<Set<string>>(new Set());
+  const [prepSelectOpen, setPrepSelectOpen] = useState(false);
+  const prepSelectRef = useRef<HTMLDivElement>(null);
   const [prepExpandedKey, setPrepExpandedKey] = useState<string | null>(null);
   const [portalReady, setPortalReady] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -189,25 +199,20 @@ export function ShopDonClient() {
     setPortalReady(true);
   }, []);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setErr(null);
+  const load = useCallback(async (opts?: { force?: boolean }) => {
+    // If we have cached data (from hover prefetch), refresh silently in bg
+    const suppress = !opts?.force && cachedItems !== null;
+    if (!suppress) { setLoading(true); setErr(null); }
     try {
-      const res = await fetch("/api/shop/don?role=seller", { cache: "no-store" });
-      const json = (await res.json().catch(() => null)) as {
-        items?: ShopDonHang[];
-        error?: string;
-      } | null;
-      if (!res.ok) {
-        setErr(json?.error ?? "Không tải đơn.");
-        return;
-      }
-      setItems(json?.items ?? []);
+      const data = await fetchDonHangCached(opts?.force ? { force: true } : undefined);
+      setItems(data);
     } catch {
       setErr("Không tải đơn.");
     } finally {
-      setLoading(false);
+      if (!suppress) setLoading(false);
     }
+  // cachedItems is stable (useState initializer runs once)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -238,9 +243,9 @@ export function ShopDonClient() {
 
   const prepGroups = useMemo(() => {
     const filtered =
-      prepLoaiFilter === PREP_LOAI_ALL
+      prepLoaiFilter.size === 0
         ? prepLines
-        : prepLines.filter((l) => l.phanLoai === prepLoaiFilter);
+        : prepLines.filter((l) => prepLoaiFilter.has(l.phanLoai));
     return groupPrepByLoai(filtered);
   }, [prepLines, prepLoaiFilter]);
 
@@ -266,10 +271,30 @@ export function ShopDonClient() {
     }
   }, [prepExpandedKey, prepLines]);
 
+  useEffect(() => {
+    if (!prepSelectOpen) return;
+    function handleOutside(e: MouseEvent) {
+      if (!prepSelectRef.current?.contains(e.target as Node)) {
+        setPrepSelectOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleOutside);
+    return () => document.removeEventListener("mousedown", handleOutside);
+  }, [prepSelectOpen]);
+
   const closePrep = useCallback(() => {
     setPrepOpen(false);
     setPrepExpandedKey(null);
-    setPrepLoaiFilter(PREP_LOAI_ALL);
+    setPrepLoaiFilter(new Set());
+  }, []);
+
+  const togglePrepLoai = useCallback((loai: string) => {
+    setPrepLoaiFilter((prev) => {
+      const next = new Set(prev);
+      if (next.has(loai)) next.delete(loai);
+      else next.add(loai);
+      return next;
+    });
   }, []);
 
   const togglePrepExpand = useCallback((key: string) => {
@@ -373,42 +398,48 @@ export function ShopDonClient() {
   const selectionActions =
     selectedIds.length > 0 ? (
       <div className="shop-don-bulk" role="toolbar" aria-label="Thao tác đơn đã chọn">
-        <span className="shop-don-bulk-count">
-          Đã chọn <strong>{selectedIds.length}</strong>
-        </span>
-        <button
-          type="button"
-          className="shop-don-bulk-btn is-primary"
-          onClick={() => {
-            setPrepLoaiFilter(PREP_LOAI_ALL);
-            setPrepExpandedKey(null);
-            setPrepOpen(true);
-          }}
-        >
-          <PackageCheck size={15} strokeWidth={2.2} aria-hidden />
-          Danh sách chuẩn bị
-        </button>
-        <button
-          type="button"
-          className="shop-don-bulk-btn"
-          disabled={exporting}
-          title="Xuất file Excel theo mẫu ViettelPost"
-          onClick={() => void exportViettelPost()}
-        >
-          {exporting ? (
-            <Loader2 size={15} className="shop-spin" aria-hidden />
-          ) : (
-            <FileSpreadsheet size={15} strokeWidth={2.2} aria-hidden />
-          )}
-          Xuất Excel (ViettelPost)
-        </button>
-        <button
-          type="button"
-          className="shop-don-bulk-btn"
-          onClick={clearSelection}
-        >
-          Bỏ chọn
-        </button>
+        <div className="shop-don-bulk-head">
+          <span className="shop-don-bulk-count">
+            Đã chọn <strong>{selectedIds.length}</strong> đơn
+          </span>
+          <button
+            type="button"
+            className="shop-don-bulk-clear"
+            onClick={clearSelection}
+          >
+            <X size={14} strokeWidth={2.4} aria-hidden />
+            Bỏ chọn
+          </button>
+        </div>
+        <div className="shop-don-bulk-actions">
+          <button
+            type="button"
+            className="shop-don-bulk-btn is-primary"
+            title="Mở danh sách chuẩn bị hàng"
+            onClick={() => {
+              setPrepLoaiFilter(new Set());
+              setPrepExpandedKey(null);
+              setPrepOpen(true);
+            }}
+          >
+            <PackageCheck size={15} strokeWidth={2.2} aria-hidden />
+            Chuẩn bị
+          </button>
+          <button
+            type="button"
+            className="shop-don-bulk-btn"
+            disabled={exporting}
+            title="Xuất file Excel theo mẫu ViettelPost"
+            onClick={() => void exportViettelPost()}
+          >
+            {exporting ? (
+              <Loader2 size={15} className="shop-spin" aria-hidden />
+            ) : (
+              <FileSpreadsheet size={15} strokeWidth={2.2} aria-hidden />
+            )}
+            Xuất Excel
+          </button>
+        </div>
         {exportErr ? (
           <span className="shop-don-bulk-err" role="alert">
             {exportErr}
@@ -456,34 +487,80 @@ export function ShopDonClient() {
               ) : (
                 <>
                   {prepLoaiOptions.length > 1 ? (
-                    <div
-                      className="shop-don-prep-filters"
-                      role="tablist"
-                      aria-label="Lọc theo loại hàng"
-                    >
+                    <div className="shop-don-prep-select" ref={prepSelectRef}>
                       <button
                         type="button"
-                        role="tab"
-                        aria-selected={prepLoaiFilter === PREP_LOAI_ALL}
-                        className={`shop-don-prep-filter${prepLoaiFilter === PREP_LOAI_ALL ? " is-active" : ""}`}
-                        onClick={() => setPrepLoaiFilter(PREP_LOAI_ALL)}
+                        className={`shop-don-prep-select-btn${prepLoaiFilter.size > 0 ? " is-active" : ""}`}
+                        aria-haspopup="listbox"
+                        aria-expanded={prepSelectOpen}
+                        onClick={() => setPrepSelectOpen((o) => !o)}
                       >
-                        Tất cả
-                        <span>{prepLines.length}</span>
+                        <ListFilter size={13} strokeWidth={2} aria-hidden />
+                        {prepLoaiFilter.size === 0
+                          ? "Tất cả loại"
+                          : prepLoaiFilter.size === 1
+                            ? [...prepLoaiFilter][0]
+                            : `${prepLoaiFilter.size} loại`}
+                        <ChevronDown
+                          size={12}
+                          strokeWidth={2.5}
+                          aria-hidden
+                          className={prepSelectOpen ? "is-open" : ""}
+                        />
                       </button>
-                      {prepLoaiOptions.map(({ loai, count }) => (
-                        <button
-                          key={loai}
-                          type="button"
-                          role="tab"
-                          aria-selected={prepLoaiFilter === loai}
-                          className={`shop-don-prep-filter${prepLoaiFilter === loai ? " is-active" : ""}`}
-                          onClick={() => setPrepLoaiFilter(loai)}
+                      {prepSelectOpen ? (
+                        <div
+                          className="shop-don-prep-select-menu"
+                          role="listbox"
+                          aria-multiselectable="true"
+                          aria-label="Lọc theo loại hàng"
                         >
-                          {loai}
-                          <span>{count}</span>
-                        </button>
-                      ))}
+                          <button
+                            type="button"
+                            role="option"
+                            aria-selected={prepLoaiFilter.size === 0}
+                            className={`shop-don-prep-select-opt${prepLoaiFilter.size === 0 ? " is-checked" : ""}`}
+                            onClick={() => {
+                              setPrepLoaiFilter(new Set());
+                              setPrepSelectOpen(false);
+                            }}
+                          >
+                            <span className="shop-don-prep-select-check">
+                              {prepLoaiFilter.size === 0 ? (
+                                <Check size={11} strokeWidth={3} aria-hidden />
+                              ) : null}
+                            </span>
+                            Tất cả
+                            <span className="shop-don-prep-select-count">
+                              {prepLines.length}
+                            </span>
+                          </button>
+                          {prepLoaiOptions.map(({ loai, count }) => (
+                            <button
+                              key={loai}
+                              type="button"
+                              role="option"
+                              aria-selected={prepLoaiFilter.has(loai)}
+                              className={`shop-don-prep-select-opt${prepLoaiFilter.has(loai) ? " is-checked" : ""}`}
+                              onClick={() => togglePrepLoai(loai)}
+                            >
+                              <span className="shop-don-prep-select-check">
+                                {prepLoaiFilter.has(loai) ? (
+                                  <Check
+                                    size={11}
+                                    strokeWidth={3}
+                                    aria-hidden
+                                  />
+                                ) : null}
+                              </span>
+                              {loai}
+                              <span className="shop-don-prep-select-count">
+                                {count}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      ) : null}
                     </div>
                   ) : null}
 
@@ -498,14 +575,6 @@ export function ShopDonClient() {
                           <span>×{group.tong}</span>
                         </header>
                         <table className="shop-don-prep-table">
-                          <thead>
-                            <tr>
-                              <th scope="col">Hàng</th>
-                              <th scope="col" className="shop-don-prep-col-qty">
-                                Tổng SL
-                              </th>
-                            </tr>
-                          </thead>
                           <tbody>
                             {group.lines.map((line) => {
                               const expanded = prepExpandedKey === line.key;
