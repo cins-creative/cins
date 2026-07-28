@@ -6252,7 +6252,7 @@
   margin: 0;
   font-size: 15px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--fg-1);
 }
 .cins-admin .admin-nguoi-dung-recent-table td {
   font-size: 13px;
@@ -8167,27 +8167,27 @@
   margin: 0;
   font-size: 16px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--fg-1);
 }
 .cins-admin .ndd-dash-sub {
   margin: 2px 0 0;
   font-size: 12px;
-  color: #64748b;
+  color: var(--fg-3);
 }
 .cins-admin .ndd-dash-section-label {
   margin: 0 0 8px;
   font-size: 12px;
   font-weight: 700;
-  color: #475569;
+  color: var(--fg-2);
   letter-spacing: 0.01em;
 }
 .cins-admin .ndd-dash-range {
   display: inline-flex;
   gap: 0;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border);
   border-radius: 8px;
   overflow: hidden;
-  background: #fff;
+  background: var(--bg-surface);
 }
 .cins-admin .ndd-dash-range button {
   border: 0;
@@ -8195,14 +8195,14 @@
   padding: 7px 12px;
   font-size: 12px;
   font-weight: 600;
-  color: #64748b;
+  color: var(--fg-3);
   cursor: pointer;
 }
 .cins-admin .ndd-dash-range button + button {
-  border-left: 1px solid #e2e8f0;
+  border-left: 1px solid var(--border);
 }
 .cins-admin .ndd-dash-range button.is-active {
-  background: #f0fdf4;
+  background: color-mix(in srgb, #22c55e 12%, var(--bg-surface));
   color: #15803d;
 }
 .cins-admin .ndd-dash-deltas {
@@ -8211,22 +8211,22 @@
   gap: 10px;
 }
 .cins-admin .ndd-dash-delta {
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border);
   border-radius: 10px;
   padding: 12px 14px;
-  background: #fff;
+  background: var(--bg-surface);
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 .cins-admin .ndd-dash-delta-label {
   font-size: 12px;
-  color: #64748b;
+  color: var(--fg-3);
 }
 .cins-admin .ndd-dash-delta strong {
   font-size: 22px;
   line-height: 1.1;
-  color: #0f172a;
+  color: var(--fg-1);
 }
 .cins-admin .ndd-dash-delta-pct {
   font-size: 11px;
@@ -8234,11 +8234,11 @@
 }
 .cins-admin .ndd-dash-delta-pct.is-up { color: #15803d; }
 .cins-admin .ndd-dash-delta-pct.is-down { color: #b91c1c; }
-.cins-admin .ndd-dash-delta-pct.is-flat { color: #64748b; }
+.cins-admin .ndd-dash-delta-pct.is-flat { color: var(--fg-3); }
 .cins-admin .ndd-dash-chart-card {
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border);
   border-radius: 12px;
-  background: #fff;
+  background: var(--bg-surface);
   padding: 12px 14px 10px;
 }
 .cins-admin .ndd-dash-legend {
@@ -8252,7 +8252,7 @@
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: #475569;
+  color: var(--fg-2);
 }
 .cins-admin .ndd-dash-legend-item i {
   width: 10px;
@@ -8275,11 +8275,11 @@
   display: block;
 }
 .cins-admin .ndd-dash-grid {
-  stroke: #e2e8f0;
+  stroke: var(--border);
   stroke-width: 1;
 }
 .cins-admin .ndd-dash-axis {
-  fill: #94a3b8;
+  fill: var(--fg-4);
   font-size: 10px;
 }
 .cins-admin .ndd-dash-area {
@@ -8297,7 +8297,7 @@
   stroke-dasharray: 4 3;
 }
 .cins-admin .ndd-dash-hover-line {
-  stroke: #cbd5e1;
+  stroke: var(--fg-4);
   stroke-width: 1;
   stroke-dasharray: 3 3;
 }
@@ -8309,30 +8309,30 @@
   flex-direction: column;
   gap: 2px;
   padding: 8px 10px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border);
   border-radius: 8px;
-  background: rgb(255 255 255 / 96%);
+  background: color-mix(in srgb, var(--bg-surface) 96%, transparent);
   box-shadow: 0 6px 16px rgb(15 23 42 / 8%);
   font-size: 11px;
-  color: #475569;
+  color: var(--fg-2);
   pointer-events: none;
 }
 .cins-admin .ndd-dash-tooltip strong {
-  color: #0f172a;
+  color: var(--fg-1);
   font-size: 12px;
   margin-bottom: 2px;
 }
 .cins-admin .ndd-dash-pipeline {
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border);
   border-radius: 12px;
-  background: #fff;
+  background: var(--bg-surface);
   padding: 12px 14px 14px;
 }
 .cins-admin .ndd-dash-pipeline-title {
   margin: 0 0 10px;
   font-size: 13px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--fg-1);
 }
 .cins-admin .ndd-dash-bars {
   display: flex;
@@ -8345,16 +8345,16 @@
   gap: 10px;
   align-items: center;
   font-size: 12px;
-  color: #475569;
+  color: var(--fg-2);
 }
 .cins-admin .ndd-dash-bar-row strong {
   text-align: right;
-  color: #0f172a;
+  color: var(--fg-1);
 }
 .cins-admin .ndd-dash-bar-track {
   height: 8px;
   border-radius: 999px;
-  background: #f1f5f9;
+  background: var(--neutral-100);
   overflow: hidden;
 }
 .cins-admin .ndd-dash-bar-fill {
@@ -8953,6 +8953,34 @@
 
 :root[data-theme="dark"] .cins-admin .admin-nguoi-dung-giai--chua_chon {
   color: var(--fg-3);
+}
+
+/* Badge Shop — chữ teal/green đậm ở base khó đọc trên nền tonal tối → sáng lên */
+:root[data-theme="dark"] .cins-admin .admin-nguoi-dung-shop {
+  color: #5eead4;
+}
+
+:root[data-theme="dark"] .cins-admin .admin-nguoi-dung-shop.is-public {
+  color: #4ade80;
+}
+
+:root[data-theme="dark"] .cins-admin .admin-nguoi-dung-shop.is-off {
+  background: var(--neutral-100);
+  color: var(--fg-3);
+}
+
+/* Dashboard tài khoản (ndd-dash) — màu nhấn semantic sáng lên cho nền tối */
+:root[data-theme="dark"] .cins-admin .ndd-dash-range button.is-active {
+  background: color-mix(in srgb, #22c55e 20%, var(--bg-surface));
+  color: #4ade80;
+}
+
+:root[data-theme="dark"] .cins-admin .ndd-dash-delta-pct.is-up {
+  color: #4ade80;
+}
+
+:root[data-theme="dark"] .cins-admin .ndd-dash-delta-pct.is-down {
+  color: #f87171;
 }
 
 /* -- Admin giao d?ch (shop L33) ------------------------------- */
