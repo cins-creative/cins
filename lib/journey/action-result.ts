@@ -13,5 +13,8 @@ export type ActionResult<T = unknown> =
         | "bio"
         | "tinh_thanh"
         | "email_lien_he"
+        | "ho_ten_nhan"
+        | "so_dien_thoai"
+        | "dia_chi_chi_tiet"
         | "mxh_links";
     };

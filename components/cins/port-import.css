@@ -72,6 +72,42 @@
   background: rgba(110, 254, 192, 0.18);
 }
 
+.port-import-ext-status {
+  min-width: 0;
+}
+
+.port-import-ext-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.port-import-steps {
+  margin: 0;
+  padding-left: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--ink-title, rgba(0, 0, 0, 0.6));
+}
+
+.port-import-steps code {
+  padding: 1px 5px;
+  border-radius: 6px;
+  background: var(--bg-page, #f4f5f8);
+  font-size: 0.95em;
+}
+
+.port-import-hint {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--ink-body, rgba(0, 0, 0, 0.5));
+}
+
 .port-import-btn,
 .port-import-primary {
   display: inline-flex;

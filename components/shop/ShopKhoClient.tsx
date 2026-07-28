@@ -26,6 +26,7 @@ import {
   imageFilesFromClipboard,
   readImageFilesFromClipboard,
 } from "@/lib/files/clipboard-images";
+import { parseGiaInput } from "@/lib/shop/gia-input";
 import type { ShopBangGia, ShopCuaHang, ShopNhom, ShopSanPham } from "@/lib/shop/types";
 import {
   resolveShopNhanPhanLoai,
@@ -785,18 +786,6 @@ export function ShopKhoClient() {
       if (prev === "nhieu") return "het";
       return "none";
     });
-  }
-
-  function parseGiaInput(raw: string): number | null {
-    const cleaned = raw.trim().replace(/\s/g, "").replace(/,/g, "");
-    if (!cleaned) return null;
-    // 80.000 / 1.200.000 → nghìn VN
-    if (/^\d{1,3}(\.\d{3})+$/.test(cleaned)) {
-      const n = Number.parseInt(cleaned.replace(/\./g, ""), 10);
-      return Number.isFinite(n) ? n : null;
-    }
-    const n = Number.parseFloat(cleaned);
-    return Number.isFinite(n) && n >= 0 ? n : null;
   }
 
   function resolveDongBienThe(idBienThe: string | undefined) {
@@ -2764,7 +2753,7 @@ export function ShopKhoClient() {
                         <span className="shop-grid-readonly-val">
                           {(() => {
                             const n = draft.gia.trim()
-                              ? Number(draft.gia.replace(/,/g, "."))
+                              ? parseGiaInput(draft.gia)
                               : null;
                             if (n != null && Number.isFinite(n)) {
                               return `${n.toLocaleString("vi-VN")} ${currentTienTe()}`;

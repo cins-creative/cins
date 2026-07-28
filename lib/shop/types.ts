@@ -471,6 +471,11 @@ export type ShopDonHang = {
   /** Ảnh biên lai chuyển khoản buyer đính kèm lúc gửi đơn (giỏ chung). */
   bienLaiAnhUrl?: string | null;
   bienLaiAnhId?: string | null;
+  /** Snapshot thông tin nhận hàng lúc đặt đơn — để seller xuất vận đơn. */
+  muaHoTen?: string | null;
+  muaSoDienThoai?: string | null;
+  /** Địa chỉ đầy đủ (chi tiết + tỉnh/thành) đã gộp sẵn. */
+  muaDiaChi?: string | null;
 };
 
 /** Tín hiệu tin cậy của người mua — giúp seller triage đơn (chống rác). */

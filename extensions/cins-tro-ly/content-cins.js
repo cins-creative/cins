@@ -5,7 +5,7 @@
  *   - Port:   page 'cins-port-page'   ↔ ext 'cins-port-ext'
  */
 
-const VERSION = "1.0.0";
+const VERSION = chrome.runtime.getManifest?.()?.version || "1.1.0";
 
 const SHOPEE_PAGE = "cins-shopee-page";
 const SHOPEE_EXT = "cins-shopee-ext";
@@ -86,20 +86,33 @@ window.addEventListener("message", (event) => {
   const requestId = data.requestId;
   const resultType = resultTypeFor(data.type);
 
-  chrome.runtime.sendMessage(toBackgroundMessage(data), (response) => {
-    const err = chrome.runtime.lastError;
+  try {
+    chrome.runtime.sendMessage(toBackgroundMessage(data), (response) => {
+      const err = chrome.runtime.lastError;
+      replyTo(extSource, {
+        type: resultType,
+        requestId,
+        ok: !err && response?.ok === true,
+        data: response?.data ?? null,
+        results: response?.results ?? null,
+        error:
+          err?.message ||
+          response?.error ||
+          (!response ? "Trợ lý CINs không phản hồi." : null),
+      });
+    });
+  } catch (e) {
+    // Tiện ích vừa được tải lại / cập nhật → context cũ bị vô hiệu.
+    // Trả lỗi ngay, đừng để trang chờ tới lúc hết thời gian.
     replyTo(extSource, {
       type: resultType,
       requestId,
-      ok: !err && response?.ok === true,
-      data: response?.data ?? null,
-      results: response?.results ?? null,
-      error:
-        err?.message ||
-        response?.error ||
-        (!response ? "Trợ lý CINs không phản hồi." : null),
+      ok: false,
+      data: null,
+      results: null,
+      error: `Trợ lý CINs vừa được tải lại. Tải lại trang này (F5) rồi thử lại. (${e?.message || e})`,
     });
-  });
+  }
 });
 
 replyTo(SHOPEE_EXT, { type: "READY", version: VERSION });

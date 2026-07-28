@@ -135,6 +135,15 @@
   • **API:** `shop/bang-gia` (POST) + `shop/bang-gia/[id]` (PATCH) ép `tien_te = "VND"`, bỏ nhận `tienTe` từ client. `storefront`/giỏ/checkout/đơn giữ nguyên (đúng 1 bảng → "newest-wins" tự thành bảng duy nhất).
   • *Hệ quả file:* `lib/shop/bang-gia.ts` (`getOrCreateDefaultBangGia`, fallback resolve) · `lib/shop/nhom.ts` (sync) · `ShopKhoClient.tsx` · `ShopAttachHangModal.tsx` · `app/api/shop/bang-gia/*` · CSS `.shop-kho-bang-gia-*` gỡ.
 
+### Shop — sửa "Không tạo được loại hàng" + cache `so_mau` (2026-07-28)
+
+- **Triệu chứng:** một số seller bấm «Tạo loại» là nhận `500 "Không tạo được loại hàng."`, không có hàng nào vào `shop_nhom`. Ngẫu nhiên theo request, không theo user.
+- **Gốc:** `migration_shop_nhom_so_mau.sql` **chưa từng chạy** (không có runner + không có npm script) nên DB thiếu `shop_nhom.so_mau`, trong khi `nhomCols()` select cột đó mặc định. `listNhom` / `getNhomById` có bước hạ cấp khi PostgREST trả `42703`, nhưng `ensureNhom` / `updateNhom` **không** — fallback re-select của `ensureNhom` vẫn dùng bộ cột lỗi → `ENSURE_NHOM_FAILED` → nhánh 500 chung.
+- **Vì sao ngẫu nhiên:** `soMauSupported` là state **cấp module**. Trang Kho gọi `GET /api/shop/nhom` → lật cờ `false` → POST **cùng isolate** chạy được. Trên Cloudflare Workers mỗi isolate có bản sao riêng nên POST vào isolate "lạnh" là fail.
+- **Chốt:** (1) đã apply migration (cột + trigger `trg_shop_san_pham_so_mau` + backfill 90 loại) — migration này là **bắt buộc**, không phải tuỳ chọn; (2) **mọi** truy vấn `shop_nhom` phải đi qua `withNhomCols()` để hạ cấp + retry, không được `select(nhomCols())` trực tiếp. PostgREST fail `42703` lúc plan nên INSERT/UPDATE chưa chạy → retry không ghi trùng (đã kiểm chứng).
+- **Kèm theo:** ô giá loại hàng parse sai dấu phân cách nghìn VN — `Number("40.000")` = **40**. Gộp về `parseGiaInput()` dùng chung (`lib/shop/gia-input.ts`), trước đó chỉ `ShopKhoClient` parse đúng.
+- *Hệ quả file:* `lib/shop/nhom.ts` (`withNhomCols`) · mới `lib/shop/gia-input.ts` · mới `scripts/run-shop-nhom-so-mau-migration.mjs` + `npm run migrate:shop-nhom-so-mau` · `ShopKhoLoaiHub.tsx` · `ShopKhoClient.tsx` (bỏ bản `parseGiaInput` cục bộ).
+
 ### Shop — hub directory `/cua-hang` (2026-07-25)
 
 - **Bổ sung L33:** sidebar **Cửa hàng** → hub `/cua-hang` liệt kê mọi shop đang **Hiển thị shop** (`ban_hang_bat` ∧ `shop_hien_thi`, `shop_cua_hang.da_xoa=false`).

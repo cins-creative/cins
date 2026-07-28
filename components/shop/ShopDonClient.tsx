@@ -1,6 +1,13 @@
 "use client";
 
-import { ChevronDown, Loader2, Package, PackageCheck, X } from "lucide-react";
+import {
+  ChevronDown,
+  FileSpreadsheet,
+  Loader2,
+  Package,
+  PackageCheck,
+  X,
+} from "lucide-react";
 import {
   Fragment,
   useCallback,
@@ -18,6 +25,8 @@ import {
   type ShopDonHang,
   type ShopLoaiDon,
 } from "@/lib/shop/types";
+
+import { exportDonsToViettelPostXlsx } from "@/lib/shop/export-viettelpost";
 
 import { ShopDashTabs } from "./ShopDashTabs";
 import { ShopDonDetailModal } from "./ShopDonDetailModal";
@@ -171,6 +180,8 @@ export function ShopDonClient() {
   const [prepLoaiFilter, setPrepLoaiFilter] = useState(PREP_LOAI_ALL);
   const [prepExpandedKey, setPrepExpandedKey] = useState<string | null>(null);
   const [portalReady, setPortalReady] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [exportErr, setExportErr] = useState<string | null>(null);
   const lastSelectIndexRef = useRef<number | null>(null);
   const shiftHeldRef = useRef(false);
 
@@ -323,6 +334,19 @@ export function ShopDonClient() {
     closePrep();
   }, [closePrep]);
 
+  const exportViettelPost = useCallback(async () => {
+    if (selectedDons.length === 0 || exporting) return;
+    setExporting(true);
+    setExportErr(null);
+    try {
+      await exportDonsToViettelPostXlsx(selectedDons);
+    } catch {
+      setExportErr("Không xuất được file. Thử lại.");
+    } finally {
+      setExporting(false);
+    }
+  }, [selectedDons, exporting]);
+
   useEffect(() => {
     if (!prepOpen) return;
     const onKey = (e: KeyboardEvent) => {
@@ -367,10 +391,29 @@ export function ShopDonClient() {
         <button
           type="button"
           className="shop-don-bulk-btn"
+          disabled={exporting}
+          title="Xuất file Excel theo mẫu ViettelPost"
+          onClick={() => void exportViettelPost()}
+        >
+          {exporting ? (
+            <Loader2 size={15} className="shop-spin" aria-hidden />
+          ) : (
+            <FileSpreadsheet size={15} strokeWidth={2.2} aria-hidden />
+          )}
+          Xuất Excel (ViettelPost)
+        </button>
+        <button
+          type="button"
+          className="shop-don-bulk-btn"
           onClick={clearSelection}
         >
           Bỏ chọn
         </button>
+        {exportErr ? (
+          <span className="shop-don-bulk-err" role="alert">
+            {exportErr}
+          </span>
+        ) : null}
       </div>
     ) : null;
 

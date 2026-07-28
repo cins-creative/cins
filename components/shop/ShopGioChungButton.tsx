@@ -29,6 +29,10 @@ import {
   shopPublicHref,
   shopSlugFromTen,
 } from "@/lib/shop/cua-hang-href";
+import {
+  labelTinhThanh,
+  TINH_THANH_SELECT_OPTIONS,
+} from "@/lib/truong/contact";
 import { SHOP_BUYER_TRANSFER_DISCLAIMER } from "@/lib/shop/terms";
 import type {
   ShopDonHang,
@@ -47,6 +51,22 @@ export const GIO_CHUNG_OPEN_EVENT = "cins:gio-chung-open";
 function money(n: number, tienTe: string): string {
   return `${n.toLocaleString("vi-VN")} ${tienTe}`;
 }
+
+/** Một hồ sơ nhận hàng trong sổ địa chỉ (khớp API /api/shop/dia-chi-nhan). */
+type DiaChiNhanItem = {
+  id: string;
+  nhan: string | null;
+  hoTen: string;
+  soDienThoai: string;
+  diaChi: string;
+  phuongXa: string;
+  tinhThanh: string;
+  laMacDinh: boolean;
+};
+
+type PhuongXaOption = { code: string; name: string };
+
+const SDT_RE = /^[0-9+()\-.\s]{6,20}$/;
 
 export function ShopGioChungButton() {
   const [open, setOpen] = useState(false);
@@ -359,6 +379,210 @@ function ShopGioChungGroup({ group, busyBt, onQty, onSent }: GroupProps) {
   const [payErr, setPayErr] = useState<string | null>(null);
   const payFetched = useRef(false);
 
+  /* Sổ địa chỉ nhận hàng — chọn 1 hồ sơ (bắt buộc) để gửi đơn. */
+  const [dcList, setDcList] = useState<DiaChiNhanItem[]>([]);
+  const [dcSelectedId, setDcSelectedId] = useState<string | null>(null);
+  const [dcLoading, setDcLoading] = useState(false);
+  const dcFetched = useRef(false);
+
+  /* Form thêm / sửa hồ sơ nhận hàng. */
+  const [dcFormOpen, setDcFormOpen] = useState(false);
+  const [dcEditId, setDcEditId] = useState<string | null>(null);
+  const [fNhan, setFNhan] = useState("");
+  const [fHoTen, setFHoTen] = useState("");
+  const [fSdt, setFSdt] = useState("");
+  const [fTinh, setFTinh] = useState("");
+  const [fPhuongXa, setFPhuongXa] = useState("");
+  const [fDiaChi, setFDiaChi] = useState("");
+  const [dcSaving, setDcSaving] = useState(false);
+  const [dcErr, setDcErr] = useState<string | null>(null);
+
+  /* Phường/xã theo tỉnh đang chọn (nạp động từ dataset 2025). */
+  const [pxOptions, setPxOptions] = useState<PhuongXaOption[]>([]);
+  const [pxLoading, setPxLoading] = useState(false);
+
+  const loadDiaChi = useCallback(async () => {
+    if (dcFetched.current) return;
+    dcFetched.current = true;
+    setDcLoading(true);
+    try {
+      const res = await fetch("/api/shop/dia-chi-nhan", { cache: "no-store" });
+      const json = (await res.json().catch(() => null)) as {
+        items?: DiaChiNhanItem[];
+      } | null;
+      const items = json?.items ?? [];
+      setDcList(items);
+      const def = items.find((x) => x.laMacDinh) ?? items[0] ?? null;
+      setDcSelectedId(def?.id ?? null);
+      if (items.length === 0) setDcFormOpen(true);
+    } catch {
+      /* Lỗi tải không chặn — người mua có thể thêm mới. */
+    } finally {
+      setDcLoading(false);
+    }
+  }, []);
+
+  const refetchDiaChi = useCallback(
+    async (selectId?: string) => {
+      try {
+        const res = await fetch("/api/shop/dia-chi-nhan", {
+          cache: "no-store",
+        });
+        const json = (await res.json().catch(() => null)) as {
+          items?: DiaChiNhanItem[];
+        } | null;
+        const items = json?.items ?? [];
+        setDcList(items);
+        setDcSelectedId((prev) => {
+          if (selectId && items.some((x) => x.id === selectId)) return selectId;
+          if (prev && items.some((x) => x.id === prev)) return prev;
+          return (items.find((x) => x.laMacDinh) ?? items[0])?.id ?? null;
+        });
+      } catch {
+        /* bỏ qua */
+      }
+    },
+    [],
+  );
+
+  const resetForm = useCallback(() => {
+    setDcEditId(null);
+    setFNhan("");
+    setFHoTen("");
+    setFSdt("");
+    setFTinh("");
+    setFPhuongXa("");
+    setFDiaChi("");
+    setDcErr(null);
+  }, []);
+
+  /* Nạp phường/xã khi đổi tỉnh (chỉ khi form đang mở). */
+  useEffect(() => {
+    if (!dcFormOpen) return;
+    const tinh = fTinh.trim();
+    if (!tinh) {
+      setPxOptions([]);
+      return;
+    }
+    let alive = true;
+    setPxLoading(true);
+    fetch(`/api/vn/phuong-xa?tinh=${encodeURIComponent(tinh)}`, {
+      cache: "force-cache",
+    })
+      .then((r) => r.json())
+      .then((j: { items?: PhuongXaOption[] }) => {
+        if (!alive) return;
+        const items = j.items ?? [];
+        setPxOptions(items);
+        setFPhuongXa((prev) =>
+          items.some((w) => w.name === prev) ? prev : "",
+        );
+      })
+      .catch(() => {
+        if (alive) setPxOptions([]);
+      })
+      .finally(() => {
+        if (alive) setPxLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [fTinh, dcFormOpen]);
+
+  const openAddForm = useCallback(() => {
+    resetForm();
+    setDcFormOpen(true);
+  }, [resetForm]);
+
+  const openEditForm = useCallback((dc: DiaChiNhanItem) => {
+    setDcEditId(dc.id);
+    setFNhan(dc.nhan ?? "");
+    setFHoTen(dc.hoTen);
+    setFSdt(dc.soDienThoai);
+    setFTinh(dc.tinhThanh);
+    setFPhuongXa(dc.phuongXa);
+    setFDiaChi(dc.diaChi);
+    setDcErr(null);
+    setDcFormOpen(true);
+  }, []);
+
+  const formValid =
+    fHoTen.trim().length >= 2 &&
+    SDT_RE.test(fSdt.trim()) &&
+    fDiaChi.trim().length >= 4 &&
+    fTinh.trim().length > 0 &&
+    fPhuongXa.trim().length > 0 &&
+    pxOptions.some((w) => w.name === fPhuongXa);
+
+  const saveDiaChi = useCallback(async () => {
+    if (!formValid || dcSaving) return;
+    setDcSaving(true);
+    setDcErr(null);
+    try {
+      const payload = {
+        nhan: fNhan.trim() || null,
+        hoTen: fHoTen.trim(),
+        soDienThoai: fSdt.trim(),
+        diaChi: fDiaChi.trim(),
+        phuongXa: fPhuongXa.trim(),
+        tinhThanh: fTinh.trim(),
+      };
+      const res = await fetch(
+        dcEditId
+          ? `/api/shop/dia-chi-nhan/${dcEditId}`
+          : "/api/shop/dia-chi-nhan",
+        {
+          method: dcEditId ? "PATCH" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        },
+      );
+      const json = (await res.json().catch(() => null)) as {
+        item?: DiaChiNhanItem;
+        error?: string;
+      } | null;
+      if (!res.ok || !json?.item) {
+        setDcErr(json?.error ?? "Không lưu được hồ sơ.");
+        return;
+      }
+      await refetchDiaChi(json.item.id);
+      setDcFormOpen(false);
+      resetForm();
+    } catch {
+      setDcErr("Không lưu được hồ sơ.");
+    } finally {
+      setDcSaving(false);
+    }
+  }, [
+    formValid,
+    dcSaving,
+    dcEditId,
+    fNhan,
+    fHoTen,
+    fSdt,
+    fDiaChi,
+    fTinh,
+    fPhuongXa,
+    refetchDiaChi,
+    resetForm,
+  ]);
+
+  const deleteDiaChi = useCallback(
+    async (id: string) => {
+      try {
+        const res = await fetch(`/api/shop/dia-chi-nhan/${id}`, {
+          method: "DELETE",
+        });
+        if (res.ok) await refetchDiaChi();
+      } catch {
+        /* bỏ qua */
+      }
+    },
+    [refetchDiaChi],
+  );
+
+  const nguoiNhanOk = dcSelectedId != null;
+
   const [billUrl, setBillUrl] = useState<string | null>(null);
   const [billId, setBillId] = useState<string | null>(null);
   const [billUploading, setBillUploading] = useState(false);
@@ -481,10 +705,13 @@ function ShopGioChungGroup({ group, busyBt, onQty, onSent }: GroupProps) {
   const toggleCheckout = useCallback(() => {
     setCheckout((v) => {
       const next = !v;
-      if (next) void loadPay();
+      if (next) {
+        void loadPay();
+        void loadDiaChi();
+      }
       return next;
     });
-  }, [loadPay]);
+  }, [loadPay, loadDiaChi]);
 
   const submit = useCallback(async () => {
     setSending(true);
@@ -499,6 +726,7 @@ function ShopGioChungGroup({ group, busyBt, onQty, onSent }: GroupProps) {
           nguoiMuaChapNhanRuiRo: true,
           bienLaiAnhUrl: billUrl,
           bienLaiAnhId: billId,
+          diaChiNhanId: dcSelectedId,
         }),
       });
       const json = (await res.json().catch(() => null)) as {
@@ -515,7 +743,7 @@ function ShopGioChungGroup({ group, busyBt, onQty, onSent }: GroupProps) {
     } finally {
       setSending(false);
     }
-  }, [group.idNguoiBan, ghiChu, billUrl, billId, onSent]);
+  }, [group.idNguoiBan, ghiChu, billUrl, billId, onSent, dcSelectedId]);
 
   const qrUrl = pay
     ? buildVietQrImageUrl({
@@ -528,6 +756,7 @@ function ShopGioChungGroup({ group, busyBt, onQty, onSent }: GroupProps) {
     !sending &&
     accepted &&
     billOk &&
+    nguoiNhanOk &&
     !group.coVanDe &&
     group.coThanhToan &&
     Boolean(pay);
@@ -662,6 +891,232 @@ function ShopGioChungGroup({ group, busyBt, onQty, onSent }: GroupProps) {
         </button>
       ) : (
         <div className="gio-chung-checkout">
+          <div className="gio-chung-nhan">
+            <div className="gio-chung-nhan-hdr">
+              <h4 className="gio-chung-checkout-title">Giao tới</h4>
+              {dcList.length > 0 && !dcFormOpen ? (
+                <button
+                  type="button"
+                  className="gio-chung-nhan-add"
+                  onClick={openAddForm}
+                >
+                  <Plus size={13} strokeWidth={2.4} aria-hidden /> Thêm địa chỉ
+                </button>
+              ) : null}
+            </div>
+
+            {dcLoading ? (
+              <p className="gio-chung-muted">
+                <Loader2 size={14} className="gio-chung-spin" aria-hidden /> Đang
+                tải địa chỉ…
+              </p>
+            ) : null}
+
+            {!dcFormOpen && dcList.length > 0 ? (
+              <ul className="gio-chung-nhan-list">
+                {dcList.map((dc) => {
+                  const tinhLabel = labelTinhThanh(dc.tinhThanh);
+                  return (
+                    <li key={dc.id}>
+                      <label
+                        className={`gio-chung-nhan-card${dcSelectedId === dc.id ? " is-active" : ""}`}
+                      >
+                        <input
+                          type="radio"
+                          name={`dc-${group.idNguoiBan}`}
+                          checked={dcSelectedId === dc.id}
+                          onChange={() => setDcSelectedId(dc.id)}
+                        />
+                        <span className="gio-chung-nhan-card-body">
+                          <span className="gio-chung-nhan-card-top">
+                            <strong>{dc.hoTen}</strong>
+                            <span className="gio-chung-nhan-phone">
+                              {dc.soDienThoai}
+                            </span>
+                            {dc.laMacDinh ? (
+                              <span className="gio-chung-nhan-badge">
+                                Mặc định
+                              </span>
+                            ) : null}
+                            {dc.nhan ? (
+                              <span className="gio-chung-nhan-tag">
+                                {dc.nhan}
+                              </span>
+                            ) : null}
+                          </span>
+                          <span className="gio-chung-nhan-addr">
+                            {[dc.diaChi, dc.phuongXa, tinhLabel]
+                              .filter((s) => s && s.trim())
+                              .join(", ")}
+                          </span>
+                        </span>
+                        <span className="gio-chung-nhan-card-actions">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              openEditForm(dc);
+                            }}
+                          >
+                            Sửa
+                          </button>
+                          {dcList.length > 1 ? (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                void deleteDiaChi(dc.id);
+                              }}
+                            >
+                              Xóa
+                            </button>
+                          ) : null}
+                        </span>
+                      </label>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : null}
+
+            {dcFormOpen ? (
+              <div className="gio-chung-nhan-form">
+                <div className="gio-chung-nhan-grid">
+                  <label className="gio-chung-nhan-field">
+                    <span>
+                      Họ tên người nhận <b aria-hidden>*</b>
+                    </span>
+                    <input
+                      type="text"
+                      value={fHoTen}
+                      onChange={(e) => setFHoTen(e.target.value)}
+                      maxLength={80}
+                      placeholder="Nguyễn Văn A"
+                      autoComplete="name"
+                    />
+                  </label>
+                  <label className="gio-chung-nhan-field">
+                    <span>
+                      Số điện thoại <b aria-hidden>*</b>
+                    </span>
+                    <input
+                      type="tel"
+                      value={fSdt}
+                      onChange={(e) => setFSdt(e.target.value)}
+                      maxLength={20}
+                      placeholder="0912 345 678"
+                      autoComplete="tel"
+                    />
+                  </label>
+                  <label className="gio-chung-nhan-field">
+                    <span>
+                      Tỉnh / Thành phố <b aria-hidden>*</b>
+                    </span>
+                    <select
+                      value={fTinh}
+                      onChange={(e) => setFTinh(e.target.value)}
+                    >
+                      <option value="">— Chọn tỉnh / thành —</option>
+                      {TINH_THANH_SELECT_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="gio-chung-nhan-field">
+                    <span>
+                      Phường / Xã <b aria-hidden>*</b>
+                    </span>
+                    <select
+                      value={fPhuongXa}
+                      onChange={(e) => setFPhuongXa(e.target.value)}
+                      disabled={!fTinh || pxLoading}
+                    >
+                      <option value="">
+                        {!fTinh
+                          ? "— Chọn tỉnh trước —"
+                          : pxLoading
+                            ? "Đang tải…"
+                            : "— Chọn phường / xã —"}
+                      </option>
+                      {pxOptions.map((w) => (
+                        <option key={w.code} value={w.name}>
+                          {w.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="gio-chung-nhan-field gio-chung-nhan-field--full">
+                    <span>
+                      Địa chỉ chi tiết <b aria-hidden>*</b>
+                    </span>
+                    <textarea
+                      rows={2}
+                      value={fDiaChi}
+                      onChange={(e) => setFDiaChi(e.target.value)}
+                      maxLength={280}
+                      placeholder="Số nhà, tên đường, tòa nhà…"
+                    />
+                  </label>
+                  <label className="gio-chung-nhan-field gio-chung-nhan-field--full">
+                    <span>Nhãn (tùy chọn)</span>
+                    <input
+                      type="text"
+                      value={fNhan}
+                      onChange={(e) => setFNhan(e.target.value)}
+                      maxLength={40}
+                      placeholder="Vd: Nhà riêng, Công ty…"
+                    />
+                  </label>
+                </div>
+                {dcErr ? (
+                  <p className="gio-chung-err" role="alert">
+                    {dcErr}
+                  </p>
+                ) : null}
+                <div className="gio-chung-nhan-form-actions">
+                  <button
+                    type="button"
+                    className="gio-chung-nhan-save"
+                    disabled={!formValid || dcSaving}
+                    onClick={() => void saveDiaChi()}
+                  >
+                    {dcSaving ? (
+                      <Loader2
+                        size={14}
+                        className="gio-chung-spin"
+                        aria-hidden
+                      />
+                    ) : dcEditId ? (
+                      "Lưu thay đổi"
+                    ) : (
+                      "Lưu địa chỉ"
+                    )}
+                  </button>
+                  {dcList.length > 0 ? (
+                    <button
+                      type="button"
+                      className="gio-chung-nhan-cancel"
+                      disabled={dcSaving}
+                      onClick={() => {
+                        setDcFormOpen(false);
+                        resetForm();
+                      }}
+                    >
+                      Hủy
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
+
+            <p className="gio-chung-nhan-note">
+              Địa chỉ được lưu vào sổ để dùng lại (riêng tư — chỉ người bán thấy
+              khi bạn đặt đơn).
+            </p>
+          </div>
+
           <h4 className="gio-chung-checkout-title">Chuyển khoản tới</h4>
           {payLoading ? (
             <p className="gio-chung-muted">
@@ -782,11 +1237,13 @@ function ShopGioChungGroup({ group, busyBt, onQty, onSent }: GroupProps) {
 
           {pay && !canSend && !sending ? (
             <p className="gio-chung-send-hint">
-              {!billOk
-                ? "Đính kèm ảnh biên lai chuyển khoản để gửi đơn."
-                : !accepted
-                  ? "Tích xác nhận để gửi đơn."
-                  : null}
+              {!nguoiNhanOk
+                ? "Nhập đủ họ tên, SĐT, tỉnh/thành và địa chỉ nhận hàng."
+                : !billOk
+                  ? "Đính kèm ảnh biên lai chuyển khoản để gửi đơn."
+                  : !accepted
+                    ? "Tích xác nhận để gửi đơn."
+                    : null}
             </p>
           ) : null}
 

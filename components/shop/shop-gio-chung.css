@@ -464,6 +464,248 @@
   color: var(--ink-display);
 }
 
+.gio-chung-nhan {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.gio-chung-nhan-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.gio-chung-nhan-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-body);
+}
+
+.gio-chung-nhan-field--full {
+  grid-column: 1 / -1;
+}
+
+.gio-chung-nhan-field b {
+  color: #b42318;
+}
+
+.gio-chung-nhan-field input,
+.gio-chung-nhan-field select,
+.gio-chung-nhan-field textarea {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--bg-surface);
+  color: var(--ink-display);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.gio-chung-nhan-field textarea {
+  resize: vertical;
+  min-height: 40px;
+}
+
+.gio-chung-nhan-field input:focus,
+.gio-chung-nhan-field select:focus,
+.gio-chung-nhan-field textarea:focus {
+  outline: none;
+  border-color: var(--cins-blue, #2563eb);
+}
+
+.gio-chung-nhan-note {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--ink-muted, #64748b);
+}
+
+.gio-chung-nhan-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.gio-chung-nhan-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-surface);
+  color: var(--ink-display);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.gio-chung-nhan-add:hover {
+  border-color: var(--cins-blue, #2563eb);
+  color: var(--cins-blue, #2563eb);
+}
+
+.gio-chung-nhan-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.gio-chung-nhan-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: var(--bg-surface);
+  cursor: pointer;
+  transition:
+    border-color 0.12s ease,
+    background 0.12s ease;
+}
+
+.gio-chung-nhan-card.is-active {
+  border-color: var(--cins-blue, #2563eb);
+  background: color-mix(in srgb, var(--cins-blue, #2563eb) 6%, transparent);
+}
+
+.gio-chung-nhan-card > input[type="radio"] {
+  margin-top: 3px;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--cins-blue, #2563eb);
+  flex: none;
+}
+
+.gio-chung-nhan-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+
+.gio-chung-nhan-card-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--ink-display);
+}
+
+.gio-chung-nhan-phone {
+  color: var(--ink-body);
+  font-weight: 500;
+}
+
+.gio-chung-nhan-badge {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--cins-blue, #2563eb) 14%, transparent);
+  color: var(--cins-blue, #2563eb);
+  font-size: 10.5px;
+  font-weight: 700;
+}
+
+.gio-chung-nhan-tag {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--bg-subtle, rgba(0, 0, 0, 0.05));
+  color: var(--ink-body);
+  font-size: 10.5px;
+  font-weight: 600;
+}
+
+.gio-chung-nhan-addr {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--ink-body);
+  word-break: break-word;
+}
+
+.gio-chung-nhan-card-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: none;
+}
+
+.gio-chung-nhan-card-actions button {
+  padding: 2px 4px;
+  border: none;
+  background: none;
+  color: var(--ink-muted, #64748b);
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.gio-chung-nhan-card-actions button:hover {
+  color: var(--cins-blue, #2563eb);
+  text-decoration: underline;
+}
+
+.gio-chung-nhan-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.gio-chung-nhan-form-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.gio-chung-nhan-save {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 10px;
+  background: var(--cins-blue, #2563eb);
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.gio-chung-nhan-save:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.gio-chung-nhan-cancel {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-surface);
+  color: var(--ink-body);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
 .gio-chung-pay {
   display: flex;
   gap: 12px;

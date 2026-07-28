@@ -28,6 +28,9 @@
     "migrate:csdt": "node scripts/run-csdt-van-hanh-hoc-migration.mjs",
     "migrate:shop": "node scripts/run-shop-ban-hang-migration.mjs",
     "migrate:shop-chap-nhan": "node scripts/run-shop-don-chap-nhan-migration.mjs",
+    "migrate:shop-nguoi-nhan": "node scripts/run-shop-nguoi-nhan-migration.mjs",
+    "migrate:shop-dia-chi-nhan": "node scripts/run-shop-dia-chi-nhan-migration.mjs",
+    "gen:phuong-xa": "node scripts/gen-phuong-xa.mjs",
     "migrate:shop-nhom": "node scripts/run-shop-nhom-migration.mjs",
     "migrate:shop-nhom-storefront-v2": "node scripts/run-shop-nhom-storefront-v2-migration.mjs",
     "migrate:shop-nhom-gia": "node scripts/run-shop-nhom-gia-mac-dinh-migration.mjs",
@@ -35,6 +38,7 @@
     "migrate:shop-nhom-anh-phu": "node scripts/run-shop-nhom-anh-phu-migration.mjs",
     "migrate:shop-nhom-video-phu": "node scripts/run-shop-nhom-video-phu-migration.mjs",
     "migrate:shop-nhom-feature": "node scripts/run-shop-nhom-feature-migration.mjs",
+    "migrate:shop-nhom-so-mau": "node scripts/run-shop-nhom-so-mau-migration.mjs",
     "migrate:shop-cua-hang-banner": "node scripts/run-shop-cua-hang-banner-su-kien-migration.mjs",
     "migrate:shop-cua-hang-banner-hien": "node scripts/run-shop-cua-hang-banner-su-kien-hien-migration.mjs",
     "migrate:autopilot": "node scripts/run-autopilot-giai-doan-1-migration.mjs",
@@ -77,7 +81,8 @@
     "remark-gfm": "^4.0.1",
     "server-only": "^0.0.1",
     "tailwind-merge": "^3.5.0",
-    "tus-js-client": "^4.3.1"
+    "tus-js-client": "^4.3.1",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devDependencies": {
     "@opennextjs/cloudflare": "^1.20.1",

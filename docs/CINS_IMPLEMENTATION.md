@@ -71,6 +71,11 @@ Tái dùng đúng pattern Shopee AI cho **user tự import portfolio** của ch�
 
 **Extension hợp nhất "Trợ lý CINs" (không Store):** `extensions/cins-tro-ly/` (v1.1.0) → `public/downloads/cins-tro-ly.zip` (`npm run pack:tro-ly-ext`). Gộp Shopee (`cins-shopee-page`) + Port (`cins-port-page`) trong 1 tiện ích; content script trả cả 2 giao thức → tương thích UI Shopee cũ. `host_permissions`: shopee.vn + behance.net + artstation.com. Port message kèm `platform`.
 
+**Điều kiện dò được tiện ích (`pingPortExtension` → `PONG`):** content script `content-cins.js` chỉ chèn vào origin khai báo ở `manifest.json` → `content_scripts.matches`: `localhost:3001` · `127.0.0.1:3001` · `cins.vn` · `www.cins.vn` · `cins.info-cins-vn.workers.dev`. Hệ quả khi debug "bấm không thấy gì":
+- Mở dev qua **LAN IP** (`npm run host` bind `0.0.0.0`, test iPad) → **không** khớp match → tiện ích không bao giờ sẵn sàng. Dùng `localhost:3001`.
+- Vừa cài / vừa reload tiện ích → **phải F5 trang**; Chrome không chèn content script vào tab đã mở. Modal ping lại khi tab lấy lại focus, và `content-cins.js` bọc `sendMessage` trong `try/catch` để trả lỗi ngay thay vì để trang chờ hết `timeoutMs`.
+- Nút hành động trong `PortImportModal` **không** còn bị `disabled` khi thiếu tiện ích — bấm sẽ hiện hướng dẫn cài, tránh cảm giác "click không phản hồi".
+
 ### Kết bạn & social
 | Route | Việc |
 |---|---|
@@ -254,6 +259,7 @@ Tái dùng đúng pattern Shopee AI cho **user tự import portfolio** của ch�
 | `migration_shop_san_pham_phan_loai_2.sql` | Cột `shop_san_pham.phan_loai_2` (nhãn nhóm thứ hai). Chạy: `node scripts/run-shop-san-pham-phan-loai-2-migration.mjs`. |
 | `migration_shop_san_pham_phan_loai.sql` | Cột `shop_san_pham.phan_loai` (nhãn nhóm sản phẩm). Chạy: `node scripts/run-shop-san-pham-phan-loai-migration.mjs`. |
 | `migration_shop_nhom.sql` | Bảng `shop_nhom` (nhãn + mô tả) + `shop_san_pham.id_nhom` / `id_nhom_2`; backfill từ text. Chạy: `npm run migrate:shop-nhom`. |
+| `migration_shop_nhom_so_mau.sql` | Cột cache `shop_nhom.so_mau` + trigger `trg_shop_san_pham_so_mau` + backfill. **Bắt buộc** — `lib/shop/nhom.ts` select cột này mặc định. Chạy: `npm run migrate:shop-nhom-so-mau`. |
 | `migration_shop_don_chap_nhan.sql` | Snapshot chấp nhận rủi ro chuyển khoản trên `shop_don_hang`. Chạy: `node scripts/run-shop-don-chap-nhan-migration.mjs`. |
 | `migration_shop_tru_kho_atomic.sql` | RPC `shop_tru_kho_bien_the` / `shop_hoan_kho_bien_the` — trừ/hoàn tồn atomic (mua_ngay trừ lúc tạo đơn). Chạy: `node scripts/run-shop-tru-kho-atomic-migration.mjs`. |
 | `migration_shop_don_ma_don.sql` | Cột `shop_don_hang.ma_don` (mã TENNGUOIMUA-12345). Chạy: `node scripts/run-shop-don-ma-don-migration.mjs`. |

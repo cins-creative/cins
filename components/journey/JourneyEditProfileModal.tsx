@@ -72,6 +72,13 @@ export type EditProfileInitial = {
   tinhThanh: string;
   emailLienHe: string;
   visibilityEmail: EmailVisibility;
+  /** Thông tin nhận hàng (shop) — mặc định private, mỗi trường có toggle riêng. */
+  hoTenNhan: string;
+  visibilityHoTenNhan: EmailVisibility;
+  soDienThoai: string;
+  visibilitySdt: EmailVisibility;
+  diaChiChiTiet: string;
+  visibilityDiaChi: EmailVisibility;
   mxhLinks: ProfileLinkInput[];
   giaiDoan: GiaiDoan;
 };
@@ -110,6 +117,17 @@ export function JourneyEditProfileModal({
   const [visibilityEmail, setVisibilityEmail] = useState<EmailVisibility>(
     initial.visibilityEmail,
   );
+  const [hoTenNhan, setHoTenNhan] = useState(initial.hoTenNhan);
+  const [visibilityHoTenNhan, setVisibilityHoTenNhan] =
+    useState<EmailVisibility>(initial.visibilityHoTenNhan);
+  const [soDienThoai, setSoDienThoai] = useState(initial.soDienThoai);
+  const [visibilitySdt, setVisibilitySdt] = useState<EmailVisibility>(
+    initial.visibilitySdt,
+  );
+  const [diaChiChiTiet, setDiaChiChiTiet] = useState(initial.diaChiChiTiet);
+  const [visibilityDiaChi, setVisibilityDiaChi] = useState<EmailVisibility>(
+    initial.visibilityDiaChi,
+  );
   const [links, setLinks] = useState<ProfileLinkInput[]>(
     initial.mxhLinks.length > 0
       ? initial.mxhLinks.map((l) => ({ label: l.label ?? "", url: l.url }))
@@ -145,6 +163,12 @@ export function JourneyEditProfileModal({
     setTinhThanh(initial.tinhThanh);
     setEmailLienHe(initial.emailLienHe);
     setVisibilityEmail(initial.visibilityEmail);
+    setHoTenNhan(initial.hoTenNhan);
+    setVisibilityHoTenNhan(initial.visibilityHoTenNhan);
+    setSoDienThoai(initial.soDienThoai);
+    setVisibilitySdt(initial.visibilitySdt);
+    setDiaChiChiTiet(initial.diaChiChiTiet);
+    setVisibilityDiaChi(initial.visibilityDiaChi);
     setLinks(
       initial.mxhLinks.length > 0
         ? initial.mxhLinks.map((l) => ({ label: l.label ?? "", url: l.url }))
@@ -286,6 +310,12 @@ export function JourneyEditProfileModal({
         tinhThanh,
         emailLienHe,
         visibilityEmail,
+        hoTenNhan,
+        visibilityHoTenNhan,
+        soDienThoai,
+        visibilitySdt,
+        diaChiChiTiet,
+        visibilityDiaChi,
         mxhLinks: cleanLinks,
         giaiDoan,
       });
@@ -478,6 +508,97 @@ export function JourneyEditProfileModal({
                   checked={visibilityEmail === "public"}
                   onChange={(e) =>
                     setVisibilityEmail(e.target.checked ? "public" : "private")
+                  }
+                />
+                <span>Công khai trên Journey</span>
+              </label>
+            </div>
+          </div>
+
+          <div className="j-edit-section">
+            <span className="j-edit-label">Thông tin nhận hàng</span>
+            <p className="j-edit-hint" style={{ marginTop: 0, marginBottom: 10 }}>
+              Dùng khi bạn mua hàng trên CINs — người bán cần để giao / lên vận
+              đơn. Mặc định <strong>riêng tư</strong> (chỉ hiện với người bán khi
+              bạn đặt đơn). Bật công khai nếu muốn hiện trên Journey.
+            </p>
+
+            <div className="j-edit-field">
+              <label htmlFor="ep-hoten" className="j-edit-label">
+                Họ tên thật (người nhận)
+              </label>
+              <input
+                id="ep-hoten"
+                type="text"
+                className="j-edit-input"
+                value={hoTenNhan}
+                onChange={(e) => setHoTenNhan(e.target.value)}
+                maxLength={80}
+                placeholder="Vd: Nguyễn Văn A"
+                autoComplete="name"
+              />
+              <label className="j-edit-checkbox">
+                <input
+                  type="checkbox"
+                  checked={visibilityHoTenNhan === "public"}
+                  onChange={(e) =>
+                    setVisibilityHoTenNhan(
+                      e.target.checked ? "public" : "private",
+                    )
+                  }
+                />
+                <span>Công khai trên Journey</span>
+              </label>
+            </div>
+
+            <div className="j-edit-field">
+              <label htmlFor="ep-sdt" className="j-edit-label">
+                Số điện thoại
+              </label>
+              <input
+                id="ep-sdt"
+                type="tel"
+                className="j-edit-input"
+                value={soDienThoai}
+                onChange={(e) => setSoDienThoai(e.target.value)}
+                maxLength={20}
+                placeholder="Vd: 0912 345 678"
+                autoComplete="tel"
+              />
+              <label className="j-edit-checkbox">
+                <input
+                  type="checkbox"
+                  checked={visibilitySdt === "public"}
+                  onChange={(e) =>
+                    setVisibilitySdt(e.target.checked ? "public" : "private")
+                  }
+                />
+                <span>Công khai trên Journey</span>
+              </label>
+            </div>
+
+            <div className="j-edit-field">
+              <label htmlFor="ep-diachi" className="j-edit-label">
+                Địa chỉ chi tiết
+              </label>
+              <textarea
+                id="ep-diachi"
+                className="j-edit-textarea"
+                value={diaChiChiTiet}
+                onChange={(e) => setDiaChiChiTiet(e.target.value)}
+                maxLength={280}
+                rows={2}
+                placeholder="Số nhà, đường, phường/xã, quận/huyện…"
+              />
+              <p className="j-edit-hint">
+                Tỉnh / thành phố lấy theo ô «Tỉnh / Thành phố» ở trên.
+              </p>
+              <label className="j-edit-checkbox">
+                <input
+                  type="checkbox"
+                  checked={visibilityDiaChi === "public"}
+                  onChange={(e) =>
+                    setVisibilityDiaChi(e.target.checked ? "public" : "private")
                   }
                 />
                 <span>Công khai trên Journey</span>

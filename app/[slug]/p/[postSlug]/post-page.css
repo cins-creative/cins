@@ -1171,6 +1171,26 @@
   font-size: 13px;
 }
 
+/* Inline reply trong rail — full cột, textarea cao hơn */
+.cins-post-view
+  .post-rail-blk--comments
+  .post-comments-v1
+  .post-comments-compose.is-inline
+  .post-comments-textarea {
+  min-height: 72px;
+  font-size: 13.5px;
+}
+
+.cins-post-view
+  .post-rail-blk--comments
+  .post-comments-v1
+  .post-comments-item.is-reply-target
+  > .post-comments-row {
+  background: rgba(31, 116, 201, 0.07);
+  outline: 1.5px solid rgba(31, 116, 201, 0.28);
+  outline-offset: 1px;
+}
+
 /* Split rail — sticky viewport: meta scroll, BL ghim form ở đáy rail */
 .cins-post-view.post-canvas--split .post-view-rail,
 .cins-post-view .post-canvas--split .post-view-rail {
@@ -5093,8 +5113,29 @@
   .post-comments-compose-input-wrap {
   padding-top: 4px;
 }
-.cins-post-view .post-comments-v1 .post-comments-form--inline {
+
+/* Inline reply: full-bleed dưới comment, thoát indent + cột avatar */
+.cins-post-view .post-comments-v1 .post-comments-inline-reply {
   margin-top: 8px;
+  width: 100%;
+  min-width: 0;
+}
+.cins-post-view
+  .post-comments-v1
+  .post-comments-replies
+  > .post-comments-item
+  > .post-comments-inline-reply {
+  margin-left: calc(-1 * var(--cmt-reply-indent));
+  width: calc(100% + var(--cmt-reply-indent));
+}
+.cins-post-view .post-comments-v1 .post-comments-form--inline {
+  margin: 0;
+}
+.cins-post-view .post-comments-v1 .post-comments-form--inline .post-comments-compose-row {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  gap: 8px;
 }
 .cins-post-view .post-comments-v1 .post-comments-compose.is-inline {
   border-radius: 12px;
@@ -5102,15 +5143,35 @@
 }
 .cins-post-view .post-comments-v1 .post-comments-compose.is-inline
   .post-comments-compose-input-wrap {
-  padding: 3px 10px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 6px 8px;
+  padding: 8px 10px 10px;
+  min-height: 0;
 }
 .cins-post-view .post-comments-v1 .post-comments-compose.is-inline
-  + .post-comments-send {
-  width: 28px;
-  height: 28px;
+  .post-comments-textarea {
+  flex: 1 1 100%;
+  width: 100%;
+  min-width: 0;
+  min-height: 64px;
+  max-height: 160px;
+  font-size: 13.5px;
+  line-height: 1.45;
+}
+.cins-post-view .post-comments-v1 .post-comments-compose.is-inline
+  .post-comments-reply-context {
+  padding: 7px 10px 7px 12px;
+}
+.cins-post-view .post-comments-v1 .post-comments-form--inline .post-comments-send {
+  width: 36px;
+  height: 36px;
+  margin-bottom: 2px;
 }
 .cins-post-view .post-comments-v1 .post-comments-item.is-reply-target > .post-comments-row {
   border-radius: 10px;
+  background: rgba(31, 116, 201, 0.05);
   outline: 1px solid rgba(31, 116, 201, 0.22);
   outline-offset: 2px;
 }

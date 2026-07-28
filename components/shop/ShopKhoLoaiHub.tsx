@@ -18,6 +18,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { readImageFilesFromClipboard } from "@/lib/files/clipboard-images";
+import { parseGiaInput } from "@/lib/shop/gia-input";
 import type { ShopNhom, ShopSanPham } from "@/lib/shop/types";
 import {
   SHOP_NHOM_ANH_PHU_MAX,
@@ -135,8 +136,9 @@ export function ShopKhoLoaiHub({
       onError(`Nhập tên ${nhanPhanLoai.toLowerCase()}.`);
       return;
     }
-    const giaNum = gia.trim() ? Number(gia.replace(/,/g, ".")) : null;
-    if (gia.trim() && (giaNum == null || !Number.isFinite(giaNum) || giaNum < 0)) {
+    const giaRaw = gia.trim();
+    const giaNum = giaRaw ? parseGiaInput(giaRaw) : null;
+    if (giaRaw && giaNum == null) {
       onError("Giá mặc định không hợp lệ.");
       return;
     }
@@ -1010,12 +1012,9 @@ export function ShopKhoLoaiMeta({
                 }}
                 onBlur={() => {
                   const raw = gia.trim();
-                  const next = raw ? Number(raw.replace(/,/g, ".")) : null;
+                  const next = raw ? parseGiaInput(raw) : null;
                   const prev = nhom.giaMacDinh;
-                  if (
-                    raw &&
-                    (next == null || !Number.isFinite(next) || next < 0)
-                  ) {
+                  if (raw && next == null) {
                     onError("Giá mặc định không hợp lệ.");
                     giaDirtyRef.current = false;
                     setGia(giaInputValue(prev, suggestedGiaMacDinh));

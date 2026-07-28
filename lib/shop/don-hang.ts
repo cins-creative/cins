@@ -22,6 +22,7 @@ import {
   shopTermsSnapshot,
 } from "@/lib/shop/terms";
 import { shopImageUrl } from "@/lib/shop/settings";
+import { resolveDiaChiSnapshot } from "@/lib/shop/dia-chi-nhan";
 import type {
   ShopBuyerTrust,
   ShopDonHang,
@@ -60,10 +61,13 @@ type DonRow = {
   thanh_toan_snapshot?: ShopThanhToanSnapshot | null;
   bien_lai_anh_url?: string | null;
   bien_lai_anh_id?: string | null;
+  mua_ho_ten?: string | null;
+  mua_so_dien_thoai?: string | null;
+  mua_dia_chi?: string | null;
 };
 
 const DON_SELECT =
-  "id, ma_don, id_nguoi_mua, id_nguoi_ban, id_cot_moc, id_su_kien, loai_don, trang_thai, tien_te, tong_tien, ghi_chu, da_tru_kho, tao_luc, xac_nhan_luc, huy_luc, ly_do_huy, huy_boi, nguoi_mua_chap_nhan_luc, nguoi_mua_chap_nhan_van_ban, nguoi_mua_chap_nhan_phien_ban, thanh_toan_snapshot, bien_lai_anh_url, bien_lai_anh_id";
+  "id, ma_don, id_nguoi_mua, id_nguoi_ban, id_cot_moc, id_su_kien, loai_don, trang_thai, tien_te, tong_tien, ghi_chu, da_tru_kho, tao_luc, xac_nhan_luc, huy_luc, ly_do_huy, huy_boi, nguoi_mua_chap_nhan_luc, nguoi_mua_chap_nhan_van_ban, nguoi_mua_chap_nhan_phien_ban, thanh_toan_snapshot, bien_lai_anh_url, bien_lai_anh_id, mua_ho_ten, mua_so_dien_thoai, mua_dia_chi";
 
 function normalizeThanhToanSnapshot(
   raw: unknown,
@@ -237,6 +241,9 @@ async function attachDong(dons: DonRow[]): Promise<ShopDonHang[]> {
     thanhToanSnapshot: normalizeThanhToanSnapshot(d.thanh_toan_snapshot),
     bienLaiAnhUrl: d.bien_lai_anh_url ?? null,
     bienLaiAnhId: d.bien_lai_anh_id ?? null,
+    muaHoTen: d.mua_ho_ten ?? null,
+    muaSoDienThoai: d.mua_so_dien_thoai ?? null,
+    muaDiaChi: d.mua_dia_chi ?? null,
   }));
 }
 
@@ -556,6 +563,8 @@ export async function createDonChungForSeller(
     nguoiMuaChapNhanRuiRo?: boolean;
     bienLaiAnhUrl?: string | null;
     bienLaiAnhId?: string | null;
+    /** Hồ sơ nhận hàng đã chọn từ sổ địa chỉ (bắt buộc) — snapshot vào đơn. */
+    diaChiNhanId?: string | null;
   },
 ): Promise<ShopDonHang> {
   const sellerId = input.sellerId?.trim();
@@ -579,6 +588,12 @@ export async function createDonChungForSeller(
   if (!bienLaiAnhUrl || bienLaiAnhUrl.startsWith("blob:")) {
     throw new Error("RECEIPT_REQUIRED");
   }
+
+  /* Thông tin nhận hàng bắt buộc — lấy từ sổ địa chỉ (verify ownership). */
+  const nguoiNhanSnapshot = await resolveDiaChiSnapshot(
+    buyerId,
+    input.diaChiNhanId,
+  );
 
   for (const d of nhom.dong) {
     if (d.ngungBan) throw new Error("ITEM_UNAVAILABLE");
@@ -643,6 +658,9 @@ export async function createDonChungForSeller(
         thanh_toan_snapshot: snapshotForAttempt,
         bien_lai_anh_url: bienLaiAnhUrl,
         bien_lai_anh_id: bienLaiAnhId,
+        mua_ho_ten: nguoiNhanSnapshot.hoTen,
+        mua_so_dien_thoai: nguoiNhanSnapshot.soDienThoai,
+        mua_dia_chi: nguoiNhanSnapshot.diaChiDayDu,
         ...chapNhan,
       })
       .select(DON_SELECT)

@@ -4336,6 +4336,16 @@
   filter: brightness(1.03);
 }
 
+.shop-don-bulk-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.shop-don-bulk-err {
+  font-size: 12px;
+  color: #b42318;
+}
+
 .shop-don-prep {
   position: fixed;
   inset: 0;

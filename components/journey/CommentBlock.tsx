@@ -151,7 +151,7 @@ export function CommentBlock(props: CommentBlockProps) {
     const end = el.value.length;
     el.setSelectionRange(end, end);
     el.style.height = "auto";
-    el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
+    el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
     el.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }, [replyTo?.id]);
 
@@ -262,6 +262,7 @@ export function CommentBlock(props: CommentBlockProps) {
     </>
   );
 
+  /* New comment ở footer; reply soạn ngay dưới comment đích (full-bleed width). */
   const composeFooter = viewerCanComment ? (
     !replyTo ? (
       <CommentComposeForm key={composeResetKey} {...composeProps} />
@@ -878,7 +879,7 @@ function CommentComposeForm({
       el.focus();
       el.setSelectionRange(nextCursor, nextCursor);
       el.style.height = "auto";
-      el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
+      el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
     });
   }
 
@@ -1179,7 +1180,7 @@ function CommentComposeForm({
               onInput={(e) => {
                 const el = e.currentTarget;
                 el.style.height = "auto";
-                el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
+                el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
               }}
               onPaste={(e) => {
                 if (
@@ -1519,6 +1520,7 @@ function CommentRow({
         (comment.daXoa ? " is-deleted" : "") +
         (isReplyTarget ? " is-reply-target" : "")
       }
+      data-comment-id={comment.id}
     >
       <div className="post-comments-row">
         {asOrg && orgKind ? (
@@ -1862,15 +1864,17 @@ function CommentRow({
               </>
             )}
           </div>
-          {composeProps ? (
-            <CommentComposeForm
-              key={composeProps.composeResetKey}
-              {...composeProps}
-              inline
-            />
-          ) : null}
         </div>
       </div>
+      {composeProps ? (
+        <div className="post-comments-inline-reply">
+          <CommentComposeForm
+            key={composeProps.composeResetKey}
+            {...composeProps}
+            inline
+          />
+        </div>
+      ) : null}
     </ItemTag>
   );
 }

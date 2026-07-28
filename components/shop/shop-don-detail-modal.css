@@ -273,6 +273,46 @@
   word-break: break-word;
 }
 
+.shop-don-detail-nhan {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 10px 12px;
+  border: 1px solid var(--border, #e4e6eb);
+  border-radius: 10px;
+  background: var(--bg-subtle, rgba(0, 0, 0, 0.02));
+}
+
+.shop-don-detail-nhan-line {
+  display: grid;
+  grid-template-columns: 62px 1fr;
+  gap: 8px;
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.4;
+  color: var(--ink-display, rgba(0, 0, 0, 0.88));
+  word-break: break-word;
+}
+
+.shop-don-detail-nhan-line > span {
+  color: var(--ink-muted, rgba(0, 0, 0, 0.5));
+  font-weight: 600;
+}
+
+.shop-don-detail-nhan-line a {
+  color: var(--cins-blue, #2563eb);
+  text-decoration: none;
+}
+
+:root[data-theme="dark"] .shop-don-detail-nhan {
+  border-color: var(--border, #2a3040);
+  background: var(--bg-surface, rgba(255, 255, 255, 0.03));
+}
+
+:root[data-theme="dark"] .shop-don-detail-nhan-line {
+  color: var(--ink-display, rgba(255, 255, 255, 0.92));
+}
+
 .shop-don-detail-bill {
   display: flex;
   flex-direction: column;

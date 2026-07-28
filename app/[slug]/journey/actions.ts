@@ -373,6 +373,13 @@ export type UpdateProfileInput = {
   tinhThanh: string;
   emailLienHe: string;
   visibilityEmail: EmailVisibility;
+  /** Thông tin nhận hàng (shop) — mỗi trường có visibility riêng, mặc định private. */
+  hoTenNhan: string;
+  visibilityHoTenNhan: EmailVisibility;
+  soDienThoai: string;
+  visibilitySdt: EmailVisibility;
+  diaChiChiTiet: string;
+  visibilityDiaChi: EmailVisibility;
   mxhLinks: ProfileLinkInput[];
   giaiDoan: GiaiDoan;
 };
@@ -445,6 +452,38 @@ export async function updateProfile(
   }
   const visibilityEmail: EmailVisibility =
     input.visibilityEmail === "public" ? "public" : "private";
+
+  /* Thông tin nhận hàng (shop) — optional ở profile; bắt buộc lúc checkout. */
+  const hoTenNhan = (input.hoTenNhan ?? "").trim();
+  if (hoTenNhan.length > 80) {
+    return {
+      ok: false,
+      error: "Họ tên người nhận tối đa 80 ký tự.",
+      field: "ho_ten_nhan",
+    };
+  }
+  const soDienThoai = (input.soDienThoai ?? "").trim();
+  if (soDienThoai && !/^[0-9+()\-.\s]{6,20}$/.test(soDienThoai)) {
+    return {
+      ok: false,
+      error: "Số điện thoại không hợp lệ.",
+      field: "so_dien_thoai",
+    };
+  }
+  const diaChiChiTiet = (input.diaChiChiTiet ?? "").trim();
+  if (diaChiChiTiet.length > 280) {
+    return {
+      ok: false,
+      error: "Địa chỉ chi tiết tối đa 280 ký tự.",
+      field: "dia_chi_chi_tiet",
+    };
+  }
+  const visibilityHoTenNhan: EmailVisibility =
+    input.visibilityHoTenNhan === "public" ? "public" : "private";
+  const visibilitySdt: EmailVisibility =
+    input.visibilitySdt === "public" ? "public" : "private";
+  const visibilityDiaChi: EmailVisibility =
+    input.visibilityDiaChi === "public" ? "public" : "private";
 
   if (!GIAI_DOAN_VALID.has(input.giaiDoan)) {
     return {
@@ -520,6 +559,12 @@ export async function updateProfile(
       tinh_thanh: tinhThanh || null,
       email_lien_he: emailLienHe || null,
       visibility_email: visibilityEmail,
+      ho_ten_nhan: hoTenNhan || null,
+      visibility_ho_ten_nhan: visibilityHoTenNhan,
+      so_dien_thoai: soDienThoai || null,
+      visibility_sdt: visibilitySdt,
+      dia_chi_chi_tiet: diaChiChiTiet || null,
+      visibility_dia_chi: visibilityDiaChi,
       mxh_links: cleanedLinks,
       giai_doan: input.giaiDoan,
     })

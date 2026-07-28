@@ -19,6 +19,7 @@ export async function POST(request: Request) {
     nguoiMuaChapNhanRuiRo?: unknown;
     bienLaiAnhUrl?: unknown;
     bienLaiAnhId?: unknown;
+    diaChiNhanId?: unknown;
   };
   try {
     body = (await request.json()) as typeof body;
@@ -38,6 +39,8 @@ export async function POST(request: Request) {
         typeof body.bienLaiAnhUrl === "string" ? body.bienLaiAnhUrl : null,
       bienLaiAnhId:
         typeof body.bienLaiAnhId === "string" ? body.bienLaiAnhId : null,
+      diaChiNhanId:
+        typeof body.diaChiNhanId === "string" ? body.diaChiNhanId : null,
     });
     return NextResponse.json({ don }, { status: 201 });
   } catch (e) {
@@ -53,6 +56,10 @@ export async function POST(request: Request) {
       RECEIPT_REQUIRED: [
         422,
         "Cần đính kèm ảnh biên lai chuyển khoản trước khi gửi đơn.",
+      ],
+      NGUOI_NHAN_REQUIRED: [
+        422,
+        "Cần nhập đầy đủ họ tên, số điện thoại và địa chỉ nhận hàng.",
       ],
       ITEM_UNAVAILABLE: [422, "Có món đã ngừng bán — hãy gỡ khỏi giỏ."],
       STOCK_EMPTY: [422, "Có món hết hàng — hãy gỡ khỏi giỏ."],

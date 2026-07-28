@@ -1,6 +1,6 @@
 "use client";
 
-import { Download, Loader2, Sparkles, X } from "lucide-react";
+import { Download, Loader2, RefreshCw, Sparkles, X } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -10,6 +10,7 @@ import {
   CINS_TRO_LY_EXT_ZIP_HREF,
   fetchWorkViaExtension,
   listProfileWorksViaExtension,
+  normalizePortProjectUrl,
   pingPortExtension,
   type PortPlatform,
   type PortWorkListItem,
@@ -48,6 +49,9 @@ type RowStatus = "idle" | "ok" | "fail";
 type Phase = "idle" | "scan" | "import";
 type Mode = "one" | "all";
 
+const EXT_MISSING_HINT =
+  "Chưa thấy Trợ lý CINs trên trang này. Tải tiện ích bên dưới → cài ở chrome://extensions (bật Chế độ nhà phát triển → Tải tiện ích đã giải nén) → tải lại trang này (F5).";
+
 export function PortImportModal({ open, onClose, profileSlug }: Props) {
   const titleId = useId();
   const cancelRef = useRef(false);
@@ -55,6 +59,8 @@ export function PortImportModal({ open, onClose, profileSlug }: Props) {
   const [platform, setPlatform] = useState<PortPlatform>("behance");
   const [mode, setMode] = useState<Mode>("one");
   const [extReady, setExtReady] = useState(false);
+  const [extVersion, setExtVersion] = useState<string | null>(null);
+  const [extChecking, setExtChecking] = useState(true);
   const [username, setUsername] = useState("");
   const [projectUrl, setProjectUrl] = useState("");
   const [busy, setBusy] = useState(false);
@@ -69,9 +75,12 @@ export function PortImportModal({ open, onClose, profileSlug }: Props) {
   const [summary, setSummary] = useState<string | null>(null);
 
   const refreshExt = useCallback(async () => {
-    const ok = await pingPortExtension();
-    setExtReady(ok);
-    return ok;
+    setExtChecking(true);
+    const status = await pingPortExtension();
+    setExtReady(status.ready);
+    setExtVersion(status.version);
+    setExtChecking(false);
+    return status.ready;
   }, []);
 
   const reset = useCallback(() => {
@@ -118,8 +127,14 @@ export function PortImportModal({ open, onClose, profileSlug }: Props) {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") close();
     };
+    // Quay lại tab sau khi cài tiện ích → ping lại, khỏi phải bấm "Kiểm tra lại".
+    const onFocus = () => void refreshExt();
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("focus", onFocus);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("focus", onFocus);
+    };
   }, [open, close, refreshExt]);
 
   async function runScan() {
@@ -130,7 +145,7 @@ export function PortImportModal({ open, onClose, profileSlug }: Props) {
     }
     const hasExt = extReady || (await refreshExt());
     if (!hasExt) {
-      setErr("Cần bật Trợ lý CINs để quét hồ sơ.");
+      setErr(EXT_MISSING_HINT);
       return;
     }
     setBusy(true);
@@ -159,14 +174,14 @@ export function PortImportModal({ open, onClose, profileSlug }: Props) {
   }
 
   async function runImportOne() {
-    const url = projectUrl.trim();
+    const url = normalizePortProjectUrl(projectUrl);
     if (!url) {
       setErr(`Dán link project ${meta.label}.`);
       return;
     }
     const hasExt = extReady || (await refreshExt());
     if (!hasExt) {
-      setErr("Cần bật Trợ lý CINs để kéo project.");
+      setErr(EXT_MISSING_HINT);
       return;
     }
     setBusy(true);
@@ -248,7 +263,7 @@ export function PortImportModal({ open, onClose, profileSlug }: Props) {
     }
     const hasExt = extReady || (await refreshExt());
     if (!hasExt) {
-      setErr("Cần bật Trợ lý CINs để kéo tác phẩm.");
+      setErr(EXT_MISSING_HINT);
       return;
     }
 
@@ -323,27 +338,54 @@ export function PortImportModal({ open, onClose, profileSlug }: Props) {
 
         <div className={`port-import-ext${extReady ? " is-ready" : ""}`}>
           <span className="port-import-ext-status">
-            {extReady ? "Trợ lý CINs đã sẵn sàng" : "Bật Trợ lý CINs (một lần)"}
+            {extChecking
+              ? "Đang tìm Trợ lý CINs…"
+              : extReady
+                ? `Trợ lý CINs đã sẵn sàng${extVersion ? ` (v${extVersion})` : ""}`
+                : "Chưa thấy Trợ lý CINs — cần cài một lần"}
           </span>
-          {extReady ? (
+          <span className="port-import-ext-actions">
+            {extReady ? null : (
+              <a
+                className="port-import-btn"
+                href={CINS_TRO_LY_EXT_ZIP_HREF}
+                download="cins-tro-ly.zip"
+              >
+                <Download size={15} aria-hidden /> Tải tiện ích
+              </a>
+            )}
             <button
               type="button"
               className="port-import-btn"
-              disabled={busy}
+              disabled={busy || extChecking}
               onClick={() => void refreshExt()}
             >
-              Kiểm tra lại
+              <RefreshCw size={15} aria-hidden /> Kiểm tra lại
             </button>
-          ) : (
-            <a
-              className="port-import-btn"
-              href={CINS_TRO_LY_EXT_ZIP_HREF}
-              download="cins-tro-ly.zip"
-            >
-              <Download size={15} aria-hidden /> Tải Trợ lý CINs
-            </a>
-          )}
+          </span>
         </div>
+
+        {extReady ? null : (
+          <ol className="port-import-steps">
+            <li>
+              Tải tiện ích ở trên rồi giải nén — được thư mục{" "}
+              <code>cins-tro-ly</code>.
+            </li>
+            <li>
+              Mở <code>chrome://extensions</code> → bật <b>Chế độ nhà phát triển</b>{" "}
+              → <b>Tải tiện ích đã giải nén</b> → chọn thư mục{" "}
+              <code>cins-tro-ly</code>.
+            </li>
+            <li>
+              Quay lại đây và <b>tải lại trang</b> (F5) — tiện ích không tự chèn vào
+              tab đã mở trước khi cài.
+            </li>
+            <li>
+              Đăng nhập {meta.label} ở tab khác (nếu hồ sơ cần đăng nhập mới xem
+              được).
+            </li>
+          </ol>
+        )}
 
         <div className="port-import-platforms" role="tablist" aria-label="Nền tảng">
           {PLATFORMS.map((p) => (
@@ -419,6 +461,12 @@ export function PortImportModal({ open, onClose, profileSlug }: Props) {
             />
           </label>
         )}
+
+        <p className="port-import-hint">
+          {mode === "one"
+            ? `Tiện ích mở ${meta.label} trong tab ẩn bằng phiên đăng nhập của bạn, lấy nội dung project rồi tạo 1 bài nháp riêng tư (chỉ mình) trong Journey để bạn duyệt.`
+            : `Tiện ích quét tối đa ${CINS_PORT_MAX_WORKS} project trên hồ sơ, bạn chọn cái nào muốn lấy — mỗi project thành 1 bài nháp riêng tư trong Journey.`}
+        </p>
 
         {err ? (
           <p className="port-import-err" role="alert">
@@ -501,7 +549,7 @@ export function PortImportModal({ open, onClose, profileSlug }: Props) {
             <button
               type="button"
               className="port-import-primary"
-              disabled={busy || !projectUrl.trim() || !extReady}
+              disabled={busy || !projectUrl.trim()}
               onClick={() => void runImportOne()}
             >
               {busy && phase === "import" ? (
@@ -515,7 +563,7 @@ export function PortImportModal({ open, onClose, profileSlug }: Props) {
             <button
               type="button"
               className="port-import-primary"
-              disabled={busy || !username.trim() || !extReady}
+              disabled={busy || !username.trim()}
               onClick={() => void runScan()}
             >
               {busy && phase === "scan" ? (

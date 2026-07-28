@@ -18,6 +18,13 @@ export type JourneyOwnerRow = {
   tinh_thanh: string | null;
   email_lien_he: string | null;
   visibility_email: string | null;
+  /** Thông tin nhận hàng (shop) — họ tên thật, SĐT, địa chỉ chi tiết + visibility. */
+  ho_ten_nhan: string | null;
+  visibility_ho_ten_nhan: string | null;
+  so_dien_thoai: string | null;
+  visibility_sdt: string | null;
+  dia_chi_chi_tiet: string | null;
+  visibility_dia_chi: string | null;
   mxh_links: unknown;
   cho_phep_chat_an_danh: boolean | null;
   journey_loai_moc_visibility: Record<string, unknown> | null;
@@ -33,7 +40,7 @@ export type JourneyOwnerRow = {
 };
 
 const OWNER_SELECT =
-  "id, auth_user_id, slug, ten_hien_thi, avatar_id, cover_id, bio, ai_summary_journey, giai_doan, tinh_thanh, email_lien_he, visibility_email, mxh_links, cho_phep_chat_an_danh, journey_loai_moc_visibility, journey_mac_dinh_view, journey_mac_dinh_ap_dung_toi, theme, ban_hang_bat, shop_hien_thi";
+  "id, auth_user_id, slug, ten_hien_thi, avatar_id, cover_id, bio, ai_summary_journey, giai_doan, tinh_thanh, email_lien_he, visibility_email, ho_ten_nhan, visibility_ho_ten_nhan, so_dien_thoai, visibility_sdt, dia_chi_chi_tiet, visibility_dia_chi, mxh_links, cho_phep_chat_an_danh, journey_loai_moc_visibility, journey_mac_dinh_view, journey_mac_dinh_ap_dung_toi, theme, ban_hang_bat, shop_hien_thi";
 
 export const fetchOwnerBySlug = cache(async (slug: string) => {
   const admin = createServiceRoleClient();

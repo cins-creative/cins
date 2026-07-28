@@ -9352,6 +9352,13 @@ button.j-g-item:disabled {
   flex-direction: column;
   gap: 6px;
 }
+.j-edit-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line-soft, rgba(15, 23, 42, 0.08));
+}
 .j-edit-row {
   display: grid;
   grid-template-columns: 1fr 1fr;

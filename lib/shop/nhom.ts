@@ -36,6 +36,26 @@ function isMissingSoMauErr(
   return error.code === "42703" || /so_mau/i.test(error.message ?? "");
 }
 
+type PgErrLike = { code?: string; message?: string } | null;
+
+/**
+ * Mọi truy vấn `shop_nhom` phải đi qua đây. `soMauSupported` là state cấp module
+ * nên mỗi isolate (Cloudflare Workers) khởi động lại với giá trị `true`; nếu chỉ
+ * `listNhom` biết hạ cấp thì một request ghi đến isolate "lạnh" sẽ chết ngay ở
+ * lần select đầu. PostgREST fail 42703 lúc plan nên INSERT/UPDATE chưa chạy —
+ * gọi lại với bộ cột đã hạ cấp là an toàn, không ghi hai lần.
+ */
+async function withNhomCols(
+  run: (cols: string) => PromiseLike<{ data: unknown; error: PgErrLike }>,
+): Promise<{ data: unknown; error: PgErrLike }> {
+  const first = await run(nhomCols());
+  if (first.error && soMauSupported && isMissingSoMauErr(first.error)) {
+    soMauSupported = false;
+    return run(nhomCols());
+  }
+  return first;
+}
+
 /**
  * Đếm số mẫu (`shop_san_pham.da_xoa=false`) cho mỗi loại từ `id_nhom` +
  * `id_nhom_2` khi DB chưa có cột cache `so_mau`. Gán trực tiếp vào `soMau`.
@@ -178,10 +198,10 @@ export async function listNhom(
   truc?: ShopNhomTruc,
 ): Promise<ShopNhom[]> {
   const admin = createServiceRoleClient();
-  const run = () => {
+  const { data, error } = await withNhomCols((cols) => {
     let q = admin
       .from("shop_nhom")
-      .select(nhomCols())
+      .select(cols)
       .eq("id_nguoi_dung", ownerId)
       .eq("da_xoa", false)
       .order("noi_bat", { ascending: false })
@@ -190,12 +210,7 @@ export async function listNhom(
       .limit(200);
     if (truc === 1 || truc === 2) q = q.eq("truc", truc);
     return q;
-  };
-  let { data, error } = await run();
-  if (error && soMauSupported && isMissingSoMauErr(error)) {
-    soMauSupported = false;
-    ({ data, error } = await run());
-  }
+  });
   if (error) {
     console.error("[shop] listNhom", error);
     throw new Error("LIST_NHOM_FAILED");
@@ -210,24 +225,21 @@ export async function getNhomById(
   nhomId: string,
 ): Promise<(ShopNhom & { idNguoiDung: string }) | null> {
   const admin = createServiceRoleClient();
-  const run = () =>
+  const { data, error } = await withNhomCols((cols) =>
     admin
       .from("shop_nhom")
-      .select(nhomCols())
+      .select(cols)
       .eq("id", nhomId)
       .eq("da_xoa", false)
-      .maybeSingle<NhomRow>();
-  let { data, error } = await run();
-  if (error && soMauSupported && isMissingSoMauErr(error)) {
-    soMauSupported = false;
-    ({ data, error } = await run());
-  }
+      .maybeSingle<NhomRow>(),
+  );
   if (error) {
     console.error("[shop] getNhomById", error);
     throw new Error("LOAD_NHOM_FAILED");
   }
-  if (!data) return null;
-  return { ...mapNhom(data), idNguoiDung: data.id_nguoi_dung };
+  const row = data as NhomRow | null;
+  if (!row) return null;
+  return { ...mapNhom(row), idNguoiDung: row.id_nguoi_dung };
 }
 
 /**
@@ -242,39 +254,39 @@ export async function ensureNhom(
   if (!nhan) return null;
 
   const admin = createServiceRoleClient();
-  const { data: existing } = await admin
-    .from("shop_nhom")
-    .select(nhomCols())
-    .eq("id_nguoi_dung", ownerId)
-    .eq("truc", truc)
-    .eq("nhan", nhan)
-    .eq("da_xoa", false)
-    .maybeSingle<NhomRow>();
-  if (existing) return mapNhom(existing);
+  const findByNhan = () =>
+    withNhomCols((cols) =>
+      admin
+        .from("shop_nhom")
+        .select(cols)
+        .eq("id_nguoi_dung", ownerId)
+        .eq("truc", truc)
+        .eq("nhan", nhan)
+        .eq("da_xoa", false)
+        .maybeSingle<NhomRow>(),
+    );
 
-  const { data: created, error } = await admin
-    .from("shop_nhom")
-    .insert({
-      id_nguoi_dung: ownerId,
-      truc,
-      nhan,
-    })
-    .select(nhomCols())
-    .single<NhomRow>();
-  if (error || !created) {
-    const { data: again } = await admin
+  const { data: existing } = await findByNhan();
+  if (existing) return mapNhom(existing as NhomRow);
+
+  const { data: created, error } = await withNhomCols((cols) =>
+    admin
       .from("shop_nhom")
-      .select(nhomCols())
-      .eq("id_nguoi_dung", ownerId)
-      .eq("truc", truc)
-      .eq("nhan", nhan)
-      .eq("da_xoa", false)
-      .maybeSingle<NhomRow>();
-    if (again) return mapNhom(again);
+      .insert({
+        id_nguoi_dung: ownerId,
+        truc,
+        nhan,
+      })
+      .select(cols)
+      .single<NhomRow>(),
+  );
+  if (error || !created) {
+    const { data: again } = await findByNhan();
+    if (again) return mapNhom(again as NhomRow);
     console.error("[shop] ensureNhom", error);
     throw new Error("ENSURE_NHOM_FAILED");
   }
-  return mapNhom(created);
+  return mapNhom(created as NhomRow);
 }
 
 /**
@@ -422,13 +434,16 @@ export async function updateNhom(
   await assertBanHangEnabled(ownerId);
   const admin = createServiceRoleClient();
 
-  const { data: row, error: findErr } = await admin
-    .from("shop_nhom")
-    .select(nhomCols())
-    .eq("id", nhomId)
-    .eq("id_nguoi_dung", ownerId)
-    .eq("da_xoa", false)
-    .maybeSingle<NhomRow>();
+  const { data: found, error: findErr } = await withNhomCols((cols) =>
+    admin
+      .from("shop_nhom")
+      .select(cols)
+      .eq("id", nhomId)
+      .eq("id_nguoi_dung", ownerId)
+      .eq("da_xoa", false)
+      .maybeSingle<NhomRow>(),
+  );
+  const row = found as NhomRow | null;
   if (findErr || !row) throw new Error("NHOM_NOT_FOUND");
 
   const patch: Record<string, unknown> = {
@@ -491,13 +506,15 @@ export async function updateNhom(
     patch.noi_bat = input.noiBat;
   }
 
-  const { data: updated, error } = await admin
-    .from("shop_nhom")
-    .update(patch)
-    .eq("id", nhomId)
-    .eq("id_nguoi_dung", ownerId)
-    .select(nhomCols())
-    .single<NhomRow>();
+  const { data: updated, error } = await withNhomCols((cols) =>
+    admin
+      .from("shop_nhom")
+      .update(patch)
+      .eq("id", nhomId)
+      .eq("id_nguoi_dung", ownerId)
+      .select(cols)
+      .single<NhomRow>(),
+  );
   if (error || !updated) {
     console.error("[shop] updateNhom", error);
     if (error?.code === "23505") throw new Error("NHAN_DUP");
@@ -533,7 +550,7 @@ export async function updateNhom(
     await syncNhomGiaMacDinhToMau(ownerId, nhomId, nextGia);
   }
 
-  return mapNhom(updated);
+  return mapNhom(updated as NhomRow);
 }
 
 /**

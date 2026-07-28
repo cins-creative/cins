@@ -442,6 +442,35 @@ export function ShopDonDetailModal({
               </strong>
             </div>
 
+            {role === "seller" &&
+            (don.muaHoTen || don.muaSoDienThoai || don.muaDiaChi) ? (
+              <div className="shop-don-detail-nhan">
+                <span className="shop-don-detail-note-label">
+                  Thông tin nhận hàng
+                </span>
+                {don.muaHoTen ? (
+                  <p className="shop-don-detail-nhan-line">
+                    <span>Họ tên</span>
+                    <strong>{don.muaHoTen}</strong>
+                  </p>
+                ) : null}
+                {don.muaSoDienThoai ? (
+                  <p className="shop-don-detail-nhan-line">
+                    <span>SĐT</span>
+                    <a href={`tel:${don.muaSoDienThoai.replace(/\s+/g, "")}`}>
+                      {don.muaSoDienThoai}
+                    </a>
+                  </p>
+                ) : null}
+                {don.muaDiaChi ? (
+                  <p className="shop-don-detail-nhan-line">
+                    <span>Địa chỉ</span>
+                    <strong>{don.muaDiaChi}</strong>
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+
             {noteText ? (
               <div className="shop-don-detail-note">
                 <span className="shop-don-detail-note-label">Lời nhắn</span>

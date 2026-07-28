@@ -59,26 +59,48 @@ function newRequestId(): string {
   return `port-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-/** Ping extension — true nếu content script "Trợ lý CINs" đang chạy trên trang. */
-export function pingPortExtension(timeoutMs = 800): Promise<boolean> {
+export type PortExtStatus = { ready: boolean; version: string | null };
+
+/**
+ * Ping extension — `ready` nếu content script "Trợ lý CINs" đang chạy trên trang.
+ * Content script chỉ được nhúng vào các origin khai báo trong `manifest.json`
+ * (`localhost:3001`, `cins.vn`) và **không** nhúng vào tab đã mở trước khi cài,
+ * nên trang cần tải lại sau khi cài tiện ích.
+ */
+export function pingPortExtension(timeoutMs = 1500): Promise<PortExtStatus> {
   return new Promise((resolve) => {
     let done = false;
-    const finish = (ok: boolean) => {
+    const finish = (status: PortExtStatus) => {
       if (done) return;
       done = true;
       window.removeEventListener("message", onMsg);
+      clearInterval(retry);
       clearTimeout(timer);
-      resolve(ok);
+      resolve(status);
     };
     const onMsg = (event: MessageEvent) => {
       if (event.source !== window) return;
       if (!isExtMessage(event.data)) return;
-      if (event.data.type === "PONG" || event.data.type === "READY") finish(true);
+      if (event.data.type === "PONG" || event.data.type === "READY") {
+        finish({ ready: true, version: event.data.version ?? null });
+      }
     };
+    const ping = () =>
+      window.postMessage({ source: PAGE_SOURCE, type: "PING" }, "*");
     window.addEventListener("message", onMsg);
-    window.postMessage({ source: PAGE_SOURCE, type: "PING" }, "*");
-    const timer = setTimeout(() => finish(false), timeoutMs);
+    ping();
+    // Service worker MV3 có thể đang ngủ khi ping đầu — thử lại vài nhịp.
+    const retry = setInterval(ping, 300);
+    const timer = setTimeout(() => finish({ ready: false, version: null }), timeoutMs);
   });
+}
+
+/** Chuẩn hoá link người dùng dán (thiếu scheme → https://). */
+export function normalizePortProjectUrl(raw: string): string {
+  const s = raw.trim();
+  if (!s) return "";
+  if (/^https?:\/\//i.test(s)) return s;
+  return `https://${s.replace(/^\/+/, "")}`;
 }
 
 /** Quét danh sách project trên hồ sơ (cần Trợ lý CINs). */

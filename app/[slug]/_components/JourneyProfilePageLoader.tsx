@@ -126,6 +126,14 @@ export async function JourneyProfilePageLoader({
         tinhThanh: owner.tinh_thanh ?? "",
         emailLienHe: owner.email_lien_he ?? session?.email ?? "",
         visibilityEmail: emailPublic ? "public" : "private",
+        hoTenNhan: owner.ho_ten_nhan ?? "",
+        visibilityHoTenNhan:
+          owner.visibility_ho_ten_nhan === "public" ? "public" : "private",
+        soDienThoai: owner.so_dien_thoai ?? "",
+        visibilitySdt: owner.visibility_sdt === "public" ? "public" : "private",
+        diaChiChiTiet: owner.dia_chi_chi_tiet ?? "",
+        visibilityDiaChi:
+          owner.visibility_dia_chi === "public" ? "public" : "private",
         mxhLinks: normalizeSocialLinks(owner.mxh_links).map((l) => ({
           label: l.label,
           url: l.url,
