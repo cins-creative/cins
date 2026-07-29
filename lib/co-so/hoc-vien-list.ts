@@ -333,8 +333,20 @@ export async function createGhiDanh(input: {
     .select("id")
     .single<{ id: string }>();
 
-  if (error || !inserted) {
-    return { ok: false, error: error?.message ?? "Không tạo ghi danh." };
+  if (error) {
+    // DB có UNIQUE (id_nguoi_dung, id_khoa_hoc): đua tạo ghi danh trùng khóa trả
+    // 23505 → đổi thành thông báo tử tế thay vì lỗi thô lên UI.
+    const code =
+      typeof error === "object" && error && "code" in error
+        ? String((error as { code?: string }).code)
+        : "";
+    if (code === "23505") {
+      return { ok: false, error: "Học viên đã được ghi danh khóa này." };
+    }
+    return { ok: false, error: error.message };
+  }
+  if (!inserted) {
+    return { ok: false, error: "Không tạo ghi danh." };
   }
   return { ok: true, hocVienLopId: inserted.id };
 }
