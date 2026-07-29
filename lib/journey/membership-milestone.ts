@@ -935,16 +935,24 @@ export async function respondOrgMembershipMilestoneRequest(params: {
   const now = new Date().toISOString();
 
   if (params.action === "reject") {
-    const { error } = await admin
+    // Ổ khóa: điều kiện trạng thái nằm trong chính lệnh UPDATE + đếm dòng đổi
+    // thật (theo mẫu completeDonHang trong lib/shop/don-hang.ts). Đua/double-
+    // click → mảng rỗng → dừng, không xử lý lại.
+    const { data: lockedRows, error } = await admin
       .from("verify_yeu_cau")
       .update({
         trang_thai: "tu_choi",
         nguoi_xu_ly: params.viewerId,
         xu_ly_luc: now,
       })
-      .eq("id", params.requestId);
+      .eq("id", params.requestId)
+      .eq("trang_thai", "cho_xu_ly")
+      .select("id");
 
     if (error) return { ok: false, error: error.message };
+    if (!lockedRows || lockedRows.length === 0) {
+      return { ok: false, error: "Yêu cầu đã được xử lý." };
+    }
 
     const { data: profile } = await admin
       .from("user_nguoi_dung")
@@ -970,6 +978,26 @@ export async function respondOrgMembershipMilestoneRequest(params: {
     if (profile?.slug) revalidatePath(`/${profile.slug}`);
 
     return { ok: true };
+  }
+
+  // approve: GIÀNH Ổ KHÓA TRƯỚC — flip cho_xu_ly → da_duyet trong chính lệnh
+  // UPDATE + đếm dòng đổi thật. Chỉ tiến trình thắng mới chạy side-effect bên
+  // dưới (verify_xac_nhan, upsert thành viên), nên các insert đó thành đơn-luồng
+  // → hết đua tạo bản ghi trùng mà không cần unique DB.
+  const { data: lockedRows, error: lockErr } = await admin
+    .from("verify_yeu_cau")
+    .update({
+      trang_thai: "da_duyet",
+      nguoi_xu_ly: params.viewerId,
+      xu_ly_luc: now,
+    })
+    .eq("id", params.requestId)
+    .eq("trang_thai", "cho_xu_ly")
+    .select("id");
+
+  if (lockErr) return { ok: false, error: lockErr.message };
+  if (!lockedRows || lockedRows.length === 0) {
+    return { ok: false, error: "Yêu cầu đã được xử lý." };
   }
 
   const { data: org } = await admin
@@ -1000,7 +1028,19 @@ export async function respondOrgMembershipMilestoneRequest(params: {
     .eq("id", row.id_cot_moc)
     .eq("id_nguoi_dung", row.nguoi_yeu_cau);
 
-  if (mocErr) return { ok: false, error: mocErr.message };
+  if (mocErr) {
+    // Đã giành ổ khóa (yêu cầu đã da_duyet) nhưng cập nhật cột mốc lỗi. Không tự
+    // rollback trạng thái yêu cầu — log đủ để tra tay.
+    console.error(
+      "[membership] respondOrgMembership: cập nhật cột mốc lỗi sau khi duyệt",
+      {
+        requestId: params.requestId,
+        cotMocId: row.id_cot_moc,
+        error: mocErr.message,
+      },
+    );
+    return { ok: false, error: mocErr.message };
+  }
 
   const { data: existingVerify } = await admin
     .from("verify_xac_nhan")
@@ -1019,7 +1059,17 @@ export async function respondOrgMembershipMilestoneRequest(params: {
       bang_chung: row.id,
       xu_ly_luc: now,
     });
-    if (verifyErr) return { ok: false, error: verifyErr.message };
+    if (verifyErr) {
+      console.error(
+        "[membership] respondOrgMembership: tạo verify_xac_nhan lỗi sau khi duyệt",
+        {
+          requestId: params.requestId,
+          cotMocId: row.id_cot_moc,
+          error: verifyErr.message,
+        },
+      );
+      return { ok: false, error: verifyErr.message };
+    }
   }
 
   await upsertVerifiedOrgMembership({
@@ -1029,17 +1079,6 @@ export async function respondOrgMembershipMilestoneRequest(params: {
     payload,
     cotMocId: row.id_cot_moc,
   });
-
-  const { error } = await admin
-    .from("verify_yeu_cau")
-    .update({
-      trang_thai: "da_duyet",
-      nguoi_xu_ly: params.viewerId,
-      xu_ly_luc: now,
-    })
-    .eq("id", params.requestId);
-
-  if (error) return { ok: false, error: error.message };
 
   const { data: profile } = await admin
     .from("user_nguoi_dung")
