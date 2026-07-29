@@ -292,13 +292,14 @@ export async function ensureNhom(
 /**
  * Đồng bộ `gia_mac_dinh` xuống mọi `shop_bang_gia_dong.gia` của mẫu thuộc loại.
  * Giữ nguyên `gia_giam` từng dòng. Không có bảng giá → tạo «Bảng giá mặc định».
+ * Trả về số biến thể đã ghi giá (update + insert) — dùng cho toast «Áp dụng».
  */
 export async function syncNhomGiaMacDinhToMau(
   ownerId: string,
   nhomId: string,
   giaMacDinh: number | null,
-): Promise<void> {
-  if (giaMacDinh == null) return;
+): Promise<number> {
+  if (giaMacDinh == null) return 0;
   const admin = createServiceRoleClient();
 
   // Tên loại — để bắt thêm sản phẩm chỉ khớp theo `phan_loai` text (FK `id_nhom`
@@ -330,7 +331,7 @@ export async function syncNhomGiaMacDinhToMau(
     }
   }
   const spIds = [...spIdSet];
-  if (spIds.length === 0) return;
+  if (spIds.length === 0) return 0;
 
   const { data: btRows } = await admin
     .from("shop_bien_the")
@@ -338,7 +339,7 @@ export async function syncNhomGiaMacDinhToMau(
     .in("id_san_pham", spIds)
     .eq("da_xoa", false);
   const btIds = ((btRows ?? []) as Array<{ id: string }>).map((b) => b.id);
-  if (btIds.length === 0) return;
+  if (btIds.length === 0) return 0;
 
   // Mô hình 1 bảng giá VND duy nhất — ghi vào đúng bảng canonical.
   const { id: bangId } = await getOrCreateDefaultBangGia(ownerId);
@@ -383,6 +384,30 @@ export async function syncNhomGiaMacDinhToMau(
       throw new Error("SYNC_GIA_FAILED");
     }
   }
+
+  return btIds.length;
+}
+
+/**
+ * «Áp dụng giá gốc»: ghi `shop_nhom.gia_mac_dinh` xuống dòng giá của mọi biến
+ * thể trong loại theo yêu cầu chủ shop (không phụ thuộc giá có đổi hay không —
+ * khác nhánh auto-sync trong `updateNhom` chỉ chạy khi `giaChanged`). Nhờ đó
+ * biến thể thêm sau này cũng có dòng `shop_bang_gia_dong`, hết cảnh giỏ báo
+ * "Mặt hàng đã ngừng bán." vì thiếu dòng giá sống.
+ */
+export async function applyNhomGiaMacDinh(
+  ownerId: string,
+  nhomId: string,
+): Promise<{ count: number; giaMacDinh: number }> {
+  await assertBanHangEnabled(ownerId);
+  const nhom = await getNhomById(nhomId);
+  if (!nhom || nhom.idNguoiDung !== ownerId) {
+    throw new Error("NHOM_NOT_FOUND");
+  }
+  if (nhom.truc !== 1) throw new Error("GIA_TRUC");
+  if (nhom.giaMacDinh == null) throw new Error("GIA_MAC_DINH_MISSING");
+  const count = await syncNhomGiaMacDinhToMau(ownerId, nhomId, nhom.giaMacDinh);
+  return { count, giaMacDinh: nhom.giaMacDinh };
 }
 
 /** Tạo loại hàng mới (hoặc lấy sẵn nếu trùng tên); gắn mô tả / ảnh / giá nếu truyền. */
@@ -450,8 +475,6 @@ export async function updateNhom(
     cap_nhat_luc: new Date().toISOString(),
   };
   let nextNhan = row.nhan;
-  let giaChanged = false;
-  let nextGia: number | null | undefined;
 
   if (input.moTa !== undefined) {
     patch.mo_ta = normalizeMoTa(input.moTa);
@@ -469,11 +492,13 @@ export async function updateNhom(
     patch.video_phu_id = normalizeVideoPhuId(input.videoPhuId);
   }
   if (input.giaMacDinh !== undefined) {
-    nextGia = normalizeGiaMacDinh(input.giaMacDinh);
-    patch.gia_mac_dinh = nextGia;
-    const prev =
-      row.gia_mac_dinh == null ? null : Number(row.gia_mac_dinh);
-    giaChanged = (prev ?? null) !== (nextGia ?? null);
+    /*
+     * Chỉ lưu giá gốc cấp loại. KHÔNG tự ghi xuống `shop_bang_gia_dong` của
+     * biến thể ở đây — việc đó chỉ chạy khi chủ shop bấm «Áp dụng»
+     * (`applyNhomGiaMacDinh`). Nhờ vậy sửa giá gốc mà chưa Áp dụng thì mẫu +
+     * bảng kho không đổi theo.
+     */
+    patch.gia_mac_dinh = normalizeGiaMacDinh(input.giaMacDinh);
   }
   if (typeof input.nhan === "string") {
     const n = normalizeNhan(input.nhan);
@@ -544,10 +569,6 @@ export async function updateNhom(
         .eq("id_nhom_2", nhomId)
         .eq("da_xoa", false);
     }
-  }
-
-  if (giaChanged && nextGia !== undefined && row.truc === 1) {
-    await syncNhomGiaMacDinhToMau(ownerId, nhomId, nextGia);
   }
 
   return mapNhom(updated as NhomRow);

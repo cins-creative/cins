@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { ChatCanvasBinhLuanNoticeBubble } from "@/components/cins/ChatCanvasBinhLuanNotice";
+import { ChatDonCapNhatNotice } from "@/components/cins/ChatDonCapNhatNotice";
 import { ChatDonHangCard } from "@/components/cins/ChatDonHangCard";
 import { ChatDonHocPhiCard } from "@/components/cins/ChatDonHocPhiCard";
 import { ChatImageLightbox } from "@/components/cins/ChatImageLightbox";
@@ -12,6 +13,11 @@ import { ChatMessageMediaImage } from "@/components/cins/ChatMessageMediaImage";
 import { ChatMocNoticeBubble } from "@/components/cins/ChatMocNoticeBubble";
 import { ChatPollBubble } from "@/components/cins/ChatPollBubble";
 import { InlineExternalVideoEmbed } from "@/components/shared/InlineExternalVideoEmbed";
+import {
+  bodyLaCapNhat,
+  donCapNhatTuBody,
+  lyDoHuyTuMoTa,
+} from "@/lib/chat/don-cap-nhat";
 import { chatImageDeliveryUrl } from "@/lib/chat/image-url";
 import type { ChatMessage, ChatPollSummary } from "@/lib/chat/types";
 import { parseTextWithExternalVideoEmbed } from "@/lib/link/external-video-embed";
@@ -143,13 +149,32 @@ export function ChatMessageBody({
     const card = msg.nguCanh;
 
     if (card.loai === "don_hang") {
+      /* Tin bump trạng thái: card.capNhat mới, hoặc body = nhãn trạng thái (tin cũ). */
+      const capNhatRaw = card.capNhat ?? donCapNhatTuBody(displayText);
+      const capNhat =
+        capNhatRaw && capNhatRaw.trangThai === "huy" && !capNhatRaw.lyDo
+          ? { ...capNhatRaw, lyDo: lyDoHuyTuMoTa(card.moTa) }
+          : capNhatRaw;
+      const showCapNhatCaption =
+        Boolean(displayText) &&
+        (!capNhat || !bodyLaCapNhat(capNhat, displayText));
+
       return (
-        <span className="cins-chat-ctx-card-wrap cins-chat-ctx-card-wrap--don">
+        <span
+          className={`cins-chat-ctx-card-wrap cins-chat-ctx-card-wrap--don${capNhat ? " has-capnhat" : ""}`}
+        >
           <span className="cins-chat-ctx-card-note">
-            {isMe ? "Bạn vừa gửi đơn" : "Đơn hàng mới"}
+            {capNhat
+              ? "Cập nhật đơn hàng"
+              : isMe
+                ? "Bạn vừa gửi đơn"
+                : "Đơn hàng mới"}
           </span>
+          {capNhat ? (
+            <ChatDonCapNhatNotice capNhat={capNhat} boiNguoiXem={isMe} />
+          ) : null}
           <ChatDonHangCard card={card} tone={isMe ? "me" : "them"} />
-          {displayText ? (
+          {showCapNhatCaption ? (
             <MessageCaption
               text={displayText}
               msg={msg}

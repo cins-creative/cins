@@ -51,6 +51,24 @@ export type ChatContextLoai =
   | "don_hang"
   | "don_hoc_phi";
 
+/** Ai đổi trạng thái đơn — quyết định cách gọi trong thông báo chat. */
+export type ChatDonCapNhatBoi = "nguoi_ban" | "nguoi_mua" | "he_thong";
+
+/**
+ * Đơn vừa đổi trạng thái (`ngu_canh.capNhat`) — chat render dạng thông báo
+ * hệ thống kèm lý do, không phải caption tin thường.
+ */
+export type ChatDonCapNhat = {
+  /** Enum trạng thái mới, vd `huy`. */
+  trangThai: string;
+  /** Nhãn tiếng Việt của trạng thái, vd «Đã hủy». */
+  nhan: string;
+  /** Lý do hủy (chỉ khi `trangThai=huy`). */
+  lyDo?: string | null;
+  boi?: ChatDonCapNhatBoi | null;
+  luc?: string | null;
+};
+
 /** Snapshot card ngữ cảnh (lưu trong `chat_tin_nhan.ngu_canh`). */
 export type ChatContextCard = {
   loai: ChatContextLoai | string;
@@ -60,6 +78,7 @@ export type ChatContextCard = {
   anh?: string | null;
   href?: string | null;
   orgTen?: string | null;
+  capNhat?: ChatDonCapNhat | null;
 };
 
 /** Người được @nhắc — lưu trong `chat_tin_nhan.ngu_canh.mentions`. */

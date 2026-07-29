@@ -60,7 +60,7 @@ async function resolveBienThe(
   const spIds = [...new Set(bts.map((b) => b.id_san_pham))];
   const { data: spRows } = await admin
     .from("shop_san_pham")
-    .select("id, id_nguoi_dung, ten, anh_id, dang_ban, da_xoa")
+    .select("id, id_nguoi_dung, ten, anh_id, id_nhom, dang_ban, da_xoa")
     .in("id", spIds);
   const spById = new Map(
     ((spRows ?? []) as Array<{
@@ -68,6 +68,7 @@ async function resolveBienThe(
       id_nguoi_dung: string;
       ten: string;
       anh_id: string | null;
+      id_nhom: string | null;
       dang_ban: boolean;
       da_xoa: boolean;
     }>).map((s) => [s.id, s]),
@@ -127,12 +128,62 @@ async function resolveBienThe(
     }
   }
 
+  /*
+   * Lưới an toàn — song song với `resolveGiaBienThe` (kho/gắn hàng/checkout):
+   * biến thể chưa có dòng `shop_bang_gia_dong` sống nhưng loại đã đặt
+   * `shop_nhom.gia_mac_dinh` → dùng giá gốc mặc định. Không có lưới này, giỏ
+   * coi `gia == null` là "ngừng bán" oan dù sản phẩm còn `dang_ban` + còn tồn.
+   */
+  const giaMacDinhByBt = new Map<string, number>();
+  {
+    const nhomIds = [
+      ...new Set(
+        bts
+          .filter((bt) => {
+            if (giaByBt.has(bt.id)) return false;
+            const sp = spById.get(bt.id_san_pham);
+            return Boolean(sp && !sp.da_xoa && sp.dang_ban && !bt.da_xoa);
+          })
+          .map((bt) => spById.get(bt.id_san_pham)?.id_nhom)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    ];
+    if (nhomIds.length > 0) {
+      const { data: nhomRows } = await admin
+        .from("shop_nhom")
+        .select("id, gia_mac_dinh")
+        .in("id", nhomIds)
+        .eq("da_xoa", false);
+      const giaByNhom = new Map<string, number>();
+      for (const n of (nhomRows ?? []) as Array<{
+        id: string;
+        gia_mac_dinh: number | string | null;
+      }>) {
+        const g =
+          n.gia_mac_dinh == null || n.gia_mac_dinh === ""
+            ? null
+            : Number(n.gia_mac_dinh);
+        if (g != null && Number.isFinite(g) && g >= 0) {
+          giaByNhom.set(n.id, g);
+        }
+      }
+      for (const bt of bts) {
+        if (giaByBt.has(bt.id)) continue;
+        const idNhom = spById.get(bt.id_san_pham)?.id_nhom;
+        const g = idNhom ? giaByNhom.get(idNhom) : undefined;
+        if (g != null) giaMacDinhByBt.set(bt.id, g);
+      }
+    }
+  }
+
   for (const bt of bts) {
     const sp = spById.get(bt.id_san_pham);
     if (!sp) continue;
     const gia = giaByBt.get(bt.id) ?? null;
+    const giaFallback = gia == null ? giaMacDinhByBt.get(bt.id) ?? null : null;
+    const giaHienThi = gia?.giaHieuLuc ?? giaFallback ?? null;
     const ngungBan =
-      sp.da_xoa || !sp.dang_ban || bt.da_xoa || gia == null;
+      sp.da_xoa || !sp.dang_ban || bt.da_xoa || giaHienThi == null;
     out.set(bt.id, {
       idBienThe: bt.id,
       idSanPham: sp.id,
@@ -141,7 +192,7 @@ async function resolveBienThe(
       nhanBienThe: bt.nhan?.trim() || "Mặc định",
       anhUrl: shopImageUrl(bt.anh_id ?? sp.anh_id),
       soLuongTon: bt.so_luong_ton,
-      giaHienThi: gia?.giaHieuLuc ?? null,
+      giaHienThi,
       tienTe: gia?.tienTe ?? "VND",
       ngungBan,
     });

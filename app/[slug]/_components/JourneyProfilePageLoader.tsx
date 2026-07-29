@@ -88,6 +88,7 @@ export async function JourneyProfilePageLoader({
       ? getQuanHeDetail(viewerProfileId, owner.id).then((detail) => ({
           trang_thai: detail.trangThai,
           ket_ban_id: detail.ketBanId,
+          chan_boi_toi: detail.blockedByMe,
         }))
       : Promise.resolve(null);
 

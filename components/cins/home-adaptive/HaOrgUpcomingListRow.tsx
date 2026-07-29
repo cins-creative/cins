@@ -1,11 +1,8 @@
-import Link from "next/link";
-
 import { HaOrgUpCountdown } from "@/components/cins/home-adaptive/HaOrgUpCountdown";
 import { HaOrgPopoverChip } from "@/components/cins/home-adaptive/HaOrgPopoverChip";
-import {
-  sidebarEventHref,
-  type SidebarUpcomingEvent,
-} from "@/lib/cins/home-adaptive/sidebar-upcoming-events";
+import { HaOrgUpEventPopover } from "@/components/cins/home-adaptive/HaOrgUpEventPopover";
+import { sidebarEventPopoverItem } from "@/lib/cins/home-adaptive/sidebar-event-popover";
+import type { SidebarUpcomingEvent } from "@/lib/cins/home-adaptive/sidebar-upcoming-events";
 
 const MONTHS = [
   "Th1", "Th2", "Th3", "Th4", "Th5", "Th6",
@@ -46,10 +43,9 @@ export function HaOrgUpcomingListRow({ item }: { item: SidebarUpcomingEvent }) {
 
   return (
     <li className={`${itemClass} ha-org-up-item--list`}>
-      <Link
-        href={sidebarEventHref(item)}
-        className="ha-org-up-list-row"
-        prefetch={false}
+      <HaOrgUpEventPopover
+        item={sidebarEventPopoverItem(item)}
+        cardClassName="ha-org-up-list-row"
       >
         {badge ? (
           <span
@@ -86,7 +82,7 @@ export function HaOrgUpcomingListRow({ item }: { item: SidebarUpcomingEvent }) {
             status={item.status}
           />
         </span>
-      </Link>
+      </HaOrgUpEventPopover>
     </li>
   );
 }

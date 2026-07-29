@@ -20,6 +20,8 @@ type Props = {
   targetTitle?: string | null;
   loaiDoiTuong?: string;
   viewerLoggedIn: boolean;
+  /** Gọi sau khi báo cáo submit thành công (trước khi modal đóng). */
+  onSubmitted?: () => void;
 };
 
 const MAX_NOI_DUNG = 1000;
@@ -32,6 +34,7 @@ export function ReportModal({
   targetTitle,
   loaiDoiTuong = "cot_moc",
   viewerLoggedIn,
+  onSubmitted,
 }: Props) {
   const [loai, setLoai] = useState<LoaiBaoCao | "">("");
   const [tieuDe, setTieuDe] = useState("");
@@ -154,6 +157,7 @@ export function ReportModal({
         return;
       }
       setDone(true);
+      onSubmitted?.();
     } catch {
       setError("Gửi báo cáo thất bại.");
     } finally {

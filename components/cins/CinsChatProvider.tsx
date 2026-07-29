@@ -120,6 +120,11 @@ type CinsChatContextValue = {
     thread: ChatThread,
     relatedThreads?: ChatThread[],
   ) => void;
+  /**
+   * Mở hội thoại 1-1 dạng **bubble mini** (không bung panel lớn) — vd. sau khi
+   * buyer gửi đơn cho shop. Lỗi mở phòng chỉ im lặng, không chặn luồng gọi.
+   */
+  openBubbleChatWithUser: (targetUserId: string) => Promise<void>;
   /** Hội thoại đang chờ mở thành bubble (sau pop-out). */
   pendingBubbleThread: ChatThread | null;
   clearPendingBubble: () => void;
@@ -324,6 +329,28 @@ export function CinsChatProvider({
       void refreshUnread();
     },
     [refreshUnread, viewerProfileId],
+  );
+
+  const openBubbleChatWithUser = useCallback(
+    async (targetUserId: string) => {
+      const peerId = targetUserId?.trim();
+      if (!viewerProfileId || !peerId || peerId === viewerProfileId) return;
+      try {
+        const res = await fetch("/api/chat/rooms/open", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id_nguoi: peerId }),
+        });
+        const json = (await res.json().catch(() => null)) as {
+          thread?: ChatThread;
+        } | null;
+        if (!res.ok || !json?.thread?.roomId) return;
+        popOutRoomToBubble(json.thread);
+      } catch {
+        /* Không mở được bubble — luồng gọi (vd. gửi đơn) vẫn coi như xong. */
+      }
+    },
+    [popOutRoomToBubble, viewerProfileId],
   );
 
   const isListPinned = useCallback(
@@ -766,6 +793,7 @@ export function CinsChatProvider({
       togglePinRoom,
       unpinRoom,
       popOutRoomToBubble,
+      openBubbleChatWithUser,
       pendingBubbleThread,
       clearPendingBubble,
       pinnedListRoomIds,
@@ -800,6 +828,7 @@ export function CinsChatProvider({
       togglePinRoom,
       unpinRoom,
       popOutRoomToBubble,
+      openBubbleChatWithUser,
       pendingBubbleThread,
       clearPendingBubble,
       pinnedListRoomIds,

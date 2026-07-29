@@ -2,6 +2,8 @@ import { parseChatMentions } from "@/lib/chat/mentions";
 import type {
   ChatContextCard,
   ChatCanvasBinhLuanNotice,
+  ChatDonCapNhat,
+  ChatDonCapNhatBoi,
   ChatMentionRef,
   ChatMessage,
   ChatMocNotice,
@@ -9,6 +11,32 @@ import type {
 } from "@/lib/chat/types";
 
 export { parseChatMentions } from "@/lib/chat/mentions";
+
+const CAP_NHAT_BOI: ChatDonCapNhatBoi[] = [
+  "nguoi_ban",
+  "nguoi_mua",
+  "he_thong",
+];
+
+/** Parse `ngu_canh.capNhat` — snapshot đổi trạng thái đơn gắn trên card. */
+function parseDonCapNhat(raw: unknown): ChatDonCapNhat | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  const trangThai = typeof r.trangThai === "string" ? r.trangThai.trim() : "";
+  const nhan = typeof r.nhan === "string" ? r.nhan.trim() : "";
+  if (!trangThai || !nhan) return null;
+  const boiRaw = typeof r.boi === "string" ? r.boi : null;
+  return {
+    trangThai,
+    nhan,
+    lyDo: typeof r.lyDo === "string" && r.lyDo.trim() ? r.lyDo.trim() : null,
+    boi:
+      boiRaw && CAP_NHAT_BOI.includes(boiRaw as ChatDonCapNhatBoi)
+        ? (boiRaw as ChatDonCapNhatBoi)
+        : null,
+    luc: typeof r.luc === "string" ? r.luc : null,
+  };
+}
 
 /** Parse `chat_tin_nhan.ngu_canh` — dùng chung server + realtime client. */
 export function parseChatNguCanh(raw: unknown): ChatContextCard | null {
@@ -27,6 +55,7 @@ export function parseChatNguCanh(raw: unknown): ChatContextCard | null {
     anh: typeof r.anh === "string" ? r.anh : null,
     href: typeof r.href === "string" ? r.href : null,
     orgTen: typeof r.orgTen === "string" ? r.orgTen : null,
+    capNhat: parseDonCapNhat(r.capNhat),
   };
 }
 

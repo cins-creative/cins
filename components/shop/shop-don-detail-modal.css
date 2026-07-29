@@ -38,6 +38,39 @@
   display: none;
 }
 
+/* Thân đơn — mặc định (hẹp): mọi khối xếp dọc trong panel flex-column.
+   Trên màn rộng: tách 2 cột (bảng hàng | thông tin + hành động) để giảm scroll. */
+.shop-don-detail-body {
+  display: contents;
+}
+
+.shop-don-detail-main,
+.shop-don-detail-aside {
+  display: contents;
+}
+
+@media (min-width: 720px) {
+  .shop-don-detail-panel {
+    width: min(100%, 760px);
+    max-height: min(90vh, 760px);
+  }
+
+  .shop-don-detail-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    gap: 14px 20px;
+    align-items: start;
+  }
+
+  .shop-don-detail-main,
+  .shop-don-detail-aside {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+  }
+}
+
 .shop-don-detail-hdr {
   display: flex;
   align-items: flex-start;
@@ -129,6 +162,49 @@
   margin: 0;
   font-size: 13px;
   color: var(--ink-muted, rgba(0, 0, 0, 0.55));
+}
+
+/* Avatar + tên đối phương (click mở card). Popover bọc bằng <span>. */
+.shop-don-detail-parties .j-user-pop-wrap {
+  display: inline-flex;
+  vertical-align: middle;
+}
+
+.shop-don-detail-party {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.shop-don-detail-party-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex: none;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--neutral-100, #f1f5f9);
+  color: var(--ink-muted, #64748b);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.shop-don-detail-party-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.shop-don-detail-party strong {
+  color: var(--ink-display, rgba(0, 0, 0, 0.85));
+}
+
+.shop-don-detail-parties .j-user-pop-trigger:hover .shop-don-detail-party strong {
+  text-decoration: underline;
 }
 
 .shop-don-detail-lines {
@@ -400,35 +476,6 @@
   color: #b91c1c;
 }
 
-/* Tín hiệu tin cậy người mua. */
-.shop-don-detail-trust {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.shop-don-detail-trust-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 650;
-  background: var(--neutral-100, #f1f5f9);
-  color: var(--ink-muted, #64748b);
-}
-
-.shop-don-detail-trust-chip.is-good {
-  background: color-mix(in srgb, #16a34a 14%, transparent);
-  color: #15803d;
-}
-
-.shop-don-detail-trust-chip.is-warn {
-  background: color-mix(in srgb, #f59e0b 16%, transparent);
-  color: #b45309;
-}
-
 /* Bảng hủy đơn. */
 .shop-don-detail-huy {
   display: flex;
@@ -511,6 +558,26 @@
   border-top: 1px solid var(--border, #e4e6eb);
 }
 
+/* Inline confirm trước khi chặn — chiếm toàn chiều ngang */
+.shop-don-detail-confirm-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.shop-don-detail-confirm-block-text {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--ink-body, #374151);
+}
+
+.shop-don-detail-confirm-block-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
 .shop-don-detail-mod .shop-don-detail-btn {
   min-height: 32px;
   padding: 0 10px;
@@ -542,11 +609,6 @@
 
 .shop-don-detail-btn > svg {
   margin-right: 5px;
-}
-
-:root[data-theme="dark"] .shop-don-detail-trust-chip {
-  background: var(--neutral-100, #1c212c);
-  color: var(--ink-muted, #94a3b8);
 }
 
 :root[data-theme="dark"] .shop-don-detail-huy {

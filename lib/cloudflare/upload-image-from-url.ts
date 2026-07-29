@@ -32,11 +32,28 @@ function normalizeMime(raw: string | null): string | null {
   return base || null;
 }
 
-export async function uploadCloudflareImageFromUrl(
+export type LyDoUploadAnhThatBai =
+  | "url_khong_an_toan"
+  | "tai_that_bai"
+  | "dinh_dang_khong_ho_tro"
+  | "qua_lon"
+  | "luu_tru_that_bai";
+
+export type KetQuaUploadAnhTuUrl =
+  | { ok: true; data: { imageId: string; url: string } }
+  | { ok: false; lyDo: LyDoUploadAnhThatBai; soByte?: number };
+
+/**
+ * Bản chi tiết — caller cần phân biệt "quá nặng" với "lỗi mạng" (vd. port import
+ * báo cho user biết bao nhiêu GIF bị rớt vì vượt trần).
+ */
+export async function uploadCloudflareImageFromUrlChiTiet(
   imageUrl: string,
   opts?: { headers?: Record<string, string> },
-): Promise<{ imageId: string; url: string } | null> {
-  if (!isSafePublicHttpUrl(imageUrl)) return null;
+): Promise<KetQuaUploadAnhTuUrl> {
+  if (!isSafePublicHttpUrl(imageUrl)) {
+    return { ok: false, lyDo: "url_khong_an_toan" };
+  }
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
@@ -51,14 +68,29 @@ export async function uploadCloudflareImageFromUrl(
         ...(opts?.headers || {}),
       },
     });
-    if (!res.ok) return null;
-    if (!isSafePublicHttpUrl(res.url || imageUrl)) return null;
+    if (!res.ok) return { ok: false, lyDo: "tai_that_bai" };
+    if (!isSafePublicHttpUrl(res.url || imageUrl)) {
+      return { ok: false, lyDo: "url_khong_an_toan" };
+    }
 
     const mime = normalizeMime(res.headers.get("content-type"));
-    if (!mime || !ALLOWED_MIME.has(mime)) return null;
+    if (!mime || !ALLOWED_MIME.has(mime)) {
+      await res.body?.cancel().catch(() => {});
+      return { ok: false, lyDo: "dinh_dang_khong_ho_tro" };
+    }
+
+    /* GIF động Behance lên tới hàng trăm MB — chốt theo header, đừng tải về rồi vứt. */
+    const soByteKhaiBao = Number(res.headers.get("content-length") || 0);
+    if (Number.isFinite(soByteKhaiBao) && soByteKhaiBao > MAX_BYTES) {
+      await res.body?.cancel().catch(() => {});
+      return { ok: false, lyDo: "qua_lon", soByte: soByteKhaiBao };
+    }
 
     const buf = await res.arrayBuffer();
-    if (!buf.byteLength || buf.byteLength > MAX_BYTES) return null;
+    if (!buf.byteLength) return { ok: false, lyDo: "tai_that_bai" };
+    if (buf.byteLength > MAX_BYTES) {
+      return { ok: false, lyDo: "qua_lon", soByte: buf.byteLength };
+    }
 
     const file = new File(
       [buf],
@@ -66,11 +98,19 @@ export async function uploadCloudflareImageFromUrl(
       { type: mime },
     );
     const uploaded = await uploadToCloudflareImages(file);
-    if (!uploaded.ok) return null;
-    return uploaded.data;
+    if (!uploaded.ok) return { ok: false, lyDo: "luu_tru_that_bai" };
+    return { ok: true, data: uploaded.data };
   } catch {
-    return null;
+    return { ok: false, lyDo: "tai_that_bai" };
   } finally {
     clearTimeout(timer);
   }
+}
+
+export async function uploadCloudflareImageFromUrl(
+  imageUrl: string,
+  opts?: { headers?: Record<string, string> },
+): Promise<{ imageId: string; url: string } | null> {
+  const res = await uploadCloudflareImageFromUrlChiTiet(imageUrl, opts);
+  return res.ok ? res.data : null;
 }

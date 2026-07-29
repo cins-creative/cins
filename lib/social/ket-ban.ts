@@ -465,14 +465,19 @@ export async function findPendingRecordId(
 export async function getQuanHeDetail(
   a: string,
   b: string,
-): Promise<{ trangThai: QuanHe; ketBanId: string | null }> {
+): Promise<{ trangThai: QuanHe; ketBanId: string | null; blockedByMe: boolean }> {
   if (!a || !b || a === b) {
-    return { trangThai: "none", ketBanId: null };
+    return { trangThai: "none", ketBanId: null, blockedByMe: false };
   }
   const row = await findPairRecord(a, b);
-  if (!row) return { trangThai: "none", ketBanId: null };
+  if (!row) return { trangThai: "none", ketBanId: null, blockedByMe: false };
   const trangThai = await getQuanHe(a, b);
-  return { trangThai, ketBanId: row.id };
+  return {
+    trangThai,
+    ketBanId: row.id,
+    // `a` = viewer. Đã chặn và viewer là người gửi → viewer mới bỏ chặn được.
+    blockedByMe: trangThai === "blocked" && row.idNguoiGui === a,
+  };
 }
 
 /** Huỷ lời mời (pending) hoặc unfriend (accepted) — cả hai phía được gọi. */

@@ -2201,6 +2201,51 @@
   font-size: 0.88rem;
 }
 
+.shop-kho-loai-gia-row {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  min-width: 0;
+}
+
+.shop-kho-loai-gia-row input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.shop-kho-loai-gia-apply {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  padding: 0 10px;
+  border: 1px solid color-mix(in srgb, var(--cins-orange, #fdad4c) 45%, var(--border));
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--cins-orange, #fdad4c) 12%, var(--bg-surface, #fff));
+  color: color-mix(in srgb, var(--cins-orange, #fdad4c) 55%, var(--ink-body));
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.shop-kho-loai-gia-apply:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--cins-orange, #fdad4c) 22%, var(--bg-surface, #fff));
+}
+
+.shop-kho-loai-gia-apply:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.shop-kho-loai-gia-note {
+  margin: 4px 0 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: color-mix(in srgb, #1f9d55 70%, var(--ink-body));
+}
+
 .shop-kho-loai-meta-phu {
   margin-top: 10px;
   display: flex;
@@ -4141,15 +4186,11 @@
 
 /* Bảng đơn kiểu spreadsheet — bấm hàng mở modal chi tiết */
 .shop-don-sheet {
-  min-width: 760px;
+  min-width: 892px;
 }
 
 .shop-don-sheet-row {
   cursor: pointer;
-}
-
-.shop-don-sheet-row.is-paid td {
-  background: color-mix(in srgb, #16a34a 5%, var(--bg-surface, #fff));
 }
 
 .shop-don-sheet-row.is-paid .shop-don-col-tong {
@@ -4158,10 +4199,6 @@
 
 .shop-don-sheet-row:hover td {
   background: color-mix(in srgb, var(--cins-orange, #fdad4c) 6%, var(--bg-surface, #fff));
-}
-
-.shop-don-sheet-row.is-paid:hover td {
-  background: color-mix(in srgb, #16a34a 10%, var(--bg-surface, #fff));
 }
 
 .shop-don-sheet-row.is-selected td,
@@ -4179,10 +4216,6 @@
 
 .shop-don-sheet-row:focus-visible td {
   background: color-mix(in srgb, var(--cins-orange, #fdad4c) 10%, var(--bg-surface, #fff));
-}
-
-.shop-don-sheet-row.is-paid:focus-visible td {
-  background: color-mix(in srgb, #16a34a 12%, var(--bg-surface, #fff));
 }
 
 .shop-don-sheet-row.is-selected:focus-visible td {
@@ -4273,6 +4306,56 @@
   white-space: nowrap;
 }
 
+.shop-don-col-act {
+  width: 132px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.shop-don-row-act-empty {
+  color: var(--ink-muted, rgba(0, 0, 0, 0.4));
+}
+
+.shop-don-row-done {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border: 1px solid color-mix(in srgb, #16a34a 40%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, #16a34a 10%, var(--bg-surface, #fff));
+  color: #15803d;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.shop-don-row-done:hover:not(:disabled) {
+  background: color-mix(in srgb, #16a34a 18%, var(--bg-surface, #fff));
+  border-color: color-mix(in srgb, #16a34a 60%, transparent);
+}
+
+.shop-don-row-done:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+:root[data-theme="dark"] .shop-don-row-done {
+  background: color-mix(in srgb, #4ade80 14%, var(--bg-surface, #151a24));
+  border-color: color-mix(in srgb, #4ade80 40%, transparent);
+  color: #86efac;
+}
+
+:root[data-theme="dark"] .shop-don-row-done:hover:not(:disabled) {
+  background: color-mix(in srgb, #4ade80 22%, var(--bg-surface, #151a24));
+  border-color: color-mix(in srgb, #4ade80 60%, transparent);
+}
+
 .shop-don-select-hint {
   margin: 10px 2px 0;
   font-size: 12px;
@@ -4288,6 +4371,76 @@
   font: inherit;
   font-size: 11px;
   font-weight: 650;
+}
+
+/* Đơn: hàng công cụ (tab trạng thái trái + thao tác bulk phải). */
+.shop-don-toolbar {
+  flex: 0 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px 12px;
+}
+
+.shop-don-status-tabs {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.shop-don-status-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--border, #e4e6eb);
+  border-radius: 999px;
+  background: var(--bg-surface, #fff);
+  color: var(--ink-muted, rgba(0, 0, 0, 0.6));
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.shop-don-status-tab:hover {
+  border-color: color-mix(in srgb, var(--cins-orange, #fdad4c) 45%, #e4e6eb);
+  color: var(--ink-display, rgba(0, 0, 0, 0.85));
+}
+
+.shop-don-status-tab.is-active {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--cins-orange, #fdad4c) 16%, var(--bg-surface, #fff));
+  color: color-mix(in srgb, var(--cins-orange, #fdad4c) 60%, #5c3200);
+}
+
+.shop-don-status-tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ink-muted, #64748b) 12%, transparent);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.shop-don-status-tab.is-active .shop-don-status-tab-count {
+  background: color-mix(in srgb, var(--cins-orange, #fdad4c) 30%, transparent);
+  color: #5c3200;
+}
+
+.shop-don-toolbar > .shop-don-bulk {
+  margin-left: auto;
+  min-width: 260px;
+  max-width: 400px;
 }
 
 .shop-don-bulk {
@@ -4395,6 +4548,81 @@
 .shop-don-bulk-err {
   font-size: 12px;
   color: #b42318;
+}
+
+.shop-don-bulk-prompt,
+.shop-don-bulk-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed
+    color-mix(in srgb, var(--cins-orange, #fdad4c) 30%, var(--border, #e4e6eb));
+}
+
+.shop-don-bulk-prompt-title {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink-display, rgba(0, 0, 0, 0.82));
+}
+
+.shop-don-bulk-prompt-opts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.shop-don-bulk-prompt-btn {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid
+    color-mix(in srgb, var(--cins-orange, #fdad4c) 35%, var(--border, #e4e6eb));
+  border-radius: 8px;
+  background: var(--bg-surface, #fff);
+  color: var(--ink-display, rgba(0, 0, 0, 0.82));
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.shop-don-bulk-prompt-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--cins-orange, #fdad4c) 10%, var(--bg-surface, #fff));
+}
+
+.shop-don-bulk-prompt-btn.ghost {
+  border-color: var(--border, #e4e6eb);
+  color: var(--ink-muted, rgba(0, 0, 0, 0.55));
+}
+
+.shop-don-bulk-prompt-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.shop-don-bulk-prompt-hint {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.5));
+}
+
+.shop-don-bulk-confirm-text {
+  font-size: 12.5px;
+  color: var(--ink-display, rgba(0, 0, 0, 0.82));
+}
+
+.shop-don-bulk-confirm-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.shop-don-bulk-confirm-actions .shop-don-bulk-btn {
+  flex: 1 1 0;
+  min-width: 0;
+  justify-content: center;
 }
 
 .shop-don-prep {
@@ -4866,17 +5094,8 @@
   color: var(--ink-display, rgba(0, 0, 0, 0.88));
 }
 
-:root[data-theme="dark"] .shop-don-sheet-row.is-paid td {
-  background: color-mix(in srgb, #4ade80 12%, var(--bg-surface, #151a24));
-}
-
 :root[data-theme="dark"] .shop-don-sheet-row.is-paid .shop-don-col-tong {
   color: #86efac;
-}
-
-:root[data-theme="dark"] .shop-don-sheet-row.is-paid:hover td,
-:root[data-theme="dark"] .shop-don-sheet-row.is-paid:focus-visible td {
-  background: color-mix(in srgb, #4ade80 18%, var(--bg-surface, #151a24));
 }
 
 :root[data-theme="dark"] .shop-don-sheet-row.is-selected td,
@@ -5080,6 +5299,11 @@
 :root[data-theme="dark"] .shop-status--da_giao_tai_su_kien {
   background: color-mix(in srgb, #38bdf8 18%, transparent);
   color: #7dd3fc;
+}
+
+:root[data-theme="dark"] .shop-status--hoan_thanh {
+  background: color-mix(in srgb, #a78bfa 18%, transparent);
+  color: #c4b5fd;
 }
 
 .shop-dash-item {
@@ -6034,6 +6258,11 @@
   background: color-mix(in srgb, #0ea5e9 12%, var(--bg-page, #f7f8fa));
 }
 
+.shop-status--hoan_thanh {
+  color: #6941c6;
+  background: color-mix(in srgb, #7f56d9 12%, var(--bg-page, #f7f8fa));
+}
+
 .shop-status--huy {
   color: #b42318;
 }
@@ -6942,9 +7171,20 @@
     -webkit-overflow-scrolling: touch;
   }
 
-  .shop-don-bulk {
+  .shop-don-toolbar {
+    flex-direction: column;
+  }
+
+  .shop-don-status-tabs {
+    width: 100%;
+  }
+
+  .shop-don-bulk,
+  .shop-don-toolbar > .shop-don-bulk {
     width: 100%;
     min-width: 0;
+    max-width: none;
+    margin-left: 0;
   }
 
   .shop-don-select-hint {

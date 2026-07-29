@@ -4,6 +4,7 @@ import {
   AlertTriangle,
   ArrowLeft,
   Camera,
+  Check,
   ClipboardPaste,
   Film,
   ImagePlus,
@@ -503,6 +504,8 @@ export function ShopKhoLoaiMeta({
     giaInputValue(nhom.giaMacDinh, suggestedGiaMacDinh),
   );
   const [saving, setSaving] = useState(false);
+  const [applying, setApplying] = useState(false);
+  const [applyMsg, setApplyMsg] = useState<string | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteHint, setDeleteHint] = useState(false);
@@ -547,6 +550,10 @@ export function ShopKhoLoaiMeta({
     if (giaDirtyRef.current) return;
     setGia(giaInputValue(nhom.giaMacDinh, suggestedGiaMacDinh));
   }, [nhom.id, nhom.giaMacDinh, suggestedGiaMacDinh]);
+
+  useEffect(() => {
+    setApplyMsg(null);
+  }, [nhom.id]);
 
   useEffect(() => {
     if (!deleteHint) return;
@@ -622,6 +629,58 @@ export function ShopKhoLoaiMeta({
       return false;
     } finally {
       setSaving(false);
+    }
+  }
+
+  /**
+   * «Áp dụng»: lưu Giá gốc đang gõ (nếu có) rồi ghi xuống dòng giá của mọi biến
+   * thể trong loại. Idempotent — chạy cả khi giá không đổi nên bù được biến thể
+   * còn thiếu dòng giá (hết cảnh giỏ báo "Mặt hàng đã ngừng bán.").
+   */
+  async function applyGia() {
+    setApplyMsg(null);
+    onError(null);
+    if (giaDirtyRef.current) {
+      const raw = gia.trim();
+      const next = raw ? parseGiaInput(raw) : null;
+      if (raw && next == null) {
+        onError("Giá gốc không hợp lệ.");
+        return;
+      }
+      const ok = await patch({ giaMacDinh: next });
+      if (!ok) return;
+    }
+    const rawNow = gia.trim();
+    const effectiveGia = rawNow ? parseGiaInput(rawNow) : nhom.giaMacDinh;
+    if (effectiveGia == null) {
+      onError("Hãy nhập Giá gốc cho loại trước khi áp dụng.");
+      return;
+    }
+    setApplying(true);
+    try {
+      const res = await fetch(
+        `/api/shop/nhom/${encodeURIComponent(nhom.id)}/ap-dung-gia`,
+        { method: "POST" },
+      );
+      const json = (await res.json().catch(() => null)) as {
+        count?: number;
+        error?: string;
+      } | null;
+      if (!res.ok) {
+        onError(json?.error ?? "Không áp dụng được giá.");
+        return;
+      }
+      const count = json?.count ?? 0;
+      setApplyMsg(
+        count > 0
+          ? `Đã áp dụng giá gốc cho ${count} biến thể.`
+          : "Chưa có biến thể nào trong loại để áp dụng.",
+      );
+      onRefreshMau?.();
+    } catch {
+      onError("Không áp dụng được giá.");
+    } finally {
+      setApplying(false);
     }
   }
 
@@ -1001,34 +1060,55 @@ export function ShopKhoLoaiMeta({
             </label>
             <label>
               <span>Giá gốc</span>
-              <input
-                value={gia}
-                inputMode="decimal"
-                disabled={saving}
-                placeholder="40000"
-                onChange={(e) => {
-                  giaDirtyRef.current = true;
-                  setGia(e.target.value);
-                }}
-                onBlur={() => {
-                  const raw = gia.trim();
-                  const next = raw ? parseGiaInput(raw) : null;
-                  const prev = nhom.giaMacDinh;
-                  if (raw && next == null) {
-                    onError("Giá mặc định không hợp lệ.");
-                    giaDirtyRef.current = false;
-                    setGia(giaInputValue(prev, suggestedGiaMacDinh));
-                    return;
-                  }
-                  if ((prev ?? null) !== (next ?? null)) {
-                    void patch({ giaMacDinh: next });
-                  } else {
-                    giaDirtyRef.current = false;
-                  }
-                }}
-              />
+              <div className="shop-kho-loai-gia-row">
+                <input
+                  value={gia}
+                  inputMode="decimal"
+                  disabled={saving}
+                  placeholder="40000"
+                  onChange={(e) => {
+                    giaDirtyRef.current = true;
+                    setApplyMsg(null);
+                    setGia(e.target.value);
+                  }}
+                  onBlur={() => {
+                    const raw = gia.trim();
+                    const next = raw ? parseGiaInput(raw) : null;
+                    const prev = nhom.giaMacDinh;
+                    if (raw && next == null) {
+                      onError("Giá mặc định không hợp lệ.");
+                      giaDirtyRef.current = false;
+                      setGia(giaInputValue(prev, suggestedGiaMacDinh));
+                      return;
+                    }
+                    if ((prev ?? null) !== (next ?? null)) {
+                      void patch({ giaMacDinh: next });
+                    } else {
+                      giaDirtyRef.current = false;
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  className="shop-kho-loai-gia-apply"
+                  disabled={saving || applying}
+                  aria-busy={applying}
+                  title="Ghi giá gốc này xuống mọi sản phẩm trong loại"
+                  onClick={() => void applyGia()}
+                >
+                  {applying ? (
+                    <Loader2 size={13} className="shop-spin" aria-hidden />
+                  ) : (
+                    <Check size={13} strokeWidth={2.4} aria-hidden />
+                  )}
+                  Áp dụng
+                </button>
+              </div>
             </label>
           </div>
+          {applyMsg ? (
+            <p className="shop-kho-loai-gia-note">{applyMsg}</p>
+          ) : null}
           <ShopNhomMoTaField
             value={moTa}
             disabled={saving}

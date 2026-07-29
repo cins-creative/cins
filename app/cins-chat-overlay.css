@@ -5948,6 +5948,93 @@ a.cins-chat-og-card.is-me:hover {
   gap: 8px;
 }
 
+/*
+ * Thông báo đổi trạng thái đơn — dải viền nét đứt + icon, cố tình khác bong
+ * bóng tin nhắn thường để không bị đọc lẫn là lời của đối phương.
+ */
+.cins-chat-don-capnhat {
+  --capnhat-accent: #64748b;
+  --capnhat-ink: #334155;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border: 1px dashed color-mix(in srgb, var(--capnhat-accent) 42%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--capnhat-accent) 8%, transparent);
+  color: var(--capnhat-ink);
+  text-align: left;
+}
+
+.cins-chat-don-capnhat-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+}
+
+.cins-chat-don-capnhat.is-huy {
+  --capnhat-accent: #dc2626;
+  --capnhat-ink: #991b1b;
+}
+
+.cins-chat-don-capnhat.is-xong {
+  --capnhat-accent: #16a34a;
+  --capnhat-ink: #15803d;
+}
+
+.cins-chat-don-capnhat.is-cho {
+  --capnhat-accent: #f79009;
+  --capnhat-ink: #b54708;
+}
+
+.cins-chat-don-capnhat-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--capnhat-accent) 16%, transparent);
+  color: var(--capnhat-accent);
+}
+
+.cins-chat-don-capnhat-title {
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: 0.01em;
+}
+
+.cins-chat-don-capnhat-reason {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0;
+  background: none;
+}
+
+.cins-chat-don-capnhat-reason-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+.cins-chat-don-capnhat-reason-text {
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: #1f2937;
+  overflow-wrap: anywhere;
+}
+
+
 .cins-chat-don-card-shell {
   display: flex;
   flex-direction: column;
@@ -6135,6 +6222,26 @@ a.cins-chat-don-card.is-paid:hover {
 .cins-chat-don-card-status.is-done {
   background: color-mix(in srgb, #16a34a 16%, transparent);
   color: #15803d;
+}
+
+.cins-chat-don-card-status.is-canceled {
+  background: color-mix(in srgb, #dc2626 14%, transparent);
+  color: #b42318;
+}
+
+.cins-chat-don-card.is-canceled {
+  border-color: color-mix(in srgb, #dc2626 24%, #e4e6eb);
+  background: linear-gradient(
+    165deg,
+    color-mix(in srgb, #dc2626 6%, #fff) 0%,
+    #fff 46%
+  );
+}
+
+.cins-chat-don-card.is-canceled .cins-chat-don-card-ma {
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+  opacity: 0.7;
 }
 
 .cins-chat-don-card-tong {
@@ -10144,6 +10251,34 @@ button.cins-chat-project-card-mark:hover {
   background: var(--neutral-50);
 }
 
+/* Menu công cụ soạn tin (đính kèm / mốc / bình chọn) — bỏ nền #fff */
+:root[data-theme="dark"] .cins-chat-compose-tools-panel {
+  background: var(--bg-surface);
+  border-color: var(--border);
+  box-shadow:
+    0 12px 28px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255, 255, 255, 0.06) inset;
+}
+:root[data-theme="dark"] .cins-chat-compose-tools-item {
+  color: var(--ink-display);
+}
+:root[data-theme="dark"] .cins-chat-compose-tools-item:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+}
+:root[data-theme="dark"] .cins-chat-compose-tools-item em {
+  color: var(--ink-muted);
+}
+
+/* Form bình chọn trong menu — input nền sáng → tối */
+:root[data-theme="dark"] .cins-chat-compose-poll-form input {
+  background: var(--neutral-100);
+  border-color: var(--border);
+  color: var(--ink-display);
+}
+:root[data-theme="dark"] .cins-chat-compose-poll-form input::placeholder {
+  color: var(--ink-muted);
+}
+
 /* Picker reaction (thanh tròn nổi) */
 :root[data-theme="dark"] .cins-chat-msg-react-picker {
   background: #1b1f27;
@@ -10258,6 +10393,37 @@ button.cins-chat-project-card-mark:hover {
 :root[data-theme="dark"] .cins-chat-don-card-status.is-done {
   background: color-mix(in srgb, #16a34a 22%, transparent);
   color: #4ade80;
+}
+:root[data-theme="dark"] .cins-chat-don-card-status.is-canceled {
+  background: color-mix(in srgb, #dc2626 26%, transparent);
+  color: #fca5a5;
+}
+:root[data-theme="dark"] .cins-chat-don-card.is-canceled {
+  border-color: color-mix(in srgb, #dc2626 34%, transparent);
+  background: linear-gradient(
+    165deg,
+    color-mix(in srgb, #dc2626 12%, rgba(0, 0, 0, 0.25)) 0%,
+    rgba(0, 0, 0, 0.25) 48%
+  );
+}
+:root[data-theme="dark"] .cins-chat-don-capnhat {
+  background: color-mix(in srgb, var(--capnhat-accent) 16%, rgba(0, 0, 0, 0.28));
+  border-color: color-mix(in srgb, var(--capnhat-accent) 48%, transparent);
+}
+:root[data-theme="dark"] .cins-chat-don-capnhat.is-huy {
+  --capnhat-ink: #fca5a5;
+}
+:root[data-theme="dark"] .cins-chat-don-capnhat.is-xong {
+  --capnhat-ink: #4ade80;
+}
+:root[data-theme="dark"] .cins-chat-don-capnhat.is-cho {
+  --capnhat-ink: #fdb022;
+}
+:root[data-theme="dark"] .cins-chat-don-capnhat-reason {
+  background: none;
+}
+:root[data-theme="dark"] .cins-chat-don-capnhat-reason-text {
+  color: #e2e8f0;
 }
 :root[data-theme="dark"] .cins-chat-don-card-tong {
   background: color-mix(in srgb, var(--cins-orange, #fdad4c) 12%, rgba(0, 0, 0, 0.25));

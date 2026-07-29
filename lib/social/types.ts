@@ -67,6 +67,8 @@ export type QuanHe =
 export type KetBanStatusSummary = {
   trang_thai: QuanHe;
   ket_ban_id: string | null;
+  /** Viewer là người đã chặn (mới được bỏ chặn). Chỉ có nghĩa khi `blocked`. */
+  chan_boi_toi?: boolean;
 };
 
 export type MutualFriendProfile = PendingFollowRequest;

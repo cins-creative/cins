@@ -219,7 +219,9 @@ export function ChatLinkOgCard({ url, tone = "them" }: Props) {
   return (
     <a
       className={`cins-chat-og-card${tone === "me" ? " is-me" : ""}`}
-      href={data.url}
+      /* Link tới URL người dùng gửi (giữ path/room), không dùng og:url —
+         nhiều site (vd Google Meet) đặt canonical về trang chủ. */
+      href={url}
       target="_blank"
       rel="noopener noreferrer"
     >

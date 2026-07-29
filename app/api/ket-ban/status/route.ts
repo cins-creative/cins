@@ -19,5 +19,6 @@ export async function GET(req: Request) {
   return NextResponse.json({
     trang_thai: detail.trangThai,
     ket_ban_id: detail.ketBanId,
+    chan_boi_toi: detail.blockedByMe,
   });
 }

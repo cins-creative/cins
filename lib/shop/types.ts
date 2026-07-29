@@ -11,9 +11,6 @@ export type ShopLoaiDon = "mua_ngay" | "dat_truoc_nhan_su_kien";
  */
 export const SHOP_DON_NHAC_GIO = 48;
 
-/** Số đơn `cho_xac_nhan` tối đa một buyer được mở với cùng một seller. */
-export const SHOP_DON_PENDING_CAP = 2;
-
 /** Giới hạn ký tự lý do hủy đơn. */
 export const SHOP_LY_DO_HUY_MAX = 300;
 
@@ -22,6 +19,7 @@ export type ShopTrangThaiDon =
   | "cho_xac_nhan"
   | "da_nhan_tien"
   | "da_giao_tai_su_kien"
+  | "hoan_thanh"
   | "huy";
 
 export type ShopTrangThaiQuay = "cho_xu_ly" | "da_duyet" | "tu_choi";
@@ -454,8 +452,18 @@ export type ShopDonHang = {
   dong: ShopDonHangDong[];
   muaTen?: string | null;
   banTen?: string | null;
+  /** Username (slug) — để mở card hồ sơ khi click tên đối phương. */
+  muaSlug?: string | null;
+  banSlug?: string | null;
+  /** Avatar URL đối phương (hiện cạnh tên trong modal). */
+  muaAvatarUrl?: string | null;
+  banAvatarUrl?: string | null;
   taoLuc: string;
   xacNhanLuc: string | null;
+  /** Thời điểm seller đánh dấu hoàn thành (`hoan_thanh`). */
+  hoanThanhLuc?: string | null;
+  /** Người đánh dấu hoàn thành (seller). */
+  hoanThanhBoi?: string | null;
   /** Thời điểm hủy (`huy`). */
   huyLuc?: string | null;
   /** Lý do hủy (seller nhập; hệ thống ghi "Hết hạn xác nhận"). */
@@ -477,19 +485,6 @@ export type ShopDonHang = {
   /** Địa chỉ đầy đủ (chi tiết + tỉnh/thành) đã gộp sẵn. */
   muaDiaChi?: string | null;
 };
-
-/** Tín hiệu tin cậy của người mua — giúp seller triage đơn (chống rác). */
-export type ShopBuyerTrust = {
-  /** Tài khoản đã được CINs xác minh. */
-  daXacMinh: boolean;
-  /** Thời điểm tạo tài khoản (ISO) — acc mới là red flag. */
-  taoLuc: string | null;
-  /** Số đơn trước đó của buyer với shop này (mọi trạng thái, trừ đơn hiện tại). */
-  soDonTruoc: number;
-  /** Số đơn đã bị hủy của buyer với shop này. */
-  soDonHuy: number;
-};
-
 /** Sự kiện sắp/đang diễn ra mà shop đã được duyệt quầy — mặt tiền công khai. */
 export type ShopQuaySapCoMat = {
   id: string;
@@ -557,6 +552,7 @@ export const SHOP_TRANG_THAI_DON_LABEL: Record<ShopTrangThaiDon, string> = {
   cho_xac_nhan: "Chờ xác nhận",
   da_nhan_tien: "Đã nhận tiền",
   da_giao_tai_su_kien: "Thanh toán khi nhận hàng",
+  hoan_thanh: "Hoàn thành",
   huy: "Đã hủy",
 };
 

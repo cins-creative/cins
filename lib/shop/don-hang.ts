@@ -3,6 +3,7 @@ import "server-only";
 import { openDirectRoom, sendRoomMessage } from "@/lib/chat/direct-message";
 import { chatImageDeliveryUrl } from "@/lib/chat/image-url";
 import { getQuanHe } from "@/lib/social/ket-ban";
+import { getAvatarUrl } from "@/lib/journey/profile";
 import { getGio, getGioCuaHang } from "@/lib/shop/gio";
 import { clearGioChungCuaSeller, getGioChung } from "@/lib/shop/gio-chung";
 import {
@@ -24,17 +25,13 @@ import {
 import { shopImageUrl } from "@/lib/shop/settings";
 import { resolveDiaChiSnapshot } from "@/lib/shop/dia-chi-nhan";
 import type {
-  ShopBuyerTrust,
   ShopDonHang,
   ShopDonHangDong,
   ShopLoaiDon,
   ShopThanhToanSnapshot,
   ShopTrangThaiDon,
 } from "@/lib/shop/types";
-import {
-  SHOP_DON_PENDING_CAP,
-  SHOP_TRANG_THAI_DON_LABEL,
-} from "@/lib/shop/types";
+import { SHOP_TRANG_THAI_DON_LABEL } from "@/lib/shop/types";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 type DonRow = {
@@ -52,6 +49,8 @@ type DonRow = {
   da_tru_kho: boolean;
   tao_luc: string;
   xac_nhan_luc: string | null;
+  hoan_thanh_luc?: string | null;
+  hoan_thanh_boi?: string | null;
   huy_luc?: string | null;
   ly_do_huy?: string | null;
   huy_boi?: string | null;
@@ -67,7 +66,7 @@ type DonRow = {
 };
 
 const DON_SELECT =
-  "id, ma_don, id_nguoi_mua, id_nguoi_ban, id_cot_moc, id_su_kien, loai_don, trang_thai, tien_te, tong_tien, ghi_chu, da_tru_kho, tao_luc, xac_nhan_luc, huy_luc, ly_do_huy, huy_boi, nguoi_mua_chap_nhan_luc, nguoi_mua_chap_nhan_van_ban, nguoi_mua_chap_nhan_phien_ban, thanh_toan_snapshot, bien_lai_anh_url, bien_lai_anh_id, mua_ho_ten, mua_so_dien_thoai, mua_dia_chi";
+  "id, ma_don, id_nguoi_mua, id_nguoi_ban, id_cot_moc, id_su_kien, loai_don, trang_thai, tien_te, tong_tien, ghi_chu, da_tru_kho, tao_luc, xac_nhan_luc, hoan_thanh_luc, hoan_thanh_boi, huy_luc, ly_do_huy, huy_boi, nguoi_mua_chap_nhan_luc, nguoi_mua_chap_nhan_van_ban, nguoi_mua_chap_nhan_phien_ban, thanh_toan_snapshot, bien_lai_anh_url, bien_lai_anh_id, mua_ho_ten, mua_so_dien_thoai, mua_dia_chi";
 
 function normalizeThanhToanSnapshot(
   raw: unknown,
@@ -206,12 +205,24 @@ async function attachDong(dons: DonRow[]): Promise<ShopDonHang[]> {
   ];
   const { data: users } = await admin
     .from("user_nguoi_dung")
-    .select("id, ten_hien_thi")
+    .select("id, ten_hien_thi, slug, avatar_id")
     .in("id", userIds);
-  const nameMap = new Map(
-    ((users ?? []) as Array<{ id: string; ten_hien_thi: string | null }>).map(
-      (u) => [u.id, u.ten_hien_thi],
-    ),
+  const userMap = new Map(
+    (
+      (users ?? []) as Array<{
+        id: string;
+        ten_hien_thi: string | null;
+        slug: string | null;
+        avatar_id: string | null;
+      }>
+    ).map((u) => [
+      u.id,
+      {
+        ten: u.ten_hien_thi,
+        slug: u.slug,
+        avatarUrl: getAvatarUrl(u.avatar_id),
+      },
+    ]),
   );
 
   return dons.map((d) => ({
@@ -228,10 +239,16 @@ async function attachDong(dons: DonRow[]): Promise<ShopDonHang[]> {
     ghiChu: d.ghi_chu,
     daTruKho: d.da_tru_kho,
     dong: byDon.get(d.id) ?? [],
-    muaTen: nameMap.get(d.id_nguoi_mua) ?? null,
-    banTen: nameMap.get(d.id_nguoi_ban) ?? null,
+    muaTen: userMap.get(d.id_nguoi_mua)?.ten ?? null,
+    banTen: userMap.get(d.id_nguoi_ban)?.ten ?? null,
+    muaSlug: userMap.get(d.id_nguoi_mua)?.slug ?? null,
+    banSlug: userMap.get(d.id_nguoi_ban)?.slug ?? null,
+    muaAvatarUrl: userMap.get(d.id_nguoi_mua)?.avatarUrl ?? null,
+    banAvatarUrl: userMap.get(d.id_nguoi_ban)?.avatarUrl ?? null,
     taoLuc: d.tao_luc,
     xacNhanLuc: d.xac_nhan_luc,
+    hoanThanhLuc: d.hoan_thanh_luc ?? null,
+    hoanThanhBoi: d.hoan_thanh_boi ?? null,
     huyLuc: d.huy_luc ?? null,
     lyDoHuy: d.ly_do_huy ?? null,
     huyBoi: d.huy_boi ?? null,
@@ -245,39 +262,6 @@ async function attachDong(dons: DonRow[]): Promise<ShopDonHang[]> {
     muaSoDienThoai: d.mua_so_dien_thoai ?? null,
     muaDiaChi: d.mua_dia_chi ?? null,
   }));
-}
-
-/**
- * Tín hiệu tin cậy của người mua với một seller — seller dùng để triage đơn
- * (acc mới / chưa xác minh / nhiều đơn hủy = nghi ngờ rác).
- */
-export async function getBuyerTrustForSeller(
-  sellerId: string,
-  buyerId: string,
-  currentDonId?: string,
-): Promise<ShopBuyerTrust> {
-  const admin = createServiceRoleClient();
-  const [{ data: user }, { data: dons }] = await Promise.all([
-    admin
-      .from("user_nguoi_dung")
-      .select("da_xac_minh, tao_luc")
-      .eq("id", buyerId)
-      .maybeSingle<{ da_xac_minh: boolean | null; tao_luc: string | null }>(),
-    admin
-      .from("shop_don_hang")
-      .select("id, trang_thai")
-      .eq("id_nguoi_mua", buyerId)
-      .eq("id_nguoi_ban", sellerId)
-      .returns<Array<{ id: string; trang_thai: ShopTrangThaiDon }>>(),
-  ]);
-
-  const rows = (dons ?? []).filter((d) => d.id !== currentDonId);
-  return {
-    daXacMinh: user?.da_xac_minh === true,
-    taoLuc: user?.tao_luc ?? null,
-    soDonTruoc: rows.length,
-    soDonHuy: rows.filter((d) => d.trang_thai === "huy").length,
-  };
 }
 
 export async function getDonHang(donId: string): Promise<ShopDonHang | null> {
@@ -313,8 +297,8 @@ export async function listDonHangForUser(
 }
 
 /**
- * Chặn tạo đơn khi: (1) buyer/seller đã chặn nhau; (2) buyer vượt hạn mức đơn
- * `cho_xac_nhan` treo với seller (chống spam giam kho).
+ * Chặn tạo đơn khi buyer/seller đã chặn nhau. Không giới hạn số đơn
+ * `cho_xac_nhan` treo — seller tự xử lý / report buyer spam.
  */
 async function assertCanCreateDon(
   buyerId: string,
@@ -322,21 +306,6 @@ async function assertCanCreateDon(
 ): Promise<void> {
   const quanHe = await getQuanHe(sellerId, buyerId);
   if (quanHe === "blocked") throw new Error("BLOCKED");
-
-  const admin = createServiceRoleClient();
-  const { count, error } = await admin
-    .from("shop_don_hang")
-    .select("id", { count: "exact", head: true })
-    .eq("id_nguoi_mua", buyerId)
-    .eq("id_nguoi_ban", sellerId)
-    .eq("trang_thai", "cho_xac_nhan");
-  if (error) {
-    console.error("[shop] assertCanCreateDon count", error);
-    return;
-  }
-  if ((count ?? 0) >= SHOP_DON_PENDING_CAP) {
-    throw new Error("TOO_MANY_PENDING");
-  }
 }
 
 export async function createDonFromGio(
@@ -824,6 +793,52 @@ export async function confirmDonHang(
   return updated;
 }
 
+/**
+ * Seller đánh dấu đơn **hoàn thành** — trạng thái cuối sau khi đã nhận tiền
+ * (`da_nhan_tien`) hoặc đã giao tại sự kiện (`da_giao_tai_su_kien`). Không đụng
+ * tồn kho (đã trừ ở bước trước). Idempotent: update có điều kiện trạng thái —
+ * gọi trùng / đua chỉ 1 tiến trình flip thành công.
+ */
+export async function completeDonHang(
+  actorId: string,
+  donId: string,
+): Promise<ShopDonHang> {
+  const don = await getDonHang(donId);
+  if (!don) throw new Error("NOT_FOUND");
+  if (don.idNguoiBan !== actorId) throw new Error("FORBIDDEN");
+  if (
+    don.trangThai !== "da_nhan_tien" &&
+    don.trangThai !== "da_giao_tai_su_kien"
+  ) {
+    throw new Error("INVALID_STATE");
+  }
+
+  const admin = createServiceRoleClient();
+  const now = new Date().toISOString();
+  const { data: updatedRows, error } = await admin
+    .from("shop_don_hang")
+    .update({
+      trang_thai: "hoan_thanh",
+      hoan_thanh_luc: now,
+      hoan_thanh_boi: actorId,
+      cap_nhat_luc: now,
+    })
+    .eq("id", donId)
+    .in("trang_thai", ["da_nhan_tien", "da_giao_tai_su_kien"])
+    .select("id");
+  if (error) throw new Error("UPDATE_FAILED");
+  if (!updatedRows || updatedRows.length === 0) {
+    throw new Error("INVALID_STATE");
+  }
+
+  const updated = await getDonHang(donId);
+  if (!updated) throw new Error("NOT_FOUND");
+
+  await bumpDonHangChatMessage(updated, actorId);
+
+  return updated;
+}
+
 /** Hoàn tồn mọi dòng đơn (khi hủy đơn đã trừ kho). Lỗi 1 dòng không chặn dòng khác. */
 async function restockDon(dong: ShopDonHangDong[]): Promise<void> {
   for (const d of dong) {
@@ -887,6 +902,37 @@ export async function cancelDonHang(
 }
 
 /**
+ * Snapshot «đơn vừa đổi trạng thái» gắn vào `ngu_canh.capNhat` — chat render
+ * dạng thông báo hệ thống (kèm lý do hủy) thay vì caption tin thường.
+ */
+function donCapNhatPayload(
+  don: ShopDonHang,
+  actorId: string,
+  luc: string,
+): Record<string, unknown> {
+  const boi =
+    actorId === don.idNguoiBan
+      ? "nguoi_ban"
+      : actorId === don.idNguoiMua
+        ? "nguoi_mua"
+        : "he_thong";
+  return {
+    trangThai: don.trangThai,
+    nhan: SHOP_TRANG_THAI_DON_LABEL[don.trangThai],
+    lyDo: don.trangThai === "huy" ? don.lyDoHuy?.trim() || null : null,
+    boi,
+    luc,
+  };
+}
+
+/** Body tin sau khi bump — giữ lý do hủy trong text để tìm kiếm / preview thấy. */
+function donCapNhatNoiDung(don: ShopDonHang): string {
+  const nhan = SHOP_TRANG_THAI_DON_LABEL[don.trangThai];
+  const lyDo = don.trangThai === "huy" ? don.lyDoHuy?.trim() : null;
+  return lyDo ? `${nhan} — ${lyDo}` : nhan;
+}
+
+/**
  * Tìm tin `ngu_canh.loai=don_hang` của đơn, cập nhật snapshot + `tao_luc`,
  * chuyển người gửi sang shop để người mua nhận như tin mới (unread).
  */
@@ -924,7 +970,10 @@ async function bumpDonHangChatMessage(
     msg.ngu_canh && typeof msg.ngu_canh === "object"
       ? (msg.ngu_canh as Record<string, unknown>)
       : null;
-  const nextNguCanh: Record<string, unknown> = { ...ctx };
+  const nextNguCanh: Record<string, unknown> = {
+    ...ctx,
+    capNhat: donCapNhatPayload(don, actorId, now),
+  };
   if (prev && Array.isArray(prev.mentions)) {
     nextNguCanh.mentions = prev.mentions;
   }
@@ -944,7 +993,7 @@ async function bumpDonHangChatMessage(
       ngu_canh: nextNguCanh,
       tao_luc: now,
       id_nguoi_gui: actorId,
-      noi_dung: SHOP_TRANG_THAI_DON_LABEL[don.trangThai],
+      noi_dung: donCapNhatNoiDung(don),
     })
     .eq("id", msg.id);
   if (updErr) {

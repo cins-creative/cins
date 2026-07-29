@@ -18,6 +18,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
+import { useCinsChatContext } from "@/components/cins/CinsChatProvider";
 import { ShopMuaHistory } from "@/components/shop/ShopMuaHistory";
 
 import {
@@ -69,6 +70,8 @@ type PhuongXaOption = { code: string; name: string };
 const SDT_RE = /^[0-9+()\-.\s]{6,20}$/;
 
 export function ShopGioChungButton() {
+  /* Topbar nằm trong CinsChatShellBridge — vẫn dùng bản nullable cho chắc. */
+  const chat = useCinsChatContext();
   const [open, setOpen] = useState(false);
   const [gio, setGio] = useState<ShopGioChung | null>(null);
   const [loading, setLoading] = useState(false);
@@ -169,10 +172,15 @@ export function ShopGioChungButton() {
     [],
   );
 
-  const onSent = useCallback((don: ShopDonHang) => {
-    setSentDons((prev) => [don, ...prev.filter((d) => d.id !== don.id)]);
-    void load();
-  }, [load]);
+  /* Gửi đơn xong → mở luôn bubble chat với người bán (card đơn đã ở inbox). */
+  const onSent = useCallback(
+    (don: ShopDonHang) => {
+      setSentDons((prev) => [don, ...prev.filter((d) => d.id !== don.id)]);
+      void load();
+      void chat?.openBubbleChatWithUser(don.idNguoiBan);
+    },
+    [chat, load],
+  );
 
   const count = gio?.tongSoDong ?? 0;
   const groups = gio?.nhom ?? [];

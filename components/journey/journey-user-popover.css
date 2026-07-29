@@ -536,20 +536,26 @@ button.j-user-pop-close svg {
 }
 
 .j-user-popover .j-friend-link {
-  background: var(--cins-blue-soft);
-  color: var(--cins-blue);
+  background: var(--cins-blue-soft, #eff6ff);
+  color: var(--cins-blue, #2563eb);
   text-decoration: none;
   transition: background 0.16s ease, color 0.16s ease;
 }
 
-.j-user-popover .j-friend-link:hover {
-  background: var(--cins-blue);
+.j-user-popover .j-friend-link:hover:not(:disabled) {
+  background: var(--cins-blue, #2563eb);
   color: #fff;
 }
 
 .j-user-popover .j-friend-btn.is-idle {
   background: var(--cins-blue-soft, #eff6ff);
   color: var(--cins-blue, #2563eb);
+  transition: background 0.16s ease, color 0.16s ease;
+}
+
+.j-user-popover .j-friend-btn.is-idle:hover:not(:disabled) {
+  background: var(--cins-blue, #2563eb);
+  color: #fff;
 }
 
 .j-user-popover .j-friend-btn.is-pending {
@@ -560,6 +566,25 @@ button.j-user-pop-close svg {
 .j-user-popover .j-friend-btn.is-friends {
   background: #ecfdf5;
   color: #047857;
+}
+
+.j-user-popover .j-friend-btn.is-blocked {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  min-height: 32px;
+  padding: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, #dc2626 14%, #fff);
+  color: #b91c1c;
+}
+
+.j-user-popover .j-friend-btn.is-blocked:hover:not(:disabled) {
+  background: color-mix(in srgb, #dc2626 24%, #fff);
+  color: #b91c1c;
 }
 
 /* =========================================================
@@ -594,9 +619,24 @@ button.j-user-pop-close svg {
   color: var(--cins-blue, #4f9be8);
 }
 
+:root[data-theme="dark"] .j-user-popover .j-friend-link {
+  background: color-mix(in srgb, var(--cins-blue, #4f9be8) 12%, var(--bg-surface));
+  color: var(--cins-blue, #4f9be8);
+}
+
+:root[data-theme="dark"] .j-user-popover .j-friend-link:hover:not(:disabled) {
+  background: var(--cins-blue, #4f9be8);
+  color: #fff;
+}
+
 :root[data-theme="dark"] .j-user-popover .j-friend-btn.is-idle {
   background: color-mix(in srgb, var(--cins-blue, #4f9be8) 12%, var(--bg-surface));
   color: var(--cins-blue, #4f9be8);
+}
+
+:root[data-theme="dark"] .j-user-popover .j-friend-btn.is-idle:hover:not(:disabled) {
+  background: var(--cins-blue, #4f9be8);
+  color: #fff;
 }
 
 :root[data-theme="dark"] .j-user-popover .j-friend-btn.is-pending {
@@ -607,6 +647,16 @@ button.j-user-pop-close svg {
 :root[data-theme="dark"] .j-user-popover .j-friend-btn.is-friends {
   background: rgba(52, 201, 138, 0.14);
   color: #6ee7b7;
+}
+
+:root[data-theme="dark"] .j-user-popover .j-friend-btn.is-blocked {
+  background: rgba(220, 38, 38, 0.22);
+  color: #f87171;
+}
+
+:root[data-theme="dark"] .j-user-popover .j-friend-btn.is-blocked:hover:not(:disabled) {
+  background: rgba(220, 38, 38, 0.32);
+  color: #f87171;
 }
 
 /* Avatar / mặt bạn chung khi không có ảnh (fallback gradient sáng) */

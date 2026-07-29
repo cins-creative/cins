@@ -47,10 +47,16 @@ const TRANG_THAI_LABEL: Record<string, string> = {
   cho_xac_nhan: "Chờ xác nhận",
   da_nhan_tien: "Đã nhận tiền",
   da_giao_tai_su_kien: "Đã giao",
+  hoan_thanh: "Hoàn thành",
   huy: "Đã hủy",
 };
 
-const COMPLETED = new Set(["da_nhan_tien", "da_giao_tai_su_kien"]);
+/* Doanh thu = đơn đã chốt (đã nhận tiền / đã giao / hoàn thành). */
+const COMPLETED = new Set([
+  "da_nhan_tien",
+  "da_giao_tai_su_kien",
+  "hoan_thanh",
+]);
 
 export async function GET() {
   const session = await getCurrentSessionAndProfile();

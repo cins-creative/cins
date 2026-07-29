@@ -11,7 +11,7 @@ import {
   parseBehanceProjectHtml,
   tieuDeTuSlugUrlBehance,
 } from "@/lib/autopilot/behance-assets";
-import { uploadCloudflareImageFromUrl } from "@/lib/cloudflare/upload-image-from-url";
+import { uploadCloudflareImageFromUrlChiTiet } from "@/lib/cloudflare/upload-image-from-url";
 import {
   dangBaiJourneyChoUser,
   type DangBaiJourneyResult,
@@ -24,6 +24,7 @@ import {
 } from "@/lib/editor/khoi-bai-nguon";
 import type { Block } from "@/lib/editor/types";
 import { POST_MOTA_MAX, POST_TITLE_MAX } from "@/lib/journey/post-content-kind";
+import { lyDoBoQua, taoBoQuaRong, type PortImportBoQua } from "@/lib/port/bo-qua";
 
 export type PortPlatform = "behance" | "artstation";
 
@@ -39,6 +40,8 @@ export type PortImportPreview = {
   blocks: Block[];
   soAnh: number;
   soVideo: number;
+  /** Media rơi rụng — modal hỏi user trước khi tạo nháp. */
+  boQua: PortImportBoQua;
   warnings: string[];
 };
 
@@ -51,21 +54,34 @@ function excerptFromText(text: string): string {
   return `${clean.slice(0, MOTA_PREVIEW_MAX - 1).trimEnd()}…`;
 }
 
+type KetQuaMirror = {
+  daTai: Map<string, { imageId: string; url: string }>;
+  /** Ảnh vượt trần dung lượng Cloudflare Images. */
+  quaLon: number;
+  /** Ảnh hỏng vì lý do khác (mạng, mime, lưu trữ). */
+  loi: number;
+};
+
 /** Tải song song (giới hạn concurrency) danh sách URL ảnh → Cloudflare Images. */
-async function mirrorImages(
-  urls: string[],
-): Promise<Map<string, { imageId: string; url: string }>> {
-  const out = new Map<string, { imageId: string; url: string }>();
+async function mirrorImages(urls: string[]): Promise<KetQuaMirror> {
+  const daTai = new Map<string, { imageId: string; url: string }>();
+  let quaLon = 0;
+  let loi = 0;
   for (let i = 0; i < urls.length; i += IMAGE_CONCURRENCY) {
     const chunk = urls.slice(i, i + IMAGE_CONCURRENCY);
     const uploaded = await Promise.all(
-      chunk.map(async (u) => ({ u, res: await uploadCloudflareImageFromUrl(u) })),
+      chunk.map(async (u) => ({
+        u,
+        res: await uploadCloudflareImageFromUrlChiTiet(u),
+      })),
     );
     for (const { u, res } of uploaded) {
-      if (res) out.set(u, res);
+      if (res.ok) daTai.set(u, res.data);
+      else if (res.lyDo === "qua_lon") quaLon += 1;
+      else loi += 1;
     }
   }
-  return out;
+  return { daTai, quaLon, loi };
 }
 
 function chuanHoaTieuDe(raw: string | null | undefined, fallback: string): string {
@@ -99,7 +115,6 @@ export async function buildBehancePortPreview(params: {
   );
 
   const mirrored = await mirrorImages(imageUrls);
-  const warnings: string[] = [];
   let soAnh = 0;
   let soVideo = 0;
 
@@ -108,7 +123,7 @@ export async function buildBehancePortPreview(params: {
     if (mod.kind === "text") {
       if (mod.text.trim()) modules.push({ kind: "text", text: mod.text });
     } else if (mod.kind === "image") {
-      const cf = mirrored.get(mod.anh.imageUrl);
+      const cf = mirrored.daTai.get(mod.anh.imageUrl);
       if (cf) {
         modules.push({
           kind: "image",
@@ -124,16 +139,19 @@ export async function buildBehancePortPreview(params: {
     }
   }
 
-  if (imageUrls.length > 0 && soAnh === 0) {
-    warnings.push("Không tải được ảnh nào từ project lên Cloudflare.");
-  } else if (soAnh < imageUrls.length) {
-    warnings.push(`Chỉ tải được ${soAnh}/${imageUrls.length} ảnh.`);
-  }
+  const boQua: PortImportBoQua = {
+    tongAnhNguon: imageUrls.length + parsed.soAnhVuotGioiHan,
+    daLay: soAnh,
+    quaLon: mirrored.quaLon,
+    vuotTran: parsed.soAnhVuotGioiHan,
+    loi: mirrored.loi,
+  };
+  const warnings = lyDoBoQua(boQua);
 
   const blocks = taoKhoiBaiBehanceNguon({ modules, urlNguon: sourceUrl });
 
   const firstCover = imageUrls
-    .map((u) => mirrored.get(u))
+    .map((u) => mirrored.daTai.get(u))
     .find((x): x is { imageId: string; url: string } => Boolean(x));
 
   let tieuDe = (parsed.title || "").trim();
@@ -160,6 +178,7 @@ export async function buildBehancePortPreview(params: {
     blocks,
     soAnh,
     soVideo,
+    boQua,
     warnings,
   };
 }
@@ -188,11 +207,10 @@ export async function buildArtstationPortPreview(params: {
 
   const imageUrls = Array.from(new Set(parsed.data.anh.map((a) => a.imageUrl)));
   const mirrored = await mirrorImages(imageUrls);
-  const warnings: string[] = [];
 
   const anhAlbum = parsed.data.anh
     .map((a) => {
-      const cf = mirrored.get(a.imageUrl);
+      const cf = mirrored.daTai.get(a.imageUrl);
       if (!cf) return null;
       return { seed: cf.imageId, width: a.width, height: a.height };
     })
@@ -201,11 +219,12 @@ export async function buildArtstationPortPreview(params: {
     );
 
   const soAnh = anhAlbum.length;
-  if (imageUrls.length > 0 && soAnh === 0) {
-    warnings.push("Không tải được ảnh nào từ project lên Cloudflare.");
-  } else if (soAnh < imageUrls.length) {
-    warnings.push(`Chỉ tải được ${soAnh}/${imageUrls.length} ảnh.`);
-  }
+  const boQua: PortImportBoQua = {
+    ...taoBoQuaRong(imageUrls.length, soAnh),
+    quaLon: mirrored.quaLon,
+    loi: mirrored.loi,
+  };
+  const warnings = lyDoBoQua(boQua);
 
   const blocks = taoKhoiBaiAlbumNguon({
     anh: anhAlbum,
@@ -214,7 +233,7 @@ export async function buildArtstationPortPreview(params: {
   });
 
   const firstCover = imageUrls
-    .map((u) => mirrored.get(u))
+    .map((u) => mirrored.daTai.get(u))
     .find((x): x is { imageId: string; url: string } => Boolean(x));
 
   const tieuDe = chuanHoaTieuDe(
@@ -237,6 +256,7 @@ export async function buildArtstationPortPreview(params: {
     blocks,
     soAnh,
     soVideo: 0,
+    boQua,
     warnings,
   };
 }

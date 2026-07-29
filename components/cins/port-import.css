@@ -251,6 +251,60 @@
   font-weight: 500;
 }
 
+.port-import-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md, 14px);
+  border: 1px solid rgba(217, 119, 6, 0.35);
+  background: rgba(245, 158, 11, 0.1);
+  font-size: 0.82rem;
+  color: var(--ink-display, rgba(0, 0, 0, 0.85));
+}
+
+.port-import-confirm-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-weight: 600;
+  color: #92400e;
+}
+
+.port-import-confirm-list {
+  margin: 0;
+  padding-left: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  line-height: 1.5;
+  color: var(--ink-title, rgba(0, 0, 0, 0.6));
+}
+
+.port-import-confirm-note {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--ink-body, rgba(0, 0, 0, 0.55));
+}
+
+.port-import-confirm-remember {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  color: var(--ink-title, rgba(0, 0, 0, 0.6));
+}
+
+.port-import-confirm-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .port-import-progress {
   display: flex;
   flex-direction: column;
@@ -317,6 +371,10 @@
 
 .port-import-card.is-fail {
   border-color: #dc2626;
+}
+
+.port-import-card.is-skip {
+  border-color: #d97706;
 }
 
 .port-import-card label {

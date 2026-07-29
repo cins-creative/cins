@@ -66,6 +66,10 @@ function parseDonHangCard(card: ChatContextCard): ParsedDon {
       ghiChu = note || null;
       continue;
     }
+    /* Lý do hủy + cảnh báo hoàn tiền đã hiện ở thông báo cập nhật phía trên. */
+    if (/^Lý do hủy:\s*/i.test(line) || line.startsWith("Nền tảng không giữ tiền")) {
+      continue;
+    }
     items.push(line.replace(/^•\s*/, "").replace(/\s*\(Mặc định\)/g, ""));
   }
 
@@ -99,12 +103,14 @@ export function ChatDonHangCard({ card, tone = "them" }: Props) {
     trangThai === "Thanh toán khi nhận hàng" ||
     trangThai === "Đã giao tại sự kiện";
   const statusPending = trangThai === "Chờ xác nhận";
+  const statusCanceled = trangThai === "Đã hủy";
 
   const className = [
     "cins-chat-don-card",
     tone === "me" ? "is-me" : "",
     isPaid ? "is-paid" : "",
     isPayLater ? "is-later" : "",
+    statusCanceled ? "is-canceled" : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -139,7 +145,7 @@ export function ChatDonHangCard({ card, tone = "them" }: Props) {
 
           {trangThai ? (
             <span
-              className={`cins-chat-don-card-status${statusDone ? " is-done" : ""}${statusPending ? " is-pending" : ""}`}
+              className={`cins-chat-don-card-status${statusDone ? " is-done" : ""}${statusPending ? " is-pending" : ""}${statusCanceled ? " is-canceled" : ""}`}
             >
               {trangThai}
             </span>

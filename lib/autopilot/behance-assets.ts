@@ -351,6 +351,8 @@ export function parseBehanceProjectHtml(
   coverUrl: string | null;
   anh: BehanceAssetAnh[];
   modules: BehanceModule[];
+  /** Ảnh có trên trang nhưng bị cắt vì chạm `gioiHan`. */
+  soAnhVuotGioiHan: number;
 } {
   const decoded = decodeBasic(html);
   const title = chuanHoaTieuDe(metaContent(html, "og:title"));
@@ -364,6 +366,7 @@ export function parseBehanceProjectHtml(
   const anh: BehanceAssetAnh[] = [];
   const seenImg = new Set<string>();
   const seenVideo = new Set<string>();
+  let soAnhVuotGioiHan = 0;
 
   const rawJson = extractModulesJson(decoded);
   if (rawJson) {
@@ -402,8 +405,11 @@ export function parseBehanceProjectHtml(
               >)
             : [];
           for (const comp of comps) {
-            if (anh.length >= gioiHan) break;
             if (!comp || typeof comp !== "object") continue;
+            if (anh.length >= gioiHan) {
+              soAnhVuotGioiHan += 1;
+              continue;
+            }
             const picked = pickImageFromModule(comp);
             if (!picked || seenImg.has(picked.imageUrl)) continue;
             seenImg.add(picked.imageUrl);
@@ -417,7 +423,10 @@ export function parseBehanceProjectHtml(
           mod.imageSizes ||
           (mod as { src?: string }).src
         ) {
-          if (anh.length >= gioiHan) continue;
+          if (anh.length >= gioiHan) {
+            soAnhVuotGioiHan += 1;
+            continue;
+          }
           const picked = pickImageFromModule(mod);
           if (!picked || seenImg.has(picked.imageUrl)) continue;
           seenImg.add(picked.imageUrl);
@@ -446,7 +455,9 @@ export function parseBehanceProjectHtml(
         byFile.set(file, { size, url });
       }
     }
-    for (const x of [...byFile.values()].slice(0, gioiHan)) {
+    const tatCa = [...byFile.values()];
+    soAnhVuotGioiHan += Math.max(0, tatCa.length - gioiHan);
+    for (const x of tatCa.slice(0, gioiHan)) {
       const item = { imageUrl: x.url, width: null, height: null };
       anh.push(item);
       modules.push({ kind: "image", anh: item });
@@ -478,7 +489,7 @@ export function parseBehanceProjectHtml(
     }
   }
 
-  return { title, coverUrl, anh, modules };
+  return { title, coverUrl, anh, modules, soAnhVuotGioiHan };
 }
 
 async function fetchHtmlDirect(url: string): Promise<string | null> {

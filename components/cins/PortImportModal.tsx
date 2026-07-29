@@ -1,10 +1,15 @@
 "use client";
 
-import { Download, Loader2, RefreshCw, Sparkles, X } from "lucide-react";
+import { AlertTriangle, Download, Loader2, RefreshCw, Sparkles, X } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
+import {
+  lyDoBoQua,
+  tongSoAnhBoQua,
+  type PortImportBoQua,
+} from "@/lib/port/bo-qua";
 import {
   CINS_PORT_MAX_WORKS,
   CINS_TRO_LY_EXT_ZIP_HREF,
@@ -45,9 +50,11 @@ type Props = {
   profileSlug: string;
 };
 
-type RowStatus = "idle" | "ok" | "fail";
+type RowStatus = "idle" | "ok" | "fail" | "skip";
 type Phase = "idle" | "scan" | "import";
 type Mode = "one" | "all";
+/** Trả lời của user khi project có ảnh không lấy được. */
+type QuyetDinh = "tiep" | "bo";
 
 const EXT_MISSING_HINT =
   "Chưa thấy Trợ lý CINs trên trang này. Tải tiện ích bên dưới → cài ở chrome://extensions (bật Chế độ nhà phát triển → Tải tiện ích đã giải nén) → tải lại trang này (F5).";
@@ -73,6 +80,15 @@ export function PortImportModal({ open, onClose, profileSlug }: Props) {
     null,
   );
   const [summary, setSummary] = useState<string | null>(null);
+  const [summaryCoLink, setSummaryCoLink] = useState(false);
+  const [xacNhan, setXacNhan] = useState<{
+    tieuDe: string;
+    boQua: PortImportBoQua;
+  } | null>(null);
+  const [apDungTatCa, setApDungTatCa] = useState(false);
+  /** Resolver của promise đang chờ user bấm Tiếp tục / Bỏ qua. */
+  const quyetDinhRef = useRef<((v: QuyetDinh) => void) | null>(null);
+  const apDungTatCaRef = useRef<QuyetDinh | null>(null);
 
   const refreshExt = useCallback(async () => {
     setExtChecking(true);
@@ -89,8 +105,40 @@ export function PortImportModal({ open, onClose, profileSlug }: Props) {
     setRowStatus({});
     setProgress(null);
     setSummary(null);
+    setSummaryCoLink(false);
     setErr(null);
+    setXacNhan(null);
+    setApDungTatCa(false);
+    quyetDinhRef.current = null;
+    apDungTatCaRef.current = null;
   }, []);
+
+  /** Dừng luồng import tại chỗ và chờ user quyết định. */
+  const hoiXacNhan = useCallback(
+    (tieuDe: string, boQua: PortImportBoQua) =>
+      new Promise<QuyetDinh>((resolve) => {
+        if (apDungTatCaRef.current) {
+          resolve(apDungTatCaRef.current);
+          return;
+        }
+        quyetDinhRef.current = resolve;
+        setXacNhan({ tieuDe, boQua });
+      }),
+    [],
+  );
+
+  const traLoiXacNhan = useCallback(
+    (v: QuyetDinh) => {
+      const resolve = quyetDinhRef.current;
+      if (!resolve) return;
+      if (apDungTatCa) apDungTatCaRef.current = v;
+      quyetDinhRef.current = null;
+      setXacNhan(null);
+      setApDungTatCa(false);
+      resolve(v);
+    },
+    [apDungTatCa],
+  );
 
   const switchMode = useCallback(
     (next: Mode) => {
@@ -188,11 +236,13 @@ export function PortImportModal({ open, onClose, profileSlug }: Props) {
     setPhase("import");
     setErr(null);
     setSummary(null);
+    setSummaryCoLink(false);
     setProgress({ done: 0, total: 1 });
     try {
-      await importOne({ projectId: url, url, title: null, coverUrl: null });
+      const kq = await importOne({ projectId: url, url, title: null, coverUrl: null });
       setProgress({ done: 1, total: 1 });
-      setSummary("Đã tạo 1 bản nháp");
+      setSummary(kq === "bo" ? "Đã bỏ qua project này." : "Đã tạo 1 bản nháp");
+      setSummaryCoLink(kq === "tiep");
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Kéo project thất bại.");
     } finally {
@@ -216,7 +266,7 @@ export function PortImportModal({ open, onClose, profileSlug }: Props) {
     setSelected(on ? new Set(works.map((w) => w.projectId)) : new Set());
   }
 
-  async function importOne(work: PortWorkListItem): Promise<void> {
+  async function importOne(work: PortWorkListItem): Promise<QuyetDinh> {
     const content = await fetchWorkViaExtension(platform, work.url);
     const previewRes = await fetch("/api/port/import", {
       method: "POST",
@@ -229,12 +279,20 @@ export function PortImportModal({ open, onClose, profileSlug }: Props) {
       }),
     });
     const previewJson = (await previewRes.json().catch(() => null)) as {
-      preview?: unknown;
+      preview?: { tieuDe?: string; boQua?: PortImportBoQua };
       error?: string;
     } | null;
     if (!previewRes.ok || !previewJson?.preview) {
       throw new Error(previewJson?.error ?? "Dựng bản nháp thất bại.");
     }
+
+    const boQua = previewJson.preview.boQua ?? null;
+    if (boQua && tongSoAnhBoQua(boQua) > 0) {
+      const tieuDe =
+        previewJson.preview.tieuDe?.trim() || work.title?.trim() || work.url;
+      if ((await hoiXacNhan(tieuDe, boQua)) === "bo") return "bo";
+    }
+
     const applyRes = await fetch("/api/port/import", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -252,6 +310,7 @@ export function PortImportModal({ open, onClose, profileSlug }: Props) {
     if (!applyRes.ok || !applyJson?.ok) {
       throw new Error(applyJson?.error ?? "Tạo bản nháp thất bại.");
     }
+    return "tiep";
   }
 
   async function runImport() {
@@ -268,21 +327,29 @@ export function PortImportModal({ open, onClose, profileSlug }: Props) {
     }
 
     cancelRef.current = false;
+    apDungTatCaRef.current = null;
     setBusy(true);
     setPhase("import");
     setErr(null);
     setSummary(null);
+    setSummaryCoLink(false);
     setProgress({ done: 0, total: picks.length });
 
     let ok = 0;
     let fail = 0;
+    let boQuaCount = 0;
     for (let i = 0; i < picks.length; i++) {
       if (cancelRef.current) break;
       const w = picks[i]!;
       try {
-        await importOne(w);
-        ok += 1;
-        setRowStatus((s) => ({ ...s, [w.projectId]: "ok" }));
+        const kq = await importOne(w);
+        if (kq === "bo") {
+          boQuaCount += 1;
+          setRowStatus((s) => ({ ...s, [w.projectId]: "skip" }));
+        } else {
+          ok += 1;
+          setRowStatus((s) => ({ ...s, [w.projectId]: "ok" }));
+        }
       } catch (e) {
         fail += 1;
         setRowStatus((s) => ({ ...s, [w.projectId]: "fail" }));
@@ -292,13 +359,16 @@ export function PortImportModal({ open, onClose, profileSlug }: Props) {
     }
 
     const parts = [`Đã tạo ${ok}/${picks.length} bản nháp`];
+    if (boQuaCount) parts.push(`${boQuaCount} bỏ qua`);
     if (fail) parts.push(`${fail} lỗi`);
     if (cancelRef.current) parts.push("(đã dừng)");
     setSummary(parts.join(" · "));
+    setSummaryCoLink(ok > 0);
     setBusy(false);
     setPhase("idle");
     setProgress(null);
     cancelRef.current = false;
+    apDungTatCaRef.current = null;
   }
 
   if (!open || typeof document === "undefined") return null;
@@ -475,11 +545,65 @@ export function PortImportModal({ open, onClose, profileSlug }: Props) {
         ) : null}
         {summary ? (
           <p className="port-import-summary" role="status">
-            {summary}{" "}
-            <Link href={`/${profileSlug}`} onClick={close}>
-              Xem bản nháp trong trang cá nhân
-            </Link>
+            {summary}
+            {summaryCoLink ? (
+              <>
+                {" "}
+                <Link href={`/${profileSlug}`} onClick={close}>
+                  Xem bản nháp trong trang cá nhân
+                </Link>
+              </>
+            ) : null}
           </p>
+        ) : null}
+
+        {xacNhan ? (
+          <div className="port-import-confirm" role="alert">
+            <p className="port-import-confirm-head">
+              <AlertTriangle size={16} aria-hidden />
+              <span>
+                «{xacNhan.tieuDe}» — lấy được {xacNhan.boQua.daLay}/
+                {xacNhan.boQua.tongAnhNguon} ảnh
+              </span>
+            </p>
+            <ul className="port-import-confirm-list">
+              {lyDoBoQua(xacNhan.boQua).map((dong) => (
+                <li key={dong}>{dong}</li>
+              ))}
+            </ul>
+            <p className="port-import-confirm-note">
+              CINs chưa hỗ trợ GIF động dung lượng lớn. Bạn có thể tạo nháp với
+              phần lấy được rồi tự bổ sung sau, hoặc bỏ qua project này.
+            </p>
+            {mode === "all" ? (
+              <label className="port-import-confirm-remember">
+                <input
+                  type="checkbox"
+                  checked={apDungTatCa}
+                  onChange={(e) => setApDungTatCa(e.target.checked)}
+                />
+                <span>Áp dụng lựa chọn này cho các project còn lại</span>
+              </label>
+            ) : null}
+            <div className="port-import-confirm-actions">
+              <button
+                type="button"
+                className="port-import-btn"
+                onClick={() => traLoiXacNhan("bo")}
+              >
+                Bỏ qua project này
+              </button>
+              <button
+                type="button"
+                className="port-import-primary"
+                onClick={() => traLoiXacNhan("tiep")}
+              >
+                {xacNhan.boQua.daLay > 0
+                  ? `Tạo nháp với ${xacNhan.boQua.daLay} ảnh`
+                  : "Tạo nháp chỉ có link nguồn"}
+              </button>
+            </div>
+          </div>
         ) : null}
 
         {progress ? (
@@ -534,7 +658,13 @@ export function PortImportModal({ open, onClose, profileSlug }: Props) {
                       )}
                       <span className="port-import-card-title">
                         {w.title || "Không tên"}
-                        {st === "ok" ? " · đã tạo" : st === "fail" ? " · lỗi" : ""}
+                        {st === "ok"
+                          ? " · đã tạo"
+                          : st === "fail"
+                            ? " · lỗi"
+                            : st === "skip"
+                              ? " · đã bỏ qua"
+                              : ""}
                       </span>
                     </label>
                   </li>
@@ -579,6 +709,7 @@ export function PortImportModal({ open, onClose, profileSlug }: Props) {
               className="port-import-btn"
               onClick={() => {
                 cancelRef.current = true;
+                traLoiXacNhan("bo");
               }}
             >
               Dừng

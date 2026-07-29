@@ -2,6 +2,7 @@
 
 import {
   Check,
+  CheckCircle2,
   ChevronDown,
   FileSpreadsheet,
   ListFilter,
@@ -30,6 +31,7 @@ import {
   SHOP_TRANG_THAI_DON_LABEL,
   type ShopDonHang,
   type ShopLoaiDon,
+  type ShopTrangThaiDon,
 } from "@/lib/shop/types";
 
 import { exportDonsToViettelPostXlsx } from "@/lib/shop/export-viettelpost";
@@ -41,6 +43,38 @@ import "./shop-dashboard.css";
 const LOAI_DON_SHORT: Record<ShopLoaiDon, string> = {
   mua_ngay: "Đã thanh toán",
   dat_truoc_nhan_su_kien: "Thanh toán sau",
+};
+
+/** Tab quản lý theo trạng thái đơn. `null` = tất cả. */
+type DonTab = "can_xu_ly" | "hoan_thanh" | "huy" | "tat_ca";
+
+const DON_TAB_ORDER: DonTab[] = ["can_xu_ly", "hoan_thanh", "huy", "tat_ca"];
+
+const DON_TAB_LABEL: Record<DonTab, string> = {
+  can_xu_ly: "Cần xử lý",
+  hoan_thanh: "Hoàn thành",
+  huy: "Đã hủy",
+  tat_ca: "Tất cả",
+};
+
+const DON_TAB_STATUSES: Record<DonTab, ShopTrangThaiDon[] | null> = {
+  // `da_giao_tai_su_kien` vẫn cần shop chủ động gán «hoàn thành» → xếp ở đây.
+  can_xu_ly: ["cho_xac_nhan", "da_nhan_tien", "da_giao_tai_su_kien"],
+  hoan_thanh: ["hoan_thanh"],
+  huy: ["huy"],
+  tat_ca: null,
+};
+
+/** Trạng thái đơn có thể chuyển sang «hoàn thành». */
+function canComplete(d: ShopDonHang): boolean {
+  return d.trangThai === "da_nhan_tien" || d.trangThai === "da_giao_tai_su_kien";
+}
+
+type BulkAction = "prep" | "export";
+
+const BULK_ACTION_VERB: Record<BulkAction, string> = {
+  prep: "chuẩn bị",
+  export: "xuất Excel",
 };
 
 function formatDonTime(iso: string): string {
@@ -183,7 +217,13 @@ export function ShopDonClient() {
   const [loading, setLoading] = useState(cachedItems === null);
   const [err, setErr] = useState<string | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
+  const [tab, setTab] = useState<DonTab>("can_xu_ly");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  /** Bulk action đang chờ user chọn đơn (khi bấm lúc chưa chọn gì). */
+  const [pendingBulk, setPendingBulk] = useState<BulkAction | null>(null);
+  const [completeErr, setCompleteErr] = useState<string | null>(null);
+  /** Đơn đang hoàn thành lẻ (nút trong hàng) — tách khỏi bulk. */
+  const [rowCompletingId, setRowCompletingId] = useState<string | null>(null);
   const [prepOpen, setPrepOpen] = useState(false);
   const [prepLoaiFilter, setPrepLoaiFilter] = useState<Set<string>>(new Set());
   const [prepSelectOpen, setPrepSelectOpen] = useState(false);
@@ -224,6 +264,42 @@ export function ShopDonClient() {
   const selectedDons = useMemo(
     () => items.filter((d) => selectedIdSet.has(d.id)),
     [items, selectedIdSet],
+  );
+
+  const visibleItems = useMemo(() => {
+    const statuses = DON_TAB_STATUSES[tab];
+    if (!statuses) return items;
+    const set = new Set(statuses);
+    return items.filter((d) => set.has(d.trangThai));
+  }, [items, tab]);
+
+  const tabCounts = useMemo(() => {
+    const counts: Record<DonTab, number> = {
+      can_xu_ly: 0,
+      hoan_thanh: 0,
+      huy: 0,
+      tat_ca: items.length,
+    };
+    for (const d of items) {
+      if (
+        d.trangThai === "cho_xac_nhan" ||
+        d.trangThai === "da_nhan_tien" ||
+        d.trangThai === "da_giao_tai_su_kien"
+      ) {
+        counts.can_xu_ly += 1;
+      } else if (d.trangThai === "hoan_thanh") {
+        counts.hoan_thanh += 1;
+      } else if (d.trangThai === "huy") {
+        counts.huy += 1;
+      }
+    }
+    return counts;
+  }, [items]);
+
+  /** Đơn «đã nhận tiền» đang hiển thị — quick-select cho chuẩn bị/hoàn thành. */
+  const paidVisible = useMemo(
+    () => visibleItems.filter((d) => d.trangThai === "da_nhan_tien"),
+    [visibleItems],
   );
 
   const prepLines = useMemo(
@@ -318,7 +394,7 @@ export function ShopDonClient() {
   );
 
   const allSelected =
-    items.length > 0 && items.every((d) => selectedIdSet.has(d.id));
+    visibleItems.length > 0 && visibleItems.every((d) => selectedIdSet.has(d.id));
 
   const applySelect = useCallback(
     (id: string, index: number, shiftKey: boolean, checked: boolean) => {
@@ -328,7 +404,7 @@ export function ShopDonClient() {
           const b = Math.max(lastSelectIndexRef.current, index);
           const next = new Set(prev);
           for (let i = a; i <= b; i++) {
-            const row = items[i];
+            const row = visibleItems[i];
             if (row) next.add(row.id);
           }
           return [...next];
@@ -340,37 +416,128 @@ export function ShopDonClient() {
       });
       if (!shiftKey) lastSelectIndexRef.current = index;
     },
-    [items],
+    [visibleItems],
   );
 
   const toggleSelectAll = useCallback(() => {
     setSelectedIds((prev) => {
-      if (items.length > 0 && items.every((d) => prev.includes(d.id))) {
+      if (visibleItems.length > 0 && visibleItems.every((d) => prev.includes(d.id))) {
         lastSelectIndexRef.current = null;
         return [];
       }
-      return items.map((d) => d.id);
+      return visibleItems.map((d) => d.id);
     });
-  }, [items]);
+  }, [visibleItems]);
 
   const clearSelection = useCallback(() => {
     setSelectedIds([]);
     lastSelectIndexRef.current = null;
+    setPendingBulk(null);
     closePrep();
   }, [closePrep]);
 
-  const exportViettelPost = useCallback(async () => {
-    if (selectedDons.length === 0 || exporting) return;
-    setExporting(true);
+  /* Đổi tab = ngữ cảnh chọn khác nhau → reset lựa chọn + prompt. */
+  useEffect(() => {
+    setSelectedIds([]);
+    lastSelectIndexRef.current = null;
+    setPendingBulk(null);
+    setCompleteErr(null);
     setExportErr(null);
-    try {
-      await exportDonsToViettelPostXlsx(selectedDons);
-    } catch {
-      setExportErr("Không xuất được file. Thử lại.");
-    } finally {
-      setExporting(false);
-    }
-  }, [selectedDons, exporting]);
+  }, [tab]);
+
+  const openPrep = useCallback(() => {
+    setPrepLoaiFilter(new Set());
+    setPrepExpandedKey(null);
+    setPrepOpen(true);
+  }, []);
+
+  const exportDons = useCallback(
+    async (dons: ShopDonHang[]) => {
+      if (dons.length === 0 || exporting) return;
+      setExporting(true);
+      setExportErr(null);
+      try {
+        await exportDonsToViettelPostXlsx(dons);
+      } catch {
+        setExportErr("Không xuất được file. Thử lại.");
+      } finally {
+        setExporting(false);
+      }
+    },
+    [exporting],
+  );
+
+  /** Hoàn thành một đơn ngay trong hàng (không cần chọn / mở modal). */
+  const completeOne = useCallback(
+    async (d: ShopDonHang) => {
+      if (!canComplete(d) || rowCompletingId) return;
+      setRowCompletingId(d.id);
+      setCompleteErr(null);
+      try {
+        const res = await fetch(`/api/shop/don/${d.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "hoan_thanh" }),
+        });
+        const json = (await res.json().catch(() => null)) as {
+          don?: ShopDonHang;
+          error?: string;
+        } | null;
+        if (res.ok && json?.don) {
+          const updated = json.don;
+          setItems((prev) =>
+            prev.map((it) => (it.id === updated.id ? { ...it, ...updated } : it)),
+          );
+          setSelectedIds((prev) => prev.filter((id) => id !== updated.id));
+        } else {
+          setCompleteErr(json?.error ?? "Không hoàn thành được đơn.");
+        }
+      } catch {
+        setCompleteErr("Không hoàn thành được đơn.");
+      } finally {
+        setRowCompletingId(null);
+      }
+    },
+    [rowCompletingId],
+  );
+
+  /** Bấm 1 nút bulk: có chọn thì chạy; chưa chọn thì mở prompt yêu cầu chọn đơn. */
+  const runBulk = useCallback(
+    (action: BulkAction) => {
+      setExportErr(null);
+      setCompleteErr(null);
+      if (selectedIds.length === 0) {
+        setPendingBulk(action);
+        return;
+      }
+      setPendingBulk(null);
+      if (action === "prep") {
+        openPrep();
+      } else if (action === "export") {
+        void exportDons(selectedDons);
+      }
+    },
+    [selectedIds.length, selectedDons, openPrep, exportDons],
+  );
+
+  /** Quick-select trong prompt: chọn nhóm đơn rồi chạy luôn action đang chờ. */
+  const quickSelect = useCallback(
+    (kind: "paid" | "visible") => {
+      const source = kind === "paid" ? paidVisible : visibleItems;
+      const ids = source.map((d) => d.id);
+      if (ids.length === 0) return;
+      const action = pendingBulk;
+      setSelectedIds(ids);
+      lastSelectIndexRef.current = null;
+      setPendingBulk(null);
+      if (action === "prep") {
+        openPrep();
+      } else if (action === "export") {
+        void exportDons(source);
+      }
+    },
+    [paidVisible, visibleItems, pendingBulk, openPrep, exportDons],
+  );
 
   useEffect(() => {
     if (!prepOpen) return;
@@ -395,13 +562,20 @@ export function ShopDonClient() {
     );
   }
 
-  const selectionActions =
-    selectedIds.length > 0 ? (
-      <div className="shop-don-bulk" role="toolbar" aria-label="Thao tác đơn đã chọn">
-        <div className="shop-don-bulk-head">
-          <span className="shop-don-bulk-count">
-            Đã chọn <strong>{selectedIds.length}</strong> đơn
-          </span>
+  const hasSelection = selectedIds.length > 0;
+  const bulkBar = (
+    <div className="shop-don-bulk" role="toolbar" aria-label="Thao tác đơn hàng loạt">
+      <div className="shop-don-bulk-head">
+        <span className="shop-don-bulk-count">
+          {hasSelection ? (
+            <>
+              Đã chọn <strong>{selectedIds.length}</strong> đơn
+            </>
+          ) : (
+            "Chưa chọn đơn"
+          )}
+        </span>
+        {hasSelection ? (
           <button
             type="button"
             className="shop-don-bulk-clear"
@@ -410,43 +584,101 @@ export function ShopDonClient() {
             <X size={14} strokeWidth={2.4} aria-hidden />
             Bỏ chọn
           </button>
-        </div>
-        <div className="shop-don-bulk-actions">
-          <button
-            type="button"
-            className="shop-don-bulk-btn is-primary"
-            title="Mở danh sách chuẩn bị hàng"
-            onClick={() => {
-              setPrepLoaiFilter(new Set());
-              setPrepExpandedKey(null);
-              setPrepOpen(true);
-            }}
-          >
-            <PackageCheck size={15} strokeWidth={2.2} aria-hidden />
-            Chuẩn bị
-          </button>
-          <button
-            type="button"
-            className="shop-don-bulk-btn"
-            disabled={exporting}
-            title="Xuất file Excel theo mẫu ViettelPost"
-            onClick={() => void exportViettelPost()}
-          >
-            {exporting ? (
-              <Loader2 size={15} className="shop-spin" aria-hidden />
-            ) : (
-              <FileSpreadsheet size={15} strokeWidth={2.2} aria-hidden />
-            )}
-            Xuất Excel
-          </button>
-        </div>
-        {exportErr ? (
-          <span className="shop-don-bulk-err" role="alert">
-            {exportErr}
-          </span>
         ) : null}
       </div>
-    ) : null;
+      <div className="shop-don-bulk-actions">
+        <button
+          type="button"
+          className="shop-don-bulk-btn is-primary"
+          title="Mở danh sách chuẩn bị hàng"
+          onClick={() => runBulk("prep")}
+        >
+          <PackageCheck size={15} strokeWidth={2.2} aria-hidden />
+          Chuẩn bị
+        </button>
+        <button
+          type="button"
+          className="shop-don-bulk-btn"
+          disabled={exporting}
+          title="Xuất file Excel theo mẫu ViettelPost"
+          onClick={() => runBulk("export")}
+        >
+          {exporting ? (
+            <Loader2 size={15} className="shop-spin" aria-hidden />
+          ) : (
+            <FileSpreadsheet size={15} strokeWidth={2.2} aria-hidden />
+          )}
+          Xuất Excel
+        </button>
+      </div>
+
+      {pendingBulk ? (
+        <div className="shop-don-bulk-prompt" role="group">
+          <p className="shop-don-bulk-prompt-title">
+            Chọn đơn cần {BULK_ACTION_VERB[pendingBulk]}:
+          </p>
+          <div className="shop-don-bulk-prompt-opts">
+            {paidVisible.length > 0 ? (
+              <button
+                type="button"
+                className="shop-don-bulk-prompt-btn"
+                onClick={() => quickSelect("paid")}
+              >
+                Đơn đã nhận tiền ({paidVisible.length})
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className="shop-don-bulk-prompt-btn"
+              disabled={visibleItems.length === 0}
+              onClick={() => quickSelect("visible")}
+            >
+              Tất cả đang hiển thị ({visibleItems.length})
+            </button>
+            <button
+              type="button"
+              className="shop-don-bulk-prompt-btn ghost"
+              onClick={() => setPendingBulk(null)}
+            >
+              Để tôi tự chọn
+            </button>
+          </div>
+          <p className="shop-don-bulk-prompt-hint">
+            Hoặc tích chọn từng đơn trong bảng bên dưới.
+          </p>
+        </div>
+      ) : null}
+
+      {exportErr ? (
+        <span className="shop-don-bulk-err" role="alert">
+          {exportErr}
+        </span>
+      ) : null}
+      {completeErr ? (
+        <span className="shop-don-bulk-err" role="alert">
+          {completeErr}
+        </span>
+      ) : null}
+    </div>
+  );
+
+  const statusTabs = (
+    <div className="shop-don-status-tabs" role="tablist" aria-label="Lọc theo trạng thái đơn">
+      {DON_TAB_ORDER.map((t) => (
+        <button
+          key={t}
+          type="button"
+          role="tab"
+          aria-selected={tab === t}
+          className={`shop-don-status-tab${tab === t ? " is-active" : ""}`}
+          onClick={() => setTab(t)}
+        >
+          {DON_TAB_LABEL[t]}
+          <span className="shop-don-status-tab-count">{tabCounts[t]}</span>
+        </button>
+      ))}
+    </div>
+  );
 
   const prepPortal =
     portalReady && prepOpen
@@ -735,12 +967,19 @@ export function ShopDonClient() {
 
   return (
     <div className="shop-dash">
-      <ShopDashTabs active="don" actions={selectionActions} />
+      <ShopDashTabs active="don" />
 
       {err ? <p className="shop-dash-err">{err}</p> : null}
 
+      <div className="shop-don-toolbar">
+        {statusTabs}
+        {bulkBar}
+      </div>
+
       {items.length === 0 ? (
         <p className="shop-dash-hint">Chưa có đơn nào.</p>
+      ) : visibleItems.length === 0 ? (
+        <p className="shop-dash-hint">Không có đơn ở mục này.</p>
       ) : (
         <div className="shop-grid-wrap">
           <table className="shop-grid shop-don-sheet">
@@ -750,7 +989,7 @@ export function ShopDonClient() {
                   <input
                     type="checkbox"
                     checked={allSelected}
-                    aria-label="Chọn tất cả đơn"
+                    aria-label="Chọn tất cả đơn đang hiển thị"
                     onChange={toggleSelectAll}
                   />
                 </th>
@@ -775,10 +1014,13 @@ export function ShopDonClient() {
                 <th scope="col" className="shop-don-col-tong">
                   Tổng
                 </th>
+                <th scope="col" className="shop-don-col-act">
+                  Thao tác
+                </th>
               </tr>
             </thead>
             <tbody>
-              {items.map((d, index) => {
+              {visibleItems.map((d, index) => {
                 const isSelected = selectedIdSet.has(d.id);
                 return (
                   <tr
@@ -855,6 +1097,38 @@ export function ShopDonClient() {
                     <td className="shop-don-col-sp">{tongSoLuong(d)}</td>
                     <td className="shop-don-col-tong">
                       {d.tongTien.toLocaleString("vi-VN")} {d.tienTe}
+                    </td>
+                    <td
+                      className="shop-don-col-act"
+                      onClick={(e) => e.stopPropagation()}
+                      onKeyDown={(e) => e.stopPropagation()}
+                    >
+                      {canComplete(d) ? (
+                        <button
+                          type="button"
+                          className="shop-don-row-done"
+                          disabled={rowCompletingId === d.id}
+                          onClick={() => void completeOne(d)}
+                          title="Đánh dấu đơn đã hoàn thành"
+                        >
+                          {rowCompletingId === d.id ? (
+                            <Loader2
+                              size={13}
+                              className="shop-spin"
+                              aria-hidden
+                            />
+                          ) : (
+                            <CheckCircle2
+                              size={13}
+                              strokeWidth={2.2}
+                              aria-hidden
+                            />
+                          )}
+                          Hoàn thành
+                        </button>
+                      ) : (
+                        <span className="shop-don-row-act-empty">—</span>
+                      )}
                     </td>
                   </tr>
                 );

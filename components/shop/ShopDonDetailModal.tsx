@@ -195,7 +195,9 @@ export function ShopDonDetailModal({
     return null;
   })();
 
-  async function patch(action: "da_nhan_tien" | "da_giao_tai_su_kien") {
+  async function patch(
+    action: "da_nhan_tien" | "da_giao_tai_su_kien" | "hoan_thanh",
+  ) {
     if (!don) return;
     setBusy(true);
     setErr(null);
@@ -612,6 +614,20 @@ export function ShopDonDetailModal({
                     {don.loaiDon === "mua_ngay"
                       ? "Đã nhận tiền"
                       : "Đã giao / nhận hàng"}
+                  </button>
+                ) : null}
+
+                {(don.trangThai === "da_nhan_tien" ||
+                  don.trangThai === "da_giao_tai_su_kien") &&
+                role === "seller" ? (
+                  <button
+                    type="button"
+                    className="shop-don-detail-btn primary"
+                    disabled={busy}
+                    title="Đánh dấu đơn đã giao xong / hoàn thành"
+                    onClick={() => void patch("hoan_thanh")}
+                  >
+                    Hoàn thành đơn
                   </button>
                 ) : null}
 

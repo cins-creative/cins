@@ -63,7 +63,10 @@ export function JourneyUserPopoverActions({
   const isSelf =
     Boolean(user.idNguoiDung) && viewerProfileId === user.idNguoiDung;
   const showFollowButton =
-    Boolean(user.idNguoiDung) && !isSelf && ketBan.quanHe !== "accepted";
+    Boolean(user.idNguoiDung) &&
+    !isSelf &&
+    ketBan.quanHe !== "accepted" &&
+    ketBan.quanHe !== "blocked";
   const sharePath = user.slug ? `/${user.slug}` : "";
 
   const openMessage = () => {

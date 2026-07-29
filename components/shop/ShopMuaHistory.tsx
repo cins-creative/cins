@@ -30,7 +30,7 @@ type Recipient = {
 };
 
 function isPaidDon(d: ShopDonHang): boolean {
-  return d.trangThai === "da_nhan_tien";
+  return d.trangThai === "da_nhan_tien" || d.trangThai === "hoan_thanh";
 }
 
 function money(n: number, tienTe: string): string {

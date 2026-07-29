@@ -3422,6 +3422,22 @@ a.j-main-gallery-item:focus-visible,
   padding: 6px 10px;
 }
 
+/* Biến thể icon (trong hàng CTA card) — chấm tròn báo "đã chặn". */
+.j-follow-blocked.is-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  min-height: 32px;
+  flex: 0 0 32px;
+  padding: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, #dc2626 12%, transparent);
+  color: #b91c1c;
+}
+
 /* ────────────────────────────────────────────────────────────────
  * TIMELINE — rail + diamond + cards
  *
@@ -12839,6 +12855,15 @@ select.j-edit-input {
   color: #047857;
   border-color: #a7f3d0;
 }
+.j-friend-btn.is-blocked {
+  background: color-mix(in srgb, #dc2626 14%, #fff);
+  color: #b91c1c;
+  border-color: transparent;
+}
+.j-friend-btn.is-blocked:hover:not(:disabled) {
+  background: color-mix(in srgb, #dc2626 24%, #fff);
+  color: #b91c1c;
+}
 .j-friend-request-actions {
   position: absolute;
   top: calc(100% + 8px);
@@ -12877,6 +12902,12 @@ select.j-edit-input {
 }
 .j-friend-action.is-unfriend {
   color: #b91c1c;
+}
+.j-friend-action.is-unblock {
+  color: #047857;
+}
+.j-friend-action.is-unblock:hover:not(:disabled) {
+  background: #ecfdf5;
 }
 .j-friend-action.is-decline:hover:not(:disabled) {
   background: #fef2f2;
@@ -13707,6 +13738,24 @@ select.j-edit-input {
   background: rgba(52, 201, 138, 0.14);
   color: #6ee7b7;
   border-color: rgba(52, 201, 138, 0.4);
+}
+
+:root[data-theme="dark"] .j-friend-btn.is-blocked {
+  background: rgba(220, 38, 38, 0.18);
+  color: #f87171;
+  border-color: transparent;
+}
+:root[data-theme="dark"] .j-friend-btn.is-blocked:hover:not(:disabled) {
+  background: rgba(220, 38, 38, 0.28);
+  color: #f87171;
+}
+
+:root[data-theme="dark"] .j-friend-action.is-unblock {
+  color: #6ee7b7;
+}
+
+:root[data-theme="dark"] .j-friend-action.is-unblock:hover:not(:disabled) {
+  background: rgba(52, 201, 138, 0.14);
 }
 
 :root[data-theme="dark"] .j-friend-request-actions {

@@ -188,6 +188,7 @@ export async function listAdminShopDonHang(opts: {
 const REVENUE_STATUSES = new Set<ShopTrangThaiDon>([
   "da_nhan_tien",
   "da_giao_tai_su_kien",
+  "hoan_thanh",
 ]);
 
 type ShopAgg = {

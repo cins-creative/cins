@@ -1,8 +1,9 @@
-/* Portal-mounted → z-index cao hơn topbar/sidebar và gradient card feed. */
+/* Portal-mounted → z-index cao hơn mọi overlay (topbar/sidebar, modal chi tiết
+   đơn shop-don-detail = 12600, bill-zoom = 12700) để báo cáo luôn nổi trên cùng. */
 .rpt-overlay {
   position: fixed;
   inset: 0;
-  z-index: 10050;
+  z-index: 12800;
   display: flex;
   align-items: flex-start;
   justify-content: center;

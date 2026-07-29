@@ -75,10 +75,6 @@ export async function POST(request: Request) {
         422,
         "Shop đang tạm đóng cửa — chưa nhận đơn.",
       ],
-      TOO_MANY_PENDING: [
-        429,
-        "Bạn còn đơn chờ xác nhận với cửa hàng này — chờ người bán xử lý trước khi gửi đơn mới.",
-      ],
       BLOCKED: [403, "Không thể gửi đơn tới cửa hàng này."],
     };
     const hit = map[msg];

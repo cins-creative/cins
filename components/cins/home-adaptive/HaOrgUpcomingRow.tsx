@@ -1,11 +1,8 @@
-import Link from "next/link";
-
 import { HaOrgUpCountdown } from "@/components/cins/home-adaptive/HaOrgUpCountdown";
 import { HaOrgPopoverChip } from "@/components/cins/home-adaptive/HaOrgPopoverChip";
-import {
-  sidebarEventHref,
-  type SidebarUpcomingEvent,
-} from "@/lib/cins/home-adaptive/sidebar-upcoming-events";
+import { HaOrgUpEventPopover } from "@/components/cins/home-adaptive/HaOrgUpEventPopover";
+import { sidebarEventPopoverItem } from "@/lib/cins/home-adaptive/sidebar-event-popover";
+import type { SidebarUpcomingEvent } from "@/lib/cins/home-adaptive/sidebar-upcoming-events";
 
 const MONTHS = [
   "Th1", "Th2", "Th3", "Th4", "Th5", "Th6",
@@ -60,7 +57,10 @@ export function HaOrgUpcomingRow({ item }: { item: SidebarUpcomingEvent }) {
 
   return (
     <li className={itemClass}>
-      <Link href={sidebarEventHref(item)} className="ha-org-up ha-org-up--banner" prefetch={false}>
+      <HaOrgUpEventPopover
+        item={sidebarEventPopoverItem(item)}
+        cardClassName="ha-org-up ha-org-up--banner"
+      >
         <div className="ha-org-up-banner" aria-hidden>
           {item.coverSrc ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -105,7 +105,7 @@ export function HaOrgUpcomingRow({ item }: { item: SidebarUpcomingEvent }) {
             status={item.status}
           />
         </div>
-      </Link>
+      </HaOrgUpEventPopover>
     </li>
   );
 }

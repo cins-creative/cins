@@ -2745,21 +2745,12 @@ export function ShopKhoClient() {
                       </td>
                       <td
                         className="shop-grid-col-gia"
-                        title="Giá gốc theo loại hàng — sửa ở meta loại"
+                        title="Giá gốc đã áp dụng cho mẫu — bấm «Áp dụng» ở meta loại để cập nhật"
                       >
                         <span className="shop-grid-readonly-val">
-                          {(() => {
-                            const n = draft.gia.trim()
-                              ? parseGiaInput(draft.gia)
-                              : null;
-                            if (n != null && Number.isFinite(n)) {
-                              return `${n.toLocaleString("vi-VN")} ${currentTienTe()}`;
-                            }
-                            if (giaHienThi != null) {
-                              return `${giaHienThi.toLocaleString("vi-VN")} ${currentTienTe()}`;
-                            }
-                            return "—";
-                          })()}
+                          {giaHienThi != null
+                            ? `${giaHienThi.toLocaleString("vi-VN")} ${currentTienTe()}`
+                            : "—"}
                         </span>
                       </td>
                       <td
