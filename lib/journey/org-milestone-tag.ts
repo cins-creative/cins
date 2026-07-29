@@ -730,13 +730,38 @@ async function respondOrgMilestoneTagRequestCore(
     return { ok: false, error: "Yêu cầu đã được xử lý." };
   }
 
+  // Parse payload TRƯỚC khi giành ổ khóa để lỗi payload không làm đổi trạng thái.
+  let approvePayload: OrgMilestoneTagPayload | null = null;
   if (params.action === "approve") {
-    const payload = parseOrgMilestoneTagPayload(row.noi_dung);
-    if (!payload) {
+    approvePayload = parseOrgMilestoneTagPayload(row.noi_dung);
+    if (!approvePayload) {
       return { ok: false, error: "Payload yêu cầu không hợp lệ." };
     }
+  }
 
-    const now = new Date().toISOString();
+  // Ổ KHÓA: đổi trạng thái yêu cầu trong chính lệnh UPDATE + đếm dòng đổi thật
+  // (theo mẫu completeDonHang trong lib/shop/don-hang.ts). Chỉ tiến trình đổi
+  // đúng 1 dòng cho_xu_ly → da_duyet/tu_choi mới chạy side-effect bên dưới
+  // (verify_xac_nhan, gắn môn, điểm) → hết đua/double-click tạo bản ghi trùng.
+  const now = new Date().toISOString();
+  const { data: lockedRows, error: lockErr } = await admin
+    .from("verify_yeu_cau")
+    .update({
+      trang_thai: dbStatusFromAction(params.action),
+      nguoi_xu_ly: params.viewerId,
+      xu_ly_luc: now,
+    })
+    .eq("id", params.requestId)
+    .eq("trang_thai", "cho_xu_ly")
+    .select("id");
+
+  if (lockErr) return { ok: false, error: lockErr.message };
+  if (!lockedRows || lockedRows.length === 0) {
+    return { ok: false, error: "Yêu cầu đã được xử lý." };
+  }
+
+  if (params.action === "approve" && approvePayload) {
+    const payload = approvePayload;
     const orgPath = orgPublicPath(payload.orgLoai, payload.orgSlug);
 
     const { error: mocErr } = await admin
@@ -745,7 +770,18 @@ async function respondOrgMilestoneTagRequestCore(
       .eq("id", row.id_cot_moc)
       .eq("id_nguoi_dung", row.nguoi_yeu_cau);
 
-    if (mocErr) return { ok: false, error: mocErr.message };
+    if (mocErr) {
+      // Đã giành ổ khóa (yêu cầu đã da_duyet) — không tự rollback, log để tra tay.
+      console.error(
+        "[org-tag] respondOrgMilestoneTag: gắn org vào cột mốc lỗi sau khi duyệt",
+        {
+          requestId: params.requestId,
+          cotMocId: row.id_cot_moc,
+          error: mocErr.message,
+        },
+      );
+      return { ok: false, error: mocErr.message };
+    }
 
     const { data: existingVerify } = await admin
       .from("verify_xac_nhan")
@@ -764,7 +800,17 @@ async function respondOrgMilestoneTagRequestCore(
         bang_chung: row.id,
         xu_ly_luc: now,
       });
-      if (verifyErr) return { ok: false, error: verifyErr.message };
+      if (verifyErr) {
+        console.error(
+          "[org-tag] respondOrgMilestoneTag: tạo verify_xac_nhan lỗi sau khi duyệt",
+          {
+            requestId: params.requestId,
+            cotMocId: row.id_cot_moc,
+            error: verifyErr.message,
+          },
+        );
+        return { ok: false, error: verifyErr.message };
+      }
     }
 
     await setDiemVerifyChoCotMoc(row.id_cot_moc);
@@ -785,16 +831,6 @@ async function respondOrgMilestoneTagRequestCore(
     });
   }
 
-  const { error } = await admin
-    .from("verify_yeu_cau")
-    .update({
-      trang_thai: dbStatusFromAction(params.action),
-      nguoi_xu_ly: params.viewerId,
-      xu_ly_luc: new Date().toISOString(),
-    })
-    .eq("id", params.requestId);
-
-  if (error) return { ok: false, error: error.message };
   return { ok: true };
 }
 
