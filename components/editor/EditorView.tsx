@@ -232,6 +232,7 @@ import { useEditorLottieFileUpload } from "@/lib/journey/use-editor-lottie-file-
 import { readImageFileDimensions } from "@/lib/journey/probe-image-dimensions";
 import { videoCanvasRatioClass } from "@/lib/journey/video-canvas-ratio";
 import { bunnyIframeSrc, buildBunnyVideoMp4Url, buildBunnyVideoThumbnailUrl, classifyBunnyVideoUrl } from "@/lib/bunny/embed";
+import { resolveVideoEmbed } from "@/lib/video/embed";
 import { EditorVideoThumbnailPicker } from "@/components/editor/EditorVideoThumbnailPicker";
 import { ImageCropModal } from "@/components/editor/ImageCropModal";
 import { ComposePreviewPanel } from "@/components/editor/ComposePreviewPanel";
@@ -6376,13 +6377,36 @@ function enrichBunnyEmbedBlocksForPublish(
   return blocks.map((block) => {
     if (block.loai !== "embed") return block;
     const url = String(block.config?.url ?? "").trim();
-    const bunny = classifyBunnyVideoUrl(url);
-    if (!bunny) return block;
+    const hints = {
+      videoProvider:
+        typeof block.config?.videoProvider === "string"
+          ? (block.config.videoProvider as string)
+          : null,
+      videoId:
+        typeof block.config?.videoId === "string"
+          ? (block.config.videoId as string)
+          : null,
+      bunnyVideoId:
+        typeof block.config?.bunnyVideoId === "string"
+          ? (block.config.bunnyVideoId as string)
+          : null,
+    };
+    const resolved = resolveVideoEmbed(url, hints);
+    if (!resolved) return block;
+    /* Ghi provider/id tổng quát để Stream & Bunny chạy song song. */
+    const providerConfig =
+      resolved.provider === "stream"
+        ? { videoProvider: "stream" as const, videoId: resolved.id }
+        : {
+            videoProvider: "bunny" as const,
+            videoId: resolved.id,
+            bunnyVideoId: resolved.id,
+          };
     return {
       ...block,
       config: {
         ...(block.config ?? {}),
-        bunnyVideoId: bunny.videoId,
+        ...providerConfig,
         ...(!isEdit ? { videoProcessing: true } : {}),
       },
     };

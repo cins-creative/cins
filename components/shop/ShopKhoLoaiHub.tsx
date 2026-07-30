@@ -19,6 +19,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { readImageFilesFromClipboard } from "@/lib/files/clipboard-images";
+import {
+  createVideoTusUpload,
+  prepareResponseIsValid,
+  type VideoPrepareResponse,
+} from "@/lib/video/upload-tus";
 import { parseGiaInput } from "@/lib/shop/gia-input";
 import type { ShopNhom, ShopSanPham } from "@/lib/shop/types";
 import {
@@ -794,39 +799,18 @@ export function ShopKhoLoaiMeta({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: `Shop · ${nhom.nhan}` }),
       });
-      const prep = (await prepRes.json().catch(() => null)) as {
-        videoId?: string;
-        libraryId?: string;
-        embedUrl?: string;
-        authorizationSignature?: string;
-        authorizationExpire?: number;
-        error?: string;
-      } | null;
-      if (
-        !prepRes.ok ||
-        !prep?.videoId ||
-        !prep.libraryId ||
-        !prep.authorizationSignature ||
-        !prep.embedUrl
-      ) {
+      const prep = (await prepRes
+        .json()
+        .catch(() => null)) as VideoPrepareResponse | null;
+      if (!prepRes.ok || !prep || !prepareResponseIsValid(prep)) {
         throw new Error(prep?.error ?? "Không chuẩn bị được upload video.");
       }
 
-      const { Upload } = await import("tus-js-client");
+      const videoId = prep.videoId!;
+      const embedUrl = prep.embedUrl!;
+
       await new Promise<void>((resolve, reject) => {
-        const upload = new Upload(file, {
-          endpoint: "https://video.bunnycdn.com/tusupload",
-          retryDelays: [0, 1000, 3000, 5000, 10000],
-          headers: {
-            AuthorizationSignature: prep.authorizationSignature!,
-            AuthorizationExpire: String(prep.authorizationExpire),
-            VideoId: prep.videoId!,
-            LibraryId: String(prep.libraryId),
-          },
-          metadata: {
-            filetype: file.type,
-            title: file.name,
-          },
+        void createVideoTusUpload(file, prep, {
           onProgress: (bytesUploaded, bytesTotal) => {
             if (bytesTotal <= 0) return;
             setVideoProgress(
@@ -839,16 +823,19 @@ export function ShopKhoLoaiMeta({
             );
           },
           onSuccess: () => resolve(),
-        });
-        videoAbortRef.current = upload;
-        upload.start();
+        })
+          .then((upload) => {
+            videoAbortRef.current = upload;
+            upload.start();
+          })
+          .catch(reject);
       });
 
-      const ok = await patch({ videoPhuId: prep.videoId });
+      const ok = await patch({ videoPhuId: videoId });
       if (ok) {
         setVideoPhu({
-          id: prep.videoId,
-          embedUrl: prep.embedUrl,
+          id: videoId,
+          embedUrl,
           thumbUrl: null,
         });
       }

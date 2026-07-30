@@ -8,6 +8,7 @@ import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import type { ArticleTagRef } from "@/lib/editor/article-tag";
 import type { Block } from "@/lib/editor/types";
 import { classifyBunnyVideoUrl } from "@/lib/bunny/embed";
+import { classifyStreamVideoUrl } from "@/lib/cloudflare/stream-embed";
 import { ImageGrid } from "@/components/journey/ImageGrid";
 import { JourneyArticleTagLink } from "@/components/journey/JourneyArticleTagLink";
 import { JourneyCardVideo } from "@/components/journey/JourneyCardVideo";
@@ -333,7 +334,8 @@ export function JourneyMilestoneCardBodyContent({
     : null;
   const hasBunnyInArticle = Boolean(
     videoEmbedUrlForArticle &&
-      classifyBunnyVideoUrl(videoEmbedUrlForArticle),
+      (classifyBunnyVideoUrl(videoEmbedUrlForArticle) ||
+        classifyStreamVideoUrl(videoEmbedUrlForArticle)),
   );
   /* Bunny + bài viết dài: hiện full peek (video + block dưới), không chỉ embed.
      Bài đã có ảnh bìa: ưu tiên thumbnail cover (không khung embed đen 16:9).

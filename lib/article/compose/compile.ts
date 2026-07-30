@@ -6,6 +6,10 @@ import {
   classifyBunnyVideoUrl,
 } from "@/lib/bunny/embed";
 import {
+  buildStreamIframeUrl,
+  classifyStreamVideoUrl,
+} from "@/lib/cloudflare/stream-embed";
+import {
   buildEmbedIframeSrc,
   classifyEmbedUrl,
   embedIframeAllowAttr,
@@ -83,6 +87,12 @@ function embedIframeAllow(provider: string): string {
 function compileEmbedHtml(url: string): string {
   const trimmed = url.trim();
   if (!trimmed) return "";
+
+  const stream = classifyStreamVideoUrl(trimmed);
+  if (stream) {
+    const src = buildStreamIframeUrl(stream.uid);
+    return `<div class="rich-embed rich-embed-iframe" data-provider="stream"><iframe src="${escapeHtml(src)}" title="Video" allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;" allowfullscreen loading="lazy"></iframe></div>`;
+  }
 
   const bunny = classifyBunnyVideoUrl(trimmed);
   if (bunny) {

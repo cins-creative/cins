@@ -1,6 +1,6 @@
 "use client";
 
-import { BarChart2, CalendarPlus, Image as ImageIcon, Loader2, Plus, X } from "lucide-react";
+import { BarChart2, CalendarPlus, Image as ImageIcon, Loader2, Plus, Video as VideoIcon, X } from "lucide-react";
 import {
   useEffect,
   useId,
@@ -16,6 +16,7 @@ type Props = {
   canAddMoc: boolean;
   onAddMoc: () => void;
   onAttachImage: () => void;
+  onAttachVideo: () => void;
   onCreatePoll: (input: {
     question: string;
     options: string[];
@@ -29,6 +30,7 @@ export function ChatComposeToolsMenu({
   canAddMoc,
   onAddMoc,
   onAttachImage,
+  onAttachVideo,
   onCreatePoll,
 }: Props) {
   const menuId = useId();
@@ -122,6 +124,21 @@ export function ChatComposeToolsMenu({
                 <span>
                   <strong>Đính kèm ảnh</strong>
                   <em>JPEG, PNG, WebP hoặc GIF</em>
+                </span>
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                className="cins-chat-compose-tools-item"
+                onClick={() => {
+                  onOpenChange(false);
+                  onAttachVideo();
+                }}
+              >
+                <VideoIcon size={16} strokeWidth={1.9} aria-hidden />
+                <span>
+                  <strong>Đính kèm video</strong>
+                  <em>MP4/WebM/MOV, tối đa 60s</em>
                 </span>
               </button>
               <button

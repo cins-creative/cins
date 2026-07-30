@@ -7,6 +7,7 @@ import type { ChatMentionRef, ChatMessage, ChatMessageReplyPreview } from "@/lib
 export type ChatSendPayload = {
   noi_dung?: string;
   cloudflare_image_id?: string;
+  video_media_id?: string;
   id_emoji_muc?: string;
   id_tin_tra_loi?: string;
 };

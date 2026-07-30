@@ -131,6 +131,12 @@ export type ChatMessage = {
   imageUrl?: string | null;
   /** Optimistic: nhiều ảnh trong một bubble album khi đang gửi. */
   albumImages?: Array<{ imageId: string; imageUrl: string }>;
+  /** Video chat trên R2 (loai_tin='media' + content_media.loai_media='video'). */
+  videoKey?: string | null;
+  videoUrl?: string | null;
+  videoWidth?: number | null;
+  videoHeight?: number | null;
+  videoDurationS?: number | null;
   deleted?: boolean;
   edited?: boolean;
   editedAt?: string | null;

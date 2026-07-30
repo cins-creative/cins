@@ -54,7 +54,7 @@ const nextConfig: NextConfig = {
       },
     ];
   },
-  /** Client Journey video — fallback tên env server / typo CND trong `.env.local`. */
+  /** Client video env — Bunny (đang migrate) + Cloudflare Stream/R2 (đích). */
   env: {
     NEXT_PUBLIC_BUNNY_LIBRARY_ID: pickEnv(
       "NEXT_PUBLIC_BUNNY_LIBRARY_ID",
@@ -65,6 +65,13 @@ const nextConfig: NextConfig = {
       "BUNNY_CDN_HOSTNAME",
       "BUNNY_CND_HOSTNAME",
     ),
+    /** Mã customer subdomain phát Cloudflare Stream (customer-xxxx). */
+    NEXT_PUBLIC_CF_STREAM_CUSTOMER_CODE: pickEnv(
+      "NEXT_PUBLIC_CF_STREAM_CUSTOMER_CODE",
+      "CLOUDFLARE_STREAM_CUSTOMER_CODE",
+    ),
+    /** Custom domain công khai gắn vào bucket R2 video chat (vd https://chat-video.cins.vn). */
+    NEXT_PUBLIC_CHAT_VIDEO_BASE_URL: pickEnv("NEXT_PUBLIC_CHAT_VIDEO_BASE_URL"),
   },
   /** Một bản ProseMirror/Tiptap — tránh RangeError gapcursor khi split chunk. */
   transpilePackages: [

@@ -27,7 +27,9 @@ export type Block = {
    *     `gap` — khe giữa ô (0 | 2 | 4 px), mặc định 2.
    *     `albumLayout` — preset album feed: justified | masonry | columns2 | square | stack (khi albumGridCell).
    *     Mỗi phần tử `imgs[]` / mosaic `seed`: Cloudflare UUID hoặc URL http(s) đầy đủ.
-   *   - embed: { url, provider?, embed_html?, showCoverInPost?, coverThumb?, bunnyVideoId?, videoCanvasRatio? }
+   *   - embed: { url, provider?, embed_html?, showCoverInPost?, coverThumb?, bunnyVideoId?, videoProvider?, videoId?, videoCanvasRatio? }
+   *     `videoProvider` ('bunny'|'stream') + `videoId` — provider video tổng quát (migrate Bunny→Stream).
+   *     `bunnyVideoId` là legacy; ưu tiên `videoProvider`/`videoId` khi có.
    *     `showCoverInPost` — hiện `cover_id` trên card Journey + thân bài (opt-in `true`).
    *     Card timeline: hiện trừ khi `false` tường minh. Gallery / OG luôn dùng cover.
      *     `coverThumb` — { ratio: "16:9", x:0–100, y:0–100, zoom?:1–3 }

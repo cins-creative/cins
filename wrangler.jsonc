@@ -36,6 +36,10 @@
     {
       "bucket_name": "cins-rive-assets",
       "binding": "CINS_RIVE_ASSETS"
+    },
+    {
+      "bucket_name": "cins-chat-video",
+      "binding": "CINS_CHAT_VIDEO"
     }
   ]
 }

@@ -19,6 +19,8 @@ import {
   buildVideoIframeSrc,
   bunnyVideoIdFromBlocks,
   resolveBunnyEmbed,
+  resolveVideoThumbnailFromBlocks,
+  videoHintsFromBlocks,
 } from "@/lib/journey/video-embed";
 import { setShareDragData } from "@/lib/cins/share-drag";
 import { useOffscreenMedia } from "@/lib/journey/use-offscreen-media";
@@ -72,7 +74,13 @@ export function JourneyCardVideo({
     threshold: 0.2,
     onLeave: stopPlayback,
   });
-  const posterSrc = resolveVideoPoster(url, preview);
+  const hints = useMemo(
+    () => videoHintsFromBlocks(noiDungBlocks),
+    [noiDungBlocks],
+  );
+  const posterSrc =
+    resolveVideoPoster(url, preview) ??
+    resolveVideoThumbnailFromBlocks(noiDungBlocks);
   const bunnyVideoId = useMemo(
     () => bunnyVideoIdFromBlocks(noiDungBlocks),
     [noiDungBlocks],
@@ -98,8 +106,10 @@ export function JourneyCardVideo({
       buildVideoIframeSrc(url, {
         autoplay: true,
         bunnyVideoId,
+        videoProvider: hints.videoProvider,
+        videoId: hints.videoId,
       }),
-    [url, bunnyVideoId],
+    [url, bunnyVideoId, hints.videoProvider, hints.videoId],
   );
 
   useEffect(() => {
@@ -120,6 +130,8 @@ export function JourneyCardVideo({
           title={title}
           processing
           bunnyVideoId={bunnyVideoId}
+          videoProvider={hints.videoProvider}
+          videoId={hints.videoId}
         />
       </div>
     );
@@ -218,6 +230,8 @@ export function JourneyCardVideo({
           title={title}
           autoplay
           bunnyVideoId={bunnyVideoId}
+          videoProvider={hints.videoProvider}
+          videoId={hints.videoId}
           onIframeLoad={() => setIframeReady(true)}
         />
       </div>

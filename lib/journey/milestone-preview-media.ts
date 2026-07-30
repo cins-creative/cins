@@ -14,7 +14,7 @@ import {
 } from "@/lib/journey/images";
 import { detectMediaPostKind } from "@/lib/journey/post-media";
 import { shouldShowCoverOnPostCard } from "@/lib/journey/post-content-kind";
-import { resolveBunnyVideoThumbnailFromBlocks } from "@/lib/journey/video-embed";
+import { resolveVideoThumbnailFromBlocks } from "@/lib/journey/video-embed";
 import {
   extractVideoCanvasRatio,
   videoPreviewDimensionsFromRatio,
@@ -64,7 +64,7 @@ export function milestonePreviewMedia(
 
   if (mediaKind === "video") {
     if (trimmedCover) return coverFromImageId(trimmedCover, label, parsed);
-    const thumb = resolveBunnyVideoThumbnailFromBlocks(parsed);
+    const thumb = resolveVideoThumbnailFromBlocks(parsed);
     if (thumb) {
       const dims = videoPreviewDimensionsFromRatio(
         extractVideoCanvasRatio(parsed),

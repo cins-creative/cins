@@ -29,6 +29,12 @@ import {
 import type { Block } from "@/lib/editor/types";
 import { resolveBunnyEmbed } from "@/lib/journey/video-embed";
 import {
+  buildStreamIframeUrl,
+  buildStreamThumbnailUrl,
+  classifyStreamVideoUrl,
+  isStreamUid,
+} from "@/lib/cloudflare/stream-embed";
+import {
   parseVideoCanvasRatio,
   videoCanvasRatioClass,
 } from "@/lib/journey/video-canvas-ratio";
@@ -70,6 +76,18 @@ function resolveEmbedBunnyVideoId(cfg: Record<string, unknown>): string | null {
   const id =
     typeof cfg.bunnyVideoId === "string" ? cfg.bunnyVideoId.trim() : "";
   return id || null;
+}
+
+/** Uid Stream từ cfg (provider tường minh) hoặc từ URL Stream. */
+function resolveEmbedStreamUid(
+  cfg: Record<string, unknown>,
+  url: string,
+): string | null {
+  const provider =
+    typeof cfg.videoProvider === "string" ? cfg.videoProvider.trim() : "";
+  const videoId = typeof cfg.videoId === "string" ? cfg.videoId.trim() : "";
+  if (provider === "stream" && isStreamUid(videoId)) return videoId;
+  return classifyStreamVideoUrl(url)?.uid ?? null;
 }
 
 function resolveEmbedCanvasClass(cfg: Record<string, unknown>): string {
@@ -260,6 +278,32 @@ function ReadOnlyBlock({
           <iframe
             src={youtubeSrc}
             title="YouTube video player"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            referrerPolicy="strict-origin-when-cross-origin"
+            allowFullScreen
+            loading="eager"
+          />
+        </ViewportGatedEmbed>
+      );
+    }
+
+    const streamUid = resolveEmbedStreamUid(cfg, url);
+    if (streamUid) {
+      const canvasClass = resolveEmbedCanvasClass(cfg);
+      const streamSrc = mediaAutoplay
+        ? `${buildStreamIframeUrl(streamUid)}?autoplay=true&muted=true&poster=${encodeURIComponent(buildStreamThumbnailUrl(streamUid) ?? "")}`
+        : buildStreamIframeUrl(streamUid);
+      return (
+        <ViewportGatedEmbed
+          className={
+            "b-embed b-embed-ro is-iframe" +
+            (canvasClass ? ` ${canvasClass}` : "")
+          }
+          data-provider="stream"
+        >
+          <iframe
+            src={streamSrc}
+            title="Video"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             referrerPolicy="strict-origin-when-cross-origin"
             allowFullScreen

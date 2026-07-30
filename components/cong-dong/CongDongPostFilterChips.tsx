@@ -136,6 +136,7 @@ export function CongDongPostFilterChips({
   };
 
   const toggleFilter = (filterId: string) => {
+    if (pending) return;
     setSelectedIds((prev) => {
       const next = prev.includes(filterId)
         ? prev.filter((id) => id !== filterId)

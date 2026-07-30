@@ -98,6 +98,13 @@ import {
   planPendingImageAdditions,
 } from "@/lib/chat/compose-image-upload";
 import { buildChatSendPlan, optimisticMessagesFromPlan, type ChatSendPayload } from "@/lib/chat/compose-send-plan";
+import {
+  captureVideoPoster,
+  CHAT_VIDEO_ACCEPT,
+  CHAT_VIDEO_MAX_UPLOAD_BYTES,
+  probeVideoMetadata,
+  uploadChatVideo,
+} from "@/lib/chat/compose-video";
 import { executeComposeSendPlanInBackground } from "@/lib/chat/execute-compose-send-plan";
 import {
   fetchPinnedMessages,
@@ -952,6 +959,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const groupAvatarInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoFileInputRef = useRef<HTMLInputElement>(null);
   const roomStatusRef = useRef<Record<string, "idle" | "loading" | "ready" | "error">>(
     {},
   );
@@ -2872,6 +2880,77 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     ],
   );
 
+  /** Đính kèm video chat: optimistic (poster/blob) → upload R2 → gửi media. */
+  const attachVideoFile = useCallback(
+    async (file: File) => {
+      const thread = active;
+      /* Không dùng `canSend` (đòi có draft/ảnh) — video gửi độc lập như đính kèm ảnh. */
+      if (!thread || isPendingRoom || connecting || lopFrozen) return;
+
+      if (file.size > CHAT_VIDEO_MAX_UPLOAD_BYTES) {
+        setLoadError("Video quá nặng (tối đa 50MB) — hãy quay ngắn hoặc nén lại.");
+        return;
+      }
+
+      const [poster, meta] = await Promise.all([
+        captureVideoPoster(file).catch(() => null),
+        probeVideoMetadata(file).catch(() => ({
+          durationS: null,
+          width: null,
+          height: null,
+        })),
+      ]);
+      const objectUrl = URL.createObjectURL(file);
+      const optimistic: ChatMessage = {
+        ...createOptimisticChatMessage({
+          body: "",
+          kind: "media",
+          videoUrl: objectUrl,
+          imageUrl: poster,
+          videoWidth: meta.width,
+          videoHeight: meta.height,
+          videoDurationS: meta.durationS,
+        }),
+        senderUserId: viewerProfileId ?? undefined,
+      };
+      appendOptimisticMessages(thread, [optimistic]);
+
+      const uploaded = await uploadChatVideo(file);
+      URL.revokeObjectURL(objectUrl);
+      if (poster) URL.revokeObjectURL(poster);
+
+      if (!uploaded.ok) {
+        setThreads((prev) =>
+          prev.map((t) =>
+            t.id === thread.id
+              ? {
+                  ...t,
+                  messages: t.messages.filter((m) => m.id !== optimistic.id),
+                }
+              : t,
+          ),
+        );
+        setLoadError(uploaded.error);
+        return;
+      }
+
+      void submitRoomMessage(
+        thread,
+        { video_media_id: uploaded.mediaId },
+        optimistic.id,
+      );
+    },
+    [
+      active,
+      appendOptimisticMessages,
+      isPendingRoom,
+      connecting,
+      lopFrozen,
+      submitRoomMessage,
+      viewerProfileId,
+    ],
+  );
+
   const submitAlbumBatch = useCallback(
     async (
       thread: ChatThread,
@@ -3967,6 +4046,19 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                   e.target.value = "";
                 }}
               />
+              <input
+                ref={videoFileInputRef}
+                type="file"
+                accept={CHAT_VIDEO_ACCEPT}
+                className="j-chat-mini-compose-file"
+                tabIndex={-1}
+                aria-hidden
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) void attachVideoFile(file);
+                  e.target.value = "";
+                }}
+              />
               <ChatComposeToolsMenu
                 open={composeToolsOpen}
                 onOpenChange={setComposeToolsOpen}
@@ -3974,6 +4066,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                 canAddMoc={Boolean(active.isGroup && active.isGroupAdmin)}
                 onAddMoc={handleComposeAddMoc}
                 onAttachImage={() => fileInputRef.current?.click()}
+                onAttachVideo={() => videoFileInputRef.current?.click()}
                 onCreatePoll={handleCreatePoll}
               />
               <button

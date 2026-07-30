@@ -12,6 +12,8 @@ type ProcessingItem = {
   orgBaiDangId?: string;
   orgId?: string;
   bunnyVideoId: string;
+  videoId?: string;
+  provider?: "bunny" | "stream";
 };
 
 function dispatchVideoReady(ownerSlug: string | null) {
@@ -73,8 +75,12 @@ export function BunnyVideoProcessingPoller({
         for (const item of items) {
           if (cancelled) return;
 
+          const videoId = item.videoId || item.bunnyVideoId;
+          const providerQuery = item.provider
+            ? `&provider=${item.provider}`
+            : "";
           const statusRes = await fetch(
-            `/api/post-video/status?videoId=${encodeURIComponent(item.bunnyVideoId)}`,
+            `/api/post-video/status?videoId=${encodeURIComponent(videoId)}${providerQuery}`,
             { cache: "no-store" },
           );
           if (!statusRes.ok) continue;
@@ -89,11 +95,13 @@ export function BunnyVideoProcessingPoller({
             ? {
                 orgBaiDangId: item.orgBaiDangId,
                 orgId: item.orgId,
-                bunnyVideoId: item.bunnyVideoId,
+                videoId,
+                provider: item.provider ?? null,
               }
             : {
                 tacPhamId: item.tacPhamId,
-                bunnyVideoId: item.bunnyVideoId,
+                videoId,
+                provider: item.provider ?? null,
               };
 
           const completeRes = await fetch("/api/post-video/complete", {

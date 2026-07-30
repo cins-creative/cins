@@ -137,11 +137,13 @@ export async function attachFiltersToPost(
   }
 
   const admin = createServiceRoleClient();
-  const { error } = await admin.from("cong_dong_filter_gan").insert(
+  /* upsert + ignoreDuplicates: idempotent khi publish/sync chạy lại hoặc race. */
+  const { error } = await admin.from("cong_dong_filter_gan").upsert(
     unique.map((id_filter) => ({
       id_cot_moc: postId,
       id_filter,
     })),
+    { onConflict: "id_cot_moc,id_filter", ignoreDuplicates: true },
   );
 
   if (error) return { ok: false, error: error.message };
@@ -152,13 +154,45 @@ export async function replaceFiltersOnPost(
   postId: string,
   filterIds: string[],
 ): Promise<{ ok: true } | { ok: false; error: string }> {
+  const unique = [...new Set(filterIds)];
+  if (unique.length > MAX_FILTERS_PER_POST) {
+    return { ok: false, error: `Tối đa ${MAX_FILTERS_PER_POST} nhãn mỗi bài.` };
+  }
+
   const admin = createServiceRoleClient();
-  const { error: delError } = await admin
+  const { data: currentRows, error: readError } = await admin
     .from("cong_dong_filter_gan")
-    .delete()
-    .eq("id_cot_moc", postId);
-  if (delError) return { ok: false, error: delError.message };
-  return attachFiltersToPost(postId, filterIds);
+    .select("id_filter")
+    .eq("id_cot_moc", postId)
+    .returns<Array<{ id_filter: string }>>();
+  if (readError) return { ok: false, error: readError.message };
+
+  const current = new Set((currentRows ?? []).map((r) => r.id_filter));
+  const next = new Set(unique);
+  const toDelete = [...current].filter((id) => !next.has(id));
+  const toInsert = [...next].filter((id) => !current.has(id));
+
+  if (toDelete.length > 0) {
+    const { error } = await admin
+      .from("cong_dong_filter_gan")
+      .delete()
+      .eq("id_cot_moc", postId)
+      .in("id_filter", toDelete);
+    if (error) return { ok: false, error: error.message };
+  }
+
+  if (toInsert.length > 0) {
+    const { error } = await admin.from("cong_dong_filter_gan").upsert(
+      toInsert.map((id_filter) => ({
+        id_cot_moc: postId,
+        id_filter,
+      })),
+      { onConflict: "id_cot_moc,id_filter", ignoreDuplicates: true },
+    );
+    if (error) return { ok: false, error: error.message };
+  }
+
+  return { ok: true };
 }
 
 export async function validateFilterIdsForOrg(

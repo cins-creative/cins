@@ -5,6 +5,12 @@ import {
   classifyBunnyVideoUrl,
   type BunnyVideoEmbed,
 } from "@/lib/bunny/embed";
+import {
+  buildStreamIframeUrl,
+  buildStreamThumbnailUrl,
+  classifyStreamVideoUrl,
+  isStreamUid,
+} from "@/lib/cloudflare/stream-embed";
 import type { Block } from "@/lib/editor/types";
 import { extractVideoUrl } from "@/lib/journey/post-media";
 import { getYoutubeId } from "@/lib/youtube";
@@ -38,6 +44,50 @@ export function bunnyVideoIdFromBlocks(
     if (fromConfig) return fromConfig;
   }
   return null;
+}
+
+export type VideoBlockHints = {
+  videoProvider?: string | null;
+  videoId?: string | null;
+  bunnyVideoId?: string | null;
+};
+
+/** Hint provider/id từ block embed đầu tiên (Bunny cũ hoặc Stream mới). */
+export function videoHintsFromBlocks(
+  blocks: ReadonlyArray<Block> | null | undefined,
+): VideoBlockHints {
+  if (!blocks) return {};
+  for (const block of blocks) {
+    if (block.loai !== "embed") continue;
+    const cfg = block.config ?? {};
+    const videoProvider =
+      typeof cfg.videoProvider === "string" ? cfg.videoProvider.trim() : null;
+    const videoId =
+      typeof cfg.videoId === "string" ? cfg.videoId.trim() : null;
+    const bunnyVideoId =
+      typeof cfg.bunnyVideoId === "string" ? cfg.bunnyVideoId.trim() : null;
+    if (videoProvider || videoId || bunnyVideoId) {
+      return { videoProvider, videoId, bunnyVideoId };
+    }
+  }
+  return {};
+}
+
+/** Poster video từ blocks — Stream trước, fallback Bunny (song song lúc migrate). */
+export function resolveVideoThumbnailFromBlocks(
+  blocks: ReadonlyArray<Block> | null | undefined,
+): string | null {
+  if (!blocks?.length) return null;
+  const url = extractVideoUrl(blocks) ?? "";
+  const hints = videoHintsFromBlocks(blocks);
+
+  const streamFromUrl = classifyStreamVideoUrl(url);
+  if (streamFromUrl) return buildStreamThumbnailUrl(streamFromUrl.uid);
+  if (hints.videoProvider === "stream" && hints.videoId && isStreamUid(hints.videoId)) {
+    return buildStreamThumbnailUrl(hints.videoId);
+  }
+
+  return resolveBunnyVideoThumbnailFromBlocks(blocks);
 }
 
 export function resolveBunnyEmbed(
@@ -87,12 +137,31 @@ export function resolveBunnyVideoPreviewMp4FromBlocks(
 /** URL iframe phát video milestone — Bunny / YouTube / Vimeo. */
 export function buildVideoIframeSrc(
   url: string,
-  options?: { autoplay?: boolean; bunnyVideoId?: string | null },
+  options?: {
+    autoplay?: boolean;
+    bunnyVideoId?: string | null;
+    videoProvider?: string | null;
+    videoId?: string | null;
+  },
 ): string | null {
   const autoplay = options?.autoplay === true;
   const sep = (base: string) => (base.includes("?") ? "&" : "?");
 
-  const bunny = resolveBunnyEmbed(url, options?.bunnyVideoId);
+  // Cloudflare Stream (mới) — provider tường minh, uid, hoặc URL Stream.
+  const streamUid =
+    options?.videoProvider === "stream" &&
+    options?.videoId &&
+    isStreamUid(options.videoId)
+      ? options.videoId
+      : (classifyStreamVideoUrl(url)?.uid ?? null);
+  if (streamUid) {
+    const base = buildStreamIframeUrl(streamUid);
+    return autoplay
+      ? `${base}${sep(base)}autoplay=true&muted=true`
+      : base;
+  }
+
+  const bunny = resolveBunnyEmbed(url, options?.videoId ?? options?.bunnyVideoId);
   if (bunny) {
     const base = buildBunnyEmbedUrl(bunny.libraryId, bunny.videoId);
     if (autoplay) {

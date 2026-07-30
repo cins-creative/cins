@@ -1,11 +1,33 @@
 import type { Block } from "@/lib/editor/types";
 import { classifyBunnyVideoUrl } from "@/lib/bunny/embed";
+import { classifyStreamVideoUrl } from "@/lib/cloudflare/stream-embed";
 
 export type VideoProcessingMeta = {
   url: string;
+  /** @deprecated dùng `videoId` (provider-agnostic). Giữ tương thích. */
   bunnyVideoId: string | null;
+  /** Id chung: Stream uid hoặc Bunny guid. */
+  videoId: string | null;
   processing: boolean;
 };
+
+/** Id video của block embed — `videoId`/`bunnyVideoId` cấu hình hoặc suy từ URL. */
+function blockVideoId(block: Block): string | null {
+  const cfg = block.config ?? {};
+  if (typeof cfg.videoId === "string" && cfg.videoId.trim()) {
+    return cfg.videoId.trim();
+  }
+  if (typeof cfg.bunnyVideoId === "string" && cfg.bunnyVideoId.trim()) {
+    return cfg.bunnyVideoId.trim();
+  }
+  const url = typeof cfg.url === "string" ? cfg.url.trim() : "";
+  if (!url) return null;
+  return (
+    classifyStreamVideoUrl(url)?.uid ??
+    classifyBunnyVideoUrl(url)?.videoId ??
+    null
+  );
+}
 
 export function isVideoProcessingInBlocks(
   blocks: ReadonlyArray<Block> | null | undefined,
@@ -33,6 +55,7 @@ export function extractVideoProcessingMeta(
     const url =
       typeof block.config?.url === "string" ? block.config.url.trim() : "";
     if (!url) continue;
+    const videoId = blockVideoId(block);
     const bunnyVideoId =
       typeof block.config?.bunnyVideoId === "string"
         ? block.config.bunnyVideoId
@@ -40,6 +63,7 @@ export function extractVideoProcessingMeta(
     return {
       url,
       bunnyVideoId,
+      videoId,
       processing: block.config?.videoProcessing === true,
     };
   }
@@ -48,17 +72,11 @@ export function extractVideoProcessingMeta(
 
 export function clearVideoProcessingInBlocks(
   blocks: ReadonlyArray<Block>,
-  bunnyVideoId: string,
+  videoId: string,
 ): Block[] {
   return blocks.map((block) => {
     if (block.loai !== "embed") return block;
-    const url =
-      typeof block.config?.url === "string" ? block.config.url.trim() : "";
-    const id =
-      typeof block.config?.bunnyVideoId === "string"
-        ? block.config.bunnyVideoId
-        : (classifyBunnyVideoUrl(url)?.videoId ?? null);
-    if (id !== bunnyVideoId || !block.config) return block;
+    if (blockVideoId(block) !== videoId || !block.config) return block;
     const nextConfig = { ...block.config };
     delete nextConfig.videoProcessing;
     return { ...block, config: nextConfig };

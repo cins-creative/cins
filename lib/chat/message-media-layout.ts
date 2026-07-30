@@ -10,7 +10,9 @@ export type ChatMessageMediaLayout =
 export function chatMessageMediaLayout(msg: ChatMessage): ChatMessageMediaLayout {
   if (msg.nguCanh) return "context";
   if (msg.kind === "sticker") return "sticker";
-  const hasMedia = Boolean(msg.imageId || msg.imageUrl);
+  const hasMedia = Boolean(
+    msg.imageId || msg.imageUrl || msg.videoKey || msg.videoUrl,
+  );
   if (!hasMedia) return "text";
   const caption = msg.body.trim();
   return caption ? "media-caption" : "media-only";

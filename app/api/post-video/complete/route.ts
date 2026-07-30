@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
-import { getBunnyVideoStatus } from "@/lib/bunny/stream";
+import { getVideoStatus } from "@/lib/video/status";
 import type { Block } from "@/lib/editor/types";
 import {
   clearVideoProcessingInBlocks,
@@ -26,38 +26,43 @@ export async function POST(request: Request) {
   let tacPhamId = "";
   let orgBaiDangId = "";
   let orgId = "";
-  let bunnyVideoId = "";
+  let videoId = "";
+  let provider: string | null = null;
   try {
     const body = (await request.json()) as {
       tacPhamId?: unknown;
       orgBaiDangId?: unknown;
       orgId?: unknown;
       bunnyVideoId?: unknown;
+      videoId?: unknown;
+      provider?: unknown;
     };
     tacPhamId =
       typeof body.tacPhamId === "string" ? body.tacPhamId.trim() : "";
     orgBaiDangId =
       typeof body.orgBaiDangId === "string" ? body.orgBaiDangId.trim() : "";
     orgId = typeof body.orgId === "string" ? body.orgId.trim() : "";
-    bunnyVideoId =
-      typeof body.bunnyVideoId === "string" ? body.bunnyVideoId.trim() : "";
+    videoId =
+      (typeof body.videoId === "string" ? body.videoId.trim() : "") ||
+      (typeof body.bunnyVideoId === "string" ? body.bunnyVideoId.trim() : "");
+    provider = typeof body.provider === "string" ? body.provider.trim() : null;
   } catch {
     return NextResponse.json({ error: "Body không hợp lệ." }, { status: 400 });
   }
 
-  if (!bunnyVideoId || (!tacPhamId && !(orgBaiDangId && orgId))) {
+  if (!videoId || (!tacPhamId && !(orgBaiDangId && orgId))) {
     return NextResponse.json(
-      { error: "Thiếu tacPhamId hoặc (orgBaiDangId + orgId), hoặc bunnyVideoId." },
+      { error: "Thiếu tacPhamId hoặc (orgBaiDangId + orgId), hoặc videoId." },
       { status: 400 },
     );
   }
 
-  const bunnyStatus = await getBunnyVideoStatus(bunnyVideoId);
-  if (!bunnyStatus.ok) {
-    const status = bunnyStatus.error.includes("cấu hình") ? 503 : 502;
-    return NextResponse.json({ error: bunnyStatus.error }, { status });
+  const videoStatus = await getVideoStatus(videoId, provider);
+  if (!videoStatus.ok) {
+    const status = videoStatus.error.includes("cấu hình") ? 503 : 502;
+    return NextResponse.json({ error: videoStatus.error }, { status });
   }
-  if (!bunnyStatus.ready) {
+  if (!videoStatus.ready) {
     return NextResponse.json({ ok: false, ready: false });
   }
 
@@ -80,11 +85,11 @@ export async function POST(request: Request) {
 
     const blocks = (post.noi_dung_blocks ?? []) as Block[];
     const meta = extractVideoProcessingMeta(blocks);
-    if (!meta?.processing || meta.bunnyVideoId !== bunnyVideoId) {
+    if (!meta?.processing || meta.videoId !== videoId) {
       return NextResponse.json({ ok: true, alreadyComplete: true });
     }
 
-    const nextBlocks = clearVideoProcessingInBlocks(blocks, bunnyVideoId);
+    const nextBlocks = clearVideoProcessingInBlocks(blocks, videoId);
     const { error: updateError } = await admin
       .from("org_bai_dang")
       .update({ noi_dung_blocks: nextBlocks })
@@ -124,11 +129,11 @@ export async function POST(request: Request) {
 
   const blocks = (post.noi_dung_blocks ?? []) as Block[];
   const meta = extractVideoProcessingMeta(blocks);
-  if (!meta?.processing || meta.bunnyVideoId !== bunnyVideoId) {
+  if (!meta?.processing || meta.videoId !== videoId) {
     return NextResponse.json({ ok: true, alreadyComplete: true });
   }
 
-  const nextBlocks = clearVideoProcessingInBlocks(blocks, bunnyVideoId);
+  const nextBlocks = clearVideoProcessingInBlocks(blocks, videoId);
   const { error: updateError } = await admin
     .from("content_tac_pham")
     .update({ noi_dung_blocks: nextBlocks })

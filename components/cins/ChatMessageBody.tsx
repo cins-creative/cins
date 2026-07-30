@@ -10,6 +10,7 @@ import { ChatImageLightbox } from "@/components/cins/ChatImageLightbox";
 import { ChatLinkOgCard } from "@/components/cins/ChatLinkOgCard";
 import { ChatMentionText } from "@/components/cins/ChatMentionText";
 import { ChatMessageMediaImage } from "@/components/cins/ChatMessageMediaImage";
+import { ChatMessageVideo } from "@/components/cins/ChatMessageVideo";
 import { ChatMocNoticeBubble } from "@/components/cins/ChatMocNoticeBubble";
 import { ChatPollBubble } from "@/components/cins/ChatPollBubble";
 import { InlineExternalVideoEmbed } from "@/components/shared/InlineExternalVideoEmbed";
@@ -256,9 +257,19 @@ export function ChatMessageBody({
     );
   }
 
+  const videoSrc = msg.videoUrl ?? null;
+
   return (
     <>
-      {imageSrc ? (
+      {videoSrc ? (
+        <ChatMessageVideo
+          src={videoSrc}
+          poster={msg.imageUrl ?? null}
+          width={msg.videoWidth}
+          height={msg.videoHeight}
+          stacked={mediaOnly}
+        />
+      ) : imageSrc ? (
         isSticker ? (
           <button
             type="button"

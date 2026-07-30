@@ -56,7 +56,13 @@ import { JourneyArticleTagManager } from "@/components/journey/JourneyArticleTag
 import { JourneyCoAuthorProposal } from "@/components/journey/JourneyCoAuthorProposal";
 import { JourneyOrgAttachTrigger } from "@/components/journey/JourneyOrgAttachTrigger";
 import { mapLoaiMocToMilestoneType } from "@/lib/journey/milestone-ui-map";
-import { bunnyIframeSrc, classifyBunnyVideoUrl } from "@/lib/bunny/embed";
+import { resolveVideoEmbed, buildResolvedVideoIframeSrc } from "@/lib/video/embed";
+import {
+  createVideoTusUpload,
+  prepareResponseIsStream,
+  prepareResponseIsValid,
+  type VideoPrepareResponse,
+} from "@/lib/video/upload-tus";
 import type { Block, LoaiMoc, Visibility } from "@/lib/editor/types";
 import {
   GRID_IMAGE_DEFAULT_HEIGHT,
@@ -143,15 +149,6 @@ const VIS_OPTIONS: ReadonlyArray<{
 const MAX_PHOTOS = 10;
 const MAX_VIDEO_BYTES = 500 * 1024 * 1024;
 
-type BunnyPrepareResponse = {
-  videoId: string;
-  libraryId: string;
-  embedUrl: string;
-  authorizationSignature: string;
-  authorizationExpire: number;
-  error?: string;
-};
-
 function newBlockId(): string {
   return `b-${crypto.randomUUID()}`;
 }
@@ -225,8 +222,14 @@ export function MediaComposeView({
   const [videoUrl, setVideoUrl] = useState(editInitial?.videoUrl ?? "");
   const [bunnyVideoId, setBunnyVideoId] = useState<string | null>(() => {
     if (!editInitial?.videoUrl) return null;
-    return classifyBunnyVideoUrl(editInitial.videoUrl)?.videoId ?? null;
+    return resolveVideoEmbed(editInitial.videoUrl)?.id ?? null;
   });
+  const [videoProvider, setVideoProvider] = useState<"bunny" | "stream" | null>(
+    () => {
+      if (!editInitial?.videoUrl) return null;
+      return resolveVideoEmbed(editInitial.videoUrl)?.provider ?? null;
+    },
+  );
   const [videoUploading, setVideoUploading] = useState(false);
   const [videoUploadError, setVideoUploadError] = useState<string | null>(null);
   const [videoCanvasRatio, setVideoCanvasRatio] = useState<VideoCanvasRatio | null>(
@@ -319,9 +322,16 @@ export function MediaComposeView({
   const initialPhotosStartedRef = useRef(false);
   const autoOpenPickerStartedRef = useRef(false);
   const avatarUrl = getAvatarUrl(ownerAvatarId ?? null);
-  const bunnyPreview = useMemo(
-    () => (videoUrl ? classifyBunnyVideoUrl(videoUrl) : null),
-    [videoUrl],
+  const videoPreview = useMemo(
+    () =>
+      videoUrl
+        ? resolveVideoEmbed(videoUrl, {
+            videoProvider,
+            videoId: bunnyVideoId,
+            bunnyVideoId,
+          })
+        : null,
+    [videoUrl, videoProvider, bunnyVideoId],
   );
 
   const isPhoto = mode === "photo";
@@ -570,6 +580,7 @@ export function MediaComposeView({
       setError(null);
       setVideoUrl("");
       setBunnyVideoId(null);
+      setVideoProvider(null);
       setVideoCanvasRatio(null);
       setLocalVideoPreviewUrl((prev) => {
         if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
@@ -586,41 +597,24 @@ export function MediaComposeView({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ title: file.name }),
         });
-        const prep = (await prepRes.json()) as BunnyPrepareResponse;
+        const prep = (await prepRes.json()) as VideoPrepareResponse;
         if (session !== uploadSessionRef.current) return;
-        if (
-          !prepRes.ok ||
-          !prep.embedUrl ||
-          !prep.videoId ||
-          !prep.libraryId ||
-          !prep.authorizationSignature
-        ) {
+        if (!prepRes.ok || !prepareResponseIsValid(prep)) {
           throw new Error(prep.error || "Không chuẩn bị được upload video.");
         }
 
-        pendingBunnyRef.current = {
-          videoId: prep.videoId,
-          embedUrl: prep.embedUrl,
-        };
+        const videoId = prep.videoId!;
+        const embedUrl = prep.embedUrl!;
+        const provider: "bunny" | "stream" = prepareResponseIsStream(prep)
+          ? "stream"
+          : "bunny";
 
-        const { Upload } = await import("tus-js-client");
-        if (session !== uploadSessionRef.current) return;
-        const upload = new Upload(file, {
-          endpoint: "https://video.bunnycdn.com/tusupload",
-          retryDelays: [0, 1000, 3000, 5000, 10000],
-          headers: {
-            AuthorizationSignature: prep.authorizationSignature,
-            AuthorizationExpire: String(prep.authorizationExpire),
-            VideoId: prep.videoId,
-            LibraryId: String(prep.libraryId),
-          },
-          metadata: {
-            filetype: file.type,
-            title: file.name,
-          },
+        pendingBunnyRef.current = { videoId, embedUrl };
+
+        const upload = await createVideoTusUpload(file, prep, {
           onError: (err) => {
             if (session !== uploadSessionRef.current) return;
-            releaseVideoUpload(prep.videoId);
+            releaseVideoUpload(videoId);
             pendingBunnyRef.current = null;
             activeUploadRef.current = null;
             uploadLockRef.current = false;
@@ -631,12 +625,13 @@ export function MediaComposeView({
           },
           onSuccess: () => {
             if (session !== uploadSessionRef.current) return;
-            releaseVideoUpload(prep.videoId);
+            releaseVideoUpload(videoId);
             pendingBunnyRef.current = null;
             activeUploadRef.current = null;
             uploadLockRef.current = false;
-            setVideoUrl(prep.embedUrl);
-            setBunnyVideoId(prep.videoId);
+            setVideoUrl(embedUrl);
+            setBunnyVideoId(videoId);
+            setVideoProvider(provider);
             setVideoUploading(false);
             setLocalVideoPreviewUrl((prev) => {
               if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
@@ -644,9 +639,10 @@ export function MediaComposeView({
             });
           },
         });
+        if (session !== uploadSessionRef.current) return;
 
         activeUploadRef.current = upload;
-        registerVideoUpload(prep.videoId, upload);
+        registerVideoUpload(videoId, upload);
         upload.start();
       } catch (e) {
         if (session !== uploadSessionRef.current) return;
@@ -843,7 +839,11 @@ export function MediaComposeView({
         }
       } else {
         const trimmedUrl = videoUrl.trim().slice(0, 2048);
-        const bunny = classifyBunnyVideoUrl(trimmedUrl);
+        const resolved = resolveVideoEmbed(trimmedUrl, {
+          videoProvider,
+          videoId: bunnyVideoId,
+          bunnyVideoId,
+        });
 
         blocks.push({
           id: newBlockId(),
@@ -852,9 +852,13 @@ export function MediaComposeView({
           config: {
             url: trimmedUrl,
             ...(videoCanvasRatio ? { videoCanvasRatio } : {}),
-            ...(bunny
+            ...(resolved
               ? {
-                  bunnyVideoId: bunny.videoId,
+                  videoProvider: resolved.provider,
+                  videoId: resolved.id,
+                  ...(resolved.provider === "bunny"
+                    ? { bunnyVideoId: resolved.id }
+                    : {}),
                   ...(!isEdit ? { videoProcessing: true } : {}),
                 }
               : {}),
@@ -1292,12 +1296,12 @@ export function MediaComposeView({
                     </div>
                   ) : null}
                 </div>
-              ) : bunnyPreview ? (
+              ) : videoPreview ? (
                 <div
                   className={`mc-video-preview ${videoCanvasRatioClass(videoCanvasRatio)}`}
                 >
                   <iframe
-                    src={bunnyIframeSrc(bunnyPreview)}
+                    src={buildResolvedVideoIframeSrc(videoPreview)}
                     title="Xem trước video"
                     allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
                     allowFullScreen

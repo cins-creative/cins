@@ -14,6 +14,7 @@ import {
   chatImageDeliveryUrl,
   isCloudflareImageId,
 } from "@/lib/chat/image-url";
+import { buildChatVideoUrl, isChatVideoKey } from "@/lib/chat/video-url";
 import {
   loadPinnedMessageIds,
   loadReactionsForMessages,
@@ -79,11 +80,19 @@ export type MessageRow = {
   da_xoa?: boolean;
   da_sua?: boolean;
   sua_luc?: string | null;
-  content_media?: { cloudflare_id: string | null } | { cloudflare_id: string | null }[] | null;
+  content_media?: ContentMediaRow | ContentMediaRow[] | null;
+};
+
+type ContentMediaRow = {
+  cloudflare_id: string | null;
+  loai_media?: string | null;
+  width?: number | null;
+  height?: number | null;
+  duration_s?: number | null;
 };
 
 type NormalizedMessageRow = Omit<MessageRow, "content_media"> & {
-  content_media?: { cloudflare_id: string | null } | null;
+  content_media?: ContentMediaRow | null;
 };
 
 function normalizeMessageRow(row: MessageRow): NormalizedMessageRow {
@@ -95,7 +104,7 @@ function normalizeMessageRow(row: MessageRow): NormalizedMessageRow {
 }
 
 export const MESSAGE_SELECT =
-  "id, id_phong, id_nguoi_gui, noi_dung, loai_tin, id_dinh_kem, id_tin_tra_loi, ngu_canh, tao_luc, da_xoa, da_sua, sua_luc, content_media(cloudflare_id)";
+  "id, id_phong, id_nguoi_gui, noi_dung, loai_tin, id_dinh_kem, id_tin_tra_loi, ngu_canh, tao_luc, da_xoa, da_sua, sua_luc, content_media(cloudflare_id, loai_media, width, height, duration_s)";
 
 type ReadRow = {
   id_phong: string;
@@ -123,9 +132,12 @@ export function messagePreview(row: MessageRow): string {
     return `Trao đổi về: ${nguCanh.tieuDe}`;
   }
   if (normalized.loai_tin === "media") {
+    const isVideo = normalized.content_media?.loai_media === "video";
     const caption = normalized.noi_dung?.trim() || "";
-    if (caption && !isCloudflareImageId(caption)) return caption;
-    return "Ảnh";
+    if (caption && !isCloudflareImageId(caption) && !isChatVideoKey(caption)) {
+      return caption;
+    }
+    return isVideo ? "Video" : "Ảnh";
   }
   if (normalized.loai_tin === "sticker") return "Meme";
   if (normalized.loai_tin === "binh_chon") {
@@ -145,6 +157,29 @@ function resolveImageId(row: NormalizedMessageRow): string | null {
   if (isCloudflareImageId(fromBody)) return fromBody;
 
   return null;
+}
+
+type ResolvedChatVideo = {
+  key: string;
+  url: string | null;
+  width: number | null;
+  height: number | null;
+  durationS: number | null;
+};
+
+/** Media video chat trên R2 — `loai_media='video'` + `cloudflare_id` là R2 key. */
+function resolveVideo(row: NormalizedMessageRow): ResolvedChatVideo | null {
+  const media = row.content_media;
+  if (!media || media.loai_media !== "video") return null;
+  const key = media.cloudflare_id?.trim() || "";
+  if (!isChatVideoKey(key)) return null;
+  return {
+    key,
+    url: buildChatVideoUrl(key),
+    width: typeof media.width === "number" ? media.width : null,
+    height: typeof media.height === "number" ? media.height : null,
+    durationS: typeof media.duration_s === "number" ? media.duration_s : null,
+  };
 }
 
 type MapMessageExtras = {
@@ -190,13 +225,18 @@ export function mapMessageFromRow(
               : normalized.loai_tin === "system"
                 ? "moc_nhac"
                 : "text";
+  const video = kind === "media" ? resolveVideo(normalized) : null;
   const imageId =
-    kind === "media" || kind === "sticker" ? resolveImageId(normalized) : null;
+    !video && (kind === "media" || kind === "sticker")
+      ? resolveImageId(normalized)
+      : null;
   let body = normalized.noi_dung?.trim() || "";
 
   if (kind === "sticker") {
     body = "";
   } else if (kind === "media" && imageId && body === imageId) {
+    body = "";
+  } else if (video && body === video.key) {
     body = "";
   }
 
@@ -209,6 +249,11 @@ export function mapMessageFromRow(
     kind,
     imageId,
     imageUrl: imageId ? chatImageDeliveryUrl(imageId) : null,
+    videoKey: video?.key ?? null,
+    videoUrl: video?.url ?? null,
+    videoWidth: video?.width ?? null,
+    videoHeight: video?.height ?? null,
+    videoDurationS: video?.durationS ?? null,
     deleted: Boolean(normalized.da_xoa),
     edited: Boolean(normalized.da_sua),
     editedAt: normalized.sua_luc ?? null,
@@ -1149,6 +1194,7 @@ export async function sendRoomMessage(
     | {
         body?: string;
         cloudflareImageId?: string;
+        videoMediaId?: string;
         emojiMucId?: string;
         replyToId?: string;
         nguCanh?: unknown;
@@ -1160,6 +1206,8 @@ export async function sendRoomMessage(
     typeof input === "string"
       ? undefined
       : input.cloudflareImageId?.trim();
+  const videoMediaId =
+    typeof input === "string" ? undefined : input.videoMediaId?.trim();
   const emojiMucId =
     typeof input === "string" ? undefined : input.emojiMucId?.trim();
   const replyToId =
@@ -1169,11 +1217,11 @@ export async function sendRoomMessage(
   const chuyenTiep =
     typeof input !== "string" && parseChatForwarded(input.nguCanh);
 
-  if (!body && !cloudflareImageId && !emojiMucId && !contextCard) {
+  if (!body && !cloudflareImageId && !videoMediaId && !emojiMucId && !contextCard) {
     return { ok: false, error: "Tin nhắn trống." };
   }
 
-  if (cloudflareImageId && emojiMucId) {
+  if ([cloudflareImageId, videoMediaId, emojiMucId].filter(Boolean).length > 1) {
     return { ok: false, error: "Chỉ gửi một loại đính kèm mỗi lần." };
   }
 
@@ -1227,6 +1275,7 @@ export async function sendRoomMessage(
 
   let mediaId: string | null = null;
   let stickerCloudflareId: string | null = null;
+  let videoKey: string | null = null;
 
   if (emojiMucId) {
     const resolved = await resolveOwnedUserEmojiMuc(emojiMucId, viewerId);
@@ -1243,6 +1292,35 @@ export async function sendRoomMessage(
     if (!mediaId) {
       return { ok: false, error: "Không lưu được ảnh đính kèm." };
     }
+  } else if (videoMediaId) {
+    /* videoMediaId là content_media.id đã tạo bởi API upload video chat.
+       Xác minh là video của chính viewer trước khi đính kèm. */
+    const { data: mediaRow } = await admin
+      .from("content_media")
+      .select("id, cloudflare_id, loai_media, content_tac_pham(id_nguoi_dung)")
+      .eq("id", videoMediaId)
+      .maybeSingle<{
+        id: string;
+        cloudflare_id: string | null;
+        loai_media: string | null;
+        content_tac_pham:
+          | { id_nguoi_dung: string | null }
+          | { id_nguoi_dung: string | null }[]
+          | null;
+      }>();
+    const owner = Array.isArray(mediaRow?.content_tac_pham)
+      ? mediaRow?.content_tac_pham[0]?.id_nguoi_dung
+      : mediaRow?.content_tac_pham?.id_nguoi_dung;
+    if (
+      !mediaRow ||
+      mediaRow.loai_media !== "video" ||
+      owner !== viewerId ||
+      !mediaRow.cloudflare_id
+    ) {
+      return { ok: false, error: "Video đính kèm không hợp lệ." };
+    }
+    mediaId = mediaRow.id;
+    videoKey = mediaRow.cloudflare_id;
   }
 
   const insertRow = stickerCloudflareId
@@ -1261,6 +1339,16 @@ export async function sendRoomMessage(
         loai_tin: "media" as const,
         id_dinh_kem: mediaId,
         noi_dung: body || cloudflareImageId,
+        ...(replyToId ? { id_tin_tra_loi: replyToId } : {}),
+        ...(nguCanhPayload ? { ngu_canh: nguCanhPayload } : {}),
+      }
+    : videoKey
+    ? {
+        id_phong: roomId,
+        id_nguoi_gui: viewerId,
+        loai_tin: "media" as const,
+        id_dinh_kem: mediaId,
+        noi_dung: body || videoKey,
         ...(replyToId ? { id_tin_tra_loi: replyToId } : {}),
         ...(nguCanhPayload ? { ngu_canh: nguCanhPayload } : {}),
       }

@@ -12,12 +12,16 @@ export function createOptimisticChatMessage(input: {
   kind?: ChatMessageKind;
   imageId?: string | null;
   imageUrl?: string | null;
+  videoUrl?: string | null;
+  videoWidth?: number | null;
+  videoHeight?: number | null;
+  videoDurationS?: number | null;
   replyTo?: ChatMessageReplyPreview | null;
   sentAt?: string;
   mentions?: ChatMessage["mentions"];
 }): ChatMessage {
   const kind =
-    input.kind ?? (input.imageId ? "media" : "text");
+    input.kind ?? (input.imageId || input.videoUrl ? "media" : "text");
   const imageId = input.imageId ?? null;
   const imageUrl =
     input.imageUrl ??
@@ -31,6 +35,10 @@ export function createOptimisticChatMessage(input: {
     kind,
     imageId,
     imageUrl,
+    videoUrl: input.videoUrl ?? null,
+    videoWidth: input.videoWidth ?? null,
+    videoHeight: input.videoHeight ?? null,
+    videoDurationS: input.videoDurationS ?? null,
     replyTo: input.replyTo ?? null,
     mentions: input.mentions,
   };
@@ -95,6 +103,9 @@ export function messagePreviewText(message: ChatMessage): string {
   if (message.kind === "binh_chon" || message.poll) {
     const q = message.poll?.question?.trim() || message.body.trim();
     return q ? `Bình chọn: ${q}` : "Bình chọn";
+  }
+  if (message.videoKey || message.videoUrl) {
+    return message.body.trim() || "Video";
   }
   if (message.kind === "media" || message.imageId) {
     return message.body.trim() || "Ảnh";

@@ -36,6 +36,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# video migration mapping artifact (Bunny → Stream backfill)
+scripts/.stream-migration-map.json
+
 # cloudflare / opennext
 .open-next/
 .wrangler/

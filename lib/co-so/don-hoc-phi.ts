@@ -70,6 +70,30 @@ export async function xacNhanDonHocPhi(
     return { ok: false, error: "Đơn đã hủy." };
   }
 
+  // Ổ KHÓA: flip trạng thái đơn TRƯỚC, điều kiện nằm trong chính lệnh UPDATE
+  // (theo mẫu completeDonHang/cancelDonHang trong lib/shop/don-hang.ts). Chỉ tiến
+  // trình đổi đúng 1 dòng `cho_thanh_toan` → `da_nhan_tien` mới được đi tiếp tạo
+  // kỳ học. Double-click / retry / đua → mảng rỗng → dừng, không tạo kỳ học lặp.
+  const nowIso = new Date().toISOString();
+  const { data: lockedRows, error: lockErr } = await admin
+    .from("org_don_hoc_phi")
+    .update({
+      trang_thai: "da_nhan_tien",
+      xac_nhan_luc: nowIso,
+      id_nguoi_thu: input.actorId,
+      cap_nhat_luc: nowIso,
+    })
+    .eq("id", don.id)
+    .eq("trang_thai", "cho_thanh_toan")
+    .select("id");
+
+  if (lockErr) {
+    return { ok: false, error: lockErr.message };
+  }
+  if (!lockedRows || lockedRows.length === 0) {
+    return { ok: false, error: "Đơn đã được xác nhận trước đó." };
+  }
+
   const { data: hvl, error: hvlErr } = await admin
     .from("user_hoc_vien_lop")
     .select("id, id_nguoi_dung, id_khoa_hoc, id_lop_hoc, trang_thai")
@@ -77,6 +101,16 @@ export async function xacNhanDonHocPhi(
     .maybeSingle<HvlRow>();
 
   if (hvlErr || !hvl) {
+    // Đã thắng ổ khóa (đơn đã flip) nhưng không đọc được ghi danh. Không tự
+    // rollback trạng thái đơn — log đủ để tra tay.
+    console.error(
+      "[hoc-phi] xacNhanDonHocPhi: đã flip đơn nhưng không tìm thấy ghi danh",
+      {
+        donId: don.id,
+        hocVienLopId: don.id_hoc_vien_lop,
+        error: hvlErr?.message ?? null,
+      },
+    );
     return { ok: false, error: hvlErr?.message ?? "Không tìm thấy ghi danh." };
   }
 
@@ -105,25 +139,27 @@ export async function xacNhanDonHocPhi(
     .single<{ id: string }>();
 
   if (kyErr || !ky) {
+    // Đã flip đơn nhưng tạo kỳ học lỗi. Không tự rollback — log đủ để tra tay.
+    console.error(
+      "[hoc-phi] xacNhanDonHocPhi: đã flip đơn nhưng tạo kỳ học lỗi",
+      { donId: don.id, hocVienLopId: hvl.id, error: kyErr?.message ?? null },
+    );
     return { ok: false, error: kyErr?.message ?? "Không tạo được kỳ học." };
   }
 
-  const nowIso = new Date().toISOString();
-  await admin
-    .from("org_don_hoc_phi")
-    .update({
-      trang_thai: "da_nhan_tien",
-      xac_nhan_luc: nowIso,
-      id_nguoi_thu: input.actorId,
-      cap_nhat_luc: nowIso,
-    })
-    .eq("id", don.id);
-
   if (hvl.trang_thai === "da_dang_ky" || hvl.trang_thai === "tam_nghi") {
-    await admin
+    const { error: hvlUpdErr } = await admin
       .from("user_hoc_vien_lop")
       .update({ trang_thai: "dang_hoc" })
       .eq("id", hvl.id);
+    if (hvlUpdErr) {
+      // Đơn đã flip + kỳ học đã tạo; cập nhật trạng thái ghi danh lỗi → log,
+      // không nuốt lỗi, không rollback. Các bước sau vẫn chạy như luồng cũ.
+      console.error(
+        "[hoc-phi] xacNhanDonHocPhi: cập nhật trạng thái ghi danh lỗi",
+        { donId: don.id, hocVienLopId: hvl.id, error: hvlUpdErr.message },
+      );
+    }
   }
 
   let joinedPhong = false;

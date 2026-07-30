@@ -8,11 +8,13 @@ type Props = {
   /** Phát ngay khi embed mount (inline card). */
   autoplay?: boolean;
   bunnyVideoId?: string | null;
+  videoProvider?: string | null;
+  videoId?: string | null;
   onIframeLoad?: () => void;
 };
 
 /**
- * Video inline trên milestone card — Bunny Stream, YouTube, Vimeo.
+ * Video inline trên milestone card — Cloudflare Stream, Bunny, YouTube, Vimeo.
  */
 export function MilestoneVideoEmbed({
   url,
@@ -20,13 +22,20 @@ export function MilestoneVideoEmbed({
   processing = false,
   autoplay = false,
   bunnyVideoId = null,
+  videoProvider = null,
+  videoId = null,
   onIframeLoad,
 }: Props) {
   if (processing) {
     return <VideoProcessingPlaceholder />;
   }
 
-  const iframeSrc = buildVideoIframeSrc(url, { autoplay, bunnyVideoId });
+  const iframeSrc = buildVideoIframeSrc(url, {
+    autoplay,
+    bunnyVideoId,
+    videoProvider,
+    videoId,
+  });
   if (iframeSrc) {
     return (
       <div

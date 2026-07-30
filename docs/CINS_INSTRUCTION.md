@@ -19,7 +19,7 @@ CINS = **mạng xã hội chuyên môn** cho ngành sáng tạo Việt Nam (Next
 
 Thứ tự ưu tiên khi xung đột: **DB thật (đọc trực tiếp) > CINS_FOUNDATIONS.md > các file khác**. Không bao giờ tin prose schema hơn DB.
 
-**Map chuyên sâu:** [`cursor_map_truong.md`](./cursor_map_truong.md) · [`cursor_brief_truong_trang_data_map.md`](./cursor_brief_truong_trang_data_map.md) *(bulk SQL field→UI, không tab Bài đăng)* · [`cursor_map_admin.md`](./cursor_map_admin.md) · [`cursor_map_inline_edit.md`](./cursor_map_inline_edit.md) · [`cursor_brief_dong_gop_noi_dung.md`](./cursor_brief_dong_gop_noi_dung.md) *(đóng góp canonical — session plan)* · [`cursor_brief_journey_blocks_css.md`](./cursor_brief_journey_blocks_css.md) *(block JSON + CSS render bài Journey)* · [`cursor_brief_csdt_van_hanh_hoc.md`](./cursor_brief_csdt_van_hanh_hoc.md) *(CSĐT chat-first · L34)* · [`cursor_brief_seed_autopilot_handoff.md`](./cursor_brief_seed_autopilot_handoff.md) *(nick seeding + Autopilot ArtStation/Behance)*
+**Map chuyên sâu:** [`cursor_map_truong.md`](./cursor_map_truong.md) · [`cursor_brief_truong_trang_data_map.md`](./cursor_brief_truong_trang_data_map.md) *(bulk SQL field→UI, không tab Bài đăng)* · [`cursor_map_admin.md`](./cursor_map_admin.md) · [`cursor_map_inline_edit.md`](./cursor_map_inline_edit.md) · [`cursor_brief_dong_gop_noi_dung.md`](./cursor_brief_dong_gop_noi_dung.md) *(đóng góp canonical — session plan)* · [`cursor_brief_journey_blocks_css.md`](./cursor_brief_journey_blocks_css.md) *(block JSON + CSS render bài Journey)* · [`cursor_brief_csdt_van_hanh_hoc.md`](./cursor_brief_csdt_van_hanh_hoc.md) *(CSĐT chat-first · L34)* · [`cursor_brief_seed_autopilot_handoff.md`](./cursor_brief_seed_autopilot_handoff.md) *(nick seeding + Autopilot ArtStation/Behance)* · [`cursor_brief_shop_ship_ghn.md`](./cursor_brief_shop_ship_ghn.md) *(ship GHN + phí nền tảng + tranh chấp — kế hoạch, chưa triển khai)*
 
 ---
 
@@ -48,6 +48,8 @@ Thứ tự ưu tiên khi xung đột: **DB thật (đọc trực tiếp) > CINS_
 ---
 
 ## Thay đổi lớn gần đây (tóm tắt — chi tiết ở DECISIONS)
+
+**Shop — ship GHN + phí nền tảng + tranh chấp (2026-07-30) — KẾ HOẠCH, chưa triển khai:** Giao hàng qua **GHN**, **mỗi shop tự cắm token riêng**, **không COD**; 3 hình thức nhận (`truc_tiep`/`tai_su_kien`/`online`), tracking **polling** trước, webhook sau. Phí nền tảng **% GMV kỳ tháng, trả sau** (2 tầng `shop_phi_dong`→`shop_phi_ky`); tranh chấp **Cấp 1** — CINs trọng tài, **không hoàn tiền**, chế tài bằng nhãn cảnh báo + gate khóa shop. **Tiền hàng không bao giờ qua CINs** (nếu qua ⇒ thu hộ/chi hộ ⇒ cần giấy phép NHNN). Cần xây mới: **cron**, **mã hóa field**. ALTER **A10–A13 chưa duyệt**. Xem DECISIONS + brief [`cursor_brief_shop_ship_ghn.md`](./cursor_brief_shop_ship_ghn.md).
 
 **Hẹn đăng Journey / cộng đồng (2026-07-27):** Nút «Hẹn đăng» trên compose cá nhân + cộng đồng; lưu `content_cot_moc.tao_luc` tương lai (không ALTER). Org vẫn `nhap` + lazy promote. Xem DECISIONS LOG + IMPLEMENTATION *Hẹn đăng bài Journey*.
 

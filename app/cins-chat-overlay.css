@@ -8150,6 +8150,65 @@ a.cins-chat-don-card.is-paid:hover {
   object-fit: contain;
 }
 
+/* Video chat (R2) — poster click-to-play + player */
+.cins-chat-msg-video,
+.cins-chat-msg-video-poster {
+  display: block;
+  width: 100%;
+  max-width: 280px;
+  max-height: 360px;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #000;
+}
+
+.cins-chat-msg-video-poster {
+  position: relative;
+  padding: 0;
+  border: 0;
+  cursor: pointer;
+  line-height: 0;
+}
+
+.cins-chat-msg-video-poster.is-stacked,
+.cins-chat-msg-video.is-stacked {
+  max-width: 100%;
+}
+
+.cins-chat-msg-video-poster > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cins-chat-msg-video-fallback {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #1f2937, #0b1220);
+}
+
+.cins-chat-msg-video-play {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 999px;
+  pointer-events: none;
+}
+
+.cins-chat-msg-video-poster:focus-visible {
+  outline: 2px solid var(--cins-blue, #1f74c9);
+  outline-offset: 2px;
+}
+
 .cins-chat-sticker-picker {
   position: absolute;
   left: 0;

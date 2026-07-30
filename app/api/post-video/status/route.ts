@@ -1,16 +1,18 @@
 import { NextResponse } from "next/server";
 
-import { getBunnyVideoStatus } from "@/lib/bunny/stream";
+import { getVideoStatus } from "@/lib/video/status";
 
-/* GET /api/post-video/status?videoId= — trạng thái encode Bunny Stream (public read). */
+/* GET /api/post-video/status?videoId=&provider= — trạng thái encode (Stream/Bunny). */
 
 export async function GET(request: Request) {
-  const videoId = new URL(request.url).searchParams.get("videoId")?.trim();
+  const url = new URL(request.url);
+  const videoId = url.searchParams.get("videoId")?.trim();
+  const provider = url.searchParams.get("provider")?.trim() || null;
   if (!videoId) {
     return NextResponse.json({ error: "Thiếu videoId." }, { status: 400 });
   }
 
-  const result = await getBunnyVideoStatus(videoId);
+  const result = await getVideoStatus(videoId, provider);
   if (!result.ok) {
     const status = result.error.includes("cấu hình") ? 503 : 502;
     return NextResponse.json({ error: result.error }, { status });

@@ -27,6 +27,11 @@ import {
   classifyBunnyVideoUrl,
 } from "@/lib/bunny/embed";
 import {
+  buildStreamIframeUrl,
+  classifyStreamVideoUrl,
+  isStreamUid,
+} from "@/lib/cloudflare/stream-embed";
+import {
   buildEmbedIframeSrc,
   classifyEmbedUrl,
   embedIframeAllowAttr,
@@ -147,6 +152,23 @@ export function blocksToHtml(blocks: ReadonlyArray<Block>): string {
       }
       case "embed": {
         const url = b.config?.url as string | undefined;
+        const provider =
+          typeof b.config?.videoProvider === "string"
+            ? b.config.videoProvider.trim()
+            : "";
+        const videoId =
+          typeof b.config?.videoId === "string" ? b.config.videoId.trim() : "";
+        const streamUid =
+          provider === "stream" && isStreamUid(videoId)
+            ? videoId
+            : (classifyStreamVideoUrl(url ?? "")?.uid ?? null);
+        if (streamUid) {
+          const src = buildStreamIframeUrl(streamUid);
+          parts.push(
+            `<div class="rich-embed rich-embed-iframe" data-provider="stream"><iframe src="${escapeHtml(src)}" title="Video" allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;" allowfullscreen loading="lazy"></iframe></div>`,
+          );
+          break;
+        }
         const bunny = classifyBunnyVideoUrl(url ?? "");
         if (bunny) {
           const src = buildBunnyEmbedUrl(bunny.libraryId, bunny.videoId);

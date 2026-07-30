@@ -4,6 +4,7 @@ import type { Block } from "@/lib/editor/types";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 import { extractVideoProcessingMeta } from "@/lib/journey/video-processing-meta";
+import { isStreamUid } from "@/lib/cloudflare/stream-embed";
 
 export type { VideoProcessingMeta } from "@/lib/journey/video-processing-meta";
 export {
@@ -16,7 +17,10 @@ export type ProcessingVideoPost = {
   tacPhamId: string;
   postSlug: string | null;
   postTitle: string;
+  /** @deprecated dùng `videoId`. Giữ tương thích poller cũ. */
   bunnyVideoId: string;
+  videoId: string;
+  provider: "bunny" | "stream";
 };
 
 export type ProcessingOrgBaiDangPost = {
@@ -24,7 +28,10 @@ export type ProcessingOrgBaiDangPost = {
   orgBaiDangId: string;
   orgId: string;
   postTitle: string;
+  /** @deprecated dùng `videoId`. Giữ tương thích poller cũ. */
   bunnyVideoId: string;
+  videoId: string;
+  provider: "bunny" | "stream";
 };
 
 export type ProcessingVideoItem = ProcessingVideoPost | ProcessingOrgBaiDangPost;
@@ -38,29 +45,39 @@ const ORG_ADMIN_ROLES = [
 
 function pushProcessingFromBlocks(
   blocks: Block[] | null,
-  base: Omit<ProcessingVideoPost, "kind" | "bunnyVideoId">,
+  base: Omit<
+    ProcessingVideoPost,
+    "kind" | "bunnyVideoId" | "videoId" | "provider"
+  >,
   items: ProcessingVideoItem[],
 ) {
   const meta = extractVideoProcessingMeta(blocks);
-  if (!meta?.processing || !meta.bunnyVideoId) return;
+  if (!meta?.processing || !meta.videoId) return;
   items.push({
     kind: "tac_pham",
     ...base,
-    bunnyVideoId: meta.bunnyVideoId,
+    bunnyVideoId: meta.bunnyVideoId ?? meta.videoId,
+    videoId: meta.videoId,
+    provider: isStreamUid(meta.videoId) ? "stream" : "bunny",
   });
 }
 
 function pushOrgProcessingFromBlocks(
   blocks: Block[] | null,
-  base: Omit<ProcessingOrgBaiDangPost, "kind" | "bunnyVideoId">,
+  base: Omit<
+    ProcessingOrgBaiDangPost,
+    "kind" | "bunnyVideoId" | "videoId" | "provider"
+  >,
   items: ProcessingVideoItem[],
 ) {
   const meta = extractVideoProcessingMeta(blocks);
-  if (!meta?.processing || !meta.bunnyVideoId) return;
+  if (!meta?.processing || !meta.videoId) return;
   items.push({
     kind: "org_bai_dang",
     ...base,
-    bunnyVideoId: meta.bunnyVideoId,
+    bunnyVideoId: meta.bunnyVideoId ?? meta.videoId,
+    videoId: meta.videoId,
+    provider: isStreamUid(meta.videoId) ? "stream" : "bunny",
   });
 }
 
@@ -151,13 +168,15 @@ export async function listProcessingOrgBaiDangPosts(
 
   for (const row of data ?? []) {
     const meta = extractVideoProcessingMeta(row.noi_dung_blocks as Block[] | null);
-    if (!meta?.processing || !meta.bunnyVideoId) continue;
+    if (!meta?.processing || !meta.videoId) continue;
     items.push({
       kind: "org_bai_dang",
       orgBaiDangId: row.id as string,
       orgId: row.id_to_chuc as string,
       postTitle: (row.tieu_de as string | null) || "Video mới",
-      bunnyVideoId: meta.bunnyVideoId,
+      bunnyVideoId: meta.bunnyVideoId ?? meta.videoId,
+      videoId: meta.videoId,
+      provider: isStreamUid(meta.videoId) ? "stream" : "bunny",
     });
   }
   return items;
