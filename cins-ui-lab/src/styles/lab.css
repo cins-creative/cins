@@ -1,0 +1,324 @@
+/* Lab chrome + base reset — không thay tokens CINs */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+:root {
+  /* Lab chrome sticky height — guest aside / wj sticky offset */
+  --site-nav-height: 48px;
+  --wj-sticky-top: 48px;
+  --font-sans: var(--font-be-vietnam), "Be Vietnam Pro", system-ui, sans-serif;
+  --font-display: var(--font-sans);
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--bg-page);
+  color: var(--ink-body);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font: inherit;
+}
+
+.lab-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.lab-chrome {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  padding: 8px 16px;
+  background: color-mix(in srgb, var(--neutral-900) 92%, transparent);
+  color: #f5f6f9;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(10px);
+}
+
+.lab-chrome-brand {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--cins-yellow);
+  white-space: nowrap;
+}
+
+.lab-chrome-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.lab-chrome-nav a {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.lab-chrome-nav a:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.lab-chrome-nav a[aria-current="page"] {
+  background: var(--cins-blue);
+  color: #fff;
+}
+
+.lab-chrome-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.lab-chrome-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.lab-chrome-btn {
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.lab-chrome-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.lab-chrome-btn[aria-pressed="true"] {
+  background: var(--cins-mint);
+  color: #0e1117;
+  border-color: transparent;
+}
+
+.lab-chrome-select {
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  border-radius: 8px;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.lab-main {
+  flex: 1;
+  min-height: 0;
+}
+
+.lab-placeholder {
+  max-width: 720px;
+  margin: 48px auto;
+  padding: 32px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.lab-placeholder h1 {
+  margin: 0 0 8px;
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-extrabold);
+  color: var(--ink-display);
+}
+
+.lab-placeholder p {
+  margin: 0 0 16px;
+  color: var(--ink-body);
+  line-height: 1.5;
+}
+
+.lab-placeholder code {
+  font-size: 0.9em;
+  background: var(--neutral-100);
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+
+/* Feed card mock (logged-in) — subset visual, không kéo hết journey.css */
+.lab-feed-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow-xs);
+}
+
+.lab-feed-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.lab-feed-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--cins-blue), var(--cins-violet));
+  flex-shrink: 0;
+}
+
+.lab-feed-meta {
+  min-width: 0;
+}
+
+.lab-feed-name {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--ink-display);
+}
+
+.lab-feed-sub {
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+.lab-feed-body {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ink-body);
+  margin: 0 0 12px;
+}
+
+.lab-feed-media {
+  aspect-ratio: 16 / 10;
+  border-radius: var(--radius-sm);
+  background:
+    linear-gradient(120deg, var(--cins-blue-soft), var(--cins-violet-soft)),
+    var(--neutral-100);
+  margin-bottom: 12px;
+}
+
+.lab-feed-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.lab-feed-actions button {
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--ink-title);
+  cursor: pointer;
+}
+
+.lab-feed-actions button[aria-pressed="true"] {
+  background: var(--cins-blue-soft);
+  border-color: color-mix(in srgb, var(--cins-blue) 35%, transparent);
+  color: var(--cins-blue-dark);
+}
+
+.lab-composer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow-xs);
+}
+
+.lab-composer-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 14px;
+  color: var(--ink-muted);
+  outline: none;
+}
+
+.lab-ha-follow {
+  margin-left: auto;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--cins-blue);
+  cursor: pointer;
+}
+
+.lab-ha-follow[aria-pressed="true"] {
+  background: var(--cins-blue);
+  color: #fff;
+  border-color: transparent;
+}
+
+.lab-ha-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+}
+
+.lab-ha-row + .lab-ha-row {
+  border-top: 1px solid var(--border);
+}
+
+.lab-ha-av {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--neutral-200);
+  flex-shrink: 0;
+}
+
+.lab-ha-av--org {
+  border-radius: 8px;
+}
+
+.lab-ha-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-display);
+}
+
+.lab-ha-role {
+  font-size: 11px;
+  color: var(--ink-muted);
+}
