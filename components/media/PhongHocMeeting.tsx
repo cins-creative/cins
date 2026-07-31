@@ -140,22 +140,28 @@ function CallStage({
     refreshRemote();
 
     const peerUnsubs: Array<() => void> = [];
-    const wirePeer = (p: {
-      on: (e: string, h: () => void) => void;
-      removeListener: (e: string, h: () => void) => void;
-    }) => {
-      const h = () => refreshRemote();
+    const wirePeer = (p: (typeof meeting.participants.joined extends Map<
+      string,
+      infer P
+    >
+      ? P
+      : never)) => {
+      const h = () => {
+        refreshRemote();
+      };
       p.on("videoUpdate", h);
       p.on("screenShareUpdate", h);
       peerUnsubs.push(() => {
-        p.removeListener("videoUpdate", h);
-        p.removeListener("screenShareUpdate", h);
+        p.off("videoUpdate", h);
+        p.off("screenShareUpdate", h);
       });
     };
 
     meeting.participants.joined.forEach((p) => wirePeer(p));
 
-    const onJoin = (p: Parameters<typeof wirePeer>[0]) => {
+    const onJoin = (
+      p: Parameters<typeof wirePeer>[0],
+    ) => {
       wirePeer(p);
       refreshRemote();
     };
