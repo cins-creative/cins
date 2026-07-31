@@ -1636,14 +1636,30 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
       setPhongHocBusy(true);
       setPhongHocErr(null);
       try {
-        const res = await fetch(
-          `/api/chat/rooms/${encodeURIComponent(roomId)}/phong-hoc/token`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ mode, action: "start" }),
-          },
-        );
+        const warm =
+          typeof navigator !== "undefined" && navigator.mediaDevices?.getUserMedia
+            ? navigator.mediaDevices
+                .getUserMedia({
+                  audio: true,
+                  video: mode === "video",
+                })
+                .then((stream) => {
+                  stream.getTracks().forEach((t) => t.stop());
+                })
+                .catch(() => {})
+            : Promise.resolve();
+
+        const [res] = await Promise.all([
+          fetch(
+            `/api/chat/rooms/${encodeURIComponent(roomId)}/phong-hoc/token`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ mode, action: "start" }),
+            },
+          ),
+          warm,
+        ]);
         const json = (await res.json().catch(() => null)) as {
           token?: string;
           callMessageId?: string | null;

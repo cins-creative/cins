@@ -49,25 +49,51 @@ export async function POST(req: Request, ctx: Ctx) {
     let messageId = callMessageId;
 
     if (action === "start") {
-      const signal = await insertCuocGoiDangGoi({
-        roomId,
-        callerId: session.profile.id,
-        displayName,
+      // Song song: ghi tín hiệu chuông + lấy token SFU.
+      const [signal, join] = await Promise.all([
+        insertCuocGoiDangGoi({
+          roomId,
+          callerId: session.profile.id,
+          displayName,
+          mode,
+        }),
+        issuePhongHocJoinToken({
+          roomId,
+          userId: session.profile.id,
+          displayName,
+        }),
+      ]);
+      return NextResponse.json({
+        ...join,
         mode,
+        callMessageId: signal.messageId,
       });
-      messageId = signal.messageId;
-    } else if (action === "join") {
+    }
+
+    if (action === "join") {
       if (!messageId) {
         return NextResponse.json(
           { error: "Thiếu callMessageId khi bắt máy." },
           { status: 400 },
         );
       }
-      await updateCuocGoiTrangThai({
-        roomId,
-        messageId,
-        viewerId: session.profile.id,
-        trangThai: "dang_dien_ra",
+      const [, join] = await Promise.all([
+        updateCuocGoiTrangThai({
+          roomId,
+          messageId,
+          viewerId: session.profile.id,
+          trangThai: "dang_dien_ra",
+        }),
+        issuePhongHocJoinToken({
+          roomId,
+          userId: session.profile.id,
+          displayName,
+        }),
+      ]);
+      return NextResponse.json({
+        ...join,
+        mode,
+        callMessageId: messageId,
       });
     }
 

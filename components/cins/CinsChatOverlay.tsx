@@ -2909,14 +2909,31 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
       setPhongHocBusy(true);
       setPhongHocErr(null);
       try {
-        const res = await fetch(
-          `/api/chat/rooms/${encodeURIComponent(roomId)}/phong-hoc/token`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ mode, action: "start" }),
-          },
-        );
+        // Mở quyền mic/cam sớm (song song với token) — giảm 2–3s chờ getUserMedia lúc join.
+        const warm =
+          typeof navigator !== "undefined" && navigator.mediaDevices?.getUserMedia
+            ? navigator.mediaDevices
+                .getUserMedia({
+                  audio: true,
+                  video: mode === "video",
+                })
+                .then((stream) => {
+                  stream.getTracks().forEach((t) => t.stop());
+                })
+                .catch(() => {})
+            : Promise.resolve();
+
+        const [res] = await Promise.all([
+          fetch(
+            `/api/chat/rooms/${encodeURIComponent(roomId)}/phong-hoc/token`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ mode, action: "start" }),
+            },
+          ),
+          warm,
+        ]);
         const json = (await res.json().catch(() => null)) as {
           token?: string;
           callMessageId?: string | null;

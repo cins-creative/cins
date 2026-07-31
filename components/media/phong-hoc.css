@@ -38,6 +38,22 @@
   min-height: 0;
 }
 
+.cins-phong-hoc-grid rtk-meeting,
+.cins-phong-hoc-grid .rtk-meeting,
+.cins-phong-hoc.is-video .cins-phong-hoc-stage.is-video-stage {
+  width: 100%;
+  height: 100%;
+  min-height: 220px;
+}
+
+.cins-phong-hoc-controls.is-overlay-controls {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 5;
+}
+
 .cins-phong-hoc-grid rtk-simple-grid,
 .cins-phong-hoc-grid .rtk-simple-grid {
   width: 100%;

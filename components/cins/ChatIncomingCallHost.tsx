@@ -1,6 +1,8 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Phone, PhoneOff, Video } from "lucide-react";
 
 import { useCinsChat } from "@/components/cins/CinsChatProvider";
@@ -11,7 +13,14 @@ import {
 } from "@/lib/media/play-incoming-call-ringtone";
 import "@/components/media/incoming-call.css";
 
+const PhongHocMeeting = dynamic(
+  () =>
+    import("@/components/media/PhongHocMeeting").then((m) => m.PhongHocMeeting),
+  { ssr: false },
+);
+
 const RING_TIMEOUT_MS = 45_000;
+const POLL_MS = 2000;
 
 export type IncomingCallOffer = {
   roomId: string;
@@ -60,18 +69,43 @@ export function subscribePendingPhongHoc(
   return () => window.removeEventListener(PENDING_EVENT, onEvent);
 }
 
+type ActiveCall = {
+  roomId: string;
+  token: string;
+  mode: MediaCallMode;
+  callMessageId: string;
+  title: string;
+};
+
 export function ChatIncomingCallHost() {
-  const { subscribeChatMessages, viewerProfileId, openChat, isRoomMuted } =
-    useCinsChat();
+  const { subscribeChatMessages, viewerProfileId, isRoomMuted } = useCinsChat();
   const [offer, setOffer] = useState<IncomingCallOffer | null>(null);
+  const [activeCall, setActiveCall] = useState<ActiveCall | null>(null);
   const [busy, setBusy] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const offerRef = useRef<IncomingCallOffer | null>(null);
   offerRef.current = offer;
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const clearOffer = useCallback((stopSound = true) => {
     setOffer(null);
     if (stopSound) stopIncomingCallRingtone();
   }, []);
+
+  const applyIncoming = useCallback(
+    (next: IncomingCallOffer) => {
+      if (activeCall) return;
+      setOffer((prev) => {
+        if (prev?.callMessageId === next.callMessageId) return prev;
+        return next;
+      });
+      startIncomingCallRingtone({ muted: isRoomMuted(next.roomId) });
+    },
+    [activeCall, isRoomMuted],
+  );
 
   useEffect(() => {
     return subscribeChatMessages((event) => {
@@ -79,15 +113,13 @@ export function ChatIncomingCallHost() {
       if (!cg || !viewerProfileId) return;
 
       if (cg.trangThai === "dang_goi" && event.senderId !== viewerProfileId) {
-        const next: IncomingCallOffer = {
+        applyIncoming({
           roomId: event.roomId,
           callMessageId: event.message.id,
           mode: cg.mode,
           callerName: cg.tenNguoiGoi,
           title: cg.tenNguoiGoi,
-        };
-        setOffer(next);
-        startIncomingCallRingtone({ muted: isRoomMuted(event.roomId) });
+        });
         return;
       }
 
@@ -100,7 +132,53 @@ export function ChatIncomingCallHost() {
         clearOffer(true);
       }
     });
-  }, [subscribeChatMessages, viewerProfileId, isRoomMuted, clearOffer]);
+  }, [subscribeChatMessages, viewerProfileId, applyIncoming, clearOffer]);
+
+  /* Poll dự phòng — Realtime đôi khi trễ / không đẩy khi không mở đúng phòng. */
+  useEffect(() => {
+    if (!viewerProfileId || activeCall) return;
+
+    let cancelled = false;
+    const tick = async () => {
+      try {
+        const res = await fetch("/api/chat/calls/incoming", {
+          cache: "no-store",
+        });
+        if (!res.ok || cancelled) return;
+        const json = (await res.json()) as {
+          calls?: Array<{
+            roomId: string;
+            callMessageId: string;
+            mode: MediaCallMode;
+            callerName: string;
+          }>;
+        };
+        const first = json.calls?.[0];
+        if (!first || cancelled) return;
+        applyIncoming({
+          roomId: first.roomId,
+          callMessageId: first.callMessageId,
+          mode: first.mode,
+          callerName: first.callerName,
+          title: first.callerName,
+        });
+      } catch {
+        /* ignore */
+      }
+    };
+
+    void tick();
+    const id = window.setInterval(() => void tick(), POLL_MS);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void tick();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [viewerProfileId, activeCall, applyIncoming]);
 
   useEffect(() => {
     if (!offer) return;
@@ -185,13 +263,10 @@ export function ChatIncomingCallHost() {
         callMessageId: json.callMessageId || cur.callMessageId,
         title: cur.title,
       };
+      /* Vào cuộc gọi fullscreen ngay — không cần mở đúng thread chat. */
+      setActiveCall(pending);
       dispatchPendingPhongHoc(pending);
       clearOffer(false);
-      await openChat({ roomId: cur.roomId });
-      // Overlay có thể hydrate sau — phát lại nếu chưa nhận.
-      window.setTimeout(() => {
-        dispatchPendingPhongHoc(pending);
-      }, 150);
     } catch {
       clearOffer(true);
     } finally {
@@ -199,11 +274,31 @@ export function ChatIncomingCallHost() {
     }
   }
 
+  if (!mounted || typeof document === "undefined") return null;
+
+  if (activeCall) {
+    return createPortal(
+      <div className="cins-incoming-call is-in-call" role="dialog" aria-label="Cuộc gọi">
+        <div className="cins-incoming-call-stage">
+          <PhongHocMeeting
+            authToken={activeCall.token}
+            mode={activeCall.mode}
+            title={activeCall.title}
+            roomId={activeCall.roomId}
+            callMessageId={activeCall.callMessageId}
+            onClose={() => setActiveCall(null)}
+          />
+        </div>
+      </div>,
+      document.body,
+    );
+  }
+
   if (!offer) return null;
 
   const label = mediaCallLabel(offer.mode);
 
-  return (
+  return createPortal(
     <div className="cins-incoming-call" role="dialog" aria-label="Cuộc gọi đến">
       <div className="cins-incoming-call-card">
         <div className="cins-incoming-call-pulse" aria-hidden />
@@ -234,6 +329,7 @@ export function ChatIncomingCallHost() {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

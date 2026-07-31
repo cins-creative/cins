@@ -61,8 +61,16 @@ export function cuocGoiMessageBody(
 }
 
 export function parseChatCuocGoi(raw: unknown): ChatCuocGoiNotice | null {
-  if (!raw || typeof raw !== "object") return null;
-  const r = raw as Record<string, unknown>;
+  let value: unknown = raw;
+  if (typeof value === "string") {
+    try {
+      value = JSON.parse(value) as unknown;
+    } catch {
+      return null;
+    }
+  }
+  if (!value || typeof value !== "object") return null;
+  const r = value as Record<string, unknown>;
   if (r.loai !== "cuoc_goi") return null;
   const modeRaw = typeof r.mode === "string" ? r.mode : null;
   const trangThaiRaw = typeof r.trangThai === "string" ? r.trangThai : null;

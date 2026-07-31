@@ -7,8 +7,8 @@ import {
   useRealtimeKitClient,
 } from "@cloudflare/realtimekit-react";
 import {
+  RtkMeeting,
   RtkParticipantsAudio,
-  RtkSimpleGrid,
 } from "@cloudflare/realtimekit-react-ui";
 import {
   Mic,
@@ -51,7 +51,7 @@ function formatElapsed(sec: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-function CallShell({
+function AudioCallShell({
   mode,
   title,
   status,
@@ -67,7 +67,6 @@ function CallShell({
   onHangUp: () => void;
 }) {
   const [micOn, setMicOn] = useState(true);
-  const [camOn, setCamOn] = useState(mode === "video");
   const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {
@@ -84,11 +83,7 @@ function CallShell({
       ? "Đang gọi…"
       : status === "error"
         ? err || "Không kết nối được"
-        : mode === "screen"
-          ? "Đang chia sẻ màn hình"
-          : mode === "video"
-            ? "Cuộc gọi video"
-            : "Cuộc gọi thoại";
+        : "Cuộc gọi thoại";
 
   async function toggleMic() {
     if (!meeting) return;
@@ -105,65 +100,33 @@ function CallShell({
     }
   }
 
-  async function toggleCam() {
-    if (!meeting || mode === "audio") return;
-    try {
-      if (camOn) {
-        await meeting.self.disableVideo();
-        setCamOn(false);
-      } else {
-        await meeting.self.enableVideo();
-        setCamOn(true);
-      }
-    } catch {
-      /* quyền cam */
-    }
-  }
-
-  const showGrid =
-    Boolean(meeting) &&
-    status === "connected" &&
-    (mode === "video" || mode === "screen");
-
   return (
     <div className="cins-phong-hoc" role="region" aria-label={title}>
       <div className="cins-phong-hoc-stage">
-        {showGrid && meeting ? (
-          <div className="cins-phong-hoc-grid">
-            <RtkSimpleGrid meeting={meeting} />
+        <div
+          className={`cins-phong-hoc-hero${
+            status === "connecting" ? " is-ringing" : ""
+          }`}
+        >
+          <div className="cins-phong-hoc-rings" aria-hidden>
+            <span />
+            <span />
           </div>
-        ) : (
-          <div
-            className={`cins-phong-hoc-hero${
-              status === "connecting" ? " is-ringing" : ""
+          <div className="cins-phong-hoc-avatar" aria-hidden>
+            <span>{initials(title)}</span>
+          </div>
+          <h2 className="cins-phong-hoc-peer">{title}</h2>
+          <p
+            className={`cins-phong-hoc-status${
+              status === "error" ? " is-err" : ""
             }`}
           >
-            <div className="cins-phong-hoc-rings" aria-hidden>
-              <span />
-              <span />
-            </div>
-            <div className="cins-phong-hoc-avatar" aria-hidden>
-              <span>{initials(title)}</span>
-            </div>
-            <h2 className="cins-phong-hoc-peer">{title}</h2>
-            <p
-              className={`cins-phong-hoc-status${
-                status === "error" ? " is-err" : ""
-              }`}
-            >
-              {status === "connected" ? formatElapsed(elapsed) : statusLine}
-            </p>
-            {status === "connected" ? (
-              <p className="cins-phong-hoc-status-sub">{statusLine}</p>
-            ) : null}
-            {mode === "screen" && status !== "error" ? (
-              <p className="cins-phong-hoc-mode-chip">
-                <MonitorUp size={14} strokeWidth={2} />
-                Chia sẻ màn hình
-              </p>
-            ) : null}
-          </div>
-        )}
+            {status === "connected" ? formatElapsed(elapsed) : statusLine}
+          </p>
+          {status === "connected" ? (
+            <p className="cins-phong-hoc-status-sub">{statusLine}</p>
+          ) : null}
+        </div>
       </div>
 
       <footer className="cins-phong-hoc-controls">
@@ -184,25 +147,6 @@ function CallShell({
           <span>{micOn ? "Mic" : "Mic tắt"}</span>
         </button>
 
-        {mode !== "audio" ? (
-          <button
-            type="button"
-            className={`cins-phong-hoc-ctrl${camOn ? "" : " is-off"}`}
-            aria-label={camOn ? "Tắt camera" : "Bật camera"}
-            disabled={!meeting || status === "error"}
-            onClick={() => void toggleCam()}
-          >
-            <span className="cins-phong-hoc-ctrl-icon">
-              {camOn ? (
-                <Video size={20} strokeWidth={1.9} />
-              ) : (
-                <VideoOff size={20} strokeWidth={1.9} />
-              )}
-            </span>
-            <span>{camOn ? "Camera" : "Cam tắt"}</span>
-          </button>
-        ) : null}
-
         <button
           type="button"
           className="cins-phong-hoc-ctrl is-hangup"
@@ -221,6 +165,196 @@ function CallShell({
   );
 }
 
+function VideoCallShell({
+  mode,
+  title,
+  status,
+  err,
+  meeting,
+  onHangUp,
+}: {
+  mode: MediaCallMode;
+  title: string;
+  status: CallStatus;
+  err: string | null;
+  meeting: MeetingClient | undefined;
+  onHangUp: () => void;
+}) {
+  const [micOn, setMicOn] = useState(true);
+  const [camOn, setCamOn] = useState(mode === "video");
+
+  async function toggleMic() {
+    if (!meeting) return;
+    try {
+      if (micOn) {
+        await meeting.self.disableAudio();
+        setMicOn(false);
+      } else {
+        await meeting.self.enableAudio();
+        setMicOn(true);
+      }
+    } catch {
+      /* */
+    }
+  }
+
+  async function toggleCam() {
+    if (!meeting) return;
+    try {
+      if (camOn) {
+        await meeting.self.disableVideo();
+        setCamOn(false);
+      } else {
+        await meeting.self.enableVideo();
+        setCamOn(true);
+      }
+    } catch {
+      /* */
+    }
+  }
+
+  return (
+    <div className="cins-phong-hoc is-video" role="region" aria-label={title}>
+      <div className="cins-phong-hoc-stage is-video-stage">
+        {meeting && status === "connected" ? (
+          <div className="cins-phong-hoc-grid">
+            <RtkMeeting meeting={meeting} showSetupScreen={false} mode="fill" />
+          </div>
+        ) : (
+          <div
+            className={`cins-phong-hoc-hero${
+              status === "connecting" ? " is-ringing" : ""
+            }`}
+          >
+            <div className="cins-phong-hoc-avatar" aria-hidden>
+              <span>{initials(title)}</span>
+            </div>
+            <h2 className="cins-phong-hoc-peer">{title}</h2>
+            <p
+              className={`cins-phong-hoc-status${
+                status === "error" ? " is-err" : ""
+              }`}
+            >
+              {status === "error"
+                ? err || "Không kết nối được"
+                : status === "connecting"
+                  ? "Đang gọi…"
+                  : mediaCallLabel(mode)}
+            </p>
+            {mode === "screen" ? (
+              <p className="cins-phong-hoc-mode-chip">
+                <MonitorUp size={14} strokeWidth={2} />
+                Chia sẻ màn hình
+              </p>
+            ) : null}
+          </div>
+        )}
+      </div>
+
+      {/* RtkMeeting có controlbar riêng — vẫn giữ hangup dự phòng khi lỗi. */}
+      {status === "error" || !meeting ? (
+        <footer className="cins-phong-hoc-controls">
+          <button
+            type="button"
+            className="cins-phong-hoc-ctrl is-hangup"
+            onClick={onHangUp}
+          >
+            <span className="cins-phong-hoc-ctrl-icon">
+              <PhoneOff size={20} strokeWidth={1.9} />
+            </span>
+            <span>Kết thúc</span>
+          </button>
+        </footer>
+      ) : status === "connecting" ? (
+        <footer className="cins-phong-hoc-controls">
+          <button
+            type="button"
+            className={`cins-phong-hoc-ctrl${micOn ? "" : " is-off"}`}
+            disabled
+          >
+            <span className="cins-phong-hoc-ctrl-icon">
+              {micOn ? (
+                <Mic size={20} strokeWidth={1.9} />
+              ) : (
+                <MicOff size={20} strokeWidth={1.9} />
+              )}
+            </span>
+            <span>Mic</span>
+          </button>
+          <button
+            type="button"
+            className={`cins-phong-hoc-ctrl${camOn ? "" : " is-off"}`}
+            disabled
+            onClick={() => void toggleCam()}
+          >
+            <span className="cins-phong-hoc-ctrl-icon">
+              {camOn ? (
+                <Video size={20} strokeWidth={1.9} />
+              ) : (
+                <VideoOff size={20} strokeWidth={1.9} />
+              )}
+            </span>
+            <span>Camera</span>
+          </button>
+          <button
+            type="button"
+            className="cins-phong-hoc-ctrl is-hangup"
+            onClick={onHangUp}
+          >
+            <span className="cins-phong-hoc-ctrl-icon">
+              <PhoneOff size={20} strokeWidth={1.9} />
+            </span>
+            <span>Kết thúc</span>
+          </button>
+        </footer>
+      ) : (
+        <footer className="cins-phong-hoc-controls is-overlay-controls">
+          <button
+            type="button"
+            className={`cins-phong-hoc-ctrl${micOn ? "" : " is-off"}`}
+            onClick={() => void toggleMic()}
+          >
+            <span className="cins-phong-hoc-ctrl-icon">
+              {micOn ? (
+                <Mic size={20} strokeWidth={1.9} />
+              ) : (
+                <MicOff size={20} strokeWidth={1.9} />
+              )}
+            </span>
+            <span>Mic</span>
+          </button>
+          {mode !== "screen" ? (
+            <button
+              type="button"
+              className={`cins-phong-hoc-ctrl${camOn ? "" : " is-off"}`}
+              onClick={() => void toggleCam()}
+            >
+              <span className="cins-phong-hoc-ctrl-icon">
+                {camOn ? (
+                  <Video size={20} strokeWidth={1.9} />
+                ) : (
+                  <VideoOff size={20} strokeWidth={1.9} />
+                )}
+              </span>
+              <span>Camera</span>
+            </button>
+          ) : null}
+          <button
+            type="button"
+            className="cins-phong-hoc-ctrl is-hangup"
+            onClick={onHangUp}
+          >
+            <span className="cins-phong-hoc-ctrl-icon">
+              <PhoneOff size={20} strokeWidth={1.9} />
+            </span>
+            <span>Kết thúc</span>
+          </button>
+        </footer>
+      )}
+    </div>
+  );
+}
+
 export function PhongHocMeeting({
   authToken,
   mode,
@@ -235,10 +369,12 @@ export function PhongHocMeeting({
   const meetingRef = useRef<MeetingClient | undefined>(undefined);
   const unmountGen = useRef(0);
   const endedRef = useRef(false);
+  const joinedRef = useRef(false);
 
   meetingRef.current = meeting;
 
   const heading = title?.trim() || mediaCallLabel(mode);
+  const isVisual = mode === "video" || mode === "screen";
 
   const signalEnd = useCallback(async () => {
     if (endedRef.current) return;
@@ -258,7 +394,6 @@ export function PhongHocMeeting({
     }
   }, [roomId, callMessageId]);
 
-  // Init SDK (hook may no-op if a concurrent init is in flight — meeting still arrives via state).
   useEffect(() => {
     let alive = true;
     void (async () => {
@@ -283,9 +418,9 @@ export function PhongHocMeeting({
     };
   }, [authToken, initMeeting, mode]);
 
-  // Join when client is ready — public API is join()/leave(), not joinRoom().
   useEffect(() => {
-    if (!meeting) return;
+    if (!meeting || joinedRef.current) return;
+    joinedRef.current = true;
     let alive = true;
 
     void (async () => {
@@ -295,40 +430,26 @@ export function PhongHocMeeting({
         }
         if (!alive) return;
 
-        try {
-          await meeting.self.enableAudio();
-        } catch {
-          /* user từ chối mic */
-        }
+        // Hiện UI / nghe sớm — bật media không chặn trạng thái connected.
+        setStatus("connected");
 
+        void meeting.self.enableAudio().catch(() => {});
         if (mode === "video") {
-          try {
-            await meeting.self.enableVideo();
-          } catch {
-            /* user từ chối cam */
-          }
+          void meeting.self.enableVideo().catch(() => {});
         }
-
         if (mode === "screen") {
-          try {
-            await meeting.self.enableScreenShare();
-          } catch (e) {
-            if (alive) {
-              setErr(
-                e instanceof Error
-                  ? e.message
-                  : "Không chia sẻ được màn hình (cần cho phép trong trình duyệt).",
-              );
-            }
-          }
+          void meeting.self.enableScreenShare().catch((e: unknown) => {
+            if (!alive) return;
+            setErr(
+              e instanceof Error
+                ? e.message
+                : "Không chia sẻ được màn hình (cần cho phép trong trình duyệt).",
+            );
+          });
         }
-
-        if (alive) setStatus("connected");
       } catch (e) {
         if (!alive) return;
-        setErr(
-          e instanceof Error ? e.message : "Không vào được cuộc gọi.",
-        );
+        setErr(e instanceof Error ? e.message : "Không vào được cuộc gọi.");
         setStatus("error");
       }
     })();
@@ -338,7 +459,6 @@ export function PhongHocMeeting({
     };
   }, [meeting, mode]);
 
-  // Leave on real unmount; skip Strict Mode effect re-run (remount bumps gen).
   useEffect(() => {
     const gen = ++unmountGen.current;
     return () => {
@@ -360,28 +480,29 @@ export function PhongHocMeeting({
     onClose();
   }
 
+  const shell = isVisual ? (
+    <VideoCallShell
+      mode={mode}
+      title={heading}
+      status={status}
+      err={err}
+      meeting={meeting}
+      onHangUp={() => void hangUp()}
+    />
+  ) : (
+    <AudioCallShell
+      mode={mode}
+      title={heading}
+      status={status}
+      err={err}
+      meeting={meeting}
+      onHangUp={() => void hangUp()}
+    />
+  );
+
   return (
-    <RealtimeKitProvider
-      value={meeting}
-      fallback={
-        <CallShell
-          mode={mode}
-          title={heading}
-          status="connecting"
-          err={null}
-          meeting={undefined}
-          onHangUp={() => void hangUp()}
-        />
-      }
-    >
-      <CallShell
-        mode={mode}
-        title={heading}
-        status={status}
-        err={err}
-        meeting={meeting}
-        onHangUp={() => void hangUp()}
-      />
+    <RealtimeKitProvider value={meeting} fallback={shell}>
+      {shell}
     </RealtimeKitProvider>
   );
 }

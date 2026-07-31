@@ -51,6 +51,64 @@ export async function insertCuocGoiDangGoi(input: {
   };
 }
 
+/** Cuộc gọi đang reo tới user (không phải người gọi), trong 90s gần nhất. */
+export async function listIncomingCuocGoi(viewerId: string): Promise<
+  Array<{
+    roomId: string;
+    callMessageId: string;
+    mode: MediaCallMode;
+    callerName: string;
+    batDau: string;
+  }>
+> {
+  const admin = createServiceRoleClient();
+  const since = new Date(Date.now() - 90_000).toISOString();
+
+  const { data: memberships } = await admin
+    .from("chat_thanh_vien")
+    .select("id_phong")
+    .eq("id_nguoi_dung", viewerId)
+    .is("roi_luc", null);
+
+  const roomIds = (memberships ?? [])
+    .map((r) => r.id_phong as string)
+    .filter(Boolean);
+  if (!roomIds.length) return [];
+
+  const { data: rows } = await admin
+    .from("chat_tin_nhan")
+    .select("id, id_phong, id_nguoi_gui, ngu_canh, tao_luc")
+    .in("id_phong", roomIds)
+    .eq("loai_tin", "system")
+    .eq("da_xoa", false)
+    .neq("id_nguoi_gui", viewerId)
+    .gte("tao_luc", since)
+    .order("tao_luc", { ascending: false })
+    .limit(20);
+
+  const out: Array<{
+    roomId: string;
+    callMessageId: string;
+    mode: MediaCallMode;
+    callerName: string;
+    batDau: string;
+  }> = [];
+
+  for (const row of rows ?? []) {
+    const notice = parseChatCuocGoi(row.ngu_canh);
+    if (!notice || notice.trangThai !== "dang_goi") continue;
+    out.push({
+      roomId: row.id_phong as string,
+      callMessageId: row.id as string,
+      mode: notice.mode,
+      callerName: notice.tenNguoiGoi,
+      batDau: notice.batDau,
+    });
+  }
+
+  return out;
+}
+
 async function loadCuocGoiRow(messageId: string, roomId: string) {
   const admin = createServiceRoleClient();
   const { data, error } = await admin
