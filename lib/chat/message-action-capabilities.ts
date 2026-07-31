@@ -25,6 +25,7 @@ export function canAddMessageToCanvas(msg: ChatMessage): boolean {
     msg.kind === "sticker" ||
     msg.kind === "moc_nhac" ||
     msg.kind === "canvas_binh_luan" ||
+    msg.kind === "cuoc_goi" ||
     msg.kind === "binh_chon"
   ) {
     return false;

@@ -13,6 +13,7 @@ import {
 import { useRouter } from "next/navigation";
 
 import { CinsChatDock } from "@/components/cins/CinsChatDock";
+import { ChatIncomingCallHost } from "@/components/cins/ChatIncomingCallHost";
 import { CinsChatOverlay } from "@/components/cins/CinsChatOverlay";
 import { scheduleWhenIdle } from "@/lib/client/schedule-when-idle";
 import {
@@ -488,6 +489,17 @@ export function CinsChatProvider({
       const fromPeer = event.senderId !== viewerProfileId;
       if (!fromPeer) return;
 
+      /* Cuộc gọi đến → chuông riêng (ChatIncomingCallHost), không beep tin nhắn. */
+      if (event.message.kind === "cuoc_goi" || event.message.cuocGoi) {
+        const focus = focusRef.current;
+        const isViewing =
+          focus.surface !== null && focus.roomId === event.roomId;
+        if (!isViewing) {
+          setTotalUnread((count) => count + 1);
+        }
+        return;
+      }
+
       playIncomingMessageSound({ muted: isRoomMuted(event.roomId) });
 
       const focus = focusRef.current;
@@ -850,6 +862,7 @@ export function CinsChatProvider({
     <CinsChatContext.Provider value={value}>
       {children}
       {viewerProfileId ? <CinsChatDock /> : null}
+      {viewerProfileId ? <ChatIncomingCallHost /> : null}
       {open ? (
         <CinsChatOverlay
           launch={launch}

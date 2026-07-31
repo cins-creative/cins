@@ -90,6 +90,9 @@ export function messagePreviewText(message: ChatMessage): string {
   if (message.kind === "moc_nhac" || message.mocNhac) {
     return message.body.trim() || `Nhắc mốc: ${message.mocNhac?.ten ?? ""}`;
   }
+  if (message.kind === "cuoc_goi" || message.cuocGoi) {
+    return message.body.trim() || "Cuộc gọi";
+  }
   if (message.kind === "canvas_binh_luan" || message.canvasBinhLuan) {
     return (
       message.body.trim() ||

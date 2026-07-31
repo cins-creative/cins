@@ -68,7 +68,7 @@ export function ShopPhiPanel() {
       return;
     }
     if (file.size > MAX_CLOUDFLARE_IMAGE_UPLOAD_BYTES) {
-      setErr(cloudflareImageTooLargeError(file.size));
+      setErr(cloudflareImageTooLargeError());
       return;
     }
     setBusyId(kyId);

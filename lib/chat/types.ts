@@ -1,3 +1,8 @@
+import type {
+  ChatCuocGoiNotice,
+  ChatCuocGoiTrangThai,
+} from "@/lib/media/call-signal-types";
+
 export type ChatMessageKind =
   | "text"
   | "media"
@@ -5,7 +10,8 @@ export type ChatMessageKind =
   | "context"
   | "binh_chon"
   | "moc_nhac"
-  | "canvas_binh_luan";
+  | "canvas_binh_luan"
+  | "cuoc_goi";
 
 export type ChatMocNoticeSuKien = "tao" | "nhac_truoc" | "den_han";
 
@@ -27,6 +33,8 @@ export type ChatCanvasBinhLuanNotice = {
   tenNguoi: string;
   avatarUrl?: string | null;
 };
+
+export type { ChatCuocGoiNotice, ChatCuocGoiTrangThai };
 
 export type ChatPollOption = {
   id: string;
@@ -155,6 +163,8 @@ export type ChatMessage = {
   mocNhac?: ChatMocNotice | null;
   /** Bình luận trên canvas — dòng nhỏ trong feed. */
   canvasBinhLuan?: ChatCanvasBinhLuanNotice | null;
+  /** Lịch sử / tín hiệu cuộc gọi trong phòng. */
+  cuocGoi?: ChatCuocGoiNotice | null;
   /** Tin được chuyển tiếp từ hội thoại khác (`ngu_canh.chuyenTiep`). */
   forwarded?: boolean;
 };

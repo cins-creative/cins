@@ -2,7 +2,7 @@
 
 import "@/app/cins-feed-composer.css";
 
-import { Code2, Flag, Image as ImageIcon, Video } from "lucide-react";
+import { CirclePlay, Code2, Flag, Image as ImageIcon } from "lucide-react";
 import {
   useEffect,
   useRef,
@@ -210,7 +210,7 @@ export function CinsFeedComposer({
             aria-label="Thêm video"
             onClick={() => videoInputRef.current?.click()}
           >
-            <Video size={16} />
+            <CirclePlay size={16} strokeWidth={2} aria-hidden />
           </button>
           <button
             type="button"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type RealtimeKitClient from "@cloudflare/realtimekit";
 import {
   RealtimeKitProvider,
@@ -31,6 +31,8 @@ type Props = {
   authToken: string;
   mode: MediaCallMode;
   title?: string;
+  roomId?: string;
+  callMessageId?: string | null;
   onClose: () => void;
 };
 
@@ -219,16 +221,42 @@ function CallShell({
   );
 }
 
-export function PhongHocMeeting({ authToken, mode, title, onClose }: Props) {
+export function PhongHocMeeting({
+  authToken,
+  mode,
+  title,
+  roomId,
+  callMessageId,
+  onClose,
+}: Props) {
   const [meeting, initMeeting] = useRealtimeKitClient();
   const [status, setStatus] = useState<CallStatus>("connecting");
   const [err, setErr] = useState<string | null>(null);
   const meetingRef = useRef<MeetingClient | undefined>(undefined);
   const unmountGen = useRef(0);
+  const endedRef = useRef(false);
 
   meetingRef.current = meeting;
 
   const heading = title?.trim() || mediaCallLabel(mode);
+
+  const signalEnd = useCallback(async () => {
+    if (endedRef.current) return;
+    endedRef.current = true;
+    if (!roomId || !callMessageId) return;
+    try {
+      await fetch(
+        `/api/chat/rooms/${encodeURIComponent(roomId)}/phong-hoc/signal`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ callMessageId, action: "end" }),
+        },
+      );
+    } catch {
+      /* ignore */
+    }
+  }, [roomId, callMessageId]);
 
   // Init SDK (hook may no-op if a concurrent init is in flight — meeting still arrives via state).
   useEffect(() => {
@@ -317,9 +345,10 @@ export function PhongHocMeeting({ authToken, mode, title, onClose }: Props) {
       window.setTimeout(() => {
         if (unmountGen.current !== gen) return;
         void meetingRef.current?.leave();
+        void signalEnd();
       }, 0);
     };
-  }, [meeting]);
+  }, [meeting, signalEnd]);
 
   async function hangUp() {
     try {
@@ -327,6 +356,7 @@ export function PhongHocMeeting({ authToken, mode, title, onClose }: Props) {
     } catch {
       /* ignore */
     }
+    await signalEnd();
     onClose();
   }
 

@@ -16,6 +16,10 @@ import {
 
 import { useCinsChat } from "@/components/cins/CinsChatProvider";
 import {
+  subscribePendingPhongHoc,
+  takePendingPhongHoc,
+} from "@/components/cins/ChatIncomingCallHost";
+import {
   ChatAtMentionMenu,
   filterChatAtMembers,
   isChatAtMentionAll,
@@ -342,6 +346,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
     token: string;
     title: string;
     mode: MediaCallMode;
+    callMessageId?: string | null;
   } | null>(null);
   const [phongHocBusy, setPhongHocBusy] = useState(false);
   const [phongHocErr, setPhongHocErr] = useState<string | null>(null);
@@ -1633,10 +1638,15 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
       try {
         const res = await fetch(
           `/api/chat/rooms/${encodeURIComponent(roomId)}/phong-hoc/token`,
-          { method: "POST" },
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ mode, action: "start" }),
+          },
         );
         const json = (await res.json().catch(() => null)) as {
           token?: string;
+          callMessageId?: string | null;
           error?: string;
         } | null;
         if (!res.ok || !json?.token) {
@@ -1647,6 +1657,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
           token: json.token,
           title: miniThread?.name?.trim() || "Cuộc gọi",
           mode,
+          callMessageId: json.callMessageId ?? null,
         });
       } catch {
         setPhongHocErr("Lỗi mạng — thử lại.");
@@ -1656,6 +1667,48 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
     },
     [miniThread, phongHocBusy],
   );
+
+  useEffect(() => {
+    const roomId = miniThread?.roomId;
+    if (!roomId) return;
+
+    const applyPending = (pending: {
+      roomId: string;
+      token: string;
+      mode: MediaCallMode;
+      callMessageId: string;
+      title: string;
+    }) => {
+      if (pending.roomId !== roomId) return;
+      takePendingPhongHoc(roomId);
+      setPhongHoc({
+        token: pending.token,
+        title: pending.title || miniThread?.name?.trim() || "Cuộc gọi",
+        mode: pending.mode,
+        callMessageId: pending.callMessageId,
+      });
+      setPhongHocErr(null);
+    };
+
+    const queued = takePendingPhongHoc(roomId);
+    if (queued) applyPending(queued);
+
+    return subscribePendingPhongHoc(applyPending);
+  }, [miniThread?.roomId, miniThread?.name]);
+
+  useEffect(() => {
+    if (!phongHoc?.callMessageId) return;
+    return subscribeChatMessages((event) => {
+      if (event.message.id !== phongHoc.callMessageId) return;
+      const st = event.message.cuocGoi?.trangThai;
+      if (st === "tu_choi" || st === "nho") {
+        setPhongHoc(null);
+        setPhongHocErr(
+          st === "tu_choi" ? "Người nhận đã từ chối." : "Không bắt máy.",
+        );
+      }
+    });
+  }, [phongHoc?.callMessageId, subscribeChatMessages]);
 
   const handleMiniCreatePoll = useCallback(
     async (input: {
@@ -2155,6 +2208,8 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
                 authToken={phongHoc.token}
                 mode={phongHoc.mode}
                 title={phongHoc.title}
+                roomId={miniThread?.roomId}
+                callMessageId={phongHoc.callMessageId}
                 onClose={() => {
                   setPhongHoc(null);
                   setPhongHocErr(null);

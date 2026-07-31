@@ -1,0 +1,146 @@
+.cins-incoming-call {
+  position: fixed;
+  inset: 0;
+  z-index: 12000;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgb(8 14 22 / 55%);
+  backdrop-filter: blur(6px);
+}
+
+.cins-incoming-call-card {
+  position: relative;
+  width: min(100%, 340px);
+  padding: 28px 22px 22px;
+  border-radius: 20px;
+  background:
+    radial-gradient(120% 90% at 50% 0%, #1d4d6e 0%, transparent 55%),
+    linear-gradient(165deg, #121a22 0%, #0c141c 100%);
+  color: #f2f6fa;
+  text-align: center;
+  box-shadow: 0 24px 60px rgb(0 0 0 / 45%);
+  overflow: hidden;
+}
+
+.cins-incoming-call-pulse {
+  position: absolute;
+  left: 50%;
+  top: 36px;
+  width: 72px;
+  height: 72px;
+  margin-left: -36px;
+  border-radius: 50%;
+  border: 1px solid rgb(120 190 230 / 45%);
+  animation: cins-incoming-pulse 1.8s ease-out infinite;
+  pointer-events: none;
+}
+
+@keyframes cins-incoming-pulse {
+  0% {
+    transform: scale(0.7);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+}
+
+.cins-incoming-call-eyebrow {
+  margin: 0 0 6px;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  color: rgb(180 210 230 / 85%);
+}
+
+.cins-incoming-call-name {
+  margin: 0 0 22px;
+  font-size: 1.35rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.cins-incoming-call-actions {
+  display: flex;
+  justify-content: center;
+  gap: 28px;
+}
+
+.cins-incoming-call-btn {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  min-width: 72px;
+}
+
+.cins-incoming-call-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.cins-incoming-call-btn svg {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  padding: 16px;
+  box-sizing: border-box;
+  border-radius: 50%;
+}
+
+.cins-incoming-call-btn.is-decline svg {
+  background: #c44747;
+}
+
+.cins-incoming-call-btn.is-accept svg {
+  background: #2f9e62;
+}
+
+.cins-incoming-call-btn span {
+  font-size: 0.75rem;
+  color: rgb(210 224 236 / 85%);
+}
+
+.cins-chat-bubble-row.is-cuoc-goi-notice {
+  justify-content: center;
+  padding: 4px 12px;
+}
+
+.cins-chat-bubble.is-cuoc-goi-notice {
+  max-width: min(100%, 320px);
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+}
+
+.cins-chat-cuoc-goi {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgb(15 23 32 / 6%);
+  color: rgb(40 55 70 / 88%);
+  font-size: 0.8rem;
+  line-height: 1.3;
+}
+
+.cins-chat-cuoc-goi-icon {
+  display: inline-flex;
+  color: rgb(40 90 130 / 90%);
+}
+
+.cins-chat-cuoc-goi.is-nho .cins-chat-cuoc-goi-icon,
+.cins-chat-cuoc-goi.is-tu_choi .cins-chat-cuoc-goi-icon {
+  color: #c44747;
+}
+
+.cins-chat-cuoc-goi.is-dang_goi {
+  background: rgb(31 116 201 / 10%);
+}

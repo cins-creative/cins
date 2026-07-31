@@ -108,8 +108,10 @@ export function ChatDonHangCard({ card, tone = "them" }: Props) {
   const className = [
     "cins-chat-don-card",
     tone === "me" ? "is-me" : "",
-    isPaid ? "is-paid" : "",
-    isPayLater ? "is-later" : "",
+    /* Hủy là trạng thái cuối — không gắn is-paid lên card (badge vẫn hiện Đã thanh toán).
+       Tránh hover `.is-paid` đè `.is-canceled` → nhấp nháy xanh/đỏ khi scroll. */
+    isPaid && !statusCanceled ? "is-paid" : "",
+    isPayLater && !statusCanceled ? "is-later" : "",
     statusCanceled ? "is-canceled" : "",
   ]
     .filter(Boolean)

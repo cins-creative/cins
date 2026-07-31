@@ -5,6 +5,7 @@ import {
 } from "@/lib/chat/image-url";
 import {
   parseChatCanvasBinhLuan,
+  parseChatCuocGoi,
   parseChatForwarded,
   parseChatMocNhac,
   parseChatNguCanh,
@@ -39,27 +40,35 @@ export type ChatRealtimeMessageEvent = {
 
 export function mapRealtimeRow(row: ChatRealtimeRow, viewerId: string): ChatMessage {
   const canvasBinhLuan = parseChatCanvasBinhLuan(row.ngu_canh);
-  const mocNhac = canvasBinhLuan ? null : parseChatMocNhac(row.ngu_canh);
+  const cuocGoi = canvasBinhLuan ? null : parseChatCuocGoi(row.ngu_canh);
+  const mocNhac =
+    canvasBinhLuan || cuocGoi ? null : parseChatMocNhac(row.ngu_canh);
   const nguCanh =
-    canvasBinhLuan || mocNhac ? null : parseChatNguCanh(row.ngu_canh);
+    canvasBinhLuan || cuocGoi || mocNhac
+      ? null
+      : parseChatNguCanh(row.ngu_canh);
   const mentions =
-    canvasBinhLuan || mocNhac ? [] : parseChatMessageMentions(row.ngu_canh);
+    canvasBinhLuan || cuocGoi || mocNhac
+      ? []
+      : parseChatMessageMentions(row.ngu_canh);
   const forwarded = parseChatForwarded(row.ngu_canh);
   const kind = canvasBinhLuan
     ? "canvas_binh_luan"
-    : mocNhac
-      ? "moc_nhac"
-      : nguCanh
-        ? "context"
-        : row.loai_tin === "sticker"
-          ? "sticker"
-          : row.loai_tin === "media"
-            ? "media"
-            : row.loai_tin === "binh_chon"
-              ? "binh_chon"
-              : row.loai_tin === "system"
-                ? "moc_nhac"
-                : "text";
+    : cuocGoi
+      ? "cuoc_goi"
+      : mocNhac
+        ? "moc_nhac"
+        : nguCanh
+          ? "context"
+          : row.loai_tin === "sticker"
+            ? "sticker"
+            : row.loai_tin === "media"
+              ? "media"
+              : row.loai_tin === "binh_chon"
+                ? "binh_chon"
+                : row.loai_tin === "system"
+                  ? "moc_nhac"
+                  : "text";
   const rawBody = row.noi_dung?.trim() || "";
   let imageId: string | null = null;
   let body = rawBody;
@@ -75,7 +84,8 @@ export function mapRealtimeRow(row: ChatRealtimeRow, viewerId: string): ChatMess
     kind === "context" ||
     kind === "binh_chon" ||
     kind === "moc_nhac" ||
-    kind === "canvas_binh_luan"
+    kind === "canvas_binh_luan" ||
+    kind === "cuoc_goi"
   ) {
     body = rawBody;
   }
@@ -97,6 +107,7 @@ export function mapRealtimeRow(row: ChatRealtimeRow, viewerId: string): ChatMess
     poll: null,
     mocNhac,
     canvasBinhLuan,
+    cuocGoi,
     forwarded: forwarded || undefined,
   };
 }
@@ -119,6 +130,8 @@ function realtimePreview(row: ChatRealtimeRow): string {
         : `${canvasBinhLuan.tenNguoi} vừa có ${canvasBinhLuan.soLuong} bình luận`)
     );
   }
+  const cuocGoi = parseChatCuocGoi(row.ngu_canh);
+  if (cuocGoi) return row.noi_dung?.trim() || "Cuộc gọi";
   const mocNhac = parseChatMocNhac(row.ngu_canh);
   if (mocNhac) return row.noi_dung?.trim() || `Nhắc mốc: ${mocNhac.ten}`;
   const nguCanh = parseChatNguCanh(row.ngu_canh);

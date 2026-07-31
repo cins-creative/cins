@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { ChatCanvasBinhLuanNoticeBubble } from "@/components/cins/ChatCanvasBinhLuanNotice";
+import { ChatCuocGoiNoticeBubble } from "@/components/cins/ChatCuocGoiNoticeBubble";
 import { ChatDonCapNhatNotice } from "@/components/cins/ChatDonCapNhatNotice";
 import { ChatDonHangCard } from "@/components/cins/ChatDonHangCard";
 import { ChatDonHocPhiCard } from "@/components/cins/ChatDonHocPhiCard";
@@ -121,6 +122,21 @@ export function ChatMessageBody({
       <p className="cins-chat-canvas-comment-notice-fallback">
         {msg.body || "Bình luận trên canvas"}
       </p>
+    );
+  }
+
+  if (msg.kind === "cuoc_goi" || msg.cuocGoi) {
+    if (msg.cuocGoi) {
+      return (
+        <ChatCuocGoiNoticeBubble
+          notice={msg.cuocGoi}
+          fallbackBody={msg.body}
+          fromMe={msg.from === "me"}
+        />
+      );
+    }
+    return (
+      <p className="cins-chat-cuoc-goi-fallback">{msg.body || "Cuộc gọi"}</p>
     );
   }
 

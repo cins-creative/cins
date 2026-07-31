@@ -554,6 +554,7 @@
   height: 100%;
   min-width: 0;
   min-height: 0;
+  aspect-ratio: auto;
   position: relative;
   display: block;
 }
@@ -3389,7 +3390,65 @@
   text-decoration: underline;
 }
 
-/* Rive / Lottie file — full-bleed, không padding / bo góc (khác link card). */
+/* Rive / Lottie file — full-bleed, không padding / bo góc (khác link card).
+   Permalink article (không --media): host cần khung trước khi mount player —
+   trùng timeline `.jcard-embed-peek[data-provider="rive-file"]` (4/3 + min-height).
+   Không có khung → ViewportGatedEmbed cao 0 → không bao giờ inView → mất .riv. */
+.cins-post-view:not(.post-canvas--media) .b-embed-ro.is-rive-file-host,
+.cins-post-view:not(.post-canvas--media) .b-embed-ro.is-lottie-file-host,
+.cins-editor-page.cins-post-view:not(.post-canvas--media)
+  .b-embed.b-embed-ro.is-rive-file-host,
+.cins-editor-page.cins-post-view:not(.post-canvas--media)
+  .b-embed.b-embed-ro.is-lottie-file-host {
+  display: block;
+  position: relative;
+  padding: 0;
+  gap: 0;
+  border: none;
+  border-radius: 0;
+  background: var(--bg-surface, #fff);
+  overflow: hidden;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 3;
+  min-height: 180px;
+}
+.cins-post-view:not(.post-canvas--media)
+  .b-embed-ro.is-rive-file-host:has([data-aspect-ready]),
+.cins-post-view:not(.post-canvas--media)
+  .b-embed-ro.is-lottie-file-host:has([data-aspect-ready]),
+.cins-editor-page.cins-post-view:not(.post-canvas--media)
+  .b-embed.b-embed-ro.is-rive-file-host:has([data-aspect-ready]),
+.cins-editor-page.cins-post-view:not(.post-canvas--media)
+  .b-embed.b-embed-ro.is-lottie-file-host:has([data-aspect-ready]) {
+  min-height: 0;
+  aspect-ratio: auto;
+  height: auto;
+}
+/* Trước khi biết tỉ lệ artboard — canvas lấp khung 4/3 của host. */
+.cins-post-view:not(.post-canvas--media)
+  .b-embed-ro.is-rive-file-host
+  > .is-rive-file,
+.cins-post-view:not(.post-canvas--media)
+  .b-embed-ro.is-lottie-file-host
+  > .is-lottie-file {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  aspect-ratio: auto;
+}
+.cins-post-view:not(.post-canvas--media)
+  .b-embed-ro.is-rive-file-host:has([data-aspect-ready])
+  > .is-rive-file,
+.cins-post-view:not(.post-canvas--media)
+  .b-embed-ro.is-lottie-file-host:has([data-aspect-ready])
+  > .is-lottie-file {
+  position: relative;
+  inset: auto;
+  height: auto;
+}
 .cins-post-view .b-embed-ro.is-rive-file-host,
 .cins-post-view .b-embed-ro.is-lottie-file-host,
 .cins-post-view .b-embed-ro.is-rive-file,

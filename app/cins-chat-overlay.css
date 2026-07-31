@@ -6248,6 +6248,52 @@ a.cins-chat-don-card.is-paid:hover {
   );
 }
 
+/* Hủy thắng paid/hover mặc định — specificity ≥ button.is-paid:hover. */
+button.cins-chat-don-card.is-canceled,
+a.cins-chat-don-card.is-canceled,
+button.cins-chat-don-card.is-paid.is-canceled,
+a.cins-chat-don-card.is-paid.is-canceled {
+  border-color: color-mix(in srgb, #dc2626 24%, #e4e6eb);
+  background: linear-gradient(
+    165deg,
+    color-mix(in srgb, #dc2626 6%, #fff) 0%,
+    #fff 46%
+  );
+}
+
+button.cins-chat-don-card.is-canceled:hover,
+a.cins-chat-don-card.is-canceled:hover,
+button.cins-chat-don-card.is-paid.is-canceled:hover,
+a.cins-chat-don-card.is-paid.is-canceled:hover {
+  border-color: color-mix(in srgb, #dc2626 42%, #c9cdd4);
+  background: linear-gradient(
+    165deg,
+    color-mix(in srgb, #dc2626 12%, #fff) 0%,
+    #fff 48%
+  );
+}
+
+.cins-chat-don-card.is-paid.is-canceled .cins-chat-don-card-icon {
+  background: color-mix(in srgb, #dc2626 14%, transparent);
+  color: #b42318;
+}
+
+.cins-chat-don-card.is-paid.is-canceled .cins-chat-don-card-label {
+  color: #991b1b;
+}
+
+.cins-chat-don-card.is-paid.is-canceled .cins-chat-don-card-tong {
+  background: color-mix(in srgb, #dc2626 8%, #fef2f2);
+}
+
+.cins-chat-don-card.is-paid.is-canceled .cins-chat-don-card-tong strong {
+  color: #b42318;
+}
+
+.cins-chat-don-card.is-paid.is-canceled .cins-chat-don-card-cta {
+  color: #b42318;
+}
+
 .cins-chat-don-card.is-canceled .cins-chat-don-card-ma {
   text-decoration: line-through;
   text-decoration-thickness: 1px;
@@ -10483,6 +10529,40 @@ button.cins-chat-project-card-mark:hover {
     color-mix(in srgb, #dc2626 12%, rgba(0, 0, 0, 0.25)) 0%,
     rgba(0, 0, 0, 0.25) 48%
   );
+}
+:root[data-theme="dark"] button.cins-chat-don-card.is-canceled,
+:root[data-theme="dark"] a.cins-chat-don-card.is-canceled,
+:root[data-theme="dark"] button.cins-chat-don-card.is-paid.is-canceled,
+:root[data-theme="dark"] a.cins-chat-don-card.is-paid.is-canceled {
+  border-color: color-mix(in srgb, #dc2626 34%, transparent);
+  background: linear-gradient(
+    165deg,
+    color-mix(in srgb, #dc2626 12%, rgba(0, 0, 0, 0.25)) 0%,
+    rgba(0, 0, 0, 0.25) 48%
+  );
+}
+:root[data-theme="dark"] button.cins-chat-don-card.is-canceled:hover,
+:root[data-theme="dark"] a.cins-chat-don-card.is-canceled:hover,
+:root[data-theme="dark"] button.cins-chat-don-card.is-paid.is-canceled:hover,
+:root[data-theme="dark"] a.cins-chat-don-card.is-paid.is-canceled:hover {
+  border-color: color-mix(in srgb, #dc2626 48%, transparent);
+  background: linear-gradient(
+    165deg,
+    color-mix(in srgb, #dc2626 18%, rgba(0, 0, 0, 0.25)) 0%,
+    rgba(0, 0, 0, 0.25) 52%
+  );
+}
+:root[data-theme="dark"] .cins-chat-don-card.is-paid.is-canceled .cins-chat-don-card-label,
+:root[data-theme="dark"] .cins-chat-don-card.is-paid.is-canceled .cins-chat-don-card-icon,
+:root[data-theme="dark"] .cins-chat-don-card.is-paid.is-canceled .cins-chat-don-card-tong strong,
+:root[data-theme="dark"] .cins-chat-don-card.is-paid.is-canceled .cins-chat-don-card-cta {
+  color: #fca5a5;
+}
+:root[data-theme="dark"] .cins-chat-don-card.is-paid.is-canceled .cins-chat-don-card-icon {
+  background: color-mix(in srgb, #dc2626 18%, transparent);
+}
+:root[data-theme="dark"] .cins-chat-don-card.is-paid.is-canceled .cins-chat-don-card-tong {
+  background: color-mix(in srgb, #dc2626 14%, rgba(0, 0, 0, 0.25));
 }
 :root[data-theme="dark"] .cins-chat-don-capnhat {
   background: color-mix(in srgb, var(--capnhat-accent) 16%, rgba(0, 0, 0, 0.28));

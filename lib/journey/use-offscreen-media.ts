@@ -40,15 +40,19 @@ function isElementInViewport(
    * Nếu parent đã có kích thước (cột media post split), coi như trong khung để
    * mount player — tránh kẹt nền đen mãi (Rive/Lottie không bao giờ load).
    */
-  if (rect.width <= 0 || rect.height <= 0) {
-    const parent = el.parentElement?.getBoundingClientRect();
-    return Boolean(parent && parent.width > 0 && parent.height > 0);
-  }
-
   const { top: marginTop, bottom: marginBottom } =
     parseRootMarginPx(rootMargin);
   const viewTop = -marginTop;
   const viewBottom = window.innerHeight + marginBottom;
+
+  if (rect.width <= 0 || rect.height <= 0) {
+    const parent = el.parentElement?.getBoundingClientRect();
+    if (parent && parent.width > 0 && parent.height > 0) return true;
+    /* Shell rỗng trên trang article (Rive/Lottie) — parent cũng cao 0.
+       Vẫn mount khi điểm neo nằm trong vùng viewport (+ rootMargin). */
+    return rect.top < viewBottom && rect.top >= viewTop - 1;
+  }
+
   const visibleTop = Math.max(rect.top, viewTop);
   const visibleBottom = Math.min(rect.bottom, viewBottom);
   const visibleHeight = Math.max(0, visibleBottom - visibleTop);
@@ -111,9 +115,15 @@ export function useOffscreenMedia<T extends HTMLElement = HTMLDivElement>(
           const parentSized = Boolean(
             parent && parent.width > 0 && parent.height > 0,
           );
-          // Shell rỗng trong parent đã layout — giữ/mount, đừng unmount vì ratio=0.
+          const { top: marginTop, bottom: marginBottom } =
+            parseRootMarginPx(rootMargin);
+          const viewTop = -marginTop;
+          const viewBottom = window.innerHeight + marginBottom;
+          const emptyShellOnScreen =
+            box.top < viewBottom && box.top >= viewTop - 1;
+          // Shell rỗng: parent đã layout, hoặc điểm neo còn trong viewport.
           const visible = emptyShell
-            ? parentSized
+            ? parentSized || emptyShellOnScreen
             : entry.isIntersecting && entry.intersectionRatio >= threshold;
           setInView(visible);
           if (wasInViewRef.current && !visible) {

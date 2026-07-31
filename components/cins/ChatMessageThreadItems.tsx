@@ -560,6 +560,24 @@ function SingleMessageBubble({
     );
   }
 
+  if (msg.kind === "cuoc_goi" || msg.cuocGoi) {
+    return (
+      <div
+        id={messageRowId(msg.id)}
+        className="cins-chat-bubble-row is-cuoc-goi-notice"
+      >
+        <div className="cins-chat-bubble is-cuoc-goi-notice">
+          <ChatMessageBody
+            msg={msg}
+            roomId={roomId}
+            viewerUserId={viewerUserId}
+            onPollUpdated={onPollUpdated}
+          />
+        </div>
+      </div>
+    );
+  }
+
   if (msg.kind === "moc_nhac" || msg.mocNhac) {
     return (
       <div

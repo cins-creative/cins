@@ -46,7 +46,7 @@ export function parseChatNguCanh(raw: unknown): ChatContextCard | null {
   const tieuDe = typeof r.tieuDe === "string" ? r.tieuDe : null;
   const loai = typeof r.loai === "string" ? r.loai : null;
   if (!id || !tieuDe || !loai) return null;
-  if (loai === "moc" || loai === "canvas_binh_luan") return null;
+  if (loai === "moc" || loai === "canvas_binh_luan" || loai === "cuoc_goi") return null;
   return {
     loai,
     id,
@@ -112,6 +112,8 @@ export function parseChatCanvasBinhLuan(
     avatarUrl: typeof r.avatarUrl === "string" ? r.avatarUrl : null,
   };
 }
+
+export { parseChatCuocGoi } from "@/lib/media/call-signal-types";
 
 /** Cờ tin chuyển tiếp — `ngu_canh.chuyenTiep` (không phải card ngữ cảnh). */
 export function parseChatForwarded(raw: unknown): boolean {

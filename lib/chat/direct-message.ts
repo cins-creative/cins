@@ -22,7 +22,7 @@ import {
 import { listRoomReadCursors } from "@/lib/chat/read-cursors";
 import { loadPollsForMessages } from "@/lib/chat/room-poll";
 import { resolveOwnedUserEmojiMuc } from "@/lib/user-emoji/resolve-owned";
-import { parseChatCanvasBinhLuan, parseChatForwarded, parseChatMocNhac, parseChatNguCanh, parseChatMessageMentions } from "@/lib/chat/message-perspective";
+import { parseChatCanvasBinhLuan, parseChatCuocGoi, parseChatForwarded, parseChatMocNhac, parseChatNguCanh, parseChatMessageMentions } from "@/lib/chat/message-perspective";
 import type {
   ChatContextCard,
   ChatMessage,
@@ -123,6 +123,10 @@ export function messagePreview(row: MessageRow): string {
         : `${canvasBinhLuan.tenNguoi} vừa có ${canvasBinhLuan.soLuong} bình luận`)
     );
   }
+  const cuocGoi = parseChatCuocGoi(normalized.ngu_canh);
+  if (cuocGoi) {
+    return normalized.noi_dung?.trim() || "Cuộc gọi";
+  }
   const mocNhac = parseChatMocNhac(normalized.ngu_canh);
   if (mocNhac) {
     return normalized.noi_dung?.trim() || `Nhắc mốc: ${mocNhac.ten}`;
@@ -200,31 +204,38 @@ export function mapMessageFromRow(
 ): ChatMessage {
   const normalized = normalizeMessageRow(row);
   const canvasBinhLuan = parseChatCanvasBinhLuan(normalized.ngu_canh);
-  const mocNhac = canvasBinhLuan
+  const cuocGoi = canvasBinhLuan
+    ? null
+    : parseChatCuocGoi(normalized.ngu_canh);
+  const mocNhac = canvasBinhLuan || cuocGoi
     ? null
     : parseChatMocNhac(normalized.ngu_canh);
   const nguCanh =
-    canvasBinhLuan || mocNhac ? null : parseNguCanh(normalized.ngu_canh);
+    canvasBinhLuan || cuocGoi || mocNhac
+      ? null
+      : parseNguCanh(normalized.ngu_canh);
   const mentions =
-    canvasBinhLuan || mocNhac
+    canvasBinhLuan || cuocGoi || mocNhac
       ? []
       : parseChatMessageMentions(normalized.ngu_canh);
   const forwarded = parseChatForwarded(normalized.ngu_canh);
   const kind: ChatMessageKind = canvasBinhLuan
     ? "canvas_binh_luan"
-    : mocNhac
-      ? "moc_nhac"
-      : nguCanh
-        ? "context"
-        : normalized.loai_tin === "sticker"
-          ? "sticker"
-          : normalized.loai_tin === "media"
-            ? "media"
-            : normalized.loai_tin === "binh_chon"
-              ? "binh_chon"
-              : normalized.loai_tin === "system"
-                ? "moc_nhac"
-                : "text";
+    : cuocGoi
+      ? "cuoc_goi"
+      : mocNhac
+        ? "moc_nhac"
+        : nguCanh
+          ? "context"
+          : normalized.loai_tin === "sticker"
+            ? "sticker"
+            : normalized.loai_tin === "media"
+              ? "media"
+              : normalized.loai_tin === "binh_chon"
+                ? "binh_chon"
+                : normalized.loai_tin === "system"
+                  ? "moc_nhac"
+                  : "text";
   const video = kind === "media" ? resolveVideo(normalized) : null;
   const imageId =
     !video && (kind === "media" || kind === "sticker")
@@ -266,6 +277,7 @@ export function mapMessageFromRow(
     poll: null,
     mocNhac,
     canvasBinhLuan,
+    cuocGoi,
     forwarded: forwarded || undefined,
   };
 }
