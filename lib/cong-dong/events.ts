@@ -1,6 +1,9 @@
 import "server-only";
 
-import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import {
+  createServiceRoleClient,
+  hasServiceRoleEnv,
+} from "@/lib/supabase/service-role";
 import type { CongDongEvent } from "@/lib/cong-dong/types";
 
 type SuKienRow = {
@@ -80,6 +83,7 @@ export async function loadUpcomingEventsForHome(
   loaiFilter: string[] = [],
   limit = 4,
 ): Promise<CongDongEvent[]> {
+  if (!hasServiceRoleEnv()) return [];
   const admin = createServiceRoleClient();
   const now = new Date().toISOString();
 

@@ -19,6 +19,8 @@
     "lint": "eslint",
     "preview": "node scripts/ensure-prod-site-url.mjs \"opennextjs-cloudflare build && opennextjs-cloudflare preview\"",
     "deploy": "node scripts/ensure-prod-site-url.mjs \"opennextjs-cloudflare build && opennextjs-cloudflare deploy -- --keep-vars\"",
+    "preview:trung": "node scripts/ensure-trung-site-url.mjs \"opennextjs-cloudflare build && opennextjs-cloudflare preview -- --config wrangler.trung.jsonc\"",
+    "deploy:trung": "node scripts/ensure-trung-site-url.mjs \"opennextjs-cloudflare build && opennextjs-cloudflare deploy -- --config wrangler.trung.jsonc --keep-vars\"",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
     "cf:variants": "node scripts/cf-ensure-image-variants.mjs",
     "backfill:diem-feed": "node scripts/backfill-content-diem-feed.mjs",

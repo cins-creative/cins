@@ -1,0 +1,27 @@
+---
+description: Cách ly nhánh Trung — không đụng main GitHub/Cloudflare/DB/storage; khai báo xung đột ngay
+alwaysApply: true
+---
+
+# Nhánh Trung — cách ly tuyệt đối với main
+
+Áp dụng khi làm việc trên nhánh `trung/*` (vd. `trung/cins-website`) hoặc deploy Trung (`trung.cins.vn` / worker `trung-cins`).
+
+## Cấm
+
+- **GitHub:** push/merge/force vào `main`; sửa workflow deploy của `main`; mở/merge PR vào `main` trừ khi user yêu cầu rõ.
+- **Cloudflare:** deploy hoặc sửa worker `cins`; đụng route/domain `cins.vn` / `www.cins.vn`; đổi/xóa secrets, vars, bindings của worker `cins`. Chỉ dùng worker `trung-cins` + `trung.cins.vn` (hoặc `deploy:trung` / workflow Trung).
+- **Database:** migration, RLS, grant, seed, ALTER/DROP trên Supabase prod dùng chung (`ospzzzxcomrmhqrnkoiw`) nếu ảnh hưởng logic hoặc dữ liệu của main.
+- **Storage:** xóa/ghi đè Cloudflare Images, R2 `cins-rive-assets`, Bunny media của production.
+
+## Khi xung đột với main trong lúc build/dev nhánh này
+
+1. **Dừng** — không tự vá bằng cách đụng prod.
+2. **Khai báo ngay** cho user: lớp (GitHub / Cloudflare / DB / storage), triệu chứng, rủi ro logic/dữ liệu, phương án an toàn.
+3. Ưu tiên khai báo sớm nhất với thay đổi **logic** hoặc **dữ liệu**.
+
+## Deploy / script
+
+- Dùng `deploy:trung` / `preview:trung` / workflow `cloudflare-deploy-trung` thôi.
+- **Không** chạy `npm run deploy` (worker `cins` / `cins.vn`).
+- `NEXT_PUBLIC_SITE_URL` của nhánh Trung = `https://trung.cins.vn` — không ép về `https://cins.vn`.

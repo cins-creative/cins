@@ -1,0 +1,33 @@
+# Copy → `.dev.vars` (local `wrangler`/opennext preview). DO NOT COMMIT `.dev.vars`.
+# Production secrets live on Cloudflare Worker `cins` — wrangler cannot download values.
+# Dashboard: Workers & Pages → cins → Settings → Variables and Secrets
+#
+# Also used by Next.js local: you can mirror the same keys into `.env.local`.
+
+# --- plain vars (from wrangler.jsonc / CF) ---
+CLOUDFLARE_ACCOUNT_ID=2a6e413a7ced7243651c9d476e7d2f25
+
+# Hyperdrive local connection (required for `wrangler`/`opennext` preview)
+# Supabase → Connect → URI (prefer session/transaction pooler)
+WRANGLER_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE=postgresql://postgres.ospzzzxcomrmhqrnkoiw:YOUR_DB_PASSWORD@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres
+
+# --- secrets present on CF Worker `cins` (fill from dashboard / your password manager) ---
+BUNNY_STREAM_API_KEY=
+CINS_ORG_DELEGATION_PASSWORD=
+CLOUDFLARE_IMAGES_API_TOKEN=
+GOOGLE_CLIENT_SECRET=
+NEXT_PUBLIC_CF_IMAGES_ACCOUNT_HASH=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+
+# --- common local extras (not all are CF secrets; needed for `npm run host` / scripts) ---
+NEXT_PUBLIC_SUPABASE_URL=https://ospzzzxcomrmhqrnkoiw.supabase.co
+NEXT_PUBLIC_SITE_URL=http://localhost:3001
+DATABASE_URL=
+SUPABASE_DB_PASSWORD=
+GOOGLE_CLIENT_ID=
+CLOUDFLARE_API_TOKEN=
+NEXT_PUBLIC_BUNNY_LIBRARY_ID=
+NEXT_PUBLIC_BUNNY_CDN_HOSTNAME=
+BUNNY_LIBRARY_ID=
+BUNNY_CDN_HOSTNAME=

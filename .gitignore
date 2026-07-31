@@ -48,3 +48,11 @@ cloudflare-env.d.ts
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local research clones (rive-runtime, rive-rs, …)
+/_research/
+
+# cins-creative sub-project
+cins-creative/node_modules
+cins-creative/.next
+cins-creative/.env*

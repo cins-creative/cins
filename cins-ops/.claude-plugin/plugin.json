@@ -1,0 +1,9 @@
+{
+  "name": "cins-ops",
+  "version": "0.1.1",
+  "description": "Cơ chế vận hành ngày-ngày cho CINs Creative: brainstorm (diverge→cluster→converge→decide), quyết định, standup/cadence, và recall ngữ cảnh — gắn docs/ops và bộ nhớ [CINS].",
+  "author": {
+    "name": "CINs"
+  },
+  "keywords": ["cins", "ops", "brainstorm", "standup", "cadence", "decisions"]
+}

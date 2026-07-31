@@ -268,6 +268,17 @@
   • **Chốt:** (1) user `cover_id` luôn thắng; (2) gallery: YouTube sync + `config.thumbnailUrl` trước logo; (3) publish/edit: oEmbed (Vimeo/Sketchfab) / OG (Spline/PlayCanvas/…) → upload CF; (4) file `.riv` chụp canvas client lúc đăng; (5) **không** headless / đọc pixel iframe cross-origin.
   • *Hệ quả file:* IMPLEMENTATION § Media + Embed → Gallery thumbnail; không đổi FOUNDATIONS.
 
+### Phase 0 — làm cứng bảo mật DB (2026-07-14)
+
+- **L32 — Phase 0 hardening (branch-first, không mass-add RLS).**
+  • **Target:** chỉ CINS `ospzzzxcomrmhqrnkoiw`. Không tin advisor/MCP nếu URL không phải project này.
+  • **Tier 1 (an toàn):** cố định `search_path` cho `set_updated_at`; `REVOKE EXECUTE` `handle_new_user` (+ `rls_auto_enable` nếu có) khỏi `anon`/`authenticated` — trigger vẫn chạy. Dashboard: bật **Leaked password protection**.
+  • **Tier 2.1 (đã chốt nhánh an toàn):** giữ helper RLS ở `public`; chỉ `REVOKE EXECUTE … FROM anon`. **Không** revoke `authenticated` (policy cần EXECUTE). **Không** `ALTER … SET SCHEMA app_hidden` trong Phase 0.
+  • **Deferred:** `app_hidden` + remap policy = Phase 0.5; chuyển extension `vector` = ưu tiên thấp; ~N bảng RLS-no-policy = viết policy theo từng feature (Phase 1+), không mass-add.
+  • SQL + runbook: `supabase/sql/migration_phase0_tier1_security.sql` · `migration_phase0_tier2_revoke_anon_helpers.sql` (chữ ký helper khớp DB) · `supabase/sql/PHASE0_RUNBOOK.md`. Chạy trên **Supabase branch** → smoke → merge production. Agent không DDL production.
+  • *Vì sao không `app_hidden` ngay:* policy đang gọi `public.is_*` / `current_profile_id`; đổi schema không remap = gãy chat/cộng đồng/org.
+  • *Số LOG:* local từng gọi L29 — remote đã dùng L29 cho World editorial boost → Phase 0 = **L32**.
+
 ### Môn chuyên ngành trên đồ án trường (2026-07-14)
 
 - **L31 — `mon_hoc` thuộc chương trình ngành trường; dual-write lens + filter đồ án.**
@@ -307,6 +318,7 @@
   • **Rank merge:** Timeline base sort theo **L30** (`diem_hien_tai`); bật đẩy → upsert `content_diem_feed` (base 100 + reset decay) + giữ merge `withWorldBoostMilestones` (cap `WORLD_BOOST_RANK_CAP=15`). Gallery vẫn thời gian thực + ưu tiên boost — **không** dùng `content_diem_feed`.
   • **Schema:** `content_world_boost` — `loai_doi_tuong` + `id_doi_tuong`, `dang_bat`, `bat_dau_luc`, `het_han_luc`, `gia_han_luc`, `cap_boi`, `tat_boi`. RLS/service-role theo gate admin. Lazy-renew khi đọc hết `het_han_luc`.
   • *Hệ quả file:* FOUNDATIONS quy tắc 22; IMPLEMENTATION World feed/gallery + `/admin` nav; `cursor_map_admin.md`. Điểm Timeline → **L30**.
+
 
 ### Workspace nhóm chat — project con + thẻ tài nguyên + mốc (2026-07-13)
 

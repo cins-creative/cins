@@ -1,0 +1,42 @@
+﻿# Dependencies & install noise
+node_modules/
+.pnp
+.yarn/
+
+# Next.js / OpenNext / Cloudflare
+.next/
+out/
+build/
+.open-next/
+.wrangler/
+.dev.vars
+cloudflare-env.d.ts
+
+# Test / coverage
+coverage/
+
+# Env & secrets
+.env
+.env.*
+!.env.example
+
+# Local research clones & design refs (large / third-party)
+_research/
+_ref_*/
+_ref_cins_zip/
+_ref_design_system/
+
+# Binary / media
+*.pem
+*.riv
+*.wasm
+public/rive/*.wasm
+
+# Logs & OS
+*.log
+.DS_Store
+.vercel/
+
+# TypeScript build info
+*.tsbuildinfo
+next-env.d.ts

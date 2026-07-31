@@ -1,0 +1,40 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  // Nhánh Trung — KHÔNG dùng file này cho worker `cins` / cins.vn.
+  "name": "trung-cins",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-06-29",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "vars": {
+    "CLOUDFLARE_ACCOUNT_ID": "2a6e413a7ced7243651c9d476e7d2f25"
+  },
+  "routes": [
+    { "pattern": "trung.cins.vn", "custom_domain": true }
+  ],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "observability": {
+    "enabled": true
+  },
+  // CẢNH BÁO CÁCH LY: cùng Hyperdrive + R2 với worker `cins` (DB/storage dùng chung).
+  // Không chạy migration / không xóa object R2 từ nhánh này — khai báo xung đột nếu cần tách.
+  "hyperdrive": [
+    {
+      "binding": "HYPERDRIVE",
+      "id": "d66e788e860c42c893c3a2902533bedf"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "bucket_name": "cins-rive-assets",
+      "binding": "CINS_RIVE_ASSETS"
+    },
+    {
+      "bucket_name": "cins-chat-video",
+      "binding": "CINS_CHAT_VIDEO"
+    }
+  ]
+}

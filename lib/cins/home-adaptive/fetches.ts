@@ -4,7 +4,7 @@ import { getAvatarUrl } from "@/lib/journey/profile";
 import { labelLoaiMoHinhKhoa } from "@/lib/to-chuc/khoa-hoc-labels";
 import type { LoaiMoHinhKhoa } from "@/lib/to-chuc/khoa-hoc-types";
 import { resolveTruongImageSrcSync } from "@/lib/truong/media-url";
-import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { createServiceRoleClient, hasServiceRoleEnv } from "@/lib/supabase/service-role";
 
 const TEACHER_ROLES = [
   "owner",
@@ -203,6 +203,7 @@ export async function loadHocVienCuaBan(
 
 /** HỌC · Khóa học đang mở từ cơ sở đào tạo (không gồm chương trình trường đại học). */
 export async function loadKhoaHocGoiY(limit = 4): Promise<KhoaHocGoiYItem[]> {
+  if (!hasServiceRoleEnv()) return [];
   const admin = createServiceRoleClient();
   const { data } = await admin
     .from("org_khoa_hoc")

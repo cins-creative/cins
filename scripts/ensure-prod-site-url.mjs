@@ -3,6 +3,9 @@
  *
  * Vì Next.js ưu tiên biến môi trường hơn .env.local — tránh bundle Workers
  * với localhost khi máy dev có `.env.local` trỏ :3001.
+ *
+ * Nhánh Trung: dùng `scripts/ensure-trung-site-url.mjs` + `npm run deploy:trung`
+ * (không gọi script này — tránh ép https://cins.vn).
  */
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";

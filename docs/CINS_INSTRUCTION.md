@@ -16,6 +16,7 @@ CINS = **mạng xã hội chuyên môn** cho ngành sáng tạo Việt Nam (Next
 | API route, lib, file SQL, seed, env/infra, ghi chú site | [`CINS_IMPLEMENTATION.md`](./CINS_IMPLEMENTATION.md) | Đổi nhanh nhất |
 | Đã quyết gì & vì sao · câu hỏi còn treo | [`CINS_DECISIONS.md`](./CINS_DECISIONS.md) | File chống quên |
 | Code/security/performance/UI conventions | [`CINS_DEV_RULES.md`](./CINS_DEV_RULES.md) | Cách code |
+| Phase 0 hardening DB (branch runbook) | [`PHASE0_SECURITY_RUNBOOK.md`](./PHASE0_SECURITY_RUNBOOK.md) | Audit + Tier 1/2 SQL · không mass-add RLS |
 
 Thứ tự ưu tiên khi xung đột: **DB thật (đọc trực tiếp) > CINS_FOUNDATIONS.md > các file khác**. Không bao giờ tin prose schema hơn DB.
 

@@ -1,0 +1,84 @@
+name: Cloudflare Deploy Trung
+
+# Chỉ nhánh Trung — KHÔNG trigger trên main; KHÔNG deploy worker `cins`.
+on:
+  push:
+    branches: [trung/cins-website]
+  workflow_dispatch:
+
+concurrency:
+  group: cloudflare-deploy-trung-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Deploy Worker trung-cins
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Guard — refuse main / prod worker scripts
+        run: |
+          set -euo pipefail
+          ref="${GITHUB_REF_NAME}"
+          if [ "$ref" = "main" ]; then
+            echo "::error::Workflow Trung không được chạy trên main"
+            exit 1
+          fi
+          case "$ref" in
+            trung/*) ;;
+            *)
+              echo "::error::Chỉ deploy nhánh trung/* (got $ref)"
+              exit 1
+              ;;
+          esac
+          if ! grep -q '"name": "trung-cins"' wrangler.trung.jsonc; then
+            echo "::error::wrangler.trung.jsonc phải name=trung-cins"
+            exit 1
+          fi
+          if grep -E '"pattern": "(www\.)?cins\.vn"' wrangler.trung.jsonc; then
+            echo "::error::Cấm route cins.vn trong wrangler.trung.jsonc"
+            exit 1
+          fi
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Prepare deploy environment
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE: ${{ secrets.CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE }}
+          NEXT_PUBLIC_SITE_URL: https://trung.cins.vn
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          NEXT_PUBLIC_CF_IMAGES_ACCOUNT_HASH: ${{ secrets.NEXT_PUBLIC_CF_IMAGES_ACCOUNT_HASH }}
+          NEXT_PUBLIC_BUNNY_LIBRARY_ID: ${{ secrets.NEXT_PUBLIC_BUNNY_LIBRARY_ID }}
+          BUNNY_LIBRARY_ID: ${{ secrets.BUNNY_LIBRARY_ID }}
+          NEXT_PUBLIC_BUNNY_CDN_HOSTNAME: ${{ secrets.NEXT_PUBLIC_BUNNY_CDN_HOSTNAME }}
+          BUNNY_CDN_HOSTNAME: ${{ secrets.BUNNY_CDN_HOSTNAME }}
+          BUNNY_CND_HOSTNAME: ${{ secrets.BUNNY_CND_HOSTNAME }}
+          NEXT_PUBLIC_ARTICLE_INLINE_IMAGE_UPLOAD_TOKEN: ${{ secrets.NEXT_PUBLIC_ARTICLE_INLINE_IMAGE_UPLOAD_TOKEN }}
+          ARTICLE_INLINE_IMAGE_UPLOAD_TOKEN: ${{ secrets.ARTICLE_INLINE_IMAGE_UPLOAD_TOKEN }}
+          NEXT_PUBLIC_CAREER_THUMB_UPLOAD_TOKEN: ${{ secrets.NEXT_PUBLIC_CAREER_THUMB_UPLOAD_TOKEN }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: bash scripts/ci-prepare-deploy-env.sh
+
+      - name: Force Trung site URL after prepare
+        run: |
+          echo "NEXT_PUBLIC_SITE_URL=https://trung.cins.vn" >> "$GITHUB_ENV"
+          echo "Prepared NEXT_PUBLIC_SITE_URL=https://trung.cins.vn"
+
+      - name: Deploy to Cloudflare Worker trung-cins
+        run: npm run deploy:trung

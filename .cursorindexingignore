@@ -1,0 +1,27 @@
+# Same as .cursorignore — keep Cursor semantic index lean
+node_modules/
+.pnp
+.yarn/
+.next/
+out/
+build/
+.open-next/
+.wrangler/
+.dev.vars
+cloudflare-env.d.ts
+coverage/
+.env
+.env.*
+_research/
+_ref_*/
+_ref_cins_zip/
+_ref_design_system/
+*.pem
+*.riv
+*.wasm
+public/rive/*.wasm
+*.log
+.DS_Store
+.vercel/
+*.tsbuildinfo
+package-lock.json

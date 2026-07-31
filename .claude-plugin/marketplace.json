@@ -1,0 +1,16 @@
+{
+  "name": "cins-creative-plugins",
+  "owner": {
+    "name": "CINs"
+  },
+  "metadata": {
+    "description": "Plugin nội bộ CINs Creative (Claude Code / Cowork)."
+  },
+  "plugins": [
+    {
+      "name": "cins-ops",
+      "source": "./cins-ops",
+      "description": "Operating mechanism: brainstorm, decide, standup, recall + company context."
+    }
+  ]
+}
