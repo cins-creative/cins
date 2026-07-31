@@ -506,7 +506,7 @@ export type ShopDonHang = {
   muaPhuongXa?: string | null;
   muaPhuongXaCode?: string | null;
   muaTinhThanh?: string | null;
-  /** truc_tiep | tai_su_kien | online (lịch sử). */
+  /** truc_tiep | online (ĐVVC, buyer trả ship) | tai_su_kien */
   hinhThucGiao?: "truc_tiep" | "online" | "tai_su_kien" | null;
 };
 /** Sự kiện sắp/đang diễn ra mà shop đã được duyệt quầy — mặt tiền công khai. */

@@ -281,6 +281,15 @@ export async function createGroupRoom(
     return { ok: false, error: "Không thêm được thành viên nhóm." };
   }
 
+  void import("@/lib/media/cloudflare-realtimekit")
+    .then(({ ensureCloudflareMeetingForRoom }) =>
+      ensureCloudflareMeetingForRoom({
+        chatPhongId: room.id,
+        title: trimmedName || "Cuộc gọi nhóm",
+      }),
+    )
+    .catch(() => {});
+
   const profiles = await loadProfiles(allMemberIds);
   const members = allMemberIds
     .map((id) => profiles.get(id))

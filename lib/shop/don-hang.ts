@@ -555,7 +555,7 @@ export async function createDonChungForSeller(
     bienLaiAnhId?: string | null;
     /** Hồ sơ nhận hàng đã chọn từ sổ địa chỉ (bắt buộc) — snapshot vào đơn. */
     diaChiNhanId?: string | null;
-    /** truc_tiep (mặc định) | online (gated) | tai_su_kien */
+    /** truc_tiep (mặc định) | online (ĐVVC, buyer trả ship) | tai_su_kien */
     hinhThucGiao?: "truc_tiep" | "online" | "tai_su_kien" | null;
   },
 ): Promise<ShopDonHang> {
@@ -588,11 +588,13 @@ export async function createDonChungForSeller(
     input.diaChiNhanId,
   );
 
-  if (input.hinhThucGiao === "online") {
-    throw new Error("ONLINE_DISABLED");
-  }
+  /* online = shop tự tạo vận đơn ngoài CINs; người mua tự trả phí ship. */
   const hinhThucGiao =
-    input.hinhThucGiao === "tai_su_kien" ? "tai_su_kien" : "truc_tiep";
+    input.hinhThucGiao === "online"
+      ? "online"
+      : input.hinhThucGiao === "tai_su_kien"
+        ? "tai_su_kien"
+        : "truc_tiep";
 
   for (const d of nhom.dong) {
     if (d.ngungBan) throw new Error("ITEM_UNAVAILABLE");

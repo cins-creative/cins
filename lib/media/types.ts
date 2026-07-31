@@ -1,5 +1,13 @@
 export type MediaProviderId = "cloudflare" | "livekit";
 
+/** Đo Bước 0 — các đoạn trong issuePhongHocJoinToken (ms). */
+export type PhongHocTokenServerTrace = {
+  gateMs: number;
+  ensureMeetingMs: number;
+  createParticipantMs: number;
+  totalMs: number;
+};
+
 export type MediaJoinToken = {
   provider: MediaProviderId;
   /** RealtimeKit authToken hoặc LiveKit JWT (Phase B). */
@@ -10,6 +18,8 @@ export type MediaJoinToken = {
   chatPhongId: string;
   /** Staff → host preset; HV → participant (cam tắt mặc định qua preset CF). */
   role: "staff" | "student";
+  /** Chỉ dùng nội bộ route → Server-Timing; không đưa vào JSON client nếu strip. */
+  serverTrace?: PhongHocTokenServerTrace;
 };
 
 export type MediaBangThongSnapshot = {

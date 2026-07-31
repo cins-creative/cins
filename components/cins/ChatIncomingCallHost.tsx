@@ -8,9 +8,17 @@ import { Phone, PhoneOff, Video } from "lucide-react";
 import { useCinsChat } from "@/components/cins/CinsChatProvider";
 import { mediaCallLabel, type MediaCallMode } from "@/lib/media/call-mode";
 import {
+  beginCallTrace,
+  callTraceAttachServerTiming,
+  callTraceMark,
+  callTraceRingSeen,
+} from "@/lib/media/call-trace";
+import { isCuocGoiJoinTokenFresh } from "@/lib/media/call-signal-types";
+import {
   startIncomingCallRingtone,
   stopIncomingCallRingtone,
 } from "@/lib/media/play-incoming-call-ringtone";
+import { warmCallMedia } from "@/lib/media/media-warm";
 import "@/components/media/incoming-call.css";
 
 const PhongHocMeeting = dynamic(
@@ -20,7 +28,8 @@ const PhongHocMeeting = dynamic(
 );
 
 const RING_TIMEOUT_MS = 45_000;
-const POLL_MS = 2000;
+/** Poll dự phòng — Realtime là đường chính (subscribe từ app start). */
+const POLL_MS = 5000;
 
 export type IncomingCallOffer = {
   roomId: string;
@@ -28,6 +37,10 @@ export type IncomingCallOffer = {
   mode: MediaCallMode;
   callerName: string;
   title: string;
+  batDau?: string | null;
+  ringSource?: "realtime" | "poll";
+  joinToken?: string | null;
+  joinTokenExp?: string | null;
 };
 
 export type PendingPhongHocStart = {
@@ -41,6 +54,8 @@ export type PendingPhongHocStart = {
 const PENDING_EVENT = "cins:phong-hoc-pending";
 
 let pendingJoin: PendingPhongHocStart | null = null;
+/** Tránh log RING_SEEN trùng (realtime + poll). */
+const ringSeenTraceIds = new Set<string>();
 
 export function dispatchPendingPhongHoc(detail: PendingPhongHocStart): void {
   pendingJoin = detail;
@@ -102,6 +117,14 @@ export function ChatIncomingCallHost() {
         if (prev?.callMessageId === next.callMessageId) return prev;
         return next;
       });
+      if (!ringSeenTraceIds.has(next.callMessageId)) {
+        ringSeenTraceIds.add(next.callMessageId);
+        callTraceRingSeen({
+          callMessageId: next.callMessageId,
+          batDau: next.batDau,
+          source: next.ringSource ?? "realtime",
+        });
+      }
       startIncomingCallRingtone({ muted: isRoomMuted(next.roomId) });
     },
     [activeCall, isRoomMuted],
@@ -119,7 +142,12 @@ export function ChatIncomingCallHost() {
           mode: cg.mode,
           callerName: cg.tenNguoiGoi,
           title: cg.tenNguoiGoi,
+          batDau: cg.batDau,
+          ringSource: "realtime",
+          joinToken: cg.joinToken,
+          joinTokenExp: cg.joinTokenExp,
         });
+        void warmCallMedia({ video: cg.mode === "video" });
         return;
       }
 
@@ -151,6 +179,9 @@ export function ChatIncomingCallHost() {
             callMessageId: string;
             mode: MediaCallMode;
             callerName: string;
+            batDau?: string;
+            joinToken?: string | null;
+            joinTokenExp?: string | null;
           }>;
         };
         const first = json.calls?.[0];
@@ -161,7 +192,12 @@ export function ChatIncomingCallHost() {
           mode: first.mode,
           callerName: first.callerName,
           title: first.callerName,
+          batDau: first.batDau,
+          ringSource: "poll",
+          joinToken: first.joinToken,
+          joinTokenExp: first.joinTokenExp,
         });
+        void warmCallMedia({ video: first.mode === "video" });
       } catch {
         /* ignore */
       }
@@ -234,7 +270,49 @@ export function ChatIncomingCallHost() {
     if (!cur || busy) return;
     setBusy(true);
     stopIncomingCallRingtone();
+    beginCallTrace("callee", {
+      roomId: cur.roomId,
+      mode: cur.mode,
+      callMessageId: cur.callMessageId,
+      via: "incoming-accept",
+    });
+
+    const embeddedFresh = isCuocGoiJoinTokenFresh({
+      trangThai: "dang_goi",
+      joinToken: cur.joinToken,
+      joinTokenExp: cur.joinTokenExp,
+    });
+
+    /* Mở UI + camera ngay. */
+    const shell: PendingPhongHocStart = {
+      roomId: cur.roomId,
+      token: embeddedFresh ? cur.joinToken! : "",
+      mode: cur.mode,
+      callMessageId: cur.callMessageId,
+      title: cur.title,
+    };
+    setActiveCall(shell);
+    dispatchPendingPhongHoc(shell);
+    clearOffer(false);
+
     try {
+      if (embeddedFresh) {
+        callTraceMark("T0b", { embeddedToken: true });
+        /* Cập nhật trạng thái nền — không chặn vào phòng. */
+        void fetch(
+          `/api/chat/rooms/${encodeURIComponent(cur.roomId)}/phong-hoc/signal`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              callMessageId: cur.callMessageId,
+              action: "accept",
+            }),
+          },
+        ).catch(() => {});
+        return;
+      }
+
       const res = await fetch(
         `/api/chat/rooms/${encodeURIComponent(cur.roomId)}/phong-hoc/token`,
         {
@@ -247,28 +325,26 @@ export function ChatIncomingCallHost() {
           }),
         },
       );
+      callTraceAttachServerTiming(res.headers.get("Server-Timing"));
+      callTraceMark("T0b", { status: res.status, embeddedToken: false });
       const json = (await res.json().catch(() => null)) as {
         token?: string;
         error?: string;
         callMessageId?: string;
       } | null;
       if (!res.ok || !json?.token) {
-        clearOffer(true);
+        setActiveCall(null);
         return;
       }
-      const pending: PendingPhongHocStart = {
-        roomId: cur.roomId,
+      const ready: PendingPhongHocStart = {
+        ...shell,
         token: json.token,
-        mode: cur.mode,
         callMessageId: json.callMessageId || cur.callMessageId,
-        title: cur.title,
       };
-      /* Vào cuộc gọi fullscreen ngay — không cần mở đúng thread chat. */
-      setActiveCall(pending);
-      dispatchPendingPhongHoc(pending);
-      clearOffer(false);
+      setActiveCall((prev) => (prev ? ready : null));
+      dispatchPendingPhongHoc(ready);
     } catch {
-      clearOffer(true);
+      setActiveCall(null);
     } finally {
       setBusy(false);
     }

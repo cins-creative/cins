@@ -205,7 +205,7 @@ Nguyên tắc nền: **§2** (chat có context, không inbox MXH tự do). Bản
 
 **Tài nguyên & mốc (L28) — không phải Drive / không phải gửi tin hẹn giờ:**
 - Thẻ phòng (`chat_the_tai_nguyen`) do member tự tạo; gắn tin có ảnh/URL qua `chat_the_gan`. **Khác** `filter_nhan` Journey (scope = phòng chat, không discovery).
-- Mốc (`chat_moc`): timeline tên + ngày + mô tả + URL + nhắc trước N ngày; owner/admin CRUD. Push nhắc thật → DECISIONS O17.
+- Mốc (`chat_moc`): timeline tên + ngày + mô tả + URL + nhắc trước N ngày; **DM 1-1:** mọi thành viên phòng CRUD; **nhóm:** owner/admin CRUD. Push nhắc thật → DECISIONS O17.
 
 Migrations: `migration_chat_nhom.sql` (+ avatar/owner/moi/…) · `migration_chat_project_workspace.sql`.
 

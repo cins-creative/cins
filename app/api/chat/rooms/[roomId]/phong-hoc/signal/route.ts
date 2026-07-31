@@ -33,9 +33,10 @@ export async function POST(req: Request, ctx: Ctx) {
   if (action === "decline") trangThai = "tu_choi";
   else if (action === "miss") trangThai = "nho";
   else if (action === "end") trangThai = "ket_thuc";
+  else if (action === "accept") trangThai = "dang_dien_ra";
   else {
     return NextResponse.json(
-      { error: "action phải là end | decline | miss." },
+      { error: "action phải là end | decline | miss | accept." },
       { status: 400 },
     );
   }

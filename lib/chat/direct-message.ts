@@ -675,6 +675,16 @@ export async function openDirectRoom(
     if (memberError) {
       return { ok: false, error: "Không thêm thành viên phòng chat." };
     }
+
+    // Bước 3.1 — tạo meeting CF sớm (fire-and-forget; ensure lúc gọi vẫn fallback).
+    void import("@/lib/media/cloudflare-realtimekit")
+      .then(({ ensureCloudflareMeetingForRoom }) =>
+        ensureCloudflareMeetingForRoom({
+          chatPhongId: roomId!,
+          title: "Cuộc gọi",
+        }),
+      )
+      .catch(() => {});
   }
 
   const thread = await getDirectThread(roomId, viewerId);

@@ -245,7 +245,7 @@ export function ChatComposeToolsMenu({
                   <em>
                     {canAddMoc
                       ? "Deadline, sync, bàn giao…"
-                      : "Chỉ admin nhóm mới thêm mốc"}
+                      : "Nhóm: chỉ admin thêm mốc"}
                   </em>
                 </span>
               </button>

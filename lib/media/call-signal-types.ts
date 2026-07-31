@@ -8,6 +8,9 @@ export type ChatCuocGoiTrangThai =
   | "nho"
   | "tu_choi";
 
+/** TTL token nhúng chuông (ms) — khớp RING_TIMEOUT + đệm. */
+export const CUOC_GOI_JOIN_TOKEN_TTL_MS = 55_000;
+
 /** Tin hệ thống cuộc gọi (`loai_tin=system`, `ngu_canh.loai=cuoc_goi`). */
 export type ChatCuocGoiNotice = {
   mode: MediaCallMode;
@@ -18,6 +21,12 @@ export type ChatCuocGoiNotice = {
   thamGiaLuc?: string | null;
   ketThuc?: string | null;
   thoiLuongS?: number | null;
+  /**
+   * AuthToken RealtimeKit cho callee (DM 1-1) — chỉ khi dang_goi.
+   * TTL ngắn; hết hạn → fallback fetch token.
+   */
+  joinToken?: string | null;
+  joinTokenExp?: string | null;
 };
 
 const TRANG_THAI: ChatCuocGoiTrangThai[] = [
@@ -91,6 +100,13 @@ export function parseChatCuocGoi(raw: unknown): ChatCuocGoiNotice | null {
   ) {
     return null;
   }
+  const joinToken =
+    typeof r.joinToken === "string" && r.joinToken.trim()
+      ? r.joinToken.trim()
+      : null;
+  const joinTokenExp =
+    typeof r.joinTokenExp === "string" ? r.joinTokenExp : null;
+
   return {
     mode: modeRaw as MediaCallMode,
     trangThai: trangThaiRaw as ChatCuocGoiTrangThai,
@@ -102,10 +118,32 @@ export function parseChatCuocGoi(raw: unknown): ChatCuocGoiNotice | null {
       typeof r.thoiLuongS === "number" && Number.isFinite(r.thoiLuongS)
         ? Math.max(0, Math.floor(r.thoiLuongS))
         : null,
+    joinToken:
+      trangThaiRaw === "dang_goi" && joinToken && joinTokenExp
+        ? joinToken
+        : null,
+    joinTokenExp:
+      trangThaiRaw === "dang_goi" && joinToken && joinTokenExp
+        ? joinTokenExp
+        : null,
   };
 }
 
+export function isCuocGoiJoinTokenFresh(
+  notice: Pick<ChatCuocGoiNotice, "joinToken" | "joinTokenExp" | "trangThai">,
+): boolean {
+  if (notice.trangThai !== "dang_goi") return false;
+  if (!notice.joinToken?.trim() || !notice.joinTokenExp) return false;
+  const exp = Date.parse(notice.joinTokenExp);
+  return Number.isFinite(exp) && Date.now() < exp;
+}
+
 export function buildCuocGoiNguCanh(notice: ChatCuocGoiNotice) {
+  const embedToken =
+    notice.trangThai === "dang_goi" &&
+    notice.joinToken?.trim() &&
+    notice.joinTokenExp;
+
   return {
     loai: "cuoc_goi",
     mode: notice.mode,
@@ -116,6 +154,12 @@ export function buildCuocGoiNguCanh(notice: ChatCuocGoiNotice) {
     ...(notice.ketThuc ? { ketThuc: notice.ketThuc } : {}),
     ...(typeof notice.thoiLuongS === "number"
       ? { thoiLuongS: notice.thoiLuongS }
+      : {}),
+    ...(embedToken
+      ? {
+          joinToken: notice.joinToken,
+          joinTokenExp: notice.joinTokenExp,
+        }
       : {}),
   };
 }

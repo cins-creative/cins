@@ -19,6 +19,7 @@ import { scheduleWhenIdle } from "@/lib/client/schedule-when-idle";
 import {
   readChatThreadsCache,
   readRoomMessagesCache,
+  writeRoomMessagesCache,
   type ChatThreadsSnapshot,
 } from "@/lib/chat/chat-session-cache";
 import {
@@ -310,6 +311,10 @@ export function CinsChatProvider({
     (thread: ChatThread, relatedThreads?: ChatThread[]) => {
       if (!viewerProfileId || !thread.roomId) return;
       const roomId = thread.roomId;
+      /* Flush tin overlay → cache trước khi mini mở lại (tránh state cũ). */
+      if (thread.messages?.length) {
+        writeRoomMessagesCache(viewerProfileId, roomId, thread.messages);
+      }
       setPinnedRoomIds((prev) => {
         if (prev.includes(roomId)) return prev;
         const next = [...prev.filter((id) => id !== roomId), roomId];

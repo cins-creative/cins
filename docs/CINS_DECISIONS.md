@@ -349,7 +349,7 @@
   • **Phòng project con:** `chat_phong.id_phong_cha` → nhóm gốc (`loai_phong='nhom'`). Chỉ **1 cấp** (trigger chặn lồng sâu). Owner/admin nhóm cha tạo; thành viên = subset ⊆ cha do admin **thêm tay** (mặc định chỉ creator — chưa thêm thì không thấy phòng). Cap: `MAX_PROJECT_ROOMS_PER_PARENT` (20).
   • **Ẩn / lịch sử:** `chat_phong.trang_thai` = `active` | `an`. `an` = ẩn khỏi list/FAB, còn trong lịch sử nhóm cha để khôi phục. Gợi ý UI khi im ≥ `PROJECT_IDLE_DAYS_HINT` (45 ngày) — chưa auto-notify.
   • **Thẻ tài nguyên:** `chat_the_tai_nguyen` + `chat_the_gan` — nhãn **cục bộ theo phòng**, member tự tạo; gắn lên tin có ảnh/URL. **Không** reuse `filter_nhan` / Journey (quy tắc 29 vẫn đúng cho Journey; chat dùng primitive riêng cùng mental model).
-  • **Mốc phòng:** `chat_moc` — timeline + tin nhắc trong phòng (tạo / nhắc trước / đến hạn qua `loai_tin=system`); owner/admin CRUD. Push/email ngoài app → **O17** còn mở.
+  • **Mốc phòng:** `chat_moc` — timeline + tin nhắc trong phòng (tạo / nhắc trước / đến hạn qua `loai_tin=system`); DM 1-1 mọi thành viên CRUD; nhóm owner/admin CRUD. Push/email ngoài app → **O17** còn mở.
   • **UI:** tab Project trong `ChatGroupManageModal`; list indent + pill `Project`; side panel thêm **Tài nguyên** / **Mốc**.
   • Migration: `migration_chat_project_workspace.sql`. Chi tiết → **FOUNDATIONS §C**, API → **IMPLEMENTATION**.
   • *Vì sao không `loai_phong='du_an'` ngay:* project vẫn scoped bạn bè trong nhóm cha; entity `du_an` để khi có object dự án trên CINs.

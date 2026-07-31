@@ -96,6 +96,17 @@ async function assertCanManageMoc(
   }
 
   const admin = createServiceRoleClient();
+  const { data: room } = await admin
+    .from("chat_phong")
+    .select("loai_phong")
+    .eq("id", roomId)
+    .maybeSingle<{ loai_phong: string }>();
+
+  /* Chat 1-1: cả hai bạn đều tạo/sửa/xóa mốc. Nhóm: giữ owner/admin. */
+  if (room?.loai_phong === "1_1") {
+    return { ok: true };
+  }
+
   const { data: membership } = await admin
     .from("chat_thanh_vien")
     .select("vai_tro")

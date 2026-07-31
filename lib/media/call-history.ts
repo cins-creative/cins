@@ -19,6 +19,9 @@ export async function insertCuocGoiDangGoi(input: {
   callerId: string;
   displayName: string;
   mode: MediaCallMode;
+  /** Token callee (DM) — TTL ngắn, chỉ khi dang_goi. */
+  joinToken?: string | null;
+  joinTokenExp?: string | null;
 }): Promise<{ messageId: string; message: ChatMessage }> {
   await assertRoomMember(input.roomId, input.callerId);
   const batDau = new Date().toISOString();
@@ -27,6 +30,8 @@ export async function insertCuocGoiDangGoi(input: {
     trangThai: "dang_goi" as const,
     tenNguoiGoi: input.displayName,
     batDau,
+    joinToken: input.joinToken ?? null,
+    joinTokenExp: input.joinTokenExp ?? null,
   };
   const admin = createServiceRoleClient();
   const { data, error } = await admin
@@ -59,6 +64,8 @@ export async function listIncomingCuocGoi(viewerId: string): Promise<
     mode: MediaCallMode;
     callerName: string;
     batDau: string;
+    joinToken?: string | null;
+    joinTokenExp?: string | null;
   }>
 > {
   const admin = createServiceRoleClient();
@@ -92,6 +99,8 @@ export async function listIncomingCuocGoi(viewerId: string): Promise<
     mode: MediaCallMode;
     callerName: string;
     batDau: string;
+    joinToken?: string | null;
+    joinTokenExp?: string | null;
   }> = [];
 
   for (const row of rows ?? []) {
@@ -103,6 +112,8 @@ export async function listIncomingCuocGoi(viewerId: string): Promise<
       mode: notice.mode,
       callerName: notice.tenNguoiGoi,
       batDau: notice.batDau,
+      joinToken: notice.joinToken,
+      joinTokenExp: notice.joinTokenExp,
     });
   }
 
@@ -182,6 +193,9 @@ export async function updateCuocGoiTrangThai(input: {
     ketThuc:
       nextStatus === "dang_dien_ra" ? notice.ketThuc ?? null : ketThuc,
     thoiLuongS: nextStatus === "ket_thuc" ? thoiLuongS : notice.thoiLuongS,
+    // Strip token khi rời trạng thái đổ chuông.
+    joinToken: null,
+    joinTokenExp: null,
   };
 
   const admin = createServiceRoleClient();

@@ -13,6 +13,10 @@ import type { MediaJoinToken } from "@/lib/media/types";
 
 export { MediaGateError, isMediaConfigured, getActiveMediaProvider };
 
+function elapsedMs(t0: number): number {
+  return Math.round((performance.now() - t0) * 10) / 10;
+}
+
 export async function issuePhongHocJoinToken(input: {
   roomId: string;
   userId: string;
@@ -25,7 +29,12 @@ export async function issuePhongHocJoinToken(input: {
     );
   }
 
+  const tTotal = performance.now();
+
+  const tGate = performance.now();
   const gate = await assertCanJoinPhongHoc(input.roomId, input.userId);
+  const gateMs = elapsedMs(tGate);
+
   const provider = getActiveMediaProvider();
 
   if (provider === "livekit") {
@@ -35,16 +44,29 @@ export async function issuePhongHocJoinToken(input: {
     );
   }
 
+  const tEnsure = performance.now();
   const meetingId = await ensureCloudflareMeetingForRoom({
     chatPhongId: gate.chatPhongId,
     title: gate.titleHint,
   });
+  const ensureMeetingMs = elapsedMs(tEnsure);
 
+  const tPart = performance.now();
   const token = await createCloudflareParticipantToken({
     meetingId,
     userId: input.userId,
     displayName: input.displayName,
     role: gate.role,
+  });
+  const createParticipantMs = elapsedMs(tPart);
+  const totalMs = elapsedMs(tTotal);
+
+  console.info("[call-trace:server] issuePhongHocJoinToken", {
+    roomId: input.roomId,
+    gateMs,
+    ensureMeetingMs,
+    createParticipantMs,
+    totalMs,
   });
 
   return {
@@ -53,5 +75,11 @@ export async function issuePhongHocJoinToken(input: {
     externalRoomId: meetingId,
     chatPhongId: gate.chatPhongId,
     role: gate.role,
+    serverTrace: {
+      gateMs,
+      ensureMeetingMs,
+      createParticipantMs,
+      totalMs,
+    },
   };
 }

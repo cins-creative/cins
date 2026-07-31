@@ -43,7 +43,11 @@ export async function POST(request: Request) {
       diaChiNhanId:
         typeof body.diaChiNhanId === "string" ? body.diaChiNhanId : null,
       hinhThucGiao:
-        body.hinhThucGiao === "tai_su_kien" ? "tai_su_kien" : "truc_tiep",
+        body.hinhThucGiao === "online"
+          ? "online"
+          : body.hinhThucGiao === "tai_su_kien"
+            ? "tai_su_kien"
+            : "truc_tiep",
     });
     return NextResponse.json({ don }, { status: 201 });
   } catch (e) {
@@ -63,10 +67,6 @@ export async function POST(request: Request) {
       NGUOI_NHAN_REQUIRED: [
         422,
         "Cần nhập đầy đủ họ tên, số điện thoại và địa chỉ nhận hàng.",
-      ],
-      ONLINE_DISABLED: [
-        410,
-        "CINs không liên kết ĐVVC — chỉ nhận trực tiếp / tại sự kiện.",
       ],
       ITEM_UNAVAILABLE: [422, "Có món đã ngừng bán — hãy gỡ khỏi giỏ."],
       STOCK_EMPTY: [422, "Có món hết hàng — hãy gỡ khỏi giỏ."],

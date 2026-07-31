@@ -47,7 +47,7 @@ const LOAI_DON_SHORT: Record<ShopLoaiDon, string> = {
 };
 
 function donHinhThucShort(hinh: ShopDonHang["hinhThucGiao"]): string {
-  if (hinh === "online") return "Giao hàng";
+  if (hinh === "online") return "ĐVVC (buyer trả ship)";
   if (hinh === "tai_su_kien") return "Tại sự kiện";
   return "Gặp trực tiếp";
 }

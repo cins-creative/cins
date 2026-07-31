@@ -14,14 +14,21 @@ import {
   isCompactCallViewport,
 } from "@/lib/media/call-constraints";
 import {
+  callTraceFlush,
+  callTraceMark,
+  callTraceMarkOnce,
+} from "@/lib/media/call-trace";
+import {
   mediaCallLabel,
   type MediaCallMode,
 } from "@/lib/media/call-mode";
+import { takeWarmCallMedia } from "@/lib/media/media-warm";
 import "@/components/media/phong-hoc.css";
 
 type MeetingClient = RealtimeKitClient;
 
 type Props = {
+  /** Rỗng = chỉ preview local; SDK init khi có token. */
   authToken: string;
   mode: MediaCallMode;
   title?: string;
@@ -30,8 +37,8 @@ type Props = {
   onClose: () => void;
 };
 
-/** connecting = chưa vào phòng; live = đã join thật; error */
-type CallPhase = "connecting" | "live" | "error";
+/** connecting → joined (mình vào phòng) → connected (có media đối phương). */
+type CallPhase = "connecting" | "joined" | "connected" | "error";
 
 /** Chống leave/join đua Strict Mode. */
 let phongHocMountGen = 0;
@@ -68,29 +75,34 @@ function CallStage({
   title,
   phase,
   err,
+  mediaErr,
   meeting,
   localPreviewStream,
   onHangUp,
+  onRemoteReady,
 }: {
   mode: MediaCallMode;
   title: string;
   phase: CallPhase;
   err: string | null;
+  mediaErr: string | null;
   meeting: MeetingClient | undefined;
   localPreviewStream: MediaStream | null;
   onHangUp: () => void;
+  onRemoteReady: () => void;
 }) {
   const isVideo = mode === "video" || mode === "screen";
   const [micOn, setMicOn] = useState(true);
   const [camOn, setCamOn] = useState(isVideo && mode === "video");
   const [elapsed, setElapsed] = useState(0);
   const [hasRemoteVideo, setHasRemoteVideo] = useState(false);
+  const [toggleErr, setToggleErr] = useState<string | null>(null);
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
+  const remoteReadySent = useRef(false);
 
-  // Timer chỉ khi đã live thật.
   useEffect(() => {
-    if (phase !== "live") {
+    if (phase !== "connected") {
       setElapsed(0);
       return;
     }
@@ -101,7 +113,6 @@ function CallStage({
     return () => window.clearInterval(id);
   }, [phase]);
 
-  // Local preview / self video
   useEffect(() => {
     if (!isVideo) return;
     const selfTrack = meeting?.self?.videoTrack ?? null;
@@ -115,7 +126,6 @@ function CallStage({
     localPreviewStream,
   ]);
 
-  // Remote video — peeks joined participants
   useEffect(() => {
     if (!meeting || !isVideo) return;
 
@@ -133,6 +143,15 @@ function CallStage({
           track = p.screenShareTracks.video;
         }
       });
+      if (track) {
+        callTraceMarkOnce("T4", { kind: "remote-video-track" });
+        callTraceMarkOnce("T7", { kind: "remote-video-visible" });
+        callTraceFlush("T7-remote-video");
+        if (!remoteReadySent.current) {
+          remoteReadySent.current = true;
+          onRemoteReady();
+        }
+      }
       setHasRemoteVideo(Boolean(track));
       bindTrackToVideo(remoteVideoRef.current, track);
     };
@@ -140,15 +159,11 @@ function CallStage({
     refreshRemote();
 
     const peerUnsubs: Array<() => void> = [];
-    const wirePeer = (p: (typeof meeting.participants.joined extends Map<
-      string,
-      infer P
-    >
-      ? P
-      : never)) => {
-      const h = () => {
-        refreshRemote();
-      };
+    const wirePeer = (p: {
+      on: (event: "videoUpdate" | "screenShareUpdate", cb: () => void) => void;
+      off: (event: "videoUpdate" | "screenShareUpdate", cb: () => void) => void;
+    }) => {
+      const h = () => refreshRemote();
       p.on("videoUpdate", h);
       p.on("screenShareUpdate", h);
       peerUnsubs.push(() => {
@@ -159,9 +174,7 @@ function CallStage({
 
     meeting.participants.joined.forEach((p) => wirePeer(p));
 
-    const onJoin = (
-      p: Parameters<typeof wirePeer>[0],
-    ) => {
+    const onJoin = (p: Parameters<typeof wirePeer>[0]) => {
       wirePeer(p);
       refreshRemote();
     };
@@ -175,7 +188,27 @@ function CallStage({
       meeting.participants.joined.removeListener("participantLeft", onLeft);
       for (const u of peerUnsubs) u();
     };
-  }, [meeting, isVideo]);
+  }, [meeting, isVideo, onRemoteReady]);
+
+  useEffect(() => {
+    if (!meeting || isVideo) return;
+    const markPeer = () => {
+      if (meeting.participants.joined.size < 1) return;
+      callTraceMarkOnce("T4", { kind: "remote-peer-joined" });
+      callTraceMarkOnce("T7", { kind: "remote-peer-audio-path" });
+      callTraceFlush("T7-remote-peer-audio");
+      if (!remoteReadySent.current) {
+        remoteReadySent.current = true;
+        onRemoteReady();
+      }
+    };
+    markPeer();
+    const onJoin = () => markPeer();
+    meeting.participants.joined.on("participantJoined", onJoin);
+    return () => {
+      meeting.participants.joined.removeListener("participantJoined", onJoin);
+    };
+  }, [meeting, isVideo, onRemoteReady]);
 
   async function toggleMic() {
     if (!meeting) return;
@@ -187,8 +220,11 @@ function CallStage({
         await meeting.self.enableAudio();
         setMicOn(true);
       }
-    } catch {
-      /* */
+      setToggleErr(null);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Không đổi được mic.";
+      console.warn("[phong-hoc] toggleMic", msg);
+      setToggleErr(msg);
     }
   }
 
@@ -202,19 +238,28 @@ function CallStage({
         await meeting.self.enableVideo();
         setCamOn(true);
       }
-    } catch {
-      /* */
+      setToggleErr(null);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Không bật được camera.";
+      console.warn("[phong-hoc] toggleCam", msg);
+      setToggleErr(msg);
     }
   }
 
   const statusLine =
-    phase === "connecting"
-      ? "Đang kết nối…"
-      : phase === "error"
-        ? err || "Không kết nối được"
-        : isVideo
-          ? "Đang gọi video"
-          : "Cuộc gọi thoại";
+    phase === "error"
+      ? err || "Không kết nối được"
+      : phase === "connecting"
+        ? meeting
+          ? "Đang vào phòng…"
+          : "Đang mở camera…"
+        : phase === "joined"
+          ? `Đang chờ ${title} kết nối…`
+          : isVideo
+            ? "Đang gọi video"
+            : "Cuộc gọi thoại";
+
+  const bannerErr = mediaErr || toggleErr;
 
   return (
     <div
@@ -255,14 +300,14 @@ function CallStage({
                   phase === "error" ? " is-err" : ""
                 }`}
               >
-                {phase === "live" ? formatElapsed(elapsed) : statusLine}
+                {phase === "connected" ? formatElapsed(elapsed) : statusLine}
               </span>
             </div>
           </>
         ) : (
           <div
             className={`cins-phong-hoc-hero${
-              phase === "connecting" ? " is-ringing" : ""
+              phase === "connecting" || phase === "joined" ? " is-ringing" : ""
             }`}
           >
             <div className="cins-phong-hoc-rings" aria-hidden>
@@ -278,14 +323,20 @@ function CallStage({
                 phase === "error" ? " is-err" : ""
               }`}
             >
-              {phase === "live" ? formatElapsed(elapsed) : statusLine}
+              {phase === "connected" ? formatElapsed(elapsed) : statusLine}
             </p>
-            {phase === "live" ? (
+            {phase === "connected" ? (
               <p className="cins-phong-hoc-status-sub">Cuộc gọi thoại</p>
             ) : null}
           </div>
         )}
       </div>
+
+      {bannerErr ? (
+        <p className="cins-phong-hoc-status is-err" style={{ textAlign: "center", padding: "0 12px 8px" }}>
+          {bannerErr}
+        </p>
+      ) : null}
 
       <footer className="cins-phong-hoc-controls">
         <button
@@ -353,27 +404,40 @@ export function PhongHocMeeting({
   const [meeting, initMeeting] = useRealtimeKitClient();
   const [phase, setPhase] = useState<CallPhase>("connecting");
   const [err, setErr] = useState<string | null>(null);
+  const [mediaErr, setMediaErr] = useState<string | null>(null);
   const [localPreview, setLocalPreview] = useState<MediaStream | null>(null);
   const meetingRef = useRef<MeetingClient | undefined>(undefined);
   const localPreviewRef = useRef<MediaStream | null>(null);
+  const mediaHandlerRef = useRef<Awaited<
+    ReturnType<typeof import("@cloudflare/realtimekit").default.initMedia>
+  > | null>(null);
   const endedRef = useRef(false);
   const joinStartedRef = useRef(false);
+  const fromWarmRef = useRef(false);
 
   meetingRef.current = meeting;
-  /** Mobile/tablet: không cho chia sẻ màn — ép về video. */
   const effectiveMode: MediaCallMode =
     mode === "screen" && isCompactCallViewport() ? "video" : mode;
   const heading = title?.trim() || mediaCallLabel(effectiveMode);
   const wantVideo = effectiveMode === "video";
   const wantScreen = effectiveMode === "screen";
 
+  useEffect(() => {
+    callTraceMarkOnce("T0c", { mode: effectiveMode, roomId: roomId ?? null });
+  }, [effectiveMode, roomId]);
+
   const stopLocalPreview = useCallback(() => {
+    if (fromWarmRef.current) {
+      /* Track đã giao SDK / warm — không stop nếu đã release. */
+      localPreviewRef.current = null;
+      setLocalPreview(null);
+      return;
+    }
     localPreviewRef.current?.getTracks().forEach((t) => t.stop());
     localPreviewRef.current = null;
     setLocalPreview(null);
   }, []);
 
-  /** Track đã trao cho SDK — chỉ bỏ ref, không stop. */
   const releasePreviewOwnership = useCallback(() => {
     localPreviewRef.current = null;
     setLocalPreview(null);
@@ -397,10 +461,21 @@ export function PhongHocMeeting({
     }
   }, [roomId, callMessageId]);
 
-  // Preview camera ngay (lớp thấp) — trước cả khi SFU xong.
+  // Preview: ưu tiên warm (Bước 2), fallback getUserMedia.
   useEffect(() => {
     if (!wantVideo) return;
     let cancelled = false;
+
+    const warmed = takeWarmCallMedia(true);
+    if (warmed) {
+      fromWarmRef.current = true;
+      mediaHandlerRef.current = warmed.mediaHandler;
+      localPreviewRef.current = warmed.previewStream;
+      setLocalPreview(warmed.previewStream);
+      callTraceMarkOnce("T1", { source: "warm", tracks: warmed.previewStream.getTracks().length });
+      return;
+    }
+
     void (async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia(
@@ -410,10 +485,12 @@ export function PhongHocMeeting({
           stream.getTracks().forEach((t) => t.stop());
           return;
         }
+        callTraceMarkOnce("T1", { source: "getUserMedia", tracks: stream.getTracks().length });
         localPreviewRef.current = stream;
         setLocalPreview(stream);
       } catch {
-        /* user từ chối cam — vẫn gọi */
+        callTraceMarkOnce("T1", { error: "getUserMedia-denied-or-fail" });
+        setMediaErr("Không mở được camera — kiểm tra quyền trình duyệt.");
       }
     })();
     return () => {
@@ -421,20 +498,52 @@ export function PhongHocMeeting({
     };
   }, [wantVideo]);
 
-  // Init SDK — không bật video mặc định (tránh getUserMedia HD chậm trùng preview).
+  // Warm audio-only (không preview video).
   useEffect(() => {
+    if (wantVideo) return;
+    const warmed = takeWarmCallMedia(false);
+    if (warmed) {
+      fromWarmRef.current = true;
+      mediaHandlerRef.current = warmed.mediaHandler;
+      callTraceMarkOnce("T1", { source: "warm-audio" });
+    }
+  }, [wantVideo]);
+
+  useEffect(() => {
+    const token = authToken.trim();
+    if (!token) return;
     let alive = true;
     void (async () => {
       try {
         await initMeeting({
-          authToken,
+          authToken: token,
           defaults: {
             audio: true,
-            video: false,
+            video: wantVideo,
+            ...(mediaHandlerRef.current
+              ? { mediaHandler: mediaHandlerRef.current }
+              : {}),
+            mediaConfiguration: wantVideo
+              ? {
+                  video: {
+                    width: { ideal: 640 },
+                    height: { ideal: 360 },
+                    frameRate: { ideal: 24 },
+                  },
+                }
+              : undefined,
           },
+        });
+        if (!alive) return;
+        callTraceMarkOnce("T2", {
+          defaultsVideo: wantVideo,
+          reusedWarm: Boolean(mediaHandlerRef.current),
         });
       } catch (e) {
         if (!alive) return;
+        callTraceMark("T2_error", {
+          message: e instanceof Error ? e.message : "init-fail",
+        });
         setErr(
           e instanceof Error ? e.message : "Không khởi tạo được cuộc gọi.",
         );
@@ -444,9 +553,8 @@ export function PhongHocMeeting({
     return () => {
       alive = false;
     };
-  }, [authToken, initMeeting]);
+  }, [authToken, initMeeting, wantVideo]);
 
-  // Join một lần — không dùng RtkMeeting (tránh join kép ERR0002 + 2 control bar).
   useEffect(() => {
     if (!meeting || joinStartedRef.current) return;
     joinStartedRef.current = true;
@@ -458,27 +566,30 @@ export function PhongHocMeeting({
           await meeting.join();
         }
         if (!alive) return;
-
-        // Media nhanh: audio + (video track preview nếu có).
-        try {
-          await meeting.self.enableAudio();
-        } catch {
-          /* */
-        }
+        callTraceMarkOnce("T3");
 
         if (wantVideo) {
           const previewTrack =
             localPreviewRef.current?.getVideoTracks()?.[0] ?? null;
-          try {
-            if (previewTrack && previewTrack.readyState === "live") {
-              await meeting.self.enableVideo(previewTrack);
-              releasePreviewOwnership();
-            } else {
-              await meeting.self.enableVideo();
-            }
-          } catch {
-            /* */
+          if (previewTrack && previewTrack.readyState === "live") {
+            void meeting.self
+              .enableVideo(previewTrack)
+              .then(() => {
+                releasePreviewOwnership();
+                callTraceMarkOnce("T3b_video", { reusedPreview: true });
+              })
+              .catch((e) => {
+                const msg =
+                  e instanceof Error ? e.message : "enableVideo-fail";
+                console.warn("[phong-hoc] enableVideo", msg);
+                callTraceMarkOnce("T3b_video", { error: msg });
+                setMediaErr("Không đẩy được camera lên cuộc gọi.");
+              });
+          } else {
+            callTraceMarkOnce("T3b_skipped", { reason: "defaults-on-join" });
           }
+        } else {
+          callTraceMarkOnce("T3b_skipped", { reason: "audio-or-defaults" });
         }
 
         if (wantScreen) {
@@ -496,30 +607,29 @@ export function PhongHocMeeting({
         }
 
         if (!alive) return;
-        setPhase("live");
+        setPhase("joined");
       } catch (e) {
         if (!alive) return;
         const msg = e instanceof Error ? e.message : "Không vào được cuộc gọi.";
-        // Retry một lần nếu join bị race leave (Strict Mode / remount).
         if (/0002|join room/i.test(msg)) {
           try {
             await new Promise((r) => setTimeout(r, 400));
             if (!alive) return;
             if (!meeting.self.roomJoined) await meeting.join();
-            void meeting.self.enableAudio().catch(() => {});
+            callTraceMarkOnce("T3", { retry: true });
             if (wantVideo) {
               const t = localPreviewRef.current?.getVideoTracks()?.[0];
               if (t?.readyState === "live") {
                 void meeting.self
                   .enableVideo(t)
                   .then(() => releasePreviewOwnership())
-                  .catch(() => {});
-              } else {
-                void meeting.self.enableVideo().catch(() => {});
+                  .catch((err) => {
+                    console.warn("[phong-hoc] enableVideo retry", err);
+                  });
               }
             }
             if (!alive) return;
-            setPhase("live");
+            setPhase("joined");
             return;
           } catch (e2) {
             setErr(e2 instanceof Error ? e2.message : msg);
@@ -537,7 +647,6 @@ export function PhongHocMeeting({
     };
   }, [meeting, wantVideo, wantScreen, releasePreviewOwnership]);
 
-  // Leave chỉ khi unmount thật (debounce Strict Mode).
   useEffect(() => {
     const gen = ++phongHocMountGen;
     return () => {
@@ -551,11 +660,11 @@ export function PhongHocMeeting({
   }, [meeting, signalEnd, stopLocalPreview]);
 
   async function hangUp() {
-    phongHocMountGen += 1; // hủy leave debounce trùng
+    phongHocMountGen += 1;
     try {
       await meetingRef.current?.leave();
-    } catch {
-      /* */
+    } catch (e) {
+      console.warn("[phong-hoc] leave", e);
     }
     stopLocalPreview();
     await signalEnd();
@@ -569,9 +678,11 @@ export function PhongHocMeeting({
         title={heading}
         phase={phase}
         err={err}
+        mediaErr={mediaErr}
         meeting={meeting}
         localPreviewStream={localPreview}
         onHangUp={() => void hangUp()}
+        onRemoteReady={() => setPhase((p) => (p === "error" ? p : "connected"))}
       />
     </RealtimeKitProvider>
   );

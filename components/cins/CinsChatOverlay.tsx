@@ -79,6 +79,14 @@ import { addChatMessageToCanvas } from "@/lib/chat/canvas/add-message-client";
 import { useCinsChat } from "@/components/cins/CinsChatProvider";
 import { subscribePendingPhongHoc, takePendingPhongHoc } from "@/components/cins/ChatIncomingCallHost";
 import {
+  beginCallTrace,
+  callTraceAttachServerTiming,
+  callTraceMark,
+  callTraceRingSent,
+} from "@/lib/media/call-trace";
+import { prefetchPhongHocMeeting } from "@/lib/media/prefetch-phong-hoc";
+import { warmCallMedia } from "@/lib/media/media-warm";
+import {
   avatarBg,
   avatarHueFromSeed,
   avatarInitialFromName,
@@ -992,6 +1000,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
   /** roomId → optimistic album id — set đồng bộ khi gửi, trước khi React render optimistic. */
   const pendingAlbumByRoomRef = useRef(new Map<string, string>());
   const activeRoomIdRef = useRef<string | null>(null);
+  const activeMessagesRef = useRef<ChatMessage[]>([]);
   const shouldScrollToBottomRef = useRef(true);
 
   const scrollMessagesToBottom = useCallback((behavior: ScrollBehavior = "auto") => {
@@ -1047,6 +1056,17 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
   }, [sidePanel]);
 
   activeRoomIdRef.current = active?.roomId ?? null;
+  activeMessagesRef.current = active?.messages ?? [];
+
+  /* Flush tin đang xem → session cache khi unmount (mini/bubble đọc lại). */
+  useEffect(() => {
+    return () => {
+      const roomId = activeRoomIdRef.current;
+      const messages = activeMessagesRef.current;
+      if (!viewerProfileId || !roomId || !messages.length) return;
+      writeRoomMessagesCache(viewerProfileId, roomId, messages);
+    };
+  }, [viewerProfileId]);
 
   const handleReadCursorRealtime = useCallback(
     (row: {
@@ -1559,17 +1579,21 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
             enriched.from === "them" &&
             enriched.nguCanh?.loai === "don_hang" &&
             event.lastAt > t.lastAt;
+          const nextMessages = isActive
+            ? event.event === "update"
+              ? mergeChatMessageUpdate(t.messages, enriched)
+              : appendChatMessageIfNew(t.messages, enriched, {
+                  pendingAlbumOptimisticId: pendingAlbumId,
+                })
+            : t.messages;
+          if (isActive && viewerProfileId) {
+            writeRoomMessagesCache(viewerProfileId, event.roomId, nextMessages);
+          }
           return {
             ...t,
             preview: event.preview,
             lastAt: event.lastAt,
-            messages: isActive
-              ? event.event === "update"
-                ? mergeChatMessageUpdate(t.messages, enriched)
-                : appendChatMessageIfNew(t.messages, enriched, {
-                    pendingAlbumOptimisticId: pendingAlbumId,
-                  })
-              : t.messages,
+            messages: nextMessages,
             unread: isActive
               ? 0
               : (event.event === "insert" && enriched.from === "them") ||
@@ -2410,6 +2434,23 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     !isPendingRoom &&
     !Boolean(active?.isSelf) &&
     !lopFrozen;
+
+  useEffect(() => {
+    if (!canJoinPhongHoc) return;
+    prefetchPhongHocMeeting();
+  }, [canJoinPhongHoc]);
+
+  useEffect(() => {
+    const roomId = active?.roomId;
+    if (!roomId || isPendingRoomId(roomId) || !canJoinPhongHoc) return;
+    const ac = new AbortController();
+    void fetch(
+      `/api/chat/rooms/${encodeURIComponent(roomId)}/phong-hoc/ensure`,
+      { method: "POST", signal: ac.signal },
+    ).catch(() => {});
+    return () => ac.abort();
+  }, [active?.roomId, canJoinPhongHoc]);
+
   const canSend =
     Boolean(active) &&
     !isPendingRoom &&
@@ -2906,15 +2947,23 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     async (mode: "audio" | "video" | "screen") => {
       const roomId = active?.roomId;
       if (!roomId || isPendingRoomId(roomId) || phongHocBusy) return;
-      // Preview + join nhanh nằm trong PhongHocMeeting (không warm rồi stop).
       const resolvedMode =
         mode === "screen" &&
         typeof window !== "undefined" &&
         window.matchMedia("(max-width: 1024px)").matches
           ? "video"
           : mode;
+      const title = active?.name?.trim() || "Cuộc gọi";
+      beginCallTrace("caller", { roomId, mode: resolvedMode, via: "overlay" });
       setPhongHocBusy(true);
       setPhongHocErr(null);
+      // Mở UI + camera ngay — token/join chạy nền (chờ đối phương accept).
+      setPhongHoc({
+        token: "",
+        title,
+        mode: resolvedMode,
+        callMessageId: null,
+      });
       try {
         const res = await fetch(
           `/api/chat/rooms/${encodeURIComponent(roomId)}/phong-hoc/token`,
@@ -2924,22 +2973,30 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
             body: JSON.stringify({ mode: resolvedMode, action: "start" }),
           },
         );
+        callTraceAttachServerTiming(res.headers.get("Server-Timing"));
+        callTraceMark("T0b", { status: res.status });
         const json = (await res.json().catch(() => null)) as {
           token?: string;
           callMessageId?: string | null;
           error?: string;
         } | null;
         if (!res.ok || !json?.token) {
+          setPhongHoc(null);
           setPhongHocErr(json?.error || "Không bắt đầu được cuộc gọi.");
           return;
         }
-        setPhongHoc({
-          token: json.token,
-          title: active?.name?.trim() || "Cuộc gọi",
-          mode: resolvedMode,
-          callMessageId: json.callMessageId ?? null,
-        });
+        if (json.callMessageId) callTraceRingSent(json.callMessageId);
+        setPhongHoc((prev) =>
+          prev
+            ? {
+                ...prev,
+                token: json.token!,
+                callMessageId: json.callMessageId ?? null,
+              }
+            : null,
+        );
       } catch {
+        setPhongHoc(null);
         setPhongHocErr("Lỗi mạng — thử lại.");
       } finally {
         setPhongHocBusy(false);
@@ -3765,6 +3822,9 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                     aria-label="Gọi"
                     title="Gọi (chỉ mic)"
                     disabled={phongHocBusy}
+                    onPointerEnter={() => {
+                      void warmCallMedia({ video: false });
+                    }}
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
@@ -3780,6 +3840,9 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                     aria-label="Gọi video"
                     title="Gọi video"
                     disabled={phongHocBusy}
+                    onPointerEnter={() => {
+                      void warmCallMedia({ video: true });
+                    }}
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
@@ -4231,7 +4294,10 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                 open={composeToolsOpen}
                 onOpenChange={setComposeToolsOpen}
                 disabled={connecting || isPendingRoom || lopFrozen}
-                canAddMoc={Boolean(active.isGroup && active.isGroupAdmin)}
+                canAddMoc={Boolean(
+                  active.roomId &&
+                    (!active.isGroup || active.isGroupAdmin),
+                )}
                 canStartCall={canJoinPhongHoc}
                 callBusy={phongHocBusy}
                 onStartCall={(mode) => void joinPhongHoc(mode)}
@@ -4436,7 +4502,10 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                 {sidePanel === "mocs" && active.roomId ? (
                   <ChatRoomMocsPanel
                     roomId={active.roomId}
-                    canManage={Boolean(active.isGroup && active.isGroupAdmin)}
+                    canManage={Boolean(
+                      active.roomId &&
+                        (!active.isGroup || active.isGroupAdmin),
+                    )}
                     openFormKey={mocFormOpenKey}
                     onNotice={(message) => {
                       const roomId = active.roomId;

@@ -69,6 +69,14 @@ import { fetchRoomMessagesPage } from "@/lib/chat/messages-client";
 import { updateMessageInList } from "@/lib/chat/patch-thread-messages";
 import type { MediaCallMode } from "@/lib/media/call-mode";
 import {
+  beginCallTrace,
+  callTraceAttachServerTiming,
+  callTraceMark,
+  callTraceRingSent,
+} from "@/lib/media/call-trace";
+import { prefetchPhongHocMeeting } from "@/lib/media/prefetch-phong-hoc";
+import { warmCallMedia } from "@/lib/media/media-warm";
+import {
   applyOrgRoomReadCursorRealtime,
   patchChatReadCursorMessage,
   upsertChatReadCursor,
@@ -335,6 +343,8 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
   } | null>(null);
   const clickFxIdRef = useRef(0);
   const [roomStates, setRoomStates] = useState<Record<string, RoomChatState>>({});
+  const roomStatesRef = useRef(roomStates);
+  roomStatesRef.current = roomStates;
   const [draft, setDraft] = useState("");
   const [pendingImages, setPendingImages] = useState<PendingImageDraft[]>([]);
   const [loadingMessages, setLoadingMessages] = useState(false);
@@ -1049,17 +1059,21 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
             hasMore: false,
             hydrated: true,
           };
+          const nextMessages =
+            event.event === "update"
+              ? mergeChatMessageUpdate(current.messages, enriched)
+              : appendChatMessageIfNew(current.messages, enriched, {
+                  pendingAlbumOptimisticId:
+                    pendingAlbumByRoomRef.current.get(event.roomId) ?? null,
+                });
+          if (viewerProfileId) {
+            writeRoomMessagesCache(viewerProfileId, event.roomId, nextMessages);
+          }
           return {
             ...prev,
             [event.roomId]: {
               ...current,
-              messages:
-                event.event === "update"
-                  ? mergeChatMessageUpdate(current.messages, enriched)
-                  : appendChatMessageIfNew(current.messages, enriched, {
-                      pendingAlbumOptimisticId:
-                        pendingAlbumByRoomRef.current.get(event.roomId) ?? null,
-                    }),
+              messages: nextMessages,
             },
           };
         });
@@ -1137,7 +1151,10 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
       setMiniLeaving(false);
       setMiniThread(null);
       setPeekThreads([]);
+      return;
     }
+    /* Overlay vừa đóng — bỏ sticky hydrate để mini không hiện tin cũ. */
+    hydratedRoomsRef.current.clear();
   }, [open]);
 
   const loadRecentMessages = useCallback(
@@ -1309,6 +1326,23 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
       setLoadError(null);
       shouldScrollToBottomRef.current = true;
 
+      /* Pop-out từ overlay thường mang sẵn messages — seed ngay rồi vẫn fetch. */
+      if (thread.messages?.length) {
+        const seeded = applyChatViewerPerspective(
+          thread.messages,
+          viewerProfileId,
+        );
+        patchRoomState(thread.roomId, {
+          messages: seeded,
+          hasMore: true,
+          hydrated: true,
+        });
+        if (viewerProfileId) {
+          writeRoomMessagesCache(viewerProfileId, thread.roomId, seeded);
+        }
+        hydratedRoomsRef.current.delete(thread.roomId);
+      }
+
       if (!hydratedRoomsRef.current.has(thread.roomId)) {
         void loadRecentMessages(thread);
       } else {
@@ -1322,9 +1356,11 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
       miniLeaving,
       miniOpen,
       miniThread,
+      patchRoomState,
       restoreComposeForRoom,
       saveComposeForRoom,
       scheduleScrollToBottom,
+      viewerProfileId,
     ],
   );
 
@@ -1496,13 +1532,24 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
       const thread = miniThreadRef.current;
       if (!thread) return;
       saveComposeForRoom(thread.roomId);
+      const liveMessages = roomStatesRef.current[thread.roomId]?.messages;
+      const threadWithMessages = liveMessages?.length
+        ? { ...thread, messages: liveMessages }
+        : thread;
+      if (viewerProfileId && threadWithMessages.messages?.length) {
+        writeRoomMessagesCache(
+          viewerProfileId,
+          thread.roomId,
+          threadWithMessages.messages,
+        );
+      }
       void openChat({
-        thread,
+        thread: threadWithMessages,
         roomId: thread.roomId,
         tab: thread.group,
       });
     },
-    [openChat, saveComposeForRoom],
+    [openChat, saveComposeForRoom, viewerProfileId],
   );
 
   const finishCloseMini = useCallback(() => {
@@ -1629,6 +1676,22 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
     !isPendingRoomId(miniThread?.roomId ?? "") &&
     !Boolean(miniThread?.isSelf);
 
+  useEffect(() => {
+    if (!canJoinPhongHoc) return;
+    prefetchPhongHocMeeting();
+  }, [canJoinPhongHoc]);
+
+  useEffect(() => {
+    const roomId = miniThread?.roomId;
+    if (!roomId || isPendingRoomId(roomId) || !canJoinPhongHoc) return;
+    const ac = new AbortController();
+    void fetch(
+      `/api/chat/rooms/${encodeURIComponent(roomId)}/phong-hoc/ensure`,
+      { method: "POST", signal: ac.signal },
+    ).catch(() => {});
+    return () => ac.abort();
+  }, [miniThread?.roomId, canJoinPhongHoc]);
+
   const joinPhongHoc = useCallback(
     async (mode: MediaCallMode) => {
       const roomId = miniThread?.roomId;
@@ -1639,8 +1702,16 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
         window.matchMedia("(max-width: 1024px)").matches
           ? "video"
           : mode;
+      const title = miniThread?.name?.trim() || "Cuộc gọi";
+      beginCallTrace("caller", { roomId, mode: resolvedMode, via: "mini" });
       setPhongHocBusy(true);
       setPhongHocErr(null);
+      setPhongHoc({
+        token: "",
+        title,
+        mode: resolvedMode,
+        callMessageId: null,
+      });
       try {
         const res = await fetch(
           `/api/chat/rooms/${encodeURIComponent(roomId)}/phong-hoc/token`,
@@ -1650,22 +1721,30 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
             body: JSON.stringify({ mode: resolvedMode, action: "start" }),
           },
         );
+        callTraceAttachServerTiming(res.headers.get("Server-Timing"));
+        callTraceMark("T0b", { status: res.status });
         const json = (await res.json().catch(() => null)) as {
           token?: string;
           callMessageId?: string | null;
           error?: string;
         } | null;
         if (!res.ok || !json?.token) {
+          setPhongHoc(null);
           setPhongHocErr(json?.error || "Không bắt đầu được cuộc gọi.");
           return;
         }
-        setPhongHoc({
-          token: json.token,
-          title: miniThread?.name?.trim() || "Cuộc gọi",
-          mode: resolvedMode,
-          callMessageId: json.callMessageId ?? null,
-        });
+        if (json.callMessageId) callTraceRingSent(json.callMessageId);
+        setPhongHoc((prev) =>
+          prev
+            ? {
+                ...prev,
+                token: json.token!,
+                callMessageId: json.callMessageId ?? null,
+              }
+            : null,
+        );
       } catch {
+        setPhongHoc(null);
         setPhongHocErr("Lỗi mạng — thử lại.");
       } finally {
         setPhongHocBusy(false);
@@ -2172,6 +2251,9 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
                     aria-label="Gọi"
                     title="Gọi (chỉ mic)"
                     disabled={phongHocBusy}
+                    onPointerEnter={() => {
+                      void warmCallMedia({ video: false });
+                    }}
                     onClick={() => void joinPhongHoc("audio")}
                   >
                     <Phone size={15} strokeWidth={2} aria-hidden />
@@ -2182,6 +2264,9 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
                     aria-label="Gọi video"
                     title="Gọi video"
                     disabled={phongHocBusy}
+                    onPointerEnter={() => {
+                      void warmCallMedia({ video: true });
+                    }}
                     onClick={() => void joinPhongHoc("video")}
                   >
                     <Video size={15} strokeWidth={2} aria-hidden />
