@@ -205,6 +205,57 @@ export function normalizeTinhThanhForDb(value: unknown): string | null {
   return null;
 }
 
+/**
+ * Map nhãn tỉnh/thành (vd. từ GHN / chuỗi địa chỉ) → mã enum CINs.
+ * Không match → null.
+ */
+export function resolveTinhThanhFromLabel(
+  label: string | null | undefined,
+): string | null {
+  const raw = (label ?? "").trim();
+  if (!raw) return null;
+  const byCode = normalizeTinhThanhForDb(
+    raw.toLowerCase().replace(/\s+/g, "_"),
+  );
+  if (byCode) return byCode;
+
+  let s = raw
+    .toLowerCase()
+    .normalize("NFC")
+    .replace(/^tp\.?\s*/i, "")
+    .replace(/^thành phố\s+/i, "")
+    .replace(/^tỉnh\s+/i, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  /* Bỏ hậu tố phổ biến */
+  s = s.replace(/,?\s*việt nam$/i, "").trim();
+
+  const aliasKey = s.replace(/\s+/g, "_");
+  const aliasHit = TINH_THANH_ALIASES[aliasKey];
+  if (aliasHit) return aliasHit;
+
+  for (const code of TINH_THANH_ALLOWED) {
+    const lab = TINH_THANH_LABELS[code]
+      .toLowerCase()
+      .replace(/^tp\.\s*/i, "")
+      .trim();
+    if (lab === s) return code;
+    if (lab.includes(s) || s.includes(lab)) return code;
+  }
+  /* HCM biến thể */
+  if (
+    s.includes("hồ chí minh") ||
+    s.includes("ho chi minh") ||
+    s === "hcm" ||
+    s === "sg" ||
+    s === "sài gòn" ||
+    s === "sai gon"
+  ) {
+    return "hcm";
+  }
+  return null;
+}
+
 export type TruongContactLine = {
   kind: "address" | "phone" | "email" | "web" | "facebook";
   label: string;

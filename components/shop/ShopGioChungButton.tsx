@@ -6,6 +6,7 @@ import {
   Loader2,
   Minus,
   Package,
+  Pencil,
   Plus,
   ShoppingBag,
   Store,
@@ -26,6 +27,11 @@ import {
   MAX_CLOUDFLARE_IMAGE_UPLOAD_BYTES,
 } from "@/lib/cloudflare/image-upload-limits";
 import { isAllowedUploadImageFile } from "@/lib/files/infer-image-mime";
+import {
+  fetchDiaChiNhanCached,
+  peekDiaChiNhan,
+  type ShopDiaChiNhanClient,
+} from "@/lib/shop/client-fetch-cache";
 import {
   shopPublicHref,
   shopSlugFromTen,
@@ -48,22 +54,70 @@ import "./shop-gio-chung.css";
 export const GIO_CHUNG_CHANGED_EVENT = "cins:gio-chung-changed";
 /** Event để nơi khác mở panel giỏ chung (vd. nút giỏ trên storefront). */
 export const GIO_CHUNG_OPEN_EVENT = "cins:gio-chung-open";
+/** Event toast «đã thêm vào giỏ» — panel topbar lắng nghe. */
+export const GIO_CHUNG_ADDED_EVENT = "cins:gio-chung-added";
+
+const GIO_ADDED_TOAST_MS = 4200;
+const GIO_ADDED_TOAST_TEXT =
+  "Đã thêm vào giỏ hàng thành công. Vui lòng kiểm tra trong giỏ hàng.";
+
+/** Báo UI đã thêm/tăng hàng trong giỏ (optimistic hoặc sau API). */
+export function notifyGioChungAdded() {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new Event(GIO_CHUNG_ADDED_EVENT));
+}
 
 function money(n: number, tienTe: string): string {
   return `${n.toLocaleString("vi-VN")} ${tienTe}`;
 }
 
-/** Một hồ sơ nhận hàng trong sổ địa chỉ (khớp API /api/shop/dia-chi-nhan). */
-type DiaChiNhanItem = {
-  id: string;
-  nhan: string | null;
-  hoTen: string;
-  soDienThoai: string;
-  diaChi: string;
-  phuongXa: string;
-  tinhThanh: string;
-  laMacDinh: boolean;
-};
+/** Debounce PATCH số lượng — khớp kiosk/storefront. */
+const QTY_SYNC_MS = 200;
+
+/** Cập nhật giỏ local ngay (không chờ mạng). */
+function applyOptimisticGioQty(
+  gio: ShopGioChung,
+  idBienThe: string,
+  soLuong: number,
+): ShopGioChung {
+  const qty = Math.max(0, Math.trunc(soLuong));
+  const nhom: ShopGioChungNhom[] = [];
+  for (const g of gio.nhom) {
+    const dong = [];
+    for (const d of g.dong) {
+      if (d.idBienThe !== idBienThe) {
+        dong.push(d);
+        continue;
+      }
+      if (qty <= 0) continue;
+      dong.push({ ...d, soLuong: qty });
+    }
+    if (dong.length === 0) continue;
+    const tongTien = dong.reduce((s, d) => s + d.giaHienThi * d.soLuong, 0);
+    const coVanDe = dong.some((d) => d.ngungBan || d.soLuong > d.soLuongTon);
+    nhom.push({ ...g, dong, tongTien, coVanDe });
+  }
+  return {
+    ...gio,
+    nhom,
+    tongSoDong: nhom.reduce((s, g) => s + g.dong.length, 0),
+  };
+}
+
+/** Giữ số lượng đang chờ sync khi nhận snapshot server. */
+function mergePendingIntoGio(
+  gio: ShopGioChung,
+  pending: Map<string, number>,
+): ShopGioChung {
+  if (pending.size === 0) return gio;
+  let next = gio;
+  for (const [idBienThe, soLuong] of pending) {
+    next = applyOptimisticGioQty(next, idBienThe, soLuong);
+  }
+  return next;
+}
+
+type DiaChiNhanItem = ShopDiaChiNhanClient;
 
 type PhuongXaOption = { code: string; name: string };
 
@@ -76,11 +130,23 @@ export function ShopGioChungButton() {
   const [gio, setGio] = useState<ShopGioChung | null>(null);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const [busyBt, setBusyBt] = useState<string | null>(null);
   const [portalReady, setPortalReady] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   /** Đơn đã gửi trong phiên này — hiển thị card xanh phía trên. */
   const [sentDons, setSentDons] = useState<ShopDonHang[]>([]);
+  const [addedToast, setAddedToast] = useState(false);
+  const addedToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const gioRef = useRef<ShopGioChung | null>(null);
+  const pendingQtyRef = useRef(new Map<string, number>());
+  const qtyEpochRef = useRef(new Map<string, number>());
+  const syncTimersRef = useRef(new Map<string, ReturnType<typeof setTimeout>>());
+  /** Bỏ qua 1 lần load từ event do chính panel vừa sync (tránh GET thừa). */
+  const skipChangedLoadRef = useRef(false);
+
+  useEffect(() => {
+    gioRef.current = gio;
+  }, [gio]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -95,7 +161,10 @@ export function ShopGioChungButton() {
         setErr(json?.error ?? "Không tải giỏ.");
         return;
       }
-      setGio(json?.gio ?? { id: null, nhom: [], tongSoDong: 0 });
+      const raw = json?.gio ?? { id: null, nhom: [], tongSoDong: 0 };
+      const merged = mergePendingIntoGio(raw, pendingQtyRef.current);
+      gioRef.current = merged;
+      setGio(merged);
     } catch {
       setErr("Không tải giỏ.");
     } finally {
@@ -112,12 +181,38 @@ export function ShopGioChungButton() {
     if (open) void load();
   }, [open, load]);
 
+  /* Dọn timer debounce khi unmount. */
+  useEffect(() => {
+    const timers = syncTimersRef.current;
+    const pending = pendingQtyRef.current;
+    return () => {
+      for (const t of timers.values()) clearTimeout(t);
+      timers.clear();
+      pending.clear();
+    };
+  }, []);
+
   /* Refresh badge khi nơi khác thêm hàng vào giỏ chung; mở panel theo event. */
   useEffect(() => {
-    const onChanged = () => void load();
+    const onChanged = () => {
+      if (skipChangedLoadRef.current) {
+        skipChangedLoadRef.current = false;
+        return;
+      }
+      void load();
+    };
     const onOpen = () => setOpen(true);
+    const onAdded = () => {
+      setAddedToast(true);
+      if (addedToastTimerRef.current) clearTimeout(addedToastTimerRef.current);
+      addedToastTimerRef.current = setTimeout(() => {
+        addedToastTimerRef.current = null;
+        setAddedToast(false);
+      }, GIO_ADDED_TOAST_MS);
+    };
     window.addEventListener(GIO_CHUNG_CHANGED_EVENT, onChanged);
     window.addEventListener(GIO_CHUNG_OPEN_EVENT, onOpen);
+    window.addEventListener(GIO_CHUNG_ADDED_EVENT, onAdded);
     const onVisible = () => {
       if (document.visibilityState === "visible") void load();
     };
@@ -125,7 +220,9 @@ export function ShopGioChungButton() {
     return () => {
       window.removeEventListener(GIO_CHUNG_CHANGED_EVENT, onChanged);
       window.removeEventListener(GIO_CHUNG_OPEN_EVENT, onOpen);
+      window.removeEventListener(GIO_CHUNG_ADDED_EVENT, onAdded);
       document.removeEventListener("visibilitychange", onVisible);
+      if (addedToastTimerRef.current) clearTimeout(addedToastTimerRef.current);
     };
   }, [load]);
 
@@ -143,33 +240,88 @@ export function ShopGioChungButton() {
     };
   }, [open]);
 
-  const patchQty = useCallback(
-    async (idBienThe: string, soLuong: number) => {
-      setBusyBt(idBienThe);
-      setErr(null);
-      try {
-        const res = await fetch("/api/shop/gio-chung", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ idBienThe, soLuong }),
-        });
-        const json = (await res.json().catch(() => null)) as {
-          gio?: ShopGioChung;
-          error?: string;
-        } | null;
-        if (!res.ok) {
-          setErr(json?.error ?? "Không cập nhật giỏ.");
-          return;
-        }
-        if (json?.gio) setGio(json.gio);
-        window.dispatchEvent(new Event(GIO_CHUNG_CHANGED_EVENT));
-      } catch {
-        setErr("Không cập nhật giỏ.");
-      } finally {
-        setBusyBt(null);
+  /** Gửi PATCH số lượng cuối cùng (đã debounce) — chạy nền. */
+  const flushQtySync = useCallback(async (idBienThe: string) => {
+    const soLuong = pendingQtyRef.current.get(idBienThe);
+    if (soLuong === undefined) return;
+    pendingQtyRef.current.delete(idBienThe);
+    const epoch = qtyEpochRef.current.get(idBienThe) ?? 0;
+    try {
+      const res = await fetch("/api/shop/gio-chung", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idBienThe, soLuong }),
+      });
+      const json = (await res.json().catch(() => null)) as {
+        gio?: ShopGioChung;
+        error?: string;
+      } | null;
+      /* Có lần bấm mới hơn — bỏ response cũ. */
+      if ((qtyEpochRef.current.get(idBienThe) ?? 0) !== epoch) return;
+      if (!res.ok || !json?.gio) {
+        setErr(json?.error ?? "Không cập nhật giỏ.");
+        await load();
+        return;
       }
+      const merged = mergePendingIntoGio(json.gio, pendingQtyRef.current);
+      gioRef.current = merged;
+      setGio(merged);
+      skipChangedLoadRef.current = true;
+      window.dispatchEvent(new Event(GIO_CHUNG_CHANGED_EVENT));
+    } catch {
+      if ((qtyEpochRef.current.get(idBienThe) ?? 0) !== epoch) return;
+      setErr("Không cập nhật giỏ.");
+      await load();
+    }
+  }, [load]);
+
+  /** Phản hồi UI ngay — PATCH debounce chạy nền. */
+  const patchQty = useCallback(
+    (idBienThe: string, soLuongRaw: number) => {
+      const prev = gioRef.current;
+      if (!prev) return;
+      let line: { soLuongTon: number } | null = null;
+      for (const g of prev.nhom) {
+        const d = g.dong.find((x) => x.idBienThe === idBienThe);
+        if (d) {
+          line = d;
+          break;
+        }
+      }
+      if (!line) return;
+      const qty =
+        soLuongRaw <= 0
+          ? 0
+          : Math.min(
+              Math.max(0, Math.trunc(soLuongRaw)),
+              Math.max(0, line.soLuongTon),
+            );
+      if (soLuongRaw > qty && line.soLuongTon > 0) {
+        setErr(`Chỉ còn ${line.soLuongTon} trong kho.`);
+      } else {
+        setErr(null);
+      }
+
+      qtyEpochRef.current.set(
+        idBienThe,
+        (qtyEpochRef.current.get(idBienThe) ?? 0) + 1,
+      );
+      pendingQtyRef.current.set(idBienThe, qty);
+      const next = applyOptimisticGioQty(prev, idBienThe, qty);
+      gioRef.current = next;
+      setGio(next);
+
+      const prevTimer = syncTimersRef.current.get(idBienThe);
+      if (prevTimer) clearTimeout(prevTimer);
+      syncTimersRef.current.set(
+        idBienThe,
+        setTimeout(() => {
+          syncTimersRef.current.delete(idBienThe);
+          void flushQtySync(idBienThe);
+        }, QTY_SYNC_MS),
+      );
     },
-    [],
+    [flushQtySync],
   );
 
   /* Gửi đơn xong → mở luôn bubble chat với người bán (card đơn đã ở inbox). */
@@ -257,7 +409,6 @@ export function ShopGioChungButton() {
                     <ShopGioChungGroup
                       key={group.idNguoiBan}
                       group={group}
-                      busyBt={busyBt}
                       onQty={patchQty}
                       onSent={onSent}
                     />
@@ -272,6 +423,30 @@ export function ShopGioChungButton() {
 
   /* Giỏ trống + panel đóng → ẩn hẳn nút khỏi topbar. */
   const showTrigger = count > 0 || open;
+
+  const toast =
+    addedToast && portalReady
+      ? createPortal(
+          <button
+            type="button"
+            className="gio-chung-toast"
+            role="status"
+            aria-live="polite"
+            onClick={() => {
+              setAddedToast(false);
+              if (addedToastTimerRef.current) {
+                clearTimeout(addedToastTimerRef.current);
+                addedToastTimerRef.current = null;
+              }
+              setOpen(true);
+            }}
+          >
+            <ShoppingBag size={16} strokeWidth={2.2} aria-hidden />
+            <span>{GIO_ADDED_TOAST_TEXT}</span>
+          </button>,
+          document.body,
+        )
+      : null;
 
   return (
     <>
@@ -297,6 +472,7 @@ export function ShopGioChungButton() {
         </div>
       ) : null}
       {panel}
+      {toast}
       <ShopMuaHistory
         open={historyOpen}
         onClose={() => setHistoryOpen(false)}
@@ -308,12 +484,15 @@ export function ShopGioChungButton() {
 /* ── Card đơn đã gửi (xanh) ────────────────────────────────────── */
 function SentCard({ don }: { don: ShopDonHang }) {
   const snap = don.thanhToanSnapshot;
+  const maCk = snap?.noiDungCk?.trim() || don.maDon?.trim() || null;
   const qrUrl =
     snap?.qrAnhUrl ??
     (snap
       ? buildVietQrImageUrl({
           nganHang: snap.nganHang,
           soTaiKhoan: snap.soTaiKhoan,
+          amountVnd: snap.tongTien,
+          addInfo: maCk,
         })
       : null);
   return (
@@ -327,7 +506,11 @@ function SentCard({ don }: { don: ShopDonHang }) {
       </div>
       <p className="gio-chung-sent-ma">
         Mã đơn <strong>{don.maDon ?? don.id.slice(0, 8)}</strong> ·{" "}
-        {money(don.tongTien, don.tienTe)}
+        {money(
+          (don.thanhToanSnapshot?.tongTien ??
+            don.tongTien),
+          don.tienTe,
+        )}
       </p>
       {snap ? (
         <div className="gio-chung-pay">
@@ -340,8 +523,14 @@ function SentCard({ don }: { don: ShopDonHang }) {
             </p>
             <p>Chủ TK: {snap.tenChuTaiKhoan}</p>
             <p>
-              Nội dung CK: <strong>{snap.noiDungCk}</strong>
+              Số tiền:{" "}
+              <strong>{money(snap.tongTien, snap.tienTe)}</strong>
             </p>
+            {maCk ? (
+              <p>
+                Nội dung CK: <strong>{maCk}</strong>
+              </p>
+            ) : null}
           </div>
           {qrUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -366,12 +555,11 @@ function SentCard({ don }: { don: ShopDonHang }) {
 /* ── Một nhóm cửa hàng ─────────────────────────────────────────── */
 type GroupProps = {
   group: ShopGioChungNhom;
-  busyBt: string | null;
-  onQty: (idBienThe: string, soLuong: number) => Promise<void>;
+  onQty: (idBienThe: string, soLuong: number) => void;
   onSent: (don: ShopDonHang) => void;
 };
 
-function ShopGioChungGroup({ group, busyBt, onQty, onSent }: GroupProps) {
+function ShopGioChungGroup({ group, onQty, onSent }: GroupProps) {
   const [checkout, setCheckout] = useState(false);
   const [accepted, setAccepted] = useState(false);
   const [ghiChu, setGhiChu] = useState("");
@@ -383,15 +571,21 @@ function ShopGioChungGroup({ group, busyBt, onQty, onSent }: GroupProps) {
     tenChuTaiKhoan: string;
     chinhSach: string | null;
   } | null>(null);
+  /** Mã đơn gắn vào QR (addInfo) — gửi lại khi tạo đơn để khớp nội dung CK. */
+  const [maDon, setMaDon] = useState<string | null>(null);
   const [payLoading, setPayLoading] = useState(false);
   const [payErr, setPayErr] = useState<string | null>(null);
   const payFetched = useRef(false);
 
   /* Sổ địa chỉ nhận hàng — chọn 1 hồ sơ (bắt buộc) để gửi đơn. */
-  const [dcList, setDcList] = useState<DiaChiNhanItem[]>([]);
-  const [dcSelectedId, setDcSelectedId] = useState<string | null>(null);
+  const [dcList, setDcList] = useState<DiaChiNhanItem[]>(
+    () => peekDiaChiNhan() ?? [],
+  );
+  const [dcSelectedId, setDcSelectedId] = useState<string | null>(() => {
+    const items = peekDiaChiNhan() ?? [];
+    return (items.find((x) => x.laMacDinh) ?? items[0])?.id ?? null;
+  });
   const [dcLoading, setDcLoading] = useState(false);
-  const dcFetched = useRef(false);
 
   /* Form thêm / sửa hồ sơ nhận hàng. */
   const [dcFormOpen, setDcFormOpen] = useState(false);
@@ -409,48 +603,46 @@ function ShopGioChungGroup({ group, busyBt, onQty, onSent }: GroupProps) {
   const [pxOptions, setPxOptions] = useState<PhuongXaOption[]>([]);
   const [pxLoading, setPxLoading] = useState(false);
 
+  const applyDiaChiList = useCallback(
+    (items: DiaChiNhanItem[], selectId?: string) => {
+      setDcList(items);
+      setDcSelectedId((prev) => {
+        if (selectId && items.some((x) => x.id === selectId)) return selectId;
+        if (prev && items.some((x) => x.id === prev)) return prev;
+        return (items.find((x) => x.laMacDinh) ?? items[0])?.id ?? null;
+      });
+      if (items.length === 0) setDcFormOpen(true);
+    },
+    [],
+  );
+
   const loadDiaChi = useCallback(async () => {
-    if (dcFetched.current) return;
-    dcFetched.current = true;
+    const cached = peekDiaChiNhan();
+    if (cached) {
+      applyDiaChiList(cached);
+      return;
+    }
     setDcLoading(true);
     try {
-      const res = await fetch("/api/shop/dia-chi-nhan", { cache: "no-store" });
-      const json = (await res.json().catch(() => null)) as {
-        items?: DiaChiNhanItem[];
-      } | null;
-      const items = json?.items ?? [];
-      setDcList(items);
-      const def = items.find((x) => x.laMacDinh) ?? items[0] ?? null;
-      setDcSelectedId(def?.id ?? null);
-      if (items.length === 0) setDcFormOpen(true);
+      const items = await fetchDiaChiNhanCached();
+      applyDiaChiList(items);
     } catch {
       /* Lỗi tải không chặn — người mua có thể thêm mới. */
     } finally {
       setDcLoading(false);
     }
-  }, []);
+  }, [applyDiaChiList]);
 
   const refetchDiaChi = useCallback(
     async (selectId?: string) => {
       try {
-        const res = await fetch("/api/shop/dia-chi-nhan", {
-          cache: "no-store",
-        });
-        const json = (await res.json().catch(() => null)) as {
-          items?: DiaChiNhanItem[];
-        } | null;
-        const items = json?.items ?? [];
-        setDcList(items);
-        setDcSelectedId((prev) => {
-          if (selectId && items.some((x) => x.id === selectId)) return selectId;
-          if (prev && items.some((x) => x.id === prev)) return prev;
-          return (items.find((x) => x.laMacDinh) ?? items[0])?.id ?? null;
-        });
+        const items = await fetchDiaChiNhanCached({ force: true });
+        applyDiaChiList(items, selectId);
       } catch {
         /* bỏ qua */
       }
     },
-    [],
+    [applyDiaChiList],
   );
 
   const resetForm = useCallback(() => {
@@ -691,6 +883,7 @@ function ShopGioChungGroup({ group, busyBt, onQty, onSent }: GroupProps) {
           tenChuTaiKhoan?: string;
         } | null;
         shop?: { chinhSach?: string | null } | null;
+        maDon?: string | null;
         error?: string;
       } | null;
       if (!res.ok || !json?.payment) {
@@ -703,6 +896,8 @@ function ShopGioChungGroup({ group, busyBt, onQty, onSent }: GroupProps) {
         tenChuTaiKhoan: json.payment.tenChuTaiKhoan ?? "",
         chinhSach: json.shop?.chinhSach ?? null,
       });
+      const suggested = json.maDon?.trim() || null;
+      if (suggested) setMaDon(suggested);
     } catch {
       setPayErr("Không tải được thông tin nhận tiền.");
     } finally {
@@ -721,6 +916,8 @@ function ShopGioChungGroup({ group, busyBt, onQty, onSent }: GroupProps) {
     });
   }, [loadPay, loadDiaChi]);
 
+  const tongCk = group.tongTien;
+
   const submit = useCallback(async () => {
     setSending(true);
     setErr(null);
@@ -731,10 +928,12 @@ function ShopGioChungGroup({ group, busyBt, onQty, onSent }: GroupProps) {
         body: JSON.stringify({
           sellerId: group.idNguoiBan,
           ghiChu: ghiChu.trim() || null,
+          maDon,
           nguoiMuaChapNhanRuiRo: true,
           bienLaiAnhUrl: billUrl,
           bienLaiAnhId: billId,
           diaChiNhanId: dcSelectedId,
+          hinhThucGiao: "truc_tiep",
         }),
       });
       const json = (await res.json().catch(() => null)) as {
@@ -751,12 +950,22 @@ function ShopGioChungGroup({ group, busyBt, onQty, onSent }: GroupProps) {
     } finally {
       setSending(false);
     }
-  }, [group.idNguoiBan, ghiChu, billUrl, billId, onSent, dcSelectedId]);
+  }, [
+    group.idNguoiBan,
+    ghiChu,
+    maDon,
+    billUrl,
+    billId,
+    onSent,
+    dcSelectedId,
+  ]);
 
   const qrUrl = pay
     ? buildVietQrImageUrl({
         nganHang: pay.nganHang,
         soTaiKhoan: pay.soTaiKhoan,
+        amountVnd: tongCk,
+        addInfo: maDon,
       })
     : null;
 
@@ -804,7 +1013,6 @@ function ShopGioChungGroup({ group, busyBt, onQty, onSent }: GroupProps) {
 
       <ul className="gio-chung-lines">
         {group.dong.map((d) => {
-          const busy = busyBt === d.idBienThe;
           const canInc = d.soLuong < d.soLuongTon && !d.ngungBan;
           return (
             <li
@@ -842,8 +1050,7 @@ function ShopGioChungGroup({ group, busyBt, onQty, onSent }: GroupProps) {
                 <button
                   type="button"
                   aria-label="Bớt"
-                  disabled={busy}
-                  onClick={() => void onQty(d.idBienThe, d.soLuong - 1)}
+                  onClick={() => onQty(d.idBienThe, d.soLuong - 1)}
                 >
                   {d.soLuong <= 1 ? (
                     <Trash2 size={13} strokeWidth={2} />
@@ -855,8 +1062,8 @@ function ShopGioChungGroup({ group, busyBt, onQty, onSent }: GroupProps) {
                 <button
                   type="button"
                   aria-label="Thêm"
-                  disabled={busy || !canInc}
-                  onClick={() => void onQty(d.idBienThe, d.soLuong + 1)}
+                  disabled={!canInc}
+                  onClick={() => onQty(d.idBienThe, d.soLuong + 1)}
                 >
                   <Plus size={13} strokeWidth={2} />
                 </button>
@@ -866,8 +1073,7 @@ function ShopGioChungGroup({ group, busyBt, onQty, onSent }: GroupProps) {
                 className="gio-chung-line-remove"
                 aria-label={`Xóa ${d.tenSanPham} khỏi giỏ`}
                 title="Xóa khỏi giỏ"
-                disabled={busy}
-                onClick={() => void onQty(d.idBienThe, 0)}
+                onClick={() => onQty(d.idBienThe, 0)}
               >
                 <X size={14} strokeWidth={2.2} aria-hidden />
               </button>
@@ -901,7 +1107,7 @@ function ShopGioChungGroup({ group, busyBt, onQty, onSent }: GroupProps) {
         <div className="gio-chung-checkout">
           <div className="gio-chung-nhan">
             <div className="gio-chung-nhan-hdr">
-              <h4 className="gio-chung-checkout-title">Giao tới</h4>
+              <h4 className="gio-chung-checkout-title">Thông tin nhận hàng</h4>
               {dcList.length > 0 && !dcFormOpen ? (
                 <button
                   type="button"
@@ -961,22 +1167,27 @@ function ShopGioChungGroup({ group, busyBt, onQty, onSent }: GroupProps) {
                         <span className="gio-chung-nhan-card-actions">
                           <button
                             type="button"
+                            aria-label="Sửa địa chỉ"
+                            title="Sửa"
                             onClick={(e) => {
                               e.preventDefault();
                               openEditForm(dc);
                             }}
                           >
-                            Sửa
+                            <Pencil size={14} strokeWidth={2.2} aria-hidden />
                           </button>
                           {dcList.length > 1 ? (
                             <button
                               type="button"
+                              className="is-danger"
+                              aria-label="Xóa địa chỉ"
+                              title="Xóa"
                               onClick={(e) => {
                                 e.preventDefault();
                                 void deleteDiaChi(dc.id);
                               }}
                             >
-                              Xóa
+                              <Trash2 size={14} strokeWidth={2.2} aria-hidden />
                             </button>
                           ) : null}
                         </span>
@@ -1125,6 +1336,11 @@ function ShopGioChungGroup({ group, busyBt, onQty, onSent }: GroupProps) {
             </p>
           </div>
 
+          <div className="gio-chung-hinh-thuc">
+            <h4 className="gio-chung-checkout-title">Hình thức nhận</h4>
+            <p className="gio-chung-hinh-thuc-fixed">Gặp trực tiếp</p>
+          </div>
+
           <h4 className="gio-chung-checkout-title">Chuyển khoản tới</h4>
           {payLoading ? (
             <p className="gio-chung-muted">
@@ -1142,8 +1358,18 @@ function ShopGioChungGroup({ group, busyBt, onQty, onSent }: GroupProps) {
                 </p>
                 <p>Chủ TK: {pay.tenChuTaiKhoan}</p>
                 <p>
-                  Số tiền: <strong>{money(group.tongTien, group.tienTe)}</strong>
+                  Tiền hàng:{" "}
+                  <strong>{money(group.tongTien, group.tienTe)}</strong>
                 </p>
+                <p>
+                  Số tiền CK:{" "}
+                  <strong>{money(tongCk, group.tienTe)}</strong>
+                </p>
+                {maDon ? (
+                  <p>
+                    Nội dung CK: <strong>{maDon}</strong>
+                  </p>
+                ) : null}
                 {pay.chinhSach ? (
                   <p className="gio-chung-pay-policy">{pay.chinhSach}</p>
                 ) : null}

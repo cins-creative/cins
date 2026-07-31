@@ -26,10 +26,14 @@
     "migrate:feed-score-phien-ban": "node scripts/run-content-feed-score-phien-ban-migration.mjs",
     "migrate:diem-uu-tien": "node scripts/run-content-diem-feed-uu-tien-migration.mjs",
     "migrate:csdt": "node scripts/run-csdt-van-hanh-hoc-migration.mjs",
+    "migrate:media-phong-hop": "node scripts/run-media-phong-hop-migration.mjs",
     "migrate:shop": "node scripts/run-shop-ban-hang-migration.mjs",
     "migrate:shop-chap-nhan": "node scripts/run-shop-don-chap-nhan-migration.mjs",
     "migrate:shop-nguoi-nhan": "node scripts/run-shop-nguoi-nhan-migration.mjs",
     "migrate:shop-dia-chi-nhan": "node scripts/run-shop-dia-chi-nhan-migration.mjs",
+    "migrate:shop-don-pipeline": "node scripts/run-shop-don-pipeline-migration.mjs",
+    "migrate:shop-ship-reverse": "node scripts/run-shop-ship-reverse-migration.mjs",
+    "migrate:shop-ship-restore-dvvc": "node scripts/run-shop-ship-restore-dvvc-migration.mjs",
     "gen:phuong-xa": "node scripts/gen-phuong-xa.mjs",
     "migrate:shop-nhom": "node scripts/run-shop-nhom-migration.mjs",
     "migrate:shop-nhom-storefront-v2": "node scripts/run-shop-nhom-storefront-v2-migration.mjs",
@@ -51,6 +55,8 @@
     "pack:pixiv-ext": "node scripts/pack-pixiv-extension.mjs"
   },
   "dependencies": {
+    "@cloudflare/realtimekit-react": "^2.0.1",
+    "@cloudflare/realtimekit-react-ui": "^2.0.1",
     "@rive-app/canvas": "^2.38.3",
     "@rive-app/react-canvas": "^4.29.3",
     "@supabase/ssr": "^0.10.2",

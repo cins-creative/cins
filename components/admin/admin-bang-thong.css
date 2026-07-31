@@ -1,0 +1,116 @@
+.admin-bang-thong {
+  max-width: 720px;
+  padding: 8px 4px 32px;
+}
+
+.admin-bang-thong-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 20px;
+}
+
+.admin-bang-thong-head h1 {
+  margin: 0 0 6px;
+  font-size: 1.35rem;
+}
+
+.admin-bang-thong-head p {
+  margin: 0;
+  color: #666;
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.admin-bang-thong-head button {
+  flex-shrink: 0;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  background: #fff;
+  cursor: pointer;
+}
+
+.admin-bang-thong-err {
+  color: #b91c1c;
+}
+
+.admin-bang-thong-card {
+  border: 1px solid #e5e5e5;
+  border-radius: 12px;
+  padding: 18px;
+  background: #fafafa;
+}
+
+.admin-bang-thong-card.is-warn {
+  border-color: #f59e0b;
+  background: #fffbeb;
+}
+
+.admin-bang-thong-card.is-danger {
+  border-color: #ef4444;
+  background: #fef2f2;
+}
+
+.admin-bang-thong-card.is-info {
+  border-color: #38bdf8;
+  background: #f0f9ff;
+}
+
+.admin-bang-thong-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.admin-bang-thong-stats .label {
+  display: block;
+  font-size: 0.75rem;
+  color: #666;
+  margin-bottom: 2px;
+}
+
+.admin-bang-thong-stats strong {
+  font-size: 1.05rem;
+}
+
+.admin-bang-thong-bar {
+  height: 10px;
+  border-radius: 999px;
+  background: #e5e5e5;
+  overflow: hidden;
+}
+
+.admin-bang-thong-bar > div {
+  height: 100%;
+  background: #2563eb;
+  border-radius: inherit;
+}
+
+.admin-bang-thong-card.is-warn .admin-bang-thong-bar > div {
+  background: #d97706;
+}
+
+.admin-bang-thong-card.is-danger .admin-bang-thong-bar > div {
+  background: #dc2626;
+}
+
+.admin-bang-thong-pct {
+  margin: 8px 0 0;
+  font-weight: 600;
+}
+
+.admin-bang-thong-hint {
+  margin: 12px 0 0;
+  font-weight: 600;
+}
+
+.admin-bang-thong-note,
+.admin-bang-thong-meta {
+  margin: 8px 0 0;
+  font-size: 0.85rem;
+  color: #666;
+  line-height: 1.4;
+}

@@ -518,9 +518,10 @@ export function JourneyEditProfileModal({
           <div className="j-edit-section">
             <span className="j-edit-label">Thông tin nhận hàng</span>
             <p className="j-edit-hint" style={{ marginTop: 0, marginBottom: 10 }}>
-              Dùng khi bạn mua hàng trên CINs — người bán cần để giao / lên vận
-              đơn. Mặc định <strong>riêng tư</strong> (chỉ hiện với người bán khi
-              bạn đặt đơn). Bật công khai nếu muốn hiện trên Journey.
+              Đồng bộ với địa chỉ mặc định lúc thanh toán giỏ hàng. Mặc định{" "}
+              <strong>riêng tư</strong> (chỉ hiện với người bán khi bạn đặt đơn).
+              Bật công khai nếu muốn hiện trên Journey. Phường/xã chọn thêm khi
+              thanh toán.
             </p>
 
             <div className="j-edit-field">

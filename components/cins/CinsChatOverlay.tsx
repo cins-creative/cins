@@ -21,6 +21,8 @@ import {
   X,
   Maximize2,
   Minimize2,
+  Phone,
+  Video,
 } from "lucide-react";
 import {
   type ChangeEvent,
@@ -35,6 +37,12 @@ import {
 import { createPortal } from "react-dom";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
+
+const PhongHocMeeting = dynamic(
+  () =>
+    import("@/components/media/PhongHocMeeting").then((m) => m.PhongHocMeeting),
+  { ssr: false },
+);
 
 const ChatCanvasBoard = dynamic(
   () => import("@/components/cins/canvas/ChatCanvasBoard"),
@@ -917,6 +925,13 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     orgId: string | null;
     orgTen: string | null;
   } | null>(null);
+  const [phongHoc, setPhongHoc] = useState<{
+    token: string;
+    title: string;
+    mode: "audio" | "video" | "screen";
+  } | null>(null);
+  const [phongHocBusy, setPhongHocBusy] = useState(false);
+  const [phongHocErr, setPhongHocErr] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<ChatThreadGroup>(
     () => launch?.tab ?? launch?.thread?.group ?? "ban_be",
   );
@@ -2388,6 +2403,11 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     Boolean(lopRoomAccess?.isLopRoom) &&
     Boolean(lopRoomAccess?.frozen) &&
     lopRoomAccess?.canSend === false;
+  const canJoinPhongHoc =
+    Boolean(active?.roomId) &&
+    !isPendingRoom &&
+    !Boolean(active?.isSelf) &&
+    !lopFrozen;
   const canSend =
     Boolean(active) &&
     !isPendingRoom &&
@@ -2878,6 +2898,39 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
       submitRoomMessage,
       viewerProfileId,
     ],
+  );
+
+  const joinPhongHoc = useCallback(
+    async (mode: "audio" | "video" | "screen") => {
+      const roomId = active?.roomId;
+      if (!roomId || isPendingRoomId(roomId) || phongHocBusy) return;
+      setPhongHocBusy(true);
+      setPhongHocErr(null);
+      try {
+        const res = await fetch(
+          `/api/chat/rooms/${encodeURIComponent(roomId)}/phong-hoc/token`,
+          { method: "POST" },
+        );
+        const json = (await res.json().catch(() => null)) as {
+          token?: string;
+          error?: string;
+        } | null;
+        if (!res.ok || !json?.token) {
+          setPhongHocErr(json?.error || "Không bắt đầu được cuộc gọi.");
+          return;
+        }
+        setPhongHoc({
+          token: json.token,
+          title: active?.name?.trim() || "Cuộc gọi",
+          mode,
+        });
+      } catch {
+        setPhongHocErr("Lỗi mạng — thử lại.");
+      } finally {
+        setPhongHocBusy(false);
+      }
+    },
+    [active?.name, active?.roomId, phongHocBusy],
   );
 
   /** Đính kèm video chat: optimistic (poster/blob) → upload R2 → gửi media. */
@@ -3647,6 +3700,40 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
               ) : null}
             </div>
             <div className="cins-chat-convo-actions">
+              {canJoinPhongHoc ? (
+                <>
+                  <button
+                    type="button"
+                    className="cins-chat-icon-btn"
+                    aria-label="Gọi"
+                    title="Gọi (chỉ mic)"
+                    disabled={phongHocBusy}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      void joinPhongHoc("audio");
+                    }}
+                    onMouseDown={(e) => e.stopPropagation()}
+                  >
+                    <Phone size={18} strokeWidth={1.9} aria-hidden />
+                  </button>
+                  <button
+                    type="button"
+                    className="cins-chat-icon-btn"
+                    aria-label="Gọi video"
+                    title="Gọi video"
+                    disabled={phongHocBusy}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      void joinPhongHoc("video");
+                    }}
+                    onMouseDown={(e) => e.stopPropagation()}
+                  >
+                    <Video size={18} strokeWidth={1.9} aria-hidden />
+                  </button>
+                </>
+              ) : null}
               {active.isGroup &&
               active.isGroupAdmin &&
               active.roomId &&
@@ -3730,6 +3817,12 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
             </div>
           </header>
 
+          {phongHocErr ? (
+            <div className="cins-chat-lop-freeze-banner is-frozen" role="alert">
+              <span>{phongHocErr}</span>
+            </div>
+          ) : null}
+
           {lopRoomAccess?.isLopRoom ? (
             <div
               className={`cins-chat-lop-freeze-banner${lopFrozen ? " is-frozen" : ""}`}
@@ -3781,10 +3874,26 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
             </div>
           ) : null}
 
+          {phongHoc ? (
+            <div className="cins-chat-call-stage">
+              <PhongHocMeeting
+                authToken={phongHoc.token}
+                mode={phongHoc.mode}
+                title={phongHoc.title}
+                onClose={() => {
+                  setPhongHoc(null);
+                  setPhongHocErr(null);
+                }}
+              />
+            </div>
+          ) : null}
+
           <div
-            className={`cins-chat-messages${lopFrozen ? " is-lop-frozen" : ""}`}
+            className={`cins-chat-messages${lopFrozen ? " is-lop-frozen" : ""}${phongHoc ? " is-call-hidden" : ""}`}
             ref={messagesContainerRef}
             onScroll={handleMessagesScroll}
+            hidden={Boolean(phongHoc)}
+            aria-hidden={phongHoc ? true : undefined}
           >
             {canvasNotice ? (
               <div className="cins-chat-canvas-notice" role="status">
@@ -4064,6 +4173,9 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                 onOpenChange={setComposeToolsOpen}
                 disabled={connecting || isPendingRoom || lopFrozen}
                 canAddMoc={Boolean(active.isGroup && active.isGroupAdmin)}
+                canStartCall={canJoinPhongHoc}
+                callBusy={phongHocBusy}
+                onStartCall={(mode) => void joinPhongHoc(mode)}
                 onAddMoc={handleComposeAddMoc}
                 onAttachImage={() => fileInputRef.current?.click()}
                 onAttachVideo={() => videoFileInputRef.current?.click()}

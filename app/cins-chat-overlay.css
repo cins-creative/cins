@@ -3610,6 +3610,16 @@ button.cins-canvas-table-cell-text {
   scrollbar-color: rgba(148, 163, 184, 0.55) transparent;
 }
 
+.cins-chat-messages[hidden],
+.j-chat-mini-messages[hidden] {
+  display: none !important;
+}
+
+.cins-chat-call-stage {
+  flex: 1;
+  min-height: 0;
+}
+
 .cins-chat-messages::-webkit-scrollbar {
   width: 5px;
   height: 5px;
@@ -7606,6 +7616,15 @@ a.cins-chat-don-card.is-paid:hover {
     0 4px 12px rgba(15, 23, 42, 0.08);
   transform-origin: bottom right;
   animation: j-chat-mini-in 240ms ease-out both;
+}
+
+/* Menu + (gọi / đính kèm) mở lên trên — không cắt bởi overflow mini */
+.j-chat-mini:has(.cins-chat-compose-tools.is-open) {
+  overflow: visible;
+}
+
+.j-chat-mini .cins-chat-compose-tools-panel {
+  z-index: 60;
 }
 
 .j-chat-mini.is-leaving {

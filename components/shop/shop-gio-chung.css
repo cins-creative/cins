@@ -649,19 +649,28 @@
 }
 
 .gio-chung-nhan-card-actions button {
-  padding: 2px 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
   border: none;
+  border-radius: 8px;
   background: none;
   color: var(--ink-muted, #64748b);
-  font: inherit;
-  font-size: 11.5px;
-  font-weight: 600;
   cursor: pointer;
 }
 
 .gio-chung-nhan-card-actions button:hover {
   color: var(--cins-blue, #2563eb);
-  text-decoration: underline;
+  background: color-mix(in srgb, var(--cins-blue, #2563eb) 10%, transparent);
+  text-decoration: none;
+}
+
+.gio-chung-nhan-card-actions button.is-danger:hover {
+  color: #b91c1c;
+  background: color-mix(in srgb, #ef4444 12%, transparent);
 }
 
 .gio-chung-nhan-form {
@@ -714,10 +723,10 @@
 
 .gio-chung-pay {
   display: flex;
-  gap: 12px;
-  align-items: flex-start;
+  gap: 14px;
+  align-items: center;
   justify-content: space-between;
-  padding: 10px 12px;
+  padding: 12px;
   border: 1px solid var(--border);
   border-radius: 11px;
   background: color-mix(in srgb, var(--shop-accent) 14%, transparent);
@@ -732,6 +741,7 @@
   flex-direction: column;
   gap: 3px;
   min-width: 0;
+  flex: 1;
 }
 
 .gio-chung-pay-info p {
@@ -751,10 +761,10 @@
 }
 
 .gio-chung-qr {
-  width: 96px;
-  height: 96px;
+  width: 148px;
+  height: 148px;
   flex-shrink: 0;
-  border-radius: 8px;
+  border-radius: 10px;
   border: 1px solid var(--border);
   background: #fff;
 }
@@ -921,6 +931,42 @@
   flex-shrink: 0;
 }
 
+.gio-chung-hinh-thuc {
+  display: grid;
+  gap: 8px;
+}
+
+.gio-chung-hinh-thuc-opts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.gio-chung-hinh-thuc-opt {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 6px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.gio-chung-hinh-thuc-opt.is-disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.gio-chung-hinh-thuc-hint {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--ink-muted, #64748b);
+}
+
 .gio-chung-checkout-actions {
   display: flex;
   gap: 8px;
@@ -983,4 +1029,53 @@
 
 :root[data-theme="dark"] .gio-chung-qr {
   border-color: transparent;
+}
+
+/* Toast «đã thêm vào giỏ» — bấm để mở panel. */
+.gio-chung-toast {
+  --shop-accent: var(--cins-orange, #fdad4c);
+  --shop-accent-strong: var(--cins-orange-strong, #f07800);
+  position: fixed;
+  left: 50%;
+  bottom: max(24px, env(safe-area-inset-bottom, 0px));
+  z-index: 320;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  max-width: min(420px, calc(100vw - 32px));
+  padding: 12px 16px;
+  border: 1px solid color-mix(in srgb, var(--shop-accent-strong) 35%, var(--border));
+  border-radius: 14px;
+  background: var(--bg-surface, #fff);
+  color: var(--ink-body, #1a1d26);
+  box-shadow: var(--shadow-lg, 0 16px 40px rgba(15, 23, 42, 0.22));
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.35;
+  text-align: left;
+  cursor: pointer;
+  transform: translateX(-50%);
+  animation: gio-chung-toast-in 0.22s ease;
+}
+
+.gio-chung-toast svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--shop-accent-strong);
+}
+
+.gio-chung-toast:hover {
+  border-color: color-mix(in srgb, var(--shop-accent-strong) 55%, var(--border));
+}
+
+@keyframes gio-chung-toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
 }

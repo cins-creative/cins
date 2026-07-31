@@ -11,6 +11,8 @@ import {
   buildThanhToanSnapshot,
   getShopCheckoutPayment,
 } from "@/lib/shop/cua-hang";
+import { assertShopGateNhanDon } from "@/lib/shop/gate";
+import { ghiPhiDongKhiHoanThanh, loaiTruPhiDong } from "@/lib/shop/phi";
 import {
   buildShopMaDon,
   isValidShopMaDon,
@@ -33,6 +35,7 @@ import type {
 } from "@/lib/shop/types";
 import { SHOP_TRANG_THAI_DON_LABEL } from "@/lib/shop/types";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { labelTinhThanh } from "@/lib/truong/contact";
 
 type DonRow = {
   id: string;
@@ -63,10 +66,14 @@ type DonRow = {
   mua_ho_ten?: string | null;
   mua_so_dien_thoai?: string | null;
   mua_dia_chi?: string | null;
+  mua_phuong_xa?: string | null;
+  mua_phuong_xa_code?: string | null;
+  mua_tinh_thanh?: string | null;
+  hinh_thuc_giao?: "truc_tiep" | "online" | "tai_su_kien" | null;
 };
 
 const DON_SELECT =
-  "id, ma_don, id_nguoi_mua, id_nguoi_ban, id_cot_moc, id_su_kien, loai_don, trang_thai, tien_te, tong_tien, ghi_chu, da_tru_kho, tao_luc, xac_nhan_luc, hoan_thanh_luc, hoan_thanh_boi, huy_luc, ly_do_huy, huy_boi, nguoi_mua_chap_nhan_luc, nguoi_mua_chap_nhan_van_ban, nguoi_mua_chap_nhan_phien_ban, thanh_toan_snapshot, bien_lai_anh_url, bien_lai_anh_id, mua_ho_ten, mua_so_dien_thoai, mua_dia_chi";
+  "id, ma_don, id_nguoi_mua, id_nguoi_ban, id_cot_moc, id_su_kien, loai_don, trang_thai, tien_te, tong_tien, ghi_chu, da_tru_kho, tao_luc, xac_nhan_luc, hoan_thanh_luc, hoan_thanh_boi, huy_luc, ly_do_huy, huy_boi, nguoi_mua_chap_nhan_luc, nguoi_mua_chap_nhan_van_ban, nguoi_mua_chap_nhan_phien_ban, thanh_toan_snapshot, bien_lai_anh_url, bien_lai_anh_id, mua_ho_ten, mua_so_dien_thoai, mua_dia_chi, mua_phuong_xa, mua_phuong_xa_code, mua_tinh_thanh, hinh_thuc_giao";
 
 function normalizeThanhToanSnapshot(
   raw: unknown,
@@ -260,7 +267,20 @@ async function attachDong(dons: DonRow[]): Promise<ShopDonHang[]> {
     bienLaiAnhId: d.bien_lai_anh_id ?? null,
     muaHoTen: d.mua_ho_ten ?? null,
     muaSoDienThoai: d.mua_so_dien_thoai ?? null,
-    muaDiaChi: d.mua_dia_chi ?? null,
+    muaDiaChi: (() => {
+      const street = d.mua_dia_chi?.trim() || "";
+      const px = d.mua_phuong_xa?.trim() || "";
+      const tinh = d.mua_tinh_thanh?.trim() || "";
+      if (px || tinh) {
+        return [street, px, labelTinhThanh(tinh)].filter(Boolean).join(", ");
+      }
+      return street || null;
+    })(),
+    muaDiaChiChiTiet: d.mua_dia_chi ?? null,
+    muaPhuongXa: d.mua_phuong_xa ?? null,
+    muaPhuongXaCode: d.mua_phuong_xa_code ?? null,
+    muaTinhThanh: d.mua_tinh_thanh ?? null,
+    hinhThucGiao: d.hinh_thuc_giao ?? null,
   }));
 }
 
@@ -368,6 +388,7 @@ export async function createDonFromGio(
   }
 
   await assertShopNotTamDong(sellerId);
+  await assertShopGateNhanDon(sellerId);
   await assertCanCreateDon(buyerId, sellerId);
 
   if (input.nguoiMuaChapNhanRuiRo !== true) {
@@ -534,6 +555,8 @@ export async function createDonChungForSeller(
     bienLaiAnhId?: string | null;
     /** Hồ sơ nhận hàng đã chọn từ sổ địa chỉ (bắt buộc) — snapshot vào đơn. */
     diaChiNhanId?: string | null;
+    /** truc_tiep (mặc định) | online (gated) | tai_su_kien */
+    hinhThucGiao?: "truc_tiep" | "online" | "tai_su_kien" | null;
   },
 ): Promise<ShopDonHang> {
   const sellerId = input.sellerId?.trim();
@@ -541,6 +564,7 @@ export async function createDonChungForSeller(
   if (sellerId === buyerId) throw new Error("CANNOT_BUY_OWN");
 
   await assertShopNotTamDong(sellerId);
+  await assertShopGateNhanDon(sellerId);
   await assertCanCreateDon(buyerId, sellerId);
 
   const gio = await getGioChung(buyerId);
@@ -563,6 +587,12 @@ export async function createDonChungForSeller(
     buyerId,
     input.diaChiNhanId,
   );
+
+  if (input.hinhThucGiao === "online") {
+    throw new Error("ONLINE_DISABLED");
+  }
+  const hinhThucGiao =
+    input.hinhThucGiao === "tai_su_kien" ? "tai_su_kien" : "truc_tiep";
 
   for (const d of nhom.dong) {
     if (d.ngungBan) throw new Error("ITEM_UNAVAILABLE");
@@ -592,10 +622,11 @@ export async function createDonChungForSeller(
   const { payment } = await getShopCheckoutPayment(sellerId);
   if (!payment) throw new Error("PAYMENT_REQUIRED");
 
+  const tongCk = nhom.tongTien;
   const thanhToanSnapshot = buildThanhToanSnapshot(
     payment,
     maDon,
-    nhom.tongTien,
+    tongCk,
     nhom.tienTe,
   );
 
@@ -604,6 +635,9 @@ export async function createDonChungForSeller(
     nguoi_mua_chap_nhan_van_ban: SHOP_BUYER_TRANSFER_DISCLAIMER,
     nguoi_mua_chap_nhan_phien_ban: SHOP_BUYER_TRANSFER_DISCLAIMER_VERSION,
   };
+
+  const street =
+    nguoiNhanSnapshot.diaChi?.trim() || nguoiNhanSnapshot.diaChiDayDu;
 
   let don: DonRow | null = null;
   let lastError: unknown = null;
@@ -629,7 +663,11 @@ export async function createDonChungForSeller(
         bien_lai_anh_id: bienLaiAnhId,
         mua_ho_ten: nguoiNhanSnapshot.hoTen,
         mua_so_dien_thoai: nguoiNhanSnapshot.soDienThoai,
-        mua_dia_chi: nguoiNhanSnapshot.diaChiDayDu,
+        mua_dia_chi: street,
+        mua_phuong_xa: nguoiNhanSnapshot.phuongXa ?? null,
+        mua_phuong_xa_code: nguoiNhanSnapshot.phuongXaCode ?? null,
+        mua_tinh_thanh: nguoiNhanSnapshot.tinhThanh ?? null,
+        hinh_thuc_giao: hinhThucGiao,
         ...chapNhan,
       })
       .select(DON_SELECT)
@@ -794,10 +832,8 @@ export async function confirmDonHang(
 }
 
 /**
- * Seller đánh dấu đơn **hoàn thành** — trạng thái cuối sau khi đã nhận tiền
- * (`da_nhan_tien`) hoặc đã giao tại sự kiện (`da_giao_tai_su_kien`). Không đụng
- * tồn kho (đã trừ ở bước trước). Idempotent: update có điều kiện trạng thái —
- * gọi trùng / đua chỉ 1 tiến trình flip thành công.
+ * Seller đánh dấu đơn **hoàn thành**.
+ * Sau nhận tiền / giao tại sự kiện; đơn pipeline cũ (`cho_lay_hang` / `dang_giao`) cũng đóng được (shop tự ship).
  */
 export async function completeDonHang(
   actorId: string,
@@ -806,12 +842,14 @@ export async function completeDonHang(
   const don = await getDonHang(donId);
   if (!don) throw new Error("NOT_FOUND");
   if (don.idNguoiBan !== actorId) throw new Error("FORBIDDEN");
-  if (
-    don.trangThai !== "da_nhan_tien" &&
-    don.trangThai !== "da_giao_tai_su_kien"
-  ) {
-    throw new Error("INVALID_STATE");
-  }
+
+  const allowed = [
+    "da_nhan_tien",
+    "da_giao_tai_su_kien",
+    "cho_lay_hang",
+    "dang_giao",
+  ];
+  if (!allowed.includes(don.trangThai)) throw new Error("INVALID_STATE");
 
   const admin = createServiceRoleClient();
   const now = new Date().toISOString();
@@ -824,7 +862,7 @@ export async function completeDonHang(
       cap_nhat_luc: now,
     })
     .eq("id", donId)
-    .in("trang_thai", ["da_nhan_tien", "da_giao_tai_su_kien"])
+    .in("trang_thai", allowed)
     .select("id");
   if (error) throw new Error("UPDATE_FAILED");
   if (!updatedRows || updatedRows.length === 0) {
@@ -834,12 +872,76 @@ export async function completeDonHang(
   const updated = await getDonHang(donId);
   if (!updated) throw new Error("NOT_FOUND");
 
+  try {
+    await ghiPhiDongKhiHoanThanh({
+      idDonHang: updated.id,
+      idNguoiBan: updated.idNguoiBan,
+      gmv: updated.tongTien,
+      hoanThanhLuc: updated.hoanThanhLuc,
+    });
+  } catch (e) {
+    console.error("[shop] ghiPhiDong after complete", e);
+  }
+
   await bumpDonHangChatMessage(updated, actorId);
 
   return updated;
 }
 
-/** Hoàn tồn mọi dòng đơn (khi hủy đơn đã trừ kho). Lỗi 1 dòng không chặn dòng khác. */
+/** Không giao được / khách không nhận → hoàn trả (+ loại trừ phí nếu đã ghi). */
+export async function hoanTraDonHang(
+  actorId: string,
+  donId: string,
+  lyDo?: string | null,
+): Promise<ShopDonHang> {
+  const don = await getDonHang(donId);
+  if (!don) throw new Error("NOT_FOUND");
+  if (don.idNguoiBan !== actorId) throw new Error("FORBIDDEN");
+  if (don.trangThai !== "cho_lay_hang" && don.trangThai !== "dang_giao") {
+    throw new Error("INVALID_STATE");
+  }
+
+  return applyHoanTra(don, actorId, lyDo);
+}
+
+async function applyHoanTra(
+  don: ShopDonHang,
+  actorId: string,
+  lyDo?: string | null,
+): Promise<ShopDonHang> {
+  const admin = createServiceRoleClient();
+  const now = new Date().toISOString();
+  const reason = (lyDo ?? "Hoàn trả — khách không nhận / giao thất bại").slice(
+    0,
+    300,
+  );
+  const { data: rows, error } = await admin
+    .from("shop_don_hang")
+    .update({
+      trang_thai: "hoan_tra",
+      ly_do_huy: reason,
+      huy_luc: now,
+      huy_boi: actorId,
+      cap_nhat_luc: now,
+    })
+    .eq("id", don.id)
+    .in("trang_thai", ["cho_lay_hang", "dang_giao"])
+    .select("id");
+  if (error) throw new Error("UPDATE_FAILED");
+  if (!rows?.length) throw new Error("INVALID_STATE");
+
+  try {
+    await loaiTruPhiDong(don.id, reason);
+  } catch (e) {
+    console.error("[shop] loaiTru after hoan_tra", e);
+  }
+
+  const updated = await getDonHang(don.id);
+  if (!updated) throw new Error("NOT_FOUND");
+  await bumpDonHangChatMessage(updated, actorId);
+  return updated;
+}
+
 async function restockDon(dong: ShopDonHangDong[]): Promise<void> {
   for (const d of dong) {
     if (!d.idBienThe) continue;

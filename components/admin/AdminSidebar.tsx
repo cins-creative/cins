@@ -13,6 +13,7 @@ const NAV = [
   { href: "/admin/tag", label: "Quản lý Tag", icon: "tag" },
   { href: "/admin/bao-cao", label: "Báo cáo", icon: "flag" },
   { href: "/admin/giao-dich", label: "Giao dịch", icon: "cart" },
+  { href: "/admin/tranh-chap", label: "Tranh chấp shop", icon: "flag" },
   { href: "/admin/gop-y", label: "Góp ý", icon: "message" },
   { href: "/admin/huong-dan", label: "Hướng dẫn", icon: "book" },
   { section: "Tổ chức" },
@@ -26,6 +27,7 @@ const NAV = [
   { href: "/admin/linh-vuc", label: "Lĩnh vực", icon: "grid" },
   { href: "/admin/schema", label: "Schema DB", icon: "sql" },
   { href: "/admin/analytics", label: "Analytics", icon: "chart" },
+  { href: "/admin/bang-thong", label: "Băng thông call", icon: "chart" },
 ] as const;
 
 function activeLabel(pathname: string): string {

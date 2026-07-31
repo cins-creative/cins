@@ -51,6 +51,8 @@ type RowDraft = {
   phanLoai: string;
   phanLoai2: string;
   ton: string;
+  /** Trọng lượng gram (biến thể) — trống = chưa khai. */
+  canNang: string;
   /** Giá bán (niêm yết). */
   gia: string;
   /** Giá giảm / khuyến mãi — trống = không giảm. */
@@ -826,6 +828,7 @@ export function ShopKhoClient() {
       phanLoai: p.phanLoai ?? "",
       phanLoai2: p.phanLoai2 ?? "",
       ton: String(bt?.soLuongTon ?? 0),
+      canNang: bt?.canNang != null ? String(bt.canNang) : "",
       gia: giaGoc,
       giaGiam: dong?.giaGiam != null ? String(dong.giaGiam) : "",
       dangBan: p.dangBan !== false,
@@ -858,6 +861,7 @@ export function ShopKhoClient() {
       patch.phanLoai2 = d.phanLoai2;
     }
     if (d.ton.trim() !== base.ton.trim()) patch.ton = d.ton;
+    if (d.canNang.trim() !== base.canNang.trim()) patch.canNang = d.canNang;
     if (parseGiaInput(d.gia) !== parseGiaInput(base.gia)) patch.gia = d.gia;
     if (parseGiaInput(d.giaGiam) !== parseGiaInput(base.giaGiam)) {
       patch.giaGiam = d.giaGiam;
@@ -877,6 +881,7 @@ export function ShopKhoClient() {
     if (patch.phanLoai !== undefined) labels.push(nhanPhanLoai.toLowerCase());
     if (patch.phanLoai2 !== undefined) labels.push(nhanPhanLoai2.toLowerCase());
     if (patch.ton !== undefined) labels.push("tồn");
+    if (patch.canNang !== undefined) labels.push("cân nặng");
     if (patch.gia !== undefined) labels.push("giá bán");
     if (patch.giaGiam !== undefined) labels.push("giá giảm");
     if (patch.dangBan !== undefined) labels.push("tình trạng");
@@ -894,6 +899,7 @@ export function ShopKhoClient() {
       d.phanLoai.trim() !== base.phanLoai.trim() ||
       d.phanLoai2.trim() !== base.phanLoai2.trim() ||
       d.ton.trim() !== base.ton.trim() ||
+      d.canNang.trim() !== base.canNang.trim() ||
       parseGiaInput(d.gia) !== parseGiaInput(base.gia) ||
       parseGiaInput(d.giaGiam) !== parseGiaInput(base.giaGiam) ||
       d.dangBan !== base.dangBan ||
@@ -1246,8 +1252,21 @@ export function ShopKhoClient() {
       return false;
     }
     const tonNum = Number.parseInt(draft.ton, 10);
-    if (!Number.isFinite(tonNum)) {
+    if (!Number.isFinite(tonNum) || tonNum < 0) {
       setErr("Tồn kho không hợp lệ.");
+      return false;
+    }
+    const canNangTrim = draft.canNang.trim();
+    let canNangNum: number | null = null;
+    if (canNangTrim !== "") {
+      canNangNum = Number.parseInt(canNangTrim, 10);
+      if (!Number.isFinite(canNangNum) || canNangNum < 1) {
+        setErr("Cân nặng (gram) phải là số ≥ 1.");
+        return false;
+      }
+    }
+    if (draft.dangBan && (canNangNum == null || canNangNum < 1)) {
+      setErr("Cần nhập cân nặng trước khi bật Đang bán.");
       return false;
     }
     const giaGiamRaw = draft.giaGiam.trim();
@@ -1292,11 +1311,41 @@ export function ShopKhoClient() {
     try {
       const nextPhanLoai = draft.phanLoai.trim() || null;
       const nextPhanLoai2 = draft.phanLoai2.trim() || null;
+
+      /* Lưu cân nặng trước — Đang bán phụ thuộc cân nặng trên server. */
+      const tonChanged = tonNum !== bt.soLuongTon;
+      const canNangChanged =
+        (canNangNum ?? null) !== (bt.canNang ?? null);
+      if (tonChanged || canNangChanged) {
+        const tonRes = await fetch(`/api/shop/san-pham/${p.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "upsertBienThe",
+            bienTheId: bt.id,
+            nhan: bt.nhan || "Mặc định",
+            soLuongTon: tonNum,
+            canNang: canNangNum,
+          }),
+        });
+        if (!tonRes.ok) {
+          setErr("Không lưu được tồn / cân nặng.");
+          return false;
+        }
+      }
+
+      const effectiveDangBan =
+        draft.dangBan && canNangNum != null && canNangNum >= 1
+          ? true
+          : draft.dangBan && (canNangNum == null || canNangNum < 1)
+            ? false
+            : draft.dangBan;
+
       const patchBody: Record<string, unknown> = {
         ten: tenTrim,
         phanLoai: nextPhanLoai,
         phanLoai2: nextPhanLoai2,
-        dangBan: draft.dangBan,
+        dangBan: effectiveDangBan,
         noiBat: draft.noiBat,
       };
       if (draft.anhId !== undefined) {
@@ -1316,26 +1365,6 @@ export function ShopKhoClient() {
       }
 
       const sideOps: Promise<boolean>[] = [];
-      if (tonNum !== bt.soLuongTon) {
-        sideOps.push(
-          fetch(`/api/shop/san-pham/${p.id}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              action: "upsertBienThe",
-              bienTheId: bt.id,
-              nhan: bt.nhan || "Mặc định",
-              soLuongTon: tonNum,
-            }),
-          }).then((tonRes) => {
-            if (!tonRes.ok) {
-              setErr("Không lưu được tồn kho.");
-              return false;
-            }
-            return true;
-          }),
-        );
-      }
       if (giaChanged && nextGia != null) {
         sideOps.push(
           saveGiaForBienThe(bt.id, {
@@ -1376,13 +1405,15 @@ export function ShopKhoClient() {
             phanLoai2: nextPhanLoai2,
             idNhom: nextIdNhom,
             idNhom2: nextIdNhom2,
-            dangBan: draft.dangBan,
+            dangBan: effectiveDangBan,
             noiBat: draft.noiBat,
             ...(draft.anhId !== undefined
               ? { anhId: draft.anhId, anhUrl: draft.anhUrl ?? null }
               : null),
             bienThe: row.bienThe.map((b) =>
-              b.id === bt.id ? { ...b, soLuongTon: tonNum } : b,
+              b.id === bt.id
+                ? { ...b, soLuongTon: tonNum, canNang: canNangNum }
+                : b,
             ),
           };
         }),
@@ -1446,6 +1477,7 @@ export function ShopKhoClient() {
     const applyNoiBat = changed.noiBat !== undefined;
     const applyAnh = changed.anhId !== undefined;
     const applyTon = changed.ton !== undefined;
+    const applyCanNang = changed.canNang !== undefined;
     const applyGia = changed.gia !== undefined;
     const applyGiaGiam = changed.giaGiam !== undefined;
 
@@ -1472,6 +1504,50 @@ export function ShopKhoClient() {
       tonNum = Number.parseInt(changed.ton!, 10);
       if (!Number.isFinite(tonNum) || tonNum < 0) {
         setErr("Tồn kho trên dòng nguồn không hợp lệ.");
+        setBulkApplying(false);
+        return;
+      }
+    }
+
+    let canNangNum: number | null = null;
+    let clearCanNang = false;
+    if (applyCanNang) {
+      const raw = changed.canNang!.trim();
+      if (!raw) {
+        clearCanNang = true;
+        canNangNum = null;
+      } else {
+        canNangNum = Number.parseInt(raw, 10);
+        if (!Number.isFinite(canNangNum) || canNangNum < 1) {
+          setErr("Cân nặng trên dòng nguồn phải là số ≥ 1.");
+          setBulkApplying(false);
+          return;
+        }
+      }
+    }
+
+    if (applyDangBan && changed.dangBan === true) {
+      if (applyCanNang && (clearCanNang || canNangNum == null || canNangNum < 1)) {
+        setErr("Không thể bật Đang bán khi áp dụng xóa cân nặng.");
+        setBulkApplying(false);
+        return;
+      }
+      const bulkHasWeight =
+        applyCanNang && !clearCanNang && canNangNum != null && canNangNum >= 1;
+      const missingWeight = [source, ...targets].filter((p) => {
+        if (bulkHasWeight) return false;
+        if (p.id === source.id) {
+          const d = getDraft(p);
+          const n = Number.parseInt(d.canNang.trim(), 10);
+          return !Number.isFinite(n) || n < 1;
+        }
+        const w = p.bienThe[0]?.canNang;
+        return w == null || !Number.isFinite(Number(w)) || Number(w) < 1;
+      });
+      if (missingWeight.length > 0) {
+        setErr(
+          "Cần cân nặng trên mọi mẫu được chọn trước khi áp dụng Đang bán.",
+        );
         setBulkApplying(false);
         return;
       }
@@ -1540,6 +1616,43 @@ export function ShopKhoClient() {
         if (!saved) return;
       }
 
+      /* Cân nặng trước Đang bán (server bắt buộc cân nặng khi bật bán). */
+      if (applyTon || applyCanNang) {
+        const btResults = await Promise.all(
+          targets.map(async (p) => {
+            const bt = p.bienThe[0];
+            if (!bt) return false;
+            const body: Record<string, unknown> = {
+              action: "upsertBienThe",
+              bienTheId: bt.id,
+              nhan: bt.nhan || "Mặc định",
+              /* API mặc định soLuongTon=0 nếu thiếu — luôn gửi tồn hiện tại hoặc tồn áp dụng. */
+              soLuongTon: applyTon && tonNum != null ? tonNum : bt.soLuongTon,
+            };
+            if (applyCanNang) {
+              body.canNang = clearCanNang ? null : canNangNum;
+            }
+            const res = await fetch(`/api/shop/san-pham/${p.id}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(body),
+            });
+            return res.ok;
+          }),
+        );
+        if (btResults.some((ok) => !ok)) {
+          setErr(
+            applyCanNang && !applyTon
+              ? "Một số sản phẩm không lưu được cân nặng."
+              : applyTon && !applyCanNang
+                ? "Một số sản phẩm không lưu được tồn kho."
+                : "Một số sản phẩm không lưu được tồn / cân nặng.",
+          );
+          await load({ silent: true });
+          return;
+        }
+      }
+
       const productPatch: Record<string, unknown> = {};
       if (applyTen) productPatch.ten = changed.ten!.trim();
       if (applyPhan) productPatch.phanLoai = changed.phanLoai!.trim() || null;
@@ -1562,32 +1675,11 @@ export function ShopKhoClient() {
           }),
         );
         if (results.some((ok) => !ok)) {
-          setErr("Một số sản phẩm không lưu được.");
-          await load({ silent: true });
-          return;
-        }
-      }
-
-      if (applyTon && tonNum != null) {
-        const tonResults = await Promise.all(
-          targets.map(async (p) => {
-            const bt = p.bienThe[0];
-            if (!bt) return false;
-            const res = await fetch(`/api/shop/san-pham/${p.id}`, {
-              method: "PATCH",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                action: "upsertBienThe",
-                bienTheId: bt.id,
-                nhan: bt.nhan || "Mặc định",
-                soLuongTon: tonNum,
-              }),
-            });
-            return res.ok;
-          }),
-        );
-        if (tonResults.some((ok) => !ok)) {
-          setErr("Một số sản phẩm không lưu được tồn kho.");
+          setErr(
+            applyDangBan && changed.dangBan === true
+              ? "Một số sản phẩm thiếu cân nặng — không bật được Đang bán."
+              : "Một số sản phẩm không lưu được.",
+          );
           await load({ silent: true });
           return;
         }
@@ -1659,6 +1751,11 @@ export function ShopKhoClient() {
       }
 
       const tonApply = applyTon && tonNum != null ? tonNum : null;
+      const canNangApply = applyCanNang
+        ? clearCanNang
+          ? null
+          : canNangNum
+        : undefined;
       setProducts((prev) =>
         prev.map((row) => {
           const isTarget = targets.some((t) => t.id === row.id);
@@ -1691,16 +1788,25 @@ export function ShopKhoClient() {
                     null);
             }
             if (applyDangBan) next.dangBan = changed.dangBan!;
+            if (applyCanNang && clearCanNang) next.dangBan = false;
             if (applyNoiBat) next.noiBat = changed.noiBat!;
             if (applyAnh) {
               next.anhId = changed.anhId ?? null;
               next.anhUrl = changed.anhUrl ?? null;
             }
-            if (tonApply != null) {
+            if (tonApply != null || canNangApply !== undefined) {
               const bt0 = next.bienThe[0];
               if (bt0) {
                 next.bienThe = next.bienThe.map((b, i) =>
-                  i === 0 ? { ...b, soLuongTon: tonApply } : b,
+                  i === 0
+                    ? {
+                        ...b,
+                        ...(tonApply != null ? { soLuongTon: tonApply } : {}),
+                        ...(canNangApply !== undefined
+                          ? { canNang: canNangApply }
+                          : {}),
+                      }
+                    : b,
                 );
               }
             }
@@ -2266,6 +2372,15 @@ export function ShopKhoClient() {
                     )}
                   </button>
                 </th>
+                <th
+                  scope="col"
+                  className="shop-grid-col-can-nang"
+                  title="Cân nặng (gram) — dùng khi bật giao online sau này"
+                >
+                  Cân nặng<span className="shop-grid-req" aria-hidden>
+                    *
+                  </span>
+                </th>
                 <th scope="col" className="shop-grid-col-gia">
                   Giá gốc
                 </th>
@@ -2331,6 +2446,7 @@ export function ShopKhoClient() {
                       "phanLoai",
                       "phanLoai2",
                       "ton",
+                      "canNang",
                       "gia",
                       "giaGiam",
                       "dangBan",
@@ -2744,6 +2860,45 @@ export function ShopKhoClient() {
                         )}
                       </td>
                       <td
+                        className={`shop-grid-col-can-nang${cellChanged("canNang")}`}
+                        title={
+                          cellChanged("canNang")
+                            ? "Ô đã sửa — sẽ áp dụng khi bấm Áp dụng"
+                            : "Cân nặng (gram) — bắt buộc để bật Đang bán"
+                        }
+                      >
+                        {cellApplyBtn("canNang")}
+                        {!khoEditing ? (
+                          <span className="shop-grid-readonly-val">
+                            {bt?.canNang != null ? `${bt.canNang} g` : "—"}
+                          </span>
+                        ) : bt ? (
+                          <span className="shop-grid-can-nang-edit">
+                            <input
+                              className="shop-dash-ton"
+                              type="number"
+                              min={1}
+                              value={draft.canNang}
+                              disabled={rowSaving}
+                              placeholder="0"
+                              onChange={(e) =>
+                                patchDraft(
+                                  p.id,
+                                  { canNang: e.target.value },
+                                  baseDraftForProduct(p),
+                                )
+                              }
+                              aria-label={`Cân nặng gram ${p.ten}`}
+                            />
+                            <span className="shop-grid-can-nang-unit" aria-hidden>
+                              g
+                            </span>
+                          </span>
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+                      <td
                         className="shop-grid-col-gia"
                         title="Giá gốc đã áp dụng cho mẫu — bấm «Áp dụng» ở meta loại để cập nhật"
                       >
@@ -2816,16 +2971,32 @@ export function ShopKhoClient() {
                             value={draft.dangBan ? "1" : "0"}
                             disabled={rowSaving}
                             aria-label={`Tình trạng ${p.ten}`}
-                            title="Còn kinh doanh hay đã ngừng bán"
-                            onChange={(e) =>
+                            title={
+                              draft.canNang.trim() === ""
+                                ? "Nhập cân nặng trước khi bật Đang bán"
+                                : "Còn kinh doanh hay đã ngừng bán"
+                            }
+                            onChange={(e) => {
+                              const next = e.target.value === "1";
+                              if (next && draft.canNang.trim() === "") {
+                                setErr(
+                                  "Cần nhập cân nặng trước khi bật Đang bán.",
+                                );
+                                return;
+                              }
                               patchDraft(
                                 p.id,
-                                { dangBan: e.target.value === "1" },
+                                { dangBan: next },
                                 baseDraftForProduct(p),
-                              )
-                            }
+                              );
+                            }}
                           >
-                            <option value="1">Đang bán</option>
+                            <option
+                              value="1"
+                              disabled={draft.canNang.trim() === ""}
+                            >
+                              Đang bán
+                            </option>
                             <option value="0">Ngừng bán</option>
                           </select>
                         )}

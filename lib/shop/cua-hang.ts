@@ -13,6 +13,7 @@ import type {
   ShopCuaHang,
   ShopPhuongThucTt,
   ShopThanhToanSnapshot,
+  ShopTrangThaiHoatDong,
 } from "@/lib/shop/types";
 import { isShopTamDongActive, normalizeShopTamDongLyDo } from "@/lib/shop/tam-dong";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
@@ -34,6 +35,9 @@ type CuaHangRow = {
   tam_dong_tu: string | null;
   tam_dong_den: string | null;
   tam_dong_ly_do: string | null;
+  trang_thai_hoat_dong: string | null;
+  ly_do_khoa: string | null;
+  so_tranh_chap_mo: number | null;
   da_xoa: boolean | null;
   tao_luc: string;
   cap_nhat_luc: string;
@@ -53,7 +57,7 @@ type PtttRow = {
 };
 
 const CUA_HANG_SELECT =
-  "id, id_nguoi_dung, ten, mo_ta, avatar_id, cover_id, banner_su_kien_id, banner_su_kien_hien, chinh_sach, lien_he, nhan_phan_loai, nhan_phan_loai_2, tam_dong, tam_dong_tu, tam_dong_den, tam_dong_ly_do, da_xoa, tao_luc, cap_nhat_luc";
+  "id, id_nguoi_dung, ten, mo_ta, avatar_id, cover_id, banner_su_kien_id, banner_su_kien_hien, chinh_sach, lien_he, nhan_phan_loai, nhan_phan_loai_2, tam_dong, tam_dong_tu, tam_dong_den, tam_dong_ly_do, trang_thai_hoat_dong, ly_do_khoa, so_tranh_chap_mo, da_xoa, tao_luc, cap_nhat_luc";
 
 const PTTT_SELECT =
   "id, id_cua_hang, ngan_hang, so_tai_khoan, ten_chu_tai_khoan, qr_anh_id, mac_dinh, kich_hoat, thu_tu, tao_luc";
@@ -95,6 +99,10 @@ function mapCuaHang(row: CuaHangRow, pttt: ShopPhuongThucTt[]): ShopCuaHang {
     tamDongTu: row.tam_dong_tu ?? null,
     tamDongDen: row.tam_dong_den ?? null,
     tamDongLyDo: row.tam_dong_ly_do?.trim() || null,
+    trangThaiHoatDong: (row.trang_thai_hoat_dong ??
+      "hoat_dong") as ShopTrangThaiHoatDong,
+    lyDoKhoa: row.ly_do_khoa?.trim() || null,
+    soTranhChapMo: Math.max(0, Math.trunc(row.so_tranh_chap_mo ?? 0)),
     phuongThucTt: pttt,
     sanSangNhanDon: pttt.some(
       (p) =>

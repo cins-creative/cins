@@ -30,3 +30,14 @@ export function isValidPhuongXa(
   if (!n) return false;
   return getPhuongXaByTinh(tinhCode).some((w) => w.name === n);
 }
+
+/** Mã GSO của phường/xã theo tên + tỉnh. Null nếu không khớp. */
+export function getPhuongXaCode(
+  tinhCode: string | null | undefined,
+  name: string | null | undefined,
+): string | null {
+  const n = (name ?? "").trim();
+  if (!n) return null;
+  const hit = getPhuongXaByTinh(tinhCode).find((w) => w.name === n);
+  return hit?.code ?? null;
+}

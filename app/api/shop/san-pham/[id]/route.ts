@@ -32,6 +32,12 @@ export async function PATCH(request: Request, ctx: Ctx) {
         sku: typeof body.sku === "string" ? body.sku : null,
         soLuongTon:
           typeof body.soLuongTon === "number" ? body.soLuongTon : 0,
+        canNang:
+          body.canNang === null
+            ? null
+            : typeof body.canNang === "number"
+              ? body.canNang
+              : undefined,
         anhId: typeof body.anhId === "string" ? body.anhId : null,
       });
       return NextResponse.json({ bienThe: bt });
@@ -80,6 +86,15 @@ export async function PATCH(request: Request, ctx: Ctx) {
     if (msg === "FEATURE_LIMIT") {
       return NextResponse.json(
         { error: `Chỉ được gắn ngôi sao tối đa ${SHOP_FEATURE_MAX} sản phẩm.` },
+        { status: 422 },
+      );
+    }
+    if (msg === "WEIGHT_REQUIRED_FOR_SALE") {
+      return NextResponse.json(
+        {
+          error:
+            "Cần nhập cân nặng (gram) trước khi bật Đang bán — dùng để tính phí ship.",
+        },
         { status: 422 },
       );
     }

@@ -26,7 +26,7 @@
 | O17 | Nhắc mốc chat (`chat_moc`) — tin system trong phòng khi tạo / tới lúc nhắc / đến hạn; tick client + `POST /api/chat/mocs/tick` | **Partial** — chưa push/email ngoài app | Mở rộng push/email khi có worker ổn định. |
 | O19 | Bán vé sự kiện / tồn kho / gắn `id_loai_ve` vào `org_dang_ky_su_kien` / QR check-in? | **Defer** — phase 1 chỉ catalog loại vé (`org_su_kien_loai_ve`) | Khi chốt mô hình tiền (P2P như shop hoặc ngoài CINs) + nhu cầu cohort thật. Không mở payment trên CINs trước đó. |
 | O20 | Tỷ lệ phí nền tảng (%) + giữ **trả sau** hay chuyển **trả trước / ký quỹ**? | Đề xuất **5% GMV, kỳ tháng, trả sau** (2026-07-30) | Chốt con số trước khi bật thu phí thật. Xem lại mô hình trả sau khi đo được tỉ lệ seller nợ phí thực tế — nếu thất thu cao thì chuyển trả trước (nạp credit). |
-| O21 | Hạ tầng chạy job định kỳ (chốt kỳ phí tháng) — Cloudflare Workers `triggers` hay GitHub Actions? | **Chưa có cron trong repo**; ưu tiên Workers cron + route nội bộ `xacThucBearerSecret()` | Khi làm Phase 2 ship GHN. Đóng khi chạy thử được 1 kỳ chốt phí trên staging. |
+| O21 | Hạ tầng chạy job định kỳ (chốt kỳ phí tháng) — Cloudflare Workers `triggers` hay GitHub Actions? | **Chưa có cron trong repo**; ưu tiên Workers cron + route nội bộ `xacThucBearerSecret()` | Khi bật thu phí nền tảng thật. Đóng khi chạy thử được 1 kỳ chốt phí trên staging. |
 | O22 | Giấy phép MXH (NĐ 147/2024) yêu cầu **≥1 máy chủ đặt tại VN** — hiện chạy Cloudflare Workers | **Treo** — chưa có phương án | Khi nộp hồ sơ MXH. Cần quyết: thuê VPS VN làm node phụ/log, hay mô hình khác. |
 
 > O7 (lớp "uy tín/hữu ích" cho `content_thao_luan`) → **đã đóng / không còn áp dụng** (xem L12): `content_thao_luan` đã bỏ, thảo luận giờ là comment trên cột mốc.
@@ -40,6 +40,26 @@
 ---
 
 ## LOG — quyết định đã chốt
+
+### Shop — không liên kết ĐVVC; tự ship + copy/export/phiếu (2026-07-31)
+
+- **Chốt:** CINs **không** kết nối API ĐVVC (SPX / Viettel Post / GHN). Shop tạo vận đơn trên web ĐVVC riêng; CINs giữ snapshot **họ tên · SĐT · địa chỉ** trên đơn.
+- **Công cụ seller:** (1) copy nhanh thông tin nhận trên chi tiết đơn · (2) export **Excel mẫu ViettelPost** + **CSV chung** · (3) **phiếu đóng gói** in từ trình duyệt.
+- **Schema:** `npm run migrate:shop-ship-reverse` — DROP `shop_van_chuyen_ket_noi` · `shop_dia_chi_lay` · `shop_van_don_log` + cột ship/consent trên `shop_don_hang` (giữ `hinh_thuc_giao`, snapshot địa chỉ).
+- **Giữ:** phí nền tảng · khiếu nại · địa chỉ nhận buyer (`shop_dia_chi_nhan`).
+- **Không** cần `CINS_SECRETS_MASTER_KEY` cho ĐVVC nữa (token carrier đã gỡ).
+
+### Shop — khôi phục liên kết ĐVVC (Viettel + SPX shell) (2026-07-31) — **superseded** cùng ngày
+
+- Đã restore rồi **gỡ lại** theo chốt «không ĐVVC trên CINs». SQL restore giữ làm audit.
+
+### Shop — reverse liên kết ĐVVC → shop tự ship (2026-07-31)
+
+- Reverse lần đầu rồi restore rồi reverse lại (chốt cuối: không ĐVVC). File `migration_shop_ship_reverse.sql` là script DROP hiện hành.
+
+### Shop — gỡ GHN khỏi runtime (2026-07-31) — lịch sử
+
+- GHN runtime đã gỡ; sau đó gỡ luôn shell Viettel/SPX. Checkout online không mở.
 
 ### Autopilot Giai đoạn 7 — tương tác ảo nick seeding (2026-07-27)
 
@@ -91,17 +111,18 @@
 |---|---|---|---|---|---|---|---|
 | A1 | `org_lop_hoc` | Thêm `id_chat_phong` | `uuid` → `chat_phong.id` | YES | 1 lớp = 1 phòng chat cố định | Row cũ = NULL đến khi backfill / tạo phòng | **Đã chạy** 2026-07-25 · `migration_csdt_van_hanh_hoc.sql` |
 | A2 | `org_lop_hoc` | Thêm `id_chi_nhanh` | `uuid` → `org_chi_nhanh.id` | YES | Lọc HV / doanh thu / lớp theo chi nhánh | Row cũ = NULL | **Đã chạy** 2026-07-25 · cùng migration |
-| A3 | `org_lop_hoc` | ~~`meeting_url`~~ | — | **Hủy** — call = LiveKit OSS trên Hetzner `sin` (L34) | — | **Đã hủy** |
+| A3 | `org_lop_hoc` | ~~`meeting_url`~~ | — | **Hủy** — call = Cloudflare Realtime trước, sau cắt sang LiveKit/Hetzner (L34) | — | **Đã hủy** |
 | A4 | `user_hoc_vien_lop` | *(không ALTER nếu dùng `org_tien_do_bai`)* | — | — | Tiến độ bài tách bảng mới | — | **Ưu tiên không ALTER**; chỉ đề xuất cột nếu sau này bỏ bảng tiến độ |
 | A5 | Enum `loai_mo_hinh_khoa_enum` | **Không** thêm giá trị “theo buổi” | — | — | Phase này bỏ gói buổi | — | **Không đổi** |
 | A6 | Enum `loai_tin_nhan_enum` / `vai_tro_to_chuc_enum` | **Không** bắt buộc đổi phase 1 | Card qua `ngu_canh` jsonb; Curator = ACL trên vai sẵn có | — | Tránh phá client cũ | — | **Không đổi** trừ khi user duyệt riêng |
 | A7 | `org_su_kien` | Thêm `slug` + UNIQUE | `text NOT NULL` · unique index | NO (sau backfill) | URL công khai `/su-kien/{slug}` thay UUID | Backfill slugify(`ten`) (+ `-2`… nếu trùng); UUID cũ 301 → slug | **Đã chạy** 2026-07-26 · `migration_org_su_kien_slug.sql` |
 | A8 | Enum `giai_doan_enum` | Bỏ value `moi_bat_dau` (recreate type) | còn `dang_hoc`/`dang_lam`/`tim_viec`/`freelance`/`dang_day` | — | Không còn “Mới bắt đầu” trên CINs | 73 user → `dang_hoc` trước ALTER | **Đã chạy** 2026-07-26 · `migration_drop_giai_doan_moi_bat_dau.sql` (L36) |
 | A9 | `social_binh_luan` | Thêm `id_to_chuc` | `uuid` → `org_to_chuc.id` | YES | Comment dưới danh nghĩa org (owner/admin) | Row cũ = NULL (cá nhân) | **Đã chạy** 2026-07-27 · `migration_social_binh_luan_id_to_chuc.sql` |
-| A10 | `shop_don_hang` | Thêm nhóm cột giao hàng: `hinh_thuc_giao`, `dvvc`, `ma_van_don`, `phi_ship`, `can_nang`, `van_chuyen_trang_thai` | enum mới `shop_hinh_thuc_giao_enum` / `shop_van_chuyen_trang_thai_enum` · `text` · `numeric(18,2) DEFAULT 0` · `integer` (gram) | YES (trừ `phi_ship` NOT NULL DEFAULT 0) | Ship GHN: 2 hình thức nhận + mã vận đơn + phí + trạng thái giao | Đơn cũ = NULL / `phi_ship`=0; **không** đụng `trang_thai` nghiệp vụ sẵn có | **Đề xuất — chờ duyệt** (2026-07-30) |
-| A11 | `shop_don_hang` | Thêm snapshot địa chỉ **có cấu trúc** + consent PDPD: `mua_phuong_xa`, `mua_phuong_xa_code`, `mua_tinh_thanh`, `van_chuyen_dong_y_luc`, `van_chuyen_dong_y_van_ban`, `van_chuyen_dong_y_phien_ban` | `text` · `timestamptz` | YES | `mua_dia_chi` hiện là **chuỗi đã gộp** → GHN cần tỉnh/phường tách rời; consent chia sẻ dữ liệu cho ĐVVC (NĐ 13/2023), theo mẫu `nguoi_mua_chap_nhan_*` | Đơn cũ = NULL (chỉ đơn `online` mới cần) | **Đề xuất — chờ duyệt** (2026-07-30) |
-| A12 | `shop_cua_hang` | Thêm `trang_thai_hoat_dong`, `ly_do_khoa`, `so_tranh_chap_mo` | enum mới `shop_trang_thai_hoat_dong_enum` NOT NULL DEFAULT `'hoat_dong'` · `text` · `integer NOT NULL DEFAULT 0` (cache, trigger) | NO (có DEFAULT) | Cổng gate **gộp** cho nợ phí + thua tranh chấp; nhãn cảnh báo dẫn xuất | Shop cũ = `hoat_dong`, đếm = 0 → an toàn; **tách biệt** `tam_dong` sẵn có | **Đề xuất — chờ duyệt** (2026-07-30) |
-| A13 | `shop_bien_the` · `shop_dia_chi_nhan` | `shop_bien_the`: thêm `can_nang` (gram, seller nhập) · `shop_dia_chi_nhan`: thêm `phuong_xa_code` (mã GSO) | `integer` · `text` | YES | Cân nặng để GHN tính phí đúng; mã GSO map carrier chuẩn hơn tên trần (xã trùng tên sau sáp nhập) | Row cũ = NULL; backfill `phuong_xa_code` từ `lib/vn/phuong-xa-2025.ts` theo tên | **Đề xuất — chờ duyệt** (2026-07-30) |
+| A10 | `shop_don_hang` | Thêm nhóm cột giao hàng: `hinh_thuc_giao`, `dvvc`, `ma_van_don`, `phi_ship`, `can_nang`, `van_chuyen_trang_thai` | enum mới `shop_hinh_thuc_giao_enum` / `shop_van_chuyen_trang_thai_enum` · `text` · `numeric(18,2) DEFAULT 0` · `integer` (gram) | YES (trừ `phi_ship` NOT NULL DEFAULT 0) | Ship GHN: 2 hình thức nhận + mã vận đơn + phí + trạng thái giao | Đơn cũ = NULL / `phi_ship`=0; **không** đụng `trang_thai` nghiệp vụ sẵn có | **Đã chạy** 2026-07-30 · **REVERSE DROP** cột ship (trừ `hinh_thuc_giao`) 2026-07-31 · `migration_shop_ship_reverse.sql` |
+| A11 | `shop_don_hang` | Thêm snapshot địa chỉ **có cấu trúc** + consent PDPD: `mua_phuong_xa`, `mua_phuong_xa_code`, `mua_tinh_thanh`, `van_chuyen_dong_y_luc`, `van_chuyen_dong_y_van_ban`, `van_chuyen_dong_y_phien_ban` | `text` · `timestamptz` | YES | Snapshot địa chỉ có cấu trúc cho shop tự ship; consent ĐVVC đã DROP | Giữ `mua_phuong_xa*` / `mua_tinh_thanh`; DROP `van_chuyen_dong_y_*` | **Đã chạy** 2026-07-30 · consent **DROP** 2026-07-31 reverse |
+| A12 | `shop_cua_hang` | Thêm `trang_thai_hoat_dong`, `ly_do_khoa`, `so_tranh_chap_mo` | enum mới `shop_trang_thai_hoat_dong_enum` NOT NULL DEFAULT `'hoat_dong'` · `text` · `integer NOT NULL DEFAULT 0` (cache, trigger) | NO (có DEFAULT) | Cổng gate **gộp** cho nợ phí + thua tranh chấp; nhãn cảnh báo dẫn xuất | Shop cũ = `hoat_dong`, đếm = 0 → an toàn; **tách biệt** `tam_dong` sẵn có | **Đã chạy** 2026-07-30 · cùng migration |
+| A13 | `shop_bien_the` · `shop_dia_chi_nhan` | `shop_bien_the`: thêm `can_nang` (gram, seller nhập) · `shop_dia_chi_nhan`: thêm `phuong_xa_code` (mã GSO) | `integer` · `text` | YES | Cân nặng để GHN tính phí đúng; mã GSO map carrier chuẩn hơn tên trần (xã trùng tên sau sáp nhập) | Row cũ = NULL; backfill `phuong_xa_code` từ `lib/vn/phuong-xa-2025.ts` theo tên | **Đã chạy** 2026-07-30 · cùng migration |
+| A14 | Enum `shop_trang_thai_don_enum` | Thêm `cho_lay_hang`, `dang_giao`, `hoan_tra` | `ALTER TYPE ... ADD VALUE` | — | Pipeline 5 bước seller (xác nhận → soạn → chờ lấy + GHN → đang giao → hoàn thành / hoàn trả) | Đơn cũ giữ value cũ; label UI mới | **Đã chạy** 2026-07-30 · `migration_shop_don_pipeline.sql` |
 
 > Khi user duyệt một dòng → đổi **Trạng thái** thành `Đã duyệt YYYY-MM-DD` rồi mới viết/chạy file migration. Khi đã apply trên DB → `Đã chạy` + tên file SQL. Mọi ALTER phát sinh thêm ngoài bảng này → **thêm dòng mới vào inventory trước**, không lén vào migration khác.
 
@@ -109,12 +130,24 @@
 
 #### Bổ sung L34 — Call / phòng học = LiveKit self-host · Hetzner Singapore (2026-07-24)
 
-- **Chốt stack (giữ sẵn):** **LiveKit OSS self-host** trên **Hetzner Cloud `sin` (Singapore)**. Không Meet/Zoom đường chính; không LiveKit Cloud. Phòng học = A/V + share màn trong chat lớp. Cùng SFU sau → call 1-1 / nhóm.
-- **Thanh toán (khi làm Plan 2):** bill Hetzner + domain/TLS/ops; license LiveKit = $0. SIN đắt máy hơn EU; traffic/overage cao → cap bitrate, HV tắt cam mặc định.
+- **Chốt stack gốc (giữ sẵn làm đích scale):** **LiveKit OSS self-host** trên **Hetzner Cloud `sin` (Singapore)**. Không Meet/Zoom đường chính; không LiveKit Cloud. Phòng học = A/V + share màn trong chat lớp. Cùng SFU sau → call 1-1 / nhóm.
+- **Thanh toán (khi sang Hetzner):** bill Hetzner + domain/TLS/ops; license LiveKit = $0. SIN đắt máy hơn EU; traffic/overage cao → cap bitrate, HV tắt cam mặc định.
 - **Tách giai đoạn (user 2026-07-24):**  
   • **Plan 1 (NOW):** tư vấn · đơn HP · phòng chat lớp · freeze · VietQR · pedagogy · dashboard — **không** call / share màn / Meet / provision Hetzner.  
-  • **Plan 2 (LATER):** toàn bộ LiveKit — **chỉ khi user báo `ready`**.  
+  • **Plan 2 (LATER):** media plane — **chỉ khi user báo `ready`**.  
 - Brief: [`cursor_brief_csdt_van_hanh_hoc.md`](./cursor_brief_csdt_van_hanh_hoc.md) (2 plan tách rõ). A3 `meeting_url` **hủy**.
+
+#### Bổ sung L34 — Plan 2 media: Cloudflare Realtime trước → Hetzner/LiveKit khi gần hết free (2026-07-31)
+
+- **Chốt đường đi:**  
+  1. **Phase A — Cloudflare RealtimeKit** (trên Realtime SFU): ship call/share màn sớm; tận dụng **1.000 GB egress free/tháng**.  
+  2. **Dashboard theo dõi băng thông** (admin/ops): tổng egress Realtime, % so với free tier, cảnh báo khi **gần ngưỡng** (70% / 85% / 95%).  
+  3. **Phase B — cắt sang LiveKit OSS trên Hetzner `sin`:** khi sắp vượt free — **chuyển thủ công** (`MEDIA_PROVIDER` + env), không dual-SFU song song.  
+- **Abstraction:** `lib/media` (`cloudflare` | `livekit`).  
+- **User báo `ready` 2026-07-31 — Phase A đã scaffold:** `media_phong_hop` · `POST …/phong-hoc/token` · UI gọi video (header + menu +) · `/admin/bang-thong`.  
+- **Mở rộng 2026-07-31:** call áp dụng **mọi `chat_phong`** (bạn bè / nhóm / lớp / org); lớp vẫn gate freeze kỳ. Không chỉ phòng lớp.  
+- **Không đổi:** Meet/Zoom đường chính; LiveKit Cloud trả phút.  
+- *Hệ quả file:* IMPLEMENTATION §4 env + khóa học notes; brief Plan 2.
 
 #### Bổ sung L34 — Admin IA gộp vào `/quan-ly` (2026-07-25)
 
@@ -133,12 +166,14 @@
 - **Entry point:** icon bánh răng trong header `CoSoQuanLyShell` (chỉ hiện founder tier) → `/co-so/[slug]/quan-ly/cai-dat`, route mới `cai-dat` trong `CoSoQuanLySection`, **ngoài** 4 cụm nav.
 - *Hệ quả file:* `supabase/sql/migration_org_thanh_vien_quyen.sql` (bảng mới, chưa chạy) · `lib/to-chuc/co-so-quan-ly-access.ts` (viết lại: `CoSoModuleKey`, `isCoSoFounderTier`, `getCoSoQuyenMap`, `canAccessCoSoQuanLyAsync`) · `CoSoQuanLyPageGate` (+ `requireFounder`) · `CoSoQuanLyShell` (gear icon) · route `chi-nhanh`/`hoc-vien`/`hoc-phi/{thu-tien-mat,don-chat,goi,doanh-thu,thanh-toan,[donId]/xac-nhan}`/`diem-danh`/`nop-bai`/`marketing`/`hoc-phi/[donId]/xac-nhan` (root) · mới `app/co-so/[slug]/quan-ly/cai-dat/page.tsx` + `CoSoCaiDatToiCaoClient` + `api/co-so/[id]/cai-dat/quyen`.
 
-### Shop — ship GHN + phí nền tảng + tranh chấp (2026-07-30) — KẾ HOẠCH, chưa triển khai
+### Shop — ship GHN + phí nền tảng + tranh chấp (2026-07-30) — lịch sử; **ĐVVC đã reverse 2026-07-31**
+
+> **ĐVVC/kho API đã DROP** (`migration_shop_ship_reverse.sql`). Phí nền tảng + tranh chấp vẫn áp dụng theo mục dưới. File `migration_shop_ship_ghn.sql` giữ làm audit.
 
 - **Nguyên tắc bất biến giữ nguyên:** **CINs không cầm tiền.** Tiền hàng người mua chuyển **thẳng** TK shop (VietQR + biên lai như hiện tại). Mọi thiết kế dưới đây không được phá nguyên tắc này.
 - **Vận chuyển:** **GHN** trước, **mỗi shop tự đăng ký + cắm token riêng** (CINs không đứng tên vận đơn, không đối soát tiền ship). **Không COD.** Interface `lib/shop/carriers/` thiết kế đa carrier để cắm GHTK/ViettelPost sau.
 - **3 hình thức nhận:** `truc_tiep` · `tai_su_kien` (gộp luồng `dat_truoc_nhan_su_kien` sẵn có) · `online` (qua GHN, **người mua trả phí ship**). Bật `online` cần: shop có ≥1 kho lấy hàng + token GHN hợp lệ + sản phẩm có cân nặng.
-- **Tracking phase đầu = polling on-demand** (gọi GHN khi mở chi tiết đơn, có throttle). Webhook để phase sau — không cần expose endpoint public sớm.
+- **Tracking:** **Webhook GHN** (`POST /api/shop/webhook/ghn?token=` + env `SHOP_GHN_WEBHOOK_SECRET`) cập nhật `van_chuyen_trang_thai` + log; đồng bộ pipeline `cho_lay_hang`→`dang_giao` (ĐVVC lấy/đang giao), `da_giao`→`hoan_thanh` (+ ghi phí), `tra_hang`→`hoan_tra`. Shop chỉ quyết nhận tiền → soạn → chờ lấy. Polling on-demand khi mở đơn giữ làm fallback.
 - **Địa chỉ GHN — rủi ro đã gỡ:** từ 01/07/2025 GHN hỗ trợ **song song địa chỉ 2 cấp và 3 cấp**, không phát sinh API mới, và **chấp nhận truyền TÊN** (`to_province_name` / `to_ward_name`) thay vì bắt buộc ID → **không cần bảng ánh xạ ID**; `master-data` chỉ làm fallback + cache.
 - **Kho lấy hàng:** 1 shop **nhiều kho** → bảng mới `shop_dia_chi_lay` (mirror `shop_dia_chi_nhan`). **Cân nặng: seller tự nhập** ở mức biến thể.
 - **Phí nền tảng:** % GMV, **kỳ THÁNG, trả sau** (kỳ tháng giảm dư nợ tích lũy so với quý; CINs cần dòng tiền sớm). **2 tầng**: `shop_phi_dong` (phí theo **từng đơn**, có cờ `loai_tru`) → roll-up `shop_phi_ky` (tháng). Lý do 2 tầng: đơn `hoan_thanh` rồi **bị tranh chấp/hoàn tiền** phải loại khỏi GMV, `SUM(tong_tien)` thô sẽ tính sai.
@@ -153,7 +188,7 @@
 - **Bảng mới (dự kiến — chưa migration):** `shop_dia_chi_lay` · `shop_van_chuyen_ket_noi` (token GHN mã hóa) · `shop_van_don_log` · `shop_khieu_nai` · `shop_khieu_nai_bang_chung` · `shop_phi_dong` · `shop_phi_ky`. RLS: kho/kết nối = chủ sở hữu; log/khiếu nại = **cả buyer lẫn seller** của đơn (mẫu `shop_don_hang_doi_tac`); phí = seller đọc, admin qua service-role. **`token_enc` không bao giờ trả về client.**
 - **Enum mới (CREATE TYPE, không đụng enum cũ):** `shop_hinh_thuc_giao_enum` · `shop_van_chuyen_trang_thai_enum` · `shop_trang_thai_hoat_dong_enum` · `shop_trang_thai_khieu_nai_enum` · `shop_ly_do_khieu_nai_enum` · `shop_trang_thai_phi_enum`. **Không** thêm value vào `shop_trang_thai_don_enum` — trạng thái giao tách riêng để không nổ tổ hợp với vòng đời nghiệp vụ.
 - **ALTER liên quan:** A10–A13 trong inventory — **chưa duyệt, chưa chạy**.
-- Brief đầy đủ: [`cursor_brief_shop_ship_ghn.md`](./cursor_brief_shop_ship_ghn.md).
+- Brief đầy đủ: *(đã xóa `cursor_brief_shop_ship_ghn.md` khi gỡ GHN runtime — 2026-07-31)*.
 
 ### Shop — gộp về 1 bảng giá VND / shop (2026-07-28)
 

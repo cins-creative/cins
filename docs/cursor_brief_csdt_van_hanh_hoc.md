@@ -9,14 +9,17 @@
 
 ## Hai plan (không làm lẫn)
 
-| | **Plan 1 — Vận hành học (NOW)** | **Plan 2 — LiveKit / WebRTC (LATER)** |
+| | **Plan 1 — Vận hành học (NOW)** | **Plan 2 — WebRTC (LATER)** |
 |---|---|---|
 | Khi nào | Làm ngay | **Chỉ khi user báo `ready`** |
-| Phạm vi | Tư vấn `1_org` · đơn HP · phòng lớp chat · freeze · VietQR · pedagogy · dashboard | LiveKit self-host Hetzner `sin` · in-chat call · share màn · FaceTime-like |
-| Call / Meet / share màn | **Không** — không UI call, không provision Hetzner | **Có** — toàn bộ Track B cũ |
+| Phạm vi | Tư vấn `1_org` · đơn HP · phòng lớp chat · freeze · VietQR · pedagogy · dashboard | Call/share màn in-chat · FaceTime-like sau |
+| Call / Meet / share màn | **Không** — không UI call, không provision media | **Có** — Phase A CF → Phase B Hetzner |
 | Phụ thuộc | ALTER A1 (+ A2), schema `org_*` HP/kỳ | Plan 1 đã có `chat_phong` lớp + kỳ học (để gate token) |
 
-**Chốt stack Plan 2 (giữ sẵn, không triển khai sớm):** LiveKit OSS · Hetzner Singapore (`sin`) · room = `chat_phong.id` · bill Hetzner only.
+**Chốt stack Plan 2 (2026-07-31):**  
+• **Phase A:** Cloudflare Realtime SFU (+ TURN) · dashboard theo dõi egress vs **1 TB free/tháng** · cảnh báo gần ngưỡng.  
+• **Phase B (khi gần hết free / chủ động cắt):** LiveKit OSS · Hetzner Singapore (`sin`) · room = `chat_phong.id`.  
+• Provider abstraction một đường; **không** dual-SFU + switch nóng từ đầu.
 
 ---
 
@@ -113,27 +116,29 @@ Luồng tư vấn → tiền → phòng lớp chat → freeze/gia hạn → nộ
 
 ---
 
-# PLAN 2 — LiveKit WebRTC (chỉ khi user báo `ready`)
+# PLAN 2 — WebRTC (chỉ khi user báo `ready`)
 
-> Không provision Hetzner, không merge UI call, không env LiveKit prod cho đến tín hiệu **ready**.
+> Không merge UI call / env media prod cho đến tín hiệu **ready**. Hetzner chỉ khi Phase B.
 
 ## Nhắc lại chốt (khi tới lúc)
 
-- LiveKit OSS self-host · Hetzner **`sin`**
-- Phòng học = share màn + A/V **trong** chat lớp
+- **Phase A:** Cloudflare Realtime SFU · phòng học = share màn + A/V **trong** chat lớp
 - Token: membership + kỳ active; freeze → 403
-- HV tắt cam mặc định; monitor traffic SIN (overage đắt)
+- HV tắt cam mặc định; **dashboard egress** (cảnh báo gần 1 TB free)
+- **Phase B:** LiveKit OSS · Hetzner **`sin`** — cắt thủ công khi gần hết free / bill CF không còn hợp lý
 
-## Phase L0–L5 (khi ready)
+## Phase (khi ready)
 
 | Phase | Việc |
 |---|---|
-| L0 | Provision Hetzner `sin` |
-| L1 | LiveKit + coturn + TLS + secrets |
-| L2 | API token CINs (`chat_phong` + kỳ) |
-| L3 | UI in-chat: Vào phòng học / share màn |
-| L4 | Harden ~200 concurrent nhiều lớp |
-| L5 | Call 1-1 / nhóm (FaceTime-like) cùng SFU |
+| A0 | Cloudflare Realtime app + secrets + provider `cloudflare` |
+| A1 | API token CINs (`chat_phong` + kỳ) qua CF |
+| A2 | UI in-chat: Vào phòng học / share màn |
+| A3 | **Dashboard băng thông** + ngưỡng cảnh báo (70/85/95% free) |
+| B0 | Khi gần ngưỡng: provision Hetzner `sin` |
+| B1 | LiveKit + coturn + TLS + provider `livekit` |
+| B2 | Cutover config (không dual-runtime lâu) |
+| B3 | Harden concurrent · call 1-1 / nhóm (FaceTime-like) |
 
 Chi tiết ops/cost giữ trong L34 DECISIONS; mở rộng checklist khi bắt đầu Plan 2.
 

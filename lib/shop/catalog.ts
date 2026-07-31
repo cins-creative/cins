@@ -30,6 +30,7 @@ type BtRow = {
   nhan: string;
   sku: string | null;
   so_luong_ton: number;
+  can_nang: number | null;
   anh_id: string | null;
 };
 
@@ -40,6 +41,10 @@ function mapBienThe(row: BtRow): ShopBienThe {
     nhan: row.nhan,
     sku: row.sku,
     soLuongTon: row.so_luong_ton,
+    canNang:
+      row.can_nang != null && Number.isFinite(Number(row.can_nang))
+        ? Math.max(0, Math.trunc(Number(row.can_nang)))
+        : null,
     anhId: row.anh_id,
     anhUrl: shopImageUrl(row.anh_id),
   };
@@ -70,7 +75,7 @@ export async function listSanPham(
   const ids = rows.map((r) => r.id);
   const { data: bts } = await admin
     .from("shop_bien_the")
-    .select("id, id_san_pham, nhan, sku, so_luong_ton, anh_id")
+    .select("id, id_san_pham, nhan, sku, so_luong_ton, can_nang, anh_id")
     .in("id_san_pham", ids)
     .eq("da_xoa", false);
   const bySp = new Map<string, ShopBienThe[]>();
@@ -143,6 +148,7 @@ export async function createSanPham(
       nhan?: string;
       sku?: string | null;
       soLuongTon?: number;
+      canNang?: number | null;
       anhId?: string | null;
     }>;
   },
@@ -168,7 +174,7 @@ export async function createSanPham(
       phan_loai_2: nhomPatch.phan_loai_2,
       id_nhom: nhomPatch.id_nhom,
       id_nhom_2: nhomPatch.id_nhom_2,
-      dang_ban: true,
+      dang_ban: false,
     })
     .select(SP_SELECT)
     .single<SpRow>();
@@ -190,10 +196,14 @@ export async function createSanPham(
         nhan: (v.nhan ?? "Mặc định").trim() || "Mặc định",
         sku: v.sku?.trim() || null,
         so_luong_ton: Math.trunc(v.soLuongTon ?? 0),
+        can_nang:
+          v.canNang != null && Number.isFinite(Number(v.canNang))
+            ? Math.max(1, Math.trunc(Number(v.canNang)))
+            : null,
         anh_id: v.anhId?.trim() || null,
       })),
     )
-    .select("id, id_san_pham, nhan, sku, so_luong_ton, anh_id");
+    .select("id, id_san_pham, nhan, sku, so_luong_ton, can_nang, anh_id");
   if (btErr) {
     console.error("[shop] createBienThe", btErr);
   }
@@ -247,7 +257,30 @@ export async function updateSanPham(
     });
     Object.assign(patch, nhomPatch);
   }
-  if (typeof input.dangBan === "boolean") patch.dang_ban = input.dangBan;
+  if (typeof input.dangBan === "boolean") {
+    if (input.dangBan === true) {
+      const { data: weights, error: wErr } = await admin
+        .from("shop_bien_the")
+        .select("can_nang")
+        .eq("id_san_pham", sanPhamId)
+        .eq("da_xoa", false);
+      if (wErr) {
+        console.error("[shop] updateSanPham weight check", wErr);
+        throw new Error("UPDATE_FAILED");
+      }
+      const rows = (weights ?? []) as Array<{ can_nang: number | null }>;
+      const ok =
+        rows.length > 0 &&
+        rows.every(
+          (r) =>
+            r.can_nang != null &&
+            Number.isFinite(Number(r.can_nang)) &&
+            Number(r.can_nang) >= 1,
+        );
+      if (!ok) throw new Error("WEIGHT_REQUIRED_FOR_SALE");
+    }
+    patch.dang_ban = input.dangBan;
+  }
   if (typeof input.noiBat === "boolean") {
     if (input.noiBat === true) {
       const { count: featuredCount, error: featErr } = await admin
@@ -305,6 +338,7 @@ export async function upsertBienThe(
     nhan: string;
     sku?: string | null;
     soLuongTon: number;
+    canNang?: number | null;
     anhId?: string | null;
   },
 ): Promise<ShopBienThe> {
@@ -319,7 +353,7 @@ export async function upsertBienThe(
     .maybeSingle();
   if (!sp) throw new Error("NOT_FOUND");
 
-  const payload = {
+  const payload: Record<string, unknown> = {
     id_san_pham: sanPhamId,
     nhan: input.nhan.trim() || "Mặc định",
     sku: input.sku?.trim() || null,
@@ -327,6 +361,12 @@ export async function upsertBienThe(
     anh_id: input.anhId?.trim() || null,
     cap_nhat_luc: new Date().toISOString(),
   };
+  if (input.canNang !== undefined) {
+    payload.can_nang =
+      input.canNang != null && Number.isFinite(Number(input.canNang))
+        ? Math.max(1, Math.trunc(Number(input.canNang)))
+        : null;
+  }
 
   if (input.id) {
     const { data, error } = await admin
@@ -334,16 +374,35 @@ export async function upsertBienThe(
       .update(payload)
       .eq("id", input.id)
       .eq("id_san_pham", sanPhamId)
-      .select("id, id_san_pham, nhan, sku, so_luong_ton, anh_id")
+      .select("id, id_san_pham, nhan, sku, so_luong_ton, can_nang, anh_id")
       .maybeSingle<BtRow>();
     if (error || !data) throw new Error("UPDATE_FAILED");
+
+    /* Xóa cân nặng → không được giữ Đang bán. */
+    if (
+      input.canNang !== undefined &&
+      (input.canNang == null ||
+        !Number.isFinite(Number(input.canNang)) ||
+        Number(input.canNang) < 1)
+    ) {
+      await admin
+        .from("shop_san_pham")
+        .update({
+          dang_ban: false,
+          cap_nhat_luc: new Date().toISOString(),
+        })
+        .eq("id", sanPhamId)
+        .eq("id_nguoi_dung", ownerId)
+        .eq("da_xoa", false);
+    }
+
     return mapBienThe(data);
   }
 
   const { data, error } = await admin
     .from("shop_bien_the")
     .insert(payload)
-    .select("id, id_san_pham, nhan, sku, so_luong_ton, anh_id")
+    .select("id, id_san_pham, nhan, sku, so_luong_ton, can_nang, anh_id")
     .single<BtRow>();
   if (error || !data) throw new Error("CREATE_FAILED");
   return mapBienThe(data);

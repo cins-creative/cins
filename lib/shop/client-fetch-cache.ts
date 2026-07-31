@@ -50,6 +50,7 @@ export function invalidateShopClientCaches() {
   cuaHangInflight.clear();
   invalidateDonHangCache();
   invalidateBaoCaoCache();
+  invalidateDiaChiNhanCache();
 }
 
 function readBanHangCache(): BanHangClientStatus | null {
@@ -300,4 +301,142 @@ export function prefetchBaoCao() {
 export function invalidateBaoCaoCache() {
   baoCaoCache = null;
   baoCaoInflight = null;
+}
+
+// ─────────────────────────────────────────────
+// Sổ địa chỉ nhận hàng (buyer checkout)
+// ─────────────────────────────────────────────
+
+/** Hồ sơ nhận hàng phía client — khớp `/api/shop/dia-chi-nhan`. */
+export type ShopDiaChiNhanClient = {
+  id: string;
+  nhan: string | null;
+  hoTen: string;
+  soDienThoai: string;
+  diaChi: string;
+  phuongXa: string;
+  tinhThanh: string;
+  laMacDinh: boolean;
+};
+
+/** Ít đổi — TTL dài; invalidate khi thêm/sửa/xóa. */
+const DIA_CHI_TTL_MS = 30 * 60_000;
+const DIA_CHI_LS_KEY = "cins.shop.dia-chi-nhan.v1";
+
+type DiaChiCache = { at: number; data: ShopDiaChiNhanClient[] };
+let diaChiCache: DiaChiCache | null = null;
+let diaChiInflight: Promise<ShopDiaChiNhanClient[]> | null = null;
+
+function isDiaChiItem(x: unknown): x is ShopDiaChiNhanClient {
+  if (!x || typeof x !== "object") return false;
+  const o = x as Record<string, unknown>;
+  return (
+    typeof o.id === "string" &&
+    typeof o.hoTen === "string" &&
+    typeof o.soDienThoai === "string" &&
+    typeof o.diaChi === "string" &&
+    typeof o.phuongXa === "string" &&
+    typeof o.tinhThanh === "string" &&
+    typeof o.laMacDinh === "boolean" &&
+    (o.nhan === null || typeof o.nhan === "string")
+  );
+}
+
+function readDiaChiLocalStorage(): DiaChiCache | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(DIA_CHI_LS_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { at?: unknown; data?: unknown };
+    if (
+      typeof parsed.at !== "number" ||
+      !Array.isArray(parsed.data) ||
+      !parsed.data.every(isDiaChiItem)
+    ) {
+      window.localStorage.removeItem(DIA_CHI_LS_KEY);
+      return null;
+    }
+    if (Date.now() - parsed.at > DIA_CHI_TTL_MS) {
+      window.localStorage.removeItem(DIA_CHI_LS_KEY);
+      return null;
+    }
+    return { at: parsed.at, data: parsed.data };
+  } catch {
+    return null;
+  }
+}
+
+function writeDiaChiLocalStorage(cache: DiaChiCache) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(DIA_CHI_LS_KEY, JSON.stringify(cache));
+  } catch {
+    /* quota / private mode — bỏ qua */
+  }
+}
+
+function readDiaChiCache(): ShopDiaChiNhanClient[] | null {
+  if (diaChiCache && Date.now() - diaChiCache.at <= DIA_CHI_TTL_MS) {
+    return diaChiCache.data;
+  }
+  diaChiCache = null;
+  const fromLs = readDiaChiLocalStorage();
+  if (!fromLs) return null;
+  diaChiCache = fromLs;
+  return fromLs.data;
+}
+
+export function peekDiaChiNhan(): ShopDiaChiNhanClient[] | null {
+  return readDiaChiCache();
+}
+
+export function writeDiaChiNhanCache(items: ShopDiaChiNhanClient[]) {
+  const next: DiaChiCache = { at: Date.now(), data: items };
+  diaChiCache = next;
+  writeDiaChiLocalStorage(next);
+}
+
+export function invalidateDiaChiNhanCache() {
+  diaChiCache = null;
+  diaChiInflight = null;
+  if (typeof window !== "undefined") {
+    try {
+      window.localStorage.removeItem(DIA_CHI_LS_KEY);
+    } catch {
+      /* ignore */
+    }
+  }
+}
+
+export async function fetchDiaChiNhanCached(opts?: {
+  force?: boolean;
+}): Promise<ShopDiaChiNhanClient[]> {
+  if (!opts?.force) {
+    const hit = readDiaChiCache();
+    if (hit) return hit;
+    if (diaChiInflight) return diaChiInflight;
+  }
+
+  const run = (async (): Promise<ShopDiaChiNhanClient[]> => {
+    const res = await fetch("/api/shop/dia-chi-nhan", { cache: "no-store" });
+    const json = (await res.json().catch(() => null)) as {
+      items?: ShopDiaChiNhanClient[];
+      error?: string;
+    } | null;
+    if (res.status === 401) {
+      invalidateDiaChiNhanCache();
+      throw new Error(json?.error ?? "Chưa đăng nhập.");
+    }
+    if (!res.ok) throw new Error(json?.error ?? "Không tải sổ địa chỉ.");
+    const data = (json?.items ?? []).filter(isDiaChiItem);
+    writeDiaChiNhanCache(data);
+    return data;
+  })();
+
+  diaChiInflight = run;
+  try {
+    return await run;
+  } finally {
+    if (diaChiInflight === run) diaChiInflight = null;
+  }
 }

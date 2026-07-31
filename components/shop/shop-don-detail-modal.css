@@ -359,10 +359,40 @@
   background: var(--bg-subtle, rgba(0, 0, 0, 0.02));
 }
 
+.shop-don-detail-nhan-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.shop-don-detail-nhan-tools {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.shop-don-detail-nhan-tool {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px !important;
+  font-size: 12px !important;
+  min-height: 0 !important;
+}
+
+.shop-don-detail-copy-flash {
+  margin: 0;
+  font-size: 12px;
+  color: var(--cins-blue, #2563eb);
+}
+
 .shop-don-detail-nhan-line {
   display: grid;
-  grid-template-columns: 62px 1fr;
+  grid-template-columns: 62px 1fr auto;
   gap: 8px;
+  align-items: start;
   margin: 0;
   font-size: 13.5px;
   line-height: 1.4;
@@ -380,6 +410,26 @@
   text-decoration: none;
 }
 
+.shop-don-detail-copy-one {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  margin: -2px 0 0;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.45));
+  cursor: pointer;
+}
+
+.shop-don-detail-copy-one:hover {
+  background: var(--bg-subtle, rgba(0, 0, 0, 0.06));
+  color: var(--ink-display, rgba(0, 0, 0, 0.8));
+}
+
 :root[data-theme="dark"] .shop-don-detail-nhan {
   border-color: var(--border, #2a3040);
   background: var(--bg-surface, rgba(255, 255, 255, 0.03));
@@ -387,6 +437,11 @@
 
 :root[data-theme="dark"] .shop-don-detail-nhan-line {
   color: var(--ink-display, rgba(255, 255, 255, 0.92));
+}
+
+:root[data-theme="dark"] .shop-don-detail-copy-one:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--ink-display, rgba(255, 255, 255, 0.9));
 }
 
 .shop-don-detail-bill {
@@ -535,6 +590,13 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.shop-don-detail-wait-hint {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  color: var(--ink-muted, #64748b);
 }
 
 /* Hàng hành động cấp đơn — các nút chia đều bề ngang. */
@@ -767,4 +829,28 @@
 
 :root[data-theme="dark"] .shop-don-detail-note-text {
   color: var(--ink-display, rgba(255, 255, 255, 0.92));
+}
+
+.shop-don-detail-track {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--ink-body, #475569);
+}
+
+.shop-don-detail-track li {
+  display: grid;
+  gap: 2px;
+  padding-left: 10px;
+  border-left: 2px solid color-mix(in srgb, var(--cins-orange, #fdad4c) 55%, transparent);
+}
+
+.shop-don-detail-track em {
+  font-style: normal;
+  color: var(--ink-muted, #94a3b8);
+  font-size: 11px;
 }

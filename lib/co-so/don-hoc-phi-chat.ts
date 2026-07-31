@@ -47,7 +47,6 @@ export function donHocPhiToChatContext(
           soTaiKhoan: don.soTaiKhoan,
           amountVnd: don.soTienVnd,
           addInfo: ma,
-          accountName: don.tenChuTk,
         })
       : null;
 

@@ -2,7 +2,7 @@ import "server-only";
 
 import { labelTinhThanh, normalizeTinhThanhForDb } from "@/lib/truong/contact";
 import type { ShopNguoiNhanSnapshot } from "@/lib/shop/nguoi-nhan";
-import { isValidPhuongXa } from "@/lib/vn/phuong-xa";
+import { getPhuongXaCode, isValidPhuongXa } from "@/lib/vn/phuong-xa";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 /** Một hồ sơ nhận hàng trong sổ địa chỉ của người mua. */
@@ -14,6 +14,8 @@ export type ShopDiaChiNhan = {
   diaChi: string;
   /** Tên phường/xã sau sát nhập (tên trần) hoặc "". */
   phuongXa: string;
+  /** Mã GSO phường/xã hoặc null. */
+  phuongXaCode: string | null;
   /** Mã enum tỉnh/thành (`tinh_thanh_vn_enum`) hoặc "". */
   tinhThanh: string;
   laMacDinh: boolean;
@@ -43,12 +45,13 @@ type Row = {
   so_dien_thoai: string;
   dia_chi: string;
   phuong_xa: string | null;
+  phuong_xa_code: string | null;
   tinh_thanh: string | null;
   la_mac_dinh: boolean;
 };
 
 const SELECT =
-  "id, nhan, ho_ten, so_dien_thoai, dia_chi, phuong_xa, tinh_thanh, la_mac_dinh";
+  "id, nhan, ho_ten, so_dien_thoai, dia_chi, phuong_xa, phuong_xa_code, tinh_thanh, la_mac_dinh";
 
 function mapRow(r: Row): ShopDiaChiNhan {
   return {
@@ -58,6 +61,7 @@ function mapRow(r: Row): ShopDiaChiNhan {
     soDienThoai: r.so_dien_thoai,
     diaChi: r.dia_chi,
     phuongXa: (r.phuong_xa ?? "").trim(),
+    phuongXaCode: (r.phuong_xa_code ?? "").trim() || null,
     tinhThanh: (r.tinh_thanh ?? "").trim(),
     laMacDinh: r.la_mac_dinh === true,
   };
@@ -70,6 +74,7 @@ function clean(input: ShopDiaChiNhanInput): {
   soDienThoai: string;
   diaChi: string;
   phuongXa: string;
+  phuongXaCode: string | null;
   tinhThanh: string;
 } {
   const hoTen = (input.hoTen ?? "").trim().slice(0, MAX_HO_TEN);
@@ -87,7 +92,169 @@ function clean(input: ShopDiaChiNhanInput): {
     throw new Error("NGUOI_NHAN_REQUIRED");
   }
 
-  return { nhan, hoTen, soDienThoai, diaChi, phuongXa, tinhThanh };
+  return {
+    nhan,
+    hoTen,
+    soDienThoai,
+    diaChi,
+    phuongXa,
+    phuongXaCode: getPhuongXaCode(tinhThanh, phuongXa),
+    tinhThanh,
+  };
+}
+
+/**
+ * Đồng bộ địa chỉ mặc định → cột hồ sơ «Thông tin nhận hàng»
+ * (`ho_ten_nhan` · `so_dien_thoai` · `dia_chi_chi_tiet` · `tinh_thanh`).
+ */
+async function pushMacDinhToHoSo(userId: string): Promise<void> {
+  const admin = createServiceRoleClient();
+  const { data } = await admin
+    .from("shop_dia_chi_nhan")
+    .select(SELECT)
+    .eq("id_nguoi_dung", userId)
+    .eq("la_mac_dinh", true)
+    .maybeSingle<Row>();
+  if (!data) return;
+
+  const hoTen = data.ho_ten?.trim() || "";
+  const soDienThoai = data.so_dien_thoai?.trim() || "";
+  const diaChi = data.dia_chi?.trim() || "";
+  const tinhThanh = normalizeTinhThanhForDb(data.tinh_thanh) || null;
+
+  await admin
+    .from("user_nguoi_dung")
+    .update({
+      ho_ten_nhan: hoTen || null,
+      so_dien_thoai: soDienThoai || null,
+      dia_chi_chi_tiet: diaChi || null,
+      tinh_thanh: tinhThanh,
+    })
+    .eq("id", userId);
+}
+
+/**
+ * Đồng bộ hồ sơ «Thông tin nhận hàng» → địa chỉ mặc định trong sổ.
+ * Giữ `phuong_xa` nếu còn hợp lệ với tỉnh mới; tạo mới nếu sổ còn trống.
+ * Không ném — lỗi sync không chặn lưu hồ sơ.
+ */
+export async function syncHoSoToMacDinhDiaChi(
+  userId: string,
+  input: {
+    hoTen: string;
+    soDienThoai: string;
+    diaChi: string;
+    tinhThanh: string;
+  },
+): Promise<void> {
+  const hoTen = (input.hoTen ?? "").trim().slice(0, MAX_HO_TEN);
+  const soDienThoai = (input.soDienThoai ?? "").trim().slice(0, MAX_SDT);
+  const diaChi = (input.diaChi ?? "").trim().slice(0, MAX_DIA_CHI);
+  const tinhThanh = normalizeTinhThanhForDb(input.tinhThanh);
+
+  /* Hồ sơ để trống hết → không đụng sổ địa chỉ. */
+  if (!hoTen && !soDienThoai && !diaChi && !tinhThanh) return;
+  /* Chưa đủ để tạo/sửa địa chỉ hợp lệ tối thiểu. */
+  if (hoTen.length < 2 || !SDT_RE.test(soDienThoai) || diaChi.length < 4) {
+    return;
+  }
+
+  const admin = createServiceRoleClient();
+  const { data: macDinh } = await admin
+    .from("shop_dia_chi_nhan")
+    .select(SELECT)
+    .eq("id_nguoi_dung", userId)
+    .eq("la_mac_dinh", true)
+    .maybeSingle<Row>();
+
+  const existingPhuong = (macDinh?.phuong_xa ?? "").trim();
+  const phuongXa =
+    tinhThanh && isValidPhuongXa(tinhThanh, existingPhuong)
+      ? existingPhuong
+      : "";
+
+  if (macDinh) {
+    await admin
+      .from("shop_dia_chi_nhan")
+      .update({
+        ho_ten: hoTen,
+        so_dien_thoai: soDienThoai,
+        dia_chi: diaChi,
+        phuong_xa: phuongXa || null,
+        tinh_thanh: tinhThanh || null,
+        cap_nhat_luc: new Date().toISOString(),
+      })
+      .eq("id", macDinh.id)
+      .eq("id_nguoi_dung", userId);
+    return;
+  }
+
+  /* Sổ trống — seed 1 địa chỉ mặc định từ hồ sơ (phường có thể trống → user bổ sung lúc checkout). */
+  const { count } = await admin
+    .from("shop_dia_chi_nhan")
+    .select("id", { count: "exact", head: true })
+    .eq("id_nguoi_dung", userId);
+  if ((count ?? 0) > 0) return;
+
+  await admin.from("shop_dia_chi_nhan").insert({
+    id_nguoi_dung: userId,
+    nhan: null,
+    ho_ten: hoTen,
+    so_dien_thoai: soDienThoai,
+    dia_chi: diaChi,
+    phuong_xa: null,
+    tinh_thanh: tinhThanh || null,
+    la_mac_dinh: true,
+  });
+}
+
+/**
+ * Nếu sổ trống nhưng hồ sơ đã có thông tin nhận hàng → seed 1 địa chỉ mặc định.
+ * Gọi khi list checkout để hai nguồn không lệch.
+ */
+async function seedFromHoSoIfEmpty(userId: string): Promise<boolean> {
+  const admin = createServiceRoleClient();
+  const { count } = await admin
+    .from("shop_dia_chi_nhan")
+    .select("id", { count: "exact", head: true })
+    .eq("id_nguoi_dung", userId);
+  if ((count ?? 0) > 0) return false;
+
+  const { data } = await admin
+    .from("user_nguoi_dung")
+    .select(
+      "ho_ten_nhan, ten_hien_thi, so_dien_thoai, dia_chi_chi_tiet, tinh_thanh",
+    )
+    .eq("id", userId)
+    .maybeSingle<{
+      ho_ten_nhan: string | null;
+      ten_hien_thi: string | null;
+      so_dien_thoai: string | null;
+      dia_chi_chi_tiet: string | null;
+      tinh_thanh: string | null;
+    }>();
+
+  const hoTen =
+    data?.ho_ten_nhan?.trim() || data?.ten_hien_thi?.trim() || "";
+  const soDienThoai = data?.so_dien_thoai?.trim() || "";
+  const diaChi = data?.dia_chi_chi_tiet?.trim() || "";
+  const tinhThanh = normalizeTinhThanhForDb(data?.tinh_thanh);
+
+  if (hoTen.length < 2 || !SDT_RE.test(soDienThoai) || diaChi.length < 4) {
+    return false;
+  }
+
+  const { error } = await admin.from("shop_dia_chi_nhan").insert({
+    id_nguoi_dung: userId,
+    nhan: null,
+    ho_ten: hoTen.slice(0, MAX_HO_TEN),
+    so_dien_thoai: soDienThoai.slice(0, MAX_SDT),
+    dia_chi: diaChi.slice(0, MAX_DIA_CHI),
+    phuong_xa: null,
+    tinh_thanh: tinhThanh || null,
+    la_mac_dinh: true,
+  });
+  return !error;
 }
 
 /** Danh sách hồ sơ nhận hàng (mặc định lên đầu, rồi mới nhất trước). */
@@ -95,6 +262,8 @@ export async function listDiaChiNhan(
   userId: string,
 ): Promise<ShopDiaChiNhan[]> {
   const admin = createServiceRoleClient();
+  await seedFromHoSoIfEmpty(userId);
+
   const { data } = await admin
     .from("shop_dia_chi_nhan")
     .select(SELECT)
@@ -103,7 +272,16 @@ export async function listDiaChiNhan(
     .order("tao_luc", { ascending: false })
     .returns<Row[]>();
 
-  return (data ?? []).map(mapRow);
+  const items = (data ?? []).map(mapRow);
+  /* Giữ hồ sơ «Thông tin nhận hàng» khớp địa chỉ mặc định. */
+  if (items.some((i) => i.laMacDinh)) {
+    try {
+      await pushMacDinhToHoSo(userId);
+    } catch (e) {
+      console.error("[shop] pushMacDinhToHoSo", e);
+    }
+  }
+  return items;
 }
 
 export async function createDiaChiNhan(
@@ -132,6 +310,7 @@ export async function createDiaChiNhan(
       so_dien_thoai: c.soDienThoai,
       dia_chi: c.diaChi,
       phuong_xa: c.phuongXa,
+      phuong_xa_code: c.phuongXaCode,
       tinh_thanh: c.tinhThanh,
       la_mac_dinh: laMacDinh,
     })
@@ -141,7 +320,15 @@ export async function createDiaChiNhan(
     console.error("[shop] createDiaChiNhan", error);
     throw new Error("CREATE_FAILED");
   }
-  return mapRow(data);
+  const mapped = mapRow(data);
+  if (mapped.laMacDinh) {
+    try {
+      await pushMacDinhToHoSo(userId);
+    } catch (e) {
+      console.error("[shop] pushMacDinhToHoSo", e);
+    }
+  }
+  return mapped;
 }
 
 export async function updateDiaChiNhan(
@@ -160,6 +347,7 @@ export async function updateDiaChiNhan(
     so_dien_thoai: c.soDienThoai,
     dia_chi: c.diaChi,
     phuong_xa: c.phuongXa,
+    phuong_xa_code: c.phuongXaCode,
     tinh_thanh: c.tinhThanh,
     cap_nhat_luc: new Date().toISOString(),
   };
@@ -177,7 +365,15 @@ export async function updateDiaChiNhan(
     throw new Error("UPDATE_FAILED");
   }
   if (!data) throw new Error("NOT_FOUND");
-  return mapRow(data);
+  const mapped = mapRow(data);
+  if (mapped.laMacDinh) {
+    try {
+      await pushMacDinhToHoSo(userId);
+    } catch (e) {
+      console.error("[shop] pushMacDinhToHoSo", e);
+    }
+  }
+  return mapped;
 }
 
 /** Đặt một hồ sơ làm mặc định. */
@@ -196,6 +392,11 @@ export async function setDiaChiNhanMacDinh(
     .maybeSingle<{ id: string }>();
   if (error) throw new Error("UPDATE_FAILED");
   if (!data) throw new Error("NOT_FOUND");
+  try {
+    await pushMacDinhToHoSo(userId);
+  } catch (e) {
+    console.error("[shop] pushMacDinhToHoSo", e);
+  }
 }
 
 export async function deleteDiaChiNhan(
@@ -226,6 +427,11 @@ export async function deleteDiaChiNhan(
         .update({ la_mac_dinh: true })
         .eq("id", next.id)
         .eq("id_nguoi_dung", userId);
+    }
+    try {
+      await pushMacDinhToHoSo(userId);
+    } catch (e) {
+      console.error("[shop] pushMacDinhToHoSo", e);
     }
   }
 }
@@ -265,9 +471,18 @@ export async function resolveDiaChiSnapshot(
     throw new Error("NGUOI_NHAN_REQUIRED");
   }
   const phuongXa = (data.phuong_xa ?? "").trim();
-  const tinhLabel = labelTinhThanh(data.tinh_thanh);
+  const tinhThanh = (data.tinh_thanh ?? "").trim();
+  const tinhLabel = labelTinhThanh(tinhThanh);
   const diaChiDayDu = [diaChi, phuongXa, tinhLabel]
     .filter((s) => s && s.trim())
     .join(", ");
-  return { hoTen, soDienThoai, diaChiDayDu };
+  return {
+    hoTen,
+    soDienThoai,
+    diaChiDayDu,
+    diaChi,
+    phuongXa,
+    phuongXaCode: (data.phuong_xa_code ?? "").trim() || null,
+    tinhThanh,
+  };
 }

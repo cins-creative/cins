@@ -12,6 +12,7 @@ import {
 } from "@/lib/editor/types";
 import type { ActionResult } from "@/lib/journey/action-result";
 import { isDefaultAvatarId } from "@/lib/journey/default-avatars";
+import { syncHoSoToMacDinhDiaChi } from "@/lib/shop/dia-chi-nhan";
 import {
   FOREIGN_JOURNEY_VISIBILITY_VALUES,
   type ForeignJourneyVisibility,
@@ -604,6 +605,18 @@ export async function updateProfile(
       };
     }
     return { ok: false, error: "Không lưu được hồ sơ: " + raw };
+  }
+
+  /* Đồng bộ «Thông tin nhận hàng» → địa chỉ mặc định sổ shop (checkout). */
+  try {
+    await syncHoSoToMacDinhDiaChi(session.profile.id, {
+      hoTen: hoTenNhan,
+      soDienThoai,
+      diaChi: diaChiChiTiet,
+      tinhThanh,
+    });
+  } catch (e) {
+    console.error("[updateProfile] syncHoSoToMacDinhDiaChi", e);
   }
 
   revalidatePath(`/${session.profile.slug}`);

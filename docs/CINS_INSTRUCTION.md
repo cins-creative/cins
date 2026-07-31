@@ -7,6 +7,22 @@ CINS = **mạng xã hội chuyên môn** cho ngành sáng tạo Việt Nam (Next
 
 ---
 
+## Rule 0: Auto Model Selection (tiết kiệm quota)
+
+**Rule:** [`.cursor/rules/auto-model-selector.mdc`](../.cursor/rules/auto-model-selector.mdc) · **Chi tiết:** [`AUTO_MODEL_SELECTOR.md`](./AUTO_MODEL_SELECTOR.md) · **Setup:** [`SETUP_AUTO_MODEL_SELECTOR.md`](./SETUP_AUTO_MODEL_SELECTOR.md) · **Template brief:** [`PROMPT_TEMPLATES.md`](./PROMPT_TEMPLATES.md) · **Costs:** [`COSTS_TRACKER.md`](./COSTS_TRACKER.md)
+
+| Task | Model |
+|---|---|
+| PLANNING (design, architecture, edge cases) | Opus 5 — plan only, lưu `docs/PLAN_*.md` |
+| BUILD phức tạp (plan + schema/API / ≥3 file) | Grok 4.5 |
+| BUILD đơn giản (UI ≤2 file) | Composer 2.5 |
+| FIX đa file | Grok 4.5 |
+| FIX 1 file | Composer 2.5 |
+
+Một phase / một brief. Paste full plan khi build. Override: `--model [name]` hoặc chọn trên UI.
+
+---
+
 ## Tài liệu — tra ở đâu
 
 | Cần gì | File | Ghi chú |
@@ -16,10 +32,11 @@ CINS = **mạng xã hội chuyên môn** cho ngành sáng tạo Việt Nam (Next
 | API route, lib, file SQL, seed, env/infra, ghi chú site | [`CINS_IMPLEMENTATION.md`](./CINS_IMPLEMENTATION.md) | Đổi nhanh nhất |
 | Đã quyết gì & vì sao · câu hỏi còn treo | [`CINS_DECISIONS.md`](./CINS_DECISIONS.md) | File chống quên |
 | Code/security/performance/UI conventions | [`CINS_DEV_RULES.md`](./CINS_DEV_RULES.md) | Cách code |
+| Chọn model theo task (quota) | [`AUTO_MODEL_SELECTOR.md`](./AUTO_MODEL_SELECTOR.md) + Rule 0 ở trên | Opus / Grok / Composer |
 
 Thứ tự ưu tiên khi xung đột: **DB thật (đọc trực tiếp) > CINS_FOUNDATIONS.md > các file khác**. Không bao giờ tin prose schema hơn DB.
 
-**Map chuyên sâu:** [`cursor_map_truong.md`](./cursor_map_truong.md) · [`cursor_brief_truong_trang_data_map.md`](./cursor_brief_truong_trang_data_map.md) *(bulk SQL field→UI, không tab Bài đăng)* · [`cursor_map_admin.md`](./cursor_map_admin.md) · [`cursor_map_inline_edit.md`](./cursor_map_inline_edit.md) · [`cursor_brief_dong_gop_noi_dung.md`](./cursor_brief_dong_gop_noi_dung.md) *(đóng góp canonical — session plan)* · [`cursor_brief_journey_blocks_css.md`](./cursor_brief_journey_blocks_css.md) *(block JSON + CSS render bài Journey)* · [`cursor_brief_csdt_van_hanh_hoc.md`](./cursor_brief_csdt_van_hanh_hoc.md) *(CSĐT chat-first · L34)* · [`cursor_brief_seed_autopilot_handoff.md`](./cursor_brief_seed_autopilot_handoff.md) *(nick seeding + Autopilot ArtStation/Behance)* · [`cursor_brief_shop_ship_ghn.md`](./cursor_brief_shop_ship_ghn.md) *(ship GHN + phí nền tảng + tranh chấp — kế hoạch, chưa triển khai)*
+**Map chuyên sâu:** [`cursor_map_truong.md`](./cursor_map_truong.md) · [`cursor_brief_truong_trang_data_map.md`](./cursor_brief_truong_trang_data_map.md) *(bulk SQL field→UI, không tab Bài đăng)* · [`cursor_map_admin.md`](./cursor_map_admin.md) · [`cursor_map_inline_edit.md`](./cursor_map_inline_edit.md) · [`cursor_brief_dong_gop_noi_dung.md`](./cursor_brief_dong_gop_noi_dung.md) *(đóng góp canonical — session plan)* · [`cursor_brief_journey_blocks_css.md`](./cursor_brief_journey_blocks_css.md) *(block JSON + CSS render bài Journey)* · [`cursor_brief_csdt_van_hanh_hoc.md`](./cursor_brief_csdt_van_hanh_hoc.md) *(CSĐT chat-first · L34)* · [`cursor_brief_seed_autopilot_handoff.md`](./cursor_brief_seed_autopilot_handoff.md) *(nick seeding + Autopilot ArtStation/Behance)*
 
 ---
 
@@ -49,13 +66,15 @@ Thứ tự ưu tiên khi xung đột: **DB thật (đọc trực tiếp) > CINS_
 
 ## Thay đổi lớn gần đây (tóm tắt — chi tiết ở DECISIONS)
 
-**Shop — ship GHN + phí nền tảng + tranh chấp (2026-07-30) — KẾ HOẠCH, chưa triển khai:** Giao hàng qua **GHN**, **mỗi shop tự cắm token riêng**, **không COD**; 3 hình thức nhận (`truc_tiep`/`tai_su_kien`/`online`), tracking **polling** trước, webhook sau. Phí nền tảng **% GMV kỳ tháng, trả sau** (2 tầng `shop_phi_dong`→`shop_phi_ky`); tranh chấp **Cấp 1** — CINs trọng tài, **không hoàn tiền**, chế tài bằng nhãn cảnh báo + gate khóa shop. **Tiền hàng không bao giờ qua CINs** (nếu qua ⇒ thu hộ/chi hộ ⇒ cần giấy phép NHNN). Cần xây mới: **cron**, **mã hóa field**. ALTER **A10–A13 chưa duyệt**. Xem DECISIONS + brief [`cursor_brief_shop_ship_ghn.md`](./cursor_brief_shop_ship_ghn.md).
+**Shop — tự ship, không ĐVVC (2026-07-31):** Không kết nối API carrier. Copy / Excel Viettel / CSV / phiếu đóng gói. Schema: `migrate:shop-ship-reverse`. Phí / tranh chấp giữ. Xem DECISIONS LOG.
+
+**Shop — ship + phí nền tảng + tranh chấp (2026-07-30):** Schema lịch sử `migration_shop_ship_ghn.sql` (audit). Phí / tranh chấp Cấp 1 — xem DECISIONS.
 
 **Hẹn đăng Journey / cộng đồng (2026-07-27):** Nút «Hẹn đăng» trên compose cá nhân + cộng đồng; lưu `content_cot_moc.tao_luc` tương lai (không ALTER). Org vẫn `nhap` + lazy promote. Xem DECISIONS LOG + IMPLEMENTATION *Hẹn đăng bài Journey*.
 
 **L36 — Bỏ `moi_bat_dau` / “Mới bắt đầu” (2026-07-26):** Enum `giai_doan` còn 5 value (`dang_hoc`…`dang_day`); user cũ migrate → `dang_hoc`. Xem DECISIONS **L36**.
 
-**L34 — CSĐT chat-first + LiveKit Hetzner SIN (2026-07-24):** Vận hành học cơ sở. **Plan 1 (NOW):** tư vấn · phòng lớp chat · HP/freeze/VietQR/dashboard — **chưa** call/WebRTC. **Plan 2:** LiveKit OSS trên Hetzner Singapore — **chỉ khi user báo `ready`**. Gate ALTER cột cũ. Brief: [`cursor_brief_csdt_van_hanh_hoc.md`](./cursor_brief_csdt_van_hanh_hoc.md). FOUNDATIONS §O / IMPLEMENTATION khóa học — chờ confirm wording.
+**L34 — CSĐT chat-first + WebRTC (2026-07-24 · media path 2026-07-31):** Vận hành học cơ sở. **Plan 1 (NOW):** tư vấn · phòng lớp chat · HP/freeze/VietQR/dashboard — **chưa** call/WebRTC. **Plan 2 (khi `ready`):** **Cloudflare Realtime trước** + dashboard băng thông (cảnh báo gần 1 TB free) → **cắt thủ công sang LiveKit/Hetzner `sin`** khi cần. Không dual-SFU song song sớm. Brief: [`cursor_brief_csdt_van_hanh_hoc.md`](./cursor_brief_csdt_van_hanh_hoc.md).
 
 **Shop UGC / preorder (2026-07-18 · giỏ storefront 2026-07-20 · import Shopee 2026-07-22 · hub `/cua-hang` 2026-07-25):** Module `shop_*` opt-in — catalog, bảng giá, post-kiosk (subset), **mua thẳng từ `/{slug}/shop`** (giỏ theo cửa hàng), đơn cứng + chat `don_hang`, quầy sự kiện; **import loại hàng từ URL Shopee** (`/api/shop/import-shopee`); **directory** `/cua-hang` (shop `shop_hien_thi`, sort tạm dừng sau). CINs không cầm tiền. Xem DECISIONS **L33** + LOG.
 

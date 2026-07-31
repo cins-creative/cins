@@ -1,0 +1,35 @@
+---
+description: Chọn model theo loại task (Plan/Build/Fix) để tiết kiệm quota — Opus / Grok / Composer
+alwaysApply: true
+---
+
+# Auto Model Selection (tiết kiệm quota)
+
+Chi tiết + template: `docs/AUTO_MODEL_SELECTOR.md` · `docs/PROMPT_TEMPLATES.md` · `docs/SETUP_AUTO_MODEL_SELECTOR.md`
+
+## Phân loại prompt → model đề xuất
+
+| Task | Tín hiệu | Model | Hành vi |
+|---|---|---|---|
+| **PLANNING** | plan, design, architecture, approach, edge cases, strategy | **Opus 5** | Chỉ plan, **không code**. Lưu `docs/PLAN_[feature].md` |
+| **BUILD phức tạp** | implement/build + ref `docs/PLAN_` + schema/API/migration / ≥3 file | **Grok 4.5** | Làm đúng plan; DB + API + logic |
+| **BUILD đơn giản** | UI/component/form, ≤2 file, có plan hoặc scope rõ | **Composer 2.5** | Chỉ frontend; không tự dựng API |
+| **FIX đa file** | fix/bug + nhiều file / refactor pattern | **Grok 4.5** | Fix tối thiểu; liệt kê verify |
+| **FIX 1 file** | fix/bug + 1 file (CSS, copy, patch) | **Composer 2.5** | Localized, minimal |
+| **Ambiguous / rethink** | feature lớn không plan, “refactor kiến trúc” | **Opus 5** trước | Hỏi: cần Phase 1 planning? |
+
+## Khi model chat ≠ model đề xuất
+
+Đầu turn (1–2 câu): nêu task type + model nên dùng + vì sao. Không block nếu user đã chọn model cố ý.
+
+## Quy tắc hành vi (mọi model)
+
+1. **Planning:** output theo template PLAN (Database / API / Frontend / Steps / Edge / Security). Không viết code.
+2. **Implementation:** bắt buộc có plan paste hoặc `docs/PLAN_*.md`. Làm đúng scope bước (vd. “chỉ Step 1–2, no UI”).
+3. **Fix:** đổi tối thiểu; liệt kê bước verify; flag nếu pattern lặp chỗ khác.
+4. **Một phase / một brief** — không plan + build + test trong một request.
+5. Pattern repo: `lib/shop/don-hang.ts`, `CINS_FOUNDATIONS.md`, RLS hiện có. Design UI: token CINS (không invent hệ màu mới).
+
+## Override
+
+User ghi `--model [name]` hoặc chọn model trên UI → tôn trọng, bỏ auto-detect.

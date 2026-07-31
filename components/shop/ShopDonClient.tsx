@@ -2,7 +2,6 @@
 
 import {
   Check,
-  CheckCircle2,
   ChevronDown,
   FileSpreadsheet,
   ListFilter,
@@ -28,13 +27,15 @@ import {
 } from "@/lib/shop/client-fetch-cache";
 import {
   SHOP_DON_NHAC_GIO,
-  SHOP_TRANG_THAI_DON_LABEL,
   type ShopDonHang,
   type ShopLoaiDon,
   type ShopTrangThaiDon,
 } from "@/lib/shop/types";
 
-import { exportDonsToViettelPostXlsx } from "@/lib/shop/export-viettelpost";
+import {
+  exportDonsToCsv,
+  exportDonsToViettelPostXlsx,
+} from "@/lib/shop/export-viettelpost";
 
 import { ShopDashTabs } from "./ShopDashTabs";
 import { ShopDonDetailModal } from "./ShopDonDetailModal";
@@ -45,36 +46,109 @@ const LOAI_DON_SHORT: Record<ShopLoaiDon, string> = {
   dat_truoc_nhan_su_kien: "Thanh toán sau",
 };
 
-/** Tab quản lý theo trạng thái đơn. `null` = tất cả. */
-type DonTab = "can_xu_ly" | "hoan_thanh" | "huy" | "tat_ca";
+function donHinhThucShort(hinh: ShopDonHang["hinhThucGiao"]): string {
+  if (hinh === "online") return "Giao hàng";
+  if (hinh === "tai_su_kien") return "Tại sự kiện";
+  return "Gặp trực tiếp";
+}
 
-const DON_TAB_ORDER: DonTab[] = ["can_xu_ly", "hoan_thanh", "huy", "tat_ca"];
+/** Tab lọc theo bước pipeline (khớp cột Act). `null` = tất cả. */
+type DonTab =
+  | "cho_xac_nhan"
+  | "dang_soan"
+  | "cho_lay_hang"
+  | "dang_giao"
+  | "hoan_thanh"
+  | "huy"
+  | "tat_ca";
 
+const DON_TAB_ORDER: DonTab[] = [
+  "cho_xac_nhan",
+  "dang_soan",
+  "cho_lay_hang",
+  "dang_giao",
+  "hoan_thanh",
+  "huy",
+  "tat_ca",
+];
+
+/** Nhãn ngắn — khớp hành động Act / trạng thái đơn. */
 const DON_TAB_LABEL: Record<DonTab, string> = {
-  can_xu_ly: "Cần xử lý",
+  cho_xac_nhan: "Chờ xác nhận",
+  dang_soan: "Đang soạn",
+  cho_lay_hang: "Chờ lấy hàng",
+  dang_giao: "Đang giao đơn",
   hoan_thanh: "Hoàn thành",
-  huy: "Đã hủy",
+  huy: "Hủy / trả",
   tat_ca: "Tất cả",
 };
 
 const DON_TAB_STATUSES: Record<DonTab, ShopTrangThaiDon[] | null> = {
-  // `da_giao_tai_su_kien` vẫn cần shop chủ động gán «hoàn thành» → xếp ở đây.
-  can_xu_ly: ["cho_xac_nhan", "da_nhan_tien", "da_giao_tai_su_kien"],
+  cho_xac_nhan: ["cho_xac_nhan"],
+  dang_soan: ["da_nhan_tien", "da_giao_tai_su_kien"],
+  cho_lay_hang: ["cho_lay_hang"],
+  dang_giao: ["dang_giao"],
   hoan_thanh: ["hoan_thanh"],
-  huy: ["huy"],
+  huy: ["huy", "hoan_tra"],
   tat_ca: null,
 };
 
-/** Trạng thái đơn có thể chuyển sang «hoàn thành». */
-function canComplete(d: ShopDonHang): boolean {
-  return d.trangThai === "da_nhan_tien" || d.trangThai === "da_giao_tai_su_kien";
+type DonActOption = {
+  action: string;
+  label: string;
+  danger?: boolean;
+};
+
+/** Các bước shop quyết: nhận tiền → hoàn thành (tự ship ngoài CINs). */
+function donActOptions(d: ShopDonHang): DonActOption[] {
+  switch (d.trangThai) {
+    case "cho_xac_nhan":
+      return [
+        {
+          action:
+            d.loaiDon === "dat_truoc_nhan_su_kien"
+              ? "da_giao_tai_su_kien"
+              : "da_nhan_tien",
+          label: "Xác nhận đã nhận tiền",
+        },
+      ];
+    case "da_nhan_tien":
+    case "cho_lay_hang":
+    case "dang_giao":
+      return [{ action: "hoan_thanh", label: "Hoàn thành" }];
+    case "da_giao_tai_su_kien":
+      return [{ action: "hoan_thanh", label: "Hoàn thành" }];
+    default:
+      return [];
+  }
 }
 
-type BulkAction = "prep" | "export";
+/**
+ * Cột bảng = thanh toán (2 trạng thái chính).
+ * Pipeline (chờ lấy / đang giao…) nằm ở tab lọc phía trên — không lặp lại ở đây.
+ */
+function donThanhToanBadge(d: ShopDonHang): {
+  key: "cho_xac_nhan" | "da_nhan_tien" | "huy" | "hoan_tra";
+  label: string;
+} {
+  if (d.trangThai === "cho_xac_nhan" || d.trangThai === "nhap") {
+    return { key: "cho_xac_nhan", label: "Chờ xác nhận" };
+  }
+  if (d.trangThai === "huy") {
+    return { key: "huy", label: "Đã hủy" };
+  }
+  if (d.trangThai === "hoan_tra") {
+    return { key: "hoan_tra", label: "Hoàn trả" };
+  }
+  return { key: "da_nhan_tien", label: "Đã nhận tiền" };
+}
+
+type BulkAction = "prep" | "export" | "export_csv";
 
 const BULK_ACTION_VERB: Record<BulkAction, string> = {
   prep: "chuẩn bị",
-  export: "xuất Excel",
+  export: "xuất Excel Viettel",
+  export_csv: "xuất CSV",
 };
 
 function formatDonTime(iso: string): string {
@@ -217,13 +291,15 @@ export function ShopDonClient() {
   const [loading, setLoading] = useState(cachedItems === null);
   const [err, setErr] = useState<string | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
-  const [tab, setTab] = useState<DonTab>("can_xu_ly");
+  const [tab, setTab] = useState<DonTab>("cho_xac_nhan");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   /** Bulk action đang chờ user chọn đơn (khi bấm lúc chưa chọn gì). */
   const [pendingBulk, setPendingBulk] = useState<BulkAction | null>(null);
   const [completeErr, setCompleteErr] = useState<string | null>(null);
   /** Đơn đang hoàn thành lẻ (nút trong hàng) — tách khỏi bulk. */
   const [rowCompletingId, setRowCompletingId] = useState<string | null>(null);
+  const [actMenuOpenId, setActMenuOpenId] = useState<string | null>(null);
+  const actMenuRef = useRef<HTMLDivElement>(null);
   const [prepOpen, setPrepOpen] = useState(false);
   const [prepLoaiFilter, setPrepLoaiFilter] = useState<Set<string>>(new Set());
   const [prepSelectOpen, setPrepSelectOpen] = useState(false);
@@ -274,23 +350,14 @@ export function ShopDonClient() {
   }, [items, tab]);
 
   const tabCounts = useMemo(() => {
-    const counts: Record<DonTab, number> = {
-      can_xu_ly: 0,
-      hoan_thanh: 0,
-      huy: 0,
-      tat_ca: items.length,
-    };
+    const counts = Object.fromEntries(
+      DON_TAB_ORDER.map((t) => [t, t === "tat_ca" ? items.length : 0]),
+    ) as Record<DonTab, number>;
     for (const d of items) {
-      if (
-        d.trangThai === "cho_xac_nhan" ||
-        d.trangThai === "da_nhan_tien" ||
-        d.trangThai === "da_giao_tai_su_kien"
-      ) {
-        counts.can_xu_ly += 1;
-      } else if (d.trangThai === "hoan_thanh") {
-        counts.hoan_thanh += 1;
-      } else if (d.trangThai === "huy") {
-        counts.huy += 1;
+      for (const t of DON_TAB_ORDER) {
+        if (t === "tat_ca") continue;
+        const statuses = DON_TAB_STATUSES[t];
+        if (statuses?.includes(d.trangThai)) counts[t] += 1;
       }
     }
     return counts;
@@ -357,6 +424,24 @@ export function ShopDonClient() {
     document.addEventListener("mousedown", handleOutside);
     return () => document.removeEventListener("mousedown", handleOutside);
   }, [prepSelectOpen]);
+
+  useEffect(() => {
+    if (!actMenuOpenId) return;
+    function handleOutside(e: MouseEvent) {
+      if (!actMenuRef.current?.contains(e.target as Node)) {
+        setActMenuOpenId(null);
+      }
+    }
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setActMenuOpenId(null);
+    }
+    document.addEventListener("mousedown", handleOutside);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handleOutside);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [actMenuOpenId]);
 
   const closePrep = useCallback(() => {
     setPrepOpen(false);
@@ -452,12 +537,16 @@ export function ShopDonClient() {
   }, []);
 
   const exportDons = useCallback(
-    async (dons: ShopDonHang[]) => {
+    async (dons: ShopDonHang[], kind: "xlsx" | "csv" = "xlsx") => {
       if (dons.length === 0 || exporting) return;
       setExporting(true);
       setExportErr(null);
       try {
-        await exportDonsToViettelPostXlsx(dons);
+        if (kind === "csv") {
+          exportDonsToCsv(dons);
+        } else {
+          await exportDonsToViettelPostXlsx(dons);
+        }
       } catch {
         setExportErr("Không xuất được file. Thử lại.");
       } finally {
@@ -467,17 +556,17 @@ export function ShopDonClient() {
     [exporting],
   );
 
-  /** Hoàn thành một đơn ngay trong hàng (không cần chọn / mở modal). */
-  const completeOne = useCallback(
-    async (d: ShopDonHang) => {
-      if (!canComplete(d) || rowCompletingId) return;
+  /** Bước tiếp theo trên hàng (xác nhận / lấy hàng / giao / hoàn thành / hoàn trả). */
+  const actOne = useCallback(
+    async (d: ShopDonHang, action: string) => {
+      if (rowCompletingId) return;
       setRowCompletingId(d.id);
       setCompleteErr(null);
       try {
         const res = await fetch(`/api/shop/don/${d.id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "hoan_thanh" }),
+          body: JSON.stringify({ action }),
         });
         const json = (await res.json().catch(() => null)) as {
           don?: ShopDonHang;
@@ -490,10 +579,10 @@ export function ShopDonClient() {
           );
           setSelectedIds((prev) => prev.filter((id) => id !== updated.id));
         } else {
-          setCompleteErr(json?.error ?? "Không hoàn thành được đơn.");
+          setCompleteErr(json?.error ?? "Không cập nhật được đơn.");
         }
       } catch {
-        setCompleteErr("Không hoàn thành được đơn.");
+        setCompleteErr("Không cập nhật được đơn.");
       } finally {
         setRowCompletingId(null);
       }
@@ -514,7 +603,9 @@ export function ShopDonClient() {
       if (action === "prep") {
         openPrep();
       } else if (action === "export") {
-        void exportDons(selectedDons);
+        void exportDons(selectedDons, "xlsx");
+      } else if (action === "export_csv") {
+        void exportDons(selectedDons, "csv");
       }
     },
     [selectedIds.length, selectedDons, openPrep, exportDons],
@@ -533,7 +624,9 @@ export function ShopDonClient() {
       if (action === "prep") {
         openPrep();
       } else if (action === "export") {
-        void exportDons(source);
+        void exportDons(source, "xlsx");
+      } else if (action === "export_csv") {
+        void exportDons(source, "csv");
       }
     },
     [paidVisible, visibleItems, pendingBulk, openPrep, exportDons],
@@ -600,7 +693,7 @@ export function ShopDonClient() {
           type="button"
           className="shop-don-bulk-btn"
           disabled={exporting}
-          title="Xuất file Excel theo mẫu ViettelPost"
+          title="Xuất Excel theo mẫu ViettelPost (upload web VTP)"
           onClick={() => runBulk("export")}
         >
           {exporting ? (
@@ -608,7 +701,21 @@ export function ShopDonClient() {
           ) : (
             <FileSpreadsheet size={15} strokeWidth={2.2} aria-hidden />
           )}
-          Xuất Excel
+          Excel Viettel
+        </button>
+        <button
+          type="button"
+          className="shop-don-bulk-btn"
+          disabled={exporting}
+          title="Xuất CSV chung (họ tên, SĐT, địa chỉ, hàng)"
+          onClick={() => runBulk("export_csv")}
+        >
+          {exporting ? (
+            <Loader2 size={15} className="shop-spin" aria-hidden />
+          ) : (
+            <FileSpreadsheet size={15} strokeWidth={2.2} aria-hidden />
+          )}
+          CSV
         </button>
       </div>
 
@@ -918,12 +1025,11 @@ export function ShopDonClient() {
                                                   </span>
                                                   <span className="shop-don-prep-don-side">
                                                     <span
-                                                      className={`shop-status shop-status--${don.trangThai}`}
+                                                      className={`shop-status shop-status--${donThanhToanBadge(don).key}`}
                                                     >
                                                       {
-                                                        SHOP_TRANG_THAI_DON_LABEL[
-                                                          don.trangThai
-                                                        ]
+                                                        donThanhToanBadge(don)
+                                                          .label
                                                       }
                                                     </span>
                                                     <span className="shop-don-prep-col-qty">
@@ -1000,13 +1106,13 @@ export function ShopDonClient() {
                   Mã đơn
                 </th>
                 <th scope="col" className="shop-don-col-tt">
-                  Tình trạng
+                  Thanh toán
                 </th>
                 <th scope="col" className="shop-don-col-mua">
                   Người mua
                 </th>
                 <th scope="col" className="shop-don-col-loai">
-                  Loại
+                  Giao / loại
                 </th>
                 <th scope="col" className="shop-don-col-sp">
                   SP
@@ -1015,7 +1121,7 @@ export function ShopDonClient() {
                   Tổng
                 </th>
                 <th scope="col" className="shop-don-col-act">
-                  Thao tác
+                  Tiếp theo
                 </th>
               </tr>
             </thead>
@@ -1068,9 +1174,16 @@ export function ShopDonClient() {
                       <span className="shop-dash-ma">{d.maDon ?? "—"}</span>
                     </td>
                     <td className="shop-don-col-tt">
-                      <span className={`shop-status shop-status--${d.trangThai}`}>
-                        {SHOP_TRANG_THAI_DON_LABEL[d.trangThai]}
-                      </span>
+                      {(() => {
+                        const pay = donThanhToanBadge(d);
+                        return (
+                          <span
+                            className={`shop-status shop-status--${pay.key}`}
+                          >
+                            {pay.label}
+                          </span>
+                        );
+                      })()}
                       {(() => {
                         const aging = donAging(d);
                         if (!aging || aging.level === "ok") return null;
@@ -1092,7 +1205,12 @@ export function ShopDonClient() {
                       {d.muaTen?.trim() || "—"}
                     </td>
                     <td className="shop-don-col-loai">
-                      {LOAI_DON_SHORT[d.loaiDon]}
+                      <span className="shop-don-giao-loai">
+                        <span className="shop-don-giao">{donHinhThucShort(d.hinhThucGiao)}</span>
+                        <span className="shop-don-loai-sub">
+                          {LOAI_DON_SHORT[d.loaiDon]}
+                        </span>
+                      </span>
                     </td>
                     <td className="shop-don-col-sp">{tongSoLuong(d)}</td>
                     <td className="shop-don-col-tong">
@@ -1103,32 +1221,97 @@ export function ShopDonClient() {
                       onClick={(e) => e.stopPropagation()}
                       onKeyDown={(e) => e.stopPropagation()}
                     >
-                      {canComplete(d) ? (
-                        <button
-                          type="button"
-                          className="shop-don-row-done"
-                          disabled={rowCompletingId === d.id}
-                          onClick={() => void completeOne(d)}
-                          title="Đánh dấu đơn đã hoàn thành"
-                        >
-                          {rowCompletingId === d.id ? (
-                            <Loader2
-                              size={13}
-                              className="shop-spin"
-                              aria-hidden
-                            />
-                          ) : (
-                            <CheckCircle2
-                              size={13}
-                              strokeWidth={2.2}
-                              aria-hidden
-                            />
-                          )}
-                          Hoàn thành
-                        </button>
-                      ) : (
-                        <span className="shop-don-row-act-empty">—</span>
-                      )}
+                      {(() => {
+                        const opts = donActOptions(d);
+                        if (opts.length === 0) {
+                          return (
+                            <span className="shop-don-row-act-empty">—</span>
+                          );
+                        }
+                        const busy = rowCompletingId === d.id;
+                        const open = actMenuOpenId === d.id;
+                        /* Một bước: nút thẳng. Nhiều bước: menu. */
+                        if (opts.length === 1) {
+                          const only = opts[0];
+                          return (
+                            <button
+                              type="button"
+                              className={`shop-don-act-primary${only.danger ? " is-danger" : ""}`}
+                              disabled={busy}
+                              aria-label={only.label}
+                              onClick={() => void actOne(d, only.action)}
+                            >
+                              {busy ? (
+                                <Loader2
+                                  size={13}
+                                  className="shop-spin"
+                                  aria-hidden
+                                />
+                              ) : null}
+                              {only.label}
+                            </button>
+                          );
+                        }
+                        return (
+                          <div
+                            className="shop-don-act-dd"
+                            ref={open ? actMenuRef : undefined}
+                          >
+                            <button
+                              type="button"
+                              className={`shop-don-act-dd-btn${open ? " is-open" : ""}`}
+                              disabled={busy}
+                              aria-haspopup="listbox"
+                              aria-expanded={open}
+                              aria-label={`Bước tiếp theo đơn ${d.maDon ?? d.id}`}
+                              onClick={() =>
+                                setActMenuOpenId((cur) =>
+                                  cur === d.id ? null : d.id,
+                                )
+                              }
+                            >
+                              {busy ? (
+                                <Loader2
+                                  size={13}
+                                  className="shop-spin"
+                                  aria-hidden
+                                />
+                              ) : null}
+                              <span className="shop-don-act-dd-label">
+                                Chọn bước
+                              </span>
+                              <ChevronDown
+                                size={12}
+                                strokeWidth={2.5}
+                                aria-hidden
+                                className={open ? "is-open" : ""}
+                              />
+                            </button>
+                            {open && !busy ? (
+                              <div
+                                className="shop-don-act-dd-menu"
+                                role="listbox"
+                                aria-label="Chọn bước tiếp theo"
+                              >
+                                {opts.map((opt) => (
+                                  <button
+                                    key={opt.action}
+                                    type="button"
+                                    role="option"
+                                    className={`shop-don-act-dd-opt${opt.danger ? " is-danger" : ""}`}
+                                    onClick={() => {
+                                      setActMenuOpenId(null);
+                                      void actOne(d, opt.action);
+                                    }}
+                                  >
+                                    {opt.label}
+                                  </button>
+                                ))}
+                              </div>
+                            ) : null}
+                          </div>
+                        );
+                      })()}
                     </td>
                   </tr>
                 );

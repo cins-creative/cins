@@ -29,8 +29,8 @@
 | `shop/import-shopee` | **POST** (seller) — import loại hàng từ URL Shopee: preview (`apply:false`) hoặc tạo `shop_nhom` + mẫu (`apply:true`). Body `{ url?, apply?, raw?, preview? }`. Lib `lib/shop/shopee/`. UI: `/ban-hang/kho` → **AI · Shopee**. Xem ghi chú *Import Shopee* bên dưới. |
 | `shop/bang-gia` · `shop/bang-gia/[id]` | CRUD bảng giá + dòng giá theo biến thể. **1 bảng giá VND / shop** (2026-07-28): POST/PATCH **ép `tien_te="VND"`**, bỏ nhận `tienTe`. Bảng canonical = `getOrCreateDefaultBangGia(ownerId)` (bảng cũ nhất; tạo "Bảng giá mặc định" VND nếu chưa có). `resolveGiaBienThe` fallback `shop_nhom.gia_mac_dinh` khi thiếu dòng → không "Chưa có giá" khi loại đã có giá gốc; `syncNhomGiaMacDinhToMau` ghi vào canonical + quét biến thể theo `id_nhom` **và** tên `phan_loai`. UI Kho/modal bỏ chọn bảng giá. |
 | `shop/gio` | GET/PATCH/DELETE giỏ buyer — scope **XOR** `cotMocId` (post-kiosk) **hoặc** `cuaHangId` (storefront `/{slug}/shop`) |
-| `shop/don` · `shop/don/[id]` | Tạo đơn từ giỏ (`cotMocId` **hoặc** `cuaHangId`) · seller xác nhận (trừ kho) · list đơn seller/buyer — **không** hủy đơn trên API |
-| `shop/cua-hang` · `…/mat-hang` · `…/thanh-toan` | Hồ sơ cửa hàng · catalog storefront · STK/QR checkout |
+| `shop/don` · `shop/don/[id]` | Tạo đơn từ giỏ · seller xác nhận / pipeline · list. Seller tự ship ngoài CINs (copy / export / phiếu đóng gói trên UI). |
+| `shop/cua-hang` · `…/mat-hang` · `…/thanh-toan` | Hồ sơ cửa hàng · catalog · STK/QR |
 | *(hub listing, không API riêng)* | **`/cua-hang`** — danh sách shop công khai; SSR `listPublicShopCuaHang` (`lib/shop/cua-hang-listing.ts`). Gate: `da_xoa=false` + owner `ban_hang_bat` ∧ `shop_hien_thi`. Sort: đang mở trước, `tam_dong` sau (`isShopTamDongActive`). Nav sidebar `MAIN_NAV` id `shops`. UI: `CuaHangListingLoader` / `CuaHangListingClient` · CSS `app/cua-hang/cua-hang-listing.css`. |
 | `milestone/[milestoneId]/shop-hang` | GET public hàng gắn post (**ẩn nếu owner `ban_hang_bat=false`**) · PUT gắn/gỡ (owner + `ban_hang_bat`) |
 | `su-kien/[suKienId]/quay` · `…/quay/[quayId]` | Xin làm quầy + bằng chứng · owner duyệt/từ chối/gỡ (kèm lý do) · seller rút (`action=withdraw`) · list quầy đã duyệt |
@@ -351,6 +351,8 @@ chat_moc
 
 ## 4. Env / Infra
 
+> **Shop vận chuyển (2026-07-31):** **không** liên kết ĐVVC trên CINs. Seller: copy thông tin nhận · Excel ViettelPost · CSV · phiếu đóng gói (`lib/shop/export-viettelpost.ts`, `lib/shop/phieu-dong-goi.ts`). Schema DROP: `npm run migrate:shop-ship-reverse`. Phí / tranh chấp giữ. Không cần `CINS_SECRETS_MASTER_KEY` cho carrier.
+
 ```
 # Supabase
 NEXT_PUBLIC_SUPABASE_URL = https://auth.cins.vn
@@ -370,6 +372,17 @@ NEXT_PUBLIC_CHAT_VIDEO_BASE_URL        (base URL public phát R2 chat video)
 
 # Cloudflare Images
 CLOUDFLARE_*             (account hash, API token)
+
+# Plan 2 Phase A — phòng học (Cloudflare RealtimeKit)
+MEDIA_PROVIDER=cloudflare
+CLOUDFLARE_ACCOUNT_ID
+CLOUDFLARE_REALTIMEKIT_APP_ID          (App ID từ Dashboard → Realtime)
+CLOUDFLARE_REALTIMEKIT_API_TOKEN       (secret; quyền Realtime Admin — hoặc CLOUDFLARE_API_TOKEN)
+CLOUDFLARE_REALTIMEKIT_PRESET_STAFF    (optional; mặc định group_call_host)
+CLOUDFLARE_REALTIMEKIT_PRESET_STUDENT  (optional; mặc định group_call_participant — cam tắt qua preset CF)
+CLOUDFLARE_ANALYTICS_API_TOKEN         (optional; Account Analytics cho /admin/bang-thong)
+MEDIA_EGRESS_USED_GB                   (optional; override GB đã dùng khi GraphQL chưa sẵn)
+# Phase B (chưa bật): LIVEKIT_URL · LIVEKIT_API_KEY · LIVEKIT_API_SECRET
 
 # Anthropic Claude (server-only) — rút tên/mô tả khi import Shopee; dùng chung key Sine Art được
 ANTHROPIC_API_KEY
@@ -628,7 +641,7 @@ Trang khóa standalone `/co-so/[slug]/khoa-hoc/[khoa-slug]`. Ưu tiên render m�
 - **Ghi danh** (`POST …/dang-ky`): tạo `user_hoc_vien_lop`. Cohort → gắn `id_lop_hoc`; liên tục → chỉ `id_khoa_hoc` (`id_lop_hoc` NULL). Gửi org duyệt (`trang_thai='da_dang_ky'`).
 - **Đăng tác phẩm gắn khóa** (L14): form học viên chọn **khóa** → tự suy `id_lop_hoc` từ `user_hoc_vien_lop` → tạo `content_cot_moc` (`id_khoa_hoc`, `id_lop_hoc` tự điền) + `verify_yeu_cau` Loại 2 → org duyệt → nổi ở lens Sản phẩm học viên + Journey học viên.
 - **CRUD admin** inline trên trang (org admin): thêm/sửa khóa, kéo sắp xếp bài (`thu_tu`), đổi `visibility`, thêm/sửa lớp. Quyền: `vai_tro IN ('admin','quan_ly_noi_dung')` của org.
-- **Vẫn KHÔNG phải LMS đầy đủ / chưa WebRTC**: Plan 1 = kỳ HP + phòng chat lớp + nộp/duyệt qua chat/dashboard (`migration_csdt_van_hanh_hoc.sql`). Call/share màn = Plan 2 khi user báo `ready`. Chứng chỉ hoàn thành = milestone verified `sinh_tu_hoc_vien_lop` trên Journey.
+- **LMS mỏng + Plan 2 Phase A (WebRTC):** Plan 1 = kỳ HP + phòng chat lớp + nộp/duyệt. **Phòng học A/V:** provider `lib/media/*` · `POST /api/chat/rooms/[roomId]/phong-hoc/token` (gate `assertCanJoinPhongHoc` = member + kỳ / freeze 403) · UI nút Video trong `CinsChatOverlay` · RealtimeKit meeting map `media_phong_hop` (`npm run migrate:media-phong-hop`). **Dashboard egress:** `/admin/bang-thong` · `GET /api/admin/media/bang-thong` (cảnh báo 70/85/95% free 1 TB). Phase B LiveKit/Hetzner = đổi `MEDIA_PROVIDER` + env — chưa dual-runtime. Chứng chỉ hoàn thành = milestone verified `sinh_tu_hoc_vien_lop` trên Journey.
 - **Dashboard quản trị (L34 IA):** mọi admin CSĐT vào `/co-so/[slug]/quan-ly` — nav nhóm: Tổng quan · Thiết lập (Cơ sở · Chi nhánh) · Học (Khóa & lớp · **Giáo trình** · Học viên · Điểm danh) · Tiền (Doanh thu). Trail phải: **Tin nhắn** → route `/quan-ly/tin-nhan` (panel full-page đồng bộ CinsChat: Tư vấn · Cơ sở/lớp · Chờ xác thực; CTA ghi danh / gửi đơn HP) · **Thông báo** (tag đồ án / xác thực) · Cài đặt tối cao (founder). Giáo trình = `org_bai_tap` (đồng bộ trang khóa). Marketing gộp Tổng quan (`/quan-ly/marketing` → redirect). Trang public chỉ hiển thị + link toolbar; chi nhánh nguồn chính = `org_chi_nhanh` (đồng bộ cột liên hệ org + mirror JSON).
 - Soft delete khóa: `org_khoa_hoc.trang_thai_khoa_hoc = tam_dung`. Soft delete lớp: `org_lop_hoc.trang_thai = huy`. Bài tập: ẩn = `org_bai_tap.visible = false`; xóa hẳn = `DELETE` row.
 - **Founder Settings — "Cài đặt tối cao" (L34, 2026-07-25):** icon bánh răng trong `CoSoQuanLyShell` (chỉ owner/admin) → `/co-so/[slug]/quan-ly/cai-dat` (route `cai-dat`, ngoài 4 cụm nav; gate `CoSoQuanLyPageGate` với `requireFounder`).

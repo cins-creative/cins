@@ -7,6 +7,7 @@ import {
   confirmDonHang,
   donHangToChatContext,
   getDonHang,
+  hoanTraDonHang,
 } from "@/lib/shop/don-hang";
 import { SHOP_LY_DO_HUY_MAX } from "@/lib/shop/types";
 
@@ -55,6 +56,14 @@ export async function PATCH(request: Request, ctx: Ctx) {
       );
       return NextResponse.json({ don, chatContext: donHangToChatContext(don) });
     }
+    if (body.action === "hoan_tra") {
+      const lyDo =
+        typeof body.lyDo === "string"
+          ? body.lyDo.trim().slice(0, SHOP_LY_DO_HUY_MAX)
+          : null;
+      const don = await hoanTraDonHang(session.profile.id, id, lyDo);
+      return NextResponse.json({ don, chatContext: donHangToChatContext(don) });
+    }
     if (body.action === "hoan_thanh") {
       const don = await completeDonHang(session.profile.id, id);
       return NextResponse.json({ don, chatContext: donHangToChatContext(don) });
@@ -74,6 +83,15 @@ export async function PATCH(request: Request, ctx: Ctx) {
     return NextResponse.json({ error: "action không hợp lệ." }, { status: 422 });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "";
+    if (msg === "ONLINE_DISABLED") {
+      return NextResponse.json(
+        {
+          error:
+            "CINs không liên kết ĐVVC — shop tự tạo vận đơn trên web đơn vị vận chuyển.",
+        },
+        { status: 410 },
+      );
+    }
     if (msg === "FORBIDDEN") {
       return NextResponse.json({ error: "Không có quyền." }, { status: 403 });
     }
@@ -95,6 +113,7 @@ export async function PATCH(request: Request, ctx: Ctx) {
         { status: 422 },
       );
     }
+    console.error("[api] don patch", e);
     return NextResponse.json({ error: "Không cập nhật được." }, { status: 500 });
   }
 }

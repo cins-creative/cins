@@ -24,6 +24,7 @@ import { useAuthGate } from "@/components/auth/AuthGateProvider";
 import { JourneyShopSfHero } from "@/components/journey/JourneyShopSfHero";
 import {
   GIO_CHUNG_CHANGED_EVENT,
+  notifyGioChungAdded,
 } from "@/components/shop/ShopGioChungButton";
 import { ShopTamDongOverlay } from "@/components/shop/ShopTamDongOverlay";
 import { writeShopCuaHangCache } from "@/lib/shop/client-fetch-cache";
@@ -634,12 +635,16 @@ export function JourneyShopStorefront({
         idBienThe,
         (qtyEpochRef.current.get(idBienThe) ?? 0) + 1,
       );
+      let shouldNotify = false;
       setQtyByBt((prev) => {
+        const prevQty = prev.get(idBienThe) ?? 0;
+        shouldNotify = qty > prevQty;
         const next = new Map(prev);
         if (qty <= 0) next.delete(idBienThe);
         else next.set(idBienThe, qty);
         return next;
       });
+      if (shouldNotify) notifyGioChungAdded();
 
       pendingQtyRef.current.set(idBienThe, qty);
       const prevTimer = syncTimersRef.current.get(idBienThe);

@@ -18,8 +18,11 @@ export type ShopTrangThaiDon =
   | "nhap"
   | "cho_xac_nhan"
   | "da_nhan_tien"
+  | "cho_lay_hang"
+  | "dang_giao"
   | "da_giao_tai_su_kien"
   | "hoan_thanh"
+  | "hoan_tra"
   | "huy";
 
 export type ShopTrangThaiQuay = "cho_xu_ly" | "da_duyet" | "tu_choi";
@@ -39,6 +42,8 @@ export type ShopBienThe = {
   nhan: string;
   sku: string | null;
   soLuongTon: number;
+  /** Trọng lượng gram — seller nhập; null = chưa khai (cần để ship online). */
+  canNang: number | null;
   anhId: string | null;
   anhUrl: string | null;
 };
@@ -388,6 +393,14 @@ export const SHOP_NHAN_PHAN_LOAI_2_DEFAULT = "Phân loại 2";
 /** Giới hạn mô tả ngắn nhóm phân loại (`shop_nhom.mo_ta`). */
 export const SHOP_NHOM_MO_TA_MAX = 280;
 
+export type ShopTrangThaiHoatDong =
+  | "hoat_dong"
+  | "canh_bao"
+  | "han_che"
+  | "khoa";
+
+export type ShopHinhThucGiao = "truc_tiep" | "online" | "tai_su_kien";
+
 export type ShopCuaHang = {
   id: string;
   idNguoiDung: string;
@@ -416,6 +429,11 @@ export type ShopCuaHang = {
   tamDongDen: string | null;
   /** Lý do nghỉ tạm (tuỳ chọn). */
   tamDongLyDo: string | null;
+  /** Cổng gate nền tảng (nợ phí + tranh chấp) — tách biệt `tamDong`. */
+  trangThaiHoatDong: ShopTrangThaiHoatDong;
+  lyDoKhoa: string | null;
+  /** Cache số khiếu nại chưa đóng — dẫn xuất nhãn cảnh báo. */
+  soTranhChapMo: number;
   phuongThucTt: ShopPhuongThucTt[];
   /** Có ≥1 phương thức nhận tiền đang bật. */
   sanSangNhanDon: boolean;
@@ -479,11 +497,17 @@ export type ShopDonHang = {
   /** Ảnh biên lai chuyển khoản buyer đính kèm lúc gửi đơn (giỏ chung). */
   bienLaiAnhUrl?: string | null;
   bienLaiAnhId?: string | null;
-  /** Snapshot thông tin nhận hàng lúc đặt đơn — để seller xuất vận đơn. */
+  /** Snapshot thông tin nhận hàng — shop tự ship ngoài CINs (copy / export / phiếu). */
   muaHoTen?: string | null;
   muaSoDienThoai?: string | null;
   /** Địa chỉ đầy đủ (chi tiết + tỉnh/thành) đã gộp sẵn. */
   muaDiaChi?: string | null;
+  muaDiaChiChiTiet?: string | null;
+  muaPhuongXa?: string | null;
+  muaPhuongXaCode?: string | null;
+  muaTinhThanh?: string | null;
+  /** truc_tiep | tai_su_kien | online (lịch sử). */
+  hinhThucGiao?: "truc_tiep" | "online" | "tai_su_kien" | null;
 };
 /** Sự kiện sắp/đang diễn ra mà shop đã được duyệt quầy — mặt tiền công khai. */
 export type ShopQuaySapCoMat = {
@@ -550,9 +574,12 @@ export const SHOP_LOAI_DON_LABEL: Record<ShopLoaiDon, string> = {
 export const SHOP_TRANG_THAI_DON_LABEL: Record<ShopTrangThaiDon, string> = {
   nhap: "Nháp",
   cho_xac_nhan: "Chờ xác nhận",
-  da_nhan_tien: "Đã nhận tiền",
+  da_nhan_tien: "Đã nhận tiền / đang soạn",
+  cho_lay_hang: "Chờ lấy hàng",
+  dang_giao: "Đang giao đơn",
   da_giao_tai_su_kien: "Thanh toán khi nhận hàng",
   hoan_thanh: "Hoàn thành",
+  hoan_tra: "Hoàn trả",
   huy: "Đã hủy",
 };
 

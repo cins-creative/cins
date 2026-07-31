@@ -35,6 +35,18 @@ const VTP_COL_WIDTHS = [
   16,
 ];
 
+/** CSV chung — dán/import thủ công lên web ĐVVC khác. */
+const CSV_HEADERS = [
+  "ma_don",
+  "ho_ten",
+  "so_dien_thoai",
+  "dia_chi",
+  "hang_hoa",
+  "so_luong",
+  "tong_tien",
+  "tien_te",
+] as const;
+
 function tenHangHoa(don: ShopDonHang): string {
   return don.dong
     .map((d) => {
@@ -51,7 +63,7 @@ function tongSoLuong(don: ShopDonHang): number {
   return don.dong.reduce((sum, d) => sum + d.soLuong, 0);
 }
 
-function buildRows(dons: ShopDonHang[]): (string | number)[][] {
+function buildVtpRows(dons: ShopDonHang[]): (string | number)[][] {
   return dons.map((don, i) => [
     i + 1,
     don.maDon ?? don.id.slice(0, 8),
@@ -60,12 +72,12 @@ function buildRows(dons: ShopDonHang[]): (string | number)[][] {
     don.muaDiaChi?.trim() || "",
     tenHangHoa(don),
     tongSoLuong(don),
-    500, // trọng lượng mặc định (gram) — người bán chỉnh lại nếu cần
+    500,
     Math.round(don.tongTien),
-    0, // COD = 0 (người mua đã chuyển khoản trước + gửi biên lai)
+    0,
     "Bưu kiện",
     "",
-    "", // Dịch vụ — người bán chọn trên VTP
+    "",
     "",
     "",
     "",
@@ -84,19 +96,62 @@ function timestampSlug(): string {
   return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}`;
 }
 
+function csvEscape(v: string | number): string {
+  const s = String(v);
+  if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+  return s;
+}
+
+/** Khối text copy nhanh (họ tên / SĐT / địa chỉ) — dán vào form web ĐVVC. */
+export function formatDiaChiNhanCopy(don: ShopDonHang): string {
+  const lines = [
+    don.muaHoTen?.trim() || don.muaTen?.trim() || "",
+    don.muaSoDienThoai?.trim() || "",
+    don.muaDiaChi?.trim() || "",
+  ].filter(Boolean);
+  return lines.join("\n");
+}
+
 /**
  * Sinh + tải file .xlsx theo mẫu ViettelPost cho các đơn đã chọn (client-side).
- * Dùng dynamic import SheetJS để không nặng bundle chính.
  */
 export async function exportDonsToViettelPostXlsx(
   dons: ShopDonHang[],
 ): Promise<void> {
   if (dons.length === 0) return;
   const XLSX = await import("xlsx");
-  const aoa: (string | number)[][] = [[...VTP_HEADERS], ...buildRows(dons)];
+  const aoa: (string | number)[][] = [[...VTP_HEADERS], ...buildVtpRows(dons)];
   const ws = XLSX.utils.aoa_to_sheet(aoa);
   ws["!cols"] = VTP_COL_WIDTHS.map((w) => ({ wch: w }));
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "DANH SÁCH ĐƠN HÀNG");
   XLSX.writeFile(wb, `viettelpost-don-${timestampSlug()}.xlsx`);
+}
+
+/** CSV chung (UTF-8 BOM) — mở Excel / import thủ công lên ĐVVC khác. */
+export function exportDonsToCsv(dons: ShopDonHang[]): void {
+  if (dons.length === 0) return;
+  const rows = dons.map((don) => [
+    don.maDon ?? don.id.slice(0, 8),
+    don.muaHoTen?.trim() || don.muaTen?.trim() || "",
+    don.muaSoDienThoai?.trim() || "",
+    don.muaDiaChi?.trim() || "",
+    tenHangHoa(don),
+    tongSoLuong(don),
+    Math.round(don.tongTien),
+    don.tienTe || "VND",
+  ]);
+  const body = [
+    CSV_HEADERS.join(","),
+    ...rows.map((r) => r.map(csvEscape).join(",")),
+  ].join("\r\n");
+  const blob = new Blob(["\uFEFF" + body], {
+    type: "text/csv;charset=utf-8",
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `cins-don-ship-${timestampSlug()}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
 }

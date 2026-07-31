@@ -20,6 +20,7 @@ export async function POST(request: Request) {
     bienLaiAnhUrl?: unknown;
     bienLaiAnhId?: unknown;
     diaChiNhanId?: unknown;
+    hinhThucGiao?: unknown;
   };
   try {
     body = (await request.json()) as typeof body;
@@ -41,6 +42,8 @@ export async function POST(request: Request) {
         typeof body.bienLaiAnhId === "string" ? body.bienLaiAnhId : null,
       diaChiNhanId:
         typeof body.diaChiNhanId === "string" ? body.diaChiNhanId : null,
+      hinhThucGiao:
+        body.hinhThucGiao === "tai_su_kien" ? "tai_su_kien" : "truc_tiep",
     });
     return NextResponse.json({ don }, { status: 201 });
   } catch (e) {
@@ -61,6 +64,10 @@ export async function POST(request: Request) {
         422,
         "Cần nhập đầy đủ họ tên, số điện thoại và địa chỉ nhận hàng.",
       ],
+      ONLINE_DISABLED: [
+        410,
+        "CINs không liên kết ĐVVC — chỉ nhận trực tiếp / tại sự kiện.",
+      ],
       ITEM_UNAVAILABLE: [422, "Có món đã ngừng bán — hãy gỡ khỏi giỏ."],
       STOCK_EMPTY: [422, "Có món hết hàng — hãy gỡ khỏi giỏ."],
       STOCK_INSUFFICIENT: [
@@ -74,6 +81,10 @@ export async function POST(request: Request) {
       SHOP_TAM_DONG: [
         422,
         "Shop đang tạm đóng cửa — chưa nhận đơn.",
+      ],
+      SHOP_KHOA: [
+        422,
+        "Shop đang bị khóa bởi nền tảng (nợ phí / tranh chấp) — chưa nhận đơn.",
       ],
       BLOCKED: [403, "Không thể gửi đơn tới cửa hàng này."],
     };

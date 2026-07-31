@@ -1,6 +1,7 @@
 "use client";
 
-import { Maximize2, Paperclip, Send, Trash2, X } from "lucide-react";
+import { Maximize2, Phone, Send, Trash2, Video, X } from "lucide-react";
+import dynamic from "next/dynamic";
 import {
   useCallback,
   useEffect,
@@ -19,12 +20,19 @@ import {
   filterChatAtMembers,
   isChatAtMentionAll,
 } from "@/components/cins/ChatAtMentionMenu";
+import { ChatComposeToolsMenu } from "@/components/cins/ChatComposeToolsMenu";
 import { ChatForwardPicker } from "@/components/cins/ChatForwardPicker";
 import { ChatGroupAvatar } from "@/components/cins/ChatGroupAvatar";
 import type { ChatMessageActionHandlers } from "@/components/cins/ChatMessageActions";
 import { ChatMessageThreadItems } from "@/components/cins/ChatMessageThreadItems";
 import { ChatReplyComposeBar } from "@/components/cins/ChatReplyComposeBar";
 import { ChatStickerPicker } from "@/components/cins/ChatStickerPicker";
+
+const PhongHocMeeting = dynamic(
+  () =>
+    import("@/components/media/PhongHocMeeting").then((m) => m.PhongHocMeeting),
+  { ssr: false },
+);
 import { addChatMessageToCanvas } from "@/lib/chat/canvas/add-message-client";
 import { canvasBridge } from "@/components/cins/canvas/canvas-bridge";
 import { avatarBg, avatarHueFromSeed, avatarInitialFromName } from "@/lib/chat/avatar";
@@ -51,9 +59,11 @@ import {
   createOptimisticChatMessage,
   messagePreviewText,
 } from "@/lib/chat/optimistic-message";
+import { isPendingRoomId } from "@/lib/chat/optimistic-thread";
 import { applyOptimisticReaction } from "@/lib/chat/optimistic-reactions";
 import { fetchRoomMessagesPage } from "@/lib/chat/messages-client";
 import { updateMessageInList } from "@/lib/chat/patch-thread-messages";
+import type { MediaCallMode } from "@/lib/media/call-mode";
 import {
   applyOrgRoomReadCursorRealtime,
   patchChatReadCursorMessage,
@@ -327,6 +337,14 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [stickerPickerOpen, setStickerPickerOpen] = useState(false);
+  const [composeToolsOpen, setComposeToolsOpen] = useState(false);
+  const [phongHoc, setPhongHoc] = useState<{
+    token: string;
+    title: string;
+    mode: MediaCallMode;
+  } | null>(null);
+  const [phongHocBusy, setPhongHocBusy] = useState(false);
+  const [phongHocErr, setPhongHocErr] = useState<string | null>(null);
   const [replyTarget, setReplyTarget] = useState<ChatMessage | null>(null);
   const [forwardTarget, setForwardTarget] = useState<ChatMessage | null>(null);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
@@ -1601,6 +1619,84 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
     [scrollMessagesToBottom],
   );
 
+  const canJoinPhongHoc =
+    Boolean(miniThread?.roomId) &&
+    !isPendingRoomId(miniThread?.roomId ?? "") &&
+    !Boolean(miniThread?.isSelf);
+
+  const joinPhongHoc = useCallback(
+    async (mode: MediaCallMode) => {
+      const roomId = miniThread?.roomId;
+      if (!roomId || isPendingRoomId(roomId) || phongHocBusy) return;
+      setPhongHocBusy(true);
+      setPhongHocErr(null);
+      try {
+        const res = await fetch(
+          `/api/chat/rooms/${encodeURIComponent(roomId)}/phong-hoc/token`,
+          { method: "POST" },
+        );
+        const json = (await res.json().catch(() => null)) as {
+          token?: string;
+          error?: string;
+        } | null;
+        if (!res.ok || !json?.token) {
+          setPhongHocErr(json?.error || "Không bắt đầu được cuộc gọi.");
+          return;
+        }
+        setPhongHoc({
+          token: json.token,
+          title: miniThread?.name?.trim() || "Cuộc gọi",
+          mode,
+        });
+      } catch {
+        setPhongHocErr("Lỗi mạng — thử lại.");
+      } finally {
+        setPhongHocBusy(false);
+      }
+    },
+    [miniThread, phongHocBusy],
+  );
+
+  const handleMiniCreatePoll = useCallback(
+    async (input: {
+      question: string;
+      options: string[];
+    }): Promise<{ ok: true } | { ok: false; error: string }> => {
+      const roomId = miniThread?.roomId;
+      if (!roomId || isPendingRoomId(roomId) || !miniThread) {
+        return { ok: false, error: "Phòng chưa sẵn sàng." };
+      }
+      try {
+        const res = await fetch(`/api/chat/rooms/${roomId}/polls`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            cau_hoi: input.question,
+            lua_chon: input.options,
+          }),
+        });
+        const json = (await res.json().catch(() => null)) as {
+          message?: ChatMessage;
+          error?: string;
+        } | null;
+        if (!res.ok || !json?.message) {
+          return {
+            ok: false,
+            error: json?.error ?? "Không tạo được bình chọn.",
+          };
+        }
+        const enriched = miniThread.isGroup
+          ? applyKnownGroupSender(json.message, miniThread.memberAvatars)
+          : json.message;
+        appendOptimisticMessages(roomId, [enriched]);
+        return { ok: true };
+      } catch {
+        return { ok: false, error: "Lỗi mạng." };
+      }
+    },
+    [appendOptimisticMessages, miniThread],
+  );
+
   const ingestForwardedMessages = useCallback(
     (roomId: string, messages: ChatMessage[]) => {
       if (messages.length === 0) return;
@@ -2009,6 +2105,30 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
               onClick={(event) => event.stopPropagation()}
               onKeyDown={(event) => event.stopPropagation()}
             >
+              {canJoinPhongHoc ? (
+                <>
+                  <button
+                    type="button"
+                    className="j-chat-mini-icon-btn"
+                    aria-label="Gọi"
+                    title="Gọi (chỉ mic)"
+                    disabled={phongHocBusy}
+                    onClick={() => void joinPhongHoc("audio")}
+                  >
+                    <Phone size={15} strokeWidth={2} aria-hidden />
+                  </button>
+                  <button
+                    type="button"
+                    className="j-chat-mini-icon-btn"
+                    aria-label="Gọi video"
+                    title="Gọi video"
+                    disabled={phongHocBusy}
+                    onClick={() => void joinPhongHoc("video")}
+                  >
+                    <Video size={15} strokeWidth={2} aria-hidden />
+                  </button>
+                </>
+              ) : null}
               <button
                 type="button"
                 className="j-chat-mini-icon-btn"
@@ -2029,10 +2149,26 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
             </div>
           </header>
 
+          {phongHoc ? (
+            <div className="j-chat-mini-call-stage">
+              <PhongHocMeeting
+                authToken={phongHoc.token}
+                mode={phongHoc.mode}
+                title={phongHoc.title}
+                onClose={() => {
+                  setPhongHoc(null);
+                  setPhongHocErr(null);
+                }}
+              />
+            </div>
+          ) : null}
+
           <div
             className="j-chat-mini-messages"
             ref={messagesContainerRef}
             onScroll={handleMessagesScroll}
+            hidden={Boolean(phongHoc)}
+            aria-hidden={phongHoc ? true : undefined}
           >
             {loadingOlder ? (
               <p className="j-chat-mini-empty j-chat-mini-load-more">
@@ -2128,6 +2264,11 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
                 {loadError}
               </p>
             ) : null}
+            {phongHocErr ? (
+              <p className="j-chat-mini-compose-send-error" role="alert">
+                {phongHocErr}
+              </p>
+            ) : null}
             {stickerPickerOpen ? (
               <ChatStickerPicker
                 onClose={() => setStickerPickerOpen(false)}
@@ -2161,6 +2302,22 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
                   e.target.value = "";
                 }}
               />
+              <ChatComposeToolsMenu
+                open={composeToolsOpen}
+                onOpenChange={setComposeToolsOpen}
+                canAddMoc={false}
+                canStartCall={canJoinPhongHoc}
+                callBusy={phongHocBusy}
+                onStartCall={(mode) => void joinPhongHoc(mode)}
+                onAddMoc={() => {}}
+                onAttachImage={() => fileInputRef.current?.click()}
+                onAttachVideo={() => {
+                  setLoadError(
+                    "Gửi video đính kèm: mở cửa sổ tin nhắn đầy đủ (nút Maximize).",
+                  );
+                }}
+                onCreatePoll={handleMiniCreatePoll}
+              />
               <button
                 type="button"
                 className="cins-chat-attach cins-chat-attach-meme"
@@ -2176,14 +2333,6 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
                   alt=""
                   aria-hidden
                 />
-              </button>
-              <button
-                type="button"
-                className="j-chat-mini-attach"
-                aria-label="Đính kèm ảnh"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Paperclip size={17} strokeWidth={1.9} aria-hidden />
               </button>
               <textarea
                 ref={inputRef}

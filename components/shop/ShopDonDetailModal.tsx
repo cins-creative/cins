@@ -1,11 +1,13 @@
 "use client";
 
-import { Ban, Clock, Flag, Loader2, Package, X } from "lucide-react";
+import { Ban, Clock, Copy, Flag, Loader2, Package, Printer, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
 import { ReportModal } from "@/components/social/ReportModal";
+import { formatDiaChiNhanCopy } from "@/lib/shop/export-viettelpost";
+import { printPhieuDongGoi } from "@/lib/shop/phieu-dong-goi";
 import {
   SHOP_DON_NHAC_GIO,
   SHOP_LOAI_DON_LABEL,
@@ -13,6 +15,7 @@ import {
   SHOP_TRANG_THAI_DON_LABEL,
   type ShopDonHang,
 } from "@/lib/shop/types";
+import { SHOP_LY_DO_KHIEU_NAI_LABEL } from "@/lib/shop/khieu-nai-labels";
 
 import "./shop-don-detail-modal.css";
 
@@ -102,6 +105,12 @@ export function ShopDonDetailModal({
   const [hasReported, setHasReported] = useState(false);
   /** Hiện inline confirm trước khi thực sự chặn. */
   const [confirmBlock, setConfirmBlock] = useState(false);
+  const [knOpen, setKnOpen] = useState(false);
+  const [knLyDo, setKnLyDo] = useState<keyof typeof SHOP_LY_DO_KHIEU_NAI_LABEL>("chua_giao");
+  const [knMoTa, setKnMoTa] = useState("");
+  const [knBusy, setKnBusy] = useState(false);
+  const [knMsg, setKnMsg] = useState<string | null>(null);
+  const [copyFlash, setCopyFlash] = useState<string | null>(null);
 
   useEffect(() => {
     setPortalReady(true);
@@ -141,6 +150,35 @@ export function ShopDonDetailModal({
     }
     void load(donId);
   }, [open, donId, load]);
+
+  async function moKhieuNai() {
+    if (!don) return;
+    setKnBusy(true);
+    setKnMsg(null);
+    setErr(null);
+    try {
+      const res = await fetch("/api/shop/khieu-nai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          idDonHang: don.id,
+          lyDo: knLyDo,
+          moTa: knMoTa.trim() || null,
+        }),
+      });
+      const json = (await res.json().catch(() => null)) as {
+        error?: string;
+      } | null;
+      if (!res.ok) {
+        setErr(json?.error ?? "Không mở được khiếu nại.");
+        return;
+      }
+      setKnMsg("Đã gửi khiếu nại. CINs sẽ trọng tài — không hoàn tiền qua nền tảng.");
+      setKnOpen(false);
+    } finally {
+      setKnBusy(false);
+    }
+  }
 
   useEffect(() => {
     if (!open) {
@@ -195,8 +233,31 @@ export function ShopDonDetailModal({
     return null;
   })();
 
+  const flashCopy = useCallback((label: string) => {
+    setCopyFlash(label);
+    window.setTimeout(() => setCopyFlash(null), 1600);
+  }, []);
+
+  const copyText = useCallback(
+    async (text: string, label: string) => {
+      const t = text.trim();
+      if (!t) return;
+      try {
+        await navigator.clipboard.writeText(t);
+        flashCopy(label);
+      } catch {
+        setErr("Không copy được — kiểm tra quyền clipboard.");
+      }
+    },
+    [flashCopy],
+  );
+
   async function patch(
-    action: "da_nhan_tien" | "da_giao_tai_su_kien" | "hoan_thanh",
+    action:
+      | "da_nhan_tien"
+      | "da_giao_tai_su_kien"
+      | "hoan_thanh"
+      | "hoan_tra",
   ) {
     if (!don) return;
     setBusy(true);
@@ -476,7 +537,7 @@ export function ShopDonDetailModal({
             </ul>
 
             <div className="shop-don-detail-tong">
-              <span>Tổng</span>
+              <span>Tổng hàng</span>
               <strong>
                 {don.tongTien.toLocaleString("vi-VN")} {don.tienTe}
               </strong>
@@ -484,16 +545,142 @@ export function ShopDonDetailModal({
             </div>
 
             <div className="shop-don-detail-aside">
+            {knMsg ? (
+              <p className="shop-don-detail-note-text" role="status">
+                {knMsg}
+              </p>
+            ) : null}
+
+            {role === "buyer" &&
+            (don.trangThai === "da_nhan_tien" ||
+              don.trangThai === "hoan_thanh" ||
+              don.trangThai === "huy" ||
+              don.trangThai === "da_giao_tai_su_kien") ? (
+              <div className="shop-don-detail-nhan">
+                <span className="shop-don-detail-note-label">Khiếu nại</span>
+                {!knOpen ? (
+                  <button
+                    type="button"
+                    className="shop-don-detail-btn ghost"
+                    onClick={() => setKnOpen(true)}
+                  >
+                    Mở khiếu nại
+                  </button>
+                ) : (
+                  <div className="shop-don-detail-huy">
+                    <select
+                      className="shop-don-detail-huy-input"
+                      value={knLyDo}
+                      onChange={(e) =>
+                        setKnLyDo(
+                          e.target.value as keyof typeof SHOP_LY_DO_KHIEU_NAI_LABEL,
+                        )
+                      }
+                    >
+                      {(
+                        Object.keys(SHOP_LY_DO_KHIEU_NAI_LABEL) as Array<
+                          keyof typeof SHOP_LY_DO_KHIEU_NAI_LABEL
+                        >
+                      ).map((k) => (
+                        <option key={k} value={k}>
+                          {SHOP_LY_DO_KHIEU_NAI_LABEL[k]}
+                        </option>
+                      ))}
+                    </select>
+                    <textarea
+                      className="shop-don-detail-huy-input"
+                      rows={2}
+                      placeholder="Mô tả ngắn…"
+                      value={knMoTa}
+                      onChange={(e) => setKnMoTa(e.target.value)}
+                    />
+                    <p className="shop-don-detail-huy-hint">
+                      CINs trọng tài cấp 1, không hoàn tiền. Hai bên tự dàn xếp
+                      nếu cần chuyển lại tiền.
+                    </p>
+                    <div className="shop-don-detail-actions-row">
+                      <button
+                        type="button"
+                        className="shop-don-detail-btn danger"
+                        disabled={knBusy}
+                        onClick={() => void moKhieuNai()}
+                      >
+                        Gửi khiếu nại
+                      </button>
+                      <button
+                        type="button"
+                        className="shop-don-detail-btn ghost"
+                        disabled={knBusy}
+                        onClick={() => setKnOpen(false)}
+                      >
+                        Hủy
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : null}
+
             {role === "seller" &&
             (don.muaHoTen || don.muaSoDienThoai || don.muaDiaChi) ? (
               <div className="shop-don-detail-nhan">
-                <span className="shop-don-detail-note-label">
-                  Thông tin nhận hàng
-                </span>
+                <div className="shop-don-detail-nhan-hdr">
+                  <span className="shop-don-detail-note-label">
+                    Thông tin nhận hàng
+                  </span>
+                  <div className="shop-don-detail-nhan-tools">
+                    <button
+                      type="button"
+                      className="shop-don-detail-btn ghost shop-don-detail-nhan-tool"
+                      title="Copy họ tên, SĐT, địa chỉ"
+                      onClick={() =>
+                        void copyText(
+                          formatDiaChiNhanCopy(don),
+                          "Đã copy thông tin nhận",
+                        )
+                      }
+                    >
+                      <Copy size={14} aria-hidden />
+                      Copy
+                    </button>
+                    <button
+                      type="button"
+                      className="shop-don-detail-btn ghost shop-don-detail-nhan-tool"
+                      title="In phiếu đóng gói"
+                      onClick={() => {
+                        try {
+                          printPhieuDongGoi(don);
+                        } catch {
+                          setErr(
+                            "Trình duyệt chặn cửa sổ in — cho phép popup rồi thử lại.",
+                          );
+                        }
+                      }}
+                    >
+                      <Printer size={14} aria-hidden />
+                      Phiếu
+                    </button>
+                  </div>
+                </div>
+                {copyFlash ? (
+                  <p className="shop-don-detail-copy-flash" role="status">
+                    {copyFlash}
+                  </p>
+                ) : null}
                 {don.muaHoTen ? (
                   <p className="shop-don-detail-nhan-line">
                     <span>Họ tên</span>
                     <strong>{don.muaHoTen}</strong>
+                    <button
+                      type="button"
+                      className="shop-don-detail-copy-one"
+                      aria-label="Copy họ tên"
+                      onClick={() =>
+                        void copyText(don.muaHoTen ?? "", "Đã copy họ tên")
+                      }
+                    >
+                      <Copy size={12} aria-hidden />
+                    </button>
                   </p>
                 ) : null}
                 {don.muaSoDienThoai ? (
@@ -502,12 +689,35 @@ export function ShopDonDetailModal({
                     <a href={`tel:${don.muaSoDienThoai.replace(/\s+/g, "")}`}>
                       {don.muaSoDienThoai}
                     </a>
+                    <button
+                      type="button"
+                      className="shop-don-detail-copy-one"
+                      aria-label="Copy số điện thoại"
+                      onClick={() =>
+                        void copyText(
+                          don.muaSoDienThoai ?? "",
+                          "Đã copy SĐT",
+                        )
+                      }
+                    >
+                      <Copy size={12} aria-hidden />
+                    </button>
                   </p>
                 ) : null}
                 {don.muaDiaChi ? (
                   <p className="shop-don-detail-nhan-line">
                     <span>Địa chỉ</span>
                     <strong>{don.muaDiaChi}</strong>
+                    <button
+                      type="button"
+                      className="shop-don-detail-copy-one"
+                      aria-label="Copy địa chỉ"
+                      onClick={() =>
+                        void copyText(don.muaDiaChi ?? "", "Đã copy địa chỉ")
+                      }
+                    >
+                      <Copy size={12} aria-hidden />
+                    </button>
                   </p>
                 ) : null}
               </div>
@@ -612,22 +822,72 @@ export function ShopDonDetailModal({
                     }
                   >
                     {don.loaiDon === "mua_ngay"
-                      ? "Đã nhận tiền"
+                      ? "Xác nhận đã nhận tiền"
                       : "Đã giao / nhận hàng"}
                   </button>
                 ) : null}
 
-                {(don.trangThai === "da_nhan_tien" ||
-                  don.trangThai === "da_giao_tai_su_kien") &&
-                role === "seller" ? (
+                {don.trangThai === "da_nhan_tien" && role === "seller" ? (
                   <button
                     type="button"
                     className="shop-don-detail-btn primary"
                     disabled={busy}
-                    title="Đánh dấu đơn đã giao xong / hoàn thành"
                     onClick={() => void patch("hoan_thanh")}
                   >
-                    Hoàn thành đơn
+                    Hoàn thành
+                  </button>
+                ) : null}
+
+                {don.trangThai === "cho_lay_hang" && role === "seller" ? (
+                  <>
+                    <button
+                      type="button"
+                      className="shop-don-detail-btn primary"
+                      disabled={busy}
+                      onClick={() => void patch("hoan_thanh")}
+                    >
+                      Hoàn thành
+                    </button>
+                    <button
+                      type="button"
+                      className="shop-don-detail-btn danger"
+                      disabled={busy}
+                      onClick={() => void patch("hoan_tra")}
+                    >
+                      Hoàn trả
+                    </button>
+                  </>
+                ) : null}
+
+                {don.trangThai === "dang_giao" && role === "seller" ? (
+                  <>
+                    <button
+                      type="button"
+                      className="shop-don-detail-btn primary"
+                      disabled={busy}
+                      onClick={() => void patch("hoan_thanh")}
+                    >
+                      Hoàn thành
+                    </button>
+                    <button
+                      type="button"
+                      className="shop-don-detail-btn danger"
+                      disabled={busy}
+                      onClick={() => void patch("hoan_tra")}
+                    >
+                      Hoàn trả
+                    </button>
+                  </>
+                ) : null}
+
+                {don.trangThai === "da_giao_tai_su_kien" && role === "seller" ? (
+                  <button
+                    type="button"
+                    className="shop-don-detail-btn primary"
+                    disabled={busy}
+                    onClick={() => void patch("hoan_thanh")}
+                  >
+                    Hoàn thành
                   </button>
                 ) : null}
 

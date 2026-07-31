@@ -1,10 +1,10 @@
-.j-shop {
+﻿.j-shop {
   min-width: 0;
   padding: 4px 2px 48px;
   color: var(--ink-body);
 }
 
-/* —— Storefront (mua hàng) —— */
+/* ?? Storefront (mua h?ng) ?? */
 .j-shop-storefront {
   display: flex;
   flex-direction: column;
@@ -209,7 +209,7 @@
   object-fit: cover;
 }
 
-/* Mobile: thay chip «Chủ shop» — hiện khi sidebar Journey bị ẩn. */
+/* Mobile: thay chip ?Ch? shop? ? hi?n khi sidebar Journey b? ?n. */
 .j-shop-sf-back-profile {
   display: none;
 }
@@ -259,7 +259,7 @@
   pointer-events: auto;
 }
 
-/* Nền kính đặc hơn `.j-tlb` một chút — vẫn giữ blur. */
+/* N?n k?nh ??c h?n `.j-tlb` m?t ch?t ? v?n gi? blur. */
 .j-shop-sf-section-head::before {
   background: color-mix(in srgb, var(--bg-page, #f4f5f8) 78%, transparent);
 }
@@ -522,7 +522,7 @@
 }
 
 .j-shop-sf-catalog-body > .j-shop-sf-group--banner {
-  /* Banner full-bleed: hơi nới khỏi khối Feature trên/dưới */
+  /* Banner full-bleed: h?i n?i kh?i kh?i Feature tr?n/d??i */
   margin-block: 4px;
 }
 
@@ -981,7 +981,7 @@
   text-decoration: none;
 }
 
-/* Type card: không scale / không làm mờ ảnh khi hover. */
+/* Type card: kh?ng scale / kh?ng l?m m? ?nh khi hover. */
 .j-shop-sf-card.j-shop-sf-type-card:not(.is-static):hover .j-shop-sf-card-media img {
   opacity: 1;
   transform: none;
@@ -1053,7 +1053,7 @@
   border-radius: var(--sf-feature-r);
 }
 
-/* Đĩa gradient xoay — chỉ lộ qua khe padding (stroke). */
+/* ??a gradient xoay ? ch? l? qua khe padding (stroke). */
 .j-shop-sf-card.is-feature::before {
   content: "";
   position: absolute;
@@ -1077,7 +1077,7 @@
   z-index: 0;
 }
 
-/* Che tâm — bo góc đồng bộ với outer − stroke. */
+/* Che t?m ? bo g?c ??ng b? v?i outer ? stroke. */
 .j-shop-sf-card.is-feature::after {
   content: "";
   position: absolute;
@@ -1307,18 +1307,24 @@
 
 .j-shop-sf-card-action {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
   margin-top: 4px;
-  min-height: 28px;
 }
 
 .j-shop-sf-card-action .j-shop-sf-card-price-row {
   margin-top: 0;
   padding-top: 0;
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   min-width: 0;
+  width: 100%;
+}
+
+.j-shop-sf-card-action .j-shop-sf-qty,
+.j-shop-sf-card-action .j-shop-sf-add {
+  align-self: flex-end;
+  flex-shrink: 0;
 }
 
 .j-shop-sf-item-card {
@@ -1430,7 +1436,7 @@
 }
 
 .j-shop-sf-cart-btn {
-  /* Đồng bộ visual với topbar `.gio-chung-trigger`. */
+  /* ??ng b? visual v?i topbar `.gio-chung-trigger`. */
   --shop-accent: var(--cins-orange, #fdad4c);
   --shop-accent-strong: var(--cins-orange-strong, #f07800);
   position: relative;
@@ -1804,8 +1810,7 @@
   }
 
   .j-shop-sf-grid .j-shop-sf-card-action {
-    gap: 4px;
-    min-height: 24px;
+    gap: 5px;
     margin-top: 2px;
   }
 
@@ -1851,7 +1856,7 @@
     padding-inline: 14px;
   }
 
-  /* Trang loại hàng — lề L/R trên mobile */
+  /* Trang lo?i h?ng ? l? L/R tr?n mobile */
   .j-shop:has(.j-shop-loai-page) {
     padding-left: 14px;
     padding-right: 14px;
@@ -1989,7 +1994,7 @@
   line-height: 1.45;
 }
 
-/* —— Public —— */
+/* ?? Public ?? */
 .j-shop-public-brand {
   display: flex;
   gap: 14px;
@@ -2080,7 +2085,7 @@
   color: #059669;
 }
 
-/* —— Owner layout —— */
+/* ?? Owner layout ?? */
 .j-shop-owner {
   display: flex;
   flex-direction: column;
@@ -2250,7 +2255,7 @@
   text-underline-offset: 2px;
 }
 
-/* —— 2 cột cố định —— */
+/* ?? 2 c?t c? ??nh ?? */
 .j-shop-owner-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -2496,7 +2501,8 @@
 }
 
 .j-shop-form input,
-.j-shop-form textarea {
+.j-shop-form textarea,
+.j-shop-form select {
   width: 100%;
   border: 1px solid var(--border-strong, var(--border, #cbd5e1));
   border-radius: 10px;
@@ -2505,6 +2511,63 @@
   font-weight: 400;
   color: var(--ink-body);
   background: var(--bg-page, #fff);
+}
+
+.j-shop-form select {
+  cursor: pointer;
+  appearance: auto;
+  color-scheme: light;
+}
+
+.j-shop-form select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.j-shop-secret-field {
+  position: relative;
+  display: block;
+  width: 100%;
+}
+
+.j-shop-secret-field input {
+  padding-right: 42px;
+}
+
+.j-shop-secret-toggle {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink-muted, #64748b);
+  cursor: pointer;
+}
+
+.j-shop-secret-toggle:hover {
+  color: var(--ink-display, var(--ink, #111));
+  background: color-mix(in srgb, var(--ink, #111) 6%, transparent);
+}
+
+:root[data-theme="dark"] .j-shop-secret-toggle {
+  color: var(--ink-muted);
+}
+
+:root[data-theme="dark"] .j-shop-secret-toggle:hover {
+  color: var(--ink-display, var(--ink));
+  background: color-mix(in srgb, #fff 8%, transparent);
+}
+
+.j-shop-form select option {
+  color: var(--ink-body, #0f172a);
+  background: var(--bg-surface, #fff);
 }
 
 .j-shop-form input::placeholder,
@@ -2916,9 +2979,20 @@
 }
 
 :root[data-theme="dark"] .j-shop-form input,
-:root[data-theme="dark"] .j-shop-form textarea {
+:root[data-theme="dark"] .j-shop-form textarea,
+:root[data-theme="dark"] .j-shop-form select {
   background: var(--bg-page);
   border-color: var(--border);
+  color: var(--ink-body);
+}
+
+:root[data-theme="dark"] .j-shop-form select {
+  color-scheme: dark;
+}
+
+:root[data-theme="dark"] .j-shop-form select option {
+  color: var(--ink-body);
+  background: var(--bg-surface);
 }
 
 :root[data-theme="dark"] .j-shop-save {
@@ -2994,12 +3068,12 @@
   background: var(--neutral-100);
 }
 
-/* —— Trang loại hàng /{slug}/shop/{shopSlug}/loai/[id] (trong j-shell) —— */
+/* ?? Trang lo?i h?ng /{slug}/shop/{shopSlug}/loai/[id] (trong j-shell) ?? */
 .j-shell > .j-shop {
   min-width: 0;
 }
 
-/* Mobile shop: ẩn sidebar hồ sơ — link «← Trang cá nhân» dưới avatar thay thế. */
+/* Mobile shop: ?n sidebar h? s? ? link ?? Trang c? nh?n? d??i avatar thay th?. */
 @media (max-width: 991.98px) {
   .cins-journey-page .j-shell:has(> .j-shop) > .j-sidebar {
     display: none;
@@ -3799,7 +3873,7 @@
   display: flex;
   gap: 6px;
   width: max-content;
-  /* Ít card → canh giữa; nhiều hơn khung → JS đặt scrollLeft vào giữa. */
+  /* ?t card ? canh gi?a; nhi?u h?n khung ? JS ??t scrollLeft v?o gi?a. */
   margin-inline: auto;
 }
 
@@ -4470,7 +4544,7 @@
   background: color-mix(in srgb, #fff 6%, var(--bg-page));
 }
 
-/* Trang chi tiết loại — ẩn FAB góp ý + chat (thay bằng sticky thêm giỏ). */
+/* Trang chi ti?t lo?i ? ?n FAB g?p ? + chat (thay b?ng sticky th?m gi?). */
 body:has(.j-shop-loai-page) .gopy-fab,
 body:has(.j-shop-loai-page) .j-chat-dock {
   display: none !important;
@@ -4487,7 +4561,7 @@ body:has(.j-shop-loai-page) .j-chat-dock {
     z-index: auto;
   }
 
-  /* Mobile: swipe ảnh chính — ẩn thumbs, hiện dots. */
+  /* Mobile: swipe ?nh ch?nh ? ?n thumbs, hi?n dots. */
   .j-shop-loai-gallery-thumbs {
     display: none;
   }
@@ -4497,8 +4571,8 @@ body:has(.j-shop-loai-page) .j-chat-dock {
   }
 
   /*
-   * Thứ tự mobile: gallery (đã ở trên) → tên → giá → mẫu/biến thể
-   * → số lượng + thêm giỏ → mô tả.
+   * Th? t? mobile: gallery (?? ? tr?n) ? t?n ? gi? ? m?u/bi?n th?
+   * ? s? l??ng + th?m gi? ? m? t?.
    */
   .j-shop-loai-buy {
     display: flex;
@@ -4541,3 +4615,4 @@ body:has(.j-shop-loai-page) .j-chat-dock {
     flex-basis: 168px;
   }
 }
+

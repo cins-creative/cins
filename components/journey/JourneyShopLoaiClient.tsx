@@ -37,6 +37,7 @@ import { JourneyShopSfHero } from "@/components/journey/JourneyShopSfHero";
 import { useJourneyViewOptional } from "@/components/journey/JourneyViewContext";
 import {
   GIO_CHUNG_CHANGED_EVENT,
+  notifyGioChungAdded,
 } from "@/components/shop/ShopGioChungButton";
 import { imageFilesFromClipboard } from "@/lib/files/clipboard-images";
 import {
@@ -287,7 +288,6 @@ export function JourneyShopLoaiClient({
   const [filterLoai, setFilterLoai] = useState<string[]>([]);
   const [filterLoai2, setFilterLoai2] = useState<string[]>([]);
   const [qty, setQty] = useState(1);
-  const [cartBusy, setCartBusy] = useState(false);
   const [cartErr, setCartErr] = useState<string | null>(null);
 
   const [otherNhom, setOtherNhom] = useState<ShopStorefrontNhomCard[]>([]);
@@ -896,7 +896,8 @@ export function JourneyShopLoaiClient({
     !selectedBt.hetHang &&
     maxQty > 0;
 
-  const addToCart = useCallback(async () => {
+  /** Toast + badge phản hồi ngay — PATCH chạy nền. */
+  const addToCart = useCallback(() => {
     if (!selectedBt) return;
     if (!viewerId) {
       openAuthModal("Đăng nhập để thêm vào giỏ.");
@@ -910,28 +911,30 @@ export function JourneyShopLoaiClient({
       );
       return;
     }
+    const idBienThe = selectedBt.id;
     const delta = Math.max(1, qty);
-    setCartBusy(true);
     setCartErr(null);
-    try {
-      const res = await fetch("/api/shop/gio-chung", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ idBienThe: selectedBt.id, delta }),
-      });
-      const json = (await res.json().catch(() => null)) as {
-        error?: string;
-      } | null;
-      if (!res.ok) {
-        setCartErr(json?.error ?? "Không thêm vào giỏ.");
-        return;
+    notifyGioChungAdded();
+
+    void (async () => {
+      try {
+        const res = await fetch("/api/shop/gio-chung", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ idBienThe, delta }),
+        });
+        const json = (await res.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        if (!res.ok) {
+          setCartErr(json?.error ?? "Không thêm vào giỏ.");
+          return;
+        }
+        window.dispatchEvent(new Event(GIO_CHUNG_CHANGED_EVENT));
+      } catch {
+        setCartErr("Không thêm vào giỏ.");
       }
-      window.dispatchEvent(new Event(GIO_CHUNG_CHANGED_EVENT));
-    } catch {
-      setCartErr("Không thêm vào giỏ.");
-    } finally {
-      setCartBusy(false);
-    }
+    })();
   }, [selectedBt, viewerId, canAdd, qty, openAuthModal]);
 
   async function uploadReviewImage(file: File) {
@@ -1476,14 +1479,10 @@ export function JourneyShopLoaiClient({
                 <button
                   type="button"
                   className="j-shop-loai-add"
-                  disabled={!canAdd || cartBusy}
-                  onClick={() => void addToCart()}
+                  disabled={!canAdd}
+                  onClick={addToCart}
                 >
-                  {cartBusy ? (
-                    <Loader2 size={16} className="shop-spin" aria-hidden />
-                  ) : (
-                    <ShoppingBag size={16} aria-hidden />
-                  )}
+                  <ShoppingBag size={16} aria-hidden />
                   Thêm vào giỏ
                 </button>
               ) : (

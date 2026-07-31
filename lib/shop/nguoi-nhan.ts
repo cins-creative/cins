@@ -17,6 +17,12 @@ export type ShopNguoiNhanSnapshot = {
   hoTen: string;
   soDienThoai: string;
   diaChiDayDu: string;
+  /** Số nhà / đường (không gộp). */
+  diaChi?: string;
+  phuongXa?: string;
+  phuongXaCode?: string | null;
+  /** Mã enum tỉnh/thành CINs. */
+  tinhThanh?: string;
 };
 
 const MAX_HO_TEN = 80;

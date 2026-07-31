@@ -21,7 +21,7 @@ import {
 } from "react";
 
 import { CuaHangListCard } from "@/components/shop/CuaHangListCard";
-import { GIO_CHUNG_CHANGED_EVENT } from "@/components/shop/ShopGioChungButton";
+import { GIO_CHUNG_CHANGED_EVENT, notifyGioChungAdded } from "@/components/shop/ShopGioChungButton";
 import { getNameInitials } from "@/lib/journey/profile";
 import { normalizeSearchText } from "@/lib/search/normalize";
 import { shopEntryHref } from "@/lib/shop/cua-hang-href";
@@ -393,12 +393,16 @@ function QuayHangCatalogView({
         (qtyEpochRef.current.get(idBienThe) ?? 0) + 1,
       );
       /* Phản hồi tức thì — không chờ mạng. */
+      let shouldNotify = false;
       setQtyByBt((prev) => {
+        const prevQty = prev.get(idBienThe) ?? 0;
+        shouldNotify = qty > prevQty;
         const next = new Map(prev);
         if (qty <= 0) next.delete(idBienThe);
         else next.set(idBienThe, qty);
         return next;
       });
+      if (shouldNotify) notifyGioChungAdded();
       pendingQtyRef.current.set(idBienThe, qty);
       const prevTimer = syncTimersRef.current.get(idBienThe);
       if (prevTimer) clearTimeout(prevTimer);
