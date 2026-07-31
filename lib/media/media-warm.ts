@@ -102,7 +102,8 @@ export async function warmCallMedia(input: {
         audio: true,
         video: input.video,
         constraints: {
-          audio: { echoCancellation: true, noiseSuppression: true },
+          /* RealtimeKit types misspell noiseSuppression → noiseSupression */
+          audio: { echoCancellation: true, noiseSupression: true },
           video: input.video
             ? {
                 width: { ideal: 640 },
