@@ -1,12 +1,12 @@
 "use client";
 
-import RealtimeKitClient from "@cloudflare/realtimekit";
-
 import { CALL_MEDIA_CONSTRAINTS_FAST } from "@/lib/media/call-constraints";
 
 const IDLE_STOP_MS = 30_000;
 
-type WarmMediaHandler = Awaited<ReturnType<typeof RealtimeKitClient.initMedia>>;
+type WarmMediaHandler = Awaited<
+  ReturnType<(typeof import("@cloudflare/realtimekit"))["default"]["initMedia"]>
+>;
 
 type WarmSlot = {
   mediaHandler: WarmMediaHandler;
@@ -98,6 +98,9 @@ export async function warmCallMedia(input: {
 
   warming = (async () => {
     try {
+      const { default: RealtimeKitClient } = await import(
+        "@cloudflare/realtimekit"
+      );
       const mediaHandler = await RealtimeKitClient.initMedia({
         audio: true,
         video: input.video,
