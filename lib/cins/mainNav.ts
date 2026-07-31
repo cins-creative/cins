@@ -83,6 +83,15 @@ export const MAIN_NAV_ITEMS: MainNavItem[] = [
     isActive: isNgheNghiepHubPath,
   },
   {
+    id: "explore-linh-vuc",
+    href: "/explore",
+    label: "Lĩnh vực",
+    tip: "Duyệt tác phẩm theo lĩnh vực sáng tạo trên CINs",
+    icon: "gallery",
+    isActive: (p) =>
+      p === "/explore" || p.startsWith("/explore/") || p.startsWith("/linh-vuc/"),
+  },
+  {
     id: "org",
     href: TO_CHUC_HUB_PATH,
     label: "Tổ chức",

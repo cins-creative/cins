@@ -52,7 +52,7 @@ next-env.d.ts
 # local research clones (rive-runtime, rive-rs, …)
 /_research/
 
-# cins-creative sub-project
-cins-creative/node_modules
-cins-creative/.next
-cins-creative/.env*
+# archived portfolio shell (reference only)
+_archive/cins-creative/node_modules
+_archive/cins-creative/.next
+_archive/cins-creative/.env*

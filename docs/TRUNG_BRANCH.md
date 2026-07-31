@@ -15,6 +15,16 @@
 
 Production vẫn: worker `cins` → `cins.vn` · workflow `cloudflare-deploy.yml` · `npm run deploy`.
 
+## Mục tiêu máy / workspace
+
+```text
+C:\Users\TheTrung\Projects\trung-cins-website   ← git worktree nhánh trung/cins-website
+```
+
+Repo gốc `CINs Creative` có thể ở detached HEAD (đối chiếu). Làm việc và commit từ folder `trung-cins-website`.
+
+Shell portfolio cũ: `_archive/cins-creative/` (tham khảo). Public browse lĩnh vực: `/explore`, `/linh-vuc/[slug]`.
+
 ## Cảnh báo dùng chung (khai báo)
 
 Worker Trung hiện bind **cùng** Hyperdrive + R2 (`cins-rive-assets`, `cins-chat-video`) và cùng Supabase project với prod.
