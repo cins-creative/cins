@@ -1633,33 +1633,23 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
     async (mode: MediaCallMode) => {
       const roomId = miniThread?.roomId;
       if (!roomId || isPendingRoomId(roomId) || phongHocBusy) return;
+      const resolvedMode =
+        mode === "screen" &&
+        typeof window !== "undefined" &&
+        window.matchMedia("(max-width: 1024px)").matches
+          ? "video"
+          : mode;
       setPhongHocBusy(true);
       setPhongHocErr(null);
       try {
-        const warm =
-          typeof navigator !== "undefined" && navigator.mediaDevices?.getUserMedia
-            ? navigator.mediaDevices
-                .getUserMedia({
-                  audio: true,
-                  video: mode === "video",
-                })
-                .then((stream) => {
-                  stream.getTracks().forEach((t) => t.stop());
-                })
-                .catch(() => {})
-            : Promise.resolve();
-
-        const [res] = await Promise.all([
-          fetch(
-            `/api/chat/rooms/${encodeURIComponent(roomId)}/phong-hoc/token`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ mode, action: "start" }),
-            },
-          ),
-          warm,
-        ]);
+        const res = await fetch(
+          `/api/chat/rooms/${encodeURIComponent(roomId)}/phong-hoc/token`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ mode: resolvedMode, action: "start" }),
+          },
+        );
         const json = (await res.json().catch(() => null)) as {
           token?: string;
           callMessageId?: string | null;
@@ -1672,7 +1662,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
         setPhongHoc({
           token: json.token,
           title: miniThread?.name?.trim() || "Cuộc gọi",
-          mode,
+          mode: resolvedMode,
           callMessageId: json.callMessageId ?? null,
         });
       } catch {

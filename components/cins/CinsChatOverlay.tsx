@@ -2906,34 +2906,24 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     async (mode: "audio" | "video" | "screen") => {
       const roomId = active?.roomId;
       if (!roomId || isPendingRoomId(roomId) || phongHocBusy) return;
+      // Preview + join nhanh nằm trong PhongHocMeeting (không warm rồi stop).
+      const resolvedMode =
+        mode === "screen" &&
+        typeof window !== "undefined" &&
+        window.matchMedia("(max-width: 1024px)").matches
+          ? "video"
+          : mode;
       setPhongHocBusy(true);
       setPhongHocErr(null);
       try {
-        // Mở quyền mic/cam sớm (song song với token) — giảm 2–3s chờ getUserMedia lúc join.
-        const warm =
-          typeof navigator !== "undefined" && navigator.mediaDevices?.getUserMedia
-            ? navigator.mediaDevices
-                .getUserMedia({
-                  audio: true,
-                  video: mode === "video",
-                })
-                .then((stream) => {
-                  stream.getTracks().forEach((t) => t.stop());
-                })
-                .catch(() => {})
-            : Promise.resolve();
-
-        const [res] = await Promise.all([
-          fetch(
-            `/api/chat/rooms/${encodeURIComponent(roomId)}/phong-hoc/token`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ mode, action: "start" }),
-            },
-          ),
-          warm,
-        ]);
+        const res = await fetch(
+          `/api/chat/rooms/${encodeURIComponent(roomId)}/phong-hoc/token`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ mode: resolvedMode, action: "start" }),
+          },
+        );
         const json = (await res.json().catch(() => null)) as {
           token?: string;
           callMessageId?: string | null;
@@ -2946,7 +2936,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
         setPhongHoc({
           token: json.token,
           title: active?.name?.trim() || "Cuộc gọi",
-          mode,
+          mode: resolvedMode,
           callMessageId: json.callMessageId ?? null,
         });
       } catch {

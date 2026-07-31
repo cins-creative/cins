@@ -20,6 +20,7 @@ import {
 } from "react";
 
 import type { MediaCallMode } from "@/lib/media/call-mode";
+import { isCompactCallViewport } from "@/lib/media/call-constraints";
 
 type Props = {
   open: boolean;
@@ -59,6 +60,16 @@ export function ChatComposeToolsMenu({
   const [options, setOptions] = useState(["", ""]);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+
+  const [compactViewport, setCompactViewport] = useState(false);
+
+  useEffect(() => {
+    setCompactViewport(isCompactCallViewport());
+    const mq = window.matchMedia("(max-width: 1024px)");
+    const onChange = () => setCompactViewport(mq.matches);
+    mq.addEventListener?.("change", onChange);
+    return () => mq.removeEventListener?.("change", onChange);
+  }, []);
 
   useEffect(() => {
     if (!open) {
@@ -166,23 +177,25 @@ export function ChatComposeToolsMenu({
                       <em>Mic + camera — ấn là gọi ngay</em>
                     </span>
                   </button>
-                  <button
-                    type="button"
-                    role="menuitem"
-                    className="cins-chat-compose-tools-item"
-                    disabled={callBusy}
-                    onClick={() => {
-                      if (callBusy) return;
-                      onOpenChange(false);
-                      onStartCall("screen");
-                    }}
-                  >
-                    <MonitorUp size={16} strokeWidth={1.9} aria-hidden />
-                    <span>
-                      <strong>Chia sẻ màn hình</strong>
-                      <em>Chọn cửa sổ / màn hình ngay</em>
-                    </span>
-                  </button>
+                  {!compactViewport ? (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="cins-chat-compose-tools-item"
+                      disabled={callBusy}
+                      onClick={() => {
+                        if (callBusy) return;
+                        onOpenChange(false);
+                        onStartCall("screen");
+                      }}
+                    >
+                      <MonitorUp size={16} strokeWidth={1.9} aria-hidden />
+                      <span>
+                        <strong>Chia sẻ màn hình</strong>
+                        <em>Chọn cửa sổ / màn hình ngay</em>
+                      </span>
+                    </button>
+                  ) : null}
                 </>
               ) : null}
               <button

@@ -1,4 +1,4 @@
-/* Cuộc gọi nhúng trong khung chat — giao diện kiểu call, không fullscreen. */
+/* Cuộc gọi nhúng trong khung chat — giao diện kiểu call. */
 .cins-phong-hoc {
   position: relative;
   display: flex;
@@ -32,32 +32,98 @@
   padding: 24px 16px 8px;
 }
 
-.cins-phong-hoc-grid {
-  width: 100%;
-  height: 100%;
-  min-height: 0;
-}
-
-.cins-phong-hoc-grid rtk-meeting,
-.cins-phong-hoc-grid .rtk-meeting,
 .cins-phong-hoc.is-video .cins-phong-hoc-stage.is-video-stage {
-  width: 100%;
-  height: 100%;
+  padding: 0;
   min-height: 220px;
+  background: #05080c;
 }
 
-.cins-phong-hoc-controls.is-overlay-controls {
+.cins-phong-hoc-remote,
+.cins-phong-hoc-local {
   position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 5;
-}
-
-.cins-phong-hoc-grid rtk-simple-grid,
-.cins-phong-hoc-grid .rtk-simple-grid {
+  inset: 0;
   width: 100%;
   height: 100%;
+  object-fit: cover;
+  background: #0a1016;
+}
+
+.cins-phong-hoc-remote {
+  opacity: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.cins-phong-hoc-remote.is-on {
+  opacity: 1;
+}
+
+.cins-phong-hoc-local.is-full {
+  z-index: 2;
+  transform: scaleX(-1);
+}
+
+.cins-phong-hoc-local.is-pip {
+  inset: auto 12px 88px auto;
+  width: min(32vw, 140px);
+  height: min(42vw, 180px);
+  border-radius: 12px;
+  z-index: 3;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 45%);
+  border: 1px solid rgb(255 255 255 / 18%);
+  transform: scaleX(-1);
+  object-fit: cover;
+}
+
+.cins-phong-hoc-local.is-off {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.cins-phong-hoc-hud {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.cins-phong-hoc-hud-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 45%);
+  backdrop-filter: blur(6px);
+  max-width: 55%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cins-phong-hoc-hud-status {
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 45%);
+  color: rgb(220 232 242 / 92%);
+}
+
+.cins-phong-hoc-hud-status.is-err {
+  color: #f5a8a8;
+}
+
+.cins-phong-hoc-hero.is-over-video {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  margin: auto;
 }
 
 .cins-phong-hoc-hero {
@@ -157,26 +223,24 @@
   color: rgb(170 190 208 / 75%);
 }
 
-.cins-phong-hoc-mode-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin: 6px 0 0;
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: rgb(255 255 255 / 8%);
-  color: rgb(210 224 236 / 90%);
-  font-size: 0.75rem;
-}
-
 .cins-phong-hoc-controls {
   display: flex;
   align-items: flex-end;
   justify-content: center;
   gap: 18px;
   flex-shrink: 0;
-  padding: 16px 16px 20px;
-  background: linear-gradient(180deg, transparent 0%, rgb(0 0 0 / 28%) 40%);
+  padding: 14px 16px 18px;
+  background: linear-gradient(180deg, transparent 0%, rgb(0 0 0 / 35%) 35%);
+  position: relative;
+  z-index: 5;
+}
+
+.cins-phong-hoc.is-video .cins-phong-hoc-controls {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding-bottom: max(18px, env(safe-area-inset-bottom));
 }
 
 .cins-phong-hoc-ctrl {
