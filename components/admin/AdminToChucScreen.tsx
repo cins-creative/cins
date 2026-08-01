@@ -6,6 +6,7 @@ import {
   ExternalLink,
   GraduationCap,
   Loader2,
+  Pencil,
   Plus,
   Search,
   Shield,
@@ -18,6 +19,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { AdminToChucDeleteDialog } from "@/components/admin/AdminToChucDeleteDialog";
+import { AdminToChucEditModal } from "@/components/admin/AdminToChucEditModal";
 import { AdminToChucMembersModal } from "@/components/admin/AdminToChucMembersModal";
 import { AdminToChucOwnerDialog } from "@/components/admin/AdminToChucOwnerDialog";
 import { BadgeTinCay } from "@/components/admin/badges";
@@ -71,6 +73,23 @@ function LoaiIcon({ loai }: { loai: AdminToChucListRow["loai"] }) {
   }
 }
 
+const SEED_BADGE: Record<string, { label: string; cls: string }> = {
+  clone: { label: "Clone", cls: "admin-seed-badge--clone" },
+  duoc_duyet: { label: "Được duyệt", cls: "admin-seed-badge--duyet" },
+  ban_giao: { label: "Đã bàn giao", cls: "admin-seed-badge--bangiao" },
+};
+
+function SeedBadge({ state }: { state?: string | null }) {
+  if (!state) return null;
+  const meta = SEED_BADGE[state];
+  if (!meta) return null;
+  return (
+    <span className={`admin-seed-badge ${meta.cls}`} title="Trạng thái seed">
+      {meta.label}
+    </span>
+  );
+}
+
 function orgInitial(ten: string): string {
   const word = ten.trim().split(/\s+/).find(Boolean);
   return (word?.charAt(0) ?? "?").toUpperCase();
@@ -95,8 +114,11 @@ function AdminOrgLogo({ row }: { row: AdminToChucListRow }) {
 
 export function AdminToChucScreen({
   canDelegateOrgMembers = false,
+  seedOnly = false,
 }: {
   canDelegateOrgMembers?: boolean;
+  /** Chỉ hiện page seed (trang_thai_seed != null) — dùng cho /admin/trang-seeding. */
+  seedOnly?: boolean;
 }) {
   const [loaiFilter, setLoaiFilter] = useState<AdminToChucLoaiFilter>("all");
   const [query, setQuery] = useState("");
@@ -110,6 +132,7 @@ export function AdminToChucScreen({
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
   const [membersOrg, setMembersOrg] = useState<AdminToChucListRow | null>(null);
   const [ownerOrg, setOwnerOrg] = useState<AdminToChucListRow | null>(null);
+  const [editOrgId, setEditOrgId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -151,6 +174,21 @@ export function AdminToChucScreen({
     }),
     [stats],
   );
+
+  // seedOnly: chỉ page seed. Đếm theo trạng thái để hiện stat riêng.
+  const displayRows = useMemo(
+    () => (seedOnly ? rows.filter((r) => r.trangThaiSeed != null) : rows),
+    [rows, seedOnly],
+  );
+  const seedStats = useMemo(() => {
+    const seed = rows.filter((r) => r.trangThaiSeed != null);
+    return {
+      total: seed.length,
+      clone: seed.filter((r) => r.trangThaiSeed === "clone").length,
+      duocDuyet: seed.filter((r) => r.trangThaiSeed === "duoc_duyet").length,
+      banGiao: seed.filter((r) => r.trangThaiSeed === "ban_giao").length,
+    };
+  }, [rows]);
 
   /** Toggle Verified: chưa verify → cấp (POST), đã verify → gỡ (DELETE). */
   async function handleToggleVerify(row: AdminToChucListRow) {
@@ -219,40 +257,66 @@ export function AdminToChucScreen({
     <div className="admin-to-chuc-page">
       <header className="page-header admin-to-chuc-head">
         <div className="admin-to-chuc-head-copy">
-          <h1 className="page-title">Tổ chức</h1>
+          <h1 className="page-title">{seedOnly ? "Trang seeding" : "Tổ chức"}</h1>
           <p className="admin-to-chuc-sub">
-            Trường, cơ sở đào tạo, cộng đồng và studio — verify, tin cậy và liên
-            kết Journey.
+            {seedOnly
+              ? "Trang do CINs clone/vận hành — clone → được duyệt → bàn giao (tick xanh)."
+              : "Trường, cơ sở đào tạo, cộng đồng và studio — verify, tin cậy và liên kết Journey."}
           </p>
         </div>
-        <div className="page-header-actions">
-          <button type="button" className="btn btn-primary admin-to-chuc-add" disabled>
-            <Plus size={16} strokeWidth={2.2} aria-hidden />
-            Thêm tổ chức
-          </button>
-        </div>
+        {seedOnly ? null : (
+          <div className="page-header-actions">
+            <button type="button" className="btn btn-primary admin-to-chuc-add" disabled>
+              <Plus size={16} strokeWidth={2.2} aria-hidden />
+              Thêm tổ chức
+            </button>
+          </div>
+        )}
       </header>
 
       <div className="page-body admin-to-chuc-body">
         <div className="admin-to-chuc-stats" aria-label="Tóm tắt tổ chức">
-          <article className="admin-to-chuc-stat">
-            <span className="admin-to-chuc-stat-k">Tổng số</span>
-            <strong className="admin-to-chuc-stat-v">{stats.total}</strong>
-          </article>
-          <article className="admin-to-chuc-stat admin-to-chuc-stat--warn">
-            <span className="admin-to-chuc-stat-k">Chờ verify</span>
-            <strong className="admin-to-chuc-stat-v">{stats.pendingVerify}</strong>
-          </article>
-          <article className="admin-to-chuc-stat admin-to-chuc-stat--ok">
-            <span className="admin-to-chuc-stat-k">Đã verify</span>
-            <strong className="admin-to-chuc-stat-v">{stats.verified}</strong>
-          </article>
-          <article className="admin-to-chuc-stat">
-            <span className="admin-to-chuc-stat-k">Trường · Cơ sở · CĐ</span>
-            <strong className="admin-to-chuc-stat-v">
-              {stats.truong} · {stats.coSo} · {stats.congDong}
-            </strong>
-          </article>
+          {seedOnly ? (
+            <>
+              <article className="admin-to-chuc-stat">
+                <span className="admin-to-chuc-stat-k">Page seed</span>
+                <strong className="admin-to-chuc-stat-v">{seedStats.total}</strong>
+              </article>
+              <article className="admin-to-chuc-stat admin-to-chuc-stat--warn">
+                <span className="admin-to-chuc-stat-k">Clone</span>
+                <strong className="admin-to-chuc-stat-v">{seedStats.clone}</strong>
+              </article>
+              <article className="admin-to-chuc-stat">
+                <span className="admin-to-chuc-stat-k">Được duyệt</span>
+                <strong className="admin-to-chuc-stat-v">{seedStats.duocDuyet}</strong>
+              </article>
+              <article className="admin-to-chuc-stat admin-to-chuc-stat--ok">
+                <span className="admin-to-chuc-stat-k">Đã bàn giao</span>
+                <strong className="admin-to-chuc-stat-v">{seedStats.banGiao}</strong>
+              </article>
+            </>
+          ) : (
+            <>
+              <article className="admin-to-chuc-stat">
+                <span className="admin-to-chuc-stat-k">Tổng số</span>
+                <strong className="admin-to-chuc-stat-v">{stats.total}</strong>
+              </article>
+              <article className="admin-to-chuc-stat admin-to-chuc-stat--warn">
+                <span className="admin-to-chuc-stat-k">Chờ verify</span>
+                <strong className="admin-to-chuc-stat-v">{stats.pendingVerify}</strong>
+              </article>
+              <article className="admin-to-chuc-stat admin-to-chuc-stat--ok">
+                <span className="admin-to-chuc-stat-k">Đã verify</span>
+                <strong className="admin-to-chuc-stat-v">{stats.verified}</strong>
+              </article>
+              <article className="admin-to-chuc-stat">
+                <span className="admin-to-chuc-stat-k">Trường · Cơ sở · CĐ</span>
+                <strong className="admin-to-chuc-stat-v">
+                  {stats.truong} · {stats.coSo} · {stats.congDong}
+                </strong>
+              </article>
+            </>
+          )}
         </div>
 
         <section className="admin-to-chuc-panel">
@@ -267,25 +331,27 @@ export function AdminToChucScreen({
               />
             </label>
 
-            <div
-              className="admin-to-chuc-filters"
-              role="group"
-              aria-label="Loại tổ chức"
-            >
-              {LOAI_FILTERS.map((filter) => (
-                <button
-                  key={filter.id}
-                  type="button"
-                  className={`admin-to-chuc-filter${loaiFilter === filter.id ? " is-active" : ""}`}
-                  onClick={() => setLoaiFilter(filter.id)}
-                >
-                  {filter.label}
-                  <span className="admin-to-chuc-filter-count">
-                    {filterCounts[filter.id]}
-                  </span>
-                </button>
-              ))}
-            </div>
+            {seedOnly ? null : (
+              <div
+                className="admin-to-chuc-filters"
+                role="group"
+                aria-label="Loại tổ chức"
+              >
+                {LOAI_FILTERS.map((filter) => (
+                  <button
+                    key={filter.id}
+                    type="button"
+                    className={`admin-to-chuc-filter${loaiFilter === filter.id ? " is-active" : ""}`}
+                    onClick={() => setLoaiFilter(filter.id)}
+                  >
+                    {filter.label}
+                    <span className="admin-to-chuc-filter-count">
+                      {filterCounts[filter.id]}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
 
             <p className="admin-to-chuc-result">
               {loading ? (
@@ -300,7 +366,8 @@ export function AdminToChucScreen({
                 </>
               ) : (
                 <>
-                  Hiển thị <strong>{rows.length}</strong> / {stats.total}
+                  Hiển thị <strong>{displayRows.length}</strong> /{" "}
+                  {seedOnly ? seedStats.total : stats.total}
                 </>
               )}
             </p>
@@ -327,14 +394,16 @@ export function AdminToChucScreen({
                 </tr>
               </thead>
               <tbody>
-                {!loading && rows.length === 0 ? (
+                {!loading && displayRows.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="admin-table-empty">
-                      Không có tổ chức phù hợp bộ lọc.
+                      {seedOnly
+                        ? "Chưa có page seed nào."
+                        : "Không có tổ chức phù hợp bộ lọc."}
                     </td>
                   </tr>
                 ) : (
-                  rows.map((row) => {
+                  displayRows.map((row) => {
                     const viewHref = orgViewHref(row);
                     return (
                       <tr key={row.id}>
@@ -343,7 +412,10 @@ export function AdminToChucScreen({
                             <AdminOrgLogo row={row} />
                             <span className="admin-to-chuc-org-copy">
                               <span className="admin-to-chuc-org-name">{row.ten}</span>
-                              <span className="admin-to-chuc-org-slug">@{row.slug}</span>
+                              <span className="admin-to-chuc-org-slug">
+                                @{row.slug}
+                                <SeedBadge state={row.trangThaiSeed} />
+                              </span>
                             </span>
                           </div>
                         </td>
@@ -424,6 +496,19 @@ export function AdminToChucScreen({
                         </td>
                         <td>
                           <div className="admin-to-chuc-actions">
+                            <button
+                              type="button"
+                              className="admin-to-chuc-act admin-to-chuc-act--icon admin-to-chuc-act--edit"
+                              aria-label="Sửa"
+                              title={
+                                seedOnly
+                                  ? "Sửa / chuyển trạng thái seed"
+                                  : "Sửa tổ chức"
+                              }
+                              onClick={() => setEditOrgId(row.id)}
+                            >
+                              <Pencil size={15} strokeWidth={2.2} aria-hidden />
+                            </button>
                             {canDelegateOrgMembers ? (
                               <button
                                 type="button"
@@ -514,6 +599,18 @@ export function AdminToChucScreen({
           </div>
         </section>
       </div>
+
+      <AdminToChucEditModal
+        orgId={editOrgId ?? ""}
+        open={Boolean(editOrgId)}
+        onClose={() => setEditOrgId(null)}
+        onSaved={(updated) => {
+          setRows((prev) =>
+            prev.map((r) => (r.id === updated.id ? updated : r)),
+          );
+          void load();
+        }}
+      />
 
       <AdminToChucMembersModal
         orgId={membersOrg?.id ?? null}

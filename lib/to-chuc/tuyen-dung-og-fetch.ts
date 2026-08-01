@@ -3,7 +3,7 @@ import "server-only";
 import { cache } from "react";
 
 import { formatTinhThanh, getAvatarUrl } from "@/lib/journey/profile";
-import { createPublicSupabaseClient } from "@/lib/supabase/public";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { capDoLabels } from "@/lib/to-chuc/studio-tuyen-dung-distribution";
 import { formatStudioDateShort } from "@/lib/to-chuc/studio-tuyen-dung-format";
 import {
@@ -92,7 +92,8 @@ async function loadJobOgContext(
   if (!orgNorm || !idNorm) return null;
 
   try {
-    const supabase = createPublicSupabaseClient();
+    // Service role: anon thiếu EXECUTE `is_admin_to_chuc` → RLS FOR ALL fail SELECT.
+    const supabase = createServiceRoleClient();
     const { data, error } = await supabase
       .from("org_tuyen_dung")
       .select(JOB_OG_SELECT)

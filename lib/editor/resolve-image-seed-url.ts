@@ -123,6 +123,29 @@ export function resolveImageSeedFeedAsset(
   return { src: picsum };
 }
 
+/**
+ * Ảnh dọc rất dài trong stack (Behance strip) — variant `tall` chỉ giới hạn
+ * bề ngang (1600px), chiều cao chạy tới trần CF → không bị bóp như `public`
+ * (cap height 1080). Fallback `public` nếu tài khoản chưa tạo variant `tall`.
+ */
+export function resolveImageSeedTallUrl(
+  seed: string,
+  w: number,
+  h: number,
+): string {
+  const trimmed = (seed || "").trim();
+  if (!trimmed) return "";
+  if (isEditorStockImageSeed(trimmed)) return "";
+  if (isTemporaryImageRef(trimmed)) return trimmed;
+  if (isExternalHttpImageRef(trimmed)) return trimmed;
+  if (isAdminImageProxyRef(trimmed)) return trimmed;
+  if (isCfImageUuid(trimmed)) {
+    const fromCf = cfDeliveryUrlWithFallbacks(trimmed, ["tall", "public"]);
+    if (fromCf) return fromCf;
+  }
+  return `${PICSUM_BASE}${encodeURIComponent(trimmed)}/${w}/${h}`;
+}
+
 /** Lightbox — luôn `public` (đủ khung, không crop như `feed` 9:16). */
 export function resolveImageSeedLightboxUrl(
   seed: string,

@@ -144,6 +144,8 @@ type Props = {
     blocks?: boolean;
     comments?: boolean;
   };
+  /** Split rail — ô nhập luôn dính đáy, danh sách BL scroll phía trên. */
+  commentsPinCompose?: boolean;
   /** Permalink split — ẩn phần hero rail (vd. kicker trùng thẻ). */
   splitSkip?: {
     kicker?: boolean;
@@ -167,6 +169,7 @@ export function JourneyPostBody({
   commentsSectionId = "post-comments",
   inlineSkip,
   inlineParts,
+  commentsPinCompose = false,
   splitSkip,
   inlineActionsSlot,
 }: Props) {
@@ -591,6 +594,7 @@ export function JourneyPostBody({
         onCommentRemoved={onCommentRemoved}
         onThreadsReordered={onThreadsReordered}
         sectionId={commentsSectionId}
+        pinCompose={commentsPinCompose}
       />
     )
   ) : null;

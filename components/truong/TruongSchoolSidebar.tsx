@@ -13,6 +13,7 @@ import { TruongMilestoneTagNotify } from "@/components/truong/TruongMilestoneTag
 import { TruongOrgAvatar } from "@/components/truong/TruongOrgAvatar";
 import { TruongSchoolContact } from "@/components/truong/TruongSchoolContact";
 import { TruongSeedDisclaimerModal } from "@/components/truong/TruongSeedDisclaimerModal";
+import { nenHienDisclaimerSeed } from "@/lib/seed/trang-thai-seed.shared";
 import { TruongUserChatLauncher } from "@/components/truong/TruongUserChatLauncher";
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
 import { hasTruongGioiThieuContent } from "@/lib/truong/gioi-thieu";
@@ -71,6 +72,9 @@ function TruongSidebarStack({
   const avatarClass =
     layout === "desktop" ? "cso-ss-ava truong-ss-ava" : "cso-ss-ava";
   const daVerify = school.daVerify === true;
+  // Disclaimer «do CINs vận hành» chỉ khi page đang là clone (chưa được đồng ý).
+  // duoc_duyet → ẩn; ban_giao/NULL → không hiện.
+  const hienDisclaimer = nenHienDisclaimerSeed(school.trangThaiSeed ?? null);
 
   return (
     <div className="cso-ss-stack">
@@ -81,7 +85,7 @@ function TruongSidebarStack({
           className={avatarClass}
           editable={canEdit && isEditing}
         />
-        {!daVerify ? <TruongSeedDisclaimerModal /> : null}
+        {hienDisclaimer ? <TruongSeedDisclaimerModal /> : null}
       </div>
 
       <div className="cso-ss-identity">

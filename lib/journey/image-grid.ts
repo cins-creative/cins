@@ -2,6 +2,7 @@ import type { Block } from "@/lib/editor/types";
 import {
   resolveImageSeedFeedAsset,
   resolveImageSeedLightboxUrl,
+  resolveImageSeedTallUrl,
   resolveImageSeedThumbUrl,
   resolveImageSeedUrl,
   type ImageSeedDeliveryAsset,
@@ -522,11 +523,21 @@ export function gridThumbSrc(image: GridImage): string {
 
 export function gridThumbAsset(
   image: GridImage,
-  options?: { singlePortrait?: boolean; preferPublic?: boolean },
+  options?: {
+    singlePortrait?: boolean;
+    preferPublic?: boolean;
+    /** Ảnh dọc dài (stack) — variant `tall` (chỉ giới hạn bề ngang). */
+    tall?: boolean;
+  },
 ): ImageSeedDeliveryAsset {
   const preview = image.previewSrc?.trim();
   if (preview) return { src: preview };
   if (image.composePending) return { src: "" };
+  if (options?.tall) {
+    return {
+      src: resolveImageSeedTallUrl(image.id, image.width, image.height),
+    };
+  }
   if (options?.preferPublic) {
     return {
       src: resolveImageSeedUrl(image.id, image.width, image.height),

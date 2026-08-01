@@ -10,6 +10,7 @@ import {
   upsertAccount,
   type SavedAccount,
 } from "@/lib/auth/account-vault";
+import { isDeadRefreshToken } from "@/lib/auth/refresh-error";
 import {
   appendSetCookieHeaders,
   createSupabaseRouteHandlerClient,
@@ -26,12 +27,13 @@ export const runtime = "nodejs";
  * Được gọi 1 lần từ client bootstrap (`SessionRestorer`) khi server render ra
  * trạng thái khách nhưng kho vẫn còn tài khoản. Chỉ 1 lần gọi → tránh nhiều
  * request song song cùng dùng một refresh token (reuse-detection của Supabase).
+ *
+ * Token chết → gỡ nick, thử nick kế. Lỗi tạm (mạng/5xx) → dừng, giữ kho + hint.
  */
 export async function POST(request: NextRequest) {
   const carrier = new NextResponse();
   const supabase = createSupabaseRouteHandlerClient(request, carrier);
 
-  // Đã có phiên hợp lệ → không cần khôi phục.
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -46,7 +48,6 @@ export async function POST(request: NextRequest) {
     return empty;
   }
 
-  // Duyệt từ đầu kho (MRU) — thử refresh cho tới khi có tài khoản còn hiệu lực.
   while (list.length > 0) {
     const target = list[0] as SavedAccount;
     const { data, error } = await supabase.auth.refreshSession({
@@ -54,7 +55,10 @@ export async function POST(request: NextRequest) {
     });
 
     if (error || !data.session) {
-      // Token hỏng/hết hạn → gỡ khỏi kho, thử tài khoản kế.
+      if (!isDeadRefreshToken(error)) {
+        /* Lỗi tạm — giữ kho + hint, thử lại lần sau. */
+        return NextResponse.json({ ok: true, restored: false });
+      }
       list = removeAccount(list, target.slug);
       continue;
     }
@@ -81,7 +85,7 @@ export async function POST(request: NextRequest) {
     return response;
   }
 
-  // Không token nào còn hiệu lực → dọn kho + tắt hint.
+  /* Không token nào còn hiệu lực → dọn kho + tắt hint. */
   const failed = NextResponse.json({ ok: true, restored: false });
   setAccountVaultOnResponse(failed, list);
   clearRestoreHintOnResponse(failed);

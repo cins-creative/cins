@@ -6,6 +6,7 @@ import {
   validateOrgSlug,
 } from "@/lib/cong-dong/org-slug";
 import { normalizeTinhThanhForDb } from "@/lib/truong/contact";
+import { laTaiKhoanSeed } from "@/lib/seed/trang-thai-seed";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 export type CreateStudioInput = {
@@ -141,6 +142,9 @@ export async function createStudioOrg(
   if (website) cauHinh.website = website;
   if (input.tenChinhThuc?.trim()) cauHinh.ten_chinh_thuc = input.tenChinhThuc.trim();
 
+  // Page tạo bởi tài khoản seeding → đánh dấu clone (hiện disclaimer «do CINs vận hành»).
+  const laSeed = await laTaiKhoanSeed(admin, creatorId);
+
   const { data: org, error: orgError } = await admin
     .from("org_to_chuc")
     .insert({
@@ -156,6 +160,7 @@ export async function createStudioOrg(
       gioi_thieu_truong: input.gioiThieu?.trim() || null,
       nguoi_tao: creatorId,
       trang_thai_tin_cay: "binh_thuong",
+      ...(laSeed ? { trang_thai_seed: "clone" } : {}),
       cau_hinh: cauHinh,
     })
     .select("id, slug")

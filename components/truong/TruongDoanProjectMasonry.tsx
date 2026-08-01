@@ -23,6 +23,10 @@ import {
   swapCfImageVariant,
 } from "@/lib/cloudflare/cf-variant-url";
 import {
+  coverThumbObjectPosition,
+  coverThumbZoom,
+} from "@/lib/journey/cover-thumb";
+import {
   getCachedVideoAspect,
   subscribeVideoAspectCache,
 } from "@/lib/journey/gallery-video-dimension-cache";
@@ -265,12 +269,23 @@ function DoanProjectCardHit({
   const coverSrc = item.coverSrc?.trim() || "";
   const isVideo = item.isVideo ?? isGalleryVideoCoverSrc(coverSrc || null);
   const isMasonry = layout === "masonry";
-  const gridAsset = coverSrc ? galleryGridAssetFromCfUrl(coverSrc) : null;
+  const coverThumb = item.coverThumb ?? null;
+  /** Có điểm neo: giữ URL gravity/public từ server — không swap sang `/grid`. */
+  const useCoverThumb = Boolean(coverThumb) && !isMasonry;
+  const gridAsset =
+    !isMasonry && !useCoverThumb && coverSrc
+      ? galleryGridAssetFromCfUrl(coverSrc)
+      : null;
   const thumbSrc = isMasonry
     ? coverSrc
       ? masonryThumbSrc(coverSrc)
       : ""
-    : (gridAsset?.src ?? coverSrc);
+    : useCoverThumb
+      ? coverSrc
+      : (gridAsset?.src ?? coverSrc);
+  const thumbSrcSet = useCoverThumb
+    ? (item.coverSrcSet?.trim() || undefined)
+    : gridAsset?.srcSet;
   const hasVisual = Boolean(thumbSrc) || isVideo;
   const aspect = thumbAspect && thumbAspect > 0 ? thumbAspect : FALLBACK_ASPECT;
   const thumbStyle: CSSProperties | undefined = (() => {
@@ -285,6 +300,14 @@ function DoanProjectCardHit({
   const imgHeight = isMasonry
     ? Math.round(800 / aspect)
     : (gridAsset?.height ?? 360);
+  const objectPosition =
+    useCoverThumb && coverThumb
+      ? coverThumbObjectPosition(coverThumb)
+      : undefined;
+  const zoom =
+    useCoverThumb && coverThumb && coverThumbZoom(coverThumb) > 1.001
+      ? coverThumbZoom(coverThumb)
+      : undefined;
 
   return (
     <>
@@ -292,17 +315,17 @@ function DoanProjectCardHit({
         {hasVisual ? (
           <GalleryItemVisual
             src={thumbSrc}
-            srcSet={isMasonry ? undefined : gridAsset?.srcSet}
+            srcSet={thumbSrcSet}
             sizes={
-              !isMasonry && gridAsset?.srcSet
-                ? GALLERY_GRID_IMAGE_SIZES
-                : undefined
+              thumbSrcSet ? GALLERY_GRID_IMAGE_SIZES : undefined
             }
             alt={item.coverAlt ?? item.projectTitle}
             width={imgWidth}
             height={imgHeight}
             isVideo={isVideo}
             videoPreviewSrc={item.videoPreviewSrc}
+            objectPosition={objectPosition}
+            zoom={zoom}
           />
         ) : (
           <span className="tdh-doan-gallery-initials" aria-hidden>

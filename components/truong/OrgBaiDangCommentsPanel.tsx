@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useOptionalAuthGate } from "@/components/auth/AuthGateProvider";
+import { MemeShapesLoader } from "@/components/cins/MemeShapesLoader";
 import { CommentBlock } from "@/components/journey/CommentBlock";
 import { addOrgBaiDangCommentAction } from "@/components/truong/org-bai-dang-comment-actions";
 import type { MilestonePostComment } from "@/lib/journey/milestone-post-types";
@@ -99,7 +100,10 @@ export function OrgBaiDangCommentsPanel({ postId, onCountChange }: Props) {
       onClick={(e) => e.stopPropagation()}
     >
       {loading ? (
-        <div className="post-comments-empty">Đang tải bình luận…</div>
+        <div className="post-comments-empty" aria-busy="true">
+          <MemeShapesLoader size={32} label="Đang tải bình luận" />
+          <span>Đang tải bình luận…</span>
+        </div>
       ) : error ? (
         <p className="post-comments-err">{error}</p>
       ) : (

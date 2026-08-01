@@ -4,7 +4,11 @@ import {
   buildBunnyVideoMp4Url as buildBunnyVideoMp4UrlServer,
   buildBunnyVideoThumbnailUrl as buildBunnyVideoThumbnailUrlServer,
 } from "@/lib/bunny/thumbnail";
-import { journeyImageFields } from "@/lib/journey/images";
+import { findCoverThumbMeta, type CoverThumbMeta } from "@/lib/journey/cover-thumb";
+import {
+  journeyImageFields,
+  journeyImageFieldsWithCoverThumb,
+} from "@/lib/journey/images";
 import { parseServerBlocks } from "@/lib/journey/parse-server-blocks";
 import { resolvePostGridEntry } from "@/lib/journey/post-content-kind";
 import { getAvatarUrl } from "@/lib/journey/profile";
@@ -41,6 +45,8 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 type DoanCoverVisual = {
   coverSrc: string | null;
+  coverSrcSet: string | null;
+  coverThumb: CoverThumbMeta | null;
   isVideo: boolean;
   videoPreviewSrc: string | null;
 };
@@ -962,13 +968,14 @@ function pickTile(index: number): OrgDoanProjectItem["tile"] {
   return tiles[index % tiles.length]!;
 }
 
-/** Đồng bộ Gallery Journey: `coverId` → CF URL, Bunny thumb/MP4 khi video. */
+/** Đồng bộ Gallery Journey: `coverId` → CF URL (+ điểm neo), Bunny thumb/MP4 khi video. */
 function doanCoverVisualFromTacPham(row: {
   cover_id: string | null;
   mo_ta: string | null;
   noi_dung_blocks: unknown;
 }): DoanCoverVisual | null {
   const blocks = parseServerBlocks(row.noi_dung_blocks) ?? [];
+  const coverThumb = findCoverThumbMeta(blocks);
   const gridRaw = resolvePostGridEntry({
     moTa: row.mo_ta,
     coverId: row.cover_id,
@@ -990,38 +997,40 @@ function doanCoverVisualFromTacPham(row: {
     }
   }
 
-  if (grid.mediaKind === "video" && grid.coverId) {
-    const custom = journeyImageFields(grid.coverId, "gallery-grid");
-    if (custom?.src) {
-      return {
-        coverSrc: custom.src,
-        isVideo: true,
-        videoPreviewSrc: grid.videoPreviewSrc,
-      };
-    }
-  }
-  if (grid.coverSrc) {
-    return {
-      coverSrc: grid.coverSrc,
-      isVideo: grid.mediaKind === "video",
-      videoPreviewSrc: grid.videoPreviewSrc,
-    };
-  }
+  const isVideo = grid.mediaKind === "video";
+  const videoPreviewSrc = grid.videoPreviewSrc;
+
   if (grid.coverId) {
-    const img = journeyImageFields(grid.coverId, "gallery-grid");
+    const img = coverThumb
+      ? journeyImageFieldsWithCoverThumb(grid.coverId, coverThumb)
+      : journeyImageFields(grid.coverId, "gallery-grid");
     if (img?.src) {
       return {
         coverSrc: img.src,
-        isVideo: grid.mediaKind === "video",
-        videoPreviewSrc: grid.videoPreviewSrc,
+        coverSrcSet: img.srcSet ?? null,
+        coverThumb,
+        isVideo,
+        videoPreviewSrc,
       };
     }
   }
 
+  if (grid.coverSrc) {
+    return {
+      coverSrc: grid.coverSrc,
+      coverSrcSet: null,
+      coverThumb,
+      isVideo,
+      videoPreviewSrc,
+    };
+  }
+
   return {
     coverSrc: null,
-    isVideo: grid.mediaKind === "video",
-    videoPreviewSrc: grid.videoPreviewSrc,
+    coverSrcSet: null,
+    coverThumb,
+    isVideo,
+    videoPreviewSrc,
   };
 }
 
@@ -1329,9 +1338,11 @@ export async function listApprovedOrgDoanProjects(
       submittedAt: row.tao_luc,
       reactionCount: reactionByMoc.get(row.id_cot_moc) ?? 0,
       coverSrc,
+      coverSrcSet: liveCover?.coverSrcSet ?? null,
       coverAlt: payload.album.coverAlt ?? null,
       coverGradient: payload.album.coverGradient ?? null,
       photoCount: payload.album.photoCount ?? null,
+      coverThumb: liveCover?.coverThumb ?? null,
       videoPreviewSrc: liveCover?.videoPreviewSrc ?? null,
       isVideo,
       tile: pickTile(items.length),

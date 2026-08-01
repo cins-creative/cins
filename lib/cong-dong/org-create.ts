@@ -12,6 +12,7 @@ import { seedDefaultCongDongFilters } from "@/lib/cong-dong/default-filters";
 import { validateCongDongLinhVucIds } from "@/lib/cong-dong/linh-vuc";
 import { slugifyOrgName, uniqueOrgSlug } from "@/lib/cong-dong/org-slug";
 import { normalizeTinhThanhForDb } from "@/lib/truong/contact";
+import { laTaiKhoanSeed } from "@/lib/seed/trang-thai-seed";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 export type CreateCongDongInput = {
@@ -63,6 +64,9 @@ export async function createCongDongOrg(
 
   const admin = createServiceRoleClient();
 
+  // Page tạo bởi tài khoản seeding → đánh dấu clone (hiện disclaimer «do CINs vận hành»).
+  const laSeed = await laTaiKhoanSeed(admin, creatorId);
+
   const { data: org, error: orgError } = await admin
     .from("org_to_chuc")
     .insert({
@@ -73,7 +77,9 @@ export async function createCongDongOrg(
       tinh_thanh: normalizeTinhThanhForDb(input.tinhThanh),
       avatar_id: input.avatarId?.trim() || null,
       cover_id: input.coverId?.trim() || null,
+      nguoi_tao: creatorId,
       trang_thai_tin_cay: "binh_thuong",
+      ...(laSeed ? { trang_thai_seed: "clone" } : {}),
       cau_hinh: {
         che_do: cheDo,
         ...(categoryIds.length ? { danh_muc: categoryIds } : {}),

@@ -439,8 +439,10 @@ export async function kiemTraTaiKhoanDichTrong(
   const id = profile.id;
   const vuong: string[] = [];
 
-  const checks: Array<{ label: string; p: Promise<{ count: number | null }> }> =
-    [
+  const checks: Array<{
+    label: string;
+    p: PromiseLike<{ count: number | null }>;
+  }> = [
       {
         label: "content_cot_moc",
         p: db

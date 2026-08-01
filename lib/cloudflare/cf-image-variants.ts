@@ -9,7 +9,8 @@ export type CfNamedVariant =
   | "grid"
   | "gridsm"
   | "feed"
-  | "feedsm";
+  | "feedsm"
+  | "tall";
 
 /** `sizes` cho ảnh đơn dọc 9:16 trên timeline / feed (~680px card). */
 export const FEED_PORTRAIT_IMAGE_SIZES =

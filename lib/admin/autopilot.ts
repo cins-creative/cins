@@ -425,6 +425,7 @@ export async function layAutopilotOverview(): Promise<AutopilotOverview> {
     );
     kpi = {
       mucTieuNgay: tong.mucTieuNgay,
+      baiMoiLuot: cfg.baiMoiLuot,
       tongDaDang: tong.tongDaDang,
       soTaiKhoanDu: tong.soTaiKhoanDu,
       soTaiKhoanCan: tong.soTaiKhoanCan,

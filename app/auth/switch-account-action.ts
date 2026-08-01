@@ -3,7 +3,6 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import {
   readAccountVault,
   removeAccount,
@@ -12,6 +11,7 @@ import {
   writeAccountVault,
   type SavedAccount,
 } from "@/lib/auth/account-vault";
+import { isDeadRefreshToken } from "@/lib/auth/refresh-error";
 import { createClient } from "@/lib/supabase/server";
 import { flushDeferredAuthCookies } from "@/lib/supabase/route-handler";
 
@@ -21,11 +21,11 @@ import { flushDeferredAuthCookies } from "@/lib/supabase/route-handler";
  *
  * Luồng:
  * 1. Chụp lại phiên tài khoản hiện tại vào kho (giữ refresh token mới nhất để
- *    còn quay lại được).
+ *    còn quay lại được) — một client, tuần tự getUser → getSession.
  * 2. `refreshSession({ refresh_token })` của tài khoản đích → Supabase cấp phiên
  *    mới + xoay refresh token, `@supabase/ssr` ghi cookie phiên mới.
- * 3. Cập nhật kho với token vừa xoay. Nếu token đích hỏng/hết hạn → gỡ khỏi kho
- *    và đưa về trang đăng nhập.
+ * 3. Cập nhật kho với token vừa xoay. Token chết → gỡ khỏi kho + /login.
+ *    Lỗi tạm (mạng/5xx) → giữ kho + phiên hiện tại, quay lại trang cũ.
  *
  * Dùng qua `<form action={switchAccountAction.bind(null, slug)}>`.
  */
@@ -51,20 +51,35 @@ export async function switchAccountAction(
 
   let list = await readAccountVault();
 
-  // (1) Chụp phiên hiện tại vào kho để lát nữa còn quay lại.
-  const [current, { data: sessionData }] = await Promise.all([
-    getCurrentSessionAndProfile(),
-    supabase.auth.getSession(),
-  ]);
+  /* (1) Một client, tuần tự: getUser (verify + refresh nếu cần) rồi getSession
+   * (đọc refresh_token — không refresh lần hai vì token còn hạn). */
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const { data: sessionData } = await supabase.auth.getSession();
   const currentRefresh = sessionData.session?.refresh_token;
-  if (current?.profile && currentRefresh) {
-    list = upsertAccount(list, {
-      slug: current.profile.slug,
-      tenHienThi: current.profile.ten_hien_thi,
-      avatarId: current.profile.avatar_id,
-      refreshToken: currentRefresh,
-      addedAt: Date.now(),
-    });
+
+  let currentSlug: string | null = null;
+  if (user && currentRefresh) {
+    const { data: profile } = await supabase
+      .from("user_nguoi_dung")
+      .select("slug, ten_hien_thi, avatar_id")
+      .eq("auth_user_id", user.id)
+      .maybeSingle<{
+        slug: string;
+        ten_hien_thi: string | null;
+        avatar_id: string | null;
+      }>();
+    if (profile?.slug) {
+      currentSlug = profile.slug;
+      list = upsertAccount(list, {
+        slug: profile.slug,
+        tenHienThi: profile.ten_hien_thi,
+        avatarId: profile.avatar_id,
+        refreshToken: currentRefresh,
+        addedAt: Date.now(),
+      });
+    }
   }
 
   const target = list.find((a) => a.slug === targetSlug);
@@ -73,24 +88,27 @@ export async function switchAccountAction(
     redirect("/login");
   }
 
-  // Đã đứng sẵn ở tài khoản đích → không cần làm gì.
-  if (current?.profile?.slug === targetSlug) {
+  if (currentSlug === targetSlug) {
     await writeAccountVault(list);
     redirect(returnTo);
   }
 
-  // (2) Đổi phiên sang tài khoản đích.
+  /* (2) Đổi phiên sang tài khoản đích. */
   const { data, error } = await supabase.auth.refreshSession({
     refresh_token: (target as SavedAccount).refreshToken,
   });
 
   if (error || !data.session) {
-    // Token đích không còn hiệu lực → gỡ khỏi kho, buộc đăng nhập lại tài khoản đó.
-    await writeAccountVault(removeAccount(list, targetSlug));
-    redirect("/login");
+    if (isDeadRefreshToken(error)) {
+      await writeAccountVault(removeAccount(list, targetSlug));
+      redirect("/login");
+    }
+    /* Lỗi tạm: giữ kho + phiên hiện tại, quay lại trang cũ. */
+    await writeAccountVault(list);
+    redirect(returnTo);
   }
 
-  // (3) Cập nhật kho với refresh token vừa xoay của tài khoản đích.
+  /* (3) Cập nhật kho với refresh token vừa xoay của tài khoản đích. */
   const rotated = upsertAccount(list, {
     ...(target as SavedAccount),
     refreshToken: data.session!.refresh_token,

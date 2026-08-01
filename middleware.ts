@@ -25,9 +25,9 @@ function shouldApplyMaintenance(hostname: string): boolean {
 }
 
 /**
- * Path luôn cho qua mọi check (maintenance + auth):
- *   - `/login`, `/auth/*`, `/api/auth/*` — vào auth bất cứ khi nào
- *   - `/maintenance`, static, favicon
+ * Path bỏ qua hoàn toàn (không resolveSession): static, maintenance,
+ * `/auth/*` + `/api/auth/*` (tự quản cookie — PKCE / exchange / restore).
+ * `/login` KHÔNG thuộc nhóm này — xem `isSessionSyncOnlyPath`.
  */
 function isBypassedPath(pathname: string): boolean {
   if (pathname === "/maintenance") return true;
@@ -36,10 +36,17 @@ function isBypassedPath(pathname: string): boolean {
   if (pathname.startsWith("/assets/")) return true;
   if (pathname.startsWith("/_next/static")) return true;
   if (pathname.startsWith("/_next/image")) return true;
-  if (pathname === "/login" || pathname.startsWith("/login/")) return true;
   if (pathname.startsWith("/auth/")) return true;
   if (pathname.startsWith("/api/auth/")) return true;
   return false;
+}
+
+/**
+ * `/login` — đồng bộ cookie phiên (refresh token xoay) rồi cho qua,
+ * KHÔNG áp maintenance rewrite (vẫn đăng nhập được khi bảo trì).
+ */
+function isSessionSyncOnlyPath(pathname: string): boolean {
+  return pathname === "/login" || pathname.startsWith("/login/");
 }
 
 /**
@@ -264,6 +271,11 @@ export async function middleware(request: NextRequest) {
   const ogRequest = new NextRequest(request, { headers: requestHeaders });
 
   const { response: sessionResponse, userId } = await resolveSession(ogRequest);
+
+  /* /login: chỉ sync cookie phiên — return trước maintenance + protected. */
+  if (isSessionSyncOnlyPath(pathname)) {
+    return sessionResponse;
+  }
 
   if (isOgImage) {
     sessionResponse.headers.set("Cache-Control", OG_IMAGE_CACHE_CONTROL);

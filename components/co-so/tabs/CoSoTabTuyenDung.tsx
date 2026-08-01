@@ -7,7 +7,7 @@ import {
   Pencil,
   Plus,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { StudioJobDetailModal } from "@/components/to-chuc/StudioJobDetailModal";
@@ -49,6 +49,12 @@ export function CoSoTabTuyenDung({
   const router = useRouter();
   const [jobs, setJobs] = useState<StudioJob[]>(jobsProp);
   const [editJob, setEditJob] = useState<StudioJob | "new" | null>(null);
+
+  // jobsProp đến async từ useOrgStudioJobs — sync lại khi fetch xong
+  // (không chỉ lấy snapshot rỗng lúc mount).
+  useEffect(() => {
+    setJobs(jobsProp);
+  }, [jobsProp]);
 
   const visibleJobs = canEdit
     ? jobs

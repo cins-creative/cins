@@ -40,6 +40,9 @@ function parseUpdateBody(body: unknown): AdminToChucUpdateInput | null {
   if (typeof raw.trangThaiHoatDong === "string") {
     input.trangThaiHoatDong = raw.trangThaiHoatDong;
   }
+  if (typeof raw.trangThaiSeed === "string") {
+    input.trangThaiSeed = raw.trangThaiSeed;
+  }
 
   return input;
 }

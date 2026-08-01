@@ -1,5 +1,7 @@
 /** Payload JSON trong `verify_yeu_cau.noi_dung` — tag milestone vào org. */
 
+import type { CoverThumbMeta } from "@/lib/journey/cover-thumb";
+
 export const ORG_MILESTONE_TAG_KIND = "org_milestone_tag_v1" as const;
 
 export type OrgMilestoneTagStatus = "pending" | "approved" | "rejected" | "detached";
@@ -127,9 +129,13 @@ export type OrgDoanProjectItem = {
   submittedAt: string;
   reactionCount: number;
   coverSrc?: string | null;
+  /** srcSet CF khi có điểm neo (flexible gravity) — đồng bộ Journey gallery. */
+  coverSrcSet?: string | null;
   coverAlt?: string | null;
   coverGradient?: string | null;
   photoCount?: number | null;
+  /** Điểm neo + zoom thumbnail — cùng meta Gallery Journey. */
+  coverThumb?: CoverThumbMeta | null;
   /** MP4 Bunny — frame đầu khi không có thumb (đồng bộ Journey gallery). */
   videoPreviewSrc?: string | null;
   tile: "short" | "tall" | "square";

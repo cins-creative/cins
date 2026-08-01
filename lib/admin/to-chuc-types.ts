@@ -33,6 +33,8 @@ export type AdminToChucListRow = {
   showVerify?: boolean;
   /** Đang ở trạng thái verified_official — dùng để render nút gỡ Verified. */
   isVerified?: boolean;
+  /** `org_to_chuc.trang_thai_seed` — null = không phải page seed. */
+  trangThaiSeed?: string | null;
 };
 
 export type AdminToChucListStats = {
@@ -68,6 +70,8 @@ export type AdminToChucDetail = {
   emailLienHe: string | null;
   trangThaiTinCay: string;
   trangThaiHoatDong: string;
+  /** `org_to_chuc.trang_thai_seed` — null = không phải page seed. */
+  trangThaiSeed: string | null;
 };
 
 export type AdminToChucUpdateInput = {
@@ -80,6 +84,8 @@ export type AdminToChucUpdateInput = {
   emailLienHe?: string | null;
   trangThaiTinCay?: string;
   trangThaiHoatDong?: string;
+  /** Chuyển trạng thái seed (clone/duoc_duyet/ban_giao). ban_giao ⟺ tick xanh. */
+  trangThaiSeed?: string;
 };
 
 export const ADMIN_TO_CHUC_TIN_CAY_OPTIONS = [
@@ -94,6 +100,13 @@ export const ADMIN_TO_CHUC_HOAT_DONG_OPTIONS = [
   { value: "dang_hoat_dong", label: "Đang hoạt động" },
   { value: "tam_ngung", label: "Tạm ngưng" },
   { value: "da_dong_cua", label: "Đã đóng cửa" },
+] as const;
+
+/** Trạng thái seed page — chỉ hiện khi org là page seed. */
+export const ADMIN_TO_CHUC_SEED_OPTIONS = [
+  { value: "clone", label: "Clone — CINs vận hành (hiện disclaimer)" },
+  { value: "duoc_duyet", label: "Được duyệt — ẩn disclaimer" },
+  { value: "ban_giao", label: "✓ Bàn giao — ORG tự vận hành (tick xanh)" },
 ] as const;
 
 export function parseAdminToChucListParams(

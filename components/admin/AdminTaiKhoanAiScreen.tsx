@@ -108,11 +108,8 @@ export function AdminTaiKhoanAiScreen() {
             setErr={setErr}
             postAction={postAction}
             coVault={Boolean(overview?.env.coVaultMatKhau)}
-            kpiText={
-              overview?.kpi
-                ? `KPI hôm nay · ${overview.kpi.tongDaDang}/${overview.kpi.mucTieuNgay} bài · ${overview.kpi.soTaiKhoanDu}/${overview.kpi.soTaiKhoanCan} đủ`
-                : null
-            }
+            kpi={overview?.kpi ?? null}
+            onKpiUpdated={() => void refreshOverview()}
           />
         )}
       </div>

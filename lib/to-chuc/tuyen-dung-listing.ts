@@ -1,7 +1,7 @@
 import "server-only";
 
 import { getAvatarUrl } from "@/lib/journey/profile";
-import { createPublicSupabaseClient } from "@/lib/supabase/public";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { orgJobPath } from "@/lib/to-chuc/tuyen-dung-href";
 import { formatStudioDateShort } from "@/lib/to-chuc/studio-tuyen-dung-format";
 import {
@@ -120,7 +120,8 @@ export async function loadTuyenDungListing(
   offset = 0,
 ): Promise<TuyenDungListing> {
   try {
-    const supabase = createPublicSupabaseClient();
+    // Service role: anon thiếu EXECUTE `is_admin_to_chuc` → RLS FOR ALL fail SELECT.
+    const supabase = createServiceRoleClient();
     const { data, error, count } = await supabase
       .from("org_tuyen_dung")
       .select(TUYEN_DUNG_LIST_SELECT, { count: "exact" })

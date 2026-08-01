@@ -5292,6 +5292,47 @@
   line-height: 1.25;
 }
 
+.cins-admin .admin-seed-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-family: var(--font-sans, inherit);
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  vertical-align: middle;
+  line-height: 1.5;
+}
+
+.cins-admin .admin-seed-badge--clone {
+  background: #fef3c7;
+  color: #92610a;
+}
+
+.cins-admin .admin-seed-badge--duyet {
+  background: #e7f0fb;
+  color: #1656a0;
+}
+
+.cins-admin .admin-seed-badge--bangiao {
+  background: #d9fbed;
+  color: #0e6b4d;
+}
+
+.cins-admin .admin-to-chuc-act--edit {
+  color: #1f74c9;
+  border-color: rgba(31, 116, 201, 0.25);
+  background: #f0f7ff;
+}
+
+.cins-admin .admin-to-chuc-act--edit:hover {
+  color: var(--cins-blue-dark, #124a86);
+  border-color: rgba(31, 116, 201, 0.45);
+  background: #e2effc;
+}
+
 .cins-admin .admin-to-chuc-loai {
   display: inline-flex;
   align-items: center;

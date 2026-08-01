@@ -2969,10 +2969,15 @@ a.j-notify-mini-action.is-link:hover {
     min-width: 240px;
     max-width: 240px;
     box-shadow: var(--shadow-lg);
+    /* Closed drawer không được kéo overflow-x của document (WebKit). */
+    visibility: hidden;
+    pointer-events: none;
   }
 
   .cins-app-sidebar.sidebar.open {
     transform: none;
+    visibility: visible;
+    pointer-events: auto;
   }
 
   /* Mobile drawer is always fully expanded — reveal every label (base rule

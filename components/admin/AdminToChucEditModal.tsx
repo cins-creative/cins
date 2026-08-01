@@ -9,6 +9,7 @@ import type {
 } from "@/lib/admin/to-chuc-types";
 import {
   ADMIN_TO_CHUC_HOAT_DONG_OPTIONS,
+  ADMIN_TO_CHUC_SEED_OPTIONS,
   ADMIN_TO_CHUC_TIN_CAY_OPTIONS,
 } from "@/lib/admin/to-chuc-types";
 import { TINH_THANH_OPTIONS } from "@/lib/truong/contact";
@@ -42,6 +43,8 @@ export function AdminToChucEditModal({
   const [emailLienHe, setEmailLienHe] = useState("");
   const [trangThaiTinCay, setTrangThaiTinCay] = useState("binh_thuong");
   const [trangThaiHoatDong, setTrangThaiHoatDong] = useState("dang_hoat_dong");
+  // null = không phải page seed → ẩn control seed.
+  const [trangThaiSeed, setTrangThaiSeed] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open || !orgId) return;
@@ -71,6 +74,7 @@ export function AdminToChucEditModal({
         setEmailLienHe(org.emailLienHe ?? "");
         setTrangThaiTinCay(org.trangThaiTinCay);
         setTrangThaiHoatDong(org.trangThaiHoatDong);
+        setTrangThaiSeed(org.trangThaiSeed);
       })
       .catch((e: unknown) => {
         if (!cancelled) {
@@ -115,6 +119,7 @@ export function AdminToChucEditModal({
           emailLienHe: emailLienHe.trim() || null,
           trangThaiTinCay,
           trangThaiHoatDong,
+          ...(trangThaiSeed ? { trangThaiSeed } : {}),
         }),
       });
       const json = (await res.json()) as {
@@ -279,6 +284,30 @@ export function AdminToChucEditModal({
                     </select>
                   </div>
                 </div>
+
+                {trangThaiSeed ? (
+                  <div className="form-group">
+                    <label className="form-label" htmlFor="admin-to-chuc-seed">
+                      Trạng thái seed (page do CINs vận hành)
+                    </label>
+                    <select
+                      id="admin-to-chuc-seed"
+                      className="form-input"
+                      value={trangThaiSeed}
+                      onChange={(e) => setTrangThaiSeed(e.target.value)}
+                    >
+                      {ADMIN_TO_CHUC_SEED_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="form-hint">
+                      «Bàn giao» tự cấp tick xanh (verified). Thu hồi về
+                      clone/được duyệt sẽ gỡ tick.
+                    </p>
+                  </div>
+                ) : null}
 
                 <div className="form-group">
                   <label className="form-label" htmlFor="admin-to-chuc-hoatdong">

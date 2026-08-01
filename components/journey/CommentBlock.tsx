@@ -4,7 +4,6 @@ import {
   ChevronDown,
   Copy,
   ImagePlus,
-  Loader2,
   MessageCircle,
   MoreHorizontal,
   Pencil,
@@ -26,6 +25,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 
+import { MemeShapesLoader } from "@/components/cins/MemeShapesLoader";
 import {
   addMilestoneCommentV1,
   hideMilestoneCommentByOwner,
@@ -38,6 +38,7 @@ import {
 } from "@/app/[slug]/journey/actions";
 import { useOptionalAuthGate } from "@/components/auth/AuthGateProvider";
 import { ChatStickerPicker } from "@/components/cins/ChatStickerPicker";
+import { MsIcon } from "@/components/cins/MsIcon";
 import { CommentAttachments } from "@/components/journey/CommentAttachments";
 import { CommentMentionText } from "@/components/journey/CommentMentionText";
 import { CommentReactionPill } from "@/components/journey/CommentReactionPill";
@@ -974,7 +975,7 @@ function CommentComposeForm({
                   <img src={item.previewUrl} alt="" />
                   {item.uploading ? (
                     <span className="post-comments-compose-attachment-busy" aria-busy>
-                      <Loader2 size={16} strokeWidth={2} className="mc-spin" />
+                      <MemeShapesLoader size={16} label="Đang tải ảnh" />
                     </span>
                   ) : null}
                   <button
@@ -1205,13 +1206,7 @@ function CommentComposeForm({
               disabled={pending}
               onClick={() => setStickerPickerOpen((open) => !open)}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                className="post-comments-meme-btn-icon"
-                src="/assets/chat-meme-trigger.png"
-                alt=""
-                aria-hidden
-              />
+              <MsIcon name="comedy_mask" className="post-comments-meme-btn-icon" />
             </button>
             <button
               type="button"
@@ -1246,12 +1241,7 @@ function CommentComposeForm({
           aria-label={pending ? "Đang gửi bình luận" : "Gửi bình luận"}
         >
           {pending ? (
-            <Loader2
-              size={18}
-              strokeWidth={2}
-              className="post-comments-send-spin"
-              aria-hidden
-            />
+            <MemeShapesLoader size={20} label="Đang gửi bình luận" />
           ) : (
             <Send size={18} strokeWidth={2} aria-hidden />
           )}

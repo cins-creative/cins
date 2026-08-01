@@ -14,6 +14,8 @@
 |---|---|
 | `auth/session-profile` | Lấy profile từ session |
 | `auth/login` | Đăng nhập email/username + mật khẩu (rate limit IP; username→email service role) |
+| `auth/restore` | POST — khôi phục phiên từ kho `cins-accounts` khi cookie phiên mất (chỉ gỡ nick khi refresh token chết thật) |
+| `auth/vault-sync` | POST — đồng bộ refresh token hiện hành vào kho sau `TOKEN_REFRESHED` (không nhận body/slug từ client) |
 | `auth/resend-signup-otp` | Gửi lại mã OTP xác nhận đăng ký |
 | `auth/forgot-password` | Gửi OTP khôi phục mật khẩu (`resetPasswordForEmail`); email ghi cookie httpOnly `cins-pw-recovery`; anti-enumeration |
 | `auth/reset-password` | `verifyOtp` type `recovery` + `updateUser({ password })`; đọc email từ cookie recovery |
@@ -488,6 +490,8 @@ Code map: `lib/journey/images.ts` (role `gallery-grid` → `grid` + `srcset` `gr
 | Nhãn riêng (filter) | Khách **được** thấy / lọc nhãn `filter_nhan` của chủ Journey (chỉ nhãn có ≥1 cột mốc visible). UI: `JourneyPersonalFilterMenuSection` + `orderTimelinePersonalFilters`. Provider: `JourneyProfileShellClient` **luôn** bọc `JourneyComposeProvider` (kèm `JourneyPersonalFilterProvider`) kể cả `!isOwner` — thiếu provider thì dropdown mất section «Nhãn riêng» / `?filter=` không chạy. API: `GET /api/filters?userId=`. Deep link: `lib/filter/client-utils.ts` |
 | Tương tác | Like / bookmark / bình luận → modal đăng nhập nếu chưa session (`AuthGateProvider` trên `app/[slug]/layout`; cộng đồng: `useCongDongAuthGate` + `AuthRequiredModal`) |
 | OAuth | Google PKCE — `app/auth/callback/route.ts`; cookie `cins-oauth-intent`, `cins-oauth-return`. Host production duy nhất: **`cins.vn`** (Cloudflare) — **không** Vercel / `*.vercel.app`. Chặn in-app browser trước khi redirect (`lib/auth/in-app-browser.ts`); map lỗi Google (`lib/auth/oauth-errors.ts`, gồm `disallowed_useragent`) |
+| Kho đa tài khoản | Cookie httpOnly `cins-accounts` (refresh token) + `cins-restore-hint`. Switch: `switchAccountAction`. Restore: `POST /api/auth/restore`. Sync sau xoay token: `POST /api/auth/vault-sync` (client `AuthSessionRemember` khi `TOKEN_REFRESHED`). Plan: `docs/PLAN_auth_session_on_dinh.md` |
+| Middleware `/login` | `resolveSession()` đồng bộ cookie phiên trên `/login` (không bypass) — tránh RSC vứt refresh token vừa xoay. Vẫn bypass hoàn toàn `/auth/*` + `/api/auth/*`. `/login` return trước maintenance rewrite. |
 | Protected | `/onboarding`, `/admin`, `/{slug}/p/new`, `/{slug}/p/.../edit` |
 | Admin panel gate | Middleware: session bắt buộc. `renderAdminPage` + `lib/auth/system-role.ts`: chỉ `super_admin` / `admin` / `curator`. Tab `/admin/nguoi-dung`: `canManageUsers` (super_admin + admin). Sửa nội dung: `canEditContent`. **Phân quyền org** (`/admin/to-chuc`, nút Shield): chỉ `super_admin` + `CINS_ORG_DELEGATION_PASSWORD` + mật khẩu ủy quyền mỗi mutation (L22). |
 | Dev OAuth | `NEXT_PUBLIC_SITE_URL=http://localhost:3001` trong `.env.local`; mở đúng `http://localhost:3001/login` (không `127.0.0.1` / `0.0.0.0` / IP LAN). Supabase Redirect URLs: `http://localhost:3001/auth/callback` |

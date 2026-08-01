@@ -72,20 +72,21 @@ function coverBadge(batDauIso: string): { month: string; day: string } | null {
   };
 }
 
-function statusBadge(
+function statusBadges(
   item: HaOrgUpPopoverItem,
   phanHoi: LoaiPhanHoiSuKien | null,
-): { text: string; className: string } | null {
-  if (phanHoi === "se_tham_gia") {
-    return { text: "Sẽ tham gia", className: "is-rsvp" };
-  }
-  if (phanHoi === "quan_tam") {
-    return { text: "Quan tâm", className: "is-interest" };
-  }
+): { text: string; className: string }[] {
+  const out: { text: string; className: string }[] = [];
+  // "Đang diễn ra" luôn hiện khi live — không để badge phản hồi che mất.
   if (item.status === "active") {
-    return { text: "Đang diễn ra", className: "is-live" };
+    out.push({ text: "Đang diễn ra", className: "is-live" });
   }
-  return null;
+  if (phanHoi === "se_tham_gia") {
+    out.push({ text: "Sẽ tham gia", className: "is-rsvp" });
+  } else if (phanHoi === "quan_tam") {
+    out.push({ text: "Quan tâm", className: "is-interest" });
+  }
+  return out;
 }
 
 /**
@@ -135,7 +136,7 @@ export function HaOrgUpEventPopover({ item, cardClassName, children }: Props) {
   };
 
   const badge = coverBadge(item.batDauIso);
-  const status = statusBadge(item, phanHoi);
+  const statuses = statusBadges(item, phanHoi);
   const coverSrc = preview?.coverSrc ?? item.coverSrc;
   const kicker = preview?.loaiLabel ?? item.subLabel ?? "Sự kiện";
   const timeLine =
@@ -209,9 +210,16 @@ export function HaOrgUpEventPopover({ item, cardClassName, children }: Props) {
                         <span className="sk-pop-date-day">{badge.day}</span>
                       </span>
                     ) : null}
-                    {status ? (
-                      <span className={`sk-pop-status ${status.className}`}>
-                        {status.text}
+                    {statuses.length > 0 ? (
+                      <span className="sk-pop-status-wrap">
+                        {statuses.map((status) => (
+                          <span
+                            key={status.className}
+                            className={`sk-pop-status ${status.className}`}
+                          >
+                            {status.text}
+                          </span>
+                        ))}
                       </span>
                     ) : null}
                   </div>

@@ -59,6 +59,10 @@ import {
   milestoneCardPhotoGrid,
 } from "@/lib/journey/milestone-card-kind";
 import { JourneyCommentLink } from "@/components/journey/JourneyCommentLink";
+import {
+  JourneyCommentsSheet,
+  useJourneyCommentsSheetMode,
+} from "@/components/journey/JourneyCommentsSheet";
 import { JourneyOrgAttachTrigger } from "@/components/journey/JourneyOrgAttachTrigger";
 import { JourneyBookmarkButton } from "@/components/journey/JourneyBookmarkButton";
 import { JourneyMilestoneInlineControls } from "@/components/journey/JourneyMilestoneInlineControls";
@@ -526,6 +530,7 @@ export function JourneyMilestoneCard({
   const worldBoostAdmin = useWorldBoostAdminOptional();
   const [banHangEnabled, setBanHangEnabled] = useState(false);
   const coarsePointer = useCoarsePointer();
+  const commentsSheetMode = useJourneyCommentsSheetMode();
 
   useEffect(() => {
     if (!isOwner || !viewerProfileId) {
@@ -926,8 +931,12 @@ export function JourneyMilestoneCard({
   const [chiChuExpanded, setChiChuExpanded] = useState(false);
   const [unfoldMounted, setUnfoldMounted] = useState(false);
   const [unfoldReady, setUnfoldReady] = useState(false);
+  /** Mobile: bình luận = bottom sheet, không xổ card. */
+  const [commentsSheetOpen, setCommentsSheetOpen] = useState(false);
   const showContent = inlineExpand?.showContent ?? false;
-  const showComments = inlineExpand?.showComments ?? false;
+  const showCommentsRaw = inlineExpand?.showComments ?? false;
+  /* Sheet mode: chỉ xổ nội dung; bình luận đi bottom sheet — không xổ xuống. */
+  const showComments = showCommentsRaw && !commentsSheetMode;
   const showUnfold = showContent || showComments;
   const unfoldOpen = showUnfold && unfoldReady;
   const showChiChuUnfold =
@@ -947,6 +956,12 @@ export function JourneyMilestoneCard({
   const pinActionsAboveComments = Boolean(
     inlineExpand && showUnfold && showComments,
   );
+  const commentsSheetOwnerSlug =
+    inlineExpand?.postOwnerSlug ||
+    postOwnerSlug ||
+    milestone.lensOwnerSlug ||
+    ownerSlug ||
+    "";
   const authorsInUnfold = pinActionsAboveComments && showAuthorsStrip;
   const milestoneId = cotMocId ?? milestone.id;
   const likeActorsMediaLabel =
@@ -980,6 +995,8 @@ export function JourneyMilestoneCard({
 
   /* Analytics tiếp cận/tương tác — KHÔNG đo nội dung của chính mình. */
   const articleRef = useRef<HTMLElement | null>(null);
+  /** Sticky «Thu gọn» — ẩn khi cuộn quá nội dung sang khối bình luận. */
+  const unfoldStickyRef = useRef<HTMLDivElement | null>(null);
   /** Neo viewport khi xổ bài dài — theo offset card, re-pin khi body/ảnh phình. */
   const expandScrollPinRef = useRef<ExpandScrollPin | null>(null);
   /* Nguồn bề mặt — ưu tiên prop tường minh; fallback theo entityLens. */
@@ -1195,6 +1212,49 @@ export function JourneyMilestoneCard({
       };
     }
   }, [showComments, showContent]);
+
+  /* Sticky «Thu gọn» chỉ neo trong phần nội dung bài viết: khi khối bình luận
+     lọt vào viewport (cuộn quá nội dung), ẩn nút để không đè lên bình luận.
+     `.j-m-card-main` bọc cả nội dung lẫn bình luận nên không thể giới hạn phạm
+     vi sticky bằng CSS — quan sát khối bình luận để bật/tắt. */
+  useEffect(() => {
+    if (!showUnfoldToggle || !showComments) return;
+    const sticky = unfoldStickyRef.current;
+    const host = articleRef.current;
+    if (!sticky || !host) return;
+    const commentsId = `post-comments-${milestoneId}`;
+    let io: IntersectionObserver | null = null;
+    let mo: MutationObserver | null = null;
+    const attach = () => {
+      const el = document.getElementById(commentsId);
+      if (!el) return false;
+      io = new IntersectionObserver(
+        (entries) => {
+          const entry = entries[0];
+          if (!entry) return;
+          sticky.classList.toggle("is-past-content", entry.isIntersecting);
+        },
+        { threshold: 0 },
+      );
+      io.observe(el);
+      return true;
+    };
+    if (!attach()) {
+      /* Bình luận nạp bất đồng bộ (JourneyMilestoneUnfold) — chờ mount rồi gắn. */
+      mo = new MutationObserver(() => {
+        if (attach()) {
+          mo?.disconnect();
+          mo = null;
+        }
+      });
+      mo.observe(host, { childList: true, subtree: true });
+    }
+    return () => {
+      io?.disconnect();
+      mo?.disconnect();
+      sticky.classList.remove("is-past-content");
+    };
+  }, [showUnfoldToggle, showComments, milestoneId]);
 
   useEffect(() => {
     function onCommentsSync(event: Event) {
@@ -1563,6 +1623,13 @@ export function JourneyMilestoneCard({
           shareTitle={title}
           onOpenComments={() => {
             trackCommentOpen();
+            if (commentsSheetMode) {
+              setCommentsSheetOpen((open) => !open);
+              /* Đóng panel BL inline nếu state timeline còn mở (đổi viewport). */
+              if (showCommentsRaw) inlineExpand.onOpenComments();
+              return;
+            }
+            setCommentsSheetOpen(false);
             inlineExpand.onOpenComments();
           }}
         />
@@ -1760,6 +1827,15 @@ export function JourneyMilestoneCard({
           milestoneId={cotMocId ?? milestone.id}
         />
       ) : null}
+      {inlineExpand ? (
+        <JourneyCommentsSheet
+          open={commentsSheetOpen}
+          onClose={() => setCommentsSheetOpen(false)}
+          postOwnerSlug={commentsSheetOwnerSlug || ownerSlug || "_"}
+          postSlug={postSlug}
+          milestoneId={milestoneId}
+        />
+      ) : null}
     </article>
   );
 
@@ -1885,7 +1961,7 @@ export function JourneyMilestoneCard({
 
   function renderMilestoneCardInterior() {
     const unfoldToggle = showUnfoldToggle ? (
-      <div className="jcard-unfold-sticky">
+      <div className="jcard-unfold-sticky" ref={unfoldStickyRef}>
         <button
           type="button"
           className="jcard-unfold-toggle"

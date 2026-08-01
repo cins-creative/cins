@@ -88,6 +88,19 @@ const TARGET_VARIANTS = [
       metadata: "none",
     },
   },
+  {
+    /* Ảnh dọc rất dài (Behance strip). `public` cap height 1080 → cạnh
+       ngắn bị bóp còn ~300px → vỡ. `tall` chỉ giới hạn bề ngang, để chiều
+       cao chạy tới trần CF (12000px) → strip giữ đủ nét. */
+    id: "tall",
+    create: true,
+    options: {
+      fit: "scale-down",
+      width: 1600,
+      height: 12000,
+      metadata: "none",
+    },
+  },
 ];
 
 async function cfFetch(method, pathSuffix, body) {

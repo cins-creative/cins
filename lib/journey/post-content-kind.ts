@@ -38,6 +38,14 @@ import { isPersistedImageSeed } from "@/lib/truong/image-ref";
 /** Loại hiển thị nội dung — source of truth Phase 1+. */
 export type PostDisplayKind = "text" | "album" | "article" | "bunny_video";
 
+/**
+ * Tiêu đề auto khi user không nhập ("Bài viết") — publish path điền trước khi
+ * validate, nên KHÔNG tính là nội dung trong `hasPublishableContent` (timeline
+ * card cũng giấu tiêu đề này → nếu tính, bài rỗng vẫn đăng được rồi hiện card trống).
+ * Định nghĩa ở đây (thay vì `post-media.ts`) để tránh import vòng; `post-media` re-export.
+ */
+export const DEFAULT_ARTICLE_POST_TITLE = "Bài viết";
+
 export type PostContentResolveInput = {
   moTa?: string | null;
   coverId?: string | null;
@@ -785,19 +793,24 @@ function hasPublishableContent(
   if (resolution.kind === "bunny_video") {
     return embedBlocks(blocks).some(isBunnyEmbedBlock);
   }
-  /* Bài chữ/article/album: không bắt buộc field nào — tiêu đề, mô tả, block, ảnh bìa đều tùy chọn. */
+  /* Bài chữ/article/album: cần ít nhất MỘT trong — mô tả, tiêu đề thật
+     (không phải auto "Bài viết"), ảnh bìa, ảnh, chữ trong block, hoặc embed.
+     Bài rỗng hoàn toàn → chặn (card timeline sẽ không có gì để hiển thị). */
   if (
     resolution.kind === "text" ||
     resolution.kind === "article" ||
     resolution.kind === "album"
   ) {
     if (resolution.effectiveMoTa?.trim()) return true;
-    if (tieuDe?.trim()) return true;
+    const tieuDeTrimmed = tieuDe?.trim();
+    if (tieuDeTrimmed && tieuDeTrimmed !== DEFAULT_ARTICLE_POST_TITLE) {
+      return true;
+    }
     if (coverId?.trim() && isPersistedImageSeed(coverId.trim())) return true;
     if (extractAllImageIds(blocks).length > 0) return true;
     if (hasTextContentInBlocks(blocks)) return true;
     if (embedBlocks(blocks).length > 0) return true;
-    return true;
+    return false;
   }
   return false;
 }
@@ -999,7 +1012,20 @@ export function resolvePostGridEntry(
     Boolean(input.hasCover);
   const imageIds = extractAllImageIds(blocks);
   const embedProvider = resolveGalleryEmbedProvider(blocks);
-  const mediaKind: GalleryMediaKind = embedProvider
+  /*
+   * Chỉ coi là bài "embed" (badge logo platform trên thumb) khi embed là nội
+   * dung chính. Bài viết dài chỉ nhúng video minh họa (có ảnh riêng, heading,
+   * layout bài viết, hoặc thân chữ dài) vẫn là article — không gắn badge.
+   */
+  const embedIsMainContent =
+    Boolean(embedProvider) &&
+    imageIds.length === 0 &&
+    !hasArticleLayoutBlocks(blocks) &&
+    !hasArticleProseStructure(blocks) &&
+    !blocks.some(
+      (b) => b.loai === "body" && blockPlainText(b).length > 160,
+    );
+  const mediaKind: GalleryMediaKind = embedIsMainContent
     ? "embed"
     : postDisplayKindToGalleryMediaKind(resolution.kind);
 

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createPublicSupabaseClient } from "@/lib/supabase/public";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import {
   mapStudioJobRow,
   STUDIO_JOB_SELECT,
@@ -10,14 +10,16 @@ import {
 /**
  * Tin tuyển dụng của một tổ chức (studio/doanh nghiệp) cho tab Tuyển dụng.
  * `includeHidden` = true khi viewer là admin org → thấy cả nháp/đã đóng.
- * Bảng `org_tuyen_dung` có thể chưa tồn tại (migration chưa chạy) → trả rỗng.
+ * Dùng service role: anon không EXECUTE được `is_admin_to_chuc` → policy
+ * `tuyen_dung_admin_org` (FOR ALL) làm fail cả SELECT công khai (42501).
+ * Caller (API) đã gate `includeHidden` theo quyền org.
  */
 export async function fetchStudioJobs(
   orgId: string,
   includeHidden = false,
 ): Promise<StudioJob[]> {
   try {
-    const supabase = createPublicSupabaseClient();
+    const supabase = createServiceRoleClient();
     let query = supabase
       .from("org_tuyen_dung")
       .select(STUDIO_JOB_SELECT)

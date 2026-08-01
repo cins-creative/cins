@@ -179,7 +179,7 @@ export function openCallWindow(input: OpenCallWindowInput): OpenCallWindowResult
     return { ok: true, sid, via: "window" };
   }
 
-  win = window.open(url, name, callPopupFeatures());
+  win = window.open(url, name, callPopupFeatures()) ?? undefined;
   if (!win) {
     return { ok: false, sid, reason: "blocked" };
   }

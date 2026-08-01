@@ -14,6 +14,8 @@ import {
 } from "@/lib/journey/post-media";
 import { sortDoanProjectsForPublic } from "@/lib/truong/doan-project-sort";
 
+import "@/app/co-so/cso-sp-admin.css";
+
 type Props = {
   orgId: string;
   projects: OrgDoanProjectItem[];
@@ -131,7 +133,7 @@ function CoSoDoanSanPhamAdminTable({
             <th scope="col">Tác phẩm</th>
             <th scope="col">Khóa</th>
             <th scope="col">Hiển thị</th>
-            <th scope="col">Điểm</th>
+            <th scope="col">Thứ tự hiển thị</th>
           </tr>
         </thead>
         <tbody>
@@ -177,7 +179,7 @@ function CoSoDoanSanPhamAdminTable({
                     step={1}
                     value={scoreValue}
                     disabled={busy}
-                    aria-label={`Điểm sắp xếp: ${project.projectTitle}`}
+                    aria-label={`Thứ tự hiển thị: ${project.projectTitle}`}
                     onChange={(e) => onScoreDraftChange(project.id, e.target.value)}
                     onBlur={() => onCommitScore(project)}
                     onKeyDown={(e) => {
@@ -228,7 +230,7 @@ export function CoSoDoanSanPhamAdmin({ orgId, projects, onUpdated }: Props) {
     const raw = scoreDraft[project.id];
     const parsed = raw === undefined ? project.diemSapXep : Number(raw);
     if (!Number.isFinite(parsed) || parsed < 0 || parsed > 9999) {
-      setError("Điểm phải từ 0 đến 9999.");
+      setError("Thứ tự hiển thị phải từ 0 đến 9999.");
       return;
     }
     if (Math.round(parsed) === project.diemSapXep) return;
@@ -240,7 +242,22 @@ export function CoSoDoanSanPhamAdmin({ orgId, projects, onUpdated }: Props) {
   }
 
   function handleToggleVisibility(project: OrgDoanProjectItem) {
-    void runPatch(project, { hienThiSanPham: !project.hienThiSanPham });
+    if (busyId === project.id) return;
+    const nextHienThi = !project.hienThiSanPham;
+    onUpdated({ ...project, hienThiSanPham: nextHienThi });
+    setBusyId(project.id);
+    setError(null);
+    void patchProject(orgId, project.id, { hienThiSanPham: nextHienThi })
+      .then((item) => {
+        onUpdated(item);
+      })
+      .catch((err) => {
+        onUpdated(project);
+        setError(err instanceof Error ? err.message : "Không lưu được.");
+      })
+      .finally(() => {
+        setBusyId(null);
+      });
   }
 
   function openProjectDetail(project: OrgDoanProjectItem) {

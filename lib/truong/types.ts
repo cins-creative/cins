@@ -3,6 +3,7 @@ import type { ArticleTagRef } from "@/lib/editor/article-tag";
 import type { CoAuthorCredit } from "@/components/journey/milestone-types";
 import type { PersonalFilterRef } from "@/lib/filter/types";
 import type { CoSoStaffVaiTro } from "@/lib/to-chuc/co-so-vai-tro";
+import type { TrangThaiSeedOrNull } from "@/lib/seed/trang-thai-seed.shared";
 
 export type TruongOrgLoai = "truong_dai_hoc" | "co_so_dao_tao";
 
@@ -71,6 +72,11 @@ export type TruongListItem = {
    * hoặc `org_truong_dai_hoc.da_verify`). Khác verify cột mốc học viên.
    */
   daVerify?: boolean;
+  /**
+   * Trạng thái seed page (`org_to_chuc.trang_thai_seed`). NULL = org thật.
+   * clone → hiện disclaimer «do CINs vận hành»; duoc_duyet → ẩn; ban_giao → tick.
+   */
+  trangThaiSeed?: TrangThaiSeedOrNull;
 };
 
 export type TruongNganhProgram = {

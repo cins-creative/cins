@@ -49,6 +49,7 @@
     "migrate:autopilot-pixiv": "node scripts/run-autopilot-pixiv-migration.mjs",
     "migrate:autopilot-tuong-tac": "node scripts/run-autopilot-tuong-tac-migration.mjs",
     "migrate:tai-khoan-clone": "node scripts/run-tai-khoan-clone-migration.mjs",
+    "migrate:trang-thai-seed": "node scripts/run-trang-thai-seed-migration.mjs",
     "autopilot": "node tools/autopilot/cli.mjs",
     "pack:tro-ly-ext": "node scripts/pack-tro-ly-extension.mjs",
     "pack:shopee-ext": "node scripts/pack-shopee-extension.mjs",

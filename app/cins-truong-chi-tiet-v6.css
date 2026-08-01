@@ -5975,6 +5975,72 @@
   background: #f8fafc;
 }
 
+/* ── Dark theme: modal seed hard-code nền sáng → override để tránh chữ sáng trên nền sáng (tiêu đề mất, nút "Đã hiểu" trắng-trên-trắng). ── */
+:root[data-theme="dark"] .tdh-inline-modal.truong-ss-seed-modal {
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 28px 64px rgba(0, 0, 0, 0.55);
+}
+
+:root[data-theme="dark"] .truong-ss-seed-modal-head {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+:root[data-theme="dark"] .truong-ss-seed-status {
+  background: rgba(249, 115, 22, 0.14);
+  border-color: rgba(249, 115, 22, 0.32);
+  color: #fdba74;
+}
+
+:root[data-theme="dark"] .truong-ss-seed-modal-x:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+:root[data-theme="dark"] .truong-ss-seed-example-frame {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+:root[data-theme="dark"] .truong-ss-seed-example-ava {
+  border-color: rgba(23, 27, 36, 0.9);
+  background: rgba(59, 130, 246, 0.18);
+  color: #93c5fd;
+}
+
+:root[data-theme="dark"] .truong-ss-seed-example-pills span {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.72);
+}
+
+:root[data-theme="dark"] .truong-ss-seed-points li::marker {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+:root[data-theme="dark"] .truong-ss-seed-modal-error {
+  background: rgba(180, 35, 24, 0.16);
+  border-color: rgba(248, 113, 113, 0.28);
+  color: #fca5a5;
+}
+
+:root[data-theme="dark"] .truong-ss-seed-modal-foot {
+  background: rgba(255, 255, 255, 0.02);
+  border-top-color: rgba(255, 255, 255, 0.08);
+}
+
+:root[data-theme="dark"] .truong-ss-seed-btn-ghost {
+  border-color: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--ink-body, rgba(255, 255, 255, 0.72));
+}
+
+:root[data-theme="dark"] .truong-ss-seed-btn-ghost:hover {
+  border-color: rgba(255, 255, 255, 0.26);
+  background: rgba(255, 255, 255, 0.08);
+}
+
 @media (max-width: 991.98px) {
   .tdh-page--v6 .school-side .cso-ss-ava-row {
     gap: 10px;

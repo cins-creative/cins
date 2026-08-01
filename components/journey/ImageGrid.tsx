@@ -128,6 +128,8 @@ type CellProps = {
   preferPublicSrc?: boolean;
   /** Stack — cắt chiều cao sheet dài (lightbox xem đủ). */
   tallClip?: boolean;
+  /** Dùng CF variant `tall` (chỉ giới hạn bề ngang) — cho stack. */
+  useTallVariant?: boolean;
   canReorder?: boolean;
   dragFrom?: number | null;
   dragSnap?: DragSnapTarget | null;
@@ -153,6 +155,7 @@ function ImageGridCell({
   singlePortrait = false,
   preferPublicSrc = false,
   tallClip = false,
+  useTallVariant = false,
   canReorder = false,
   dragFrom = null,
   dragSnap = null,
@@ -165,7 +168,12 @@ function ImageGridCell({
   // local nữa kẻo lệch với aspect-ratio hàng.
   const cellStyle = style;
 
-  const thumb = gridThumbAsset(image, { singlePortrait, preferPublic: preferPublicSrc });
+  const thumb = gridThumbAsset(image, {
+    singlePortrait,
+    preferPublic: preferPublicSrc,
+    /* Strip cao / stack: variant `tall` (không bị `public` cap height 1080 → vỡ). */
+    tall: useTallVariant || tallClip,
+  });
   const thumbSrc = thumb.src;
   const uploadActive = uploadState?.status === "uploading";
   const uploadDone = uploadState?.status === "done";
@@ -514,6 +522,7 @@ export function ImageGrid({
       singlePortrait?: boolean;
       preferPublicSrc?: boolean;
       tallClip?: boolean;
+      useTallVariant?: boolean;
     },
   ) => {
     const image = images[slotIndex];
@@ -539,6 +548,7 @@ export function ImageGrid({
         singlePortrait={opts?.singlePortrait}
         preferPublicSrc={opts?.preferPublicSrc}
         tallClip={opts?.tallClip}
+        useTallVariant={opts?.useTallVariant}
         canReorder={canReorder}
         dragFrom={dragFrom}
         dragSnap={dragSnap}
@@ -553,19 +563,22 @@ export function ImageGrid({
   if (layout.kind === "single") {
     const naturalAspect =
       measuredAspectByIndex[0] ?? layout.cell.aspect;
+    /* Metadata width/height hay sai (mặc định 1200×800) — quyết định portrait
+       theo tỉ lệ intrinsic đo được để canvas 3:4 kích hoạt đúng. */
+    const singlePortrait = layout.portrait || naturalAspect < 1;
     body = (
       <div
-        className={`image-grid image-grid--single${layout.portrait ? " is-portrait" : ""}`}
+        className={`image-grid image-grid--single${singlePortrait ? " is-portrait" : ""}`}
         data-count="1"
         style={
-          layout.portrait
+          singlePortrait
             ? ({
                 ["--media-natural-aspect" as string]: String(naturalAspect),
               } as CSSProperties)
             : undefined
         }
       >
-        {renderCell(0, { singlePortrait: layout.portrait })}
+        {renderCell(0, { singlePortrait })}
       </div>
     );
   } else if (layout.kind === "masonry") {
@@ -631,6 +644,9 @@ export function ImageGrid({
             remaining: layout.remaining,
             preferPublicSrc: true,
             tallClip,
+            /* Stack luôn dùng variant `tall` — `public` cap height 1080 làm
+               ảnh dọc dài bị bóp bề ngang → vỡ (kể cả khi thiếu width/height). */
+            useTallVariant: true,
           });
         })}
       </div>

@@ -5881,6 +5881,16 @@ a.j-main-gallery-item:focus-visible,
   padding: 0 12px;
   pointer-events: none;
   overflow-anchor: none;
+  opacity: 1;
+  transition: opacity 0.2s ease;
+}
+/* Cuộn quá nội dung sang khối bình luận — ẩn nút «Thu gọn» (JS bật class). */
+.jcard-unfold-sticky.is-past-content {
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.2s ease,
+    visibility 0s linear 0.2s;
 }
 .jcard-unfold-toggle {
   display: inline-flex;
@@ -17009,6 +17019,18 @@ button.j-user-pop-close svg {
 .j-m-card.jcard--article .jcard-media-zone > :is(.preview, a.preview) img {
   border-radius: 0;
 }
+/* Cover bài viết — khung cố định 16:9: bỏ min/max-height của .preview
+   (max-height 360px làm lệch tỉ lệ khi cột feed rộng hơn 640px). */
+.j-m-card.jcard--article
+  .jcard-media-zone
+  > :is(.preview, a.preview):not(.preview--article-peek):not(
+    .preview--photo-grid
+  ):not(.preview--video) {
+  aspect-ratio: 16 / 9;
+  height: auto;
+  min-height: 0;
+  max-height: none;
+}
 .j-m-card.jcard--photo .jcard-media-zone .preview--photo-grid,
 .j-m-card.jcard--photo .jcard-media-zone .preview--photo-grid .image-grid,
 .j-m-card.jcard--photo .jcard-media-zone .preview--photo-grid .image-grid-row,
@@ -20318,6 +20340,14 @@ a.action-btn-part {
 :root[data-theme="dark"] .j-org-attach-evidence-readonly-img {
   background: rgba(255, 255, 255, 0.03);
   border-color: rgba(255, 255, 255, 0.12);
+}
+:root[data-theme="dark"] .j-org-attach-field input,
+:root[data-theme="dark"] .j-org-attach-field select {
+  color-scheme: dark;
+}
+:root[data-theme="dark"] .j-org-attach-field select option {
+  background: var(--bg-surface, #1e293b);
+  color: var(--ink-body, #cbd5e1);
 }
 :root[data-theme="dark"] .j-org-attach-field input:focus,
 :root[data-theme="dark"] .j-org-attach-field select:focus {

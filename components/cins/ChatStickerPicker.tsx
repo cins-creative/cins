@@ -1,6 +1,6 @@
 "use client";
 
-import { ClipboardPaste, Loader2, Plus, Settings2, Star, Trash2, X } from "lucide-react";
+import { ClipboardPaste, Plus, Settings, Star, Trash2, X } from "lucide-react";
 import {
   useCallback,
   useEffect,
@@ -9,6 +9,7 @@ import {
   type ChangeEvent,
 } from "react";
 
+import { MemeShapesLoader } from "@/components/cins/MemeShapesLoader";
 import { fetchChatComposeImageUpload } from "@/lib/chat/compose-image-upload";
 import { readImageFileFromClipboard } from "@/lib/files/clipboard-images";
 import {
@@ -245,9 +246,9 @@ export function ChatStickerPicker({ onClose, onSend, disabled }: Props) {
   };
 
   return (
-    <div ref={panelRef} className="cins-chat-sticker-picker" role="dialog" aria-label="Meme của tôi">
+    <div ref={panelRef} className="cins-chat-sticker-picker" role="dialog" aria-label="My meme">
       <header className="cins-chat-sticker-picker-head">
-        <span className="cins-chat-sticker-picker-title">Meme của tôi</span>
+        <span className="cins-chat-sticker-picker-title">My meme</span>
         <div className="cins-chat-sticker-picker-actions">
           <button
             type="button"
@@ -256,7 +257,7 @@ export function ChatStickerPicker({ onClose, onSend, disabled }: Props) {
             aria-pressed={manageMode}
             onClick={() => setManageMode((value) => !value)}
           >
-            <Settings2 size={16} strokeWidth={1.8} aria-hidden />
+            <Settings size={16} strokeWidth={1.8} aria-hidden />
           </button>
           <button
             type="button"
@@ -319,14 +320,14 @@ export function ChatStickerPicker({ onClose, onSend, disabled }: Props) {
             disabled={creatingBo}
           />
           <button type="submit" disabled={creatingBo || !newBoName.trim()}>
-            {creatingBo ? <Loader2 size={14} className="is-spin" aria-hidden /> : "Tạo"}
+            {creatingBo ? <MemeShapesLoader size={16} label="Đang tạo" /> : "Tạo"}
           </button>
         </form>
       ) : null}
 
       {loading ? (
         <p className="cins-chat-sticker-picker-status">
-          <Loader2 size={18} className="is-spin" aria-hidden /> Đang tải…
+          <MemeShapesLoader size={28} /> Đang tải…
         </p>
       ) : error ? (
         <p className="cins-chat-sticker-picker-error" role="alert">
@@ -407,7 +408,7 @@ export function ChatStickerPicker({ onClose, onSend, disabled }: Props) {
                   onClick={() => void handlePasteFromClipboard()}
                 >
                   {uploading ? (
-                    <Loader2 size={14} className="is-spin" aria-hidden />
+                    <MemeShapesLoader size={16} label="Đang tải ảnh" />
                   ) : (
                     <ClipboardPaste size={14} strokeWidth={1.8} aria-hidden />
                   )}
@@ -420,7 +421,7 @@ export function ChatStickerPicker({ onClose, onSend, disabled }: Props) {
                   onClick={() => fileInputRef.current?.click()}
                 >
                   {uploading ? (
-                    <Loader2 size={14} className="is-spin" aria-hidden />
+                    <MemeShapesLoader size={16} label="Đang tải ảnh" />
                   ) : (
                     <Plus size={14} strokeWidth={2} aria-hidden />
                   )}

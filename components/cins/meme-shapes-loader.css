@@ -1,0 +1,145 @@
+.meme-shapes-loader {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  line-height: 0;
+  vertical-align: middle;
+}
+
+.meme-shapes-loader-stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 22%;
+  background: #1a1a1e;
+  overflow: hidden;
+}
+
+.meme-shapes-loader-shape {
+  position: absolute;
+  width: 30%;
+  height: 30%;
+  top: 14%;
+  left: 14%;
+  animation: meme-shapes-swap 1.6s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+  will-change: left, top;
+}
+
+.meme-shapes-loader-shape.is-tri {
+  background: #f0a05a;
+  clip-path: polygon(50% 8%, 92% 88%, 8% 88%);
+  animation-delay: 0s;
+}
+
+.meme-shapes-loader-shape.is-cir {
+  background: #e6c84a;
+  border-radius: 50%;
+  animation-delay: -0.4s;
+}
+
+.meme-shapes-loader-shape.is-sq {
+  background: #a894c9;
+  border-radius: 18%;
+  animation-delay: -1.2s;
+}
+
+.meme-shapes-loader-shape.is-dia {
+  width: 26%;
+  height: 26%;
+  background: #6fcbb0;
+  border-radius: 12%;
+  animation-name: meme-shapes-swap-dia;
+  animation-delay: -0.8s;
+}
+
+/*
+ * Vòng chỗ ngồi (cùng quỹ đạo, lệch pha):
+ * TL → TR → BR → BL → TL
+ * Hold ngắn ở mỗi góc để đọc được “đổi vị trí”.
+ */
+@keyframes meme-shapes-swap {
+  0%,
+  16% {
+    top: 14%;
+    left: 14%;
+  }
+  25%,
+  41% {
+    top: 14%;
+    left: 56%;
+  }
+  50%,
+  66% {
+    top: 56%;
+    left: 56%;
+  }
+  75%,
+  91% {
+    top: 56%;
+    left: 14%;
+  }
+  100% {
+    top: 14%;
+    left: 14%;
+  }
+}
+
+/* Kim cương giữ xoay 45° khi đổi chỗ */
+@keyframes meme-shapes-swap-dia {
+  0%,
+  16% {
+    top: 16%;
+    left: 16%;
+    transform: rotate(45deg);
+  }
+  25%,
+  41% {
+    top: 16%;
+    left: 58%;
+    transform: rotate(45deg);
+  }
+  50%,
+  66% {
+    top: 58%;
+    left: 58%;
+    transform: rotate(45deg);
+  }
+  75%,
+  91% {
+    top: 58%;
+    left: 16%;
+    transform: rotate(45deg);
+  }
+  100% {
+    top: 16%;
+    left: 16%;
+    transform: rotate(45deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .meme-shapes-loader-shape {
+    animation: none;
+  }
+
+  .meme-shapes-loader-shape.is-tri {
+    top: 14%;
+    left: 14%;
+  }
+
+  .meme-shapes-loader-shape.is-cir {
+    top: 14%;
+    left: 56%;
+  }
+
+  .meme-shapes-loader-shape.is-sq {
+    top: 56%;
+    left: 14%;
+  }
+
+  .meme-shapes-loader-shape.is-dia {
+    top: 58%;
+    left: 58%;
+    transform: rotate(45deg);
+  }
+}

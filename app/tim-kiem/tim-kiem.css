@@ -4,10 +4,24 @@
   --tk-page-pad: 20px;
   --tk-content-max: 1120px;
   width: 100%;
-  max-width: none;
+  max-width: 100%;
+  min-width: 0;
   margin: 0;
   padding: 0 0 56px;
   background: var(--bg-page);
+  background-image: none;
+  overflow-x: clip;
+}
+
+/* Chặn shell/main bị tab/card kéo rộng hơn viewport (mobile). */
+.cins-shell:has(.tk-page),
+.cins-shell:has(.tk-page) .cins-shell-column,
+.cins-shell:has(.tk-page) .cins-main {
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: clip;
+  background: var(--bg-page);
+  background-image: none;
 }
 
 /* ── Hero ── */
@@ -18,6 +32,7 @@
   padding: 36px 0 32px;
   overflow: hidden;
   background: var(--bg-page);
+  background-image: none;
   border-bottom: 1px solid var(--border);
 }
 
@@ -147,8 +162,11 @@
 .tk-body {
   min-width: 0;
   max-width: var(--tk-content-max);
+  width: 100%;
   margin: 0 auto;
   padding: 0 var(--tk-page-pad);
+  box-sizing: border-box;
+  overflow-x: clip;
 }
 
 .tk-toolbar {
@@ -158,12 +176,16 @@
   justify-content: space-between;
   gap: 14px 20px;
   margin-bottom: 18px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .tk-tabs {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .tk-tab {
@@ -899,13 +921,29 @@
   color: var(--cins-blue);
 }
 
-/* ── User cards — tái dùng nguyên JourneyFriendCard (.j-friend-card).
-   Chỉ cần ép card lấp đầy ô grid & đẩy cụm action xuống đáy cho đều hàng. ── */
+/* ── User cards — tái dùng JourneyFriendCard; nền/viền trơn (không gradient). ── */
 .tk-grid--people > li > .j-friend-card {
   width: 100%;
   height: 100%;
   display: flex;
   flex-direction: column;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  box-shadow: none;
+}
+
+.tk-grid--people .j-friend-card::after {
+  display: none;
+}
+
+.tk-grid--people .j-friend-cover:not(.has-img) {
+  background-color: var(--neutral-100, #eef1f6);
+  background-image: none;
+}
+
+:root[data-theme="dark"] .tk-grid--people .j-friend-cover:not(.has-img) {
+  background-color: color-mix(in srgb, var(--bg-surface, #171b24) 88%, #0f172a);
+  background-image: none;
 }
 
 .tk-grid--people .j-friend-card .j-friend-body {
@@ -1826,11 +1864,21 @@
     align-items: stretch;
   }
 
+  /* nowrap + min-width:auto từng kéo rộng cả trang — khóa width + scroll trong tabs. */
   .tk-tabs {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
     overflow-x: auto;
     flex-wrap: nowrap;
     padding-bottom: 4px;
     -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+  }
+
+  .tk-tabs::-webkit-scrollbar {
+    display: none;
   }
 
   .tk-tab {
@@ -1858,7 +1906,10 @@
 
 @media (max-width: 480px) {
   .tk-page .hn-role-grid,
-  .tk-grid--knowledge {
+  .tk-grid--knowledge,
+  .tk-grid--people,
+  .tk-grid--orgs,
+  .tk-grid--courses {
     grid-template-columns: 1fr;
   }
 }

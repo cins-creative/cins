@@ -66,6 +66,7 @@ import { ChatRenameGroupModal } from "@/components/cins/ChatRenameGroupModal";
 import { ChatMessageThreadItems } from "@/components/cins/ChatMessageThreadItems";
 import { ChatRoomMocsPanel } from "@/components/cins/ChatRoomWorkspacePanels";
 import { ChatStickerPicker } from "@/components/cins/ChatStickerPicker";
+import { MsIcon } from "@/components/cins/MsIcon";
 import { ChatReplyComposeBar } from "@/components/cins/ChatReplyComposeBar";
 import {
   buildThreadMenuActions,
@@ -4342,13 +4343,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                 disabled={connecting || isPendingRoom || lopFrozen}
                 onClick={() => setStickerPickerOpen((open) => !open)}
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  className="cins-chat-attach-meme-icon"
-                  src="/assets/chat-meme-trigger.png"
-                  alt=""
-                  aria-hidden
-                />
+                <MsIcon name="comedy_mask" className="cins-chat-attach-meme-icon" />
               </button>
               <textarea
                 ref={inputRef}

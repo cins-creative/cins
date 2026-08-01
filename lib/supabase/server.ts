@@ -32,7 +32,13 @@ export async function createClient() {
             cookieStore.set(name, value, options),
           );
         } catch (error) {
-          console.error("[supabase] setAll cookies failed:", error);
+          /* RSC thường không ghi được cookie — middleware /login phải sync trước.
+           * Log tên cookie để phát hiện sớm nếu còn path RSC nào refresh hụt. */
+          const names = cookiesToSet.map((c) => c.name).join(", ");
+          console.warn(
+            `[supabase] setAll cookies failed (RSC/context?): [${names}]`,
+            error,
+          );
         }
       },
     },

@@ -26,6 +26,7 @@ type DbRow = {
   loai_to_chuc: string;
   tinh_thanh: string | null;
   trang_thai_tin_cay: string;
+  trang_thai_seed: string | null;
   avatar_id: string | null;
   nguoi_tao: string | null;
 };
@@ -70,6 +71,7 @@ export function mapRow(row: DbRow): AdminToChucListRow {
     chuTrang: null,
     showVerify,
     isVerified,
+    trangThaiSeed: row.trang_thai_seed,
   };
 }
 
@@ -146,7 +148,7 @@ export async function fetchAdminToChucList(
   const { data, error } = await admin
     .from("org_to_chuc")
     .select(
-      `id, ten, slug, loai_to_chuc, tinh_thanh, trang_thai_tin_cay, avatar_id, nguoi_tao`,
+      `id, ten, slug, loai_to_chuc, tinh_thanh, trang_thai_tin_cay, trang_thai_seed, avatar_id, nguoi_tao`,
     )
     .neq("trang_thai_hoat_dong", "da_dong_cua")
     .order("ten", { ascending: true })

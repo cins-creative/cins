@@ -22,6 +22,7 @@ import {
   type GalleryMediaKind,
 } from "@/lib/journey/post-block-helpers";
 import {
+  DEFAULT_ARTICLE_POST_TITLE,
   hasGalleryEmbedContent,
   resolvePostDisplayKind,
 } from "@/lib/journey/post-content-kind";
@@ -138,10 +139,32 @@ export type EditEmbedComposeMeta = {
   riveSource?: "url" | "file";
 };
 
+/**
+ * Bài nhúng thuần — đúng 1 block embed, còn lại (nếu có) chỉ body/spacer.
+ * Bài viết dài có chèn embed giữa bài (heading, album ảnh, nhiều block…)
+ * phải mở editor đầy đủ, không rơi vào compose nhúng tối giản.
+ */
+function blocksAreEmbedComposeOnly(
+  blocks: ReadonlyArray<Block> | null | undefined,
+): boolean {
+  if (!blocks?.length) return false;
+  let embedCount = 0;
+  for (const block of blocks) {
+    if (block.loai === "embed") {
+      embedCount += 1;
+      continue;
+    }
+    if (block.loai === "body" || block.loai === "spacer") continue;
+    return false;
+  }
+  return embedCount === 1;
+}
+
 /** Meta embed khi mở sửa bài — đồng bộ layout compose nhúng. */
 export function resolveEditEmbedComposeMeta(
   blocks: ReadonlyArray<Block> | null | undefined,
 ): EditEmbedComposeMeta | null {
+  if (!blocksAreEmbedComposeOnly(blocks)) return null;
   if (detectRiveFileEmbedUrl(blocks)) {
     return { embedPlatform: "rive", fileSource: "file", riveSource: "file" };
   }
@@ -233,7 +256,7 @@ export function extractBodyCaption(
   return typeof html === "string" ? html : "";
 }
 
-export const DEFAULT_ARTICLE_POST_TITLE = "Bài viết";
+export { DEFAULT_ARTICLE_POST_TITLE } from "@/lib/journey/post-content-kind";
 
 export function defaultMediaPostTitle(kind: MediaPostKind): string {
   return kind === "video" ? "Đoạn phim" : "Ảnh";

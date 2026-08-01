@@ -163,25 +163,41 @@ export async function GET(request: NextRequest) {
   const safeNext =
     safeNextFromQuery ?? returnFromCookie;
 
+  const { data: profile } = await supabase
+    .from("user_nguoi_dung")
+    .select("slug, giai_doan, ten_hien_thi, avatar_id")
+    .eq("auth_user_id", user.id)
+    .maybeSingle<{
+      slug: string;
+      giai_doan: string | null;
+      ten_hien_thi: string | null;
+      avatar_id: string | null;
+    }>();
+
+  const refreshToken = exchangeData.session?.refresh_token;
+
   let destination: URL;
   if (intent === "register") {
     destination = new URL("/onboarding", origin);
     destination.searchParams.set("intent", "register");
-    if (vault.length > 0) {
+    /* Nick mới: ghi vào kho nếu đã có slug (trigger kịp); còn không →
+     * submitOnboarding sẽ upsert sau khi chốt hồ sơ. */
+    if (profile?.slug && refreshToken) {
+      setAccountVaultOnResponse(
+        redirectResponse,
+        upsertAccount(vault, {
+          slug: profile.slug,
+          tenHienThi: profile.ten_hien_thi,
+          avatarId: profile.avatar_id,
+          refreshToken,
+          addedAt: Date.now(),
+        }),
+      );
+      setRestoreHintOnResponse(redirectResponse);
+    } else if (vault.length > 0) {
       setAccountVaultOnResponse(redirectResponse, vault);
     }
   } else {
-    const { data: profile } = await supabase
-      .from("user_nguoi_dung")
-      .select("slug, giai_doan, ten_hien_thi, avatar_id")
-      .eq("auth_user_id", user.id)
-      .maybeSingle<{
-        slug: string;
-        giai_doan: string | null;
-        ten_hien_thi: string | null;
-        avatar_id: string | null;
-      }>();
-
     if (!profile || !profile.giai_doan) {
       destination = new URL("/onboarding", origin);
     } else if (safeNext && safeNext !== "/") {
@@ -192,7 +208,6 @@ export async function GET(request: NextRequest) {
     }
 
     // Ghi nhớ tài khoản vừa đăng nhập (Google) vào kho chuyển nhanh.
-    const refreshToken = exchangeData.session?.refresh_token;
     if (profile?.slug && refreshToken) {
       setAccountVaultOnResponse(
         redirectResponse,

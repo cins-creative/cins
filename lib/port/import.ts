@@ -21,8 +21,9 @@ import {
   taoDongGhiNguon,
   taoKhoiBaiAlbumNguon,
   taoKhoiBaiBehanceNguon,
+  type AnhAlbumNguon,
 } from "@/lib/editor/khoi-bai-nguon";
-import type { Block } from "@/lib/editor/types";
+import type { Block, Visibility } from "@/lib/editor/types";
 import { POST_MOTA_MAX, POST_TITLE_MAX } from "@/lib/journey/post-content-kind";
 import { lyDoBoQua, taoBoQuaRong, type PortImportBoQua } from "@/lib/port/bo-qua";
 import {
@@ -293,14 +294,12 @@ export async function buildCarrdPortPreview(params: {
 
   const mirrored = await mirrorImages(parsed.imageUrls);
   const anhAlbum = parsed.imageUrls
-    .map((u) => {
+    .map((u): AnhAlbumNguon | null => {
       const cf = mirrored.daTai.get(u);
       if (!cf) return null;
-      return { seed: cf.imageId, width: null as number | null, height: null };
+      return { seed: cf.imageId, width: null, height: null };
     })
-    .filter((x): x is { seed: string; width: number | null; height: number | null } =>
-      Boolean(x),
-    );
+    .filter((x): x is AnhAlbumNguon => x != null);
 
   const soAnh = anhAlbum.length;
   const boQua: PortImportBoQua = {
@@ -369,7 +368,7 @@ export async function applyPortImport(params: {
   slugChu: string;
   preview: PortImportPreview;
   /** Mặc định nháp (PortImport user). Admin clone seeding → `public`. */
-  cheDoHienThi?: "public" | "feature" | "chi_minh" | "ban_be";
+  cheDoHienThi?: Visibility;
 }): Promise<DangBaiJourneyResult> {
   const { preview } = params;
   if (!Array.isArray(preview.blocks) || preview.blocks.length === 0) {

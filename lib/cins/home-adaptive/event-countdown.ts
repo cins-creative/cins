@@ -20,15 +20,20 @@ export function formatEventCountdownLabel(
     return status === "active" ? null : "Sắp bắt đầu";
   }
 
-  if (hoursLeft < 1) return "Còn dưới 1 giờ";
+  // Đang diễn ra (có kết thúc): nêu rõ trạng thái + thời gian còn lại tới lúc kết thúc.
+  const prefix = status === "active" ? "Đang diễn ra · còn" : "Còn";
+
+  if (hoursLeft < 1) {
+    return status === "active" ? "Đang diễn ra · sắp kết thúc" : "Còn dưới 1 giờ";
+  }
 
   const days = Math.floor(hoursLeft / 24);
   const hours = Math.floor(hoursLeft % 24);
 
   if (days >= 1) {
-    if (hours > 0) return `Còn ${days} ngày ${hours} giờ`;
-    return `Còn ${days} ngày`;
+    if (hours > 0) return `${prefix} ${days} ngày ${hours} giờ`;
+    return `${prefix} ${days} ngày`;
   }
 
-  return `Còn ${Math.ceil(hoursLeft)} giờ`;
+  return `${prefix} ${Math.ceil(hoursLeft)} giờ`;
 }

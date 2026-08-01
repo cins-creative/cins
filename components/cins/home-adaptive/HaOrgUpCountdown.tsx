@@ -30,7 +30,7 @@ export function HaOrgUpCountdown({
 
   if (!label) return null;
 
-  const isLive = status === "active" && label === "Đang diễn ra";
+  const isLive = status === "active" && label.startsWith("Đang diễn ra");
 
   return (
     <p

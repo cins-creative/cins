@@ -87,12 +87,23 @@
     --media-canvas-max-aspect: 0.5625; /* 9:16 */
   }
 }
+/* 1 ảnh ngang/vuông: canvas ôm đúng chiều cao ảnh (không letterbox 560px).
+   Trần 3:4 (mobile 9:16) chỉ là fallback khi chưa đo được tỉ lệ intrinsic —
+   ảnh cao hơn 3:4 sẽ chuyển sang .is-portrait sau khi đo (ImageGrid). */
+.image-grid--single:not(.is-portrait) {
+  container-type: inline-size;
+}
 .image-grid--single:not(.is-portrait) .image-grid-cell img {
   width: 100%;
   height: auto;
-  max-height: min(70vh, 560px);
+  max-height: calc(100cqi * 4 / 3);
   object-fit: contain;
   display: block;
+}
+@media (max-width: 767px) {
+  .image-grid--single:not(.is-portrait) .image-grid-cell img {
+    max-height: calc(100cqi * 16 / 9);
+  }
 }
 
 /* ── 2 ảnh: 2 cột vuông ──

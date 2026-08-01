@@ -25,8 +25,16 @@ type Props = {
     body: Record<string, unknown>,
   ) => Promise<Record<string, unknown>>;
   coVault: boolean;
-  /** KPI strip từ overview (optional). */
-  kpiText?: string | null;
+  /** KPI tổng ngày từ overview (null = chưa migrate / lỗi). */
+  kpi?: {
+    mucTieuNgay: number;
+    baiMoiLuot: number;
+    tongDaDang: number;
+    soTaiKhoanDu: number;
+    soTaiKhoanCan: number;
+    daPhanBo: boolean;
+  } | null;
+  onKpiUpdated?: () => void;
 };
 
 function chipNenTang(url: string): string {
@@ -66,23 +74,28 @@ export function AdminTaiKhoanClonePanel({
   setErr,
   postAction,
   coVault,
-  kpiText,
+  kpi,
+  onKpiUpdated,
 }: Props) {
   const [nicks, setNicks] = useState<AutopilotNickRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [chiChuaXong, setChiChuaXong] = useState(false);
+  const [mucTieuDraft, setMucTieuDraft] = useState(20);
+  const [baiMoiLuotDraft, setBaiMoiLuotDraft] = useState(1);
   const [form, setForm] = useState<{
     tenHienThi: string;
     tenThat: string;
     lienKetNguon: string;
     lienHe: string;
     trangThaiXinPhep: "chua_lien_he" | "dang_cho" | "dong_y" | "tu_choi";
+    ghiChu: string;
   }>({
     tenHienThi: "",
     tenThat: "",
     lienKetNguon: "",
     lienHe: "",
     trangThaiXinPhep: "chua_lien_he",
+    ghiChu: "",
   });
   const [banGiao, setBanGiao] = useState<{
     id: string;
@@ -110,7 +123,9 @@ export function AdminTaiKhoanClonePanel({
     lienHe: string;
     lienKetNguon: string;
     trangThaiXinPhep: "chua_lien_he" | "dang_cho" | "dong_y" | "tu_choi";
+    ghiChu: string;
   } | null>(null);
+  const [chiTiet, setChiTiet] = useState<AutopilotNickRow | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -127,6 +142,9 @@ export function AdminTaiKhoanClonePanel({
       if (!res.ok || !data.ok) throw new Error(data.error || "Lỗi tải");
       const items = data.items || [];
       items.sort((a, b) => {
+        const aClone = a.loai === "clone" ? 0 : 1;
+        const bClone = b.loai === "clone" ? 0 : 1;
+        if (aClone !== bClone) return aClone - bClone;
         const aBad =
           (a.kpiMucTieu ?? 0) > 0 && a.daDangHomNayKpi < (a.kpiMucTieu ?? 0)
             ? 0
@@ -149,6 +167,12 @@ export function AdminTaiKhoanClonePanel({
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (!kpi) return;
+    setMucTieuDraft(kpi.mucTieuNgay);
+    setBaiMoiLuotDraft(kpi.baiMoiLuot);
+  }, [kpi?.mucTieuNgay, kpi?.baiMoiLuot]);
 
   /* Debounce ~300ms — gợi ý user CINs cho bàn giao */
   useEffect(() => {
@@ -219,6 +243,21 @@ export function AdminTaiKhoanClonePanel({
     }
   };
 
+  const luuKpiCauHinh = async (epPhanBoLai: boolean) => {
+    const data = await run(
+      {
+        action: "cap_nhat_kpi_cau_hinh",
+        mucTieuNgay: mucTieuDraft,
+        baiMoiLuot: baiMoiLuotDraft,
+        epPhanBoLai,
+      },
+      epPhanBoLai
+        ? "Đã lưu KPI và phân bổ lại hôm nay."
+        : "Đã lưu cấu hình KPI (chưa phân bổ lại).",
+    );
+    if (data) onKpiUpdated?.();
+  };
+
   const taoNick = async (e: React.FormEvent) => {
     e.preventDefault();
     const data = await run(
@@ -229,6 +268,7 @@ export function AdminTaiKhoanClonePanel({
         lienKetNguon: form.lienKetNguon,
         lienHe: form.lienHe || null,
         trangThaiXinPhep: form.trangThaiXinPhep,
+        ghiChu: form.ghiChu || null,
       },
       "Đã tạo nick.",
     );
@@ -239,6 +279,7 @@ export function AdminTaiKhoanClonePanel({
         lienKetNguon: "",
         lienHe: "",
         trangThaiXinPhep: "chua_lien_he",
+        ghiChu: "",
       });
       setMoForm(false);
     }
@@ -256,6 +297,7 @@ export function AdminTaiKhoanClonePanel({
         lienHe: sua.lienHe || null,
         lienKetNguon: sua.lienKetNguon,
         trangThaiXinPhep: sua.trangThaiXinPhep,
+        ghiChu: sua.ghiChu || null,
       },
       `Đã cập nhật @${sua.slug}.`,
     );
@@ -279,6 +321,33 @@ export function AdminTaiKhoanClonePanel({
     await run({ action: "xoa_clone", id: n.id }, `Đã xóa @${n.slug}.`);
   };
 
+  const moSua = (n: AutopilotNickRow) => {
+    setSua({
+      id: n.id,
+      slug: n.slug,
+      tenHienThi: n.tenHienThi || n.slug,
+      tenThat: n.tenThat || "",
+      lienHe: n.lienHe || "",
+      lienKetNguon: (n.lienKetNguon || []).join("\n"),
+      ghiChu: n.ghiChu || "",
+      trangThaiXinPhep: (["chua_lien_he", "dang_cho", "dong_y", "tu_choi"].includes(
+        n.trangThaiXinPhep || "",
+      )
+        ? n.trangThaiXinPhep
+        : "chua_lien_he") as "chua_lien_he" | "dang_cho" | "dong_y" | "tu_choi",
+    });
+  };
+
+  /** Mở card chi tiết khi click row — bỏ qua click vào link/nút/input bên trong. */
+  const moChiTiet = (
+    e: React.MouseEvent<HTMLTableRowElement>,
+    n: AutopilotNickRow,
+  ) => {
+    const t = e.target as HTMLElement;
+    if (t.closest("a, button, input, select, textarea, label")) return;
+    setChiTiet(n);
+  };
+
   const hien = chiChuaXong
     ? nicks.filter(
         (n) =>
@@ -295,28 +364,78 @@ export function AdminTaiKhoanClonePanel({
         </div>
       ) : null}
 
-      {kpiText ? (
-        <div className="tkai-kpi-bar">
-          <div className="tkai-kpi-bar__text">{kpiText}</div>
+      <div className="tkai-kpi-bar">
+        <div className="tkai-kpi-bar__text">
+          {kpi
+            ? `KPI hôm nay · ${kpi.tongDaDang}/${kpi.mucTieuNgay} bài · ${kpi.soTaiKhoanDu}/${kpi.soTaiKhoanCan} đủ`
+            : "KPI hôm nay — chưa có dữ liệu (migrate / phân bổ lần đầu)."}
+        </div>
+        <div className="tkai-kpi-bar__setup">
+          <label className="tkai-kpi-bar__field">
+            <span>Mục tiêu/ngày</span>
+            <input
+              type="number"
+              min={0}
+              max={500}
+              inputMode="numeric"
+              disabled={busy}
+              value={mucTieuDraft}
+              onChange={(e) =>
+                setMucTieuDraft(
+                  Math.min(500, Math.max(0, Number(e.target.value) || 0)),
+                )
+              }
+            />
+          </label>
+          <label className="tkai-kpi-bar__field">
+            <span>Bài/lượt</span>
+            <input
+              type="number"
+              min={1}
+              max={20}
+              inputMode="numeric"
+              disabled={busy}
+              value={baiMoiLuotDraft}
+              onChange={(e) =>
+                setBaiMoiLuotDraft(
+                  Math.min(20, Math.max(1, Number(e.target.value) || 1)),
+                )
+              }
+            />
+          </label>
+          <button
+            type="button"
+            className="btn btn-primary"
+            disabled={busy}
+            title="Lưu cấu hình và phân bổ lại KPI hôm nay cho roster"
+            onClick={() => void luuKpiCauHinh(true)}
+          >
+            Lưu & phân bổ
+          </button>
           <button
             type="button"
             className="btn btn-ghost"
             disabled={busy}
+            title="Giữ cấu hình hiện tại, chỉ phân bổ lại theo freeze hôm nay"
             onClick={() =>
-              void run(
-                { action: "phan_bo_kpi_lai" },
-                "Đã phân bổ lại KPI hôm nay.",
-              )
+              void (async () => {
+                const data = await run(
+                  { action: "phan_bo_kpi_lai" },
+                  "Đã phân bổ lại KPI hôm nay.",
+                );
+                if (data) onKpiUpdated?.();
+              })()
             }
           >
             Phân bổ lại
           </button>
         </div>
-      ) : null}
+      </div>
 
       <p className="tkai-meta">
         Nick seeding — admin up thủ công. Slug tự sinh từ tên. Bàn giao khi
-        artist nhận tài khoản.
+        artist nhận tài khoản. Mục tiêu/ngày = tổng bài cần up; bài/lượt =
+        mỗi nick được giao bao nhiêu bài khi phân bổ.
       </p>
 
       {!moForm ? (
@@ -394,6 +513,17 @@ export function AdminTaiKhoanClonePanel({
               }
             />
           </label>
+          <label className="tkai-field tkai-field--wide">
+            <span>Ghi chú</span>
+            <textarea
+              placeholder="Ghi chú vận hành nội bộ (tùy chọn)"
+              value={form.ghiChu}
+              rows={2}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, ghiChu: e.target.value }))
+              }
+            />
+          </label>
           <div className="tkai-clone-form__actions">
             <button
               type="submit"
@@ -445,8 +575,9 @@ export function AdminTaiKhoanClonePanel({
                 <th>Nick</th>
                 <th>Xin phép</th>
                 <th>Liên hệ</th>
-                <th>Portfolio</th>
+                <th className="tkai-col-portfolio">Portfolio</th>
                 <th>KPI</th>
+                <th>Ghi chú</th>
                 <th>Nội dung</th>
                 <th>Mật khẩu</th>
                 <th>Bàn giao</th>
@@ -455,7 +586,12 @@ export function AdminTaiKhoanClonePanel({
             </thead>
             <tbody>
               {hien.map((n) => (
-                <tr key={n.id}>
+                <tr
+                  key={n.id}
+                  data-clickable
+                  title="Click xem chi tiết"
+                  onClick={(e) => moChiTiet(e, n)}
+                >
                   <td>
                     <div className="admin-nguoi-dung-user">
                       <span
@@ -503,9 +639,9 @@ export function AdminTaiKhoanClonePanel({
                       <span className="tkai-muted">—</span>
                     )}
                   </td>
-                  <td>
+                  <td className="tkai-col-portfolio">
                     <div className="tkai-url-chips">
-                      {(n.lienKetNguon || []).slice(0, 2).map((u) => (
+                      {(n.lienKetNguon || []).map((u) => (
                         <a
                           key={u}
                           href={u}
@@ -517,17 +653,21 @@ export function AdminTaiKhoanClonePanel({
                           <Link2 size={12} /> {chipNenTang(u)}
                         </a>
                       ))}
-                      {(n.lienKetNguon || []).length > 2 ? (
-                        <span className="tkai-muted">
-                          +{(n.lienKetNguon || []).length - 2}
-                        </span>
-                      ) : null}
                       {!n.lienKetNguon?.length ? (
                         <span className="tkai-muted">—</span>
                       ) : null}
                     </div>
                   </td>
                   <td>{kpiBadge(n)}</td>
+                  <td>
+                    {n.ghiChu ? (
+                      <span className="tkai-ghi-chu" title={n.ghiChu}>
+                        {n.ghiChu}
+                      </span>
+                    ) : (
+                      <span className="tkai-muted">—</span>
+                    )}
+                  </td>
                   <td>
                     <span className="tkai-meta">{n.soNoiDung ?? 0}</span>
                   </td>
@@ -618,25 +758,7 @@ export function AdminTaiKhoanClonePanel({
                         disabled={busy}
                         title="Sửa"
                         aria-label={`Sửa @${n.slug}`}
-                        onClick={() =>
-                          setSua({
-                            id: n.id,
-                            slug: n.slug,
-                            tenHienThi: n.tenHienThi || n.slug,
-                            tenThat: n.tenThat || "",
-                            lienHe: n.lienHe || "",
-                            lienKetNguon: (n.lienKetNguon || []).join("\n"),
-                            trangThaiXinPhep: (["chua_lien_he", "dang_cho", "dong_y", "tu_choi"].includes(
-                              n.trangThaiXinPhep || "",
-                            )
-                              ? n.trangThaiXinPhep
-                              : "chua_lien_he") as
-                              | "chua_lien_he"
-                              | "dang_cho"
-                              | "dong_y"
-                              | "tu_choi",
-                          })
-                        }
+                        onClick={() => moSua(n)}
                       >
                         <Pencil size={14} />
                       </button>
@@ -656,7 +778,7 @@ export function AdminTaiKhoanClonePanel({
               ))}
               {!hien.length ? (
                 <tr>
-                  <td colSpan={9} className="tkai-muted">
+                  <td colSpan={10} className="tkai-muted">
                     {chiChuaXong
                       ? "Không còn nick thiếu KPI hôm nay."
                       : "Chưa có nick."}
@@ -667,6 +789,156 @@ export function AdminTaiKhoanClonePanel({
           </table>
         </div>
       )}
+
+      {chiTiet ? (
+        <div
+          className="tkai-modal"
+          role="dialog"
+          aria-modal
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setChiTiet(null);
+          }}
+        >
+          <div className="tkai-modal__card tkai-detail">
+            <header className="tkai-modal__head">
+              <div className="tkai-detail__user">
+                <span
+                  className={`admin-nguoi-dung-ava${chiTiet.avatarUrl ? " admin-nguoi-dung-ava--has-img" : ""}`}
+                  aria-hidden
+                >
+                  {chiTiet.avatarUrl ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img src={chiTiet.avatarUrl} alt="" />
+                  ) : (
+                    (chiTiet.tenHienThi || chiTiet.slug || "?")
+                      .charAt(0)
+                      .toUpperCase()
+                  )}
+                </span>
+                <span className="tkai-detail__name">
+                  <strong>{chiTiet.tenHienThi || chiTiet.slug}</strong>
+                  <Link href={`/${chiTiet.slug}/journey`} target="_blank">
+                    @{chiTiet.slug}
+                  </Link>
+                </span>
+              </div>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                aria-label="Đóng"
+                onClick={() => setChiTiet(null)}
+              >
+                <X size={16} />
+              </button>
+            </header>
+            <dl className="tkai-detail__grid">
+              <dt>Tên artist thật</dt>
+              <dd>{chiTiet.tenThat || "—"}</dd>
+              <dt>Xin phép</dt>
+              <dd>
+                <span className="tkai-chip">
+                  {chiTiet.trangThaiXinPhep || "—"}
+                </span>
+              </dd>
+              <dt>Liên hệ</dt>
+              <dd>
+                {chiTiet.lienHe ? (
+                  /^https?:\/\//i.test(chiTiet.lienHe.trim()) ? (
+                    <a
+                      href={chiTiet.lienHe.trim()}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="tkai-chip tkai-chip--link"
+                    >
+                      <Link2 size={12} /> {chipNenTang(chiTiet.lienHe)}
+                    </a>
+                  ) : (
+                    chiTiet.lienHe
+                  )
+                ) : (
+                  "—"
+                )}
+              </dd>
+              <dt>Portfolio</dt>
+              <dd>
+                {chiTiet.lienKetNguon?.length ? (
+                  <span className="tkai-url-chips">
+                    {chiTiet.lienKetNguon.map((u) => (
+                      <a
+                        key={u}
+                        href={u}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="tkai-chip tkai-chip--link"
+                        title={u}
+                      >
+                        <Link2 size={12} /> {chipNenTang(u)}
+                      </a>
+                    ))}
+                  </span>
+                ) : (
+                  "—"
+                )}
+              </dd>
+              <dt>KPI hôm nay</dt>
+              <dd>{kpiBadge(chiTiet)}</dd>
+              <dt>Nội dung</dt>
+              <dd>{chiTiet.soNoiDung ?? 0} bài</dd>
+              <dt>Mật khẩu</dt>
+              <dd>
+                {chiTiet.matKhau ? (
+                  <span className="tkai-pw-cell">
+                    <code className="tkai-pw tkai-pw--inline">
+                      {chiTiet.matKhau}
+                    </code>
+                    <button
+                      type="button"
+                      className="btn btn-ghost tkai-card__link"
+                      title="Copy mật khẩu"
+                      onClick={() => {
+                        void navigator.clipboard.writeText(chiTiet.matKhau!);
+                        setMsg(`Đã copy mật khẩu @${chiTiet.slug}.`);
+                      }}
+                    >
+                      <Copy size={14} />
+                    </button>
+                  </span>
+                ) : (
+                  "—"
+                )}
+              </dd>
+              <dt>Bàn giao</dt>
+              <dd>
+                {chiTiet.trangThaiBanGiao === "cho_ban_giao"
+                  ? `Gán → @${chiTiet.slugDich || "?"}`
+                  : chiTiet.trangThaiBanGiao || "—"}
+              </dd>
+              <dt>Ghi chú</dt>
+              <dd>{chiTiet.ghiChu || "—"}</dd>
+            </dl>
+            <div className="tkai-clone-form__actions">
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={busy}
+                onClick={() => {
+                  moSua(chiTiet);
+                  setChiTiet(null);
+                }}
+              >
+                <Pencil size={14} /> Sửa
+              </button>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => setChiTiet(null)}
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {sua ? (
         <div className="tkai-modal" role="dialog" aria-modal>
@@ -746,6 +1018,19 @@ export function AdminTaiKhoanClonePanel({
                   onChange={(e) =>
                     setSua((s) =>
                       s ? { ...s, lienKetNguon: e.target.value } : s,
+                    )
+                  }
+                />
+              </label>
+              <label className="tkai-field tkai-field--wide">
+                <span>Ghi chú</span>
+                <textarea
+                  placeholder="Ghi chú vận hành nội bộ (tùy chọn)"
+                  value={sua.ghiChu}
+                  rows={2}
+                  onChange={(e) =>
+                    setSua((s) =>
+                      s ? { ...s, ghiChu: e.target.value } : s,
                     )
                   }
                 />

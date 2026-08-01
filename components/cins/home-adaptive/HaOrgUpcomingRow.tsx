@@ -27,13 +27,24 @@ function dateRangeLine(dateLabel: string): string | null {
 }
 
 function overlayBadge(item: SidebarUpcomingEvent, isLive: boolean) {
-  if (item.phanHoi === "se_tham_gia") {
-    return <span className="ha-org-up-rsvp">Sẽ tham gia</span>;
+  // "Đang diễn ra" luôn hiện khi live — không để badge phản hồi che mất.
+  const live = isLive ? (
+    <span className="ha-org-up-live">Đang diễn ra</span>
+  ) : null;
+  const phanHoi =
+    item.phanHoi === "se_tham_gia" ? (
+      <span className="ha-org-up-rsvp">Sẽ tham gia</span>
+    ) : item.phanHoi === "quan_tam" ? (
+      <span className="ha-org-up-interest">Quan tâm</span>
+    ) : null;
+  if (live || phanHoi) {
+    return (
+      <>
+        {live}
+        {phanHoi}
+      </>
+    );
   }
-  if (item.phanHoi === "quan_tam") {
-    return <span className="ha-org-up-interest">Quan tâm</span>;
-  }
-  if (isLive) return <span className="ha-org-up-live">Đang diễn ra</span>;
   if (item.subLabel) {
     return <span className="ha-org-up-tag">{item.subLabel}</span>;
   }

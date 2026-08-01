@@ -9,6 +9,7 @@ import { LOAI_CO_SO_SET, type LoaiCoSo } from "@/lib/to-chuc/constants";
 import { createCoSoCreatorMilestone } from "@/lib/to-chuc/co-so-creator-milestone";
 import { seedDefaultCoSoFilters } from "@/lib/to-chuc/default-filters";
 import { normalizeTinhThanhForDb } from "@/lib/truong/contact";
+import { laTaiKhoanSeed } from "@/lib/seed/trang-thai-seed";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 export type CreateCoSoDaoTaoInput = {
@@ -118,6 +119,9 @@ export async function createCoSoDaoTaoOrg(
   const tenChinhThuc = input.tenChinhThuc?.trim() || ten;
   const admin = createServiceRoleClient();
 
+  // Page tạo bởi tài khoản seeding → đánh dấu clone (hiện disclaimer «do CINs vận hành»).
+  const laSeed = await laTaiKhoanSeed(admin, creatorId);
+
   const { data: org, error: orgError } = await admin
     .from("org_to_chuc")
     .insert({
@@ -133,6 +137,7 @@ export async function createCoSoDaoTaoOrg(
       gioi_thieu_truong: input.gioiThieuTruong?.trim() || null,
       nguoi_tao: creatorId,
       trang_thai_tin_cay: "binh_thuong",
+      ...(laSeed ? { trang_thai_seed: "clone" } : {}),
       cau_hinh: {},
     })
     .select("id, slug")

@@ -1375,7 +1375,7 @@ export function ShopKhoClient() {
             phanLoai2: nextPhanLoai2,
             idNhom: nextIdNhom,
             idNhom2: nextIdNhom2,
-            dangBan: effectiveDangBan,
+            dangBan: draft.dangBan,
             noiBat: draft.noiBat,
             ...(draft.anhId !== undefined
               ? { anhId: draft.anhId, anhUrl: draft.anhUrl ?? null }

@@ -5246,6 +5246,9 @@
   right: 8px;
   z-index: 1;
   display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px;
 }
 
 .world-journey-home .ha-org-up--banner .ha-org-up-body {

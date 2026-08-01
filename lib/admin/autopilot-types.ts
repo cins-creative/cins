@@ -35,6 +35,7 @@ export type AutopilotOverview = {
   mucMoiTheoKenh: Record<string, number>;
   kpi?: {
     mucTieuNgay: number;
+    baiMoiLuot: number;
     tongDaDang: number;
     soTaiKhoanDu: number;
     soTaiKhoanCan: number;

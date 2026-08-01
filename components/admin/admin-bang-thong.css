@@ -18,7 +18,7 @@
 
 .admin-bang-thong-head p {
   margin: 0;
-  color: #666;
+  color: var(--fg-4);
   font-size: 0.92rem;
   line-height: 1.45;
 }
@@ -27,8 +27,9 @@
   flex-shrink: 0;
   padding: 8px 14px;
   border-radius: 8px;
-  border: 1px solid #ddd;
-  background: #fff;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--fg-2);
   cursor: pointer;
 }
 
@@ -37,10 +38,10 @@
 }
 
 .admin-bang-thong-card {
-  border: 1px solid #e5e5e5;
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 18px;
-  background: #fafafa;
+  background: var(--neutral-50);
 }
 
 .admin-bang-thong-card.is-warn {
@@ -68,7 +69,7 @@
 .admin-bang-thong-stats .label {
   display: block;
   font-size: 0.75rem;
-  color: #666;
+  color: var(--fg-4);
   margin-bottom: 2px;
 }
 
@@ -79,7 +80,7 @@
 .admin-bang-thong-bar {
   height: 10px;
   border-radius: 999px;
-  background: #e5e5e5;
+  background: var(--border);
   overflow: hidden;
 }
 
@@ -111,6 +112,30 @@
 .admin-bang-thong-meta {
   margin: 8px 0 0;
   font-size: 0.85rem;
-  color: #666;
+  color: var(--fg-4);
   line-height: 1.4;
+}
+
+/* ── Dark mode — tint tonal tối thay nền pastel sáng ── */
+:root[data-theme="dark"] .admin-bang-thong-err {
+  color: #f87171;
+}
+
+:root[data-theme="dark"] .admin-bang-thong-card.is-warn {
+  background: color-mix(in srgb, #fbbf24 16%, var(--bg-surface));
+  border-color: color-mix(in srgb, #fbbf24 42%, var(--border));
+}
+
+:root[data-theme="dark"] .admin-bang-thong-card.is-danger {
+  background: color-mix(in srgb, #ef4444 16%, var(--bg-surface));
+  border-color: color-mix(in srgb, #ef4444 45%, var(--border));
+}
+
+:root[data-theme="dark"] .admin-bang-thong-card.is-info {
+  background: color-mix(in srgb, #38bdf8 14%, var(--bg-surface));
+  border-color: color-mix(in srgb, #38bdf8 40%, var(--border));
+}
+
+:root[data-theme="dark"] .admin-bang-thong-bar {
+  background: var(--border-strong);
 }

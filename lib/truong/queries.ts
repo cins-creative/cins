@@ -15,6 +15,7 @@ import {
 } from "@/lib/truong/chi-nhanh";
 import { parseKtxDiaChiFromCauHinh } from "@/lib/truong/ktx-cau-hinh";
 import { resolveTruongImageSrcSync } from "@/lib/truong/media-url";
+import { chuanHoaTrangThaiSeed } from "@/lib/seed/trang-thai-seed.shared";
 import {
   ORG_AVATAR_VARIANTS,
   ORG_BAIDANG_COVER_VARIANTS,
@@ -72,6 +73,7 @@ type OrgEmbed = {
   email_lien_he?: string | null;
   cau_hinh?: unknown;
   trang_thai_tin_cay?: string | null;
+  trang_thai_seed?: string | null;
 };
 
 type OrgDaiHocEmbed = {
@@ -188,6 +190,7 @@ function mapListFields(
     nganhCount: tagSet.size,
     nganhTags: [...tagSet].slice(0, 3),
     daVerify: resolveTruongDaVerify(org, otd),
+    trangThaiSeed: chuanHoaTrangThaiSeed(org.trang_thai_seed),
   };
 }
 
@@ -266,7 +269,8 @@ export async function listTruongDaiHoc(): Promise<TruongListItem[]> {
           cover_id,
           tinh_thanh,
           cau_hinh,
-          trang_thai_tin_cay
+          trang_thai_tin_cay,
+          trang_thai_seed
         )
       `,
       );
@@ -827,6 +831,7 @@ const ORG_DETAIL_SELECT_WITH_CONTACT = `
   avatar_id,
   cover_id,
   trang_thai_tin_cay,
+  trang_thai_seed,
   ${ORG_TRUONG_DAI_HOC_EMBED}
 `;
 
@@ -841,6 +846,7 @@ const ORG_DETAIL_SELECT_BASE = `
   avatar_id,
   cover_id,
   trang_thai_tin_cay,
+  trang_thai_seed,
   ${ORG_TRUONG_DAI_HOC_EMBED}
 `;
 

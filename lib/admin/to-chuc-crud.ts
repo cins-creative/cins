@@ -28,6 +28,8 @@ const HOAT_DONG_SET = new Set([
   "da_dong_cua",
 ]);
 
+const SEED_SET = new Set(["clone", "duoc_duyet", "ban_giao"]);
+
 type DbDetailRow = {
   id: string;
   ten: string;
@@ -40,6 +42,7 @@ type DbDetailRow = {
   email_lien_he: string | null;
   trang_thai_tin_cay: string;
   trang_thai_hoat_dong: string;
+  trang_thai_seed: string | null;
   avatar_id: string | null;
   nguoi_tao: string | null;
   org_co_so_dao_tao:
@@ -67,13 +70,21 @@ function mapDetail(row: DbDetailRow): AdminToChucDetail {
     emailLienHe: row.email_lien_he?.trim() || null,
     trangThaiTinCay: row.trang_thai_tin_cay,
     trangThaiHoatDong: row.trang_thai_hoat_dong,
+    trangThaiSeed: row.trang_thai_seed,
   };
 }
 
 const DETAIL_SELECT = `id, ten, slug, loai_to_chuc, mo_ta, tinh_thanh, dia_chi, dien_thoai,
-  email_lien_he, trang_thai_tin_cay, trang_thai_hoat_dong, avatar_id, nguoi_tao,
+  email_lien_he, trang_thai_tin_cay, trang_thai_hoat_dong, trang_thai_seed, avatar_id, nguoi_tao,
   org_co_so_dao_tao ( da_verify ),
   org_truong_dai_hoc ( da_verify )`;
+
+/** Bảng con verify theo loại org (null nếu loại không hỗ trợ da_verify). */
+function subtypeVerifyTable(loai: string): string | null {
+  if (loai === "truong_dai_hoc") return "org_truong_dai_hoc";
+  if (loai === "co_so_dao_tao") return "org_co_so_dao_tao";
+  return null;
+}
 
 export async function fetchAdminToChucDetail(
   orgId: string,
@@ -156,11 +167,52 @@ export async function updateAdminToChuc(
     patch.trang_thai_hoat_dong = input.trangThaiHoatDong;
   }
 
+  const admin = createServiceRoleClient();
+
+  // Chuyển trạng thái seed — couple tick xanh: ban_giao ⟺ verified_official.
+  // clone/duoc_duyet: nếu đang verified (do bàn giao trước) thì gỡ về bình thường.
+  let subtypeVerifyPatch: { table: string; daVerify: boolean } | null = null;
+  if (input.trangThaiSeed !== undefined) {
+    if (!SEED_SET.has(input.trangThaiSeed)) {
+      return { ok: false, error: "Trạng thái seed không hợp lệ." };
+    }
+    const { data: cur, error: curErr } = await admin
+      .from("org_to_chuc")
+      .select("loai_to_chuc, trang_thai_tin_cay, trang_thai_seed")
+      .eq("id", orgId)
+      .maybeSingle<{
+        loai_to_chuc: string;
+        trang_thai_tin_cay: string;
+        trang_thai_seed: string | null;
+      }>();
+    if (curErr) return { ok: false, error: curErr.message };
+    if (!cur) return { ok: false, error: "Không tìm thấy tổ chức." };
+    if (cur.trang_thai_seed === null) {
+      return { ok: false, error: "Org này không phải page seed." };
+    }
+
+    patch.trang_thai_seed = input.trangThaiSeed;
+    const table = subtypeVerifyTable(cur.loai_to_chuc);
+
+    if (input.trangThaiSeed === "ban_giao") {
+      if (input.trangThaiTinCay === undefined) {
+        patch.trang_thai_tin_cay = "verified_official";
+      }
+      if (table) subtypeVerifyPatch = { table, daVerify: true };
+    } else if (
+      cur.trang_thai_tin_cay === "verified_official" &&
+      input.trangThaiTinCay === undefined
+    ) {
+      // Thu hồi bàn giao → gỡ tick.
+      patch.trang_thai_tin_cay = "binh_thuong";
+      if (table) subtypeVerifyPatch = { table, daVerify: false };
+    }
+  }
+
   if (Object.keys(patch).length === 0) {
     return { ok: false, error: "Không có thay đổi." };
   }
 
-  const admin = createServiceRoleClient();
   const { data, error } = await admin
     .from("org_to_chuc")
     .update(patch)
@@ -170,6 +222,14 @@ export async function updateAdminToChuc(
 
   if (error) return { ok: false, error: error.message };
   if (!data) return { ok: false, error: "Không tìm thấy tổ chức." };
+
+  if (subtypeVerifyPatch) {
+    const { error: subErr } = await admin
+      .from(subtypeVerifyPatch.table)
+      .update({ da_verify: subtypeVerifyPatch.daVerify })
+      .eq("id_to_chuc", orgId);
+    if (subErr) return { ok: false, error: subErr.message };
+  }
 
   return { ok: true, row: mapRow(data) };
 }
