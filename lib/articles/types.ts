@@ -64,9 +64,11 @@ export interface ArticleBaiViet {
   id: string;
   slug: string;
   tieu_de: string;
-  /** FK → `linh_vuc.id` — bắt buộc với `loai_bai_viet = nghe`. */
+  /** FK → `linh_vuc.id` — lĩnh vực chính (`article_gan_linh_vuc.la_chinh`). */
   id_linh_vuc?: string | null;
   linh_vuc?: LinhVucEmbed | null;
+  /** Mọi lĩnh vực từ `article_gan_linh_vuc` (la_chinh trước). */
+  linh_vuc_list?: LinhVucEmbed[] | null;
   /** Dòng phụ tiếng Việt trong hero (ví dụ `<em>` dưới H1). */
   tieu_de_viet?: string | null;
   tieu_de_eng?: string | null;
@@ -183,9 +185,11 @@ export type NgheArticleHubRow = {
     loai_nhom: string;
     thu_tu: number;
   }[] | null;
-  /** FK trực tiếp `article_bai_viet.id_linh_vuc` (mảng 1 phần tử cho tương thích hub). */
+  /** Lĩnh vực chính — dual-write từ `article_gan_linh_vuc.la_chinh`. */
   id_linh_vuc?: string | null;
   linh_vuc?: LinhVucEmbed | null;
+  /** Mọi `id_linh_vuc` gắn bài (junction). */
   linh_vuc_id: string[] | null;
   linh_vuc_slugs: string[] | null;
+  linh_vuc_list?: LinhVucEmbed[] | null;
 };

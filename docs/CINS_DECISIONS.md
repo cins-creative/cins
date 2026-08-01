@@ -41,6 +41,15 @@
 
 ## LOG — quyết định đã chốt
 
+### Nghề multi-lĩnh vực + merge trùng (2026-08-01)
+
+- **Chốt:** 1 nghề = 1 bài; xuất hiện nhiều lĩnh vực qua `article_gan_linh_vuc` (`la_chinh` dual-write `id_linh_vuc`).
+- **Slug canonical** trung tính `nghe-{role}` (vd. `nghe-3d-animator`, `nghe-art-director`); slug cũ stub `merged` + 308.
+- **VFX\*** gộp vào tên chung (Compositor / Colorist / Lighting…).
+- **Giữ riêng:** 2D≠3D Animator, Key/In-between, Game Director, specialty Producer.
+- **Phase 1:** migration + hub filter/chip + merge mẫu `3D Animator` (script). Chưa rewrite nội dung; chưa UI admin gộp.
+- **Plan:** `docs/PLAN_nghe_merge_da_linh_vuc.md`. FOUNDATIONS quy tắc 10 — cập nhật khi user OK.
+
 ### Tài khoản clone artist + KPI seeding + bàn giao (2026-08-01)
 
 - **Bối cảnh:** coldstart — xin phép artist thật, đội ngũ up tay vào tài khoản clone; sau đó bàn giao cho tài khoản họ đăng ký.

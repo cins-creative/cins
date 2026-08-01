@@ -97,7 +97,8 @@ export async function getNgheArticleBySlug(
   const article = await getArticleBySlug(slug);
   if (!article || article.loai_bai_viet !== "nghe") return null;
   if (article.trang_thai_noi_dung !== "published") return null;
-  return article;
+  const [enriched] = await attachArticleLinhVucFromGan([article]);
+  return enriched ?? article;
 }
 
 export async function getKeywordArticleBySlug(
@@ -773,7 +774,107 @@ export function mapNgheArticleHubRow(r: Record<string, unknown>): NgheArticleHub
     linh_vuc: embed ?? (idLv ? { id: idLv, slug: slug ?? "", ten: "Lĩnh vực" } : null),
     linh_vuc_id: idLv ? [idLv] : null,
     linh_vuc_slugs: slug ? [slug] : null,
+    linh_vuc_list: embed
+      ? [embed]
+      : idLv
+        ? [{ id: idLv, slug: slug ?? "", ten: "Lĩnh vực" }]
+        : null,
   };
+}
+
+/**
+ * Junction `article_gan_linh_vuc` — điền `linh_vuc_list` / `linh_vuc_id` / `linh_vuc_slugs`.
+ * `linh_vuc` + `id_linh_vuc` = bản `la_chinh` (fallback bản đầu).
+ */
+export async function attachArticleLinhVucFromGan<
+  T extends {
+    id: string;
+    id_linh_vuc?: string | null;
+    linh_vuc?: LinhVucEmbed | null;
+    linh_vuc_id?: string[] | null;
+    linh_vuc_slugs?: string[] | null;
+    linh_vuc_list?: LinhVucEmbed[] | null;
+  },
+>(articles: T[]): Promise<T[]> {
+  if (!articles.length || !hasSupabaseEnv()) return articles;
+
+  const supabase = createPublicSupabaseClient();
+  const ids = articles.map((a) => a.id);
+
+  const { data: ganRows, error: ganErr } = await supabase
+    .from("article_gan_linh_vuc")
+    .select("id_bai_viet, id_linh_vuc, la_chinh, thu_tu")
+    .in("id_bai_viet", ids);
+
+  if (ganErr || !ganRows?.length) return articles;
+
+  type GanRow = {
+    id_bai_viet?: string;
+    id_linh_vuc?: string;
+    la_chinh?: boolean;
+    thu_tu?: number | null;
+  };
+
+  const linksByBai = new Map<
+    string,
+    { id_linh_vuc: string; la_chinh: boolean; thu_tu: number }[]
+  >();
+  const lvIdSet = new Set<string>();
+
+  for (const row of ganRows as GanRow[]) {
+    const baiId = String(row.id_bai_viet ?? "").trim();
+    const lvId = String(row.id_linh_vuc ?? "").trim();
+    if (!baiId || !lvId) continue;
+    lvIdSet.add(lvId);
+    const arr = linksByBai.get(baiId) ?? [];
+    arr.push({
+      id_linh_vuc: lvId,
+      la_chinh: Boolean(row.la_chinh),
+      thu_tu: Number(row.thu_tu ?? 0) || 0,
+    });
+    linksByBai.set(baiId, arr);
+  }
+
+  if (!lvIdSet.size) return articles;
+
+  const { data: lvRows, error: lvErr } = await supabase
+    .from("linh_vuc")
+    .select("id, slug, ten")
+    .in("id", [...lvIdSet]);
+
+  const lvById = new Map<string, LinhVucEmbed>();
+  if (!lvErr && lvRows?.length) {
+    for (const row of lvRows) {
+      const embed = parseLinhVucEmbed(row);
+      if (embed) lvById.set(embed.id, embed);
+    }
+  }
+
+  return articles.map((a) => {
+    const links = (linksByBai.get(a.id) ?? []).sort((x, y) => {
+      if (x.la_chinh !== y.la_chinh) return x.la_chinh ? -1 : 1;
+      if (x.thu_tu !== y.thu_tu) return x.thu_tu - y.thu_tu;
+      return x.id_linh_vuc.localeCompare(y.id_linh_vuc);
+    });
+    if (!links.length) return a;
+
+    const list = links
+      .map((l) => lvById.get(l.id_linh_vuc))
+      .filter((x): x is LinhVucEmbed => x != null);
+    if (!list.length) return a;
+
+    const primary =
+      list.find((_, i) => links[i]?.la_chinh) ?? list[0] ?? a.linh_vuc ?? null;
+
+    return {
+      ...a,
+      id_linh_vuc: primary?.id ?? a.id_linh_vuc ?? null,
+      linh_vuc: primary ?? a.linh_vuc ?? null,
+      linh_vuc_list: list,
+      linh_vuc_id: list.map((x) => x.id),
+      linh_vuc_slugs: list.map((x) => x.slug).filter(Boolean),
+    };
+  });
 }
 
 /** Bổ sung embed `linh_vuc` khi chỉ có `id_linh_vuc` (select không embed được). */
@@ -922,7 +1023,7 @@ export async function attachArticleNhomFromGanNhom(
 
 /**
  * Danh sách bài nghề (`loai_bai_viet = nghe`, `published`) cho hub `/nghe-nghiep`.
- * Lọc lĩnh vực qua `article_bai_viet.id_linh_vuc` (không qua `article_gan_nhom`).
+ * Lọc lĩnh vực qua `article_gan_linh_vuc` (fallback `id_linh_vuc` nếu junction lỗi).
  */
 /** Đếm số bài nghề đã publish — dùng cho stats (rẻ hơn kéo full rows). */
 export async function countNgheArticlesForHub(): Promise<number> {
@@ -940,6 +1041,30 @@ export async function countNgheArticlesForHub(): Promise<number> {
   }
 }
 
+/** Ids bài nghe gắn một lĩnh vực (junction). Null = lỗi / bảng chưa có. */
+async function ngheIdsForLinhVuc(
+  linhVucId: string,
+): Promise<string[] | null> {
+  try {
+    const supabase = createPublicSupabaseClient();
+    const { data, error } = await supabase
+      .from("article_gan_linh_vuc")
+      .select("id_bai_viet")
+      .eq("id_linh_vuc", linhVucId);
+    if (error) return null;
+    const ids = [
+      ...new Set(
+        ((data ?? []) as { id_bai_viet?: string }[])
+          .map((r) => String(r.id_bai_viet ?? "").trim())
+          .filter(Boolean),
+      ),
+    ];
+    return ids;
+  } catch {
+    return null;
+  }
+}
+
 export async function listNgheArticlesForHub(options?: {
   limit?: number;
   linhVucId?: string;
@@ -954,6 +1079,16 @@ export async function listNgheArticlesForHub(options?: {
   try {
     const supabase = createPublicSupabaseClient();
 
+    let filterIds: string[] | null = null;
+    let useLegacyLinhVucEq = false;
+    if (linhVucId && !searchText) {
+      filterIds = await ngheIdsForLinhVuc(linhVucId);
+      if (filterIds === null) useLegacyLinhVucEq = true;
+      else if (!filterIds.length) {
+        return { ok: true, items: [] };
+      }
+    }
+
     const runList = async (select: string) => {
       let q = supabase
         .from("article_bai_viet")
@@ -962,7 +1097,10 @@ export async function listNgheArticlesForHub(options?: {
         .eq("trang_thai_noi_dung", "published")
         .order("tieu_de", { ascending: true })
         .limit(limit);
-      if (linhVucId && !searchText) q = q.eq("id_linh_vuc", linhVucId);
+      if (filterIds) q = q.in("id", filterIds);
+      else if (useLegacyLinhVucEq && linhVucId && !searchText) {
+        q = q.eq("id_linh_vuc", linhVucId);
+      }
       if (searchText) {
         const esc = escapeIlikePattern(searchText);
         q = q.or(
@@ -999,6 +1137,7 @@ export async function listNgheArticlesForHub(options?: {
 
     let base = rows.map(mapNgheArticleHubRow);
     base = await attachLinhVucEmbedIfMissing(base);
+    base = await attachArticleLinhVucFromGan(base);
     const items = hasNhomEmbed
       ? base
       : await attachArticleNhomFromGanNhom(base);

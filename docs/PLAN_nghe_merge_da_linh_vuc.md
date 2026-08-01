@@ -123,13 +123,13 @@ Không cần endpoint merge public — script admin/one-off + (sau) nút admin.
 
 ## 6. Steps triển khai (thứ tự)
 
-1. **Chốt rule gộp** với user (bảng §2.4) + danh sách 33 cụm exact → tick merge/giữ/review.  
-2. **Migration** `article_gan_linh_vuc` + backfill + dual-write app tối thiểu.  
-3. **Đổi query hub/filter** sang junction (vẫn sync `id_linh_vuc`).  
-4. **Script merge** 1 cụm mẫu (đề xuất: `3D Animator` ×2) → review nội dung + chip lĩnh vực trên UI.  
+1. ✅ **Chốt rule gộp** — slug trung tính; VFX* → tên chung; merge script trước; mẫu `3D Animator`.  
+2. ✅ **Migration** `article_gan_linh_vuc` + backfill 288 nghe (`migration_article_gan_linh_vuc.sql`).  
+3. ✅ **Hub filter + chip hero** đọc junction (`listNgheArticlesForHub`, `attachArticleLinhVucFromGan`).  
+4. ✅ **Merge mẫu** `3D Animator` → `/nghe-nghiep/nghe-3d-animator` (linh vực: Hoạt hình · 3D Art); slug cũ stub `merged` 308.  
 5. **Batch merge** các cụm exact đã tick (ưu tiên Art Director, Colorist, Pipeline TD…).  
-6. **Rewrite nội dung** bài đã merge (giọng Vietcetera; bỏ đoạn clone theo ngành) — Grok + few-shot, không Opus toàn bộ.  
-7. **Cập nhật docs:** FOUNDATIONS quy tắc 10 (1 nghề ↔ N lĩnh vực qua junction; `id_linh_vuc` = chính); DECISIONS LOG; IMPLEMENTATION SQL/script.
+6. **Rewrite nội dung** bài đã merge (giọng Vietcetera; bỏ đoạn clone theo ngành) — Grok + few-shot.  
+7. **Cập nhật docs:** FOUNDATIONS quy tắc 10; DECISIONS LOG; IMPLEMENTATION SQL/script.
 
 ---
 
