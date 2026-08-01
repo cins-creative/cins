@@ -165,13 +165,53 @@ Không cần endpoint merge public — script admin/one-off + (sau) nút admin.
 
 ---
 
-## 10. Câu hỏi chờ chốt
+## 10. Chốt với user (2026-08-01)
 
-1. **Slug canonical:** rename về `nghe-{role}` trung tính, hay giữ slug bài thắng hiện tại?  
-2. **Cụm mẫu đầu:** `3D Animator` (2 bài) trước, rồi `Art Director` (5)?  
-3. **`VFX Compositor` / `VFX Colorist` / `VFX Lighting Artist`:** merge vào Compositor/Colorist/Lighting hay giữ prefix VFX? (Đề xuất: merge Compositor+Colorist+Lighting nếu cùng nghề; giữ riêng nếu brief VFX khác hẳn.)  
-4. Có cần UI admin “Gộp nghề” ngay phase 1, hay chỉ script + review?
+### Giải thích câu hỏi (để khỏi tối nghĩa)
+
+**Q1 — Slug URL sau khi gộp**  
+Ví dụ gộp 5 bài Art Director. Chỉ còn 1 bài “sống”. Người vào slug cũ (`nghe-game-art-director`) bị 308 sang slug bài thắng.  
+- *Cách A — giữ slug bài thắng:* URL có thể là `…/nghe-hoat-hinh-art-director` (vì bài HH dài nhất). Hơi lệch vì nghề đã mang nhiều lĩnh vực.  
+- *Cách B — đổi sang slug trung tính:* `…/nghe-art-director`; mọi slug cũ 308 về đây. Sạch hơn lâu dài, thêm 1 bước rename.
+
+**Q2 — Cụm nào merge thử trước**  
+- `3D Animator` chỉ **2 bài** → thử quy trình (junction + merge + 308 + nội dung) rủi ro thấp.  
+- `Art Director` **5 bài** → làm sau khi quy trình ổn.
+
+### Đã chốt
+
+| # | Chốt |
+|---|---|
+| 3 | Prefix **VFX** gộp vào tên chung (`VFX Compositor` → `Compositor`, tương tự Colorist / Lighting…) |
+| 4 | **Merge bằng script trước**; chưa làm UI admin “Gộp nghề” |
+
+### Đề xuất mặc định (chờ OK nhanh)
+
+| # | Đề xuất |
+|---|---|
+| 1 | **Cách B — slug trung tính** `nghe-{role}` khi gộp ≥2 lĩnh vực; slug cũ 308. Nếu rename phiền phase 1: tạm giữ slug bài thắng, backlog rename. |
+| 2 | **Mẫu đầu = `3D Animator` (2 bài)**, xong mới `Art Director`. |
+
+### Tư vấn UI — merge trước có cần đổi logic không?
+
+**Bắt buộc đổi (nếu không thì merge phản tác dụng):**
+
+1. **Hub filter lĩnh vực** — hiện `.eq("id_linh_vuc", X)`. Sau merge, Art Director chỉ còn 1 `id_linh_vuc` → lọc Game sẽ **mất** nghề dù đã map nhiều lĩnh vực.  
+   → Cần migration `article_gan_linh_vuc` **trước hoặc cùng** merge đầu; hub đọc qua junction.
+2. **Trang nghề** — hiện 1 badge lĩnh vực. Nên hiện **chips nhiều lĩnh vực** (đọc junction). Đổi nhỏ, không redesign.
+
+**Có thể hoãn:**
+
+- UI admin multi-select / nút “Gộp nghề” — script đủ phase 1.
+- Đổi taxonomy `bo_phan`, rename slug hàng loạt (nếu chọn tạm Cách A).
+
+**Thứ tự ship đề xuất:**  
+(1) migration junction + backfill + dual-write `id_linh_vuc` = `la_chinh`  
+(2) sửa query hub/filter + chips trang nghề  
+(3) script merge mẫu `3D Animator`  
+(4) batch exact còn lại (VFX* → tên chung)  
+(5) rewrite nội dung bài đã merge  
 
 ---
 
-**Next:** User chốt §10 → Step 1 xuất checklist 33 cụm → xác nhận migration → mới BUILD (Grok).
+**Next:** User OK đề xuất Q1/Q2 → BUILD Step migration + hub query (Grok) → merge mẫu.
