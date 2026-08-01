@@ -10,7 +10,10 @@ import {
 } from "lucide-react";
 
 import { GuestHomeSchoolCard } from "@/components/cins/guest-home/GuestHomeSchoolCard";
-import { GuestHomeLoginPanel } from "@/components/cins/home-v2/GuestHomeLoginPanel";
+import {
+  GuestHomeLoginPanel,
+  type GuestHomeLoginPanelProps,
+} from "@/components/cins/home-v2/GuestHomeLoginPanel";
 import {
   NGANH_HOC_HUB_PATH,
   NGHE_NGHIEP_HUB_PATH,
@@ -29,6 +32,7 @@ import "@/app/guest-home.css";
 
 type Props = {
   data: GuestHomeData;
+  loginPanelProps?: GuestHomeLoginPanelProps;
 };
 
 /** Ảnh Cloudflare Images đã tối ưu sẵn — bỏ qua Next image proxy. */
@@ -76,7 +80,7 @@ function SectionHead({
   );
 }
 
-export function GuestHomeView({ data }: Props) {
+export function GuestHomeView({ data, loginPanelProps }: Props) {
   const { stats } = data;
 
   return (
@@ -312,7 +316,7 @@ export function GuestHomeView({ data }: Props) {
                               alt=""
                               fill
                               className="gh-event-cover-img"
-                              sizes="(max-width: 860px) 100vw, 860px"
+                              sizes="(max-width: 520px) 100vw, (max-width: 1099px) 50vw, 420px"
                               unoptimized={isCloudflareImage(ev.coverSrc)}
                             />
                           ) : (
@@ -441,7 +445,7 @@ export function GuestHomeView({ data }: Props) {
         </div>
 
         <aside className="gh-aside" aria-label="Đăng nhập">
-          <GuestHomeLoginPanel />
+          <GuestHomeLoginPanel {...loginPanelProps} />
         </aside>
       </div>
     </div>

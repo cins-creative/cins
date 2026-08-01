@@ -29,7 +29,8 @@ export async function startGoogleLogin(
     returnTo?: string;
     /**
      * Ép Google hiện picker tài khoản — dùng khi đăng ký hoặc «Thêm tài khoản»
-     * (`/login?them=1`). Không set thì đăng nhập lại tái dùng Google session đã nhớ.
+     * (mở `/login` khi đang có phiên). Không set thì đăng nhập lại tái dùng
+     * Google session đã nhớ.
      */
     forceAccountPicker?: boolean;
   },

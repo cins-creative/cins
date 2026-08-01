@@ -28,7 +28,7 @@ import type { TruongListItem } from "@/lib/truong/types";
 const HOME_CAREER_LIMIT = 8;
 const HOME_MAJOR_LIMIT = 6;
 const HOME_SCHOOL_LIMIT = 6;
-const HOME_EVENT_LIMIT = 6;
+const HOME_EVENT_LIMIT = 4;
 const HOME_COURSE_LIMIT = 6;
 const HOME_WORK_LIMIT = 8;
 

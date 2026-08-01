@@ -175,6 +175,12 @@ export function PostReadOnlyBlock({
   return ReadOnlyBlock({ block, mediaAutoplay });
 }
 
+function textAlignClass(cfg: Record<string, unknown>): string {
+  if (cfg.align === "center") return " is-align-center";
+  if (cfg.align === "right") return " is-align-right";
+  return "";
+}
+
 function ReadOnlyBlock({
   block,
   mediaAutoplay = false,
@@ -190,7 +196,7 @@ function ReadOnlyBlock({
       <MoTaMarkdown
         text={text}
         as="h2"
-        className="b-text h2 b-text-ro"
+        className={`b-text h2 b-text-ro${textAlignClass(cfg)}`}
       />
     );
   }
@@ -199,13 +205,17 @@ function ReadOnlyBlock({
       <MoTaMarkdown
         text={text}
         as="h3"
-        className="b-text h3 b-text-ro"
+        className={`b-text h3 b-text-ro${textAlignClass(cfg)}`}
       />
     );
   }
   if (block.loai === "body") {
     return (
-      <MoTaMarkdown text={text} as="div" className="b-text b-text-ro" />
+      <MoTaMarkdown
+        text={text}
+        as="div"
+        className={`b-text b-text-ro${textAlignClass(cfg)}`}
+      />
     );
   }
   if (block.loai === "quote") {

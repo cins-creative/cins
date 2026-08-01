@@ -41,6 +41,16 @@ export async function GET(req: Request) {
           overview: await layAutopilotOverview(),
         });
       case "nick":
+        return NextResponse.json({
+          ok: true,
+          items: await lietKeNick({ loai: "ai" }),
+        });
+      case "clone":
+        return NextResponse.json({
+          ok: true,
+          items: await lietKeNick({ loai: "clone" }),
+        });
+      case "roster":
         return NextResponse.json({ ok: true, items: await lietKeNick() });
       case "nguon":
         return NextResponse.json({

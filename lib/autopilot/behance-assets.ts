@@ -10,7 +10,7 @@ import { coAnhQuaDaiTrongDanhSach } from "@/lib/autopilot/anh-qua-dai";
 const UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
 
-export const BEHANCE_ALBUM_MAX_ANH = 12;
+export const BEHANCE_ALBUM_MAX_ANH = 30;
 
 const SIZE_PREF = [
   "max_1200",

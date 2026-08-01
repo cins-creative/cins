@@ -100,14 +100,16 @@ export async function POST(req: Request, ctx: Ctx) {
       const gate = await assertCanJoinPhongHoc(roomId, userId);
       const gateMs = elapsedMs(tGate);
 
+      // Tra peer DM song song với ensure meeting — hai việc độc lập.
       const tEnsure = performance.now();
-      const meetingId = await ensureCloudflareMeetingForRoom({
-        chatPhongId: gate.chatPhongId,
-        title: gate.titleHint,
-      });
+      const [meetingId, peerId] = await Promise.all([
+        ensureCloudflareMeetingForRoom({
+          chatPhongId: gate.chatPhongId,
+          title: gate.titleHint,
+        }),
+        getDmPeerUserId(roomId, userId),
+      ]);
       const ensureMeetingMs = elapsedMs(tEnsure);
-
-      const peerId = await getDmPeerUserId(roomId, userId);
 
       const tPart = performance.now();
       const [callerToken, calleeToken] = await Promise.all([

@@ -26,8 +26,19 @@ import {
 import type { Block } from "@/lib/editor/types";
 import { xayBlocksXemTruocBanThao } from "@/lib/admin/autopilot-ban-thao-preview";
 import {
-  laTieuDeThoBehance,
+  demBaiHomNayTheoUser,
+  demNoiDungTheoUser,
+  damBaoPhanBoKpiHomNay,
+  layKpiCauHinh,
+  layKpiTongQuan,
+} from "@/lib/admin/kpi-seeding";
+import {
+  coVaultMatKhau,
+  giaiMaMatKhau,
+} from "@/lib/admin/mat-khau-vault";
+import {
   layBehanceMetaTuUrl,
+  laTieuDeThoBehance,
   tieuDeTuSlugUrlBehance,
 } from "@/lib/autopilot/behance-assets";
 import { layAnhArtstationTuUrl } from "@/lib/autopilot/artstation-assets";
@@ -325,6 +336,8 @@ export async function layAutopilotOverview(): Promise<AutopilotOverview> {
   const [
     nickAll,
     nickBat,
+    nickAi,
+    nickClone,
     nguonAll,
     nguonBat,
     mucMoi,
@@ -338,7 +351,16 @@ export async function layAutopilotOverview(): Promise<AutopilotOverview> {
     db
       .from("auto_tai_khoan")
       .select("id", { count: "exact", head: true })
-      .eq("dang_bat", true),
+      .eq("dang_bat", true)
+      .eq("loai", "ai"),
+    db
+      .from("auto_tai_khoan")
+      .select("id", { count: "exact", head: true })
+      .eq("loai", "ai"),
+    db
+      .from("auto_tai_khoan")
+      .select("id", { count: "exact", head: true })
+      .eq("loai", "clone"),
     db.from("auto_nguon").select("id", { count: "exact", head: true }),
     db
       .from("auto_nguon")
@@ -360,7 +382,7 @@ export async function layAutopilotOverview(): Promise<AutopilotOverview> {
       .from("auto_da_dang")
       .select("id", { count: "exact", head: true })
       .eq("thanh_cong", true),
-    db.from("auto_tai_khoan").select("niche").eq("dang_bat", true),
+    db.from("auto_tai_khoan").select("niche").eq("dang_bat", true).eq("loai", "ai"),
     db.from("auto_muc").select("nen_tang").eq("trang_thai", "moi"),
   ]);
 
@@ -387,11 +409,38 @@ export async function layAutopilotOverview(): Promise<AutopilotOverview> {
     mucMoiTheoKenh[k] = (mucMoiTheoKenh[k] || 0) + 1;
   }
 
+  let kpi: AutopilotOverview["kpi"];
+  try {
+    await damBaoPhanBoKpiHomNay({ db });
+    const nickRows = await lietKeNick({ skipPhanBo: true });
+    const cfg = await layKpiCauHinh(db);
+    const tong = await layKpiTongQuan(
+      nickRows.map((n) => ({
+        id: n.id,
+        idNguoiDung: n.idNguoiDung,
+        kpiMucTieu: n.kpiMucTieu,
+        daDangHomNay: n.daDangHomNayKpi,
+      })),
+      cfg,
+    );
+    kpi = {
+      mucTieuNgay: tong.mucTieuNgay,
+      tongDaDang: tong.tongDaDang,
+      soTaiKhoanDu: tong.soTaiKhoanDu,
+      soTaiKhoanCan: tong.soTaiKhoanCan,
+      daPhanBo: tong.daPhanBo,
+    };
+  } catch {
+    kpi = undefined;
+  }
+
   return {
     ngayVn: ngayVn(),
     dem: {
       nick: nickAll.count ?? 0,
       nickBat: nickBat.count ?? 0,
+      nickAi: nickAi.count ?? 0,
+      nickClone: nickClone.count ?? 0,
       nguon: nguonAll.count ?? 0,
       nguonBat: nguonBat.count ?? 0,
       mucMoi: mucMoi.count ?? 0,
@@ -403,28 +452,54 @@ export async function layAutopilotOverview(): Promise<AutopilotOverview> {
       coSecretDangBai: Boolean(process.env.CINS_NOI_BO_DANG_BAI_SECRET?.trim()),
       coSiteUrl: Boolean(process.env.NEXT_PUBLIC_SITE_URL?.trim()),
       coAnthropic: Boolean(process.env.ANTHROPIC_API_KEY?.trim()),
+      coVaultMatKhau: coVaultMatKhau(),
     },
     theoKenh,
     mucMoiTheoKenh,
+    kpi,
   };
 }
 
-export async function lietKeNick(): Promise<AutopilotNickRow[]> {
+export async function lietKeNick(opts?: {
+  loai?: "ai" | "clone";
+  skipPhanBo?: boolean;
+}): Promise<AutopilotNickRow[]> {
   const db = adminDb();
-  const { data, error } = await db
+  if (!opts?.skipPhanBo) {
+    try {
+      await damBaoPhanBoKpiHomNay({ db });
+    } catch {
+      /* KPI optional nếu chưa migrate / lỗi — vẫn list nick */
+    }
+  }
+
+  let q = db
     .from("auto_tai_khoan")
     .select(
-      "id, slug, id_nguoi_dung, niche, dang_bat, tuong_tac_bat, han_muc_ngay, ghi_chu",
+      `id, slug, id_nguoi_dung, niche, dang_bat, tuong_tac_bat, han_muc_ngay, ghi_chu,
+       loai, ten_that, lien_ket_nguon, lien_he, trang_thai_xin_phep, kpi_ngay, tam_dung,
+       trang_thai_ban_giao, id_nguoi_dung_dich, mat_khau_ma_hoa`,
     )
     .order("slug");
+  if (opts?.loai) q = q.eq("loai", opts.loai);
+  const { data, error } = await q;
   if (error) throw new Error(error.message);
 
   const list = data || [];
   const slugs = list.map((r) => r.slug as string).filter(Boolean);
-  const profileBySlug = new Map<
-    string,
-    { avatarUrl: string | null; tenHienThi: string | null }
-  >();
+  const ids = list.map((r) => r.id as string);
+  const idUsers = list
+    .map((r) => r.id_nguoi_dung as string | null)
+    .filter((x): x is string => Boolean(x));
+  const idDichs = list
+    .map((r) => r.id_nguoi_dung_dich as string | null)
+    .filter((x): x is string => Boolean(x));
+
+  type NickProfileLite = {
+    avatarUrl: string | null;
+    tenHienThi: string | null;
+  };
+  const profileBySlug = new Map<string, NickProfileLite>();
   if (slugs.length) {
     const { data: profiles, error: pErr } = await db
       .from("user_nguoi_dung")
@@ -439,27 +514,98 @@ export async function lietKeNick(): Promise<AutopilotNickRow[]> {
     }
   }
 
+  const slugDichById = new Map<string, string>();
+  if (idDichs.length) {
+    const { data: dichs } = await db
+      .from("user_nguoi_dung")
+      .select("id, slug")
+      .in("id", idDichs);
+    for (const d of dichs || []) {
+      slugDichById.set(d.id as string, d.slug as string);
+    }
+  }
+
+  const ngay = ngayVn();
+  const hmByTk = new Map<
+    string,
+    { soDaDang: number; hanMuc: number; kpiMucTieu: number | null }
+  >();
+  if (ids.length) {
+    const { data: hmRows } = await db
+      .from("auto_han_muc")
+      .select("id_tai_khoan, so_da_dang, han_muc, kpi_muc_tieu")
+      .eq("ngay", ngay)
+      .in("id_tai_khoan", ids);
+    for (const r of hmRows || []) {
+      hmByTk.set(r.id_tai_khoan as string, {
+        soDaDang: Number(r.so_da_dang) || 0,
+        hanMuc: Number(r.han_muc) || 3,
+        kpiMucTieu:
+          r.kpi_muc_tieu === null || r.kpi_muc_tieu === undefined
+            ? null
+            : Number(r.kpi_muc_tieu),
+      });
+    }
+  }
+
+  const demBai = await demBaiHomNayTheoUser(db, idUsers, ngay);
+  const demNoiDung = await demNoiDungTheoUser(db, idUsers);
+  const vaultOk = coVaultMatKhau();
+
   const rows: AutopilotNickRow[] = [];
   for (const r of list) {
-    const hm = await layHanMucHomNay(db, {
-      id: r.id,
-      han_muc_ngay: r.han_muc_ngay,
-    });
+    const hm = hmByTk.get(r.id);
     const profile = profileBySlug.get(r.slug);
+    const daDangKpi = r.id_nguoi_dung
+      ? demBai.get(r.id_nguoi_dung as string) || 0
+      : 0;
+    const soNoiDung = r.id_nguoi_dung
+      ? demNoiDung.get(r.id_nguoi_dung as string) || 0
+      : 0;
+    const kpiMucTieu = hm?.kpiMucTieu ?? null;
+    let matKhau: string | null = null;
+    if (vaultOk && r.mat_khau_ma_hoa) {
+      try {
+        matKhau = giaiMaMatKhau(r.mat_khau_ma_hoa as string);
+      } catch {
+        matKhau = null;
+      }
+    }
     rows.push({
       id: r.id,
       slug: r.slug,
       idNguoiDung: r.id_nguoi_dung,
       niche: r.niche || [],
       kenh: kenhTuNiche(r.niche || []),
+      loai: (r.loai as string) || "ai",
       dangBat: r.dang_bat,
       tuongTacBat: Boolean(r.tuong_tac_bat),
       hanMucNgay: r.han_muc_ngay,
       ghiChu: r.ghi_chu,
-      homNayDaDang: hm.soDaDang,
-      homNayHanMuc: hm.hanMuc,
+      homNayDaDang: hm?.soDaDang ?? 0,
+      homNayHanMuc: hm?.hanMuc ?? r.han_muc_ngay ?? 3,
       avatarUrl: profile?.avatarUrl ?? null,
       tenHienThi: profile?.tenHienThi ?? null,
+      tenThat: (r.ten_that as string | null) ?? null,
+      lienKetNguon: (r.lien_ket_nguon as string[]) || [],
+      lienHe: (r.lien_he as string | null) ?? null,
+      trangThaiXinPhep: (r.trang_thai_xin_phep as string | null) ?? null,
+      kpiNgay:
+        r.kpi_ngay === null || r.kpi_ngay === undefined
+          ? null
+          : Number(r.kpi_ngay),
+      tamDung: Boolean(r.tam_dung),
+      trangThaiBanGiao: (r.trang_thai_ban_giao as string | null) ?? null,
+      idNguoiDungDich: (r.id_nguoi_dung_dich as string | null) ?? null,
+      slugDich: r.id_nguoi_dung_dich
+        ? slugDichById.get(r.id_nguoi_dung_dich as string) || null
+        : null,
+      coMatKhauVault: Boolean(r.mat_khau_ma_hoa),
+      matKhau,
+      soNoiDung,
+      kpiMucTieu,
+      daDangHomNayKpi: daDangKpi,
+      kpiDu: kpiMucTieu !== null && kpiMucTieu > 0 && daDangKpi >= kpiMucTieu,
     });
   }
   return rows;
@@ -481,6 +627,18 @@ export async function dongBoNick(): Promise<{ synced: number; thieu: number }> {
   for (const nick of NICK_SEED) {
     const idNguoiDung = bySlug.get(nick.slug) || null;
     if (!idNguoiDung) thieu += 1;
+
+    const { data: existing } = await db
+      .from("auto_tai_khoan")
+      .select("id, loai")
+      .eq("slug", nick.slug)
+      .maybeSingle();
+
+    if (existing?.loai === "clone") {
+      /* Không ghi đè tài khoản clone cùng slug */
+      continue;
+    }
+
     const { error } = await db.from("auto_tai_khoan").upsert(
       {
         slug: nick.slug,
@@ -489,6 +647,7 @@ export async function dongBoNick(): Promise<{ synced: number; thieu: number }> {
         dang_bat: nick.dangBat !== false,
         han_muc_ngay: 3,
         ghi_chu: nick.ghiChu,
+        loai: "ai",
         cap_nhat_luc: new Date().toISOString(),
       },
       { onConflict: "slug" },
@@ -1194,10 +1353,11 @@ export async function chuanBiDang(opts?: {
     .from("auto_tai_khoan")
     .select("id, slug, niche, dang_bat, han_muc_ngay")
     .eq("dang_bat", true)
+    .eq("loai", "ai")
     .order("slug");
   if (nickErr) throw new Error(nickErr.message);
   if (!nicks?.length) {
-    throw new Error("Chưa có nick bật — bấm Đồng bộ nick trước.");
+    throw new Error("Chưa có nick AI bật — bấm Đồng bộ nick trước.");
   }
 
   const { data: daCoBanThao, error: btErr } = await db
@@ -1357,6 +1517,7 @@ type BanThaoDang = {
     slug: string;
     dang_bat: boolean;
     han_muc_ngay: number;
+    loai?: string;
   };
   muc: {
     id: string;
@@ -1383,7 +1544,7 @@ export async function chayDang(opts?: {
       `
       id, tieu_de, mo_ta, dong_ghi_nguon, trang_thai,
       id_tai_khoan, id_muc,
-      auto_tai_khoan ( id, slug, dang_bat, han_muc_ngay ),
+      auto_tai_khoan ( id, slug, dang_bat, han_muc_ngay, loai ),
       auto_muc ( id, url_canonic, nen_tang, ten_tac_gia, anh_bia_url, trang_thai )
     `,
     )
@@ -1404,6 +1565,7 @@ export async function chayDang(opts?: {
       r.auto_muc as BanThaoDang["muc"] | BanThaoDang["muc"][] | null,
     );
     if (!tk?.dang_bat || !muc?.url_canonic) continue;
+    if (tk.loai && tk.loai !== "ai") continue;
     if (slugFilter && tk.slug !== slugFilter) continue;
     hang.push({
       id: r.id,

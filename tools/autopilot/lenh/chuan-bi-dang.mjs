@@ -101,6 +101,7 @@ export async function chayChuanBiDang(db, flags = {}) {
     .from("auto_tai_khoan")
     .select("id, slug, niche, dang_bat, han_muc_ngay")
     .eq("dang_bat", true)
+    .eq("loai", "ai")
     .order("slug");
   if (slugFilter) nickQ = nickQ.eq("slug", slugFilter);
 
@@ -109,8 +110,8 @@ export async function chayChuanBiDang(db, flags = {}) {
   if (!nicks?.length) {
     throw new Error(
       slugFilter
-        ? `Không có nick bật khớp slug=${slugFilter}`
-        : "Chưa có auto_tai_khoan dang_bat — chạy dong-bo-nick trước.",
+        ? `Không có nick AI bật khớp slug=${slugFilter}`
+        : "Chưa có auto_tai_khoan loai=ai dang_bat — chạy dong-bo-nick trước.",
     );
   }
 

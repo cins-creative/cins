@@ -2,7 +2,6 @@
 
 import {
   ChevronDown,
-  DownloadCloud,
   Monitor,
   Moon,
   PlusCircle,
@@ -21,7 +20,6 @@ import {
   removeSavedAccountAction,
   switchAccountAction,
 } from "@/app/auth/switch-account-action";
-import { PortImportModal } from "@/components/cins/PortImportModal";
 import { SidebarNavIcon } from "@/components/cins/SidebarNavIcon";
 import { UserAccountSettingsModal } from "@/components/cins/UserAccountSettingsModal";
 import { clearAllWorldJourneyFirstImpressionSeen } from "@/lib/cins/worldJourneyFirstImpression";
@@ -71,7 +69,6 @@ export function UserAccountMenu({
   const [open, setOpen] = useState(false);
   const [switchOpen, setSwitchOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [portOpen, setPortOpen] = useState(false);
   const [themeMode, setThemeMode] = useState<ThemeMode>("system");
   const cardRef = useRef<HTMLDivElement | null>(null);
   const menuId = useId();
@@ -236,7 +233,7 @@ export function UserAccountMenu({
                   </p>
                 ) : null}
                 <Link
-                  href="/login?them=1"
+                  href="/login"
                   className="app-user-menu-item app-user-switch-add"
                   role="menuitem"
                   onClick={() => setOpen(false)}
@@ -272,21 +269,6 @@ export function UserAccountMenu({
             </span>
             <span>Tạo cộng đồng</span>
           </Link>
-
-          <button
-            type="button"
-            className="app-user-menu-item"
-            role="menuitem"
-            onClick={() => {
-              setOpen(false);
-              setPortOpen(true);
-            }}
-          >
-            <span className="app-user-menu-ico" aria-hidden>
-              <DownloadCloud size={18} strokeWidth={1.7} />
-            </span>
-            <span>Nhập tác phẩm</span>
-          </button>
 
           <button
             type="button"
@@ -400,11 +382,6 @@ export function UserAccountMenu({
       <UserAccountSettingsModal
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
-      />
-      <PortImportModal
-        open={portOpen}
-        onClose={() => setPortOpen(false)}
-        profileSlug={profile.slug}
       />
     </>
   );

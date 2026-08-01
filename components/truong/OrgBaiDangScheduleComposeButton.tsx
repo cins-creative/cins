@@ -332,6 +332,9 @@ export function OrgBaiDangScheduleComposeButton({
         className="org-compose-schedule-btn"
         aria-expanded={open}
         aria-haspopup="dialog"
+        aria-label={
+          scheduled ? `Hẹn đăng: ${scheduleLabel}` : "Hẹn lịch đăng"
+        }
         disabled={disabled}
         title={scheduled ? `Hẹn đăng: ${scheduleLabel}` : "Hẹn lịch đăng"}
         onClick={(e) => {
@@ -339,10 +342,7 @@ export function OrgBaiDangScheduleComposeButton({
           setOpen((v) => !v);
         }}
       >
-        <CalendarClock size={15} strokeWidth={2} aria-hidden />
-        <span className="org-compose-schedule-btn-text">
-          {scheduled ? scheduleLabel : "Hẹn đăng"}
-        </span>
+        <CalendarClock size={16} strokeWidth={2} aria-hidden />
       </button>
       {panel}
     </div>

@@ -177,6 +177,8 @@ function GalleryMainItemTile({
   ownerSlug?: string | null;
 }) {
   const [insightsOpen, setInsightsOpen] = useState(false);
+  const { adminSeedingEdit } = useJourneyCompose();
+  const canManagePosts = isOwner || adminSeedingEdit;
   const isOrgCreate = isOrgCreateGalleryItem(item);
   const worldBoostAdmin = useWorldBoostAdminOptional();
   const boostTarget = worldBoostTargetFromGalleryLike(item);
@@ -231,7 +233,7 @@ function GalleryMainItemTile({
   const menuOwnerSlug = ownerSlug?.trim() || item.postOwnerSlug?.trim() || null;
   const postSlug = resolveGalleryPostSlug(item);
   const foreignJourney =
-    isOwner &&
+    canManagePosts &&
     item.cotMocId &&
     item.tacPhamId &&
     (item.variant === "tagged" || item.variant === "bookmark")
@@ -242,13 +244,13 @@ function GalleryMainItemTile({
         }
       : undefined;
   const canSeeInsights =
-    isOwner &&
+    canManagePosts &&
     Boolean(item.cotMocId) &&
     (item.variant === "self" ||
       item.variant === "verified" ||
       item.variant === "tagged");
   const ownerMenu =
-    isOwner && menuOwnerSlug && !isOrgCreate && item.cotMocId ? (
+    canManagePosts && menuOwnerSlug && !isOrgCreate && item.cotMocId ? (
       <JourneyMilestoneOwnerMenu
         milestoneId={item.cotMocId}
         ownerSlug={menuOwnerSlug}
@@ -336,6 +338,7 @@ function GalleryMainItemTile({
         meta={item.meta}
         authorName={item.authorName}
         authorAvatarUrl={item.authorAvatarUrl}
+        authorSlug={item.authorSlug}
       />
       <span className="j-main-gallery-info-panel">
         <strong className="j-main-gallery-info-title">{item.label}</strong>

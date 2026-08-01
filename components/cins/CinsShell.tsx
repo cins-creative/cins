@@ -15,9 +15,20 @@ export async function CinsShell({
   ...shellProps
 }: ComponentPropsWithoutRef<"div"> & { children: React.ReactNode }) {
   const session = await getCurrentSessionAndProfile();
+  const guestHomeAuthed =
+    Boolean(session?.profile) &&
+    typeof className === "string" &&
+    className.includes("cins-shell--guest-home");
 
   return (
-    <div className={clsx("cins-shell", className)} {...shellProps}>
+    <div
+      className={clsx(
+        "cins-shell",
+        className,
+        guestHomeAuthed && "cins-shell--guest-home-authed",
+      )}
+      {...shellProps}
+    >
       <CinsShellNav />
       <CinsChatShellBridge viewerProfileId={session?.profile?.id ?? null}>
         <div className="cins-shell-column">

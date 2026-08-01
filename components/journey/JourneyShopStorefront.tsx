@@ -336,7 +336,10 @@ function ShopEventBanner({
       const res = await fetch("/api/shop/cua-hang", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify({
+          ...body,
+          slug: ownerSlug,
+        }),
       });
       const json = (await res.json().catch(() => null)) as {
         shop?: ShopCuaHang;

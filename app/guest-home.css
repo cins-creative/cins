@@ -462,8 +462,8 @@
   list-style: none;
   margin: 0;
   padding: 0;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-4);
 }
 
@@ -477,7 +477,7 @@
 .gh-event-banner {
   position: relative;
   width: 100%;
-  aspect-ratio: 16 / 6;
+  aspect-ratio: 16 / 9;
   background: linear-gradient(
     135deg,
     rgba(31, 116, 201, 0.14),
@@ -1302,6 +1302,30 @@
   .cins-shell--guest-home .tb-divider {
     display: none;
   }
+
+  /* Đã đăng nhập: menu tài khoản sát phải topbar (không inset theo aside login). */
+  .cins-shell--guest-home.cins-shell--guest-home-authed
+    .cins-app-topbar
+    .topbar-inner {
+    justify-content: flex-end;
+    padding-right: var(--space-4);
+  }
+
+  .cins-shell--guest-home.cins-shell--guest-home-authed
+    .cins-app-topbar
+    .tb-left {
+    display: none;
+  }
+
+  .cins-shell--guest-home.cins-shell--guest-home-authed
+    .cins-app-topbar
+    .tb-right {
+    margin-left: auto;
+  }
+}
+
+.cins-shell--guest-home-authed .cins-app-topbar .tb-right {
+  margin-left: auto;
 }
 
 /* ── Responsive ── */
@@ -1350,11 +1374,8 @@
 
   .gh-major-grid,
   .gh-work-grid,
-  .gh-course-grid {
+  .gh-course-grid,
+  .gh-event-list {
     grid-template-columns: 1fr;
-  }
-
-  .gh-event-banner {
-    aspect-ratio: 16 / 9;
   }
 }

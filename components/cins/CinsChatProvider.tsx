@@ -26,6 +26,10 @@ import {
   prefetchChatThreads,
   prefetchRoomMessages,
 } from "@/lib/chat/chat-prefetch";
+import {
+  applyDocumentUnreadBadge,
+  applyDocumentUnreadTitle,
+} from "@/lib/chat/document-unread-badge";
 import { buildOptimisticDirectThread } from "@/lib/chat/optimistic-thread";
 import {
   readHiddenRoomIds,
@@ -467,6 +471,25 @@ export function CinsChatProvider({
       document.removeEventListener("visibilitychange", onVisible);
     };
   }, [prefetchChatData, viewerProfileId]);
+
+  /* Tab trình duyệt: `(N) title` + badge favicon khi còn tin chưa đọc. */
+  useEffect(() => {
+    const count = viewerProfileId ? totalUnread : 0;
+    applyDocumentUnreadBadge(count);
+
+    const titleEl = document.querySelector("title");
+    if (!titleEl) return;
+
+    const obs = new MutationObserver(() => {
+      applyDocumentUnreadTitle(count);
+    });
+    obs.observe(titleEl, {
+      childList: true,
+      characterData: true,
+      subtree: true,
+    });
+    return () => obs.disconnect();
+  }, [totalUnread, viewerProfileId]);
 
   const subscribeChatMessages = useCallback((listener: ChatMessageListener) => {
     listenersRef.current.add(listener);

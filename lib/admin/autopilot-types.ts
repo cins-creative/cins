@@ -1,4 +1,4 @@
-export type AutopilotTab = "tong-quan" | "pipeline" | "nick";
+export type AutopilotTab = "tong-quan" | "pipeline" | "nick" | "clone";
 
 /** Bước trong pipeline đăng bài (một process). */
 export type AutopilotPipelineBuoc =
@@ -14,6 +14,8 @@ export type AutopilotOverview = {
   dem: {
     nick: number;
     nickBat: number;
+    nickAi: number;
+    nickClone: number;
     nguon: number;
     nguonBat: number;
     mucMoi: number;
@@ -25,11 +27,19 @@ export type AutopilotOverview = {
     coSecretDangBai: boolean;
     coSiteUrl: boolean;
     coAnthropic: boolean;
+    coVaultMatKhau: boolean;
   };
   /** Nick bật theo kênh (nguon:…). */
   theoKenh: Record<string, number>;
   /** Mục `moi` trong hàng đợi theo nền tảng. */
   mucMoiTheoKenh: Record<string, number>;
+  kpi?: {
+    mucTieuNgay: number;
+    tongDaDang: number;
+    soTaiKhoanDu: number;
+    soTaiKhoanCan: number;
+    daPhanBo: boolean;
+  };
 };
 
 export type AutopilotNickRow = {
@@ -38,6 +48,7 @@ export type AutopilotNickRow = {
   idNguoiDung: string | null;
   niche: string[];
   kenh: string | null;
+  loai: "ai" | "clone" | string;
   dangBat: boolean;
   /** Giai đoạn 7: bật thả emoji/comment ảo cho nick này. */
   tuongTacBat: boolean;
@@ -47,6 +58,24 @@ export type AutopilotNickRow = {
   homNayHanMuc: number;
   avatarUrl: string | null;
   tenHienThi: string | null;
+  /** Clone / KPI fields */
+  tenThat: string | null;
+  lienKetNguon: string[];
+  lienHe: string | null;
+  trangThaiXinPhep: string | null;
+  kpiNgay: number | null;
+  tamDung: boolean;
+  trangThaiBanGiao: string | null;
+  idNguoiDungDich: string | null;
+  slugDich: string | null;
+  coMatKhauVault: boolean;
+  /** Plaintext vault — chỉ API admin roster. */
+  matKhau: string | null;
+  /** Tổng content_cot_moc public/feature trên nick. */
+  soNoiDung: number;
+  kpiMucTieu: number | null;
+  daDangHomNayKpi: number;
+  kpiDu: boolean;
 };
 
 export type AutopilotNguonRow = {

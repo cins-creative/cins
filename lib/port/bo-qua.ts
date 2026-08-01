@@ -1,5 +1,5 @@
 /**
- * Thống kê media rơi rụng khi kéo project từ Behance / ArtStation.
+ * Thống kê media rơi rụng khi kéo project từ Behance / ArtStation / Carrd.
  * Dùng chung server (dựng preview) và client (modal xác nhận) — không `server-only`.
  */
 
@@ -10,8 +10,10 @@ export type PortImportBoQua = {
   tongAnhNguon: number;
   /** Ảnh thực sự vào bài. */
   daLay: number;
-  /** Rơi vì vượt trần dung lượng Cloudflare Images — thường là GIF động. */
+  /** Rơi vì vượt trần dung lượng Cloudflare Images — thường là GIF động quá lớn / không nén nổi. */
   quaLon: number;
+  /** Ảnh đã nén xuống dưới trần rồi upload thành công. */
+  daNen: number;
   /** Rơi vì vượt trần số ảnh mỗi project. */
   vuotTran: number;
   /** Rơi vì tải nguồn lỗi hoặc upload thất bại. */
@@ -19,7 +21,14 @@ export type PortImportBoQua = {
 };
 
 export function taoBoQuaRong(tongAnhNguon = 0, daLay = 0): PortImportBoQua {
-  return { tongAnhNguon, daLay, quaLon: 0, vuotTran: 0, loi: 0 };
+  return {
+    tongAnhNguon,
+    daLay,
+    quaLon: 0,
+    daNen: 0,
+    vuotTran: 0,
+    loi: 0,
+  };
 }
 
 export function tongSoAnhBoQua(boQua: PortImportBoQua | null | undefined): number {
@@ -30,9 +39,14 @@ export function tongSoAnhBoQua(boQua: PortImportBoQua | null | undefined): numbe
 /** Từng dòng lý do — modal render thành danh sách. */
 export function lyDoBoQua(boQua: PortImportBoQua): string[] {
   const dong: string[] = [];
+  if (boQua.daNen > 0) {
+    dong.push(
+      `${boQua.daNen} ảnh đã được nén xuống dưới ${MAX_CLOUDFLARE_IMAGE_UPLOAD_MB} MB trước khi lưu.`,
+    );
+  }
   if (boQua.quaLon > 0) {
     dong.push(
-      `${boQua.quaLon} ảnh nặng hơn ${MAX_CLOUDFLARE_IMAGE_UPLOAD_MB} MB — thường là GIF động, vượt trần lưu trữ ảnh.`,
+      `${boQua.quaLon} ảnh không nén nổi dưới ${MAX_CLOUDFLARE_IMAGE_UPLOAD_MB} MB — thường là GIF động rất nặng.`,
     );
   }
   if (boQua.vuotTran > 0) {

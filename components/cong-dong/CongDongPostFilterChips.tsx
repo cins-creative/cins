@@ -137,13 +137,12 @@ export function CongDongPostFilterChips({
 
   const toggleFilter = (filterId: string) => {
     if (pending) return;
-    setSelectedIds((prev) => {
-      const next = prev.includes(filterId)
-        ? prev.filter((id) => id !== filterId)
-        : [...prev, filterId];
-      persist(next);
-      return next;
-    });
+    /* Không gọi persist trong updater — Strict Mode chạy updater 2 lần → 2 PATCH. */
+    const next = selectedIds.includes(filterId)
+      ? selectedIds.filter((id) => id !== filterId)
+      : [...selectedIds, filterId];
+    setSelectedIds(next);
+    persist(next);
   };
 
   const chips =

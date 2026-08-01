@@ -9,7 +9,7 @@ const UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
 
 /** Tối đa ảnh/album khi đăng Autopilot (tránh abuse / timeout CF). */
-export const ARTSTATION_ALBUM_MAX_ANH = 12;
+export const ARTSTATION_ALBUM_MAX_ANH = 30;
 
 export type ArtstationAssetAnh = {
   imageUrl: string;

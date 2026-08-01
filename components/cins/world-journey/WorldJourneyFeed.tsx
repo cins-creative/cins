@@ -13,6 +13,7 @@ import {
 } from "react";
 
 import { CinsFeedComposer } from "@/components/cins/CinsFeedComposer";
+import { LayoutThumbIcon } from "@/components/editor/LayoutThumbIcon";
 import { WorldJourneyFeedTimeline } from "@/components/cins/world-journey/WorldJourneyFeedTimeline";
 import { WorldJourneyGuestLeftAside } from "@/components/cins/world-journey/WorldJourneyGuestLeftAside";
 import { WorldJourneyGuestRightAside } from "@/components/cins/world-journey/WorldJourneyGuestRightAside";
@@ -157,7 +158,12 @@ function WorldJourneyFilterBar({
               onSurfaceView("gallery");
             }}
           >
-            <LayoutGrid size={16} strokeWidth={2.25} aria-hidden />
+            <LayoutThumbIcon
+              layout="masonry"
+              variant="stroke"
+              size={16}
+              masonryColumns={2}
+            />
           </button>
         </div>
       </div>

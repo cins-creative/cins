@@ -5,13 +5,14 @@
 
 import type { Block } from "@/lib/editor/types";
 
-export type NenTangNguon = "artstation" | "behance" | "pixiv" | "khac";
+export type NenTangNguon = "artstation" | "behance" | "pixiv" | "carrd" | "khac";
 
 export function doanNenTangTuUrl(url: string): NenTangNguon {
   const u = url.trim().toLowerCase();
   if (u.includes("artstation.com")) return "artstation";
   if (u.includes("behance.net")) return "behance";
   if (u.includes("pixiv.net")) return "pixiv";
+  if (u.includes("carrd.co")) return "carrd";
   return "khac";
 }
 
@@ -19,6 +20,7 @@ export function nhanNenTang(nenTang: NenTangNguon): string {
   if (nenTang === "artstation") return "ArtStation";
   if (nenTang === "behance") return "Behance";
   if (nenTang === "pixiv") return "Pixiv";
+  if (nenTang === "carrd") return "Carrd";
   return "nguồn ngoài";
 }
 

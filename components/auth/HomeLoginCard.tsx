@@ -9,7 +9,7 @@ type Props = {
   autoIntent?: "login" | "register" | null;
   resumeAfterRedirect?: boolean;
   returnPath?: string | null;
-  /** «Thêm tài khoản» từ menu user — `/login?them=1`. */
+  /** «Thêm tài khoản»: mở `/login` khi đang có phiên. */
   addAccount?: boolean;
 };
 

@@ -1,4 +1,4 @@
-/* Cuộc gọi nhúng trong khung chat — giao diện kiểu call. */
+/* Cuộc gọi — tab trình duyệt / fullscreen mobile. */
 .cins-phong-hoc {
   position: relative;
   display: flex;
@@ -11,6 +11,59 @@
     linear-gradient(165deg, #0c141c 0%, #121a22 45%, #0a1016 100%);
   color: #f2f5f8;
   overflow: hidden;
+}
+
+.cins-call-tab {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100dvh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: #0a1016;
+  color: #f2f5f8;
+  overflow: hidden;
+}
+
+.cins-call-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 60050;
+  width: 100%;
+  height: 100%;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: #0a1016;
+  color: #f2f5f8;
+}
+
+.cins-call-tab-empty {
+  margin: auto;
+  text-align: center;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  align-items: center;
+}
+
+.cins-call-tab-empty p {
+  margin: 0;
+  color: rgb(210 224 236 / 88%);
+}
+
+.cins-call-tab-back {
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid rgb(255 255 255 / 18%);
+  background: rgb(255 255 255 / 10%);
+  color: #f2f5f8;
+  cursor: pointer;
 }
 
 .cins-chat-call-stage,
@@ -34,7 +87,8 @@
 
 .cins-phong-hoc.is-video .cins-phong-hoc-stage.is-video-stage {
   padding: 0;
-  min-height: 220px;
+  min-height: 0;
+  flex: 1 1 auto;
   background: #05080c;
 }
 
@@ -46,6 +100,13 @@
   height: 100%;
   object-fit: cover;
   background: #0a1016;
+}
+
+/* Screen share: hiện đủ khung, không crop (desktop ↔ mobile). */
+.cins-phong-hoc-remote.is-screen,
+.cins-phong-hoc-local.is-screen {
+  object-fit: contain;
+  background: #05080c;
 }
 
 .cins-phong-hoc-remote {
@@ -60,7 +121,14 @@
 
 .cins-phong-hoc-local.is-full {
   z-index: 2;
+}
+
+.cins-phong-hoc-local.is-full.is-camera {
   transform: scaleX(-1);
+}
+
+.cins-phong-hoc-local.is-full.is-screen {
+  transform: none;
 }
 
 .cins-phong-hoc-local.is-pip {
@@ -71,8 +139,18 @@
   z-index: 3;
   box-shadow: 0 8px 24px rgb(0 0 0 / 45%);
   border: 1px solid rgb(255 255 255 / 18%);
-  transform: scaleX(-1);
   object-fit: cover;
+}
+
+.cins-phong-hoc-local.is-pip.is-camera {
+  transform: scaleX(-1);
+}
+
+.cins-phong-hoc-local.is-pip.is-screen {
+  transform: none;
+  object-fit: contain;
+  width: min(40vw, 200px);
+  height: min(28vw, 140px);
 }
 
 .cins-phong-hoc-local.is-off {

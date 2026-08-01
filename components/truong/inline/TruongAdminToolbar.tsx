@@ -1,16 +1,21 @@
 "use client";
 
-import { Eye, Pencil, Shield, ShieldCheck } from "lucide-react";
+import { Eye, Pencil, Settings, Shield, ShieldCheck } from "lucide-react";
 import { createPortal } from "react-dom";
 
 import { useTopbarPageSlot } from "@/components/cins/useTopbarPageSlot";
+import type { TruongSettingsSection } from "@/components/truong/TruongPageSettingsModal";
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
 import {
   isElevatedRole,
   SYSTEM_ROLE_LABELS,
 } from "@/lib/auth/system-role-labels";
 
-export function TruongAdminToolbar() {
+type Props = {
+  onOpenSettings?: (section: TruongSettingsSection) => void;
+};
+
+export function TruongAdminToolbar({ onOpenSettings }: Props) {
   const ctx = useTruongInlineEdit();
   const slot = useTopbarPageSlot();
 
@@ -40,6 +45,17 @@ export function TruongAdminToolbar() {
         <span className="tb-truong-admin-saving" aria-live="polite">
           Đang lưu…
         </span>
+      ) : null}
+      {isEditing && onOpenSettings ? (
+        <button
+          type="button"
+          className="tb-truong-admin-btn tb-truong-admin-btn--icon"
+          aria-label="Sửa thông tin trường"
+          title="Sửa thông tin trường"
+          onClick={() => onOpenSettings("identity")}
+        >
+          <Settings size={16} strokeWidth={2} aria-hidden />
+        </button>
       ) : null}
       <button
         type="button"

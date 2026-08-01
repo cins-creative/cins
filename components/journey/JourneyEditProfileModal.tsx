@@ -10,6 +10,7 @@ import {
   type EmailVisibility,
   type ProfileLinkInput,
 } from "@/app/[slug]/journey/actions";
+import { useJourneyCompose } from "@/components/journey/JourneyComposeContext";
 import type { GiaiDoan } from "@/lib/auth/session";
 import { TINH_THANH_OPTIONS } from "@/lib/truong/contact";
 
@@ -107,6 +108,7 @@ export function JourneyEditProfileModal({
 }: Props) {
   const router = useRouter();
   const titleId = useId();
+  const { ownerId: composeOwnerId } = useJourneyCompose();
 
   const [tenHienThi, setTenHienThi] = useState(initial.tenHienThi);
   const [slug, setSlug] = useState(ownerSlug);
@@ -181,7 +183,7 @@ export function JourneyEditProfileModal({
 
   async function runSlugCheck(value: string): Promise<boolean> {
     setSlugStatus({ kind: "checking" });
-    const result = await checkSlugAvailable(value);
+    const result = await checkSlugAvailable(value, { currentSlug: ownerSlug });
     if (!result.ok) {
       setSlugStatus({ kind: "error", message: result.error });
       return false;
@@ -318,6 +320,8 @@ export function JourneyEditProfileModal({
         visibilityDiaChi,
         mxhLinks: cleanLinks,
         giaiDoan,
+        targetOwnerId: composeOwnerId || undefined,
+        currentSlug: ownerSlug,
       });
       if (!result.ok) {
         console.error("[JourneyEditProfileModal] save failed:", result);

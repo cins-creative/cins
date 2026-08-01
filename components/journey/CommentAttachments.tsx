@@ -15,7 +15,7 @@ type Props = {
 };
 
 function CommentAttachmentItem({ image }: { image: GridImage }) {
-  const [dims, setDims] = useState<{ w: number; h: number } | null>(null);
+  const [aspect, setAspect] = useState<string | undefined>(undefined);
 
   return (
     <a
@@ -30,12 +30,13 @@ function CommentAttachmentItem({ image }: { image: GridImage }) {
         alt=""
         loading="lazy"
         decoding="async"
-        width={dims?.w}
-        height={dims?.h}
+        width={image.width}
+        height={image.height}
+        style={aspect ? { aspectRatio: aspect } : undefined}
         onLoad={(e) => {
           const el = e.currentTarget;
           if (el.naturalWidth > 0 && el.naturalHeight > 0) {
-            setDims({ w: el.naturalWidth, h: el.naturalHeight });
+            setAspect(`${el.naturalWidth} / ${el.naturalHeight}`);
           }
         }}
       />

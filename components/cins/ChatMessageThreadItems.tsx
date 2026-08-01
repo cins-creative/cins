@@ -564,7 +564,7 @@ function SingleMessageBubble({
     return (
       <div
         id={messageRowId(msg.id)}
-        className="cins-chat-bubble-row is-cuoc-goi-notice"
+        className={`cins-chat-bubble-row is-cuoc-goi-notice ${isMe ? "is-me" : "is-them"}`}
       >
         <div className="cins-chat-bubble is-cuoc-goi-notice">
           <ChatMessageBody

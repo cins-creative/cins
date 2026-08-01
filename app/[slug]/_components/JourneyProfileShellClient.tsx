@@ -28,6 +28,7 @@ type Props = {
   ownerId: string;
   ownerAvatarId?: string | null;
   isOwner: boolean;
+  adminSeedingEdit?: boolean;
   editProfileInitial?: EditProfileInitial;
   viewerProfileId: string | null;
   initialKetBanStatus?: KetBanStatusSummary | null;
@@ -66,6 +67,7 @@ export function JourneyProfileShellClient({
   ownerId,
   ownerAvatarId,
   isOwner,
+  adminSeedingEdit = false,
   editProfileInitial,
   viewerProfileId,
   initialKetBanStatus = null,
@@ -76,6 +78,7 @@ export function JourneyProfileShellClient({
   showShop = false,
 }: Props) {
   const ownerName = profile.tenHienThi ?? profile.slug;
+  const canComposePosts = isOwner || adminSeedingEdit;
   const shell = (
     <div className="j-shell">
       <JourneySidebar
@@ -110,9 +113,10 @@ export function JourneyProfileShellClient({
           ownerName={ownerName}
           ownerAvatarId={ownerAvatarId}
           isOwner={isOwner}
-          initialCompose={isOwner ? initialCompose : null}
+          adminSeedingEdit={adminSeedingEdit}
+          initialCompose={canComposePosts ? initialCompose : null}
         >
-          {isOwner ? (
+          {canComposePosts ? (
             <BunnyVideoProcessingPoller ownerSlug={profile.slug} />
           ) : null}
           {shell}

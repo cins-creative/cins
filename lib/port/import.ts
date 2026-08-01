@@ -25,8 +25,12 @@ import {
 import type { Block } from "@/lib/editor/types";
 import { POST_MOTA_MAX, POST_TITLE_MAX } from "@/lib/journey/post-content-kind";
 import { lyDoBoQua, taoBoQuaRong, type PortImportBoQua } from "@/lib/port/bo-qua";
+import {
+  CARRD_ALBUM_MAX_ANH,
+  parseCarrdPageHtml,
+} from "@/lib/port/carrd-assets";
 
-export type PortPlatform = "behance" | "artstation";
+export type PortPlatform = "behance" | "artstation" | "carrd";
 
 /** Preview 1 project — round-trip client → apply (JSON-serializable). */
 export type PortImportPreview = {
@@ -56,8 +60,10 @@ function excerptFromText(text: string): string {
 
 type KetQuaMirror = {
   daTai: Map<string, { imageId: string; url: string }>;
-  /** Ảnh vượt trần dung lượng Cloudflare Images. */
+  /** Ảnh vượt trần dung lượng Cloudflare Images (không nén nổi). */
   quaLon: number;
+  /** Ảnh đã nén rồi upload thành công. */
+  daNen: number;
   /** Ảnh hỏng vì lý do khác (mạng, mime, lưu trữ). */
   loi: number;
 };
@@ -66,6 +72,7 @@ type KetQuaMirror = {
 async function mirrorImages(urls: string[]): Promise<KetQuaMirror> {
   const daTai = new Map<string, { imageId: string; url: string }>();
   let quaLon = 0;
+  let daNen = 0;
   let loi = 0;
   for (let i = 0; i < urls.length; i += IMAGE_CONCURRENCY) {
     const chunk = urls.slice(i, i + IMAGE_CONCURRENCY);
@@ -76,12 +83,14 @@ async function mirrorImages(urls: string[]): Promise<KetQuaMirror> {
       })),
     );
     for (const { u, res } of uploaded) {
-      if (res.ok) daTai.set(u, res.data);
-      else if (res.lyDo === "qua_lon") quaLon += 1;
+      if (res.ok) {
+        daTai.set(u, res.data);
+        if (res.daNen) daNen += 1;
+      } else if (res.lyDo === "qua_lon") quaLon += 1;
       else loi += 1;
     }
   }
-  return { daTai, quaLon, loi };
+  return { daTai, quaLon, daNen, loi };
 }
 
 function chuanHoaTieuDe(raw: string | null | undefined, fallback: string): string {
@@ -143,6 +152,7 @@ export async function buildBehancePortPreview(params: {
     tongAnhNguon: imageUrls.length + parsed.soAnhVuotGioiHan,
     daLay: soAnh,
     quaLon: mirrored.quaLon,
+    daNen: mirrored.daNen,
     vuotTran: parsed.soAnhVuotGioiHan,
     loi: mirrored.loi,
   };
@@ -222,6 +232,7 @@ export async function buildArtstationPortPreview(params: {
   const boQua: PortImportBoQua = {
     ...taoBoQuaRong(imageUrls.length, soAnh),
     quaLon: mirrored.quaLon,
+    daNen: mirrored.daNen,
     loi: mirrored.loi,
   };
   const warnings = lyDoBoQua(boQua);
@@ -261,6 +272,81 @@ export async function buildArtstationPortPreview(params: {
   };
 }
 
+/**
+ * Dựng preview trang Carrd (HTML) → album ảnh + dòng nguồn.
+ */
+export async function buildCarrdPortPreview(params: {
+  url: string;
+  html: string;
+  fallbackTitle?: string | null;
+}): Promise<PortImportPreview> {
+  const sourceUrl = String(params.url || "").trim();
+  const html = String(params.html || "");
+  if (!html) {
+    throw new Error("Thiếu HTML trang Carrd.");
+  }
+
+  const parsed = parseCarrdPageHtml(html, {
+    baseUrl: sourceUrl || "https://carrd.co",
+    gioiHan: CARRD_ALBUM_MAX_ANH,
+  });
+
+  const mirrored = await mirrorImages(parsed.imageUrls);
+  const anhAlbum = parsed.imageUrls
+    .map((u) => {
+      const cf = mirrored.daTai.get(u);
+      if (!cf) return null;
+      return { seed: cf.imageId, width: null as number | null, height: null };
+    })
+    .filter((x): x is { seed: string; width: number | null; height: number | null } =>
+      Boolean(x),
+    );
+
+  const soAnh = anhAlbum.length;
+  const boQua: PortImportBoQua = {
+    tongAnhNguon: parsed.imageUrls.length + parsed.soAnhVuotGioiHan,
+    daLay: soAnh,
+    quaLon: mirrored.quaLon,
+    daNen: mirrored.daNen,
+    vuotTran: parsed.soAnhVuotGioiHan,
+    loi: mirrored.loi,
+  };
+  const warnings = lyDoBoQua(boQua);
+
+  const blocks = taoKhoiBaiAlbumNguon({
+    anh: anhAlbum,
+    urlNguon: sourceUrl,
+    nenTang: "carrd",
+  });
+
+  const firstCover = parsed.imageUrls
+    .map((u) => mirrored.daTai.get(u))
+    .find((x): x is { imageId: string; url: string } => Boolean(x));
+
+  const tieuDe = chuanHoaTieuDe(
+    parsed.title || params.fallbackTitle,
+    "Portfolio Carrd",
+  );
+  const moTa = gopMoTaVoiDongNguon(
+    excerptFromText(parsed.excerpt),
+    taoDongGhiNguon({ urlNguon: sourceUrl, nenTang: "carrd" }),
+  ).slice(0, POST_MOTA_MAX);
+
+  return {
+    platform: "carrd",
+    sourceUrl,
+    tieuDe,
+    moTa,
+    coverId: firstCover?.imageId ?? null,
+    coverUrl: firstCover?.url ?? null,
+    blocks,
+    soAnh,
+    soVideo: 0,
+    boQua,
+    warnings,
+  };
+}
+
 /** Dựng preview theo nền tảng. */
 export async function buildPortPreview(params: {
   platform: PortPlatform;
@@ -271,14 +357,19 @@ export async function buildPortPreview(params: {
   if (params.platform === "artstation") {
     return buildArtstationPortPreview(params);
   }
+  if (params.platform === "carrd") {
+    return buildCarrdPortPreview(params);
+  }
   return buildBehancePortPreview(params);
 }
 
-/** Tạo bài Journey riêng tư (nháp để duyệt) từ preview đã dựng. */
+/** Tạo bài Journey từ preview đã dựng. */
 export async function applyPortImport(params: {
   idNguoiDung: string;
   slugChu: string;
   preview: PortImportPreview;
+  /** Mặc định nháp (PortImport user). Admin clone seeding → `public`. */
+  cheDoHienThi?: "public" | "feature" | "chi_minh" | "ban_be";
 }): Promise<DangBaiJourneyResult> {
   const { preview } = params;
   if (!Array.isArray(preview.blocks) || preview.blocks.length === 0) {
@@ -291,7 +382,7 @@ export async function applyPortImport(params: {
     tieuDe: preview.tieuDe,
     moTa: preview.moTa,
     coverId: preview.coverId,
-    cheDoHienThi: "chi_minh",
+    cheDoHienThi: params.cheDoHienThi ?? "chi_minh",
     loaiMoc: "du_an",
     blocks: preview.blocks,
   });

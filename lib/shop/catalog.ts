@@ -258,27 +258,6 @@ export async function updateSanPham(
     Object.assign(patch, nhomPatch);
   }
   if (typeof input.dangBan === "boolean") {
-    if (input.dangBan === true) {
-      const { data: weights, error: wErr } = await admin
-        .from("shop_bien_the")
-        .select("can_nang")
-        .eq("id_san_pham", sanPhamId)
-        .eq("da_xoa", false);
-      if (wErr) {
-        console.error("[shop] updateSanPham weight check", wErr);
-        throw new Error("UPDATE_FAILED");
-      }
-      const rows = (weights ?? []) as Array<{ can_nang: number | null }>;
-      const ok =
-        rows.length > 0 &&
-        rows.every(
-          (r) =>
-            r.can_nang != null &&
-            Number.isFinite(Number(r.can_nang)) &&
-            Number(r.can_nang) >= 1,
-        );
-      if (!ok) throw new Error("WEIGHT_REQUIRED_FOR_SALE");
-    }
     patch.dang_ban = input.dangBan;
   }
   if (typeof input.noiBat === "boolean") {
@@ -377,24 +356,6 @@ export async function upsertBienThe(
       .select("id, id_san_pham, nhan, sku, so_luong_ton, can_nang, anh_id")
       .maybeSingle<BtRow>();
     if (error || !data) throw new Error("UPDATE_FAILED");
-
-    /* Xóa cân nặng → không được giữ Đang bán. */
-    if (
-      input.canNang !== undefined &&
-      (input.canNang == null ||
-        !Number.isFinite(Number(input.canNang)) ||
-        Number(input.canNang) < 1)
-    ) {
-      await admin
-        .from("shop_san_pham")
-        .update({
-          dang_ban: false,
-          cap_nhat_luc: new Date().toISOString(),
-        })
-        .eq("id", sanPhamId)
-        .eq("id_nguoi_dung", ownerId)
-        .eq("da_xoa", false);
-    }
 
     return mapBienThe(data);
   }

@@ -20,6 +20,7 @@ type Props = {
   serverDetail: MilestonePostDetail;
   postSlugFromDb: string;
   isOwner: boolean;
+  adminSeedingEdit?: boolean;
   commentsSlot: React.ReactNode;
 };
 
@@ -29,12 +30,14 @@ export function PostPageClientBridge({
   serverDetail,
   postSlugFromDb,
   isOwner,
+  adminSeedingEdit = false,
   commentsSlot,
 }: Props) {
   const [detail, setDetail] = useState(serverDetail);
   const [commentCountOverride, setCommentCountOverride] = useState(
     serverDetail.social.commentCount,
   );
+  const canManagePost = isOwner || adminSeedingEdit;
 
   useEffect(() => {
     setDetail(serverDetail);
@@ -96,7 +99,7 @@ export function PostPageClientBridge({
     <JourneyPostBody
       initialDetail={detail}
       postSlug={postSlugFromDb}
-      isOwner={isOwner}
+      isOwner={canManagePost}
       hideOpenLink
       layout="split"
       commentCountOverride={commentCountOverride}
@@ -104,7 +107,7 @@ export function PostPageClientBridge({
     />
   );
 
-  if (!isOwner) return body;
+  if (!canManagePost) return body;
 
   return (
     <JourneyComposeProvider
@@ -112,7 +115,8 @@ export function PostPageClientBridge({
       ownerSlug={detail.owner.slug}
       ownerName={detail.owner.tenHienThi}
       ownerAvatarId={detail.owner.avatarId}
-      isOwner
+      isOwner={isOwner}
+      adminSeedingEdit={adminSeedingEdit}
       initialCompose={initialCompose}
     >
       <BunnyVideoProcessingPoller ownerSlug={detail.owner.slug} />

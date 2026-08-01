@@ -22,7 +22,6 @@ import {
   Maximize2,
   Minimize2,
   Phone,
-  Video,
 } from "lucide-react";
 import {
   type ChangeEvent,
@@ -86,6 +85,10 @@ import {
 } from "@/lib/media/call-trace";
 import { prefetchPhongHocMeeting } from "@/lib/media/prefetch-phong-hoc";
 import { warmCallMedia } from "@/lib/media/media-warm";
+import {
+  presentCallUi,
+  updateCallWindowSession,
+} from "@/lib/media/call-window";
 import {
   avatarBg,
   avatarHueFromSeed,
@@ -942,6 +945,9 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
   } | null>(null);
   const [phongHocBusy, setPhongHocBusy] = useState(false);
   const [phongHocErr, setPhongHocErr] = useState<string | null>(null);
+  const [outboundCallMessageId, setOutboundCallMessageId] = useState<
+    string | null
+  >(null);
   const [activeTab, setActiveTab] = useState<ChatThreadGroup>(
     () => launch?.tab ?? launch?.thread?.group ?? "ban_be",
   );
@@ -2943,67 +2949,111 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     ],
   );
 
-  const joinPhongHoc = useCallback(
-    async (mode: "audio" | "video" | "screen") => {
-      const roomId = active?.roomId;
-      if (!roomId || isPendingRoomId(roomId) || phongHocBusy) return;
-      const resolvedMode =
-        mode === "screen" &&
-        typeof window !== "undefined" &&
-        window.matchMedia("(max-width: 1024px)").matches
-          ? "video"
-          : mode;
-      const title = active?.name?.trim() || "Cuộc gọi";
-      beginCallTrace("caller", { roomId, mode: resolvedMode, via: "overlay" });
-      setPhongHocBusy(true);
-      setPhongHocErr(null);
-      // Mở UI + camera ngay — token/join chạy nền (chờ đối phương accept).
-      setPhongHoc({
-        token: "",
-        title,
-        mode: resolvedMode,
-        callMessageId: null,
+  const callWindowSidRef = useRef<string | null>(null);
+
+  const presentPhongHocUi = useCallback(
+    (payload: {
+      roomId: string;
+      token: string;
+      mode: "audio" | "video" | "screen";
+      title: string;
+      callMessageId: string | null;
+    }) => {
+      const presented = presentCallUi({
+        roomId: payload.roomId,
+        token: payload.token,
+        mode: payload.mode,
+        title: payload.title,
+        callMessageId: payload.callMessageId,
+        sid: callWindowSidRef.current ?? undefined,
       });
-      try {
-        const res = await fetch(
-          `/api/chat/rooms/${encodeURIComponent(roomId)}/phong-hoc/token`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ mode: resolvedMode, action: "start" }),
-          },
-        );
-        callTraceAttachServerTiming(res.headers.get("Server-Timing"));
-        callTraceMark("T0b", { status: res.status });
-        const json = (await res.json().catch(() => null)) as {
-          token?: string;
-          callMessageId?: string | null;
-          error?: string;
-        } | null;
-        if (!res.ok || !json?.token) {
-          setPhongHoc(null);
-          setPhongHocErr(json?.error || "Không bắt đầu được cuộc gọi.");
-          return;
-        }
-        if (json.callMessageId) callTraceRingSent(json.callMessageId);
-        setPhongHoc((prev) =>
-          prev
-            ? {
-                ...prev,
-                token: json.token!,
-                callMessageId: json.callMessageId ?? null,
-              }
-            : null,
-        );
-      } catch {
+      callWindowSidRef.current = presented.sid;
+      if (presented.presentation === "window") {
         setPhongHoc(null);
-        setPhongHocErr("Lỗi mạng — thử lại.");
-      } finally {
-        setPhongHocBusy(false);
+        if (presented.sid && payload.token) {
+          updateCallWindowSession(presented.sid, {
+            token: payload.token,
+            callMessageId: payload.callMessageId,
+            mode: payload.mode,
+            title: payload.title,
+            roomId: payload.roomId,
+          });
+        }
+        return;
       }
+      if (presented.reason === "blocked") {
+        setPhongHocErr(
+          "Trình duyệt chặn cửa sổ gọi — đang mở toàn màn hình tại đây.",
+        );
+      }
+      setPhongHoc({
+        token: payload.token,
+        title: payload.title,
+        mode: payload.mode,
+        callMessageId: payload.callMessageId,
+      });
     },
-    [active?.name, active?.roomId, phongHocBusy],
+    [],
   );
+
+  const joinPhongHoc = useCallback(async () => {
+    const roomId = active?.roomId;
+    if (!roomId || isPendingRoomId(roomId) || phongHocBusy) return;
+    const mode = "audio" as const;
+    const title = active?.name?.trim() || "Cuộc gọi";
+    beginCallTrace("caller", { roomId, mode, via: "overlay" });
+    setPhongHocBusy(true);
+    setPhongHocErr(null);
+    presentPhongHocUi({
+      roomId,
+      token: "",
+      mode,
+      title,
+      callMessageId: null,
+    });
+    try {
+      const res = await fetch(
+        `/api/chat/rooms/${encodeURIComponent(roomId)}/phong-hoc/token`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mode, action: "start" }),
+        },
+      );
+      callTraceAttachServerTiming(res.headers.get("Server-Timing"));
+      callTraceMark("T0b", { status: res.status });
+      const json = (await res.json().catch(() => null)) as {
+        token?: string;
+        callMessageId?: string | null;
+        error?: string;
+      } | null;
+      if (!res.ok || !json?.token) {
+        setPhongHoc(null);
+        callWindowSidRef.current = null;
+        setOutboundCallMessageId(null);
+        setPhongHocErr(json?.error || "Không bắt đầu được cuộc gọi.");
+        return;
+      }
+      if (json.callMessageId) {
+        callTraceRingSent(json.callMessageId);
+        setOutboundCallMessageId(json.callMessageId);
+      }
+      presentPhongHocUi({
+        roomId,
+        token: json.token,
+        mode,
+        title,
+        callMessageId: json.callMessageId ?? null,
+      });
+    } catch {
+      setPhongHoc(null);
+      callWindowSidRef.current = null;
+      setOutboundCallMessageId(null);
+      setPhongHocErr("Lỗi mạng — thử lại.");
+    } finally {
+      setPhongHocBusy(false);
+    }
+  }, [active?.name, active?.roomId, phongHocBusy, presentPhongHocUi]);
 
   useEffect(() => {
     const roomId = active?.roomId;
@@ -3018,34 +3068,55 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     }) => {
       if (pending.roomId !== roomId) return;
       takePendingPhongHoc(roomId);
-      setPhongHoc({
+      setPhongHocErr(null);
+      presentPhongHocUi({
+        roomId: pending.roomId,
         token: pending.token,
-        title: pending.title || active?.name?.trim() || "Cuộc gọi",
         mode: pending.mode,
+        title: pending.title || active?.name?.trim() || "Cuộc gọi",
         callMessageId: pending.callMessageId,
       });
-      setPhongHocErr(null);
     };
 
     const queued = takePendingPhongHoc(roomId);
     if (queued) applyPending(queued);
 
     return subscribePendingPhongHoc(applyPending);
-  }, [active?.roomId, active?.name]);
+  }, [active?.roomId, active?.name, presentPhongHocUi]);
 
   useEffect(() => {
-    if (!phongHoc?.callMessageId) return;
+    const callMessageId =
+      phongHoc?.callMessageId ?? outboundCallMessageId;
+    if (!callMessageId) return;
+    const inlineOpen = phongHoc != null;
     return subscribeChatMessages((event) => {
-      if (event.message.id !== phongHoc.callMessageId) return;
+      if (event.message.id !== callMessageId) return;
       const st = event.message.cuocGoi?.trangThai;
       if (st === "tu_choi" || st === "nho") {
         setPhongHoc(null);
+        callWindowSidRef.current = null;
+        setOutboundCallMessageId(null);
         setPhongHocErr(
           st === "tu_choi" ? "Người nhận đã từ chối." : "Không bắt máy.",
         );
+        return;
+      }
+      /* Đối phương kết thúc → đóng UI thay vì ngồi lại phòng trống. */
+      if (st === "ket_thuc") {
+        callWindowSidRef.current = null;
+        setOutboundCallMessageId(null);
+        if (inlineOpen) {
+          setPhongHoc(null);
+          setPhongHocErr("Cuộc gọi đã kết thúc.");
+        }
       }
     });
-  }, [phongHoc?.callMessageId, subscribeChatMessages]);
+  }, [
+    phongHoc,
+    phongHoc?.callMessageId,
+    outboundCallMessageId,
+    subscribeChatMessages,
+  ]);
 
   /** Đính kèm video chat: optimistic (poster/blob) → upload R2 → gửi media. */
   const attachVideoFile = useCallback(
@@ -3814,46 +3885,6 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
               ) : null}
             </div>
             <div className="cins-chat-convo-actions">
-              {canJoinPhongHoc ? (
-                <>
-                  <button
-                    type="button"
-                    className="cins-chat-icon-btn"
-                    aria-label="Gọi"
-                    title="Gọi (chỉ mic)"
-                    disabled={phongHocBusy}
-                    onPointerEnter={() => {
-                      void warmCallMedia({ video: false });
-                    }}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      void joinPhongHoc("audio");
-                    }}
-                    onMouseDown={(e) => e.stopPropagation()}
-                  >
-                    <Phone size={18} strokeWidth={1.9} aria-hidden />
-                  </button>
-                  <button
-                    type="button"
-                    className="cins-chat-icon-btn"
-                    aria-label="Gọi video"
-                    title="Gọi video"
-                    disabled={phongHocBusy}
-                    onPointerEnter={() => {
-                      void warmCallMedia({ video: true });
-                    }}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      void joinPhongHoc("video");
-                    }}
-                    onMouseDown={(e) => e.stopPropagation()}
-                  >
-                    <Video size={18} strokeWidth={1.9} aria-hidden />
-                  </button>
-                </>
-              ) : null}
               {active.isGroup &&
               active.isGroupAdmin &&
               active.roomId &&
@@ -3994,28 +4025,10 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
             </div>
           ) : null}
 
-          {phongHoc ? (
-            <div className="cins-chat-call-stage">
-              <PhongHocMeeting
-                authToken={phongHoc.token}
-                mode={phongHoc.mode}
-                title={phongHoc.title}
-                roomId={active?.roomId}
-                callMessageId={phongHoc.callMessageId}
-                onClose={() => {
-                  setPhongHoc(null);
-                  setPhongHocErr(null);
-                }}
-              />
-            </div>
-          ) : null}
-
           <div
-            className={`cins-chat-messages${lopFrozen ? " is-lop-frozen" : ""}${phongHoc ? " is-call-hidden" : ""}`}
+            className={`cins-chat-messages${lopFrozen ? " is-lop-frozen" : ""}`}
             ref={messagesContainerRef}
             onScroll={handleMessagesScroll}
-            hidden={Boolean(phongHoc)}
-            aria-hidden={phongHoc ? true : undefined}
           >
             {canvasNotice ? (
               <div className="cins-chat-canvas-notice" role="status">
@@ -4298,14 +4311,28 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                   active.roomId &&
                     (!active.isGroup || active.isGroupAdmin),
                 )}
-                canStartCall={canJoinPhongHoc}
-                callBusy={phongHocBusy}
-                onStartCall={(mode) => void joinPhongHoc(mode)}
                 onAddMoc={handleComposeAddMoc}
                 onAttachImage={() => fileInputRef.current?.click()}
                 onAttachVideo={() => videoFileInputRef.current?.click()}
                 onCreatePoll={handleCreatePoll}
               />
+              {canJoinPhongHoc ? (
+                <button
+                  type="button"
+                  className="cins-chat-attach"
+                  aria-label="Gọi"
+                  title="Gọi"
+                  disabled={
+                    phongHocBusy || connecting || isPendingRoom || lopFrozen
+                  }
+                  onPointerEnter={() => {
+                    void warmCallMedia({ video: false });
+                  }}
+                  onClick={() => void joinPhongHoc()}
+                >
+                  <Phone size={18} strokeWidth={1.9} aria-hidden />
+                </button>
+              ) : null}
               <button
                 type="button"
                 className="cins-chat-attach cins-chat-attach-meme"
@@ -4661,8 +4688,37 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
           }
         />
       ) : null}
+
     </div>
   );
 
-  return createPortal(panel, document.body);
+  return (
+    <>
+      {createPortal(panel, document.body)}
+      {phongHoc
+        ? createPortal(
+            <div
+              className="cins-call-fullscreen"
+              role="dialog"
+              aria-label="Cuộc gọi"
+            >
+              <PhongHocMeeting
+                authToken={phongHoc.token}
+                mode={phongHoc.mode}
+                title={phongHoc.title}
+                roomId={active?.roomId}
+                callMessageId={phongHoc.callMessageId}
+                onClose={() => {
+                  setPhongHoc(null);
+                  callWindowSidRef.current = null;
+                  setOutboundCallMessageId(null);
+                  setPhongHocErr(null);
+                }}
+              />
+            </div>,
+            document.body,
+          )
+        : null}
+    </>
+  );
 }

@@ -28,8 +28,9 @@ type Props = {
   /** Ẩn nút "Tiếp tục với …" — dùng trên home guest (chỉ /login mới hiện). */
   showRememberedAccount?: boolean;
   /**
-   * «Thêm tài khoản» (`/login?them=1`) — ẩn card tài khoản đã nhớ và ép Google
-   * hiện picker để không tái dùng session Google của tài khoản đang mở.
+   * «Thêm tài khoản» (mở `/login` khi đang có phiên) — ẩn card tài khoản đã nhớ
+   * và ép Google hiện picker để không tái dùng session Google của tài khoản
+   * đang mở.
    */
   addAccount?: boolean;
   /** Đặt nút Google sau form email — dùng trên home guest. */

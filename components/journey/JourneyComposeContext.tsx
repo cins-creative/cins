@@ -55,6 +55,9 @@ type JourneyComposeContextValue = {
   hasComposeEmbedFileDraft: (platform: "rive" | "lottie") => boolean;
   closeCompose: () => void;
   canCompose: boolean;
+  /** Admin sửa bài nick seeding — không phải chủ hồ sơ thật. */
+  adminSeedingEdit: boolean;
+  ownerId: string;
   ownerSlug: string;
   ownerName: string;
   ownerAvatarUrl: string | null;
@@ -71,6 +74,11 @@ type ProviderProps = {
   ownerName: string;
   ownerAvatarId?: string | null;
   isOwner: boolean;
+  /**
+   * Admin (`canManageUsers`) trên nick seeding — compose/sửa bài như chủ,
+   * không mở khoá chỉnh hồ sơ / sidebar.
+   */
+  adminSeedingEdit?: boolean;
   initialCompose?: JourneyComposeState | null;
   /** Hook sau publish (vd. refetch feed cộng đồng). */
   onAfterPublished?: () => void;
@@ -101,6 +109,7 @@ export function JourneyComposeProvider({
   ownerName,
   ownerAvatarId,
   isOwner,
+  adminSeedingEdit = false,
   initialCompose = null,
   onAfterPublished,
   congDongCompose,
@@ -108,45 +117,46 @@ export function JourneyComposeProvider({
   syncComposeUrl: syncComposeUrlEnabled = true,
 }: ProviderProps) {
   const router = useRouter();
+  const canCompose = isOwner || adminSeedingEdit;
   const [compose, setCompose] = useState<JourneyComposeState | null>(
-    isOwner ? initialCompose : null,
+    canCompose ? initialCompose : null,
   );
   const openCompose = useCallback(
     (state: JourneyComposeState) => {
-      if (!isOwner) return;
+      if (!canCompose) return;
       setCompose(state);
       if (syncComposeUrlEnabled) syncComposeUrl(state, "push");
     },
-    [isOwner, syncComposeUrlEnabled],
+    [canCompose, syncComposeUrlEnabled],
   );
 
   const openComposeWithPhotos = useCallback(
     (files: File[]) => {
-      if (!isOwner || files.length === 0) return;
+      if (!canCompose || files.length === 0) return;
       openCompose({ kind: "photo", pendingFiles: files });
     },
-    [isOwner, openCompose],
+    [canCompose, openCompose],
   );
 
   const openComposeWithVideo = useCallback(
     (file: File) => {
-      if (!isOwner) return;
+      if (!canCompose) return;
       openCompose({ kind: "video", pendingFile: file });
     },
-    [isOwner, openCompose],
+    [canCompose, openCompose],
   );
 
   const openComposeWithEmbed = useCallback(
     (platform: Tier1EmbedPlatformId) => {
-      if (!isOwner) return;
+      if (!canCompose) return;
       openCompose({ kind: "embed", platform, fileSource: "url" });
     },
-    [isOwner, openCompose],
+    [canCompose, openCompose],
   );
 
   const hasComposeEmbedFileDraft = useCallback(
     (platform: "rive" | "lottie") => {
-      if (!isOwner) return false;
+      if (!canCompose) return false;
       return composeDraftHasRestorableContent(
         readComposeEmbedFileDraft({
           ownerSlug,
@@ -156,17 +166,17 @@ export function JourneyComposeProvider({
         }),
       );
     },
-    [isOwner, ownerSlug, congDongCompose, orgBaiDangCompose],
+    [canCompose, ownerSlug, congDongCompose, orgBaiDangCompose],
   );
 
   const openComposeEmbedFileDraft = useCallback(
     (platform: "rive" | "lottie") => {
-      if (!isOwner) return false;
+      if (!canCompose) return false;
       if (!hasComposeEmbedFileDraft(platform)) return false;
       openCompose({ kind: "embed", platform, fileSource: "file" });
       return true;
     },
-    [isOwner, hasComposeEmbedFileDraft, openCompose],
+    [canCompose, hasComposeEmbedFileDraft, openCompose],
   );
 
   const clearComposeEmbedFileDraft = useCallback(
@@ -195,7 +205,7 @@ export function JourneyComposeProvider({
 
   const openComposeWithRiveFile = useCallback(
     (file: File, options?: { replaceDraft?: boolean }) => {
-      if (!isOwner) return;
+      if (!canCompose) return;
       if (options?.replaceDraft) {
         clearComposeEmbedFileDraft("rive");
       } else {
@@ -219,7 +229,7 @@ export function JourneyComposeProvider({
       });
     },
     [
-      isOwner,
+      canCompose,
       ownerSlug,
       congDongCompose,
       orgBaiDangCompose,
@@ -230,7 +240,7 @@ export function JourneyComposeProvider({
 
   const openComposeWithLottieFile = useCallback(
     (file: File, options?: { replaceDraft?: boolean }) => {
-      if (!isOwner) return;
+      if (!canCompose) return;
       if (options?.replaceDraft) {
         clearComposeEmbedFileDraft("lottie");
       } else {
@@ -253,7 +263,7 @@ export function JourneyComposeProvider({
       });
     },
     [
-      isOwner,
+      canCompose,
       ownerSlug,
       congDongCompose,
       orgBaiDangCompose,
@@ -268,7 +278,7 @@ export function JourneyComposeProvider({
   }, [syncComposeUrlEnabled]);
 
   useEffect(() => {
-    if (syncComposeUrlEnabled || !isOwner) return;
+    if (syncComposeUrlEnabled || !canCompose) return;
     const params = new URLSearchParams(window.location.search);
     if (
       !params.has("compose") &&
@@ -286,10 +296,10 @@ export function JourneyComposeProvider({
       "",
       qs ? `${window.location.pathname}?${qs}` : window.location.pathname,
     );
-  }, [isOwner, syncComposeUrlEnabled]);
+  }, [canCompose, syncComposeUrlEnabled]);
 
   useEffect(() => {
-    if (!isOwner || !syncComposeUrlEnabled) return;
+    if (!canCompose || !syncComposeUrlEnabled) return;
     const onPop = () => {
       setCompose(
         parseComposeSearchParams(new URLSearchParams(window.location.search)),
@@ -297,7 +307,7 @@ export function JourneyComposeProvider({
     };
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
-  }, [isOwner, syncComposeUrlEnabled]);
+  }, [canCompose, syncComposeUrlEnabled]);
 
   const onPublished = useCallback(
     (detail?: ComposePublishedDetail) => {
@@ -359,7 +369,9 @@ export function JourneyComposeProvider({
       openComposeEmbedFileDraft,
       hasComposeEmbedFileDraft,
       closeCompose,
-      canCompose: isOwner,
+      canCompose,
+      adminSeedingEdit,
+      ownerId,
       ownerSlug,
       ownerName,
       ownerAvatarUrl,
@@ -375,7 +387,9 @@ export function JourneyComposeProvider({
       openComposeEmbedFileDraft,
       hasComposeEmbedFileDraft,
       closeCompose,
-      isOwner,
+      canCompose,
+      adminSeedingEdit,
+      ownerId,
       ownerSlug,
       ownerName,
       ownerAvatarUrl,
@@ -386,7 +400,7 @@ export function JourneyComposeProvider({
     <JourneyComposeContext.Provider value={value}>
       <JourneyPersonalFilterProvider ownerId={ownerId} isOwner={isOwner}>
         {children}
-        {isOwner && compose ? (
+        {canCompose && compose ? (
           <JourneyComposeOverlay
             compose={compose}
             ownerId={ownerId}
@@ -419,6 +433,8 @@ export function useJourneyCompose(): JourneyComposeContextValue {
       hasComposeEmbedFileDraft: () => false,
       closeCompose: () => {},
       canCompose: false,
+      adminSeedingEdit: false,
+      ownerId: "",
       ownerSlug: "",
       ownerName: "",
       ownerAvatarUrl: null,

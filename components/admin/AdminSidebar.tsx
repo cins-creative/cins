@@ -22,7 +22,7 @@ const NAV = [
   { href: "/admin/mon-thi", label: "Môn & khối thi", icon: "subject" },
   { section: "Users" },
   { href: "/admin/nguoi-dung", label: "Người dùng", icon: "users" },
-  { href: "/admin/tai-khoan-ai", label: "Tài khoản AI", icon: "bot" },
+  { href: "/admin/tai-khoan-ai", label: "Nick seeding", icon: "bot" },
   { section: "Hệ thống" },
   { href: "/admin/linh-vuc", label: "Lĩnh vực", icon: "grid" },
   { href: "/admin/schema", label: "Schema DB", icon: "sql" },

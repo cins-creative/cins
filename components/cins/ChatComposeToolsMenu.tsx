@@ -5,8 +5,6 @@ import {
   CalendarPlus,
   Image as ImageIcon,
   Loader2,
-  MonitorUp,
-  Phone,
   Plus,
   Video as VideoIcon,
   X,
@@ -19,18 +17,11 @@ import {
   useTransition,
 } from "react";
 
-import type { MediaCallMode } from "@/lib/media/call-mode";
-import { isCompactCallViewport } from "@/lib/media/call-constraints";
-
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   disabled?: boolean;
   canAddMoc: boolean;
-  /** Gọi A/V (Realtime) — bạn bè / nhóm / lớp. */
-  canStartCall?: boolean;
-  callBusy?: boolean;
-  onStartCall?: (mode: MediaCallMode) => void;
   onAddMoc: () => void;
   onAttachImage: () => void;
   onAttachVideo: () => void;
@@ -45,9 +36,6 @@ export function ChatComposeToolsMenu({
   onOpenChange,
   disabled = false,
   canAddMoc,
-  canStartCall = false,
-  callBusy = false,
-  onStartCall,
   onAddMoc,
   onAttachImage,
   onAttachVideo,
@@ -60,16 +48,6 @@ export function ChatComposeToolsMenu({
   const [options, setOptions] = useState(["", ""]);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
-
-  const [compactViewport, setCompactViewport] = useState(false);
-
-  useEffect(() => {
-    setCompactViewport(isCompactCallViewport());
-    const mq = window.matchMedia("(max-width: 1024px)");
-    const onChange = () => setCompactViewport(mq.matches);
-    mq.addEventListener?.("change", onChange);
-    return () => mq.removeEventListener?.("change", onChange);
-  }, []);
 
   useEffect(() => {
     if (!open) {
@@ -141,63 +119,6 @@ export function ChatComposeToolsMenu({
         >
           {mode === "menu" ? (
             <>
-              {canStartCall && onStartCall ? (
-                <>
-                  <button
-                    type="button"
-                    role="menuitem"
-                    className="cins-chat-compose-tools-item"
-                    disabled={callBusy}
-                    onClick={() => {
-                      if (callBusy) return;
-                      onOpenChange(false);
-                      onStartCall("audio");
-                    }}
-                  >
-                    <Phone size={16} strokeWidth={1.9} aria-hidden />
-                    <span>
-                      <strong>Gọi</strong>
-                      <em>Chỉ mic — ấn là gọi ngay</em>
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    role="menuitem"
-                    className="cins-chat-compose-tools-item"
-                    disabled={callBusy}
-                    onClick={() => {
-                      if (callBusy) return;
-                      onOpenChange(false);
-                      onStartCall("video");
-                    }}
-                  >
-                    <VideoIcon size={16} strokeWidth={1.9} aria-hidden />
-                    <span>
-                      <strong>Gọi video</strong>
-                      <em>Mic + camera — ấn là gọi ngay</em>
-                    </span>
-                  </button>
-                  {!compactViewport ? (
-                    <button
-                      type="button"
-                      role="menuitem"
-                      className="cins-chat-compose-tools-item"
-                      disabled={callBusy}
-                      onClick={() => {
-                        if (callBusy) return;
-                        onOpenChange(false);
-                        onStartCall("screen");
-                      }}
-                    >
-                      <MonitorUp size={16} strokeWidth={1.9} aria-hidden />
-                      <span>
-                        <strong>Chia sẻ màn hình</strong>
-                        <em>Chọn cửa sổ / màn hình ngay</em>
-                      </span>
-                    </button>
-                  ) : null}
-                </>
-              ) : null}
               <button
                 type="button"
                 role="menuitem"

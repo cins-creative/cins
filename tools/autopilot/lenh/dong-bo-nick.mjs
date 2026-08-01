@@ -27,6 +27,17 @@ export async function chayDongBoNick(db) {
     }
 
     const dangBat = nick.dangBat !== false;
+
+    const { data: existing } = await db
+      .from("auto_tai_khoan")
+      .select("id, loai")
+      .eq("slug", nick.slug)
+      .maybeSingle();
+    if (existing?.loai === "clone") {
+      console.warn(`  ~ bỏ qua ${nick.slug} (loai=clone)`);
+      continue;
+    }
+
     const { error } = await db.from("auto_tai_khoan").upsert(
       {
         slug: nick.slug,
@@ -35,6 +46,7 @@ export async function chayDongBoNick(db) {
         dang_bat: dangBat,
         han_muc_ngay: 3,
         ghi_chu: nick.ghiChu,
+        loai: "ai",
         cap_nhat_luc: new Date().toISOString(),
       },
       { onConflict: "slug" },

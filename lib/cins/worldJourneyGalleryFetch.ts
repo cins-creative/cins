@@ -239,6 +239,7 @@ function featureRowToItem(
     videoPreviewSrc: grid.videoPreviewSrc,
     authorName: author?.ten_hien_thi?.trim() || author?.slug || null,
     authorAvatarUrl: getAvatarUrl(author?.avatar_id ?? null),
+    authorSlug: slug ?? null,
     orgKicker: opts?.communityName
       ? "Cộng đồng"
       : cm.che_do_hien_thi === "feature"
@@ -646,12 +647,16 @@ async function attachSourceAuthorsToWjItems(
       return item;
     }
 
+    const nextAuthorName = sourceAuthor.name ?? item.authorName;
     return {
       ...item,
       showSourceAuthor: true,
       sourcePeople: sourceAuthor.people,
-      authorName: sourceAuthor.name ?? item.authorName,
+      authorName: nextAuthorName,
       authorAvatarUrl: sourceAuthor.avatarUrl ?? item.authorAvatarUrl,
+      /* Tên bị thay bằng stack cộng sự → không còn chắc slug user tương ứng. */
+      authorSlug:
+        nextAuthorName === item.authorName ? (item.authorSlug ?? null) : null,
     };
   });
 }

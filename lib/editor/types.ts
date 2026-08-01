@@ -22,7 +22,9 @@ export type Block = {
   thu_tu: number;
   /**
    * Cấu hình theo type:
-   *   - h2/h3/body/quote: { html: string }  — plain text từ textarea, server tự escape khi render.
+   *   - h2/h3/body: { html: string; align?: "left"|"center"|"right" }
+   *     `align` omit / `"left"` = căn trái (mặc định).
+   *   - quote: { html: string }
    *   - imgs: { layout, rounded, gap?, cap, imgs: string[], width?, height?, cols?, cells?, pad?, albumGridCell?, albumLayout? }
    *     `gap` — khe giữa ô (0 | 2 | 4 px), mặc định 2.
    *     `albumLayout` — preset album feed: justified | masonry | columns2 | square | stack (khi albumGridCell).

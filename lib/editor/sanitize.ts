@@ -51,18 +51,39 @@ export function escapeHtml(input: string): string {
 }
 
 /** Plain text → HTML đoạn (\\n\\n thành paragraph mới, \\n đơn thành <br>). */
-function plainToParagraphs(text: string, tag: "p" | "blockquote" = "p"): string {
+function plainToParagraphs(
+  text: string,
+  tag: "p" | "blockquote" = "p",
+  align?: "left" | "center" | "right",
+): string {
   const parts = text
     .split(/\n{2,}/)
     .map((p) => p.trim())
     .filter(Boolean);
   if (parts.length === 0) return "";
+  const styleAttr =
+    align === "center" || align === "right"
+      ? ` style="text-align:${align}"`
+      : "";
   return parts
     .map((p) => {
       const inner = escapeHtml(p).replace(/\n/g, "<br>");
-      return `<${tag}>${inner}</${tag}>`;
+      return `<${tag}${styleAttr}>${inner}</${tag}>`;
     })
     .join("\n");
+}
+
+function textBlockAlign(
+  config: Record<string, unknown> | undefined,
+): "left" | "center" | "right" | undefined {
+  const a = config?.align;
+  if (a === "center" || a === "right") return a;
+  return undefined;
+}
+
+function getText(b: Block): string {
+  const html = b.config?.html;
+  return typeof html === "string" ? html : "";
 }
 
 export { classifyEmbedUrl } from "@/lib/editor/embed-providers";
@@ -105,14 +126,28 @@ export function blocksToHtml(blocks: ReadonlyArray<Block>): string {
 
   for (const b of blocks) {
     switch (b.loai) {
-      case "h2":
-        parts.push(`<h2>${escapeHtml(getText(b))}</h2>`);
+      case "h2": {
+        const align = textBlockAlign(b.config);
+        const styleAttr =
+          align === "center" || align === "right"
+            ? ` style="text-align:${align}"`
+            : "";
+        parts.push(`<h2${styleAttr}>${escapeHtml(getText(b))}</h2>`);
         break;
-      case "h3":
-        parts.push(`<h3>${escapeHtml(getText(b))}</h3>`);
+      }
+      case "h3": {
+        const align = textBlockAlign(b.config);
+        const styleAttr =
+          align === "center" || align === "right"
+            ? ` style="text-align:${align}"`
+            : "";
+        parts.push(`<h3${styleAttr}>${escapeHtml(getText(b))}</h3>`);
         break;
+      }
       case "body":
-        parts.push(plainToParagraphs(getText(b), "p"));
+        parts.push(
+          plainToParagraphs(getText(b), "p", textBlockAlign(b.config)),
+        );
         break;
       case "quote":
         parts.push(plainToParagraphs(getText(b), "blockquote"));
@@ -212,10 +247,6 @@ export function blocksToHtml(blocks: ReadonlyArray<Block>): string {
   }
 
   return `<div class="article-rich-content">${parts.join("\n")}</div>`;
-}
-
-function getText(b: Block): string {
-  return (b.config?.html as string | undefined)?.toString() || "";
 }
 
 function renderImgsBlock(b: Block): string {

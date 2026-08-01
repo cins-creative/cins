@@ -1997,6 +1997,24 @@ a.j-main-gallery-item:focus-visible,
   min-width: 0;
   filter: drop-shadow(0 1px 3px rgba(15, 23, 42, 0.6));
 }
+
+/* Chip tác giả bọc popover user — bật lại pointer-events (overlay gốc tắt). */
+.j-main-gallery-overlay .j-user-pop-wrap {
+  align-self: flex-start;
+  max-width: 100%;
+  min-width: 0;
+  pointer-events: auto;
+}
+
+.j-main-gallery-overlay .j-user-pop-trigger {
+  display: inline-flex;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.j-main-gallery-overlay .j-user-pop-trigger:hover .j-main-gallery-author-name {
+  text-decoration: underline;
+}
 .j-main-gallery-overlay .j-main-gallery-author-avatar {
   width: 24px;
   height: 24px;
@@ -6975,6 +6993,12 @@ button.j-m-card-hit {
 .j-m-blocks .b-text-ro {
   font-size: 14px;
   line-height: 1.65;
+}
+.j-m-blocks .b-text-ro.is-align-center {
+  text-align: center;
+}
+.j-m-blocks .b-text-ro.is-align-right {
+  text-align: right;
 }
 .j-m-blocks .b-text-ro.h2 {
   font-size: 20px;

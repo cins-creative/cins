@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { JourneyPendingConfirmationsStack } from "@/components/journey/JourneyPendingConfirmationsStack";
 import { JourneyCreateComposer } from "@/components/journey/JourneyCreateComposer";
+import { useJourneyCompose } from "@/components/journey/JourneyComposeContext";
 import { JourneyTimelineBar } from "@/components/journey/JourneyTimelineBar";
 import type { FilterGroup } from "@/components/journey/JourneyTimelineBar";
 import {
@@ -137,6 +138,8 @@ export function JourneyTimeline({
   dongGopFeedbackPending = EMPTY_DONG_GOP,
   scrollLoad,
 }: Props) {
+  const { adminSeedingEdit } = useJourneyCompose();
+  const canManagePosts = isOwner || adminSeedingEdit;
   const personalFilter = useJourneyPersonalFilterOptional();
   const [filter, setFilter] = useState<FilterGroup>(() => {
     if (typeof window === "undefined") return "all";
@@ -679,7 +682,7 @@ export function JourneyTimeline({
               onTogglePost={handleToggleContent}
               onOpenComments={handleOpenComments}
               onCloseExpand={handleCloseExpand}
-              showJourneyPin={isOwner}
+              showJourneyPin={canManagePosts}
             />
           ) : null}
           {byYear.length > 0 ? (
@@ -704,7 +707,7 @@ export function JourneyTimeline({
                 onTogglePost={handleToggleContent}
                 onOpenComments={handleOpenComments}
                 onCloseExpand={handleCloseExpand}
-                showJourneyPin={isOwner}
+                showJourneyPin={canManagePosts}
               />
             ))
           ) : pinnedMilestones.length === 0 ? (

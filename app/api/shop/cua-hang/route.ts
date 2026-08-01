@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
+import { sessionMayActAsOwner } from "@/lib/admin/seeding-nick";
 import {
   deleteShopCuaHang,
   deleteShopPhuongThucTt,
@@ -26,6 +27,23 @@ async function resolveOwnerId(opts: {
     .eq("slug", slug)
     .maybeSingle<{ id: string }>();
   return data?.id ?? null;
+}
+
+async function resolveMutationOwnerId(params: {
+  sessionProfileId: string;
+  ownerId?: string | null;
+  slug?: string | null;
+}): Promise<string | null> {
+  const target =
+    (await resolveOwnerId({
+      userId: params.ownerId,
+      slug: params.slug,
+    })) ?? params.sessionProfileId;
+  const ok = await sessionMayActAsOwner({
+    sessionProfileId: params.sessionProfileId,
+    targetOwnerId: target,
+  });
+  return ok ? target : null;
 }
 
 /**
@@ -58,7 +76,10 @@ export async function GET(request: Request) {
     });
   }
 
-  const isOwner = session?.profile?.id === ownerId;
+  const isOwner = await sessionMayActAsOwner({
+    sessionProfileId: session?.profile?.id,
+    targetOwnerId: ownerId,
+  });
   const [banHangBat, shopVisible] = await Promise.all([
     getBanHangEnabled(ownerId),
     getShopHienThi(ownerId),
@@ -107,10 +128,19 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "JSON không hợp lệ." }, { status: 400 });
   }
 
+  const mutationOwnerId = await resolveMutationOwnerId({
+    sessionProfileId: session.profile.id,
+    ownerId: typeof body.ownerId === "string" ? body.ownerId : null,
+    slug: typeof body.slug === "string" ? body.slug : null,
+  });
+  if (!mutationOwnerId) {
+    return NextResponse.json({ error: "Không có quyền sửa cửa hàng." }, { status: 403 });
+  }
+
   try {
     if (typeof body.xoaPhuongThucId === "string") {
       const shop = await deleteShopPhuongThucTt(
-        session.profile.id,
+        mutationOwnerId,
         body.xoaPhuongThucId,
       );
       return NextResponse.json({ shop });
@@ -119,7 +149,7 @@ export async function PATCH(request: Request) {
     const pttt = body.phuongThuc;
     if (pttt && typeof pttt === "object") {
       const p = pttt as Record<string, unknown>;
-      const shop = await upsertShopPhuongThucTt(session.profile.id, {
+      const shop = await upsertShopPhuongThucTt(mutationOwnerId, {
         id: typeof p.id === "string" ? p.id : undefined,
         nganHang: String(p.nganHang ?? ""),
         soTaiKhoan: String(p.soTaiKhoan ?? ""),
@@ -136,7 +166,7 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ shop });
     }
 
-    const shop = await updateShopCuaHang(session.profile.id, {
+    const shop = await updateShopCuaHang(mutationOwnerId, {
       ten: body.ten === undefined ? undefined : (body.ten as string | null),
       moTa: body.moTa === undefined ? undefined : (body.moTa as string | null),
       avatarId:
@@ -235,16 +265,34 @@ export async function PATCH(request: Request) {
 }
 
 /**
- * DELETE /api/shop/cua-hang — chủ xóa cửa hàng (catalog soft-delete + tắt bán hàng).
+ * DELETE /api/shop/cua-hang — chủ (hoặc admin nick seeding) xóa cửa hàng.
+ * body optional: `{ ownerId?, slug? }`
  */
-export async function DELETE() {
+export async function DELETE(request: Request) {
   const session = await getCurrentSessionAndProfile();
   if (!session?.profile) {
     return NextResponse.json({ error: "Thiếu đăng nhập." }, { status: 401 });
   }
 
+  let body: Record<string, unknown> = {};
   try {
-    await deleteShopCuaHang(session.profile.id);
+    const text = await request.text();
+    if (text.trim()) body = JSON.parse(text) as Record<string, unknown>;
+  } catch {
+    return NextResponse.json({ error: "JSON không hợp lệ." }, { status: 400 });
+  }
+
+  const mutationOwnerId = await resolveMutationOwnerId({
+    sessionProfileId: session.profile.id,
+    ownerId: typeof body.ownerId === "string" ? body.ownerId : null,
+    slug: typeof body.slug === "string" ? body.slug : null,
+  });
+  if (!mutationOwnerId) {
+    return NextResponse.json({ error: "Không có quyền xóa cửa hàng." }, { status: 403 });
+  }
+
+  try {
+    await deleteShopCuaHang(mutationOwnerId);
     return NextResponse.json({ ok: true });
   } catch (e) {
     console.error("[api/shop/cua-hang] DELETE", e);

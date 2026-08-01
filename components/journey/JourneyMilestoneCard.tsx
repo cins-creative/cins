@@ -36,6 +36,7 @@ import { JourneyAuthorRowFriendAction } from "@/components/journey/JourneyAuthor
 import { JourneyOwnCoAuthorRoleEditor } from "@/components/journey/JourneyOwnCoAuthorRoleEditor";
 import { JourneyBookmarkListingCard } from "@/components/journey/JourneyBookmarkListingCard";
 import { JourneyMilestoneCardBodyContent } from "@/components/journey/JourneyMilestoneCardBodyContent";
+import { useJourneyCompose } from "@/components/journey/JourneyComposeContext";
 import {
   setScaledShareDragImage,
   setShareDragData,
@@ -467,7 +468,8 @@ export function JourneyMilestoneCard({
   hostOrgName = null,
   showJourneyPin = false,
 }: Props) {
-  const {
+  const { adminSeedingEdit } = useJourneyCompose();
+  const canActAsPostOwner = isOwner || adminSeedingEdit;  const {
     variant,
     type,
     title,
@@ -533,7 +535,12 @@ export function JourneyMilestoneCard({
     let cancelled = false;
     void (async () => {
       try {
-        const res = await fetch("/api/user/ban-hang", { cache: "no-store" });
+        const qs = ownerSlug?.trim()
+          ? `?slug=${encodeURIComponent(ownerSlug.trim())}`
+          : "";
+        const res = await fetch(`/api/user/ban-hang${qs}`, {
+          cache: "no-store",
+        });
         const json = (await res.json().catch(() => null)) as {
           enabled?: boolean;
         } | null;
@@ -545,7 +552,7 @@ export function JourneyMilestoneCard({
     return () => {
       cancelled = true;
     };
-  }, [isOwner, viewerProfileId]);
+  }, [isOwner, viewerProfileId, ownerSlug]);
 
   useEffect(() => {
     if (!isOwner) return;
@@ -565,7 +572,7 @@ export function JourneyMilestoneCard({
   /** Chip author: trong 24h → relative; sau đó → ngày đăng (DD-MM-YYYY). */
   const postedAgoLabel = formatPostedWithin24h(milestone.createdAt);
   const scheduledPublishLabel =
-    isOwner && isCotMocScheduledDraft(milestone.createdAt)
+    canActAsPostOwner && isCotMocScheduledDraft(milestone.createdAt)
       ? formatCotMocScheduleLabel(milestone.createdAt)
       : null;
   const authorChipDateLabel = scheduledPublishLabel
@@ -783,14 +790,14 @@ export function JourneyMilestoneCard({
       ? "Ngày đăng"
       : "Ngày gắn thẻ";
   const canManageSelf =
-    isOwner &&
+    canActAsPostOwner &&
     (variant === "self" ||
       variant === "verified" ||
       isBookmarkMilestone ||
       isSelfAuthoredTagged) &&
     Boolean(ownerSlug);
   const canManageTagged =
-    isOwner &&
+    canActAsPostOwner &&
     (variant === "tagged" || variant === "verified") &&
     !isSelfAuthoredTagged &&
     Boolean(ownerSlug) &&
@@ -830,11 +837,11 @@ export function JourneyMilestoneCard({
       : (cotMocId ?? milestone.id);
   const primaryPersonalFilter = personalFilters[0] ?? null;
   const allowPersonalFilterOnMenu = Boolean(
-    isOwner && ownerSlug && (canManage || foreignJourneyContext),
+    canActAsPostOwner && ownerSlug && (canManage || foreignJourneyContext),
   );
-  const canBookmark = !(isOwner && (variant === "self" || isBookmarkMilestone));
+  const canBookmark = !(canActAsPostOwner && (variant === "self" || isBookmarkMilestone));
   const canManageCoAuthors =
-    isOwner &&
+    canActAsPostOwner &&
     (variant === "self" ||
       variant === "verified" ||
       isSelfAuthoredTagged) &&
@@ -991,7 +998,7 @@ export function JourneyMilestoneCard({
   /* Nút "Số liệu" — bài của mình (self/verified) hoặc bài mình được gắn thẻ
      (tagged → số liệu chung). Bookmark loại ngoài. Quyền cụ thể enforce ở server. */
   const canSeeInsights =
-    isOwner &&
+    canActAsPostOwner &&
     Boolean(cotMocId) &&
     (variant === "self" || variant === "verified" || variant === "tagged");
   const onOpenInsights = canSeeInsights
@@ -1228,9 +1235,9 @@ export function JourneyMilestoneCard({
     Boolean(authorName || authorAvatarUrl || ownerSlug) &&
     !isCongDongPost;
   /** Badge loại «Cá nhân» — phân loại nội bộ; bạn bè / người lạ không cần thấy. */
-  const showPersonalTypeBadge = isOwner || type !== "ca-nhan";
-  /** Visibility (Công khai / Bạn bè / …) — metadata chỉ chủ Journey. */
-  const showVisibilityMetaBadge = isOwner;
+  const showPersonalTypeBadge = canActAsPostOwner || type !== "ca-nhan";
+  /** Visibility (Công khai / Bạn bè / …) — metadata chỉ chủ Journey / admin seeding. */
+  const showVisibilityMetaBadge = canActAsPostOwner;
   const entityPosterLabel =
     authorName?.trim() ||
     milestone.lensOwnerName?.trim() ||
@@ -1758,7 +1765,7 @@ export function JourneyMilestoneCard({
 
   function renderForeignFrameToolbar() {
     const canEditToolbar =
-      isOwner &&
+      canActAsPostOwner &&
       Boolean(ownerSlug) &&
       ((isBookmarkMilestone && canManageSelf) ||
         (canManageTagged && (isTaggedFromOthers || isTaggedOrgBaiDang)) ||

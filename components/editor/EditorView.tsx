@@ -299,6 +299,24 @@ type BlockType =
   | "divider"
   | "spacer";
 
+/** Kiểu chữ có thể đổi qua toolbar khi chọn block. */
+type TextBlockKind = "h2" | "h3" | "body" | "quote";
+
+const TEXT_BLOCK_KINDS: ReadonlyArray<{
+  t: TextBlockKind;
+  ico: string;
+  name: string;
+}> = [
+  { t: "h2", ico: "H₂", name: "Tiêu đề lớn" },
+  { t: "h3", ico: "H₃", name: "Tiêu đề nhỏ" },
+  { t: "body", ico: "¶", name: "Đoạn văn" },
+  { t: "quote", ico: "❝", name: "Trích dẫn" },
+];
+
+function isTextBlockKind(t: BlockType): t is TextBlockKind {
+  return t === "h2" || t === "h3" || t === "body" || t === "quote";
+}
+
 /**
  * Type dùng cho picker "Chèn block" — gồm mọi `BlockType` cộng thêm các mục
  * hành động không tạo block trực tiếp (vd `gphotos` mở trình chọn ảnh).
@@ -310,6 +328,8 @@ type Block = {
   t: BlockType;
   /* Text blocks */
   text?: string;
+  /** Căn lề h2/h3/body — mặc định left (omit). */
+  textAlign?: "left" | "center" | "right";
   /* Image block */
   layout?: ImgLayout;
   imgs?: string[]; // mảng "seed" cho picsum (placeholder cho Cloudflare media_id)
@@ -2085,16 +2105,27 @@ export function EditorView({
   );
 
   const applyAlbumLayoutMode = useCallback(
-    (mode: AlbumLayoutMode) => {
+    (
+      mode: AlbumLayoutMode,
+      scope?: { startIndex: number; count: number },
+    ) => {
       const nextMode = normalizeAlbumLayoutMode(mode);
-      setAlbumLayoutMode(nextMode);
-      albumLayoutModeRef.current = nextMode;
       pushHistory();
       setBlocks((prev) =>
-        prev.map((b) =>
-          isAlbumGridImgBlock(b) ? { ...b, albumLayout: nextMode } : b,
-        ),
+        prev.map((b, i) => {
+          if (!isAlbumGridImgBlock(b)) return b;
+          if (
+            scope &&
+            (i < scope.startIndex || i >= scope.startIndex + scope.count)
+          ) {
+            return b;
+          }
+          return { ...b, albumLayout: nextMode };
+        }),
       );
+      /* Ref = preset cho ảnh mới chèn vào album vừa chỉnh (không đồng bộ UI album khác). */
+      setAlbumLayoutMode(nextMode);
+      albumLayoutModeRef.current = nextMode;
     },
     [pushHistory],
   );
@@ -2537,6 +2568,23 @@ export function EditorView({
       );
     },
     [],
+  );
+
+  const changeTextBlockKind = useCallback(
+    (id: string, kind: TextBlockKind) => {
+      pushHistory();
+      setBlocks((prev) =>
+        prev.map((b) => {
+          if (b.id !== id || !isTextBlockKind(b.t) || b.t === kind) return b;
+          return {
+            ...b,
+            t: kind,
+            ...(kind === "quote" ? { textAlign: undefined } : {}),
+          };
+        }),
+      );
+    },
+    [pushHistory],
   );
 
   const ensureEmbedBlock = useCallback((embedUrl: string) => {
@@ -4033,15 +4081,31 @@ export function EditorView({
                   if (grid.images.length === 0) return null;
                   const insertAt =
                     segment.startIndex + segment.blocks.length;
+                  const segmentAlbumLayout = normalizeAlbumLayoutMode(
+                    segment.blocks.find((b) => b.albumLayout)?.albumLayout ??
+                      albumLayoutMode,
+                  );
                   return (
                     <div key={`album-${segment.startIndex}-${segment.blocks.map((b) => b.id).join("-")}`}>
                       <EditorPhotoAlbumPreview
                         grid={grid}
                         photoCount={segment.blocks.length}
                         maxPhotos={MAX_EDITOR_ALBUM_PHOTOS}
-                        showAddDropzone={previewKind !== "article"}
-                        albumLayoutMode={albumLayoutMode}
-                        onAlbumLayoutModeChange={applyAlbumLayoutMode}
+                        selected={segment.blocks.some(
+                          (b) => b.id === selectedId,
+                        )}
+                        onSelect={() => {
+                          const first = segment.blocks[0];
+                          if (first) setSelectedId(first.id);
+                          albumLayoutModeRef.current = segmentAlbumLayout;
+                        }}
+                        albumLayoutMode={segmentAlbumLayout}
+                        onAlbumLayoutModeChange={(mode) =>
+                          applyAlbumLayoutMode(mode, {
+                            startIndex: segment.startIndex,
+                            count: segment.blocks.length,
+                          })
+                        }
                         onAddFiles={(files) => {
                           const room =
                             MAX_EDITOR_ALBUM_PHOTOS - segment.blocks.length;
@@ -4155,6 +4219,14 @@ export function EditorView({
                       onChangeDividerThick={(dividerThick) =>
                         updateBlock(b.id, { dividerThick })
                       }
+                      onChangeTextAlign={(textAlign) =>
+                        updateBlock(b.id, {
+                          textAlign: textAlign === "left" ? undefined : textAlign,
+                        })
+                      }
+                      onChangeTextKind={(kind) =>
+                        changeTextBlockKind(b.id, kind)
+                      }
                       onUp={() => moveBlock(b.id, -1)}
                       onDown={() => moveBlock(b.id, 1)}
                       onDelete={() => deleteBlock(b.id)}
@@ -4230,6 +4302,14 @@ export function EditorView({
                     }
                     onChangeDividerThick={(dividerThick) =>
                       updateBlock(b.id, { dividerThick })
+                    }
+                    onChangeTextAlign={(textAlign) =>
+                      updateBlock(b.id, {
+                        textAlign: textAlign === "left" ? undefined : textAlign,
+                      })
+                    }
+                    onChangeTextKind={(kind) =>
+                      changeTextBlockKind(b.id, kind)
                     }
                     onUp={() => moveBlock(b.id, -1)}
                     onDown={() => moveBlock(b.id, 1)}
@@ -4951,7 +5031,8 @@ function EditorPhotoAlbumPreview({
   grid,
   photoCount,
   maxPhotos,
-  showAddDropzone = true,
+  selected = false,
+  onSelect,
   albumLayoutMode = DEFAULT_ALBUM_LAYOUT_MODE,
   onAlbumLayoutModeChange,
   onAddFiles,
@@ -4964,7 +5045,8 @@ function EditorPhotoAlbumPreview({
   grid: ReturnType<typeof editorAlbumGridFromBlocks>;
   photoCount: number;
   maxPhotos: number;
-  showAddDropzone?: boolean;
+  selected?: boolean;
+  onSelect?: () => void;
   albumLayoutMode?: AlbumLayoutMode;
   onAlbumLayoutModeChange?: (mode: AlbumLayoutMode) => void;
   onAddFiles: (files: File[]) => void;
@@ -4976,9 +5058,7 @@ function EditorPhotoAlbumPreview({
 }) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const canAddMore = photoCount < maxPhotos;
-  const showDropzone = showAddDropzone && canAddMore;
-  const showCompactAdd = !showAddDropzone && canAddMore;
-  const showLayoutStrip =
+  const showLayoutRail =
     Boolean(onAlbumLayoutModeChange) && photoCount >= 1;
 
   const onFileChange = useCallback(
@@ -4994,103 +5074,110 @@ function EditorPhotoAlbumPreview({
   const onDrop = useCallback(
     (e: DragEvent<HTMLDivElement>) => {
       e.preventDefault();
-      const files = Array.from(e.dataTransfer.files).filter(isAllowedUploadImageFile);
+      if (!canAddMore) return;
+      const files = Array.from(e.dataTransfer.files).filter(
+        isAllowedUploadImageFile,
+      );
       if (files.length === 0) return;
       onAddFiles(files);
     },
-    [onAddFiles],
+    [canAddMore, onAddFiles],
   );
 
   return (
-    <div className="ed-photo-album-compose">
-      {showLayoutStrip ? (
-        <div
-          className="ed-album-layout-strip"
-          role="toolbar"
-          aria-label="Bố cục album"
-        >
-          {ALBUM_LAYOUT_MODE_META.map((m) => (
-            <button
-              key={m.k}
-              type="button"
-              className={`ed-album-layout-btn${m.k === albumLayoutMode ? " is-active" : ""}`}
-              title={m.name}
-              aria-label={m.name}
-              aria-pressed={m.k === albumLayoutMode}
-              onClick={(e) => {
-                e.stopPropagation();
-                onAlbumLayoutModeChange?.(m.k);
+    <div
+      className={`block ed-album-block${selected ? " selected" : ""}`}
+      data-block-type="imgs"
+      onClick={onSelect}
+      onDragOver={(e) => {
+        if (!canAddMore) return;
+        e.preventDefault();
+      }}
+      onDrop={onDrop}
+    >
+      {showLayoutRail ? (
+        <div className="lay-bar-rail">
+          <div className="lay-bar" role="toolbar" aria-label="Bố cục album">
+            {ALBUM_LAYOUT_MODE_META.map((m) => (
+              <button
+                key={m.k}
+                type="button"
+                className={`lay-btn${m.k === albumLayoutMode ? " active" : ""}`}
+                title={m.name}
+                aria-label={m.name}
+                aria-pressed={m.k === albumLayoutMode}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onAlbumLayoutModeChange?.(m.k);
+                }}
+              >
+                <LayoutThumbIcon layout={m.thumb} />
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
+      <div className="block-inner">
+        <div className="ed-photo-album-compose">
+          <div className="preview preview--photo-grid">
+            <ImageGrid
+              images={grid.images}
+              isFirstGroup
+              uploadingSlots={grid.uploadingSlots}
+              uploadProgressBySlot={grid.uploadProgressBySlot}
+              slotErrors={grid.slotErrors}
+              uploadBySlot={grid.uploadBySlot}
+              showAllImages
+              readOnly
+              albumLayoutMode={albumLayoutMode}
+              composeSlotActions={{
+                onPickImage,
+                onPasteImage,
+                onRemoveImage,
+                onReorderImages,
               }}
-            >
-              <LayoutThumbIcon layout={m.thumb} />
-            </button>
-          ))}
+            />
+          </div>
+
+          {canAddMore && selected ? (
+            <div className="img-add-row">
+              <button
+                type="button"
+                className="img-add-btn img-add-btn--primary"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  fileInputRef.current?.click();
+                }}
+              >
+                <Images size={14} strokeWidth={2} aria-hidden />
+                Thêm nhiều ảnh
+              </button>
+              <button
+                type="button"
+                className="img-add-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onAddSlot();
+                }}
+              >
+                <Plus size={14} strokeWidth={2} aria-hidden />
+                Ô trống
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                multiple
+                hidden
+                aria-hidden
+                tabIndex={-1}
+                onClick={(e) => e.stopPropagation()}
+                onChange={onFileChange}
+              />
+            </div>
+          ) : null}
         </div>
-      ) : null}
-      <div className="preview preview--photo-grid">
-        <ImageGrid
-          images={grid.images}
-          isFirstGroup
-          uploadingSlots={grid.uploadingSlots}
-          uploadProgressBySlot={grid.uploadProgressBySlot}
-          slotErrors={grid.slotErrors}
-          uploadBySlot={grid.uploadBySlot}
-          showAllImages
-          readOnly
-          albumLayoutMode={albumLayoutMode}
-          composeSlotActions={{
-            onPickImage,
-            onPasteImage,
-            onRemoveImage,
-            onReorderImages,
-          }}
-        />
       </div>
-
-      {showDropzone ? (
-        <div
-          className="ed-photo-album-add"
-          onDragOver={(e) => e.preventDefault()}
-          onDrop={onDrop}
-          onClick={() => fileInputRef.current?.click()}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              fileInputRef.current?.click();
-            }
-          }}
-        >
-          <ImagePlus size={24} strokeWidth={1.6} aria-hidden />
-          <strong>Thêm ảnh</strong>
-          <span>
-            Kéo thả hoặc bấm để chọn — layout tự động theo số ảnh (tối đa{" "}
-            {maxPhotos})
-          </span>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/jpeg,image/png,image/webp,image/gif"
-            multiple
-            hidden
-            onChange={onFileChange}
-          />
-        </div>
-      ) : null}
-
-      {showCompactAdd ? (
-        <div className="ed-photo-album-add-compact">
-          <button
-            type="button"
-            className="ed-photo-album-add-btn"
-            onClick={onAddSlot}
-            aria-label="Thêm ảnh vào album"
-          >
-            <ImagePlus size={18} strokeWidth={1.8} aria-hidden />
-            Thêm ảnh
-          </button>
-        </div>
-      ) : null}
     </div>
   );
 }
@@ -5124,6 +5211,8 @@ type BlockRowProps = {
   onChangeEmbedUrl: (u: string) => void;
   onChangeDividerLen: (len: number) => void;
   onChangeDividerThick: (thick: "thin" | "med" | "thick") => void;
+  onChangeTextAlign: (align: "left" | "center" | "right") => void;
+  onChangeTextKind: (kind: TextBlockKind) => void;
   onUp: () => void;
   onDown: () => void;
   onDelete: () => void;
@@ -5482,37 +5571,111 @@ function EditorMinimalVideoPreview({
 
 function BlockInner(p: BlockRowProps) {
   const { block: b } = p;
-  if (b.t === "h2" || b.t === "h3" || b.t === "body") {
-    const cls =
-      b.t === "h2" ? "b-text h2" : b.t === "h3" ? "b-text h3" : "b-text";
+  if (isTextBlockKind(b.t)) {
+    const align =
+      b.textAlign === "center" || b.textAlign === "right" ? b.textAlign : "left";
+    const alignCls =
+      b.t !== "quote" && align === "center"
+        ? " is-align-center"
+        : b.t !== "quote" && align === "right"
+          ? " is-align-right"
+          : "";
     const placeholder =
       b.t === "h2"
         ? "Tiêu đề lớn…"
         : b.t === "h3"
           ? "Tiêu đề nhỏ…"
-          : "Viết gì đó…";
-    return (
-      <TextFieldWithFormat
-        className={cls}
-        placeholder={placeholder}
-        value={b.text || ""}
-        onChange={p.onChangeText}
-        enableAtHash={p.enableAtHash}
-        onAtHashSync={p.onAtHashSync}
-      />
-    );
-  }
-
-  if (b.t === "quote") {
-    return (
-      <div className="b-quote">
+          : b.t === "quote"
+            ? "Trích dẫn nổi bật…"
+            : "Viết gì đó…";
+    const field =
+      b.t === "quote" ? (
+        <div className="b-quote">
+          <TextFieldWithFormat
+            placeholder={placeholder}
+            value={b.text || ""}
+            onChange={p.onChangeText}
+            enableAtHash={p.enableAtHash}
+            onAtHashSync={p.onAtHashSync}
+          />
+        </div>
+      ) : (
         <TextFieldWithFormat
-          placeholder="Trích dẫn nổi bật…"
+          className={
+            (b.t === "h2" ? "b-text h2" : b.t === "h3" ? "b-text h3" : "b-text") +
+            alignCls
+          }
+          placeholder={placeholder}
           value={b.text || ""}
           onChange={p.onChangeText}
           enableAtHash={p.enableAtHash}
           onAtHashSync={p.onAtHashSync}
         />
+      );
+
+    return (
+      <div className={`b-text-wrap${alignCls}`}>
+        {field}
+        {p.selected ? (
+          <div
+            className="text-align-ctrl text-block-ctrl"
+            onClick={(e) => e.stopPropagation()}
+            role="toolbar"
+            aria-label="Kiểu chữ và căn lề"
+          >
+            <div className="text-kind-pick" role="group" aria-label="Kiểu chữ">
+              {TEXT_BLOCK_KINDS.map((opt) => (
+                <button
+                  key={opt.t}
+                  type="button"
+                  className={`text-align-btn text-kind-btn${b.t === opt.t ? " active" : ""}`}
+                  title={opt.name}
+                  aria-label={opt.name}
+                  aria-pressed={b.t === opt.t}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    p.onChangeTextKind(opt.t);
+                  }}
+                >
+                  <span aria-hidden>{opt.ico}</span>
+                </button>
+              ))}
+            </div>
+            {b.t !== "quote" ? (
+              <>
+                <span className="text-block-ctrl-sep" aria-hidden />
+                <div role="group" aria-label="Căn lề">
+                  {(
+                    [
+                      { v: "left" as const, Icon: AlignLeft, lbl: "Căn trái" },
+                      {
+                        v: "center" as const,
+                        Icon: AlignCenter,
+                        lbl: "Căn giữa",
+                      },
+                      { v: "right" as const, Icon: AlignRight, lbl: "Căn phải" },
+                    ] as const
+                  ).map((opt) => (
+                    <button
+                      key={opt.v}
+                      type="button"
+                      className={`text-align-btn${align === opt.v ? " active" : ""}`}
+                      title={opt.lbl}
+                      aria-label={opt.lbl}
+                      aria-pressed={align === opt.v}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        p.onChangeTextAlign(opt.v);
+                      }}
+                    >
+                      <opt.Icon size={14} strokeWidth={1.8} aria-hidden />
+                    </button>
+                  ))}
+                </div>
+              </>
+            ) : null}
+          </div>
+        ) : null}
       </div>
     );
   }
@@ -6302,6 +6465,12 @@ function fromServerBlocks(blocks: ServerBlock[]): Block[] {
 
     if (t === "h2" || t === "h3" || t === "body" || t === "quote") {
       local.text = typeof cfg.html === "string" ? cfg.html : "";
+      if (
+        (t === "h2" || t === "h3" || t === "body") &&
+        (cfg.align === "center" || cfg.align === "right")
+      ) {
+        local.textAlign = cfg.align;
+      }
     } else if (t === "imgs") {
       local.layout = normalizeLegacyLayout(cfg.layout);
       local.rounded = !!cfg.rounded;
@@ -6421,6 +6590,12 @@ function toServerBlocks(blocks: Block[]): ServerBlock[] {
       if (b.t === "h2" || b.t === "h3" || b.t === "body" || b.t === "quote") {
         /* Plain text — server sẽ escape khi render HTML. */
         config = { html: (b.text || "").slice(0, 8000) };
+        if (
+          (b.t === "h2" || b.t === "h3" || b.t === "body") &&
+          (b.textAlign === "center" || b.textAlign === "right")
+        ) {
+          config.align = b.textAlign;
+        }
       } else if (b.t === "imgs") {
         const baseImgs = (b.imgs || [])
           .filter(

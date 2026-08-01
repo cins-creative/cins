@@ -45,6 +45,38 @@ function normalizeSlug(value: string | undefined, ten: string): string {
   return base.slice(0, 48) || "nhan";
 }
 
+/** PK/unique race (Strict Mode double-fetch, click nhanh) — coi như đã gắn. */
+function isFilterGanUniqueViolation(
+  error: { code?: string; message?: string } | null,
+): boolean {
+  if (!error) return false;
+  return (
+    error.code === "23505" ||
+    /duplicate key|cong_dong_filter_gan_pkey|unique constraint/i.test(
+      error.message ?? "",
+    )
+  );
+}
+
+async function upsertFilterGanLinks(
+  postId: string,
+  filterIds: string[],
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (filterIds.length === 0) return { ok: true };
+  const admin = createServiceRoleClient();
+  const { error } = await admin.from("cong_dong_filter_gan").upsert(
+    filterIds.map((id_filter) => ({
+      id_cot_moc: postId,
+      id_filter,
+    })),
+    { onConflict: "id_cot_moc,id_filter", ignoreDuplicates: true },
+  );
+  if (error && !isFilterGanUniqueViolation(error)) {
+    return { ok: false, error: error.message };
+  }
+  return { ok: true };
+}
+
 export async function listCongDongFilters(orgId: string): Promise<CongDongFilter[]> {
   await ensureDefaultCongDongFilters(orgId);
   const admin = createServiceRoleClient();
@@ -136,18 +168,8 @@ export async function attachFiltersToPost(
     return { ok: false, error: `Tối đa ${MAX_FILTERS_PER_POST} nhãn mỗi bài.` };
   }
 
-  const admin = createServiceRoleClient();
-  /* upsert + ignoreDuplicates: idempotent khi publish/sync chạy lại hoặc race. */
-  const { error } = await admin.from("cong_dong_filter_gan").upsert(
-    unique.map((id_filter) => ({
-      id_cot_moc: postId,
-      id_filter,
-    })),
-    { onConflict: "id_cot_moc,id_filter", ignoreDuplicates: true },
-  );
-
-  if (error) return { ok: false, error: error.message };
-  return { ok: true };
+  /* upsert + ignore 23505: idempotent khi publish/sync chạy lại hoặc race. */
+  return upsertFilterGanLinks(postId, unique);
 }
 
 export async function replaceFiltersOnPost(
@@ -181,18 +203,7 @@ export async function replaceFiltersOnPost(
     if (error) return { ok: false, error: error.message };
   }
 
-  if (toInsert.length > 0) {
-    const { error } = await admin.from("cong_dong_filter_gan").upsert(
-      toInsert.map((id_filter) => ({
-        id_cot_moc: postId,
-        id_filter,
-      })),
-      { onConflict: "id_cot_moc,id_filter", ignoreDuplicates: true },
-    );
-    if (error) return { ok: false, error: error.message };
-  }
-
-  return { ok: true };
+  return upsertFilterGanLinks(postId, toInsert);
 }
 
 export async function validateFilterIdsForOrg(

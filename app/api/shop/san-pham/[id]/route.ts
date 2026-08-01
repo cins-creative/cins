@@ -89,15 +89,6 @@ export async function PATCH(request: Request, ctx: Ctx) {
         { status: 422 },
       );
     }
-    if (msg === "WEIGHT_REQUIRED_FOR_SALE") {
-      return NextResponse.json(
-        {
-          error:
-            "Cần nhập cân nặng (gram) trước khi bật Đang bán — dùng để tính phí ship.",
-        },
-        { status: 422 },
-      );
-    }
     return NextResponse.json({ error: "Không cập nhật được." }, { status: 500 });
   }
 }

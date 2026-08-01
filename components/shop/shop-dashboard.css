@@ -8065,33 +8065,3 @@
 :root[data-theme="dark"] .bao-cao-empty {
   color: var(--ink-muted, #555);
 }
-
-/* Cot can nang (gram) - ship GHN */
-.shop-grid-col-can-nang {
-  width: 88px;
-  min-width: 80px;
-  text-align: right;
-}
-.shop-grid-col-can-nang .shop-grid-req {
-  margin-left: 2px;
-  color: #c2410c;
-  font-weight: 700;
-}
-.shop-grid-col-can-nang input.shop-dash-ton {
-  width: 100%;
-  max-width: 52px;
-  text-align: right;
-}
-.shop-grid-can-nang-edit {
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 3px;
-  width: 100%;
-}
-.shop-grid-can-nang-unit {
-  flex-shrink: 0;
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: var(--ink-muted, #64748b);
-}

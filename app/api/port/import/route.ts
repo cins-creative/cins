@@ -12,11 +12,11 @@ export const runtime = "nodejs";
 export const maxDuration = 300;
 
 const MAX_HTML_BYTES = 6_000_000;
-const PLATFORMS: readonly PortPlatform[] = ["behance", "artstation"];
+const PLATFORMS: readonly PortPlatform[] = ["behance", "artstation", "carrd"];
 
 /**
  * POST /api/port/import
- * Body: { platform: "behance"|"artstation", url: string, html?: string, apply?: boolean, preview?: PortImportPreview }
+ * Body: { platform: "behance"|"artstation"|"carrd", url: string, html?: string, apply?: boolean, preview?: PortImportPreview }
  *
  * - apply=false (mặc định): dựng preview (mirror ảnh CF + blocks).
  * - apply=true: tạo bài Journey riêng tư (che_do_hien_thi='chi_minh') để user duyệt.
@@ -45,7 +45,7 @@ export async function POST(request: Request) {
   ) as PortPlatform;
   if (!PLATFORMS.includes(platform)) {
     return NextResponse.json(
-      { error: "Nền tảng chưa hỗ trợ (Behance / ArtStation)." },
+      { error: "Nền tảng chưa hỗ trợ (Behance / ArtStation / Carrd)." },
       { status: 400 },
     );
   }

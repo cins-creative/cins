@@ -41,6 +41,20 @@
 
 ## LOG — quyết định đã chốt
 
+### Tài khoản clone artist + KPI seeding + bàn giao (2026-08-01)
+
+- **Bối cảnh:** coldstart — xin phép artist thật, đội ngũ up tay vào tài khoản clone; sau đó bàn giao cho tài khoản họ đăng ký.
+- **Roster:** tái dùng `auto_tai_khoan` + cột `loai` (`ai` | `clone`). Autopilot chỉ chọn `loai='ai'`.
+- **Bàn giao (đã chốt):** đổi `auth_user_id` trên profile clone (giữ slug + permalink), xóa profile đích trống + row `auto_tai_khoan`. RPC `ban_giao_tai_khoan_clone`. Không move ~70 bảng FK.
+- **Mật khẩu (đã chốt):** vault AES-256-GCM app-layer (`mat_khau_ma_hoa`), key `CINS_CLONE_PASSWORD_KEY`. Audit `auto_nhat_ky_mat_khau`. Đánh đổi chấp nhận: tài khoản CINs sở hữu, không PII người thật, bị xóa khi bàn giao.
+- **KPI (đã chốt):** mục tiêu ngày toàn roster (ai + clone). Đếm `content_cot_moc.tao_luc` ngày VN (`public`/`feature`). Phân bổ freeze trên `auto_han_muc.kpi_muc_tieu` (tách `han_muc` autopilot). Clamp KPI nick AI ≤ `han_muc_ngay`.
+- **KPI ưu tiên clone (2026-08-01):** phân bổ ngày **ưu tiên `loai=clone`**; nick AI fake chỉ nhận phần dư / khi hết slot clone. Code: `lib/admin/kpi-seeding.ts`.
+- **Extension clone portfolio (2026-08-01):** admin kéo Behance / ArtStation / Carrd → nick seeding. **Gộp 1 extension** `Clone portfolio` (icon CINs 4 khối, popup 3 tab + animation tiến trình). API `/api/admin/port-clone/*`. Bài `public`; ảnh >10MB **nén** (sharp) rồi upload — nguồn >40MB / nén thất bại vẫn bỏ; magic link mở bài dưới auth nick. Ba folder cũ giữ tham chiếu.
+- **Admin sửa bài nick seeding (2026-08-01):** `canManageUsers` + profile trong `auto_tai_khoan` → **quản lý đầy đủ như chủ** (hồ sơ, avatar/cover, đăng/sửa/xoá bài, cột mốc, ghim, shop cửa hàng + bật bán hàng). Không redirect onboarding của admin. Helper `lib/admin/seeding-nick.ts` (`resolveActingOwner`).
+- **Quyền:** giữ `canManageUsers` (admin + super_admin); curator không vào. Apply bàn giao bắt gõ đúng slug.
+- **ALTER (đã duyệt user 2026-08-01):** `auto_tai_khoan` +12 cột; `auto_han_muc` + `kpi_muc_tieu`/`kpi_phan_bo_luc`; bảng mới `auto_ban_giao`, `auto_nhat_ky_mat_khau`, `auto_kpi_cau_hinh`. File `migration_tai_khoan_clone.sql` · `npm run migrate:tai-khoan-clone`.
+- Plan: `docs/PLAN_tai_khoan_clone.md`.
+
 ### Shop — không liên kết ĐVVC; tự ship + copy/export/phiếu (2026-07-31)
 
 - **Chốt:** CINs **không** kết nối API ĐVVC (SPX / Viettel Post / GHN). Shop tạo vận đơn trên web ĐVVC riêng; CINs giữ snapshot **họ tên · SĐT · địa chỉ** trên đơn.
@@ -123,6 +137,8 @@
 | A12 | `shop_cua_hang` | Thêm `trang_thai_hoat_dong`, `ly_do_khoa`, `so_tranh_chap_mo` | enum mới `shop_trang_thai_hoat_dong_enum` NOT NULL DEFAULT `'hoat_dong'` · `text` · `integer NOT NULL DEFAULT 0` (cache, trigger) | NO (có DEFAULT) | Cổng gate **gộp** cho nợ phí + thua tranh chấp; nhãn cảnh báo dẫn xuất | Shop cũ = `hoat_dong`, đếm = 0 → an toàn; **tách biệt** `tam_dong` sẵn có | **Đã chạy** 2026-07-30 · cùng migration |
 | A13 | `shop_bien_the` · `shop_dia_chi_nhan` | `shop_bien_the`: thêm `can_nang` (gram, seller nhập) · `shop_dia_chi_nhan`: thêm `phuong_xa_code` (mã GSO) | `integer` · `text` | YES | Cân nặng để GHN tính phí đúng; mã GSO map carrier chuẩn hơn tên trần (xã trùng tên sau sáp nhập) | Row cũ = NULL; backfill `phuong_xa_code` từ `lib/vn/phuong-xa-2025.ts` theo tên | **Đã chạy** 2026-07-30 · cùng migration |
 | A14 | Enum `shop_trang_thai_don_enum` | Thêm `cho_lay_hang`, `dang_giao`, `hoan_tra` | `ALTER TYPE ... ADD VALUE` | — | Pipeline 5 bước seller (xác nhận → soạn → chờ lấy + GHN → đang giao → hoàn thành / hoàn trả) | Đơn cũ giữ value cũ; label UI mới | **Đã chạy** 2026-07-30 · `migration_shop_don_pipeline.sql` |
+| A15 | `auto_tai_khoan` | +12 cột clone/KPI/vault/bàn giao | `ADD COLUMN IF NOT EXISTS` | default an toàn (`loai='ai'`) | Tài khoản clone artist + vault + KPI | Backfill không cần (default) | **Đã duyệt + chạy** 2026-08-01 · `migration_tai_khoan_clone.sql` |
+| A16 | `auto_han_muc` | + `kpi_muc_tieu`, `kpi_phan_bo_luc` | `ADD COLUMN IF NOT EXISTS` | NULL | KPI vận hành tách hạn mức autopilot | — | **Đã duyệt + chạy** 2026-08-01 · `migration_tai_khoan_clone.sql` |
 
 > Khi user duyệt một dòng → đổi **Trạng thái** thành `Đã duyệt YYYY-MM-DD` rồi mới viết/chạy file migration. Khi đã apply trên DB → `Đã chạy` + tên file SQL. Mọi ALTER phát sinh thêm ngoài bảng này → **thêm dòng mới vào inventory trước**, không lén vào migration khác.
 
@@ -176,6 +192,7 @@
 - **Tracking:** **Webhook GHN** (`POST /api/shop/webhook/ghn?token=` + env `SHOP_GHN_WEBHOOK_SECRET`) cập nhật `van_chuyen_trang_thai` + log; đồng bộ pipeline `cho_lay_hang`→`dang_giao` (ĐVVC lấy/đang giao), `da_giao`→`hoan_thanh` (+ ghi phí), `tra_hang`→`hoan_tra`. Shop chỉ quyết nhận tiền → soạn → chờ lấy. Polling on-demand khi mở đơn giữ làm fallback.
 - **Địa chỉ GHN — rủi ro đã gỡ:** từ 01/07/2025 GHN hỗ trợ **song song địa chỉ 2 cấp và 3 cấp**, không phát sinh API mới, và **chấp nhận truyền TÊN** (`to_province_name` / `to_ward_name`) thay vì bắt buộc ID → **không cần bảng ánh xạ ID**; `master-data` chỉ làm fallback + cache.
 - **Kho lấy hàng:** 1 shop **nhiều kho** → bảng mới `shop_dia_chi_lay` (mirror `shop_dia_chi_nhan`). **Cân nặng: seller tự nhập** ở mức biến thể.
+- **Cân nặng KHÔNG bắt buộc (2026-08-01):** đã gỡ cột "Cân nặng" khỏi grid Kho (`ShopKhoClient`) và bỏ luật `WEIGHT_REQUIRED_FOR_SALE` (bật Đang bán không cần cân nặng). Cột DB `shop_bien_the.can_nang` + param `canNang` của API `upsertBienThe` **giữ nguyên** — sẽ nhập lại ở luồng bật giao `online` (GHN) sau này.
 - **Phí nền tảng:** % GMV, **kỳ THÁNG, trả sau** (kỳ tháng giảm dư nợ tích lũy so với quý; CINs cần dòng tiền sớm). **2 tầng**: `shop_phi_dong` (phí theo **từng đơn**, có cờ `loai_tru`) → roll-up `shop_phi_ky` (tháng). Lý do 2 tầng: đơn `hoan_thanh` rồi **bị tranh chấp/hoàn tiền** phải loại khỏi GMV, `SUM(tong_tien)` thô sẽ tính sai.
 - **Pháp lý phí:** phí là **doanh thu của chính CINs**, seller **trả ngược** → **không phải** thu hộ/chi hộ → **không cần** giấy phép trung gian thanh toán (NĐ 52/2024, vốn 50 tỷ). Nhưng cần **pháp nhân + hóa đơn điện tử + VAT/TNDN**. Sàn **không có chức năng thanh toán** ⇒ seller tự kê khai thuế (NĐ 117/2025), CINs chỉ **cung cấp thông tin doanh thu** khi cơ quan thuế yêu cầu.
 - **Lằn ranh cấm:** nếu sau này để tiền hàng chảy qua tài khoản/ví CINs (giữ 5%, chuyển 95%) → thành **thu hộ/chi hộ** ⇒ bắt buộc giấy phép NHNN. Tracking/đo doanh thu thì hợp pháp; **giữ/luân chuyển tiền thì không**.

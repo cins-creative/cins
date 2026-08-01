@@ -5,6 +5,11 @@ import { revalidatePath } from "next/cache";
 import type { GiaiDoan } from "@/lib/auth/session";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import {
+  adminCoTheSuaBaiNickSeeding,
+  resolveActingOwner,
+} from "@/lib/admin/seeding-nick";
+import { getCurrentUserSystemRole } from "@/lib/auth/system-role";
+import {
   VALID_LOAI_MOC,
   VALID_VIS,
   type LoaiMoc,
@@ -125,6 +130,7 @@ function validateSlugFormat(slug: string): string | null {
  */
 export async function checkSlugAvailable(
   rawSlug: string,
+  opts?: { currentSlug?: string },
 ): Promise<ActionResult<{ available: boolean; slug: string }>> {
   const session = await getCurrentSessionAndProfile();
   if (!session) {
@@ -135,8 +141,9 @@ export async function checkSlugAvailable(
   const formatErr = validateSlugFormat(slug);
   if (formatErr) return { ok: false, error: formatErr, field: "slug" };
 
-  /* Slug hiện tại của user — coi như "khả dụng" để UI không báo trùng. */
-  if (session.profile && session.profile.slug === slug) {
+  const currentSlug = opts?.currentSlug?.trim() || session.profile?.slug;
+  /* Slug hiện tại của hồ sơ đang sửa — coi như "khả dụng". */
+  if (currentSlug && currentSlug === slug) {
     return { ok: true, data: { available: true, slug } };
   }
 
@@ -383,6 +390,10 @@ export type UpdateProfileInput = {
   visibilityDiaChi: EmailVisibility;
   mxhLinks: ProfileLinkInput[];
   giaiDoan: GiaiDoan;
+  /** Admin sửa nick seeding — id hồ sơ đích. */
+  targetOwnerId?: string;
+  /** Slug hiện tại của hồ sơ đang sửa (trước khi đổi). */
+  currentSlug?: string;
 };
 
 const URL_RE = /^https?:\/\/[\w\-._~:/?#[\]@!$&'()*+,;=%]+$/i;
@@ -403,6 +414,16 @@ export async function updateProfile(
       ok: false,
       error: "Hồ sơ chưa khởi tạo xong — thử lại sau vài giây.",
     };
+  }
+
+  const acting = await resolveActingOwner({
+    sessionProfileId: session.profile.id,
+    sessionSlug: session.profile.slug,
+    targetOwnerId: input.targetOwnerId,
+    targetOwnerSlug: input.currentSlug,
+  });
+  if (!acting) {
+    return { ok: false, error: "Bạn không có quyền sửa hồ sơ này." };
   }
 
   const tenHienThi = (input.tenHienThi ?? "").trim();
@@ -526,7 +547,7 @@ export async function updateProfile(
   }
 
   const admin = createServiceRoleClient();
-  const slugChanged = slug !== session.profile.slug;
+  const slugChanged = slug !== acting.ownerSlug;
 
   if (slugChanged) {
     const { data: clash, error: clashErr } = await admin
@@ -541,7 +562,7 @@ export async function updateProfile(
         field: "slug",
       };
     }
-    if (clash && clash.id !== session.profile.id) {
+    if (clash && clash.id !== acting.ownerId) {
       return {
         ok: false,
         error:
@@ -569,7 +590,7 @@ export async function updateProfile(
       mxh_links: cleanedLinks,
       giai_doan: input.giaiDoan,
     })
-    .eq("auth_user_id", session.authUserId);
+    .eq("id", acting.ownerId);
 
   if (updateErr) {
     /* Log đầy đủ để dev đọc terminal; client chỉ thấy thông điệp tóm tắt. */
@@ -609,7 +630,7 @@ export async function updateProfile(
 
   /* Đồng bộ «Thông tin nhận hàng» → địa chỉ mặc định sổ shop (checkout). */
   try {
-    await syncHoSoToMacDinhDiaChi(session.profile.id, {
+    await syncHoSoToMacDinhDiaChi(acting.ownerId, {
       hoTen: hoTenNhan,
       soDienThoai,
       diaChi: diaChiChiTiet,
@@ -619,7 +640,7 @@ export async function updateProfile(
     console.error("[updateProfile] syncHoSoToMacDinhDiaChi", e);
   }
 
-  revalidatePath(`/${session.profile.slug}`);
+  revalidatePath(`/${acting.ownerSlug}`);
   if (slugChanged) {
     revalidatePath(`/${slug}`);
   }
@@ -638,10 +659,20 @@ export async function updateProfile(
  * ────────────────────────────────────────────────────────────────────── */
 export async function updateAvatar(
   imageId: string | null,
+  opts?: { ownerId?: string },
 ): Promise<ActionResult<{ slug: string; avatarId: string | null }>> {
   const session = await getCurrentSessionAndProfile();
   if (!session?.profile) {
     return { ok: false, error: "Phiên đăng nhập đã hết hạn." };
+  }
+
+  const acting = await resolveActingOwner({
+    sessionProfileId: session.profile.id,
+    sessionSlug: session.profile.slug,
+    targetOwnerId: opts?.ownerId,
+  });
+  if (!acting) {
+    return { ok: false, error: "Bạn không có quyền sửa avatar hồ sơ này." };
   }
 
   const cleaned =
@@ -662,17 +693,17 @@ export async function updateAvatar(
   const { error: updateErr } = await admin
     .from("user_nguoi_dung")
     .update({ avatar_id: cleaned })
-    .eq("auth_user_id", session.authUserId);
+    .eq("id", acting.ownerId);
 
   if (updateErr) {
     console.error("[updateAvatar] supabase error:", updateErr);
     return { ok: false, error: "Không lưu được avatar: " + updateErr.message };
   }
 
-  revalidatePath(`/${session.profile.slug}`);
+  revalidatePath(`/${acting.ownerSlug}`);
   return {
     ok: true,
-    data: { slug: session.profile.slug, avatarId: cleaned },
+    data: { slug: acting.ownerSlug, avatarId: cleaned },
   };
 }
 
@@ -687,10 +718,20 @@ export async function updateAvatar(
  * ────────────────────────────────────────────────────────────────────── */
 export async function updateCover(
   imageId: string | null,
+  opts?: { ownerId?: string },
 ): Promise<ActionResult<{ slug: string; coverId: string | null }>> {
   const session = await getCurrentSessionAndProfile();
   if (!session?.profile) {
     return { ok: false, error: "Phiên đăng nhập đã hết hạn." };
+  }
+
+  const acting = await resolveActingOwner({
+    sessionProfileId: session.profile.id,
+    sessionSlug: session.profile.slug,
+    targetOwnerId: opts?.ownerId,
+  });
+  if (!acting) {
+    return { ok: false, error: "Bạn không có quyền sửa cover hồ sơ này." };
   }
 
   const cleaned =
@@ -706,17 +747,17 @@ export async function updateCover(
   const { error: updateErr } = await admin
     .from("user_nguoi_dung")
     .update({ cover_id: cleaned })
-    .eq("auth_user_id", session.authUserId);
+    .eq("id", acting.ownerId);
 
   if (updateErr) {
     console.error("[updateCover] supabase error:", updateErr);
     return { ok: false, error: "Không lưu được cover: " + updateErr.message };
   }
 
-  revalidatePath(`/${session.profile.slug}`);
+  revalidatePath(`/${acting.ownerSlug}`);
   return {
     ok: true,
-    data: { slug: session.profile.slug, coverId: cleaned },
+    data: { slug: acting.ownerSlug, coverId: cleaned },
   };
 }
 
@@ -761,13 +802,37 @@ async function requireMilestoneOwnership(
   if (!row) {
     return { ok: false, error: "Cột mốc không tồn tại (đã bị xoá?)." };
   }
-  if (row.id_nguoi_dung !== session.profile.id) {
+  if (row.id_nguoi_dung === session.profile.id) {
+    return {
+      ok: true,
+      profileSlug: session.profile.slug,
+      profileId: session.profile.id,
+    };
+  }
+
+  const role = await getCurrentUserSystemRole();
+  const seedingOk = await adminCoTheSuaBaiNickSeeding({
+    role,
+    idNguoiDung: row.id_nguoi_dung,
+    client: admin,
+  });
+  if (!seedingOk) {
     return { ok: false, error: "Bạn không phải chủ cột mốc này." };
   }
+
+  const { data: ownerProfile } = await admin
+    .from("user_nguoi_dung")
+    .select("id, slug")
+    .eq("id", row.id_nguoi_dung)
+    .maybeSingle<{ id: string; slug: string }>();
+  if (!ownerProfile?.slug) {
+    return { ok: false, error: "Không tìm thấy chủ cột mốc." };
+  }
+
   return {
     ok: true,
-    profileSlug: session.profile.slug,
-    profileId: session.profile.id,
+    profileSlug: ownerProfile.slug,
+    profileId: ownerProfile.id,
   };
 }
 
@@ -971,15 +1036,31 @@ export async function updateJourneyMilestonePin(input: {
   if (!ownerSlug || !milestoneKey) {
     return { ok: false, error: "Thiếu thông tin cột mốc." };
   }
-  if (session.profile.slug !== ownerSlug) {
-    return { ok: false, error: "Chỉ chủ Journey mới ghim được." };
-  }
   if (milestoneKey.length > 200) {
     return { ok: false, error: "Khóa cột mốc không hợp lệ." };
   }
 
   const admin = createServiceRoleClient();
-  const ownerId = session.profile.id;
+  let ownerId = session.profile.id;
+  if (session.profile.slug !== ownerSlug) {
+    const { data: journeyOwner } = await admin
+      .from("user_nguoi_dung")
+      .select("id")
+      .eq("slug", ownerSlug)
+      .maybeSingle<{ id: string }>();
+    const role = await getCurrentUserSystemRole();
+    const seedingOk =
+      Boolean(journeyOwner?.id) &&
+      (await adminCoTheSuaBaiNickSeeding({
+        role,
+        idNguoiDung: journeyOwner!.id,
+        client: admin,
+      }));
+    if (!seedingOk || !journeyOwner?.id) {
+      return { ok: false, error: "Chỉ chủ Journey mới ghim được." };
+    }
+    ownerId = journeyOwner.id;
+  }
 
   if (!input.pinned) {
     const { error } = await admin
@@ -1482,7 +1563,15 @@ export async function updateChiChuNen(
     return { ok: false, error: "Không tìm thấy bài viết." };
   }
   if (tpRow.id_nguoi_dung !== session.profile.id) {
-    return { ok: false, error: "Bạn không có quyền sửa bài viết này." };
+    const role = await getCurrentUserSystemRole();
+    const seedingOk = await adminCoTheSuaBaiNickSeeding({
+      role,
+      idNguoiDung: tpRow.id_nguoi_dung,
+      client: admin,
+    });
+    if (!seedingOk) {
+      return { ok: false, error: "Bạn không có quyền sửa bài viết này." };
+    }
   }
 
   const blocks = parseServerBlocks(tpRow.noi_dung_blocks) ?? [];

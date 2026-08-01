@@ -12,8 +12,22 @@ const PERKS = [
   { label: "Khám phá", desc: "Gợi ý ngành nghề" },
 ] as const;
 
+export type GuestHomeLoginPanelProps = {
+  initialError?: string | null;
+  autoIntent?: "login" | "register" | null;
+  resumeAfterRedirect?: boolean;
+  returnPath?: string | null;
+  addAccount?: boolean;
+};
+
 /** Panel đăng nhập embed trên home guest — đồng bộ CINs design tokens. */
-export function GuestHomeLoginPanel() {
+export function GuestHomeLoginPanel({
+  initialError = null,
+  autoIntent = null,
+  resumeAfterRedirect = false,
+  returnPath = null,
+  addAccount = false,
+}: GuestHomeLoginPanelProps = {}) {
   return (
     <section
       className="gh-login-panel"
@@ -31,7 +45,22 @@ export function GuestHomeLoginPanel() {
         </p>
       </header>
 
+      {initialError ? (
+        <div className="cins-login-banner cins-login-banner--err" role="alert">
+          <span className="cins-login-banner-dot" aria-hidden />
+          <div>
+            <strong>Đăng nhập chưa hoàn tất.</strong>
+            <p>{initialError}</p>
+          </div>
+        </div>
+      ) : null}
+
       <LoginActions
+        initialError={initialError}
+        autoIntent={autoIntent}
+        resumeAfterRedirect={resumeAfterRedirect}
+        returnPath={returnPath}
+        addAccount={addAccount}
         showRememberedAccount={false}
         googleLoginAfterPassword
         className="hg-login-actions"

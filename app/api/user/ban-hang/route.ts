@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
+import {
+  resolveActingOwner,
+} from "@/lib/admin/seeding-nick";
 import { getShopReady, shopSetupHref } from "@/lib/shop/cua-hang";
 import {
   getBanHangSettings,
@@ -13,21 +16,31 @@ import {
   SHOP_TERMS_VERSION,
 } from "@/lib/shop/terms";
 
-export async function GET() {
+export async function GET(request: Request) {
   const session = await getCurrentSessionAndProfile();
   if (!session?.profile) {
     return NextResponse.json({ error: "Chưa đăng nhập." }, { status: 401 });
   }
+  const url = new URL(request.url);
+  const acting = await resolveActingOwner({
+    sessionProfileId: session.profile.id,
+    sessionSlug: session.profile.slug,
+    targetOwnerId: url.searchParams.get("ownerId"),
+    targetOwnerSlug: url.searchParams.get("slug"),
+  });
+  if (!acting) {
+    return NextResponse.json({ error: "Không có quyền." }, { status: 403 });
+  }
+
   const [settings, ready] = await Promise.all([
-    getBanHangSettings(session.profile.id),
-    getShopReady(session.profile.id),
+    getBanHangSettings(acting.ownerId),
+    getShopReady(acting.ownerId),
   ]);
-  const slug = session.profile.slug?.trim() || "";
   return NextResponse.json({
     ...settings,
     shopReady: ready.shopReady,
     shopReadyMissing: ready.missing,
-    shopSetupHref: shopSetupHref(slug),
+    shopSetupHref: shopSetupHref(acting.ownerSlug),
     terms: {
       version: SHOP_TERMS_VERSION,
       title: SHOP_TERMS_TITLE,
@@ -45,11 +58,23 @@ export async function PATCH(request: Request) {
     enabled?: unknown;
     acceptTerms?: unknown;
     shopVisible?: unknown;
+    ownerId?: unknown;
+    slug?: unknown;
   };
   try {
     body = (await request.json()) as typeof body;
   } catch {
     return NextResponse.json({ error: "JSON không hợp lệ." }, { status: 400 });
+  }
+
+  const acting = await resolveActingOwner({
+    sessionProfileId: session.profile.id,
+    sessionSlug: session.profile.slug,
+    targetOwnerId: typeof body.ownerId === "string" ? body.ownerId : null,
+    targetOwnerSlug: typeof body.slug === "string" ? body.slug : null,
+  });
+  if (!acting) {
+    return NextResponse.json({ error: "Không có quyền." }, { status: 403 });
   }
 
   const hasEnabled = typeof body.enabled === "boolean";
@@ -62,11 +87,11 @@ export async function PATCH(request: Request) {
   }
 
   try {
-    let settings = await getBanHangSettings(session.profile.id);
+    let settings = await getBanHangSettings(acting.ownerId);
 
     if (hasEnabled) {
       settings = await setBanHangEnabled(
-        session.profile.id,
+        acting.ownerId,
         body.enabled === true,
         body.acceptTerms === true,
       );
@@ -74,18 +99,17 @@ export async function PATCH(request: Request) {
 
     if (hasShopVisible) {
       settings = await setShopHienThi(
-        session.profile.id,
+        acting.ownerId,
         body.shopVisible === true,
       );
     }
 
-    const ready = await getShopReady(session.profile.id);
-    const slug = session.profile.slug?.trim() || "";
+    const ready = await getShopReady(acting.ownerId);
     return NextResponse.json({
       ...settings,
       shopReady: ready.shopReady,
       shopReadyMissing: ready.missing,
-      shopSetupHref: shopSetupHref(slug),
+      shopSetupHref: shopSetupHref(acting.ownerSlug),
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "";
@@ -101,6 +125,7 @@ export async function PATCH(request: Request) {
         { status: 422 },
       );
     }
+    console.error("[api/user/ban-hang] PATCH", e);
     return NextResponse.json({ error: "Không lưu được." }, { status: 500 });
   }
 }

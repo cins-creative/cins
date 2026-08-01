@@ -24,6 +24,7 @@ import {
 } from "react";
 
 import { updateAvatar } from "@/app/[slug]/journey/actions";
+import { useJourneyCompose } from "@/components/journey/JourneyComposeContext";
 
 import "./journey-avatar-editor.css";
 
@@ -89,6 +90,7 @@ export function JourneyAvatarEditor({
   const router = useRouter();
   const titleId = useId();
   const fileInputId = useId();
+  const { ownerId: composeOwnerId } = useJourneyCompose();
 
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -284,7 +286,10 @@ export function JourneyAvatarEditor({
       };
 
       if (persist) {
-        const saveRes = await updateAvatar(json.imageId);
+        const saveRes = await updateAvatar(
+          json.imageId,
+          composeOwnerId ? { ownerId: composeOwnerId } : undefined,
+        );
         if (!saveRes.ok) {
           throw new Error(saveRes.error || "Lưu avatar thất bại.");
         }
@@ -312,6 +317,7 @@ export function JourneyAvatarEditor({
     router,
     persist,
     onComplete,
+    composeOwnerId,
   ]);
 
   const handleDelete = useCallback(async () => {
@@ -325,7 +331,10 @@ export function JourneyAvatarEditor({
     setError(null);
     setBusy("delete");
     try {
-      const res = await updateAvatar(null);
+      const res = await updateAvatar(
+        null,
+        composeOwnerId ? { ownerId: composeOwnerId } : undefined,
+      );
       if (!res.ok) throw new Error(res.error);
       startTransition(() => {
         router.refresh();
@@ -336,7 +345,7 @@ export function JourneyAvatarEditor({
       setError(msg);
       setBusy(null);
     }
-  }, [onClose, router]);
+  }, [onClose, router, composeOwnerId]);
 
   if (!open || !mounted) return null;
 

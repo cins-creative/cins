@@ -67,7 +67,9 @@ Tái dùng đúng pattern Shopee AI cho **user tự import portfolio** của ch�
 | Blocks | `taoKhoiBaiBehanceNguon` — text→`body`, image→`imgs`, video→`embed` (giữ interleave) | `taoKhoiBaiAlbumNguon` — mỗi ảnh 1 `imgs` album; dòng Nguồn → `mo_ta` |
 | Apply | `dangBaiJourneyChoUser({ cheDoHienThi:'chi_minh', loaiMoc:'du_an' })` — mỗi project = 1 bài | ↑ |
 
-**Route:** `POST /api/port/import` (`runtime nodejs`, `maxDuration 300`, session auth). Body `{ platform:'behance'|'artstation', url, html?, apply?, preview? }` (`html` = HTML Behance **hoặc** JSON ArtStation). Dispatcher `buildPortPreview`. Lib: `lib/port/import.ts` · `lib/port/extension-bridge.ts` · block builder `lib/editor/khoi-bai-nguon.ts` · parser `lib/autopilot/{behance,artstation}-assets.ts`. **UI:** `PortImportModal` mở từ `UserAccountMenu` → **Nhập tác phẩm**; chọn nền tảng + tab **Một project** / **Cả hồ sơ**; loop từng project (fetch → preview → apply), link về `/{slug}` xem nháp.
+**Route:** `POST /api/port/import` (`runtime nodejs`, `maxDuration 300`, session auth). Body `{ platform:'behance'|'artstation'|'carrd', url, html?, apply?, preview? }` (`html` = HTML Behance/Carrd **hoặc** JSON ArtStation). Dispatcher `buildPortPreview`. Lib: `lib/port/import.ts` · `lib/port/carrd-assets.ts` · `lib/port/extension-bridge.ts` · block builder `lib/editor/khoi-bai-nguon.ts` · parser `lib/autopilot/{behance,artstation}-assets.ts`. **UI:** `PortImportModal` mở từ `UserAccountMenu` → **Nhập tác phẩm**; chọn nền tảng + tab **Một project** / **Cả hồ sơ**; loop từng project (fetch → preview → apply), link về `/{slug}` xem nháp. User path apply = `chi_minh`.
+
+**Admin clone portfolio (extension ngoài repo):** Desktop `Clone portfolio` (gộp Behance / ArtStation / Carrd, icon CINs 4 khối, popup 3 tab + animation tiến trình). Mặc định chọn **nick fake**; tick **User thật** → search `GET /api/admin/port-clone/users?q=` (loại trừ `auto_tai_khoan`). Folder cũ giữ tham chiếu. API gate `canManageUsers`: `GET /api/admin/port-clone/nicks` · `GET /api/admin/port-clone/users` · `POST /api/admin/port-clone/import` (`idTaiKhoan` **hoặc** `idNguoiDung`; đăng `public`; ảnh >10MB **nén** sharp) · `POST /api/admin/port-clone/mo-bai`. Lib: `lib/admin/port-clone.ts` · `lib/cloudflare/compress-image-for-upload.ts`.
 
 **Extension hợp nhất "Trợ lý CINs" (không Store):** `extensions/cins-tro-ly/` (v1.1.0) → `public/downloads/cins-tro-ly.zip` (`npm run pack:tro-ly-ext`). Gộp Shopee (`cins-shopee-page`) + Port (`cins-port-page`) trong 1 tiện ích; content script trả cả 2 giao thức → tương thích UI Shopee cũ. `host_permissions`: shopee.vn + behance.net + artstation.com. Port message kèm `platform`.
 
@@ -92,6 +94,7 @@ Tái dùng đúng pattern Shopee AI cho **user tự import portfolio** của ch�
 | `journey/[slug]/friends` | Bạn bè hiển thị trên Journey |
 | `journey/[slug]/p/[postSlug]` · `.../edit` | Trang post · sửa post |
 | `noi-bo/tac-pham/dang` | **Autopilot Giai đoạn 0** — `POST` đăng Journey cho nick seed; Bearer `CINS_NOI_BO_DANG_BAI_SECRET`; khối embed nguồn Behance/ArtStation/Pixiv. Brief: `cursor_brief_seed_autopilot_handoff.md` §3b. Lib: `lib/editor/dang-bai-journey.ts` · `khoi-bai-nguon.ts` · `lib/noi-bo/*` |
+| `admin/autopilot` + `action` | Autopilot admin + **tài khoản clone** (tạo / vault MK / KPI / gán·bàn giao). Plan: `PLAN_tai_khoan_clone.md`. Lib: `lib/admin/tai-khoan-clone.ts` · `mat-khau-vault.ts` · `kpi-seeding.ts`. Env: `CINS_CLONE_PASSWORD_KEY` (64 hex). Migration: `npm run migrate:tai-khoan-clone` |
 | `noi-bo/auto/muc` | **Autopilot** — `POST` batch mục → `auto_muc` (Bearer cùng secret); extension Behance/Pixiv / worker. Lib: `lib/autopilot/luu-muc-batch.ts` · `dam-bao-nguon.ts` |
 
 ### Autopilot worker (Giai đoạn 1–3)

@@ -48,6 +48,7 @@
     "migrate:autopilot": "node scripts/run-autopilot-giai-doan-1-migration.mjs",
     "migrate:autopilot-pixiv": "node scripts/run-autopilot-pixiv-migration.mjs",
     "migrate:autopilot-tuong-tac": "node scripts/run-autopilot-tuong-tac-migration.mjs",
+    "migrate:tai-khoan-clone": "node scripts/run-tai-khoan-clone-migration.mjs",
     "autopilot": "node tools/autopilot/cli.mjs",
     "pack:tro-ly-ext": "node scripts/pack-tro-ly-extension.mjs",
     "pack:shopee-ext": "node scripts/pack-shopee-extension.mjs",
@@ -86,6 +87,7 @@
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
     "server-only": "^0.0.1",
+    "sharp": "^0.34.5",
     "tailwind-merge": "^3.5.0",
     "tus-js-client": "^4.3.1",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"

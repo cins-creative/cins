@@ -7,7 +7,9 @@
 
 import { revalidatePath } from "next/cache";
 
+import { adminCoTheSuaBaiNickSeeding } from "@/lib/admin/seeding-nick";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
+import { getCurrentUserSystemRole } from "@/lib/auth/system-role";
 import type { ArticleTagRef } from "@/lib/editor/article-tag";
 import { blocksToHtml } from "@/lib/editor/sanitize";
 import {
@@ -55,8 +57,7 @@ import {
    ║ Update song song `content_tac_pham` (slug giữ nguyên, không      ║
    ║ regen) + `content_cot_moc` (mirror tieu_de/mo_ta/visibility).    ║
    ║                                                                  ║
-   ║ Auth: owner-only — kiểm tra `id_nguoi_dung` của cả 2 row khớp    ║
-   ║ session profile id.                                              ║
+   ║ Auth: chủ bài, hoặc admin trên nick seeding (`auto_tai_khoan`).  ║
    ║                                                                  ║
    ║ Không tạo cot_moc mới (giữ cùng id_cot_moc để Journey không bị   ║
    ║ duplicate). Slug bài viết KHÔNG đổi để URL cũ vẫn truy cập.      ║
@@ -119,11 +120,44 @@ export async function updatePost(
   if (!session?.profile) {
     return { ok: false, error: "Bạn cần đăng nhập để chỉnh sửa bài viết." };
   }
+  const admin = createServiceRoleClient();
+  let contentOwnerId = session.profile.id;
+  let contentOwnerSlug = session.profile.slug;
   const isOwnContext = input.ownerId
     ? input.ownerId === session.profile.id
     : session.profile.slug === input.ownerSlug;
   if (!isOwnContext) {
-    return { ok: false, error: "Bạn không có quyền sửa bài của user khác." };
+    let targetOwnerId = input.ownerId?.trim() || null;
+    let targetOwnerSlug = input.ownerSlug.trim();
+    if (!targetOwnerId) {
+      const { data: ownerRow } = await admin
+        .from("user_nguoi_dung")
+        .select("id, slug")
+        .eq("slug", targetOwnerSlug)
+        .maybeSingle<{ id: string; slug: string }>();
+      targetOwnerId = ownerRow?.id ?? null;
+      if (ownerRow?.slug) targetOwnerSlug = ownerRow.slug;
+    } else {
+      const { data: ownerRow } = await admin
+        .from("user_nguoi_dung")
+        .select("id, slug")
+        .eq("id", targetOwnerId)
+        .maybeSingle<{ id: string; slug: string }>();
+      if (ownerRow?.slug) targetOwnerSlug = ownerRow.slug;
+    }
+    const role = await getCurrentUserSystemRole();
+    const ok =
+      Boolean(targetOwnerId) &&
+      (await adminCoTheSuaBaiNickSeeding({
+        role,
+        idNguoiDung: targetOwnerId!,
+        client: admin,
+      }));
+    if (!ok || !targetOwnerId) {
+      return { ok: false, error: "Bạn không có quyền sửa bài của user khác." };
+    }
+    contentOwnerId = targetOwnerId;
+    contentOwnerSlug = targetOwnerSlug;
   }
 
   /* 2. Validate. */
@@ -220,8 +254,6 @@ export async function updatePost(
   const noiDungHtml = blocksToHtml(publishBlocks);
 
   /* 4. Verify ownership trước khi update (tránh PII leak). */
-  const admin = createServiceRoleClient();
-
   const { data: tpRow, error: tpFetchErr } = await admin
     .from("content_tac_pham")
     .select("id, id_nguoi_dung, slug")
@@ -231,7 +263,7 @@ export async function updatePost(
   if (tpFetchErr || !tpRow) {
     return { ok: false, error: "Không tìm thấy bài viết." };
   }
-  if (tpRow.id_nguoi_dung !== session.profile.id) {
+  if (tpRow.id_nguoi_dung !== contentOwnerId) {
     return { ok: false, error: "Bạn không có quyền sửa bài viết này." };
   }
 
@@ -250,7 +282,7 @@ export async function updatePost(
   if (cmFetchErr || !cmRow) {
     return { ok: false, error: "Không tìm thấy cột mốc liên kết." };
   }
-  if (cmRow.id_nguoi_dung !== session.profile.id) {
+  if (cmRow.id_nguoi_dung !== contentOwnerId) {
     return { ok: false, error: "Bạn không có quyền sửa cột mốc này." };
   }
 
@@ -380,7 +412,7 @@ export async function updatePost(
   if (input.coAuthors !== undefined) {
     const coSync = await syncCoAuthorsFromEditor(
       input.tacPhamId,
-      session.profile.id,
+      contentOwnerId,
       input.ownerVaiTro ?? "",
       input.coAuthors,
     );
@@ -410,7 +442,7 @@ export async function updatePost(
   } else if (input.personalFilterIds !== undefined && !keepCongDong) {
     const filterSync = await setMilestonePersonalFilters({
       milestoneId: input.cotMocId,
-      userId: session.profile.id,
+      userId: contentOwnerId,
       filterIds: input.personalFilterIds,
     });
     if (!filterSync.ok) {
@@ -424,7 +456,7 @@ export async function updatePost(
         cotMocId: input.cotMocId,
         mode: customInput.mode,
         peopleIds: customInput.peopleIds,
-        ownerId: session.profile.id,
+        ownerId: contentOwnerId,
       });
       if (!ngoaiLe.ok) {
         return { ok: false, error: ngoaiLe.error };
@@ -457,7 +489,7 @@ export async function updatePost(
   });
 
   /* 7. Revalidate profile + feed trang chủ. */
-  revalidatePath(`/${session.profile.slug}`);
+  revalidatePath(`/${contentOwnerSlug}`);
   revalidatePath("/");
   revalidatePath("/luoi");
 

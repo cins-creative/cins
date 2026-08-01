@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { PostCommentsSuspense } from "@/app/[slug]/p/[postSlug]/_components/PostCommentsSection";
 import { PostPageClientBridge } from "@/app/[slug]/p/[postSlug]/_components/PostPageClientBridge";
 import { PostPageError } from "@/app/[slug]/p/[postSlug]/_components/PostPageError";
+import { adminCoTheSuaBaiNickSeeding } from "@/lib/admin/seeding-nick";
+import { getCurrentUserSystemRole } from "@/lib/auth/system-role";
 import { getCachedPostPageCore } from "@/lib/journey/post-page-cache";
 
 type Props = {
@@ -26,6 +28,14 @@ export async function PostPageArticle({ slug, postSlug }: Props) {
 
   const detail = res.data;
   const postSlugFromDb = detail.posts[0]?.slug ?? postSlug;
+  const adminSeedingEdit =
+    !detail.viewerIsOwner
+      ? await adminCoTheSuaBaiNickSeeding({
+          role: await getCurrentUserSystemRole(),
+          idNguoiDung: detail.owner.id,
+        })
+      : false;
+  const manageAsOwner = detail.viewerIsOwner || adminSeedingEdit;
 
   return (
     <PostPageClientBridge
@@ -33,12 +43,13 @@ export async function PostPageArticle({ slug, postSlug }: Props) {
       postSlug={postSlug}
       serverDetail={detail}
       postSlugFromDb={postSlugFromDb}
-      isOwner={detail.viewerIsOwner}
+      isOwner={manageAsOwner}
+      adminSeedingEdit={adminSeedingEdit}
       commentsSlot={
         <PostCommentsSuspense
           milestoneId={detail.milestone.id}
           contentOwnerId={detail.owner.id}
-          viewerIsOwner={detail.viewerIsOwner}
+          viewerIsOwner={manageAsOwner}
           viewerCanComment={detail.viewerCanComment}
         />
       }

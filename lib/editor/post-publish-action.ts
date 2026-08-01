@@ -8,6 +8,7 @@
 import { revalidatePath } from "next/cache";
 
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
+import { resolveActingOwner } from "@/lib/admin/seeding-nick";
 import type { ArticleTagRef } from "@/lib/editor/article-tag";
 import { uniquePostSlugForUser, slugifyPostTitle } from "@/lib/editor/post-slug";
 import { blocksToHtml } from "@/lib/editor/sanitize";
@@ -48,7 +49,7 @@ import { resolveCotMocScheduleTaoLuc } from "@/lib/journey/cot-moc-schedule";
    ║ Server Action: publishPost                                       ║
    ║                                                                  ║
    ║ Flow (theo brief §7):                                            ║
-   ║   1. Verify session + slug khớp owner.                           ║
+   ║   1. Verify session + quyền trên owner (chủ hoặc admin seeding). ║
    ║   2. Validate payload (title, blocks, visibility, loai_moc).     ║
    ║   3. Generate unique slug (slug per user).                       ║
    ║   4. Serialize blocks → HTML (sanitize plain text).              ║
@@ -125,13 +126,17 @@ export async function publishPost(
     return { ok: false, error: "Bạn cần đăng nhập để đăng bài." };
   }
 
-  /* Chặn cross-user: ưu tiên id (client luôn có); fallback slug khi thiếu id. */
-  const isOwnContext = input.ownerId
-    ? input.ownerId === session.profile.id
-    : session.profile.slug === input.ownerSlug;
-  if (!isOwnContext) {
+  const acting = await resolveActingOwner({
+    sessionProfileId: session.profile.id,
+    sessionSlug: session.profile.slug,
+    targetOwnerId: input.ownerId,
+    targetOwnerSlug: input.ownerSlug,
+  });
+  if (!acting) {
     return { ok: false, error: "Bạn không có quyền tạo bài cho user khác." };
   }
+  const contentOwnerId = acting.ownerId;
+  const contentOwnerSlug = acting.ownerSlug;
 
   /* 2. Validate. */
   const tieuDe = (input.tieuDe || "").trim() || DEFAULT_ARTICLE_POST_TITLE;
@@ -235,7 +240,7 @@ export async function publishPost(
   let slug: string;
   try {
     slug = await uniquePostSlugForUser({
-      userId: session.profile.id,
+      userId: contentOwnerId,
       baseSlug,
     });
   } catch (e) {
@@ -253,7 +258,7 @@ export async function publishPost(
     const { data: cotMoc, error: cotMocErr } = await admin
       .from("content_cot_moc")
       .insert({
-        id_nguoi_dung: session.profile.id,
+        id_nguoi_dung: contentOwnerId,
         id_to_chuc: input.congDong!.orgId,
         loai_moc: input.loaiMoc,
         nguon_goc: "tu_tao",
@@ -273,7 +278,7 @@ export async function publishPost(
     const { data: tacPham, error: tacPhamErr } = await admin
       .from("content_tac_pham")
       .insert({
-        id_nguoi_dung: session.profile.id,
+        id_nguoi_dung: contentOwnerId,
         loai_tac_pham: "bai_viet",
         tieu_de: tieuDe,
         mo_ta: moTaFinal || null,
@@ -321,7 +326,7 @@ export async function publishPost(
 
     const labelAttach = await attachCongDongPersonalFilter({
       milestoneId: cotMoc.id,
-      userId: session.profile.id,
+      userId: contentOwnerId,
     });
     if (!labelAttach.ok) {
       await admin.from("content_tac_pham_thuoc_moc").delete().eq("id_cot_moc", cotMoc.id);
@@ -350,7 +355,7 @@ export async function publishPost(
   const { data: cotMoc, error: cotMocErr } = await admin
     .from("content_cot_moc")
     .insert({
-      id_nguoi_dung: session.profile.id,
+      id_nguoi_dung: contentOwnerId,
       loai_moc: input.loaiMoc,
       nguon_goc: "tu_tao",
       tieu_de: tieuDe,
@@ -369,7 +374,7 @@ export async function publishPost(
   const { data: tacPham, error: tacPhamErr } = await admin
     .from("content_tac_pham")
     .insert({
-      id_nguoi_dung: session.profile.id,
+      id_nguoi_dung: contentOwnerId,
       loai_tac_pham: "bai_viet",
       tieu_de: tieuDe,
       mo_ta: moTaFinal || null,
@@ -428,7 +433,7 @@ export async function publishPost(
   if (input.coAuthors !== undefined) {
     const coSync = await syncCoAuthorsFromEditor(
       tacPham.id,
-      session.profile.id,
+      contentOwnerId,
       input.ownerVaiTro ?? "",
       input.coAuthors,
     );
@@ -443,7 +448,7 @@ export async function publishPost(
   if (input.personalFilterIds && input.personalFilterIds.length > 0) {
     const filterSync = await setMilestonePersonalFilters({
       milestoneId: cotMoc.id,
-      userId: session.profile.id,
+      userId: contentOwnerId,
       filterIds: input.personalFilterIds,
     });
     if (!filterSync.ok) {
@@ -456,7 +461,7 @@ export async function publishPost(
       cotMocId: cotMoc.id,
       mode: customInput.mode,
       peopleIds: customInput.peopleIds,
-      ownerId: session.profile.id,
+      ownerId: contentOwnerId,
     });
     if (!ngoaiLe.ok) {
       console.error("[publishPost] visibility custom failed", ngoaiLe.error);
@@ -475,7 +480,7 @@ export async function publishPost(
   });
 
   /* 6. Revalidate profile + feed trang chủ (compose từ World Journey). */
-  revalidatePath(`/${session.profile.slug}`);
+  revalidatePath(`/${contentOwnerSlug}`);
   revalidatePath("/");
   revalidatePath("/luoi");
 

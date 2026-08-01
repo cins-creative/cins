@@ -7,7 +7,14 @@ import {
   useRealtimeKitClient,
 } from "@cloudflare/realtimekit-react";
 import { RtkParticipantsAudio } from "@cloudflare/realtimekit-react-ui";
-import { Mic, MicOff, PhoneOff, Video, VideoOff } from "lucide-react";
+import {
+  Mic,
+  MicOff,
+  MonitorUp,
+  PhoneOff,
+  Video,
+  VideoOff,
+} from "lucide-react";
 
 import {
   CALL_MEDIA_CONSTRAINTS_FAST,
@@ -70,6 +77,9 @@ function bindTrackToVideo(
   void el.play().catch(() => {});
 }
 
+/** Phòng trống liên tục bấy nhiêu ms sau khi đã connected → tự kết thúc. */
+const PEER_GONE_GRACE_MS = 6000;
+
 function CallStage({
   mode,
   title,
@@ -80,6 +90,7 @@ function CallStage({
   localPreviewStream,
   onHangUp,
   onRemoteReady,
+  onPeerGone,
 }: {
   mode: MediaCallMode;
   title: string;
@@ -90,16 +101,34 @@ function CallStage({
   localPreviewStream: MediaStream | null;
   onHangUp: () => void;
   onRemoteReady: () => void;
+  onPeerGone: () => void;
 }) {
-  const isVideo = mode === "video" || mode === "screen";
   const [micOn, setMicOn] = useState(true);
-  const [camOn, setCamOn] = useState(isVideo && mode === "video");
+  const [camOn, setCamOn] = useState(mode === "video");
+  const [screenOn, setScreenOn] = useState(mode === "screen");
   const [elapsed, setElapsed] = useState(0);
   const [hasRemoteVideo, setHasRemoteVideo] = useState(false);
+  const [remoteIsScreen, setRemoteIsScreen] = useState(false);
   const [toggleErr, setToggleErr] = useState<string | null>(null);
+  const [compactViewport, setCompactViewport] = useState(() =>
+    isCompactCallViewport(),
+  );
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const remoteReadySent = useRef(false);
+  const onPeerGoneRef = useRef(onPeerGone);
+  onPeerGoneRef.current = onPeerGone;
+
+  const showVideoStage =
+    camOn || screenOn || hasRemoteVideo || Boolean(localPreviewStream);
+
+  useEffect(() => {
+    setCompactViewport(isCompactCallViewport());
+    const mq = window.matchMedia("(max-width: 1024px)");
+    const onChange = () => setCompactViewport(mq.matches);
+    mq.addEventListener?.("change", onChange);
+    return () => mq.removeEventListener?.("change", onChange);
+  }, []);
 
   useEffect(() => {
     if (phase !== "connected") {
@@ -114,35 +143,49 @@ function CallStage({
   }, [phase]);
 
   useEffect(() => {
-    if (!isVideo) return;
+    if (!showVideoStage) return;
+    const screenTrack =
+      screenOn && meeting?.self?.screenShareTracks?.video
+        ? meeting.self.screenShareTracks.video
+        : null;
     const selfTrack = meeting?.self?.videoTrack ?? null;
     const previewTrack = localPreviewStream?.getVideoTracks()?.[0] ?? null;
-    bindTrackToVideo(localVideoRef.current, selfTrack || previewTrack);
+    bindTrackToVideo(
+      localVideoRef.current,
+      screenTrack || (camOn ? selfTrack || previewTrack : null),
+    );
   }, [
-    isVideo,
+    showVideoStage,
+    camOn,
+    screenOn,
     meeting,
     meeting?.self?.videoEnabled,
     meeting?.self?.videoTrack,
+    meeting?.self?.screenShareEnabled,
+    meeting?.self?.screenShareTracks,
     localPreviewStream,
   ]);
 
   useEffect(() => {
-    if (!meeting || !isVideo) return;
+    if (!meeting) return;
 
     const refreshRemote = () => {
       let track: MediaStreamTrack | null = null;
+      let isScreen = false;
       meeting.participants.joined.forEach((p) => {
-        if (p.videoEnabled && p.videoTrack) {
-          track = p.videoTrack;
-        }
-        if (
-          !track &&
-          p.screenShareEnabled &&
-          p.screenShareTracks?.video
-        ) {
+        if (p.screenShareEnabled && p.screenShareTracks?.video) {
           track = p.screenShareTracks.video;
+          isScreen = true;
         }
       });
+      if (!track) {
+        meeting.participants.joined.forEach((p) => {
+          if (!track && p.videoEnabled && p.videoTrack) {
+            track = p.videoTrack;
+            isScreen = false;
+          }
+        });
+      }
       if (track) {
         callTraceMarkOnce("T4", { kind: "remote-video-track" });
         callTraceMarkOnce("T7", { kind: "remote-video-visible" });
@@ -153,6 +196,7 @@ function CallStage({
         }
       }
       setHasRemoteVideo(Boolean(track));
+      setRemoteIsScreen(isScreen);
       bindTrackToVideo(remoteVideoRef.current, track);
     };
 
@@ -174,41 +218,69 @@ function CallStage({
 
     meeting.participants.joined.forEach((p) => wirePeer(p));
 
-    const onJoin = (p: Parameters<typeof wirePeer>[0]) => {
-      wirePeer(p);
-      refreshRemote();
-    };
-    const onLeft = () => refreshRemote();
-
-    meeting.participants.joined.on("participantJoined", onJoin);
-    meeting.participants.joined.on("participantLeft", onLeft);
-
-    return () => {
-      meeting.participants.joined.removeListener("participantJoined", onJoin);
-      meeting.participants.joined.removeListener("participantLeft", onLeft);
-      for (const u of peerUnsubs) u();
-    };
-  }, [meeting, isVideo, onRemoteReady]);
-
-  useEffect(() => {
-    if (!meeting || isVideo) return;
-    const markPeer = () => {
+    const markPeerAudio = () => {
+      if (remoteReadySent.current) return;
       if (meeting.participants.joined.size < 1) return;
       callTraceMarkOnce("T4", { kind: "remote-peer-joined" });
       callTraceMarkOnce("T7", { kind: "remote-peer-audio-path" });
       callTraceFlush("T7-remote-peer-audio");
-      if (!remoteReadySent.current) {
-        remoteReadySent.current = true;
-        onRemoteReady();
+      remoteReadySent.current = true;
+      onRemoteReady();
+    };
+
+    // Đã connected mà phòng trống quá grace (đối phương cúp máy / rớt hẳn)
+    // → tự kết thúc thay vì để đồng hồ chạy trong phòng trống.
+    let peerGoneTimer: number | null = null;
+    const checkPeerGone = () => {
+      if (meeting.participants.joined.size >= 1) {
+        if (peerGoneTimer != null) {
+          window.clearTimeout(peerGoneTimer);
+          peerGoneTimer = null;
+        }
+        return;
       }
+      if (!remoteReadySent.current || peerGoneTimer != null) return;
+      peerGoneTimer = window.setTimeout(() => {
+        peerGoneTimer = null;
+        if (meeting.participants.joined.size < 1) onPeerGoneRef.current();
+      }, PEER_GONE_GRACE_MS);
     };
-    markPeer();
-    const onJoin = () => markPeer();
+
+    const onJoin = (p: Parameters<typeof wirePeer>[0]) => {
+      wirePeer(p);
+      markPeerAudio();
+      refreshRemote();
+      checkPeerGone();
+    };
+    const onLeft = () => {
+      refreshRemote();
+      checkPeerGone();
+    };
+
     meeting.participants.joined.on("participantJoined", onJoin);
+    meeting.participants.joined.on("participantLeft", onLeft);
+
+    markPeerAudio();
+
+    // Roster có thể được đồng bộ sau khi join xong mà không phát lại
+    // "participantJoined" cho peer đã ở trong phòng trước đó.
+    const rosterPoll = window.setInterval(() => {
+      if (remoteReadySent.current) {
+        window.clearInterval(rosterPoll);
+        return;
+      }
+      markPeerAudio();
+      refreshRemote();
+    }, 1000);
+
     return () => {
+      window.clearInterval(rosterPoll);
+      if (peerGoneTimer != null) window.clearTimeout(peerGoneTimer);
       meeting.participants.joined.removeListener("participantJoined", onJoin);
+      meeting.participants.joined.removeListener("participantLeft", onLeft);
+      for (const u of peerUnsubs) u();
     };
-  }, [meeting, isVideo, onRemoteReady]);
+  }, [meeting, onRemoteReady]);
 
   async function toggleMic() {
     if (!meeting) return;
@@ -229,12 +301,20 @@ function CallStage({
   }
 
   async function toggleCam() {
-    if (!meeting || mode !== "video") return;
+    if (!meeting) return;
     try {
       if (camOn) {
         await meeting.self.disableVideo();
         setCamOn(false);
       } else {
+        if (screenOn) {
+          try {
+            await meeting.self.disableScreenShare();
+          } catch {
+            /* ignore */
+          }
+          setScreenOn(false);
+        }
         await meeting.self.enableVideo();
         setCamOn(true);
       }
@@ -246,33 +326,69 @@ function CallStage({
     }
   }
 
+  async function toggleScreen() {
+    if (!meeting || compactViewport) return;
+    try {
+      if (screenOn) {
+        await meeting.self.disableScreenShare();
+        setScreenOn(false);
+      } else {
+        if (camOn) {
+          try {
+            await meeting.self.disableVideo();
+          } catch {
+            /* ignore */
+          }
+          setCamOn(false);
+        }
+        await meeting.self.enableScreenShare();
+        setScreenOn(true);
+      }
+      setToggleErr(null);
+    } catch (e) {
+      const msg =
+        e instanceof Error ? e.message : "Không chia sẻ được màn hình.";
+      console.warn("[phong-hoc] toggleScreen", msg);
+      setToggleErr(msg);
+    }
+  }
+
   const statusLine =
     phase === "error"
       ? err || "Không kết nối được"
       : phase === "connecting"
         ? meeting
           ? "Đang vào phòng…"
-          : "Đang mở camera…"
+          : "Đang kết nối…"
         : phase === "joined"
           ? `Đang chờ ${title} kết nối…`
-          : isVideo
-            ? "Đang gọi video"
-            : "Cuộc gọi thoại";
+          : screenOn
+            ? "Đang chia sẻ màn hình"
+            : camOn || hasRemoteVideo
+              ? "Đang gọi video"
+              : "Cuộc gọi thoại";
 
   const bannerErr = mediaErr || toggleErr;
+  const localVisible = camOn || screenOn || Boolean(localPreviewStream);
 
   return (
     <div
-      className={`cins-phong-hoc${isVideo ? " is-video" : ""}`}
+      className={`cins-phong-hoc${showVideoStage ? " is-video" : ""}`}
       role="region"
       aria-label={title}
     >
-      <div className={`cins-phong-hoc-stage${isVideo ? " is-video-stage" : ""}`}>
-        {isVideo ? (
+      <div
+        className={`cins-phong-hoc-stage${
+          showVideoStage ? " is-video-stage" : ""
+        }`}
+      >
+        {showVideoStage ? (
           <>
             <video
               ref={remoteVideoRef}
-              className={`cins-phong-hoc-remote${hasRemoteVideo ? " is-on" : ""}`}
+              className={`cins-phong-hoc-remote${
+                hasRemoteVideo ? " is-on" : ""
+              }${remoteIsScreen ? " is-screen" : ""}`}
               playsInline
               autoPlay
               muted={false}
@@ -281,12 +397,14 @@ function CallStage({
               ref={localVideoRef}
               className={`cins-phong-hoc-local${
                 hasRemoteVideo ? " is-pip" : " is-full"
-              }${camOn || localPreviewStream ? "" : " is-off"}`}
+              }${localVisible ? "" : " is-off"}${
+                screenOn ? " is-screen" : " is-camera"
+              }`}
               playsInline
               autoPlay
               muted
             />
-            {!camOn && !localPreviewStream ? (
+            {!localVisible && !hasRemoteVideo ? (
               <div className="cins-phong-hoc-hero is-over-video">
                 <div className="cins-phong-hoc-avatar" aria-hidden>
                   <span>{initials(title)}</span>
@@ -356,22 +474,37 @@ function CallStage({
           <span>{micOn ? "Mic" : "Mic tắt"}</span>
         </button>
 
-        {mode === "video" ? (
+        <button
+          type="button"
+          className={`cins-phong-hoc-ctrl${camOn ? "" : " is-off"}`}
+          aria-label={camOn ? "Tắt camera" : "Bật camera"}
+          disabled={phase === "error" || !meeting}
+          onClick={() => void toggleCam()}
+        >
+          <span className="cins-phong-hoc-ctrl-icon">
+            {camOn ? (
+              <Video size={20} strokeWidth={1.9} />
+            ) : (
+              <VideoOff size={20} strokeWidth={1.9} />
+            )}
+          </span>
+          <span>{camOn ? "Camera" : "Cam tắt"}</span>
+        </button>
+
+        {!compactViewport ? (
           <button
             type="button"
-            className={`cins-phong-hoc-ctrl${camOn ? "" : " is-off"}`}
-            aria-label={camOn ? "Tắt camera" : "Bật camera"}
-            disabled={phase === "error"}
-            onClick={() => void toggleCam()}
+            className={`cins-phong-hoc-ctrl${screenOn ? "" : " is-off"}`}
+            aria-label={
+              screenOn ? "Dừng chia sẻ màn hình" : "Chia sẻ màn hình"
+            }
+            disabled={phase === "error" || !meeting}
+            onClick={() => void toggleScreen()}
           >
             <span className="cins-phong-hoc-ctrl-icon">
-              {camOn ? (
-                <Video size={20} strokeWidth={1.9} />
-              ) : (
-                <VideoOff size={20} strokeWidth={1.9} />
-              )}
+              <MonitorUp size={20} strokeWidth={1.9} />
             </span>
-            <span>{camOn ? "Camera" : "Cam tắt"}</span>
+            <span>{screenOn ? "Đang share" : "Màn hình"}</span>
           </button>
         ) : null}
 
@@ -659,6 +792,10 @@ export function PhongHocMeeting({
     };
   }, [meeting, signalEnd, stopLocalPreview]);
 
+  const handleRemoteReady = useCallback(() => {
+    setPhase((p) => (p === "error" ? p : "connected"));
+  }, []);
+
   async function hangUp() {
     phongHocMountGen += 1;
     try {
@@ -682,7 +819,8 @@ export function PhongHocMeeting({
         meeting={meeting}
         localPreviewStream={localPreview}
         onHangUp={() => void hangUp()}
-        onRemoteReady={() => setPhase((p) => (p === "error" ? p : "connected"))}
+        onRemoteReady={handleRemoteReady}
+        onPeerGone={() => void hangUp()}
       />
     </RealtimeKitProvider>
   );

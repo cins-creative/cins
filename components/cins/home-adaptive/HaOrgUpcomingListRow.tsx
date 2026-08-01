@@ -47,14 +47,16 @@ export function HaOrgUpcomingListRow({ item }: { item: SidebarUpcomingEvent }) {
         item={sidebarEventPopoverItem(item)}
         cardClassName="ha-org-up-list-row"
       >
-        {badge ? (
-          <span
-            className={`ha-org-up-date ha-org-up-date--list${isLive ? " ha-org-up-date--live" : ""}`}
-          >
-            <span className="ha-org-up-date-month">{badge.month}</span>
-            <span className="ha-org-up-date-day">{badge.day}</span>
-          </span>
-        ) : null}
+        <span className="ha-org-up-list-thumb" aria-hidden>
+          {item.coverSrc ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img src={item.coverSrc} alt="" loading="lazy" />
+          ) : (
+            <span className="ha-org-up-list-thumb-fallback">
+              {item.label.slice(0, 2).toUpperCase()}
+            </span>
+          )}
+        </span>
         <span className="ha-org-up-list-body">
           <span className="ha-org-up-list-top">
             <span className="ha-org-up-list-title">{item.label}</span>
@@ -76,11 +78,20 @@ export function HaOrgUpcomingListRow({ item }: { item: SidebarUpcomingEvent }) {
             wrapClassName="ha-org-up-list-org"
             nameClassName="ha-org-up-list-org-name"
           />
-          <HaOrgUpCountdown
-            batDauIso={item.batDauIso}
-            ketThucIso={item.ketThucIso}
-            status={item.status}
-          />
+          <span className="ha-org-up-list-time">
+            {badge ? (
+              <span
+                className={`ha-org-up-list-date${isLive ? " is-live" : ""}`}
+              >
+                {badge.day} {badge.month}
+              </span>
+            ) : null}
+            <HaOrgUpCountdown
+              batDauIso={item.batDauIso}
+              ketThucIso={item.ketThucIso}
+              status={item.status}
+            />
+          </span>
         </span>
       </HaOrgUpEventPopover>
     </li>

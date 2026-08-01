@@ -9,16 +9,33 @@ Chi tiết + template: `docs/AUTO_MODEL_SELECTOR.md` · `docs/PROMPT_TEMPLATES.m
 
 ## Phân loại prompt → model đề xuất
 
-| Task | Tín hiệu | Model | Hành vi |
-|---|---|---|---|
-| **PLANNING** | plan, design, architecture, approach, edge cases, strategy | **Opus 5** | Chỉ plan, **không code**. Lưu `docs/PLAN_[feature].md` |
-| **BUILD phức tạp** | implement/build + ref `docs/PLAN_` + schema/API/migration / ≥3 file | **Grok 4.5** | Làm đúng plan; DB + API + logic |
-| **BUILD đơn giản** | UI/component/form, ≤2 file, có plan hoặc scope rõ | **Composer 2.5** | Chỉ frontend; không tự dựng API |
-| **FIX đa file** | fix/bug + nhiều file / refactor pattern | **Grok 4.5** | Fix tối thiểu; liệt kê verify |
-| **FIX 1 file** | fix/bug + 1 file (CSS, copy, patch) | **Composer 2.5** | Localized, minimal |
-| **Ambiguous / rethink** | feature lớn không plan, “refactor kiến trúc” | **Opus 5** trước | Hỏi: cần Phase 1 planning? |
+| Task | Tín hiệu | Model | Effort | Hành vi |
+|---|---|---|---|---|
+| **PLANNING** | plan, design, architecture, approach, edge cases, strategy | **Opus 5** | **Medium** (High nếu kiến trúc lớn / nhiều hệ liên quan) | Chỉ plan, **không code**. Lưu `docs/PLAN_[feature].md` |
+| **BUILD phức tạp** | implement/build + ref `docs/PLAN_` + schema/API/migration / ≥3 file | **Grok 4.5** | **Medium** (High nếu migration/RLS nhạy cảm) | Làm đúng plan; DB + API + logic |
+| **BUILD đơn giản** | UI/component/form, ≤2 file, có plan hoặc scope rõ | **Composer 2.5** | **Low** | Chỉ frontend; không tự dựng API |
+| **FIX đa file** | fix/bug + nhiều file / refactor pattern | **Grok 4.5** | **Medium** | Fix tối thiểu; liệt kê verify |
+| **FIX 1 file** | fix/bug + 1 file (CSS, copy, patch) | **Composer 2.5** | **Low** | Localized, minimal |
+| **Ambiguous / rethink** | feature lớn không plan, “refactor kiến trúc” | **Opus 5** trước | **High** | Hỏi: cần Phase 1 planning? |
 
-## Khi model chat ≠ model đề xuất
+### Quy tắc Effort
+
+- **Low:** task cơ học, scope rõ, 1 file — đổi CSS, copy text, patch nhỏ.
+- **Medium (mặc định):** build/fix bình thường, kể cả planning — tránh 2x output token do thinking (xem `docs/AUTO_MODEL_SELECTOR.md` §Notes: Opus 5 nên `effort=standard`).
+- **High:** chỉ khi debug khó (race, RLS, auth), refactor kiến trúc, hoặc plan hệ lớn nhiều edge case. Không mặc định High cho mọi task — tốn thinking token.
+- **Fast toggle:** bật cho task Low-effort cần vòng lặp nhanh; tắt cho mọi task Medium/High.
+
+## Đầu session mới: báo model trước, chờ user chọn
+
+Ở **prompt đầu tiên của một session/chat mới** (task code — không áp dụng cho câu hỏi thuần thông tin):
+
+1. **Chưa thực hiện gì.** Phân loại task theo bảng trên.
+2. Báo 1–2 câu: task type + model đề xuất + **effort đề xuất** + vì sao.
+3. **Dừng, chờ user xác nhận / đổi model** rồi mới bắt đầu làm.
+
+Bỏ qua bước chờ nếu: user đã ghi `--model [name]`, đã chọn đúng model đề xuất trên UI, hoặc ghi rõ "cứ làm luôn". Trigger vận hành thuần túy (vd. "Ổn định dev server") cũng không cần chờ.
+
+## Khi model chat ≠ model đề xuất (giữa session)
 
 Đầu turn (1–2 câu): nêu task type + model nên dùng + vì sao. Không block nếu user đã chọn model cố ý.
 

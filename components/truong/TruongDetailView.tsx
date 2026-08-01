@@ -341,7 +341,9 @@ function TruongDetailViewBody({ payload, canEdit }: Props) {
 
   return (
     <>
-      <TruongAdminToolbar />
+      <TruongAdminToolbar
+        onOpenSettings={canEdit ? openSettings : undefined}
+      />
       <TruongDetailViewInner
         settingsOpen={settingsOpen}
         settingsSection={settingsSection}

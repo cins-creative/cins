@@ -3,23 +3,29 @@
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Phone, PhoneOff, Video } from "lucide-react";
+import { Phone, PhoneOff } from "lucide-react";
 
 import { useCinsChat } from "@/components/cins/CinsChatProvider";
-import { mediaCallLabel, type MediaCallMode } from "@/lib/media/call-mode";
+import type { MediaCallMode } from "@/lib/media/call-mode";
 import {
   beginCallTrace,
   callTraceAttachServerTiming,
   callTraceMark,
   callTraceRingSeen,
 } from "@/lib/media/call-trace";
+import {
+  presentCallUi,
+  updateCallWindowSession,
+} from "@/lib/media/call-window";
 import { isCuocGoiJoinTokenFresh } from "@/lib/media/call-signal-types";
 import {
   startIncomingCallRingtone,
   stopIncomingCallRingtone,
 } from "@/lib/media/play-incoming-call-ringtone";
 import { warmCallMedia } from "@/lib/media/media-warm";
+import { prefetchPhongHocMeeting } from "@/lib/media/prefetch-phong-hoc";
 import "@/components/media/incoming-call.css";
+import "@/components/media/phong-hoc.css";
 
 const PhongHocMeeting = dynamic(
   () =>
@@ -56,6 +62,21 @@ const PENDING_EVENT = "cins:phong-hoc-pending";
 let pendingJoin: PendingPhongHocStart | null = null;
 /** Tránh log RING_SEEN trùng (realtime + poll). */
 const ringSeenTraceIds = new Set<string>();
+
+function postCallSignal(
+  roomId: string,
+  callMessageId: string,
+  action: "accept" | "decline" | "miss" | "end",
+): Promise<Response> {
+  return fetch(
+    `/api/chat/rooms/${encodeURIComponent(roomId)}/phong-hoc/signal`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ callMessageId, action }),
+    },
+  );
+}
 
 export function dispatchPendingPhongHoc(detail: PendingPhongHocStart): void {
   pendingJoin = detail;
@@ -126,6 +147,8 @@ export function ChatIncomingCallHost() {
         });
       }
       startIncomingCallRingtone({ muted: isRoomMuted(next.roomId) });
+      // Tải sẵn chunk meeting để bấm "Trả lời" không phải chờ dynamic import.
+      prefetchPhongHocMeeting();
     },
     [activeCall, isRoomMuted],
   );
@@ -221,17 +244,9 @@ export function ChatIncomingCallHost() {
     const id = window.setTimeout(() => {
       const cur = offerRef.current;
       if (!cur) return;
-      void fetch(
-        `/api/chat/rooms/${encodeURIComponent(cur.roomId)}/phong-hoc/signal`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            callMessageId: cur.callMessageId,
-            action: "miss",
-          }),
-        },
-      ).catch(() => {});
+      void postCallSignal(cur.roomId, cur.callMessageId, "miss").catch(
+        () => {},
+      );
       clearOffer(true);
     }, RING_TIMEOUT_MS);
     return () => window.clearTimeout(id);
@@ -241,22 +256,24 @@ export function ChatIncomingCallHost() {
     return () => stopIncomingCallRingtone();
   }, []);
 
+  /* Đối phương kết thúc / hủy cuộc gọi đang mở → đóng UI thay vì chờ mãi. */
+  useEffect(() => {
+    if (!activeCall) return;
+    return subscribeChatMessages((event) => {
+      if (event.message.id !== activeCall.callMessageId) return;
+      const st = event.message.cuocGoi?.trangThai;
+      if (st === "ket_thuc" || st === "nho" || st === "tu_choi") {
+        setActiveCall(null);
+      }
+    });
+  }, [activeCall, subscribeChatMessages]);
+
   async function decline() {
     const cur = offerRef.current;
     if (!cur || busy) return;
     setBusy(true);
     try {
-      await fetch(
-        `/api/chat/rooms/${encodeURIComponent(cur.roomId)}/phong-hoc/signal`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            callMessageId: cur.callMessageId,
-            action: "decline",
-          }),
-        },
-      );
+      await postCallSignal(cur.roomId, cur.callMessageId, "decline");
     } catch {
       /* ignore */
     } finally {
@@ -283,7 +300,6 @@ export function ChatIncomingCallHost() {
       joinTokenExp: cur.joinTokenExp,
     });
 
-    /* Mở UI + camera ngay. */
     const shell: PendingPhongHocStart = {
       roomId: cur.roomId,
       token: embeddedFresh ? cur.joinToken! : "",
@@ -291,25 +307,58 @@ export function ChatIncomingCallHost() {
       callMessageId: cur.callMessageId,
       title: cur.title,
     };
-    setActiveCall(shell);
-    dispatchPendingPhongHoc(shell);
     clearOffer(false);
+
+    const presented = presentCallUi({
+      roomId: shell.roomId,
+      token: shell.token,
+      mode: shell.mode,
+      title: shell.title,
+      callMessageId: shell.callMessageId,
+    });
+    const useFullscreen = presented.presentation === "fullscreen";
+    if (useFullscreen) {
+      setActiveCall(shell);
+    } else {
+      setActiveCall(null);
+    }
+
+    const applyToken = (token: string, callMessageId: string) => {
+      if (presented.presentation === "window") {
+        updateCallWindowSession(presented.sid, {
+          token,
+          callMessageId,
+          mode: shell.mode,
+          title: shell.title,
+          roomId: shell.roomId,
+        });
+        return;
+      }
+      setActiveCall((prev) =>
+        prev
+          ? { ...prev, token, callMessageId }
+          : {
+              roomId: shell.roomId,
+              token,
+              mode: shell.mode,
+              callMessageId,
+              title: shell.title,
+            },
+      );
+    };
 
     try {
       if (embeddedFresh) {
         callTraceMark("T0b", { embeddedToken: true });
-        /* Cập nhật trạng thái nền — không chặn vào phòng. */
-        void fetch(
-          `/api/chat/rooms/${encodeURIComponent(cur.roomId)}/phong-hoc/signal`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              callMessageId: cur.callMessageId,
-              action: "accept",
-            }),
-          },
-        ).catch(() => {});
+        // Fail → retry 1 lần: nếu accept không ghi được, DB kẹt dang_goi
+        // và lịch sử sẽ ghi nhầm "cuộc gọi nhỡ".
+        void postCallSignal(cur.roomId, cur.callMessageId, "accept").catch(
+          () =>
+            postCallSignal(cur.roomId, cur.callMessageId, "accept").catch(
+              () => {},
+            ),
+        );
+        applyToken(shell.token, shell.callMessageId);
         return;
       }
 
@@ -333,17 +382,19 @@ export function ChatIncomingCallHost() {
         callMessageId?: string;
       } | null;
       if (!res.ok || !json?.token) {
+        // Route join có thể đã đánh dấu dang_dien_ra dù token fail —
+        // đóng cuộc gọi để bên gọi không chờ vô hạn.
+        void postCallSignal(cur.roomId, cur.callMessageId, "end").catch(
+          () => {},
+        );
         setActiveCall(null);
         return;
       }
-      const ready: PendingPhongHocStart = {
-        ...shell,
-        token: json.token,
-        callMessageId: json.callMessageId || cur.callMessageId,
-      };
-      setActiveCall((prev) => (prev ? ready : null));
-      dispatchPendingPhongHoc(ready);
+      applyToken(json.token, json.callMessageId || cur.callMessageId);
     } catch {
+      void postCallSignal(cur.roomId, cur.callMessageId, "end").catch(
+        () => {},
+      );
       setActiveCall(null);
     } finally {
       setBusy(false);
@@ -354,17 +405,19 @@ export function ChatIncomingCallHost() {
 
   if (activeCall) {
     return createPortal(
-      <div className="cins-incoming-call is-in-call" role="dialog" aria-label="Cuộc gọi">
-        <div className="cins-incoming-call-stage">
-          <PhongHocMeeting
-            authToken={activeCall.token}
-            mode={activeCall.mode}
-            title={activeCall.title}
-            roomId={activeCall.roomId}
-            callMessageId={activeCall.callMessageId}
-            onClose={() => setActiveCall(null)}
-          />
-        </div>
+      <div
+        className="cins-call-fullscreen"
+        role="dialog"
+        aria-label="Cuộc gọi"
+      >
+        <PhongHocMeeting
+          authToken={activeCall.token}
+          mode={activeCall.mode}
+          title={activeCall.title}
+          roomId={activeCall.roomId}
+          callMessageId={activeCall.callMessageId}
+          onClose={() => setActiveCall(null)}
+        />
       </div>,
       document.body,
     );
@@ -372,13 +425,11 @@ export function ChatIncomingCallHost() {
 
   if (!offer) return null;
 
-  const label = mediaCallLabel(offer.mode);
-
   return createPortal(
     <div className="cins-incoming-call" role="dialog" aria-label="Cuộc gọi đến">
       <div className="cins-incoming-call-card">
         <div className="cins-incoming-call-pulse" aria-hidden />
-        <p className="cins-incoming-call-eyebrow">{label} đến</p>
+        <p className="cins-incoming-call-eyebrow">Cuộc gọi đến</p>
         <p className="cins-incoming-call-name">{offer.callerName}</p>
         <div className="cins-incoming-call-actions">
           <button
@@ -396,11 +447,7 @@ export function ChatIncomingCallHost() {
             disabled={busy}
             onClick={() => void accept()}
           >
-            {offer.mode === "video" ? (
-              <Video size={20} strokeWidth={1.9} />
-            ) : (
-              <Phone size={20} strokeWidth={1.9} />
-            )}
+            <Phone size={20} strokeWidth={1.9} />
             <span>Trả lời</span>
           </button>
         </div>

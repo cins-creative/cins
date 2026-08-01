@@ -37,6 +37,11 @@
   color: var(--ink-body);
 }
 
+.gh-login-panel .cins-login-banner {
+  flex-shrink: 0;
+  margin-bottom: var(--space-3);
+}
+
 /* ── Actions ── */
 .gh-login-panel .hg-login-actions {
   display: flex;

@@ -112,6 +112,8 @@ export type GalleryMainItem = {
   /** Tác giả hiển thị trên overlay hover của card gallery. */
   authorName?: string | null;
   authorAvatarUrl?: string | null;
+  /** Slug user của `authorName` — click tên mở card user. Null khi là org / stack cộng sự. */
+  authorSlug?: string | null;
   /** Stack avatar góc thumb — giống banner pinned. */
   showSourceAuthor?: boolean;
   sourcePeople?: GallerySourcePerson[];
@@ -397,6 +399,9 @@ function hydrateMainItems(
       authorAvatarUrl: sourceAuthor?.showCorner
         ? sourceAuthor.avatarUrl
         : fallbackAuthorAvatar,
+      /* Chỉ chắc chắn slug khi tên hiển thị là chủ bài (không phải stack cộng sự / org). */
+      authorSlug:
+        sourceAuthor?.showCorner || isOrgCreate || isOrgPost ? null : slug,
       showSourceAuthor: sourceAuthor?.showCorner ?? false,
       sourcePeople: sourceAuthor?.showCorner ? sourceAuthor.people : undefined,
       videoCanvasRatio: entry.videoCanvasRatio,

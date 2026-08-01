@@ -5528,17 +5528,70 @@
   border-color: color-mix(in srgb, var(--blue) 22%, var(--border));
 }
 
-.world-journey-home .ha-org-up-date--list {
-  flex-shrink: 0;
-  width: 40px;
-}
-
 .world-journey-home .ha-org-up-list-body {
   min-width: 0;
   flex: 1;
   display: flex;
   flex-direction: column;
   gap: 3px;
+}
+
+/* Thumbnail cover sự kiện — mỏ neo thị giác bên trái, vuông 1:1. */
+.world-journey-home .ha-org-up-list-thumb {
+  flex-shrink: 0;
+  align-self: flex-start;
+  margin-top: 1px;
+  width: 48px;
+  aspect-ratio: 1 / 1;
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(
+    145deg,
+    var(--cins-blue-soft, #e7f0fb),
+    var(--bg-page, #f4f5f8)
+  );
+  border: 1px solid var(--border);
+}
+
+.world-journey-home .ha-org-up-list-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.world-journey-home .ha-org-up-list-thumb-fallback {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--ink-muted, var(--ink4));
+}
+
+/* Cụm thời gian — một dòng meta nhỏ: ngày + đếm ngược. */
+.world-journey-home .ha-org-up-list-time {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.world-journey-home .ha-org-up-list-date {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--ink3);
+  letter-spacing: 0.2px;
+}
+
+.world-journey-home .ha-org-up-list-date.is-live {
+  color: var(--mint-ink, #0e6b4d);
+}
+
+.world-journey-home .ha-org-up-list-time .ha-org-up-countdown {
+  margin: 0;
 }
 
 .world-journey-home .ha-org-up-list-top {

@@ -24,6 +24,7 @@ import {
 } from "react";
 
 import { updateCover } from "@/app/[slug]/journey/actions";
+import { useJourneyCompose } from "@/components/journey/JourneyComposeContext";
 
 import "./journey-avatar-editor.css";
 
@@ -68,6 +69,7 @@ export function JourneyCoverEditor({
   const router = useRouter();
   const titleId = useId();
   const fileInputId = useId();
+  const { ownerId: composeOwnerId } = useJourneyCompose();
 
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -262,7 +264,10 @@ export function JourneyCoverEditor({
         throw new Error(json?.error || "Upload thất bại. Thử lại sau.");
       }
 
-      const saveRes = await updateCover(json.imageId);
+      const saveRes = await updateCover(
+        json.imageId,
+        composeOwnerId ? { ownerId: composeOwnerId } : undefined,
+      );
       if (!saveRes.ok) {
         throw new Error(saveRes.error || "Lưu cover thất bại.");
       }
@@ -286,6 +291,7 @@ export function JourneyCoverEditor({
     rotation,
     onClose,
     router,
+    composeOwnerId,
   ]);
 
   const handleDelete = useCallback(async () => {
@@ -297,7 +303,10 @@ export function JourneyCoverEditor({
     setError(null);
     setBusy("delete");
     try {
-      const res = await updateCover(null);
+      const res = await updateCover(
+        null,
+        composeOwnerId ? { ownerId: composeOwnerId } : undefined,
+      );
       if (!res.ok) throw new Error(res.error);
       startTransition(() => {
         router.refresh();
@@ -308,7 +317,7 @@ export function JourneyCoverEditor({
       setError(msg);
       setBusy(null);
     }
-  }, [onClose, router]);
+  }, [onClose, router, composeOwnerId]);
 
   if (!open || !mounted) return null;
 

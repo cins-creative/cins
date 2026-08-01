@@ -49,6 +49,8 @@ type Props = {
   emailForView: string | null;
   ownerName: string;
   isOwner: boolean;
+  /** Admin được sửa bài nick seeding như chủ — không mở khoá hồ sơ. */
+  adminSeedingEdit?: boolean;
   viewerProfileId: string | null;
   initialKetBanStatus?: KetBanStatusSummary | null;
   filterVisibility: LoaiMocVisibilityMap;
@@ -178,6 +180,7 @@ export function JourneyProfileShell({
   emailForView,
   ownerName,
   isOwner,
+  adminSeedingEdit = false,
   viewerProfileId,
   initialKetBanStatus = null,
   filterVisibility,
@@ -209,6 +212,7 @@ export function JourneyProfileShell({
       ownerId={owner.id}
       ownerAvatarId={owner.avatar_id}
       isOwner={isOwner}
+      adminSeedingEdit={adminSeedingEdit}
       editProfileInitial={editProfileInitial}
       viewerProfileId={viewerProfileId}
       initialKetBanStatus={initialKetBanStatus}

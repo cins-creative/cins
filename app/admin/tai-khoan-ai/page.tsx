@@ -16,13 +16,13 @@ export default async function AdminTaiKhoanAiPage() {
     return renderAdminPage(
       <>
         <header className="page-header">
-          <h1 className="page-title">Tài khoản AI</h1>
+          <h1 className="page-title">Nick seeding</h1>
         </header>
         <div className="page-body">
           <div className="empty-state">
             <div className="empty-title">Không có quyền</div>
             <div className="empty-desc">
-              Chỉ Admin hoặc Admin tối cao được quản lý Autopilot seeding.
+              Chỉ Admin hoặc Admin tối cao được quản lý nick seeding.
             </div>
           </div>
         </div>

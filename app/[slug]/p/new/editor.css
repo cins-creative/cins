@@ -397,35 +397,31 @@
 .cins-editor-page .org-compose-schedule-btn {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  height: 38px;
-  padding: 0 13px;
-  max-width: 200px;
+  justify-content: center;
+  gap: 0;
+  width: 36px;
+  height: 36px;
+  padding: 0;
   border-radius: var(--radius-pill);
-  background: var(--bg-surface);
-  border: 1px solid var(--border-strong);
+  background: transparent;
+  border: none;
   font-family: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ink-body);
+  color: var(--ink-display);
   cursor: pointer;
-  transition:
-    border-color 0.15s var(--ed-ease),
-    background 0.15s var(--ed-ease);
+  transition: color 0.15s var(--ed-ease), background 0.15s var(--ed-ease);
 }
 .cins-editor-page .org-compose-schedule-btn:hover {
-  border-color: var(--cins-blue);
-  color: var(--ink-display);
+  border: none;
+  background: color-mix(in srgb, var(--cins-blue, #2563eb) 10%, transparent);
+  color: var(--cins-blue, #2563eb);
 }
 .cins-editor-page .org-compose-schedule-wrap.is-scheduled .org-compose-schedule-btn {
-  background: #fffbeb;
-  border-color: #fcd34d;
-  color: #92400e;
+  background: color-mix(in srgb, #f59e0b 14%, transparent);
+  color: #b45309;
 }
-.cins-editor-page .org-compose-schedule-btn-text {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.cins-editor-page .org-compose-schedule-wrap.is-scheduled .org-compose-schedule-btn:hover {
+  background: color-mix(in srgb, #f59e0b 22%, transparent);
+  color: #92400e;
 }
 .cins-editor-page .org-compose-schedule-panel {
   background: var(--bg-surface);
@@ -709,8 +705,8 @@
   transform: translateY(1px);
 }
 .cins-editor-page .org-compose-schedule-wrap.is-open .org-compose-schedule-btn {
-  border-color: #f59e0b;
-  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
+  background: color-mix(in srgb, #f59e0b 14%, transparent);
+  color: #b45309;
 }
 .cins-editor-page .ed-topbar-actions-cluster {
   display: flex;
@@ -1830,6 +1826,81 @@
   -webkit-text-fill-color: var(--neutral-300);
 }
 
+/* Căn lề h2/h3/body — toolbar khi chọn block (pattern divider-ctrl). */
+.cins-editor-page .b-text-wrap {
+  position: relative;
+  width: 100%;
+}
+.cins-editor-page .b-text.is-align-center,
+.cins-editor-page .ed-md-field.b-text.is-align-center > textarea.ed-md-input {
+  text-align: center;
+}
+.cins-editor-page .b-text.is-align-right,
+.cins-editor-page .ed-md-field.b-text.is-align-right > textarea.ed-md-input {
+  text-align: right;
+}
+.cins-editor-page .text-align-ctrl {
+  position: absolute;
+  top: -6px;
+  right: 0;
+  transform: translateY(-100%);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  padding: 3px;
+  box-shadow: var(--shadow-sm);
+  z-index: 2;
+}
+.cins-editor-page .text-block-ctrl {
+  gap: 4px;
+  max-width: calc(100% - 8px);
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.cins-editor-page .text-kind-pick,
+.cins-editor-page .text-block-ctrl > [role="group"] {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.cins-editor-page .text-block-ctrl-sep {
+  width: 1px;
+  height: 16px;
+  margin: 0 2px;
+  background: var(--border, #e4e6eb);
+  flex-shrink: 0;
+}
+.cins-editor-page .text-kind-btn {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  min-width: 28px;
+}
+.cins-editor-page .text-align-btn {
+  border: 1px solid transparent;
+  background: transparent;
+  width: 28px;
+  height: 26px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  color: var(--ink-body);
+}
+.cins-editor-page .text-align-btn:hover {
+  background: var(--neutral-100, #f3f3f5);
+}
+.cins-editor-page .text-align-btn.active {
+  background: var(--neutral-200, #e8e8ec);
+  border-color: var(--border);
+  color: var(--ink-title);
+}
+
 /* Markdown WYSIWYG overlay (đồng bộ journey.css — trang chỉ import editor.css). */
 
 @font-face {
@@ -2578,20 +2649,18 @@
     display: none !important;
   }
 }
-/* Preset layout album — phía trên grid, không full LayBar. */
-.cins-editor-page .ed-album-layout-strip {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  margin: 0 0 10px;
-  padding: 4px;
-  width: fit-content;
-  max-width: 100%;
-  margin-inline: auto;
-  border-radius: var(--radius-md, 12px);
-  background: color-mix(in srgb, var(--bg-surface, #fff) 72%, transparent);
-  border: 1px solid var(--border, #e4e6eb);
+/* Album compose — bố cục trên LayBar rail (không strip ngang). */
+.cins-editor-page .ed-album-block .ed-photo-album-compose {
+  margin-bottom: 0;
+}
+.cins-editor-page .ed-album-block .img-add-row {
+  margin-top: 10px;
+}
+/* Legacy strip (nếu còn markup cũ) — ẩn khỏi luồng. */
+.cins-editor-page .ed-album-layout-strip,
+.cins-editor-page .ed-photo-album-add-compact,
+.cins-editor-page .ed-photo-album-add {
+  display: none;
 }
 .cins-editor-page .ed-album-layout-btn {
   display: inline-flex;
@@ -2613,11 +2682,6 @@
 .cins-editor-page .ed-album-layout-btn.is-active {
   color: var(--cins-blue, #1f74c9);
   background: var(--cins-blue-soft, #e7f0fb);
-}
-.cins-editor-page .ed-photo-album-add-compact {
-  display: flex;
-  justify-content: center;
-  margin-top: 12px;
 }
 .cins-editor-page .ed-photo-album-add-btn {
   display: inline-flex;
@@ -3343,6 +3407,10 @@
     height: 34px;
     padding: 0;
   }
+  .cins-editor-page .org-compose-schedule-btn {
+    width: 34px;
+    height: 34px;
+  }
   .cins-editor-page .meta-chips {
     gap: 6px;
     margin-bottom: 14px;
@@ -3449,6 +3517,10 @@
     width: 34px;
     height: 34px;
     padding: 0;
+  }
+  .cins-editor-page .org-compose-schedule-btn {
+    width: 34px;
+    height: 34px;
   }
   .cins-editor-page .vis-menu {
     right: -8px;
@@ -3561,7 +3633,8 @@
   }
   .cins-editor-page.is-overlay
     .block[data-block-type="imgs"].selected
-    > .lay-bar-rail {
+    > .lay-bar-rail,
+  .cins-editor-page.is-overlay .ed-album-block.selected > .lay-bar-rail {
     display: block;
   }
   .cins-editor-page.is-overlay .lay-bar {
@@ -5454,13 +5527,12 @@
   color: #1c1408;
 }
 :root[data-theme="dark"] .cins-editor-page .org-compose-schedule-wrap.is-scheduled .org-compose-schedule-btn {
-  background: color-mix(in srgb, var(--cins-orange) 16%, var(--bg-surface));
-  border-color: color-mix(in srgb, var(--cins-orange) 45%, var(--border));
+  background: color-mix(in srgb, var(--cins-orange) 16%, transparent);
   color: var(--cins-priv-accent-ink);
 }
 :root[data-theme="dark"] .cins-editor-page .org-compose-schedule-wrap.is-open .org-compose-schedule-btn {
-  border-color: var(--cins-orange);
-  box-shadow: 0 0 0 3px rgba(253, 173, 76, 0.2);
+  background: color-mix(in srgb, var(--cins-orange) 16%, transparent);
+  color: var(--cins-priv-accent-ink);
 }
 
 :root[data-theme="dark"] .cins-editor-page .title-in::placeholder,
@@ -5783,6 +5855,20 @@
   .b-text-ro {
   font-size: 13px;
   line-height: 1.65;
+}
+.cins-editor-page
+  .ed-cp-journey-live
+  .j-m-unfold-post:not(.j-m-unfold-post--media)
+  .blocks-readonly
+  .b-text-ro.is-align-center {
+  text-align: center;
+}
+.cins-editor-page
+  .ed-cp-journey-live
+  .j-m-unfold-post:not(.j-m-unfold-post--media)
+  .blocks-readonly
+  .b-text-ro.is-align-right {
+  text-align: right;
 }
 .cins-editor-page
   .ed-cp-journey-live

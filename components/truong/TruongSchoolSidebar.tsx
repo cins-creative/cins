@@ -1,6 +1,6 @@
 "use client";
 
-import { BadgeCheck, Pencil } from "lucide-react";
+import { BadgeCheck } from "lucide-react";
 
 import { CoSoOrgFollowButton } from "@/components/co-so/CoSoOrgFollowButton";
 import { OrgSidebarShareButton } from "@/components/org/OrgSidebarShareButton";
@@ -98,16 +98,6 @@ function TruongSidebarStack({
           ) : null}
         </h1>
         {subtitle ? <p className="cso-ss-sub">{subtitle}</p> : null}
-        {isEditing && onOpenSettings ? (
-          <button
-            type="button"
-            className="cso-ss-edit-info-btn"
-            onClick={() => onOpenSettings("identity")}
-          >
-            <Pencil size={14} strokeWidth={2.2} aria-hidden />
-            Sửa thông tin trường
-          </button>
-        ) : null}
       </div>
 
       <div className="cso-ss-badges">

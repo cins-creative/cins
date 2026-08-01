@@ -111,7 +111,7 @@ export async function chayDang(db, flags = {}) {
       `
       id, tieu_de, mo_ta, dong_ghi_nguon, trang_thai,
       id_tai_khoan, id_muc,
-      auto_tai_khoan ( id, slug, dang_bat, han_muc_ngay ),
+      auto_tai_khoan ( id, slug, dang_bat, han_muc_ngay, loai ),
       auto_muc ( id, url_canonic, nen_tang, ten_tac_gia, anh_bia_url, trang_thai, meta )
     `,
     )
@@ -126,6 +126,7 @@ export async function chayDang(db, flags = {}) {
     const tk = r.auto_tai_khoan;
     const muc = r.auto_muc;
     if (!tk?.dang_bat || !muc?.url_canonic) return false;
+    if (tk.loai && tk.loai !== "ai") return false;
     if (slugFilter && tk.slug !== slugFilter) return false;
     return true;
   });

@@ -4,6 +4,8 @@ import { JourneyProfileShell } from "@/app/[slug]/_components/JourneyProfileShel
 import type { EditProfileInitial } from "@/components/journey/JourneyEditProfileModal";
 import type { JourneyProfileView } from "@/components/journey/JourneySidebar";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
+import { adminCoTheSuaBaiNickSeeding } from "@/lib/admin/seeding-nick";
+import { getCurrentUserSystemRole } from "@/lib/auth/system-role";
 import {
   normalizeLoaiMocVisibility,
   type LoaiMocVisibilityMap,
@@ -58,11 +60,22 @@ export async function JourneyProfilePageLoader({
 
   const isOwner = session ? owner.auth_user_id === session.authUserId : false;
 
+  const adminSeedingEdit =
+    !isOwner && session
+      ? await adminCoTheSuaBaiNickSeeding({
+          role: await getCurrentUserSystemRole(),
+          idNguoiDung: owner.id,
+        })
+      : false;
+
+  /** UI + quyền thao tác như chủ (admin trên nick seeding). */
+  const manageAsOwner = isOwner || adminSeedingEdit;
+
   if (isOwner && owner.giai_doan === null) {
     redirect("/onboarding");
   }
 
-  if (!isOwner && owner.giai_doan === null) {
+  if (!manageAsOwner && owner.giai_doan === null) {
     notFound();
   }
 
@@ -84,7 +97,7 @@ export async function JourneyProfilePageLoader({
   const viewerProfileId = session?.profile?.id ?? null;
 
   const initialKetBanStatusPromise: Promise<KetBanStatusSummary | null> =
-    viewerProfileId && !isOwner
+    viewerProfileId && !manageAsOwner
       ? getQuanHeDetail(viewerProfileId, owner.id).then((detail) => ({
           trang_thai: detail.trangThai,
           ket_ban_id: detail.ketBanId,
@@ -93,12 +106,12 @@ export async function JourneyProfilePageLoader({
       : Promise.resolve(null);
 
   const emailPublic = owner.visibility_email === "public";
-  const emailForView = isOwner || emailPublic ? owner.email_lien_he : null;
+  const emailForView = manageAsOwner || emailPublic ? owner.email_lien_he : null;
 
   const banHangBat = owner.ban_hang_bat === true;
   const shopHienThi = owner.shop_hien_thi === true;
   /* Chủ xem trước khi công khai; khách chỉ thấy khi bật «Hiển thị shop». */
-  const showShop = banHangBat && (isOwner || shopHienThi);
+  const showShop = banHangBat && (manageAsOwner || shopHienThi);
 
   if (storefront) {
     if (!showShop) notFound();
@@ -120,7 +133,7 @@ export async function JourneyProfilePageLoader({
     owner.journey_loai_moc_visibility,
   );
 
-  const editProfileInitial: EditProfileInitial | undefined = isOwner
+  const editProfileInitial: EditProfileInitial | undefined = manageAsOwner
     ? {
         tenHienThi: owner.ten_hien_thi ?? "",
         bio: owner.bio ?? "",
@@ -148,16 +161,16 @@ export async function JourneyProfilePageLoader({
   const ownerName = owner.ten_hien_thi || `@${slug}`;
   const ownerAvatarUrl = getAvatarUrl(owner.avatar_id);
 
-  const initialCompose = isOwner
-    ? parseComposeSearchParams(
-        (() => {
-          const params = new URLSearchParams();
-          if (compose) params.set("compose", compose);
-          if (edit) params.set("edit", edit);
-          return params;
-        })(),
-      )
-    : null;
+  const initialCompose = manageAsOwner
+      ? parseComposeSearchParams(
+          (() => {
+            const params = new URLSearchParams();
+            if (compose) params.set("compose", compose);
+            if (edit) params.set("edit", edit);
+            return params;
+          })(),
+        )
+      : null;
 
   const initialKetBanStatus = await initialKetBanStatusPromise;
 
@@ -170,7 +183,8 @@ export async function JourneyProfilePageLoader({
         ownerCoverUrl={getProfileCoverUrl(owner.cover_id)}
         emailForView={emailForView}
         ownerName={ownerName}
-        isOwner={isOwner}
+        isOwner={manageAsOwner}
+        adminSeedingEdit={adminSeedingEdit}
         viewerProfileId={viewerProfileId}
         initialKetBanStatus={initialKetBanStatus}
         filterVisibility={filterVisibility}

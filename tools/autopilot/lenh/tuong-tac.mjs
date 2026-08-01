@@ -70,6 +70,7 @@ export async function chayTuongTac(db, flags = {}) {
     .from("auto_tai_khoan")
     .select("id, slug, id_nguoi_dung, niche, tuong_tac_bat")
     .eq("tuong_tac_bat", true)
+    .eq("loai", "ai")
     .not("id_nguoi_dung", "is", null);
   const { data: nickRows, error: nickErr } = await qNick;
   if (nickErr) throw new Error(`Đọc auto_tai_khoan: ${nickErr.message}`);
