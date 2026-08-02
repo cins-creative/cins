@@ -26,7 +26,7 @@ function shouldApplyMaintenance(hostname: string): boolean {
 
 /**
  * Path bỏ qua hoàn toàn (không resolveSession): static, maintenance,
- * `/auth/*` + `/api/auth/*` (tự quản cookie — PKCE / exchange / restore).
+ * `/auth/*` + `/api/auth/*` (tự quản cookie — PKCE / exchange).
  * `/login` KHÔNG thuộc nhóm này — xem `isSessionSyncOnlyPath`.
  */
 function isBypassedPath(pathname: string): boolean {
@@ -271,6 +271,16 @@ export async function middleware(request: NextRequest) {
   const ogRequest = new NextRequest(request, { headers: requestHeaders });
 
   const { response: sessionResponse, userId } = await resolveSession(ogRequest);
+
+  /* TODO(2026-09): gỡ block này — dọn cookie kho đa tài khoản cũ
+   * (~4 tuần sau deploy 2026-08-02). Chỉ xóa khi request mang cookie;
+   * không đụng `sb-*-auth-token` (phiên đăng nhập chuẩn). */
+  if (request.cookies.has("cins-accounts")) {
+    sessionResponse.cookies.delete("cins-accounts");
+  }
+  if (request.cookies.has("cins-restore-hint")) {
+    sessionResponse.cookies.delete("cins-restore-hint");
+  }
 
   /* /login: chỉ sync cookie phiên — return trước maintenance + protected. */
   if (isSessionSyncOnlyPath(pathname)) {

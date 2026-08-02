@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 
-import { getSwitchableAccounts } from "@/lib/auth/account-vault";
 import { getCurrentUserIsCinsAdmin } from "@/lib/auth/cins-admin-server";
 import { getAvatarUrl } from "@/lib/journey/profile";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
@@ -12,16 +11,12 @@ export async function GET() {
   if (!session?.profile) {
     return NextResponse.json({
       profile: null,
-      savedAccounts: [],
       isCinsAdmin: false,
     });
   }
 
   const { id, slug, ten_hien_thi, email, avatar_id } = session.profile;
-  const [savedAccounts, isCinsAdmin] = await Promise.all([
-    getSwitchableAccounts(slug),
-    getCurrentUserIsCinsAdmin(),
-  ]);
+  const isCinsAdmin = await getCurrentUserIsCinsAdmin();
   return NextResponse.json({
     profile: {
       id,
@@ -31,7 +26,6 @@ export async function GET() {
       avatarId: avatar_id,
       avatarUrl: getAvatarUrl(avatar_id),
     },
-    savedAccounts,
     isCinsAdmin,
   });
 }

@@ -1,12 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import {
-  ACCOUNT_VAULT_COOKIE,
-  decodeVault,
-  setAccountVaultOnResponse,
-  setRestoreHintOnResponse,
-  upsertAccount,
-} from "@/lib/auth/account-vault";
 import { EMAIL_OTP_LENGTH } from "@/lib/auth/email-otp";
 import { normalizeOAuthReturnPath } from "@/lib/auth/oauth-return-path";
 import {
@@ -167,25 +160,8 @@ export async function POST(request: NextRequest) {
     redirectTo = "/";
   }
 
-  /* Ghi vault + hint lên `carrier` (chỉ dùng cookies.set) TRƯỚC khi copy.
-   * Không set cookie trực tiếp lên `response` sau khi đã append Set-Cookie thô:
-   * ResponseCookies sẽ re-parse header đã append (split theo dấu phẩy) và làm
-   * hỏng/rớt cookie phiên bị chunk → mất session → nhảy về trang khách. */
-  if (profile?.slug && data.session?.refresh_token) {
-    const vault = decodeVault(request.cookies.get(ACCOUNT_VAULT_COOKIE)?.value);
-    setAccountVaultOnResponse(
-      carrier,
-      upsertAccount(vault, {
-        slug: profile.slug,
-        tenHienThi: profile.ten_hien_thi,
-        avatarId: profile.avatar_id,
-        refreshToken: data.session.refresh_token,
-        addedAt: Date.now(),
-      }),
-    );
-    setRestoreHintOnResponse(carrier);
-  }
-
+  /* Cookie phiên đã ghi trên `carrier` qua createSupabaseRouteHandlerClient.
+   * Copy một lần sang response JSON — không mix headers.append + cookies.set. */
   const response = NextResponse.json({ ok: true, redirect: redirectTo });
   appendSetCookieHeaders(carrier, response);
   return response;

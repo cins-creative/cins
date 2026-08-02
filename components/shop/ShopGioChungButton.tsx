@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  ArrowLeft,
   Check,
   History,
   Loader2,
@@ -235,14 +236,19 @@ export function ShopGioChungButton() {
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key !== "Escape") return;
+      if (payingSellerId) {
+        setPayingSellerId(null);
+        return;
+      }
+      setOpen(false);
     };
     window.addEventListener("keydown", onKey);
     return () => {
       document.body.style.overflow = prev;
       window.removeEventListener("keydown", onKey);
     };
-  }, [open]);
+  }, [open, payingSellerId]);
 
   /** Gửi PATCH số lượng cuối cùng (đã debounce) — chạy nền. */
   const flushQtySync = useCallback(async (idBienThe: string) => {
@@ -345,6 +351,10 @@ export function ShopGioChungButton() {
   /* Ẩn nhóm đã gửi khỏi list chờ (đã có card xanh). */
   const pendingGroups = groups.filter((g) => !sentSellerIds.has(g.idNguoiBan));
   const isSplitLayout = pendingGroups.length > 0;
+  const isPaying = payingSellerId != null;
+  const payingGroup = isPaying
+    ? pendingGroups.find((g) => g.idNguoiBan === payingSellerId)
+    : null;
 
   /* Shop đang thanh toán bị gỡ khỏi giỏ → bỏ chọn cột phải. */
   useEffect(() => {
@@ -365,20 +375,38 @@ export function ShopGioChungButton() {
             }}
           >
             <aside
-              className={`gio-chung-panel${isSplitLayout ? " is-split" : ""}`}
+              className={`gio-chung-panel${isSplitLayout ? " is-split" : ""}${isPaying ? " is-paying" : ""}`}
               role="dialog"
               aria-modal="true"
-              aria-label="Giỏ chờ mua"
+              aria-label={isPaying ? "Thanh toán" : "Giỏ chờ mua"}
             >
               <header className="gio-chung-hdr">
-                <div>
+                <div
+                  className={`gio-chung-hdr-copy gio-chung-hdr-cart${isPaying ? " is-mobile-hidden" : ""}`}
+                >
                   <p className="gio-chung-kicker">Giỏ chờ mua</p>
                   <h2>Hàng của bạn</h2>
+                </div>
+                <div
+                  className={`gio-chung-hdr-main gio-chung-hdr-pay${isPaying ? " is-mobile-visible" : ""}`}
+                >
+                  <button
+                    type="button"
+                    className="gio-chung-back"
+                    aria-label="Quay lại giỏ hàng"
+                    onClick={() => setPayingSellerId(null)}
+                  >
+                    <ArrowLeft size={18} strokeWidth={2} aria-hidden />
+                  </button>
+                  <div className="gio-chung-hdr-copy">
+                    <p className="gio-chung-kicker">Thanh toán</p>
+                    <h2>{payingGroup?.tenCuaHang ?? "Cửa hàng"}</h2>
+                  </div>
                 </div>
                 <div className="gio-chung-hdr-actions">
                   <button
                     type="button"
-                    className="gio-chung-history-btn"
+                    className={`gio-chung-history-btn${isPaying ? " is-mobile-hidden" : ""}`}
                     aria-label="Lịch sử mua hàng"
                     title="Lịch sử mua hàng"
                     onClick={() => setHistoryOpen(true)}
@@ -403,7 +431,7 @@ export function ShopGioChungButton() {
               ) : null}
 
               <div
-                className={`gio-chung-body${isSplitLayout ? " is-split" : ""}`}
+                className={`gio-chung-body${isSplitLayout ? " is-split" : ""}${isPaying ? " is-paying" : ""}`}
               >
                 {loading && groups.length === 0 && sentDons.length === 0 ? (
                   <p className="gio-chung-muted">
@@ -1029,6 +1057,7 @@ function ShopGioChungGroup({
 
   const checkoutPanel = checkoutOpen ? (
         <div className="gio-chung-checkout">
+          <div className="gio-chung-checkout-scroll">
           <div className="gio-chung-checkout-shop">
             <span className="gio-chung-checkout-shop-label">Thanh toán</span>
             <strong>{group.tenCuaHang}</strong>
@@ -1299,8 +1328,14 @@ function ShopGioChungGroup({
             </div>
             {hinhThucGiao === "online" ? (
               <p className="gio-chung-hinh-thuc-hint">
-                Người mua tự trả phí ship. Shop tạo vận đơn trên web ĐVVC (CINs
-                không liên kết carrier).
+                Hiện tại CINs chưa có tính năng liên kết đơn vị vận chuyển, shop
+                sẽ nhận đơn và người mua sẽ thanh toán phí ship sau khi nhận
+                hàng.
+              </p>
+            ) : hinhThucGiao === "truc_tiep" ? (
+              <p className="gio-chung-hinh-thuc-hint">
+                Bạn và shop tự hẹn thời gian, địa điểm để nhận hàng. Không phát
+                sinh phí vận chuyển.
               </p>
             ) : null}
           </div>
@@ -1333,9 +1368,6 @@ function ShopGioChungGroup({
                   <p>
                     Nội dung CK: <strong>{maDon}</strong>
                   </p>
-                ) : null}
-                {pay.chinhSach ? (
-                  <p className="gio-chung-pay-policy">{pay.chinhSach}</p>
                 ) : null}
               </div>
               {qrUrl ? (
@@ -1444,6 +1476,7 @@ function ShopGioChungGroup({
                     : null}
             </p>
           ) : null}
+          </div>
 
           <div className="gio-chung-checkout-actions">
             <button

@@ -15,6 +15,8 @@
   --shop-kiosk-ticker-size: 120px;
   /* Nút mở hàng ~1/2 ticker */
   --shop-kiosk-ticker-label-size: 56px;
+  /* px/giây — JS đọc qua getComputedStyle, không dùng @keyframes */
+  --shop-kiosk-ticker-speed: 28;
   position: relative;
   margin: 12px 0 4px;
   padding: 0;

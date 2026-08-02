@@ -55,7 +55,9 @@
   --shop-accent-strong: var(--cins-orange-strong, #f07800);
   position: fixed;
   inset: 0;
-  z-index: 300;
+  /* Trên j-chat-dock (480) + gopy-fab (500) + gopy modal (1000);
+     dưới j-cmt-sheet (10845) / chat overlay (11000). */
+  z-index: 1080;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -96,6 +98,42 @@
   gap: 12px;
   padding: 16px 18px 12px;
   border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.gio-chung-hdr-main {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.gio-chung-hdr-pay.is-mobile-visible {
+  display: none;
+}
+
+.gio-chung-back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-surface);
+  color: var(--ink-body);
+  cursor: pointer;
+}
+
+.gio-chung-back:hover {
+  color: var(--ink-display);
+  border-color: color-mix(in srgb, var(--ink-muted) 40%, var(--border));
+}
+
+.gio-chung-hdr-copy {
+  min-width: 0;
 }
 
 .gio-chung-kicker {
@@ -112,6 +150,9 @@
   font-size: 18px;
   font-weight: 750;
   color: var(--ink-display);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .gio-chung-hdr-actions {
@@ -209,18 +250,124 @@
 }
 
 @media (max-width: 760px) {
+  .gio-chung-overlay {
+    align-items: flex-end;
+    justify-content: stretch;
+    padding: 0;
+    background: color-mix(in srgb, #0b1220 52%, transparent);
+  }
+
+  .gio-chung-panel,
   .gio-chung-panel.is-split {
-    width: min(720px, 100%);
+    width: 100%;
+    min-height: 0;
+    max-height: min(100dvh, 100%);
+    border-radius: 16px 16px 0 0;
+    border-bottom: 0;
+    box-shadow: 0 -8px 40px rgba(15, 23, 42, 0.18);
+  }
+
+  .gio-chung-panel.is-paying .gio-chung-hdr-cart.is-mobile-hidden,
+  .gio-chung-panel.is-paying .gio-chung-history-btn.is-mobile-hidden {
+    display: none;
+  }
+
+  .gio-chung-panel.is-paying .gio-chung-hdr-pay.is-mobile-visible {
+    display: flex;
   }
 
   .gio-chung-body.is-split {
     grid-template-columns: 1fr;
-    grid-template-rows: minmax(0, 1fr) minmax(0, 1.15fr);
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  /* Mobile: mặc định chỉ xem giỏ — ẩn cột thanh toán trống. */
+  .gio-chung-body.is-split:not(.is-paying) .gio-chung-col--pay {
+    display: none;
+  }
+
+  /* Mobile checkout: full màn hình form thanh toán. */
+  .gio-chung-body.is-split.is-paying .gio-chung-col--cart {
+    display: none;
   }
 
   .gio-chung-col--cart {
     border-right: 0;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 0;
+  }
+
+  .gio-chung-col--pay {
+    background: var(--bg-surface);
+    padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Form cuộn riêng — nút Gửi/Quay lại ghim đáy cột, không sticky treo giữa. */
+  .gio-chung-panel.is-paying .gio-chung-col.gio-chung-col--pay {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
+  }
+
+  .gio-chung-panel.is-paying .gio-chung-checkout {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    overflow: hidden;
+  }
+
+  .gio-chung-panel.is-paying .gio-chung-checkout-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 8px;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .gio-chung-panel.is-paying .gio-chung-checkout-scroll::-webkit-scrollbar {
+    display: none;
+  }
+
+  .gio-chung-panel.is-paying .gio-chung-checkout-shop {
+    display: none;
+  }
+
+  .gio-chung-pay-empty {
+    display: none;
+  }
+
+  .gio-chung-nhan-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .gio-chung-pay {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .gio-chung-qr {
+    align-self: center;
+  }
+
+  .gio-chung-panel.is-paying .gio-chung-checkout-actions {
+    flex: 0 0 auto;
+    position: static;
+    margin-top: 0;
+    z-index: auto;
+    padding: 10px 0 max(4px, env(safe-area-inset-bottom, 0px));
+    border-top: 1px solid var(--border);
+    background: var(--bg-surface);
+    box-shadow: none;
+  }
+
+  .gio-chung-group.is-paying {
+    scroll-margin-top: 8px;
   }
 }
 
@@ -541,6 +688,14 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+  min-height: 0;
+}
+
+.gio-chung-checkout-scroll {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
 }
 
 .gio-chung-checkout-shop {
@@ -1165,7 +1320,8 @@
   position: fixed;
   left: 50%;
   bottom: max(24px, env(safe-area-inset-bottom, 0px));
-  z-index: 320;
+  /* Cùng tầng overlay giỏ — trên FAB chat / góp ý. */
+  z-index: 1090;
   display: flex;
   align-items: flex-start;
   gap: 10px;

@@ -14,8 +14,6 @@
 |---|---|
 | `auth/session-profile` | Lấy profile từ session |
 | `auth/login` | Đăng nhập email/username + mật khẩu (rate limit IP; username→email service role) |
-| `auth/restore` | POST — khôi phục phiên từ kho `cins-accounts` khi cookie phiên mất (chỉ gỡ nick khi refresh token chết thật) |
-| `auth/vault-sync` | POST — đồng bộ refresh token hiện hành vào kho sau `TOKEN_REFRESHED` (không nhận body/slug từ client) |
 | `auth/resend-signup-otp` | Gửi lại mã OTP xác nhận đăng ký |
 | `auth/forgot-password` | Gửi OTP khôi phục mật khẩu (`resetPasswordForEmail`); email ghi cookie httpOnly `cins-pw-recovery`; anti-enumeration |
 | `auth/reset-password` | `verifyOtp` type `recovery` + `updateUser({ password })`; đọc email từ cookie recovery |
@@ -222,7 +220,7 @@ Tái dùng đúng pattern Shopee AI cho **user tự import portfolio** của ch�
 
 | Domain | Path |
 |---|---|
-| Shop UGC (L33) | `lib/shop/` — types, terms, catalog, giá, giỏ (post + cửa hàng), đơn, storefront, quầy, post-hang, cửa hàng, **hub listing** (`cua-hang-listing.ts` + `cua-hang-listing-types.ts`), **`shopee/`** (import Shopee → kho) |
+| Shop UGC (L33) | `lib/shop/` — types, terms, catalog, giá, giỏ (post + cửa hàng), đơn, storefront, quầy, post-hang, cửa hàng, **hub listing** (`cua-hang-listing.ts` + `cua-hang-listing-types.ts`), **`shopee/`** (import Shopee → kho), **`khach-hang.ts`** (thẻ phân loại khách trong chat) |
 
 | Folder | Vai trò chính | File đáng chú ý |
 |---|---|---|
@@ -273,6 +271,7 @@ Tái dùng đúng pattern Shopee AI cho **user tự import portfolio** của ch�
 | `migration_social_bao_cao.sql` | Bảng `social_bao_cao` + enum loại/trạng thái báo cáo. Chạy: `node scripts/run-bao-cao-migration.mjs`. |
 | `migration_bao_cao_lua_dao.sql` | Thêm enum `lua_dao` (Lừa đảo). Chạy: `node scripts/run-bao-cao-lua-dao-migration.mjs`. |
 | `migration_shop_ban_hang.sql` | **L33 Shop UGC:** `ban_hang_bat` / `ban_hang_dieu_khoan_luc`; bảng `shop_*` (catalog, giá, post-hang, giỏ, đơn, quầy) + RLS. Chạy: `node scripts/run-shop-ban-hang-migration.mjs`. |
+| `migration_shop_the_khach.sql` | **Thẻ phân loại khách hàng (chat):** `shop_the_khach` + `shop_the_khach_gan` (chỉ seller RLS); seed 3 thẻ mặc định cho seller `ban_hang_bat`. App: `lib/shop/khach-hang.ts`, API `/api/shop/khach-hang/**`, overlay tab «Khách hàng». Chạy: `npm run migrate:shop-the-khach`. **Đã chạy** CINs 2026-08-02. |
 | `migration_ket_ban.sql` | Bảng `user_ket_ban` (thay follow-user) |
 | `migration_content_thao_luan.sql` | Bảng `content_thao_luan` (+ liên quan) |
 | `migration_cong_dong.sql` | Cộng đồng (org loại `cong_dong`) |
@@ -490,8 +489,8 @@ Code map: `lib/journey/images.ts` (role `gallery-grid` → `grid` + `srcset` `gr
 | Nhãn riêng (filter) | Khách **được** thấy / lọc nhãn `filter_nhan` của chủ Journey (chỉ nhãn có ≥1 cột mốc visible). UI: `JourneyPersonalFilterMenuSection` + `orderTimelinePersonalFilters`. Provider: `JourneyProfileShellClient` **luôn** bọc `JourneyComposeProvider` (kèm `JourneyPersonalFilterProvider`) kể cả `!isOwner` — thiếu provider thì dropdown mất section «Nhãn riêng» / `?filter=` không chạy. API: `GET /api/filters?userId=`. Deep link: `lib/filter/client-utils.ts` |
 | Tương tác | Like / bookmark / bình luận → modal đăng nhập nếu chưa session (`AuthGateProvider` trên `app/[slug]/layout`; cộng đồng: `useCongDongAuthGate` + `AuthRequiredModal`) |
 | OAuth | Google PKCE — `app/auth/callback/route.ts`; cookie `cins-oauth-intent`, `cins-oauth-return`. Host production duy nhất: **`cins.vn`** (Cloudflare) — **không** Vercel / `*.vercel.app`. Chặn in-app browser trước khi redirect (`lib/auth/in-app-browser.ts`); map lỗi Google (`lib/auth/oauth-errors.ts`, gồm `disallowed_useragent`) |
-| Kho đa tài khoản | Cookie httpOnly `cins-accounts` (refresh token) + `cins-restore-hint`. Switch: `switchAccountAction`. Restore: `POST /api/auth/restore`. Sync sau xoay token: `POST /api/auth/vault-sync` (client `AuthSessionRemember` khi `TOKEN_REFRESHED`). Plan: `docs/PLAN_auth_session_on_dinh.md` |
-| Middleware `/login` | `resolveSession()` đồng bộ cookie phiên trên `/login` (không bypass) — tránh RSC vứt refresh token vừa xoay. Vẫn bypass hoàn toàn `/auth/*` + `/api/auth/*`. `/login` return trước maintenance rewrite. |
+| Phiên đơn | Cookie Supabase `sb-*-auth-token` (maxAge 400 ngày qua `@supabase/ssr`) + middleware `resolveSession()`. Không còn kho đa tài khoản / switch / restore. Plan gỡ: `docs/PLAN_go_multi_account.md` |
+| Middleware `/login` | `resolveSession()` đồng bộ cookie phiên trên `/login` (không bypass) — tránh RSC vứt refresh token vừa xoay. **Không được regress** sang bypass `/login`. Vẫn bypass hoàn toàn `/auth/*` + `/api/auth/*`. `/login` return trước maintenance rewrite. |
 | Protected | `/onboarding`, `/admin`, `/{slug}/p/new`, `/{slug}/p/.../edit` |
 | Admin panel gate | Middleware: session bắt buộc. `renderAdminPage` + `lib/auth/system-role.ts`: chỉ `super_admin` / `admin` / `curator`. Tab `/admin/nguoi-dung`: `canManageUsers` (super_admin + admin). Sửa nội dung: `canEditContent`. **Phân quyền org** (`/admin/to-chuc`, nút Shield): chỉ `super_admin` + `CINS_ORG_DELEGATION_PASSWORD` + mật khẩu ủy quyền mỗi mutation (L22). |
 | Dev OAuth | `NEXT_PUBLIC_SITE_URL=http://localhost:3001` trong `.env.local`; mở đúng `http://localhost:3001/login` (không `127.0.0.1` / `0.0.0.0` / IP LAN). Supabase Redirect URLs: `http://localhost:3001/auth/callback` |

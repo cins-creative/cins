@@ -17,9 +17,10 @@ export function useJourneyPostOverlay() {
     setMilestoneId(null);
   }, []);
 
-  const overlay = (
-    <JourneyPostModal milestoneId={milestoneId} onClose={closePost} />
-  );
+  const overlay =
+    milestoneId != null ? (
+      <JourneyPostModal milestoneId={milestoneId} onClose={closePost} />
+    ) : null;
 
   return { openPost, closePost, overlay, activeMilestoneId: milestoneId };
 }

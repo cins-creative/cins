@@ -1375,12 +1375,37 @@ export async function listOrgThreadsForUser(viewerId: string): Promise<ChatThrea
 
 export async function listAllChatThreads(viewerId: string): Promise<ChatThread[]> {
   const { listGroupThreads } = await import("@/lib/chat/group-message");
-  const [direct, group, org] = await Promise.all([
+  const { getBanHangEnabled } = await import("@/lib/shop/settings");
+  const { listShopKhachHang } = await import("@/lib/shop/khach-hang");
+
+  const banHangBat = await getBanHangEnabled(viewerId);
+  const [direct, group, org, khachMap] = await Promise.all([
     listDirectThreads(viewerId),
     listGroupThreads(viewerId),
     listOrgThreadsForUser(viewerId),
+    // Overlay chỉ cho seller — buyer/user thường không query shop.
+    // Bất biến: viewerId === sellerId (caller luôn truyền session.profile.id).
+    banHangBat ? listShopKhachHang(viewerId) : Promise.resolve(null),
   ]);
   const merged = [...direct, ...group, ...org];
+  if (khachMap && khachMap.size > 0) {
+    for (const thread of merged) {
+      if (
+        thread.kind !== "user" ||
+        thread.isGroup ||
+        thread.isSelf ||
+        !thread.peerUserId
+      ) {
+        continue;
+      }
+      const khach = khachMap.get(thread.peerUserId);
+      if (!khach) continue;
+      thread.isKhachHang = true;
+      thread.khachHangSoDon = khach.soDon;
+      thread.khachHangChiDonHuy = khach.chiDonHuy;
+      thread.khachHangTagIds = khach.tagIds;
+    }
+  }
   merged.sort(
     (a, b) => new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime(),
   );

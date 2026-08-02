@@ -1,13 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import {
-  ACCOUNT_VAULT_COOKIE,
-  decodeVault,
-  setAccountVaultOnResponse,
-  setRestoreHintOnResponse,
-  upsertAccount,
-} from "@/lib/auth/account-vault";
-import {
   EMAIL_OTP_DIGIT_PATTERN,
   EMAIL_OTP_LENGTH,
   mapOtpError,
@@ -160,21 +153,6 @@ export async function POST(request: NextRequest) {
    * Không mix headers.append (auth cookie) + cookies.set trên cùng response —
    * ResponseCookies re-parse header đã append sẽ làm rớt cookie phiên bị chunk. */
   clearRecoveryEmailCookie(carrier);
-
-  if (profile?.slug && verifyData.session?.refresh_token) {
-    const vault = decodeVault(request.cookies.get(ACCOUNT_VAULT_COOKIE)?.value);
-    setAccountVaultOnResponse(
-      carrier,
-      upsertAccount(vault, {
-        slug: profile.slug,
-        tenHienThi: profile.ten_hien_thi,
-        avatarId: profile.avatar_id,
-        refreshToken: verifyData.session.refresh_token,
-        addedAt: Date.now(),
-      }),
-    );
-    setRestoreHintOnResponse(carrier);
-  }
 
   const response = NextResponse.json({ ok: true, redirect: redirectTo });
   appendSetCookieHeaders(carrier, response);

@@ -103,6 +103,12 @@ export async function setBanHangEnabled(
     console.error("[shop] setBanHangEnabled", error);
     throw new Error("UPDATE_FAILED");
   }
+  if (enabled) {
+    const { seedShopKhachHangTagsIfEmpty } = await import(
+      "@/lib/shop/khach-hang"
+    );
+    await seedShopKhachHangTagsIfEmpty(userId);
+  }
   return rowToSettings(data);
 }
 

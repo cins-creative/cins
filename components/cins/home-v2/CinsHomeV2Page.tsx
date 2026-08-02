@@ -5,10 +5,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { HomeV2TopbarUserMenu } from "@/components/cins/home-v2/HomeV2TopbarUserMenu";
 import { GuestHomeLoginPanel } from "@/components/cins/home-v2/GuestHomeLoginPanel";
-import type {
-  SwitchableAccount,
-  UserAccountProfile,
-} from "@/components/cins/UserAccountMenu";
+import type { UserAccountProfile } from "@/components/cins/UserAccountMenu";
 import "@/app/cins-home-v2-page.css";
 
 type Props = {
@@ -24,9 +21,6 @@ export function CinsHomeV2Page({ chrome, main }: Props) {
   );
   const [topbarProfile, setTopbarProfile] =
     useState<UserAccountProfile | null>(null);
-  const [topbarSavedAccounts, setTopbarSavedAccounts] = useState<
-    SwitchableAccount[]
-  >([]);
   const router = useRouter();
 
   useEffect(() => {
@@ -39,7 +33,6 @@ export function CinsHomeV2Page({ chrome, main }: Props) {
         (
           json: {
             profile?: (UserAccountProfile & { avatarId?: string | null }) | null;
-            savedAccounts?: SwitchableAccount[];
           } | null,
         ) => {
           if (!json?.profile?.slug) return;
@@ -60,7 +53,6 @@ export function CinsHomeV2Page({ chrome, main }: Props) {
             tenHienThi: json.profile.tenHienThi,
             avatarUrl: json.profile.avatarUrl ?? null,
           });
-          setTopbarSavedAccounts(json.savedAccounts ?? []);
         },
       )
       .catch(() => {
@@ -249,7 +241,6 @@ export function CinsHomeV2Page({ chrome, main }: Props) {
       <HomeV2TopbarUserMenu
         mountEl={topbarUserMount}
         profile={topbarProfile}
-        savedAccounts={topbarSavedAccounts}
       />
     </>
   );

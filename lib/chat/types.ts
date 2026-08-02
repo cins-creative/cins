@@ -190,6 +190,9 @@ export type ChatParticipantKind = "user" | "org";
 
 export type ChatThreadGroup = "ban_be" | "nguoi_la" | "to_chuc";
 
+/** Tab UI — gồm «Khách hàng» (chiều phụ, không thay `ChatThreadGroup`). */
+export type ChatThreadView = ChatThreadGroup | "khach_hang";
+
 export type ChatOrgKind =
   | "co_so_dao_tao"
   | "truong_dai_hoc"
@@ -292,6 +295,17 @@ export type ChatThread = {
   online?: boolean;
   typing?: boolean;
   messages: ChatMessage[];
+  /**
+   * Viewer là seller và peer đã mua hàng của viewer (chỉ seller thấy).
+   * Không đụng `group` — khách hàng vẫn nằm ở ban_be/nguoi_la.
+   */
+  isKhachHang?: boolean;
+  /** Số đơn (loại nháp) — tooltip/sort tab Khách hàng. */
+  khachHangSoDon?: number;
+  /** Mọi đơn đều hủy → UI hiện nhạt. */
+  khachHangChiDonHuy?: boolean;
+  /** Thẻ phân loại do seller gán (server chỉ trả cho seller). */
+  khachHangTagIds?: string[];
 };
 
 export const CHAT_ORG_KIND_LABEL: Record<ChatOrgKind, string> = {
@@ -319,6 +333,21 @@ export const CHAT_THREAD_GROUP_LABEL: Record<ChatThreadGroup, string> = {
   ban_be: "Bạn bè",
   nguoi_la: "Người lạ",
   to_chuc: "Tổ chức",
+};
+
+/** Thứ tự tab UI (gồm Khách hàng — chỉ hiện khi seller). */
+export const CHAT_THREAD_VIEW_ORDER: ChatThreadView[] = [
+  "ban_be",
+  "nguoi_la",
+  "to_chuc",
+  "khach_hang",
+];
+
+export const CHAT_THREAD_VIEW_LABEL: Record<ChatThreadView, string> = {
+  ban_be: "Bạn bè",
+  nguoi_la: "Người lạ",
+  to_chuc: "Tổ chức",
+  khach_hang: "Khách hàng",
 };
 
 export type ChatThreadsResponse = {

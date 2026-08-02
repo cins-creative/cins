@@ -120,6 +120,14 @@ export function JourneyPostModal({
       aria-label="Chi tiết bài viết"
       onClick={handleBackdropClick}
     >
+      <button
+        type="button"
+        className="j-post-close"
+        aria-label="Đóng"
+        onClick={onClose}
+      >
+        ×
+      </button>
       <article
         className="j-post-sheet"
         ref={sheetRef}

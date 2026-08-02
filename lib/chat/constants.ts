@@ -24,6 +24,9 @@ export const PROJECT_IDLE_DAYS_HINT = 45;
 /** Số thẻ tài nguyên tối đa mỗi phòng. */
 export const MAX_ROOM_RESOURCE_TAGS = 30;
 
+/** Số thẻ phân loại khách hàng tối đa mỗi shop. */
+export const MAX_SHOP_CUSTOMER_TAGS = 20;
+
 /** Số mốc timeline tối đa mỗi phòng. */
 export const MAX_ROOM_MOCS = 50;
 

@@ -5,7 +5,6 @@ import {
   Briefcase,
   Calendar,
   ExternalLink,
-  FileText,
   FolderKanban,
   Globe,
   Lock,
@@ -146,9 +145,8 @@ type Props = {
   };
   /** Split rail — ô nhập luôn dính đáy, danh sách BL scroll phía trên. */
   commentsPinCompose?: boolean;
-  /** Permalink split — ẩn phần hero rail (vd. kicker trùng thẻ). */
+  /** Permalink split — ẩn meta rail khi cần. */
   splitSkip?: {
-    kicker?: boolean;
     /** Ẩn meta rail (author, chips, actions) — nội dung text giữ trên cột chính. */
     rail?: boolean;
   };
@@ -416,27 +414,9 @@ export function JourneyPostBody({
 
   const actionsRailCompact = actionsRail;
 
-  /** Kicker chỉ khi có thẻ bài viết — không dùng loại cột mốc (Cá nhân…) như card. */
-  const kickerLabel = mainPost?.articleTags[0]?.tieu_de ?? null;
-  const KickerIcon = FileText;
-
-  const kickerEl =
-    isSplit &&
-    variant === "full" &&
-    !mediaPost &&
-    !isTextPost &&
-    !splitSkip?.kicker &&
-    kickerLabel ? (
-      <span className="post-view-kicker">
-        <KickerIcon size={13} strokeWidth={2} aria-hidden />
-        {kickerLabel}
-      </span>
-    ) : null;
-
   const splitHeroEl =
     isSplit && variant === "full" && !mediaPost && !isTextPost ? (
       <>
-        {kickerEl}
         {heroTitleEl}
         {heroCaptionEl}
       </>

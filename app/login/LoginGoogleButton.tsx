@@ -68,8 +68,6 @@ type Props = {
   /** Khóa loading chéo: 1 nút đang chạy → nút kia disable. */
   disabled?: boolean;
   returnTo?: string | null;
-  /** Ép Google hiện picker — «Thêm tài khoản». */
-  forceAccountPicker?: boolean;
   onLoadingChange?: (loading: boolean) => void;
   onError?: (message: string) => void;
 };
@@ -80,7 +78,6 @@ export function LoginGoogleButton({
   label,
   disabled,
   returnTo,
-  forceAccountPicker = false,
   onLoadingChange,
   onError,
 }: Props) {
@@ -93,7 +90,6 @@ export function LoginGoogleButton({
     onLoadingChange?.(true);
     const { error } = await startGoogleLogin(intent, {
       returnTo: returnTo ?? undefined,
-      forceAccountPicker,
     });
     if (error) {
       onError?.(error);

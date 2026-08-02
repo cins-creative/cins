@@ -1,4 +1,20 @@
 /**
+ * Slug ổn định cho tên thẻ (tiếng Việt → ASCII).
+ * Dùng chung room tags + shop customer tags.
+ */
+export function slugifyTagName(value: string): string {
+  const cleaned = value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 48);
+  return cleaned || "the";
+}
+
+/**
  * Palette cố định cho thẻ tài nguyên phòng chat.
  * Không trùng tint “purple AI default”; đủ tách biệt trên nền trắng.
  */

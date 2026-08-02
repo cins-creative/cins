@@ -137,10 +137,16 @@
   padding: 4px;
   border-radius: var(--radius-pill);
   background: rgba(0, 0, 0, 0.05);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.cins-chat-thread-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .cins-chat-thread-tab {
-  flex: 1;
+  flex: 1 1 0;
   min-width: 0;
   display: inline-flex;
   align-items: center;
@@ -155,6 +161,7 @@
   font: inherit;
   font-size: 12px;
   font-weight: 700;
+  white-space: nowrap;
   cursor: pointer;
   transition:
     background 160ms ease,
@@ -860,6 +867,7 @@ html.is-cins-share-dropping {
   gap: 6px;
   min-width: 0;
   flex: 1;
+  flex-wrap: wrap;
 }
 
 .cins-chat-thread-name strong,
@@ -926,6 +934,285 @@ html.is-cins-share-dropping {
 .cins-chat-kind-pill.is-studio {
   background: rgba(139, 92, 246, 0.12);
   color: #6d28d9;
+}
+
+.cins-chat-kind-pill.is-khach {
+  background: color-mix(in srgb, var(--cins-orange) 18%, #fff);
+  color: #9a3412;
+}
+
+.cins-chat-kind-pill.is-khach.is-cancelled-only {
+  opacity: 0.55;
+}
+
+.cins-chat-khach-tag-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 4px;
+  flex-shrink: 0;
+}
+
+.cins-chat-khach-tag-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.cins-chat-khach-tag-chip {
+  display: inline-flex;
+  align-items: center;
+  max-width: 120px;
+  padding: 1px 7px;
+  border: 1px solid;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.5;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cins-chat-khach-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 14px 10px;
+}
+
+.cins-chat-khach-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 26px;
+  padding: 0 9px;
+  border: 1px solid;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cins-chat-khach-tag-wrap {
+  position: relative;
+}
+
+.cins-chat-khach-tag-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 40;
+  width: min(280px, 78vw);
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-lg);
+}
+
+.cins-chat-khach-tag-popover-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.cins-chat-khach-tag-popover-head strong {
+  font-size: 13px;
+  color: var(--ink-display);
+}
+
+.cins-chat-khach-tag-empty {
+  margin: 0 0 8px;
+  color: var(--ink-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.cins-chat-khach-tag-list {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.cins-chat-khach-tag-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cins-chat-khach-tag-toggle {
+  flex: 1;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: left;
+}
+
+.cins-chat-khach-tag-toggle span:nth-child(2) {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cins-chat-khach-tag-delete {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink-muted);
+  cursor: pointer;
+}
+
+.cins-chat-khach-tag-delete:hover {
+  background: var(--neutral-100);
+  color: #9f1239;
+}
+
+.cins-chat-khach-tag-edit-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cins-chat-khach-tag-edit-row input {
+  flex: 1;
+  min-width: 0;
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font: inherit;
+  font-size: 12px;
+}
+
+.cins-chat-khach-tag-edit-row button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--neutral-100);
+  color: var(--ink-body);
+  cursor: pointer;
+}
+
+.cins-chat-khach-tag-create {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border);
+}
+
+.cins-chat-khach-tag-create input {
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font: inherit;
+  font-size: 12px;
+}
+
+.cins-chat-khach-tag-palette {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cins-chat-khach-tag-swatch {
+  width: 18px;
+  height: 18px;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.cins-chat-khach-tag-swatch.is-active {
+  border-color: var(--ink-display);
+  box-shadow: 0 0 0 1px #fff inset;
+}
+
+.cins-chat-khach-tag-create-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.cins-chat-khach-tag-create-actions button {
+  height: 30px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cins-chat-khach-tag-create-actions button[type="button"] {
+  background: transparent;
+  color: var(--ink-muted);
+}
+
+.cins-chat-khach-tag-create-actions button[type="submit"] {
+  background: var(--cins-blue);
+  color: #fff;
+}
+
+.cins-chat-khach-tag-create-actions button[type="submit"]:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.cins-chat-khach-tag-add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  height: 32px;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink-muted);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cins-chat-khach-tag-add:hover {
+  color: var(--ink-body);
+  border-color: var(--ink-muted);
 }
 
 .cins-chat-thread.is-org-thread {

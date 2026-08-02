@@ -2,7 +2,7 @@ import "server-only";
 
 import { MAX_ROOM_RESOURCE_TAGS } from "@/lib/chat/constants";
 import { assertRoomMember } from "@/lib/chat/direct-message";
-import { pickRoomTagColor } from "@/lib/chat/tag-colors";
+import { pickRoomTagColor, slugifyTagName } from "@/lib/chat/tag-colors";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 export type ChatRoomTag = {
@@ -13,18 +13,6 @@ export type ChatRoomTag = {
   mau: string | null;
   thuTu: number;
 };
-
-function slugifyTagName(value: string): string {
-  const cleaned = value
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/đ/g, "d")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 48);
-  return cleaned || "the";
-}
 
 async function uniqueTagSlug(roomId: string, baseSlug: string): Promise<string> {
   const admin = createServiceRoleClient();

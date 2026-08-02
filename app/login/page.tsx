@@ -22,7 +22,7 @@ export default async function LoginPage({
   const { error, auto, next, them } = await searchParams;
   const errorMsg = error?.trim() || null;
 
-  /* Link cũ `?them=1` (thêm tài khoản) — nay /login đã tự xử lý khi có phiên. */
+  /* Link cũ `?them=1` (thêm tài khoản) — strip query, redirect sạch. */
   if (them !== undefined) {
     const params = new URLSearchParams();
     if (error) params.set("error", error);
@@ -37,14 +37,10 @@ export default async function LoginPage({
 
   const session = await getCurrentSessionAndProfile();
 
-  /* Đã có phiên + bị middleware đẩy về đây (?next=) → đi thẳng tới đích. */
-  if (session?.profile && !errorMsg && safeNext) {
-    redirect(safeNext);
+  /* Đã có phiên → đưa về đích (?next=) hoặc trang chủ; không còn chế độ «thêm tài khoản». */
+  if (session?.profile && !errorMsg) {
+    redirect(safeNext || "/");
   }
-
-  /* Đã có phiên mà vẫn mở /login → hiểu là "thêm tài khoản": ẩn card tài khoản
-   * đã nhớ và ép Google hiện picker để không tái dùng phiên đang mở. */
-  const addAccount = Boolean(session?.profile);
 
   /* Khi đang hiển thị banner lỗi → không auto-trigger để user thấy thông báo trước. */
   const autoIntent =
@@ -59,7 +55,6 @@ export default async function LoginPage({
           autoIntent,
           resumeAfterRedirect: Boolean(safeNext && !errorMsg),
           returnPath: safeNext,
-          addAccount,
         }}
       />
     </CinsShell>

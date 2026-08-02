@@ -63,6 +63,7 @@ import {
   JourneyCommentsSheet,
   useJourneyCommentsSheetMode,
 } from "@/components/journey/JourneyCommentsSheet";
+import { useJourneyPostOverlay } from "@/components/journey/useJourneyPostOverlay";
 import { JourneyOrgAttachTrigger } from "@/components/journey/JourneyOrgAttachTrigger";
 import { JourneyBookmarkButton } from "@/components/journey/JourneyBookmarkButton";
 import { JourneyMilestoneInlineControls } from "@/components/journey/JourneyMilestoneInlineControls";
@@ -531,6 +532,9 @@ export function JourneyMilestoneCard({
   const [banHangEnabled, setBanHangEnabled] = useState(false);
   const coarsePointer = useCoarsePointer();
   const commentsSheetMode = useJourneyCommentsSheetMode();
+  /* Mobile: bài dài → popup full (JourneyPostModal), không xổ timeline. */
+  const { openPost: openArticlePopup, overlay: articlePopupOverlay } =
+    useJourneyPostOverlay();
 
   useEffect(() => {
     if (!isOwner || !viewerProfileId) {
@@ -910,7 +914,8 @@ export function JourneyMilestoneCard({
     isArticle && articleCardEmbedInteractivePeek(body, noiDungBlocks);
   const articleHasExpandableContent =
     isArticle && articleCardHasExpandableContent(body, noiDungBlocks);
-  /* Chỉ bài viết dài — xổ/thu nội dung; ảnh·video·bình luận không dùng sticky «Thu gọn». */
+  /* Chỉ bài viết dài — desktop xổ/thu nội dung; mobile (sheet mode) mở popup.
+     Ảnh·video·bình luận không dùng sticky «Thu gọn». */
   const supportsInlineUnfold =
     articleHasExpandableContent && !embedInteractivePeek;
   const useFeedCompactMedia = feedCompactMedia && cardContentKind === "photo";
@@ -1477,8 +1482,14 @@ export function JourneyMilestoneCard({
     ) {
       return;
     }
-    expandScrollPinRef.current = captureExpandScrollPin(articleRef.current);
     trackContentOpen();
+    /* Mobile / viewport hẹp: popup full bài — tránh xổ dài phá feed.
+       org_bai_dang không load được qua JourneyPostModal → giữ xổ inline. */
+    if (commentsSheetMode && !orgBaiDangRef) {
+      openArticlePopup(milestoneId);
+      return;
+    }
+    expandScrollPinRef.current = captureExpandScrollPin(articleRef.current);
     inlineExpand.onToggleContent();
   }
 
@@ -1487,8 +1498,12 @@ export function JourneyMilestoneCard({
     if (e.key !== "Enter" && e.key !== " ") return;
     if (shouldIgnoreExpandTrigger(e.target as Element)) return;
     e.preventDefault();
-    expandScrollPinRef.current = captureExpandScrollPin(articleRef.current);
     trackContentOpen();
+    if (commentsSheetMode && !orgBaiDangRef) {
+      openArticlePopup(milestoneId);
+      return;
+    }
+    expandScrollPinRef.current = captureExpandScrollPin(articleRef.current);
     inlineExpand.onToggleContent();
   }
 
@@ -1836,6 +1851,7 @@ export function JourneyMilestoneCard({
           milestoneId={milestoneId}
         />
       ) : null}
+      {articlePopupOverlay}
     </article>
   );
 

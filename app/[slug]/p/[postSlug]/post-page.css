@@ -5452,17 +5452,42 @@
     border-radius: 0;
   }
 
-  /* Text / block khác trong inner vẫn giữ lề ngang */
+  /* Text / block khác trong inner vẫn giữ lề ngang.
+     Ảnh grid (`imgs` / `.block-image-grid`) full-bleed — không thụt 20px
+     (tránh nội dung «lệch» so với cạnh sheet). */
   .cins-post-view.post-canvas--split:not(.post-canvas--media)
     .post-view-content-inner
-    .block:not([data-block-type="embed"])
+    .block:not([data-block-type="embed"]):not([data-block-type="imgs"]):not(.block-image-grid)
     .block-inner,
   .cins-post-view
     .post-canvas--split:not(.post-canvas--media)
     .post-view-content-inner
-    .block:not([data-block-type="embed"])
+    .block:not([data-block-type="embed"]):not([data-block-type="imgs"]):not(.block-image-grid)
     .block-inner {
     padding-inline: 20px;
+  }
+
+  .cins-post-view.post-canvas--split:not(.post-canvas--media)
+    .post-view-content-inner
+    .block[data-block-type="imgs"]
+    .block-inner,
+  .cins-post-view.post-canvas--split:not(.post-canvas--media)
+    .post-view-content-inner
+    .block-image-grid
+    .block-inner,
+  .cins-post-view
+    .post-canvas--split:not(.post-canvas--media)
+    .post-view-content-inner
+    .block[data-block-type="imgs"]
+    .block-inner,
+  .cins-post-view
+    .post-canvas--split:not(.post-canvas--media)
+    .post-view-content-inner
+    .block-image-grid
+    .block-inner {
+    padding-inline: 0;
+    width: 100%;
+    max-width: 100%;
   }
 
   .cins-post-view.post-canvas--split:not(.post-canvas--media) .post-rail-blk--comments,

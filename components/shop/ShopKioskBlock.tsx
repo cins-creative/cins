@@ -55,6 +55,11 @@ type PreviewState = {
 
 /** Debounce sync giỏ — gộp nhiều lần bấm ± thành 1 PATCH. */
 const QTY_SYNC_MS = 200;
+/** Tạm dừng sau kéo/cuộn user trước khi ticker chạy lại. */
+const TICKER_RESUME_MS = 1200;
+/** Clamp dt rAF — tab vừa hồi tỉnh không nhảy một phát. */
+const TICKER_DT_MAX_MS = 64;
+const TICKER_SPEED_DEFAULT = 28;
 
 function canIncreaseLineQty(soLuongTon: number, currentQty: number): boolean {
   return currentQty < Math.max(0, soLuongTon);
@@ -117,6 +122,41 @@ export function ShopKioskBlock({
   const tickerSetWidthRef = useRef(0);
   const TICKER_COPIES = 3;
 
+  /** Vị trí cuộn số thực — scrollLeft có thể bị làm tròn. */
+  const tickerPosRef = useRef(0);
+  /** Giá trị vừa ghi xuống scrollLeft — phân biệt cuộn do mình vs user. */
+  const tickerExpectRef = useRef(0);
+  /** Lý do tạm giữ ticker; rỗng → chạy. */
+  const tickerHoldReasonsRef = useRef(new Set<string>());
+  const tickerRafRef = useRef<number | null>(null);
+  const tickerLastTsRef = useRef<number | null>(null);
+  const tickerSpeedRef = useRef(TICKER_SPEED_DEFAULT);
+  const tickerReducedMotionRef = useRef(false);
+  /** Hẹn giờ gỡ từng lý do drag / user-scroll. */
+  const tickerResumeTimersRef = useRef(
+    new Map<string, ReturnType<typeof setTimeout>>(),
+  );
+
+  /** Ghi scrollLeft + đồng bộ ref số thực / expect (cùng hệ toạ độ với drag). */
+  const writeTickerScroll = useCallback((el: HTMLDivElement, pos: number) => {
+    tickerPosRef.current = pos;
+    el.scrollLeft = pos;
+    tickerExpectRef.current = pos;
+  }, []);
+
+  const scheduleTickerHoldClear = useCallback((reason: string) => {
+    const timers = tickerResumeTimersRef.current;
+    const prev = timers.get(reason);
+    if (prev) clearTimeout(prev);
+    timers.set(
+      reason,
+      setTimeout(() => {
+        timers.delete(reason);
+        tickerHoldReasonsRef.current.delete(reason);
+      }, TICKER_RESUME_MS),
+    );
+  }, []);
+
   /**
    * Đo dải hàng: nếu 1 bản tràn khung → bật loop (nhân 3 bản, neo bản giữa);
    * nếu vừa khung → canh giữa, tắt loop. Đủ nội dung mới cho cuộn vô tận.
@@ -135,7 +175,10 @@ export function ShopKioskBlock({
         return;
       }
       if (el.scrollLeft < oneSet || el.scrollLeft >= oneSet * 2) {
-        el.scrollLeft = oneSet;
+        writeTickerScroll(el, oneSet);
+      } else {
+        tickerPosRef.current = el.scrollLeft;
+        tickerExpectRef.current = el.scrollLeft;
       }
       return;
     }
@@ -146,8 +189,11 @@ export function ShopKioskBlock({
       return;
     }
     /* Ít hàng → canh giữa để 2 mép crop, gợi ý kéo được. */
-    el.scrollLeft = Math.max(0, (el.scrollWidth - el.clientWidth) / 2);
-  }, []);
+    writeTickerScroll(
+      el,
+      Math.max(0, (el.scrollWidth - el.clientWidth) / 2),
+    );
+  }, [writeTickerScroll]);
 
   /** Cuộn qua mép bản giữa → dời scrollLeft đúng 1 bản (liền mạch vì trùng nội dung). */
   const normalizeTickerLoop = useCallback(() => {
@@ -155,15 +201,17 @@ export function ShopKioskBlock({
     const oneSet = tickerSetWidthRef.current;
     if (!el || !tickerLoopRef.current || oneSet <= 0) return;
     if (el.scrollLeft >= oneSet * 2) {
-      el.scrollLeft -= oneSet;
+      const next = el.scrollLeft - oneSet;
+      writeTickerScroll(el, next);
       const drag = tickerDragRef.current;
       if (drag) drag.startScroll -= oneSet;
     } else if (el.scrollLeft < oneSet) {
-      el.scrollLeft += oneSet;
+      const next = el.scrollLeft + oneSet;
+      writeTickerScroll(el, next);
       const drag = tickerDragRef.current;
       if (drag) drag.startScroll += oneSet;
     }
-  }, []);
+  }, [writeTickerScroll]);
 
   const onTickerPointerDown = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
@@ -172,6 +220,13 @@ export function ShopKioskBlock({
       if (e.button !== 0) return;
       const el = tickerScrollRef.current;
       if (!el) return;
+      /* Dừng ticker ngay từ lúc nhấn — không đợi ngưỡng 3px. */
+      const resumeTimer = tickerResumeTimersRef.current.get("drag");
+      if (resumeTimer) {
+        clearTimeout(resumeTimer);
+        tickerResumeTimersRef.current.delete("drag");
+      }
+      tickerHoldReasonsRef.current.add("drag");
       tickerDragRef.current = {
         pointerId: e.pointerId,
         startX: e.clientX,
@@ -200,11 +255,11 @@ export function ShopKioskBlock({
         }
       }
 
-      el.scrollLeft = drag.startScroll - dx;
+      writeTickerScroll(el, drag.startScroll - dx);
       normalizeTickerLoop();
       e.preventDefault();
     },
-    [normalizeTickerLoop],
+    [normalizeTickerLoop, writeTickerScroll],
   );
 
   const finishTickerDrag = useCallback(
@@ -221,9 +276,24 @@ export function ShopKioskBlock({
       }
       if (drag.active) tickerSuppressClickRef.current = true;
       setTickerDragging(false);
+      /* Giữ "drag" thêm ~1.2s rồi mới cho ticker chạy lại. */
+      scheduleTickerHoldClear("drag");
     },
-    [],
+    [scheduleTickerHoldClear],
   );
+
+  /** onScroll: neo loop + phát hiện cuộn user (touch/wheel). */
+  const onTickerScroll = useCallback(() => {
+    const el = tickerScrollRef.current;
+    if (!el) return;
+    if (Math.abs(el.scrollLeft - tickerExpectRef.current) > 1.5) {
+      tickerPosRef.current = el.scrollLeft;
+      tickerExpectRef.current = el.scrollLeft;
+      tickerHoldReasonsRef.current.add("user-scroll");
+      scheduleTickerHoldClear("user-scroll");
+    }
+    normalizeTickerLoop();
+  }, [normalizeTickerLoop, scheduleTickerHoldClear]);
 
   const onTickerLostPointerCapture = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
@@ -429,14 +499,156 @@ export function ShopKioskBlock({
     return () => ro.disconnect();
   }, [measureTicker]);
 
+  /* Modal mở → tạm giữ ticker; đóng → gỡ. */
+  useEffect(() => {
+    if (preview !== null || catalogOpen) {
+      tickerHoldReasonsRef.current.add("modal");
+    } else {
+      tickerHoldReasonsRef.current.delete("modal");
+    }
+  }, [preview, catalogOpen]);
+
+  /*
+   * Tự trôi bằng rAF tăng scrollLeft (cùng hệ với drag) — chỉ khi loop.
+   * Không dùng CSS translateX: hai hệ toạ độ sẽ lệch ở mép wrap.
+   */
+  useEffect(() => {
+    if (!tickerLoop) {
+      if (tickerRafRef.current != null) {
+        cancelAnimationFrame(tickerRafRef.current);
+        tickerRafRef.current = null;
+      }
+      tickerLastTsRef.current = null;
+      return;
+    }
+
+    const el = tickerScrollRef.current;
+    if (!el) return;
+
+    const root =
+      el.closest(".shop-kiosk--ticker") ?? (el.parentElement as Element | null);
+    if (root) {
+      const raw = getComputedStyle(root)
+        .getPropertyValue("--shop-kiosk-ticker-speed")
+        .trim();
+      const parsed = Number.parseFloat(raw);
+      tickerSpeedRef.current =
+        Number.isFinite(parsed) && parsed > 0 ? parsed : TICKER_SPEED_DEFAULT;
+    }
+
+    tickerPosRef.current = el.scrollLeft;
+    tickerExpectRef.current = el.scrollLeft;
+
+    const resumeTimers = tickerResumeTimersRef.current;
+    const holdReasons = tickerHoldReasonsRef.current;
+
+    const stopRaf = () => {
+      if (tickerRafRef.current != null) {
+        cancelAnimationFrame(tickerRafRef.current);
+        tickerRafRef.current = null;
+      }
+      tickerLastTsRef.current = null;
+    };
+
+    const tick = (ts: number) => {
+      tickerRafRef.current = requestAnimationFrame(tick);
+      const last = tickerLastTsRef.current;
+      tickerLastTsRef.current = ts;
+      if (last == null) return;
+      /* Có lý do giữ → bỏ qua cộng vị trí, vẫn cập nhật timestamp. */
+      if (holdReasons.size > 0) return;
+
+      let dt = ts - last;
+      if (dt > TICKER_DT_MAX_MS) dt = TICKER_DT_MAX_MS;
+      if (dt <= 0) return;
+
+      let pos = tickerPosRef.current + tickerSpeedRef.current * (dt / 1000);
+      const oneSet = tickerSetWidthRef.current;
+      /* Wrap trên ref — không đọc lại scrollLeft (tránh forced reflow). */
+      if (oneSet > 0 && pos >= oneSet * 2) {
+        pos -= oneSet;
+      }
+      writeTickerScroll(el, pos);
+    };
+
+    const startRaf = () => {
+      if (tickerReducedMotionRef.current) return;
+      if (holdReasons.has("offscreen")) return;
+      if (tickerRafRef.current != null) return;
+      tickerLastTsRef.current = null;
+      tickerRafRef.current = requestAnimationFrame(tick);
+    };
+
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const syncReducedMotion = () => {
+      tickerReducedMotionRef.current = mq.matches;
+      if (mq.matches) {
+        stopRaf();
+      } else {
+        startRaf();
+      }
+    };
+    syncReducedMotion();
+    mq.addEventListener("change", syncReducedMotion);
+
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") {
+        holdReasons.add("hidden");
+      } else {
+        holdReasons.delete("hidden");
+      }
+    };
+    onVisibility();
+    document.addEventListener("visibilitychange", onVisibility);
+
+    let io: IntersectionObserver | null = null;
+    if (typeof IntersectionObserver !== "undefined") {
+      io = new IntersectionObserver(
+        (entries) => {
+          const entry = entries[0];
+          if (!entry) return;
+          if (entry.isIntersecting) {
+            holdReasons.delete("offscreen");
+            startRaf();
+          } else {
+            /* Ra khỏi viewport → huỷ hẳn rAF (feed Journey có nhiều kiosk). */
+            holdReasons.add("offscreen");
+            stopRaf();
+          }
+        },
+        { threshold: 0 },
+      );
+      io.observe(el);
+    } else {
+      startRaf();
+    }
+
+    return () => {
+      stopRaf();
+      mq.removeEventListener("change", syncReducedMotion);
+      document.removeEventListener("visibilitychange", onVisibility);
+      io?.disconnect();
+      for (const t of resumeTimers.values()) clearTimeout(t);
+      resumeTimers.clear();
+      /* Giữ "modal" — effect preview/catalog quản lý; gỡ các lý do của vòng rAF. */
+      holdReasons.delete("offscreen");
+      holdReasons.delete("hidden");
+      holdReasons.delete("drag");
+      holdReasons.delete("user-scroll");
+    };
+  }, [tickerLoop, writeTickerScroll]);
+
   /* Dọn timer debounce khi unmount. */
   useEffect(() => {
     const timers = syncTimersRef.current;
     const pending = pendingQtyRef.current;
+    const resumeTimers = tickerResumeTimersRef.current;
     return () => {
       for (const t of timers.values()) clearTimeout(t);
       timers.clear();
       pending.clear();
+      for (const t of resumeTimers.values()) clearTimeout(t);
+      resumeTimers.clear();
     };
   }, []);
 
@@ -866,7 +1078,7 @@ export function ShopKioskBlock({
             onPointerCancel={finishTickerDrag}
             onLostPointerCapture={onTickerLostPointerCapture}
             onClickCapture={onTickerClickCapture}
-            onScroll={normalizeTickerLoop}
+            onScroll={onTickerScroll}
           >
             <div ref={tickerTrackRef} className="shop-kiosk-ticker-track">
               {Array.from({ length: tickerLoop ? TICKER_COPIES : 1 }).flatMap(

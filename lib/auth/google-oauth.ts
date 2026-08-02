@@ -27,12 +27,6 @@ export async function startGoogleLogin(
   intent: LoginIntent,
   options?: {
     returnTo?: string;
-    /**
-     * Ép Google hiện picker tài khoản — dùng khi đăng ký hoặc «Thêm tài khoản»
-     * (mở `/login` khi đang có phiên). Không set thì đăng nhập lại tái dùng
-     * Google session đã nhớ.
-     */
-    forceAccountPicker?: boolean;
   },
 ): Promise<{ error?: string }> {
   if (typeof window === "undefined") {
@@ -60,16 +54,13 @@ export async function startGoogleLogin(
     /* redirectTo KHÔNG thêm query — OAuth redirect_uri phải khớp chính xác Supabase allowlist. */
     const redirectTo = `${origin}/auth/callback`;
 
-    const pickAccount =
-      intent === "register" || Boolean(options?.forceAccountPicker);
-
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
         redirectTo,
         queryParams: {
           access_type: "offline",
-          ...(pickAccount ? { prompt: "select_account" } : {}),
+          ...(intent === "register" ? { prompt: "select_account" } : {}),
         },
         skipBrowserRedirect: false,
       },

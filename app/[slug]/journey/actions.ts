@@ -2,12 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 
-import {
-  readAccountVault,
-  setRestoreHint,
-  upsertAccount,
-  writeAccountVault,
-} from "@/lib/auth/account-vault";
 import type { GiaiDoan } from "@/lib/auth/session";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
@@ -355,28 +349,6 @@ export async function submitOnboarding(
   revalidatePath(`/${session.profile.slug}`);
   if (slug !== session.profile.slug) {
     revalidatePath(`/${slug}`);
-  }
-
-  /* Ghi nick vừa hoàn tất onboarding vào kho chuyển nhanh (slug đã chốt). */
-  try {
-    const supabase = await createClient();
-    const { data: sessionData } = await supabase.auth.getSession();
-    const refreshToken = sessionData.session?.refresh_token;
-    if (refreshToken) {
-      const vault = await readAccountVault();
-      await writeAccountVault(
-        upsertAccount(vault, {
-          slug,
-          tenHienThi: tenHienThi,
-          avatarId: avatarId ?? session.profile.avatar_id,
-          refreshToken,
-          addedAt: Date.now(),
-        }),
-      );
-      await setRestoreHint();
-    }
-  } catch {
-    /* Không chặn onboarding nếu ghi kho thất bại. */
   }
 
   return { ok: true, data: { slug } };

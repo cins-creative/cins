@@ -1,12 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import {
-  ACCOUNT_VAULT_COOKIE,
-  decodeVault,
-  setAccountVaultOnResponse,
-  setRestoreHintOnResponse,
-  upsertAccount,
-} from "@/lib/auth/account-vault";
 import { normalizeDevBindAllOrigin } from "@/lib/auth/auth-origin";
 import type { LoginIntent } from "@/lib/auth/login-intent";
 import { mapOAuthError } from "@/lib/auth/oauth-errors";
@@ -109,33 +102,7 @@ export async function GET(request: NextRequest) {
     redirectResponse,
   );
 
-  /* Chụp phiên đang mở (nếu có) vào kho TRƯỚC khi exchange ghi đè —
-   * cần cho «Thêm tài khoản» để còn chuyển lại tài khoản cũ. */
-  let vault = decodeVault(request.cookies.get(ACCOUNT_VAULT_COOKIE)?.value);
-  const { data: priorSessionData } = await supabase.auth.getSession();
-  const priorSession = priorSessionData.session;
-  if (priorSession?.refresh_token && priorSession.user?.id) {
-    const { data: priorProfile } = await supabase
-      .from("user_nguoi_dung")
-      .select("slug, ten_hien_thi, avatar_id")
-      .eq("auth_user_id", priorSession.user.id)
-      .maybeSingle<{
-        slug: string;
-        ten_hien_thi: string | null;
-        avatar_id: string | null;
-      }>();
-    if (priorProfile?.slug) {
-      vault = upsertAccount(vault, {
-        slug: priorProfile.slug,
-        tenHienThi: priorProfile.ten_hien_thi,
-        avatarId: priorProfile.avatar_id,
-        refreshToken: priorSession.refresh_token,
-        addedAt: Date.now(),
-      });
-    }
-  }
-
-  const { data: exchangeData, error: exchangeErr } =
+  const { error: exchangeErr } =
     await supabase.auth.exchangeCodeForSession(code);
   if (exchangeErr) {
     return loginRedirect(
@@ -174,56 +141,17 @@ export async function GET(request: NextRequest) {
       avatar_id: string | null;
     }>();
 
-  const refreshToken = exchangeData.session?.refresh_token;
-
   let destination: URL;
   if (intent === "register") {
     destination = new URL("/onboarding", origin);
     destination.searchParams.set("intent", "register");
-    /* Nick mới: ghi vào kho nếu đã có slug (trigger kịp); còn không →
-     * submitOnboarding sẽ upsert sau khi chốt hồ sơ. */
-    if (profile?.slug && refreshToken) {
-      setAccountVaultOnResponse(
-        redirectResponse,
-        upsertAccount(vault, {
-          slug: profile.slug,
-          tenHienThi: profile.ten_hien_thi,
-          avatarId: profile.avatar_id,
-          refreshToken,
-          addedAt: Date.now(),
-        }),
-      );
-      setRestoreHintOnResponse(redirectResponse);
-    } else if (vault.length > 0) {
-      setAccountVaultOnResponse(redirectResponse, vault);
-    }
+  } else if (!profile || !profile.giai_doan) {
+    destination = new URL("/onboarding", origin);
+  } else if (safeNext && safeNext !== "/") {
+    destination = new URL(safeNext, origin);
   } else {
-    if (!profile || !profile.giai_doan) {
-      destination = new URL("/onboarding", origin);
-    } else if (safeNext && safeNext !== "/") {
-      destination = new URL(safeNext, origin);
-    } else {
-      // Sau đăng nhập → World Journey (trang chủ).
-      destination = new URL("/", origin);
-    }
-
-    // Ghi nhớ tài khoản vừa đăng nhập (Google) vào kho chuyển nhanh.
-    if (profile?.slug && refreshToken) {
-      setAccountVaultOnResponse(
-        redirectResponse,
-        upsertAccount(vault, {
-          slug: profile.slug,
-          tenHienThi: profile.ten_hien_thi,
-          avatarId: profile.avatar_id,
-          refreshToken,
-          addedAt: Date.now(),
-        }),
-      );
-      setRestoreHintOnResponse(redirectResponse);
-    } else if (vault.length > 0) {
-      /* Vẫn giữ kho đã chụp tài khoản trước đó (onboarding / thiếu refresh). */
-      setAccountVaultOnResponse(redirectResponse, vault);
-    }
+    // Sau đăng nhập → World Journey (trang chủ).
+    destination = new URL("/", origin);
   }
 
   redirectResponse.headers.set("Location", destination.toString());

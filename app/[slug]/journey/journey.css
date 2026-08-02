@@ -10066,7 +10066,7 @@ select.j-edit-input {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: var(--shadow-md, 0 6px 16px rgba(15, 23, 42, 0.12));
+  box-shadow: none;
   transition: transform 0.15s var(--j-ease, ease);
 }
 .j-post-close:hover {

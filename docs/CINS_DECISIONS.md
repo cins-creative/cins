@@ -41,6 +41,25 @@
 
 ## LOG — quyết định đã chốt
 
+### Chat — tab «Khách hàng» + thẻ phân loại shop (2026-08-02)
+
+- **Yêu cầu:** seller thấy badge «Khách hàng» trên DM của buyer đã mua; tab filter khách; thẻ phân loại (mặc định Đã/Chưa chuyển tiền · Ship) chỉ shop thấy; shop tự thêm thẻ + màu.
+- **Kiến trúc:** `ChatThreadGroup` giữ `ban_be|nguoi_la|to_chuc`. Tab UI dùng `ChatThreadView = … | "khach_hang"` + cờ `thread.isKhachHang` / `khachHangTagIds` (chiều phụ — khách vẫn nằm tab Bạn bè/Người lạ).
+- **Không** reuse `chat_the_tai_nguyen` (RLS member phòng → lộ thẻ cho khách). Bảng mới `shop_the_khach` + `shop_the_khach_gan` khóa `id_nguoi_ban`; buyer không có SELECT policy.
+- **Khách** = `DISTINCT id_nguoi_mua` từ `shop_don_hang` (`id_nguoi_ban = me`, loại `nhap`); đơn `huy` vẫn hiện (chip nhạt). Phase 1 chỉ khách đã có phòng DM.
+- **Seed thẻ:** write path — migration backfill seller hiện có + `setBanHangEnabled(true)`. Read path **không** seed (cho phép xóa hết thẻ mặc định vĩnh viễn).
+- **Chốt UX:** multi-select tự do; cho xóa thẻ mặc định; chỉ hiện trong chat (không `/cua-hang` phase này).
+- Plan: `docs/PLAN_chat_khach_hang_tag.md`. Migration: `npm run migrate:shop-the-khach`.
+
+### Bỏ chuyển đổi nhiều tài khoản / kho `cins-accounts` (2026-08-02)
+
+- **Quyết định:** gỡ hoàn toàn UI «Chuyển tài khoản», cookie `cins-accounts` + `cins-restore-hint`, `SessionRestorer`, `POST /api/auth/restore`, `POST /api/auth/vault-sync`, và mọi chỗ ghi kho trên login/OAuth/onboarding/sign-out.
+- **Vì sao:** OAuth callback chậm (chụp phiên cũ trước exchange), nháy khách→đăng nhập do restore, request nền vault-sync; chi phí bảo trì cao hơn giá trị.
+- **Phiên sau khi gỡ:** chỉ cookie Supabase `sb-*-auth-token` (maxAge 400 ngày) + middleware `resolveSession()`. User **không** phải đăng nhập lại — hai cookie độc lập.
+- **Giữ:** card «Tiếp tục với @nick» (`lib/auth/remembered-account.ts`, localStorage metadata).
+- **Cấm regress:** không cho `/login` bypass middleware sync cookie (`isSessionSyncOnlyPath`). Nếu bypass lại → bug mất refresh token quay lại và **không còn lưới an toàn**.
+- **Plan:** `docs/PLAN_go_multi_account.md`. Plan cũ kho: `docs/PLAN_auth_session_on_dinh.md` (archived; Bước 1 middleware vẫn hiệu lực).
+
 ### Tài khoản clone artist + KPI seeding + bàn giao (2026-08-01)
 
 - **Bối cảnh:** coldstart — xin phép artist thật, đội ngũ up tay vào tài khoản clone; sau đó bàn giao cho tài khoản họ đăng ký.

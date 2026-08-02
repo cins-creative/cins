@@ -17,7 +17,6 @@ export type GuestHomeLoginPanelProps = {
   autoIntent?: "login" | "register" | null;
   resumeAfterRedirect?: boolean;
   returnPath?: string | null;
-  addAccount?: boolean;
 };
 
 /** Panel đăng nhập embed trên home guest — đồng bộ CINs design tokens. */
@@ -26,7 +25,6 @@ export function GuestHomeLoginPanel({
   autoIntent = null,
   resumeAfterRedirect = false,
   returnPath = null,
-  addAccount = false,
 }: GuestHomeLoginPanelProps = {}) {
   return (
     <section
@@ -60,7 +58,6 @@ export function GuestHomeLoginPanel({
         autoIntent={autoIntent}
         resumeAfterRedirect={resumeAfterRedirect}
         returnPath={returnPath}
-        addAccount={addAccount}
         showRememberedAccount={false}
         googleLoginAfterPassword
         className="hg-login-actions"

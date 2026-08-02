@@ -62,6 +62,7 @@ import {
 import { ChatComposeToolsMenu } from "@/components/cins/ChatComposeToolsMenu";
 import { ChatGroupAvatar } from "@/components/cins/ChatGroupAvatar";
 import { ChatGroupManageModal } from "@/components/cins/ChatGroupManageModal";
+import { ChatKhachHangTagPopover } from "@/components/cins/ChatKhachHangTagPopover";
 import { ChatRenameGroupModal } from "@/components/cins/ChatRenameGroupModal";
 import { ChatMessageThreadItems } from "@/components/cins/ChatMessageThreadItems";
 import { ChatRoomMocsPanel } from "@/components/cins/ChatRoomWorkspacePanels";
@@ -77,6 +78,12 @@ import type { ChatMessageActionHandlers } from "@/components/cins/ChatMessageAct
 import { canvasBridge } from "@/components/cins/canvas/canvas-bridge";
 import { addChatMessageToCanvas } from "@/lib/chat/canvas/add-message-client";
 import { useCinsChat } from "@/components/cins/CinsChatProvider";
+import { useShopReadyGate } from "@/lib/shop/use-shop-ready-gate";
+import type { ShopKhachHangTag } from "@/lib/shop/khach-hang-types";
+import {
+  resolveRoomTagColor,
+  roomTagChipStyle,
+} from "@/lib/chat/tag-colors";
 import { subscribePendingPhongHoc, takePendingPhongHoc } from "@/components/cins/ChatIncomingCallHost";
 import {
   beginCallTrace,
@@ -186,8 +193,8 @@ import { chatImageDeliveryUrl } from "@/lib/chat/image-url";
 import {
   CHAT_ORG_KIND_LABEL,
   CHAT_PARTICIPANT_KIND_LABEL,
-  CHAT_THREAD_GROUP_LABEL,
-  CHAT_THREAD_GROUP_ORDER,
+  CHAT_THREAD_VIEW_LABEL,
+  CHAT_THREAD_VIEW_ORDER,
   type ChatContextCard,
   type ChatGroupMember,
   type ChatMessage,
@@ -197,7 +204,7 @@ import {
   type ChatPollSummary,
   type ChatReadCursor,
   type ChatThread,
-  type ChatThreadGroup,
+  type ChatThreadView,
 } from "@/lib/chat/types";
 
 type Props = {
@@ -512,6 +519,7 @@ function ChatThreadRow({
   onToggleProjects,
   shareDropActive = false,
   onShareDrop,
+  khachHangTags = [],
 }: {
   thread: ChatThread;
   isActive: boolean;
@@ -538,6 +546,8 @@ function ChatThreadRow({
   /** Drop mode chia sẻ — row nhận thả để gửi vào phòng. */
   shareDropActive?: boolean;
   onShareDrop?: (thread: ChatThread, payload: CinsSharePayload) => void;
+  /** Thẻ phân loại khách — để resolve màu dot trên list. */
+  khachHangTags?: ShopKhachHangTag[];
 }) {
   const [isShareTarget, setIsShareTarget] = useState(false);
   const preview = thread.typing ? "… đang gõ" : thread.preview;
@@ -766,6 +776,33 @@ function ChatThreadRow({
                   <span className="cins-chat-thread-name">
                     {nameStatusIcons}
                     <strong title={thread.name}>{thread.name}</strong>
+                    {thread.isKhachHang ? (
+                      <span
+                        className={`cins-chat-kind-pill is-khach${thread.khachHangChiDonHuy ? " is-cancelled-only" : ""}`}
+                      >
+                        Khách hàng
+                      </span>
+                    ) : null}
+                    {thread.isKhachHang &&
+                    (thread.khachHangTagIds?.length ?? 0) > 0 ? (
+                      <span className="cins-chat-khach-tag-dots" aria-hidden>
+                        {(thread.khachHangTagIds ?? []).slice(0, 3).map((id) => {
+                          const tag = khachHangTags.find((t) => t.id === id);
+                          return (
+                            <span
+                              key={id}
+                              className="cins-chat-khach-tag-dot"
+                              style={{
+                                background: resolveRoomTagColor(
+                                  id,
+                                  tag?.mau,
+                                ),
+                              }}
+                            />
+                          );
+                        })}
+                      </span>
+                    ) : null}
                   </span>
                   <time dateTime={thread.lastAt}>
                     {formatChatTime(thread.lastAt)}
@@ -949,10 +986,23 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
   const [outboundCallMessageId, setOutboundCallMessageId] = useState<
     string | null
   >(null);
-  const [activeTab, setActiveTab] = useState<ChatThreadGroup>(
+  const [activeTab, setActiveTab] = useState<ChatThreadView>(
     () => launch?.tab ?? launch?.thread?.group ?? "ban_be",
   );
   const [banBeFilter, setBanBeFilter] = useState<BanBeListFilter>("all");
+  const [khachHangTagFilter, setKhachHangTagFilter] = useState<string[]>([]);
+  const [khachHangTags, setKhachHangTags] = useState<ShopKhachHangTag[]>([]);
+  const [khachHangTagsLoaded, setKhachHangTagsLoaded] = useState(false);
+  const [khachHangTagPopoverOpen, setKhachHangTagPopoverOpen] = useState(false);
+  const [khachHangTagBusy, setKhachHangTagBusy] = useState(false);
+  const { enabled: banHangBat } = useShopReadyGate();
+  const visibleThreadViews = useMemo(
+    () =>
+      CHAT_THREAD_VIEW_ORDER.filter(
+        (v) => v !== "khach_hang" || banHangBat,
+      ),
+    [banHangBat],
+  );
   const [groupModalOpen, setGroupModalOpen] = useState(false);
   const [manageGroupThread, setManageGroupThread] = useState<ChatThread | null>(
     null,
@@ -1303,11 +1353,23 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     // «Gửi riêng cho tôi» — không lọc theo tab/sub-filter/ẩn, luôn đầu danh sách.
-    const selfThread = threads.find(
-      (t) => t.isSelf && threadMatchesQuery(t, q),
-    );
+    // Tab Khách hàng: không hiện self thread.
+    const selfThread =
+      activeTab === "khach_hang"
+        ? undefined
+        : threads.find((t) => t.isSelf && threadMatchesQuery(t, q));
     const list = threads.filter((t) => {
       if (t.isSelf) return false;
+      if (activeTab === "khach_hang") {
+        if (!t.isKhachHang) return false;
+        if (hiddenRoomIds.includes(t.roomId)) return false;
+        if (khachHangTagFilter.length > 0) {
+          const ids = t.khachHangTagIds ?? [];
+          // OR: khớp bất kỳ thẻ đang lọc
+          if (!khachHangTagFilter.some((id) => ids.includes(id))) return false;
+        }
+        return threadMatchesQuery(t, q);
+      }
       if (t.group !== activeTab) return false;
       if (hiddenRoomIds.includes(t.roomId)) return false;
       if (activeTab === "ban_be") {
@@ -1316,6 +1378,19 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
       }
       return threadMatchesQuery(t, q);
     });
+
+    if (activeTab === "khach_hang") {
+      const sorted = [...list].sort((a, b) => {
+        const aIdx = pinnedListRoomIds.indexOf(a.roomId);
+        const bIdx = pinnedListRoomIds.indexOf(b.roomId);
+        const aPinned = aIdx >= 0;
+        const bPinned = bIdx >= 0;
+        if (aPinned !== bPinned) return aPinned ? -1 : 1;
+        if (aPinned && bPinned && aIdx !== bIdx) return aIdx - bIdx;
+        return new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime();
+      });
+      return sorted;
+    }
 
     const nested = nestGroupThreads(
       [...list].sort((a, b) => {
@@ -1336,6 +1411,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     query,
     activeTab,
     banBeFilter,
+    khachHangTagFilter,
     pinnedListRoomIds,
     hiddenRoomIds,
     expandedProjectParentIds,
@@ -1355,15 +1431,215 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
 
   const tabUnread = useMemo(() => {
     const counts = Object.fromEntries(
-      CHAT_THREAD_GROUP_ORDER.map((group) => [group, 0]),
-    ) as Record<ChatThreadGroup, number>;
+      CHAT_THREAD_VIEW_ORDER.map((view) => [view, 0]),
+    ) as Record<ChatThreadView, number>;
 
     for (const thread of threads) {
       counts[thread.group] += thread.unread;
+      if (thread.isKhachHang) {
+        counts.khach_hang += thread.unread;
+      }
     }
 
     return counts;
   }, [threads]);
+
+  const ensureKhachHangTagsLoaded = useCallback(async () => {
+    if (!banHangBat) return;
+    if (khachHangTagsLoaded) return;
+    try {
+      const res = await fetch("/api/shop/khach-hang/the", {
+        credentials: "include",
+      });
+      if (!res.ok) return;
+      const data = (await res.json()) as {
+        enabled?: boolean;
+        tags?: ShopKhachHangTag[];
+      };
+      if (data.enabled === false) {
+        setKhachHangTags([]);
+        setKhachHangTagsLoaded(true);
+        return;
+      }
+      setKhachHangTags(Array.isArray(data.tags) ? data.tags : []);
+      setKhachHangTagsLoaded(true);
+    } catch {
+      /* ignore — UI vẫn dùng được không có thẻ */
+    }
+  }, [banHangBat, khachHangTagsLoaded]);
+
+  useEffect(() => {
+    if (!banHangBat && activeTab === "khach_hang") {
+      setActiveTab("ban_be");
+    }
+  }, [banHangBat, activeTab]);
+
+  useEffect(() => {
+    if (activeTab === "khach_hang" || khachHangTagPopoverOpen || active?.isKhachHang) {
+      void ensureKhachHangTagsLoaded();
+    }
+  }, [
+    activeTab,
+    khachHangTagPopoverOpen,
+    active?.isKhachHang,
+    ensureKhachHangTagsLoaded,
+  ]);
+
+  useEffect(() => {
+    if (!banHangBat) {
+      setKhachHangTags([]);
+      setKhachHangTagsLoaded(false);
+      setKhachHangTagFilter([]);
+    }
+  }, [banHangBat]);
+
+  const toggleKhachHangTagOnActive = useCallback(
+    async (tagId: string) => {
+      const buyerId = active?.peerUserId;
+      if (!buyerId || !active?.isKhachHang) return;
+      const prev = active.khachHangTagIds ?? [];
+      const next = prev.includes(tagId)
+        ? prev.filter((id) => id !== tagId)
+        : [...prev, tagId];
+      setThreads((list) =>
+        list.map((t) =>
+          t.id === active.id ? { ...t, khachHangTagIds: next } : t,
+        ),
+      );
+      setKhachHangTagBusy(true);
+      try {
+        const res = await fetch(`/api/shop/khach-hang/${buyerId}/the`, {
+          method: "PUT",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ tagIds: next }),
+        });
+        if (!res.ok) {
+          setThreads((list) =>
+            list.map((t) =>
+              t.id === active.id ? { ...t, khachHangTagIds: prev } : t,
+            ),
+          );
+          const data = (await res.json().catch(() => null)) as {
+            error?: string;
+          } | null;
+          window.alert(data?.error || "Không gắn được thẻ.");
+        }
+      } catch {
+        setThreads((list) =>
+          list.map((t) =>
+            t.id === active.id ? { ...t, khachHangTagIds: prev } : t,
+          ),
+        );
+        window.alert("Không gắn được thẻ.");
+      } finally {
+        setKhachHangTagBusy(false);
+      }
+    },
+    [active],
+  );
+
+  const createKhachHangTag = useCallback(
+    async (ten: string, mau: string): Promise<boolean> => {
+      setKhachHangTagBusy(true);
+      try {
+        const res = await fetch("/api/shop/khach-hang/the", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ten, mau }),
+        });
+        const data = (await res.json()) as {
+          tag?: ShopKhachHangTag;
+          error?: string;
+        };
+        if (!res.ok || !data.tag) {
+          window.alert(data.error || "Không tạo được thẻ.");
+          return false;
+        }
+        setKhachHangTags((prev) => [...prev, data.tag!]);
+        return true;
+      } catch {
+        window.alert("Không tạo được thẻ.");
+        return false;
+      } finally {
+        setKhachHangTagBusy(false);
+      }
+    },
+    [],
+  );
+
+  const deleteKhachHangTag = useCallback(
+    async (tagId: string): Promise<boolean> => {
+      setKhachHangTagBusy(true);
+      try {
+        const res = await fetch(`/api/shop/khach-hang/the/${tagId}`, {
+          method: "DELETE",
+          credentials: "include",
+        });
+        if (!res.ok) {
+          const data = (await res.json().catch(() => null)) as {
+            error?: string;
+          } | null;
+          window.alert(data?.error || "Không xóa được thẻ.");
+          return false;
+        }
+        setKhachHangTags((prev) => prev.filter((t) => t.id !== tagId));
+        setKhachHangTagFilter((prev) => prev.filter((id) => id !== tagId));
+        setThreads((list) =>
+          list.map((t) =>
+            t.khachHangTagIds?.includes(tagId)
+              ? {
+                  ...t,
+                  khachHangTagIds: (t.khachHangTagIds ?? []).filter(
+                    (id) => id !== tagId,
+                  ),
+                }
+              : t,
+          ),
+        );
+        return true;
+      } catch {
+        window.alert("Không xóa được thẻ.");
+        return false;
+      } finally {
+        setKhachHangTagBusy(false);
+      }
+    },
+    [],
+  );
+
+  const renameKhachHangTag = useCallback(
+    async (tagId: string, ten: string): Promise<boolean> => {
+      setKhachHangTagBusy(true);
+      try {
+        const res = await fetch(`/api/shop/khach-hang/the/${tagId}`, {
+          method: "PATCH",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ten }),
+        });
+        const data = (await res.json()) as {
+          tag?: ShopKhachHangTag;
+          error?: string;
+        };
+        if (!res.ok || !data.tag) {
+          window.alert(data.error || "Không đổi tên được.");
+          return false;
+        }
+        setKhachHangTags((prev) =>
+          prev.map((t) => (t.id === tagId ? data.tag! : t)),
+        );
+        return true;
+      } catch {
+        window.alert("Không đổi tên được.");
+        return false;
+      } finally {
+        setKhachHangTagBusy(false);
+      }
+    },
+    [],
+  );
 
   const totalUnread = useMemo(
     () => threads.reduce((sum, t) => sum + t.unread, 0),
@@ -3704,24 +3980,60 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
             role="tablist"
             aria-label="Nhóm hội thoại"
           >
-            {CHAT_THREAD_GROUP_ORDER.map((group) => (
+            {visibleThreadViews.map((view) => (
               <button
-                key={group}
+                key={view}
                 type="button"
                 role="tab"
-                id={`cins-chat-tab-${group}`}
-                aria-selected={activeTab === group}
-                aria-controls={`cins-chat-tabpanel-${group}`}
-                className={`cins-chat-thread-tab${activeTab === group ? " is-active" : ""}`}
-                onClick={() => setActiveTab(group)}
+                id={`cins-chat-tab-${view}`}
+                aria-selected={activeTab === view}
+                aria-controls={`cins-chat-tabpanel-${view}`}
+                className={`cins-chat-thread-tab${activeTab === view ? " is-active" : ""}`}
+                onClick={() => setActiveTab(view)}
               >
-                {CHAT_THREAD_GROUP_LABEL[group]}
-                {tabUnread[group] > 0 ? (
-                  <span className="cins-chat-thread-tab-unread">{tabUnread[group]}</span>
+                {CHAT_THREAD_VIEW_LABEL[view]}
+                {tabUnread[view] > 0 ? (
+                  <span className="cins-chat-thread-tab-unread">{tabUnread[view]}</span>
                 ) : null}
               </button>
             ))}
           </div>
+
+          {activeTab === "khach_hang" && khachHangTags.length > 0 ? (
+            <div
+              className="cins-chat-khach-filters"
+              role="group"
+              aria-label="Lọc theo thẻ khách hàng"
+            >
+              {khachHangTags.map((tag) => {
+                const color = resolveRoomTagColor(tag.id, tag.mau);
+                const active = khachHangTagFilter.includes(tag.id);
+                return (
+                  <button
+                    key={tag.id}
+                    type="button"
+                    className={`cins-chat-khach-filter${active ? " is-active" : ""}`}
+                    style={roomTagChipStyle(color, { active })}
+                    aria-pressed={active}
+                    onClick={() => {
+                      setKhachHangTagFilter((prev) =>
+                        prev.includes(tag.id)
+                          ? prev.filter((id) => id !== tag.id)
+                          : [...prev, tag.id],
+                      );
+                    }}
+                  >
+                    <span
+                      className="cins-chat-khach-tag-dot"
+                      style={{ background: color }}
+                      aria-hidden
+                    />
+                    {tag.ten}
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
 
           <div
             className="cins-chat-threads"
@@ -3777,6 +4089,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                     onDeleteGroup={handleDeleteGroup}
                     onHideThread={handleHideThread}
                     onBlockUser={handleBlockUser}
+                    khachHangTags={khachHangTags}
                     activeProjectCount={projectCount}
                     projectsExpanded={expandedProjectParentIds.has(thread.roomId)}
                     onToggleProjects={
@@ -3798,7 +4111,11 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                     ? "Chưa có nhóm chat nào."
                     : activeTab === "ban_be" && banBeFilter === "ca_nhan"
                       ? "Chưa có chat cá nhân nào."
-                      : "Chưa có hội thoại trong nhóm này."}
+                      : activeTab === "khach_hang"
+                        ? khachHangTagFilter.length > 0
+                          ? "Không có khách nào khớp thẻ đã chọn."
+                          : "Chưa có khách hàng nào trong chat."
+                        : "Chưa có hội thoại trong nhóm này."}
               </p>
             )}
           </div>
@@ -3857,7 +4174,31 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                   </span>
                 ) : active.kind === "org" ? (
                   <ChatKindPill thread={active} />
+                ) : active.isKhachHang ? (
+                  <span
+                    className={`cins-chat-kind-pill is-khach${active.khachHangChiDonHuy ? " is-cancelled-only" : ""}`}
+                  >
+                    Khách hàng
+                  </span>
                 ) : null}
+                {active.isKhachHang
+                  ? (active.khachHangTagIds ?? [])
+                      .map((id) => {
+                        const tag = khachHangTags.find((t) => t.id === id);
+                        if (!tag) return null;
+                        const color = resolveRoomTagColor(tag.id, tag.mau);
+                        return (
+                          <span
+                            key={id}
+                            className="cins-chat-khach-tag-chip"
+                            style={roomTagChipStyle(color)}
+                          >
+                            {tag.ten}
+                          </span>
+                        );
+                      })
+                      .filter(Boolean)
+                  : null}
               </span>
               {active.isGroup && active.memberCount ? (
                 <div className="cins-chat-convo-members-wrap">
@@ -3886,6 +4227,24 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
               ) : null}
             </div>
             <div className="cins-chat-convo-actions">
+              {active.isKhachHang && banHangBat ? (
+                <ChatKhachHangTagPopover
+                  open={khachHangTagPopoverOpen}
+                  onOpenChange={(open) => {
+                    setKhachHangTagPopoverOpen(open);
+                    if (open) void ensureKhachHangTagsLoaded();
+                  }}
+                  tags={khachHangTags}
+                  selectedTagIds={active.khachHangTagIds ?? []}
+                  busy={khachHangTagBusy}
+                  onToggleTag={(tagId) => {
+                    void toggleKhachHangTagOnActive(tagId);
+                  }}
+                  onCreateTag={createKhachHangTag}
+                  onDeleteTag={deleteKhachHangTag}
+                  onRenameTag={renameKhachHangTag}
+                />
+              ) : null}
               {active.isGroup &&
               active.isGroupAdmin &&
               active.roomId &&

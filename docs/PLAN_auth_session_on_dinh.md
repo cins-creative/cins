@@ -1,7 +1,9 @@
 # PLAN: Ổn định phiên đăng nhập & kho tài khoản (`cins-accounts`)
 
+> **ARCHIVED (2026-08-02).** Kho đa tài khoản / switch / restore / vault-sync đã được gỡ theo `docs/PLAN_go_multi_account.md`. Phần còn giá trị lịch sử: middleware sync cookie trên `/login` (Bước 1) — **giữ nguyên, không được regress**.
+
 Ngày: 02/08/2026 · Dựa trên điều tra code + source `@supabase/ssr` 0.10.2 / `auth-js` 2.105.1 / Next 16.2.9
-Trạng thái: **đã implement Bước 1–5** (2026-08-02). Bước 6 giữ nguyên (không sửa code).
+Trạng thái: **đã implement Bước 1–5** (2026-08-02). **Bước 2–5 (kho) đã gỡ 2026-08-02** — xem `PLAN_go_multi_account.md`. Bước 1 (middleware `/login`) vẫn còn hiệu lực.
 Chốt 02/08/2026: làm **cả Bước 1–5 trong một đợt**; Bước 6 chọn **phương án A** (giữ nguyên hành vi đăng xuất → không sửa code).
 Triệu chứng gốc: tài khoản (vd. `@basakila`) thường xuyên mất phiên, mở lại phải đăng nhập Google lại; sau khi «Thêm tài khoản» thì nick cũ biến mất khỏi menu chuyển nhanh.
 
