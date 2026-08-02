@@ -2396,10 +2396,11 @@
   position: relative;
   overflow: hidden;
 }
-/* Có coverThumb — khung theo tỉ lệ đã chọn, không khóa height cố định. */
+/* Có coverThumb — khung theo tỉ lệ inline (16/9…); wrap/img fill hết, không bị editor max-height:320. */
 .cins-post-view .cover-add.cover-readonly.has-cover-thumb {
   height: auto;
   max-height: none;
+  position: relative;
 }
 .cins-post-view .cover-add.cover-readonly:hover {
   border-color: transparent;
@@ -2412,10 +2413,13 @@
   overflow: hidden;
 }
 .cins-post-view .cover-add.cover-readonly.has-cover-thumb .cover-img-wrap {
-  position: relative;
-  inset: auto;
+  /* Fill khung aspect-ratio của .cover-add — bỏ max-height:320 từ editor.css */
+  position: absolute;
+  inset: 0;
   width: 100%;
-  aspect-ratio: inherit;
+  height: 100%;
+  aspect-ratio: unset;
+  max-height: none;
 }
 .cins-post-view .cover-add.cover-readonly img {
   width: 100%;
@@ -2427,6 +2431,7 @@
 .cins-post-view .cover-add.cover-readonly.has-cover-thumb img {
   position: absolute;
   inset: 0;
+  object-fit: cover;
 }
 
 /* Split permalink — cover đầu cột trái, không full-bleed stack layout */
@@ -2576,6 +2581,17 @@
 .cins-post-view .post-view-content .b-embed-ro,
 .cins-post-view .post-view-content .b-embed.b-embed-ro {
   border-radius: 0;
+}
+
+/* Bài dài — bỏ qua layout/paint offscreen (giảm tải rừng ảnh). */
+.cins-post-view.post-canvas--split:not(.post-canvas--media)
+  .post-view-content
+  .block-image-grid,
+.cins-post-view.post-canvas--split:not(.post-canvas--media)
+  .post-view-content
+  .block[data-block-type="imgs"] {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 320px;
 }
 
 /* Byline — author, meta chips, hành động. */
@@ -5403,8 +5419,13 @@
   .cins-post-view.post-canvas--split:not(.post-canvas--media) .cover-add.cover-readonly,
   .cins-post-view .post-canvas--split:not(.post-canvas--media) .cover-add.cover-readonly {
     order: 5;
-    margin-inline: 20px;
-    width: calc(100% - 40px);
+    /* Full ngang layout (giống block ảnh) — title/dek giữ padding-inline 20px. */
+    margin-inline: 0;
+    width: 100%;
+    max-width: none;
+    align-self: stretch;
+    box-sizing: border-box;
+    border-radius: 0;
   }
 
   .cins-post-view.post-canvas--split:not(.post-canvas--media) .post-view-content-inner,

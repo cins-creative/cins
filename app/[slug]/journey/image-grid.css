@@ -87,6 +87,35 @@
     --media-canvas-max-aspect: 0.5625; /* 9:16 */
   }
 }
+
+/* Bài viết dài (permalink / modal split, không phải album media) — full ngang
+   kiểu Behance: bỏ clamp width 3:4, height theo tỉ lệ gốc.
+   Card timeline / feed vẫn dùng rule `.is-portrait` phía trên. */
+.cins-post-view.post-canvas--split:not(.post-canvas--media)
+  .image-grid--single.is-portrait {
+  width: 100%;
+  max-width: 100%;
+  margin-inline: 0;
+  aspect-ratio: auto;
+  height: auto;
+}
+.cins-post-view.post-canvas--split:not(.post-canvas--media)
+  .image-grid--single.is-portrait
+  .image-grid-cell {
+  width: 100%;
+  height: auto;
+}
+.cins-post-view.post-canvas--split:not(.post-canvas--media)
+  .image-grid--single.is-portrait
+  .image-grid-cell
+  img {
+  width: 100%;
+  height: auto;
+  max-height: none;
+  object-fit: contain;
+  display: block;
+}
+
 /* 1 ảnh ngang/vuông: canvas ôm đúng chiều cao ảnh (không letterbox 560px).
    Trần 3:4 (mobile 9:16) chỉ là fallback khi chưa đo được tỉ lệ intrinsic —
    ảnh cao hơn 3:4 sẽ chuyển sang .is-portrait sau khi đo (ImageGrid). */
@@ -242,6 +271,30 @@
     color-mix(in srgb, var(--bg-page, #f4f5f8) 88%, transparent),
     transparent
   );
+}
+
+/* Bài viết dài (permalink / modal split) — Behance: hiện đủ chiều cao, không crop.
+   Timeline card vẫn dùng clip ở trên. */
+.cins-post-view.post-canvas--split:not(.post-canvas--media)
+  .image-grid--stack
+  .image-grid-cell--tall {
+  max-height: none;
+  overflow: visible;
+}
+.cins-post-view.post-canvas--split:not(.post-canvas--media)
+  .image-grid--stack
+  .image-grid-cell--tall
+  img {
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  object-fit: contain;
+  object-position: center top;
+}
+.cins-post-view.post-canvas--split:not(.post-canvas--media)
+  .image-grid--stack
+  .image-grid-cell--tall::after {
+  display: none;
 }
 
 /* ── Lưới 2 cột: ô vuông; hàng lẻ cuối giữ nửa chiều ngang ── */

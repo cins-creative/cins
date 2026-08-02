@@ -6,7 +6,6 @@ import { useCallback, useEffect, useState } from "react";
 
 import { fetchBanHangClientStatus } from "@/lib/shop/client-fetch-cache";
 
-import { ShopDashTabs } from "./ShopDashTabs";
 import { ShopOwnerEditor } from "./ShopOwnerEditor";
 import "./shop-dashboard.css";
 
@@ -47,19 +46,16 @@ export function ShopCuaHangClient() {
 
   if (loading) {
     return (
-      <div className="shop-dash">
-        <ShopDashTabs active="cua-hang" />
-        <div className="shop-dash-loading" aria-busy="true">
-          <Loader2 size={20} className="shop-spin" aria-hidden />
-          Đang tải…
-        </div>
+      <div className="shop-dash-loading" aria-busy="true">
+        <Loader2 size={20} className="shop-spin" aria-hidden />
+        Đang tải…
       </div>
     );
   }
 
   if (!enabled) {
     return (
-      <div className="shop-dash">
+      <div className="shop-dash-gate">
         <h1>Quản lý cửa hàng</h1>
         <p>
           Chức năng bán hàng đang tắt. Bật trong{" "}
@@ -71,10 +67,9 @@ export function ShopCuaHangClient() {
   }
 
   return (
-    <div className="shop-dash">
-      <ShopDashTabs active="cua-hang" />
+    <>
       {err ? <p className="shop-dash-err">{err}</p> : null}
       <ShopOwnerEditor ownerSlug={ownerSlug} ownerName={ownerName} />
-    </div>
+    </>
   );
 }

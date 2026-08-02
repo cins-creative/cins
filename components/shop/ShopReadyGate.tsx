@@ -35,7 +35,7 @@ export function ShopReadyGate({
 
   if (!enabled) {
     return (
-      <div className="shop-dash">
+      <div className="shop-dash-gate">
         <h1>Bán hàng</h1>
         <p>
           Chức năng bán hàng đang tắt. Bật trong{" "}
@@ -51,7 +51,7 @@ export function ShopReadyGate({
   if (!shopReady && !allowWhenNotReady) {
     const href = shopSetupHref || "/ban-hang/cua-hang";
     return (
-      <div className="shop-dash">
+      <div className="shop-dash-gate">
         {err ? <p className="shop-dash-err">{err}</p> : null}
         <section className="shop-dash-intro" aria-labelledby="shop-gate-title">
           <div className="shop-dash-intro-ico" aria-hidden>

@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 
-import { CinsShell } from "@/components/cins/CinsShell";
 import { ShopCuaHangClient } from "@/components/shop/ShopCuaHangClient";
 
 export const metadata: Metadata = {
@@ -9,9 +8,5 @@ export const metadata: Metadata = {
 };
 
 export default function BanHangCuaHangPage() {
-  return (
-    <CinsShell data-screen-label="Ban-hang-cua-hang">
-      <ShopCuaHangClient />
-    </CinsShell>
-  );
+  return <ShopCuaHangClient />;
 }

@@ -508,6 +508,12 @@ export type ShopDonHang = {
   muaTinhThanh?: string | null;
   /** truc_tiep | online (ĐVVC, buyer trả ship) | tai_su_kien */
   hinhThucGiao?: "truc_tiep" | "online" | "tai_su_kien" | null;
+  /** Link tracking shop tự dán (CINs không liên kết ĐVVC). */
+  vanChuyenLink?: string | null;
+  /** Mã vận đơn shop nhập. */
+  vanChuyenMa?: string | null;
+  /** Đơn vị vận chuyển shop chọn. */
+  vanChuyenDvvc?: string | null;
 };
 /** Sự kiện sắp/đang diễn ra mà shop đã được duyệt quầy — mặt tiền công khai. */
 export type ShopQuaySapCoMat = {

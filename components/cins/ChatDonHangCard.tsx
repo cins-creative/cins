@@ -1,10 +1,11 @@
 "use client";
 
-import { ShoppingBag } from "lucide-react";
+import { Check, Copy, ShoppingBag, Truck } from "lucide-react";
 import { useState } from "react";
 
 import { ShopDonDetailModal } from "@/components/shop/ShopDonDetailModal";
 import type { ChatContextCard } from "@/lib/chat/types";
+import { detectDvvcTuLink, safeHttpUrl } from "@/lib/shop/van-chuyen";
 
 type ParsedDon = {
   ma: string;
@@ -13,6 +14,9 @@ type ParsedDon = {
   tong: string | null;
   items: string[];
   ghiChu: string | null;
+  theoDoi: string | null;
+  maVanDon: string | null;
+  dvvc: string | null;
 };
 
 const LOAI_THANH_TOAN = new Set([
@@ -20,6 +24,26 @@ const LOAI_THANH_TOAN = new Set([
   "Thanh toán luôn",
   "Đã thanh toán",
 ]);
+
+/** Suy mã từ URL tracking legacy (khi card chưa có dòng Mã vận đơn). */
+function maTuTheoDoiUrl(url: string | null): string | null {
+  if (!url) return null;
+  try {
+    const u = new URL(url);
+    const keys = ["KEY", "key", "order_code", "billcode", "bill", "id", "code"];
+    for (const k of keys) {
+      const v = u.searchParams.get(k)?.trim();
+      if (v && !/^https?:/i.test(v)) return v;
+    }
+    const pathTail = u.pathname.split("/").filter(Boolean).pop()?.trim();
+    if (pathTail && /^[\w.-]{6,}$/.test(pathTail) && !/\.(vn|com|net)$/i.test(pathTail)) {
+      return pathTail;
+    }
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
 
 function parseDonHangCard(card: ChatContextCard): ParsedDon {
   const maMatch = card.tieuDe.match(/^Đơn\s+(.+)$/i);
@@ -33,6 +57,9 @@ function parseDonHangCard(card: ChatContextCard): ParsedDon {
   let trangThai: string | null = null;
   let tong: string | null = null;
   let ghiChu: string | null = null;
+  let theoDoi: string | null = null;
+  let maVanDon: string | null = null;
+  let dvvc: string | null = null;
   const items: string[] = [];
 
   for (const line of lines) {
@@ -49,8 +76,14 @@ function parseDonHangCard(card: ChatContextCard): ParsedDon {
     if (
       line === "Chờ xác nhận" ||
       line === "Đã nhận tiền" ||
+      line === "Đã nhận tiền / đang soạn" ||
+      line === "Chờ lấy hàng" ||
+      line === "Đang giao đơn" ||
+      line === "Đang giao" ||
       line === "Thanh toán khi nhận hàng" ||
       line === "Đã giao tại sự kiện" ||
+      line === "Hoàn thành" ||
+      line === "Hoàn trả" ||
       line === "Đã hủy" ||
       line === "Nháp"
     ) {
@@ -66,14 +99,51 @@ function parseDonHangCard(card: ChatContextCard): ParsedDon {
       ghiChu = note || null;
       continue;
     }
+    if (/^Theo dõi:\s*/i.test(line)) {
+      const url = line.replace(/^Theo dõi:\s*/i, "").trim();
+      theoDoi = safeHttpUrl(url);
+      continue;
+    }
+    const maVdMatch = line.match(/^Mã vận đơn:\s*(.+)$/i);
+    if (maVdMatch) {
+      const rest = maVdMatch[1]!.trim();
+      const withDvvc = rest.match(/^(.+?)\s*\(([^)]+)\)\s*$/);
+      if (withDvvc) {
+        maVanDon = withDvvc[1]!.trim() || null;
+        dvvc = withDvvc[2]!.trim() || null;
+      } else {
+        maVanDon = rest || null;
+      }
+      continue;
+    }
     /* Lý do hủy + cảnh báo hoàn tiền đã hiện ở thông báo cập nhật phía trên. */
-    if (/^Lý do hủy:\s*/i.test(line) || line.startsWith("Nền tảng không giữ tiền")) {
+    if (
+      /^Lý do hủy:\s*/i.test(line) ||
+      line.startsWith("Nền tảng không giữ tiền")
+    ) {
       continue;
     }
     items.push(line.replace(/^•\s*/, "").replace(/\s*\(Mặc định\)/g, ""));
   }
 
-  return { ma, loaiThanhToan, trangThai, tong, items, ghiChu };
+  if (!maVanDon && theoDoi) {
+    maVanDon = maTuTheoDoiUrl(theoDoi);
+  }
+  if (!dvvc && theoDoi) {
+    dvvc = detectDvvcTuLink(theoDoi);
+  }
+
+  return {
+    ma,
+    loaiThanhToan,
+    trangThai,
+    tong,
+    items,
+    ghiChu,
+    theoDoi,
+    maVanDon,
+    dvvc,
+  };
 }
 
 type Props = {
@@ -84,8 +154,18 @@ type Props = {
 export function ChatDonHangCard({ card, tone = "them" }: Props) {
   const [detailOpen, setDetailOpen] = useState(false);
   const [billOpen, setBillOpen] = useState(false);
-  const { ma, loaiThanhToan, trangThai, tong, items, ghiChu } =
-    parseDonHangCard(card);
+  const [copied, setCopied] = useState(false);
+  const {
+    ma,
+    loaiThanhToan,
+    trangThai,
+    tong,
+    items,
+    ghiChu,
+    theoDoi,
+    maVanDon,
+    dvvc,
+  } = parseDonHangCard(card);
   const visibleItems = items.slice(0, 3);
   const moreCount = Math.max(0, items.length - visibleItems.length);
   const isPayLater = loaiThanhToan === "Thanh toán sau";
@@ -100,10 +180,15 @@ export function ChatDonHangCard({ card, tone = "them" }: Props) {
   const bienLaiUrl = card.anh?.trim() || null;
   const statusDone =
     trangThai === "Đã nhận tiền" ||
+    trangThai === "Đã nhận tiền / đang soạn" ||
     trangThai === "Thanh toán khi nhận hàng" ||
-    trangThai === "Đã giao tại sự kiện";
+    trangThai === "Đã giao tại sự kiện" ||
+    trangThai === "Đang giao đơn" ||
+    trangThai === "Đang giao" ||
+    trangThai === "Chờ lấy hàng";
   const statusPending = trangThai === "Chờ xác nhận";
   const statusCanceled = trangThai === "Đã hủy";
+  const showTrack = !statusCanceled && Boolean(theoDoi || maVanDon);
 
   const className = [
     "cins-chat-don-card",
@@ -116,6 +201,17 @@ export function ChatDonHangCard({ card, tone = "them" }: Props) {
   ]
     .filter(Boolean)
     .join(" ");
+
+  async function copyMaVanDon() {
+    if (!maVanDon) return;
+    try {
+      await navigator.clipboard.writeText(maVanDon);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1600);
+    } catch {
+      /* ignore */
+    }
+  }
 
   return (
     <>
@@ -186,6 +282,52 @@ export function ChatDonHangCard({ card, tone = "them" }: Props) {
 
           <span className="cins-chat-don-card-cta">Xem chi tiết đơn</span>
         </button>
+
+        {showTrack ? (
+          <div className="cins-chat-don-card-track-bar">
+            {maVanDon ? (
+              <div className="cins-chat-don-card-ma-vd">
+                <span className="cins-chat-don-card-ma-vd-meta">
+                  <span className="cins-chat-don-card-ma-vd-label">
+                    {dvvc ? `${dvvc} · Mã` : "Mã vận đơn"}
+                  </span>
+                  <strong className="cins-chat-don-card-ma-vd-code">
+                    {maVanDon}
+                  </strong>
+                </span>
+                <button
+                  type="button"
+                  className={`cins-chat-don-card-ma-vd-copy${copied ? " is-copied" : ""}`}
+                  aria-label={copied ? "Đã copy mã vận đơn" : "Copy mã vận đơn"}
+                  title={copied ? "Đã copy" : "Copy mã"}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void copyMaVanDon();
+                  }}
+                >
+                  {copied ? (
+                    <Check size={14} strokeWidth={2.4} aria-hidden />
+                  ) : (
+                    <Copy size={14} strokeWidth={2.2} aria-hidden />
+                  )}
+                  {copied ? "Đã copy" : "Copy"}
+                </button>
+              </div>
+            ) : null}
+            {theoDoi ? (
+              <a
+                href={theoDoi}
+                target="_blank"
+                rel="noopener noreferrer nofollow"
+                className="cins-chat-don-card-track"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Truck size={14} strokeWidth={2.2} aria-hidden />
+                Theo dõi đơn hàng
+              </a>
+            ) : null}
+          </div>
+        ) : null}
 
         {bienLaiUrl ? (
           <div className="cins-chat-don-card-bill">

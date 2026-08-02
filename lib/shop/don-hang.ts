@@ -34,6 +34,11 @@ import type {
   ShopTrangThaiDon,
 } from "@/lib/shop/types";
 import { SHOP_TRANG_THAI_DON_LABEL } from "@/lib/shop/types";
+import {
+  buildTheoDoiUrl,
+  normalizeVanChuyenDvvc,
+  normalizeVanChuyenMa,
+} from "@/lib/shop/van-chuyen";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { labelTinhThanh } from "@/lib/truong/contact";
 
@@ -70,10 +75,13 @@ type DonRow = {
   mua_phuong_xa_code?: string | null;
   mua_tinh_thanh?: string | null;
   hinh_thuc_giao?: "truc_tiep" | "online" | "tai_su_kien" | null;
+  van_chuyen_link?: string | null;
+  van_chuyen_ma?: string | null;
+  van_chuyen_dvvc?: string | null;
 };
 
 const DON_SELECT =
-  "id, ma_don, id_nguoi_mua, id_nguoi_ban, id_cot_moc, id_su_kien, loai_don, trang_thai, tien_te, tong_tien, ghi_chu, da_tru_kho, tao_luc, xac_nhan_luc, hoan_thanh_luc, hoan_thanh_boi, huy_luc, ly_do_huy, huy_boi, nguoi_mua_chap_nhan_luc, nguoi_mua_chap_nhan_van_ban, nguoi_mua_chap_nhan_phien_ban, thanh_toan_snapshot, bien_lai_anh_url, bien_lai_anh_id, mua_ho_ten, mua_so_dien_thoai, mua_dia_chi, mua_phuong_xa, mua_phuong_xa_code, mua_tinh_thanh, hinh_thuc_giao";
+  "id, ma_don, id_nguoi_mua, id_nguoi_ban, id_cot_moc, id_su_kien, loai_don, trang_thai, tien_te, tong_tien, ghi_chu, da_tru_kho, tao_luc, xac_nhan_luc, hoan_thanh_luc, hoan_thanh_boi, huy_luc, ly_do_huy, huy_boi, nguoi_mua_chap_nhan_luc, nguoi_mua_chap_nhan_van_ban, nguoi_mua_chap_nhan_phien_ban, thanh_toan_snapshot, bien_lai_anh_url, bien_lai_anh_id, mua_ho_ten, mua_so_dien_thoai, mua_dia_chi, mua_phuong_xa, mua_phuong_xa_code, mua_tinh_thanh, hinh_thuc_giao, van_chuyen_link, van_chuyen_ma, van_chuyen_dvvc";
 
 function normalizeThanhToanSnapshot(
   raw: unknown,
@@ -281,6 +289,9 @@ async function attachDong(dons: DonRow[]): Promise<ShopDonHang[]> {
     muaPhuongXaCode: d.mua_phuong_xa_code ?? null,
     muaTinhThanh: d.mua_tinh_thanh ?? null,
     hinhThucGiao: d.hinh_thuc_giao ?? null,
+    vanChuyenLink: d.van_chuyen_link?.trim() || null,
+    vanChuyenMa: d.van_chuyen_ma?.trim() || null,
+    vanChuyenDvvc: d.van_chuyen_dvvc?.trim() || null,
   }));
 }
 
@@ -793,6 +804,111 @@ async function adjustStock(dongs: ShopDonHangDong[]): Promise<void> {
   }
 }
 
+/**
+ * Seller cập nhật ĐVVC + mã vận đơn (shop tự ship ngoài CINs).
+ * Có mã+ĐVVC từ `da_nhan_tien` | `cho_lay_hang` → tự chuyển `dang_giao`.
+ * Xóa hết: im lặng (không bump). Thêm/đổi mã hoặc ĐVVC → bump card.
+ */
+export async function capNhatVanChuyenDonHang(
+  actorId: string,
+  donId: string,
+  input: { ma?: unknown; dvvc?: unknown; link?: unknown },
+): Promise<ShopDonHang> {
+  const don = await getDonHang(donId);
+  if (!don) throw new Error("NOT_FOUND");
+  if (don.idNguoiBan !== actorId) throw new Error("FORBIDDEN");
+
+  if (don.trangThai === "cho_xac_nhan") {
+    throw new Error("NEED_CONFIRM");
+  }
+
+  const allowed: ShopTrangThaiDon[] = [
+    "da_nhan_tien",
+    "cho_lay_hang",
+    "dang_giao",
+    "da_giao_tai_su_kien",
+  ];
+  if (!allowed.includes(don.trangThai)) throw new Error("INVALID_STATE");
+
+  /* Legacy: chỉ gửi `link` URL → giữ hành vi cũ (không đụng ma/dvvc nếu thiếu). */
+  const hasMa = Object.prototype.hasOwnProperty.call(input, "ma");
+  const hasDvvc = Object.prototype.hasOwnProperty.call(input, "dvvc");
+  const hasLinkOnly =
+    !hasMa &&
+    !hasDvvc &&
+    Object.prototype.hasOwnProperty.call(input, "link");
+
+  let ma: string | null = don.vanChuyenMa?.trim() || null;
+  let dvvc: string | null = don.vanChuyenDvvc?.trim() || null;
+  let link: string | null = don.vanChuyenLink?.trim() || null;
+
+  try {
+    if (hasMa) ma = normalizeVanChuyenMa(input.ma);
+    if (hasDvvc) dvvc = normalizeVanChuyenDvvc(input.dvvc);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "";
+    if (
+      msg === "MA_TOO_LONG" ||
+      msg === "INVALID_MA" ||
+      msg === "INVALID_DVVC"
+    ) {
+      throw e;
+    }
+    throw new Error("INVALID_MA");
+  }
+
+  if (hasLinkOnly) {
+    /* Cho phép xóa bằng link:"" — không còn nhận URL mới. */
+    const raw = typeof input.link === "string" ? input.link.trim() : "";
+    if (!raw) {
+      ma = null;
+      dvvc = null;
+      link = null;
+    } else {
+      throw new Error("INVALID_LINK");
+    }
+  } else {
+    /* Cho phép nhập từng phần: chọn ĐVVC trước hoặc mã trước. */
+    link = ma && dvvc ? buildTheoDoiUrl(dvvc, ma) : null;
+  }
+
+  const prevMa = don.vanChuyenMa?.trim() || null;
+  const prevDvvc = don.vanChuyenDvvc?.trim() || null;
+  const prevLink = don.vanChuyenLink?.trim() || null;
+  const changed =
+    prevMa !== ma || prevDvvc !== dvvc || prevLink !== link;
+
+  const patch: Record<string, unknown> = {
+    van_chuyen_ma: ma,
+    van_chuyen_dvvc: dvvc,
+    van_chuyen_link: link,
+    cap_nhat_luc: new Date().toISOString(),
+  };
+
+  const autoGiao =
+    Boolean(ma && dvvc) &&
+    (don.trangThai === "da_nhan_tien" || don.trangThai === "cho_lay_hang");
+  if (autoGiao) {
+    patch.trang_thai = "dang_giao";
+  }
+
+  const admin = createServiceRoleClient();
+  const { error } = await admin
+    .from("shop_don_hang")
+    .update(patch)
+    .eq("id", donId);
+  if (error) throw new Error("UPDATE_FAILED");
+
+  const updated = await getDonHang(donId);
+  if (!updated) throw new Error("NOT_FOUND");
+
+  if (ma && dvvc && (changed || autoGiao)) {
+    await bumpDonHangChatMessage(updated, actorId);
+  }
+
+  return updated;
+}
+
 export async function confirmDonHang(
   actorId: string,
   donId: string,
@@ -1185,6 +1301,21 @@ export function donHangToChatContext(don: ShopDonHang): {
     parts.push("Nền tảng không giữ tiền — hai bên tự dàn xếp hoàn tiền.");
   }
   if (ghiChu) parts.push(`Ghi chú: ${ghiChu}`);
+  const track =
+    buildTheoDoiUrl(don.vanChuyenDvvc, don.vanChuyenMa) ||
+    don.vanChuyenLink?.trim() ||
+    null;
+  if (track && don.trangThai !== "huy") {
+    parts.push(`Theo dõi: ${track}`);
+  }
+  if (don.vanChuyenMa?.trim() && don.trangThai !== "huy") {
+    const dvvc = don.vanChuyenDvvc?.trim();
+    parts.push(
+      dvvc
+        ? `Mã vận đơn: ${don.vanChuyenMa.trim()} (${dvvc})`
+        : `Mã vận đơn: ${don.vanChuyenMa.trim()}`,
+    );
+  }
   const bienLaiAnh =
     don.bienLaiAnhUrl?.trim() ||
     (don.bienLaiAnhId?.trim()

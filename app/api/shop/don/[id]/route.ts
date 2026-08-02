@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import {
   cancelDonHang,
+  capNhatVanChuyenDonHang,
   completeDonHang,
   confirmDonHang,
   donHangToChatContext,
@@ -41,13 +42,27 @@ export async function PATCH(request: Request, ctx: Ctx) {
     return NextResponse.json({ error: "Chưa đăng nhập." }, { status: 401 });
   }
   const { id } = await ctx.params;
-  let body: { action?: unknown; lyDo?: unknown };
+  let body: {
+    action?: unknown;
+    lyDo?: unknown;
+    link?: unknown;
+    ma?: unknown;
+    dvvc?: unknown;
+  };
   try {
     body = (await request.json()) as typeof body;
   } catch {
     return NextResponse.json({ error: "JSON không hợp lệ." }, { status: 400 });
   }
   try {
+    if (body.action === "cap_nhat_van_chuyen") {
+      const don = await capNhatVanChuyenDonHang(session.profile.id, id, {
+        ...(body.ma !== undefined ? { ma: body.ma } : {}),
+        ...(body.dvvc !== undefined ? { dvvc: body.dvvc } : {}),
+        ...(body.link !== undefined ? { link: body.link } : {}),
+      });
+      return NextResponse.json({ don, chatContext: donHangToChatContext(don) });
+    }
     if (body.action === "da_nhan_tien" || body.action === "da_giao_tai_su_kien") {
       const don = await confirmDonHang(
         session.profile.id,
@@ -90,6 +105,48 @@ export async function PATCH(request: Request, ctx: Ctx) {
             "CINs không liên kết ĐVVC — shop tự tạo vận đơn trên web đơn vị vận chuyển.",
         },
         { status: 410 },
+      );
+    }
+    if (msg === "NEED_CONFIRM") {
+      return NextResponse.json(
+        {
+          error:
+            "Xác nhận đơn trước khi cập nhật vận chuyển (trừ kho trước).",
+        },
+        { status: 422 },
+      );
+    }
+    if (msg === "NEED_DVVC") {
+      return NextResponse.json(
+        { error: "Chọn ĐVVC trước khi lưu mã vận đơn." },
+        { status: 422 },
+      );
+    }
+    if (msg === "NEED_MA") {
+      return NextResponse.json(
+        { error: "Nhập mã vận đơn khi đã chọn ĐVVC." },
+        { status: 422 },
+      );
+    }
+    if (
+      msg === "INVALID_LINK" ||
+      msg === "LINK_TOO_LONG" ||
+      msg === "INVALID_MA" ||
+      msg === "MA_TOO_LONG" ||
+      msg === "INVALID_DVVC"
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            msg === "MA_TOO_LONG"
+              ? "Mã vận đơn quá dài (tối đa 80 ký tự)."
+              : msg === "INVALID_DVVC"
+                ? "ĐVVC không hợp lệ."
+                : msg === "INVALID_MA"
+                  ? "Mã vận đơn không hợp lệ — chỉ nhập mã, không dán link."
+                  : "Link không hợp lệ — dùng ĐVVC + mã vận đơn.",
+        },
+        { status: 422 },
       );
     }
     if (msg === "FORBIDDEN") {

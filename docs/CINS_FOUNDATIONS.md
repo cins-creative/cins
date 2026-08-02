@@ -183,7 +183,7 @@ Nguyên tắc nền: **§2** (chat có context, không inbox MXH tự do). Bản
 
 | `loai_phong` | Ngữ cảnh | MVP |
 |---|---|---|
-| `1_1` | User ↔ user | ✅ DM; tab Bạn bè / Người lạ theo `user_ket_ban`; card ngữ cảnh `don_hang` (shop L33) |
+| `1_1` | User ↔ user | ✅ DM; tab Bạn bè / Người lạ theo `user_ket_ban`; card ngữ cảnh `don_hang` (shop L33); tab **Mua bán** (sub Mua hàng / Khách hàng — chiều phụ) |
 | `1_org` | User ↔ org | ✅ Hỗ trợ / tuyển sinh; card ngữ cảnh trên tin đầu |
 | `nhom` | Nhóm bạn bè (+ project con) | ✅ Xem dưới |
 | `du_an` / `lop_hoc` / `su_kien` | Entity gắn phòng | Defer — tạo phòng khi triển khai module tương ứng |

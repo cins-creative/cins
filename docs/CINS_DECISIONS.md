@@ -41,10 +41,27 @@
 
 ## LOG — quyết định đã chốt
 
+### Chat — tab «Mua bán» gom Mua hàng + Khách hàng (2026-08-02)
+
+- **Chốt UX:** một tab cấp 1 **«Mua bán»** thay hai tab riêng; bên trong sub-tab **Mua hàng** (buyer) · **Khách hàng** (seller).
+- **Kiến trúc:** `ChatThreadGroup` vẫn `ban_be|nguoi_la|to_chuc`. `ChatThreadView = … | "mua_ban"`. Sub: `ChatMuaBanSub = "mua_hang" | "khach_hang"`. Cờ chiều phụ: `thread.isMuaHang` / `thread.isKhachHang` (+ thẻ seller) — hội thoại vẫn nằm Bạn bè/Người lạ.
+- **Hiện tab:** `banHangBat` **hoặc** có DM với seller đã mua (`listShopNguoiBanDaMua`). Sub Khách hàng chỉ seller; sub Mua hàng chỉ khi có thread `isMuaHang`.
+- **Seller thẻ:** giữ `shop_the_khach` / API `/api/shop/khach-hang/**` — filter thẻ chỉ trên sub Khách hàng (không đổi schema).
+- **Buyer map:** `listShopNguoiBanDaMua` trong `lib/shop/khach-hang.ts`; gắn cờ trong `listAllChatThreads` (`lib/chat/org-message.ts`). Không migration mới.
+- Plan gốc seller: `docs/PLAN_chat_khach_hang_tag.md` (tab UI cấp 1 «Khách hàng» → superseded bởi entry này).
+
+### Shop — link tracking tự dán trên đơn (2026-08-02)
+
+- **Chốt:** Shop nhập **ĐVVC + mã vận đơn**; CINs **không** gọi API carrier. Buyer thấy «Theo dõi đơn hàng» (URL suy từ ĐVVC+mã).
+- **ALTER:** `van_chuyen_link` (2026-08-02) · `van_chuyen_ma` + `van_chuyen_dvvc` (A16, cùng ngày). `npm run migrate:shop-don-van-chuyen-ma`.
+- **API:** `PATCH /api/shop/don/:id` action `cap_nhat_van_chuyen` + `ma`/`dvvc`. Đủ cả hai từ `da_nhan_tien`/`cho_lay_hang` → auto `dang_giao`.
+- Plan: `docs/PLAN_shop_don_van_chuyen.md`.
+
 ### Chat — tab «Khách hàng» + thẻ phân loại shop (2026-08-02)
 
 - **Yêu cầu:** seller thấy badge «Khách hàng» trên DM của buyer đã mua; tab filter khách; thẻ phân loại (mặc định Đã/Chưa chuyển tiền · Ship) chỉ shop thấy; shop tự thêm thẻ + màu.
-- **Kiến trúc:** `ChatThreadGroup` giữ `ban_be|nguoi_la|to_chuc`. Tab UI dùng `ChatThreadView = … | "khach_hang"` + cờ `thread.isKhachHang` / `khachHangTagIds` (chiều phụ — khách vẫn nằm tab Bạn bè/Người lạ).
+- **Kiến trúc (ban đầu):** `ChatThreadGroup` giữ `ban_be|nguoi_la|to_chuc`. Tab UI dùng `ChatThreadView = … | "khach_hang"` + cờ `thread.isKhachHang` / `khachHangTagIds` (chiều phụ — khách vẫn nằm tab Bạn bè/Người lạ).
+- **Cập nhật cùng ngày:** tab cấp 1 «Khách hàng» **gom vào «Mua bán»** (sub-tab) — xem LOG *Chat — tab «Mua bán»…*. Schema/thẻ seller không đổi.
 - **Không** reuse `chat_the_tai_nguyen` (RLS member phòng → lộ thẻ cho khách). Bảng mới `shop_the_khach` + `shop_the_khach_gan` khóa `id_nguoi_ban`; buyer không có SELECT policy.
 - **Khách** = `DISTINCT id_nguoi_mua` từ `shop_don_hang` (`id_nguoi_ban = me`, loại `nhap`); đơn `huy` vẫn hiện (chip nhạt). Phase 1 chỉ khách đã có phòng DM.
 - **Seed thẻ:** write path — migration backfill seller hiện có + `setBanHangEnabled(true)`. Read path **không** seed (cho phép xóa hết thẻ mặc định vĩnh viễn).
@@ -156,6 +173,8 @@
 | A12 | `shop_cua_hang` | Thêm `trang_thai_hoat_dong`, `ly_do_khoa`, `so_tranh_chap_mo` | enum mới `shop_trang_thai_hoat_dong_enum` NOT NULL DEFAULT `'hoat_dong'` · `text` · `integer NOT NULL DEFAULT 0` (cache, trigger) | NO (có DEFAULT) | Cổng gate **gộp** cho nợ phí + thua tranh chấp; nhãn cảnh báo dẫn xuất | Shop cũ = `hoat_dong`, đếm = 0 → an toàn; **tách biệt** `tam_dong` sẵn có | **Đã chạy** 2026-07-30 · cùng migration |
 | A13 | `shop_bien_the` · `shop_dia_chi_nhan` | `shop_bien_the`: thêm `can_nang` (gram, seller nhập) · `shop_dia_chi_nhan`: thêm `phuong_xa_code` (mã GSO) | `integer` · `text` | YES | Cân nặng để GHN tính phí đúng; mã GSO map carrier chuẩn hơn tên trần (xã trùng tên sau sáp nhập) | Row cũ = NULL; backfill `phuong_xa_code` từ `lib/vn/phuong-xa-2025.ts` theo tên | **Đã chạy** 2026-07-30 · cùng migration |
 | A14 | Enum `shop_trang_thai_don_enum` | Thêm `cho_lay_hang`, `dang_giao`, `hoan_tra` | `ALTER TYPE ... ADD VALUE` | — | Pipeline 5 bước seller (xác nhận → soạn → chờ lấy + GHN → đang giao → hoàn thành / hoàn trả) | Đơn cũ giữ value cũ; label UI mới | **Đã chạy** 2026-07-30 · `migration_shop_don_pipeline.sql` |
+| A15 | `shop_don_hang` | Thêm `van_chuyen_link` | `TEXT` | YES | Link tracking do shop tự dán (không ĐVVC API) | Đơn cũ = NULL | **Đã chạy** 2026-08-02 · `migration_shop_don_van_chuyen.sql` |
+| A16 | `shop_don_hang` | Thêm `van_chuyen_ma`, `van_chuyen_dvvc` | `TEXT` | YES | Mã vận đơn + tên ĐVVC; URL `van_chuyen_link` suy ra khi lưu | Backfill ĐVVC từ link cũ | **Đã chạy** 2026-08-02 · `migration_shop_don_van_chuyen_ma.sql` |
 | A15 | `auto_tai_khoan` | +12 cột clone/KPI/vault/bàn giao | `ADD COLUMN IF NOT EXISTS` | default an toàn (`loai='ai'`) | Tài khoản clone artist + vault + KPI | Backfill không cần (default) | **Đã duyệt + chạy** 2026-08-01 · `migration_tai_khoan_clone.sql` |
 | A16 | `auto_han_muc` | + `kpi_muc_tieu`, `kpi_phan_bo_luc` | `ADD COLUMN IF NOT EXISTS` | NULL | KPI vận hành tách hạn mức autopilot | — | **Đã duyệt + chạy** 2026-08-01 · `migration_tai_khoan_clone.sql` |
 

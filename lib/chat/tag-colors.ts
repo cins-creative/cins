@@ -90,7 +90,7 @@ export function roomTagChipStyle(
   }
   return {
     borderColor: color,
-    background: `color-mix(in srgb, ${color} 14%, #fff)`,
+    background: `color-mix(in srgb, ${color} 22%, var(--bg-surface, #fff))`,
     color,
   };
 }

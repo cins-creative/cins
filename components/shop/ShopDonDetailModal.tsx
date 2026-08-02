@@ -1,6 +1,6 @@
 "use client";
 
-import { Ban, Clock, Copy, Flag, Loader2, Package, Printer, X } from "lucide-react";
+import { Ban, Clock, Copy, Flag, Loader2, Package, Printer, Truck, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -14,8 +14,16 @@ import {
   SHOP_LY_DO_HUY_MAX,
   SHOP_TRANG_THAI_DON_LABEL,
   type ShopDonHang,
+  type ShopTrangThaiDon,
 } from "@/lib/shop/types";
 import { SHOP_LY_DO_KHIEU_NAI_LABEL } from "@/lib/shop/khieu-nai-labels";
+import {
+  buildTheoDoiUrl,
+  detectDvvcTuLink,
+  safeHttpUrl,
+  SHOP_DVVC_OPTIONS,
+  SHOP_VAN_CHUYEN_MA_MAX,
+} from "@/lib/shop/van-chuyen";
 
 import "./shop-don-detail-modal.css";
 
@@ -23,6 +31,13 @@ const HUY_LY_DO_PRESETS = [
   "Không nhận được tiền / biên lai không hợp lệ",
   "Hết hàng",
   "Người mua yêu cầu hủy",
+];
+
+const VAN_CHUYEN_EDITABLE: ShopTrangThaiDon[] = [
+  "da_nhan_tien",
+  "cho_lay_hang",
+  "dang_giao",
+  "da_giao_tai_su_kien",
 ];
 
 /** Thời gian đã chờ từ khi tạo đơn + cờ "chờ quá lâu" (để nhắc seller). */
@@ -111,6 +126,8 @@ export function ShopDonDetailModal({
   const [knBusy, setKnBusy] = useState(false);
   const [knMsg, setKnMsg] = useState<string | null>(null);
   const [copyFlash, setCopyFlash] = useState<string | null>(null);
+  const [vcMaDraft, setVcMaDraft] = useState("");
+  const [vcDvvcDraft, setVcDvvcDraft] = useState("");
 
   useEffect(() => {
     setPortalReady(true);
@@ -134,6 +151,12 @@ export function ShopDonDetailModal({
         return;
       }
       setDon(json.don);
+      setVcMaDraft(json.don.vanChuyenMa?.trim() || "");
+      setVcDvvcDraft(
+        json.don.vanChuyenDvvc?.trim() ||
+          detectDvvcTuLink(json.don.vanChuyenLink) ||
+          "",
+      );
     } catch {
       setDon(null);
       setErr("Không tải đơn.");
@@ -314,6 +337,41 @@ export function ShopDonDetailModal({
         setDon(json.don);
         onDonChange?.(json.don);
         setHuyOpen(false);
+      } else {
+        await load(don.id);
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function saveVanChuyen(next: { ma: string; dvvc: string }) {
+    if (!don) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      const res = await fetch(`/api/shop/don/${don.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "cap_nhat_van_chuyen",
+          ma: next.ma,
+          dvvc: next.dvvc,
+        }),
+      });
+      const json = (await res.json().catch(() => null)) as {
+        don?: ShopDonHang;
+        error?: string;
+      } | null;
+      if (!res.ok) {
+        setErr(json?.error ?? "Không lưu được mã vận đơn.");
+        return;
+      }
+      if (json?.don) {
+        setDon(json.don);
+        setVcMaDraft(json.don.vanChuyenMa?.trim() || "");
+        setVcDvvcDraft(json.don.vanChuyenDvvc?.trim() || "");
+        onDonChange?.(json.don);
       } else {
         await load(don.id);
       }
@@ -621,8 +679,7 @@ export function ShopDonDetailModal({
               </div>
             ) : null}
 
-            {role === "seller" &&
-            (don.muaHoTen || don.muaSoDienThoai || don.muaDiaChi) ? (
+            {(don.muaHoTen || don.muaSoDienThoai || don.muaDiaChi) ? (
               <div className="shop-don-detail-nhan">
                 <div className="shop-don-detail-nhan-hdr">
                   <span className="shop-don-detail-note-label">
@@ -643,23 +700,25 @@ export function ShopDonDetailModal({
                       <Copy size={14} aria-hidden />
                       Copy
                     </button>
-                    <button
-                      type="button"
-                      className="shop-don-detail-btn ghost shop-don-detail-nhan-tool"
-                      title="In phiếu đóng gói"
-                      onClick={() => {
-                        try {
-                          printPhieuDongGoi(don);
-                        } catch {
-                          setErr(
-                            "Trình duyệt chặn cửa sổ in — cho phép popup rồi thử lại.",
-                          );
-                        }
-                      }}
-                    >
-                      <Printer size={14} aria-hidden />
-                      Phiếu
-                    </button>
+                    {role === "seller" ? (
+                      <button
+                        type="button"
+                        className="shop-don-detail-btn ghost shop-don-detail-nhan-tool"
+                        title="In phiếu đóng gói"
+                        onClick={() => {
+                          try {
+                            printPhieuDongGoi(don);
+                          } catch {
+                            setErr(
+                              "Trình duyệt chặn cửa sổ in — cho phép popup rồi thử lại.",
+                            );
+                          }
+                        }}
+                      >
+                        <Printer size={14} aria-hidden />
+                        Phiếu
+                      </button>
+                    ) : null}
                   </div>
                 </div>
                 {copyFlash ? (
@@ -722,6 +781,144 @@ export function ShopDonDetailModal({
                 ) : null}
               </div>
             ) : null}
+
+            {(() => {
+              const trackSafe =
+                safeHttpUrl(
+                  buildTheoDoiUrl(don.vanChuyenDvvc, don.vanChuyenMa) ||
+                    don.vanChuyenLink,
+                );
+              const editable =
+                role === "seller" &&
+                VAN_CHUYEN_EDITABLE.includes(don.trangThai);
+              const showBuyerTrack =
+                role === "buyer" &&
+                trackSafe &&
+                don.trangThai !== "huy";
+              const showSeller =
+                role === "seller" &&
+                (editable ||
+                  Boolean(don.vanChuyenMa || don.vanChuyenDvvc || trackSafe) ||
+                  don.trangThai === "cho_xac_nhan");
+              if (!showBuyerTrack && !showSeller) return null;
+              return (
+                  <div className="shop-don-detail-nhan shop-don-detail-vc">
+                    <div className="shop-don-detail-nhan-hdr">
+                      <span className="shop-don-detail-note-label">
+                        Thông tin đơn vận chuyển
+                      </span>
+                    </div>
+                    {showBuyerTrack && trackSafe ? (
+                      <a
+                        href={trackSafe}
+                        target="_blank"
+                        rel="noopener noreferrer nofollow"
+                        className="shop-don-detail-vc-track"
+                      >
+                        <Truck size={14} strokeWidth={2.2} aria-hidden />
+                        Theo dõi đơn hàng
+                        <span className="shop-don-detail-vc-carrier">
+                          {[don.vanChuyenDvvc, don.vanChuyenMa]
+                            .filter(Boolean)
+                            .join(" · ") || "Tra cứu"}
+                        </span>
+                      </a>
+                    ) : null}
+                    {showSeller ? (
+                      editable ? (
+                        <form
+                          className="shop-don-detail-vc-form"
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            void saveVanChuyen({
+                              ma: vcMaDraft,
+                              dvvc: vcDvvcDraft,
+                            });
+                          }}
+                        >
+                          <select
+                            className="shop-don-detail-huy-input"
+                            value={vcDvvcDraft}
+                            disabled={busy}
+                            aria-label="Đơn vị vận chuyển"
+                            onChange={(e) => setVcDvvcDraft(e.target.value)}
+                          >
+                            <option value="">Chọn ĐVVC</option>
+                            {SHOP_DVVC_OPTIONS.map((opt) => (
+                              <option key={opt} value={opt}>
+                                {opt}
+                              </option>
+                            ))}
+                          </select>
+                          <input
+                            type="text"
+                            className="shop-don-detail-huy-input"
+                            value={vcMaDraft}
+                            maxLength={SHOP_VAN_CHUYEN_MA_MAX}
+                            placeholder="Mã vận đơn"
+                            disabled={busy}
+                            aria-label="Mã vận đơn"
+                            onChange={(e) => setVcMaDraft(e.target.value)}
+                          />
+                          <div className="shop-don-detail-actions-row">
+                            <button
+                              type="submit"
+                              className="shop-don-detail-btn"
+                              disabled={busy}
+                            >
+                              {busy ? (
+                                <Loader2
+                                  size={14}
+                                  className="shop-spin"
+                                  aria-hidden
+                                />
+                              ) : null}
+                              Lưu
+                            </button>
+                            {don.vanChuyenMa || don.vanChuyenDvvc ? (
+                              <button
+                                type="button"
+                                className="shop-don-detail-btn ghost"
+                                disabled={busy}
+                                onClick={() =>
+                                  void saveVanChuyen({ ma: "", dvvc: "" })
+                                }
+                              >
+                                Xóa
+                              </button>
+                            ) : null}
+                          </div>
+                          {don.trangThai === "da_nhan_tien" ||
+                          don.trangThai === "cho_lay_hang" ? (
+                            <p className="shop-don-detail-huy-hint">
+                              Lưu ĐVVC + mã sẽ chuyển đơn sang «Đang giao».
+                            </p>
+                          ) : null}
+                        </form>
+                      ) : don.vanChuyenMa || don.vanChuyenDvvc ? (
+                        <>
+                          {don.vanChuyenDvvc ? (
+                            <p className="shop-don-detail-nhan-line">
+                              <span>ĐVVC</span>
+                              <strong>{don.vanChuyenDvvc}</strong>
+                            </p>
+                          ) : null}
+                          {don.vanChuyenMa ? (
+                            <p className="shop-don-detail-nhan-line">
+                              <span>Mã</span>
+                              <strong>{don.vanChuyenMa}</strong>
+                            </p>
+                          ) : null}
+                        </>
+                      ) : don.trangThai === "cho_xac_nhan" ? (
+                        <p className="shop-don-detail-huy-hint">
+                          Xác nhận đơn trước khi nhập mã vận chuyển.
+                        </p>
+                      ) : null
+                    ) : null}
+                  </div>
+              );
+            })()}
 
             {noteText ? (
               <div className="shop-don-detail-note">

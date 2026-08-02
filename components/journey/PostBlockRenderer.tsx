@@ -1,9 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
+import { Fragment } from "react";
 
 import { PostReadOnlyBlock } from "@/components/editor/PostRenderer";
 import { PostReadOnlyImgs } from "@/components/editor/PostReadOnlyImgs";
+import { DeferredMount } from "@/components/journey/DeferredMount";
 import { ImageGrid } from "@/components/journey/ImageGrid";
 import { ImageLightbox } from "@/components/journey/ImageLightbox";
 import type { Block } from "@/lib/editor/types";
@@ -12,6 +14,9 @@ import {
   extractPhotoGridImagesFromBlocks,
   groupBlocksForRender,
 } from "@/lib/journey/image-grid";
+
+/** Nhóm ảnh đầu mount ngay; phần còn lại chờ gần viewport. */
+const EAGER_IMAGE_GROUPS = 2;
 
 type Props = {
   blocks: ReadonlyArray<Block>;
@@ -23,6 +28,19 @@ type Props = {
    */
   showAllImages?: boolean;
 };
+
+function maybeDeferImage(
+  eager: boolean,
+  key: string,
+  node: ReactNode,
+): ReactNode {
+  if (eager) return <Fragment key={key}>{node}</Fragment>;
+  return (
+    <DeferredMount key={key} minHeight={280} rootMargin="600px 0px">
+      {node}
+    </DeferredMount>
+  );
+}
 
 /**
  * Render Journey post blocks — gom các block `imgs` liên tiếp thành
@@ -61,12 +79,14 @@ export function PostBlockRenderer({
       {groups.map((group, i) => {
         if (group.type === "image_grid") {
           const isFirstGroup = imageGroupIndex === 0;
+          const eager = imageGroupIndex < EAGER_IMAGE_GROUPS;
           imageGroupIndex += 1;
           const offset = imageOffset;
           imageOffset += group.images.length;
-          return (
+          return maybeDeferImage(
+            eager,
+            `grid-${i}`,
             <div
-              key={`grid-${i}`}
               className="block block-image-grid"
               data-block-type="imgs"
             >
@@ -87,21 +107,21 @@ export function PostBlockRenderer({
                   suppressLightbox={sharedLightbox}
                 />
               </div>
-            </div>
+            </div>,
           );
         }
 
         const { block } = group;
         if (block.loai === "imgs") {
           const blockImages = extractImagesFromImgsBlock(block);
+          const eager = imageGroupIndex < EAGER_IMAGE_GROUPS;
+          imageGroupIndex += 1;
           const offset = imageOffset;
           imageOffset += blockImages.length;
-          return (
-            <div
-              key={block.id}
-              className="block"
-              data-block-type={block.loai}
-            >
+          return maybeDeferImage(
+            eager,
+            block.id,
+            <div className="block" data-block-type={block.loai}>
               <div className="block-inner">
                 <PostReadOnlyImgs
                   block={block}
@@ -114,7 +134,7 @@ export function PostBlockRenderer({
                   suppressLightbox={sharedLightbox}
                 />
               </div>
-            </div>
+            </div>,
           );
         }
 

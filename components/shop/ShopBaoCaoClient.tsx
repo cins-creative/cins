@@ -20,7 +20,6 @@ import {
   peekBaoCao,
 } from "@/lib/shop/client-fetch-cache";
 
-import { ShopDashTabs } from "./ShopDashTabs";
 import "./shop-dashboard.css";
 
 function formatVnd(amount: number, tienTe = "VND"): string {
@@ -321,9 +320,7 @@ export function ShopBaoCaoClient() {
       : null;
 
   return (
-    <div className="shop-dash">
-      <ShopDashTabs active="bao-cao" />
-
+    <>
       {loading && (
         <div className="shop-dash-loading-inline">
           <Loader2 size={20} className="spin" aria-hidden />
@@ -435,6 +432,6 @@ export function ShopBaoCaoClient() {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

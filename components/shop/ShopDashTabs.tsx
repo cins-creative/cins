@@ -36,6 +36,8 @@ import type { ShopCuaHang } from "@/lib/shop/types";
 
 type ShopDashTab = "kho" | "don" | "su-kien" | "cua-hang" | "bao-cao";
 
+export type { ShopDashTab };
+
 const TAB_COPY: Record<
   ShopDashTab,
   { href: string; label: string; shortLabel: string }

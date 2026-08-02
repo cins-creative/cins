@@ -1376,16 +1376,20 @@ export async function listOrgThreadsForUser(viewerId: string): Promise<ChatThrea
 export async function listAllChatThreads(viewerId: string): Promise<ChatThread[]> {
   const { listGroupThreads } = await import("@/lib/chat/group-message");
   const { getBanHangEnabled } = await import("@/lib/shop/settings");
-  const { listShopKhachHang } = await import("@/lib/shop/khach-hang");
+  const { listShopKhachHang, listShopNguoiBanDaMua } = await import(
+    "@/lib/shop/khach-hang"
+  );
 
   const banHangBat = await getBanHangEnabled(viewerId);
-  const [direct, group, org, khachMap] = await Promise.all([
+  const [direct, group, org, khachMap, muaMap] = await Promise.all([
     listDirectThreads(viewerId),
     listGroupThreads(viewerId),
     listOrgThreadsForUser(viewerId),
-    // Overlay chỉ cho seller — buyer/user thường không query shop.
+    // Overlay chỉ cho seller — buyer/user thường không query shop khách.
     // Bất biến: viewerId === sellerId (caller luôn truyền session.profile.id).
     banHangBat ? listShopKhachHang(viewerId) : Promise.resolve(null),
+    // Chiều buyer — mọi user có thể đã mua; query nhẹ theo id_nguoi_mua.
+    listShopNguoiBanDaMua(viewerId),
   ]);
   const merged = [...direct, ...group, ...org];
   if (khachMap && khachMap.size > 0) {
@@ -1404,6 +1408,23 @@ export async function listAllChatThreads(viewerId: string): Promise<ChatThread[]
       thread.khachHangSoDon = khach.soDon;
       thread.khachHangChiDonHuy = khach.chiDonHuy;
       thread.khachHangTagIds = khach.tagIds;
+    }
+  }
+  if (muaMap.size > 0) {
+    for (const thread of merged) {
+      if (
+        thread.kind !== "user" ||
+        thread.isGroup ||
+        thread.isSelf ||
+        !thread.peerUserId
+      ) {
+        continue;
+      }
+      const mua = muaMap.get(thread.peerUserId);
+      if (!mua) continue;
+      thread.isMuaHang = true;
+      thread.muaHangSoDon = mua.soDon;
+      thread.muaHangChiDonHuy = mua.chiDonHuy;
     }
   }
   merged.sort(

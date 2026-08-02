@@ -28,28 +28,47 @@ import {
 import {
   SHOP_DON_NHAC_GIO,
   type ShopDonHang,
-  type ShopLoaiDon,
   type ShopTrangThaiDon,
 } from "@/lib/shop/types";
+import {
+  detectDvvcTuLink,
+  SHOP_DVVC_OPTIONS,
+  SHOP_VAN_CHUYEN_MA_MAX,
+} from "@/lib/shop/van-chuyen";
 
 import {
   exportDonsToCsv,
   exportDonsToViettelPostXlsx,
 } from "@/lib/shop/export-viettelpost";
 
-import { ShopDashTabs } from "./ShopDashTabs";
 import { ShopDonDetailModal } from "./ShopDonDetailModal";
 import "./shop-dashboard.css";
-
-const LOAI_DON_SHORT: Record<ShopLoaiDon, string> = {
-  mua_ngay: "Đã thanh toán",
-  dat_truoc_nhan_su_kien: "Thanh toán sau",
-};
 
 function donHinhThucShort(hinh: ShopDonHang["hinhThucGiao"]): string {
   if (hinh === "online") return "ĐVVC (buyer trả ship)";
   if (hinh === "tai_su_kien") return "Tại sự kiện";
   return "Gặp trực tiếp";
+}
+
+/** Lời nhắn buyer → seller (bỏ dòng hệ thống hóa đơn). */
+function donGhiChuSeller(ghiChu: string | null | undefined): string {
+  return (ghiChu ?? "")
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l) => l && !l.startsWith("Hóa đơn thanh toán:"))
+    .join(" ")
+    .trim();
+}
+
+const VAN_CHUYEN_EDITABLE: ShopTrangThaiDon[] = [
+  "da_nhan_tien",
+  "cho_lay_hang",
+  "dang_giao",
+  "da_giao_tai_su_kien",
+];
+
+function canEditVanChuyen(trangThai: ShopTrangThaiDon): boolean {
+  return VAN_CHUYEN_EDITABLE.includes(trangThai);
 }
 
 /** Tab lọc theo bước pipeline (khớp cột Act). `null` = tất cả. */
@@ -72,12 +91,24 @@ const DON_TAB_ORDER: DonTab[] = [
   "tat_ca",
 ];
 
+/** 5 bước tiến độ đơn — render dạng mũi tên. */
+const DON_TAB_PIPELINE: DonTab[] = [
+  "cho_xac_nhan",
+  "dang_soan",
+  "cho_lay_hang",
+  "dang_giao",
+  "hoan_thanh",
+];
+
+/** Bộ lọc ngoài pipeline. */
+const DON_TAB_SIDE: DonTab[] = ["huy", "tat_ca"];
+
 /** Nhãn ngắn — khớp hành động Act / trạng thái đơn. */
 const DON_TAB_LABEL: Record<DonTab, string> = {
   cho_xac_nhan: "Chờ xác nhận",
   dang_soan: "Đang soạn",
   cho_lay_hang: "Chờ lấy hàng",
-  dang_giao: "Đang giao đơn",
+  dang_giao: "Đang giao",
   hoan_thanh: "Hoàn thành",
   huy: "Hủy / trả",
   tat_ca: "Tất cả",
@@ -299,6 +330,8 @@ export function ShopDonClient() {
   /** Đơn đang hoàn thành lẻ (nút trong hàng) — tách khỏi bulk. */
   const [rowCompletingId, setRowCompletingId] = useState<string | null>(null);
   const [actMenuOpenId, setActMenuOpenId] = useState<string | null>(null);
+  const [vcBusyId, setVcBusyId] = useState<string | null>(null);
+  const vcSkipBlurRef = useRef(false);
   const actMenuRef = useRef<HTMLDivElement>(null);
   const [prepOpen, setPrepOpen] = useState(false);
   const [prepLoaiFilter, setPrepLoaiFilter] = useState<Set<string>>(new Set());
@@ -590,6 +623,55 @@ export function ShopDonClient() {
     [rowCompletingId],
   );
 
+  const saveVanChuyen = useCallback(
+    async (
+      d: ShopDonHang,
+      next: { ma: string; dvvc: string },
+    ) => {
+      const ma = next.ma.trim();
+      const dvvc = next.dvvc.trim();
+      const prevMa = d.vanChuyenMa?.trim() || "";
+      const prevDvvc = d.vanChuyenDvvc?.trim() || "";
+      if (ma === prevMa && dvvc === prevDvvc) return;
+      if (vcBusyId) return;
+      setVcBusyId(d.id);
+      setCompleteErr(null);
+      const prev = d;
+      try {
+        const res = await fetch(`/api/shop/don/${d.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "cap_nhat_van_chuyen",
+            ma,
+            dvvc,
+          }),
+        });
+        const json = (await res.json().catch(() => null)) as {
+          don?: ShopDonHang;
+          error?: string;
+        } | null;
+        if (res.ok && json?.don) {
+          const updated = json.don;
+          setItems((cur) =>
+            cur.map((it) => (it.id === updated.id ? { ...it, ...updated } : it)),
+          );
+        } else {
+          setItems((cur) =>
+            cur.map((it) => (it.id === prev.id ? prev : it)),
+          );
+          setCompleteErr(json?.error ?? "Không lưu được mã vận đơn.");
+        }
+      } catch {
+        setItems((cur) => cur.map((it) => (it.id === prev.id ? prev : it)));
+        setCompleteErr("Không lưu được mã vận đơn.");
+      } finally {
+        setVcBusyId(null);
+      }
+    },
+    [vcBusyId],
+  );
+
   /** Bấm 1 nút bulk: có chọn thì chạy; chưa chọn thì mở prompt yêu cầu chọn đơn. */
   const runBulk = useCallback(
     (action: BulkAction) => {
@@ -645,12 +727,9 @@ export function ShopDonClient() {
 
   if (loading) {
     return (
-      <div className="shop-dash">
-        <ShopDashTabs active="don" />
-        <div className="shop-dash-loading" aria-busy="true">
-          <Loader2 className="shop-spin" size={20} aria-hidden />
-          Đang tải…
-        </div>
+      <div className="shop-dash-loading" aria-busy="true">
+        <Loader2 className="shop-spin" size={20} aria-hidden />
+        Đang tải…
       </div>
     );
   }
@@ -701,7 +780,7 @@ export function ShopDonClient() {
           ) : (
             <FileSpreadsheet size={15} strokeWidth={2.2} aria-hidden />
           )}
-          Excel Viettel
+          Xuất Excel
         </button>
         <button
           type="button"
@@ -770,20 +849,50 @@ export function ShopDonClient() {
   );
 
   const statusTabs = (
-    <div className="shop-don-status-tabs" role="tablist" aria-label="Lọc theo trạng thái đơn">
-      {DON_TAB_ORDER.map((t) => (
-        <button
-          key={t}
-          type="button"
-          role="tab"
-          aria-selected={tab === t}
-          className={`shop-don-status-tab${tab === t ? " is-active" : ""}`}
-          onClick={() => setTab(t)}
-        >
-          {DON_TAB_LABEL[t]}
-          <span className="shop-don-status-tab-count">{tabCounts[t]}</span>
-        </button>
-      ))}
+    <div
+      className="shop-don-status-tabs"
+      role="tablist"
+      aria-label="Lọc theo trạng thái đơn"
+    >
+      <div className="shop-don-status-steps" aria-label="Tiến độ đơn">
+        {DON_TAB_PIPELINE.map((t, i) => (
+          <button
+            key={t}
+            type="button"
+            role="tab"
+            aria-selected={tab === t}
+            className={[
+              "shop-don-status-step",
+              i === 0 ? "is-first" : "",
+              i === DON_TAB_PIPELINE.length - 1 ? "is-last" : "",
+              tab === t ? "is-active" : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
+            onClick={() => setTab(t)}
+          >
+            <span className="shop-don-status-step-label">
+              {DON_TAB_LABEL[t]}
+            </span>
+            <span className="shop-don-status-tab-count">{tabCounts[t]}</span>
+          </button>
+        ))}
+      </div>
+      <div className="shop-don-status-side">
+        {DON_TAB_SIDE.map((t) => (
+          <button
+            key={t}
+            type="button"
+            role="tab"
+            aria-selected={tab === t}
+            className={`shop-don-status-side-tab${tab === t ? " is-active" : ""}${t === "huy" ? " is-huy" : ""}`}
+            onClick={() => setTab(t)}
+          >
+            {DON_TAB_LABEL[t]}
+            <span className="shop-don-status-tab-count">{tabCounts[t]}</span>
+          </button>
+        ))}
+      </div>
     </div>
   );
 
@@ -1072,9 +1181,7 @@ export function ShopDonClient() {
       : null;
 
   return (
-    <div className="shop-dash">
-      <ShopDashTabs active="don" />
-
+    <>
       {err ? <p className="shop-dash-err">{err}</p> : null}
 
       <div className="shop-don-toolbar">
@@ -1111,8 +1218,17 @@ export function ShopDonClient() {
                 <th scope="col" className="shop-don-col-mua">
                   Người mua
                 </th>
+                <th scope="col" className="shop-don-col-note">
+                  Ghi chú
+                </th>
                 <th scope="col" className="shop-don-col-loai">
                   Giao / loại
+                </th>
+                <th scope="col" className="shop-don-col-dvvc">
+                  ĐVVC
+                </th>
+                <th scope="col" className="shop-don-col-vc">
+                  Mã vận đơn
                 </th>
                 <th scope="col" className="shop-don-col-sp">
                   SP
@@ -1204,13 +1320,169 @@ export function ShopDonClient() {
                     <td className="shop-don-col-mua">
                       {d.muaTen?.trim() || "—"}
                     </td>
+                    <td className="shop-don-col-note">
+                      {(() => {
+                        const note = donGhiChuSeller(d.ghiChu);
+                        if (!note) {
+                          return <span className="shop-don-note-empty">—</span>;
+                        }
+                        return (
+                          <span className="shop-don-note" title={note}>
+                            {note}
+                          </span>
+                        );
+                      })()}
+                    </td>
                     <td className="shop-don-col-loai">
                       <span className="shop-don-giao-loai">
-                        <span className="shop-don-giao">{donHinhThucShort(d.hinhThucGiao)}</span>
-                        <span className="shop-don-loai-sub">
-                          {LOAI_DON_SHORT[d.loaiDon]}
+                        <span
+                          className={`shop-don-giao shop-don-giao--${d.hinhThucGiao ?? "truc_tiep"}`}
+                        >
+                          {donHinhThucShort(d.hinhThucGiao)}
                         </span>
                       </span>
+                    </td>
+                    <td
+                      className="shop-don-col-dvvc"
+                      onClick={(e) => e.stopPropagation()}
+                      onKeyDown={(e) => e.stopPropagation()}
+                    >
+                      {(() => {
+                        const editable = canEditVanChuyen(d.trangThai);
+                        const busy = vcBusyId === d.id;
+                        const dvvc =
+                          d.vanChuyenDvvc?.trim() ||
+                          detectDvvcTuLink(d.vanChuyenLink) ||
+                          "";
+                        const ma = d.vanChuyenMa?.trim() || "";
+                        if (!editable) {
+                          return (
+                            <span className="shop-don-vc-ro">
+                              {dvvc || "—"}
+                            </span>
+                          );
+                        }
+                        return (
+                          <select
+                            className="shop-don-dvvc-select"
+                            value={dvvc}
+                            disabled={busy}
+                            aria-label={`ĐVVC đơn ${d.maDon ?? d.id.slice(0, 8)}`}
+                            onChange={(e) => {
+                              const nextDvvc = e.target.value;
+                              void saveVanChuyen(d, {
+                                ma,
+                                dvvc: nextDvvc,
+                              });
+                            }}
+                          >
+                            <option value="">Chọn ĐVVC</option>
+                            {SHOP_DVVC_OPTIONS.map((opt) => (
+                              <option key={opt} value={opt}>
+                                {opt}
+                              </option>
+                            ))}
+                          </select>
+                        );
+                      })()}
+                    </td>
+                    <td
+                      className="shop-don-col-vc"
+                      onClick={(e) => e.stopPropagation()}
+                      onKeyDown={(e) => e.stopPropagation()}
+                    >
+                      {(() => {
+                        const editable = canEditVanChuyen(d.trangThai);
+                        const busy = vcBusyId === d.id;
+                        const ma = d.vanChuyenMa?.trim() || "";
+                        const dvvc =
+                          d.vanChuyenDvvc?.trim() ||
+                          detectDvvcTuLink(d.vanChuyenLink) ||
+                          "";
+                        if (!editable) {
+                          if (!ma) {
+                            return (
+                              <span
+                                className="shop-don-vc-empty"
+                                title={
+                                  d.trangThai === "cho_xac_nhan"
+                                    ? "Xác nhận đơn trước khi cập nhật vận chuyển"
+                                    : undefined
+                                }
+                              >
+                                —
+                              </span>
+                            );
+                          }
+                          return (
+                            <span className="shop-don-vc-ro" title={ma}>
+                              {ma}
+                            </span>
+                          );
+                        }
+                        return (
+                          <form
+                            className="shop-don-vc-form"
+                            onSubmit={(e) => {
+                              e.preventDefault();
+                              const input = e.currentTarget.elements.namedItem(
+                                "vc",
+                              ) as HTMLInputElement | null;
+                              vcSkipBlurRef.current = true;
+                              void saveVanChuyen(d, {
+                                ma: input?.value ?? "",
+                                dvvc,
+                              });
+                            }}
+                          >
+                            <input
+                              key={`${d.id}:${ma}`}
+                              name="vc"
+                              type="text"
+                              inputMode="text"
+                              autoComplete="off"
+                              className="shop-don-vc-input"
+                              defaultValue={ma}
+                              maxLength={SHOP_VAN_CHUYEN_MA_MAX}
+                              placeholder="Mã vận đơn…"
+                              disabled={busy}
+                              title={
+                                d.trangThai === "da_nhan_tien" ||
+                                d.trangThai === "cho_lay_hang"
+                                  ? "Lưu mã + ĐVVC sẽ chuyển đơn sang Đang giao"
+                                  : undefined
+                              }
+                              aria-label={`Mã vận đơn ${d.maDon ?? d.id.slice(0, 8)}`}
+                              onKeyDown={(e) => {
+                                if (e.key === "Escape") {
+                                  e.preventDefault();
+                                  vcSkipBlurRef.current = true;
+                                  e.currentTarget.value = ma;
+                                  e.currentTarget.blur();
+                                }
+                              }}
+                              onBlur={(e) => {
+                                if (busy) return;
+                                if (vcSkipBlurRef.current) {
+                                  vcSkipBlurRef.current = false;
+                                  return;
+                                }
+                                void saveVanChuyen(d, {
+                                  ma: e.currentTarget.value,
+                                  dvvc,
+                                });
+                              }}
+                            />
+                            {busy ? (
+                              <Loader2
+                                size={12}
+                                className="shop-spin"
+                                aria-hidden
+                              />
+                            ) : null}
+                          </form>
+                        );
+                      })()}
                     </td>
                     <td className="shop-don-col-sp">{tongSoLuong(d)}</td>
                     <td className="shop-don-col-tong">
@@ -1340,6 +1612,6 @@ export function ShopDonClient() {
       />
 
       {prepPortal}
-    </div>
+    </>
   );
 }

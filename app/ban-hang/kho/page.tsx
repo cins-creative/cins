@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 
-import { CinsShell } from "@/components/cins/CinsShell";
 import { ShopKhoClient } from "@/components/shop/ShopKhoClient";
 import { ShopReadyGate } from "@/components/shop/ShopReadyGate";
 
@@ -11,10 +10,8 @@ export const metadata: Metadata = {
 
 export default function BanHangKhoPage() {
   return (
-    <CinsShell data-screen-label="Ban-hang-kho">
-      <ShopReadyGate>
-        <ShopKhoClient />
-      </ShopReadyGate>
-    </CinsShell>
+    <ShopReadyGate>
+      <ShopKhoClient />
+    </ShopReadyGate>
   );
 }

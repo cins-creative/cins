@@ -14,6 +14,7 @@ import type {
   MilestonePostDetail,
 } from "@/lib/journey/milestone-post-types";
 import {
+  hydrateMilestoneDetailComments,
   invalidateMilestoneDetailCache,
   loadMilestoneDetailCached,
   milestoneDetailCacheKey,
@@ -91,8 +92,32 @@ export function JourneyCommentsSheet({
     const cached = readCachedMilestoneDetail(cacheKey);
     if (cached) {
       setDetail(cached);
-      setLoading(false);
+      setLoading(cached.comments.length === 0);
       setError(null);
+      if (cached.comments.length > 0) return;
+      const gen = ++loadGenRef.current;
+      void hydrateMilestoneDetailComments(milestoneId)
+        .then((comments) => {
+          if (!mountedRef.current || gen !== loadGenRef.current) return;
+          setDetail({
+            ...cached,
+            comments,
+            social: {
+              ...cached.social,
+              commentCount: countCommentThreads(comments),
+            },
+          });
+        })
+        .catch((e) => {
+          if (!mountedRef.current || gen !== loadGenRef.current) return;
+          setError(
+            e instanceof Error ? e.message : "Không tải được bình luận.",
+          );
+        })
+        .finally(() => {
+          if (!mountedRef.current || gen !== loadGenRef.current) return;
+          setLoading(false);
+        });
       return;
     }
 
@@ -105,10 +130,24 @@ export function JourneyCommentsSheet({
       postOwnerSlug,
       postSlug,
       milestoneId,
+      lite: true,
     })
-      .then((data) => {
+      .then(async (data) => {
         if (!mountedRef.current || gen !== loadGenRef.current) return;
-        setDetail(data);
+        let next = data;
+        if (data.comments.length === 0) {
+          const comments = await hydrateMilestoneDetailComments(milestoneId);
+          next = {
+            ...data,
+            comments,
+            social: {
+              ...data.social,
+              commentCount: countCommentThreads(comments),
+            },
+          };
+        }
+        if (!mountedRef.current || gen !== loadGenRef.current) return;
+        setDetail(next);
         setError(null);
       })
       .catch((e) => {
@@ -126,6 +165,7 @@ export function JourneyCommentsSheet({
 
   function retry() {
     invalidateMilestoneDetailCache(cacheKey);
+    invalidateMilestoneDetailCache(`mid:${milestoneId}`);
     const gen = ++loadGenRef.current;
     setLoading(true);
     setError(null);
@@ -133,10 +173,24 @@ export function JourneyCommentsSheet({
       postOwnerSlug,
       postSlug,
       milestoneId,
+      lite: true,
     })
-      .then((data) => {
+      .then(async (data) => {
         if (!mountedRef.current || gen !== loadGenRef.current) return;
-        setDetail(data);
+        let next = data;
+        if (data.comments.length === 0) {
+          const comments = await hydrateMilestoneDetailComments(milestoneId);
+          next = {
+            ...data,
+            comments,
+            social: {
+              ...data.social,
+              commentCount: countCommentThreads(comments),
+            },
+          };
+        }
+        if (!mountedRef.current || gen !== loadGenRef.current) return;
+        setDetail(next);
         setError(null);
       })
       .catch((e) => {

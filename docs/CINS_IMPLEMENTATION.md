@@ -29,7 +29,7 @@
 | `shop/import-shopee` | **POST** (seller) — import loại hàng từ URL Shopee: preview (`apply:false`) hoặc tạo `shop_nhom` + mẫu (`apply:true`). Body `{ url?, apply?, raw?, preview? }`. Lib `lib/shop/shopee/`. UI: `/ban-hang/kho` → **AI · Shopee**. Xem ghi chú *Import Shopee* bên dưới. |
 | `shop/bang-gia` · `shop/bang-gia/[id]` | CRUD bảng giá + dòng giá theo biến thể. **1 bảng giá VND / shop** (2026-07-28): POST/PATCH **ép `tien_te="VND"`**, bỏ nhận `tienTe`. Bảng canonical = `getOrCreateDefaultBangGia(ownerId)` (bảng cũ nhất; tạo "Bảng giá mặc định" VND nếu chưa có). `resolveGiaBienThe` fallback `shop_nhom.gia_mac_dinh` khi thiếu dòng → không "Chưa có giá" khi loại đã có giá gốc; `syncNhomGiaMacDinhToMau` ghi vào canonical + quét biến thể theo `id_nhom` **và** tên `phan_loai`. UI Kho/modal bỏ chọn bảng giá. |
 | `shop/gio` | GET/PATCH/DELETE giỏ buyer — scope **XOR** `cotMocId` (post-kiosk) **hoặc** `cuaHangId` (storefront `/{slug}/shop`) |
-| `shop/don` · `shop/don/[id]` | Tạo đơn từ giỏ · seller xác nhận / pipeline · list. Seller tự ship ngoài CINs (copy / export / phiếu đóng gói trên UI). |
+| `shop/don` · `shop/don/[id]` | Tạo đơn từ giỏ · seller xác nhận / pipeline · list. Seller tự ship ngoài CINs (copy / export / phiếu đóng gói trên UI). PATCH `cap_nhat_van_chuyen` dán link tracking (`van_chuyen_link`). |
 | `shop/cua-hang` · `…/mat-hang` · `…/thanh-toan` | Hồ sơ cửa hàng · catalog · STK/QR |
 | *(hub listing, không API riêng)* | **`/cua-hang`** — danh sách shop công khai; SSR `listPublicShopCuaHang` (`lib/shop/cua-hang-listing.ts`). Gate: `da_xoa=false` + owner `ban_hang_bat` ∧ `shop_hien_thi`. Sort: đang mở trước, `tam_dong` sau (`isShopTamDongActive`). Nav sidebar `MAIN_NAV` id `shops`. UI: `CuaHangListingLoader` / `CuaHangListingClient` · CSS `app/cua-hang/cua-hang-listing.css`. |
 | `milestone/[milestoneId]/shop-hang` | GET public hàng gắn post (**ẩn nếu owner `ban_hang_bat=false`**) · PUT gắn/gỡ (owner + `ban_hang_bat`) |
@@ -198,7 +198,7 @@ Tái dùng đúng pattern Shopee AI cho **user tự import portfolio** của ch�
 ### Chat (`chat`)
 | Route | Việc |
 |---|---|
-| `chat/threads` | GET list thread (DM + org + nhóm/project active) |
+| `chat/threads` | GET list thread (DM + org + nhóm/project active); seller/buyer shop flags `isKhachHang` / `isMuaHang` khi có đơn |
 | `chat/rooms/create-group` | POST tạo nhóm bạn bè |
 | `chat/rooms/open` · `open-org` | Mở/tạo phòng 1-1 hoặc 1_org |
 | `chat/rooms/[roomId]` | PATCH tên · DELETE phòng (owner) |
@@ -220,7 +220,7 @@ Tái dùng đúng pattern Shopee AI cho **user tự import portfolio** của ch�
 
 | Domain | Path |
 |---|---|
-| Shop UGC (L33) | `lib/shop/` — types, terms, catalog, giá, giỏ (post + cửa hàng), đơn, storefront, quầy, post-hang, cửa hàng, **hub listing** (`cua-hang-listing.ts` + `cua-hang-listing-types.ts`), **`shopee/`** (import Shopee → kho), **`khach-hang.ts`** (thẻ phân loại khách trong chat) |
+| Shop UGC (L33) | `lib/shop/` — types, terms, catalog, giá, giỏ (post + cửa hàng), đơn, storefront, quầy, post-hang, cửa hàng, **hub listing** (`cua-hang-listing.ts` + `cua-hang-listing-types.ts`), **`shopee/`** (import Shopee → kho), **`khach-hang.ts`** (thẻ khách seller + `listShopNguoiBanDaMua` cho tab Mua bán) |
 
 | Folder | Vai trò chính | File đáng chú ý |
 |---|---|---|
@@ -233,7 +233,7 @@ Tái dùng đúng pattern Shopee AI cho **user tự import portfolio** của ch�
 | `co-so/` | Helpers vận hành CSĐT (học phí, chat lớp, …) | `don-hoc-phi.ts`, `hoc-vien-list.ts`, `lop-chat-phong.ts`, … |
 | `tag/` | Tạo tag, dedup, gen tom-tat, normalize, slug, admin merge | `create.ts`, `gen-tom-tat.ts`, `dedup.ts`, `normalize.ts` |
 | `filter/` | **Filter cá nhân** (user & org): CRUD nhãn, gắn cột mốc/bài org, list theo chủ, đếm visible cho khách, nhãn hệ thống `cong-dong` | `create.ts`, `update.ts`, `delete.ts`, `gan.ts`, `list-cua-user.ts`, `count-visible-to-viewer.ts`, `cong-dong-personal-filter.ts` (+ `.shared.ts`) |
-| `chat/` | **Chat:** DM/org/nhóm, realtime, ghim, nhóm bạn bè, **project con**, thẻ tài nguyên, mốc phòng, bình chọn | `group-message.ts`, `group-roles.ts`, `project-room.ts`, `room-tags.ts`, `room-moc.ts`, `room-poll.ts`, `direct-message.ts`, `use-chat-realtime.ts` |
+| `chat/` | **Chat:** DM/org/nhóm, realtime, ghim, nhóm bạn bè, **project con**, thẻ tài nguyên, mốc phòng, bình chọn; overlay tab **Mua bán** (`types` `ChatThreadView`/`ChatMuaBanSub`, cờ shop trên `listAllChatThreads`) | `group-message.ts`, `group-roles.ts`, `project-room.ts`, `room-tags.ts`, `room-moc.ts`, `room-poll.ts`, `direct-message.ts`, `org-message.ts`, `use-chat-realtime.ts` |
 | `articles/` | Bài viết nghề/keyword/phần mềm, quan hệ liên quan, link keyword | `queries.ts`, `nghe-role-preview.ts`, `link-keywords-in-html.ts`, `partition-*`, `article-href.ts`, `nghe-page-queries.ts` |
 | `seo/` | Metadata chuẩn, JSON-LD, sitemap articles | `site.ts`, `build-article-metadata.ts`, `json-ld.ts`, `sitemap-articles.ts` |
 | `bai-viet/` | Hub card, phân loại, pagination | `hub-card.ts`, `hub-loai.ts` |
@@ -271,7 +271,7 @@ Tái dùng đúng pattern Shopee AI cho **user tự import portfolio** của ch�
 | `migration_social_bao_cao.sql` | Bảng `social_bao_cao` + enum loại/trạng thái báo cáo. Chạy: `node scripts/run-bao-cao-migration.mjs`. |
 | `migration_bao_cao_lua_dao.sql` | Thêm enum `lua_dao` (Lừa đảo). Chạy: `node scripts/run-bao-cao-lua-dao-migration.mjs`. |
 | `migration_shop_ban_hang.sql` | **L33 Shop UGC:** `ban_hang_bat` / `ban_hang_dieu_khoan_luc`; bảng `shop_*` (catalog, giá, post-hang, giỏ, đơn, quầy) + RLS. Chạy: `node scripts/run-shop-ban-hang-migration.mjs`. |
-| `migration_shop_the_khach.sql` | **Thẻ phân loại khách hàng (chat):** `shop_the_khach` + `shop_the_khach_gan` (chỉ seller RLS); seed 3 thẻ mặc định cho seller `ban_hang_bat`. App: `lib/shop/khach-hang.ts`, API `/api/shop/khach-hang/**`, overlay tab «Khách hàng». Chạy: `npm run migrate:shop-the-khach`. **Đã chạy** CINs 2026-08-02. |
+| `migration_shop_the_khach.sql` | **Thẻ phân loại khách hàng (chat):** `shop_the_khach` + `shop_the_khach_gan` (chỉ seller RLS); seed 3 thẻ mặc định cho seller `ban_hang_bat`. App: `lib/shop/khach-hang.ts` (+ `listShopNguoiBanDaMua`), API `/api/shop/khach-hang/**`, overlay tab «Mua bán» (sub Khách hàng / Mua hàng). Chạy: `npm run migrate:shop-the-khach`. **Đã chạy** CINs 2026-08-02. |
 | `migration_ket_ban.sql` | Bảng `user_ket_ban` (thay follow-user) |
 | `migration_content_thao_luan.sql` | Bảng `content_thao_luan` (+ liên quan) |
 | `migration_cong_dong.sql` | Cộng đồng (org loại `cong_dong`) |
@@ -355,7 +355,7 @@ chat_moc
 
 ## 4. Env / Infra
 
-> **Shop vận chuyển (2026-07-31):** **không** liên kết ĐVVC trên CINs. Seller: copy thông tin nhận · Excel ViettelPost · CSV · phiếu đóng gói (`lib/shop/export-viettelpost.ts`, `lib/shop/phieu-dong-goi.ts`). Schema DROP: `npm run migrate:shop-ship-reverse`. Phí / tranh chấp giữ. Không cần `CINS_SECRETS_MASTER_KEY` cho carrier.
+> **Shop vận chuyển (2026-07-31 · link tracking 2026-08-02):** **không** liên kết ĐVVC trên CINs. Seller: copy thông tin nhận · Excel ViettelPost · CSV · phiếu đóng gói (`lib/shop/export-viettelpost.ts`, `lib/shop/phieu-dong-goi.ts`) · dán `van_chuyen_link` (`npm run migrate:shop-don-van-chuyen`). Schema DROP ĐVVC cũ: `npm run migrate:shop-ship-reverse`. Phí / tranh chấp giữ. Không cần `CINS_SECRETS_MASTER_KEY` cho carrier.
 
 ```
 # Supabase

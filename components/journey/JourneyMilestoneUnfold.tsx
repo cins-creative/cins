@@ -13,11 +13,13 @@ import {
   type ExpandScrollPin,
 } from "@/lib/journey/expand-scroll-pin";
 import {
+  hydrateMilestoneDetailComments,
   invalidateMilestoneDetailCache,
   loadMilestoneDetailCached,
   milestoneDetailCacheKey,
   readCachedMilestoneDetail,
 } from "@/lib/journey/milestone-detail-cache";
+import { countCommentThreads } from "@/lib/social/comments/client-tree";
 import {
   COMPOSE_PUBLISHED_EVENT,
   type ComposePublishedDetail,
@@ -108,11 +110,33 @@ export function JourneyMilestoneUnfold({
       postOwnerSlug,
       postSlug,
       milestoneId,
+      lite: true,
     })
       .then((data) => {
         if (!mountedRef.current || gen !== loadGenRef.current) return;
         setDetail(data);
         setError(null);
+        if (data.comments.length === 0) {
+          void hydrateMilestoneDetailComments(milestoneId)
+            .then((comments) => {
+              if (!mountedRef.current || gen !== loadGenRef.current) return;
+              setDetail((prev) =>
+                prev
+                  ? {
+                      ...prev,
+                      comments,
+                      social: {
+                        ...prev.social,
+                        commentCount: countCommentThreads(comments),
+                      },
+                    }
+                  : prev,
+              );
+            })
+            .catch(() => {
+              /* BL nền — không chặn đọc bài. */
+            });
+        }
       })
       .catch((e) => {
         if (!mountedRef.current || gen !== loadGenRef.current) return;
@@ -158,10 +182,32 @@ export function JourneyMilestoneUnfold({
       const gen = ++loadGenRef.current;
       setLoading(true);
       setError(null);
-      void loadMilestoneDetailCached({ postOwnerSlug, postSlug, milestoneId })
-        .then((data) => {
+      void loadMilestoneDetailCached({
+        postOwnerSlug,
+        postSlug,
+        milestoneId,
+        lite: true,
+      })
+        .then(async (data) => {
           if (!mountedRef.current || gen !== loadGenRef.current) return;
-          setDetail(data);
+          let next = data;
+          if (data.comments.length === 0) {
+            try {
+              const comments = await hydrateMilestoneDetailComments(milestoneId);
+              next = {
+                ...data,
+                comments,
+                social: {
+                  ...data.social,
+                  commentCount: countCommentThreads(comments),
+                },
+              };
+            } catch {
+              /* keep shell */
+            }
+          }
+          if (!mountedRef.current || gen !== loadGenRef.current) return;
+          setDetail(next);
           setError(null);
         })
         .catch((e) => {
@@ -241,10 +287,27 @@ export function JourneyMilestoneUnfold({
     const gen = ++loadGenRef.current;
     setLoading(true);
     setError(null);
-    void loadMilestoneDetailCached({ postOwnerSlug, postSlug, milestoneId })
-      .then((data) => {
+    void loadMilestoneDetailCached({ postOwnerSlug, postSlug, milestoneId, lite: true })
+      .then(async (data) => {
         if (!mountedRef.current || gen !== loadGenRef.current) return;
-        setDetail(data);
+        let next = data;
+        if (data.comments.length === 0) {
+          try {
+            const comments = await hydrateMilestoneDetailComments(milestoneId);
+            next = {
+              ...data,
+              comments,
+              social: {
+                ...data.social,
+                commentCount: countCommentThreads(comments),
+              },
+            };
+          } catch {
+            /* keep shell */
+          }
+        }
+        if (!mountedRef.current || gen !== loadGenRef.current) return;
+        setDetail(next);
         setError(null);
       })
       .catch((e) => {

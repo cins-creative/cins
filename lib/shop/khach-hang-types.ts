@@ -20,3 +20,12 @@ export type ShopKhachHang = {
   chiDonHuy: boolean;
   tagIds: string[];
 };
+
+/** Seller mà viewer (buyer) đã mua — dùng tab «Mua hàng». */
+export type ShopNguoiBanDaMua = {
+  sellerId: string;
+  soDon: number;
+  donGanNhatLuc: string;
+  /** Mọi đơn đều `huy` → UI hiện nhạt. */
+  chiDonHuy: boolean;
+};

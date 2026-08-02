@@ -333,7 +333,13 @@ async function resolvePostMilestoneId(
 
 export async function fetchMilestonePostDetail(
   milestoneId: string,
-  options?: { includeComments?: boolean },
+  options?: {
+    includeComments?: boolean;
+    /** Bunny dimension probe — bỏ trên đường dẫn lite (modal/prefetch). */
+    enrichVideoRatio?: boolean;
+    /** Bỏ `noi_dung_html` khi đã có blocks — giảm payload bài dài. */
+    omitDuplicateHtml?: boolean;
+  },
 ): Promise<PostFetchResult> {
   if (!milestoneId || typeof milestoneId !== "string") {
     return { ok: false, error: "Thiếu ID cột mốc." };
@@ -372,6 +378,8 @@ export async function fetchMilestonePostDetail(
   }
 
   const includeComments = options?.includeComments ?? true;
+  const enrichVideoRatio = options?.enrichVideoRatio ?? true;
+  const omitDuplicateHtml = options?.omitDuplicateHtml ?? false;
 
   const [ownerResult, linkedResult, comments, social] = await Promise.all([
     admin
@@ -449,19 +457,25 @@ export async function fetchMilestonePostDetail(
     ]);
 
   const posts: MilestonePostContent[] = await Promise.all(
-    tacPhamRows.map(async (tp) => ({
-      id: tp.id,
-      slug: tp.slug ?? "",
-      tieuDe: tp.tieu_de,
-      moTa: tp.mo_ta,
-      noiDungHtml: tp.noi_dung_html,
-      noiDungBlocks: await enrichBlocksVideoCanvasRatio(
-        parseServerBlocks(tp.noi_dung_blocks),
-      ),
-      coverId: tp.cover_id,
-      articleTags: (tagsByTacPham.get(tp.id) ?? []) as ArticleTagRef[],
-      contributors: contributorsByTacPham.get(tp.id) ?? [],
-    })),
+    tacPhamRows.map(async (tp) => {
+      const parsed = parseServerBlocks(tp.noi_dung_blocks);
+      const hasBlocks = Array.isArray(parsed) && parsed.length > 0;
+      const blocks = enrichVideoRatio
+        ? await enrichBlocksVideoCanvasRatio(parsed)
+        : parsed;
+      return {
+        id: tp.id,
+        slug: tp.slug ?? "",
+        tieuDe: tp.tieu_de,
+        moTa: tp.mo_ta,
+        noiDungHtml:
+          omitDuplicateHtml && hasBlocks ? null : tp.noi_dung_html,
+        noiDungBlocks: blocks,
+        coverId: tp.cover_id,
+        articleTags: (tagsByTacPham.get(tp.id) ?? []) as ArticleTagRef[],
+        contributors: contributorsByTacPham.get(tp.id) ?? [],
+      };
+    }),
   );
 
   const verified = verifiedMeta.get(milestoneId);
@@ -503,7 +517,11 @@ export async function fetchMilestonePostDetail(
 export async function fetchPostBySlug(
   ownerSlug: string,
   postSlug: string,
-  options?: { includeComments?: boolean },
+  options?: {
+    includeComments?: boolean;
+    enrichVideoRatio?: boolean;
+    omitDuplicateHtml?: boolean;
+  },
 ): Promise<PostFetchResult> {
   if (!ownerSlug || !postSlug) {
     return { ok: false, error: "Thiếu thông tin bài viết." };

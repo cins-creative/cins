@@ -37,7 +37,6 @@ import {
 } from "@/lib/shop/types";
 import { fetchBanHangClientStatus, fetchShopCuaHangClient } from "@/lib/shop/client-fetch-cache";
 
-import { ShopDashTabs } from "./ShopDashTabs";
 import { ShopKhoLoaiHub, ShopKhoLoaiMeta } from "./ShopKhoLoaiHub";
 import { ShopPhanLoaiInput } from "./ShopPhanLoaiInput";
 import "./shop-dashboard.css";
@@ -1917,19 +1916,16 @@ export function ShopKhoClient() {
 
   if (loading) {
     return (
-      <div className="shop-dash">
-        <ShopDashTabs active="kho" />
-        <div className="shop-dash-loading" aria-busy="true">
-          <Loader2 className="shop-spin" size={20} aria-hidden />
-          Đang tải…
-        </div>
+      <div className="shop-dash-loading" aria-busy="true">
+        <Loader2 className="shop-spin" size={20} aria-hidden />
+        Đang tải…
       </div>
     );
   }
 
   if (!enabled) {
     return (
-      <div className="shop-dash">
+      <div className="shop-dash-gate">
         <h1>Quản lý kho hàng</h1>
         <p>
           Chức năng bán hàng đang tắt. Bật trong{" "}
@@ -1942,8 +1938,7 @@ export function ShopKhoClient() {
 
   if (activeNhomId == null) {
     return (
-      <div className="shop-dash">
-        <ShopDashTabs active="kho" />
+      <>
         {err ? <p className="shop-dash-err">{err}</p> : null}
         <section className="shop-dash-card">
           <ShopKhoLoaiHub
@@ -1977,14 +1972,12 @@ export function ShopKhoClient() {
             }}
           />
         </section>
-      </div>
+      </>
     );
   }
 
   return (
-    <div className="shop-dash">
-      <ShopDashTabs active="kho" />
-
+    <>
       {err ? <p className="shop-dash-err">{err}</p> : null}
 
       <section className="shop-dash-card">
@@ -3267,7 +3260,7 @@ export function ShopKhoClient() {
             document.body,
           )
         : null}
-    </div>
+    </>
   );
 }
 

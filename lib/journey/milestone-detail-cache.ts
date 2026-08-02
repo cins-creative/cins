@@ -1,10 +1,13 @@
 "use client";
 
+import type { MilestonePostComment } from "@/lib/journey/milestone-post-types";
 import type { MilestonePostDetail } from "@/lib/journey/milestone-post-types";
 import { viewerHasActiveComment } from "@/lib/journey/comments-sync-client";
+import { countCommentThreads } from "@/lib/social/comments/client-tree";
 
 const cache = new Map<string, MilestonePostDetail>();
 const inflight = new Map<string, Promise<MilestonePostDetail>>();
+const commentsInflight = new Map<string, Promise<MilestonePostComment[]>>();
 
 const FETCH_TIMEOUT_MS = 20_000;
 const INFLIGHT_WAIT_MS = FETCH_TIMEOUT_MS + 500;
@@ -53,21 +56,42 @@ async function readJsonDetail(res: Response): Promise<MilestonePostDetail> {
   return json as MilestonePostDetail;
 }
 
-async function fetchPostDetail(
-  ownerSlug: string,
-  postSlug: string,
-): Promise<MilestonePostDetail> {
-  const res = await fetchWithTimeout(
-    `/api/journey/${encodeURIComponent(ownerSlug)}/p/${encodeURIComponent(postSlug)}`,
-  );
-  return readJsonDetail(res);
+/** Ghi cache theo mid + slug (nếu có) — modal chỉ biết mid vẫn trúng prefetch. */
+function putDetailCache(
+  data: MilestonePostDetail,
+  options: {
+    postOwnerSlug: string;
+    postSlug?: string | null;
+    milestoneId: string;
+  },
+): void {
+  cache.set(`mid:${data.milestone.id}`, data);
+  const ownerSlug = data.owner.slug || options.postOwnerSlug;
+  const postSlug = data.posts[0]?.slug || options.postSlug || null;
+  if (ownerSlug && postSlug) {
+    cache.set(`${ownerSlug}:${postSlug}`, data);
+  }
 }
 
 async function fetchMilestoneDetailById(
   milestoneId: string,
+  lite: boolean,
 ): Promise<MilestonePostDetail> {
+  const q = lite ? "?lite=1" : "";
   const res = await fetchWithTimeout(
-    `/api/journey/milestone/${encodeURIComponent(milestoneId)}`,
+    `/api/journey/milestone/${encodeURIComponent(milestoneId)}${q}`,
+  );
+  return readJsonDetail(res);
+}
+
+async function fetchPostDetail(
+  ownerSlug: string,
+  postSlug: string,
+  lite: boolean,
+): Promise<MilestonePostDetail> {
+  const q = lite ? "?lite=1" : "";
+  const res = await fetchWithTimeout(
+    `/api/journey/${encodeURIComponent(ownerSlug)}/p/${encodeURIComponent(postSlug)}${q}`,
   );
   return readJsonDetail(res);
 }
@@ -77,12 +101,17 @@ async function fetchDetail(options: {
   postOwnerSlug: string;
   postSlug?: string | null;
   milestoneId: string;
+  lite: boolean;
 }): Promise<MilestonePostDetail> {
   try {
-    return await fetchMilestoneDetailById(options.milestoneId);
+    return await fetchMilestoneDetailById(options.milestoneId, options.lite);
   } catch (primaryErr) {
     if (!options.postSlug) throw primaryErr;
-    return fetchPostDetail(options.postOwnerSlug, options.postSlug);
+    return fetchPostDetail(
+      options.postOwnerSlug,
+      options.postSlug,
+      options.lite,
+    );
   }
 }
 
@@ -104,13 +133,19 @@ export function readCachedMilestoneDetail(
   return cache.get(key) ?? null;
 }
 
-/** Prefetch trước khi user click — expand gần như tức thì nếu đã cache. */
+export function readCachedMilestoneDetailById(
+  milestoneId: string,
+): MilestonePostDetail | null {
+  return cache.get(`mid:${milestoneId}`) ?? null;
+}
+
+/** Prefetch lite trước khi user click — mở modal gần như tức thì. */
 export function prefetchMilestoneDetail(options: {
   postOwnerSlug: string;
   postSlug?: string | null;
   milestoneId: string;
 }): void {
-  void loadMilestoneDetailCached(options).catch(() => {
+  void loadMilestoneDetailCached({ ...options, lite: true }).catch(() => {
     /* Prefetch im lặng — lỗi hiện khi user mở card. */
   });
 }
@@ -119,38 +154,87 @@ export async function loadMilestoneDetailCached(options: {
   postOwnerSlug: string;
   postSlug?: string | null;
   milestoneId: string;
+  /** Mặc định true — bỏ comments/Bunny/html trùng để TTFB nhanh. */
+  lite?: boolean;
 }): Promise<MilestonePostDetail> {
-  const key = milestoneDetailCacheKey(
-    options.postOwnerSlug,
-    options.postSlug,
-    options.milestoneId,
-  );
-  const hit = cache.get(key);
-  if (hit) return hit;
+  const lite = options.lite !== false;
+  const midKey = `mid:${options.milestoneId}`;
+  const slugKey = options.postSlug
+    ? milestoneDetailCacheKey(
+        options.postOwnerSlug,
+        options.postSlug,
+        options.milestoneId,
+      )
+    : null;
 
-  const pending = inflight.get(key);
+  const hit =
+    cache.get(midKey) ?? (slugKey ? cache.get(slugKey) : null) ?? null;
+  if (hit) {
+    /* Đồng bộ key còn thiếu (prefetch theo slug → modal theo mid). */
+    putDetailCache(hit, options);
+    return hit;
+  }
+
+  const inflightKey = midKey;
+  const pending = inflight.get(inflightKey);
   if (pending) {
     const data = await waitWithTimeout(pending, INFLIGHT_WAIT_MS);
     if (data) return data;
-    inflight.delete(key);
+    inflight.delete(inflightKey);
   }
 
   const task = (async () => {
-    const data = await fetchDetail(options);
-    cache.set(key, data);
+    const data = await fetchDetail({ ...options, lite });
+    putDetailCache(data, options);
     return data;
   })();
 
-  inflight.set(key, task);
+  inflight.set(inflightKey, task);
 
   try {
     return await task;
   } catch (err) {
-    inflight.delete(key);
+    inflight.delete(inflightKey);
     throw err;
   } finally {
-    if (inflight.get(key) === task) {
-      inflight.delete(key);
+    if (inflight.get(inflightKey) === task) {
+      inflight.delete(inflightKey);
+    }
+  }
+}
+
+/** Hydrate bình luận sau lite payload — patch mọi key cache của milestone. */
+export async function hydrateMilestoneDetailComments(
+  milestoneId: string,
+): Promise<MilestonePostComment[]> {
+  const pending = commentsInflight.get(milestoneId);
+  if (pending) return pending;
+
+  const task = (async () => {
+    const res = await fetchWithTimeout(
+      `/api/journey/milestone/${encodeURIComponent(milestoneId)}?part=comments`,
+    );
+    const json = (await res.json().catch(() => null)) as
+      | { comments?: MilestonePostComment[]; error?: string }
+      | null;
+    if (!res.ok) {
+      throw new Error(json?.error || "Không tải được bình luận.");
+    }
+    const comments = Array.isArray(json?.comments) ? json.comments : [];
+    patchMilestoneDetailComments(
+      milestoneId,
+      comments,
+      countCommentThreads(comments),
+    );
+    return comments;
+  })();
+
+  commentsInflight.set(milestoneId, task);
+  try {
+    return await task;
+  } finally {
+    if (commentsInflight.get(milestoneId) === task) {
+      commentsInflight.delete(milestoneId);
     }
   }
 }

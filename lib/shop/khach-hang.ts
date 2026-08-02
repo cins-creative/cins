@@ -5,10 +5,11 @@ import { pickRoomTagColor, slugifyTagName } from "@/lib/chat/tag-colors";
 import type {
   ShopKhachHang,
   ShopKhachHangTag,
+  ShopNguoiBanDaMua,
 } from "@/lib/shop/khach-hang-types";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
-export type { ShopKhachHang, ShopKhachHangTag };
+export type { ShopKhachHang, ShopKhachHangTag, ShopNguoiBanDaMua };
 
 const DEFAULT_TAGS: Array<{
   ten: string;
@@ -365,6 +366,67 @@ export async function listShopKhachHang(
       donGanNhatLuc: a.donGanNhatLuc,
       chiDonHuy: a.soDonHuy === a.soDon,
       tagIds: tagsByBuyer.get(buyerId) ?? [],
+    });
+  }
+  return result;
+}
+
+/**
+ * Map sellerId → shop mà buyer đã mua (loại `nhap`, loại tự-mua).
+ * Chiều phụ tab «Mua hàng» — không đụng thẻ seller.
+ */
+export async function listShopNguoiBanDaMua(
+  buyerId: string,
+): Promise<Map<string, ShopNguoiBanDaMua>> {
+  const result = new Map<string, ShopNguoiBanDaMua>();
+  if (!isUuid(buyerId)) return result;
+
+  const admin = createServiceRoleClient();
+  const { data: orders, error } = await admin
+    .from("shop_don_hang")
+    .select("id_nguoi_ban, trang_thai, tao_luc")
+    .eq("id_nguoi_mua", buyerId)
+    .neq("trang_thai", "nhap");
+
+  if (error) {
+    console.error("[shop] listShopNguoiBanDaMua orders", error);
+    return result;
+  }
+
+  type Agg = {
+    soDon: number;
+    donGanNhatLuc: string;
+    soDonHuy: number;
+  };
+  const agg = new Map<string, Agg>();
+
+  for (const row of orders ?? []) {
+    const sellerId = row.id_nguoi_ban as string;
+    if (!sellerId || sellerId === buyerId) continue;
+    const taoLuc =
+      typeof row.tao_luc === "string" ? row.tao_luc : String(row.tao_luc);
+    const cur = agg.get(sellerId);
+    if (!cur) {
+      agg.set(sellerId, {
+        soDon: 1,
+        donGanNhatLuc: taoLuc,
+        soDonHuy: row.trang_thai === "huy" ? 1 : 0,
+      });
+      continue;
+    }
+    cur.soDon += 1;
+    if (row.trang_thai === "huy") cur.soDonHuy += 1;
+    if (new Date(taoLuc).getTime() > new Date(cur.donGanNhatLuc).getTime()) {
+      cur.donGanNhatLuc = taoLuc;
+    }
+  }
+
+  for (const [sellerId, a] of agg) {
+    result.set(sellerId, {
+      sellerId,
+      soDon: a.soDon,
+      donGanNhatLuc: a.donGanNhatLuc,
+      chiDonHuy: a.soDonHuy === a.soDon,
     });
   }
   return result;

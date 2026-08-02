@@ -6,13 +6,18 @@ import { fetchPostBySlug } from "@/lib/journey/post-page-fetch";
 type Params = Promise<{ slug: string; postSlug: string }>;
 
 export async function GET(
-  _request: Request,
+  request: Request,
   context: { params: Params },
 ) {
   await getCurrentSessionAndProfile();
 
   const { slug, postSlug } = await context.params;
-  const res = await fetchPostBySlug(slug, postSlug);
+  const lite = new URL(request.url).searchParams.get("lite") === "1";
+  const res = await fetchPostBySlug(slug, postSlug, {
+    includeComments: !lite,
+    enrichVideoRatio: !lite,
+    omitDuplicateHtml: lite,
+  });
 
   if (!res.ok) {
     const status =

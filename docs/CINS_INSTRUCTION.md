@@ -68,7 +68,7 @@ Thứ tự ưu tiên khi xung đột: **DB thật (đọc trực tiếp) > CINS_
 
 **Shop — tự ship, không ĐVVC (2026-07-31):** Không kết nối API carrier. Copy / Excel Viettel / CSV / phiếu đóng gói. Schema: `migrate:shop-ship-reverse`. Phí / tranh chấp giữ. Xem DECISIONS LOG.
 
-**Chat — tab Khách hàng + thẻ shop (2026-08-02):** Tab «Khách hàng» (chiều phụ, không đụng `ChatThreadGroup`); `shop_the_khach` / `shop_the_khach_gan` chỉ seller; seed write-path. Plan: `PLAN_chat_khach_hang_tag.md`. Xem DECISIONS LOG.
+**Chat — tab Mua bán (2026-08-02):** Tab cấp 1 «Mua bán» + sub Mua hàng (buyer) / Khách hàng (seller); cờ `isMuaHang`/`isKhachHang`; thẻ `shop_the_khach*` chỉ seller. Xem DECISIONS LOG.
 
 **Shop — ship + phí nền tảng + tranh chấp (2026-07-30):** Schema lịch sử `migration_shop_ship_ghn.sql` (audit). Phí / tranh chấp Cấp 1 — xem DECISIONS.
 

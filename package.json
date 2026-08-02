@@ -34,6 +34,8 @@
     "migrate:shop-don-pipeline": "node scripts/run-shop-don-pipeline-migration.mjs",
     "migrate:shop-ship-reverse": "node scripts/run-shop-ship-reverse-migration.mjs",
     "migrate:shop-ship-restore-dvvc": "node scripts/run-shop-ship-restore-dvvc-migration.mjs",
+    "migrate:shop-don-van-chuyen": "node scripts/run-shop-don-van-chuyen-migration.mjs",
+    "migrate:shop-don-van-chuyen-ma": "node scripts/run-shop-don-van-chuyen-ma-migration.mjs",
     "gen:phuong-xa": "node scripts/gen-phuong-xa.mjs",
     "migrate:shop-nhom": "node scripts/run-shop-nhom-migration.mjs",
     "migrate:shop-nhom-storefront-v2": "node scripts/run-shop-nhom-storefront-v2-migration.mjs",

@@ -10802,6 +10802,7 @@ select.j-edit-input {
     order: 5;
     width: 100%;
     border-top: 1px solid var(--border);
+    background: var(--bg-surface, #fff);
   }
 
   .j-post-overlay
@@ -10814,7 +10815,9 @@ select.j-edit-input {
     min-height: 0;
     max-height: none;
     overflow: visible;
-    padding: 16px 16px 20px;
+    /* contents — padding không áp dụng; inset do title/cover tự quản (20px). */
+    display: contents;
+    padding: 0;
     border-radius: 0;
   }
 
@@ -10984,6 +10987,26 @@ select.j-edit-input {
   margin: 0 0 20px;
   width: 100%;
   border-radius: 12px;
+}
+.j-post-sheet .cins-post-view .cover-add.cover-readonly.has-cover-thumb .cover-img-wrap {
+  max-height: none;
+  height: 100%;
+  aspect-ratio: unset;
+}
+
+/* Mobile overlay — cover full-bleed ngang theo layout (không inset 20px). */
+@media (max-width: 900px) {
+  .j-post-overlay
+    .j-post-sheet:has(.post-canvas--split:not(.post-canvas--media))
+    .cover-add.cover-readonly {
+    margin-inline: 0;
+    margin-bottom: 20px;
+    width: 100%;
+    max-width: none;
+    align-self: stretch;
+    box-sizing: border-box;
+    border-radius: 0;
+  }
 }
 
 /* Ảnh block/cover URL ngoài lỗi — placeholder xám, không icon vỡ */
@@ -12298,17 +12321,24 @@ select.j-edit-input {
   z-index: 10120;
 }
 
-.j-post-loading,
+.j-post-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: min(40dvh, 320px);
+  padding: 48px 24px;
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+  color: var(--ink-muted);
+}
 .j-post-err {
   background: var(--bg-surface);
   border-radius: var(--radius-xl, 24px);
   padding: 60px 32px;
   text-align: center;
-  color: var(--ink-body);
-  box-shadow: var(--shadow-lg, 0 14px 32px rgba(15, 23, 42, 0.1));
-}
-.j-post-err {
   color: #b42318;
+  box-shadow: var(--shadow-lg, 0 14px 32px rgba(15, 23, 42, 0.1));
 }
 .j-post-err-btn {
   margin-top: 16px;

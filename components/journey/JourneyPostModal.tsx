@@ -3,10 +3,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
+import { MemeShapesLoader } from "@/components/cins/MemeShapesLoader";
 import {
-  loadMilestoneDetail,
-  type MilestonePostDetail,
-} from "@/app/[slug]/journey/actions";
+  hydrateMilestoneDetailComments,
+  loadMilestoneDetailCached,
+  readCachedMilestoneDetailById,
+} from "@/lib/journey/milestone-detail-cache";
+import type { MilestonePostDetail } from "@/lib/journey/milestone-post-types";
+import { countCommentThreads } from "@/lib/social/comments/client-tree";
 /* Portal vào document.body — CSS phải đi theo component (trang trường không
    luôn load post-page qua layout parent). Next dedupe import trùng. */
 import "@/app/[slug]/p/new/editor.css";
@@ -44,17 +48,64 @@ export function JourneyPostModal({
     if (milestoneId === null) {
       setDetail(null);
       setLoadError(null);
+      setLoading(false);
       return;
     }
+
     let cancelled = false;
-    setLoading(true);
-    setLoadError(null);
-    void loadMilestoneDetail(milestoneId).then((res) => {
-      if (cancelled) return;
+    const cached = readCachedMilestoneDetailById(milestoneId);
+    if (cached) {
+      setDetail(cached);
       setLoading(false);
-      if (res.ok) setDetail(res.data);
-      else setLoadError(res.error);
-    });
+      setLoadError(null);
+    } else {
+      setLoading(true);
+      setLoadError(null);
+    }
+
+    void loadMilestoneDetailCached({
+      milestoneId,
+      postOwnerSlug: cached?.owner.slug ?? "",
+      postSlug: cached?.posts[0]?.slug ?? null,
+      lite: true,
+    })
+      .then((data) => {
+        if (cancelled) return;
+        setDetail(data);
+        setLoading(false);
+        /* Comments hydrate nền — không chặn shell bài dài. */
+        if (data.comments.length === 0) {
+          void hydrateMilestoneDetailComments(milestoneId)
+            .then((comments) => {
+              if (cancelled) return;
+              setDetail((prev) =>
+                prev && prev.milestone.id === milestoneId
+                  ? {
+                      ...prev,
+                      comments,
+                      social: {
+                        ...prev.social,
+                        commentCount: countCommentThreads(comments),
+                      },
+                    }
+                  : prev,
+              );
+            })
+            .catch(() => {
+              /* BL lỗi im lặng — user vẫn đọc được bài. */
+            });
+        }
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        setLoading(false);
+        if (!cached) {
+          setLoadError(
+            err instanceof Error ? err.message : "Không tải được bài viết.",
+          );
+        }
+      });
+
     return () => {
       cancelled = true;
     };
@@ -92,7 +143,7 @@ export function JourneyPostModal({
   useEffect(() => {
     if (milestoneId === null) return;
     sheetRef.current?.scrollTo({ top: 0, left: 0 });
-  }, [milestoneId, detail, loading]);
+  }, [milestoneId, detail?.milestone.id, loading]);
 
   const handleBackdropClick = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
@@ -133,9 +184,11 @@ export function JourneyPostModal({
         ref={sheetRef}
         onClick={(e) => e.stopPropagation()}
       >
-        {loading ? (
-          <div className="j-post-loading">Đang tải nội dung…</div>
-        ) : loadError ? (
+        {loading && !detail ? (
+          <div className="j-post-loading" role="status" aria-live="polite">
+            <MemeShapesLoader size={36} label="Đang tải nội dung" />
+          </div>
+        ) : loadError && !detail ? (
           <div className="j-post-err">
             <p>{loadError}</p>
             <button type="button" onClick={onClose} className="j-post-err-btn">
@@ -151,9 +204,29 @@ export function JourneyPostModal({
             layout={variant === "slide-right" ? "stack" : "split"}
             onMilestoneUpdated={() => {
               if (!milestoneId) return;
-              void loadMilestoneDetail(milestoneId).then((res) => {
-                if (res.ok) setDetail(res.data);
-                else onClose();
+              void loadMilestoneDetailCached({
+                milestoneId,
+                postOwnerSlug: detail.owner.slug,
+                postSlug: detail.posts[0]?.slug ?? null,
+                lite: true,
+              }).then((data) => {
+                setDetail(data);
+                void hydrateMilestoneDetailComments(milestoneId).then(
+                  (comments) => {
+                    setDetail((prev) =>
+                      prev
+                        ? {
+                            ...prev,
+                            comments,
+                            social: {
+                              ...prev.social,
+                              commentCount: countCommentThreads(comments),
+                            },
+                          }
+                        : prev,
+                    );
+                  },
+                );
               });
             }}
           />
