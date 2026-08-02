@@ -259,6 +259,7 @@ Tái dùng đúng pattern Shopee AI cho **user tự import portfolio** của ch�
 
 | File | Tạo gì |
 |---|---|
+| `migration_article_gan_linh_vuc.sql` | **Nghề ↔ nhiều lĩnh vực:** bảng `article_gan_linh_vuc` (M:N, `la_chinh`) + backfill từ `article_bai_viet.id_linh_vuc` + RLS SELECT public. Hub filter + hero chip đọc junction. Merge mẫu: `npx tsx scripts/merge-nghe-3d-animator.mts` → `nghe-3d-animator`. **Batch merge:** `npx tsx scripts/batch-merge-nghe-dups.mts` (dry-run) / `--apply` (33 cụm → slug `nghe-{role}`; remap gan_* / lien_quan / alias / `org_tuyen_dung.id_nghe`). Chạy migration: `node scripts/run-article-gan-linh-vuc-migration.mjs`. Plan: `docs/PLAN_nghe_merge_da_linh_vuc.md`. |
 | `audit_nghe_seo.sql` | **Readonly audit SEO nghề** — meta/tom_tat/noi_dung/bo_phan. Chạy: `node scripts/audit-nghe-seo.mjs` → `scripts/nghe-content/_audit-seo-report.json`. |
 | `migration_shop_gio_cua_hang.sql` | Giỏ storefront: `shop_gio.id_cua_hang` + `id_cot_moc` nullable; CHECK XOR scope; unique partial (buyer+moc) / (buyer+cua_hang). Chạy: `node scripts/run-shop-gio-cua-hang-migration.mjs`. |
 | `migration_shop_cua_hang_nhan_phan_loai.sql` | Cột `shop_cua_hang.nhan_phan_loai` / `nhan_phan_loai_2` (đổi tên trục phân loại). Chạy: `node scripts/run-shop-cua-hang-nhan-phan-loai-migration.mjs`. |

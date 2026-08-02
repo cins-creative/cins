@@ -173,7 +173,14 @@ export async function ArticleNgheView({
             null
           }
           heroSummary={article.tom_tat}
-          heroLinhVucLabel={article.linh_vuc?.ten?.trim() ?? null}
+          heroLinhVucLabel={
+            article.linh_vuc_list?.length
+              ? article.linh_vuc_list
+                  .map((l) => l.ten?.trim())
+                  .filter(Boolean)
+                  .join(" · ")
+              : (article.linh_vuc?.ten?.trim() ?? null)
+          }
           heroAttribution={heroAttribution}
         />
       )}
