@@ -130,7 +130,7 @@ Không cần endpoint merge public — script admin/one-off + (sau) nút admin.
 4. ✅ **Merge mẫu** `3D Animator` → `/nghe-nghiep/nghe-3d-animator` (linh vực: Hoạt hình · 3D Art); slug cũ stub `merged` 308.  
 5. ✅ **Batch merge** 33 cụm (exact `tieu_de_eng` + alias VFX Colorist/Compositor/Lighting → tên chung). Script: `npx tsx scripts/batch-merge-nghe-dups.mts [--apply]`. Kết quả (2026-08-02): **240** published · **82** merged · **0** cụm trùng còn lại. `VFX Producer` giữ riêng.  
 5b. ✅ **Near-role merge** 16 cụm (3D-prefix→bare, Texture/Surfacing, Shader, Motion, FX, Lead Comp→Compositor, UI Artist/UIUX Game→UI Designer, Illustrator thin). Script: `npx tsx scripts/batch-merge-nghe-near-roles.mts [--apply]`. Sau chạy: **216** published · **114** merged. Giữ riêng: Head of Story, Storyboard, Motion Designer (UI), UX Designer, Rigging TD, specialty Illustrator/Producer…  
-6. 🔄 **Rewrite nội dung** — mẫu đã apply: `nghe-art-director`, `nghe-concept-artist`, `nghe-ui-designer` (đối tượng HS THPT & Sinh viên; tiếng Việt là chính; infobox “Xuất hiện ở đâu”; file trong `scripts/nghe-content/`). Batch còn lại sau khi user OK giọng.  
+6. 🔄 **Rewrite nội dung** — mẫu đã apply: `nghe-art-director`, `nghe-concept-artist`, `nghe-ui-designer` (file trong `scripts/nghe-content/`). Batch nghề 1 đã apply: `nghe-colorist`, `nghe-compositor`, `nghe-texture-surfacing-artist`, `nghe-producer`, `nghe-production-manager` (`scripts/apply-nghe-rewrite-batch1.mts`). Chuẩn: đối tượng HS THPT & Sinh viên; tiếng Việt là chính; infobox “Xuất hiện ở đâu”.  
 7. **Cập nhật docs:** FOUNDATIONS quy tắc 10; DECISIONS LOG; IMPLEMENTATION SQL/script.
 
 ---
