@@ -48,6 +48,7 @@
 - **VFX\*** gộp vào tên chung (Compositor / Colorist / Lighting…).
 - **Giữ riêng:** 2D≠3D Animator, Key/In-between, Game Director, specialty Producer.
 - **Phase 1:** migration + hub filter/chip + merge mẫu `3D Animator` + **batch exact 33 cụm** + **near-role 16 cụm** (`batch-merge-nghe-dups.mts` / `batch-merge-nghe-near-roles.mts`, 2026-08-02: **216** published / **114** merged). Giữ riêng Head of Story≠Storyboard, Motion UI, UX, Rigging TD, specialty Producer/Illustrator. Chưa rewrite nội dung; chưa UI admin gộp.
+- **Giọng rewrite nghề:** đối tượng đọc chính = **HS THPT & Sinh viên**; tiếng Việt là chính, tránh listing thuật ngữ Anh; English chỉ giữ cho tên nghề/công cụ/khái niệm bắt buộc và phải giải thích bằng tiếng Việt.
 - **Plan:** `docs/PLAN_nghe_merge_da_linh_vuc.md`. FOUNDATIONS quy tắc 10 — cập nhật khi user OK.
 
 ### Tài khoản clone artist + KPI seeding + bàn giao (2026-08-01)

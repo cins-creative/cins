@@ -52,11 +52,12 @@ Gương `content_tac_pham_linh_vuc`.
 
 ### 2.3 Nội dung bài sau merge
 
-Focus **tính chất công việc** (giọng Vietcetera / brief nghề):
+Focus **tính chất công việc** (giọng Vietcetera / brief nghề), nhưng **đối tượng đọc chính là HS THPT & Sinh viên**:
 
 - Là ai / làm gì / kỹ năng / lộ trình — **không** viết 3 bài “Animator trong Game / Phim / VFX”.
 - Khác biệt theo lĩnh vực: **một khối nhẹ** (infobox hoặc 1 subsection) — “Xuất hiện ở đâu”: Game · Hoạt hình · VFX… (1–3 câu mỗi nơi), không nhân đôi 4 section.
 - Tool/pipeline ngành: chỉ nhắc khi thật sự khác bản chất (vd. realtime game vs shot-based VFX) — vẫn trong cùng bài.
+- Tiếng Việt là chính; tránh đoạn liệt kê toàn thuật ngữ Anh. Chỉ giữ English cho tên nghề/công cụ/khái niệm bắt buộc, và giải thích ngay bằng tiếng Việt.
 
 ### 2.4 Rule gộp / giữ riêng
 
