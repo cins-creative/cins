@@ -54,6 +54,7 @@ type Props = {
   fallbackAvatarUrl?: string | null;
   fallbackCoverUrl?: string | null;
   href?: string | null;
+  backdropZIndex?: number;
   children: React.ReactNode;
 };
 
@@ -154,6 +155,7 @@ export function JourneyOrgPopover({
   fallbackAvatarUrl,
   fallbackCoverUrl,
   href,
+  backdropZIndex = 10870,
   children,
 }: Props) {
   const [open, setOpen] = useState(false);
@@ -248,6 +250,7 @@ export function JourneyOrgPopover({
             <div
               className="j-user-popover-backdrop"
               role="presentation"
+              style={{ zIndex: backdropZIndex }}
               onClick={() => setOpen(false)}
             >
               <div

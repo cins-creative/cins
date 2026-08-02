@@ -116,6 +116,15 @@ export async function PATCH(request: Request, ctx: Ctx) {
         { status: 422 },
       );
     }
+    if (msg === "NOT_SHIPPING") {
+      return NextResponse.json(
+        {
+          error:
+            "Đơn gặp trực tiếp — không cần mã vận đơn / ĐVVC.",
+        },
+        { status: 422 },
+      );
+    }
     if (msg === "NEED_DVVC") {
       return NextResponse.json(
         { error: "Chọn ĐVVC trước khi lưu mã vận đơn." },

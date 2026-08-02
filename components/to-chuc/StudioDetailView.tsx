@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import {
@@ -16,13 +17,13 @@ import {
 } from "@/components/truong/inline/TruongInlineEditContext";
 import { TruongOrgCover } from "@/components/truong/TruongOrgCover";
 import { OrgBaiDangFilterShareProvider } from "@/components/org/OrgBaiDangFilterShareContext";
-import { StudioPageSettingsModal } from "@/components/to-chuc/StudioPageSettingsModal";
 import { StudioSidebar } from "@/components/to-chuc/StudioSidebar";
 import { StudioJobsSidebar } from "@/components/to-chuc/StudioJobsSidebar";
 import { StudioTabBaiDang } from "@/components/to-chuc/StudioTabBaiDang";
 import { StudioTabTuyenDung } from "@/components/to-chuc/tabs/StudioTabTuyenDung";
 import { useCoSoMobileShell } from "@/components/co-so/useCoSoMobileShell";
 import { buildOrgShareBundle } from "@/lib/org/org-profile-share";
+import { orgQuanLyPath } from "@/lib/to-chuc/org-quan-ly-routes";
 import {
   isStudioTabVisible,
   STUDIO_TAB_IDS,
@@ -44,6 +45,34 @@ const TABS = STUDIO_TAB_IDS.map((id) => ({
   id,
   label: STUDIO_TAB_LABELS[id],
 })) satisfies ReadonlyArray<{ id: StudioTabId; label: string }>;
+
+type StudioShellTab = "info" | "content" | "notify";
+
+const STUDIO_SHELL_TABS: ReadonlyArray<{
+  id: StudioShellTab;
+  label: string;
+  panelId: string;
+  tabId: string;
+}> = [
+  {
+    id: "info",
+    label: "Thông tin",
+    panelId: "cso-shell-panel-info",
+    tabId: "cso-shell-tab-info",
+  },
+  {
+    id: "content",
+    label: "Nội dung",
+    panelId: "cso-shell-panel-content",
+    tabId: "cso-shell-tab-content",
+  },
+  {
+    id: "notify",
+    label: "Thông báo",
+    panelId: "cso-shell-panel-notify",
+    tabId: "cso-shell-tab-notify",
+  },
+];
 
 type Props = {
   payload: StudioDetailPayload;
@@ -80,7 +109,10 @@ export function StudioDetailView({
       systemRole={systemRole}
       initial={studioToInlinePayload(payload)}
     >
-      <TruongAdminToolbar />
+      <TruongAdminToolbar
+        quanLyHref={orgQuanLyPath("studio", payload.studio.slug)}
+        quanLyLabel="Quản trị studio"
+      />
       <StudioDetailViewInner
         payload={payload}
         canEdit={canEdit}
@@ -112,18 +144,21 @@ function StudioDetailViewInner({
   viewerProfileId?: string | null;
 }) {
   const { studio, baidang, showcase, hinhanh } = payload;
+  const router = useRouter();
   const ctx = useTruongInlineEdit();
   const editableMedia = canEdit && Boolean(ctx?.isEditing);
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [pageConfig, setPageConfig] = useState<StudioPageCauHinh>(
     () => payload.pageConfig,
   );
+  const quanLyThongTinHref = orgQuanLyPath("studio", studio.slug, "thong-tin");
   const { tab, baiDangId, suKienId, selectTab } = useStudioTabNav(studio.slug);
   const { jobs } = useOrgStudioJobs(studio.id);
   const [mountedTabs, setMountedTabs] = useState<Set<StudioTabId>>(
     () => new Set([tab]),
   );
   const { isMobileShell } = useCoSoMobileShell();
+  /** Mobile sticky strip — mặc định Nội dung (không bắt scroll qua sidebar). */
+  const [shellTab, setShellTab] = useState<StudioShellTab>("content");
 
   const visibleTabs = useMemo(
     () => TABS.filter((t) => isStudioTabVisible(t.id, pageConfig)),
@@ -149,6 +184,12 @@ function StudioDetailViewInner({
     });
   }, [tab]);
 
+  /* Đổi tab nội dung trên mobile → luôn về panel Nội dung. */
+  useEffect(() => {
+    if (!isMobileShell) return;
+    setShellTab("content");
+  }, [tab, isMobileShell]);
+
   const openJobs = useMemo(
     () => jobs.filter((j) => j.trangThai === "dang_mo"),
     [jobs],
@@ -169,8 +210,9 @@ function StudioDetailViewInner({
 
   const shellClass = [
     "tdh-v6-shell",
+    "tdh-v6-shell--studio",
     ctx?.isEditing ? "tdh-v6-shell--editing" : "",
-    isMobileShell ? "tdh-v6-shell--mobile-tabs" : "",
+    isMobileShell ? "tdh-v6-shell--mobile-tabs tdh-v6-shell--studio-sticky" : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -212,6 +254,7 @@ function StudioDetailViewInner({
     <div
       className={shellClass}
       data-mobile-shell={isMobileShell ? "1" : undefined}
+      data-studio-shell-tab={isMobileShell ? shellTab : undefined}
     >
       {studio.trangThaiHoatDong === "tam_ngung" ||
       studio.trangThaiHoatDong === "da_dong_cua" ? (
@@ -226,16 +269,68 @@ function StudioDetailViewInner({
             : "Studio đã bị xóa — chỉ thành viên quản trị còn xem được trang này."}
         </div>
       ) : null}
+
+      {isMobileShell ? (
+        <nav
+          className="studio-shell-tabs"
+          aria-label="Phần trang studio"
+        >
+          <div className="studio-shell-tabs-list" role="tablist">
+            {STUDIO_SHELL_TABS.map((item) => {
+              const selected = shellTab === item.id;
+              const badge =
+                item.id === "notify" && openJobs.length > 0
+                  ? openJobs.length
+                  : null;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  role="tab"
+                  id={item.tabId}
+                  aria-selected={selected}
+                  aria-controls={item.panelId}
+                  className={`studio-shell-tab${selected ? " on" : ""}`}
+                  onClick={() => setShellTab(item.id)}
+                >
+                  <span className="studio-shell-tab-label">{item.label}</span>
+                  {badge != null ? (
+                    <span
+                      className="studio-shell-tab-badge"
+                      aria-label={`${badge} tin đang mở`}
+                    >
+                      {badge}
+                    </span>
+                  ) : null}
+                </button>
+              );
+            })}
+          </div>
+        </nav>
+      ) : null}
+
       <StudioSidebar
         studio={studio}
         openJobCount={openJobs.length}
         canEditMedia={canEdit}
-        onOpenSettings={canEdit ? () => setSettingsOpen(true) : undefined}
+        onOpenSettings={
+          canEdit
+            ? () => {
+                router.push(quanLyThongTinHref);
+              }
+            : undefined
+        }
         isMobileShell={isMobileShell}
-        isMobileShellActive
+        isMobileShellActive={!isMobileShell || shellTab === "info"}
       />
 
-      <div className="tdh-v6-center" id="cso-shell-panel-content">
+      <div
+        className="tdh-v6-center"
+        id="cso-shell-panel-content"
+        role={isMobileShell ? "tabpanel" : undefined}
+        aria-labelledby={isMobileShell ? "cso-shell-tab-content" : undefined}
+        hidden={isMobileShell ? shellTab !== "content" : undefined}
+      >
         {!isMobileShell ? (
           <div className="tdh-v6-cover-mobile">
             <TruongOrgCover
@@ -357,37 +452,9 @@ function StudioDetailViewInner({
         orgTinhThanh={studio.tinhThanh}
         posts={baidang}
         canManage={canEdit}
+        isMobileShell={isMobileShell}
+        isMobileShellActive={!isMobileShell || shellTab === "notify"}
       />
-
-      {canEdit ? (
-        <StudioPageSettingsModal
-          open={settingsOpen}
-          orgId={studio.id}
-          onClose={() => setSettingsOpen(false)}
-          onSaved={(patch) => {
-            if (patch.pageConfig) setPageConfig(patch.pageConfig);
-            ctx?.applySchoolPatch({
-              ...(patch.ten ? { ten: patch.ten } : {}),
-              ...(patch.moTa !== undefined ? { mo_ta: patch.moTa } : {}),
-              ...(patch.gioiThieu !== undefined
-                ? { gioi_thieu_truong: patch.gioiThieu }
-                : {}),
-              ...(patch.tinhThanh !== undefined
-                ? { tinh_thanh: patch.tinhThanh }
-                : {}),
-              ...(patch.diaChi !== undefined ? { dia_chi: patch.diaChi } : {}),
-              ...(patch.dienThoai !== undefined
-                ? { dien_thoai: patch.dienThoai }
-                : {}),
-              ...(patch.emailLienHe !== undefined
-                ? { email_lien_he: patch.emailLienHe }
-                : {}),
-              ...(patch.website !== undefined ? { website: patch.website } : {}),
-            });
-            ctx?.showToast("Đã cập nhật thông tin studio.");
-          }}
-        />
-      ) : null}
     </div>
     </OrgBaiDangFilterShareProvider>
   );

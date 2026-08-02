@@ -4,6 +4,10 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 import { useCoSoMobileShell } from "@/components/co-so/useCoSoMobileShell";
+import {
+  OrgNotifyFab,
+  OrgNotifyFabHost,
+} from "@/components/org/OrgNotifyFab";
 import { TruongOrgCover } from "@/components/truong/TruongOrgCover";
 import { TruongAdmissionTimelineSidebar } from "@/components/truong/TruongAdmissionTimelineSidebar";
 import { TruongSchoolSidebar } from "@/components/truong/TruongSchoolSidebar";
@@ -116,6 +120,7 @@ function TruongDetailViewInner({
   const [mountedTabs, setMountedTabs] = useState<Set<TruongTabId>>(
     () => new Set([tab]),
   );
+  const [notifyCount, setNotifyCount] = useState(0);
   const { isMobileShell } = useCoSoMobileShell();
 
   useEffect(() => {
@@ -247,31 +252,36 @@ function TruongDetailViewInner({
               tab === "do-an-sinh-vien" ? " tdh-v6-tabs-bar--doan" : ""
             }`}
           >
-            <div
-              className="tdh-v6-tabs"
-              role="tablist"
-              aria-label="Nội dung trường"
-            >
-              {TABS.map((t) => (
-                <Link
-                  key={t.id}
-                  href={truongTabPath(orgSlug, t.id)}
-                  scroll={false}
-                  role="tab"
-                  aria-selected={tab === t.id}
-                  id={`tdh-tab-${t.id}`}
-                  aria-controls={`tdh-panel-${t.id}`}
-                  className={`tdh-v6-tab${tab === t.id ? " on" : ""}`}
-                  onMouseEnter={() => truongTabPrefetch(t.id)}
-                  onFocus={() => truongTabPrefetch(t.id)}
-                  onClick={(event) => {
-                    event.preventDefault();
-                    if (tab !== t.id) selectTab(t.id);
-                  }}
-                >
-                  {t.label}
-                </Link>
-              ))}
+            <div className="tdh-v6-tabs-row">
+              <div
+                className="tdh-v6-tabs"
+                role="tablist"
+                aria-label="Nội dung trường"
+              >
+                {TABS.map((t) => (
+                  <Link
+                    key={t.id}
+                    href={truongTabPath(orgSlug, t.id)}
+                    scroll={false}
+                    role="tab"
+                    aria-selected={tab === t.id}
+                    id={`tdh-tab-${t.id}`}
+                    aria-controls={`tdh-panel-${t.id}`}
+                    className={`tdh-v6-tab${tab === t.id ? " on" : ""}`}
+                    onMouseEnter={() => truongTabPrefetch(t.id)}
+                    onFocus={() => truongTabPrefetch(t.id)}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      if (tab !== t.id) selectTab(t.id);
+                    }}
+                  >
+                    {t.label}
+                  </Link>
+                ))}
+              </div>
+              {isMobileShell ? (
+                <OrgNotifyFabHost className="tdh-v6-notify-fab-host" />
+              ) : null}
             </div>
             <TruongDoanToolbarSlot active={tab === "do-an-sinh-vien"} />
           </div>
@@ -306,10 +316,16 @@ function TruongDetailViewInner({
           })}
         </div>
 
-        <TruongAdmissionTimelineSidebar
-          isMobileShell={isMobileShell}
-          isMobileShellActive
-        />
+        {/* Mobile: cột Thông báo → FAB drawer (không stack đè tab/content). */}
+        <OrgNotifyFab
+          enabled={isMobileShell}
+          count={notifyCount}
+          label="Thông báo"
+        >
+          <TruongAdmissionTimelineSidebar
+            onUpcomingCountChange={setNotifyCount}
+          />
+        </OrgNotifyFab>
       </div>
 
       {canEdit && onSettingsOpenChange ? (

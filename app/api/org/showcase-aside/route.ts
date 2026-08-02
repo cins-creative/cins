@@ -17,7 +17,7 @@ function parseKind(raw: string | null): OrgShowcaseAsideKind | null {
   return KINDS.has(value) ? value : null;
 }
 
-/** GET /api/org/showcase-aside?slug=&kind= — preview showcase / bài media org. */
+/** GET /api/org/showcase-aside?slug=&kind= — preview showcase / đồ án học viên org. */
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const slug = url.searchParams.get("slug")?.trim();

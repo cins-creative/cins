@@ -43,7 +43,7 @@ export function JourneyUserPopover({
   fallbackName,
   fallbackAvatarUrl,
   fallbackCoverUrl,
-  backdropZIndex = 9500,
+  backdropZIndex = 10870,
   track,
   children,
 }: Props) {

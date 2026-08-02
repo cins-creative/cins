@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Bell, Check, CheckCircle2, ClipboardList, PencilLine, Video, X, XCircle } from "lucide-react";
+import { ArrowRight, Bell, Check, CheckCircle2, ClipboardList, MessageSquare, PencilLine, Video, X, XCircle } from "lucide-react";
 import type { ReactNode } from "react";
 import {
   useCallback,
@@ -14,6 +14,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 
+import { useCinsChat } from "@/components/cins/CinsChatProvider";
 import { CoAuthorInviteMessage } from "@/components/journey/CoAuthorInviteMessage";
 import { CoSoStaffInviteMessage } from "@/components/journey/CoSoStaffInviteMessage";
 import { CongDongInviteMessage } from "@/components/journey/CongDongInviteMessage";
@@ -59,6 +60,7 @@ import type {
   NotificationFeed,
   NotificationFilter,
   OrgMilestoneTagApprovedNotification,
+  OrgTinNhanMoiNotification,
   MembershipMilestoneResolvedNotification,
   PendingCoAuthorInviteNotification,
   PendingCoAuthorReview,
@@ -246,6 +248,7 @@ function countDisplayedItems(feed: NotificationFeed): number {
     feed.membershipMilestoneResolved.length +
     feed.shopQuayResolved.length +
     feed.shopQuayPending.length +
+    feed.orgTinNhanMoi.length +
     feed.videoReady.length +
     feed.dongGopFeedback.length +
     feed.dongGopPromoted.length +
@@ -263,6 +266,7 @@ type InfoNotificationSnapshot = Pick<
   | "orgMilestoneTagApproved"
   | "membershipMilestoneResolved"
   | "shopQuayResolved"
+  | "orgTinNhanMoi"
   | "dongGopFeedback"
   | "dongGopPromoted"
 >;
@@ -275,6 +279,7 @@ function extractInfoSnapshot(feed: NotificationFeed): InfoNotificationSnapshot {
     orgMilestoneTagApproved: feed.orgMilestoneTagApproved,
     membershipMilestoneResolved: feed.membershipMilestoneResolved,
     shopQuayResolved: feed.shopQuayResolved,
+    orgTinNhanMoi: feed.orgTinNhanMoi ?? [],
     dongGopFeedback: feed.dongGopFeedback,
     dongGopPromoted: feed.dongGopPromoted,
   };
@@ -288,8 +293,78 @@ function countInfoItems(info: InfoNotificationSnapshot): number {
     info.orgMilestoneTagApproved.length +
     info.membershipMilestoneResolved.length +
     info.shopQuayResolved.length +
+    info.orgTinNhanMoi.length +
     info.dongGopFeedback.length +
     info.dongGopPromoted.length
+  );
+}
+
+function orgTinNhanMoiNotifyLabel(notice: OrgTinNhanMoiNotification): ReactNode {
+  return (
+    <>
+      <strong>{notice.senderName}</strong> nhắn tới{" "}
+      <strong>{notice.orgTen}</strong>
+      <small>{notice.preview}</small>
+    </>
+  );
+}
+
+function OrgTinNhanMoiNotifyItem({
+  notice,
+  onOpened,
+}: {
+  notice: OrgTinNhanMoiNotification;
+  onOpened?: () => void;
+}) {
+  const { openChat } = useCinsChat();
+  return (
+    <li>
+      <button
+        type="button"
+        className="j-notify-item"
+        onClick={() => {
+          onOpened?.();
+          void openChat({
+            roomId: notice.roomId,
+            tab: "to_chuc",
+            toChucFilter: "cua_toi",
+            thread: {
+              id: notice.roomId,
+              roomId: notice.roomId,
+              orgId: notice.orgId,
+              name: notice.orgTen,
+              group: "to_chuc",
+              kind: "org",
+              orgKind:
+                notice.orgLoai === "truong_dai_hoc" ||
+                notice.orgLoai === "co_so_dao_tao" ||
+                notice.orgLoai === "cong_dong" ||
+                notice.orgLoai === "studio"
+                  ? notice.orgLoai
+                  : "studio",
+              verified: true,
+              role: "Tin nhắn tổ chức",
+              avatarInitial: notice.orgTen.slice(0, 1).toUpperCase() || "T",
+              avatarHue: 210,
+              preview: notice.preview,
+              lastAt: notice.taoLuc ?? new Date().toISOString(),
+              unread: 0,
+              isOrgAdvisory: true,
+              isOrgStaffInbox: true,
+              messages: [],
+            },
+          });
+        }}
+      >
+        <span className="j-notify-avatar is-verified" aria-hidden>
+          <MessageSquare size={16} strokeWidth={2} />
+        </span>
+        <span>
+          {orgTinNhanMoiNotifyLabel(notice)}
+          <small>{formatNotifyTime(notice.taoLuc)}</small>
+        </span>
+      </button>
+    </li>
   );
 }
 
@@ -354,6 +429,13 @@ function renderInfoTimelineEntry(entry: InfoTimelineEntry): ReactNode {
               )}
             </span>
           }
+        />
+      );
+    case "orgTinNhanMoi":
+      return (
+        <OrgTinNhanMoiNotifyItem
+          key={entry.item.notificationId}
+          notice={entry.item}
         />
       );
     case "orgMilestoneTagApproved":
@@ -522,6 +604,13 @@ function renderHistoryTimelineEntry(entry: HistoryTimelineEntry): ReactNode {
               <ClipboardList size={16} strokeWidth={2} />
             </span>
           }
+        />
+      );
+    case "orgTinNhanMoi":
+      return (
+        <OrgTinNhanMoiNotifyItem
+          key={entry.item.notificationId}
+          notice={entry.item}
         />
       );
     case "accepted":

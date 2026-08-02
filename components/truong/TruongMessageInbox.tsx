@@ -2,9 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import { TruongInlineModal } from "@/components/truong/inline/TruongInlineModal";
+import { useCinsChat } from "@/components/cins/CinsChatProvider";
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
-import { OrgInboxPanel } from "@/components/truong/OrgInboxPanel";
 import type { OrgInboxThread } from "@/lib/chat/org-inbox-types";
 
 function ChatIcon() {
@@ -38,9 +37,20 @@ type TruongMessageInboxProps = {
   variant?: "sidebar" | "nav";
   /** Hiện luôn khi có orgId (không cần đang editing trang public). */
   alwaysAvailable?: boolean;
+  /** Tiêu đề — giữ prop để tương thích caller cũ. */
+  title?: string;
+  /** Preview org khi mở overlay. */
+  orgPreview?: {
+    name?: string;
+    avatarUrl?: string | null;
+    orgKind?: "co_so_dao_tao" | "truong_dai_hoc" | "cong_dong" | "studio";
+  };
 };
 
-/** Modal inbox cho sidebar trường / studio. Quan-ly CSĐT dùng tab `/tin-nhan`. */
+/**
+ * Nút Tin nhắn sidebar org — mở chat overlay tab «Tổ chức» / filter «Của tôi».
+ * (Trước đây mở modal OrgInboxPanel riêng.)
+ */
 export function TruongMessageInbox({
   orgId: orgIdProp,
   variant = "sidebar",
@@ -52,14 +62,7 @@ export function TruongMessageInbox({
     ? Boolean(orgId)
     : Boolean(ctx?.canEdit && ctx.isEditing && orgId);
 
-  const toast = useCallback(
-    (message: string) => {
-      ctx?.showToast?.(message);
-    },
-    [ctx],
-  );
-
-  const [open, setOpen] = useState(false);
+  const { openChat } = useCinsChat();
   const [badgeCount, setBadgeCount] = useState(0);
 
   const refreshBadge = useCallback(async () => {
@@ -91,66 +94,33 @@ export function TruongMessageInbox({
   if (!canUse || !orgId) return null;
 
   return (
-    <>
-      <button
-        type="button"
-        className={
-          variant === "nav"
-            ? "cso-ql-nav-tool ss-btn-messages"
-            : "ss-btn ghost ss-btn-messages"
-        }
-        onClick={() => setOpen(true)}
-        aria-label={
-          badgeCount > 0
-            ? `Tin nhắn — ${badgeCount} cần xử lý`
-            : "Tin nhắn"
-        }
-      >
-        <ChatIcon />
-        <span className="ss-btn-messages-label">Tin nhắn</span>
-        {badgeCount > 0 ? (
-          <span className="ss-btn-messages-badge" aria-hidden>
-            {badgeCount > 9 ? "9+" : badgeCount}
-          </span>
-        ) : null}
-      </button>
-
-      <TruongInlineModal
-        open={open}
-        onClose={() => {
-          setOpen(false);
-          void refreshBadge();
-        }}
-        className="tdh-inline-modal--wide tdh-message-inbox-modal"
-        labelledBy="tdh-message-inbox-title"
-        showClose={false}
-      >
-        <div className="tdh-message-inbox-hdr">
-          <div>
-            <h3 id="tdh-message-inbox-title" className="tdh-inline-modal-title">
-              Tin nhắn tuyển sinh
-            </h3>
-          </div>
-          <button
-            type="button"
-            className="tdh-inline-btn ghost"
-            onClick={() => {
-              setOpen(false);
-              void refreshBadge();
-            }}
-          >
-            Đóng
-          </button>
-        </div>
-
-        {open ? (
-          <OrgInboxPanel
-            orgId={orgId}
-            onToast={toast}
-            onThreadsChange={(threads) => setBadgeCount(badgeFromThreads(threads))}
-          />
-        ) : null}
-      </TruongInlineModal>
-    </>
+    <button
+      type="button"
+      className={
+        variant === "nav"
+          ? "cso-ql-nav-tool ss-btn-messages"
+          : "ss-btn ghost ss-btn-messages"
+      }
+      onClick={() => {
+        void openChat({
+          tab: "to_chuc",
+          toChucFilter: "cua_toi",
+        });
+        void refreshBadge();
+      }}
+      aria-label={
+        badgeCount > 0
+          ? `Tin nhắn — ${badgeCount} cần xử lý`
+          : "Tin nhắn"
+      }
+    >
+      <ChatIcon />
+      <span className="ss-btn-messages-label">Tin nhắn</span>
+      {badgeCount > 0 ? (
+        <span className="ss-btn-messages-badge" aria-hidden>
+          {badgeCount > 9 ? "9+" : badgeCount}
+        </span>
+      ) : null}
+    </button>
   );
 }

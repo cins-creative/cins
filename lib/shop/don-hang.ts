@@ -822,6 +822,11 @@ export async function capNhatVanChuyenDonHang(
     throw new Error("NEED_CONFIRM");
   }
 
+  const hinh = don.hinhThucGiao ?? "truc_tiep";
+  if (hinh === "truc_tiep") {
+    throw new Error("NOT_SHIPPING");
+  }
+
   const allowed: ShopTrangThaiDon[] = [
     "da_nhan_tien",
     "cho_lay_hang",

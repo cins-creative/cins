@@ -175,6 +175,20 @@ export type ShopQuayPendingNotification = {
 };
 
 /** Curator nhận khi có bản đóng góp entity gửi duyệt (`article_dong_gop`). */
+/** Admin org nhận khi có tin nhắn mới vào hộp thư (`org_tin_nhan_moi`) — 1 tin / phòng. */
+export type OrgTinNhanMoiNotification = {
+  notificationId: string;
+  roomId: string;
+  orgId: string;
+  orgTen: string;
+  orgSlug: string;
+  orgLoai: string;
+  preview: string;
+  senderName: string;
+  taoLuc?: string;
+  daDoc: boolean;
+};
+
 export type ArticleDongGopCuratorNotification = {
   notificationId: string;
   idDongGop: string;
@@ -263,6 +277,7 @@ export type NotificationFeed = {
   membershipMilestoneResolved: MembershipMilestoneResolvedNotification[];
   shopQuayResolved: ShopQuayResolvedNotification[];
   shopQuayPending: ShopQuayPendingNotification[];
+  orgTinNhanMoi: OrgTinNhanMoiNotification[];
   dongGopFeedback: ArticleDongGopFeedbackNotification[];
   dongGopPromoted: ArticleDongGopPromotedNotification[];
   handledFollows: FollowHandledNotification[];

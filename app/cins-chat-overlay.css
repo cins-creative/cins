@@ -51,6 +51,12 @@
   overflow: hidden;
   container-type: inline-size;
   container-name: cins-chat-list;
+  /* Tree indent — scale theo bề ngang sidebar (cqi) */
+  --cins-project-indent: clamp(28px, 14cqi, 52px);
+  --cins-project-indent-nested: clamp(16px, 7cqi, 32px);
+  --cins-project-row-h: clamp(28px, 8cqi, 34px);
+  --cins-project-type: clamp(0.74rem, 0.68rem + 0.4cqi, 0.84rem);
+  --cins-project-thumb: clamp(14px, 4.2cqi, 18px);
 }
 
 .cins-chat-main {
@@ -168,10 +174,11 @@
   display: flex;
   gap: 6px;
   margin: 0 14px 10px;
-  padding: 4px;
+  padding: 6px 4px 4px;
   border-radius: var(--radius-pill);
   background: rgba(0, 0, 0, 0.05);
   overflow-x: auto;
+  overflow-y: visible;
   scrollbar-width: none;
 }
 
@@ -186,44 +193,16 @@
   padding: 0 2px;
 }
 
-.cins-chat-muaban-sub {
-  flex: 1 1 0;
-  min-width: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  height: 30px;
-  padding: 0 8px;
-  border: 0;
-  border-radius: var(--radius-pill);
-  background: transparent;
-  color: var(--ink-muted);
-  font: inherit;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.cins-chat-muaban-sub:hover {
-  color: var(--ink-display);
-}
-
-.cins-chat-muaban-sub.is-active {
-  background: rgba(0, 0, 0, 0.06);
-  color: var(--ink-display);
-}
-
 .cins-chat-thread-tab {
+  position: relative;
   flex: 1 1 0;
   min-width: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 0;
   height: 34px;
-  padding: 0 8px;
+  padding: 0 10px;
   border: 0;
   border-radius: var(--radius-pill);
   background: transparent;
@@ -233,10 +212,17 @@
   font-weight: 700;
   white-space: nowrap;
   cursor: pointer;
+  overflow: visible;
   transition:
     background 160ms ease,
     color 160ms ease,
     box-shadow 160ms ease;
+}
+
+.cins-chat-thread-tab-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .cins-chat-thread-tab:hover {
@@ -249,17 +235,57 @@
   box-shadow: var(--shadow-xs);
 }
 
+/* Badge góc — không chiếm chỗ ngang (tab ~71px từng bị cắt số) */
 .cins-chat-thread-tab-unread {
-  min-width: 18px;
-  height: 18px;
-  padding: 0 5px;
+  position: absolute;
+  top: -3px;
+  right: -2px;
+  z-index: 1;
+  box-sizing: border-box;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
   border-radius: 999px;
-  background: var(--cins-orange);
-  color: rgba(0, 0, 0, 0.78);
-  font-size: 10px;
+  background: #e11d48;
+  color: #fff;
+  font-size: 9px;
   font-weight: 800;
-  line-height: 18px;
+  line-height: 16px;
   text-align: center;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+  box-shadow: 0 0 0 1.5px var(--bg-surface, #fff);
+}
+
+.cins-chat-muaban-sub {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  height: 30px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--ink-muted);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: visible;
+}
+
+.cins-chat-muaban-sub:hover {
+  color: var(--ink-display);
+}
+
+.cins-chat-muaban-sub.is-active {
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--ink-display);
 }
 
 .cins-chat-threads {
@@ -293,6 +319,183 @@
   list-style: none;
   margin: 0;
   padding: 0;
+}
+
+/* ---- Tab Tổ chức: 2 nhóm + org node gập/mở ---- */
+
+.cins-chat-thread-section {
+  margin: 0 0 10px;
+}
+
+.cins-chat-thread-section + .cins-chat-thread-section {
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.cins-chat-thread-section-title {
+  margin: 0 8px 6px;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-muted, #64748b);
+}
+
+.cins-chat-org-node {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Cha org: neo trái, full bề ngang list */
+.cins-chat-org-node-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 0;
+  margin-inline: 0;
+}
+
+.cins-chat-org-node-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: 8px 8px 8px 4px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cins-chat-org-node-toggle:hover {
+  background: rgba(15, 23, 42, 0.04);
+}
+
+.cins-chat-org-node-chevron {
+  flex-shrink: 0;
+  color: var(--ink-muted, #64748b);
+  transition: transform 0.15s ease;
+  transform: rotate(-90deg);
+}
+
+.cins-chat-org-node-toggle.is-expanded .cins-chat-org-node-chevron {
+  transform: rotate(0deg);
+}
+
+.cins-chat-org-node-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.cins-chat-org-node-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-display, #0f172a);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cins-chat-org-node-sub {
+  font-size: 12px;
+  color: var(--ink-muted, #64748b);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cins-chat-org-node-badge {
+  flex-shrink: 0;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #e11d48;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+}
+
+.cins-chat-org-open-btn {
+  flex-shrink: 0;
+  margin: 0 6px 0 0;
+}
+
+/*
+  Con dưới org-node: thụt phải theo container (cqi), gọn hơn cha.
+  Behavior: rộng → indent ~18px; hẹp (~280) → ~10px, vẫn thấy hierarchy.
+*/
+.cins-chat-org-children {
+  --cins-org-rail: clamp(10px, 4.2cqi, 18px);
+  list-style: none;
+  margin: 0 0 6px;
+  margin-left: clamp(14px, 5.5cqi, 22px);
+  padding: 2px 0 4px var(--cins-org-rail);
+  border-left: 2px solid rgba(31, 116, 201, 0.18);
+}
+
+.cins-chat-org-children > .cins-chat-thread-item.is-org-nested:not(.is-project-child)
+  .cins-chat-thread {
+  padding: 6px 8px;
+  gap: 8px;
+  min-height: 0;
+}
+
+.cins-chat-org-children
+  > .cins-chat-thread-item.is-org-nested:not(.is-project-child)
+  .cins-chat-thread-row.is-group-row
+  .cins-chat-thread {
+  padding: 6px 6px 6px 4px;
+}
+
+.cins-chat-org-children
+  > .cins-chat-thread-item.is-org-nested:not(.is-project-child)
+  .cins-chat-thread-name
+  strong {
+  font-size: 13px;
+}
+
+.cins-chat-org-children
+  > .cins-chat-thread-item.is-org-nested:not(.is-project-child)
+  .cins-chat-thread-preview {
+  font-size: 11px;
+}
+
+.cins-chat-org-children
+  > .cins-chat-thread-item.is-org-nested:not(.is-project-child)
+  .cins-chat-thread-top
+  time {
+  font-size: 9px;
+}
+
+.cins-chat-org-children
+  > .cins-chat-thread-item.is-org-nested
+  .cins-chat-thread-row.is-org-advisory-row
+  .cins-chat-thread {
+  padding-block: 5px;
+}
+
+:root[data-theme="dark"] .cins-chat-thread-section + .cins-chat-thread-section {
+  border-top-color: rgba(248, 250, 252, 0.1);
+}
+
+:root[data-theme="dark"] .cins-chat-org-node-toggle:hover {
+  background: rgba(248, 250, 252, 0.06);
+}
+
+:root[data-theme="dark"] .cins-chat-org-children {
+  border-left-color: rgba(96, 165, 250, 0.28);
 }
 
 .cins-chat-thread-item {
@@ -872,6 +1075,28 @@ html.is-cins-share-dropping {
   font-weight: 800;
   line-height: 10px;
   text-align: center;
+}
+
+.cins-chat-avatar-shop {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  z-index: 1;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1.5px solid var(--bg-surface, #fff);
+  background: var(--cins-orange, #fdad4c);
+  color: rgba(0, 0, 0, 0.78);
+  pointer-events: none;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
+}
+
+:root[data-theme="dark"] .cins-chat-avatar-shop {
+  border-color: var(--neutral-100, #151a24);
+  color: rgba(15, 23, 42, 0.88);
 }
 
 .cins-chat-thread-name,
@@ -6715,30 +6940,26 @@ a.cins-chat-og-card.is-me:hover {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
   flex: 0 0 auto;
-  min-height: 32px;
+  width: 28px;
+  height: 28px;
   margin: 0;
-  padding: 0 10px;
-  border: 1px solid color-mix(in srgb, var(--cins-blue, #1f74c9) 28%, #e4e6eb);
-  border-radius: 8px;
-  background: #fff;
-  color: color-mix(in srgb, var(--cins-blue, #1f74c9) 78%, #0f172a);
-  font: inherit;
-  font-size: 12px;
-  font-weight: 700;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: color-mix(in srgb, var(--cins-blue, #1f74c9) 72%, #0f172a);
   cursor: pointer;
 }
 
 .cins-chat-don-card-ma-vd-copy:hover {
-  border-color: var(--cins-blue, #1f74c9);
   color: var(--cins-blue, #1f74c9);
+  background: color-mix(in srgb, var(--cins-blue, #1f74c9) 8%, transparent);
 }
 
 .cins-chat-don-card-ma-vd-copy.is-copied {
-  border-color: color-mix(in srgb, #16a34a 35%, #e4e6eb);
-  background: color-mix(in srgb, #16a34a 10%, #fff);
   color: #15803d;
+  background: transparent;
 }
 
 .cins-chat-don-card-track {
@@ -9583,6 +9804,57 @@ a.cins-chat-don-card.is-paid.is-canceled:hover {
   min-width: 0;
 }
 
+.cins-chat-org-reply-hint {
+  margin: 0 0 4px;
+  padding: 0 2px;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--ink-muted, rgba(15, 23, 42, 0.55));
+}
+
+.cins-chat-org-reply-hint strong {
+  font-weight: 650;
+  color: var(--ink-display, rgba(15, 23, 42, 0.72));
+}
+
+.cins-chat-org-role-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 650;
+  line-height: 1.4;
+  color: var(--cins-blue, #1f74c9);
+  background: color-mix(in srgb, var(--cins-blue, #1f74c9) 12%, transparent);
+  white-space: nowrap;
+}
+
+.cins-chat-org-dest-badge {
+  display: inline-flex;
+  align-items: center;
+  max-width: 9.5rem;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 650;
+  line-height: 1.4;
+  color: var(--ink-muted, rgba(15, 23, 42, 0.62));
+  background: color-mix(in srgb, var(--ink-muted, #64748b) 12%, transparent);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cins-chat-bubble-row.is-them .cins-chat-msg-inline {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  min-width: 0;
+}
+
 .cins-chat-sender-cluster .cins-chat-sender-name {
   margin: 0;
 }
@@ -10911,8 +11183,8 @@ button.cins-chat-project-card-mark:hover {
 :root[data-theme="dark"] .cins-chat-thread:hover {
   background: rgba(255, 255, 255, 0.06);
 }
-:root[data-theme="dark"] .cins-chat-thread-tabs {
-  background: rgba(255, 255, 255, 0.06);
+:root[data-theme="dark"] .cins-chat-thread-tab-unread {
+  box-shadow: 0 0 0 1.5px var(--neutral-100, #151a24);
 }
 :root[data-theme="dark"]
   .cins-chat-thread-item.is-list-pinned
@@ -11304,13 +11576,15 @@ button.cins-chat-project-card-mark:hover {
   color: var(--ink-display, rgba(255, 255, 255, 0.92));
 }
 :root[data-theme="dark"] .cins-chat-don-card-ma-vd-copy {
-  background: var(--neutral-100, #151a24);
-  border-color: color-mix(in srgb, var(--cins-blue, #5ba3e0) 32%, var(--border, #2a3040));
+  background: transparent;
+  border: none;
   color: color-mix(in srgb, var(--cins-blue, #5ba3e0) 70%, #e2e8f0);
 }
+:root[data-theme="dark"] .cins-chat-don-card-ma-vd-copy:hover {
+  background: color-mix(in srgb, var(--cins-blue, #5ba3e0) 12%, transparent);
+}
 :root[data-theme="dark"] .cins-chat-don-card-ma-vd-copy.is-copied {
-  border-color: color-mix(in srgb, #22c55e 35%, var(--border, #2a3040));
-  background: color-mix(in srgb, #22c55e 14%, var(--neutral-100, #151a24));
+  background: transparent;
   color: #86efac;
 }
 :root[data-theme="dark"] .cins-chat-don-card-track {
@@ -11520,6 +11794,12 @@ button.cins-chat-project-card-mark:hover {
 }
 
 /* ---- Project child: nhánh dưới nhóm cha ---- */
+/*
+  Behavior (container cins-chat-list):
+  - Indent fluid theo bề ngang sidebar (cqi) — cha trái, con lệch phải.
+  - Hẹp ≤320cqi: thu thumb/type, giảm indent để không cắt tên.
+  - Dưới org-node: indent nhỏ hơn (đã có rail org).
+*/
 .cins-chat-thread-item.is-project-child {
   --cins-project-rail-color: color-mix(
     in srgb,
@@ -11528,13 +11808,18 @@ button.cins-chat-project-card-mark:hover {
   );
   --cins-project-active: var(--cins-orange, #fdad4c);
   /* Thụt dưới avatar nhóm cha; rail + active sát tên */
-  padding-left: 52px;
+  padding-left: var(--cins-project-indent);
   margin-top: -2px;
 }
 
+.cins-chat-org-children .cins-chat-thread-item.is-project-child,
+.cins-chat-thread-item.is-org-nested.is-project-child {
+  padding-left: var(--cins-project-indent-nested);
+}
+
 .cins-chat-thread.is-project-thread {
-  min-height: 34px;
-  padding: 4px 8px 4px 6px;
+  min-height: var(--cins-project-row-h);
+  padding: 3px 8px 3px 4px;
   gap: 0;
   border-left: 0;
   border-radius: 8px;
@@ -11568,8 +11853,8 @@ button.cins-chat-project-card-mark:hover {
   position: relative;
   flex: 0 0 auto;
   width: 12px;
-  height: 34px;
-  margin: -5px 0 -5px -14px;
+  height: var(--cins-project-row-h);
+  margin: -4px 0 -4px -12px;
   pointer-events: none;
 }
 
@@ -11613,7 +11898,7 @@ button.cins-chat-project-card-mark:hover {
 
 .cins-chat-project-hash {
   flex-shrink: 0;
-  font-size: 0.95rem;
+  font-size: 0.9em;
   font-weight: 650;
   line-height: 1;
   color: color-mix(in srgb, var(--cins-orange, #fdad4c) 72%, #6b7280);
@@ -11622,8 +11907,8 @@ button.cins-chat-project-card-mark:hover {
 
 .cins-chat-project-thumb {
   flex-shrink: 0;
-  width: 18px;
-  height: 18px;
+  width: var(--cins-project-thumb);
+  height: var(--cins-project-thumb);
   border-radius: 5px;
   overflow: hidden;
   display: inline-flex;
@@ -11640,7 +11925,7 @@ button.cins-chat-project-card-mark:hover {
 }
 
 .cins-chat-thread-main.is-project-simple .cins-chat-thread-name strong {
-  font-size: 0.84rem;
+  font-size: var(--cins-project-type);
   font-weight: 550;
   color: var(--ink-body, #374151);
   overflow: hidden;
@@ -11700,6 +11985,43 @@ button.cins-chat-project-card-mark:hover {
 
 :root[data-theme="dark"] .cins-chat-thread-main.is-project-simple .cins-chat-thread-name strong {
   color: var(--ink-body, #e5e7eb);
+}
+
+@container cins-chat-list (max-width: 320px) {
+  .cins-chat-thread-item.is-project-child {
+    padding-left: clamp(22px, 12cqi, 40px);
+  }
+
+  .cins-chat-org-children .cins-chat-thread-item.is-project-child,
+  .cins-chat-thread-item.is-org-nested.is-project-child {
+    padding-left: clamp(12px, 6cqi, 24px);
+  }
+
+  .cins-chat-org-children {
+    margin-left: clamp(10px, 4cqi, 16px);
+  }
+
+  .cins-chat-project-branch {
+    width: 10px;
+    margin-left: -10px;
+  }
+
+  .cins-chat-project-branch-elbow {
+    width: 8px;
+  }
+}
+
+@container cins-chat-list (max-width: 300px) {
+  .cins-chat-thread.is-project-thread {
+    padding-inline: 4px 6px;
+  }
+
+  .cins-chat-org-children
+    > .cins-chat-thread-item.is-org-nested:not(.is-project-child)
+    .cins-chat-thread-name
+    strong {
+    font-size: 12px;
+  }
 }
 
 /* ---- Seen-by watermark (Messenger) ---- */

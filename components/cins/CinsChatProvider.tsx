@@ -80,6 +80,8 @@ type OpenChatOptions = {
    */
   thread?: ChatThread;
   tab?: ChatThreadGroup;
+  /** Sub-filter tab «Tổ chức»: tất cả / của tôi / tham gia. */
+  toChucFilter?: "all" | "cua_toi" | "tham_gia";
   /** Mở hội thoại với 1 TỔ CHỨC (user → org). */
   orgId?: string;
   /** Xem trước tổ chức khi đang resolve phòng. */
@@ -730,6 +732,7 @@ export function CinsChatProvider({
         setLaunch({
           thread: options.thread,
           tab: options.tab ?? options.thread.group,
+          toChucFilter: options.toChucFilter,
         });
         setOpen(true);
         return;
@@ -755,6 +758,30 @@ export function CinsChatProvider({
                 messages: [],
               },
           tab: options.tab ?? pinned?.group,
+          toChucFilter: options.toChucFilter,
+        });
+        setOpen(true);
+        return;
+      }
+
+      if (options?.tab || options?.toChucFilter) {
+        setLaunch({
+          thread: {
+            id: "__open_list__",
+            roomId: "__open_list__",
+            name: "",
+            group: options.tab ?? "ban_be",
+            kind: "user",
+            role: "",
+            avatarInitial: "?",
+            avatarHue: 210,
+            preview: "",
+            lastAt: new Date(0).toISOString(),
+            unread: 0,
+            messages: [],
+          },
+          tab: options.tab,
+          toChucFilter: options.toChucFilter,
         });
         setOpen(true);
         return;

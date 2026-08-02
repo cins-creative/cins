@@ -91,12 +91,12 @@ async function probeAspect(item: GalleryPinnedBanner): Promise<number> {
 function showcaseLabel(kind: OrgShowcaseAsideKind): string {
   if (kind === "studio") return "Showcase";
   if (kind === "co_so_dao_tao") return "Sản phẩm học viên";
-  return "Feature";
+  return "Đồ án sinh viên";
 }
 
 /**
  * Mũi tên dưới card org — xổ preview:
- * studio = Showcase · cơ sở = sản phẩm học viên (sort điểm) · trường = bài media.
+ * studio = Showcase · cơ sở = SP học viên · trường = đồ án sinh viên (cùng nguồn tab).
  * Chỉ xem trước; muốn xem đầy đủ thì vào trang org.
  */
 export function JourneyOrgShowcaseExpand({

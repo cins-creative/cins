@@ -17,6 +17,8 @@ import { StudioSettingsOrganizationSection } from "@/components/to-chuc/StudioSe
 import { GioiThieuContentEditor } from "@/components/truong/GioiThieuContentEditor";
 import type { ContentSurfaceView } from "@/lib/cins/content-surface-view";
 import { normalizeTruongGioiThieuHtml } from "@/lib/truong/gioi-thieu";
+import { orgQuanLyPath } from "@/lib/to-chuc/org-quan-ly-routes";
+import { studioTabPath, STUDIO_DEFAULT_TAB } from "@/lib/to-chuc/studio-routes";
 import type { StudioHoatDongStatus } from "@/lib/to-chuc/studio-lifecycle.shared";
 import {
   normalizeStudioShowcaseDefaultView,
@@ -59,6 +61,15 @@ type Props = {
   open: boolean;
   orgId: string;
   initialSection?: StudioSettingsSection;
+  /**
+   * `page` — nhúng trong `/quan-ly/thong-tin` hoặc `/quan-ly/cai-dat`.
+   * `modal` — popup trên trang public (legacy).
+   */
+  variant?: "modal" | "page";
+  /** Giới hạn mục nav (vd. cai-dat chỉ Thành viên + Tổ chức). */
+  allowedSections?: readonly StudioSettingsSection[];
+  /** Tiêu đề khi variant=page. */
+  pageTitle?: string;
   onClose: () => void;
   onSaved: (patch: {
     ten?: string;
@@ -144,6 +155,9 @@ export function StudioPageSettingsModal({
   open,
   orgId,
   initialSection = "identity",
+  variant = "modal",
+  allowedSections,
+  pageTitle = "Thông tin studio",
   onClose,
   onSaved,
 }: Props) {
@@ -195,22 +209,22 @@ export function StudioPageSettingsModal({
   }, [open, initialSection, loadSettings]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || variant === "page") return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = prev;
     };
-  }, [open]);
+  }, [open, variant]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || variant === "page") return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
+  }, [open, onClose, variant]);
 
   useEffect(() => {
     if (!draft) return;
@@ -269,6 +283,7 @@ export function StudioPageSettingsModal({
   function onSaveSection(e: React.FormEvent) {
     e.preventDefault();
     if (!draft || section === "members" || section === "organization") return;
+    const prevSlug = draft.slug;
     setErr(null);
     startTransition(async () => {
       const res = await fetch(
@@ -297,19 +312,40 @@ export function StudioPageSettingsModal({
         );
         return;
       }
-      router.refresh();
-      onClose();
+      if (json.settings.slug !== prevSlug) {
+        if (variant === "page") {
+          router.replace(
+            orgQuanLyPath("studio", json.settings.slug, "thong-tin"),
+          );
+        } else {
+          router.replace(studioTabPath(json.settings.slug, STUDIO_DEFAULT_TAB));
+          onClose();
+        }
+      } else if (variant === "modal") {
+        router.refresh();
+        onClose();
+      } else {
+        router.refresh();
+      }
     });
   }
 
-  if (!open || typeof document === "undefined") return null;
+  if (!open) return null;
+  if (variant === "modal" && typeof document === "undefined") return null;
 
-  const navItems = draft?.isOwner
-    ? [
-        ...NAV_BASE,
-        { id: "organization" as const, label: "Tổ chức" },
-      ]
+  const navBaseFiltered = allowedSections
+    ? NAV_BASE.filter((item) => allowedSections.includes(item.id))
     : NAV_BASE;
+
+  const navItems = (() => {
+    const items = [...navBaseFiltered];
+    const allowOrg =
+      !allowedSections || allowedSections.includes("organization");
+    if (draft?.isOwner && allowOrg) {
+      items.push({ id: "organization" as const, label: "Tổ chức" });
+    }
+    return items;
+  })();
 
   const canSave =
     Boolean(draft) &&
@@ -321,39 +357,40 @@ export function StudioPageSettingsModal({
       ? SECTION_COPY[section]
       : null;
 
-  return createPortal(
-    <div
-      className="uas-backdrop"
-      role="presentation"
-      onMouseDown={onClose}
-    >
+  const panel = (
       <div
-        className="uas-modal sps-modal"
-        role="dialog"
-        aria-modal="true"
+        className={
+          variant === "page"
+            ? "uas-modal sps-modal cso-settings-modal--page"
+            : "uas-modal sps-modal"
+        }
+        role={variant === "page" ? undefined : "dialog"}
+        aria-modal={variant === "page" ? undefined : true}
         aria-labelledby={titleId}
-        onMouseDown={(e) => e.stopPropagation()}
+        onMouseDown={variant === "page" ? undefined : (e) => e.stopPropagation()}
       >
         <header className="uas-head">
           <div className="uas-head-copy">
             <Settings2 size={18} strokeWidth={2} aria-hidden />
             <div className="sps-head-text">
               <h2 id={titleId} className="uas-title">
-                Quản lý studio
+                {variant === "page" ? pageTitle : "Quản lý studio"}
               </h2>
               {draft ? (
                 <p className="sps-slug">cins.vn/studio/{draft.slug}</p>
               ) : null}
             </div>
           </div>
-          <button
-            type="button"
-            className="uas-close"
-            aria-label="Đóng"
-            onClick={onClose}
-          >
-            <X size={18} strokeWidth={2} aria-hidden />
-          </button>
+          {variant === "modal" ? (
+            <button
+              type="button"
+              className="uas-close"
+              aria-label="Đóng"
+              onClick={onClose}
+            >
+              <X size={18} strokeWidth={2} aria-hidden />
+            </button>
+          ) : null}
         </header>
 
         <div className="uas-layout">
@@ -735,9 +772,13 @@ export function StudioPageSettingsModal({
         <footer className="uas-foot">
           <span />
           <div className="uas-foot-actions">
-            <button type="button" className="uas-btn ghost" onClick={onClose}>
-              {canSave ? "Huỷ" : "Đóng"}
-            </button>
+            {variant === "modal" ? (
+              <button type="button" className="uas-btn ghost" onClick={onClose}>
+                {canSave ? "Huỷ" : "Đóng"}
+              </button>
+            ) : (
+              <span />
+            )}
             {canSave ? (
               <button
                 type="submit"
@@ -758,6 +799,17 @@ export function StudioPageSettingsModal({
           </div>
         </footer>
       </div>
+  );
+
+  if (variant === "page") return panel;
+
+  return createPortal(
+    <div
+      className="uas-backdrop"
+      role="presentation"
+      onMouseDown={onClose}
+    >
+      {panel}
     </div>,
     document.body,
   );

@@ -19,6 +19,14 @@ import {
   loadPinnedMessageIds,
   loadReactionsForMessages,
 } from "@/lib/chat/message-enrich";
+import {
+  markOrgInboxNotifyRead,
+  notifyOrgAdminsOfStudentMessage,
+} from "@/lib/chat/org-inbox-notify";
+import {
+  applyOrgAdvisoryPerspective,
+  applyOrgAdvisoryPerspectiveToMessage,
+} from "@/lib/chat/org-reply-perspective";
 import { listRoomReadCursors } from "@/lib/chat/read-cursors";
 import { loadPollsForMessages } from "@/lib/chat/room-poll";
 import { resolveOwnedUserEmojiMuc } from "@/lib/user-emoji/resolve-owned";
@@ -600,14 +608,56 @@ async function findDirectRoomId(
 
   const { data: sharedRows } = await admin
     .from("chat_thanh_vien")
-    .select("id_phong, chat_phong!inner(loai_phong)")
+    .select("id_phong, chat_phong!inner(loai_phong, cap_nhat_luc)")
     .eq("id_nguoi_dung", targetUserId)
     .in("id_phong", roomIds)
     .is("roi_luc", null)
-    .eq("chat_phong.loai_phong", DM_ROOM)
-    .limit(1);
+    .eq("chat_phong.loai_phong", DM_ROOM);
 
-  return sharedRows?.[0]?.id_phong ?? null;
+  if (!sharedRows?.length) return null;
+  if (sharedRows.length === 1) return sharedRows[0].id_phong;
+
+  // Trùng phòng 1_1 cùng peer (race tạo) → chọn phòng cập nhật gần nhất.
+  let bestId = sharedRows[0].id_phong as string;
+  let bestAt = 0;
+  for (const row of sharedRows) {
+    const room = row.chat_phong as
+      | { cap_nhat_luc?: string }
+      | { cap_nhat_luc?: string }[]
+      | null;
+    const meta = Array.isArray(room) ? room[0] : room;
+    const at = meta?.cap_nhat_luc
+      ? new Date(meta.cap_nhat_luc).getTime()
+      : 0;
+    if (at >= bestAt) {
+      bestAt = at;
+      bestId = row.id_phong as string;
+    }
+  }
+  return bestId;
+}
+
+/** Một peer = một thread DM; giữ phòng mới nhất, cộng unread. */
+function dedupeDirectThreadsByPeer(threads: ChatThread[]): ChatThread[] {
+  const byPeer = new Map<string, ChatThread>();
+  for (const thread of threads) {
+    const peerId = thread.peerUserId;
+    if (!peerId || thread.isSelf) continue;
+    const existing = byPeer.get(peerId);
+    if (!existing) {
+      byPeer.set(peerId, thread);
+      continue;
+    }
+    const keepIncoming =
+      new Date(thread.lastAt).getTime() >= new Date(existing.lastAt).getTime();
+    const primary = keepIncoming ? thread : existing;
+    const secondary = keepIncoming ? existing : thread;
+    byPeer.set(peerId, {
+      ...primary,
+      unread: primary.unread + secondary.unread,
+    });
+  }
+  return [...byPeer.values()];
 }
 
 export async function assertCanDirectMessage(
@@ -1033,7 +1083,8 @@ export async function listDirectThreads(viewerId: string): Promise<ChatThread[]>
     );
   }
 
-  threads.sort(
+  const deduped = dedupeDirectThreadsByPeer(threads);
+  deduped.sort(
     (a, b) => new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime(),
   );
 
@@ -1084,7 +1135,7 @@ export async function listDirectThreads(viewerId: string): Promise<ChatThread[]>
     if (created.ok) selfThread = created.thread;
   }
 
-  return selfThread ? [selfThread, ...threads] : threads;
+  return selfThread ? [selfThread, ...deduped] : deduped;
 }
 
 export async function listRoomMessages(
@@ -1146,6 +1197,8 @@ export async function listRoomMessages(
     messages = await enrichGroupMessageSenders(messages, chronological);
   }
 
+  messages = await applyOrgAdvisoryPerspective(messages, viewerId, roomId);
+
   let pinnedMessages = pinnedRaw;
   const {
     getLopRoomAccess,
@@ -1203,7 +1256,8 @@ async function listPinnedMessagesForRoom(
 
   if (!rows?.length) return [];
 
-  const enriched = await enrichMessages(rows as MessageRow[], viewerId, roomId, null);
+  let enriched = await enrichMessages(rows as MessageRow[], viewerId, roomId, null);
+  enriched = await applyOrgAdvisoryPerspective(enriched, viewerId, roomId);
   const byId = new Map(enriched.map((m) => [m.id, m]));
   return ids.map((id) => byId.get(id)).filter(Boolean) as ChatMessage[];
 }
@@ -1396,10 +1450,25 @@ export async function sendRoomMessage(
   await admin.from("chat_phong").update({ cap_nhat_luc: now }).eq("id", roomId);
   await markRoomRead(roomId, viewerId, data.id);
 
-  const message = await fetchMessageById(data.id, viewerId);
+  let message = await fetchMessageById(data.id, viewerId);
   if (!message) {
     return { ok: false, error: "Không tải lại được tin nhắn." };
   }
+
+  message = await applyOrgAdvisoryPerspectiveToMessage(
+    message,
+    viewerId,
+    roomId,
+  );
+
+  /* Notify admin org khi HV/khách gửi tin vào phòng tư vấn (fire-and-forget). */
+  void notifyOrgAdminsOfStudentMessage({
+    roomId,
+    senderId: viewerId,
+    messagePreview: messagePreview(data),
+  }).catch((err) => {
+    console.error("[sendRoomMessage] org inbox notify", err);
+  });
 
   return { ok: true, message };
 }
@@ -1436,6 +1505,8 @@ export async function markRoomRead(
     },
     { onConflict: "id_phong,id_nguoi_dung" },
   );
+
+  void markOrgInboxNotifyRead({ roomId, viewerId }).catch(() => {});
 }
 
 export async function countTotalUnread(viewerId: string): Promise<number> {

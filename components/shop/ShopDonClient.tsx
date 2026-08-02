@@ -67,7 +67,13 @@ const VAN_CHUYEN_EDITABLE: ShopTrangThaiDon[] = [
   "da_giao_tai_su_kien",
 ];
 
-function canEditVanChuyen(trangThai: ShopTrangThaiDon): boolean {
+function canEditVanChuyen(
+  trangThai: ShopTrangThaiDon,
+  hinhThucGiao?: ShopDonHang["hinhThucGiao"],
+): boolean {
+  // Gặp trực tiếp — không cần mã ĐVVC.
+  const hinh = hinhThucGiao ?? "truc_tiep";
+  if (hinh === "truc_tiep") return false;
   return VAN_CHUYEN_EDITABLE.includes(trangThai);
 }
 
@@ -337,6 +343,8 @@ export function ShopDonClient() {
   const [prepLoaiFilter, setPrepLoaiFilter] = useState<Set<string>>(new Set());
   const [prepSelectOpen, setPrepSelectOpen] = useState(false);
   const prepSelectRef = useRef<HTMLDivElement>(null);
+  const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
+  const statusDropdownRef = useRef<HTMLDivElement>(null);
   const [prepExpandedKey, setPrepExpandedKey] = useState<string | null>(null);
   const [portalReady, setPortalReady] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -457,6 +465,24 @@ export function ShopDonClient() {
     document.addEventListener("mousedown", handleOutside);
     return () => document.removeEventListener("mousedown", handleOutside);
   }, [prepSelectOpen]);
+
+  useEffect(() => {
+    if (!statusDropdownOpen) return;
+    function handleOutside(e: MouseEvent) {
+      if (!statusDropdownRef.current?.contains(e.target as Node)) {
+        setStatusDropdownOpen(false);
+      }
+    }
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setStatusDropdownOpen(false);
+    }
+    document.addEventListener("mousedown", handleOutside);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handleOutside);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [statusDropdownOpen]);
 
   useEffect(() => {
     if (!actMenuOpenId) return;
@@ -736,7 +762,11 @@ export function ShopDonClient() {
 
   const hasSelection = selectedIds.length > 0;
   const bulkBar = (
-    <div className="shop-don-bulk" role="toolbar" aria-label="Thao tác đơn hàng loạt">
+    <div
+      className={`shop-don-bulk${hasSelection ? " is-active" : " is-slim"}`}
+      role="toolbar"
+      aria-label="Thao tác đơn hàng loạt"
+    >
       <div className="shop-don-bulk-head">
         <span className="shop-don-bulk-count">
           {hasSelection ? (
@@ -848,13 +878,72 @@ export function ShopDonClient() {
     </div>
   );
 
+  const isPipelineTab = DON_TAB_PIPELINE.includes(
+    tab as (typeof DON_TAB_PIPELINE)[number],
+  );
+
   const statusTabs = (
     <div
       className="shop-don-status-tabs"
       role="tablist"
       aria-label="Lọc theo trạng thái đơn"
     >
-      <div className="shop-don-status-steps" aria-label="Tiến độ đơn">
+      <div className="shop-don-status-dropdown" ref={statusDropdownRef}>
+        <button
+          type="button"
+          className={`shop-don-status-dropdown-trigger${isPipelineTab ? " is-active" : ""}${statusDropdownOpen ? " is-open" : ""}`}
+          aria-haspopup="listbox"
+          aria-expanded={statusDropdownOpen}
+          aria-label="Tiến độ đơn"
+          onClick={() => setStatusDropdownOpen((o) => !o)}
+        >
+          <span className="shop-don-status-dropdown-label">
+            {isPipelineTab ? DON_TAB_LABEL[tab] : "Tiến độ đơn"}
+          </span>
+          {isPipelineTab ? (
+            <span className="shop-don-status-tab-count">{tabCounts[tab]}</span>
+          ) : null}
+          <ChevronDown
+            size={14}
+            strokeWidth={2.5}
+            aria-hidden
+            className={statusDropdownOpen ? "is-open" : ""}
+          />
+        </button>
+        {statusDropdownOpen ? (
+          <div
+            className="shop-don-status-dropdown-menu"
+            role="listbox"
+            aria-label="Tiến độ đơn"
+          >
+            {DON_TAB_PIPELINE.map((t) => (
+              <button
+                key={t}
+                type="button"
+                role="option"
+                aria-selected={tab === t}
+                className={`shop-don-status-dropdown-opt${tab === t ? " is-checked" : ""}`}
+                onClick={() => {
+                  setTab(t);
+                  setStatusDropdownOpen(false);
+                }}
+              >
+                <span className="shop-don-status-dropdown-check">
+                  {tab === t ? (
+                    <Check size={11} strokeWidth={3} aria-hidden />
+                  ) : null}
+                </span>
+                {DON_TAB_LABEL[t]}
+                <span className="shop-don-status-tab-count">{tabCounts[t]}</span>
+              </button>
+            ))}
+          </div>
+        ) : null}
+      </div>
+      <div
+        className="shop-don-status-steps shop-don-status-steps--desktop"
+        aria-label="Tiến độ đơn"
+      >
         {DON_TAB_PIPELINE.map((t, i) => (
           <button
             key={t}
@@ -1186,7 +1275,6 @@ export function ShopDonClient() {
 
       <div className="shop-don-toolbar">
         {statusTabs}
-        {bulkBar}
       </div>
 
       {items.length === 0 ? (
@@ -1194,7 +1282,9 @@ export function ShopDonClient() {
       ) : visibleItems.length === 0 ? (
         <p className="shop-dash-hint">Không có đơn ở mục này.</p>
       ) : (
-        <div className="shop-grid-wrap">
+        <>
+          {bulkBar}
+          <div className="shop-grid-wrap">
           <table className="shop-grid shop-don-sheet">
             <thead>
               <tr>
@@ -1348,7 +1438,10 @@ export function ShopDonClient() {
                       onKeyDown={(e) => e.stopPropagation()}
                     >
                       {(() => {
-                        const editable = canEditVanChuyen(d.trangThai);
+                        const editable = canEditVanChuyen(
+                          d.trangThai,
+                          d.hinhThucGiao,
+                        );
                         const busy = vcBusyId === d.id;
                         const dvvc =
                           d.vanChuyenDvvc?.trim() ||
@@ -1392,7 +1485,10 @@ export function ShopDonClient() {
                       onKeyDown={(e) => e.stopPropagation()}
                     >
                       {(() => {
-                        const editable = canEditVanChuyen(d.trangThai);
+                        const editable = canEditVanChuyen(
+                          d.trangThai,
+                          d.hinhThucGiao,
+                        );
                         const busy = vcBusyId === d.id;
                         const ma = d.vanChuyenMa?.trim() || "";
                         const dvvc =
@@ -1401,13 +1497,16 @@ export function ShopDonClient() {
                           "";
                         if (!editable) {
                           if (!ma) {
+                            const hinh = d.hinhThucGiao ?? "truc_tiep";
                             return (
                               <span
                                 className="shop-don-vc-empty"
                                 title={
-                                  d.trangThai === "cho_xac_nhan"
-                                    ? "Xác nhận đơn trước khi cập nhật vận chuyển"
-                                    : undefined
+                                  hinh === "truc_tiep"
+                                    ? "Gặp trực tiếp — không cần mã vận đơn"
+                                    : d.trangThai === "cho_xac_nhan"
+                                      ? "Xác nhận đơn trước khi cập nhật vận chuyển"
+                                      : undefined
                                 }
                               >
                                 —
@@ -1593,7 +1692,8 @@ export function ShopDonClient() {
           <p className="shop-don-select-hint">
             Giữ <kbd>Shift</kbd> khi chọn ô để chọn hàng loạt.
           </p>
-        </div>
+          </div>
+        </>
       )}
 
       <ShopDonDetailModal

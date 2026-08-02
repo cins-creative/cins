@@ -265,6 +265,8 @@ type ChatMessageThreadItemsProps = {
   onPollUpdated?: (messageId: string, poll: ChatPollSummary) => void;
   onJumpToMessage?: (messageId: string) => void;
   onOpenCanvasComments?: (nodeIds: string[], messageId: string) => void;
+  /** Staff có quyền đối soát HP — CTA «Xác nhận đã nhận tiền» trên card học phí. */
+  canConfirmHocPhi?: boolean;
 };
 
 function collectGalleryMessages(
@@ -459,6 +461,22 @@ function SenderCluster({
   );
 }
 
+function OrgReplyHintLabel({ msg }: { msg: ChatMessage }) {
+  const hint = msg.orgReplyHint;
+  if (!hint?.name) return null;
+  return (
+    <p className="cins-chat-org-reply-hint">
+      Trả lời bởi <strong>{hint.name}</strong>
+      {hint.vaiTroLabel ? (
+        <>
+          {" "}
+          · {hint.vaiTroLabel}
+        </>
+      ) : null}
+    </p>
+  );
+}
+
 function BubbleMeta({
   msg,
   className,
@@ -513,6 +531,7 @@ function SingleMessageBubble({
   onJumpToMessage,
   onOpenCanvasComments,
   onOpenImage,
+  canConfirmHocPhi = false,
 }: {
   msg: ChatMessage;
   seenBy?: ChatReadCursor[];
@@ -530,6 +549,7 @@ function SingleMessageBubble({
   onJumpToMessage?: (messageId: string) => void;
   onOpenCanvasComments?: (nodeIds: string[], messageId: string) => void;
   onOpenImage?: (messageId: string) => void;
+  canConfirmHocPhi?: boolean;
 }) {
   const isMe = msg.from === "me";
   const isEditing = editingMessageId === msg.id;
@@ -554,6 +574,7 @@ function SingleMessageBubble({
             viewerUserId={viewerUserId}
             onPollUpdated={onPollUpdated}
             onOpenCanvasComments={onOpenCanvasComments}
+            canConfirmHocPhi={canConfirmHocPhi}
           />
         </div>
       </div>
@@ -572,6 +593,7 @@ function SingleMessageBubble({
             roomId={roomId}
             viewerUserId={viewerUserId}
             onPollUpdated={onPollUpdated}
+            canConfirmHocPhi={canConfirmHocPhi}
           />
         </div>
       </div>
@@ -590,6 +612,7 @@ function SingleMessageBubble({
             roomId={roomId}
             viewerUserId={viewerUserId}
             onPollUpdated={onPollUpdated}
+            canConfirmHocPhi={canConfirmHocPhi}
           />
         </div>
       </div>
@@ -660,6 +683,7 @@ function SingleMessageBubble({
           viewerUserId={viewerUserId}
           onPollUpdated={onPollUpdated}
           onOpenImage={onOpenImage}
+          canConfirmHocPhi={canConfirmHocPhi}
         />
       </div>
       <div className="cins-chat-media-caption">
@@ -682,6 +706,7 @@ function SingleMessageBubble({
         viewerUserId={viewerUserId}
         onPollUpdated={onPollUpdated}
         onOpenImage={onOpenImage}
+        canConfirmHocPhi={canConfirmHocPhi}
       />
       {metaBelowMedia}
     </div>
@@ -693,6 +718,7 @@ function SingleMessageBubble({
         viewerUserId={viewerUserId}
         onPollUpdated={onPollUpdated}
         onOpenImage={onOpenImage}
+        canConfirmHocPhi={canConfirmHocPhi}
       />
       {!isEditing && !useSenderCluster && !isDonHangCard ? (
         <BubbleMeta msg={msg} />
@@ -727,6 +753,7 @@ function SingleMessageBubble({
           roomId={roomId}
           viewerUserId={viewerUserId}
           onPollUpdated={onPollUpdated}
+          canConfirmHocPhi={canConfirmHocPhi}
         />
         {!useSenderCluster ? (
           <BubbleMeta msg={msg} className="cins-chat-don-hang-meta" />
@@ -775,6 +802,7 @@ function SingleMessageBubble({
               viewerUserId={viewerUserId}
               onPollUpdated={onPollUpdated}
               onOpenImage={onOpenImage}
+              canConfirmHocPhi={canConfirmHocPhi}
             />
             {!isEditing && msg.reactions?.length && actionHandlers ? (
               <ChatMessageReactions
@@ -844,13 +872,17 @@ function SingleMessageBubble({
               showSenderNames={showSenderNames}
               showTime
             />
+            {!isMe ? <OrgReplyHintLabel msg={msg} /> : null}
             {bubbleBlock}
           </div>
         ) : (
-          <>
-            {msg.from === "them" ? renderTheirAvatar?.(msg) : null}
-            {bubbleBlock}
-          </>
+          <div className="cins-chat-msg-stack">
+            {!isMe ? <OrgReplyHintLabel msg={msg} /> : null}
+            <div className="cins-chat-msg-inline">
+              {msg.from === "them" ? renderTheirAvatar?.(msg) : null}
+              {bubbleBlock}
+            </div>
+          </div>
         )}
       </div>
       {seenBy?.length && isMe ? (
@@ -876,6 +908,7 @@ export function ChatMessageThreadItems({
   onPollUpdated,
   onJumpToMessage,
   onOpenCanvasComments,
+  canConfirmHocPhi = false,
 }: ChatMessageThreadItemsProps) {
   const items = useMemo(() => groupChatMessages(messages), [messages]);
   const byMessage = useMemo(
@@ -924,6 +957,7 @@ export function ChatMessageThreadItems({
               onJumpToMessage={onJumpToMessage}
               onOpenCanvasComments={onOpenCanvasComments}
               onOpenImage={handleOpenImage}
+              canConfirmHocPhi={canConfirmHocPhi}
             />
           );
         }

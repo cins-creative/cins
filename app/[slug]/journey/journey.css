@@ -15447,7 +15447,7 @@ select.j-edit-input {
 .j-user-popover-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 9500;
+  z-index: 10870;
   display: flex;
   align-items: center;
   justify-content: center;

@@ -18,6 +18,7 @@ import {
 import { ChatMessageThreadItems } from "@/components/cins/ChatMessageThreadItems";
 import { ChatReplyComposeBar } from "@/components/cins/ChatReplyComposeBar";
 import { ChatStickerPicker } from "@/components/cins/ChatStickerPicker";
+import { useCinsChat } from "@/components/cins/CinsChatProvider";
 import { MsIcon } from "@/components/cins/MsIcon";
 import { useChatRoomMessageActions } from "@/components/cins/useChatRoomMessageActions";
 import { InboxContactRoleBadge } from "@/components/truong/InboxContactRoleBadge";
@@ -47,7 +48,12 @@ import {
   type OrgInboxThread,
   type OrgInboxThreadStatus,
 } from "@/lib/chat/org-inbox-types";
-import { reconcileChatMessage } from "@/lib/chat/realtime";
+import {
+  mapRealtimeRow,
+  reconcileChatMessage,
+  type ChatRealtimeRow,
+} from "@/lib/chat/realtime";
+import { useChatRealtime } from "@/lib/chat/use-chat-realtime";
 import { replaceOptimisticAlbumWithRealMessages } from "@/lib/chat/replace-album-batch";
 import type { ChatMessage, ChatMessageReplyPreview } from "@/lib/chat/types";
 import { userEmojiDeliveryUrl } from "@/lib/user-emoji/delivery-url";
@@ -132,6 +138,8 @@ type Props = {
   /** Expose reload cho parent (ghi danh / gửi đơn). */
   panelRef?: MutableRefObject<OrgInboxPanelHandle | null>;
   className?: string;
+  /** Staff có quyền đối soát HP — hiện CTA xác nhận trên card học phí. */
+  canConfirmHocPhi?: boolean;
 };
 
 export function OrgInboxPanel({
@@ -144,6 +152,7 @@ export function OrgInboxPanel({
   onThreadsChange,
   panelRef,
   className,
+  canConfirmHocPhi = false,
 }: Props) {
   const toast = useCallback(
     (message: string) => {
@@ -185,6 +194,48 @@ export function OrgInboxPanel({
     () => threads.find((t) => t.studentUserId === selectedStudentId) ?? null,
     [threads, selectedStudentId],
   );
+
+  const { viewerProfileId } = useCinsChat();
+  const threadsRef = useRef(threads);
+  threadsRef.current = threads;
+  const selectedRef = useRef(selected);
+  selectedRef.current = selected;
+
+  useChatRealtime(viewerProfileId, (row: ChatRealtimeRow) => {
+    if (!viewerProfileId) return;
+    const hit = threadsRef.current.find((t) => t.roomId === row.id_phong);
+    if (!hit) return;
+
+    const mapped = mapRealtimeRow(row, viewerProfileId);
+    const isActive = selectedRef.current?.roomId === row.id_phong;
+    const fromStudent = row.id_nguoi_gui === hit.studentUserId;
+
+    if (isActive) {
+      setMessages((prev) => reconcileChatMessage(prev, mapped));
+    }
+
+    setThreads((list) => {
+      const next = list.map((t) => {
+        if (t.roomId !== row.id_phong) return t;
+        const unreadBump = !isActive && fromStudent;
+        return {
+          ...t,
+          preview: messagePreviewText(mapped).slice(0, 80),
+          lastAt: mapped.sentAt,
+          unread: isActive ? false : unreadBump ? true : t.unread,
+          unreadCount: isActive
+            ? 0
+            : unreadBump
+              ? t.unreadCount + 1
+              : t.unreadCount,
+          status: fromStudent ? ("open" as const) : t.status,
+        };
+      });
+      return [...next].sort(
+        (a, b) => new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime(),
+      );
+    });
+  });
 
   const loadThreads = useCallback(
     async (options?: { silent?: boolean }) => {
@@ -631,6 +682,7 @@ export function OrgInboxPanel({
             sending={pending}
             verifyResponding={verifyPending}
             detailActions={renderDetailActions?.(selected)}
+            canConfirmHocPhi={canConfirmHocPhi}
             onToast={toast}
             onReplyChange={setReply}
             onSend={(text, images, filesByLocalId, inFlightUploads, replyTo) =>
@@ -730,6 +782,7 @@ function ThreadDetail({
   sending,
   verifyResponding,
   detailActions,
+  canConfirmHocPhi = false,
   onToast,
   onReplyChange,
   onSend,
@@ -747,6 +800,7 @@ function ThreadDetail({
   sending: boolean;
   verifyResponding: boolean;
   detailActions?: ReactNode;
+  canConfirmHocPhi?: boolean;
   onToast: (message: string) => void;
   onReplyChange: (v: string) => void;
   onSend: (
@@ -955,6 +1009,7 @@ function ThreadDetail({
               onEditingDraftChange={setEditingDraft}
               onSaveEdit={handleSaveEdit}
               onCancelEdit={handleCancelEdit}
+              canConfirmHocPhi={canConfirmHocPhi}
               renderTheirAvatar={() => <InboxStudentAvatar thread={thread} />}
             />
           )}

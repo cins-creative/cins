@@ -2,9 +2,11 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { getConfiguredSiteOrigin } from "@/lib/auth/auth-origin";
-import { STUDIO_TAB_LABELS } from "@/lib/to-chuc/studio-page-config";
-import { getStudioMetaBySlugCached } from "@/lib/to-chuc/studio-page-queries";
-import { isStudioTabId } from "@/lib/to-chuc/studio-routes";
+import { getTruongMetaBySlugCached } from "@/lib/truong/truong-page-queries";
+import {
+  isTruongTabId,
+  TRUONG_TAB_LABELS,
+} from "@/lib/truong/truong-routes";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 
 export const revalidate = 60;
@@ -15,18 +17,18 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug, tab } = await params;
   const metadataBase = new URL(getConfiguredSiteOrigin() ?? "https://cins.vn");
 
-  if (!hasSupabaseEnv() || !isStudioTabId(tab)) {
-    return { metadataBase, title: "Studio / Doanh nghiệp | CINs" };
+  if (!hasSupabaseEnv() || !isTruongTabId(tab)) {
+    return { metadataBase, title: "Trường đại học | CINs" };
   }
 
-  const meta = await getStudioMetaBySlugCached(slug);
-  if (!meta) return { metadataBase, title: "Không tìm thấy studio | CINs" };
+  const meta = await getTruongMetaBySlugCached(slug);
+  if (!meta) {
+    return { metadataBase, title: "Không tìm thấy trường | CINs" };
+  }
 
-  const title = `${meta.ten} — ${STUDIO_TAB_LABELS[tab]} | CINs`;
-  const description =
-    meta.moTa ??
-    `Trang studio / doanh nghiệp ${meta.ten} trên CINs — ${STUDIO_TAB_LABELS[tab].toLowerCase()}.`;
-  const pagePath = `/studio/${encodeURIComponent(slug)}`;
+  const title = `${meta.ten} — ${TRUONG_TAB_LABELS[tab]} | CINs`;
+  const description = `Thông tin ${TRUONG_TAB_LABELS[tab].toLowerCase()} tại ${meta.ten} trên CINs.`;
+  const pagePath = `/co-so-dao-tao/${encodeURIComponent(slug)}`;
   const ogImagePath = `${pagePath}/opengraph-image`;
 
   return {
@@ -51,9 +53,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-/** Tab URL — UI render trong `[slug]/layout.tsx`. */
-export default async function StudioTabPage({ params }: Props) {
+/** Tab URL — UI render trong `(public)/layout.tsx`. */
+export default async function TruongTabPage({ params }: Props) {
   const { tab } = await params;
-  if (!hasSupabaseEnv() || !isStudioTabId(tab)) notFound();
+  if (!hasSupabaseEnv() || !isTruongTabId(tab)) notFound();
   return null;
 }

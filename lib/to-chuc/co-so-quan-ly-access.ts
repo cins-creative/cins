@@ -80,6 +80,20 @@ export async function canAccessCoSoQuanLyAsync(
 }
 
 /**
+ * Xác nhận đã nhận tiền đơn HP (chat / đối soát).
+ * Tư vấn viên gửi QR (`hoc-vien` sua) hoặc staff đối soát (`hoc-phi-doi-soat` sua).
+ */
+export async function canXacNhanDonHocPhi(
+  orgId: string,
+  actorId: string | null | undefined,
+  vaiTro: CoSoStaffVaiTro | null | undefined,
+): Promise<boolean> {
+  if (!actorId || !vaiTro) return false;
+  const map = await getCoSoQuyenMap(orgId, actorId, vaiTro);
+  return map["hoc-vien"] === "sua" || map["hoc-phi-doi-soat"] === "sua";
+}
+
+/**
  * Curator org (nhãn sản phẩm): chỉ bài đăng + comment-as-org.
  * Map DB: `quan_ly_noi_dung` (không thêm enum). Ngoài phạm vi ma trận (nội dung
  * công khai org, không phải "kinh doanh" dashboard).

@@ -176,6 +176,7 @@ export function TinNhanQuanLyClient({ orgId, orgSlug }: Props) {
               initialFilter={mainTab === "verify" ? "verify" : "open"}
               panelRef={inboxRef}
               onToast={toast}
+              canConfirmHocPhi
               renderDetailActions={(thread) => (
                 <StaffActionButtons
                   thread={thread}

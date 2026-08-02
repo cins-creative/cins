@@ -71,9 +71,18 @@ function parseDonHocPhiCard(card: ChatContextCard): Parsed {
 type Props = {
   card: ChatContextCard;
   tone?: "me" | "them";
+  /**
+   * Chỉ staff có quyền đối soát học phí (`hoc-phi-doi-soat` = sua) mới thấy
+   * và bấm «Xác nhận đã nhận tiền». Học viên / viewer khác chỉ xem QR.
+   */
+  canConfirmPaid?: boolean;
 };
 
-export function ChatDonHocPhiCard({ card, tone = "them" }: Props) {
+export function ChatDonHocPhiCard({
+  card,
+  tone = "them",
+  canConfirmPaid = false,
+}: Props) {
   const parsed = parseDonHocPhiCard(card);
   const [confirmedLocal, setConfirmedLocal] = useState(false);
   const [qrOpen, setQrOpen] = useState(true);
@@ -84,7 +93,7 @@ export function ChatDonHocPhiCard({ card, tone = "them" }: Props) {
   const qrUrl = pending ? card.anh?.trim() || null : null;
 
   async function confirmPaid() {
-    if (!card.id || busy) return;
+    if (!canConfirmPaid || !card.id || busy) return;
     setBusy(true);
     setError(null);
     try {
@@ -192,7 +201,7 @@ export function ChatDonHocPhiCard({ card, tone = "them" }: Props) {
           </div>
         ) : null}
 
-        {pending ? (
+        {pending && canConfirmPaid ? (
           <button
             type="button"
             className="cins-chat-don-card-cta"
@@ -203,7 +212,11 @@ export function ChatDonHocPhiCard({ card, tone = "them" }: Props) {
           </button>
         ) : (
           <span className="cins-chat-don-card-cta">
-            {paid ? "Đã cộng ngày học" : "Đơn học phí"}
+            {paid
+              ? "Đã cộng ngày học"
+              : pending
+                ? "Chờ cơ sở xác nhận"
+                : "Đơn học phí"}
           </span>
         )}
         {error ? (

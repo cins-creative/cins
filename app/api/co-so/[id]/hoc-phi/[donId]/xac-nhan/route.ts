@@ -4,7 +4,7 @@ import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import { xacNhanDonHocPhi } from "@/lib/co-so/don-hoc-phi";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { getViewerCoSoVaiTro } from "@/lib/to-chuc/co-so-membership";
-import { getCoSoModuleQuyen } from "@/lib/to-chuc/co-so-quan-ly-access";
+import { canXacNhanDonHocPhi } from "@/lib/to-chuc/co-so-quan-ly-access";
 
 type Ctx = { params: Promise<{ id: string; donId: string }> };
 
@@ -17,10 +17,7 @@ export async function POST(_req: Request, ctx: Ctx) {
   }
 
   const vaiTro = await getViewerCoSoVaiTro(actorId, orgId);
-  if (
-    (await getCoSoModuleQuyen(orgId, actorId, vaiTro, "hoc-phi-doi-soat")) !==
-    "sua"
-  ) {
+  if (!(await canXacNhanDonHocPhi(orgId, actorId, vaiTro))) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

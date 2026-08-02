@@ -7,20 +7,27 @@ import { journeyImageFields } from "@/lib/journey/images";
 import { resolvePostGridEntry } from "@/lib/journey/post-content-kind";
 import { galleryItemLabel } from "@/lib/journey/post-media";
 import type { OrgShowcaseAsideKind } from "@/lib/org/org-showcase-aside-types";
+import { AVATAR_VARIANT_PX } from "@/lib/cloudflare/cf-image-variants";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { STUDIO_SHOWCASE_LOAI } from "@/lib/to-chuc/studio-page-config";
 import { studioTabPath } from "@/lib/to-chuc/studio-routes";
 import { parseBaiDangBlocks } from "@/lib/truong/bai-dang-blocks";
 import { sortDoanProjectsForPublic } from "@/lib/truong/doan-project-sort";
 import { coSoTabPath } from "@/lib/to-chuc/co-so-routes";
-import {
-  TRUONG_DEFAULT_TAB,
-  truongTabPath,
-} from "@/lib/truong/truong-routes";
+import { truongTabPath } from "@/lib/truong/truong-routes";
 
 export type { OrgShowcaseAsideKind } from "@/lib/org/org-showcase-aside-types";
 
 const ASIDE_LIMIT = 12;
+
+/** Popover thumb nhỏ — ép CF named variant `avatar` (256px), bỏ grid/flexible. */
+function showcaseAvatarSrc(src: string): string {
+  const trimmed = src.trim();
+  const match =
+    /^https:\/\/imagedelivery\.net\/([^/]+)\/([^/]+)\/.+$/i.exec(trimmed);
+  if (!match) return trimmed;
+  return `https://imagedelivery.net/${match[1]}/${match[2]}/avatar`;
+}
 
 type BaiDangRow = {
   id: string;
@@ -33,7 +40,7 @@ type BaiDangRow = {
 
 function orgHref(kind: OrgShowcaseAsideKind, slug: string): string {
   if (kind === "co_so_dao_tao") return coSoTabPath(slug, "san-pham");
-  if (kind === "truong") return truongTabPath(slug, TRUONG_DEFAULT_TAB);
+  if (kind === "truong") return truongTabPath(slug, "do-an-sinh-vien");
   return studioTabPath(slug, "showcase");
 }
 
@@ -46,12 +53,24 @@ function loaiFilter(kind: OrgShowcaseAsideKind): string[] {
 function imageFromCover(
   coverId: string | null,
   coverSrc: string | null,
-): { src: string; srcSet?: string; width?: number; height?: number } | null {
-  if (coverSrc) return { src: coverSrc, width: 560, height: 315 };
+): { src: string; width?: number; height?: number } | null {
+  if (coverSrc) {
+    const src = showcaseAvatarSrc(coverSrc);
+    const isCfAvatar = src.endsWith("/avatar");
+    return {
+      src,
+      width: isCfAvatar ? AVATAR_VARIANT_PX : 560,
+      height: isCfAvatar ? AVATAR_VARIANT_PX : 315,
+    };
+  }
   if (!coverId) return null;
-  const img = journeyImageFields(coverId, "gallery-pinned");
+  const img = journeyImageFields(coverId, "gallery-grid");
   if (!img?.src) return null;
-  return img;
+  return {
+    src: showcaseAvatarSrc(img.src),
+    width: AVATAR_VARIANT_PX,
+    height: AVATAR_VARIANT_PX,
+  };
 }
 
 function rowToPinned(
@@ -82,7 +101,6 @@ function rowToPinned(
   return {
     id: `org-showcase-${row.id}`,
     src: img?.src ?? "",
-    srcSet: img?.srcSet,
     width: img?.width,
     height: img?.height,
     pin: pinLabel,
@@ -100,17 +118,27 @@ function rowToPinned(
 function doanProjectToPinned(
   item: OrgDoanProjectItem,
 ): GalleryPinnedBanner | null {
-  const coverSrc = item.coverSrc?.trim() || "";
+  const rawCover = item.coverSrc?.trim() || "";
+  const coverSrc = rawCover ? showcaseAvatarSrc(rawCover) : "";
   const isVideo = Boolean(item.isVideo);
   if (!coverSrc && !isVideo && !item.videoPreviewSrc?.trim()) return null;
 
   const metaParts = [item.studentName, item.khoaHocTen].filter(Boolean);
+  const isCfAvatar = coverSrc.endsWith("/avatar");
 
   return {
     id: `org-doan-${item.id}`,
     src: coverSrc,
-    width: coverSrc ? 560 : undefined,
-    height: coverSrc ? 315 : undefined,
+    width: coverSrc
+      ? isCfAvatar
+        ? AVATAR_VARIANT_PX
+        : 560
+      : undefined,
+    height: coverSrc
+      ? isCfAvatar
+        ? AVATAR_VARIANT_PX
+        : 315
+      : undefined,
     pin: "Học viên",
     title: item.projectTitle,
     meta: metaParts.join(" · ") || "Sản phẩm học viên",
@@ -124,7 +152,8 @@ function doanProjectToPinned(
   };
 }
 
-async function fetchCoSoHocVienShowcase(
+/** Trường + cơ sở: bài học viên / đồ án đã bật hiện (`featured=1`), sort điểm. */
+async function fetchDoanHocVienShowcase(
   orgId: string,
 ): Promise<{ pinned: GalleryPinnedBanner[] }> {
   const projects = await listApprovedOrgDoanProjects(orgId, {
@@ -142,9 +171,10 @@ async function fetchCoSoHocVienShowcase(
 }
 
 /**
- * Preview showcase / bài có media của org — dùng trong JourneyOrgPopover
+ * Preview showcase org — dùng trong JourneyOrgPopover
  * (cùng pattern gallery-aside của user).
- * Cơ sở đào tạo: sản phẩm học viên đã bật hiện, sort theo `diemSapXep`.
+ * Studio: `org_bai_dang` loai showcase.
+ * Trường / cơ sở: đồ án học viên đã bật hiện (cùng nguồn tab Đồ án / SP học viên).
  */
 export async function fetchOrgShowcaseAside(params: {
   slug: string;
@@ -163,22 +193,19 @@ export async function fetchOrgShowcaseAside(params: {
 
   if (!org) return { pinned: [] };
 
-  if (params.kind === "co_so_dao_tao") {
-    return fetchCoSoHocVienShowcase(org.id);
+  if (params.kind === "co_so_dao_tao" || params.kind === "truong") {
+    return fetchDoanHocVienShowcase(org.id);
   }
 
-  const pinLabel = params.kind === "studio" ? "Showcase" : "Nổi bật";
-  let query = admin
+  const pinLabel = "Showcase";
+  const query = admin
     .from("org_bai_dang")
     .select("id, tieu_de, tom_tat, cover_id, noi_dung_blocks, loai_bai_dang")
     .eq("id_to_chuc", org.id)
     .eq("trang_thai", "da_dang")
+    .eq("loai_bai_dang", STUDIO_SHOWCASE_LOAI)
     .order("tao_luc", { ascending: false })
     .limit(ASIDE_LIMIT * 2);
-
-  if (params.kind === "studio") {
-    query = query.eq("loai_bai_dang", STUDIO_SHOWCASE_LOAI);
-  }
 
   const { data } = await query.returns<BaiDangRow[]>();
   const href = orgHref(params.kind, org.slug);

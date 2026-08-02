@@ -7,6 +7,7 @@ import type {
   MembershipMilestoneResolvedNotification,
   NotificationFeed,
   OrgMilestoneTagApprovedNotification,
+  OrgTinNhanMoiNotification,
   ProcessedCoAuthorReview,
   ShopQuayPendingNotification,
   ShopQuayResolvedNotification,
@@ -21,6 +22,7 @@ export type HistoryTimelineEntry =
   | { kind: "membershipMilestoneResolved"; item: MembershipMilestoneResolvedNotification }
   | { kind: "shopQuayResolved"; item: ShopQuayResolvedNotification }
   | { kind: "shopQuayPending"; item: ShopQuayPendingNotification }
+  | { kind: "orgTinNhanMoi"; item: OrgTinNhanMoiNotification }
   | { kind: "orgMilestoneTagApproved"; item: OrgMilestoneTagApprovedNotification }
   | { kind: "videoReady"; item: VideoReadyNotification }
   | { kind: "dongGopFeedback"; item: ArticleDongGopFeedbackNotification }
@@ -39,6 +41,7 @@ export function historyTimelineToFeed(
   | "membershipMilestoneResolved"
   | "shopQuayResolved"
   | "shopQuayPending"
+  | "orgTinNhanMoi"
   | "orgMilestoneTagApproved"
   | "videoReady"
   | "dongGopFeedback"
@@ -52,6 +55,7 @@ export function historyTimelineToFeed(
     membershipMilestoneResolved: [] as MembershipMilestoneResolvedNotification[],
     shopQuayResolved: [] as ShopQuayResolvedNotification[],
     shopQuayPending: [] as ShopQuayPendingNotification[],
+    orgTinNhanMoi: [] as OrgTinNhanMoiNotification[],
     orgMilestoneTagApproved: [] as OrgMilestoneTagApprovedNotification[],
     videoReady: [] as VideoReadyNotification[],
     dongGopFeedback: [] as ArticleDongGopFeedbackNotification[],
@@ -80,6 +84,9 @@ export function historyTimelineToFeed(
         break;
       case "shopQuayPending":
         feed.shopQuayPending.push(entry.item);
+        break;
+      case "orgTinNhanMoi":
+        feed.orgTinNhanMoi.push(entry.item);
         break;
       case "orgMilestoneTagApproved":
         feed.orgMilestoneTagApproved.push(entry.item);
@@ -117,6 +124,7 @@ export function appendHistoryTimeline(
 export type InfoTimelineEntry =
   | { kind: "membershipMilestoneResolved"; item: MembershipMilestoneResolvedNotification }
   | { kind: "shopQuayResolved"; item: ShopQuayResolvedNotification }
+  | { kind: "orgTinNhanMoi"; item: OrgTinNhanMoiNotification }
   | { kind: "orgMilestoneTagApproved"; item: OrgMilestoneTagApprovedNotification }
   | { kind: "accepted"; item: FollowAcceptedNotification }
   | { kind: "comment"; item: CommentNotification }
@@ -144,6 +152,7 @@ export function buildHistoryTimeline(
     | "membershipMilestoneResolved"
     | "shopQuayResolved"
     | "shopQuayPending"
+    | "orgTinNhanMoi"
     | "orgMilestoneTagApproved"
     | "videoReady"
     | "dongGopFeedback"
@@ -201,6 +210,13 @@ export function buildHistoryTimeline(
       sortTime: notificationSortTime(item.taoLuc),
     });
   }
+  for (const item of feed.orgTinNhanMoi) {
+    entries.push({
+      kind: "orgTinNhanMoi",
+      item,
+      sortTime: notificationSortTime(item.taoLuc),
+    });
+  }
   for (const item of feed.orgMilestoneTagApproved) {
     entries.push({
       kind: "orgMilestoneTagApproved",
@@ -240,6 +256,7 @@ export function buildInfoTimeline(info: {
   orgMilestoneTagApproved: OrgMilestoneTagApprovedNotification[];
   membershipMilestoneResolved: MembershipMilestoneResolvedNotification[];
   shopQuayResolved: ShopQuayResolvedNotification[];
+  orgTinNhanMoi: OrgTinNhanMoiNotification[];
   dongGopFeedback: ArticleDongGopFeedbackNotification[];
   dongGopPromoted: ArticleDongGopPromotedNotification[];
 }): InfoTimelineEntry[] {
@@ -287,6 +304,13 @@ export function buildInfoTimeline(info: {
       sortTime: notificationSortTime(item.taoLuc),
     });
   }
+  for (const item of info.orgTinNhanMoi) {
+    entries.push({
+      kind: "orgTinNhanMoi",
+      item,
+      sortTime: notificationSortTime(item.taoLuc),
+    });
+  }
   for (const item of info.dongGopFeedback) {
     entries.push({
       kind: "dongGopFeedback",
@@ -318,6 +342,7 @@ export const EMPTY_NOTIFICATION_HISTORY_FEED: NotificationFeed = {
   membershipMilestoneResolved: [],
   shopQuayResolved: [],
   shopQuayPending: [],
+  orgTinNhanMoi: [],
   videoReady: [],
   dongGopFeedback: [],
   dongGopPromoted: [],
@@ -358,6 +383,7 @@ export function parseNotificationFeedPayload(
     shopQuayPending: Array.isArray(data.shopQuayPending)
       ? data.shopQuayPending
       : [],
+    orgTinNhanMoi: Array.isArray(data.orgTinNhanMoi) ? data.orgTinNhanMoi : [],
     videoReady: Array.isArray(data.videoReady) ? data.videoReady : [],
     dongGopFeedback: Array.isArray(data.dongGopFeedback)
       ? data.dongGopFeedback
@@ -387,6 +413,7 @@ export function parseNotificationFeedPage(json: unknown): {
         feed.membershipMilestoneResolved.length +
         feed.shopQuayResolved.length +
         feed.shopQuayPending.length +
+        feed.orgTinNhanMoi.length +
         feed.orgMilestoneTagApproved.length +
         feed.videoReady.length +
         feed.dongGopFeedback.length +

@@ -2031,3 +2031,342 @@
 :root[data-theme="dark"] .studio-job-nghe-option:hover {
   background: color-mix(in srgb, var(--cins-blue, #4f9be8) 12%, transparent);
 }
+
+/* ══════════════════════════════════════════════════════════════
+   STUDIO MOBILE — sticky shell tabs (Thông tin · Nội dung · Thông báo)
+   Pilot theo docs/PLAN_responsive_mobile.md — chỉ `.tdh-page--studio`.
+   ══════════════════════════════════════════════════════════════ */
+
+.studio-shell-tabs {
+  display: none;
+}
+
+@media (max-width: 991.98px) {
+  .tdh-page--studio .tdh-v6-shell--studio-sticky {
+    --studio-shell-tabs-h: 48px;
+    --tdh-v6-tabs-bar-h: 50px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .tdh-page--studio .tdh-v6-shell--studio-sticky .studio-shell-tabs {
+    display: block;
+    order: -1;
+    position: sticky;
+    top: var(--site-nav-height, 64px);
+    z-index: 45;
+    background: var(--bg-surface, #fff);
+    border-bottom: 1px solid var(--border, #e4e6eb);
+    /* Che nội dung trượt dưới tab strip */
+    box-shadow: 0 1px 0 rgba(15, 23, 42, 0.04);
+  }
+
+  .tdh-page--studio .tdh-v6-shell--studio-sticky .studio-shell-tabs-list {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+    height: var(--studio-shell-tabs-h);
+    margin: 0;
+    padding: 0;
+  }
+
+  .tdh-page--studio .tdh-v6-shell--studio-sticky .studio-shell-tab {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 44px;
+    height: 100%;
+    margin: 0;
+    padding: 0 8px;
+    border: none;
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    font: inherit;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--ink-muted, #64748b);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .tdh-page--studio .tdh-v6-shell--studio-sticky .studio-shell-tab.on {
+    color: var(--cins-blue, #1f74c9);
+    font-weight: 800;
+    border-bottom-color: var(--cins-blue, #1f74c9);
+  }
+
+  .tdh-page--studio .tdh-v6-shell--studio-sticky .studio-shell-tab-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1;
+    color: #fff;
+    background: var(--cins-blue, #1f74c9);
+  }
+
+  /* Một panel / lần — không stack dài như cơ sở */
+  .tdh-page--studio .tdh-v6-shell--studio-sticky > .school-side.cso-ss-side[hidden],
+  .tdh-page--studio .tdh-v6-shell--studio-sticky > .tdh-v6-center[hidden],
+  .tdh-page--studio .tdh-v6-shell--studio-sticky > .tdh-admission-side[hidden] {
+    display: none !important;
+  }
+
+  .tdh-page--studio .tdh-v6-shell--studio-sticky > .school-side.cso-ss-side:not([hidden]),
+  .tdh-page--studio .tdh-v6-shell--studio-sticky > .tdh-v6-center:not([hidden]),
+  .tdh-page--studio .tdh-v6-shell--studio-sticky > .tdh-admission-side:not([hidden]) {
+    order: 0;
+    flex: 0 0 auto;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  /* Content tabs — đồng bộ visual desktop (atelier underline), chỉ thêm scroll ngang */
+  .tdh-page--studio .tdh-v6-shell--studio-sticky .tdh-v6-center > .tdh-v6-tabs-bar {
+    top: calc(var(--site-nav-height, 64px) + var(--studio-shell-tabs-h, 48px));
+    z-index: 40;
+    height: var(--tdh-v6-tabs-bar-h);
+    min-height: var(--tdh-v6-tabs-bar-h);
+    margin: 0;
+    padding: 0;
+    border-top: none;
+    border-bottom: 1px solid var(--border, #e4e6eb);
+    background: color-mix(
+      in srgb,
+      var(--bg-surface, #fff) 88%,
+      var(--cso-rail-soft, #e7f0fb)
+    );
+    backdrop-filter: blur(8px);
+    box-shadow: none;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+
+  .tdh-page--studio .tdh-v6-shell--studio-sticky .tdh-v6-tabs {
+    display: inline-flex;
+    align-items: stretch;
+    height: 100%;
+    width: max-content;
+    min-width: max-content;
+    max-width: none;
+    flex: none;
+    flex-shrink: 0;
+    gap: 2px;
+    padding: 0 12px;
+    box-sizing: border-box;
+  }
+
+  .tdh-page--studio .tdh-v6-shell--studio-sticky .tdh-v6-tab,
+  .tdh-page--studio .tdh-v6-shell--studio-sticky a.tdh-v6-tab {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    height: 100%;
+    min-height: 0;
+    margin: 0;
+    padding: 15px 14px 13px;
+    gap: 8px;
+    border: none;
+    border-radius: 0;
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    color: var(--ink-muted, rgba(0, 0, 0, 0.4));
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.1px;
+    white-space: nowrap;
+    text-decoration: none;
+    scroll-snap-align: start;
+    -webkit-tap-highlight-color: transparent;
+    transition: color 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+    box-shadow: none;
+  }
+
+  .tdh-page--studio .tdh-v6-shell--studio-sticky .tdh-v6-tab:hover {
+    color: var(--ink-title, rgba(0, 0, 0, 0.6));
+    background: color-mix(in srgb, var(--cso-rail-soft, #e7f0fb) 45%, transparent);
+  }
+
+  .tdh-page--studio .tdh-v6-shell--studio-sticky .tdh-v6-tab.on {
+    color: var(--cso-rail, var(--cins-blue, #1f74c9));
+    border-bottom-color: var(--cso-rail, var(--cins-blue, #1f74c9));
+    background: color-mix(in srgb, var(--cso-rail-soft, #e7f0fb) 70%, transparent);
+    font-weight: 700;
+    box-shadow: none;
+  }
+
+  .tdh-page--studio .tdh-v6-shell--studio-sticky #cso-panel-bai-dang .org-baidang-tlb,
+  .tdh-page--studio .tdh-v6-shell--studio-sticky #cso-panel-showcase .org-baidang-tlb {
+    top: calc(
+      var(--site-nav-height, 64px) + var(--studio-shell-tabs-h, 48px) +
+        var(--tdh-v6-tabs-bar-h, 50px)
+    );
+  }
+
+  /* Cover full-bleed trong tab Thông tin */
+  .tdh-page--studio .tdh-v6-shell--studio-sticky .cso-ss-cover {
+    width: calc(100% + 32px);
+    margin: 0 -16px;
+    height: clamp(132px, 36vw, 200px);
+  }
+
+  .tdh-page--studio .tdh-v6-shell--studio-sticky .cso-ss-cover .ss-cover .cover-frame {
+    height: clamp(132px, 36vw, 200px);
+  }
+
+  /* Cụm avatar + tên + mô tả + CTA icon — canh giữa trên mobile */
+  .tdh-page--studio .tdh-v6-shell--studio-sticky .cso-ss-ava-row {
+    justify-content: center;
+  }
+
+  .tdh-page--studio .tdh-v6-shell--studio-sticky .cso-ss-identity {
+    align-items: center;
+    text-align: center;
+  }
+
+  .tdh-page--studio .tdh-v6-shell--studio-sticky .cso-ss-name,
+  .tdh-page--studio .tdh-v6-shell--studio-sticky .cso-ss-sub,
+  .tdh-page--studio .tdh-v6-shell--studio-sticky .cso-ss-eyebrow {
+    text-align: center;
+  }
+
+  .tdh-page--studio .tdh-v6-shell--studio-sticky .cso-ss-name {
+    font-size: clamp(1.125rem, 4.2vw, 1.35rem);
+    line-height: 1.25;
+  }
+
+  .tdh-page--studio .tdh-v6-shell--studio-sticky .cso-ss-primary-action,
+  .tdh-page--studio .tdh-v6-shell--studio-sticky .cso-ss-primary-action--dual,
+  .tdh-page--studio .tdh-v6-shell--studio-sticky .cso-ss-primary-action--icons,
+  .tdh-page--studio .tdh-v6-shell--studio-sticky .cso-ss-primary-action--admin {
+    justify-content: center;
+  }
+
+  .tdh-page--studio .tdh-v6-shell--studio-sticky .cso-ss-pad {
+    padding: 0 clamp(12px, 4vw, 16px) 24px;
+  }
+
+  .tdh-page--studio .tdh-v6-shell--studio-sticky .tdh-admission-side {
+    padding: 16px clamp(12px, 4vw, 16px) 28px;
+    border-top: none;
+  }
+
+  /* Job cards / form — gọn hơn trên phone */
+  .tdh-page--studio .studio-job-card-hit {
+    padding: 14px 14px;
+  }
+
+  .tdh-page--studio .studio-job-facts {
+    grid-template-columns: 1fr;
+  }
+
+  .tdh-page--studio .studio-job-fact {
+    border-left: none;
+    border-top: 1px solid var(--border, #eef1f5);
+  }
+
+  .tdh-page--studio .studio-job-fact:first-child {
+    border-top: none;
+  }
+
+  .tdh-page--studio .studio-job-detail-foot--sticky {
+    margin-left: -16px;
+    margin-right: -16px;
+    padding-left: 16px;
+    padding-right: 16px;
+    padding-bottom: calc(15px + 30px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .tdh-page--studio .studio-job-detail-actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .tdh-page--studio .studio-job-detail-actions .studio-job-act-btn,
+  .tdh-page--studio .studio-job-detail-actions .studio-job-apply-btn {
+    flex: 1 1 auto;
+    justify-content: center;
+    min-height: 44px;
+  }
+
+  .tdh-page--studio .studio-job-detail-title {
+    font-size: clamp(1.125rem, 5vw, 1.375rem);
+  }
+
+  .tdh-page--studio .studio-apply-textarea,
+  .tdh-page--studio .studio-job-input,
+  .tdh-page--studio .studio-job-textarea,
+  .tdh-page--studio .studio-perk-note {
+    font-size: max(16px, 1rem);
+  }
+}
+
+@media (max-width: 767.98px) {
+  .tdh-page--studio .tdh-v6-shell--studio-sticky {
+    --studio-shell-tabs-h: 46px;
+    --tdh-v6-tabs-bar-h: 48px;
+  }
+
+  .tdh-page--studio .tdh-v6-shell--studio-sticky .studio-shell-tab {
+    font-size: 12.5px;
+    padding: 0 4px;
+  }
+
+  .tdh-page--studio .tdh-v6-shell--studio-sticky .tdh-v6-tab,
+  .tdh-page--studio .tdh-v6-shell--studio-sticky a.tdh-v6-tab {
+    padding: 13px 12px 11px;
+    font-size: 12.5px;
+  }
+
+  .tdh-page--studio .tdh-v6-shell--studio-sticky .cso-ss-cover,
+  .tdh-page--studio .tdh-v6-shell--studio-sticky .cso-ss-cover .ss-cover .cover-frame {
+    height: clamp(120px, 34vw, 168px);
+  }
+}
+
+@media (max-width: 575.98px) {
+  .tdh-page--studio .tdh-v6-shell--studio-sticky {
+    --studio-shell-tabs-h: 44px;
+  }
+
+  .tdh-page--studio .studio-job-detail-foot--sticky .studio-job-detail-foot-info {
+    display: none;
+  }
+}
+
+:root[data-theme="dark"] .tdh-page--studio .tdh-v6-shell--studio-sticky .studio-shell-tabs {
+  background: var(--bg-surface, #171b24);
+  border-bottom-color: var(--border, #2a3040);
+  box-shadow: none;
+}
+
+:root[data-theme="dark"] .tdh-page--studio .tdh-v6-shell--studio-sticky .studio-shell-tab.on {
+  color: var(--cins-blue, #4f9be8);
+  border-bottom-color: var(--cins-blue, #4f9be8);
+}
+
+:root[data-theme="dark"] .tdh-page--studio .tdh-v6-shell--studio-sticky .tdh-v6-center > .tdh-v6-tabs-bar {
+  background: color-mix(
+    in srgb,
+    var(--bg-surface, #171b24) 88%,
+    var(--cso-rail-soft, rgba(31, 116, 201, 0.16))
+  );
+  border-bottom-color: var(--border, #2a3040);
+}
+
+:root[data-theme="dark"] .tdh-page--studio .tdh-v6-shell--studio-sticky .tdh-v6-tab.on {
+  color: var(--cso-rail, var(--cins-blue, #4f9be8));
+  border-bottom-color: var(--cso-rail, var(--cins-blue, #4f9be8));
+  background: color-mix(in srgb, var(--cso-rail-soft, rgba(31, 116, 201, 0.2)) 70%, transparent);
+  box-shadow: none;
+}

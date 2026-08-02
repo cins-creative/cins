@@ -23,6 +23,7 @@ import type { NotificationFeed, NotificationFilter } from "@/lib/social/types";
 import { listOrgMilestoneTagApprovedNotifications } from "@/lib/social/org-milestone-tag-notify";
 import { listMembershipMilestoneResolvedNotifications } from "@/lib/social/membership-milestone-notify";
 import { listShopQuayResolvedNotifications, listShopQuayPendingNotifications } from "@/lib/shop/quay-notify";
+import { listOrgTinNhanMoiNotifications } from "@/lib/chat/org-inbox-notify";
 import { listVideoReadyNotifications } from "@/lib/social/video-ready";
 import { listDongGopFeedbackNotifications } from "@/lib/article/dong-gop/notify-feedback";
 import { listDongGopPromotedNotifications } from "@/lib/article/dong-gop/notify-promote";
@@ -50,6 +51,7 @@ export const EMPTY_NOTIFICATION_FEED: NotificationFeed = {
   membershipMilestoneResolved: [],
   shopQuayResolved: [],
   shopQuayPending: [],
+  orgTinNhanMoi: [],
   dongGopFeedback: [],
   dongGopPromoted: [],
   handledFollows: [],
@@ -81,6 +83,7 @@ function capUnreadLists(payload: FeedPayload, limit: number): FeedPayload {
     membershipMilestoneResolved: payload.membershipMilestoneResolved.slice(0, 5),
     shopQuayResolved: payload.shopQuayResolved.slice(0, 5),
     shopQuayPending: payload.shopQuayPending.slice(0, 5),
+    orgTinNhanMoi: payload.orgTinNhanMoi.slice(0, 5),
     followRequests: take(payload.followRequests),
     coAuthorInvites: take(payload.coAuthorInvites),
     coAuthorReviews: take(payload.coAuthorReviews),
@@ -143,6 +146,7 @@ async function loadNotificationFeedUnsafe(
     membershipMilestoneResolved,
     shopQuayResolved,
     shopQuayPending,
+    orgTinNhanMoi,
     videoReady,
     dongGopFeedback,
     dongGopPromoted,
@@ -195,6 +199,11 @@ async function loadNotificationFeedUnsafe(
       historyOnly,
       limit: rowLimit,
     }),
+    listOrgTinNhanMoiNotifications(viewerId, {
+      unreadOnly,
+      historyOnly,
+      limit: rowLimit,
+    }),
     listVideoReadyNotifications(viewerId, {
       unreadOnly,
       historyOnly,
@@ -230,6 +239,7 @@ async function loadNotificationFeedUnsafe(
     membershipMilestoneResolved,
     shopQuayResolved,
     shopQuayPending,
+    orgTinNhanMoi,
     videoReady,
     dongGopFeedback,
     dongGopPromoted,
@@ -284,6 +294,7 @@ export async function countUnreadNotifications(viewerId: string): Promise<number
     { count: shopQuayApproved },
     { count: shopQuayRejected },
     { count: shopQuayPending },
+    { count: orgTinNhanMoi },
     { count: video },
     { count: dongGopFeedback },
     { count: dongGopPromoted },
@@ -397,6 +408,12 @@ export async function countUnreadNotifications(viewerId: string): Promise<number
       .from("social_thong_bao")
       .select("id", { count: "exact", head: true })
       .eq("nguoi_nhan", viewerId)
+      .eq("loai_doi_tuong", "org_tin_nhan_moi")
+      .eq("da_doc", false),
+    admin
+      .from("social_thong_bao")
+      .select("id", { count: "exact", head: true })
+      .eq("nguoi_nhan", viewerId)
       .eq("loai_doi_tuong", "video_ready")
       .eq("da_doc", false),
     admin
@@ -447,6 +464,7 @@ export async function countUnreadNotifications(viewerId: string): Promise<number
     (shopQuayApproved ?? 0) +
     (shopQuayRejected ?? 0) +
     (shopQuayPending ?? 0) +
+    (orgTinNhanMoi ?? 0) +
     (video ?? 0) +
     (dongGopFeedback ?? 0) +
     (dongGopPromoted ?? 0) +
@@ -605,6 +623,7 @@ export async function markAllInfoNotificationsRead(
       "membership_milestone_rejected",
       "shop_quay_approved",
       "shop_quay_rejected",
+      "org_tin_nhan_moi",
       "video_ready",
       "article_dong_gop_feedback",
       "article_dong_gop_promoted",

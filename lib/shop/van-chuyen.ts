@@ -87,6 +87,47 @@ export function safeHttpUrl(raw: string | null | undefined): string | null {
   }
 }
 
+/** Suy mã vận đơn từ URL tracking (legacy / thiếu dòng «Mã vận đơn»). */
+export function extractMaTuTheoDoiUrl(
+  link: string | null | undefined,
+): string | null {
+  if (!link?.trim()) return null;
+  try {
+    const u = new URL(link.trim());
+    const keys = [
+      "KEY",
+      "key",
+      "order_code",
+      "billcode",
+      "bill",
+      "id",
+      "code",
+    ];
+    for (const k of keys) {
+      const v = u.searchParams.get(k)?.trim();
+      if (v && looksLikeTrackingCode(v)) return v;
+    }
+    /* GHTK: https://i.ghtk.vn/{ma} — path = mã (có chữ số). */
+    const pathTail = u.pathname.split("/").filter(Boolean).pop()?.trim();
+    if (pathTail && looksLikeTrackingCode(pathTail)) return pathTail;
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
+
+/**
+ * Mã vận đơn thật (có chữ số) — loại slug trang kiểu «tra-cuu-hanh-trinh-don».
+ */
+function looksLikeTrackingCode(value: string): boolean {
+  const v = value.trim();
+  if (!v || v.length < 4 || v.length > SHOP_VAN_CHUYEN_MA_MAX) return false;
+  if (/^https?:\/\//i.test(v) || v.includes("://")) return false;
+  if (!/\d/.test(v)) return false;
+  if (!/^[\w./+-]+$/u.test(v)) return false;
+  return true;
+}
+
 /** Suy ĐVVC từ URL cũ (backfill / hiển thị legacy). */
 export function detectDvvcTuLink(link: string | null | undefined): string | null {
   if (!link?.trim()) return null;

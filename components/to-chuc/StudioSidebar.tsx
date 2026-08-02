@@ -177,7 +177,7 @@ export function StudioSidebar({
             >
               {showAdminCta ? (
                 <>
-                  <TruongMessageInbox />
+                  <TruongMessageInbox title="Tin nhắn studio" />
                   <TruongMilestoneTagNotify />
                   {showSettings ? (
                     <button

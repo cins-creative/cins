@@ -1,7 +1,7 @@
 import { getCurrentUserIsCinsAdmin } from "@/lib/auth/cins-admin-server";
 import { createServiceRoleClient, hasServiceRoleEnv } from "@/lib/supabase/service-role";
 
-const ORG_ADMIN_ROLES = [
+export const ORG_ADMIN_ROLES = [
   "owner",
   "admin",
   "quan_ly_noi_dung",

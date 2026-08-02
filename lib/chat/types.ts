@@ -120,6 +120,12 @@ export type ChatMessageReplyPreview = {
   deleted?: boolean;
 };
 
+/** Ai đã trả lời dưới danh nghĩa tổ chức — chỉ member org. */
+export type ChatOrgReplyHint = {
+  name: string;
+  vaiTroLabel: string;
+};
+
 export type ChatMessage = {
   id: string;
   from: "me" | "them";
@@ -167,6 +173,11 @@ export type ChatMessage = {
   cuocGoi?: ChatCuocGoiNotice | null;
   /** Tin được chuyển tiếp từ hội thoại khác (`ngu_canh.chuyenTiep`). */
   forwarded?: boolean;
+  /**
+   * Hint nội bộ phòng tư vấn org — chỉ member org thấy ai trả lời dưới danh nghĩa tổ chức.
+   * Không trả về cho khách/HV (server redact).
+   */
+  orgReplyHint?: ChatOrgReplyHint | null;
 };
 
 /** Cursor «đã xem tới tin này» của một thành viên khác trong phòng. */
@@ -296,12 +307,25 @@ export type ChatThread = {
   avatarUrl?: string | null;
   /** Org đại diện — dùng dedupe thread tab Tổ chức. */
   orgId?: string;
+  /** Slug org — nút «Mở» trang quản lý tin nhắn. */
+  orgSlug?: string;
+  /** Tên org đại diện — inbox staff: user nhắn tới org nào. */
+  orgTen?: string | null;
   /** Phòng lớp (`loai_phong=lop_hoc`) — không dedupe với 1_org. */
   lopHocId?: string;
   /** Hub chat chung CSĐT (`loai_context=csdt_hub`) — cha của phòng lớp. */
   isOrgHub?: boolean;
   /** Phòng tư vấn 1_org (`org_student`) — tách UI với hub. */
   isOrgAdvisory?: boolean;
+  /**
+   * Viewer là member active của org đại diện — dùng realtime redact + badge vai trò.
+   * Chỉ set khi đã xác nhận server-side.
+   */
+  viewerIsOrgMember?: boolean;
+  /** Nhãn vai trò viewer trong org (vd. «Quản trị») — tab «Tổ chức của tôi». */
+  viewerOrgVaiTroLabel?: string | null;
+  /** Thread hộp thư staff (góc nhìn admin) — filter «Tổ chức của tôi». */
+  isOrgStaffInbox?: boolean;
   preview: string;
   lastAt: string;
   unread: number;
@@ -312,6 +336,7 @@ export type ChatThread = {
   messages: ChatMessage[];
   /**
    * Viewer là seller và peer đã mua hàng của viewer (chỉ seller thấy).
+   * Chỉ gắn trên DM cá nhân↔cá nhân — không gắn inbox tư vấn org.
    * Không đụng `group` — khách hàng vẫn nằm ở ban_be/nguoi_la.
    */
   isKhachHang?: boolean;
@@ -323,6 +348,7 @@ export type ChatThread = {
   khachHangTagIds?: string[];
   /**
    * Viewer là buyer và peer là seller đã bán cho viewer.
+   * Chỉ gắn trên DM cá nhân↔cá nhân — không gắn inbox tư vấn org.
    * Không đụng `group` — vẫn nằm ở ban_be/nguoi_la.
    */
   isMuaHang?: boolean;
@@ -396,6 +422,8 @@ export type ChatPeerPreview = {
 export type ChatLaunchState = {
   thread: ChatThread;
   tab?: ChatThreadGroup;
+  /** Sub-filter tab Tổ chức khi mở overlay. */
+  toChucFilter?: "all" | "cua_toi" | "tham_gia";
   resolving?: boolean;
   /** Card ngữ cảnh chờ — chèn vào ô soạn; gửi khi user gửi tin (hoặc autoSend). */
   nguCanh?: ChatContextCard | null;

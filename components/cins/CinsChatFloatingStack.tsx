@@ -2348,6 +2348,9 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
                 }}
                 roomId={miniThread.roomId}
                 viewerUserId={viewerProfileId}
+                canConfirmHocPhi={Boolean(
+                  miniThread.isOrgStaffInbox || miniThread.viewerIsOrgMember,
+                )}
                 renderTheirAvatar={(msg) => (
                   <MiniAvatar
                     variant="person"

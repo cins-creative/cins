@@ -1,6 +1,6 @@
 "use client";
 
-import { Eye, Pencil, Settings, Shield, ShieldCheck } from "lucide-react";
+import { ClipboardList, Eye, Pencil, Settings, Shield, ShieldCheck } from "lucide-react";
 import { createPortal } from "react-dom";
 
 import { useTopbarPageSlot } from "@/components/cins/useTopbarPageSlot";
@@ -13,9 +13,16 @@ import {
 
 type Props = {
   onOpenSettings?: (section: TruongSettingsSection) => void;
+  /** Deep-link sang dashboard `/quan-ly` (CoSo / Studio). */
+  quanLyHref?: string | null;
+  quanLyLabel?: string;
 };
 
-export function TruongAdminToolbar({ onOpenSettings }: Props) {
+export function TruongAdminToolbar({
+  onOpenSettings,
+  quanLyHref,
+  quanLyLabel = "Quản trị",
+}: Props) {
   const ctx = useTruongInlineEdit();
   const slot = useTopbarPageSlot();
 
@@ -40,18 +47,28 @@ export function TruongAdminToolbar({ onOpenSettings }: Props) {
         : Pencil;
 
   return createPortal(
-    <div className="tb-truong-admin" role="group" aria-label="Quản trị trang trường">
+    <div className="tb-truong-admin" role="group" aria-label="Quản trị trang">
       {isEditing && saving ? (
         <span className="tb-truong-admin-saving" aria-live="polite">
           Đang lưu…
         </span>
       ) : null}
+      {quanLyHref ? (
+        <a
+          href={quanLyHref}
+          className="tb-truong-admin-btn tb-truong-admin-btn--icon"
+          aria-label={quanLyLabel}
+          title={quanLyLabel}
+        >
+          <ClipboardList size={16} strokeWidth={2} aria-hidden />
+        </a>
+      ) : null}
       {isEditing && onOpenSettings ? (
         <button
           type="button"
           className="tb-truong-admin-btn tb-truong-admin-btn--icon"
-          aria-label="Sửa thông tin trường"
-          title="Sửa thông tin trường"
+          aria-label="Sửa thông tin"
+          title="Sửa thông tin"
           onClick={() => onOpenSettings("identity")}
         >
           <Settings size={16} strokeWidth={2} aria-hidden />

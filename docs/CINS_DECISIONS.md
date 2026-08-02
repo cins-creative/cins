@@ -41,6 +41,15 @@
 
 ## LOG — quyết định đã chốt
 
+### Chat — hộp thư org trong overlay + notify + hint nội bộ (2026-08-02)
+
+- **Identity as-org (C1):** không ALTER `chat_tin_nhan`. Tin staff vẫn `id_nguoi_gui` = staff; khách thấy branding org (mask UI + server redact). Formalize cột `id_to_chuc` chỉ khi cần as-org trong phòng nhóm/lớp.
+- **Hint nội bộ:** member active bất kỳ vai trò của org thấy «Trả lời bởi {tên} · {vai trò}». Lọc **server-side** (`applyOrgAdvisoryPerspective`); realtime client redact nếu `!viewerIsOrgMember`.
+- **Notify:** `loai_doi_tuong=org_tin_nhan_moi`, coalesce **1 row / admin / phòng** (`id_doi_tuong=roomId`). Fan-out `ORG_ADMIN_ROLES`. Mark read khi `markRoomRead`. Bell `JourneyNotifications` → mở overlay.
+- **Tab «Tổ chức»:** sub-filter Tất cả / Của tôi / Tham gia. «Của tôi» = `isOrgStaffInbox` (+ hub/lớp org quản trị). Badge vai trò viewer trên thread staff.
+- **Nút Tin nhắn sidebar:** mở overlay `tab=to_chuc` + `toChucFilter=cua_toi` (không còn modal `OrgInboxPanel`). Trang CSĐT `/quan-ly/tin-nhan` giữ nguyên.
+- Plan: `docs/PLAN_org_inbox_notify_chat.md`. **0 migration.**
+
 ### Chat — tab «Mua bán» gom Mua hàng + Khách hàng (2026-08-02)
 
 - **Chốt UX:** một tab cấp 1 **«Mua bán»** thay hai tab riêng; bên trong sub-tab **Mua hàng** (buyer) · **Khách hàng** (seller).

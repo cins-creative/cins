@@ -15,6 +15,7 @@ import "@/app/org-notify-fab.css";
 import "@/app/cins-truong-listing.css";
 import "@/components/tag/entity-page.css";
 import "@/styles/article-rich-content.css";
+import "@/app/co-so/cso-quan-ly.css";
 /* JourneyPostModal — load sau truong CSS để byline/BL thắng cascade. */
 import "@/app/[slug]/p/[postSlug]/post-page.css";
 

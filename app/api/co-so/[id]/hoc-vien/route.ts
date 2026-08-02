@@ -27,6 +27,14 @@ export async function GET(req: Request, ctx: Ctx) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   const canThu = quyen === "sua";
+  const canXacNhanHp =
+    canThu ||
+    (await getCoSoModuleQuyen(
+      orgId,
+      actorId,
+      vaiTro,
+      "hoc-phi-doi-soat",
+    )) === "sua";
 
   const url = new URL(req.url);
   const q = url.searchParams.get("q") ?? undefined;
@@ -39,6 +47,7 @@ export async function GET(req: Request, ctx: Ctx) {
       return NextResponse.json({
         ...list,
         canThu,
+        canXacNhanHp,
       });
     }
     const [goi, lop] = await Promise.all([
@@ -48,6 +57,7 @@ export async function GET(req: Request, ctx: Ctx) {
     return NextResponse.json({
       ...list,
       canThu,
+      canXacNhanHp,
       goi,
       lop,
     });

@@ -57,6 +57,10 @@ export function parseTruongRouteFromPathname(
   if (!tabSegment) {
     return TRUONG_DEFAULT_TAB;
   }
+  /* `/quan-ly` không phải tab public — để null để shell public không set tab. */
+  if (tabSegment === "quan-ly") {
+    return null;
+  }
   if (isTruongTabId(tabSegment)) {
     return tabSegment;
   }

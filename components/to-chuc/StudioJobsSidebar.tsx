@@ -60,6 +60,9 @@ type Props = {
   posts?: TruongBaiDang[];
   canManage?: boolean;
   onUpcomingCountChange?: (count: number) => void;
+  /** Render như tab-panel trong mobile shell. */
+  isMobileShell?: boolean;
+  isMobileShellActive?: boolean;
 };
 
 type StepRole = "past" | "current" | "next" | "default";
@@ -274,6 +277,8 @@ export function StudioJobsSidebar({
   posts: postsProp = [],
   canManage = false,
   onUpcomingCountChange,
+  isMobileShell = false,
+  isMobileShellActive = false,
 }: Props) {
   const ctx = useTruongInlineEdit();
   const isManaging = canManage && (ctx?.isEditing ?? false);
@@ -562,7 +567,14 @@ export function StudioJobsSidebar({
 
   return (
     <>
-      <aside className="tdh-admission-side" aria-label="Tuyển dụng và thông báo">
+      <aside
+        className="tdh-admission-side"
+        aria-label="Tuyển dụng và thông báo"
+        id={isMobileShell ? "cso-shell-panel-notify" : undefined}
+        role={isMobileShell ? "tabpanel" : undefined}
+        aria-labelledby={isMobileShell ? "cso-shell-tab-notify" : undefined}
+        hidden={isMobileShell ? !isMobileShellActive : undefined}
+      >
         <div className="tdh-admission-side-head">
           <div className="tdh-admission-side-year-row">
             <p className="timeline-year-kicker">Thông báo</p>

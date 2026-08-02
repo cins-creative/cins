@@ -1,11 +1,17 @@
 "use client";
 
 import { Check, Copy, ShoppingBag, Truck } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { ShopDonDetailModal } from "@/components/shop/ShopDonDetailModal";
 import type { ChatContextCard } from "@/lib/chat/types";
-import { detectDvvcTuLink, safeHttpUrl } from "@/lib/shop/van-chuyen";
+import type { ShopDonHang } from "@/lib/shop/types";
+import {
+  buildTheoDoiUrl,
+  detectDvvcTuLink,
+  extractMaTuTheoDoiUrl,
+  safeHttpUrl,
+} from "@/lib/shop/van-chuyen";
 
 type ParsedDon = {
   ma: string;
@@ -24,26 +30,6 @@ const LOAI_THANH_TOAN = new Set([
   "Thanh toán luôn",
   "Đã thanh toán",
 ]);
-
-/** Suy mã từ URL tracking legacy (khi card chưa có dòng Mã vận đơn). */
-function maTuTheoDoiUrl(url: string | null): string | null {
-  if (!url) return null;
-  try {
-    const u = new URL(url);
-    const keys = ["KEY", "key", "order_code", "billcode", "bill", "id", "code"];
-    for (const k of keys) {
-      const v = u.searchParams.get(k)?.trim();
-      if (v && !/^https?:/i.test(v)) return v;
-    }
-    const pathTail = u.pathname.split("/").filter(Boolean).pop()?.trim();
-    if (pathTail && /^[\w.-]{6,}$/.test(pathTail) && !/\.(vn|com|net)$/i.test(pathTail)) {
-      return pathTail;
-    }
-  } catch {
-    /* ignore */
-  }
-  return null;
-}
 
 function parseDonHangCard(card: ChatContextCard): ParsedDon {
   const maMatch = card.tieuDe.match(/^Đơn\s+(.+)$/i);
@@ -127,7 +113,11 @@ function parseDonHangCard(card: ChatContextCard): ParsedDon {
   }
 
   if (!maVanDon && theoDoi) {
-    maVanDon = maTuTheoDoiUrl(theoDoi);
+    maVanDon = extractMaTuTheoDoiUrl(theoDoi);
+  }
+  /* Slug trang (vd. tra-cuu-hanh-trinh-don) — không phải mã; thử lại từ URL. */
+  if (maVanDon && !/\d/.test(maVanDon)) {
+    maVanDon = theoDoi ? extractMaTuTheoDoiUrl(theoDoi) : null;
   }
   if (!dvvc && theoDoi) {
     dvvc = detectDvvcTuLink(theoDoi);
@@ -155,6 +145,7 @@ export function ChatDonHangCard({ card, tone = "them" }: Props) {
   const [detailOpen, setDetailOpen] = useState(false);
   const [billOpen, setBillOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const parsed = parseDonHangCard(card);
   const {
     ma,
     loaiThanhToan,
@@ -162,10 +153,47 @@ export function ChatDonHangCard({ card, tone = "them" }: Props) {
     tong,
     items,
     ghiChu,
-    theoDoi,
-    maVanDon,
-    dvvc,
-  } = parseDonHangCard(card);
+  } = parsed;
+  const donId = card.id?.trim() || null;
+  /** Snapshot chat có thể cũ / suy mã từ URL sai — ưu tiên mã từ DB đơn. */
+  const [liveVc, setLiveVc] = useState<{
+    ma: string | null;
+    dvvc: string | null;
+    theoDoi: string | null;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!donId) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch(`/api/shop/don/${donId}`, {
+          cache: "no-store",
+          credentials: "include",
+        });
+        if (!res.ok || cancelled) return;
+        const json = (await res.json()) as { don?: ShopDonHang };
+        const don = json.don;
+        if (!don || cancelled) return;
+        const maLive = don.vanChuyenMa?.trim() || null;
+        const dvvcLive = don.vanChuyenDvvc?.trim() || null;
+        const theoDoiLive =
+          buildTheoDoiUrl(dvvcLive, maLive) ||
+          safeHttpUrl(don.vanChuyenLink) ||
+          null;
+        setLiveVc({ ma: maLive, dvvc: dvvcLive, theoDoi: theoDoiLive });
+      } catch {
+        /* giữ snapshot card */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [donId]);
+
+  const maVanDon = liveVc?.ma ?? parsed.maVanDon;
+  const dvvc = liveVc?.dvvc ?? parsed.dvvc;
+  const theoDoi = liveVc?.theoDoi ?? parsed.theoDoi;
   const visibleItems = items.slice(0, 3);
   const moreCount = Math.max(0, items.length - visibleItems.length);
   const isPayLater = loaiThanhToan === "Thanh toán sau";
@@ -176,7 +204,6 @@ export function ChatDonHangCard({ card, tone = "them" }: Props) {
     : loaiThanhToan === "Thanh toán sau"
       ? "Thanh toán sau"
       : loaiThanhToan;
-  const donId = card.id?.trim() || null;
   const bienLaiUrl = card.anh?.trim() || null;
   const statusDone =
     trangThai === "Đã nhận tiền" ||
@@ -306,11 +333,10 @@ export function ChatDonHangCard({ card, tone = "them" }: Props) {
                   }}
                 >
                   {copied ? (
-                    <Check size={14} strokeWidth={2.4} aria-hidden />
+                    <Check size={15} strokeWidth={2.4} aria-hidden />
                   ) : (
-                    <Copy size={14} strokeWidth={2.2} aria-hidden />
+                    <Copy size={15} strokeWidth={2.2} aria-hidden />
                   )}
-                  {copied ? "Đã copy" : "Copy"}
                 </button>
               </div>
             ) : null}

@@ -40,40 +40,26 @@ export function coSoSuKienManagePath(orgSlug: string, suKienId: string): string 
   return `${coSoSuKienPath(orgSlug, suKienId)}?manage=1`;
 }
 
-export type CoSoQuanLySection =
-  | "tong-quan"
-  | "co-so"
-  | "chi-nhanh"
-  | "lop-hoc"
-  | "giao-trinh"
-  | "hoc-vien"
-  | "diem-danh"
-  | "doanh-thu"
-  /** Inbox tư vấn + hub/lớp — trail Tin nhắn (không modal). */
-  | "tin-nhan"
-  /** Founder-only, ngoài 4 cụm nav — xem CoSoQuanLyShell. */
-  | "cai-dat"
-  /** @deprecated alias → tong-quan (IA A 2026-07-25) */
-  | "marketing";
+import {
+  orgQuanLyPath,
+  resolveOrgQuanLySection,
+  type OrgQuanLySection,
+  type OrgQuanLySectionResolved,
+} from "@/lib/to-chuc/org-quan-ly-routes";
 
-export type CoSoQuanLySectionResolved = Exclude<CoSoQuanLySection, "marketing">;
+export type CoSoQuanLySection = OrgQuanLySection;
+
+export type CoSoQuanLySectionResolved = OrgQuanLySectionResolved;
 
 /** Marketing → tong-quan · chi-nhanh → co-so (gom IA 2026-07-26). */
 export function resolveCoSoQuanLySection(
   section?: CoSoQuanLySection | null,
 ): CoSoQuanLySectionResolved {
-  if (!section || section === "tong-quan" || section === "marketing") {
-    return "tong-quan";
-  }
-  if (section === "chi-nhanh") return "co-so";
-  return section;
+  return resolveOrgQuanLySection("co_so_dao_tao", section);
 }
 
 export function coSoQuanLyPath(orgSlug: string, section?: CoSoQuanLySection): string {
-  const base = `${coSoRootPath(orgSlug)}/quan-ly`;
-  const resolved = resolveCoSoQuanLySection(section);
-  if (resolved === "tong-quan") return `${base}/tong-quan`;
-  return `${base}/${resolved}`;
+  return orgQuanLyPath("co_so_dao_tao", orgSlug, section);
 }
 
 export const CO_SO_DEFAULT_TAB: CoSoTabId = "bai-dang";

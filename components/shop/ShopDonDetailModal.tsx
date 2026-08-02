@@ -40,6 +40,12 @@ const VAN_CHUYEN_EDITABLE: ShopTrangThaiDon[] = [
   "da_giao_tai_su_kien",
 ];
 
+function canEditVanChuyen(don: ShopDonHang): boolean {
+  const hinh = don.hinhThucGiao ?? "truc_tiep";
+  if (hinh === "truc_tiep") return false;
+  return VAN_CHUYEN_EDITABLE.includes(don.trangThai);
+}
+
 /** Thời gian đã chờ từ khi tạo đơn + cờ "chờ quá lâu" (để nhắc seller). */
 function waitingSince(iso: string): { text: string; recent: boolean; long: boolean } {
   const ageH = (Date.now() - new Date(iso).getTime()) / 3_600_000;
@@ -788,9 +794,7 @@ export function ShopDonDetailModal({
                   buildTheoDoiUrl(don.vanChuyenDvvc, don.vanChuyenMa) ||
                     don.vanChuyenLink,
                 );
-              const editable =
-                role === "seller" &&
-                VAN_CHUYEN_EDITABLE.includes(don.trangThai);
+              const editable = role === "seller" && canEditVanChuyen(don);
               const showBuyerTrack =
                 role === "buyer" &&
                 trackSafe &&

@@ -47,6 +47,8 @@ type ChatMessageBodyProps = {
   onOpenCanvasComments?: (nodeIds: string[], messageId: string) => void;
   /** Mở lightbox toàn hội thoại (filmstrip xem nhanh ảnh xung quanh) tại tin này. */
   onOpenImage?: (messageId: string) => void;
+  /** Staff có quyền đối soát HP — hiện CTA xác nhận trên card `don_hoc_phi`. */
+  canConfirmHocPhi?: boolean;
 };
 
 function MessageCaption({
@@ -78,6 +80,7 @@ export function ChatMessageBody({
   onPollUpdated,
   onOpenCanvasComments,
   onOpenImage,
+  canConfirmHocPhi = false,
 }: ChatMessageBodyProps) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const isSticker = msg.kind === "sticker";
@@ -214,6 +217,7 @@ export function ChatMessageBody({
           <ChatDonHocPhiCard
             card={card}
             tone={isMe ? "me" : "them"}
+            canConfirmPaid={canConfirmHocPhi}
           />
           {displayText ? (
             <MessageCaption
