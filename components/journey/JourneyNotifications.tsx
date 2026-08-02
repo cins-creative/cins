@@ -14,7 +14,6 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 
-import { useCinsChat } from "@/components/cins/CinsChatProvider";
 import { CoAuthorInviteMessage } from "@/components/journey/CoAuthorInviteMessage";
 import { CoSoStaffInviteMessage } from "@/components/journey/CoSoStaffInviteMessage";
 import { CongDongInviteMessage } from "@/components/journey/CongDongInviteMessage";
@@ -22,6 +21,10 @@ import { JourneyUserFeaturedExpand } from "@/components/journey/JourneyUserFeatu
 import "./journey-user-popover.css";
 import type { CoAuthorCredit } from "@/components/journey/milestone-types";
 import { CO_SO_DEFAULT_TAB, coSoTabPath } from "@/lib/to-chuc/co-so-routes";
+import {
+  isOrgQuanLyKind,
+  orgQuanLyPath,
+} from "@/lib/to-chuc/org-quan-ly-routes";
 import {
   COAUTHOR_INVITE_ACCEPTED_EVENT,
   COAUTHOR_INVITE_DECLINED_EVENT,
@@ -316,7 +319,6 @@ function OrgTinNhanMoiNotifyItem({
   notice: OrgTinNhanMoiNotification;
   onOpened?: () => void;
 }) {
-  const { openChat } = useCinsChat();
   return (
     <li>
       <button
@@ -324,36 +326,14 @@ function OrgTinNhanMoiNotifyItem({
         className="j-notify-item"
         onClick={() => {
           onOpened?.();
-          void openChat({
-            roomId: notice.roomId,
-            tab: "to_chuc",
-            toChucFilter: "cua_toi",
-            thread: {
-              id: notice.roomId,
-              roomId: notice.roomId,
-              orgId: notice.orgId,
-              name: notice.orgTen,
-              group: "to_chuc",
-              kind: "org",
-              orgKind:
-                notice.orgLoai === "truong_dai_hoc" ||
-                notice.orgLoai === "co_so_dao_tao" ||
-                notice.orgLoai === "cong_dong" ||
-                notice.orgLoai === "studio"
-                  ? notice.orgLoai
-                  : "studio",
-              verified: true,
-              role: "Tin nhắn tổ chức",
-              avatarInitial: notice.orgTen.slice(0, 1).toUpperCase() || "T",
-              avatarHue: 210,
-              preview: notice.preview,
-              lastAt: notice.taoLuc ?? new Date().toISOString(),
-              unread: 0,
-              isOrgAdvisory: true,
-              isOrgStaffInbox: true,
-              messages: [],
-            },
-          });
+          if (!notice.orgSlug?.trim()) return;
+          const kind = isOrgQuanLyKind(notice.orgLoai)
+            ? notice.orgLoai
+            : null;
+          if (!kind) return;
+          const base = orgQuanLyPath(kind, notice.orgSlug.trim(), "tin-nhan");
+          const qs = new URLSearchParams({ room: notice.roomId });
+          window.location.assign(`${base}?${qs.toString()}`);
         }}
       >
         <span className="j-notify-avatar is-verified" aria-hidden>

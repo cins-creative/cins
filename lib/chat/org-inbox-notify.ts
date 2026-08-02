@@ -163,11 +163,43 @@ export async function markOrgInboxNotifyRead(params: {
   roomId: string;
   viewerId: string;
 }): Promise<void> {
+  const room = await loadOrgAdvisoryRoom(params.roomId);
+  if (!room) {
+    const admin = createServiceRoleClient();
+    await admin
+      .from("social_thong_bao")
+      .update({ da_doc: true })
+      .eq("nguoi_nhan", params.viewerId)
+      .eq("loai_doi_tuong", ORG_TIN_NHAN_MOI_LOAI)
+      .eq("id_doi_tuong", params.roomId)
+      .eq("da_doc", false);
+    return;
+  }
+
+  const { getOrgThongBaoChung } = await import(
+    "@/lib/chat/org-notify-settings"
+  );
+  const thongBaoChung = await getOrgThongBaoChung(room.orgId);
   const admin = createServiceRoleClient();
+
+  if (!thongBaoChung) {
+    await admin
+      .from("social_thong_bao")
+      .update({ da_doc: true })
+      .eq("nguoi_nhan", params.viewerId)
+      .eq("loai_doi_tuong", ORG_TIN_NHAN_MOI_LOAI)
+      .eq("id_doi_tuong", params.roomId)
+      .eq("da_doc", false);
+    return;
+  }
+
+  /* Dùng chung: một admin xem → mark read cho mọi admin của phòng. */
+  const recipients = await listOrgInboxAdminIds(admin, room.orgId);
+  if (recipients.length === 0) return;
   await admin
     .from("social_thong_bao")
     .update({ da_doc: true })
-    .eq("nguoi_nhan", params.viewerId)
+    .in("nguoi_nhan", recipients)
     .eq("loai_doi_tuong", ORG_TIN_NHAN_MOI_LOAI)
     .eq("id_doi_tuong", params.roomId)
     .eq("da_doc", false);

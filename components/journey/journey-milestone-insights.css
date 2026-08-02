@@ -14,10 +14,11 @@
   width: min(460px, 100%);
   max-height: min(86vh, 720px);
   overflow-y: auto;
-  background: var(--surface, #fff);
-  color: var(--text, #0f172a);
+  background: var(--bg-surface, #fff);
+  color: var(--ink-display, #0f172a);
+  border: 1px solid var(--border, #e4e6eb);
   border-radius: 16px;
-  box-shadow: 0 24px 60px rgba(2, 6, 23, 0.35);
+  box-shadow: var(--shadow-lg, 0 24px 60px rgba(2, 6, 23, 0.35));
   padding: 18px 18px 14px;
   animation: jmi-pop 0.16s ease-out;
 }
@@ -46,8 +47,8 @@
   width: 34px;
   height: 34px;
   border-radius: 10px;
-  background: rgba(59, 130, 246, 0.12);
-  color: #2563eb;
+  background: color-mix(in srgb, var(--cins-blue, #1f74c9) 12%, transparent);
+  color: var(--cins-blue, #2563eb);
   flex: none;
 }
 
@@ -61,11 +62,12 @@
 .jmi-head-copy strong {
   font-size: 15px;
   font-weight: 700;
+  color: var(--ink-display, #0f172a);
 }
 
 .jmi-head-copy small {
   font-size: 12px;
-  color: var(--text-muted, #64748b);
+  color: var(--ink-muted, #64748b);
 }
 
 .jmi-close {
@@ -76,12 +78,13 @@
   border: none;
   border-radius: 8px;
   background: transparent;
-  color: var(--text-muted, #64748b);
+  color: var(--ink-muted, #64748b);
   cursor: pointer;
 }
 
 .jmi-close:hover {
-  background: rgba(100, 116, 139, 0.12);
+  background: color-mix(in srgb, var(--ink-muted, #64748b) 14%, transparent);
+  color: var(--ink-display, #0f172a);
 }
 
 .jmi-grid {
@@ -96,11 +99,11 @@
   gap: 2px;
   padding: 12px;
   border-radius: 12px;
-  background: rgba(148, 163, 184, 0.1);
+  background: color-mix(in srgb, var(--ink-muted, #94a3b8) 10%, transparent);
 }
 
 .jmi-stat-ico {
-  color: #475569;
+  color: var(--ink-title, #475569);
   margin-bottom: 4px;
 }
 
@@ -108,28 +111,29 @@
   font-size: 22px;
   font-weight: 800;
   line-height: 1.1;
+  color: var(--ink-display, #0f172a);
 }
 
 .jmi-stat-lbl {
   font-size: 12.5px;
   font-weight: 600;
-  color: var(--text, #0f172a);
+  color: var(--ink-display, #0f172a);
 }
 
 .jmi-stat-sub {
   font-size: 11.5px;
-  color: var(--text-muted, #64748b);
+  color: var(--ink-muted, #64748b);
 }
 
 .jmi-msg {
   padding: 24px 8px;
   text-align: center;
   font-size: 13.5px;
-  color: var(--text-muted, #64748b);
+  color: var(--ink-muted, #64748b);
 }
 
 .jmi-msg--err {
-  color: #dc2626;
+  color: var(--danger, #dc2626);
 }
 
 .jmi-section {
@@ -142,7 +146,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--text-muted, #64748b);
+  color: var(--ink-muted, #64748b);
 }
 
 .jmi-split {
@@ -157,11 +161,11 @@
   gap: 2px;
   padding: 12px;
   border-radius: 12px;
-  background: rgba(37, 99, 235, 0.07);
+  background: color-mix(in srgb, var(--cins-blue, #2563eb) 8%, transparent);
 }
 
 .jmi-split-ico {
-  color: #2563eb;
+  color: var(--cins-blue, #2563eb);
   margin-bottom: 4px;
 }
 
@@ -169,16 +173,18 @@
   font-size: 20px;
   font-weight: 800;
   line-height: 1.1;
+  color: var(--ink-display, #0f172a);
 }
 
 .jmi-split-lbl {
   font-size: 12.5px;
   font-weight: 600;
+  color: var(--ink-display, #0f172a);
 }
 
 .jmi-split-hint {
   font-size: 11px;
-  color: var(--text-muted, #64748b);
+  color: var(--ink-muted, #64748b);
 }
 
 .jmi-bars {
@@ -199,7 +205,7 @@
 
 .jmi-bar-lbl {
   font-size: 12.5px;
-  color: var(--text, #0f172a);
+  color: var(--ink-body, #0f172a);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -208,7 +214,7 @@
 .jmi-bar-track {
   height: 8px;
   border-radius: 999px;
-  background: rgba(148, 163, 184, 0.22);
+  background: color-mix(in srgb, var(--ink-muted, #94a3b8) 22%, transparent);
   overflow: hidden;
 }
 
@@ -216,7 +222,11 @@
   display: block;
   height: 100%;
   border-radius: 999px;
-  background: linear-gradient(90deg, #3b82f6, #2563eb);
+  background: linear-gradient(
+    90deg,
+    var(--cins-blue, #3b82f6),
+    var(--cins-blue-dark, #2563eb)
+  );
   min-width: 4px;
 }
 
@@ -224,11 +234,12 @@
   font-size: 12.5px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+  color: var(--ink-display, #0f172a);
 }
 
 .jmi-empty {
   font-size: 12.5px;
-  color: var(--text-muted, #64748b);
+  color: var(--ink-muted, #64748b);
   margin: 0;
 }
 
@@ -238,5 +249,93 @@
   gap: 6px;
   margin: 16px 2px 0;
   font-size: 11.5px;
-  color: var(--text-muted, #94a3b8);
+  color: var(--ink-muted, #94a3b8);
+}
+
+/* ── Dark: portal body — token CINS, không fallback #fff ── */
+:root[data-theme="dark"] .jmi-backdrop {
+  background: rgba(0, 0, 0, 0.62);
+}
+
+:root[data-theme="dark"] .jmi-modal {
+  background: var(--bg-surface, #171b24);
+  color: var(--ink-display, rgba(255, 255, 255, 0.92));
+  border-color: var(--border, #2a3040);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 24px 64px rgba(0, 0, 0, 0.6);
+}
+
+:root[data-theme="dark"] .jmi-head-ico {
+  background: color-mix(in srgb, var(--cins-blue, #4f9be8) 18%, transparent);
+  color: var(--cins-blue, #4f9be8);
+}
+
+:root[data-theme="dark"] .jmi-stat {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+:root[data-theme="dark"] .jmi-split-card {
+  background: color-mix(in srgb, var(--cins-blue, #4f9be8) 14%, transparent);
+}
+
+:root[data-theme="dark"] .jmi-split-ico {
+  color: var(--cins-blue, #4f9be8);
+}
+
+:root[data-theme="dark"] .jmi-close:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+:root[data-theme="dark"] .jmi-bar-track {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Coming soon — blur nội dung, giữ header đóng được */
+.jmi-coming-soon {
+  position: relative;
+  min-height: 280px;
+}
+
+.jmi-coming-soon-body {
+  filter: blur(5px);
+  opacity: 0.55;
+  pointer-events: none;
+  user-select: none;
+}
+
+.jmi-coming-soon-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: color-mix(in srgb, var(--bg-surface, #fff) 28%, transparent);
+  z-index: 1;
+}
+
+.jmi-coming-soon-label {
+  margin: 0;
+  padding: 12px 18px;
+  border-radius: 999px;
+  border: 1px solid var(--border, #e4e6eb);
+  background: color-mix(in srgb, var(--bg-surface, #fff) 92%, transparent);
+  box-shadow: var(--shadow-sm, 0 2px 8px rgba(15, 23, 42, 0.12));
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--ink-display, #0f172a);
+  text-align: center;
+}
+
+:root[data-theme="dark"] .jmi-coming-soon-overlay {
+  background: color-mix(in srgb, var(--bg-surface, #171b24) 35%, transparent);
+}
+
+:root[data-theme="dark"] .jmi-coming-soon-label {
+  background: color-mix(in srgb, var(--bg-surface, #171b24) 94%, transparent);
+  border-color: var(--border, #2a3040);
+  color: var(--ink-display, rgba(255, 255, 255, 0.92));
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
 }

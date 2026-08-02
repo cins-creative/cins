@@ -1,12 +1,11 @@
 "use client";
 
-import { Eye, EyeOff, LayoutList } from "lucide-react";
-import { useCallback, useId, useState } from "react";
+import { Eye, EyeOff, Unlink } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 
 import { GalleryVideoPlayBadge } from "@/components/journey/GalleryItemVisual";
 import { JourneyCoverImage } from "@/components/journey/JourneyCoverImage";
 import { JourneyPostModal } from "@/components/journey/JourneyPostModal";
-import { TruongInlineModal } from "@/components/truong/inline/TruongInlineModal";
 import type { OrgDoanProjectItem } from "@/lib/journey/org-milestone-tag-types";
 import {
   displayMediaPostTitle,
@@ -18,8 +17,11 @@ import "@/app/co-so/cso-sp-admin.css";
 
 type Props = {
   orgId: string;
-  projects: OrgDoanProjectItem[];
-  onUpdated: (item: OrgDoanProjectItem) => void;
+  /** Nếu không truyền — tự fetch `scope=admin`. */
+  projects?: OrgDoanProjectItem[];
+  onUpdated?: (item: OrgDoanProjectItem) => void;
+  /** Sau khi gỡ tag khỏi org (detach). */
+  onDetached?: (requestId: string) => void;
 };
 
 function patchProject(
@@ -42,6 +44,22 @@ function patchProject(
     }
     return json.item;
   });
+}
+
+async function detachProject(orgId: string, requestId: string): Promise<void> {
+  const res = await fetch(
+    `/api/org/${encodeURIComponent(orgId)}/milestone-tag-requests/${encodeURIComponent(requestId)}`,
+    {
+      method: "PATCH",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "detach" }),
+    },
+  );
+  const json = (await res.json()) as { error?: string };
+  if (!res.ok) {
+    throw new Error(json.error ?? "Không gỡ được.");
+  }
 }
 
 function studentInitials(name: string): string {
@@ -103,109 +121,70 @@ function DoanAdminProjectCell({
   );
 }
 
-type AdminTableProps = {
-  projects: OrgDoanProjectItem[];
-  busyId: string | null;
-  scoreDraft: Record<string, string>;
-  onScoreDraftChange: (id: string, value: string) => void;
-  onCommitScore: (project: OrgDoanProjectItem) => void;
-  onToggleVisibility: (project: OrgDoanProjectItem) => void;
-  onOpenProject: (project: OrgDoanProjectItem) => void;
-};
-
-function CoSoDoanSanPhamAdminTable({
-  projects,
-  busyId,
-  scoreDraft,
-  onScoreDraftChange,
-  onCommitScore,
-  onToggleVisibility,
-  onOpenProject,
-}: AdminTableProps) {
-  const sorted = sortDoanProjectsForPublic(projects);
-
-  return (
-    <div className="cso-sp-admin-table-wrap">
-      <table className="cso-sp-admin-table">
-        <thead>
-          <tr>
-            <th scope="col">Học viên</th>
-            <th scope="col">Tác phẩm</th>
-            <th scope="col">Khóa</th>
-            <th scope="col">Hiển thị</th>
-            <th scope="col">Thứ tự hiển thị</th>
-          </tr>
-        </thead>
-        <tbody>
-          {sorted.map((project) => {
-            const busy = busyId === project.id;
-            const scoreValue = scoreDraft[project.id] ?? String(project.diemSapXep);
-            return (
-              <tr key={project.id} className={project.hienThiSanPham ? "is-on" : ""}>
-                <td className="cso-sp-admin-student">{project.studentName}</td>
-                <td className="cso-sp-admin-title-cell">
-                  <DoanAdminProjectCell project={project} onOpen={onOpenProject} />
-                </td>
-                <td className="cso-sp-admin-khoa">
-                  {project.khoaHocTen ?? project.nganhLabel ?? "—"}
-                </td>
-                <td>
-                  <button
-                    type="button"
-                    className={`cso-sp-admin-toggle${project.hienThiSanPham ? " is-on" : ""}`}
-                    disabled={busy}
-                    aria-pressed={project.hienThiSanPham}
-                    title={
-                      project.hienThiSanPham
-                        ? "Ẩn khỏi tab công khai"
-                        : "Hiện trên tab công khai"
-                    }
-                    onClick={() => onToggleVisibility(project)}
-                  >
-                    {project.hienThiSanPham ? (
-                      <Eye size={15} strokeWidth={2.2} aria-hidden />
-                    ) : (
-                      <EyeOff size={15} strokeWidth={2.2} aria-hidden />
-                    )}
-                    <span>{project.hienThiSanPham ? "Đang hiện" : "Ẩn"}</span>
-                  </button>
-                </td>
-                <td>
-                  <input
-                    type="number"
-                    className="cso-sp-admin-score"
-                    min={0}
-                    max={9999}
-                    step={1}
-                    value={scoreValue}
-                    disabled={busy}
-                    aria-label={`Thứ tự hiển thị: ${project.projectTitle}`}
-                    onChange={(e) => onScoreDraftChange(project.id, e.target.value)}
-                    onBlur={() => onCommitScore(project)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        onCommitScore(project);
-                      }
-                    }}
-                  />
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-export function CoSoDoanSanPhamAdmin({ orgId, projects, onUpdated }: Props) {
-  const modalTitleId = useId();
-  const [modalOpen, setModalOpen] = useState(false);
+/**
+ * Bảng quản trị hiển thị / thứ tự bài học viên trên tường (CSĐT + trường).
+ * Dùng trong panel «Quản lý bài học viên» (quan-ly / sidebar).
+ */
+export function CoSoDoanSanPhamAdmin({
+  orgId,
+  projects: projectsProp,
+  onUpdated,
+  onDetached,
+}: Props) {
+  const [projects, setProjects] = useState<OrgDoanProjectItem[]>(projectsProp ?? []);
+  const [loading, setLoading] = useState(!projectsProp);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [detailMilestoneId, setDetailMilestoneId] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [scoreDraft, setScoreDraft] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (projectsProp) {
+      setProjects(projectsProp);
+      setLoading(false);
+      setLoadError(null);
+      return;
+    }
+
+    const controller = new AbortController();
+    setLoading(true);
+    setLoadError(null);
+    void fetch(
+      `/api/org/${encodeURIComponent(orgId)}/doan-projects?scope=admin`,
+      { cache: "no-store", credentials: "include", signal: controller.signal },
+    )
+      .then(async (res) => {
+        const json = (await res.json()) as {
+          projects?: OrgDoanProjectItem[];
+          error?: string;
+        };
+        if (!res.ok) {
+          throw new Error(json.error ?? "Không tải được danh sách.");
+        }
+        setProjects(Array.isArray(json.projects) ? json.projects : []);
+      })
+      .catch((err) => {
+        if (controller.signal.aborted) return;
+        setProjects([]);
+        setLoadError(err instanceof Error ? err.message : "Lỗi mạng.");
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [orgId, projectsProp]);
+
+  const applyUpdated = useCallback(
+    (item: OrgDoanProjectItem) => {
+      setProjects((prev) =>
+        prev.map((p) => (p.id === item.id ? item : p)),
+      );
+      onUpdated?.(item);
+    },
+    [onUpdated],
+  );
 
   const runPatch = useCallback(
     async (
@@ -216,14 +195,14 @@ export function CoSoDoanSanPhamAdmin({ orgId, projects, onUpdated }: Props) {
       setError(null);
       try {
         const item = await patchProject(orgId, project.id, body);
-        onUpdated(item);
+        applyUpdated(item);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Không lưu được.");
       } finally {
         setBusyId(null);
       }
     },
-    [orgId, onUpdated],
+    [orgId, applyUpdated],
   );
 
   function commitScore(project: OrgDoanProjectItem) {
@@ -237,23 +216,43 @@ export function CoSoDoanSanPhamAdmin({ orgId, projects, onUpdated }: Props) {
     void runPatch(project, { diemSapXep: Math.round(parsed) });
   }
 
-  function handleScoreDraftChange(id: string, value: string) {
-    setScoreDraft((prev) => ({ ...prev, [id]: value }));
-  }
-
   function handleToggleVisibility(project: OrgDoanProjectItem) {
     if (busyId === project.id) return;
     const nextHienThi = !project.hienThiSanPham;
-    onUpdated({ ...project, hienThiSanPham: nextHienThi });
+    applyUpdated({ ...project, hienThiSanPham: nextHienThi });
     setBusyId(project.id);
     setError(null);
     void patchProject(orgId, project.id, { hienThiSanPham: nextHienThi })
       .then((item) => {
-        onUpdated(item);
+        applyUpdated(item);
       })
       .catch((err) => {
-        onUpdated(project);
+        applyUpdated(project);
         setError(err instanceof Error ? err.message : "Không lưu được.");
+      })
+      .finally(() => {
+        setBusyId(null);
+      });
+  }
+
+  function handleDetach(project: OrgDoanProjectItem) {
+    if (busyId === project.id) return;
+    if (
+      !window.confirm(
+        "Gỡ milestone này khỏi trang tổ chức? Đồ án sẽ không còn hiển thị trên trang tổ chức.",
+      )
+    ) {
+      return;
+    }
+    setBusyId(project.id);
+    setError(null);
+    void detachProject(orgId, project.id)
+      .then(() => {
+        setProjects((prev) => prev.filter((p) => p.id !== project.id));
+        onDetached?.(project.id);
+      })
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : "Không gỡ được.");
       })
       .finally(() => {
         setBusyId(null);
@@ -266,54 +265,140 @@ export function CoSoDoanSanPhamAdmin({ orgId, projects, onUpdated }: Props) {
     setDetailMilestoneId(id);
   }
 
-  function closeAdminModal() {
-    setDetailMilestoneId(null);
-    setModalOpen(false);
-  }
+  const sorted = sortDoanProjectsForPublic(projects);
 
   return (
-    <section className="cso-sp-admin" aria-label="Quản lý hiển thị sản phẩm học viên">
-      {error && !modalOpen ? (
+    <section
+      className="cso-sp-admin cso-sp-admin--embedded"
+      aria-label="Quản lý hiển thị sản phẩm học viên trên tường"
+    >
+      <p className="cso-sp-admin-lead cso-sp-admin-lead--modal">
+        Bật / tắt và sắp xếp bài đã duyệt để hiện trên tab sản phẩm công khai.
+        Gỡ khỏi trang nếu không còn gắn tổ chức.
+      </p>
+
+      {loading ? (
+        <p className="cso-sp-admin-meta cso-sp-admin-meta--modal">Đang tải…</p>
+      ) : null}
+      {loadError ? (
+        <p className="cso-sp-admin-err" role="alert">
+          {loadError}
+        </p>
+      ) : null}
+      {error ? (
         <p className="cso-sp-admin-err" role="alert">
           {error}
         </p>
       ) : null}
 
-      <button
-        type="button"
-        className="cso-sp-admin-open-btn"
-        onClick={() => setModalOpen(true)}
-      >
-        <LayoutList size={16} strokeWidth={2.2} aria-hidden />
-        Quản lý bài học viên
-      </button>
+      {!loading && !loadError && projects.length === 0 ? (
+        <p className="cso-sp-admin-meta cso-sp-admin-meta--modal">
+          Chưa có bài nào được duyệt gắn org. Duyệt ở «Chờ duyệt» trước.
+        </p>
+      ) : null}
 
-      <TruongInlineModal
-        open={modalOpen}
-        onClose={closeAdminModal}
-        className="tdh-inline-modal--wide cso-sp-admin-modal"
-        labelledBy={modalTitleId}
-      >
-        <h2 id={modalTitleId} className="tdh-inline-modal-title">
-          Quản lý bài học viên
-        </h2>
-
-        {error ? (
-          <p className="cso-sp-admin-err" role="alert">
-            {error}
-          </p>
-        ) : null}
-
-        <CoSoDoanSanPhamAdminTable
-          projects={projects}
-          busyId={busyId}
-          scoreDraft={scoreDraft}
-          onScoreDraftChange={handleScoreDraftChange}
-          onCommitScore={commitScore}
-          onToggleVisibility={handleToggleVisibility}
-          onOpenProject={openProjectDetail}
-        />
-      </TruongInlineModal>
+      {!loading && projects.length > 0 ? (
+        <div className="cso-sp-admin-table-wrap">
+          <table className="cso-sp-admin-table">
+            <thead>
+              <tr>
+                <th scope="col">Học viên</th>
+                <th scope="col">Tác phẩm</th>
+                <th scope="col">Khóa</th>
+                <th scope="col">Hiển thị</th>
+                <th scope="col">Thứ tự hiển thị</th>
+                <th scope="col">
+                  <span className="cso-sp-admin-sr-only">Gỡ</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {sorted.map((project) => {
+                const busy = busyId === project.id;
+                const scoreValue =
+                  scoreDraft[project.id] ?? String(project.diemSapXep);
+                return (
+                  <tr
+                    key={project.id}
+                    className={project.hienThiSanPham ? "is-on" : ""}
+                  >
+                    <td className="cso-sp-admin-student">{project.studentName}</td>
+                    <td className="cso-sp-admin-title-cell">
+                      <DoanAdminProjectCell
+                        project={project}
+                        onOpen={openProjectDetail}
+                      />
+                    </td>
+                    <td className="cso-sp-admin-khoa">
+                      {project.khoaHocTen ?? project.nganhLabel ?? "—"}
+                    </td>
+                    <td>
+                      <button
+                        type="button"
+                        className={`cso-sp-admin-toggle${project.hienThiSanPham ? " is-on" : ""}`}
+                        disabled={busy}
+                        aria-pressed={project.hienThiSanPham}
+                        title={
+                          project.hienThiSanPham
+                            ? "Ẩn khỏi tab công khai"
+                            : "Hiện trên tab công khai"
+                        }
+                        onClick={() => handleToggleVisibility(project)}
+                      >
+                        {project.hienThiSanPham ? (
+                          <Eye size={15} strokeWidth={2.2} aria-hidden />
+                        ) : (
+                          <EyeOff size={15} strokeWidth={2.2} aria-hidden />
+                        )}
+                        <span>
+                          {project.hienThiSanPham ? "Đang hiện" : "Ẩn"}
+                        </span>
+                      </button>
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        className="cso-sp-admin-score"
+                        min={0}
+                        max={9999}
+                        step={1}
+                        value={scoreValue}
+                        disabled={busy}
+                        aria-label={`Thứ tự hiển thị: ${project.projectTitle}`}
+                        onChange={(e) =>
+                          setScoreDraft((prev) => ({
+                            ...prev,
+                            [project.id]: e.target.value,
+                          }))
+                        }
+                        onBlur={() => commitScore(project)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            commitScore(project);
+                          }
+                        }}
+                      />
+                    </td>
+                    <td className="cso-sp-admin-detach-cell">
+                      <button
+                        type="button"
+                        className="cso-sp-admin-detach"
+                        disabled={busy}
+                        title="Gỡ khỏi trang tổ chức"
+                        onClick={() => handleDetach(project)}
+                      >
+                        <Unlink size={14} strokeWidth={2.2} aria-hidden />
+                        <span>Gỡ khỏi trang</span>
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      ) : null}
 
       <JourneyPostModal
         milestoneId={detailMilestoneId}

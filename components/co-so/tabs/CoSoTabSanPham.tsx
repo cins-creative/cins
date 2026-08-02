@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { ContentSurfaceViewToggle } from "@/components/cins/ContentSurfaceViewToggle";
-import { CoSoDoanSanPhamAdmin } from "@/components/co-so/CoSoDoanSanPhamAdmin";
 import type { MilestoneItem } from "@/components/journey/milestone-types";
 import { EntityLightJourneyFeed } from "@/components/tag/EntityLightJourneyFeed";
 import { TruongDoanProjectMasonry } from "@/components/truong/TruongDoanProjectMasonry";
@@ -44,10 +43,8 @@ export function CoSoTabSanPham({
   const ctx = useTruongInlineEdit();
   const isManaging = Boolean(canManageKhoaHoc && ctx?.isEditing);
 
-  const [adminProjects, setAdminProjects] = useState<OrgDoanProjectItem[]>([]);
   const [publicProjects, setPublicProjects] = useState<OrgDoanProjectItem[]>([]);
   const [milestones, setMilestones] = useState<MilestoneItem[]>([]);
-  const [loadingAdmin, setLoadingAdmin] = useState(false);
   const [loadingPublic, setLoadingPublic] = useState(true);
   const [loadingMilestones, setLoadingMilestones] = useState(false);
   const [khoaFilter, setKhoaFilter] = useState(ALL_KHOA);
@@ -75,31 +72,6 @@ export function CoSoTabSanPham({
       });
     return () => controller.abort();
   }, [orgId]);
-
-  useEffect(() => {
-    if (!isManaging) {
-      setAdminProjects([]);
-      setLoadingAdmin(false);
-      return;
-    }
-
-    const controller = new AbortController();
-    setLoadingAdmin(true);
-    void fetchProjects(
-      orgId,
-      new URLSearchParams({ scope: "admin" }),
-      controller.signal,
-    )
-      .then(setAdminProjects)
-      .catch(() => {
-        if (!controller.signal.aborted) setAdminProjects([]);
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setLoadingAdmin(false);
-      });
-
-    return () => controller.abort();
-  }, [orgId, isManaging]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -161,27 +133,11 @@ export function CoSoTabSanPham({
     [allowedMocIds, milestones],
   );
 
-  function handleAdminUpdated(item: OrgDoanProjectItem) {
-    setAdminProjects((prev) =>
-      prev.map((p) => (p.id === item.id ? item : p)),
-    );
-    setPublicProjects((prev) => {
-      const without = prev.filter((p) => p.id !== item.id);
-      if (!item.hienThiSanPham) return without;
-      if (khoaFilter && item.khoaHocId !== khoaFilter) return without;
-      const next = [...without, item];
-      return sortDoanProjectsForPublic(next);
-    });
-  }
-
   const waitingTimeline =
     view === "timeline" && loadingMilestones && milestones.length === 0;
 
   const showPublicEmpty =
-    !loadingPublic &&
-    !waitingTimeline &&
-    sortedPublic.length === 0 &&
-    !(isManaging && loadingAdmin);
+    !loadingPublic && !waitingTimeline && sortedPublic.length === 0;
 
   return (
     <>
@@ -192,76 +148,55 @@ export function CoSoTabSanPham({
         </h2>
       </div>
 
-      {isManaging ? (
-        loadingAdmin ? (
-          <p className="tdh-placeholder">Đang tải danh sách quản trị…</p>
-        ) : adminProjects.length === 0 ? (
-          <p className="tdh-placeholder">
-            Chưa có sản phẩm nào được duyệt. Học viên gắn cơ sở từ Journey — duyệt
-            tại Thông báo.
-          </p>
-        ) : (
-          <CoSoDoanSanPhamAdmin
-            orgId={orgId}
-            projects={adminProjects}
-            onUpdated={handleAdminUpdated}
-          />
-        )
-      ) : null}
-
-      {!isManaging || adminProjects.length > 0 ? (
-        <div
-          className={`cso-sp-public${isManaging ? " cso-sp-public--below-admin" : ""}`}
-        >
-          <div className="cso-sp-filter-bar" role="group" aria-label="Lọc sản phẩm">
-            <label className="cso-sp-filter">
-              <span className="cso-sp-filter-label">Khóa học</span>
-              <select
-                className="cso-sp-filter-select"
-                value={khoaFilter}
-                onChange={(e) => setKhoaFilter(e.target.value)}
-              >
-                <option value={ALL_KHOA}>Tất cả khóa</option>
-                {khoaOptions.map((k) => (
-                  <option key={k.id} value={k.id}>
-                    {k.ten}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <ContentSurfaceViewToggle view={view} onViewChange={setView} />
-          </div>
-
-          {loadingPublic || waitingTimeline ? (
-            <p className="tdh-placeholder">Đang tải sản phẩm học viên…</p>
-          ) : showPublicEmpty ? (
-            <p className="tdh-placeholder">
-              {isManaging
-                ? "Chưa có sản phẩm nào được bật hiển thị công khai. Bật «Hiển thị» trong Quản lý bài học viên."
-                : "Chưa có sản phẩm học viên nào được cơ sở chọn hiển thị."}
-            </p>
-          ) : view === "timeline" ? (
-            <section
-              className="entity-light-works tdh-doan-works"
-              aria-label="Sản phẩm học viên"
+      <div className="cso-sp-public">
+        <div className="cso-sp-filter-bar" role="group" aria-label="Lọc sản phẩm">
+          <label className="cso-sp-filter">
+            <span className="cso-sp-filter-label">Khóa học</span>
+            <select
+              className="cso-sp-filter-select"
+              value={khoaFilter}
+              onChange={(e) => setKhoaFilter(e.target.value)}
             >
-              <EntityLightJourneyFeed
-                milestones={filteredMilestones}
-                sort="moi_nhat"
-                viewerProfileId={null}
-                ariaLabel="Sản phẩm học viên"
-                hostOrgSlug={ctx?.school.slug ?? null}
-                hostOrgName={ctx?.school.ten ?? null}
-              />
-            </section>
-          ) : (
-            <TruongDoanProjectMasonry
-              projects={sortedPublic}
-              layout={view === "masonry" ? "masonry" : "card"}
-            />
-          )}
+              <option value={ALL_KHOA}>Tất cả khóa</option>
+              {khoaOptions.map((k) => (
+                <option key={k.id} value={k.id}>
+                  {k.ten}
+                </option>
+              ))}
+            </select>
+          </label>
+          <ContentSurfaceViewToggle view={view} onViewChange={setView} />
         </div>
-      ) : null}
+
+        {loadingPublic || waitingTimeline ? (
+          <p className="tdh-placeholder">Đang tải sản phẩm học viên…</p>
+        ) : showPublicEmpty ? (
+          <p className="tdh-placeholder">
+            {isManaging
+              ? "Chưa có sản phẩm công khai. Quản lý tại «Quản lý bài học viên» trên trang quản trị."
+              : "Chưa có sản phẩm học viên nào được cơ sở chọn hiển thị."}
+          </p>
+        ) : view === "timeline" ? (
+          <section
+            className="entity-light-works tdh-doan-works"
+            aria-label="Sản phẩm học viên"
+          >
+            <EntityLightJourneyFeed
+              milestones={filteredMilestones}
+              sort="moi_nhat"
+              viewerProfileId={null}
+              ariaLabel="Sản phẩm học viên"
+              hostOrgSlug={ctx?.school.slug ?? null}
+              hostOrgName={ctx?.school.ten ?? null}
+            />
+          </section>
+        ) : (
+          <TruongDoanProjectMasonry
+            projects={sortedPublic}
+            layout={view === "masonry" ? "masonry" : "card"}
+          />
+        )}
+      </div>
     </>
   );
 }

@@ -14,7 +14,13 @@ export default async function Page({ params }: Props) {
 
   return (
     <CoSoQuanLyPageGate params={params} section="co-so">
-      <CoSoThongTinQuanLyClient orgId={meta.id} />
+      <CoSoThongTinQuanLyClient
+        orgId={meta.id}
+        orgSlug={slug}
+        orgTen={meta.ten}
+        orgLogoSrc={meta.avatarSrc}
+        gioiThieuTruong={meta.gioiThieuTruong}
+      />
     </CoSoQuanLyPageGate>
   );
 }

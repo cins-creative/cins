@@ -123,7 +123,10 @@ function openAsideEntry(
     href?: string;
     isOrgPost?: boolean;
   },
-  openPost: (cotMocId: string | null | undefined) => void,
+  openPost: (
+    cotMocId: string | null | undefined,
+    opts?: { href?: string | null },
+  ) => void,
   router: { push: (href: string) => void },
 ) {
   /* org_bai_dang: cotMocId = id bài org — JourneyPostModal sẽ 404. */
@@ -132,7 +135,7 @@ function openAsideEntry(
     if (href) router.push(href);
     return;
   }
-  openPost(asideCotMocId(item));
+  openPost(asideCotMocId(item), { href: item.href ?? null });
 }
 
 function moveItem<T>(list: T[], from: number, to: number): T[] {

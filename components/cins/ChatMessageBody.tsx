@@ -49,6 +49,8 @@ type ChatMessageBodyProps = {
   onOpenImage?: (messageId: string) => void;
   /** Staff có quyền đối soát HP — hiện CTA xác nhận trên card `don_hoc_phi`. */
   canConfirmHocPhi?: boolean;
+  /** Brand CSĐT — fallback cho card học phí cũ chưa có orgTen/orgAnh. */
+  orgBrand?: { ten?: string | null; anh?: string | null } | null;
 };
 
 function MessageCaption({
@@ -81,6 +83,7 @@ export function ChatMessageBody({
   onOpenCanvasComments,
   onOpenImage,
   canConfirmHocPhi = false,
+  orgBrand = null,
 }: ChatMessageBodyProps) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const isSticker = msg.kind === "sticker";
@@ -218,6 +221,7 @@ export function ChatMessageBody({
             card={card}
             tone={isMe ? "me" : "them"}
             canConfirmPaid={canConfirmHocPhi}
+            orgBrand={orgBrand}
           />
           {displayText ? (
             <MessageCaption

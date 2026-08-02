@@ -534,6 +534,31 @@
   overscroll-behavior: contain;
 }
 
+/* Fill host (vd. .cso-ql-body) — không dim toàn viewport */
+.tdh-inline-modal-backdrop--fill-host {
+  position: absolute;
+  inset: 0;
+  width: auto;
+  min-height: 0;
+  height: auto;
+  z-index: 40;
+  padding: 0;
+  background: transparent;
+  align-items: stretch;
+  justify-content: stretch;
+  overflow: hidden;
+}
+
+.tdh-inline-modal--fill-host {
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  min-height: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
 .tdh-inline-modal {
   position: relative;
   width: 100%;
@@ -5039,14 +5064,6 @@
   color: var(--ink-body, rgba(0, 0, 0, 0.55));
 }
 
-.tdh-milestone-tag-status--approved {
-  color: #0e6b4d;
-}
-
-.tdh-milestone-tag-detail-hdr--approved {
-  border-left: 3px solid #0e6b4d;
-}
-
 .tdh-milestone-tag-hdr {
   display: flex;
   align-items: flex-start;
@@ -5062,6 +5079,46 @@
   line-height: 1.5;
   color: var(--ink2, #475569);
   max-width: 520px;
+}
+
+.tdh-milestone-tag-main-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 14px;
+  flex-shrink: 0;
+  padding: 4px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--hair, #e8eaee) 70%, transparent);
+}
+
+.tdh-milestone-tag-main-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--ink-muted, #64748b);
+  cursor: pointer;
+}
+
+.tdh-milestone-tag-main-tab.on {
+  background: #fff;
+  color: var(--ink-display, rgba(0, 0, 0, 0.86));
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+
+.tdh-milestone-tag-wall-pane {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
 }
 
 .tdh-milestone-tag-filters {
@@ -5099,7 +5156,7 @@
   opacity: 0.85;
 }
 
-/* Modal — tag milestone (90% viewport) */
+/* Modal — tag milestone (90% viewport; shell = fill .cso-ql-body) */
 .tdh-milestone-tag-modal.tdh-inline-modal--wide {
   width: 90vw;
   max-width: 90vw;
@@ -5109,6 +5166,18 @@
   flex-direction: column;
   overflow: hidden;
   box-sizing: border-box;
+}
+
+.tdh-milestone-tag-modal--shell.tdh-inline-modal--wide {
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: 100%;
+  min-height: 0;
+  padding: 12px 12px 0;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: hidden;
 }
 
 .tdh-milestone-tag-list {
@@ -5257,6 +5326,8 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   background: #fff;
 }
 
@@ -5271,8 +5342,9 @@
 .tdh-milestone-tag-detail {
   display: flex;
   flex-direction: column;
+  flex: 0 0 auto;
+  height: fit-content;
   min-height: 0;
-  flex: 1;
 }
 
 .tdh-milestone-tag-detail-back {
@@ -5411,10 +5483,9 @@
 }
 
 .tdh-milestone-tag-detail-scroll {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
+  flex: 0 0 auto;
+  height: fit-content;
+  overflow: visible;
   padding: 12px 16px 16px;
 }
 
@@ -5678,7 +5749,7 @@
 }
 
 @media (max-width: 640px) {
-  .tdh-milestone-tag-modal.tdh-inline-modal--wide {
+  .tdh-milestone-tag-modal.tdh-inline-modal--wide:not(.tdh-milestone-tag-modal--shell) {
     width: 96vw;
     max-width: 96vw;
     height: 92vh;
@@ -5697,8 +5768,26 @@
     0 24px 64px rgba(0, 0, 0, 0.6);
 }
 
+:root[data-theme="dark"] .tdh-milestone-tag-modal--shell {
+  box-shadow: none;
+}
+
 :root[data-theme="dark"] .tdh-milestone-tag-modal .tdh-inline-modal-title {
   color: var(--ink-display, rgba(255, 255, 255, 0.92));
+}
+
+:root[data-theme="dark"] .tdh-milestone-tag-main-tabs {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+:root[data-theme="dark"] .tdh-milestone-tag-main-tab {
+  color: var(--ink-muted, rgba(255, 255, 255, 0.5));
+}
+
+:root[data-theme="dark"] .tdh-milestone-tag-main-tab.on {
+  background: var(--bg-elevated, #1e2430);
+  color: var(--ink-display, rgba(255, 255, 255, 0.92));
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
 }
 
 :root[data-theme="dark"] .tdh-milestone-tag-lead {
@@ -5839,6 +5928,20 @@
   border-top-color: var(--border, #2a3040);
 }
 
+:root[data-theme="dark"] .tdh-milestone-tag-org-msg-list {
+  background: var(--neutral-0, #12151d);
+  border-color: var(--border, #2a3040);
+}
+
+:root[data-theme="dark"] .tdh-milestone-tag-org-msg-empty,
+:root[data-theme="dark"] .tdh-milestone-tag-org-msg-hint {
+  color: var(--ink-muted, rgba(255, 255, 255, 0.46));
+}
+
+:root[data-theme="dark"] .tdh-milestone-tag-org-msg-hint strong {
+  color: var(--ink-display, rgba(255, 255, 255, 0.92));
+}
+
 :root[data-theme="dark"] .tdh-milestone-tag-org-msg-item.is-in {
   background: rgba(255, 255, 255, 0.06);
   border-color: rgba(255, 255, 255, 0.12);
@@ -5858,6 +5961,21 @@
 :root[data-theme="dark"] .tdh-milestone-tag-post-view .j-m-card {
   background: rgba(255, 255, 255, 0.03);
   border-color: rgba(255, 255, 255, 0.1);
+}
+
+:root[data-theme="dark"] .tdh-milestone-tag-status--pending {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fcd34d;
+}
+
+:root[data-theme="dark"] .tdh-milestone-tag-status--approved {
+  background: rgba(34, 197, 94, 0.2);
+  color: #86efac;
+}
+
+:root[data-theme="dark"] .tdh-milestone-tag-status--rejected {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
 }
 
 :root[data-theme="dark"] .tdh-milestone-tag-status--detached {

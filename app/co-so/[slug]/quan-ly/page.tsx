@@ -1,10 +1,10 @@
-import { redirect } from "next/navigation";
-
 import { coSoQuanLyPath } from "@/lib/to-chuc/co-so-routes";
+import { redirect } from "next/navigation";
 
 type Props = { params: Promise<{ slug: string }> };
 
-export default async function CoSoQuanLyIndexPage({ params }: Props) {
+/** `/co-so/[slug]/quan-ly` → co-so. */
+export default async function Page({ params }: Props) {
   const { slug } = await params;
-  redirect(coSoQuanLyPath(slug, "tong-quan"));
+  redirect(coSoQuanLyPath(slug, "co-so"));
 }

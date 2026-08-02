@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 
 import { TinNhanQuanLyClient } from "@/components/co-so/quan-ly/TinNhanQuanLyClient";
 import { OrgInboxPanel } from "@/components/truong/OrgInboxPanel";
+import { useOrgInboxDeepLink } from "@/lib/chat/use-org-inbox-deep-link";
 import type { OrgQuanLyKind } from "@/lib/to-chuc/org-quan-ly-routes";
 
 type MainTab = "tu_van" | "verify";
@@ -37,9 +38,12 @@ function OrgTinNhanInboxClient({
   const showTabBar = tabs.length > 1;
   const [mainTab, setMainTab] = useState<MainTab>("tu_van");
   const [flash, setFlash] = useState<string | null>(null);
+  const deepLink = useOrgInboxDeepLink({ filter: "open" });
 
   const activeTab = showTabBar ? mainTab : "tu_van";
   const verifyFilter = activeTab === "verify" ? ("verify" as const) : undefined;
+  const initialFilter =
+    activeTab === "verify" ? ("verify" as const) : deepLink.initialFilter;
 
   return (
     <div className="cso-tin-nhan">
@@ -69,12 +73,19 @@ function OrgTinNhanInboxClient({
 
         <div className="cso-tin-nhan-body">
           <OrgInboxPanel
-            key={activeTab === "verify" ? "verify" : "tu_van"}
+            key={
+              activeTab === "verify"
+                ? "verify"
+                : `tu_van-${deepLink.initialRoomId ?? ""}-${initialFilter}`
+            }
             orgId={orgId}
             className="cso-tin-nhan-inbox"
             hideFilters={activeTab === "verify"}
             filterOverride={verifyFilter}
-            initialFilter={activeTab === "verify" ? "verify" : "open"}
+            initialFilter={initialFilter}
+            initialRoomId={
+              activeTab === "verify" ? null : deepLink.initialRoomId
+            }
             onToast={(message) => {
               setFlash(message);
               window.setTimeout(() => setFlash(null), 4000);
@@ -94,9 +105,15 @@ function OrgTinNhanInboxClient({
  */
 export function OrgTinNhanQuanLyClient({ orgKind, orgId, orgSlug }: Props) {
   if (orgKind === "co_so_dao_tao") {
-    return <TinNhanQuanLyClient orgId={orgId} orgSlug={orgSlug} />;
+    return (
+      <Suspense fallback={<p className="cso-tin-nhan-flash">Đang tải…</p>}>
+        <TinNhanQuanLyClient orgId={orgId} orgSlug={orgSlug} />
+      </Suspense>
+    );
   }
   return (
-    <OrgTinNhanInboxClient orgKind={orgKind} orgId={orgId} orgSlug={orgSlug} />
+    <Suspense fallback={<p className="cso-tin-nhan-flash">Đang tải…</p>}>
+      <OrgTinNhanInboxClient orgKind={orgKind} orgId={orgId} orgSlug={orgSlug} />
+    </Suspense>
   );
 }

@@ -16,7 +16,7 @@ export function StudioCaiDatQuanLyClient({ orgId }: Props) {
         variant="page"
         pageTitle="Cài đặt tối cao"
         initialSection="members"
-        allowedSections={["members", "organization"]}
+        allowedSections={["members", "organization", "ket-noi-api"]}
         onClose={() => undefined}
         onSaved={() => undefined}
       />

@@ -170,7 +170,7 @@ function GalleryMainItemTile({
   ownerSlug = null,
 }: {
   item: GalleryMainItem;
-  onOpenPost: (cotMocId: string) => void;
+  onOpenPost: (cotMocId: string, opts?: { href?: string | null }) => void;
   layout?: GalleryItemTileLayout;
   thumbAspect?: number;
   isOwner?: boolean;
@@ -403,7 +403,7 @@ function GalleryMainItemTile({
           <button
             type="button"
             className="j-main-gallery-item-hit"
-            onClick={() => onOpenPost(item.cotMocId)}
+            onClick={() => onOpenPost(item.cotMocId, { href: item.href ?? null })}
             aria-label={viewLabel}
           >
             {body}
@@ -419,7 +419,7 @@ function GalleryMainItemTile({
     <button
       type="button"
       className={className}
-      onClick={() => onOpenPost(item.cotMocId)}
+      onClick={() => onOpenPost(item.cotMocId, { href: item.href ?? null })}
       aria-label={viewLabel}
     >
       {body}

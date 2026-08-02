@@ -293,26 +293,13 @@
   padding: 4px 8px 12px;
   overflow: auto;
   flex: 1;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(148, 163, 184, 0.55) transparent;
+  scrollbar-width: none;
 }
 
 .cins-chat-threads::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
-}
-
-.cins-chat-threads::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.cins-chat-threads::-webkit-scrollbar-thumb {
-  border-radius: 999px;
-  background: rgba(148, 163, 184, 0.45);
-}
-
-.cins-chat-threads:hover::-webkit-scrollbar-thumb {
-  background: rgba(100, 116, 139, 0.65);
+  width: 0;
+  height: 0;
+  display: none;
 }
 
 .cins-chat-threads ul {
@@ -333,6 +320,19 @@
   border-top: 1px solid rgba(15, 23, 42, 0.08);
 }
 
+.cins-chat-thread-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 4px 6px 8px;
+  min-height: 28px;
+}
+
+.cins-chat-thread-section-head .cins-chat-thread-section-title {
+  margin: 0;
+}
+
 .cins-chat-thread-section-title {
   margin: 0 8px 6px;
   font-size: 11px;
@@ -340,6 +340,33 @@
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--ink-muted, #64748b);
+}
+
+.cins-chat-org-notify-org-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cins-chat-org-notify-org-block + .cins-chat-org-notify-org-block {
+  margin-top: 4px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.cins-chat-org-notify-org-name {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-display, #0f172a);
+}
+
+:root[data-theme="dark"] .cins-chat-org-notify-org-block + .cins-chat-org-notify-org-block {
+  border-top-color: rgba(255, 255, 255, 0.1);
+}
+
+:root[data-theme="dark"] .cins-chat-org-notify-org-name {
+  color: var(--ink-display, rgba(255, 255, 255, 0.92));
 }
 
 .cins-chat-org-node {
@@ -427,9 +454,116 @@
   text-align: center;
 }
 
-.cins-chat-org-open-btn {
+.cins-chat-org-node-toggle.is-static {
+  cursor: pointer;
+}
+
+.cins-chat-org-node-chevron-spacer {
+  width: 16px;
   flex-shrink: 0;
-  margin: 0 6px 0 0;
+}
+
+.cins-chat-org-node-trail {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.cins-chat-org-open-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  color: var(--ink-muted, #64748b);
+}
+
+.cins-chat-org-node-toggle:hover .cins-chat-org-open-icon {
+  background: rgba(15, 23, 42, 0.06);
+  color: var(--ink-display, #0f172a);
+}
+
+.cins-chat-org-notify-btn {
+  flex-shrink: 0;
+}
+
+.cins-chat-org-notify-panel {
+  width: min(280px, calc(100vw - 24px));
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cins-chat-org-notify-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-display, #0f172a);
+}
+
+.cins-chat-org-notify-hint {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--ink-muted, #64748b);
+}
+
+.cins-chat-org-notify-error {
+  margin: 0;
+  font-size: 11px;
+  color: #be123c;
+}
+
+.cins-chat-org-notify-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  padding: 8px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.cins-chat-org-notify-option:hover {
+  background: rgba(15, 23, 42, 0.04);
+}
+
+.cins-chat-org-notify-option input {
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.cins-chat-org-notify-option span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cins-chat-org-notify-option strong {
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--ink-display, #0f172a);
+}
+
+.cins-chat-org-notify-option small {
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--ink-muted, #64748b);
+}
+
+:root[data-theme="dark"] .cins-chat-org-node-toggle:hover .cins-chat-org-open-icon {
+  background: rgba(248, 250, 252, 0.08);
+  color: #f8fafc;
+}
+
+:root[data-theme="dark"] .cins-chat-org-notify-option:hover {
+  background: rgba(248, 250, 252, 0.06);
 }
 
 /*
@@ -7012,6 +7146,65 @@ a.cins-chat-don-card:hover {
   padding-left: 4px;
 }
 
+.cins-chat-don-card-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.cins-chat-don-card-org-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  flex-shrink: 0;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--cins-orange, #fdad4c) 18%, transparent);
+  color: color-mix(in srgb, var(--cins-orange, #fdad4c) 70%, #8a4b00);
+  border: 1px solid color-mix(in srgb, var(--cins-orange, #fdad4c) 22%, #e4e6eb);
+  box-sizing: border-box;
+}
+
+.cins-chat-don-card-org-logo.has-image {
+  background: #fff;
+  border-color: color-mix(in srgb, #94a3b8 28%, #e4e6eb);
+}
+
+.cins-chat-don-card-org-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.cins-chat-don-card-org-initial {
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+
+.cins-chat-don-card-brand-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.cins-chat-don-card-org-name {
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1.25;
+  color: var(--ink-display, rgba(0, 0, 0, 0.88));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .cins-chat-don-card-icon {
   display: inline-flex;
   align-items: center;
@@ -7086,9 +7279,11 @@ a.cins-chat-don-card.is-paid:hover {
     );
 }
 
-.cins-chat-don-card.is-paid .cins-chat-don-card-icon {
+.cins-chat-don-card.is-paid .cins-chat-don-card-icon,
+.cins-chat-don-card.is-paid .cins-chat-don-card-org-logo:not(.has-image) {
   background: color-mix(in srgb, #16a34a 16%, transparent);
   color: #15803d;
+  border-color: color-mix(in srgb, #16a34a 28%, #e4e6eb);
 }
 
 .cins-chat-don-card.is-paid .cins-chat-don-card-label {
@@ -11401,9 +11596,18 @@ button.cins-chat-project-card-mark:hover {
 :root[data-theme="dark"] .cins-chat-don-card-label {
   color: var(--cins-orange, #ffc078);
 }
-:root[data-theme="dark"] .cins-chat-don-card-icon {
+:root[data-theme="dark"] .cins-chat-don-card-icon,
+:root[data-theme="dark"] .cins-chat-don-card-org-logo {
   color: var(--cins-orange, #ffc078);
   background: color-mix(in srgb, var(--cins-orange, #fdad4c) 16%, transparent);
+  border-color: color-mix(in srgb, var(--cins-orange, #fdad4c) 28%, var(--border, #2a3040));
+}
+:root[data-theme="dark"] .cins-chat-don-card-org-logo.has-image {
+  background: var(--neutral-100, #151a24);
+  border-color: var(--border, #2a3040);
+}
+:root[data-theme="dark"] .cins-chat-don-card-org-name {
+  color: var(--ink-display, rgba(255, 255, 255, 0.92));
 }
 :root[data-theme="dark"] .cins-chat-don-card-badge.is-now {
   background: color-mix(in srgb, var(--cins-orange, #fdad4c) 18%, transparent);
@@ -11439,9 +11643,11 @@ button.cins-chat-project-card-mark:hover {
 :root[data-theme="dark"] .cins-chat-don-card.is-paid .cins-chat-don-card-label {
   color: #4ade80;
 }
-:root[data-theme="dark"] .cins-chat-don-card.is-paid .cins-chat-don-card-icon {
+:root[data-theme="dark"] .cins-chat-don-card.is-paid .cins-chat-don-card-icon,
+:root[data-theme="dark"] .cins-chat-don-card.is-paid .cins-chat-don-card-org-logo:not(.has-image) {
   color: #4ade80;
   background: color-mix(in srgb, #22c55e 16%, transparent);
+  border-color: color-mix(in srgb, #22c55e 28%, var(--border, #2a3040));
 }
 :root[data-theme="dark"] .cins-chat-don-card.is-paid .cins-chat-don-card-tong {
   background: color-mix(in srgb, #22c55e 12%, rgba(0, 0, 0, 0.25));

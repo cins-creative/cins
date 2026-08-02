@@ -3,4 +3,4 @@ export {
   alt,
   size,
   contentType,
-} from "@/app/studio/[slug]/[tab]/[jobId]/opengraph-image";
+} from "@/app/studio/[slug]/(public)/[tab]/[jobId]/opengraph-image";

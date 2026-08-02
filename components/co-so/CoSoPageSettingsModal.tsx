@@ -102,6 +102,12 @@ type Props = {
    * trên variant=page; ẩn TruongChiNhanhEditor trong form Lưu cài đặt.
    */
   chiNhanhExternal?: boolean;
+  /** Preview draft (vd. lead hero trên `/quan-ly/co-so`). */
+  onDraftChange?: (draft: {
+    ten: string;
+    moTa: string | null;
+    gioiThieuTruong: string | null;
+  }) => void;
 };
 
 const NAV: ReadonlyArray<{ id: CoSoSettingsSection; label: string }> = [
@@ -165,6 +171,7 @@ export function CoSoPageSettingsModal({
   onSaved,
   variant = "modal",
   chiNhanhExternal = false,
+  onDraftChange,
 }: Props) {
   const router = useRouter();
   const titleId = useId();
@@ -194,10 +201,15 @@ export function CoSoPageSettingsModal({
         return;
       }
       setDraft(json.settings);
+      onDraftChange?.({
+        ten: json.settings.ten,
+        moTa: json.settings.moTa,
+        gioiThieuTruong: json.settings.gioiThieuTruong,
+      });
     } finally {
       setLoading(false);
     }
-  }, [orgId]);
+  }, [orgId, onDraftChange]);
 
   const uploadBranchCover = useCallback(async (file: File) => {
     const form = new FormData();
@@ -242,7 +254,23 @@ export function CoSoPageSettingsModal({
   }, [open, onClose, variant]);
 
   function patchDraft(patch: Partial<SettingsData>) {
-    setDraft((prev) => (prev ? { ...prev, ...patch } : prev));
+    setDraft((prev) => {
+      if (!prev) return prev;
+      const next = { ...prev, ...patch };
+      if (
+        onDraftChange &&
+        (patch.ten !== undefined ||
+          patch.moTa !== undefined ||
+          patch.gioiThieuTruong !== undefined)
+      ) {
+        onDraftChange({
+          ten: next.ten,
+          moTa: next.moTa,
+          gioiThieuTruong: next.gioiThieuTruong,
+        });
+      }
+      return next;
+    });
   }
 
   function emitSaved(settings: SettingsData) {

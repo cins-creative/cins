@@ -350,7 +350,7 @@ function OrgAttachStatusRow({
         </Link>
       ) : row.status === "pending" ? (
         <p className="j-org-attach-status-note">
-          Tổ chức đang xem bằng chứng và sẽ phản hồi qua mục Thông báo của họ.
+          Tổ chức đang xem bằng chứng và sẽ phản hồi qua «Quản lý bài học viên».
         </p>
       ) : (
         <p className="j-org-attach-status-note">
@@ -1259,7 +1259,7 @@ export function JourneyOrgAttachTrigger({
                   </span>
                   <p>
                     Đã gửi yêu cầu tới <strong>{submitNotice}</strong>. Tổ chức sẽ
-                    duyệt qua mục Thông báo của họ.
+                    duyệt qua «Quản lý bài học viên».
                   </p>
                 </div>
               ) : null}

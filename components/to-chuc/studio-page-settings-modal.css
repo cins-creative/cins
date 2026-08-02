@@ -13,6 +13,181 @@
   }
 }
 
+/*
+ * Page embed (`/quan-ly/thong-tin`, `/quan-ly/cai-dat`):
+ * đồng bộ visual với CoSoPageSettingsModal (.cso-settings-*) —
+ * full cột, pill nav ngang, xổ hết nội dung (không khung 680×760).
+ */
+.uas-modal.sps-modal.cso-settings-modal--page {
+  width: 100%;
+  max-width: none;
+  height: auto;
+  max-height: none;
+  overflow: visible;
+  box-shadow: none;
+  border: 1px solid color-mix(in srgb, var(--cso-ql-ink, #0f172a) 12%, transparent);
+  border-radius: 14px;
+  background: #fff;
+}
+
+@media (max-width: 560px) {
+  .uas-modal.sps-modal.cso-settings-modal--page {
+    height: auto;
+    max-height: none;
+  }
+}
+
+.uas-modal.sps-modal.cso-settings-modal--page .uas-head {
+  align-items: flex-start;
+  padding: 20px 22px 12px;
+}
+
+.uas-modal.sps-modal.cso-settings-modal--page .uas-title {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.uas-modal.sps-modal.cso-settings-modal--page .uas-layout {
+  flex: 0 0 auto;
+  flex-direction: column;
+  min-height: 0;
+  align-items: stretch;
+}
+
+/* Sidebar → pill row (khớp .cso-settings-nav) */
+.uas-modal.sps-modal.cso-settings-modal--page .uas-nav {
+  width: 100%;
+  position: static;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 10px 22px 12px;
+  border-right: none;
+  border-bottom: none;
+  overflow: visible;
+  max-height: none;
+  align-self: stretch;
+}
+
+.uas-modal.sps-modal.cso-settings-modal--page .uas-nav-btn {
+  border: 1px solid var(--border, #e4e6eb);
+  background: var(--bg-surface, #fff);
+  color: var(--ink-muted, #65676b);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.uas-modal.sps-modal.cso-settings-modal--page .uas-nav-btn:hover {
+  background: var(--bg-page, #f4f5f8);
+}
+
+.uas-modal.sps-modal.cso-settings-modal--page .uas-nav-btn.on {
+  border-color: var(--cins-blue, #1f74c9);
+  color: var(--cins-blue, #1f74c9);
+  background: color-mix(in srgb, var(--cins-blue, #1f74c9) 8%, var(--bg-surface, #fff));
+  font-weight: 600;
+}
+
+.uas-modal.sps-modal.cso-settings-modal--page .uas-body {
+  flex: 0 0 auto;
+  overflow: visible;
+  padding: 16px 22px 0;
+  min-height: 0;
+}
+
+.uas-modal.sps-modal.cso-settings-modal--page .uas-section-title,
+.uas-modal.sps-modal.cso-settings-modal--page .sps-fields .uas-section-title {
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.uas-modal.sps-modal.cso-settings-modal--page .uas-section-hint {
+  font-size: 12.5px;
+  margin: 0 0 14px;
+}
+
+.uas-modal.sps-modal.cso-settings-modal--page .uas-foot {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 16px 22px 20px;
+  border-top: 1px solid var(--border, #e4e6eb);
+  margin-top: 0;
+  background: var(--bg-surface, #fff);
+  z-index: 1;
+}
+
+.uas-modal.sps-modal.cso-settings-modal--page .uas-foot > span:first-child {
+  display: none;
+}
+
+.uas-modal.sps-modal.cso-settings-modal--page .uas-foot-actions {
+  width: 100%;
+  justify-content: flex-end;
+}
+
+.uas-modal.sps-modal.cso-settings-modal--page .uas-btn.primary {
+  height: 36px;
+  padding: 0 16px;
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-weight: 700;
+}
+
+.uas-modal.sps-modal.cso-settings-modal--page
+  .sps-about
+  .tdh-inline-field--richtext
+  .article-draft-tiptap {
+  min-height: 200px;
+}
+
+.uas-modal.sps-modal.cso-settings-modal--page .sps-fields .tdh-inline-field {
+  margin-bottom: 12px;
+}
+
+@media (max-width: 720px) {
+  .uas-modal.sps-modal.cso-settings-modal--page .uas-body {
+    padding: 14px 16px 0;
+  }
+
+  .uas-modal.sps-modal.cso-settings-modal--page .uas-nav {
+    padding: 10px 16px 12px;
+  }
+
+  .uas-modal.sps-modal.cso-settings-modal--page .uas-foot {
+    padding: 14px 16px 18px;
+  }
+}
+
+:root[data-theme="dark"] .uas-modal.sps-modal.cso-settings-modal--page {
+  background: var(--bg-surface, #171b24);
+  border-color: var(--border, #2a3040);
+}
+
+:root[data-theme="dark"] .uas-modal.sps-modal.cso-settings-modal--page .uas-nav-btn {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.14);
+  color: var(--ink-muted, rgba(255, 255, 255, 0.46));
+}
+
+:root[data-theme="dark"] .uas-modal.sps-modal.cso-settings-modal--page .uas-nav-btn.on {
+  border-color: var(--cins-blue, #4f9be8);
+  background: color-mix(in srgb, var(--cins-blue, #4f9be8) 16%, transparent);
+  color: var(--cins-blue, #4f9be8);
+}
+
+:root[data-theme="dark"] .uas-modal.sps-modal.cso-settings-modal--page .uas-foot {
+  background: var(--bg-surface, #171b24);
+  border-color: var(--border, #2a3040);
+}
+
 .uas-head-copy:has(.sps-slug) {
   align-items: flex-start;
 }

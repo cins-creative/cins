@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 
 import { GuestHomePage } from "@/components/cins/guest-home/GuestHomePage";
 import { GuestHomeThemeLight } from "@/components/cins/guest-home/GuestHomeThemeLight";
 import { CinsShell } from "@/components/cins/CinsShell";
 import { HomeWorldJourneyMain } from "@/components/cins/home-v2/HomeWorldJourneyMain";
+import { HomeWorldJourneySkeleton } from "@/components/cins/home-v2/HomeWorldJourney.skeleton";
 import { AuthGateRoot } from "@/components/auth/AuthGateProvider";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 
@@ -16,14 +18,24 @@ export const metadata: Metadata = {
   alternates: { canonical: "/" },
 };
 
-export default async function Home() {
+type SearchParams = Promise<{ view?: string }>;
+
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
   const session = await getCurrentSessionAndProfile();
+  const sp = await searchParams;
+  const includeGallery = sp.view === "gallery";
 
   if (session?.profile?.slug) {
     return (
       <CinsShell data-screen-label="Trang-chu">
         <AuthGateRoot initialAuthenticated>
-          <HomeWorldJourneyMain />
+          <Suspense fallback={<HomeWorldJourneySkeleton />}>
+            <HomeWorldJourneyMain includeGallery={includeGallery} />
+          </Suspense>
         </AuthGateRoot>
       </CinsShell>
     );

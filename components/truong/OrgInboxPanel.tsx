@@ -20,6 +20,7 @@ import { ChatReplyComposeBar } from "@/components/cins/ChatReplyComposeBar";
 import { ChatStickerPicker } from "@/components/cins/ChatStickerPicker";
 import { useCinsChat } from "@/components/cins/CinsChatProvider";
 import { MsIcon } from "@/components/cins/MsIcon";
+import { OrgNotifySettingsMenu } from "@/components/cins/OrgNotifySettingsMenu";
 import { useChatRoomMessageActions } from "@/components/cins/useChatRoomMessageActions";
 import { InboxContactRoleBadge } from "@/components/truong/InboxContactRoleBadge";
 import { InboxVerificationCard } from "@/components/truong/InboxVerificationCard";
@@ -126,6 +127,11 @@ type Props = {
   orgId: string;
   /** Lọc mặc định khi mở. */
   initialFilter?: OrgInboxFilterKey;
+  /**
+   * Chọn hội thoại theo roomId khi mở (deep link Noti / chip overlay).
+   * Map sang studentUserId sau khi load threads.
+   */
+  initialRoomId?: string | null;
   /** Ẩn filter tab (parent tự lọc). */
   hideFilters?: boolean;
   /** Filter khóa từ parent — nếu set, panel không tự lọc nội bộ. */
@@ -140,11 +146,14 @@ type Props = {
   className?: string;
   /** Staff có quyền đối soát HP — hiện CTA xác nhận trên card học phí. */
   canConfirmHocPhi?: boolean;
+  /** Brand CSĐT — fallback logo/tên trên card học phí cũ. */
+  orgBrand?: { ten?: string | null; anh?: string | null } | null;
 };
 
 export function OrgInboxPanel({
   orgId,
   initialFilter = "open",
+  initialRoomId = null,
   hideFilters = false,
   filterOverride,
   renderDetailActions,
@@ -153,6 +162,7 @@ export function OrgInboxPanel({
   panelRef,
   className,
   canConfirmHocPhi = false,
+  orgBrand = null,
 }: Props) {
   const toast = useCallback(
     (message: string) => {
@@ -271,6 +281,10 @@ export function OrgInboxPanel({
           setSelectedStudentId((current) => {
             if (current && next.some((t) => t.studentUserId === current))
               return current;
+            if (initialRoomId) {
+              const byRoom = next.find((t) => t.roomId === initialRoomId);
+              if (byRoom) return byRoom.studentUserId;
+            }
             return (
               next.find((t) => t.status === "open")?.studentUserId ??
               next[0]?.studentUserId ??
@@ -287,7 +301,7 @@ export function OrgInboxPanel({
         if (!silent) setLoadingThreads(false);
       }
     },
-    [orgId, onThreadsChange, filterOverride],
+    [orgId, onThreadsChange, filterOverride, initialRoomId],
   );
 
   const loadMessages = useCallback(
@@ -642,6 +656,7 @@ export function OrgInboxPanel({
                 <span className="tdh-message-inbox-filter-count">{count}</span>
               </button>
             ))}
+            <OrgNotifySettingsMenu orgId={orgId} canManage />
           </div>
         ) : null}
 
@@ -683,6 +698,7 @@ export function OrgInboxPanel({
             verifyResponding={verifyPending}
             detailActions={renderDetailActions?.(selected)}
             canConfirmHocPhi={canConfirmHocPhi}
+            orgBrand={orgBrand}
             onToast={toast}
             onReplyChange={setReply}
             onSend={(text, images, filesByLocalId, inFlightUploads, replyTo) =>
@@ -783,6 +799,7 @@ function ThreadDetail({
   verifyResponding,
   detailActions,
   canConfirmHocPhi = false,
+  orgBrand = null,
   onToast,
   onReplyChange,
   onSend,
@@ -801,6 +818,7 @@ function ThreadDetail({
   verifyResponding: boolean;
   detailActions?: ReactNode;
   canConfirmHocPhi?: boolean;
+  orgBrand?: { ten?: string | null; anh?: string | null } | null;
   onToast: (message: string) => void;
   onReplyChange: (v: string) => void;
   onSend: (
@@ -1010,6 +1028,7 @@ function ThreadDetail({
               onSaveEdit={handleSaveEdit}
               onCancelEdit={handleCancelEdit}
               canConfirmHocPhi={canConfirmHocPhi}
+              orgBrand={orgBrand}
               renderTheirAvatar={() => <InboxStudentAvatar thread={thread} />}
             />
           )}

@@ -2526,7 +2526,7 @@
 }
 
 .cso-settings-modal--page .cso-settings-block--about .tdh-inline-field--richtext .article-draft-tiptap {
-  min-height: min(320px, 42vh);
+  min-height: 120px;
 }
 
 .cso-settings-subhead {

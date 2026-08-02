@@ -18,6 +18,12 @@ import type { OrgMembershipMilestoneRequestItem } from "@/lib/journey/membership
 import { getAvatarUrl, getGiaiDoanLabel } from "@/lib/journey/profile";
 import { commentVaiTroLabel } from "@/lib/social/comments/vai-tro-label";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import {
+  getOrgThongBaoChung,
+  getOrgThongBaoChungByOrgIds,
+  listOrgInboxAdminIdsForNotify,
+  loadReadAtByRoomForStaff,
+} from "@/lib/chat/org-notify-settings";
 import { isCoSoOrgAdmin } from "@/lib/to-chuc/co-so-membership";
 import { isStudioOrgAdmin } from "@/lib/to-chuc/studio-members";
 import { isTruongOrgAdmin, ORG_ADMIN_ROLES } from "@/lib/truong/org-admin";
@@ -168,6 +174,7 @@ function buildOrgThread(
     avatarInitial: avatarInitialFromName(name),
     avatarHue: avatarHueFromSeed(org.id),
     avatarUrl: getAvatarUrl(org.avatar_id),
+    orgAvatarUrl: getAvatarUrl(org.avatar_id),
     preview,
     lastAt,
     unread,
@@ -553,33 +560,15 @@ export async function listOrgInboxThreadsForStaff(
     roomIds.map((roomId) => ensureStaffOrgRoomMember(admin, roomId, staffUserId)),
   );
 
-  const { data: reads } = roomIds.length
-    ? await admin
-        .from("chat_da_doc")
-        .select("id_phong, id_tin_nhan_cuoi_doc")
-        .eq("id_nguoi_dung", staffUserId)
-        .in("id_phong", roomIds)
-        .returns<Array<{ id_phong: string; id_tin_nhan_cuoi_doc: string }>>()
-    : { data: [] as Array<{ id_phong: string; id_tin_nhan_cuoi_doc: string }> };
-
-  const readAtByRoom = new Map<string, string>();
-  const readMessageIds = [
-    ...new Set((reads ?? []).map((row) => row.id_tin_nhan_cuoi_doc)),
-  ];
-  if (readMessageIds.length > 0) {
-    const { data: readMessages } = await admin
-      .from("chat_tin_nhan")
-      .select("id, tao_luc")
-      .in("id", readMessageIds)
-      .returns<Array<{ id: string; tao_luc: string }>>();
-    const readAtByMessageId = new Map(
-      (readMessages ?? []).map((row) => [row.id, row.tao_luc]),
-    );
-    for (const read of reads ?? []) {
-      const readAt = readAtByMessageId.get(read.id_tin_nhan_cuoi_doc);
-      if (readAt) readAtByRoom.set(read.id_phong, readAt);
-    }
-  }
+  const thongBaoChung = await getOrgThongBaoChung(orgId);
+  const sharedReaderIds = thongBaoChung
+    ? await listOrgInboxAdminIdsForNotify(orgId)
+    : undefined;
+  const readAtByRoom = await loadReadAtByRoomForStaff({
+    roomIds,
+    viewerId: staffUserId,
+    sharedReaderIds,
+  });
 
   const byStudent = new Map<string, OrgInboxThread>();
   for (const room of roomList) {
@@ -1067,6 +1056,7 @@ function buildLopThread(
     avatarHue: avatarHueFromSeed(lopId),
     // Thumbnail riêng phòng lớp; fallback logo org.
     avatarUrl: getAvatarUrl(roomAvatarId ?? org.avatar_id),
+    orgAvatarUrl: getAvatarUrl(org.avatar_id),
     preview,
     lastAt,
     unread,
@@ -1468,32 +1458,32 @@ export async function listOrgStaffInboxThreadsForViewer(
     ),
   ];
 
-  const [{ data: orgs }, { data: studentMembers }, { data: messages }, { data: reads }] =
-    await Promise.all([
-      admin
-        .from("org_to_chuc")
-        .select("id, ten, slug, loai_to_chuc, avatar_id")
-        .in("id", orgIds)
-        .returns<OrgRow[]>(),
-      admin
-        .from("chat_thanh_vien")
-        .select("id_phong, id_nguoi_dung")
-        .in("id_phong", roomIds)
-        .eq("vai_tro", "thanh_vien")
-        .is("roi_luc", null)
-        .returns<Array<{ id_phong: string; id_nguoi_dung: string }>>(),
-      admin
-        .from("chat_tin_nhan")
-        .select(MESSAGE_SELECT)
-        .in("id_phong", roomIds)
-        .eq("da_xoa", false)
-        .order("tao_luc", { ascending: false }),
-      admin
-        .from("chat_da_doc")
-        .select("id_phong, id_tin_nhan_cuoi_doc")
-        .eq("id_nguoi_dung", viewerId)
-        .in("id_phong", roomIds),
-    ]);
+  const [
+    { data: orgs },
+    { data: studentMembers },
+    { data: messages },
+    thongBaoByOrg,
+  ] = await Promise.all([
+    admin
+      .from("org_to_chuc")
+      .select("id, ten, slug, loai_to_chuc, avatar_id")
+      .in("id", orgIds)
+      .returns<OrgRow[]>(),
+    admin
+      .from("chat_thanh_vien")
+      .select("id_phong, id_nguoi_dung")
+      .in("id_phong", roomIds)
+      .eq("vai_tro", "thanh_vien")
+      .is("roi_luc", null)
+      .returns<Array<{ id_phong: string; id_nguoi_dung: string }>>(),
+    admin
+      .from("chat_tin_nhan")
+      .select(MESSAGE_SELECT)
+      .in("id_phong", roomIds)
+      .eq("da_xoa", false)
+      .order("tao_luc", { ascending: false }),
+    getOrgThongBaoChungByOrgIds(orgIds),
+  ]);
 
   const orgById = new Map((orgs ?? []).map((o) => [o.id, o]));
   const studentByRoom = new Map(
@@ -1507,22 +1497,38 @@ export async function listOrgStaffInboxThreadsForViewer(
     }
   }
 
-  const readMessageIds = [
-    ...new Set((reads ?? []).map((r) => r.id_tin_nhan_cuoi_doc as string)),
-  ];
-  const readAtByRoom = new Map<string, string>();
-  if (readMessageIds.length > 0) {
-    const { data: readMessages } = await admin
-      .from("chat_tin_nhan")
-      .select("id, tao_luc")
-      .in("id", readMessageIds)
-      .returns<Array<{ id: string; tao_luc: string }>>();
-    const readAtByMessageId = new Map(
-      (readMessages ?? []).map((row) => [row.id, row.tao_luc]),
+  /* Watermark cá nhân trước; org bật thongBaoChung → ghi đè max admin. */
+  const readAtByRoom = await loadReadAtByRoomForStaff({
+    roomIds,
+    viewerId,
+  });
+  const sharedOrgIds = orgIds.filter((id) => thongBaoByOrg.get(id) === true);
+  if (sharedOrgIds.length > 0) {
+    const adminIdsByOrg = new Map<string, string[]>();
+    await Promise.all(
+      sharedOrgIds.map(async (oid) => {
+        adminIdsByOrg.set(oid, await listOrgInboxAdminIdsForNotify(oid));
+      }),
     );
-    for (const read of reads ?? []) {
-      const readAt = readAtByMessageId.get(read.id_tin_nhan_cuoi_doc);
-      if (readAt) readAtByRoom.set(read.id_phong, readAt);
+    const allSharedReaders = [
+      ...new Set([...adminIdsByOrg.values()].flat()),
+    ];
+    const sharedRoomIds = rooms
+      .filter(
+        (r) =>
+          r.id_org_dai_dien &&
+          sharedOrgIds.includes(r.id_org_dai_dien),
+      )
+      .map((r) => r.id);
+    if (sharedRoomIds.length > 0 && allSharedReaders.length > 0) {
+      const sharedReadAt = await loadReadAtByRoomForStaff({
+        roomIds: sharedRoomIds,
+        viewerId,
+        sharedReaderIds: allSharedReaders,
+      });
+      for (const [roomId, readAt] of sharedReadAt) {
+        readAtByRoom.set(roomId, readAt);
+      }
     }
   }
 
@@ -1591,11 +1597,14 @@ export async function listOrgStaffInboxThreadsForViewer(
       avatarInitial: avatarInitialFromName(studentName),
       avatarHue: avatarHueFromSeed(studentId),
       avatarUrl: getAvatarUrl(profile?.avatar_id ?? null),
+      orgAvatarUrl: getAvatarUrl(org.avatar_id),
       preview: messagePreview(last),
       lastAt: last.tao_luc,
       unread,
       isOrgAdvisory: true,
       isOrgStaffInbox: true,
+      orgInboxStatus:
+        last.id_nguoi_gui === studentId ? "open" : "replied",
       viewerIsOrgMember: true,
       viewerOrgVaiTroLabel: vaiTro ? commentVaiTroLabel(vaiTro) : null,
       messages: [],

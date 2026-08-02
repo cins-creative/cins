@@ -4,7 +4,7 @@ import { orgQuanLyDefaultSection, orgQuanLyPath } from "@/lib/to-chuc/org-quan-l
 
 type Props = { params: Promise<{ slug: string }> };
 
-/** `/studio/[slug]/quan-ly` → tong-quan. */
+/** `/studio/[slug]/quan-ly` → thong-tin (Studio). */
 export default async function StudioQuanLyIndexPage({ params }: Props) {
   const { slug } = await params;
   redirect(

@@ -51,7 +51,7 @@ export type CoSoQuanLySection = OrgQuanLySection;
 
 export type CoSoQuanLySectionResolved = OrgQuanLySectionResolved;
 
-/** Marketing → tong-quan · chi-nhanh → co-so (gom IA 2026-07-26). */
+/** Marketing / tong-quan → co-so · chi-nhanh → co-so (gom IA 2026-08-03). */
 export function resolveCoSoQuanLySection(
   section?: CoSoQuanLySection | null,
 ): CoSoQuanLySectionResolved {

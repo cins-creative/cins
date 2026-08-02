@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import {
   type ChangeEvent,
+  type MouseEvent as ReactMouseEvent,
   useCallback,
   useEffect,
   useMemo,
@@ -75,6 +76,7 @@ import {
   ChatThreadRowMenu,
   useThreadLongPress,
 } from "@/components/cins/ChatThreadRowMenu";
+import { OrgNotifySettingsMenu } from "@/components/cins/OrgNotifySettingsMenu";
 import type { ChatMessageActionHandlers } from "@/components/cins/ChatMessageActions";
 import { canvasBridge } from "@/components/cins/canvas/canvas-bridge";
 import { addChatMessageToCanvas } from "@/lib/chat/canvas/add-message-client";
@@ -108,6 +110,7 @@ import { writeChatThreadsCache, writeRoomMessagesCache } from "@/lib/chat/chat-s
 import { formatUnreadTabCount } from "@/lib/chat/document-unread-badge";
 import {
   groupToChucThreads,
+  isManagedOrgThread,
   type ToChucOrgNode,
 } from "@/lib/chat/group-to-chuc-threads";
 import {
@@ -1636,9 +1639,18 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
   }, []);
 
   const handleOpenOrgQuanLy = useCallback(
-    (kind: OrgQuanLyKind, slug: string) => {
+    (
+      kind: OrgQuanLyKind,
+      slug: string,
+      opts?: { filter?: "unread" | "open" },
+    ) => {
       onClose();
-      router.push(orgQuanLyPath(kind, slug, "tin-nhan"));
+      const base = orgQuanLyPath(kind, slug, "tin-nhan");
+      if (opts?.filter) {
+        router.push(`${base}?filter=${opts.filter}`);
+        return;
+      }
+      router.push(base);
     },
     [onClose, router],
   );
@@ -1657,6 +1669,9 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
       if (hiddenRoomIds.includes(thread.roomId)) continue;
       if (isRoomMuted(thread.roomId)) continue;
 
+      /* Tab Tổ chức đếm riêng (số org/hội thoại, không cộng tin). */
+      if (thread.group === "to_chuc") continue;
+
       counts[thread.group] += thread.unread;
       if (thread.isKhachHang) {
         subCounts.khach_hang += thread.unread;
@@ -1668,6 +1683,20 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
         if (!thread.isKhachHang) counts.mua_ban += thread.unread;
       }
     }
+
+    /* Tổ chức: 1 org «Của tôi» có chờ = 1; «Nhắn với» = 1 / hội thoại chưa đọc. */
+    const { nhanVoi, cuaToi } = groupToChucThreads(
+      threads.filter((thread) => {
+        if (thread.group !== "to_chuc") return false;
+        if (hiddenRoomIds.includes(thread.roomId)) return false;
+        if (isRoomMuted(thread.roomId)) return false;
+        return true;
+      }),
+    );
+    counts.to_chuc =
+      cuaToi.filter(
+        (node) => node.inbox.chuaTraLoi > 0 || node.unread > 0,
+      ).length + nhanVoi.filter((t) => t.unread > 0).length;
 
     return { views: counts, subs: subCounts };
   }, [threads, hiddenRoomIds, isRoomMuted]);
@@ -1941,17 +1970,21 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     }
   }, [toChucFilter, toChucGrouped.cuaToi]);
 
-  /* Tự mở org chứa thread đang chọn. */
+  /* Tự mở org «Của tôi» chỉ khi đang chọn thread managed (hub/lớp/staff).
+     Không bung khi click tư vấn «Nhắn với» cùng orgId (vd. HV nhắn Sine Art
+     trong khi cũng là staff của Sine Art). */
   useEffect(() => {
-    const orgId = active?.orgId?.trim();
-    if (!orgId || activeTab !== "to_chuc") return;
+    if (!active || activeTab !== "to_chuc") return;
+    if (!isManagedOrgThread(active)) return;
+    const orgId = active.orgId?.trim();
+    if (!orgId) return;
     const inCuaToi = toChucGrouped.cuaToi.some((n) => n.orgId === orgId);
     if (!inCuaToi) return;
     setExpandedToChucOrgs((prev) => {
       if (prev[orgId]) return prev;
       return { ...prev, [orgId]: true };
     });
-  }, [active?.orgId, activeTab, toChucGrouped.cuaToi]);
+  }, [active, activeTab, toChucGrouped.cuaToi]);
 
   useEffect(() => {
     if (!viewerProfileId) return;
@@ -4250,72 +4283,145 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
   };
 
   const renderToChucOrgNode = (node: ToChucOrgNode) => {
-    const expanded = isToChucOrgExpanded(node.orgId);
-    const unreadLabel = formatUnreadTabCount(node.unread);
+    const hasRooms = node.rooms.length > 0;
+    const expanded = hasRooms && isToChucOrgExpanded(node.orgId);
+    const chuaTraLoiLabel =
+      formatUnreadTabCount(node.inbox.chuaTraLoi) ?? String(node.inbox.chuaTraLoi);
     const canOpen =
       Boolean(node.quanLyKind) && Boolean(node.orgSlug?.trim());
     const nestedChildren = nestGroupThreads(
-      node.threads,
+      node.rooms,
       toChucNestExpandedIds,
     );
+    const subParts: string[] = [];
+    if (node.inbox.unread > 0) {
+      const unreadLabel =
+        formatUnreadTabCount(node.inbox.unread) ?? String(node.inbox.unread);
+      subParts.push(`${unreadLabel} chưa đọc`);
+    }
+    if (node.inbox.chuaTraLoi > 0) {
+      subParts.push(`${chuaTraLoiLabel} chưa trả lời`);
+    }
+    if (hasRooms) {
+      subParts.push(`${node.rooms.length} phòng`);
+    }
+    if (subParts.length === 0) {
+      subParts.push("Không có tin chờ");
+    }
+
+    const trail = (
+      <span className="cins-chat-org-node-trail">
+        {node.inbox.chuaTraLoi > 0 ? (
+          <span
+            className="cins-chat-org-node-badge"
+            title={`${chuaTraLoiLabel} chưa trả lời`}
+            aria-label={`${chuaTraLoiLabel} chưa trả lời`}
+          >
+            {chuaTraLoiLabel}
+          </span>
+        ) : null}
+        {canOpen ? (
+          <span
+            className="cins-chat-org-open-icon"
+            data-org-open=""
+            title="Mở trang quản lý tin nhắn"
+            aria-hidden
+          >
+            <Maximize2 size={16} strokeWidth={1.8} />
+          </span>
+        ) : null}
+      </span>
+    );
+
+    const onToggleClick = (e: ReactMouseEvent<HTMLElement>) => {
+      const target = e.target;
+      if (
+        canOpen &&
+        target instanceof Element &&
+        target.closest("[data-org-open]")
+      ) {
+        e.preventDefault();
+        handleOpenOrgQuanLy(node.quanLyKind!, node.orgSlug!);
+        return;
+      }
+      if (hasRooms) {
+        toggleToChucOrgExpanded(node.orgId);
+        return;
+      }
+      if (canOpen) {
+        handleOpenOrgQuanLy(node.quanLyKind!, node.orgSlug!);
+      }
+    };
+
     return (
       <li key={node.orgId} className="cins-chat-org-node">
         <div className="cins-chat-org-node-row">
-          <button
-            type="button"
-            className={`cins-chat-org-node-toggle${expanded ? " is-expanded" : ""}`}
-            aria-expanded={expanded}
-            aria-controls={`cins-chat-org-children-${node.orgId}`}
-            onClick={() => toggleToChucOrgExpanded(node.orgId)}
-          >
-            <ChevronDown
-              size={16}
-              strokeWidth={2.2}
-              className="cins-chat-org-node-chevron"
-              aria-hidden
-            />
-            <ChatAvatar
-              initial={node.avatarInitial}
-              hue={node.avatarHue}
-              size={36}
-              kind="org"
-              verified
-              avatarUrl={node.avatarUrl}
-            />
-            <span className="cins-chat-org-node-meta">
-              <span className="cins-chat-org-node-name">{node.orgTen}</span>
-              <span className="cins-chat-org-node-sub">
-                {node.threads.length} hội thoại
-                {unreadLabel ? ` · ${unreadLabel} chưa đọc` : ""}
-              </span>
-            </span>
-            {unreadLabel ? (
-              <span className="cins-chat-org-node-badge" aria-hidden>
-                {unreadLabel}
-              </span>
-            ) : null}
-          </button>
-          {canOpen ? (
+          {hasRooms ? (
             <button
               type="button"
-              className="cins-chat-icon-btn is-plain cins-chat-org-open-btn"
-              aria-label="Mở trang quản lý tin nhắn"
-              title="Mở trang quản lý tin nhắn"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleOpenOrgQuanLy(node.quanLyKind!, node.orgSlug!);
-              }}
+              className={`cins-chat-org-node-toggle${expanded ? " is-expanded" : ""}`}
+              aria-expanded={expanded}
+              aria-controls={`cins-chat-org-children-${node.orgId}`}
+              onClick={onToggleClick}
             >
-              <Maximize2 size={16} strokeWidth={1.8} aria-hidden />
+              <ChevronDown
+                size={16}
+                strokeWidth={2.2}
+                className="cins-chat-org-node-chevron"
+                aria-hidden
+              />
+              <ChatAvatar
+                initial={node.avatarInitial}
+                hue={node.avatarHue}
+                size={36}
+                kind="org"
+                verified
+                avatarUrl={node.avatarUrl}
+              />
+              <span className="cins-chat-org-node-meta">
+                <span className="cins-chat-org-node-name">{node.orgTen}</span>
+                <span className="cins-chat-org-node-sub">
+                  {subParts.join(" · ")}
+                </span>
+              </span>
+              {trail}
             </button>
-          ) : null}
+          ) : (
+            <button
+              type="button"
+              className="cins-chat-org-node-toggle is-static"
+              onClick={onToggleClick}
+              aria-label={
+                canOpen
+                  ? `Mở quản lý tin nhắn ${node.orgTen}`
+                  : node.orgTen
+              }
+            >
+              <span className="cins-chat-org-node-chevron-spacer" aria-hidden />
+              <ChatAvatar
+                initial={node.avatarInitial}
+                hue={node.avatarHue}
+                size={36}
+                kind="org"
+                verified
+                avatarUrl={node.avatarUrl}
+              />
+              <span className="cins-chat-org-node-meta">
+                <span className="cins-chat-org-node-name">{node.orgTen}</span>
+                <span className="cins-chat-org-node-sub">
+                  {subParts.join(" · ")}
+                </span>
+              </span>
+              {trail}
+            </button>
+          )}
         </div>
         {expanded ? (
           <ul
             id={`cins-chat-org-children-${node.orgId}`}
             className="cins-chat-org-children"
             role="group"
-            aria-label={`Tin nhắn tới ${node.orgTen}`}
+            aria-label={`Phòng của ${node.orgTen}`}
           >
             {nestedChildren.map((thread) =>
               renderThreadRow(thread, { nestedInOrg: true }),
@@ -4475,7 +4581,9 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                 className={`cins-chat-thread-tab${activeTab === view ? " is-active" : ""}${unreadLabel ? " has-unread" : ""}`}
                 aria-label={
                   unreadLabel
-                    ? `${CHAT_THREAD_VIEW_LABEL[view]}, ${unreadLabel} tin chưa đọc`
+                    ? view === "to_chuc"
+                      ? `${CHAT_THREAD_VIEW_LABEL[view]}, ${unreadLabel} tổ chức chưa xem`
+                      : `${CHAT_THREAD_VIEW_LABEL[view]}, ${unreadLabel} tin chưa đọc`
                     : CHAT_THREAD_VIEW_LABEL[view]
                 }
                 onClick={() => setActiveTab(view)}
@@ -4598,6 +4706,31 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
             ) : activeTab === "to_chuc" ? (
               toChucHasThreads ? (
                 <>
+                  {toChucGrouped.cuaToi.length > 0 ? (
+                    <section
+                      className="cins-chat-thread-section"
+                      aria-label="Tổ chức của tôi"
+                    >
+                      <div className="cins-chat-thread-section-head">
+                        <h3 className="cins-chat-thread-section-title">
+                          Tổ chức của tôi
+                        </h3>
+                        <OrgNotifySettingsMenu
+                          orgs={toChucGrouped.cuaToi
+                            .filter((n) => n.canManageNotify)
+                            .map((n) => ({
+                              orgId: n.orgId,
+                              orgTen: n.orgTen,
+                            }))}
+                        />
+                      </div>
+                      <ul role="list">
+                        {toChucGrouped.cuaToi.map((node) =>
+                          renderToChucOrgNode(node),
+                        )}
+                      </ul>
+                    </section>
+                  ) : null}
                   {toChucGrouped.nhanVoi.length > 0 ? (
                     <section
                       className="cins-chat-thread-section"
@@ -4611,21 +4744,6 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                           toChucGrouped.nhanVoi,
                           toChucNestExpandedIds,
                         ).map((thread) => renderThreadRow(thread))}
-                      </ul>
-                    </section>
-                  ) : null}
-                  {toChucGrouped.cuaToi.length > 0 ? (
-                    <section
-                      className="cins-chat-thread-section"
-                      aria-label="Tổ chức của tôi"
-                    >
-                      <h3 className="cins-chat-thread-section-title">
-                        Tổ chức của tôi
-                      </h3>
-                      <ul role="list">
-                        {toChucGrouped.cuaToi.map((node) =>
-                          renderToChucOrgNode(node),
-                        )}
                       </ul>
                     </section>
                   ) : null}
@@ -4980,6 +5098,16 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                 canConfirmHocPhi={Boolean(
                   active.isOrgStaffInbox || active.viewerIsOrgMember,
                 )}
+                orgBrand={
+                  active.orgTen || active.orgId
+                    ? {
+                        ten: active.orgTen ?? active.name,
+                        anh: active.isOrgStaffInbox
+                          ? null
+                          : active.avatarUrl,
+                      }
+                    : null
+                }
                 readCursors={
                   active.roomId
                     ? (readCursorsByRoom[active.roomId] ?? [])

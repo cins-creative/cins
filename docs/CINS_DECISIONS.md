@@ -41,11 +41,31 @@
 
 ## LOG — quyết định đã chốt
 
+### Studio / DN — tab Analytics trong quan-ly (2026-08-03)
+
+- **Nav:** thêm section `analytics` (label **Analytics**) sau Sự kiện — studio + doanh_nghiep (`STUDIO_NAV_GROUPS`).
+- **Route:** `/studio/[slug]/quan-ly/analytics`.
+- **Mục đích:** tổng hợp hiệu quả tiếp cận nội dung org (tiếp cận / tương tác / nguồn / theo bài). Số liệu từng bài vẫn qua «Số liệu tiếp cận»; tab này là cấp org (UI scaffold trước, nối rollup sau).
+
+### Org — «Quản lý bài học viên» gom tag + tường (2026-08-03)
+
+- **Nav / sidebar:** nút cũ «Thông báo» (`TruongMilestoneTagNotify`) → **Quản lý bài học viên**.
+- **Panel:** filter Tất cả · Chờ duyệt · **Đã duyệt** (= bảng `CoSoDoanSanPhamAdmin` khi CSĐT/ĐH) · Từ chối. Studio: Đã duyệt = list tag. Không tab «Hiển thị tường» riêng.
+- **Public tab** sản phẩm/đồ án: bỏ nút mở quản lý trên trang; admin vào qua quan-ly / sidebar editing.
+
+### Chat — Org node summary + thông báo dùng chung (2026-08-03)
+
+- **Org node «Của tôi»:** không xổ inbox staff; chỉ hiện *Chưa đọc / Chưa trả lời* (chip → QL `?filter=`). Expand chỉ **hub + phòng lớp**.
+- **Bubble:** `isOrgStaffInbox` không vào floating stack — ưu tiên Noti.
+- **Noti click:** → `/quan-ly/tin-nhan?room=` (đảo chốt 2026-08-02 «Bell → overlay»).
+- **Quản lý thông báo:** `org_to_chuc.cau_hinh.tinNhan.thongBaoChung` (0 migration). Mặc định off (hiển thị đầy đủ). On = watermark/noti dùng chung giữa admin. Chỉ `owner`/`admin` đổi. API `GET|PATCH /api/org/:orgId/chat/thong-bao`.
+- Plan: `docs/PLAN_org_chat_node_summary.md`.
+
 ### Chat — hộp thư org trong overlay + notify + hint nội bộ (2026-08-02)
 
 - **Identity as-org (C1):** không ALTER `chat_tin_nhan`. Tin staff vẫn `id_nguoi_gui` = staff; khách thấy branding org (mask UI + server redact). Formalize cột `id_to_chuc` chỉ khi cần as-org trong phòng nhóm/lớp.
 - **Hint nội bộ:** member active bất kỳ vai trò của org thấy «Trả lời bởi {tên} · {vai trò}». Lọc **server-side** (`applyOrgAdvisoryPerspective`); realtime client redact nếu `!viewerIsOrgMember`.
-- **Notify:** `loai_doi_tuong=org_tin_nhan_moi`, coalesce **1 row / admin / phòng** (`id_doi_tuong=roomId`). Fan-out `ORG_ADMIN_ROLES`. Mark read khi `markRoomRead`. Bell `JourneyNotifications` → mở overlay.
+- **Notify:** `loai_doi_tuong=org_tin_nhan_moi`, coalesce **1 row / admin / phòng** (`id_doi_tuong=roomId`). Fan-out `ORG_ADMIN_ROLES`. Mark read khi `markRoomRead`. Bell `JourneyNotifications` → **trang QL tin nhắn** (`?room=`), không mở overlay.
 - **Tab «Tổ chức»:** sub-filter Tất cả / Của tôi / Tham gia. «Của tôi» = `isOrgStaffInbox` (+ hub/lớp org quản trị). Badge vai trò viewer trên thread staff.
 - **Nút Tin nhắn sidebar:** mở overlay `tab=to_chuc` + `toChucFilter=cua_toi` (không còn modal `OrgInboxPanel`). Trang CSĐT `/quan-ly/tin-nhan` giữ nguyên.
 - Plan: `docs/PLAN_org_inbox_notify_chat.md`. **0 migration.**

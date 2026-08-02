@@ -22,6 +22,11 @@ import {
   readCachedMilestoneDetail,
 } from "@/lib/journey/milestone-detail-cache";
 import {
+  CINS_HISTORY_CMT,
+  pushOverlayHistory,
+  withSearchParam,
+} from "@/lib/navigation/overlay-history";
+import {
   addCommentToThreads,
   countCommentThreads,
   removeCommentFromThreads,
@@ -36,6 +41,11 @@ type Props = {
   postOwnerSlug: string;
   postSlug?: string | null;
   milestoneId: string;
+  /**
+   * Đồng bộ `?cmt=` lên history (mặc định bật).
+   * Back đóng sheet thay vì thoát trang.
+   */
+  syncUrl?: boolean;
 };
 
 export function JourneyCommentsSheet({
@@ -44,11 +54,14 @@ export function JourneyCommentsSheet({
   postOwnerSlug,
   postSlug,
   milestoneId,
+  syncUrl = true,
 }: Props) {
   const titleId = useId();
   const mountedRef = useRef(true);
   const loadGenRef = useRef(0);
   const [portalReady, setPortalReady] = useState(false);
+  const pushedRef = useRef(false);
+  const ignorePopRef = useRef(false);
 
   const cacheKey = milestoneDetailCacheKey(
     postOwnerSlug,
@@ -71,7 +84,7 @@ export function JourneyCommentsSheet({
   useEffect(() => {
     if (!open) return;
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape") requestClose();
     };
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -80,7 +93,57 @@ export function JourneyCommentsSheet({
       document.body.style.overflow = prevOverflow;
       document.removeEventListener("keydown", onKey);
     };
-  }, [open, onClose]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- requestClose ổn định theo open/sync
+  }, [open, onClose, syncUrl]);
+
+  /** Push `?cmt=` khi mở; popstate / back đóng sheet. */
+  useEffect(() => {
+    if (!open || !syncUrl) return;
+
+    const current = new URL(window.location.href).searchParams.get("cmt");
+    if (current === milestoneId) {
+      /* Đã có trên URL (vd. deep-link) — không push thêm. */
+      return;
+    }
+
+    pushOverlayHistory(
+      CINS_HISTORY_CMT,
+      milestoneId,
+      withSearchParam("cmt", milestoneId),
+    );
+    pushedRef.current = true;
+
+    return () => {
+      /* Parent đóng mà chưa back — để nguyên URL; lần mở sau sẽ so khớp. */
+    };
+  }, [open, milestoneId, syncUrl]);
+
+  useEffect(() => {
+    if (!syncUrl) return;
+    const onPop = () => {
+      if (ignorePopRef.current) {
+        ignorePopRef.current = false;
+        pushedRef.current = false;
+        return;
+      }
+      if (!open) return;
+      pushedRef.current = false;
+      onClose();
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, [open, onClose, syncUrl]);
+
+  function requestClose() {
+    if (syncUrl && pushedRef.current) {
+      ignorePopRef.current = true;
+      pushedRef.current = false;
+      onClose();
+      window.history.back();
+      return;
+    }
+    onClose();
+  }
 
   useEffect(() => {
     if (!open) {
@@ -213,7 +276,7 @@ export function JourneyCommentsSheet({
       className="j-cmt-sheet-backdrop"
       role="presentation"
       onClick={(event) => {
-        if (event.target === event.currentTarget) onClose();
+        if (event.target === event.currentTarget) requestClose();
       }}
     >
       <div
@@ -232,7 +295,7 @@ export function JourneyCommentsSheet({
             type="button"
             className="j-cmt-sheet-close"
             aria-label="Đóng"
-            onClick={onClose}
+            onClick={requestClose}
           >
             <X size={16} aria-hidden />
           </button>

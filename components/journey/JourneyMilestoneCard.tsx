@@ -1486,7 +1486,7 @@ export function JourneyMilestoneCard({
     /* Mobile / viewport hẹp: popup full bài — tránh xổ dài phá feed.
        org_bai_dang không load được qua JourneyPostModal → giữ xổ inline. */
     if (commentsSheetMode && !orgBaiDangRef) {
-      openArticlePopup(milestoneId);
+      openArticlePopup(milestoneId, { href: viewerPostHref });
       return;
     }
     expandScrollPinRef.current = captureExpandScrollPin(articleRef.current);
@@ -1500,7 +1500,7 @@ export function JourneyMilestoneCard({
     e.preventDefault();
     trackContentOpen();
     if (commentsSheetMode && !orgBaiDangRef) {
-      openArticlePopup(milestoneId);
+      openArticlePopup(milestoneId, { href: viewerPostHref });
       return;
     }
     expandScrollPinRef.current = captureExpandScrollPin(articleRef.current);

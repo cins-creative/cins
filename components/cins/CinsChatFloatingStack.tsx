@@ -138,7 +138,7 @@ const BUBBLE_DRAG_ARM_PX = 10;
 
 function pickUnreadThreads(threads: ChatThread[]): ChatThread[] {
   return threads
-    .filter((t) => t.unread > 0)
+    .filter((t) => t.unread > 0 && !t.isOrgStaffInbox)
     .sort(
       (a, b) => new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime(),
     );
@@ -156,6 +156,8 @@ function mergePeekThreads(
   const pinnedSet = pinnedRoomIds;
 
   const shouldKeep = (thread: ChatThread) => {
+    /* Hộp thư org staff → Noti + trang QL, không bubble. */
+    if (thread.isOrgStaffInbox) return false;
     const isPinned = pinnedSet.has(thread.roomId);
     const hasUnread = thread.unread > 0;
     if (!hasUnread && !isPinned) return false;
@@ -176,7 +178,7 @@ function mergePeekThreads(
 
   for (const roomId of pinnedSet) {
     const fromList = apiByRoom.get(roomId) ?? pinnedSnapshots[roomId];
-    if (!fromList) continue;
+    if (!fromList || fromList.isOrgStaffInbox) continue;
     merged.set(roomId, fromList);
   }
 
@@ -2351,6 +2353,16 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
                 canConfirmHocPhi={Boolean(
                   miniThread.isOrgStaffInbox || miniThread.viewerIsOrgMember,
                 )}
+                orgBrand={
+                  miniThread.orgTen || miniThread.orgId
+                    ? {
+                        ten: miniThread.orgTen ?? miniThread.name,
+                        anh: miniThread.isOrgStaffInbox
+                          ? null
+                          : miniThread.avatarUrl,
+                      }
+                    : null
+                }
                 renderTheirAvatar={(msg) => (
                   <MiniAvatar
                     variant="person"

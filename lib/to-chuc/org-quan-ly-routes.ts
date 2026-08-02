@@ -12,7 +12,7 @@ export type OrgQuanLyKind =
 /**
  * Section dùng chung.
  * - co_so: `marketing` / `chi-nhanh` là alias legacy.
- * - studio: `marketing` là mục thật; `thong-tin` = thông tin studio.
+ * - studio: `marketing` là alias → `tuyen-dung`; `thong-tin` = thông tin studio.
  */
 export type OrgQuanLySection =
   | "tong-quan"
@@ -25,12 +25,17 @@ export type OrgQuanLySection =
   | "diem-danh"
   | "doanh-thu"
   | "su-kien"
+  | "tuyen-dung"
+  | "analytics"
   | "tin-nhan"
   | "cai-dat"
   | "marketing";
 
-/** chi-nhanh luôn alias; marketing chỉ alias trên cơ sở. */
-export type OrgQuanLySectionResolved = Exclude<OrgQuanLySection, "chi-nhanh">;
+/** chi-nhanh + marketing luôn là alias (cơ sở → co-so, studio → tuyen-dung). */
+export type OrgQuanLySectionResolved = Exclude<
+  OrgQuanLySection,
+  "chi-nhanh" | "marketing"
+>;
 
 export type OrgQuanLyNavItem = {
   id: Exclude<OrgQuanLySectionResolved, "tin-nhan" | "cai-dat">;
@@ -42,12 +47,8 @@ export type OrgQuanLyNavGroup = {
   items: OrgQuanLyNavItem[];
 };
 
-/** IA cơ sở: 4 cụm — Tổng quan | Thiết lập | Học | Tiền. */
+/** IA cơ sở: 3 cụm — Thiết lập | Học | Tiền (bỏ Tổng quan 2026-08-03). */
 const CO_SO_NAV_GROUPS: OrgQuanLyNavGroup[] = [
-  {
-    id: "tong-quan",
-    items: [{ id: "tong-quan", label: "Tổng quan" }],
-  },
   {
     id: "thiet-lap",
     items: [{ id: "co-so", label: "Cơ sở" }],
@@ -67,18 +68,15 @@ const CO_SO_NAV_GROUPS: OrgQuanLyNavGroup[] = [
   },
 ];
 
-/** Studio: Tổng quan | Studio + Marketing + Sự kiện (Tin nhắn / Cài đặt ở trail). */
+/** Studio: Studio + Tuyển dụng + Sự kiện + Analytics (Tin nhắn / Cài đặt ở trail). Bỏ Tổng quan 2026-08-03. */
 const STUDIO_NAV_GROUPS: OrgQuanLyNavGroup[] = [
-  {
-    id: "tong-quan",
-    items: [{ id: "tong-quan", label: "Tổng quan" }],
-  },
   {
     id: "thiet-lap",
     items: [
       { id: "thong-tin", label: "Studio" },
-      { id: "marketing", label: "Marketing" },
+      { id: "tuyen-dung", label: "Tuyển dụng" },
       { id: "su-kien", label: "Sự kiện" },
+      { id: "analytics", label: "Analytics" },
     ],
   },
 ];
@@ -94,10 +92,10 @@ export const ORG_QUAN_LY_NAV: Record<OrgQuanLyKind, OrgQuanLyNavGroup[]> = {
 };
 
 const STUDIO_SECTIONS = new Set<OrgQuanLySectionResolved>([
-  "tong-quan",
   "thong-tin",
-  "marketing",
+  "tuyen-dung",
   "su-kien",
+  "analytics",
   "tin-nhan",
   "cai-dat",
 ]);
@@ -107,30 +105,37 @@ export function orgQuanLyDefaultSection(
   kind: OrgQuanLyKind,
 ): OrgQuanLySectionResolved {
   if (kind === "truong_dai_hoc") return "tin-nhan";
-  return "tong-quan";
+  if (kind === "co_so_dao_tao") return "co-so";
+  return "thong-tin";
 }
 
-/** Marketing → tong-quan · chi-nhanh → co-so (chỉ cơ sở). Studio giữ marketing. */
+/** CSĐT: tong-quan/marketing → co-so · chi-nhanh → co-so. Studio: tong-quan → thong-tin · marketing → tuyen-dung. */
 export function resolveOrgQuanLySection(
   kind: OrgQuanLyKind,
   section?: OrgQuanLySection | null,
 ): OrgQuanLySectionResolved {
   if (kind === "co_so_dao_tao") {
-    if (!section || section === "tong-quan" || section === "marketing") {
-      return "tong-quan";
+    if (
+      !section ||
+      section === "tong-quan" ||
+      section === "marketing" ||
+      section === "chi-nhanh" ||
+      section === "thong-tin"
+    ) {
+      return "co-so";
     }
-    if (section === "chi-nhanh") return "co-so";
-    if (section === "thong-tin") return "co-so";
     return section;
   }
 
   if (kind === "studio" || kind === "doanh_nghiep") {
-    if (!section) return "tong-quan";
+    if (!section || section === "tong-quan") return "thong-tin";
     if (section === "chi-nhanh" || section === "co-so") return "thong-tin";
+    /* «Marketing» tạm nhường chỗ cho Tuyển dụng — giữ alias để link cũ không vỡ. */
+    if (section === "marketing") return "tuyen-dung";
     if (STUDIO_SECTIONS.has(section as OrgQuanLySectionResolved)) {
       return section as OrgQuanLySectionResolved;
     }
-    return "tong-quan";
+    return "thong-tin";
   }
 
   /* Trường: mọi section lạ → tin-nhan. */

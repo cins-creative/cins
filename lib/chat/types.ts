@@ -86,6 +86,8 @@ export type ChatContextCard = {
   anh?: string | null;
   href?: string | null;
   orgTen?: string | null;
+  /** Logo/avatar CSĐT — tách khỏi `anh` (VietQR trên đơn học phí). */
+  orgAnh?: string | null;
   capNhat?: ChatDonCapNhat | null;
 };
 
@@ -305,6 +307,11 @@ export type ChatThread = {
   avatarInitial: string;
   avatarHue: number;
   avatarUrl?: string | null;
+  /**
+   * Logo org — branding node «Tổ chức của tôi».
+   * Staff inbox giữ `avatarUrl` = học viên; dùng field này cho avatar org.
+   */
+  orgAvatarUrl?: string | null;
   /** Org đại diện — dùng dedupe thread tab Tổ chức. */
   orgId?: string;
   /** Slug org — nút «Mở» trang quản lý tin nhắn. */
@@ -326,6 +333,11 @@ export type ChatThread = {
   viewerOrgVaiTroLabel?: string | null;
   /** Thread hộp thư staff (góc nhìn admin) — filter «Tổ chức của tôi». */
   isOrgStaffInbox?: boolean;
+  /**
+   * Trạng thái trả lời hộp thư staff (`open` = tin cuối từ HV).
+   * Chỉ set trên `isOrgStaffInbox`.
+   */
+  orgInboxStatus?: "open" | "replied";
   preview: string;
   lastAt: string;
   unread: number;

@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-import { CoSoDoanSanPhamAdmin } from "@/components/co-so/CoSoDoanSanPhamAdmin";
 import { EntityLightJourneyFeed } from "@/components/tag/EntityLightJourneyFeed";
 import type { DoanMonOption } from "@/components/truong/TruongDoanToolbar";
 import { TruongDoanProjectMasonry } from "@/components/truong/TruongDoanProjectMasonry";
@@ -34,13 +33,10 @@ export function TruongTabDoanSinhVien() {
   const inline = useTruongInlineEdit();
   const { setToolbar } = useTruongDoanToolbarSlot();
   const orgId = inline?.orgId;
-  /** Admin đang bật chế độ sửa trang — hiện khối «Quản lý bài học viên». */
   const isManaging = Boolean(orgId && inline?.isEditing);
   const [projects, setProjects] = useState<OrgDoanProjectItem[]>([]);
-  const [adminProjects, setAdminProjects] = useState<OrgDoanProjectItem[]>([]);
   const [milestones, setMilestones] = useState<MilestoneItem[]>([]);
   const [loadingProjects, setLoadingProjects] = useState(true);
-  const [loadingAdmin, setLoadingAdmin] = useState(false);
   const [loadingMilestones, setLoadingMilestones] = useState(false);
   const [view, setView] = useState<DoanViewMode>("grid");
   const [sort, setSort] = useState<TagAggSort>("moi_nhat");
@@ -71,43 +67,6 @@ export function TruongTabDoanSinhVien() {
 
     return () => controller.abort();
   }, [orgId]);
-
-  useEffect(() => {
-    if (!orgId || !isManaging) {
-      setAdminProjects([]);
-      setLoadingAdmin(false);
-      return;
-    }
-
-    const controller = new AbortController();
-    setLoadingAdmin(true);
-    void fetchJson<{ projects?: OrgDoanProjectItem[] }>(
-      `/api/org/${orgId}/doan-projects?scope=admin`,
-      controller.signal,
-    )
-      .then((json) => {
-        setAdminProjects(Array.isArray(json?.projects) ? json.projects : []);
-      })
-      .catch(() => {
-        if (!controller.signal.aborted) setAdminProjects([]);
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setLoadingAdmin(false);
-      });
-
-    return () => controller.abort();
-  }, [orgId, isManaging]);
-
-  /** Toggle Hiển thị / Điểm từ modal quản lý — đồng bộ cả lưới công khai. */
-  function handleAdminUpdated(item: OrgDoanProjectItem) {
-    setAdminProjects((prev) =>
-      prev.map((p) => (p.id === item.id ? item : p)),
-    );
-    setProjects((prev) => {
-      const without = prev.filter((p) => p.id !== item.id);
-      return item.hienThiSanPham ? [...without, item] : without;
-    });
-  }
 
   useEffect(() => {
     if (!orgId) {
@@ -289,30 +248,14 @@ export function TruongTabDoanSinhVien() {
         </h2>
       </div>
 
-      {isManaging && orgId ? (
-        loadingAdmin ? (
-          <p className="tdh-placeholder">Đang tải danh sách quản trị…</p>
-        ) : adminProjects.length > 0 ? (
-          <CoSoDoanSanPhamAdmin
-            orgId={orgId}
-            projects={adminProjects}
-            onUpdated={handleAdminUpdated}
-          />
-        ) : null
-      ) : null}
-
       {waitingForProjects || waitingForTimeline ? (
         <p className="tdh-placeholder">Đang tải đồ án…</p>
       ) : showEmpty ? (
         <p className="tdh-placeholder">
-          {isManaging &&
-          adminProjects.length > 0 &&
-          !yearFilter &&
-          !nganhFilter &&
-          !monFilter ? (
+          {isManaging && !yearFilter && !nganhFilter && !monFilter ? (
             <>
-              Chưa có đồ án nào được bật hiển thị công khai. Bật «Hiển thị»
-              trong Quản lý bài học viên.
+              Chưa có đồ án công khai. Quản lý tại «Quản lý bài học viên» trên
+              trang quản trị.
             </>
           ) : (
             <>
@@ -320,7 +263,8 @@ export function TruongTabDoanSinhVien() {
               {nganhFilter ? ` — ngành ${nganhFilter}` : ""}
               {monFilterLabel ? ` · môn ${monFilterLabel}` : ""}
               {yearFilter ? ` trong năm ${yearFilter}` : ""}.
-              Sinh viên gắn tổ chức từ Journey — admin duyệt tại nút Thông báo.
+              Sinh viên gắn tổ chức từ Journey — admin duyệt tại «Quản lý bài
+              học viên».
             </>
           )}
         </p>

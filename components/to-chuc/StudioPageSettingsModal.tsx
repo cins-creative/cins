@@ -38,7 +38,8 @@ export type StudioSettingsSection =
   | "contact"
   | "display"
   | "members"
-  | "organization";
+  | "organization"
+  | "ket-noi-api";
 
 type SettingsData = {
   orgId: string;
@@ -82,6 +83,12 @@ type Props = {
     emailLienHe?: string | null;
     pageConfig?: StudioPageCauHinh;
   }) => void;
+  /** Live draft (hero `/quan-ly/thong-tin`) — chỉ page. */
+  onDraftChange?: (draft: {
+    ten: string;
+    moTa: string | null;
+    gioiThieu: string | null;
+  }) => void;
 };
 
 const NAV_BASE: ReadonlyArray<{ id: StudioSettingsSection; label: string }> = [
@@ -93,7 +100,7 @@ const NAV_BASE: ReadonlyArray<{ id: StudioSettingsSection; label: string }> = [
 ];
 
 const SECTION_COPY: Record<
-  Exclude<StudioSettingsSection, "members" | "organization">,
+  Exclude<StudioSettingsSection, "members" | "organization" | "ket-noi-api">,
   { title: string; hint: string }
 > = {
   identity: {
@@ -160,6 +167,7 @@ export function StudioPageSettingsModal({
   pageTitle = "Thông tin studio",
   onClose,
   onSaved,
+  onDraftChange,
 }: Props) {
   const router = useRouter();
   const titleId = useId();
@@ -196,10 +204,15 @@ export function StudioPageSettingsModal({
         trangThaiHoatDong: json.settings.trangThaiHoatDong ?? "dang_hoat_dong",
         isOwner: Boolean(json.settings.isOwner),
       });
+      onDraftChange?.({
+        ten: json.settings.ten,
+        moTa: json.settings.moTa,
+        gioiThieu: json.settings.gioiThieu,
+      });
     } finally {
       setLoading(false);
     }
-  }, [orgId]);
+  }, [orgId, onDraftChange]);
 
   useEffect(() => {
     if (!open) return;
@@ -234,7 +247,16 @@ export function StudioPageSettingsModal({
   }, [draft, section]);
 
   function patchDraft(patch: Partial<SettingsData>) {
-    setDraft((prev) => (prev ? { ...prev, ...patch } : prev));
+    setDraft((prev) => {
+      if (!prev) return prev;
+      const next = { ...prev, ...patch };
+      onDraftChange?.({
+        ten: next.ten,
+        moTa: next.moTa,
+        gioiThieu: next.gioiThieu,
+      });
+      return next;
+    });
   }
 
   function toggleTab(tabId: StudioOptionalTabId, visible: boolean) {
@@ -282,7 +304,13 @@ export function StudioPageSettingsModal({
 
   function onSaveSection(e: React.FormEvent) {
     e.preventDefault();
-    if (!draft || section === "members" || section === "organization") return;
+    if (
+      !draft ||
+      section === "members" ||
+      section === "organization" ||
+      section === "ket-noi-api"
+    )
+      return;
     const prevSlug = draft.slug;
     setErr(null);
     startTransition(async () => {
@@ -344,6 +372,9 @@ export function StudioPageSettingsModal({
     if (draft?.isOwner && allowOrg) {
       items.push({ id: "organization" as const, label: "Tổ chức" });
     }
+    if (allowedSections?.includes("ket-noi-api")) {
+      items.push({ id: "ket-noi-api" as const, label: "Kết nối API" });
+    }
     return items;
   })();
 
@@ -351,9 +382,12 @@ export function StudioPageSettingsModal({
     Boolean(draft) &&
     section !== "members" &&
     section !== "organization" &&
+    section !== "ket-noi-api" &&
     !loading;
   const sectionCopy =
-    section !== "members" && section !== "organization"
+    section !== "members" &&
+    section !== "organization" &&
+    section !== "ket-noi-api"
       ? SECTION_COPY[section]
       : null;
 
@@ -485,10 +519,30 @@ export function StudioPageSettingsModal({
               </section>
             ) : null}
 
+            {!loading && draft && section === "ket-noi-api" ? (
+              <section
+                className="uas-section"
+                aria-labelledby={`${titleId}-ket-noi-api`}
+              >
+                <div className="uas-section-head">
+                  <h3
+                    id={`${titleId}-ket-noi-api`}
+                    className="uas-section-title"
+                  >
+                    Kết nối API
+                  </h3>
+                  <p className="uas-section-hint">
+                    Tính năng đang phát triển
+                  </p>
+                </div>
+              </section>
+            ) : null}
+
             {!loading &&
             draft &&
             section !== "members" &&
             section !== "organization" &&
+            section !== "ket-noi-api" &&
             sectionCopy ? (
               <form
                 id={formId}

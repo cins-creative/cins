@@ -126,104 +126,154 @@ export function JourneyMilestoneInsightsModal({
           </button>
         </div>
 
-        {state.status === "loading" ? (
-          <p className="jmi-msg">Đang tải số liệu…</p>
-        ) : state.status === "forbidden" ? (
-          <p className="jmi-msg">
-            Chỉ tác giả, người được gắn thẻ, hoặc quản trị viên tổ chức mới xem được số liệu này.
-          </p>
-        ) : state.status === "error" ? (
-          <p className="jmi-msg jmi-msg--err">{state.message}</p>
-        ) : state.status === "ok" ? (
-          <div className="jmi-grid">
-            <Stat
-              icon={<Eye size={16} strokeWidth={1.9} aria-hidden />}
-              label="Lượt tiếp cận"
-              value={state.data.luotTiepCan}
-              sub={`${formatNumber(state.data.tiepCanUnique)} người/phiên duy nhất`}
-            />
-            <Stat
-              icon={<FileText size={16} strokeWidth={1.9} aria-hidden />}
-              label="Xem nội dung"
-              value={state.data.luotXemNoiDung}
-            />
-            <Stat
-              icon={<UserRound size={16} strokeWidth={1.9} aria-hidden />}
-              label="Click xem hồ sơ"
-              value={state.data.luotClickProfile}
-            />
-            <Stat
-              icon={<MessageCircle size={16} strokeWidth={1.9} aria-hidden />}
-              label="Mở bình luận"
-              value={state.data.luotMoComment}
-            />
-            <Stat
-              icon={<ImageIcon size={16} strokeWidth={1.9} aria-hidden />}
-              label="Xem ảnh / video"
-              value={state.data.luotXemMedia}
-            />
-            <Stat
-              icon={<Link2 size={16} strokeWidth={1.9} aria-hidden />}
-              label="Click liên kết"
-              value={state.data.luotClickLienKet}
-            />
-          </div>
-        ) : null}
-
-        {state.status === "ok" ? (
-          <>
-            <section className="jmi-section">
-              <h4 className="jmi-section-title">Người xem thấy bài từ đâu</h4>
-              <div className="jmi-split">
-                <Split
-                  icon={<Globe size={15} strokeWidth={1.9} aria-hidden />}
-                  label="Từ bên ngoài"
-                  hint="Feed, trang cá nhân, link trực tiếp…"
-                  value={state.data.tiepCanBenNgoai}
+        <div className="jmi-coming-soon">
+          <div className="jmi-coming-soon-body" aria-hidden="true">
+            {state.status === "loading" ? (
+              <p className="jmi-msg">Đang tải số liệu…</p>
+            ) : state.status === "forbidden" ? (
+              <p className="jmi-msg">
+                Chỉ tác giả, người được gắn thẻ, hoặc quản trị viên tổ chức mới
+                xem được số liệu này.
+              </p>
+            ) : state.status === "error" ? (
+              <p className="jmi-msg jmi-msg--err">{state.message}</p>
+            ) : state.status === "ok" ? (
+              <div className="jmi-grid">
+                <Stat
+                  icon={<Eye size={16} strokeWidth={1.9} aria-hidden />}
+                  label="Lượt tiếp cận"
+                  value={state.data.luotTiepCan}
+                  sub={`${formatNumber(state.data.tiepCanUnique)} người/phiên duy nhất`}
                 />
-                <Split
-                  icon={<Building2 size={15} strokeWidth={1.9} aria-hidden />}
-                  label="Trong trang tổ chức"
-                  hint="Trang trường / cơ sở (đồ án, sản phẩm…)"
-                  value={state.data.tiepCanTrongToChuc}
+                <Stat
+                  icon={<FileText size={16} strokeWidth={1.9} aria-hidden />}
+                  label="Xem nội dung"
+                  value={state.data.luotXemNoiDung}
+                />
+                <Stat
+                  icon={<UserRound size={16} strokeWidth={1.9} aria-hidden />}
+                  label="Click xem hồ sơ"
+                  value={state.data.luotClickProfile}
+                />
+                <Stat
+                  icon={<MessageCircle size={16} strokeWidth={1.9} aria-hidden />}
+                  label="Mở bình luận"
+                  value={state.data.luotMoComment}
+                />
+                <Stat
+                  icon={<ImageIcon size={16} strokeWidth={1.9} aria-hidden />}
+                  label="Xem ảnh / video"
+                  value={state.data.luotXemMedia}
+                />
+                <Stat
+                  icon={<Link2 size={16} strokeWidth={1.9} aria-hidden />}
+                  label="Click liên kết"
+                  value={state.data.luotClickLienKet}
                 />
               </div>
-            </section>
+            ) : (
+              <div className="jmi-grid">
+                <Stat
+                  icon={<Eye size={16} strokeWidth={1.9} aria-hidden />}
+                  label="Lượt tiếp cận"
+                  value={0}
+                  sub="0 người/phiên duy nhất"
+                />
+                <Stat
+                  icon={<FileText size={16} strokeWidth={1.9} aria-hidden />}
+                  label="Xem nội dung"
+                  value={0}
+                />
+                <Stat
+                  icon={<UserRound size={16} strokeWidth={1.9} aria-hidden />}
+                  label="Click xem hồ sơ"
+                  value={0}
+                />
+                <Stat
+                  icon={<MessageCircle size={16} strokeWidth={1.9} aria-hidden />}
+                  label="Mở bình luận"
+                  value={0}
+                />
+                <Stat
+                  icon={<ImageIcon size={16} strokeWidth={1.9} aria-hidden />}
+                  label="Xem ảnh / video"
+                  value={0}
+                />
+                <Stat
+                  icon={<Link2 size={16} strokeWidth={1.9} aria-hidden />}
+                  label="Click liên kết"
+                  value={0}
+                />
+              </div>
+            )}
 
-            <section className="jmi-section">
-              <h4 className="jmi-section-title">Người xem theo nhóm</h4>
-              {state.data.giaiDoanBreakdown.length === 0 ? (
-                <p className="jmi-empty">Chưa có người xem được ghi nhận.</p>
-              ) : (
-                <ul className="jmi-bars">
-                  {(() => {
-                    const max = Math.max(
-                      1,
-                      ...state.data.giaiDoanBreakdown.map((r) => r.nguoi),
-                    );
-                    return state.data.giaiDoanBreakdown.map((r) => (
-                      <li key={r.giaiDoan} className="jmi-bar-row">
-                        <span className="jmi-bar-lbl">{nhomNguoiXemLabel(r.giaiDoan)}</span>
-                        <span className="jmi-bar-track" aria-hidden>
-                          <span
-                            className="jmi-bar-fill"
-                            style={{ width: `${Math.round((r.nguoi / max) * 100)}%` }}
-                          />
-                        </span>
-                        <span className="jmi-bar-num">{formatNumber(r.nguoi)}</span>
-                      </li>
-                    ));
-                  })()}
-                </ul>
-              )}
-            </section>
-          </>
-        ) : null}
+            {state.status === "ok" ? (
+              <>
+                <section className="jmi-section">
+                  <h4 className="jmi-section-title">Người xem thấy bài từ đâu</h4>
+                  <div className="jmi-split">
+                    <Split
+                      icon={<Globe size={15} strokeWidth={1.9} aria-hidden />}
+                      label="Từ bên ngoài"
+                      hint="Feed, trang cá nhân, link trực tiếp…"
+                      value={state.data.tiepCanBenNgoai}
+                    />
+                    <Split
+                      icon={<Building2 size={15} strokeWidth={1.9} aria-hidden />}
+                      label="Trong trang tổ chức"
+                      hint="Trang trường / cơ sở (đồ án, sản phẩm…)"
+                      value={state.data.tiepCanTrongToChuc}
+                    />
+                  </div>
+                </section>
 
-        <p className="jmi-foot">
-          <Users size={12} strokeWidth={2} aria-hidden />
-          Số liệu cập nhật gần thời gian thực. Không tính lượt xem của chính bạn.
-        </p>
+                <section className="jmi-section">
+                  <h4 className="jmi-section-title">Người xem theo nhóm</h4>
+                  {state.data.giaiDoanBreakdown.length === 0 ? (
+                    <p className="jmi-empty">Chưa có người xem được ghi nhận.</p>
+                  ) : (
+                    <ul className="jmi-bars">
+                      {(() => {
+                        const max = Math.max(
+                          1,
+                          ...state.data.giaiDoanBreakdown.map((r) => r.nguoi),
+                        );
+                        return state.data.giaiDoanBreakdown.map((r) => (
+                          <li key={r.giaiDoan} className="jmi-bar-row">
+                            <span className="jmi-bar-lbl">
+                              {nhomNguoiXemLabel(r.giaiDoan)}
+                            </span>
+                            <span className="jmi-bar-track" aria-hidden>
+                              <span
+                                className="jmi-bar-fill"
+                                style={{
+                                  width: `${Math.round((r.nguoi / max) * 100)}%`,
+                                }}
+                              />
+                            </span>
+                            <span className="jmi-bar-num">
+                              {formatNumber(r.nguoi)}
+                            </span>
+                          </li>
+                        ));
+                      })()}
+                    </ul>
+                  )}
+                </section>
+              </>
+            ) : null}
+
+            <p className="jmi-foot">
+              <Users size={12} strokeWidth={2} aria-hidden />
+              Số liệu cập nhật gần thời gian thực. Không tính lượt xem của chính
+              bạn.
+            </p>
+          </div>
+
+          <div className="jmi-coming-soon-overlay" role="status">
+            <p className="jmi-coming-soon-label">Tính năng đang phát triển</p>
+          </div>
+        </div>
       </div>
     </div>,
     document.body,

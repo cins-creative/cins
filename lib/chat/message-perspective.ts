@@ -55,6 +55,7 @@ export function parseChatNguCanh(raw: unknown): ChatContextCard | null {
     anh: typeof r.anh === "string" ? r.anh : null,
     href: typeof r.href === "string" ? r.href : null,
     orgTen: typeof r.orgTen === "string" ? r.orgTen : null,
+    orgAnh: typeof r.orgAnh === "string" ? r.orgAnh : null,
     capNhat: parseDonCapNhat(r.capNhat),
   };
 }

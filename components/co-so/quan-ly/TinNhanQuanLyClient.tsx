@@ -72,6 +72,7 @@ import {
   type Dispatch,
   type SetStateAction,
 } from "react";
+import { useOrgInboxDeepLink } from "@/lib/chat/use-org-inbox-deep-link";
 
 function toReplyPreview(msg: ChatMessage): ChatMessageReplyPreview {
   return {
@@ -92,14 +93,22 @@ type Lop = { id: string; maLop: string; khoaId: string; tenKhoa: string };
 type Props = {
   orgId: string;
   orgSlug: string;
+  orgTen?: string | null;
+  orgAvatarUrl?: string | null;
 };
 
-export function TinNhanQuanLyClient({ orgId, orgSlug }: Props) {
+export function TinNhanQuanLyClient({
+  orgId,
+  orgSlug,
+  orgTen = null,
+  orgAvatarUrl = null,
+}: Props) {
   const chat = useCinsChat();
   const viewerId = chat.viewerProfileId;
   const [mainTab, setMainTab] = useState<MainTab>("tu_van");
   const [flash, setFlash] = useState<string | null>(null);
   const inboxRef = useRef<OrgInboxPanelHandle | null>(null);
+  const deepLink = useOrgInboxDeepLink({ filter: "open" });
 
   const [goi, setGoi] = useState<Goi[]>([]);
   const [lop, setLop] = useState<Lop[]>([]);
@@ -112,6 +121,11 @@ export function TinNhanQuanLyClient({ orgId, orgSlug }: Props) {
     setFlash(message);
     window.setTimeout(() => setFlash(null), 4000);
   }, []);
+
+  const orgBrand = useMemo(
+    () => ({ ten: orgTen, anh: orgAvatarUrl }),
+    [orgTen, orgAvatarUrl],
+  );
 
   useEffect(() => {
     void (async () => {
@@ -165,18 +179,29 @@ export function TinNhanQuanLyClient({ orgId, orgSlug }: Props) {
               orgId={orgId}
               viewerId={viewerId}
               onToast={toast}
+              orgBrand={orgBrand}
             />
           ) : (
             <OrgInboxPanel
-              key={mainTab === "verify" ? "verify" : "tu_van"}
+              key={
+                mainTab === "verify"
+                  ? "verify"
+                  : `tu_van-${deepLink.initialRoomId ?? ""}-${deepLink.initialFilter}`
+              }
               orgId={orgId}
               className="cso-tin-nhan-inbox"
               hideFilters={mainTab === "verify"}
               filterOverride={verifyFilter}
-              initialFilter={mainTab === "verify" ? "verify" : "open"}
+              initialFilter={
+                mainTab === "verify" ? "verify" : deepLink.initialFilter
+              }
+              initialRoomId={
+                mainTab === "verify" ? null : deepLink.initialRoomId
+              }
               panelRef={inboxRef}
               onToast={toast}
               canConfirmHocPhi
+              orgBrand={orgBrand}
               renderDetailActions={(thread) => (
                 <StaffActionButtons
                   thread={thread}
@@ -544,10 +569,12 @@ function CoSoRoomsPane({
   orgId,
   viewerId,
   onToast,
+  orgBrand = null,
 }: {
   orgId: string;
   viewerId: string | null;
   onToast: (m: string) => void;
+  orgBrand?: { ten?: string | null; anh?: string | null } | null;
 }) {
   const [threads, setThreads] = useState<ChatThread[]>([]);
   const [loading, setLoading] = useState(true);
@@ -980,6 +1007,7 @@ function CoSoRoomsPane({
             avatarUrl={selected.avatarUrl}
             avatarHue={selected.avatarHue}
             avatarInitial={selected.avatarInitial}
+            orgBrand={orgBrand}
           />
         ) : (
           <p className="tdh-message-inbox-pick">
@@ -1007,6 +1035,7 @@ function RoomComposeDetail({
   avatarUrl,
   avatarHue,
   avatarInitial,
+  orgBrand = null,
 }: {
   roomId: string;
   title: string;
@@ -1032,6 +1061,7 @@ function RoomComposeDetail({
   avatarUrl?: string | null;
   avatarHue: number;
   avatarInitial: string;
+  orgBrand?: { ten?: string | null; anh?: string | null } | null;
 }) {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -1151,6 +1181,7 @@ function RoomComposeDetail({
               onEditingDraftChange={setEditingDraft}
               onSaveEdit={handleSaveEdit}
               onCancelEdit={handleCancelEdit}
+              orgBrand={orgBrand}
               renderTheirAvatar={() => (
                 <span className="cins-chat-avatar-wrap">
                   <span

@@ -14,7 +14,12 @@ export default async function CoSoQuanLyTinNhanPage({ params }: Props) {
 
   return (
     <CoSoQuanLyPageGate params={params} section="tin-nhan">
-      <TinNhanQuanLyClient orgId={meta.id} orgSlug={slug} />
+      <TinNhanQuanLyClient
+        orgId={meta.id}
+        orgSlug={slug}
+        orgTen={meta.ten}
+        orgAvatarUrl={meta.avatarSrc}
+      />
     </CoSoQuanLyPageGate>
   );
 }

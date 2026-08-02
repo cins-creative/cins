@@ -254,6 +254,7 @@ export async function getCoSoMetaBySlugCached(slug: string) {
     id: payload.school.id,
     ten: payload.school.ten,
     moTa: payload.school.mo_ta,
+    gioiThieuTruong: payload.school.gioi_thieu_truong,
     avatarSrc: payload.school.avatar_src,
   };
 }

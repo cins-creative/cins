@@ -14,6 +14,12 @@ export function isManagedOrgThread(thread: ChatThread): boolean {
   return isManagedHubOrLop;
 }
 
+export type ToChucOrgInboxSummary = {
+  count: number;
+  unread: number;
+  chuaTraLoi: number;
+};
+
 export type ToChucOrgNode = {
   orgId: string;
   orgSlug?: string;
@@ -24,9 +30,20 @@ export type ToChucOrgNode = {
   avatarUrl?: string | null;
   avatarInitial: string;
   avatarHue: number;
+  /** Tổng unread = inbox.unread + rooms unread. */
   unread: number;
   lastAt: string;
+  /** Toàn bộ thread managed — giữ để search / realtime; không xổ inbox trong UI. */
   threads: ChatThread[];
+  /** Hộp thư staff — chỉ hiện số, không list trong overlay. */
+  inbox: ToChucOrgInboxSummary;
+  /** Hub + phòng lớp — vẫn expand chat trong overlay. */
+  rooms: ChatThread[];
+  /**
+   * Viewer là owner/admin org — hiện menu «Quản lý thông báo».
+   * Suy từ `viewerOrgVaiTroLabel` / staff inbox membership.
+   */
+  canManageNotify?: boolean;
 };
 
 export type ToChucGroupedThreads = {
@@ -38,6 +55,91 @@ export type ToChucGroupedThreads = {
 
 function compareLastAtDesc(a: string, b: string): number {
   return new Date(b).getTime() - new Date(a).getTime();
+}
+
+function emptyInbox(): ToChucOrgInboxSummary {
+  return { count: 0, unread: 0, chuaTraLoi: 0 };
+}
+
+/** Logo org cho node — ưu tiên hub / orgAvatarUrl, không lấy avatar HV staff inbox. */
+function resolveOrgNodeAvatar(thread: ChatThread): {
+  url: string | null;
+  initial: string;
+  hue: number;
+} | null {
+  const orgTen =
+    thread.orgTen?.trim() ||
+    (thread.kind === "org" ? thread.name.trim() : "") ||
+    null;
+  const fromOrgField = thread.orgAvatarUrl?.trim() || null;
+  const fromOrgKind =
+    thread.kind === "org" && thread.avatarUrl?.trim()
+      ? thread.avatarUrl.trim()
+      : null;
+  const url = fromOrgField || fromOrgKind;
+  if (!url && !orgTen && !thread.orgId) return null;
+  const seed = thread.orgId?.trim() || thread.id;
+  return {
+    url,
+    initial: orgTen
+      ? avatarInitialFromName(orgTen)
+      : thread.kind === "org"
+        ? thread.avatarInitial
+        : avatarInitialFromName("Tổ chức"),
+    hue:
+      thread.kind === "org" && !fromOrgField
+        ? thread.avatarHue
+        : avatarHueFromSeed(seed),
+  };
+}
+
+function applyOrgAvatarToNode(node: ToChucOrgNode, thread: ChatThread): void {
+  const resolved = resolveOrgNodeAvatar(thread);
+  if (!resolved) return;
+  /* Hub / có URL: ghi đè placeholder chữ; không ghi đè URL đã có bằng null. */
+  if (resolved.url) {
+    if (!node.avatarUrl || thread.isOrgHub) {
+      node.avatarUrl = resolved.url;
+      node.avatarInitial = resolved.initial;
+      node.avatarHue = resolved.hue;
+    }
+    return;
+  }
+  if (!node.avatarUrl) {
+    node.avatarInitial = resolved.initial;
+    node.avatarHue = resolved.hue;
+  }
+}
+
+function pushThreadIntoNode(node: ToChucOrgNode, thread: ChatThread): void {
+  node.threads.push(thread);
+  node.unread += thread.unread;
+  if (compareLastAtDesc(node.lastAt, thread.lastAt) > 0) {
+    node.lastAt = thread.lastAt;
+  }
+  if (!node.orgSlug && thread.orgSlug) {
+    node.orgSlug = thread.orgSlug;
+  }
+  if (!node.quanLyKind && isOrgQuanLyKind(thread.orgKind)) {
+    node.quanLyKind = thread.orgKind;
+    node.orgKind = thread.orgKind;
+  }
+  applyOrgAvatarToNode(node, thread);
+  const label = thread.viewerOrgVaiTroLabel?.trim();
+  if (label === "Sáng lập" || label === "Quản trị") {
+    node.canManageNotify = true;
+  }
+
+  if (thread.isOrgStaffInbox) {
+    node.inbox.count += 1;
+    node.inbox.unread += thread.unread;
+    if (thread.orgInboxStatus === "open") {
+      node.inbox.chuaTraLoi += 1;
+    }
+    return;
+  }
+
+  node.rooms.push(thread);
 }
 
 /**
@@ -63,8 +165,8 @@ export function groupToChucThreads(
       continue;
     }
 
-    const existing = byOrg.get(orgId);
-    if (!existing) {
+    let node = byOrg.get(orgId);
+    if (!node) {
       const orgTen =
         thread.orgTen?.trim() ||
         (thread.kind === "org" ? thread.name.trim() : "") ||
@@ -72,45 +174,26 @@ export function groupToChucThreads(
       const quanLyKind = isOrgQuanLyKind(thread.orgKind)
         ? thread.orgKind
         : undefined;
-      byOrg.set(orgId, {
+      const avatar = resolveOrgNodeAvatar(thread);
+      node = {
         orgId,
         orgSlug: thread.orgSlug,
         orgTen,
         orgKind: thread.orgKind,
         quanLyKind,
-        avatarUrl: thread.kind === "org" ? thread.avatarUrl : undefined,
-        avatarInitial:
-          thread.kind === "org"
-            ? thread.avatarInitial
-            : avatarInitialFromName(orgTen),
-        avatarHue:
-          thread.kind === "org"
-            ? thread.avatarHue
-            : avatarHueFromSeed(orgId),
-        unread: thread.unread,
+        avatarUrl: avatar?.url ?? null,
+        avatarInitial: avatar?.initial ?? avatarInitialFromName(orgTen),
+        avatarHue: avatar?.hue ?? avatarHueFromSeed(orgId),
+        unread: 0,
         lastAt: thread.lastAt,
-        threads: [thread],
-      });
-      continue;
+        threads: [],
+        inbox: emptyInbox(),
+        rooms: [],
+      };
+      byOrg.set(orgId, node);
     }
 
-    existing.threads.push(thread);
-    existing.unread += thread.unread;
-    if (compareLastAtDesc(existing.lastAt, thread.lastAt) > 0) {
-      existing.lastAt = thread.lastAt;
-    }
-    if (!existing.orgSlug && thread.orgSlug) {
-      existing.orgSlug = thread.orgSlug;
-    }
-    if (!existing.quanLyKind && isOrgQuanLyKind(thread.orgKind)) {
-      existing.quanLyKind = thread.orgKind;
-      existing.orgKind = thread.orgKind;
-    }
-    if (!existing.avatarUrl && thread.kind === "org" && thread.avatarUrl) {
-      existing.avatarUrl = thread.avatarUrl;
-      existing.avatarInitial = thread.avatarInitial;
-      existing.avatarHue = thread.avatarHue;
-    }
+    pushThreadIntoNode(node, thread);
   }
 
   const cuaToi = [...byOrg.values()].sort((a, b) =>
@@ -118,6 +201,7 @@ export function groupToChucThreads(
   );
   for (const node of cuaToi) {
     node.threads.sort((a, b) => compareLastAtDesc(a.lastAt, b.lastAt));
+    node.rooms.sort((a, b) => compareLastAtDesc(a.lastAt, b.lastAt));
   }
   nhanVoi.sort((a, b) => compareLastAtDesc(a.lastAt, b.lastAt));
 

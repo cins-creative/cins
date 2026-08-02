@@ -219,7 +219,7 @@ export function notifyStatusLabel(status: MilestoneTagNotifyStatus): string {
     case "pending":
       return "Chờ duyệt";
     case "approved":
-      return "Đã gắn";
+      return "Đã duyệt";
     case "rejected":
       return "Từ chối";
     case "detached":

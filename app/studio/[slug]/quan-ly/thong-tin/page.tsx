@@ -15,7 +15,14 @@ export default async function StudioQuanLyThongTinPage({ params }: Props) {
 
   return (
     <OrgQuanLyPageGate orgKind="studio" params={params} section="thong-tin">
-      <StudioThongTinQuanLyClient orgId={studio.id} />
+      <StudioThongTinQuanLyClient
+        orgId={studio.id}
+        orgSlug={studio.slug}
+        orgTen={studio.ten}
+        orgLogoSrc={studio.avatarSrc}
+        moTa={studio.moTa}
+        gioiThieu={studio.gioiThieu}
+      />
     </OrgQuanLyPageGate>
   );
 }

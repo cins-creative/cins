@@ -26,18 +26,20 @@ import { countUnreadNotifications } from "@/lib/social/notifications";
 export async function CinsAppTopbar() {
   const session = await getCurrentSessionAndProfile();
   const isAuthed = !!session;
-  const unreadNotificationCount = session?.profile
-    ? await countUnreadNotifications(session.profile.id).catch(() => 0)
-    : 0;
-  const isCinsAdmin = session?.profile
-    ? await getCurrentUserIsCinsAdmin()
-    : false;
-  const banHangEnabled = session?.profile
-    ? await getBanHangEnabled(session.profile.id).catch(() => false)
-    : false;
+  const profileId = session?.profile?.id ?? null;
+
+  const [unreadNotificationCount, isCinsAdmin, banHangEnabled] = profileId
+    ? await Promise.all([
+        countUnreadNotifications(profileId).catch(() => 0),
+        getCurrentUserIsCinsAdmin(),
+        getBanHangEnabled(profileId).catch(() => false),
+      ])
+    : [0, false, false];
+
   const adminInboxStats = isCinsAdmin
     ? await countAdminInboxStats().catch(() => EMPTY_ADMIN_INBOX_STATS)
     : null;
+
   const accountProfile =
     session?.profile?.slug
       ? {

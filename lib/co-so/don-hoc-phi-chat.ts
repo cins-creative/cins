@@ -3,6 +3,7 @@ import "server-only";
 import { sendRoomMessage } from "@/lib/chat/direct-message";
 import { findOrCreateOrgStudentRoom } from "@/lib/chat/org-message";
 import type { ChatContextCard } from "@/lib/chat/types";
+import { getAvatarUrl } from "@/lib/journey/profile";
 import { buildVietQrImageUrl } from "@/lib/shop/vietqr";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
@@ -17,7 +18,24 @@ export type DonHocPhiChatSnapshot = {
   nganHang?: string | null;
   soTaiKhoan?: string | null;
   tenChuTk?: string | null;
+  orgTen?: string | null;
+  orgAnh?: string | null;
 };
+
+async function loadOrgBrand(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  orgId: string,
+): Promise<{ orgTen: string | null; orgAnh: string | null }> {
+  const { data: org } = await admin
+    .from("org_to_chuc")
+    .select("ten, avatar_id")
+    .eq("id", orgId)
+    .maybeSingle<{ ten: string | null; avatar_id: string | null }>();
+  return {
+    orgTen: org?.ten?.trim() || null,
+    orgAnh: getAvatarUrl(org?.avatar_id ?? null),
+  };
+}
 
 export function donHocPhiToChatContext(
   don: DonHocPhiChatSnapshot,
@@ -57,6 +75,8 @@ export function donHocPhiToChatContext(
     moTa: lines.join("\n"),
     anh: qr,
     href: null,
+    orgTen: don.orgTen?.trim() || null,
+    orgAnh: don.orgAnh?.trim() || null,
   };
 }
 
@@ -150,10 +170,16 @@ export async function createAndSendDonHocPhiChat(input: {
 
   const { data: org } = await admin
     .from("org_to_chuc")
-    .select("cau_hinh")
+    .select("ten, avatar_id, cau_hinh")
     .eq("id", input.orgId)
-    .maybeSingle();
+    .maybeSingle<{
+      ten: string | null;
+      avatar_id: string | null;
+      cau_hinh: unknown;
+    }>();
   const stk = getOrgThanhToanFromCauHinh(org?.cau_hinh);
+  const orgTen = org?.ten?.trim() || null;
+  const orgAnh = getAvatarUrl(org?.avatar_id ?? null);
 
   const maDon = `HP${Date.now().toString(36).toUpperCase()}`;
   const kenh =
@@ -213,6 +239,8 @@ export async function createAndSendDonHocPhiChat(input: {
     nganHang: stk.nganHang,
     soTaiKhoan: stk.soTaiKhoan,
     tenChuTk: stk.tenChuTk,
+    orgTen,
+    orgAnh,
   });
 
   const sent = await sendRoomMessage(roomId, input.staffUserId, {
@@ -275,6 +303,46 @@ export async function bumpDonHocPhiChatMessage(
   const nextNguCanh: Record<string, unknown> = { ...ctx };
   if (prev && Array.isArray(prev.mentions)) {
     nextNguCanh.mentions = prev.mentions;
+  }
+  // Giữ / bổ sung brand CSĐT (card cũ chưa có orgTen/orgAnh).
+  if (
+    (typeof nextNguCanh.orgTen !== "string" || !nextNguCanh.orgTen) &&
+    typeof prev?.orgTen === "string" &&
+    prev.orgTen.trim()
+  ) {
+    nextNguCanh.orgTen = prev.orgTen.trim();
+  }
+  if (
+    (typeof nextNguCanh.orgAnh !== "string" || !nextNguCanh.orgAnh) &&
+    typeof prev?.orgAnh === "string" &&
+    prev.orgAnh.trim()
+  ) {
+    nextNguCanh.orgAnh = prev.orgAnh.trim();
+  }
+  if (
+    (typeof nextNguCanh.orgTen !== "string" || !nextNguCanh.orgTen) ||
+    (typeof nextNguCanh.orgAnh !== "string" || !nextNguCanh.orgAnh)
+  ) {
+    const { data: donRow } = await admin
+      .from("org_don_hoc_phi")
+      .select("id_to_chuc")
+      .eq("id", don.id)
+      .maybeSingle<{ id_to_chuc: string }>();
+    if (donRow?.id_to_chuc) {
+      const brand = await loadOrgBrand(admin, donRow.id_to_chuc);
+      if (
+        (typeof nextNguCanh.orgTen !== "string" || !nextNguCanh.orgTen) &&
+        brand.orgTen
+      ) {
+        nextNguCanh.orgTen = brand.orgTen;
+      }
+      if (
+        (typeof nextNguCanh.orgAnh !== "string" || !nextNguCanh.orgAnh) &&
+        brand.orgAnh
+      ) {
+        nextNguCanh.orgAnh = brand.orgAnh;
+      }
+    }
   }
 
   await admin

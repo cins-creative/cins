@@ -125,7 +125,7 @@ function TruongSidebarStack({
         {showAdminCta ? (
           <>
             <TruongMessageInbox />
-            <TruongMilestoneTagNotify />
+            <TruongMilestoneTagNotify showWallAdmin />
           </>
         ) : (
           <>

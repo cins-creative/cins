@@ -3,6 +3,7 @@
 import { GraduationCap } from "lucide-react";
 import { useState } from "react";
 
+import { avatarInitialFromName } from "@/lib/chat/avatar";
 import type { ChatContextCard } from "@/lib/chat/types";
 
 type Parsed = {
@@ -76,12 +77,15 @@ type Props = {
    * và bấm «Xác nhận đã nhận tiền». Học viên / viewer khác chỉ xem QR.
    */
   canConfirmPaid?: boolean;
+  /** Fallback brand CSĐT khi card cũ chưa có `orgTen`/`orgAnh` trong ngu_canh. */
+  orgBrand?: { ten?: string | null; anh?: string | null } | null;
 };
 
 export function ChatDonHocPhiCard({
   card,
   tone = "them",
   canConfirmPaid = false,
+  orgBrand = null,
 }: Props) {
   const parsed = parseDonHocPhiCard(card);
   const [confirmedLocal, setConfirmedLocal] = useState(false);
@@ -91,6 +95,12 @@ export function ChatDonHocPhiCard({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const qrUrl = pending ? card.anh?.trim() || null : null;
+
+  const orgTen =
+    card.orgTen?.trim() || orgBrand?.ten?.trim() || null;
+  const orgAnh =
+    card.orgAnh?.trim() || orgBrand?.anh?.trim() || null;
+  const orgInitial = orgTen ? avatarInitialFromName(orgTen) : "CS";
 
   async function confirmPaid() {
     if (!canConfirmPaid || !card.id || busy) return;
@@ -113,6 +123,7 @@ export function ChatDonHocPhiCard({
 
   const className = [
     "cins-chat-don-card",
+    "cins-chat-don-hoc-phi",
     tone === "me" ? "is-me" : "",
     paid ? "is-paid" : "",
     pending ? "is-later" : "",
@@ -123,23 +134,38 @@ export function ChatDonHocPhiCard({
   return (
     <div className="cins-chat-don-card-shell">
       <div className={className}>
-        <span className="cins-chat-don-card-top">
-          <span className="cins-chat-don-card-icon" aria-hidden>
-            <GraduationCap size={14} strokeWidth={2.2} />
+        <span className="cins-chat-don-card-brand">
+          <span
+            className={`cins-chat-don-card-org-logo${orgAnh ? " has-image" : ""}`}
+            aria-hidden
+          >
+            {orgAnh ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={orgAnh} alt="" />
+            ) : orgTen ? (
+              <span className="cins-chat-don-card-org-initial">{orgInitial}</span>
+            ) : (
+              <GraduationCap size={16} strokeWidth={2.2} />
+            )}
           </span>
-          <span className="cins-chat-don-card-head">
-            <span className="cins-chat-don-card-label">Học phí</span>
-            <span
-              className={`cins-chat-don-card-badge${paid ? " is-paid" : pending ? " is-later" : " is-now"}`}
-            >
-              {paid ? "Đã nhận" : pending ? "Chờ TT" : "Đơn HP"}
+          <span className="cins-chat-don-card-brand-text">
+            {orgTen ? (
+              <span className="cins-chat-don-card-org-name">{orgTen}</span>
+            ) : null}
+            <span className="cins-chat-don-card-head">
+              <span className="cins-chat-don-card-label">Học phí</span>
+              <span
+                className={`cins-chat-don-card-badge${paid ? " is-paid" : pending ? " is-later" : " is-now"}`}
+              >
+                {paid ? "Đã nhận" : pending ? "Chờ TT" : "Đơn HP"}
+              </span>
             </span>
           </span>
         </span>
 
         <span className="cins-chat-don-card-ma">{parsed.ma}</span>
 
-          {parsed.trangThai || paid ? (
+        {parsed.trangThai || paid ? (
           <span
             className={`cins-chat-don-card-status${paid ? " is-done" : ""}${pending ? " is-pending" : ""}`}
           >

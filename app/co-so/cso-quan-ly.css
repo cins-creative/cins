@@ -10,9 +10,14 @@
   --cso-ql-ok: var(--success, #1fb36b);
   box-sizing: border-box;
   width: 100%;
-  min-height: calc(100dvh - var(--site-nav-height, 64px));
+  height: calc(100dvh - var(--site-nav-height, 64px));
+  max-height: calc(100dvh - var(--site-nav-height, 64px));
+  min-height: 0;
   margin: 0;
-  padding: 0 0 48px;
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
   font-family: var(--font-sans);
   color: var(--cso-ql-ink);
   background:
@@ -33,63 +38,23 @@
 .cso-ql-inner {
   width: min(1120px, calc(100% - 32px));
   margin: 0 auto;
-  padding-top: 28px;
-}
-
-/* ── Header ── */
-.cso-ql-header {
+  padding-top: 16px;
+  flex: 1 1 auto;
+  min-height: 0;
   display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 12px 20px;
-  margin-bottom: 20px;
-  animation: cso-ql-rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  flex-direction: column;
 }
 
-.cso-ql-back {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin: 0 0 8px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--cso-ql-muted);
-  text-decoration: none;
-  transition: color 0.15s ease;
-}
-
-.cso-ql-back:hover {
-  color: var(--cso-ql-rail);
-}
-
-.cso-ql-eyebrow {
-  margin: 0 0 4px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--cso-ql-rail);
-}
-
-.cso-ql-title {
-  margin: 0;
-  font-family: var(--font-sans);
-  font-size: clamp(24px, 3vw, 30px);
-  font-weight: 800;
-  letter-spacing: -0.5px;
-  line-height: 1.15;
-  color: var(--cso-ql-ink);
-}
-
-/* ── Nav rail (grouped IA A) ── */
+/* ── Nav rail (grouped IA A) — full width của .cso-ql ── */
 .cso-ql-nav {
   display: flex;
   flex-wrap: nowrap;
   align-items: stretch;
   gap: 0;
-  margin: 0 0 24px;
-  padding: 0;
+  flex-shrink: 0;
+  width: 100%;
+  margin: 0;
+  padding: 0 16px;
   overflow-x: auto;
   overscroll-behavior-x: contain;
   border-bottom: 1px solid var(--border, #e4e6eb);
@@ -158,8 +123,10 @@
 
 .cso-ql-nav-tool .ss-btn-messages-badge,
 .cso-ql-nav-tool .ss-btn-notify-badge {
-  top: -4px;
-  right: -6px;
+  /* Trong nút — không tràn lên topbar (nav sát mép trên .cso-ql). */
+  position: absolute;
+  top: 4px;
+  right: 2px;
   min-width: 18px;
   height: 18px;
   padding: 0 5px;
@@ -171,6 +138,8 @@
   line-height: 18px;
   text-align: center;
   pointer-events: none;
+  z-index: 1;
+  box-shadow: none;
 }
 
 .cso-ql-nav-group-links {
@@ -788,7 +757,6 @@ button.cso-hv-ava.cso-lh-thumb.is-uploading {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .cso-ql-header,
   .cso-ql-nav,
   .cso-hv,
   .cso-ql-modal,
@@ -830,7 +798,7 @@ button.cso-hv-ava.cso-lh-thumb.is-uploading {
 @media (max-width: 640px) {
   .cso-ql-inner {
     width: calc(100% - 24px);
-    padding-top: 20px;
+    padding-top: 0;
   }
 
   .cso-hv-search {
@@ -2121,7 +2089,23 @@ button.cso-hv-ava.cso-lh-thumb.is-uploading {
 }
 
 .cso-ql-body {
-  margin-top: 8px;
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  margin-top: 0;
+  padding-bottom: 32px;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+/* Modal fill-host: ẩn nội dung trang, pane trong modal tự cuộn */
+.cso-ql-body.tdh-fill-host-open {
+  padding-bottom: 0;
+  overflow: hidden;
+}
+
+.cso-ql-body.tdh-fill-host-open > :not(.tdh-inline-modal-backdrop) {
+  display: none;
 }
 
 .cso-ql-placeholder {
@@ -2141,6 +2125,74 @@ button.cso-hv-ava.cso-lh-thumb.is-uploading {
   font-size: 0.95rem;
   line-height: 1.55;
   color: var(--ink-muted, #64748b);
+}
+
+/* Studio / DN — tab Analytics (tổng hợp tiếp cận nội dung) */
+.cso-ql-analytics {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 0.5rem 0.25rem 2rem;
+  max-width: 52rem;
+}
+
+.cso-ql-analytics-head {
+  max-width: 40rem;
+}
+
+.cso-ql-analytics-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+@media (min-width: 720px) {
+  .cso-ql-analytics-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.cso-ql-analytics-card {
+  margin: 0;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--border, #e4e6eb);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--bg-surface, #fff) 92%, transparent);
+}
+
+.cso-ql-analytics-card-label {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--cso-ql-muted);
+}
+
+.cso-ql-analytics-card-value {
+  margin: 0.35rem 0 0.25rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--cso-ql-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.cso-ql-analytics-card-hint {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--cso-ql-muted);
+}
+
+.cso-ql-analytics-note {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--cso-ql-muted);
 }
 
 .cso-su-kien-ql {
@@ -2231,7 +2283,23 @@ button.cso-hv-ava.cso-lh-thumb.is-uploading {
   background: #fff;
   width: 100%;
   max-width: none;
+  max-height: none;
+  height: auto;
+  overflow: visible;
   box-shadow: none;
+}
+
+.cso-settings-modal--page .cso-settings-body {
+  flex: 0 0 auto;
+  overflow: visible;
+  min-height: 0;
+}
+
+.cso-settings-modal--page .cso-settings-section {
+  flex: 0 0 auto;
+  overflow: visible;
+  height: fit-content;
+  min-height: 0;
 }
 
 /* -- T?ng quan -- */
@@ -2344,7 +2412,11 @@ button.cso-hv-ava.cso-lh-thumb.is-uploading {
   font-size: 14.5px;
   line-height: 1.55;
   color: var(--ink-body, rgba(0, 0, 0, 0.55));
-  max-width: 46ch;
+  max-width: 58ch;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .cso-tq-hero-actions {
@@ -2863,6 +2935,24 @@ a.cso-tq-attn.is-hot:hover {
     background: var(--bg-surface, #171b24);
     border-color: var(--border, #2a3040);
   }
+}
+
+/* -- Quan-ly shell: fill viewport, không scrollbar ngoài .cso-ql -- */
+.cins-main:has(.cso-ql) {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: calc(100dvh - var(--site-nav-height, 64px));
+  height: calc(100dvh - var(--site-nav-height, 64px));
+  max-height: calc(100dvh - var(--site-nav-height, 64px));
+  overflow: hidden;
+}
+
+.cins-shell-column:has(.cso-ql) {
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
 }
 
 /* -- Tin nhắn tab (thay popup) — fill viewport, không scroll page -- */

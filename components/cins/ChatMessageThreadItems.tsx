@@ -267,6 +267,8 @@ type ChatMessageThreadItemsProps = {
   onOpenCanvasComments?: (nodeIds: string[], messageId: string) => void;
   /** Staff có quyền đối soát HP — CTA «Xác nhận đã nhận tiền» trên card học phí. */
   canConfirmHocPhi?: boolean;
+  /** Brand CSĐT — fallback cho card học phí cũ. */
+  orgBrand?: { ten?: string | null; anh?: string | null } | null;
 };
 
 function collectGalleryMessages(
@@ -532,6 +534,7 @@ function SingleMessageBubble({
   onOpenCanvasComments,
   onOpenImage,
   canConfirmHocPhi = false,
+  orgBrand = null,
 }: {
   msg: ChatMessage;
   seenBy?: ChatReadCursor[];
@@ -550,6 +553,7 @@ function SingleMessageBubble({
   onOpenCanvasComments?: (nodeIds: string[], messageId: string) => void;
   onOpenImage?: (messageId: string) => void;
   canConfirmHocPhi?: boolean;
+  orgBrand?: { ten?: string | null; anh?: string | null } | null;
 }) {
   const isMe = msg.from === "me";
   const isEditing = editingMessageId === msg.id;
@@ -575,6 +579,7 @@ function SingleMessageBubble({
             onPollUpdated={onPollUpdated}
             onOpenCanvasComments={onOpenCanvasComments}
             canConfirmHocPhi={canConfirmHocPhi}
+            orgBrand={orgBrand}
           />
         </div>
       </div>
@@ -594,6 +599,7 @@ function SingleMessageBubble({
             viewerUserId={viewerUserId}
             onPollUpdated={onPollUpdated}
             canConfirmHocPhi={canConfirmHocPhi}
+            orgBrand={orgBrand}
           />
         </div>
       </div>
@@ -613,6 +619,7 @@ function SingleMessageBubble({
             viewerUserId={viewerUserId}
             onPollUpdated={onPollUpdated}
             canConfirmHocPhi={canConfirmHocPhi}
+            orgBrand={orgBrand}
           />
         </div>
       </div>
@@ -684,6 +691,7 @@ function SingleMessageBubble({
           onPollUpdated={onPollUpdated}
           onOpenImage={onOpenImage}
           canConfirmHocPhi={canConfirmHocPhi}
+          orgBrand={orgBrand}
         />
       </div>
       <div className="cins-chat-media-caption">
@@ -707,6 +715,7 @@ function SingleMessageBubble({
         onPollUpdated={onPollUpdated}
         onOpenImage={onOpenImage}
         canConfirmHocPhi={canConfirmHocPhi}
+        orgBrand={orgBrand}
       />
       {metaBelowMedia}
     </div>
@@ -719,6 +728,7 @@ function SingleMessageBubble({
         onPollUpdated={onPollUpdated}
         onOpenImage={onOpenImage}
         canConfirmHocPhi={canConfirmHocPhi}
+        orgBrand={orgBrand}
       />
       {!isEditing && !useSenderCluster && !isDonHangCard ? (
         <BubbleMeta msg={msg} />
@@ -754,6 +764,7 @@ function SingleMessageBubble({
           viewerUserId={viewerUserId}
           onPollUpdated={onPollUpdated}
           canConfirmHocPhi={canConfirmHocPhi}
+          orgBrand={orgBrand}
         />
         {!useSenderCluster ? (
           <BubbleMeta msg={msg} className="cins-chat-don-hang-meta" />
@@ -803,6 +814,7 @@ function SingleMessageBubble({
               onPollUpdated={onPollUpdated}
               onOpenImage={onOpenImage}
               canConfirmHocPhi={canConfirmHocPhi}
+              orgBrand={orgBrand}
             />
             {!isEditing && msg.reactions?.length && actionHandlers ? (
               <ChatMessageReactions
@@ -909,6 +921,7 @@ export function ChatMessageThreadItems({
   onJumpToMessage,
   onOpenCanvasComments,
   canConfirmHocPhi = false,
+  orgBrand = null,
 }: ChatMessageThreadItemsProps) {
   const items = useMemo(() => groupChatMessages(messages), [messages]);
   const byMessage = useMemo(
@@ -958,6 +971,7 @@ export function ChatMessageThreadItems({
               onOpenCanvasComments={onOpenCanvasComments}
               onOpenImage={handleOpenImage}
               canConfirmHocPhi={canConfirmHocPhi}
+              orgBrand={orgBrand}
             />
           );
         }

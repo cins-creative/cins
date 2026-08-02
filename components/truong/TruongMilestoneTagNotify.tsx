@@ -5,12 +5,14 @@ import {
   CheckCircle2,
   ChevronLeft,
   Clock3,
+  LayoutList,
   Link2Off,
   Paperclip,
   XCircle,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { CoSoDoanSanPhamAdmin } from "@/components/co-so/CoSoDoanSanPhamAdmin";
 import { JourneyPostBody } from "@/components/journey/JourneyPostBody";
 import { MilestoneTagOrgMessagePanel } from "@/components/truong/MilestoneTagOrgMessagePanel";
 import { TruongInlineModal } from "@/components/truong/inline/TruongInlineModal";
@@ -32,23 +34,6 @@ import {
 import "@/app/[slug]/journey/journey.css";
 import "@/app/[slug]/p/new/editor.css";
 import "@/app/[slug]/p/[postSlug]/post-page.css";
-
-function BellIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-    >
-      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-    </svg>
-  );
-}
 
 function studentInitials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -129,12 +114,18 @@ type TruongMilestoneTagNotifyProps = {
   orgId?: string;
   variant?: "sidebar" | "nav";
   alwaysAvailable?: boolean;
+  /**
+   * Filter «Đã duyệt» = bảng quản hiển thị tường (CSĐT / trường ĐH).
+   * Studio chỉ list tag đã duyệt — không quản tường.
+   */
+  showWallAdmin?: boolean;
 };
 
 export function TruongMilestoneTagNotify({
   orgId: orgIdProp,
   variant = "sidebar",
   alwaysAvailable = false,
+  showWallAdmin = false,
 }: TruongMilestoneTagNotifyProps = {}) {
   const ctx = useTruongInlineEdit();
   const orgId = orgIdProp ?? ctx?.orgId ?? null;
@@ -202,8 +193,10 @@ export function TruongMilestoneTagNotify({
     }
   }, [open, loadItems]);
 
+  /* Badge «chờ duyệt» trên nút — fetch ngay khi mount, không đợi mở modal. */
   useEffect(() => {
     if (!canUse || !orgId) return;
+    void loadItems({ silent: true });
     const refresh = () => void loadItems({ silent: true });
     const intervalId = window.setInterval(refresh, 60_000);
     window.addEventListener("focus", refresh);
@@ -218,6 +211,21 @@ export function TruongMilestoneTagNotify({
     [items],
   );
 
+  const approvedCount = useMemo(
+    () => items.filter((i) => i.status === "approved").length,
+    [items],
+  );
+
+  const rejectedCount = useMemo(
+    () =>
+      items.filter(
+        (i) => i.status === "rejected" || i.status === "detached",
+      ).length,
+    [items],
+  );
+
+  const showWallPane = showWallAdmin && filter === "approved";
+
   const filtered = useMemo(() => {
     if (filter === "all") return items;
     if (filter === "rejected") {
@@ -229,6 +237,7 @@ export function TruongMilestoneTagNotify({
   }, [items, filter]);
 
   useEffect(() => {
+    if (showWallPane) return;
     if (filtered.length === 0) {
       setSelectedId(null);
       return;
@@ -236,7 +245,7 @@ export function TruongMilestoneTagNotify({
     if (!selectedId || !filtered.some((r) => r.id === selectedId)) {
       setSelectedId(filtered[0]!.id);
     }
-  }, [filtered, selectedId]);
+  }, [filtered, selectedId, showWallPane]);
 
   const selectedRow =
     filtered.find((r) => r.id === selectedId) ?? filtered[0] ?? null;
@@ -286,6 +295,9 @@ export function TruongMilestoneTagNotify({
             ? "Đã gỡ khỏi trang trường"
             : "Đã từ chối tag",
       );
+      if (action === "approve" && showWallAdmin) {
+        setFilter("approved");
+      }
     } catch {
       toast("Lỗi mạng.");
     }
@@ -308,13 +320,13 @@ export function TruongMilestoneTagNotify({
         onClick={() => setOpen(true)}
         aria-label={
           tagPendingCount > 0
-            ? `Thông báo — ${tagPendingCount} tag đồ án chờ duyệt`
-            : "Thông báo"
+            ? `Quản lý bài học viên — ${tagPendingCount} tag chờ duyệt`
+            : "Quản lý bài học viên"
         }
-        title="Tag đồ án từ học viên — xác thực cột mốc trong Tin nhắn"
+        title="Duyệt tag ORG và quản lý bài học viên trên tường"
       >
-        <BellIcon />
-        <span className="ss-btn-notify-label">Thông báo</span>
+        <LayoutList size={18} strokeWidth={2} aria-hidden />
+        <span className="ss-btn-notify-label">Quản lý bài học viên</span>
         {tagPendingCount > 0 ? (
           <span className="ss-btn-notify-badge" aria-hidden>
             {tagPendingCount > 9 ? "9+" : tagPendingCount}
@@ -325,19 +337,19 @@ export function TruongMilestoneTagNotify({
       <TruongInlineModal
         open={open}
         onClose={() => setOpen(false)}
-        className="tdh-inline-modal--wide tdh-milestone-tag-modal"
+        className={`tdh-inline-modal--wide tdh-milestone-tag-modal${
+          variant === "nav" ? " tdh-milestone-tag-modal--shell" : ""
+        }`}
         labelledBy="tdh-org-notify-title"
         showClose={false}
+        portalSelector={variant === "nav" ? ".cso-ql-body" : undefined}
+        fillHost={variant === "nav"}
       >
         <div className="tdh-milestone-tag-hdr">
           <div>
             <h3 id="tdh-org-notify-title" className="tdh-inline-modal-title">
-              Tag đồ án
+              Quản lý bài học viên
             </h3>
-            <p className="tdh-milestone-tag-lead">
-              Duyệt yêu cầu gắn đồ án lên trang trường. Xác thực cột mốc danh tính
-              nằm trong <strong>Tin nhắn</strong>.
-            </p>
           </div>
           <button
             type="button"
@@ -357,18 +369,8 @@ export function TruongMilestoneTagNotify({
             [
               ["all", "Tất cả", items.length],
               ["pending", "Chờ duyệt", tagPendingCount],
-              [
-                "approved",
-                "Đã gắn",
-                items.filter((i) => i.status === "approved").length,
-              ],
-              [
-                "rejected",
-                "Từ chối",
-                items.filter(
-                  (i) => i.status === "rejected" || i.status === "detached",
-                ).length,
-              ],
+              ["approved", "Đã duyệt", approvedCount],
+              ["rejected", "Từ chối", rejectedCount],
             ] as const
           ).map(([key, label, count]) => (
             <button
@@ -385,50 +387,76 @@ export function TruongMilestoneTagNotify({
           ))}
         </div>
 
-        <div
-          className={`tdh-milestone-tag-split${mobileShowDetail ? " tdh-milestone-tag-split--detail" : ""}`}
-        >
-          <aside className="tdh-milestone-tag-list-pane" aria-label="Danh sách yêu cầu">
-            <ul className="tdh-milestone-tag-rows">
-              {loading ? (
-                <li className="tdh-milestone-tag-empty">Đang tải…</li>
-              ) : loadError ? (
-                <li className="tdh-milestone-tag-empty">{loadError}</li>
-              ) : filtered.length === 0 ? (
-                <li className="tdh-milestone-tag-empty">
-                  Không có mục trong bộ lọc này.
-                </li>
-              ) : (
-                filtered.map((row) => (
-                  <MilestoneTagListRow
-                    key={row.id}
-                    row={row}
-                    selected={row.id === selectedId}
-                    onSelect={() => selectRow(row.id)}
-                  />
-                ))
-              )}
-            </ul>
-          </aside>
-
-          <div className="tdh-milestone-tag-detail-pane">
-            {selectedRow ? (
-              <MilestoneTagDetail
-                row={selectedRow}
-                orgId={orgId}
-                showBack={mobileShowDetail}
-                onBack={() => setMobileShowDetail(false)}
-                onApprove={() => void respondRequest(selectedRow.id, "approve")}
-                onReject={() => void respondRequest(selectedRow.id, "reject")}
-                onDetach={() => void respondRequest(selectedRow.id, "detach")}
-              />
-            ) : (
-              <p className="tdh-milestone-tag-detail-empty">
-                Chọn một yêu cầu để xem chi tiết.
-              </p>
-            )}
+        {showWallPane ? (
+          <div className="tdh-milestone-tag-wall-pane">
+            <CoSoDoanSanPhamAdmin
+              orgId={orgId}
+              onDetached={(requestId) => {
+                setItems((list) =>
+                  list.map((row) =>
+                    row.id === requestId
+                      ? { ...row, status: "detached" as const }
+                      : row,
+                  ),
+                );
+              }}
+            />
           </div>
-        </div>
+        ) : (
+          <div
+            className={`tdh-milestone-tag-split${mobileShowDetail ? " tdh-milestone-tag-split--detail" : ""}`}
+          >
+            <aside
+              className="tdh-milestone-tag-list-pane"
+              aria-label="Danh sách yêu cầu"
+            >
+              <ul className="tdh-milestone-tag-rows">
+                {loading ? (
+                  <li className="tdh-milestone-tag-empty">Đang tải…</li>
+                ) : loadError ? (
+                  <li className="tdh-milestone-tag-empty">{loadError}</li>
+                ) : filtered.length === 0 ? (
+                  <li className="tdh-milestone-tag-empty">
+                    Không có mục trong bộ lọc này.
+                  </li>
+                ) : (
+                  filtered.map((row) => (
+                    <MilestoneTagListRow
+                      key={row.id}
+                      row={row}
+                      selected={row.id === selectedId}
+                      onSelect={() => selectRow(row.id)}
+                    />
+                  ))
+                )}
+              </ul>
+            </aside>
+
+            <div className="tdh-milestone-tag-detail-pane">
+              {selectedRow ? (
+                <MilestoneTagDetail
+                  row={selectedRow}
+                  orgId={orgId}
+                  showBack={mobileShowDetail}
+                  onBack={() => setMobileShowDetail(false)}
+                  onApprove={() =>
+                    void respondRequest(selectedRow.id, "approve")
+                  }
+                  onReject={() =>
+                    void respondRequest(selectedRow.id, "reject")
+                  }
+                  onDetach={() =>
+                    void respondRequest(selectedRow.id, "detach")
+                  }
+                />
+              ) : (
+                <p className="tdh-milestone-tag-detail-empty">
+                  Chọn một yêu cầu để xem chi tiết.
+                </p>
+              )}
+            </div>
+          </div>
+        )}
       </TruongInlineModal>
     </>
   );

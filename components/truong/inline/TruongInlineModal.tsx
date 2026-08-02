@@ -1,7 +1,7 @@
 "use client";
 
 import { X } from "lucide-react";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
 import "@/app/cins-truong-inline-edit.css";
@@ -25,6 +25,16 @@ type Props = {
   showClose?: boolean;
   /** Nhãn a11y cho nút đóng dựng sẵn. */
   closeLabel?: string;
+  /**
+   * CSS selector portal thay `document.body` (vd. `.cso-ql-body`).
+   * Không tìm thấy → fallback body.
+   */
+  portalSelector?: string;
+  /**
+   * Backdrop/modal fill container host (position absolute inset 0).
+   * Dùng với `portalSelector` — host cần `position: relative`.
+   */
+  fillHost?: boolean;
 };
 
 export function TruongInlineModal({
@@ -36,25 +46,64 @@ export function TruongInlineModal({
   closeOnBackdrop = false,
   showClose = true,
   closeLabel = "Đóng",
+  portalSelector,
+  fillHost = false,
 }: Props) {
+  const [portalNode, setPortalNode] = useState<Element | null>(null);
+
   useEffect(() => {
     if (!open) return;
+    if (fillHost) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = prev;
     };
-  }, [open]);
+  }, [open, fillHost]);
 
-  if (!open || typeof document === "undefined") return null;
+  useEffect(() => {
+    if (!open) {
+      setPortalNode(null);
+      return;
+    }
+    if (portalSelector) {
+      const el = document.querySelector(portalSelector);
+      setPortalNode(el ?? document.body);
+      return;
+    }
+    setPortalNode(document.body);
+  }, [open, portalSelector]);
 
-  const modalClass = className
-    ? `tdh-inline-modal ${className}`
-    : "tdh-inline-modal";
+  useEffect(() => {
+    if (!open || !fillHost || !portalNode || !(portalNode instanceof HTMLElement)) {
+      return;
+    }
+    portalNode.classList.add("tdh-fill-host-open");
+    return () => {
+      portalNode.classList.remove("tdh-fill-host-open");
+    };
+  }, [open, fillHost, portalNode]);
+
+  if (!open || !portalNode) return null;
+
+  const modalClass = [
+    "tdh-inline-modal",
+    className,
+    fillHost ? "tdh-inline-modal--fill-host" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  const backdropClass = [
+    "tdh-inline-modal-backdrop",
+    fillHost ? "tdh-inline-modal-backdrop--fill-host" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return createPortal(
     <div
-      className="tdh-inline-modal-backdrop"
+      className={backdropClass}
       role="presentation"
       onClick={closeOnBackdrop ? onClose : undefined}
     >
@@ -81,6 +130,6 @@ export function TruongInlineModal({
         {children}
       </div>
     </div>,
-    document.body,
+    portalNode,
   );
 }
