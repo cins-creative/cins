@@ -127,7 +127,7 @@ Không cần endpoint merge public — script admin/one-off + (sau) nút admin.
 2. ✅ **Migration** `article_gan_linh_vuc` + backfill 288 nghe (`migration_article_gan_linh_vuc.sql`).  
 3. ✅ **Hub filter + chip hero** đọc junction (`listNgheArticlesForHub`, `attachArticleLinhVucFromGan`).  
 4. ✅ **Merge mẫu** `3D Animator` → `/nghe-nghiep/nghe-3d-animator` (linh vực: Hoạt hình · 3D Art); slug cũ stub `merged` 308.  
-5. **Batch merge** các cụm exact đã tick (ưu tiên Art Director, Colorist, Pipeline TD…).  
+5. ✅ **Batch merge** 33 cụm (exact `tieu_de_eng` + alias VFX Colorist/Compositor/Lighting → tên chung). Script: `npx tsx scripts/batch-merge-nghe-dups.mts [--apply]`. Kết quả (2026-08-02): **240** published · **82** merged · **0** cụm trùng còn lại. `VFX Producer` giữ riêng.  
 6. **Rewrite nội dung** bài đã merge (giọng Vietcetera; bỏ đoạn clone theo ngành) — Grok + few-shot.  
 7. **Cập nhật docs:** FOUNDATIONS quy tắc 10; DECISIONS LOG; IMPLEMENTATION SQL/script.
 

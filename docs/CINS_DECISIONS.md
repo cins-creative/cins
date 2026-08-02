@@ -47,7 +47,7 @@
 - **Slug canonical** trung tính `nghe-{role}` (vd. `nghe-3d-animator`, `nghe-art-director`); slug cũ stub `merged` + 308.
 - **VFX\*** gộp vào tên chung (Compositor / Colorist / Lighting…).
 - **Giữ riêng:** 2D≠3D Animator, Key/In-between, Game Director, specialty Producer.
-- **Phase 1:** migration + hub filter/chip + merge mẫu `3D Animator` (script). Chưa rewrite nội dung; chưa UI admin gộp.
+- **Phase 1:** migration + hub filter/chip + merge mẫu `3D Animator` + **batch 33 cụm** (`scripts/batch-merge-nghe-dups.mts`, 2026-08-02: 240 published / 82 merged). Chưa rewrite nội dung; chưa UI admin gộp.
 - **Plan:** `docs/PLAN_nghe_merge_da_linh_vuc.md`. FOUNDATIONS quy tắc 10 — cập nhật khi user OK.
 
 ### Tài khoản clone artist + KPI seeding + bàn giao (2026-08-01)
