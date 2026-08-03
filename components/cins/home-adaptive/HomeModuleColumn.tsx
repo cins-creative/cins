@@ -1,4 +1,4 @@
-import { type ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 
 import { GoiYTheoDoiModule } from "@/components/cins/home-adaptive/modules/GoiYTheoDoiModule";
 import { TheoDoiOrgModule } from "@/components/cins/home-adaptive/modules/TheoDoiOrgModule";
@@ -84,26 +84,40 @@ export const MODULE_REGISTRY: Record<ModuleId, ModuleComponent> = {
   da_luu: DaLuuModule,
 };
 
+/** Chỗ giữ card trong lúc module stream về — cần `.ha-card` để cột không thu gọn. */
+function ModuleStreamSkeleton() {
+  return (
+    <section className="ha-card ha-card--loading" aria-busy="true">
+      <div className="ha-card-head">
+        <span className="j-skel" style={{ height: 16, width: "45%" }} />
+      </div>
+      <div className="j-skel" style={{ height: 44, margin: "0 12px 8px" }} />
+      <div className="j-skel" style={{ height: 44, margin: "0 12px 12px" }} />
+    </section>
+  );
+}
+
 /**
- * Render module theo id đã resolve. Chỉ giữ node khác null.
+ * Dựng element module theo id đã resolve — **không await**, để 2 cột sidebar
+ * stream độc lập thay vì chặn feed giữa (mỗi khối một Suspense riêng).
  * Key + data-ha-module = ModuleId — HomeLayoutEditProvider gom vào childMap.
+ *
+ * Khác bản cũ: khối trả `null` vẫn có wrapper trong childMap (chưa biết kết quả
+ * lúc dựng cây) — slot rỗng được CSS `.ha-edit-slot-wrap:not(:has(.ha-card))`
+ * thu gọn ở chế độ xem.
  */
-export async function renderHomeModules(
+export function renderHomeModules(
   ids: ModuleId[],
   ctx: HomeModuleCtx,
-): Promise<ReactNode[]> {
-  const rendered = await Promise.all(
-    ids.map((id) => Promise.resolve(MODULE_REGISTRY[id]({ ctx }))),
-  );
-
-  const nodes: ReactNode[] = [];
-  for (let i = 0; i < ids.length; i++) {
-    if (rendered[i] == null) continue;
-    nodes.push(
-      <div key={ids[i]} data-ha-module={ids[i]} style={{ display: "contents" }}>
-        {rendered[i]}
-      </div>,
+): ReactNode[] {
+  return ids.map((id) => {
+    const Module = MODULE_REGISTRY[id];
+    return (
+      <div key={id} data-ha-module={id} style={{ display: "contents" }}>
+        <Suspense fallback={<ModuleStreamSkeleton />}>
+          <Module ctx={ctx} />
+        </Suspense>
+      </div>
     );
-  }
-  return nodes;
+  });
 }

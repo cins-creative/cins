@@ -29,9 +29,9 @@ import {
 
 import {
   HomeModuleLivePreview,
+  HomeModuleMockCard,
   HomeModulePreviewSkeleton,
-} from "@/components/cins/home-adaptive/HomeModuleLivePreview";
-import { HomeModuleMockCard } from "@/components/cins/home-adaptive/HomeModuleMockCard";
+} from "@/components/cins/home-adaptive/HomeModulePreviewLazy";
 import { DraftModuleLimitProvider } from "@/components/cins/home-adaptive/draft-module-limit";
 import {
   moduleMatchesCapabilities,

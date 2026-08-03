@@ -4356,6 +4356,12 @@
   height: fit-content;
 }
 
+/* Card giữ chỗ khi module đang stream về (hoặc chunk preview đang tải) — chỉ cần
+   chiều cao tối thiểu để cột không nhảy khi nội dung thật vào. */
+.world-journey-home .ha-card--loading {
+  min-height: 72px;
+}
+
 /* Card module trong cột phải — bỏ padding phải để khít mép.
    Cột trái giữ padding đầy đủ; card cơ hội (ha-card--jobs) giữ padding trong. */
 .world-journey-home .ha-col--right .ha-card:not(.ha-card--jobs):not(.ha-card--notify) .ha-card-head,
@@ -6966,6 +6972,15 @@
   gap: 0;
   width: 100%;
   box-sizing: border-box;
+}
+
+/* Module stream độc lập nên slot được dựng trước khi biết khối có dữ liệu.
+   Khối trả `null` → wrapper `[data-ha-module]` rỗng: thu gọn để cột không thừa
+   một nhịp `gap`. Chế độ chỉnh sửa giữ nguyên slot (kéo thả / placeholder). */
+.world-journey-home
+  .ha-col:not(.ha-col--editing)
+  > .ha-edit-slot-wrap:not(:has([data-ha-module] > *)) {
+  display: none;
 }
 
 .ha-edit-drop-line {

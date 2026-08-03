@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
+import { revalidateHomeLayout } from "@/lib/cins/home-adaptive/home-layout-store";
 import {
   emptyHomeLayout,
   parseHomeLayout,
@@ -106,6 +107,8 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: "Không lưu được bố cục." }, { status: 500 });
   }
 
+  revalidateHomeLayout(session.profile.id);
+
   const giaiDoan = session.profile.giai_doan as GiaiDoan | null | undefined;
   const persona = resolvePersona(giaiDoan);
   const seeking = resolveSeeking(giaiDoan);
@@ -149,6 +152,8 @@ export async function DELETE() {
       { status: 500 },
     );
   }
+
+  revalidateHomeLayout(session.profile.id);
 
   return NextResponse.json({ ok: true, reset: true });
 }
