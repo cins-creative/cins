@@ -14,6 +14,10 @@ import {
   type ShopTrangThaiDon,
 } from "@/lib/shop/types";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import {
+  isOrgQuanLyKind,
+  orgQuanLyPath,
+} from "@/lib/to-chuc/org-quan-ly-routes";
 import { suKienManageHref } from "@/lib/to-chuc/su-kien-routes";
 import type { HomeDonHangItem } from "@/lib/cins/home-adaptive/role-types";
 
@@ -124,7 +128,12 @@ export type HomeOrgInboxItem = {
   preview: string;
   unread: number;
   orgTen: string | null;
+  /** Avatar người nhắn (HV / khách). */
   avatarUrl: string | null;
+  /** Avatar tổ chức nhận tin — phân biệt với chatbox cá nhân. */
+  orgAvatarUrl: string | null;
+  /** Trang QL tin nhắn org + `?room=` — null nếu thiếu slug/loại. */
+  href: string | null;
 };
 
 export type HomeDaLuuItem = {
@@ -531,6 +540,17 @@ export async function loadUngVienMoi(
   });
 }
 
+function orgInboxThreadHref(t: {
+  roomId: string;
+  orgSlug?: string;
+  orgKind?: string;
+}): string | null {
+  const slug = t.orgSlug?.trim();
+  if (!slug || !t.orgKind || !isOrgQuanLyKind(t.orgKind)) return null;
+  const base = orgQuanLyPath(t.orgKind, slug, "tin-nhan");
+  return `${base}?room=${encodeURIComponent(t.roomId)}`;
+}
+
 export async function loadOrgInboxHome(
   viewerId: string,
   limit = 3,
@@ -545,6 +565,8 @@ export async function loadOrgInboxHome(
     unread: t.unread,
     orgTen: t.orgTen ?? null,
     avatarUrl: t.avatarUrl ?? null,
+    orgAvatarUrl: t.orgAvatarUrl ?? null,
+    href: orgInboxThreadHref(t),
   }));
 }
 

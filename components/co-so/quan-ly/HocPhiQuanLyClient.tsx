@@ -44,7 +44,7 @@ export function HocPhiQuanLyClient({ orgId }: Props) {
           className={`cso-hp-tab${tab === "goi" ? " on" : ""}`}
           onClick={() => setTab("goi")}
         >
-          Học phí
+          Học phí cơ bản
         </button>
         <button
           type="button"
@@ -53,7 +53,7 @@ export function HocPhiQuanLyClient({ orgId }: Props) {
           className={`cso-hp-tab${tab === "combo" ? " on" : ""}`}
           onClick={() => setTab("combo")}
         >
-          Combo
+          Combo &amp; Discount
         </button>
       </div>
 

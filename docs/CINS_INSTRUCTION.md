@@ -66,6 +66,10 @@ Thứ tự ưu tiên khi xung đột: **DB thật (đọc trực tiếp) > CINS_
 
 ## Thay đổi lớn gần đây (tóm tắt — chi tiết ở DECISIONS)
 
+**CSĐT — Hard delete khóa/lớp (2026-08-04):** Tách **Tạm dừng** (PATCH trạng thái) vs **Xóa** (hard DELETE + guard + preflight Warning). Plan: `PLAN_hard_delete_khoa_lop.md`. Kèm **Gỡ ghi danh** (`DELETE /api/co-so/[id]/hoc-vien/[hvlId]`) — chặn khi ghi danh còn đơn `da_nhan_tien` để không mất doanh thu.
+
+**CSĐT — Hình thức & địa điểm về lớp (2026-08-03):** Khóa không còn field hình thức/địa chỉ; lớp giữ `hinh_thuc` + N chi nhánh (`org_lop_hoc_chi_nhanh`). Khóa trần ẩn công khai. Xem DECISIONS LOG + IMPLEMENTATION SQL/API khóa·lớp.
+
 **Shop — tự ship, không ĐVVC (2026-07-31):** Không kết nối API carrier. Copy / Excel Viettel / CSV / phiếu đóng gói. Schema: `migrate:shop-ship-reverse`. Phí / tranh chấp giữ. Xem DECISIONS LOG.
 
 **Chat — tab Mua bán (2026-08-02):** Tab cấp 1 «Mua bán» + sub Mua hàng (buyer) / Khách hàng (seller); cờ `isMuaHang`/`isKhachHang`; thẻ `shop_the_khach*` chỉ seller. Xem DECISIONS LOG.

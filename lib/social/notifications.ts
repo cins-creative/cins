@@ -294,7 +294,6 @@ export async function countUnreadNotifications(viewerId: string): Promise<number
     { count: shopQuayApproved },
     { count: shopQuayRejected },
     { count: shopQuayPending },
-    { count: orgTinNhanMoi },
     { count: video },
     { count: dongGopFeedback },
     { count: dongGopPromoted },
@@ -408,12 +407,6 @@ export async function countUnreadNotifications(viewerId: string): Promise<number
       .from("social_thong_bao")
       .select("id", { count: "exact", head: true })
       .eq("nguoi_nhan", viewerId)
-      .eq("loai_doi_tuong", "org_tin_nhan_moi")
-      .eq("da_doc", false),
-    admin
-      .from("social_thong_bao")
-      .select("id", { count: "exact", head: true })
-      .eq("nguoi_nhan", viewerId)
       .eq("loai_doi_tuong", "video_ready")
       .eq("da_doc", false),
     admin
@@ -464,7 +457,7 @@ export async function countUnreadNotifications(viewerId: string): Promise<number
     (shopQuayApproved ?? 0) +
     (shopQuayRejected ?? 0) +
     (shopQuayPending ?? 0) +
-    (orgTinNhanMoi ?? 0) +
+    /* org_tin_nhan_moi: không đếm — tín hiệu ở overlay org-node + QL tin nhắn */
     (video ?? 0) +
     (dongGopFeedback ?? 0) +
     (dongGopPromoted ?? 0) +

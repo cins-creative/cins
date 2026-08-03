@@ -490,3 +490,42 @@ async function upsertRoomMember(
     vai_tro: vaiTro,
   });
 }
+
+/**
+ * Xóa phòng chat lớp nếu không còn tin nhắn người dùng.
+ * Gọi sau khi đã null `org_lop_hoc.id_chat_phong`.
+ * Tin system-only → xóa kèm (CASCADE tin + thành viên).
+ */
+export async function xoaLopChatPhongNeuTrong(
+  roomId: string,
+): Promise<{ ok: true; deleted: boolean } | { ok: false; error: string }> {
+  const admin = createServiceRoleClient();
+  const { data: room } = await admin
+    .from("chat_phong")
+    .select("id, loai_phong")
+    .eq("id", roomId)
+    .eq("loai_phong", LOP_ROOM)
+    .maybeSingle();
+  if (!room?.id) {
+    return { ok: true, deleted: false };
+  }
+
+  const { count: userMsg } = await admin
+    .from("chat_tin_nhan")
+    .select("id", { count: "exact", head: true })
+    .eq("id_phong", roomId)
+    .neq("loai_tin", "system");
+
+  if ((userMsg ?? 0) > 0) {
+    return {
+      ok: false,
+      error: "Phòng chat lớp còn tin nhắn người dùng — không xóa phòng.",
+    };
+  }
+
+  const { error } = await admin.from("chat_phong").delete().eq("id", roomId);
+  if (error) {
+    return { ok: false, error: error.message };
+  }
+  return { ok: true, deleted: true };
+}

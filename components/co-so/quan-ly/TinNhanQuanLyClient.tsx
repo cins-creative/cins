@@ -85,7 +85,7 @@ function toReplyPreview(msg: ChatMessage): ChatMessageReplyPreview {
   };
 }
 
-type MainTab = "tu_van" | "co_so" | "verify";
+type MainTab = "tu_van" | "co_so";
 
 type Goi = { id: string; ten: string; soNgay: number; giaVnd: number };
 type Lop = { id: string; maLop: string; khoaId: string; tenKhoa: string };
@@ -144,9 +144,6 @@ export function TinNhanQuanLyClient({
     })();
   }, [orgId]);
 
-  const verifyFilter =
-    mainTab === "verify" ? ("verify" as const) : undefined;
-
   return (
     <div className="cso-tin-nhan">
       {flash ? <p className="cso-tin-nhan-flash" role="status">{flash}</p> : null}
@@ -157,7 +154,6 @@ export function TinNhanQuanLyClient({
             [
               ["tu_van", "Tư vấn"],
               ["co_so", "Cơ sở"],
-              ["verify", "Chờ xác thực"],
             ] as const
           ).map(([id, label]) => (
             <button
@@ -183,21 +179,12 @@ export function TinNhanQuanLyClient({
             />
           ) : (
             <OrgInboxPanel
-              key={
-                mainTab === "verify"
-                  ? "verify"
-                  : `tu_van-${deepLink.initialRoomId ?? ""}-${deepLink.initialFilter}`
-              }
+              key={`tu_van-${deepLink.initialRoomId ?? ""}-${deepLink.initialStudentUserId ?? ""}-${deepLink.initialFilter}`}
               orgId={orgId}
               className="cso-tin-nhan-inbox"
-              hideFilters={mainTab === "verify"}
-              filterOverride={verifyFilter}
-              initialFilter={
-                mainTab === "verify" ? "verify" : deepLink.initialFilter
-              }
-              initialRoomId={
-                mainTab === "verify" ? null : deepLink.initialRoomId
-              }
+              initialFilter={deepLink.initialFilter}
+              initialRoomId={deepLink.initialRoomId}
+              initialStudentUserId={deepLink.initialStudentUserId}
               panelRef={inboxRef}
               onToast={toast}
               canConfirmHocPhi
@@ -320,6 +307,11 @@ function StaffActionModal({
   const [soNgay, setSoNgay] = useState(goi[0]?.soNgay ?? 30);
   const [soTien, setSoTien] = useState(goi[0]?.giaVnd ?? 0);
   const [ghiChu, setGhiChu] = useState("");
+  /** Dòng combo thêm (ghi danh khác + gói) — cùng HV. */
+  const [extraLines, setExtraLines] = useState<
+    Array<{ hocVienLopId: string; goiId: string }>
+  >([]);
+  const [baoGiaHint, setBaoGiaHint] = useState<string | null>(null);
 
   useEffect(() => {
     if (goi[0] && !goiId) {
@@ -337,6 +329,33 @@ function StaffActionModal({
       setSoTien(g.giaVnd);
     }
   }
+
+  const canCombo =
+    useExisting && !isFirstEnroll && thread.enrollments.length >= 2;
+
+  useEffect(() => {
+    if (!canCombo || !goiId || !hocVienLopId) {
+      setBaoGiaHint(null);
+      return;
+    }
+    const items = [
+      { hocVienLopId, goiId },
+      ...extraLines.filter((l) => l.hocVienLopId && l.goiId),
+    ];
+    if (items.length < 2) {
+      setBaoGiaHint(null);
+      return;
+    }
+    // Preview client: tổng gói; server sẽ áp combo khi gửi.
+    let goc = 0;
+    for (const it of items) {
+      const g = goi.find((x) => x.id === it.goiId);
+      goc += g?.giaVnd ?? 0;
+    }
+    setBaoGiaHint(
+      `Giỏ ${items.length} dòng · gốc ${goc.toLocaleString("vi-VN")}đ (combo trừ trên server nếu khớp)`,
+    );
+  }, [canCombo, goiId, hocVienLopId, extraLines, goi]);
 
   async function submit() {
     setSubmitting(true);
@@ -370,28 +389,51 @@ function StaffActionModal({
 
       if (!targetHvlId) throw new Error("Thiếu ghi danh để gửi đơn.");
 
+      const comboItems = [
+        ...(goiId
+          ? [{ hocVienLopId: targetHvlId, goiId }]
+          : []),
+        ...extraLines.filter((l) => l.hocVienLopId && l.goiId),
+      ];
+
+      const body =
+        comboItems.length >= 1
+          ? {
+              items: comboItems,
+              ghiChu:
+                ghiChu.trim() ||
+                (isFirstEnroll
+                  ? "Đơn ghi danh lần đầu — vào lớp sau khi xác nhận đã nhận tiền."
+                  : null),
+            }
+          : {
+              hocVienLopId: targetHvlId,
+              soNgayCong: soNgay,
+              soTienVnd: soTien,
+              goiId: null,
+              ghiChu:
+                ghiChu.trim() ||
+                (isFirstEnroll
+                  ? "Đơn ghi danh lần đầu — vào lớp sau khi xác nhận đã nhận tiền."
+                  : null),
+            };
+
       const res = await fetch(`/api/co-so/${orgId}/hoc-phi/don-chat`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          hocVienLopId: targetHvlId,
-          soNgayCong: soNgay,
-          soTienVnd: soTien,
-          goiId: goiId || null,
-          ghiChu:
-            ghiChu.trim() ||
-            (isFirstEnroll
-              ? "Đơn ghi danh lần đầu — vào lớp sau khi xác nhận đã nhận tiền."
-              : null),
-        }),
+        body: JSON.stringify(body),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Không gửi được đơn.");
+      const giamNote =
+        typeof data.giamVnd === "number" && data.giamVnd > 0
+          ? ` · giảm ${Number(data.giamVnd).toLocaleString("vi-VN")}đ`
+          : "";
       onDone(
         isFirstEnroll
-          ? `Đã gửi VietQR ghi danh · ${soNgay} ngày. HV vào lớp sau khi đóng tiền.`
-          : `Đã gửi đơn CK · ${soNgay} ngày.`,
+          ? `Đã gửi VietQR ghi danh · ${soNgay} ngày${giamNote}. HV vào lớp sau khi đóng tiền.`
+          : `Đã gửi đơn CK · ${comboItems.length > 1 ? `${comboItems.length} dòng` : `${soNgay} ngày`}${giamNote}.`,
       );
     } catch (e) {
       setError(e instanceof Error ? e.message : "Lỗi.");
@@ -507,6 +549,98 @@ function StaffActionModal({
             </label>
           ) : null}
 
+          {canCombo && goiId ? (
+            <fieldset className="cso-ql-fieldset">
+              <legend className="cso-ql-fieldset-legend">
+                Combo — thêm khóa khác
+              </legend>
+              {extraLines.map((line, idx) => (
+                <div key={idx} className="cso-ql-fieldset-row">
+                  <label className="cso-ql-field">
+                    <span className="cso-ql-label">Ghi danh</span>
+                    <select
+                      className="cso-ql-select"
+                      value={line.hocVienLopId}
+                      onChange={(e) =>
+                        setExtraLines((rows) =>
+                          rows.map((r, i) =>
+                            i === idx
+                              ? { ...r, hocVienLopId: e.target.value }
+                              : r,
+                          ),
+                        )
+                      }
+                    >
+                      {thread.enrollments
+                        .filter((en) => en.hocVienLopId !== hocVienLopId)
+                        .map((en) => (
+                          <option key={en.hocVienLopId} value={en.hocVienLopId}>
+                            {en.tenKhoa}
+                            {en.maLop ? ` · ${en.maLop}` : ""}
+                          </option>
+                        ))}
+                    </select>
+                  </label>
+                  <label className="cso-ql-field">
+                    <span className="cso-ql-label">Gói</span>
+                    <select
+                      className="cso-ql-select"
+                      value={line.goiId}
+                      onChange={(e) =>
+                        setExtraLines((rows) =>
+                          rows.map((r, i) =>
+                            i === idx ? { ...r, goiId: e.target.value } : r,
+                          ),
+                        )
+                      }
+                    >
+                      {goi.map((g) => (
+                        <option key={g.id} value={g.id}>
+                          {g.ten} — {g.giaVnd.toLocaleString("vi-VN")}đ
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <button
+                    type="button"
+                    className="cso-ql-btn cso-ql-btn--ghost cso-ql-btn--sm"
+                    onClick={() =>
+                      setExtraLines((rows) => rows.filter((_, i) => i !== idx))
+                    }
+                  >
+                    Xóa
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                className="cso-ql-btn cso-ql-btn--ghost cso-ql-btn--sm"
+                onClick={() => {
+                  const other = thread.enrollments.find(
+                    (en) =>
+                      en.hocVienLopId !== hocVienLopId &&
+                      !extraLines.some(
+                        (l) => l.hocVienLopId === en.hocVienLopId,
+                      ),
+                  );
+                  if (!other) return;
+                  setExtraLines((rows) => [
+                    ...rows,
+                    {
+                      hocVienLopId: other.hocVienLopId,
+                      goiId: goi[0]?.id ?? "",
+                    },
+                  ]);
+                }}
+              >
+                + Thêm dòng combo
+              </button>
+              {baoGiaHint ? (
+                <p className="cso-hp-field-hint">{baoGiaHint}</p>
+              ) : null}
+            </fieldset>
+          ) : null}
+
           <div className="cso-ql-fieldset-row">
             <label className="cso-ql-field">
               <span className="cso-ql-label">Số ngày</span>
@@ -515,6 +649,7 @@ function StaffActionModal({
                 min={1}
                 className="cso-ql-input"
                 value={soNgay}
+                disabled={Boolean(goiId)}
                 onChange={(e) => setSoNgay(Number(e.target.value) || 1)}
               />
             </label>
@@ -525,10 +660,17 @@ function StaffActionModal({
                 min={0}
                 className="cso-ql-input"
                 value={soTien}
+                disabled={Boolean(goiId)}
                 onChange={(e) => setSoTien(Number(e.target.value) || 0)}
               />
             </label>
           </div>
+          {goiId ? (
+            <p className="cso-hp-field-hint">
+              Đã chọn gói — giá &amp; số ngày do server lấy từ catalog (không sửa
+              tay).
+            </p>
+          ) : null}
 
           <label className="cso-ql-field">
             <span className="cso-ql-label">Ghi chú</span>

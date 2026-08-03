@@ -771,6 +771,7 @@ export function CoSoUpcomingSidebar({
         <KhoaHocCreateModal
           open={Boolean(editingKhoa)}
           orgId={orgId}
+          orgSlug={orgSlug}
           orgDiaChi={orgDiaChi}
           editing={editingKhoa}
           onClose={() => setEditingKhoa(null)}

@@ -20,6 +20,11 @@ export type DonHocPhiChatSnapshot = {
   tenChuTk?: string | null;
   orgTen?: string | null;
   orgAnh?: string | null;
+  /** Dòng mô tả thay thế toàn bộ body (nhóm combo). */
+  overrideMoTaLines?: string[] | null;
+  /** Số tiền / nội dung CK trên QR (nhóm dùng tong + ma_nhom). */
+  qrAmountVnd?: number | null;
+  qrAddInfo?: string | null;
 };
 
 async function loadOrgBrand(
@@ -42,29 +47,35 @@ export function donHocPhiToChatContext(
 ): ChatContextCard {
   const ma = don.maDon?.trim() || don.id.slice(0, 8).toUpperCase();
   const lines: string[] = [];
-  if (don.tenKhoa) lines.push(don.tenKhoa);
-  if (don.maLop) lines.push(`Lớp: ${don.maLop}`);
-  lines.push(`${don.soNgayCong} ngày học`);
-  lines.push(`Tổng: ${don.soTienVnd.toLocaleString("vi-VN")}đ`);
-  if (don.trangThai === "da_nhan_tien") {
-    lines.push("Tình trạng: Đã nhận tiền");
-  } else if (don.trangThai === "cho_thanh_toan") {
-    lines.push("Tình trạng: Chờ thanh toán");
+  if (don.overrideMoTaLines?.length) {
+    lines.push(...don.overrideMoTaLines);
+  } else {
+    if (don.tenKhoa) lines.push(don.tenKhoa);
+    if (don.maLop) lines.push(`Lớp: ${don.maLop}`);
+    lines.push(`${don.soNgayCong} ngày học`);
+    lines.push(`Tổng: ${don.soTienVnd.toLocaleString("vi-VN")}đ`);
+    if (don.trangThai === "da_nhan_tien") {
+      lines.push("Tình trạng: Đã nhận tiền");
+    } else if (don.trangThai === "cho_thanh_toan") {
+      lines.push("Tình trạng: Chờ thanh toán");
+    }
+    if (don.nganHang && don.soTaiKhoan) {
+      lines.push(`NH: ${don.nganHang}`);
+      lines.push(`STK: ${don.soTaiKhoan}`);
+      if (don.tenChuTk) lines.push(`Chủ TK: ${don.tenChuTk}`);
+    }
+    lines.push(`Nội dung CK: ${ma}`);
   }
-  if (don.nganHang && don.soTaiKhoan) {
-    lines.push(`NH: ${don.nganHang}`);
-    lines.push(`STK: ${don.soTaiKhoan}`);
-    if (don.tenChuTk) lines.push(`Chủ TK: ${don.tenChuTk}`);
-  }
-  lines.push(`Nội dung CK: ${ma}`);
 
+  const qrAmount = don.qrAmountVnd ?? don.soTienVnd;
+  const qrInfo = (don.qrAddInfo?.trim() || ma);
   const qr =
     don.trangThai === "cho_thanh_toan" && don.nganHang && don.soTaiKhoan
       ? buildVietQrImageUrl({
           nganHang: don.nganHang,
           soTaiKhoan: don.soTaiKhoan,
-          amountVnd: don.soTienVnd,
-          addInfo: ma,
+          amountVnd: qrAmount,
+          addInfo: qrInfo,
         })
       : null;
 
@@ -195,6 +206,8 @@ export async function createAndSendDonHocPhiChat(input: {
       kenh,
       trang_thai: "cho_thanh_toan",
       so_tien_vnd: input.soTienVnd,
+      gia_goc_vnd: input.soTienVnd,
+      giam_vnd: 0,
       so_ngay_cong: input.soNgayCong,
       ghi_chu: input.ghiChu ?? null,
     })

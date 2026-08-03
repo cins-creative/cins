@@ -339,6 +339,8 @@ function applyMockLopSave(
     giaoVienText: payload.giaoVienText?.trim() || null,
     giaoVien: giaoVienFromLopText(payload.giaoVienText ?? null),
     diaChiHoc: detail.khoa.diaChiHoc,
+    chiNhanhIds: payload.chiNhanhIds ?? [],
+    chiNhanh: [],
   };
 
   if (editing) {
@@ -563,6 +565,8 @@ function DetailContent({
   editingBaiTap,
   onEditBaiTap,
   onSaveBaiTap,
+  onDeleteBaiTap,
+  deletingBaiTapId = null,
   isManagingLop = false,
   onOpenAddLop,
   onEditLop,
@@ -585,6 +589,8 @@ function DetailContent({
   editingBaiTap: BaiTapKhoaData | null;
   onEditBaiTap: (item: BaiTapKhoaData) => void;
   onSaveBaiTap: (draft: BaiTapKhoaDraft) => void;
+  onDeleteBaiTap?: (item: BaiTapKhoaData) => void;
+  deletingBaiTapId?: string | null;
   isManagingLop?: boolean;
   onOpenAddLop: () => void;
   onEditLop: (lop: LopHocDetailData) => void;
@@ -644,9 +650,10 @@ function DetailContent({
     goiHocPhi.find((goi) => goi.id === selectedGoiId) ?? goiHocPhi[0] ?? null;
   const thoiLuongLabel = selectedGoiDurationLabel(selectedGoi);
   const hasThoiLuong = thoiLuongLabel !== "—";
-  const hinhThucLabel = khoa.hinhThuc
-    ? labelHinhThucLopChiTiet(khoa.hinhThuc)
-    : "—";
+  const hinhThucLabel =
+    khoa.hinhThucs.length > 0
+      ? khoa.hinhThucs.map(labelHinhThucLopChiTiet).join(" · ")
+      : "Chưa mở lớp";
   const khoaStatus = labelTrangThaiKhoaHoc(khoa.trangThaiKhoaHoc);
 
   return (
@@ -868,6 +875,8 @@ function DetailContent({
                               index={i}
                               canManage
                               onEdit={onEditBaiTap}
+                              onDelete={onDeleteBaiTap}
+                              deleting={deletingBaiTapId === bt.id}
                             />
                           ))}
                         </div>
@@ -1038,6 +1047,7 @@ export function KhoaHocDetailView({
     null,
   );
   const [baiTapList, setBaiTapList] = useState<BaiTapKhoaData[]>([]);
+  const [deletingBaiTapId, setDeletingBaiTapId] = useState<string | null>(null);
   const [baiTapDisplayMode, setBaiTapDisplayMode] =
     useState<BaiTapSectionDisplayMode>(BAI_TAP_SECTION_DISPLAY_DEFAULT);
   const baiTapMigratedRef = useRef(false);
@@ -1213,6 +1223,31 @@ export function KhoaHocDetailView({
       .catch(() => {
         saveBaiTapDrafts(orgId, khoa.id, next);
       });
+  }
+
+  function handleDeleteBaiTap(item: BaiTapKhoaData) {
+    const next = baiTapList.filter((bt) => bt.id !== item.id);
+    setBaiTapList(next);
+    if (editingBaiTap?.id === item.id) {
+      setEditingBaiTap(null);
+      setBaiTapOpen(false);
+    }
+
+    if (isMockup) {
+      saveBaiTapDrafts(orgId, khoa.id, next);
+      return;
+    }
+
+    setDeletingBaiTapId(item.id);
+    void persistBaiTapList(next)
+      .then((saved) => {
+        setBaiTapList(saved);
+        setDetail((prev) => (prev ? { ...prev, baiTap: saved } : prev));
+      })
+      .catch(() => {
+        saveBaiTapDrafts(orgId, khoa.id, next);
+      })
+      .finally(() => setDeletingBaiTapId(null));
   }
 
   function handleOpenAddLop() {
@@ -1394,6 +1429,8 @@ export function KhoaHocDetailView({
         editingBaiTap={editingBaiTap}
         onEditBaiTap={handleEditBaiTap}
         onSaveBaiTap={handleSaveBaiTap}
+        onDeleteBaiTap={handleDeleteBaiTap}
+        deletingBaiTapId={deletingBaiTapId}
         isManagingLop={isManagingKhoa}
         onOpenAddLop={handleOpenAddLop}
         onEditLop={handleEditLop}
@@ -1417,6 +1454,7 @@ export function KhoaHocDetailView({
         <KhoaHocCreateModal
           open={khoaEditOpen}
           orgId={orgId}
+          orgSlug={orgSlug}
           orgDiaChi={orgDiaChi}
           editing={detail.khoa}
           onClose={() => setKhoaEditOpen(false)}

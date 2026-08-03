@@ -12,18 +12,20 @@ import {
 import { ExternalLink, ImagePlus, Pencil, Plus, Trash2 } from "lucide-react";
 
 import { LopHocEditModal } from "@/components/co-so/LopHocEditModal";
-import { PedagogyQuanLyClient } from "@/components/co-so/quan-ly/PedagogyQuanLyClient";
+import { LopHocDeleteConfirm } from "@/components/co-so/quan-ly/LopHocDeleteConfirm";
 import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
 import { isAllowedUploadImageFile } from "@/lib/files/infer-image-mime";
 import { coSoKhoaHocDetailPath } from "@/lib/to-chuc/co-so-routes";
 import {
   labelHinhThucLop,
   labelTrangThaiLop,
+  TRANG_THAI_LOP_OPTIONS,
 } from "@/lib/to-chuc/khoa-hoc-labels";
 import type {
   KhoaHocCardData,
   LoaiMoHinhKhoa,
   LopHocDetailData,
+  TrangThaiLop,
 } from "@/lib/to-chuc/khoa-hoc-types";
 import type { LopHocQuanLyRow } from "@/lib/to-chuc/lop-hoc-quan-ly-types";
 
@@ -60,6 +62,7 @@ function toLopDetail(row: LopHocQuanLyRow): LopHocDetailData {
     row.giaoVienTen?.trim() ||
     row.giaoVienText?.trim() ||
     "Đang cập nhật";
+  const chiNhanh = row.chiNhanh ?? [];
   return {
     id: row.id,
     maLop: row.maLop,
@@ -84,8 +87,21 @@ function toLopDetail(row: LopHocQuanLyRow): LopHocDetailData {
       avatarUrl: row.giaoVienAvatarUrl,
       avatarId: row.giaoVienAvatarId,
     },
-    diaChiHoc: null,
+    chiNhanhIds: row.chiNhanhIds ?? [],
+    chiNhanh,
+    diaChiHoc:
+      chiNhanh
+        .map((c) => (c.diaChi ? `${c.ten} — ${c.diaChi}` : c.ten))
+        .join("\n") || null,
   };
+}
+
+function diaDiemLabel(row: LopHocQuanLyRow): string {
+  if (row.hinhThuc === "truc_tuyen") return "Online";
+  const names = (row.chiNhanh ?? [])
+    .map((c) => c.ten.trim())
+    .filter(Boolean);
+  return names.length > 0 ? names.join(" · ") : "—";
 }
 
 function GiaoVienCell({ row }: { row: LopHocQuanLyRow }) {
@@ -172,7 +188,8 @@ export function LopHocQuanLyPanel({
   const [pickOpen, setPickOpen] = useState(false);
   const [createKhoaId, setCreateKhoaId] = useState("");
   const [uploadingLopId, setUploadingLopId] = useState<string | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [statusUpdatingId, setStatusUpdatingId] = useState<string | null>(null);
+  const [deletingLop, setDeletingLop] = useState<LopHocQuanLyRow | null>(null);
   const thumbInputRef = useRef<HTMLInputElement>(null);
   const thumbTargetLopIdRef = useRef<string | null>(null);
   const seededRef = useRef(seedReady);
@@ -238,8 +255,26 @@ export function LopHocQuanLyPanel({
     const byId = new Map<string, string>();
     for (const k of khoaOptions) byId.set(k.id, k.tenKhoaHoc);
     for (const r of rows) if (!byId.has(r.khoaId)) byId.set(r.khoaId, r.tenKhoa);
-    return [...byId].map(([id, tenKhoaHoc]) => ({ id, tenKhoaHoc }));
+    const hvByKhoa = new Map<string, number>();
+    for (const r of rows) {
+      if (r.trangThaiLop !== "dang_hoc") continue;
+      hvByKhoa.set(r.khoaId, (hvByKhoa.get(r.khoaId) ?? 0) + r.soHocVien);
+    }
+    return [...byId].map(([id, tenKhoaHoc]) => ({
+      id,
+      tenKhoaHoc,
+      soHocVien: hvByKhoa.get(id) ?? 0,
+    }));
   }, [khoaOptions, rows]);
+
+  const tongHocVienDangHoc = useMemo(
+    () =>
+      rows.reduce(
+        (sum, r) => (r.trangThaiLop === "dang_hoc" ? sum + r.soHocVien : sum),
+        0,
+      ),
+    [rows],
+  );
 
   const visibleRows = useMemo(
     () => (filterId ? rows.filter((r) => r.khoaId === filterId) : rows),
@@ -249,21 +284,6 @@ export function LopHocQuanLyPanel({
   const filterTenKhoa = filterId
     ? (filterOptions.find((k) => k.id === filterId)?.tenKhoaHoc ?? null)
     : null;
-
-  const stats = useMemo(() => {
-    let dangMo = 0;
-    let hv = 0;
-    for (const r of visibleRows) {
-      if (
-        r.trangThaiLop === "sap_khai_giang" ||
-        r.trangThaiLop === "dang_hoc"
-      ) {
-        dangMo += 1;
-      }
-      hv += r.soHocVien;
-    }
-    return { total: visibleRows.length, dangMo, hv };
-  }, [visibleRows]);
 
   const modalKhoa = useMemo(() => {
     if (editing) {
@@ -310,37 +330,52 @@ export function LopHocQuanLyPanel({
     thumbInputRef.current?.click();
   }
 
-  async function softDeleteLop(row: LopHocQuanLyRow) {
-    if (!canEdit || deletingId) return;
-    const label = row.maLop || row.lichHoc || "lớp này";
-    const ok = window.confirm(
-      `Ẩn lớp «${label}»?\n\nĐây là soft delete — lớp chuyển sang «Đã hủy», dữ liệu học viên được giữ. Có thể khôi phục bằng cách sửa trạng thái lớp.`,
-    );
-    if (!ok) return;
-    setDeletingId(row.id);
+  async function updateTrangThaiLop(
+    row: LopHocQuanLyRow,
+    next: TrangThaiLop,
+  ) {
+    if (!canEdit || statusUpdatingId) return;
+    if (next === row.trangThaiLop) return;
+    setStatusUpdatingId(row.id);
     setError(null);
     try {
       const res = await fetch(
         `/api/co-so/${encodeURIComponent(orgId)}/khoa-hoc/${encodeURIComponent(row.khoaId)}/lop/${encodeURIComponent(row.id)}`,
-        { method: "DELETE", credentials: "include" },
+        {
+          method: "PATCH",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            maLop: row.maLop,
+            hinhThuc: row.hinhThuc,
+            lichHoc: row.lichHoc,
+            ngayKhaiGiang: row.ngayKhaiGiang,
+            giaoVienText: row.giaoVienText,
+            giaoVienPhuTrach: row.giaoVienPhuTrach,
+            slotToiDa: row.slotToiDa,
+            trangThaiLop: next,
+            chiNhanhIds: row.chiNhanhIds,
+          }),
+        },
       );
       const data = await res.json().catch(() => null);
       if (!res.ok) {
         throw new Error(
-          (data as { error?: string } | null)?.error || "Không xóa được lớp.",
+          (data as { error?: string } | null)?.error ||
+            "Không cập nhật được trạng thái lớp.",
         );
       }
       setRows((prev) => {
-        const next = prev.map((r) =>
-          r.id === row.id ? { ...r, trangThaiLop: "huy" as const } : r,
+        const nextRows = prev.map((r) =>
+          r.id === row.id ? { ...r, trangThaiLop: next } : r,
         );
-        onRowsChange?.(next);
-        return next;
+        onRowsChange?.(nextRows);
+        return nextRows;
       });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Lỗi xóa lớp.");
+      setError(e instanceof Error ? e.message : "Lỗi cập nhật trạng thái.");
     } finally {
-      setDeletingId(null);
+      setStatusUpdatingId(null);
     }
   }
 
@@ -421,24 +456,6 @@ export function LopHocQuanLyPanel({
         tabIndex={-1}
         onChange={(e) => void onThumbFileChange(e)}
       />
-      <section className="cso-dt-kpis cso-lh-kpis" aria-label="Tóm tắt lớp học">
-        <div className="cso-dt-kpi cso-dt-kpi--hero">
-          <p className="cso-dt-kpi-label">Lớp học</p>
-          <p className="cso-dt-kpi-value">{loading ? "…" : stats.total}</p>
-          <p className="cso-dt-kpi-sub">{stats.dangMo} đang mở</p>
-        </div>
-        <div className="cso-dt-kpi">
-          <p className="cso-dt-kpi-label">Lớp đang mở</p>
-          <p className="cso-dt-kpi-value">{loading ? "…" : stats.dangMo}</p>
-          <p className="cso-dt-kpi-sub">sắp khai giảng / đang học</p>
-        </div>
-        <div className="cso-dt-kpi">
-          <p className="cso-dt-kpi-label">Học viên</p>
-          <p className="cso-dt-kpi-value">{loading ? "…" : stats.hv}</p>
-          <p className="cso-dt-kpi-sub">ghi danh các lớp</p>
-        </div>
-      </section>
-
       <section className="cso-dt-panel">
         <div className="cso-dt-panel-head">
           <div className="cso-lh-head-row">
@@ -458,10 +475,12 @@ export function LopHocQuanLyPanel({
                   value={filterId ?? ""}
                   onChange={(e) => setFilterId(e.target.value || null)}
                 >
-                  <option value="">Tất cả khóa</option>
+                  <option value="">
+                    Tất cả khóa — {tongHocVienDangHoc} hv
+                  </option>
                   {filterOptions.map((k) => (
                     <option key={k.id} value={k.id}>
-                      {k.tenKhoaHoc}
+                      {k.tenKhoaHoc} — {k.soHocVien} hv
                     </option>
                   ))}
                 </select>
@@ -493,10 +512,10 @@ export function LopHocQuanLyPanel({
               <thead>
                 <tr>
                   <th scope="col">Lớp</th>
-                  <th scope="col">Mã lớp</th>
                   <th scope="col">Khóa</th>
                   <th scope="col">Giáo viên</th>
                   <th scope="col">Khai giảng</th>
+                  <th scope="col">Địa điểm</th>
                   <th scope="col">HV</th>
                   <th scope="col">Trạng thái</th>
                   <th scope="col">
@@ -517,7 +536,7 @@ export function LopHocQuanLyPanel({
                       <div className="cso-hv-empty">
                         <strong>Chưa có lớp</strong>
                         {filterTenKhoa
-                          ? `Khóa «${filterTenKhoa}» chưa có lớp nào. Chọn «Tất cả khóa» để xem toàn bộ.`
+                          ? `Khóa «${filterTenKhoa}» chưa có lớp nào. Khóa chưa mở lớp — chưa hiện công khai. Chọn «Tất cả khóa» để xem toàn bộ.`
                           : khoaOptions.length === 0
                             ? "Tạo khóa trước, rồi thêm lớp học."
                             : "Bấm «Thêm lớp» để mở lớp thuộc một khóa."}
@@ -556,19 +575,16 @@ export function LopHocQuanLyPanel({
                             </span>
                           )}
                           <div className="cso-hv-person-meta">
-                            <p className="cso-hv-name">
-                              {r.lichHoc || r.maLop || "Lớp"}
+                            <p className="cso-hv-name cso-lh-ma-lop">
+                              {r.maLop || "Chưa có mã"}
                             </p>
                             <p className="cso-hv-lop">
-                              {labelHinhThucLop(r.hinhThuc)}
+                              {r.lichHoc
+                                ? `${labelHinhThucLop(r.hinhThuc)} · ${r.lichHoc}`
+                                : labelHinhThucLop(r.hinhThuc)}
                             </p>
                           </div>
                         </div>
-                      </td>
-                      <td>
-                        <p className="cso-hv-course cso-lh-ma-lop">
-                          {r.maLop || "—"}
-                        </p>
                       </td>
                       <td>
                         <p className="cso-hv-course">{r.tenKhoa}</p>
@@ -580,21 +596,52 @@ export function LopHocQuanLyPanel({
                         <p className="cso-hv-lop">{formatNgay(r.ngayKhaiGiang)}</p>
                       </td>
                       <td>
+                        <p className="cso-hv-lop">{diaDiemLabel(r)}</p>
+                      </td>
+                      <td>
                         <p className="cso-hv-course">
                           {r.soHocVien}
                           {r.slotToiDa != null ? ` / ${r.slotToiDa}` : ""}
                         </p>
                       </td>
                       <td>
-                        <span
-                          className={
-                            r.trangThaiLop === "dang_hoc"
-                              ? "cso-hv-chip cso-hv-chip--ok"
-                              : "cso-hv-chip cso-hv-chip--state"
-                          }
-                        >
-                          {labelTrangThaiLop(r.trangThaiLop)}
-                        </span>
+                        {canEdit ? (
+                          <select
+                            className={`cso-ql-select cso-lh-status-select${
+                              r.trangThaiLop === "dang_hoc"
+                                ? " is-ok"
+                                : r.trangThaiLop === "huy" ||
+                                    r.trangThaiLop === "da_ket_thuc"
+                                  ? " is-muted"
+                                  : ""
+                            }`}
+                            value={r.trangThaiLop}
+                            disabled={statusUpdatingId === r.id}
+                            aria-label={`Trạng thái lớp ${r.maLop || r.lichHoc || ""}`}
+                            onChange={(e) =>
+                              void updateTrangThaiLop(
+                                r,
+                                e.target.value as TrangThaiLop,
+                              )
+                            }
+                          >
+                            {TRANG_THAI_LOP_OPTIONS.map((opt) => (
+                              <option key={opt.value} value={opt.value}>
+                                {opt.label}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <span
+                            className={
+                              r.trangThaiLop === "dang_hoc"
+                                ? "cso-hv-chip cso-hv-chip--ok"
+                                : "cso-hv-chip cso-hv-chip--state"
+                            }
+                          >
+                            {labelTrangThaiLop(r.trangThaiLop)}
+                          </span>
+                        )}
                       </td>
                       <td>
                         <div className="cso-hv-actions">
@@ -627,12 +674,9 @@ export function LopHocQuanLyPanel({
                               <button
                                 type="button"
                                 className="cso-ql-btn cso-ql-btn--ghost cso-ql-btn--icon cso-ql-btn--danger-icon"
-                                title="Ẩn lớp (soft delete)"
-                                aria-label={`Ẩn lớp ${r.maLop || r.lichHoc || ""}`}
-                                disabled={
-                                  deletingId === r.id || r.trangThaiLop === "huy"
-                                }
-                                onClick={() => void softDeleteLop(r)}
+                                title="Xóa lớp vĩnh viễn"
+                                aria-label={`Xóa lớp ${r.maLop || r.lichHoc || ""}`}
+                                onClick={() => setDeletingLop(r)}
                               >
                                 <Trash2 size={15} strokeWidth={2.2} aria-hidden />
                               </button>
@@ -646,19 +690,6 @@ export function LopHocQuanLyPanel({
               </tbody>
             </table>
           </div>
-        </div>
-      </section>
-
-      <section className="cso-dt-panel">
-        <div className="cso-dt-panel-head">
-          <h2 className="cso-dt-panel-title">Nộp bài & tiến độ</h2>
-          <p className="cso-dt-panel-sub">
-            Duyệt bài nộp từ phòng lớp. Đạt + chọn bài tiếp → mở khóa bài mới và
-            gửi thông báo.
-          </p>
-        </div>
-        <div className="cso-dt-panel-body cso-dt-panel-body--flush">
-          <PedagogyQuanLyClient orgId={orgId} />
         </div>
       </section>
 
@@ -732,6 +763,20 @@ export function LopHocQuanLyPanel({
           }}
         />
       ) : null}
+
+      <LopHocDeleteConfirm
+        open={Boolean(deletingLop)}
+        orgId={orgId}
+        lop={deletingLop}
+        onClose={() => setDeletingLop(null)}
+        onDeleted={(lopId) => {
+          setRows((prev) => {
+            const next = prev.filter((r) => r.id !== lopId);
+            onRowsChange?.(next);
+            return next;
+          });
+        }}
+      />
     </>
   );
 }

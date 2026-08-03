@@ -176,9 +176,14 @@ Tái dùng đúng pattern Shopee AI cho **user tự import portfolio** của ch�
 ### Cơ sở đào tạo — khóa học (`co-so`) — đã có trong repo (một phần)
 | Route | Việc |
 |---|---|
-| `co-so/[id]/khoa-hoc` | GET list khóa của cơ sở · POST tạo khóa (`org_khoa_hoc`) — admin org |
-| `co-so/[id]/khoa-hoc/[khoaId]` | GET chi tiết khóa · PATCH sửa (gồm `noi_dung_blocks`) |
-| `co-so/[id]/khoa-hoc/[khoaId]/lop` · `.../[lopId]` | CRUD lớp (`org_lop_hoc`): `lich_hoc`, `giao_vien_phu_trach`\|`giao_vien_text`, `ngay_khai_giang`, `slot_toi_da`, `trang_thai` |
+| `co-so/[id]/khoa-hoc` | GET list khóa của cơ sở · POST tạo khóa (`org_khoa_hoc`) — admin org. **Không** scaffold lớp; hình thức/địa điểm thuộc lớp |
+| `co-so/[id]/khoa-hoc/[khoaId]` | GET chi tiết khóa · PATCH sửa (gồm `trangThaiKhoaHoc` tạm dừng) · **DELETE hard delete** (guard; 409 + blockers nếu còn ràng buộc) |
+| `co-so/[id]/khoa-hoc/[khoaId]/xoa-preflight` | GET preflight hard delete khóa — `{ coTheXoa, blockers[], canhBao[] }` |
+| `co-so/[id]/khoa-hoc/dia-diem` | GET chi nhánh đang hoạt động — consumer: modal **lớp** (multi-select) |
+| `co-so/[id]/khoa-hoc/[khoaId]/lop` · `.../[lopId]` | CRUD lớp (`org_lop_hoc`): `hinh_thuc`, `lich_hoc`, GV, `ngay_khai_giang`, `slot_toi_da`, `trang_thai`, **`chiNhanhIds[]`** → junction `org_lop_hoc_chi_nhanh` + sync `id_chi_nhanh` (chính). **DELETE = hard delete** (guard). Tạm dừng = PATCH `trangThaiLop=huy` |
+| `co-so/[id]/khoa-hoc/[khoaId]/lop/[lopId]/xoa-preflight` | GET preflight hard delete lớp |
+| `co-so/[id]/hoc-vien/[hvlId]` | **DELETE gỡ ghi danh vĩnh viễn** (`user_hoc_vien_lop`) — guard: chặn nếu còn đơn `da_nhan_tien` (FK đơn học phí là CASCADE → xóa sẽ mất doanh thu). 409 + blockers |
+| `co-so/[id]/hoc-vien/[hvlId]/xoa-preflight` | GET preflight gỡ ghi danh — cảnh báo đơn chờ / kỳ học / bài nộp / tiến độ sẽ bị cascade |
 | `co-so/[id]/khoa-hoc/[khoaId]/bai-tap` | Bài tập khóa (`org_bai_tap`) — dùng trên trang khóa công khai |
 | `co-so/[id]/giao-trinh` · `.../[baiId]` | Meta khóa + quyền tab **Giáo trình**; CRUD lẻ vẫn có. UI quản trị dùng cùng pattern/API `…/khoa-hoc/[khoaId]/bai-tap` (PUT sync + PATCH `displayMode`) như trang khóa |
 | `co-so/[id]/khoa-hoc/[khoaId]/giao-trinh` · `.../[baiId]` | CRUD lộ trình cũ (`org_giao_trinh`) — **legacy**; UI lộ trình khách đồng bộ `org_bai_tap` |
@@ -293,6 +298,7 @@ Tái dùng đúng pattern Shopee AI cho **user tự import portfolio** của ch�
 | `migration_org_bai_dang_noi_dung_blocks.sql` | Cột `org_bai_dang.noi_dung_blocks` jsonb — nội dung Block kiểu Journey; `noi_dung` HTML legacy giữ tạm. |
 | `migration_khoa_hoc_v2.sql` | **Trang khóa học v2** (gộp, thay `migration_giao_trinh_thu_tu.sql` lẻ): `org_giao_trinh.thu_tu` + `so_buoi`; `org_lop_hoc.lich_hoc` + `giao_vien_text`; `org_khoa_hoc.noi_dung_blocks`. Idempotent + backfill `thu_tu`. Chạy xong → đối chiếu lại schema DB. |
 | `migration_csdt_van_hanh_hoc.sql` | **L34 Plan 1:** `org_chi_nhanh`, `org_goi_hoc_phi`, `org_don_hoc_phi`, `org_ky_hoc`, `org_tien_do_bai`, `org_nop_bai`, `org_diem_danh` + ALTER A1/A2 `org_lop_hoc`. Runner: `npm run migrate:csdt`. **Đã chạy** CINS 2026-07-25. |
+| `migration_lop_hoc_chi_nhanh.sql` | **Junction lớp ↔ chi nhánh (N):** `org_lop_hoc_chi_nhanh` (PK `id_lop_hoc,id_chi_nhanh`, `thu_tu`); backfill từ `org_lop_hoc.id_chi_nhanh`. Giữ cột `id_chi_nhanh` = chi nhánh chính (`chiNhanhIds[0]`). Runner: `npm run migrate:lop-chi-nhanh`; meta khóa → junction: `npm run backfill:lop-chi-nhanh`. **Đã chạy** CINS 2026-08-03. |
 | `migration_org_hinh_anh_loai_expand.sql` | Mở rộng CHECK `org_hinh_anh.loai`: thêm `ngoai_khoa`, `su_kien`, `hop_tac` (UI gallery tab Hình ảnh). Chạy: `node scripts/run-org-hinh-anh-loai-migration.mjs`. |
 | `migration_drop_giai_doan_moi_bat_dau.sql` | **L36:** bỏ `moi_bat_dau` — data → `dang_hoc` + recreate `giai_doan_enum` (5 value). Chạy: `node scripts/run-drop-giai-doan-moi-bat-dau-migration.mjs`. **Đã chạy** CINS 2026-07-26. |
 | `migration_org_tuyen_dung.sql` | **Trang chủ adaptive:** `org_tuyen_dung` + `org_tuyen_dung_ung_tuyen` + `org_scout_luu`; enum `loai_hinh_lam_viec_enum`, `trang_thai_tuyen_dung_enum`, `trang_thai_ung_tuyen_enum`. Chạy: `node scripts/run-org-tuyen-dung-migration.mjs`. |
@@ -639,10 +645,10 @@ Trang khóa standalone `/co-so/[slug]/khoa-hoc/[khoa-slug]`. Ưu tiên render m�
 
 | Section | Nguồn | Ghi chú |
 |---|---|---|
-| Hero + facts | `org_khoa_hoc` | tên, mô hình (`loai_mo_hinh`), thời lượng (`thoi_luong_buoi`/`thoi_luong_phut_moi_buoi`), học phí, `trinh_do_dau_vao`, `trang_thai_khoa_hoc` |
-| Giới thiệu | `org_khoa_hoc.noi_dung_blocks` | landing dạng block (mục tiêu / dành cho ai…); `mo_ta` = tóm tắt ngắn |
+| Hero + facts | `org_khoa_hoc` + derived lớp | tên, mô hình (`loai_mo_hinh`), thời lượng, học phí, trình độ, trạng thái; **hình thức** = tập hợp distinct `org_lop_hoc.hinh_thuc` (chưa có lớp → ẩn trang công khai) |
+| Giới thiệu | `org_khoa_hoc.noi_dung_blocks` | landing dạng block; `mo_ta` = tóm tắt ngắn. Meta: gói HP + `cheDoHienThi` (không còn ghi địa điểm / `chiNhanhIds`) |
 | Lộ trình bài / giáo trình | `org_bai_tap` | ORDER BY `thu_tu`; mỗi bài: `ten_bai_tap`, `mo_ta`, `video_youtube_url`, `thumbnail_url`, **`visible`** (khách chỉ thấy `true`; soft delete admin = `false`). Chế độ section khóa: `org_khoa_hoc.bai_tap_hien_thi` ∈ `an`\|`mot_phan`\|`day_du`. Tab quản trị `/quan-ly/giao-trinh` CRUD cùng bảng. `org_giao_trinh` = legacy (không còn nguồn UI khách). |
-| Khung lớp & lịch | `org_lop_hoc` | per-lớp: `lich_hoc`, giáo viên (`giao_vien_phu_trach` user → verified + link Journey; else `giao_vien_text` → tên chữ không badge; else "Đang cập nhật"), `slot_toi_da`, `trang_thai_lop`, `ngay_khai_giang` (cohort) / "khai giảng hàng tuần" (liên tục). Nút **Đăng ký khung** |
+| Khung lớp & lịch | `org_lop_hoc` + `org_lop_hoc_chi_nhanh` | per-lớp: **`hinh_thuc`**, địa điểm (N chi nhánh), `lich_hoc`, giáo viên, `slot_toi_da`, `trang_thai`, `ngay_khai_giang`. Nút **Đăng ký khung** |
 | Giảng viên | `org_lop_hoc.giao_vien_phu_trach` distinct | gom GV qua các lớp; verified → card link hồ sơ; chưa có CINS → tên chữ |
 | Sản phẩm học viên | lens `content_cot_moc` | `WHERE id_khoa_hoc=khoaId AND verified AND public` (L15). Ghi chú UI: học viên tự đăng, gắn khóa, org xác nhận — không phải kho org |
 
@@ -651,7 +657,7 @@ Trang khóa standalone `/co-so/[slug]/khoa-hoc/[khoa-slug]`. Ưu tiên render m�
 - **CRUD admin** inline trên trang (org admin): thêm/sửa khóa, kéo sắp xếp bài (`thu_tu`), đổi `visibility`, thêm/sửa lớp. Quyền: `vai_tro IN ('admin','quan_ly_noi_dung')` của org.
 - **LMS mỏng + Plan 2 Phase A (WebRTC):** Plan 1 = kỳ HP + phòng chat lớp + nộp/duyệt. **Phòng học A/V:** provider `lib/media/*` · `POST /api/chat/rooms/[roomId]/phong-hoc/token` (gate `assertCanJoinPhongHoc` = member + kỳ / freeze 403) · UI nút Video trong `CinsChatOverlay` · RealtimeKit meeting map `media_phong_hop` (`npm run migrate:media-phong-hop`). **Dashboard egress:** `/admin/bang-thong` · `GET /api/admin/media/bang-thong` (cảnh báo 70/85/95% free 1 TB). Phase B LiveKit/Hetzner = đổi `MEDIA_PROVIDER` + env — chưa dual-runtime. Chứng chỉ hoàn thành = milestone verified `sinh_tu_hoc_vien_lop` trên Journey.
 - **Dashboard quản trị (L34 IA):** mọi admin CSĐT vào `/co-so/[slug]/quan-ly` — nav nhóm: Tổng quan · Thiết lập (Cơ sở · Chi nhánh) · Học (Khóa & lớp · **Giáo trình** · Học viên · Điểm danh) · Tiền (Doanh thu). Trail phải: **Tin nhắn** → route `/quan-ly/tin-nhan` (panel full-page đồng bộ CinsChat: Tư vấn · Cơ sở/lớp · Chờ xác thực; CTA ghi danh / gửi đơn HP) · **Quản lý bài học viên** (`TruongMilestoneTagNotify`: filter Tất cả · Chờ duyệt · Đã duyệt [= bảng hiển thị tường CSĐT/ĐH] · Từ chối) · Cài đặt tối cao (founder). Giáo trình = `org_bai_tap` (đồng bộ trang khóa). Marketing gộp Tổng quan (`/quan-ly/marketing` → redirect). Trang public chỉ hiển thị + link toolbar; chi nhánh nguồn chính = `org_chi_nhanh` (đồng bộ cột liên hệ org + mirror JSON).
-- Soft delete khóa: `org_khoa_hoc.trang_thai_khoa_hoc = tam_dung`. Soft delete lớp: `org_lop_hoc.trang_thai = huy`. Bài tập: ẩn = `org_bai_tap.visible = false`; xóa hẳn = `DELETE` row.
+- **Tạm dừng** khóa: `PATCH` `trang_thai_khoa_hoc = tam_dung`. **Tạm dừng** lớp: `PATCH` `trang_thai = huy`. **Hard delete** khóa/lớp: `DELETE` + guard (0 ghi danh, 0 đơn `da_nhan_tien`, …) — preflight `GET …/xoa-preflight`; còn blocker → 409 + danh sách. **Gỡ ghi danh** (tab Học viên): `DELETE /api/co-so/[id]/hoc-vien/[hvlId]` — mở đường dọn khóa nháp có ghi danh test; chặn cứng khi ghi danh đã có đơn `da_nhan_tien` vì FK `org_don_hoc_phi.id_hoc_vien_lop` là `ON DELETE CASCADE` và doanh thu cộng thẳng từ bảng đơn (`lib/co-so/ops-dashboard.ts`). Bài tập: ẩn = `org_bai_tap.visible = false`; xóa hẳn = `DELETE` row.
 - **Founder Settings — "Cài đặt tối cao" (L34, 2026-07-25):** icon bánh răng trong `CoSoQuanLyShell` (chỉ owner/admin) → `/co-so/[slug]/quan-ly/cai-dat` (route `cai-dat`, ngoài 4 cụm nav; gate `CoSoQuanLyPageGate` với `requireFounder`).
   - **STK nhận tiền:** dời khỏi tab Doanh thu vào đây; route `GET/PATCH /api/co-so/[id]/hoc-phi/thanh-toan` siết founder-only (`isCoSoFounderTier`), không qua ma trận.
   - **Ma trận phân quyền staff** (`CoSoCaiDatToiCaoClient` + `GET/PATCH /api/co-so/[id]/cai-dat/quyen`): bảng mới `org_thanh_vien_quyen` (`id_to_chuc, id_nguoi_dung, module, muc_quyen ∈ {xem,sua}`, unique 3 cột; **chưa apply lên Supabase** — file `supabase/sql/migration_org_thanh_vien_quyen.sql`, chờ user xác nhận trước khi chạy). Vắng row = `an`.

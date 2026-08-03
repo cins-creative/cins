@@ -27,18 +27,20 @@ type Goi = {
   khoaTens?: string[];
 };
 
-type KhoaOpt = { id: string; ten: string };
-
 type Draft = {
   ten: string;
-  soLuong: number;
+  /** `""` khi user đang xóa số — tránh `Number("") || 0` ép lại 0. */
+  soLuong: number | "";
   donVi: DonViThoiLuong;
-  soNgayHieuLuc: number;
-  giaVnd: number;
+  soNgayHieuLuc: number | "";
+  giaVnd: number | "";
+  /** Khóa gắn gói — cùng bảng N–N `org_goi_hoc_phi_khoa` phía khóa học. */
   khoaIds: string[];
   /** Note cũ trong mo_ta — không hiện UI, giữ khi lưu. */
   preservedNote: string | null;
 };
+
+type KhoaOption = { id: string; ten: string };
 
 type Props = { orgId: string };
 
@@ -47,7 +49,7 @@ const EMPTY_DRAFT: Draft = {
   soLuong: 30,
   donVi: "ngay",
   soNgayHieuLuc: 30,
-  giaVnd: 0,
+  giaVnd: "",
   khoaIds: [],
   preservedNote: null,
 };
@@ -79,29 +81,39 @@ function draftFromGoi(g: Goi): Draft {
   };
 }
 
+function parseNumberInput(raw: string): number | "" {
+  if (raw.trim() === "") return "";
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : "";
+}
+
 function buildPayload(draft: Draft) {
+  const soLuong = typeof draft.soLuong === "number" ? draft.soLuong : 0;
+  const soNgayHieuLuc =
+    typeof draft.soNgayHieuLuc === "number" ? draft.soNgayHieuLuc : 0;
+  const giaVnd = typeof draft.giaVnd === "number" ? draft.giaVnd : 0;
   const soNgay = resolveSoNgayHieuLuc({
     donVi: draft.donVi,
-    soLuong: draft.soLuong,
-    soNgayHieuLuc: draft.soNgayHieuLuc,
+    soLuong,
+    soNgayHieuLuc,
   });
   const moTa = encodeGoiMoTa(
-    { donVi: draft.donVi, soLuong: draft.soLuong },
+    { donVi: draft.donVi, soLuong },
     draft.preservedNote,
   );
   return {
     ten: draft.ten.trim(),
     soNgay,
-    giaVnd: draft.giaVnd,
-    khoaIds: draft.khoaIds,
+    giaVnd,
     moTa,
+    khoaIds: draft.khoaIds,
   };
 }
 
 export function HocPhiGoiTab({ orgId }: Props) {
   const titleId = useId();
   const [goi, setGoi] = useState<Goi[]>([]);
-  const [khoaOpts, setKhoaOpts] = useState<KhoaOpt[]>([]);
+  const [khoaOptions, setKhoaOptions] = useState<KhoaOption[]>([]);
   const [canEdit, setCanEdit] = useState(false);
   const [loading, setLoading] = useState(true);
   const [flash, setFlash] = useState<string | null>(null);
@@ -132,13 +144,14 @@ export function HocPhiGoiTab({ orgId }: Props) {
       setCanEdit(Boolean(goiData.canEdit));
 
       if (khoaRes.ok) {
-        const khoaData = await khoaRes.json();
-        const list = (khoaData.khoaHoc ?? []) as Array<{
-          id: string;
-          tenKhoaHoc: string;
-        }>;
-        setKhoaOpts(
-          list.map((k) => ({ id: k.id, ten: k.tenKhoaHoc })).filter((k) => k.ten),
+        const khoaData = (await khoaRes.json()) as {
+          khoaHoc?: Array<{ id: string; tenKhoaHoc: string }>;
+        };
+        setKhoaOptions(
+          (khoaData.khoaHoc ?? []).map((k) => ({
+            id: k.id,
+            ten: k.tenKhoaHoc,
+          })),
         );
       }
     } catch (e) {
@@ -151,6 +164,18 @@ export function HocPhiGoiTab({ orgId }: Props) {
   useEffect(() => {
     void load();
   }, [load]);
+
+  function toggleKhoa(khoaId: string) {
+    setDraft((d) => {
+      const has = d.khoaIds.includes(khoaId);
+      return {
+        ...d,
+        khoaIds: has
+          ? d.khoaIds.filter((id) => id !== khoaId)
+          : [...d.khoaIds, khoaId],
+      };
+    });
+  }
 
   function openCreate() {
     setEditingId(null);
@@ -173,18 +198,6 @@ export function HocPhiGoiTab({ orgId }: Props) {
     setFormError(null);
   }
 
-  function toggleKhoa(khoaId: string) {
-    setDraft((d) => {
-      const has = d.khoaIds.includes(khoaId);
-      return {
-        ...d,
-        khoaIds: has
-          ? d.khoaIds.filter((id) => id !== khoaId)
-          : [...d.khoaIds, khoaId],
-      };
-    });
-  }
-
   async function submitModal(e: React.FormEvent) {
     e.preventDefault();
     if (!canEdit) return;
@@ -192,12 +205,19 @@ export function HocPhiGoiTab({ orgId }: Props) {
       setFormError("Nhập tên gói.");
       return;
     }
-    if (draft.soLuong < 1) {
+    if (draft.soLuong === "" || draft.soLuong < 1) {
       setFormError("Thời lượng phải ≥ 1.");
       return;
     }
-    if (draft.donVi !== "ngay" && draft.soNgayHieuLuc < 1) {
+    if (
+      draft.donVi !== "ngay" &&
+      (draft.soNgayHieuLuc === "" || draft.soNgayHieuLuc < 1)
+    ) {
       setFormError("Ngày hiệu lực phải ≥ 1.");
+      return;
+    }
+    if (draft.giaVnd === "" || draft.giaVnd < 0) {
+      setFormError("Nhập giá gói (VND).");
       return;
     }
 
@@ -260,8 +280,8 @@ export function HocPhiGoiTab({ orgId }: Props) {
           <div>
             <h2 className="cso-dt-panel-title">Gói học phí</h2>
             <p className="cso-dt-panel-sub">
-              Một gói có thể gắn nhiều khóa — VD: «1 tháng Online» cho Hình họa
-              + Bố cục + Trang trí.
+              Gắn khóa ở đây hoặc từ form tạo/sửa khóa — hai chiều cùng một bảng
+              liên kết.
             </p>
           </div>
           {canEdit ? (
@@ -303,7 +323,7 @@ export function HocPhiGoiTab({ orgId }: Props) {
                       <td colSpan={6}>
                         <div className="cso-hv-empty">
                           <strong>Chưa có gói</strong>
-                          Bấm «Thêm gói» rồi chọn một hoặc nhiều khóa học.
+                          Bấm «Thêm gói» rồi chọn khóa học cần gắn.
                         </div>
                       </td>
                     </tr>
@@ -456,7 +476,7 @@ export function HocPhiGoiTab({ orgId }: Props) {
                   onChange={(e) =>
                     setDraft((d) => ({
                       ...d,
-                      soLuong: Number(e.target.value) || 1,
+                      soLuong: parseNumberInput(e.target.value),
                     }))
                   }
                 />
@@ -493,7 +513,7 @@ export function HocPhiGoiTab({ orgId }: Props) {
                   onChange={(e) =>
                     setDraft((d) => ({
                       ...d,
-                      soNgayHieuLuc: Number(e.target.value) || 1,
+                      soNgayHieuLuc: parseNumberInput(e.target.value),
                     }))
                   }
                 />
@@ -511,10 +531,11 @@ export function HocPhiGoiTab({ orgId }: Props) {
                 className="cso-ql-input"
                 value={draft.giaVnd}
                 disabled={busy}
+                placeholder="0"
                 onChange={(e) =>
                   setDraft((d) => ({
                     ...d,
-                    giaVnd: Number(e.target.value) || 0,
+                    giaVnd: parseNumberInput(e.target.value),
                   }))
                 }
               />
@@ -522,31 +543,31 @@ export function HocPhiGoiTab({ orgId }: Props) {
 
             <fieldset className="cso-hp-khoa-fieldset">
               <legend className="cso-ql-label">
-                Khóa học
+                Khóa học gắn gói
                 {draft.khoaIds.length > 0
-                  ? ` · đã chọn ${draft.khoaIds.length}`
+                  ? ` · ${draft.khoaIds.length}`
                   : ""}
               </legend>
-              {khoaOpts.length === 0 ? (
+              {khoaOptions.length === 0 ? (
                 <p className="cso-hp-field-hint">
-                  Chưa có khóa học trong cơ sở.
+                  Chưa có khóa — tạo khóa ở tab Khóa &amp; lớp trước.
                 </p>
               ) : (
                 <div
                   className="cso-hp-khoa-checklist"
                   role="group"
-                  aria-label="Chọn khóa học"
+                  aria-label="Chọn khóa học gắn gói"
                 >
-                  {khoaOpts.map((k) => {
-                    const checked = draft.khoaIds.includes(k.id);
+                  {khoaOptions.map((k) => {
+                    const on = draft.khoaIds.includes(k.id);
                     return (
                       <label
                         key={k.id}
-                        className={`cso-hp-khoa-check${checked ? " on" : ""}`}
+                        className={`cso-hp-khoa-check${on ? " on" : ""}`}
                       >
                         <input
                           type="checkbox"
-                          checked={checked}
+                          checked={on}
                           disabled={busy}
                           onChange={() => toggleKhoa(k.id)}
                         />
@@ -557,7 +578,8 @@ export function HocPhiGoiTab({ orgId }: Props) {
                 </div>
               )}
               <span className="cso-hp-field-hint">
-                Có thể để trống — gắn khóa sau khi tạo.
+                Cùng liên kết với form khóa học — gắn ở một bên là hai bên đều
+                thấy.
               </span>
             </fieldset>
           </div>

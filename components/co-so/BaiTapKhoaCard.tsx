@@ -1,6 +1,6 @@
 "use client";
 
-import { Lock, Pencil } from "lucide-react";
+import { Lock, Pencil, Trash2 } from "lucide-react";
 import Image from "next/image";
 import { useState, type KeyboardEvent } from "react";
 
@@ -21,6 +21,8 @@ type Props = {
   index: number;
   canManage?: boolean;
   onEdit?: (item: BaiTapKhoaData) => void;
+  onDelete?: (item: BaiTapKhoaData) => void;
+  deleting?: boolean;
 };
 
 /** Card bài tập — dùng chung trang khóa (manage) và tab Giáo trình. */
@@ -29,6 +31,8 @@ export function BaiTapKhoaCard({
   index,
   canManage = false,
   onEdit,
+  onDelete,
+  deleting = false,
 }: Props) {
   const [expanded, setExpanded] = useState(false);
   const youtubeId = item.videoYoutubeUrl
@@ -49,6 +53,16 @@ export function BaiTapKhoaCard({
     }
   }
 
+  function handleDelete(e: React.MouseEvent) {
+    e.stopPropagation();
+    if (deleting || !onDelete) return;
+    const ok = window.confirm(
+      `Xóa bài «${item.tenBaiTap}»?\n\nBài tập sẽ bị xóa vĩnh viễn khỏi khóa.`,
+    );
+    if (!ok) return;
+    onDelete(item);
+  }
+
   return (
     <article
       className={[
@@ -56,6 +70,7 @@ export function BaiTapKhoaCard({
         hasVideo ? "cso-khd-bt-card--expandable" : "",
         canManage ? "cso-khd-bt-card--manage" : "",
         expanded ? "is-open" : "",
+        deleting ? "is-deleting" : "",
       ]
         .filter(Boolean)
         .join(" ")}
@@ -98,18 +113,33 @@ export function BaiTapKhoaCard({
             {canManage || (hasVideo && item.visible) ? (
               <div className="cso-khd-bt-card-title-actions">
                 {canManage ? (
-                  <button
-                    type="button"
-                    className="cso-khd-bt-card-edit-bt"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onEdit?.(item);
-                    }}
-                    aria-label={`Sửa bài tập: ${item.tenBaiTap}`}
-                    title="Sửa bài tập"
-                  >
-                    <Pencil size={15} aria-hidden />
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      className="cso-khd-bt-card-edit-bt"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onEdit?.(item);
+                      }}
+                      aria-label={`Sửa bài tập: ${item.tenBaiTap}`}
+                      title="Sửa bài tập"
+                      disabled={deleting}
+                    >
+                      <Pencil size={15} aria-hidden />
+                    </button>
+                    {onDelete ? (
+                      <button
+                        type="button"
+                        className="cso-khd-bt-card-edit-bt cso-khd-bt-card-del-bt"
+                        onClick={handleDelete}
+                        aria-label={`Xóa bài tập: ${item.tenBaiTap}`}
+                        title="Xóa bài tập"
+                        disabled={deleting}
+                      >
+                        <Trash2 size={15} aria-hidden />
+                      </button>
+                    ) : null}
+                  </>
                 ) : null}
                 {hasVideo && item.visible ? (
                   <span

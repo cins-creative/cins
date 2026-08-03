@@ -5,6 +5,8 @@ import {
   listOrgStudentMessagesForStaff,
   sendOrgMessageToStudent,
 } from "@/lib/chat/org-message";
+import { getAvatarUrl } from "@/lib/journey/profile";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 type RouteContext = {
   params: Promise<{ orgId: string; studentUserId: string }>;
@@ -23,9 +25,10 @@ export async function GET(req: Request, context: RouteContext) {
   }
 
   const url = new URL(req.url);
+  const uid = studentUserId.trim();
   const result = await listOrgStudentMessagesForStaff({
     orgId: orgId.trim(),
-    studentUserId: studentUserId.trim(),
+    studentUserId: uid,
     staffUserId: session.profile.id,
     roomId: url.searchParams.get("roomId"),
   });
@@ -34,9 +37,26 @@ export async function GET(req: Request, context: RouteContext) {
     return NextResponse.json({ error: result.error }, { status: 403 });
   }
 
+  const admin = createServiceRoleClient();
+  const { data: profile } = await admin
+    .from("user_nguoi_dung")
+    .select("slug, ten_hien_thi, avatar_id")
+    .eq("id", uid)
+    .maybeSingle<{
+      slug: string | null;
+      ten_hien_thi: string | null;
+      avatar_id: string | null;
+    }>();
+
   return NextResponse.json({
     roomId: result.roomId,
     messages: result.messages,
+    peer: {
+      tenHienThi:
+        profile?.ten_hien_thi?.trim() || profile?.slug?.trim() || "Học viên",
+      slug: profile?.slug?.trim() || "",
+      avatarUrl: getAvatarUrl(profile?.avatar_id ?? null),
+    },
   });
 }
 

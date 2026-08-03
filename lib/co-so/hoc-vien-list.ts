@@ -35,6 +35,8 @@ export async function listHocVienCuaOrg(
     page?: number;
     /** Lọc 1 khóa (quản lý catalog). */
     khoaId?: string;
+    /** Lọc 1 lớp. */
+    lopId?: string;
     /** Lọc trạng thái ghi danh — VD `dang_hoc`. */
     trangThai?: string | string[];
     pageSize?: number;
@@ -45,6 +47,7 @@ export async function listHocVienCuaOrg(
   const pageSize = Math.min(Math.max(opts?.pageSize ?? PAGE_SIZE, 1), 200);
   const q = opts?.q?.trim().toLowerCase() ?? "";
   const filterKhoaId = opts?.khoaId?.trim() || null;
+  const filterLopId = opts?.lopId?.trim() || null;
   const trangThaiFilter = Array.isArray(opts?.trangThai)
     ? opts!.trangThai!.map((s) => s.trim()).filter(Boolean)
     : opts?.trangThai?.trim()
@@ -79,6 +82,9 @@ export async function listHocVienCuaOrg(
     hvlQuery = hvlQuery.eq("trang_thai", trangThaiFilter[0]!);
   } else if (trangThaiFilter.length > 1) {
     hvlQuery = hvlQuery.in("trang_thai", trangThaiFilter);
+  }
+  if (filterLopId) {
+    hvlQuery = hvlQuery.eq("id_lop_hoc", filterLopId);
   }
 
   const { data: hvlRows, error } = await hvlQuery;

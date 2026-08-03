@@ -268,6 +268,7 @@ export function CoSoTabKhoaHoc({
           <KhoaHocCreateModal
             open={createOpen && !editing}
             orgId={orgId}
+            orgSlug={orgSlug}
             orgDiaChi={orgDiaChi}
             onClose={() => setCreateOpen(false)}
             onCreated={handleCreated}
@@ -275,6 +276,7 @@ export function CoSoTabKhoaHoc({
           <KhoaHocCreateModal
             open={Boolean(editing)}
             orgId={orgId}
+            orgSlug={orgSlug}
             orgDiaChi={orgDiaChi}
             editing={editing}
             onClose={() => setEditing(null)}

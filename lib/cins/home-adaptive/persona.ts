@@ -51,7 +51,8 @@ export type ModuleId =
   | "tin_nhan_mua_ban"
   | "loi_moi_ket_ban"
   | "se_tham_gia"
-  | "da_luu";
+  | "da_luu"
+  | "hang_feature";
 
 /**
  * Đọc `giai_doan` tĩnh → persona. MVP đọc nhãn tự khai (FOUNDATIONS luồng 1,

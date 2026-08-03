@@ -295,6 +295,16 @@ export const MODULE_META: Record<ModuleId, ModuleMeta> = {
     hideable: true,
     group: "chung",
   },
+  hang_feature: {
+    id: "hang_feature",
+    label: "Hàng feature",
+    description:
+      "Sản phẩm nổi bật từ shop bạn bè — đổi dần, bấm vào trang loại hàng.",
+    defaultSide: "right",
+    defaultPersonas: [],
+    hideable: true,
+    group: "chung",
+  },
 };
 
 export const ALL_MODULE_IDS: readonly ModuleId[] = Object.keys(

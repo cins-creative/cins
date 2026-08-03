@@ -72,17 +72,22 @@ function truncate(text: string | null | undefined, max: number): string | null {
   return `${trimmed.slice(0, max - 1).trimEnd()}…`;
 }
 
-async function fetchFirstHinhThuc(khoaId: string): Promise<HinhThucLop | null> {
+async function fetchHinhThucLabels(khoaId: string): Promise<string | null> {
   try {
     const supabase = createServiceRoleClient();
     const { data } = await supabase
       .from("org_lop_hoc")
-      .select("hinh_thuc, ngay_khai_giang")
+      .select("hinh_thuc")
       .eq("id_khoa_hoc", khoaId)
-      .order("ngay_khai_giang", { ascending: true })
-      .limit(1)
-      .maybeSingle();
-    return ((data?.hinh_thuc as HinhThucLop | undefined) ?? null) || null;
+      .neq("trang_thai", "huy");
+    const set = new Set<HinhThucLop>();
+    for (const row of data ?? []) {
+      const h = row.hinh_thuc as HinhThucLop | null;
+      if (h) set.add(h);
+    }
+    const ordered: HinhThucLop[] = ["truc_tiep", "truc_tuyen", "ket_hop"];
+    const labels = ordered.filter((h) => set.has(h)).map(labelHinhThucLop);
+    return labels.length ? labels.join(" · ") : null;
   } catch {
     return null;
   }
@@ -126,6 +131,9 @@ async function loadKhoaHocOgContext(
     const parsed = parseKhoaHocNoiDungBlocks(data.noi_dung_blocks);
     if (parsed.cheDoHienThi === "an") return null;
 
+    const hinhThucLabel = await fetchHinhThucLabels(data.id);
+    if (!hinhThucLabel) return null;
+
     const loaiMoHinh: LoaiMoHinhKhoa =
       data.loai_mo_hinh === "lien_tuc_theo_thang"
         ? "lien_tuc_theo_thang"
@@ -149,8 +157,6 @@ async function loadKhoaHocOgContext(
       ? resolveTruongImageSrcSync(orgAvatarId, ["public", "avatar"])
       : null;
 
-    const hinhThuc = await fetchFirstHinhThuc(data.id);
-
     return {
       title: data.ten_khoa_hoc?.trim() || "Khóa học",
       orgTen: org.ten?.trim() || orgNorm,
@@ -159,7 +165,7 @@ async function loadKhoaHocOgContext(
       coverUrl,
       moHinhLabel: labelLoaiMoHinhKhoa(loaiMoHinh),
       trinhDoLabel: labelTrinhDoDauVao(data.trinh_do_dau_vao),
-      hinhThucLabel: hinhThuc ? labelHinhThucLop(hinhThuc) : null,
+      hinhThucLabel,
       hocPhiLabel: hocPhiLabel === "—" ? "Liên hệ" : hocPhiLabel.replace(/\/th$/, ""),
       hocPhiSuffix: hocPhiLabel === "—" ? "" : hocPhiSuffix,
       thoiLuongLabel: thoiLuong === "—" ? null : thoiLuong,

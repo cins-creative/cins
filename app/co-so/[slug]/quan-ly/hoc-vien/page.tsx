@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+
 import { CoSoQuanLyPageGate } from "@/components/co-so/quan-ly/CoSoQuanLyPageGate";
 import { HocVienQuanLyClient } from "@/components/co-so/quan-ly/HocVienQuanLyClient";
 import { getCoSoMetaBySlugCached } from "@/lib/to-chuc/co-so-page-queries";
@@ -14,7 +16,15 @@ export default async function CoSoQuanLyHocVienPage({ params }: Props) {
 
   return (
     <CoSoQuanLyPageGate params={params} section="hoc-vien">
-      <HocVienQuanLyClient orgId={meta.id} />
+      <Suspense
+        fallback={
+          <div className="cso-hv-loading" style={{ padding: "24px 0" }}>
+            Đang tải…
+          </div>
+        }
+      >
+        <HocVienQuanLyClient orgId={meta.id} orgSlug={slug} />
+      </Suspense>
     </CoSoQuanLyPageGate>
   );
 }

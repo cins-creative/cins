@@ -38,12 +38,21 @@ export function OrgQuanLyShell({
   const resolved = resolveOrgQuanLySection(orgKind, active);
   const isCaiDat = active === "cai-dat";
   const isTinNhan = active === "tin-nhan";
+  const isWideLayout = active === "hoc-phi" || active === "lop-hoc";
   const navGroups = ORG_QUAN_LY_NAV[orgKind];
   const showMilestone = orgQuanLyShowsMilestoneNotify(orgKind);
   const showCaiDat = orgQuanLyShowsCaiDat(orgKind) && isFounder;
 
   return (
-    <div className={`cso-ql${isTinNhan ? " cso-ql--tin-nhan" : ""}`}>
+    <div
+      className={[
+        "cso-ql",
+        isTinNhan ? "cso-ql--tin-nhan" : null,
+        isWideLayout ? "cso-ql--wide" : null,
+      ]
+        .filter(Boolean)
+        .join(" ")}
+    >
       <nav className="cso-ql-nav" aria-label="Mục quản lý">
         {navGroups.map((group, groupIndex) => (
           <div

@@ -31,6 +31,37 @@ function headingBlock(thuTu: number, html: string): Block {
   };
 }
 
+export function normalizeChiNhanhIds(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const item of raw) {
+    if (typeof item !== "string") continue;
+    const id = item.trim();
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    out.push(id);
+  }
+  return out;
+}
+
+/** Snapshot text công khai từ các chi nhánh đã chọn. */
+export function formatDiaChiHocSnapshot(
+  rows: ReadonlyArray<{ ten: string; diaChi: string | null }>,
+): string {
+  return rows
+    .map((r) => {
+      const ten = r.ten.trim();
+      const dia = r.diaChi?.trim();
+      if (!ten && !dia) return "";
+      if (!dia) return ten;
+      if (!ten) return dia;
+      return `${ten} — ${dia}`;
+    })
+    .filter(Boolean)
+    .join("\n");
+}
+
 function metaBlock(
   cheDoHienThi: KhoaHocCheDoHienThi,
   goiHocPhi?: GoiHocPhiKhoa[],
@@ -51,9 +82,10 @@ function metaBlock(
 function parseMetaFromBlocks(blocks: unknown): {
   cheDoHienThi: KhoaHocCheDoHienThi;
   goiHocPhi: GoiHocPhiKhoa[];
+  chiNhanhIds: string[];
 } {
   if (!Array.isArray(blocks)) {
-    return { cheDoHienThi: "cong_khai", goiHocPhi: [] };
+    return { cheDoHienThi: "cong_khai", goiHocPhi: [], chiNhanhIds: [] };
   }
   for (const raw of blocks) {
     const block = raw as Block;
@@ -64,26 +96,34 @@ function parseMetaFromBlocks(blocks: unknown): {
       const parsed = JSON.parse(html.slice(META_PREFIX.length)) as {
         cheDoHienThi?: unknown;
         goiHocPhi?: unknown;
+        chiNhanhIds?: unknown;
       };
       const cheDoHienThi = parsed.cheDoHienThi === "an" ? "an" : "cong_khai";
       return {
         cheDoHienThi,
         goiHocPhi: parseGoiHocPhiMeta(parsed.goiHocPhi),
+        chiNhanhIds: normalizeChiNhanhIds(parsed.chiNhanhIds),
       };
     } catch {
       /* ignore malformed meta */
     }
   }
-  return { cheDoHienThi: "cong_khai", goiHocPhi: [] };
+  return { cheDoHienThi: "cong_khai", goiHocPhi: [], chiNhanhIds: [] };
 }
 
-/** Ghi meta + yêu cầu chuẩn bị + địa điểm (offline) vào `org_khoa_hoc.noi_dung_blocks`. */
+/** Ghi meta + yêu cầu chuẩn bị vào `org_khoa_hoc.noi_dung_blocks`.
+ * Địa điểm học chuyển xuống lớp — không ghi section Địa điểm / chiNhanhIds nữa.
+ * `parseKhoaHocNoiDungBlocks` vẫn đọc chiNhanhIds legacy để backfill. */
 export function buildKhoaHocNoiDungBlocks(opts: {
   yeuCauChuanBi?: string | null;
+  /** @deprecated Không ghi — giữ param để caller cũ không vỡ. */
   diaChiHoc?: string | null;
+  /** @deprecated */
   includeDiaDiem?: boolean;
   cheDoHienThi?: KhoaHocCheDoHienThi;
   goiHocPhi?: GoiHocPhiKhoa[];
+  /** @deprecated Không ghi — parse vẫn đọc. */
+  chiNhanhIds?: string[] | null;
 }): Block[] {
   const blocks: Block[] = [
     metaBlock(
@@ -96,11 +136,6 @@ export function buildKhoaHocNoiDungBlocks(opts: {
   if (yeuCau) {
     blocks.push(headingBlock(thuTu++, YEU_CAU_HEADING));
     blocks.push(bodyBlock(thuTu++, yeuCau));
-  }
-  const diaChi = opts.diaChiHoc?.trim();
-  if (opts.includeDiaDiem && diaChi) {
-    blocks.push(headingBlock(thuTu++, DIA_DIEM_HEADING));
-    blocks.push(bodyBlock(thuTu++, diaChi));
   }
   return blocks;
 }
@@ -116,6 +151,7 @@ export function parseKhoaHocNoiDungBlocks(blocks: unknown): {
   diaChiHoc: string | null;
   cheDoHienThi: KhoaHocCheDoHienThi;
   goiHocPhi: GoiHocPhiKhoa[];
+  chiNhanhIds: string[];
 } {
   const meta = parseMetaFromBlocks(blocks);
   if (!Array.isArray(blocks)) {
@@ -124,6 +160,7 @@ export function parseKhoaHocNoiDungBlocks(blocks: unknown): {
       diaChiHoc: null,
       cheDoHienThi: meta.cheDoHienThi,
       goiHocPhi: meta.goiHocPhi,
+      chiNhanhIds: meta.chiNhanhIds,
     };
   }
   let yeuCauChuanBi: string | null = null;
@@ -148,5 +185,6 @@ export function parseKhoaHocNoiDungBlocks(blocks: unknown): {
     diaChiHoc,
     cheDoHienThi: meta.cheDoHienThi,
     goiHocPhi: meta.goiHocPhi,
+    chiNhanhIds: meta.chiNhanhIds,
   };
 }

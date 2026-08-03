@@ -8,7 +8,6 @@ import {
 } from "@/lib/to-chuc/khoa-hoc";
 import type {
   GoiHocPhiKhoa,
-  HinhThucLop,
   KhoaHocCheDoHienThi,
   LoaiMoHinhKhoa,
   TaoKhoaHocInput,
@@ -47,6 +46,8 @@ export async function POST(req: Request, ctx: RouteContext) {
   const { id: orgId } = await ctx.params;
   let body: {
     tenKhoaHoc?: string;
+    maKhoaHoc?: string | null;
+    slug?: string | null;
     loaiMoHinh?: LoaiMoHinhKhoa;
     moTa?: string | null;
     thoiLuongBuoi?: number | null;
@@ -56,10 +57,6 @@ export async function POST(req: Request, ctx: RouteContext) {
     trinhDoDauVao?: TrinhDoDauVao;
     coverId?: string | null;
     thumbnailId?: string | null;
-    ngayKhaiGiang?: string | null;
-    hinhThuc?: HinhThucLop;
-    diaChiHoc?: string | null;
-    lichHoc?: string | null;
     yeuCauChuanBi?: string | null;
     cheDoHienThi?: KhoaHocCheDoHienThi;
   };
@@ -71,6 +68,8 @@ export async function POST(req: Request, ctx: RouteContext) {
 
   const input: TaoKhoaHocInput = {
     tenKhoaHoc: body.tenKhoaHoc ?? "",
+    maKhoaHoc: body.maKhoaHoc,
+    slug: body.slug,
     loaiMoHinh: body.loaiMoHinh ?? "lien_tuc_theo_thang",
     moTa: body.moTa,
     thoiLuongBuoi: body.thoiLuongBuoi,
@@ -80,10 +79,6 @@ export async function POST(req: Request, ctx: RouteContext) {
     trinhDoDauVao: body.trinhDoDauVao,
     coverId: body.coverId,
     thumbnailId: body.thumbnailId,
-    ngayKhaiGiang: body.ngayKhaiGiang,
-    hinhThuc: body.hinhThuc,
-    diaChiHoc: body.diaChiHoc,
-    lichHoc: body.lichHoc,
     yeuCauChuanBi: body.yeuCauChuanBi,
     cheDoHienThi: body.cheDoHienThi,
   };

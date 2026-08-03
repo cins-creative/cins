@@ -5448,6 +5448,124 @@
   overflow: visible;
 }
 
+/* Hàng feature — grid 2 cột, thumb lớn → link trang loại hàng */
+.world-journey-home .ha-hang-list {
+  list-style: none;
+  margin: 0;
+  padding: 4px 12px 12px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 8px;
+}
+
+.world-journey-home .ha-hang-cell {
+  min-width: 0;
+}
+
+.world-journey-home .ha-hang-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  text-decoration: none;
+  color: inherit;
+}
+
+.world-journey-home .ha-hang-card:hover .ha-hang-title {
+  color: var(--cins-blue, #1f74c9);
+}
+
+.world-journey-home .ha-hang-thumb {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--neutral-100, #f1f2f5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.world-journey-home .ha-hang-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.world-journey-home .ha-hang-thumb-fallback {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.35));
+}
+
+.world-journey-home .ha-hang-meta {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 0 2px;
+}
+
+.world-journey-home .ha-hang-title {
+  font-size: 12.5px;
+  font-weight: 650;
+  line-height: 1.3;
+  color: var(--ink-display, rgba(0, 0, 0, 0.88));
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.world-journey-home .ha-hang-gia {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-body, rgba(0, 0, 0, 0.72));
+}
+
+.world-journey-home .ha-hang-sub {
+  font-size: 11px;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.45));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.world-journey-home .ha-hang-refresh {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: var(--r-sm, 8px);
+  background: transparent;
+  color: var(--ink4, #8b909a);
+  cursor: pointer;
+}
+
+.world-journey-home .ha-hang-refresh:hover:not(:disabled) {
+  background: var(--cins-blue-soft, #e7f0fb);
+  color: var(--blue);
+}
+
+.world-journey-home .ha-hang-refresh:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.world-journey-home .ha-hang-refresh-err {
+  margin: 0;
+  padding: 0 14px 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #b42318;
+}
+
 .world-journey-home .ha-person {
   display: flex;
   align-items: center;
@@ -5548,12 +5666,13 @@
   height: 28px;
   margin-right: -4px;
   border-radius: var(--r-sm, 8px);
-  color: var(--blue);
+  color: var(--ink4, #8b909a);
   flex-shrink: 0;
 }
 
 .world-journey-home .ha-card-more:hover {
   background: var(--cins-blue-soft, #e7f0fb);
+  color: var(--blue);
 }
 
 .world-journey-home .ha-card-more svg {
@@ -6559,6 +6678,51 @@
   line-height: 1.25;
 }
 
+/* Hộp thư tổ chức: thumb = org; dòng tên = avatar user + tên. */
+.world-journey-home .ha-trow-th--org {
+  border-radius: 50%;
+}
+
+.world-journey-home .ha-trow-name--with-av {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.world-journey-home .ha-trow-peer-av {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--neutral-100, #f1f2f5);
+}
+
+.world-journey-home .ha-trow-peer-av img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.world-journey-home .ha-trow-peer-av-fallback {
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--ink4);
+  line-height: 1;
+}
+
+.world-journey-home .ha-trow-name-text {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .world-journey-home .ha-trow-sub {
   font-size: 12px;
   color: var(--ink4);
@@ -7481,6 +7645,7 @@
 .ha-edit-add-pick-preview .ha-job-list,
 .ha-edit-add-pick-preview .ha-org-up-list,
 .ha-edit-add-pick-preview .ha-people-list,
+.ha-edit-add-pick-preview .ha-hang-list,
 .ha-edit-add-pick-preview .ha-studio-list,
 .ha-edit-add-pick-preview .ha-don-list,
 .ha-edit-add-pick-preview .ha-chat-list {

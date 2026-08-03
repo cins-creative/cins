@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
-import { capNhatLopHoc, softDeleteLopHoc } from "@/lib/to-chuc/lop-hoc";
+import { capNhatLopHoc, xoaLopHoc } from "@/lib/to-chuc/lop-hoc";
 import type {
   HinhThucLop,
   LopHocFormInput,
@@ -29,6 +29,7 @@ export async function PATCH(req: Request, ctx: RouteContext) {
     giaoVienPhuTrach?: string | null;
     slotToiDa?: number | null;
     trangThaiLop?: TrangThaiLop;
+    chiNhanhIds?: string[] | null;
   };
   try {
     body = await req.json();
@@ -45,6 +46,7 @@ export async function PATCH(req: Request, ctx: RouteContext) {
     giaoVienPhuTrach: body.giaoVienPhuTrach,
     slotToiDa: body.slotToiDa,
     trangThaiLop: body.trangThaiLop,
+    chiNhanhIds: body.chiNhanhIds,
   };
 
   const result = await capNhatLopHoc(
@@ -62,7 +64,7 @@ export async function PATCH(req: Request, ctx: RouteContext) {
   return NextResponse.json({ ok: true });
 }
 
-/** DELETE /api/co-so/:id/khoa-hoc/:khoaId/lop/:lopId — soft delete (`trang_thai=huy`). */
+/** DELETE /api/co-so/:id/khoa-hoc/:khoaId/lop/:lopId — hard delete (guard). Soft → PATCH trangThaiLop=huy. */
 export async function DELETE(_req: Request, ctx: RouteContext) {
   const session = await getCurrentSessionAndProfile();
   if (!session?.profile) {
@@ -70,14 +72,21 @@ export async function DELETE(_req: Request, ctx: RouteContext) {
   }
 
   const { id: orgId, khoaId, lopId } = await ctx.params;
-  const result = await softDeleteLopHoc(
-    orgId,
-    khoaId,
-    lopId,
-    session.profile.id,
-  );
+  const result = await xoaLopHoc(orgId, khoaId, lopId, session.profile.id);
   if (!result.ok) {
-    const status = result.error.includes("quyền") ? 403 : 400;
+    if ("blockers" in result && result.blockers) {
+      return NextResponse.json(
+        {
+          error: result.error,
+          blockers: result.blockers,
+          canhBao: result.canhBao ?? [],
+          coTheXoa: false,
+        },
+        { status: 409 },
+      );
+    }
+    const status =
+      result.status ?? (result.error.includes("quyền") ? 403 : 400);
     return NextResponse.json({ error: result.error }, { status });
   }
 

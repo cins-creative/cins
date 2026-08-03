@@ -208,6 +208,11 @@ export function HomeLayoutEditProvider({
   );
   /** Giữ vị trí chèn khi vừa request vào edit (tránh mất addAt giữa 2 render). */
   const pendingAddAtRef = useRef<{ side: Side; index: number } | null>(null);
+  /**
+   * Sau Lưu: khóa layout vừa ghi. Soft-refresh SWR có thể trả SSR cũ — bỏ qua
+   * sync đó để không xóa khối vừa thêm; chờ key khớp rồi mới hydrate.
+   */
+  const pendingSavedKeyRef = useRef<string | null>(null);
   const [menuId, setMenuId] = useState<ModuleId | null>(null);
   const [previews, setPreviews] = useState<Map<ModuleId, PreviewEntry>>(
     () => new Map(),
@@ -219,10 +224,23 @@ export function HomeLayoutEditProvider({
   const previewsRef = useRef(previews);
   previewsRef.current = previews;
   const dirty = !sameDraft(draft, baseline);
+  const dirtyRef = useRef(dirty);
+  dirtyRef.current = dirty;
   const newSet = useMemo(() => new Set(newlyInjected), [newlyInjected]);
 
   const serverIdsKey = `${initialLeft.join(",")}|${initialRight.join(",")}|${initialHidden.join(",")}|${JSON.stringify(initialLimits)}`;
   useEffect(() => {
+    const pending = pendingSavedKeyRef.current;
+    if (pending && serverIdsKey !== pending) {
+      // SSR vẫn stale (SWR) — giữ draft/preview client.
+      return;
+    }
+    if (pending && serverIdsKey === pending) {
+      pendingSavedKeyRef.current = null;
+    }
+    // Đang chỉnh sửa dở — không ghi đè bằng props SSR.
+    if (dirtyRef.current) return;
+
     const next: Draft = {
       left: [...initialLeft],
       right: [...initialRight],
@@ -279,6 +297,7 @@ export function HomeLayoutEditProvider({
   const available = useMemo(() => {
     const list = Object.values(MODULE_META).filter((m) => {
       if (m.id === "quay_cua_toi") return false;
+      if (m.id === "da_luu" || m.id === "se_tham_gia") return false;
       if (used.has(m.id)) return false;
       return moduleMatchesCapabilities(capabilities, {
         requires: m.requires,
@@ -403,6 +422,15 @@ export function HomeLayoutEditProvider({
     })();
   }, []);
 
+  /** Khối mới gắn (chưa có SSR node) → luôn có live preview / skeleton. */
+  useEffect(() => {
+    for (const id of [...draft.left, ...draft.right]) {
+      if (childMap.has(id)) continue;
+      const limit = draft.limits[id] ?? HOME_LAYOUT_ITEM_LIMIT_DEFAULT;
+      ensurePreview(id, limit);
+    }
+  }, [draft.left, draft.right, draft.limits, childMap, ensurePreview]);
+
   const removeModule = useCallback((id: ModuleId) => {
     if (!MODULE_META[id].hideable) return;
     setDraft((prev) => ({
@@ -431,6 +459,13 @@ export function HomeLayoutEditProvider({
       });
       setAddAt(null);
       ensurePreview(id);
+      // Cuộn tới slot mới — cột dài dễ tưởng «chưa thêm».
+      queueMicrotask(() => {
+        const el = document.querySelector(
+          `[data-module-id="${CSS.escape(id)}"]`,
+        );
+        el?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      });
     },
     [ensurePreview],
   );
@@ -501,6 +536,7 @@ export function HomeLayoutEditProvider({
   );
 
   const discardDraft = useCallback(() => {
+    pendingSavedKeyRef.current = null;
     setDraft(baseline);
     setAddAt(null);
     setMenuId(null);
@@ -512,6 +548,7 @@ export function HomeLayoutEditProvider({
   const markSaved = useCallback(() => {
     setBaseline(draft);
     setLimitPreviewIds(new Set());
+    pendingSavedKeyRef.current = `${draft.left.join(",")}|${draft.right.join(",")}|${draft.hidden.join(",")}|${JSON.stringify(draft.limits)}`;
   }, [draft]);
 
   const value = useMemo<LayoutEditCtx>(
@@ -640,14 +677,16 @@ function SlotBody({ id, meta }: { id: ModuleId; meta: ModuleMeta }) {
     );
   }
 
-  if (!ctx.editing) return null;
-
+  // Khối vừa thêm / chờ soft-refresh — hiện skeleton cả ngoài edit.
   if (preview?.status === "loading") {
     return <HomeModulePreviewSkeleton id={id} />;
   }
   if (preview?.status === "error") {
     return <ModulePlaceholder meta={meta} failed />;
   }
+
+  if (!ctx.editing) return null;
+
   return <ModulePlaceholder meta={meta} />;
 }
 
@@ -766,7 +805,14 @@ export function HomeEditableColumn({ side }: { side: Side }) {
           ctx.dragId !== id;
 
         const hasLivePreview = ctx.previews.get(id)?.status === "ok";
-        if (!ctx.editing && !ctx.childMap.has(id) && !hasLivePreview) {
+        const awaitingPreview =
+          !ctx.childMap.has(id) && ctx.previews.has(id);
+        if (
+          !ctx.editing &&
+          !ctx.childMap.has(id) &&
+          !hasLivePreview &&
+          !awaitingPreview
+        ) {
           return null;
         }
 

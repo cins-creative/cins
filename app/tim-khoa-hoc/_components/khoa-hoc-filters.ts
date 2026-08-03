@@ -129,7 +129,7 @@ export function useKhoaHocFilters(items: KhoaHocListItem[]) {
   const filtered = useMemo(() => {
     return items.filter((k) => {
       if (moHinh !== "all" && k.loaiMoHinh !== moHinh) return false;
-      if (hinhThuc !== "all" && k.hinhThuc !== hinhThuc) return false;
+      if (hinhThuc !== "all" && !k.hinhThucs.includes(hinhThuc)) return false;
       if (!priceFilterActive) return true;
       if (k.hocPhi != null) {
         return k.hocPhi >= phiMin && k.hocPhi <= phiMax;

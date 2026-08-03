@@ -12,6 +12,9 @@ type Parsed = {
   tong: string | null;
   soNgay: string | null;
   items: string[];
+  combo: string | null;
+  giaGoc: string | null;
+  giam: string | null;
   nganHang: string | null;
   soTk: string | null;
   chuTk: string | null;
@@ -28,6 +31,9 @@ function parseDonHocPhiCard(card: ChatContextCard): Parsed {
   let trangThai: string | null = null;
   let tong: string | null = null;
   let soNgay: string | null = null;
+  let combo: string | null = null;
+  let giaGoc: string | null = null;
+  let giam: string | null = null;
   let nganHang: string | null = null;
   let soTk: string | null = null;
   let chuTk: string | null = null;
@@ -43,7 +49,19 @@ function parseDonHocPhiCard(card: ChatContextCard): Parsed {
       tong = line.replace(/^Tổng:\s*/i, "").trim();
       continue;
     }
-    if (/\d+\s*ngày học/i.test(line)) {
+    if (/^Combo:\s*/i.test(line)) {
+      combo = line.replace(/^Combo:\s*/i, "").trim();
+      continue;
+    }
+    if (/^Giá gốc:\s*/i.test(line)) {
+      giaGoc = line.replace(/^Giá gốc:\s*/i, "").trim();
+      continue;
+    }
+    if (/^Giảm:\s*/i.test(line)) {
+      giam = line.replace(/^Giảm:\s*/i, "").trim();
+      continue;
+    }
+    if (/\d+\s*ngày học$/i.test(line) && !/·/.test(line)) {
       soNgay = line;
       continue;
     }
@@ -59,6 +77,7 @@ function parseDonHocPhiCard(card: ChatContextCard): Parsed {
       chuTk = line.replace(/^Chủ TK:\s*/i, "").trim();
       continue;
     }
+    if (/^Nội dung CK:\s*/i.test(line)) continue;
     if (/^Lớp:\s*/i.test(line)) {
       items.push(line);
       continue;
@@ -66,7 +85,19 @@ function parseDonHocPhiCard(card: ChatContextCard): Parsed {
     items.push(line);
   }
 
-  return { ma, trangThai, tong, soNgay, items, nganHang, soTk, chuTk };
+  return {
+    ma,
+    trangThai,
+    tong,
+    soNgay,
+    items,
+    combo,
+    giaGoc,
+    giam,
+    nganHang,
+    soTk,
+    chuTk,
+  };
 }
 
 type Props = {
@@ -173,6 +204,28 @@ export function ChatDonHocPhiCard({
           </span>
         ) : null}
 
+        {parsed.combo ? (
+          <span className="cins-chat-don-card-note">
+            <span className="cins-chat-don-card-note-label">Combo</span>
+            <span className="cins-chat-don-card-note-text">{parsed.combo}</span>
+          </span>
+        ) : null}
+
+        {parsed.giaGoc || parsed.giam ? (
+          <span className="cins-chat-don-card-mid">
+            <span className="cins-chat-don-card-items">
+              {parsed.giaGoc ? (
+                <span className="cins-chat-don-card-item">
+                  Gốc {parsed.giaGoc}
+                </span>
+              ) : null}
+              {parsed.giam ? (
+                <span className="cins-chat-don-card-item">Giảm {parsed.giam}</span>
+              ) : null}
+            </span>
+          </span>
+        ) : null}
+
         {parsed.tong ? (
           <span className="cins-chat-don-card-tong">
             <span className="cins-chat-don-card-tong-label">Tổng</span>
@@ -186,7 +239,7 @@ export function ChatDonHocPhiCard({
               {parsed.soNgay ? (
                 <span className="cins-chat-don-card-item">{parsed.soNgay}</span>
               ) : null}
-              {parsed.items.slice(0, 3).map((item) => (
+              {parsed.items.slice(0, 4).map((item) => (
                 <span key={item} className="cins-chat-don-card-item">
                   {item}
                 </span>

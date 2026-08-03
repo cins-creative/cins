@@ -35,6 +35,7 @@ import {
   SeThamGiaModule,
   UngTuyenCuaToiModule,
 } from "@/components/cins/home-adaptive/modules/ket-noi";
+import { HangFeatureModule } from "@/components/cins/home-adaptive/modules/HangFeatureModule";
 import {
   TinNhanBanBeModule,
   TinNhanMuaBanModule,
@@ -82,6 +83,7 @@ export const MODULE_REGISTRY: Record<ModuleId, ModuleComponent> = {
   loi_moi_ket_ban: LoiMoiKetBanModule,
   se_tham_gia: SeThamGiaModule,
   da_luu: DaLuuModule,
+  hang_feature: HangFeatureModule,
 };
 
 /** Chỗ giữ card trong lúc module stream về — cần `.ha-card` để cột không thu gọn. */

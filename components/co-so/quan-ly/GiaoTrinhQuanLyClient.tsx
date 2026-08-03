@@ -49,6 +49,7 @@ export function GiaoTrinhQuanLyClient({ orgId, orgSlug }: Props) {
   const [flash, setFlash] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const [editing, setEditing] = useState<BaiTapKhoaData | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const selectedKhoa =
     khoaOptions.find((k) => k.id === selectedKhoaId) ?? null;
@@ -199,6 +200,27 @@ export function GiaoTrinhQuanLyClient({ orgId, orgSlug }: Props) {
       });
   }
 
+  function handleDeleteBaiTap(item: BaiTapKhoaData) {
+    if (!canEdit || deletingId) return;
+    const next = baiTapList.filter((bt) => bt.id !== item.id);
+    setDeletingId(item.id);
+    setBaiTapList(next);
+    setError(null);
+    setFlash(null);
+    if (editing?.id === item.id) closePanel();
+
+    void persistBaiTapList(next)
+      .then((saved) => {
+        setBaiTapList(saved);
+        setFlash(`Đã xóa «${item.tenBaiTap}».`);
+      })
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : "Lỗi xóa.");
+        void loadBaiTap();
+      })
+      .finally(() => setDeletingId(null));
+  }
+
   const loading = loadingMeta || loadingBai;
 
   return (
@@ -341,6 +363,8 @@ export function GiaoTrinhQuanLyClient({ orgId, orgSlug }: Props) {
                               index={i}
                               canManage={canEdit}
                               onEdit={canEdit ? openEdit : undefined}
+                              onDelete={canEdit ? handleDeleteBaiTap : undefined}
+                              deleting={deletingId === bt.id}
                             />
                           ))}
                         </div>

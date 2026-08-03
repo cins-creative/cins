@@ -28,4 +28,7 @@ export type LopHocQuanLyRow = {
   /** Thumbnail phòng chat lớp (`chat_phong.avatar_id`). */
   avatarId: string | null;
   avatarUrl: string | null;
+  /** Chi nhánh gắn lớp (offline / kết hợp). */
+  chiNhanhIds: string[];
+  chiNhanh: Array<{ id: string; ten: string; diaChi: string | null }>;
 };

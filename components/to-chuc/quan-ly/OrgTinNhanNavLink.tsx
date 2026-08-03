@@ -75,10 +75,7 @@ export function OrgTinNhanNavLink({
   }, [loadBadge]);
 
   const badgeCount = useMemo(
-    () =>
-      threads.reduce((sum, t) => sum + (t.unread ? t.unreadCount : 0), 0) +
-      threads.filter((t) => t.pendingVerification).length +
-      threads.filter((t) => t.pendingDonHocPhi).length,
+    () => threads.reduce((sum, t) => sum + (t.unread ? t.unreadCount : 0), 0),
     [threads],
   );
 
@@ -91,7 +88,7 @@ export function OrgTinNhanNavLink({
       aria-current={active ? "page" : undefined}
       aria-label={
         badgeCount > 0
-          ? `Tin nhắn — ${badgeCount} cần xử lý`
+          ? `Tin nhắn — ${badgeCount} chưa đọc`
           : "Tin nhắn"
       }
     >

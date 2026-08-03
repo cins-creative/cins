@@ -174,8 +174,8 @@ export type ShopQuayPendingNotification = {
   daDoc?: boolean;
 };
 
-/** Curator nhận khi có bản đóng góp entity gửi duyệt (`article_dong_gop`). */
-/** Admin org nhận khi có tin nhắn mới vào hộp thư (`org_tin_nhan_moi`) — 1 tin / phòng. */
+/** Admin org nhận khi có tin nhắn mới vào hộp thư (`org_tin_nhan_moi`).
+ *  Đã tắt trên chuông cá nhân (2026-08-03) — giữ type cho mark-read row cũ. */
 export type OrgTinNhanMoiNotification = {
   notificationId: string;
   roomId: string;
@@ -189,6 +189,7 @@ export type OrgTinNhanMoiNotification = {
   daDoc: boolean;
 };
 
+/** Curator nhận khi có bản đóng góp entity gửi duyệt (`article_dong_gop`). */
 export type ArticleDongGopCuratorNotification = {
   notificationId: string;
   idDongGop: string;

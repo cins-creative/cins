@@ -43,9 +43,5 @@ export type OrgInboxThreadDetail = OrgInboxThread & {
 };
 
 export function inboxThreadNeedsAction(thread: OrgInboxThread): boolean {
-  return (
-    thread.unread ||
-    Boolean(thread.pendingVerification) ||
-    thread.pendingDonHocPhi
-  );
+  return thread.unread;
 }

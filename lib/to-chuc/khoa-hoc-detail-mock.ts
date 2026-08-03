@@ -40,6 +40,7 @@ export function buildKhoaHocDetailMock(
       id: "mock-khoa-hoc-chi-tiet",
       slug: KHOA_HOC_DETAIL_MOCK_SLUG,
       tenKhoaHoc: "Hình họa Luyện thi đại học",
+      maKhoaHoc: "HH-LTDH",
       moTa:
         "Khóa hình họa luyện thi khối V–H: dựng hình, tỷ lệ, khối và sáng tối theo barem chấm thi của Bộ. Lộ trình đi từ khối cơ bản đến tượng tròn, chân dung và toàn thân — sửa bài 1-1 mỗi buổi.",
       loaiMoHinh: "lien_tuc_theo_thang",
@@ -81,9 +82,11 @@ export function buildKhoaHocDetailMock(
       soHocVien: 24,
       ngayKhaiGiangGanNhat: null,
       lopId: null,
+      hinhThucs: ["truc_tiep"],
       hinhThuc: "truc_tiep",
       lichHoc: null,
       diaChiHoc: "67 Tân Sơn Nhì",
+      chiNhanhIds: [],
       yeuCauChuanBi: "bảng vẽ, chì 2B–6B, giấy A3",
     },
     giaoTrinh: [
@@ -153,6 +156,8 @@ export function buildKhoaHocDetailMock(
         conCho: true,
         giaoVienText: null,
         diaChiHoc: "67 Tân Sơn Nhì",
+        chiNhanhIds: [],
+        chiNhanh: [],
         giaoVien: {
           key: "mock-gv-lh",
           ten: "Linh Hà",
@@ -177,6 +182,8 @@ export function buildKhoaHocDetailMock(
         conCho: true,
         giaoVienText: "Đỗ Ngọc",
         diaChiHoc: "67 Tân Sơn Nhì",
+        chiNhanhIds: [],
+        chiNhanh: [],
         giaoVien: {
           key: "mock-gv-dn",
           ten: "Đỗ Ngọc",

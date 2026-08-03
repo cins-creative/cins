@@ -1,22 +1,21 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState, startTransition } from "react";
-import { ExternalLink, Pencil, Plus, Trash2, X } from "lucide-react";
+import { ExternalLink, Pause, Pencil, Plus, Trash2 } from "lucide-react";
 
 import { KhoaHocCreateModal } from "@/components/co-so/KhoaHocCreateModal";
+import { KhoaHocDeleteConfirm } from "@/components/co-so/KhoaHocDeleteConfirm";
 import {
   khoaOptionsFromCards,
   LopHocQuanLyPanel,
 } from "@/components/co-so/quan-ly/LopHocQuanLyPanel";
 import { coSoKhoaHocDetailPath } from "@/lib/to-chuc/co-so-routes";
-import {
-  labelLoaiMoHinhKhoa,
-  labelTrangThaiLop,
-  labelTrinhDoDauVao,
-} from "@/lib/to-chuc/khoa-hoc-labels";
+import { labelTrangThaiLop } from "@/lib/to-chuc/khoa-hoc-labels";
 import type { KhoaHocCardData } from "@/lib/to-chuc/khoa-hoc-types";
 import type { LopHocQuanLyRow } from "@/lib/to-chuc/lop-hoc-quan-ly-types";
+import { orgQuanLyPath } from "@/lib/to-chuc/org-quan-ly-routes";
 
 type Props = {
   orgId: string;
@@ -25,20 +24,9 @@ type Props = {
 
 type TabId = "khoa" | "lop";
 
-type HocVienDangHoc = {
-  hocVienLopId: string;
-  trangThai: string;
-  ngayDangKy: string;
-  userId: string;
-  tenHienThi: string;
-  slug: string | null;
-  avatarUrl: string | null;
-  lopId: string | null;
-  maLop: string | null;
-  ngayCuoiKy: string | null;
-  soNgayConLai: number;
-  dangFreeze: boolean;
-};
+type ListModal =
+  | { kind: "lop"; khoa: KhoaHocCardData }
+  | { kind: "goi"; khoa: KhoaHocCardData; goiTens: string[] };
 
 const TABS: ReadonlyArray<{ id: TabId; label: string; short: string }> = [
   { id: "khoa", label: "Quản lý khóa", short: "Khóa" },
@@ -53,36 +41,12 @@ const TRANG_THAI_LABEL: Record<string, string> = {
   tam_dung: "Tạm dừng",
 };
 
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "?";
-  if (parts.length === 1) return parts[0]!.slice(0, 2).toUpperCase();
-  return `${parts[0]![0] ?? ""}${parts[parts.length - 1]![0] ?? ""}`.toUpperCase();
-}
-
-function formatHocPhi(vnd: number | null): string {
-  if (vnd == null || Number.isNaN(vnd)) return "—";
-  return `${vnd.toLocaleString("vi-VN")} đ`;
-}
-
-function formatNgay(iso: string | null): string {
-  if (!iso) return "—";
-  try {
-    return new Date(`${iso}T12:00:00`).toLocaleDateString("vi-VN", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    });
-  } catch {
-    return iso;
-  }
-}
-
 function lopLabel(r: LopHocQuanLyRow): string {
   return r.maLop?.trim() || r.lichHoc?.trim() || "Lớp";
 }
 
 export function KhoaHocQuanLyClient({ orgId, orgSlug }: Props) {
+  const router = useRouter();
   const [tab, setTab] = useState<TabId>("khoa");
   const [rows, setRows] = useState<KhoaHocCardData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -93,15 +57,15 @@ export function KhoaHocQuanLyClient({ orgId, orgSlug }: Props) {
   const [lopRows, setLopRows] = useState<LopHocQuanLyRow[]>([]);
   const [lopLoading, setLopLoading] = useState(true);
   const [lopCanEdit, setLopCanEdit] = useState(false);
+  /** khoaId → tên gói đã gắn (N–N org_goi_hoc_phi_khoa). */
+  const [goiTensByKhoaId, setGoiTensByKhoaId] = useState<
+    Map<string, string[]>
+  >(() => new Map());
 
-  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [lopFilterKhoaId, setLopFilterKhoaId] = useState<string | null>(null);
-  const [hvByKhoa, setHvByKhoa] = useState<
-    Record<string, { rows: HocVienDangHoc[]; total: number }>
-  >({});
-  const [hvLoadingId, setHvLoadingId] = useState<string | null>(null);
-  const [hvError, setHvError] = useState<string | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [pausingId, setPausingId] = useState<string | null>(null);
+  const [deletingKhoa, setDeletingKhoa] = useState<KhoaHocCardData | null>(null);
+  const [listModal, setListModal] = useState<ListModal | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -138,47 +102,75 @@ export function KhoaHocQuanLyClient({ orgId, orgSlug }: Props) {
     }
   }, [orgId]);
 
+  const loadGoiLinks = useCallback(async () => {
+    try {
+      const res = await fetch(
+        `/api/co-so/${encodeURIComponent(orgId)}/hoc-phi/goi`,
+        { credentials: "include" },
+      );
+      const data = (await res.json()) as {
+        goi?: Array<{
+          ten?: string;
+          khoaId?: string | null;
+          khoaIds?: string[];
+        }>;
+      };
+      if (!res.ok) {
+        setGoiTensByKhoaId(new Map());
+        return;
+      }
+      const map = new Map<string, string[]>();
+      for (const g of data.goi ?? []) {
+        const ten = typeof g.ten === "string" ? g.ten.trim() : "";
+        if (!ten) continue;
+        const ids =
+          g.khoaIds?.length
+            ? g.khoaIds
+            : g.khoaId
+              ? [g.khoaId]
+              : [];
+        for (const kid of ids) {
+          if (!kid) continue;
+          const bag = map.get(kid) ?? [];
+          if (!bag.includes(ten)) bag.push(ten);
+          map.set(kid, bag);
+        }
+      }
+      setGoiTensByKhoaId(map);
+    } catch {
+      setGoiTensByKhoaId(new Map());
+    }
+  }, [orgId]);
+
   useEffect(() => {
     void load();
     void loadLop();
-  }, [load, loadLop]);
+    void loadGoiLinks();
+  }, [load, loadLop, loadGoiLinks]);
 
-  const loadHvDangHoc = useCallback(
-    async (khoaId: string) => {
-      setHvLoadingId(khoaId);
-      setHvError(null);
-      try {
-        const res = await fetch(
-          `/api/co-so/${encodeURIComponent(orgId)}/khoa-hoc/${encodeURIComponent(khoaId)}/hoc-vien?trangThai=dang_hoc&pageSize=100`,
-          { credentials: "include" },
-        );
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Không tải học viên.");
-        setHvByKhoa((prev) => ({
-          ...prev,
-          [khoaId]: {
-            rows: (data.rows ?? []) as HocVienDangHoc[],
-            total: Number(data.total ?? 0),
-          },
-        }));
-      } catch (e) {
-        setHvError(e instanceof Error ? e.message : "Lỗi tải học viên.");
-      } finally {
-        setHvLoadingId(null);
-      }
-    },
-    [orgId],
-  );
+  function openLopList(khoa: KhoaHocCardData, e: React.MouseEvent) {
+    e.stopPropagation();
+    setListModal({ kind: "lop", khoa });
+  }
 
-  function selectKhoa(khoa: KhoaHocCardData) {
-    if (selectedId === khoa.id) {
-      setSelectedId(null);
-      return;
-    }
-    setSelectedId(khoa.id);
-    if (!hvByKhoa[khoa.id]) {
-      void loadHvDangHoc(khoa.id);
-    }
+  function openGoiList(
+    khoa: KhoaHocCardData,
+    goiTens: string[],
+    e: React.MouseEvent,
+  ) {
+    e.stopPropagation();
+    setListModal({ kind: "goi", khoa, goiTens });
+  }
+
+  function openHocVienKhoa(khoa: KhoaHocCardData, e: React.MouseEvent) {
+    e.stopPropagation();
+    const params = new URLSearchParams({
+      khoaId: khoa.id,
+      trangThai: "dang_hoc",
+    });
+    router.push(
+      `${orgQuanLyPath("co_so_dao_tao", orgSlug, "hoc-vien")}?${params.toString()}`,
+    );
   }
 
   function openLopCuaKhoa(khoa: KhoaHocCardData) {
@@ -194,62 +186,62 @@ export function KhoaHocQuanLyClient({ orgId, orgSlug }: Props) {
     });
   }
 
-  async function softDeleteKhoa(khoa: KhoaHocCardData) {
-    if (deletingId) return;
+  async function pauseKhoa(khoa: KhoaHocCardData) {
+    if (pausingId) return;
     const ok = window.confirm(
-      `Ẩn khóa «${khoa.tenKhoaHoc}»?\n\nĐây là soft delete — khóa chuyển sang «Tạm dừng», dữ liệu lớp/học viên được giữ. Có thể khôi phục bằng cách sửa trạng thái khóa.`,
+      `Tạm dừng khóa «${khoa.tenKhoaHoc}»?\n\nKhóa chuyển sang «Tạm dừng», vẫn còn trong danh sách. Có thể khôi phục bằng cách sửa trạng thái.`,
     );
     if (!ok) return;
-    setDeletingId(khoa.id);
+    setPausingId(khoa.id);
     setError(null);
     try {
       const res = await fetch(
         `/api/co-so/${encodeURIComponent(orgId)}/khoa-hoc/${encodeURIComponent(khoa.id)}`,
-        { method: "DELETE", credentials: "include" },
+        {
+          method: "PATCH",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            tenKhoaHoc: khoa.tenKhoaHoc,
+            maKhoaHoc: khoa.maKhoaHoc,
+            slug: khoa.slug,
+            loaiMoHinh: khoa.loaiMoHinh,
+            moTa: khoa.moTa,
+            thoiLuongBuoi: khoa.thoiLuongBuoi,
+            thoiLuongPhutMoiBuoi: khoa.thoiLuongPhutMoiBuoi,
+            hocPhi: khoa.hocPhi,
+            goiHocPhi: khoa.goiHocPhi,
+            trinhDoDauVao: khoa.trinhDoDauVao,
+            coverId: khoa.coverId,
+            thumbnailId: khoa.thumbnailId,
+            trangThaiKhoaHoc: "tam_dung",
+            yeuCauChuanBi: khoa.yeuCauChuanBi,
+            cheDoHienThi: khoa.cheDoHienThi,
+          }),
+        },
       );
       const data = await res.json().catch(() => null);
       if (!res.ok) {
         throw new Error(
-          (data as { error?: string } | null)?.error || "Không xóa được khóa.",
+          (data as { error?: string } | null)?.error ||
+            "Không tạm dừng được khóa.",
         );
       }
       setRows((prev) =>
         prev.map((row) =>
           row.id === khoa.id
-            ? { ...row, trangThaiKhoaHoc: "tam_dung" }
+            ? { ...row, trangThaiKhoaHoc: "tam_dung" as const }
             : row,
         ),
       );
-      if (selectedId === khoa.id) setSelectedId(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Lỗi xóa khóa.");
+      setError(e instanceof Error ? e.message : "Lỗi tạm dừng khóa.");
     } finally {
-      setDeletingId(null);
+      setPausingId(null);
     }
   }
 
-  const stats = useMemo(() => {
-    let congKhai = 0;
-    let lop = 0;
-    let hv = 0;
-    for (const k of rows) {
-      if (k.cheDoHienThi !== "an") congKhai += 1;
-      lop += k.soLopMo;
-      hv += k.soHocVien;
-    }
-    return { total: rows.length, congKhai, lop, hv };
-  }, [rows]);
-
   const khoaOptions = useMemo(() => khoaOptionsFromCards(rows), [rows]);
-  const selected = rows.find((k) => k.id === selectedId) ?? null;
-  const selectedHv = selectedId ? hvByKhoa[selectedId] : undefined;
-  const selectedLop = useMemo(
-    () =>
-      selectedId
-        ? lopRows.filter((l) => l.khoaId === selectedId)
-        : [],
-    [lopRows, selectedId],
-  );
 
   const lopByKhoaId = useMemo(() => {
     const map = new Map<string, LopHocQuanLyRow[]>();
@@ -265,6 +257,11 @@ export function KhoaHocQuanLyClient({ orgId, orgSlug }: Props) {
     if (!lopFilterKhoaId) return null;
     return rows.find((k) => k.id === lopFilterKhoaId)?.tenKhoaHoc ?? null;
   }, [lopFilterKhoaId, rows]);
+
+  const listModalLops = useMemo(() => {
+    if (!listModal || listModal.kind !== "lop") return [];
+    return lopByKhoaId.get(listModal.khoa.id) ?? [];
+  }, [listModal, lopByKhoaId]);
 
   return (
     <div className="cso-lh-page cso-dt-stack">
@@ -312,36 +309,13 @@ export function KhoaHocQuanLyClient({ orgId, orgSlug }: Props) {
         hidden={tab !== "khoa"}
         aria-hidden={tab !== "khoa"}
       >
-          <section
-            className="cso-dt-kpis cso-lh-kpis"
-            aria-label="Tóm tắt khóa học"
-          >
-            <div className="cso-dt-kpi cso-dt-kpi--hero">
-              <p className="cso-dt-kpi-label">Khóa học</p>
-              <p className="cso-dt-kpi-value">
-                {loading ? "…" : stats.total}
-              </p>
-              <p className="cso-dt-kpi-sub">{stats.congKhai} công khai</p>
-            </div>
-            <div className="cso-dt-kpi">
-              <p className="cso-dt-kpi-label">Lớp đang mở</p>
-              <p className="cso-dt-kpi-value">{loading ? "…" : stats.lop}</p>
-              <p className="cso-dt-kpi-sub">trên toàn catalog</p>
-            </div>
-            <div className="cso-dt-kpi">
-              <p className="cso-dt-kpi-label">Học viên</p>
-              <p className="cso-dt-kpi-value">{loading ? "…" : stats.hv}</p>
-              <p className="cso-dt-kpi-sub">ghi danh các khóa</p>
-            </div>
-          </section>
-
           <section className="cso-dt-panel">
             <div className="cso-dt-panel-head">
               <div className="cso-lh-head-row">
                 <div>
                   <h2 className="cso-dt-panel-title">Catalog khóa</h2>
                   <p className="cso-dt-panel-sub">
-                    Bấm vào khóa để xem thông tin và danh sách học viên đang học.
+                    Bấm số lớp / gói / học viên để xem danh sách tương ứng.
                   </p>
                 </div>
                 <button
@@ -371,6 +345,7 @@ export function KhoaHocQuanLyClient({ orgId, orgSlug }: Props) {
                     <tr>
                       <th scope="col">Khóa học</th>
                       <th scope="col">Lớp</th>
+                      <th scope="col">Gói học phí</th>
                       <th scope="col">Học viên đang học</th>
                       <th scope="col">Trạng thái</th>
                       <th scope="col">Hiển thị</th>
@@ -382,13 +357,13 @@ export function KhoaHocQuanLyClient({ orgId, orgSlug }: Props) {
                   <tbody>
                     {loading ? (
                       <tr>
-                        <td colSpan={6}>
+                        <td colSpan={7}>
                           <div className="cso-hv-loading">Đang tải…</div>
                         </td>
                       </tr>
                     ) : rows.length === 0 ? (
                       <tr>
-                        <td colSpan={6}>
+                        <td colSpan={7}>
                           <div className="cso-hv-empty">
                             <strong>Chưa có khóa</strong>
                             Tạo khóa để hiện trên trang công khai và mở lớp học.
@@ -397,23 +372,9 @@ export function KhoaHocQuanLyClient({ orgId, orgSlug }: Props) {
                       </tr>
                     ) : (
                       rows.map((k) => {
-                        const isSelected = selectedId === k.id;
+                        const goiTens = goiTensByKhoaId.get(k.id) ?? [];
                         return (
-                          <tr
-                            key={k.id}
-                            className={
-                              isSelected ? "cso-lh-khoa-row is-selected" : "cso-lh-khoa-row"
-                            }
-                            onClick={() => selectKhoa(k)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter" || e.key === " ") {
-                                e.preventDefault();
-                                selectKhoa(k);
-                              }
-                            }}
-                            tabIndex={0}
-                            aria-selected={isSelected}
-                          >
+                          <tr key={k.id} className="cso-lh-khoa-row">
                             <td>
                               <button
                                 type="button"
@@ -442,21 +403,63 @@ export function KhoaHocQuanLyClient({ orgId, orgSlug }: Props) {
                                     {k.tenKhoaHoc}
                                   </span>
                                   <span className="cso-hv-slug">/{k.slug}</span>
+                                  {(lopByKhoaId.get(k.id)?.length ??
+                                    k.soLopMo) === 0 ? (
+                                    <span className="cso-hv-lop">
+                                      Chưa mở lớp — khóa chưa hiện công khai
+                                    </span>
+                                  ) : null}
                                 </span>
                               </button>
                             </td>
                             <td>
-                              <p className="cso-hv-course">
-                                {lopByKhoaId.get(k.id)?.length ?? k.soLopMo}
-                              </p>
+                              {(() => {
+                                const lopCount =
+                                  lopByKhoaId.get(k.id)?.length ?? k.soLopMo;
+                                return (
+                                  <button
+                                    type="button"
+                                    className="cso-lh-khoa-stat-btn"
+                                    title={`Xem ${lopCount} lớp của khóa`}
+                                    onClick={(e) => openLopList(k, e)}
+                                  >
+                                    {lopCount} lớp
+                                  </button>
+                                );
+                              })()}
                             </td>
                             <td>
-                              <p className="cso-hv-course">
-                                {lopByKhoaId
-                                  .get(k.id)
-                                  ?.reduce((n, l) => n + l.soHocVien, 0) ??
-                                  k.soHocVien}
-                              </p>
+                              {goiTens.length === 0 ? (
+                                <span className="cso-hp-khoa-empty">Chưa gắn</span>
+                              ) : (
+                                <button
+                                  type="button"
+                                  className="cso-lh-khoa-stat-btn"
+                                  title={goiTens.join(" · ")}
+                                  onClick={(e) => openGoiList(k, goiTens, e)}
+                                >
+                                  {goiTens.length} gói
+                                </button>
+                              )}
+                            </td>
+                            <td>
+                              {(() => {
+                                const hvCount =
+                                  lopByKhoaId
+                                    .get(k.id)
+                                    ?.reduce((n, l) => n + l.soHocVien, 0) ??
+                                  k.soHocVien;
+                                return (
+                                  <button
+                                    type="button"
+                                    className="cso-lh-khoa-stat-btn"
+                                    title={`Xem ${hvCount} học viên đang học`}
+                                    onClick={(e) => openHocVienKhoa(k, e)}
+                                  >
+                                    {hvCount} học viên
+                                  </button>
+                                );
+                              })()}
                             </td>
                             <td>
                               <span className="cso-hv-chip cso-hv-chip--state">
@@ -502,14 +505,23 @@ export function KhoaHocQuanLyClient({ orgId, orgSlug }: Props) {
                                 </button>
                                 <button
                                   type="button"
-                                  className="cso-ql-btn cso-ql-btn--ghost cso-ql-btn--icon cso-ql-btn--danger-icon"
-                                  title="Ẩn khóa (soft delete)"
-                                  aria-label={`Ẩn khóa ${k.tenKhoaHoc}`}
+                                  className="cso-ql-btn cso-ql-btn--ghost cso-ql-btn--icon"
+                                  title="Tạm dừng khóa"
+                                  aria-label={`Tạm dừng khóa ${k.tenKhoaHoc}`}
                                   disabled={
-                                    deletingId === k.id ||
+                                    pausingId === k.id ||
                                     k.trangThaiKhoaHoc === "tam_dung"
                                   }
-                                  onClick={() => void softDeleteKhoa(k)}
+                                  onClick={() => void pauseKhoa(k)}
+                                >
+                                  <Pause size={15} strokeWidth={2.2} aria-hidden />
+                                </button>
+                                <button
+                                  type="button"
+                                  className="cso-ql-btn cso-ql-btn--ghost cso-ql-btn--icon cso-ql-btn--danger-icon"
+                                  title="Xóa khóa vĩnh viễn"
+                                  aria-label={`Xóa khóa ${k.tenKhoaHoc}`}
+                                  onClick={() => setDeletingKhoa(k)}
                                 >
                                   <Trash2 size={15} strokeWidth={2.2} aria-hidden />
                                 </button>
@@ -525,278 +537,103 @@ export function KhoaHocQuanLyClient({ orgId, orgSlug }: Props) {
             </div>
           </section>
 
-          {selected ? (
-            <section
-              className="cso-dt-panel cso-lh-khoa-detail"
-              aria-label={`Chi tiết khóa ${selected.tenKhoaHoc}`}
+          {listModal ? (
+            <div
+              className="cso-lh-khoa-pick"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="cso-lh-khoa-list-title"
             >
-              <div className="cso-dt-panel-head">
-                <div className="cso-lh-head-row">
-                  <div>
-                    <h2 className="cso-dt-panel-title">{selected.tenKhoaHoc}</h2>
-                    <p className="cso-dt-panel-sub">
-                      /{selected.slug} ·{" "}
-                      {labelLoaiMoHinhKhoa(selected.loaiMoHinh)}
-                    </p>
-                  </div>
+              <button
+                type="button"
+                className="cso-lh-khoa-pick-backdrop"
+                aria-label="Đóng"
+                onClick={() => setListModal(null)}
+              />
+              <div className="cso-lh-khoa-pick-card cso-lh-khoa-pick-card--list">
+                <h3 id="cso-lh-khoa-list-title" className="cso-lh-khoa-pick-title">
+                  {listModal.kind === "lop"
+                    ? `Lớp · ${listModal.khoa.tenKhoaHoc}`
+                    : `Gói học phí · ${listModal.khoa.tenKhoaHoc}`}
+                </h3>
+                {listModal.kind === "lop" ? (
+                  listModalLops.length === 0 ? (
+                    <p className="cso-lh-khoa-pick-empty">Chưa có lớp nào.</p>
+                  ) : (
+                    <ul className="cso-lh-khoa-pick-list">
+                      {listModalLops.map((lop) => (
+                        <li key={lop.id} className="cso-lh-khoa-pick-item">
+                          <span className="cso-lh-khoa-pick-item-name">
+                            {lopLabel(lop)}
+                          </span>
+                          <span className="cso-lh-khoa-pick-item-meta">
+                            {lop.giaoVienTen?.trim() || "Chưa gán GV"}
+                            <span aria-hidden> · </span>
+                            {lop.soHocVien} HV
+                            <span aria-hidden> · </span>
+                            {labelTrangThaiLop(lop.trangThaiLop)}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )
+                ) : listModal.goiTens.length === 0 ? (
+                  <p className="cso-lh-khoa-pick-empty">Chưa gắn gói nào.</p>
+                ) : (
+                  <ul className="cso-lh-khoa-pick-list">
+                    {listModal.goiTens.map((ten) => (
+                      <li key={ten} className="cso-lh-khoa-pick-item">
+                        <span className="cso-lh-khoa-pick-item-name">{ten}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <div className="cso-lh-khoa-pick-actions">
+                  {listModal.kind === "lop" ? (
+                    <button
+                      type="button"
+                      className="cso-ql-btn cso-ql-btn--ghost cso-ql-btn--sm"
+                      onClick={() => {
+                        const khoa = listModal.khoa;
+                        setListModal(null);
+                        openLopCuaKhoa(khoa);
+                      }}
+                    >
+                      Quản lý lớp
+                    </button>
+                  ) : null}
                   <button
                     type="button"
-                    className="cso-ql-btn cso-ql-btn--ghost cso-ql-btn--sm"
-                    onClick={() => setSelectedId(null)}
-                    aria-label="Đóng chi tiết khóa"
+                    className="cso-ql-btn cso-ql-btn--ghost"
+                    onClick={() => setListModal(null)}
                   >
-                    <X size={15} strokeWidth={2.2} aria-hidden />
                     Đóng
                   </button>
                 </div>
               </div>
-
-              <div className="cso-dt-panel-body">
-                <dl className="cso-lh-khoa-facts">
-                  <div>
-                    <dt>Trạng thái</dt>
-                    <dd>
-                      {TRANG_THAI_LABEL[selected.trangThaiKhoaHoc] ??
-                        selected.trangThaiKhoaHoc}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>Hiển thị</dt>
-                    <dd>
-                      {selected.cheDoHienThi === "an" ? "Ẩn" : "Công khai"}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>Trình độ</dt>
-                    <dd>{labelTrinhDoDauVao(selected.trinhDoDauVao)}</dd>
-                  </div>
-                  <div>
-                    <dt>Học phí</dt>
-                    <dd>{formatHocPhi(selected.hocPhi)}</dd>
-                  </div>
-                  <div>
-                    <dt>Lớp đang mở</dt>
-                    <dd>{selected.soLopMo}</dd>
-                  </div>
-                  <div>
-                    <dt>Ghi danh</dt>
-                    <dd>{selected.soHocVien}</dd>
-                  </div>
-                  <div>
-                    <dt>Khai giảng gần nhất</dt>
-                    <dd>{formatNgay(selected.ngayKhaiGiangGanNhat)}</dd>
-                  </div>
-                  <div>
-                    <dt>Lịch học</dt>
-                    <dd>{selected.lichHoc?.trim() || "—"}</dd>
-                  </div>
-                </dl>
-                {selected.moTa?.trim() ? (
-                  <p className="cso-lh-khoa-mota">{selected.moTa}</p>
-                ) : null}
-              </div>
-
-              <div className="cso-dt-panel-head cso-lh-khoa-detail-subhead">
-                <div>
-                  <h3 className="cso-dt-panel-title">Lớp &amp; sĩ số</h3>
-                  <p className="cso-dt-panel-sub">
-                    {lopLoading
-                      ? "Đang tải lớp…"
-                      : `${selectedLop.length} lớp · số học viên mỗi lớp`}
-                  </p>
-                </div>
-              </div>
-
-              <div className="cso-dt-panel-body cso-dt-panel-body--flush">
-                <div className="cso-hv-table-wrap">
-                  <table className="cso-hv-table">
-                    <thead>
-                      <tr>
-                        <th scope="col">Lớp</th>
-                        <th scope="col">Giáo viên</th>
-                        <th scope="col">Học viên</th>
-                        <th scope="col">Trạng thái</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {lopLoading ? (
-                        <tr>
-                          <td colSpan={4}>
-                            <div className="cso-hv-loading">Đang tải…</div>
-                          </td>
-                        </tr>
-                      ) : selectedLop.length === 0 ? (
-                        <tr>
-                          <td colSpan={4}>
-                            <div className="cso-hv-empty">
-                              <strong>Chưa có lớp</strong>
-                              Thêm lớp ở tab Quản lý lớp học.
-                            </div>
-                          </td>
-                        </tr>
-                      ) : (
-                        selectedLop.map((lop) => (
-                          <tr key={lop.id}>
-                            <td>
-                              <p className="cso-hv-name">{lopLabel(lop)}</p>
-                              <p className="cso-hv-lop">
-                                KG {formatNgay(lop.ngayKhaiGiang)}
-                              </p>
-                            </td>
-                            <td>
-                              <p className="cso-hv-lop">
-                                {lop.giaoVienTen?.trim() || "Chưa gán"}
-                              </p>
-                            </td>
-                            <td>
-                              <p className="cso-hv-course">
-                                {lop.soHocVien}
-                                {lop.slotToiDa != null
-                                  ? ` / ${lop.slotToiDa}`
-                                  : ""}
-                              </p>
-                            </td>
-                            <td>
-                              <span
-                                className={
-                                  lop.trangThaiLop === "dang_hoc"
-                                    ? "cso-hv-chip cso-hv-chip--ok"
-                                    : "cso-hv-chip cso-hv-chip--state"
-                                }
-                              >
-                                {labelTrangThaiLop(lop.trangThaiLop)}
-                              </span>
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              <div className="cso-dt-panel-head cso-lh-khoa-detail-subhead">
-                <div>
-                  <h3 className="cso-dt-panel-title">Học viên đang học</h3>
-                  <p className="cso-dt-panel-sub">
-                    {hvLoadingId === selected.id
-                      ? "Đang tải danh sách…"
-                      : selectedHv
-                        ? `${selectedHv.total} người · trạng thái đang học`
-                        : "—"}
-                  </p>
-                </div>
-              </div>
-
-              <div className="cso-dt-panel-body cso-dt-panel-body--flush">
-                {hvError ? (
-                  <div className="cso-dt-panel-body">
-                    <p className="cso-ql-error">{hvError}</p>
-                  </div>
-                ) : null}
-                <div className="cso-hv-table-wrap">
-                  <table className="cso-hv-table">
-                    <thead>
-                      <tr>
-                        <th scope="col">Học viên</th>
-                        <th scope="col">Lớp</th>
-                        <th scope="col">Ngày còn</th>
-                        <th scope="col">Ghi danh</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {hvLoadingId === selected.id ? (
-                        <tr>
-                          <td colSpan={4}>
-                            <div className="cso-hv-loading">Đang tải…</div>
-                          </td>
-                        </tr>
-                      ) : !selectedHv || selectedHv.rows.length === 0 ? (
-                        <tr>
-                          <td colSpan={4}>
-                            <div className="cso-hv-empty">
-                              <strong>Chưa có học viên đang học</strong>
-                              Ghi danh ở mục Học viên hoặc sau khi xác nhận học
-                              phí.
-                            </div>
-                          </td>
-                        </tr>
-                      ) : (
-                        selectedHv.rows.map((hv) => (
-                          <tr key={hv.hocVienLopId}>
-                            <td>
-                              <div className="cso-hv-person">
-                                <span className="cso-hv-ava" aria-hidden>
-                                  {hv.avatarUrl ? (
-                                    // eslint-disable-next-line @next/next/no-img-element
-                                    <img src={hv.avatarUrl} alt="" />
-                                  ) : (
-                                    initials(hv.tenHienThi)
-                                  )}
-                                </span>
-                                <div>
-                                  <p className="cso-hv-name">{hv.tenHienThi}</p>
-                                  {hv.slug ? (
-                                    <p className="cso-hv-slug">/{hv.slug}</p>
-                                  ) : null}
-                                </div>
-                              </div>
-                            </td>
-                            <td>
-                              <p className="cso-hv-lop">
-                                {hv.maLop?.trim() || "Chưa gắn lớp"}
-                              </p>
-                            </td>
-                            <td>
-                              {hv.dangFreeze ? (
-                                <span className="cso-hv-chip cso-hv-chip--freeze">
-                                  Freeze
-                                </span>
-                              ) : (
-                                <div className="cso-hv-days">
-                                  <span
-                                    className={`cso-hv-days-n${
-                                      hv.soNgayConLai <= 0
-                                        ? " is-out"
-                                        : hv.soNgayConLai <= 7
-                                          ? " is-low"
-                                          : ""
-                                    }`}
-                                  >
-                                    {hv.soNgayConLai}
-                                  </span>
-                                  <span className="cso-hv-days-sub">ngày</span>
-                                </div>
-                              )}
-                            </td>
-                            <td>
-                              <p className="cso-hv-lop">
-                                {formatNgay(hv.ngayDangKy.slice(0, 10))}
-                              </p>
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </section>
+            </div>
           ) : null}
 
           <KhoaHocCreateModal
             open={createOpen && !editing}
             orgId={orgId}
+            orgSlug={orgSlug}
             onClose={() => setCreateOpen(false)}
             onCreated={() => {
-              setCreateOpen(false);
               void load();
               void loadLop();
+              void loadGoiLinks();
+            }}
+            onCreatedNeedLop={(khoaId) => {
+              setCreateOpen(false);
+              setLopFilterKhoaId(khoaId);
+              setTab("lop");
             }}
           />
           <KhoaHocCreateModal
             open={Boolean(editing)}
             orgId={orgId}
+            orgSlug={orgSlug}
             editing={editing}
             onClose={() => setEditing(null)}
             onUpdated={(khoa) => {
@@ -807,6 +644,26 @@ export function KhoaHocQuanLyClient({ orgId, orgSlug }: Props) {
                 ),
               );
               void loadLop();
+              void loadGoiLinks();
+            }}
+          />
+          <KhoaHocDeleteConfirm
+            open={Boolean(deletingKhoa)}
+            orgId={orgId}
+            khoa={deletingKhoa}
+            onClose={() => setDeletingKhoa(null)}
+            onXuLyCungTrang={(blocker, khoaId) => {
+              if (blocker.loai === "lop") {
+                setLopFilterKhoaId(khoaId);
+                setTab("lop");
+                return true;
+              }
+              return false;
+            }}
+            onDeleted={(khoaId) => {
+              setRows((prev) => prev.filter((row) => row.id !== khoaId));
+              setLopRows((prev) => prev.filter((row) => row.khoaId !== khoaId));
+              void loadGoiLinks();
             }}
           />
       </div>

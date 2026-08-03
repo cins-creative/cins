@@ -238,6 +238,42 @@ export function formatLichCaHoc(draft: LichCaHocDraft): string | null {
   return caDays || null;
 }
 
+/** Slot có thứ hoặc giờ — đủ để lưu vào danh sách. */
+export function isLichCaHocSlotReady(draft: LichCaHocDraft): boolean {
+  return Boolean(
+    draft.thu.length > 0 ||
+      draft.gioBatDau.trim() ||
+      draft.gioKetThuc.trim() ||
+      draft.caLabel.trim(),
+  );
+}
+
+const SLOT_SEP = " ·· ";
+
+/** Nhiều khung giờ — nối bằng ` ·· ` (tương thích chuỗi cũ 1 slot). */
+export function parseLichCaHocList(
+  raw: string | null | undefined,
+): LichCaHocDraft[] {
+  const trimmed = raw?.trim();
+  if (!trimmed || isDefaultLichHoc(trimmed)) return [];
+  const parts = trimmed.includes(" ·· ")
+    ? trimmed.split(/\s*··\s*/).map((p) => p.trim()).filter(Boolean)
+    : [trimmed];
+  return parts
+    .map((p) => parseLichCaHoc(p))
+    .filter((d) => formatLichCaHoc(d) != null);
+}
+
+export function formatLichCaHocList(
+  slots: LichCaHocDraft[],
+): string | null {
+  const parts = slots
+    .map((s) => formatLichCaHoc(s))
+    .filter((s): s is string => Boolean(s));
+  if (parts.length === 0) return null;
+  return parts.join(SLOT_SEP);
+}
+
 /** Ghép dữ liệu card (tenLop + gio) thành chuỗi form. */
 export function composeLichCaHocFromParts(
   tenLop: string | null | undefined,
@@ -252,6 +288,7 @@ export function composeLichCaHocFromParts(
   }
   return lich || ten;
 }
+
 export function splitLichCaHocDisplay(lichHoc: string | null | undefined): {
   tenLop: string | null;
   gioHoc: string | null;
@@ -262,7 +299,17 @@ export function splitLichCaHocDisplay(lichHoc: string | null | undefined): {
     return { tenLop: null, gioHoc: null, lichHoc: null };
   }
 
-  const draft = parseLichCaHoc(trimmed);
+  const slots = parseLichCaHocList(trimmed);
+  if (slots.length === 0) {
+    return { tenLop: trimmed, gioHoc: null, lichHoc: trimmed };
+  }
+
+  if (slots.length > 1) {
+    const joined = formatLichCaHocList(slots);
+    return { tenLop: joined, gioHoc: null, lichHoc: joined };
+  }
+
+  const draft = slots[0]!;
   const days = formatThuGroup(draft.thu);
   const caDays = [draft.caLabel.trim(), days].filter(Boolean).join(" · ");
   const hasTime = Boolean(draft.gioBatDau && draft.gioKetThuc);

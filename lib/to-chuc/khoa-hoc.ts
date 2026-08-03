@@ -24,11 +24,14 @@ import type {
   TrinhDoDauVao,
   TrangThaiKhoaHoc,
 } from "./khoa-hoc-types";
+import { hardDeleteKhoaHoc } from "./khoa-lop-xoa";
+import type { XoaBlocker, XoaCanhBao } from "./khoa-lop-xoa";
 
 type KhoaHocRow = {
   id: string;
   slug: string;
   ten_khoa_hoc: string;
+  ma_khoa_hoc?: string | null;
   mo_ta: string | null;
   loai_mo_hinh: LoaiMoHinhKhoa;
   trinh_do_dau_vao: TrinhDoDauVao;
@@ -42,10 +45,10 @@ type KhoaHocRow = {
 };
 
 const KHOA_HOC_CARD_SELECT =
-  "id, slug, ten_khoa_hoc, mo_ta, loai_mo_hinh, trinh_do_dau_vao, trang_thai_khoa_hoc, thoi_luong_buoi, thoi_luong_phut_moi_buoi, hoc_phi, avatar_id, cover_id, noi_dung_blocks";
+  "id, slug, ten_khoa_hoc, ma_khoa_hoc, mo_ta, loai_mo_hinh, trinh_do_dau_vao, trang_thai_khoa_hoc, thoi_luong_buoi, thoi_luong_phut_moi_buoi, hoc_phi, avatar_id, cover_id, noi_dung_blocks";
 
 const KHOA_HOC_CARD_SELECT_NO_BLOCKS =
-  "id, slug, ten_khoa_hoc, mo_ta, loai_mo_hinh, trinh_do_dau_vao, trang_thai_khoa_hoc, thoi_luong_buoi, thoi_luong_phut_moi_buoi, hoc_phi, avatar_id, cover_id";
+  "id, slug, ten_khoa_hoc, ma_khoa_hoc, mo_ta, loai_mo_hinh, trinh_do_dau_vao, trang_thai_khoa_hoc, thoi_luong_buoi, thoi_luong_phut_moi_buoi, hoc_phi, avatar_id, cover_id";
 
 type LopMetaRow = {
   id: string;
@@ -53,15 +56,20 @@ type LopMetaRow = {
   hinh_thuc: HinhThucLop;
   ngay_khai_giang: string;
   lich_hoc: string | null;
+  trang_thai?: string | null;
 };
 
 type LopMeta = {
   lopId: string | null;
+  /** Distinct hình thức từ lớp chưa huỷ. */
+  hinhThucs: HinhThucLop[];
+  /** Lớp sớm nhất — tương thích form cũ. */
   hinhThuc: HinhThucLop | null;
   lichHoc: string | null;
 };
 
-const HINH_THUC_SET = new Set<string>(["truc_tiep", "truc_tuyen", "ket_hop"]);
+const HINH_THUC_ORDER: HinhThucLop[] = ["truc_tiep", "truc_tuyen", "ket_hop"];
+const HINH_THUC_SET = new Set<string>(HINH_THUC_ORDER);
 
 const LOAI_MO_HINH_SET = new Set<string>(["cohort_co_dinh", "lien_tuc_theo_thang"]);
 const TRINH_DO_SET = new Set<string>([
@@ -103,6 +111,7 @@ async function assertCoSoOrg(orgId: string): Promise<boolean> {
 export async function uniqueKhoaSlugTrongOrg(
   orgId: string,
   baseSlug: string,
+  excludeKhoaId?: string | null,
 ): Promise<string> {
   const admin = createServiceRoleClient();
   let candidate = baseSlug.slice(0, 72) || "khoa-hoc";
@@ -114,7 +123,9 @@ export async function uniqueKhoaSlugTrongOrg(
       .eq("id_to_chuc", orgId)
       .eq("slug", candidate)
       .maybeSingle();
-    if (!data) return candidate;
+    if (!data || (excludeKhoaId && data.id === excludeKhoaId)) {
+      return candidate;
+    }
     const suffix = `-${n}`;
     candidate = `${baseSlug.slice(0, 72 - suffix.length)}${suffix}`;
     n += 1;
@@ -225,43 +236,55 @@ async function demDanXuatKhoa(
 async function fetchLopMetaForKhoa(
   khoaIds: string[],
 ): Promise<Map<string, LopMeta>> {
+  const empty = (): LopMeta => ({
+    lopId: null,
+    hinhThucs: [],
+    hinhThuc: null,
+    lichHoc: null,
+  });
   const map = new Map<string, LopMeta>();
-  for (const id of khoaIds) {
-    map.set(id, { lopId: null, hinhThuc: null, lichHoc: null });
-  }
+  for (const id of khoaIds) map.set(id, empty());
   if (!khoaIds.length) return map;
 
   const admin = createServiceRoleClient();
   const { data: rows, error } = await admin
     .from("org_lop_hoc")
-    .select("id, id_khoa_hoc, hinh_thuc, ngay_khai_giang, lich_hoc")
+    .select("id, id_khoa_hoc, hinh_thuc, ngay_khai_giang, lich_hoc, trang_thai")
     .in("id_khoa_hoc", khoaIds)
+    .neq("trang_thai", "huy")
     .order("ngay_khai_giang", { ascending: true });
 
   const lopRows = error?.message?.includes("lich_hoc")
     ? (
         await admin
           .from("org_lop_hoc")
-          .select("id, id_khoa_hoc, hinh_thuc, ngay_khai_giang")
+          .select("id, id_khoa_hoc, hinh_thuc, ngay_khai_giang, trang_thai")
           .in("id_khoa_hoc", khoaIds)
+          .neq("trang_thai", "huy")
           .order("ngay_khai_giang", { ascending: true })
       ).data
     : rows;
 
+  const sets = new Map<string, Set<HinhThucLop>>();
   for (const row of (lopRows ?? []) as LopMetaRow[]) {
     const khoaId = row.id_khoa_hoc;
-    if (map.get(khoaId)?.lopId) continue;
-    map.set(khoaId, {
-      lopId: row.id,
-      hinhThuc: row.hinh_thuc,
-      lichHoc: row.lich_hoc,
-    });
+    const cur = map.get(khoaId) ?? empty();
+    if (!cur.lopId) {
+      cur.lopId = row.id;
+      cur.hinhThuc = row.hinh_thuc;
+      cur.lichHoc = row.lich_hoc ?? null;
+    }
+    const set = sets.get(khoaId) ?? new Set<HinhThucLop>();
+    if (row.hinh_thuc) set.add(row.hinh_thuc);
+    sets.set(khoaId, set);
+    map.set(khoaId, cur);
+  }
+  for (const [khoaId, set] of sets) {
+    const cur = map.get(khoaId)!;
+    cur.hinhThucs = HINH_THUC_ORDER.filter((h) => set.has(h));
+    map.set(khoaId, cur);
   }
   return map;
-}
-
-function needsDiaChi(hinhThuc: HinhThucLop): boolean {
-  return hinhThuc === "truc_tiep" || hinhThuc === "ket_hop";
 }
 
 function defaultNgayKhaiGiang(): string {
@@ -304,6 +327,7 @@ async function upsertLopDauTien(
     ngayKhaiGiang?: string | null;
     hinhThuc?: HinhThucLop;
     lichHoc?: string | null;
+    chiNhanhId?: string | null;
   },
 ): Promise<{ ok: true; lopId: string } | { ok: false; error: string }> {
   const hinhThuc = input.hinhThuc ?? "truc_tiep";
@@ -313,6 +337,7 @@ async function upsertLopDauTien(
   }
   const lichHoc = resolveLichHoc(loaiMoHinh, input.lichHoc);
   const admin = createServiceRoleClient();
+  const chiNhanhId = input.chiNhanhId?.trim() || null;
 
   const lopRow: Record<string, unknown> = {
     hinh_thuc: hinhThuc,
@@ -320,6 +345,7 @@ async function upsertLopDauTien(
     trang_thai: "sap_khai_giang",
   };
   if (lichHoc != null) lopRow.lich_hoc = lichHoc;
+  if (chiNhanhId) lopRow.id_chi_nhanh = chiNhanhId;
 
   let lopId = input.lopId?.trim() || null;
   let maLop = buildMaLop(tenKhoa, ngay);
@@ -332,6 +358,24 @@ async function upsertLopDauTien(
       .eq("id_khoa_hoc", khoaId);
     if (error?.message?.includes("lich_hoc")) {
       delete lopRow.lich_hoc;
+      const { error: err2 } = await admin
+        .from("org_lop_hoc")
+        .update(lopRow)
+        .eq("id", lopId)
+        .eq("id_khoa_hoc", khoaId);
+      if (err2?.message?.includes("id_chi_nhanh")) {
+        delete lopRow.id_chi_nhanh;
+        const { error: err3 } = await admin
+          .from("org_lop_hoc")
+          .update(lopRow)
+          .eq("id", lopId)
+          .eq("id_khoa_hoc", khoaId);
+        if (err3) return { ok: false, error: err3.message };
+      } else if (err2) {
+        return { ok: false, error: err2.message };
+      }
+    } else if (error?.message?.includes("id_chi_nhanh")) {
+      delete lopRow.id_chi_nhanh;
       const { error: err2 } = await admin
         .from("org_lop_hoc")
         .update(lopRow)
@@ -364,6 +408,10 @@ async function upsertLopDauTien(
     let { data, error } = await tryInsert(insertRow);
     if (error?.message?.includes("lich_hoc")) {
       delete insertRow.lich_hoc;
+      ({ data, error } = await tryInsert(insertRow));
+    }
+    if (error?.message?.includes("id_chi_nhanh")) {
+      delete insertRow.id_chi_nhanh;
       ({ data, error } = await tryInsert(insertRow));
     }
     if (error || !data?.id) {
@@ -400,6 +448,7 @@ function mapRowToCard(
     id: row.id,
     slug: row.slug,
     tenKhoaHoc: row.ten_khoa_hoc,
+    maKhoaHoc: row.ma_khoa_hoc?.trim() || null,
     moTa: row.mo_ta,
     loaiMoHinh: row.loai_mo_hinh,
     trinhDoDauVao: row.trinh_do_dau_vao,
@@ -418,9 +467,11 @@ function mapRowToCard(
     ngayKhaiGiangGanNhat: stats.ngayKhaiGiangGanNhat,
     coverVariant: index % 3,
     lopId: lopMeta.lopId,
+    hinhThucs: lopMeta.hinhThucs,
     hinhThuc: lopMeta.hinhThuc,
     lichHoc: lopMeta.lichHoc,
     diaChiHoc: parsed.diaChiHoc,
+    chiNhanhIds: parsed.chiNhanhIds,
     yeuCauChuanBi: parsed.yeuCauChuanBi,
   };
 }
@@ -466,13 +517,18 @@ export async function listKhoaHocCuaOrg(
             },
             lopMap.get(row.id) ?? {
               lopId: null,
+              hinhThucs: [],
               hinhThuc: null,
               lichHoc: null,
             },
             index,
           ),
         )
-        .filter((k) => opts?.includeHidden || k.cheDoHienThi !== "an");
+        .filter(
+          (k) =>
+            (opts?.includeHidden || k.cheDoHienThi !== "an") &&
+            (opts?.includeHidden || k.hinhThucs.length > 0),
+        );
       return { ok: true, khoaHoc };
     }
     return { ok: false, error: error.message };
@@ -490,11 +546,20 @@ export async function listKhoaHocCuaOrg(
           soHocVien: 0,
           ngayKhaiGiangGanNhat: null,
         },
-        lopMap.get(row.id) ?? { lopId: null, hinhThuc: null, lichHoc: null },
+        lopMap.get(row.id) ?? {
+          lopId: null,
+          hinhThucs: [],
+          hinhThuc: null,
+          lichHoc: null,
+        },
         index,
       ),
     )
-    .filter((k) => opts?.includeHidden || k.cheDoHienThi !== "an");
+    .filter(
+      (k) =>
+        (opts?.includeHidden || k.cheDoHienThi !== "an") &&
+        (opts?.includeHidden || k.hinhThucs.length > 0),
+    );
 
   return { ok: true, khoaHoc };
 }
@@ -538,6 +603,11 @@ function validateTaoInput(
   if (!ten) {
     return { ok: false, error: "Tên khóa học không được trống." };
   }
+  const maKhoaHoc = input.maKhoaHoc?.trim() || null;
+  if (maKhoaHoc && maKhoaHoc.length > 64) {
+    return { ok: false, error: "Mã khóa học tối đa 64 ký tự." };
+  }
+  const slugInput = input.slug?.trim() || null;
   if (!LOAI_MO_HINH_SET.has(input.loaiMoHinh)) {
     return { ok: false, error: "Mô hình khóa học không hợp lệ." };
   }
@@ -554,19 +624,6 @@ function validateTaoInput(
       return { ok: false, error: `${label} phải ≥ 0.` };
     }
   }
-  const hinhThuc = input.hinhThuc ?? "truc_tiep";
-  if (!HINH_THUC_SET.has(hinhThuc)) {
-    return { ok: false, error: "Hình thức học không hợp lệ." };
-  }
-  if (input.loaiMoHinh === "cohort_co_dinh" && !input.ngayKhaiGiang?.trim()) {
-    return { ok: false, error: "Theo khóa cần ngày khai giảng." };
-  }
-  if (needsDiaChi(hinhThuc) && !input.diaChiHoc?.trim()) {
-    return {
-      ok: false,
-      error: "Học offline / kết hợp cần địa chỉ phòng học.",
-    };
-  }
   const cheDoHienThi: KhoaHocCheDoHienThi =
     input.cheDoHienThi === "an" ? "an" : "cong_khai";
   const goiErr = validateGoiHocPhi(input.goiHocPhi);
@@ -574,12 +631,10 @@ function validateTaoInput(
   const merged = mergeInputWithGoiHocPhi({
     ...input,
     tenKhoaHoc: ten,
+    maKhoaHoc,
+    slug: slugInput,
     trinhDoDauVao: trinhDo,
     moTa: input.moTa?.trim() || null,
-    hinhThuc,
-    ngayKhaiGiang: input.ngayKhaiGiang?.trim() || null,
-    diaChiHoc: input.diaChiHoc?.trim() || null,
-    lichHoc: input.lichHoc?.trim() || null,
     yeuCauChuanBi: input.yeuCauChuanBi?.trim() || null,
     cheDoHienThi,
   });
@@ -604,13 +659,11 @@ export async function taoKhoaHoc(
   if (!validated.ok) return validated;
 
   const data = validated.data;
-  const baseSlug = slugifyOrgName(data.tenKhoaHoc);
-  const slug = await uniqueKhoaSlugTrongOrg(orgId, baseSlug);
-  const hinhThuc = data.hinhThuc ?? "truc_tiep";
+  const slugBase =
+    slugifyOrgName(data.slug?.trim() || data.tenKhoaHoc) || "khoa-hoc";
+  const slug = await uniqueKhoaSlugTrongOrg(orgId, slugBase);
   const noiDungBlocks = buildKhoaHocNoiDungBlocks({
     yeuCauChuanBi: data.yeuCauChuanBi,
-    diaChiHoc: data.diaChiHoc,
-    includeDiaDiem: needsDiaChi(hinhThuc),
     cheDoHienThi: data.cheDoHienThi,
     goiHocPhi: data.goiHocPhi,
   });
@@ -619,6 +672,7 @@ export async function taoKhoaHoc(
   const insertRow: Record<string, unknown> = {
     id_to_chuc: orgId,
     ten_khoa_hoc: data.tenKhoaHoc,
+    ma_khoa_hoc: data.maKhoaHoc?.trim() || null,
     slug,
     loai_mo_hinh: data.loaiMoHinh,
     mo_ta: data.moTa,
@@ -641,6 +695,15 @@ export async function taoKhoaHoc(
 
   if (error || !inserted) {
     const msg = error?.message ?? "Không tạo được khóa học.";
+    if (
+      msg.includes("org_khoa_hoc_org_ma_uidx") ||
+      /ma_khoa_hoc.*unique|duplicate key.*ma_khoa/i.test(msg)
+    ) {
+      return {
+        ok: false,
+        error: "Mã khóa học đã được dùng trong cơ sở này.",
+      };
+    }
     if (msg.includes("noi_dung_blocks")) {
       delete insertRow.noi_dung_blocks;
       const { data: row2, error: err2 } = await admin
@@ -657,22 +720,6 @@ export async function taoKhoaHoc(
     }
   } else {
     row = inserted as KhoaHocRow;
-  }
-
-  const lopResult = await upsertLopDauTien(
-    orgId,
-    row.id,
-    data.tenKhoaHoc,
-    data.loaiMoHinh,
-    {
-      ngayKhaiGiang: data.ngayKhaiGiang,
-      hinhThuc,
-      lichHoc: data.lichHoc,
-    },
-  );
-  if (!lopResult.ok) {
-    await admin.from("org_khoa_hoc").delete().eq("id", row.id);
-    return lopResult;
   }
 
   const khoaHoc = await fetchKhoaHocCard(orgId, row.id, 0);
@@ -716,7 +763,12 @@ async function fetchKhoaHocCard(
       soHocVien: 0,
       ngayKhaiGiangGanNhat: null,
     },
-    lopMap.get(khoaId) ?? { lopId: null, hinhThuc: null, lichHoc: null },
+    lopMap.get(khoaId) ?? {
+      lopId: null,
+      hinhThucs: [],
+      hinhThuc: null,
+      lichHoc: null,
+    },
     coverVariant,
   );
 }
@@ -768,10 +820,16 @@ export async function capNhatKhoaHoc(
   if (!validated.ok) return validated;
 
   const data = validated.data;
-  const hinhThuc = data.hinhThuc ?? "truc_tiep";
   const admin = createServiceRoleClient();
+  const slug = await uniqueKhoaSlugTrongOrg(
+    orgId,
+    slugifyOrgName(data.slug?.trim() || data.tenKhoaHoc) || "khoa-hoc",
+    khoaId,
+  );
   const updateRow: Record<string, unknown> = {
     ten_khoa_hoc: data.tenKhoaHoc,
+    ma_khoa_hoc: data.maKhoaHoc?.trim() || null,
+    slug,
     loai_mo_hinh: data.loaiMoHinh,
     mo_ta: data.moTa,
     thoi_luong_buoi: data.thoiLuongBuoi ?? null,
@@ -782,8 +840,6 @@ export async function capNhatKhoaHoc(
     cover_id: data.coverId?.trim() || null,
     noi_dung_blocks: buildKhoaHocNoiDungBlocks({
       yeuCauChuanBi: data.yeuCauChuanBi,
-      diaChiHoc: data.diaChiHoc,
-      includeDiaDiem: needsDiaChi(hinhThuc),
       cheDoHienThi: data.cheDoHienThi,
       goiHocPhi: data.goiHocPhi,
     }),
@@ -808,24 +864,17 @@ export async function capNhatKhoaHoc(
   }
 
   if (error) {
-    return { ok: false, error: error.message };
-  }
-
-  const lopMap = await fetchLopMetaForKhoa([khoaId]);
-  const lopResult = await upsertLopDauTien(
-    orgId,
-    khoaId,
-    data.tenKhoaHoc,
-    data.loaiMoHinh,
-    {
-      lopId: lopMap.get(khoaId)?.lopId,
-      ngayKhaiGiang: data.ngayKhaiGiang,
-      hinhThuc,
-      lichHoc: data.lichHoc,
-    },
-  );
-  if (!lopResult.ok) {
-    return lopResult;
+    const msg = error.message;
+    if (
+      msg.includes("org_khoa_hoc_org_ma_uidx") ||
+      /ma_khoa_hoc.*unique|duplicate key.*ma_khoa/i.test(msg)
+    ) {
+      return {
+        ok: false,
+        error: "Mã khóa học đã được dùng trong cơ sở này.",
+      };
+    }
+    return { ok: false, error: msg };
   }
 
   const khoaHoc = await fetchKhoaHocCard(orgId, khoaId, coverVariant);
@@ -835,13 +884,13 @@ export async function capNhatKhoaHoc(
   return { ok: true, khoaHoc };
 }
 
-export async function xoaKhoaHoc(
+export async function tamDungKhoaHoc(
   orgId: string,
   khoaId: string,
   actorId: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   if (!(await canViewerManageKhoaHoc(actorId, orgId))) {
-    return { ok: false, error: "Bạn không có quyền xóa khóa học." };
+    return { ok: false, error: "Bạn không có quyền tạm dừng khóa học." };
   }
   if (!(await assertCoSoOrg(orgId))) {
     return { ok: false, error: "Không tìm thấy cơ sở đào tạo." };
@@ -859,7 +908,6 @@ export async function xoaKhoaHoc(
     return { ok: false, error: "Không tìm thấy khóa học." };
   }
 
-  /** Soft delete — không DROP row; đặt trạng thái tạm dừng. */
   if (khoa.trang_thai_khoa_hoc === "tam_dung") {
     return { ok: true };
   }
@@ -875,6 +923,24 @@ export async function xoaKhoaHoc(
   }
 
   return { ok: true };
+}
+
+/** Hard delete khóa — guard trong `khoa-lop-xoa`. Soft delete → `tamDungKhoaHoc`. */
+export async function xoaKhoaHoc(
+  orgId: string,
+  khoaId: string,
+  actorId: string,
+): Promise<
+  | { ok: true }
+  | {
+      ok: false;
+      error: string;
+      status?: number;
+      blockers?: XoaBlocker[];
+      canhBao?: XoaCanhBao[];
+    }
+> {
+  return hardDeleteKhoaHoc(orgId, khoaId, actorId);
 }
 
 type LopHocCopyRow = {
@@ -961,11 +1027,13 @@ export async function nhanBanKhoaHoc(
     includeDiaDiem: Boolean(parsed.diaChiHoc?.trim()),
     cheDoHienThi: "an",
     goiHocPhi: parsed.goiHocPhi,
+    chiNhanhIds: parsed.chiNhanhIds,
   });
 
   const insertRow: Record<string, unknown> = {
     id_to_chuc: orgId,
     ten_khoa_hoc: tenMoi,
+    ma_khoa_hoc: null,
     slug,
     loai_mo_hinh: source.loai_mo_hinh,
     mo_ta: source.mo_ta,

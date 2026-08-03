@@ -39,6 +39,8 @@ export type KhoaHocCardData = {
   id: string;
   slug: string;
   tenKhoaHoc: string;
+  /** Mã khóa nội bộ — `org_khoa_hoc.ma_khoa_hoc`. */
+  maKhoaHoc: string | null;
   moTa: string | null;
   loaiMoHinh: LoaiMoHinhKhoa;
   trinhDoDauVao: TrinhDoDauVao;
@@ -63,15 +65,28 @@ export type KhoaHocCardData = {
   coverVariant: number;
   /** Lớp đầu tiên (form sửa / quản lý). */
   lopId: string | null;
+  /**
+   * Tập hình thức distinct từ các lớp chưa huỷ — rỗng = khóa trần (chưa mở lớp).
+   * @deprecated `hinhThuc` giữ tương thích tạm (= phần tử đầu hoặc null).
+   */
+  hinhThucs: HinhThucLop[];
+  /** @deprecated Dùng `hinhThucs` — giá trị lớp sớm nhất. */
   hinhThuc: HinhThucLop | null;
   /** Lịch mô tả khi mô hình liên tục (`org_lop_hoc.lich_hoc`). */
   lichHoc: string | null;
+  /** Snapshot địa điểm legacy từ meta khóa — ưu tiên lấy từ lớp. */
   diaChiHoc: string | null;
+  /** @deprecated Chi nhánh chuyển xuống lớp (`org_lop_hoc_chi_nhanh`). */
+  chiNhanhIds: string[];
   yeuCauChuanBi: string | null;
 };
 
 export type TaoKhoaHocInput = {
   tenKhoaHoc: string;
+  /** Mã khóa nội bộ (tuỳ chọn). */
+  maKhoaHoc?: string | null;
+  /** Đường dẫn URL khóa — mặc định slugify từ tên. */
+  slug?: string | null;
   loaiMoHinh: LoaiMoHinhKhoa;
   moTa?: string | null;
   thoiLuongBuoi?: number | null;
@@ -81,13 +96,6 @@ export type TaoKhoaHocInput = {
   trinhDoDauVao?: TrinhDoDauVao;
   thumbnailId?: string | null;
   coverId?: string | null;
-  /** Bắt buộc khi `loaiMoHinh === cohort_co_dinh`. ISO `YYYY-MM-DD`. */
-  ngayKhaiGiang?: string | null;
-  hinhThuc?: HinhThucLop;
-  /** Bắt buộc khi học offline / kết hợp. */
-  diaChiHoc?: string | null;
-  /** Mô tả lịch khai giảng khi mô hình liên tục. */
-  lichHoc?: string | null;
   yeuCauChuanBi?: string | null;
   cheDoHienThi?: KhoaHocCheDoHienThi;
 };
@@ -142,6 +150,12 @@ export type GiaoVienKhoaData = {
   avatarId: string | null;
 };
 
+export type LopHocChiNhanhBrief = {
+  id: string;
+  ten: string;
+  diaChi: string | null;
+};
+
 export type LopHocDetailData = {
   id: string;
   /** Mã lớp hiển thị (VD: HHK30) — null khi `ma_lop` nội bộ tự sinh. */
@@ -157,7 +171,11 @@ export type LopHocDetailData = {
   /** Tên giảng viên tự nhập khi chưa gắn user CINS. */
   giaoVienText: string | null;
   giaoVien: GiaoVienKhoaData;
+  /** Snapshot địa chỉ từ chi nhánh của lớp. */
   diaChiHoc: string | null;
+  /** Chi nhánh gắn lớp (offline / kết hợp). */
+  chiNhanhIds: string[];
+  chiNhanh: LopHocChiNhanhBrief[];
 };
 
 export type LopHocFormInput = {
@@ -170,6 +188,8 @@ export type LopHocFormInput = {
   giaoVienText?: string | null;
   slotToiDa?: number | null;
   trangThaiLop?: TrangThaiLop;
+  /** Chi nhánh địa điểm — bắt buộc khi offline / kết hợp. */
+  chiNhanhIds?: string[] | null;
 };
 
 export type KhoaHocDetailPayload = {

@@ -253,6 +253,8 @@ export async function createDonTienMat(input: {
       kenh: "tien_mat" satisfies KenhThuHp,
       trang_thai: "cho_thanh_toan",
       so_tien_vnd: input.soTienVnd,
+      gia_goc_vnd: input.soTienVnd,
+      giam_vnd: 0,
       so_ngay_cong: input.soNgayCong,
       ghi_chu: input.ghiChu ?? null,
     })

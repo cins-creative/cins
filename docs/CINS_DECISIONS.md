@@ -41,6 +41,30 @@
 
 ## LOG — quyết định đã chốt
 
+### CSĐT — Hard delete khóa/lớp có guard (2026-08-04)
+
+- **Tách hành động:** **Tạm dừng** = PATCH trạng thái (`tam_dung` / `huy`, vẫn thấy trong QL). **Xóa** = hard `DELETE` row.
+- **Guard lớp:** chặn nếu có ghi danh / đơn `da_nhan_tien` / tin chat người dùng. Cảnh báo điểm danh + cột mốc.
+- **Guard khóa:** chặn nếu có lớp thật (không scaffold) / ghi danh (kể cả `id_lop_hoc NULL`) / đơn đã trả / combo dùng khóa / cột mốc đã verify+public. Cảnh báo bài tập, giáo trình, gói.
+- **Preflight:** `GET …/xoa-preflight` → Warning + link xử lý; `DELETE` re-check → 409 nếu còn blocker.
+- **Plan:** `docs/PLAN_hard_delete_khoa_lop.md`. Lib: `lib/to-chuc/khoa-lop-xoa.ts`.
+
+### CSĐT — Gỡ ghi danh có guard doanh thu (2026-08-04)
+
+- **Vấn đề:** guard hard delete chặn khi còn ghi danh, nhưng không có API xóa ghi danh → khóa nháp lỡ có ghi danh test là kẹt vĩnh viễn, chỉ còn Tạm dừng.
+- **Sự thật DB (đọc trực tiếp):** `org_don_hoc_phi.id_hoc_vien_lop`, `org_ky_hoc.id_hoc_vien_lop`, `org_nop_bai`, `org_tien_do_bai` đều `ON DELETE CASCADE` về `user_hoc_vien_lop`. Doanh thu cộng thẳng từ rows `org_don_hoc_phi` (không có sổ cái riêng) → xóa ghi danh trần = mất doanh thu.
+- **Chốt:** thêm **Gỡ ghi danh** (`DELETE /api/co-so/[id]/hoc-vien/[hvlId]`, quyền module `hoc-vien = sua`). Blocker duy nhất: còn đơn `da_nhan_tien`. Cảnh báo (vẫn cho gỡ): đơn `cho_thanh_toan`, kỳ học, bài nộp, tiến độ.
+- **Hệ quả:** khóa đã thu tiền dù một học viên vẫn không xóa được — chỉ Tạm dừng. Đúng chủ trương doanh thu bất khả xâm phạm.
+- Lib: `lib/co-so/ghi-danh-xoa.ts`.
+
+### CSĐT — Hình thức học & địa điểm thuộc Lớp (2026-08-03)
+
+- **Ranh giới:** Khóa = danh tính + giáo trình + gói HP + `loai_mo_hinh`. Lớp = `hinh_thuc` + địa điểm + lịch + GV + sĩ số.
+- **DB:** `hinh_thuc` vốn chỉ trên `org_lop_hoc`. Thêm junction `org_lop_hoc_chi_nhanh` (N chi nhánh/lớp). Giữ `org_lop_hoc.id_chi_nhanh` = chi nhánh chính (`chiNhanhIds[0]`).
+- **Tạo khóa:** không scaffold lớp đầu; CTA «Thêm lớp» sau tạo. Khóa trần (`hinhThucs=[]`) **ẩn** catalog công khai + 404 URL public; quản lý vẫn thấy + cảnh báo.
+- **Catalog `/tim-khoa-hoc`:** filter hình thức = match-any trên `hinhThucs[]`.
+- **Plan:** `docs/PLAN_hinh_thuc_ve_lop.md`. Migration: `npm run migrate:lop-chi-nhanh`.
+
 ### Studio / DN — tab Analytics trong quan-ly (2026-08-03)
 
 - **Nav:** thêm section `analytics` (label **Analytics**) sau Sự kiện — studio + doanh_nghiep (`STUDIO_NAV_GROUPS`).
@@ -207,8 +231,8 @@
 | A15 | `auto_tai_khoan` | +12 cột clone/KPI/vault/bàn giao | `ADD COLUMN IF NOT EXISTS` | default an toàn (`loai='ai'`) | Tài khoản clone artist + vault + KPI | Backfill không cần (default) | **Đã duyệt + chạy** 2026-08-01 · `migration_tai_khoan_clone.sql` |
 | A16 | `auto_han_muc` | + `kpi_muc_tieu`, `kpi_phan_bo_luc` | `ADD COLUMN IF NOT EXISTS` | NULL | KPI vận hành tách hạn mức autopilot | — | **Đã duyệt + chạy** 2026-08-01 · `migration_tai_khoan_clone.sql` |
 | A17 | `user_nguoi_dung` | Thêm `home_layout` | `jsonb NOT NULL DEFAULT '{}'` | NO (default `{}`) | Preference module sidebar trang chủ (ẩn/thêm/sắp xếp) | Row cũ = `{}` → layout mặc định theo persona | **Đã chạy** 2026-08-03 · `migration_user_home_layout.sql` · `npm run migrate:home-layout` |
-| A18 | `org_goi_hoc_phi` | Thêm `so_buoi`, `phut_moi_buoi`, `ma_goi_meta` | `int4` · `int4` · `text` + unique `(id_khoa_hoc, ma_goi_meta)` WHERE not null | YES | Hợp nhất gói meta khóa → bảng bán; map id JSON khi backfill | Row cũ = NULL; backfill script | **Đã duyệt** 2026-08-03 · chờ Phase 2 · `docs/PLAN_hoc_phi_combo.md` |
-| A19 | `org_don_hoc_phi` | Thêm `id_nhom`, `gia_goc_vnd`, `giam_vnd` | uuid → `org_nhom_don_hoc_phi` · `numeric(14,0)` · `numeric(14,0) DEFAULT 0` | YES (trừ `giam_vnd` DEFAULT 0) | Combo nhiều khóa = nhóm đơn; giữ `so_tien_vnd` = số phải trả | Backfill `gia_goc_vnd = so_tien_vnd` | **Chưa duyệt** — Phase 4 · `docs/PLAN_hoc_phi_combo.md` |
+| A18 | `org_goi_hoc_phi` | Thêm `so_buoi`, `phut_moi_buoi`, `ma_goi_meta` | `int4` · `int4` · `text` + unique `(id_khoa_hoc, ma_goi_meta)` WHERE not null | YES | Hợp nhất gói meta khóa → bảng bán; map id JSON khi backfill | Row cũ = NULL; backfill script | **Đã chạy** 2026-08-03 · `migration_hoc_phi_combo.sql` Phần A · `npm run migrate:hoc-phi-combo` |
+| A19 | `org_don_hoc_phi` | Thêm `id_nhom`, `gia_goc_vnd`, `giam_vnd` | uuid → `org_nhom_don_hoc_phi` · `numeric(14,0)` · `numeric(14,0) DEFAULT 0` | YES (trừ `giam_vnd` DEFAULT 0) | Combo nhiều khóa = nhóm đơn; giữ `so_tien_vnd` = số phải trả | Backfill `gia_goc_vnd = so_tien_vnd` | **Đã chạy** 2026-08-03 · `migration_hoc_phi_combo.sql` · `npm run migrate:hoc-phi-combo` |
 | A20 | *(bảng mới)* `org_goi_hoc_phi_khoa` | N–N gói ↔ khóa | `id_goi` → `org_goi_hoc_phi` · `id_khoa_hoc` → `org_khoa_hoc` · UNIQUE cặp | — | Một gói gắn nhiều khóa (VD 1 tháng Online × 3 môn) | Backfill từ `org_goi_hoc_phi.id_khoa_hoc` | **Đã duyệt + chạy** 2026-08-03 · `migration_goi_hoc_phi_nhieu_khoa.sql` · `npm run migrate:goi-nhieu-khoa` |
 
 > Khi user duyệt một dòng → đổi **Trạng thái** thành `Đã duyệt YYYY-MM-DD` rồi mới viết/chạy file migration. Khi đã apply trên DB → `Đã chạy` + tên file SQL. Mọi ALTER phát sinh thêm ngoài bảng này → **thêm dòng mới vào inventory trước**, không lén vào migration khác.

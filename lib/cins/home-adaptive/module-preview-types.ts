@@ -2,6 +2,7 @@
  * Payload JSON preview khối home — client-safe (không server-only).
  */
 
+import type { HangFeatureItem } from "@/lib/cins/home-adaptive/hang-feature-types";
 import type { HomeDonHangItem } from "@/lib/cins/home-adaptive/role-types";
 import type { SidebarUpcomingEvent } from "@/lib/cins/home-adaptive/sidebar-upcoming-types";
 import type {
@@ -65,7 +66,10 @@ export type ModulePreviewQueueRow = {
   key: string;
   title: string;
   sub: string;
+  /** Thumb chính — org_inbox: avatar tổ chức. */
   avatarUrl?: string | null;
+  /** Avatar người nhắn — chỉ org_inbox. */
+  peerAvatarUrl?: string | null;
 };
 
 export type ModulePreviewQueueId =
@@ -160,4 +164,10 @@ export type ModulePreviewPayload =
       rows: ModulePreviewQueueRow[];
       badge?: string;
     }
-  | { id: ModulePreviewQueueId; empty: true };
+  | { id: ModulePreviewQueueId; empty: true }
+  | {
+      id: "hang_feature";
+      empty: false;
+      items: HangFeatureItem[];
+    }
+  | { id: "hang_feature"; empty: true };

@@ -214,9 +214,10 @@ export function ChatMessageBody({
     if (card.loai === "don_hoc_phi") {
       return (
         <span className="cins-chat-ctx-card-wrap cins-chat-ctx-card-wrap--don">
-          <span className="cins-chat-ctx-card-note">
-            {isMe ? "Bạn vừa gửi đơn học phí" : "Đơn học phí"}
-          </span>
+          {/* Staff (org gửi): không note «Bạn vừa gửi…» — tín hiệu ở QL/node. */}
+          {!isMe ? (
+            <span className="cins-chat-ctx-card-note">Đơn học phí</span>
+          ) : null}
           <ChatDonHocPhiCard
             card={card}
             tone={isMe ? "me" : "them"}

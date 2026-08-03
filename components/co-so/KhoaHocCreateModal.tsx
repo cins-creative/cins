@@ -1,20 +1,32 @@
 "use client";
 
-import { EyeOff, Globe, ImagePlus, Loader2, X } from "lucide-react";
+import {
+  EyeOff,
+  Globe,
+  ImagePlus,
+  Loader2,
+  X,
+} from "lucide-react";
 import Image from "next/image";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 
 import { TruongInlineModal } from "@/components/truong/inline/TruongInlineModal";
-import { KhoaHocGoiPhiEditor } from "@/components/co-so/KhoaHocGoiPhiEditor";
 import {
-  HINH_THUC_LOP_OPTIONS,
+  goiDraftsFromOrgSelection,
+  KhoaHocGoiPhiEditor,
+  syncOrgComboLinksForKhoa,
+  syncOrgGoiLinksForKhoa,
+  type OrgComboPickerItem,
+  type OrgGoiPickerItem,
+} from "@/components/co-so/KhoaHocGoiPhiEditor";
+import {
   LOAI_MO_HINH_OPTIONS,
   TRINH_DO_OPTIONS,
   TRANG_THAI_KHOA_OPTIONS,
 } from "@/lib/to-chuc/khoa-hoc-labels";
+import { normalizeGoiHocPhiDrafts } from "@/lib/to-chuc/khoa-hoc-goi-phi";
 import type {
   CapNhatKhoaHocInput,
-  HinhThucLop,
   KhoaHocCardData,
   KhoaHocCheDoHienThi,
   LoaiMoHinhKhoa,
@@ -22,25 +34,34 @@ import type {
   TrinhDoDauVao,
   TrangThaiKhoaHoc,
 } from "@/lib/to-chuc/khoa-hoc-types";
-import {
-  emptyGoiHocPhiDraft,
-  goiHocPhiDraftsFromKhoa,
-  normalizeGoiHocPhiDrafts,
-  type GoiHocPhiDraft,
-} from "@/lib/to-chuc/khoa-hoc-goi-phi";
+import { orgQuanLyPath } from "@/lib/to-chuc/org-quan-ly-routes";
 
 type Props = {
   open: boolean;
   orgId: string;
+  /** Để link «Quản lý gói» → `/quan-ly/hoc-phi`. */
+  orgSlug?: string | null;
   orgDiaChi?: string | null;
   editing?: KhoaHocCardData | null;
   onClose: () => void;
   onCreated?: (khoa: KhoaHocCardData) => void;
   onUpdated?: (khoa: KhoaHocCardData) => void;
+  /** Sau tạo khóa — mở tab lớp với khóa vừa tạo. */
+  onCreatedNeedLop?: (khoaId: string) => void;
 };
 
-function needsDiaChi(hinhThuc: HinhThucLop): boolean {
-  return hinhThuc === "truc_tiep" || hinhThuc === "ket_hop";
+/** Client-safe slugify (mirror `slugifyOrgName`, không import server-only). */
+function slugifyKhoaTen(value: string): string {
+  return (
+    value
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/đ/g, "d")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 64) || ""
+  );
 }
 
 type CoverDraft = {
@@ -52,27 +73,31 @@ type CoverDraft = {
 export function KhoaHocCreateModal({
   open,
   orgId,
-  orgDiaChi = null,
+  orgSlug = null,
+  orgDiaChi: _orgDiaChi = null,
   editing = null,
   onClose,
   onCreated,
   onUpdated,
+  onCreatedNeedLop,
 }: Props) {
   const isEdit = Boolean(editing);
   const titleId = useId();
   const thumbnailInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
+  const createBodyRef = useRef<HTMLDivElement>(null);
   const [tenKhoaHoc, setTenKhoaHoc] = useState("");
+  const [maKhoaHoc, setMaKhoaHoc] = useState("");
+  const [slug, setSlug] = useState("");
+  const [slugManual, setSlugManual] = useState(false);
   const [loaiMoHinh, setLoaiMoHinh] =
     useState<LoaiMoHinhKhoa>("lien_tuc_theo_thang");
   const [moTa, setMoTa] = useState("");
-  const [ngayKhaiGiang, setNgayKhaiGiang] = useState("");
-  const [hinhThuc, setHinhThuc] = useState<HinhThucLop>("truc_tiep");
-  const [diaChiHoc, setDiaChiHoc] = useState("");
   const [yeuCauChuanBi, setYeuCauChuanBi] = useState("");
-  const [goiHocPhiDrafts, setGoiHocPhiDrafts] = useState<GoiHocPhiDraft[]>([
-    emptyGoiHocPhiDraft(),
-  ]);
+  const [selectedGoiIds, setSelectedGoiIds] = useState<string[]>([]);
+  const [selectedComboIds, setSelectedComboIds] = useState<string[]>([]);
+  const [goiCatalog, setGoiCatalog] = useState<OrgGoiPickerItem[]>([]);
+  const [comboCatalog, setComboCatalog] = useState<OrgComboPickerItem[]>([]);
   const [trinhDoDauVao, setTrinhDoDauVao] =
     useState<TrinhDoDauVao>("khong_yeu_cau");
   const [trangThaiKhoaHoc, setTrangThaiKhoaHoc] =
@@ -92,16 +117,30 @@ export function KhoaHocCreateModal({
   const [coverVariant, setCoverVariant] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [createdKhoaId, setCreatedKhoaId] = useState<string | null>(null);
+
+  const manageGoiHref = orgSlug?.trim()
+    ? orgQuanLyPath("co_so_dao_tao", orgSlug.trim(), "hoc-phi")
+    : null;
+
+  const onGoiCatalogLoad = useCallback(
+    (payload: { goi: OrgGoiPickerItem[]; combo: OrgComboPickerItem[] }) => {
+      setGoiCatalog(payload.goi);
+      setComboCatalog(payload.combo);
+    },
+    [],
+  );
 
   const reset = useCallback(() => {
     setTenKhoaHoc("");
+    setMaKhoaHoc("");
+    setSlug("");
+    setSlugManual(false);
     setLoaiMoHinh("lien_tuc_theo_thang");
     setMoTa("");
-    setNgayKhaiGiang("");
-    setHinhThuc("truc_tiep");
-    setDiaChiHoc("");
     setYeuCauChuanBi("");
-    setGoiHocPhiDrafts([emptyGoiHocPhiDraft()]);
+    setSelectedGoiIds([]);
+    setSelectedComboIds([]);
     setTrinhDoDauVao("khong_yeu_cau");
     setTrangThaiKhoaHoc("sap_khai_giang");
     setCheDoHienThi("cong_khai");
@@ -109,25 +148,25 @@ export function KhoaHocCreateModal({
     setBannerCover({ imageId: null, previewUrl: null, uploading: false });
     setCoverVariant(Math.floor(Math.random() * 3));
     setError(null);
+    setCreatedKhoaId(null);
   }, []);
 
   useEffect(() => {
     if (!open) return;
     if (!editing) {
       reset();
-      if (orgDiaChi?.trim()) {
-        setDiaChiHoc(orgDiaChi.trim());
-      }
       return;
     }
     setTenKhoaHoc(editing.tenKhoaHoc);
+    setMaKhoaHoc(editing.maKhoaHoc ?? "");
+    setSlug(editing.slug);
+    setSlugManual(true);
     setLoaiMoHinh(editing.loaiMoHinh);
     setMoTa(editing.moTa ?? "");
-    setNgayKhaiGiang(editing.ngayKhaiGiangGanNhat ?? "");
-    setHinhThuc(editing.hinhThuc ?? "truc_tiep");
-    setDiaChiHoc(editing.diaChiHoc ?? orgDiaChi?.trim() ?? "");
     setYeuCauChuanBi(editing.yeuCauChuanBi ?? "");
-    setGoiHocPhiDrafts(goiHocPhiDraftsFromKhoa(editing));
+    /* Để trống — editor preselect theo link N–N khi catalog load. */
+    setSelectedGoiIds([]);
+    setSelectedComboIds([]);
     setTrinhDoDauVao(editing.trinhDoDauVao);
     setTrangThaiKhoaHoc(editing.trangThaiKhoaHoc);
     setCheDoHienThi(editing.cheDoHienThi);
@@ -143,7 +182,39 @@ export function KhoaHocCreateModal({
       uploading: false,
     });
     setError(null);
-  }, [open, editing, reset, orgDiaChi]);
+    setCreatedKhoaId(null);
+  }, [open, editing, reset]);
+
+  /* Click radio mô hình có thể scrollIntoView → đẩy backdrop/modal.
+   * Reset scroll + không gọi scrollIntoView. */
+  useEffect(() => {
+    if (!open) return;
+    const body = createBodyRef.current;
+    const modal = body?.closest(".cso-kh-create-modal");
+    const backdrop = modal?.parentElement;
+    if (modal instanceof HTMLElement) modal.scrollTop = 0;
+    if (backdrop instanceof HTMLElement) backdrop.scrollTop = 0;
+  }, [open, loaiMoHinh]);
+
+  function buildPayload(): CapNhatKhoaHocInput {
+    const goiHocPhi = normalizeGoiHocPhiDrafts(
+      goiDraftsFromOrgSelection(goiCatalog, selectedGoiIds),
+    );
+    return {
+      tenKhoaHoc,
+      maKhoaHoc: maKhoaHoc.trim() || null,
+      slug: slug.trim() || null,
+      loaiMoHinh,
+      moTa: moTa.trim() || null,
+      goiHocPhi: goiHocPhi.length > 0 ? goiHocPhi : undefined,
+      trinhDoDauVao,
+      thumbnailId: thumbnail.imageId,
+      coverId: bannerCover.imageId,
+      trangThaiKhoaHoc,
+      cheDoHienThi,
+      yeuCauChuanBi: yeuCauChuanBi.trim() || null,
+    };
+  }
 
   async function handleImagePick(
     file: File,
@@ -183,38 +254,24 @@ export function KhoaHocCreateModal({
     onClose();
   }
 
-  function buildPayload(): CapNhatKhoaHocInput {
-    const goiHocPhi = normalizeGoiHocPhiDrafts(goiHocPhiDrafts);
-    return {
-      tenKhoaHoc,
-      loaiMoHinh,
-      moTa: moTa.trim() || null,
-      goiHocPhi: goiHocPhi.length > 0 ? goiHocPhi : undefined,
-      trinhDoDauVao,
-      thumbnailId: thumbnail.imageId,
-      coverId: bannerCover.imageId,
-      trangThaiKhoaHoc,
-      cheDoHienThi,
-      ngayKhaiGiang:
-        loaiMoHinh === "cohort_co_dinh" ? ngayKhaiGiang.trim() || null : null,
-      hinhThuc,
-      diaChiHoc: needsDiaChi(hinhThuc) ? diaChiHoc.trim() || null : null,
-      yeuCauChuanBi: yeuCauChuanBi.trim() || null,
-    };
+  function handleAddLopCta() {
+    if (!createdKhoaId) return;
+    const id = createdKhoaId;
+    onCreatedNeedLop?.(id);
+    reset();
+    onClose();
   }
 
   function validateClient(): string | null {
-    if (loaiMoHinh === "cohort_co_dinh" && !ngayKhaiGiang.trim()) {
-      return "Theo khóa cần chọn ngày khai giảng.";
-    }
-    if (needsDiaChi(hinhThuc) && !diaChiHoc.trim()) {
-      return "Học offline / kết hợp cần địa chỉ phòng học.";
+    if (!slugifyKhoaTen(slug.trim() || tenKhoaHoc)) {
+      return "Slug không hợp lệ — dùng chữ thường, số và gạch ngang.";
     }
     return null;
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (createdKhoaId) return;
     setError(null);
     const clientErr = validateClient();
     if (clientErr) {
@@ -246,6 +303,27 @@ export function KhoaHocCreateModal({
           setError(json.error ?? "Không cập nhật được khóa học.");
           return;
         }
+        const linkRes = await syncOrgGoiLinksForKhoa({
+          orgId,
+          khoaId: json.khoaHoc.id,
+          selectedIds: selectedGoiIds,
+          catalog: goiCatalog,
+        });
+        if (!linkRes.ok) {
+          setError(linkRes.error);
+          return;
+        }
+        const comboRes = await syncOrgComboLinksForKhoa({
+          orgId,
+          khoaId: json.khoaHoc.id,
+          selectedIds: selectedComboIds,
+          catalog: comboCatalog,
+          preferredGoiId: selectedGoiIds[0] ?? null,
+        });
+        if (!comboRes.ok) {
+          setError(comboRes.error);
+          return;
+        }
         onUpdated?.(json.khoaHoc);
         reset();
         onClose();
@@ -267,9 +345,29 @@ export function KhoaHocCreateModal({
         setError(json.error ?? "Không tạo được khóa học.");
         return;
       }
+      const linkRes = await syncOrgGoiLinksForKhoa({
+        orgId,
+        khoaId: json.khoaHoc.id,
+        selectedIds: selectedGoiIds,
+        catalog: goiCatalog,
+      });
+      if (!linkRes.ok) {
+        setError(linkRes.error);
+        return;
+      }
+      const comboRes = await syncOrgComboLinksForKhoa({
+        orgId,
+        khoaId: json.khoaHoc.id,
+        selectedIds: selectedComboIds,
+        catalog: comboCatalog,
+        preferredGoiId: selectedGoiIds[0] ?? null,
+      });
+      if (!comboRes.ok) {
+        setError(comboRes.error);
+        return;
+      }
       onCreated?.(json.khoaHoc);
-      reset();
-      onClose();
+      setCreatedKhoaId(json.khoaHoc.id);
     } catch {
       setError("Lỗi mạng — thử lại sau.");
     } finally {
@@ -277,13 +375,11 @@ export function KhoaHocCreateModal({
     }
   }
 
-  const showDiaChi = needsDiaChi(hinhThuc);
-
   return (
     <TruongInlineModal
       open={open}
       onClose={handleClose}
-      className="tdh-inline-modal--wide cso-kh-create-modal"
+      className="cso-kh-create-modal"
       labelledBy={titleId}
       showClose={false}
     >
@@ -303,23 +399,79 @@ export function KhoaHocCreateModal({
       </div>
 
       <form className="cso-kh-create-form" onSubmit={handleSubmit}>
-        <div className="cso-kh-create-body">
+        <div className="cso-kh-create-body" ref={createBodyRef}>
+        {createdKhoaId ? (
+          <section className="cso-kh-section" aria-label="Khóa đã tạo">
+            <h2 className="cso-kh-section-title">Khóa đã tạo</h2>
+            <p className="cso-kh-field-hint">
+              Khóa đã tạo — thêm lớp đầu tiên? Khóa chưa mở lớp sẽ chưa hiện
+              công khai.
+            </p>
+          </section>
+        ) : null}
+
         <section className="cso-kh-section" aria-label="Thông tin cơ bản">
-          <h3 className="cso-kh-section-title">Thông tin cơ bản</h3>
+          <h2 className="cso-kh-section-title">Hồ sơ khóa</h2>
+
+          <div className="cso-kh-field-row">
+            <label className="cso-kh-field">
+              <span className="cso-kh-label">
+                Tên khóa học <span className="cso-kh-req">*</span>
+              </span>
+              <input
+                type="text"
+                className="cso-kh-input"
+                value={tenKhoaHoc}
+                onChange={(e) => {
+                  const next = e.target.value;
+                  setTenKhoaHoc(next);
+                  if (!slugManual) setSlug(slugifyKhoaTen(next));
+                }}
+                placeholder="VD: Hình họa cơ bản"
+                required
+                autoFocus
+                disabled={Boolean(createdKhoaId)}
+              />
+            </label>
+            <label className="cso-kh-field">
+              <span className="cso-kh-label">Mã khóa học</span>
+              <input
+                type="text"
+                className="cso-kh-input"
+                value={maKhoaHoc}
+                onChange={(e) => setMaKhoaHoc(e.target.value)}
+                placeholder="VD: HH-ONLINE"
+                maxLength={64}
+                autoCapitalize="characters"
+                disabled={Boolean(createdKhoaId)}
+              />
+            </label>
+          </div>
 
           <label className="cso-kh-field">
             <span className="cso-kh-label">
-              Tên khóa học <span className="cso-kh-req">*</span>
+              Đường dẫn (url) <span className="cso-kh-req">*</span>
             </span>
-            <input
-              type="text"
-              className="cso-kh-input"
-              value={tenKhoaHoc}
-              onChange={(e) => setTenKhoaHoc(e.target.value)}
-              placeholder="VD: Hình họa cơ bản"
-              required
-              autoFocus
-            />
+            <div className="cso-kh-slug-input">
+              <span className="cso-kh-slug-prefix" aria-hidden>
+                /
+              </span>
+              <input
+                type="text"
+                className="cso-kh-input"
+                value={slug}
+                onChange={(e) => {
+                  setSlugManual(true);
+                  setSlug(slugifyKhoaTen(e.target.value));
+                }}
+                placeholder="bo-cuc-mau-online"
+                required
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                disabled={Boolean(createdKhoaId)}
+              />
+            </div>
           </label>
 
           <fieldset className="cso-kh-field">
@@ -327,6 +479,7 @@ export function KhoaHocCreateModal({
             <div className="cso-kh-hien-thi-grid">
               <label
                 className={`cso-kh-hien-thi-opt${cheDoHienThi === "cong_khai" ? " on" : ""}`}
+                onMouseDown={(e) => e.preventDefault()}
               >
                 <input
                   type="radio"
@@ -334,6 +487,7 @@ export function KhoaHocCreateModal({
                   value="cong_khai"
                   checked={cheDoHienThi === "cong_khai"}
                   onChange={() => setCheDoHienThi("cong_khai")}
+                  disabled={Boolean(createdKhoaId)}
                 />
                 <Globe size={18} strokeWidth={1.6} aria-hidden />
                 <span className="cso-kh-hien-thi-copy">
@@ -345,6 +499,7 @@ export function KhoaHocCreateModal({
               </label>
               <label
                 className={`cso-kh-hien-thi-opt${cheDoHienThi === "an" ? " on" : ""}`}
+                onMouseDown={(e) => e.preventDefault()}
               >
                 <input
                   type="radio"
@@ -352,6 +507,7 @@ export function KhoaHocCreateModal({
                   value="an"
                   checked={cheDoHienThi === "an"}
                   onChange={() => setCheDoHienThi("an")}
+                  disabled={Boolean(createdKhoaId)}
                 />
                 <EyeOff size={18} strokeWidth={1.6} aria-hidden />
                 <span className="cso-kh-hien-thi-copy">
@@ -364,28 +520,49 @@ export function KhoaHocCreateModal({
             </div>
           </fieldset>
 
-          {isEdit ? (
+          <div
+            className={`cso-kh-field-row${isEdit ? "" : " cso-kh-field-row--single"}`}
+          >
+            {isEdit ? (
+              <label className="cso-kh-field">
+                <span className="cso-kh-label">Trạng thái khóa học</span>
+                <select
+                  className="cso-kh-input"
+                  value={trangThaiKhoaHoc}
+                  onChange={(e) =>
+                    setTrangThaiKhoaHoc(e.target.value as TrangThaiKhoaHoc)
+                  }
+                >
+                  {TRANG_THAI_KHOA_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
             <label className="cso-kh-field">
-              <span className="cso-kh-label">Trạng thái khóa học</span>
+              <span className="cso-kh-label">Trình độ đầu vào</span>
               <select
                 className="cso-kh-input"
-                value={trangThaiKhoaHoc}
+                value={trinhDoDauVao}
                 onChange={(e) =>
-                  setTrangThaiKhoaHoc(e.target.value as TrangThaiKhoaHoc)
+                  setTrinhDoDauVao(e.target.value as TrinhDoDauVao)
                 }
+                disabled={Boolean(createdKhoaId)}
               >
-                {TRANG_THAI_KHOA_OPTIONS.map((opt) => (
+                {TRINH_DO_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
                     {opt.label}
                   </option>
                 ))}
               </select>
             </label>
-          ) : null}
+          </div>
         </section>
 
         <section className="cso-kh-section" aria-label="Hình ảnh">
-          <h3 className="cso-kh-section-title">Hình ảnh</h3>
+          <h2 className="cso-kh-section-title">Hình ảnh</h2>
 
           <div className="cso-kh-field">
             <span className="cso-kh-label">Thumbnail khóa học</span>
@@ -429,7 +606,9 @@ export function KhoaHocCreateModal({
                 <button
                   type="button"
                   className="cso-kh-cover-btn"
-                  disabled={thumbnail.uploading || submitting}
+                  disabled={
+                    thumbnail.uploading || submitting || Boolean(createdKhoaId)
+                  }
                   onClick={() => thumbnailInputRef.current?.click()}
                 >
                   {thumbnail.uploading ? (
@@ -493,7 +672,11 @@ export function KhoaHocCreateModal({
                 <button
                   type="button"
                   className="cso-kh-cover-btn"
-                  disabled={bannerCover.uploading || submitting}
+                  disabled={
+                    bannerCover.uploading ||
+                    submitting ||
+                    Boolean(createdKhoaId)
+                  }
                   onClick={() => bannerInputRef.current?.click()}
                 >
                   {bannerCover.uploading ? (
@@ -517,8 +700,40 @@ export function KhoaHocCreateModal({
           </div>
         </section>
 
-        <section className="cso-kh-section" aria-label="Lịch & hình thức học">
-          <h3 className="cso-kh-section-title">Lịch &amp; hình thức học</h3>
+        <section className="cso-kh-section" aria-label="Nội dung">
+          <h2 className="cso-kh-section-title">Nội dung</h2>
+
+          <label className="cso-kh-field">
+            <span className="cso-kh-label">Mô tả ngắn</span>
+            <textarea
+              className="cso-kh-textarea"
+              value={moTa}
+              onChange={(e) => setMoTa(e.target.value)}
+              placeholder="Một dòng giới thiệu hiển thị trên card (tuỳ chọn)"
+              rows={2}
+              disabled={Boolean(createdKhoaId)}
+            />
+          </label>
+
+          <label className="cso-kh-field">
+            <span className="cso-kh-label">Yêu cầu chuẩn bị</span>
+            <textarea
+              className="cso-kh-textarea"
+              value={yeuCauChuanBi}
+              onChange={(e) => setYeuCauChuanBi(e.target.value)}
+              placeholder="VD: Laptop cá nhân · Bảng vẽ Wacom · Phần mềm Photoshop (bản dùng thử) · Giấy A4 & bút chì 2B"
+              rows={4}
+              disabled={Boolean(createdKhoaId)}
+            />
+            <p className="cso-kh-field-hint">
+              Liệt kê dụng cụ / phần mềm học viên cần tự chuẩn bị trước khi vào
+              lớp.
+            </p>
+          </label>
+        </section>
+
+        <section className="cso-kh-section" aria-label="Mô hình khóa">
+          <h2 className="cso-kh-section-title">Mô hình</h2>
 
           <fieldset className="cso-kh-field">
             <legend className="cso-kh-label">
@@ -529,6 +744,7 @@ export function KhoaHocCreateModal({
                 <label
                   key={opt.value}
                   className={`cso-kh-model-opt${loaiMoHinh === opt.value ? " on" : ""}`}
+                  onMouseDown={(e) => e.preventDefault()}
                 >
                   <input
                     type="radio"
@@ -536,6 +752,7 @@ export function KhoaHocCreateModal({
                     value={opt.value}
                     checked={loaiMoHinh === opt.value}
                     onChange={() => setLoaiMoHinh(opt.value)}
+                    disabled={Boolean(createdKhoaId)}
                   />
                   <span className="cso-kh-model-title">{opt.label}</span>
                   <span className="cso-kh-model-hint">{opt.hint}</span>
@@ -543,176 +760,77 @@ export function KhoaHocCreateModal({
               ))}
             </div>
           </fieldset>
-
-          {loaiMoHinh === "cohort_co_dinh" ? (
-            <label className="cso-kh-field">
-              <span className="cso-kh-label">
-                Ngày khai giảng <span className="cso-kh-req">*</span>
-              </span>
-              <input
-                type="date"
-                className="cso-kh-input"
-                value={ngayKhaiGiang}
-                onChange={(e) => setNgayKhaiGiang(e.target.value)}
-                required
-              />
-              <p className="cso-kh-field-hint">
-                Lớp cohort sẽ mở đúng ngày này — hiển thị trên card khóa học.
-              </p>
-            </label>
-          ) : null}
-
-          <fieldset className="cso-kh-field">
-            <legend className="cso-kh-label">
-              Hình thức học <span className="cso-kh-req">*</span>
-            </legend>
-            <div className="cso-kh-hinh-thuc-grid">
-              {HINH_THUC_LOP_OPTIONS.map((opt) => (
-                <label
-                  key={opt.value}
-                  className={`cso-kh-hinh-thuc-opt${hinhThuc === opt.value ? " on" : ""}`}
-                >
-                  <input
-                    type="radio"
-                    name="hinhThuc"
-                    value={opt.value}
-                    checked={hinhThuc === opt.value}
-                    onChange={() => {
-                      setHinhThuc(opt.value);
-                      if (
-                        needsDiaChi(opt.value) &&
-                        !diaChiHoc.trim() &&
-                        orgDiaChi?.trim()
-                      ) {
-                        setDiaChiHoc(orgDiaChi.trim());
-                      }
-                    }}
-                  />
-                  <span className="cso-kh-model-title">{opt.label}</span>
-                  <span className="cso-kh-model-hint">{opt.hint}</span>
-                </label>
-              ))}
-            </div>
-          </fieldset>
-
-          {showDiaChi ? (
-            <label className="cso-kh-field cso-kh-field--panel">
-              <span className="cso-kh-label">
-                Địa chỉ học <span className="cso-kh-req">*</span>
-              </span>
-              <textarea
-                className="cso-kh-textarea"
-                value={diaChiHoc}
-                onChange={(e) => setDiaChiHoc(e.target.value)}
-                placeholder={
-                  orgDiaChi?.trim()
-                    ? `VD: ${orgDiaChi.trim()}`
-                    : "Số nhà, đường, quận, thành phố — phòng học cụ thể nếu có"
-                }
-                rows={3}
-                required
-              />
-              <p className="cso-kh-field-hint">
-                Học viên sẽ thấy địa chỉ này trên trang khóa (offline / buổi
-                trực tiếp).
-              </p>
-            </label>
-          ) : null}
-        </section>
-
-        <section className="cso-kh-section" aria-label="Nội dung">
-          <h3 className="cso-kh-section-title">Nội dung</h3>
-
-          <label className="cso-kh-field">
-            <span className="cso-kh-label">Mô tả ngắn</span>
-            <textarea
-              className="cso-kh-textarea"
-              value={moTa}
-              onChange={(e) => setMoTa(e.target.value)}
-              placeholder="Một dòng giới thiệu hiển thị trên card (tuỳ chọn)"
-              rows={2}
-            />
-          </label>
-
-          <label className="cso-kh-field cso-kh-field--panel">
-            <span className="cso-kh-label">Yêu cầu chuẩn bị</span>
-            <textarea
-              className="cso-kh-textarea"
-              value={yeuCauChuanBi}
-              onChange={(e) => setYeuCauChuanBi(e.target.value)}
-              placeholder="VD: Laptop cá nhân · Bảng vẽ Wacom · Phần mềm Photoshop (bản dùng thử) · Giấy A4 & bút chì 2B"
-              rows={4}
-            />
-            <p className="cso-kh-field-hint">
-              Liệt kê dụng cụ / phần mềm học viên cần tự chuẩn bị trước khi vào
-              lớp.
-            </p>
-          </label>
         </section>
 
         <section className="cso-kh-section" aria-label="Học phí">
-          <h3 className="cso-kh-section-title">Học phí</h3>
+          <h2 className="cso-kh-section-title">Học phí</h2>
           <KhoaHocGoiPhiEditor
-            packages={goiHocPhiDrafts}
-            loaiMoHinh={loaiMoHinh}
-            disabled={submitting}
-            onChange={setGoiHocPhiDrafts}
+            orgId={orgId}
+            khoaId={editing?.id ?? null}
+            selectedGoiIds={selectedGoiIds}
+            selectedComboIds={selectedComboIds}
+            disabled={submitting || Boolean(createdKhoaId)}
+            manageHref={manageGoiHref}
+            onChangeGoi={setSelectedGoiIds}
+            onChangeCombo={setSelectedComboIds}
+            onCatalogLoad={onGoiCatalogLoad}
           />
-        </section>
-
-        <section className="cso-kh-section" aria-label="Học viên">
-          <h3 className="cso-kh-section-title">Học viên</h3>
-          <label className="cso-kh-field">
-            <span className="cso-kh-label">Trình độ đầu vào</span>
-            <select
-              className="cso-kh-input"
-              value={trinhDoDauVao}
-              onChange={(e) =>
-                setTrinhDoDauVao(e.target.value as TrinhDoDauVao)
-              }
-            >
-              {TRINH_DO_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-          </label>
         </section>
 
         {error ? <p className="cso-kh-form-err">{error}</p> : null}
         </div>
 
         <div className="cso-kh-create-foot">
-          <button
-            type="button"
-            className="cso-kh-foot-btn cso-kh-foot-btn--ghost"
-            onClick={handleClose}
-            disabled={submitting}
-          >
-            Huỷ
-          </button>
-          <button
-            type="submit"
-            className="cso-kh-foot-btn cso-kh-foot-btn--primary"
-            disabled={
-              submitting ||
-              !tenKhoaHoc.trim() ||
-              thumbnail.uploading ||
-              bannerCover.uploading
-            }
-          >
-            {submitting ? (
-              <>
-                <Loader2 size={15} className="tdh-spin" aria-hidden />
-                {isEdit ? "Đang lưu…" : "Đang tạo…"}
-              </>
-            ) : isEdit ? (
-              "Lưu thay đổi"
-            ) : (
-              "Tạo khóa học"
-            )}
-          </button>
+          {createdKhoaId ? (
+            <>
+              <button
+                type="button"
+                className="cso-kh-foot-btn cso-kh-foot-btn--ghost"
+                onClick={handleClose}
+              >
+                Để sau
+              </button>
+              <button
+                type="button"
+                className="cso-kh-foot-btn cso-kh-foot-btn--primary"
+                onClick={handleAddLopCta}
+              >
+                Thêm lớp đầu tiên
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                className="cso-kh-foot-btn cso-kh-foot-btn--ghost"
+                onClick={handleClose}
+                disabled={submitting}
+              >
+                Huỷ
+              </button>
+              <button
+                type="submit"
+                className="cso-kh-foot-btn cso-kh-foot-btn--primary"
+                disabled={
+                  submitting ||
+                  !tenKhoaHoc.trim() ||
+                  thumbnail.uploading ||
+                  bannerCover.uploading
+                }
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 size={15} className="tdh-spin" aria-hidden />
+                    {isEdit ? "Đang lưu…" : "Đang tạo…"}
+                  </>
+                ) : isEdit ? (
+                  "Lưu thay đổi"
+                ) : (
+                  "Tạo khóa học"
+                )}
+              </button>
+            </>
+          )}
         </div>
       </form>
     </TruongInlineModal>

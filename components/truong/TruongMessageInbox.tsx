@@ -23,11 +23,7 @@ function ChatIcon() {
 }
 
 function badgeFromThreads(threads: OrgInboxThread[]): number {
-  return (
-    threads.reduce((sum, t) => sum + (t.unread ? t.unreadCount : 0), 0) +
-    threads.filter((t) => t.pendingVerification).length +
-    threads.filter((t) => t.pendingDonHocPhi).length
-  );
+  return threads.reduce((sum, t) => sum + (t.unread ? t.unreadCount : 0), 0);
 }
 
 type TruongMessageInboxProps = {

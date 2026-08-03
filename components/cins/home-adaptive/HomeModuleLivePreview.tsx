@@ -9,6 +9,7 @@ import {
   GraduationCap,
   Loader2,
   MapPin,
+  Package,
   Route,
   Sparkles,
   UserRoundPlus,
@@ -18,6 +19,7 @@ import {
 import Link from "next/link";
 import type { CSSProperties } from "react";
 
+import { HangFeaturePanel } from "@/components/cins/home-adaptive/modules/HangFeatureClient";
 import { HaOrgSuggestionRow } from "@/components/cins/home-adaptive/HaOrgSuggestionRow";
 import { HaOrgUpcomingEventsPanel } from "@/components/cins/home-adaptive/HaOrgUpcomingEventsPanel";
 import { HaUpdateProjectButton } from "@/components/cins/home-adaptive/HaUpdateProjectButton";
@@ -46,6 +48,7 @@ const TITLE_ICON: Partial<Record<ModuleId, LucideIcon>> = {
   cho_ban_duyet: Sparkles,
   hoc_vien_cua_ban: Users,
   scout_tai_nang: Sparkles,
+  hang_feature: Package,
 };
 
 function PreviewShell({
@@ -392,7 +395,12 @@ export function HomeModuleLivePreview({
         >
           {payload.rows.map((row) => (
             <div key={row.key} className="ha-trow">
-              <span className="ha-trow-th" aria-hidden>
+              <span
+                className={`ha-trow-th${
+                  payload.id === "org_inbox" ? " ha-trow-th--org" : ""
+                }`}
+                aria-hidden
+              >
                 {row.avatarUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={row.avatarUrl} alt="" width={46} height={46} />
@@ -401,12 +409,44 @@ export function HomeModuleLivePreview({
                 )}
               </span>
               <div className="ha-trow-meta">
-                <div className="ha-trow-name">{row.title}</div>
+                <div
+                  className={
+                    payload.id === "org_inbox"
+                      ? "ha-trow-name ha-trow-name--with-av"
+                      : "ha-trow-name"
+                  }
+                >
+                  {payload.id === "org_inbox" ? (
+                    <span className="ha-trow-peer-av" aria-hidden>
+                      {row.peerAvatarUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={row.peerAvatarUrl}
+                          alt=""
+                          width={18}
+                          height={18}
+                        />
+                      ) : (
+                        <span className="ha-trow-peer-av-fallback">
+                          {row.title.slice(0, 1).toUpperCase()}
+                        </span>
+                      )}
+                    </span>
+                  ) : null}
+                  <span className="ha-trow-name-text">{row.title}</span>
+                </div>
                 <div className="ha-trow-sub">{row.sub}</div>
               </div>
             </div>
           ))}
         </PreviewShell>
+      );
+    case "hang_feature":
+      return (
+        <HangFeaturePanel
+          initialItems={payload.items}
+          limit={Math.max(3, payload.items.length)}
+        />
       );
     default: {
       const _e: never = payload;

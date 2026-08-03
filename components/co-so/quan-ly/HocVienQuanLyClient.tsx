@@ -1,7 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { Plus, Search } from "lucide-react";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { MessageSquare, Plus, Search, Trash2, X } from "lucide-react";
+
+import { XoaBlockerList } from "@/components/co-so/quan-ly/XoaBlockerList";
+import type { XoaPreflight } from "@/lib/to-chuc/khoa-lop-xoa-types";
+import { orgQuanLyPath } from "@/lib/to-chuc/org-quan-ly-routes";
 
 type Enrollment = {
   hocVienLopId: string;
@@ -25,6 +30,7 @@ type Lop = { id: string; maLop: string; khoaId: string; tenKhoa: string };
 
 type Props = {
   orgId: string;
+  orgSlug: string;
 };
 
 const TRANG_THAI_LABEL: Record<string, string> = {
@@ -48,9 +54,16 @@ function daysTone(days: number): "ok" | "low" | "out" {
   return "ok";
 }
 
-export function HocVienQuanLyClient({ orgId }: Props) {
-  const [rows, setRows] = useState<Enrollment[]>([]);
-  const [total, setTotal] = useState(0);
+export function HocVienQuanLyClient({ orgId, orgSlug }: Props) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const filterKhoaId = searchParams.get("khoaId")?.trim() ?? "";
+  const filterLopId = searchParams.get("lopId")?.trim() ?? "";
+  const filterTrangThai = searchParams.get("trangThai")?.trim() ?? "";
+
+  const [rows, setRows] = useState<Enrollment[]>([]);  const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [q, setQ] = useState("");
   const [qDraft, setQDraft] = useState("");
@@ -73,6 +86,11 @@ export function HocVienQuanLyClient({ orgId }: Props) {
   const [lookup, setLookup] = useState("");
   const [addLopId, setAddLopId] = useState("");
 
+  const [goTarget, setGoTarget] = useState<Enrollment | null>(null);
+  const [goPre, setGoPre] = useState<XoaPreflight | null>(null);
+  const [goLoadingPre, setGoLoadingPre] = useState(false);
+  const [goError, setGoError] = useState<string | null>(null);
+
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -82,8 +100,10 @@ export function HocVienQuanLyClient({ orgId }: Props) {
         meta: "1",
       });
       if (q) params.set("q", q);
-      const res = await fetch(`/api/co-so/${orgId}/hoc-vien?${params}`, {
-        credentials: "include",
+      if (filterKhoaId) params.set("khoaId", filterKhoaId);
+      if (filterLopId) params.set("lopId", filterLopId);
+      if (filterTrangThai) params.set("trangThai", filterTrangThai);
+      const res = await fetch(`/api/co-so/${orgId}/hoc-vien?${params}`, {        credentials: "include",
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Không tải được danh sách.");
@@ -99,11 +119,54 @@ export function HocVienQuanLyClient({ orgId }: Props) {
     } finally {
       setLoading(false);
     }
-  }, [orgId, page, q]);
+  }, [orgId, page, q, filterKhoaId, filterLopId, filterTrangThai]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [filterKhoaId, filterLopId, filterTrangThai]);
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  const filterKhoaTen = useMemo(() => {
+    if (!filterKhoaId) return "";
+    const fromLop = lop.find((item) => item.khoaId === filterKhoaId);
+    if (fromLop?.tenKhoa) return fromLop.tenKhoa;
+    const fromRow = rows.find((row) => row.khoaId === filterKhoaId);
+    return fromRow?.tenKhoa ?? "Khóa";
+  }, [filterKhoaId, lop, rows]);
+
+  const lopOptionsForFilter = useMemo(
+    () => lop.filter((item) => item.khoaId === filterKhoaId),
+    [lop, filterKhoaId],
+  );
+
+  const filterLopLabel = useMemo(() => {
+    if (!filterLopId) return "";
+    return lop.find((item) => item.id === filterLopId)?.maLop ?? filterLopId;
+  }, [filterLopId, lop]);
+
+  function updateFilterLop(nextLopId: string) {
+    const params = new URLSearchParams(searchParams.toString());
+    if (nextLopId) params.set("lopId", nextLopId);
+    else params.delete("lopId");
+    router.replace(`${pathname}?${params.toString()}`);
+  }
+
+  function clearFilters() {
+    router.replace(pathname);
+  }
+
+  function openChat(row: Enrollment) {
+    const params = new URLSearchParams({
+      user: row.userId,
+      filter: "all",
+    });
+    router.push(
+      `${orgQuanLyPath("co_so_dao_tao", orgSlug, "tin-nhan")}?${params.toString()}`,
+    );
+  }
 
   function openThu(row: Enrollment, mode: "cash" | "chat" = "cash") {
     setThuTarget(row);
@@ -205,6 +268,68 @@ export function HocVienQuanLyClient({ orgId }: Props) {
     }
   }
 
+  function openGo(row: Enrollment) {
+    setGoTarget(row);
+    setGoPre(null);
+    setGoError(null);
+    setFlash(null);
+  }
+
+  useEffect(() => {
+    if (!goTarget) return;
+    let alive = true;
+    setGoLoadingPre(true);
+    void (async () => {
+      try {
+        const res = await fetch(
+          `/api/co-so/${orgId}/hoc-vien/${goTarget.hocVienLopId}/xoa-preflight`,
+          { credentials: "include" },
+        );
+        const data = await res.json();
+        if (!alive) return;
+        if (!res.ok) throw new Error(data.error || "Không kiểm tra được.");
+        setGoPre(data as XoaPreflight);
+      } catch (e) {
+        if (alive) setGoError(e instanceof Error ? e.message : "Lỗi kiểm tra.");
+      } finally {
+        if (alive) setGoLoadingPre(false);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [goTarget, orgId]);
+
+  async function submitGo() {
+    if (!goTarget || !goPre?.coTheXoa) return;
+    setSubmitting(true);
+    setGoError(null);
+    try {
+      const res = await fetch(
+        `/api/co-so/${orgId}/hoc-vien/${goTarget.hocVienLopId}`,
+        { method: "DELETE", credentials: "include" },
+      );
+      const data = await res.json();
+      if (!res.ok) {
+        if (res.status === 409 && data.blockers) {
+          setGoPre({
+            coTheXoa: false,
+            blockers: data.blockers,
+            canhBao: data.canhBao ?? [],
+          });
+        }
+        throw new Error(data.error || "Không gỡ được ghi danh.");
+      }
+      setGoTarget(null);
+      setFlash(`Đã gỡ ghi danh của ${goTarget.tenHienThi}.`);
+      await load();
+    } catch (e) {
+      setGoError(e instanceof Error ? e.message : "Lỗi gỡ ghi danh.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   const totalPages = Math.max(1, Math.ceil(total / 20));
 
   return (
@@ -243,13 +368,48 @@ export function HocVienQuanLyClient({ orgId }: Props) {
         ) : null}
       </div>
 
+      {filterKhoaId ? (
+        <div className="cso-hv-filter-bar">
+          <span className="cso-hv-filter-label">
+            Lọc khóa: <strong>{filterKhoaTen}</strong>
+            {filterTrangThai === "dang_hoc" ? (
+              <span className="cso-hv-filter-tag"> · đang học</span>
+            ) : null}
+          </span>
+          <label className="cso-hv-filter-lop">
+            <span className="cso-ql-label">Lớp</span>
+            <select
+              className="cso-ql-select"
+              value={filterLopId}
+              onChange={(e) => updateFilterLop(e.target.value)}
+            >
+              <option value="">Tất cả lớp</option>
+              {lopOptionsForFilter.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.maLop}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            type="button"
+            className="cso-ql-btn cso-ql-btn--ghost cso-ql-btn--sm"
+            onClick={clearFilters}
+          >
+            <X size={14} strokeWidth={2.2} aria-hidden />
+            Bỏ lọc
+          </button>
+        </div>
+      ) : null}
+
       <div className="cso-hv-meta">
         <p className="cso-hv-count">
           <strong>{total}</strong> ghi danh
+          {filterKhoaId ? ` · ${filterKhoaTen}` : ""}
+          {filterLopId ? ` · ${filterLopLabel}` : ""}
           {q ? ` · lọc “${q}”` : ""}
         </p>
       </div>
-
       {flash ? <p className="cso-ql-flash">{flash}</p> : null}
       {error ? <p className="cso-ql-error">{error}</p> : null}
 
@@ -353,24 +513,44 @@ export function HocVienQuanLyClient({ orgId }: Props) {
                         )}
                       </td>
                       <td>
-                        {canThu ? (
-                          <div className="cso-hv-actions">
-                            <button
-                              type="button"
-                              className="cso-ql-btn cso-ql-btn--primary cso-ql-btn--sm"
-                              onClick={() => openThu(row, "cash")}
-                            >
-                              Thu tiền
-                            </button>
-                            <button
-                              type="button"
-                              className="cso-ql-btn cso-ql-btn--ghost cso-ql-btn--sm"
-                              onClick={() => openThu(row, "chat")}
-                            >
-                              Gửi đơn CK
-                            </button>
-                          </div>
-                        ) : null}
+                        <div className="cso-hv-actions">
+                          <button
+                            type="button"
+                            className="cso-ql-btn cso-ql-btn--ghost cso-ql-btn--sm"
+                            title={`Nhắn tin với ${row.tenHienThi}`}
+                            onClick={() => openChat(row)}
+                          >
+                            <MessageSquare size={14} strokeWidth={2.2} aria-hidden />
+                            Nhắn tin
+                          </button>
+                          {canThu ? (
+                            <>
+                              <button
+                                type="button"
+                                className="cso-ql-btn cso-ql-btn--primary cso-ql-btn--sm"
+                                onClick={() => openThu(row, "cash")}
+                              >
+                                Thu tiền
+                              </button>
+                              <button
+                                type="button"
+                                className="cso-ql-btn cso-ql-btn--ghost cso-ql-btn--sm"
+                                onClick={() => openThu(row, "chat")}
+                              >
+                                Gửi đơn CK
+                              </button>
+                              <button
+                                type="button"
+                                className="cso-ql-btn cso-ql-btn--danger cso-ql-btn--sm"
+                                title={`Gỡ ghi danh của ${row.tenHienThi}`}
+                                onClick={() => openGo(row)}
+                              >
+                                <Trash2 size={14} strokeWidth={2.2} aria-hidden />
+                                Gỡ
+                              </button>
+                            </>
+                          ) : null}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -468,6 +648,7 @@ export function HocVienQuanLyClient({ orgId }: Props) {
                       min={1}
                       className="cso-ql-input"
                       value={soNgay}
+                      disabled={Boolean(goiId)}
                       onChange={(e) => setSoNgay(Number(e.target.value) || 1)}
                     />
                   </label>
@@ -478,10 +659,16 @@ export function HocVienQuanLyClient({ orgId }: Props) {
                       min={0}
                       className="cso-ql-input"
                       value={soTien}
+                      disabled={Boolean(goiId)}
                       onChange={(e) => setSoTien(Number(e.target.value) || 0)}
                     />
                   </label>
                 </div>
+                {goiId ? (
+                  <p className="cso-hp-field-hint">
+                    Đã chọn gói — giá &amp; số ngày do server lấy từ catalog.
+                  </p>
+                ) : null}
               </fieldset>
 
               <fieldset className="cso-ql-fieldset">
@@ -525,6 +712,59 @@ export function HocVienQuanLyClient({ orgId }: Props) {
                   : thuMode === "chat"
                     ? "Gửi đơn vào chat"
                     : "Xác nhận đã thu"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {goTarget ? (
+        <div
+          className="cso-ql-modal-backdrop"
+          role="dialog"
+          aria-modal
+          aria-labelledby="go-ghi-danh-title"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !submitting) setGoTarget(null);
+          }}
+        >
+          <div className="cso-ql-modal">
+            <h3 id="go-ghi-danh-title" className="cso-ql-modal-title">
+              Gỡ ghi danh?
+            </h3>
+            <p className="cso-ql-modal-sub">
+              {goTarget.tenHienThi} · {goTarget.tenKhoa}
+              {goTarget.maLop ? ` · ${goTarget.maLop}` : ""} — gỡ vĩnh viễn khỏi
+              khóa. Không hoàn tác được.
+            </p>
+            <div className="cso-ql-modal-body">
+              {goLoadingPre ? (
+                <p className="cso-xoa-loading">Đang kiểm tra ràng buộc…</p>
+              ) : goPre ? (
+                <XoaBlockerList
+                  blockers={goPre.blockers}
+                  canhBao={goPre.canhBao}
+                  onBeforeXuLy={() => setGoTarget(null)}
+                />
+              ) : null}
+              {goError ? <p className="cso-ql-error">{goError}</p> : null}
+            </div>
+            <div className="cso-ql-modal-foot">
+              <button
+                type="button"
+                className="cso-ql-btn cso-ql-btn--text"
+                onClick={() => setGoTarget(null)}
+                disabled={submitting}
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                className="cso-ql-btn cso-ql-btn--danger"
+                disabled={submitting || goLoadingPre || !goPre?.coTheXoa}
+                onClick={() => void submitGo()}
+              >
+                {submitting ? "Đang gỡ…" : "Gỡ ghi danh"}
               </button>
             </div>
           </div>

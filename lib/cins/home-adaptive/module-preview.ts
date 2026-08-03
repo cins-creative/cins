@@ -8,6 +8,7 @@ import {
   loadKhoaHocGoiY,
   loadScoutTaiNang,
 } from "@/lib/cins/home-adaptive/fetches";
+import { loadHangFeature } from "@/lib/cins/home-adaptive/hang-feature";
 import { isModuleId } from "@/lib/cins/home-adaptive/layout-prefs";
 import type { ModulePreviewPayload } from "@/lib/cins/home-adaptive/module-preview-types";
 import type { GiaiDoan, ModuleId } from "@/lib/cins/home-adaptive/persona";
@@ -163,7 +164,8 @@ export async function loadModulePreview(
           key: t.roomId,
           title: t.name,
           sub: [t.orgTen, t.preview].filter(Boolean).join(" · "),
-          avatarUrl: t.avatarUrl,
+          avatarUrl: t.orgAvatarUrl,
+          peerAvatarUrl: t.avatarUrl,
         })),
       };
     }
@@ -291,6 +293,11 @@ export async function loadModulePreview(
           avatarUrl: null,
         })),
       };
+    }
+    case "hang_feature": {
+      const items = await loadHangFeature(ctx.viewerId, { limit: LIMIT });
+      if (items.length === 0) return { id, empty: true };
+      return { id, empty: false, items };
     }
     case "tin_nhan_ban_be":
     case "tin_nhan_to_chuc":

@@ -38,11 +38,20 @@ export async function GET(req: Request, ctx: Ctx) {
 
   const url = new URL(req.url);
   const q = url.searchParams.get("q") ?? undefined;
+  const khoaId = url.searchParams.get("khoaId") ?? undefined;
+  const lopId = url.searchParams.get("lopId") ?? undefined;
+  const trangThai = url.searchParams.get("trangThai") ?? undefined;
   const page = Number(url.searchParams.get("page") || "1");
   const withMeta = url.searchParams.get("meta") === "1";
 
   try {
-    const list = await listHocVienCuaOrg(orgId, { q, page });
+    const list = await listHocVienCuaOrg(orgId, {
+      q,
+      page,
+      khoaId,
+      lopId,
+      trangThai,
+    });
     if (!withMeta) {
       return NextResponse.json({
         ...list,

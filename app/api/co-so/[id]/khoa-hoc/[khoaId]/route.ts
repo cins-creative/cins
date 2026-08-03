@@ -10,7 +10,6 @@ import {
 import type {
   CapNhatKhoaHocInput,
   GoiHocPhiKhoa,
-  HinhThucLop,
   KhoaHocCheDoHienThi,
   LoaiMoHinhKhoa,
   TrinhDoDauVao,
@@ -44,6 +43,8 @@ export async function PATCH(req: Request, ctx: RouteContext) {
   const { id: orgId, khoaId } = await ctx.params;
   let body: {
     tenKhoaHoc?: string;
+    maKhoaHoc?: string | null;
+    slug?: string | null;
     loaiMoHinh?: LoaiMoHinhKhoa;
     moTa?: string | null;
     thoiLuongBuoi?: number | null;
@@ -55,10 +56,6 @@ export async function PATCH(req: Request, ctx: RouteContext) {
     thumbnailId?: string | null;
     trangThaiKhoaHoc?: TrangThaiKhoaHoc;
     coverVariant?: number;
-    ngayKhaiGiang?: string | null;
-    hinhThuc?: HinhThucLop;
-    diaChiHoc?: string | null;
-    lichHoc?: string | null;
     yeuCauChuanBi?: string | null;
     cheDoHienThi?: KhoaHocCheDoHienThi;
   };
@@ -70,6 +67,8 @@ export async function PATCH(req: Request, ctx: RouteContext) {
 
   const input: CapNhatKhoaHocInput = {
     tenKhoaHoc: body.tenKhoaHoc ?? "",
+    maKhoaHoc: body.maKhoaHoc,
+    slug: body.slug,
     loaiMoHinh: body.loaiMoHinh ?? "lien_tuc_theo_thang",
     moTa: body.moTa,
     thoiLuongBuoi: body.thoiLuongBuoi,
@@ -80,10 +79,6 @@ export async function PATCH(req: Request, ctx: RouteContext) {
     coverId: body.coverId,
     thumbnailId: body.thumbnailId,
     trangThaiKhoaHoc: body.trangThaiKhoaHoc,
-    ngayKhaiGiang: body.ngayKhaiGiang,
-    hinhThuc: body.hinhThuc,
-    diaChiHoc: body.diaChiHoc,
-    lichHoc: body.lichHoc,
     yeuCauChuanBi: body.yeuCauChuanBi,
     cheDoHienThi: body.cheDoHienThi,
   };
@@ -103,7 +98,7 @@ export async function PATCH(req: Request, ctx: RouteContext) {
   return NextResponse.json({ ok: true, khoaHoc: result.khoaHoc });
 }
 
-/** DELETE /api/co-so/:id/khoa-hoc/:khoaId */
+/** DELETE /api/co-so/:id/khoa-hoc/:khoaId — hard delete (guard). Soft → PATCH trangThaiKhoaHoc. */
 export async function DELETE(_req: Request, ctx: RouteContext) {
   const session = await getCurrentSessionAndProfile();
   if (!session?.profile) {
@@ -113,7 +108,19 @@ export async function DELETE(_req: Request, ctx: RouteContext) {
   const { id: orgId, khoaId } = await ctx.params;
   const result = await xoaKhoaHoc(orgId, khoaId, session.profile.id);
   if (!result.ok) {
-    const status = result.error.includes("quyền") ? 403 : 400;
+    if ("blockers" in result && result.blockers) {
+      return NextResponse.json(
+        {
+          error: result.error,
+          blockers: result.blockers,
+          canhBao: result.canhBao ?? [],
+          coTheXoa: false,
+        },
+        { status: 409 },
+      );
+    }
+    const status =
+      result.status ?? (result.error.includes("quyền") ? 403 : 400);
     return NextResponse.json({ error: result.error }, { status });
   }
 

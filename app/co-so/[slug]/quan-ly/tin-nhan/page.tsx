@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+
 import { CoSoQuanLyPageGate } from "@/components/co-so/quan-ly/CoSoQuanLyPageGate";
 import { TinNhanQuanLyClient } from "@/components/co-so/quan-ly/TinNhanQuanLyClient";
 import { getCoSoMetaBySlugCached } from "@/lib/to-chuc/co-so-page-queries";
@@ -14,12 +16,20 @@ export default async function CoSoQuanLyTinNhanPage({ params }: Props) {
 
   return (
     <CoSoQuanLyPageGate params={params} section="tin-nhan">
-      <TinNhanQuanLyClient
-        orgId={meta.id}
-        orgSlug={slug}
-        orgTen={meta.ten}
-        orgAvatarUrl={meta.avatarSrc}
-      />
+      <Suspense
+        fallback={
+          <div className="cso-hv-loading" style={{ padding: "24px 0" }}>
+            Đang tải tin nhắn…
+          </div>
+        }
+      >
+        <TinNhanQuanLyClient
+          orgId={meta.id}
+          orgSlug={slug}
+          orgTen={meta.ten}
+          orgAvatarUrl={meta.avatarSrc}
+        />
+      </Suspense>
     </CoSoQuanLyPageGate>
   );
 }

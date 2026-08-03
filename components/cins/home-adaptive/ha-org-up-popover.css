@@ -406,9 +406,42 @@
   box-shadow: 0 6px 18px rgba(21, 128, 61, 0.22);
 }
 
-.sk-pop-rsvp .cso-sk-detail-btn--join.is-active:hover:not(:disabled) {
-  background: #166534;
+/* Đã đăng ký → hover/focus: Hủy tham gia (đỏ). Click toggle hủy qua API. */
+.sk-pop-rsvp .cso-sk-detail-btn--join.is-active .cso-sk-detail-btn-face {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: inherit;
+}
+
+.sk-pop-rsvp .cso-sk-detail-btn--join.is-active .cso-sk-detail-btn-face--hover {
+  display: none;
+}
+
+.sk-pop-rsvp
+  .cso-sk-detail-btn--join.is-active:hover:not(:disabled)
+  .cso-sk-detail-btn-face--idle,
+.sk-pop-rsvp
+  .cso-sk-detail-btn--join.is-active:focus-visible:not(:disabled)
+  .cso-sk-detail-btn-face--idle {
+  display: none;
+}
+
+.sk-pop-rsvp
+  .cso-sk-detail-btn--join.is-active:hover:not(:disabled)
+  .cso-sk-detail-btn-face--hover,
+.sk-pop-rsvp
+  .cso-sk-detail-btn--join.is-active:focus-visible:not(:disabled)
+  .cso-sk-detail-btn-face--hover {
+  display: inline-flex;
+}
+
+.sk-pop-rsvp .cso-sk-detail-btn--join.is-active:hover:not(:disabled),
+.sk-pop-rsvp .cso-sk-detail-btn--join.is-active:focus-visible:not(:disabled) {
+  background: #b91c1c;
+  border-color: rgba(185, 28, 28, 0.25);
   color: #fff;
+  box-shadow: 0 6px 18px rgba(185, 28, 28, 0.22);
 }
 
 .sk-pop-primary {

@@ -27,6 +27,7 @@ export async function POST(req: Request, ctx: RouteContext) {
     giaoVienPhuTrach?: string | null;
     slotToiDa?: number | null;
     trangThaiLop?: TrangThaiLop;
+    chiNhanhIds?: string[] | null;
   };
   try {
     body = await req.json();
@@ -43,6 +44,7 @@ export async function POST(req: Request, ctx: RouteContext) {
     giaoVienPhuTrach: body.giaoVienPhuTrach,
     slotToiDa: body.slotToiDa,
     trangThaiLop: body.trangThaiLop,
+    chiNhanhIds: body.chiNhanhIds,
   };
 
   const result = await taoLopHoc(orgId, khoaId, session.profile.id, input);

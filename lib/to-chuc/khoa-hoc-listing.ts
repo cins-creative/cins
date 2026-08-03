@@ -30,6 +30,9 @@ export type KhoaHocListItem = {
   coverUrl: string | null;
   loaiMoHinh: LoaiMoHinhKhoa;
   loaiMoHinhLabel: string;
+  hinhThucs: HinhThucLop[];
+  hinhThucLabels: string[];
+  /** @deprecated Dùng hinhThucs — phần tử đầu hoặc null. */
   hinhThuc: HinhThucLop | null;
   hinhThucLabel: string | null;
   trinhDoLabel: string;
@@ -141,30 +144,41 @@ function hocPhiSuffix(loaiMoHinh: LoaiMoHinhKhoa): string {
   return loaiMoHinh === "lien_tuc_theo_thang" ? "/th" : "";
 }
 
+const HINH_THUC_ORDER: HinhThucLop[] = ["truc_tiep", "truc_tuyen", "ket_hop"];
+
 async function fetchLopHinhThucForKhoa(
   khoaIds: string[],
-): Promise<Map<string, HinhThucLop | null>> {
-  const map = new Map<string, HinhThucLop | null>();
-  for (const id of khoaIds) map.set(id, null);
+): Promise<Map<string, HinhThucLop[]>> {
+  const map = new Map<string, HinhThucLop[]>();
+  for (const id of khoaIds) map.set(id, []);
   if (!khoaIds.length) return map;
 
   const supabase = createServiceRoleClient();
   const { data: rows } = await supabase
     .from("org_lop_hoc")
-    .select("id, id_khoa_hoc, hinh_thuc, ngay_khai_giang")
+    .select("id, id_khoa_hoc, hinh_thuc, ngay_khai_giang, trang_thai")
     .in("id_khoa_hoc", khoaIds)
+    .neq("trang_thai", "huy")
     .order("ngay_khai_giang", { ascending: true });
 
+  const sets = new Map<string, Set<HinhThucLop>>();
   for (const row of (rows ?? []) as LopMetaRow[]) {
-    if (map.get(row.id_khoa_hoc) != null) continue;
-    map.set(row.id_khoa_hoc, row.hinh_thuc ?? null);
+    const set = sets.get(row.id_khoa_hoc) ?? new Set<HinhThucLop>();
+    if (row.hinh_thuc) set.add(row.hinh_thuc);
+    sets.set(row.id_khoa_hoc, set);
+  }
+  for (const [khoaId, set] of sets) {
+    map.set(
+      khoaId,
+      HINH_THUC_ORDER.filter((h) => set.has(h)),
+    );
   }
   return map;
 }
 
 function mapRow(
   row: Row,
-  hinhThuc: HinhThucLop | null,
+  hinhThucs: HinhThucLop[],
 ): KhoaHocListItem | null {
   const org = pickOrg(row.org_to_chuc);
   const orgSlug = org?.slug?.trim();
@@ -173,6 +187,9 @@ function mapRow(
 
   const parsed = parseKhoaHocNoiDungBlocks(row.noi_dung_blocks);
   if (parsed.cheDoHienThi === "an") return null;
+
+  // Khóa trần (chưa mở lớp) — ẩn khỏi catalog công khai.
+  if (hinhThucs.length === 0) return null;
 
   const courseSlug = row.slug?.trim();
   if (!courseSlug) return null;
@@ -185,6 +202,8 @@ function mapRow(
   const hocPhiRaw = row.hoc_phi != null ? Number(row.hoc_phi) : null;
   const hocPhiSuffixStr = hocPhiSuffix(loaiMoHinh);
   const hocPhiLabel = formatKhoaHocPhi(hocPhiRaw, loaiMoHinh);
+  const hinhThucLabels = hinhThucs.map(labelHinhThucLop);
+  const hinhThuc = hinhThucs[0] ?? null;
 
   return {
     id: row.id,
@@ -196,8 +215,10 @@ function mapRow(
     coverUrl: coverUrl(row),
     loaiMoHinh,
     loaiMoHinhLabel: labelLoaiMoHinhKhoa(loaiMoHinh),
+    hinhThucs,
+    hinhThucLabels,
     hinhThuc,
-    hinhThucLabel: hinhThuc ? labelHinhThucLop(hinhThuc) : null,
+    hinhThucLabel: hinhThucLabels.join(" · ") || null,
     trinhDoLabel: labelTrinhDoDauVao(row.trinh_do_dau_vao),
     trangThaiLabel: status.text,
     trangThaiTone: status.tone,
@@ -292,7 +313,7 @@ export async function loadKhoaHocListing(
     const lopMap = await fetchLopHinhThucForKhoa(data.map((row) => row.id));
 
     let items = data
-      .map((row) => mapRow(row, lopMap.get(row.id) ?? null))
+      .map((row) => mapRow(row, lopMap.get(row.id) ?? []))
       .filter((item): item is KhoaHocListItem => item != null);
 
     if (searchMode) {

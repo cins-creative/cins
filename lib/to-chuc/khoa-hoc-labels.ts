@@ -308,7 +308,7 @@ export const HINH_THUC_LOP_OPTIONS: ReadonlyArray<{
   {
     value: "truc_tuyen",
     label: "Online",
-    hint: "Học trực tuyến qua Zoom / Google Meet.",
+    hint: "Học trực tuyến qua Zoom / Google Meet · Phòng học trên CINs.",
   },
   {
     value: "ket_hop",

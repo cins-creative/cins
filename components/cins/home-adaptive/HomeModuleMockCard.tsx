@@ -13,6 +13,7 @@ import {
   GraduationCap,
   Inbox,
   MessageCircle,
+  Package,
   Route,
   ShoppingBag,
   Sparkles,
@@ -26,6 +27,7 @@ import {
 
 import { MODULE_META } from "@/lib/cins/home-adaptive/module-meta";
 import type { ModuleId } from "@/lib/cins/home-adaptive/persona";
+import { avatarBg, avatarHueFromSeed } from "@/lib/chat/avatar";
 
 const TITLE_ICON: Partial<Record<ModuleId, LucideIcon>> = {
   theo_doi_org: CalendarDays,
@@ -54,6 +56,7 @@ const TITLE_ICON: Partial<Record<ModuleId, LucideIcon>> = {
   loi_moi_ket_ban: UserPlus,
   se_tham_gia: CalendarHeart,
   da_luu: Bookmark,
+  hang_feature: Package,
 };
 
 const CARD_CLASS: Partial<Record<ModuleId, string>> = {
@@ -67,6 +70,7 @@ const CARD_CLASS: Partial<Record<ModuleId, string>> = {
   tin_nhan_ban_be: "ha-card--chat",
   tin_nhan_to_chuc: "ha-card--chat",
   tin_nhan_mua_ban: "ha-card--chat",
+  hang_feature: "ha-card--hang",
 };
 
 type MockRow = { av: string; title: string; sub: string; extra?: string };
@@ -192,6 +196,11 @@ const MOCK_ROWS: Partial<Record<ModuleId, MockRow[]>> = {
     { av: "CM", title: "Portfolio motion reel", sub: "Cột mốc" },
     { av: "TD", title: "Junior Designer", sub: "Tuyển dụng" },
   ],
+  hang_feature: [
+    { av: "ST", title: "Sticker pack", sub: "Shop An · Bạn bè" },
+    { av: "PR", title: "Print A3", sub: "Pixel Lab · Gợi ý" },
+    { av: "TG", title: "Tote canvas", sub: "Studio Mộc · Bạn bè" },
+  ],
 };
 
 const LV_MOCK = [
@@ -277,28 +286,64 @@ function MockDonRows({ rows }: { rows: MockRow[] }) {
   );
 }
 
-function MockChatRows({ rows }: { rows: MockRow[] }) {
+function MockChatRows({
+  rows,
+  shop,
+}: {
+  rows: MockRow[];
+  /** Tin nhắn mua bán — badge shop trên avatar. */
+  shop?: boolean;
+}) {
   return (
     <div className="ha-chat-list" role="list">
-      {rows.map((r) => (
-        <div key={r.title} role="listitem">
-          <div className="cins-chat-thread">
-            <span className="ha-edit-mock-av" aria-hidden>
-              {r.av}
-            </span>
-            <div className="cins-chat-thread-main">
-              <div className="cins-chat-thread-top">
-                <span className="cins-chat-thread-name">
-                  <strong>{r.title}</strong>
+      {rows.map((r) => {
+        const initial =
+          r.av.trim().slice(0, 1).toUpperCase() ||
+          r.title.trim().slice(0, 1).toUpperCase() ||
+          "?";
+        const hue = avatarHueFromSeed(r.title);
+        return (
+          <div key={r.title} role="listitem">
+            <div className="cins-chat-thread">
+              <span
+                className={`cins-chat-avatar-wrap${shop ? " is-shop" : ""}`}
+              >
+                <span
+                  className="cins-chat-avatar"
+                  style={{
+                    width: 40,
+                    height: 40,
+                    fontSize: 15,
+                    background: avatarBg(hue),
+                  }}
+                  aria-hidden
+                >
+                  {initial}
                 </span>
-              </div>
-              <div className="cins-chat-thread-bottom">
-                <span className="cins-chat-thread-preview">{r.sub}</span>
+                {shop ? (
+                  <span
+                    className="cins-chat-avatar-shop"
+                    aria-hidden
+                    style={{ width: 14, height: 14 }}
+                  >
+                    <Store size={8} strokeWidth={2.4} aria-hidden />
+                  </span>
+                ) : null}
+              </span>
+              <div className="cins-chat-thread-main">
+                <div className="cins-chat-thread-top">
+                  <span className="cins-chat-thread-name">
+                    <strong>{r.title}</strong>
+                  </span>
+                </div>
+                <div className="cins-chat-thread-bottom">
+                  <span className="cins-chat-thread-preview">{r.sub}</span>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -387,7 +432,7 @@ export function HomeModuleMockCard({ id }: { id: ModuleId }) {
     ) {
       return (
         <MockShell id={id}>
-          <MockChatRows rows={rows} />
+          <MockChatRows rows={rows} shop={id === "tin_nhan_mua_ban"} />
         </MockShell>
       );
     }

@@ -63,7 +63,7 @@ export async function listLopHocQuanLy(
     ),
   ];
 
-  const [hvRes, gvRes, chatRes] = await Promise.all([
+  const [hvRes, gvRes, chatRes, junctionRes] = await Promise.all([
     admin
       .from("user_hoc_vien_lop")
       .select("id_lop_hoc")
@@ -83,6 +83,11 @@ export async function listLopHocQuanLy(
       : Promise.resolve({
           data: [] as Array<{ id: string; avatar_id: string | null }>,
         }),
+    admin
+      .from("org_lop_hoc_chi_nhanh")
+      .select("id_lop_hoc, id_chi_nhanh, thu_tu")
+      .in("id_lop_hoc", lopIds)
+      .order("thu_tu", { ascending: true }),
   ]);
 
   const avatarByRoomId = new Map(
@@ -115,6 +120,43 @@ export async function listLopHocQuanLy(
     }),
   );
 
+  const junctionRows = (junctionRes.error ? [] : (junctionRes.data ?? [])) as Array<{
+    id_lop_hoc: string;
+    id_chi_nhanh: string;
+    thu_tu: number;
+  }>;
+  const chiNhanhIdsAll = [
+    ...new Set(junctionRows.map((j) => j.id_chi_nhanh)),
+  ];
+  const { data: chiNhanhRows } = chiNhanhIdsAll.length
+    ? await admin
+        .from("org_chi_nhanh")
+        .select("id, ten, dia_chi")
+        .in("id", chiNhanhIdsAll)
+    : { data: [] as Array<{ id: string; ten: string; dia_chi: string | null }> };
+
+  const chiNhanhById = new Map(
+    (chiNhanhRows ?? []).map((c) => [
+      c.id as string,
+      {
+        id: c.id as string,
+        ten: (c.ten as string)?.trim() || "Chi nhánh",
+        diaChi: (c.dia_chi as string | null)?.trim() || null,
+      },
+    ]),
+  );
+  const chiNhanhByLop = new Map<
+    string,
+    Array<{ id: string; ten: string; diaChi: string | null }>
+  >();
+  for (const j of junctionRows) {
+    const brief = chiNhanhById.get(j.id_chi_nhanh);
+    if (!brief) continue;
+    const arr = chiNhanhByLop.get(j.id_lop_hoc) ?? [];
+    arr.push(brief);
+    chiNhanhByLop.set(j.id_lop_hoc, arr);
+  }
+
   return list.map((row) => {
     const khoa = khoaById.get(row.id_khoa_hoc as string);
     const maRaw = (row.ma_lop as string | null)?.trim() ?? "";
@@ -126,6 +168,7 @@ export async function listLopHocQuanLy(
 
     const roomId = (row.id_chat_phong as string | null) ?? null;
     const avatarId = roomId ? (avatarByRoomId.get(roomId) ?? null) : null;
+    const chiNhanh = chiNhanhByLop.get(row.id as string) ?? [];
 
     return {
       id: row.id as string,
@@ -148,6 +191,8 @@ export async function listLopHocQuanLy(
       soHocVien: hvCount.get(row.id as string) ?? 0,
       avatarId,
       avatarUrl: getAvatarUrl(avatarId),
+      chiNhanhIds: chiNhanh.map((c) => c.id),
+      chiNhanh,
     };
   });
 }

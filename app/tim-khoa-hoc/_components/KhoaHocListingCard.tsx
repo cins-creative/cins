@@ -62,9 +62,11 @@ export function KhoaHocListingCard({ khoa }: { khoa: KhoaHocListItem }) {
 
         <span className="tkh-card-chips">
           <span className="tkh-chip tkh-chip--model">{khoa.loaiMoHinhLabel}</span>
-          {khoa.hinhThucLabel ? (
-            <span className="tkh-chip tkh-chip--format">{khoa.hinhThucLabel}</span>
-          ) : null}
+          {khoa.hinhThucLabels.map((label) => (
+            <span key={label} className="tkh-chip tkh-chip--format">
+              {label}
+            </span>
+          ))}
           <span className="tkh-chip">{khoa.trinhDoLabel}</span>
         </span>
 

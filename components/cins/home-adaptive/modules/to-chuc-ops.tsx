@@ -54,22 +54,56 @@ export async function OrgInboxModule({ ctx }: { ctx: HomeModuleCtx }) {
       title="Hộp thư tổ chức"
       badge={unread > 0 ? String(unread) : undefined}
     >
-      {items.map((t) => (
-        <div key={t.roomId} className="ha-trow">
-          <span className="ha-trow-th" aria-hidden>
-            {t.name.slice(0, 2).toUpperCase()}
-          </span>
-          <div className="ha-trow-meta">
-            <div className="ha-trow-name">
-              {t.name}
-              {t.unread > 0 ? ` · ${t.unread}` : ""}
+      {items.map((t) => {
+        const orgLabel = t.orgTen?.trim() || "Tổ chức";
+        const inner = (
+          <>
+            <span className="ha-trow-th ha-trow-th--org" aria-hidden>
+              {t.orgAvatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={t.orgAvatarUrl} alt="" width={46} height={46} />
+              ) : (
+                orgLabel.slice(0, 2).toUpperCase()
+              )}
+            </span>
+            <div className="ha-trow-meta">
+              <div className="ha-trow-name ha-trow-name--with-av">
+                <span className="ha-trow-peer-av" aria-hidden>
+                  {t.avatarUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={t.avatarUrl} alt="" width={18} height={18} />
+                  ) : (
+                    <span className="ha-trow-peer-av-fallback">
+                      {t.name.slice(0, 1).toUpperCase()}
+                    </span>
+                  )}
+                </span>
+                <span className="ha-trow-name-text">
+                  {t.name}
+                  {t.unread > 0 ? ` · ${t.unread}` : ""}
+                </span>
+              </div>
+              <div className="ha-trow-sub">
+                {[t.orgTen, t.preview].filter(Boolean).join(" · ")}
+              </div>
             </div>
-            <div className="ha-trow-sub">
-              {[t.orgTen, t.preview].filter(Boolean).join(" · ")}
-            </div>
+          </>
+        );
+        return t.href ? (
+          <Link
+            key={t.roomId}
+            href={t.href}
+            className="ha-trow ha-trow--link"
+            prefetch={false}
+          >
+            {inner}
+          </Link>
+        ) : (
+          <div key={t.roomId} className="ha-trow">
+            {inner}
           </div>
-        </div>
-      ))}
+        );
+      })}
     </ModuleCard>
   );
 }

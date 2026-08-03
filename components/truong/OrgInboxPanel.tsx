@@ -23,7 +23,6 @@ import { MsIcon } from "@/components/cins/MsIcon";
 import { OrgNotifySettingsMenu } from "@/components/cins/OrgNotifySettingsMenu";
 import { useChatRoomMessageActions } from "@/components/cins/useChatRoomMessageActions";
 import { InboxContactRoleBadge } from "@/components/truong/InboxContactRoleBadge";
-import { InboxVerificationCard } from "@/components/truong/InboxVerificationCard";
 import { avatarBg, avatarHueFromSeed } from "@/lib/chat/avatar";
 import {
   revokeDraftImageUrls,
@@ -45,7 +44,6 @@ import {
   messagePreviewText,
 } from "@/lib/chat/optimistic-message";
 import {
-  inboxThreadNeedsAction,
   type OrgInboxThread,
   type OrgInboxThreadStatus,
 } from "@/lib/chat/org-inbox-types";
@@ -132,6 +130,11 @@ type Props = {
    * Map sang studentUserId sau khi load threads.
    */
   initialRoomId?: string | null;
+  /**
+   * Chọn hội thoại theo user học viên (deep link từ trang Học viên).
+   * Nếu chưa có thread (phòng trống), tạo phòng + stub inbox.
+   */
+  initialStudentUserId?: string | null;
   /** Ẩn filter tab (parent tự lọc). */
   hideFilters?: boolean;
   /** Filter khóa từ parent — nếu set, panel không tự lọc nội bộ. */
@@ -154,6 +157,7 @@ export function OrgInboxPanel({
   orgId,
   initialFilter = "open",
   initialRoomId = null,
+  initialStudentUserId = null,
   hideFilters = false,
   filterOverride,
   renderDetailActions,
@@ -181,7 +185,6 @@ export function OrgInboxPanel({
   const [filter, setFilter] = useState<OrgInboxFilterKey>(initialFilter);
   const [reply, setReply] = useState("");
   const [pending, startTransition] = useTransition();
-  const [verifyPending, startVerifyTransition] = useTransition();
 
   const activeFilter = filterOverride ?? filter;
 
@@ -281,6 +284,12 @@ export function OrgInboxPanel({
           setSelectedStudentId((current) => {
             if (current && next.some((t) => t.studentUserId === current))
               return current;
+            if (
+              initialStudentUserId &&
+              next.some((t) => t.studentUserId === initialStudentUserId)
+            ) {
+              return initialStudentUserId;
+            }
             if (initialRoomId) {
               const byRoom = next.find((t) => t.roomId === initialRoomId);
               if (byRoom) return byRoom.studentUserId;
@@ -301,7 +310,13 @@ export function OrgInboxPanel({
         if (!silent) setLoadingThreads(false);
       }
     },
-    [orgId, onThreadsChange, filterOverride, initialRoomId],
+    [
+      orgId,
+      onThreadsChange,
+      filterOverride,
+      initialRoomId,
+      initialStudentUserId,
+    ],
   );
 
   const loadMessages = useCallback(
@@ -351,6 +366,73 @@ export function OrgInboxPanel({
   useEffect(() => {
     void loadThreads();
   }, [loadThreads]);
+
+  const deepLinkUserHandled = useRef(false);
+  useEffect(() => {
+    if (!initialStudentUserId || deepLinkUserHandled.current || loadingThreads) {
+      return;
+    }
+    if (threads.some((t) => t.studentUserId === initialStudentUserId)) {
+      deepLinkUserHandled.current = true;
+      setSelectedStudentId(initialStudentUserId);
+      return;
+    }
+
+    deepLinkUserHandled.current = true;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch(
+          `/api/org/${orgId}/student-chat/${encodeURIComponent(initialStudentUserId)}/messages`,
+          { cache: "no-store" },
+        );
+        const json = (await res.json()) as {
+          roomId?: string;
+          peer?: {
+            tenHienThi?: string;
+            slug?: string;
+            avatarUrl?: string | null;
+          };
+          error?: string;
+        };
+        if (!res.ok || !json.roomId || cancelled) return;
+
+        const stub: OrgInboxThread = {
+          roomId: json.roomId,
+          studentUserId: initialStudentUserId,
+          studentName: json.peer?.tenHienThi?.trim() || "Học viên",
+          studentSlug: json.peer?.slug?.trim() || "",
+          studentAvatarUrl: json.peer?.avatarUrl ?? null,
+          studentContactLabel: "Học viên",
+          studentContactRole: "hoc_vien",
+          studentRole: "Thành viên CINs",
+          subject: "Hội thoại",
+          preview: "Chưa có tin nhắn",
+          lastAt: new Date().toISOString(),
+          unread: false,
+          unreadCount: 0,
+          status: "open",
+          pendingVerification: null,
+          pendingDonHocPhi: false,
+          enrollments: [],
+        };
+
+        setThreads((prev) => {
+          if (prev.some((t) => t.studentUserId === initialStudentUserId)) {
+            return prev;
+          }
+          return [stub, ...prev];
+        });
+        setSelectedStudentId(initialStudentUserId);
+      } catch {
+        /* giữ inbox như cũ nếu không mở được phòng */
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [initialStudentUserId, loadingThreads, threads, orgId]);
 
   const selectedRoomId = selected?.roomId ?? null;
 
@@ -579,41 +661,6 @@ export function OrgInboxPanel({
     });
   }
 
-  function respondVerification(action: "approve" | "reject") {
-    if (!selected?.pendingVerification || verifyPending) return;
-
-    startVerifyTransition(async () => {
-      try {
-        const res = await fetch(
-          `/api/org/${orgId}/membership-milestone-requests/${selected.pendingVerification!.id}`,
-          {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ action }),
-          },
-        );
-        const json = (await res.json()) as { error?: string };
-        if (!res.ok) {
-          toast(json.error ?? "Không cập nhật được.");
-          return;
-        }
-        toast(
-          action === "approve" ? "Đã xác thực cột mốc" : "Đã từ chối yêu cầu",
-        );
-        setThreads((list) =>
-          list.map((thread) =>
-            thread.studentUserId === selected.studentUserId
-              ? { ...thread, pendingVerification: null }
-              : thread,
-          ),
-        );
-        void loadThreads({ silent: true });
-      } catch {
-        toast("Lỗi mạng.");
-      }
-    });
-  }
-
   useEffect(() => {
     if (!panelRef) return;
     panelRef.current = {
@@ -695,7 +742,6 @@ export function OrgInboxPanel({
             error={messageError}
             reply={reply}
             sending={pending}
-            verifyResponding={verifyPending}
             detailActions={renderDetailActions?.(selected)}
             canConfirmHocPhi={canConfirmHocPhi}
             orgBrand={orgBrand}
@@ -705,8 +751,6 @@ export function OrgInboxPanel({
               sendReply(text, images, filesByLocalId, inFlightUploads, replyTo)
             }
             onSendSticker={sendSticker}
-            onApproveVerification={() => respondVerification("approve")}
-            onRejectVerification={() => respondVerification("reject")}
             onRefresh={() => void loadThreads({ silent: true })}
           />
         ) : (
@@ -732,7 +776,7 @@ function ThreadListItem({
     <li>
       <button
         type="button"
-        className={`tdh-message-inbox-thread${active ? " is-active" : ""}${thread.unread ? " is-unread" : ""}${thread.pendingVerification ? " has-verify" : ""}${thread.pendingDonHocPhi ? " has-pay" : ""}`}
+        className={`tdh-message-inbox-thread${active ? " is-active" : ""}${thread.unread ? " is-unread" : ""}`}
         onClick={onSelect}
       >
         <span className="tdh-message-inbox-thread-avatar" aria-hidden>
@@ -763,25 +807,14 @@ function ThreadListItem({
             </time>
           </span>
           <span className="tdh-message-inbox-thread-subject">
-            {thread.pendingVerification ? (
-              <span className="tdh-message-inbox-thread-verify-pill">
-                Xác thực
-              </span>
-            ) : null}
-            {thread.pendingDonHocPhi ? (
-              <span className="tdh-message-inbox-thread-pay-pill">Chờ TT</span>
-            ) : null}
             {thread.subject}
           </span>
           <span className="tdh-message-inbox-thread-preview">
             {thread.preview}
           </span>
         </span>
-        {inboxThreadNeedsAction(thread) ? (
-          <span
-            className={`tdh-message-inbox-thread-dot${thread.pendingVerification && !thread.unread ? " is-verify" : ""}${thread.pendingDonHocPhi && !thread.unread && !thread.pendingVerification ? " is-pay" : ""}`}
-            aria-hidden
-          />
+        {thread.unread ? (
+          <span className="tdh-message-inbox-thread-dot" aria-hidden />
         ) : null}
       </button>
     </li>
@@ -796,7 +829,6 @@ function ThreadDetail({
   error,
   reply,
   sending,
-  verifyResponding,
   detailActions,
   canConfirmHocPhi = false,
   orgBrand = null,
@@ -804,8 +836,6 @@ function ThreadDetail({
   onReplyChange,
   onSend,
   onSendSticker,
-  onApproveVerification,
-  onRejectVerification,
   onRefresh,
 }: {
   thread: OrgInboxThread;
@@ -815,7 +845,6 @@ function ThreadDetail({
   error: string | null;
   reply: string;
   sending: boolean;
-  verifyResponding: boolean;
   detailActions?: ReactNode;
   canConfirmHocPhi?: boolean;
   orgBrand?: { ten?: string | null; anh?: string | null } | null;
@@ -832,8 +861,6 @@ function ThreadDetail({
     replyTo: ChatMessage | null,
   ) => void;
   onSendSticker: (item: UserEmojiMuc) => void;
-  onApproveVerification: () => void;
-  onRejectVerification: () => void;
   onRefresh: () => void;
 }) {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -945,53 +972,34 @@ function ThreadDetail({
     setStickerPickerOpen(false);
   }
 
-  const verification = thread.pendingVerification;
-
   return (
     <>
-      {verification ? (
-        <InboxVerificationCard
-          request={verification}
-          studentContactLabel={thread.studentContactLabel}
-          studentContactRole={thread.studentContactRole}
-          responding={verifyResponding}
-          onApprove={onApproveVerification}
-          onReject={onRejectVerification}
-        />
-      ) : (
-        <header className="tdh-message-inbox-detail-hdr">
-          <div>
-            <h4 className="tdh-message-inbox-detail-title">
-              {thread.studentName}
-            </h4>
-            <p className="tdh-message-inbox-detail-meta">
-              <InboxContactRoleBadge
-                label={thread.studentContactLabel}
-                roleKey={thread.studentContactRole}
-              />
-              {thread.studentRole &&
-              thread.studentRole !== thread.studentContactLabel ? (
-                <> · {thread.studentRole}</>
-              ) : null}{" "}
-              ·{" "}
-              <span
-                className={`tdh-message-inbox-status tdh-message-inbox-status--${thread.status}`}
-              >
-                {inboxStatusLabel(thread.status)}
-              </span>
-            </p>
-          </div>
-          {detailActions ? (
-            <div className="tdh-message-inbox-detail-actions">{detailActions}</div>
-          ) : null}
-        </header>
-      )}
-
-      {detailActions && verification ? (
-        <div className="tdh-message-inbox-detail-actions tdh-message-inbox-detail-actions--below">
-          {detailActions}
+      <header className="tdh-message-inbox-detail-hdr">
+        <div>
+          <h4 className="tdh-message-inbox-detail-title">
+            {thread.studentName}
+          </h4>
+          <p className="tdh-message-inbox-detail-meta">
+            <InboxContactRoleBadge
+              label={thread.studentContactLabel}
+              roleKey={thread.studentContactRole}
+            />
+            {thread.studentRole &&
+            thread.studentRole !== thread.studentContactLabel ? (
+              <> · {thread.studentRole}</>
+            ) : null}{" "}
+            ·{" "}
+            <span
+              className={`tdh-message-inbox-status tdh-message-inbox-status--${thread.status}`}
+            >
+              {inboxStatusLabel(thread.status)}
+            </span>
+          </p>
         </div>
-      ) : null}
+        {detailActions ? (
+          <div className="tdh-message-inbox-detail-actions">{detailActions}</div>
+        ) : null}
+      </header>
 
       {loading ? (
         <p className="tdh-message-inbox-pick">
