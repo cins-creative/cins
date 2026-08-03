@@ -1,14 +1,48 @@
 /**
  * Vào/ra chế độ tuỳ chỉnh layout trang chủ — client-only khi đang ở `/`.
  * Tránh `router.push('/?tuy-chinh=1')` (SSR lại cả feed + module ~ vài giây).
+ *
+ * Edit mode + mục «Bố cục hiển thị» trong cài đặt chỉ dành cho desktop
+ * (≥1200px — cả hai cột sidebar in-flow). Mobile/tablet không cần chỉnh.
  */
 
 export const HOME_LAYOUT_EDIT_ENTER_EVENT = "cins-home-layout-edit-enter";
 
-/** Bật edit mode tức thì nếu trang chủ đã mount; trả true nếu đã phát event. */
+/** Match breakpoint cột L+R in-flow trên trang chủ (`world-journey-feed.css`). */
+export const HOME_LAYOUT_EDIT_MQ = "(min-width: 1200px)";
+
+/** Viewport đủ rộng để tuỳ chỉnh bố cục trang chủ (desktop). */
+export function isHomeLayoutEditViewport(): boolean {
+  if (typeof window === "undefined") return false;
+  return window.matchMedia(HOME_LAYOUT_EDIT_MQ).matches;
+}
+
+/** Subscribe cho `useSyncExternalStore` — theo dõi breakpoint desktop layout. */
+export function subscribeHomeLayoutEditViewport(
+  onChange: () => void,
+): () => void {
+  const mq = window.matchMedia(HOME_LAYOUT_EDIT_MQ);
+  mq.addEventListener("change", onChange);
+  return () => mq.removeEventListener("change", onChange);
+}
+
+export function getHomeLayoutEditViewportSnapshot(): boolean {
+  return window.matchMedia(HOME_LAYOUT_EDIT_MQ).matches;
+}
+
+/** SSR snapshot — ẩn edit / mục bố cục (mobile-safe). */
+export function getHomeLayoutEditViewportServerSnapshot(): boolean {
+  return false;
+}
+
+/**
+ * Bật edit mode tức thì nếu trang chủ đã mount + viewport desktop.
+ * Trả true nếu đã phát event; false trên mobile/tablet hoặc không phải `/`.
+ */
 export function requestHomeLayoutEdit(): boolean {
   if (typeof window === "undefined") return false;
   if (window.location.pathname !== "/") return false;
+  if (!isHomeLayoutEditViewport()) return false;
 
   const url = new URL(window.location.href);
   // Gallery ẩn aside — về timeline trước khi edit.

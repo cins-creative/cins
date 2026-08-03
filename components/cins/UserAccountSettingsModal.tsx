@@ -23,7 +23,7 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -46,7 +46,13 @@ import {
   setHomeFeedLayout,
   type HomeFeedLayout,
 } from "@/lib/home/home-feed-layout";
-import { requestHomeLayoutEdit } from "@/lib/home/home-layout-edit";
+import {
+  getHomeLayoutEditViewportServerSnapshot,
+  getHomeLayoutEditViewportSnapshot,
+  isHomeLayoutEditViewport,
+  requestHomeLayoutEdit,
+  subscribeHomeLayoutEditViewport,
+} from "@/lib/home/home-layout-edit";
 import {
   FEED_SOURCE_DEFAULT,
   FEED_SOURCE_OPTIONS,
@@ -126,6 +132,16 @@ export function UserAccountSettingsModal({ open, onClose }: Props) {
   const [applyToMe, setApplyToMe] = useState(false);
   const [initialApplyToMe, setInitialApplyToMe] = useState(false);
   const [isCinsAdmin, setIsCinsAdmin] = useState(false);
+  /** Desktop (≥1200): hiện «Bố cục hiển thị». Mobile/tablet: ẩn. */
+  const showLayoutSettings = useSyncExternalStore(
+    subscribeHomeLayoutEditViewport,
+    getHomeLayoutEditViewportSnapshot,
+    getHomeLayoutEditViewportServerSnapshot,
+  );
+  const activeSection: SettingsSection =
+    !showLayoutSettings && section === "journey-display"
+      ? "lich-su-mua"
+      : section;
 
   const loadSettings = useCallback(async () => {
     setLoading(true);
@@ -158,7 +174,7 @@ export function UserAccountSettingsModal({ open, onClose }: Props) {
 
   useEffect(() => {
     if (!open) return;
-    setSection("journey-display");
+    setSection(showLayoutSettings ? "journey-display" : "lich-su-mua");
     setLayoutTab("profile");
     setSavedTick(false);
     setHomeLayout(readHomeFeedLayout());
@@ -182,9 +198,13 @@ export function UserAccountSettingsModal({ open, onClose }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [open, loadSettings]);
+  }, [open, loadSettings, showLayoutSettings]);
 
-  const navItems = NAV.filter((item) => !item.adminOnly || isCinsAdmin);
+  const navItems = NAV.filter(
+    (item) =>
+      (!item.adminOnly || isCinsAdmin) &&
+      (showLayoutSettings || item.id !== "journey-display"),
+  );
 
   const chooseHomeLayout = useCallback((layout: HomeFeedLayout) => {
     setHomeLayout(layout);
@@ -284,8 +304,8 @@ export function UserAccountSettingsModal({ open, onClose }: Props) {
               <button
                 key={id}
                 type="button"
-                className={`uas-nav-btn${section === id ? " on" : ""}`}
-                aria-current={section === id ? "true" : undefined}
+                className={`uas-nav-btn${activeSection === id ? " on" : ""}`}
+                aria-current={activeSection === id ? "true" : undefined}
                 onClick={() => setSection(id)}
               >
                 {label}
@@ -294,7 +314,7 @@ export function UserAccountSettingsModal({ open, onClose }: Props) {
           </nav>
 
           <div className="uas-body">
-            {section === "journey-display" ? (
+            {activeSection === "journey-display" && showLayoutSettings ? (
               <section className="uas-section" aria-labelledby={`${titleId}-jd`}>
                 <div className="uas-section-head">
                   <h3 id={`${titleId}-jd`} className="uas-section-title">
@@ -444,6 +464,8 @@ export function UserAccountSettingsModal({ open, onClose }: Props) {
                           className="uas-layout-cta"
                           onClick={() => {
                             onClose();
+                            // Desktop only — mobile/tablet không vào edit mode.
+                            if (!isHomeLayoutEditViewport()) return;
                             // Đang ở `/` → bật edit client-side (không SSR lại trang chủ).
                             if (!requestHomeLayoutEdit()) {
                               router.push("/?tuy-chinh=1");
@@ -452,7 +474,8 @@ export function UserAccountSettingsModal({ open, onClose }: Props) {
                           onMouseEnter={() => {
                             if (
                               typeof window !== "undefined" &&
-                              window.location.pathname !== "/"
+                              window.location.pathname !== "/" &&
+                              isHomeLayoutEditViewport()
                             ) {
                               router.prefetch("/?tuy-chinh=1");
                             }
@@ -564,30 +587,30 @@ export function UserAccountSettingsModal({ open, onClose }: Props) {
               </section>
             ) : null}
 
-            {section === "lich-su-mua" ? (
+            {activeSection === "lich-su-mua" ? (
               <LichSuMuaHangSection titleId={`${titleId}-lsm`} />
             ) : null}
 
-            {section === "ban-hang" ? (
+            {activeSection === "ban-hang" ? (
               <BanHangSettingsSection titleId={`${titleId}-bh`} />
             ) : null}
 
-            {section === "admin" && isCinsAdmin ? (
+            {activeSection === "admin" && isCinsAdmin ? (
               <AdminSettingsSection titleId={`${titleId}-admin`} />
             ) : null}
 
-            {section === "user-management" ? (
+            {activeSection === "user-management" ? (
               <UserManagementSection titleId={`${titleId}-um`} />
             ) : null}
 
-            {section === "security-2fa" ? (
+            {activeSection === "security-2fa" ? (
               <TwoFactorSection titleId={`${titleId}-2fa`} />
             ) : null}
           </div>
         </div>
 
         <footer className="uas-foot">
-          {section === "journey-display" && layoutTab === "home" ? (
+          {activeSection === "journey-display" && layoutTab === "home" ? (
             <span className="uas-foot-note">Kiểu feed &amp; nguồn áp dụng ngay</span>
           ) : savedTick ? (
             <span className="uas-saved" aria-live="polite">
@@ -599,11 +622,11 @@ export function UserAccountSettingsModal({ open, onClose }: Props) {
           )}
           <div className="uas-foot-actions">
             <button type="button" className="uas-btn ghost" onClick={onClose}>
-              {dirty && layoutTab === "profile" && section === "journey-display"
+              {dirty && layoutTab === "profile" && activeSection === "journey-display"
                 ? "Huỷ"
                 : "Đóng"}
             </button>
-            {!(section === "journey-display" && layoutTab === "home") ? (
+            {!(activeSection === "journey-display" && layoutTab === "home") ? (
               <button
                 type="button"
                 className="uas-btn primary"

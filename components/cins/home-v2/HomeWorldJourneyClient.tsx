@@ -1,6 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+} from "react";
 import { useRouter } from "next/navigation";
 
 import {
@@ -22,7 +28,10 @@ import type { GalleryMainItem } from "@/lib/journey/gallery-page-fetch";
 import {
   clearHomeLayoutEditUrl,
   HOME_LAYOUT_EDIT_ENTER_EVENT,
+  getHomeLayoutEditViewportServerSnapshot,
+  getHomeLayoutEditViewportSnapshot,
   isHomeLayoutEditUrl,
+  subscribeHomeLayoutEditViewport,
 } from "@/lib/home/home-layout-edit";
 
 type Props = {
@@ -76,29 +85,26 @@ export function HomeWorldJourneyClient({
   capabilities = [],
 }: Props) {
   const router = useRouter();
-  /** Edit mode client-owned — tránh remount RSC khi vào từ modal. */
-  const [editing, setEditing] = useState(
-    () => editingLayout || isHomeLayoutEditUrl(),
+  const isDesktopLayout = useSyncExternalStore(
+    subscribeHomeLayoutEditViewport,
+    getHomeLayoutEditViewportSnapshot,
+    getHomeLayoutEditViewportServerSnapshot,
   );
 
-  useEffect(() => {
-    if (editingLayout) setEditing(true);
-  }, [editingLayout]);
+  /** Bật từ event client (modal «Chỉnh trên trang chủ»). */
+  const [enteredClient, setEnteredClient] = useState(false);
+  /** Sau «Huỷ/Lưu» — tắt dù prop SSR `editingLayout` còn true đến khi refresh. */
+  const [forcedOff, setForcedOff] = useState(false);
 
-  useEffect(() => {
-    const onEnter = () => setEditing(true);
-    const onPop = () => setEditing(isHomeLayoutEditUrl());
-    window.addEventListener(HOME_LAYOUT_EDIT_ENTER_EVENT, onEnter);
-    window.addEventListener("popstate", onPop);
-    return () => {
-      window.removeEventListener(HOME_LAYOUT_EDIT_ENTER_EVENT, onEnter);
-      window.removeEventListener("popstate", onPop);
-    };
-  }, []);
+  const editing =
+    isDesktopLayout &&
+    !forcedOff &&
+    (enteredClient || editingLayout || isHomeLayoutEditUrl());
 
   const exitEditing = useCallback(
     (opts?: { refresh?: boolean }) => {
-      setEditing(false);
+      setForcedOff(true);
+      setEnteredClient(false);
       clearHomeLayoutEditUrl();
       if (opts?.refresh) {
         // Soft-refresh nền sau khi UI đã thoát edit — không chặn nút Lưu.
@@ -107,6 +113,40 @@ export function HomeWorldJourneyClient({
     },
     [router],
   );
+
+  useEffect(() => {
+    const onEnter = () => {
+      if (!getHomeLayoutEditViewportSnapshot()) {
+        clearHomeLayoutEditUrl();
+        return;
+      }
+      setForcedOff(false);
+      setEnteredClient(true);
+    };
+    const onPop = () => {
+      if (isHomeLayoutEditUrl() && getHomeLayoutEditViewportSnapshot()) {
+        setForcedOff(false);
+        setEnteredClient(true);
+      } else {
+        setForcedOff(true);
+        setEnteredClient(false);
+        if (isHomeLayoutEditUrl()) clearHomeLayoutEditUrl();
+      }
+    };
+    window.addEventListener(HOME_LAYOUT_EDIT_ENTER_EVENT, onEnter);
+    window.addEventListener("popstate", onPop);
+    return () => {
+      window.removeEventListener(HOME_LAYOUT_EDIT_ENTER_EVENT, onEnter);
+      window.removeEventListener("popstate", onPop);
+    };
+  }, []);
+
+  /** Mobile/tablet mở `/?tuy-chinh=1` hoặc thu hẹp viewport → bỏ param. */
+  useEffect(() => {
+    if (!isDesktopLayout && isHomeLayoutEditUrl()) {
+      clearHomeLayoutEditUrl();
+    }
+  }, [isDesktopLayout]);
 
   return (
     <JourneyComposeProvider
