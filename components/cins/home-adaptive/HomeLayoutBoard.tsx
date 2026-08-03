@@ -52,6 +52,7 @@ import {
 } from "@/lib/cins/home-adaptive/module-meta";
 import type { ModulePreviewPayload } from "@/lib/cins/home-adaptive/module-preview-types";
 import type { ModuleId, Persona } from "@/lib/cins/home-adaptive/persona";
+import { requestHomeLayoutEdit } from "@/lib/home/home-layout-edit";
 
 type Side = "left" | "right";
 
@@ -94,6 +95,8 @@ type LayoutEditCtx = {
   /** Vị trí đang mở panel thêm (giữa các khối). */
   addAt: { side: Side; index: number } | null;
   setAddAt: (v: { side: Side; index: number } | null) => void;
+  /** Vào edit (nếu cần) rồi mở bảng thêm khối tại vị trí. */
+  openAddAt: (side: Side, index: number) => void;
   menuId: ModuleId | null;
   setMenuId: (id: ModuleId | null) => void;
   /** Có khối chỉ có live preview (chưa SSR) — cần soft-refresh nền sau lưu. */
@@ -203,6 +206,8 @@ export function HomeLayoutEditProvider({
   const [addAt, setAddAt] = useState<{ side: Side; index: number } | null>(
     null,
   );
+  /** Giữ vị trí chèn khi vừa request vào edit (tránh mất addAt giữa 2 render). */
+  const pendingAddAtRef = useRef<{ side: Side; index: number } | null>(null);
   const [menuId, setMenuId] = useState<ModuleId | null>(null);
   const [previews, setPreviews] = useState<Map<ModuleId, PreviewEntry>>(
     () => new Map(),
@@ -242,6 +247,28 @@ export function HomeLayoutEditProvider({
     window.addEventListener("beforeunload", onBeforeUnload);
     return () => window.removeEventListener("beforeunload", onBeforeUnload);
   }, [editing, dirty]);
+
+  useEffect(() => {
+    if (!editing) return;
+    const pending = pendingAddAtRef.current;
+    if (!pending) return;
+    pendingAddAtRef.current = null;
+    setAddAt(pending);
+  }, [editing]);
+
+  const openAddAt = useCallback(
+    (side: Side, index: number) => {
+      const target = { side, index };
+      if (editing) {
+        setAddAt(target);
+        return;
+      }
+      pendingAddAtRef.current = target;
+      setAddAt(target);
+      requestHomeLayoutEdit();
+    },
+    [editing],
+  );
 
   /** Đang gắn cột — `hidden` vẫn hiện trong «Thêm khối» để bật lại. */
   const used = useMemo(
@@ -513,6 +540,7 @@ export function HomeLayoutEditProvider({
       available,
       addAt,
       setAddAt,
+      openAddAt,
       menuId,
       setMenuId,
       needsServerHydrate,
@@ -542,6 +570,7 @@ export function HomeLayoutEditProvider({
       setItemLimit,
       available,
       addAt,
+      openAddAt,
       menuId,
       needsServerHydrate,
       discardDraft,
@@ -686,6 +715,7 @@ export function HomeEditableColumn({ side }: { side: Side }) {
       className={`wj-guest-aside wj-guest-aside--${side} ha-col ha-col--${side}${
         ctx.editing ? " ha-col--editing" : ""
       }${solo ? " ha-col--solo" : ""}`}
+      id={`wj-aside-${side}`}
       data-ha-solo={solo ? "1" : undefined}
       aria-label={
         ctx.editing
@@ -739,6 +769,9 @@ export function HomeEditableColumn({ side }: { side: Side }) {
         if (!ctx.editing && !ctx.childMap.has(id) && !hasLivePreview) {
           return null;
         }
+
+        /** Ngoài edit: chỉ hiện + giữa 2 khối (không đầu/cuối cột). */
+        const showGapAfter = ctx.editing || index < ids.length - 1;
 
         return (
           <div key={id} className="ha-edit-slot-wrap">
@@ -913,7 +946,7 @@ export function HomeEditableColumn({ side }: { side: Side }) {
               </div>
             </div>
 
-            {ctx.editing ? (
+            {showGapAfter ? (
               <InsertGap
                 side={side}
                 index={index + 1}
@@ -1068,7 +1101,13 @@ function InsertGap({
         aria-label={`Thêm khối tại vị trí ${index + 1}`}
         aria-expanded={open}
         title="Thêm khối vào đây"
-        onClick={() => ctx.setAddAt(open ? null : { side, index })}
+        onClick={() => {
+          if (open) {
+            ctx.setAddAt(null);
+            return;
+          }
+          ctx.openAddAt(side, index);
+        }}
       >
         <Plus size={14} strokeWidth={2.4} aria-hidden />
       </button>

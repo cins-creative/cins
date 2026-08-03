@@ -61,6 +61,7 @@ const UPCOMING_EVENTS = [
 export function WorldJourneyGuestRightAside() {
   return (
     <aside
+      id="wj-aside-right"
       className="wj-guest-aside wj-guest-aside--right"
       aria-label="Gợi ý và sự kiện"
     >

@@ -13,7 +13,6 @@ import { HaOrgSuggestionRow } from "@/components/cins/home-adaptive/HaOrgSuggest
 import { HaUpdateProjectButton } from "@/components/cins/home-adaptive/HaUpdateProjectButton";
 import { HaUserSuggestionRow } from "@/components/cins/home-adaptive/HaUserSuggestionRow";
 import { ModuleCard } from "@/components/cins/home-adaptive/ModuleCard";
-import { WorldJourneyJobsFab } from "@/components/cins/home-adaptive/WorldJourneyJobsFab";
 import type { HomeModuleCtx } from "@/components/cins/home-adaptive/types";
 import { moduleItemLimit } from "@/components/cins/home-adaptive/types";
 import { loadCoHoiForHome, type CoHoiItem } from "@/lib/cins/home-adaptive/co-hoi";
@@ -187,20 +186,18 @@ export async function CoHoiModule({ ctx }: { ctx: HomeModuleCtx }) {
   if (jobs.length === 0) return null;
 
   return (
-    <WorldJourneyJobsFab count={jobs.length}>
-      <ModuleCard
-        icon={Briefcase}
-        title="Cơ hội cho bạn"
-        className="ha-card--jobs"
-        moreHref="/tuyen-dung"
-        moreLabel="Xem thêm"
-      >
-        <div className="ha-job-list">
-          {jobs.map((job) => (
-            <CoHoiJobRow key={job.id} job={job} />
-          ))}
-        </div>
-      </ModuleCard>
-    </WorldJourneyJobsFab>
+    <ModuleCard
+      icon={Briefcase}
+      title="Cơ hội cho bạn"
+      className="ha-card--jobs"
+      moreHref="/tuyen-dung"
+      moreLabel="Xem thêm"
+    >
+      <div className="ha-job-list">
+        {jobs.map((job) => (
+          <CoHoiJobRow key={job.id} job={job} />
+        ))}
+      </div>
+    </ModuleCard>
   );
 }

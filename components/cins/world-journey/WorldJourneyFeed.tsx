@@ -20,7 +20,6 @@ import { WorldJourneyGuestRightAside } from "@/components/cins/world-journey/Wor
 import { BunnyVideoProcessingPoller } from "@/components/journey/BunnyVideoProcessingPoller";
 import { JourneyGalleryGridView } from "@/components/journey/JourneyGalleryGridView";
 import type { SidebarProfile } from "@/components/journey/JourneySidebar";
-import { OrgNotifyFabHost } from "@/components/org/OrgNotifyFab";
 import {
   buildWorldJourneyFeedQuery,
   findWorldJourneyFilterChip,
@@ -71,10 +70,10 @@ import "@/app/[slug]/journey/journey.css";
 /* Inline unfold + bình luận dùng `.cins-post-view` — cùng CSS với journey layout / modal. */
 import "@/app/[slug]/p/new/editor.css";
 import "@/app/[slug]/p/[postSlug]/post-page.css";
-import "@/app/org-notify-fab.css";
 import "@/app/world-journey-feed.css";
 
 type FeedSurfaceView = "journey" | "gallery";
+type OpenAside = "left" | "right" | null;
 
 function feedViewFromSearch(search: string): FeedSurfaceView {
   return new URLSearchParams(search).get("view") === "gallery"
@@ -118,11 +117,6 @@ function WorldJourneyFilterBar({
 }) {
   return (
     <div className="wj-filter-bar">
-      {/* Mobile/tablet: briefcase + lịch — mép trái. Desktop ≥1200px ẩn. */}
-      <div className="wj-filter-trail-start">
-        <OrgNotifyFabHost slot="jobs" className="wj-notify-fab-host" />
-        <OrgNotifyFabHost slot="notify" className="wj-notify-fab-host" />
-      </div>
       <span className="wj-filter-spacer" />
       <div className="wj-filter-trail">
         <div className="wj-view-toggle" role="group" aria-label="Chế độ xem">
@@ -170,6 +164,13 @@ function WorldJourneyFilterBar({
     </div>
   );
 }
+
+/** Mép màn hình bắt đầu swipe (px). */
+const WJ_ASIDE_SWIPE_EDGE = 40;
+/** Vuốt ngang tối thiểu để mở / đóng drawer (px). */
+const WJ_ASIDE_SWIPE_MIN_DX = 56;
+/** |dy| vượt ngưỡng này → coi là cuộn dọc, bỏ qua. */
+const WJ_ASIDE_SWIPE_MAX_DY = 48;
 
 function WorldJourneyFilterSearching({
   surface,
@@ -245,6 +246,146 @@ export function WorldJourneyFeed({
   feedPromos?: FeedPromoVariant[];
 }) {
   const [surfaceView, setSurfaceView] = useState<FeedSurfaceView>("journey");
+  const [openAside, setOpenAside] = useState<OpenAside>(null);
+  const homeRootRef = useRef<HTMLDivElement | null>(null);
+  const openAsideRef = useRef<OpenAside>(null);
+  openAsideRef.current = openAside;
+
+  useEffect(() => {
+    if (!openAside) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpenAside(null);
+    };
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [openAside]);
+
+  useEffect(() => {
+    const mqDesktop = window.matchMedia("(min-width: 1200px)");
+    const mqTablet = window.matchMedia("(min-width: 992px)");
+    const sync = () => {
+      setOpenAside((cur) => {
+        if (!cur) return cur;
+        if (mqDesktop.matches) return null;
+        if (cur === "left" && mqTablet.matches) return null;
+        return cur;
+      });
+    };
+    mqDesktop.addEventListener("change", sync);
+    mqTablet.addEventListener("change", sync);
+    return () => {
+      mqDesktop.removeEventListener("change", sync);
+      mqTablet.removeEventListener("change", sync);
+    };
+  }, []);
+
+  /**
+   * Mobile/tablet: vuốt từ mép trái → mở cột trái (≤991);
+   * vuốt từ mép phải → mở cột phải (≤1199). Drawer mở dạng fixed.
+   * Khi đang mở: vuốt ngược hướng đóng lại.
+   */
+  useEffect(() => {
+    const root = homeRootRef.current;
+    if (!root) return;
+
+    type TouchTrack = {
+      x: number;
+      y: number;
+      edge: "left" | "right" | null;
+    };
+    let track: TouchTrack | null = null;
+
+    const canOpenLeft = () =>
+      surfaceViewRef.current !== "gallery" &&
+      window.matchMedia("(max-width: 991.98px)").matches;
+    const canOpenRight = () =>
+      surfaceViewRef.current !== "gallery" &&
+      window.matchMedia("(max-width: 1199.98px)").matches;
+
+    const onStart = (e: TouchEvent) => {
+      if (e.touches.length !== 1) {
+        track = null;
+        return;
+      }
+      const t = e.touches[0];
+      const w = window.innerWidth;
+      let edge: "left" | "right" | null = null;
+      if (t.clientX <= WJ_ASIDE_SWIPE_EDGE) edge = "left";
+      else if (t.clientX >= w - WJ_ASIDE_SWIPE_EDGE) edge = "right";
+
+      const open = openAsideRef.current;
+      if (open) {
+        /* Đóng: bắt đầu từ trong panel hoặc gần mép tương ứng. */
+        track = { x: t.clientX, y: t.clientY, edge: open };
+        return;
+      }
+      if (!edge) {
+        track = null;
+        return;
+      }
+      if (edge === "left" && !canOpenLeft()) {
+        track = null;
+        return;
+      }
+      if (edge === "right" && !canOpenRight()) {
+        track = null;
+        return;
+      }
+      track = { x: t.clientX, y: t.clientY, edge };
+    };
+
+    const onEnd = (e: TouchEvent) => {
+      if (!track || e.changedTouches.length !== 1) {
+        track = null;
+        return;
+      }
+      const t = e.changedTouches[0];
+      const dx = t.clientX - track.x;
+      const dy = t.clientY - track.y;
+      const edge = track.edge;
+      track = null;
+
+      if (Math.abs(dy) > WJ_ASIDE_SWIPE_MAX_DY) return;
+      if (Math.abs(dx) < WJ_ASIDE_SWIPE_MIN_DX) return;
+      if (Math.abs(dx) < Math.abs(dy) * 1.2) return;
+
+      const open = openAsideRef.current;
+      if (open === "left") {
+        if (dx < 0) setOpenAside(null);
+        return;
+      }
+      if (open === "right") {
+        if (dx > 0) setOpenAside(null);
+        return;
+      }
+      if (edge === "left" && dx > 0 && canOpenLeft()) {
+        setOpenAside("left");
+        return;
+      }
+      if (edge === "right" && dx < 0 && canOpenRight()) {
+        setOpenAside("right");
+      }
+    };
+
+    const onCancel = () => {
+      track = null;
+    };
+
+    root.addEventListener("touchstart", onStart, { passive: true });
+    root.addEventListener("touchend", onEnd, { passive: true });
+    root.addEventListener("touchcancel", onCancel, { passive: true });
+    return () => {
+      root.removeEventListener("touchstart", onStart);
+      root.removeEventListener("touchend", onEnd);
+      root.removeEventListener("touchcancel", onCancel);
+    };
+  }, []);
+
   /** Loại nội dung cố định «Tất cả» — UI lọc đã gỡ. */
   const activeFilter = "all";
   const [feedSource, setFeedSource] =
@@ -295,6 +436,7 @@ export function WorldJourneyFeed({
         reloadFromTop();
         return;
       }
+      setOpenAside(null);
       setSurfaceView(next);
       window.history.pushState({ wjView: next }, "", feedViewHref(next));
     },
@@ -750,12 +892,43 @@ export function WorldJourneyFeed({
 
   return (
     <div
+      ref={homeRootRef}
       className={
         "world-journey-home cins-journey-page" + (isGallery ? " view-grid" : "")
       }
       aria-label="World Journey"
     >
-      <div className="wj-shell">
+      {openAside ? (
+        <button
+          type="button"
+          className="wj-aside-drawer-backdrop"
+          aria-label="Đóng cột sidebar"
+          onClick={() => setOpenAside(null)}
+        />
+      ) : null}
+      {/* Mép click/tap → mở drawer fixed (song song với swipe). */}
+      {!isGallery && !openAside ? (
+        <>
+          <button
+            type="button"
+            className="wj-aside-edge wj-aside-edge--left"
+            aria-label="Mở cột trái"
+            aria-controls="wj-aside-left"
+            onClick={() => setOpenAside("left")}
+          />
+          <button
+            type="button"
+            className="wj-aside-edge wj-aside-edge--right"
+            aria-label="Mở cột phải"
+            aria-controls="wj-aside-right"
+            onClick={() => setOpenAside("right")}
+          />
+        </>
+      ) : null}
+      <div
+        className="wj-shell"
+        data-open-aside={openAside ?? undefined}
+      >
         {leftAside ?? (
           <WorldJourneyGuestLeftAside
             linhVucs={linhVucs}

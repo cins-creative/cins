@@ -112,84 +112,12 @@
   margin-top: calc(-1 * var(--wj-feed-pad-top, 0px));
 }
 
-/* Cụm trái: lịch / jobs (mobile–tablet; desktop ≥1200px ẩn host).
- * Đồng bộ kích thước / track với `.wj-view-toggle` + `.wj-vt-btn`. */
-.wj-filter-trail-start {
-  display: inline-flex;
-  align-items: center;
-  gap: 0;
-  flex-shrink: 0;
-  padding: 0;
-  background: transparent;
-}
-
-/* Cụm phải: chế độ xem. */
+/* Cụm phải: chế độ xem (timeline / gallery). */
 .wj-filter-trail {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   flex-shrink: 0;
-}
-
-/* Slot nút lịch — khớp `.wj-vt-btn` (40×36 trong track pill <1200px). */
-.wj-filter-bar .wj-notify-fab-host {
-  width: 40px;
-  height: 36px;
-}
-
-.wj-filter-bar .wj-notify-fab-host:empty {
-  display: none;
-}
-
-.wj-filter-bar .wj-notify-fab-host .org-notify-fab {
-  width: 40px;
-  height: 36px;
-  border-radius: var(--r-pill);
-  background: transparent;
-  color: var(--ink2, rgba(0, 0, 0, 0.55));
-  box-shadow: none;
-}
-
-.wj-filter-bar .wj-notify-fab-host .org-notify-fab svg {
-  width: 22px;
-  height: 22px;
-  min-width: 22px;
-  min-height: 22px;
-  flex-shrink: 0;
-}
-
-.wj-filter-bar .wj-notify-fab-host .org-notify-fab:hover,
-.wj-filter-bar .wj-notify-fab-host .org-notify-fab:focus-visible {
-  background: transparent;
-  color: var(--ink1, rgba(0, 0, 0, 0.85));
-  box-shadow: none;
-}
-
-.wj-filter-bar .wj-notify-fab-host .org-notify-fab.is-open {
-  background: var(--surface, #fff);
-  color: var(--blue, var(--cins-blue, #1f74c9));
-  box-shadow: var(--sh-xs);
-}
-
-.wj-filter-bar .wj-notify-fab-host .org-notify-fab-badge {
-  top: -3px;
-  right: -3px;
-  min-width: 14px;
-  height: 14px;
-  padding: 0 3px;
-  font-size: 9px;
-  line-height: 14px;
-  box-shadow: none;
-}
-
-@media (min-width: 1200px) {
-  .wj-filter-bar .wj-notify-fab-host {
-    display: none;
-  }
-
-  .wj-filter-trail-start {
-    display: none;
-  }
 }
 
 /* <1200: toggle phải cùng track / size với cụm trái. */
@@ -843,7 +771,9 @@
 .world-journey-home.view-grid .wj-shell .wj-guest-aside--right,
 .wj-shell.view-grid .wj-guest-aside--left,
 .wj-shell.view-grid .wj-guest-aside--right {
-  display: none;
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
 }
 
 /* ── Feed column ────────────────────────────────────────────── */
@@ -4024,6 +3954,64 @@
   margin-top: 2px;
 }
 
+/* Backdrop khi mở drawer cột L/R. */
+.wj-aside-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: rgba(15, 23, 42, 0.4);
+  cursor: pointer;
+}
+
+/* Mép màn hình: tap/click mở drawer fixed (ẩn nút header). */
+.wj-aside-edge {
+  position: fixed;
+  top: var(--wj-sticky-top, 64px);
+  bottom: 0;
+  z-index: 35;
+  width: 14px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.wj-aside-edge--left {
+  left: 0;
+  display: none;
+}
+
+.wj-aside-edge--right {
+  right: 0;
+  display: none;
+}
+
+@media (max-width: 1199.98px) {
+  .wj-aside-edge--right {
+    display: block;
+  }
+}
+
+@media (max-width: 991.98px) {
+  .wj-aside-edge--left {
+    display: block;
+  }
+}
+
+.world-journey-home.view-grid .wj-aside-edge {
+  display: none;
+}
+
+/* Header giữ trên backdrop để nút toggle vẫn bấm được. */
+.world-journey-home:has(.wj-shell[data-open-aside]) .wj-feed-header {
+  z-index: 100;
+}
+
 /* Responsive */
 @media (max-width: 1199.98px) {
   .world-journey-home .wj-shell {
@@ -4038,8 +4026,36 @@
     margin: 0;
   }
 
-  .world-journey-home .wj-guest-aside--right {
+  /* Cột phải → off-canvas. Đóng: display:none (không chiếm chiều cao shell).
+     Mở: fixed drawer. Cây React vẫn mount. */
+  .world-journey-home .wj-shell > .wj-guest-aside--right {
     display: none;
+  }
+
+  .world-journey-home .wj-shell[data-open-aside="right"] > .wj-guest-aside--right,
+  .world-journey-home .wj-shell > .wj-guest-aside--right.is-open {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    position: fixed;
+    top: var(--wj-sticky-top, 64px);
+    right: 0;
+    bottom: 0;
+    left: auto;
+    z-index: 90;
+    width: min(320px, 92vw);
+    max-height: none;
+    height: calc(100dvh - var(--wj-sticky-top, 64px));
+    margin: 0;
+    padding: 12px 12px 24px;
+    overflow-x: clip;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    background: var(--bg-page, #f7f8fa);
+    box-shadow: var(--sh-md, 0 8px 28px rgba(15, 23, 42, 0.16));
+    transform: translateX(0);
+    pointer-events: auto;
+    visibility: visible;
   }
 }
 
@@ -4101,22 +4117,37 @@
     border-radius: 5px 5px 0 0;
   }
 
-  .world-journey-home .wj-guest-aside--right {
-    display: flex;
-    order: 3;
-    position: static;
-    padding: 0 16px;
-    /* Trên mobile cột về static → bỏ giới hạn cao & cuộn riêng. */
-    max-height: none;
-    overflow: visible;
-  }
-
-  /* Mobile: cột trái → FAB / ẩn; không stack trên feed. */
-  .world-journey-home .wj-guest-aside--left {
+  /* Mobile: cột trái → off-canvas. Đóng: display:none (không phình .wj-shell). */
+  .world-journey-home .wj-shell > .wj-guest-aside--left {
     display: none;
   }
 
-  /* Cột phải rỗng khi mọi module đã portal vào FAB. */
+  .world-journey-home .wj-shell[data-open-aside="left"] > .wj-guest-aside--left,
+  .world-journey-home .wj-shell > .wj-guest-aside--left.is-open {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    position: fixed;
+    top: var(--wj-sticky-top, 64px);
+    left: 0;
+    right: auto;
+    bottom: 0;
+    z-index: 90;
+    width: min(320px, 92vw);
+    max-height: none;
+    height: calc(100dvh - var(--wj-sticky-top, 64px));
+    margin: 0;
+    padding: 12px 12px 24px;
+    overflow-x: clip;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    background: var(--bg-page, #f7f8fa);
+    box-shadow: var(--sh-md, 0 8px 28px rgba(15, 23, 42, 0.16));
+    transform: translateX(0);
+    pointer-events: auto;
+    visibility: visible;
+  }
+
   .world-journey-home .wj-guest-aside--right:empty {
     display: none;
   }
@@ -4344,6 +4375,62 @@
   -ms-overflow-style: none;
   padding-right: 0;
 }
+
+/* Drawer L/R — đặt SAU .ha-col sticky để position/height không bị ghi đè
+   (trước đây visibility:hidden + sticky vẫn chiếm chiều cao → .wj-shell ~9000px). */
+@media (max-width: 1199.98px) {
+  .world-journey-home .wj-shell > .ha-col.wj-guest-aside--right {
+    display: none;
+    width: min(320px, 92vw);
+    height: calc(100dvh - var(--wj-sticky-top, 64px));
+    max-height: none;
+  }
+
+  .world-journey-home .wj-shell[data-open-aside="right"] > .ha-col.wj-guest-aside--right {
+    display: flex;
+    position: fixed;
+    top: var(--wj-sticky-top, 64px);
+    right: 0;
+    bottom: 0;
+    left: auto;
+    z-index: 90;
+    width: min(320px, 92vw);
+    height: calc(100dvh - var(--wj-sticky-top, 64px));
+    max-height: none;
+    align-self: auto;
+  }
+}
+
+@media (max-width: 991.98px) {
+  .world-journey-home .wj-shell > .ha-col.wj-guest-aside--left {
+    display: none;
+    width: min(320px, 92vw);
+    height: calc(100dvh - var(--wj-sticky-top, 64px));
+    max-height: none;
+  }
+
+  .world-journey-home .wj-shell[data-open-aside="left"] > .ha-col.wj-guest-aside--left {
+    display: flex;
+    position: fixed;
+    top: var(--wj-sticky-top, 64px);
+    left: 0;
+    right: auto;
+    bottom: 0;
+    z-index: 90;
+    width: min(320px, 92vw);
+    height: calc(100dvh - var(--wj-sticky-top, 64px));
+    max-height: none;
+    align-self: auto;
+  }
+
+  /* Solo card trong drawer: cao theo panel, không ép 100dvh sticky. */
+  .world-journey-home .wj-shell[data-open-aside] > .ha-col.ha-col--solo {
+    height: calc(100dvh - var(--wj-sticky-top, 64px));
+    max-height: none;
+    overflow: auto;
+  }
+}
+
 
 .world-journey-home .ha-col::-webkit-scrollbar {
   display: none;
@@ -4942,12 +5029,10 @@
 }
 
 @media (max-width: 991.98px) {
-  /* Mobile: cột về static, bỏ giới hạn cao & cuộn riêng. */
-  .world-journey-home .ha-col {
-    position: static;
-    height: auto;
-    max-height: none;
-    overflow: visible;
+  /* Mobile drawer: overflow khi mở — closed dùng display:none ở block trên. */
+  .world-journey-home .wj-shell[data-open-aside] > .ha-col.wj-guest-aside {
+    overflow-x: clip;
+    overflow-y: auto;
   }
 }
 
@@ -4982,25 +5067,6 @@
 .world-journey-home .ha-card--notify {
   overflow: visible;
   height: fit-content;
-}
-
-/* Drawer mobile: bỏ khung card trùng tiêu đề drawer, giữ body. */
-.wj-notify-fab-panel > .ha-card--notify,
-.wj-notify-fab-panel > .ha-card--jobs {
-  border: none;
-  box-shadow: none;
-  background: transparent;
-  border-radius: 0;
-}
-
-.wj-notify-fab-panel > .ha-card--notify > .ha-card-head,
-.wj-notify-fab-panel > .ha-card--jobs > .ha-card-head {
-  display: none;
-}
-
-/* Giữ link «Xem thêm» tuyển dụng dưới list trong drawer. */
-.wj-notify-fab-panel > .ha-card--jobs .ha-job-list {
-  padding-top: 4px;
 }
 
 .world-journey-home .ha-card--notify .ha-org-up-head {
@@ -6720,7 +6786,8 @@
 .ha-edit-bar {
   position: sticky;
   top: var(--wj-sticky-top, var(--j-topbar-h, 64px));
-  z-index: 50;
+  /* Trên drawer cột L/R (z=90) và feed header khi mở drawer (z=100). */
+  z-index: 110;
   margin: 0;
   padding: 0 16px 12px;
   box-sizing: border-box;
@@ -6916,7 +6983,12 @@
   opacity: 1;
   cursor: pointer;
   transform: translate(-50%, -50%);
-  transition: background 0.12s, border-color 0.12s, transform 0.12s, box-shadow 0.12s;
+  transition:
+    opacity 0.12s,
+    background 0.12s,
+    border-color 0.12s,
+    transform 0.12s,
+    box-shadow 0.12s;
 }
 
 .ha-edit-gap:hover .ha-edit-gap-btn,
@@ -6924,6 +6996,34 @@
   background: color-mix(in srgb, var(--cins-blue, #1f74c9) 14%, var(--bg-surface, #fff));
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--cins-blue, #1f74c9) 18%, transparent);
   transform: translate(-50%, -50%) scale(1.06);
+}
+
+/* Ngoài edit: vùng hover mỏng giữa 2 khối — + ẩn tới khi hover. */
+.ha-col:not(.ha-col--editing) .ha-edit-gap {
+  height: 14px;
+  margin: -7px 0;
+  z-index: 4;
+}
+
+.ha-col:not(.ha-col--editing) .ha-edit-gap::before {
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+
+.ha-col:not(.ha-col--editing) .ha-edit-gap-btn {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ha-col:not(.ha-col--editing) .ha-edit-gap:hover::before,
+.ha-col:not(.ha-col--editing) .ha-edit-gap--open::before {
+  opacity: 1;
+}
+
+.ha-col:not(.ha-col--editing) .ha-edit-gap:hover .ha-edit-gap-btn,
+.ha-col:not(.ha-col--editing) .ha-edit-gap--open .ha-edit-gap-btn {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .ha-edit-add-overlay {
@@ -7008,11 +7108,16 @@
   display: flex;
   align-items: center;
   gap: 6px;
+  flex-shrink: 0;
   min-height: 36px;
-  padding: 5px 6px 5px 4px;
+  min-width: 0;
+  width: 100%;
+  padding: 6px 8px 6px 4px;
   border-bottom: 1px solid var(--border, #e4e6eb);
   border-radius: var(--r-lg, 14px) var(--r-lg, 14px) 0 0;
   background: color-mix(in srgb, var(--cins-blue, #1f74c9) 6%, var(--bg-surface, #fff));
+  overflow: visible;
+  box-sizing: border-box;
 }
 
 .ha-edit-grip {
@@ -7025,6 +7130,7 @@
   color: var(--ink-muted, rgba(0, 0, 0, 0.38));
   cursor: grab;
   flex: 0 0 auto;
+  align-self: center;
 }
 
 .ha-edit-grip:active {
@@ -7036,8 +7142,9 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  flex: 1;
+  flex: 1 1 auto;
   min-width: 0;
+  overflow: visible;
 }
 
 .ha-edit-label {
@@ -7045,10 +7152,21 @@
   font-size: 0.78rem;
   font-weight: 700;
   letter-spacing: -0.01em;
+  line-height: 1.35;
   color: var(--ink-display, rgba(0, 0, 0, 0.88));
-  white-space: nowrap;
+  /* Wrap tối đa 2 dòng trong cột hẹp — tránh cắt 1 dòng kiểu ellipsis. */
+  white-space: normal;
   overflow: hidden;
-  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow-wrap: anywhere;
+}
+
+.ha-edit-actions,
+.ha-edit-limit {
+  align-self: center;
 }
 
 .ha-edit-new {

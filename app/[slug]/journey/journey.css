@@ -10106,6 +10106,7 @@ select.j-edit-input {
   border-radius: 0;
   border: none;
   box-shadow: none;
+  background: var(--bg-surface, #fff);
 }
 .j-post-sheet .cins-post-view .post-view-content,
 .j-post-sheet .cins-post-view .post-view-rail {
@@ -10821,6 +10822,16 @@ select.j-edit-input {
     border-radius: 0;
   }
 
+  /* display:contents bỏ hộp .post-view-content → nền phải nằm ở inner/blocks */
+  .j-post-overlay
+    .j-post-sheet:has(.post-canvas--split:not(.post-canvas--media))
+    .post-view-content-inner,
+  .j-post-overlay
+    .j-post-sheet:has(.post-canvas--split:not(.post-canvas--media))
+    .post-blocks-fb {
+    background: var(--bg-surface, #fff);
+  }
+
   .j-post-overlay
     .j-post-sheet:has(.post-canvas--media.post-canvas--split)
     .post-view-content--media {
@@ -10954,7 +10965,8 @@ select.j-edit-input {
   }
 }
 
-/* JourneyPostBody = một `main` — sheet khớp canvas 880px, không wrapper thừa. */
+/* JourneyPostBody = một `main` — sheet khớp canvas 880px, không wrapper thừa.
+ * Nền đặc (--bg-surface): tránh trong suốt nhìn xuyên overlay tối → chữ khó đọc. */
 .j-post-sheet
   .cins-editor-page.cins-post-view.editor-canvas.post-canvas:not(.post-canvas--split) {
   width: 100%;
@@ -10963,7 +10975,7 @@ select.j-edit-input {
   min-height: 0;
   border-radius: 12px;
   overflow: hidden;
-  background: transparent;
+  background: var(--bg-surface, #fff);
   box-shadow: none;
   padding: 36px 56px 48px;
 }
@@ -10976,7 +10988,7 @@ select.j-edit-input {
   padding: 0;
   border-radius: 0;
   overflow: visible;
-  background: transparent;
+  background: var(--bg-surface, #fff);
   box-shadow: none;
 }
 .j-post-sheet

@@ -47,7 +47,11 @@ export function WorldJourneyGuestLeftAside({
   onLinhVucFilter,
 }: Props) {
   return (
-    <aside className="wj-guest-aside wj-guest-aside--left" aria-label="Khám phá lĩnh vực">
+    <aside
+      id="wj-aside-left"
+      className="wj-guest-aside wj-guest-aside--left"
+      aria-label="Khám phá lĩnh vực"
+    >
       <section className="wj-guest-panel">
         <div className="wj-guest-sec-head">
           <span className="wj-guest-sec-num">02</span>

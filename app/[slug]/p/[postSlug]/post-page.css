@@ -5376,6 +5376,14 @@
     padding: 0;
   }
 
+  /* contents bỏ nền của .post-view-content → gắn nền đặc vào inner/blocks */
+  .cins-post-view.post-canvas--split:not(.post-canvas--media) .post-view-content-inner,
+  .cins-post-view .post-canvas--split:not(.post-canvas--media) .post-view-content-inner,
+  .cins-post-view.post-canvas--split:not(.post-canvas--media) .post-blocks-fb,
+  .cins-post-view .post-canvas--split:not(.post-canvas--media) .post-blocks-fb {
+    background: var(--bg-surface, #fff);
+  }
+
   .cins-post-view .post-view-content {
     order: 1;
     padding: 24px 20px 28px;
