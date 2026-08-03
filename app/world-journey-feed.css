@@ -5739,12 +5739,10 @@
 
 .world-journey-home .ha-org-up-item--interest .ha-org-up--banner {
   border-color: color-mix(in srgb, var(--violet, #6b4ce6) 28%, var(--border));
-  box-shadow: 0 4px 16px color-mix(in srgb, var(--violet, #6b4ce6) 12%, transparent);
 }
 
 .world-journey-home .ha-org-up-item--rsvp .ha-org-up--banner {
   border-color: color-mix(in srgb, var(--blue) 28%, var(--border));
-  box-shadow: 0 4px 16px color-mix(in srgb, var(--blue) 12%, transparent);
 }
 
 .world-journey-home .ha-org-up {
@@ -5766,17 +5764,16 @@
   border-radius: var(--r-md);
   overflow: hidden;
   background: var(--surface);
-  box-shadow: var(--sh-xs);
+  box-shadow: none;
   transition:
     transform 0.15s var(--ease),
-    box-shadow 0.15s var(--ease),
     border-color 0.15s var(--ease);
 }
 
 .world-journey-home .ha-org-up--banner:hover {
   background: var(--surface);
   transform: translateY(-1px);
-  box-shadow: var(--sh-sm, 0 4px 14px color-mix(in srgb, var(--ink1) 8%, transparent));
+  box-shadow: none;
 }
 
 .world-journey-home .ha-org-up-banner {
