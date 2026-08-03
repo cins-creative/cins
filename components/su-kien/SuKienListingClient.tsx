@@ -14,7 +14,7 @@ import {
   labelLoaiSuKien,
   type LoaiSuKien,
 } from "@/lib/to-chuc/su-kien-constants";
-import type { LoaiPhanHoiSuKien } from "@/lib/to-chuc/su-kien-dang-ky";
+import type { LoaiPhanHoiSuKien } from "@/lib/to-chuc/su-kien-phan-hoi-types";
 import type { SuKienListItem } from "@/lib/to-chuc/su-kien-listing";
 import { suKienCardPath } from "@/lib/to-chuc/su-kien-routes";
 import {

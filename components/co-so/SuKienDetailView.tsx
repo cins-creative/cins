@@ -11,6 +11,7 @@ import {
   Share2,
   Ticket,
   Users,
+  X,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -29,7 +30,7 @@ import { ShopQuaySuKienPanel } from "@/components/shop/ShopQuaySuKienPanel";
 import { SuKienManagePanel } from "@/components/co-so/SuKienManagePanel";
 import { ShareLinkMenu } from "@/components/social/ShareLinkMenu";
 import { orgLoaiLabel } from "@/lib/cins/home-adaptive/suggestions-display";
-import type { LoaiPhanHoiSuKien } from "@/lib/to-chuc/su-kien-dang-ky";
+import type { LoaiPhanHoiSuKien } from "@/lib/to-chuc/su-kien-phan-hoi-types";
 import {
   formatGiaVnd,
   labelLoaiSuKien,
@@ -393,15 +394,28 @@ function SuKienRsvpActions({
           type="button"
           className={`cso-sk-detail-btn cso-sk-detail-btn--join${registered ? " is-active" : ""}`}
           aria-pressed={registered}
+          aria-label={registered ? "Hủy tham gia sự kiện" : "Sẽ tham gia"}
+          title={registered ? "Hủy tham gia" : undefined}
           disabled={!loaded || pending || slotFull}
           onClick={() => onPhanHoi("se_tham_gia")}
         >
           {registered ? (
-            <Check size={iconSize} aria-hidden />
+            <>
+              <span className="cso-sk-detail-btn-face cso-sk-detail-btn-face--idle">
+                <Check size={iconSize} aria-hidden />
+                Đã đăng ký
+              </span>
+              <span className="cso-sk-detail-btn-face cso-sk-detail-btn-face--hover">
+                <X size={iconSize} aria-hidden />
+                Hủy tham gia
+              </span>
+            </>
           ) : (
-            <Users size={iconSize} aria-hidden />
+            <>
+              <Users size={iconSize} aria-hidden />
+              Sẽ tham gia
+            </>
           )}
-          {registered ? "Đã đăng ký" : "Sẽ tham gia"}
         </button>
       </div>
     </div>

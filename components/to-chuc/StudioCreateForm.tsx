@@ -2,7 +2,6 @@
 
 import {
   ArrowLeft,
-  ArrowRight,
   Check,
   CheckCircle2,
   ChevronDown,
@@ -10,6 +9,8 @@ import {
   SlidersHorizontal,
   XCircle,
 } from "lucide-react";
+
+import { CinsArrowIos } from "@/components/icons/CinsArrowIos";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -473,7 +474,7 @@ export function StudioCreateForm({ userSlug }: { userSlug: string }) {
             disabled={pending || slugChecking || slugAvailable === false}
           >
             {pending ? "Đang tạo…" : "Tạo studio"}
-            <ArrowRight size={17} aria-hidden />
+            <CinsArrowIos size={17} aria-hidden />
           </button>
         </div>
       </form>

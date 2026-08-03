@@ -674,7 +674,7 @@ function ChatThreadRow({
     return (
       <span
         className="cins-chat-khach-tag-chip"
-        style={roomTagChipStyle(color)}
+        style={{ color }}
         title={tag.ten}
       >
         {tag.ten}

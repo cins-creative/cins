@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  ArrowRight,
   BadgeCheck,
   Briefcase,
   Building2,
@@ -47,6 +46,8 @@ import {
   Users,
   Wrench,
 } from "lucide-react";
+
+import { CinsArrowIos } from "@/components/icons/CinsArrowIos";
 import type { CSSProperties } from "react";
 
 import { TtdaIcon } from "@/app/thong-tin-du-an/ttda-deck-shared";
@@ -347,7 +348,7 @@ export function LoTrinhPhatTrienSlides({
                 </p>
                 <span className="spill">
                   <TtdaIcon>
-                    <ArrowRight size={10} strokeWidth={1.6} />
+                    <CinsArrowIos size={10} strokeWidth={1.6} />
                   </TtdaIcon>
                   Kế tiếp
                 </span>
@@ -370,7 +371,7 @@ export function LoTrinhPhatTrienSlides({
                 <p>Hoàn thiện hiện diện đa nền tảng: Website · Android · iOS.</p>
                 <span className="spill">
                   <TtdaIcon>
-                    <ArrowRight size={10} strokeWidth={1.6} />
+                    <CinsArrowIos size={10} strokeWidth={1.6} />
                   </TtdaIcon>
                   Kế tiếp
                 </span>
@@ -479,7 +480,7 @@ export function LoTrinhPhatTrienSlides({
               </div>
               <span className="status next">
                 <TtdaIcon>
-                  <ArrowRight size={11} strokeWidth={1.6} />
+                  <CinsArrowIos size={11} strokeWidth={1.6} />
                 </TtdaIcon>
                 Giai đoạn kế tiếp
               </span>
@@ -555,7 +556,7 @@ export function LoTrinhPhatTrienSlides({
               </div>
               <span className="status next">
                 <TtdaIcon>
-                  <ArrowRight size={11} strokeWidth={1.6} />
+                  <CinsArrowIos size={11} strokeWidth={1.6} />
                 </TtdaIcon>
                 Sau mốc 10.000 user
               </span>

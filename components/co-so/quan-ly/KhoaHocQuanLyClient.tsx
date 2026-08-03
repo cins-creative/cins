@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, startTransition } from "react";
 import { ExternalLink, Pencil, Plus, Trash2, X } from "lucide-react";
 
 import { KhoaHocCreateModal } from "@/components/co-so/KhoaHocCreateModal";
@@ -40,9 +40,9 @@ type HocVienDangHoc = {
   dangFreeze: boolean;
 };
 
-const TABS: ReadonlyArray<{ id: TabId; label: string }> = [
-  { id: "khoa", label: "Quản lý khóa" },
-  { id: "lop", label: "Quản lý lớp học" },
+const TABS: ReadonlyArray<{ id: TabId; label: string; short: string }> = [
+  { id: "khoa", label: "Quản lý khóa", short: "Khóa" },
+  { id: "lop", label: "Quản lý lớp học", short: "Lớp" },
 ];
 
 const TRANG_THAI_LABEL: Record<string, string> = {
@@ -92,8 +92,10 @@ export function KhoaHocQuanLyClient({ orgId, orgSlug }: Props) {
 
   const [lopRows, setLopRows] = useState<LopHocQuanLyRow[]>([]);
   const [lopLoading, setLopLoading] = useState(true);
+  const [lopCanEdit, setLopCanEdit] = useState(false);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [lopFilterKhoaId, setLopFilterKhoaId] = useState<string | null>(null);
   const [hvByKhoa, setHvByKhoa] = useState<
     Record<string, { rows: HocVienDangHoc[]; total: number }>
   >({});
@@ -127,8 +129,10 @@ export function KhoaHocQuanLyClient({ orgId, orgSlug }: Props) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Không tải lớp.");
       setLopRows((data.lopHoc ?? []) as LopHocQuanLyRow[]);
+      setLopCanEdit(Boolean(data.canEdit));
     } catch {
       setLopRows([]);
+      setLopCanEdit(false);
     } finally {
       setLopLoading(false);
     }
@@ -175,6 +179,19 @@ export function KhoaHocQuanLyClient({ orgId, orgSlug }: Props) {
     if (!hvByKhoa[khoa.id]) {
       void loadHvDangHoc(khoa.id);
     }
+  }
+
+  function openLopCuaKhoa(khoa: KhoaHocCardData) {
+    startTransition(() => {
+      setLopFilterKhoaId(khoa.id);
+      setTab("lop");
+    });
+  }
+
+  function switchTab(id: TabId) {
+    startTransition(() => {
+      setTab(id);
+    });
   }
 
   async function softDeleteKhoa(khoa: KhoaHocCardData) {
@@ -244,24 +261,57 @@ export function KhoaHocQuanLyClient({ orgId, orgSlug }: Props) {
     return map;
   }, [lopRows]);
 
+  const lopFilterTenKhoa = useMemo(() => {
+    if (!lopFilterKhoaId) return null;
+    return rows.find((k) => k.id === lopFilterKhoaId)?.tenKhoaHoc ?? null;
+  }, [lopFilterKhoaId, rows]);
+
   return (
     <div className="cso-lh-page cso-dt-stack">
       <nav className="cso-lh-tabs" aria-label="Khóa và lớp">
-        {TABS.map(({ id, label }) => (
-          <button
-            key={id}
-            type="button"
-            className={`cso-lh-tab${tab === id ? " on" : ""}`}
-            aria-current={tab === id ? "true" : undefined}
-            onClick={() => setTab(id)}
-          >
-            {label}
-          </button>
-        ))}
+        <div className="cso-lh-trail" role="tablist">
+          {TABS.map(({ id, label, short }, index) => {
+            const isOn = tab === id;
+            const isFirst = index === 0;
+            const isLast = index === TABS.length - 1;
+            return (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                aria-selected={isOn}
+                className={[
+                  "cso-lh-tab",
+                  isFirst ? "is-first" : "",
+                  isLast ? "is-last" : "",
+                  isOn ? "is-active" : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+                onClick={() => switchTab(id)}
+              >
+                <span className="cso-lh-tab-label">
+                  <span className="cso-lh-tab-label-full">{label}</span>
+                  <span className="cso-lh-tab-label-short">{short}</span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        {tab === "lop" && lopFilterTenKhoa ? (
+          <p className="cso-lh-trail-hint">
+            Lớp thuộc khóa <strong>{lopFilterTenKhoa}</strong>
+          </p>
+        ) : (
+          <p className="cso-lh-trail-hint">Trong khóa có lớp</p>
+        )}
       </nav>
 
-      {tab === "khoa" ? (
-        <>
+      <div
+        className="cso-lh-tab-pane"
+        hidden={tab !== "khoa"}
+        aria-hidden={tab !== "khoa"}
+      >
           <section
             className="cso-dt-kpis cso-lh-kpis"
             aria-label="Tóm tắt khóa học"
@@ -365,7 +415,15 @@ export function KhoaHocQuanLyClient({ orgId, orgSlug }: Props) {
                             aria-selected={isSelected}
                           >
                             <td>
-                              <div className="cso-lh-khoa">
+                              <button
+                                type="button"
+                                className="cso-lh-khoa cso-lh-khoa-open"
+                                title={`Xem lớp của khóa ${k.tenKhoaHoc}`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openLopCuaKhoa(k);
+                                }}
+                              >
                                 {k.thumbnailUrl ? (
                                   // eslint-disable-next-line @next/next/no-img-element
                                   <img
@@ -374,16 +432,18 @@ export function KhoaHocQuanLyClient({ orgId, orgSlug }: Props) {
                                     alt=""
                                   />
                                 ) : (
-                                  <div
+                                  <span
                                     className="cso-lh-thumb cso-lh-thumb--ph"
                                     aria-hidden
                                   />
                                 )}
-                                <div>
-                                  <p className="cso-hv-name">{k.tenKhoaHoc}</p>
-                                  <p className="cso-hv-slug">/{k.slug}</p>
-                                </div>
-                              </div>
+                                <span className="cso-lh-khoa-meta">
+                                  <span className="cso-hv-name">
+                                    {k.tenKhoaHoc}
+                                  </span>
+                                  <span className="cso-hv-slug">/{k.slug}</span>
+                                </span>
+                              </button>
                             </td>
                             <td>
                               <p className="cso-hv-course">
@@ -749,14 +809,25 @@ export function KhoaHocQuanLyClient({ orgId, orgSlug }: Props) {
               void loadLop();
             }}
           />
-        </>
-      ) : (
+      </div>
+
+      <div
+        className="cso-lh-tab-pane"
+        hidden={tab !== "lop"}
+        aria-hidden={tab !== "lop"}
+      >
         <LopHocQuanLyPanel
           orgId={orgId}
           orgSlug={orgSlug}
           khoaOptions={khoaOptions}
+          khoaFilterId={lopFilterKhoaId}
+          onKhoaFilterChange={setLopFilterKhoaId}
+          seedRows={lopRows}
+          seedCanEdit={lopCanEdit}
+          seedReady={!lopLoading}
+          onRowsChange={setLopRows}
         />
-      )}
+      </div>
     </div>
   );
 }

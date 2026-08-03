@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  ArrowRight,
   CalendarDays,
   CircleDot,
   EyeOff,
@@ -10,6 +9,8 @@ import {
   Plus,
   Users,
 } from "lucide-react";
+
+import { CinsArrowIos } from "@/components/icons/CinsArrowIos";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -96,7 +97,7 @@ export function KhoaHocCard({
         <div className="cso-kh-card-top">
           <div className="cso-kh-card-name">{khoa.tenKhoaHoc}</div>
           {href ? (
-            <ArrowRight size={16} className="cso-kh-card-go" aria-hidden />
+            <CinsArrowIos size={16} className="cso-kh-card-go" aria-hidden />
           ) : null}
         </div>
         {canManage && khoa.cheDoHienThi === "an" ? (

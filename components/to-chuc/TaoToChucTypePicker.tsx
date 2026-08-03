@@ -1,10 +1,11 @@
 "use client";
 
 import {
-  ArrowRight,
   Briefcase,
   GraduationCap,
 } from "lucide-react";
+
+import { CinsArrowIos } from "@/components/icons/CinsArrowIos";
 import Link from "next/link";
 
 import { TaoToChucPageShell } from "@/components/to-chuc/TaoToChucPageShell";
@@ -30,7 +31,7 @@ export function TaoToChucTypePicker({ userSlug }: { userSlug: string }) {
               Studio sáng tạo, công ty, đội nhóm làm dự án &amp; tác phẩm.
             </div>
             <span className="ttc-type-arrow" aria-hidden>
-              <ArrowRight size={18} />
+              <CinsArrowIos size={18} />
             </span>
           </Link>
 
@@ -44,7 +45,7 @@ export function TaoToChucTypePicker({ userSlug }: { userSlug: string }) {
               viên.
             </div>
             <span className="ttc-type-arrow" aria-hidden>
-              <ArrowRight size={18} />
+              <CinsArrowIos size={18} />
             </span>
           </Link>
         </div>

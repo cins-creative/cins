@@ -15,6 +15,7 @@ import { HaUserSuggestionRow } from "@/components/cins/home-adaptive/HaUserSugge
 import { ModuleCard } from "@/components/cins/home-adaptive/ModuleCard";
 import { WorldJourneyJobsFab } from "@/components/cins/home-adaptive/WorldJourneyJobsFab";
 import type { HomeModuleCtx } from "@/components/cins/home-adaptive/types";
+import { moduleItemLimit } from "@/components/cins/home-adaptive/types";
 import { loadCoHoiForHome, type CoHoiItem } from "@/lib/cins/home-adaptive/co-hoi";
 import {
   loadFollowSuggestions,
@@ -75,7 +76,10 @@ export async function HoSoCuaBanModule({ ctx }: { ctx: HomeModuleCtx }) {
 
 /** LÀM · Người cùng ngành — gợi ý kết nối. */
 export async function NguoiCungNganhModule({ ctx }: { ctx: HomeModuleCtx }) {
-  const people = await loadFollowSuggestions(ctx.viewerId, 4);
+  const people = await loadFollowSuggestions(
+    ctx.viewerId,
+    moduleItemLimit(ctx, "nguoi_cung_nganh", 4),
+  );
   if (people.length === 0) return null;
 
   return (
@@ -176,7 +180,10 @@ function CoHoiJobRow({ job }: { job: CoHoiItem }) {
 }
 
 export async function CoHoiModule({ ctx }: { ctx: HomeModuleCtx }) {
-  const jobs = await loadCoHoiForHome(ctx.giaiDoan, 3);
+  const jobs = await loadCoHoiForHome(
+    ctx.giaiDoan,
+    moduleItemLimit(ctx, "co_hoi", 3),
+  );
   if (jobs.length === 0) return null;
 
   return (

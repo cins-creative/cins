@@ -1,4 +1,6 @@
-import { ArrowRight, type LucideIcon } from "lucide-react";
+import { type LucideIcon } from "lucide-react";
+
+import { CinsArrowIos } from "@/components/icons/CinsArrowIos";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
@@ -7,6 +9,8 @@ type ModuleCardProps = {
   title: string;
   /** Pill nhỏ cạnh tiêu đề (vd. «Đang mở»). */
   badge?: string;
+  /** Nội dung góc phải header (vd. bộ lọc thẻ) — trước `moreHref` nếu có. */
+  headTrailing?: ReactNode;
   /** Link góc phải header — hiện icon mũi tên; `moreLabel` dùng cho aria-label. */
   moreHref?: string;
   moreLabel?: string;
@@ -19,6 +23,7 @@ export function ModuleCard({
   icon: Icon,
   title,
   badge,
+  headTrailing,
   moreHref,
   moreLabel = "Xem tất cả",
   className,
@@ -30,6 +35,9 @@ export function ModuleCard({
         {Icon ? <Icon size={16} strokeWidth={2} aria-hidden /> : null}
         <span className="ha-card-title">{title}</span>
         {badge ? <span className="ha-card-badge">{badge}</span> : null}
+        {headTrailing ? (
+          <div className="ha-card-head-trailing">{headTrailing}</div>
+        ) : null}
         {moreHref ? (
           <Link
             href={moreHref}
@@ -38,7 +46,7 @@ export function ModuleCard({
             aria-label={moreLabel}
             title={moreLabel}
           >
-            <ArrowRight size={16} strokeWidth={2} aria-hidden />
+            <CinsArrowIos size={16} strokeWidth={2.5} aria-hidden />
           </Link>
         ) : null}
       </div>

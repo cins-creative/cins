@@ -4,7 +4,6 @@ import {
   AlertCircle,
   AlertTriangle,
   ArrowLeft,
-  ArrowRight,
   Badge,
   BadgeCheck,
   Banknote,
@@ -50,6 +49,8 @@ import {
   Users,
   Zap,
 } from "lucide-react";
+
+import { CinsArrowIos } from "@/components/icons/CinsArrowIos";
 import type { CSSProperties } from "react";
 
 import { TtdaIcon } from "@/app/thong-tin-du-an/ttda-deck-shared";
@@ -308,7 +309,7 @@ export function ThongTinDuAnSlides({
                 </div>
                 <span className="carr">
                   <TtdaIcon>
-                    <ArrowRight size={18} strokeWidth={1.6} />
+                    <CinsArrowIos size={18} strokeWidth={1.6} />
                   </TtdaIcon>
                 </span>
                 <div className="cnode">
@@ -321,7 +322,7 @@ export function ThongTinDuAnSlides({
                 </div>
                 <span className="carr">
                   <TtdaIcon>
-                    <ArrowRight size={18} strokeWidth={1.6} />
+                    <CinsArrowIos size={18} strokeWidth={1.6} />
                   </TtdaIcon>
                 </span>
                 <div className="cnode">
@@ -901,7 +902,7 @@ export function ThongTinDuAnSlides({
               </div>
               <span className="go">
                 <TtdaIcon>
-                  <ArrowRight size={20} strokeWidth={1.6} />
+                  <CinsArrowIos size={20} strokeWidth={1.6} />
                 </TtdaIcon>
               </span>
             </div>

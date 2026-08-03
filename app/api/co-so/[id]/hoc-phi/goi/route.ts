@@ -45,6 +45,7 @@ export async function POST(req: Request, ctx: Ctx) {
     giaVnd?: number;
     moTa?: string | null;
     khoaId?: string | null;
+    khoaIds?: string[] | null;
     thuTu?: number;
   };
   try {
@@ -60,6 +61,7 @@ export async function POST(req: Request, ctx: Ctx) {
     giaVnd: Number(body.giaVnd),
     moTa: body.moTa,
     khoaId: body.khoaId,
+    khoaIds: body.khoaIds,
     thuTu: body.thuTu,
   });
   if (!result.ok) {
@@ -88,6 +90,8 @@ export async function PATCH(req: Request, ctx: Ctx) {
     moTa?: string | null;
     dangBan?: boolean;
     thuTu?: number;
+    khoaId?: string | null;
+    khoaIds?: string[] | null;
   };
   try {
     body = await req.json();
@@ -107,6 +111,8 @@ export async function PATCH(req: Request, ctx: Ctx) {
     moTa: body.moTa,
     dangBan: body.dangBan,
     thuTu: body.thuTu,
+    khoaId: body.khoaId,
+    khoaIds: body.khoaIds,
   });
   if (!result.ok) {
     return NextResponse.json({ error: result.error }, { status: 400 });

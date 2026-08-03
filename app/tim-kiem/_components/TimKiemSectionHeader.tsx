@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
-import { ArrowRight } from "lucide-react";
+
+import { CinsArrowIos } from "@/components/icons/CinsArrowIos";
 
 import { buildTimKiemUrl } from "@/lib/search/paths";
 import type { SearchEntityKind, SearchKindTab } from "@/lib/search/types";
@@ -58,7 +59,7 @@ export function TimKiemSectionHeader({
               onClick={() => onFilterKind(tab)}
             >
               Lọc tab này
-              <ArrowRight size={14} strokeWidth={2.2} aria-hidden />
+              <CinsArrowIos size={14} strokeWidth={2.2} aria-hidden />
             </button>
           ) : (
             <Link
@@ -66,7 +67,7 @@ export function TimKiemSectionHeader({
               className="tk-section-more"
             >
               Lọc tab này
-              <ArrowRight size={14} strokeWidth={2.2} aria-hidden />
+              <CinsArrowIos size={14} strokeWidth={2.2} aria-hidden />
             </Link>
           )
         ) : null}

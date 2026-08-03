@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Bell, Check, CheckCircle2, ClipboardList, MessageSquare, PencilLine, Video, X, XCircle } from "lucide-react";
+import { Bell, Check, CheckCircle2, ClipboardList, MessageSquare, PencilLine, Video, X, XCircle } from "lucide-react";
+
+import { CinsArrowIos } from "@/components/icons/CinsArrowIos";
 import type { ReactNode } from "react";
 import {
   useCallback,
@@ -1818,7 +1820,7 @@ function FollowRequestModal({
               onClick={() => onClose()}
             >
               Xem Journey
-              <ArrowRight size={14} strokeWidth={2.2} aria-hidden />
+              <CinsArrowIos size={14} strokeWidth={2.2} aria-hidden />
             </Link>
           </footer>
           <JourneyUserFeaturedExpand

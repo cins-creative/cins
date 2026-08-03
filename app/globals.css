@@ -26,3 +26,53 @@ html[data-theme="dark"] {
 body {
   margin: 0;
 }
+
+/*
+ * CẤM scrollbar dày/mặc định OS. Toàn site chỉ thin (6px) hoặc none (ẩn).
+ * Quy ước: docs/CINS_DEV_RULES.md §4 «Scrollbar».
+ * Chỗ ẩn: đặt `scrollbar-width: none` + `::-webkit-scrollbar { display:none }` (thắng vì cụ thể hơn).
+ */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(
+      in srgb,
+      var(--ink-muted, #64748b) 55%,
+      transparent
+    )
+    transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--ink-muted, #64748b) 45%, transparent);
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--ink-muted, #64748b) 70%, transparent);
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+:root[data-theme="dark"] * {
+  scrollbar-color: color-mix(in srgb, rgba(255, 255, 255, 0.45) 55%, transparent)
+    transparent;
+}
+
+:root[data-theme="dark"] *::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, rgba(255, 255, 255, 0.35) 70%, transparent);
+}
+
+:root[data-theme="dark"] *::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, rgba(255, 255, 255, 0.5) 80%, transparent);
+}

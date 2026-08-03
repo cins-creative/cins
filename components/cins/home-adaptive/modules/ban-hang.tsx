@@ -1,0 +1,82 @@
+import { ClipboardList, ShoppingBag } from "lucide-react";
+
+import {
+  ModuleCard,
+  ModuleEmpty,
+} from "@/components/cins/home-adaptive/ModuleCard";
+import {
+  DonCanXuLyPanel,
+  DonHangHomeList,
+} from "@/components/cins/home-adaptive/modules/DonCanXuLyClient";
+import type { HomeModuleCtx } from "@/components/cins/home-adaptive/types";
+import { moduleItemLimit } from "@/components/cins/home-adaptive/types";
+import { HOME_LAYOUT_ITEM_LIMIT_MAX } from "@/lib/cins/home-adaptive/layout-prefs";
+import {
+  loadDonCanXuLy,
+  loadDonMuaCuaToi,
+} from "@/lib/cins/home-adaptive/role-fetches";
+
+/** Shop · Đơn chờ xử lý. */
+export async function DonCanXuLyModule({ ctx }: { ctx: HomeModuleCtx }) {
+  const displayLimit = moduleItemLimit(ctx, "don_can_xu_ly");
+  /** Fetch max để edit mode tăng số dòng không cần refetch. */
+  const { items } = await loadDonCanXuLy(
+    ctx.viewerId,
+    HOME_LAYOUT_ITEM_LIMIT_MAX,
+  );
+  if (items.length === 0) {
+    return (
+      <ModuleCard
+        icon={ClipboardList}
+        title="Đơn chờ xử lý"
+        moreHref="/ban-hang/don"
+        moreLabel="Xem đơn hàng"
+        className="ha-card--don"
+      >
+        <ModuleEmpty>Không có đơn chờ xử lý.</ModuleEmpty>
+      </ModuleCard>
+    );
+  }
+
+  return (
+    <DonCanXuLyPanel
+      items={items}
+      limit={displayLimit}
+    />
+  );
+}
+
+/** Buyer · Đơn tôi đặt. */
+export async function DonMuaCuaToiModule({ ctx }: { ctx: HomeModuleCtx }) {
+  const { items, total } = await loadDonMuaCuaToi(
+    ctx.viewerId,
+    moduleItemLimit(ctx, "don_mua_cua_toi"),
+  );
+  if (items.length === 0) {
+    return (
+      <ModuleCard
+        icon={ShoppingBag}
+        title="Đơn tôi đặt"
+        className="ha-card--don"
+      >
+        <ModuleEmpty>Chưa có đơn đang theo dõi.</ModuleEmpty>
+      </ModuleCard>
+    );
+  }
+
+  return (
+    <ModuleCard
+      icon={ShoppingBag}
+      title="Đơn tôi đặt"
+      badge={String(total)}
+      className="ha-card--don"
+    >
+      <DonHangHomeList items={items} total={total} mode="buyer" />
+    </ModuleCard>
+  );
+}
+
+/** Shop · Quầy sự kiện — đã gộp vào `theo_doi_org` tab Quan tâm. */
+export async function QuayCuaToiModule(_props: { ctx: HomeModuleCtx }) {
+  return null;
+}

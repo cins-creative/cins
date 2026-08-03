@@ -38,6 +38,14 @@ type Props = {
   orgId: string;
   orgSlug: string;
   khoaOptions: KhoaOption[];
+  /** Lọc bảng theo một khóa — `null` = tất cả khóa. */
+  khoaFilterId?: string | null;
+  onKhoaFilterChange?: (khoaId: string | null) => void;
+  /** Seed từ parent (đã fetch sẵn) — tránh spinner khi chuyển tab. */
+  seedRows?: LopHocQuanLyRow[];
+  seedCanEdit?: boolean;
+  seedReady?: boolean;
+  onRowsChange?: (rows: LopHocQuanLyRow[]) => void;
 };
 
 function initials(name: string): string {
@@ -143,11 +151,22 @@ export function khoaOptionsFromCards(rows: KhoaHocCardData[]): KhoaOption[] {
   }));
 }
 
-export function LopHocQuanLyPanel({ orgId, orgSlug, khoaOptions }: Props) {
-  const [rows, setRows] = useState<LopHocQuanLyRow[]>([]);
-  const [loading, setLoading] = useState(true);
+export function LopHocQuanLyPanel({
+  orgId,
+  orgSlug,
+  khoaOptions,
+  khoaFilterId = null,
+  onKhoaFilterChange,
+  seedRows,
+  seedCanEdit = false,
+  seedReady = false,
+  onRowsChange,
+}: Props) {
+  const [rows, setRows] = useState<LopHocQuanLyRow[]>(() => seedRows ?? []);
+  const [ownFilterId, setOwnFilterId] = useState<string | null>(khoaFilterId);
+  const [loading, setLoading] = useState(() => !seedReady);
   const [error, setError] = useState<string | null>(null);
-  const [canEdit, setCanEdit] = useState(false);
+  const [canEdit, setCanEdit] = useState(() => seedCanEdit);
   const [editing, setEditing] = useState<LopHocQuanLyRow | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [pickOpen, setPickOpen] = useState(false);
@@ -156,33 +175,85 @@ export function LopHocQuanLyPanel({ orgId, orgSlug, khoaOptions }: Props) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const thumbInputRef = useRef<HTMLInputElement>(null);
   const thumbTargetLopIdRef = useRef<string | null>(null);
+  const seededRef = useRef(seedReady);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(`/api/co-so/${encodeURIComponent(orgId)}/lop-hoc`, {
-        credentials: "include",
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Không tải lớp.");
-      setRows((data.lopHoc ?? []) as LopHocQuanLyRow[]);
-      setCanEdit(Boolean(data.canEdit));
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Lỗi.");
-    } finally {
-      setLoading(false);
-    }
-  }, [orgId]);
+  const applyRows = useCallback(
+    (next: LopHocQuanLyRow[]) => {
+      setRows(next);
+      onRowsChange?.(next);
+    },
+    [onRowsChange],
+  );
 
+  const load = useCallback(
+    async (opts?: { silent?: boolean }) => {
+      if (!opts?.silent) setLoading(true);
+      setError(null);
+      try {
+        const res = await fetch(
+          `/api/co-so/${encodeURIComponent(orgId)}/lop-hoc`,
+          { credentials: "include" },
+        );
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Không tải lớp.");
+        const next = (data.lopHoc ?? []) as LopHocQuanLyRow[];
+        applyRows(next);
+        setCanEdit(Boolean(data.canEdit));
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Lỗi.");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [applyRows, orgId],
+  );
+
+  // Seed từ parent khi sẵn sàng — không chờ fetch lại.
   useEffect(() => {
+    if (seedRows === undefined) return;
+    if (!seedReady) return;
+    setRows(seedRows);
+    setCanEdit(seedCanEdit);
+    setLoading(false);
+    seededRef.current = true;
+  }, [seedReady, seedRows, seedCanEdit]);
+
+  // Chỉ tự fetch khi đứng một mình (không có seed từ parent).
+  useEffect(() => {
+    if (seedRows !== undefined) return;
     void load();
-  }, [load]);
+  }, [load, seedRows]);
+
+  const filterId = onKhoaFilterChange ? khoaFilterId : ownFilterId;
+
+  const setFilterId = useCallback(
+    (next: string | null) => {
+      if (onKhoaFilterChange) onKhoaFilterChange(next);
+      else setOwnFilterId(next);
+    },
+    [onKhoaFilterChange],
+  );
+
+  const filterOptions = useMemo(() => {
+    const byId = new Map<string, string>();
+    for (const k of khoaOptions) byId.set(k.id, k.tenKhoaHoc);
+    for (const r of rows) if (!byId.has(r.khoaId)) byId.set(r.khoaId, r.tenKhoa);
+    return [...byId].map(([id, tenKhoaHoc]) => ({ id, tenKhoaHoc }));
+  }, [khoaOptions, rows]);
+
+  const visibleRows = useMemo(
+    () => (filterId ? rows.filter((r) => r.khoaId === filterId) : rows),
+    [filterId, rows],
+  );
+
+  const filterTenKhoa = filterId
+    ? (filterOptions.find((k) => k.id === filterId)?.tenKhoaHoc ?? null)
+    : null;
 
   const stats = useMemo(() => {
     let dangMo = 0;
     let hv = 0;
-    for (const r of rows) {
+    for (const r of visibleRows) {
       if (
         r.trangThaiLop === "sap_khai_giang" ||
         r.trangThaiLop === "dang_hoc"
@@ -191,8 +262,8 @@ export function LopHocQuanLyPanel({ orgId, orgSlug, khoaOptions }: Props) {
       }
       hv += r.soHocVien;
     }
-    return { total: rows.length, dangMo, hv };
-  }, [rows]);
+    return { total: visibleRows.length, dangMo, hv };
+  }, [visibleRows]);
 
   const modalKhoa = useMemo(() => {
     if (editing) {
@@ -215,8 +286,10 @@ export function LopHocQuanLyPanel({ orgId, orgSlug, khoaOptions }: Props) {
   function startCreate() {
     if (!canEdit || khoaOptions.length === 0) return;
     setEditing(null);
-    if (khoaOptions.length === 1) {
-      setCreateKhoaId(khoaOptions[0]!.id);
+    const preset =
+      filterId && khoaOptions.some((k) => k.id === filterId) ? filterId : null;
+    if (preset || khoaOptions.length === 1) {
+      setCreateKhoaId(preset ?? khoaOptions[0]!.id);
       setCreateOpen(true);
       return;
     }
@@ -257,11 +330,13 @@ export function LopHocQuanLyPanel({ orgId, orgSlug, khoaOptions }: Props) {
           (data as { error?: string } | null)?.error || "Không xóa được lớp.",
         );
       }
-      setRows((prev) =>
-        prev.map((r) =>
-          r.id === row.id ? { ...r, trangThaiLop: "huy" } : r,
-        ),
-      );
+      setRows((prev) => {
+        const next = prev.map((r) =>
+          r.id === row.id ? { ...r, trangThaiLop: "huy" as const } : r,
+        );
+        onRowsChange?.(next);
+        return next;
+      });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Lỗi xóa lớp.");
     } finally {
@@ -316,8 +391,8 @@ export function LopHocQuanLyPanel({ orgId, orgSlug, khoaOptions }: Props) {
         throw new Error(patchJson.error || "Không lưu được ảnh lớp.");
       }
 
-      setRows((prev) =>
-        prev.map((row) =>
+      setRows((prev) => {
+        const next = prev.map((row) =>
           row.id === lopId
             ? {
                 ...row,
@@ -325,8 +400,10 @@ export function LopHocQuanLyPanel({ orgId, orgSlug, khoaOptions }: Props) {
                 avatarUrl: patchJson.avatarUrl ?? null,
               }
             : row,
-        ),
-      );
+        );
+        onRowsChange?.(next);
+        return next;
+      });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Không đổi được ảnh lớp.");
     } finally {
@@ -368,20 +445,39 @@ export function LopHocQuanLyPanel({ orgId, orgSlug, khoaOptions }: Props) {
             <div>
               <h2 className="cso-dt-panel-title">Danh sách lớp</h2>
               <p className="cso-dt-panel-sub">
-                Lớp thuộc các khóa — sửa thông tin, lịch và giảng viên tại đây.
+                {filterTenKhoa
+                  ? `Đang lọc theo khóa «${filterTenKhoa}».`
+                  : "Lớp thuộc các khóa — sửa thông tin, lịch và giảng viên tại đây."}
               </p>
             </div>
-            {canEdit ? (
-              <button
-                type="button"
-                className="cso-ql-btn cso-ql-btn--priv"
-                disabled={khoaOptions.length === 0}
-                onClick={startCreate}
-              >
-                <Plus size={15} strokeWidth={2.4} aria-hidden />
-                Thêm lớp
-              </button>
-            ) : null}
+            <div className="cso-lh-head-tools">
+              <label className="cso-lh-filter">
+                <span className="sr-only">Lọc theo khóa</span>
+                <select
+                  className="cso-ql-select cso-lh-filter-select"
+                  value={filterId ?? ""}
+                  onChange={(e) => setFilterId(e.target.value || null)}
+                >
+                  <option value="">Tất cả khóa</option>
+                  {filterOptions.map((k) => (
+                    <option key={k.id} value={k.id}>
+                      {k.tenKhoaHoc}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {canEdit ? (
+                <button
+                  type="button"
+                  className="cso-ql-btn cso-ql-btn--priv"
+                  disabled={khoaOptions.length === 0}
+                  onClick={startCreate}
+                >
+                  <Plus size={15} strokeWidth={2.4} aria-hidden />
+                  Thêm lớp
+                </button>
+              ) : null}
+            </div>
           </div>
         </div>
 
@@ -397,6 +493,7 @@ export function LopHocQuanLyPanel({ orgId, orgSlug, khoaOptions }: Props) {
               <thead>
                 <tr>
                   <th scope="col">Lớp</th>
+                  <th scope="col">Mã lớp</th>
                   <th scope="col">Khóa</th>
                   <th scope="col">Giáo viên</th>
                   <th scope="col">Khai giảng</th>
@@ -410,23 +507,25 @@ export function LopHocQuanLyPanel({ orgId, orgSlug, khoaOptions }: Props) {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={7}>
+                    <td colSpan={8}>
                       <div className="cso-hv-loading">Đang tải…</div>
                     </td>
                   </tr>
-                ) : rows.length === 0 ? (
+                ) : visibleRows.length === 0 ? (
                   <tr>
-                    <td colSpan={7}>
+                    <td colSpan={8}>
                       <div className="cso-hv-empty">
                         <strong>Chưa có lớp</strong>
-                        {khoaOptions.length === 0
-                          ? "Tạo khóa trước, rồi thêm lớp học."
-                          : "Bấm «Thêm lớp» để mở lớp thuộc một khóa."}
+                        {filterTenKhoa
+                          ? `Khóa «${filterTenKhoa}» chưa có lớp nào. Chọn «Tất cả khóa» để xem toàn bộ.`
+                          : khoaOptions.length === 0
+                            ? "Tạo khóa trước, rồi thêm lớp học."
+                            : "Bấm «Thêm lớp» để mở lớp thuộc một khóa."}
                       </div>
                     </td>
                   </tr>
                 ) : (
-                  rows.map((r) => (
+                  visibleRows.map((r) => (
                     <tr key={r.id}>
                       <td>
                         <div className="cso-hv-person">
@@ -458,13 +557,18 @@ export function LopHocQuanLyPanel({ orgId, orgSlug, khoaOptions }: Props) {
                           )}
                           <div className="cso-hv-person-meta">
                             <p className="cso-hv-name">
-                              {r.maLop || r.lichHoc || "Lớp"}
+                              {r.lichHoc || r.maLop || "Lớp"}
                             </p>
                             <p className="cso-hv-lop">
                               {labelHinhThucLop(r.hinhThuc)}
                             </p>
                           </div>
                         </div>
+                      </td>
+                      <td>
+                        <p className="cso-hv-course cso-lh-ma-lop">
+                          {r.maLop || "—"}
+                        </p>
                       </td>
                       <td>
                         <p className="cso-hv-course">{r.tenKhoa}</p>
@@ -624,7 +728,7 @@ export function LopHocQuanLyPanel({ orgId, orgSlug, khoaOptions }: Props) {
           onClose={closeModals}
           onSaved={() => {
             closeModals();
-            void load();
+            void load({ silent: true });
           }}
         />
       ) : null}

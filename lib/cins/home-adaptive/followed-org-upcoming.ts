@@ -21,21 +21,9 @@ import {
   truongTabPath,
 } from "@/lib/truong/truong-routes";
 import type { TruongTuyenSinhNamRow } from "@/lib/truong/types";
+import type { FollowedOrgUpcomingItem } from "@/lib/cins/home-adaptive/sidebar-upcoming-types";
 
-export type FollowedOrgUpcomingItem = {
-  id: string;
-  kind: "su_kien" | "moc" | "khoa";
-  orgId: string;
-  orgSlug: string;
-  orgName: string;
-  orgLoai: string;
-  href: string;
-  label: string;
-  dateLabel: string;
-  subLabel: string | null;
-  status: "active" | "upcoming";
-  sortKey: number;
-};
+export type { FollowedOrgUpcomingItem } from "@/lib/cins/home-adaptive/sidebar-upcoming-types";
 
 type OrgMeta = {
   id: string;

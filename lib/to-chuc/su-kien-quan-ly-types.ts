@@ -1,4 +1,4 @@
-import type { LoaiPhanHoiSuKien } from "@/lib/to-chuc/su-kien-dang-ky";
+import type { LoaiPhanHoiSuKien } from "@/lib/to-chuc/su-kien-phan-hoi-types";
 
 export type SuKienQuanLyStats = {
   soSeThamGia: number;

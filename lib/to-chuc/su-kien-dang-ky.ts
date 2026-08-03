@@ -1,16 +1,18 @@
 import "server-only";
 
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import {
+  isLoaiPhanHoiSuKien,
+  type LoaiPhanHoiSuKien,
+} from "@/lib/to-chuc/su-kien-phan-hoi-types";
 
-export const LOAI_PHAN_HOI_SU_KIEN = ["quan_tam", "se_tham_gia"] as const;
-export type LoaiPhanHoiSuKien = (typeof LOAI_PHAN_HOI_SU_KIEN)[number];
+export {
+  isLoaiPhanHoiSuKien,
+  LOAI_PHAN_HOI_SU_KIEN,
+  type LoaiPhanHoiSuKien,
+} from "@/lib/to-chuc/su-kien-phan-hoi-types";
 
-const LOAI_SET = new Set<string>(LOAI_PHAN_HOI_SU_KIEN);
 const TRANG_THAI_HUY = new Set(["tu_choi", "huy"]);
-
-export function isLoaiPhanHoiSuKien(value: unknown): value is LoaiPhanHoiSuKien {
-  return typeof value === "string" && LOAI_SET.has(value);
-}
 
 type DangKyRow = {
   id: string;

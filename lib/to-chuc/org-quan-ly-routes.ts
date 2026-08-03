@@ -23,6 +23,7 @@ export type OrgQuanLySection =
   | "giao-trinh"
   | "hoc-vien"
   | "diem-danh"
+  | "hoc-phi"
   | "doanh-thu"
   | "su-kien"
   | "tuyen-dung"
@@ -64,7 +65,10 @@ const CO_SO_NAV_GROUPS: OrgQuanLyNavGroup[] = [
   },
   {
     id: "tien",
-    items: [{ id: "doanh-thu", label: "Doanh thu" }],
+    items: [
+      { id: "hoc-phi", label: "Học phí" },
+      { id: "doanh-thu", label: "Doanh thu" },
+    ],
   },
 ];
 

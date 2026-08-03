@@ -2,12 +2,13 @@ import Image from "next/image";
 import Link from "next/link";
 import type { CSSProperties } from "react";
 import {
-  ArrowRight,
   Calendar,
   GraduationCap,
   MapPin,
   Sparkles,
 } from "lucide-react";
+
+import { CinsArrowIos } from "@/components/icons/CinsArrowIos";
 
 import { GuestHomeSchoolCard } from "@/components/cins/guest-home/GuestHomeSchoolCard";
 import {
@@ -74,7 +75,7 @@ function SectionHead({
       </div>
       <Link href={href} className="gh-section-link">
         {linkLabel}
-        <ArrowRight size={16} strokeWidth={2} aria-hidden />
+        <CinsArrowIos size={16} strokeWidth={2} aria-hidden />
       </Link>
     </div>
   );
@@ -282,7 +283,7 @@ export function GuestHomeView({ data, loginPanelProps }: Props) {
                             </span>
                           ) : null}
                         </div>
-                        <ArrowRight
+                        <CinsArrowIos
                           size={16}
                           className="gh-career-arrow"
                           aria-hidden

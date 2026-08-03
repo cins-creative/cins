@@ -1,5 +1,7 @@
 import Link from "next/link";
-import { ArrowRight, University } from "lucide-react";
+import { University } from "lucide-react";
+
+import { CinsArrowIos } from "@/components/icons/CinsArrowIos";
 
 import { TimKhoaHocHubShell } from "@/app/tim-khoa-hoc/_components/TimKhoaHocHubShell";
 import {
@@ -184,7 +186,7 @@ export async function TimKhoaHocHubLoader({ q, loai }: Props) {
           : nganhTruncated
             ? "Xem đầy đủ ngành học"
             : "Mở hub ngành học"}
-        <ArrowRight size={14} strokeWidth={2.2} aria-hidden />
+        <CinsArrowIos size={14} strokeWidth={2.2} aria-hidden />
       </Link>
     </section>
   ) : null;

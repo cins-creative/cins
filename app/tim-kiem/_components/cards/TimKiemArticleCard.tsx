@@ -1,7 +1,6 @@
 import Link from "next/link";
 import {
   AppWindow,
-  ArrowRight,
   BookMarked,
   BookOpen,
   Briefcase,
@@ -9,6 +8,8 @@ import {
   Tag,
   type LucideIcon,
 } from "lucide-react";
+
+import { CinsArrowIos } from "@/components/icons/CinsArrowIos";
 
 import { hubLoaiDeptTheme } from "@/lib/bai-viet/hub-loai";
 import type { SearchHit } from "@/lib/search/types";
@@ -105,7 +106,7 @@ export function TimKiemArticleCard({ hit }: { hit: SearchHit }) {
             {knowledgeFootLabel(hit.entityLoai)}
           </span>
           <span className="tk-knowledge-foot-arrow" aria-hidden>
-            <ArrowRight size={17} strokeWidth={2.2} />
+            <CinsArrowIos size={17} strokeWidth={2.2} />
           </span>
         </div>
       </div>

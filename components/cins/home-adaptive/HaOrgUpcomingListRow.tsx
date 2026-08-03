@@ -2,7 +2,7 @@ import { HaOrgUpCountdown } from "@/components/cins/home-adaptive/HaOrgUpCountdo
 import { HaOrgPopoverChip } from "@/components/cins/home-adaptive/HaOrgPopoverChip";
 import { HaOrgUpEventPopover } from "@/components/cins/home-adaptive/HaOrgUpEventPopover";
 import { sidebarEventPopoverItem } from "@/lib/cins/home-adaptive/sidebar-event-popover";
-import type { SidebarUpcomingEvent } from "@/lib/cins/home-adaptive/sidebar-upcoming-events";
+import type { SidebarUpcomingEvent } from "@/lib/cins/home-adaptive/sidebar-upcoming-types";
 
 const MONTHS = [
   "Th1", "Th2", "Th3", "Th4", "Th5", "Th6",
@@ -21,6 +21,8 @@ function dateBadge(dateLabel: string): { month: string; day: string } | null {
 }
 
 function phanHoiLabel(item: SidebarUpcomingEvent): string | null {
+  if (item.quayTrangThai === "da_duyet") return "Quầy · Đã duyệt";
+  if (item.quayTrangThai === "cho_xu_ly") return "Quầy · Chờ duyệt";
   if (item.phanHoi === "se_tham_gia") return "Sẽ tham gia";
   if (item.phanHoi === "quan_tam") return "Quan tâm";
   return null;
@@ -32,14 +34,17 @@ export function HaOrgUpcomingListRow({ item }: { item: SidebarUpcomingEvent }) {
   const isLive = item.status === "active";
   const phanHoi = phanHoiLabel(item);
   const isMoc = item.kind === "moc";
+  const isQuay = Boolean(item.quayTrangThai);
   const itemClass =
     item.phanHoi === "quan_tam"
       ? "ha-org-up-item ha-org-up-item--interest"
       : item.phanHoi === "se_tham_gia"
         ? "ha-org-up-item ha-org-up-item--rsvp"
-        : isMoc
-          ? "ha-org-up-item ha-org-up-item--moc"
-          : "ha-org-up-item";
+        : isQuay
+          ? "ha-org-up-item ha-org-up-item--quay"
+          : isMoc
+            ? "ha-org-up-item ha-org-up-item--moc"
+            : "ha-org-up-item";
 
   return (
     <li className={`${itemClass} ha-org-up-item--list`}>
@@ -62,7 +67,15 @@ export function HaOrgUpcomingListRow({ item }: { item: SidebarUpcomingEvent }) {
             <span className="ha-org-up-list-title">{item.label}</span>
             {phanHoi ? (
               <span
-                className={`ha-org-up-list-badge${item.phanHoi === "se_tham_gia" ? " is-rsvp" : " is-interest"}`}
+                className={`ha-org-up-list-badge${
+                  item.quayTrangThai
+                    ? " is-quay"
+                    : item.phanHoi === "se_tham_gia"
+                      ? " is-rsvp"
+                      : item.phanHoi === "quan_tam"
+                        ? " is-interest"
+                        : ""
+                }`}
               >
                 {phanHoi}
               </span>

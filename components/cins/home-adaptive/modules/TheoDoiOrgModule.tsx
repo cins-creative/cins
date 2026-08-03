@@ -1,36 +1,32 @@
-import { CalendarDays } from "lucide-react";
-
 import { HaOrgUpcomingEventsPanel } from "@/components/cins/home-adaptive/HaOrgUpcomingEventsPanel";
-import { ModuleCard } from "@/components/cins/home-adaptive/ModuleCard";
 import { WorldJourneyNotifyFab } from "@/components/cins/home-adaptive/WorldJourneyNotifyFab";
 import type { HomeModuleCtx } from "@/components/cins/home-adaptive/types";
+import { moduleItemLimit } from "@/components/cins/home-adaptive/types";
 import { loadSidebarUpcomingEvents } from "@/lib/cins/home-adaptive/sidebar-upcoming-events";
 
-/** Sidebar · tối đa 3 sự kiện / mốc (ưu tiên quan tâm / sẽ tham gia / org theo dõi). */
+/** Sidebar · sự kiện (Tất cả / Quan tâm + quầy) trong 1 block. */
 export async function TheoDoiOrgModule({ ctx }: { ctx: HomeModuleCtx }) {
-  const { items, myEventsTotal } = await loadSidebarUpcomingEvents(
+  const { allItems, myItems, myEventsTotal } = await loadSidebarUpcomingEvents(
     ctx.viewerId,
     [],
-    3,
+    moduleItemLimit(ctx, "theo_doi_org", 3),
   );
 
-  if (items.length === 0) return null;
+  if (allItems.length === 0 && myItems.length === 0) return null;
 
-  /** Badge: tổng sự kiện của bạn nếu có; không thì số mục đang hiển thị. */
-  const notifyCount = myEventsTotal > 0 ? myEventsTotal : items.length;
+  const notifyCount = Math.max(
+    myItems.length,
+    allItems.length,
+    myEventsTotal,
+  );
 
   return (
     <WorldJourneyNotifyFab count={notifyCount}>
-      <ModuleCard
-        icon={CalendarDays}
-        title="Sự kiện & thông báo"
-        className="ha-card--notify"
-      >
-        <HaOrgUpcomingEventsPanel
-          items={items}
-          myEventsTotal={myEventsTotal}
-        />
-      </ModuleCard>
+      <HaOrgUpcomingEventsPanel
+        allItems={allItems}
+        myItems={myItems}
+        myEventsTotal={myEventsTotal}
+      />
     </WorldJourneyNotifyFab>
   );
 }

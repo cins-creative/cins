@@ -2,7 +2,6 @@
 
 import {
   ArrowLeft,
-  ArrowRight,
   ChevronDown,
   EyeOff,
   Globe,
@@ -11,6 +10,8 @@ import {
   SlidersHorizontal,
   Users,
 } from "lucide-react";
+
+import { CinsArrowIos } from "@/components/icons/CinsArrowIos";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -396,7 +397,7 @@ export function CongDongCreateForm() {
             disabled={pending}
           >
             {pending ? "Đang tạo…" : "Tạo cộng đồng"}
-            <ArrowRight size={17} aria-hidden />
+            <CinsArrowIos size={17} aria-hidden />
           </button>
         </div>
       </form>

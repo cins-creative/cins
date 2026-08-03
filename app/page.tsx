@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   alternates: { canonical: "/" },
 };
 
-type SearchParams = Promise<{ view?: string }>;
+type SearchParams = Promise<{ view?: string; "tuy-chinh"?: string }>;
 
 export default async function Home({
   searchParams,
@@ -28,13 +28,17 @@ export default async function Home({
   const session = await getCurrentSessionAndProfile();
   const sp = await searchParams;
   const includeGallery = sp.view === "gallery";
+  const editingLayout = sp["tuy-chinh"] === "1";
 
   if (session?.profile?.slug) {
     return (
       <CinsShell data-screen-label="Trang-chu">
         <AuthGateRoot initialAuthenticated>
           <Suspense fallback={<HomeWorldJourneySkeleton />}>
-            <HomeWorldJourneyMain includeGallery={includeGallery} />
+            <HomeWorldJourneyMain
+              includeGallery={includeGallery}
+              editingLayout={editingLayout}
+            />
           </Suspense>
         </AuthGateRoot>
       </CinsShell>

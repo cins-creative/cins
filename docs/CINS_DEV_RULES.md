@@ -129,6 +129,14 @@ border mặc định: 1px solid var(--border)
 ### Icon
 - **Lucide** (`lucide-react` production; unpkg UMD trong demo HTML). **Không** Feather/Material/Heroicons/FontAwesome. Không emoji trong UI chrome.
 
+### Scrollbar
+- **CẤM scrollbar dày / mặc định OS** (`scrollbar-width: auto`, WebKit `width: revert`, thanh hệ thống thô). Không dùng loại này trên CINs.
+- Chỉ hai lựa chọn:
+  1. **Thin (mặc định toàn site)** — `app/globals.css`: `scrollbar-width: thin`, WebKit thumb **6px**, track trong suốt.
+  2. **None** — vùng pill ngang / filmstrip / nav: `scrollbar-width: none` + `::-webkit-scrollbar { display: none }` (vẫn cuộn được).
+- Khi viết CSS mới cho `overflow: auto|scroll`: **không** set `auto` / `revert` / width ≥ 10px. Inherit global thin, hoặc `none` nếu cố ý ẩn.
+- Dark mode: thumb `rgba(255,255,255,.35–.5)`.
+
 ---
 
 ## 5. Performance

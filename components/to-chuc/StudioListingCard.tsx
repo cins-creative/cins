@@ -1,6 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, Briefcase, MapPin } from "lucide-react";
+import { Briefcase, MapPin } from "lucide-react";
+
+import { CinsArrowIos } from "@/components/icons/CinsArrowIos";
 
 import { labelTinhThanh } from "@/lib/truong/contact";
 import { listingOrgRelationBadge } from "@/lib/to-chuc/co-so-vai-tro";
@@ -106,7 +108,7 @@ export function StudioListingCard({ studio, index }: Props) {
             {websiteLabel ?? "Xem studio"}
           </span>
           <span className="tdh-coso-foot-arrow" aria-hidden>
-            <ArrowRight size={18} strokeWidth={2.2} />
+            <CinsArrowIos size={18} strokeWidth={2.2} />
           </span>
         </div>
       </div>

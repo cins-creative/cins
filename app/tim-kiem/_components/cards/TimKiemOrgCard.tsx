@@ -1,5 +1,7 @@
 import Link from "next/link";
-import { ArrowRight, GraduationCap, MapPin } from "lucide-react";
+import { GraduationCap, MapPin } from "lucide-react";
+
+import { CinsArrowIos } from "@/components/icons/CinsArrowIos";
 
 import type { SearchHit } from "@/lib/search/types";
 
@@ -106,7 +108,7 @@ export function TimKiemOrgCard({ hit }: { hit: SearchHit }) {
         <div className="tk-org-card-foot">
           <span className="tk-org-card-foot-label">{footLabel}</span>
           <span className="tk-org-card-foot-arrow" aria-hidden>
-            <ArrowRight size={18} strokeWidth={2.2} />
+            <CinsArrowIos size={18} strokeWidth={2.2} />
           </span>
         </div>
       </div>

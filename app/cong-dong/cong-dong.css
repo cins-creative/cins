@@ -2836,13 +2836,6 @@
     border-radius: 0;
     overflow: visible;
     overscroll-behavior: auto;
-    scrollbar-width: auto;
-    -ms-overflow-style: auto;
-  }
-  .cd-v4-id::-webkit-scrollbar {
-    display: revert;
-    width: revert;
-    height: revert;
   }
   .cd-v4-id-body {
     overflow-y: visible;

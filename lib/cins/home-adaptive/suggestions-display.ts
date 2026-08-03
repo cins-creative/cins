@@ -60,9 +60,7 @@ export function orgLoaiLabel(loai: string): string {
   }
 }
 
-/** Dòng phụ org — luôn có loại tổ chức để không nhầm với người dùng. */
-export function orgFollowSubtitle(loaiToChuc: string, reason: string): string {
-  const typeLabel = orgLoaiLabel(loaiToChuc);
-  if (!reason || reason === typeLabel) return typeLabel;
-  return `${typeLabel} · ${reason}`;
+/** Dòng phụ org — chỉ loại tổ chức (không kèm «N bạn đang theo dõi»). */
+export function orgFollowSubtitle(loaiToChuc: string, _reason?: string): string {
+  return orgLoaiLabel(loaiToChuc);
 }

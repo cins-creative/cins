@@ -206,6 +206,10 @@
 | A16 | `shop_don_hang` | Thêm `van_chuyen_ma`, `van_chuyen_dvvc` | `TEXT` | YES | Mã vận đơn + tên ĐVVC; URL `van_chuyen_link` suy ra khi lưu | Backfill ĐVVC từ link cũ | **Đã chạy** 2026-08-02 · `migration_shop_don_van_chuyen_ma.sql` |
 | A15 | `auto_tai_khoan` | +12 cột clone/KPI/vault/bàn giao | `ADD COLUMN IF NOT EXISTS` | default an toàn (`loai='ai'`) | Tài khoản clone artist + vault + KPI | Backfill không cần (default) | **Đã duyệt + chạy** 2026-08-01 · `migration_tai_khoan_clone.sql` |
 | A16 | `auto_han_muc` | + `kpi_muc_tieu`, `kpi_phan_bo_luc` | `ADD COLUMN IF NOT EXISTS` | NULL | KPI vận hành tách hạn mức autopilot | — | **Đã duyệt + chạy** 2026-08-01 · `migration_tai_khoan_clone.sql` |
+| A17 | `user_nguoi_dung` | Thêm `home_layout` | `jsonb NOT NULL DEFAULT '{}'` | NO (default `{}`) | Preference module sidebar trang chủ (ẩn/thêm/sắp xếp) | Row cũ = `{}` → layout mặc định theo persona | **Đã chạy** 2026-08-03 · `migration_user_home_layout.sql` · `npm run migrate:home-layout` |
+| A18 | `org_goi_hoc_phi` | Thêm `so_buoi`, `phut_moi_buoi`, `ma_goi_meta` | `int4` · `int4` · `text` + unique `(id_khoa_hoc, ma_goi_meta)` WHERE not null | YES | Hợp nhất gói meta khóa → bảng bán; map id JSON khi backfill | Row cũ = NULL; backfill script | **Đã duyệt** 2026-08-03 · chờ Phase 2 · `docs/PLAN_hoc_phi_combo.md` |
+| A19 | `org_don_hoc_phi` | Thêm `id_nhom`, `gia_goc_vnd`, `giam_vnd` | uuid → `org_nhom_don_hoc_phi` · `numeric(14,0)` · `numeric(14,0) DEFAULT 0` | YES (trừ `giam_vnd` DEFAULT 0) | Combo nhiều khóa = nhóm đơn; giữ `so_tien_vnd` = số phải trả | Backfill `gia_goc_vnd = so_tien_vnd` | **Chưa duyệt** — Phase 4 · `docs/PLAN_hoc_phi_combo.md` |
+| A20 | *(bảng mới)* `org_goi_hoc_phi_khoa` | N–N gói ↔ khóa | `id_goi` → `org_goi_hoc_phi` · `id_khoa_hoc` → `org_khoa_hoc` · UNIQUE cặp | — | Một gói gắn nhiều khóa (VD 1 tháng Online × 3 môn) | Backfill từ `org_goi_hoc_phi.id_khoa_hoc` | **Đã duyệt + chạy** 2026-08-03 · `migration_goi_hoc_phi_nhieu_khoa.sql` · `npm run migrate:goi-nhieu-khoa` |
 
 > Khi user duyệt một dòng → đổi **Trạng thái** thành `Đã duyệt YYYY-MM-DD` rồi mới viết/chạy file migration. Khi đã apply trên DB → `Đã chạy` + tên file SQL. Mọi ALTER phát sinh thêm ngoài bảng này → **thêm dòng mới vào inventory trước**, không lén vào migration khác.
 
@@ -557,6 +561,11 @@
   • **`tim_viec`** = modifier `seeking` trên cụm LÀM (banner Open-to-work + đẩy `co_hoi` lên đầu cột phải) — **không** dùng boolean `dang_tim_viec` riêng.
   • Module `co_hoi` + `scout_tai_nang` cần DB mới: `org_tuyen_dung`, `org_tuyen_dung_ung_tuyen`, `org_scout_luu` + 3 enum (`migration_org_tuyen_dung.sql`, runner `scripts/run-org-tuyen-dung-migration.mjs`).
   • Không hiển thị số follower công khai (giữ L18).
+
+- **L19b — Default layout gọn theo giai đoạn (2026-08-03).**
+  • User mới / `home_layout={}`: tối đa **3 khối** theo `MODULE_ORDER_BY_GIAI_DOAN` (Đang học · Freelance · Đang làm · Tìm việc · Đang dạy).
+  • Auto-inject capability chỉ còn `cho_ban_duyet` + `don_can_xu_ly` — còn lại qua «Thêm khối».
+  • Layout đã lưu (đã custom) không bị ghi đè; muốn về mặc định mới → DELETE `/api/user/home-layout` hoặc «Khôi phục mặc định».
 
 ### World Journey feed — lọc theo `che_do_hien_thi` (2026-06-19)
 

@@ -1,5 +1,4 @@
 import {
-  ArrowRight,
   BadgeCheck,
   Calendar,
   CalendarDays,
@@ -7,6 +6,8 @@ import {
   Megaphone,
   UserRoundPlus,
 } from "lucide-react";
+
+import { CinsArrowIos } from "@/components/icons/CinsArrowIos";
 import Link from "next/link";
 
 const FOLLOW_SUGGESTIONS = [
@@ -80,7 +81,7 @@ export function WorldJourneyGuestRightAside() {
           </div>
           <button type="button" className="wj-ad-cta">
             Tìm hiểu
-            <ArrowRight size={15} strokeWidth={2} aria-hidden />
+            <CinsArrowIos size={15} strokeWidth={2} aria-hidden />
           </button>
         </div>
         <span className="wj-ad-spons">Được tài trợ</span>

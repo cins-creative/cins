@@ -1,6 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, GraduationCap, MapPin } from "lucide-react";
+import { GraduationCap, MapPin } from "lucide-react";
+
+import { CinsArrowIos } from "@/components/icons/CinsArrowIos";
 
 import { TruongOrgAvatar } from "@/components/truong/TruongOrgAvatar";
 import { labelLoaiCoSo } from "@/lib/to-chuc/constants";
@@ -99,7 +101,7 @@ export function CoSoListingCard({ school, index }: Props) {
               : "Chưa có khóa học"}
           </span>
           <span className="tdh-coso-foot-arrow" aria-hidden>
-            <ArrowRight size={18} strokeWidth={2.2} />
+            <CinsArrowIos size={18} strokeWidth={2.2} />
           </span>
         </div>
       </div>

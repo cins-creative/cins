@@ -2946,9 +2946,10 @@
 }
 
 .world-journey-home .wj-feed-timeline .j-osk-actions .cso-sk-detail-btn--join.is-active:hover:not(:disabled) {
-  background: #166534;
-  border-color: rgba(21, 128, 61, 0.3);
+  background: #b91c1c;
+  border-color: rgba(185, 28, 28, 0.25);
   color: #fff;
+  box-shadow: 0 6px 18px rgba(185, 28, 28, 0.22);
 }
 
 .world-journey-home .wj-feed-timeline .j-feed-suggestion-badge {
@@ -4369,6 +4370,566 @@
   padding-right: 0;
 }
 
+/* Module tin nhắn — tái dùng markup/CSS chat list trong ha-card. */
+.world-journey-home .ha-col.ha-col--solo .ha-card.ha-card--chat {
+  overflow: visible;
+}
+
+.world-journey-home .ha-card-head-trailing {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  flex: 0 1 auto;
+  max-width: min(148px, 46%);
+}
+
+.world-journey-home .ha-card-head-trailing + .ha-card-more {
+  margin-left: 0;
+}
+
+.world-journey-home .ha-chat-tag-filter {
+  position: relative;
+  flex: 0 1 auto;
+  max-width: 100%;
+  z-index: 4;
+}
+
+.world-journey-home .ha-card-head .ha-chat-tag-filter-btn {
+  max-width: 100%;
+  height: 22px;
+  padding: 0;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.world-journey-home .ha-chat-tag-filter.is-open {
+  z-index: 12;
+}
+
+.world-journey-home .ha-chat-tag-filter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 160px;
+  height: 26px;
+  padding: 0 4px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--ink3, rgba(0, 0, 0, 0.55));
+  font: inherit;
+  font-size: 11px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.world-journey-home .ha-chat-tag-filter-btn:hover {
+  color: var(--ink1);
+}
+
+.world-journey-home .ha-chat-tag-filter-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.world-journey-home .ha-chat-tag-filter-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 180px;
+  max-width: min(240px, 80vw);
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 4px;
+  border-radius: var(--r-sm, 8px);
+  border: 1px solid var(--border, rgba(15, 23, 42, 0.1));
+  background: var(--surface, #fff);
+  box-shadow: var(--sh-md, 0 8px 24px rgba(15, 23, 42, 0.12));
+}
+
+.world-journey-home .ha-chat-tag-filter-option {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  padding: 7px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink1);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.world-journey-home .ha-chat-tag-filter-option:hover {
+  background: var(--neutral-50, #f8f9fb);
+}
+
+.world-journey-home .ha-chat-tag-filter-option.is-active {
+  background: color-mix(in srgb, var(--blue, #1f74c9) 8%, transparent);
+}
+
+.world-journey-home .ha-chat-tag-filter-check {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--blue, #1f74c9);
+}
+
+.world-journey-home .ha-chat-tag-filter-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:root[data-theme="dark"] .world-journey-home .ha-chat-tag-filter-btn {
+  background: transparent;
+  border: 0;
+}
+
+:root[data-theme="dark"] .world-journey-home .ha-chat-tag-filter-option:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.world-journey-home .ha-card--chat .ha-chat-list {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.world-journey-home .ha-card--chat .ha-chat-list > [role="listitem"] {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.world-journey-home .ha-card--chat .cins-chat-thread {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: 0;
+  overflow: hidden;
+}
+
+.world-journey-home .ha-card--chat .cins-chat-thread:hover {
+  background: var(--neutral-50, #f8f9fb);
+}
+
+:root[data-theme="dark"] .world-journey-home .ha-card--chat .cins-chat-thread:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.world-journey-home .ha-card--chat .cins-chat-thread-main {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
+.world-journey-home .ha-card--chat .cins-chat-thread-top,
+.world-journey-home .ha-card--chat .cins-chat-thread-bottom {
+  min-width: 0;
+  width: 100%;
+  gap: 6px;
+}
+
+.world-journey-home .ha-card--chat .cins-chat-thread-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.world-journey-home .ha-card--chat .cins-chat-thread-name strong {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.world-journey-home .ha-card--chat .cins-chat-thread-preview {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ink4, var(--ink-muted));
+}
+
+.world-journey-home .ha-card--chat .cins-chat-thread-trailing {
+  margin-right: 0;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 42%;
+}
+
+.world-journey-home .ha-card--chat .cins-chat-khach-tag-chip {
+  max-width: 100%;
+}
+
+.world-journey-home .ha-don-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0;
+  overflow: visible;
+}
+
+.world-journey-home .ha-don-filter {
+  position: relative;
+  margin-left: auto;
+  flex: 0 0 auto;
+  z-index: 4;
+}
+
+.world-journey-home .ha-don-filter.is-open {
+  z-index: 30;
+}
+
+.world-journey-home .ha-card--don .ha-card-head:has(.ha-don-filter.is-open) {
+  position: relative;
+  z-index: 5;
+}
+
+.world-journey-home .ha-card--don .ha-card-more {
+  margin-left: 0;
+}
+
+.world-journey-home .ha-don-filter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  max-width: 118px;
+  height: 26px;
+  padding: 0 2px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--ink3, rgba(0, 0, 0, 0.55));
+  font: inherit;
+  font-size: 11px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.world-journey-home .ha-don-filter-btn:hover {
+  color: var(--ink1);
+}
+
+.world-journey-home .ha-don-filter-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.world-journey-home .ha-don-filter-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 20;
+  min-width: 168px;
+  padding: 4px;
+  border-radius: var(--r-sm, 8px);
+  border: 1px solid var(--border, rgba(15, 23, 42, 0.1));
+  background: var(--surface, #fff);
+  box-shadow: var(--sh-md, 0 8px 24px rgba(15, 23, 42, 0.12));
+}
+
+.world-journey-home .ha-don-filter-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 7px 9px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink1);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.world-journey-home .ha-don-filter-option:hover,
+.world-journey-home .ha-don-filter-option.is-active {
+  background: var(--neutral-50, #f8f9fb);
+  color: var(--blue);
+}
+
+.world-journey-home .ha-don-filter-count {
+  flex-shrink: 0;
+  min-width: 16px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink4);
+  font-variant-numeric: tabular-nums;
+}
+
+.world-journey-home .ha-don-filter-option.is-active .ha-don-filter-count {
+  color: var(--blue);
+}
+
+:root[data-theme="dark"] .world-journey-home .ha-don-filter-btn {
+  background: transparent;
+  border: 0;
+}
+
+:root[data-theme="dark"] .world-journey-home .ha-don-filter-option:hover,
+:root[data-theme="dark"] .world-journey-home .ha-don-filter-option.is-active {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.world-journey-home .ha-don {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 10px 14px 12px;
+  border-top: 1px solid var(--border, rgba(15, 23, 42, 0.06));
+}
+
+.world-journey-home .ha-don:first-child {
+  border-top: 0;
+}
+
+.world-journey-home .ha-don-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+
+.world-journey-home .ha-don-av-link {
+  flex-shrink: 0;
+  text-decoration: none;
+}
+
+.world-journey-home .ha-don-av {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--blue-soft, #e7f0fb);
+  color: var(--blue);
+  font-weight: 800;
+  font-size: 12px;
+}
+
+.world-journey-home .ha-don-av img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.world-journey-home .ha-don-meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.world-journey-home .ha-don-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.world-journey-home .ha-don-name {
+  font-weight: 650;
+  font-size: 13.5px;
+  color: var(--ink1);
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  text-decoration: none;
+}
+
+.world-journey-home .ha-don-name:hover {
+  color: var(--blue);
+}
+
+.world-journey-home .ha-don-price {
+  flex-shrink: 0;
+  font-size: 14px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  color: var(--ink-display, var(--ink1));
+  line-height: 1.2;
+}
+
+.world-journey-home .ha-don-sub {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 6px;
+  min-width: 0;
+  width: 100%;
+}
+
+.world-journey-home .ha-don-code {
+  flex: 1 1 0;
+  font-size: 11.5px;
+  color: var(--ink4);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-decoration: none;
+  min-width: 0;
+}
+
+.world-journey-home .ha-don-code:hover {
+  color: var(--blue);
+}
+
+.world-journey-home .ha-don-status {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  max-width: none;
+  padding: 0;
+  border-radius: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink3, rgba(0, 0, 0, 0.55));
+  font-family: inherit;
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.world-journey-home .ha-don-status.is-warn {
+  background: transparent;
+  color: #b45309;
+}
+
+.world-journey-home .ha-don-status.is-ok {
+  background: transparent;
+  color: #166534;
+}
+
+.world-journey-home .ha-don-status.is-dd {
+  cursor: pointer;
+  padding-right: 0;
+  transition: opacity 120ms ease, color 120ms ease;
+}
+
+.world-journey-home .ha-don-status.is-dd:hover:not(:disabled) {
+  filter: none;
+  box-shadow: none;
+  opacity: 0.82;
+}
+
+.world-journey-home .ha-don-status.is-dd:disabled {
+  opacity: 0.72;
+  cursor: wait;
+}
+
+.world-journey-home .ha-don-status-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 9.5rem;
+}
+
+.world-journey-home .ha-don-status-dd {
+  position: relative;
+  flex-shrink: 0;
+  z-index: 2;
+}
+
+.world-journey-home .ha-don-status-dd.is-open {
+  z-index: 8;
+}
+
+.world-journey-home .ha-don-status-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 168px;
+  padding: 4px;
+  border-radius: var(--r-sm, 8px);
+  border: 1px solid var(--border, rgba(15, 23, 42, 0.1));
+  background: var(--surface, #fff);
+  box-shadow: var(--sh-md, 0 8px 24px rgba(15, 23, 42, 0.12));
+}
+
+.world-journey-home .ha-don-status-option {
+  display: block;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink1);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.world-journey-home .ha-don-status-option:hover {
+  background: var(--neutral-50, #f8f9fb);
+  color: var(--blue);
+}
+
+.world-journey-home .ha-don-more-hint {
+  margin: 0;
+  padding: 8px 14px 12px;
+  font-size: 11.5px;
+  color: var(--ink4);
+  line-height: 1.4;
+}
+
+.world-journey-home .ha-col--right .ha-card--don .ha-don,
+.world-journey-home .ha-col--right .ha-card--don .ha-don-error,
+.world-journey-home .ha-col--right .ha-card--don .ha-don-more-hint {
+  padding-right: 0;
+}
+
+:root[data-theme="dark"] .world-journey-home .ha-don-price {
+  color: rgba(255, 255, 255, 0.94);
+}
+
+:root[data-theme="dark"] .world-journey-home .ha-don-status.is-warn {
+  background: transparent;
+  color: #fbbf24;
+}
+
+:root[data-theme="dark"] .world-journey-home .ha-don-status.is-ok {
+  background: transparent;
+  color: #86efac;
+}
+
 /* Cột trái — padding phải thoáng hơn. */
 .world-journey-home .ha-col--left {
   --ha-inset-x: 14px;
@@ -4392,6 +4953,12 @@
   overflow: hidden;
   min-width: 0;
   width: 100%;
+}
+
+/* Dropdown lọc (đơn / chat) — phải đứng SAU .ha-card{overflow:hidden}. */
+.world-journey-home .ha-card--don,
+.world-journey-home .ha-card--chat {
+  overflow: visible;
 }
 
 .world-journey-home .ha-card--profile,
@@ -4430,11 +4997,28 @@
   padding-top: 4px;
 }
 
-.world-journey-home .ha-card--notify .ha-card-head {
-  flex-wrap: wrap;
-  row-gap: 6px;
+.world-journey-home .ha-card--notify .ha-org-up-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
   padding: 12px 12px 10px 14px;
   border-bottom: 1px solid var(--neutral-100, #f1f2f5);
+}
+
+.world-journey-home .ha-card--notify .ha-org-up-head .ha-card-head {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border-bottom: 0;
+  flex-wrap: nowrap;
+  row-gap: 0;
+}
+
+.world-journey-home .ha-card--notify .ha-card-title {
+  flex: 0 1 auto;
+  min-width: 0;
 }
 
 .world-journey-home .ha-card--notify .ha-card-empty {
@@ -5428,26 +6012,36 @@
 
 .world-journey-home .ha-org-up-rsvp {
   flex-shrink: 0;
-  font-size: 9.5px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.2px;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
-  color: var(--blue-dark);
-  background: var(--blue-soft);
-  padding: 2px 6px;
-  border-radius: var(--r-pill);
+  color: var(--mint-ink, #0e6b4d);
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
 .world-journey-home .ha-org-up-interest {
   flex-shrink: 0;
-  font-size: 9.5px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.2px;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
   color: var(--violet, #6b4ce6);
-  background: var(--violet-soft, #f0ebff);
-  padding: 2px 6px;
-  border-radius: var(--r-pill);
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
 .world-journey-home .ha-org-up-tag {
@@ -5487,11 +6081,25 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  margin: 2px 0 0;
+  margin: 0;
   font-size: 10px;
   font-weight: 600;
   color: var(--ink4);
   line-height: 1.2;
+  min-width: 0;
+}
+
+.world-journey-home .ha-org-up-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 2px;
+  min-width: 0;
+}
+
+.world-journey-home .ha-org-up-foot .ha-org-up-countdown {
+  flex: 1 1 auto;
 }
 
 .world-journey-home .ha-org-up-countdown--live {
@@ -5640,6 +6248,103 @@
 .world-journey-home .ha-org-up-list-badge.is-moc {
   color: var(--amber-ink, #92400e);
   background: color-mix(in srgb, var(--amber, #f59e0b) 16%, white);
+}
+
+.world-journey-home .ha-org-up-list-badge.is-quay {
+  color: #9a3412;
+  background: color-mix(in srgb, #ea580c 14%, white);
+}
+
+.world-journey-home .ha-org-up-quay {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 999px;
+  color: #9a3412;
+  background: color-mix(in srgb, #ea580c 14%, white);
+}
+
+.world-journey-home .ha-org-up-quay.is-pending {
+  color: #b45309;
+  background: color-mix(in srgb, #d97706 16%, white);
+}
+
+.world-journey-home .ha-org-up-tabs {
+  display: flex;
+  gap: 2px;
+  margin-left: auto;
+  flex: 0 1 auto;
+  max-width: min(168px, 58%);
+  padding: 2px;
+  border-radius: 999px;
+  background: var(--neutral-100, #f1f2f5);
+}
+
+.world-journey-home .ha-org-up-tab {
+  flex: 1 1 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
+  min-height: 24px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink4);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 650;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.world-journey-home .ha-org-up-tab:hover:not(:disabled) {
+  color: var(--ink1);
+}
+
+.world-journey-home .ha-org-up-tab.is-active {
+  background: var(--surface, #fff);
+  color: var(--ink1);
+  box-shadow: var(--sh-xs, 0 1px 2px rgba(15, 23, 42, 0.06));
+}
+
+.world-journey-home .ha-org-up-tab:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.world-journey-home .ha-org-up-tab-count {
+  min-width: 16px;
+  height: 16px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--blue, #1f74c9) 14%, transparent);
+  color: var(--blue-dark, #1656a0);
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 16px;
+  text-align: center;
+}
+
+.world-journey-home .ha-org-up-tab.is-active .ha-org-up-tab-count {
+  background: var(--blue-soft, #e7f0fb);
+}
+
+.world-journey-home .ha-col--right .ha-card--notify .ha-org-up-head {
+  padding-right: 10px;
+}
+
+:root[data-theme="dark"] .world-journey-home .ha-org-up-tabs {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+:root[data-theme="dark"] .world-journey-home .ha-org-up-tab.is-active {
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: none;
 }
 
 .world-journey-home .ha-org-up-item--moc .ha-org-up-list-row,
@@ -5977,3 +6682,977 @@
   outline-offset: -2px;
 }
 .j-main-gallery-thumb { position: relative; }
+
+/* -------- Home layout edit mode (ha-edit-*) -------- */
+/* Dùng token gốc (--bg-surface, --ink-*) — toolbar nằm NGOÀI .world-journey-home
+   nên alias --surface/--text/--muted không có sẵn. */
+
+/* Nền xám trang (--bg-page) — khớp vùng quanh .wj-shell, lấp gutter toolbar. */
+.ha-home-editing {
+  background: var(--bg-page, #f4f5f8);
+}
+
+.ha-home-editing .wj-feed {
+  position: relative;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Scrim tối — đẩy focus sang sidebar khi chỉnh layout. */
+.ha-home-editing .wj-feed::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  border-radius: inherit;
+  background: rgba(15, 23, 42, 0.75);
+  pointer-events: none;
+}
+
+:root[data-theme="dark"] .ha-home-editing .wj-feed::after {
+  background: rgba(0, 0, 0, 0.75);
+}
+
+/* Sticky bar full-bleed trên nền xám; inner card căn như .wj-shell (1360 / pad 16). */
+.ha-edit-bar {
+  position: sticky;
+  top: var(--wj-sticky-top, var(--j-topbar-h, 64px));
+  z-index: 50;
+  margin: 0;
+  padding: 0 16px 12px;
+  box-sizing: border-box;
+  background: var(--bg-page, #f4f5f8);
+}
+
+.ha-edit-bar-inner {
+  width: 100%;
+  max-width: 1360px;
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 16px;
+  padding: 12px 16px;
+  box-sizing: border-box;
+  background: var(--bg-surface, #fff);
+  border: 1px dashed color-mix(in srgb, var(--cins-blue, #1f74c9) 45%, var(--border, #e4e6eb));
+  border-radius: var(--r-lg, 14px);
+  box-shadow: var(--shadow-xs, 0 1px 2px rgba(0, 0, 0, 0.06));
+  color: var(--ink-display, rgba(0, 0, 0, 0.85));
+}
+
+.ha-edit-bar-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 650;
+  color: var(--ink-display, rgba(0, 0, 0, 0.85));
+}
+
+.ha-edit-bar-hint {
+  margin: 2px 0 0;
+  font-size: 0.8rem;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.4));
+}
+
+.ha-edit-bar-err {
+  margin: 6px 0 0;
+  font-size: 0.8rem;
+  color: var(--danger, #dc2626);
+}
+
+.ha-edit-bar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ha-edit-bar-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  border: 1px solid var(--border, #e4e6eb);
+  background: var(--bg-surface, #fff);
+  color: var(--ink-display, rgba(0, 0, 0, 0.85));
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.ha-edit-bar-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ha-edit-bar-btn--primary {
+  background: var(--cins-blue, #1f74c9);
+  border-color: transparent;
+  color: #fff;
+}
+
+.ha-edit-bar-btn--primary:hover:not(:disabled) {
+  background: var(--cins-blue-dark, #1656a0);
+}
+
+.ha-edit-bar-btn--ghost:hover:not(:disabled) {
+  background: var(--neutral-900, #0f172a);
+  border-color: var(--neutral-900, #0f172a);
+  color: #fff;
+}
+
+:root[data-theme="dark"] .ha-edit-bar-btn--ghost:hover:not(:disabled) {
+  background: var(--neutral-200, #2a3040);
+  border-color: var(--border-strong, #3a4152);
+  color: var(--ink-display, rgba(255, 255, 255, 0.92));
+}
+
+/* Cột chỉ 1 khối — kéo card full chiều cao viewport (sticky). */
+.world-journey-home .ha-col.ha-col--solo {
+  height: calc(
+    100dvh - var(--wj-sticky-top) - var(--wj-shell-pad-top, 16px) - 24px
+  );
+  max-height: calc(
+    100dvh - var(--wj-sticky-top) - var(--wj-shell-pad-top, 16px) - 24px
+  );
+  overflow: hidden;
+  gap: 0;
+}
+
+.world-journey-home .ha-col.ha-col--solo > .ha-edit-slot-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.world-journey-home .ha-col.ha-col--solo .ha-edit-slot,
+.world-journey-home .ha-col.ha-col--solo .ha-edit-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.world-journey-home .ha-col.ha-col--solo .ha-edit-body > *,
+.world-journey-home .ha-col.ha-col--solo .ha-edit-body > [data-ha-module],
+.world-journey-home .ha-col.ha-col--solo .ha-card {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.world-journey-home .ha-col.ha-col--solo .ha-card {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* Dropdown lọc (đơn / chat) cần thoát scrollport của card solo. */
+.world-journey-home .ha-col.ha-col--solo .ha-card.ha-card--don,
+.world-journey-home .ha-col.ha-col--solo .ha-card.ha-card--chat {
+  overflow: visible;
+}
+
+.world-journey-home .ha-col.ha-col--solo.ha-col--editing > .ha-edit-slot-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+@media (max-width: 991.98px) {
+  .world-journey-home .ha-col.ha-col--solo {
+    height: auto;
+    max-height: none;
+    overflow: visible;
+  }
+}
+
+.ha-edit-gap {
+  position: relative;
+  width: 100%;
+  align-self: stretch;
+  box-sizing: border-box;
+  height: 22px;
+  margin: 0;
+  padding: 0;
+  flex: 0 0 auto;
+}
+
+.ha-edit-gap::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  transform: translateY(-50%);
+  background: color-mix(in srgb, var(--cins-blue, #1f74c9) 45%, transparent);
+  pointer-events: none;
+}
+
+.ha-edit-gap-btn {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  margin: 0;
+  padding: 0;
+  border-radius: 999px;
+  border: 1.5px solid var(--cins-blue, #1f74c9);
+  background: var(--bg-surface, #fff);
+  color: var(--cins-blue, #1f74c9);
+  opacity: 1;
+  cursor: pointer;
+  transform: translate(-50%, -50%);
+  transition: background 0.12s, border-color 0.12s, transform 0.12s, box-shadow 0.12s;
+}
+
+.ha-edit-gap:hover .ha-edit-gap-btn,
+.ha-edit-gap--open .ha-edit-gap-btn {
+  background: color-mix(in srgb, var(--cins-blue, #1f74c9) 14%, var(--bg-surface, #fff));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cins-blue, #1f74c9) 18%, transparent);
+  transform: translate(-50%, -50%) scale(1.06);
+}
+
+.ha-edit-add-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  box-sizing: border-box;
+}
+
+.ha-edit-add-backdrop {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: rgba(15, 23, 42, 0.48);
+  cursor: pointer;
+  appearance: none;
+}
+
+.ha-edit-add-scroll {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-bottom: 8px;
+  flex: 1;
+  min-height: 0;
+}
+
+.ha-card-empty--loading {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ha-edit-slot-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.ha-edit-drop-line {
+  height: 3px;
+  margin: 4px 0;
+  border-radius: 2px;
+  background: var(--cins-blue, #1f74c9);
+}
+
+.ha-edit-slot--edit {
+  border: 1px solid color-mix(in srgb, var(--cins-blue, #1f74c9) 28%, var(--border, #e4e6eb));
+  border-radius: var(--r-lg, 14px);
+  background: var(--bg-surface, #fff);
+  overflow: visible;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--cins-blue, #1f74c9) 8%, transparent),
+    0 4px 14px rgba(15, 23, 42, 0.06);
+}
+
+.ha-edit-slot--dragging {
+  opacity: 0.5;
+  box-shadow: 0 8px 28px rgba(15, 23, 42, 0.14);
+}
+
+/* Thanh tab khối — tiêu đề chỉ hiện ở đây; ẩn head card bên dưới. */
+.ha-edit-chrome {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 5px 6px 5px 4px;
+  border-bottom: 1px solid var(--border, #e4e6eb);
+  border-radius: var(--r-lg, 14px) var(--r-lg, 14px) 0 0;
+  background: color-mix(in srgb, var(--cins-blue, #1f74c9) 6%, var(--bg-surface, #fff));
+}
+
+.ha-edit-grip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.38));
+  cursor: grab;
+  flex: 0 0 auto;
+}
+
+.ha-edit-grip:active {
+  cursor: grabbing;
+  background: color-mix(in srgb, var(--cins-blue, #1f74c9) 12%, transparent);
+}
+
+.ha-edit-chrome-main {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.ha-edit-label {
+  min-width: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--ink-display, rgba(0, 0, 0, 0.88));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ha-edit-new {
+  flex: 0 0 auto;
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--cins-blue, #1f74c9);
+  background: color-mix(in srgb, var(--cins-blue, #1f74c9) 14%, transparent);
+  padding: 2px 6px;
+  border-radius: 999px;
+}
+
+.ha-edit-limit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  height: 26px;
+  min-width: 28px;
+  padding: 0 4px;
+  border-radius: 8px;
+  border: 1px solid var(--border, #e4e6eb);
+  background: var(--bg-surface, #fff);
+}
+
+.ha-edit-limit input {
+  width: 1.6rem;
+  box-sizing: border-box;
+  border: none;
+  padding: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-align: center;
+  background: transparent;
+  color: var(--ink-display, rgba(0, 0, 0, 0.88));
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.ha-edit-limit input::-webkit-outer-spin-button,
+.ha-edit-limit input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.ha-edit-limit input:focus {
+  outline: none;
+}
+
+.ha-edit-actions {
+  display: inline-flex;
+  gap: 1px;
+  flex: 0 0 auto;
+}
+
+.ha-edit-more,
+.ha-edit-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--ink-title, rgba(0, 0, 0, 0.55));
+  cursor: pointer;
+}
+
+.ha-edit-more:hover,
+.ha-edit-remove:hover {
+  background: color-mix(in srgb, var(--ink-display, #0f172a) 8%, var(--bg-surface, #fff));
+  color: var(--ink-display, rgba(0, 0, 0, 0.85));
+}
+
+.ha-edit-remove:hover {
+  background: color-mix(in srgb, #dc2626 12%, var(--bg-surface, #fff));
+  color: #dc2626;
+}
+
+:root[data-theme="dark"] .ha-edit-more:hover,
+:root[data-theme="dark"] .ha-edit-remove:hover {
+  background: var(--neutral-200, #2a3040);
+  color: var(--ink-display, rgba(255, 255, 255, 0.92));
+}
+
+:root[data-theme="dark"] .ha-edit-remove:hover {
+  background: color-mix(in srgb, #f87171 18%, transparent);
+  color: #fca5a5;
+}
+
+.ha-edit-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 6px;
+  z-index: 5;
+  min-width: 188px;
+  padding: 6px;
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border, #e4e6eb);
+  border-radius: var(--r-md, 10px);
+  box-shadow: var(--shadow-md, 0 8px 24px rgba(0, 0, 0, 0.12));
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ha-edit-menu button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+  border: none;
+  background: transparent;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 550;
+  color: var(--ink-title, rgba(0, 0, 0, 0.72));
+  cursor: pointer;
+}
+
+.ha-edit-menu button:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--cins-blue, #1f74c9) 10%, transparent);
+  color: var(--ink-display, rgba(0, 0, 0, 0.9));
+}
+
+:root[data-theme="dark"] .ha-edit-menu button:hover:not(:disabled) {
+  background: var(--neutral-200, #2a3040);
+}
+
+.ha-edit-menu button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.ha-edit-menu-note {
+  margin: 4px 6px 2px;
+  font-size: 0.7rem;
+  line-height: 1.35;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.45));
+}
+
+.ha-edit-body {
+  min-width: 0;
+}
+
+/* Chỉ khi đang edit: bỏ khung card (chrome đã có tiêu đề).
+   View mode giữ surface/shadow — wrapper data-ha-module dùng display:contents
+   nên `.ha-edit-body > .ha-card` vẫn khớp ngoài edit nếu không giới hạn. */
+.ha-edit-slot--edit .ha-edit-body .ha-card {
+  box-shadow: none;
+  border-radius: 0;
+  background: transparent;
+  padding-top: 2px;
+}
+
+/* Edit mode: tiêu đề đã ở chrome — ẩn head card để không trùng. */
+.ha-edit-slot--edit .ha-edit-body .ha-card-head {
+  display: none;
+}
+
+.ha-card--placeholder {
+  opacity: 0.85;
+}
+
+.ha-edit-add-wrap {
+  position: relative;
+  margin-top: 4px;
+}
+
+.ha-edit-add-panel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 6;
+  max-height: min(360px, 50vh);
+  overflow: auto;
+  padding: 8px;
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border, #e4e6eb);
+  border-radius: var(--r-lg, 14px);
+  box-shadow: var(--shadow-md, 0 8px 24px rgba(0, 0, 0, 0.12));
+}
+
+/* Modal portal — specificity cao hơn base panel (tránh top: 100% đẩy khỏi viewport). */
+.ha-edit-add-panel.ha-edit-add-panel--modal {
+  position: relative;
+  left: auto;
+  right: auto;
+  top: auto;
+  bottom: auto;
+  z-index: 1;
+  /* Rộng đủ 3 cột pick (~280px × 3 + gap + padding). */
+  width: min(980px, calc(100vw - 32px));
+  max-height: min(78vh, 720px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 12px 12px 10px;
+  box-shadow:
+    0 16px 48px rgba(15, 23, 42, 0.22),
+    0 0 0 1px var(--border, #e4e6eb);
+}
+
+.ha-edit-add-head-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ha-edit-add-head-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--ink-display, rgba(0, 0, 0, 0.85));
+}
+
+.ha-edit-add-head-hint {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.4));
+}
+
+.ha-edit-add-search {
+  padding: 0 4px 8px;
+}
+
+.ha-edit-add-search input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--border, #e4e6eb);
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 0.82rem;
+  /* Token theme: light #F1F2F5 / dark #1c212c — không dùng --surface/--ink (không ổn định). */
+  background: var(--neutral-100, #f1f2f5);
+  color: var(--ink-display, rgba(0, 0, 0, 0.88));
+}
+
+.ha-edit-add-search input::placeholder {
+  color: var(--ink-muted, rgba(0, 0, 0, 0.4));
+}
+
+.ha-edit-add-search input:focus {
+  outline: 2px solid color-mix(in srgb, var(--cins-accent, #2563eb) 35%, transparent);
+  outline-offset: 1px;
+}
+
+.ha-edit-add-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 10px;
+  padding: 0 2px 6px;
+}
+
+@media (max-width: 900px) {
+  .ha-edit-add-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .ha-edit-add-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ha-edit-add-pick {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+  border: 1px solid var(--border, #e4e6eb);
+  border-radius: var(--r-lg, 14px);
+  background: var(--bg-surface, #fff);
+  overflow: hidden;
+}
+
+/* Catalog nằm ngoài shell — bọc world-journey-home để inherit CSS card. */
+.ha-edit-add-pick-preview.world-journey-home {
+  display: block;
+  flex: 1 1 auto;
+  pointer-events: none;
+  overflow: hidden;
+  max-height: 220px;
+  min-height: 0;
+}
+
+.ha-edit-add-pick-preview .ha-card {
+  box-shadow: none;
+  border: none;
+  border-radius: 0;
+  margin: 0;
+  background: var(--bg-surface, #fff);
+}
+
+.ha-edit-add-pick-preview .ha-card-head,
+.ha-edit-add-pick-preview .ha-org-up-head {
+  padding: 10px 12px 8px;
+}
+
+.ha-edit-add-pick-preview .ha-job-list,
+.ha-edit-add-pick-preview .ha-org-up-list,
+.ha-edit-add-pick-preview .ha-people-list,
+.ha-edit-add-pick-preview .ha-studio-list,
+.ha-edit-add-pick-preview .ha-don-list,
+.ha-edit-add-pick-preview .ha-chat-list {
+  padding-left: 10px;
+  padding-right: 10px;
+  padding-bottom: 8px;
+}
+
+.ha-edit-add-pick-foot {
+  flex-shrink: 0;
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 10px;
+  border-top: 1px solid var(--border, #e4e6eb);
+  background: color-mix(in srgb, var(--bg-surface, #fff) 90%, var(--cins-blue, #1f74c9));
+}
+
+.ha-edit-add-pick-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.ha-edit-add-pick-desc {
+  font-size: 0.72rem;
+  font-weight: 550;
+  line-height: 1.35;
+  color: var(--ink-title, rgba(0, 0, 0, 0.72));
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.ha-edit-add-pick-cta {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 5px 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--cins-blue, #1f74c9);
+  cursor: pointer;
+}
+
+.ha-edit-add-pick-cta:hover,
+.ha-edit-add-pick-cta:focus-visible {
+  background: color-mix(in srgb, var(--cins-blue, #1f74c9) 10%, transparent);
+  outline: none;
+}
+
+/* —— Mockup tĩnh trong catalog thêm khối —— */
+.ha-edit-mock {
+  padding-bottom: 6px;
+}
+
+.ha-edit-mock .ha-card-head {
+  padding: 10px 12px 6px;
+}
+
+.ha-edit-mock-list,
+.ha-edit-mock-events {
+  list-style: none;
+  margin: 0;
+  padding: 0 10px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ha-edit-mock-row,
+.ha-edit-mock-event {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.ha-edit-mock-event--feat {
+  padding: 6px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--cins-blue, #1f74c9) 8%, var(--bg-surface, #fff));
+}
+
+.ha-edit-mock-av,
+.ha-edit-mock-date {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--ink-display, #0f172a) 8%, var(--bg-surface, #fff));
+  color: var(--ink-muted, rgba(0, 0, 0, 0.45));
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.ha-edit-mock-date {
+  flex-direction: column;
+  gap: 0;
+  line-height: 1.05;
+  background: var(--neutral-900, #0f172a);
+  color: #fff;
+  border-radius: 8px;
+}
+
+.ha-edit-mock-date-m {
+  font-size: 0.55rem;
+  font-weight: 650;
+  opacity: 0.85;
+}
+
+.ha-edit-mock-date-d {
+  font-size: 0.78rem;
+  font-weight: 750;
+}
+
+.ha-edit-mock-meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.ha-edit-mock-title {
+  font-size: 0.78rem;
+  font-weight: 650;
+  color: var(--ink-display, rgba(0, 0, 0, 0.85));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ha-edit-mock-sub {
+  font-size: 0.68rem;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.42));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ha-edit-mock-chip {
+  flex: 0 0 auto;
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: var(--cins-blue, #1f74c9);
+  background: color-mix(in srgb, var(--cins-blue, #1f74c9) 12%, transparent);
+  padding: 2px 6px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.ha-edit-mock-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 2px 12px 10px;
+}
+
+.ha-edit-mock-lv {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ink-display, #0f172a) 6%, var(--bg-surface, #fff));
+  color: var(--ink-display, rgba(0, 0, 0, 0.75));
+}
+
+.ha-edit-mock-profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 2px 12px 8px;
+}
+
+.ha-edit-mock-ring {
+  flex: 0 0 auto;
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 750;
+  color: var(--cins-blue, #1f74c9);
+  border: 3px solid color-mix(in srgb, var(--cins-blue, #1f74c9) 35%, var(--border, #e4e6eb));
+  border-top-color: var(--cins-blue, #1f74c9);
+}
+
+.ha-edit-mock-open {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 10px 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--ink-display, rgba(0, 0, 0, 0.75));
+  background: color-mix(in srgb, var(--cins-mint, #3ecf8e) 14%, var(--bg-surface, #fff));
+}
+
+.ha-edit-add-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 6px 8px;
+  font-size: 0.78rem;
+  font-weight: 650;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.4));
+}
+
+.ha-edit-add-head button {
+  border: none;
+  background: transparent;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.4));
+  cursor: pointer;
+  display: inline-flex;
+}
+
+.ha-edit-add-empty {
+  margin: 0;
+  padding: 12px 8px;
+  font-size: 0.82rem;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.4));
+}
+
+.ha-edit-add-group-label {
+  margin: 8px 6px 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.4));
+}
+
+.ha-edit-add-item {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  text-align: left;
+  border: none;
+  background: transparent;
+  padding: 8px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.ha-edit-add-item:hover {
+  background: color-mix(in srgb, var(--ink-display, #0f172a) 8%, var(--bg-surface, #fff));
+}
+
+:root[data-theme="dark"] .ha-edit-add-item:hover {
+  background: var(--neutral-200, #2a3040);
+}
+
+.ha-edit-add-item-label {
+  font-size: 0.85rem;
+  font-weight: 650;
+  color: var(--ink-display, rgba(0, 0, 0, 0.85));
+}
+
+.ha-edit-add-item-desc {
+  font-size: 0.75rem;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.4));
+  line-height: 1.35;
+}
+
+.ha-edit-add-item-hint {
+  font-size: 0.7rem;
+  color: var(--cins-blue, #1f74c9);
+}
+
+.ha-spin {
+  animation: ha-spin 0.8s linear infinite;
+}
+
+@keyframes ha-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 1199.98px) {
+  .ha-edit-bar,
+  .ha-col--editing .ha-edit-chrome {
+    /* Edit mode intended desktop-only; keep usable if URL forced. */
+  }
+}

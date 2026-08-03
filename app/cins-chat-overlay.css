@@ -1409,9 +1409,10 @@ html.is-cins-share-dropping {
   display: inline-flex;
   align-items: center;
   max-width: 120px;
-  padding: 1px 7px;
-  border: 1px solid;
-  border-radius: 999px;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
   font-size: 10px;
   font-weight: 700;
   line-height: 1.5;
@@ -13039,4 +13040,44 @@ button.cins-chat-project-card-mark:hover {
 
 .cins-chat-workspace-moc.is-past .cins-chat-workspace-moc-remind-meta {
   display: none;
+}
+
+/* Dark: danh sách mốc nằm trực tiếp trên panel (không có card nền),
+   nên chữ/viền hard-code màu sáng phải đổi sang token. */
+:root[data-theme="dark"] .cins-chat-workspace-moc-body strong {
+  color: var(--ink-display);
+}
+
+:root[data-theme="dark"] .cins-chat-workspace-moc-body p {
+  color: var(--ink-body);
+}
+
+:root[data-theme="dark"] .cins-chat-workspace-moc-body time,
+:root[data-theme="dark"] .cins-chat-workspace-moc-action {
+  color: var(--ink-muted);
+}
+
+:root[data-theme="dark"] .cins-chat-workspace-moc-remind-meta {
+  color: var(--ink-muted);
+}
+
+:root[data-theme="dark"] .cins-chat-workspace-moc,
+:root[data-theme="dark"] .cins-chat-workspace-moc-past {
+  border-color: var(--border);
+}
+
+:root[data-theme="dark"] .cins-chat-workspace-moc.is-urgent .cins-chat-workspace-moc-body strong,
+:root[data-theme="dark"] .cins-chat-workspace-moc.is-urgent .cins-chat-workspace-moc-body time,
+:root[data-theme="dark"] .cins-chat-workspace-moc-remain.is-urgent {
+  color: var(--danger);
+}
+
+:root[data-theme="dark"] .cins-chat-workspace-moc.is-urgent .cins-chat-workspace-moc-dot {
+  background: var(--danger);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 28%, transparent);
+}
+
+:root[data-theme="dark"] .cins-chat-workspace-moc-action[aria-label="Xóa mốc"]:hover {
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 16%, transparent);
 }

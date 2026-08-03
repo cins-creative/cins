@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { ModuleCard } from "@/components/cins/home-adaptive/ModuleCard";
 import type { HomeModuleCtx } from "@/components/cins/home-adaptive/types";
+import { moduleItemLimit } from "@/components/cins/home-adaptive/types";
 import {
   loadChoBanDuyet,
   loadHocVienCuaBan,
@@ -11,7 +12,10 @@ import {
 
 /** DẠY · Chờ bạn duyệt — verify_yeu_cau chờ org admin. */
 export async function ChoBanDuyetModule({ ctx }: { ctx: HomeModuleCtx }) {
-  const pending = await loadChoBanDuyet(ctx.viewerId, 5);
+  const pending = await loadChoBanDuyet(
+    ctx.viewerId,
+    moduleItemLimit(ctx, "cho_ban_duyet"),
+  );
   if (pending.length === 0) return null;
 
   return (
@@ -49,7 +53,10 @@ export async function ChoBanDuyetModule({ ctx }: { ctx: HomeModuleCtx }) {
 
 /** DẠY · Học viên trong khóa org viewer quản lý. */
 export async function HocVienCuaBanModule({ ctx }: { ctx: HomeModuleCtx }) {
-  const students = await loadHocVienCuaBan(ctx.viewerId, 5);
+  const students = await loadHocVienCuaBan(
+    ctx.viewerId,
+    moduleItemLimit(ctx, "hoc_vien_cua_ban"),
+  );
   if (students.length === 0) return null;
 
   return (
@@ -82,7 +89,10 @@ export async function HocVienCuaBanModule({ ctx }: { ctx: HomeModuleCtx }) {
 
 /** DẠY · Scout tài năng — học viên nổi bật theo số cột mốc. */
 export async function ScoutTaiNangModule({ ctx }: { ctx: HomeModuleCtx }) {
-  const talents = await loadScoutTaiNang(ctx.viewerId, 4);
+  const talents = await loadScoutTaiNang(
+    ctx.viewerId,
+    moduleItemLimit(ctx, "scout_tai_nang"),
+  );
   if (talents.length === 0) return null;
 
   return (

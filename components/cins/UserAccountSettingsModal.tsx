@@ -4,10 +4,13 @@ import {
   Ban,
   Building2,
   Check,
+  ChevronRight,
   Clock3,
+  Columns2,
   Globe,
   LayoutGrid,
   Loader2,
+  PanelsTopLeft,
   Rows3,
   Settings2,
   ShieldCheck,
@@ -43,6 +46,7 @@ import {
   setHomeFeedLayout,
   type HomeFeedLayout,
 } from "@/lib/home/home-feed-layout";
+import { requestHomeLayoutEdit } from "@/lib/home/home-layout-edit";
 import {
   FEED_SOURCE_DEFAULT,
   FEED_SOURCE_OPTIONS,
@@ -72,7 +76,7 @@ const NAV: ReadonlyArray<{
   /** Chỉ hiện với `super_admin` / `admin` hệ thống. */
   adminOnly?: boolean;
 }> = [
-  { id: "journey-display", label: "Cài đặt bố cục" },
+  { id: "journey-display", label: "Bố cục hiển thị" },
   { id: "lich-su-mua", label: "Lịch sử mua hàng" },
   { id: "ban-hang", label: "Bán hàng" },
   { id: "admin", label: "Admin", adminOnly: true },
@@ -107,6 +111,7 @@ type Props = {
 
 export function UserAccountSettingsModal({ open, onClose }: Props) {
   const titleId = useId();
+  const router = useRouter();
   const [section, setSection] = useState<SettingsSection>("journey-display");
   const [layoutTab, setLayoutTab] = useState<LayoutTab>("profile");
   const [homeLayout, setHomeLayout] = useState<HomeFeedLayout>("timeline");
@@ -293,18 +298,14 @@ export function UserAccountSettingsModal({ open, onClose }: Props) {
               <section className="uas-section" aria-labelledby={`${titleId}-jd`}>
                 <div className="uas-section-head">
                   <h3 id={`${titleId}-jd`} className="uas-section-title">
-                    Cài đặt bố cục
+                    Bố cục hiển thị
                   </h3>
-                  <p className="uas-section-hint">
-                    Tuỳ chỉnh cách hiển thị trang cá nhân của bạn và bố cục
-                    trang chủ. Bạn vẫn có thể chuyển qua lại bất cứ lúc nào.
-                  </p>
                 </div>
 
                 <div
                   className="uas-tabs"
                   role="tablist"
-                  aria-label="Nhóm bố cục"
+                  aria-label="Chọn trang cần chỉnh"
                 >
                   <button
                     type="button"
@@ -313,7 +314,7 @@ export function UserAccountSettingsModal({ open, onClose }: Props) {
                     className={`uas-tab${layoutTab === "profile" ? " on" : ""}`}
                     onClick={() => setLayoutTab("profile")}
                   >
-                    <Clock3 size={15} strokeWidth={2} aria-hidden />
+                    <User size={15} strokeWidth={2} aria-hidden />
                     Trang cá nhân
                   </button>
                   <button
@@ -323,93 +324,100 @@ export function UserAccountSettingsModal({ open, onClose }: Props) {
                     className={`uas-tab${layoutTab === "home" ? " on" : ""}`}
                     onClick={() => setLayoutTab("home")}
                   >
-                    <LayoutGrid size={15} strokeWidth={2} aria-hidden />
+                    <PanelsTopLeft size={15} strokeWidth={2} aria-hidden />
                     Trang chủ
                   </button>
                 </div>
 
                 {layoutTab === "profile" ? (
-                  <>
-                    <p className="uas-section-hint uas-tab-hint">
-                      Chọn chế độ hiện khi vào trang từ bên ngoài. Đang xem
-                      Journey hay Gallery thì refresh và tương tác sẽ giữ nguyên
-                      chế độ đó.
-                    </p>
+                  <div className="uas-layout-stack">
+                    <div className="uas-layout-block">
+                      <div className="uas-layout-block-head">
+                        <h4 className="uas-layout-block-title">
+                          Chế độ mặc định
+                        </h4>
+                        <p className="uas-layout-block-hint">
+                          Người khác thấy gì khi mở trang của bạn lần đầu.
+                        </p>
+                      </div>
 
-                    {loading ? (
-                      <div className="uas-loading">
-                        <Loader2 size={18} className="uas-spin" aria-hidden />
-                        <span>Đang tải…</span>
-                      </div>
-                    ) : (
-                      <div
-                        className="uas-options"
-                        role="radiogroup"
-                        aria-label="Chế độ hiển thị mặc định"
-                      >
-                        {JOURNEY_DEFAULT_VIEW_OPTIONS.map((opt) => {
-                          const Icon = OPTION_ICON[opt.value];
-                          const active = selected === opt.value;
-                          return (
-                            <button
-                              key={opt.value}
-                              type="button"
-                              role="radio"
-                              aria-checked={active}
-                              className={`uas-option${active ? " on" : ""}`}
-                              onClick={() => setSelected(opt.value)}
-                            >
-                              <span className="uas-option-ico" aria-hidden>
-                                {opt.value === "gallery_luoi" ? (
-                                  <LayoutThumbIcon
-                                    layout="masonry"
-                                    masonryColumns={2}
-                                    size={20}
-                                  />
-                                ) : (
-                                  <Icon size={20} strokeWidth={1.8} />
-                                )}
-                              </span>
-                              <span className="uas-option-text">
-                                <span className="uas-option-label">
-                                  {opt.label}
+                      {loading ? (
+                        <div className="uas-loading">
+                          <Loader2 size={18} className="uas-spin" aria-hidden />
+                          <span>Đang tải…</span>
+                        </div>
+                      ) : (
+                        <div
+                          className="uas-options"
+                          role="radiogroup"
+                          aria-label="Chế độ hiển thị mặc định"
+                        >
+                          {JOURNEY_DEFAULT_VIEW_OPTIONS.map((opt) => {
+                            const Icon = OPTION_ICON[opt.value];
+                            const active = selected === opt.value;
+                            return (
+                              <button
+                                key={opt.value}
+                                type="button"
+                                role="radio"
+                                aria-checked={active}
+                                className={`uas-option${active ? " on" : ""}`}
+                                onClick={() => setSelected(opt.value)}
+                              >
+                                <span className="uas-option-ico" aria-hidden>
+                                  {opt.value === "gallery_luoi" ? (
+                                    <LayoutThumbIcon
+                                      layout="masonry"
+                                      masonryColumns={2}
+                                      size={20}
+                                    />
+                                  ) : (
+                                    <Icon size={20} strokeWidth={1.8} />
+                                  )}
                                 </span>
-                                <span className="uas-option-desc">
-                                  {opt.desc}
+                                <span className="uas-option-text">
+                                  <span className="uas-option-label">
+                                    {opt.label}
+                                  </span>
+                                  <span className="uas-option-desc">
+                                    {opt.desc}
+                                  </span>
                                 </span>
-                              </span>
-                              <span className="uas-option-check" aria-hidden>
-                                {active ? (
-                                  <Check size={16} strokeWidth={2.4} />
-                                ) : null}
-                              </span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
+                                <span className="uas-option-check" aria-hidden>
+                                  {active ? (
+                                    <Check size={16} strokeWidth={2.4} />
+                                  ) : null}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
 
                     {!loading ? (
-                      <div className="uas-toggle-row">
-                        <span className="uas-toggle-text">
-                          <span className="uas-toggle-label">
-                            Áp dụng cho tôi
+                      <div className="uas-layout-block uas-layout-block--flush">
+                        <div className="uas-toggle-row">
+                          <span className="uas-toggle-text">
+                            <span className="uas-toggle-label">
+                              Áp dụng cho tôi
+                            </span>
+                            <span className="uas-toggle-desc">
+                              Bật: bạn cũng thấy chế độ này khi mở trang mình.
+                              Tắt: chỉ áp cho khách.
+                            </span>
                           </span>
-                          <span className="uas-toggle-desc">
-                            Bật để chính bạn cũng thấy chế độ này khi mở trang
-                            mình; tắt thì chỉ áp cho người khác.
-                          </span>
-                        </span>
-                        <button
-                          type="button"
-                          role="switch"
-                          aria-checked={applyToMe}
-                          aria-label="Áp dụng cho tôi"
-                          className={`uas-switch${applyToMe ? " on" : ""}`}
-                          onClick={() => setApplyToMe((v) => !v)}
-                        >
-                          <span className="uas-switch-knob" aria-hidden />
-                        </button>
+                          <button
+                            type="button"
+                            role="switch"
+                            aria-checked={applyToMe}
+                            aria-label="Áp dụng cho tôi"
+                            className={`uas-switch${applyToMe ? " on" : ""}`}
+                            onClick={() => setApplyToMe((v) => !v)}
+                          >
+                            <span className="uas-switch-knob" aria-hidden />
+                          </button>
+                        </div>
                       </div>
                     ) : null}
 
@@ -418,95 +426,140 @@ export function UserAccountSettingsModal({ open, onClose }: Props) {
                         {err}
                       </p>
                     ) : null}
-                  </>
+                  </div>
                 ) : (
-                  <>
-                    <p className="uas-section-hint uas-tab-hint">
-                      Chọn cách trang chủ hiện lần đầu bạn mở. Lựa chọn được lưu
-                      trên máy này và áp dụng ngay.
-                    </p>
+                  <div className="uas-layout-stack">
+                    {homeLayout === "timeline" ? (
+                      <div className="uas-layout-block">
+                        <div className="uas-layout-block-head">
+                          <h4 className="uas-layout-block-title">
+                            Khối hai bên
+                          </h4>
+                          <p className="uas-layout-block-hint">
+                            Chọn module hiện ở sidebar trái / phải.
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          className="uas-layout-cta"
+                          onClick={() => {
+                            onClose();
+                            // Đang ở `/` → bật edit client-side (không SSR lại trang chủ).
+                            if (!requestHomeLayoutEdit()) {
+                              router.push("/?tuy-chinh=1");
+                            }
+                          }}
+                          onMouseEnter={() => {
+                            if (
+                              typeof window !== "undefined" &&
+                              window.location.pathname !== "/"
+                            ) {
+                              router.prefetch("/?tuy-chinh=1");
+                            }
+                          }}
+                        >
+                          <span className="uas-layout-cta-ico" aria-hidden>
+                            <Columns2 size={20} strokeWidth={1.8} />
+                          </span>
+                          <span className="uas-layout-cta-text">
+                            <span className="uas-layout-cta-label">
+                              Chỉnh trên trang chủ
+                            </span>
+                            <span className="uas-layout-cta-desc">
+                              Thêm · ẩn · kéo sắp xếp — chỉ trên máy tính
+                            </span>
+                          </span>
+                          <ChevronRight
+                            className="uas-layout-cta-chevron"
+                            size={18}
+                            strokeWidth={2}
+                            aria-hidden
+                          />
+                        </button>
+                      </div>
+                    ) : null}
 
-                    <div
-                      className="uas-options"
-                      role="radiogroup"
-                      aria-label="Bố cục trang chủ"
-                    >
-                      {HOME_FEED_LAYOUT_OPTIONS.map((opt) => {
-                        const Icon = HOME_LAYOUT_ICON[opt.value];
-                        const active = homeLayout === opt.value;
-                        return (
-                          <button
-                            key={opt.value}
-                            type="button"
-                            role="radio"
-                            aria-checked={active}
-                            className={`uas-option${active ? " on" : ""}`}
-                            onClick={() => chooseHomeLayout(opt.value)}
-                          >
-                            <span className="uas-option-ico" aria-hidden>
-                              <Icon size={20} strokeWidth={1.8} />
-                            </span>
-                            <span className="uas-option-text">
-                              <span className="uas-option-label">
-                                {opt.label}
+                    <div className="uas-layout-block">
+                      <div className="uas-layout-block-head">
+                        <h4 className="uas-layout-block-title">Kiểu feed</h4>
+                        <p className="uas-layout-block-hint">
+                          Cách bài viết xếp khi mở trang chủ. Áp dụng ngay.
+                        </p>
+                      </div>
+                      <div
+                        className="uas-pick-grid"
+                        role="radiogroup"
+                        aria-label="Kiểu feed trang chủ"
+                      >
+                        {HOME_FEED_LAYOUT_OPTIONS.map((opt) => {
+                          const Icon = HOME_LAYOUT_ICON[opt.value];
+                          const active = homeLayout === opt.value;
+                          return (
+                            <button
+                              key={opt.value}
+                              type="button"
+                              role="radio"
+                              aria-checked={active}
+                              className={`uas-pick${active ? " on" : ""}`}
+                              onClick={() => chooseHomeLayout(opt.value)}
+                            >
+                              <span className="uas-pick-ico" aria-hidden>
+                                <Icon size={22} strokeWidth={1.8} />
                               </span>
-                              <span className="uas-option-desc">
-                                {opt.desc}
-                              </span>
-                            </span>
-                            <span className="uas-option-check" aria-hidden>
+                              <span className="uas-pick-label">{opt.label}</span>
                               {active ? (
-                                <Check size={16} strokeWidth={2.4} />
+                                <Check
+                                  className="uas-pick-check"
+                                  size={14}
+                                  strokeWidth={2.4}
+                                  aria-hidden
+                                />
                               ) : null}
-                            </span>
-                          </button>
-                        );
-                      })}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
 
-                    <p className="uas-section-hint uas-tab-hint">
-                      Nguồn nội dung mặc định trên trang chủ. Bạn vẫn đổi nhanh
-                      được ngay trên thanh lọc của feed.
-                    </p>
-
-                    <div
-                      className="uas-options"
-                      role="radiogroup"
-                      aria-label="Nguồn nội dung mặc định"
-                    >
-                      {FEED_SOURCE_OPTIONS.map((opt) => {
-                        const Icon = FEED_SOURCE_ICON[opt.value];
-                        const active = feedSource === opt.value;
-                        return (
-                          <button
-                            key={opt.value}
-                            type="button"
-                            role="radio"
-                            aria-checked={active}
-                            className={`uas-option${active ? " on" : ""}`}
-                            onClick={() => chooseFeedSource(opt.value)}
-                          >
-                            <span className="uas-option-ico" aria-hidden>
-                              <Icon size={20} strokeWidth={1.8} />
-                            </span>
-                            <span className="uas-option-text">
-                              <span className="uas-option-label">
-                                {opt.label}
-                              </span>
-                              <span className="uas-option-desc">
-                                {opt.desc}
-                              </span>
-                            </span>
-                            <span className="uas-option-check" aria-hidden>
+                    <div className="uas-layout-block">
+                      <div className="uas-layout-block-head">
+                        <h4 className="uas-layout-block-title">
+                          Nguồn mặc định
+                        </h4>
+                        <p className="uas-layout-block-hint">
+                          Feed lấy nội dung từ đâu. Đổi nhanh được trên thanh
+                          lọc.
+                        </p>
+                      </div>
+                      <div
+                        className="uas-chip-list"
+                        role="radiogroup"
+                        aria-label="Nguồn nội dung mặc định"
+                      >
+                        {FEED_SOURCE_OPTIONS.map((opt) => {
+                          const Icon = FEED_SOURCE_ICON[opt.value];
+                          const active = feedSource === opt.value;
+                          return (
+                            <button
+                              key={opt.value}
+                              type="button"
+                              role="radio"
+                              aria-checked={active}
+                              className={`uas-chip${active ? " on" : ""}`}
+                              title={opt.desc}
+                              onClick={() => chooseFeedSource(opt.value)}
+                            >
+                              <Icon size={15} strokeWidth={2} aria-hidden />
+                              <span>{opt.label}</span>
                               {active ? (
-                                <Check size={16} strokeWidth={2.4} />
+                                <Check size={13} strokeWidth={2.4} aria-hidden />
                               ) : null}
-                            </span>
-                          </button>
-                        );
-                      })}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </>
+                  </div>
                 )}
               </section>
             ) : null}
@@ -534,7 +587,9 @@ export function UserAccountSettingsModal({ open, onClose }: Props) {
         </div>
 
         <footer className="uas-foot">
-          {savedTick ? (
+          {section === "journey-display" && layoutTab === "home" ? (
+            <span className="uas-foot-note">Kiểu feed &amp; nguồn áp dụng ngay</span>
+          ) : savedTick ? (
             <span className="uas-saved" aria-live="polite">
               <Check size={15} strokeWidth={2.4} aria-hidden />
               Đã lưu
@@ -544,23 +599,27 @@ export function UserAccountSettingsModal({ open, onClose }: Props) {
           )}
           <div className="uas-foot-actions">
             <button type="button" className="uas-btn ghost" onClick={onClose}>
-              {dirty ? "Huỷ" : "Đóng"}
+              {dirty && layoutTab === "profile" && section === "journey-display"
+                ? "Huỷ"
+                : "Đóng"}
             </button>
-            <button
-              type="button"
-              className="uas-btn primary"
-              disabled={!dirty || saving || loading}
-              onClick={() => void save()}
-            >
-              {saving ? (
-                <>
-                  <Loader2 size={15} className="uas-spin" aria-hidden />
-                  Đang lưu…
-                </>
-              ) : (
-                "Lưu thay đổi"
-              )}
-            </button>
+            {!(section === "journey-display" && layoutTab === "home") ? (
+              <button
+                type="button"
+                className="uas-btn primary"
+                disabled={!dirty || saving || loading}
+                onClick={() => void save()}
+              >
+                {saving ? (
+                  <>
+                    <Loader2 size={15} className="uas-spin" aria-hidden />
+                    Đang lưu…
+                  </>
+                ) : (
+                  "Lưu thay đổi"
+                )}
+              </button>
+            ) : null}
           </div>
         </footer>
       </div>

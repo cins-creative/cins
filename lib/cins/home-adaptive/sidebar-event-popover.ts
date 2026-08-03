@@ -2,7 +2,7 @@ import {
   sidebarEventHref,
   sidebarSuKienId,
   type SidebarUpcomingEvent,
-} from "@/lib/cins/home-adaptive/sidebar-upcoming-events";
+} from "@/lib/cins/home-adaptive/sidebar-upcoming-types";
 
 /** Dữ liệu popup card sidebar — hiện ngay khi mở, chi tiết fetch sau. */
 export type HaOrgUpPopoverItem = {

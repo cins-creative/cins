@@ -1,10 +1,11 @@
 import {
-  ArrowRight,
   Box,
   Briefcase,
   Building2,
   Map,
 } from "lucide-react";
+
+import { CinsArrowIos } from "@/components/icons/CinsArrowIos";
 import Link from "next/link";
 
 import {
@@ -81,7 +82,7 @@ export function WorldJourneyGuestLeftAside({
         </div>
         <Link href={NGHE_NGHIEP_HUB_PATH} className="wj-guest-sec-more" prefetch={false}>
           Tất cả lĩnh vực
-          <ArrowRight size={15} strokeWidth={2} aria-hidden />
+          <CinsArrowIos size={15} strokeWidth={2} aria-hidden />
         </Link>
       </section>
 
@@ -112,17 +113,17 @@ export function WorldJourneyGuestLeftAside({
           <Link href="/to-chuc" className="wj-guest-cat-link" prefetch={false}>
             <Building2 size={17} strokeWidth={2} aria-hidden />
             Tổ chức
-            <ArrowRight size={15} strokeWidth={2} className="wj-guest-cat-arr" aria-hidden />
+            <CinsArrowIos size={15} strokeWidth={2} className="wj-guest-cat-arr" aria-hidden />
           </Link>
           <Link href={NGHE_NGHIEP_HUB_PATH} className="wj-guest-cat-link" prefetch={false}>
             <Briefcase size={17} strokeWidth={2} aria-hidden />
             Nghề nghiệp
-            <ArrowRight size={15} strokeWidth={2} className="wj-guest-cat-arr" aria-hidden />
+            <CinsArrowIos size={15} strokeWidth={2} className="wj-guest-cat-arr" aria-hidden />
           </Link>
           <Link href={NGHE_NGHIEP_HUB_PATH} className="wj-guest-cat-link" prefetch={false}>
             <Box size={17} strokeWidth={2} aria-hidden />
             Phần mềm
-            <ArrowRight size={15} strokeWidth={2} className="wj-guest-cat-arr" aria-hidden />
+            <CinsArrowIos size={15} strokeWidth={2} className="wj-guest-cat-arr" aria-hidden />
           </Link>
         </div>
       </section>

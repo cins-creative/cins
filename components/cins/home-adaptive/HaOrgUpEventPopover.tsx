@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import {
-  ArrowRight,
   CalendarDays,
   MapPin,
   Ticket,
   Users,
   X,
 } from "lucide-react";
+
+import { CinsArrowIos } from "@/components/icons/CinsArrowIos";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
@@ -17,7 +18,7 @@ import { HaOrgUpCountdown } from "@/components/cins/home-adaptive/HaOrgUpCountdo
 import { SuKienPhanHoiActions } from "@/components/to-chuc/SuKienPhanHoiActions";
 import { haOrgProfileHref } from "@/lib/cins/home-adaptive/org-popover-kind";
 import type { HaOrgUpPopoverItem } from "@/lib/cins/home-adaptive/sidebar-event-popover";
-import type { LoaiPhanHoiSuKien } from "@/lib/to-chuc/su-kien-dang-ky";
+import type { LoaiPhanHoiSuKien } from "@/lib/to-chuc/su-kien-phan-hoi-types";
 
 import "@/components/journey/journey-user-popover.css";
 import "./ha-org-up-popover.css";
@@ -310,7 +311,7 @@ export function HaOrgUpEventPopover({ item, cardClassName, children }: Props) {
                         onClick={() => setOpen(false)}
                       >
                         {item.kind === "su_kien" ? "Xem sự kiện" : "Xem chi tiết"}
-                        <ArrowRight size={15} aria-hidden />
+                        <CinsArrowIos size={15} aria-hidden />
                       </Link>
                     </div>
                   </div>

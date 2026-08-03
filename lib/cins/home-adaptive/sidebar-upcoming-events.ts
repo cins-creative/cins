@@ -2,8 +2,16 @@ import "server-only";
 
 import { cache } from "react";
 
-import type { FollowedOrgUpcomingItem } from "@/lib/cins/home-adaptive/followed-org-upcoming";
 import { listFollowingOrgIds } from "@/lib/cins/worldJourneyOrgFeed";
+import type {
+  SidebarUpcomingEvent,
+  SidebarUpcomingEventsBundle,
+} from "@/lib/cins/home-adaptive/sidebar-upcoming-types";
+import {
+  sidebarEventHref,
+  sidebarSuKienId,
+} from "@/lib/cins/home-adaptive/sidebar-upcoming-types";
+import { listQuayCuaToi } from "@/lib/shop/quay";
 import { coSoKhoaHocDetailPath, coSoTabPath } from "@/lib/to-chuc/co-so-routes";
 import {
   mapCoSoLopTimelinePinRows,
@@ -36,36 +44,16 @@ import {
   TRUONG_DEFAULT_TAB,
   truongTabPath,
 } from "@/lib/truong/truong-routes";
-import { suKienDetailPath } from "@/lib/to-chuc/su-kien-routes";
 import type { TruongTuyenSinhNamRow } from "@/lib/truong/types";
 
-export type SidebarUpcomingEventsBundle = {
-  items: SidebarUpcomingEvent[];
-  /** Số sự kiện sắp diễn ra mà viewer quan tâm hoặc sẽ tham gia. */
-  myEventsTotal: number;
-};
-
-export function sidebarSuKienId(item: SidebarUpcomingEvent): string {
-  return item.id.replace(/^sk:/, "");
-}
-
-export function sidebarEventHref(item: SidebarUpcomingEvent): string {
-  if (item.kind === "su_kien") {
-    return suKienDetailPath(item.suKienSlug || sidebarSuKienId(item));
-  }
-  return item.href;
-}
-
-export type SidebarUpcomingEvent = FollowedOrgUpcomingItem & {
-  kind: "su_kien" | "moc";
-  phanHoi: LoaiPhanHoiSuKien | null;
-  coverSrc: string | null;
-  orgAvatarUrl: string | null;
-  batDauIso: string;
-  ketThucIso: string | null;
-  /** Slug URL `/su-kien/{slug}` khi có. */
-  suKienSlug?: string | null;
-};
+export type {
+  SidebarUpcomingEvent,
+  SidebarUpcomingEventsBundle,
+} from "@/lib/cins/home-adaptive/sidebar-upcoming-types";
+export {
+  sidebarEventHref,
+  sidebarSuKienId,
+} from "@/lib/cins/home-adaptive/sidebar-upcoming-types";
 
 type OrgEmbed = {
   slug: string | null;
@@ -670,9 +658,8 @@ async function fetchFollowedCoSoTimelineMilestones(
 }
 
 /**
- * Sidebar trang chủ — tối đa `limit` mục (mặc định 3).
- * Ưu tiên sự kiện viewer quan tâm / sẽ tham gia; sau đó mốc tuyển sinh + khai giảng
- * cơ sở + sự kiện từ org theo dõi; cuối cùng là gợi ý toàn cục.
+ * Sidebar trang chủ — tối đa `limit` mục mỗi tab (mặc định 3).
+ * Trả cả discovery («Tất cả») và RSVP/quầy («Quan tâm»).
  */
 export const loadSidebarUpcomingEvents = cache(
   async function loadSidebarUpcomingEvents(
@@ -680,9 +667,10 @@ export const loadSidebarUpcomingEvents = cache(
     loaiSuKienFilter: string[] = [],
     limit = 3,
   ): Promise<SidebarUpcomingEventsBundle> {
-    const [followedOrgIds, phanHoiBySuKien] = await Promise.all([
+    const [followedOrgIds, phanHoiBySuKien, quayRows] = await Promise.all([
       listFollowingOrgIds(viewerId),
       loadUserSuKienPhanHoiMap(viewerId),
+      listQuayCuaToi(viewerId).catch(() => []),
     ]);
 
     const followedSet = new Set(followedOrgIds);
@@ -692,7 +680,7 @@ export const loadSidebarUpcomingEvents = cache(
     ]);
     const milestones = [...admissionMilestones, ...coSoMilestones];
     const registeredIds = [...phanHoiBySuKien.keys()];
-    const seenIds = new Set<string>();
+    const seenMyIds = new Set<string>();
     const myPool: SidebarUpcomingEvent[] = [];
 
     if (registeredIds.length > 0) {
@@ -700,26 +688,121 @@ export const loadSidebarUpcomingEvents = cache(
         suKienIds: registeredIds,
         loaiFilter: [],
         limit: registeredIds.length,
-        excludeIds: seenIds,
+        excludeIds: seenMyIds,
       });
       for (const row of registeredRows) {
-        seenIds.add(row.id);
+        seenMyIds.add(row.id);
         const item = mapSuKienRow(row, phanHoiBySuKien.get(row.id) ?? null);
         if (item?.phanHoi) myPool.push(item);
       }
     }
 
     const myEventsTotal = myPool.length;
-    if (myEventsTotal > 0) {
-      return {
-        items: sortSidebarEvents([...myPool, ...milestones], followedSet).slice(
-          0,
-          limit,
-        ),
-        myEventsTotal,
-      };
+
+    /* Quầy shop — gắn / bổ sung vào tab Quan tâm. */
+    const quaySkIds = [
+      ...new Set(quayRows.map((q) => q.idSuKien).filter(Boolean)),
+    ];
+    const quayCoverBySk = new Map<string, string | null>();
+    if (quaySkIds.length > 0) {
+      const admin = createServiceRoleClient();
+      const { data: skExtra } = await admin
+        .from("org_su_kien")
+        .select("id, cover_id, ket_thuc, id_to_chuc, org_to_chuc ( avatar_id, logo_id, loai_to_chuc, slug )")
+        .in("id", quaySkIds)
+        .returns<
+          Array<{
+            id: string;
+            cover_id: string | null;
+            ket_thuc: string | null;
+            id_to_chuc: string;
+            org_to_chuc:
+              | {
+                  avatar_id: string | null;
+                  logo_id: string | null;
+                  loai_to_chuc: string | null;
+                  slug: string | null;
+                }
+              | Array<{
+                  avatar_id: string | null;
+                  logo_id: string | null;
+                  loai_to_chuc: string | null;
+                  slug: string | null;
+                }>
+              | null;
+          }>
+        >();
+      for (const sk of skExtra ?? []) {
+        quayCoverBySk.set(sk.id, sk.cover_id);
+      }
+
+      for (const q of quayRows) {
+        if (q.trangThai !== "cho_xu_ly" && q.trangThai !== "da_duyet") continue;
+        const existing = myPool.find(
+          (it) => it.kind === "su_kien" && sidebarSuKienId(it) === q.idSuKien,
+        );
+        if (existing) {
+          existing.quayTrangThai = q.trangThai;
+          continue;
+        }
+        const skMeta = (skExtra ?? []).find((s) => s.id === q.idSuKien);
+        const orgRaw = skMeta?.org_to_chuc;
+        const org = Array.isArray(orgRaw) ? orgRaw[0] : orgRaw;
+        const batDau = q.suKienBatDau?.trim() || new Date().toISOString();
+        const ketThuc = skMeta?.ket_thuc ?? null;
+        const status = getStepStatus(batDau, ketThuc);
+        if (status === "done") continue;
+        const startLabel = formatTimelineDate(batDau) ?? "";
+        const endLabel = ketThuc ? formatTimelineDate(ketThuc) : null;
+        let dateLabel =
+          endLabel && endLabel !== startLabel
+            ? `${startLabel} – ${endLabel}`
+            : startLabel;
+        if (status === "active") dateLabel = `${dateLabel} · Đang diễn ra`;
+        const coverId = quayCoverBySk.get(q.idSuKien) ?? null;
+        const orgAvatarId = org?.avatar_id ?? org?.logo_id ?? null;
+        const orgLoai = org?.loai_to_chuc?.trim() || "cong_dong";
+        const orgSlug = org?.slug?.trim() || "";
+        myPool.push({
+          id: `quay:${q.id}`,
+          kind: "su_kien",
+          orgId: skMeta?.id_to_chuc ?? "",
+          orgSlug,
+          orgName: q.orgTen?.trim() || "Tổ chức",
+          orgLoai,
+          href: q.suKienSlug
+            ? `/su-kien/${encodeURIComponent(q.suKienSlug)}`
+            : q.idSuKien
+              ? `/su-kien/${encodeURIComponent(q.idSuKien)}`
+              : "#",
+          label: q.suKienTen?.trim() || "Sự kiện",
+          dateLabel,
+          subLabel: "Quầy bán hàng",
+          status: status === "active" ? "active" : "upcoming",
+          sortKey: eventSortKey(batDau),
+          phanHoi: null,
+          coverSrc: coverId
+            ? resolveTruongImageSrcSync(coverId, ["public", "cover", "medium"])
+            : null,
+          orgAvatarUrl: orgAvatarId
+            ? resolveTruongImageSrcSync(orgAvatarId, ["public", "avatar"])
+            : null,
+          batDauIso: batDau,
+          ketThucIso: ketThuc,
+          suKienSlug: q.suKienSlug ?? null,
+          quayTrangThai: q.trangThai,
+        });
+      }
     }
 
+    const myItems = sortSidebarEvents(myPool, followedSet).slice(0, limit);
+
+    /* Discovery — luôn có, kể cả khi đã có RSVP. */
+    const seenAll = new Set<string>(
+      myPool
+        .filter((it) => it.kind === "su_kien" && !it.id.startsWith("quay:"))
+        .map((it) => sidebarSuKienId(it)),
+    );
     const pool: SidebarUpcomingEvent[] = [...milestones];
     const followedOnlyIds = followedOrgIds.filter((id) => id);
     if (followedOnlyIds.length > 0) {
@@ -727,10 +810,10 @@ export const loadSidebarUpcomingEvents = cache(
         orgIds: followedOnlyIds,
         loaiFilter: loaiSuKienFilter,
         limit: 8,
-        excludeIds: seenIds,
+        excludeIds: seenAll,
       });
       for (const row of followedRows) {
-        seenIds.add(row.id);
+        seenAll.add(row.id);
         const item = mapSuKienRow(row, phanHoiBySuKien.get(row.id) ?? null);
         if (item) pool.push(item);
       }
@@ -739,17 +822,21 @@ export const loadSidebarUpcomingEvents = cache(
     const globalRows = await fetchUpcomingSuKienRows({
       loaiFilter: loaiSuKienFilter,
       limit: 12,
-      excludeIds: seenIds,
+      excludeIds: seenAll,
     });
     for (const row of globalRows) {
-      seenIds.add(row.id);
+      seenAll.add(row.id);
       const item = mapSuKienRow(row, phanHoiBySuKien.get(row.id) ?? null);
       if (item) pool.push(item);
     }
 
+    const allItems = sortSidebarEvents(pool, followedSet).slice(0, limit);
+
     return {
-      items: sortSidebarEvents(pool, followedSet).slice(0, limit),
-      myEventsTotal: 0,
+      allItems,
+      myItems,
+      myEventsTotal,
+      items: allItems,
     };
   },
 );

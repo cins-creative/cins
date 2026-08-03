@@ -34,7 +34,24 @@ export type ModuleId =
   // cụm DẠY
   | "cho_ban_duyet"
   | "hoc_vien_cua_ban"
-  | "scout_tai_nang";
+  | "scout_tai_nang"
+  // Phase 4 — mua bán
+  | "don_can_xu_ly"
+  | "don_mua_cua_toi"
+  | "quay_cua_toi"
+  // Phase 4 — tổ chức / vận hành
+  | "org_inbox"
+  | "quan_ly_su_kien"
+  | "ung_vien_moi"
+  | "to_chuc_cua_ban"
+  // Phase 4 — kết nối
+  | "ung_tuyen_cua_toi"
+  | "tin_nhan_ban_be"
+  | "tin_nhan_to_chuc"
+  | "tin_nhan_mua_ban"
+  | "loi_moi_ket_ban"
+  | "se_tham_gia"
+  | "da_luu";
 
 /**
  * Đọc `giai_doan` tĩnh → persona. MVP đọc nhãn tự khai (FOUNDATIONS luồng 1,
@@ -69,35 +86,37 @@ export function resolveSeeking(giaiDoan: GiaiDoan | null | undefined): boolean {
  * Luôn nằm ở **cột phải** cho mọi persona; các module còn lại (gồm khóa học gợi ý)
  * dồn sang **cột trái**. Đổi phân loại 1 module = thêm/bớt id ở đây (không cần `if persona`).
  */
-const NOTIFY_MODULES: readonly ModuleId[] = [
+/** Module luôn nằm cột phải (cơ hội & thông báo). */
+export const NOTIFY_MODULES: readonly ModuleId[] = [
   "theo_doi_org",
   "co_hoi",
+  "quan_ly_su_kien",
+  "tin_nhan_ban_be",
+  "tin_nhan_to_chuc",
+  "tin_nhan_mua_ban",
+  "loi_moi_ket_ban",
 ];
 
 /**
- * Thứ tự tổng các module theo persona (brief §6). Hệ thống tự tách 2 cột:
- * cột phải = các id thuộc NOTIFY_MODULES, cột trái = phần còn lại — giữ nguyên
- * thứ tự khai báo. Thêm/đổi nhóm sau này = sửa list này, KHÔNG `if persona` rải JSX.
+ * Thứ tự mặc định theo `giai_doan` — tối đa 3 khối cho user mới.
+ * Custom thêm qua «Thêm khối»; không nhồi catalog capability vào đây.
  */
-const MODULE_ORDER: Record<Persona, ModuleId[]> = {
-  hoc: [
-    "kham_pha_linh_vuc",
-    "theo_doi_org",
-    "khoa_hoc_goi_y",
-  ],
-  lam: [
-    "ho_so_cua_ban",
-    "nguoi_cung_nganh",
-    "goi_y_studio",
-    "theo_doi_org",
-    "co_hoi",
-  ],
-  day: [
-    "cho_ban_duyet",
-    "hoc_vien_cua_ban",
-    "scout_tai_nang",
-    "theo_doi_org",
-  ],
+export const MODULE_ORDER_BY_GIAI_DOAN: Record<GiaiDoan, ModuleId[]> = {
+  dang_hoc: ["kham_pha_linh_vuc", "khoa_hoc_goi_y", "theo_doi_org"],
+  freelance: ["ho_so_cua_ban", "co_hoi", "goi_y_studio"],
+  dang_lam: ["nguoi_cung_nganh", "goi_y_studio", "theo_doi_org"],
+  tim_viec: ["ho_so_cua_ban", "co_hoi", "theo_doi_org"],
+  dang_day: ["theo_doi_org"],
+};
+
+/**
+ * Fallback theo persona (khi chưa có `giai_doan`) — cũng ≤3.
+ * `tim_viec`/`freelance` ưu tiên `MODULE_ORDER_BY_GIAI_DOAN`.
+ */
+export const MODULE_ORDER: Record<Persona, ModuleId[]> = {
+  hoc: [...MODULE_ORDER_BY_GIAI_DOAN.dang_hoc],
+  lam: [...MODULE_ORDER_BY_GIAI_DOAN.dang_lam],
+  day: [...MODULE_ORDER_BY_GIAI_DOAN.dang_day],
 };
 
 const NOTIFY_SET = new Set<ModuleId>(NOTIFY_MODULES);
@@ -110,6 +129,27 @@ function splitColumns(order: ModuleId[]): { left: ModuleId[]; right: ModuleId[] 
     else left.push(id);
   }
   return { left, right };
+}
+
+/** Default columns theo giai đoạn (user mới / reset layout). */
+export function defaultModuleLayoutForGiaiDoan(
+  giaiDoan: GiaiDoan | null | undefined,
+): { left: ModuleId[]; right: ModuleId[] } {
+  if (giaiDoan && giaiDoan in MODULE_ORDER_BY_GIAI_DOAN) {
+    return splitColumns([...MODULE_ORDER_BY_GIAI_DOAN[giaiDoan]]);
+  }
+  return splitColumns([...MODULE_ORDER[resolvePersona(giaiDoan)]]);
+}
+
+/** Thứ tự inject «Mới» khi đổi giai đoạn — cùng nguồn với default. */
+export function moduleOrderForGiaiDoan(
+  giaiDoan: GiaiDoan | null | undefined,
+  persona: Persona = resolvePersona(giaiDoan),
+): ModuleId[] {
+  if (giaiDoan && giaiDoan in MODULE_ORDER_BY_GIAI_DOAN) {
+    return [...MODULE_ORDER_BY_GIAI_DOAN[giaiDoan]];
+  }
+  return [...MODULE_ORDER[persona]];
 }
 
 /** Cột trái/phải mỗi persona — dẫn xuất từ MODULE_ORDER + NOTIFY_MODULES. */

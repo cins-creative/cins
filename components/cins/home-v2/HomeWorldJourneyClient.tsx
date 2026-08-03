@@ -1,16 +1,29 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 
+import {
+  HomeEditableColumn,
+  HomeEditToolbar,
+  HomeLayoutEditProvider,
+} from "@/components/cins/home-adaptive/HomeLayoutBoard";
+import { WorldJourneyFeed } from "@/components/cins/world-journey/WorldJourneyFeed";
 import { JourneyComposeProvider } from "@/components/journey/JourneyComposeContext";
 import type { SidebarProfile } from "@/components/journey/JourneySidebar";
-import { WorldJourneyFeed } from "@/components/cins/world-journey/WorldJourneyFeed";
-
+import type { MilestoneItem } from "@/components/journey/milestone-types";
+import type { HomeCapability } from "@/lib/cins/home-adaptive/capability-types";
+import type { HomeLayoutItemLimits } from "@/lib/cins/home-adaptive/layout-prefs";
+import type { ModuleId, Persona } from "@/lib/cins/home-adaptive/persona";
 import type { WjLinhVucAsideItem } from "@/lib/cins/worldJourneyGuestAside";
 import type { WjFilterChip } from "@/lib/cins/worldJourneyFeedFilters";
 import type { FeedPromoVariant } from "@/lib/cins/worldJourneyFeedPromosTypes";
-import type { MilestoneItem } from "@/components/journey/milestone-types";
 import type { GalleryMainItem } from "@/lib/journey/gallery-page-fetch";
+import {
+  clearHomeLayoutEditUrl,
+  HOME_LAYOUT_EDIT_ENTER_EVENT,
+  isHomeLayoutEditUrl,
+} from "@/lib/home/home-layout-edit";
 
 type Props = {
   sidebarProfile: SidebarProfile;
@@ -19,21 +32,25 @@ type Props = {
   filterChips: WjFilterChip[];
   linhVucs: WjLinhVucAsideItem[];
   milestones: MilestoneItem[];
-  /** Còn trang feed để load thêm khi scroll. */
   feedHasMore?: boolean;
   feedNextOffset?: number;
   galleryItems?: ReadonlyArray<GalleryMainItem>;
   galleryHasMore?: boolean;
   galleryNextOffset?: number;
-  /** Cột module adaptive (server components) truyền xuống feed. */
-  leftAside?: ReactNode;
-  rightAside?: ReactNode;
-  /** Banner "việc cần xác nhận" (co-author, follow…) hiện đầu feed. */
   pendingConfirmations?: ReactNode;
   feedPromos?: FeedPromoVariant[];
+  editingLayout?: boolean;
+  layoutPersona: Persona;
+  layoutLeft: ModuleId[];
+  layoutRight: ModuleId[];
+  layoutHidden: ModuleId[];
+  layoutNewlyInjected?: ModuleId[];
+  layoutLimits?: HomeLayoutItemLimits;
+  moduleNodes: ReactNode;
+  capabilities?: HomeCapability[];
 };
 
-/** Bọc feed trang chủ logged-in — overlay compose hoạt động trên wj-composer. */
+/** Bọc feed trang chủ logged-in — overlay compose + tuỳ chỉnh sidebar. */
 export function HomeWorldJourneyClient({
   sidebarProfile,
   viewerProfileId,
@@ -46,11 +63,51 @@ export function HomeWorldJourneyClient({
   galleryItems = [],
   galleryHasMore = false,
   galleryNextOffset = 0,
-  leftAside,
-  rightAside,
   pendingConfirmations,
   feedPromos,
+  editingLayout = false,
+  layoutPersona,
+  layoutLeft,
+  layoutRight,
+  layoutHidden,
+  layoutNewlyInjected = [],
+  layoutLimits = {},
+  moduleNodes,
+  capabilities = [],
 }: Props) {
+  const router = useRouter();
+  /** Edit mode client-owned — tránh remount RSC khi vào từ modal. */
+  const [editing, setEditing] = useState(
+    () => editingLayout || isHomeLayoutEditUrl(),
+  );
+
+  useEffect(() => {
+    if (editingLayout) setEditing(true);
+  }, [editingLayout]);
+
+  useEffect(() => {
+    const onEnter = () => setEditing(true);
+    const onPop = () => setEditing(isHomeLayoutEditUrl());
+    window.addEventListener(HOME_LAYOUT_EDIT_ENTER_EVENT, onEnter);
+    window.addEventListener("popstate", onPop);
+    return () => {
+      window.removeEventListener(HOME_LAYOUT_EDIT_ENTER_EVENT, onEnter);
+      window.removeEventListener("popstate", onPop);
+    };
+  }, []);
+
+  const exitEditing = useCallback(
+    (opts?: { refresh?: boolean }) => {
+      setEditing(false);
+      clearHomeLayoutEditUrl();
+      if (opts?.refresh) {
+        // Soft-refresh nền sau khi UI đã thoát edit — không chặn nút Lưu.
+        queueMicrotask(() => router.refresh());
+      }
+    },
+    [router],
+  );
+
   return (
     <JourneyComposeProvider
       ownerId={sidebarProfile.id}
@@ -60,22 +117,39 @@ export function HomeWorldJourneyClient({
       isOwner
       syncComposeUrl={false}
     >
-      <WorldJourneyFeed
-        sidebarProfile={sidebarProfile}
+      <HomeLayoutEditProvider
+        editing={editing}
+        persona={layoutPersona}
         viewerProfileId={viewerProfileId}
-        filterChips={filterChips}
-        linhVucs={linhVucs}
-        milestones={milestones}
-        feedHasMore={feedHasMore}
-        feedNextOffset={feedNextOffset}
-        galleryItems={galleryItems}
-        galleryHasMore={galleryHasMore}
-        galleryNextOffset={galleryNextOffset}
-        leftAside={leftAside}
-        rightAside={rightAside}
-        pendingConfirmations={pendingConfirmations}
-        feedPromos={feedPromos}
-      />
+        initialLeft={layoutLeft}
+        initialRight={layoutRight}
+        initialHidden={layoutHidden}
+        initialLimits={layoutLimits}
+        newlyInjected={layoutNewlyInjected}
+        moduleNodes={moduleNodes}
+        exitEditing={exitEditing}
+        capabilities={capabilities}
+      >
+        <div className={editing ? "ha-home-editing" : undefined}>
+          <HomeEditToolbar />
+          <WorldJourneyFeed
+            sidebarProfile={sidebarProfile}
+            viewerProfileId={viewerProfileId}
+            filterChips={filterChips}
+            linhVucs={linhVucs}
+            milestones={milestones}
+            feedHasMore={feedHasMore}
+            feedNextOffset={feedNextOffset}
+            galleryItems={galleryItems}
+            galleryHasMore={galleryHasMore}
+            galleryNextOffset={galleryNextOffset}
+            leftAside={<HomeEditableColumn side="left" />}
+            rightAside={<HomeEditableColumn side="right" />}
+            pendingConfirmations={pendingConfirmations}
+            feedPromos={feedPromos}
+          />
+        </div>
+      </HomeLayoutEditProvider>
     </JourneyComposeProvider>
   );
 }

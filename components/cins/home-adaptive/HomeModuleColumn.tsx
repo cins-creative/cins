@@ -1,12 +1,10 @@
-import { Fragment, type ReactNode } from "react";
+import { type ReactNode } from "react";
 
-import {
-  GoiYTheoDoiModule,
-} from "@/components/cins/home-adaptive/modules/GoiYTheoDoiModule";
+import { GoiYTheoDoiModule } from "@/components/cins/home-adaptive/modules/GoiYTheoDoiModule";
 import { TheoDoiOrgModule } from "@/components/cins/home-adaptive/modules/TheoDoiOrgModule";
 import {
-  KhamPhaLinhVucModule,
   DuongToiDoModule,
+  KhamPhaLinhVucModule,
   KhoaHocGoiYModule,
 } from "@/components/cins/home-adaptive/modules/hoc";
 import {
@@ -20,13 +18,38 @@ import {
   HocVienCuaBanModule,
   ScoutTaiNangModule,
 } from "@/components/cins/home-adaptive/modules/day";
+import {
+  DonCanXuLyModule,
+  DonMuaCuaToiModule,
+  QuayCuaToiModule,
+} from "@/components/cins/home-adaptive/modules/ban-hang";
+import {
+  OrgInboxModule,
+  QuanLySuKienModule,
+  ToChucCuaBanModule,
+  UngVienMoiModule,
+} from "@/components/cins/home-adaptive/modules/to-chuc-ops";
+import {
+  DaLuuModule,
+  LoiMoiKetBanModule,
+  SeThamGiaModule,
+  UngTuyenCuaToiModule,
+} from "@/components/cins/home-adaptive/modules/ket-noi";
+import {
+  TinNhanBanBeModule,
+  TinNhanMuaBanModule,
+  TinNhanToChucModule,
+} from "@/components/cins/home-adaptive/modules/TinNhanModule";
 import type { HomeModuleCtx } from "@/components/cins/home-adaptive/types";
-import { MODULE_LAYOUT, type ModuleId } from "@/lib/cins/home-adaptive/persona";
+import { moduleItemLimit } from "@/components/cins/home-adaptive/types";
+import type { ModuleId } from "@/lib/cins/home-adaptive/persona";
 
-type ModuleComponent = (props: { ctx: HomeModuleCtx }) => ReactNode | Promise<ReactNode>;
+type ModuleComponent = (props: {
+  ctx: HomeModuleCtx;
+}) => ReactNode | Promise<ReactNode>;
 
-/** Registry: ModuleId → component. Đổi nhóm = sửa MODULE_LAYOUT, không sửa đây. */
-const MODULE_REGISTRY: Record<ModuleId, ModuleComponent> = {
+/** Registry: ModuleId → component. Đổi nhóm = sửa MODULE_LAYOUT / prefs, không sửa đây. */
+export const MODULE_REGISTRY: Record<ModuleId, ModuleComponent> = {
   theo_doi_org: TheoDoiOrgModule,
   goi_y_theo_doi: GoiYTheoDoiModule,
   goi_y_studio: GoiYStudioModule,
@@ -39,45 +62,48 @@ const MODULE_REGISTRY: Record<ModuleId, ModuleComponent> = {
   cho_ban_duyet: ChoBanDuyetModule,
   hoc_vien_cua_ban: HocVienCuaBanModule,
   scout_tai_nang: ScoutTaiNangModule,
+  don_can_xu_ly: DonCanXuLyModule,
+  don_mua_cua_toi: DonMuaCuaToiModule,
+  quay_cua_toi: QuayCuaToiModule,
+  org_inbox: OrgInboxModule,
+  quan_ly_su_kien: QuanLySuKienModule,
+  ung_vien_moi: UngVienMoiModule,
+  to_chuc_cua_ban: ToChucCuaBanModule,
+  ung_tuyen_cua_toi: UngTuyenCuaToiModule,
+  tin_nhan_ban_be: ({ ctx }) => (
+    <TinNhanBanBeModule limit={moduleItemLimit(ctx, "tin_nhan_ban_be")} />
+  ),
+  tin_nhan_to_chuc: ({ ctx }) => (
+    <TinNhanToChucModule limit={moduleItemLimit(ctx, "tin_nhan_to_chuc")} />
+  ),
+  tin_nhan_mua_ban: ({ ctx }) => (
+    <TinNhanMuaBanModule limit={moduleItemLimit(ctx, "tin_nhan_mua_ban")} />
+  ),
+  loi_moi_ket_ban: LoiMoiKetBanModule,
+  se_tham_gia: SeThamGiaModule,
+  da_luu: DaLuuModule,
 };
 
-/** §7: khi seeking, đẩy `co_hoi` lên đầu cột phải cụm LÀM. */
-function orderForSeeking(ids: ModuleId[], seeking: boolean): ModuleId[] {
-  if (!seeking || !ids.includes("co_hoi")) return ids;
-  return [
-    "co_hoi",
-    ...ids.filter((id) => id !== "co_hoi"),
-  ] as ModuleId[];
-}
-
-/** Một cột module hoán theo persona. Mỗi module tự fetch data của nó. */
-export async function HomeModuleColumn({
-  side,
-  ctx,
-  prepend,
-}: {
-  side: "left" | "right";
-  ctx: HomeModuleCtx;
-  /** Nội dung chèn lên đầu cột (trong cùng <aside>, giữ nguyên lưới 3 cột). */
-  prepend?: ReactNode;
-}) {
-  const baseIds = MODULE_LAYOUT[ctx.persona][side];
-  const ids =
-    side === "right" ? orderForSeeking(baseIds, ctx.seeking) : baseIds;
-
+/**
+ * Render module theo id đã resolve. Chỉ giữ node khác null.
+ * Key + data-ha-module = ModuleId — HomeLayoutEditProvider gom vào childMap.
+ */
+export async function renderHomeModules(
+  ids: ModuleId[],
+  ctx: HomeModuleCtx,
+): Promise<ReactNode[]> {
   const rendered = await Promise.all(
     ids.map((id) => Promise.resolve(MODULE_REGISTRY[id]({ ctx }))),
   );
 
-  return (
-    <aside
-      className={`wj-guest-aside wj-guest-aside--${side} ha-col ha-col--${side}`}
-      aria-label="Gợi ý theo nhóm"
-    >
-      {prepend}
-      {rendered.map((node, i) => (
-        <Fragment key={ids[i]}>{node}</Fragment>
-      ))}
-    </aside>
-  );
+  const nodes: ReactNode[] = [];
+  for (let i = 0; i < ids.length; i++) {
+    if (rendered[i] == null) continue;
+    nodes.push(
+      <div key={ids[i]} data-ha-module={ids[i]} style={{ display: "contents" }}>
+        {rendered[i]}
+      </div>,
+    );
+  }
+  return nodes;
 }

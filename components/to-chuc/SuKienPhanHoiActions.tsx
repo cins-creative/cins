@@ -1,12 +1,12 @@
 "use client";
 
-import { Check, Heart, MessageCircle, Users } from "lucide-react";
+import { Check, Heart, MessageCircle, Users, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 
 import { useAuthGate } from "@/components/auth/AuthGateProvider";
 import { useCinsChatContext } from "@/components/cins/CinsChatProvider";
 import type { ChatContextCard } from "@/lib/chat/types";
-import type { LoaiPhanHoiSuKien } from "@/lib/to-chuc/su-kien-dang-ky";
+import type { LoaiPhanHoiSuKien } from "@/lib/to-chuc/su-kien-phan-hoi-types";
 
 const AUTH_MESSAGE = "Đăng nhập để quan tâm hoặc đăng ký tham gia sự kiện.";
 const AUTH_MESSAGE_CHAT = "Đăng nhập để nhắn tin cho tổ chức.";
@@ -200,15 +200,30 @@ export function SuKienPhanHoiActions({
           type="button"
           className={`cso-sk-detail-btn cso-sk-detail-btn--join${loai === "se_tham_gia" ? " is-active" : ""}`}
           aria-pressed={loai === "se_tham_gia"}
+          aria-label={
+            loai === "se_tham_gia" ? "Hủy tham gia sự kiện" : "Sẽ tham gia"
+          }
+          title={loai === "se_tham_gia" ? "Hủy tham gia" : undefined}
           disabled={!loaded || pending || slotFull || !enabled}
           onClick={() => handlePhanHoi("se_tham_gia")}
         >
           {loai === "se_tham_gia" ? (
-            <Check size={16} aria-hidden />
+            <>
+              <span className="cso-sk-detail-btn-face cso-sk-detail-btn-face--idle">
+                <Check size={16} aria-hidden />
+                Đã đăng ký
+              </span>
+              <span className="cso-sk-detail-btn-face cso-sk-detail-btn-face--hover">
+                <X size={16} aria-hidden />
+                Hủy tham gia
+              </span>
+            </>
           ) : (
-            <Users size={16} aria-hidden />
+            <>
+              <Users size={16} aria-hidden />
+              Sẽ tham gia
+            </>
           )}
-          {loai === "se_tham_gia" ? "Đã đăng ký" : "Sẽ tham gia"}
         </button>
         {nguCanh && chat ? (
           <button

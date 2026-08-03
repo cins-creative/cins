@@ -2,7 +2,7 @@ import { HaOrgUpCountdown } from "@/components/cins/home-adaptive/HaOrgUpCountdo
 import { HaOrgPopoverChip } from "@/components/cins/home-adaptive/HaOrgPopoverChip";
 import { HaOrgUpEventPopover } from "@/components/cins/home-adaptive/HaOrgUpEventPopover";
 import { sidebarEventPopoverItem } from "@/lib/cins/home-adaptive/sidebar-event-popover";
-import type { SidebarUpcomingEvent } from "@/lib/cins/home-adaptive/sidebar-upcoming-events";
+import type { SidebarUpcomingEvent } from "@/lib/cins/home-adaptive/sidebar-upcoming-types";
 
 const MONTHS = [
   "Th1", "Th2", "Th3", "Th4", "Th5", "Th6",
@@ -27,26 +27,37 @@ function dateRangeLine(dateLabel: string): string | null {
 }
 
 function overlayBadge(item: SidebarUpcomingEvent, isLive: boolean) {
-  // "Đang diễn ra" luôn hiện khi live — không để badge phản hồi che mất.
+  // "Đang diễn ra" / quầy / tag — trên banner. RSVP / Quan tâm xuống chân countdown.
   const live = isLive ? (
     <span className="ha-org-up-live">Đang diễn ra</span>
   ) : null;
-  const phanHoi =
-    item.phanHoi === "se_tham_gia" ? (
-      <span className="ha-org-up-rsvp">Sẽ tham gia</span>
-    ) : item.phanHoi === "quan_tam" ? (
-      <span className="ha-org-up-interest">Quan tâm</span>
+  const quay =
+    item.quayTrangThai === "da_duyet" ? (
+      <span className="ha-org-up-quay">Quầy · Đã duyệt</span>
+    ) : item.quayTrangThai === "cho_xu_ly" ? (
+      <span className="ha-org-up-quay is-pending">Quầy · Chờ duyệt</span>
     ) : null;
-  if (live || phanHoi) {
+  if (live || quay) {
     return (
       <>
         {live}
-        {phanHoi}
+        {quay}
       </>
     );
   }
-  if (item.subLabel) {
+  if (item.subLabel && !item.phanHoi) {
     return <span className="ha-org-up-tag">{item.subLabel}</span>;
+  }
+  return null;
+}
+
+function footPhanHoi(item: SidebarUpcomingEvent) {
+  if (item.quayTrangThai) return null;
+  if (item.phanHoi === "se_tham_gia") {
+    return <span className="ha-org-up-rsvp">Sẽ tham gia</span>;
+  }
+  if (item.phanHoi === "quan_tam") {
+    return <span className="ha-org-up-interest">Quan tâm</span>;
   }
   return null;
 }
@@ -57,6 +68,7 @@ export function HaOrgUpcomingRow({ item }: { item: SidebarUpcomingEvent }) {
   const range = dateRangeLine(item.dateLabel);
   const isLive = item.status === "active";
   const overlay = overlayBadge(item, isLive);
+  const phanHoi = footPhanHoi(item);
   const itemClass =
     item.phanHoi === "quan_tam"
       ? "ha-org-up-item ha-org-up-item--interest"
@@ -110,11 +122,14 @@ export function HaOrgUpcomingRow({ item }: { item: SidebarUpcomingEvent }) {
           />
           <p className="ha-org-up-title">{item.label}</p>
           {range ? <p className="ha-org-up-range">{range}</p> : null}
-          <HaOrgUpCountdown
-            batDauIso={item.batDauIso}
-            ketThucIso={item.ketThucIso}
-            status={item.status}
-          />
+          <div className="ha-org-up-foot">
+            <HaOrgUpCountdown
+              batDauIso={item.batDauIso}
+              ketThucIso={item.ketThucIso}
+              status={item.status}
+            />
+            {phanHoi}
+          </div>
         </div>
       </HaOrgUpEventPopover>
     </li>

@@ -11,7 +11,7 @@ import { OrgSuKienFriendsChips } from "@/components/journey/OrgSuKienFriendsChip
 import type { MilestoneAttribution, MilestoneItem } from "@/components/journey/milestone-types";
 import { SuKienPhanHoiActions } from "@/components/to-chuc/SuKienPhanHoiActions";
 import { useImpressionTracker } from "@/lib/social/track-su-kien";
-import type { LoaiPhanHoiSuKien } from "@/lib/to-chuc/su-kien-dang-ky";
+import type { LoaiPhanHoiSuKien } from "@/lib/to-chuc/su-kien-phan-hoi-types";
 import { getStepStatus } from "@/lib/truong/timeline";
 
 type Props = {

@@ -3,12 +3,16 @@ import { UserRoundPlus } from "lucide-react";
 import { HaUserSuggestionRow } from "@/components/cins/home-adaptive/HaUserSuggestionRow";
 import { ModuleCard } from "@/components/cins/home-adaptive/ModuleCard";
 import type { HomeModuleCtx } from "@/components/cins/home-adaptive/types";
+import { moduleItemLimit } from "@/components/cins/home-adaptive/types";
 import { loadFollowSuggestions } from "@/lib/cins/home-adaptive/suggestions";
 import { giaiDoanLabel } from "@/lib/cins/home-adaptive/labels";
 
 /** Module "Gợi ý theo dõi" — chỉ người dùng (brief §5). Org → module riêng theo persona. */
 export async function GoiYTheoDoiModule({ ctx }: { ctx: HomeModuleCtx }) {
-  const people = await loadFollowSuggestions(ctx.viewerId, 4);
+  const people = await loadFollowSuggestions(
+    ctx.viewerId,
+    moduleItemLimit(ctx, "goi_y_theo_doi", 4),
+  );
   if (people.length === 0) return null;
 
   return (
