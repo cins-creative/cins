@@ -4,6 +4,7 @@
  */
 
 import { buildVideoIframeSrc } from "@/lib/journey/video-embed";
+import { getYoutubeId } from "@/lib/youtube";
 
 const URL_IN_TEXT_RE = /https?:\/\/[^\s<>"']+/gi;
 const FETCH_TIMEOUT_MS = 6_000;
@@ -305,11 +306,22 @@ export async function fetchLinkOgPreview(
     return null;
   }
 
+  const scraped = await scrapeHtmlOgPreview(target.href);
+  if (scraped?.title?.trim()) return scraped;
+
+  /* YouTube/Vimeo thường chặn scrape HTML — oEmbed lấy title + thumbnail ổn định. */
+  const oembed = await fetchVideoOEmbedPreview(target.href);
+  if (oembed) return oembed;
+
+  return scraped;
+}
+
+async function scrapeHtmlOgPreview(href: string): Promise<LinkOgPreview | null> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
   try {
-    const res = await fetch(target.href, {
+    const res = await fetch(href, {
       method: "GET",
       redirect: "follow",
       signal: controller.signal,
@@ -322,7 +334,7 @@ export async function fetchLinkOgPreview(
     if (!res.ok) return null;
 
     // Sau redirect — kiểm tra lại host cuối (SSRF).
-    if (!isSafePublicHttpUrl(res.url || target.href)) return null;
+    if (!isSafePublicHttpUrl(res.url || href)) return null;
 
     const ctype = (res.headers.get("content-type") || "").toLowerCase();
     if (ctype && !ctype.includes("text/html") && !ctype.includes("application/xhtml")) {
@@ -332,10 +344,87 @@ export async function fetchLinkOgPreview(
     const buf = await res.arrayBuffer();
     const slice = buf.byteLength > MAX_HTML_BYTES ? buf.slice(0, MAX_HTML_BYTES) : buf;
     const html = new TextDecoder("utf-8", { fatal: false }).decode(slice);
-    return parseOgFromHtml(html, res.url || target.href);
+    return parseOgFromHtml(html, res.url || href);
   } catch {
     return null;
   } finally {
     clearTimeout(timer);
+  }
+}
+
+/** oEmbed YouTube / Vimeo — title thật khi scrape HTML fail. */
+async function fetchVideoOEmbedPreview(
+  pageUrl: string,
+): Promise<LinkOgPreview | null> {
+  const endpoint = videoOEmbedEndpoint(pageUrl);
+  if (!endpoint || !isSafePublicHttpUrl(endpoint)) return null;
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  try {
+    const res = await fetch(endpoint, {
+      method: "GET",
+      redirect: "follow",
+      signal: controller.signal,
+      headers: {
+        Accept: "application/json",
+        "User-Agent": "CINSLinkPreview/1.0 (+https://cins.vn)",
+      },
+    });
+    if (!res.ok) return null;
+    if (!isSafePublicHttpUrl(res.url || endpoint)) return null;
+    const json = (await res.json().catch(() => null)) as Record<
+      string,
+      unknown
+    > | null;
+    if (!json) return null;
+    const title =
+      typeof json.title === "string" ? json.title.trim().slice(0, 200) : "";
+    if (!title) return null;
+    const thumbRaw =
+      typeof json.thumbnail_url === "string" ? json.thumbnail_url.trim() : "";
+    const image =
+      thumbRaw && isSafePublicHttpUrl(thumbRaw) ? thumbRaw : null;
+    const author =
+      typeof json.author_name === "string"
+        ? json.author_name.trim().slice(0, 80)
+        : null;
+    const provider =
+      typeof json.provider_name === "string"
+        ? json.provider_name.trim().slice(0, 80)
+        : null;
+    return {
+      url: pageUrl,
+      title,
+      description: author,
+      image,
+      siteName: provider,
+      source: "external",
+    };
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function videoOEmbedEndpoint(pageUrl: string): string | null {
+  const ytId = getYoutubeId(pageUrl);
+  if (ytId) {
+    return `https://www.youtube.com/oembed?url=${encodeURIComponent(
+      `https://www.youtube.com/watch?v=${ytId}`,
+    )}&format=json`;
+  }
+  try {
+    const u = new URL(pageUrl);
+    const host = u.hostname.replace(/^www\./, "");
+    if (!host.includes("vimeo.com")) return null;
+    const m = u.pathname.match(/\/(\d+)/);
+    if (!m?.[1]) return null;
+    return `https://vimeo.com/api/oembed.json?url=${encodeURIComponent(
+      `https://vimeo.com/${m[1]}`,
+    )}`;
+  } catch {
+    return null;
   }
 }

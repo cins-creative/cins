@@ -341,6 +341,7 @@ export function KhoaHocQuanLyClient({ orgId, orgSlug }: Props) {
                   <thead>
                     <tr>
                       <th scope="col">Khóa học</th>
+                      <th scope="col">Mã khóa học</th>
                       <th scope="col">Lớp</th>
                       <th scope="col">Gói học phí</th>
                       <th scope="col">Học viên đang học</th>
@@ -354,13 +355,13 @@ export function KhoaHocQuanLyClient({ orgId, orgSlug }: Props) {
                   <tbody>
                     {loading ? (
                       <tr>
-                        <td colSpan={7}>
+                        <td colSpan={8}>
                           <div className="cso-hv-loading">Đang tải…</div>
                         </td>
                       </tr>
                     ) : rows.length === 0 ? (
                       <tr>
-                        <td colSpan={7}>
+                        <td colSpan={8}>
                           <div className="cso-hv-empty">
                             <strong>Chưa có khóa</strong>
                             Tạo khóa để hiện trên trang công khai và mở lớp học.
@@ -370,6 +371,7 @@ export function KhoaHocQuanLyClient({ orgId, orgSlug }: Props) {
                     ) : (
                       rows.map((k) => {
                         const goiTens = goiTensByKhoaId.get(k.id) ?? [];
+                        const ma = k.maKhoaHoc?.trim() || "";
                         return (
                           <tr key={k.id} className="cso-lh-khoa-row">
                             <td>
@@ -408,6 +410,15 @@ export function KhoaHocQuanLyClient({ orgId, orgSlug }: Props) {
                                   ) : null}
                                 </span>
                               </button>
+                            </td>
+                            <td>
+                              {ma ? (
+                                <span className="cso-lh-ma-khoa">{ma}</span>
+                              ) : (
+                                <span className="cso-hp-khoa-empty">
+                                  Chưa có mã
+                                </span>
+                              )}
                             </td>
                             <td>
                               {(() => {

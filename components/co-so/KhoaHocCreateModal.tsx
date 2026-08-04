@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  ExternalLink,
   EyeOff,
   Globe,
   ImagePlus,
@@ -8,6 +9,7 @@ import {
   X,
 } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 
 import { TruongInlineModal } from "@/components/truong/inline/TruongInlineModal";
@@ -23,10 +25,13 @@ import {
   LOAI_MO_HINH_OPTIONS,
   TRINH_DO_OPTIONS,
   TRANG_THAI_KHOA_OPTIONS,
+  labelBaiTapSectionDisplay,
 } from "@/lib/to-chuc/khoa-hoc-labels";
 import { normalizeGoiHocPhiDrafts } from "@/lib/to-chuc/khoa-hoc-goi-phi";
 import type {
   CapNhatKhoaHocInput,
+  BaiTapSectionDisplayMode,
+  BoGiaoTrinhData,
   KhoaHocCardData,
   KhoaHocCheDoHienThi,
   LoaiMoHinhKhoa,
@@ -34,6 +39,7 @@ import type {
   TrinhDoDauVao,
   TrangThaiKhoaHoc,
 } from "@/lib/to-chuc/khoa-hoc-types";
+import { BAI_TAP_SECTION_DISPLAY_DEFAULT } from "@/lib/to-chuc/khoa-hoc-types";
 import { orgQuanLyPath } from "@/lib/to-chuc/org-quan-ly-routes";
 
 type Props = {
@@ -49,6 +55,12 @@ type Props = {
   /** Sau tạo khóa — mở tab lớp với khóa vừa tạo. */
   onCreatedNeedLop?: (khoaId: string) => void;
 };
+
+const BAI_TAP_DISPLAY_OPTIONS: BaiTapSectionDisplayMode[] = [
+  "day_du",
+  "mot_phan",
+  "an",
+];
 
 /** Client-safe slugify (mirror `slugifyOrgName`, không import server-only). */
 function slugifyKhoaTen(value: string): string {
@@ -118,9 +130,17 @@ export function KhoaHocCreateModal({
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [createdKhoaId, setCreatedKhoaId] = useState<string | null>(null);
+  const [boList, setBoList] = useState<BoGiaoTrinhData[]>([]);
+  const [selectedBoId, setSelectedBoId] = useState("");
+  const [boLoading, setBoLoading] = useState(false);
+  const [baiTapDisplayMode, setBaiTapDisplayMode] =
+    useState<BaiTapSectionDisplayMode>(BAI_TAP_SECTION_DISPLAY_DEFAULT);
 
   const manageGoiHref = orgSlug?.trim()
     ? orgQuanLyPath("co_so_dao_tao", orgSlug.trim(), "hoc-phi")
+    : null;
+  const manageGiaoTrinhHref = orgSlug?.trim()
+    ? orgQuanLyPath("co_so_dao_tao", orgSlug.trim(), "giao-trinh")
     : null;
 
   const onGoiCatalogLoad = useCallback(
@@ -149,7 +169,79 @@ export function KhoaHocCreateModal({
     setCoverVariant(Math.floor(Math.random() * 3));
     setError(null);
     setCreatedKhoaId(null);
+    setSelectedBoId("");
+    setBaiTapDisplayMode(BAI_TAP_SECTION_DISPLAY_DEFAULT);
   }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    setBoLoading(true);
+    void (async () => {
+      try {
+        const res = await fetch(
+          `/api/co-so/${encodeURIComponent(orgId)}/bo-giao-trinh`,
+          { credentials: "include" },
+        );
+        const json = (await res.json().catch(() => null)) as {
+          rows?: BoGiaoTrinhData[];
+        } | null;
+        if (cancelled) return;
+        const rows = res.ok ? (json?.rows ?? []) : [];
+        setBoList(rows);
+        if (editing) {
+          const matched = rows.find((b) => b.khoaIds.includes(editing.id));
+          setSelectedBoId(matched?.id ?? "");
+        }
+      } catch {
+        if (!cancelled) setBoList([]);
+      } finally {
+        if (!cancelled) setBoLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, orgId, editing]);
+
+  useEffect(() => {
+    if (!open || !editing) {
+      if (open && !editing) {
+        setBaiTapDisplayMode(BAI_TAP_SECTION_DISPLAY_DEFAULT);
+      }
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch(
+          `/api/co-so/${encodeURIComponent(orgId)}/khoa-hoc/${encodeURIComponent(editing.id)}/bai-tap`,
+          { credentials: "include" },
+        );
+        const json = (await res.json().catch(() => null)) as {
+          displayMode?: BaiTapSectionDisplayMode;
+        } | null;
+        if (cancelled) return;
+        if (
+          res.ok &&
+          (json?.displayMode === "an" ||
+            json?.displayMode === "mot_phan" ||
+            json?.displayMode === "day_du")
+        ) {
+          setBaiTapDisplayMode(json.displayMode);
+        } else {
+          setBaiTapDisplayMode(BAI_TAP_SECTION_DISPLAY_DEFAULT);
+        }
+      } catch {
+        if (!cancelled) {
+          setBaiTapDisplayMode(BAI_TAP_SECTION_DISPLAY_DEFAULT);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, orgId, editing]);
 
   useEffect(() => {
     if (!open) return;
@@ -183,7 +275,66 @@ export function KhoaHocCreateModal({
     });
     setError(null);
     setCreatedKhoaId(null);
+    setSelectedBoId("");
   }, [open, editing, reset]);
+
+  async function syncKhoaBoGiaoTrinh(
+    khoaId: string,
+    boId: string | null,
+  ): Promise<{ ok: true } | { ok: false; error: string }> {
+    try {
+      const res = await fetch(
+        `/api/co-so/${encodeURIComponent(orgId)}/khoa-hoc/${encodeURIComponent(khoaId)}/bo-giao-trinh`,
+        {
+          method: "PATCH",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ boId }),
+        },
+      );
+      const json = (await res.json().catch(() => null)) as {
+        error?: string;
+      } | null;
+      if (!res.ok) {
+        return {
+          ok: false,
+          error: json?.error ?? "Không gán được bộ giáo trình.",
+        };
+      }
+      return { ok: true };
+    } catch {
+      return { ok: false, error: "Lỗi mạng khi gán giáo trình." };
+    }
+  }
+
+  async function syncBaiTapDisplayMode(
+    khoaId: string,
+    mode: BaiTapSectionDisplayMode,
+  ): Promise<{ ok: true } | { ok: false; error: string }> {
+    try {
+      const res = await fetch(
+        `/api/co-so/${encodeURIComponent(orgId)}/khoa-hoc/${encodeURIComponent(khoaId)}/bai-tap`,
+        {
+          method: "PATCH",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ displayMode: mode }),
+        },
+      );
+      const json = (await res.json().catch(() => null)) as {
+        error?: string;
+      } | null;
+      if (!res.ok) {
+        return {
+          ok: false,
+          error: json?.error ?? "Không lưu chế độ hiển thị giáo trình.",
+        };
+      }
+      return { ok: true };
+    } catch {
+      return { ok: false, error: "Lỗi mạng khi lưu hiển thị giáo trình." };
+    }
+  }
 
   /* Click radio mô hình có thể scrollIntoView → đẩy backdrop/modal.
    * Reset scroll + không gọi scrollIntoView. */
@@ -324,6 +475,22 @@ export function KhoaHocCreateModal({
           setError(comboRes.error);
           return;
         }
+        const boRes = await syncKhoaBoGiaoTrinh(
+          json.khoaHoc.id,
+          selectedBoId.trim() || null,
+        );
+        if (!boRes.ok) {
+          setError(boRes.error);
+          return;
+        }
+        const displayRes = await syncBaiTapDisplayMode(
+          json.khoaHoc.id,
+          baiTapDisplayMode,
+        );
+        if (!displayRes.ok) {
+          setError(displayRes.error);
+          return;
+        }
         onUpdated?.(json.khoaHoc);
         reset();
         onClose();
@@ -364,6 +531,22 @@ export function KhoaHocCreateModal({
       });
       if (!comboRes.ok) {
         setError(comboRes.error);
+        return;
+      }
+      const boRes = await syncKhoaBoGiaoTrinh(
+        json.khoaHoc.id,
+        selectedBoId.trim() || null,
+      );
+      if (!boRes.ok) {
+        setError(boRes.error);
+        return;
+      }
+      const displayRes = await syncBaiTapDisplayMode(
+        json.khoaHoc.id,
+        baiTapDisplayMode,
+      );
+      if (!displayRes.ok) {
+        setError(displayRes.error);
         return;
       }
       onCreated?.(json.khoaHoc);
@@ -730,6 +913,62 @@ export function KhoaHocCreateModal({
               lớp.
             </p>
           </label>
+        </section>
+
+        <section className="cso-kh-section" aria-label="Giáo trình">
+          <h2 className="cso-kh-section-title">Giáo trình</h2>
+          <div className="cso-kh-field-row">
+            <div className="cso-kh-field">
+              <div className="cso-kh-label-row">
+                <span className="cso-kh-label">Bộ giáo trình</span>
+                {manageGiaoTrinhHref ? (
+                  <Link
+                    href={manageGiaoTrinhHref}
+                    className="cso-kh-gt-manage-icon"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Mở trang quản lý giáo trình"
+                    title="Quản lý giáo trình"
+                  >
+                    <ExternalLink size={14} strokeWidth={2.2} aria-hidden />
+                  </Link>
+                ) : null}
+              </div>
+              <select
+                className="cso-kh-input"
+                value={selectedBoId}
+                onChange={(e) => setSelectedBoId(e.target.value)}
+                disabled={Boolean(createdKhoaId) || boLoading || submitting}
+              >
+                <option value="">— Chưa gán —</option>
+                {boList.map((bo) => (
+                  <option key={bo.id} value={bo.id}>
+                    {bo.tenBo}
+                    {bo.soBai > 0 ? ` (${bo.soBai} bài)` : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <label className="cso-kh-field">
+              <span className="cso-kh-label">Hiển thị trên trang khóa</span>
+              <select
+                className="cso-kh-input"
+                value={baiTapDisplayMode}
+                onChange={(e) =>
+                  setBaiTapDisplayMode(
+                    e.target.value as BaiTapSectionDisplayMode,
+                  )
+                }
+                disabled={Boolean(createdKhoaId) || submitting}
+              >
+                {BAI_TAP_DISPLAY_OPTIONS.map((mode) => (
+                  <option key={mode} value={mode}>
+                    {labelBaiTapSectionDisplay(mode)}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
         </section>
 
         <section className="cso-kh-section" aria-label="Mô hình khóa">

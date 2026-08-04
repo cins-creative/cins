@@ -1,14 +1,15 @@
 "use client";
 
-import { ClipboardPaste, Eye, EyeOff, ImagePlus, Loader2, X } from "lucide-react";
+import { ClipboardPaste, ImagePlus, Loader2, X } from "lucide-react";
 import Image from "next/image";
-import { useEffect, useId, useRef, useState, type ClipboardEvent } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 import { TruongInlineModal } from "@/components/truong/inline/TruongInlineModal";
 import {
   imageFilesFromClipboard,
-  readImageFileFromClipboard,
+  readImageFilesFromClipboardDetailed,
 } from "@/lib/files/clipboard-images";
+import { inferImageMime, isAllowedUploadImageFile } from "@/lib/files/infer-image-mime";
 import {
   isInlineBaiTapThumbnail,
   persistBaiTapThumbnailUrl,
@@ -22,7 +23,8 @@ import type {
 type Props = {
   open: boolean;
   onClose: () => void;
-  tenKhoaHoc: string;
+  /** Context label (tên khóa / «Thư viện bài tập»). */
+  tenKhoaHoc?: string;
   bai?: GiaoTrinhBaiData | null;
   baiIndex?: number;
   /** Khi có — form sửa bài tập đã tạo. */
@@ -32,14 +34,8 @@ type Props = {
 
 const BAI_TAP_THUMB_RECOMMENDED_PX = 288;
 const BAI_TAP_THUMB_MAX_BYTES = 5 * 1024 * 1024;
-const BAI_TAP_THUMB_ACCEPT = [
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/gif",
-] as const;
 
-type ThumbStatus = "idle" | "loading" | "ok" | "error";
+type ThumbStatus = "idle" | "loading" | "ok" | "error" | "hint";
 
 type ThumbMeta = {
   width: number;
@@ -82,23 +78,43 @@ export function GiaoTrinhBaiTapPanel({
   const titleId = useId();
   const tenBaiTapId = useId();
   const thumbInputRef = useRef<HTMLInputElement>(null);
+  const pendingClipboardReadRef =
+    useRef<ReturnType<typeof readImageFilesFromClipboardDetailed> | null>(null);
+  const pasteArmedRef = useRef(false);
+  const pickThumbRef = useRef<(file: File) => void>(() => {});
   const [tenBaiTap, setTenBaiTap] = useState("");
-  const [visible, setVisible] = useState(true);
   const [moTa, setMoTa] = useState("");
+  const [yeuCau, setYeuCau] = useState("");
   const [videoYoutubeUrl, setVideoYoutubeUrl] = useState("");
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
   const [thumbStatus, setThumbStatus] = useState<ThumbStatus>("idle");
   const [thumbMeta, setThumbMeta] = useState<ThumbMeta | null>(null);
   const [thumbError, setThumbError] = useState<string | null>(null);
+  const [pasteArmed, setPasteArmed] = useState(false);
   const [saving, setSaving] = useState(false);
   const baiKey = bai?.id ?? "course";
   const editKey = editItem?.id ?? "new";
   const isEditing = Boolean(editItem);
 
   function resetThumbState() {
+    pasteArmedRef.current = false;
+    setPasteArmed(false);
     setThumbStatus("idle");
     setThumbMeta(null);
     setThumbError(null);
+  }
+
+  function armPasteFallback(message: string) {
+    pasteArmedRef.current = true;
+    setPasteArmed(true);
+    setThumbMeta(null);
+    setThumbStatus("hint");
+    setThumbError(message);
+  }
+
+  function disarmPasteFallback() {
+    pasteArmedRef.current = false;
+    setPasteArmed(false);
   }
 
   async function loadThumbFromUrl(url: string, bytes: number | null = null) {
@@ -119,8 +135,8 @@ export function GiaoTrinhBaiTapPanel({
     if (!open) return;
     if (editItem) {
       setTenBaiTap(editItem.tenBaiTap);
-      setVisible(editItem.visible);
       setMoTa(editItem.moTa ?? "");
+      setYeuCau(editItem.yeuCau ?? "");
       setVideoYoutubeUrl(editItem.videoYoutubeUrl ?? "");
       setThumbnailUrl((prev) => {
         revokeBlob(prev);
@@ -134,8 +150,8 @@ export function GiaoTrinhBaiTapPanel({
       return;
     }
     setTenBaiTap("");
-    setVisible(true);
     setMoTa("");
+    setYeuCau("");
     setVideoYoutubeUrl("");
     setThumbnailUrl((prev) => {
       revokeBlob(prev);
@@ -151,16 +167,42 @@ export function GiaoTrinhBaiTapPanel({
     [thumbnailUrl],
   );
 
+  /** Fallback khi Clipboard API bị chặn (vd. Simple Browser Cursor): chờ Ctrl+V. */
+  useEffect(() => {
+    if (!open || !pasteArmed) return;
+
+    function onPaste(e: ClipboardEvent) {
+      if (!pasteArmedRef.current) return;
+      const file = imageFilesFromClipboard(e.clipboardData)[0];
+      if (!file) return;
+      e.preventDefault();
+      e.stopPropagation();
+      disarmPasteFallback();
+      pickThumbRef.current(file);
+    }
+
+    window.addEventListener("paste", onPaste, true);
+    const timeoutId = window.setTimeout(() => {
+      if (!pasteArmedRef.current) return;
+      disarmPasteFallback();
+      setThumbStatus("error");
+      setThumbError("Hết thời gian chờ — bấm Dán rồi Ctrl+V, hoặc dùng Chọn ảnh.");
+    }, 20_000);
+
+    return () => {
+      window.removeEventListener("paste", onPaste, true);
+      window.clearTimeout(timeoutId);
+    };
+  }, [open, pasteArmed]);
+
   function handleClose() {
+    disarmPasteFallback();
     onClose();
   }
 
   async function handleThumbPick(file: File) {
-    if (
-      !BAI_TAP_THUMB_ACCEPT.includes(
-        file.type as (typeof BAI_TAP_THUMB_ACCEPT)[number],
-      )
-    ) {
+    disarmPasteFallback();
+    if (!isAllowedUploadImageFile(file)) {
       setThumbStatus("error");
       setThumbError("Định dạng không hỗ trợ — dùng JPEG, PNG, WebP hoặc GIF.");
       setThumbMeta(null);
@@ -179,14 +221,23 @@ export function GiaoTrinhBaiTapPanel({
     setThumbError(null);
     setThumbMeta(null);
 
-    const localUrl = URL.createObjectURL(file);
+    const mime = inferImageMime(file);
+    const normalized =
+      file.type === mime
+        ? file
+        : new File([file], file.name || `paste.${mime.split("/")[1] ?? "png"}`, {
+            type: mime,
+            lastModified: file.lastModified,
+          });
+
+    const localUrl = URL.createObjectURL(normalized);
     try {
       const { width, height } = await readImageDimensions(localUrl);
       setThumbnailUrl((prev) => {
         revokeBlob(prev);
         return localUrl;
       });
-      setThumbMeta({ width, height, bytes: file.size });
+      setThumbMeta({ width, height, bytes: normalized.size });
       setThumbStatus("ok");
     } catch {
       URL.revokeObjectURL(localUrl);
@@ -199,27 +250,43 @@ export function GiaoTrinhBaiTapPanel({
     }
   }
 
-  function handleThumbPaste(e: ClipboardEvent) {
-    if (thumbStatus === "loading" || saving) return;
-    const file = imageFilesFromClipboard(e.clipboardData)[0];
-    if (!file) return;
-    e.preventDefault();
-    e.stopPropagation();
+  pickThumbRef.current = (file) => {
     void handleThumbPick(file);
+  };
+
+  function handlePasteButtonPointerDown() {
+    if (thumbStatus === "loading" || saving) return;
+    if (typeof window === "undefined" || !window.isSecureContext) return;
+    if (!navigator.clipboard?.read) return;
+    pendingClipboardReadRef.current = readImageFilesFromClipboardDetailed();
   }
 
   async function handleThumbPasteClick() {
     if (thumbStatus === "loading" || saving) return;
-    const file = await readImageFileFromClipboard();
+    const pending = pendingClipboardReadRef.current;
+    pendingClipboardReadRef.current = null;
+    const { files, reason } = await (pending ??
+      readImageFilesFromClipboardDetailed());
+    const file = files[0];
     if (file) {
+      disarmPasteFallback();
       void handleThumbPick(file);
       return;
     }
+
+    // Cursor Simple Browser / iframe: không có UI cấp quyền clipboard.read().
+    if (reason === "denied" || reason === "unsupported" || reason === "insecure") {
+      armPasteFallback(
+        "Trình duyệt này không đọc clipboard bằng nút. Copy ảnh rồi nhấn Ctrl+V — hoặc dùng Chọn ảnh.",
+      );
+      return;
+    }
+
+    setThumbMeta(null);
     setThumbStatus("error");
     setThumbError(
-      "Không đọc được ảnh từ bộ nhớ tạm — copy ảnh rồi thử lại, hoặc Ctrl+V trên khung thumbnail.",
+      "Chưa có ảnh trong bộ nhớ tạm — copy ảnh rồi bấm Dán, hoặc dùng Chọn ảnh.",
     );
-    setThumbMeta(null);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -231,10 +298,11 @@ export function GiaoTrinhBaiTapPanel({
       onSave({
         tenBaiTap: tenBaiTap.trim(),
         moTa: moTa.trim() || null,
+        yeuCau: yeuCau.trim() || null,
         videoYoutubeUrl: videoYoutubeUrl.trim() || null,
         thumbnailUrl: persistedThumb,
         giaoTrinhBaiId: editItem?.giaoTrinhBaiId ?? bai?.id ?? null,
-        visible,
+        visible: true,
       });
       handleClose();
     } finally {
@@ -246,7 +314,7 @@ export function GiaoTrinhBaiTapPanel({
     ? `Bài ${(baiIndex ?? 0) + 1}: ${bai.tieuDe}${tenKhoaHoc ? ` · ${tenKhoaHoc}` : ""}`
     : tenKhoaHoc || null;
 
-  const thumbHint = `Tuỳ chọn · 1:1 · chọn ảnh hoặc dán (Ctrl+V) · khuyến nghị ≥${BAI_TAP_THUMB_RECOMMENDED_PX}×${BAI_TAP_THUMB_RECOMMENDED_PX}px`;
+  const thumbHint = `Tuỳ chọn · 1:1 · chọn ảnh hoặc bấm Dán · khuyến nghị ≥${BAI_TAP_THUMB_RECOMMENDED_PX}×${BAI_TAP_THUMB_RECOMMENDED_PX}px`;
 
   const thumbStatusText =
     thumbStatus === "loading"
@@ -259,7 +327,7 @@ export function GiaoTrinhBaiTapPanel({
               ? " · ảnh không vuông, sẽ cắt khi hiển thị"
               : ""
           }`
-        : thumbStatus === "error" && thumbError
+        : (thumbStatus === "error" || thumbStatus === "hint") && thumbError
           ? thumbError
           : null;
 
@@ -277,7 +345,7 @@ export function GiaoTrinhBaiTapPanel({
             {isEditing ? "Sửa bài tập" : "Thêm bài tập"}
           </h2>
           <p className="cso-khd-bt-panel-ctx">
-            {contextLabel ?? "Khóa học"}
+            {contextLabel ?? "Thư viện bài tập"}
           </p>
         </div>
         <button
@@ -297,24 +365,6 @@ export function GiaoTrinhBaiTapPanel({
             <label className="cso-kh-label" htmlFor={tenBaiTapId}>
               Tên bài tập <span className="cso-kh-req">*</span>
             </label>
-            <button
-              type="button"
-              className={`cso-khd-bt-vis-toggle${visible ? " is-on" : ""}`}
-              onClick={() => setVisible((v) => !v)}
-              aria-label={
-                visible
-                  ? "Đang hiển thị công khai — bấm để ẩn"
-                  : "Đang ẩn — bấm để hiển thị công khai"
-              }
-              aria-pressed={visible}
-              title={visible ? "Công khai" : "Ẩn"}
-            >
-              {visible ? (
-                <Eye size={16} aria-hidden />
-              ) : (
-                <EyeOff size={16} aria-hidden />
-              )}
-            </button>
           </div>
           <input
             id={tenBaiTapId}
@@ -333,10 +383,8 @@ export function GiaoTrinhBaiTapPanel({
           <div className="cso-kh-cover-pick">
             <div
               className="cso-kh-cover-preview cso-khd-bt-thumb-preview c1"
-              tabIndex={0}
-              role="group"
-              aria-label="Thumbnail bài tập — chọn hoặc dán ảnh"
-              onPaste={handleThumbPaste}
+              role="img"
+              aria-label="Thumbnail bài tập"
             >
               {thumbnailUrl ? (
                 <Image
@@ -391,8 +439,9 @@ export function GiaoTrinhBaiTapPanel({
                   type="button"
                   className="cso-kh-cover-btn cso-kh-cover-btn--icon"
                   disabled={thumbStatus === "loading" || saving}
-                  title="Dán ảnh từ bộ nhớ tạm"
+                  title="Dán ảnh từ clipboard"
                   aria-label="Dán ảnh từ bộ nhớ tạm"
+                  onPointerDown={handlePasteButtonPointerDown}
                   onClick={() => void handleThumbPasteClick()}
                 >
                   <ClipboardPaste size={16} strokeWidth={2} aria-hidden />
@@ -407,7 +456,9 @@ export function GiaoTrinhBaiTapPanel({
                       ? "is-ok"
                       : thumbStatus === "error"
                         ? "is-err"
-                        : "is-loading",
+                        : thumbStatus === "hint"
+                          ? "is-hint"
+                          : "is-loading",
                   ]
                     .filter(Boolean)
                     .join(" ")}
@@ -422,13 +473,24 @@ export function GiaoTrinhBaiTapPanel({
         </div>
 
         <label className="cso-kh-field">
-          <span className="cso-kh-label">Mô tả / hướng dẫn</span>
+          <span className="cso-kh-label">Nội dung bài tập</span>
           <textarea
             className="cso-kh-input cso-kh-textarea"
             value={moTa}
             onChange={(e) => setMoTa(e.target.value)}
-            placeholder="Yêu cầu nộp bài, tiêu chí chấm…"
+            placeholder="Nội dung / hướng dẫn làm bài…"
             rows={4}
+          />
+        </label>
+
+        <label className="cso-kh-field">
+          <span className="cso-kh-label">Yêu cầu bài</span>
+          <textarea
+            className="cso-kh-input cso-kh-textarea"
+            value={yeuCau}
+            onChange={(e) => setYeuCau(e.target.value)}
+            placeholder="Yêu cầu nộp bài, tiêu chí chấm…"
+            rows={3}
           />
         </label>
 

@@ -6666,6 +6666,63 @@
   border-color: var(--border-s);
 }
 
+/* Lớp học của bạn — 1-click vào phòng chat. */
+.world-journey-home button.ha-trow--lop {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+}
+
+.world-journey-home button.ha-trow--lop:disabled,
+.world-journey-home button.ha-trow--lop.is-disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.world-journey-home .ha-trow--lop.is-soon {
+  background: var(--cins-blue-soft, #e7f0fb);
+}
+
+.world-journey-home .ha-trow--lop.is-soon:hover {
+  background: color-mix(in srgb, var(--cins-blue-soft, #e7f0fb) 80%, var(--cins-blue, #1f74c9));
+}
+
+.world-journey-home .ha-trow-th--lop {
+  background: var(--cins-blue-soft, #e7f0fb);
+  color: var(--cins-blue, #1f74c9);
+}
+
+.world-journey-home .ha-trow--lop.is-soon .ha-trow-th--lop {
+  background: var(--cins-blue, #1f74c9);
+  color: #fff;
+}
+
+.world-journey-home .ha-lop-eta {
+  flex-shrink: 0;
+  max-width: 7.5rem;
+  font-size: 11.5px;
+  font-weight: 650;
+  line-height: 1.25;
+  text-align: right;
+  color: var(--ink3, #6b7280);
+}
+
+.world-journey-home .ha-lop-eta.is-soon {
+  color: var(--cins-blue-dark, #1656a0);
+}
+
+.world-journey-home .ha-lop-eta.is-live {
+  color: var(--cins-blue, #1f74c9);
+}
+
+.world-journey-home .ha-card--lop {
+  overflow: visible;
+}
+
 .world-journey-home .ha-trow-meta {
   flex: 1;
   min-width: 0;
@@ -7556,6 +7613,18 @@
   font-size: 0.72rem;
   font-weight: 500;
   color: var(--ink-muted, rgba(0, 0, 0, 0.4));
+}
+
+.ha-edit-add-suggest {
+  flex-shrink: 0;
+  margin: 8px 4px 2px;
+  padding: 8px 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--ink-display, rgba(0, 0, 0, 0.78));
+  background: var(--neutral-100, #f1f2f5);
+  border-radius: 10px;
 }
 
 .ha-edit-add-search {

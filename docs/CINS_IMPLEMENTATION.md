@@ -185,7 +185,11 @@ Tái dùng đúng pattern Shopee AI cho **user tự import portfolio** của ch�
 | `co-so/[id]/hoc-vien/[hvlId]` | **DELETE gỡ ghi danh vĩnh viễn** (`user_hoc_vien_lop`) — guard: chặn nếu còn đơn `da_nhan_tien` (FK đơn học phí là CASCADE → xóa sẽ mất doanh thu). 409 + blockers |
 | `co-so/[id]/hoc-vien/[hvlId]/xoa-preflight` | GET preflight gỡ ghi danh — cảnh báo đơn chờ / kỳ học / bài nộp / tiến độ sẽ bị cascade |
 | `co-so/[id]/khoa-hoc/[khoaId]/bai-tap` | Bài tập khóa (`org_bai_tap`) — dùng trên trang khóa công khai |
-| `co-so/[id]/giao-trinh` · `.../[baiId]` | Meta khóa + quyền tab **Giáo trình**; CRUD lẻ vẫn có. UI quản trị dùng cùng pattern/API `…/khoa-hoc/[khoaId]/bai-tap` (PUT sync + PATCH `displayMode`) như trang khóa |
+| `co-so/[id]/bai-tap` · `.../[baiId]` | Thư viện module bài tập cấp org (`org_bai_tap.id_to_chuc`) — GET/POST list+tạo; PATCH/DELETE sửa/xóa (`?force=1` gỡ junction) |
+| `co-so/[id]/bo-giao-trinh` · `.../[boId]` · `.../bai` | Bộ giáo trình + sync gán MM (`org_bo_giao_trinh`, `org_giao_trinh_bai` + `thuoc_tinh`) |
+| `co-so/[id]/khoa-hoc/[khoaId]/bo-giao-trinh` | PATCH gán 1 bộ cho khóa (`org_khoa_hoc.id_bo_giao_trinh`) |
+| `co-so/[id]/giao-trinh` · `.../[baiId]` | Legacy meta khóa + quyền; UI quản trị chuyển sang thư viện + bộ |
+| `co-so/[id]/khoa-hoc/[khoaId]/bai-tap` | GET public resolve qua bộ; PUT sync deprecated (compat); PATCH `displayMode` giữ |
 | `co-so/[id]/khoa-hoc/[khoaId]/giao-trinh` · `.../[baiId]` | CRUD lộ trình cũ (`org_giao_trinh`) — **legacy**; UI lộ trình khách đồng bộ `org_bai_tap` |
 | `co-so/[id]/khoa-hoc/[khoaId]/dang-ky` | POST ghi danh → `user_hoc_vien_lop` — **đề xuất** nếu chưa có route |
 | `co-so/[id]/khoa-hoc/[khoaId]/san-pham` | GET lens tác phẩm verified gắn khóa (L15) — **đề xuất** nếu chưa có route |
@@ -217,6 +221,12 @@ Tái dùng đúng pattern Shopee AI cho **user tự import portfolio** của ch�
 | `chat/rooms/[roomId]/tags` · `.../[tagId]` | Thẻ tài nguyên phòng: list/tạo · xóa — **L28** |
 | `chat/rooms/[roomId]/messages/[messageId]/tags` | PUT gắn thẻ lên tin (ảnh/URL) — **L28** |
 | `chat/rooms/[roomId]/mocs` · `.../[mocId]` | Mốc timeline phòng: list/tạo · sửa/xóa — **L28** |
+| `chat/rooms/[roomId]/mocs/lich-lop` | GET/POST bật·tắt mốc `nguon=lich_lop` (nhắc 15' trước buổi học) — chỉ admin phòng lớp |
+| `chat/rooms/[roomId]/lop-access` | GET quyền phòng lớp: staff/HV, freeze kỳ học, cờ `canQuanLyHocVien` / `canGanTienDo` / `dongBoTienDo` |
+| `chat/rooms/[roomId]/giao-trinh` | GET giáo trình HV (bài + đã mở + nộp). Staff: `?hocVienLopId=` |
+| `chat/rooms/[roomId]/tien-do` | GET ma trận HV×bài · POST mở bài / `set_dong_bo` (`org_khoa_hoc.dong_bo_tien_do`) |
+| `chat/rooms/[roomId]/nop-bai` | POST HV nộp (`tinNhanId`) · PATCH GV duyệt/lưu (`action=duyet\|luu\|bo_luu`) |
+| `chat/rooms/[roomId]/nop-bai/[nopId]/journey` | POST HV đăng Journey từ bài đã lưu + auto-verify org |
 | `chat/mocs/tick` | POST quét mốc tới hạn nhắc / đến giờ → tạo tin `loai_tin=system` (`ngu_canh.loai=moc`) |
 | `chat/rooms/[roomId]/polls` · `.../[pollId]/vote` | Bình chọn trong phòng: GET theo messageIds · POST tạo (`loai_tin=binh_chon`) · POST vote |
 | `chat/invites/[ma]` | Preview / xin gia nhập qua mã mời |
@@ -237,7 +247,7 @@ Tái dùng đúng pattern Shopee AI cho **user tự import portfolio** của ch�
 | `journey/` | Milestone, timeline, gallery, video processing, co-author credit, cache | `timeline-merge.ts`, `milestone-verify.ts`, `foreign-milestone-visibility.ts`, `video-upload-session.ts`, `sync-tac-pham-tags.ts` |
 | `cong-dong/` | Tạo org, membership, thảo luận, filter, sidebar, mirror tác phẩm, **quản lý thành viên**, categories, event rail, **branding**, **route sự kiện** | `org-create.ts`, `org-profile.ts`, `membership.ts`, `members.ts`, `vai-tro.ts`, `categories.ts`, `event-rail.ts`, `routes.ts` (`congDongSuKienPath` / `ManagePath`), `creator-milestone.ts`, `sync-from-publish.ts`, `tac-pham-mirror.ts` ⚠️§5 |
 | `to-chuc/` | **Cơ sở đào tạo** — trang chi tiết, settings, members, filters, timeline lớp, staff invite, create; **sự kiện + loại vé**; **khóa/lớp/bài tập** | `co-so-page-queries.ts`, `co-so-settings.ts`, `co-so-members.ts`, `co-so-create.ts`, `co-so-vai-tro.ts`, `su-kien.ts`, `su-kien-loai-ve.ts`, `su-kien-constants.ts`, `su-kien-listing.ts`, `khoa-hoc.ts`, `lop-hoc-quan-ly.ts`, `bai-tap-khoa.ts`, `giao-trinh-quan-ly.ts` |
-| `co-so/` | Helpers vận hành CSĐT (học phí, chat lớp, …) | `don-hoc-phi.ts`, `hoc-vien-list.ts`, `lop-chat-phong.ts`, … |
+| `co-so/` | Helpers vận hành CSĐT (học phí, chat lớp, giáo trình…) | `don-hoc-phi.ts`, `lop-chat-phong.ts`, `lop-room-access.ts`, `tien-do-bai.ts`, `nop-bai.ts`, `nop-bai-journey.ts`, `lop-he-thong-tin.ts`, … |
 | `tag/` | Tạo tag, dedup, gen tom-tat, normalize, slug, admin merge | `create.ts`, `gen-tom-tat.ts`, `dedup.ts`, `normalize.ts` |
 | `filter/` | **Filter cá nhân** (user & org): CRUD nhãn, gắn cột mốc/bài org, list theo chủ, đếm visible cho khách, nhãn hệ thống `cong-dong` | `create.ts`, `update.ts`, `delete.ts`, `gan.ts`, `list-cua-user.ts`, `count-visible-to-viewer.ts`, `cong-dong-personal-filter.ts` (+ `.shared.ts`) |
 | `chat/` | **Chat:** DM/org/nhóm, realtime, ghim, nhóm bạn bè, **project con**, thẻ tài nguyên, mốc phòng, bình chọn; overlay tab **Mua bán** (`types` `ChatThreadView`/`ChatMuaBanSub`, cờ shop trên `listAllChatThreads`); **inbox org staff** (`canAccessOrgInbox` · `listOrgInboxThreadsForStaff`) gồm studio | `group-message.ts`, `group-roles.ts`, `project-room.ts`, `room-tags.ts`, `room-moc.ts`, `room-poll.ts`, `direct-message.ts`, `org-message.ts`, `use-chat-realtime.ts` |
@@ -314,6 +324,8 @@ Tái dùng đúng pattern Shopee AI cho **user tự import portfolio** của ch�
 | `migration_chat_binh_chon.sql` | **Bình chọn chat:** enum `loai_tin_nhan_enum` + `binh_chon`; bảng `chat_binh_chon` · `chat_binh_chon_lua_chon` · `chat_binh_chon_phieu` (1 phiếu/user); RLS select member. **Chạy thủ công trên Supabase SQL Editor.** |
 | `migration_chat_moc_datetime.sql` | **Mốc chat datetime:** `chat_moc.thoi_diem` `date`→`timestamptz`; `nhac_truoc_ngay`→`nhac_truoc_phut` (backfill ×1440). UI chọn ngày + giờ/phút; nhắc theo ngày/giờ/phút. Chạy: `node scripts/run-chat-moc-datetime-migration.mjs`. |
 | `migration_chat_moc_nhac.sql` | **Tin nhắc mốc trong chat:** `id_tin_tao` / `id_tin_nhac_truoc` / `id_tin_den_han` trên `chat_moc`; + enum `binh_chon` nếu thiếu. App: `room-moc-notify.ts`, `POST /api/chat/mocs/tick`. Chạy: `node scripts/run-chat-moc-nhac-migration.mjs`. |
+| `migration_chat_moc_loai_lap.sql` | **Lặp mốc chat:** enum `chat_moc_loai_lap_enum` + cột `chat_moc.loai_lap` (`mot_lan`\|`ngay`\|`tuan`\|`thang`\|`nam`). Sau đến hạn, mốc lặp nhảy `thoi_diem` kỳ kế + reset tin nhắc. Chạy: `node scripts/run-chat-moc-loai-lap-migration.mjs`. |
+| `migration_chat_moc_nguon.sql` | **Nguồn mốc:** enum `chat_moc_nguon_enum` + `nguon` (`thu_cong`\|`lich_lop`); unique 1 `lich_lop`/phòng. Nhắc buổi học 15' từ `org_lop_hoc.lich_hoc`. Chạy: `node scripts/run-chat-moc-nguon-migration.mjs`. |
 | `migration_org_truong_nganh_mon.sql` | **L31 môn chuyên ngành chương trình trường:** bảng `org_truong_nganh_mon` (`id_truong_nganh`, `id_mon_hoc` → `article_bai_viet`, `thu_tu`, unique cặp) + RLS select public / write `is_admin_to_chuc`. Seed mẫu MTS TKĐH: `org-truong-seed-nganh-mon-mts-thiet-ke-do-hoa.sql`. **Đã chạy trên CINs** (`ospzzzxcomrmhqrnkoiw`) 2026-07-14 — đối chiếu DB nếu nghi ngờ. |
 | `migration_user_gallery_noi_bat.sql` | **Thứ tự Nội dung nổi bật (cột aside Journey):** bảng `user_gallery_noi_bat` (`id_nguoi_dung`, `id_cot_moc`, `thu_tu`, PK cặp). `id_cot_moc` **polymorphic** (`content_cot_moc` hoặc `org_bai_dang`) — xem `migration_user_gallery_noi_bat_polymorphic_id.sql` (đã chạy CINs). Chỉ chủ Journey `PATCH /api/journey/[slug]/gallery-aside` `{ cotMocIds }`; mọi viewer đọc cùng thứ tự. Không đổi sort Gallery chính. App: `lib/journey/gallery-noi-bat-order.ts`, DnD trong `JourneyGalleryAside` (`featuredOnly` + `canReorder`). Chạy: `node scripts/run-user-gallery-noi-bat-migration.mjs` (+ polymorphic: `node scripts/run-user-gallery-noi-bat-polymorphic-id.mjs`). |
 | `migration_content_share_link.sql` | **Facebook OG cache-bust + short-link:** bảng server-only `content_share_link` (`token`, creator/org, `target_path`, title/description, Cloudflare `image_id`/`image_url`). Mỗi lần share card tạo token mới; `/s/[token]` có `og:url` riêng và ảnh snapshot cố định, người thật soft-redirect về URL gốc có `?s=`. Ảnh chỉ bị xóa khi không còn link tham chiếu. Chạy: `node scripts/run-content-share-link-migration.mjs`. **Đã chạy CINS `ospzzzxcomrmhqrnkoiw` 2026-07-17.** |
@@ -356,7 +368,8 @@ chat_the_gan
 
 chat_moc
   id · id_phong→chat_phong · ten · mo_ta · thoi_diem timestamptz · url · nhac_truoc_phut
-  id_nguoi_tao · tao_luc · cap_nhat_luc
+  loai_lap (mot_lan|ngay|tuan|thang|nam) · nguon (thu_cong|lich_lop) · id_nguoi_tao · tao_luc · cap_nhat_luc
+  id_tin_tao / id_tin_nhac_truoc / id_tin_den_han (tin system nhắc)
 ```
 
 ---
@@ -647,7 +660,8 @@ Trang khóa standalone `/co-so/[slug]/khoa-hoc/[khoa-slug]`. Ưu tiên render m�
 |---|---|---|
 | Hero + facts | `org_khoa_hoc` + derived lớp | tên, mô hình (`loai_mo_hinh`), thời lượng, học phí, trình độ, trạng thái; **hình thức** = tập hợp distinct `org_lop_hoc.hinh_thuc` (chưa có lớp → ẩn trang công khai) |
 | Giới thiệu | `org_khoa_hoc.noi_dung_blocks` | landing dạng block; `mo_ta` = tóm tắt ngắn. Meta: gói HP + `cheDoHienThi` (không còn ghi địa điểm / `chiNhanhIds`) |
-| Lộ trình bài / giáo trình | `org_bai_tap` | ORDER BY `thu_tu`; mỗi bài: `ten_bai_tap`, `mo_ta`, `video_youtube_url`, `thumbnail_url`, **`visible`** (khách chỉ thấy `true`; soft delete admin = `false`). Chế độ section khóa: `org_khoa_hoc.bai_tap_hien_thi` ∈ `an`\|`mot_phan`\|`day_du`. Tab quản trị `/quan-ly/giao-trinh` CRUD cùng bảng. `org_giao_trinh` = legacy (không còn nguồn UI khách). |
+| Lộ trình bài / giáo trình | `org_bo_giao_trinh` + `org_giao_trinh_bai` + `org_bai_tap` | Module cấp org (`id_to_chuc`, `mo_ta`=nội dung, `yeu_cau`). Bộ gán MM + `thuoc_tinh` enum (`bai_tap`/`ly_thuyet`/`tham_khao`/`demo`/`bai_mau`/`kiem_tra`/`du_an`/`on_tap`). 1 khóa ↔ 1 bộ (`org_khoa_hoc.id_bo_giao_trinh`). Section khách: `bai_tap_hien_thi`. Tab `/quan-ly/giao-trinh`. Migration: `npm run migrate:bo-giao-trinh`. `org_giao_trinh` = legacy. |
+| Tiến độ bài trong chat lớp | `org_tien_do_bai` + `org_tien_do_bai_mo` + `org_nop_bai` | Con trỏ bài hiện tại + lịch sử mở. Khóa `dong_bo_tien_do`: cả lớp cùng tiến độ + copy khi HV mới join. Side panel chat: Giáo trình (HV) / Quản lý học viên (GV). Lưu bài → Journey + auto-verify. Migration: `npm run migrate:tien-do-giao-trinh-chat`. Plan §11. |
 | Khung lớp & lịch | `org_lop_hoc` + `org_lop_hoc_chi_nhanh` | per-lớp: **`hinh_thuc`**, địa điểm (N chi nhánh), `lich_hoc`, giáo viên, `slot_toi_da`, `trang_thai`, `ngay_khai_giang`. Nút **Đăng ký khung** |
 | Giảng viên | `org_lop_hoc.giao_vien_phu_trach` distinct | gom GV qua các lớp; verified → card link hồ sơ; chưa có CINS → tên chữ |
 | Sản phẩm học viên | lens `content_cot_moc` | `WHERE id_khoa_hoc=khoaId AND verified AND public` (L15). Ghi chú UI: học viên tự đăng, gắn khóa, org xác nhận — không phải kho org |
@@ -688,7 +702,7 @@ Trang khóa standalone `/co-so/[slug]/khoa-hoc/[khoa-slug]`. Ưu tiên render m�
 ### Khóa học (v9)
 
 - Giáo viên hiển thị (app-layer, không ràng buộc DB): `giao_vien_phu_trach` (FK user) → hồ sơ verified + link Journey; else `giao_vien_text` → tên chữ, không badge; else "Đang cập nhật".
-- Lộ trình bài / giáo trình: nguồn UI = `org_bai_tap ... ORDER BY thu_tu`. Khách lọc `visible=true`. Admin tab `/quan-ly/giao-trinh` + inline trang khóa dùng chung CRUD. `org_giao_trinh` giữ schema legacy, không còn feed vào `BaiTapVisitorSection`.
+- Lộ trình bài / giáo trình: nguồn UI = bộ của khóa → junction `org_giao_trinh_bai` ORDER BY `thu_tu` (nhóm theo `thuoc_tinh`). Admin tab `/quan-ly/giao-trinh` = thư viện module + bộ + gán khóa. `org_giao_trinh` legacy. Plan: `PLAN_giao_trinh_modules.md`.
 - Lens sản phẩm: `content_cot_moc WHERE id_khoa_hoc=X AND verified AND public` — dùng chung helper visibility với Journey public (loại `cong_dong`). Org không sở hữu.
 - Ghi danh liên tục: `user_hoc_vien_lop.id_lop_hoc` NULL hợp lệ (chỉ gắn `id_khoa_hoc`). Cohort thì bắt buộc `id_lop_hoc`.
 

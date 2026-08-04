@@ -1,10 +1,17 @@
 import "server-only";
 
+import {
+  compareLopHocByUrgency,
+  resolveNextLopHocSession,
+  type LopHocCuaBanItem,
+} from "@/lib/cins/home-adaptive/lop-hoc-next";
 import { getAvatarUrl } from "@/lib/journey/profile";
 import { labelLoaiMoHinhKhoa } from "@/lib/to-chuc/khoa-hoc-labels";
 import type { LoaiMoHinhKhoa } from "@/lib/to-chuc/khoa-hoc-types";
 import { resolveTruongImageSrcSync } from "@/lib/truong/media-url";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+
+export type { LopHocCuaBanItem };
 
 const TEACHER_ROLES = [
   "owner",
@@ -341,4 +348,106 @@ export async function loadScoutTaiNang(
     });
   }
   return out;
+}
+
+/** HỌC · Lớp đã ghi danh — sắp xếp theo buổi gần nhất (1-click vào phòng chat). */
+export async function loadLopHocCuaBan(
+  viewerId: string,
+  limit = 5,
+): Promise<LopHocCuaBanItem[]> {
+  const admin = createServiceRoleClient();
+  const { data: hvRows } = await admin
+    .from("user_hoc_vien_lop")
+    .select("id_lop_hoc")
+    .eq("id_nguoi_dung", viewerId)
+    .in("trang_thai", ["da_dang_ky", "dang_hoc"])
+    .not("id_lop_hoc", "is", null)
+    .returns<Array<{ id_lop_hoc: string | null }>>();
+
+  const lopIds = [
+    ...new Set(
+      (hvRows ?? [])
+        .map((r) => r.id_lop_hoc)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+  if (lopIds.length === 0) return [];
+
+  const { data: lopRows } = await admin
+    .from("org_lop_hoc")
+    .select(
+      "id, ma_lop, lich_hoc, id_chat_phong, trang_thai, id_khoa_hoc",
+    )
+    .in("id", lopIds)
+    .neq("trang_thai", "huy")
+    .returns<
+      Array<{
+        id: string;
+        ma_lop: string | null;
+        lich_hoc: string | null;
+        id_chat_phong: string | null;
+        trang_thai: string | null;
+        id_khoa_hoc: string;
+      }>
+    >();
+
+  if (!lopRows?.length) return [];
+
+  const khoaIds = [...new Set(lopRows.map((l) => l.id_khoa_hoc))];
+  const { data: khoaRows } = await admin
+    .from("org_khoa_hoc")
+    .select("id, ten_khoa_hoc, slug, id_to_chuc")
+    .in("id", khoaIds)
+    .returns<
+      Array<{
+        id: string;
+        ten_khoa_hoc: string | null;
+        slug: string | null;
+        id_to_chuc: string;
+      }>
+    >();
+
+  const khoaById = new Map((khoaRows ?? []).map((k) => [k.id, k]));
+  const orgIds = [
+    ...new Set((khoaRows ?? []).map((k) => k.id_to_chuc).filter(Boolean)),
+  ];
+  const { data: orgRows } =
+    orgIds.length > 0
+      ? await admin
+          .from("org_to_chuc")
+          .select("id, ten, slug")
+          .in("id", orgIds)
+          .returns<
+            Array<{ id: string; ten: string | null; slug: string | null }>
+          >()
+      : {
+          data: [] as Array<{
+            id: string;
+            ten: string | null;
+            slug: string | null;
+          }>,
+        };
+
+  const orgById = new Map((orgRows ?? []).map((o) => [o.id, o]));
+  const nowMs = Date.now();
+
+  const items: LopHocCuaBanItem[] = [];
+  for (const lop of lopRows) {
+    const khoa = khoaById.get(lop.id_khoa_hoc);
+    const org = khoa ? orgById.get(khoa.id_to_chuc) : undefined;
+    const maLop = lop.ma_lop?.trim() || "Lớp học";
+    items.push({
+      lopId: lop.id,
+      roomId: lop.id_chat_phong?.trim() || null,
+      maLop,
+      tenKhoa: khoa?.ten_khoa_hoc?.trim() || "Khóa học",
+      orgTen: org?.ten?.trim() || "Cơ sở đào tạo",
+      orgSlug: org?.slug?.trim() || null,
+      lichHoc: lop.lich_hoc?.trim() || null,
+      next: resolveNextLopHocSession(lop.lich_hoc, nowMs),
+    });
+  }
+
+  items.sort(compareLopHocByUrgency);
+  return items.slice(0, Math.min(10, Math.max(1, Math.round(limit))));
 }

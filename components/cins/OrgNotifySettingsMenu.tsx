@@ -324,7 +324,7 @@ export function OrgNotifySettingsMenu({
   return (
     <div
       ref={rootRef}
-      className={`cins-chat-thread-menu${open ? " is-open" : ""}`}
+      className={`cins-chat-org-notify-menu${open ? " is-open" : ""}`}
     >
       <button
         ref={triggerRef}

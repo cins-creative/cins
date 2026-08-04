@@ -106,19 +106,107 @@ export type CapNhatKhoaHocInput = TaoKhoaHocInput & {
 
 export type VisibilityGiaoTrinh = "public" | "chi_hoc_vien" | "private";
 
-/** Bài tập khóa học — map `org_bai_tap`. */
+/** Thuộc tính bài trong bộ giáo trình — `loai_bai_giao_trinh_enum`. */
+export type LoaiBaiGiaoTrinh =
+  | "bai_tap"
+  | "ly_thuyet"
+  | "tham_khao"
+  | "demo"
+  | "bai_mau"
+  | "kiem_tra"
+  | "du_an"
+  | "on_tap";
+
+export const LOAI_BAI_GIAO_TRINH_ORDER: LoaiBaiGiaoTrinh[] = [
+  "bai_tap",
+  "ly_thuyet",
+  "tham_khao",
+  "demo",
+  "bai_mau",
+  "kiem_tra",
+  "du_an",
+  "on_tap",
+];
+
+export const LOAI_BAI_GIAO_TRINH_LABEL: Record<LoaiBaiGiaoTrinh, string> = {
+  bai_tap: "Bài tập",
+  ly_thuyet: "Lý thuyết",
+  tham_khao: "Tham khảo",
+  demo: "Demo",
+  bai_mau: "Bài mẫu",
+  kiem_tra: "Kiểm tra",
+  du_an: "Dự án",
+  on_tap: "Ôn tập",
+};
+
+export function isLoaiBaiGiaoTrinh(value: unknown): value is LoaiBaiGiaoTrinh {
+  return (
+    typeof value === "string" &&
+    (LOAI_BAI_GIAO_TRINH_ORDER as string[]).includes(value)
+  );
+}
+
+/** Module bài tập (thư viện org) — map `org_bai_tap`. */
 export type BaiTapKhoaData = {
   id: string;
   tenBaiTap: string;
+  /** Nội dung bài tập (`mo_ta`). */
   moTa: string | null;
+  /** Yêu cầu bài (`yeu_cau`). */
+  yeuCau?: string | null;
   videoYoutubeUrl: string | null;
   thumbnailUrl: string | null;
   giaoTrinhBaiId: string | null;
-  /** Hiển thị công khai trên trang khóa (toggle Eye). */
+  /**
+   * Legacy schema — UI mới không toggle.
+   * Khi đọc từ bộ: luôn true.
+   */
   visible: boolean;
+  /** Thuộc tính trong bộ đang xem (junction). */
+  thuocTinh?: LoaiBaiGiaoTrinh;
 };
 
 export type BaiTapKhoaDraft = Omit<BaiTapKhoaData, "id">;
+
+/** Module trong thư viện quản lý. */
+export type BaiTapModuleData = {
+  id: string;
+  tenBaiTap: string;
+  moTa: string | null;
+  yeuCau: string | null;
+  videoYoutubeUrl: string | null;
+  thumbnailUrl: string | null;
+  soBoDangDung: number;
+  /** Bộ giáo trình đang gán module này. */
+  boIds: string[];
+  capNhatLuc: string;
+};
+
+export type BoGiaoTrinhBaiData = {
+  baiTapId: string;
+  tenBaiTap: string;
+  moTa: string | null;
+  yeuCau: string | null;
+  videoYoutubeUrl: string | null;
+  thumbnailUrl: string | null;
+  thuocTinh: LoaiBaiGiaoTrinh;
+  thuTu: number;
+  ghiChu: string | null;
+};
+
+export type BoGiaoTrinhData = {
+  id: string;
+  tenBo: string;
+  moTa: string | null;
+  thuTu: number;
+  soBai: number;
+  khoaIds: string[];
+  khoaTenList: string[];
+};
+
+export type BoGiaoTrinhChiTiet = BoGiaoTrinhData & {
+  bai: BoGiaoTrinhBaiData[];
+};
 
 /** Cách hiển thị mục bài tập cho khách — `org_khoa_hoc.bai_tap_hien_thi`. */
 export type BaiTapSectionDisplayMode = "an" | "mot_phan" | "day_du";

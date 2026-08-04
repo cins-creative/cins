@@ -11,6 +11,7 @@ import {
   MapPin,
   Package,
   Route,
+  School,
   Sparkles,
   UserRoundPlus,
   Users,
@@ -43,6 +44,7 @@ const TITLE_ICON: Partial<Record<ModuleId, LucideIcon>> = {
   duong_toi_do: GraduationCap,
   kham_pha_linh_vuc: Compass,
   khoa_hoc_goi_y: GraduationCap,
+  lop_hoc_cua_ban: School,
   ho_so_cua_ban: Route,
   co_hoi: Briefcase,
   cho_ban_duyet: Sparkles,
@@ -384,13 +386,16 @@ export function HomeModuleLivePreview({
     case "loi_moi_ket_ban":
     case "se_tham_gia":
     case "da_luu":
+    case "lop_hoc_cua_ban":
       return (
         <PreviewShell
           id={payload.id}
           className={
             payload.id.startsWith("tin_nhan_")
               ? "ha-card--chat"
-              : undefined
+              : payload.id === "lop_hoc_cua_ban"
+                ? "ha-card--lop"
+                : undefined
           }
         >
           {payload.rows.map((row) => (

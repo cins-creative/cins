@@ -8,6 +8,11 @@ import {
   todayYmdVn,
 } from "@/lib/co-so/ky-hoc";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { getCoSoModuleQuyen } from "@/lib/to-chuc/co-so-quan-ly-access";
+import {
+  listingOrgStaffRoleLabel,
+  pickCoSoStaffVaiTro,
+} from "@/lib/to-chuc/co-so-vai-tro";
 
 export type LopRoomAccess = {
   isLopRoom: boolean;
@@ -15,6 +20,8 @@ export type LopRoomAccess = {
   orgId: string | null;
   orgSlug: string | null;
   orgTen: string | null;
+  khoaId: string | null;
+  dongBoTienDo: boolean;
   frozen: boolean;
   soNgayConLai: number;
   ngayCuoiKy: string | null;
@@ -22,6 +29,15 @@ export type LopRoomAccess = {
   isStaff: boolean;
   canSend: boolean;
   canReadGap: boolean;
+  /** Enrollment của viewer nếu là HV trong lớp. */
+  hocVienLopId: string | null;
+  /** Nhãn vai trò của viewer trong phòng lớp (VD: "Học viên", "Giáo viên phụ trách"). */
+  vaiTroLabel: string | null;
+  isGiaoVienPhuTrach: boolean;
+  /** Thấy panel Quản lý học viên (kể cả read-only TVV). */
+  canQuanLyHocVien: boolean;
+  /** Mở bài / duyệt / lưu bài. */
+  canGanTienDo: boolean;
 };
 
 const EMPTY: LopRoomAccess = {
@@ -30,13 +46,29 @@ const EMPTY: LopRoomAccess = {
   orgId: null,
   orgSlug: null,
   orgTen: null,
+  khoaId: null,
+  dongBoTienDo: false,
   frozen: false,
   soNgayConLai: 0,
   ngayCuoiKy: null,
   isStaff: false,
   canSend: true,
   canReadGap: true,
+  hocVienLopId: null,
+  vaiTroLabel: null,
+  isGiaoVienPhuTrach: false,
+  canQuanLyHocVien: false,
+  canGanTienDo: false,
 };
+
+const STAFF_ROLES = new Set([
+  "owner",
+  "admin",
+  "quan_ly_tuyen_sinh",
+  "quan_ly_noi_dung",
+  "giao_vien",
+  "nhan_vien",
+]);
 
 export async function getLopRoomAccess(
   roomId: string,
@@ -59,7 +91,7 @@ export async function getLopRoomAccess(
     return { ...EMPTY, isLopRoom: true, lopId, orgId };
   }
 
-  const [{ data: org }, { data: membership }, { data: chatMem }] =
+  const [{ data: org }, { data: membership }, { data: chatMem }, { data: lop }] =
     await Promise.all([
       admin
         .from("org_to_chuc")
@@ -79,35 +111,87 @@ export async function getLopRoomAccess(
         .eq("id_nguoi_dung", viewerId)
         .is("roi_luc", null)
         .maybeSingle(),
+      admin
+        .from("org_lop_hoc")
+        .select("id, id_khoa_hoc, giao_vien_phu_trach")
+        .eq("id", lopId)
+        .maybeSingle(),
     ]);
 
-  const staffRoles = new Set([
-    "owner",
-    "admin",
-    "quan_ly_tuyen_sinh",
-    "quan_ly_noi_dung",
-    "giao_vien",
-    "nhan_vien",
-  ]);
-  const orgStaff = (membership ?? []).some((m) =>
-    staffRoles.has(m.vai_tro as string),
-  );
-  const roomAdmin = chatMem?.vai_tro === "admin" || chatMem?.vai_tro === "owner";
+  const roles = (membership ?? []).map((m) => m.vai_tro as string);
+  const orgStaff = roles.some((r) => STAFF_ROLES.has(r));
+  const roomAdmin =
+    chatMem?.vai_tro === "admin" || chatMem?.vai_tro === "owner";
   const isStaff = orgStaff || roomAdmin;
+
+  const staffVaiTro = pickCoSoStaffVaiTro(roles);
+
+  const isGiaoVienPhuTrach =
+    Boolean(lop?.giao_vien_phu_trach) &&
+    lop?.giao_vien_phu_trach === viewerId;
+
+  let quyenHocVien: "an" | "xem" | "sua" = "an";
+  if (isStaff && staffVaiTro) {
+    quyenHocVien = await getCoSoModuleQuyen(
+      orgId,
+      viewerId,
+      staffVaiTro,
+      "hoc-vien",
+    );
+  }
+
+  const canQuanLyHocVien =
+    isGiaoVienPhuTrach || (isStaff && quyenHocVien !== "an");
+  // TVV luôn read-only dù module = sua (Q6)
+  const isTuVanVien = staffVaiTro === "quan_ly_tuyen_sinh";
+  const canGanTienDo =
+    isGiaoVienPhuTrach ||
+    (isStaff &&
+      !isTuVanVien &&
+      (staffVaiTro === "owner" ||
+        staffVaiTro === "admin" ||
+        quyenHocVien === "sua"));
+
+  let khoaId: string | null = (lop?.id_khoa_hoc as string | null) ?? null;
+  let dongBoTienDo = false;
+  if (khoaId) {
+    const { data: khoa } = await admin
+      .from("org_khoa_hoc")
+      .select("dong_bo_tien_do")
+      .eq("id", khoaId)
+      .maybeSingle();
+    dongBoTienDo = Boolean(khoa?.dong_bo_tien_do);
+  }
+
+  const staffVaiTroLabel = isGiaoVienPhuTrach
+    ? "Giáo viên phụ trách"
+    : (listingOrgStaffRoleLabel(staffVaiTro) ??
+      (roomAdmin ? "Quản trị phòng" : null));
+
+  const baseStaff = {
+    isLopRoom: true as const,
+    lopId,
+    orgId,
+    orgSlug: (org?.slug as string | null) ?? null,
+    orgTen: (org?.ten as string | null) ?? null,
+    khoaId,
+    dongBoTienDo,
+    isGiaoVienPhuTrach,
+    canQuanLyHocVien,
+    canGanTienDo,
+  };
 
   if (isStaff) {
     return {
-      isLopRoom: true,
-      lopId,
-      orgId,
-      orgSlug: (org?.slug as string | null) ?? null,
-      orgTen: (org?.ten as string | null) ?? null,
+      ...baseStaff,
       frozen: false,
       soNgayConLai: 0,
       ngayCuoiKy: null,
       isStaff: true,
       canSend: true,
       canReadGap: true,
+      hocVienLopId: null,
+      vaiTroLabel: staffVaiTroLabel,
     };
   }
 
@@ -120,17 +204,17 @@ export async function getLopRoomAccess(
 
   if (!hvl?.id) {
     return {
-      isLopRoom: true,
-      lopId,
-      orgId,
-      orgSlug: (org?.slug as string | null) ?? null,
-      orgTen: (org?.ten as string | null) ?? null,
+      ...baseStaff,
       frozen: true,
       soNgayConLai: 0,
       ngayCuoiKy: null,
       isStaff: false,
       canSend: false,
       canReadGap: false,
+      hocVienLopId: null,
+      vaiTroLabel: staffVaiTroLabel,
+      canQuanLyHocVien: false,
+      canGanTienDo: false,
     };
   }
 
@@ -153,17 +237,17 @@ export async function getLopRoomAccess(
   }
 
   return {
-    isLopRoom: true,
-    lopId,
-    orgId,
-    orgSlug: (org?.slug as string | null) ?? null,
-    orgTen: (org?.ten as string | null) ?? null,
+    ...baseStaff,
     frozen,
     soNgayConLai: daysRemaining(intervals, today),
     ngayCuoiKy,
     isStaff: false,
     canSend: !frozen,
     canReadGap: false,
+    hocVienLopId: hvl.id as string,
+    vaiTroLabel: "Học viên",
+    canQuanLyHocVien: false,
+    canGanTienDo: false,
   };
 }
 

@@ -25,8 +25,10 @@ import {
 } from "lucide-react";
 import {
   type ChangeEvent,
-  type MouseEvent as ReactMouseEvent,
+  type ReactElement,
+  createContext,
   useCallback,
+  useContext,
   useEffect,
   useMemo,
   useRef,
@@ -69,6 +71,7 @@ import { ChatKhachHangTagPopover } from "@/components/cins/ChatKhachHangTagPopov
 import { ChatRenameGroupModal } from "@/components/cins/ChatRenameGroupModal";
 import { ChatMessageThreadItems } from "@/components/cins/ChatMessageThreadItems";
 import { ChatRoomMocsPanel } from "@/components/cins/ChatRoomWorkspacePanels";
+import { ChatQuanLyHocVienPanel } from "@/components/cins/ChatQuanLyHocVienPanel";
 import { ChatStickerPicker } from "@/components/cins/ChatStickerPicker";
 import { MsIcon } from "@/components/cins/MsIcon";
 import { ChatReplyComposeBar } from "@/components/cins/ChatReplyComposeBar";
@@ -110,7 +113,6 @@ import { writeChatThreadsCache, writeRoomMessagesCache } from "@/lib/chat/chat-s
 import { formatUnreadTabCount } from "@/lib/chat/document-unread-badge";
 import {
   groupToChucThreads,
-  isManagedOrgThread,
   type ToChucOrgNode,
 } from "@/lib/chat/group-to-chuc-threads";
 import {
@@ -163,6 +165,7 @@ import {
   upsertChatReadCursor,
 } from "@/lib/chat/read-cursors-client";
 import { useChatReadCursorsRealtime } from "@/lib/chat/use-chat-read-cursors-realtime";
+import { useRoomPresence } from "@/lib/chat/use-room-presence";
 import {
   patchThreadMessages,
   updateMessageInList,
@@ -317,38 +320,11 @@ function mergeLaunchThread(
   return [merged, ...rest];
 }
 
-type ChatSidePanel = "pin" | "mocs" | "canvas";
+type ChatSidePanel = "pin" | "mocs" | "canvas" | "hoc_vien";
 
 type BanBeListFilter = "all" | "nhom";
-/** Launch compat — map sang expand/collapse org node, không còn sub-tab UI. */
+/** Launch compat — map sang expand/collapse hub org (project parent), không còn sub-tab UI. */
 type ToChucListFilter = "all" | "cua_toi" | "tham_gia";
-
-const TO_CHUC_EXPANDED_STORAGE_KEY = "cins-chat-tochuc-expanded-orgs";
-
-function readExpandedToChucOrgIds(): Record<string, boolean> {
-  if (typeof window === "undefined") return {};
-  try {
-    const raw = window.sessionStorage.getItem(TO_CHUC_EXPANDED_STORAGE_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw) as unknown;
-    if (!parsed || typeof parsed !== "object") return {};
-    return parsed as Record<string, boolean>;
-  } catch {
-    return {};
-  }
-}
-
-function writeExpandedToChucOrgIds(record: Record<string, boolean>) {
-  if (typeof window === "undefined") return;
-  try {
-    window.sessionStorage.setItem(
-      TO_CHUC_EXPANDED_STORAGE_KEY,
-      JSON.stringify(record),
-    );
-  } catch {
-    /* ignore quota */
-  }
-}
 
 /** Realtime org advisory: khách không được giữ identity staff. */
 function redactOrgAdvisoryRealtimeMessage(
@@ -372,17 +348,30 @@ function redactOrgAdvisoryRealtimeMessage(
   };
 }
 
+/**
+ * Trạng thái hộp thư staff theo tin cuối — khớp `listOrgStaffInboxThreadsForViewer`:
+ * chỉ «open» khi tin cuối do chính học viên/khách (peer) gửi.
+ */
+function nextOrgInboxStatus(
+  thread: ChatThread,
+  last: ChatMessage,
+): ChatThread["orgInboxStatus"] {
+  if (!thread.isOrgStaffInbox) return thread.orgInboxStatus;
+  if (last.from === "me") return "replied";
+  if (thread.peerUserId && last.senderUserId) {
+    return last.senderUserId === thread.peerUserId ? "open" : "replied";
+  }
+  return "open";
+}
+
 const SIDE_PANEL_LABEL: Record<ChatSidePanel, string> = {
   pin: "Tin đã ghim",
   mocs: "Mốc",
   canvas: "Canvas",
+  hoc_vien: "Quản lý học viên",
 };
 
-const SIDE_PANEL_ORDER: ChatSidePanel[] = [
-  "pin",
-  "mocs",
-  "canvas",
-];
+const SIDE_PANEL_BASE: ChatSidePanel[] = ["pin", "mocs", "canvas"];
 
 function sidePanelIcon(panel: ChatSidePanel) {
   switch (panel) {
@@ -392,6 +381,8 @@ function sidePanelIcon(panel: ChatSidePanel) {
       return CalendarDays;
     case "canvas":
       return Frame;
+    case "hoc_vien":
+      return Users;
   }
 }
 
@@ -457,12 +448,6 @@ function countActiveProjectsByParent(
   return map;
 }
 
-function formatLopKyDate(ymd: string): string {
-  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(ymd.trim());
-  if (!m) return ymd;
-  return `${m[3]}/${m[2]}/${m[1]}`;
-}
-
 function threadKindLabel(thread: ChatThread): string {
   if (thread.isOrgHub) return "Chat cơ sở";
   if (thread.lopHocId) return "Lớp";
@@ -503,6 +488,14 @@ function threadKindClass(thread: ChatThread): string {
   return thread.kind === "org" ? " is-org" : " is-user";
 }
 
+/** Presence toàn CINs — set các id_nguoi_dung đang online. */
+const ChatPresenceContext = createContext<Set<string>>(new Set());
+
+function useIsUserOnline(userId?: string | null): boolean {
+  const online = useContext(ChatPresenceContext);
+  return Boolean(userId && online.has(userId));
+}
+
 function ChatAvatar({
   initial,
   hue,
@@ -511,6 +504,7 @@ function ChatAvatar({
   verified = false,
   shop = false,
   avatarUrl = null,
+  userId = null,
 }: {
   initial: string;
   hue: number;
@@ -520,9 +514,12 @@ function ChatAvatar({
   /** Hội thoại shop (khách hàng / đã mua) — badge Store góc avatar. */
   shop?: boolean;
   avatarUrl?: string | null;
+  /** id_nguoi_dung — hiện chấm online toàn CINs nếu đang hoạt động. */
+  userId?: string | null;
 }) {
   const badgeSize = Math.max(14, Math.round(size * 0.34));
   const iconSize = Math.max(8, Math.round(badgeSize * 0.58));
+  const online = useIsUserOnline(userId);
 
   return (
     <span className={`cins-chat-avatar-wrap${shop ? " is-shop" : ""}`}>
@@ -543,6 +540,17 @@ function ChatAvatar({
           initial
         )}
       </span>
+      {online && !shop ? (
+        <span
+          className="cins-chat-avatar-online"
+          aria-label="Đang hoạt động"
+          title="Đang hoạt động"
+          style={{
+            width: Math.max(9, Math.round(size * 0.28)),
+            height: Math.max(9, Math.round(size * 0.28)),
+          }}
+        />
+      ) : null}
       {shop ? (
         <span
           className="cins-chat-avatar-shop"
@@ -597,7 +605,6 @@ function ChatThreadRow({
   khachHangListMode = false,
   muaHangListMode = false,
   khachHangTags = [],
-  nestedInOrg = false,
 }: {
   thread: ChatThread;
   isActive: boolean;
@@ -629,8 +636,6 @@ function ChatThreadRow({
   /** Tab Mua hàng — ẩn chữ «Đã mua» (đã ở đúng tab). */
   muaHangListMode?: boolean;
   khachHangTags?: ShopKhachHangTag[];
-  /** Con dưới org-node — avatar/row gọn hơn, lệch phải. */
-  nestedInOrg?: boolean;
 }) {
   const [isShareTarget, setIsShareTarget] = useState(false);
   const preview = thread.typing ? "… đang gõ" : thread.preview;
@@ -661,8 +666,8 @@ function ChatThreadRow({
     activeProjectCount > 0 &&
     (Boolean(thread.isGroup) || Boolean(thread.isOrgHub));
   const childUnitLabel = thread.isOrgHub ? "lớp" : "nhóm";
-  const groupAvatarSize = nestedInOrg ? 34 : 44;
-  const peerAvatarSize = nestedInOrg ? 32 : 40;
+  const groupAvatarSize = 44;
+  const peerAvatarSize = 40;
 
   const khachHangTagChip = (() => {
     if (!thread.isKhachHang || !khachHangListMode) return null;
@@ -739,7 +744,7 @@ function ChatThreadRow({
 
   return (
     <li
-      className={`cins-chat-thread-item${thread.isSelf ? " is-self-item" : ""}${isListPinned ? " is-list-pinned" : ""}${isMenuOpen ? " is-menu-open" : ""}${isMuted ? " is-muted" : ""}${isProjectChild ? " is-project-child" : ""}${isProjectParent ? " is-project-parent" : ""}${isProjectParent && projectsExpanded ? " is-projects-expanded" : ""}${isShareTarget ? " is-share-target" : ""}${nestedInOrg ? " is-org-nested" : ""}`}
+      className={`cins-chat-thread-item${thread.isSelf ? " is-self-item" : ""}${isListPinned ? " is-list-pinned" : ""}${isMenuOpen ? " is-menu-open" : ""}${isMuted ? " is-muted" : ""}${isProjectChild ? " is-project-child" : ""}${isProjectParent ? " is-project-parent" : ""}${isProjectParent && projectsExpanded ? " is-projects-expanded" : ""}${isShareTarget ? " is-share-target" : ""}`}
       onContextMenu={(event) => {
         if (canShowMenu) event.preventDefault();
       }}
@@ -893,6 +898,7 @@ function ChatThreadRow({
                   verified={thread.verified}
                   shop={Boolean(thread.isKhachHang || thread.isMuaHang)}
                   avatarUrl={thread.avatarUrl}
+                  userId={thread.kind === "user" ? thread.peerUserId : null}
                 />
               )}
               <span
@@ -1109,6 +1115,11 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     ngayCuoiKy: string | null;
     orgId: string | null;
     orgTen: string | null;
+    hocVienLopId: string | null;
+    vaiTroLabel: string | null;
+    canQuanLyHocVien: boolean;
+    canGanTienDo: boolean;
+    dongBoTienDo: boolean;
   } | null>(null);
   const [phongHoc, setPhongHoc] = useState<{
     token: string;
@@ -1128,10 +1139,10 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
   const [toChucFilter, setToChucFilter] = useState<ToChucListFilter>(
     () => launch?.toChucFilter ?? "all",
   );
-  const [expandedToChucOrgs, setExpandedToChucOrgs] = useState<
-    Record<string, boolean>
-  >({});
-  const skipPersistExpandedToChucRef = useRef(true);
+  /** Hộp thư người lạ — browse trong pane convo (không điều hướng quan-ly). */
+  const [browsingOrgInboxId, setBrowsingOrgInboxId] = useState<string | null>(
+    null,
+  );
   const [khachHangTagFilter, setKhachHangTagFilter] = useState<string[]>([]);
   const [khachHangTags, setKhachHangTags] = useState<ShopKhachHangTag[]>([]);
   const [khachHangTagsLoaded, setKhachHangTagsLoaded] = useState(false);
@@ -1207,6 +1218,8 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     Record<string, "idle" | "loading" | "ready" | "error">
   >({});
   const [loadError, setLoadError] = useState<string | null>(null);
+  /** Lỗi đính kèm/gửi media — hiện ngay trên khung soạn (loadError chỉ hiện khi list lỗi). */
+  const [composeError, setComposeError] = useState<string | null>(null);
   const [canvasNotice, setCanvasNotice] = useState<string | null>(null);
 
   useEffect(() => {
@@ -1378,6 +1391,16 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     active?.roomId,
     viewerProfileId,
     handleReadCursorRealtime,
+  );
+
+  const roomOnlineUserIds = useRoomPresence(
+    active?.roomId ?? null,
+    viewerProfileId,
+  );
+  // Presence toàn CINs — mọi user mở chat cùng track 1 topic global.
+  const globalOnlineUserIds = useRoomPresence(
+    viewerProfileId ? "__cins_global__" : null,
+    viewerProfileId,
   );
 
   const activeRoomStatus = active?.roomId ? roomStatus[active.roomId] : undefined;
@@ -1625,18 +1648,6 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     }
     return groupToChucThreads(filtered);
   }, [activeTab, filtered]);
-
-  const isToChucOrgExpanded = useCallback(
-    (orgId: string) => Boolean(expandedToChucOrgs[orgId]),
-    [expandedToChucOrgs],
-  );
-
-  const toggleToChucOrgExpanded = useCallback((orgId: string) => {
-    setExpandedToChucOrgs((prev) => ({
-      ...prev,
-      [orgId]: !prev[orgId],
-    }));
-  }, []);
 
   const handleOpenOrgQuanLy = useCallback(
     (
@@ -1938,53 +1949,27 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     );
   }, [viewerProfileId, expandedProjectParents]);
 
-  useEffect(() => {
-    skipPersistExpandedToChucRef.current = true;
-    setExpandedToChucOrgs(readExpandedToChucOrgIds());
-  }, []);
-
-  useEffect(() => {
-    if (skipPersistExpandedToChucRef.current) {
-      skipPersistExpandedToChucRef.current = false;
-      return;
-    }
-    writeExpandedToChucOrgIds(expandedToChucOrgs);
-  }, [expandedToChucOrgs]);
-
-  /* Launch toChucFilter → expand/collapse (tương thích call site openChat). */
+  /* Launch toChucFilter → expand/collapse hub (project parent), tương thích openChat. */
   useEffect(() => {
     if (toChucFilter === "all") return;
-    const nodes = toChucGrouped.cuaToi;
-    if (nodes.length === 0) return;
-    skipPersistExpandedToChucRef.current = true;
+    const hubs = toChucGrouped.cuaToi.flatMap((node) =>
+      node.rooms.filter((t) => t.isOrgHub).map((t) => t.roomId),
+    );
+    if (hubs.length === 0) return;
     if (toChucFilter === "cua_toi") {
-      const next: Record<string, boolean> = {};
-      for (const node of nodes) next[node.orgId] = true;
-      setExpandedToChucOrgs((prev) => ({ ...prev, ...next }));
-    } else if (toChucFilter === "tham_gia") {
-      setExpandedToChucOrgs((prev) => {
+      setExpandedProjectParents((prev) => {
         const next = { ...prev };
-        for (const node of nodes) next[node.orgId] = false;
+        for (const roomId of hubs) next[roomId] = true;
+        return next;
+      });
+    } else if (toChucFilter === "tham_gia") {
+      setExpandedProjectParents((prev) => {
+        const next = { ...prev };
+        for (const roomId of hubs) next[roomId] = false;
         return next;
       });
     }
   }, [toChucFilter, toChucGrouped.cuaToi]);
-
-  /* Tự mở org «Của tôi» chỉ khi đang chọn thread managed (hub/lớp/staff).
-     Không bung khi click tư vấn «Nhắn với» cùng orgId (vd. HV nhắn Sine Art
-     trong khi cũng là staff của Sine Art). */
-  useEffect(() => {
-    if (!active || activeTab !== "to_chuc") return;
-    if (!isManagedOrgThread(active)) return;
-    const orgId = active.orgId?.trim();
-    if (!orgId) return;
-    const inCuaToi = toChucGrouped.cuaToi.some((n) => n.orgId === orgId);
-    if (!inCuaToi) return;
-    setExpandedToChucOrgs((prev) => {
-      if (prev[orgId]) return prev;
-      return { ...prev, [orgId]: true };
-    });
-  }, [active, activeTab, toChucGrouped.cuaToi]);
 
   useEffect(() => {
     if (!viewerProfileId) return;
@@ -2142,6 +2127,20 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
         viewerProfileId,
       )[0]!;
 
+      // Q4: tin pedagogy cá nhân hóa — ẩn với HV khác (staff vẫn thấy)
+      if (message.lopBai && viewerProfileId) {
+        const forMe = message.lopBai.idNguoiDung === viewerProfileId;
+        // Không có isStaff trong closure realtime — suy từ canQuanLyHocVien /
+        // canGanTienDo trên phòng đang mở, hoặc tin không phải của phòng active.
+        const staffHere =
+          Boolean(lopRoomAccess?.canQuanLyHocVien) &&
+          activeRoomIdRef.current === event.roomId;
+        if (!forMe && !staffHere) {
+          // Vẫn cập nhật preview? Không — HV khác không biết tin này tồn tại.
+          return;
+        }
+      }
+
       let missingThread = false;
 
       setThreads((prev) => {
@@ -2176,6 +2175,10 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
             preview: event.preview,
             lastAt: event.lastAt,
             messages: nextMessages,
+            orgInboxStatus:
+              event.event === "insert"
+                ? nextOrgInboxStatus(t, enriched)
+                : t.orgInboxStatus,
             unread: isActive
               ? 0
               : (event.event === "insert" && enriched.from === "them") ||
@@ -2291,12 +2294,14 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     const incoming = launch.thread;
     if (incoming.roomId === "__open_list__") {
       setActiveId("");
+      setBrowsingOrgInboxId(null);
       setActiveTab(launch.tab ?? "ban_be");
       if (launch.toChucFilter) setToChucFilter(launch.toChucFilter);
       setMobileShowThread(false);
       return;
     }
 
+    setBrowsingOrgInboxId(null);
     setThreads((prev) => mergeLaunchThread(prev, incoming));
     setActiveId(incoming.id);
     setActiveTab(launch.tab ?? incoming.group);
@@ -2753,6 +2758,13 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
             typeof data.ngayCuoiKy === "string" ? data.ngayCuoiKy : null,
           orgId: typeof data.orgId === "string" ? data.orgId : null,
           orgTen: typeof data.orgTen === "string" ? data.orgTen : null,
+          hocVienLopId:
+            typeof data.hocVienLopId === "string" ? data.hocVienLopId : null,
+          vaiTroLabel:
+            typeof data.vaiTroLabel === "string" ? data.vaiTroLabel : null,
+          canQuanLyHocVien: Boolean(data.canQuanLyHocVien),
+          canGanTienDo: Boolean(data.canGanTienDo),
+          dongBoTienDo: Boolean(data.dongBoTienDo),
         });
       } catch {
         if (!cancelled) setLopRoomAccess(null);
@@ -2774,6 +2786,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
       }
 
       shouldScrollToBottomRef.current = true;
+      setBrowsingOrgInboxId(null);
       setActiveId(thread.id);
       setMobileShowThread(true);
       setActiveTab(thread.group);
@@ -3056,6 +3069,22 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
   const selectSidePanelTab = useCallback((panel: ChatSidePanel) => {
     setSidePanel(panel);
   }, []);
+
+  const availableSidePanels = useMemo((): ChatSidePanel[] => {
+    const base: ChatSidePanel[] = [...SIDE_PANEL_BASE];
+    if (!lopRoomAccess?.isLopRoom) return base;
+    if (lopRoomAccess.canQuanLyHocVien) {
+      return [...base, "hoc_vien"];
+    }
+    return base;
+  }, [lopRoomAccess]);
+
+  useEffect(() => {
+    if (!sidePanel) return;
+    if (!availableSidePanels.includes(sidePanel)) {
+      setSidePanel("pin");
+    }
+  }, [availableSidePanels, sidePanel]);
 
   useEffect(() => {
     canvasBridge.ingestCommentNotice = (message) => {
@@ -3437,8 +3466,57 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
       onForward: (msg) => {
         setForwardTarget(msg);
       },
+      onNopBai:
+        lopRoomAccess?.hocVienLopId && lopRoomAccess.canSend
+          ? (msg) => {
+              if (!active?.roomId) return;
+              const roomId = active.roomId;
+              void fetch(`/api/chat/rooms/${roomId}/nop-bai`, {
+                method: "POST",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ tinNhanId: msg.id }),
+              }).then(async (res) => {
+                const data = await res.json().catch(() => null);
+                if (!res.ok) {
+                  setLoadError(data?.error || "Không nộp được bài.");
+                  return;
+                }
+                setLoadError(null);
+                window.alert("Đã nộp bài — chờ giáo viên duyệt.");
+              });
+            }
+          : undefined,
+      onLuuBai: lopRoomAccess?.canGanTienDo
+        ? (msg) => {
+            if (!active?.roomId) return;
+            const roomId = active.roomId;
+            void fetch(`/api/chat/rooms/${roomId}/nop-bai`, {
+              method: "PATCH",
+              credentials: "include",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ action: "luu", tinNhanId: msg.id }),
+            }).then(async (res) => {
+              const data = await res.json().catch(() => null);
+              if (!res.ok) {
+                setLoadError(data?.error || "Không lưu được bài.");
+                return;
+              }
+              setLoadError(null);
+              window.alert("Đã lưu bài — học viên có thể Đăng Journey.");
+            });
+          }
+        : undefined,
     }),
-    [active, patchActiveThreadMessages, pinnedByRoom, refreshPinnedForRoom],
+    [
+      active,
+      patchActiveThreadMessages,
+      pinnedByRoom,
+      refreshPinnedForRoom,
+      lopRoomAccess?.hocVienLopId,
+      lopRoomAccess?.canSend,
+      lopRoomAccess?.canGanTienDo,
+    ],
   );
 
   const handleSaveEdit = useCallback(
@@ -3493,6 +3571,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                 messages: [...t.messages, ...optimistics],
                 preview: messagePreviewText(last),
                 lastAt: last.sentAt,
+                orgInboxStatus: nextOrgInboxStatus(t, last),
               }
             : t,
         ),
@@ -3542,10 +3621,11 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
               messages,
               preview: messagePreviewText(confirmed),
               lastAt: confirmed.sentAt,
+              orgInboxStatus: nextOrgInboxStatus(t, confirmed),
             };
           }),
         );
-        return true;
+        return confirmed;
       } catch (error) {
         setThreads((prev) =>
           prev.map((t) =>
@@ -3560,7 +3640,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
         setLoadError(
           error instanceof Error ? error.message : "Không gửi được tin nhắn.",
         );
-        return false;
+        return null;
       }
     },
     [viewerProfileId],
@@ -3785,10 +3865,21 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     async (file: File) => {
       const thread = active;
       /* Không dùng `canSend` (đòi có draft/ảnh) — video gửi độc lập như đính kèm ảnh. */
-      if (!thread || isPendingRoom || connecting || lopFrozen) return;
+      if (!thread || isPendingRoom || connecting || lopFrozen) {
+        setComposeError(
+          lopFrozen
+            ? "Phòng lớp đang freeze — không gửi video được."
+            : "Chưa sẵn sàng gửi video. Thử lại sau khi kết nối xong.",
+        );
+        return;
+      }
+
+      setComposeError(null);
 
       if (file.size > CHAT_VIDEO_MAX_UPLOAD_BYTES) {
-        setLoadError("Video quá nặng (tối đa 50MB) — hãy quay ngắn hoặc nén lại.");
+        setComposeError(
+          "Video quá nặng (tối đa 50MB) — hãy quay ngắn hoặc nén lại.",
+        );
         return;
       }
 
@@ -3816,10 +3907,10 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
       appendOptimisticMessages(thread, [optimistic]);
 
       const uploaded = await uploadChatVideo(file);
-      URL.revokeObjectURL(objectUrl);
-      if (poster) URL.revokeObjectURL(poster);
 
       if (!uploaded.ok) {
+        URL.revokeObjectURL(objectUrl);
+        if (poster) URL.revokeObjectURL(poster);
         setThreads((prev) =>
           prev.map((t) =>
             t.id === thread.id
@@ -3830,15 +3921,35 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
               : t,
           ),
         );
-        setLoadError(uploaded.error);
+        setComposeError(uploaded.error);
         return;
       }
 
+      /* Giữ blob đến khi tin thật thay optimistic — revoke sớm → khung trống. */
       void submitRoomMessage(
         thread,
         { video_media_id: uploaded.mediaId },
         optimistic.id,
-      );
+      )
+        .then((confirmed) => {
+          if (!confirmed || sidePanel !== "canvas") return;
+          void addChatMessageToCanvas(thread.roomId, confirmed.id).then((res) => {
+            if ("error" in res) return;
+            if (canvasBridge.ingestNode) {
+              canvasBridge.ingestNode(res.node);
+            } else {
+              canvasBridge.pendingIngestNode = res.node;
+            }
+            window.setTimeout(() => {
+              canvasBridge.ingestNode?.(res.node);
+              canvasBridge.highlightNodes?.([res.node.id]);
+            }, 120);
+          });
+        })
+        .finally(() => {
+          URL.revokeObjectURL(objectUrl);
+          if (poster) URL.revokeObjectURL(poster);
+        });
     },
     [
       active,
@@ -3846,6 +3957,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
       isPendingRoom,
       connecting,
       lopFrozen,
+      sidePanel,
       submitRoomMessage,
       viewerProfileId,
     ],
@@ -4121,11 +4233,13 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
         hasText: Boolean(text),
         replyToId: snapshotReply?.id ?? null,
         sendText: plan.text
-          ? () =>
-              submitRoomMessage(
-                thread,
-                plan.text!.payload,
-                plan.text!.optimistic.id,
+          ? async () =>
+              Boolean(
+                await submitRoomMessage(
+                  thread,
+                  plan.text!.payload,
+                  plan.text!.optimistic.id,
+                ),
               )
           : undefined,
         sendAlbum: plan.album
@@ -4231,12 +4345,42 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     [atMentionTrigger, draft],
   );
 
+  const openOrgInboxBrowse = useCallback((node: ToChucOrgNode) => {
+    setBrowsingOrgInboxId(node.orgId);
+    setActiveId("");
+    setMobileShowThread(true);
+    setActiveTab("to_chuc");
+  }, []);
+
+  const browsingOrgInboxNode = useMemo(() => {
+    if (!browsingOrgInboxId) return null;
+    return (
+      toChucGrouped.cuaToi.find((n) => n.orgId === browsingOrgInboxId) ?? null
+    );
+  }, [browsingOrgInboxId, toChucGrouped.cuaToi]);
+
+  const browsingOrgInboxThreads = useMemo(() => {
+    if (!browsingOrgInboxNode) return [] as ChatThread[];
+    return browsingOrgInboxNode.threads
+      .filter((t) => t.isOrgStaffInbox)
+      .slice()
+      .sort((a, b) => {
+        const openA = a.orgInboxStatus === "open" ? 0 : 1;
+        const openB = b.orgInboxStatus === "open" ? 0 : 1;
+        if (openA !== openB) return openA - openB;
+        return new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime();
+      });
+  }, [browsingOrgInboxNode]);
+
   if (!portalReady) return null;
 
-  const renderThreadRow = (
-    thread: ChatThread,
-    opts?: { nestedInOrg?: boolean },
-  ) => {
+  const toChucHasThreads =
+    toChucGrouped.nhanVoi.length > 0 || toChucGrouped.cuaToi.length > 0;
+  const toChucNestExpandedIds = query.trim()
+    ? undefined
+    : { expandedParentIds: expandedProjectParentIds };
+
+  const renderThreadRow = (thread: ChatThread) => {
     const projectCount = thread.parentRoomId
       ? 0
       : (projectCountByParent.get(thread.roomId) ?? 0);
@@ -4279,166 +4423,73 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
           activeTab === "mua_ban" && muaBanSub === "mua_hang"
         }
         khachHangTags={khachHangTags}
-        nestedInOrg={Boolean(opts?.nestedInOrg)}
       />
     );
   };
 
-  const renderToChucOrgNode = (node: ToChucOrgNode) => {
-    const hasRooms = node.rooms.length > 0;
-    const expanded = hasRooms && isToChucOrgExpanded(node.orgId);
+  /**
+   * «Tổ chức của tôi»: layer 1 = hub (ChatThreadRow project-parent) +
+   * item inbox «chưa trả lời» (admin); lớp học = is-project-child dưới hub.
+   * Click inbox → browse danh sách trong pane convo (không rời overlay).
+   */
+  const renderToChucOrgEntries = (node: ToChucOrgNode) => {
+    /* Quyền: staff inbox đã có trong threads; ẩn khi không còn chưa trả lời. */
+    const showInboxEntry = node.inbox.chuaTraLoi > 0;
     const chuaTraLoiLabel =
-      formatUnreadTabCount(node.inbox.chuaTraLoi) ?? String(node.inbox.chuaTraLoi);
-    const canOpen =
-      Boolean(node.quanLyKind) && Boolean(node.orgSlug?.trim());
-    const nestedChildren = nestGroupThreads(
-      node.rooms,
-      toChucNestExpandedIds,
-    );
-    const subParts: string[] = [];
-    if (node.inbox.unread > 0) {
-      const unreadLabel =
-        formatUnreadTabCount(node.inbox.unread) ?? String(node.inbox.unread);
-      subParts.push(`${unreadLabel} chưa đọc`);
-    }
-    if (node.inbox.chuaTraLoi > 0) {
-      subParts.push(`${chuaTraLoiLabel} chưa trả lời`);
-    }
-    if (hasRooms) {
-      subParts.push(`${node.rooms.length} phòng`);
-    }
-    if (subParts.length === 0) {
-      subParts.push("Không có tin chờ");
-    }
+      formatUnreadTabCount(node.inbox.chuaTraLoi) ??
+      String(node.inbox.chuaTraLoi);
+    const nestedRooms = nestGroupThreads(node.rooms, toChucNestExpandedIds);
+    const inboxActive =
+      browsingOrgInboxId === node.orgId ||
+      Boolean(active?.isOrgStaffInbox && active.orgId === node.orgId);
 
-    const trail = (
-      <span className="cins-chat-org-node-trail">
-        {node.inbox.chuaTraLoi > 0 ? (
-          <span
-            className="cins-chat-org-node-badge"
-            title={`${chuaTraLoiLabel} chưa trả lời`}
-            aria-label={`${chuaTraLoiLabel} chưa trả lời`}
+    const entries: ReactElement[] = [];
+
+    if (showInboxEntry) {
+      entries.push(
+        <li
+          key={`${node.orgId}-inbox`}
+          className="cins-chat-thread-item is-org-inbox-entry"
+        >
+          <button
+            type="button"
+            className={`cins-chat-thread is-org-inbox-thread${inboxActive ? " is-active" : ""}`}
+            onClick={() => openOrgInboxBrowse(node)}
+            aria-label={`${node.orgTen}: ${chuaTraLoiLabel} chưa trả lời — mở hộp thư người lạ`}
+            aria-pressed={inboxActive}
           >
-            {chuaTraLoiLabel}
-          </span>
-        ) : null}
-        {canOpen ? (
-          <span
-            className="cins-chat-org-open-icon"
-            data-org-open=""
-            title="Mở trang quản lý tin nhắn"
-            aria-hidden
-          >
-            <Maximize2 size={16} strokeWidth={1.8} />
-          </span>
-        ) : null}
-      </span>
-    );
-
-    const onToggleClick = (e: ReactMouseEvent<HTMLElement>) => {
-      const target = e.target;
-      if (
-        canOpen &&
-        target instanceof Element &&
-        target.closest("[data-org-open]")
-      ) {
-        e.preventDefault();
-        handleOpenOrgQuanLy(node.quanLyKind!, node.orgSlug!);
-        return;
-      }
-      if (hasRooms) {
-        toggleToChucOrgExpanded(node.orgId);
-        return;
-      }
-      if (canOpen) {
-        handleOpenOrgQuanLy(node.quanLyKind!, node.orgSlug!);
-      }
-    };
-
-    return (
-      <li key={node.orgId} className="cins-chat-org-node">
-        <div className="cins-chat-org-node-row">
-          {hasRooms ? (
-            <button
-              type="button"
-              className={`cins-chat-org-node-toggle${expanded ? " is-expanded" : ""}`}
-              aria-expanded={expanded}
-              aria-controls={`cins-chat-org-children-${node.orgId}`}
-              onClick={onToggleClick}
-            >
-              <ChevronDown
-                size={16}
-                strokeWidth={2.2}
-                className="cins-chat-org-node-chevron"
-                aria-hidden
-              />
-              <ChatAvatar
-                initial={node.avatarInitial}
-                hue={node.avatarHue}
-                size={36}
-                kind="org"
-                verified
-                avatarUrl={node.avatarUrl}
-              />
-              <span className="cins-chat-org-node-meta">
-                <span className="cins-chat-org-node-name">{node.orgTen}</span>
-                <span className="cins-chat-org-node-sub">
-                  {subParts.join(" · ")}
+            <span className="cins-chat-self-avatar" aria-hidden>
+              <MessageSquareQuote size={20} strokeWidth={2.2} />
+            </span>
+            <span className="cins-chat-thread-main">
+              <span className="cins-chat-thread-top">
+                <span className="cins-chat-thread-name">
+                  <strong title={node.orgTen}>{node.orgTen}</strong>
                 </span>
               </span>
-              {trail}
-            </button>
-          ) : (
-            <button
-              type="button"
-              className="cins-chat-org-node-toggle is-static"
-              onClick={onToggleClick}
-              aria-label={
-                canOpen
-                  ? `Mở quản lý tin nhắn ${node.orgTen}`
-                  : node.orgTen
-              }
-            >
-              <span className="cins-chat-org-node-chevron-spacer" aria-hidden />
-              <ChatAvatar
-                initial={node.avatarInitial}
-                hue={node.avatarHue}
-                size={36}
-                kind="org"
-                verified
-                avatarUrl={node.avatarUrl}
-              />
-              <span className="cins-chat-org-node-meta">
-                <span className="cins-chat-org-node-name">{node.orgTen}</span>
-                <span className="cins-chat-org-node-sub">
-                  {subParts.join(" · ")}
+              <span className="cins-chat-thread-bottom">
+                <span className="cins-chat-thread-preview">
+                  {chuaTraLoiLabel} chưa trả lời · Hộp thư người lạ
+                </span>
+                <span
+                  className="cins-chat-unread"
+                  title={`${chuaTraLoiLabel} chưa trả lời`}
+                >
+                  {chuaTraLoiLabel}
                 </span>
               </span>
-              {trail}
-            </button>
-          )}
-        </div>
-        {expanded ? (
-          <ul
-            id={`cins-chat-org-children-${node.orgId}`}
-            className="cins-chat-org-children"
-            role="group"
-            aria-label={`Phòng của ${node.orgTen}`}
-          >
-            {nestedChildren.map((thread) =>
-              renderThreadRow(thread, { nestedInOrg: true }),
-            )}
-          </ul>
-        ) : null}
-      </li>
-    );
+            </span>
+          </button>
+        </li>,
+      );
+    }
+
+    for (const thread of nestedRooms) {
+      entries.push(renderThreadRow(thread));
+    }
+
+    return entries;
   };
-
-  const toChucHasThreads =
-    toChucGrouped.nhanVoi.length > 0 || toChucGrouped.cuaToi.length > 0;
-  const toChucNestExpandedIds = query.trim()
-    ? undefined
-    : { expandedParentIds: expandedProjectParentIds };
 
   const panel = (
     <div
@@ -4588,7 +4639,10 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                       : `${CHAT_THREAD_VIEW_LABEL[view]}, ${unreadLabel} tin chưa đọc`
                     : CHAT_THREAD_VIEW_LABEL[view]
                 }
-                onClick={() => setActiveTab(view)}
+                onClick={() => {
+                  setBrowsingOrgInboxId(null);
+                  setActiveTab(view);
+                }}
               >
                 <span className="cins-chat-thread-tab-label">
                   {CHAT_THREAD_VIEW_LABEL[view]}
@@ -4727,8 +4781,8 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                         />
                       </div>
                       <ul role="list">
-                        {toChucGrouped.cuaToi.map((node) =>
-                          renderToChucOrgNode(node),
+                        {toChucGrouped.cuaToi.flatMap((node) =>
+                          renderToChucOrgEntries(node),
                         )}
                       </ul>
                     </section>
@@ -4822,6 +4876,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                 verified={active.verified}
                 shop={Boolean(active.isKhachHang || active.isMuaHang)}
                 avatarUrl={active.avatarUrl}
+                userId={active.kind === "user" ? active.peerUserId : null}
               />
             )}
             <div className="cins-chat-convo-meta">
@@ -4975,19 +5030,27 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
             </div>
           ) : null}
 
-          {lopRoomAccess?.isLopRoom ? (
+          {lopRoomAccess?.isLopRoom &&
+          (lopRoomAccess.vaiTroLabel || lopRoomAccess.hocVienLopId) ? (
             <div
               className={`cins-chat-lop-freeze-banner${lopFrozen ? " is-frozen" : ""}`}
               role="status"
             >
               <span>
-                {lopFrozen
-                  ? `Kỳ học đã hết — còn ${lopRoomAccess.soNgayConLai} ngày học. Phòng lớp đang freeze; tin trong khoảng nghỉ sẽ không hiện lại sau khi gia hạn.`
-                  : `Còn ${lopRoomAccess.soNgayConLai} ngày học${
-                      lopRoomAccess.ngayCuoiKy
-                        ? ` · đến ${formatLopKyDate(lopRoomAccess.ngayCuoiKy)}`
-                        : ""
-                    }.`}
+                {lopRoomAccess.vaiTroLabel ? (
+                  <>
+                    Vai trò của bạn:{" "}
+                    <strong className="cins-chat-lop-role">
+                      {lopRoomAccess.vaiTroLabel}
+                    </strong>
+                    {lopRoomAccess.hocVienLopId && !lopFrozen
+                      ? `, bạn còn ${lopRoomAccess.soNgayConLai} ngày học`
+                      : null}
+                  </>
+                ) : null}
+                {lopRoomAccess.hocVienLopId && lopFrozen
+                  ? `${lopRoomAccess.vaiTroLabel ? ". " : ""}Kỳ học đã hết — còn ${lopRoomAccess.soNgayConLai} ngày học. Phòng lớp đang freeze; tin trong khoảng nghỉ sẽ không hiện lại sau khi gia hạn.`
+                  : null}
               </span>
               {lopFrozen && active.roomId ? (
                 <button
@@ -5143,6 +5206,13 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                     avatarUrl={
                       active.isGroup ? (msg.senderAvatarUrl ?? null) : active.avatarUrl
                     }
+                    userId={
+                      active.isGroup
+                        ? (msg.senderUserId ?? null)
+                        : active.kind === "user"
+                          ? active.peerUserId
+                          : null
+                    }
                   />
                 )}
               />
@@ -5151,6 +5221,19 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
           </div>
 
           <footer className={`cins-chat-compose${lopFrozen ? " is-lop-frozen" : ""}`}>
+            {composeError ? (
+              <p className="cins-chat-compose-error" role="alert">
+                <span>{composeError}</span>
+                <button
+                  type="button"
+                  className="cins-chat-compose-error-dismiss"
+                  aria-label="Đóng"
+                  onClick={() => setComposeError(null)}
+                >
+                  <X size={14} strokeWidth={2.2} aria-hidden />
+                </button>
+              </p>
+            ) : null}
             {lopFrozen ? (
               <div className="cins-chat-lop-freeze-compose" role="status">
                 <span>
@@ -5431,6 +5514,112 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
             </div>
           </footer>
           </div>
+          ) : browsingOrgInboxNode ? (
+            <div
+              className="cins-chat-convo cins-chat-org-inbox-browse"
+              role="region"
+              aria-label={`Hộp thư người lạ — ${browsingOrgInboxNode.orgTen}`}
+            >
+              <header className="cins-chat-convo-head cins-chat-org-inbox-browse-head">
+                <button
+                  type="button"
+                  className="cins-chat-back-mobile"
+                  aria-label="Quay lại danh sách"
+                  onClick={() => {
+                    setBrowsingOrgInboxId(null);
+                    setMobileShowThread(false);
+                  }}
+                >
+                  <ChevronLeft size={24} strokeWidth={2.25} aria-hidden />
+                </button>
+                <span className="cins-chat-self-avatar" aria-hidden>
+                  <MessageSquareQuote size={20} strokeWidth={2.2} />
+                </span>
+                <div className="cins-chat-convo-meta">
+                  <span className="cins-chat-convo-title">
+                    <strong>Hộp thư người lạ</strong>
+                  </span>
+                  <span className="cins-chat-org-inbox-browse-sub">
+                    {browsingOrgInboxNode.orgTen}
+                    {browsingOrgInboxNode.inbox.chuaTraLoi > 0
+                      ? ` · ${browsingOrgInboxNode.inbox.chuaTraLoi} chưa trả lời`
+                      : ""}
+                  </span>
+                </div>
+                <div className="cins-chat-convo-actions">
+                  {browsingOrgInboxNode.quanLyKind &&
+                  browsingOrgInboxNode.orgSlug?.trim() ? (
+                    <button
+                      type="button"
+                      className="cins-chat-icon-btn is-plain"
+                      aria-label="Mở trang quản lý tin nhắn"
+                      title="Mở trang quản lý"
+                      onClick={() =>
+                        handleOpenOrgQuanLy(
+                          browsingOrgInboxNode.quanLyKind!,
+                          browsingOrgInboxNode.orgSlug!,
+                          { filter: "open" },
+                        )
+                      }
+                    >
+                      <Maximize2 size={18} strokeWidth={2} aria-hidden />
+                    </button>
+                  ) : null}
+                </div>
+              </header>
+              {browsingOrgInboxThreads.length === 0 ? (
+                <p className="cins-chat-org-inbox-browse-empty">
+                  Không có hội thoại trong hộp thư.
+                </p>
+              ) : (
+                <ul className="cins-chat-org-inbox-browse-list" role="list">
+                  {browsingOrgInboxThreads.map((thread) => {
+                    const isOpen = thread.orgInboxStatus === "open";
+                    return (
+                      <li key={thread.id}>
+                        <button
+                          type="button"
+                          className="cins-chat-org-inbox-browse-item"
+                          onClick={() => selectThread(thread)}
+                        >
+                          <ChatAvatar
+                            initial={thread.avatarInitial}
+                            hue={thread.avatarHue}
+                            size={40}
+                            kind={thread.kind}
+                            verified={thread.verified}
+                            avatarUrl={thread.avatarUrl}
+                          />
+                          <span className="cins-chat-org-inbox-browse-item-main">
+                            <span className="cins-chat-org-inbox-browse-item-top">
+                              <strong title={thread.name}>{thread.name}</strong>
+                              <time dateTime={thread.lastAt}>
+                                {formatChatTime(thread.lastAt)}
+                              </time>
+                            </span>
+                            <span className="cins-chat-org-inbox-browse-item-bottom">
+                              <span className="cins-chat-org-inbox-browse-preview">
+                                {thread.preview || "Chưa có tin nhắn"}
+                              </span>
+                              {isOpen ? (
+                                <span className="cins-chat-org-inbox-status is-open">
+                                  Chưa trả lời
+                                </span>
+                              ) : null}
+                              {thread.unread > 0 ? (
+                                <span className="cins-chat-unread">
+                                  {thread.unread}
+                                </span>
+                              ) : null}
+                            </span>
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
           ) : (
             <div className="cins-chat-convo cins-chat-convo-empty">
               <p>Chọn hội thoại để bắt đầu nhắn tin.</p>
@@ -5448,7 +5637,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                   role="tablist"
                   aria-label="Panel mở rộng"
                 >
-                  {SIDE_PANEL_ORDER.map((panel) => {
+                  {availableSidePanels.map((panel) => {
                     const TabIcon = sidePanelIcon(panel);
                     return (
                       <button
@@ -5528,9 +5717,12 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                 {sidePanel === "mocs" && active.roomId ? (
                   <ChatRoomMocsPanel
                     roomId={active.roomId}
+                    isLopHocRoom={Boolean(active.lopHocId)}
                     canManage={Boolean(
                       active.roomId &&
-                        (!active.isGroup || active.isGroupAdmin),
+                        (active.lopHocId
+                          ? active.isGroupAdmin
+                          : !active.isGroup || active.isGroupAdmin),
                     )}
                     openFormKey={mocFormOpenKey}
                     onNotice={(message) => {
@@ -5586,6 +5778,14 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                     key={active.roomId}
                     roomId={active.roomId}
                     onJumpToMessage={(id) => void scrollToMessage(id)}
+                  />
+                ) : null}
+
+                {sidePanel === "hoc_vien" && active.roomId ? (
+                  <ChatQuanLyHocVienPanel
+                    roomId={active.roomId}
+                    canGanTienDo={Boolean(lopRoomAccess?.canGanTienDo)}
+                    onlineUserIds={roomOnlineUserIds}
                   />
                 ) : null}
               </div>
@@ -5692,7 +5892,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
   );
 
   return (
-    <>
+    <ChatPresenceContext.Provider value={globalOnlineUserIds}>
       {createPortal(panel, document.body)}
       {phongHoc
         ? createPortal(
@@ -5718,6 +5918,6 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
             document.body,
           )
         : null}
-    </>
+    </ChatPresenceContext.Provider>
   );
 }

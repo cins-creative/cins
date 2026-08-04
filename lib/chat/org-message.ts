@@ -1036,6 +1036,7 @@ function buildLopThread(
   unread: number,
   parentRoomId?: string | null,
   roomAvatarId?: string | null,
+  isGroupAdmin = false,
 ): ChatThread {
   const orgKind = mapOrgLoai(org.loai_to_chuc);
   const name = tenPhong.trim() || org.ten?.trim() || "Lớp học";
@@ -1061,6 +1062,7 @@ function buildLopThread(
     lastAt,
     unread,
     messages: [],
+    isGroupAdmin,
   };
 }
 
@@ -1384,6 +1386,11 @@ export async function listOrgThreadsForUser(viewerId: string): Promise<ChatThrea
     const parentRoomId =
       room?.id_phong_cha?.trim() || hubIdByOrg.get(orgId) || null;
 
+    const vaiTro = String(
+      (row as { vai_tro?: string }).vai_tro ?? "thanh_vien",
+    );
+    const isRoomAdmin = vaiTro === "owner" || vaiTro === "admin";
+
     lopThreads.push(
       buildLopThread(
         roomId,
@@ -1395,6 +1402,7 @@ export async function listOrgThreadsForUser(viewerId: string): Promise<ChatThrea
         unread,
         parentRoomId,
         room?.avatar_id,
+        isRoomAdmin,
       ),
     );
   }

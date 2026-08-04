@@ -74,6 +74,9 @@ export type CanvasNodeLayout = {
    * Sau khi true — không auto-resize lại khi load (giữ resize tay của user).
    */
   imageFitted?: boolean | null;
+  /** Kích thước gốc media (video/ảnh) đã dùng để fit — tránh fit lại sai. */
+  mediaW?: number | null;
+  mediaH?: number | null;
 };
 
 /** Một board của phòng. */

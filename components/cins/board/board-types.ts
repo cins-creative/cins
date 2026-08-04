@@ -16,6 +16,10 @@ import type {
   CanvasNodeLoai,
   ChatCanvasNode,
 } from "@/lib/chat/canvas/types";
+import {
+  CANVAS_LINK_INFO_H,
+  fitCanvasVideoLinkSize,
+} from "@/lib/chat/canvas/video-layout";
 
 /** Node trên board — alias theo node canvas hiện có. */
 export type BoardNode = ChatCanvasNode;
@@ -42,6 +46,9 @@ export const BOARD_COMMENT_MIN_H = 52;
 export const BOARD_IMAGE_MAX_W = 360;
 export const BOARD_IMAGE_MAX_H = 360;
 
+/** Chiều cao footer title card link (padding + 1 dòng "Video"). */
+export const BOARD_LINK_INFO_H = CANVAS_LINK_INFO_H;
+
 /** Fit ảnh vào khung tối đa, giữ tỉ lệ — không crop. */
 export function fitBoardImageSize(
   naturalW: number,
@@ -56,6 +63,14 @@ export function fitBoardImageSize(
     w: Math.max(BOARD_MIN_NODE_SIZE, Math.round(nw * scale)),
     h: Math.max(BOARD_MIN_NODE_SIZE, Math.round(nh * scale)),
   };
+}
+
+/** Fit video file card: khung media theo tỉ lệ + footer info. */
+export function fitBoardLinkVideoSize(
+  naturalW: number,
+  naturalH: number,
+): { w: number; h: number } {
+  return fitCanvasVideoLinkSize(naturalW, naturalH);
 }
 
 /** Patch gửi về server cho một node. */

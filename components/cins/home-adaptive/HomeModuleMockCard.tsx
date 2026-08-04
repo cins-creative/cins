@@ -15,6 +15,7 @@ import {
   MessageCircle,
   Package,
   Route,
+  School,
   ShoppingBag,
   Sparkles,
   Store,
@@ -37,6 +38,7 @@ const TITLE_ICON: Partial<Record<ModuleId, LucideIcon>> = {
   duong_toi_do: GraduationCap,
   kham_pha_linh_vuc: Compass,
   khoa_hoc_goi_y: GraduationCap,
+  lop_hoc_cua_ban: School,
   ho_so_cua_ban: Route,
   co_hoi: Briefcase,
   cho_ban_duyet: Sparkles,
@@ -70,6 +72,7 @@ const CARD_CLASS: Partial<Record<ModuleId, string>> = {
   tin_nhan_ban_be: "ha-card--chat",
   tin_nhan_to_chuc: "ha-card--chat",
   tin_nhan_mua_ban: "ha-card--chat",
+  lop_hoc_cua_ban: "ha-card--lop",
   hang_feature: "ha-card--hang",
 };
 
@@ -109,6 +112,20 @@ const MOCK_ROWS: Partial<Record<ModuleId, MockRow[]>> = {
   khoa_hoc_goi_y: [
     { av: "UI", title: "UI/UX Intensive", sub: "CINs · Cohort" },
     { av: "MO", title: "Motion cơ bản", sub: "Đang mở tuyển" },
+  ],
+  lop_hoc_cua_ban: [
+    {
+      av: "A1",
+      title: "Lớp A1",
+      sub: "Motion cơ bản · CINs",
+      extra: "Còn 25 phút",
+    },
+    {
+      av: "B2",
+      title: "Lớp B2",
+      sub: "UI Intensive · CINs",
+      extra: "T5 · 19:00",
+    },
   ],
   co_hoi: [
     {

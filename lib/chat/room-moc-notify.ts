@@ -1,6 +1,12 @@
 import "server-only";
 
 import { mapMessageFromRow } from "@/lib/chat/direct-message";
+import { advanceLichLopMocAfterDue } from "@/lib/chat/room-moc-lop-lich";
+import { normalizeMocNguon } from "@/lib/chat/room-moc-nguon";
+import {
+  advanceMocThoiDiemPast,
+  normalizeMocLoaiLap,
+} from "@/lib/chat/room-moc-schedule";
 import type { ChatMessage, ChatMocNoticeSuKien } from "@/lib/chat/types";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
@@ -12,6 +18,8 @@ type MocNotifyRow = {
   thoi_diem: string;
   url: string | null;
   nhac_truoc_phut: number;
+  loai_lap: string | null;
+  nguon: string | null;
   id_nguoi_tao: string;
   id_tin_tao: string | null;
   id_tin_nhac_truoc: string | null;
@@ -19,7 +27,7 @@ type MocNotifyRow = {
 };
 
 const MOC_NOTIFY_SELECT =
-  "id, id_phong, ten, mo_ta, thoi_diem, url, nhac_truoc_phut, id_nguoi_tao, id_tin_tao, id_tin_nhac_truoc, id_tin_den_han";
+  "id, id_phong, ten, mo_ta, thoi_diem, url, nhac_truoc_phut, loai_lap, nguon, id_nguoi_tao, id_tin_tao, id_tin_nhac_truoc, id_tin_den_han";
 
 function columnForSuKien(
   suKien: ChatMocNoticeSuKien,
@@ -233,6 +241,39 @@ export async function tickDueMocNotices(input?: {
         moc.id_tin_den_han = result.message.id;
         if (result.removedMessageId) {
           removedMessageIds.push(result.removedMessageId);
+        }
+
+        const nguon = normalizeMocNguon(moc.nguon);
+        if (nguon === "lich_lop") {
+          const nextIso = await advanceLichLopMocAfterDue(
+            moc.id,
+            moc.id_phong,
+            now,
+          );
+          if (nextIso) {
+            moc.thoi_diem = nextIso;
+            moc.id_tin_nhac_truoc = null;
+            moc.id_tin_den_han = null;
+          }
+        } else {
+          const loaiLap = normalizeMocLoaiLap(moc.loai_lap);
+          if (loaiLap !== "mot_lan") {
+            const nextIso = advanceMocThoiDiemPast(moc.thoi_diem, loaiLap, now);
+            if (nextIso) {
+              await admin
+                .from("chat_moc")
+                .update({
+                  thoi_diem: nextIso,
+                  id_tin_nhac_truoc: null,
+                  id_tin_den_han: null,
+                  cap_nhat_luc: new Date().toISOString(),
+                })
+                .eq("id", moc.id);
+              moc.thoi_diem = nextIso;
+              moc.id_tin_nhac_truoc = null;
+              moc.id_tin_den_han = null;
+            }
+          }
         }
       }
     }

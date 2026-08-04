@@ -1,12 +1,17 @@
-/** Panel mở rộng hội thoại (pin / mocs / canvas) — client-side, theo viewer. */
+/** Panel mở rộng hội thoại — client-side, theo viewer. */
 
-export type StoredChatSidePanel = "pin" | "mocs" | "canvas";
+export type StoredChatSidePanel =
+  | "pin"
+  | "mocs"
+  | "canvas"
+  | "hoc_vien";
 
 const PREFIX = "cins-chat-side-panel:v1:";
 const VALID = new Set<StoredChatSidePanel>([
   "pin",
   "mocs",
   "canvas",
+  "hoc_vien",
 ]);
 
 function storageKey(viewerProfileId: string): string {

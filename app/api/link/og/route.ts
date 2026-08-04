@@ -19,7 +19,7 @@ const memoryCache = new Map<
 const CACHE_TTL_MS = 30 * 60 * 1000;
 const CACHE_MAX = 200;
 /** Bump khi đổi shape preview (vd. kind / avatar bài viết) để bỏ cache cũ. */
-const CACHE_VER = "v7";
+const CACHE_VER = "v8";
 
 /** Preview bài thiếu ảnh hoặc còn URL CF flexible crop — không giữ cache. */
 function isStalePostPreview(preview: LinkOgPreview | null): boolean {

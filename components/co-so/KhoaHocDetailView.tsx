@@ -55,6 +55,8 @@ import type {
 import {
   BAI_TAP_PARTIAL_VISIBLE_COUNT,
   BAI_TAP_SECTION_DISPLAY_DEFAULT,
+  LOAI_BAI_GIAO_TRINH_LABEL,
+  LOAI_BAI_GIAO_TRINH_ORDER,
 } from "@/lib/to-chuc/khoa-hoc-types";
 import { splitLichCaHocDisplay } from "@/lib/to-chuc/lich-ca-hoc-form";
 import {
@@ -118,9 +120,31 @@ function BaiTapVisitorSection({
   baiTapList: BaiTapKhoaData[];
   displayMode: BaiTapSectionDisplayMode;
 }) {
-  /** Khách chỉ thấy bài `visible` — đồng bộ soft-delete từ tab Giáo trình. */
-  const list = baiTapList.filter((bt) => bt.visible);
-  const total = list.length;
+  /** Khách thấy mọi bài trong bộ (không còn toggle ẩn từng bài). */
+  const list = baiTapList.filter((bt) => bt.visible !== false);
+
+  const grouped = (() => {
+    const buckets = new Map<string, BaiTapKhoaData[]>();
+    for (const bt of list) {
+      const key = bt.thuocTinh ?? "bai_tap";
+      const arr = buckets.get(key) ?? [];
+      arr.push(bt);
+      buckets.set(key, arr);
+    }
+    const ordered: { key: string; items: BaiTapKhoaData[] }[] = [];
+    for (const key of LOAI_BAI_GIAO_TRINH_ORDER) {
+      const items = buckets.get(key);
+      if (items?.length) ordered.push({ key, items });
+      buckets.delete(key);
+    }
+    for (const [key, items] of buckets) {
+      if (items.length) ordered.push({ key, items });
+    }
+    return ordered;
+  })();
+
+  const flat = grouped.flatMap((g) => g.items);
+  const total = flat.length;
 
   if (displayMode === "an") {
     return (
@@ -138,30 +162,47 @@ function BaiTapVisitorSection({
     );
   }
 
+  function renderGrouped(items: BaiTapKhoaData[], startIndex = 0) {
+    let offset = startIndex;
+    return (
+      <div className="cso-khd-bt-grouped">
+        {grouped.map((g) => {
+          const slice = items.filter((bt) =>
+            g.items.some((x) => x.id === bt.id),
+          );
+          if (slice.length === 0) return null;
+          const base = offset;
+          offset += slice.length;
+          return (
+            <div key={g.key} className="cso-khd-bt-group">
+              <h4 className="cso-khd-bt-group-title">
+                {LOAI_BAI_GIAO_TRINH_LABEL[g.key as keyof typeof LOAI_BAI_GIAO_TRINH_LABEL] ??
+                  g.key}
+              </h4>
+              <div className="cso-khd-bt-list">
+                {slice.map((bt, i) => (
+                  <BaiTapKhoaCard key={bt.id} item={bt} index={base + i} />
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
   if (displayMode === "mot_phan" && total > BAI_TAP_PARTIAL_VISIBLE_COUNT) {
-    const previewItems = list.slice(0, BAI_TAP_PARTIAL_VISIBLE_COUNT);
-    const restItems = list.slice(BAI_TAP_PARTIAL_VISIBLE_COUNT);
+    const previewItems = flat.slice(0, BAI_TAP_PARTIAL_VISIBLE_COUNT);
+    const restItems = flat.slice(BAI_TAP_PARTIAL_VISIBLE_COUNT);
 
     return (
       <div className="cso-khd-bt-partial">
         <div className="cso-khd-bt-partial-preview">
-          <div className="cso-khd-bt-list">
-            {previewItems.map((bt, i) => (
-              <BaiTapKhoaCard key={bt.id} item={bt} index={i} />
-            ))}
-          </div>
+          {renderGrouped(previewItems, 0)}
         </div>
         {restItems.length > 0 ? (
           <div className="cso-khd-bt-partial-rest">
-            <div className="cso-khd-bt-list">
-              {restItems.map((bt, i) => (
-                <BaiTapKhoaCard
-                  key={bt.id}
-                  item={bt}
-                  index={i + BAI_TAP_PARTIAL_VISIBLE_COUNT}
-                />
-              ))}
-            </div>
+            {renderGrouped(restItems, BAI_TAP_PARTIAL_VISIBLE_COUNT)}
             <div className="cso-khd-bt-partial-fade" aria-hidden />
           </div>
         ) : null}
@@ -173,13 +214,7 @@ function BaiTapVisitorSection({
     );
   }
 
-  return (
-    <div className="cso-khd-bt-list">
-      {list.map((bt, i) => (
-        <BaiTapKhoaCard key={bt.id} item={bt} index={i} />
-      ))}
-    </div>
-  );
+  return renderGrouped(flat, 0);
 }
 
 function GiaoTrinhBaiTapRow({

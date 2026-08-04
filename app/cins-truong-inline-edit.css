@@ -7096,6 +7096,14 @@ a.tdh-message-inbox-verify-name:hover {
   flex-shrink: 0;
 }
 
+.tdh-message-inbox-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
 .tdh-message-inbox-detail-title {
   margin: 0;
   font-size: 15px;

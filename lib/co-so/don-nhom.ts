@@ -12,6 +12,10 @@ import {
   donHocPhiToChatContext,
   getOrgThanhToanFromCauHinh,
 } from "@/lib/co-so/don-hoc-phi-chat";
+import {
+  buildHocPhiMaDon,
+  isHocPhiMaDonUniqueViolation,
+} from "@/lib/co-so/ma-don-hoc-phi";
 import { findOrCreateOrgStudentRoom } from "@/lib/chat/org-message";
 import { sendRoomMessage } from "@/lib/chat/direct-message";
 import { getAvatarUrl } from "@/lib/journey/profile";
@@ -28,6 +32,7 @@ type ResolvedLine = {
   userId: string;
   khoaId: string;
   tenKhoa: string;
+  maKhoaHoc: string | null;
   maLop: string | null;
   goiId: string;
   tenGoi: string;
@@ -61,7 +66,7 @@ async function resolveLines(
   ];
   const { data: khoaRows } = await admin
     .from("org_khoa_hoc")
-    .select("id, ten_khoa_hoc, id_to_chuc")
+    .select("id, ten_khoa_hoc, id_to_chuc, ma_khoa_hoc")
     .in("id", khoaIds);
   const khoaMap = new Map(
     (khoaRows ?? []).map((k) => [
@@ -69,6 +74,7 @@ async function resolveLines(
       {
         ten: (k.ten_khoa_hoc as string) ?? "Khóa",
         orgId: k.id_to_chuc as string,
+        maKhoaHoc: (k.ma_khoa_hoc as string | null) ?? null,
       },
     ]),
   );
@@ -137,6 +143,7 @@ async function resolveLines(
       userId: uid,
       khoaId: hvl.id_khoa_hoc as string,
       tenKhoa: khoa.ten,
+      maKhoaHoc: khoa.maKhoaHoc,
       maLop: hvl.id_lop_hoc
         ? (maLopMap.get(hvl.id_lop_hoc as string) ?? null)
         : null,
@@ -301,40 +308,49 @@ export async function createDonTuGoi(input: {
   const kenh = input.mode === "tien_mat" ? "tien_mat" : kenhChat;
 
   const donIds: string[] = [];
-  const now = Date.now();
+  const lineMaDons: string[] = [];
 
   for (let i = 0; i < priced.lines.length; i++) {
     const line = priced.lines[i]!;
-    const maDon =
-      nhomId && maNhom
-        ? `${maNhom}-${i + 1}`
-        : `HP${(now + i).toString(36).toUpperCase()}`;
+    let maDon = buildHocPhiMaDon(line.maKhoaHoc, line.maLop);
 
-    const { data: don, error } = await admin
-      .from("org_don_hoc_phi")
-      .insert({
-        id_to_chuc: input.orgId,
-        id_hoc_vien_lop: line.hocVienLopId,
-        id_goi: line.goiId,
-        id_nhom: nhomId,
-        id_chi_nhanh: input.chiNhanhId ?? null,
-        id_nguoi_thu: input.selfServe ? null : input.staffUserId,
-        ma_don: maDon,
-        kenh,
-        trang_thai: "cho_thanh_toan",
-        so_tien_vnd: line.soTienVnd,
-        gia_goc_vnd: line.giaGocVnd,
-        giam_vnd: line.giamVnd,
-        so_ngay_cong: line.soNgayCong,
-        ghi_chu: input.ghiChu ?? null,
-      })
-      .select("id")
-      .single<{ id: string }>();
+    let don: { id: string } | null = null;
+    let lastError: { message?: string } | null = null;
+    for (let attempt = 0; attempt < 6; attempt++) {
+      const { data, error } = await admin
+        .from("org_don_hoc_phi")
+        .insert({
+          id_to_chuc: input.orgId,
+          id_hoc_vien_lop: line.hocVienLopId,
+          id_goi: line.goiId,
+          id_nhom: nhomId,
+          id_chi_nhanh: input.chiNhanhId ?? null,
+          id_nguoi_thu: input.selfServe ? null : input.staffUserId,
+          ma_don: maDon,
+          kenh,
+          trang_thai: "cho_thanh_toan",
+          so_tien_vnd: line.soTienVnd,
+          gia_goc_vnd: line.giaGocVnd,
+          giam_vnd: line.giamVnd,
+          so_ngay_cong: line.soNgayCong,
+          ghi_chu: input.ghiChu ?? null,
+        })
+        .select("id")
+        .single<{ id: string }>();
+      if (!error && data) {
+        don = data;
+        break;
+      }
+      lastError = error;
+      if (!isHocPhiMaDonUniqueViolation(error)) break;
+      maDon = buildHocPhiMaDon(line.maKhoaHoc, line.maLop);
+    }
 
-    if (error || !don) {
-      return { ok: false, error: error?.message ?? "Không tạo được đơn." };
+    if (!don) {
+      return { ok: false, error: lastError?.message ?? "Không tạo được đơn." };
     }
     donIds.push(don.id);
+    lineMaDons.push(maDon);
   }
 
   let roomId: string | null = null;
@@ -379,7 +395,8 @@ export async function createDonTuGoi(input: {
       );
     }
 
-    const ckMa = maNhom ?? `HP${now.toString(36).toUpperCase()}`;
+    /* Nhóm: CK / QR dùng ma_nhom. Đơn lẻ: mã dòng = BCMONL248291. */
+    const ckMa = maNhom ?? lineMaDons[0]!;
     const ctx = donHocPhiToChatContext({
       id: primaryDonId,
       maDon: ckMa,

@@ -3337,7 +3337,7 @@
   padding: 14px 20px calc(16px + env(safe-area-inset-bottom, 0px));
   border-top: 1px solid var(--border, #e4e6eb);
   background: var(--bg-surface, #fff);
-  box-shadow: 0 -14px 36px rgba(15, 23, 42, 0.07);
+  box-shadow: none;
 }
 
 .cso-kh-foot-btn {
@@ -3461,6 +3461,36 @@
 
 .cso-kh-label-row .cso-kh-label {
   margin: 0;
+}
+
+.cso-kh-gt-manage-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: auto;
+  height: auto;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.45));
+  line-height: 0;
+  text-decoration: none;
+}
+
+.cso-kh-gt-manage-icon:hover {
+  color: var(--cins-blue, #1f74c9);
+  background: transparent;
+}
+
+:root[data-theme="dark"] .cso-kh-gt-manage-icon {
+  color: var(--ink-muted, rgba(255, 255, 255, 0.5));
+}
+
+:root[data-theme="dark"] .cso-kh-gt-manage-icon:hover {
+  color: var(--cins-blue, #7db8f2);
+  background: transparent;
 }
 
 .cso-khd-bt-vis-toggle {
@@ -4755,6 +4785,13 @@
   font-size: 12px;
   font-weight: 550;
   color: var(--ink-muted, rgba(0, 0, 0, 0.5));
+}
+
+.cso-kh-goi-phi-selected-price {
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--cins-blue, #1f74c9);
+  letter-spacing: -0.01em;
 }
 
 .cso-kh-goi-phi-selected-remove {
@@ -6586,6 +6623,10 @@
 
 .cso-khd-bt-panel .cso-khd-bt-thumb-status.is-ok {
   color: #157347;
+}
+
+.cso-khd-bt-panel .cso-khd-bt-thumb-status.is-hint {
+  color: var(--cins-blue, #1f74c9);
 }
 
 .cso-khd-bt-panel .cso-khd-bt-thumb-status.is-err {
@@ -9192,7 +9233,7 @@ a.cso-sk-manage-person-name:hover {
 :root[data-theme="dark"] .cso-kh-create-modal .cso-kh-create-actions {
   border-top-color: var(--border, #2a3040);
   background: var(--bg-surface, #171b24);
-  box-shadow: 0 -14px 36px rgba(0, 0, 0, 0.35);
+  box-shadow: none;
 }
 
 :root[data-theme="dark"] .cso-kh-create-modal .cso-kh-foot-btn--ghost {
@@ -9398,6 +9439,10 @@ a.cso-sk-manage-person-name:hover {
 
 :root[data-theme="dark"] .cso-kh-create-modal .cso-kh-goi-phi-selected-meta {
   color: var(--ink-muted, rgba(255, 255, 255, 0.5));
+}
+
+:root[data-theme="dark"] .cso-kh-create-modal .cso-kh-goi-phi-selected-price {
+  color: color-mix(in srgb, var(--cins-blue, #7db8f2) 92%, #fff);
 }
 
 :root[data-theme="dark"] .cso-kh-create-modal .cso-kh-goi-phi-selected-remove {

@@ -19,7 +19,7 @@
 | O8 | Bản đồ nghề cộng đồng — có cần thêm cấp bậc/chức danh (Junior/Senior/Lead) ngoài `giai_doan`? | ❌ Không — chỉ dùng `giai_doan` | Chức danh thay đổi liên tục + khó verify + mau cũ → bản đồ sẽ luôn sai. Chỉ làm khi có hệ chức danh chuẩn hoá gắn vào milestone công việc *đã verify*. Hiện không cần. |
 | O9 | Reviews / đánh giá khóa học | **Defer** | Khi nhu cầu social proof vượt "tác phẩm verified + số học viên hoàn thành". Cân nhắc *pull external* (Google reviews) thay vì tự xây hệ sao. Phản vanity → thận trọng. |
 | O10 | Gom nhiều khóa → "Chương trình học" (lộ trình 6–12 tháng, kiểu Keyframe CTH) | **Defer cứng** | Khi có org thật cần track dài hạn nhiều khóa nối tiếp. Sine Art không cần (dạy theo môn rời). |
-| O11 | `org_giao_trinh.loai` (phân loại bài: bắt buộc / tùy chọn / project) | **Defer** | Khi org thật yêu cầu phân loại bài trong lộ trình; hiện `mo_ta_chi_tiet` + `thu_tu` + `so_buoi` đủ. |
+| O11 | `org_giao_trinh.loai` (phân loại bài: bắt buộc / tùy chọn / project) | ✅ **Đóng** — thay bằng `org_giao_trinh_bai.thuoc_tinh` (enum 8 value, theo cặp bộ×bài). Xem LOG 2026-08-04 Bộ giáo trình MM. | — |
 | O12 | Học phí theo gói tháng (1/2/3/6) cho mô hình liên tục | **Mở lại — thiết kế** (L34): catalog `org_goi_hoc_phi` (tháng/khóa); **bỏ gói theo buổi** phase này; entitlement = **ngày lịch** | Chốt cột bảng mới + ALTER (nếu có) trước migration; đóng khi seed gói Sine Art chạy được. |
 | O15 | Tỉ lệ chèn bài org chưa-follow vào feed giữa + có nên chèn không? | **Tạm 1 org / 10 người, tối đa 1 bài/org, gắn nhãn "Gợi ý", không engagement-sort** (L21 #3) | Khi đo được feed thật: org-post có bị bỏ qua / báo phiền không. Có thể hạ về 0 (chỉ giữ kênh gợi ý + attribution) nếu chèn feed gây loãng. Chốt trước khi scale ngoài cohort đầu. |
 | O16 | Dedupe phòng nhóm trùng tập thành viên | **Defer** — quản lý nhóm cơ bản + project workspace đã có (L25/L28) | Khi có báo cáo spam hoặc nhiều phòng trùng thành viên từ cohort thật. |
@@ -40,6 +40,37 @@
 ---
 
 ## LOG — quyết định đã chốt
+
+### CSĐT — Giáo trình trong chat lớp + đồng bộ tiến độ (2026-08-04)
+
+- **Plan:** `docs/PLAN_giao_trinh_modules.md` §11 (Phase 6). Migration: `npm run migrate:tien-do-giao-trinh-chat`.
+- **Schema:**
+  - `CREATE TABLE org_tien_do_bai_mo` (lịch sử mở bài / HV; unique `(id_hoc_vien_lop, id_bai_tap)`).
+  - `ALTER org_nop_bai`: `+ luu_luc`, `+ id_nguoi_luu`, `+ id_cot_moc`, `+ dang_journey_luc`.
+  - `ALTER org_khoa_hoc`: `+ dong_bo_tien_do boolean NOT NULL DEFAULT false`.
+- **Đồng bộ:** khóa `dong_bo_tien_do=true` → mở bài fan-out cả lớp; HV mới join **copy** bài đã mở (Q5). `false` → từng HV.
+- **Tin «Chúc mừng» (Q4):** tin `system` `ngu_canh.loai=mo_bai` (+ nop/luu/journey) — chỉ HV đích + staff thấy; HV khác không thấy.
+- **Thuộc tính:** mọi loại bài đều khóa tới khi GV mở; nộp chỉ `bai_tap`/`kiem_tra`/`du_an`/`on_tap`.
+- **TVV (`quan_ly_tuyen_sinh`):** panel Quản lý HV read-only.
+- **Lưu bài → Journey:** GV Lưu = duyệt; HV Đăng Journey → `verify_yeu_cau`/`verify_xac_nhan` auto `da_duyet`/`da_xac_nhan` (không duyệt tay lần 2). Phase 6 chỉ ảnh.
+- **Bugfix kèm:** `ganTienDoBai` validate theo bộ giáo trình (không còn `id_khoa_hoc`); bỏ spam `org_bai_dang`.
+
+### CSĐT — Bộ giáo trình MM + module bài tập (2026-08-04)
+
+- **Plan:** `docs/PLAN_giao_trinh_modules.md`.
+- **Mô hình:** thư viện module (`org_bai_tap` cấp org) + bộ (`org_bo_giao_trinh`) + junction MM `org_giao_trinh_bai` mang `thuoc_tinh` theo cặp. 1 khóa ↔ 1 bộ (`org_khoa_hoc.id_bo_giao_trinh`). Mỗi CSĐT tự tạo — không chia sẻ bộ giữa org.
+- **Enum cố định `loai_bai_giao_trinh_enum`:** `bai_tap` · `ly_thuyet` · `tham_khao` · `demo` · `bai_mau` · `kiem_tra` · `du_an` · `on_tap`.
+- **Không** ẩn/hiện từng bài/bộ (không `visible` trên junction/bộ). Giữ `bai_tap_hien_thi` trên khóa.
+- **ALTER (đã duyệt):** `org_bai_tap` +`id_to_chuc` +`yeu_cau`, `id_khoa_hoc` DROP NOT NULL; `org_khoa_hoc` +`id_bo_giao_trinh`.
+- **Migration:** `npm run migrate:bo-giao-trinh` (`supabase/sql/migration_org_bo_giao_trinh.sql`).
+- **O11** (`org_giao_trinh.loai`) — thay bằng thuộc tính trên junction; legacy `org_giao_trinh` vẫn chưa xóa.
+
+### CSĐT — Mã đơn học phí = mã khóa + mã lớp + 5 số (2026-08-04)
+
+- **Chốt (variant A):** `{MÃKHÓA}{MÃLỚP}{5 số}` — uppercase, bỏ khoảng/ký tự lạ. Ví dụ `BCM` + `Onl 2` → `BCMONL248291`.
+- **Fallback:** thiếu mã khóa → `KHOA`; thiếu mã lớp → `LOP`.
+- **Phạm vi:** đơn mới (`createAndSendDonHocPhiChat`, `createDonTuGoi`). Đơn cũ `HP…` giữ nguyên. Nhóm combo: `ma_nhom` vẫn `HPN…` cho QR/CK; từng dòng đơn dùng mã A.
+- **Lib:** `lib/co-so/ma-don-hoc-phi.ts` · retry 23505 trên `uq_org_don_hoc_phi_ma_don`.
 
 ### CSĐT — Hard delete khóa/lớp có guard (2026-08-04)
 
@@ -461,7 +492,7 @@
   • **Phòng project con:** `chat_phong.id_phong_cha` → nhóm gốc (`loai_phong='nhom'`). Chỉ **1 cấp** (trigger chặn lồng sâu). Owner/admin nhóm cha tạo; thành viên = subset ⊆ cha do admin **thêm tay** (mặc định chỉ creator — chưa thêm thì không thấy phòng). Cap: `MAX_PROJECT_ROOMS_PER_PARENT` (20).
   • **Ẩn / lịch sử:** `chat_phong.trang_thai` = `active` | `an`. `an` = ẩn khỏi list/FAB, còn trong lịch sử nhóm cha để khôi phục. Gợi ý UI khi im ≥ `PROJECT_IDLE_DAYS_HINT` (45 ngày) — chưa auto-notify.
   • **Thẻ tài nguyên:** `chat_the_tai_nguyen` + `chat_the_gan` — nhãn **cục bộ theo phòng**, member tự tạo; gắn lên tin có ảnh/URL. **Không** reuse `filter_nhan` / Journey (quy tắc 29 vẫn đúng cho Journey; chat dùng primitive riêng cùng mental model).
-  • **Mốc phòng:** `chat_moc` — timeline + tin nhắc trong phòng (tạo / nhắc trước / đến hạn qua `loai_tin=system`); DM 1-1 mọi thành viên CRUD; nhóm owner/admin CRUD. Push/email ngoài app → **O17** còn mở.
+  • **Mốc phòng:** `chat_moc` — timeline + tin nhắc trong phòng (tạo / nhắc trước / đến hạn qua `loai_tin=system`); `loai_lap` một lần hoặc lặp ngày/tuần/tháng/năm (sau đến hạn nhảy kỳ kế); phòng lớp: mốc `nguon=lich_lop` nhắc 15' trước buổi từ `lich_hoc` (admin phòng bật/tắt); DM 1-1 mọi thành viên CRUD; nhóm/lớp owner/admin CRUD. Push/email ngoài app → **O17** còn mở.
   • **UI:** tab Project trong `ChatGroupManageModal`; list indent + pill `Project`; side panel thêm **Tài nguyên** / **Mốc**.
   • Migration: `migration_chat_project_workspace.sql`. Chi tiết → **FOUNDATIONS §C**, API → **IMPLEMENTATION**.
   • *Vì sao không `loai_phong='du_an'` ngay:* project vẫn scoped bạn bè trong nhóm cha; entity `du_an` để khi có object dự án trên CINs.

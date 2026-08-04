@@ -38,6 +38,10 @@ export type ChatMessageActionHandlers = {
   onReaction: (msg: ChatMessage, emoji: string, active: boolean) => void;
   onAddToCanvas?: (msg: ChatMessage) => void;
   onForward?: (msg: ChatMessage) => void;
+  /** HV nộp bài từ tin media của chính mình. */
+  onNopBai?: (msg: ChatMessage) => void;
+  /** GV lưu bài từ tin đã nộp. */
+  onLuuBai?: (msg: ChatMessage) => void;
 };
 
 export { canEditMessage, canRecallMessage };
@@ -268,6 +272,42 @@ export function ChatMessageActions({ msg, handlers }: Props) {
               >
                 <Frame size={14} aria-hidden />
                 Thêm vào canvas
+              </button>
+            ) : null}
+            {handlers.onNopBai &&
+            msg.from === "me" &&
+            (msg.kind === "media" || msg.imageUrl) &&
+            !msg.deleted ? (
+              <button
+                type="button"
+                role="menuitem"
+                onPointerDown={(e) => {
+                  if (e.button !== 0) return;
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handlers.onNopBai?.(msg);
+                  setOpen(false);
+                }}
+              >
+                Nộp bài này
+              </button>
+            ) : null}
+            {handlers.onLuuBai &&
+            msg.from === "them" &&
+            (msg.kind === "media" || msg.imageUrl) &&
+            !msg.deleted ? (
+              <button
+                type="button"
+                role="menuitem"
+                onPointerDown={(e) => {
+                  if (e.button !== 0) return;
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handlers.onLuuBai?.(msg);
+                  setOpen(false);
+                }}
+              >
+                Lưu bài
               </button>
             ) : null}
             {recallable ? (

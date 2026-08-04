@@ -6,6 +6,7 @@ import {
   DuongToiDoModule,
   KhamPhaLinhVucModule,
   KhoaHocGoiYModule,
+  LopHocCuaBanModule,
 } from "@/components/cins/home-adaptive/modules/hoc";
 import {
   CoHoiModule,
@@ -57,6 +58,7 @@ export const MODULE_REGISTRY: Record<ModuleId, ModuleComponent> = {
   kham_pha_linh_vuc: KhamPhaLinhVucModule,
   duong_toi_do: DuongToiDoModule,
   khoa_hoc_goi_y: KhoaHocGoiYModule,
+  lop_hoc_cua_ban: LopHocCuaBanModule,
   ho_so_cua_ban: HoSoCuaBanModule,
   nguoi_cung_nganh: NguoiCungNganhModule,
   co_hoi: CoHoiModule,

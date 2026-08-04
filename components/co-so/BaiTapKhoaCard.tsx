@@ -6,6 +6,7 @@ import { useState, type KeyboardEvent } from "react";
 
 import { isInlineBaiTapThumbnail } from "@/lib/to-chuc/bai-tap-thumbnail";
 import type { BaiTapKhoaData } from "@/lib/to-chuc/khoa-hoc-types";
+import { LOAI_BAI_GIAO_TRINH_LABEL } from "@/lib/to-chuc/khoa-hoc-types";
 import { getYoutubeId } from "@/lib/youtube";
 
 function BaiTapYoutubeIcon() {
@@ -108,6 +109,11 @@ export function BaiTapKhoaCard({
           <div className="cso-khd-bt-card-title-row">
             <h3 className="cso-khd-bt-card-title">
               <span className="cso-khd-bt-card-order">Bài {index + 1}</span>
+              {item.thuocTinh ? (
+                <span className="cso-khd-bt-card-loai">
+                  {LOAI_BAI_GIAO_TRINH_LABEL[item.thuocTinh]}
+                </span>
+              ) : null}
               <span className="cso-khd-bt-card-title-text">{item.tenBaiTap}</span>
             </h3>
             {canManage || (hasVideo && item.visible) ? (
@@ -159,6 +165,11 @@ export function BaiTapKhoaCard({
           </div>
           {item.moTa ? (
             <p className="cso-khd-bt-card-desc">{item.moTa}</p>
+          ) : null}
+          {item.yeuCau ? (
+            <p className="cso-khd-bt-card-yeu-cau">
+              <strong>Yêu cầu:</strong> {item.yeuCau}
+            </p>
           ) : null}
         </div>
       </div>

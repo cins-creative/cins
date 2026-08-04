@@ -57,10 +57,12 @@ import {
   BOARD_DEFAULT_NODE_W,
   BOARD_COMMENT_MIN_H,
   BOARD_COMMENT_MIN_W,
+  BOARD_LINK_INFO_H,
   BOARD_MAX_ZOOM,
   BOARD_MIN_NODE_SIZE,
   BOARD_MIN_ZOOM,
   fitBoardImageSize,
+  fitBoardLinkVideoSize,
   nodeRect,
   type BoardCamera,
   type BoardHandle,
@@ -277,6 +279,9 @@ type Gesture =
       startPos: Map<string, { x: number; y: number }>;
       before: BoardLayoutSnapshot[];
       moved: boolean;
+      /** Offset page-space lần move gần nhất — commit khi thả. */
+      lastDx: number;
+      lastDy: number;
     }
   | {
       type: "resize";
@@ -583,6 +588,10 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
     const zCounterRef = useRef(1);
     /** Paste/upload bị user xóa giữa chừng — chặn create xong hiện lại. */
     const cancelledLocalIdsRef = useRef<Set<string>>(new Set());
+    /** DOM node để kéo mượt (không setState mỗi pointermove). */
+    const nodeElByIdRef = useRef(new Map<string, HTMLDivElement>());
+    const wireElByIdRef = useRef(new Map<string, SVGGElement>());
+    const movePreviewRafRef = useRef(0);
 
     const history = useBoardHistory();
 
@@ -626,6 +635,55 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
     const membersOfFrame = useCallback(
       (frameId: string) =>
         nodesRef.current.filter((n) => n.layout.groupId === frameId),
+      [],
+    );
+
+    /** Preview kéo: chỉ đụng DOM — React/layout commit khi thả. */
+    const applyMovePreview = useCallback(
+      (
+        nodeIds: string[],
+        startPos: Map<string, { x: number; y: number }>,
+        dx: number,
+        dy: number,
+      ) => {
+        const idSet = new Set(nodeIds);
+        for (const id of nodeIds) {
+          const start = startPos.get(id);
+          const el = nodeElByIdRef.current.get(id);
+          if (!start || !el) continue;
+          el.style.transform = `translate(${start.x + dx}px, ${start.y + dy}px)`;
+        }
+
+        const liveRect = (n: BoardNode) => {
+          const r = nodeRect(n);
+          if (!idSet.has(n.id)) return r;
+          const start = startPos.get(n.id);
+          if (!start) return r;
+          return { ...r, x: start.x + dx, y: start.y + dy };
+        };
+
+        for (const w of nodesRef.current) {
+          if (w.loai !== "connector") continue;
+          const fromId = w.layout.from;
+          const toId = w.layout.to;
+          if (!fromId || !toId) continue;
+          if (!idSet.has(fromId) && !idSet.has(toId)) continue;
+          const a = nodesRef.current.find((n) => n.id === fromId);
+          const b = nodesRef.current.find((n) => n.id === toId);
+          if (!a || !b) continue;
+          const path = wirePathBetween(
+            liveRect(a),
+            liveRect(b),
+            normalizeWireStyle(w.layout.wireStyle),
+            wireRouteOptsFromLayout(w.layout),
+          );
+          const gEl = wireElByIdRef.current.get(w.id);
+          if (!gEl) continue;
+          gEl.querySelectorAll("path.cins-board-wire-hit, path.cins-board-wire-line").forEach(
+            (p) => p.setAttribute("d", path.d),
+          );
+        }
+      },
       [],
     );
 
@@ -1488,18 +1546,55 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
       [byId, commitNodes, emitSelection, history, persistNodeLayout],
     );
 
-    /** Fit khung node ảnh theo tỉ lệ gốc (một lần, trừ khi đã imageFitted). */
+    /** Fit khung node ảnh / video file theo tỉ lệ gốc (một lần, trừ khi đã imageFitted). */
     const fittingImageIdsRef = useRef(new Set<string>());
     const commentPersistTimersRef = useRef(new Map<string, number>());
     const fitImageNode = useCallback(
       (nodeId: string, naturalW: number, naturalH: number) => {
         const node = byId(nodeId);
-        if (!node || node.loai !== "anh") return;
-        if (node.layout.imageFitted) return;
+        if (!node || (node.loai !== "anh" && node.loai !== "link")) return;
+        if (!(naturalW > 0 && naturalH > 0)) return;
+
+        // Đã fit đúng media gốc → giữ resize tay của user.
+        if (
+          node.layout.imageFitted &&
+          node.layout.mediaW === naturalW &&
+          node.layout.mediaH === naturalH
+        ) {
+          return;
+        }
+        // Legacy imageFitted không có mediaW — chỉ bỏ qua nếu tỉ lệ media đã khớp.
+        if (node.layout.imageFitted && !node.layout.mediaW) {
+          const cur = nodeRect(node);
+          const infoH = node.loai === "link" ? BOARD_LINK_INFO_H : 0;
+          const mediaH = Math.max(1, cur.h - infoH);
+          const aspectCur = cur.w / mediaH;
+          const aspectNat = naturalW / naturalH;
+          if (Math.abs(aspectCur - aspectNat) < 0.05) {
+            // Ghi nhận mediaW/H để lần sau không re-fit.
+            const marked = {
+              ...node,
+              layout: {
+                ...node.layout,
+                mediaW: naturalW,
+                mediaH: naturalH,
+              },
+            };
+            commitNodes(
+              nodesRef.current.map((n) => (n.id === nodeId ? marked : n)),
+            );
+            if (!lockedRef.current) persistNodeLayout(marked);
+            return;
+          }
+        }
+
         if (fittingImageIdsRef.current.has(nodeId)) return;
         fittingImageIdsRef.current.add(nodeId);
 
-        const size = fitBoardImageSize(naturalW, naturalH);
+        const size =
+          node.loai === "link"
+            ? fitBoardLinkVideoSize(naturalW, naturalH)
+            : fitBoardImageSize(naturalW, naturalH);
         const cur = nodeRect(node);
         const aspectCur = cur.w / Math.max(1, cur.h);
         const aspectNat = size.w / Math.max(1, size.h);
@@ -1507,10 +1602,16 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
         const sizeClose =
           Math.abs(cur.w - size.w) <= 2 && Math.abs(cur.h - size.h) <= 2;
 
+        const mediaLayout = {
+          mediaW: naturalW,
+          mediaH: naturalH,
+          imageFitted: true as const,
+        };
+
         if (aspectClose && sizeClose) {
           const marked = {
             ...node,
-            layout: { ...node.layout, imageFitted: true },
+            layout: { ...node.layout, ...mediaLayout },
           };
           commitNodes(
             nodesRef.current.map((n) => (n.id === nodeId ? marked : n)),
@@ -1529,7 +1630,7 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
             y: cy - size.h / 2,
             w: size.w,
             h: size.h,
-            imageFitted: true,
+            ...mediaLayout,
           },
         };
         commitNodes(
@@ -1944,7 +2045,12 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
           startPos,
           before,
           moved: false,
+          lastDx: 0,
+          lastDy: 0,
         };
+        for (const id of moveIds) {
+          nodeElByIdRef.current.get(id)?.classList.add("is-dragging");
+        }
         setInteracting(true);
         (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
       },
@@ -2054,20 +2160,16 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
             return;
           }
           g.moved = true;
-          const dx = (e.clientX - g.startClient.x) / cam.z;
-          const dy = (e.clientY - g.startClient.y) / cam.z;
-          const idSet = new Set(g.nodeIds);
-          commitNodes(
-            nodesRef.current.map((n) => {
-              if (!idSet.has(n.id)) return n;
-              const start = g.startPos.get(n.id);
-              if (!start) return n;
-              return {
-                ...n,
-                layout: { ...n.layout, x: start.x + dx, y: start.y + dy },
-              };
-            }),
-          );
+          g.lastDx = (e.clientX - g.startClient.x) / cam.z;
+          g.lastDy = (e.clientY - g.startClient.y) / cam.z;
+          // Coalesce về 1 frame — không setState (tránh re-render card/iframe).
+          if (movePreviewRafRef.current) return;
+          movePreviewRafRef.current = requestAnimationFrame(() => {
+            movePreviewRafRef.current = 0;
+            const cur = gestureRef.current;
+            if (!cur || cur.type !== "move" || !cur.moved) return;
+            applyMovePreview(cur.nodeIds, cur.startPos, cur.lastDx, cur.lastDy);
+          });
           return;
         }
 
@@ -2255,7 +2357,7 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
         }
         setSelection(ids);
       },
-      [byId, commitCamera, commitNodes, pageFromClient, setSelection],
+      [byId, commitCamera, commitNodes, pageFromClient, setSelection, applyMovePreview],
     );
 
     const finishGesture = useCallback(
@@ -2263,6 +2365,15 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
         const g = gestureRef.current;
         if (!g || g.pointerId !== e.pointerId) return;
         gestureRef.current = null;
+        if (movePreviewRafRef.current) {
+          cancelAnimationFrame(movePreviewRafRef.current);
+          movePreviewRafRef.current = 0;
+        }
+        if (g.type === "move") {
+          for (const id of g.nodeIds) {
+            nodeElByIdRef.current.get(id)?.classList.remove("is-dragging");
+          }
+        }
         setPanning(false);
         setInteracting(false);
         setMarqueeRect(null);
@@ -2356,15 +2467,33 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
         }
 
         if (g.type === "move" && g.moved) {
+          // Flush preview rồi commit tọa độ một lần khi thả.
+          applyMovePreview(g.nodeIds, g.startPos, g.lastDx, g.lastDy);
+          const idSet = new Set(g.nodeIds);
+          let next = nodesRef.current.map((n) => {
+            if (!idSet.has(n.id)) return n;
+            const start = g.startPos.get(n.id);
+            if (!start) return n;
+            return {
+              ...n,
+              layout: {
+                ...n.layout,
+                x: start.x + g.lastDx,
+                y: start.y + g.lastDy,
+              },
+            };
+          });
+          commitNodes(next);
+
           // Thả vào / ra frame: xét card không phải frame đang kéo.
-          const movingIds = new Set(g.nodeIds);
-          const frames = nodesRef.current.filter(
+          const movingIds = idSet;
+          const frames = next.filter(
             (n) => n.loai === "frame" && !movingIds.has(n.id),
           );
           const updates = new Map<string, string | null>();
 
           for (const id of g.nodeIds) {
-            const n = byId(id);
+            const n = next.find((x) => x.id === id);
             if (!n || n.loai === "frame") continue;
             const r = nodeRect(n);
             const cx = r.x + r.w / 2;
@@ -2384,7 +2513,6 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
             }
           }
 
-          let next = nodesRef.current;
           if (updates.size > 0) {
             next = next.map((n) =>
               updates.has(n.id)
@@ -2424,6 +2552,7 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
       },
       [
         addNodeInternal,
+        applyMovePreview,
         byId,
         commitNodes,
         createWire,
@@ -3231,6 +3360,10 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
               return (
                 <g
                   key={w.id}
+                  ref={(el) => {
+                    if (el) wireElByIdRef.current.set(w.id, el);
+                    else wireElByIdRef.current.delete(w.id);
+                  }}
                   className={
                     "cins-board-wire" + (selected ? " is-selected" : "")
                   }
@@ -3466,6 +3599,10 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
             return (
               <div
                 key={node.id}
+                ref={(el) => {
+                  if (el) nodeElByIdRef.current.set(node.id, el);
+                  else nodeElByIdRef.current.delete(node.id);
+                }}
                 className={
                   `cins-board-node cins-canvas-shape cins-canvas-shape--${node.loai}` +
                   (selected ? " is-selected" : "") +

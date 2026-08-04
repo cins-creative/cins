@@ -27,6 +27,7 @@ export type ModuleId =
   | "kham_pha_linh_vuc"
   | "duong_toi_do"
   | "khoa_hoc_goi_y"
+  | "lop_hoc_cua_ban"
   // cụm LÀM
   | "ho_so_cua_ban"
   | "nguoi_cung_nganh"
@@ -96,6 +97,7 @@ export const NOTIFY_MODULES: readonly ModuleId[] = [
   "tin_nhan_to_chuc",
   "tin_nhan_mua_ban",
   "loi_moi_ket_ban",
+  "lop_hoc_cua_ban",
 ];
 
 /**

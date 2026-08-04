@@ -151,6 +151,8 @@ type Props = {
   canConfirmHocPhi?: boolean;
   /** Brand CSĐT — fallback logo/tên trên card học phí cũ. */
   orgBrand?: { ten?: string | null; anh?: string | null } | null;
+  /** Toast trạng thái — hiện trong cột chat (dưới header). */
+  statusFlash?: string | null;
 };
 
 export function OrgInboxPanel({
@@ -167,6 +169,7 @@ export function OrgInboxPanel({
   className,
   canConfirmHocPhi = false,
   orgBrand = null,
+  statusFlash = null,
 }: Props) {
   const toast = useCallback(
     (message: string) => {
@@ -745,6 +748,7 @@ export function OrgInboxPanel({
             detailActions={renderDetailActions?.(selected)}
             canConfirmHocPhi={canConfirmHocPhi}
             orgBrand={orgBrand}
+            statusFlash={statusFlash}
             onToast={toast}
             onReplyChange={setReply}
             onSend={(text, images, filesByLocalId, inFlightUploads, replyTo) =>
@@ -832,6 +836,7 @@ function ThreadDetail({
   detailActions,
   canConfirmHocPhi = false,
   orgBrand = null,
+  statusFlash = null,
   onToast,
   onReplyChange,
   onSend,
@@ -848,6 +853,7 @@ function ThreadDetail({
   detailActions?: ReactNode;
   canConfirmHocPhi?: boolean;
   orgBrand?: { ten?: string | null; anh?: string | null } | null;
+  statusFlash?: string | null;
   onToast: (message: string) => void;
   onReplyChange: (v: string) => void;
   onSend: (
@@ -997,9 +1003,17 @@ function ThreadDetail({
           </p>
         </div>
         {detailActions ? (
-          <div className="tdh-message-inbox-detail-actions">{detailActions}</div>
+          <div className="tdh-message-inbox-detail-actions">
+            {detailActions}
+          </div>
         ) : null}
       </header>
+
+      {statusFlash ? (
+        <p className="cso-tin-nhan-flash cso-tin-nhan-flash--in-chat" role="status">
+          {statusFlash}
+        </p>
+      ) : null}
 
       {loading ? (
         <p className="tdh-message-inbox-pick">

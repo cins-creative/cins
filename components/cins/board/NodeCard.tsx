@@ -11,6 +11,7 @@ import {
   useCallback,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
   type ReactNode,
@@ -36,6 +37,10 @@ import {
   TABLE_MAX_DIM,
   type CanvasTableData,
 } from "@/components/cins/board/content-kinds";
+import { InlineExternalVideoEmbed } from "@/components/shared/InlineExternalVideoEmbed";
+import { ChatMessageVideo } from "@/components/cins/ChatMessageVideo";
+import { buildVideoIframeSrc } from "@/lib/journey/video-embed";
+import { isDirectVideoFileUrl } from "@/lib/chat/video-url";
 
 export const STICKY_PALETTE = ["#F7F383", "#6EFEC0", "#FFB85C", "#BB89F8"];
 
@@ -186,22 +191,48 @@ function isSameAsUrl(value: string, url: string): boolean {
   }
 }
 
-function OgLinkBody({ url, text }: { url: string; text: string }) {
+function OgLinkBody({
+  url,
+  text,
+  nodeId,
+  mediaW,
+  mediaH,
+  onImageNaturalSize,
+}: {
+  url: string;
+  text: string;
+  nodeId?: string;
+  mediaW?: number | null;
+  mediaH?: number | null;
+  onImageNaturalSize?: (
+    nodeId: string,
+    naturalW: number,
+    naturalH: number,
+  ) => void;
+}) {
   const [og, setOg] = useState<OgPreviewLite | null>(() =>
     ogCache.get(url) ?? null,
   );
-  const [loaded, setLoaded] = useState(() => ogCache.has(url));
+  const [loaded, setLoaded] = useState(() => Boolean(ogCache.get(url)));
+  const iframeSrc = useMemo(() => buildVideoIframeSrc(url), [url]);
+  const isFileVideo = useMemo(() => isDirectVideoFileUrl(url), [url]);
 
   // URL đổi trên cùng instance — reset state ngay trong render (không effect).
   const [prevUrl, setPrevUrl] = useState(url);
   if (prevUrl !== url) {
     setPrevUrl(url);
     setOg(ogCache.get(url) ?? null);
-    setLoaded(ogCache.has(url));
+    setLoaded(Boolean(ogCache.get(url)));
   }
 
   useEffect(() => {
-    if (ogCache.has(url)) return; // state đã seed từ initializer / reset render
+    if (isFileVideo) {
+      setLoaded(true);
+      return;
+    }
+    const cached = ogCache.get(url);
+    if (cached) return; // đã có preview hợp lệ
+    if (ogCache.has(url)) ogCache.delete(url); // bỏ cache miss cũ
     let alive = true;
     void fetch(`/api/link/og?url=${encodeURIComponent(url)}`)
       .then((res) => (res.ok ? res.json() : null))
@@ -219,7 +250,7 @@ function OgLinkBody({ url, text }: { url: string; text: string }) {
                 subtitle: (data.subtitle ?? null) as string | null,
               }
             : null;
-        ogCache.set(url, preview);
+        if (preview) ogCache.set(url, preview);
         setOg(preview);
         setLoaded(true);
       })
@@ -229,24 +260,67 @@ function OgLinkBody({ url, text }: { url: string; text: string }) {
     return () => {
       alive = false;
     };
-  }, [url]);
+  }, [url, isFileVideo]);
 
   const note = text.trim();
   const noteUsable = note && !isSameAsUrl(note, url) ? note : "";
-  const title =
-    og?.title?.trim() ||
-    noteUsable ||
-    (loaded ? "Liên kết" : "Đang tải…");
-  const excerpt =
-    og?.description?.trim() ||
-    og?.subtitle?.trim() ||
-    (noteUsable && noteUsable !== title ? noteUsable : "") ||
-    "";
+  const title = isFileVideo
+    ? noteUsable || "Video"
+    : og?.title?.trim() ||
+      noteUsable ||
+      (iframeSrc
+        ? loaded
+          ? "Video"
+          : "Đang tải…"
+        : loaded
+          ? "Liên kết"
+          : "Đang tải…");
+  const excerpt = isFileVideo
+    ? ""
+    : og?.description?.trim() ||
+      og?.subtitle?.trim() ||
+      (noteUsable && noteUsable !== title ? noteUsable : "") ||
+      "";
 
   return (
-    <div className="cins-canvas-card cins-canvas-card-link">
+    <div
+      className={`cins-canvas-card cins-canvas-card-link${iframeSrc || isFileVideo ? " is-video" : ""}${isFileVideo ? " is-file-video" : ""}`}
+    >
       <div className="cins-canvas-card-link-thumb">
-        {og?.image ? (
+        {isFileVideo ? (
+          <div
+            className="cins-canvas-card-link-video-wrap"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <ChatMessageVideo
+              src={url}
+              stacked
+              width={mediaW}
+              height={mediaH}
+              onNaturalSize={
+                nodeId && onImageNaturalSize
+                  ? (w, h) => onImageNaturalSize(nodeId, w, h)
+                  : undefined
+              }
+            />
+          </div>
+        ) : iframeSrc ? (
+          <div
+            className="cins-canvas-card-link-video-wrap"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <InlineExternalVideoEmbed
+              src={iframeSrc}
+              href={url}
+              openMode="embed"
+              gate={false}
+              title={title === "Đang tải…" ? "Video" : title}
+              className="cins-canvas-card-link-video"
+            />
+          </div>
+        ) : og?.image ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             className="cins-canvas-card-cover"
@@ -849,7 +923,16 @@ export function NodeCard({
       />
     );
   } else if (loai === "link") {
-    body = <OgLinkBody url={url ?? ""} text={text} />;
+    body = (
+      <OgLinkBody
+        url={url ?? ""}
+        text={text}
+        nodeId={node.id}
+        mediaW={node.layout.mediaW}
+        mediaH={node.layout.mediaH}
+        onImageNaturalSize={onImageNaturalSize}
+      />
+    );
   } else if (loai === "frame") {
     body = (
       <div

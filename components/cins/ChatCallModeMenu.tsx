@@ -5,7 +5,7 @@ import { useEffect, useId, useRef, useState } from "react";
 
 import { isCompactCallViewport } from "@/lib/media/call-constraints";
 import type { MediaCallMode } from "@/lib/media/call-mode";
-import { warmCallMedia } from "@/lib/media/media-warm";
+import { stopWarmCallMedia, warmCallMedia } from "@/lib/media/media-warm";
 
 type Props = {
   disabled?: boolean;
@@ -34,9 +34,12 @@ export function ChatCallModeMenu({ disabled = false, onSelect }: Props) {
       if (!(t instanceof Node)) return;
       if (rootRef.current?.contains(t)) return;
       setOpen(false);
+      stopWarmCallMedia();
     };
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key !== "Escape") return;
+      setOpen(false);
+      stopWarmCallMedia();
     };
     document.addEventListener("mousedown", onDoc);
     document.addEventListener("keydown", onKey);
@@ -49,6 +52,17 @@ export function ChatCallModeMenu({ disabled = false, onSelect }: Props) {
   const pick = (mode: MediaCallMode) => {
     setOpen(false);
     onSelect(mode);
+  };
+
+  const toggle = () => {
+    setOpen((v) => {
+      const next = !v;
+      /* Chỉ chiếm mic khi user chủ động mở menu; đóng menu thì nhả ngay
+         để tai nghe Bluetooth không kẹt ở profile HFP. */
+      if (next) void warmCallMedia({ video: false });
+      else stopWarmCallMedia();
+      return next;
+    });
   };
 
   return (
@@ -65,10 +79,7 @@ export function ChatCallModeMenu({ disabled = false, onSelect }: Props) {
         aria-expanded={open}
         aria-controls={open ? menuId : undefined}
         disabled={disabled}
-        onPointerEnter={() => {
-          void warmCallMedia({ video: false });
-        }}
-        onClick={() => setOpen((v) => !v)}
+        onClick={toggle}
       >
         <Phone size={18} strokeWidth={1.9} aria-hidden />
       </button>

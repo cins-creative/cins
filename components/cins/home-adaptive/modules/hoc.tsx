@@ -4,8 +4,14 @@ import Link from "next/link";
 import { ModuleCard } from "@/components/cins/home-adaptive/ModuleCard";
 import { HaOrgPopoverChip } from "@/components/cins/home-adaptive/HaOrgPopoverChip";
 import { HaOrgSuggestionRow } from "@/components/cins/home-adaptive/HaOrgSuggestionRow";
+import { LopHocCuaBanPanel } from "@/components/cins/home-adaptive/modules/LopHocCuaBanClient";
 import type { HomeModuleCtx } from "@/components/cins/home-adaptive/types";
-import { loadKhoaHocGoiY } from "@/lib/cins/home-adaptive/fetches";
+import { moduleItemLimit } from "@/components/cins/home-adaptive/types";
+import {
+  loadKhoaHocGoiY,
+  loadLopHocCuaBan,
+} from "@/lib/cins/home-adaptive/fetches";
+import { HOME_LAYOUT_ITEM_LIMIT_MAX } from "@/lib/cins/home-adaptive/layout-prefs";
 import {
   loadOrgFollowSuggestions,
   CO_SO_DAO_TAO_LOAI,
@@ -90,6 +96,16 @@ export async function DuongToiDoModule({ ctx }: { ctx: HomeModuleCtx }) {
       ))}
     </ModuleCard>
   );
+}
+
+/** HỌC · Lớp đã ghi danh — 1 click vào phòng chat khi gần giờ. */
+export async function LopHocCuaBanModule({ ctx }: { ctx: HomeModuleCtx }) {
+  const displayLimit = moduleItemLimit(ctx, "lop_hoc_cua_ban");
+  const items = await loadLopHocCuaBan(
+    ctx.viewerId,
+    HOME_LAYOUT_ITEM_LIMIT_MAX,
+  );
+  return <LopHocCuaBanPanel items={items} limit={displayLimit} />;
 }
 
 /** HỌC · Khóa học gợi ý — khóa đang mở từ cơ sở đào tạo. */

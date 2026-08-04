@@ -14,7 +14,55 @@ export type NopBaiRow = {
   mediaId: string | null;
   tenHienThi: string;
   taoLuc: string;
+  luuLuc: string | null;
+  cotMocId: string | null;
 };
+
+/** Bài thuộc bộ giáo trình của khóa (hoặc legacy id_khoa_hoc). */
+export async function assertBaiTapThuocKhoa(
+  khoaId: string,
+  baiTapId: string,
+  orgId: string,
+): Promise<{ ok: true; tenBaiTap: string } | { ok: false; error: string }> {
+  const admin = createServiceRoleClient();
+  const { data: khoa } = await admin
+    .from("org_khoa_hoc")
+    .select("id, id_to_chuc, id_bo_giao_trinh")
+    .eq("id", khoaId)
+    .maybeSingle();
+  if (!khoa || khoa.id_to_chuc !== orgId) {
+    return { ok: false, error: "Khóa không thuộc cơ sở." };
+  }
+
+  const { data: bai } = await admin
+    .from("org_bai_tap")
+    .select("id, ten_bai_tap, id_to_chuc, id_khoa_hoc")
+    .eq("id", baiTapId)
+    .maybeSingle();
+  if (!bai) return { ok: false, error: "Không tìm thấy bài tập." };
+  if (bai.id_to_chuc && bai.id_to_chuc !== orgId) {
+    return { ok: false, error: "Bài tập không thuộc cơ sở." };
+  }
+
+  if (khoa.id_bo_giao_trinh) {
+    const { data: gan } = await admin
+      .from("org_giao_trinh_bai")
+      .select("id_bai_tap")
+      .eq("id_bo", khoa.id_bo_giao_trinh as string)
+      .eq("id_bai_tap", baiTapId)
+      .maybeSingle();
+    if (gan?.id_bai_tap) {
+      return { ok: true, tenBaiTap: bai.ten_bai_tap as string };
+    }
+  }
+
+  // Fallback legacy: module còn gắn id_khoa_hoc
+  if (bai.id_khoa_hoc === khoaId) {
+    return { ok: true, tenBaiTap: bai.ten_bai_tap as string };
+  }
+
+  return { ok: false, error: "Bài tập không thuộc giáo trình khóa này." };
+}
 
 /** HV nộp bài đang mở (theo org_tien_do_bai) kèm tin chat tùy chọn. */
 export async function nopBaiHienTai(input: {
@@ -82,7 +130,7 @@ export async function listNopBaiChoDuyet(
   const { data: nops } = await admin
     .from("org_nop_bai")
     .select(
-      "id, id_hoc_vien_lop, id_bai_tap, trang_thai, diem, ghi_chu, id_tin_nhan, id_media, tao_luc",
+      "id, id_hoc_vien_lop, id_bai_tap, trang_thai, diem, ghi_chu, id_tin_nhan, id_media, tao_luc, luu_luc, id_cot_moc",
     )
     .in("id_hoc_vien_lop", hvlIds)
     .eq("trang_thai", "cho_duyet")
@@ -92,15 +140,10 @@ export async function listNopBaiChoDuyet(
 
   const baiIds = [...new Set(nops.map((n) => n.id_bai_tap as string))];
   const userIds = [
-    ...new Set(
-      (hvls ?? []).map((h) => h.id_nguoi_dung as string),
-    ),
+    ...new Set((hvls ?? []).map((h) => h.id_nguoi_dung as string)),
   ];
   const [{ data: bais }, { data: users }] = await Promise.all([
-    admin
-      .from("org_bai_tap")
-      .select("id, ten_bai_tap")
-      .in("id", baiIds),
+    admin.from("org_bai_tap").select("id, ten_bai_tap").in("id", baiIds),
     admin
       .from("user_nguoi_dung")
       .select("id, ten_hien_thi")
@@ -129,6 +172,8 @@ export async function listNopBaiChoDuyet(
     tenHienThi:
       tenUser.get(hvlUser.get(n.id_hoc_vien_lop as string) ?? "") ?? "HV",
     taoLuc: n.tao_luc as string,
+    luuLuc: (n.luu_luc as string | null) ?? null,
+    cotMocId: (n.id_cot_moc as string | null) ?? null,
   }));
 }
 
@@ -139,8 +184,8 @@ export async function duyetNopBai(input: {
   trangThai: "dat" | "lam_lai";
   diem?: number | null;
   ghiChu?: string | null;
-  /** Nếu dat + có baiTiepId → gán tiến độ + thong_bao mở khóa. */
   baiTiepId?: string | null;
+  /** @deprecated Không còn publish org_bai_dang — giữ để compat API. */
   publishThongBao?: boolean;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
   const admin = createServiceRoleClient();
@@ -182,99 +227,197 @@ export async function duyetNopBai(input: {
   if (error) return { ok: false, error: error.message };
 
   if (input.trangThai === "dat" && input.baiTiepId) {
-    await ganTienDoBai({
+    const { moBaiChoHocVien } = await import("@/lib/co-so/tien-do-bai");
+    await moBaiChoHocVien({
       orgId: input.orgId,
       hocVienLopId: hvl.id as string,
-      baiTapId: input.baiTiepId,
+      baiTapIds: [input.baiTiepId],
       actorId: input.actorId,
-      publishThongBao: input.publishThongBao !== false,
     });
   }
 
   return { ok: true };
 }
 
+/**
+ * Upsert con trỏ bài hiện tại + (nếu có bảng mo) ghi lịch sử.
+ * Không spam org_bai_dang. Tin system do tien-do-bai gửi.
+ */
 export async function ganTienDoBai(input: {
   orgId: string;
   hocVienLopId: string;
   baiTapId: string;
   actorId: string;
+  /** @deprecated Bỏ — không còn insert org_bai_dang. */
   publishThongBao?: boolean;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { moBaiChoHocVien } = await import("@/lib/co-so/tien-do-bai");
+  const result = await moBaiChoHocVien({
+    orgId: input.orgId,
+    hocVienLopId: input.hocVienLopId,
+    baiTapIds: [input.baiTapId],
+    actorId: input.actorId,
+  });
+  if (!result.ok) return result;
+  return { ok: true };
+}
+
+export async function luuBaiNop(input: {
+  orgId: string;
+  nopId: string;
+  actorId: string;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
   const admin = createServiceRoleClient();
+  const { data: nop } = await admin
+    .from("org_nop_bai")
+    .select(
+      "id, id_hoc_vien_lop, id_bai_tap, id_media, luu_luc, id_cot_moc",
+    )
+    .eq("id", input.nopId)
+    .maybeSingle();
+  if (!nop) return { ok: false, error: "Không tìm thấy bài nộp." };
+  if (nop.id_cot_moc) {
+    return { ok: false, error: "Bài đã đăng Journey — không đổi trạng thái lưu." };
+  }
+  if (!nop.id_media) {
+    return { ok: false, error: "Chỉ lưu bài có ảnh/media." };
+  }
+
   const { data: hvl } = await admin
     .from("user_hoc_vien_lop")
-    .select("id, id_khoa_hoc, id_nguoi_dung")
-    .eq("id", input.hocVienLopId)
+    .select("id, id_khoa_hoc, id_lop_hoc, id_nguoi_dung")
+    .eq("id", nop.id_hoc_vien_lop as string)
     .maybeSingle();
-  if (!hvl) return { ok: false, error: "Không tìm thấy ghi danh." };
+  if (!hvl) return { ok: false, error: "Ghi danh không tồn tại." };
 
   const { data: khoa } = await admin
     .from("org_khoa_hoc")
-    .select("id, id_to_chuc, ten_khoa_hoc")
+    .select("id, id_to_chuc")
     .eq("id", hvl.id_khoa_hoc as string)
     .maybeSingle();
   if (!khoa || khoa.id_to_chuc !== input.orgId) {
-    return { ok: false, error: "Khóa không thuộc cơ sở." };
-  }
-
-  const { data: bai } = await admin
-    .from("org_bai_tap")
-    .select("id, ten_bai_tap, id_khoa_hoc")
-    .eq("id", input.baiTapId)
-    .maybeSingle();
-  if (!bai || bai.id_khoa_hoc !== khoa.id) {
-    return { ok: false, error: "Bài tập không thuộc khóa." };
+    return { ok: false, error: "Không thuộc cơ sở này." };
   }
 
   const now = new Date().toISOString();
-  const { error } = await admin.from("org_tien_do_bai").upsert(
-    {
-      id_hoc_vien_lop: input.hocVienLopId,
-      id_bai_tap: input.baiTapId,
-      id_nguoi_gan: input.actorId,
+  const { error } = await admin
+    .from("org_nop_bai")
+    .update({
+      luu_luc: now,
+      id_nguoi_luu: input.actorId,
       cap_nhat_luc: now,
-    },
-    { onConflict: "id_hoc_vien_lop" },
-  );
+    })
+    .eq("id", input.nopId);
   if (error) return { ok: false, error: error.message };
 
-  if (input.publishThongBao !== false) {
-    const { data: org } = await admin
-      .from("org_to_chuc")
-      .select("slug")
-      .eq("id", input.orgId)
-      .maybeSingle();
-    const href = org?.slug
-      ? `/co-so/${org.slug}/khoa-hoc`
-      : null;
-    await admin.from("org_bai_dang").insert({
-      id_to_chuc: input.orgId,
-      tieu_de: `Mở khóa: ${bai.ten_bai_tap}`,
-      tom_tat: `Bài tập mới trên khóa ${khoa.ten_khoa_hoc}${href ? ` — xem tại trang khóa` : ""}`,
-      noi_dung: `Học viên đã được mở bài «${bai.ten_bai_tap}».`,
-      noi_dung_blocks: [],
-      loai_bai_dang: "thong_bao",
-      trang_thai: "da_dang",
+  const { data: bai } = await admin
+    .from("org_bai_tap")
+    .select("ten_bai_tap")
+    .eq("id", nop.id_bai_tap as string)
+    .maybeSingle();
+  const tenBai = (bai?.ten_bai_tap as string) || "Bài tập";
+
+  if (hvl.id_lop_hoc) {
+    const { guiTinHeThongLopBai } = await import("@/lib/co-so/lop-he-thong-tin");
+    await guiTinHeThongLopBai({
+      lopId: hvl.id_lop_hoc as string,
+      actorId: input.actorId,
+      loai: "luu_bai",
+      idNguoiDung: hvl.id_nguoi_dung as string,
+      idHocVienLop: hvl.id as string,
+      idBaiTap: nop.id_bai_tap as string,
+      tenBai,
+      idNopBai: nop.id as string,
     });
   }
 
   return { ok: true };
 }
 
+export async function boLuuBaiNop(input: {
+  orgId: string;
+  nopId: string;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  const admin = createServiceRoleClient();
+  const { data: nop } = await admin
+    .from("org_nop_bai")
+    .select("id, id_hoc_vien_lop, luu_luc, id_cot_moc")
+    .eq("id", input.nopId)
+    .maybeSingle();
+  if (!nop) return { ok: false, error: "Không tìm thấy bài nộp." };
+  if (nop.id_cot_moc) {
+    return { ok: false, error: "Đã đăng Journey — không bỏ lưu." };
+  }
+
+  const { data: hvl } = await admin
+    .from("user_hoc_vien_lop")
+    .select("id, id_khoa_hoc")
+    .eq("id", nop.id_hoc_vien_lop as string)
+    .maybeSingle();
+  if (!hvl) return { ok: false, error: "Ghi danh không tồn tại." };
+
+  const { data: khoa } = await admin
+    .from("org_khoa_hoc")
+    .select("id, id_to_chuc")
+    .eq("id", hvl.id_khoa_hoc as string)
+    .maybeSingle();
+  if (!khoa || khoa.id_to_chuc !== input.orgId) {
+    return { ok: false, error: "Không thuộc cơ sở này." };
+  }
+
+  const { error } = await admin
+    .from("org_nop_bai")
+    .update({
+      luu_luc: null,
+      id_nguoi_luu: null,
+      cap_nhat_luc: new Date().toISOString(),
+    })
+    .eq("id", input.nopId);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
+}
+
 export async function listBaiTapCuaKhoa(
   khoaId: string,
-): Promise<Array<{ id: string; ten: string; thuTu: number }>> {
+): Promise<
+  Array<{ id: string; ten: string; thuTu: number; thuocTinh: string }>
+> {
   const admin = createServiceRoleClient();
+  const { data: khoa } = await admin
+    .from("org_khoa_hoc")
+    .select("id_bo_giao_trinh")
+    .eq("id", khoaId)
+    .maybeSingle();
+
+  if (khoa?.id_bo_giao_trinh) {
+    const { data } = await admin
+      .from("org_giao_trinh_bai")
+      .select("thu_tu, thuoc_tinh, org_bai_tap!inner(id, ten_bai_tap)")
+      .eq("id_bo", khoa.id_bo_giao_trinh as string)
+      .order("thu_tu", { ascending: true });
+    return (data ?? []).map((row) => {
+      const bt = row.org_bai_tap as unknown as {
+        id: string;
+        ten_bai_tap: string;
+      };
+      return {
+        id: bt.id,
+        ten: bt.ten_bai_tap,
+        thuTu: (row.thu_tu as number) ?? 0,
+        thuocTinh: (row.thuoc_tinh as string) || "bai_tap",
+      };
+    });
+  }
+
   const { data } = await admin
     .from("org_bai_tap")
     .select("id, ten_bai_tap, thu_tu")
     .eq("id_khoa_hoc", khoaId)
-    .eq("visible", true)
     .order("thu_tu");
   return (data ?? []).map((b) => ({
     id: b.id as string,
     ten: b.ten_bai_tap as string,
     thuTu: (b.thu_tu as number) ?? 0,
+    thuocTinh: "bai_tap",
   }));
 }

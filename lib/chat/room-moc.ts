@@ -3,17 +3,32 @@ import "server-only";
 import { MAX_ROOM_MOCS } from "@/lib/chat/constants";
 import { assertRoomMember } from "@/lib/chat/direct-message";
 import {
-  canManageGroupChat,
-  normalizeGroupVaiTro,
-} from "@/lib/chat/group-roles";
-import {
   notifyMocCreated,
   resetMocScheduleNotices,
 } from "@/lib/chat/room-moc-notify";
+import { assertCanManageMoc } from "@/lib/chat/room-moc-access";
+import {
+  normalizeMocLoaiLap,
+  type ChatMocLoaiLap,
+} from "@/lib/chat/room-moc-schedule";
+import {
+  normalizeMocNguon,
+  type ChatMocNguon,
+} from "@/lib/chat/room-moc-nguon";
 import type { ChatMessage } from "@/lib/chat/types";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 const MAX_REMIND_MINUTES = 30 * 24 * 60; // 30 ngày
+
+export type { ChatMocLoaiLap } from "@/lib/chat/room-moc-schedule";
+export type { ChatMocNguon } from "@/lib/chat/room-moc-nguon";
+export {
+  addCalendarMonths,
+  advanceMocThoiDiemOnce,
+  advanceMocThoiDiemPast,
+  normalizeMocLoaiLap,
+} from "@/lib/chat/room-moc-schedule";
+export { normalizeMocNguon } from "@/lib/chat/room-moc-nguon";
 
 export type ChatRoomMoc = {
   id: string;
@@ -24,6 +39,8 @@ export type ChatRoomMoc = {
   url: string | null;
   /** Số phút trước thoi_diem để nhắc. */
   nhacTruocPhut: number;
+  loaiLap: ChatMocLoaiLap;
+  nguon: ChatMocNguon;
   creatorUserId: string;
   taoLuc: string;
 };
@@ -36,6 +53,8 @@ function mapMoc(row: {
   thoi_diem: string;
   url: string | null;
   nhac_truoc_phut: number;
+  loai_lap?: string | null;
+  nguon?: string | null;
   id_nguoi_tao: string;
   tao_luc: string;
 }): ChatRoomMoc {
@@ -47,13 +66,15 @@ function mapMoc(row: {
     thoiDiem: row.thoi_diem,
     url: row.url,
     nhacTruocPhut: row.nhac_truoc_phut,
+    loaiLap: normalizeMocLoaiLap(row.loai_lap),
+    nguon: normalizeMocNguon(row.nguon),
     creatorUserId: row.id_nguoi_tao,
     taoLuc: row.tao_luc,
   };
 }
 
 const MOC_SELECT =
-  "id, id_phong, ten, mo_ta, thoi_diem, url, nhac_truoc_phut, id_nguoi_tao, tao_luc";
+  "id, id_phong, ten, mo_ta, thoi_diem, url, nhac_truoc_phut, loai_lap, nguon, id_nguoi_tao, tao_luc";
 
 /** Chuẩn hoá ngày hoặc datetime local/ISO → ISO timestamptz. */
 export function normalizeMocThoiDiem(raw: string): string | null {
@@ -85,42 +106,6 @@ export function clampRemindMinutes(minutes: number): number {
   return Math.max(0, Math.min(MAX_REMIND_MINUTES, Math.floor(minutes)));
 }
 
-async function assertCanManageMoc(
-  roomId: string,
-  viewerId: string,
-): Promise<{ ok: true } | { ok: false; error: string }> {
-  try {
-    await assertRoomMember(roomId, viewerId);
-  } catch {
-    return { ok: false, error: "Không có quyền." };
-  }
-
-  const admin = createServiceRoleClient();
-  const { data: room } = await admin
-    .from("chat_phong")
-    .select("loai_phong")
-    .eq("id", roomId)
-    .maybeSingle<{ loai_phong: string }>();
-
-  /* Chat 1-1: cả hai bạn đều tạo/sửa/xóa mốc. Nhóm: giữ owner/admin. */
-  if (room?.loai_phong === "1_1") {
-    return { ok: true };
-  }
-
-  const { data: membership } = await admin
-    .from("chat_thanh_vien")
-    .select("vai_tro")
-    .eq("id_phong", roomId)
-    .eq("id_nguoi_dung", viewerId)
-    .is("roi_luc", null)
-    .maybeSingle<{ vai_tro: string }>();
-
-  if (!canManageGroupChat(normalizeGroupVaiTro(membership?.vai_tro))) {
-    return { ok: false, error: "Chỉ chủ nhóm hoặc admin mới quản lý mốc." };
-  }
-  return { ok: true };
-}
-
 export async function listRoomMocs(
   roomId: string,
   viewerId: string,
@@ -141,11 +126,11 @@ export async function listRoomMocs(
 
   if (error) {
     const detail = error.message?.trim() || "";
-    if (/nhac_truoc_phut|column .* does not exist/i.test(detail)) {
+    if (/nguon|loai_lap|nhac_truoc_phut|column .* does not exist/i.test(detail)) {
       return {
         ok: false,
         error:
-          "DB chưa cập nhật cột mốc. Chạy migration_chat_moc_datetime.sql.",
+          "DB chưa cập nhật cột mốc. Chạy migration_chat_moc_datetime / loai_lap / nguon.",
       };
     }
     return { ok: false, error: "Không tải được mốc." };
@@ -163,6 +148,7 @@ export async function createRoomMoc(
     thoiDiem: string;
     url?: string | null;
     nhacTruocPhut?: number;
+    loaiLap?: ChatMocLoaiLap | string;
   },
 ): Promise<
   | { ok: true; moc: ChatRoomMoc; notice: ChatMessage | null }
@@ -189,6 +175,7 @@ export async function createRoomMoc(
     typeof input.nhacTruocPhut === "number"
       ? clampRemindMinutes(input.nhacTruocPhut)
       : 1440;
+  const loaiLap = normalizeMocLoaiLap(input.loaiLap);
 
   const admin = createServiceRoleClient();
   const { count } = await admin
@@ -209,6 +196,8 @@ export async function createRoomMoc(
       thoi_diem: thoiDiem,
       url,
       nhac_truoc_phut: nhac,
+      loai_lap: loaiLap,
+      nguon: "thu_cong",
       id_nguoi_tao: viewerId,
     })
     .select(MOC_SELECT)
@@ -216,11 +205,11 @@ export async function createRoomMoc(
 
   if (error || !data) {
     const detail = error?.message?.trim() || "";
-    if (/nhac_truoc_phut|column .* does not exist/i.test(detail)) {
+    if (/nguon|loai_lap|nhac_truoc_phut|column .* does not exist/i.test(detail)) {
       return {
         ok: false,
         error:
-          "DB chưa cập nhật cột mốc (nhắc/giờ). Chạy migration_chat_moc_datetime.sql.",
+          "DB chưa cập nhật cột mốc. Chạy migration_chat_moc_datetime / loai_lap / nguon.",
       };
     }
     return {
@@ -244,6 +233,7 @@ export async function updateRoomMoc(
     thoiDiem?: string;
     url?: string | null;
     nhacTruocPhut?: number;
+    loaiLap?: ChatMocLoaiLap | string;
   },
 ): Promise<{ ok: true; moc: ChatRoomMoc } | { ok: false; error: string }> {
   const gate = await assertCanManageMoc(roomId, viewerId);
@@ -252,19 +242,31 @@ export async function updateRoomMoc(
   const admin = createServiceRoleClient();
   const { data: existing } = await admin
     .from("chat_moc")
-    .select("id, thoi_diem, nhac_truoc_phut")
+    .select("id, thoi_diem, nhac_truoc_phut, loai_lap, nguon")
     .eq("id", mocId)
     .eq("id_phong", roomId)
     .maybeSingle<{
       id: string;
       thoi_diem: string;
       nhac_truoc_phut: number;
+      loai_lap: string | null;
+      nguon: string | null;
     }>();
 
   if (!existing) return { ok: false, error: "Không tìm thấy mốc." };
 
+  const nguon = normalizeMocNguon(existing.nguon);
+  if (nguon === "lich_lop") {
+    return {
+      ok: false,
+      error:
+        "Mốc theo lịch lớp — bật/tắt bằng nút «Nhắc trước buổi học», hoặc sửa lịch lớp.",
+    };
+  }
+
   const patch: Record<string, unknown> = { cap_nhat_luc: new Date().toISOString() };
   let scheduleChanged = false;
+  const existingLoai = normalizeMocLoaiLap(existing.loai_lap);
 
   if (input.ten !== undefined) {
     const ten = input.ten.trim();
@@ -291,6 +293,11 @@ export async function updateRoomMoc(
     const nhac = clampRemindMinutes(input.nhacTruocPhut);
     patch.nhac_truoc_phut = nhac;
     if (nhac !== existing.nhac_truoc_phut) scheduleChanged = true;
+  }
+  if (input.loaiLap !== undefined) {
+    const loaiLap = normalizeMocLoaiLap(input.loaiLap);
+    patch.loai_lap = loaiLap;
+    if (loaiLap !== existingLoai) scheduleChanged = true;
   }
 
   const { data, error } = await admin
@@ -320,6 +327,21 @@ export async function deleteRoomMoc(
   if (!gate.ok) return gate;
 
   const admin = createServiceRoleClient();
+  const { data: existing } = await admin
+    .from("chat_moc")
+    .select("id, nguon")
+    .eq("id", mocId)
+    .eq("id_phong", roomId)
+    .maybeSingle<{ id: string; nguon: string | null }>();
+
+  if (!existing) return { ok: false, error: "Không tìm thấy mốc." };
+  if (normalizeMocNguon(existing.nguon) === "lich_lop") {
+    return {
+      ok: false,
+      error: "Tắt nhắc lịch lớp bằng nút «Nhắc trước buổi học».",
+    };
+  }
+
   const { error } = await admin
     .from("chat_moc")
     .delete()

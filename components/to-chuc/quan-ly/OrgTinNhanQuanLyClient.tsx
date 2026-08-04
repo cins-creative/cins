@@ -47,8 +47,6 @@ function OrgTinNhanInboxClient({
 
   return (
     <div className="cso-tin-nhan">
-      {flash ? <p className="cso-tin-nhan-flash" role="status">{flash}</p> : null}
-
       <div
         className="cso-tin-nhan-panel cins-chat-panel"
         role="region"
@@ -86,6 +84,7 @@ function OrgTinNhanInboxClient({
             initialRoomId={
               activeTab === "verify" ? null : deepLink.initialRoomId
             }
+            statusFlash={flash}
             onToast={(message) => {
               setFlash(message);
               window.setTimeout(() => setFlash(null), 4000);

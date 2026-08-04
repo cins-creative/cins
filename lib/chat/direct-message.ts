@@ -31,6 +31,10 @@ import { listRoomReadCursors } from "@/lib/chat/read-cursors";
 import { loadPollsForMessages } from "@/lib/chat/room-poll";
 import { resolveOwnedUserEmojiMuc } from "@/lib/user-emoji/resolve-owned";
 import { parseChatCanvasBinhLuan, parseChatCuocGoi, parseChatForwarded, parseChatMocNhac, parseChatNguCanh, parseChatMessageMentions } from "@/lib/chat/message-perspective";
+import {
+  noiDungLopBaiChoHocVien,
+  parseLopBaiNguCanh,
+} from "@/lib/chat/lop-bai-notice";
 import type {
   ChatContextCard,
   ChatMessage,
@@ -218,12 +222,16 @@ export function mapMessageFromRow(
   const mocNhac = canvasBinhLuan || cuocGoi
     ? null
     : parseChatMocNhac(normalized.ngu_canh);
-  const nguCanh =
+  const lopBai =
     canvasBinhLuan || cuocGoi || mocNhac
+      ? null
+      : parseLopBaiNguCanh(normalized.ngu_canh);
+  const nguCanh =
+    canvasBinhLuan || cuocGoi || mocNhac || lopBai
       ? null
       : parseNguCanh(normalized.ngu_canh);
   const mentions =
-    canvasBinhLuan || cuocGoi || mocNhac
+    canvasBinhLuan || cuocGoi || mocNhac || lopBai
       ? []
       : parseChatMessageMentions(normalized.ngu_canh);
   const forwarded = parseChatForwarded(normalized.ngu_canh);
@@ -233,17 +241,19 @@ export function mapMessageFromRow(
       ? "cuoc_goi"
       : mocNhac
         ? "moc_nhac"
-        : nguCanh
-          ? "context"
-          : normalized.loai_tin === "sticker"
-            ? "sticker"
-            : normalized.loai_tin === "media"
-              ? "media"
-              : normalized.loai_tin === "binh_chon"
-                ? "binh_chon"
-                : normalized.loai_tin === "system"
-                  ? "moc_nhac"
-                  : "text";
+        : lopBai
+          ? "lop_bai"
+          : nguCanh
+            ? "context"
+            : normalized.loai_tin === "sticker"
+              ? "sticker"
+              : normalized.loai_tin === "media"
+                ? "media"
+                : normalized.loai_tin === "binh_chon"
+                  ? "binh_chon"
+                  : normalized.loai_tin === "system"
+                    ? "moc_nhac"
+                    : "text";
   const video = kind === "media" ? resolveVideo(normalized) : null;
   const imageId =
     !video && (kind === "media" || kind === "sticker")
@@ -257,6 +267,8 @@ export function mapMessageFromRow(
     body = "";
   } else if (video && body === video.key) {
     body = "";
+  } else if (lopBai && lopBai.idNguoiDung === viewerId) {
+    body = noiDungLopBaiChoHocVien(lopBai.loai, lopBai.tenBai || "bài tập");
   }
 
   return {
@@ -284,6 +296,7 @@ export function mapMessageFromRow(
     mentions: mentions.length > 0 ? mentions : undefined,
     poll: null,
     mocNhac,
+    lopBai,
     canvasBinhLuan,
     cuocGoi,
     forwarded: forwarded || undefined,
@@ -1205,7 +1218,22 @@ export async function listRoomMessages(
     loadKyIntervalsForViewerInLop,
     filterMessagesForKyVisibility,
   } = await import("@/lib/co-so/lop-room-access");
+  const { shouldShowLopBaiTin } = await import("@/lib/chat/lop-bai-notice");
   const lopAccess = await getLopRoomAccess(roomId, viewerId);
+
+  if (lopAccess.isLopRoom) {
+    const filterLopBai = (list: ChatMessage[]) =>
+      list.filter((m) =>
+        shouldShowLopBaiTin({
+          lopBai: m.lopBai,
+          viewerId,
+          isStaff: lopAccess.isStaff,
+        }),
+      );
+    messages = filterLopBai(messages);
+    pinnedMessages = filterLopBai(pinnedMessages);
+  }
+
   if (lopAccess.isLopRoom && !lopAccess.canReadGap && lopAccess.lopId) {
     const intervals = await loadKyIntervalsForViewerInLop(
       viewerId,

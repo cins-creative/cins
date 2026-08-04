@@ -5,8 +5,31 @@ export const CHAT_VIDEO_MAX_DURATION_S = 60;
 /** Trần dung lượng client trước khi upload (chưa có nén ffmpeg.wasm). */
 export const CHAT_VIDEO_MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
 
-export const CHAT_VIDEO_ACCEPT = "video/mp4,video/webm,video/quicktime";
+export const CHAT_VIDEO_ACCEPT = "video/mp4,video/webm,video/quicktime,.mp4,.m4v,.webm,.mov";
 const ALLOWED_MIME = new Set(["video/mp4", "video/webm", "video/quicktime"]);
+
+const EXT_MIME: Record<string, string> = {
+  mp4: "video/mp4",
+  m4v: "video/mp4",
+  webm: "video/webm",
+  mov: "video/quicktime",
+};
+
+/** Windows đôi khi trả `file.type` rỗng — suy MIME từ đuôi file. */
+export function resolveChatVideoMime(file: File): string | null {
+  const typed = file.type.trim().toLowerCase();
+  if (ALLOWED_MIME.has(typed)) return typed;
+  const ext = file.name.split(".").pop()?.trim().toLowerCase() || "";
+  return EXT_MIME[ext] ?? null;
+}
+
+/** Gắn lại MIME đúng nếu browser để trống (cần cho FormData + server check). */
+export function normalizeChatVideoFile(file: File): File | null {
+  const mime = resolveChatVideoMime(file);
+  if (!mime) return null;
+  if (file.type === mime) return file;
+  return new File([file], file.name, { type: mime, lastModified: file.lastModified });
+}
 
 export type ChatVideoMeta = {
   durationS: number | null;
@@ -107,17 +130,18 @@ export function captureVideoPoster(file: File): Promise<string | null> {
 export async function uploadChatVideo(
   file: File,
 ): Promise<ChatVideoUploadResult> {
-  if (!ALLOWED_MIME.has(file.type)) {
+  const normalized = normalizeChatVideoFile(file);
+  if (!normalized) {
     return { ok: false, error: "Chỉ hỗ trợ video MP4, WebM hoặc MOV." };
   }
-  if (file.size > CHAT_VIDEO_MAX_UPLOAD_BYTES) {
+  if (normalized.size > CHAT_VIDEO_MAX_UPLOAD_BYTES) {
     return {
       ok: false,
       error: "Video quá nặng (tối đa 50MB) — hãy quay ngắn hoặc nén lại.",
     };
   }
 
-  const meta = await probeVideoMetadata(file);
+  const meta = await probeVideoMetadata(normalized);
   if (meta.durationS != null && meta.durationS > CHAT_VIDEO_MAX_DURATION_S) {
     return {
       ok: false,
@@ -126,7 +150,7 @@ export async function uploadChatVideo(
   }
 
   const form = new FormData();
-  form.append("file", file);
+  form.append("file", normalized);
   if (meta.width != null) form.append("width", String(meta.width));
   if (meta.height != null) form.append("height", String(meta.height));
   if (meta.durationS != null) form.append("duration_s", String(meta.durationS));

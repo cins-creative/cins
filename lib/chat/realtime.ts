@@ -11,6 +11,10 @@ import {
   parseChatNguCanh,
   parseChatMessageMentions,
 } from "@/lib/chat/message-perspective";
+import {
+  noiDungLopBaiChoHocVien,
+  parseLopBaiNguCanh,
+} from "@/lib/chat/lop-bai-notice";
 import { mentionsIncludeUser } from "@/lib/chat/mentions";
 import { isOptimisticAlbumMessage, isOptimisticMessageId } from "@/lib/chat/optimistic-message";
 
@@ -43,12 +47,16 @@ export function mapRealtimeRow(row: ChatRealtimeRow, viewerId: string): ChatMess
   const cuocGoi = canvasBinhLuan ? null : parseChatCuocGoi(row.ngu_canh);
   const mocNhac =
     canvasBinhLuan || cuocGoi ? null : parseChatMocNhac(row.ngu_canh);
-  const nguCanh =
+  const lopBai =
     canvasBinhLuan || cuocGoi || mocNhac
+      ? null
+      : parseLopBaiNguCanh(row.ngu_canh);
+  const nguCanh =
+    canvasBinhLuan || cuocGoi || mocNhac || lopBai
       ? null
       : parseChatNguCanh(row.ngu_canh);
   const mentions =
-    canvasBinhLuan || cuocGoi || mocNhac
+    canvasBinhLuan || cuocGoi || mocNhac || lopBai
       ? []
       : parseChatMessageMentions(row.ngu_canh);
   const forwarded = parseChatForwarded(row.ngu_canh);
@@ -58,17 +66,19 @@ export function mapRealtimeRow(row: ChatRealtimeRow, viewerId: string): ChatMess
       ? "cuoc_goi"
       : mocNhac
         ? "moc_nhac"
-        : nguCanh
-          ? "context"
-          : row.loai_tin === "sticker"
-            ? "sticker"
-            : row.loai_tin === "media"
-              ? "media"
-              : row.loai_tin === "binh_chon"
-                ? "binh_chon"
-                : row.loai_tin === "system"
-                  ? "moc_nhac"
-                  : "text";
+        : lopBai
+          ? "lop_bai"
+          : nguCanh
+            ? "context"
+            : row.loai_tin === "sticker"
+              ? "sticker"
+              : row.loai_tin === "media"
+                ? "media"
+                : row.loai_tin === "binh_chon"
+                  ? "binh_chon"
+                  : row.loai_tin === "system"
+                    ? "moc_nhac"
+                    : "text";
   const rawBody = row.noi_dung?.trim() || "";
   let imageId: string | null = null;
   let body = rawBody;
@@ -84,10 +94,14 @@ export function mapRealtimeRow(row: ChatRealtimeRow, viewerId: string): ChatMess
     kind === "context" ||
     kind === "binh_chon" ||
     kind === "moc_nhac" ||
+    kind === "lop_bai" ||
     kind === "canvas_binh_luan" ||
     kind === "cuoc_goi"
   ) {
-    body = rawBody;
+    body =
+      lopBai && lopBai.idNguoiDung === viewerId
+        ? noiDungLopBaiChoHocVien(lopBai.loai, lopBai.tenBai || "bài tập")
+        : rawBody;
   }
 
   return {
@@ -106,6 +120,7 @@ export function mapRealtimeRow(row: ChatRealtimeRow, viewerId: string): ChatMess
     mentions: mentions.length > 0 ? mentions : undefined,
     poll: null,
     mocNhac,
+    lopBai,
     canvasBinhLuan,
     cuocGoi,
     forwarded: forwarded || undefined,

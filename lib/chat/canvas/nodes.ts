@@ -135,6 +135,12 @@ function coerceLayout(raw: unknown): CanvasNodeLayout {
     }
   }
   if (obj.imageFitted === true) layout.imageFitted = true;
+  if (typeof obj.mediaW === "number" && Number.isFinite(obj.mediaW) && obj.mediaW > 0) {
+    layout.mediaW = obj.mediaW;
+  }
+  if (typeof obj.mediaH === "number" && Number.isFinite(obj.mediaH) && obj.mediaH > 0) {
+    layout.mediaH = obj.mediaH;
+  }
   return layout;
 }
 

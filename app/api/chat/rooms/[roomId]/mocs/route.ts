@@ -50,6 +50,7 @@ export async function POST(req: Request, context: RouteContext) {
     nhac_truoc_phut?: number;
     /** Legacy — quy đổi ngày → phút. */
     nhac_truoc_ngay?: number;
+    loai_lap?: string;
   };
   try {
     body = (await req.json()) as typeof body;
@@ -63,6 +64,7 @@ export async function POST(req: Request, context: RouteContext) {
     thoiDiem: body.thoi_diem ?? "",
     url: body.url,
     nhacTruocPhut: resolveRemindMinutes(body),
+    loaiLap: body.loai_lap,
   });
 
   if (!result.ok) {

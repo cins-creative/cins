@@ -35,9 +35,9 @@ export type ToChucOrgNode = {
   lastAt: string;
   /** Toàn bộ thread managed — giữ để search / realtime; không xổ inbox trong UI. */
   threads: ChatThread[];
-  /** Hộp thư staff — chỉ hiện số, không list trong overlay. */
+  /** Hộp thư staff — chỉ hiện số trên item inbox layer-1 (không list từng thread). */
   inbox: ToChucOrgInboxSummary;
-  /** Hub + phòng lớp — vẫn expand chat trong overlay. */
+  /** Hub + phòng lớp — nest như project parent/child trong overlay. */
   rooms: ChatThread[];
   /**
    * Viewer là owner/admin org — hiện menu «Quản lý thông báo».

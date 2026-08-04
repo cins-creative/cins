@@ -27,6 +27,8 @@
     "migrate:diem-uu-tien": "node scripts/run-content-diem-feed-uu-tien-migration.mjs",
     "migrate:csdt": "node scripts/run-csdt-van-hanh-hoc-migration.mjs",
     "migrate:lop-chi-nhanh": "node scripts/run-lop-hoc-chi-nhanh-migration.mjs",
+    "migrate:bo-giao-trinh": "node scripts/run-bo-giao-trinh-migration.mjs",
+    "migrate:tien-do-giao-trinh-chat": "node scripts/run-tien-do-giao-trinh-chat-migration.mjs",
     "migrate:lop-ngay-khai-giang-nullable": "node scripts/run-lop-hoc-ngay-khai-giang-nullable-migration.mjs",
     "backfill:lop-chi-nhanh": "node scripts/backfill-lop-chi-nhanh.mjs",
     "migrate:media-phong-hop": "node scripts/run-media-phong-hop-migration.mjs",

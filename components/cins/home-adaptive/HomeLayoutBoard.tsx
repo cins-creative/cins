@@ -120,6 +120,7 @@ const CLIENT_LIMIT_MODULES = new Set<ModuleId>([
   "tin_nhan_to_chuc",
   "tin_nhan_mua_ban",
   "don_can_xu_ly",
+  "lop_hoc_cua_ban",
 ]);
 
 function collectChildMap(children: ReactNode): Map<string, ReactElement> {
@@ -1304,6 +1305,10 @@ function AddModuleOverlay({
             ))}
           </div>
         )}
+        <p className="ha-edit-add-suggest">
+          Bạn có thể đề xuất tính năng phù hợp với nhu cầu của mình ở phần góp
+          ý nhé!
+        </p>
       </div>
     </div>,
     document.body,

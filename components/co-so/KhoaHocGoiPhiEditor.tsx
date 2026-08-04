@@ -673,7 +673,9 @@ export function KhoaHocGoiPhiEditor({
                     <span className="cso-kh-goi-phi-selected-meta">
                       {durationLabel(g)}
                       <span aria-hidden> · </span>
-                      {formatVnd(g.giaVnd)}
+                      <span className="cso-kh-goi-phi-selected-price">
+                        {formatVnd(g.giaVnd)}
+                      </span>
                     </span>
                   </span>
                   <button

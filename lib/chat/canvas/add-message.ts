@@ -2,6 +2,7 @@ import "server-only";
 
 import { assertCanvasWritable, loadCanvasContext } from "@/lib/chat/canvas/access";
 import { getOrCreateRoomCanvas } from "@/lib/chat/canvas/boards";
+import { resolveCanvasMessageMedia } from "@/lib/chat/canvas/message-media";
 import { createNode } from "@/lib/chat/canvas/nodes";
 import type {
   CanvasNodeLayout,
@@ -9,8 +10,8 @@ import type {
   CanvasResult,
   ChatCanvasNode,
 } from "@/lib/chat/canvas/types";
+import { fitCanvasVideoLinkSize } from "@/lib/chat/canvas/video-layout";
 import { MAX_CANVAS_NODES, MAX_CANVAS_STICKY_LEN } from "@/lib/chat/constants";
-import { chatImageDeliveryUrl } from "@/lib/chat/image-url";
 import { findFirstHttpUrl } from "@/lib/link/og-preview";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
@@ -47,6 +48,13 @@ function coerceLayout(raw: unknown): CanvasNodeLayout {
   if (typeof obj.z === "number") layout.z = obj.z;
   if (typeof obj.rotation === "number") layout.rotation = obj.rotation;
   if (typeof obj.mau === "string") layout.mau = obj.mau;
+  if (obj.imageFitted === true) layout.imageFitted = true;
+  if (typeof obj.mediaW === "number" && Number.isFinite(obj.mediaW) && obj.mediaW > 0) {
+    layout.mediaW = obj.mediaW;
+  }
+  if (typeof obj.mediaH === "number" && Number.isFinite(obj.mediaH) && obj.mediaH > 0) {
+    layout.mediaH = obj.mediaH;
+  }
   return layout;
 }
 
@@ -86,22 +94,25 @@ type MessageRow = {
   noi_dung: string | null;
   loai_tin: string | null;
   da_xoa: boolean | null;
-  content_media: { cloudflare_id: string | null } | { cloudflare_id: string | null }[] | null;
+  content_media:
+    | {
+        cloudflare_id: string | null;
+        loai_media?: string | null;
+        width?: number | null;
+        height?: number | null;
+      }
+    | {
+        cloudflare_id: string | null;
+        loai_media?: string | null;
+        width?: number | null;
+        height?: number | null;
+      }[]
+    | null;
 };
-
-function imageUrlFromRow(row: MessageRow): string | null {
-  const media = row.content_media;
-  const mediaRow = Array.isArray(media) ? media[0] : media;
-  const cfId =
-    mediaRow && typeof mediaRow === "object" && "cloudflare_id" in mediaRow
-      ? mediaRow.cloudflare_id
-      : null;
-  return cfId ? chatImageDeliveryUrl(cfId) : null;
-}
 
 /**
  * Thêm một tin nhắn lên canvas phòng (idempotent theo id_tin_nhan).
- * - Ảnh → node `anh`; URL trong nội dung (kể cả YouTube) → `link`; còn lại → sticky text.
+ * - Ảnh → node `anh`; video chat R2 / URL (kể cả YouTube) → `link`; còn lại → sticky text.
  * - Bỏ ẩn tin nếu trước đó đã bị ẩn khỏi canvas.
  */
 export async function addMessageToCanvas(
@@ -123,7 +134,9 @@ export async function addMessageToCanvas(
 
   const { data: msg, error: msgError } = await admin
     .from("chat_tin_nhan")
-    .select("id, id_phong, noi_dung, loai_tin, da_xoa, content_media(cloudflare_id)")
+    .select(
+      "id, id_phong, noi_dung, loai_tin, da_xoa, content_media(cloudflare_id, loai_media, width, height)",
+    )
     .eq("id", messageId)
     .maybeSingle<MessageRow>();
 
@@ -151,17 +164,26 @@ export async function addMessageToCanvas(
     .maybeSingle<NodeRow>();
 
   const body = typeof msg.noi_dung === "string" ? msg.noi_dung : "";
-  const imageUrl = imageUrlFromRow(msg);
-  const linkUrl = imageUrl ? null : findFirstHttpUrl(body);
+  const media = resolveCanvasMessageMedia(msg.content_media);
+  const linkUrl =
+    media?.kind === "video"
+      ? media.url
+      : media?.kind === "anh"
+        ? null
+        : findFirstHttpUrl(body);
   const text = body.trim();
 
   let loai: "anh" | "link" | "sticky";
   let url: string | null = null;
   let noiDung: string | null = text || null;
 
-  if (imageUrl) {
+  if (media?.kind === "anh") {
     loai = "anh";
-    url = imageUrl;
+    url = media.url;
+  } else if (media?.kind === "video") {
+    loai = "link";
+    url = media.url;
+    noiDung = text && !text.startsWith("chat-video/") ? text : "Video";
   } else if (linkUrl) {
     loai = "link";
     url = linkUrl;
@@ -207,9 +229,28 @@ export async function addMessageToCanvas(
     return { ok: false, error: `Canvas tối đa ${MAX_CANVAS_NODES} block.` };
   }
 
+  let layout = gridLayout(count ?? 0);
+  if (
+    media?.kind === "video" &&
+    media.width &&
+    media.height &&
+    media.width > 0 &&
+    media.height > 0
+  ) {
+    const size = fitCanvasVideoLinkSize(media.width, media.height);
+    layout = {
+      ...layout,
+      w: size.w,
+      h: size.h,
+      imageFitted: true,
+      mediaW: media.width,
+      mediaH: media.height,
+    };
+  }
+
   const created = await createNode(canvasId, viewerId, {
     loai,
-    layout: gridLayout(count ?? 0),
+    layout,
     noiDung,
     url,
     messageId,

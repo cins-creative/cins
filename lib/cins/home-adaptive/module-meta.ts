@@ -96,6 +96,17 @@ export const MODULE_META: Record<ModuleId, ModuleMeta> = {
     hideable: true,
     group: "dang_hoc",
   },
+  lop_hoc_cua_ban: {
+    id: "lop_hoc_cua_ban",
+    label: "Lớp học của bạn",
+    description:
+      "Lớp đã ghi danh — gần giờ học bấm một cái vào phòng chat.",
+    defaultSide: "right",
+    defaultPersonas: ["hoc"],
+    hideable: true,
+    group: "dang_hoc",
+    requires: ["dang_hoc_khoa"],
+  },
   ho_so_cua_ban: {
     id: "ho_so_cua_ban",
     label: "Hồ sơ của bạn",

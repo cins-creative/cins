@@ -35,7 +35,7 @@ async function listOrgInboxAdminIds(
  * Trước đây: coalesce 1 thông báo chuông / admin / phòng khi HV nhắn.
  *
  * **Tắt (2026-08-03):** chat org không đẩy popup/chuông tài khoản cá nhân.
- * Tín hiệu đủ ở overlay node «Tổ chức» (chưa đọc / chưa trả lời) + trang QL.
+ * Tín hiệu đủ ở overlay tab «Tổ chức» (item inbox chưa trả lời) + trang QL.
  * Call-site trong `sendRoomMessage` giữ nguyên — no-op ở đây.
  */
 export async function notifyOrgAdminsOfStudentMessage(_params: {

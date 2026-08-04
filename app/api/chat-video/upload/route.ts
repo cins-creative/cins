@@ -18,6 +18,20 @@ import {
 
 const ALLOWED_MIME = new Set(["video/mp4", "video/webm", "video/quicktime"]);
 
+const EXT_MIME: Record<string, string> = {
+  mp4: "video/mp4",
+  m4v: "video/mp4",
+  webm: "video/webm",
+  mov: "video/quicktime",
+};
+
+function resolveUploadMime(file: File): string | null {
+  const typed = file.type.trim().toLowerCase();
+  if (ALLOWED_MIME.has(typed)) return typed;
+  const ext = file.name.split(".").pop()?.trim().toLowerCase() || "";
+  return EXT_MIME[ext] ?? null;
+}
+
 function parseDim(value: FormDataEntryValue | null): number | null {
   const n = typeof value === "string" ? parseInt(value, 10) : NaN;
   return Number.isFinite(n) && n > 0 ? n : null;
@@ -58,7 +72,8 @@ export async function POST(request: Request) {
   if (!(file instanceof File) || file.size === 0) {
     return NextResponse.json({ error: "Thiếu file video." }, { status: 400 });
   }
-  if (!ALLOWED_MIME.has(file.type)) {
+  const mime = resolveUploadMime(file);
+  if (!mime) {
     return NextResponse.json(
       { error: "Định dạng video không hỗ trợ (chỉ MP4/WebM/MOV)." },
       { status: 415 },
@@ -82,7 +97,7 @@ export async function POST(request: Request) {
   /* Dedup: bỏ PUT nếu object đã có (chỉ khả dụng qua binding). */
   const exists = await chatVideoObjectExists(key);
   if (!exists) {
-    const put = await putChatVideoObject(key, buffer, "video/mp4");
+    const put = await putChatVideoObject(key, buffer, mime);
     if (!put.ok) {
       return NextResponse.json({ error: put.error }, { status: 502 });
     }

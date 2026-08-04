@@ -146,8 +146,6 @@ export function TinNhanQuanLyClient({
 
   return (
     <div className="cso-tin-nhan">
-      {flash ? <p className="cso-tin-nhan-flash" role="status">{flash}</p> : null}
-
       <div className="cso-tin-nhan-panel cins-chat-panel" role="region" aria-label="Tin nhắn cơ sở">
         <div className="cso-tin-nhan-tabs" role="tablist" aria-label="Loại hội thoại">
           {(
@@ -175,6 +173,7 @@ export function TinNhanQuanLyClient({
               orgId={orgId}
               viewerId={viewerId}
               onToast={toast}
+              statusFlash={flash}
               orgBrand={orgBrand}
             />
           ) : (
@@ -187,6 +186,7 @@ export function TinNhanQuanLyClient({
               initialStudentUserId={deepLink.initialStudentUserId}
               panelRef={inboxRef}
               onToast={toast}
+              statusFlash={flash}
               canConfirmHocPhi
               orgBrand={orgBrand}
               renderDetailActions={(thread) => (
@@ -711,11 +711,13 @@ function CoSoRoomsPane({
   orgId,
   viewerId,
   onToast,
+  statusFlash = null,
   orgBrand = null,
 }: {
   orgId: string;
   viewerId: string | null;
   onToast: (m: string) => void;
+  statusFlash?: string | null;
   orgBrand?: { ten?: string | null; anh?: string | null } | null;
 }) {
   const [threads, setThreads] = useState<ChatThread[]>([]);
@@ -1143,6 +1145,7 @@ function CoSoRoomsPane({
             reply={reply}
             sending={pending}
             onToast={onToast}
+            statusFlash={statusFlash}
             onReplyChange={setReply}
             onSend={sendReply}
             onSendSticker={sendSticker}
@@ -1171,6 +1174,7 @@ function RoomComposeDetail({
   reply,
   sending,
   onToast,
+  statusFlash = null,
   onReplyChange,
   onSend,
   onSendSticker,
@@ -1188,6 +1192,7 @@ function RoomComposeDetail({
   reply: string;
   sending: boolean;
   onToast: (message: string) => void;
+  statusFlash?: string | null;
   onReplyChange: (v: string) => void;
   onSend: (
     text: string,
@@ -1301,6 +1306,11 @@ function RoomComposeDetail({
           <p className="tdh-message-inbox-detail-meta">{meta}</p>
         </div>
       </header>
+      {statusFlash ? (
+        <p className="cso-tin-nhan-flash cso-tin-nhan-flash--in-chat" role="status">
+          {statusFlash}
+        </p>
+      ) : null}
       {loading ? (
         <p className="tdh-message-inbox-pick">
           <Loader2 size={16} className="tdh-milestone-tag-org-msg-spin" aria-hidden />

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { ChatCanvasBinhLuanNoticeBubble } from "@/components/cins/ChatCanvasBinhLuanNotice";
 import { ChatCuocGoiNoticeBubble } from "@/components/cins/ChatCuocGoiNoticeBubble";
@@ -27,6 +27,7 @@ import {
   findFirstOgPreviewUrl,
   isUrlOnlyBody,
 } from "@/lib/link/og-preview";
+import { buildChatVideoUrl } from "@/lib/chat/video-url";
 
 const CHAT_CONTEXT_LABEL: Record<string, string> = {
   tuyen_dung: "Tin tuyển dụng",
@@ -36,6 +37,55 @@ const CHAT_CONTEXT_LABEL: Record<string, string> = {
   don_hang: "Đơn hàng",
   don_hoc_phi: "Học phí",
 };
+
+/** Tên video (oEmbed/OG) dưới thumbnail chat. */
+function ChatExternalVideoBlock({
+  iframeSrc,
+  videoUrl,
+}: {
+  iframeSrc: string;
+  videoUrl: string | null;
+}) {
+  const [title, setTitle] = useState<string | null>(null);
+  const href = videoUrl?.trim() || null;
+
+  useEffect(() => {
+    if (!href) return;
+    let alive = true;
+    void fetch(`/api/link/og?url=${encodeURIComponent(href)}`, {
+      credentials: "same-origin",
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { title?: string } | null) => {
+        if (!alive) return;
+        const t = typeof data?.title === "string" ? data.title.trim() : "";
+        setTitle(t || null);
+      })
+      .catch(() => {
+        if (alive) setTitle(null);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [href]);
+
+  return (
+    <span className="cins-chat-video-link">
+      <InlineExternalVideoEmbed
+        src={iframeSrc}
+        href={href}
+        openMode="new-tab"
+        gate={false}
+        title={title || "Video"}
+      />
+      {title ? (
+        <span className="cins-chat-video-link-title" title={title}>
+          {title}
+        </span>
+      ) : null}
+    </span>
+  );
+}
 
 type ChatMessageBodyProps = {
   msg: ChatMessage;
@@ -282,7 +332,10 @@ export function ChatMessageBody({
     );
   }
 
-  const videoSrc = msg.videoUrl ?? null;
+  const videoSrc =
+    msg.videoUrl?.trim() ||
+    (msg.videoKey ? buildChatVideoUrl(msg.videoKey) : null) ||
+    null;
 
   return (
     <>
@@ -294,6 +347,10 @@ export function ChatMessageBody({
           height={msg.videoHeight}
           stacked={mediaOnly}
         />
+      ) : msg.videoKey ? (
+        <p className="cins-chat-msg-video-missing">
+          Không phát được video (thiếu URL công khai).
+        </p>
       ) : imageSrc ? (
         isSticker ? (
           <button
@@ -330,13 +387,7 @@ export function ChatMessageBody({
         />
       ) : null}
       {!mediaOnly && iframeSrc ? (
-        <InlineExternalVideoEmbed
-          src={iframeSrc}
-          href={videoUrl}
-          openMode="new-tab"
-          gate={false}
-          title="Video"
-        />
+        <ChatExternalVideoBlock iframeSrc={iframeSrc} videoUrl={videoUrl} />
       ) : null}
       {ogUrl ? <ChatLinkOgCard url={ogUrl} tone={isMe ? "me" : "them"} /> : null}
 

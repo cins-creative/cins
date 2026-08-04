@@ -3,6 +3,10 @@ import "server-only";
 import { sendRoomMessage } from "@/lib/chat/direct-message";
 import { findOrCreateOrgStudentRoom } from "@/lib/chat/org-message";
 import type { ChatContextCard } from "@/lib/chat/types";
+import {
+  buildHocPhiMaDon,
+  isHocPhiMaDonUniqueViolation,
+} from "@/lib/co-so/ma-don-hoc-phi";
 import { getAvatarUrl } from "@/lib/journey/profile";
 import { buildVietQrImageUrl } from "@/lib/shop/vietqr";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
@@ -162,7 +166,7 @@ export async function createAndSendDonHocPhiChat(input: {
 
   const { data: khoa } = await admin
     .from("org_khoa_hoc")
-    .select("id, ten_khoa_hoc, id_to_chuc")
+    .select("id, ten_khoa_hoc, id_to_chuc, ma_khoa_hoc")
     .eq("id", hvl.id_khoa_hoc as string)
     .maybeSingle();
   if (!khoa || khoa.id_to_chuc !== input.orgId) {
@@ -192,30 +196,43 @@ export async function createAndSendDonHocPhiChat(input: {
   const orgTen = org?.ten?.trim() || null;
   const orgAnh = getAvatarUrl(org?.avatar_id ?? null);
 
-  const maDon = `HP${Date.now().toString(36).toUpperCase()}`;
+  const maKhoaHoc = (khoa.ma_khoa_hoc as string | null) ?? null;
+  let maDon = buildHocPhiMaDon(maKhoaHoc, maLop);
   const kenh =
     stk.nganHang && stk.soTaiKhoan ? "vietqr" : "ck_thu_cong";
-  const { data: don, error } = await admin
-    .from("org_don_hoc_phi")
-    .insert({
-      id_to_chuc: input.orgId,
-      id_hoc_vien_lop: input.hocVienLopId,
-      id_goi: input.goiId ?? null,
-      id_nguoi_thu: input.selfServe ? null : input.staffUserId,
-      ma_don: maDon,
-      kenh,
-      trang_thai: "cho_thanh_toan",
-      so_tien_vnd: input.soTienVnd,
-      gia_goc_vnd: input.soTienVnd,
-      giam_vnd: 0,
-      so_ngay_cong: input.soNgayCong,
-      ghi_chu: input.ghiChu ?? null,
-    })
-    .select("id")
-    .single<{ id: string }>();
 
-  if (error || !don) {
-    return { ok: false, error: error?.message ?? "Không tạo đơn." };
+  let don: { id: string } | null = null;
+  let lastError: { message?: string } | null = null;
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const { data, error } = await admin
+      .from("org_don_hoc_phi")
+      .insert({
+        id_to_chuc: input.orgId,
+        id_hoc_vien_lop: input.hocVienLopId,
+        id_goi: input.goiId ?? null,
+        id_nguoi_thu: input.selfServe ? null : input.staffUserId,
+        ma_don: maDon,
+        kenh,
+        trang_thai: "cho_thanh_toan",
+        so_tien_vnd: input.soTienVnd,
+        gia_goc_vnd: input.soTienVnd,
+        giam_vnd: 0,
+        so_ngay_cong: input.soNgayCong,
+        ghi_chu: input.ghiChu ?? null,
+      })
+      .select("id")
+      .single<{ id: string }>();
+    if (!error && data) {
+      don = data;
+      break;
+    }
+    lastError = error;
+    if (!isHocPhiMaDonUniqueViolation(error)) break;
+    maDon = buildHocPhiMaDon(maKhoaHoc, maLop);
+  }
+
+  if (!don) {
+    return { ok: false, error: lastError?.message ?? "Không tạo đơn." };
   }
 
   const roomId = await findOrCreateOrgStudentRoom(

@@ -106,7 +106,7 @@ export function InlineExternalVideoEmbed({
           <span className="cins-inline-video-embed-fallback" aria-hidden />
         )}
         <span className="cins-inline-video-embed-play" aria-hidden>
-          <Play size={28} strokeWidth={2.2} fill="currentColor" />
+          <Play size={20} strokeWidth={2.2} fill="currentColor" />
         </span>
       </a>
     );

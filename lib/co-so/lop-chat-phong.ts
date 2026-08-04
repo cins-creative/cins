@@ -341,6 +341,27 @@ export async function ensureLopChatPhongAndJoinStudent(input: {
     });
   }
 
+  // Khóa đồng bộ tiến độ → HV mới nhận bài đang mở của lớp (Q5)
+  if (joined) {
+    const { data: hvl } = await admin
+      .from("user_hoc_vien_lop")
+      .select("id")
+      .eq("id_nguoi_dung", input.studentUserId)
+      .eq("id_lop_hoc", input.lopId)
+      .maybeSingle();
+    if (hvl?.id) {
+      const { copyTienDoDongBoChoHocVienMoi } = await import(
+        "@/lib/co-so/tien-do-bai"
+      );
+      await copyTienDoDongBoChoHocVienMoi({
+        orgId: input.orgId,
+        lopId: input.lopId,
+        hocVienLopId: hvl.id as string,
+        actorId: input.studentUserId,
+      });
+    }
+  }
+
   return { ok: true, roomId: ensured.roomId, joined };
 }
 

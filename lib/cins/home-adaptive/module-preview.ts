@@ -6,6 +6,7 @@ import {
   loadChoBanDuyet,
   loadHocVienCuaBan,
   loadKhoaHocGoiY,
+  loadLopHocCuaBan,
   loadScoutTaiNang,
 } from "@/lib/cins/home-adaptive/fetches";
 import { loadHangFeature } from "@/lib/cins/home-adaptive/hang-feature";
@@ -98,6 +99,26 @@ export async function loadModulePreview(
       const courses = await loadKhoaHocGoiY(LIMIT);
       if (courses.length === 0) return { id, empty: true };
       return { id, empty: false, courses };
+    }
+    case "lop_hoc_cua_ban": {
+      const items = await loadLopHocCuaBan(ctx.viewerId, LIMIT);
+      if (items.length === 0) return { id, empty: true };
+      return {
+        id,
+        empty: false,
+        rows: items.map((lop) => ({
+          key: lop.lopId,
+          title: lop.maLop,
+          sub: [lop.next.label, lop.tenKhoa, lop.orgTen]
+            .filter(Boolean)
+            .join(" · "),
+          avatarUrl: null,
+        })),
+        badge:
+          items.filter((l) => l.next.isSoon).length > 0
+            ? String(items.filter((l) => l.next.isSoon).length)
+            : undefined,
+      };
     }
     case "ho_so_cua_ban": {
       const { percent, missing } = await loadProfileCompleteness(ctx.viewerId);

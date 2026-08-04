@@ -11,7 +11,20 @@ export type ChatMessageKind =
   | "binh_chon"
   | "moc_nhac"
   | "canvas_binh_luan"
-  | "cuoc_goi";
+  | "cuoc_goi"
+  | "lop_bai";
+
+/** Tin hệ thống pedagogy lớp (`ngu_canh.loai` = mo_bai | nop_bai | luu_bai | journey_da_dang). */
+export type ChatLopBaiNotice = {
+  loai: "mo_bai" | "nop_bai" | "luu_bai" | "journey_da_dang";
+  idNguoiDung: string;
+  idHocVienLop?: string;
+  idBaiTap?: string;
+  tenBai?: string;
+  idNopBai?: string;
+  idCotMoc?: string;
+  slug?: string;
+};
 
 export type ChatMocNoticeSuKien = "tao" | "nhac_truoc" | "den_han";
 
@@ -169,6 +182,8 @@ export type ChatMessage = {
   poll?: ChatPollSummary | null;
   /** Nhắc mốc hệ thống trong phòng. */
   mocNhac?: ChatMocNotice | null;
+  /** Pedagogy lớp — mở bài / nộp / lưu / Journey. */
+  lopBai?: ChatLopBaiNotice | null;
   /** Bình luận trên canvas — dòng nhỏ trong feed. */
   canvasBinhLuan?: ChatCanvasBinhLuanNotice | null;
   /** Lịch sử / tín hiệu cuộc gọi trong phòng. */

@@ -84,7 +84,8 @@ export type ModulePreviewQueueId =
   | "tin_nhan_mua_ban"
   | "loi_moi_ket_ban"
   | "se_tham_gia"
-  | "da_luu";
+  | "da_luu"
+  | "lop_hoc_cua_ban";
 
 export type ModulePreviewPayload =
   | {

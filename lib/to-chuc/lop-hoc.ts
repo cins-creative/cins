@@ -498,6 +498,11 @@ export async function capNhatLopHoc(
     giaoVienUserId: data.giaoVienPhuTrach ?? null,
   });
 
+  const { syncLopHocLichMocForLopId } = await import(
+    "@/lib/chat/room-moc-lop-lich"
+  );
+  await syncLopHocLichMocForLopId(lopId);
+
   return { ok: true, lopId };
 }
 

@@ -1,9 +1,10 @@
 import "server-only";
 
 import { loadCanvasContext } from "@/lib/chat/canvas/access";
+import { resolveCanvasMessageMedia } from "@/lib/chat/canvas/message-media";
 import type { CanvasNodeLayout, CanvasResult } from "@/lib/chat/canvas/types";
+import { fitCanvasVideoLinkSize } from "@/lib/chat/canvas/video-layout";
 import { CANVAS_SYNC_MESSAGE_LIMIT } from "@/lib/chat/constants";
-import { chatImageDeliveryUrl } from "@/lib/chat/image-url";
 import { findFirstHttpUrl } from "@/lib/link/og-preview";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
@@ -29,22 +30,25 @@ type MessageRow = {
   noi_dung: string | null;
   loai_tin: string | null;
   tao_luc: string;
-  content_media: { cloudflare_id: string | null } | { cloudflare_id: string | null }[] | null;
+  content_media:
+    | {
+        cloudflare_id: string | null;
+        loai_media?: string | null;
+        width?: number | null;
+        height?: number | null;
+      }
+    | {
+        cloudflare_id: string | null;
+        loai_media?: string | null;
+        width?: number | null;
+        height?: number | null;
+      }[]
+    | null;
 };
 
-function imageUrlFromRow(row: MessageRow): string | null {
-  const media = row.content_media;
-  const mediaRow = Array.isArray(media) ? media[0] : media;
-  const cfId =
-    mediaRow && typeof mediaRow === "object" && "cloudflare_id" in mediaRow
-      ? mediaRow.cloudflare_id
-      : null;
-  return cfId ? chatImageDeliveryUrl(cfId) : null;
-}
-
 /**
- * Đồng bộ tin nhắn ảnh/URL của phòng lên canvas dưới dạng node (idempotent).
- * - 1 tin ⇒ tối đa 1 node (ảnh ưu tiên, nếu không có ảnh thì lấy URL đầu tiên).
+ * Đồng bộ tin nhắn ảnh/video/URL của phòng lên canvas dưới dạng node (idempotent).
+ * - 1 tin ⇒ tối đa 1 node (ảnh ưu tiên; video chat R2 → link; không thì URL đầu tiên).
  * - Bỏ qua tin đã ẩn (chat_canvas_tin_an) và tin đã có node.
  * - Node mới xếp lưới nối tiếp sau các node hiện có; user kéo lại sẽ giữ nguyên.
  */
@@ -61,7 +65,9 @@ export async function syncCanvasFromMessages(
   const [messagesRes, existingRes, hiddenRes, countRes] = await Promise.all([
     admin
       .from("chat_tin_nhan")
-      .select("id, noi_dung, loai_tin, tao_luc, content_media(cloudflare_id)")
+      .select(
+        "id, noi_dung, loai_tin, tao_luc, content_media(cloudflare_id, loai_media, width, height)",
+      )
       .eq("id_phong", roomId)
       .eq("da_xoa", false)
       .order("tao_luc", { ascending: true })
@@ -101,16 +107,45 @@ export async function syncCanvasFromMessages(
     if (existingMsgIds.has(raw.id) || hiddenMsgIds.has(raw.id)) continue;
 
     const body = typeof raw.noi_dung === "string" ? raw.noi_dung : "";
-    const imageUrl = imageUrlFromRow(raw);
+    const media = resolveCanvasMessageMedia(raw.content_media);
 
-    if (imageUrl) {
+    if (media?.kind === "anh") {
       rows.push({
         id_canvas: canvasId,
         loai: "anh",
         id_tin_nhan: raw.id,
-        url: imageUrl,
+        url: media.url,
         noi_dung: body.trim() || null,
         layout: gridLayout(position),
+        id_nguoi_tao: viewerId,
+      });
+      position += 1;
+      continue;
+    }
+
+    if (media?.kind === "video") {
+      let layout = gridLayout(position);
+      if (media.width && media.height && media.width > 0 && media.height > 0) {
+        const size = fitCanvasVideoLinkSize(media.width, media.height);
+        layout = {
+          ...layout,
+          w: size.w,
+          h: size.h,
+          imageFitted: true,
+          mediaW: media.width,
+          mediaH: media.height,
+        };
+      }
+      rows.push({
+        id_canvas: canvasId,
+        loai: "link",
+        id_tin_nhan: raw.id,
+        url: media.url,
+        noi_dung:
+          body.trim() && !body.trim().startsWith("chat-video/")
+            ? body.trim()
+            : "Video",
+        layout,
         id_nguoi_tao: viewerId,
       });
       position += 1;

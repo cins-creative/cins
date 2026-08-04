@@ -38,9 +38,20 @@ type MocRow = {
   thoiDiem: string;
   url: string | null;
   nhacTruocPhut: number;
+  loaiLap?: MocLoaiLap;
+  nguon?: "thu_cong" | "lich_lop";
 };
 
 type RemindUnit = "ngay" | "gio" | "phut";
+type MocLoaiLap = "mot_lan" | "ngay" | "tuan" | "thang" | "nam";
+
+const LOAI_LAP_OPTIONS: { value: MocLoaiLap; label: string }[] = [
+  { value: "mot_lan", label: "Một lần" },
+  { value: "ngay", label: "Lặp mỗi ngày" },
+  { value: "tuan", label: "Lặp mỗi tuần" },
+  { value: "thang", label: "Lặp mỗi tháng" },
+  { value: "nam", label: "Lặp mỗi năm" },
+];
 
 const HOUR_OPTIONS = Array.from({ length: 24 }, (_, i) => i);
 const MINUTE_OPTIONS = Array.from({ length: 12 }, (_, i) => i * 5);
@@ -72,6 +83,21 @@ function formatRemindLabel(minutes: number): string {
     return `Nhắc trước ${hours} giờ`;
   }
   return `Nhắc trước ${minutes} phút`;
+}
+
+function formatLoaiLapLabel(loai: MocLoaiLap | undefined): string | null {
+  if (!loai || loai === "mot_lan") return null;
+  const hit = LOAI_LAP_OPTIONS.find((o) => o.value === loai);
+  return hit?.label ?? null;
+}
+
+function formatMocMeta(moc: MocRow): string {
+  if (moc.nguon === "lich_lop") {
+    return `${formatRemindLabel(moc.nhacTruocPhut ?? 15)} · Theo lịch lớp`;
+  }
+  return [formatRemindLabel(moc.nhacTruocPhut ?? 0), formatLoaiLapLabel(moc.loaiLap)]
+    .filter(Boolean)
+    .join(" · ");
 }
 
 /** «Còn X ngày Y giờ…» — ms tới thoi_diem. */
@@ -119,6 +145,7 @@ type MocDraft = {
   phut: number;
   nhacSo: number;
   nhacDonVi: RemindUnit;
+  loaiLap: MocLoaiLap;
 };
 
 const EMPTY_MOC_DRAFT: MocDraft = {
@@ -130,6 +157,7 @@ const EMPTY_MOC_DRAFT: MocDraft = {
   phut: 0,
   nhacSo: 1,
   nhacDonVi: "ngay",
+  loaiLap: "mot_lan",
 };
 
 function pad2(n: number): string {
@@ -168,6 +196,7 @@ function mocToDraft(moc: MocRow): MocDraft {
     phut,
     nhacSo: remind.amount,
     nhacDonVi: remind.unit,
+    loaiLap: moc.loaiLap ?? "mot_lan",
   };
 }
 
@@ -505,12 +534,15 @@ export function ChatRoomResourcesPanel({
 export function ChatRoomMocsPanel({
   roomId,
   canManage,
+  isLopHocRoom = false,
   openFormKey = 0,
   onNotice,
   onNoticesRemoved,
 }: {
   roomId: string;
   canManage: boolean;
+  /** Phòng `loai_phong=lop_hoc` — hiện toggle nhắc lịch. */
+  isLopHocRoom?: boolean;
   /** Tăng giá trị từ ngoài để mở form thêm mốc. */
   openFormKey?: number;
   /** Tin nhắc mốc vừa tạo — append vào thread. */
@@ -527,6 +559,7 @@ export function ChatRoomMocsPanel({
   const [editingMocId, setEditingMocId] = useState<string | null>(null);
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [showPastMocs, setShowPastMocs] = useState(false);
+  const [lichLopEnabled, setLichLopEnabled] = useState(false);
 
   useEffect(() => {
     if (openFormKey > 0 && canManage) {
@@ -554,9 +587,34 @@ export function ChatRoomMocsPanel({
       setLoading(false);
       return;
     }
-    setMocs(json?.mocs ?? []);
+    const next = json?.mocs ?? [];
+    setMocs(next);
+    setLichLopEnabled(next.some((m) => m.nguon === "lich_lop"));
     setLoading(false);
   }, [roomId]);
+
+  const toggleLichLop = (enabled: boolean) => {
+    if (!canManage || !isLopHocRoom || pending) return;
+    startTransition(async () => {
+      const res = await fetch(`/api/chat/rooms/${roomId}/mocs/lich-lop`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled }),
+      });
+      const json = (await res.json().catch(() => null)) as {
+        mocs?: MocRow[];
+        enabled?: boolean;
+        error?: string;
+      } | null;
+      if (!res.ok) {
+        setError(json?.error ?? "Không cập nhật nhắc lịch lớp.");
+        return;
+      }
+      setLichLopEnabled(Boolean(json?.enabled));
+      if (json?.mocs) setMocs(json.mocs);
+      else void load();
+    });
+  };
 
   useEffect(() => {
     void load();
@@ -576,6 +634,10 @@ export function ChatRoomMocsPanel({
   };
 
   const beginEdit = (moc: MocRow) => {
+    if (moc.nguon === "lich_lop") {
+      setError("Mốc theo lịch lớp — dùng nút nhắc buổi học hoặc sửa lịch lớp.");
+      return;
+    }
     setEditingMocId(moc.id);
     setDraft(mocToDraft(moc));
     setShowForm(true);
@@ -597,6 +659,7 @@ export function ChatRoomMocsPanel({
       mo_ta: draft.moTa || null,
       thoi_diem: thoiDiem,
       nhac_truoc_phut: remindToMinutes(draft.nhacSo, draft.nhacDonVi),
+      loai_lap: draft.loaiLap,
     };
     startTransition(async () => {
       const res = await fetch(
@@ -727,10 +790,10 @@ export function ChatRoomMocsPanel({
             </a>
           ) : null}
           <span className="cins-chat-workspace-moc-remind-meta">
-            {formatRemindLabel(moc.nhacTruocPhut ?? 0)}
+            {formatMocMeta(moc)}
           </span>
         </div>
-        {canManage ? (
+        {canManage && moc.nguon !== "lich_lop" ? (
           <div className="cins-chat-workspace-moc-actions">
             <button
               type="button"
@@ -761,6 +824,25 @@ export function ChatRoomMocsPanel({
 
   return (
     <div className="cins-chat-workspace-panel">
+      {isLopHocRoom && canManage ? (
+        <label className="cins-chat-workspace-lich-lop-toggle">
+          <input
+            type="checkbox"
+            checked={lichLopEnabled}
+            disabled={pending || loading}
+            onChange={(e) => toggleLichLop(e.target.checked)}
+          />
+          <span>
+            <strong>Nhắc trước buổi học 15 phút</strong>
+            <em>Theo lịch lớp (T2 · 19:00…)</em>
+          </span>
+        </label>
+      ) : null}
+      {isLopHocRoom && !canManage && lichLopEnabled ? (
+        <p className="cins-chat-workspace-lich-lop-hint">
+          Đã bật nhắc 15 phút trước buổi học theo lịch lớp.
+        </p>
+      ) : null}
       {canManage ? (
         showForm ? (
           <div className="cins-chat-workspace-moc-form">
@@ -852,6 +934,26 @@ export function ChatRoomMocsPanel({
               rows={2}
               onChange={(e) => setDraft((d) => ({ ...d, moTa: e.target.value }))}
             />
+            <label className="cins-chat-workspace-moc-remind">
+              Loại nhắc
+              <select
+                className="cins-chat-workspace-moc-loai-lap"
+                aria-label="Loại nhắc"
+                value={draft.loaiLap}
+                onChange={(e) =>
+                  setDraft((d) => ({
+                    ...d,
+                    loaiLap: e.target.value as MocLoaiLap,
+                  }))
+                }
+              >
+                {LOAI_LAP_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </label>
             <label className="cins-chat-workspace-moc-remind">
               Nhắc trước
               <input
