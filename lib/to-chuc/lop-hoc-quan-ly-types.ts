@@ -10,7 +10,7 @@ export type LopHocQuanLyRow = {
   maLop: string | null;
   lichHoc: string | null;
   hinhThuc: HinhThucLop;
-  ngayKhaiGiang: string;
+  ngayKhaiGiang: string | null;
   slotToiDa: number | null;
   trangThaiLop: TrangThaiLop;
   giaoVienPhuTrach: string | null;

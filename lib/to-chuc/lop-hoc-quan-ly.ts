@@ -175,7 +175,7 @@ export async function listLopHocQuanLy(
       maLop,
       lichHoc: (row.lich_hoc as string | null) ?? null,
       hinhThuc: row.hinh_thuc as HinhThucLop,
-      ngayKhaiGiang: row.ngay_khai_giang as string,
+      ngayKhaiGiang: (row.ngay_khai_giang as string | null) ?? null,
       slotToiDa: (row.slot_toi_da as number | null) ?? null,
       trangThaiLop: row.trang_thai as TrangThaiLop,
       giaoVienPhuTrach: gvId,

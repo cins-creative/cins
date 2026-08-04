@@ -53,5 +53,5 @@ export async function POST(req: Request, ctx: RouteContext) {
     return NextResponse.json({ error: result.error }, { status });
   }
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, lopId: result.lopId });
 }

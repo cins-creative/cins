@@ -74,7 +74,7 @@ function UserAvatar({
 }
 
 export function CoSoGiaoVienPicker({
-  orgId: _orgId,
+  orgId,
   value,
   onChange,
   manualText = "",
@@ -102,9 +102,9 @@ export function CoSoGiaoVienPicker({
     const timer = window.setTimeout(async () => {
       setSearchLoading(true);
       try {
-        const res = await fetch(
-          `/api/users/search?${new URLSearchParams({ q }).toString()}`,
-        );
+        const params = new URLSearchParams({ q });
+        if (orgId.trim()) params.set("org_id", orgId.trim());
+        const res = await fetch(`/api/users/search?${params.toString()}`);
         const json = (await res.json().catch(() => null)) as {
           users?: SearchUser[];
         } | null;
@@ -114,7 +114,7 @@ export function CoSoGiaoVienPicker({
       }
     }, 250);
     return () => window.clearTimeout(timer);
-  }, [query, mode]);
+  }, [query, mode, orgId]);
 
   const visibleResults = useMemo(
     () =>

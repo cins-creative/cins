@@ -43,6 +43,37 @@ function normalizeTime(raw: string): string {
   return `${m[1].padStart(2, "0")}:${m[2]}`;
 }
 
+/** Đang gõ giờ 24h → chỉ giữ số + chèn `:` (vd `0830` → `08:30`). */
+export function formatTime24hTyping(raw: string): string {
+  const digits = raw.replace(/\D/g, "").slice(0, 4);
+  if (digits.length <= 2) return digits;
+  return `${digits.slice(0, 2)}:${digits.slice(2)}`;
+}
+
+/** Commit giờ 24h → `HH:mm` hợp lệ, hoặc `""` nếu rỗng / không hợp lệ. */
+export function commitTime24h(raw: string): string {
+  const t = raw.trim();
+  if (!t) return "";
+  const digits = t.replace(/\D/g, "");
+  if (digits.length < 1 || digits.length > 4) return "";
+  let h: number;
+  let min: number;
+  if (digits.length <= 2) {
+    h = Number(digits);
+    min = 0;
+  } else if (digits.length === 3) {
+    h = Number(digits.slice(0, 1));
+    min = Number(digits.slice(1));
+  } else {
+    h = Number(digits.slice(0, 2));
+    min = Number(digits.slice(2));
+  }
+  if (!Number.isFinite(h) || !Number.isFinite(min) || h > 23 || min > 59) {
+    return "";
+  }
+  return `${String(h).padStart(2, "0")}:${String(min).padStart(2, "0")}`;
+}
+
 function parseThuToken(token: string): number[] {
   const t = token.trim().toUpperCase();
   if (!t) return [];

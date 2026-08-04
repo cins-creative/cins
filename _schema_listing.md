@@ -1204,7 +1204,7 @@ PK: `id`
 | `ma_lop` | `text` | NO |  |
 | `hinh_thuc` | `hinh_thuc_lop_enum` | NO | 'truc_tiep'::hinh_thuc_lop_enum |
 | `giao_vien_phu_trach` | `uuid` | YES |  |
-| `ngay_khai_giang` | `date` | NO |  |
+| `ngay_khai_giang` | `date` | YES |  |
 | `ngay_du_kien_ket_thuc` | `date` | YES |  |
 | `slot_toi_da` | `int4` | YES |  |
 | `trang_thai` | `trang_thai_lop_enum` | NO | 'sap_khai_giang'::trang_thai_lop_enum |

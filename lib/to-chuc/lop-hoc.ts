@@ -28,14 +28,18 @@ function needsDiaChi(hinhThuc: HinhThucLop): boolean {
 function buildMaLop(tenKhoa: string, ngayIso: string): string {
   const slugPart = slugifyOrgName(tenKhoa).slice(0, 24) || "lop";
   const datePart = ngayIso.replace(/-/g, "");
+  if (!datePart) {
+    return `${slugPart}-${Date.now().toString(36)}`.slice(0, 48);
+  }
   return `${slugPart}-${datePart}`.slice(0, 48);
 }
 
 function resolveNgayKhaiGiang(
   _loaiMoHinh: LoaiMoHinhKhoa,
   ngayKhaiGiang: string | null | undefined,
-): string {
-  return ngayKhaiGiang?.trim() ?? "";
+): string | null {
+  const t = ngayKhaiGiang?.trim();
+  return t || null;
 }
 
 function resolveLichHoc(
@@ -104,9 +108,6 @@ function validateLopInput(
   }
 
   const ngay = resolveNgayKhaiGiang(khoa.loaiMoHinh, input.ngayKhaiGiang);
-  if (!ngay) {
-    return { ok: false, error: "Vui lòng chọn ngày khai giảng cho lớp học." };
-  }
 
   if (
     input.slotToiDa != null &&
@@ -225,7 +226,7 @@ function buildLopRow(
   data: LopHocFormInput & {
     hinhThuc: HinhThucLop;
     trangThaiLop: TrangThaiLop;
-    ngayKhaiGiang: string;
+    ngayKhaiGiang: string | null;
     lichHoc: string | null;
     giaoVienPhuTrach: string | null;
     giaoVienText: string | null;
@@ -241,12 +242,13 @@ function buildLopRow(
     id_chi_nhanh: data.chiNhanhIds[0] ?? null,
   };
 
-  if (data.lichHoc != null) row.lich_hoc = data.lichHoc;
+  if (data.lichHoc !== undefined) row.lich_hoc = data.lichHoc;
   if (data.slotToiDa != null) row.slot_toi_da = data.slotToiDa;
 
   const maLop = data.maLop
     ? data.maLop.slice(0, 48)
-    : (existingMaLop ?? buildMaLop(khoa.tenKhoaHoc, data.ngayKhaiGiang));
+    : (existingMaLop ??
+      buildMaLop(khoa.tenKhoaHoc, data.ngayKhaiGiang ?? ""));
   row.ma_lop = maLop;
 
   if (data.giaoVienPhuTrach) {
@@ -258,6 +260,21 @@ function buildLopRow(
   }
 
   return row;
+}
+
+function isMissingColumnError(
+  error: { message?: string; code?: string } | null | undefined,
+  column: string,
+): boolean {
+  if (!error) return false;
+  const msg = error.message ?? "";
+  if (error.code === "42703") return msg.includes(column);
+  return (
+    msg.includes(column) &&
+    (msg.includes("does not exist") ||
+      msg.includes("schema cache") ||
+      msg.includes("Could not find"))
+  );
 }
 
 async function writeLopRow(
@@ -278,15 +295,15 @@ async function writeLopRow(
         .single<{ id: string }>();
 
     let { data, error } = await tryInsert(insertRow);
-    if (error?.message?.includes("lich_hoc")) {
+    if (isMissingColumnError(error, "lich_hoc")) {
       delete insertRow.lich_hoc;
       ({ data, error } = await tryInsert(insertRow));
     }
-    if (error?.message?.includes("giao_vien_text")) {
+    if (isMissingColumnError(error, "giao_vien_text")) {
       delete insertRow.giao_vien_text;
       ({ data, error } = await tryInsert(insertRow));
     }
-    if (error?.message?.includes("id_chi_nhanh")) {
+    if (isMissingColumnError(error, "id_chi_nhanh")) {
       delete insertRow.id_chi_nhanh;
       ({ data, error } = await tryInsert(insertRow));
     }
@@ -302,7 +319,7 @@ async function writeLopRow(
     .eq("id", lopId!)
     .eq("id_khoa_hoc", khoaId);
 
-  if (error?.message?.includes("lich_hoc")) {
+  if (isMissingColumnError(error, "lich_hoc")) {
     delete row.lich_hoc;
     const { error: err2 } = await admin
       .from("org_lop_hoc")
@@ -312,7 +329,7 @@ async function writeLopRow(
     if (err2) return { ok: false, error: err2.message };
     return { ok: true, lopId: lopId! };
   }
-  if (error?.message?.includes("giao_vien_text")) {
+  if (isMissingColumnError(error, "giao_vien_text")) {
     delete row.giao_vien_text;
     const { error: err2 } = await admin
       .from("org_lop_hoc")
@@ -322,7 +339,7 @@ async function writeLopRow(
     if (err2) return { ok: false, error: err2.message };
     return { ok: true, lopId: lopId! };
   }
-  if (error?.message?.includes("id_chi_nhanh")) {
+  if (isMissingColumnError(error, "id_chi_nhanh")) {
     delete row.id_chi_nhanh;
     const { error: err2 } = await admin
       .from("org_lop_hoc")
@@ -357,7 +374,7 @@ export async function taoLopHoc(
   khoaId: string,
   actorId: string,
   input: LopHocFormInput,
-): Promise<{ ok: true } | { ok: false; error: string }> {
+): Promise<{ ok: true; lopId: string } | { ok: false; error: string }> {
   if (!(await canViewerManageKhoaHoc(actorId, orgId))) {
     return { ok: false, error: "Bạn không có quyền thêm lớp học." };
   }
@@ -380,12 +397,16 @@ export async function taoLopHoc(
   const row = buildLopRow(khoa, {
     hinhThuc: data.hinhThuc,
     trangThaiLop: data.trangThaiLop,
-    ngayKhaiGiang: data.ngayKhaiGiang!,
+    ngayKhaiGiang: data.ngayKhaiGiang ?? null,
     lichHoc: data.lichHoc ?? null,
     giaoVienPhuTrach: data.giaoVienPhuTrach ?? null,
     giaoVienText: data.giaoVienText ?? null,
     slotToiDa: data.slotToiDa,
-    maLop: resolveMaLop(khoa.tenKhoaHoc, data.ngayKhaiGiang!, data.maLop),
+    maLop: resolveMaLop(
+      khoa.tenKhoaHoc,
+      data.ngayKhaiGiang ?? "",
+      data.maLop,
+    ),
     chiNhanhIds: data.chiNhanhIds,
   });
 
@@ -402,7 +423,7 @@ export async function taoLopHoc(
     giaoVienUserId: data.giaoVienPhuTrach ?? null,
   });
 
-  return { ok: true };
+  return { ok: true, lopId: written.lopId };
 }
 
 export async function capNhatLopHoc(
@@ -411,7 +432,7 @@ export async function capNhatLopHoc(
   lopId: string,
   actorId: string,
   input: LopHocFormInput,
-): Promise<{ ok: true } | { ok: false; error: string }> {
+): Promise<{ ok: true; lopId: string } | { ok: false; error: string }> {
   if (!(await canViewerManageKhoaHoc(actorId, orgId))) {
     return { ok: false, error: "Bạn không có quyền sửa lớp học." };
   }
@@ -447,13 +468,17 @@ export async function capNhatLopHoc(
     {
       hinhThuc: data.hinhThuc,
       trangThaiLop: data.trangThaiLop,
-      ngayKhaiGiang: data.ngayKhaiGiang!,
+      ngayKhaiGiang: data.ngayKhaiGiang ?? null,
       lichHoc: data.lichHoc ?? null,
       giaoVienPhuTrach: data.giaoVienPhuTrach ?? null,
       giaoVienText: data.giaoVienText ?? null,
       slotToiDa: data.slotToiDa,
       maLop: data.maLop
-        ? resolveMaLop(khoa.tenKhoaHoc, data.ngayKhaiGiang!, data.maLop)
+        ? resolveMaLop(
+            khoa.tenKhoaHoc,
+            data.ngayKhaiGiang ?? "",
+            data.maLop,
+          )
         : null,
       chiNhanhIds: data.chiNhanhIds,
     },
@@ -473,7 +498,7 @@ export async function capNhatLopHoc(
     giaoVienUserId: data.giaoVienPhuTrach ?? null,
   });
 
-  return { ok: true };
+  return { ok: true, lopId };
 }
 
 /** Soft delete lớp — đặt `trang_thai = huy`, giữ row + lịch sử. */

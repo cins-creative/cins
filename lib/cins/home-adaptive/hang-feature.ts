@@ -18,6 +18,8 @@ const FRIEND_CAP = 80;
 const POOL_FRIEND_FEATURE = 40;
 const POOL_FRIEND_NEW = 30;
 const POOL_DISCOVERY = 40;
+/** Discovery không nổi bật — lấp slot khi hết SP `noi_bat`. */
+const POOL_DISCOVERY_NEW = 40;
 const DISCOVERY_SELLER_CAP = 60;
 
 type SpRow = {
@@ -306,7 +308,8 @@ function scoreRow(
 }
 
 /**
- * Gợi ý SP feature — ưu tiên shop bạn bè, fill discovery; roll theo bucket 6h.
+ * Gợi ý SP feature — ưu tiên shop bạn bè (`noi_bat` → mới), fill discovery
+ * (`noi_bat` → hàng đang bán khác) tới đủ `limit`; roll theo bucket 6h.
  * Ưu tiên loại/SP đủ thông tin (có thumbnail). Click → trang loại hàng.
  */
 export async function loadHangFeature(
@@ -368,11 +371,19 @@ export async function loadHangFeature(
     admin,
     discoveryCandidateIds,
   );
-  const discoverySp = await fetchSanPhamPool(
-    admin,
-    [...discoverySellers.keys()],
-    { noiBat: true, limit: POOL_DISCOVERY, preferWithAnh: true },
-  );
+  const discoverySellerIds = [...discoverySellers.keys()];
+  const [discoveryFeature, discoveryNew] = await Promise.all([
+    fetchSanPhamPool(admin, discoverySellerIds, {
+      noiBat: true,
+      limit: POOL_DISCOVERY,
+      preferWithAnh: true,
+    }),
+    fetchSanPhamPool(admin, discoverySellerIds, {
+      noiBat: false,
+      limit: POOL_DISCOVERY_NEW,
+      preferWithAnh: true,
+    }),
+  ]);
 
   const allSellers = new Map<string, SellerMeta>([
     ...friendSellers,
@@ -390,13 +401,15 @@ export async function loadHangFeature(
     tier: "A" | "B" | "C",
   ) => {
     for (const row of rows) {
-      if (tier === "C" && friendSpIds.has(row.id)) continue;
+      if (!fromFriend && friendSpIds.has(row.id)) continue;
       candidateRows.push({ row, fromFriend, tier });
     }
   };
   pushUnique(friendFeature, true, "A");
   pushUnique(friendNew, true, "B");
-  pushUnique(discoverySp, false, "C");
+  /* Discovery feature + hàng đang bán khác (không nổi bật) để fill đủ limit. */
+  pushUnique(discoveryFeature, false, "C");
+  pushUnique(discoveryNew, false, "C");
 
   const nhomIdsAll = [
     ...new Set(
@@ -435,57 +448,14 @@ export async function loadHangFeature(
 
   const maxPerShop = limit >= 6 ? 2 : 1;
 
-  function pickFrom(
-    source: Scored[],
-    onlyComplete: boolean,
-    into: Scored[],
-    perShop: Map<string, number>,
-    usedNhom: Set<string>,
-  ) {
-    for (const row of source) {
-      if (into.length >= limit) break;
-      if (onlyComplete && !row.complete) continue;
-      if (into.some((p) => p.id === row.id)) continue;
-      const nhomId = row.id_nhom!.trim();
-      if (usedNhom.has(nhomId)) continue;
-      const n = perShop.get(row.id_nguoi_dung) ?? 0;
-      if (n >= maxPerShop) continue;
-      into.push(row);
-      perShop.set(row.id_nguoi_dung, n + 1);
-      usedNhom.add(nhomId);
-    }
-  }
-
-  const picked: Scored[] = [];
-  const perShop = new Map<string, number>();
-  const usedNhom = new Set<string>();
-
-  /* Pass 1: chỉ đủ thông tin (có thumb). Pass 2: nới nếu vẫn thiếu. */
-  pickFrom(pool, true, picked, perShop, usedNhom);
-  if (picked.length < limit) {
-    pickFrom(pool, false, picked, perShop, usedNhom);
-  }
-  /* Pass 3: nới unique nhom nếu vẫn thiếu. */
-  if (picked.length < limit) {
-    for (const row of pool) {
-      if (picked.length >= limit) break;
-      if (picked.some((p) => p.id === row.id)) continue;
-      const n = perShop.get(row.id_nguoi_dung) ?? 0;
-      if (n >= maxPerShop) continue;
-      picked.push(row);
-      perShop.set(row.id_nguoi_dung, n + 1);
-    }
-  }
-
-  const items: HangFeatureItem[] = [];
-  for (const row of picked) {
+  function toItem(row: Scored): HangFeatureItem | null {
     const seller = allSellers.get(row.id_nguoi_dung);
-    if (!seller) continue;
+    if (!seller) return null;
     const nhomId = row.id_nhom!.trim();
     const meta = nhomMeta.get(nhomId);
     const shopSlug = shopSlugFromTen(seller.shopTen, seller.slug);
     const thumbId = rowThumbId(row, meta);
-    items.push({
+    return {
       sanPhamId: row.id,
       idNhom: nhomId,
       tenSanPham: row.ten!.trim(),
@@ -498,7 +468,64 @@ export async function loadHangFeature(
       shopSlug,
       href: shopLoaiMauHref(seller.slug, shopSlug, nhomId, row.id),
       fromFriend: row.fromFriend,
-    });
+    };
+  }
+
+  const items: HangFeatureItem[] = [];
+  const usedIds = new Set<string>();
+  const perShop = new Map<string, number>();
+  const usedNhom = new Set<string>();
+
+  function tryAdd(
+    row: Scored,
+    opts: { onlyComplete: boolean; uniqueNhom: boolean; shopCap: number },
+  ) {
+    if (items.length >= limit) return;
+    if (usedIds.has(row.id)) return;
+    if (opts.onlyComplete && !row.complete) return;
+    const nhomId = row.id_nhom!.trim();
+    if (opts.uniqueNhom && usedNhom.has(nhomId)) return;
+    const n = perShop.get(row.id_nguoi_dung) ?? 0;
+    if (n >= opts.shopCap) return;
+    const item = toItem(row);
+    if (!item) return;
+    items.push(item);
+    usedIds.add(row.id);
+    perShop.set(row.id_nguoi_dung, n + 1);
+    usedNhom.add(nhomId);
+  }
+
+  /* Pass 1: đủ thông tin + unique loại. Pass 2: nới thumb. Pass 3: nới unique loại. */
+  for (const row of pool) {
+    tryAdd(row, { onlyComplete: true, uniqueNhom: true, shopCap: maxPerShop });
+  }
+  if (items.length < limit) {
+    for (const row of pool) {
+      tryAdd(row, {
+        onlyComplete: false,
+        uniqueNhom: true,
+        shopCap: maxPerShop,
+      });
+    }
+  }
+  if (items.length < limit) {
+    for (const row of pool) {
+      tryAdd(row, {
+        onlyComplete: false,
+        uniqueNhom: false,
+        shopCap: maxPerShop,
+      });
+    }
+  }
+  /* Pass 4: nới cap/shop nếu vẫn thiếu slot (limit cao). */
+  if (items.length < limit) {
+    for (const row of pool) {
+      tryAdd(row, {
+        onlyComplete: false,
+        uniqueNhom: false,
+        shopCap: Math.max(maxPerShop, 3),
+      });
+    }
   }
 
   return items;

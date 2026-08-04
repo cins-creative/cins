@@ -1,12 +1,18 @@
 "use client";
 
 import { Plus, X } from "lucide-react";
-import { Fragment, useMemo, useState } from "react";
+import {
+  forwardRef,
+  useImperativeHandle,
+  useState,
+} from "react";
 
 import {
+  commitTime24h,
   emptyLichCaHocDraft,
   formatLichCaHoc,
   formatLichCaHocList,
+  formatTime24hTyping,
   isLichCaHocSlotReady,
   parseLichCaHocList,
   THU_OPTIONS,
@@ -19,13 +25,9 @@ type Props = {
   idPrefix?: string;
 };
 
-type HeatRow = {
-  key: string;
-  time: string;
-  start: string;
-  end: string;
-  /** day value → slot index (đầu tiên nếu trùng) */
-  byDay: Map<number, number>;
+export type LichCaHocFieldsHandle = {
+  /** Commit draft đang mở (nếu đủ dữ liệu) trước khi submit form. */
+  flushPending: () => string;
 };
 
 function emitSlots(
@@ -33,42 +35,6 @@ function emitSlots(
   onChange: (value: string) => void,
 ) {
   onChange(formatLichCaHocList(slots) ?? "");
-}
-
-function formatTimeRange(slot: LichCaHocDraft): string {
-  const start = slot.gioBatDau.trim();
-  const end = slot.gioKetThuc.trim();
-  if (start && end) return `${start}–${end}`;
-  if (start) return `${start}–`;
-  if (end) return `–${end}`;
-  return slot.caLabel.trim() || "Ca";
-}
-
-function timeSortKey(slot: LichCaHocDraft): string {
-  return `${slot.gioBatDau.trim() || "99:99"}|${slot.gioKetThuc.trim() || "99:99"}`;
-}
-
-function buildHeatRows(slots: LichCaHocDraft[]): HeatRow[] {
-  const map = new Map<string, HeatRow>();
-  slots.forEach((slot, index) => {
-    const time = formatTimeRange(slot);
-    const key = timeSortKey(slot);
-    let row = map.get(key);
-    if (!row) {
-      row = {
-        key,
-        time,
-        start: slot.gioBatDau.trim(),
-        end: slot.gioKetThuc.trim(),
-        byDay: new Map(),
-      };
-      map.set(key, row);
-    }
-    for (const day of slot.thu) {
-      if (!row.byDay.has(day)) row.byDay.set(day, index);
-    }
-  });
-  return [...map.values()].sort((a, b) => a.key.localeCompare(b.key));
 }
 
 function SlotEditor({
@@ -117,25 +83,51 @@ function SlotEditor({
         <span className="cso-kh-lich-ca-k">Giờ học</span>
         <div className="cso-kh-lich-ca-time">
           <input
-            type="time"
+            type="text"
+            inputMode="numeric"
+            placeholder="08:00"
+            autoComplete="off"
+            maxLength={5}
             className="cso-kh-input cso-kh-lich-ca-time-input"
             value={draft.gioBatDau}
             onChange={(e) =>
-              onChange({ ...draft, gioBatDau: e.target.value })
+              onChange({
+                ...draft,
+                gioBatDau: formatTime24hTyping(e.target.value),
+              })
             }
-            aria-label="Giờ bắt đầu"
+            onBlur={() =>
+              onChange({
+                ...draft,
+                gioBatDau: commitTime24h(draft.gioBatDau),
+              })
+            }
+            aria-label="Giờ bắt đầu (24 giờ)"
           />
           <span className="cso-kh-lich-ca-time-sep" aria-hidden>
             —
           </span>
           <input
-            type="time"
+            type="text"
+            inputMode="numeric"
+            placeholder="10:00"
+            autoComplete="off"
+            maxLength={5}
             className="cso-kh-input cso-kh-lich-ca-time-input"
             value={draft.gioKetThuc}
             onChange={(e) =>
-              onChange({ ...draft, gioKetThuc: e.target.value })
+              onChange({
+                ...draft,
+                gioKetThuc: formatTime24hTyping(e.target.value),
+              })
             }
-            aria-label="Giờ kết thúc"
+            onBlur={() =>
+              onChange({
+                ...draft,
+                gioKetThuc: commitTime24h(draft.gioKetThuc),
+              })
+            }
+            aria-label="Giờ kết thúc (24 giờ)"
           />
         </div>
       </div>
@@ -143,228 +135,156 @@ function SlotEditor({
   );
 }
 
-export function LichCaHocFields({
-  value,
-  onChange,
-  idPrefix = "lich-ca",
-}: Props) {
-  const slots = parseLichCaHocList(value);
-  const [adding, setAdding] = useState(false);
-  const [draft, setDraft] = useState<LichCaHocDraft>(emptyLichCaHocDraft);
-  const [editIndex, setEditIndex] = useState<number | null>(null);
+export const LichCaHocFields = forwardRef<LichCaHocFieldsHandle, Props>(
+  function LichCaHocFields(
+    { value, onChange, idPrefix = "lich-ca" },
+    ref,
+  ) {
+    const slots = parseLichCaHocList(value);
+    const [adding, setAdding] = useState(false);
+    const [draft, setDraft] = useState<LichCaHocDraft>(emptyLichCaHocDraft);
+    const [editIndex, setEditIndex] = useState<number | null>(null);
 
-  const heatRows = useMemo(() => buildHeatRows(slots), [slots]);
-
-  function startAdd(preset?: { day?: number; start?: string; end?: string }) {
-    setEditIndex(null);
-    setDraft({
-      ...emptyLichCaHocDraft(),
-      thu: preset?.day != null ? [preset.day] : [],
-      gioBatDau: preset?.start ?? "",
-      gioKetThuc: preset?.end ?? "",
-    });
-    setAdding(true);
-  }
-
-  function startEdit(index: number) {
-    const slot = slots[index];
-    if (!slot) return;
-    setAdding(false);
-    setEditIndex(index);
-    setDraft({ ...slot, thu: [...slot.thu] });
-  }
-
-  function cancelEditor() {
-    setAdding(false);
-    setEditIndex(null);
-    setDraft(emptyLichCaHocDraft());
-  }
-
-  function commitEditor() {
-    if (!isLichCaHocSlotReady(draft)) return;
-    if (editIndex != null) {
-      const next = slots.map((s, i) => (i === editIndex ? draft : s));
-      emitSlots(next, onChange);
-    } else {
-      emitSlots([...slots, draft], onChange);
+    function startAdd() {
+      setEditIndex(null);
+      setDraft(emptyLichCaHocDraft());
+      setAdding(true);
     }
-    cancelEditor();
-  }
 
-  function removeSlot(index: number) {
-    emitSlots(
-      slots.filter((_, i) => i !== index),
-      onChange,
-    );
-    if (editIndex === index) cancelEditor();
-  }
+    function startEdit(index: number) {
+      const slot = slots[index];
+      if (!slot) return;
+      setAdding(false);
+      setEditIndex(index);
+      setDraft({ ...slot, thu: [...slot.thu] });
+    }
 
-  const editing = adding || editIndex != null;
-  const canCommit = isLichCaHocSlotReady(draft);
-  const hasSlotDays = slots.some((s) => s.thu.length > 0);
+    function closeEditor() {
+      setAdding(false);
+      setEditIndex(null);
+      setDraft(emptyLichCaHocDraft());
+    }
 
-  return (
-    <div className="cso-kh-lich-ca">
-      {slots.length > 0 && hasSlotDays ? (
-        <div
-          className="cso-kh-lich-ca-heat"
-          role="grid"
-          aria-label="Lịch ca theo tuần"
-        >
-          <div className="cso-kh-lich-ca-heat-corner" aria-hidden />
-          {THU_OPTIONS.map((opt) => (
-            <div
-              key={opt.value}
-              className="cso-kh-lich-ca-heat-day"
-              role="columnheader"
-            >
-              {opt.label}
-            </div>
-          ))}
+    /** Ghi draft vào danh sách ngay khi đủ ngày/giờ — không cần nút «Cập nhật ca». */
+    function syncDraft(nextDraft: LichCaHocDraft) {
+      setDraft(nextDraft);
+      if (!isLichCaHocSlotReady(nextDraft)) return;
 
-          {heatRows.map((row) => (
-            <Fragment key={row.key}>
-              <div
-                className="cso-kh-lich-ca-heat-time"
-                role="rowheader"
-                title={row.time}
-              >
-                <span className="cso-kh-lich-ca-heat-time-start">
-                  {row.start || "—"}
-                </span>
-                {row.end ? (
-                  <span className="cso-kh-lich-ca-heat-time-end">{row.end}</span>
-                ) : null}
-              </div>
-              {THU_OPTIONS.map((opt) => {
-                const slotIndex = row.byDay.get(opt.value);
-                const filled = slotIndex != null;
-                const isEditing = filled && editIndex === slotIndex;
-                const slotLabel =
-                  filled && slots[slotIndex]
-                    ? (formatLichCaHoc(slots[slotIndex]!) ?? row.time)
-                    : `${opt.label} · ${row.time}`;
+      if (editIndex != null) {
+        emitSlots(
+          slots.map((s, i) => (i === editIndex ? nextDraft : s)),
+          onChange,
+        );
+        return;
+      }
 
-                return (
-                  <div
-                    key={`${row.key}-${opt.value}`}
-                    className="cso-kh-lich-ca-heat-cell-wrap"
-                    role="gridcell"
+      if (adding) {
+        const next = [...slots, nextDraft];
+        emitSlots(next, onChange);
+        setAdding(false);
+        setEditIndex(next.length - 1);
+      }
+    }
+
+    function removeSlot(index: number) {
+      emitSlots(
+        slots.filter((_, i) => i !== index),
+        onChange,
+      );
+      if (editIndex === index) closeEditor();
+      else if (editIndex != null && editIndex > index) {
+        setEditIndex(editIndex - 1);
+      }
+    }
+
+    useImperativeHandle(ref, () => ({
+      flushPending() {
+        const editingOpen = adding || editIndex != null;
+        if (!editingOpen || !isLichCaHocSlotReady(draft)) {
+          return value.trim();
+        }
+        const nextSlots =
+          editIndex != null
+            ? slots.map((s, i) => (i === editIndex ? draft : s))
+            : [...slots, draft];
+        const next = formatLichCaHocList(nextSlots) ?? "";
+        onChange(next);
+        closeEditor();
+        return next;
+      },
+    }));
+
+    const editing = adding || editIndex != null;
+
+    return (
+      <div className="cso-kh-lich-ca">
+        {slots.length > 0 ? (
+          <ul className="cso-kh-lich-ca-list" aria-label="Khung giờ đã thêm">
+            {slots.map((slot, index) => {
+              const label = formatLichCaHoc(slot) ?? "Ca học";
+              const isEditing = editIndex === index;
+              return (
+                <li
+                  key={`${label}-${index}`}
+                  className={`cso-kh-lich-ca-item${isEditing ? " is-editing" : ""}`}
+                >
+                  <button
+                    type="button"
+                    className="cso-kh-lich-ca-item-main"
+                    onClick={() => startEdit(index)}
+                    aria-label={`Sửa ca: ${label}`}
                   >
-                    {filled ? (
-                      <button
-                        type="button"
-                        className={`cso-kh-lich-ca-heat-cell is-on${isEditing ? " is-editing" : ""}`}
-                        onClick={() => startEdit(slotIndex)}
-                        title={`${slotLabel} — bấm để sửa`}
-                        aria-label={`Sửa ca: ${slotLabel}`}
-                      />
-                    ) : (
-                      <button
-                        type="button"
-                        className="cso-kh-lich-ca-heat-cell"
-                        onClick={() =>
-                          startAdd({
-                            day: opt.value,
-                            start: row.start,
-                            end: row.end,
-                          })
-                        }
-                        title={`Thêm ca ${opt.label} ${row.time}`}
-                        aria-label={`Thêm ca ${opt.label} ${row.time}`}
-                      />
-                    )}
-                    {filled ? (
-                      <button
-                        type="button"
-                        className="cso-kh-lich-ca-heat-remove"
-                        onClick={() => removeSlot(slotIndex)}
-                        aria-label={`Xóa ca: ${slotLabel}`}
-                        title="Xóa ca"
-                      >
-                        <X size={10} strokeWidth={2.6} aria-hidden />
-                      </button>
-                    ) : null}
-                  </div>
-                );
-              })}
-            </Fragment>
-          ))}
-        </div>
-      ) : slots.length > 0 ? (
-        <ul className="cso-kh-lich-ca-list" aria-label="Khung giờ đã thêm">
-          {slots.map((slot, index) => {
-            const label = formatLichCaHoc(slot) ?? "Ca học";
-            const isEditing = editIndex === index;
-            return (
-              <li
-                key={`${label}-${index}`}
-                className={`cso-kh-lich-ca-item${isEditing ? " is-editing" : ""}`}
-              >
-                <button
-                  type="button"
-                  className="cso-kh-lich-ca-item-main"
-                  onClick={() => startEdit(index)}
-                  aria-label={`Sửa ca: ${label}`}
-                >
-                  <span className="cso-kh-lich-ca-item-label">{label}</span>
-                </button>
-                <button
-                  type="button"
-                  className="cso-kh-lich-ca-item-remove"
-                  onClick={() => removeSlot(index)}
-                  aria-label={`Xóa ca: ${label}`}
-                >
-                  <X size={14} strokeWidth={2.2} aria-hidden />
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      ) : !editing ? (
-        <p className="cso-kh-field-hint">
-          Chưa có khung giờ. Thêm ca để hiện lưới T2–CN × giờ học.
-        </p>
-      ) : null}
+                    <span className="cso-kh-lich-ca-item-label">{label}</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="cso-kh-lich-ca-item-remove"
+                    onClick={() => removeSlot(index)}
+                    aria-label={`Xóa ca: ${label}`}
+                  >
+                    <X size={14} strokeWidth={2.2} aria-hidden />
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        ) : !editing ? (
+          <p className="cso-kh-field-hint">
+            Chưa có khung giờ. Bấm «Thêm ca» để chọn ngày và giờ học.
+          </p>
+        ) : null}
 
-      {editing ? (
-        <div className="cso-kh-lich-ca-panel">
-          <div className="cso-kh-lich-ca-panel-head">
-            <span className="cso-kh-lich-ca-panel-title">
-              {editIndex != null ? "Sửa ca học" : "Thêm ca học"}
-            </span>
-            <button
-              type="button"
-              className="cso-kh-lich-ca-panel-cancel"
-              onClick={cancelEditor}
-            >
-              Huỷ
-            </button>
+        {editing ? (
+          <div className="cso-kh-lich-ca-panel">
+            <div className="cso-kh-lich-ca-panel-head">
+              <span className="cso-kh-lich-ca-panel-title">
+                {editIndex != null ? "Sửa ca học" : "Thêm ca học"}
+              </span>
+              <button
+                type="button"
+                className="cso-kh-lich-ca-panel-cancel"
+                onClick={closeEditor}
+              >
+                Xong
+              </button>
+            </div>
+            <SlotEditor
+              draft={draft}
+              onChange={syncDraft}
+              idPrefix={`${idPrefix}-${editIndex ?? "new"}`}
+            />
           </div>
-          <SlotEditor
-            draft={draft}
-            onChange={setDraft}
-            idPrefix={`${idPrefix}-${editIndex ?? "new"}`}
-          />
+        ) : (
           <button
             type="button"
-            className="cso-kh-lich-ca-commit"
-            disabled={!canCommit}
-            onClick={commitEditor}
+            className="cso-kh-lich-ca-add"
+            onClick={startAdd}
           >
-            {editIndex != null ? "Cập nhật ca" : "Lưu ca này"}
+            <Plus size={15} strokeWidth={2.2} aria-hidden />
+            Thêm ca
           </button>
-        </div>
-      ) : (
-        <button
-          type="button"
-          className="cso-kh-lich-ca-add"
-          onClick={() => startAdd()}
-        >
-          <Plus size={15} strokeWidth={2.2} aria-hidden />
-          Thêm ca
-        </button>
-      )}
-    </div>
-  );
-}
+        )}
+      </div>
+    );
+  },
+);

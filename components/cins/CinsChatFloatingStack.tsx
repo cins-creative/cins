@@ -1,6 +1,6 @@
 "use client";
 
-import { Maximize2, Phone, Send, Trash2, X } from "lucide-react";
+import { Maximize2, Send, Trash2, X } from "lucide-react";
 import dynamic from "next/dynamic";
 import {
   useCallback,
@@ -25,6 +25,7 @@ import {
   filterChatAtMembers,
   isChatAtMentionAll,
 } from "@/components/cins/ChatAtMentionMenu";
+import { ChatCallModeMenu } from "@/components/cins/ChatCallModeMenu";
 import { ChatComposeToolsMenu } from "@/components/cins/ChatComposeToolsMenu";
 import { ChatForwardPicker } from "@/components/cins/ChatForwardPicker";
 import { ChatGroupAvatar } from "@/components/cins/ChatGroupAvatar";
@@ -81,7 +82,6 @@ import {
   updateCallWindowSession,
 } from "@/lib/media/call-window";
 import { prefetchPhongHocMeeting } from "@/lib/media/prefetch-phong-hoc";
-import { warmCallMedia } from "@/lib/media/media-warm";
 import {
   applyOrgRoomReadCursorRealtime,
   patchChatReadCursorMessage,
@@ -1747,59 +1747,61 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
     [],
   );
 
-  const joinPhongHoc = useCallback(async () => {
-    const roomId = miniThread?.roomId;
-    if (!roomId || isPendingRoomId(roomId) || phongHocBusy) return;
-    const mode = "audio" as const;
-    const title = miniThread?.name?.trim() || "Cuộc gọi";
-    beginCallTrace("caller", { roomId, mode, via: "mini" });
-    setPhongHocBusy(true);
-    setPhongHocErr(null);
-    presentPhongHocUi({
-      roomId,
-      token: "",
-      mode,
-      title,
-      callMessageId: null,
-    });
-    try {
-      const res = await fetch(
-        `/api/chat/rooms/${encodeURIComponent(roomId)}/phong-hoc/token`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ mode, action: "start" }),
-        },
-      );
-      callTraceAttachServerTiming(res.headers.get("Server-Timing"));
-      callTraceMark("T0b", { status: res.status });
-      const json = (await res.json().catch(() => null)) as {
-        token?: string;
-        callMessageId?: string | null;
-        error?: string;
-      } | null;
-      if (!res.ok || !json?.token) {
-        setPhongHoc(null);
-        callWindowSidRef.current = null;
-        setPhongHocErr(json?.error || "Không bắt đầu được cuộc gọi.");
-        return;
-      }
-      if (json.callMessageId) callTraceRingSent(json.callMessageId);
+  const joinPhongHoc = useCallback(
+    async (mode: MediaCallMode = "audio") => {
+      const roomId = miniThread?.roomId;
+      if (!roomId || isPendingRoomId(roomId) || phongHocBusy) return;
+      const title = miniThread?.name?.trim() || "Cuộc gọi";
+      beginCallTrace("caller", { roomId, mode, via: "mini" });
+      setPhongHocBusy(true);
+      setPhongHocErr(null);
       presentPhongHocUi({
         roomId,
-        token: json.token,
+        token: "",
         mode,
         title,
-        callMessageId: json.callMessageId ?? null,
+        callMessageId: null,
       });
-    } catch {
-      setPhongHoc(null);
-      callWindowSidRef.current = null;
-      setPhongHocErr("Lỗi mạng — thử lại.");
-    } finally {
-      setPhongHocBusy(false);
-    }
-  }, [miniThread, phongHocBusy, presentPhongHocUi]);
+      try {
+        const res = await fetch(
+          `/api/chat/rooms/${encodeURIComponent(roomId)}/phong-hoc/token`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ mode, action: "start" }),
+          },
+        );
+        callTraceAttachServerTiming(res.headers.get("Server-Timing"));
+        callTraceMark("T0b", { status: res.status });
+        const json = (await res.json().catch(() => null)) as {
+          token?: string;
+          callMessageId?: string | null;
+          error?: string;
+        } | null;
+        if (!res.ok || !json?.token) {
+          setPhongHoc(null);
+          callWindowSidRef.current = null;
+          setPhongHocErr(json?.error || "Không bắt đầu được cuộc gọi.");
+          return;
+        }
+        if (json.callMessageId) callTraceRingSent(json.callMessageId);
+        presentPhongHocUi({
+          roomId,
+          token: json.token,
+          mode,
+          title,
+          callMessageId: json.callMessageId ?? null,
+        });
+      } catch {
+        setPhongHoc(null);
+        callWindowSidRef.current = null;
+        setPhongHocErr("Lỗi mạng — thử lại.");
+      } finally {
+        setPhongHocBusy(false);
+      }
+    },
+    [miniThread, phongHocBusy, presentPhongHocUi],
+  );
 
   useEffect(() => {
     const roomId = miniThread?.roomId;
@@ -2477,19 +2479,10 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
                 onCreatePoll={handleMiniCreatePoll}
               />
               {canJoinPhongHoc ? (
-                <button
-                  type="button"
-                  className="cins-chat-attach"
-                  aria-label="Gọi"
-                  title="Gọi"
+                <ChatCallModeMenu
                   disabled={phongHocBusy}
-                  onPointerEnter={() => {
-                    void warmCallMedia({ video: false });
-                  }}
-                  onClick={() => void joinPhongHoc()}
-                >
-                  <Phone size={16} strokeWidth={1.9} aria-hidden />
-                </button>
+                  onSelect={(mode) => void joinPhongHoc(mode)}
+                />
               ) : null}
               <button
                 type="button"

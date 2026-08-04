@@ -25,9 +25,12 @@ import type {
   KhoaHocCardData,
   LoaiMoHinhKhoa,
   LopHocDetailData,
+  LopHocFormInput,
   TrangThaiLop,
 } from "@/lib/to-chuc/khoa-hoc-types";
 import type { LopHocQuanLyRow } from "@/lib/to-chuc/lop-hoc-quan-ly-types";
+import { getAvatarUrl } from "@/lib/journey/profile";
+import type { CoSoGiaoVienPick } from "@/components/co-so/CoSoGiaoVienPicker";
 
 type KhoaOption = {
   id: string;
@@ -55,6 +58,67 @@ function initials(name: string): string {
   if (parts.length === 0) return "?";
   if (parts.length === 1) return parts[0]!.slice(0, 2).toUpperCase();
   return `${parts[0]![0] ?? ""}${parts[parts.length - 1]![0] ?? ""}`.toUpperCase();
+}
+
+/** Merge form → hàng bảng ngay sau Lưu (trước refetch). */
+function optimisticLopRow(input: {
+  lopId: string;
+  payload: LopHocFormInput;
+  khoa: KhoaOption;
+  prev: LopHocQuanLyRow | null;
+  giaoVien: CoSoGiaoVienPick | null;
+}): LopHocQuanLyRow {
+  const { lopId, payload, khoa, prev, giaoVien } = input;
+  const gvId = payload.giaoVienPhuTrach ?? null;
+  const gvText = payload.giaoVienText?.trim() || null;
+  const chiNhanhIds = payload.chiNhanhIds ?? [];
+  const prevCn = prev?.chiNhanh ?? [];
+  const chiNhanh = chiNhanhIds.map((id) => {
+    const hit = prevCn.find((c) => c.id === id);
+    return hit ?? { id, ten: "Chi nhánh", diaChi: null };
+  });
+
+  let giaoVienTen: string | null = gvText;
+  let giaoVienSlug: string | null = null;
+  let giaoVienAvatarId: string | null = null;
+  let giaoVienAvatarUrl: string | null = null;
+
+  if (giaoVien && giaoVien.userId === gvId) {
+    giaoVienTen = giaoVien.tenHienThi?.trim() || gvText;
+    giaoVienSlug = giaoVien.slug?.trim() || null;
+    giaoVienAvatarId = giaoVien.avatarId ?? null;
+    giaoVienAvatarUrl = getAvatarUrl(giaoVienAvatarId);
+  } else if (prev && prev.giaoVienPhuTrach === gvId && gvId) {
+    giaoVienTen = prev.giaoVienTen;
+    giaoVienSlug = prev.giaoVienSlug;
+    giaoVienAvatarId = prev.giaoVienAvatarId;
+    giaoVienAvatarUrl = prev.giaoVienAvatarUrl;
+  }
+
+  return {
+    id: lopId,
+    maLop: payload.maLop?.trim() || null,
+    lichHoc: payload.lichHoc?.trim() || null,
+    hinhThuc: payload.hinhThuc ?? prev?.hinhThuc ?? "truc_tuyen",
+    ngayKhaiGiang: payload.ngayKhaiGiang?.trim() || null,
+    slotToiDa: payload.slotToiDa ?? null,
+    trangThaiLop: payload.trangThaiLop ?? prev?.trangThaiLop ?? "sap_khai_giang",
+    giaoVienPhuTrach: gvId,
+    giaoVienText: gvId ? null : gvText,
+    giaoVienTen,
+    giaoVienSlug,
+    giaoVienAvatarId,
+    giaoVienAvatarUrl,
+    khoaId: khoa.id,
+    khoaSlug: khoa.slug,
+    tenKhoa: khoa.tenKhoaHoc,
+    loaiMoHinh: khoa.loaiMoHinh,
+    soHocVien: prev?.soHocVien ?? 0,
+    avatarId: prev?.avatarId ?? null,
+    avatarUrl: prev?.avatarUrl ?? null,
+    chiNhanhIds,
+    chiNhanh,
+  };
 }
 
 function toLopDetail(row: LopHocQuanLyRow): LopHocDetailData {
@@ -146,7 +210,8 @@ function GiaoVienCell({ row }: { row: LopHocQuanLyRow }) {
   );
 }
 
-function formatNgay(iso: string): string {
+function formatNgay(iso: string | null | undefined): string {
+  if (!iso?.trim()) return "—";
   try {
     return new Date(`${iso}T12:00:00`).toLocaleDateString("vi-VN", {
       day: "2-digit",
@@ -460,12 +525,11 @@ export function LopHocQuanLyPanel({
         <div className="cso-dt-panel-head">
           <div className="cso-lh-head-row">
             <div>
-              <h2 className="cso-dt-panel-title">Danh sách lớp</h2>
-              <p className="cso-dt-panel-sub">
+              <h2 className="cso-dt-panel-title">
                 {filterTenKhoa
-                  ? `Đang lọc theo khóa «${filterTenKhoa}».`
-                  : "Lớp thuộc các khóa — sửa thông tin, lịch và giảng viên tại đây."}
-              </p>
+                  ? `Danh sách lớp ${filterTenKhoa}`
+                  : "Danh sách lớp"}
+              </h2>
             </div>
             <div className="cso-lh-head-tools">
               <label className="cso-lh-filter">
@@ -575,7 +639,7 @@ export function LopHocQuanLyPanel({
                             </span>
                           )}
                           <div className="cso-hv-person-meta">
-                            <p className="cso-hv-name cso-lh-ma-lop">
+                            <p className="cso-hv-course">
                               {r.maLop || "Chưa có mã"}
                             </p>
                             <p className="cso-hv-lop">
@@ -607,7 +671,7 @@ export function LopHocQuanLyPanel({
                       <td>
                         {canEdit ? (
                           <select
-                            className={`cso-ql-select cso-lh-status-select${
+                            className={`cso-lh-status-select${
                               r.trangThaiLop === "dang_hoc"
                                 ? " is-ok"
                                 : r.trangThaiLop === "huy" ||
@@ -757,7 +821,25 @@ export function LopHocQuanLyPanel({
           tenKhoaHoc={modalKhoa.tenKhoaHoc}
           editing={editing ? toLopDetail(editing) : null}
           onClose={closeModals}
-          onSaved={() => {
+          onSaved={(payload, meta) => {
+            const khoa = modalKhoa;
+            const prevRow = editing;
+            if (khoa) {
+              const nextRow = optimisticLopRow({
+                lopId: meta.lopId,
+                payload,
+                khoa,
+                prev: prevRow,
+                giaoVien: meta.giaoVien,
+              });
+              setRows((prev) => {
+                const next = prevRow
+                  ? prev.map((r) => (r.id === prevRow.id ? nextRow : r))
+                  : [nextRow, ...prev.filter((r) => r.id !== nextRow.id)];
+                onRowsChange?.(next);
+                return next;
+              });
+            }
             closeModals();
             void load({ silent: true });
           }}

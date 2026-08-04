@@ -314,9 +314,6 @@ export function KhoaHocQuanLyClient({ orgId, orgSlug }: Props) {
               <div className="cso-lh-head-row">
                 <div>
                   <h2 className="cso-dt-panel-title">Catalog khóa</h2>
-                  <p className="cso-dt-panel-sub">
-                    Bấm số lớp / gói / học viên để xem danh sách tương ứng.
-                  </p>
                 </div>
                 <button
                   type="button"

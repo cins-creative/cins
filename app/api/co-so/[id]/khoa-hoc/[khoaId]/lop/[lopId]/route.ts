@@ -61,7 +61,7 @@ export async function PATCH(req: Request, ctx: RouteContext) {
     return NextResponse.json({ error: result.error }, { status });
   }
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, lopId: result.lopId });
 }
 
 /** DELETE /api/co-so/:id/khoa-hoc/:khoaId/lop/:lopId — hard delete (guard). Soft → PATCH trangThaiLop=huy. */

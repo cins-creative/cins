@@ -1,14 +1,17 @@
 "use client";
 
 import { Layers, Loader2, MapPin, Monitor, X } from "lucide-react";
-import { useCallback, useEffect, useId, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 
 import { TruongInlineModal } from "@/components/truong/inline/TruongInlineModal";
 import {
   CoSoGiaoVienPicker,
   type CoSoGiaoVienPick,
 } from "@/components/co-so/CoSoGiaoVienPicker";
-import { LichCaHocFields } from "@/components/co-so/LichCaHocFields";
+import {
+  LichCaHocFields,
+  type LichCaHocFieldsHandle,
+} from "@/components/co-so/LichCaHocFields";
 import {
   HINH_THUC_LOP_OPTIONS,
   TRANG_THAI_LOP_OPTIONS,
@@ -47,7 +50,10 @@ type Props = {
   tenKhoaHoc: string;
   editing?: LopHocDetailData | null;
   isMockup?: boolean;
-  onSaved: (payload: LopHocFormInput) => void;
+  onSaved: (
+    payload: LopHocFormInput,
+    meta: { lopId: string; giaoVien: CoSoGiaoVienPick | null },
+  ) => void;
 };
 
 function needsDiaChi(hinhThuc: HinhThucLop): boolean {
@@ -89,6 +95,7 @@ export function LopHocEditModal({
     useState<TrangThaiLop>("sap_khai_giang");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const lichCaRef = useRef<LichCaHocFieldsHandle>(null);
 
   const reset = useCallback(() => {
     setMaLop("");
@@ -197,12 +204,14 @@ export function LopHocEditModal({
     );
   }
 
-  function buildPayload(): LopHocFormInput {
+  function buildPayload(lichHocOverride?: string): LopHocFormInput {
     const offline = needsDiaChi(hinhThuc);
+    const lich =
+      lichHocOverride !== undefined ? lichHocOverride : lichHoc;
     return {
       maLop: maLop.trim() || null,
       hinhThuc,
-      lichHoc: lichHoc.trim() || null,
+      lichHoc: lich.trim() || null,
       ngayKhaiGiang: ngayKhaiGiang.trim() || null,
       giaoVienPhuTrach: giaoVienUser?.userId ?? null,
       giaoVienText: giaoVienUser ? null : giaoVienText.trim() || null,
@@ -215,11 +224,6 @@ export function LopHocEditModal({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (submitting) return;
-
-    if (!ngayKhaiGiang.trim()) {
-      setError("Vui lòng chọn ngày khai giảng — mốc sẽ hiện trên timeline thông báo.");
-      return;
-    }
 
     if (needsDiaChi(hinhThuc)) {
       if (diaDiemLoading) {
@@ -235,10 +239,20 @@ export function LopHocEditModal({
     setSubmitting(true);
     setError(null);
 
-    const payload = buildPayload();
+    /* Flush ca đang sửa/thêm — tránh mất draft khi bấm Lưu lớp luôn. */
+    const flushedLich = lichCaRef.current?.flushPending() ?? lichHoc;
+    if (flushedLich !== lichHoc) setLichHoc(flushedLich);
+    const payload = buildPayload(flushedLich);
+    const savedMeta = (lopId: string) => ({
+      lopId,
+      giaoVien: giaoVienUser,
+    });
 
     if (isMockup) {
-      onSaved(payload);
+      onSaved(
+        payload,
+        savedMeta(editing?.id ?? crypto.randomUUID()),
+      );
       setSubmitting(false);
       handleClose();
       return;
@@ -255,11 +269,16 @@ export function LopHocEditModal({
       });
       const json = (await res.json().catch(() => null)) as {
         error?: string;
+        lopId?: string;
       } | null;
       if (!res.ok) {
         throw new Error(json?.error ?? "Không lưu được lớp học.");
       }
-      onSaved(payload);
+      const lopId = json?.lopId?.trim() || editing?.id;
+      if (!lopId) {
+        throw new Error("Không nhận được mã lớp sau khi lưu.");
+      }
+      onSaved(payload, savedMeta(lopId));
       handleClose();
     } catch (err) {
       setError(
@@ -334,21 +353,25 @@ export function LopHocEditModal({
             <h3 className="cso-kh-section-title">Lịch học</h3>
 
             <label className="cso-kh-field">
-              <span className="cso-kh-label">
-                Ngày khai giảng <span className="cso-kh-req">*</span>
-              </span>
+              <span className="cso-kh-label">Ngày khai giảng</span>
               <input
                 type="date"
                 className="cso-kh-input"
                 value={ngayKhaiGiang}
                 onChange={(e) => setNgayKhaiGiang(e.target.value)}
-                required
               />
+              <p className="cso-kh-field-hint">
+                Tuỳ chọn — để trống nếu chưa chốt ngày mở lớp.
+              </p>
             </label>
 
             <div className="cso-kh-field">
               <span className="cso-kh-label">Khung giờ học</span>
-              <LichCaHocFields value={lichHoc} onChange={setLichHoc} />
+              <LichCaHocFields
+                ref={lichCaRef}
+                value={lichHoc}
+                onChange={setLichHoc}
+              />
               <p className="cso-kh-field-hint">
                 {loaiMoHinh === "cohort_co_dinh"
                   ? "Tuỳ chọn — thêm từng ca (ngày + giờ) của lớp."

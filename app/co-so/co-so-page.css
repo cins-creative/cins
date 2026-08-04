@@ -3567,141 +3567,6 @@
   gap: 6px;
 }
 
-/* Heatmap tuần: cột ngang T2→CN · hàng dọc mốc giờ */
-.cso-kh-lich-ca-heat {
-  display: grid;
-  grid-template-columns: minmax(52px, auto) repeat(7, minmax(0, 1fr));
-  gap: 4px;
-  align-items: center;
-  padding: 8px;
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--bg-page, #f7f8fa) 80%, #fff);
-}
-
-.cso-kh-lich-ca-heat-corner {
-  width: 1px;
-  height: 1px;
-}
-
-.cso-kh-lich-ca-heat-day {
-  text-align: center;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  color: var(--ink-muted, rgba(0, 0, 0, 0.45));
-  padding: 2px 0 6px;
-}
-
-.cso-kh-lich-ca-heat-time {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  justify-content: center;
-  gap: 1px;
-  padding-right: 6px;
-  min-height: 28px;
-  line-height: 1.15;
-}
-
-.cso-kh-lich-ca-heat-time-start {
-  font-size: 11px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  color: var(--ink-body, rgba(0, 0, 0, 0.72));
-}
-
-.cso-kh-lich-ca-heat-time-end {
-  font-size: 9.5px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  color: var(--ink-muted, rgba(0, 0, 0, 0.42));
-}
-
-.cso-kh-lich-ca-heat-cell-wrap {
-  position: relative;
-  aspect-ratio: 1;
-  width: 100%;
-  max-width: 36px;
-  margin-inline: auto;
-}
-
-.cso-kh-lich-ca-heat-cell {
-  display: block;
-  width: 100%;
-  height: 100%;
-  border: 0;
-  border-radius: 4px;
-  padding: 0;
-  cursor: pointer;
-  background: color-mix(in srgb, var(--ink-body, #000) 8%, transparent);
-  transition: background 0.12s ease, box-shadow 0.12s ease;
-}
-
-.cso-kh-lich-ca-heat-cell:hover {
-  background: color-mix(in srgb, var(--ink-body, #000) 14%, transparent);
-}
-
-.cso-kh-lich-ca-heat-cell.is-on {
-  background: color-mix(in srgb, var(--cins-blue, #1f74c9) 72%, #0b3d6e);
-}
-
-.cso-kh-lich-ca-heat-cell.is-on:hover {
-  background: color-mix(in srgb, var(--cins-blue, #1f74c9) 88%, #0b3d6e);
-}
-
-.cso-kh-lich-ca-heat-cell.is-editing {
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--cins-blue, #1f74c9) 55%, transparent);
-}
-
-.cso-kh-lich-ca-heat-remove {
-  position: absolute;
-  top: -5px;
-  right: -5px;
-  width: 16px;
-  height: 16px;
-  border: 0;
-  border-radius: 999px;
-  padding: 0;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  background: var(--bg-surface, #fff);
-  color: var(--ink-muted, rgba(0, 0, 0, 0.5));
-  box-shadow: 0 0 0 1px var(--border, #e4e6eb);
-  cursor: pointer;
-  z-index: 1;
-}
-
-.cso-kh-lich-ca-heat-cell-wrap:hover .cso-kh-lich-ca-heat-remove,
-.cso-kh-lich-ca-heat-cell-wrap:focus-within .cso-kh-lich-ca-heat-remove {
-  display: inline-flex;
-}
-
-.cso-kh-lich-ca-heat-remove:hover {
-  color: var(--danger, #e5484d);
-  background: color-mix(in srgb, var(--danger, #e5484d) 10%, #fff);
-}
-
-@media (max-width: 520px) {
-  .cso-kh-lich-ca-heat {
-    grid-template-columns: minmax(44px, auto) repeat(7, minmax(0, 1fr));
-    gap: 3px;
-    padding: 6px;
-  }
-
-  .cso-kh-lich-ca-heat-cell-wrap {
-    max-width: 28px;
-  }
-
-  .cso-kh-lich-ca-heat-time-start {
-    font-size: 10px;
-  }
-
-  .cso-kh-lich-ca-heat-time-end {
-    font-size: 9px;
-  }
-}
-
 .cso-kh-lich-ca-item {
   display: flex;
   align-items: stretch;
@@ -3753,8 +3618,7 @@
   background: rgba(185, 28, 28, 0.06);
 }
 
-.cso-kh-lich-ca-add,
-.cso-kh-lich-ca-commit {
+.cso-kh-lich-ca-add {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -3770,20 +3634,9 @@
   cursor: pointer;
 }
 
-.cso-kh-lich-ca-add:hover,
-.cso-kh-lich-ca-commit:hover:not(:disabled) {
+.cso-kh-lich-ca-add:hover {
   background: rgba(31, 116, 201, 0.1);
   border-style: solid;
-}
-
-.cso-kh-lich-ca-commit {
-  border-style: solid;
-  width: 100%;
-}
-
-.cso-kh-lich-ca-commit:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
 }
 
 .cso-kh-lich-ca-panel {
@@ -3897,6 +3750,8 @@
 .cso-kh-lich-ca-time-input {
   flex: 1 1 0;
   min-width: 0;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
 }
 
 .cso-kh-lich-ca-time-sep {
@@ -9630,54 +9485,11 @@ a.cso-sk-manage-person-name:hover {
   border-color: var(--border, #2a3040);
 }
 
-:root[data-theme="dark"] .cso-kh-create-modal .cso-kh-lich-ca-heat {
-  background: color-mix(in srgb, #0a0c10 55%, #12151c);
-}
-
-:root[data-theme="dark"] .cso-kh-create-modal .cso-kh-lich-ca-heat-day {
-  color: var(--ink-muted, rgba(255, 255, 255, 0.42));
-}
-
-:root[data-theme="dark"] .cso-kh-create-modal .cso-kh-lich-ca-heat-time-start {
-  color: var(--ink-body, rgba(255, 255, 255, 0.72));
-}
-
-:root[data-theme="dark"] .cso-kh-create-modal .cso-kh-lich-ca-heat-time-end {
-  color: var(--ink-muted, rgba(255, 255, 255, 0.38));
-}
-
-:root[data-theme="dark"] .cso-kh-create-modal .cso-kh-lich-ca-heat-cell {
-  background: rgba(255, 255, 255, 0.06);
-}
-
-:root[data-theme="dark"] .cso-kh-create-modal .cso-kh-lich-ca-heat-cell:hover {
-  background: rgba(255, 255, 255, 0.11);
-}
-
-:root[data-theme="dark"] .cso-kh-create-modal .cso-kh-lich-ca-heat-cell.is-on {
-  background: color-mix(in srgb, #3fb950 78%, #1a7f37);
-}
-
-:root[data-theme="dark"] .cso-kh-create-modal .cso-kh-lich-ca-heat-cell.is-on:hover {
-  background: color-mix(in srgb, #56d364 85%, #238636);
-}
-
-:root[data-theme="dark"] .cso-kh-create-modal .cso-kh-lich-ca-heat-cell.is-editing {
-  box-shadow: 0 0 0 2px color-mix(in srgb, #56d364 55%, transparent);
-}
-
-:root[data-theme="dark"] .cso-kh-create-modal .cso-kh-lich-ca-heat-remove {
-  background: var(--bg-surface, #171b24);
-  color: var(--ink-muted, rgba(255, 255, 255, 0.55));
-  box-shadow: 0 0 0 1px var(--border, #2a3040);
-}
-
 :root[data-theme="dark"] .cso-kh-create-modal .cso-kh-lich-ca-item-remove {
   border-left-color: var(--border, #2a3040);
 }
 
-:root[data-theme="dark"] .cso-kh-create-modal .cso-kh-lich-ca-add,
-:root[data-theme="dark"] .cso-kh-create-modal .cso-kh-lich-ca-commit {
+:root[data-theme="dark"] .cso-kh-create-modal .cso-kh-lich-ca-add {
   background: color-mix(in srgb, var(--cins-blue, #7db8f2) 12%, transparent);
   border-color: color-mix(in srgb, var(--cins-blue, #7db8f2) 40%, transparent);
   color: var(--cins-blue, #7db8f2);

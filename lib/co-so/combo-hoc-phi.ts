@@ -76,8 +76,14 @@ type TpRow = {
   id_combo: string;
   id_khoa_hoc: string;
   id_goi: string | null;
-  org_khoa_hoc?: { ten_khoa_hoc: string | null } | null;
-  org_goi_hoc_phi?: { ten: string | null; gia_vnd: number | string | null } | null;
+  org_khoa_hoc?:
+    | { ten_khoa_hoc: string | null }
+    | { ten_khoa_hoc: string | null }[]
+    | null;
+  org_goi_hoc_phi?:
+    | { ten: string | null; gia_vnd: number | string | null }
+    | { ten: string | null; gia_vnd: number | string | null }[]
+    | null;
 };
 
 function mapLoai(raw: string): LoaiGiamCombo {
@@ -123,7 +129,7 @@ async function loadThanhPhan(
   if (error || !data) return map;
 
   for (const raw of data) {
-    const row = raw as TpRow;
+    const row = raw as unknown as TpRow;
     const khoaEmbed = row.org_khoa_hoc;
     const goiEmbed = row.org_goi_hoc_phi;
     const bag = map.get(row.id_combo) ?? [];

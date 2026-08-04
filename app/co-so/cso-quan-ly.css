@@ -411,7 +411,11 @@
   padding: 10px 14px;
   border: 1px solid var(--border, #e4e6eb);
   border-radius: var(--radius-md, 12px);
-  background: color-mix(in srgb, var(--cso-ql-accent, #2563eb) 6%, #fff);
+  background: color-mix(
+    in srgb,
+    var(--cso-ql-accent, #2563eb) 6%,
+    var(--bg-surface, #fff)
+  );
   flex-shrink: 0;
 }
 
@@ -576,7 +580,15 @@ button.cso-hv-ava.cso-lh-thumb.is-uploading {
 }
 
 .cso-hv-person-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   min-width: 0;
+}
+
+.cso-hv-person-meta .cso-hv-slug,
+.cso-hv-person-meta .cso-hv-lop {
+  margin-top: 0;
 }
 
 .cso-hv-name {
@@ -839,6 +851,11 @@ button.cso-hv-ava.cso-lh-thumb.is-uploading {
 :root[data-theme="dark"] .cso-hv-ledger,
 :root[data-theme="dark"] .cso-ql-modal {
   background: var(--bg-surface, #171b24);
+  border-color: var(--border, #2a3040);
+}
+
+:root[data-theme="dark"] .cso-hv-filter-bar {
+  background: var(--bg-page, #0e1117);
   border-color: var(--border, #2a3040);
 }
 
@@ -1476,6 +1493,22 @@ button.cso-hv-ava.cso-lh-thumb.is-uploading {
 
 .cso-lh .cso-hv-actions {
   min-width: 160px;
+}
+
+/* Bảng lớp — nút thao tác xếp ngang (không wrap dọc) */
+.cso-lh-page .cso-hv-table th:nth-child(8),
+.cso-lh-page .cso-hv-table td:nth-child(8) {
+  width: 1%;
+  white-space: nowrap;
+}
+
+.cso-lh-page .cso-hv-actions {
+  min-width: 112px;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
 }
 
 /* Row khóa — nút thao tác nhỏ, xếp ngang */
@@ -3105,6 +3138,11 @@ a.cso-tq-attn.is-hot:hover {
 
 .cso-lh-head-row .cso-dt-panel-title {
   margin-bottom: 0;
+  padding-left: 0;
+}
+
+.cso-lh-head-row .cso-dt-panel-title::before {
+  content: none;
 }
 
 .cso-lh-head-row .cso-dt-panel-sub {
@@ -3118,57 +3156,87 @@ a.cso-tq-attn.is-hot:hover {
   gap: 10px 12px;
 }
 
+/* Select trạng thái trong bảng lớp — text-only, tách khỏi .cso-ql-select */
 .cso-lh-status-select {
+  appearance: none;
+  -webkit-appearance: none;
+  display: inline-block;
   width: auto;
-  min-width: 0;
-  max-width: 11.5rem;
-  height: auto;
-  padding: 5px 28px 5px 10px;
+  max-width: 12rem;
+  margin: 0;
+  padding: 2px 1.1rem 2px 0;
+  border: 0;
+  border-radius: 0;
+  background-color: transparent;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23000000' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right center;
+  background-size: 12px 12px;
+  box-shadow: none;
+  color: #000;
+  font-family: var(--font-sans, inherit);
   font-size: 12px;
   font-weight: 700;
-  line-height: 1.3;
-  border-radius: 999px;
+  line-height: 1.35;
   cursor: pointer;
 }
 
+.cso-lh-status-select:hover,
+.cso-lh-status-select:focus {
+  border: 0;
+  outline: none;
+  box-shadow: none;
+  background-color: transparent;
+}
+
+.cso-lh-status-select:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--cso-ql-rail) 55%, transparent);
+  outline-offset: 2px;
+}
+
 .cso-lh-status-select.is-ok {
-  border-color: color-mix(in srgb, #16a34a 35%, var(--border, #e4e6eb));
-  background: color-mix(in srgb, #16a34a 12%, var(--bg-surface, #fff));
-  color: #15803d;
+  color: #000;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23000000' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
 }
 
 .cso-lh-status-select.is-muted {
-  border-color: color-mix(in srgb, var(--ink-muted, #64748b) 35%, var(--border, #e4e6eb));
-  background: color-mix(in srgb, var(--ink-muted, #64748b) 10%, var(--bg-surface, #fff));
-  color: var(--ink-muted, #64748b);
+  color: #000;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23000000' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
 }
 
 .cso-lh-status-select:disabled {
-  opacity: 0.6;
+  opacity: 0.55;
   cursor: wait;
 }
 
+:root[data-theme="dark"] .cso-lh-status-select {
+  color: var(--ink-display, rgba(255, 255, 255, 0.92));
+  background-color: transparent;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+}
+
 :root[data-theme="dark"] .cso-lh-status-select.is-ok {
-  border-color: color-mix(in srgb, #4ade80 40%, transparent);
-  background: color-mix(in srgb, #22c55e 16%, transparent);
   color: #86efac;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2386efac' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
 }
 
 :root[data-theme="dark"] .cso-lh-status-select.is-muted {
-  border-color: rgba(255, 255, 255, 0.14);
-  background: rgba(255, 255, 255, 0.06);
   color: var(--ink-muted, rgba(255, 255, 255, 0.55));
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
 }
 
 .cso-lh-gv-cell {
   gap: 10px;
 }
 
-.cso-lh-ma-lop {
-  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
-  font-size: 12px;
-  letter-spacing: 0.02em;
-  white-space: nowrap;
+.cso-lh-page .cso-hv-table {
+  min-width: 880px;
+}
+
+.cso-lh-page .cso-hv-table th:nth-child(3),
+.cso-lh-page .cso-hv-table td:nth-child(3) {
+  min-width: 240px;
+  width: 18%;
 }
 
 .cso-hv-ava.cso-lh-gv-ava {
@@ -3181,7 +3249,7 @@ a.cso-tq-attn.is-hot:hover {
 .cso-lh-gv-open {
   display: block;
   width: 100%;
-  max-width: 220px;
+  max-width: 280px;
 }
 
 .j-user-pop-trigger:hover .cso-lh-gv-open .cso-hv-name {
