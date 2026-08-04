@@ -1,0 +1,5923 @@
+/* World Journey feed — scoped từ cins-gallery.html (OpenDesign DS) */
+
+.world-journey-home,
+.world-journey-home *,
+.world-journey-home *::before,
+.world-journey-home *::after {
+  box-sizing: border-box;
+}
+
+.cins-shell .world-journey-home,
+.cins-main:has(> .world-journey-home) {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.cins-main:has(> .world-journey-home.view-grid) {
+  width: 100%;
+  max-width: none;
+}
+
+.cins-shell .world-journey-home {
+  width: 100%;
+}
+
+.world-journey-home {
+  /* OpenDesign aliases → CINs design tokens (logged-in home không load cins-home-v2-page.css) */
+  --blue: var(--cins-blue);
+  --blue-dark: var(--cins-blue-dark);
+  --blue-soft: var(--cins-blue-soft);
+  --yellow: var(--cins-yellow);
+  --yellow-soft: var(--cins-yellow-soft);
+  --mint: var(--cins-mint);
+  --mint-soft: var(--cins-mint-soft);
+  --orange: var(--cins-orange);
+  --orange-soft: var(--cins-orange-soft);
+  --violet: var(--cins-violet);
+  --violet-soft: var(--cins-violet-soft);
+  --bg: var(--bg-page);
+  --surface: var(--bg-surface);
+  --border-s: var(--border-strong);
+  --ink1: var(--ink-display);
+  --ink2: var(--ink-title);
+  --ink3: var(--ink-body);
+  --ink4: var(--ink-muted);
+  /* Bo góc giảm nhẹ so với token mặc định cho trang chủ (gọn hơn). */
+  --r-xs: 5px;
+  --r-sm: 8px;
+  --r-md: 10px;
+  /* Card/composer — khớp Journey timeline (.wj-composer, j-m-card) */
+  --r-lg: 14px;
+  --r-xl: 14px;
+  --r-2xl: 18px;
+  --r-pill: var(--radius-pill);
+  --sh-xs: var(--shadow-xs);
+  --sh-sm: var(--shadow-sm);
+  --sh-md: var(--shadow-md);
+  --sh-lg: var(--shadow-lg);
+  --ease: cubic-bezier(0.2, 0.7, 0.3, 1);
+
+  --font-display: var(--font-sans);
+  --font-serif: "Crimson Pro", Georgia, serif;
+  --wj-sticky-top: 64px;
+  /* Khớp chiều cao 1 hàng `.wj-feed-header` (~58px: nội dung ~34px + pad 12×2). */
+  --wj-feed-header-h: 58px;
+  --wj-feed-gap: 14px;
+  --wj-feed-card-gap: 14px;
+  --wj-feed-pad-top: 0;
+  --wj-feed-max: 760px;
+  --wj-shell-pad-top: 16px;
+  --wj-shell-gutter: 16px;
+  /* Hai cột aside cùng bề ngang (tổng ~580px như trước: 248 + 332). */
+  --wj-aside-w: 290px;
+  --wj-aside-left-w: var(--wj-aside-w);
+  --wj-aside-right-w: var(--wj-aside-w);
+  --mint-ink: #0e6b4d;
+  --mint-deep: #0e9b6e;
+  --warn-ink: #7a5a00;
+  min-height: calc(100vh - var(--wj-sticky-top));
+  background: var(--bg);
+  color: var(--ink3);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.world-journey-home .num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Feed header: sticky glass như `.j-tlb` (cins-frost-sticky.css) ── */
+.wj-feed-header {
+  position: sticky;
+  top: var(--wj-sticky-top, var(--site-nav-height, 64px));
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 12px 24px;
+  background: transparent;
+  box-shadow: 0 6px 18px -14px rgba(15, 23, 42, 0.4);
+  border-bottom: 1px solid color-mix(in srgb, var(--border, #e4e6eb) 82%, transparent);
+  overflow: visible;
+  cursor: pointer;
+}
+
+/* Header nằm đầu cột feed — sát mép trên cột. */
+.wj-feed > .wj-feed-header {
+  margin-top: calc(-1 * var(--wj-feed-pad-top, 0px));
+}
+
+/* Cụm trái: lịch / jobs (mobile–tablet; desktop ≥1200px ẩn host).
+ * Đồng bộ kích thước / track với `.wj-view-toggle` + `.wj-vt-btn`. */
+.wj-filter-trail-start {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  flex-shrink: 0;
+  padding: 0;
+  background: transparent;
+}
+
+/* Cụm phải: chế độ xem. */
+.wj-filter-trail {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* Slot nút lịch — khớp `.wj-vt-btn` (40×36 trong track pill <1200px). */
+.wj-filter-bar .wj-notify-fab-host {
+  width: 40px;
+  height: 36px;
+}
+
+.wj-filter-bar .wj-notify-fab-host:empty {
+  display: none;
+}
+
+.wj-filter-bar .wj-notify-fab-host .org-notify-fab {
+  width: 40px;
+  height: 36px;
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--ink2, rgba(0, 0, 0, 0.55));
+  box-shadow: none;
+}
+
+.wj-filter-bar .wj-notify-fab-host .org-notify-fab svg {
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  min-height: 22px;
+  flex-shrink: 0;
+}
+
+.wj-filter-bar .wj-notify-fab-host .org-notify-fab:hover,
+.wj-filter-bar .wj-notify-fab-host .org-notify-fab:focus-visible {
+  background: transparent;
+  color: var(--ink1, rgba(0, 0, 0, 0.85));
+  box-shadow: none;
+}
+
+.wj-filter-bar .wj-notify-fab-host .org-notify-fab.is-open {
+  background: var(--surface, #fff);
+  color: var(--blue, var(--cins-blue, #1f74c9));
+  box-shadow: var(--sh-xs);
+}
+
+.wj-filter-bar .wj-notify-fab-host .org-notify-fab-badge {
+  top: -3px;
+  right: -3px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  font-size: 9px;
+  line-height: 14px;
+  box-shadow: none;
+}
+
+@media (min-width: 1200px) {
+  .wj-filter-bar .wj-notify-fab-host {
+    display: none;
+  }
+
+  .wj-filter-trail-start {
+    display: none;
+  }
+}
+
+/* <1200: toggle phải cùng track / size với cụm trái. */
+@media (max-width: 1199.98px) {
+  .wj-view-toggle {
+    background: transparent;
+    padding: 0;
+    gap: 0;
+  }
+
+  .wj-vt-btn {
+    width: 40px;
+    height: 36px;
+    padding: 0;
+  }
+
+  .world-journey-home .wj-view-toggle .wj-vt-btn svg,
+  .wj-view-toggle .wj-vt-btn svg {
+    width: 22px;
+    height: 22px;
+    min-width: 22px;
+    min-height: 22px;
+    flex-shrink: 0;
+    display: block;
+  }
+}
+
+.wj-feed-tabs {
+  display: inline-flex;
+  gap: 2px;
+  background: var(--neutral-100, #f1f2f5);
+  border-radius: var(--r-pill);
+  padding: 2px;
+  flex-shrink: 0;
+}
+
+.wj-feed-tabs button {
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink3);
+  background: transparent;
+  border: 0;
+  padding: 5px 12px;
+  border-radius: var(--r-pill);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  transition: background 0.15s var(--ease), color 0.15s var(--ease);
+}
+
+.wj-feed-tabs button svg {
+  width: 14px;
+  height: 14px;
+}
+
+.wj-feed-tabs button.on {
+  background: var(--surface);
+  color: var(--blue);
+  box-shadow: var(--sh-xs);
+}
+
+.wj-filter-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  overflow: visible;
+}
+
+.wj-fchip {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 11px;
+  font-size: 12.5px;
+  color: var(--ink3);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  font-weight: 500;
+  white-space: nowrap;
+  transition: all 0.15s var(--ease);
+}
+
+.wj-fchip:hover {
+  border-color: var(--border-s);
+  color: var(--ink1);
+}
+
+.wj-fchip.active {
+  background: var(--ink1);
+  color: #fff;
+  border-color: var(--ink1);
+}
+
+.wj-fchip svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* ── Bộ lọc dạng dropdown (thay cho cụm chip) ── */
+.wj-filter-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.wj-filter-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  color: var(--ink1);
+  background: transparent;
+  border: 0;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: color 0.15s var(--ease);
+}
+
+.wj-filter-btn:hover {
+  color: var(--blue);
+}
+
+.wj-filter-btn svg {
+  width: 15px;
+  height: 15px;
+}
+
+.wj-filter-pop {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  background: var(--bg-surface, var(--surface, #fff));
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: var(--sh-md);
+  padding: 6px;
+  min-width: 180px;
+  z-index: 120;
+  isolation: isolate;
+}
+
+.wj-filter-pop button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--ink3);
+  border: none;
+  border-radius: var(--r-sm);
+  background: transparent;
+  background-color: transparent;
+  cursor: pointer;
+  transition:
+    background-color 0.12s var(--ease, ease),
+    color 0.12s var(--ease, ease);
+}
+
+.wj-filter-pop button:hover:not(.sel) {
+  background: var(--neutral-100, #f1f2f5);
+  background-color: var(--neutral-100, #f1f2f5);
+  color: var(--ink1);
+}
+
+.wj-filter-pop button.sel {
+  color: var(--blue);
+  font-weight: 600;
+  background: var(--blue-soft);
+  background-color: var(--blue-soft);
+}
+
+.wj-filter-pop button.sel:hover {
+  background: var(--blue-soft);
+  background-color: var(--blue-soft);
+  color: var(--blue);
+}
+
+.wj-filter-pop button svg {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+}
+
+.wj-filter-pop .wj-filter-check {
+  margin-left: auto;
+  opacity: 0;
+  color: var(--blue);
+}
+
+.wj-filter-pop button.sel > .wj-filter-check {
+  opacity: 1;
+}
+
+.wj-filter-pop.is-embed-panel {
+  min-width: 240px;
+  max-width: min(280px, calc(100vw - 32px));
+  max-height: min(420px, 70vh);
+  overflow-y: auto;
+  padding: 8px;
+  /* ~1/3 thanh cuộn mặc định OS (~15px → 5px) */
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--border-s, #c5c9d1) 80%, transparent) transparent;
+}
+
+.wj-filter-pop.is-embed-panel::-webkit-scrollbar {
+  width: 5px;
+}
+
+.wj-filter-pop.is-embed-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.wj-filter-pop.is-embed-panel::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--border-s, rgba(0, 0, 0, 0.18)) 85%, transparent);
+}
+
+.wj-filter-pop.is-embed-panel::-webkit-scrollbar-thumb:hover {
+  background: var(--border-s, rgba(0, 0, 0, 0.28));
+}
+
+.wj-filter-embed-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 4px 8px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.wj-filter-embed-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  width: auto !important;
+  padding: 5px 8px !important;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink3);
+  border-radius: var(--r-sm);
+}
+
+.wj-filter-embed-back:hover {
+  background: var(--neutral-100, #f1f2f5);
+  color: var(--ink1);
+}
+
+.wj-filter-embed-head-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink1);
+  letter-spacing: -0.01em;
+}
+
+.wj-filter-embed-logo {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.wj-filter-embed-group + .wj-filter-embed-group {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border);
+}
+
+.wj-filter-embed-group-label {
+  padding: 6px 10px 2px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink4, #8b909a);
+}
+
+@media (max-width: 720px) {
+  .wj-filter-pop.is-embed-panel {
+    max-height: min(360px, 55vh);
+  }
+}
+
+.wj-filter-spacer {
+  flex: 1;
+  min-width: 4px;
+}
+
+.wj-view-toggle {
+  display: inline-flex;
+  background: transparent;
+  border-radius: var(--r-pill);
+  padding: 0;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.wj-gallery-header-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink1);
+  letter-spacing: -0.01em;
+}
+
+/* Lọc nguồn nội dung — icon accent nhẹ. */
+.wj-source-wrap .wj-filter-btn {
+  color: var(--blue);
+}
+
+.wj-source-wrap .wj-filter-btn:hover {
+  color: color-mix(in srgb, var(--blue) 80%, var(--ink1));
+}
+
+.wj-source-pop {
+  min-width: 232px;
+}
+
+.wj-vt-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: inherit;
+  color: var(--ink2);
+  background: transparent;
+  border: 0;
+  border-radius: var(--r-pill);
+  cursor: pointer;
+  transition: all 0.18s var(--ease);
+  text-decoration: none;
+}
+
+.wj-vt-btn svg {
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  min-height: 20px;
+  flex-shrink: 0;
+  display: block;
+}
+
+/* Mobile/tablet: phải đặt SAU rule base — specificity cao hơn + cùng cascade. */
+@media (max-width: 1199.98px) {
+  .world-journey-home .wj-view-toggle .wj-vt-btn svg,
+  .wj-view-toggle .wj-vt-btn svg {
+    width: 22px;
+    height: 22px;
+    min-width: 22px;
+    min-height: 22px;
+  }
+}
+
+.wj-vt-btn:hover {
+  color: var(--ink1);
+}
+
+.wj-vt-btn.active {
+  background: transparent;
+  color: var(--blue);
+  font-weight: 600;
+  box-shadow: none;
+}
+
+.wj-sort-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.wj-sort-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  color: var(--ink2);
+  background: transparent;
+  border: 0;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: color 0.15s var(--ease);
+}
+
+.wj-sort-btn:hover {
+  color: var(--ink1);
+}
+
+.wj-sort-btn svg {
+  width: 15px;
+  height: 15px;
+}
+
+.wj-sort-pop {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  /* Nền đặc — tránh frosted sticky (::before blur) làm menu trông tối/bẩn. */
+  background: var(--bg-surface, var(--surface, #fff));
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: var(--sh-md);
+  padding: 6px;
+  min-width: 180px;
+  z-index: 120;
+  isolation: isolate;
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] .wj-sort-pop {
+  color-scheme: dark;
+}
+
+.wj-sort-pop button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--ink3);
+  border: none;
+  border-radius: var(--r-sm);
+  background: transparent;
+  background-color: transparent;
+  cursor: pointer;
+  transition:
+    background-color 0.12s var(--ease, ease),
+    color 0.12s var(--ease, ease);
+}
+
+/* Token theme — không hardcode #f1f2f5 (sai dark) / không để UA buttonface tối. */
+.wj-sort-pop button:hover:not(.sel) {
+  background: var(--neutral-100, #f1f2f5);
+  background-color: var(--neutral-100, #f1f2f5);
+  color: var(--ink1);
+}
+
+.wj-sort-pop button.sel {
+  color: var(--blue);
+  font-weight: 600;
+  background: var(--blue-soft);
+  background-color: var(--blue-soft);
+}
+
+.wj-sort-pop button.sel:hover {
+  background: var(--blue-soft);
+  background-color: var(--blue-soft);
+  color: var(--blue);
+}
+
+.wj-sort-pop button svg {
+  width: 13px;
+  height: 13px;
+  margin-left: auto;
+  opacity: 0;
+  color: var(--blue);
+}
+
+.wj-sort-pop button.sel svg {
+  opacity: 1;
+}
+
+/* ── 3-column shell ─────────────────────────────────────────── */
+.wj-shell {
+  width: 100%;
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: var(--wj-shell-pad-top, 16px) 16px 32px;
+  display: grid;
+  grid-template-columns:
+    minmax(0, var(--wj-aside-left-w))
+    minmax(0, var(--wj-feed-max))
+    minmax(0, var(--wj-aside-right-w));
+  gap: var(--wj-shell-gutter, 24px);
+  align-items: start;
+}
+
+.wj-aside-right {
+  position: sticky;
+  /* Header filter chỉ trong cột feed — aside sticky dưới topbar (+ pad shell). */
+  top: calc(
+    var(--wj-sticky-top, var(--j-topbar-h, 64px)) + var(--wj-shell-pad-top, 16px)
+  );
+  align-self: start;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.wj-mini-profile {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 18px;
+  box-shadow: var(--sh-xs);
+  text-align: center;
+}
+
+.wj-mini-profile .wj-av {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--blue), var(--violet));
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 18px;
+  margin: 0 auto 10px;
+  box-shadow: var(--sh-sm);
+  overflow: hidden;
+}
+
+.wj-mini-profile .wj-av img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.wj-mini-profile .wj-name {
+  font-weight: 600;
+  color: var(--ink1);
+  font-size: 14.5px;
+  margin-bottom: 6px;
+}
+
+.wj-verified-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: var(--r-pill);
+  background: var(--mint-soft);
+  color: var(--mint-ink);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.wj-verified-pill svg {
+  width: 11px;
+  height: 11px;
+}
+
+.wj-mini-profile .wj-role {
+  font-size: 12px;
+  color: var(--ink4);
+  margin-top: 8px;
+}
+
+.wj-short-menu {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 8px;
+  box-shadow: var(--sh-xs);
+}
+
+.wj-sm-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: var(--r-sm);
+  color: var(--ink3);
+  font-size: 13.5px;
+  font-weight: 500;
+  transition: background 0.15s var(--ease);
+  cursor: pointer;
+}
+
+.wj-sm-row:hover {
+  background: #f1f2f5;
+  color: var(--ink1);
+}
+
+.wj-sm-row svg {
+  width: 16px;
+  height: 16px;
+  color: var(--ink2);
+  flex-shrink: 0;
+}
+
+.wj-sm-count {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--ink4);
+}
+
+.wj-sm-new {
+  margin-left: auto;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: var(--r-pill);
+  background: var(--mint-soft);
+  color: var(--mint-ink);
+}
+
+.wj-aside-foot {
+  padding: 14px 18px 4px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  font-size: 11.5px;
+  color: var(--ink4);
+}
+
+.wj-aside-foot a:hover {
+  color: var(--blue);
+}
+
+/* Lưới Pinterest — full width main, không aside, không cap 760px feed timeline. */
+.world-journey-home.view-grid {
+  --wj-feed-max: 100%;
+  width: 100%;
+  flex: 1 1 auto;
+  align-self: stretch;
+}
+
+.world-journey-home.view-grid .wj-shell,
+.wj-shell.view-grid {
+  max-width: none;
+  width: 100%;
+  margin: 0;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+  padding: var(--wj-shell-pad-top, 16px) 16px 32px;
+}
+
+.world-journey-home.view-grid .wj-shell .wj-guest-aside--left,
+.world-journey-home.view-grid .wj-shell .wj-guest-aside--right,
+.wj-shell.view-grid .wj-guest-aside--left,
+.wj-shell.view-grid .wj-guest-aside--right {
+  display: none;
+}
+
+/* ── Feed column ────────────────────────────────────────────── */
+.wj-feed {
+  max-width: var(--wj-feed-max);
+  width: 100%;
+  justify-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: var(--wj-feed-gap);
+  padding: var(--wj-feed-pad-top) 0 0;
+  min-width: 0;
+}
+
+.world-journey-home .wj-feed > .cins-feed-composer-row {
+  margin: 0;
+}
+
+.world-journey-home .wj-feed > .j-pending-confirmations {
+  padding-top: 0;
+  padding-bottom: 0;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.world-journey-home .wj-feed > .cins-feed-composer-row .wj-composer {
+  padding: 8px 12px;
+  border-radius: var(--r-lg);
+}
+
+.world-journey-home .wj-feed .wj-feed-timeline.j-timeline {
+  max-width: none;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  min-height: 0;
+  flex: 0 1 auto;
+}
+
+.world-journey-home .wj-feed .wj-feed-timeline .j-year-block {
+  margin-top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--wj-feed-card-gap, 10px);
+}
+
+.world-journey-home .wj-feed .wj-feed-timeline .j-year-block:first-of-type {
+  margin-top: 0;
+}
+
+.world-journey-home .wj-feed .wj-feed-timeline .j-milestone {
+  margin-bottom: 0;
+}
+
+/* Bo góc thẻ milestone gọn hơn ở trang chủ (mặc định journey.css là 20px). */
+.world-journey-home .wj-feed .wj-feed-timeline .j-m-card,
+.world-journey-home .wj-feed .wj-feed-timeline .j-m-card.jcard {
+  border-radius: var(--r-lg);
+}
+
+.world-journey-home .wj-feed .wj-feed-timeline .j-timeline-end {
+  padding: 8px 0 0;
+}
+
+.world-journey-home .wj-feed .wj-feed-timeline .j-timeline-end-text {
+  padding-top: 12px;
+}
+
+.world-journey-home.view-grid .wj-feed,
+.wj-shell.view-grid .wj-feed,
+.wj-feed.view-grid {
+  max-width: none;
+  width: 100%;
+  justify-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding-top: 0;
+  container-type: inline-size;
+  container-name: wj-grid-feed;
+}
+
+.world-journey-home.view-grid .wj-feed-grid-panel,
+.world-journey-home .wj-feed.view-grid .wj-feed-grid-panel {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+}
+
+.world-journey-home.view-grid .j-main-gallery-grid--masonry-balanced,
+.world-journey-home .wj-feed.view-grid .j-main-gallery-grid--masonry-balanced {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 8px;
+  columns: auto;
+  width: 100%;
+  max-width: none;
+}
+
+.world-journey-home.view-grid .j-main-gallery-grid--masonry-balanced .j-main-gallery-grid__mcol,
+.world-journey-home .wj-feed.view-grid .j-main-gallery-grid--masonry-balanced .j-main-gallery-grid__mcol {
+  flex: 0 0
+    calc(
+      (100% - (var(--masonry-cols, 5) - 1) * 8px) / var(--masonry-cols, 5)
+    );
+  width: calc(
+    (100% - (var(--masonry-cols, 5) - 1) * 8px) / var(--masonry-cols, 5)
+  );
+  max-width: calc(
+    (100% - (var(--masonry-cols, 5) - 1) * 8px) / var(--masonry-cols, 5)
+  );
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.world-journey-home.view-grid .j-main-gallery-grid--masonry-balanced > .j-main-gallery-item,
+.world-journey-home .wj-feed.view-grid .j-main-gallery-grid--masonry-balanced > .j-main-gallery-item,
+.world-journey-home
+  .wj-feed.view-grid
+  .j-main-gallery-grid--masonry-balanced
+  > button.j-main-gallery-item,
+.world-journey-home
+  .wj-feed.view-grid
+  .j-main-gallery-grid--masonry-balanced
+  > a.j-main-gallery-item {
+  margin-bottom: 0;
+}
+
+/* ── Trang chủ: card gallery mặc định hiện avatar + tên người/tổ chức;
+   hover mới hiện thêm tiêu đề + trích dẫn ───────────────────────────── */
+.world-journey-home .j-main-gallery-item .j-main-gallery-overlay {
+  opacity: 1;
+  background: linear-gradient(
+    180deg,
+    rgba(15, 23, 42, 0) 0%,
+    rgba(15, 23, 42, 0) 62%,
+    rgba(15, 23, 42, 0.58) 100%
+  );
+}
+.world-journey-home .j-main-gallery-item .j-main-gallery-overlay-body {
+  gap: 0;
+}
+.world-journey-home .j-main-gallery-item .j-main-gallery-author {
+  opacity: 1;
+}
+.world-journey-home .j-main-gallery-item .j-main-gallery-overlay-title,
+.world-journey-home .j-main-gallery-item .j-main-gallery-overlay-excerpt {
+  opacity: 0;
+  max-height: 0;
+  overflow: hidden;
+  transition:
+    opacity 0.18s var(--j-ease),
+    max-height 0.18s var(--j-ease),
+    margin-top 0.18s var(--j-ease);
+}
+.world-journey-home .j-main-gallery-item:hover .j-main-gallery-overlay,
+.world-journey-home .j-main-gallery-item:focus-visible .j-main-gallery-overlay,
+.world-journey-home .j-main-gallery-item:focus-within .j-main-gallery-overlay {
+  background: linear-gradient(
+    180deg,
+    rgba(15, 23, 42, 0) 0%,
+    rgba(15, 23, 42, 0) 34%,
+    rgba(15, 23, 42, 0.9) 100%
+  );
+}
+.world-journey-home .j-main-gallery-item:hover .j-main-gallery-overlay-title,
+.world-journey-home .j-main-gallery-item:hover .j-main-gallery-overlay-excerpt,
+.world-journey-home
+  .j-main-gallery-item:focus-visible
+  .j-main-gallery-overlay-title,
+.world-journey-home
+  .j-main-gallery-item:focus-visible
+  .j-main-gallery-overlay-excerpt,
+.world-journey-home
+  .j-main-gallery-item:focus-within
+  .j-main-gallery-overlay-title,
+.world-journey-home
+  .j-main-gallery-item:focus-within
+  .j-main-gallery-overlay-excerpt {
+  opacity: 1;
+  max-height: 4.5em;
+  margin-top: 4px;
+}
+
+@container wj-grid-feed (max-width: 479.98px) {
+  .world-journey-home.view-grid .j-main-gallery-grid--masonry-balanced,
+  .world-journey-home .wj-feed.view-grid .j-main-gallery-grid--masonry-balanced {
+    gap: 8px;
+  }
+
+  .world-journey-home.view-grid .j-main-gallery-grid--masonry-balanced .j-main-gallery-grid__mcol,
+  .world-journey-home .wj-feed.view-grid .j-main-gallery-grid--masonry-balanced .j-main-gallery-grid__mcol {
+    gap: 8px;
+  }
+}
+
+.wj-feed.view-grid .wj-composer,
+.wj-feed.view-grid .wj-feed-end,
+.wj-feed.view-grid .wj-promo,
+.wj-feed.view-grid .wj-feed-promo-rail {
+  display: none;
+}
+
+/* wj-composer → app/cins-feed-composer.css (import từ CinsFeedComposer) */
+
+/* ── Post card ──────────────────────────────────────────────── */
+.wj-post {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: var(--sh-xs);
+  overflow: hidden;
+}
+
+.wj-post-head {
+  padding: 14px 16px 10px;
+}
+
+.wj-post-context {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--ink4);
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed var(--border);
+}
+
+.wj-post-context svg {
+  width: 12px;
+  height: 12px;
+}
+
+.wj-post-author {
+  display: flex;
+  gap: 11px;
+  align-items: flex-start;
+}
+
+.wj-av-44 {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 14px;
+  flex-shrink: 0;
+  box-shadow: var(--sh-xs);
+}
+
+.wj-av-44.square {
+  border-radius: 10px;
+}
+
+.wj-av-violet {
+  background: linear-gradient(135deg, var(--violet), #7e4dd9);
+}
+.wj-av-blue {
+  background: linear-gradient(135deg, var(--blue), var(--blue-dark));
+}
+.wj-av-orange {
+  background: linear-gradient(135deg, var(--orange), #d6822a);
+}
+.wj-av-mint {
+  background: linear-gradient(135deg, var(--mint), var(--mint-deep));
+}
+.wj-av-sparx {
+  background: var(--blue);
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 18px;
+}
+
+.wj-post-author-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.wj-post-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 600;
+  color: var(--ink1);
+  font-size: 15px;
+}
+
+.wj-post-name svg {
+  width: 14px;
+  height: 14px;
+  color: var(--mint-deep);
+}
+
+.wj-post-org {
+  font-size: 13px;
+  color: var(--blue);
+  font-weight: 500;
+  margin-top: 1px;
+}
+
+.wj-post-time {
+  font-size: 12px;
+  color: var(--ink4);
+  margin-top: 2px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.wj-post-time svg {
+  width: 11px;
+  height: 11px;
+}
+
+.wj-post-more {
+  margin-left: auto;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: var(--ink4);
+}
+
+.wj-post-more:hover {
+  background: #f1f2f5;
+  color: var(--ink1);
+}
+
+.wj-post-body {
+  padding: 0 16px 12px;
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--ink3);
+}
+
+.wj-post-body p {
+  margin: 0 0 6px;
+}
+
+.wj-pullquote {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 17px;
+  line-height: 1.45;
+  color: var(--blue);
+  margin: 0 0 10px;
+}
+
+.wj-post.text-only .wj-pullquote {
+  font-size: 19px;
+  line-height: 1.5;
+}
+
+.wj-post-media {
+  position: relative;
+  background: #f1f2f5;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.wj-media-label {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 3;
+  padding: 4px 10px;
+  border-radius: var(--r-pill);
+  background: rgba(0, 0, 0, 0.7);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.wj-media-label svg {
+  width: 11px;
+  height: 11px;
+}
+
+.wj-m-single {
+  aspect-ratio: 16 / 9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.wj-bg-artbook {
+  background: radial-gradient(
+      ellipse at 70% 80%,
+      rgba(31, 116, 201, 0.35),
+      transparent 55%
+    ),
+    radial-gradient(ellipse at 20% 30%, rgba(253, 232, 89, 0.55), transparent 50%),
+    linear-gradient(135deg, var(--mint) 0%, var(--mint-soft) 40%, var(--yellow-soft) 100%);
+}
+
+.wj-artbook-title {
+  position: relative;
+  font-family: var(--display);
+  font-size: clamp(32px, 6vw, 56px);
+  line-height: 0.95;
+  letter-spacing: 2px;
+  color: #fff;
+  text-shadow: 0 4px 18px rgba(15, 32, 60, 0.35);
+  text-align: center;
+}
+
+.wj-artbook-title small {
+  display: block;
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 3px;
+  margin-top: 8px;
+  opacity: 0.85;
+}
+
+.wj-verified-ribbon {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 3;
+  background: var(--mint-deep);
+  color: #fff;
+  padding: 6px 13px 6px 16px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 0 0 0 var(--r-md);
+}
+
+.wj-verified-ribbon svg {
+  width: 12px;
+  height: 12px;
+}
+
+.wj-m-video {
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: radial-gradient(
+      ellipse at 30% 40%,
+      rgba(187, 137, 248, 0.35),
+      transparent 55%
+    ),
+    radial-gradient(ellipse at 80% 60%, rgba(31, 116, 201, 0.4), transparent 55%),
+    linear-gradient(135deg, #1b1f2a 0%, #2f3441 100%);
+}
+
+.wj-video-character {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 38%;
+  height: 72%;
+  background: linear-gradient(180deg, #e7c8a8 0%, #c9a380 60%, #8e6843 100%);
+  border-radius: 48% 48% 36% 36% / 38% 38% 50% 50%;
+  opacity: 0.8;
+}
+
+.wj-play-btn {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--blue);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 12px 28px rgba(31, 116, 201, 0.5);
+  z-index: 4;
+}
+
+.wj-play-btn svg {
+  width: 24px;
+  height: 24px;
+  margin-left: 3px;
+}
+
+.wj-video-duration {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 3;
+  padding: 4px 9px;
+  border-radius: var(--r-sm);
+  background: rgba(0, 0, 0, 0.78);
+  color: #fff;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.wj-video-caption {
+  padding: 10px 14px;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 14px;
+  color: var(--ink2);
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+}
+
+.wj-m-4grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 2px;
+  aspect-ratio: 1 / 1;
+  background: var(--border);
+}
+
+.wj-comic-panel {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 14px;
+}
+
+.wj-comic-panel .wj-pnum {
+  font-family: var(--display);
+  font-size: 34px;
+  line-height: 1;
+  color: #fff;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.wj-comic-panel .wj-pcap {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 12.5px;
+  line-height: 1.35;
+  color: #fff;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  max-width: 90%;
+}
+
+.wj-cp-1 {
+  background: linear-gradient(135deg, var(--yellow) 0%, var(--orange) 100%);
+}
+.wj-cp-2 {
+  background: linear-gradient(135deg, var(--violet) 0%, var(--blue) 100%);
+}
+.wj-cp-3 {
+  background: linear-gradient(135deg, var(--mint) 0%, var(--blue) 100%);
+}
+.wj-cp-4 {
+  background: linear-gradient(135deg, var(--orange) 0%, var(--violet) 100%);
+}
+
+.wj-verified-foot {
+  margin: 8px 16px 0;
+  padding: 10px 12px;
+  background: var(--mint-soft);
+  border-radius: var(--r-sm);
+  font-size: 12.5px;
+  color: var(--mint-ink);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.wj-verified-foot svg {
+  width: 14px;
+  height: 14px;
+}
+
+.wj-post-tags {
+  padding: 10px 16px 4px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.wj-tag {
+  display: inline-flex;
+  padding: 4px 10px;
+  border-radius: var(--r-pill);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.wj-tag.violet {
+  background: var(--violet-soft);
+  color: #5b2d9f;
+}
+.wj-tag.mint {
+  background: var(--mint-soft);
+  color: var(--mint-ink);
+}
+.wj-tag.blue {
+  background: var(--blue-soft);
+  color: var(--blue-dark);
+}
+.wj-tag.orange {
+  background: var(--orange-soft);
+  color: #94570b;
+}
+.wj-tag.yellow {
+  background: var(--yellow-soft);
+  color: var(--warn-ink);
+}
+
+.wj-post-foot {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 10px;
+  border-top: 1px solid var(--border);
+  margin-top: 10px;
+}
+
+.wj-pf-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: var(--r-sm);
+  font-size: 13px;
+  color: var(--ink2);
+  font-weight: 500;
+}
+
+.wj-pf-btn:hover {
+  background: #f1f2f5;
+  color: var(--blue);
+}
+
+.wj-pf-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.wj-pf-spacer {
+  flex: 1;
+}
+
+/* Promo */
+.wj-promo {
+  background: var(--surface);
+  border: 1px solid var(--blue-soft);
+  border-radius: var(--r-lg);
+  box-shadow: var(--sh-pop);
+  overflow: hidden;
+  position: relative;
+}
+
+.wj-promo-label {
+  position: absolute;
+  top: 12px;
+  left: 14px;
+  z-index: 3;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink4);
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+.wj-promo-hero {
+  aspect-ratio: 21 / 9;
+  position: relative;
+  overflow: hidden;
+  background: radial-gradient(
+      ellipse at 80% 20%,
+      rgba(253, 232, 89, 0.55),
+      transparent 55%
+    ),
+    radial-gradient(ellipse at 20% 80%, rgba(187, 137, 248, 0.45), transparent 55%),
+    linear-gradient(135deg, var(--orange) 0%, var(--orange-soft) 60%, var(--yellow-soft) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.wj-promo-headline {
+  position: relative;
+  font-family: var(--display);
+  font-size: clamp(28px, 4.5vw, 44px);
+  line-height: 0.95;
+  letter-spacing: 1.5px;
+  color: var(--blue-dark);
+  text-align: center;
+  z-index: 2;
+}
+
+.wj-promo-headline small {
+  display: block;
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 2px;
+  margin-top: 10px;
+  color: var(--ink1);
+  opacity: 0.85;
+}
+
+.wj-promo-body {
+  padding: 18px 18px 20px;
+  text-align: center;
+}
+
+.wj-promo-sub {
+  font-size: 14.5px;
+  color: var(--ink3);
+  margin: 0 0 14px;
+  max-width: 420px;
+  margin-left: auto;
+  margin-right: auto;
+  line-height: 1.55;
+}
+
+.wj-promo-cta {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* Xen kẽ timeline — rail ngang khóa học / cơ sở / studio */
+.world-journey-home .wj-feed-promo-rail {
+  margin: 6px 0 14px;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.world-journey-home .wj-feed-promo-rail-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+  min-width: 0;
+}
+
+.world-journey-home .wj-feed-promo-rail-head-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.world-journey-home .wj-feed-promo-rail-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink1);
+  line-height: 1.25;
+}
+
+.world-journey-home .wj-feed-promo-rail-more {
+  flex-shrink: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--blue);
+  padding: 6px 0;
+}
+
+.world-journey-home .wj-feed-promo-rail-more:hover {
+  color: var(--blue-dark);
+}
+
+.world-journey-home .wj-feed-promo-rail-track {
+  display: flex;
+  gap: 8px;
+  overflow-x: hidden;
+  padding: 2px 0 6px;
+  margin: 0;
+  width: 100%;
+}
+
+/* —— Card chung —— */
+.world-journey-home .wj-feed-promo-card {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-decoration: none;
+  color: inherit;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  padding: 8px;
+  box-shadow: var(--sh-xs);
+  overflow: hidden;
+  transition:
+    transform 0.15s var(--ease),
+    box-shadow 0.15s var(--ease);
+}
+
+/* Desktop/tablet: mỗi card promo tối đa 1/3 hàng (grid 3 cột mặc định) —
+   1 studio lẻ không phình full width; rail nhiều card (người/cơ sở) vẫn co đều. */
+@media (min-width: 781px) {
+  .world-journey-home .wj-feed-promo-rail .wj-feed-promo-rail-track > .wj-feed-promo-card {
+    max-width: calc((100% - 16px) / 3);
+  }
+}
+
+/* Khóa học / ngành / sự kiện — card dọc, cover 4:3 */
+.world-journey-home .wj-feed-promo-card.is-course,
+.world-journey-home .wj-feed-promo-card.is-career,
+.world-journey-home .wj-feed-promo-card.is-event {
+  width: auto;
+  max-width: none;
+}
+
+.world-journey-home .wj-feed-promo-card.is-event .wj-feed-promo-card-cover {
+  position: relative;
+}
+
+.world-journey-home .wj-feed-promo-event-date {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  width: 52px;
+  text-align: center;
+  border-radius: var(--r-xs);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  box-shadow: var(--sh-xs);
+  background: var(--surface);
+}
+
+.world-journey-home .wj-feed-promo-event-date-month {
+  display: block;
+  background: var(--neutral-800, #1b1f2a);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 0;
+  text-transform: uppercase;
+}
+
+.world-journey-home .wj-feed-promo-event-date-day {
+  display: block;
+  font-weight: 800;
+  font-size: 20px;
+  color: var(--ink1);
+  padding: 2px 0 3px;
+  line-height: 1;
+}
+
+.world-journey-home .wj-feed-promo-card-cover {
+  display: block;
+  aspect-ratio: 4 / 3;
+  background: var(--neutral-100, #f1f2f5);
+  overflow: hidden;
+  border-radius: calc(var(--r-md) - 4px);
+}
+
+.world-journey-home .wj-feed-promo-card-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.world-journey-home .wj-feed-promo-card-cover-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 29px;
+  font-weight: 800;
+  color: var(--ink4);
+  background: linear-gradient(145deg, var(--blue-soft), var(--neutral-100, #f1f2f5));
+}
+
+.world-journey-home .wj-feed-promo-card.is-course .wj-feed-promo-card-body,
+.world-journey-home .wj-feed-promo-card.is-career .wj-feed-promo-card-body,
+.world-journey-home .wj-feed-promo-card.is-event .wj-feed-promo-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 2px 2px;
+  min-height: 0;
+  margin-top: 0;
+}
+
+.world-journey-home .wj-feed-promo-card.is-course .wj-feed-promo-card-name,
+.world-journey-home .wj-feed-promo-card.is-career .wj-feed-promo-card-name,
+.world-journey-home .wj-feed-promo-card.is-event .wj-feed-promo-card-name {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ink1);
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.world-journey-home .wj-feed-promo-card-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: auto;
+}
+
+.world-journey-home .wj-feed-promo-card-org {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink4);
+}
+
+.world-journey-home .wj-feed-promo-card-org-logo {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--neutral-100, #f1f2f5);
+}
+
+.world-journey-home .wj-feed-promo-card-org-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.world-journey-home .wj-feed-promo-card-org-logo-fallback {
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--ink4);
+  line-height: 1;
+}
+
+.world-journey-home .wj-feed-promo-card-org-name {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.world-journey-home .wj-feed-promo-card-tag {
+  width: fit-content;
+  max-width: 100%;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--blue);
+  background: var(--blue-soft);
+  padding: 3px 9px;
+  border-radius: var(--r-pill);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.world-journey-home .wj-feed-promo-card.is-career .wj-feed-promo-card-sub {
+  font-size: 14px;
+  color: var(--ink4);
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Người — mini profile card (cover + avatar giữa + bio + CTA) */
+.world-journey-home .wj-feed-promo-card.is-person {
+  position: relative;
+  flex: 1 1 148px;
+  min-width: 136px;
+  width: auto;
+  max-width: none;
+  padding: 0;
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid transparent;
+  border-radius: 18px;
+  background:
+    linear-gradient(var(--surface), var(--surface)) padding-box,
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--blue) 42%, transparent),
+      color-mix(in srgb, var(--gold, #fde859) 46%, transparent)
+    )
+    border-box;
+  box-shadow: none;
+}
+
+.world-journey-home .wj-feed-promo-card.is-person::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.28), transparent 40%);
+  opacity: 0.55;
+  z-index: 0;
+}
+
+:root[data-theme="dark"] .world-journey-home .wj-feed-promo-card.is-person::after {
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.05), transparent 42%);
+  opacity: 0.5;
+}
+
+.world-journey-home .wj-feed-promo-person-cover {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  align-self: stretch;
+  height: 72px;
+  flex-shrink: 0;
+  overflow: hidden;
+  /* Banner mặc định: nền trung tính + chấm nhỏ — không gradient màu. */
+  background-color: var(--neutral-100, #eef1f6);
+  background-image: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--ink1, #0f172a) 12%, transparent) 1px,
+    transparent 1.25px
+  );
+  background-size: 9px 9px;
+  background-position: 0 0;
+}
+
+:root[data-theme="dark"] .world-journey-home .wj-feed-promo-person-cover:not(.has-img) {
+  background-color: color-mix(in srgb, var(--surface, #171b24) 82%, #0f172a);
+  background-image: radial-gradient(
+    circle,
+    color-mix(in srgb, #fff 14%, transparent) 1px,
+    transparent 1.25px
+  );
+}
+
+.world-journey-home .wj-feed-promo-person-cover.has-img {
+  background: var(--neutral-100, #f1f2f5);
+}
+
+.world-journey-home .wj-feed-promo-person-cover img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.world-journey-home .wj-feed-promo-person-cover::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 42%, var(--surface) 100%);
+  pointer-events: none;
+}
+
+.world-journey-home .wj-feed-promo-person-av {
+  position: relative;
+  z-index: 2;
+  width: 56px;
+  height: 56px;
+  margin: -30px auto 0;
+  border-radius: 50%;
+  flex-shrink: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #dbeafe, #fef3c7);
+  border: 3px solid var(--surface);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--ink1) 12%, transparent);
+}
+
+.world-journey-home .wj-feed-promo-person-av img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.world-journey-home .wj-feed-promo-person-av-fallback {
+  font-size: 16px;
+  font-weight: 800;
+  color: #1d4ed8;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.world-journey-home .wj-feed-promo-person-sub {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  max-width: 100%;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--ink4);
+}
+
+.world-journey-home .wj-feed-promo-person-sub > span {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.world-journey-home .wj-feed-promo-person-sub.is-mutual {
+  color: var(--blue);
+}
+
+.world-journey-home .wj-feed-promo-person-sub-icon {
+  flex-shrink: 0;
+  opacity: 0.9;
+}
+
+.world-journey-home .wj-feed-promo-person-bio {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  width: 100%;
+  min-height: calc(1.4em * 3);
+  margin-top: 2px;
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--ink3, var(--ink4));
+  text-align: center;
+  word-break: break-word;
+}
+
+.world-journey-home .wj-feed-promo-person-main {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  min-width: 0;
+  width: 100%;
+  text-decoration: none;
+  color: inherit;
+}
+
+.world-journey-home .wj-feed-promo-card.is-person > .j-user-pop-wrap {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.world-journey-home .wj-feed-promo-card.is-person > .j-user-pop-wrap > .j-user-pop-trigger {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  flex: 1 1 auto;
+  text-align: inherit;
+}
+
+.world-journey-home .wj-feed-promo-person-actions {
+  position: relative;
+  z-index: 2;
+  padding: 8px 10px 12px;
+}
+
+.world-journey-home .wj-feed-promo-person-actions .j-friend-actions {
+  margin-top: 0;
+  gap: 4px;
+}
+
+.world-journey-home .wj-feed-promo-person-actions .j-friend-actions-row--icons {
+  justify-content: center;
+  gap: 8px;
+}
+
+.world-journey-home .wj-feed-promo-person-actions .j-friend-action-error {
+  font-size: 11px;
+  line-height: 1.3;
+  margin: 0;
+  text-align: center;
+}
+
+.world-journey-home .wj-feed-promo-card.is-person .wj-feed-promo-card-body {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px 0;
+  min-height: 0;
+  margin-top: 0;
+  text-align: center;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.world-journey-home .wj-feed-promo-card.is-person .wj-feed-promo-card-name {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink1);
+  line-height: 1.25;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 2px;
+  width: 100%;
+  text-align: center;
+}
+
+.world-journey-home .wj-feed-promo-card.is-person .wj-feed-promo-card-name-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  max-width: 100%;
+  min-width: 0;
+}
+
+/* Org / Studio — card ngang rộng: cover + logo + meta + theo dõi */
+.world-journey-home .wj-feed-promo-card.is-org {
+  position: relative;
+  width: auto;
+  max-width: none;
+  padding: 0;
+  gap: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.world-journey-home .wj-feed-promo-org-main {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-width: 0;
+  width: 100%;
+  text-decoration: none;
+  color: inherit;
+  flex: 1 1 auto;
+}
+
+.world-journey-home .wj-feed-promo-card.is-org > .j-user-pop-wrap {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.world-journey-home .wj-feed-promo-card.is-org > .j-user-pop-wrap > .j-user-pop-trigger {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  flex: 1 1 auto;
+  text-align: inherit;
+}
+
+.world-journey-home .wj-feed-promo-org-cover {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 88px;
+  flex-shrink: 0;
+  overflow: hidden;
+  background-color: var(--neutral-100, #eef1f6);
+  background-image: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--ink1, #0f172a) 12%, transparent) 1px,
+    transparent 1.25px
+  );
+  background-size: 9px 9px;
+}
+
+:root[data-theme="dark"] .world-journey-home .wj-feed-promo-org-cover:not(.has-img) {
+  background-color: color-mix(in srgb, var(--surface, #171b24) 82%, #0f172a);
+  background-image: radial-gradient(
+    circle,
+    color-mix(in srgb, #fff 14%, transparent) 1px,
+    transparent 1.25px
+  );
+}
+
+.world-journey-home .wj-feed-promo-org-cover.has-img {
+  background: var(--neutral-100, #f1f2f5);
+}
+
+.world-journey-home .wj-feed-promo-org-cover img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.world-journey-home .wj-feed-promo-org-cover::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 38%, var(--surface) 100%);
+  pointer-events: none;
+}
+
+.world-journey-home .wj-feed-promo-org-av {
+  position: relative;
+  z-index: 2;
+  width: 56px;
+  height: 56px;
+  margin: -28px auto 0;
+  border-radius: 14px;
+  flex-shrink: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface);
+  border: 3px solid var(--surface);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--ink1) 12%, transparent);
+}
+
+.world-journey-home .wj-feed-promo-org-av img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.world-journey-home .wj-feed-promo-org-av-fallback {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--ink3);
+  background: var(--neutral-100, #f1f2f5);
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.world-journey-home .wj-feed-promo-card.is-org .wj-feed-promo-card-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 14px 4px;
+  min-height: 0;
+  margin-top: 0;
+  width: 100%;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.world-journey-home .wj-feed-promo-org-type {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 20px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--blue);
+  background: color-mix(in srgb, var(--blue-soft, #dbeafe) 80%, transparent);
+}
+
+.world-journey-home .wj-feed-promo-card.is-org .wj-feed-promo-card-name {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink1);
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  width: 100%;
+  text-align: center;
+}
+
+.world-journey-home .wj-feed-promo-org-loc {
+  font-size: 12px;
+  font-weight: 550;
+  color: var(--ink4);
+  line-height: 1.3;
+  text-align: center;
+}
+
+.world-journey-home .wj-feed-promo-card.is-org .wj-feed-promo-card-sub {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--blue);
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  width: 100%;
+  margin-top: 0;
+  text-align: center;
+}
+
+.world-journey-home .wj-feed-promo-org-bio {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  width: 100%;
+  margin-top: 2px;
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--ink3, var(--ink4));
+  word-break: break-word;
+  text-align: center;
+}
+
+.world-journey-home .wj-feed-promo-org-actions {
+  position: relative;
+  z-index: 2;
+  padding: 8px 10px 12px;
+  margin-top: auto;
+}
+
+.world-journey-home .wj-feed-promo-org-actions .j-friend-actions {
+  margin-top: 0;
+  gap: 4px;
+}
+
+.world-journey-home .wj-feed-promo-org-actions .j-friend-actions-row--icons {
+  justify-content: center;
+  gap: 8px;
+}
+
+.world-journey-home .wj-feed-promo-org-actions .j-friend-action-error {
+  font-size: 11px;
+  line-height: 1.3;
+  margin: 0;
+  text-align: center;
+}
+
+:root[data-theme="dark"] .world-journey-home .wj-feed-promo-org-type {
+  background: color-mix(in srgb, var(--cins-blue, #2563eb) 18%, transparent);
+  color: #93c5fd;
+}
+
+/* S6 — rail người «Gợi ý kết nối thêm»: card hơi gọn hơn (vẫn ≤4 / hàng) */
+.world-journey-home .wj-feed-promo-rail.is-dense .wj-feed-promo-card.is-person {
+  border-radius: 14px;
+}
+
+.world-journey-home .wj-feed-promo-rail.is-dense .wj-feed-promo-person-cover {
+  height: 56px;
+}
+
+.world-journey-home .wj-feed-promo-rail.is-dense .wj-feed-promo-person-av {
+  width: 44px;
+  height: 44px;
+  margin-top: -24px;
+  border-width: 2px;
+}
+
+.world-journey-home .wj-feed-promo-rail.is-dense .wj-feed-promo-card.is-person .wj-feed-promo-card-body {
+  padding: 6px 8px 0;
+  gap: 2px;
+}
+
+.world-journey-home .wj-feed-promo-rail.is-dense .wj-feed-promo-card.is-person .wj-feed-promo-card-name {
+  font-size: 12.5px;
+}
+
+.world-journey-home .wj-feed-promo-rail.is-dense .wj-feed-promo-person-sub {
+  font-size: 10.5px;
+}
+
+.world-journey-home .wj-feed-promo-rail.is-dense .wj-feed-promo-person-bio {
+  font-size: 11.5px;
+  min-height: calc(1.35em * 3);
+  -webkit-line-clamp: 3;
+}
+
+.world-journey-home .wj-feed-promo-rail.is-dense .wj-feed-promo-person-actions {
+  padding: 6px 8px 10px;
+}
+
+/* Sự kiện org xen kẽ timeline feed giữa */
+.world-journey-home .wj-feed-timeline .j-milestone.j-org-su-kien .j-m-card.jcard {
+  border-color: color-mix(in srgb, var(--mint) 28%, var(--border));
+  padding: 0;
+  overflow: hidden;
+}
+
+.world-journey-home .wj-feed-timeline .j-org-su-kien--interest .j-org-su-kien-card {
+  border-color: color-mix(in srgb, var(--violet, #6b4ce6) 32%, var(--border));
+  box-shadow: 0 4px 18px color-mix(in srgb, var(--violet, #6b4ce6) 10%, transparent);
+}
+
+.world-journey-home .wj-feed-timeline .j-org-su-kien--rsvp .j-org-su-kien-card {
+  border-color: color-mix(in srgb, var(--blue) 32%, var(--border));
+  box-shadow: 0 4px 18px color-mix(in srgb, var(--blue) 10%, transparent);
+}
+
+.world-journey-home .wj-feed-timeline .j-osk-hero {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background: linear-gradient(
+    145deg,
+    var(--violet-soft, #f0ebff),
+    var(--neutral-100, #f1f2f5)
+  );
+}
+
+.world-journey-home .wj-feed-timeline .j-osk-hero-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.world-journey-home .wj-feed-timeline .j-osk-hero-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--ink4);
+  letter-spacing: 0.04em;
+}
+
+.world-journey-home .wj-feed-timeline .j-osk-hero-shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(15, 23, 42, 0.1) 0%,
+    rgba(15, 23, 42, 0.02) 45%,
+    rgba(15, 23, 42, 0.22) 100%
+  );
+  pointer-events: none;
+}
+
+.world-journey-home .wj-feed-timeline .j-osk-date-badge {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: stretch;
+  flex-direction: row;
+  min-width: 0;
+  max-width: 220px;
+  text-align: left;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--surface);
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.06);
+}
+
+.world-journey-home .wj-feed-timeline .j-osk-date-core {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  min-width: 36px;
+  border-right: 1px solid color-mix(in srgb, var(--border) 55%, transparent);
+  background: var(--surface);
+  text-align: center;
+}
+
+.world-journey-home .wj-feed-timeline .j-osk-date-month {
+  display: block;
+  background: var(--neutral-800, #1b1f2a);
+  color: #fff;
+  font-size: 8px;
+  font-weight: 700;
+  padding: 2px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.2px;
+  line-height: 1.1;
+}
+
+.world-journey-home .wj-feed-timeline .j-osk-date-day {
+  display: block;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1;
+  padding: 2px 4px 3px;
+  color: var(--ink);
+}
+
+.world-journey-home .wj-feed-timeline .j-osk-date-badge .ha-org-up-countdown {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: 0 8px;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--ink3);
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  border-top: none;
+  background: color-mix(in srgb, var(--neutral-50, #f8f9fb) 88%, white);
+}
+
+.world-journey-home .wj-feed-timeline .j-osk-date-badge .ha-org-up-countdown--live {
+  color: var(--mint-ink, #0e6b4d);
+  background: color-mix(in srgb, var(--mint) 10%, white);
+}
+
+.world-journey-home .wj-feed-timeline .j-osk-date-badge .ha-org-up-countdown-dot {
+  width: 3px;
+  height: 3px;
+}
+
+/* Dark: --neutral-800 đảo sáng → dải tháng thành nền sáng + chữ trắng = mất chữ.
+   Ép nền tối + chữ trắng (khớp .ha-org-up-date-month). */
+:root[data-theme="dark"] .world-journey-home .wj-feed-timeline .j-osk-date-month {
+  background: var(--neutral-0, #12151d);
+  color: #fff;
+}
+
+/* Dark: countdown trộn với `white` cứng → dải sáng chói trên card tối. */
+:root[data-theme="dark"]
+  .world-journey-home
+  .wj-feed-timeline
+  .j-osk-date-badge
+  .ha-org-up-countdown {
+  color: var(--ink3);
+  background: color-mix(in srgb, var(--neutral-50, #171b24) 88%, black);
+}
+
+:root[data-theme="dark"]
+  .world-journey-home
+  .wj-feed-timeline
+  .j-osk-date-badge
+  .ha-org-up-countdown--live {
+  color: var(--mint, #34d399);
+  background: color-mix(in srgb, var(--mint) 16%, transparent);
+}
+
+.world-journey-home .wj-feed-timeline .j-osk-hero-badges {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.world-journey-home .wj-feed-timeline .j-osk-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: var(--r-pill);
+  font-size: 11.5px;
+  font-weight: 700;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.12);
+}
+
+.world-journey-home .wj-feed-timeline .j-osk-pill--type {
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--ink2);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+}
+
+.world-journey-home .wj-feed-timeline .j-osk-pill--suggest {
+  background: color-mix(in srgb, var(--violet) 88%, white);
+  color: #fff;
+  border: 1px solid color-mix(in srgb, var(--violet) 70%, white);
+}
+
+.world-journey-home .wj-feed-timeline .j-osk-body {
+  padding: 12px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.world-journey-home .wj-feed-timeline .j-osk-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.world-journey-home .wj-feed-timeline .j-osk-org-link {
+  color: inherit;
+  text-decoration: none;
+  min-width: 0;
+}
+
+.world-journey-home .wj-feed-timeline .j-osk-org-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.world-journey-home .wj-feed-timeline .j-osk-org-logo {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+}
+
+.world-journey-home .wj-feed-timeline .j-osk-org-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.world-journey-home .wj-feed-timeline .j-osk-org-logo-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink3);
+}
+
+.world-journey-home .wj-feed-timeline .j-osk-org-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.world-journey-home .wj-feed-timeline .j-osk-kind-badge {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border-radius: var(--r-pill);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--mint-deep, #0e9b6e);
+  background: color-mix(in srgb, var(--mint) 14%, white);
+  border: 1px solid color-mix(in srgb, var(--mint) 24%, var(--border));
+}
+
+.world-journey-home .wj-feed-timeline .j-osk-title {
+  display: block;
+  font-family: var(--font-sans, "Be Vietnam Pro", system-ui, sans-serif);
+  font-size: 20px;
+  line-height: 1.28;
+  font-weight: 700;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.world-journey-home .wj-feed-timeline .j-osk-title:hover {
+  color: var(--violet);
+}
+
+.world-journey-home .wj-feed-timeline .j-osk-social-hint {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--violet);
+}
+
+/* Chip "N bạn bè sẽ tham gia" — avatar chồng + label, bấm mở popup danh sách. */
+.world-journey-home .wj-feed-timeline .j-osk-friends {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0;
+  padding: 3px 8px 3px 4px;
+  border: none;
+  border-radius: var(--r-pill, 999px);
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.world-journey-home .wj-feed-timeline .j-osk-friends:hover {
+  background: var(--surface2, #f1f5f9);
+}
+
+.world-journey-home .wj-feed-timeline .j-osk-friends-avatars {
+  display: inline-flex;
+  align-items: center;
+}
+
+.world-journey-home .wj-feed-timeline .j-osk-friends-avatars > * + * {
+  margin-left: -9px;
+}
+
+.world-journey-home .wj-feed-timeline .j-osk-friends-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink3, #64748b);
+}
+
+/* Avatar dùng chung (chip + popup) — popup portal ra body nên để global scope. */
+.j-osk-friend-av {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid #fff;
+  background: #eef1f6;
+}
+
+.j-osk-friend-av img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.j-osk-friend-av-txt {
+  font-size: 10px;
+  font-weight: 800;
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+.j-osk-friend-more {
+  background: #ede9fe;
+  color: #6d28d9;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.j-osk-friend-av--lg {
+  width: 36px;
+  height: 36px;
+  border-width: 1px;
+  border-color: #eef1f6;
+}
+
+.j-osk-friend-av--lg .j-osk-friend-av-txt {
+  font-size: 13px;
+}
+
+/* Popup danh sách bạn bè (createPortal → body). */
+.j-osk-friends-pop {
+  position: fixed;
+  z-index: 1200;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 14px 38px rgba(15, 23, 42, 0.18);
+  overflow: hidden;
+  animation: j-osk-friends-pop-in 0.12s ease;
+}
+
+@keyframes j-osk-friends-pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.j-osk-friends-pop-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 10px 10px 13px;
+  border-bottom: 1px solid #eef1f6;
+  color: #6d28d9;
+}
+
+.j-osk-friends-pop-title {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1;
+  font-size: 13px;
+  font-weight: 800;
+  color: #18202b;
+}
+
+.j-osk-friends-pop-sub {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #94a3b8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.j-osk-friends-pop-close {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.j-osk-friends-pop-close:hover {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.j-osk-friends-pop-list {
+  list-style: none;
+  margin: 0;
+  padding: 6px;
+  max-height: 264px;
+  overflow-y: auto;
+}
+
+.j-osk-friends-pop-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 8px;
+  border-radius: 9px;
+  text-decoration: none;
+  color: #18202b;
+}
+
+.j-osk-friends-pop-item:hover {
+  background: #f4f6fa;
+}
+
+.j-osk-friends-pop-name {
+  min-width: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.world-journey-home .wj-feed-timeline .j-osk-when {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  color: var(--ink3);
+}
+
+.world-journey-home .wj-feed-timeline .j-osk-when strong {
+  color: var(--ink2);
+  font-weight: 700;
+}
+
+.world-journey-home .wj-feed-timeline .j-osk-when-sep {
+  color: var(--ink4);
+}
+
+.world-journey-home .wj-feed-timeline .j-osk-desc {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink2);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.world-journey-home .wj-feed-timeline .j-osk-actions {
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.world-journey-home .wj-feed-timeline .j-osk-actions .cso-sk-detail-foot-err {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #b42318;
+}
+
+.world-journey-home .wj-feed-timeline .j-osk-actions .cso-sk-detail-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.world-journey-home .wj-feed-timeline .j-osk-actions .cso-sk-detail-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 40px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border, #e4e6eb);
+  background: var(--bg-page, #f4f5f7);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-muted, #5c6370);
+  box-shadow: none;
+  cursor: pointer;
+  transition:
+    background 0.14s ease,
+    border-color 0.14s ease,
+    color 0.14s ease;
+}
+
+.world-journey-home .wj-feed-timeline .j-osk-actions .cso-sk-detail-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.world-journey-home .wj-feed-timeline .j-osk-actions .cso-sk-detail-btn:hover:not(:disabled) {
+  background: #eceef2;
+  border-color: var(--border-strong, #cdd3dc);
+  color: var(--ink-body, rgba(0, 0, 0, 0.72));
+}
+
+.world-journey-home .wj-feed-timeline .j-osk-actions .cso-sk-detail-btn--interest.is-active {
+  border-color: rgba(219, 39, 119, 0.35);
+  background: #fdf2f8;
+  color: #be185d;
+  font-weight: 700;
+}
+
+.world-journey-home .wj-feed-timeline .j-osk-actions .cso-sk-detail-btn--interest.is-active:hover:not(:disabled) {
+  background: #fce7f3;
+  border-color: rgba(219, 39, 119, 0.45);
+  color: #be185d;
+}
+
+.world-journey-home .wj-feed-timeline .j-osk-actions .cso-sk-detail-btn--join.is-active {
+  background: #15803d;
+  border-color: rgba(21, 128, 61, 0.2);
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(21, 128, 61, 0.22);
+  font-weight: 700;
+}
+
+.world-journey-home .wj-feed-timeline .j-osk-actions .cso-sk-detail-btn--join.is-active:hover:not(:disabled) {
+  background: #166534;
+  border-color: rgba(21, 128, 61, 0.3);
+  color: #fff;
+}
+
+.world-journey-home .wj-feed-timeline .j-feed-suggestion-badge {
+  background: color-mix(in srgb, var(--violet) 12%, transparent);
+  color: var(--violet);
+  border: 1px solid color-mix(in srgb, var(--violet) 22%, transparent);
+}
+
+/* Legacy aliases — giữ cho promo rail / code cũ nếu còn tham chiếu */
+.world-journey-home .wj-feed-timeline .j-org-su-kien-title {
+  display: block;
+  font-family: var(--font-sans, "Be Vietnam Pro", system-ui, sans-serif);
+  font-size: 22px;
+  line-height: 1.25;
+  font-weight: 600;
+  color: var(--ink);
+  text-decoration: none;
+  margin: 0 0 8px;
+}
+
+.world-journey-home .wj-feed-timeline .j-org-su-kien-title:hover {
+  color: var(--violet);
+}
+
+.world-journey-home .wj-feed-timeline .j-org-su-kien-social-hint {
+  margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--violet);
+}
+
+.world-journey-home .wj-feed-timeline .j-org-su-kien-when {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: var(--ink3);
+}
+
+.world-journey-home .wj-feed-timeline .j-org-su-kien-desc {
+  margin: 0 0 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink2);
+}
+
+.world-journey-home .wj-feed-timeline .j-org-su-kien-cover {
+  display: block;
+  position: relative;
+  border-radius: var(--r-md, 12px);
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  background: var(--surface2);
+}
+
+.world-journey-home .wj-feed-timeline .j-org-su-kien-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.world-journey-home .wj-feed-timeline .j-org-su-kien-cover-tag,
+.world-journey-home .wj-feed-timeline .j-org-su-kien-meta-tag {
+  display: inline-flex;
+  padding: 4px 10px;
+  border-radius: var(--r-pill);
+  font-size: 12px;
+  font-weight: 600;
+  background: color-mix(in srgb, var(--mint) 16%, white);
+  color: var(--ink2);
+}
+
+.world-journey-home .wj-feed-timeline .j-org-su-kien-cover-tag {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+}
+
+.wj-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 18px;
+  border-radius: var(--r-pill);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.wj-btn svg {
+  width: 15px;
+  height: 15px;
+}
+
+.wj-btn-primary {
+  background: var(--blue);
+  color: #fff;
+  box-shadow: var(--sh-sm);
+}
+
+.wj-btn-primary:hover {
+  background: var(--blue-dark);
+}
+
+.wj-btn-outline {
+  background: transparent;
+  color: var(--blue);
+  border: 1.5px solid var(--blue);
+}
+
+.wj-btn-outline:hover {
+  background: var(--blue-soft);
+}
+
+.wj-feed-end {
+  text-align: center;
+  padding: 16px 14px;
+  background: var(--surface);
+  border: 1px dashed var(--border-s);
+  border-radius: var(--r-lg);
+  color: var(--ink4);
+  font-size: 13.5px;
+}
+
+.wj-feed-empty {
+  text-align: center;
+  padding: 28px 18px;
+  background: var(--surface);
+  border: 1px dashed var(--border-s);
+  border-radius: var(--r-lg);
+  color: var(--ink3);
+}
+
+.wj-feed-empty svg {
+  margin: 0 auto 10px;
+  color: var(--cins-violet, #7c5cfc);
+}
+
+.wj-feed-empty b {
+  display: block;
+  color: var(--ink-display, var(--ink2));
+  font-weight: 700;
+  font-size: 15px;
+  margin-bottom: 8px;
+}
+
+.wj-feed-empty p {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.55;
+  max-width: 36ch;
+  margin-inline: auto;
+}
+
+/* Filter re-query: searching / scanning motion */
+.wj-feed-searching {
+  position: relative;
+  overflow: hidden;
+  padding-block: 36px 30px;
+}
+
+.wj-feed-searching-visual {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 16px;
+}
+
+.wj-feed-searching-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px;
+  width: 100%;
+  height: 100%;
+  padding: 6px;
+  border-radius: 14px;
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--cins-violet, #7c5cfc) 8%, transparent),
+      transparent 70%
+    ),
+    var(--surface-2, color-mix(in srgb, var(--ink2) 4%, var(--surface)));
+  border: 1px solid color-mix(in srgb, var(--cins-violet, #7c5cfc) 18%, var(--border-s));
+}
+
+.wj-feed-searching-grid span {
+  display: block;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--cins-violet, #7c5cfc) 14%, var(--border-s));
+  animation: wj-feed-cell-scan 1.35s ease-in-out infinite;
+}
+
+.wj-feed-searching-lens {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  animation: wj-feed-lens-orbit 2.4s ease-in-out infinite;
+}
+
+.wj-feed-searching-lens svg {
+  margin: 0;
+  width: 28px;
+  height: 28px;
+  padding: 5px;
+  border-radius: 999px;
+  color: var(--cins-violet, #7c5cfc);
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  border: 1px solid color-mix(in srgb, var(--cins-violet, #7c5cfc) 28%, var(--border-s));
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--cins-violet, #7c5cfc) 18%, transparent);
+  backdrop-filter: blur(4px);
+}
+
+.wj-feed-searching-beam {
+  position: absolute;
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  border: 1.5px solid color-mix(in srgb, var(--cins-violet, #7c5cfc) 45%, transparent);
+  animation: wj-feed-beam-pulse 1.6s ease-out infinite;
+}
+
+.wj-feed-searching-dots {
+  display: inline-flex;
+  gap: 6px;
+  margin-top: 14px;
+}
+
+.wj-feed-searching-dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--cins-violet, #7c5cfc);
+  opacity: 0.35;
+  animation: wj-feed-dot-bounce 1.05s ease-in-out infinite;
+}
+
+.wj-feed-searching-dots span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.wj-feed-searching-dots span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes wj-feed-cell-scan {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.92);
+    background: color-mix(in srgb, var(--cins-violet, #7c5cfc) 12%, var(--border-s));
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1);
+    background: color-mix(in srgb, var(--cins-violet, #7c5cfc) 55%, var(--border-s));
+  }
+}
+
+@keyframes wj-feed-lens-orbit {
+  0%,
+  100% {
+    transform: translate(-10px, -8px);
+  }
+  50% {
+    transform: translate(10px, 9px);
+  }
+}
+
+@keyframes wj-feed-beam-pulse {
+  0% {
+    transform: scale(0.72);
+    opacity: 0.7;
+  }
+  70% {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+}
+
+@keyframes wj-feed-dot-bounce {
+  0%,
+  80%,
+  100% {
+    opacity: 0.3;
+    transform: translateY(0);
+  }
+  40% {
+    opacity: 1;
+    transform: translateY(-4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wj-feed-searching-grid span,
+  .wj-feed-searching-lens,
+  .wj-feed-searching-beam,
+  .wj-feed-searching-dots span {
+    animation: none;
+  }
+
+  .wj-feed-searching-lens {
+    transform: none;
+  }
+
+  .wj-feed-searching-beam {
+    opacity: 0.35;
+    transform: scale(1);
+  }
+
+  .wj-feed-searching-dots span {
+    opacity: 0.55;
+  }
+}
+
+.wj-aside-empty {
+  margin: 0;
+  padding: 4px 0 8px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink4);
+}
+
+.wj-feed-end b {
+  display: block;
+  color: var(--ink2);
+  font-weight: 600;
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+
+/* ── Guest-page sidebars (cins-trang-khach.html) ───────────── */
+.wj-guest-aside {
+  position: sticky;
+  top: calc(var(--wj-sticky-top) + var(--wj-shell-pad-top, 16px));
+  align-self: start;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  height: fit-content;
+  /* Grid item mặc định min-height:auto (= chiều cao nội dung) sẽ thắng max-height,
+     làm cột tràn khỏi viewport và không cuộn được. min-height:0 để max-height +
+     overflow-y:auto có hiệu lực → cột tự cuộn riêng khi tràn. */
+  min-height: 0;
+  max-height: calc(
+    100dvh - var(--wj-sticky-top) - var(--wj-shell-pad-top, 16px) - 24px
+  );
+  overflow-x: clip;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+/* Ẩn scrollbar — vẫn cuộn được. */
+.wj-guest-aside::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.wj-guest-aside--left {
+  gap: 10px;
+  padding-right: 0;
+}
+
+.wj-guest-aside--right {
+  gap: 16px;
+  padding-right: 0;
+}
+
+.wj-guest-panel,
+.wj-guest-path {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--sh-xs);
+}
+
+.wj-guest-panel {
+  padding: 13px 13px 11px;
+}
+
+.wj-guest-sec-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin-bottom: 9px;
+}
+
+.wj-guest-sec-head--compact {
+  margin-bottom: 12px;
+}
+
+.wj-guest-sec-num {
+  font-family: var(--font-display, var(--font-sans));
+  font-size: 21px;
+  line-height: 1;
+  color: var(--ink4);
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+
+.wj-guest-sec-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: var(--ink1);
+  line-height: 1.25;
+}
+
+.wj-guest-sec-sub {
+  margin: 4px 0 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--ink4);
+}
+
+.wj-guest-sec-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--blue);
+}
+
+.wj-guest-sec-more:hover {
+  color: var(--blue-dark, var(--cins-blue-dark));
+}
+
+.wj-guest-jobs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  max-height: 148px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.wj-guest-jobs::-webkit-scrollbar {
+  display: none;
+}
+
+.wj-guest-job {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  padding: 4px 9px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--ink3);
+  background: var(--neutral-50, #f8fafc);
+  font-family: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    border-color 0.15s var(--ease),
+    color 0.15s var(--ease),
+    background 0.15s var(--ease);
+}
+
+.wj-guest-job:hover {
+  border-color: rgba(37, 99, 235, 0.35);
+  color: var(--blue);
+  background: var(--blue-soft);
+}
+
+.wj-guest-job.active {
+  background: var(--ink1);
+  color: #fff;
+  border-color: var(--ink1);
+}
+
+.wj-guest-job.active:hover {
+  background: var(--ink1);
+  color: #fff;
+  border-color: var(--ink1);
+}
+
+.wj-guest-job-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.wj-guest-job-count {
+  font-size: 12px;
+  color: var(--ink4);
+  font-variant-numeric: tabular-nums;
+}
+
+.wj-guest-lv-empty {
+  margin: 0;
+  padding: 4px 2px 8px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink4);
+}
+
+.wj-guest-path {
+  padding: 13px 13px 12px;
+}
+
+.wj-guest-path-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 11px;
+}
+
+.wj-guest-path-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-md);
+  background: var(--blue-soft);
+  color: var(--blue);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.wj-guest-path-top h3 {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink1);
+  letter-spacing: -0.2px;
+  line-height: 1.3;
+}
+
+.wj-guest-path-top p {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--ink4);
+}
+
+.wj-guest-schools {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.wj-guest-school {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 8px 10px;
+}
+
+.wj-guest-school-lg {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--r-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 800;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.wj-guest-school-nm {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink1);
+  line-height: 1.25;
+}
+
+.wj-guest-school-me {
+  font-size: 11.5px;
+  color: var(--ink4);
+  margin-top: 2px;
+}
+
+.wj-guest-cat-links {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  border-top: 1px solid var(--border);
+  margin-top: 2px;
+  padding-top: 6px;
+}
+
+.wj-guest-cat-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 8px;
+  border-radius: var(--r-md);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink3);
+}
+
+.wj-guest-cat-link:hover {
+  background: var(--neutral-50, #f8f9fb);
+}
+
+.wj-guest-cat-link svg:first-child {
+  color: var(--ink4);
+  flex-shrink: 0;
+}
+
+.wj-guest-cat-arr {
+  margin-left: auto;
+  color: var(--ink4);
+}
+
+/* Right aside — cins-trang-chu-B.html col-right */
+.wj-ad {
+  position: relative;
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  box-shadow: var(--sh-sm);
+  color: #fff;
+  background: linear-gradient(
+    150deg,
+    #ff7eb3 0%,
+    #ff758c 35%,
+    var(--orange) 100%
+  );
+}
+
+.wj-ad-blob {
+  position: absolute;
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  right: -50px;
+  top: -50px;
+  background: rgba(255, 255, 255, 0.18);
+  z-index: 0;
+}
+
+.wj-ad-body {
+  position: relative;
+  z-index: 1;
+  padding: 20px 18px 18px;
+}
+
+.wj-ad-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.22);
+  padding: 5px 10px;
+  border-radius: var(--r-pill);
+  margin-bottom: 12px;
+  backdrop-filter: blur(4px);
+}
+
+.wj-ad-title {
+  font-family: var(--font-display);
+  font-size: 27px;
+  line-height: 0.98;
+  letter-spacing: 0.3px;
+  margin: 0 0 8px;
+}
+
+.wj-ad-desc {
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 0 0 16px;
+  opacity: 0.95;
+}
+
+.wj-ad-when {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  font-weight: 600;
+  margin-bottom: 14px;
+}
+
+.wj-ad-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: #fff;
+  color: #d6336c;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 11px 18px;
+  border-radius: var(--r-pill);
+  border: 0;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.wj-ad-cta:hover {
+  opacity: 0.92;
+}
+
+.wj-ad-spons {
+  position: absolute;
+  right: 12px;
+  bottom: 10px;
+  z-index: 1;
+  font-size: 10px;
+  opacity: 0.7;
+  letter-spacing: 0.3px;
+}
+
+.wj-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--sh-xs);
+  overflow: hidden;
+}
+
+.wj-panel-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 15px 18px 10px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink1);
+}
+
+.wj-panel-head svg {
+  color: var(--ink4);
+  flex-shrink: 0;
+}
+
+.wj-panel-more {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--blue);
+  text-decoration: none;
+}
+
+.wj-panel-more:hover {
+  text-decoration: underline;
+}
+
+.wj-sg {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 10px 18px;
+}
+
+.wj-sg:last-child {
+  padding-bottom: 16px;
+}
+
+.wj-sg-av {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 14px;
+  color: #fff;
+  overflow: hidden;
+}
+
+.wj-sg-av--org {
+  border-radius: var(--r-md);
+}
+
+.wj-sg-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.wj-sg-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--ink1);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.wj-sg-name svg {
+  color: var(--blue);
+  flex-shrink: 0;
+}
+
+.wj-sg-role {
+  font-size: 12px;
+  color: var(--ink4);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wj-sg-follow {
+  flex-shrink: 0;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--blue);
+  background: var(--blue-soft);
+  border: 0;
+  padding: 8px 14px;
+  border-radius: var(--r-pill);
+  cursor: pointer;
+}
+
+.wj-sg-follow:hover {
+  background: #dceafa;
+}
+
+.wj-ev {
+  display: flex;
+  gap: 12px;
+  padding: 11px 18px;
+}
+
+.wj-ev:last-child {
+  padding-bottom: 16px;
+}
+
+.wj-ev-date {
+  flex-shrink: 0;
+  width: 46px;
+  text-align: center;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  overflow: hidden;
+}
+
+.wj-ev-month {
+  background: var(--neutral-800, #1b1f2a);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  padding: 3px 0;
+  text-transform: uppercase;
+}
+
+.wj-ev-day {
+  font-weight: 800;
+  font-size: 18px;
+  color: var(--ink1);
+  padding: 4px 0 5px;
+}
+
+.wj-ev-meta {
+  min-width: 0;
+}
+
+.wj-ev-name {
+  font-weight: 600;
+  font-size: 13.5px;
+  color: var(--ink1);
+  line-height: 1.3;
+}
+
+.wj-ev-loc {
+  font-size: 12px;
+  color: var(--ink4);
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.wj-ev-loc svg {
+  flex-shrink: 0;
+}
+
+/* Right aside (legacy mock — giữ cho tham chiếu) */
+.wj-r-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 16px;
+  box-shadow: var(--sh-xs);
+}
+
+.wj-r-head {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink1);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.wj-r-head svg {
+  width: 14px;
+  height: 14px;
+  color: var(--blue);
+}
+
+.wj-r-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px dashed var(--border);
+}
+
+.wj-r-row:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.wj-av-36 {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.wj-av-36.square {
+  border-radius: 8px;
+}
+
+.wj-r-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.wj-r-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink1);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.wj-r-name svg {
+  width: 11px;
+  height: 11px;
+  color: var(--mint-deep);
+}
+
+.wj-r-role {
+  font-size: 11.5px;
+  color: var(--ink4);
+  margin-top: 1px;
+  line-height: 1.3;
+}
+
+.wj-r-follow {
+  padding: 5px 11px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--blue);
+  border: 1px solid var(--blue);
+  border-radius: var(--r-pill);
+  flex-shrink: 0;
+}
+
+.wj-r-follow:hover {
+  background: var(--blue);
+  color: #fff;
+}
+
+.wj-tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.wj-t-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 11px;
+  border-radius: var(--r-pill);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.wj-t-chip .count {
+  font-size: 11.5px;
+  opacity: 0.7;
+  font-weight: 600;
+}
+
+.wj-ev-row {
+  display: flex;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px dashed var(--border);
+}
+
+.wj-ev-row:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.wj-ev-date {
+  flex-shrink: 0;
+  width: 48px;
+  text-align: center;
+  border: 1px solid var(--border-s);
+  border-radius: var(--r-sm);
+  padding: 4px 0 6px;
+  background: #f8f9fb;
+}
+
+.wj-ev-date .d {
+  font-family: var(--display);
+  font-size: 22px;
+  line-height: 1;
+  color: var(--ink1);
+}
+
+.wj-ev-date .m {
+  font-size: 10px;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--blue);
+  letter-spacing: 0.6px;
+  margin-top: 3px;
+  display: block;
+}
+
+.wj-ev-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink1);
+  line-height: 1.35;
+}
+
+.wj-ev-host {
+  font-size: 12px;
+  color: var(--blue);
+  margin-top: 3px;
+  font-weight: 500;
+}
+
+.wj-ev-time {
+  font-size: 11.5px;
+  color: var(--ink4);
+  margin-top: 2px;
+}
+
+/* Responsive */
+@media (max-width: 1199.98px) {
+  .world-journey-home .wj-shell {
+    grid-template-columns: minmax(0, var(--wj-aside-left-w)) minmax(0, 1fr);
+    max-width: 1080px;
+  }
+
+  .world-journey-home .wj-shell.view-grid,
+  .world-journey-home.view-grid .wj-shell {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: none;
+    margin: 0;
+  }
+
+  .world-journey-home .wj-guest-aside--right {
+    display: none;
+  }
+}
+
+@media (max-width: 991.98px) {
+  .world-journey-home {
+    --j-rail-x: 0px;
+    --j-content-pad-l: 0px;
+    --j-timeline-stack-gap: 8px;
+    --j-timeline-card-gap: 14px;
+    --wj-feed-gap: 14px;
+    --wj-feed-card-gap: 14px;
+    --wj-feed-pad-top: 0;
+  }
+
+  .world-journey-home .wj-shell {
+    grid-template-columns: 1fr;
+    gap: 0;
+    max-width: none;
+    margin: 0;
+    padding: 0 0 40px;
+  }
+
+  /* view-grid: bỏ cột aside (1199px rule specificity cao hơn — nếu không ghi đè feed chỉ ~290px). */
+  .world-journey-home .wj-shell.view-grid {
+    grid-template-columns: 1fr;
+    max-width: none;
+    margin: 0;
+    padding: 0 0 40px;
+    gap: 0;
+  }
+
+  .world-journey-home .wj-feed.view-grid {
+    max-width: none;
+    width: 100%;
+    gap: 0;
+  }
+
+  .world-journey-home .wj-feed.view-grid .wj-feed-grid-panel {
+    width: 100%;
+    min-width: 0;
+    padding: 0;
+  }
+
+  .world-journey-home .wj-feed.view-grid .j-main-gallery-item {
+    border-radius: 5px;
+  }
+
+  .world-journey-home
+    .wj-feed.view-grid
+    .j-main-gallery-grid:not(.j-main-gallery-grid--card)
+    .j-main-gallery-thumb {
+    border-radius: 5px;
+  }
+
+  .world-journey-home
+    .wj-feed.view-grid
+    .j-main-gallery-grid--card
+    .j-main-gallery-thumb {
+    border-radius: 5px 5px 0 0;
+  }
+
+  .world-journey-home .wj-guest-aside--right {
+    display: flex;
+    order: 3;
+    position: static;
+    padding: 0 16px;
+    /* Trên mobile cột về static → bỏ giới hạn cao & cuộn riêng. */
+    max-height: none;
+    overflow: visible;
+  }
+
+  /* Mobile: cột trái → FAB / ẩn; không stack trên feed. */
+  .world-journey-home .wj-guest-aside--left {
+    display: none;
+  }
+
+  /* Cột phải rỗng khi mọi module đã portal vào FAB. */
+  .world-journey-home .wj-guest-aside--right:empty {
+    display: none;
+  }
+
+  .world-journey-home .wj-feed {
+    max-width: none;
+    padding-top: 0;
+    gap: var(--wj-feed-gap);
+  }
+
+  .world-journey-home .wj-feed-header {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .world-journey-home .wj-feed .wj-feed-timeline.j-timeline {
+    background: var(--bg-page);
+    gap: var(--j-timeline-stack-gap);
+    padding-top: 0;
+  }
+
+  .world-journey-home .wj-feed .wj-feed-timeline .j-year-block,
+  .world-journey-home .wj-feed .wj-feed-timeline .j-year-block:first-of-type {
+    padding-top: 0;
+    margin-top: 0;
+  }
+
+  .world-journey-home .wj-feed .wj-feed-timeline .j-m-body-wrap,
+  .world-journey-home .wj-feed .wj-feed-timeline .j-timeline-end,
+  .world-journey-home .wj-feed .wj-feed-timeline .j-year-header {
+    padding-left: 0;
+  }
+
+  .world-journey-home .wj-feed .wj-feed-timeline .j-m-month,
+  .world-journey-home .wj-feed .wj-feed-timeline .j-m-diamond,
+  .world-journey-home .wj-feed .wj-feed-timeline .j-year-diamond,
+  .world-journey-home .wj-feed .wj-feed-timeline .j-m-body-wrap::before,
+  .world-journey-home .wj-feed .wj-feed-timeline .j-timeline-end::before {
+    display: none;
+  }
+
+  .world-journey-home .wj-feed .wj-feed-timeline .j-year-block {
+    gap: var(--j-timeline-card-gap);
+  }
+
+  .world-journey-home .wj-feed .wj-feed-timeline .j-milestone {
+    margin-bottom: 0;
+  }
+
+  .world-journey-home .wj-feed .wj-feed-timeline .j-m-card,
+  .world-journey-home .wj-feed .wj-feed-timeline .j-m-card.jcard,
+  .world-journey-home .wj-feed .wj-feed-timeline .j-milestone.j-tagged .j-m-card.jcard,
+  .world-journey-home .wj-feed .wj-feed-timeline .j-m-card.is-expanded,
+  .world-journey-home .wj-feed .wj-feed-timeline .j-m-card.jcard.is-expanded,
+  .world-journey-home .wj-feed .wj-feed-timeline .j-m-card.has-unfold.is-expanded:hover,
+  .world-journey-home .wj-feed .wj-feed-timeline .j-m-card.jcard:hover,
+  .world-journey-home .wj-feed .wj-feed-timeline .j-milestone.j-tagged .j-m-card.jcard:hover {
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    box-shadow: none;
+    transform: none;
+    background: var(--bg-surface, #fff);
+  }
+
+  .world-journey-home .wj-feed .wj-feed-timeline .j-milestone,
+  .world-journey-home .wj-feed .wj-feed-timeline .j-m-body-wrap,
+  .world-journey-home .wj-feed .wj-feed-timeline .j-m-card,
+  .world-journey-home .wj-feed .wj-feed-timeline .j-m-card.jcard {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  /* Media full-bleed — padding gom trong datebar / jcard-text / actions */
+  .world-journey-home .wj-feed .wj-feed-timeline .j-m-card,
+  .world-journey-home .wj-feed .wj-feed-timeline .j-m-card.jcard {
+    padding: 0;
+  }
+
+  .world-journey-home .wj-feed .wj-feed-timeline .j-m-card:not(:has(.jcard-datebar)) {
+    padding: 16px;
+  }
+
+  .world-journey-home .wj-feed .wj-feed-timeline .j-m-card .jcard-media-zone,
+  .world-journey-home .wj-feed .wj-feed-timeline .j-m-card .jcard-media-zone :is(
+    .preview,
+    a.preview,
+    .jcard-video-root,
+    .jcard-video-trigger,
+    .jcard-video-player
+  ) {
+    width: 100%;
+    max-width: none;
+    border-radius: 0;
+  }
+
+  .world-journey-home .wj-feed .wj-feed-timeline .j-m-card .jcard-media-zone img {
+    border-radius: 0;
+  }
+
+  /* 1 ảnh dọc — full bleed; clamp do image-grid.css */
+  .world-journey-home
+    .wj-feed
+    .wj-feed-timeline
+    .j-m-card
+    .jcard-media-zone
+    .preview--photo-grid:has(.image-grid--single.is-portrait),
+  .world-journey-home
+    .wj-feed
+    .wj-feed-timeline
+    .j-m-card
+    .jcard-media-zone
+    .preview--photo-grid.is-portrait-media {
+    width: 100%;
+    max-width: 100%;
+    margin-inline: 0;
+  }
+
+  .world-journey-home .wj-feed > .cins-feed-composer-row .wj-composer {
+    padding: 8px 12px;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    box-shadow: none;
+  }
+
+  .world-journey-home .wj-feed-end,
+  .world-journey-home .wj-feed-empty {
+    margin-inline: 0;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+}
+
+@media (max-width: 780px) {
+  .wj-feed-header {
+    padding: 4px 8px;
+    gap: 6px;
+  }
+
+  .world-journey-home .wj-feed-promo-rail-track {
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x proximity;
+    scroll-padding-inline: 12px;
+    overscroll-behavior-inline: contain;
+    /* pan-x only blocked vertical page scroll when finger started on the rail */
+    touch-action: pan-x pan-y;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .world-journey-home .wj-feed-promo-rail-track::-webkit-scrollbar {
+    display: none;
+  }
+
+  .world-journey-home .wj-feed-promo-rail-track > .wj-feed-promo-card,
+  .world-journey-home
+    .wj-feed-promo-rail-track
+    > .wj-feed-promo-card.is-person,
+  .world-journey-home .wj-feed-promo-rail-track > .wj-feed-promo-card.is-org {
+    flex: 0 0 160px;
+    width: 160px;
+    min-width: 160px;
+    scroll-snap-align: start;
+  }
+}
+
+@media (max-width: 640px) {
+  .world-journey-home {
+    --wj-feed-header-h: 48px;
+  }
+
+  /* Mobile: notify trái — toggle thu gọn bên phải. */
+  .world-journey-home .wj-filter-bar {
+    flex-wrap: nowrap;
+    gap: 8px;
+  }
+
+  .world-journey-home .wj-filter-spacer {
+    display: none;
+  }
+
+  .world-journey-home .wj-filter-trail {
+    margin-left: auto;
+    flex: 0 0 auto;
+  }
+
+  .world-journey-home .wj-view-toggle {
+    flex: 0 0 auto;
+    width: auto;
+  }
+
+  .world-journey-home .wj-vt-btn {
+    flex: 0 0 auto;
+  }
+}
+
+@media (max-width: 560px) {
+  .wj-composer-icons .wj-ci-hide {
+    display: none;
+  }
+}
+
+/* ════════ Trang chủ adaptive — module columns (ha-*) ════════ */
+/* Cột module (trái/phải): cao theo nội dung; khi tràn viewport thì cuộn riêng
+   (sticky dưới topbar). Card con không co / không cắt — chỉ cột cuộn. */
+.world-journey-home .ha-col {
+  gap: 14px;
+  position: sticky;
+  top: calc(var(--wj-sticky-top) + var(--wj-shell-pad-top, 16px));
+  align-self: start;
+  min-width: 0;
+  width: 100%;
+  height: fit-content;
+  min-height: 0;
+  max-height: calc(
+    100dvh - var(--wj-sticky-top) - var(--wj-shell-pad-top, 16px) - 24px
+  );
+  overflow-x: clip;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding-right: 0;
+}
+
+.world-journey-home .ha-col::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.world-journey-home .ha-col > .ha-card {
+  flex: 0 0 auto;
+  height: fit-content;
+}
+
+/* Card module trong cột phải — bỏ padding phải để khít mép.
+   Cột trái giữ padding đầy đủ; card cơ hội (ha-card--jobs) giữ padding trong. */
+.world-journey-home .ha-col--right .ha-card:not(.ha-card--jobs):not(.ha-card--notify) .ha-card-head,
+.world-journey-home .ha-col--right .ha-card:not(.ha-card--jobs):not(.ha-card--notify) .ha-card-empty,
+.world-journey-home .ha-col--right .ha-card:not(.ha-card--jobs):not(.ha-card--notify) .ha-row,
+.world-journey-home .ha-col--right .ha-card:not(.ha-card--jobs):not(.ha-card--notify) .ha-trow,
+.world-journey-home .ha-col--right .ha-card:not(.ha-card--jobs):not(.ha-card--notify) .ha-nudge,
+.world-journey-home .ha-col--right .ha-card:not(.ha-card--jobs):not(.ha-card--notify) .ha-vis-note,
+.world-journey-home .ha-col--right .ha-card:not(.ha-card--jobs):not(.ha-card--notify) .ha-ev,
+.world-journey-home .ha-col--right .ha-card:not(.ha-card--jobs):not(.ha-card--notify) .ha-org-up-list,
+.world-journey-home .ha-col--right .ha-card:not(.ha-card--jobs):not(.ha-card--notify) .ha-org-up:not(.ha-org-up--banner) {
+  padding-right: 0;
+}
+
+/* Cột trái — padding phải thoáng hơn. */
+.world-journey-home .ha-col--left {
+  --ha-inset-x: 14px;
+}
+
+@media (max-width: 991.98px) {
+  /* Mobile: cột về static, bỏ giới hạn cao & cuộn riêng. */
+  .world-journey-home .ha-col {
+    position: static;
+    height: auto;
+    max-height: none;
+    overflow: visible;
+  }
+}
+
+.world-journey-home .ha-card {
+  background: var(--surface);
+  border: none;
+  border-radius: var(--r-lg);
+  box-shadow: var(--sh-xs);
+  overflow: hidden;
+  min-width: 0;
+  width: 100%;
+}
+
+.world-journey-home .ha-card--profile,
+.world-journey-home .ha-card--people,
+.world-journey-home .ha-card--studio {
+  overflow: visible;
+  height: fit-content;
+}
+
+.world-journey-home .ha-card--jobs {
+  overflow: visible;
+  height: fit-content;
+}
+
+.world-journey-home .ha-card--notify {
+  overflow: visible;
+  height: fit-content;
+}
+
+/* Drawer mobile: bỏ khung card trùng tiêu đề drawer, giữ body. */
+.wj-notify-fab-panel > .ha-card--notify,
+.wj-notify-fab-panel > .ha-card--jobs {
+  border: none;
+  box-shadow: none;
+  background: transparent;
+  border-radius: 0;
+}
+
+.wj-notify-fab-panel > .ha-card--notify > .ha-card-head,
+.wj-notify-fab-panel > .ha-card--jobs > .ha-card-head {
+  display: none;
+}
+
+/* Giữ link «Xem thêm» tuyển dụng dưới list trong drawer. */
+.wj-notify-fab-panel > .ha-card--jobs .ha-job-list {
+  padding-top: 4px;
+}
+
+.world-journey-home .ha-card--notify .ha-card-head {
+  flex-wrap: wrap;
+  row-gap: 6px;
+  padding: 12px 12px 10px 14px;
+  border-bottom: 1px solid var(--neutral-100, #f1f2f5);
+}
+
+.world-journey-home .ha-card--notify .ha-card-empty {
+  padding: 4px 12px 15px 14px;
+}
+
+.world-journey-home .ha-card--notify .ha-org-up-list {
+  padding: 10px 12px 12px 8px;
+}
+
+.world-journey-home .ha-card--notify .ha-org-up-list-row,
+.world-journey-home .ha-card--notify .ha-org-up-date,
+.world-journey-home .ha-card--notify .ha-org-up-list-badge {
+  box-shadow: none;
+}
+
+.world-journey-home .ha-card--notify .ha-org-up-more {
+  padding: 2px 12px 10px 14px;
+}
+
+.world-journey-home .ha-card--notify .ha-ev {
+  padding: 9px 12px 9px 14px;
+}
+
+.world-journey-home .ha-card--notify .ha-org-up-title,
+.world-journey-home .ha-card--notify .ha-org-up-list-title {
+  display: block;
+  overflow: visible;
+  -webkit-line-clamp: unset;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.world-journey-home .ha-card--notify .ha-org-up-list-top {
+  flex-wrap: wrap;
+  row-gap: 4px;
+}
+
+.world-journey-home .ha-card--notify .ha-org-up-range,
+.world-journey-home .ha-card--notify .ha-org-up-countdown {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.world-journey-home .ha-card--notify .ha-org-up--banner .ha-org-up-body {
+  padding: 0 12px 12px;
+}
+
+.world-journey-home .ha-card--notify .ha-org-up-tag {
+  max-width: none;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+}
+
+.world-journey-home .ha-card--notify .ha-ev-name {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.world-journey-home .ha-card--accent {
+  background: color-mix(in srgb, var(--mint, #6efec0) 10%, var(--surface));
+}
+
+/* ── Card cơ hội (sidebar LÀM) ── */
+.world-journey-home .ha-card--jobs .ha-card-head {
+  flex-wrap: wrap;
+  align-items: center;
+  row-gap: 6px;
+  padding: 12px 12px 10px 14px;
+  border-bottom: 1px solid var(--neutral-100, #f1f2f5);
+}
+
+.world-journey-home .ha-card--jobs .ha-card-title {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.world-journey-home .ha-card--jobs .ha-card-more {
+  flex-shrink: 0;
+}
+
+.world-journey-home .ha-card-badge {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border-radius: var(--r-pill);
+  background: var(--mint-soft, #e8fdf5);
+  color: var(--mint-ink, #0e6b4d);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.35;
+}
+
+.world-journey-home .ha-job-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px 12px 12px;
+}
+
+.world-journey-home .ha-job {
+  display: block;
+  padding: 10px 10px 10px 11px;
+  text-decoration: none;
+  color: inherit;
+  border: none;
+  border-radius: var(--r-md, 12px);
+  background: var(--neutral-50, #f8f9fb);
+  transition:
+    background 0.15s var(--ease, ease),
+    box-shadow 0.15s var(--ease, ease);
+  min-width: 0;
+}
+
+.world-journey-home a.ha-job:hover,
+.world-journey-home a.ha-job:focus-visible {
+  background: var(--surface, #fff);
+  box-shadow: var(--sh-xs);
+}
+
+.world-journey-home a.ha-job:hover .ha-job-title,
+.world-journey-home a.ha-job:focus-visible .ha-job-title {
+  color: var(--blue);
+}
+
+.world-journey-home .ha-job-inner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+
+.world-journey-home .ha-job-av {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  flex-shrink: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--blue-soft, #e7f0fb);
+  border: none;
+}
+
+.world-journey-home .ha-job-av img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.world-journey-home .ha-job-av-fallback {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--blue);
+}
+
+.world-journey-home .ha-job-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.world-journey-home .ha-job-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--ink1);
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.world-journey-home .ha-job-org {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.world-journey-home .ha-job-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 0;
+  margin-top: 1px;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--ink4);
+}
+
+.world-journey-home .ha-job-meta-part {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+}
+
+.world-journey-home .ha-job-meta-part:not(:last-child)::after {
+  content: "·";
+  margin: 0 5px;
+  color: var(--neutral-300, #c8ccd4);
+  font-weight: 700;
+}
+
+.world-journey-home .ha-job-meta-part svg {
+  flex-shrink: 0;
+  opacity: 0.75;
+}
+
+.world-journey-home .ha-job-sal {
+  margin-top: 3px;
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--blue-dark, #1656a0);
+  letter-spacing: -0.01em;
+}
+
+/* ── Card hồ sơ (cột trái LÀM) ── */
+.world-journey-home .ha-card--profile .ha-card-head {
+  flex-wrap: wrap;
+  align-items: center;
+  row-gap: 6px;
+  padding: 12px var(--ha-inset-x, 14px) 10px 14px;
+  border-bottom: 1px solid var(--neutral-100, #f1f2f5);
+}
+
+.world-journey-home .ha-card--profile.ha-card--accent .ha-card-head svg {
+  color: var(--mint-deep, #0e9b6e);
+}
+
+.world-journey-home .ha-card--profile.ha-card--accent {
+  background: color-mix(in srgb, var(--mint, #6efec0) 10%, var(--surface));
+}
+
+.world-journey-home .ha-profile-body {
+  padding: 14px var(--ha-inset-x, 14px) 14px 14px;
+}
+
+.world-journey-home .ha-profile-meter {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.world-journey-home .ha-profile-ring {
+  --ha-pct: 0;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: conic-gradient(
+    var(--blue) calc(var(--ha-pct) * 1%),
+    var(--neutral-100, #f1f2f5) 0
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.world-journey-home .ha-profile-ring::before {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border-radius: 50%;
+  background: var(--surface);
+}
+
+.world-journey-home .ha-profile-pct {
+  position: relative;
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--ink1);
+  letter-spacing: -0.02em;
+}
+
+.world-journey-home .ha-profile-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.world-journey-home .ha-profile-status {
+  margin: 0 0 4px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--ink1);
+  line-height: 1.3;
+}
+
+.world-journey-home .ha-profile-hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ink4);
+  line-height: 1.45;
+}
+
+.world-journey-home .ha-card--profile .ha-profile-cta.ha-btn-full {
+  padding: 10px 12px;
+  font-size: 13px;
+  border-radius: var(--r-md);
+}
+
+.world-journey-home .ha-profile-open {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 11px var(--ha-inset-x, 14px) 12px 14px;
+  border-top: 1px solid color-mix(in srgb, var(--mint, #6efec0) 35%, var(--border));
+  background: color-mix(in srgb, var(--mint-soft, #e8fdf5) 55%, var(--surface));
+  font-size: 12.5px;
+  color: var(--ink3);
+  line-height: 1.4;
+}
+
+.world-journey-home .ha-profile-open svg {
+  color: var(--mint-deep, #0e9b6e);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.world-journey-home .ha-profile-open b {
+  color: var(--ink1);
+}
+
+/* ── Card người cùng ngành / studio (cột trái LÀM) ── */
+.world-journey-home .ha-card--people .ha-card-head,
+.world-journey-home .ha-card--studio .ha-card-head {
+  padding-right: var(--ha-inset-x, 14px);
+  border-bottom: 1px solid var(--neutral-100, #f1f2f5);
+}
+
+.world-journey-home .ha-card--people .ha-card-empty,
+.world-journey-home .ha-card--studio .ha-card-empty {
+  padding-right: var(--ha-inset-x, 14px);
+}
+
+.world-journey-home .ha-people-list,
+.world-journey-home .ha-studio-list {
+  display: flex;
+  flex-direction: column;
+  height: fit-content;
+  overflow: visible;
+}
+
+.world-journey-home .ha-person {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 10px var(--ha-inset-x, 14px) 10px 14px;
+  border-bottom: 1px solid var(--neutral-100, #f1f2f5);
+  min-width: 0;
+}
+
+.world-journey-home .ha-person:last-child {
+  border-bottom: 0;
+  padding-bottom: 12px;
+}
+
+.world-journey-home .ha-person > .j-user-pop-wrap {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+}
+
+.world-journey-home .ha-person > .j-user-pop-wrap > .j-user-pop-trigger {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  border-radius: var(--r-sm);
+}
+
+.world-journey-home .ha-person .j-user-pop-trigger:hover .ha-row-name,
+.world-journey-home .ha-person .j-user-pop-trigger:focus-visible .ha-row-name {
+  color: var(--blue);
+}
+
+.world-journey-home .ha-person .j-follow-wrap {
+  flex: 0 0 auto;
+}
+
+.world-journey-home .ha-person .j-friend-btn.is-compact,
+.world-journey-home .ha-person .j-friend-btn.is-compact.is-idle,
+.world-journey-home .ha-person .j-friend-btn.is-compact.is-pending,
+.world-journey-home .ha-person .j-friend-btn.is-compact.is-friends {
+  width: 38px;
+  min-width: 38px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+.world-journey-home .ha-person .j-friend-btn.is-compact:hover:not(:disabled) {
+  background: transparent;
+}
+
+.world-journey-home .ha-person > .ha-row-friend-badge {
+  flex: 0 0 auto;
+  width: 38px;
+  min-width: 38px;
+  justify-content: center;
+}
+
+.world-journey-home .ha-card--studio .ha-row {
+  padding: 10px var(--ha-inset-x, 14px) 10px 14px;
+  border-bottom: 1px solid var(--neutral-100, #f1f2f5);
+}
+
+.world-journey-home .ha-card--studio .ha-row:last-child {
+  border-bottom: 0;
+  padding-bottom: 12px;
+}
+
+.world-journey-home .ha-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 16px 9px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink1);
+}
+
+.world-journey-home .ha-card-head svg {
+  color: var(--ink4);
+  flex-shrink: 0;
+}
+
+.world-journey-home .ha-card-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.world-journey-home .ha-card-more {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin-right: -4px;
+  border-radius: var(--r-sm, 8px);
+  color: var(--blue);
+  flex-shrink: 0;
+}
+
+.world-journey-home .ha-card-more:hover {
+  background: var(--cins-blue-soft, #e7f0fb);
+}
+
+.world-journey-home .ha-card-more svg {
+  color: inherit;
+}
+
+.world-journey-home .ha-card-empty {
+  margin: 0;
+  padding: 4px 16px 15px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink4);
+}
+
+/* row (gợi ý theo dõi / người cùng ngành) */
+.world-journey-home .ha-row {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 8px 16px;
+}
+
+.world-journey-home .ha-row:last-child {
+  padding-bottom: 14px;
+}
+
+.world-journey-home .ha-row-av {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--neutral-100, #f1f2f5);
+}
+
+.world-journey-home .ha-row-av img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.world-journey-home .ha-row-av-fallback {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--ink3);
+}
+
+.world-journey-home .ha-row-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Nút theo dõi compact (chỉ icon) — gọn theo nội dung, không kéo dài 112px. */
+.world-journey-home .ha-row .j-follow-wrap {
+  flex: 0 0 auto;
+}
+.world-journey-home .ha-row .j-friend-btn.is-compact,
+.world-journey-home .ha-row .j-friend-btn.is-compact.is-idle,
+.world-journey-home .ha-row .j-friend-btn.is-compact.is-pending,
+.world-journey-home .ha-row .j-friend-btn.is-compact.is-friends {
+  width: 38px;
+  min-width: 38px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+.world-journey-home .ha-row .j-friend-btn.is-compact:hover:not(:disabled) {
+  background: transparent;
+}
+
+.world-journey-home .ha-row-name {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--ink1);
+}
+
+.world-journey-home .ha-row-name svg {
+  color: var(--blue);
+  flex-shrink: 0;
+}
+
+.world-journey-home .ha-row-name .cins-verified-tick,
+.world-journey-home .ha-row-name .cins-verified-tick svg {
+  color: #22e06a;
+}
+
+.world-journey-home .ha-row-name .cins-verified-tick {
+  margin-left: 0;
+}
+
+/* Badge "đã là bạn bè" cạnh tên gợi ý. */
+.world-journey-home .ha-row-friend-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--mint-deep, #0e9b6e);
+}
+
+.world-journey-home .ha-row-friend-badge svg {
+  color: inherit;
+}
+
+.world-journey-home .ha-row-sub {
+  font-size: 12px;
+  color: var(--ink4);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Click avatar + tên → mở user card (JourneyUserPopover) */
+.world-journey-home .ha-row > .j-user-pop-wrap {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+}
+
+/* Click avatar + tên → mở org card (JourneyOrgPopover) */
+.world-journey-home .ha-row > .j-org-pop-wrap {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+}
+
+.world-journey-home .ha-row > .j-user-pop-wrap > .j-user-pop-trigger {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  border-radius: var(--r-sm);
+}
+
+.world-journey-home .ha-row > .j-org-pop-wrap > .j-user-pop-trigger {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  border-radius: var(--r-sm);
+}
+
+.world-journey-home .ha-row-pop-body {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  flex: 1;
+  min-width: 0;
+}
+
+.world-journey-home a.ha-row-pop-link {
+  flex: 1;
+  min-width: 0;
+  text-decoration: none;
+  color: inherit;
+  border-radius: var(--r-sm);
+}
+
+.world-journey-home a.ha-row-pop-link:hover .ha-row-name,
+.world-journey-home a.ha-row-pop-link:focus-visible .ha-row-name {
+  color: var(--blue);
+}
+
+.world-journey-home .ha-row .j-user-pop-trigger:hover .ha-row-name,
+.world-journey-home .ha-row .j-user-pop-trigger:focus-visible .ha-row-name {
+  color: var(--blue);
+}
+
+.world-journey-home .ha-row .j-org-pop-wrap > .j-user-pop-trigger:hover .ha-row-name,
+.world-journey-home
+  .ha-row
+  .j-org-pop-wrap
+  > .j-user-pop-trigger:focus-visible
+  .ha-row-name {
+  color: var(--blue);
+}
+
+/* event */
+.world-journey-home .ha-ev {
+  display: flex;
+  gap: 12px;
+  padding: 9px 16px;
+}
+
+.world-journey-home .ha-ev:last-child {
+  padding-bottom: 14px;
+}
+
+.world-journey-home .ha-ev-date {
+  flex-shrink: 0;
+  width: 44px;
+  text-align: center;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  overflow: hidden;
+}
+
+.world-journey-home .ha-ev-month {
+  background: var(--neutral-800, #1b1f2a);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 600;
+  padding: 3px 0;
+  text-transform: uppercase;
+}
+
+.world-journey-home .ha-ev-day {
+  font-weight: 800;
+  font-size: 17px;
+  color: var(--ink1);
+  padding: 3px 0 4px;
+}
+
+.world-journey-home .ha-ev-name {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--ink1);
+  line-height: 1.3;
+}
+
+.world-journey-home .ha-ev-loc {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  color: var(--ink4);
+  margin-top: 2px;
+}
+
+/* org đang theo dõi — sidebar */
+.world-journey-home .ha-org-up-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 8px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.world-journey-home .ha-org-up-item {
+  margin: 0;
+}
+
+.world-journey-home .ha-org-up-item--interest .ha-org-up--banner {
+  border-color: color-mix(in srgb, var(--violet, #6b4ce6) 28%, var(--border));
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--violet, #6b4ce6) 12%, transparent);
+}
+
+.world-journey-home .ha-org-up-item--rsvp .ha-org-up--banner {
+  border-color: color-mix(in srgb, var(--blue) 28%, var(--border));
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--blue) 12%, transparent);
+}
+
+.world-journey-home .ha-org-up {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 16px;
+  color: inherit;
+  text-decoration: none;
+  border-radius: var(--r-sm);
+  transition: background 0.15s var(--ease);
+}
+
+.world-journey-home .ha-org-up--banner {
+  flex-direction: column;
+  gap: 8px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  overflow: hidden;
+  background: var(--surface);
+  box-shadow: var(--sh-xs);
+  transition:
+    transform 0.15s var(--ease),
+    box-shadow 0.15s var(--ease),
+    border-color 0.15s var(--ease);
+}
+
+.world-journey-home .ha-org-up--banner:hover {
+  background: var(--surface);
+  transform: translateY(-1px);
+  box-shadow: var(--sh-sm, 0 4px 14px color-mix(in srgb, var(--ink1) 8%, transparent));
+}
+
+.world-journey-home .ha-org-up-banner {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: linear-gradient(
+    145deg,
+    var(--violet-soft, #f0ebff),
+    var(--neutral-100, #f1f2f5)
+  );
+}
+
+.world-journey-home .ha-org-up-banner-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.world-journey-home .ha-org-up-banner-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--ink4);
+  letter-spacing: 0.04em;
+}
+
+.world-journey-home .ha-org-up-banner-shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(15, 23, 42, 0.08) 0%,
+    rgba(15, 23, 42, 0.02) 42%,
+    rgba(15, 23, 42, 0.18) 100%
+  );
+  pointer-events: none;
+}
+
+.world-journey-home .ha-org-up-date--overlay {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 1;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+.world-journey-home .ha-org-up-banner-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 1;
+  display: flex;
+}
+
+.world-journey-home .ha-org-up--banner .ha-org-up-body {
+  padding: 0 10px 10px;
+  gap: 3px;
+}
+
+.world-journey-home .ha-org-up:hover {
+  background: var(--neutral-50, #f8f9fb);
+}
+
+.world-journey-home .ha-org-up-date {
+  flex-shrink: 0;
+  width: 44px;
+  text-align: center;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.world-journey-home .ha-org-up-date--live {
+  border-color: color-mix(in srgb, var(--mint-deep, #0e9b6e) 45%, var(--border));
+}
+
+.world-journey-home .ha-org-up-date-month {
+  display: block;
+  background: var(--neutral-800, #1b1f2a);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 600;
+  padding: 3px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+/* Dark: --neutral-800 đảo sáng → giữ dải tháng tối + chữ trắng (không #fff trên nền sáng) */
+:root[data-theme="dark"] .world-journey-home .ha-org-up-date-month {
+  background: var(--neutral-0, #12151d);
+  color: #fff;
+}
+
+.world-journey-home .ha-org-up-date--live .ha-org-up-date-month {
+  background: var(--mint-deep, #0e9b6e);
+}
+
+:root[data-theme="dark"] .world-journey-home .ha-org-up-date--live .ha-org-up-date-month {
+  background: var(--mint-deep, #0e9b6e);
+  color: #fff;
+}
+
+.world-journey-home .ha-org-up-date-day {
+  display: block;
+  font-weight: 800;
+  font-size: 17px;
+  color: var(--ink1);
+  padding: 3px 0 4px;
+  line-height: 1;
+}
+
+.world-journey-home .ha-org-up-date-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--ink4);
+  letter-spacing: 0.5px;
+}
+
+.world-journey-home .ha-org-up-body {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 1px;
+}
+
+.world-journey-home .ha-org-up-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.world-journey-home .ha-org-up .j-org-pop-wrap {
+  display: flex;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.world-journey-home .ha-org-up .j-org-pop-wrap > .j-user-pop-trigger {
+  display: flex;
+  max-width: 100%;
+  min-width: 0;
+  border-radius: var(--r-sm);
+}
+
+.world-journey-home .ha-org-up .j-user-pop-trigger:hover .ha-org-up-org,
+.world-journey-home .ha-org-up .j-user-pop-trigger:focus-visible .ha-org-up-org {
+  color: var(--blue);
+}
+
+.world-journey-home .ha-trow-sub--org .j-org-pop-wrap {
+  display: flex;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.world-journey-home .ha-trow-sub--org .j-org-pop-wrap > .j-user-pop-trigger {
+  display: flex;
+  max-width: 100%;
+  min-width: 0;
+  border-radius: var(--r-sm);
+}
+
+.world-journey-home .ha-trow-sub--org .j-user-pop-trigger:hover .ha-trow-sub-text,
+.world-journey-home
+  .ha-trow-sub--org
+  .j-user-pop-trigger:focus-visible
+  .ha-trow-sub-text {
+  color: var(--blue);
+}
+
+.world-journey-home .ha-org-up-org-logo,
+.world-journey-home .ha-trow-org-logo {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--neutral-100, #f1f2f5);
+}
+
+.world-journey-home .ha-org-up-org-logo img,
+.world-journey-home .ha-trow-org-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.world-journey-home .ha-org-up-org-logo-fallback,
+.world-journey-home .ha-trow-org-logo-fallback {
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--ink4);
+  line-height: 1;
+}
+
+.world-journey-home .ha-org-up-org {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink4);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.world-journey-home .ha-org-up-live {
+  flex-shrink: 0;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  text-transform: uppercase;
+  color: var(--mint-ink, #0e6b4d);
+  background: var(--mint-soft);
+  padding: 2px 6px;
+  border-radius: var(--r-pill);
+}
+
+.world-journey-home .ha-org-up-rsvp {
+  flex-shrink: 0;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  text-transform: uppercase;
+  color: var(--blue-dark);
+  background: var(--blue-soft);
+  padding: 2px 6px;
+  border-radius: var(--r-pill);
+}
+
+.world-journey-home .ha-org-up-interest {
+  flex-shrink: 0;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  text-transform: uppercase;
+  color: var(--violet, #6b4ce6);
+  background: var(--violet-soft, #f0ebff);
+  padding: 2px 6px;
+  border-radius: var(--r-pill);
+}
+
+.world-journey-home .ha-org-up-tag {
+  flex-shrink: 0;
+  font-size: 9.5px;
+  font-weight: 600;
+  color: var(--ink4);
+  background: var(--neutral-100, #f1f2f5);
+  padding: 2px 6px;
+  border-radius: var(--r-pill);
+  max-width: 42%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.world-journey-home .ha-org-up-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink1);
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.world-journey-home .ha-org-up-range {
+  margin: 0;
+  font-size: 11px;
+  color: var(--ink4);
+  line-height: 1.3;
+}
+
+.world-journey-home .ha-org-up-countdown {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: 2px 0 0;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--ink4);
+  line-height: 1.2;
+}
+
+.world-journey-home .ha-org-up-countdown--live {
+  color: var(--mint-ink, #0e6b4d);
+}
+
+.world-journey-home .ha-org-up-countdown-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--blue);
+  flex-shrink: 0;
+}
+
+.world-journey-home .ha-org-up-item--list {
+  margin: 0;
+}
+
+.world-journey-home .ha-org-up-list-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  text-decoration: none;
+  color: inherit;
+  box-shadow: none;
+}
+
+.world-journey-home .ha-org-up-item--interest .ha-org-up-list-row {
+  border-color: color-mix(in srgb, var(--violet, #6b4ce6) 22%, var(--border));
+}
+
+.world-journey-home .ha-org-up-item--rsvp .ha-org-up-list-row {
+  border-color: color-mix(in srgb, var(--blue) 22%, var(--border));
+}
+
+.world-journey-home .ha-org-up-date--list {
+  flex-shrink: 0;
+  width: 40px;
+}
+
+.world-journey-home .ha-org-up-list-body {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.world-journey-home .ha-org-up-list-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  min-width: 0;
+}
+
+.world-journey-home .ha-org-up-list-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink1);
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.world-journey-home .ha-org-up-list-badge {
+  flex-shrink: 0;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: var(--r-pill);
+}
+
+.world-journey-home .ha-org-up-list-badge.is-rsvp {
+  color: var(--blue-dark);
+  background: var(--blue-soft);
+}
+
+.world-journey-home .ha-org-up-list-badge.is-interest {
+  color: var(--violet-ink, #5b21b6);
+  background: color-mix(in srgb, var(--violet, #6b4ce6) 12%, white);
+}
+
+.world-journey-home .ha-org-up-list-badge.is-moc {
+  color: var(--amber-ink, #92400e);
+  background: color-mix(in srgb, var(--amber, #f59e0b) 16%, white);
+}
+
+.world-journey-home .ha-org-up-item--moc .ha-org-up-list-row,
+.world-journey-home .ha-org-up-item--moc .ha-org-up--banner {
+  border-color: color-mix(in srgb, var(--amber, #f59e0b) 26%, var(--border));
+}
+
+.world-journey-home .ha-org-up-list-org {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.world-journey-home .ha-org-up-list-org-name {
+  font-size: 11.5px;
+  color: var(--ink4);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.world-journey-home .ha-org-up-list-org .j-org-pop-wrap {
+  display: flex;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.world-journey-home .ha-org-up-list-org .j-user-pop-trigger {
+  display: flex;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.world-journey-home .ha-org-up-more {
+  margin: 0;
+  padding: 2px 12px 10px;
+  text-align: center;
+}
+
+.world-journey-home .ha-org-up-more a {
+  display: inline;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink4, rgba(0, 0, 0, 0.45));
+  text-decoration: none;
+}
+
+.world-journey-home .ha-org-up-more a:hover {
+  color: var(--blue);
+  text-decoration: underline;
+}
+
+/* category (khám phá lĩnh vực) */
+.world-journey-home .ha-cat {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 8px 16px;
+}
+
+.world-journey-home .ha-cat:last-of-type {
+  padding-bottom: 12px;
+}
+
+.world-journey-home .ha-cat:hover {
+  background: var(--neutral-50, #f8f9fb);
+}
+
+.world-journey-home .ha-cat-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.world-journey-home .ha-cat-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink3);
+}
+
+/* thumb row (trường / khóa học) */
+.world-journey-home .ha-trow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 16px;
+}
+
+.world-journey-home .ha-trow:last-child {
+  padding-bottom: 14px;
+}
+
+.world-journey-home .ha-trow:hover {
+  background: var(--neutral-50, #f8f9fb);
+}
+
+.world-journey-home .ha-trow-th {
+  width: 46px;
+  height: 46px;
+  border-radius: var(--r-md);
+  flex-shrink: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--blue-soft);
+  color: var(--blue);
+  font-weight: 800;
+  font-size: 13px;
+}
+
+.world-journey-home .ha-trow-th img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Khóa học — thumbnail 4:3, khung rõ hơn (viền + nền sáng). */
+.world-journey-home .ha-trow-th--course {
+  width: 64px;
+  height: 48px;
+  border-radius: var(--r-sm, 8px);
+  border: 1px solid var(--border);
+  background: var(--neutral-100, #f1f2f5);
+  box-shadow: var(--sh-xs);
+}
+
+.world-journey-home .ha-trow--course:hover .ha-trow-th--course {
+  border-color: var(--border-s);
+}
+
+.world-journey-home .ha-trow-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.world-journey-home .ha-trow-name {
+  font-weight: 600;
+  font-size: 13.5px;
+  color: var(--ink1);
+  line-height: 1.25;
+}
+
+.world-journey-home .ha-trow-sub {
+  font-size: 12px;
+  color: var(--ink4);
+  margin-top: 2px;
+}
+
+.world-journey-home .ha-trow-sub--org {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.world-journey-home .ha-trow-sub-text {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Chips chi tiết trong card cơ hội (loại hình · nơi làm · lĩnh vực · lương). */
+.world-journey-home .ha-trow-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  margin-top: 6px;
+}
+
+.world-journey-home .ha-trow-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 7px;
+  border-radius: var(--r-sm, 8px);
+  background: var(--neutral-100, #f1f2f5);
+  color: var(--ink3, rgba(0, 0, 0, 0.5));
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.world-journey-home .ha-trow-chip svg {
+  flex-shrink: 0;
+  opacity: 0.75;
+}
+
+.world-journey-home .ha-trow-chip--sal {
+  background: var(--blue-soft, #e7f0fb);
+  color: var(--blue-dark, #1656a0);
+  font-weight: 600;
+}
+
+/* Card cơ hội — chi tiết gộp 1 dòng chữ nhẹ, ngăn cách bằng dấu phẩy. */
+.world-journey-home .ha-trow-tags {
+  margin-top: 4px;
+  font-size: 11.5px;
+  color: var(--ink4);
+  line-height: 1.45;
+}
+
+/* Card cơ hội — avatar & tên luôn thẳng hàng (căn trên cùng). */
+.world-journey-home .ha-trow--link {
+  align-items: flex-start;
+}
+
+.world-journey-home .ha-trow--link .ha-trow-th,
+.world-journey-home .ha-trow--link .ha-trow-meta {
+  align-self: flex-start;
+}
+
+/* nudge (hồ sơ của bạn) */
+.world-journey-home .ha-nudge {
+  padding: 4px 16px 16px;
+}
+
+.world-journey-home .ha-nudge-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink1);
+  margin-bottom: 8px;
+}
+
+.world-journey-home .ha-prog {
+  height: 7px;
+  border-radius: var(--r-pill);
+  background: var(--neutral-100, #f1f2f5);
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.world-journey-home .ha-prog i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--blue), #6ec3fe);
+  border-radius: var(--r-pill);
+}
+
+.world-journey-home .ha-nudge-hint {
+  font-size: 12px;
+  color: var(--ink4);
+  margin-bottom: 12px;
+  line-height: 1.45;
+}
+
+.world-journey-home .ha-btn-full {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 11px;
+  border: none;
+  border-radius: var(--r-md);
+  background: var(--blue);
+  color: #fff;
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 13.5px;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.world-journey-home .ha-btn-full:hover {
+  background: var(--blue-dark);
+}
+
+.world-journey-home .ha-vis-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 16px;
+  border-top: 1px solid var(--neutral-100, #f1f2f5);
+  font-size: 12.5px;
+  color: var(--ink3);
+}
+
+.world-journey-home .ha-vis-note svg {
+  color: #16a085;
+  flex-shrink: 0;
+}
+
+.world-journey-home .ha-vis-note b {
+  color: var(--ink1);
+}
+
+
+/* L29 World editorial boost (admin-only UI) */
+.wj-boost-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: rgba(255, 255, 255, 0.92);
+  color: #475569;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  z-index: 4;
+}
+.wj-boost-toggle:hover {
+  background: #dcfce7;
+  color: #15803d;
+}
+.wj-boost-toggle.is-on {
+  background: #dcfce7;
+  color: #15803d;
+}
+.wj-boost-toggle-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #94a3b8;
+}
+.wj-boost-toggle.is-on .wj-boost-toggle-dot { background: #16a34a; }
+.wj-boost-toggle.is-compact {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 6px;
+}
+.wj-boost-toggle.is-compact .wj-boost-toggle-dot {
+  width: 10px;
+  height: 10px;
+}
+.j-main-gallery-item.is-world-boosted .j-main-gallery-thumb {
+  outline: 2px solid #16a34a;
+  outline-offset: -2px;
+}
+.j-main-gallery-thumb { position: relative; }
