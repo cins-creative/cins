@@ -1017,8 +1017,11 @@
 .cins-editor-page .cover-add.has .cover-img-wrap {
   position: relative;
   width: 100%;
+  /* Khớp Journey article cover: 16:9 thuần — không max-height kẻo khung dẹt khi canvas rộng. */
   aspect-ratio: 16 / 9;
-  max-height: 320px;
+  height: auto;
+  min-height: 0;
+  max-height: none;
   overflow: hidden;
   display: flex;
   align-items: center;

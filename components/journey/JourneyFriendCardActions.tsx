@@ -3,14 +3,17 @@
 import Link from "next/link";
 import { Maximize2, MessageCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 
+import { useOptionalAuthGate } from "@/components/auth/AuthGateProvider";
 import { useCinsChat } from "@/components/cins/CinsChatProvider";
 import { JourneyFollowButton } from "@/components/journey/JourneyFollowButton";
 import { JourneyUserFollowButton } from "@/components/journey/JourneyUserFollowButton";
 import { avatarHueFromSeed, avatarInitialFromName } from "@/lib/chat/avatar";
 import { useKetBanStatus } from "@/lib/social/use-ket-ban-status";
 import type { MutualFriendProfile } from "@/lib/social/types";
+
+const CHAT_AUTH_MESSAGE = "Đăng nhập để nhắn tin trên CINs.";
 
 type Props = {
   friend: MutualFriendProfile;
@@ -25,6 +28,7 @@ export function JourneyFriendCardActions({
   friendsAreMutual = false,
 }: Props) {
   const router = useRouter();
+  const authGate = useOptionalAuthGate();
   const { openChat } = useCinsChat();
   const [error, setError] = useState<string | null>(null);
   const ketBan = useKetBanStatus(friend.idNguoiDung, viewerProfileId);
@@ -33,11 +37,18 @@ export function JourneyFriendCardActions({
     friendsAreMutual || ketBan.quanHe === "accepted";
   const showFollowButton = !isSelf && !isFriend;
 
+  const requireAuth = useCallback(
+    (message: string): boolean => {
+      if (authGate?.isAuthenticated || viewerProfileId) return true;
+      if (authGate) authGate.openAuthModal(message);
+      else router.push("/login");
+      return false;
+    },
+    [authGate, router, viewerProfileId],
+  );
+
   const openMessage = () => {
-    if (!viewerProfileId) {
-      router.push("/login");
-      return;
-    }
+    if (!requireAuth(CHAT_AUTH_MESSAGE)) return;
     if (isSelf) return;
 
     setError(null);

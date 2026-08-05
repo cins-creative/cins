@@ -3,14 +3,17 @@
 import Link from "next/link";
 import { Maximize2, MessageCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 
+import { useOptionalAuthGate } from "@/components/auth/AuthGateProvider";
 import { useCinsChat } from "@/components/cins/CinsChatProvider";
 import { JourneyFollowButton } from "@/components/journey/JourneyFollowButton";
 import { JourneyUserFollowButton } from "@/components/journey/JourneyUserFollowButton";
 import { ShareLinkMenu } from "@/components/social/ShareLinkMenu";
 import { avatarHueFromSeed, avatarInitialFromName } from "@/lib/chat/avatar";
 import { useKetBanStatus } from "@/lib/social/use-ket-ban-status";
+
+const CHAT_AUTH_MESSAGE = "Đăng nhập để nhắn tin trên CINs.";
 
 type PopoverUser = {
   idNguoiDung: string;
@@ -57,6 +60,7 @@ export function JourneyUserPopoverActions({
   showShare = true,
 }: Props) {
   const router = useRouter();
+  const authGate = useOptionalAuthGate();
   const { openChat } = useCinsChat();
   const [error, setError] = useState<string | null>(null);
   const ketBan = useKetBanStatus(user.idNguoiDung, viewerProfileId);
@@ -69,11 +73,18 @@ export function JourneyUserPopoverActions({
     ketBan.quanHe !== "blocked";
   const sharePath = user.slug ? `/${user.slug}` : "";
 
+  const requireAuth = useCallback(
+    (message: string): boolean => {
+      if (authGate?.isAuthenticated || viewerProfileId) return true;
+      if (authGate) authGate.openAuthModal(message);
+      else router.push("/login");
+      return false;
+    },
+    [authGate, router, viewerProfileId],
+  );
+
   const openMessage = () => {
-    if (!viewerProfileId) {
-      router.push("/login");
-      return;
-    }
+    if (!requireAuth(CHAT_AUTH_MESSAGE)) return;
     if (!user.idNguoiDung || isSelf) return;
 
     setError(null);

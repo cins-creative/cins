@@ -1,10 +1,12 @@
 "use client";
 
-import { LogIn, UserPlus, X } from "lucide-react";
+import { UserPlus, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { LoginGoogleButton } from "@/app/login/LoginGoogleButton";
+/* Nút Google dùng class từ login.css — modal portal ra mọi route, phải tự load. */
+import "@/app/login/login.css";
 
 import "./auth-required-modal.css";
 
@@ -75,10 +77,6 @@ export function AuthRequiredModal({ open, message, onClose }: Props) {
         >
           <X size={16} aria-hidden />
         </button>
-
-        <span className="j-auth-modal-icon" aria-hidden>
-          <LogIn size={20} strokeWidth={1.9} />
-        </span>
 
         <h2 id="j-auth-modal-title">Cần đăng nhập</h2>
         <p>{body}</p>

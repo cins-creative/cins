@@ -2,8 +2,9 @@
 
 import { MessageCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 
+import { useOptionalAuthGate } from "@/components/auth/AuthGateProvider";
 import { useCinsChat } from "@/components/cins/CinsChatProvider";
 import { JourneyFollowButton } from "@/components/journey/JourneyFollowButton";
 import { JourneyProfileShareTrigger } from "@/components/journey/JourneyProfileShareTrigger";
@@ -11,6 +12,8 @@ import { JourneyUserFollowButton } from "@/components/journey/JourneyUserFollowB
 import type { ChatPeerPreview } from "@/lib/chat/types";
 import type { JourneyShareProfile } from "@/lib/journey/profile-share";
 import type { useKetBanStatus } from "@/lib/social/use-ket-ban-status";
+
+const CHAT_AUTH_MESSAGE = "Đăng nhập để nhắn tin trên CINs.";
 
 type KetBanState = ReturnType<typeof useKetBanStatus>;
 
@@ -30,16 +33,24 @@ export function JourneyProfileGuestActions({
   shareProfile,
 }: Props) {
   const router = useRouter();
+  const authGate = useOptionalAuthGate();
   const { openChat } = useCinsChat();
   const [error, setError] = useState<string | null>(null);
   const isSelf = viewerProfileId === targetUserId;
   const showFollowButton = !isSelf && ketBan.quanHe !== "accepted";
 
+  const requireAuth = useCallback(
+    (message: string): boolean => {
+      if (authGate?.isAuthenticated || viewerProfileId) return true;
+      if (authGate) authGate.openAuthModal(message);
+      else router.push("/login");
+      return false;
+    },
+    [authGate, router, viewerProfileId],
+  );
+
   const openMessage = () => {
-    if (!viewerProfileId) {
-      router.push("/login");
-      return;
-    }
+    if (!requireAuth(CHAT_AUTH_MESSAGE)) return;
     if (isSelf) return;
 
     setError(null);
