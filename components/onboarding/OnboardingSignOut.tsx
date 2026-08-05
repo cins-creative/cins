@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { clearAllClientCaches } from "@/lib/client-cache";
 
 /**
  * Cho user thoát phiên đang dở onboarding — không bắt buộc, chỉ là exit hatch
@@ -18,6 +19,7 @@ export function OnboardingSignOut() {
     if (busy) return;
     setBusy(true);
     try {
+      clearAllClientCaches();
       const supabase = createSupabaseBrowserClient();
       // scope "local": chỉ thoát phiên thiết bị này, giữ phiên trên máy khác.
       await supabase.auth.signOut({ scope: "local" });

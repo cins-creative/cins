@@ -35,7 +35,7 @@ const PhongHocMeeting = dynamic(
 
 const RING_TIMEOUT_MS = 45_000;
 /** Poll dự phòng — Realtime là đường chính (subscribe từ app start). */
-const POLL_MS = 5000;
+const POLL_MS = 30_000;
 
 export type IncomingCallOffer = {
   roomId: string;

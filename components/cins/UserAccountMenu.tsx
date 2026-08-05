@@ -13,6 +13,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { signOutAction } from "@/app/auth/sign-out-action";
 import { SidebarNavIcon } from "@/components/cins/SidebarNavIcon";
 import { UserAccountSettingsModal } from "@/components/cins/UserAccountSettingsModal";
+import { clearAllClientCaches } from "@/lib/client-cache";
 import { clearAllWorldJourneyFirstImpressionSeen } from "@/lib/cins/worldJourneyFirstImpression";
 import { getNameInitials } from "@/lib/journey/profile";
 import { clearRecentSearches } from "@/lib/search/recent-searches-storage";
@@ -193,6 +194,7 @@ export function UserAccountMenu({
             action={signOutAction}
             className="app-user-menu-form"
             onSubmit={() => {
+              clearAllClientCaches();
               clearAllWorldJourneyFirstImpressionSeen();
               clearRecentSearches();
             }}

@@ -480,6 +480,73 @@ export async function getQuanHeDetail(
   };
 }
 
+/**
+ * Batch quan hệ kết bạn — một query thay vì N lần `getQuanHeDetail`.
+ * @see docs/PLAN_client_cache.md C2
+ */
+export async function getQuanHeDetailsBatch(
+  viewerId: string,
+  targetIds: string[],
+): Promise<
+  Map<
+    string,
+    { trangThai: QuanHe; ketBanId: string | null; blockedByMe: boolean }
+  >
+> {
+  const empty = {
+    trangThai: "none" as QuanHe,
+    ketBanId: null as string | null,
+    blockedByMe: false,
+  };
+  const out = new Map<string, typeof empty>();
+  const unique = [
+    ...new Set(
+      targetIds
+        .map((id) => id?.trim())
+        .filter((id): id is string => Boolean(id) && id !== viewerId),
+    ),
+  ].slice(0, 50);
+
+  for (const id of unique) out.set(id, { ...empty });
+  if (!viewerId || unique.length === 0) return out;
+
+  const admin = createServiceRoleClient();
+  const { data, error } = await admin
+    .from("user_ket_ban")
+    .select("id, id_nguoi_gui, id_nguoi_nhan, trang_thai, tao_luc, xu_ly_luc")
+    .or(
+      `and(id_nguoi_gui.eq.${viewerId},id_nguoi_nhan.in.(${unique.join(",")})),and(id_nguoi_nhan.eq.${viewerId},id_nguoi_gui.in.(${unique.join(",")}))`,
+    )
+    .order("tao_luc", { ascending: false });
+
+  if (error || !data?.length) return out;
+
+  const bestByOther = new Map<string, KetBanRecord>();
+  for (const raw of data as KetBanRow[]) {
+    const row = mapRow(raw);
+    const other =
+      row.idNguoiGui === viewerId ? row.idNguoiNhan : row.idNguoiGui;
+    if (!bestByOther.has(other)) bestByOther.set(other, row);
+  }
+
+  for (const [other, row] of bestByOther) {
+    let trangThai: QuanHe = "none";
+    if (row.trangThai === "accepted") trangThai = "accepted";
+    else if (row.trangThai === "blocked") trangThai = "blocked";
+    else if (row.trangThai === "pending") {
+      trangThai =
+        row.idNguoiGui === viewerId ? "pending_sent" : "pending_received";
+    }
+    out.set(other, {
+      trangThai,
+      ketBanId: row.id,
+      blockedByMe: trangThai === "blocked" && row.idNguoiGui === viewerId,
+    });
+  }
+
+  return out;
+}
+
 /** Huỷ lời mời (pending) hoặc unfriend (accepted) — cả hai phía được gọi. */
 export async function removeByRecordId(
   recordId: string,

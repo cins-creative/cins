@@ -4,7 +4,20 @@
  */
 
 import type { BaoCaoDoanhThu } from "@/app/api/shop/bao-cao/route";
-import type { ShopCuaHang, ShopDonHang } from "@/lib/shop/types";
+import {
+  createCachedResource,
+  registerClientCacheClear,
+} from "@/lib/client-cache";
+import type {
+  ShopBangGia,
+  ShopCuaHang,
+  ShopDonHang,
+  ShopNhom,
+  ShopQuaySapCoMat,
+  ShopSanPham,
+  ShopStorefrontItem,
+  ShopStorefrontNhomCard,
+} from "@/lib/shop/types";
 
 const BAN_HANG_TTL_MS = 45_000;
 const CUA_HANG_TTL_MS = 30_000;
@@ -51,6 +64,11 @@ export function invalidateShopClientCaches() {
   invalidateDonHangCache();
   invalidateBaoCaoCache();
   invalidateDiaChiNhanCache();
+  sanPhamCache.invalidateAll();
+  bangGiaCache.invalidateAll();
+  nhomCache.invalidateAll();
+  matHangCache.invalidateAll();
+  quaySapCoMatCache.invalidateAll();
 }
 
 function readBanHangCache(): BanHangClientStatus | null {
@@ -440,3 +458,169 @@ export async function fetchDiaChiNhanCached(opts?: {
     if (diaChiInflight === run) diaChiInflight = null;
   }
 }
+
+// ─────────────────────────────────────────────
+// Kho: sản phẩm / bảng giá / nhóm (TTL + invalidate khi sửa)
+// ─────────────────────────────────────────────
+
+export type ShopNhomListPayload = {
+  items: ShopNhom[];
+  orphanCount: number;
+};
+
+export type ShopMatHangPayload = {
+  nhomCards: ShopStorefrontNhomCard[];
+  items: ShopStorefrontItem[];
+};
+
+const sanPhamCache = createCachedResource<ShopSanPham[]>({
+  keyPrefix: "shop:san-pham",
+  ttlMs: 60_000,
+  fetcher: async () => {
+    const res = await fetch("/api/shop/san-pham", { cache: "no-store" });
+    const json = (await res.json().catch(() => null)) as {
+      items?: ShopSanPham[];
+      error?: string;
+    } | null;
+    if (!res.ok) throw new Error(json?.error ?? "Không tải sản phẩm.");
+    return json?.items ?? [];
+  },
+});
+
+const bangGiaCache = createCachedResource<ShopBangGia[]>({
+  keyPrefix: "shop:bang-gia",
+  ttlMs: 120_000,
+  fetcher: async () => {
+    const res = await fetch("/api/shop/bang-gia", { cache: "no-store" });
+    const json = (await res.json().catch(() => null)) as {
+      items?: ShopBangGia[];
+      error?: string;
+    } | null;
+    if (!res.ok) throw new Error(json?.error ?? "Không tải bảng giá.");
+    return json?.items ?? [];
+  },
+});
+
+const nhomCache = createCachedResource<ShopNhomListPayload>({
+  keyPrefix: "shop:nhom",
+  ttlMs: 120_000,
+  fetcher: async () => {
+    const res = await fetch("/api/shop/nhom", { cache: "no-store" });
+    const json = (await res.json().catch(() => null)) as {
+      items?: ShopNhom[];
+      orphanCount?: number;
+      error?: string;
+    } | null;
+    if (!res.ok) throw new Error(json?.error ?? "Không tải nhóm.");
+    return {
+      items: json?.items ?? [],
+      orphanCount: json?.orphanCount ?? 0,
+    };
+  },
+});
+
+const matHangCache = createCachedResource<ShopMatHangPayload, [string]>({
+  keyPrefix: "shop:mat-hang",
+  ttlMs: 45_000,
+  keyFromArgs: (slug) => slug,
+  fetcher: async (slug) => {
+    const res = await fetch(
+      `/api/shop/cua-hang/mat-hang?slug=${encodeURIComponent(slug)}`,
+      { cache: "no-store" },
+    );
+    const json = (await res.json().catch(() => null)) as {
+      nhomCards?: ShopStorefrontNhomCard[];
+      items?: ShopStorefrontItem[];
+      error?: string;
+    } | null;
+    if (!res.ok) throw new Error(json?.error ?? "Không tải mặt hàng.");
+    return {
+      nhomCards: json?.nhomCards ?? [],
+      items: json?.items ?? [],
+    };
+  },
+});
+
+const quaySapCoMatCache = createCachedResource<ShopQuaySapCoMat[], [string]>({
+  keyPrefix: "shop:quay-sap-co-mat",
+  ttlMs: 60_000,
+  keyFromArgs: (slug) => slug,
+  fetcher: async (slug) => {
+    const res = await fetch(
+      `/api/shop/quay/sap-co-mat?slug=${encodeURIComponent(slug)}`,
+      { cache: "no-store" },
+    );
+    const json = (await res.json().catch(() => null)) as {
+      items?: ShopQuaySapCoMat[];
+      error?: string;
+    } | null;
+    if (!res.ok) throw new Error(json?.error ?? "Không tải quầy.");
+    return json?.items ?? [];
+  },
+});
+
+export const peekSanPham = () => sanPhamCache.peek();
+export const peekBangGia = () => bangGiaCache.peek();
+export const peekNhom = () => nhomCache.peek();
+export const peekMatHang = (slug: string) => matHangCache.peek(slug);
+
+export async function fetchSanPhamCached(opts?: { force?: boolean }) {
+  return sanPhamCache.fetch(opts);
+}
+export async function fetchBangGiaCached(opts?: { force?: boolean }) {
+  return bangGiaCache.fetch(opts);
+}
+export async function fetchNhomCached(opts?: { force?: boolean }) {
+  return nhomCache.fetch(opts);
+}
+export async function fetchMatHangCached(
+  slug: string,
+  opts?: { force?: boolean },
+) {
+  return matHangCache.fetch(slug, opts);
+}
+export async function fetchQuaySapCoMatCached(
+  slug: string,
+  opts?: { force?: boolean },
+) {
+  return quaySapCoMatCache.fetch(slug, opts);
+}
+
+export function writeSanPhamCache(items: ShopSanPham[]) {
+  sanPhamCache.write(items);
+}
+export function writeBangGiaCache(items: ShopBangGia[]) {
+  bangGiaCache.write(items);
+}
+export function writeNhomCache(payload: ShopNhomListPayload) {
+  nhomCache.write(payload);
+}
+
+export function invalidateSanPhamCache() {
+  sanPhamCache.invalidateAll();
+}
+export function invalidateBangGiaCache() {
+  bangGiaCache.invalidateAll();
+}
+export function invalidateNhomCache() {
+  nhomCache.invalidateAll();
+}
+export function invalidateMatHangCache(slug?: string) {
+  if (slug) matHangCache.invalidate(slug);
+  else matHangCache.invalidateAll();
+}
+
+export function prefetchKhoCatalog() {
+  sanPhamCache.prefetch();
+  bangGiaCache.prefetch();
+  nhomCache.prefetch();
+}
+
+registerClientCacheClear(() => {
+  invalidateBanHangClientCache();
+  cuaHangByKey.clear();
+  cuaHangInflight.clear();
+  invalidateDonHangCache();
+  invalidateBaoCaoCache();
+  invalidateDiaChiNhanCache();
+}, "shop-legacy");

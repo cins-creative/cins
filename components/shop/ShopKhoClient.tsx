@@ -35,7 +35,19 @@ import {
   SHOP_NHAN_PHAN_LOAI_2_DEFAULT,
   SHOP_NHAN_PHAN_LOAI_DEFAULT,
 } from "@/lib/shop/types";
-import { fetchBanHangClientStatus, fetchShopCuaHangClient } from "@/lib/shop/client-fetch-cache";
+import {
+  fetchBanHangClientStatus,
+  fetchBangGiaCached,
+  fetchNhomCached,
+  fetchSanPhamCached,
+  fetchShopCuaHangClient,
+  peekBangGia,
+  peekNhom,
+  peekSanPham,
+  writeBangGiaCache,
+  writeNhomCache,
+  writeSanPhamCache,
+} from "@/lib/shop/client-fetch-cache";
 
 import { ShopKhoLoaiHub, ShopKhoLoaiMeta } from "./ShopKhoLoaiHub";
 import { ShopPhanLoaiInput } from "./ShopPhanLoaiInput";
@@ -235,33 +247,36 @@ export function ShopKhoClient() {
 
   const load = useCallback(async (opts?: { silent?: boolean }) => {
     const silent = opts?.silent === true;
-    if (!silent) {
+    const cachedProducts = peekSanPham();
+    const cachedBangGia = peekBangGia();
+    const cachedNhom = peekNhom();
+    const hasCatalogCache =
+      cachedProducts != null && cachedBangGia != null && cachedNhom != null;
+    if (hasCatalogCache) {
+      setProducts(cachedProducts);
+      setPriceLists(cachedBangGia);
+      if (cachedBangGia[0] && !bangGiaId) setBangGiaId(cachedBangGia[0].id);
+      setNhoms(cachedNhom.items);
+      setOrphanCount(cachedNhom.orphanCount);
+    }
+    if (!silent && !hasCatalogCache) {
       setLoading(true);
       setErr(null);
     }
     try {
-      const [status, pRes, bRes, shopData, nhomRes] = await Promise.all([
-        fetchBanHangClientStatus(),
-        fetch("/api/shop/san-pham", { cache: "no-store" }),
-        fetch("/api/shop/bang-gia", { cache: "no-store" }),
-        fetchShopCuaHangClient(),          // 30s RAM cache — avoids redundant round-trip
-        fetch("/api/shop/nhom", { cache: "no-store" }),
-      ]);
+      const [status, products, lists, shopData, nhomPayload] = await Promise.all(
+        [
+          fetchBanHangClientStatus(),
+          fetchSanPhamCached(),
+          fetchBangGiaCached(),
+          fetchShopCuaHangClient(),
+          fetchNhomCached(),
+        ],
+      );
       setEnabled(status.enabled);
       if (!status.enabled) return;
 
-      const pJson = (await pRes.json().catch(() => null)) as {
-        items?: ShopSanPham[];
-      } | null;
-      const bJson = (await bRes.json().catch(() => null)) as {
-        items?: ShopBangGia[];
-      } | null;
-      const nhomJson = (await nhomRes.json().catch(() => null)) as {
-        items?: ShopNhom[];
-        orphanCount?: number;
-      } | null;
-      setProducts(pJson?.items ?? []);
-      const lists = bJson?.items ?? [];
+      setProducts(products);
       setPriceLists(lists);
       if (lists[0] && !bangGiaId) setBangGiaId(lists[0].id);
       const label1 = resolveShopNhanPhanLoai(shopData.shop);
@@ -270,15 +285,21 @@ export function ShopKhoClient() {
       setNhanPhanLoai2(label2);
       setNhanPhanLoaiDraft(label1);
       setNhanPhanLoai2Draft(label2);
-      const nextNhoms = nhomJson?.items ?? [];
-      setNhoms(nextNhoms);
-      setOrphanCount(nhomJson?.orphanCount ?? 0);
+      setNhoms(nhomPayload.items);
+      setOrphanCount(nhomPayload.orphanCount);
     } catch {
       setErr("Không tải được kho.");
     } finally {
-      if (!silent) setLoading(false);
+      setLoading(false);
     }
   }, [bangGiaId]);
+
+  useEffect(() => {
+    if (!enabled || loading) return;
+    writeSanPhamCache(products);
+    writeBangGiaCache(priceLists);
+    writeNhomCache({ items: nhoms, orphanCount });
+  }, [enabled, loading, products, priceLists, nhoms, orphanCount]);
 
   const saveNhanPhanLoai = useCallback(
     async (which: 1 | 2) => {

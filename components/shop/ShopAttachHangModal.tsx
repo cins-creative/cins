@@ -13,7 +13,12 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 
-import type { ShopBangGia, ShopNhom, ShopSanPham } from "@/lib/shop/types";
+import type { ShopBangGia, ShopSanPham } from "@/lib/shop/types";
+import {
+  fetchBangGiaCached,
+  fetchNhomCached,
+  fetchSanPhamCached,
+} from "@/lib/shop/client-fetch-cache";
 import Link from "next/link";
 
 import "@/components/cins/user-account-settings-modal.css";
@@ -124,26 +129,20 @@ export function ShopAttachHangModal({
         return;
       }
 
-      const [pRes, bRes, hRes, nRes] = await Promise.all([
-        fetch("/api/shop/san-pham", { cache: "no-store" }),
-        fetch("/api/shop/bang-gia", { cache: "no-store" }),
+      const [products, lists, hRes, nhomPayload] = await Promise.all([
+        fetchSanPhamCached(),
+        fetchBangGiaCached(),
         fetch(`/api/milestone/${milestoneId}/shop-hang`, { cache: "no-store" }),
-        fetch("/api/shop/nhom", { cache: "no-store" }),
+        fetchNhomCached(),
       ]);
-      const pJson = (await pRes.json()) as { items?: ShopSanPham[] };
-      const bJson = (await bRes.json()) as { items?: ShopBangGia[] };
       const hJson = (await hRes.json()) as {
         items?: Array<{ idBienThe: string; idBangGia: string | null }>;
       };
-      const nJson = (await nRes.json().catch(() => null)) as {
-        items?: ShopNhom[];
-      } | null;
-      setProducts(pJson.items ?? []);
-      const lists = bJson.items ?? [];
+      setProducts(products);
       setPriceLists(lists);
       setBangGiaId(lists[0]?.id ?? "");
       const giaMap = new Map<string, number>();
-      for (const n of nJson?.items ?? []) {
+      for (const n of nhomPayload.items) {
         if (n.giaMacDinh != null && Number.isFinite(n.giaMacDinh)) {
           giaMap.set(n.id, n.giaMacDinh);
         }

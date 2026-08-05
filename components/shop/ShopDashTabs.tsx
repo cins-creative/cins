@@ -22,6 +22,7 @@ import {
   prefetchBaoCao,
   prefetchBanHangClientStatus,
   prefetchDonHang,
+  prefetchKhoCatalog,
   prefetchShopCuaHangClient,
   writeShopCuaHangCache,
 } from "@/lib/shop/client-fetch-cache";
@@ -579,6 +580,7 @@ export function ShopDashTabs({
       if (active !== "don") prefetchDonHang();
       if (active !== "bao-cao") prefetchBaoCao();
       if (active !== "cua-hang") prefetchShopCuaHangClient(null);
+      if (active !== "kho") prefetchKhoCatalog();
     }, 800);
     return () => clearTimeout(t);
   }, [active]);

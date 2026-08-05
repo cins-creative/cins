@@ -12,6 +12,11 @@ import {
   buildKhoaHocDetailMock,
   isKhoaHocDetailMockSlug,
 } from "@/lib/to-chuc/khoa-hoc-detail-mock";
+import {
+  fetchCoSoKhoaHocListCached,
+  peekCoSoKhoaHocList,
+  writeCoSoKhoaHocListCache,
+} from "@/lib/to-chuc/khoa-hoc-client-cache";
 import type { KhoaHocCardData } from "@/lib/to-chuc/khoa-hoc-types";
 import { notifyCoSoKhoaListChanged } from "@/lib/to-chuc/co-so-khoa-events";
 import { coSoKhoaHocDetailPath } from "@/lib/to-chuc/co-so-routes";
@@ -50,21 +55,18 @@ export function CoSoTabKhoaHoc({
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
+    const cached = peekCoSoKhoaHocList(orgId);
+    if (cached) {
+      setItems(cached);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
     setLoadError(null);
 
-    fetch(`/api/co-so/${orgId}/khoa-hoc`, { credentials: "include" })
-      .then(async (res) => {
-        const data = (await res.json()) as {
-          khoaHoc?: KhoaHocCardData[];
-          error?: string;
-        };
-        if (!res.ok) {
-          throw new Error(data.error ?? "Không tải được danh sách khóa học.");
-        }
-        if (!cancelled) {
-          setItems(data.khoaHoc ?? []);
-        }
+    void fetchCoSoKhoaHocListCached(orgId)
+      .then((list) => {
+        if (!cancelled) setItems(list);
       })
       .catch((err: unknown) => {
         if (!cancelled) {
@@ -73,7 +75,7 @@ export function CoSoTabKhoaHoc({
               ? err.message
               : "Không tải được danh sách khóa học.",
           );
-          setItems([]);
+          if (!cached) setItems([]);
         }
       })
       .finally(() => {
@@ -118,15 +120,21 @@ export function CoSoTabKhoaHoc({
     coSoKhoaHocDetailPath(orgSlug, khoa.slug);
 
   function handleCreated(khoa: KhoaHocCardData) {
-    setItems((prev) => [khoa, ...prev.filter((k) => k.id !== khoa.id)]);
+    setItems((prev) => {
+      const next = [khoa, ...prev.filter((k) => k.id !== khoa.id)];
+      writeCoSoKhoaHocListCache(orgId, next);
+      return next;
+    });
     notifyCoSoKhoaListChanged(orgId);
     onOpenKhoa?.(khoa.slug);
   }
 
   function handleUpdated(khoa: KhoaHocCardData) {
-    setItems((prev) =>
-      prev.map((item) => (item.id === khoa.id ? khoa : item)),
-    );
+    setItems((prev) => {
+      const next = prev.map((item) => (item.id === khoa.id ? khoa : item));
+      writeCoSoKhoaHocListCache(orgId, next);
+      return next;
+    });
     notifyCoSoKhoaListChanged(orgId);
     if (khoaSlug === khoa.slug || selected?.id === khoa.id) {
       onReplaceKhoa?.(khoa.slug);
@@ -135,7 +143,11 @@ export function CoSoTabKhoaHoc({
 
   function handleDeleted(khoaId: string) {
     const wasSelected = selected?.id === khoaId;
-    setItems((prev) => prev.filter((k) => k.id !== khoaId));
+    setItems((prev) => {
+      const next = prev.filter((k) => k.id !== khoaId);
+      writeCoSoKhoaHocListCache(orgId, next);
+      return next;
+    });
     notifyCoSoKhoaListChanged(orgId);
     if (wasSelected) {
       onCloseKhoa?.("replace");

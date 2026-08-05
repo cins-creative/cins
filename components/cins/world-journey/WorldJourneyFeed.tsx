@@ -17,7 +17,7 @@ import { LayoutThumbIcon } from "@/components/editor/LayoutThumbIcon";
 import { WorldJourneyFeedTimeline } from "@/components/cins/world-journey/WorldJourneyFeedTimeline";
 import { WorldJourneyGuestLeftAside } from "@/components/cins/world-journey/WorldJourneyGuestLeftAside";
 import { WorldJourneyGuestRightAside } from "@/components/cins/world-journey/WorldJourneyGuestRightAside";
-import { BunnyVideoProcessingPoller } from "@/components/journey/BunnyVideoProcessingPoller";
+import { VideoProcessingPoller } from "@/components/journey/VideoProcessingPoller";
 import { JourneyGalleryGridView } from "@/components/journey/JourneyGalleryGridView";
 import type { SidebarProfile } from "@/components/journey/JourneySidebar";
 import {
@@ -822,25 +822,25 @@ export function WorldJourneyFeed({
           source: feedSource,
           linhVuc: activeLinhVucSlug,
         });
-        const galleryQs = buildWorldJourneyFeedQuery({
-          offset: 0,
-          limit: WORLD_JOURNEY_GALLERY_PAGE_SIZE,
-          filter: activeFilter,
-          source: feedSource,
-        });
+        const needGallery = surfaceViewRef.current === "gallery";
+        const galleryQs = needGallery
+          ? buildWorldJourneyFeedQuery({
+              offset: 0,
+              limit: WORLD_JOURNEY_GALLERY_PAGE_SIZE,
+              filter: activeFilter,
+              source: feedSource,
+            })
+          : null;
         const [feedRes, galleryRes] = await Promise.all([
           fetch(`/api/world-journey/feed?${feedQs}`),
-          fetch(`/api/world-journey/gallery?${galleryQs}`),
+          galleryQs
+            ? fetch(`/api/world-journey/gallery?${galleryQs}`)
+            : Promise.resolve(null),
         ]);
-        if (!feedRes.ok || !galleryRes.ok)
+        if (!feedRes.ok || (galleryRes && !galleryRes.ok))
           throw new Error("filter fetch failed");
         const feedData = (await feedRes.json()) as {
           milestones: MilestoneItem[];
-          hasMore: boolean;
-          nextOffset: number;
-        };
-        const galleryData = (await galleryRes.json()) as {
-          items: GalleryMainItem[];
           hasMore: boolean;
           nextOffset: number;
         };
@@ -850,9 +850,17 @@ export function WorldJourneyFeed({
         nextOffsetRef.current = feedData.nextOffset;
         setHasMore(feedData.hasMore);
         setNextOffset(feedData.nextOffset);
-        setGalleryRows(galleryData.items);
-        setGalleryMore(galleryData.hasMore);
-        setGalleryOffset(galleryData.nextOffset);
+        if (galleryRes) {
+          const galleryData = (await galleryRes.json()) as {
+            items: GalleryMainItem[];
+            hasMore: boolean;
+            nextOffset: number;
+          };
+          if (cancelled || epoch !== filterQueryEpochRef.current) return;
+          setGalleryRows(galleryData.items);
+          setGalleryMore(galleryData.hasMore);
+          setGalleryOffset(galleryData.nextOffset);
+        }
       } catch {
         if (!cancelled && epoch === filterQueryEpochRef.current) {
           setLoadError(true);
@@ -868,6 +876,46 @@ export function WorldJourneyFeed({
       cancelled = true;
     };
   }, [activeFilter, feedSource, activeLinhVucSlug, refreshNonce]);
+
+  /** Chuyển sang gallery (từ journey) → tải gallery theo bộ lọc hiện tại. */
+  const prevSurfaceRef = useRef<FeedSurfaceView>(surfaceView);
+  useEffect(() => {
+    const switchedToGallery =
+      surfaceView === "gallery" && prevSurfaceRef.current !== "gallery";
+    prevSurfaceRef.current = surfaceView;
+    if (!switchedToGallery) return;
+
+    const epoch = ++filterQueryEpochRef.current;
+    let cancelled = false;
+    (async () => {
+      try {
+        const galleryQs = buildWorldJourneyFeedQuery({
+          offset: 0,
+          limit: WORLD_JOURNEY_GALLERY_PAGE_SIZE,
+          filter: activeFilter,
+          source: feedSource,
+        });
+        const galleryRes = await fetch(
+          `/api/world-journey/gallery?${galleryQs}`,
+        );
+        if (!galleryRes.ok) return;
+        const galleryData = (await galleryRes.json()) as {
+          items: GalleryMainItem[];
+          hasMore: boolean;
+          nextOffset: number;
+        };
+        if (cancelled || epoch !== filterQueryEpochRef.current) return;
+        setGalleryRows(galleryData.items);
+        setGalleryMore(galleryData.hasMore);
+        setGalleryOffset(galleryData.nextOffset);
+      } catch {
+        /* giữ gallery cũ */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [surfaceView, activeFilter, feedSource]);
 
   /* Ổn định reference cho timeline: object/arrow mới mỗi render sẽ khiến
      IntersectionObserver bên trong bị hủy & tạo lại → prefetch ngừng ngẫu nhiên. */
@@ -1045,7 +1093,7 @@ export function WorldJourneyFeed({
 
         {rightAside ?? <WorldJourneyGuestRightAside />}
       </div>
-      <BunnyVideoProcessingPoller ownerSlug={sidebarProfile.slug} />
+      <VideoProcessingPoller ownerSlug={sidebarProfile.slug} />
     </div>
   );
 }

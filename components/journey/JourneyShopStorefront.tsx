@@ -27,7 +27,13 @@ import {
   notifyGioChungAdded,
 } from "@/components/shop/ShopGioChungButton";
 import { ShopTamDongOverlay } from "@/components/shop/ShopTamDongOverlay";
-import { writeShopCuaHangCache } from "@/lib/shop/client-fetch-cache";
+import {
+  fetchMatHangCached,
+  fetchQuaySapCoMatCached,
+  invalidateMatHangCache,
+  peekMatHang,
+  writeShopCuaHangCache,
+} from "@/lib/shop/client-fetch-cache";
 import { shopLoaiHref, shopLoaiMauHref } from "@/lib/shop/cua-hang-href";
 import { parseShopNhomMoTa } from "@/lib/shop/nhom-mo-ta";
 import {
@@ -602,6 +608,14 @@ export function JourneyShopStorefront({
         if ((qtyEpochRef.current.get(idBienThe) ?? 0) !== epoch) return;
         if (!res.ok || !json?.gio) {
           setAddErr(json?.error ?? "Không cập nhật giỏ.");
+          invalidateMatHangCache(ownerSlug);
+          try {
+            const fresh = await fetchMatHangCached(ownerSlug, { force: true });
+            setCards(fresh.nhomCards);
+            setItems(fresh.items);
+          } catch {
+            /* giữ catalog cũ */
+          }
           await refreshGio();
           return;
         }
@@ -613,7 +627,7 @@ export function JourneyShopStorefront({
         await refreshGio();
       }
     },
-    [applyGio, refreshGio],
+    [applyGio, refreshGio, ownerSlug],
   );
 
   const patchQty = useCallback(
@@ -666,36 +680,30 @@ export function JourneyShopStorefront({
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      setLoading(true);
+      const cached = peekMatHang(ownerSlug);
+      if (cached) {
+        setCards(cached.nhomCards);
+        setItems(cached.items);
+        setLoading(false);
+      } else {
+        setLoading(true);
+      }
       setSearch("");
       try {
-        const [matHangRes, eventsRes] = await Promise.all([
-          fetch(
-            `/api/shop/cua-hang/mat-hang?slug=${encodeURIComponent(ownerSlug)}`,
-            { cache: "no-store" },
-          ),
-          fetch(
-            `/api/shop/quay/sap-co-mat?slug=${encodeURIComponent(ownerSlug)}`,
-            { cache: "no-store" },
-          ),
+        const [matHang, upcoming] = await Promise.all([
+          fetchMatHangCached(ownerSlug),
+          fetchQuaySapCoMatCached(ownerSlug),
         ]);
-        const json = (await matHangRes.json().catch(() => null)) as {
-          nhomCards?: ShopStorefrontNhomCard[];
-          items?: ShopStorefrontItem[];
-        } | null;
-        const evJson = (await eventsRes.json().catch(() => null)) as {
-          items?: ShopQuaySapCoMat[];
-        } | null;
         if (!cancelled) {
-          setCards(matHangRes.ok ? (json?.nhomCards ?? []) : []);
-          setItems(matHangRes.ok ? (json?.items ?? []) : []);
-          setUpcomingEvents(eventsRes.ok ? (evJson?.items ?? []) : []);
+          setCards(matHang.nhomCards);
+          setItems(matHang.items);
+          setUpcomingEvents(upcoming);
         }
         if (!cancelled && canShop && viewerProfileId) {
           await refreshGio();
         }
       } catch {
-        if (!cancelled) {
+        if (!cancelled && !cached) {
           setCards([]);
           setItems([]);
           setUpcomingEvents([]);
@@ -714,10 +722,18 @@ export function JourneyShopStorefront({
       setQtyByBt(new Map());
       return;
     }
-    const onChanged = () => void refreshGio();
+    const onChanged = () => {
+      void fetchMatHangCached(ownerSlug, { force: true })
+        .then((fresh) => {
+          setCards(fresh.nhomCards);
+          setItems(fresh.items);
+        })
+        .catch(() => undefined);
+      void refreshGio();
+    };
     window.addEventListener(GIO_CHUNG_CHANGED_EVENT, onChanged);
     return () => window.removeEventListener(GIO_CHUNG_CHANGED_EVENT, onChanged);
-  }, [canShop, viewerProfileId, refreshGio]);
+  }, [canShop, viewerProfileId, refreshGio, ownerSlug]);
 
   const searchActive = deferredSearch.trim().length > 0;
   const searchQ = deferredSearch.trim().toLowerCase();

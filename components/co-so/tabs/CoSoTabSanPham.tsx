@@ -9,6 +9,7 @@ import { TruongDoanProjectMasonry } from "@/components/truong/TruongDoanProjectM
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
 import type { ContentSurfaceView } from "@/lib/cins/content-surface-view";
 import type { OrgDoanProjectItem } from "@/lib/journey/org-milestone-tag-types";
+import { fetchCoSoKhoaHocListCached } from "@/lib/to-chuc/khoa-hoc-client-cache";
 import { sortDoanProjectsForPublic } from "@/lib/truong/doan-project-sort";
 
 type Props = {
@@ -54,17 +55,11 @@ export function CoSoTabSanPham({
 
   useEffect(() => {
     const controller = new AbortController();
-    void fetch(`/api/co-so/${encodeURIComponent(orgId)}/khoa-hoc`, {
-      credentials: "include",
-      signal: controller.signal,
-    })
-      .then(async (res) => {
-        const json = (await res.json()) as {
-          khoaHoc?: Array<{ id: string; tenKhoaHoc: string }>;
-        };
-        if (!res.ok) return;
+    void fetchCoSoKhoaHocListCached(orgId)
+      .then((khoaHoc) => {
+        if (controller.signal.aborted) return;
         setKhoaOptions(
-          (json.khoaHoc ?? []).map((k) => ({ id: k.id, ten: k.tenKhoaHoc })),
+          khoaHoc.map((k) => ({ id: k.id, ten: k.tenKhoaHoc })),
         );
       })
       .catch(() => {

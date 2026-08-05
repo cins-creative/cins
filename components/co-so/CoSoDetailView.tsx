@@ -30,8 +30,11 @@ import type { SystemRole } from "@/lib/auth/system-role";
 import type { CoSoDetailPayload } from "@/lib/to-chuc/co-so-page-queries";
 import { countActiveStudioJobs } from "@/lib/to-chuc/studio-tuyen-dung-format";
 import { CO_SO_KHOA_UPDATED_EVENT } from "@/lib/to-chuc/co-so-khoa-events";
+import {
+  fetchCoSoKhoaHocListCached,
+  invalidateCoSoKhoaHocListCache,
+} from "@/lib/to-chuc/khoa-hoc-client-cache";
 import { isKhoaHocMuted } from "@/lib/to-chuc/khoa-hoc-labels";
-import type { KhoaHocCardData } from "@/lib/to-chuc/khoa-hoc-types";
 import { coSoQuanLyPath, coSoTabPath } from "@/lib/to-chuc/co-so-routes";
 import { useCoSoTabNav } from "@/lib/to-chuc/use-co-so-tab-nav";
 import { useOrgStudioJobs } from "@/lib/to-chuc/use-org-studio-jobs";
@@ -99,13 +102,12 @@ function CoSoDetailViewInner({
   useEffect(() => {
     if (!khoaBadgeRequested) return;
     let cancelled = false;
-    const load = () => {
-      fetch(`/api/co-so/${school.id}/khoa-hoc`, { credentials: "include" })
-        .then((res) => (res.ok ? res.json() : null))
-        .then((data: { khoaHoc?: KhoaHocCardData[] } | null) => {
-          if (cancelled || !data?.khoaHoc) return;
+    const load = (force = false) => {
+      void fetchCoSoKhoaHocListCached(school.id, force ? { force: true } : undefined)
+        .then((khoaHoc) => {
+          if (cancelled) return;
           setActiveKhoaCount(
-            data.khoaHoc.reduce(
+            khoaHoc.reduce(
               (n, k) => (isKhoaHocMuted(k.trangThaiKhoaHoc) ? n : n + 1),
               0,
             ),
@@ -116,7 +118,10 @@ function CoSoDetailViewInner({
     load();
     const onChange = (e: Event) => {
       const detail = (e as CustomEvent<{ orgId?: string }>).detail;
-      if (!detail || detail.orgId === school.id) load();
+      if (!detail || detail.orgId === school.id) {
+        invalidateCoSoKhoaHocListCache(school.id);
+        load(true);
+      }
     };
     window.addEventListener(CO_SO_KHOA_UPDATED_EVENT, onChange);
     return () => {

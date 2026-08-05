@@ -18,12 +18,16 @@ import {
 import { ContentSurfaceViewToggle } from "@/components/cins/ContentSurfaceViewToggle";
 import { CongDongPostBookmarkAct } from "@/components/cong-dong/CongDongPostBookmarkAct";
 import { useCongDongAuthGate } from "@/components/cong-dong/useCongDongAuthGate";
-import { BunnyVideoProcessingPoller } from "@/components/journey/BunnyVideoProcessingPoller";
+import { VideoProcessingPoller } from "@/components/journey/VideoProcessingPoller";
 import { JourneyComposeProvider } from "@/components/journey/JourneyComposeContext";
 import { JourneyCreateComposer } from "@/components/journey/JourneyCreateComposer";
 import { JourneyLikeButton } from "@/components/journey/JourneyLikeButton";
 import { CongDongAuthorMetaLine } from "@/components/cong-dong/CongDongAuthorMetaLine";
 import { CongDongTopicsAside } from "@/components/cong-dong/CongDongTopicsAside";
+import {
+  fetchCongDongSidebarLiveCached,
+  peekCongDongSidebarLive,
+} from "@/lib/cong-dong/sidebar-live-client-cache";
 import { congDongFeedPostCoverUrl } from "@/lib/cong-dong/feed-post-cover";
 import type { ContentSurfaceView } from "@/lib/cins/content-surface-view";
 import {
@@ -167,6 +171,9 @@ export function CongDongPageClient({
     friends: CongDongMemberPreview[];
     total: number;
   }>({ friends: [], total: 0 });
+  const [memberPreview, setMemberPreview] = useState<CongDongMemberPreview[]>(
+    [],
+  );
   const [careerMap, setCareerMap] = useState<CongDongCareerSegment[]>([]);
   const [sidebarLiveLoading, setSidebarLiveLoading] = useState(true);
   const [filters, setFilters] = useState(initial.filters);
@@ -201,22 +208,26 @@ export function CongDongPageClient({
 
   useEffect(() => {
     let cancelled = false;
-    setSidebarLiveLoading(true);
-    void fetch(`/api/cong-dong/${org.id}/sidebar-live`, { cache: "no-store" })
-      .then((res) => res.json())
-      .then((json: {
-        friendsInCommunity?: { friends: CongDongMemberPreview[]; total: number };
-        careerMap?: CongDongCareerSegment[];
-      }) => {
+    const cached = peekCongDongSidebarLive(org.id);
+    if (cached) {
+      setFriendsInCommunity(cached.friendsInCommunity);
+      setMemberPreview(cached.memberPreview);
+      setCareerMap(cached.careerMap);
+      setSidebarLiveLoading(false);
+    } else {
+      setSidebarLiveLoading(true);
+    }
+    void fetchCongDongSidebarLiveCached(org.id)
+      .then((payload) => {
         if (cancelled) return;
-        setFriendsInCommunity(
-          json.friendsInCommunity ?? { friends: [], total: 0 },
-        );
-        setCareerMap(json.careerMap ?? []);
+        setFriendsInCommunity(payload.friendsInCommunity);
+        setMemberPreview(payload.memberPreview);
+        setCareerMap(payload.careerMap);
       })
       .catch(() => {
-        if (!cancelled) {
+        if (!cancelled && !cached) {
           setFriendsInCommunity({ friends: [], total: 0 });
+          setMemberPreview([]);
           setCareerMap([]);
         }
       })
@@ -554,11 +565,39 @@ export function CongDongPageClient({
                 <div className="cd-v4-divider" />
                 <button
                   type="button"
-                  className="cd-v4-face-note cd-v4-face-note--solo cd-v4-face-note--btn"
+                  className={
+                    memberPreview.length > 0
+                      ? "cd-v4-friends-row cd-v4-friends-row--btn"
+                      : "cd-v4-face-note cd-v4-face-note--solo cd-v4-face-note--btn"
+                  }
                   onClick={() => setRosterOpen(true)}
                   aria-label={`Xem ${org.soThanhVien} thành viên cộng đồng ${org.ten}`}
                 >
-                  <strong>{org.soThanhVien}</strong> thành viên
+                  {memberPreview.length > 0 ? (
+                    <>
+                      <span className="cd-v4-facepile">
+                        {memberPreview.map((member, i) => (
+                          <FacepileAvatar
+                            key={member.id}
+                            member={member}
+                            color={FACEPILE_COLORS[i % FACEPILE_COLORS.length]}
+                          />
+                        ))}
+                        {org.soThanhVien > memberPreview.length ? (
+                          <span className="cd-v4-facepile-more">
+                            +{org.soThanhVien - memberPreview.length}
+                          </span>
+                        ) : null}
+                      </span>
+                      <span className="cd-v4-face-note">
+                        <strong>{org.soThanhVien}</strong> thành viên
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <strong>{org.soThanhVien}</strong> thành viên
+                    </>
+                  )}
                 </button>
               </>
             ) : null}
@@ -736,7 +775,7 @@ export function CongDongPageClient({
       congDongCompose={{ orgId: org.id, filters }}
       onAfterPublished={refetchFeed}
     >
-      <BunnyVideoProcessingPoller ownerSlug={viewerSlug} />
+      <VideoProcessingPoller ownerSlug={viewerSlug} />
       {page}
     </JourneyComposeProvider>
   );
