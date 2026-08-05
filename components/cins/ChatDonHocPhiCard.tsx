@@ -259,51 +259,55 @@ export function ChatDonHocPhiCard({
           </span>
         ) : null}
 
-        {qrUrl ? (
-          <div className="cins-chat-don-card-bill">
-            <button
-              type="button"
-              className="cins-chat-don-card-bill-toggle"
-              aria-expanded={qrOpen}
-              onClick={() => setQrOpen((v) => !v)}
-            >
-              {qrOpen ? "Ẩn VietQR" : "Hiện VietQR"}
-            </button>
-            {qrOpen ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={qrUrl}
-                alt={`VietQR ${parsed.ma}`}
-                className="cins-chat-don-card-bill-img"
-              />
-            ) : null}
-          </div>
-        ) : null}
+      </div>
 
-        {pending && canConfirmPaid ? (
+      {qrUrl ? (
+        <div className="cins-chat-don-card-bill">
           <button
             type="button"
-            className="cins-chat-don-card-cta"
-            disabled={busy}
-            onClick={() => void confirmPaid()}
+            className="cins-chat-don-card-bill-toggle"
+            aria-expanded={qrOpen}
+            onClick={() => setQrOpen((v) => !v)}
           >
-            {busy ? "Đang xác nhận…" : "Xác nhận đã nhận tiền"}
+            {qrOpen ? "Ẩn VietQR" : "Hiện VietQR"}
           </button>
-        ) : (
-          <span className="cins-chat-don-card-cta">
-            {paid
-              ? "Đã cộng ngày học"
-              : pending
-                ? "Chờ cơ sở xác nhận"
-                : "Đơn học phí"}
-          </span>
-        )}
-        {error ? (
-          <span className="cins-chat-don-card-note-text" style={{ color: "#b91c1c" }}>
-            {error}
-          </span>
-        ) : null}
-      </div>
+          {qrOpen ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={qrUrl}
+              alt={`VietQR ${parsed.ma}`}
+              className="cins-chat-don-card-bill-img"
+            />
+          ) : null}
+        </div>
+      ) : null}
+
+      {pending && canConfirmPaid ? (
+        <button
+          type="button"
+          className="cins-chat-don-card-cta is-action"
+          disabled={busy}
+          onClick={() => void confirmPaid()}
+        >
+          {busy ? "Đang xác nhận…" : "Xác nhận đã nhận tiền"}
+        </button>
+      ) : (
+        <span className="cins-chat-don-card-cta">
+          {paid
+            ? "Đã cộng ngày học"
+            : pending
+              ? "Chờ cơ sở xác nhận"
+              : "Đơn học phí"}
+        </span>
+      )}
+      {error ? (
+        <span
+          className="cins-chat-don-card-error"
+          role="alert"
+        >
+          {error}
+        </span>
+      ) : null}
     </div>
   );
 }

@@ -332,11 +332,17 @@ export async function ensureLopChatPhongAndJoinStudent(input: {
   }
 
   if (input.sendWelcome && joined) {
+    const { data: user } = await admin
+      .from("user_nguoi_dung")
+      .select("ten_hien_thi")
+      .eq("id", input.studentUserId)
+      .maybeSingle<{ ten_hien_thi: string | null }>();
+    const ten = user?.ten_hien_thi?.trim() || "học viên";
     await admin.from("chat_tin_nhan").insert({
       id_phong: ensured.roomId,
       id_nguoi_gui: input.studentUserId,
       loai_tin: "system",
-      noi_dung: "Chào mừng học viên mới đến với lớp học.",
+      noi_dung: `Chào mừng ${ten} đến với lớp học!`,
       ngu_canh: { loai: "chao_lop", suKien: "join" },
     });
   }

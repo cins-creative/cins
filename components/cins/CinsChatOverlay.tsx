@@ -230,6 +230,8 @@ type Props = {
   launch: ChatLaunchState | null;
   onClose: () => void;
   onUnreadChange: (count: number) => void;
+  /** Fill vùng shell (giữ topbar/sidebar) — gắn URL `/chat`. */
+  shellFill?: boolean;
 };
 
 /** Stub roomId-only từ openChat — không được đè tên/nhóm/avatar đã hydrate. */
@@ -1030,7 +1032,12 @@ function messageToReplyPreview(msg: ChatMessage): ChatMessageReplyPreview {
   };
 }
 
-export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
+export function CinsChatOverlay({
+  launch,
+  onClose,
+  onUnreadChange,
+  shellFill = false,
+}: Props) {
   const router = useRouter();
   const {
     subscribeChatMessages,
@@ -1091,7 +1098,6 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     () => Boolean(launch?.thread && launch.thread.roomId !== "__open_list__"),
   );
   const [sidePanel, setSidePanel] = useState<ChatSidePanel | null>(null);
-  const [chatFullscreen, setChatFullscreen] = useState(false);
   const [membersPopoverOpen, setMembersPopoverOpen] = useState(false);
   const skipPersistSidePanelRef = useRef(true);
   /** Tab cuối khi panel đang mở — dùng khi bấm "Mở rộng" lại sau khi đóng. */
@@ -1117,6 +1123,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     orgTen: string | null;
     hocVienLopId: string | null;
     vaiTroLabel: string | null;
+    giaoVienTenCongKhai: string | null;
     canQuanLyHocVien: boolean;
     canGanTienDo: boolean;
     dongBoTienDo: boolean;
@@ -1139,10 +1146,12 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
   const [toChucFilter, setToChucFilter] = useState<ToChucListFilter>(
     () => launch?.toChucFilter ?? "all",
   );
-  /** Hộp thư người lạ — browse trong pane convo (không điều hướng quan-ly). */
-  const [browsingOrgInboxId, setBrowsingOrgInboxId] = useState<string | null>(
+  /** Hộp thư người lạ — org đang xổ danh sách hội thoại con (accordion). */
+  const [expandedOrgInboxId, setExpandedOrgInboxId] = useState<string | null>(
     null,
   );
+  /** Lớp 1 của hộp thư người lạ: card từng org mình quản trị. */
+  const [orgInboxOverviewOpen, setOrgInboxOverviewOpen] = useState(false);
   const [khachHangTagFilter, setKhachHangTagFilter] = useState<string[]>([]);
   const [khachHangTags, setKhachHangTags] = useState<ShopKhachHangTag[]>([]);
   const [khachHangTagsLoaded, setKhachHangTagsLoaded] = useState(false);
@@ -1299,10 +1308,6 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
       setSidePanel(null);
     }
   }, [active, sidePanel]);
-
-  useEffect(() => {
-    if (!sidePanel) setChatFullscreen(false);
-  }, [sidePanel]);
 
   activeRoomIdRef.current = active?.roomId ?? null;
   activeMessagesRef.current = active?.messages ?? [];
@@ -2141,6 +2146,15 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
         }
       }
 
+      // Chào lớp — chỉ HV được chào (sender) thấy
+      if (
+        message.chaoLop &&
+        viewerProfileId &&
+        message.senderUserId !== viewerProfileId
+      ) {
+        return;
+      }
+
       let missingThread = false;
 
       setThreads((prev) => {
@@ -2294,14 +2308,16 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     const incoming = launch.thread;
     if (incoming.roomId === "__open_list__") {
       setActiveId("");
-      setBrowsingOrgInboxId(null);
+      setExpandedOrgInboxId(null);
+      setOrgInboxOverviewOpen(false);
       setActiveTab(launch.tab ?? "ban_be");
       if (launch.toChucFilter) setToChucFilter(launch.toChucFilter);
       setMobileShowThread(false);
       return;
     }
 
-    setBrowsingOrgInboxId(null);
+    setExpandedOrgInboxId(null);
+    setOrgInboxOverviewOpen(false);
     setThreads((prev) => mergeLaunchThread(prev, incoming));
     setActiveId(incoming.id);
     setActiveTab(launch.tab ?? incoming.group);
@@ -2460,10 +2476,6 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
-      if (chatFullscreen) {
-        setChatFullscreen(false);
-        return;
-      }
       if (sidePanel) {
         setSidePanel(null);
         return;
@@ -2472,7 +2484,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onClose, sidePanel, chatFullscreen]);
+  }, [onClose, sidePanel]);
 
   const loadMessages = useCallback(
     async (roomId: string, options?: { force?: boolean }) => {
@@ -2762,6 +2774,10 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
             typeof data.hocVienLopId === "string" ? data.hocVienLopId : null,
           vaiTroLabel:
             typeof data.vaiTroLabel === "string" ? data.vaiTroLabel : null,
+          giaoVienTenCongKhai:
+            typeof data.giaoVienTenCongKhai === "string"
+              ? data.giaoVienTenCongKhai
+              : null,
           canQuanLyHocVien: Boolean(data.canQuanLyHocVien),
           canGanTienDo: Boolean(data.canGanTienDo),
           dongBoTienDo: Boolean(data.dongBoTienDo),
@@ -2786,7 +2802,13 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
       }
 
       shouldScrollToBottomRef.current = true;
-      setBrowsingOrgInboxId(null);
+      /* Mở từ hộp thư người lạ: giữ ngữ cảnh org để nút back về đúng danh sách. */
+      if (!thread.isOrgStaffInbox) {
+        setExpandedOrgInboxId(null);
+        setOrgInboxOverviewOpen(false);
+      } else if (thread.orgId) {
+        setExpandedOrgInboxId(thread.orgId);
+      }
       setActiveId(thread.id);
       setMobileShowThread(true);
       setActiveTab(thread.group);
@@ -3868,7 +3890,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
       if (!thread || isPendingRoom || connecting || lopFrozen) {
         setComposeError(
           lopFrozen
-            ? "Phòng lớp đang freeze — không gửi video được."
+            ? "Phòng lớp hết kỳ học — không gửi video được."
             : "Chưa sẵn sàng gửi video. Thử lại sau khi kết nối xong.",
         );
         return;
@@ -4345,23 +4367,35 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
     [atMentionTrigger, draft],
   );
 
-  const openOrgInboxBrowse = useCallback((node: ToChucOrgNode) => {
-    setBrowsingOrgInboxId(node.orgId);
+  const toggleOrgInboxExpand = useCallback((orgId: string) => {
+    setExpandedOrgInboxId((prev) => (prev === orgId ? null : orgId));
+  }, []);
+
+  const openOrgInboxOverview = useCallback(() => {
+    setOrgInboxOverviewOpen(true);
     setActiveId("");
     setMobileShowThread(true);
     setActiveTab("to_chuc");
   }, []);
 
-  const browsingOrgInboxNode = useMemo(() => {
-    if (!browsingOrgInboxId) return null;
-    return (
-      toChucGrouped.cuaToi.find((n) => n.orgId === browsingOrgInboxId) ?? null
-    );
-  }, [browsingOrgInboxId, toChucGrouped.cuaToi]);
+  /** Org mình quản trị có hội thoại người lạ — nguồn của lớp card. */
+  const orgInboxNodes = useMemo(
+    () => toChucGrouped.cuaToi.filter((node) => node.inbox.count > 0),
+    [toChucGrouped.cuaToi],
+  );
 
-  const browsingOrgInboxThreads = useMemo(() => {
-    if (!browsingOrgInboxNode) return [] as ChatThread[];
-    return browsingOrgInboxNode.threads
+  const orgInboxTotals = useMemo(() => {
+    let chuaTraLoi = 0;
+    let hoiThoai = 0;
+    for (const node of orgInboxNodes) {
+      chuaTraLoi += node.inbox.tongChuaTraLoi;
+      hoiThoai += node.inbox.tong;
+    }
+    return { chuaTraLoi, hoiThoai, orgs: orgInboxNodes.length };
+  }, [orgInboxNodes]);
+
+  const sortOrgInboxThreads = useCallback((threads: ChatThread[]) => {
+    return threads
       .filter((t) => t.isOrgStaffInbox)
       .slice()
       .sort((a, b) => {
@@ -4370,7 +4404,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
         if (openA !== openB) return openA - openB;
         return new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime();
       });
-  }, [browsingOrgInboxNode]);
+  }, []);
 
   if (!portalReady) return null;
 
@@ -4433,81 +4467,85 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
    * Click inbox → browse danh sách trong pane convo (không rời overlay).
    */
   const renderToChucOrgEntries = (node: ToChucOrgNode) => {
-    /* Quyền: staff inbox đã có trong threads; ẩn khi không còn chưa trả lời. */
-    const showInboxEntry = node.inbox.chuaTraLoi > 0;
-    const chuaTraLoiLabel =
-      formatUnreadTabCount(node.inbox.chuaTraLoi) ??
-      String(node.inbox.chuaTraLoi);
     const nestedRooms = nestGroupThreads(node.rooms, toChucNestExpandedIds);
-    const inboxActive =
-      browsingOrgInboxId === node.orgId ||
-      Boolean(active?.isOrgStaffInbox && active.orgId === node.orgId);
+    return nestedRooms.map((thread) => renderThreadRow(thread));
+  };
 
-    const entries: ReactElement[] = [];
+  /**
+   * Một entry gom mọi org mình quản trị — vào rồi xổ accordion chat con
+   * (không drill-down sang pane riêng).
+   */
+  const renderOrgInboxEntry = (): ReactElement | null => {
+    if (orgInboxNodes.length === 0) return null;
+    const { chuaTraLoi, orgs } = orgInboxTotals;
+    const chuaTraLoiLabel =
+      formatUnreadTabCount(chuaTraLoi) ?? String(chuaTraLoi);
+    const entryActive =
+      orgInboxOverviewOpen || Boolean(active?.isOrgStaffInbox);
+    const moTa =
+      chuaTraLoi > 0
+        ? `${chuaTraLoiLabel} chưa trả lời · ${orgs} tổ chức`
+        : `${orgs} tổ chức · đã trả lời hết`;
 
-    if (showInboxEntry) {
-      entries.push(
-        <li
-          key={`${node.orgId}-inbox`}
-          className="cins-chat-thread-item is-org-inbox-entry"
+    return (
+      <li
+        key="org-inbox-overview"
+        className="cins-chat-thread-item is-org-inbox-entry"
+      >
+        <button
+          type="button"
+          className={`cins-chat-thread is-org-inbox-thread${entryActive ? " is-active" : ""}`}
+          onClick={openOrgInboxOverview}
+          aria-label={`Hộp thư người lạ — ${moTa}`}
+          aria-pressed={entryActive}
         >
-          <button
-            type="button"
-            className={`cins-chat-thread is-org-inbox-thread${inboxActive ? " is-active" : ""}`}
-            onClick={() => openOrgInboxBrowse(node)}
-            aria-label={`${node.orgTen}: ${chuaTraLoiLabel} chưa trả lời — mở hộp thư người lạ`}
-            aria-pressed={inboxActive}
-          >
-            <span className="cins-chat-self-avatar" aria-hidden>
-              <MessageSquareQuote size={20} strokeWidth={2.2} />
-            </span>
-            <span className="cins-chat-thread-main">
-              <span className="cins-chat-thread-top">
-                <span className="cins-chat-thread-name">
-                  <strong title={node.orgTen}>{node.orgTen}</strong>
-                </span>
+          <span className="cins-chat-self-avatar" aria-hidden>
+            <MessageSquareQuote size={20} strokeWidth={2.2} />
+          </span>
+          <span className="cins-chat-thread-main">
+            <span className="cins-chat-thread-top">
+              <span className="cins-chat-thread-name">
+                <strong>Hộp thư người lạ</strong>
               </span>
-              <span className="cins-chat-thread-bottom">
-                <span className="cins-chat-thread-preview">
-                  {chuaTraLoiLabel} chưa trả lời · Hộp thư người lạ
-                </span>
+            </span>
+            <span className="cins-chat-thread-bottom">
+              <span className="cins-chat-thread-preview">{moTa}</span>
+              {chuaTraLoi > 0 ? (
                 <span
                   className="cins-chat-unread"
                   title={`${chuaTraLoiLabel} chưa trả lời`}
                 >
                   {chuaTraLoiLabel}
                 </span>
-              </span>
+              ) : null}
             </span>
-          </button>
-        </li>,
-      );
-    }
-
-    for (const thread of nestedRooms) {
-      entries.push(renderThreadRow(thread));
-    }
-
-    return entries;
+          </span>
+        </button>
+      </li>
+    );
   };
 
   const panel = (
     <div
       ref={chatRootRef}
-      className={`cins-chat-root${shareDropMode ? " is-share-drop-root" : ""}${chatFullscreen ? " is-chat-fullscreen" : ""}`}
+      className={`cins-chat-root${shareDropMode ? " is-share-drop-root" : ""}${shellFill ? " is-chat-fullscreen is-chat-page" : ""}`}
       role="presentation"
       onClick={(e) => {
+        // Fill shell — không đóng bằng click ngoài.
+        if (shellFill) return;
         // Chỉ đóng khi click đúng vùng ngoài panel — tránh nút header
         // (ghim bubble, …) bị coi là click backdrop khi layout sát mép.
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="cins-chat-backdrop" aria-hidden="true" />
+      {shellFill ? null : (
+        <div className="cins-chat-backdrop" aria-hidden="true" />
+      )}
 
       <section
-        className={`cins-chat-panel${sidePanel && active ? " has-side-panel" : ""}${sidePanel === "canvas" && active ? " has-canvas" : ""}${shareDropMode ? " is-share-drop" : ""}${chatFullscreen ? " is-chat-fullscreen" : ""}`}
+        className={`cins-chat-panel${sidePanel && active ? " has-side-panel" : ""}${sidePanel === "canvas" && active ? " has-canvas" : ""}${shareDropMode ? " is-share-drop" : ""}${shellFill ? " is-chat-fullscreen is-chat-page" : ""}`}
         role="dialog"
-        aria-modal="true"
+        aria-modal={shellFill ? false : true}
         aria-label="Tin nhắn"
         onClick={(e) => e.stopPropagation()}
       >
@@ -4540,30 +4578,17 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
               ) : null}
               <button
                 type="button"
-                className={`cins-chat-icon-btn is-plain${chatFullscreen ? " is-active" : ""}`}
-                aria-label={
-                  chatFullscreen
-                    ? "Thu nhỏ bảng chat"
-                    : "Toàn màn hình bảng chat"
-                }
-                title={
-                  chatFullscreen
-                    ? "Thu nhỏ bảng chat"
-                    : "Toàn màn hình bảng chat"
-                }
-                aria-pressed={chatFullscreen}
+                className="cins-chat-icon-btn is-plain"
+                aria-label="Đóng bảng chat"
+                title="Đóng"
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  setChatFullscreen((v) => !v);
+                  onClose();
                 }}
                 onMouseDown={(e) => e.stopPropagation()}
               >
-                {chatFullscreen ? (
-                  <Minimize2 size={16} strokeWidth={1.8} aria-hidden />
-                ) : (
-                  <Maximize2 size={16} strokeWidth={1.8} aria-hidden />
-                )}
+                <Minimize2 size={16} strokeWidth={1.8} aria-hidden />
               </button>
               <button
                 type="button"
@@ -4640,7 +4665,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                     : CHAT_THREAD_VIEW_LABEL[view]
                 }
                 onClick={() => {
-                  setBrowsingOrgInboxId(null);
+                  setExpandedOrgInboxId(null);
                   setActiveTab(view);
                 }}
               >
@@ -4781,6 +4806,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                         />
                       </div>
                       <ul role="list">
+                        {renderOrgInboxEntry()}
                         {toChucGrouped.cuaToi.flatMap((node) =>
                           renderToChucOrgEntries(node),
                         )}
@@ -5043,13 +5069,22 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                     <strong className="cins-chat-lop-role">
                       {lopRoomAccess.vaiTroLabel}
                     </strong>
+                    {lopRoomAccess.giaoVienTenCongKhai ? (
+                      <>
+                        {" · "}
+                        Giáo viên:{" "}
+                        <strong className="cins-chat-lop-role">
+                          {lopRoomAccess.giaoVienTenCongKhai}
+                        </strong>
+                      </>
+                    ) : null}
                     {lopRoomAccess.hocVienLopId && !lopFrozen
                       ? `, bạn còn ${lopRoomAccess.soNgayConLai} ngày học`
                       : null}
                   </>
                 ) : null}
                 {lopRoomAccess.hocVienLopId && lopFrozen
-                  ? `${lopRoomAccess.vaiTroLabel ? ". " : ""}Kỳ học đã hết — còn ${lopRoomAccess.soNgayConLai} ngày học. Phòng lớp đang freeze; tin trong khoảng nghỉ sẽ không hiện lại sau khi gia hạn.`
+                  ? `${lopRoomAccess.vaiTroLabel ? ". " : ""}Hết kỳ học — còn ${lopRoomAccess.soNgayConLai} ngày. Phòng lớp tạm khóa; tin trong khoảng nghỉ sẽ không hiện lại sau khi gia hạn.`
                   : null}
               </span>
               {lopFrozen && active.roomId ? (
@@ -5237,7 +5272,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
             {lopFrozen ? (
               <div className="cins-chat-lop-freeze-compose" role="status">
                 <span>
-                  Phòng lớp đang freeze — còn {lopRoomAccess?.soNgayConLai ?? 0}{" "}
+                  Phòng lớp hết kỳ học — còn {lopRoomAccess?.soNgayConLai ?? 0}{" "}
                   ngày học; không gửi tin được.
                 </span>
                 {active.roomId ? (
@@ -5445,7 +5480,7 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                 onClick={() => syncAtMentionFromTextarea()}
                 placeholder={
                   lopFrozen
-                    ? "Phòng lớp đang freeze…"
+                    ? "Phòng lớp hết kỳ học…"
                     : connecting || isPendingRoom
                       ? "Đang kết nối hội thoại…"
                       : "Soạn tin..."
@@ -5514,11 +5549,11 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
             </div>
           </footer>
           </div>
-          ) : browsingOrgInboxNode ? (
+          ) : orgInboxOverviewOpen && orgInboxNodes.length > 0 ? (
             <div
-              className="cins-chat-convo cins-chat-org-inbox-browse"
+              className="cins-chat-convo cins-chat-org-inbox-overview"
               role="region"
-              aria-label={`Hộp thư người lạ — ${browsingOrgInboxNode.orgTen}`}
+              aria-label="Hộp thư người lạ theo tổ chức"
             >
               <header className="cins-chat-convo-head cins-chat-org-inbox-browse-head">
                 <button
@@ -5526,7 +5561,8 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                   className="cins-chat-back-mobile"
                   aria-label="Quay lại danh sách"
                   onClick={() => {
-                    setBrowsingOrgInboxId(null);
+                    setOrgInboxOverviewOpen(false);
+                    setExpandedOrgInboxId(null);
                     setMobileShowThread(false);
                   }}
                 >
@@ -5540,85 +5576,175 @@ export function CinsChatOverlay({ launch, onClose, onUnreadChange }: Props) {
                     <strong>Hộp thư người lạ</strong>
                   </span>
                   <span className="cins-chat-org-inbox-browse-sub">
-                    {browsingOrgInboxNode.orgTen}
-                    {browsingOrgInboxNode.inbox.chuaTraLoi > 0
-                      ? ` · ${browsingOrgInboxNode.inbox.chuaTraLoi} chưa trả lời`
+                    {orgInboxTotals.orgs} tổ chức mình quản trị
+                    {orgInboxTotals.chuaTraLoi > 0
+                      ? ` · ${orgInboxTotals.chuaTraLoi} chưa trả lời`
                       : ""}
                   </span>
                 </div>
-                <div className="cins-chat-convo-actions">
-                  {browsingOrgInboxNode.quanLyKind &&
-                  browsingOrgInboxNode.orgSlug?.trim() ? (
-                    <button
-                      type="button"
-                      className="cins-chat-icon-btn is-plain"
-                      aria-label="Mở trang quản lý tin nhắn"
-                      title="Mở trang quản lý"
-                      onClick={() =>
-                        handleOpenOrgQuanLy(
-                          browsingOrgInboxNode.quanLyKind!,
-                          browsingOrgInboxNode.orgSlug!,
-                          { filter: "open" },
-                        )
+              </header>
+              <ul className="cins-chat-org-inbox-card-list" role="list">
+                {orgInboxNodes.map((node) => {
+                  const canOpenQuanLy = Boolean(
+                    node.quanLyKind && node.orgSlug?.trim(),
+                  );
+                  const expanded = expandedOrgInboxId === node.orgId;
+                  const childThreads = expanded
+                    ? sortOrgInboxThreads(node.threads)
+                    : [];
+                  return (
+                    <li
+                      key={node.orgId}
+                      className={
+                        expanded
+                          ? "cins-chat-org-inbox-card-item is-expanded"
+                          : "cins-chat-org-inbox-card-item"
                       }
                     >
-                      <Maximize2 size={18} strokeWidth={2} aria-hidden />
-                    </button>
-                  ) : null}
-                </div>
-              </header>
-              {browsingOrgInboxThreads.length === 0 ? (
-                <p className="cins-chat-org-inbox-browse-empty">
-                  Không có hội thoại trong hộp thư.
-                </p>
-              ) : (
-                <ul className="cins-chat-org-inbox-browse-list" role="list">
-                  {browsingOrgInboxThreads.map((thread) => {
-                    const isOpen = thread.orgInboxStatus === "open";
-                    return (
-                      <li key={thread.id}>
+                      <div className="cins-chat-org-inbox-card">
                         <button
                           type="button"
-                          className="cins-chat-org-inbox-browse-item"
-                          onClick={() => selectThread(thread)}
+                          className="cins-chat-org-inbox-card-main"
+                          onClick={() => toggleOrgInboxExpand(node.orgId)}
+                          aria-expanded={expanded}
+                          aria-controls={`cins-org-inbox-children-${node.orgId}`}
+                          aria-label={`${node.orgTen}: ${node.inbox.tong} người lạ nhắn`}
                         >
                           <ChatAvatar
-                            initial={thread.avatarInitial}
-                            hue={thread.avatarHue}
+                            initial={node.avatarInitial}
+                            hue={node.avatarHue}
                             size={40}
-                            kind={thread.kind}
-                            verified={thread.verified}
-                            avatarUrl={thread.avatarUrl}
+                            kind="org"
+                            avatarUrl={node.avatarUrl}
                           />
-                          <span className="cins-chat-org-inbox-browse-item-main">
-                            <span className="cins-chat-org-inbox-browse-item-top">
-                              <strong title={thread.name}>{thread.name}</strong>
-                              <time dateTime={thread.lastAt}>
-                                {formatChatTime(thread.lastAt)}
-                              </time>
-                            </span>
-                            <span className="cins-chat-org-inbox-browse-item-bottom">
-                              <span className="cins-chat-org-inbox-browse-preview">
-                                {thread.preview || "Chưa có tin nhắn"}
-                              </span>
-                              {isOpen ? (
+                          <span className="cins-chat-org-inbox-card-body">
+                            <span className="cins-chat-org-inbox-card-top">
+                              <strong title={node.orgTen}>{node.orgTen}</strong>
+                              {node.inbox.tongChuaTraLoi > 0 ? (
                                 <span className="cins-chat-org-inbox-status is-open">
-                                  Chưa trả lời
+                                  {node.inbox.tongChuaTraLoi} chưa trả lời
                                 </span>
                               ) : null}
-                              {thread.unread > 0 ? (
-                                <span className="cins-chat-unread">
-                                  {thread.unread}
-                                </span>
-                              ) : null}
+                            </span>
+                            <span className="cins-chat-org-inbox-card-stats">
+                              {node.inbox.tong} người lạ nhắn
+                              {node.inbox.tongUnread > 0
+                                ? ` · ${node.inbox.tongUnread} tin chưa đọc`
+                                : ""}
                             </span>
                           </span>
+                          <ChevronDown
+                            size={18}
+                            strokeWidth={2.2}
+                            className={`cins-chat-org-inbox-card-chevron${expanded ? " is-open" : ""}`}
+                            aria-hidden
+                          />
                         </button>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
+                        {canOpenQuanLy ? (
+                          <button
+                            type="button"
+                            className="cins-chat-icon-btn is-plain"
+                            aria-label={`Mở trang quản lý tin nhắn của ${node.orgTen}`}
+                            title="Mở trang quản lý"
+                            onClick={() =>
+                              handleOpenOrgQuanLy(
+                                node.quanLyKind!,
+                                node.orgSlug!,
+                                { filter: "open" },
+                              )
+                            }
+                          >
+                            <Maximize2 size={18} strokeWidth={2} aria-hidden />
+                          </button>
+                        ) : null}
+                      </div>
+                      {expanded ? (
+                        <div
+                          id={`cins-org-inbox-children-${node.orgId}`}
+                          className="cins-chat-org-inbox-card-children"
+                        >
+                          {childThreads.length === 0 ? (
+                            <p className="cins-chat-org-inbox-browse-empty">
+                              Không có hội thoại trong hộp thư.
+                            </p>
+                          ) : (
+                            <ul
+                              className="cins-chat-org-inbox-browse-list is-nested"
+                              role="list"
+                            >
+                              {childThreads.map((thread) => {
+                                const isOpen =
+                                  thread.orgInboxStatus === "open";
+                                return (
+                                  <li key={thread.id}>
+                                    <button
+                                      type="button"
+                                      className="cins-chat-org-inbox-browse-item"
+                                      onClick={() => selectThread(thread)}
+                                    >
+                                      <ChatAvatar
+                                        initial={thread.avatarInitial}
+                                        hue={thread.avatarHue}
+                                        size={36}
+                                        kind={thread.kind}
+                                        verified={thread.verified}
+                                        avatarUrl={thread.avatarUrl}
+                                      />
+                                      <span className="cins-chat-org-inbox-browse-item-main">
+                                        <span className="cins-chat-org-inbox-browse-item-top">
+                                          <strong title={thread.name}>
+                                            {thread.name}
+                                          </strong>
+                                          <time dateTime={thread.lastAt}>
+                                            {formatChatTime(thread.lastAt)}
+                                          </time>
+                                        </span>
+                                        <span className="cins-chat-org-inbox-browse-item-bottom">
+                                          <span className="cins-chat-org-inbox-browse-preview">
+                                            {thread.preview ||
+                                              "Chưa có tin nhắn"}
+                                          </span>
+                                          {isOpen ? (
+                                            <span className="cins-chat-org-inbox-status is-open">
+                                              Chưa trả lời
+                                            </span>
+                                          ) : null}
+                                          {thread.unread > 0 ? (
+                                            <span className="cins-chat-unread">
+                                              {thread.unread}
+                                            </span>
+                                          ) : null}
+                                        </span>
+                                      </span>
+                                    </button>
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          )}
+                          {node.inbox.daCat &&
+                          node.quanLyKind &&
+                          node.orgSlug?.trim() ? (
+                            <button
+                              type="button"
+                              className="cins-chat-org-inbox-more is-nested"
+                              onClick={() =>
+                                handleOpenOrgQuanLy(
+                                  node.quanLyKind!,
+                                  node.orgSlug!,
+                                  { filter: "open" },
+                                )
+                              }
+                            >
+                              Xem tất cả
+                            </button>
+                          ) : null}
+                        </div>
+                      ) : null}
+                    </li>
+                  );
+                })}
+              </ul>
             </div>
           ) : (
             <div className="cins-chat-convo cins-chat-convo-empty">

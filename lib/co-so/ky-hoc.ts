@@ -16,7 +16,7 @@ export type KyHocInterval = {
   ngayCuoi: string;
 };
 
-/** Còn hiệu lực học: có kỳ với ngay_cuoi ≥ hôm nay (VN). Freeze khi không còn kỳ nào. */
+/** Còn hiệu lực học: có kỳ với ngay_cuoi ≥ hôm nay (VN). Hết kỳ học khi không còn kỳ nào. */
 export function isEnrollmentNotFrozen(
   intervals: KyHocInterval[],
   todayYmd = todayYmdVn(),

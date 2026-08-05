@@ -12,7 +12,14 @@ export type ChatMessageKind =
   | "moc_nhac"
   | "canvas_binh_luan"
   | "cuoc_goi"
-  | "lop_bai";
+  | "lop_bai"
+  | "phong_lop"
+  | "chao_lop";
+
+/** Tin hệ thống chào HV mới vào phòng lớp (`ngu_canh.loai=chao_lop`). */
+export type ChatChaoLopNotice = {
+  suKien: "join" | "welcome";
+};
 
 /** Tin hệ thống pedagogy lớp (`ngu_canh.loai` = mo_bai | nop_bai | luu_bai | journey_da_dang). */
 export type ChatLopBaiNotice = {
@@ -24,6 +31,14 @@ export type ChatLopBaiNotice = {
   idNopBai?: string;
   idCotMoc?: string;
   slug?: string;
+};
+
+/** CTA mở phòng lớp sau xác nhận học phí (`ngu_canh.loai=phong_lop`). */
+export type ChatPhongLopInvite = {
+  roomId: string;
+  orgId: string;
+  lopId?: string | null;
+  tenPhong?: string | null;
 };
 
 export type ChatMocNoticeSuKien = "tao" | "nhac_truoc" | "den_han";
@@ -184,6 +199,10 @@ export type ChatMessage = {
   mocNhac?: ChatMocNotice | null;
   /** Pedagogy lớp — mở bài / nộp / lưu / Journey. */
   lopBai?: ChatLopBaiNotice | null;
+  /** Chào HV mới vào phòng lớp. */
+  chaoLop?: ChatChaoLopNotice | null;
+  /** Mời vào phòng lớp sau xác nhận học phí. */
+  phongLop?: ChatPhongLopInvite | null;
   /** Bình luận trên canvas — dòng nhỏ trong feed. */
   canvasBinhLuan?: ChatCanvasBinhLuanNotice | null;
   /** Lịch sử / tín hiệu cuộc gọi trong phòng. */
@@ -353,6 +372,17 @@ export type ChatThread = {
    * Chỉ set trên `isOrgStaffInbox`.
    */
   orgInboxStatus?: "open" | "replied";
+  /**
+   * Tổng số liệu hộp thư staff của org — tính trên **toàn bộ** phòng, kể cả
+   * phần không hydrate (server chỉ trả tối đa `ORG_INBOX_MAX_THREADS_PER_ORG`
+   * thread / org). Lặp lại trên mọi thread cùng org; chỉ set trên
+   * `isOrgStaffInbox`.
+   */
+  orgInboxTongHoiThoai?: number;
+  orgInboxTongChuaTraLoi?: number;
+  orgInboxTongChuaDoc?: number;
+  /** Còn hội thoại chưa tải — UI dẫn sang trang quản lý. */
+  orgInboxDaCat?: boolean;
   preview: string;
   lastAt: string;
   unread: number;

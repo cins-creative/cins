@@ -10,7 +10,7 @@ export function canEditMessage(msg: ChatMessage): boolean {
   return Date.now() - new Date(msg.sentAt).getTime() <= CHAT_ACTION_WINDOW_MS;
 }
 
-/** Thu hồi — mọi tin của mình đã lưu server (soft-delete `da_xoa`). */
+/** Thu hồi — soft-delete `da_xoa` + hard-delete ảnh/video gốc (CF Images / R2). */
 export function canRecallMessage(msg: ChatMessage): boolean {
   return msg.from === "me" && !msg.deleted && !isOptimisticMessageId(msg.id);
 }
@@ -24,6 +24,8 @@ export function canAddMessageToCanvas(msg: ChatMessage): boolean {
   if (
     msg.kind === "sticker" ||
     msg.kind === "moc_nhac" ||
+    msg.kind === "phong_lop" ||
+    msg.kind === "chao_lop" ||
     msg.kind === "canvas_binh_luan" ||
     msg.kind === "cuoc_goi" ||
     msg.kind === "binh_chon"

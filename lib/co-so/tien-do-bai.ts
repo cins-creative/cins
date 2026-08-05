@@ -148,6 +148,17 @@ export async function listGiaoTrinhChoHocVien(
   const baiList = await loadBaiTrongBo(khoaId);
   const baiIds = baiList.map((b) => b.id);
 
+  type NopBaiRow = {
+    id: string;
+    id_bai_tap: string;
+    trang_thai: string;
+    diem: number | null;
+    ghi_chu: string | null;
+    luu_luc: string | null;
+    id_cot_moc: string | null;
+    tao_luc: string;
+  };
+
   const [{ data: moRows }, { data: nopRows }] = await Promise.all([
     admin
       .from("org_tien_do_bai_mo")
@@ -162,7 +173,7 @@ export async function listGiaoTrinhChoHocVien(
           .eq("id_hoc_vien_lop", hocVienLopId)
           .in("id_bai_tap", baiIds)
           .order("tao_luc", { ascending: false })
-      : Promise.resolve({ data: [] as unknown[] }),
+      : Promise.resolve({ data: [] as NopBaiRow[] }),
   ]);
 
   const moMap = new Map<string, string>(
@@ -185,17 +196,17 @@ export async function listGiaoTrinhChoHocVien(
       taoLuc: string;
     }
   >();
-  for (const n of nopRows ?? []) {
-    const bid = n.id_bai_tap as string;
+  for (const n of (nopRows ?? []) as NopBaiRow[]) {
+    const bid = n.id_bai_tap;
     if (nopMap.has(bid)) continue;
     nopMap.set(bid, {
-      id: n.id as string,
-      trangThai: n.trang_thai as string,
+      id: n.id,
+      trangThai: n.trang_thai,
       diem: n.diem != null ? Number(n.diem) : null,
-      ghiChu: (n.ghi_chu as string | null) ?? null,
-      luuLuc: (n.luu_luc as string | null) ?? null,
-      cotMocId: (n.id_cot_moc as string | null) ?? null,
-      taoLuc: n.tao_luc as string,
+      ghiChu: n.ghi_chu ?? null,
+      luuLuc: n.luu_luc ?? null,
+      cotMocId: n.id_cot_moc ?? null,
+      taoLuc: n.tao_luc,
     });
   }
 

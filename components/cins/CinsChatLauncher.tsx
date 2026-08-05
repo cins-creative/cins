@@ -1,11 +1,13 @@
 "use client";
 
 import { MessageCircle } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 import { useCinsChat } from "@/components/cins/CinsChatProvider";
 
 export function CinsChatLauncher() {
-  const { open, totalUnread, openChat } = useCinsChat();
+  const router = useRouter();
+  const { open, totalUnread, openChat, viewerProfileId } = useCinsChat();
 
   return (
     <button
@@ -20,7 +22,14 @@ export function CinsChatLauncher() {
       aria-label={totalUnread > 0 ? `${totalUnread} tin nhắn chưa đọc` : "Tin nhắn"}
       aria-expanded={open}
       aria-hidden={open}
-      onClick={() => void openChat()}
+      onClick={() => {
+        if (!viewerProfileId) {
+          router.push("/login?next=/chat");
+          return;
+        }
+        if (open) return;
+        void openChat();
+      }}
     >
       <span className="j-chat-fab-glow" aria-hidden />
       <span className="j-chat-fab-icon" aria-hidden>

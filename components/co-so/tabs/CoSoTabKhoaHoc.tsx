@@ -156,11 +156,9 @@ export function CoSoTabKhoaHoc({
         orgId={orgId}
         orgSlug={orgSlug}
         orgTen={orgTen}
-        orgDiaChi={orgDiaChi}
         khoa={selected ?? mockKhoa}
         useMockup={isMockupRoute}
         canManageKhoaHoc={canManageKhoaHoc}
-        onKhoaUpdated={handleUpdated}
       />
     );
   }

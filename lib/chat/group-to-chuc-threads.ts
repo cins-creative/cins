@@ -18,6 +18,15 @@ export type ToChucOrgInboxSummary = {
   count: number;
   unread: number;
   chuaTraLoi: number;
+  /**
+   * Tổng thực tế phía server (server chỉ trả tối đa 5 thread / org).
+   * Fallback về số đã tải khi thread cũ chưa có field.
+   */
+  tong: number;
+  tongUnread: number;
+  tongChuaTraLoi: number;
+  /** Còn hội thoại chưa tải — UI dẫn sang trang quản lý. */
+  daCat: boolean;
 };
 
 export type ToChucOrgNode = {
@@ -58,7 +67,15 @@ function compareLastAtDesc(a: string, b: string): number {
 }
 
 function emptyInbox(): ToChucOrgInboxSummary {
-  return { count: 0, unread: 0, chuaTraLoi: 0 };
+  return {
+    count: 0,
+    unread: 0,
+    chuaTraLoi: 0,
+    tong: 0,
+    tongUnread: 0,
+    tongChuaTraLoi: 0,
+    daCat: false,
+  };
 }
 
 /** Logo org cho node — ưu tiên hub / orgAvatarUrl, không lấy avatar HV staff inbox. */
@@ -136,6 +153,20 @@ function pushThreadIntoNode(node: ToChucOrgNode, thread: ChatThread): void {
     if (thread.orgInboxStatus === "open") {
       node.inbox.chuaTraLoi += 1;
     }
+    /* Tổng server lặp trên mọi thread cùng org — lấy giá trị lớn nhất gặp được. */
+    node.inbox.tong = Math.max(
+      node.inbox.tong,
+      thread.orgInboxTongHoiThoai ?? node.inbox.count,
+    );
+    node.inbox.tongUnread = Math.max(
+      node.inbox.tongUnread,
+      thread.orgInboxTongChuaDoc ?? node.inbox.unread,
+    );
+    node.inbox.tongChuaTraLoi = Math.max(
+      node.inbox.tongChuaTraLoi,
+      thread.orgInboxTongChuaTraLoi ?? node.inbox.chuaTraLoi,
+    );
+    if (thread.orgInboxDaCat) node.inbox.daCat = true;
     return;
   }
 

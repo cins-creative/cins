@@ -300,6 +300,9 @@ export async function countUnreadNotifications(viewerId: string): Promise<number
     { count: shopKhieuNaiMoi },
     { count: shopKhieuNaiPhanXu },
     { count: shopPhiDenHan },
+    { count: csdtPhiDenHan },
+    { count: csdtPhiQuaHan },
+    { count: csdtPhiDaTra },
   ] = await Promise.all([
     admin
       .from("user_ket_ban")
@@ -439,6 +442,24 @@ export async function countUnreadNotifications(viewerId: string): Promise<number
       .eq("nguoi_nhan", viewerId)
       .eq("loai_doi_tuong", "shop_phi_den_han")
       .eq("da_doc", false),
+    admin
+      .from("social_thong_bao")
+      .select("id", { count: "exact", head: true })
+      .eq("nguoi_nhan", viewerId)
+      .eq("loai_doi_tuong", "csdt_phi_den_han")
+      .eq("da_doc", false),
+    admin
+      .from("social_thong_bao")
+      .select("id", { count: "exact", head: true })
+      .eq("nguoi_nhan", viewerId)
+      .eq("loai_doi_tuong", "csdt_phi_qua_han")
+      .eq("da_doc", false),
+    admin
+      .from("social_thong_bao")
+      .select("id", { count: "exact", head: true })
+      .eq("nguoi_nhan", viewerId)
+      .eq("loai_doi_tuong", "csdt_phi_da_tra")
+      .eq("da_doc", false),
   ]);
 
   return (
@@ -463,7 +484,10 @@ export async function countUnreadNotifications(viewerId: string): Promise<number
     (dongGopPromoted ?? 0) +
     (shopKhieuNaiMoi ?? 0) +
     (shopKhieuNaiPhanXu ?? 0) +
-    (shopPhiDenHan ?? 0)
+    (shopPhiDenHan ?? 0) +
+    (csdtPhiDenHan ?? 0) +
+    (csdtPhiQuaHan ?? 0) +
+    (csdtPhiDaTra ?? 0)
   );
 }
 
@@ -623,6 +647,9 @@ export async function markAllInfoNotificationsRead(
       "shop_khieu_nai_moi",
       "shop_khieu_nai_phan_xu",
       "shop_phi_den_han",
+      "csdt_phi_den_han",
+      "csdt_phi_qua_han",
+      "csdt_phi_da_tra",
     ]);
   if (error) return { ok: false, error: error.message };
   return { ok: true };

@@ -390,8 +390,79 @@ export async function bumpDonHocPhiChatMessage(
     .eq("id", msg.id_phong);
 }
 
+/** Gửi CTA «Tham gia phòng học» vào phòng tư vấn org sau khi chốt đơn HP. */
+export async function sendPhongLopInviteAfterConfirm(input: {
+  donId: string;
+  actorId: string;
+  orgId: string;
+  studentUserId: string;
+  lopId: string;
+  lopRoomId: string;
+}): Promise<void> {
+  const admin = createServiceRoleClient();
+  const now = new Date().toISOString();
+
+  let orgStudentRoomId: string | null = null;
+  const { data: donRow } = await admin
+    .from("org_don_hoc_phi")
+    .select("id_tin_nhan")
+    .eq("id", input.donId)
+    .maybeSingle<{ id_tin_nhan: string | null }>();
+
+  if (donRow?.id_tin_nhan) {
+    const { data: msg } = await admin
+      .from("chat_tin_nhan")
+      .select("id_phong")
+      .eq("id", donRow.id_tin_nhan)
+      .maybeSingle<{ id_phong: string }>();
+    orgStudentRoomId = msg?.id_phong ?? null;
+  }
+
+  if (!orgStudentRoomId) {
+    orgStudentRoomId = await findOrCreateOrgStudentRoom(
+      input.orgId,
+      input.studentUserId,
+    );
+  }
+
+  const { data: dup } = await admin
+    .from("chat_tin_nhan")
+    .select("id")
+    .eq("id_phong", orgStudentRoomId)
+    .filter("ngu_canh->>loai", "eq", "phong_lop")
+    .filter("ngu_canh->>roomId", "eq", input.lopRoomId)
+    .limit(1);
+  if (dup?.length) return;
+
+  const { data: room } = await admin
+    .from("chat_phong")
+    .select("ten_phong")
+    .eq("id", input.lopRoomId)
+    .maybeSingle<{ ten_phong: string | null }>();
+  const tenPhong = room?.ten_phong?.trim() || null;
+
+  await admin.from("chat_tin_nhan").insert({
+    id_phong: orgStudentRoomId,
+    id_nguoi_gui: input.actorId,
+    loai_tin: "system",
+    noi_dung: "Tham gia phòng học",
+    ngu_canh: {
+      loai: "phong_lop",
+      roomId: input.lopRoomId,
+      orgId: input.orgId,
+      lopId: input.lopId,
+      tenPhong,
+    },
+  });
+
+  await admin
+    .from("chat_phong")
+    .update({ cap_nhat_luc: now })
+    .eq("id", orgStudentRoomId);
+}
+
 /**
- * HV tự tạo đơn gia hạn VietQR từ phòng lớp (freeze CTA).
+ * HV tự tạo đơn gia hạn VietQR từ phòng lớp (CTA hết kỳ học).
  * Gửi card vào `1_org`; staff đối soát bằng ma_don + xác nhận.
  */
 export async function createGiaHanVietQrForStudent(input: {
@@ -528,6 +599,8 @@ export async function listDonChoThanhToan(orgId: string): Promise<
     taoLuc: string;
     tenHienThi: string;
     tenKhoa: string;
+    maKhoaHoc: string | null;
+    maLop: string | null;
   }>
 > {
   const admin = createServiceRoleClient();
@@ -545,16 +618,29 @@ export async function listDonChoThanhToan(orgId: string): Promise<
   const hvlIds = dons.map((d) => d.id_hoc_vien_lop as string);
   const { data: hvls } = await admin
     .from("user_hoc_vien_lop")
-    .select("id, id_nguoi_dung, id_khoa_hoc")
+    .select("id, id_nguoi_dung, id_khoa_hoc, id_lop_hoc")
     .in("id", hvlIds);
   const userIds = [...new Set((hvls ?? []).map((h) => h.id_nguoi_dung as string))];
   const khoaIds = [...new Set((hvls ?? []).map((h) => h.id_khoa_hoc as string))];
-  const [{ data: users }, { data: khoas }] = await Promise.all([
+  const lopIds = [
+    ...new Set(
+      (hvls ?? [])
+        .map((h) => h.id_lop_hoc as string | null)
+        .filter(Boolean),
+    ),
+  ];
+  const [{ data: users }, { data: khoas }, { data: lops }] = await Promise.all([
     admin
       .from("user_nguoi_dung")
       .select("id, ten_hien_thi")
       .in("id", userIds),
-    admin.from("org_khoa_hoc").select("id, ten_khoa_hoc").in("id", khoaIds),
+    admin
+      .from("org_khoa_hoc")
+      .select("id, ten_khoa_hoc, ma_khoa_hoc")
+      .in("id", khoaIds),
+    lopIds.length > 0
+      ? admin.from("org_lop_hoc").select("id, ma_lop").in("id", lopIds)
+      : Promise.resolve({ data: [] as Array<{ id: string; ma_lop: string | null }> }),
   ]);
   const nameByUser = new Map(
     (users ?? []).map((u) => [u.id as string, u.ten_hien_thi as string]),
@@ -562,10 +648,23 @@ export async function listDonChoThanhToan(orgId: string): Promise<
   const tenKhoaById = new Map(
     (khoas ?? []).map((k) => [k.id as string, k.ten_khoa_hoc as string]),
   );
+  const maKhoaById = new Map(
+    (khoas ?? []).map((k) => [
+      k.id as string,
+      (k.ma_khoa_hoc as string | null)?.trim() || null,
+    ]),
+  );
+  const maLopById = new Map(
+    (lops ?? []).map((l) => [
+      l.id as string,
+      (l.ma_lop as string | null)?.trim() || null,
+    ]),
+  );
   const hvlById = new Map((hvls ?? []).map((h) => [h.id as string, h]));
 
   return dons.map((d) => {
     const hvl = hvlById.get(d.id_hoc_vien_lop as string);
+    const lopId = (hvl?.id_lop_hoc as string | null) ?? null;
     return {
       id: d.id as string,
       maDon: (d.ma_don as string | null) ?? null,
@@ -579,6 +678,121 @@ export async function listDonChoThanhToan(orgId: string): Promise<
       tenKhoa: hvl
         ? tenKhoaById.get(hvl.id_khoa_hoc as string) ?? "Khóa"
         : "Khóa",
+      maKhoaHoc: hvl
+        ? maKhoaById.get(hvl.id_khoa_hoc as string) ?? null
+        : null,
+      maLop: lopId ? maLopById.get(lopId) ?? null : null,
+    };
+  });
+}
+
+/** Đơn đã đối soát — kèm nhân sự xác nhận (`id_nguoi_thu`). */
+export async function listDonDaDoiSoat(orgId: string): Promise<
+  Array<{
+    id: string;
+    maDon: string | null;
+    soTienVnd: number;
+    soNgayCong: number;
+    kenh: string;
+    xacNhanLuc: string | null;
+    tenHienThi: string;
+    maKhoaHoc: string | null;
+    maLop: string | null;
+    tenNguoiXacNhan: string | null;
+  }>
+> {
+  const admin = createServiceRoleClient();
+  const { data: dons } = await admin
+    .from("org_don_hoc_phi")
+    .select(
+      "id, ma_don, so_tien_vnd, so_ngay_cong, kenh, xac_nhan_luc, id_nguoi_thu, id_hoc_vien_lop",
+    )
+    .eq("id_to_chuc", orgId)
+    .eq("trang_thai", "da_nhan_tien")
+    .order("xac_nhan_luc", { ascending: false, nullsFirst: false })
+    .limit(50);
+  if (!dons?.length) return [];
+
+  const hvlIds = dons.map((d) => d.id_hoc_vien_lop as string);
+  const thuIds = [
+    ...new Set(
+      (dons ?? [])
+        .map((d) => d.id_nguoi_thu as string | null)
+        .filter(Boolean),
+    ),
+  ];
+  const { data: hvls } = await admin
+    .from("user_hoc_vien_lop")
+    .select("id, id_nguoi_dung, id_khoa_hoc, id_lop_hoc")
+    .in("id", hvlIds);
+  const userIds = [...new Set((hvls ?? []).map((h) => h.id_nguoi_dung as string))];
+  const khoaIds = [...new Set((hvls ?? []).map((h) => h.id_khoa_hoc as string))];
+  const lopIds = [
+    ...new Set(
+      (hvls ?? [])
+        .map((h) => h.id_lop_hoc as string | null)
+        .filter(Boolean),
+    ),
+  ];
+  const [{ data: hvUsers }, { data: thuUsers }, { data: khoas }, { data: lops }] =
+    await Promise.all([
+      admin
+        .from("user_nguoi_dung")
+        .select("id, ten_hien_thi")
+        .in("id", userIds),
+      thuIds.length > 0
+        ? admin
+            .from("user_nguoi_dung")
+            .select("id, ten_hien_thi")
+            .in("id", thuIds)
+        : Promise.resolve({ data: [] as Array<{ id: string; ten_hien_thi: string | null }> }),
+      admin.from("org_khoa_hoc").select("id, ma_khoa_hoc").in("id", khoaIds),
+      lopIds.length > 0
+        ? admin.from("org_lop_hoc").select("id, ma_lop").in("id", lopIds)
+        : Promise.resolve({ data: [] as Array<{ id: string; ma_lop: string | null }> }),
+    ]);
+  const nameByUser = new Map(
+    (hvUsers ?? []).map((u) => [u.id as string, u.ten_hien_thi as string]),
+  );
+  const thuNameById = new Map(
+    (thuUsers ?? []).map((u) => [
+      u.id as string,
+      (u.ten_hien_thi as string | null)?.trim() || null,
+    ]),
+  );
+  const maKhoaById = new Map(
+    (khoas ?? []).map((k) => [
+      k.id as string,
+      (k.ma_khoa_hoc as string | null)?.trim() || null,
+    ]),
+  );
+  const maLopById = new Map(
+    (lops ?? []).map((l) => [
+      l.id as string,
+      (l.ma_lop as string | null)?.trim() || null,
+    ]),
+  );
+  const hvlById = new Map((hvls ?? []).map((h) => [h.id as string, h]));
+
+  return dons.map((d) => {
+    const hvl = hvlById.get(d.id_hoc_vien_lop as string);
+    const lopId = (hvl?.id_lop_hoc as string | null) ?? null;
+    const thuId = (d.id_nguoi_thu as string | null) ?? null;
+    return {
+      id: d.id as string,
+      maDon: (d.ma_don as string | null) ?? null,
+      soTienVnd: Number(d.so_tien_vnd) || 0,
+      soNgayCong: d.so_ngay_cong as number,
+      kenh: d.kenh as string,
+      xacNhanLuc: (d.xac_nhan_luc as string | null) ?? null,
+      tenHienThi: hvl
+        ? nameByUser.get(hvl.id_nguoi_dung as string) ?? "HV"
+        : "HV",
+      maKhoaHoc: hvl
+        ? maKhoaById.get(hvl.id_khoa_hoc as string) ?? null
+        : null,
+      maLop: lopId ? maLopById.get(lopId) ?? null : null,
+      tenNguoiXacNhan: thuId ? thuNameById.get(thuId) ?? null : null,
     };
   });
 }

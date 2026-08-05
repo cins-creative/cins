@@ -72,13 +72,13 @@ import {
   loadBaiTapSectionDisplay,
   saveBaiTapSectionDisplay,
 } from "@/lib/to-chuc/bai-tap-section-display-storage";
-import { notifyCoSoKhoaListChanged } from "@/lib/to-chuc/co-so-khoa-events";
 import { resolveGoiHocPhiForDisplay } from "@/lib/to-chuc/khoa-hoc-goi-phi";
 import {
   CO_SO_DEFAULT_TAB,
   coSoKhoaHocDetailPath,
   coSoTabPath,
 } from "@/lib/to-chuc/co-so-routes";
+import { orgQuanLyPath } from "@/lib/to-chuc/org-quan-ly-routes";
 import {
   formatKhaiGiangCard,
   isScaffoldLopHoc,
@@ -91,7 +91,6 @@ import {
 } from "@/lib/to-chuc/khoa-hoc-labels";
 
 import { GiaoTrinhBaiTapPanel } from "./GiaoTrinhBaiTapPanel";
-import { KhoaHocCreateModal } from "./KhoaHocCreateModal";
 import { LopHocEditModal } from "./LopHocEditModal";
 import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
 
@@ -99,12 +98,10 @@ type Props = {
   orgId: string;
   orgSlug: string;
   orgTen: string;
-  orgDiaChi?: string | null;
   khoa: KhoaHocCardData;
   /** Bỏ qua API, render mockup demo đầy đủ. */
   useMockup?: boolean;
   canManageKhoaHoc?: boolean;
-  onKhoaUpdated?: (khoa: KhoaHocCardData) => void;
 };
 
 const BAI_TAP_DISPLAY_OPTIONS: BaiTapSectionDisplayMode[] = [
@@ -590,7 +587,6 @@ function DetailContent({
   isMockup = false,
   isManagingBaiTap = false,
   canEditKhoaDetail = false,
-  onOpenKhoaEdit,
   baiTapDisplayMode,
   onBaiTapDisplayModeChange,
   baiTapList,
@@ -614,7 +610,6 @@ function DetailContent({
   /** Quản trị bài tập — chỉ khi có quyền và đang bật chế độ quản trị. */
   isManagingBaiTap?: boolean;
   canEditKhoaDetail?: boolean;
-  onOpenKhoaEdit?: () => void;
   baiTapDisplayMode: BaiTapSectionDisplayMode;
   onBaiTapDisplayModeChange: (mode: BaiTapSectionDisplayMode) => void;
   baiTapList: BaiTapKhoaData[];
@@ -708,14 +703,13 @@ function DetailContent({
       >
         {canEditKhoaDetail ? (
           <div className="cso-khd-sheet-toolbar">
-            <button
-              type="button"
+            <Link
+              href={orgQuanLyPath("co_so_dao_tao", orgSlug, "lop-hoc")}
               className="cso-khd-sheet-edit-bt"
-              onClick={onOpenKhoaEdit}
             >
               <Pencil size={14} aria-hidden />
-              Sửa khóa học
-            </button>
+              Quản lý khóa học
+            </Link>
           </div>
         ) : null}
         <nav className="cso-khd-crumb" aria-label="Breadcrumb">
@@ -1054,11 +1048,9 @@ export function KhoaHocDetailView({
   orgId,
   orgSlug,
   orgTen,
-  orgDiaChi = null,
   khoa,
   useMockup = false,
   canManageKhoaHoc = false,
-  onKhoaUpdated,
 }: Props) {
   const chat = useCinsChatContext();
   const ctx = useTruongInlineEdit();
@@ -1086,7 +1078,6 @@ export function KhoaHocDetailView({
   const [baiTapDisplayMode, setBaiTapDisplayMode] =
     useState<BaiTapSectionDisplayMode>(BAI_TAP_SECTION_DISPLAY_DEFAULT);
   const baiTapMigratedRef = useRef(false);
-  const [khoaEditOpen, setKhoaEditOpen] = useState(false);
   const [lopOpen, setLopOpen] = useState(false);
   const [editingLop, setEditingLop] = useState<LopHocDetailData | null>(null);
 
@@ -1376,13 +1367,6 @@ export function KhoaHocDetailView({
       });
   }
 
-  function handleKhoaUpdated(updated: KhoaHocCardData) {
-    setDetail((prev) => (prev ? { ...prev, khoa: updated } : prev));
-    onKhoaUpdated?.(updated);
-    notifyCoSoKhoaListChanged(orgId);
-    setKhoaEditOpen(false);
-  }
-
   useEffect(() => {
     if (isMockup) {
       setDetail(buildKhoaHocDetailMock(orgTen));
@@ -1454,7 +1438,6 @@ export function KhoaHocDetailView({
         isMockup={isMockup}
         isManagingBaiTap={isManagingBaiTap}
         canEditKhoaDetail={isManagingKhoa}
-        onOpenKhoaEdit={() => setKhoaEditOpen(true)}
         baiTapDisplayMode={baiTapDisplayMode}
         onBaiTapDisplayModeChange={handleBaiTapDisplayModeChange}
         baiTapList={baiTapList}
@@ -1483,17 +1466,6 @@ export function KhoaHocDetailView({
           editing={editingLop}
           isMockup={isMockup}
           onSaved={handleLopSaved}
-        />
-      ) : null}
-      {isManagingKhoa ? (
-        <KhoaHocCreateModal
-          open={khoaEditOpen}
-          orgId={orgId}
-          orgSlug={orgSlug}
-          orgDiaChi={orgDiaChi}
-          editing={detail.khoa}
-          onClose={() => setKhoaEditOpen(false)}
-          onUpdated={handleKhoaUpdated}
         />
       ) : null}
     </>

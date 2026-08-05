@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
-import { listDonChoThanhToan } from "@/lib/co-so/don-hoc-phi-chat";
+import { listDonChoThanhToan, listDonDaDoiSoat } from "@/lib/co-so/don-hoc-phi-chat";
 import { getDoanhThuSummary } from "@/lib/co-so/ops-dashboard";
 import { getViewerCoSoVaiTro } from "@/lib/to-chuc/co-so-membership";
 import { getCoSoModuleQuyen } from "@/lib/to-chuc/co-so-quan-ly-access";
@@ -25,16 +25,17 @@ export async function GET(_req: Request, ctx: Ctx) {
   if (quyen === "an") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
-  const canThu = quyen === "sua";
+  const canView = quyen !== "an";
 
-  const [summary, cho] = await Promise.all([
+  const [summary, cho, daDoiSoat] = await Promise.all([
     getDoanhThuSummary(orgId),
-    canThu ? listDonChoThanhToan(orgId) : Promise.resolve([]),
+    canView ? listDonChoThanhToan(orgId) : Promise.resolve([]),
+    canView ? listDonDaDoiSoat(orgId) : Promise.resolve([]),
   ]);
 
   return NextResponse.json({
     summary,
     choThanhToan: cho,
-    canThu,
+    daDoiSoat,
   });
 }

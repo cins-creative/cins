@@ -13,6 +13,7 @@ import {
   loadReactionsForMessages,
   SOCIAL_LOAI_CHAT_TIN_NHAN,
 } from "@/lib/chat/message-enrich";
+import { purgeRecalledMessageMedia } from "@/lib/chat/purge-recalled-message-media";
 import type { ChatReactionSummary } from "@/lib/chat/types";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
@@ -60,6 +61,16 @@ export async function recallRoomMessage(
 
   if (error || !updated) {
     return { ok: false, error: "Không thu hồi được tin nhắn." };
+  }
+
+  /* Soft-delete DB trước → hard-delete asset gốc (best-effort, không đảo recall). */
+  try {
+    await purgeRecalledMessageMedia({
+      mediaId: row.id_dinh_kem,
+      loaiTin: row.loai_tin,
+    });
+  } catch {
+    /* ignore — asset có thể dọn lại sau; tin đã thu hồi */
   }
 
   const reactions = await loadReactionsForMessages([messageId], viewerId);

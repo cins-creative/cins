@@ -41,6 +41,14 @@
 
 ## LOG — quyết định đã chốt
 
+### Chat — hộp thư người lạ gom theo org, 5 hội thoại / org (2026-08-05)
+
+- Sidebar «Tổ chức của tôi» chỉ còn **một** entry «Hộp thư người lạ» gom mọi org viewer quản trị (thay vì một entry / org).
+- Pane convo thành **2 lớp**: lớp 1 = card từng org (số người lạ nhắn · chưa trả lời · chưa đọc), lớp 2 = danh sách hội thoại của org đó.
+- Nút **«Mở trang quản lý»** chuyển từ header dùng chung xuống **từng card org**; lớp 2 có dòng «Xem tất cả N hội thoại» khi bị cắt.
+- `listOrgStaffInboxThreadsForViewer` chỉ hydrate **`ORG_INBOX_MAX_THREADS_PER_ORG = 5`** thread / org (ưu tiên chưa trả lời → mới nhất). Query tách 2 pass: pass 1 nhẹ (`id_phong, id_nguoi_gui, tao_luc`) cho toàn bộ phòng để đếm tổng chính xác; pass 2 `MESSAGE_SELECT` chỉ cho phòng hiển thị.
+- Tổng thật đi kèm thread qua `orgInboxTongHoiThoai` / `orgInboxTongChuaTraLoi` / `orgInboxTongChuaDoc` / `orgInboxDaCat` → gom vào `ToChucOrgNode.inbox.tong*` (không thêm round-trip API).
+
 ### CSĐT — Giáo trình trong chat lớp + đồng bộ tiến độ (2026-08-04)
 
 - **Plan:** `docs/PLAN_giao_trinh_modules.md` §11 (Phase 6). Migration: `npm run migrate:tien-do-giao-trinh-chat`.
@@ -87,6 +95,21 @@
 - **Chốt:** thêm **Gỡ ghi danh** (`DELETE /api/co-so/[id]/hoc-vien/[hvlId]`, quyền module `hoc-vien = sua`). Blocker duy nhất: còn đơn `da_nhan_tien`. Cảnh báo (vẫn cho gỡ): đơn `cho_thanh_toan`, kỳ học, bài nộp, tiến độ.
 - **Hệ quả:** khóa đã thu tiền dù một học viên vẫn không xóa được — chỉ Tạm dừng. Đúng chủ trương doanh thu bất khả xâm phạm.
 - Lib: `lib/co-so/ghi-danh-xoa.ts`.
+
+### CSĐT — Phí nền tảng (Sepay) · A-1 schema (2026-08-05)
+
+- **Chốt:** free tier đầy đủ chức năng; phí = % doanh thu HP ghi nhận; kích hoạt khi phí lũy kế ≥ ngưỡng; sau đó chốt cuối tháng; quá hạn chỉ khóa thêm ghi danh. Plan: `docs/PLAN_csdt_phi_nen_tang_va_lead.md`.
+- **A-1 (đã chạy):** 5 bảng mới, **không ALTER** bảng live — `cins_cau_hinh_tai_chinh` (admin tài chính: %/ngưỡng/STK/DN) · `org_phi_ky` (`dieu_chinh_vnd`, chỗ HĐĐT) · `org_phi_dong` (SET NULL khi gỡ đơn — giữ snapshot phí) · `org_phi_thanh_toan` · `org_phi_khieu_nai`.
+- **RLS:** member SELECT kỳ/dòng/khiếu nại; `cins_cau_hinh_tai_chinh` + `org_phi_thanh_toan` = service-role only.
+- **Seed:** 10% · 2.000.000₫ · 7 ngày · STK/DN trống · `xuat_hoa_don_bat=false`.
+- File: `supabase/sql/migration_csdt_phi_nen_tang.sql` · `npm run migrate:csdt-phi`.
+- **A-2:** `lib/co-so/phi.ts` · `phi-config.ts` — `ghiPhiDongKhiXacNhanDon` hook trong `xacNhanDonHocPhi` (sau flip `cho_thanh_toan→da_nhan_tien`). `loaiTruPhiDong` / `tinhPhiLuyKeChuaVaoKy` / `recalcKy` sẵn cho A-3.
+- **A-3:** `lib/co-so/phi-ky.ts` · `phi-gate.ts` — lazy kích hoạt (≥ ngưỡng) + chốt tháng (mốc tháng kích hoạt + 1) + `getCsdtPhiGate` / `assertCoTheThemGhiDanh`.
+- **A-4:** `GET /api/co-so/[id]/phi` · `/co-so/[slug]/quan-ly/phi` · nav «Phí CINs» (nhóm Tiền).
+- **A-5:** Gate `createGhiDanh` → 402 · banner quan-ly · disable «Thêm ghi danh». `GET …/phi/gate` cho mọi staff quan-ly.
+- **A-6:** `lib/co-so/phi-sepay.ts` · `POST /api/webhook/sepay` — auth `Authorization: Apikey|Bearer` vs env `SEPAY_WEBHOOK_SECRET`; UNIQUE `sepay_id`; parse mã CK → cộng `da_tra_vnd` / `da_tra`; unmatched giữ `id_ky=null` cho A-7.
+- **A-7:** `lib/co-so/phi-khieu-nai.ts` · `phi-admin.ts` · founder `…/phi/khieu-nai` · `/admin/csdt-phi` (kỳ / GD gán tay / khiếu nại + `so_hoa_don`). `apDungSoTienVaoKy` dùng chung webhook + gán tay.
+- **A-8:** `lib/co-so/phi-cron.ts` · `POST /api/noi-bo/csdt-phi/chot-ky` (Bearer `CSDT_PHI_CRON_SECRET`). Noti `csdt_phi_den_han` / `csdt_phi_qua_han`. Logic phí vẫn đúng khi lazy; cron đẩy thông báo. Workers cron **chưa** gắn (O21 còn mở).
 
 ### CSĐT — Hình thức học & địa điểm thuộc Lớp (2026-08-03)
 

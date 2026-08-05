@@ -26,6 +26,7 @@
     "migrate:feed-score-phien-ban": "node scripts/run-content-feed-score-phien-ban-migration.mjs",
     "migrate:diem-uu-tien": "node scripts/run-content-diem-feed-uu-tien-migration.mjs",
     "migrate:csdt": "node scripts/run-csdt-van-hanh-hoc-migration.mjs",
+    "migrate:csdt-phi": "node scripts/run-csdt-phi-nen-tang-migration.mjs",
     "migrate:lop-chi-nhanh": "node scripts/run-lop-hoc-chi-nhanh-migration.mjs",
     "migrate:bo-giao-trinh": "node scripts/run-bo-giao-trinh-migration.mjs",
     "migrate:tien-do-giao-trinh-chat": "node scripts/run-tien-do-giao-trinh-chat-migration.mjs",

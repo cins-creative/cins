@@ -7,6 +7,7 @@ import {
   type KyHocInterval,
   todayYmdVn,
 } from "@/lib/co-so/ky-hoc";
+import { isTrangThaiNghiDb } from "@/lib/co-so/hoc-vien-trang-thai";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { getCoSoModuleQuyen } from "@/lib/to-chuc/co-so-quan-ly-access";
 import {
@@ -25,7 +26,7 @@ export type LopRoomAccess = {
   frozen: boolean;
   soNgayConLai: number;
   ngayCuoiKy: string | null;
-  /** Staff org / admin phòng → thấy full, gửi được khi freeze. */
+  /** Staff org / admin phòng → thấy full, gửi được khi hết kỳ học. */
   isStaff: boolean;
   canSend: boolean;
   canReadGap: boolean;
@@ -33,6 +34,8 @@ export type LopRoomAccess = {
   hocVienLopId: string | null;
   /** Nhãn vai trò của viewer trong phòng lớp (VD: "Học viên", "Giáo viên phụ trách"). */
   vaiTroLabel: string | null;
+  /** Tên GV công khai của lớp (`ten_hien_thi` hoặc `giao_vien_text`). */
+  giaoVienTenCongKhai: string | null;
   isGiaoVienPhuTrach: boolean;
   /** Thấy panel Quản lý học viên (kể cả read-only TVV). */
   canQuanLyHocVien: boolean;
@@ -56,6 +59,7 @@ const EMPTY: LopRoomAccess = {
   canReadGap: true,
   hocVienLopId: null,
   vaiTroLabel: null,
+  giaoVienTenCongKhai: null,
   isGiaoVienPhuTrach: false,
   canQuanLyHocVien: false,
   canGanTienDo: false,
@@ -113,7 +117,7 @@ export async function getLopRoomAccess(
         .maybeSingle(),
       admin
         .from("org_lop_hoc")
-        .select("id, id_khoa_hoc, giao_vien_phu_trach")
+        .select("id, id_khoa_hoc, giao_vien_phu_trach, giao_vien_text")
         .eq("id", lopId)
         .maybeSingle(),
     ]);
@@ -129,6 +133,19 @@ export async function getLopRoomAccess(
   const isGiaoVienPhuTrach =
     Boolean(lop?.giao_vien_phu_trach) &&
     lop?.giao_vien_phu_trach === viewerId;
+
+  let giaoVienTenCongKhai: string | null =
+    (lop?.giao_vien_text as string | null)?.trim() || null;
+  const giaoVienUserId = (lop?.giao_vien_phu_trach as string | null) ?? null;
+  if (giaoVienUserId) {
+    const { data: gvUser } = await admin
+      .from("user_nguoi_dung")
+      .select("ten_hien_thi")
+      .eq("id", giaoVienUserId)
+      .maybeSingle<{ ten_hien_thi: string | null }>();
+    const ten = gvUser?.ten_hien_thi?.trim();
+    if (ten) giaoVienTenCongKhai = ten;
+  }
 
   let quyenHocVien: "an" | "xem" | "sua" = "an";
   if (isStaff && staffVaiTro) {
@@ -176,6 +193,7 @@ export async function getLopRoomAccess(
     orgTen: (org?.ten as string | null) ?? null,
     khoaId,
     dongBoTienDo,
+    giaoVienTenCongKhai,
     isGiaoVienPhuTrach,
     canQuanLyHocVien,
     canGanTienDo,
@@ -197,7 +215,7 @@ export async function getLopRoomAccess(
 
   const { data: hvl } = await admin
     .from("user_hoc_vien_lop")
-    .select("id")
+    .select("id, trang_thai")
     .eq("id_nguoi_dung", viewerId)
     .eq("id_lop_hoc", lopId)
     .maybeSingle();
@@ -230,7 +248,9 @@ export async function getLopRoomAccess(
   }));
 
   const today = todayYmdVn();
-  const frozen = !isEnrollmentNotFrozen(intervals, today);
+  const nghi = isTrangThaiNghiDb((hvl.trang_thai as string) ?? "");
+  const hetKy = !isEnrollmentNotFrozen(intervals, today);
+  const frozen = nghi || hetKy;
   let ngayCuoiKy: string | null = null;
   for (const k of intervals) {
     if (!ngayCuoiKy || k.ngayCuoi > ngayCuoiKy) ngayCuoiKy = k.ngayCuoi;

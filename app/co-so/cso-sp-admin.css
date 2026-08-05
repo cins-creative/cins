@@ -210,11 +210,16 @@
   border: none;
   background: transparent;
   text-align: left;
+  text-decoration: none;
   font: inherit;
   color: inherit;
   cursor: pointer;
   border-radius: 8px;
   transition: background 0.12s ease;
+}
+
+.cso-sp-admin--embedded .cso-sp-admin-work-hit.is-static {
+  cursor: default;
 }
 
 .cso-sp-admin--embedded .cso-sp-admin-work-hit:hover {

@@ -465,31 +465,30 @@ function StaffActionModal({
         </p>
         <div className="cso-ql-modal-body">
           {!isFirstEnroll ? (
-            <fieldset className="cso-ql-fieldset">
-              <legend className="cso-ql-fieldset-legend">Áp dụng cho</legend>
-              <label className="cso-ql-field">
-                <span className="cso-ql-label">
-                  <input
-                    type="radio"
-                    name="hvl-mode"
-                    checked={useExisting}
-                    onChange={() => setUseExisting(true)}
-                  />{" "}
-                  Ghi danh hiện có (gia hạn)
-                </span>
-              </label>
-              <label className="cso-ql-field">
-                <span className="cso-ql-label">
-                  <input
-                    type="radio"
-                    name="hvl-mode"
-                    checked={!useExisting}
-                    onChange={() => setUseExisting(false)}
-                  />{" "}
-                  Lớp mới (+ VietQR)
-                </span>
-              </label>
-            </fieldset>
+            <div
+              className="cso-tin-action-switch"
+              role="tablist"
+              aria-label="Áp dụng cho"
+            >
+              <button
+                type="button"
+                role="tab"
+                aria-selected={useExisting}
+                className={`cso-tin-action-switch-btn${useExisting ? " on" : ""}`}
+                onClick={() => setUseExisting(true)}
+              >
+                Gia hạn ghi danh
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={!useExisting}
+                className={`cso-tin-action-switch-btn${!useExisting ? " on" : ""}`}
+                onClick={() => setUseExisting(false)}
+              >
+                Lớp mới (+ VietQR)
+              </button>
+            </div>
           ) : null}
 
           {useExisting && !isFirstEnroll ? (

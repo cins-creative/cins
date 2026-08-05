@@ -15,6 +15,11 @@ import {
   noiDungLopBaiChoHocVien,
   parseLopBaiNguCanh,
 } from "@/lib/chat/lop-bai-notice";
+import {
+  noiDungChaoLopChoHocVien,
+  parseChatChaoLop,
+} from "@/lib/chat/chao-lop-notice";
+import { parseChatPhongLopInvite } from "@/lib/chat/phong-lop-invite";
 import { mentionsIncludeUser } from "@/lib/chat/mentions";
 import { isOptimisticAlbumMessage, isOptimisticMessageId } from "@/lib/chat/optimistic-message";
 
@@ -47,16 +52,24 @@ export function mapRealtimeRow(row: ChatRealtimeRow, viewerId: string): ChatMess
   const cuocGoi = canvasBinhLuan ? null : parseChatCuocGoi(row.ngu_canh);
   const mocNhac =
     canvasBinhLuan || cuocGoi ? null : parseChatMocNhac(row.ngu_canh);
-  const lopBai =
+  const phongLop =
     canvasBinhLuan || cuocGoi || mocNhac
+      ? null
+      : parseChatPhongLopInvite(row.ngu_canh);
+  const chaoLop =
+    canvasBinhLuan || cuocGoi || mocNhac || phongLop
+      ? null
+      : parseChatChaoLop(row.ngu_canh);
+  const lopBai =
+    canvasBinhLuan || cuocGoi || mocNhac || phongLop || chaoLop
       ? null
       : parseLopBaiNguCanh(row.ngu_canh);
   const nguCanh =
-    canvasBinhLuan || cuocGoi || mocNhac || lopBai
+    canvasBinhLuan || cuocGoi || mocNhac || phongLop || chaoLop || lopBai
       ? null
       : parseChatNguCanh(row.ngu_canh);
   const mentions =
-    canvasBinhLuan || cuocGoi || mocNhac || lopBai
+    canvasBinhLuan || cuocGoi || mocNhac || phongLop || chaoLop || lopBai
       ? []
       : parseChatMessageMentions(row.ngu_canh);
   const forwarded = parseChatForwarded(row.ngu_canh);
@@ -66,19 +79,23 @@ export function mapRealtimeRow(row: ChatRealtimeRow, viewerId: string): ChatMess
       ? "cuoc_goi"
       : mocNhac
         ? "moc_nhac"
-        : lopBai
-          ? "lop_bai"
-          : nguCanh
-            ? "context"
-            : row.loai_tin === "sticker"
-              ? "sticker"
-              : row.loai_tin === "media"
-                ? "media"
-                : row.loai_tin === "binh_chon"
-                  ? "binh_chon"
-                  : row.loai_tin === "system"
-                    ? "moc_nhac"
-                    : "text";
+        : phongLop
+          ? "phong_lop"
+          : chaoLop
+            ? "chao_lop"
+            : lopBai
+              ? "lop_bai"
+              : nguCanh
+                ? "context"
+                : row.loai_tin === "sticker"
+                  ? "sticker"
+                  : row.loai_tin === "media"
+                    ? "media"
+                    : row.loai_tin === "binh_chon"
+                      ? "binh_chon"
+                      : row.loai_tin === "system"
+                        ? "moc_nhac"
+                        : "text";
   const rawBody = row.noi_dung?.trim() || "";
   let imageId: string | null = null;
   let body = rawBody;
@@ -94,14 +111,18 @@ export function mapRealtimeRow(row: ChatRealtimeRow, viewerId: string): ChatMess
     kind === "context" ||
     kind === "binh_chon" ||
     kind === "moc_nhac" ||
+    kind === "phong_lop" ||
+    kind === "chao_lop" ||
     kind === "lop_bai" ||
     kind === "canvas_binh_luan" ||
     kind === "cuoc_goi"
   ) {
     body =
-      lopBai && lopBai.idNguoiDung === viewerId
-        ? noiDungLopBaiChoHocVien(lopBai.loai, lopBai.tenBai || "bài tập")
-        : rawBody;
+      chaoLop && row.id_nguoi_gui === viewerId
+        ? noiDungChaoLopChoHocVien()
+        : lopBai && lopBai.idNguoiDung === viewerId
+          ? noiDungLopBaiChoHocVien(lopBai.loai, lopBai.tenBai || "bài tập")
+          : rawBody;
   }
 
   return {
@@ -120,6 +141,8 @@ export function mapRealtimeRow(row: ChatRealtimeRow, viewerId: string): ChatMess
     mentions: mentions.length > 0 ? mentions : undefined,
     poll: null,
     mocNhac,
+    phongLop,
+    chaoLop,
     lopBai,
     canvasBinhLuan,
     cuocGoi,
@@ -149,6 +172,8 @@ function realtimePreview(row: ChatRealtimeRow): string {
   if (cuocGoi) return row.noi_dung?.trim() || "Cuộc gọi";
   const mocNhac = parseChatMocNhac(row.ngu_canh);
   if (mocNhac) return row.noi_dung?.trim() || `Nhắc mốc: ${mocNhac.ten}`;
+  const chaoLop = parseChatChaoLop(row.ngu_canh);
+  if (chaoLop) return row.noi_dung?.trim() || noiDungChaoLopChoHocVien();
   const nguCanh = parseChatNguCanh(row.ngu_canh);
   if (nguCanh) return `Trao đổi về: ${nguCanh.tieuDe}`;
   if (row.loai_tin === "sticker") return "Meme";

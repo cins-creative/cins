@@ -7,7 +7,12 @@ import {
   listGoiHocPhiOrg,
   listHocVienCuaOrg,
   listLopCuaOrg,
+  type HocVienRosterTab,
 } from "@/lib/co-so/hoc-vien-list";
+import {
+  CSDT_PHI_QUA_HAN,
+  getCsdtPhiGate,
+} from "@/lib/co-so/phi-gate";
 import { getViewerCoSoVaiTro } from "@/lib/to-chuc/co-so-membership";
 import { getCoSoModuleQuyen } from "@/lib/to-chuc/co-so-quan-ly-access";
 
@@ -43,6 +48,8 @@ export async function GET(req: Request, ctx: Ctx) {
   const trangThai = url.searchParams.get("trangThai") ?? undefined;
   const page = Number(url.searchParams.get("page") || "1");
   const withMeta = url.searchParams.get("meta") === "1";
+  const roster: HocVienRosterTab =
+    url.searchParams.get("roster") === "cho_xu_ly" ? "cho_xu_ly" : "hoc_vien";
 
   try {
     const list = await listHocVienCuaOrg(orgId, {
@@ -51,6 +58,7 @@ export async function GET(req: Request, ctx: Ctx) {
       khoaId,
       lopId,
       trangThai,
+      roster,
     });
     if (!withMeta) {
       return NextResponse.json({
@@ -129,6 +137,13 @@ export async function POST(req: Request, ctx: Ctx) {
     lopId: body.lopId,
   });
   if (!result.ok) {
+    if (result.code === CSDT_PHI_QUA_HAN) {
+      const gate = await getCsdtPhiGate(orgId);
+      return NextResponse.json(
+        { error: result.error, code: CSDT_PHI_QUA_HAN, gate },
+        { status: 402 },
+      );
+    }
     return NextResponse.json({ error: result.error }, { status: 400 });
   }
   return NextResponse.json({ hocVienLopId: result.hocVienLopId });

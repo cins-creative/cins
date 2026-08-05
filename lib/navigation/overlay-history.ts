@@ -5,6 +5,9 @@
 
 export const CINS_HISTORY_POST = "cinsPostOverlay";
 export const CINS_HISTORY_CMT = "cinsCmtSheet";
+/** Overlay tin nhắn full — URL `/chat` (pushState, không remount Next). */
+export const CINS_HISTORY_CHAT = "cinsChatOverlay";
+export const CHAT_ROUTE_HREF = "/chat";
 
 export function withSearchParam(
   key: string,

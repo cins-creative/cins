@@ -8,10 +8,15 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
  * Phát công khai qua custom domain gắn vào bucket (Range/streaming + egress free),
  * KHÔNG stream qua Worker. Base URL công khai đặt ở `NEXT_PUBLIC_CHAT_VIDEO_BASE_URL`
  * (xem lib/chat/video-url.ts).
+ *
+ * Retention: bucket lifecycle Expiration prefix `chat-video/` = 360 ngày (hard delete).
+ * Đổi bằng: `wrangler r2 bucket lifecycle …` — không nằm trong wrangler.jsonc.
  */
 
 export const CINS_CHAT_VIDEO_R2_BUCKET = "cins-chat-video";
 export const CINS_CHAT_VIDEO_R2_BINDING = "CINS_CHAT_VIDEO";
+/** Object hết hạn hard-delete trên R2 (khớp lifecycle bucket). */
+export const CINS_CHAT_VIDEO_RETENTION_DAYS = 360;
 /** Trần dung lượng sau nén client (đề phòng bypass) — 80MB. */
 export const MAX_CHAT_VIDEO_BYTES = 80 * 1024 * 1024;
 

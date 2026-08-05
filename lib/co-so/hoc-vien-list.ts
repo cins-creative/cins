@@ -2,16 +2,31 @@ import "server-only";
 
 import {
   daysRemaining,
-  isEnrollmentNotFrozen,
   type KyHocInterval,
   todayYmdVn,
 } from "@/lib/co-so/ky-hoc";
+import {
+  isTrangThaiHienThiFilter,
+  resolveTrangThaiHienThi,
+  type TrangThaiHocVienHienThi,
+} from "@/lib/co-so/hoc-vien-trang-thai";
+import {
+  getHocVienChoTtlNgay,
+  purgeChoXuLyHetHan,
+} from "@/lib/co-so/ghi-danh-xoa";
+import {
+  assertCoTheThemGhiDanh,
+  CSDT_PHI_QUA_HAN,
+} from "@/lib/co-so/phi-gate";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { getAvatarUrl } from "@/lib/journey/profile";
 
 export type HocVienEnrollmentRow = {
   hocVienLopId: string;
+  /** Giá trị enum DB (`user_hoc_vien_lop.trang_thai`). */
   trangThai: string;
+  /** 3 trạng thái hiển thị: Đang học / Hết kỳ học / Nghỉ. */
+  trangThaiHienThi: TrangThaiHocVienHienThi;
   ngayDangKy: string;
   userId: string;
   tenHienThi: string;
@@ -23,10 +38,18 @@ export type HocVienEnrollmentRow = {
   maLop: string | null;
   ngayCuoiKy: string | null;
   soNgayConLai: number;
+  /** @deprecated dùng trangThaiHienThi === 'het_han' | 'nghi' */
   dangFreeze: boolean;
 };
 
 const PAGE_SIZE = 20;
+
+/**
+ * Tab danh sách:
+ * - `hoc_vien`: đã có `org_ky_hoc` (đã đóng / xác nhận HP)
+ * - `cho_xu_ly`: ghi danh chưa có kỳ nào — chờ thu học phí
+ */
+export type HocVienRosterTab = "hoc_vien" | "cho_xu_ly";
 
 export async function listHocVienCuaOrg(
   orgId: string,
@@ -37,11 +60,34 @@ export async function listHocVienCuaOrg(
     khoaId?: string;
     /** Lọc 1 lớp. */
     lopId?: string;
-    /** Lọc trạng thái ghi danh — VD `dang_hoc`. */
+    /**
+     * Lọc trạng thái — ưu tiên 3 trạng thái hiển thị
+     * (`dang_hoc` | `het_han` | `nghi`); cũng nhận giá trị enum DB cũ.
+     */
     trangThai?: string | string[];
     pageSize?: number;
+    /** Tab đang xem (mặc định `hoc_vien`). */
+    roster?: HocVienRosterTab;
   },
-): Promise<{ rows: HocVienEnrollmentRow[]; total: number; page: number }> {
+): Promise<{
+  rows: HocVienEnrollmentRow[];
+  total: number;
+  page: number;
+  /** Đếm 2 tab (sau filter khóa/lớp/tìm kiếm) để render nhãn tab. */
+  totalHocVien: number;
+  totalChoXuLy: number;
+  /** TTL tự gỡ chờ xử lý (ngày); 0 = tắt. */
+  choTtlNgay: number;
+  /** Số ghi danh vừa bị lazy-purge trong lần gọi này. */
+  purgedChoXuLy?: number;
+}> {
+  const choTtlNgay = await getHocVienChoTtlNgay(orgId);
+  let purgedChoXuLy = 0;
+  // Lazy-purge khi mở tab chờ xử lý (hoặc meta load) — không cần cron.
+  if (opts?.roster === "cho_xu_ly" && choTtlNgay > 0) {
+    purgedChoXuLy = await purgeChoXuLyHetHan(orgId, choTtlNgay);
+  }
+
   const admin = createServiceRoleClient();
   const page = Math.max(1, opts?.page ?? 1);
   const pageSize = Math.min(Math.max(opts?.pageSize ?? PAGE_SIZE, 1), 200);
@@ -53,6 +99,10 @@ export async function listHocVienCuaOrg(
     : opts?.trangThai?.trim()
       ? [opts.trangThai.trim()]
       : [];
+  const hienThiFilter = trangThaiFilter.filter(isTrangThaiHienThiFilter);
+  const dbTrangThaiFilter = trangThaiFilter.filter(
+    (s) => !isTrangThaiHienThiFilter(s),
+  );
 
   let khoaQuery = admin
     .from("org_khoa_hoc")
@@ -64,7 +114,15 @@ export async function listHocVienCuaOrg(
 
   const khoaIds = (khoaRows ?? []).map((k) => k.id as string);
   if (khoaIds.length === 0) {
-    return { rows: [], total: 0, page };
+    return {
+      rows: [],
+      total: 0,
+      page,
+      totalHocVien: 0,
+      totalChoXuLy: 0,
+      choTtlNgay,
+      purgedChoXuLy,
+    };
   }
 
   const khoaTenById = new Map(
@@ -78,10 +136,13 @@ export async function listHocVienCuaOrg(
     )
     .in("id_khoa_hoc", khoaIds)
     .order("ngay_dang_ky", { ascending: false });
-  if (trangThaiFilter.length === 1) {
-    hvlQuery = hvlQuery.eq("trang_thai", trangThaiFilter[0]!);
-  } else if (trangThaiFilter.length > 1) {
-    hvlQuery = hvlQuery.in("trang_thai", trangThaiFilter);
+  // Chỉ lọc DB khi filter là enum cũ (không phải 3 trạng thái hiển thị).
+  if (hienThiFilter.length === 0) {
+    if (dbTrangThaiFilter.length === 1) {
+      hvlQuery = hvlQuery.eq("trang_thai", dbTrangThaiFilter[0]!);
+    } else if (dbTrangThaiFilter.length > 1) {
+      hvlQuery = hvlQuery.in("trang_thai", dbTrangThaiFilter);
+    }
   }
   if (filterLopId) {
     hvlQuery = hvlQuery.eq("id_lop_hoc", filterLopId);
@@ -155,14 +216,20 @@ export async function listHocVienCuaOrg(
     const userId = r.id_nguoi_dung as string;
     const user = userById.get(userId);
     const intervals = kyByHvl.get(hvlId) ?? [];
-    const frozen = !isEnrollmentNotFrozen(intervals, today);
+    const trangThaiDb = r.trang_thai as string;
+    const trangThaiHienThi = resolveTrangThaiHienThi(
+      trangThaiDb,
+      intervals,
+      today,
+    );
     let ngayCuoiKy: string | null = null;
     for (const k of intervals) {
       if (!ngayCuoiKy || k.ngayCuoi > ngayCuoiKy) ngayCuoiKy = k.ngayCuoi;
     }
     return {
       hocVienLopId: hvlId,
-      trangThai: r.trang_thai as string,
+      trangThai: trangThaiDb,
+      trangThaiHienThi,
       ngayDangKy: r.ngay_dang_ky as string,
       userId,
       tenHienThi: user?.ten ?? "Học viên",
@@ -176,7 +243,7 @@ export async function listHocVienCuaOrg(
         : null,
       ngayCuoiKy,
       soNgayConLai: daysRemaining(intervals, today),
-      dangFreeze: intervals.length === 0 || frozen,
+      dangFreeze: trangThaiHienThi !== "dang_hoc",
     };
   });
 
@@ -190,10 +257,29 @@ export async function listHocVienCuaOrg(
     );
   }
 
-  const total = mapped.length;
+  // Tab "Học viên" = đã có org_ky_hoc; tab "Chờ xử lý" = ghi danh chưa thu HP.
+  const daCoKy = mapped.filter((row) => row.ngayCuoiKy != null);
+  const choXuLy = mapped.filter((row) => row.ngayCuoiKy == null);
+
+  let selected = opts?.roster === "cho_xu_ly" ? choXuLy : daCoKy;
+  // Lọc 3 trạng thái hiển thị chỉ có nghĩa với HV đã có kỳ.
+  if (hienThiFilter.length > 0 && opts?.roster !== "cho_xu_ly") {
+    const want = new Set(hienThiFilter);
+    selected = selected.filter((row) => want.has(row.trangThaiHienThi));
+  }
+
+  const total = selected.length;
   const from = (page - 1) * pageSize;
-  const rows = mapped.slice(from, from + pageSize);
-  return { rows, total, page };
+  const rows = selected.slice(from, from + pageSize);
+  return {
+    rows,
+    total,
+    page,
+    totalHocVien: daCoKy.length,
+    totalChoXuLy: choXuLy.length,
+    choTtlNgay,
+    purgedChoXuLy,
+  };
 }
 
 export async function listGoiHocPhiOrg(orgId: string): Promise<
@@ -283,7 +369,10 @@ export async function createGhiDanh(input: {
   userId: string;
   khoaId: string;
   lopId?: string | null;
-}): Promise<{ ok: true; hocVienLopId: string } | { ok: false; error: string }> {
+}): Promise<
+  | { ok: true; hocVienLopId: string }
+  | { ok: false; error: string; code?: typeof CSDT_PHI_QUA_HAN }
+> {
   const admin = createServiceRoleClient();
   const { data: khoa } = await admin
     .from("org_khoa_hoc")
@@ -328,6 +417,20 @@ export async function createGhiDanh(input: {
     return { ok: true, hocVienLopId: existingId };
   }
 
+  try {
+    await assertCoTheThemGhiDanh(input.orgId);
+  } catch (e) {
+    if (e instanceof Error && e.message === CSDT_PHI_QUA_HAN) {
+      return {
+        ok: false,
+        error:
+          "Cơ sở đang nợ phí nền tảng quá hạn — không thể thêm ghi danh mới. Thanh toán tại mục Phí CINs.",
+        code: CSDT_PHI_QUA_HAN,
+      };
+    }
+    throw e;
+  }
+
   const { data: inserted, error } = await admin
     .from("user_hoc_vien_lop")
     .insert({
@@ -355,4 +458,39 @@ export async function createGhiDanh(input: {
     return { ok: false, error: "Không tạo ghi danh." };
   }
   return { ok: true, hocVienLopId: inserted.id };
+}
+
+/**
+ * TV gán thủ công Nghỉ (`tam_nghi`), hoặc bỏ Nghỉ về `dang_hoc`
+ * (hiển thị sẽ là Đang học / Hết kỳ học tùy còn ngày).
+ * Đang học tự động khi xác nhận học phí — không gán tay qua API này.
+ */
+export async function updateHocVienTrangThaiManual(
+  orgId: string,
+  hvlId: string,
+  next: "nghi" | "bo_nghi",
+): Promise<{ ok: true; trangThai: string } | { ok: false; error: string }> {
+  const admin = createServiceRoleClient();
+  const { data: hvl } = await admin
+    .from("user_hoc_vien_lop")
+    .select("id, trang_thai, id_khoa_hoc")
+    .eq("id", hvlId)
+    .maybeSingle();
+  if (!hvl?.id) return { ok: false, error: "Không tìm thấy ghi danh." };
+
+  const { data: khoa } = await admin
+    .from("org_khoa_hoc")
+    .select("id")
+    .eq("id", hvl.id_khoa_hoc as string)
+    .eq("id_to_chuc", orgId)
+    .maybeSingle();
+  if (!khoa?.id) return { ok: false, error: "Ghi danh không thuộc cơ sở này." };
+
+  const trangThai = next === "nghi" ? "tam_nghi" : "dang_hoc";
+  const { error } = await admin
+    .from("user_hoc_vien_lop")
+    .update({ trang_thai: trangThai })
+    .eq("id", hvlId);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, trangThai };
 }

@@ -26,6 +26,8 @@ const NAV = [
   { href: "/admin/tai-khoan-ai", label: "Nick seeding", icon: "bot" },
   { href: "/admin/trang-seeding", label: "Trang seeding", icon: "org" },
   { section: "Hệ thống" },
+  { href: "/admin/tai-chinh", label: "Tài chính", icon: "chart" },
+  { href: "/admin/csdt-phi", label: "Phí CSĐT", icon: "flag" },
   { href: "/admin/linh-vuc", label: "Lĩnh vực", icon: "grid" },
   { href: "/admin/schema", label: "Schema DB", icon: "sql" },
   { href: "/admin/analytics", label: "Analytics", icon: "chart" },

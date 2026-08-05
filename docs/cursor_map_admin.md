@@ -69,6 +69,14 @@ Người dùng
       · Lib: `lib/admin/autopilot.ts` · UI `AdminTaiKhoanAiScreen`
 
 Hệ thống
+  /admin/tai-chinh            → **Phí nền tảng CSĐT** — tỷ lệ % / ngưỡng / STK / DN CINs
+      · 4 khối form lưu độc lập (insert dòng lịch sử, không UPDATE tại chỗ)
+      · GET: `canManageUsers` · PATCH: `canGrantAdmin` (super_admin)
+      · Lib `lib/cins/tai-chinh-config.ts` · API `GET/PATCH /api/admin/tai-chinh`
+      · Bảng `cins_cau_hinh_tai_chinh` (A-1)
+  /admin/csdt-phi             → **Đối soát phí CSĐT** — kỳ nợ · GD Sepay chưa khớp · khiếu nại
+      · Lib `lib/co-so/phi-admin.ts` · `phi-khieu-nai.ts`
+      · API `GET/PATCH /api/admin/csdt-phi` · `POST …/gan-giao-dich` · `PATCH …/ky` (số HĐ)
   /admin/linh-vuc
   /admin/analytics
   /admin/vector-queue         → vector_hang_doi

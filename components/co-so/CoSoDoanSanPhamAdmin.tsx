@@ -5,7 +5,6 @@ import { useCallback, useEffect, useState } from "react";
 
 import { GalleryVideoPlayBadge } from "@/components/journey/GalleryItemVisual";
 import { JourneyCoverImage } from "@/components/journey/JourneyCoverImage";
-import { JourneyPostModal } from "@/components/journey/JourneyPostModal";
 import type { OrgDoanProjectItem } from "@/lib/journey/org-milestone-tag-types";
 import {
   displayMediaPostTitle,
@@ -70,24 +69,14 @@ function studentInitials(name: string): string {
   return name.trim().slice(0, 2).toUpperCase() || "?";
 }
 
-function DoanAdminProjectCell({
-  project,
-  onOpen,
-}: {
-  project: OrgDoanProjectItem;
-  onOpen: (project: OrgDoanProjectItem) => void;
-}) {
+function DoanAdminProjectCell({ project }: { project: OrgDoanProjectItem }) {
   const hasImage = Boolean(project.coverSrc);
   const isVideo = project.isVideo ?? isGalleryVideoCoverSrc(project.coverSrc);
   const displayTitle = displayMediaPostTitle(project.projectTitle);
+  const href = project.href?.trim() || null;
 
-  return (
-    <button
-      type="button"
-      className="cso-sp-admin-work-hit"
-      onClick={() => onOpen(project)}
-      aria-label={`Xem tác phẩm ${displayTitle}`}
-    >
+  const media = (
+    <>
       <span
         className="cso-sp-admin-thumb"
         style={
@@ -117,7 +106,23 @@ function DoanAdminProjectCell({
           <span className="cso-sp-admin-work-milestone">{project.milestoneTitle}</span>
         ) : null}
       </span>
-    </button>
+    </>
+  );
+
+  if (!href) {
+    return <span className="cso-sp-admin-work-hit is-static">{media}</span>;
+  }
+
+  return (
+    <a
+      className="cso-sp-admin-work-hit"
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={`Mở tác phẩm ${displayTitle} (tab mới)`}
+    >
+      {media}
+    </a>
   );
 }
 
@@ -134,7 +139,6 @@ export function CoSoDoanSanPhamAdmin({
   const [projects, setProjects] = useState<OrgDoanProjectItem[]>(projectsProp ?? []);
   const [loading, setLoading] = useState(!projectsProp);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [detailMilestoneId, setDetailMilestoneId] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [scoreDraft, setScoreDraft] = useState<Record<string, string>>({});
@@ -259,12 +263,6 @@ export function CoSoDoanSanPhamAdmin({
       });
   }
 
-  function openProjectDetail(project: OrgDoanProjectItem) {
-    const id = project.cotMocId?.trim();
-    if (!id) return;
-    setDetailMilestoneId(id);
-  }
-
   const sorted = sortDoanProjectsForPublic(projects);
 
   return (
@@ -324,10 +322,7 @@ export function CoSoDoanSanPhamAdmin({
                   >
                     <td className="cso-sp-admin-student">{project.studentName}</td>
                     <td className="cso-sp-admin-title-cell">
-                      <DoanAdminProjectCell
-                        project={project}
-                        onOpen={openProjectDetail}
-                      />
+                      <DoanAdminProjectCell project={project} />
                     </td>
                     <td className="cso-sp-admin-khoa">
                       {project.khoaHocTen ?? project.nganhLabel ?? "—"}
@@ -399,13 +394,6 @@ export function CoSoDoanSanPhamAdmin({
           </table>
         </div>
       ) : null}
-
-      <JourneyPostModal
-        milestoneId={detailMilestoneId}
-        onClose={() => setDetailMilestoneId(null)}
-        variant="slide-right"
-        stacked
-      />
     </section>
   );
 }

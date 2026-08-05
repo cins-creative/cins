@@ -39,6 +39,8 @@ import { CHAT_ORG_KIND_LABEL } from "@/lib/chat/types";
 const ORG_ROOM = "1_org";
 const LOP_ROOM = "lop_hoc";
 const STAFF_MESSAGE_LIMIT = 80;
+/** Overlay = tín hiệu: mỗi org chỉ hydrate 5 hội thoại người lạ, còn lại ở trang quản lý. */
+export const ORG_INBOX_MAX_THREADS_PER_ORG = 5;
 
 /**
  * Quyền hộp thư org (staff) — tách khỏi `canReviewOrgMilestoneTags`
@@ -1466,10 +1468,11 @@ export async function listOrgStaffInboxThreadsForViewer(
     ),
   ];
 
+  /* Pass 1 nhẹ: chỉ cột đủ để đếm tổng + xếp hạng phòng, không kéo nội dung. */
   const [
     { data: orgs },
     { data: studentMembers },
-    { data: messages },
+    { data: messageStats },
     thongBaoByOrg,
   ] = await Promise.all([
     admin
@@ -1486,10 +1489,17 @@ export async function listOrgStaffInboxThreadsForViewer(
       .returns<Array<{ id_phong: string; id_nguoi_dung: string }>>(),
     admin
       .from("chat_tin_nhan")
-      .select(MESSAGE_SELECT)
+      .select("id_phong, id_nguoi_gui, tao_luc")
       .in("id_phong", roomIds)
       .eq("da_xoa", false)
-      .order("tao_luc", { ascending: false }),
+      .order("tao_luc", { ascending: false })
+      .returns<
+        Array<{
+          id_phong: string;
+          id_nguoi_gui: string | null;
+          tao_luc: string;
+        }>
+      >(),
     getOrgThongBaoChungByOrgIds(orgIds),
   ]);
 
@@ -1498,11 +1508,15 @@ export async function listOrgStaffInboxThreadsForViewer(
     (studentMembers ?? []).map((m) => [m.id_phong, m.id_nguoi_dung]),
   );
 
-  const lastByRoom = new Map<string, MessageRow>();
-  for (const msg of messages ?? []) {
-    if (!lastByRoom.has(msg.id_phong)) {
-      lastByRoom.set(msg.id_phong, msg as MessageRow);
-    }
+  /* Đã order desc toàn cục ⇒ mỗi mảng theo phòng cũng desc. */
+  const statsByRoom = new Map<
+    string,
+    Array<{ id_nguoi_gui: string | null; tao_luc: string }>
+  >();
+  for (const row of messageStats ?? []) {
+    const list = statsByRoom.get(row.id_phong);
+    if (list) list.push(row);
+    else statsByRoom.set(row.id_phong, [row]);
   }
 
   /* Watermark cá nhân trước; org bật thongBaoChung → ghi đè max admin. */
@@ -1540,57 +1554,123 @@ export async function listOrgStaffInboxThreadsForViewer(
     }
   }
 
-  const studentIds = [...new Set(studentByRoom.values())];
-  const { data: profiles } =
-    studentIds.length > 0
-      ? await admin
-          .from("user_nguoi_dung")
-          .select("id, ten_hien_thi, slug, avatar_id")
-          .in("id", studentIds)
-          .returns<
-            Array<{
-              id: string;
-              ten_hien_thi: string | null;
-              slug: string | null;
-              avatar_id: string | null;
-            }>
-          >()
-      : { data: [] as Array<{
+  type OrgInboxRoomStat = {
+    roomId: string;
+    orgId: string;
+    studentId: string;
+    lastAt: string;
+    isOpen: boolean;
+    unread: number;
+  };
+
+  const roomStats: OrgInboxRoomStat[] = [];
+  for (const room of rooms) {
+    const orgId = room.id_org_dai_dien;
+    if (!orgId || !orgById.has(orgId)) continue;
+    const studentId = studentByRoom.get(room.id);
+    if (!studentId) continue;
+    const rows = statsByRoom.get(room.id);
+    const last = rows?.[0];
+    if (!last) continue;
+    const readAt = readAtByRoom.get(room.id) ?? null;
+    roomStats.push({
+      roomId: room.id,
+      orgId,
+      studentId,
+      lastAt: last.tao_luc,
+      isOpen: last.id_nguoi_gui === studentId,
+      unread: rows.filter(
+        (r) => r.id_nguoi_gui === studentId && (!readAt || r.tao_luc > readAt),
+      ).length,
+    });
+  }
+
+  /**
+   * Tổng đếm trên toàn bộ phòng, nhưng chỉ hydrate tối đa
+   * `ORG_INBOX_MAX_THREADS_PER_ORG` thread / org (ưu tiên chưa trả lời rồi tới
+   * mới nhất) — phần còn lại xem ở trang quản lý tin nhắn.
+   */
+  const statsByOrg = new Map<string, OrgInboxRoomStat[]>();
+  for (const stat of roomStats) {
+    const list = statsByOrg.get(stat.orgId);
+    if (list) list.push(stat);
+    else statsByOrg.set(stat.orgId, [stat]);
+  }
+
+  const totalsByOrg = new Map<
+    string,
+    { tong: number; chuaTraLoi: number; chuaDoc: number; daCat: boolean }
+  >();
+  const selectedStats: OrgInboxRoomStat[] = [];
+  for (const [orgId, list] of statsByOrg) {
+    list.sort((a, b) => {
+      if (a.isOpen !== b.isOpen) return a.isOpen ? -1 : 1;
+      return new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime();
+    });
+    totalsByOrg.set(orgId, {
+      tong: list.length,
+      chuaTraLoi: list.filter((s) => s.isOpen).length,
+      chuaDoc: list.reduce((sum, s) => sum + s.unread, 0),
+      daCat: list.length > ORG_INBOX_MAX_THREADS_PER_ORG,
+    });
+    selectedStats.push(...list.slice(0, ORG_INBOX_MAX_THREADS_PER_ORG));
+  }
+
+  if (selectedStats.length === 0) return [];
+
+  const selectedRoomIds = selectedStats.map((s) => s.roomId);
+  const studentIds = [...new Set(selectedStats.map((s) => s.studentId))];
+  /* Pass 2: nội dung tin cuối chỉ cho phòng thực sự hiển thị. */
+  const [{ data: messages }, { data: profiles }] = await Promise.all([
+    admin
+      .from("chat_tin_nhan")
+      .select(MESSAGE_SELECT)
+      .in("id_phong", selectedRoomIds)
+      .eq("da_xoa", false)
+      .order("tao_luc", { ascending: false }),
+    admin
+      .from("user_nguoi_dung")
+      .select("id, ten_hien_thi, slug, avatar_id")
+      .in("id", studentIds)
+      .returns<
+        Array<{
           id: string;
           ten_hien_thi: string | null;
           slug: string | null;
           avatar_id: string | null;
-        }> };
+        }>
+      >(),
+  ]);
+
+  const lastByRoom = new Map<string, MessageRow>();
+  for (const msg of messages ?? []) {
+    if (!lastByRoom.has(msg.id_phong)) {
+      lastByRoom.set(msg.id_phong, msg as MessageRow);
+    }
+  }
   const profileById = new Map((profiles ?? []).map((p) => [p.id, p]));
 
   const threads: ChatThread[] = [];
-  for (const room of rooms) {
-    const orgId = room.id_org_dai_dien;
-    if (!orgId) continue;
+  for (const stat of selectedStats) {
+    const orgId = stat.orgId;
     const org = orgById.get(orgId);
     if (!org) continue;
-    const studentId = studentByRoom.get(room.id);
-    if (!studentId) continue;
+    const studentId = stat.studentId;
     const profile = profileById.get(studentId);
     const studentName =
       profile?.ten_hien_thi?.trim() ||
       profile?.slug?.trim() ||
       "Người dùng";
-    const last = lastByRoom.get(room.id);
+    const last = lastByRoom.get(stat.roomId);
     if (!last) continue;
-    const readAt = readAtByRoom.get(room.id) ?? null;
-    const unread = (messages ?? []).filter(
-      (msg) =>
-        msg.id_phong === room.id &&
-        msg.id_nguoi_gui === studentId &&
-        (!readAt || msg.tao_luc > readAt),
-    ).length;
+    const unread = stat.unread;
+    const totals = totalsByOrg.get(orgId);
     const vaiTro = vaiTroByOrg.get(orgId);
     const orgKind = mapOrgLoai(org.loai_to_chuc);
     const orgTen = org.ten?.trim() || null;
     threads.push({
-      id: room.id,
-      roomId: room.id,
+      id: stat.roomId,
+      roomId: stat.roomId,
       peerUserId: studentId,
       peerSlug: profile?.slug?.trim() || undefined,
       orgId,
@@ -1611,8 +1691,11 @@ export async function listOrgStaffInboxThreadsForViewer(
       unread,
       isOrgAdvisory: true,
       isOrgStaffInbox: true,
-      orgInboxStatus:
-        last.id_nguoi_gui === studentId ? "open" : "replied",
+      orgInboxStatus: stat.isOpen ? "open" : "replied",
+      orgInboxTongHoiThoai: totals?.tong,
+      orgInboxTongChuaTraLoi: totals?.chuaTraLoi,
+      orgInboxTongChuaDoc: totals?.chuaDoc,
+      orgInboxDaCat: totals?.daCat,
       viewerIsOrgMember: true,
       viewerOrgVaiTroLabel: vaiTro ? commentVaiTroLabel(vaiTro) : null,
       messages: [],

@@ -1057,6 +1057,14 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
         viewerProfileId,
       )[0]!;
 
+      if (
+        message.chaoLop &&
+        viewerProfileId &&
+        message.senderUserId !== viewerProfileId
+      ) {
+        return;
+      }
+
       if (miniOpenRef.current && miniRoomIdRef.current === event.roomId) {
         const enriched = miniThreadRef.current?.isGroup
           ? applyKnownGroupSender(message, miniThreadRef.current.memberAvatars)

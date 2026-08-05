@@ -24,7 +24,6 @@ import {
   useState,
   type ClipboardEvent as ReactClipboardEvent,
   type DragEvent as ReactDragEvent,
-  type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react";
 
@@ -109,6 +108,43 @@ const DRAG_THRESHOLD_PX = 3;
 
 function isLocalBoardNodeId(id: string): boolean {
   return id.startsWith("local-");
+}
+
+/** Đang gõ trong input/textarea/contenteditable — đừng nuốt Delete/Backspace. */
+function isTextEditingTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  if (target.isContentEditable) return true;
+  if (target.closest("[contenteditable='true']")) return true;
+  const field = target.closest("input, textarea, select");
+  if (!(field instanceof HTMLElement)) return false;
+  if (field instanceof HTMLInputElement) {
+    const type = field.type;
+    if (
+      type === "button" ||
+      type === "checkbox" ||
+      type === "color" ||
+      type === "file" ||
+      type === "hidden" ||
+      type === "radio" ||
+      type === "range" ||
+      type === "reset" ||
+      type === "submit"
+    ) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/** Focus nằm trong board hoặc toolbar `.cins-canvas-wrap` (sibling ngoài board). */
+function isCanvasKeyboardScope(
+  root: HTMLElement,
+  target: EventTarget | null,
+): boolean {
+  const wrap = root.closest(".cins-canvas-wrap") ?? root;
+  if (target instanceof Node && wrap.contains(target)) return true;
+  const active = document.activeElement;
+  return Boolean(active && wrap.contains(active));
 }
 
 /** Đọc kích thước tự nhiên của ảnh (blob/URL) — fail → null. */
@@ -1984,6 +2020,10 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
     const startMove = useCallback(
       (e: ReactPointerEvent, nodeId: string) => {
         rootRef.current?.focus({ preventScroll: true });
+        // Chọn/kéo node khác → thoát edit sticky/bảng (blur đã commit; clear để Delete hoạt động).
+        if (editingRef.current && editingRef.current !== nodeId) {
+          setEditingId(null);
+        }
         const node = byId(nodeId);
         if (!node) return;
 
@@ -2565,16 +2605,28 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
     );
 
     /* ---------- keyboard ---------- */
+    /*
+     * Shortcut gắn window (không chỉ onKeyDown của board): toolbar
+     * `.cins-canvas-toolbar` nằm ngoài `.cins-board` nên click tool/undo
+     * kéo focus ra ngoài — Delete/Ctrl+Z trước đây không tới handler.
+     * Chỉ xử lý khi focus/target còn trong `.cins-canvas-wrap`.
+     */
+    useEffect(() => {
+      const onKeyDown = (e: KeyboardEvent) => {
+        const root = rootRef.current;
+        if (!root || !isCanvasKeyboardScope(root, e.target)) return;
+        if (isTextEditingTarget(e.target)) return;
 
-    const onKeyDown = useCallback(
-      (e: ReactKeyboardEvent<HTMLDivElement>) => {
-        if (editingRef.current) return;
         if (e.key === " ") {
+          if (editingRef.current) return;
           spaceHeldRef.current = true;
           setSpaceHeld(true);
           e.preventDefault();
           return;
         }
+
+        if (editingRef.current) return;
+
         if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
           e.preventDefault();
           if (e.shiftKey) redo();
@@ -2587,6 +2639,7 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
           return;
         }
         if (e.key === "Delete" || e.key === "Backspace") {
+          if (selectedRef.current.size === 0) return;
           e.preventDefault();
           deleteSelection();
           return;
@@ -2627,25 +2680,39 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
           }
           setSelection(new Set());
         }
-      },
-      [
-        deleteSelection,
-        redo,
-        setSelection,
-        setTool,
-        undo,
-        zoomIn,
-        zoomOut,
-        zoomReset,
-      ],
-    );
+      };
 
-    const onKeyUp = useCallback((e: ReactKeyboardEvent<HTMLDivElement>) => {
-      if (e.key === " ") {
+      const onKeyUp = (e: KeyboardEvent) => {
+        if (e.key !== " ") return;
+        const root = rootRef.current;
+        if (!root) return;
+        // Nhả Space kể cả khi focus đã rời wrap giữa chừng (tránh kẹt pan).
+        if (
+          !isCanvasKeyboardScope(root, e.target) &&
+          !spaceHeldRef.current
+        ) {
+          return;
+        }
         spaceHeldRef.current = false;
         setSpaceHeld(false);
-      }
-    }, []);
+      };
+
+      window.addEventListener("keydown", onKeyDown);
+      window.addEventListener("keyup", onKeyUp);
+      return () => {
+        window.removeEventListener("keydown", onKeyDown);
+        window.removeEventListener("keyup", onKeyUp);
+      };
+    }, [
+      deleteSelection,
+      redo,
+      setSelection,
+      setTool,
+      undo,
+      zoomIn,
+      zoomOut,
+      zoomReset,
+    ]);
 
     /* ---------- ảnh: kéo từ máy / share-drag / Ctrl+V ---------- */
 
@@ -3290,8 +3357,6 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
         onPointerMove={onRootPointerMove}
         onPointerUp={finishGesture}
         onPointerCancel={finishGesture}
-        onKeyDown={onKeyDown}
-        onKeyUp={onKeyUp}
         onDrop={onDrop}
         onDragOver={onDragOver}
         onPaste={onPaste}

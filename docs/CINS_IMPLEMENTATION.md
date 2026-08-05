@@ -247,7 +247,7 @@ Tái dùng đúng pattern Shopee AI cho **user tự import portfolio** của ch�
 | `journey/` | Milestone, timeline, gallery, video processing, co-author credit, cache | `timeline-merge.ts`, `milestone-verify.ts`, `foreign-milestone-visibility.ts`, `video-upload-session.ts`, `sync-tac-pham-tags.ts` |
 | `cong-dong/` | Tạo org, membership, thảo luận, filter, sidebar, mirror tác phẩm, **quản lý thành viên**, categories, event rail, **branding**, **route sự kiện** | `org-create.ts`, `org-profile.ts`, `membership.ts`, `members.ts`, `vai-tro.ts`, `categories.ts`, `event-rail.ts`, `routes.ts` (`congDongSuKienPath` / `ManagePath`), `creator-milestone.ts`, `sync-from-publish.ts`, `tac-pham-mirror.ts` ⚠️§5 |
 | `to-chuc/` | **Cơ sở đào tạo** — trang chi tiết, settings, members, filters, timeline lớp, staff invite, create; **sự kiện + loại vé**; **khóa/lớp/bài tập** | `co-so-page-queries.ts`, `co-so-settings.ts`, `co-so-members.ts`, `co-so-create.ts`, `co-so-vai-tro.ts`, `su-kien.ts`, `su-kien-loai-ve.ts`, `su-kien-constants.ts`, `su-kien-listing.ts`, `khoa-hoc.ts`, `lop-hoc-quan-ly.ts`, `bai-tap-khoa.ts`, `giao-trinh-quan-ly.ts` |
-| `co-so/` | Helpers vận hành CSĐT (học phí, chat lớp, giáo trình…) | `don-hoc-phi.ts`, `lop-chat-phong.ts`, `lop-room-access.ts`, `tien-do-bai.ts`, `nop-bai.ts`, `nop-bai-journey.ts`, `lop-he-thong-tin.ts`, … |
+| `co-so/` | Helpers vận hành CSĐT (học phí, chat lớp, giáo trình…, **phí nền tảng**) | `don-hoc-phi.ts`, `phi.ts` · `phi-config.ts` · `phi-ky.ts` · `phi-gate.ts` · `phi-sepay.ts` · `phi-khieu-nai.ts` · `phi-admin.ts` · `phi-cron.ts`, `lop-chat-phong.ts`, … |
 | `tag/` | Tạo tag, dedup, gen tom-tat, normalize, slug, admin merge | `create.ts`, `gen-tom-tat.ts`, `dedup.ts`, `normalize.ts` |
 | `filter/` | **Filter cá nhân** (user & org): CRUD nhãn, gắn cột mốc/bài org, list theo chủ, đếm visible cho khách, nhãn hệ thống `cong-dong` | `create.ts`, `update.ts`, `delete.ts`, `gan.ts`, `list-cua-user.ts`, `count-visible-to-viewer.ts`, `cong-dong-personal-filter.ts` (+ `.shared.ts`) |
 | `chat/` | **Chat:** DM/org/nhóm, realtime, ghim, nhóm bạn bè, **project con**, thẻ tài nguyên, mốc phòng, bình chọn; overlay tab **Mua bán** (`types` `ChatThreadView`/`ChatMuaBanSub`, cờ shop trên `listAllChatThreads`); **inbox org staff** (`canAccessOrgInbox` · `listOrgInboxThreadsForStaff`) gồm studio | `group-message.ts`, `group-roles.ts`, `project-room.ts`, `room-tags.ts`, `room-moc.ts`, `room-poll.ts`, `direct-message.ts`, `org-message.ts`, `use-chat-realtime.ts` |
@@ -308,6 +308,7 @@ Tái dùng đúng pattern Shopee AI cho **user tự import portfolio** của ch�
 | `migration_org_bai_dang_noi_dung_blocks.sql` | Cột `org_bai_dang.noi_dung_blocks` jsonb — nội dung Block kiểu Journey; `noi_dung` HTML legacy giữ tạm. |
 | `migration_khoa_hoc_v2.sql` | **Trang khóa học v2** (gộp, thay `migration_giao_trinh_thu_tu.sql` lẻ): `org_giao_trinh.thu_tu` + `so_buoi`; `org_lop_hoc.lich_hoc` + `giao_vien_text`; `org_khoa_hoc.noi_dung_blocks`. Idempotent + backfill `thu_tu`. Chạy xong → đối chiếu lại schema DB. |
 | `migration_csdt_van_hanh_hoc.sql` | **L34 Plan 1:** `org_chi_nhanh`, `org_goi_hoc_phi`, `org_don_hoc_phi`, `org_ky_hoc`, `org_tien_do_bai`, `org_nop_bai`, `org_diem_danh` + ALTER A1/A2 `org_lop_hoc`. Runner: `npm run migrate:csdt`. **Đã chạy** CINS 2026-07-25. |
+| `migration_csdt_phi_nen_tang.sql` | **Phí nền tảng CSĐT A-1…A-8:** bảng phí + RLS · admin tài chính · ghi dòng · kỳ/gate · quan-ly phí · khóa ghi danh · Sepay · khiếu nại/admin đối soát · cron `POST /api/noi-bo/csdt-phi/chot-ky` (`CSDT_PHI_CRON_SECRET`, `phi-cron.ts`). Plan: `PLAN_csdt_phi_nen_tang_va_lead.md`. Runner: `npm run migrate:csdt-phi`. **Đã chạy** schema 2026-08-05. |
 | `migration_lop_hoc_chi_nhanh.sql` | **Junction lớp ↔ chi nhánh (N):** `org_lop_hoc_chi_nhanh` (PK `id_lop_hoc,id_chi_nhanh`, `thu_tu`); backfill từ `org_lop_hoc.id_chi_nhanh`. Giữ cột `id_chi_nhanh` = chi nhánh chính (`chiNhanhIds[0]`). Runner: `npm run migrate:lop-chi-nhanh`; meta khóa → junction: `npm run backfill:lop-chi-nhanh`. **Đã chạy** CINS 2026-08-03. |
 | `migration_org_hinh_anh_loai_expand.sql` | Mở rộng CHECK `org_hinh_anh.loai`: thêm `ngoai_khoa`, `su_kien`, `hop_tac` (UI gallery tab Hình ảnh). Chạy: `node scripts/run-org-hinh-anh-loai-migration.mjs`. |
 | `migration_drop_giai_doan_moi_bat_dau.sql` | **L36:** bỏ `moi_bat_dau` — data → `dang_hoc` + recreate `giai_doan_enum` (5 value). Chạy: `node scripts/run-drop-giai-doan-moi-bat-dau-migration.mjs`. **Đã chạy** CINS 2026-07-26. |
@@ -393,7 +394,7 @@ BUNNY_STREAM_API_KEY
 CLOUDFLARE_STREAM_API_TOKEN            (secret; quyền Stream:Edit)
 NEXT_PUBLIC_CF_STREAM_CUSTOMER_CODE    (customer subdomain phát HLS/thumbnail; không bí mật)
 NEXT_PUBLIC_CHAT_VIDEO_BASE_URL        (base URL public phát R2 chat video)
-# Bucket R2 cins-chat-video: binding CINS_CHAT_VIDEO trong wrangler.jsonc (lifecycle TTL ~90 ngày)
+# Bucket R2 cins-chat-video: binding CINS_CHAT_VIDEO trong wrangler.jsonc (lifecycle Expiration prefix chat-video/ = 360 ngày)
 
 # Cloudflare Images
 CLOUDFLARE_*             (account hash, API token)
@@ -426,6 +427,11 @@ CINS_ORG_DELEGATION_PASSWORD   (bắt buộc để dùng panel Phân quyền /ad
 # Autopilot / đăng bài nội bộ (server-only) — Giai đoạn 0
 CINS_NOI_BO_DANG_BAI_SECRET    (Bearer cho POST /api/noi-bo/tac-pham/dang)
 CINS_NICK_SEED_SLUGS           (tuỳ chọn — csv slug bổ sung allowlist nick seed)
+
+# Phí nền tảng CSĐT — webhook Sepay (A-6) + cron (A-8)
+SEPAY_WEBHOOK_SECRET           (Authorization: Apikey|Bearer …; POST /api/webhook/sepay)
+CSDT_PHI_CRON_SECRET           (Bearer; POST /api/noi-bo/csdt-phi/chot-ky)
+# Tuỳ chọn fallback khi bảng cấu hình trống: CSDT_PHI_TY_LE · CSDT_PHI_NGUONG_VND
 ```
 
 **Cloudflare Images — variants** (Dashboard → Images → Variants; cập nhật 2026-07-04):

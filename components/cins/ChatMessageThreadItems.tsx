@@ -626,6 +626,46 @@ function SingleMessageBubble({
     );
   }
 
+  if (msg.kind === "chao_lop" || msg.chaoLop) {
+    return (
+      <div
+        id={messageRowId(msg.id)}
+        className="cins-chat-bubble-row is-chao-lop"
+      >
+        <div className="cins-chat-bubble is-chao-lop">
+          <ChatMessageBody
+            msg={msg}
+            roomId={roomId}
+            viewerUserId={viewerUserId}
+            onPollUpdated={onPollUpdated}
+            canConfirmHocPhi={canConfirmHocPhi}
+            orgBrand={orgBrand}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  if (msg.kind === "phong_lop" || msg.phongLop) {
+    return (
+      <div
+        id={messageRowId(msg.id)}
+        className="cins-chat-bubble-row is-phong-lop-invite"
+      >
+        <div className="cins-chat-bubble is-phong-lop-invite">
+          <ChatMessageBody
+            msg={msg}
+            roomId={roomId}
+            viewerUserId={viewerUserId}
+            onPollUpdated={onPollUpdated}
+            canConfirmHocPhi={canConfirmHocPhi}
+            orgBrand={orgBrand}
+          />
+        </div>
+      </div>
+    );
+  }
+
   const useSenderCluster = !isMe && Boolean(showSenderNames);
   const isDonHangCard =
     !isEditing &&

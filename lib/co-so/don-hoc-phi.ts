@@ -1,13 +1,14 @@
 import "server-only";
 
 import { ensureBatDauHocMilestone } from "@/lib/co-so/bat-dau-hoc-milestone";
-import { bumpDonHocPhiChatMessage } from "@/lib/co-so/don-hoc-phi-chat";
+import { bumpDonHocPhiChatMessage, sendPhongLopInviteAfterConfirm } from "@/lib/co-so/don-hoc-phi-chat";
 import {
   computeNextKyRange,
   type KyHocInterval,
   todayYmdVn,
 } from "@/lib/co-so/ky-hoc";
 import { ensureLopChatPhongAndJoinStudent } from "@/lib/co-so/lop-chat-phong";
+import { ghiPhiDongKhiXacNhanDon } from "@/lib/co-so/phi";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 export type KenhThuHp = "vietqr" | "tien_mat" | "ck_thu_cong";
@@ -94,6 +95,21 @@ export async function xacNhanDonHocPhi(
     return { ok: false, error: "Đơn đã được xác nhận trước đó." };
   }
 
+  // Phí nền tảng CSĐT — snapshot sau ổ khóa (idempotent theo id đơn).
+  // Không chặn xác nhận HV nếu ghi phí lỗi; log để đối soát.
+  const phiResult = await ghiPhiDongKhiXacNhanDon({
+    donId: don.id,
+    orgId: don.id_to_chuc,
+    doanhThuVnd: Number(don.so_tien_vnd) || 0,
+    xacNhanLuc: nowIso,
+  });
+  if (!phiResult.ok) {
+    console.error("[hoc-phi] ghiPhiDongKhiXacNhanDon failed", {
+      donId: don.id,
+      error: phiResult.error,
+    });
+  }
+
   const { data: hvl, error: hvlErr } = await admin
     .from("user_hoc_vien_lop")
     .select("id, id_nguoi_dung, id_khoa_hoc, id_lop_hoc, trang_thai")
@@ -147,7 +163,7 @@ export async function xacNhanDonHocPhi(
     return { ok: false, error: kyErr?.message ?? "Không tạo được kỳ học." };
   }
 
-  if (hvl.trang_thai === "da_dang_ky" || hvl.trang_thai === "tam_nghi") {
+  if (hvl.trang_thai !== "dang_hoc") {
     const { error: hvlUpdErr } = await admin
       .from("user_hoc_vien_lop")
       .update({ trang_thai: "dang_hoc" })
@@ -163,6 +179,7 @@ export async function xacNhanDonHocPhi(
   }
 
   let joinedPhong = false;
+  let lopRoomId: string | null = null;
   if (hvl.id_lop_hoc) {
     const join = await ensureLopChatPhongAndJoinStudent({
       orgId: don.id_to_chuc,
@@ -171,6 +188,7 @@ export async function xacNhanDonHocPhi(
       sendWelcome: existing.length === 0,
     });
     joinedPhong = join.ok && join.joined;
+    lopRoomId = join.ok ? join.roomId : null;
   }
 
   // HV dang_hoc → vào hub chat cơ sở (không chặn request chính nếu lỗi tạm).
@@ -213,6 +231,23 @@ export async function xacNhanDonHocPhi(
     trangThai: "da_nhan_tien",
     tenKhoa: (khoa?.ten_khoa_hoc as string | null) ?? null,
   });
+
+  if (hvl.id_lop_hoc && lopRoomId) {
+    await sendPhongLopInviteAfterConfirm({
+      donId: don.id,
+      actorId: input.actorId,
+      orgId: don.id_to_chuc,
+      studentUserId: hvl.id_nguoi_dung,
+      lopId: hvl.id_lop_hoc,
+      lopRoomId,
+    }).catch((err) => {
+      console.error("[hoc-phi] sendPhongLopInviteAfterConfirm failed", {
+        donId: don.id,
+        lopRoomId,
+        error: err instanceof Error ? err.message : err,
+      });
+    });
+  }
 
   return {
     ok: true,

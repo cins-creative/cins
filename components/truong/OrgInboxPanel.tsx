@@ -20,7 +20,6 @@ import { ChatReplyComposeBar } from "@/components/cins/ChatReplyComposeBar";
 import { ChatStickerPicker } from "@/components/cins/ChatStickerPicker";
 import { useCinsChat } from "@/components/cins/CinsChatProvider";
 import { MsIcon } from "@/components/cins/MsIcon";
-import { OrgNotifySettingsMenu } from "@/components/cins/OrgNotifySettingsMenu";
 import { useChatRoomMessageActions } from "@/components/cins/useChatRoomMessageActions";
 import { InboxContactRoleBadge } from "@/components/truong/InboxContactRoleBadge";
 import { avatarBg, avatarHueFromSeed } from "@/lib/chat/avatar";
@@ -706,7 +705,6 @@ export function OrgInboxPanel({
                 <span className="tdh-message-inbox-filter-count">{count}</span>
               </button>
             ))}
-            <OrgNotifySettingsMenu orgId={orgId} canManage />
           </div>
         ) : null}
 

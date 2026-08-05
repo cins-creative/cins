@@ -133,7 +133,7 @@ function toLopDetail(row: LopHocQuanLyRow): LopHocDetailData {
     tenLop: row.lichHoc,
     hinhThuc: row.hinhThuc,
     lichHoc: row.lichHoc,
-    ngayKhaiGiang: row.ngayKhaiGiang,
+    ngayKhaiGiang: row.ngayKhaiGiang ?? "",
     slotToiDa: row.slotToiDa,
     trangThaiLop: row.trangThaiLop,
     conCho:

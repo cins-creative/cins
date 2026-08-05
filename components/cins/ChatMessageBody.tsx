@@ -13,6 +13,8 @@ import { ChatMentionText } from "@/components/cins/ChatMentionText";
 import { ChatMessageMediaImage } from "@/components/cins/ChatMessageMediaImage";
 import { ChatMessageVideo } from "@/components/cins/ChatMessageVideo";
 import { ChatMocNoticeBubble } from "@/components/cins/ChatMocNoticeBubble";
+import { ChatChaoLopWelcomeBubble } from "@/components/cins/ChatChaoLopWelcomeBubble";
+import { ChatPhongLopInviteBubble } from "@/components/cins/ChatPhongLopInviteBubble";
 import { ChatPollBubble } from "@/components/cins/ChatPollBubble";
 import { InlineExternalVideoEmbed } from "@/components/shared/InlineExternalVideoEmbed";
 import {
@@ -205,6 +207,22 @@ export function ChatMessageBody({
     return <p className="cins-chat-moc-notice-fallback">{msg.body || "Nhắc mốc"}</p>;
   }
 
+  if (msg.kind === "chao_lop" || msg.chaoLop) {
+    return <ChatChaoLopWelcomeBubble body={msg.body} />;
+  }
+
+  if (msg.kind === "phong_lop" || msg.phongLop) {
+    if (msg.phongLop) {
+      return (
+        <ChatPhongLopInviteBubble
+          invite={msg.phongLop}
+          label={msg.body.trim() || "Tham gia phòng học"}
+        />
+      );
+    }
+    return <p className="cins-chat-phong-lop-invite-fallback">{msg.body || "Tham gia phòng học"}</p>;
+  }
+
   if (msg.kind === "binh_chon" || msg.poll) {
     if (!roomId || !onPollUpdated) {
       return <p>{msg.poll?.question || msg.body || "Bình chọn"}</p>;
@@ -274,13 +292,6 @@ export function ChatMessageBody({
             canConfirmPaid={canConfirmHocPhi}
             orgBrand={orgBrand}
           />
-          {displayText ? (
-            <MessageCaption
-              text={displayText}
-              msg={msg}
-              viewerUserId={viewerUserId}
-            />
-          ) : null}
         </span>
       );
     }

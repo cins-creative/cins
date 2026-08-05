@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { CsdtPhiGateBanner } from "@/components/co-so/quan-ly/CsdtPhiGateBanner";
 import { OrgTinNhanNavLink } from "@/components/to-chuc/quan-ly/OrgTinNhanNavLink";
 import { TruongMilestoneTagNotify } from "@/components/truong/TruongMilestoneTagNotify";
 import {
@@ -109,6 +110,9 @@ export function OrgQuanLyShell({
       </nav>
 
       <div className="cso-ql-inner">
+        {orgKind === "co_so_dao_tao" ? (
+          <CsdtPhiGateBanner orgId={orgId} orgSlug={orgSlug} />
+        ) : null}
         <div className="cso-ql-body">{children}</div>
       </div>
     </div>

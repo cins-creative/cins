@@ -46,7 +46,15 @@ export function parseChatNguCanh(raw: unknown): ChatContextCard | null {
   const tieuDe = typeof r.tieuDe === "string" ? r.tieuDe : null;
   const loai = typeof r.loai === "string" ? r.loai : null;
   if (!id || !tieuDe || !loai) return null;
-  if (loai === "moc" || loai === "canvas_binh_luan" || loai === "cuoc_goi") return null;
+  if (
+    loai === "moc" ||
+    loai === "canvas_binh_luan" ||
+    loai === "cuoc_goi" ||
+    loai === "phong_lop" ||
+    loai === "chao_lop"
+  ) {
+    return null;
+  }
   return {
     loai,
     id,

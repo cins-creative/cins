@@ -54,7 +54,7 @@ export async function assertCanJoinPhongHoc(
   if (access.isLopRoom) {
     if (!access.isStaff && (access.frozen || !access.canSend)) {
       throw new MediaGateError(
-        "Kỳ học đang freeze — gia hạn để vào phòng học.",
+        "Kỳ học đã hết — gia hạn để vào phòng học.",
         403,
       );
     }

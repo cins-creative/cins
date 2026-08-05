@@ -35,6 +35,11 @@ import {
   noiDungLopBaiChoHocVien,
   parseLopBaiNguCanh,
 } from "@/lib/chat/lop-bai-notice";
+import {
+  noiDungChaoLopChoHocVien,
+  parseChatChaoLop,
+} from "@/lib/chat/chao-lop-notice";
+import { parseChatPhongLopInvite } from "@/lib/chat/phong-lop-invite";
 import type {
   ChatContextCard,
   ChatMessage,
@@ -143,6 +148,14 @@ export function messagePreview(row: MessageRow): string {
   if (mocNhac) {
     return normalized.noi_dung?.trim() || `Nhắc mốc: ${mocNhac.ten}`;
   }
+  const phongLop = parseChatPhongLopInvite(normalized.ngu_canh);
+  if (phongLop) {
+    return normalized.noi_dung?.trim() || "Tham gia phòng học";
+  }
+  const chaoLop = parseChatChaoLop(normalized.ngu_canh);
+  if (chaoLop) {
+    return normalized.noi_dung?.trim() || noiDungChaoLopChoHocVien();
+  }
   const nguCanh = parseNguCanh(normalized.ngu_canh);
   if (nguCanh) {
     return `Trao đổi về: ${nguCanh.tieuDe}`;
@@ -222,16 +235,24 @@ export function mapMessageFromRow(
   const mocNhac = canvasBinhLuan || cuocGoi
     ? null
     : parseChatMocNhac(normalized.ngu_canh);
-  const lopBai =
+  const phongLop =
     canvasBinhLuan || cuocGoi || mocNhac
+      ? null
+      : parseChatPhongLopInvite(normalized.ngu_canh);
+  const chaoLop =
+    canvasBinhLuan || cuocGoi || mocNhac || phongLop
+      ? null
+      : parseChatChaoLop(normalized.ngu_canh);
+  const lopBai =
+    canvasBinhLuan || cuocGoi || mocNhac || phongLop || chaoLop
       ? null
       : parseLopBaiNguCanh(normalized.ngu_canh);
   const nguCanh =
-    canvasBinhLuan || cuocGoi || mocNhac || lopBai
+    canvasBinhLuan || cuocGoi || mocNhac || phongLop || chaoLop || lopBai
       ? null
       : parseNguCanh(normalized.ngu_canh);
   const mentions =
-    canvasBinhLuan || cuocGoi || mocNhac || lopBai
+    canvasBinhLuan || cuocGoi || mocNhac || phongLop || chaoLop || lopBai
       ? []
       : parseChatMessageMentions(normalized.ngu_canh);
   const forwarded = parseChatForwarded(normalized.ngu_canh);
@@ -241,19 +262,23 @@ export function mapMessageFromRow(
       ? "cuoc_goi"
       : mocNhac
         ? "moc_nhac"
-        : lopBai
-          ? "lop_bai"
-          : nguCanh
-            ? "context"
-            : normalized.loai_tin === "sticker"
-              ? "sticker"
-              : normalized.loai_tin === "media"
-                ? "media"
-                : normalized.loai_tin === "binh_chon"
-                  ? "binh_chon"
-                  : normalized.loai_tin === "system"
-                    ? "moc_nhac"
-                    : "text";
+        : phongLop
+          ? "phong_lop"
+          : chaoLop
+            ? "chao_lop"
+            : lopBai
+              ? "lop_bai"
+              : nguCanh
+                ? "context"
+                : normalized.loai_tin === "sticker"
+                  ? "sticker"
+                  : normalized.loai_tin === "media"
+                    ? "media"
+                    : normalized.loai_tin === "binh_chon"
+                      ? "binh_chon"
+                      : normalized.loai_tin === "system"
+                        ? "moc_nhac"
+                        : "text";
   const video = kind === "media" ? resolveVideo(normalized) : null;
   const imageId =
     !video && (kind === "media" || kind === "sticker")
@@ -267,6 +292,8 @@ export function mapMessageFromRow(
     body = "";
   } else if (video && body === video.key) {
     body = "";
+  } else if (chaoLop && normalized.id_nguoi_gui === viewerId) {
+    body = noiDungChaoLopChoHocVien();
   } else if (lopBai && lopBai.idNguoiDung === viewerId) {
     body = noiDungLopBaiChoHocVien(lopBai.loai, lopBai.tenBai || "bài tập");
   }
@@ -296,6 +323,8 @@ export function mapMessageFromRow(
     mentions: mentions.length > 0 ? mentions : undefined,
     poll: null,
     mocNhac,
+    phongLop,
+    chaoLop,
     lopBai,
     canvasBinhLuan,
     cuocGoi,
@@ -1219,6 +1248,7 @@ export async function listRoomMessages(
     filterMessagesForKyVisibility,
   } = await import("@/lib/co-so/lop-room-access");
   const { shouldShowLopBaiTin } = await import("@/lib/chat/lop-bai-notice");
+  const { shouldShowChaoLopTin } = await import("@/lib/chat/chao-lop-notice");
   const lopAccess = await getLopRoomAccess(roomId, viewerId);
 
   if (lopAccess.isLopRoom) {
@@ -1230,8 +1260,16 @@ export async function listRoomMessages(
           isStaff: lopAccess.isStaff,
         }),
       );
-    messages = filterLopBai(messages);
-    pinnedMessages = filterLopBai(pinnedMessages);
+    const filterChaoLop = (list: ChatMessage[]) =>
+      list.filter((m) =>
+        shouldShowChaoLopTin({
+          chaoLop: m.chaoLop,
+          senderUserId: m.senderUserId,
+          viewerId,
+        }),
+      );
+    messages = filterChaoLop(filterLopBai(messages));
+    pinnedMessages = filterChaoLop(filterLopBai(pinnedMessages));
   }
 
   if (lopAccess.isLopRoom && !lopAccess.canReadGap && lopAccess.lopId) {
@@ -1344,7 +1382,7 @@ export async function sendRoomMessage(
   if (lopAccess.isLopRoom && !lopAccess.canSend) {
     return {
       ok: false,
-      error: "Kỳ học đã hết — phòng lớp đang freeze. Gia hạn để tiếp tục nhắn.",
+      error: "Kỳ học đã hết — phòng lớp tạm khóa. Gia hạn để tiếp tục nhắn.",
     };
   }
 

@@ -1,0 +1,487 @@
+/* Admin · Tài chính CINs — config phí CSĐT / STK / pháp nhân */
+
+.admin-tc {
+  --tc-ink: var(--ink-display, rgba(0, 0, 0, 0.85));
+  --tc-muted: var(--ink-muted, rgba(0, 0, 0, 0.4));
+  --tc-title: var(--ink-title, rgba(0, 0, 0, 0.6));
+  --tc-blue: var(--cins-blue, #1f74c9);
+  --tc-blue-soft: var(--cins-blue-soft, #e7f0fb);
+  --tc-ok: #0d7a4f;
+  --tc-ok-bg: #e8f7ef;
+  --tc-warn: #9a6700;
+  --tc-warn-bg: #fff8e6;
+  --tc-err: #b42318;
+  --tc-err-bg: #fef3f2;
+  max-width: 920px;
+  padding: 4px 0 40px;
+  font-family: var(--font-sans, "Be Vietnam Pro", sans-serif);
+  color: var(--tc-ink);
+}
+
+.admin-tc-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px 20px;
+  margin-bottom: 20px;
+}
+
+.admin-tc-head h1 {
+  margin: 0 0 6px;
+  font-size: 1.4rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--tc-ink);
+}
+
+.admin-tc-lead {
+  margin: 0;
+  max-width: 42rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  font-weight: 400;
+  color: var(--tc-title);
+}
+
+.admin-tc-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  margin-top: 2px;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm, 10px);
+  font-size: 0.78rem;
+  font-weight: 500;
+  line-height: 1.3;
+  border: 1px solid transparent;
+}
+
+.admin-tc-badge.is-edit {
+  background: var(--tc-blue-soft);
+  color: var(--tc-blue);
+  border-color: color-mix(in srgb, var(--tc-blue) 18%, transparent);
+}
+
+.admin-tc-badge.is-view {
+  background: var(--bg-page, #f4f5f8);
+  color: var(--tc-muted);
+  border-color: var(--border, #e4e6eb);
+}
+
+.admin-tc-flash {
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm, 10px);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.admin-tc-flash.is-err {
+  background: var(--tc-err-bg);
+  color: var(--tc-err);
+  border: 1px solid color-mix(in srgb, var(--tc-err) 22%, transparent);
+}
+
+.admin-tc-flash.is-ok {
+  background: var(--tc-ok-bg);
+  color: var(--tc-ok);
+  border: 1px solid color-mix(in srgb, var(--tc-ok) 22%, transparent);
+}
+
+.admin-tc-loading {
+  margin: 24px 0;
+  color: var(--tc-muted);
+  font-size: 0.9rem;
+}
+
+/* Snapshot — một hàng số đang áp dụng */
+.admin-tc-snap {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 22px;
+}
+
+.admin-tc-snap-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding: 14px 16px;
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border, #e4e6eb);
+  border-radius: var(--radius-md, 14px);
+  box-shadow: var(--shadow-xs, 0 1px 2px rgba(15, 23, 42, 0.04));
+}
+
+.admin-tc-snap-cell .label {
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--tc-muted);
+}
+
+.admin-tc-snap-cell .value {
+  font-family: var(--font-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 1.15rem;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  color: var(--tc-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-tc-snap-cell .sub {
+  font-size: 0.75rem;
+  color: var(--tc-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.admin-tc-snap-cell.is-ready .value {
+  color: var(--tc-ok);
+}
+
+.admin-tc-snap-cell.is-gap .value {
+  color: var(--tc-warn);
+}
+
+/* Form panels */
+.admin-tc-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  align-items: start;
+}
+
+.admin-tc-panel {
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border, #e4e6eb);
+  border-radius: var(--radius-md, 14px);
+  box-shadow: var(--shadow-xs, 0 1px 2px rgba(15, 23, 42, 0.04));
+  overflow: hidden;
+}
+
+.admin-tc-panel.is-wide {
+  grid-column: 1 / -1;
+}
+
+.admin-tc-panel-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px 12px;
+  padding: 14px 18px 12px;
+  border-bottom: 1px solid var(--border, #e4e6eb);
+  background: color-mix(
+    in srgb,
+    var(--bg-page, #f4f5f8) 55%,
+    var(--bg-surface, #fff)
+  );
+}
+
+.admin-tc-panel-head h2 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--tc-ink);
+}
+
+.admin-tc-panel-head p {
+  margin: 0;
+  flex: 1 1 100%;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--tc-muted);
+}
+
+.admin-tc-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 500;
+}
+
+.admin-tc-status.is-ready {
+  background: var(--tc-ok-bg);
+  color: var(--tc-ok);
+}
+
+.admin-tc-status.is-gap {
+  background: var(--tc-warn-bg);
+  color: var(--tc-warn);
+}
+
+.admin-tc-panel-body {
+  display: grid;
+  gap: 12px;
+  padding: 16px 18px;
+}
+
+.admin-tc-panel-body.is-2col {
+  grid-template-columns: 1fr 1fr;
+}
+
+.admin-tc-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.admin-tc-field.is-span-2 {
+  grid-column: 1 / -1;
+}
+
+.admin-tc-field label {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--tc-title);
+}
+
+.admin-tc-field .hint {
+  font-size: 0.72rem;
+  color: var(--tc-muted);
+  line-height: 1.4;
+}
+
+.admin-tc-field input:not([type="checkbox"]),
+.admin-tc-field select,
+.admin-tc-field textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 9px 11px;
+  border: 1px solid var(--border, #e4e6eb);
+  border-radius: var(--radius-xs, 6px);
+  background: var(--bg-surface, #fff);
+  color: var(--tc-ink);
+  font: inherit;
+  font-size: 0.9rem;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.admin-tc-field input:not([type="checkbox"]):focus,
+.admin-tc-field select:focus,
+.admin-tc-field textarea:focus {
+  outline: none;
+  border-color: var(--tc-blue);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--tc-blue) 18%, transparent);
+}
+
+.admin-tc-field input:not([type="checkbox"]):disabled,
+.admin-tc-field select:disabled,
+.admin-tc-field textarea:disabled {
+  opacity: 0.65;
+  background: var(--bg-page, #f4f5f8);
+  cursor: not-allowed;
+}
+
+.admin-tc-field textarea {
+  resize: vertical;
+  min-height: 64px;
+}
+
+.admin-tc-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-xs, 6px);
+  border: 1px solid var(--border, #e4e6eb);
+  background: var(--bg-page, #f4f5f8);
+  font-size: 0.85rem;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--tc-title);
+  cursor: pointer;
+}
+
+.admin-tc-check input {
+  width: auto;
+  margin: 2px 0 0;
+  flex-shrink: 0;
+  accent-color: var(--tc-blue);
+}
+
+.admin-tc-check > span {
+  flex: 1;
+  min-width: 0;
+}
+
+.admin-tc-panel-foot {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 18px 16px;
+}
+
+.admin-tc-btn {
+  appearance: none;
+  border: 0;
+  border-radius: var(--radius-xs, 6px);
+  padding: 9px 16px;
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  background: var(--btn-grad-blue, linear-gradient(180deg, #2b8ae8 0%, #1f74c9 100%));
+  color: #fff;
+  box-shadow: var(--btn-grad-shadow, 0 3px 0 rgba(22, 86, 160, 0.28));
+  transition: filter 120ms ease, transform 120ms ease;
+}
+
+.admin-tc-btn:hover:not(:disabled) {
+  filter: brightness(1.03);
+  transform: translateY(-1px);
+}
+
+.admin-tc-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+/* History */
+.admin-tc-history {
+  margin-top: 8px;
+}
+
+.admin-tc-history-empty {
+  margin: 0;
+  padding: 20px 18px;
+  text-align: center;
+  font-size: 0.88rem;
+  color: var(--tc-muted);
+}
+
+.admin-tc-history-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-tc-history-item {
+  display: grid;
+  grid-template-columns: 148px 72px 1fr;
+  gap: 10px 14px;
+  align-items: baseline;
+  padding: 12px 18px;
+  border-top: 1px solid var(--border, #e4e6eb);
+  font-size: 0.85rem;
+}
+
+.admin-tc-history-item:first-child {
+  border-top: 0;
+}
+
+.admin-tc-history-item time {
+  font-family: var(--font-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 0.75rem;
+  color: var(--tc-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-tc-history-item .rate {
+  font-family: var(--font-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-weight: 500;
+  color: var(--tc-blue);
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-tc-history-item .meta {
+  color: var(--tc-title);
+  min-width: 0;
+}
+
+.admin-tc-history-item .meta strong {
+  font-weight: 500;
+  color: var(--tc-ink);
+}
+
+.admin-tc-history-item .note {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.8rem;
+  color: var(--tc-muted);
+  line-height: 1.4;
+}
+
+@media (max-width: 800px) {
+  .admin-tc-snap {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .admin-tc-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-tc-panel-body.is-2col {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-tc-history-item {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .admin-tc-history-item .meta {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-tc-snap {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-tc-btn,
+  .admin-tc-field input:not([type="checkbox"]),
+  .admin-tc-field select,
+  .admin-tc-field textarea {
+    transition: none;
+  }
+}
+
+/* Dark — tránh pastel sáng / mix #fff cứng trên nền tối */
+:root[data-theme="dark"] .admin-tc {
+  --tc-ok: #4ade80;
+  --tc-ok-bg: color-mix(in srgb, #22c55e 16%, var(--bg-surface, #171b24));
+  --tc-warn: #fbbf24;
+  --tc-warn-bg: color-mix(in srgb, #f59e0b 16%, var(--bg-surface, #171b24));
+  --tc-err: #f87171;
+  --tc-err-bg: color-mix(in srgb, #ef4444 16%, var(--bg-surface, #171b24));
+}
+
+:root[data-theme="dark"] .admin-tc-panel {
+  box-shadow: none;
+}
+
+:root[data-theme="dark"] .admin-tc-snap-cell {
+  box-shadow: none;
+}
+
+:root[data-theme="dark"] .admin-tc-panel-head {
+  background: color-mix(
+    in srgb,
+    var(--bg-page, #0e1117) 72%,
+    var(--bg-surface, #171b24)
+  );
+}
+
+:root[data-theme="dark"] .admin-tc-check {
+  background: color-mix(in srgb, var(--bg-page, #0e1117) 55%, transparent);
+  border-color: var(--border, rgba(255, 255, 255, 0.12));
+}
+
+:root[data-theme="dark"] .admin-tc-field input:not([type="checkbox"]):disabled,
+:root[data-theme="dark"] .admin-tc-field select:disabled,
+:root[data-theme="dark"] .admin-tc-field textarea:disabled {
+  background: color-mix(in srgb, var(--bg-page, #0e1117) 70%, var(--bg-surface, #171b24));
+}
