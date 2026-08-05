@@ -15,7 +15,7 @@ export const maxDuration = 300;
 
 /**
  * POST /api/admin/port-clone/import
- * Body: { idTaiKhoan, platform, url, html?, apply?, preview?, fallbackTitle? }
+ * Body: { idTaiKhoan | idNguoiDung | idToChuc, platform, url, html?, apply?, preview?, fallbackTitle? }
  */
 export async function POST(request: Request) {
   const role = await getCurrentUserSystemRole();
@@ -26,6 +26,7 @@ export async function POST(request: Request) {
   let body: {
     idTaiKhoan?: unknown;
     idNguoiDung?: unknown;
+    idToChuc?: unknown;
     platform?: unknown;
     url?: unknown;
     html?: unknown;
@@ -43,15 +44,22 @@ export async function POST(request: Request) {
     typeof body.idTaiKhoan === "string" ? body.idTaiKhoan.trim() : "";
   const idNguoiDung =
     typeof body.idNguoiDung === "string" ? body.idNguoiDung.trim() : "";
-  if (!idTaiKhoan && !idNguoiDung) {
+  const idToChuc =
+    typeof body.idToChuc === "string" ? body.idToChuc.trim() : "";
+  const targetCount = [idTaiKhoan, idNguoiDung, idToChuc].filter(Boolean)
+    .length;
+  if (targetCount === 0) {
     return NextResponse.json(
-      { error: "Thiếu idTaiKhoan hoặc idNguoiDung.", field: "idTaiKhoan" },
+      {
+        error: "Thiếu idTaiKhoan, idNguoiDung hoặc idToChuc.",
+        field: "idTaiKhoan",
+      },
       { status: 400 },
     );
   }
-  if (idTaiKhoan && idNguoiDung) {
+  if (targetCount > 1) {
     return NextResponse.json(
-      { error: "Chỉ chọn một đích: nick seeding hoặc user thật." },
+      { error: "Chỉ chọn một đích: nick seeding, user thật, hoặc ORG." },
       { status: 400 },
     );
   }
@@ -70,6 +78,7 @@ export async function POST(request: Request) {
     const result = await importPortVaoNick({
       idTaiKhoan: idTaiKhoan || null,
       idNguoiDung: idNguoiDung || null,
+      idToChuc: idToChuc || null,
       platform: body.platform,
       url,
       html: typeof body.html === "string" ? body.html : "",

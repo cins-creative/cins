@@ -149,6 +149,8 @@ type Props = {
   title?: string;
   /** Báo số quầy đang chờ duyệt (sau mỗi lần tải danh sách). */
   onPendingCountChange?: (count: number) => void;
+  /** Profile id viewer — nếu truyền (kể cả null) thì không fetch session-profile. */
+  viewerProfileId?: string | null;
 };
 
 function QuayUserMeta({ q }: { q: ShopQuaySuKien }) {
@@ -569,15 +571,21 @@ export function ShopQuaySuKienPanel({
   canManage = false,
   alwaysShow = false,
   onPendingCountChange,
+  viewerProfileId: viewerProfileIdProp,
 }: Props) {
   const [items, setItems] = useState<ShopQuaySuKien[]>([]);
   const [loading, setLoading] = useState(true);
-  const [viewerProfileId, setViewerProfileId] = useState<string | null>(null);
+  const [viewerProfileId, setViewerProfileId] = useState<string | null>(
+    viewerProfileIdProp !== undefined ? viewerProfileIdProp : null,
+  );
   const [busyId, setBusyId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const deferredSearch = useDeferredValue(search);
   /** Chế độ lưới: shop (cửa hàng) · hàng (sản phẩm). */
   const [browseMode, setBrowseMode] = useState<"shop" | "hang">("shop");
+  const [hangLoading, setHangLoading] = useState(false);
+  const [hangLoaded, setHangLoaded] = useState(false);
+  const hangInflightRef = useRef(false);
   const [reasonTarget, setReasonTarget] = useState<{
     id: string;
     mode: "reject" | "revoke";
@@ -586,29 +594,15 @@ export function ShopQuaySuKienPanel({
   const [actionErr, setActionErr] = useState<string | null>(null);
 
   useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      try {
-        const res = await fetch("/api/auth/session-profile", {
-          cache: "no-store",
-        });
-        const json = (await res.json().catch(() => null)) as {
-          profile?: { id?: string } | null;
-        } | null;
-        if (!cancelled) {
-          setViewerProfileId(json?.profile?.id?.trim() || null);
-        }
-      } catch {
-        if (!cancelled) setViewerProfileId(null);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    if (viewerProfileIdProp !== undefined) {
+      setViewerProfileId(viewerProfileIdProp);
+    }
+  }, [viewerProfileIdProp]);
 
   const load = useCallback(async () => {
     setLoading(true);
+    setHangLoaded(false);
+    hangInflightRef.current = false;
     try {
       const q = canManage ? "?pending=1" : "";
       const res = await fetch(`/api/su-kien/${suKienId}/quay${q}`, {
@@ -630,6 +624,51 @@ export function ShopQuaySuKienPanel({
   useEffect(() => {
     void load();
   }, [load]);
+
+  const ensureHang = useCallback(async () => {
+    if (canManage || hangLoaded || hangInflightRef.current) return;
+    hangInflightRef.current = true;
+    setHangLoading(true);
+    try {
+      const res = await fetch(
+        `/api/su-kien/${encodeURIComponent(suKienId)}/quay/hang`,
+        { cache: "no-store" },
+      );
+      const json = (await res.json().catch(() => null)) as {
+        bySeller?: Record<string, ShopQuayHangSearch[]>;
+      } | null;
+      const bySeller = json?.bySeller ?? {};
+      setItems((prev) =>
+        prev.map((item) => ({
+          ...item,
+          hangSearch: bySeller[item.idNguoiDung] ?? item.hangSearch,
+        })),
+      );
+      setHangLoaded(true);
+
+      /* Lazy session chỉ khi cần giỏ và chưa có prop. */
+      if (viewerProfileIdProp === undefined) {
+        try {
+          const sp = await fetch("/api/auth/session-profile", {
+            cache: "no-store",
+          });
+          const spJson = (await sp.json().catch(() => null)) as {
+            profile?: { id?: string } | null;
+          } | null;
+          setViewerProfileId(spJson?.profile?.id?.trim() || null);
+        } catch {
+          setViewerProfileId(null);
+        }
+      }
+    } finally {
+      hangInflightRef.current = false;
+      setHangLoading(false);
+    }
+  }, [canManage, hangLoaded, suKienId, viewerProfileIdProp]);
+
+  useEffect(() => {
+    if (browseMode === "hang") void ensureHang();
+  }, [browseMode, ensureHang]);
 
   async function respond(
     id: string,
@@ -799,7 +838,11 @@ export function ShopQuaySuKienPanel({
 
       {!canManage ? (
         showHangCatalog ? (
-          hangCards.length ? (
+          hangLoading && !hangLoaded ? (
+            <p className="shop-dash-hint">
+              <Loader2 className="shop-spin" size={14} /> Đang tải hàng…
+            </p>
+          ) : hangCards.length ? (
             <QuayHangCatalogView
               cards={hangCards}
               onOpen={openShopStorefront}
@@ -844,7 +887,7 @@ export function ShopQuaySuKienPanel({
           ) : null}
 
           {approved.length ? (
-            <ul className="shop-dash-list">
+            <ul className="shop-dash-list shop-quay-manage-grid">
               {approved.map((q) => {
                 const asking = reasonTarget?.id === q.id;
                 return (

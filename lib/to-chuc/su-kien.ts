@@ -1,5 +1,6 @@
 import "server-only";
 
+import { countQuayDaDuyet, countQuayDaDuyetBySuKienIds } from "@/lib/shop/quay-count";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { resolveTruongImageSrcSync } from "@/lib/truong/media-url";
 
@@ -142,13 +143,25 @@ export async function listSuKienCuaOrg(
   if (error) return { ok: false, error: error.message };
 
   const rows = (data ?? []) as SuKienRow[];
-  const counts = await demDangKySeThamGia(rows.map((r) => r.id));
-  const loaiVeMap = await listLoaiVeBySuKienIds(rows.map((r) => r.id));
+  const ids = rows.map((r) => r.id);
+  const [counts, loaiVeMap, quayCounts] = await Promise.all([
+    demDangKySeThamGia(ids),
+    listLoaiVeBySuKienIds(ids),
+    countQuayDaDuyetBySuKienIds(ids),
+  ]);
   return {
     ok: true,
-    suKien: rows.map((row) =>
-      mapRow(row, counts.get(row.id) ?? 0, loaiVeMap.get(row.id) ?? []),
-    ),
+    suKien: rows.map((row) => {
+      const mapped = mapRow(
+        row,
+        counts.get(row.id) ?? 0,
+        loaiVeMap.get(row.id) ?? [],
+      );
+      return {
+        ...mapped,
+        hasQuay: (quayCounts.get(row.id) ?? 0) > 0,
+      };
+    }),
   };
 }
 
@@ -341,10 +354,16 @@ async function mapPublicDetail(
   if (!org?.slug?.trim() || !org.ten?.trim()) return null;
 
   const orgAvatarId = org.avatar_id ?? org.logo_id;
-  const counts = await demDangKySeThamGia([data.id]);
-  const loaiVe = await listLoaiVeCuaSuKien(data.id);
+  const [counts, loaiVe, quayCount] = await Promise.all([
+    demDangKySeThamGia([data.id]),
+    listLoaiVeCuaSuKien(data.id),
+    countQuayDaDuyet(data.id),
+  ]);
   return {
-    suKien: mapRow(data, counts.get(data.id) ?? 0, loaiVe),
+    suKien: {
+      ...mapRow(data, counts.get(data.id) ?? 0, loaiVe),
+      hasQuay: quayCount > 0,
+    },
     orgId: data.id_to_chuc,
     orgSlug: org.slug.trim(),
     orgTen: org.ten.trim(),

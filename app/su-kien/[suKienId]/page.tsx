@@ -106,6 +106,7 @@ export default async function SuKienDetailPage({ params }: Props) {
         orgTinhThanh={detail.orgTinhThanh}
         canManage={canManage}
         suKien={detail.suKien}
+        viewerProfileId={session?.profile?.id ?? null}
       />
     </CinsShell>
   );

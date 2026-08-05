@@ -1171,7 +1171,6 @@ export function KhoaHocDetailView({
     if (!isManagingKhoa) {
       setBaiTapOpen(false);
       setEditingBaiTap(null);
-      setKhoaEditOpen(false);
       setLopOpen(false);
       setEditingLop(null);
     }

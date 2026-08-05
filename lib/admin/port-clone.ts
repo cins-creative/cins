@@ -1,5 +1,5 @@
 /**
- * Admin kéo portfolio vào nick seeding (clone / AI roster) hoặc user thật.
+ * Admin kéo portfolio vào nick seeding (clone / AI roster), user thật, hoặc ORG.
  * Plan: docs → Clone portfolio extensions.
  */
 import "server-only";
@@ -8,6 +8,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { lietKeNick } from "@/lib/admin/autopilot";
 import type { AutopilotNickRow } from "@/lib/admin/autopilot-types";
+import { insertDiemFeedChoBaiMoi } from "@/lib/cins/feed-scoring-write";
+import { ensureEmbedAutoCover } from "@/lib/editor/ensure-embed-auto-cover";
+import type { Block } from "@/lib/editor/types";
 import {
   applyPortImport,
   buildPortPreview,
@@ -15,13 +18,32 @@ import {
   type PortPlatform,
 } from "@/lib/port/import";
 import { getAvatarUrl } from "@/lib/journey/profile";
+import { orgLoaiLabel, orgPostHref } from "@/lib/search/helpers";
 import {
   createServiceRoleClient,
   hasServiceRoleEnv,
 } from "@/lib/supabase/service-role";
+import {
+  ORG_BAI_DANG_API_SELECT,
+} from "@/lib/truong/bai-dang-api-fields";
+import {
+  sanitizeBaiDangBlocksInput,
+  validateOrgBaiDangContent,
+} from "@/lib/truong/bai-dang-blocks";
+import { sanitizeBaiDangCoverIdInput } from "@/lib/truong/bai-dang-cover";
+import { resolveOrgBaiDangLoaiForWrite } from "@/lib/truong/bai-dang";
 
 const PLATFORMS: readonly PortPlatform[] = ["behance", "artstation", "carrd"];
 const USER_SEARCH_LIMIT = 24;
+const ORG_SEARCH_LIMIT = 24;
+
+/** Org có Journey `org_bai_dang` — không gồm cộng đồng (post = content_cot_moc). */
+const PORT_CLONE_ORG_LOAI = [
+  "truong_dai_hoc",
+  "co_so_dao_tao",
+  "studio",
+  "doanh_nghiep",
+] as const;
 
 function adminDb(): SupabaseClient {
   if (!hasServiceRoleEnv()) {
@@ -52,10 +74,29 @@ export type PortCloneUserThat = {
   avatarUrl: string | null;
 };
 
-type ImportTarget = {
+export type PortCloneOrg = {
+  idToChuc: string;
+  slug: string;
+  ten: string;
+  loaiToChuc: string;
+  loaiLabel: string;
+  avatarUrl: string | null;
+};
+
+type ImportTargetUser = {
+  kind: "user";
   slug: string;
   idNguoiDung: string;
 };
+
+type ImportTargetOrg = {
+  kind: "org";
+  idToChuc: string;
+  slug: string;
+  loaiToChuc: string;
+};
+
+type ImportTarget = ImportTargetUser | ImportTargetOrg;
 
 /** Roster cho extension — ưu tiên clone, kèm ai có profile. */
 export async function lietKeNickPortClone(): Promise<PortCloneNick[]> {
@@ -150,7 +191,67 @@ export async function timUserThatPortClone(
   return items.filter((u) => u.slug);
 }
 
-async function resolveNick(idTaiKhoan: string): Promise<ImportTarget> {
+/**
+ * Search org có Journey `org_bai_dang` (trường / CSĐT / studio).
+ */
+export async function timOrgPortClone(qRaw: string): Promise<PortCloneOrg[]> {
+  const q = qRaw.trim().replace(/^@+/, "");
+  if (q.length < 2) return [];
+
+  const safe = q.replace(/[%_]/g, "").trim();
+  if (safe.length < 2) return [];
+  const like = `%${safe}%`;
+
+  const db = adminDb();
+  const [bySlug, byTen] = await Promise.all([
+    db
+      .from("org_to_chuc")
+      .select("id, ten, slug, loai_to_chuc, avatar_id, trang_thai_hoat_dong")
+      .in("loai_to_chuc", [...PORT_CLONE_ORG_LOAI])
+      .neq("trang_thai_hoat_dong", "da_dong_cua")
+      .ilike("slug", like)
+      .order("slug", { ascending: true })
+      .limit(ORG_SEARCH_LIMIT),
+    db
+      .from("org_to_chuc")
+      .select("id, ten, slug, loai_to_chuc, avatar_id, trang_thai_hoat_dong")
+      .in("loai_to_chuc", [...PORT_CLONE_ORG_LOAI])
+      .neq("trang_thai_hoat_dong", "da_dong_cua")
+      .ilike("ten", like)
+      .order("slug", { ascending: true })
+      .limit(ORG_SEARCH_LIMIT),
+  ]);
+
+  if (bySlug.error) throw new Error(bySlug.error.message);
+  if (byTen.error) throw new Error(byTen.error.message);
+
+  const seen = new Set<string>();
+  const items: PortCloneOrg[] = [];
+  for (const row of [...(bySlug.data ?? []), ...(byTen.data ?? [])]) {
+    const id = String((row as { id?: string }).id || "");
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    const loai = String(
+      (row as { loai_to_chuc?: string }).loai_to_chuc || "",
+    );
+    const slug = String((row as { slug?: string }).slug || "");
+    if (!slug) continue;
+    items.push({
+      idToChuc: id,
+      slug,
+      ten: String((row as { ten?: string }).ten || slug),
+      loaiToChuc: loai,
+      loaiLabel: orgLoaiLabel(loai),
+      avatarUrl: getAvatarUrl(
+        (row as { avatar_id?: string | null }).avatar_id ?? null,
+      ),
+    });
+    if (items.length >= ORG_SEARCH_LIMIT) break;
+  }
+  return items;
+}
+
+async function resolveNick(idTaiKhoan: string): Promise<ImportTargetUser> {
   const db = adminDb();
   const { data, error } = await db
     .from("auto_tai_khoan")
@@ -162,12 +263,13 @@ async function resolveNick(idTaiKhoan: string): Promise<ImportTarget> {
     throw new Error("Nick chưa gắn profile — không import được.");
   }
   return {
+    kind: "user",
     slug: data.slug as string,
     idNguoiDung: data.id_nguoi_dung as string,
   };
 }
 
-async function resolveUserThat(idNguoiDung: string): Promise<ImportTarget> {
+async function resolveUserThat(idNguoiDung: string): Promise<ImportTargetUser> {
   const db = adminDb();
   const { data, error } = await db
     .from("user_nguoi_dung")
@@ -182,28 +284,156 @@ async function resolveUserThat(idNguoiDung: string): Promise<ImportTarget> {
     throw new Error("User chưa hoàn tất onboarding.");
   }
   return {
+    kind: "user",
     slug: data.slug as string,
     idNguoiDung: data.id as string,
   };
 }
 
+async function resolveOrg(idToChuc: string): Promise<ImportTargetOrg> {
+  const db = adminDb();
+  const { data, error } = await db
+    .from("org_to_chuc")
+    .select("id, slug, loai_to_chuc, trang_thai_hoat_dong")
+    .eq("id", idToChuc)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data?.id || !data.slug) {
+    throw new Error("Không tìm thấy tổ chức.");
+  }
+  const loai = String(data.loai_to_chuc || "");
+  if (
+    !(PORT_CLONE_ORG_LOAI as readonly string[]).includes(loai)
+  ) {
+    throw new Error(
+      "ORG này không dùng org_bai_dang (cộng đồng đăng qua Journey thành viên).",
+    );
+  }
+  if (data.trang_thai_hoat_dong === "da_dong_cua") {
+    throw new Error("Tổ chức đã đóng cửa.");
+  }
+  return {
+    kind: "org",
+    idToChuc: data.id as string,
+    slug: data.slug as string,
+    loaiToChuc: loai,
+  };
+}
+
+function countTargets(params: {
+  idTaiKhoan?: string | null;
+  idNguoiDung?: string | null;
+  idToChuc?: string | null;
+}): number {
+  return [
+    params.idTaiKhoan?.trim(),
+    params.idNguoiDung?.trim(),
+    params.idToChuc?.trim(),
+  ].filter(Boolean).length;
+}
+
 async function resolveImportTarget(params: {
   idTaiKhoan?: string | null;
   idNguoiDung?: string | null;
+  idToChuc?: string | null;
 }): Promise<ImportTarget> {
   const idTaiKhoan = params.idTaiKhoan?.trim() || "";
   const idNguoiDung = params.idNguoiDung?.trim() || "";
-  if (idTaiKhoan && idNguoiDung) {
-    throw new Error("Chỉ chọn một đích: nick seeding hoặc user thật.");
+  const idToChuc = params.idToChuc?.trim() || "";
+  if (countTargets(params) > 1) {
+    throw new Error("Chỉ chọn một đích: nick seeding, user thật, hoặc ORG.");
   }
   if (idTaiKhoan) return resolveNick(idTaiKhoan);
   if (idNguoiDung) return resolveUserThat(idNguoiDung);
-  throw new Error("Thiếu idTaiKhoan hoặc idNguoiDung.");
+  if (idToChuc) return resolveOrg(idToChuc);
+  throw new Error("Thiếu idTaiKhoan, idNguoiDung hoặc idToChuc.");
+}
+
+function loaiBaiDangChoPortOrg(loaiToChuc: string): string {
+  if (loaiToChuc === "studio" || loaiToChuc === "doanh_nghiep") {
+    return resolveOrgBaiDangLoaiForWrite("showcase");
+  }
+  return resolveOrgBaiDangLoaiForWrite("su_kien");
+}
+
+async function applyPortImportToOrg(params: {
+  target: ImportTargetOrg;
+  preview: PortImportPreview;
+}): Promise<{ duongDan: string; slugBai: string }> {
+  const { target, preview } = params;
+  let blocks = sanitizeBaiDangBlocksInput(preview.blocks);
+  if (!blocks.length) {
+    throw new Error("Preview không có block.");
+  }
+
+  let coverId = sanitizeBaiDangCoverIdInput(preview.coverId, blocks);
+  try {
+    const autoCover = await ensureEmbedAutoCover({
+      coverId,
+      blocks: blocks as Block[],
+    });
+    blocks = autoCover.blocks;
+    coverId = autoCover.coverId;
+  } catch {
+    /* best-effort */
+  }
+
+  const contentCheck = validateOrgBaiDangContent({
+    tomTat: preview.moTa,
+    coverId,
+    blocks,
+  });
+  if (!contentCheck.ok) {
+    throw new Error(contentCheck.error);
+  }
+  const tomTat = contentCheck.resolution.effectiveMoTa;
+
+  const db = adminDb();
+  const insertRow = {
+    id_to_chuc: target.idToChuc,
+    tieu_de: preview.tieuDe,
+    tom_tat: tomTat,
+    noi_dung_blocks: blocks,
+    cover_id: coverId,
+    loai_bai_dang: loaiBaiDangChoPortOrg(target.loaiToChuc),
+    trang_thai: "da_dang",
+  };
+
+  const { data, error } = await db
+    .from("org_bai_dang")
+    .insert(insertRow)
+    .select(ORG_BAI_DANG_API_SELECT)
+    .single();
+  if (error) throw new Error(error.message);
+
+  const row = data as {
+    id: string;
+    tom_tat?: string | null;
+    cover_id?: string | null;
+    noi_dung_blocks?: unknown;
+  };
+
+  await insertDiemFeedChoBaiMoi({
+    loai: "org_bai_dang",
+    id: row.id,
+    coverId: typeof row.cover_id === "string" ? row.cover_id : null,
+    moTa: typeof row.tom_tat === "string" ? row.tom_tat : null,
+    blocks: Array.isArray(row.noi_dung_blocks)
+      ? (row.noi_dung_blocks as Block[])
+      : null,
+    hasTag: false,
+  });
+
+  return {
+    duongDan: orgPostHref(target.loaiToChuc, target.slug, row.id),
+    slugBai: row.id,
+  };
 }
 
 export async function importPortVaoNick(params: {
   idTaiKhoan?: string | null;
   idNguoiDung?: string | null;
+  idToChuc?: string | null;
   platform: string;
   url: string;
   html: string;
@@ -222,6 +452,7 @@ export async function importPortVaoNick(params: {
   const target = await resolveImportTarget({
     idTaiKhoan: params.idTaiKhoan,
     idNguoiDung: params.idNguoiDung,
+    idToChuc: params.idToChuc,
   });
 
   let preview: PortImportPreview;
@@ -250,6 +481,11 @@ export async function importPortVaoNick(params: {
     throw new Error("Preview không có block.");
   }
 
+  if (target.kind === "org") {
+    const result = await applyPortImportToOrg({ target, preview });
+    return { preview, ...result };
+  }
+
   const result = await applyPortImport({
     idNguoiDung: target.idNguoiDung,
     slugChu: target.slug,
@@ -266,21 +502,33 @@ export async function importPortVaoNick(params: {
   };
 }
 
-/** Magic link đăng nhập đúng auth của nick/user → redirect tới bài. */
+/** Magic link đăng nhập đúng auth của nick/user → redirect tới bài.
+ *  ORG: trả URL tuyệt đối (admin đã đăng nhập — không magic link). */
 export async function taoMagicLinkMoBai(params: {
   idTaiKhoan?: string | null;
   idNguoiDung?: string | null;
+  idToChuc?: string | null;
   duongDan: string;
-}): Promise<{ actionLink: string; email: string }> {
+}): Promise<{ actionLink: string; email: string | null }> {
+  const path = params.duongDan.startsWith("/")
+    ? params.duongDan
+    : `/${params.duongDan}`;
+  const absolute = `${siteUrl()}${path}`;
+
+  if (params.idToChuc?.trim()) {
+    await resolveOrg(params.idToChuc.trim());
+    return { actionLink: absolute, email: null };
+  }
+
   const target = await resolveImportTarget({
     idTaiKhoan: params.idTaiKhoan,
     idNguoiDung: params.idNguoiDung,
   });
-  const path = params.duongDan.startsWith("/")
-    ? params.duongDan
-    : `/${params.duongDan}`;
-  const redirectTo = `${siteUrl()}${path}`;
+  if (target.kind !== "user") {
+    return { actionLink: absolute, email: null };
+  }
 
+  const redirectTo = absolute;
   const db = adminDb();
   const { data: profile, error: pErr } = await db
     .from("user_nguoi_dung")

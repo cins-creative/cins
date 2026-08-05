@@ -310,9 +310,17 @@ export async function setCinsTaiChinh(
       ) {
         egress = Math.floor(patch.csdtNguongEgressGb);
       } else {
-        return { ok: false, error: "Ngưỡng egress GB phải > 0 hoặc để trống (tắt)." };
+        return {
+          ok: false,
+          error:
+            "Ngưỡng dung lượng phòng học (GB) phải > 0 hoặc để trống (tắt).",
+        };
       }
-      ghiChu = emptyToNull(patch.ghiChu) ?? (egress == null ? "Tắt ngưỡng egress" : `Đặt egress ${egress} GB`);
+      ghiChu =
+        emptyToNull(patch.ghiChu) ??
+        (egress == null
+          ? "Tắt ngưỡng dung lượng phòng học"
+          : `Đặt ngưỡng dung lượng phòng học ${egress} GB`);
       break;
     }
     case "stk": {

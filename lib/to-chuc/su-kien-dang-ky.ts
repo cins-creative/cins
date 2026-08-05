@@ -1,5 +1,8 @@
 import "server-only";
 
+import type { FeedFriendAttendee } from "@/components/journey/milestone-types";
+import { getAvatarUrl } from "@/lib/journey/profile";
+import { listFriends } from "@/lib/social/ket-ban";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import {
   isLoaiPhanHoiSuKien,
@@ -14,10 +17,23 @@ export {
 
 const TRANG_THAI_HUY = new Set(["tu_choi", "huy"]);
 
+/** Tối đa bạn bè giữ lại mỗi loại phản hồi (tránh payload phình). */
+const MAX_FRIEND_ATTENDEES = 30;
+
 type DangKyRow = {
   id: string;
   loai_phan_hoi: string;
   trang_thai: string;
+};
+
+export type SuKienPhanHoiCounts = {
+  soQuanTam: number;
+  soSeThamGia: number;
+};
+
+export type SuKienBanBePhanHoi = {
+  banBeQuanTam: FeedFriendAttendee[];
+  banBeSeThamGia: FeedFriendAttendee[];
 };
 
 async function getSuKienMeta(suKienId: string): Promise<{
@@ -60,6 +76,114 @@ export async function demDangKySeThamGia(
     counts.set(sid, (counts.get(sid) ?? 0) + 1);
   }
   return counts;
+}
+
+/** Đếm quan tâm + sẽ tham gia cho một sự kiện (cùng exclusion `trang_thai`). */
+export async function demPhanHoiSuKien(
+  suKienId: string,
+): Promise<SuKienPhanHoiCounts> {
+  const out: SuKienPhanHoiCounts = { soQuanTam: 0, soSeThamGia: 0 };
+  if (!suKienId) return out;
+
+  const admin = createServiceRoleClient();
+  const { data } = await admin
+    .from("org_dang_ky_su_kien")
+    .select("loai_phan_hoi, trang_thai")
+    .eq("id_su_kien", suKienId)
+    .returns<Array<{ loai_phan_hoi: string; trang_thai: string }>>();
+
+  for (const row of data ?? []) {
+    if (TRANG_THAI_HUY.has(row.trang_thai ?? "")) continue;
+    if (row.loai_phan_hoi === "se_tham_gia") out.soSeThamGia += 1;
+    else if (row.loai_phan_hoi === "quan_tam") out.soQuanTam += 1;
+  }
+  return out;
+}
+
+/**
+ * Bạn bè đã kết bạn (accepted) phản hồi sự kiện — tách quan_tam / se_tham_gia.
+ * Fetch 2 bước (đăng ký → profile) rồi join JS: không phụ thuộc FK embed PostgREST.
+ */
+export async function layBanBePhanHoiSuKien(
+  suKienId: string,
+  viewerProfileId: string,
+): Promise<SuKienBanBePhanHoi> {
+  const empty: SuKienBanBePhanHoi = {
+    banBeQuanTam: [],
+    banBeSeThamGia: [],
+  };
+  if (!suKienId || !viewerProfileId) return empty;
+
+  const friendIds = await listFriends(viewerProfileId);
+  if (friendIds.length === 0) return empty;
+
+  const admin = createServiceRoleClient();
+  const { data: regs } = await admin
+    .from("org_dang_ky_su_kien")
+    .select("id_nguoi_dung, loai_phan_hoi, trang_thai")
+    .eq("id_su_kien", suKienId)
+    .in("id_nguoi_dung", friendIds)
+    .in("loai_phan_hoi", ["quan_tam", "se_tham_gia"])
+    .returns<
+      Array<{
+        id_nguoi_dung: string;
+        loai_phan_hoi: string;
+        trang_thai: string;
+      }>
+    >();
+
+  const pairs: Array<{ userId: string; loai: LoaiPhanHoiSuKien }> = [];
+  const userIds = new Set<string>();
+  for (const row of regs ?? []) {
+    if (TRANG_THAI_HUY.has(row.trang_thai ?? "")) continue;
+    if (!isLoaiPhanHoiSuKien(row.loai_phan_hoi)) continue;
+    pairs.push({ userId: row.id_nguoi_dung, loai: row.loai_phan_hoi });
+    userIds.add(row.id_nguoi_dung);
+  }
+  if (pairs.length === 0) return empty;
+
+  const { data: users } = await admin
+    .from("user_nguoi_dung")
+    .select("id, slug, ten_hien_thi, avatar_id")
+    .in("id", [...userIds])
+    .returns<
+      Array<{
+        id: string;
+        slug: string | null;
+        ten_hien_thi: string | null;
+        avatar_id: string | null;
+      }>
+    >();
+
+  const byUser = new Map<string, FeedFriendAttendee>();
+  for (const u of users ?? []) {
+    const slug = u.slug?.trim();
+    if (!slug) continue;
+    const name = u.ten_hien_thi?.trim() || slug;
+    byUser.set(u.id, {
+      id: u.id,
+      slug,
+      name,
+      avatarUrl: getAvatarUrl(u.avatar_id),
+      initial: name.slice(0, 1).toUpperCase(),
+    });
+  }
+
+  const banBeQuanTam: FeedFriendAttendee[] = [];
+  const banBeSeThamGia: FeedFriendAttendee[] = [];
+  for (const { userId, loai } of pairs) {
+    const attendee = byUser.get(userId);
+    if (!attendee) continue;
+    if (loai === "se_tham_gia") {
+      if (banBeSeThamGia.length < MAX_FRIEND_ATTENDEES) {
+        banBeSeThamGia.push(attendee);
+      }
+    } else if (banBeQuanTam.length < MAX_FRIEND_ATTENDEES) {
+      banBeQuanTam.push(attendee);
+    }
+  }
+
+  return { banBeQuanTam, banBeSeThamGia };
 }
 
 export async function layPhanHoiViewer(
@@ -115,6 +239,8 @@ export async function datPhanHoiSuKien(
       ok: true;
       loai: LoaiPhanHoiSuKien | null;
       soDangKy: number;
+      soQuanTam: number;
+      soSeThamGia: number;
     }
   | { ok: false; error: string }
 > {
@@ -139,8 +265,14 @@ export async function datPhanHoiSuKien(
       .delete()
       .eq("id", existing.id);
     if (delErr) return { ok: false, error: delErr.message };
-    const counts = await demDangKySeThamGia([suKienId]);
-    return { ok: true, loai: null, soDangKy: counts.get(suKienId) ?? 0 };
+    const counts = await demPhanHoiSuKien(suKienId);
+    return {
+      ok: true,
+      loai: null,
+      soDangKy: counts.soSeThamGia,
+      soQuanTam: counts.soQuanTam,
+      soSeThamGia: counts.soSeThamGia,
+    };
   }
 
   if (loai === "se_tham_gia" && meta.slotToiDa != null) {
@@ -175,6 +307,12 @@ export async function datPhanHoiSuKien(
     if (error) return { ok: false, error: error.message };
   }
 
-  const counts = await demDangKySeThamGia([suKienId]);
-  return { ok: true, loai, soDangKy: counts.get(suKienId) ?? 0 };
+  const counts = await demPhanHoiSuKien(suKienId);
+  return {
+    ok: true,
+    loai,
+    soDangKy: counts.soSeThamGia,
+    soQuanTam: counts.soQuanTam,
+    soSeThamGia: counts.soSeThamGia,
+  };
 }

@@ -105,7 +105,11 @@ export function CongDongSuKienDetailHost({
 
   function handleUpdated(suKien: SuKienCardData) {
     setItems((prev) =>
-      prev.map((s) => (s.id === suKien.id ? suKien : s)),
+      prev.map((s) =>
+        s.id === suKien.id
+          ? { ...suKien, hasQuay: suKien.hasQuay ?? s.hasQuay }
+          : s,
+      ),
     );
     setEditing(null);
     if (typeof window !== "undefined") {

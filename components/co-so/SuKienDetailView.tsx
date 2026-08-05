@@ -20,12 +20,14 @@ import {
   useEffect,
   useId,
   useMemo,
+  useRef,
   useState,
   useTransition,
 } from "react";
 
 import { ArticleRichBody } from "@/components/article/ArticleRichBody";
 import { useAuthGate } from "@/components/auth/AuthGateProvider";
+import type { FeedFriendAttendee } from "@/components/journey/milestone-types";
 import { ShopQuaySuKienPanel } from "@/components/shop/ShopQuaySuKienPanel";
 import { SuKienManagePanel } from "@/components/co-so/SuKienManagePanel";
 import { ShareLinkMenu } from "@/components/social/ShareLinkMenu";
@@ -33,7 +35,6 @@ import { orgLoaiLabel } from "@/lib/cins/home-adaptive/suggestions-display";
 import type { LoaiPhanHoiSuKien } from "@/lib/to-chuc/su-kien-phan-hoi-types";
 import {
   formatGiaVnd,
-  labelLoaiSuKien,
   labelSuKienVe,
   type SuKienCardData,
   type SuKienLoaiVe,
@@ -111,46 +112,27 @@ function SuKienLoaiVeList({
 
 type SuKienDetailMainTabId = "quay" | "thong_tin" | "ve";
 
-/** Tab nội dung chính: Quầy (nếu có tag) · Thông tin · Vé (nếu tính phí). */
+/** Tab nội dung chính: Quầy (nếu có) · Thông tin · Vé (nếu tính phí). */
 function SuKienDetailMainTabs({
   suKien,
   hasDetail,
   classPrefix = "sk-detail",
+  viewerProfileId = null,
+  active,
+  onActiveChange,
 }: {
   suKien: SuKienCardData;
   hasDetail: boolean;
   /** `sk-detail` (trang) hoặc `cso-sk-detail` (panel). */
   classPrefix?: "sk-detail" | "cso-sk-detail";
+  viewerProfileId?: string | null;
+  /** `null` → tab đầu tiên khả dụng. */
+  active: SuKienDetailMainTabId | null;
+  onActiveChange: (id: SuKienDetailMainTabId) => void;
 }) {
   const uid = useId().replace(/:/g, "");
-  const [hasQuay, setHasQuay] = useState(false);
-  const [active, setActive] = useState<SuKienDetailMainTabId | null>(null);
+  const hasQuay = suKien.hasQuay === true;
   const showVe = !suKien.mienPhi;
-
-  useEffect(() => {
-    let cancelled = false;
-    setHasQuay(false);
-    setActive(null);
-    void (async () => {
-      try {
-        const res = await fetch(
-          `/api/su-kien/${encodeURIComponent(suKien.id)}/quay`,
-          { cache: "no-store" },
-        );
-        const json = (await res.json().catch(() => null)) as {
-          items?: unknown[];
-        } | null;
-        if (!cancelled) {
-          setHasQuay(Array.isArray(json?.items) && json.items.length > 0);
-        }
-      } catch {
-        if (!cancelled) setHasQuay(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [suKien.id]);
 
   const tabs = useMemo(() => {
     const next: Array<{ id: SuKienDetailMainTabId; label: string }> = [];
@@ -189,7 +171,7 @@ function SuKienDetailMainTabs({
               aria-controls={`${uid}-panel-${tab.id}`}
               tabIndex={activeId === tab.id ? 0 : -1}
               className={`sk-detail-tab${activeId === tab.id ? " is-active" : ""}`}
-              onClick={() => setActive(tab.id)}
+              onClick={() => onActiveChange(tab.id)}
             >
               {tab.label}
             </button>
@@ -206,7 +188,11 @@ function SuKienDetailMainTabs({
           className="sk-detail-tab-panel"
         >
           {activeId === "quay" ? (
-            <ShopQuaySuKienPanel suKienId={suKien.id} canManage={false} />
+            <ShopQuaySuKienPanel
+              suKienId={suKien.id}
+              canManage={false}
+              viewerProfileId={viewerProfileId}
+            />
           ) : null}
         </div>
       ) : null}
@@ -266,6 +252,8 @@ export type SuKienDetailViewProps = {
   orgAvatarUrl?: string | null;
   /** Mở sẵn tab quản lý (panel + canManage). */
   initialPanelTab?: "detail" | "manage";
+  /** Profile id viewer — tránh fetch session-profile trong Quầy. */
+  viewerProfileId?: string | null;
 };
 
 function formatRange(batDau: string, ketThuc: string | null): string {
@@ -458,6 +446,109 @@ function orgTopbarLabel(loai: string | null | undefined, ten: string): string {
   return `${type} ${trimmed}`;
 }
 
+/** Số avatar chồng trước khi gộp "+N". */
+const SK_DETAIL_FRIEND_AVATARS = 4;
+
+function parseFriendList(value: unknown): FeedFriendAttendee[] {
+  if (!Array.isArray(value)) return [];
+  const out: FeedFriendAttendee[] = [];
+  for (const item of value) {
+    if (!item || typeof item !== "object") continue;
+    const row = item as Record<string, unknown>;
+    if (typeof row.id !== "string" || typeof row.slug !== "string") continue;
+    if (typeof row.name !== "string") continue;
+    out.push({
+      id: row.id,
+      slug: row.slug,
+      name: row.name,
+      avatarUrl:
+        typeof row.avatarUrl === "string" || row.avatarUrl === null
+          ? (row.avatarUrl as string | null)
+          : null,
+      initial: typeof row.initial === "string" ? row.initial : null,
+    });
+  }
+  return out;
+}
+
+function SuKienDetailFriendStack({
+  friends,
+  label,
+}: {
+  friends: FeedFriendAttendee[];
+  label: string;
+}) {
+  if (friends.length === 0) return null;
+  const shown = friends.slice(0, SK_DETAIL_FRIEND_AVATARS);
+  const extra = friends.length - shown.length;
+
+  return (
+    <div className="sk-detail-social-friends" aria-label={label}>
+      <span className="sk-detail-social-avatars" aria-hidden>
+        {shown.map((f) => (
+          <span key={f.id} className="sk-detail-social-av">
+            {f.avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={f.avatarUrl} alt="" loading="lazy" />
+            ) : (
+              <span className="sk-detail-social-av-txt">
+                {(f.initial ?? f.name.slice(0, 1)).toUpperCase()}
+              </span>
+            )}
+          </span>
+        ))}
+        {extra > 0 ? (
+          <span className="sk-detail-social-av sk-detail-social-av-more">
+            +{extra}
+          </span>
+        ) : null}
+      </span>
+      <span className="sk-detail-social-friends-label">{label}</span>
+    </div>
+  );
+}
+
+function SuKienDetailSocialProof({
+  soQuanTam,
+  soSeThamGia,
+  banBeQuanTam,
+  banBeSeThamGia,
+}: {
+  soQuanTam: number;
+  soSeThamGia: number;
+  banBeQuanTam: FeedFriendAttendee[];
+  banBeSeThamGia: FeedFriendAttendee[];
+}) {
+  if (soQuanTam === 0 && soSeThamGia === 0) return null;
+
+  const seLabel =
+    banBeSeThamGia.length === 1
+      ? "1 bạn bè sẽ tham gia"
+      : `${banBeSeThamGia.length} bạn bè sẽ tham gia`;
+  const quanLabel =
+    banBeQuanTam.length === 1
+      ? "1 bạn bè quan tâm"
+      : `${banBeQuanTam.length} bạn bè quan tâm`;
+
+  return (
+    <div className="sk-detail-social">
+      <p className="sk-detail-social-counts">
+        <span>
+          <strong>{soQuanTam}</strong> quan tâm
+        </span>
+        <span className="sk-detail-social-sep" aria-hidden>
+          ·
+        </span>
+        <span>
+          <strong>{soSeThamGia}</strong> sẽ tham gia
+        </span>
+      </p>
+      <SuKienDetailFriendStack friends={banBeSeThamGia} label={seLabel} />
+      <SuKienDetailFriendStack friends={banBeQuanTam} label={quanLabel} />
+    </div>
+  );
+}
+
 export function SuKienDetailView({
   orgId,
   suKien,
@@ -472,11 +563,17 @@ export function SuKienDetailView({
   orgLoai = null,
   orgAvatarUrl = null,
   initialPanelTab = "detail",
+  viewerProfileId = null,
 }: SuKienDetailViewProps) {
   const titleId = useId();
   const { isAuthenticated, openAuthModal } = useAuthGate();
   const [loai, setLoai] = useState<LoaiPhanHoiSuKien | null>(null);
   const [soDangKy, setSoDangKy] = useState(suKien.soDangKy);
+  const [soQuanTam, setSoQuanTam] = useState(0);
+  const [banBeQuanTam, setBanBeQuanTam] = useState<FeedFriendAttendee[]>([]);
+  const [banBeSeThamGia, setBanBeSeThamGia] = useState<FeedFriendAttendee[]>(
+    [],
+  );
   const [loaded, setLoaded] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -484,6 +581,28 @@ export function SuKienDetailView({
     canManage && initialPanelTab === "manage" ? "manage" : "detail",
   );
   const [pendingReviewCount, setPendingReviewCount] = useState(0);
+  // Gắn tab với id sự kiện thay vì reset trong effect — đổi sự kiện là quay về
+  // tab đầu tiên mà không gây thêm một vòng render.
+  const [mainTabState, setMainTabState] = useState<{
+    suKienId: string;
+    tab: SuKienDetailMainTabId | null;
+  }>({ suKienId: suKien.id, tab: null });
+  const mainTab =
+    mainTabState.suKienId === suKien.id ? mainTabState.tab : null;
+  const mainColRef = useRef<HTMLDivElement>(null);
+
+  const setMainTab = useCallback(
+    (tab: SuKienDetailMainTabId) => {
+      setMainTabState({ suKienId: suKien.id, tab });
+    },
+    [suKien.id],
+  );
+
+  /** Dòng «Vé» ở aside → nhảy sang tab vé và cuộn tới nội dung. */
+  const openVeTab = useCallback(() => {
+    setMainTab("ve");
+    mainColRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [setMainTab]);
 
   useEffect(() => {
     setPanelTab(
@@ -532,12 +651,25 @@ export function SuKienDetailView({
         const data = (await res.json()) as {
           loai?: LoaiPhanHoiSuKien | null;
           soDangKy?: number;
+          soQuanTam?: number;
+          soSeThamGia?: number;
+          banBeQuanTam?: unknown;
+          banBeSeThamGia?: unknown;
         };
         if (res.ok) {
           setLoai(data.loai ?? null);
-          setSoDangKy(
-            typeof data.soDangKy === "number" ? data.soDangKy : suKien.soDangKy,
+          const seThamGia =
+            typeof data.soSeThamGia === "number"
+              ? data.soSeThamGia
+              : typeof data.soDangKy === "number"
+                ? data.soDangKy
+                : suKien.soDangKy;
+          setSoDangKy(seThamGia);
+          setSoQuanTam(
+            typeof data.soQuanTam === "number" ? data.soQuanTam : 0,
           );
+          setBanBeQuanTam(parseFriendList(data.banBeQuanTam));
+          setBanBeSeThamGia(parseFriendList(data.banBeSeThamGia));
         }
       })
       .finally(() => setLoaded(true));
@@ -545,6 +677,9 @@ export function SuKienDetailView({
 
   useEffect(() => {
     setSoDangKy(suKien.soDangKy);
+    setSoQuanTam(0);
+    setBanBeQuanTam([]);
+    setBanBeSeThamGia([]);
     refresh();
   }, [suKien.id, suKien.soDangKy, refresh]);
 
@@ -568,6 +703,8 @@ export function SuKienDetailView({
       const data = (await res.json().catch(() => null)) as {
         loai?: LoaiPhanHoiSuKien | null;
         soDangKy?: number;
+        soQuanTam?: number;
+        soSeThamGia?: number;
         error?: string;
       } | null;
       if (!res.ok) {
@@ -576,9 +713,16 @@ export function SuKienDetailView({
       }
       const newLoai = data?.loai ?? null;
       const newCount =
-        typeof data?.soDangKy === "number" ? data.soDangKy : soDangKy;
+        typeof data?.soSeThamGia === "number"
+          ? data.soSeThamGia
+          : typeof data?.soDangKy === "number"
+            ? data.soDangKy
+            : soDangKy;
       setLoai(newLoai);
       setSoDangKy(newCount);
+      if (typeof data?.soQuanTam === "number") {
+        setSoQuanTam(data.soQuanTam);
+      }
       onSoDangKyChange?.(suKien.id, newCount);
     });
   }
@@ -601,7 +745,6 @@ export function SuKienDetailView({
     suKien.giaVe,
     suKien.loaiVe?.length,
   );
-  const loaiLabel = labelLoaiSuKien(suKien.loaiSuKien);
 
   const rsvp = (
     <SuKienRsvpActions
@@ -749,11 +892,6 @@ export function SuKienDetailView({
         </header>
 
         <div className="sk-detail-intro">
-          <p className="sk-detail-kicker">
-            {loaiLabel}
-            <span aria-hidden> · </span>
-            {veLabel}
-          </p>
           <h1 id={titleId} className="sk-detail-title">
             {suKien.ten}
           </h1>
@@ -789,10 +927,24 @@ export function SuKienDetailView({
               ) : null}
               <li>
                 <Ticket size={16} aria-hidden />
-                <span>
-                  <strong>Vé</strong>
-                  {veLabel}
-                </span>
+                {suKien.mienPhi ? (
+                  <span>
+                    <strong>Vé</strong>
+                    <span className="sk-detail-fact-strong">{veLabel}</span>
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    className="sk-detail-fact-link"
+                    onClick={openVeTab}
+                  >
+                    <strong>Vé</strong>
+                    <span className="sk-detail-fact-strong">{veLabel}</span>
+                    <span className="sk-detail-fact-link-hint">
+                      Xem các loại vé
+                    </span>
+                  </button>
+                )}
               </li>
               {suKien.slotToiDa ? (
                 <li>
@@ -805,14 +957,23 @@ export function SuKienDetailView({
                 </li>
               ) : null}
             </ul>
+            <SuKienDetailSocialProof
+              soQuanTam={soQuanTam}
+              soSeThamGia={soDangKy}
+              banBeQuanTam={banBeQuanTam}
+              banBeSeThamGia={banBeSeThamGia}
+            />
             <div className="sk-detail-aside-rsvp">{rsvp}</div>
           </aside>
 
-          <div className="sk-detail-main">
+          <div className="sk-detail-main" ref={mainColRef}>
             <SuKienDetailMainTabs
               suKien={suKien}
               hasDetail={hasDetail}
               classPrefix="sk-detail"
+              viewerProfileId={viewerProfileId}
+              active={mainTab}
+              onActiveChange={setMainTab}
             />
           </div>
         </div>
@@ -922,6 +1083,9 @@ export function SuKienDetailView({
               suKien={suKien}
               hasDetail={hasDetail}
               classPrefix="cso-sk-detail"
+              viewerProfileId={viewerProfileId}
+              active={mainTab}
+              onActiveChange={setMainTab}
             />
           </div>
         </div>

@@ -10,7 +10,8 @@ export const runtime = "nodejs";
 
 /**
  * POST /api/admin/port-clone/mo-bai
- * Body: { idTaiKhoan, duongDan } → magic link đăng nhập nick + redirect bài.
+ * Body: { idTaiKhoan | idNguoiDung | idToChuc, duongDan }
+ * → magic link (user/nick) hoặc URL bài ORG.
  */
 export async function POST(request: Request) {
   const role = await getCurrentUserSystemRole();
@@ -21,6 +22,7 @@ export async function POST(request: Request) {
   let body: {
     idTaiKhoan?: unknown;
     idNguoiDung?: unknown;
+    idToChuc?: unknown;
     duongDan?: unknown;
   };
   try {
@@ -33,11 +35,24 @@ export async function POST(request: Request) {
     typeof body.idTaiKhoan === "string" ? body.idTaiKhoan.trim() : "";
   const idNguoiDung =
     typeof body.idNguoiDung === "string" ? body.idNguoiDung.trim() : "";
+  const idToChuc =
+    typeof body.idToChuc === "string" ? body.idToChuc.trim() : "";
   const duongDan =
     typeof body.duongDan === "string" ? body.duongDan.trim() : "";
-  if ((!idTaiKhoan && !idNguoiDung) || !duongDan) {
+  const targetCount = [idTaiKhoan, idNguoiDung, idToChuc].filter(Boolean)
+    .length;
+  if (targetCount === 0 || !duongDan) {
     return NextResponse.json(
-      { error: "Thiếu đích (idTaiKhoan/idNguoiDung) hoặc duongDan." },
+      {
+        error:
+          "Thiếu đích (idTaiKhoan/idNguoiDung/idToChuc) hoặc duongDan.",
+      },
+      { status: 400 },
+    );
+  }
+  if (targetCount > 1) {
+    return NextResponse.json(
+      { error: "Chỉ chọn một đích: nick, user, hoặc ORG." },
       { status: 400 },
     );
   }
@@ -46,6 +61,7 @@ export async function POST(request: Request) {
     const result = await taoMagicLinkMoBai({
       idTaiKhoan: idTaiKhoan || null,
       idNguoiDung: idNguoiDung || null,
+      idToChuc: idToChuc || null,
       duongDan,
     });
     return NextResponse.json({ ok: true, ...result });

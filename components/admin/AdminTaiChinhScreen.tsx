@@ -423,13 +423,16 @@ export function AdminTaiChinhScreen({ canEdit }: Props) {
               <div className="admin-tc-panel-head">
                 <h2>Hạ tầng phòng học</h2>
                 <p>
-                  Ngưỡng egress (GB). Để trống = tắt. Điều kiện thứ hai kích
-                  hoạt kỳ phí — chưa dùng ở giai đoạn này.
+                  Giới hạn dung lượng truyền tải phòng học online (GB/tháng).
+                  Để trống = tắt. Sau này có thể dùng làm điều kiện thứ hai để
+                  tính phí CSĐT — giai đoạn này chưa áp dụng.
                 </p>
               </div>
               <div className="admin-tc-panel-body">
                 <div className="admin-tc-field">
-                  <label htmlFor="tc-egress">Ngưỡng egress (GB)</label>
+                  <label htmlFor="tc-egress">
+                    Ngưỡng dung lượng phòng học (GB)
+                  </label>
                   <input
                     id="tc-egress"
                     type="number"
@@ -455,7 +458,7 @@ export function AdminTaiChinhScreen({ canEdit }: Props) {
                     disabled={busy != null}
                     onClick={saveEgress}
                   >
-                    {busy === "egress" ? "Đang lưu…" : "Lưu egress"}
+                    {busy === "egress" ? "Đang lưu…" : "Lưu ngưỡng"}
                   </button>
                 </div>
               ) : null}

@@ -89,7 +89,12 @@ async function mapQuay(rows: QuayRow[]): Promise<ShopQuaySuKien[]> {
 
 export async function listQuaySuKien(
   suKienId: string,
-  opts?: { includePending?: boolean; actorId?: string },
+  opts?: {
+    includePending?: boolean;
+    actorId?: string;
+    /** Gắn catalog hàng (nặng) — mặc định false; dùng endpoint `/quay/hang`. */
+    includeHang?: boolean;
+  },
 ): Promise<ShopQuaySuKien[]> {
   const admin = createServiceRoleClient();
   let q = admin
@@ -114,9 +119,12 @@ export async function listQuaySuKien(
   if (items.length === 0) return [];
 
   const sellerIds = [...new Set(items.map((i) => i.idNguoiDung))];
+  const includeHang = opts?.includeHang === true;
   const [shopByOwner, hangBySeller] = await Promise.all([
     listShopListingCardsByOwnerIds(sellerIds),
-    loadHangSearchBySeller(sellerIds, items),
+    includeHang
+      ? loadHangSearchBySeller(sellerIds, items, opts?.actorId)
+      : Promise.resolve(new Map<string, ShopQuayHangSearch[]>()),
   ]);
 
   return items.map((i) => {
@@ -129,10 +137,39 @@ export async function listQuaySuKien(
   });
 }
 
-/** Catalog shop đang bán → haystack quầy khi không gắn bài. */
+/**
+ * Catalog hàng công khai theo seller của quầy đã duyệt.
+ * Tôn trọng `getShopHienThi` (asOwner chỉ khi viewer = chủ shop).
+ */
+export async function listQuayHangSearch(
+  suKienId: string,
+  opts?: { actorId?: string },
+): Promise<Map<string, ShopQuayHangSearch[]>> {
+  const admin = createServiceRoleClient();
+  const { data, error } = await admin
+    .from("shop_quay_su_kien")
+    .select(
+      "id, id_su_kien, id_nguoi_dung, id_cot_moc, bang_chung, trang_thai, ly_do_tu_choi, tao_luc",
+    )
+    .eq("id_su_kien", suKienId)
+    .eq("trang_thai", "da_duyet")
+    .order("tao_luc", { ascending: true })
+    .limit(100);
+  if (error) {
+    console.error("[shop] listQuayHangSearch", error);
+    return new Map();
+  }
+  const items = await mapQuay((data ?? []) as QuayRow[]);
+  if (items.length === 0) return new Map();
+  const sellerIds = [...new Set(items.map((i) => i.idNguoiDung))];
+  return loadHangSearchBySeller(sellerIds, items, opts?.actorId);
+}
+
+/** Catalog shop đang bán → haystack / lưới «Hàng». */
 async function loadHangSearchBySeller(
   sellerIds: string[],
   quayItems: ShopQuaySuKien[],
+  actorId?: string,
 ): Promise<Map<string, ShopQuayHangSearch[]>> {
   const out = new Map<string, ShopQuayHangSearch[]>();
   if (sellerIds.length === 0) return out;
@@ -150,7 +187,8 @@ async function loadHangSearchBySeller(
       const items = await listShopStorefrontItems({
         sellerId,
         ownerSlug: slug,
-        asOwner: true,
+        /* Chỉ chủ shop xem preview khi chưa công khai — không lộ catalog cho khách. */
+        asOwner: Boolean(actorId && actorId === sellerId),
         limit: 80,
       });
       const cards: ShopQuayHangSearch[] = [];

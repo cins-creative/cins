@@ -17,6 +17,7 @@ type Props = {
   orgTinhThanh?: string | null;
   canManage: boolean;
   suKien: SuKienCardData;
+  viewerProfileId?: string | null;
 };
 
 /** Trang `/su-kien/...` — toolbar Sửa/Quản lý + modal sửa cho admin org. */
@@ -29,6 +30,7 @@ export function SuKienStandaloneDetailHost({
   orgTinhThanh = null,
   canManage,
   suKien: initialSuKien,
+  viewerProfileId = null,
 }: Props) {
   const router = useRouter();
   const [suKien, setSuKien] = useState(initialSuKien);
@@ -46,7 +48,10 @@ export function SuKienStandaloneDetailHost({
   }, [suKien.id]);
 
   function handleUpdated(next: SuKienCardData) {
-    setSuKien(next);
+    setSuKien({
+      ...next,
+      hasQuay: next.hasQuay ?? suKien.hasQuay,
+    });
     setEditing(null);
     const nextPath = suKienCardPath(next);
     const current =
@@ -91,6 +96,7 @@ export function SuKienStandaloneDetailHost({
         orgLoai={orgLoai}
         orgAvatarUrl={orgAvatarUrl}
         orgHref={orgHref}
+        viewerProfileId={viewerProfileId}
       />
       {canManage ? (
         <SuKienCreateModal

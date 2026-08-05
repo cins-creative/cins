@@ -1000,7 +1000,6 @@ export function JourneyMilestoneCard({
 
   /* Analytics tiếp cận/tương tác — KHÔNG đo nội dung của chính mình. */
   const articleRef = useRef<HTMLElement | null>(null);
-  /** Sticky «Thu gọn» — ẩn khi cuộn quá nội dung sang khối bình luận. */
   const unfoldStickyRef = useRef<HTMLDivElement | null>(null);
   /** Neo viewport khi xổ bài dài — theo offset card, re-pin khi body/ảnh phình. */
   const expandScrollPinRef = useRef<ExpandScrollPin | null>(null);
@@ -1218,8 +1217,8 @@ export function JourneyMilestoneCard({
     }
   }, [showComments, showContent]);
 
-  /* Sticky «Thu gọn» chỉ neo trong phần nội dung bài viết: khi khối bình luận
-     lọt vào viewport (cuộn quá nội dung), ẩn nút để không đè lên bình luận.
+  /* Sticky «Thu gọn» chỉ neo trong phần nội dung: khi khối bình luận
+     lọt vào viewport, ẩn nút để không đè lên bình luận.
      `.j-m-card-main` bọc cả nội dung lẫn bình luận nên không thể giới hạn phạm
      vi sticky bằng CSS — quan sát khối bình luận để bật/tắt. */
   useEffect(() => {
@@ -1245,7 +1244,6 @@ export function JourneyMilestoneCard({
       return true;
     };
     if (!attach()) {
-      /* Bình luận nạp bất đồng bộ (JourneyMilestoneUnfold) — chờ mount rồi gắn. */
       mo = new MutationObserver(() => {
         if (attach()) {
           mo?.disconnect();
@@ -1976,19 +1974,21 @@ export function JourneyMilestoneCard({
   }
 
   function renderMilestoneCardInterior() {
+    const collapseUnfold = () => {
+      if (showChiChuUnfold) {
+        setChiChuExpanded(false);
+        return;
+      }
+      /* Thu gọn nội dung — không đóng bình luận nếu đang mở. */
+      inlineExpand?.onToggleContent();
+    };
+    /* Sticky đầu `.j-m-card-main` — dock đáy viewport khi cuộn bài dài. */
     const unfoldToggle = showUnfoldToggle ? (
       <div className="jcard-unfold-sticky" ref={unfoldStickyRef}>
         <button
           type="button"
           className="jcard-unfold-toggle"
-          onClick={() => {
-            if (showChiChuUnfold) {
-              setChiChuExpanded(false);
-              return;
-            }
-            /* Thu gọn nội dung — không đóng bình luận nếu đang mở. */
-            inlineExpand?.onToggleContent();
-          }}
+          onClick={collapseUnfold}
           aria-label="Thu gọn"
         >
           <ChevronUp size={15} strokeWidth={2.2} aria-hidden />
@@ -1999,7 +1999,6 @@ export function JourneyMilestoneCard({
 
     return (
       <>
-        {/* Phạm vi sticky «Thu gọn»: chỉ phần nội dung (trước action bar). */}
         <div className="j-m-card-main">
           {unfoldToggle}
           {/* Verify bar (trường xác thực) — hiện cho mọi người, kể cả trên home/entity feed. */}

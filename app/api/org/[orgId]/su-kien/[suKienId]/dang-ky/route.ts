@@ -3,8 +3,9 @@ import { NextResponse } from "next/server";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import {
   datPhanHoiSuKien,
-  demDangKySeThamGia,
+  demPhanHoiSuKien,
   isLoaiPhanHoiSuKien,
+  layBanBePhanHoiSuKien,
   layPhanHoiViewer,
 } from "@/lib/to-chuc/su-kien-dang-ky";
 
@@ -12,19 +13,41 @@ type RouteContext = {
   params: Promise<{ orgId: string; suKienId: string }>;
 };
 
-/** GET — trạng thái phản hồi của viewer + số đăng ký tham gia. */
+const EMPTY_FRIENDS = {
+  banBeQuanTam: [] as const,
+  banBeSeThamGia: [] as const,
+};
+
+/** GET — trạng thái phản hồi của viewer + số đăng ký + bạn bè phản hồi. */
 export async function GET(_req: Request, ctx: RouteContext) {
   const { suKienId } = await ctx.params;
   const session = await getCurrentSessionAndProfile();
-  const counts = await demDangKySeThamGia([suKienId]);
-  const soDangKy = counts.get(suKienId) ?? 0;
+  const counts = await demPhanHoiSuKien(suKienId);
+  const soDangKy = counts.soSeThamGia;
 
   if (!session?.profile) {
-    return NextResponse.json({ loai: null, soDangKy });
+    return NextResponse.json({
+      loai: null,
+      soDangKy,
+      soQuanTam: counts.soQuanTam,
+      soSeThamGia: counts.soSeThamGia,
+      ...EMPTY_FRIENDS,
+    });
   }
 
-  const loai = await layPhanHoiViewer(suKienId, session.profile.id);
-  return NextResponse.json({ loai, soDangKy });
+  const [loai, friends] = await Promise.all([
+    layPhanHoiViewer(suKienId, session.profile.id),
+    layBanBePhanHoiSuKien(suKienId, session.profile.id),
+  ]);
+
+  return NextResponse.json({
+    loai,
+    soDangKy,
+    soQuanTam: counts.soQuanTam,
+    soSeThamGia: counts.soSeThamGia,
+    banBeQuanTam: friends.banBeQuanTam,
+    banBeSeThamGia: friends.banBeSeThamGia,
+  });
 }
 
 /** POST — đặt "Quan tâm" hoặc "Sẽ tham gia" (toggle nếu đã chọn cùng loại). */
@@ -63,5 +86,7 @@ export async function POST(req: Request, ctx: RouteContext) {
     ok: true,
     loai: result.loai,
     soDangKy: result.soDangKy,
+    soQuanTam: result.soQuanTam,
+    soSeThamGia: result.soSeThamGia,
   });
 }

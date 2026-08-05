@@ -25,12 +25,11 @@ export async function GET(_req: Request, ctx: Ctx) {
   if (quyen === "an") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
-  const canView = quyen !== "an";
 
   const [summary, cho, daDoiSoat] = await Promise.all([
     getDoanhThuSummary(orgId),
-    canView ? listDonChoThanhToan(orgId) : Promise.resolve([]),
-    canView ? listDonDaDoiSoat(orgId) : Promise.resolve([]),
+    listDonChoThanhToan(orgId),
+    listDonDaDoiSoat(orgId),
   ]);
 
   return NextResponse.json({

@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
-import {
-  cloudflareImageTooLargeError,
-  MAX_CLOUDFLARE_IMAGE_UPLOAD_BYTES,
-} from "@/lib/cloudflare/image-upload-limits";
+import { prepareImageFileForCloudflareUpload } from "@/lib/cloudflare/prepare-image-upload";
 import { uploadToCloudflareImages } from "@/lib/cloudflare/upload-image";
+
+export const runtime = "nodejs";
+export const maxDuration = 60;
 
 /* ╔══════════════════════════════════════════════════════════════════╗
    ║ POST /api/post-image/upload                                      ║
@@ -16,10 +16,8 @@ import { uploadToCloudflareImages } from "@/lib/cloudflare/upload-image";
    ║ render qua `ph()` / `imgSrcForSeed()` (detect UUID → trỏ tới     ║
    ║ `imagedelivery.net`).                                            ║
    ║                                                                  ║
-   ║ Limit = MAX_CLOUDFLARE_IMAGE_UPLOAD_BYTES (trần CF Images 10MB). ║
+   ║ Ảnh >10MB: nén/resize (sharp) giống port-clone trước khi upload. ║
    ╚══════════════════════════════════════════════════════════════════╝ */
-
-const MAX_BYTES = MAX_CLOUDFLARE_IMAGE_UPLOAD_BYTES;
 
 export async function POST(request: Request) {
   const session = await getCurrentSessionAndProfile();
@@ -37,18 +35,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Form không hợp lệ." }, { status: 400 });
   }
 
-  const file = form.get("file");
-  if (!(file instanceof File) || file.size === 0) {
+  const raw = form.get("file");
+  if (!(raw instanceof File) || raw.size === 0) {
     return NextResponse.json({ error: "Thiếu file ảnh." }, { status: 400 });
   }
-  if (file.size > MAX_BYTES) {
+
+  const prepared = await prepareImageFileForCloudflareUpload(raw);
+  if (!prepared.ok) {
     return NextResponse.json(
-      { error: cloudflareImageTooLargeError() },
-      { status: 413 },
+      { error: prepared.error },
+      { status: prepared.status },
     );
   }
 
-  const result = await uploadToCloudflareImages(file);
+  const result = await uploadToCloudflareImages(prepared.file);
   if (!result.ok) {
     return NextResponse.json({ error: result.error }, { status: 502 });
   }
@@ -56,5 +56,12 @@ export async function POST(request: Request) {
   return NextResponse.json({
     imageId: result.data.imageId,
     url: result.data.url,
+    ...(prepared.daNen
+      ? {
+          daNen: true,
+          soByteGoc: prepared.soByteGoc,
+          soByteSau: prepared.soByteSau,
+        }
+      : {}),
   });
 }

@@ -20,7 +20,6 @@ import {
   Store,
   Users,
   X,
-  Maximize2,
   Minimize2,
 } from "lucide-react";
 import {
@@ -5643,9 +5642,8 @@ export function CinsChatOverlay({
                         {canOpenQuanLy ? (
                           <button
                             type="button"
-                            className="cins-chat-icon-btn is-plain"
-                            aria-label={`Mở trang quản lý tin nhắn của ${node.orgTen}`}
-                            title="Mở trang quản lý"
+                            className="cins-chat-org-inbox-quan-ly-btn"
+                            title={`Vào trang quản lý tin nhắn ${node.orgTen}`}
                             onClick={() =>
                               handleOpenOrgQuanLy(
                                 node.quanLyKind!,
@@ -5654,7 +5652,7 @@ export function CinsChatOverlay({
                               )
                             }
                           >
-                            <Maximize2 size={18} strokeWidth={2} aria-hidden />
+                            Vào trang quản lý tin nhắn {node.orgTen}
                           </button>
                         ) : null}
                       </div>
@@ -5788,7 +5786,6 @@ export function CinsChatOverlay({
                   className="cins-chat-icon-btn"
                   aria-label="Đóng panel"
                   onClick={() => {
-                    setChatFullscreen(false);
                     setSidePanel(null);
                   }}
                 >

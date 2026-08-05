@@ -5868,7 +5868,7 @@ a.j-main-gallery-item:focus-visible,
 }
 
 /* Dock sticky trong `.j-m-card-main` (không gồm jcard-actions):
-   bám đáy viewport khi cuộn nội dung; lúc chạm đáy main thì dừng trên action bar. */
+   bám đáy viewport khi cuộn bài dài; lúc chạm đáy main thì dừng trên action bar. */
 .jcard-unfold-sticky {
   position: sticky;
   top: calc(100dvh - 16px - env(safe-area-inset-bottom, 0px));

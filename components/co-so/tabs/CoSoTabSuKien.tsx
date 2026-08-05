@@ -147,8 +147,9 @@ export function CoSoTabSuKien({
   );
 
   function handleCreated(suKien: SuKienCardData) {
+    const next = { ...suKien, hasQuay: suKien.hasQuay ?? false };
     setItems((prev) =>
-      [suKien, ...prev.filter((s) => s.id !== suKien.id)].sort(
+      [next, ...prev.filter((s) => s.id !== next.id)].sort(
         (a, b) => new Date(a.batDau).getTime() - new Date(b.batDau).getTime(),
       ),
     );
@@ -157,7 +158,11 @@ export function CoSoTabSuKien({
   function handleUpdated(suKien: SuKienCardData) {
     setItems((prev) =>
       prev
-        .map((s) => (s.id === suKien.id ? suKien : s))
+        .map((s) =>
+          s.id === suKien.id
+            ? { ...suKien, hasQuay: suKien.hasQuay ?? s.hasQuay }
+            : s,
+        )
         .sort(
           (a, b) =>
             new Date(a.batDau).getTime() - new Date(b.batDau).getTime(),

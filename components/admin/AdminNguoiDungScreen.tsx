@@ -336,54 +336,6 @@ export function AdminNguoiDungScreen() {
           </article>
         </div>
 
-        <div
-          className="admin-to-chuc-filters admin-nguoi-dung-giai-filters"
-          role="group"
-          aria-label="Lọc theo tình trạng"
-        >
-          {ADMIN_GIAI_DOAN_FILTERS.map((filter) => (
-            <button
-              key={filter.id}
-              type="button"
-              className={`admin-to-chuc-filter${
-                giaiDoanFilter === filter.id ? " is-active" : ""
-              }`}
-              onClick={() => setGiaiDoanFilter(filter.id)}
-            >
-              {filter.label}
-              <span className="admin-to-chuc-filter-count">
-                {giaiDoanStats[filter.id]}
-              </span>
-            </button>
-          ))}
-        </div>
-
-        <div
-          className="admin-to-chuc-filters admin-nguoi-dung-shop-filters"
-          role="group"
-          aria-label="Lọc theo shop cá nhân"
-        >
-          {SHOP_FILTERS.map((filter) => (
-            <button
-              key={filter.id}
-              type="button"
-              className={`admin-to-chuc-filter${
-                shopFilter === filter.id ? " is-active" : ""
-              }`}
-              onClick={() => setShopFilter(filter.id)}
-            >
-              {filter.label}
-              <span className="admin-to-chuc-filter-count">
-                {filter.id === "co_shop"
-                  ? shopStats.coShop
-                  : filter.id === "khong_shop"
-                    ? shopStats.khongShop
-                    : shopStats.coShop + shopStats.khongShop}
-              </span>
-            </button>
-          ))}
-        </div>
-
         {actorRole === "admin" ? (
           <div className="alert alert-warn admin-nguoi-dung-alert">
             <span>ℹ</span>
@@ -405,6 +357,45 @@ export function AdminNguoiDungScreen() {
                 onChange={(e) => setQuery(e.target.value)}
               />
             </label>
+
+            <div className="admin-nguoi-dung-filter-selects">
+              <select
+                className="filter-select filter-select--wide"
+                value={giaiDoanFilter}
+                aria-label="Lọc theo tình trạng"
+                onChange={(e) =>
+                  setGiaiDoanFilter(e.target.value as GiaiDoanFilterId)
+                }
+              >
+                {ADMIN_GIAI_DOAN_FILTERS.map((filter) => (
+                  <option key={filter.id} value={filter.id}>
+                    {filter.label} ({giaiDoanStats[filter.id]})
+                  </option>
+                ))}
+              </select>
+              <select
+                className="filter-select filter-select--wide"
+                value={shopFilter}
+                aria-label="Lọc theo shop cá nhân"
+                onChange={(e) =>
+                  setShopFilter(e.target.value as AdminShopFilter)
+                }
+              >
+                {SHOP_FILTERS.map((filter) => {
+                  const count =
+                    filter.id === "co_shop"
+                      ? shopStats.coShop
+                      : filter.id === "khong_shop"
+                        ? shopStats.khongShop
+                        : shopStats.coShop + shopStats.khongShop;
+                  return (
+                    <option key={filter.id} value={filter.id}>
+                      {filter.label} ({count})
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
 
             <p className="admin-to-chuc-result">
               {loading ? (

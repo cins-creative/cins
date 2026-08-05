@@ -12,12 +12,14 @@ export type SuKienQuanLyThanhVien = {
   id: string;
   ten: string | null;
   slug: string | null;
+  avatarUrl: string | null;
   loai: LoaiPhanHoiSuKien;
   taoLuc: string;
 };
 
 export type SuKienQuanLyPayload = {
   stats: SuKienQuanLyStats;
+  /** Preview facepile (ít avatar) — list đầy đủ qua `/quan-ly/thanh-vien`. */
   thanhVien: SuKienQuanLyThanhVien[];
 };
 
