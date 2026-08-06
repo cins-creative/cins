@@ -50,6 +50,11 @@ import {
   readFeedSourceDefault,
   type FeedSourceFilter,
 } from "@/lib/cins/worldJourneyFeedSource";
+import {
+  isHorizontalSwipe,
+  resolveAsideSwipe,
+  WJ_ASIDE_SWIPE_LOCK_MIN,
+} from "@/lib/cins/worldJourneyAsideSwipe";
 import type { WjLinhVucAsideItem } from "@/lib/cins/worldJourneyGuestAside";
 import type { MilestoneItem } from "@/components/journey/milestone-types";
 import {
@@ -165,13 +170,6 @@ function WorldJourneyFilterBar({
   );
 }
 
-/** Mép màn hình bắt đầu swipe (px). */
-const WJ_ASIDE_SWIPE_EDGE = 40;
-/** Vuốt ngang tối thiểu để mở / đóng drawer (px). */
-const WJ_ASIDE_SWIPE_MIN_DX = 56;
-/** |dy| vượt ngưỡng này → coi là cuộn dọc, bỏ qua. */
-const WJ_ASIDE_SWIPE_MAX_DY = 48;
-
 function WorldJourneyFilterSearching({
   surface,
 }: {
@@ -285,20 +283,18 @@ export function WorldJourneyFeed({
   }, []);
 
   /**
-   * Mobile/tablet: vuốt từ mép trái → mở cột trái (≤991);
-   * vuốt từ mép phải → mở cột phải (≤1199). Drawer mở dạng fixed.
-   * Khi đang mở: vuốt ngược hướng đóng lại.
+   * Mobile/tablet: vuốt ngang để mở cột trái/phải dạng drawer fixed.
+   * Vuốt sang phải → mở cột trái (≤991); vuốt sang trái → mở cột phải (≤1199).
+   * Khi đang mở, vuốt ngược hướng để đóng.
+   *
+   * Dùng `touchmove` để khóa hướng ngang rồi `preventDefault()` — vừa chặn cử
+   * chỉ "back/forward" của trình duyệt (hay nuốt mất swipe sát mép) vừa chặn
+   * cuộn dọc, nên vuốt từ GIỮA màn hình cũng mở được (không cần đúng mép).
+   * Bỏ qua khi chạm bắt đầu trong vùng có cuộn ngang riêng (bảng, code…).
    */
   useEffect(() => {
     const root = homeRootRef.current;
     if (!root) return;
-
-    type TouchTrack = {
-      x: number;
-      y: number;
-      edge: "left" | "right" | null;
-    };
-    let track: TouchTrack | null = null;
 
     const canOpenLeft = () =>
       surfaceViewRef.current !== "gallery" &&
@@ -307,36 +303,72 @@ export function WorldJourneyFeed({
       surfaceViewRef.current !== "gallery" &&
       window.matchMedia("(max-width: 1199.98px)").matches;
 
+    /** Chạm bắt đầu trong phần tử cuộn ngang → nhường cử chỉ cho phần tử đó. */
+    const startedInHorizontalScroller = (
+      target: EventTarget | null,
+    ): boolean => {
+      let node = target instanceof Element ? target : null;
+      while (node && node !== root) {
+        const overflowX = window.getComputedStyle(node).overflowX;
+        if (
+          (overflowX === "auto" || overflowX === "scroll") &&
+          node.scrollWidth > node.clientWidth + 1
+        ) {
+          return true;
+        }
+        node = node.parentElement;
+      }
+      return false;
+    };
+
+    type TouchTrack = {
+      x: number;
+      y: number;
+      decided: boolean;
+      lockedHorizontal: boolean;
+      allow: boolean;
+    };
+    let track: TouchTrack | null = null;
+
     const onStart = (e: TouchEvent) => {
       if (e.touches.length !== 1) {
         track = null;
         return;
       }
       const t = e.touches[0];
-      const w = window.innerWidth;
-      let edge: "left" | "right" | null = null;
-      if (t.clientX <= WJ_ASIDE_SWIPE_EDGE) edge = "left";
-      else if (t.clientX >= w - WJ_ASIDE_SWIPE_EDGE) edge = "right";
+      track = {
+        x: t.clientX,
+        y: t.clientY,
+        decided: false,
+        lockedHorizontal: false,
+        allow: !startedInHorizontalScroller(e.target),
+      };
+    };
 
-      const open = openAsideRef.current;
-      if (open) {
-        /* Đóng: bắt đầu từ trong panel hoặc gần mép tương ứng. */
-        track = { x: t.clientX, y: t.clientY, edge: open };
-        return;
+    const onMove = (e: TouchEvent) => {
+      if (!track || e.touches.length !== 1) return;
+      const t = e.touches[0];
+      const dx = t.clientX - track.x;
+      const dy = t.clientY - track.y;
+
+      if (!track.decided) {
+        if (
+          Math.abs(dx) < WJ_ASIDE_SWIPE_LOCK_MIN &&
+          Math.abs(dy) < WJ_ASIDE_SWIPE_LOCK_MIN
+        ) {
+          return;
+        }
+        const eligible =
+          openAsideRef.current !== null || canOpenLeft() || canOpenRight();
+        track.decided = true;
+        track.lockedHorizontal =
+          eligible && track.allow && isHorizontalSwipe(dx, dy);
       }
-      if (!edge) {
-        track = null;
-        return;
+
+      if (track.lockedHorizontal) {
+        /* Nhận trọn cú vuốt ngang: chặn back-gesture + cuộn dọc. */
+        e.preventDefault();
       }
-      if (edge === "left" && !canOpenLeft()) {
-        track = null;
-        return;
-      }
-      if (edge === "right" && !canOpenRight()) {
-        track = null;
-        return;
-      }
-      track = { x: t.clientX, y: t.clientY, edge };
     };
 
     const onEnd = (e: TouchEvent) => {
@@ -346,30 +378,17 @@ export function WorldJourneyFeed({
       }
       const t = e.changedTouches[0];
       const dx = t.clientX - track.x;
-      const dy = t.clientY - track.y;
-      const edge = track.edge;
+      const locked = track.lockedHorizontal;
       track = null;
 
-      if (Math.abs(dy) > WJ_ASIDE_SWIPE_MAX_DY) return;
-      if (Math.abs(dx) < WJ_ASIDE_SWIPE_MIN_DX) return;
-      if (Math.abs(dx) < Math.abs(dy) * 1.2) return;
-
-      const open = openAsideRef.current;
-      if (open === "left") {
-        if (dx < 0) setOpenAside(null);
-        return;
-      }
-      if (open === "right") {
-        if (dx > 0) setOpenAside(null);
-        return;
-      }
-      if (edge === "left" && dx > 0 && canOpenLeft()) {
-        setOpenAside("left");
-        return;
-      }
-      if (edge === "right" && dx < 0 && canOpenRight()) {
-        setOpenAside("right");
-      }
+      const next = resolveAsideSwipe({
+        dx,
+        lockedHorizontal: locked,
+        open: openAsideRef.current,
+        canOpenLeft: canOpenLeft(),
+        canOpenRight: canOpenRight(),
+      });
+      if (next !== undefined) setOpenAside(next);
     };
 
     const onCancel = () => {
@@ -377,10 +396,12 @@ export function WorldJourneyFeed({
     };
 
     root.addEventListener("touchstart", onStart, { passive: true });
+    root.addEventListener("touchmove", onMove, { passive: false });
     root.addEventListener("touchend", onEnd, { passive: true });
     root.addEventListener("touchcancel", onCancel, { passive: true });
     return () => {
       root.removeEventListener("touchstart", onStart);
+      root.removeEventListener("touchmove", onMove);
       root.removeEventListener("touchend", onEnd);
       root.removeEventListener("touchcancel", onCancel);
     };

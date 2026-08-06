@@ -8015,8 +8015,16 @@
 }
 
 @media (max-width: 1199.98px) {
+  /* Edit mode desktop-only — ẩn thanh + chrome nếu URL bị ép (?tuy-chinh=1). */
   .ha-edit-bar,
-  .ha-col--editing .ha-edit-chrome {
-    /* Edit mode intended desktop-only; keep usable if URL forced. */
+  .ha-col--editing .ha-edit-chrome,
+  .ha-col--editing .ha-edit-gap,
+  .ha-home-editing .wj-feed::after {
+    display: none !important;
+  }
+
+  .ha-home-editing .wj-feed {
+    pointer-events: auto;
+    filter: none;
   }
 }
