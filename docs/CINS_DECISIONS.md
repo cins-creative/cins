@@ -13,7 +13,7 @@
 |---|---|---|---|
 | O2 | Chat 1-1 có gate sau kết bạn không? | Chưa gate — giữ logic chat cũ | Khi có báo cáo spam/quấy rối từ user thật, hoặc trước khi mở chat cho user ngoài cohort Sine Art. |
 | O3 | `studio` vs `doanh_nghiep` | ✅ **ĐÃ CHỐT — gộp** (xem L7). Còn lại: bao giờ `doanh_nghiep` cần tab/field riêng tách lại? | Khi có org doanh_nghiep yêu cầu tính năng studio không có. Hiện không. |
-| O4 | Cap file video | 300MB (đang cân nhắc 500MB) | Khi đo được chi phí Bunny + hành vi upload thật của cohort đầu. Chốt 1 con số trước launch. |
+| O4 | Cap file video | 500MB (đã dùng trong upload client) | Chi phí Cloudflare Stream + hành vi upload thật; không còn phụ thuộc Bunny. |
 | O5 | `verify_yeu_cau` Loại 2 — có cần vai trò `quan_ly_nhan_su` riêng để duyệt membership? | Không — admin duyệt tất (xem L9) | Khi có công ty lớn (>50 member) yêu cầu tách quyền duyệt nhân sự khỏi duyệt nội dung. |
 | O6 | Phân nhóm tag `keyword`/`phan_mem` theo ngành nghề | Defer | Khi có đủ data tagging thật từ user (gợi ý ngưỡng: ≥200 tag active). |
 | O8 | Bản đồ nghề cộng đồng — có cần thêm cấp bậc/chức danh (Junior/Senior/Lead) ngoài `giai_doan`? | ❌ Không — chỉ dùng `giai_doan` | Chức danh thay đổi liên tục + khó verify + mau cũ → bản đồ sẽ luôn sai. Chỉ làm khi có hệ chức danh chuẩn hoá gắn vào milestone công việc *đã verify*. Hiện không cần. |
@@ -40,6 +40,13 @@
 ---
 
 ## LOG — quyết định đã chốt
+
+### Video — gỡ hoàn toàn Bunny Stream (2026-08-05)
+
+- Bunny đã migrate sang Cloudflare Stream; code Bunny (`lib/bunny/**`, native player, env/CI bắt buộc) **xóa khỏi repo**.
+- Lý do kép: dọn code chết + giảm kích thước Worker (giới hạn 10 MiB Cloudflare).
+- DB vẫn có thể còn metadata `legacyBunnyUrl` / `legacyBunnyVideoId` trong block embed — **không** migration SQL xóa; code không đọc để phát video.
+- CI bắt buộc `CLOUDFLARE_STREAM_API_TOKEN` thay cho `NEXT_PUBLIC_BUNNY_*`.
 
 ### Chat — hộp thư người lạ gom theo org, 5 hội thoại / org (2026-08-05)
 

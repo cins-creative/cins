@@ -1245,7 +1245,6 @@ export async function deleteMilestone(
   /* Bài viết "mồ côi" (không còn cột mốc nào tham chiếu) → xoá luôn. */
   let hostingAssets = {
     cloudflareImageIds: [] as string[],
-    bunnyVideoIds: [] as string[],
     streamVideoIds: [] as string[],
   };
   if (tacPhamIds.length > 0) {
@@ -1298,7 +1297,6 @@ export async function deleteMilestone(
 
   if (
     hostingAssets.cloudflareImageIds.length > 0 ||
-    hostingAssets.bunnyVideoIds.length > 0 ||
     hostingAssets.streamVideoIds.length > 0
   ) {
     await purgeTacPhamHostingAssets(admin, hostingAssets);

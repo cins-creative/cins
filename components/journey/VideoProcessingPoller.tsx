@@ -11,9 +11,8 @@ type ProcessingItem = {
   tacPhamId?: string;
   orgBaiDangId?: string;
   orgId?: string;
-  bunnyVideoId: string;
-  videoId?: string;
-  provider?: "bunny" | "stream";
+  videoId: string;
+  provider?: "stream";
 };
 
 function dispatchVideoReady(ownerSlug: string | null) {
@@ -33,10 +32,10 @@ function dispatchVideoReady(ownerSlug: string | null) {
 }
 
 /**
- * Poll Bunny encode cho bài video đang `videoProcessing` — gỡ cờ + refresh
- * timeline Journey / bài đăng org khi sẵn sàng.
+ * Poll Cloudflare Stream encode cho bài video đang `videoProcessing` —
+ * gỡ cờ + refresh timeline Journey / bài đăng org khi sẵn sàng.
  */
-export function BunnyVideoProcessingPoller({
+export function VideoProcessingPoller({
   ownerSlug = null,
   orgId = null,
 }: {
@@ -75,10 +74,11 @@ export function BunnyVideoProcessingPoller({
         for (const item of items) {
           if (cancelled) return;
 
-          const videoId = item.videoId || item.bunnyVideoId;
+          const videoId = item.videoId;
+          if (!videoId) continue;
           const providerQuery = item.provider
             ? `&provider=${item.provider}`
-            : "";
+            : "&provider=stream";
           const statusRes = await fetch(
             `/api/post-video/status?videoId=${encodeURIComponent(videoId)}${providerQuery}`,
             { cache: "no-store" },
@@ -96,12 +96,12 @@ export function BunnyVideoProcessingPoller({
                 orgBaiDangId: item.orgBaiDangId,
                 orgId: item.orgId,
                 videoId,
-                provider: item.provider ?? null,
+                provider: item.provider ?? "stream",
               }
             : {
                 tacPhamId: item.tacPhamId,
                 videoId,
-                provider: item.provider ?? null,
+                provider: item.provider ?? "stream",
               };
 
           const completeRes = await fetch("/api/post-video/complete", {
@@ -140,3 +140,6 @@ export function BunnyVideoProcessingPoller({
 
   return null;
 }
+
+/** @deprecated Dùng `VideoProcessingPoller`. */
+export const BunnyVideoProcessingPoller = VideoProcessingPoller;

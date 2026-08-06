@@ -42,7 +42,7 @@ export function composePreviewVideoOrientationLabel(
     hasCover: Boolean(coverSeed?.trim()),
     blocks,
   });
-  if (kind !== "bunny_video") return null;
+  if (kind !== "video") return null;
   switch (videoOrientation) {
     case "portrait":
       return "Video dọc";

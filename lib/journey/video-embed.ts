@@ -1,12 +1,6 @@
 import {
-  buildBunnyEmbedUrl,
-  buildBunnyVideoMp4Url,
-  buildBunnyVideoThumbnailUrl,
-  classifyBunnyVideoUrl,
-  type BunnyVideoEmbed,
-} from "@/lib/bunny/embed";
-import {
   buildStreamIframeUrl,
+  buildStreamMp4Url,
   buildStreamThumbnailUrl,
   classifyStreamVideoUrl,
   isStreamUid,
@@ -14,9 +8,6 @@ import {
 import type { Block } from "@/lib/editor/types";
 import { extractVideoUrl } from "@/lib/journey/post-media";
 import { getYoutubeId } from "@/lib/youtube";
-
-const GUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function extractVimeoId(url: string): string | null {
   let u: URL;
@@ -30,29 +21,34 @@ function extractVimeoId(url: string): string | null {
   return m?.[1] ?? null;
 }
 
-/** `bunnyVideoId` từ block embed — fallback khi client thiếu env library id. */
-export function bunnyVideoIdFromBlocks(
+/** `videoId` từ block embed — fallback khi URL chưa classify được. */
+export function videoIdFromBlocks(
   blocks: ReadonlyArray<Block> | null | undefined,
 ): string | null {
   if (!blocks) return null;
   for (const block of blocks) {
     if (block.loai !== "embed") continue;
-    const fromConfig =
-      typeof block.config?.bunnyVideoId === "string"
-        ? block.config.bunnyVideoId.trim()
-        : "";
-    if (fromConfig) return fromConfig;
+    const cfg = block.config ?? {};
+    const fromVideoId =
+      typeof cfg.videoId === "string" ? cfg.videoId.trim() : "";
+    if (fromVideoId) return fromVideoId;
+    // Legacy field name — vẫn đọc để tương thích dữ liệu cũ.
+    const fromLegacy =
+      typeof cfg.bunnyVideoId === "string" ? cfg.bunnyVideoId.trim() : "";
+    if (fromLegacy) return fromLegacy;
   }
   return null;
 }
 
+/** @deprecated Dùng `videoIdFromBlocks`. */
+export const bunnyVideoIdFromBlocks = videoIdFromBlocks;
+
 export type VideoBlockHints = {
   videoProvider?: string | null;
   videoId?: string | null;
-  bunnyVideoId?: string | null;
 };
 
-/** Hint provider/id từ block embed đầu tiên (Bunny cũ hoặc Stream mới). */
+/** Hint provider/id từ block embed đầu tiên (Cloudflare Stream). */
 export function videoHintsFromBlocks(
   blocks: ReadonlyArray<Block> | null | undefined,
 ): VideoBlockHints {
@@ -63,17 +59,16 @@ export function videoHintsFromBlocks(
     const videoProvider =
       typeof cfg.videoProvider === "string" ? cfg.videoProvider.trim() : null;
     const videoId =
-      typeof cfg.videoId === "string" ? cfg.videoId.trim() : null;
-    const bunnyVideoId =
-      typeof cfg.bunnyVideoId === "string" ? cfg.bunnyVideoId.trim() : null;
-    if (videoProvider || videoId || bunnyVideoId) {
-      return { videoProvider, videoId, bunnyVideoId };
+      (typeof cfg.videoId === "string" ? cfg.videoId.trim() : null) ||
+      (typeof cfg.bunnyVideoId === "string" ? cfg.bunnyVideoId.trim() : null);
+    if (videoProvider || videoId) {
+      return { videoProvider, videoId };
     }
   }
   return {};
 }
 
-/** Poster video từ blocks — Stream trước, fallback Bunny (song song lúc migrate). */
+/** Poster video từ blocks — Cloudflare Stream. */
 export function resolveVideoThumbnailFromBlocks(
   blocks: ReadonlyArray<Block> | null | undefined,
 ): string | null {
@@ -86,88 +81,58 @@ export function resolveVideoThumbnailFromBlocks(
   if (hints.videoProvider === "stream" && hints.videoId && isStreamUid(hints.videoId)) {
     return buildStreamThumbnailUrl(hints.videoId);
   }
-
-  return resolveBunnyVideoThumbnailFromBlocks(blocks);
-}
-
-export function resolveBunnyEmbed(
-  url: string,
-  bunnyVideoId?: string | null,
-): BunnyVideoEmbed | null {
-  const fromUrl = classifyBunnyVideoUrl(url);
-  if (fromUrl) return fromUrl;
-
-  const videoId = bunnyVideoId?.trim();
-  const libraryId = process.env.NEXT_PUBLIC_BUNNY_LIBRARY_ID?.trim();
-  if (videoId && libraryId && GUID_RE.test(videoId)) {
-    return {
-      provider: "bunny",
-      libraryId,
-      videoId,
-      url: buildBunnyEmbedUrl(libraryId, videoId),
-    };
+  if (hints.videoId && isStreamUid(hints.videoId)) {
+    return buildStreamThumbnailUrl(hints.videoId);
   }
+
   return null;
 }
 
-function resolveBunnyFromBlocks(
+/** MP4 preview — frame đầu gallery khi thumbnail chưa có / lỗi. */
+export function resolveVideoPreviewMp4FromBlocks(
   blocks: ReadonlyArray<Block> | null | undefined,
-): BunnyVideoEmbed | null {
+): string | null {
   if (!blocks?.length) return null;
   const url = extractVideoUrl(blocks) ?? "";
-  return resolveBunnyEmbed(url, bunnyVideoIdFromBlocks(blocks));
+  const hints = videoHintsFromBlocks(blocks);
+  const uid =
+    classifyStreamVideoUrl(url)?.uid ??
+    (hints.videoId && isStreamUid(hints.videoId) ? hints.videoId : null);
+  return uid ? buildStreamMp4Url(uid) : null;
 }
 
-/** Thumbnail Bunny từ embed block — dùng `bunnyVideoId` khi URL chưa classify được. */
-export function resolveBunnyVideoThumbnailFromBlocks(
-  blocks: ReadonlyArray<Block> | null | undefined,
-): string | null {
-  const bunny = resolveBunnyFromBlocks(blocks);
-  return bunny ? buildBunnyVideoThumbnailUrl(bunny.videoId) : null;
-}
+/** @deprecated Dùng `resolveVideoPreviewMp4FromBlocks`. */
+export const resolveBunnyVideoPreviewMp4FromBlocks =
+  resolveVideoPreviewMp4FromBlocks;
 
-/** MP4 preview — frame đầu gallery khi thumbnail.jpg chưa có / lỗi. */
-export function resolveBunnyVideoPreviewMp4FromBlocks(
-  blocks: ReadonlyArray<Block> | null | undefined,
-): string | null {
-  const bunny = resolveBunnyFromBlocks(blocks);
-  return bunny ? buildBunnyVideoMp4Url(bunny.videoId) : null;
-}
-
-/** URL iframe phát video milestone — Bunny / YouTube / Vimeo. */
+/** URL iframe phát video milestone — Stream / YouTube / Vimeo. */
 export function buildVideoIframeSrc(
   url: string,
   options?: {
     autoplay?: boolean;
-    bunnyVideoId?: string | null;
     videoProvider?: string | null;
     videoId?: string | null;
+    /** @deprecated dùng `videoId`. */
+    bunnyVideoId?: string | null;
   },
 ): string | null {
   const autoplay = options?.autoplay === true;
   const sep = (base: string) => (base.includes("?") ? "&" : "?");
+  const hintId = options?.videoId ?? options?.bunnyVideoId ?? null;
 
-  // Cloudflare Stream (mới) — provider tường minh, uid, hoặc URL Stream.
   const streamUid =
     options?.videoProvider === "stream" &&
-    options?.videoId &&
-    isStreamUid(options.videoId)
-      ? options.videoId
-      : (classifyStreamVideoUrl(url)?.uid ?? null);
+    hintId &&
+    isStreamUid(hintId)
+      ? hintId
+      : hintId && isStreamUid(hintId)
+        ? hintId
+        : (classifyStreamVideoUrl(url)?.uid ?? null);
   if (streamUid) {
     const base = buildStreamIframeUrl(streamUid);
     return autoplay
       ? `${base}${sep(base)}autoplay=true&muted=true`
       : base;
-  }
-
-  const bunny = resolveBunnyEmbed(url, options?.videoId ?? options?.bunnyVideoId);
-  if (bunny) {
-    const base = buildBunnyEmbedUrl(bunny.libraryId, bunny.videoId);
-    if (autoplay) {
-      return `${base}${sep(base)}autoplay=true&preload=true&playsinline=true`;
-    }
-    return `${base}${sep(base)}preload=true&playsinline=true`;
   }
 
   const youtubeId = getYoutubeId(url);

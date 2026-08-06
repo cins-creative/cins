@@ -47,7 +47,7 @@ Kết nối giữa người có chuyên môn là giá trị cốt lõi; **phân 
 - **Frontend**: Next.js App Router
 - **Database**: Supabase (Postgres) + pgvector cho vector(6) + HNSW index — project `ospzzzxcomrmhqrnkoiw.supabase.co`
 - **Storage**: Cloudflare Images (lưu cloudflare_id)
-- **Video**: browser → Bunny Stream qua TUS; Cloudflare R2 lưu source. Không ffmpeg server-side, không xử lý video trên server.
+- **Video**: browser → Cloudflare Stream qua TUS. Không ffmpeg server-side, không xử lý video trên server.
 - **Realtime chat**: Supabase Realtime
 - **Deploy**: Cloudflare Workers qua OpenNext (`@opennextjs/cloudflare`). Postgres TCP (admin SQL, tag trigram) đi qua **Hyperdrive**. Xem `CINS_IMPLEMENTATION.md` §4.
 

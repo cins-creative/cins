@@ -34,7 +34,10 @@ export function uploadPostImageWithProgress(
         onProgress(1);
         return;
       }
-      onProgress(Math.min(100, Math.round((event.loaded / event.total) * 100)));
+      /* Cap 99% đến khi server trả — phần còn lại là nén/CF phía API. */
+      onProgress(
+        Math.min(99, Math.round((event.loaded / event.total) * 100)),
+      );
     };
 
     xhr.upload.onloadstart = () => {

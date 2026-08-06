@@ -231,7 +231,12 @@ import { useEditorRiveFileUpload } from "@/lib/journey/use-editor-rive-file-uplo
 import { useEditorLottieFileUpload } from "@/lib/journey/use-editor-lottie-file-upload";
 import { readImageFileDimensions } from "@/lib/journey/probe-image-dimensions";
 import { videoCanvasRatioClass } from "@/lib/journey/video-canvas-ratio";
-import { bunnyIframeSrc, buildBunnyVideoMp4Url, buildBunnyVideoThumbnailUrl, classifyBunnyVideoUrl } from "@/lib/bunny/embed";
+import {
+  buildStreamIframeUrl,
+  buildStreamMp4Url,
+  buildStreamThumbnailUrl,
+  classifyStreamVideoUrl,
+} from "@/lib/cloudflare/stream-embed";
 import { resolveVideoEmbed } from "@/lib/video/embed";
 import { EditorVideoThumbnailPicker } from "@/components/editor/EditorVideoThumbnailPicker";
 import { ImageCropModal } from "@/components/editor/ImageCropModal";
@@ -373,25 +378,25 @@ function isEditorPhotoAlbumBlocks(blocks: Block[]): boolean {
   );
 }
 
-/** Chỉ Bunny Stream upload / embed — không gồm YouTube · Figma · Behance. */
-function isEditorBunnyVideoBlock(
+/** Chỉ Cloudflare Stream upload / embed — không gồm YouTube · Figma · Behance. */
+function isEditorVideoBlock(
   block: Block,
-  bunnyUploadBlockId: string | null,
+  videoUploadBlockId: string | null,
 ): boolean {
   if (block.t !== "embed") return false;
-  if (bunnyUploadBlockId && block.id === bunnyUploadBlockId) return true;
+  if (videoUploadBlockId && block.id === videoUploadBlockId) return true;
   const url = (block.embedUrl || "").trim();
   if (!url) return false;
-  return classifyBunnyVideoUrl(url) !== null;
+  return classifyStreamVideoUrl(url) !== null;
 }
 
-/** Giữ video Bunny ở đầu danh sách block. */
-function ensureBunnyVideoFirst(
+/** Giữ video Stream ở đầu danh sách block. */
+function ensureVideoFirst(
   blocks: Block[],
-  bunnyUploadBlockId: string | null,
+  videoUploadBlockId: string | null,
 ): Block[] {
   const i = blocks.findIndex((b) =>
-    isEditorBunnyVideoBlock(b, bunnyUploadBlockId),
+    isEditorVideoBlock(b, videoUploadBlockId),
   );
   if (i <= 0) return blocks;
   const next = blocks.slice();
@@ -419,7 +424,7 @@ function blockGridDimensions(block: Block): {
 function looksLikeEditorAlbumGrid(blocks: ReadonlyArray<Block>): boolean {
   const gridBlocks = blocks.filter(isAlbumGridImgBlock);
   if (gridBlocks.length === 0) return false;
-  if (blocks.some((b) => isEditorBunnyVideoBlock(b, null))) return false;
+  if (blocks.some((b) => isEditorVideoBlock(b, null))) return false;
   return true;
 }
 
@@ -1326,7 +1331,7 @@ export function EditorView({
 
   const {
     videoUrl,
-    bunnyVideoId,
+    videoId: uploadedVideoId,
     videoUploading,
     videoUploadProgress,
     videoUploadError,
@@ -1726,20 +1731,20 @@ export function EditorView({
   const videoScrubSrc = useMemo(() => {
     if (localVideoPreviewUrl) return localVideoPreviewUrl;
     const resolvedVideoId =
-      bunnyVideoId ??
+      uploadedVideoId ??
       (() => {
         for (const block of blocks) {
           if (block.t !== "embed") continue;
           const url = (block.embedUrl || videoUrl || "").trim();
           if (!url) continue;
-          const bunny = classifyBunnyVideoUrl(url);
-          if (bunny) return bunny.videoId;
+          const stream = classifyStreamVideoUrl(url);
+          if (stream) return stream.uid;
         }
         return null;
       })();
     if (!resolvedVideoId) return null;
-    return buildBunnyVideoMp4Url(resolvedVideoId, "360p");
-  }, [blocks, bunnyVideoId, localVideoPreviewUrl, videoUrl]);
+    return buildStreamMp4Url(resolvedVideoId);
+  }, [blocks, uploadedVideoId, localVideoPreviewUrl, videoUrl]);
 
   /* Frame từ remote chỉ khi encode xong — blob local vẫn dùng được lúc chờ. */
   const hasLocalVideoScrub = Boolean(localVideoPreviewUrl?.trim());
@@ -1793,8 +1798,8 @@ export function EditorView({
       ),
       coverSeed ? coverThumb : null,
     );
-    const isBunnyCompose = blocks.some((b) =>
-      isEditorBunnyVideoBlock(b, videoBlockIdRef.current),
+    const isVideoComposeLocal = blocks.some((b) =>
+      isEditorVideoBlock(b, videoBlockIdRef.current),
     );
     return {
       title,
@@ -1806,10 +1811,11 @@ export function EditorView({
       ownerName,
       ownerAvatarUrl: composeCtx.ownerAvatarUrl,
       ownerSlug,
-      bunnyVideo: isBunnyCompose
+      bunnyVideo: isVideoComposeLocal
         ? {
             embedUrl: videoUrl || null,
-            bunnyVideoId: bunnyVideoId || null,
+            bunnyVideoId: uploadedVideoId || null,
+            videoId: uploadedVideoId || null,
             processing: videoUploading || videoEncoding,
             videoCanvasRatio: videoCanvasRatio || null,
           }
@@ -1826,7 +1832,7 @@ export function EditorView({
     ownerSlug,
     composeCtx.ownerAvatarUrl,
     videoUrl,
-    bunnyVideoId,
+    uploadedVideoId,
     videoUploading,
     videoEncoding,
     videoCanvasRatio,
@@ -1980,7 +1986,7 @@ export function EditorView({
       setBlocks((prev) => {
         const next = prev.slice();
         next.splice(idx, 0, b);
-        return ensureBunnyVideoFirst(next, videoBlockIdRef.current);
+        return ensureVideoFirst(next, videoBlockIdRef.current);
       });
       setOpenAddIdx(null);
       setSelectedId(b.id);
@@ -2036,7 +2042,7 @@ export function EditorView({
         if (
           at === 0 &&
           next[0] &&
-          isEditorBunnyVideoBlock(next[0], videoBlockIdRef.current)
+          isEditorVideoBlock(next[0], videoBlockIdRef.current)
         ) {
           at = 1;
         }
@@ -2044,7 +2050,7 @@ export function EditorView({
           next.splice(at, 0, block);
           at += 1;
         }
-        return ensureBunnyVideoFirst(next, videoBlockIdRef.current);
+        return ensureVideoFirst(next, videoBlockIdRef.current);
       });
 
       for (const { file, localSeed } of pending) {
@@ -2066,7 +2072,7 @@ export function EditorView({
       const useAlbumGrid =
         albumGrid &&
         !blocksRef.current.some((b) =>
-          isEditorBunnyVideoBlock(b, videoBlockIdRef.current),
+          isEditorVideoBlock(b, videoBlockIdRef.current),
         );
       if (useAlbumGrid) {
         setAlbumGridCompose(true);
@@ -2079,7 +2085,7 @@ export function EditorView({
         if (
           at === 0 &&
           next[0] &&
-          isEditorBunnyVideoBlock(next[0], videoBlockIdRef.current)
+          isEditorVideoBlock(next[0], videoBlockIdRef.current)
         ) {
           at = 1;
         }
@@ -2096,7 +2102,7 @@ export function EditorView({
             ? { albumLayout: albumLayoutModeRef.current }
             : {}),
         });
-        return ensureBunnyVideoFirst(next, videoBlockIdRef.current);
+        return ensureVideoFirst(next, videoBlockIdRef.current);
       });
       setOpenAddIdx(null);
       setSelectedId(id);
@@ -2144,7 +2150,7 @@ export function EditorView({
     }
     setMinimalRichBlocks(true);
     setBlocks((prev) => {
-      const withVideoFirst = ensureBunnyVideoFirst(
+      const withVideoFirst = ensureVideoFirst(
         prev,
         videoBlockIdRef.current,
       );
@@ -2158,28 +2164,28 @@ export function EditorView({
   }, [isExternalEmbedCompose, setToast]);
 
   const hasPhotoBlocks = blocks.some((b) => b.t === "imgs");
-  const hasBunnyVideoBlock = useMemo(
+  const hasVideoBlock = useMemo(
     () =>
       blocks.some((b) =>
-        isEditorBunnyVideoBlock(b, videoBlockIdRef.current),
+        isEditorVideoBlock(b, videoBlockIdRef.current),
       ),
     [blocks],
   );
 
   useEffect(() => {
-    if (!hasPhotoBlocks || hasBunnyVideoBlock) {
+    if (!hasPhotoBlocks || hasVideoBlock) {
       setAlbumGridCompose(false);
     }
-  }, [hasPhotoBlocks, hasBunnyVideoBlock]);
+  }, [hasPhotoBlocks, hasVideoBlock]);
 
   const isPhotoAlbumCompose = useMemo(
     () =>
       hasPhotoBlocks &&
-      !hasBunnyVideoBlock &&
+      !hasVideoBlock &&
       (albumGridCompose ||
         looksLikeEditorAlbumGrid(blocks) ||
         (!minimalRichBlocks && isEditorPhotoAlbumBlocks(blocks))),
-    [albumGridCompose, blocks, hasPhotoBlocks, hasBunnyVideoBlock, minimalRichBlocks],
+    [albumGridCompose, blocks, hasPhotoBlocks, hasVideoBlock, minimalRichBlocks],
   );
   const albumComposeSegments = useMemo(
     () =>
@@ -2189,18 +2195,18 @@ export function EditorView({
   const isMinimalMediaCompose =
     usesMinimalFlow &&
     editorExpanded &&
-    (hasPhotoBlocks || hasBunnyVideoBlock) &&
+    (hasPhotoBlocks || hasVideoBlock) &&
     !minimalRichBlocks &&
     !isPhotoAlbumCompose;
-  const isBunnyVideoCompose =
-    composeIntent === "video" || hasBunnyVideoBlock;
+  const isVideoCompose =
+    composeIntent === "video" || hasVideoBlock;
   const showCoverArea = useMemo(
     () => {
       const wantsCover =
         Boolean(coverSeed) ||
         minimalCoverVisible ||
         (showFullEditor && !usesMinimalFlow);
-      if (isBunnyVideoCompose) {
+      if (isVideoCompose) {
         return Boolean(coverSeed) || minimalCoverVisible;
       }
       return wantsCover;
@@ -2210,7 +2216,7 @@ export function EditorView({
       minimalCoverVisible,
       showFullEditor,
       usesMinimalFlow,
-      isBunnyVideoCompose,
+      isVideoCompose,
     ],
   );
   const hideBlockPalette =
@@ -2230,7 +2236,7 @@ export function EditorView({
         setOpenAddIdx(null);
         let insertAt = idx;
         const bunnyIdx = blocksRef.current.findIndex((b) =>
-          isEditorBunnyVideoBlock(b, videoBlockIdRef.current),
+          isEditorVideoBlock(b, videoBlockIdRef.current),
         );
         if (bunnyIdx === 0 && insertAt === 0) insertAt = 1;
         if (
@@ -2248,13 +2254,13 @@ export function EditorView({
         return;
       }
       let insertAt = idx;
-      if (hasBunnyVideoBlock) {
+      if (hasVideoBlock) {
         if (type === "embed") {
           setToast("Mỗi bài chỉ được một video.");
           return;
         }
         const bunnyIdx = blocksRef.current.findIndex((b) =>
-          isEditorBunnyVideoBlock(b, videoBlockIdRef.current),
+          isEditorVideoBlock(b, videoBlockIdRef.current),
         );
         if (bunnyIdx === 0 && insertAt === 0) {
           insertAt = 1;
@@ -2273,9 +2279,9 @@ export function EditorView({
       if (type === "imgs") {
         setOpenAddIdx(null);
         const extendAlbum =
-          !hasBunnyVideoBlock &&
+          !hasVideoBlock &&
           isInsertIndexAdjacentToAlbumRun(blocksRef.current, insertAt);
-        if (!extendAlbum || hasBunnyVideoBlock) {
+        if (!extendAlbum || hasVideoBlock) {
           setMinimalRichBlocks(true);
         }
         insertDummyImageBlockAt(insertAt, extendAlbum);
@@ -2294,7 +2300,7 @@ export function EditorView({
       albumGridCompose,
       editorExpanded,
       hasPhotoBlocks,
-      hasBunnyVideoBlock,
+      hasVideoBlock,
       insertDummyImageBlockAt,
       isExternalEmbedCompose,
       isMinimalMediaCompose,
@@ -2313,7 +2319,7 @@ export function EditorView({
         return;
       }
       setEditorExpanded(true);
-      if (hasBunnyVideoBlock) {
+      if (hasVideoBlock) {
         setMinimalRichBlocks(true);
         seedPhotoFilesAt(blocksRef.current.length, files, {
           albumGrid: false,
@@ -2323,7 +2329,7 @@ export function EditorView({
       seedPhotoFiles(files);
     },
     [
-      hasBunnyVideoBlock,
+      hasVideoBlock,
       isExternalEmbedCompose,
       seedPhotoFiles,
       seedPhotoFilesAt,
@@ -2348,17 +2354,17 @@ export function EditorView({
         return;
       }
       setEditorExpanded(true);
-      if (hasBunnyVideoBlock) {
+      if (hasVideoBlock) {
         setMinimalRichBlocks(true);
       }
       seedPhotoFilesAt(
         insertIdx ?? blocksRef.current.length,
         files,
-        { albumGrid: !hasBunnyVideoBlock },
+        { albumGrid: !hasVideoBlock },
       );
     },
     [
-      hasBunnyVideoBlock,
+      hasVideoBlock,
       isExternalEmbedCompose,
       seedPhotoFilesAt,
       setToast,
@@ -2384,7 +2390,7 @@ export function EditorView({
 
       const existingId = videoBlockIdRef.current;
       const existingBlock = blocksRef.current.find((b) =>
-        isEditorBunnyVideoBlock(b, existingId),
+        isEditorVideoBlock(b, existingId),
       );
 
       if (existingBlock) {
@@ -2426,7 +2432,7 @@ export function EditorView({
     videoBlockIdRef.current = null;
     pushHistory();
     setBlocks((prev) => {
-      const next = prev.filter((b) => !isEditorBunnyVideoBlock(b, trackedId));
+      const next = prev.filter((b) => !isEditorVideoBlock(b, trackedId));
       setSelectedId((cur) =>
         cur && !next.some((b) => b.id === cur) ? null : cur,
       );
@@ -2639,7 +2645,7 @@ export function EditorView({
         setToast("Không thể thêm nhúng vào bài album ảnh.");
         return;
       }
-      if (hasBunnyVideoBlock) {
+      if (hasVideoBlock) {
         setToast("Không thể thêm nhúng khi đã có video.");
         return;
       }
@@ -2727,7 +2733,7 @@ export function EditorView({
     },
     [
       hasPhotoBlocks,
-      hasBunnyVideoBlock,
+      hasVideoBlock,
       ownerSlug,
       congDongCompose,
       orgBaiDangCompose,
@@ -2745,14 +2751,14 @@ export function EditorView({
       if (i < 0) return prev;
       const j = i + dir;
       if (j < 0 || j >= prev.length) return prev;
-      /* Video Bunny luôn ở đầu — không cho kéo lên/xuống khỏi vị trí 0. */
-      if (isEditorBunnyVideoBlock(prev[i]!, videoBlockIdRef.current)) {
+      /* Video Stream luôn ở đầu — không cho kéo lên/xuống khỏi vị trí 0. */
+      if (isEditorVideoBlock(prev[i]!, videoBlockIdRef.current)) {
         return prev;
       }
       if (
         j === 0 &&
         prev[0] &&
-        isEditorBunnyVideoBlock(prev[0], videoBlockIdRef.current)
+        isEditorVideoBlock(prev[0], videoBlockIdRef.current)
       ) {
         return prev;
       }
@@ -2760,7 +2766,7 @@ export function EditorView({
       const next = prev.slice();
       const [moved] = next.splice(i, 1);
       next.splice(j, 0, moved!);
-      return ensureBunnyVideoFirst(next, videoBlockIdRef.current);
+      return ensureVideoFirst(next, videoBlockIdRef.current);
     });
   }, [pushHistory]);
 
@@ -2772,7 +2778,7 @@ export function EditorView({
       const isVideo =
         videoBlockIdRef.current === id ||
         (block
-          ? isEditorBunnyVideoBlock(block, videoBlockIdRef.current)
+          ? isEditorVideoBlock(block, videoBlockIdRef.current)
           : false);
       if (isVideo) {
         clearVideoUpload();
@@ -3239,7 +3245,7 @@ export function EditorView({
       }
     }
 
-    const orderedLocal = ensureBunnyVideoFirst(
+    const orderedLocal = ensureVideoFirst(
       blocks,
       videoBlockIdRef.current,
     );
@@ -3278,7 +3284,7 @@ export function EditorView({
        ảnh (album 1 tấm). Bài hợp lệ (qua validate `blocks.length > 0`) và
        render dạng photo card thay vì bị chặn "thiếu ít nhất 1 block". Ảnh bìa
        chuyển hẳn vào album nên xoá `coverFinal` để tránh hiện ảnh 2 lần. */
-    let publishBlocks: ServerBlock[] = enrichBunnyEmbedBlocksForPublish(
+    let publishBlocks: ServerBlock[] = enrichVideoEmbedBlocksForPublish(
       serverBlocks,
       isEdit,
     );
@@ -3942,7 +3948,7 @@ export function EditorView({
               </>
             ) : (
               <>
-            {isBunnyVideoCompose && !(minimalCoverVisible || coverSeed) ? (
+            {isVideoCompose && !(minimalCoverVisible || coverSeed) ? (
               <EditorVideoThumbnailPicker
                 videoSrc={videoFramePickSrc}
                 videoCanvasRatio={videoCanvasRatio}
@@ -3955,7 +3961,7 @@ export function EditorView({
                 onShowCoverInPostChange={setShowCoverInPost}
               />
             ) : null}
-            {composeIntent !== "video" && !isBunnyVideoCompose && !(minimalCoverVisible || coverSeed) ? (
+            {composeIntent !== "video" && !isVideoCompose && !(minimalCoverVisible || coverSeed) ? (
               <button
                 type="button"
                 className="ed-minimal-tool ed-minimal-tool--cover"
@@ -3972,7 +3978,7 @@ export function EditorView({
                 </span>
               </button>
             ) : null}
-            {composeIntent !== "video" && !isBunnyVideoCompose && !(minimalCoverVisible || coverSeed) ? (
+            {composeIntent !== "video" && !isVideoCompose && !(minimalCoverVisible || coverSeed) ? (
               <input
                 ref={minimalCoverInputRef}
                 type="file"
@@ -3988,8 +3994,8 @@ export function EditorView({
               />
             ) : null}
             <div className="ed-minimal-toolbar-actions">
-              {isBunnyVideoCompose &&
-              (hasBunnyVideoBlock ||
+              {isVideoCompose &&
+              (hasVideoBlock ||
                 Boolean(localVideoPreviewUrl) ||
                 videoUploading) ? (
                 <>
@@ -4017,7 +4023,7 @@ export function EditorView({
                   </button>
                 </>
               ) : null}
-              {composeIntent !== "video" && !hasPhotoBlocks && !hasBunnyVideoBlock ? (
+              {composeIntent !== "video" && !hasPhotoBlocks && !hasVideoBlock ? (
                 <button
                   type="button"
                   className="ed-btn ghost ed-minimal-tool"
@@ -4027,7 +4033,7 @@ export function EditorView({
                   Album ảnh
                 </button>
               ) : null}
-              {composeIntent !== "video" && !hasPhotoBlocks && !hasBunnyVideoBlock ? (
+              {composeIntent !== "video" && !hasPhotoBlocks && !hasVideoBlock ? (
                 <button
                   type="button"
                   className="ed-btn ghost ed-minimal-tool"
@@ -4037,7 +4043,7 @@ export function EditorView({
                   Thêm video
                 </button>
               ) : null}
-              {composeIntent !== "video" && !hasPhotoBlocks && !hasBunnyVideoBlock ? (
+              {composeIntent !== "video" && !hasPhotoBlocks && !hasVideoBlock ? (
                 <button
                   type="button"
                   className="ed-btn ghost ed-minimal-tool"
@@ -4060,7 +4066,7 @@ export function EditorView({
           {!hideBlockPalette &&
           !(
             blocks[0] &&
-            isEditorBunnyVideoBlock(blocks[0], videoBlockIdRef.current)
+            isEditorVideoBlock(blocks[0], videoBlockIdRef.current)
           ) ? (
             <AddZone
               idx={0}
@@ -4187,10 +4193,10 @@ export function EditorView({
                       selected={selectedId === b.id}
                       isMinimalMediaCompose={
                         isMinimalMediaCompose ||
-                        isEditorBunnyVideoBlock(b, videoBlockIdRef.current)
+                        isEditorVideoBlock(b, videoBlockIdRef.current)
                       }
                       minimalVideoState={
-                        isEditorBunnyVideoBlock(b, videoBlockIdRef.current)
+                        isEditorVideoBlock(b, videoBlockIdRef.current)
                           ? {
                               localPreviewUrl: localVideoPreviewUrl,
                               uploading: videoUploading,
@@ -4271,10 +4277,10 @@ export function EditorView({
                     selected={selectedId === b.id}
                     isMinimalMediaCompose={
                       isMinimalMediaCompose ||
-                      isEditorBunnyVideoBlock(b, videoBlockIdRef.current)
+                      isEditorVideoBlock(b, videoBlockIdRef.current)
                     }
                     minimalVideoState={
-                      isEditorBunnyVideoBlock(b, videoBlockIdRef.current)
+                      isEditorVideoBlock(b, videoBlockIdRef.current)
                         ? {
                             localPreviewUrl: localVideoPreviewUrl,
                             uploading: videoUploading,
@@ -5375,10 +5381,10 @@ function EditorMinimalVideoPreview({
   posterSeed?: string | null;
 }) {
   const [playing, setPlaying] = useState(false);
-  const bunny = embedUrl.trim() ? classifyBunnyVideoUrl(embedUrl) : null;
+  const stream = embedUrl.trim() ? classifyStreamVideoUrl(embedUrl) : null;
   const canvasClass = videoCanvasRatioClass(videoCanvasRatio);
-  const bunnyPoster = bunny ? buildBunnyVideoThumbnailUrl(bunny.videoId) : null;
-  const hasPoster = Boolean(posterSeed?.trim() || bunnyPoster);
+  const streamPoster = stream ? buildStreamThumbnailUrl(stream.uid) : null;
+  const hasPoster = Boolean(posterSeed?.trim() || streamPoster);
 
   const previewClass = (extra: string) =>
     `ed-minimal-video-preview ${extra} ${canvasClass}`.trim();
@@ -5419,9 +5425,9 @@ function EditorMinimalVideoPreview({
         <EditorComposeImage seed={posterSeed} width={1600} height={900} alt="" />
       );
     }
-    if (bunnyPoster) {
+    if (streamPoster) {
       // eslint-disable-next-line @next/next/no-img-element
-      return <img src={bunnyPoster} alt="" />;
+      return <img src={streamPoster} alt="" />;
     }
     return null;
   }
@@ -5476,7 +5482,7 @@ function EditorMinimalVideoPreview({
     );
   }
 
-  if (bunny && encoding) {
+  if (stream && encoding) {
     return (
       <div
         className={previewClass(
@@ -5505,7 +5511,7 @@ function EditorMinimalVideoPreview({
     );
   }
 
-  if (bunny && !playing) {
+  if (stream && !playing) {
     if (hasPoster) {
       return renderPosterTrigger(() => setPlaying(true));
     }
@@ -5515,7 +5521,7 @@ function EditorMinimalVideoPreview({
       >
         <iframe
           key={encodeReady ? "ready" : "loaded"}
-          src={bunnyIframeSrc(bunny)}
+          src={buildStreamIframeUrl(stream.uid)}
           title="Xem trước video"
           allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
           allowFullScreen
@@ -5524,12 +5530,12 @@ function EditorMinimalVideoPreview({
     );
   }
 
-  if (bunny && playing) {
+  if (stream && playing) {
     return (
       <div className={previewClass("ed-minimal-video-preview--compact")}>
         <iframe
           key={encodeReady ? "ready-playing" : "playing"}
-          src={bunnyIframeSrc(bunny)}
+          src={buildStreamIframeUrl(stream.uid)}
           title="Xem trước video"
           allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
           allowFullScreen
@@ -6539,7 +6545,7 @@ const SERVER_TO_LOCAL_TYPE: Record<ServerBlockType, BlockType> = {
   spacer: "spacer",
 };
 
-function enrichBunnyEmbedBlocksForPublish(
+function enrichVideoEmbedBlocksForPublish(
   blocks: ServerBlock[],
   isEdit: boolean,
 ): ServerBlock[] {
@@ -6554,28 +6560,18 @@ function enrichBunnyEmbedBlocksForPublish(
       videoId:
         typeof block.config?.videoId === "string"
           ? (block.config.videoId as string)
-          : null,
-      bunnyVideoId:
-        typeof block.config?.bunnyVideoId === "string"
-          ? (block.config.bunnyVideoId as string)
-          : null,
+          : typeof block.config?.bunnyVideoId === "string"
+            ? (block.config.bunnyVideoId as string)
+            : null,
     };
     const resolved = resolveVideoEmbed(url, hints);
     if (!resolved) return block;
-    /* Ghi provider/id tổng quát để Stream & Bunny chạy song song. */
-    const providerConfig =
-      resolved.provider === "stream"
-        ? { videoProvider: "stream" as const, videoId: resolved.id }
-        : {
-            videoProvider: "bunny" as const,
-            videoId: resolved.id,
-            bunnyVideoId: resolved.id,
-          };
     return {
       ...block,
       config: {
         ...(block.config ?? {}),
-        ...providerConfig,
+        videoProvider: "stream" as const,
+        videoId: resolved.id,
         ...(!isEdit ? { videoProcessing: true } : {}),
       },
     };

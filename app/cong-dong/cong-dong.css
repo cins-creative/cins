@@ -1974,6 +1974,20 @@
   border-left: none;
 }
 
+/* Bỏ margin-top 36px mặc định của .timeline-section — sidebar đã có gap flex */
+.cd-v4-page .tdh-admission-side .timeline-section--rail {
+  margin-top: 0;
+  padding-top: 4px;
+}
+
+.cd-v4-page .tdh-admission-side .timeline-date {
+  font-family: var(--font-sans);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  text-transform: none;
+}
+
 .cd-v4-notify-toast {
   position: absolute;
   left: 12px;

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import type { MilestonePostDetail } from "@/lib/journey/milestone-post-types";
 import { JourneyPostBody } from "@/components/journey/JourneyPostBody";
-import { BunnyVideoProcessingPoller } from "@/components/journey/BunnyVideoProcessingPoller";
+import { VideoProcessingPoller } from "@/components/journey/VideoProcessingPoller";
 import { JourneyComposeProvider } from "@/components/journey/JourneyComposeContext";
 import {
   isPostPageCacheStale,
@@ -119,7 +119,7 @@ export function PostPageClientBridge({
       adminSeedingEdit={adminSeedingEdit}
       initialCompose={initialCompose}
     >
-      <BunnyVideoProcessingPoller ownerSlug={detail.owner.slug} />
+      <VideoProcessingPoller ownerSlug={detail.owner.slug} />
       {body}
     </JourneyComposeProvider>
   );

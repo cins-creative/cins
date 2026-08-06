@@ -1,16 +1,12 @@
 import type { Upload } from "tus-js-client";
 
-/** Phản hồi /api/post-video/prepare — provider-aware (client-safe type). */
+/** Phản hồi /api/post-video/prepare — Cloudflare Stream (client-safe type). */
 export type VideoPrepareResponse = {
-  provider?: "bunny" | "stream";
+  provider?: "stream";
   videoId?: string;
   embedUrl?: string;
   /** Stream direct-creator tus URL. */
   uploadURL?: string;
-  /** Bunny tus auth. */
-  libraryId?: string;
-  authorizationSignature?: string;
-  authorizationExpire?: number;
   error?: string;
 };
 
@@ -27,39 +23,25 @@ export function prepareResponseIsStream(prep: VideoPrepareResponse): boolean {
 /** true nếu prepare trả về đủ dữ liệu để bắt đầu tus upload. */
 export function prepareResponseIsValid(prep: VideoPrepareResponse): boolean {
   if (!prep.videoId || !prep.embedUrl) return false;
-  if (prepareResponseIsStream(prep)) return Boolean(prep.uploadURL);
-  return Boolean(
-    prep.libraryId && prep.authorizationSignature && prep.authorizationExpire,
-  );
+  return Boolean(prep.uploadURL);
 }
 
-/** Tạo tus Upload theo provider — Stream (uploadURL) hoặc Bunny (endpoint + auth). */
+/** Tạo tus Upload tới Cloudflare Stream (uploadURL từ direct-creator). */
 export async function createVideoTusUpload(
   file: File,
   prep: VideoPrepareResponse,
   handlers: VideoTusHandlers,
 ): Promise<Upload> {
   const { Upload } = await import("tus-js-client");
-  const base = {
+  if (!prep.uploadURL) {
+    throw new Error("Thiếu uploadURL Cloudflare Stream.");
+  }
+  return new Upload(file, {
     retryDelays: [0, 1000, 3000, 5000, 10000],
     metadata: { filetype: file.type, title: file.name },
     onProgress: handlers.onProgress,
     onError: handlers.onError,
     onSuccess: handlers.onSuccess,
-  };
-
-  if (prepareResponseIsStream(prep)) {
-    return new Upload(file, { ...base, uploadUrl: prep.uploadURL! });
-  }
-
-  return new Upload(file, {
-    ...base,
-    endpoint: "https://video.bunnycdn.com/tusupload",
-    headers: {
-      AuthorizationSignature: prep.authorizationSignature!,
-      AuthorizationExpire: String(prep.authorizationExpire),
-      VideoId: prep.videoId!,
-      LibraryId: String(prep.libraryId),
-    },
+    uploadUrl: prep.uploadURL,
   });
 }

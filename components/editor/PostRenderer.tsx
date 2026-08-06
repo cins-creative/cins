@@ -12,11 +12,7 @@
    ║ (lightbox). Nhận `blocks` đã sort theo `thu_tu`.                  ║
    ╚══════════════════════════════════════════════════════════════════╝ */
 
-import {
-  buildBunnyVideoThumbnailUrl,
-} from "@/lib/bunny/embed";
 import { VideoProcessingPlaceholder } from "@/components/journey/VideoProcessingPlaceholder";
-import { PostBunnyEmbed } from "@/components/journey/PostBunnyEmbed";
 import { PostVimeoEmbed } from "@/components/journey/PostVimeoEmbed";
 import { PostRiveFileEmbed } from "@/components/journey/PostRiveFileEmbed";
 import { PostLottieFileEmbed } from "@/components/journey/PostLottieFileEmbed";
@@ -27,7 +23,6 @@ import {
   resolveImageSeedUrl,
 } from "@/lib/editor/resolve-image-seed-url";
 import type { Block } from "@/lib/editor/types";
-import { resolveBunnyEmbed } from "@/lib/journey/video-embed";
 import {
   buildStreamIframeUrl,
   buildStreamThumbnailUrl,
@@ -72,21 +67,15 @@ function resolveEmbedUrl(cfg: Record<string, unknown>): string {
   return "";
 }
 
-function resolveEmbedBunnyVideoId(cfg: Record<string, unknown>): string | null {
-  const id =
-    typeof cfg.bunnyVideoId === "string" ? cfg.bunnyVideoId.trim() : "";
-  return id || null;
-}
-
 /** Uid Stream từ cfg (provider tường minh) hoặc từ URL Stream. */
 function resolveEmbedStreamUid(
   cfg: Record<string, unknown>,
   url: string,
 ): string | null {
-  const provider =
-    typeof cfg.videoProvider === "string" ? cfg.videoProvider.trim() : "";
-  const videoId = typeof cfg.videoId === "string" ? cfg.videoId.trim() : "";
-  if (provider === "stream" && isStreamUid(videoId)) return videoId;
+  const videoId =
+    (typeof cfg.videoId === "string" ? cfg.videoId.trim() : "") ||
+    (typeof cfg.bunnyVideoId === "string" ? cfg.bunnyVideoId.trim() : "");
+  if (isStreamUid(videoId)) return videoId;
   return classifyStreamVideoUrl(url)?.uid ?? null;
 }
 
@@ -266,7 +255,6 @@ function ReadOnlyBlock({
   }
   if (block.loai === "embed") {
     const url = resolveEmbedUrl(cfg);
-    const bunnyVideoId = resolveEmbedBunnyVideoId(cfg);
     if (cfg.videoProcessing === true) {
       return <VideoProcessingPlaceholder />;
     }
@@ -320,22 +308,6 @@ function ReadOnlyBlock({
             loading="eager"
           />
         </ViewportGatedEmbed>
-      );
-    }
-
-    const bunny = resolveBunnyEmbed(url, bunnyVideoId);
-    if (bunny) {
-      const poster =
-        buildBunnyVideoThumbnailUrl(bunny.videoId) ??
-        (typeof cfg.posterUrl === "string" ? cfg.posterUrl.trim() : null);
-      return (
-        <PostBunnyEmbed
-          videoId={bunny.videoId}
-          title="Video"
-          poster={poster}
-          blocks={[block]}
-          autoplay={mediaAutoplay}
-        />
       );
     }
 

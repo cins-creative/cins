@@ -7,7 +7,6 @@ import { useEffect, useMemo, useState, type CSSProperties } from "react";
 
 import type { ArticleTagRef } from "@/lib/editor/article-tag";
 import type { Block } from "@/lib/editor/types";
-import { classifyBunnyVideoUrl } from "@/lib/bunny/embed";
 import { classifyStreamVideoUrl } from "@/lib/cloudflare/stream-embed";
 import { ImageGrid } from "@/components/journey/ImageGrid";
 import { JourneyArticleTagLink } from "@/components/journey/JourneyArticleTagLink";
@@ -332,12 +331,11 @@ export function JourneyMilestoneCardBodyContent({
   const videoEmbedUrlForArticle = isArticle
     ? extractVideoUrl(blocks ?? [])
     : null;
-  const hasBunnyInArticle = Boolean(
+  const hasHostedVideoInArticle = Boolean(
     videoEmbedUrlForArticle &&
-      (classifyBunnyVideoUrl(videoEmbedUrlForArticle) ||
-        classifyStreamVideoUrl(videoEmbedUrlForArticle)),
+      classifyStreamVideoUrl(videoEmbedUrlForArticle),
   );
-  /* Bunny + bài viết dài: hiện full peek (video + block dưới), không chỉ embed.
+  /* Stream + bài viết dài: hiện full peek (video + block dưới), không chỉ embed.
      Bài đã có ảnh bìa: ưu tiên thumbnail cover (không khung embed đen 16:9).
      Đã xổ nội dung: embed nằm trong unfold — ẩn peek trùng. */
   const showArticleEmbedBlocksPeek =
@@ -345,7 +343,7 @@ export function JourneyMilestoneCardBodyContent({
     !isContentOpen &&
     !hasCoverPreview &&
     !isEmbedInteractivePeek &&
-    !hasBunnyInArticle &&
+    !hasHostedVideoInArticle &&
     articleCardPeekHasEmbedMedia(body, blocks);
   const showExpandTriggerBase =
     Boolean(expandTrigger?.enabled && isArticle && !isContentOpen) ||
@@ -357,7 +355,7 @@ export function JourneyMilestoneCardBodyContent({
     isArticle &&
     (isEmbedInteractivePeek ||
       showArticleEmbedBlocksPeek ||
-      hasBunnyInArticle ||
+      hasHostedVideoInArticle ||
       (showExpandTriggerBase &&
         articleCardNeedsDepthPreview(body, blocks, hasCoverPreview)));
   const articlePeekBlocks = useMemo(() => {
@@ -393,7 +391,7 @@ export function JourneyMilestoneCardBodyContent({
     isArticle &&
     !(
       isContentOpen &&
-      hasBunnyInArticle &&
+      hasHostedVideoInArticle &&
       !readShowCoverInPost(blocks)
     );
 

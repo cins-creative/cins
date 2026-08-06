@@ -338,7 +338,7 @@ export function JourneyPostBody({
     variant === "full" &&
     Boolean(coverSeed) &&
     readShowCoverInPost(blocks) &&
-    (postDisplayKind.kind === "bunny_video" || !mediaPost);
+    (postDisplayKind.kind === "video" || !mediaPost);
   const coverThumbMeta = findCoverThumbMeta(blocks);
   const coverEl = showCoverInReadView ? (
     <PostCover seed={coverSeed} coverThumb={coverThumbMeta} />

@@ -182,14 +182,43 @@ export function labelTinhThanh(code: string | null | undefined): string | null {
   return key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+/** Bỏ dấu + ký tự phân cách để so khớp "TP.HCM" với "TP. Hồ Chí Minh". */
+function foldForMatch(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/gi, "d")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+}
+
+/**
+ * Các cách viết khả dĩ của một tỉnh thành (nhãn + mã + alias trước sáp nhập).
+ * Bỏ token ngắn (`hcm`, `hn`, `dn`…) vì dễ khớp nhầm giữa một chuỗi đã bỏ dấu.
+ */
+function tinhThanhVariants(code: string | null | undefined): string[] {
+  const normalized = normalizeTinhThanhForDb(code);
+  if (!normalized) return [];
+  const raw = [normalized, TINH_THANH_LABELS[normalized as TinhThanhCode] ?? ""];
+  for (const [alias, target] of Object.entries(TINH_THANH_ALIASES)) {
+    if (target === normalized) raw.push(alias);
+  }
+  return raw.map(foldForMatch).filter((token) => token.length >= 4);
+}
+
 export function formatSuKienDiaDiemDisplay(
   tinhThanh: string | null | undefined,
   diaDiem: string | null | undefined,
 ): string | null {
   const region = labelTinhThanh(tinhThanh);
   const detail = diaDiem?.trim();
-  if (region && detail) return `${region} · ${detail}`;
-  return region || detail || null;
+  if (!region) return detail || null;
+  if (!detail) return region;
+  const folded = foldForMatch(detail);
+  const alreadyNamed = tinhThanhVariants(tinhThanh).some((token) =>
+    folded.includes(token),
+  );
+  return alreadyNamed ? detail : `${region} · ${detail}`;
 }
 
 /** Chuẩn hóa trước khi PATCH — tránh lỗi enum DB. */

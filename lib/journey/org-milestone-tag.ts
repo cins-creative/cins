@@ -1,9 +1,5 @@
 import "server-only";
 
-import {
-  buildBunnyVideoMp4Url as buildBunnyVideoMp4UrlServer,
-  buildBunnyVideoThumbnailUrl as buildBunnyVideoThumbnailUrlServer,
-} from "@/lib/bunny/thumbnail";
 import { findCoverThumbMeta, type CoverThumbMeta } from "@/lib/journey/cover-thumb";
 import {
   journeyImageFields,
@@ -31,8 +27,8 @@ import {
   isGalleryVideoCoverSrc,
 } from "@/lib/journey/post-media";
 import {
-  bunnyVideoIdFromBlocks,
-  resolveBunnyEmbed,
+  resolveVideoPreviewMp4FromBlocks,
+  resolveVideoThumbnailFromBlocks,
 } from "@/lib/journey/video-embed";
 import { isCoSoOrgAdmin } from "@/lib/to-chuc/co-so-membership";
 import { orgPublicHref } from "@/lib/search/helpers";
@@ -968,7 +964,7 @@ function pickTile(index: number): OrgDoanProjectItem["tile"] {
   return tiles[index % tiles.length]!;
 }
 
-/** Đồng bộ Gallery Journey: `coverId` → CF URL (+ điểm neo), Bunny thumb/MP4 khi video. */
+/** Đồng bộ Gallery Journey: `coverId` → CF URL (+ điểm neo), Stream thumb/MP4 khi video. */
 function doanCoverVisualFromTacPham(row: {
   cover_id: string | null;
   mo_ta: string | null;
@@ -985,16 +981,12 @@ function doanCoverVisualFromTacPham(row: {
 
   let grid = gridRaw;
   if (grid.mediaKind === "video") {
-    const url = extractVideoUrl(blocks) ?? "";
-    const bunny = resolveBunnyEmbed(url, bunnyVideoIdFromBlocks(blocks));
-    if (bunny) {
-      grid = {
-        ...grid,
-        coverSrc: grid.coverSrc ?? buildBunnyVideoThumbnailUrlServer(bunny.videoId),
-        videoPreviewSrc:
-          grid.videoPreviewSrc ?? buildBunnyVideoMp4UrlServer(bunny.videoId),
-      };
-    }
+    grid = {
+      ...grid,
+      coverSrc: grid.coverSrc ?? resolveVideoThumbnailFromBlocks(blocks),
+      videoPreviewSrc:
+        grid.videoPreviewSrc ?? resolveVideoPreviewMp4FromBlocks(blocks),
+    };
   }
 
   const isVideo = grid.mediaKind === "video";

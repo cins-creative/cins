@@ -23,10 +23,6 @@ import {
   normalizeLegacyLayout,
 } from "@/lib/editor/image-layout";
 import {
-  buildBunnyEmbedUrl,
-  classifyBunnyVideoUrl,
-} from "@/lib/bunny/embed";
-import {
   buildStreamIframeUrl,
   classifyStreamVideoUrl,
   isStreamUid,
@@ -201,14 +197,6 @@ export function blocksToHtml(blocks: ReadonlyArray<Block>): string {
           const src = buildStreamIframeUrl(streamUid);
           parts.push(
             `<div class="rich-embed rich-embed-iframe" data-provider="stream"><iframe src="${escapeHtml(src)}" title="Video" allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;" allowfullscreen loading="lazy"></iframe></div>`,
-          );
-          break;
-        }
-        const bunny = classifyBunnyVideoUrl(url ?? "");
-        if (bunny) {
-          const src = buildBunnyEmbedUrl(bunny.libraryId, bunny.videoId);
-          parts.push(
-            `<div class="rich-embed rich-embed-iframe" data-provider="bunny"><iframe src="${escapeHtml(src)}" title="Video" allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;" allowfullscreen loading="lazy"></iframe></div>`,
           );
           break;
         }

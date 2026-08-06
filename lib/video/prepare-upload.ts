@@ -1,6 +1,5 @@
 import "server-only";
 
-import { prepareBunnyVideoUpload } from "@/lib/bunny/stream";
 import { buildStreamIframeUrl } from "@/lib/cloudflare/stream-embed";
 import {
   createStreamDirectUpload,
@@ -8,49 +7,38 @@ import {
 } from "@/lib/cloudflare/stream";
 
 /**
- * Chuẩn bị upload video (Journey/Shop) — provider-aware:
- *   - Stream đã cấu hình  → tạo direct-creator upload (tus qua uploadURL).
- *   - Ngược lại           → Bunny (giữ nguyên trong lúc migrate).
- *
- * Client phân biệt bằng `provider` để chọn cách tus upload.
+ * Chuẩn bị upload video (Journey/Shop) lên Cloudflare Stream
+ * (direct-creator upload — tus qua uploadURL).
  */
 
-export type VideoUploadPreparePayload =
-  | {
-      provider: "stream";
-      videoId: string;
-      uploadURL: string;
-      embedUrl: string;
-    }
-  | {
-      provider: "bunny";
-      videoId: string;
-      libraryId: string;
-      embedUrl: string;
-      authorizationSignature: string;
-      authorizationExpire: number;
-    };
+export type VideoUploadPreparePayload = {
+  provider: "stream";
+  videoId: string;
+  uploadURL: string;
+  embedUrl: string;
+};
 
 export async function prepareVideoUpload(
   title: string,
 ): Promise<
   { ok: true; data: VideoUploadPreparePayload } | { ok: false; error: string }
 > {
-  if (getCloudflareStreamConfig()) {
-    const up = await createStreamDirectUpload({ title });
-    if (!up.ok) return { ok: false, error: up.error };
+  if (!getCloudflareStreamConfig()) {
     return {
-      ok: true,
-      data: {
-        provider: "stream",
-        videoId: up.uid,
-        uploadURL: up.uploadURL,
-        embedUrl: buildStreamIframeUrl(up.uid),
-      },
+      ok: false,
+      error: "Cloudflare Stream chưa được cấu hình.",
     };
   }
 
-  const bunny = await prepareBunnyVideoUpload(title);
-  if (!bunny.ok) return bunny;
-  return { ok: true, data: { provider: "bunny", ...bunny.data } };
+  const up = await createStreamDirectUpload({ title });
+  if (!up.ok) return { ok: false, error: up.error };
+  return {
+    ok: true,
+    data: {
+      provider: "stream",
+      videoId: up.uid,
+      uploadURL: up.uploadURL,
+      embedUrl: buildStreamIframeUrl(up.uid),
+    },
+  };
 }

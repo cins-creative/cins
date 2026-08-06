@@ -112,16 +112,18 @@ export function HaOrgUpcomingRow({ item }: { item: SidebarUpcomingEvent }) {
           ) : null}
         </div>
         <div className="ha-org-up-body">
-          <HaOrgPopoverChip
-            orgSlug={item.orgSlug}
-            orgName={item.orgName}
-            orgLoai={item.orgLoai}
-            orgAvatarUrl={item.orgAvatarUrl}
-            wrapClassName="ha-org-up-head"
-            nameClassName="ha-org-up-org"
-          />
           <p className="ha-org-up-title">{item.label}</p>
-          {range ? <p className="ha-org-up-range">{range}</p> : null}
+          <div className="ha-org-up-meta">
+            <HaOrgPopoverChip
+              orgSlug={item.orgSlug}
+              orgName={item.orgName}
+              orgLoai={item.orgLoai}
+              orgAvatarUrl={item.orgAvatarUrl}
+              wrapClassName="ha-org-up-org-chip"
+              nameClassName="ha-org-up-org"
+            />
+            {range ? <span className="ha-org-up-range">{range}</span> : null}
+          </div>
           <div className="ha-org-up-foot">
             <HaOrgUpCountdown
               batDauIso={item.batDauIso}

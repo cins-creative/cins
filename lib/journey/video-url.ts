@@ -1,4 +1,4 @@
-import { isBunnyVideoUrl } from "@/lib/bunny/embed";
+import { isStreamVideoUrl } from "@/lib/cloudflare/stream-embed";
 
 function isLegacyExternalVideoUrl(url: string): boolean {
   const u = url.trim().toLowerCase();
@@ -9,9 +9,9 @@ function isLegacyExternalVideoUrl(url: string): boolean {
   );
 }
 
-/** URL embed hợp lệ khi đăng bài video Journey (Bunny hoặc link ngoài cũ). */
+/** URL embed hợp lệ khi đăng bài video Journey (Stream hoặc link ngoài). */
 export function isValidMediaVideoUrl(url: string): boolean {
   const trimmed = url.trim();
   if (!trimmed) return false;
-  return isBunnyVideoUrl(trimmed) || isLegacyExternalVideoUrl(trimmed);
+  return isStreamVideoUrl(trimmed) || isLegacyExternalVideoUrl(trimmed);
 }

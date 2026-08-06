@@ -3,8 +3,7 @@ import { NextResponse } from "next/server";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import { prepareVideoUpload } from "@/lib/video/prepare-upload";
 
-/* POST /api/post-video/prepare — tạo slot upload video.
-   Stream nếu đã cấu hình (uploadURL/tus), ngược lại Bunny (chữ ký TUS). */
+/* POST /api/post-video/prepare — tạo slot upload Cloudflare Stream (tus). */
 
 export async function POST(request: Request) {
   const session = await getCurrentSessionAndProfile();

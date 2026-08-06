@@ -1,9 +1,10 @@
 import "server-only";
 
 import {
-  buildBunnyEmbedUrl,
-  buildBunnyVideoThumbnailUrl,
-} from "@/lib/bunny/embed";
+  buildStreamIframeUrl,
+  buildStreamThumbnailUrl,
+  isStreamUid,
+} from "@/lib/cloudflare/stream-embed";
 import { getOrCreateDefaultBangGia } from "@/lib/shop/bang-gia";
 import { assertBanHangEnabled, shopImageUrl } from "@/lib/shop/settings";
 import type { ShopNhom, ShopNhomTruc } from "@/lib/shop/types";
@@ -130,11 +131,10 @@ function shopVideoUrls(videoId: string | null): {
       videoPhuThumbUrl: null,
     };
   }
-  const libraryId = process.env.NEXT_PUBLIC_BUNNY_LIBRARY_ID?.trim();
   return {
     videoPhuId: id,
-    videoPhuEmbedUrl: libraryId ? buildBunnyEmbedUrl(libraryId, id) : null,
-    videoPhuThumbUrl: buildBunnyVideoThumbnailUrl(id),
+    videoPhuEmbedUrl: isStreamUid(id) ? buildStreamIframeUrl(id) : null,
+    videoPhuThumbUrl: isStreamUid(id) ? buildStreamThumbnailUrl(id) : null,
   };
 }
 

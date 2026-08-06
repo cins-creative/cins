@@ -48,7 +48,7 @@ export function coverThumbZoom(meta: CoverThumbMeta | null | undefined): number 
   return clampCoverThumbZoom(meta?.zoom ?? 1);
 }
 
-function isBunnyEmbedBlock(block: Block): boolean {
+function isHostedVideoEmbedBlock(block: Block): boolean {
   if (block.loai !== "embed") return false;
   const url = typeof block.config?.url === "string" ? block.config.url : "";
   return /iframe\.mediadelivery\.net|mediadelivery\.net\/embed/i.test(url);
@@ -94,7 +94,7 @@ export function findCoverThumbMeta(
 ): CoverThumbMeta | null {
   if (!blocks?.length) return null;
   for (const block of blocks) {
-    if (!isBunnyEmbedBlock(block)) continue;
+    if (!isHostedVideoEmbedBlock(block)) continue;
     const meta = normalizeCoverThumbMeta(block.config?.coverThumb);
     if (meta) return meta;
   }
@@ -121,7 +121,7 @@ export function applyCoverThumbMeta(
 ): Block[] {
   if (!blocks.length) return blocks;
 
-  let targetIdx = blocks.findIndex(isBunnyEmbedBlock);
+  let targetIdx = blocks.findIndex(isHostedVideoEmbedBlock);
   if (targetIdx < 0) {
     targetIdx = blocks.findIndex((b) => b.loai === "embed");
   }

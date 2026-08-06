@@ -127,7 +127,7 @@ function hasThumbnail(input: DiemNoiDungInput): boolean {
   const cover = input.coverId?.trim();
   if (cover && isPersistedImageSeed(cover)) return true;
   if (extractAllImageIds(input.blocks).length > 0) return true;
-  /* Video Bunny có poster / face riêng — không tính embed 3D/Figma là thumbnail. */
+  /* Video Stream có poster / face riêng — không tính embed 3D/Figma là thumbnail. */
   if (detectMediaPostKind(input.blocks) === "video") return true;
   return false;
 }
@@ -149,7 +149,7 @@ function hasMoTaCoBan(input: DiemNoiDungInput): boolean {
 }
 
 /**
- * Embed sống: Sketchfab / Rive / Figma / video (Tier-1 + file .riv/.lottie + Bunny).
+ * Embed sống: Sketchfab / Rive / Figma / video (Tier-1 + file .riv/.lottie + Stream).
  * Dùng cùng detector gallery feed.
  */
 function hasEmbedSong(input: DiemNoiDungInput): boolean {

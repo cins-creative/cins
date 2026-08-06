@@ -1,7 +1,7 @@
 import type { ArticleTagRef } from "@/lib/editor/article-tag";
 import type { Block, LoaiMoc, Visibility } from "@/lib/editor/types";
 import type { MilestoneVisibilityCustom } from "@/components/journey/milestone-types";
-import { classifyBunnyVideoUrl } from "@/lib/bunny/embed";
+import { classifyStreamVideoUrl, isStreamUid } from "@/lib/cloudflare/stream-embed";
 import {
   buildEmbedIframeSrc,
   classifyEmbedUrl,
@@ -75,7 +75,7 @@ export function detectMediaPostKind(
   return null;
 }
 
-/** Nền tảng Tier 1 (YouTube, Figma, …) — không gồm Bunny Stream / Behance. */
+/** Nền tảng Tier 1 (YouTube, Figma, …) — không gồm Stream / Behance. */
 export function detectExternalEmbedPlatform(
   blocks: ReadonlyArray<Block> | null | undefined,
 ): Tier1EmbedPlatformId | null {
@@ -191,7 +191,7 @@ export function resolveEditComposeIntent(
     blocks: blocks ?? [],
     moTa: moTa ?? null,
   }).kind;
-  if (kind === "bunny_video") return "video";
+  if (kind === "video") return "video";
   if (kind === "article") return "full";
   return "minimal";
 }
@@ -352,13 +352,13 @@ export function galleryMediaKindFromBlocks(
   return "article";
 }
 
-/** Poster/thumbnail gallery — Bunny Stream, YouTube, v.v. */
+/** Poster/thumbnail gallery — Cloudflare Stream, YouTube, v.v. */
 export function isGalleryVideoCoverSrc(
   src: string | null | undefined,
 ): boolean {
   const trimmed = src?.trim();
   if (!trimmed) return false;
-  if (classifyBunnyVideoUrl(trimmed)) return true;
+  if (classifyStreamVideoUrl(trimmed)) return true;
   if (/\.b-cdn\.net\/[^/]+\/thumbnail\.jpg/i.test(trimmed)) return true;
   try {
     const host = new URL(trimmed).hostname.replace(/^www\./, "");
@@ -954,7 +954,7 @@ function blockEmbedConfigUrl(block: Block): string {
   return "";
 }
 
-function blockHasBunnyVideoId(block: Block): boolean {
+function blockHasVideoId(block: Block): boolean {
   return (
     typeof block.config?.bunnyVideoId === "string" &&
     Boolean(block.config.bunnyVideoId.trim())
@@ -964,7 +964,7 @@ function blockHasBunnyVideoId(block: Block): boolean {
 /** Embed chưa có URL / bunny id — không tính là media peek. */
 function isDeadEmbedBlock(block: Block): boolean {
   if (block.loai !== "embed") return false;
-  return !blockEmbedConfigUrl(block) && !blockHasBunnyVideoId(block);
+  return !blockEmbedConfigUrl(block) && !blockHasVideoId(block);
 }
 
 /** Ảnh placeholder/rỗng trong compose chưa phải nội dung peek render được. */

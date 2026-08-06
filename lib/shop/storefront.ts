@@ -1,9 +1,10 @@
 import "server-only";
 
 import {
-  buildBunnyEmbedUrl,
-  buildBunnyVideoThumbnailUrl,
-} from "@/lib/bunny/embed";
+  buildStreamIframeUrl,
+  buildStreamThumbnailUrl,
+  isStreamUid,
+} from "@/lib/cloudflare/stream-embed";
 import { shopLoaiHref } from "@/lib/shop/cua-hang-href";
 import { getShopHienThi, shopImageUrl } from "@/lib/shop/settings";
 import type {
@@ -789,7 +790,6 @@ export async function getShopStorefrontNhomDetail(opts: {
           .slice(0, 8)
       : [];
     const videoPhuId = nhom.video_phu_id?.trim() || null;
-    const libraryId = process.env.NEXT_PUBLIC_BUNNY_LIBRARY_ID?.trim();
 
     return {
       id: nhom.id,
@@ -802,12 +802,13 @@ export async function getShopStorefrontNhomDetail(opts: {
         .filter((u): u is string => Boolean(u)),
       videoPhuId,
       videoPhuEmbedUrl:
-        videoPhuId && libraryId
-          ? buildBunnyEmbedUrl(libraryId, videoPhuId)
+        videoPhuId && isStreamUid(videoPhuId)
+          ? buildStreamIframeUrl(videoPhuId)
           : null,
-      videoPhuThumbUrl: videoPhuId
-        ? buildBunnyVideoThumbnailUrl(videoPhuId)
-        : null,
+      videoPhuThumbUrl:
+        videoPhuId && isStreamUid(videoPhuId)
+          ? buildStreamThumbnailUrl(videoPhuId)
+          : null,
       giaMacDinh,
       giaTu: giaMacDinh ?? giaTu,
       giaDen: giaMacDinh ?? giaDen,

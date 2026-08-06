@@ -63,6 +63,12 @@
   }
 }
 
+/* Chat lấp vùng nội dung (/chat, chat phóng to): FAB (z 500) nổi trên khung chat
+   (z 150) và che thanh soạn tin — mobile che hẳn. Ẩn FAB trong lúc đó. */
+body:has(.cins-chat-root.is-chat-fullscreen) .gopy-fab {
+  display: none;
+}
+
 /* ── Modal góp ý ─────────────────────────────────────────────────── */
 .gopy-backdrop {
   position: fixed;

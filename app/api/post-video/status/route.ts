@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getVideoStatus } from "@/lib/video/status";
 
-/* GET /api/post-video/status?videoId=&provider= — trạng thái encode (Stream/Bunny). */
+/* GET /api/post-video/status?videoId=&provider= — trạng thái encode Cloudflare Stream. */
 
 export async function GET(request: Request) {
   const url = new URL(request.url);

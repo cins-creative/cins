@@ -12,7 +12,7 @@ import { notifyVideoReady } from "@/lib/social/video-ready";
 import { assertTruongOrgWriteApi } from "@/lib/truong/inline-api-auth";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
-/* POST /api/post-video/complete — gỡ cờ processing + thông báo khi Bunny sẵn sàng. */
+/* POST /api/post-video/complete — gỡ cờ processing + thông báo khi Stream sẵn sàng. */
 
 export async function POST(request: Request) {
   const session = await getCurrentSessionAndProfile();

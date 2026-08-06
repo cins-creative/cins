@@ -29,14 +29,15 @@ export type Block = {
    *     `gap` — khe giữa ô (0 | 2 | 4 px), mặc định 2.
    *     `albumLayout` — preset album feed: justified | masonry | columns2 | square | stack (khi albumGridCell).
    *     Mỗi phần tử `imgs[]` / mosaic `seed`: Cloudflare UUID hoặc URL http(s) đầy đủ.
-   *   - embed: { url, provider?, embed_html?, showCoverInPost?, coverThumb?, bunnyVideoId?, videoProvider?, videoId?, videoCanvasRatio? }
-   *     `videoProvider` ('bunny'|'stream') + `videoId` — provider video tổng quát (migrate Bunny→Stream).
-   *     `bunnyVideoId` là legacy; ưu tiên `videoProvider`/`videoId` khi có.
+   *   - embed: { url, provider?, embed_html?, showCoverInPost?, coverThumb?, bunnyVideoId?, videoProvider?, videoId?, videoCanvasRatio?, legacyBunnyUrl?, legacyBunnyVideoId? }
+   *     `videoProvider` ('stream') + `videoId` — Cloudflare Stream.
+   *     `bunnyVideoId` là legacy field name; ưu tiên `videoProvider`/`videoId` khi có.
+   *     `legacyBunnyUrl` / `legacyBunnyVideoId` — metadata migrate cũ, chỉ để parse dữ liệu; không dùng phát video.
    *     `showCoverInPost` — hiện `cover_id` trên card Journey + thân bài (opt-in `true`).
    *     Card timeline: hiện trừ khi `false` tường minh. Gallery / OG luôn dùng cover.
      *     `coverThumb` — { ratio: "16:9", x:0–100, y:0–100, zoom?:1–3 }
      *     điểm neo + phóng khung thumbnail (Gallery / bài dài).
-   *     Có thể nằm trên embed (ưu tiên Bunny) hoặc block đầu.
+   *     Có thể nằm trên embed hoặc block đầu.
    *   - palette: { colors: string[] }
    *   - divider: {}
    *   - spacer: { size: "s" | "m" | "l" }

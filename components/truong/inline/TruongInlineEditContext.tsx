@@ -14,7 +14,7 @@ import {
 import { createPortal } from "react-dom";
 
 import { TruongCalcConfigModalHost } from "@/components/truong/TruongCalcConfigModalHost";
-import { BunnyVideoProcessingPoller } from "@/components/journey/BunnyVideoProcessingPoller";
+import { VideoProcessingPoller } from "@/components/journey/VideoProcessingPoller";
 import { rememberCfAccountHashFromDeliveryUrl } from "@/lib/cloudflare/account-hash";
 import { cauHinhMonThiCacheKey } from "@/lib/truong/cau-hinh-tinh-diem";
 import { readTruongInlineError, truongInlineFetch } from "@/lib/truong/inline-api";
@@ -730,7 +730,7 @@ export function TruongInlineEditProvider({
 
   return (
     <TruongInlineEditContext.Provider value={value}>
-      {canEdit ? <BunnyVideoProcessingPoller orgId={initial.school.id} /> : null}
+      {canEdit ? <VideoProcessingPoller orgId={initial.school.id} /> : null}
       {children}
       <TruongCalcConfigModalHost />
       {toastNode}

@@ -9629,6 +9629,29 @@ button.cins-chat-don-card-cta.is-action:disabled {
     overflow: hidden;
   }
 
+  /* Trang /chat: `.cins-chat-root.is-chat-fullscreen` (top nav + bottom:0) thắng
+     specificity rule trên, nhưng height vv vẫn áp → box cao thêm đúng nav →
+     thanh soạn tin bị đẩy khỏi viewport. Trừ nav khỏi height. */
+  .cins-chat-root.is-chat-fullscreen {
+    top: calc(var(--cins-chat-vv-top, 0px) + var(--site-nav-height, 64px));
+    left: 0;
+    right: 0;
+    bottom: auto;
+    height: calc(
+      var(--cins-chat-vv-height, 100dvh) - var(--site-nav-height, 64px)
+    );
+    max-height: calc(
+      var(--cins-chat-vv-height, 100dvh) - var(--site-nav-height, 64px)
+    );
+  }
+
+  /* Bàn phím mở: topbar sticky nằm ngoài visual viewport → chat lấp toàn bộ. */
+  .cins-chat-root.is-chat-fullscreen.is-vv-shrunk {
+    top: var(--cins-chat-vv-top, 0px);
+    height: var(--cins-chat-vv-height, 100dvh);
+    max-height: var(--cins-chat-vv-height, 100dvh);
+  }
+
   .cins-chat-panel {
     width: 100%;
     height: 100%;
@@ -9708,6 +9731,21 @@ button.cins-chat-don-card-cta.is-action:disabled {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+  }
+
+  /* Header hội thoại mobile: chỉ icon — bỏ viền/nền pill cho gọn. */
+  .cins-chat-convo-head .cins-chat-back-mobile,
+  .cins-chat-convo-head .cins-chat-icon-btn {
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .cins-chat-convo-head .cins-chat-icon-btn.is-active,
+  .cins-chat-convo-head .cins-chat-icon-btn:hover {
+    border: 0;
+    background: transparent;
+    color: var(--cins-blue);
   }
 
   .cins-chat-close-mobile {

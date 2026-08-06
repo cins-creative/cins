@@ -42,6 +42,7 @@
 /* Chip tổ chức nằm trên lớp phủ → vẫn mở được popover org. */
 .ha-org-up-pop-card .ha-org-up-head,
 .ha-org-up-pop-card .ha-org-up-list-org,
+.ha-org-up-pop-card .ha-org-up-org-chip,
 .ha-org-up-pop-card .j-org-pop-wrap {
   position: relative;
   z-index: 2;

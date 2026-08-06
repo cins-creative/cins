@@ -2,7 +2,6 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import { deleteBunnyStreamVideo } from "@/lib/bunny/stream";
 import { deleteCloudflareImage } from "@/lib/cloudflare/delete-image";
 import { deleteStreamVideo } from "@/lib/cloudflare/stream";
 import {
@@ -11,10 +10,7 @@ import {
 } from "@/lib/cloudflare/stream-embed";
 import { parseServerBlocks } from "@/lib/journey/parse-server-blocks";
 import { extractAllImageIds, extractVideoUrl } from "@/lib/journey/post-media";
-import {
-  bunnyVideoIdFromBlocks,
-  videoHintsFromBlocks,
-} from "@/lib/journey/video-embed";
+import { videoHintsFromBlocks } from "@/lib/journey/video-embed";
 import { isCfImageUuid } from "@/lib/truong/image-ref";
 
 type TacPhamHostingRow = {
@@ -28,11 +24,9 @@ export function collectHostingAssetsFromTacPham(
   mediaCloudflareIds: ReadonlyArray<string>,
 ): {
   cloudflareImageIds: string[];
-  bunnyVideoIds: string[];
   streamVideoIds: string[];
 } {
   const cfSet = new Set<string>();
-  const bunnySet = new Set<string>();
   const streamSet = new Set<string>();
 
   for (const row of rows) {
@@ -44,15 +38,9 @@ export function collectHostingAssetsFromTacPham(
       for (const id of extractAllImageIds(blocks)) {
         if (isCfImageUuid(id)) cfSet.add(id);
       }
-      const bunnyId = bunnyVideoIdFromBlocks(blocks);
-      if (bunnyId) bunnySet.add(bunnyId);
 
       const hints = videoHintsFromBlocks(blocks);
-      if (
-        hints.videoProvider === "stream" &&
-        hints.videoId &&
-        isStreamUid(hints.videoId)
-      ) {
+      if (hints.videoId && isStreamUid(hints.videoId)) {
         streamSet.add(hints.videoId);
       }
       const streamFromUrl = classifyStreamVideoUrl(extractVideoUrl(blocks) ?? "");
@@ -67,7 +55,6 @@ export function collectHostingAssetsFromTacPham(
 
   return {
     cloudflareImageIds: [...cfSet],
-    bunnyVideoIds: [...bunnySet],
     streamVideoIds: [...streamSet],
   };
 }
@@ -121,20 +108,15 @@ async function isVideoReferenced(
   return (count ?? 0) > 0;
 }
 
-/** Dọn ảnh Cloudflare / video Bunny + Cloudflare Stream không còn tham chiếu. */
+/** Dọn ảnh Cloudflare / video Stream không còn tham chiếu. */
 export async function purgeTacPhamHostingAssets(
   admin: SupabaseClient,
   assets: {
     cloudflareImageIds: ReadonlyArray<string>;
-    bunnyVideoIds: ReadonlyArray<string>;
     streamVideoIds?: ReadonlyArray<string>;
   },
 ): Promise<void> {
   await Promise.all([
-    ...assets.bunnyVideoIds.map(async (videoId) => {
-      if (await isVideoReferenced(admin, videoId)) return;
-      await deleteBunnyStreamVideo(videoId);
-    }),
     ...(assets.streamVideoIds ?? []).map(async (uid) => {
       if (await isVideoReferenced(admin, uid)) return;
       await deleteStreamVideo(uid);

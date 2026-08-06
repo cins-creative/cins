@@ -5502,7 +5502,7 @@
   color: var(--ink-strong, #111);
 }
 
-::root[data-theme="dark"] .cso-kh-delete-text {
+:root[data-theme="dark"] .cso-kh-delete-text {
   color: var(--ink-body, rgba(255, 255, 255, 0.62));
 }
 
@@ -8917,33 +8917,102 @@ a.cso-sk-manage-person-name:hover {
   color: var(--ink-display);
 }
 
-.cso-sk-detail-meta {
+/* Headline — tiêu đề trái, RSVP phải trên cùng một hàng. */
+.cso-sk-detail-headline {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px 16px;
+  flex-wrap: wrap;
 }
 
-.cso-sk-detail-meta-row {
+.cso-sk-detail-headline > .cso-sk-detail-title {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+
+.cso-sk-detail-headline > .cso-sk-detail-rsvp-inline {
+  padding-top: 2px;
+}
+
+@media (max-width: 640px) {
+  .cso-sk-detail-headline > .cso-sk-detail-rsvp-inline {
+    align-items: flex-start;
+    padding-top: 0;
+  }
+
+  .cso-sk-detail-headline
+    .cso-sk-detail-actions.sk-detail-rsvp-actions--compact {
+    justify-content: flex-start;
+  }
+}
+
+/* Card thông tin — thời gian · vé · địa điểm · chỗ. */
+.cso-sk-detail-factcard {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--border, #e4e6eb);
+  border-radius: var(--radius-lg, 14px);
+  background: var(--bg-page, #f7f8fa);
+}
+
+.cso-sk-detail-fact {
   margin: 0;
   display: flex;
   align-items: flex-start;
-  gap: 8px;
+  gap: 10px;
+  min-width: 0;
   font-family: var(--font-sans);
   font-size: 13px;
   font-weight: 600;
-  color: var(--ink-muted);
+  color: var(--ink-body, rgba(0, 0, 0, 0.72));
   line-height: 1.45;
 }
 
-.cso-sk-detail-meta-row--rsvp {
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 8px 10px;
+.cso-sk-detail-fact > span {
+  min-width: 0;
 }
 
-.cso-sk-detail-meta-row--rsvp > .cso-sk-meta-item--tag {
-  min-width: 0;
+.cso-sk-detail-fact strong {
+  display: block;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--ink-display, rgba(0, 0, 0, 0.85));
+  margin-bottom: 2px;
+}
+
+.cso-sk-detail-fact-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cso-sk-detail-fact-head > strong {
+  margin-bottom: 0;
+}
+
+.cso-sk-detail-fact-link {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--cins-blue, #1f74c9);
+  text-decoration: none;
+}
+
+.cso-sk-detail-fact-link:hover {
+  text-decoration: underline;
+}
+
+.cso-sk-detail-fact svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  width: 18px;
+  height: 18px;
+  color: var(--cins-blue, #1f74c9);
 }
 
 .cso-sk-detail-rsvp-inline {
@@ -8964,13 +9033,9 @@ a.cso-sk-manage-person-name:hover {
   line-height: 1.3;
 }
 
-.cso-sk-detail-meta-row svg {
-  flex-shrink: 0;
-  color: var(--cins-blue);
-  margin-top: 2px;
-}
-
-.cso-sk-detail-meta-row--rsvp svg {
+/* Icon trong nút RSVP theo màu chữ của nút, không lấy màu icon fact. */
+.cso-sk-detail-headline .cso-sk-detail-btn svg {
+  color: inherit;
   margin-top: 0;
 }
 
@@ -9220,8 +9285,16 @@ a.cso-sk-manage-person-name:hover {
   color: var(--ink-display, rgba(255, 255, 255, 0.92));
 }
 
-:root[data-theme="dark"] .cso-sk-detail-meta-row {
-  color: var(--ink-muted, rgba(255, 255, 255, 0.46));
+:root[data-theme="dark"] .cso-sk-detail-fact {
+  color: var(--ink-body, rgba(255, 255, 255, 0.78));
+}
+
+:root[data-theme="dark"] .cso-sk-detail-fact strong {
+  color: var(--ink-display, rgba(255, 255, 255, 0.92));
+}
+
+:root[data-theme="dark"] .cso-sk-detail-factcard {
+  background: var(--bg-page, rgba(255, 255, 255, 0.04));
 }
 
 /* Tab Sản phẩm — filter công khai + dashboard quản trị */

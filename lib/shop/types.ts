@@ -65,7 +65,7 @@ export type ShopNhom = {
   /** Ảnh thật sản phẩm phụ (Cloudflare ids). */
   anhPhuIds: string[];
   anhPhuUrls: string[];
-  /** Video phụ Bunny Stream (tối đa 1). */
+  /** Video phụ Cloudflare Stream (tối đa 1). */
   videoPhuId: string | null;
   videoPhuEmbedUrl: string | null;
   videoPhuThumbUrl: string | null;
@@ -141,7 +141,7 @@ export type ShopStorefrontNhomDetail = {
   overlayAnhUrl: string | null;
   /** Ảnh thật sản phẩm phụ. */
   anhPhuUrls: string[];
-  /** Video phụ Bunny (tối đa 1). */
+  /** Video phụ Cloudflare Stream (tối đa 1). */
   videoPhuId: string | null;
   videoPhuEmbedUrl: string | null;
   videoPhuThumbUrl: string | null;

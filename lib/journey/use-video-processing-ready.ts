@@ -4,17 +4,17 @@ import { useEffect, useState } from "react";
 
 const POLL_MS = 5_000;
 
-/** Poll Bunny khi block còn cờ `videoProcessing` — hiển thị player ngay khi encode xong. */
-export function useBunnyVideoProcessingReady(
+/** Poll Stream khi block còn cờ `videoProcessing` — hiển thị player ngay khi encode xong. */
+export function useVideoProcessingReady(
   processing: boolean,
-  bunnyVideoId: string | null | undefined,
+  videoId: string | null | undefined,
 ): boolean {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
     setReady(false);
-    const videoId = bunnyVideoId?.trim() ?? "";
-    if (!processing || videoId.length === 0) return;
+    const id = videoId?.trim() ?? "";
+    if (!processing || id.length === 0) return;
 
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | null = null;
@@ -23,7 +23,7 @@ export function useBunnyVideoProcessingReady(
       if (cancelled) return;
       try {
         const res = await fetch(
-          `/api/post-video/status?videoId=${encodeURIComponent(videoId)}`,
+          `/api/post-video/status?videoId=${encodeURIComponent(id)}&provider=stream`,
           { cache: "no-store" },
         );
         if (!res.ok) {
@@ -49,7 +49,10 @@ export function useBunnyVideoProcessingReady(
       cancelled = true;
       if (timer) clearTimeout(timer);
     };
-  }, [processing, bunnyVideoId]);
+  }, [processing, videoId]);
 
   return ready;
 }
+
+/** @deprecated Dùng `useVideoProcessingReady`. */
+export const useBunnyVideoProcessingReady = useVideoProcessingReady;

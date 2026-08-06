@@ -3,7 +3,7 @@ import { classifyEmbedUrl } from "@/lib/editor/embed-providers";
 import { resolveEmbedGalleryThumbnailSrc } from "@/lib/editor/embed-thumbnail";
 import { resolveImageSeedUrl } from "@/lib/editor/resolve-image-seed-url";
 import type { Block as ServerBlock } from "@/lib/editor/types";
-import { classifyBunnyVideoUrl } from "@/lib/bunny/embed";
+import { classifyStreamVideoUrl } from "@/lib/cloudflare/stream-embed";
 import {
   inferComposePreviewKind,
   type ComposePreviewKind,
@@ -47,12 +47,13 @@ export type ComposePreviewDraft = {
   ownerAvatarUrl?: string | null;
   ownerSlug: string;
   /**
-   * Video Bunny đang soạn — bổ sung URL / id vào embed trống để Journey preview
+   * Video Stream đang soạn — bổ sung URL / id vào embed trống để Journey preview
    * ra `jcard--video` thay vì article-peek chữ sai.
    */
   bunnyVideo?: {
     embedUrl?: string | null;
     bunnyVideoId?: string | null;
+    videoId?: string | null;
     processing?: boolean;
     videoCanvasRatio?: string | null;
   } | null;
@@ -224,10 +225,10 @@ function resolveThumb(
     const embed = blocks.find((b) => b.loai === "embed");
     const url =
       typeof embed?.config?.url === "string" ? embed.config.url.trim() : "";
-    const bunny = url ? classifyBunnyVideoUrl(url) : null;
+    const stream = url ? classifyStreamVideoUrl(url) : null;
     const provider = url ? classifyEmbedUrl(url)?.provider : null;
     const isVideo =
-      Boolean(bunny) ||
+      Boolean(stream) ||
       provider === "youtube" ||
       provider === "vimeo";
     return {
@@ -239,7 +240,7 @@ function resolveThumb(
   const embed = blocks.find((b) => b.loai === "embed");
   const url =
     typeof embed?.config?.url === "string" ? embed.config.url.trim() : "";
-  if (url && classifyBunnyVideoUrl(url)) {
+  if (url && classifyStreamVideoUrl(url)) {
     return { src: null, isVideo: true };
   }
 
@@ -291,14 +292,17 @@ function inferGalleryMediaKind(
   return "article";
 }
 
-function enrichBunnyVideoPreviewBlocks(
+function enrichVideoPreviewBlocks(
   blocks: ServerBlock[],
   bunnyVideo: ComposePreviewDraft["bunnyVideo"],
 ): ServerBlock[] {
   if (!bunnyVideo) return blocks;
   const embedUrl = bunnyVideo.embedUrl?.trim() || "";
-  const bunnyVideoId = bunnyVideo.bunnyVideoId?.trim() || "";
-  if (!embedUrl && !bunnyVideoId) return blocks;
+  const videoId =
+    bunnyVideo.videoId?.trim() ||
+    bunnyVideo.bunnyVideoId?.trim() ||
+    "";
+  if (!embedUrl && !videoId) return blocks;
 
   let touched = false;
   const next = blocks.map((block) => {
@@ -309,12 +313,14 @@ function enrichBunnyVideoPreviewBlocks(
       (typeof cfg.embedUrl === "string" && cfg.embedUrl.trim()) ||
       "";
     const existingId =
-      typeof cfg.bunnyVideoId === "string" ? cfg.bunnyVideoId.trim() : "";
-    if (existingUrl && classifyBunnyVideoUrl(existingUrl)) {
+      (typeof cfg.videoId === "string" && cfg.videoId.trim()) ||
+      (typeof cfg.bunnyVideoId === "string" && cfg.bunnyVideoId.trim()) ||
+      "";
+    if (existingUrl && classifyStreamVideoUrl(existingUrl)) {
       touched = true;
       return block;
     }
-    if (existingId && !embedUrl && !bunnyVideoId) {
+    if (existingId && !embedUrl && !videoId) {
       touched = true;
       return block;
     }
@@ -324,7 +330,9 @@ function enrichBunnyVideoPreviewBlocks(
       config: {
         ...cfg,
         ...(embedUrl ? { url: embedUrl } : {}),
-        ...(bunnyVideoId ? { bunnyVideoId } : {}),
+        ...(videoId
+          ? { videoId, videoProvider: "stream" as const }
+          : {}),
         ...(bunnyVideo.processing ? { videoProcessing: true } : {}),
         ...(bunnyVideo.videoCanvasRatio
           ? { videoCanvasRatio: bunnyVideo.videoCanvasRatio }
@@ -342,7 +350,7 @@ function enrichBunnyVideoPreviewBlocks(
 export function buildComposePreviewSnapshot(
   draft: ComposePreviewDraft,
 ): ComposePreviewSnapshot {
-  const blocks = enrichBunnyVideoPreviewBlocks(draft.blocks, draft.bunnyVideo);
+  const blocks = enrichVideoPreviewBlocks(draft.blocks, draft.bunnyVideo);
   const showCoverInPost =
     typeof draft.showCoverInPost === "boolean"
       ? draft.showCoverInPost
@@ -353,11 +361,14 @@ export function buildComposePreviewSnapshot(
       : draft.coverThumb;
 
   let kind = inferComposePreviewKind(blocks, draft.coverSeed, draft.moTa);
-  /* Đang soạn video Bunny nhưng block embed còn trống / chưa sync URL. */
+  /* Đang soạn video Stream nhưng block embed còn trống / chưa sync URL. */
+  const draftVideoId =
+    draft.bunnyVideo?.videoId?.trim() ||
+    draft.bunnyVideo?.bunnyVideoId?.trim() ||
+    "";
   if (
     draft.bunnyVideo &&
-    (draft.bunnyVideo.embedUrl?.trim() ||
-      draft.bunnyVideo.bunnyVideoId?.trim()) &&
+    (draft.bunnyVideo.embedUrl?.trim() || draftVideoId) &&
     kind !== "article" &&
     kind !== "photo"
   ) {
@@ -366,7 +377,7 @@ export function buildComposePreviewSnapshot(
   if (
     draft.bunnyVideo &&
     !draft.bunnyVideo.embedUrl?.trim() &&
-    !draft.bunnyVideo.bunnyVideoId?.trim() &&
+    !draftVideoId &&
     kind === "text" &&
     !blocks.some((b) => b.loai === "imgs" || b.loai === "h2" || b.loai === "h3")
   ) {

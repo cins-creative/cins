@@ -8,19 +8,20 @@ import {
   useState,
 } from "react";
 
-import { BunnyNativeVideoPlayer } from "@/components/journey/BunnyNativeVideoPlayer";
 import { JourneyCoverImage } from "@/components/journey/JourneyCoverImage";
 import { MilestoneVideoEmbed } from "@/components/journey/MilestoneVideoEmbed";
 import type { MilestoneItem } from "@/components/journey/milestone-types";
-import { classifyBunnyVideoUrl } from "@/lib/bunny/embed";
+import {
+  buildStreamThumbnailUrl,
+  classifyStreamVideoUrl,
+} from "@/lib/cloudflare/stream-embed";
 import type { Block } from "@/lib/editor/types";
 import { youtubeVideoThumbnailUrl } from "@/lib/journey/post-media";
 import {
   buildVideoIframeSrc,
-  bunnyVideoIdFromBlocks,
-  resolveBunnyEmbed,
   resolveVideoThumbnailFromBlocks,
   videoHintsFromBlocks,
+  videoIdFromBlocks,
 } from "@/lib/journey/video-embed";
 import { setShareDragData } from "@/lib/cins/share-drag";
 import { useOffscreenMedia } from "@/lib/journey/use-offscreen-media";
@@ -46,18 +47,15 @@ export function resolveVideoPoster(
 ): string | null {
   if (preview?.src?.trim()) return preview.src.trim();
 
-  const bunny = classifyBunnyVideoUrl(url);
-  const cdn = process.env.NEXT_PUBLIC_BUNNY_CDN_HOSTNAME?.trim();
-  if (bunny && cdn) {
-    return `https://${cdn}/${bunny.videoId}/thumbnail.jpg`;
-  }
+  const stream = classifyStreamVideoUrl(url);
+  if (stream) return buildStreamThumbnailUrl(stream.uid);
 
   return youtubeVideoThumbnailUrl(url);
 }
 
 /**
- * Video trên milestone card — Bunny: native MP4 480p + prefetch;
- * YouTube/Vimeo: iframe cải thiện (poster giữ đến khi iframe sẵn sàng).
+ * Video trên milestone card — Cloudflare Stream / YouTube / Vimeo:
+ * poster giữ đến khi iframe sẵn sàng.
  */
 export function JourneyCardVideo({
   url,
@@ -81,13 +79,13 @@ export function JourneyCardVideo({
   const posterSrc =
     resolveVideoPoster(url, preview) ??
     resolveVideoThumbnailFromBlocks(noiDungBlocks);
-  const bunnyVideoId = useMemo(
-    () => bunnyVideoIdFromBlocks(noiDungBlocks),
-    [noiDungBlocks],
+  const videoId = useMemo(
+    () => videoIdFromBlocks(noiDungBlocks) ?? hints.videoId ?? null,
+    [noiDungBlocks, hints.videoId],
   );
   const { ratio: canvasRatio, aspect: canvasAspect } = useResolvedVideoCanvas(
     noiDungBlocks,
-    bunnyVideoId,
+    videoId,
   );
   const canvasClass = videoCanvasRatioClass(canvasRatio);
   const canvasStyle = {
@@ -96,20 +94,15 @@ export function JourneyCardVideo({
   const posterDims = videoPreviewDimensionsFromRatio(canvasRatio);
   const posterWidth = preview?.width ?? posterDims.width;
   const posterHeight = preview?.height ?? posterDims.height;
-  const bunnyEmbed = useMemo(
-    () => resolveBunnyEmbed(url, bunnyVideoId),
-    [url, bunnyVideoId],
-  );
   const showProcessing = Boolean(processing);
   const iframeSrc = useMemo(
     () =>
       buildVideoIframeSrc(url, {
         autoplay: true,
-        bunnyVideoId,
         videoProvider: hints.videoProvider,
-        videoId: hints.videoId,
+        videoId: hints.videoId ?? videoId,
       }),
-    [url, bunnyVideoId, hints.videoProvider, hints.videoId],
+    [url, videoId, hints.videoProvider, hints.videoId],
   );
 
   useEffect(() => {
@@ -129,34 +122,10 @@ export function JourneyCardVideo({
           url={url}
           title={title}
           processing
-          bunnyVideoId={bunnyVideoId}
           videoProvider={hints.videoProvider}
-          videoId={hints.videoId}
+          videoId={hints.videoId ?? videoId}
         />
       </div>
-    );
-  }
-
-  if (bunnyEmbed) {
-    return (
-      <BunnyNativeVideoPlayer
-        videoId={bunnyEmbed.videoId}
-        title={title}
-        poster={posterSrc}
-        canvasClass={canvasClass}
-        canvasStyle={canvasStyle}
-        mode="feed"
-        preview={
-          preview
-            ? {
-                srcSet: preview.srcSet,
-                width: posterWidth,
-                height: posterHeight,
-                objectPosition: preview.objectPosition,
-              }
-            : null
-        }
-      />
     );
   }
 
@@ -229,9 +198,8 @@ export function JourneyCardVideo({
           url={url}
           title={title}
           autoplay
-          bunnyVideoId={bunnyVideoId}
           videoProvider={hints.videoProvider}
-          videoId={hints.videoId}
+          videoId={hints.videoId ?? videoId}
           onIframeLoad={() => setIframeReady(true)}
         />
       </div>

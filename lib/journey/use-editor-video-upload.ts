@@ -12,7 +12,6 @@ import {
 } from "@/lib/journey/video-canvas-ratio";
 import {
   createVideoTusUpload,
-  prepareResponseIsStream,
   prepareResponseIsValid,
   type VideoPrepareResponse,
 } from "@/lib/video/upload-tus";
@@ -22,10 +21,8 @@ const ENCODE_POLL_MS = 5_000;
 
 export function useEditorVideoUpload() {
   const [videoUrl, setVideoUrl] = useState("");
-  const [bunnyVideoId, setBunnyVideoId] = useState<string | null>(null);
-  const [videoProvider, setVideoProvider] = useState<"bunny" | "stream" | null>(
-    null,
-  );
+  const [videoId, setVideoId] = useState<string | null>(null);
+  const [videoProvider, setVideoProvider] = useState<"stream" | null>(null);
   const [videoUploading, setVideoUploading] = useState(false);
   const [videoUploadProgress, setVideoUploadProgress] = useState(0);
   const [videoUploadError, setVideoUploadError] = useState<string | null>(null);
@@ -38,7 +35,7 @@ export function useEditorVideoUpload() {
 
   const uploadSessionRef = useRef(0);
   const activeUploadRef = useRef<{ abort: () => void } | null>(null);
-  const pendingBunnyRef = useRef<{ videoId: string; embedUrl: string } | null>(
+  const pendingUploadRef = useRef<{ videoId: string; embedUrl: string } | null>(
     null,
   );
   const uploadLockRef = useRef(false);
@@ -46,10 +43,10 @@ export function useEditorVideoUpload() {
   const abortActiveVideoUpload = useCallback(() => {
     activeUploadRef.current?.abort();
     activeUploadRef.current = null;
-    const pending = pendingBunnyRef.current;
+    const pending = pendingUploadRef.current;
     if (pending) {
       releaseVideoUpload(pending.videoId);
-      pendingBunnyRef.current = null;
+      pendingUploadRef.current = null;
     }
   }, []);
 
@@ -58,7 +55,7 @@ export function useEditorVideoUpload() {
     abortActiveVideoUpload();
     uploadLockRef.current = false;
     setVideoUrl("");
-    setBunnyVideoId(null);
+    setVideoId(null);
     setVideoProvider(null);
     setVideoUploading(false);
     setVideoUploadProgress(0);
@@ -83,7 +80,7 @@ export function useEditorVideoUpload() {
   );
 
   useEffect(() => {
-    if (!bunnyVideoId || videoEncodeReady || videoUploading) return;
+    if (!videoId || videoEncodeReady || videoUploading) return;
 
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | null = null;
@@ -92,9 +89,7 @@ export function useEditorVideoUpload() {
       if (cancelled) return;
       try {
         const res = await fetch(
-          `/api/post-video/status?videoId=${encodeURIComponent(bunnyVideoId!)}${
-            videoProvider ? `&provider=${videoProvider}` : ""
-          }`,
+          `/api/post-video/status?videoId=${encodeURIComponent(videoId!)}&provider=stream`,
           { cache: "no-store" },
         );
         if (!res.ok || cancelled) {
@@ -124,7 +119,7 @@ export function useEditorVideoUpload() {
       cancelled = true;
       if (timer) clearTimeout(timer);
     };
-  }, [bunnyVideoId, videoProvider, videoEncodeReady, videoUploading]);
+  }, [videoId, videoEncodeReady, videoUploading]);
 
   const uploadVideoFile = useCallback(
     async (file: File) => {
@@ -144,7 +139,7 @@ export function useEditorVideoUpload() {
       setVideoUploading(true);
       setVideoUploadError(null);
       setVideoUrl("");
-      setBunnyVideoId(null);
+      setVideoId(null);
       setVideoProvider(null);
       setVideoUploadProgress(0);
       setVideoEncodeReady(false);
@@ -170,17 +165,14 @@ export function useEditorVideoUpload() {
           throw new Error(prep.error || "Không chuẩn bị được upload video.");
         }
 
-        const videoId = prep.videoId!;
+        const nextVideoId = prep.videoId!;
         const embedUrl = prep.embedUrl!;
-        const provider: "bunny" | "stream" = prepareResponseIsStream(prep)
-          ? "stream"
-          : "bunny";
 
-        pendingBunnyRef.current = { videoId, embedUrl };
+        pendingUploadRef.current = { videoId: nextVideoId, embedUrl };
 
         /* Cho phép Journey preview / scrub dùng id + embed ngay — không chờ tus xong. */
-        setVideoProvider(provider);
-        setBunnyVideoId(videoId);
+        setVideoProvider("stream");
+        setVideoId(nextVideoId);
         setVideoUrl(embedUrl);
 
         const upload = await createVideoTusUpload(file, prep, {
@@ -193,8 +185,8 @@ export function useEditorVideoUpload() {
           },
           onError: (err) => {
             if (session !== uploadSessionRef.current) return;
-            releaseVideoUpload(videoId);
-            pendingBunnyRef.current = null;
+            releaseVideoUpload(nextVideoId);
+            pendingUploadRef.current = null;
             activeUploadRef.current = null;
             uploadLockRef.current = false;
             setVideoUploading(false);
@@ -205,13 +197,13 @@ export function useEditorVideoUpload() {
           },
           onSuccess: () => {
             if (session !== uploadSessionRef.current) return;
-            releaseVideoUpload(videoId);
-            pendingBunnyRef.current = null;
+            releaseVideoUpload(nextVideoId);
+            pendingUploadRef.current = null;
             activeUploadRef.current = null;
             uploadLockRef.current = false;
             setVideoUploadProgress(100);
-            setVideoProvider(provider);
-            setBunnyVideoId(videoId);
+            setVideoProvider("stream");
+            setVideoId(nextVideoId);
             setVideoUrl(embedUrl);
             setVideoUploading(false);
             // Giữ blob local để pick thumbnail / scrub — không chờ encode.
@@ -220,11 +212,11 @@ export function useEditorVideoUpload() {
         if (session !== uploadSessionRef.current) return;
 
         activeUploadRef.current = upload;
-        registerVideoUpload(videoId, upload);
+        registerVideoUpload(nextVideoId, upload);
         upload.start();
       } catch (e) {
         if (session !== uploadSessionRef.current) return;
-        pendingBunnyRef.current = null;
+        pendingUploadRef.current = null;
         activeUploadRef.current = null;
         uploadLockRef.current = false;
         setVideoUploadError(
@@ -238,12 +230,13 @@ export function useEditorVideoUpload() {
   );
 
   const videoEncoding =
-    Boolean(bunnyVideoId) && !videoEncodeReady && !videoUploading;
+    Boolean(videoId) && !videoEncodeReady && !videoUploading;
 
   return {
     videoUrl,
-    bunnyVideoId,
-    videoId: bunnyVideoId,
+    videoId,
+    /** @deprecated Dùng `videoId`. */
+    bunnyVideoId: videoId,
     videoProvider,
     videoUploading,
     videoUploadProgress,

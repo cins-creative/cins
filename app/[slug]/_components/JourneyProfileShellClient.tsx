@@ -5,7 +5,7 @@ import { Suspense, use, type ReactNode } from "react";
 import type { KetBanStatusSummary } from "@/lib/social/types";
 import { JourneySidebarNavCountsSkeleton } from "@/app/[slug]/_components/JourneySidebarNavCounts.skeleton";
 import type { EditProfileInitial } from "@/components/journey/JourneyEditProfileModal";
-import { BunnyVideoProcessingPoller } from "@/components/journey/BunnyVideoProcessingPoller";
+import { VideoProcessingPoller } from "@/components/journey/VideoProcessingPoller";
 import { JourneyComposeProvider } from "@/components/journey/JourneyComposeContext";
 import { JourneyFeaturedAsideFilterProvider } from "@/components/journey/JourneyFeaturedAsideFilterContext";
 import {
@@ -117,7 +117,7 @@ export function JourneyProfileShellClient({
           initialCompose={canComposePosts ? initialCompose : null}
         >
           {canComposePosts ? (
-            <BunnyVideoProcessingPoller ownerSlug={profile.slug} />
+            <VideoProcessingPoller ownerSlug={profile.slug} />
           ) : null}
           {shell}
         </JourneyComposeProvider>

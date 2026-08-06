@@ -163,7 +163,7 @@ export function getProfileCoverUrl(
 /** Initials fallback khi không có avatar — chữ cái đầu của 1-2 từ trong tên. */
 export function getNameInitials(
   tenHienThi: string | null | undefined,
-  slug: string,
+  slug: string | null | undefined,
 ): string {
   const src = (tenHienThi || slug || "C").trim();
   const words = src.split(/\s+/).filter(Boolean);

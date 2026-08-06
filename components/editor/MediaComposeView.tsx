@@ -59,7 +59,6 @@ import { mapLoaiMocToMilestoneType } from "@/lib/journey/milestone-ui-map";
 import { resolveVideoEmbed, buildResolvedVideoIframeSrc } from "@/lib/video/embed";
 import {
   createVideoTusUpload,
-  prepareResponseIsStream,
   prepareResponseIsValid,
   type VideoPrepareResponse,
 } from "@/lib/video/upload-tus";
@@ -220,11 +219,11 @@ export function MediaComposeView({
   const [title, setTitle] = useState(editInitial?.title ?? "");
   const [caption, setCaption] = useState(editInitial?.caption ?? "");
   const [videoUrl, setVideoUrl] = useState(editInitial?.videoUrl ?? "");
-  const [bunnyVideoId, setBunnyVideoId] = useState<string | null>(() => {
+  const [videoId, setVideoId] = useState<string | null>(() => {
     if (!editInitial?.videoUrl) return null;
     return resolveVideoEmbed(editInitial.videoUrl)?.id ?? null;
   });
-  const [videoProvider, setVideoProvider] = useState<"bunny" | "stream" | null>(
+  const [videoProvider, setVideoProvider] = useState<"stream" | null>(
     () => {
       if (!editInitial?.videoUrl) return null;
       return resolveVideoEmbed(editInitial.videoUrl)?.provider ?? null;
@@ -315,7 +314,7 @@ export function MediaComposeView({
   const activeUploadRef = useRef<InstanceType<
     typeof import("tus-js-client").Upload
   > | null>(null);
-  const pendingBunnyRef = useRef<{ videoId: string; embedUrl: string } | null>(
+  const pendingUploadRef = useRef<{ videoId: string; embedUrl: string } | null>(
     null,
   );
   const initialVideoStartedRef = useRef(false);
@@ -327,11 +326,10 @@ export function MediaComposeView({
       videoUrl
         ? resolveVideoEmbed(videoUrl, {
             videoProvider,
-            videoId: bunnyVideoId,
-            bunnyVideoId,
+            videoId,
           })
         : null,
-    [videoUrl, videoProvider, bunnyVideoId],
+    [videoUrl, videoProvider, videoId],
   );
 
   const isPhoto = mode === "photo";
@@ -553,10 +551,10 @@ export function MediaComposeView({
   const abortActiveVideoUpload = useCallback(() => {
     activeUploadRef.current?.abort();
     activeUploadRef.current = null;
-    const pending = pendingBunnyRef.current;
+    const pending = pendingUploadRef.current;
     if (pending) {
       releaseVideoUpload(pending.videoId);
-      pendingBunnyRef.current = null;
+      pendingUploadRef.current = null;
     }
   }, []);
 
@@ -579,7 +577,7 @@ export function MediaComposeView({
       setVideoUploadError(null);
       setError(null);
       setVideoUrl("");
-      setBunnyVideoId(null);
+      setVideoId(null);
       setVideoProvider(null);
       setVideoCanvasRatio(null);
       setLocalVideoPreviewUrl((prev) => {
@@ -605,17 +603,15 @@ export function MediaComposeView({
 
         const videoId = prep.videoId!;
         const embedUrl = prep.embedUrl!;
-        const provider: "bunny" | "stream" = prepareResponseIsStream(prep)
-          ? "stream"
-          : "bunny";
+        const provider = "stream" as const;
 
-        pendingBunnyRef.current = { videoId, embedUrl };
+        pendingUploadRef.current = { videoId, embedUrl };
 
         const upload = await createVideoTusUpload(file, prep, {
           onError: (err) => {
             if (session !== uploadSessionRef.current) return;
             releaseVideoUpload(videoId);
-            pendingBunnyRef.current = null;
+            pendingUploadRef.current = null;
             activeUploadRef.current = null;
             uploadLockRef.current = false;
             setVideoUploading(false);
@@ -626,11 +622,11 @@ export function MediaComposeView({
           onSuccess: () => {
             if (session !== uploadSessionRef.current) return;
             releaseVideoUpload(videoId);
-            pendingBunnyRef.current = null;
+            pendingUploadRef.current = null;
             activeUploadRef.current = null;
             uploadLockRef.current = false;
             setVideoUrl(embedUrl);
-            setBunnyVideoId(videoId);
+            setVideoId(videoId);
             setVideoProvider(provider);
             setVideoUploading(false);
             setLocalVideoPreviewUrl((prev) => {
@@ -646,7 +642,7 @@ export function MediaComposeView({
         upload.start();
       } catch (e) {
         if (session !== uploadSessionRef.current) return;
-        pendingBunnyRef.current = null;
+        pendingUploadRef.current = null;
         activeUploadRef.current = null;
         uploadLockRef.current = false;
         setVideoUploadError(
@@ -741,11 +737,11 @@ export function MediaComposeView({
 
   const clearVideo = () => {
     abortActiveVideoUpload();
-    if (bunnyVideoId) releaseVideoUpload(bunnyVideoId);
+    if (videoId) releaseVideoUpload(videoId);
     uploadLockRef.current = false;
     initialVideoStartedRef.current = false;
     setVideoUrl("");
-    setBunnyVideoId(null);
+    setVideoId(null);
     setVideoUploadError(null);
     setVideoUploading(false);
     setVideoCanvasRatio(null);
@@ -841,8 +837,7 @@ export function MediaComposeView({
         const trimmedUrl = videoUrl.trim().slice(0, 2048);
         const resolved = resolveVideoEmbed(trimmedUrl, {
           videoProvider,
-          videoId: bunnyVideoId,
-          bunnyVideoId,
+          videoId,
         });
 
         blocks.push({
@@ -856,9 +851,6 @@ export function MediaComposeView({
               ? {
                   videoProvider: resolved.provider,
                   videoId: resolved.id,
-                  ...(resolved.provider === "bunny"
-                    ? { bunnyVideoId: resolved.id }
-                    : {}),
                   ...(!isEdit ? { videoProcessing: true } : {}),
                 }
               : {}),
@@ -1050,7 +1042,7 @@ export function MediaComposeView({
           <div className="mc-compose-top-title">{pageTitle}</div>
           {!isPhoto ? (
             <p className="mc-compose-mode-hint">
-              Video Bunny — chỉ tiêu đề, mô tả và upload video. Poster hiện trên lưới
+              Video — chỉ tiêu đề, mô tả và upload video. Poster hiện trên lưới
               sau khi encode xong.
             </p>
           ) : null}

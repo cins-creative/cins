@@ -1,10 +1,9 @@
 import "server-only";
 
-import { getBunnyVideoStatus } from "@/lib/bunny/stream";
 import { isStreamUid } from "@/lib/cloudflare/stream-embed";
 import { getStreamVideoStatus } from "@/lib/cloudflare/stream";
 
-/** Trạng thái encode — auto route theo provider (uid Stream 32-hex vs Bunny GUID). */
+/** Trạng thái encode Cloudflare Stream. */
 export async function getVideoStatus(
   videoId: string,
   provider?: string | null,
@@ -12,10 +11,13 @@ export async function getVideoStatus(
   { ok: true; ready: boolean; status: number } | { ok: false; error: string }
 > {
   const isStream = provider === "stream" || isStreamUid(videoId);
-  if (isStream) {
-    const res = await getStreamVideoStatus(videoId);
-    if (!res.ok) return res;
-    return { ok: true, ready: res.ready, status: res.ready ? 4 : 2 };
+  if (!isStream) {
+    return {
+      ok: false,
+      error: "Chỉ hỗ trợ Cloudflare Stream.",
+    };
   }
-  return getBunnyVideoStatus(videoId);
+  const res = await getStreamVideoStatus(videoId);
+  if (!res.ok) return res;
+  return { ok: true, ready: res.ready, status: res.ready ? 4 : 2 };
 }

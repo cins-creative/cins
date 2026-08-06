@@ -15,12 +15,8 @@ import {
 import { findCoverThumbMeta } from "@/lib/journey/cover-thumb";
 import { resolvePostGridEntry } from "@/lib/journey/post-content-kind";
 import {
-  buildBunnyVideoMp4Url as buildBunnyVideoMp4UrlServer,
-  buildBunnyVideoThumbnailUrl as buildBunnyVideoThumbnailUrlServer,
-} from "@/lib/bunny/thumbnail";
-import {
-  bunnyVideoIdFromBlocks,
-  resolveBunnyEmbed,
+  resolveVideoPreviewMp4FromBlocks,
+  resolveVideoThumbnailFromBlocks,
 } from "@/lib/journey/video-embed";
 import { extractVideoUrl } from "@/lib/journey/post-media";
 import {
@@ -208,17 +204,12 @@ function enrichVideoGridVisuals(
   gridEntry: NonNullable<ReturnType<typeof resolvePostGridEntry>>,
 ): NonNullable<ReturnType<typeof resolvePostGridEntry>> {
   if (gridEntry.mediaKind !== "video") return gridEntry;
-  const url = extractVideoUrl(blocks) ?? "";
-  const bunny = resolveBunnyEmbed(url, bunnyVideoIdFromBlocks(blocks));
-  if (!bunny) return gridEntry;
   return {
     ...gridEntry,
     coverSrc:
-      gridEntry.coverSrc ??
-      buildBunnyVideoThumbnailUrlServer(bunny.videoId),
+      gridEntry.coverSrc ?? resolveVideoThumbnailFromBlocks(blocks),
     videoPreviewSrc:
-      gridEntry.videoPreviewSrc ??
-      buildBunnyVideoMp4UrlServer(bunny.videoId),
+      gridEntry.videoPreviewSrc ?? resolveVideoPreviewMp4FromBlocks(blocks),
   };
 }
 

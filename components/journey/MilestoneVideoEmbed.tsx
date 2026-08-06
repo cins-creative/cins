@@ -7,14 +7,15 @@ type Props = {
   processing?: boolean;
   /** Phát ngay khi embed mount (inline card). */
   autoplay?: boolean;
-  bunnyVideoId?: string | null;
   videoProvider?: string | null;
   videoId?: string | null;
+  /** @deprecated dùng `videoId`. */
+  bunnyVideoId?: string | null;
   onIframeLoad?: () => void;
 };
 
 /**
- * Video inline trên milestone card — Cloudflare Stream, Bunny, YouTube, Vimeo.
+ * Video inline trên milestone card — Cloudflare Stream, YouTube, Vimeo.
  */
 export function MilestoneVideoEmbed({
   url,

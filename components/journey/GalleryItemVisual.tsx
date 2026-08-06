@@ -18,7 +18,7 @@ type Props = {
   priority?: boolean;
   isVideo?: boolean;
   videoProcessing?: boolean;
-  /** MP4 Bunny — hiển thị frame đầu khi không có / lỗi thumbnail. */
+  /** MP4 Stream — hiển thị frame đầu khi không có / lỗi thumbnail. */
   videoPreviewSrc?: string | null;
   objectPosition?: string;
   zoom?: number;
@@ -104,7 +104,7 @@ function GalleryVideoFrameThumb({
   );
 }
 
-/** Thumbnail gallery — ảnh CF, Bunny thumb, frame đầu video, hoặc placeholder. */
+/** Thumbnail gallery — ảnh CF, Stream thumb, frame đầu video, hoặc placeholder. */
 export function GalleryItemVisual({
   src,
   alt,

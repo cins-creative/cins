@@ -48,6 +48,14 @@ import {
   hasTruongGioiThieuContent,
 } from "@/lib/truong/gioi-thieu";
 
+/** Địa điểm online (link Zoom/Meet…) không có gì để chỉ trên bản đồ. */
+function mapQueryFromDiaDiem(label: string | null): string | null {
+  if (!label) return null;
+  const query = label.replace(/\s·\s/g, ", ").trim();
+  if (!query || /https?:\/\//i.test(query)) return null;
+  return query;
+}
+
 function SuKienLoaiVeList({
   items,
   cachMuaVe,
@@ -269,26 +277,90 @@ function formatRange(batDau: string, ketThuc: string | null): string {
     hour: "2-digit",
     minute: "2-digit",
   });
-  const startStr = `${dateFmt.format(start)} · ${timeFmt.format(start)}`;
+  const startMid = isLocalMidnight(start);
+  const startStr = startMid
+    ? dateFmt.format(start)
+    : `${dateFmt.format(start)} · ${timeFmt.format(start)}`;
   if (!ketThuc) return startStr;
   const end = new Date(ketThuc);
   if (Number.isNaN(end.getTime())) return startStr;
   const sameDay = start.toDateString() === end.toDateString();
-  if (sameDay) return `${startStr} – ${timeFmt.format(end)}`;
-  return `${startStr} → ${dateFmt.format(end)} · ${timeFmt.format(end)}`;
+  const endMid = isLocalMidnight(end);
+  if (sameDay) {
+    if (startMid && endMid) return startStr;
+    if (startMid) return `${startStr} · đến ${timeFmt.format(end)}`;
+    return `${startStr} – ${timeFmt.format(end)}`;
+  }
+  const endStr = endMid
+    ? dateFmt.format(end)
+    : `${dateFmt.format(end)} · ${timeFmt.format(end)}`;
+  return `${startStr} → ${endStr}`;
 }
 
-function formatTimeOnly(batDau: string, ketThuc: string | null): string {
+/** Đồng hồ địa phương có phải 00:00 (sự kiện chỉ có ngày / cả ngày). */
+function isLocalMidnight(d: Date): boolean {
+  return d.getHours() === 0 && d.getMinutes() === 0;
+}
+
+/**
+ * Nhãn «Thời gian» cạnh date badge:
+ * - cùng ngày + có giờ → "09:00 – 18:00"
+ * - cả ngày / chỉ ngày → "Cả ngày" hoặc khoảng ngày
+ * - nhiều ngày + có giờ → kèm ngày
+ */
+function formatFactTimeLabel(batDau: string, ketThuc: string | null): string {
   const start = new Date(batDau);
   if (Number.isNaN(start.getTime())) return "";
+
   const timeFmt = new Intl.DateTimeFormat("vi-VN", {
     hour: "2-digit",
     minute: "2-digit",
   });
-  if (!ketThuc) return timeFmt.format(start);
+  const dateFmt = new Intl.DateTimeFormat("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+  const dateLongFmt = new Intl.DateTimeFormat("vi-VN", {
+    weekday: "long",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+
+  const startMid = isLocalMidnight(start);
+
+  if (!ketThuc) {
+    return startMid ? "Cả ngày" : timeFmt.format(start);
+  }
+
   const end = new Date(ketThuc);
-  if (Number.isNaN(end.getTime())) return timeFmt.format(start);
-  return `${timeFmt.format(start)} – ${timeFmt.format(end)}`;
+  if (Number.isNaN(end.getTime())) {
+    return startMid ? "Cả ngày" : timeFmt.format(start);
+  }
+
+  const endMid = isLocalMidnight(end);
+  const sameDay = start.toDateString() === end.toDateString();
+  const dayMs = 24 * 60 * 60 * 1000;
+  const exactlyOneCalendarDay =
+    startMid && endMid && end.getTime() - start.getTime() === dayMs;
+
+  if (sameDay || exactlyOneCalendarDay) {
+    if (startMid && endMid) return "Cả ngày";
+    return `${timeFmt.format(start)} – ${timeFmt.format(end)}`;
+  }
+
+  if (startMid && endMid) {
+    return `${dateFmt.format(start)} → ${dateFmt.format(end)}`;
+  }
+
+  const startStr = startMid
+    ? dateLongFmt.format(start)
+    : `${dateLongFmt.format(start)} · ${timeFmt.format(start)}`;
+  const endStr = endMid
+    ? dateLongFmt.format(end)
+    : `${dateLongFmt.format(end)} · ${timeFmt.format(end)}`;
+  return `${startStr} → ${endStr}`;
 }
 
 function calendarParts(iso: string): { day: string; month: string; weekday: string } {
@@ -731,6 +803,7 @@ export function SuKienDetailView({
     suKien.tinhThanh,
     suKien.diaDiem,
   );
+  const mapQuery = mapQueryFromDiaDiem(diaDiemLabel);
   const slotFull =
     suKien.slotToiDa != null &&
     soDangKy >= suKien.slotToiDa &&
@@ -738,7 +811,7 @@ export function SuKienDetailView({
   const hasDetail = hasTruongGioiThieuContent(suKien.noiDung);
   const resolvedBack = backHref ?? SU_KIEN_LISTING_PATH;
   const rangeLabel = formatRange(suKien.batDau, suKien.ketThuc);
-  const timeLabel = formatTimeOnly(suKien.batDau, suKien.ketThuc);
+  const timeLabel = formatFactTimeLabel(suKien.batDau, suKien.ketThuc);
   const cal = calendarParts(suKien.batDau);
   const veLabel = labelSuKienVe(
     suKien.mienPhi,
@@ -920,7 +993,19 @@ export function SuKienDetailView({
                 <li>
                   <MapPin size={16} aria-hidden />
                   <span>
-                    <strong>Địa điểm</strong>
+                    <span className="sk-detail-fact-head">
+                      <strong>Địa điểm</strong>
+                      {mapQuery ? (
+                        <a
+                          className="sk-detail-fact-link-hint"
+                          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          Xem bản đồ
+                        </a>
+                      ) : null}
+                    </span>
                     {diaDiemLabel}
                   </span>
                 </li>
@@ -940,9 +1025,6 @@ export function SuKienDetailView({
                   >
                     <strong>Vé</strong>
                     <span className="sk-detail-fact-strong">{veLabel}</span>
-                    <span className="sk-detail-fact-link-hint">
-                      Xem các loại vé
-                    </span>
                   </button>
                 )}
               </li>
@@ -1036,41 +1118,68 @@ export function SuKienDetailView({
           </div>
 
           <div className="cso-sk-detail-body">
-            <h2 id={titleId} className="cso-sk-detail-title">
-              {suKien.ten}
-            </h2>
+            <div className="cso-sk-detail-headline">
+              <h2 id={titleId} className="cso-sk-detail-title">
+                {suKien.ten}
+              </h2>
+              <SuKienRsvpActions
+                loaded={loaded}
+                pending={pending}
+                loai={loai}
+                slotFull={slotFull}
+                actionError={actionError}
+                onPhanHoi={handlePhanHoi}
+                sharePath={suKienCardPath(suKien)}
+                shareTitle={suKien.ten}
+                viewerLoggedIn={isAuthenticated}
+                compact
+              />
+            </div>
 
-            <div className="cso-sk-detail-meta">
-              <p className="cso-sk-detail-meta-row">
-                <CalendarDays size={15} aria-hidden />
-                {rangeLabel}
+            <div className="cso-sk-detail-factcard">
+              <p className="cso-sk-detail-fact">
+                <CalendarDays size={18} aria-hidden />
+                <span>
+                  <strong>Thời gian</strong>
+                  {rangeLabel}
+                </span>
               </p>
-              <div className="cso-sk-detail-meta-row cso-sk-detail-meta-row--rsvp">
-                <span className="cso-sk-meta-item--tag">{veLabel}</span>
-                <SuKienRsvpActions
-                  loaded={loaded}
-                  pending={pending}
-                  loai={loai}
-                  slotFull={slotFull}
-                  actionError={actionError}
-                  onPhanHoi={handlePhanHoi}
-                  sharePath={suKienCardPath(suKien)}
-                  shareTitle={suKien.ten}
-                  viewerLoggedIn={isAuthenticated}
-                  compact
-                />
-              </div>
+              <p className="cso-sk-detail-fact">
+                <Ticket size={18} aria-hidden />
+                <span>
+                  <strong>Vé</strong>
+                  {veLabel}
+                </span>
+              </p>
               {diaDiemLabel ? (
-                <p className="cso-sk-detail-meta-row">
-                  <MapPin size={15} aria-hidden />
-                  {diaDiemLabel}
+                <p className="cso-sk-detail-fact">
+                  <MapPin size={18} aria-hidden />
+                  <span>
+                    <span className="cso-sk-detail-fact-head">
+                      <strong>Địa điểm</strong>
+                      {mapQuery ? (
+                        <a
+                          className="cso-sk-detail-fact-link"
+                          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          Xem bản đồ
+                        </a>
+                      ) : null}
+                    </span>
+                    {diaDiemLabel}
+                  </span>
                 </p>
               ) : null}
               {suKien.slotToiDa ? (
-                <p className="cso-sk-detail-meta-row">
-                  <Users size={15} aria-hidden />
-                  {soDangKy}/{suKien.slotToiDa} chỗ
-                  {slotFull ? " · Hết chỗ" : ""}
+                <p className="cso-sk-detail-fact">
+                  <Users size={18} aria-hidden />
+                  <span>
+                    <strong>Chỗ</strong>
+                    {soDangKy}/{suKien.slotToiDa}
+                    {slotFull ? " · Hết chỗ" : ""}
+                  </span>
                 </p>
               ) : null}
             </div>

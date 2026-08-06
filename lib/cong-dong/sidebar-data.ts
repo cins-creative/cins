@@ -98,6 +98,55 @@ export async function loadFriendsInCommunity(
   return { friends, total: inCommunity.length };
 }
 
+/** Preview thành viên bất kỳ (không phụ thuộc quan hệ bạn bè) cho facepile. */
+export async function loadMemberPreview(
+  orgId: string,
+  previewLimit = 4,
+): Promise<CongDongMemberPreview[]> {
+  const admin = createServiceRoleClient();
+  const { data: memberRows } = await admin
+    .from("user_thanh_vien_to_chuc")
+    .select("id_nguoi_dung, tu_ngay")
+    .eq("id_to_chuc", orgId)
+    .order("tu_ngay", { ascending: false, nullsFirst: false })
+    .limit(previewLimit * 3)
+    .returns<Array<{ id_nguoi_dung: string; tu_ngay: string | null }>>();
+
+  const previewIds = [
+    ...new Set(
+      (memberRows ?? [])
+        .map((row) => row.id_nguoi_dung)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ].slice(0, previewLimit);
+  if (previewIds.length === 0) return [];
+
+  const { data: users } = await admin
+    .from("user_nguoi_dung")
+    .select("id, slug, ten_hien_thi, avatar_id")
+    .in("id", previewIds);
+
+  const byId = new Map(
+    (users ?? []).map((user) => {
+      const name = (user.ten_hien_thi as string) || (user.slug as string);
+      return [
+        user.id as string,
+        {
+          id: user.id as string,
+          slug: user.slug as string,
+          tenHienThi: name,
+          avatarId: (user.avatar_id as string | null) ?? null,
+          initial: name.charAt(0).toUpperCase(),
+        } satisfies CongDongMemberPreview,
+      ];
+    }),
+  );
+
+  return previewIds
+    .map((id) => byId.get(id))
+    .filter((m): m is CongDongMemberPreview => Boolean(m));
+}
+
 export async function loadGiaiDoanDistribution(
   orgId: string,
 ): Promise<CongDongCareerSegment[]> {
@@ -288,13 +337,15 @@ export async function loadSidebarLiveData(
   viewerId: string | null,
 ): Promise<{
   friendsInCommunity: { friends: CongDongMemberPreview[]; total: number };
+  memberPreview: CongDongMemberPreview[];
   careerMap: CongDongCareerSegment[];
 }> {
-  const [friendsInCommunity, careerMap] = await Promise.all([
+  const [friendsInCommunity, memberPreview, careerMap] = await Promise.all([
     viewerId
       ? loadFriendsInCommunity(viewerId, orgId)
       : Promise.resolve({ friends: [], total: 0 }),
+    loadMemberPreview(orgId),
     loadGiaiDoanDistribution(orgId),
   ]);
-  return { friendsInCommunity, careerMap };
+  return { friendsInCommunity, memberPreview, careerMap };
 }

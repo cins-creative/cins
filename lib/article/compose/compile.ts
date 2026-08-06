@@ -2,10 +2,6 @@ import { escapeHtml } from "@/lib/article/blocks/escape";
 import { compileImagePlaceholderHtml } from "@/lib/article/blocks/compile-html";
 import type { ArticleComposeBlock } from "@/lib/article/compose/types";
 import {
-  buildBunnyEmbedUrl,
-  classifyBunnyVideoUrl,
-} from "@/lib/bunny/embed";
-import {
   buildStreamIframeUrl,
   classifyStreamVideoUrl,
 } from "@/lib/cloudflare/stream-embed";
@@ -92,12 +88,6 @@ function compileEmbedHtml(url: string): string {
   if (stream) {
     const src = buildStreamIframeUrl(stream.uid);
     return `<div class="rich-embed rich-embed-iframe" data-provider="stream"><iframe src="${escapeHtml(src)}" title="Video" allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;" allowfullscreen loading="lazy"></iframe></div>`;
-  }
-
-  const bunny = classifyBunnyVideoUrl(trimmed);
-  if (bunny) {
-    const src = buildBunnyEmbedUrl(bunny.libraryId, bunny.videoId);
-    return `<div class="rich-embed rich-embed-iframe" data-provider="bunny"><iframe src="${escapeHtml(src)}" title="Video" allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;" allowfullscreen loading="lazy"></iframe></div>`;
   }
 
   const cls = classifyEmbedUrl(trimmed);

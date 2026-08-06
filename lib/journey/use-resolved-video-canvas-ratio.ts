@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 import type { Block } from "@/lib/editor/types";
-import { BUNNY_FEED_QUALITY } from "@/lib/journey/bunny-video-playback";
+import { buildStreamMp4Url } from "@/lib/cloudflare/stream-embed";
 import { probeRemoteVideoDimensions } from "@/lib/journey/probe-remote-video-dimensions";
 import {
   canvasAspectFromRatio,
@@ -12,7 +12,6 @@ import {
   videoNaturalAspect,
   type VideoCanvasRatio,
 } from "@/lib/journey/video-canvas-ratio";
-import { buildBunnyVideoMp4Url } from "@/lib/bunny/embed";
 
 export type ResolvedVideoCanvas = {
   ratio: VideoCanvasRatio;
@@ -26,20 +25,20 @@ export type ResolvedVideoCanvas = {
  */
 export function useResolvedVideoCanvas(
   blocks: ReadonlyArray<Block> | null | undefined,
-  bunnyVideoId: string | null | undefined,
+  videoId: string | null | undefined,
 ): ResolvedVideoCanvas {
   const fromBlocks = extractVideoCanvasRatio(blocks);
   const [probed, setProbed] = useState<ResolvedVideoCanvas | null>(null);
 
   useEffect(() => {
-    const id = bunnyVideoId?.trim();
+    const id = videoId?.trim();
     if (!id) {
       setProbed(null);
       return;
     }
 
     let cancelled = false;
-    const mp4 = buildBunnyVideoMp4Url(id, BUNNY_FEED_QUALITY);
+    const mp4 = buildStreamMp4Url(id);
     if (!mp4) return;
 
     void probeRemoteVideoDimensions(mp4).then((dim) => {
@@ -53,7 +52,7 @@ export function useResolvedVideoCanvas(
     return () => {
       cancelled = true;
     };
-  }, [bunnyVideoId]);
+  }, [videoId]);
 
   if (probed) return probed;
 
@@ -64,7 +63,7 @@ export function useResolvedVideoCanvas(
 /** @deprecated Dùng `useResolvedVideoCanvas` — giữ alias cho chỗ chỉ cần bucket ratio. */
 export function useResolvedVideoCanvasRatio(
   blocks: ReadonlyArray<Block> | null | undefined,
-  bunnyVideoId: string | null | undefined,
+  videoId: string | null | undefined,
 ): VideoCanvasRatio {
-  return useResolvedVideoCanvas(blocks, bunnyVideoId).ratio;
+  return useResolvedVideoCanvas(blocks, videoId).ratio;
 }

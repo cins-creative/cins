@@ -1,19 +1,7 @@
 /**
- * Client-safe — lớp trừu tượng provider video (Bunny ↔ Cloudflare Stream).
- *
- * Trong lúc migrate, block embed có thể là:
- *   - Bunny (cũ): `config.bunnyVideoId` hoặc URL iframe.mediadelivery.net / *.b-cdn.net
- *   - Stream (mới): `config.videoProvider='stream'` + `config.videoId` hoặc URL cloudflarestream.com
- *
- * Đây là điểm phân giải chung để cả hai chạy song song cho tới khi backfill xong.
+ * Client-safe — phân giải embed video Cloudflare Stream.
  */
 
-import {
-  bunnyIframeSrc,
-  buildBunnyVideoThumbnailUrl,
-  type BunnyVideoEmbed,
-} from "@/lib/bunny/embed";
-import { resolveBunnyEmbed } from "@/lib/journey/video-embed";
 import {
   buildStreamHlsUrl,
   buildStreamIframeUrl,
@@ -23,22 +11,22 @@ import {
   type StreamVideoEmbed,
 } from "@/lib/cloudflare/stream-embed";
 
-export type VideoProvider = "bunny" | "stream";
+export type VideoProvider = "stream";
 
-export type ResolvedVideoEmbed =
-  | { provider: "bunny"; id: string; bunny: BunnyVideoEmbed }
-  | { provider: "stream"; id: string; stream: StreamVideoEmbed };
+export type ResolvedVideoEmbed = {
+  provider: "stream";
+  id: string;
+  stream: StreamVideoEmbed;
+};
 
 export type VideoEmbedHints = {
   /** `config.videoProvider` — nguồn tường minh khi URL chưa classify được. */
   videoProvider?: string | null;
-  /** `config.videoId` — id chung (Stream uid hoặc Bunny guid). */
+  /** `config.videoId` — Stream uid. */
   videoId?: string | null;
-  /** Legacy `config.bunnyVideoId`. */
-  bunnyVideoId?: string | null;
 };
 
-/** Phân giải embed video từ URL + hint provider/id (Bunny cũ hoặc Stream mới). */
+/** Phân giải embed video từ URL + hint provider/id (Cloudflare Stream). */
 export function resolveVideoEmbed(
   url: string,
   hints?: VideoEmbedHints,
@@ -46,7 +34,6 @@ export function resolveVideoEmbed(
   const provider = hints?.videoProvider?.trim().toLowerCase();
   const videoId = hints?.videoId?.trim() || "";
 
-  // 1) Provider tường minh = stream.
   if (provider === "stream") {
     const uid = videoId || "";
     if (isStreamUid(uid)) {
@@ -60,14 +47,12 @@ export function resolveVideoEmbed(
     if (fromUrl) return { provider: "stream", id: fromUrl.uid, stream: fromUrl };
   }
 
-  // 2) URL Stream.
   const streamFromUrl = classifyStreamVideoUrl(url);
   if (streamFromUrl) {
     return { provider: "stream", id: streamFromUrl.uid, stream: streamFromUrl };
   }
 
-  // 3) Stream uid trong videoId (khi provider không set nhưng id là uid Stream).
-  if (provider !== "bunny" && videoId && isStreamUid(videoId)) {
+  if (videoId && isStreamUid(videoId)) {
     return {
       provider: "stream",
       id: videoId,
@@ -79,44 +64,30 @@ export function resolveVideoEmbed(
     };
   }
 
-  // 4) Bunny (URL hoặc guid legacy).
-  const bunny = resolveBunnyEmbed(url, videoId || hints?.bunnyVideoId || null);
-  if (bunny) return { provider: "bunny", id: bunny.videoId, bunny };
-
   return null;
 }
 
-/** URL iframe phát video theo provider (autoplay tuỳ chọn). */
+/** URL iframe phát video (autoplay tuỳ chọn). */
 export function buildResolvedVideoIframeSrc(
   embed: ResolvedVideoEmbed,
   autoplay = false,
 ): string {
-  if (embed.provider === "stream") {
-    const base = buildStreamIframeUrl(embed.id);
-    const params = new URLSearchParams();
-    if (autoplay) {
-      params.set("autoplay", "true");
-      params.set("muted", "true");
-    }
-    const qs = params.toString();
-    return qs ? `${base}?${qs}` : base;
+  const base = buildStreamIframeUrl(embed.id);
+  const params = new URLSearchParams();
+  if (autoplay) {
+    params.set("autoplay", "true");
+    params.set("muted", "true");
   }
-  const base = bunnyIframeSrc(embed.bunny);
-  const sep = base.includes("?") ? "&" : "?";
-  return autoplay
-    ? `${base}${sep}autoplay=true&preload=true&playsinline=true`
-    : `${base}${sep}preload=true&playsinline=true`;
+  const qs = params.toString();
+  return qs ? `${base}?${qs}` : base;
 }
 
 export function resolvedVideoThumbnailUrl(
   embed: ResolvedVideoEmbed,
 ): string | null {
-  return embed.provider === "stream"
-    ? buildStreamThumbnailUrl(embed.id)
-    : buildBunnyVideoThumbnailUrl(embed.id);
+  return buildStreamThumbnailUrl(embed.id);
 }
 
-/** HLS chỉ có ở Stream — Bunny dùng iframe/MP4. */
 export function resolvedVideoHlsUrl(embed: ResolvedVideoEmbed): string | null {
-  return embed.provider === "stream" ? buildStreamHlsUrl(embed.id) : null;
+  return buildStreamHlsUrl(embed.id);
 }

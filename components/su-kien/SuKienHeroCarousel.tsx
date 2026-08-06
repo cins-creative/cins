@@ -2,11 +2,9 @@
 
 import { ImageIcon } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import type { SuKienListItem } from "@/lib/to-chuc/su-kien-listing";
-import { suKienCardPath } from "@/lib/to-chuc/su-kien-routes";
 
 type Props = {
   events: SuKienListItem[];
@@ -75,8 +73,6 @@ export function SuKienHeroCarousel({ events }: Props) {
     return () => window.clearInterval(id);
   }, [go, reduceMotion, slides.length]);
 
-  const active = slides[index] ?? null;
-
   if (mode === "static") {
     return (
       <section className="sk-hero sk-hero--static" aria-label="Sự kiện trên CINs">
@@ -124,18 +120,6 @@ export function SuKienHeroCarousel({ events }: Props) {
           );
         })}
       </div>
-
-      {active ? (
-        <div className="sk-hero-cta-wrap">
-          <Link
-            href={suKienCardPath(active)}
-            className="sk-hero-cta"
-            prefetch={false}
-          >
-            Xem chi tiết
-          </Link>
-        </div>
-      ) : null}
     </section>
   );
 }

@@ -6,7 +6,7 @@ function trimUrlTrailingPunctuation(url: string): string {
   return url.replace(/[),.;!?]+$/g, "");
 }
 
-/** URL YouTube / Vimeo / Bunny embed đầu tiên trong đoạn text. */
+/** URL YouTube / Vimeo / Stream embed đầu tiên trong đoạn text. */
 export function findFirstExternalVideoUrl(text: string): string | null {
   if (!text.trim()) return null;
   const matches = text.match(URL_IN_TEXT_RE);

@@ -26,6 +26,8 @@ import {
   imageFilesFromClipboard,
   readImageFilesFromClipboard,
 } from "@/lib/files/clipboard-images";
+import { isAllowedUploadImageFile } from "@/lib/files/infer-image-mime";
+import { uploadPostImageWithProgress } from "@/lib/files/upload-post-image";
 import { parseGiaInput } from "@/lib/shop/gia-input";
 import type { ShopBangGia, ShopCuaHang, ShopNhom, ShopSanPham } from "@/lib/shop/types";
 import {
@@ -54,8 +56,16 @@ import { ShopPhanLoaiInput } from "./ShopPhanLoaiInput";
 import "./shop-dashboard.css";
 
 const KHO_ORPHAN_KEY = "__orphan__";
+const KHO_PENDING_PREFIX = "pending-";
+/** Song song tối đa khi up nhiều ảnh — tránh nghẽn API/CF. */
+const KHO_UPLOAD_CONCURRENCY = 3;
 
 type SortTon = "none" | "nhieu" | "het";
+
+type ThumbUpload = {
+  progress: number;
+  blobUrl: string;
+};
 
 type RowDraft = {
   ten: string;
@@ -75,14 +85,40 @@ type RowDraft = {
   anhUrl?: string | null;
 };
 
+function isPendingKhoRow(id: string): boolean {
+  return id.startsWith(KHO_PENDING_PREFIX);
+}
+
+async function mapPool<T, R>(
+  items: T[],
+  concurrency: number,
+  fn: (item: T, index: number) => Promise<R>,
+): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let next = 0;
+  async function worker() {
+    while (next < items.length) {
+      const i = next++;
+      results[i] = await fn(items[i]!, i);
+    }
+  }
+  const n = Math.min(Math.max(1, concurrency), Math.max(1, items.length));
+  await Promise.all(Array.from({ length: n }, () => worker()));
+  return results;
+}
+
 export function ShopKhoClient() {
   const fileRef = useRef<HTMLInputElement>(null);
+  const blobUrlsRef = useRef<Set<string>>(new Set());
   const [enabled, setEnabled] = useState<boolean | null>(null);
   const [products, setProducts] = useState<ShopSanPham[]>([]);
   const [priceLists, setPriceLists] = useState<ShopBangGia[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
-  const [uploading, setUploading] = useState(false);
+  /** Preview blob + % progress theo từng dòng đang upload. */
+  const [thumbUploads, setThumbUploads] = useState<Record<string, ThumbUpload>>(
+    {},
+  );
   const [bangGiaId, setBangGiaId] = useState<string>("");
   const [saving, setSaving] = useState(false);
   /** Lọc multi theo cột phân loại 1 / 2 (`__none__` = chưa gán). */
@@ -134,6 +170,23 @@ export function ShopKhoClient() {
   /** null = danh sách loại; uuid / KHO_ORPHAN_KEY = chi tiết. */
   const [activeNhomId, setActiveNhomId] = useState<string | null>(null);
 
+  const uploading = Object.keys(thumbUploads).length > 0;
+  const uploadProgressAvg = useMemo(() => {
+    const entries = Object.values(thumbUploads);
+    if (entries.length === 0) return 0;
+    return Math.round(
+      entries.reduce((sum, e) => sum + e.progress, 0) / entries.length,
+    );
+  }, [thumbUploads]);
+
+  useEffect(() => {
+    const blobs = blobUrlsRef.current;
+    return () => {
+      for (const url of blobs) URL.revokeObjectURL(url);
+      blobs.clear();
+    };
+  }, []);
+
   function exitKhoEditing() {
     setKhoEditing(false);
     setDrafts({});
@@ -145,6 +198,7 @@ export function ShopKhoClient() {
     setExitConfirmOpen(false);
     setNhanPhanLoaiDraft(nhanPhanLoai);
     setNhanPhanLoai2Draft(nhanPhanLoai2);
+    /* Giữ thumbUploads đang chạy — không hủy giữa chừng; blob cleanup khi xong. */
   }
 
   function enterKhoEditing() {
@@ -1012,24 +1066,47 @@ export function ShopKhoClient() {
   }
 
   async function uploadThumb(
+    rowId: string,
     file: File,
+    blobUrl: string,
   ): Promise<{ imageId: string; url: string } | null> {
-    const form = new FormData();
-    form.append("file", file);
-    const res = await fetch("/api/post-image/upload", {
-      method: "POST",
-      body: form,
-    });
-    const json = (await res.json().catch(() => null)) as {
-      imageId?: string;
-      url?: string;
-      error?: string;
-    } | null;
-    if (!res.ok || !json?.imageId || !json.url) {
-      setErr(json?.error ?? "Không tải ảnh được.");
+    setThumbUploads((prev) => ({
+      ...prev,
+      [rowId]: { progress: 1, blobUrl },
+    }));
+    try {
+      const result = await uploadPostImageWithProgress(file, (pct) => {
+        setThumbUploads((prev) => {
+          const cur = prev[rowId];
+          if (!cur) return prev;
+          return { ...prev, [rowId]: { ...cur, progress: pct } };
+        });
+      });
+      if (!result.url) {
+        setErr("Không tải ảnh được.");
+        return null;
+      }
+      return { imageId: result.imageId, url: result.url };
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Không tải ảnh được.");
       return null;
     }
-    return { imageId: json.imageId, url: json.url };
+  }
+
+  function finishThumbUpload(rowId: string, blobUrl: string) {
+    setThumbUploads((prev) => {
+      if (!(rowId in prev)) return prev;
+      const next = { ...prev };
+      delete next[rowId];
+      return next;
+    });
+    /* Revoke sau khi React kịp chuyển sang URL CF — tránh nháy ảnh vỡ. */
+    window.setTimeout(() => {
+      if (blobUrlsRef.current.has(blobUrl)) {
+        blobUrlsRef.current.delete(blobUrl);
+        URL.revokeObjectURL(blobUrl);
+      }
+    }, 0);
   }
 
   function nameFromImageFile(file: File): string {
@@ -1037,71 +1114,159 @@ export function ShopKhoClient() {
     return base || "Sản phẩm mới";
   }
 
+  function makePendingProduct(file: File, blobUrl: string): ShopSanPham {
+    const id = `${KHO_PENDING_PREFIX}${crypto.randomUUID()}`;
+    const btId = `${KHO_PENDING_PREFIX}bt-${crypto.randomUUID()}`;
+    const nhomId =
+      activeNhomId && activeNhomId !== KHO_ORPHAN_KEY ? activeNhomId : null;
+    return {
+      id,
+      ten: nameFromImageFile(file),
+      moTa: null,
+      anhId: null,
+      anhUrl: blobUrl,
+      phanLoai: activeNhom?.nhan ?? null,
+      phanLoai2: null,
+      idNhom: nhomId,
+      idNhom2: null,
+      dangBan: true,
+      noiBat: false,
+      bienThe: [
+        {
+          id: btId,
+          idSanPham: id,
+          nhan: "Mặc định",
+          sku: null,
+          soLuongTon: 0,
+          canNang: null,
+          anhId: null,
+          anhUrl: null,
+        },
+      ],
+      taoLuc: new Date().toISOString(),
+    };
+  }
+
+  function trackBlob(url: string): string {
+    blobUrlsRef.current.add(url);
+    return url;
+  }
+
   /**
-   * Ảnh đang hiển thị trên dòng (ưu tiên draft chưa lưu).
+   * Ảnh đang hiển thị trên dòng (ưu tiên blob đang upload, rồi draft chưa lưu).
    */
   function rowDisplayAnh(p: ShopSanPham): string | null {
+    const uploadingThumb = thumbUploads[p.id];
+    if (uploadingThumb) return uploadingThumb.blobUrl;
     const d = drafts[p.id];
     if (d?.anhId !== undefined) return d.anhUrl ?? null;
     return p.anhUrl ?? null;
   }
 
   function rowHasAnh(p: ShopSanPham): boolean {
-    return Boolean(rowDisplayAnh(p));
+    return Boolean(thumbUploads[p.id] || rowDisplayAnh(p));
   }
 
   /**
    * Chọn ảnh (1 hoặc nhiều) → ưu tiên gắn vào dòng trống đang lọc,
    * còn thừa mới tạo sản phẩm mới (tên = tên file).
+   * Blob preview hiện ngay; upload song song + hiện %.
    */
   async function handleAddImages(files: File[]) {
-    const list = files.filter((f) => f.size > 0);
-    if (list.length === 0) return;
+    const list = files.filter((f) => f.size > 0 && isAllowedUploadImageFile(f));
+    if (list.length === 0) {
+      if (files.length > 0) setErr("File không phải ảnh hợp lệ.");
+      return;
+    }
     if (!khoEditing) enterKhoEditing();
 
-    setSaving(true);
-    setUploading(true);
     setErr(null);
 
     const emptySlots = filteredProducts.filter((p) => !rowHasAnh(p));
-    const created: ShopSanPham[] = [];
-    let filledEmpty = 0;
+    type Job =
+      | { kind: "fill"; product: ShopSanPham; file: File; blobUrl: string }
+      | { kind: "create"; pending: ShopSanPham; file: File; blobUrl: string };
+
+    const jobs: Job[] = [];
+    const pendingRows: ShopSanPham[] = [];
+    let filled = 0;
+
+    for (const file of list) {
+      const emptyTarget = emptySlots[filled];
+      if (emptyTarget) {
+        const blobUrl = trackBlob(URL.createObjectURL(file));
+        jobs.push({
+          kind: "fill",
+          product: emptyTarget,
+          file,
+          blobUrl,
+        });
+        filled += 1;
+      } else {
+        const blobUrl = trackBlob(URL.createObjectURL(file));
+        const pending = makePendingProduct(file, blobUrl);
+        pendingRows.push(pending);
+        jobs.push({ kind: "create", pending, file, blobUrl });
+      }
+    }
+
+    if (jobs.length === 0) return;
+
+    /* Hiện blob ngay trên dòng trống / dòng pending mới. */
+    setThumbUploads((prev) => {
+      const next = { ...prev };
+      for (const job of jobs) {
+        const id = job.kind === "fill" ? job.product.id : job.pending.id;
+        next[id] = { progress: 1, blobUrl: job.blobUrl };
+      }
+      return next;
+    });
+    if (pendingRows.length > 0) {
+      setProducts((prev) => [...pendingRows, ...prev]);
+      setLastEditedId(pendingRows[0]!.id);
+    } else if (jobs[0]?.kind === "fill") {
+      setLastEditedId(jobs[0].product.id);
+    }
+
     let failUpload = 0;
     let failCreate = 0;
+    let okFill = 0;
+    let okCreate = 0;
+    const created: ShopSanPham[] = [];
 
-    try {
-      const draftPatches: Array<{
-        id: string;
-        base: RowDraft;
-        anhId: string;
-        anhUrl: string;
-      }> = [];
-
-      for (let i = 0; i < list.length; i++) {
-        const file = list[i]!;
-        const uploaded = await uploadThumb(file);
-        if (!uploaded) {
-          failUpload += 1;
-          continue;
+    await mapPool(jobs, KHO_UPLOAD_CONCURRENCY, async (job) => {
+      const rowId = job.kind === "fill" ? job.product.id : job.pending.id;
+      const uploaded = await uploadThumb(rowId, job.file, job.blobUrl);
+      if (!uploaded) {
+        failUpload += 1;
+        finishThumbUpload(rowId, job.blobUrl);
+        if (job.kind === "create") {
+          setProducts((prev) => prev.filter((p) => p.id !== job.pending.id));
         }
+        return;
+      }
 
-        const emptyTarget = emptySlots[filledEmpty];
-        if (emptyTarget) {
-          draftPatches.push({
-            id: emptyTarget.id,
-            base: baseDraftForProduct(emptyTarget),
+      if (job.kind === "fill") {
+        const base = baseDraftForProduct(job.product);
+        setDrafts((prev) => ({
+          ...prev,
+          [job.product.id]: {
+            ...(prev[job.product.id] ?? base),
             anhId: uploaded.imageId,
             anhUrl: uploaded.url,
-          });
-          filledEmpty += 1;
-          continue;
-        }
+          },
+        }));
+        finishThumbUpload(rowId, job.blobUrl);
+        okFill += 1;
+        return;
+      }
 
+      try {
         const res = await fetch("/api/shop/san-pham", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            ten: nameFromImageFile(file),
+            ten: nameFromImageFile(job.file),
             anhId: uploaded.imageId,
             phanLoai: activeNhom?.nhan ?? null,
             phanLoai2: null,
@@ -1114,7 +1279,9 @@ export function ShopKhoClient() {
         } | null;
         if (!res.ok || !json?.item) {
           failCreate += 1;
-          continue;
+          finishThumbUpload(rowId, job.blobUrl);
+          setProducts((prev) => prev.filter((p) => p.id !== job.pending.id));
+          return;
         }
         const item = json.item;
         const bt0 = item.bienThe[0];
@@ -1129,44 +1296,36 @@ export function ShopKhoClient() {
           });
         }
         created.push(item);
-      }
-
-      if (draftPatches.length > 0) {
-        setLastEditedId(draftPatches[0]!.id);
-        setDrafts((prev) => {
-          const next = { ...prev };
-          for (const patch of draftPatches) {
-            next[patch.id] = {
-              ...(prev[patch.id] ?? patch.base),
-              anhId: patch.anhId,
-              anhUrl: patch.anhUrl,
-            };
-          }
-          return next;
-        });
-      }
-
-      if (created.length > 0) {
         setProducts((prev) => {
-          const ids = new Set(created.map((p) => p.id));
-          return [...created, ...prev.filter((p) => !ids.has(p.id))];
+          const withoutPending = prev.filter((p) => p.id !== job.pending.id);
+          const ids = new Set(withoutPending.map((p) => p.id));
+          if (ids.has(item.id)) {
+            return withoutPending.map((p) => (p.id === item.id ? item : p));
+          }
+          return [item, ...withoutPending];
         });
-        if (draftPatches.length === 0) setLastEditedId(created[0]!.id);
-        await load({ silent: true });
+        finishThumbUpload(rowId, job.blobUrl);
+        okCreate += 1;
+      } catch {
+        failCreate += 1;
+        finishThumbUpload(rowId, job.blobUrl);
+        setProducts((prev) => prev.filter((p) => p.id !== job.pending.id));
       }
+    });
 
-      const fail = failUpload + failCreate;
-      if (fail > 0) {
-        const ok = filledEmpty + created.length;
-        setErr(
-          ok === 0
-            ? "Không thêm được sản phẩm từ ảnh."
-            : `Đã gắn/thêm ${ok} ảnh — ${fail} ảnh lỗi.`,
-        );
-      }
-    } finally {
-      setSaving(false);
-      setUploading(false);
+    if (created.length > 0) {
+      setLastEditedId(created[0]!.id);
+      await load({ silent: true });
+    }
+
+    const fail = failUpload + failCreate;
+    if (fail > 0) {
+      const ok = okFill + okCreate;
+      setErr(
+        ok === 0
+          ? "Không thêm được sản phẩm từ ảnh."
+          : `Đã gắn/thêm ${ok} ảnh — ${fail} ảnh lỗi.`,
+      );
     }
   }
 
@@ -1254,6 +1413,10 @@ export function ShopKhoClient() {
   }
 
   async function saveRow(p: ShopSanPham): Promise<boolean> {
+    if (isPendingKhoRow(p.id) || thumbUploads[p.id]) {
+      setErr("Đợi tải ảnh xong rồi lưu.");
+      return false;
+    }
     const bt = p.bienThe[0];
     if (!bt) {
       setErr("Sản phẩm thiếu biến thể.");
@@ -1768,57 +1931,99 @@ export function ShopKhoClient() {
    * Đổi ảnh trên một dòng. Chọn nhiều file → ảnh đầu gắn dòng này,
    * các ảnh sau xoay lần lượt vào các dòng đang trống (trong danh sách lọc).
    * Thừa hơn số dòng trống → tạo mẫu mới.
+   * Blob + % hiện ngay từng dòng.
    */
   async function pickRowThumbs(anchor: ShopSanPham, files: File[]) {
-    const list = files.filter((f) => f.size > 0);
-    if (list.length === 0) return;
+    const list = files.filter((f) => f.size > 0 && isAllowedUploadImageFile(f));
+    if (list.length === 0) {
+      if (files.length > 0) setErr("File không phải ảnh hợp lệ.");
+      return;
+    }
+    if (isPendingKhoRow(anchor.id) || thumbUploads[anchor.id]) return;
 
-    setUploading(true);
     setErr(null);
-    try {
-      const uploaded: Array<{ imageId: string; url: string; file: File }> = [];
-      let failUpload = 0;
-      for (const file of list) {
-        const u = await uploadThumb(file);
-        if (!u) {
-          failUpload += 1;
-          continue;
-        }
-        uploaded.push({ ...u, file });
+
+    const emptyOthers = filteredProducts.filter(
+      (p) =>
+        p.id !== anchor.id &&
+        !rowHasAnh(p) &&
+        !isPendingKhoRow(p.id),
+    );
+    const draftTargets: ShopSanPham[] = [anchor, ...emptyOthers];
+
+    type Job =
+      | { kind: "fill"; product: ShopSanPham; file: File; blobUrl: string }
+      | { kind: "create"; pending: ShopSanPham; file: File; blobUrl: string };
+
+    const jobs: Job[] = [];
+    const pendingRows: ShopSanPham[] = [];
+
+    for (let i = 0; i < list.length; i++) {
+      const file = list[i]!;
+      const target = draftTargets[i];
+      if (target) {
+        const blobUrl = trackBlob(URL.createObjectURL(file));
+        jobs.push({ kind: "fill", product: target, file, blobUrl });
+      } else {
+        const blobUrl = trackBlob(URL.createObjectURL(file));
+        const pending = makePendingProduct(file, blobUrl);
+        pendingRows.push(pending);
+        jobs.push({ kind: "create", pending, file, blobUrl });
       }
-      if (uploaded.length === 0) return;
+    }
 
-      const emptyOthers = filteredProducts.filter(
-        (p) => p.id !== anchor.id && !rowHasAnh(p),
-      );
-      const draftTargets: ShopSanPham[] = [anchor, ...emptyOthers];
-      const toDraft = uploaded.slice(0, draftTargets.length);
-      const leftovers = uploaded.slice(draftTargets.length);
+    setThumbUploads((prev) => {
+      const next = { ...prev };
+      for (const job of jobs) {
+        const id = job.kind === "fill" ? job.product.id : job.pending.id;
+        next[id] = { progress: 1, blobUrl: job.blobUrl };
+      }
+      return next;
+    });
+    setLastEditedId(anchor.id);
+    if (pendingRows.length > 0) {
+      setProducts((prev) => [...pendingRows, ...prev]);
+    }
 
-      setLastEditedId(anchor.id);
-      setDrafts((prev) => {
-        const next = { ...prev };
-        for (let i = 0; i < toDraft.length; i++) {
-          const p = draftTargets[i]!;
-          const u = toDraft[i]!;
-          next[p.id] = {
-            ...(prev[p.id] ?? baseDraftForProduct(p)),
-            anhId: u.imageId,
-            anhUrl: u.url,
-          };
+    let failUpload = 0;
+    let failCreate = 0;
+    const created: ShopSanPham[] = [];
+    let okFill = 0;
+
+    await mapPool(jobs, KHO_UPLOAD_CONCURRENCY, async (job) => {
+      const rowId = job.kind === "fill" ? job.product.id : job.pending.id;
+      const uploaded = await uploadThumb(rowId, job.file, job.blobUrl);
+      if (!uploaded) {
+        failUpload += 1;
+        finishThumbUpload(rowId, job.blobUrl);
+        if (job.kind === "create") {
+          setProducts((prev) => prev.filter((p) => p.id !== job.pending.id));
         }
-        return next;
-      });
+        return;
+      }
 
-      const created: ShopSanPham[] = [];
-      let failCreate = 0;
-      for (const u of leftovers) {
+      if (job.kind === "fill") {
+        const base = baseDraftForProduct(job.product);
+        setDrafts((prev) => ({
+          ...prev,
+          [job.product.id]: {
+            ...(prev[job.product.id] ?? base),
+            anhId: uploaded.imageId,
+            anhUrl: uploaded.url,
+          },
+        }));
+        finishThumbUpload(rowId, job.blobUrl);
+        okFill += 1;
+        return;
+      }
+
+      try {
         const res = await fetch("/api/shop/san-pham", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            ten: nameFromImageFile(u.file),
-            anhId: u.imageId,
+            ten: nameFromImageFile(job.file),
+            anhId: uploaded.imageId,
             phanLoai: activeNhom?.nhan ?? null,
             phanLoai2: null,
             bienThe: [{ nhan: "Mặc định", soLuongTon: 0 }],
@@ -1830,7 +2035,9 @@ export function ShopKhoClient() {
         } | null;
         if (!res.ok || !json?.item) {
           failCreate += 1;
-          continue;
+          finishThumbUpload(rowId, job.blobUrl);
+          setProducts((prev) => prev.filter((p) => p.id !== job.pending.id));
+          return;
         }
         const item = json.item;
         const bt0 = item.bienThe[0];
@@ -1845,24 +2052,31 @@ export function ShopKhoClient() {
           });
         }
         created.push(item);
-      }
-
-      if (created.length > 0) {
         setProducts((prev) => {
-          const ids = new Set(created.map((p) => p.id));
-          return [...created, ...prev.filter((p) => !ids.has(p.id))];
+          const withoutPending = prev.filter((p) => p.id !== job.pending.id);
+          const ids = new Set(withoutPending.map((p) => p.id));
+          if (ids.has(item.id)) {
+            return withoutPending.map((p) => (p.id === item.id ? item : p));
+          }
+          return [item, ...withoutPending];
         });
-        await load({ silent: true });
+        finishThumbUpload(rowId, job.blobUrl);
+      } catch {
+        failCreate += 1;
+        finishThumbUpload(rowId, job.blobUrl);
+        setProducts((prev) => prev.filter((p) => p.id !== job.pending.id));
       }
+    });
 
-      const fail = failUpload + failCreate;
-      if (fail > 0) {
-        setErr(
-          `Đã gắn ${toDraft.length + created.length} ảnh — ${fail} ảnh lỗi.`,
-        );
-      }
-    } finally {
-      setUploading(false);
+    if (created.length > 0) {
+      await load({ silent: true });
+    }
+
+    const fail = failUpload + failCreate;
+    if (fail > 0) {
+      setErr(
+        `Đã gắn ${okFill + created.length} ảnh — ${fail} ảnh lỗi.`,
+      );
     }
   }
 
@@ -2158,7 +2372,7 @@ export function ShopKhoClient() {
                   <button
                     type="button"
                     className="shop-kho-add-btn"
-                    disabled={saving || uploading}
+                    disabled={saving}
                     onClick={() => void createBlankProduct()}
                   >
                     {saving ? (
@@ -2171,12 +2385,18 @@ export function ShopKhoClient() {
                   <button
                     type="button"
                     className="shop-kho-add-images-btn"
-                    disabled={saving || uploading}
+                    disabled={saving}
                     title="Thêm ảnh — ưu tiên dòng trống, thừa thì tạo mẫu mới"
                     aria-label="Thêm hàng loạt từ ảnh"
                     onClick={() => fileRef.current?.click()}
                   >
-                    <ImagePlus size={15} strokeWidth={2} aria-hidden />
+                    {uploading ? (
+                      <span className="shop-kho-upload-progress" aria-live="polite">
+                        {uploadProgressAvg}%
+                      </span>
+                    ) : (
+                      <ImagePlus size={15} strokeWidth={2} aria-hidden />
+                    )}
                   </button>
                 </>
               ) : null}
@@ -2311,8 +2531,10 @@ export function ShopKhoClient() {
                   const bt = p.bienThe[0];
                   const draft = getDraft(p);
                   const dirty = isRowDirty(p);
-                  const displayAnh =
-                    draft.anhId !== undefined ? draft.anhUrl : p.anhUrl;
+                  const displayAnh = rowDisplayAnh(p);
+                  const thumbUpload = thumbUploads[p.id];
+                  const rowUploading = Boolean(thumbUpload);
+                  const rowPending = isPendingKhoRow(p.id);
                   const rowSaving = savingId === p.id;
                   const rowFileId = `shop-row-thumb-${p.id}`;
                   const giaHienThi = resolveGiaBienThe(bt?.id);
@@ -2335,7 +2557,9 @@ export function ShopKhoClient() {
                   const showCellApply =
                     isBulkSource &&
                     changedFields != null &&
-                    applyTargetCount > 0;
+                    applyTargetCount > 0 &&
+                    !rowUploading &&
+                    !rowPending;
                   const firstChangedField = (
                     [
                       "anhId",
@@ -2379,7 +2603,7 @@ export function ShopKhoClient() {
                   return (
                     <tr
                       key={p.id}
-                      className={`shop-grid-row${dirty && khoEditing ? " is-dirty" : ""}${!dangBanHienThi ? " is-ngung-ban" : ""}${isSelected && khoEditing ? " is-selected" : ""}${isBulkSource && changedFields ? " is-bulk-source" : ""}`}
+                      className={`shop-grid-row${dirty && khoEditing ? " is-dirty" : ""}${!dangBanHienThi ? " is-ngung-ban" : ""}${isSelected && khoEditing ? " is-selected" : ""}${isBulkSource && changedFields ? " is-bulk-source" : ""}${rowUploading ? " is-uploading-thumb" : ""}`}
                     >
                       {khoEditing ? (
                         <td
@@ -2450,7 +2674,7 @@ export function ShopKhoClient() {
                           className="shop-thumb-pick"
                           tabIndex={0}
                           onPaste={(e) => {
-                            if (uploading || rowSaving) return;
+                            if (rowUploading || rowPending || rowSaving) return;
                             const files = imageFilesFromClipboard(
                               e.clipboardData,
                             );
@@ -2466,7 +2690,7 @@ export function ShopKhoClient() {
                             accept="image/*"
                             multiple
                             hidden
-                            disabled={uploading || rowSaving}
+                            disabled={rowUploading || rowPending || rowSaving}
                             onChange={(e) => {
                               const files = Array.from(e.target.files ?? []);
                               e.target.value = "";
@@ -2474,13 +2698,13 @@ export function ShopKhoClient() {
                             }}
                           />
                           <div
-                            className={`shop-thumb-frame${displayAnh ? " has-img" : ""}`}
+                            className={`shop-thumb-frame${displayAnh ? " has-img" : ""}${rowUploading ? " is-uploading" : ""}`}
                           >
                             {displayAnh ? (
                               <button
                                 type="button"
                                 className="shop-thumb-img-btn"
-                                disabled={uploading || rowSaving}
+                                disabled={rowUploading || rowPending || rowSaving}
                                 aria-label="Đổi ảnh"
                                 title="Chọn ảnh từ máy"
                                 onClick={() =>
@@ -2490,7 +2714,7 @@ export function ShopKhoClient() {
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
                                 <img src={displayAnh} alt="" />
                               </button>
-                            ) : uploading || rowSaving ? (
+                            ) : rowSaving ? (
                               <Loader2 className="shop-spin" size={18} />
                             ) : (
                               <div className="shop-thumb-empty-acts">
@@ -2499,7 +2723,7 @@ export function ShopKhoClient() {
                                   className="shop-thumb-placeholder shop-thumb-placeholder--pick"
                                   aria-label="Chọn ảnh từ máy"
                                   title="Chọn ảnh"
-                                  disabled={uploading || rowSaving}
+                                  disabled={rowUploading || rowPending || rowSaving}
                                   onClick={() =>
                                     document.getElementById(rowFileId)?.click()
                                   }
@@ -2511,7 +2735,7 @@ export function ShopKhoClient() {
                                   className="shop-thumb-placeholder shop-thumb-placeholder--paste"
                                   aria-label="Dán ảnh từ bộ nhớ tạm"
                                   title="Dán ảnh (nhiều ảnh → dòng trống)"
-                                  disabled={uploading || rowSaving}
+                                  disabled={rowUploading || rowPending || rowSaving}
                                   onClick={() => {
                                     void (async () => {
                                       const files =
@@ -2530,13 +2754,22 @@ export function ShopKhoClient() {
                                 </button>
                               </div>
                             )}
-                            {displayAnh ? (
+                            {thumbUpload ? (
+                              <span
+                                className="shop-thumb-upload-pct"
+                                aria-busy="true"
+                                aria-label={`Đang tải ${thumbUpload.progress}%`}
+                              >
+                                {thumbUpload.progress}%
+                              </span>
+                            ) : null}
+                            {displayAnh && !rowUploading ? (
                               <button
                                 type="button"
                                 className="shop-thumb-clear"
                                 aria-label="Xóa ảnh"
                                 title="Xóa ảnh"
-                                disabled={uploading || rowSaving}
+                                disabled={rowPending || rowSaving}
                                 onClick={() =>
                                   patchDraft(
                                     p.id,
@@ -2850,7 +3083,9 @@ export function ShopKhoClient() {
                             <button
                               type="button"
                               className="shop-btn-save"
-                              disabled={rowSaving || uploading}
+                              disabled={
+                                rowSaving || rowUploading || rowPending
+                              }
                               onClick={() => void saveRow(p)}
                               aria-label="Lưu thay đổi"
                               title="Lưu"
@@ -2865,7 +3100,13 @@ export function ShopKhoClient() {
                           <button
                             type="button"
                             className="shop-dash-danger"
-                            disabled={rowSaving || deleting || bulkApplying}
+                            disabled={
+                              rowSaving ||
+                              rowUploading ||
+                              rowPending ||
+                              deleting ||
+                              bulkApplying
+                            }
                             onClick={() =>
                               setDeleteTargets([{ id: p.id, ten: p.ten }])
                             }

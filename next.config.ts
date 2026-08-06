@@ -54,17 +54,8 @@ const nextConfig: NextConfig = {
       },
     ];
   },
-  /** Client video env — Bunny (đang migrate) + Cloudflare Stream/R2 (đích). */
+  /** Client video env — Cloudflare Stream / R2 chat video. */
   env: {
-    NEXT_PUBLIC_BUNNY_LIBRARY_ID: pickEnv(
-      "NEXT_PUBLIC_BUNNY_LIBRARY_ID",
-      "BUNNY_LIBRARY_ID",
-    ),
-    NEXT_PUBLIC_BUNNY_CDN_HOSTNAME: pickEnv(
-      "NEXT_PUBLIC_BUNNY_CDN_HOSTNAME",
-      "BUNNY_CDN_HOSTNAME",
-      "BUNNY_CND_HOSTNAME",
-    ),
     /** Mã customer subdomain phát Cloudflare Stream (customer-xxxx). */
     NEXT_PUBLIC_CF_STREAM_CUSTOMER_CODE: pickEnv(
       "NEXT_PUBLIC_CF_STREAM_CUSTOMER_CODE",
@@ -72,6 +63,25 @@ const nextConfig: NextConfig = {
     ),
     /** Custom domain công khai gắn vào bucket R2 video chat (vd https://chat-video.cins.vn). */
     NEXT_PUBLIC_CHAT_VIDEO_BASE_URL: pickEnv("NEXT_PUBLIC_CHAT_VIDEO_BASE_URL"),
+  },
+  /**
+   * RealtimeKit chỉ chạy trên browser nhưng webpack vẫn emit ~2.8MB chunk vào
+   * `.next/server`, và OpenNext bundle toàn bộ thư mục đó vào Worker → sát trần
+   * 10MB gzip. Call site đều `ssr: false` nên server không cần module thật.
+   * Chỉ alias ở production build; dev giữ nguyên để HMR/trace không lệch.
+   */
+  webpack(config, { isServer, dev }) {
+    if (isServer && !dev) {
+      const stub = path.join(projectRoot, "lib/media/realtimekit-server-stub.cjs");
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        "@cloudflare/realtimekit-react-ui": stub,
+        "@cloudflare/realtimekit-react": stub,
+        "@cloudflare/realtimekit-ui": stub,
+        "@cloudflare/realtimekit": stub,
+      };
+    }
+    return config;
   },
   /** Một bản ProseMirror/Tiptap — tránh RangeError gapcursor khi split chunk. */
   transpilePackages: [

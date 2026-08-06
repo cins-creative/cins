@@ -1,5 +1,5 @@
 /**
- * Xóa toàn bộ bài đăng Journey của 1 user + dọn ảnh Cloudflare / video Bunny.
+ * Xóa toàn bộ bài đăng Journey của 1 user + dọn ảnh Cloudflare / video Stream.
  *
  * Usage:
  *   node scripts/purge-user-journey.mjs <user-slug>           # dry-run
@@ -11,7 +11,6 @@ import postgres from "postgres";
 
 const CF_UUID_RE =
   /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
-const BUNNY_ID_RE = /"bunnyVideoId"\s*:\s*"([0-9a-f-]{36})"/gi;
 /* Stream uid: config.videoId 32-hex khi provider=stream, hoặc URL iframe stream. */
 const STREAM_ID_RE = /"videoId"\s*:\s*"([0-9a-f]{32})"/gi;
 const STREAM_URL_RE =
@@ -36,9 +35,8 @@ function isCfImageUuid(value) {
 
 function collectAssetsFromBlocks(raw) {
   const cf = new Set();
-  const bunny = new Set();
   const stream = new Set();
-  if (!raw) return { cf, bunny, stream };
+  if (!raw) return { cf, stream };
 
   const text =
     typeof raw === "string" ? raw : JSON.stringify(raw);
@@ -46,16 +44,13 @@ function collectAssetsFromBlocks(raw) {
   for (const m of text.matchAll(CF_UUID_RE)) {
     if (isCfImageUuid(m[0])) cf.add(m[0].toLowerCase());
   }
-  for (const m of text.matchAll(BUNNY_ID_RE)) {
-    bunny.add(m[1]);
-  }
-  for (const m of text.matchAll(STREAM_ID_RE)) {
+    for (const m of text.matchAll(STREAM_ID_RE)) {
     stream.add(m[1].toLowerCase());
   }
   for (const m of text.matchAll(STREAM_URL_RE)) {
     stream.add(m[1].toLowerCase());
   }
-  return { cf, bunny, stream };
+  return { cf, stream };
 }
 
 async function deleteCloudflareImage(imageId) {
@@ -75,28 +70,6 @@ async function deleteCloudflareImage(imageId) {
     const notFound = json?.errors?.some((e) => e.code === 10003);
     if (res.status === 404 || notFound) return { ok: true };
     return { ok: false, error: json?.errors?.[0]?.message ?? `HTTP ${res.status}` };
-  } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : String(err) };
-  }
-}
-
-async function deleteBunnyStreamVideo(videoId) {
-  const id = videoId.trim();
-  const libraryId = process.env.BUNNY_LIBRARY_ID?.trim();
-  const apiKey = process.env.BUNNY_STREAM_API_KEY?.trim();
-  if (!id || !libraryId || !apiKey) {
-    return { ok: false, error: "Thiếu cấu hình Bunny." };
-  }
-  try {
-    const res = await fetch(
-      `https://video.bunnycdn.com/library/${libraryId}/videos/${encodeURIComponent(id)}`,
-      {
-        method: "DELETE",
-        headers: { AccessKey: apiKey, Accept: "application/json" },
-      },
-    );
-    if (res.ok || res.status === 404) return { ok: true };
-    return { ok: false, error: `HTTP ${res.status}` };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
   }
@@ -183,16 +156,14 @@ const mediaRows =
     : [];
 
 const cfSet = new Set();
-const bunnySet = new Set();
 const streamSet = new Set();
 
 for (const row of tacPhamRows) {
   if (row.cover_id && isCfImageUuid(row.cover_id)) cfSet.add(row.cover_id);
   const fromBlocks = collectAssetsFromBlocks(row.noi_dung_blocks);
-  for (const id of fromBlocks.bunny) bunnySet.add(id);
   for (const id of fromBlocks.stream) streamSet.add(id);
   for (const id of fromBlocks.cf) {
-    if (!bunnySet.has(id)) cfSet.add(id);
+    if (!streamSet.has(id)) cfSet.add(id);
   }
 }
 for (const row of mediaRows) {
@@ -240,7 +211,6 @@ const summary = {
   milestones: milestones.length,
   tacPham: tacPhamRows.length,
   cloudflareImages: [...cfSet],
-  bunnyVideos: [...bunnySet],
   streamVideos: [...streamSet],
   relatedCounts,
   sampleMilestones: milestones.slice(0, 5).map((m) => ({
@@ -344,7 +314,7 @@ await db.begin(async (tx) => {
 
 console.log("DB xóa xong. Đang dọn hosting…");
 
-const purgeResults = { cloudflare: [], bunny: [], stream: [] };
+const purgeResults = { cloudflare: [], stream: [] };
 
 for (const imageId of cfSet) {
   if (await isCloudflareImageReferenced(db, imageId)) {
@@ -353,15 +323,6 @@ for (const imageId of cfSet) {
   }
   const res = await deleteCloudflareImage(imageId);
   purgeResults.cloudflare.push({ id: imageId, ...res });
-}
-
-for (const videoId of bunnySet) {
-  if (await isVideoReferenced(db, videoId)) {
-    purgeResults.bunny.push({ id: videoId, skipped: "still referenced" });
-    continue;
-  }
-  const res = await deleteBunnyStreamVideo(videoId);
-  purgeResults.bunny.push({ id: videoId, ...res });
 }
 
 for (const uid of streamSet) {
@@ -375,8 +336,6 @@ for (const uid of streamSet) {
 
 const cfOk = purgeResults.cloudflare.filter((r) => r.ok).length;
 const cfFail = purgeResults.cloudflare.filter((r) => !r.ok && !r.skipped).length;
-const bunnyOk = purgeResults.bunny.filter((r) => r.ok).length;
-const bunnyFail = purgeResults.bunny.filter((r) => !r.ok && !r.skipped).length;
 const streamOk = purgeResults.stream.filter((r) => r.ok).length;
 const streamFail = purgeResults.stream.filter((r) => !r.ok && !r.skipped).length;
 
@@ -386,7 +345,6 @@ console.log(
       done: true,
       hosting: {
         cloudflare: { total: cfSet.size, deleted: cfOk, failed: cfFail },
-        bunny: { total: bunnySet.size, deleted: bunnyOk, failed: bunnyFail },
         stream: { total: streamSet.size, deleted: streamOk, failed: streamFail },
       },
       purgeResults,

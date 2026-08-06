@@ -1182,10 +1182,11 @@ export function ShopKhoLoaiMeta({
             multiple
             hidden
             onChange={(e) => {
-              const list = e.target.files;
+              /* Chụp mảng trước: `files` là FileList sống, gán value="" sẽ làm rỗng nó. */
+              const picked = Array.from(e.target.files ?? []);
               e.target.value = "";
-              if (!list || list.length === 0) return;
-              void uploadAnhPhuMany(Array.from(list));
+              if (picked.length === 0) return;
+              void uploadAnhPhuMany(picked);
             }}
           />
 

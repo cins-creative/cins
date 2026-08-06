@@ -159,7 +159,7 @@ border mặc định: 1px solid var(--border)
 - **Variants** (Dashboard): `avatar` 64×64 · `thumbnail` 300×300 (vuông) · **`grid` 640×360** · **`gridsm` 400×225** (lưới 16:9) · `public` 1366×768. Bảng đầy đủ + code map → `CINS_IMPLEMENTATION.md` §4.
 - LUÔN `loading="lazy"` trừ ảnh above-the-fold (`loading="eager"` + `fetchpriority="high"` + preload).
 - WebP/AVIF qua Cloudflare variants. `srcset` cho responsive (`gallery-grid`: `gridsm` + `grid`).
-- Video: Bunny Stream (delivery) + R2 (source). YouTube/Vimeo → thumbnail click-to-load, không nhúng iframe trực tiếp.
+- Video: Cloudflare Stream (delivery HLS/iframe). YouTube/Vimeo → thumbnail click-to-load, không nhúng iframe trực tiếp.
 
 ### Optimistic UI cho upload ảnh (Journey editor)
 - Hiện preview local (`URL.createObjectURL`) NGAY khi chọn file, **không** đợi upload xong.
@@ -354,11 +354,11 @@ export async function SectionA() {
 
 ## 9. Vòng đời media & xóa
 
-Media KHÔNG ở Supabase Storage: **video → Bunny Stream** (source ở R2), **ảnh → Cloudflare Images**. DB chỉ lưu **metadata + id tham chiếu**, không lưu file.
+Media KHÔNG ở Supabase Storage: **video → Cloudflare Stream**, **ảnh → Cloudflare Images**. Chat clip ngắn → R2. DB chỉ lưu **metadata + id tham chiếu**, không lưu file.
 
 ### Xóa = 1 hành động, 2 cách xử lý
 - **DB = soft delete**: set `da_xoa = TRUE` (KHÔNG hard-delete row) — giữ bản ghi, chỉ ẩn (đồng bộ ẩn dụ sổ cái + Journey là source of truth). Mọi query list/feed/lens lọc `da_xoa = FALSE` — tốt nhất qua **RLS / helper chung**, không nhớ-thủ-công từng query.
-- **Media ngoài = hard delete**: gọi Bunny / Cloudflare Images API xóa asset thật (giảm chi phí + quota). Gọi từ **server** bằng key bí mật, KHÔNG từ client.
+- **Media ngoài = hard delete**: gọi Cloudflare Stream / Cloudflare Images API xóa asset thật (giảm chi phí + quota). Gọi từ **server** bằng key bí mật, KHÔNG từ client.
 
 ### Thứ tự & độ bền
 - Soft-delete DB **trước** (phản hồi user tức thì) → xóa asset ngoài **async / queue**.
@@ -366,9 +366,9 @@ Media KHÔNG ở Supabase Storage: **video → Bunny Stream** (source ở R2), *
 - Hệ quả: item soft-deleted **không khôi phục đầy đủ** (text/metadata còn, ảnh/video đã mất). Đừng code "restore" với giả định media còn nguyên.
 
 ### Upload nháp = upload ngay + dọn rác mồ côi
-- Thêm media lúc soạn nháp → **upload thẳng Bunny/Cloudflare NGAY** (Direct Upload), preview bằng URL đã upload / object URL tạm. KHÔNG base64 vào localStorage, KHÔNG lưu `blob:` xuống DB.
+- Thêm media lúc soạn nháp → **upload thẳng Cloudflare Stream / Images NGAY** (Direct Upload), preview bằng URL đã upload / object URL tạm. KHÔNG base64 vào localStorage, KHÔNG lưu `blob:` xuống DB.
 - Asset đã upload nhưng chưa gắn bài = trạng thái **`pending`** (ghi `tao_luc` + owner). Bấm Đăng → `attached`. Hủy/đóng không đăng → rác mồ côi.
-- **Cron dọn rác (bắt buộc):** quét asset `pending` quá ngưỡng (vd >24h) chưa gắn → xóa thật trên Bunny/Cloudflare + xóa metadata. Idempotent + chừa khoảng an toàn (đừng xóa asset vừa upload vài phút). Không có cron → rác tích lũy, **vẫn tốn tiền + quota**.
+- **Cron dọn rác (bắt buộc):** quét asset `pending` quá ngưỡng (vd >24h) chưa gắn → xóa thật trên Cloudflare Stream/Images + xóa metadata. Idempotent + chừa khoảng an toàn (đừng xóa asset vừa upload vài phút). Không có cron → rác tích lũy, **vẫn tốn tiền + quota**.
 
 ---
 

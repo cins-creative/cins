@@ -2,7 +2,8 @@ import { setCachedVideoAspect } from "@/lib/journey/gallery-video-dimension-cach
 
 const MP4_QUALITIES = ["360p", "480p", "720p", "1080p"] as const;
 
-export function bunnyMp4FallbackUrls(primary: string): string[] {
+/** Biến thể MP4 quality (legacy `play_Xp.mp4`) — giữ để probe fallback. */
+export function videoMp4FallbackUrls(primary: string): string[] {
   const trimmed = primary.trim();
   if (!trimmed) return [];
   const out: string[] = [trimmed];
@@ -15,11 +16,14 @@ export function bunnyMp4FallbackUrls(primary: string): string[] {
   return out;
 }
 
-/** Đọc videoWidth/videoHeight từ MP4 Bunny (metadata only). */
+/** @deprecated Dùng `videoMp4FallbackUrls`. */
+export const bunnyMp4FallbackUrls = videoMp4FallbackUrls;
+
+/** Đọc videoWidth/videoHeight từ MP4 remote (metadata only). */
 export function probeRemoteVideoDimensions(
   primary: string,
 ): Promise<{ width: number; height: number } | null> {
-  const candidates = bunnyMp4FallbackUrls(primary);
+  const candidates = videoMp4FallbackUrls(primary);
   if (candidates.length === 0) return Promise.resolve(null);
 
   return new Promise((resolve) => {

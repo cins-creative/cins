@@ -1,24 +1,24 @@
 import "server-only";
 
-import { getBunnyVideoStatus } from "@/lib/bunny/stream";
 import type { Block } from "@/lib/editor/types";
+import { getVideoStatus } from "@/lib/video/status";
 import {
   clearVideoProcessingInBlocks,
   extractVideoProcessingMeta,
 } from "@/lib/journey/video-processing-meta";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
-/** Gỡ cờ `videoProcessing` khi Bunny đã encode xong. */
+/** Gỡ cờ `videoProcessing` khi Cloudflare Stream đã encode xong. */
 export async function syncVideoProcessingBlocks(
   blocks: Block[] | null,
 ): Promise<Block[] | null> {
   const meta = extractVideoProcessingMeta(blocks);
-  if (!meta?.processing || !meta.bunnyVideoId) return blocks;
+  if (!meta?.processing || !meta.videoId) return blocks;
 
-  const status = await getBunnyVideoStatus(meta.bunnyVideoId);
+  const status = await getVideoStatus(meta.videoId, "stream");
   if (!status.ok || !status.ready) return blocks;
 
-  return clearVideoProcessingInBlocks(blocks!, meta.bunnyVideoId);
+  return clearVideoProcessingInBlocks(blocks!, meta.videoId);
 }
 
 export async function syncOrgBaiDangVideoProcessing(

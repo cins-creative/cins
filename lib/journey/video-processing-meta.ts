@@ -1,12 +1,9 @@
 import type { Block } from "@/lib/editor/types";
-import { classifyBunnyVideoUrl } from "@/lib/bunny/embed";
 import { classifyStreamVideoUrl } from "@/lib/cloudflare/stream-embed";
 
 export type VideoProcessingMeta = {
   url: string;
-  /** @deprecated dùng `videoId` (provider-agnostic). Giữ tương thích. */
-  bunnyVideoId: string | null;
-  /** Id chung: Stream uid hoặc Bunny guid. */
+  /** Stream uid (hoặc id từ config legacy). */
   videoId: string | null;
   processing: boolean;
 };
@@ -22,11 +19,7 @@ function blockVideoId(block: Block): string | null {
   }
   const url = typeof cfg.url === "string" ? cfg.url.trim() : "";
   if (!url) return null;
-  return (
-    classifyStreamVideoUrl(url)?.uid ??
-    classifyBunnyVideoUrl(url)?.videoId ??
-    null
-  );
+  return classifyStreamVideoUrl(url)?.uid ?? null;
 }
 
 export function isVideoProcessingInBlocks(
@@ -55,15 +48,9 @@ export function extractVideoProcessingMeta(
     const url =
       typeof block.config?.url === "string" ? block.config.url.trim() : "";
     if (!url) continue;
-    const videoId = blockVideoId(block);
-    const bunnyVideoId =
-      typeof block.config?.bunnyVideoId === "string"
-        ? block.config.bunnyVideoId
-        : (classifyBunnyVideoUrl(url)?.videoId ?? null);
     return {
       url,
-      bunnyVideoId,
-      videoId,
+      videoId: blockVideoId(block),
       processing: block.config?.videoProcessing === true,
     };
   }
