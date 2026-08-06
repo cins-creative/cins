@@ -19,6 +19,10 @@ import {
 import { createPortal } from "react-dom";
 
 import {
+  invalidateBaoCaoCache,
+  invalidateDonHangCache,
+} from "@/lib/shop/client-fetch-cache";
+import {
   SHOP_LOAI_DON_LABEL,
   SHOP_TRANG_THAI_DON_LABEL,
   type ShopDonHang,
@@ -171,6 +175,9 @@ export function ShopTopbarButton() {
         setErr(json?.error ?? "Không cập nhật được.");
         return;
       }
+      /* Tab Đơn / Báo cáo đọc cache riêng — dọn để không thấy trạng thái cũ. */
+      invalidateDonHangCache();
+      invalidateBaoCaoCache();
       await load();
     } finally {
       setBusyId(null);

@@ -18,6 +18,7 @@ import { getNameInitials } from "@/lib/journey/profile";
 import {
   fetchShopCuaHangClient,
   invalidateBanHangClientCache,
+  invalidateShopClientCaches,
   writeShopCuaHangCache,
 } from "@/lib/shop/client-fetch-cache";
 import {
@@ -232,7 +233,8 @@ export function ShopOwnerEditor({ ownerSlug, ownerName }: Props) {
         setDeleteConfirmName("");
         return;
       }
-      invalidateBanHangClientCache();
+      /* Shop biến mất → mọi cache shop (kho, đơn, báo cáo…) đều vô nghĩa. */
+      invalidateShopClientCaches();
       window.dispatchEvent(
         new CustomEvent("cins:shop-profile-changed", {
           detail: { ownerId: shop?.idNguoiDung ?? null, shop: null },

@@ -6,6 +6,10 @@ import { createPortal } from "react-dom";
 
 import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
 import { ReportModal } from "@/components/social/ReportModal";
+import {
+  invalidateBaoCaoCache,
+  invalidateDonHangCache,
+} from "@/lib/shop/client-fetch-cache";
 import { formatDiaChiNhanCopy } from "@/lib/shop/export-viettelpost";
 import { printPhieuDongGoi } from "@/lib/shop/phieu-dong-goi";
 import {
@@ -180,6 +184,15 @@ export function ShopDonDetailModal({
     void load(donId);
   }, [open, donId, load]);
 
+  /**
+   * Đơn vừa đổi → cache danh sách đơn (20s) và báo cáo (45s) đang giữ bản cũ.
+   * Đặt ở modal thay vì ở từng host để mọi nơi mở modal đều được dọn cache.
+   */
+  function invalidateDonCaches() {
+    invalidateDonHangCache();
+    invalidateBaoCaoCache();
+  }
+
   async function moKhieuNai() {
     if (!don) return;
     setKnBusy(true);
@@ -204,6 +217,7 @@ export function ShopDonDetailModal({
       }
       setKnMsg("Đã gửi khiếu nại. CINs sẽ trọng tài — không hoàn tiền qua nền tảng.");
       setKnOpen(false);
+      invalidateDonCaches();
     } finally {
       setKnBusy(false);
     }
@@ -305,6 +319,7 @@ export function ShopDonDetailModal({
         setErr(json?.error ?? "Không cập nhật được.");
         return;
       }
+      invalidateDonCaches();
       if (json?.don) {
         setDon(json.don);
         onDonChange?.(json.don);
@@ -339,6 +354,7 @@ export function ShopDonDetailModal({
         setErr(json?.error ?? "Không hủy được đơn.");
         return;
       }
+      invalidateDonCaches();
       if (json?.don) {
         setDon(json.don);
         onDonChange?.(json.don);
@@ -373,6 +389,7 @@ export function ShopDonDetailModal({
         setErr(json?.error ?? "Không lưu được mã vận đơn.");
         return;
       }
+      invalidateDonCaches();
       if (json?.don) {
         setDon(json.don);
         setVcMaDraft(json.don.vanChuyenMa?.trim() || "");

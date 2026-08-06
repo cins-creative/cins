@@ -2352,6 +2352,11 @@
   display: block;
 }
 
+.shop-kho-loai-meta-phu-item.is-failed {
+  outline: 2px solid var(--danger);
+  outline-offset: -2px;
+}
+
 .shop-kho-loai-meta-phu-item button {
   position: absolute;
   top: 2px;
@@ -2960,7 +2965,20 @@
 }
 
 .shop-grid-col-name {
-  width: auto;
+  width: 22%;
+  min-width: 160px;
+}
+
+.shop-grid-col-name input {
+  width: 100%;
+  min-width: 0;
+}
+
+.shop-grid-col-name strong {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .shop-grid th.shop-grid-col-feature,
@@ -3429,7 +3447,8 @@
   overflow: hidden;
 }
 
-.shop-thumb-frame.is-uploading img {
+.shop-thumb-frame.is-uploading img,
+.shop-kho-loai-meta-phu-item.is-pending img {
   filter: brightness(0.72);
 }
 

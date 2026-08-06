@@ -19,6 +19,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { readImageFilesFromClipboard } from "@/lib/files/clipboard-images";
+import { uploadPostImageWithProgress } from "@/lib/files/upload-post-image";
 import {
   createVideoTusUpload,
   prepareResponseIsValid,
@@ -36,6 +37,18 @@ import { ShopKhoShopeeImportButton } from "./ShopKhoShopeeImport";
 import { ShopNhomMoTaField } from "./ShopNhomMoTaField";
 
 const MAX_SHOP_VIDEO_BYTES = 500 * 1024 * 1024;
+
+/** Khớp `KHO_UPLOAD_CONCURRENCY` của lưới kho (ShopKhoClient). */
+const ANH_PHU_UPLOAD_CONCURRENCY = 3;
+
+type PendingStatus = "uploading" | "done" | "error";
+
+type PendingAnh = {
+  key: string;
+  url: string;
+  progress: number;
+  status: PendingStatus;
+};
 
 type Props = {
   nhoms: ShopNhom[];
@@ -531,6 +544,10 @@ export function ShopKhoLoaiMeta({
         })
         .filter((x): x is { id: string; url: string } => Boolean(x)),
   );
+  const anhPhuRef = useRef(anhPhu);
+  anhPhuRef.current = anhPhu;
+  /** Ô xem trước ngay khi chọn file — sống tới khi patch xong. */
+  const [pendingPhu, setPendingPhu] = useState<PendingAnh[]>([]);
   const [videoPhu, setVideoPhu] = useState<{
     id: string;
     embedUrl: string | null;
@@ -548,8 +565,30 @@ export function ShopKhoLoaiMeta({
   const filePhuRef = useRef<HTMLInputElement>(null);
   const fileVideoRef = useRef<HTMLInputElement>(null);
   const previewAnhRef = useRef<string | null>(null);
+  const pendingUrlsRef = useRef<Set<string>>(new Set());
   const videoAbortRef = useRef<{ abort: () => void } | null>(null);
   const giaDirtyRef = useRef(false);
+
+  /* Rời component giữa lúc upload — thu hồi objectURL còn treo. */
+  useEffect(() => {
+    const urls = pendingUrlsRef.current;
+    return () => {
+      for (const url of urls) URL.revokeObjectURL(url);
+      urls.clear();
+    };
+  }, []);
+
+  function markPending(key: string, status: PendingStatus) {
+    setPendingPhu((prev) =>
+      prev.map((p) => (p.key === key ? { ...p, status } : p)),
+    );
+  }
+
+  function markProgress(key: string, progress: number) {
+    setPendingPhu((prev) =>
+      prev.map((p) => (p.key === key ? { ...p, progress } : p)),
+    );
+  }
 
   useEffect(() => {
     if (giaDirtyRef.current) return;
@@ -587,8 +626,11 @@ export function ShopKhoLoaiMeta({
     setPreviewAnhUrl(null);
   }
 
-  async function patch(body: Record<string, unknown>) {
-    setSaving(true);
+  async function patch(
+    body: Record<string, unknown>,
+    opts?: { quiet?: boolean },
+  ) {
+    if (!opts?.quiet) setSaving(true);
     onError(null);
     try {
       const res = await fetch(`/api/shop/nhom/${encodeURIComponent(nhom.id)}`, {
@@ -610,14 +652,17 @@ export function ShopKhoLoaiMeta({
       giaDirtyRef.current = false;
       setGia(giaInputValue(json.item.giaMacDinh, suggestedGiaMacDinh));
       if (json.item.anhPhuIds && json.item.anhPhuUrls) {
-        setAnhPhu(
-          json.item.anhPhuIds
-            .map((id, i) => {
-              const url = json.item!.anhPhuUrls[i];
-              return url ? { id, url } : null;
-            })
-            .filter((x): x is { id: string; url: string } => Boolean(x)),
-        );
+        /* quiet = gỡ optimistic — giữ list local, tránh race ghi đè. */
+        if (!opts?.quiet) {
+          setAnhPhu(
+            json.item.anhPhuIds
+              .map((id, i) => {
+                const url = json.item!.anhPhuUrls[i];
+                return url ? { id, url } : null;
+              })
+              .filter((x): x is { id: string; url: string } => Boolean(x)),
+          );
+        }
       }
       setVideoPhu(
         json.item.videoPhuId
@@ -633,7 +678,7 @@ export function ShopKhoLoaiMeta({
       onError("Không lưu được loại hàng.");
       return false;
     } finally {
-      setSaving(false);
+      if (!opts?.quiet) setSaving(false);
     }
   }
 
@@ -723,8 +768,13 @@ export function ShopKhoLoaiMeta({
     }
   }
 
+  /**
+   * Chọn nhiều ảnh: hiện ngay ô xem trước từ file local (objectURL), rồi upload
+   * song song có giới hạn kèm % thật (XHR) — cùng cơ chế thumb ở `ShopKhoClient`.
+   * Ô lỗi giữ lại và đánh dấu đỏ, các ảnh còn lại vẫn được lưu.
+   */
   async function uploadAnhPhuMany(files: File[]) {
-    const room = SHOP_NHOM_ANH_PHU_MAX - anhPhu.length;
+    const room = SHOP_NHOM_ANH_PHU_MAX - anhPhu.length - pendingPhu.length;
     if (room <= 0) {
       onError(`Tối đa ${SHOP_NHOM_ANH_PHU_MAX} ảnh thật.`);
       return;
@@ -744,40 +794,107 @@ export function ShopKhoLoaiMeta({
       onError(null);
     }
 
+    const batch = picked.map((file) => {
+      const url = URL.createObjectURL(file);
+      pendingUrlsRef.current.add(url);
+      return { key: `${Date.now()}-${url}`, file, url };
+    });
+    setPendingPhu((prev) => [
+      ...prev,
+      ...batch.map(({ key, url }) => ({
+        key,
+        url,
+        progress: 1,
+        status: "uploading" as PendingStatus,
+      })),
+    ]);
     setUploadingPhu(true);
-    try {
-      const uploaded: Array<{ id: string; url: string }> = [];
-      for (const file of picked) {
-        const fd = new FormData();
-        fd.append("file", file);
-        const res = await fetch("/api/post-image/upload", {
-          method: "POST",
-          body: fd,
-        });
-        const json = (await res.json().catch(() => null)) as {
-          imageId?: string;
-          url?: string;
-          error?: string;
-        } | null;
-        if (!res.ok || !json?.imageId || !json.url) {
-          throw new Error(json?.error ?? "Upload thất bại.");
+
+    const done: Array<{ id: string; url: string } | null> = new Array(
+      batch.length,
+    ).fill(null);
+    let cursor = 0;
+    let failed = 0;
+    let firstError: string | null = null;
+
+    const worker = async () => {
+      for (;;) {
+        const i = cursor++;
+        if (i >= batch.length) return;
+        const item = batch[i];
+        try {
+          const res = await uploadPostImageWithProgress(item.file, (pct) =>
+            markProgress(item.key, pct),
+          );
+          if (!res.url) throw new Error("Không tải ảnh được.");
+          done[i] = { id: res.imageId, url: res.url };
+          markPending(item.key, "done");
+        } catch (ex) {
+          failed += 1;
+          firstError ??= ex instanceof Error ? ex.message : "Upload thất bại.";
+          markPending(item.key, "error");
         }
-        uploaded.push({ id: json.imageId, url: json.url });
       }
-      const next = [...anhPhu, ...uploaded].slice(0, SHOP_NHOM_ANH_PHU_MAX);
-      const ok = await patch({ anhPhuIds: next.map((x) => x.id) });
-      if (ok) setAnhPhu(next);
-    } catch (ex) {
-      onError(ex instanceof Error ? ex.message : "Upload thất bại.");
+    };
+
+    try {
+      await Promise.all(
+        Array.from(
+          { length: Math.min(ANH_PHU_UPLOAD_CONCURRENCY, batch.length) },
+          worker,
+        ),
+      );
+      const uploaded = done.filter(
+        (x): x is { id: string; url: string } => x !== null,
+      );
+      if (uploaded.length > 0) {
+        const next = [...anhPhu, ...uploaded].slice(0, SHOP_NHOM_ANH_PHU_MAX);
+        const ok = await patch({ anhPhuIds: next.map((x) => x.id) });
+        if (ok) setAnhPhu(next);
+      }
+      if (failed > 0) {
+        onError(
+          failed === batch.length
+            ? (firstError ?? "Upload thất bại.")
+            : `${failed}/${batch.length} ảnh upload thất bại. ${firstError ?? ""}`.trim(),
+        );
+      }
     } finally {
+      const keys = new Set(batch.map((b) => b.key));
+      setPendingPhu((prev) => prev.filter((p) => !keys.has(p.key)));
+      /* Revoke sau khi React kịp chuyển sang URL CF — tránh nháy ảnh vỡ. */
+      window.setTimeout(() => {
+        for (const b of batch) {
+          if (!pendingUrlsRef.current.has(b.url)) continue;
+          pendingUrlsRef.current.delete(b.url);
+          URL.revokeObjectURL(b.url);
+        }
+      }, 0);
       setUploadingPhu(false);
     }
   }
 
   async function removeAnhPhu(id: string) {
-    const next = anhPhu.filter((x) => x.id !== id);
-    const ok = await patch({ anhPhuIds: next.map((x) => x.id) });
-    if (ok) setAnhPhu(next);
+    const prev = anhPhuRef.current;
+    const removed = prev.find((x) => x.id === id);
+    if (!removed) return;
+    const next = prev.filter((x) => x.id !== id);
+    anhPhuRef.current = next;
+    setAnhPhu(next);
+    const ok = await patch(
+      { anhPhuIds: next.map((x) => x.id) },
+      { quiet: true },
+    );
+    if (!ok) {
+      setAnhPhu((cur) => {
+        if (cur.some((x) => x.id === id)) return cur;
+        const idx = prev.findIndex((x) => x.id === id);
+        const restored = [...cur];
+        restored.splice(Math.min(Math.max(idx, 0), restored.length), 0, removed);
+        anhPhuRef.current = restored;
+        return restored;
+      });
+    }
   }
 
   async function uploadVideoPhu(file: File) {
@@ -1116,7 +1233,7 @@ export function ShopKhoLoaiMeta({
         <div className="shop-kho-loai-meta-phu-head">
           <span>Ảnh / video thật</span>
           <span className="shop-kho-loai-meta-phu-count">
-            {anhPhu.length}/{SHOP_NHOM_ANH_PHU_MAX} ảnh
+            {anhPhu.length + pendingPhu.length}/{SHOP_NHOM_ANH_PHU_MAX} ảnh
             {" · "}
             {videoPhu || uploadingVideo ? "1" : "0"}/1 video
           </span>
@@ -1129,14 +1246,38 @@ export function ShopKhoLoaiMeta({
               <button
                 type="button"
                 aria-label="Gỡ ảnh"
-                disabled={mediaBusy}
+                disabled={uploadingPhu || uploadingVideo || uploadingAnh}
                 onClick={() => void removeAnhPhu(a.id)}
               >
                 <X size={12} />
               </button>
             </span>
           ))}
-          {anhPhu.length < SHOP_NHOM_ANH_PHU_MAX ? (
+          {pendingPhu.map((p) => (
+            <span
+              key={p.key}
+              className={`shop-kho-loai-meta-phu-item is-pending${
+                p.status === "error" ? " is-failed" : ""
+              }`}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={p.url} alt="" />
+              {p.status === "error" ? (
+                <span className="shop-thumb-upload-pct" role="alert">
+                  <AlertTriangle size={14} aria-hidden />
+                </span>
+              ) : (
+                <span
+                  className="shop-thumb-upload-pct"
+                  aria-busy={p.status === "uploading"}
+                  aria-label={`Đang tải ${p.progress}%`}
+                >
+                  {p.progress}%
+                </span>
+              )}
+            </span>
+          ))}
+          {anhPhu.length + pendingPhu.length < SHOP_NHOM_ANH_PHU_MAX ? (
             <span className="shop-kho-loai-meta-phu-add-wrap">
               <button
                 type="button"

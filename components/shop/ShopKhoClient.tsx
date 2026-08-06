@@ -13,7 +13,6 @@ import {
   Pencil,
   Plus,
   Save,
-  Star,
   Tags,
   Trash2,
   X,
@@ -49,6 +48,7 @@ import {
   writeBangGiaCache,
   writeNhomCache,
   writeSanPhamCache,
+  writeShopCuaHangCache,
 } from "@/lib/shop/client-fetch-cache";
 
 import { ShopKhoLoaiHub, ShopKhoLoaiMeta } from "./ShopKhoLoaiHub";
@@ -299,11 +299,14 @@ export function ShopKhoClient() {
     return () => window.removeEventListener("keydown", onKey);
   }, [exitConfirmOpen, exitingSave]);
 
-  const load = useCallback(async (opts?: { silent?: boolean }) => {
+  const load = useCallback(async (opts?: { silent?: boolean; force?: boolean }) => {
     const silent = opts?.silent === true;
-    const cachedProducts = peekSanPham();
-    const cachedBangGia = peekBangGia();
-    const cachedNhom = peekNhom();
+    /* Sau mutate: bỏ qua cache cả ở bước peek — nếu không, bản cũ (còn dòng vừa
+       xóa) sẽ được seed lại vào state và ghi ngược vào cache. */
+    const force = opts?.force === true;
+    const cachedProducts = force ? null : peekSanPham();
+    const cachedBangGia = force ? null : peekBangGia();
+    const cachedNhom = force ? null : peekNhom();
     const hasCatalogCache =
       cachedProducts != null && cachedBangGia != null && cachedNhom != null;
     if (hasCatalogCache) {
@@ -318,13 +321,14 @@ export function ShopKhoClient() {
       setErr(null);
     }
     try {
+      const forceOpt = force ? { force: true } : undefined;
       const [status, products, lists, shopData, nhomPayload] = await Promise.all(
         [
           fetchBanHangClientStatus(),
-          fetchSanPhamCached(),
-          fetchBangGiaCached(),
+          fetchSanPhamCached(forceOpt),
+          fetchBangGiaCached(forceOpt),
           fetchShopCuaHangClient(),
-          fetchNhomCached(),
+          fetchNhomCached(forceOpt),
         ],
       );
       setEnabled(status.enabled);
@@ -347,6 +351,12 @@ export function ShopKhoClient() {
       setLoading(false);
     }
   }, [bangGiaId]);
+
+  /** Nạp lại sau khi mutate — luôn bỏ cache để không thấy lại dữ liệu vừa xóa. */
+  const refreshKho = useCallback(
+    () => load({ silent: true, force: true }),
+    [load],
+  );
 
   useEffect(() => {
     if (!enabled || loading) return;
@@ -392,6 +402,8 @@ export function ShopKhoClient() {
           else setNhanPhanLoai2Draft(nhanPhanLoai2);
           return;
         }
+        /* Cache cửa hàng giữ nhãn cũ 30s — ghi lại ngay để tab khác không lệch. */
+        writeShopCuaHangCache(json?.shop ?? null);
         const label1 = resolveShopNhanPhanLoai(json?.shop);
         const label2 = resolveShopNhanPhanLoai2(json?.shop);
         setNhanPhanLoai(label1);
@@ -632,15 +644,6 @@ export function ShopKhoClient() {
   const someFilteredSelected =
     filteredProducts.some((p) => selectedIdSet.has(p.id)) && !allFilteredSelected;
 
-  const featureCount = useMemo(
-    () =>
-      products.filter((p) => {
-        const d = drafts[p.id];
-        return d ? d.noiBat : p.noiBat === true;
-      }).length,
-    [products, drafts],
-  );
-
   const applySelect = useCallback(
     (id: string, index: number, shiftKey: boolean, ctrlKey = false) => {
       setSelectedIds((prev) => {
@@ -813,6 +816,8 @@ export function ShopKhoClient() {
         setNhomTagEditId(null);
         setNhomTagEditDraft("");
       }
+      /* Xóa thẻ làm sản phẩm rơi về «chưa phân loại» → orphanCount đổi. */
+      await refreshKho();
     } catch {
       setErr("Không xóa được thẻ.");
     } finally {
@@ -1315,7 +1320,7 @@ export function ShopKhoClient() {
 
     if (created.length > 0) {
       setLastEditedId(created[0]!.id);
-      await load({ silent: true });
+      await refreshKho();
     }
 
     const fail = failUpload + failCreate;
@@ -1367,48 +1372,145 @@ export function ShopKhoClient() {
       }
       setProducts((prev) => [item, ...prev.filter((x) => x.id !== item.id)]);
       setLastEditedId(item.id);
-      await load({ silent: true });
+      await refreshKho();
     } finally {
       setSaving(false);
     }
   }
 
   async function confirmRemoveProduct() {
-    if (deleteTargets.length === 0 || deleting) return;
+    if (deleteTargets.length === 0) return;
     const targets = deleteTargets;
-    setDeleting(true);
+    const targetIds = new Set(targets.map((t) => t.id));
+    const snapshot = products.filter((p) => targetIds.has(p.id));
+    const apiTargets = targets.filter((t) => !isPendingKhoRow(t.id));
+
+    /* Optimistic: đóng dialog + gỡ khỏi list ngay. */
+    setDeleteTargets([]);
     setErr(null);
+    setDrafts((prev) => {
+      const next = { ...prev };
+      for (const id of targetIds) delete next[id];
+      return next;
+    });
+    setProducts((prev) => prev.filter((p) => !targetIds.has(p.id)));
+    setSelectedIds((prev) => prev.filter((id) => !targetIds.has(id)));
+    if (lastEditedId && targetIds.has(lastEditedId)) setLastEditedId(null);
+
+    const deltas = new Map<string, number>();
+    let orphanDelta = 0;
+    for (const p of snapshot) {
+      if (p.idNhom) {
+        deltas.set(p.idNhom, (deltas.get(p.idNhom) ?? 0) - 1);
+      } else {
+        orphanDelta -= 1;
+      }
+      if (p.idNhom2) {
+        deltas.set(p.idNhom2, (deltas.get(p.idNhom2) ?? 0) - 1);
+      }
+    }
+    if (deltas.size > 0) {
+      setNhoms((prev) =>
+        prev.map((n) =>
+          deltas.has(n.id)
+            ? { ...n, soMau: Math.max(0, (n.soMau ?? 0) + deltas.get(n.id)!) }
+            : n,
+        ),
+      );
+    }
+    if (orphanDelta !== 0) {
+      setOrphanCount((prev) => Math.max(0, prev + orphanDelta));
+    }
+
+    if (apiTargets.length === 0) return;
+
     try {
       const results = await Promise.all(
-        targets.map(async (t) => {
+        apiTargets.map(async (t) => {
           const res = await fetch(`/api/shop/san-pham/${t.id}`, {
             method: "DELETE",
           });
           return { id: t.id, ok: res.ok };
         }),
       );
-      const failed = results.filter((r) => !r.ok);
-      if (failed.length > 0) {
+      const failedIds = new Set(
+        results.filter((r) => !r.ok).map((r) => r.id),
+      );
+      if (failedIds.size > 0) {
+        const restore = snapshot.filter((p) => failedIds.has(p.id));
+        setProducts((prev) => {
+          const ids = new Set(prev.map((p) => p.id));
+          const add = restore.filter((p) => !ids.has(p.id));
+          if (add.length === 0) return prev;
+          return [...prev, ...add].sort((a, b) =>
+            (b.taoLuc ?? "").localeCompare(a.taoLuc ?? ""),
+          );
+        });
+        const restoreDeltas = new Map<string, number>();
+        let restoreOrphan = 0;
+        for (const p of restore) {
+          if (p.idNhom) {
+            restoreDeltas.set(
+              p.idNhom,
+              (restoreDeltas.get(p.idNhom) ?? 0) + 1,
+            );
+          } else {
+            restoreOrphan += 1;
+          }
+          if (p.idNhom2) {
+            restoreDeltas.set(
+              p.idNhom2,
+              (restoreDeltas.get(p.idNhom2) ?? 0) + 1,
+            );
+          }
+        }
+        if (restoreDeltas.size > 0) {
+          setNhoms((prev) =>
+            prev.map((n) =>
+              restoreDeltas.has(n.id)
+                ? {
+                    ...n,
+                    soMau: Math.max(
+                      0,
+                      (n.soMau ?? 0) + restoreDeltas.get(n.id)!,
+                    ),
+                  }
+                : n,
+            ),
+          );
+        }
+        if (restoreOrphan !== 0) {
+          setOrphanCount((prev) => Math.max(0, prev + restoreOrphan));
+        }
         setErr(
-          failed.length === targets.length
+          failedIds.size === apiTargets.length
             ? "Không xóa được sản phẩm."
-            : `Đã xóa một phần — ${failed.length} sản phẩm lỗi.`,
+            : `Đã xóa một phần — ${failedIds.size} sản phẩm lỗi.`,
         );
       }
-      const removed = new Set(results.filter((r) => r.ok).map((r) => r.id));
-      if (removed.size > 0) {
-        setDrafts((prev) => {
-          const next = { ...prev };
-          for (const id of removed) delete next[id];
-          return next;
-        });
-        setProducts((prev) => prev.filter((p) => !removed.has(p.id)));
-        setSelectedIds((prev) => prev.filter((id) => !removed.has(id)));
-        setDeleteTargets([]);
-        await load({ silent: true });
+      if (failedIds.size < apiTargets.length) {
+        void refreshKho();
       }
-    } finally {
-      setDeleting(false);
+    } catch {
+      setProducts((prev) => {
+        const ids = new Set(prev.map((p) => p.id));
+        const add = snapshot.filter((p) => !ids.has(p.id));
+        if (add.length === 0) return prev;
+        return [...prev, ...add].sort((a, b) =>
+          (b.taoLuc ?? "").localeCompare(a.taoLuc ?? ""),
+        );
+      });
+      setNhoms((prev) =>
+        prev.map((n) =>
+          deltas.has(n.id)
+            ? { ...n, soMau: Math.max(0, (n.soMau ?? 0) - deltas.get(n.id)!) }
+            : n,
+        ),
+      );
+      if (orphanDelta !== 0) {
+        setOrphanCount((prev) => Math.max(0, prev - orphanDelta));
+      }
+      setErr("Không xóa được sản phẩm.");
     }
   }
 
@@ -1742,7 +1844,7 @@ export function ShopKhoClient() {
         );
         if (btResults.some((ok) => !ok)) {
           setErr("Một số sản phẩm không lưu được tồn kho.");
-          await load({ silent: true });
+          await refreshKho();
           return;
         }
       }
@@ -1770,7 +1872,7 @@ export function ShopKhoClient() {
         );
         if (results.some((ok) => !ok)) {
           setErr("Một số sản phẩm không lưu được.");
-          await load({ silent: true });
+          await refreshKho();
           return;
         }
       }
@@ -2069,7 +2171,7 @@ export function ShopKhoClient() {
     });
 
     if (created.length > 0) {
-      await load({ silent: true });
+      await refreshKho();
     }
 
     const fail = failUpload + failCreate;
@@ -2203,7 +2305,7 @@ export function ShopKhoClient() {
                 ];
               });
               setActiveNhomId(nhom.id);
-              void load({ silent: true });
+              void refreshKho();
             }}
           />
         </section>
@@ -2225,15 +2327,15 @@ export function ShopKhoClient() {
             onBack={() => setActiveNhomId(null)}
             onUpdated={(n) => {
               setNhoms((prev) => prev.map((x) => (x.id === n.id ? n : x)));
-              void load({ silent: true });
+              void refreshKho();
             }}
             onDeleted={() => {
               setNhoms((prev) => prev.filter((x) => x.id !== activeNhom.id));
               setActiveNhomId(null);
-              void load({ silent: true });
+              void refreshKho();
             }}
             onError={setErr}
-            onRefreshMau={() => void load({ silent: true })}
+            onRefreshMau={() => void refreshKho()}
           />
         ) : (
           <div className="shop-kho-loai-meta">
@@ -2450,18 +2552,6 @@ export function ShopKhoClient() {
                 <th scope="col" className="shop-grid-col-name">
                   Tên sản phẩm
                 </th>
-                <th
-                  scope="col"
-                  className="shop-grid-col-feature"
-                  title={`Tối đa ${SHOP_FEATURE_MAX} sản phẩm ngôi sao`}
-                >
-                  <span className="shop-grid-col-feature-head">
-                    <Star size={14} strokeWidth={2.25} aria-hidden />
-                    <span className="shop-feature-count">
-                      {featureCount}/{SHOP_FEATURE_MAX}
-                    </span>
-                  </span>
-                </th>
                 {renderLoaiColHeader(1)}
                 {renderLoaiColHeader(2)}
                 <th scope="col" className="shop-grid-col-ton">
@@ -2518,7 +2608,7 @@ export function ShopKhoClient() {
             <tbody>
               {filteredProducts.length === 0 ? (
                 <tr className="shop-grid-row shop-grid-row--empty">
-                  <td colSpan={khoEditing ? 10 : 8}>
+                  <td colSpan={khoEditing ? 9 : 7}>
                     {products.length === 0
                       ? khoEditing
                         ? "Chưa có mẫu — bấm Thêm mẫu để tạo dòng trống."
@@ -2564,7 +2654,6 @@ export function ShopKhoClient() {
                     [
                       "anhId",
                       "ten",
-                      "noiBat",
                       "phanLoai",
                       "phanLoai2",
                       "ton",
@@ -2817,83 +2906,6 @@ export function ShopKhoClient() {
                           : (bt.soLuongTon ?? 0) <= 0) ? (
                           <div className="shop-dash-hint">Đợi restock</div>
                         ) : null}
-                      </td>
-                      <td
-                        className={`shop-grid-col-feature${cellChanged("noiBat")}`}
-                        title={
-                          cellChanged("noiBat")
-                            ? "Ô đã sửa — sẽ áp dụng khi bấm Áp dụng"
-                            : undefined
-                        }
-                      >
-                        {cellApplyBtn("noiBat")}
-                        {!khoEditing ? (
-                          p.noiBat ? (
-                            <span
-                              className="shop-feature-badge"
-                              title="Ngôi sao"
-                              aria-label="Ngôi sao"
-                            >
-                              <Star size={13} strokeWidth={2.25} fill="currentColor" aria-hidden />
-                            </span>
-                          ) : (
-                            <span className="shop-grid-readonly-val">—</span>
-                          )
-                        ) : (
-                          <label
-                            className={`shop-feature-toggle${
-                              !draft.noiBat && featureCount >= SHOP_FEATURE_MAX
-                                ? " is-capped"
-                                : ""
-                            }`}
-                            title={
-                              !draft.noiBat && featureCount >= SHOP_FEATURE_MAX
-                                ? `Đã đủ ${SHOP_FEATURE_MAX} ngôi sao — bỏ chọn một mục khác trước`
-                                : draft.noiBat
-                                  ? "Bỏ ngôi sao"
-                                  : "Gắn ngôi sao"
-                            }
-                          >
-                            <input
-                              type="checkbox"
-                              checked={draft.noiBat}
-                              disabled={
-                                rowSaving ||
-                                (!draft.noiBat &&
-                                  featureCount >= SHOP_FEATURE_MAX)
-                              }
-                              aria-label={`Ngôi sao ${p.ten}`}
-                              onChange={(e) => {
-                                const next = e.target.checked;
-                                if (next) {
-                                  const others = products.filter((x) => {
-                                    if (x.id === p.id) return false;
-                                    const d = drafts[x.id];
-                                    return d ? d.noiBat : x.noiBat === true;
-                                  }).length;
-                                  if (others >= SHOP_FEATURE_MAX) {
-                                    setErr(
-                                      `Chỉ được gắn ngôi sao tối đa ${SHOP_FEATURE_MAX} sản phẩm.`,
-                                    );
-                                    return;
-                                  }
-                                }
-                                setErr(null);
-                                patchDraft(
-                                  p.id,
-                                  { noiBat: next },
-                                  baseDraftForProduct(p),
-                                );
-                              }}
-                            />
-                            <Star
-                              size={14}
-                              strokeWidth={2.25}
-                              fill={draft.noiBat ? "currentColor" : "none"}
-                              aria-hidden
-                            />
-                          </label>
-                        )}
                       </td>
                       <td
                         className={`shop-grid-col-loai${cellChanged("phanLoai")}`}

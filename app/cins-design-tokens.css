@@ -60,6 +60,9 @@
   --bg-page:    #F4F5F8;     /* signature lavender-grey page bg, see screenshots */
   --bg-surface: #FFFFFF;
   --bg-tint:    var(--cins-blue-soft);
+  /* Nền lõm/placeholder (ô upload ảnh, khung media rỗng, chip).
+     Trỏ vào --neutral-100 nên tự đảo theo dark theme. */
+  --bg-muted:   var(--neutral-100);
 
   --border: #E4E6EB;
   --border-strong: #C9CCD3;

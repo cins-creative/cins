@@ -23,6 +23,8 @@ import { createPortal } from "react-dom";
 import { useCinsChat } from "@/components/cins/CinsChatProvider";
 import {
   fetchDonHangCached,
+  invalidateBaoCaoCache,
+  invalidateDonHangCache,
   peekDonHang,
 } from "@/lib/shop/client-fetch-cache";
 import {
@@ -637,6 +639,9 @@ export function ShopDonClient() {
             prev.map((it) => (it.id === updated.id ? { ...it, ...updated } : it)),
           );
           setSelectedIds((prev) => prev.filter((id) => id !== updated.id));
+          /* Cache list + báo cáo giữ trạng thái/doanh thu cũ → bỏ hiệu lực. */
+          invalidateDonHangCache();
+          invalidateBaoCaoCache();
         } else {
           setCompleteErr(json?.error ?? "Không cập nhật được đơn.");
         }
@@ -682,6 +687,7 @@ export function ShopDonClient() {
           setItems((cur) =>
             cur.map((it) => (it.id === updated.id ? { ...it, ...updated } : it)),
           );
+          invalidateDonHangCache();
         } else {
           setItems((cur) =>
             cur.map((it) => (it.id === prev.id ? prev : it)),

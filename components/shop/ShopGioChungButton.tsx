@@ -30,6 +30,7 @@ import {
 import { isAllowedUploadImageFile } from "@/lib/files/infer-image-mime";
 import {
   fetchDiaChiNhanCached,
+  invalidateDonHangCache,
   peekDiaChiNhan,
   type ShopDiaChiNhanClient,
 } from "@/lib/shop/client-fetch-cache";
@@ -1020,6 +1021,8 @@ function ShopGioChungGroup({
         setErr(json?.error ?? "Không gửi được đơn.");
         return;
       }
+      /* Người bán cùng máy/tab: cache đơn seller phải thấy đơn mới ngay. */
+      invalidateDonHangCache();
       onSent(json.don);
     } catch {
       setErr("Không gửi được đơn.");
