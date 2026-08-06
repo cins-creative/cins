@@ -685,11 +685,6 @@ export function ShopKhoClient() {
     });
   }, [filteredProducts]);
 
-  const clearSelection = useCallback(() => {
-    setSelectedIds([]);
-    lastSelectIndexRef.current = null;
-  }, []);
-
   /** Mở popup thẻ Fandom (trục 2). */
   function openNhomPanel() {
     setNhanPhanLoai2Draft(nhanPhanLoai2);
@@ -894,11 +889,12 @@ export function ShopKhoClient() {
       (p.idNhom
         ? nhoms.find((n) => n.id === p.idNhom)?.giaMacDinh
         : null) ?? null;
+    /* Giá gốc riêng của mẫu là sự thật; giá loại chỉ đỡ khi mẫu chưa có dòng giá. */
     const giaGoc =
-      nhomGia != null
-        ? String(nhomGia)
-        : dong != null
-          ? String(dong.gia)
+      dong != null
+        ? String(dong.gia)
+        : nhomGia != null
+          ? String(nhomGia)
           : "";
     return {
       ten: p.ten ?? "",
@@ -948,20 +944,6 @@ export function ShopKhoClient() {
       patch.anhUrl = d.anhUrl ?? null;
     }
     return Object.keys(patch).length > 0 ? patch : null;
-  }
-
-  function describeChangedFields(patch: Partial<RowDraft>): string {
-    const labels: string[] = [];
-    if (patch.ten !== undefined) labels.push("tên");
-    if (patch.phanLoai !== undefined) labels.push(nhanPhanLoai.toLowerCase());
-    if (patch.phanLoai2 !== undefined) labels.push(nhanPhanLoai2.toLowerCase());
-    if (patch.ton !== undefined) labels.push("tồn");
-    if (patch.gia !== undefined) labels.push("giá bán");
-    if (patch.giaGiam !== undefined) labels.push("giá giảm");
-    if (patch.dangBan !== undefined) labels.push("tình trạng");
-    if (patch.noiBat !== undefined) labels.push("ngôi sao");
-    if (patch.anhId !== undefined) labels.push("ảnh");
-    return labels.join(", ");
   }
 
   function isRowDirty(p: ShopSanPham): boolean {
@@ -1543,7 +1525,13 @@ export function ShopKhoClient() {
     }
     const oldGia = resolveGiaBienThe(bt.id);
     const oldGiaGiam = resolveGiaGiamBienThe(bt.id);
-    /* Giá gốc lấy theo loại hàng (không sửa ở mẫu). */
+    const giaRaw = draft.gia.trim();
+    const giaNum = giaRaw ? parseGiaInput(giaRaw) : null;
+    if (giaRaw && giaNum == null) {
+      setErr("Giá gốc không hợp lệ.");
+      return false;
+    }
+    /* Mẫu chưa đặt giá riêng — mượn giá gốc của loại hàng. */
     const nhomForGia =
       activeNhom ??
       (p.idNhom ? nhoms.find((n) => n.id === p.idNhom) : null) ??
@@ -1554,10 +1542,10 @@ export function ShopKhoClient() {
       ) ??
       null;
     const nhomGia = nhomForGia?.giaMacDinh ?? null;
-    const nextGia = nhomGia ?? oldGia;
+    const nextGia = giaNum ?? oldGia ?? nhomGia;
     const nextGiaGiam = giaGiamRaw ? giaGiamNum : null;
     if (giaGiamRaw && nextGia == null) {
-      setErr("Đặt giá gốc trên loại hàng trước khi nhập giá giảm.");
+      setErr("Nhập giá gốc cho mẫu trước khi nhập giá giảm.");
       return false;
     }
     if (
@@ -1565,7 +1553,7 @@ export function ShopKhoClient() {
       nextGiaGiam != null &&
       nextGiaGiam > nextGia
     ) {
-      setErr("Giá giảm không được cao hơn giá gốc của loại.");
+      setErr("Giá giảm không được cao hơn giá gốc.");
       return false;
     }
     const giaChanged =
@@ -2364,60 +2352,6 @@ export function ShopKhoClient() {
               )
             </h2>
           </div>
-          {khoEditing && selectedIds.length > 0 ? (
-            <div
-              className="shop-kho-bulk"
-              role="toolbar"
-              aria-label="Sửa hàng loạt"
-            >
-              <span className="shop-kho-bulk-count">
-                Đã chọn <strong>{selectedIds.length}</strong>
-              </span>
-              {(() => {
-                const source = lastEditedId
-                  ? products.find((p) => p.id === lastEditedId)
-                  : null;
-                const changed = source ? getChangedDraftPatch(source) : null;
-                if (!source || !changed) {
-                  return (
-                    <span className="shop-kho-bulk-hint">
-                      Sửa một dòng → chọn dòng khác → bấm Áp dụng trên ô đã sửa
-                    </span>
-                  );
-                }
-                const tenHien =
-                  getDraft(source).ten.trim() || source.ten || "…";
-                return (
-                  <span className="shop-kho-bulk-hint">
-                    Theo «{tenHien}»: {describeChangedFields(changed)} — bấm
-                    Áp dụng trên ô cam
-                  </span>
-                );
-              })()}
-              <button
-                type="button"
-                className="shop-don-bulk-btn"
-                disabled={bulkApplying || deleting}
-                onClick={() => {
-                  const items = products
-                    .filter((p) => selectedIdSet.has(p.id))
-                    .map((p) => ({ id: p.id, ten: p.ten }));
-                  if (items.length > 0) setDeleteTargets(items);
-                }}
-              >
-                <Trash2 size={14} strokeWidth={2} aria-hidden />
-                Xóa
-              </button>
-              <button
-                type="button"
-                className="shop-don-bulk-btn"
-                disabled={bulkApplying}
-                onClick={clearSelection}
-              >
-                Bỏ chọn
-              </button>
-            </div>
-          ) : null}
           <div className="shop-kho-toolbar">
             <button
               type="button"
@@ -3002,14 +2936,46 @@ export function ShopKhoClient() {
                         )}
                       </td>
                       <td
-                        className="shop-grid-col-gia"
-                        title="Giá gốc đã áp dụng cho mẫu — bấm «Áp dụng» ở meta loại để cập nhật"
+                        className={`shop-grid-col-gia${cellChanged("gia")}`}
+                        title={
+                          cellChanged("gia")
+                            ? "Ô đã sửa — sẽ áp dụng khi bấm Áp dụng"
+                            : "Giá gốc riêng của mẫu — «Áp dụng» ở meta loại sẽ ghi đè cả cột"
+                        }
                       >
-                        <span className="shop-grid-readonly-val">
-                          {giaHienThi != null
-                            ? `${giaHienThi.toLocaleString("vi-VN")} ${currentTienTe()}`
-                            : "—"}
-                        </span>
+                        {cellApplyBtn("gia")}
+                        {!khoEditing ? (
+                          <span className="shop-grid-readonly-val">
+                            {giaHienThi != null
+                              ? `${giaHienThi.toLocaleString("vi-VN")} ${currentTienTe()}`
+                              : "—"}
+                          </span>
+                        ) : bt ? (
+                          <div className="shop-gia-cell">
+                            <input
+                              value={draft.gia}
+                              placeholder="—"
+                              inputMode="decimal"
+                              disabled={rowSaving}
+                              aria-label={`Giá gốc ${p.ten} (${currentTienTe()})`}
+                              onChange={(e) =>
+                                patchDraft(
+                                  p.id,
+                                  { gia: e.target.value },
+                                  baseDraftForProduct(p),
+                                )
+                              }
+                            />
+                            <span
+                              className="shop-tien-te-badge"
+                              title="Theo bảng giá đang chọn"
+                            >
+                              {currentTienTe()}
+                            </span>
+                          </div>
+                        ) : (
+                          "—"
+                        )}
                       </td>
                       <td
                         className={`shop-grid-col-gia-giam${cellChanged("giaGiam")}`}

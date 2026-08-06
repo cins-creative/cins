@@ -86,7 +86,6 @@ export function ShopKhoLoaiHub({
   const [featureBusyId, setFeatureBusyId] = useState<string | null>(null);
   const [nhan, setNhan] = useState("");
   const [moTa, setMoTa] = useState("");
-  const [gia, setGia] = useState("");
   const [anhId, setAnhId] = useState<string | null>(null);
   const [anhUrl, setAnhUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -100,7 +99,6 @@ export function ShopKhoLoaiHub({
     }
     setNhan("");
     setMoTa("");
-    setGia("");
     setAnhId(null);
     setAnhUrl(null);
     setCreating(false);
@@ -155,12 +153,6 @@ export function ShopKhoLoaiHub({
       onError(`Nhập tên ${nhanPhanLoai.toLowerCase()}.`);
       return;
     }
-    const giaRaw = gia.trim();
-    const giaNum = giaRaw ? parseGiaInput(giaRaw) : null;
-    if (giaRaw && giaNum == null) {
-      onError("Giá mặc định không hợp lệ.");
-      return;
-    }
     setBusy(true);
     onError(null);
     try {
@@ -172,7 +164,6 @@ export function ShopKhoLoaiHub({
           nhan: name,
           moTa: moTa.trim().slice(0, SHOP_NHOM_MO_TA_MAX) || null,
           anhId,
-          giaMacDinh: giaNum,
         }),
       });
       const json = (await res.json().catch(() => null)) as {
@@ -346,16 +337,6 @@ export function ShopKhoLoaiHub({
                 placeholder="VD: Mèo chọi"
                 disabled={busy}
                 onChange={(e) => setNhan(e.target.value)}
-              />
-            </label>
-            <label>
-              <span>Giá gốc mặc định</span>
-              <input
-                value={gia}
-                inputMode="decimal"
-                placeholder="40000"
-                disabled={busy}
-                onChange={(e) => setGia(e.target.value)}
               />
             </label>
             <ShopNhomMoTaField
@@ -703,7 +684,7 @@ export function ShopKhoLoaiMeta({
     const rawNow = gia.trim();
     const effectiveGia = rawNow ? parseGiaInput(rawNow) : nhom.giaMacDinh;
     if (effectiveGia == null) {
-      onError("Hãy nhập Giá gốc cho loại trước khi áp dụng.");
+      onError("Hãy nhập Giá gốc hiển thị cho loại trước khi áp dụng.");
       return;
     }
     setApplying(true);
@@ -1163,7 +1144,7 @@ export function ShopKhoLoaiMeta({
               />
             </label>
             <label>
-              <span>Giá gốc</span>
+              <span>Giá gốc hiển thị</span>
               <div className="shop-kho-loai-gia-row">
                 <input
                   value={gia}
@@ -1197,7 +1178,7 @@ export function ShopKhoLoaiMeta({
                   className="shop-kho-loai-gia-apply"
                   disabled={saving || applying}
                   aria-busy={applying}
-                  title="Ghi giá gốc này xuống mọi sản phẩm trong loại"
+                  title="Ghi giá này xuống cột «Giá gốc» của mọi sản phẩm trong loại"
                   onClick={() => void applyGia()}
                 >
                   {applying ? (
