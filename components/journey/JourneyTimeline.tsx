@@ -2,11 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { JourneyBillingPinBanner } from "@/components/journey/JourneyBillingPinBanner";
 import { JourneyPendingConfirmationsStack } from "@/components/journey/JourneyPendingConfirmationsStack";
 import { JourneyCreateComposer } from "@/components/journey/JourneyCreateComposer";
 import { useJourneyCompose } from "@/components/journey/JourneyComposeContext";
 import { JourneyTimelineBar } from "@/components/journey/JourneyTimelineBar";
 import type { FilterGroup } from "@/components/journey/JourneyTimelineBar";
+import type { BillingJourneyPin } from "@/lib/billing/types";
 import {
   JourneyYearBlock,
   timelineExpandKey,
@@ -110,6 +112,8 @@ type Props = {
   dongGopFeedbackPending?: ReadonlyArray<DongGopFeedbackBannerItem>;
   /** Infinite scroll — load trang kế qua API khi sentinel vào viewport. */
   scrollLoad?: ScrollLoadConfig;
+  /** Ghim nợ phí (server); chỉ owner. */
+  billingPin?: BillingJourneyPin | null;
 };
 
 /**
@@ -137,6 +141,7 @@ export function JourneyTimeline({
   membershipPendingOutbound = EMPTY_MEMBERSHIP,
   dongGopFeedbackPending = EMPTY_DONG_GOP,
   scrollLoad,
+  billingPin,
 }: Props) {
   const { adminSeedingEdit } = useJourneyCompose();
   const canManagePosts = isOwner || adminSeedingEdit;
@@ -642,6 +647,13 @@ export function JourneyTimeline({
         isOwner={isOwner}
         filterVisibility={filterVisibility}
       />
+
+      {isOwner ? (
+        <JourneyBillingPinBanner
+          initialPin={billingPin ?? null}
+          fetchIfNeeded={billingPin === undefined}
+        />
+      ) : null}
 
       {isOwner && viewerProfileId ? (
         <JourneyPendingConfirmationsStack

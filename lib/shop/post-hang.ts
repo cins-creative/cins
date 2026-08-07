@@ -4,6 +4,7 @@ import { resolveGiaBienThe } from "@/lib/shop/bang-gia";
 import { assertShopReady } from "@/lib/shop/cua-hang";
 import { shopImageUrl } from "@/lib/shop/settings";
 import type { ShopPostHangItem } from "@/lib/shop/types";
+import { SHOP_DON_TINH_DA_BAN } from "@/lib/shop/types";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 type PostHangRow = {
@@ -94,9 +95,7 @@ export async function listPostHang(
           : row.shop_don_hang;
         if (!don) continue;
         if (
-          don.trang_thai !== "cho_xac_nhan" &&
-          don.trang_thai !== "da_nhan_tien" &&
-          don.trang_thai !== "da_giao_tai_su_kien"
+          !(SHOP_DON_TINH_DA_BAN as readonly string[]).includes(don.trang_thai)
         ) {
           continue;
         }

@@ -264,7 +264,7 @@ export function HocVienQuanLyClient({ orgId, orgSlug }: Props) {
       setFlash(
         `Đã khóa thêm ghi danh vì nợ phí nền tảng quá hạn${
           gateHanTra ? ` (hạn ${gateHanTra})` : ""
-        }. Thanh toán tại mục Phí CINs.`,
+        }. Thanh toán tại Thanh toán (Cài đặt tài khoản).`,
       );
       return;
     }
@@ -498,7 +498,7 @@ export function HocVienQuanLyClient({ orgId, orgSlug }: Props) {
           setShowAdd(false);
           throw new Error(
             data.error ||
-              "Đã khóa thêm ghi danh vì nợ phí nền tảng. Vào mục Phí CINs để thanh toán.",
+              "Đã khóa thêm ghi danh vì nợ phí nền tảng. Vào Thanh toán để thanh toán.",
           );
         }
         throw new Error(data.error || "Không thêm được.");
@@ -701,7 +701,7 @@ export function HocVienQuanLyClient({ orgId, orgSlug }: Props) {
             disabled={gateKhoaGhiDanh}
             title={
               gateKhoaGhiDanh
-                ? "Đã khóa vì nợ phí nền tảng quá hạn — xem mục Phí CINs"
+                ? "Đã khóa vì nợ phí nền tảng quá hạn — xem Thanh toán"
                 : undefined
             }
           >

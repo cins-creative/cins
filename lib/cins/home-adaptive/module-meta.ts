@@ -62,8 +62,8 @@ export const MODULE_META: Record<ModuleId, ModuleMeta> = {
   },
   goi_y_studio: {
     id: "goi_y_studio",
-    label: "Studio & doanh nghiệp",
-    description: "Tổ chức gợi ý theo dõi theo ngành.",
+    label: "Studio đang tuyển dụng",
+    description: "Studio / DN có tin tuyển dụng đang mở.",
     defaultSide: "left",
     defaultPersonas: ["lam"],
     hideable: true,
@@ -98,14 +98,14 @@ export const MODULE_META: Record<ModuleId, ModuleMeta> = {
   },
   lop_hoc_cua_ban: {
     id: "lop_hoc_cua_ban",
-    label: "Lớp học của bạn",
+    label: "Phòng học",
     description:
-      "Lớp đã ghi danh — gần giờ học bấm một cái vào phòng chat.",
+      "Lớp đang học / đang dạy — gần giờ bấm một cái vào phòng chat.",
     defaultSide: "right",
     defaultPersonas: ["hoc"],
     hideable: true,
     group: "dang_hoc",
-    requires: ["dang_hoc_khoa"],
+    requiresAny: ["dang_hoc_khoa", "org_staff"],
   },
   ho_so_cua_ban: {
     id: "ho_so_cua_ban",
@@ -140,7 +140,7 @@ export const MODULE_META: Record<ModuleId, ModuleMeta> = {
     description: "Yêu cầu xác thực đang chờ bạn xử lý.",
     defaultSide: "left",
     defaultPersonas: ["day"],
-    hideable: false,
+    hideable: true,
     group: "dang_day",
     requires: ["org_staff"],
   },
@@ -195,6 +195,25 @@ export const MODULE_META: Record<ModuleId, ModuleMeta> = {
     hideable: true,
     group: "shop",
     requires: ["co_shop"],
+  },
+  quan_ly_kho: {
+    id: "quan_ly_kho",
+    label: "Quản lý kho hàng",
+    description: "Tồn kho thấp / hết hàng — vào sửa số lượng.",
+    defaultSide: "left",
+    defaultPersonas: [],
+    hideable: true,
+    group: "shop",
+    requires: ["co_shop"],
+  },
+  gio_hang_cua_ban: {
+    id: "gio_hang_cua_ban",
+    label: "Giỏ hàng của bạn",
+    description: "Hàng đang để trong giỏ chờ mua.",
+    defaultSide: "right",
+    defaultPersonas: [],
+    hideable: true,
+    group: "shop",
   },
 
   // —— Đang làm / tổ chức ——
@@ -360,7 +379,7 @@ export const CAPABILITY_DEFAULT_MODULES: readonly {
   requires?: readonly HomeCapability[];
   requiresAny?: readonly HomeCapability[];
 }[] = [
-  /** Non-hideable — việc cần xử lý ngay. */
+  /** Org staff — inject mặc định khi có quyền; user có thể ẩn. */
   { id: "cho_ban_duyet", requires: ["org_staff"] },
   /** Seller có đơn chờ — tín hiệu vận hành quan trọng. */
   { id: "don_can_xu_ly", requires: ["co_shop"] },

@@ -8,7 +8,7 @@ import {
 import { todayYmdVn } from "@/lib/co-so/ky-hoc";
 import {
   addDaysYmd,
-  hanTra,
+  hanTraTuThongBao,
   maThamChieu,
   roundVnd,
   thangKeTiepYmd,
@@ -224,58 +224,81 @@ async function insertKy(input: {
   tyLe: number;
   phi: number;
   cfg: CinsTaiChinh;
+  now?: Date;
 }): Promise<OrgPhiKyRow | null> {
   const admin = createServiceRoleClient();
+  const clock = input.now ?? new Date();
   const soNgay = input.cfg.csdt.soNgayHanTra;
-  const han = hanTra(input.ngayChot, soNgay);
+  /* P0 A3: ân hạn từ lúc thông báo khi chốt bù kỳ quá khứ */
+  const han = hanTraTuThongBao(input.ngayChot, soNgay, clock);
   const phaiTra = roundVnd(input.phi);
   const trangThai: OrgPhiKyRow["trangThai"] =
     phaiTra <= 0 ? "mien" : "chua_tra";
-  const ma = maThamChieu(input.orgId, input.ngayChot);
-  const now = new Date().toISOString();
+  const nowIso = clock.toISOString();
   const snapshot = await buildHoaDonSnapshot(input.orgId, input.cfg, {
     tuNgay: input.tuNgay,
     ngayChot: input.ngayChot,
     donGiaVnd: phaiTra,
   });
 
-  const { data, error } = await admin
-    .from("org_phi_ky")
-    .insert({
-      id_to_chuc: input.orgId,
-      loai_ky: input.loaiKy,
-      tu_ngay: input.tuNgay,
-      den_ngay: input.denNgay,
-      ngay_chot: input.ngayChot,
-      han_tra: han,
-      doanh_thu_ghi_nhan_vnd: roundVnd(input.doanhThu),
-      ty_le: input.tyLe,
-      phi_phai_tra_vnd: phaiTra,
-      dieu_chinh_vnd: 0,
-      da_tra_vnd: 0,
-      trang_thai: trangThai,
-      ma_tham_chieu: ma,
-      hoa_don_thong_tin: snapshot,
-      tao_luc: now,
-      cap_nhat_luc: now,
-    })
-    .select(KY_SELECT)
-    .single<KyDb>();
+  /* P0 B1: retry mã khi đụng UNIQUE ma_tham_chieu */
+  for (let attempt = 0; attempt < 8; attempt++) {
+    const ma = maThamChieu(input.orgId, input.ngayChot, attempt);
+    const { data, error } = await admin
+      .from("org_phi_ky")
+      .insert({
+        id_to_chuc: input.orgId,
+        loai_ky: input.loaiKy,
+        tu_ngay: input.tuNgay,
+        den_ngay: input.denNgay,
+        ngay_chot: input.ngayChot,
+        han_tra: han,
+        doanh_thu_ghi_nhan_vnd: roundVnd(input.doanhThu),
+        ty_le: input.tyLe,
+        phi_phai_tra_vnd: phaiTra,
+        dieu_chinh_vnd: 0,
+        da_tra_vnd: 0,
+        trang_thai: trangThai,
+        ma_tham_chieu: ma,
+        hoa_don_thong_tin: snapshot,
+        tao_luc: nowIso,
+        cap_nhat_luc: nowIso,
+      })
+      .select(KY_SELECT)
+      .single<KyDb>();
 
-  if (error) {
-    if (error.code === "23505") {
+    if (!error && data) {
+      const mapped = mapOrgPhiKy(data);
+      const { syncHoaDonTuOrgKy } = await import("@/lib/billing/sync-hoa-don");
+      await syncHoaDonTuOrgKy(mapped);
+      return mapped;
+    }
+
+    if (error?.code === "23505") {
       const { data: existing } = await admin
         .from("org_phi_ky")
         .select(KY_SELECT)
         .eq("id_to_chuc", input.orgId)
         .eq("ngay_chot", input.ngayChot)
         .maybeSingle<KyDb>();
-      return existing ? mapOrgPhiKy(existing) : null;
+      if (existing) {
+        const mapped = mapOrgPhiKy(existing);
+        const { syncHoaDonTuOrgKy } = await import(
+          "@/lib/billing/sync-hoa-don"
+        );
+        await syncHoaDonTuOrgKy(mapped);
+        return mapped;
+      }
+      /* Đụng mã của org khác → thử attempt kế */
+      continue;
     }
-    console.error("[csdt-phi] insertKy", error.message);
+
+    console.error("[csdt-phi] insertKy", error?.message);
     return null;
   }
-  return data ? mapOrgPhiKy(data) : null;
+
+  console.error("[csdt-phi] insertKy: hết retry ma_tham_chieu");
+  return null;
 }
 
 /**
@@ -318,6 +341,7 @@ export async function ensureKyKichHoat(
     tyLe,
     phi: agg.phi,
     cfg,
+    now,
   });
   if (!ky) return null;
 
@@ -398,6 +422,7 @@ export async function ensureKyThang(
         tyLe,
         phi: agg.phi,
         cfg,
+        now,
       });
       if (ky) {
         await ganDongVaoKy(orgId, ky.id, {
@@ -459,6 +484,15 @@ export async function capNhatTrangThaiKy(
           cap_nhat_luc: new Date().toISOString(),
         })
         .eq("id", ky.id);
+      const { syncTrangThaiHoaDonTuNguon } = await import(
+        "@/lib/billing/sync-hoa-don"
+      );
+      await syncTrangThaiHoaDonTuNguon({
+        nguonBang: "org_phi_ky",
+        nguonId: ky.id,
+        trangThai: next,
+        daTraVnd: ky.daTraVnd,
+      });
       if (next === "qua_han" && ky.trangThai !== "qua_han") {
         quaHanMoi.push({ ...ky, trangThai: "qua_han" });
       }

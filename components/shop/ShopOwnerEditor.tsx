@@ -291,8 +291,22 @@ export function ShopOwnerEditor({ ownerSlug, ownerName }: Props) {
           <Link href={shopPublicHref(slug, shopSlugFromTen(ten || shop?.ten, slug))}>
             Xem mặt tiền cửa hàng
           </Link>
+          {" · "}
+          <Link href={
+            shop?.idNguoiDung
+              ? `/tai-khoan/thanh-toan?dv=${encodeURIComponent(shop.idNguoiDung)}`
+              : "/tai-khoan/thanh-toan"
+          }>Phí nền tảng CINs</Link>
         </p>
-      ) : null}
+      ) : (
+        <p className="j-shop-owner-editor-view">
+          <Link href={
+            shop?.idNguoiDung
+              ? `/tai-khoan/thanh-toan?dv=${encodeURIComponent(shop.idNguoiDung)}`
+              : "/tai-khoan/thanh-toan"
+          }>Phí nền tảng CINs</Link>
+        </p>
+      )}
 
       <div id="j-shop-owner-editor" className="j-shop-owner-grid">
         <section

@@ -22,6 +22,7 @@ import {
 import { parseChatPhongLopInvite } from "@/lib/chat/phong-lop-invite";
 import { mentionsIncludeUser } from "@/lib/chat/mentions";
 import { isOptimisticAlbumMessage, isOptimisticMessageId } from "@/lib/chat/optimistic-message";
+import { tinHienVoiViewer } from "@/lib/chat/visibility";
 
 /** Row từ Supabase Realtime — `chat_tin_nhan`. */
 export type ChatRealtimeRow = {
@@ -36,6 +37,8 @@ export type ChatRealtimeRow = {
   sua_luc?: string | null;
   id_tin_tra_loi?: string | null;
   ngu_canh?: unknown;
+  /** P3b: null = cả phòng. */
+  chi_hien_cho?: string[] | null;
 };
 
 export type ChatRealtimeMessageEvent = {
@@ -193,7 +196,8 @@ export function toRealtimeMessageEvent(
   row: ChatRealtimeRow,
   viewerId: string,
   event: "insert" | "update" = "insert",
-): ChatRealtimeMessageEvent {
+): ChatRealtimeMessageEvent | null {
+  if (!tinHienVoiViewer(row.chi_hien_cho, viewerId)) return null;
   return {
     roomId: row.id_phong,
     message: mapRealtimeRow(row, viewerId),

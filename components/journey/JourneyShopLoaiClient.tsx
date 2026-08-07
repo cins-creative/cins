@@ -752,13 +752,22 @@ export function JourneyShopLoaiClient({
   /** Tạm dừng auto-advance sau swipe / chọn thumb (ms epoch). */
   const galleryAutoPauseUntilRef = useRef(0);
   const galleryHoverRef = useRef(false);
+  /** Bỏ qua anim khi đổi nhóm / mẫu (không phải swipe giữa ảnh). */
+  const gallerySkipAnimRef = useRef(false);
+  const [galleryDisplay, setGalleryDisplay] = useState<{
+    url: string | null;
+    idx: number;
+    outgoing: { url: string; dir: 1 | -1 } | null;
+  }>({ url: null, idx: 0, outgoing: null });
 
   const pauseGalleryAuto = useCallback((ms = 8000) => {
     galleryAutoPauseUntilRef.current = Date.now() + ms;
   }, []);
 
   useEffect(() => {
+    gallerySkipAnimRef.current = true;
     setGalleryIdx(0);
+    setGalleryDisplay({ url: null, idx: 0, outgoing: null });
     pauseGalleryAuto(6000);
   }, [nhomId, selectedSpId, pauseGalleryAuto]);
 
@@ -773,6 +782,68 @@ export function JourneyShopLoaiClient({
     Boolean(detail?.overlayAnhUrl) &&
     Boolean(detail?.anhUrl) &&
     galleryUrl === detail?.anhUrl;
+
+  /* Đồng bộ display + outgoing trong render (tránh flash / Strict Mode). */
+  if (galleryUrl !== galleryDisplay.url) {
+    const prevUrl = galleryDisplay.url;
+    const prevIdx = galleryDisplay.idx;
+    const skip = gallerySkipAnimRef.current;
+    gallerySkipAnimRef.current = false;
+
+    let outgoing: { url: string; dir: 1 | -1 } | null = null;
+    if (
+      !skip &&
+      prevUrl &&
+      galleryUrl &&
+      !(
+        typeof window !== "undefined" &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      )
+    ) {
+      const len = galleryItems.length;
+      let dir: 1 | -1 = 1;
+      if (len > 1) {
+        if ((prevIdx + 1) % len === safeGalleryIdx) dir = 1;
+        else if ((prevIdx - 1 + len) % len === safeGalleryIdx) dir = -1;
+        else dir = safeGalleryIdx >= prevIdx ? 1 : -1;
+      }
+      outgoing = { url: prevUrl, dir };
+    }
+
+    setGalleryDisplay({
+      url: galleryUrl,
+      idx: safeGalleryIdx,
+      outgoing,
+    });
+  } else if (
+    galleryUrl &&
+    safeGalleryIdx !== galleryDisplay.idx &&
+    !galleryDisplay.outgoing
+  ) {
+    setGalleryDisplay((d) => ({ ...d, idx: safeGalleryIdx }));
+  }
+
+  const galleryOutgoing = galleryDisplay.outgoing;
+
+  /* Preload ảnh gallery để chuyển không bị trắng. */
+  useEffect(() => {
+    for (const item of galleryItems) {
+      if (item.kind !== "image") continue;
+      const img = new window.Image();
+      img.src = item.url;
+    }
+  }, [galleryItems]);
+
+  /* Gỡ lớp fade-out sau animation. */
+  useEffect(() => {
+    if (!galleryOutgoing) return;
+    const t = window.setTimeout(() => {
+      setGalleryDisplay((d) =>
+        d.outgoing ? { ...d, outgoing: null } : d,
+      );
+    }, 480);
+    return () => window.clearTimeout(t);
+  }, [galleryOutgoing]);
 
   /* Mỗi 4s chuyển ảnh; dừng khi hover / reduced-motion / user vừa thao tác. */
   useEffect(() => {
@@ -1199,13 +1270,33 @@ export function JourneyShopLoaiClient({
                 allowFullScreen
               />
             ) : galleryUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                key={galleryUrl}
-                className="j-shop-loai-gallery-base"
-                src={galleryUrl}
-                alt=""
-              />
+              <>
+                {galleryOutgoing ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    key={`out-${galleryOutgoing.url}`}
+                    className={`j-shop-loai-gallery-base is-leaving ${
+                      galleryOutgoing.dir > 0 ? "dir-next" : "dir-prev"
+                    }`}
+                    src={galleryOutgoing.url}
+                    alt=""
+                    aria-hidden
+                  />
+                ) : null}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  key={galleryUrl}
+                  className={`j-shop-loai-gallery-base${
+                    galleryOutgoing
+                      ? ` is-entering ${
+                          galleryOutgoing.dir > 0 ? "dir-next" : "dir-prev"
+                        }`
+                      : ""
+                  }`}
+                  src={galleryUrl}
+                  alt=""
+                />
+              </>
             ) : (
               <div className="j-shop-loai-gallery-ph" aria-hidden />
             )}

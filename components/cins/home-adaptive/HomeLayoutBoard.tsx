@@ -51,7 +51,20 @@ import {
   type ModuleMeta,
 } from "@/lib/cins/home-adaptive/module-meta";
 import type { ModulePreviewPayload } from "@/lib/cins/home-adaptive/module-preview-types";
-import type { ModuleId, Persona } from "@/lib/cins/home-adaptive/persona";
+import type { GiaiDoan, ModuleId, Persona } from "@/lib/cins/home-adaptive/persona";
+import {
+  PRESET_LAYOUT_MAX,
+  applyPreset,
+  filterPresetModules,
+  getPreset,
+  mergePresetDaAp,
+  presetsForUser,
+  removeModulesFromLayout,
+  suggestRemoveForOverflow,
+  type ApplyPresetMode,
+  type HomePreset,
+  type PresetId,
+} from "@/lib/cins/home-adaptive/presets";
 import { requestHomeLayoutEdit } from "@/lib/home/home-layout-edit";
 
 type Side = "left" | "right";
@@ -61,6 +74,7 @@ type Draft = {
   right: ModuleId[];
   hidden: ModuleId[];
   limits: HomeLayoutItemLimits;
+  presetDaAp: PresetId[];
 };
 
 type PreviewEntry =
@@ -91,7 +105,16 @@ type LayoutEditCtx = {
   moveInColumn: (side: Side, id: ModuleId, dir: -1 | 1) => void;
   moveToOtherColumn: (id: ModuleId, from: Side) => void;
   setItemLimit: (id: ModuleId, limit: number) => void;
+  /** Áp bộ khối — trả overflow nếu cần chọn khối bỏ. */
+  applyHomePreset: (
+    presetId: PresetId,
+    mode?: ApplyPresetMode,
+    removeIds?: ModuleId[],
+  ) => { overflow: boolean; needRemove: number; added: ModuleId[] };
   available: ModuleMeta[];
+  presets: HomePreset[];
+  giaiDoan: GiaiDoan | null;
+  capabilities: readonly HomeCapability[];
   /** Vị trí đang mở panel thêm (giữa các khối). */
   addAt: { side: Side; index: number } | null;
   setAddAt: (v: { side: Side; index: number } | null) => void;
@@ -154,18 +177,21 @@ function sameDraft(a: Draft, b: Draft): boolean {
   return (
     a.left.join(",") === b.left.join(",") &&
     a.right.join(",") === b.right.join(",") &&
-    a.hidden.join(",") === b.hidden.join(",")
+    a.hidden.join(",") === b.hidden.join(",") &&
+    a.presetDaAp.join(",") === b.presetDaAp.join(",")
   );
 }
 
 type ProviderProps = {
   editing: boolean;
   persona: Persona;
+  giaiDoan?: GiaiDoan | null;
   viewerProfileId: string;
   initialLeft: ModuleId[];
   initialRight: ModuleId[];
   initialHidden: ModuleId[];
   initialLimits?: HomeLayoutItemLimits;
+  initialPresetDaAp?: PresetId[];
   newlyInjected?: ModuleId[];
   children: ReactNode;
   /** Nội dung module server — keyed by ModuleId. */
@@ -177,11 +203,13 @@ type ProviderProps = {
 export function HomeLayoutEditProvider({
   editing,
   persona,
+  giaiDoan = null,
   viewerProfileId,
   initialLeft,
   initialRight,
   initialHidden,
   initialLimits = {},
+  initialPresetDaAp = [],
   newlyInjected = [],
   children,
   moduleNodes,
@@ -197,6 +225,7 @@ export function HomeLayoutEditProvider({
     right: [...initialRight],
     hidden: [...initialHidden],
     limits: { ...initialLimits },
+    presetDaAp: [...initialPresetDaAp],
   }));
   const [draft, setDraft] = useState<Draft>(baseline);
   const [dragId, setDragId] = useState<ModuleId | null>(null);
@@ -229,7 +258,7 @@ export function HomeLayoutEditProvider({
   dirtyRef.current = dirty;
   const newSet = useMemo(() => new Set(newlyInjected), [newlyInjected]);
 
-  const serverIdsKey = `${initialLeft.join(",")}|${initialRight.join(",")}|${initialHidden.join(",")}|${JSON.stringify(initialLimits)}`;
+  const serverIdsKey = `${initialLeft.join(",")}|${initialRight.join(",")}|${initialHidden.join(",")}|${JSON.stringify(initialLimits)}|${initialPresetDaAp.join(",")}`;
   useEffect(() => {
     const pending = pendingSavedKeyRef.current;
     if (pending && serverIdsKey !== pending) {
@@ -247,12 +276,25 @@ export function HomeLayoutEditProvider({
       right: [...initialRight],
       hidden: [...initialHidden],
       limits: { ...initialLimits },
+      presetDaAp: [...initialPresetDaAp],
     };
     setBaseline(next);
     setDraft(next);
-    setPreviews(new Map());
+    /* Giữ live preview cho khối chưa có SSR node — tránh trống sau Lưu. */
+    setPreviews((prev) => {
+      const keep = new Set<ModuleId>([...next.left, ...next.right]);
+      const pruned = new Map<ModuleId, PreviewEntry>();
+      for (const [id, entry] of prev) {
+        if (keep.has(id)) pruned.set(id, entry);
+      }
+      return pruned;
+    });
     setLimitPreviewIds(new Set());
-    previewInflight.current.clear();
+    const keepIds = new Set<ModuleId>([...next.left, ...next.right]);
+    for (const key of [...previewInflight.current]) {
+      const id = key.split(":")[0] as ModuleId;
+      if (!keepIds.has(id)) previewInflight.current.delete(key);
+    }
     // Chỉ sync khi SSR layout đổi (sau refresh), không reset khi đang kéo thả.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional key
   }, [serverIdsKey]);
@@ -314,12 +356,29 @@ export function HomeLayoutEditProvider({
     return list;
   }, [used, persona, capabilities]);
 
+  const presets = useMemo(
+    () => presetsForUser(persona, giaiDoan, capabilities),
+    [persona, giaiDoan, capabilities],
+  );
+
   const needsServerHydrate = useMemo(() => {
     for (const id of [...draft.left, ...draft.right]) {
       if (!childMap.has(id)) return true;
     }
+    /* Limit đổi → SSR cũ sai số dòng; cần soft-refresh (hoặc giữ live preview). */
+    const ids = new Set<ModuleId>([
+      ...draft.left,
+      ...draft.right,
+      ...baseline.left,
+      ...baseline.right,
+    ]);
+    for (const id of ids) {
+      const a = draft.limits[id] ?? HOME_LAYOUT_ITEM_LIMIT_DEFAULT;
+      const b = baseline.limits[id] ?? HOME_LAYOUT_ITEM_LIMIT_DEFAULT;
+      if (a !== b) return true;
+    }
     return false;
-  }, [draft.left, draft.right, childMap]);
+  }, [draft, baseline, childMap]);
 
   const ensurePreview = useCallback(
     (id: ModuleId, limit: number = 3) => {
@@ -423,14 +482,77 @@ export function HomeLayoutEditProvider({
     })();
   }, []);
 
-  /** Khối mới gắn (chưa có SSR node) → luôn có live preview / skeleton. */
+  // Khối mới gắn (chưa có SSR node) → luôn có live preview / skeleton.
   useEffect(() => {
     for (const id of [...draft.left, ...draft.right]) {
       if (childMap.has(id)) continue;
       const limit = draft.limits[id] ?? HOME_LAYOUT_ITEM_LIMIT_DEFAULT;
       ensurePreview(id, limit);
     }
-  }, [draft.left, draft.right, draft.limits, childMap, ensurePreview]);
+  }, [draft.left, draft.right, draft.limits, childMap, ensurePreview, editing]);
+
+  const applyHomePreset = useCallback(
+    (
+      presetId: PresetId,
+      mode: ApplyPresetMode = "merge",
+      removeIds: ModuleId[] = [],
+    ): { overflow: boolean; needRemove: number; added: ModuleId[] } => {
+      const preset = getPreset(presetId);
+      if (!preset) return { overflow: false, needRemove: 0, added: [] };
+
+      let result = applyPreset(
+        {
+          left: draft.left,
+          right: draft.right,
+          hidden: draft.hidden,
+        },
+        preset,
+        capabilities,
+        mode,
+      );
+
+      let layout = result.layout;
+      if (removeIds.length > 0) {
+        layout = removeModulesFromLayout(layout, removeIds);
+        const total = layout.left.length + layout.right.length;
+        const needRemove = Math.max(0, total - PRESET_LAYOUT_MAX);
+        result = {
+          ...result,
+          layout,
+          totalAfter: total,
+          overflow: needRemove > 0,
+          needRemove,
+        };
+      }
+
+      if (result.overflow) {
+        return {
+          overflow: true,
+          needRemove: result.needRemove,
+          added: result.added,
+        };
+      }
+
+      setDraft((prev) => ({
+        ...prev,
+        left: layout.left,
+        right: layout.right,
+        hidden: layout.hidden,
+        presetDaAp: mergePresetDaAp(prev.presetDaAp, presetId),
+      }));
+      setAddAt(null);
+      /* Preview mọi khối mới/thiếu SSR — kể cả replace full layout. */
+      for (const id of [...layout.left, ...layout.right]) {
+        ensurePreview(id);
+      }
+      return {
+        overflow: false,
+        needRemove: 0,
+        added: result.added,
+      };
+    },
+    [draft.left, draft.right, draft.hidden, capabilities, ensurePreview],
+  );
 
   const removeModule = useCallback((id: ModuleId) => {
     if (!MODULE_META[id].hideable) return;
@@ -549,8 +671,16 @@ export function HomeLayoutEditProvider({
   const markSaved = useCallback(() => {
     setBaseline(draft);
     setLimitPreviewIds(new Set());
-    pendingSavedKeyRef.current = `${draft.left.join(",")}|${draft.right.join(",")}|${draft.hidden.join(",")}|${JSON.stringify(draft.limits)}`;
-  }, [draft]);
+    pendingSavedKeyRef.current = `${draft.left.join(",")}|${draft.right.join(",")}|${draft.hidden.join(",")}|${JSON.stringify(draft.limits)}|${draft.presetDaAp.join(",")}`;
+    /* Ép preview cho khối chưa có SSR — hiện ngay sau khi thoát edit. */
+    for (const id of [...draft.left, ...draft.right]) {
+      if (childMap.has(id)) continue;
+      ensurePreview(
+        id,
+        draft.limits[id] ?? HOME_LAYOUT_ITEM_LIMIT_DEFAULT,
+      );
+    }
+  }, [draft, childMap, ensurePreview]);
 
   const value = useMemo<LayoutEditCtx>(
     () => ({
@@ -575,7 +705,11 @@ export function HomeLayoutEditProvider({
       moveInColumn,
       moveToOtherColumn,
       setItemLimit,
+      applyHomePreset,
       available,
+      presets,
+      giaiDoan,
+      capabilities,
       addAt,
       setAddAt,
       openAddAt,
@@ -606,7 +740,11 @@ export function HomeLayoutEditProvider({
       moveInColumn,
       moveToOtherColumn,
       setItemLimit,
+      applyHomePreset,
       available,
+      presets,
+      giaiDoan,
+      capabilities,
       addAt,
       openAddAt,
       menuId,
@@ -686,9 +824,8 @@ function SlotBody({ id, meta }: { id: ModuleId; meta: ModuleMeta }) {
     return <ModulePlaceholder meta={meta} failed />;
   }
 
-  if (!ctx.editing) return null;
-
-  return <ModulePlaceholder meta={meta} />;
+  /* Ngoài edit vẫn skeleton — chờ preview API hoặc SSR stream, không để trống. */
+  return <HomeModulePreviewSkeleton id={id} />;
 }
 
 /** Cho phép xóa hết để gõ lại; commit ngay khi số hợp lệ (1–10). */
@@ -1031,16 +1168,23 @@ export function HomeEditToolbar() {
     if (saving || !ctx.dirty) return;
     setSaving(true);
     setErr(null);
+    const body = {
+      left: ctx.draft.left,
+      right: ctx.draft.right,
+      hidden: ctx.draft.hidden,
+      limits: ctx.draft.limits,
+      preset: {
+        da_ap: ctx.draft.presetDaAp,
+        at: new Date().toISOString(),
+      },
+    };
+    /* Snapshot trước markSaved — reorder/ẩn không cần SSR lại. */
+    const needRefresh = ctx.needsServerHydrate;
     try {
       const res = await fetch("/api/user/home-layout", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          left: ctx.draft.left,
-          right: ctx.draft.right,
-          hidden: ctx.draft.hidden,
-          limits: ctx.draft.limits,
-        }),
+        body: JSON.stringify(body),
       });
       const json = (await res.json().catch(() => null)) as {
         error?: string;
@@ -1050,8 +1194,8 @@ export function HomeEditToolbar() {
         return;
       }
       ctx.markSaved();
-      // Thoát ngay — soft-refresh để SSR lại theo limits / khối mới.
-      ctx.exitEditing({ refresh: true });
+      /* Thoát ngay; soft-refresh chỉ khi có khối mới / đổi limit. */
+      ctx.exitEditing({ refresh: needRefresh });
     } catch {
       setErr("Không lưu được bố cục.");
     } finally {
@@ -1183,6 +1327,30 @@ function ModulePlaceholder({
   );
 }
 
+/** Timeline giả ở giữa mockup bộ khối — chỉ trang trí. */
+function PresetTimelineMock() {
+  return (
+    <div className="ha-edit-preset-feed">
+      <div className="ha-edit-preset-feed-composer" aria-hidden>
+        <span className="ha-edit-preset-feed-composer-dot" />
+        <span className="ha-edit-preset-feed-composer-bar" />
+      </div>
+      {[0, 1, 2].map((i) => (
+        <div key={i} className="ha-edit-preset-feed-card" aria-hidden>
+          <span className="ha-edit-preset-feed-avatar" />
+          <div className="ha-edit-preset-feed-body">
+            <span className="ha-edit-preset-feed-line ha-edit-preset-feed-line--sm" />
+            <span className="ha-edit-preset-feed-line" />
+            <span className="ha-edit-preset-feed-line ha-edit-preset-feed-line--mid" />
+            <span className="ha-edit-preset-feed-media" />
+          </div>
+        </div>
+      ))}
+      <p className="ha-edit-preset-feed-caption">Dòng thời gian</p>
+    </div>
+  );
+}
+
 function AddModuleOverlay({
   items,
   onPick,
@@ -1195,11 +1363,89 @@ function AddModuleOverlay({
   const ctx = useLayoutEdit();
   const [mounted, setMounted] = useState(false);
   const [query, setQuery] = useState("");
+  /** Tab đang chọn: preset id hoặc catalog thủ công. */
+  const [activeTab, setActiveTab] = useState<PresetId | "catalog" | null>(
+    null,
+  );
+  const [presetDdOpen, setPresetDdOpen] = useState(false);
+  const presetDdRef = useRef<HTMLDivElement>(null);
+  const [overflow, setOverflow] = useState<{
+    preset: HomePreset;
+    mode: ApplyPresetMode;
+    needRemove: number;
+    candidates: ModuleId[];
+    suggested: ModuleId[];
+    selected: Set<ModuleId>;
+  } | null>(null);
   useEffect(() => setMounted(true), []);
 
   useEffect(() => {
+    if (!presetDdOpen) return;
+    const onPointer = (e: MouseEvent) => {
+      if (!presetDdRef.current?.contains(e.target as Node)) {
+        setPresetDdOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onPointer);
+    return () => document.removeEventListener("mousedown", onPointer);
+  }, [presetDdOpen]);
+
+  useEffect(() => {
+    if (ctx.presets.length === 0) {
+      setActiveTab("catalog");
+      return;
+    }
+    setActiveTab((cur) => {
+      if (cur === "catalog") return cur;
+      if (cur && ctx.presets.some((p) => p.id === cur)) return cur;
+      return ctx.presets[0]!.id;
+    });
+  }, [ctx.presets]);
+
+  const catalogOpen = activeTab === "catalog";
+
+  const activePreset = useMemo(
+    () =>
+      activeTab && activeTab !== "catalog"
+        ? (ctx.presets.find((p) => p.id === activeTab) ?? null)
+        : null,
+    [ctx.presets, activeTab],
+  );
+
+  const activePresetCols = useMemo(() => {
+    if (!activePreset) return { left: [] as ModuleId[], right: [] as ModuleId[] };
+    const allowed = new Set(
+      filterPresetModules(activePreset, ctx.capabilities),
+    );
+    return {
+      left: activePreset.left.filter((id) => allowed.has(id)),
+      right: activePreset.right.filter((id) => allowed.has(id)),
+    };
+  }, [activePreset, ctx.capabilities]);
+
+  const activePresetModuleIds = useMemo(
+    () => [...activePresetCols.left, ...activePresetCols.right],
+    [activePresetCols],
+  );
+
+  useEffect(() => {
+    if (activePresetModuleIds.length === 0) return;
+    ctx.ensurePreviews(activePresetModuleIds);
+  }, [activePresetModuleIds, ctx.ensurePreviews]);
+
+  useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") {
+        if (overflow) {
+          setOverflow(null);
+          return;
+        }
+        if (presetDdOpen) {
+          setPresetDdOpen(false);
+          return;
+        }
+        onClose();
+      }
     };
     document.addEventListener("keydown", onKey);
     const prev = document.body.style.overflow;
@@ -1208,7 +1454,7 @@ function AddModuleOverlay({
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = prev;
     };
-  }, [onClose]);
+  }, [onClose, overflow, presetDdOpen]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -1222,8 +1468,9 @@ function AddModuleOverlay({
 
   const itemIds = useMemo(() => filtered.map((m) => m.id), [filtered]);
   useEffect(() => {
+    if (!catalogOpen) return;
     ctx.ensurePreviews(itemIds);
-  }, [itemIds, ctx.ensurePreviews]);
+  }, [itemIds, ctx.ensurePreviews, catalogOpen]);
 
   const groups = useMemo(() => {
     const map = new Map<ModuleMeta["group"], ModuleMeta[]>();
@@ -1237,6 +1484,56 @@ function AddModuleOverlay({
       .filter((g) => map.has(g))
       .map((g) => [g, map.get(g)!] as const);
   }, [filtered, ctx.persona]);
+
+  const tryApplyPreset = (preset: HomePreset, mode: ApplyPresetMode = "merge") => {
+    const caps = ctx.capabilities;
+    const tentative = applyPreset(
+      {
+        left: ctx.draft.left,
+        right: ctx.draft.right,
+        hidden: ctx.draft.hidden,
+      },
+      preset,
+      caps,
+      mode,
+    );
+
+    if (tentative.overflow) {
+      const protect = new Set(tentative.added);
+      const suggested = suggestRemoveForOverflow(
+        tentative.layout,
+        tentative.needRemove,
+        protect,
+      );
+      const candidates = [
+        ...tentative.layout.left,
+        ...tentative.layout.right,
+      ].filter((id) => !protect.has(id));
+      setOverflow({
+        preset,
+        mode,
+        needRemove: tentative.needRemove,
+        candidates,
+        suggested,
+        selected: new Set(suggested),
+      });
+      return;
+    }
+
+    ctx.applyHomePreset(preset.id, mode);
+  };
+
+  const confirmOverflow = () => {
+    if (!overflow) return;
+    if (overflow.selected.size < overflow.needRemove) return;
+    const removeIds = [...overflow.selected];
+    const result = ctx.applyHomePreset(
+      overflow.preset.id,
+      overflow.mode,
+      removeIds,
+    );
+    if (!result.overflow) setOverflow(null);
+  };
 
   if (!mounted) return null;
 
@@ -1260,51 +1557,318 @@ function AddModuleOverlay({
           <div className="ha-edit-add-head-copy">
             <span className="ha-edit-add-head-title">Thêm khối vào đây</span>
             <span className="ha-edit-add-head-hint">
-              Theo đối tượng · dữ liệu thật · tối đa 3 mục · Bấm Thêm để gắn
+              Chọn bộ khối theo nhu cầu · hoặc tự thêm từng khối
             </span>
           </div>
           <button type="button" aria-label="Đóng" onClick={onClose}>
             <X size={14} strokeWidth={2} aria-hidden />
           </button>
         </header>
-        {items.length > 6 ? (
-          <div className="ha-edit-add-search">
-            <input
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Tìm khối…"
-              aria-label="Tìm khối"
-              autoFocus
-            />
+
+        {overflow ? (
+          <div className="ha-edit-preset-overflow">
+            <p className="ha-edit-preset-overflow-title">
+              Layout đã đầy — chọn ít nhất {overflow.needRemove} khối để thay
+            </p>
+            <p className="ha-edit-preset-overflow-hint">
+              Tối đa {PRESET_LAYOUT_MAX} khối. Đã gợi ý các khối ít dùng hơn.
+            </p>
+            <ul className="ha-edit-preset-overflow-list">
+              {overflow.candidates.map((id) => {
+                const checked = overflow.selected.has(id);
+                return (
+                  <li key={id}>
+                    <label className="ha-edit-preset-overflow-item">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => {
+                          setOverflow((prev) => {
+                            if (!prev) return prev;
+                            const next = new Set(prev.selected);
+                            if (next.has(id)) next.delete(id);
+                            else next.add(id);
+                            return { ...prev, selected: next };
+                          });
+                        }}
+                      />
+                      <span>{MODULE_META[id].label}</span>
+                      {overflow.suggested.includes(id) ? (
+                        <span className="ha-edit-preset-overflow-tag">
+                          gợi ý
+                        </span>
+                      ) : null}
+                    </label>
+                  </li>
+                );
+              })}
+            </ul>
+            <div className="ha-edit-preset-overflow-actions">
+              <button
+                type="button"
+                className="ha-edit-add-pick-cta ha-edit-add-pick-cta--ghost"
+                onClick={() => setOverflow(null)}
+              >
+                Huỷ
+              </button>
+              <button
+                type="button"
+                className="ha-edit-add-pick-cta"
+                disabled={overflow.selected.size < overflow.needRemove}
+                onClick={confirmOverflow}
+              >
+                Áp dụng
+              </button>
+            </div>
           </div>
-        ) : null}
-        {items.length === 0 ? (
-          <p className="ha-edit-add-empty">Đã thêm hết các khối có sẵn.</p>
-        ) : filtered.length === 0 ? (
-          <p className="ha-edit-add-empty">Không khớp «{query.trim()}».</p>
         ) : (
-          <div className="ha-edit-add-scroll">
-            {groups.map(([group, list]) => (
-              <div key={group} className="ha-edit-add-group">
-                <p className="ha-edit-add-group-label">
-                  {MODULE_GROUP_LABEL[group]}
-                </p>
-                <div className="ha-edit-add-grid">
-                  {list.map((m) => (
-                    <AddModulePickCard
-                      key={m.id}
-                      meta={m}
-                      preview={ctx.previews.get(m.id)}
-                      viewerProfileId={ctx.viewerProfileId}
-                      onPick={() => onPick(m.id)}
-                    />
-                  ))}
+          <div
+            className={
+              "ha-edit-add-scroll" +
+              (catalogOpen ? " is-catalog" : " is-preset")
+            }
+          >
+            {ctx.presets.length > 0 ? (
+              <section className="ha-edit-preset-section">
+                <p className="ha-edit-add-group-label">Chọn cách thêm khối</p>
+                <div
+                  className="ha-edit-preset-toolbar"
+                  role="group"
+                  aria-label="Cách thêm khối"
+                >
+                  <div className="ha-edit-preset-dd" ref={presetDdRef}>
+                    <button
+                      type="button"
+                      id="ha-preset-dd-trigger"
+                      className={
+                        "ha-edit-preset-dd-trigger" +
+                        (!catalogOpen ? " is-selected" : "")
+                      }
+                      aria-haspopup="listbox"
+                      aria-expanded={presetDdOpen}
+                      aria-controls="ha-preset-dd-menu"
+                      onClick={() => setPresetDdOpen((o) => !o)}
+                    >
+                      <span className="ha-edit-preset-dd-label">
+                        {activePreset?.label ?? "Chọn bộ khối"}
+                      </span>
+                      {activePreset &&
+                      ctx.draft.presetDaAp.includes(activePreset.id) ? (
+                        <span className="ha-edit-preset-tab-used">Đang dùng</span>
+                      ) : null}
+                      <ChevronDown
+                        size={14}
+                        strokeWidth={2.2}
+                        className={
+                          "ha-edit-preset-dd-chevron" +
+                          (presetDdOpen ? " is-open" : "")
+                        }
+                        aria-hidden
+                      />
+                    </button>
+                    {presetDdOpen ? (
+                      <ul
+                        id="ha-preset-dd-menu"
+                        className="ha-edit-preset-dd-menu"
+                        role="listbox"
+                        aria-labelledby="ha-preset-dd-trigger"
+                      >
+                        {ctx.presets.map((p) => {
+                          const selected = !catalogOpen && p.id === activeTab;
+                          const used = ctx.draft.presetDaAp.includes(p.id);
+                          return (
+                            <li key={p.id} role="presentation">
+                              <button
+                                type="button"
+                                role="option"
+                                aria-selected={selected}
+                                id={`ha-preset-tab-${p.id}`}
+                                className={
+                                  "ha-edit-preset-dd-option" +
+                                  (selected ? " is-selected" : "")
+                                }
+                                onClick={() => {
+                                  setActiveTab(p.id);
+                                  setPresetDdOpen(false);
+                                }}
+                              >
+                                <span className="ha-edit-preset-dd-option-label">
+                                  {p.label}
+                                </span>
+                                {used ? (
+                                  <span className="ha-edit-preset-tab-used">
+                                    Đang dùng
+                                  </span>
+                                ) : null}
+                                {selected ? (
+                                  <Check
+                                    size={14}
+                                    strokeWidth={2.4}
+                                    className="ha-edit-preset-dd-check"
+                                    aria-hidden
+                                  />
+                                ) : null}
+                              </button>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    ) : null}
+                  </div>
+                  <span className="ha-edit-preset-tab-sep" aria-hidden />
+                  <button
+                    type="button"
+                    aria-pressed={catalogOpen}
+                    id="ha-preset-tab-catalog"
+                    className={
+                      "ha-edit-preset-tab ha-edit-preset-tab--catalog" +
+                      (catalogOpen ? " is-selected" : "")
+                    }
+                    onClick={() => {
+                      setActiveTab("catalog");
+                      setPresetDdOpen(false);
+                    }}
+                  >
+                    <span className="ha-edit-preset-tab-label">
+                      Tự chọn từng khối
+                    </span>
+                  </button>
                 </div>
-              </div>
-            ))}
+
+                {activePreset ? (
+                  <div
+                    className="ha-edit-preset-panel"
+                    role="region"
+                    aria-labelledby="ha-preset-dd-trigger"
+                  >
+                    <div className="ha-edit-preset-panel-meta">
+                      <p className="ha-edit-preset-panel-for">
+                        {activePreset.forWhom} · thay toàn bộ layout hiện tại
+                      </p>
+                      <button
+                        type="button"
+                        className="ha-edit-preset-card-cta"
+                        onClick={() => tryApplyPreset(activePreset, "replace")}
+                      >
+                        Dùng bộ này
+                      </button>
+                    </div>
+
+                    <div
+                      className="ha-edit-preset-shell world-journey-home"
+                      aria-hidden
+                      onWheel={(e) => {
+                        /* Giữ scroll trong mockup — không đẩy panel cha. */
+                        e.stopPropagation();
+                      }}
+                    >
+                      <div className="ha-edit-preset-col ha-edit-preset-col--left">
+                        {activePresetCols.left.map((id) => (
+                          <div key={id} className="ha-edit-preset-mod">
+                            <PresetModulePreview
+                              id={id}
+                              preview={ctx.previews.get(id)}
+                              viewerProfileId={ctx.viewerProfileId}
+                            />
+                          </div>
+                        ))}
+                        {activePresetCols.left.length === 0 ? (
+                          <p className="ha-edit-preset-col-empty">
+                            Không có khối trái
+                          </p>
+                        ) : null}
+                      </div>
+
+                      <div className="ha-edit-preset-col ha-edit-preset-col--feed">
+                        <PresetTimelineMock />
+                      </div>
+
+                      <div className="ha-edit-preset-col ha-edit-preset-col--right">
+                        {activePresetCols.right.map((id) => (
+                          <div key={id} className="ha-edit-preset-mod">
+                            <PresetModulePreview
+                              id={id}
+                              preview={ctx.previews.get(id)}
+                              viewerProfileId={ctx.viewerProfileId}
+                            />
+                          </div>
+                        ))}
+                        {activePresetCols.right.length === 0 ? (
+                          <p className="ha-edit-preset-col-empty">
+                            Không có khối phải
+                          </p>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+              </section>
+            ) : null}
+
+            {catalogOpen ? (
+              <section
+                className="ha-edit-catalog-section"
+                role="region"
+                aria-labelledby="ha-preset-tab-catalog"
+              >
+                {ctx.presets.length === 0 ? (
+                  <div className="ha-edit-preset-toolbar ha-edit-preset-toolbar--solo">
+                    <button
+                      type="button"
+                      aria-pressed
+                      id="ha-preset-tab-catalog"
+                      className="ha-edit-preset-tab ha-edit-preset-tab--catalog is-selected"
+                    >
+                      <span className="ha-edit-preset-tab-label">
+                        Tự chọn từng khối
+                      </span>
+                    </button>
+                  </div>
+                ) : null}
+                {items.length > 6 ? (
+                  <div className="ha-edit-add-search">
+                    <input
+                      type="search"
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      placeholder="Tìm khối…"
+                      aria-label="Tìm khối"
+                    />
+                  </div>
+                ) : null}
+                {items.length === 0 ? (
+                  <p className="ha-edit-add-empty">
+                    Đã thêm hết các khối có sẵn.
+                  </p>
+                ) : filtered.length === 0 ? (
+                  <p className="ha-edit-add-empty">
+                    Không khớp «{query.trim()}».
+                  </p>
+                ) : (
+                  groups.map(([group, list]) => (
+                    <div key={group} className="ha-edit-add-group">
+                      <p className="ha-edit-add-group-label">
+                        {MODULE_GROUP_LABEL[group]}
+                      </p>
+                      <div className="ha-edit-add-grid">
+                        {list.map((m) => (
+                          <AddModulePickCard
+                            key={m.id}
+                            meta={m}
+                            preview={ctx.previews.get(m.id)}
+                            viewerProfileId={ctx.viewerProfileId}
+                            onPick={() => onPick(m.id)}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </section>
+            ) : null}
           </div>
         )}
+
         <p className="ha-edit-add-suggest">
           Bạn có thể đề xuất tính năng phù hợp với nhu cầu của mình ở phần góp
           ý nhé!
@@ -1313,6 +1877,32 @@ function AddModuleOverlay({
     </div>,
     document.body,
   );
+}
+
+function PresetModulePreview({
+  id,
+  preview,
+  viewerProfileId,
+}: {
+  id: ModuleId;
+  preview: PreviewEntry | undefined;
+  viewerProfileId: string;
+}) {
+  if (preview?.status === "ok" && !preview.payload.empty) {
+    return (
+      <HomeModuleLivePreview
+        payload={preview.payload}
+        viewerProfileId={viewerProfileId}
+      />
+    );
+  }
+  if (
+    preview?.status === "error" ||
+    (preview?.status === "ok" && preview.payload.empty)
+  ) {
+    return <HomeModuleMockCard id={id} />;
+  }
+  return <HomeModulePreviewSkeleton id={id} />;
 }
 
 function AddModulePickCard({
@@ -1329,17 +1919,11 @@ function AddModulePickCard({
   return (
     <div className="ha-edit-add-pick">
       <div className="ha-edit-add-pick-preview world-journey-home">
-        {preview?.status === "ok" && !preview.payload.empty ? (
-          <HomeModuleLivePreview
-            payload={preview.payload}
-            viewerProfileId={viewerProfileId}
-          />
-        ) : preview?.status === "error" ||
-          (preview?.status === "ok" && preview.payload.empty) ? (
-          <HomeModuleMockCard id={meta.id} />
-        ) : (
-          <HomeModulePreviewSkeleton id={meta.id} />
-        )}
+        <PresetModulePreview
+          id={meta.id}
+          preview={preview}
+          viewerProfileId={viewerProfileId}
+        />
       </div>
       <div className="ha-edit-add-pick-foot">
         <div className="ha-edit-add-pick-meta">

@@ -1,0 +1,1104 @@
+/* Thanh toán hub — /tai-khoan/thanh-toan
+   Token CINs · Be Vietnam Pro · dark qua :root[data-theme="dark"]. */
+
+.cins-shell-column:has(> .cins-main > .billing-hub),
+.cins-main:has(> .billing-hub) {
+  background: var(--bg-page, #f4f5f8);
+  background-image: none;
+  min-height: calc(100dvh - var(--site-nav-height, 64px));
+}
+
+.billing-hub {
+  --billing-pad-x: clamp(1.25rem, 3vw, 2rem);
+  --billing-pad-y: clamp(1.25rem, 2.5vw, 1.75rem);
+  --billing-gap: clamp(1.5rem, 2.8vw, 2rem);
+  --billing-gap-sm: 0.75rem;
+  --billing-gap-md: 1.25rem;
+  --billing-panel-pad: clamp(1.15rem, 2vw, 1.5rem);
+  --billing-type-xs: 0.75rem;
+  --billing-type-sm: 0.875rem;
+  --billing-type-md: 0.9375rem;
+  --billing-type-lg: 1.0625rem;
+  --billing-type-xl: clamp(1.5rem, 2.4vw, 1.75rem);
+  --billing-lh: 1.55;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: var(--billing-pad-y) var(--billing-pad-x)
+    clamp(2.5rem, 5vw, 3.5rem);
+  min-height: calc(100dvh - var(--site-nav-height, 64px));
+  font-family: var(--font-sans);
+  font-size: var(--billing-type-md);
+  line-height: var(--billing-lh);
+  color: var(--ink-body);
+  font-feature-settings: "kern" 1, "liga" 1;
+}
+
+.billing-hub-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  color: var(--ink-muted);
+  padding: 3rem 0;
+  font-size: var(--billing-type-sm);
+}
+
+.billing-spin {
+  animation: billing-spin 0.8s linear infinite;
+}
+
+@keyframes billing-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.billing-hub-err {
+  color: var(--danger);
+  margin: 0 0 var(--billing-gap-sm);
+  font-size: var(--billing-type-sm);
+}
+
+/* ── Header ── */
+.billing-hub-head {
+  margin-bottom: var(--billing-gap);
+  max-width: 52rem;
+}
+
+.billing-hub-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1.25rem;
+  flex-wrap: wrap;
+}
+
+.billing-hub-title {
+  margin: 0;
+  font-size: var(--billing-type-xl);
+  font-weight: var(--weight-bold, 700);
+  line-height: 1.2;
+  color: var(--ink-display);
+  letter-spacing: -0.025em;
+}
+
+.billing-hub-title-row .billing-btn {
+  flex-shrink: 0;
+}
+
+.billing-hub-lede {
+  margin: 0.55rem 0 0;
+  color: var(--ink-muted);
+  font-size: var(--billing-type-sm);
+  line-height: 1.6;
+  max-width: 40rem;
+}
+
+/* ── KPI strip (một khối, chia cột) ── */
+.billing-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+  margin-bottom: var(--billing-gap);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg, 20px);
+  overflow: hidden;
+  box-shadow: var(--shadow-xs);
+}
+
+@media (max-width: 720px) {
+  .billing-kpi-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.billing-kpi {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 1.15rem 1.35rem;
+  border-right: 1px solid var(--border);
+  min-width: 0;
+}
+
+.billing-kpi:last-child {
+  border-right: none;
+}
+
+@media (max-width: 720px) {
+  .billing-kpi {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .billing-kpi:last-child {
+    border-bottom: none;
+  }
+}
+
+.billing-kpi--hero {
+  background: color-mix(in srgb, var(--danger) 5%, var(--bg-surface));
+}
+
+.billing-kpi-label {
+  display: block;
+  font-size: var(--billing-type-xs);
+  font-weight: var(--weight-semibold, 600);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin-bottom: 0.4rem;
+}
+
+.billing-kpi-value {
+  display: block;
+  font-size: clamp(1.2rem, 2vw, 1.4rem);
+  font-weight: var(--weight-bold, 700);
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: var(--ink-display);
+  font-variant-numeric: tabular-nums;
+}
+
+.billing-kpi-value.danger,
+.billing-dv-no.danger,
+.billing-table td.danger {
+  color: var(--danger);
+}
+
+/* ── Filter chips ── */
+.billing-dv-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0 0 var(--billing-gap-md);
+  padding-bottom: 0.15rem;
+}
+
+.billing-dv-chip {
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--ink-title, var(--ink-body));
+  border-radius: var(--radius-sm, 10px);
+  padding: 0.45rem 0.9rem;
+  font-size: var(--billing-type-sm);
+  font-weight: var(--weight-semibold, 600);
+  line-height: 1.3;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.billing-dv-chip:hover {
+  border-color: color-mix(in srgb, var(--cins-blue) 45%, var(--border));
+  color: var(--ink-display);
+}
+
+.billing-dv-chip.is-active {
+  border-color: color-mix(in srgb, var(--cins-blue) 55%, var(--border));
+  background: color-mix(in srgb, var(--cins-blue) 10%, var(--bg-surface));
+  color: var(--cins-blue-dark, #155a9c);
+}
+
+.billing-dv-chip:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--cins-blue) 45%, transparent);
+  outline-offset: 2px;
+}
+
+/* ── Page grid ── */
+.billing-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+  gap: var(--billing-gap);
+  align-items: start;
+}
+
+.billing-layout--full {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (max-width: 960px) {
+  .billing-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.billing-layout-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--billing-gap-md);
+  min-width: 0;
+}
+
+.billing-layout-aside {
+  display: flex;
+  flex-direction: column;
+  gap: var(--billing-gap-md);
+  min-width: 0;
+}
+
+@media (min-width: 961px) {
+  .billing-layout-aside {
+    position: sticky;
+    top: calc(var(--site-nav-height, 64px) + 1rem);
+  }
+}
+
+.billing-layout-wide {
+  display: flex;
+  flex-direction: column;
+  gap: var(--billing-gap-md);
+  margin-top: var(--billing-gap-md);
+}
+
+.billing-layout-wide--dialog {
+  margin-top: var(--billing-gap-sm);
+}
+
+.billing-dialog--settings {
+  width: min(42rem, 100%);
+}
+
+.billing-settings-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.billing-muted--tight {
+  margin-bottom: 0;
+}
+
+/* ── Dialog overlay ── */
+.billing-dialog-root {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: calc(var(--site-nav-height, 64px) + 1.25rem) 1rem 1.75rem;
+  background: rgba(15, 23, 42, 0.48);
+  overflow: auto;
+}
+
+:root[data-theme="dark"] .billing-dialog-root {
+  background: rgba(0, 0, 0, 0.62);
+}
+
+.billing-dialog {
+  width: min(40rem, 100%);
+  margin: auto 0;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg, 20px);
+  padding: 1.35rem 1.4rem 1.5rem;
+  box-shadow: var(--shadow-md, 0 12px 40px rgba(15, 23, 42, 0.18));
+}
+
+.billing-dialog-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.85rem;
+  margin-bottom: 0.65rem;
+}
+
+.billing-dialog-head .billing-panel-title {
+  margin-bottom: 0;
+  padding-left: 0;
+}
+
+.billing-dialog-head .billing-panel-title::before {
+  display: none;
+}
+
+/* ── Panels ── */
+.billing-panel {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg, 20px);
+  padding: var(--billing-panel-pad);
+  box-shadow: var(--shadow-xs);
+}
+
+.billing-layout-aside .billing-panel,
+.billing-layout-wide .billing-panel {
+  margin-bottom: 0;
+}
+
+.billing-panel-title {
+  margin: 0 0 1rem;
+  padding-left: 0;
+  position: relative;
+  font-size: var(--billing-type-lg);
+  font-weight: var(--weight-bold, 700);
+  line-height: 1.3;
+  color: var(--ink-display);
+  letter-spacing: -0.015em;
+}
+
+.billing-panel-title::before {
+  display: none;
+}
+
+.billing-muted,
+.billing-empty,
+.billing-note {
+  margin: 0 0 var(--billing-gap-sm);
+  color: var(--ink-muted);
+  font-size: var(--billing-type-sm);
+  line-height: 1.55;
+}
+
+.billing-note {
+  margin-top: 0.85rem;
+  font-size: var(--billing-type-xs);
+}
+
+/* ── Lists ── */
+.billing-dv-list,
+.billing-pt-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.billing-dv-item,
+.billing-pt-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem;
+  padding: 0.85rem 0;
+  border-top: 1px solid var(--border);
+}
+
+.billing-dv-item:first-child,
+.billing-pt-item:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.billing-dv-name {
+  font-weight: var(--weight-semibold, 600);
+  color: var(--ink-display);
+  font-size: var(--billing-type-md);
+}
+
+.billing-dv-meta,
+.billing-td-sub {
+  font-size: var(--billing-type-xs);
+  line-height: 1.45;
+  color: var(--ink-muted);
+}
+
+.billing-dv-no {
+  font-weight: var(--weight-bold, 700);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Thanh toán aside ── */
+.billing-pay-body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--billing-gap-md);
+  align-items: flex-start;
+}
+
+.billing-pay-dl {
+  display: grid;
+  gap: 0.7rem;
+  margin: 0.35rem 0 0;
+  flex: 1 1 13rem;
+  min-width: 0;
+}
+
+.billing-pay-dl > div {
+  display: grid;
+  grid-template-columns: 6.25rem minmax(0, 1fr);
+  gap: 0.55rem;
+  align-items: baseline;
+  margin: 0;
+}
+
+.billing-pay-dl dt {
+  font-size: var(--billing-type-xs);
+  font-weight: var(--weight-semibold, 600);
+  letter-spacing: 0.01em;
+  color: var(--ink-muted);
+  margin: 0;
+}
+
+.billing-pay-dl dd {
+  margin: 0;
+  font-weight: var(--weight-semibold, 600);
+  color: var(--ink-display);
+  word-break: break-word;
+  font-variant-numeric: tabular-nums;
+}
+
+.billing-copy {
+  appearance: none;
+  border: none;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  font-weight: var(--weight-semibold, 600);
+  color: var(--cins-blue);
+  cursor: pointer;
+  text-align: left;
+}
+
+.billing-copy:hover {
+  color: var(--cins-blue-dark);
+}
+
+.billing-copy.mono,
+.mono {
+  font-family: var(
+    --font-mono,
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Consolas,
+    monospace
+  );
+  font-size: 0.9em;
+  font-variant-numeric: tabular-nums;
+}
+
+.billing-qr {
+  flex: 0 0 auto;
+  text-align: center;
+}
+
+.billing-qr img {
+  display: block;
+  margin: 0 auto;
+  border-radius: var(--radius-sm, 10px);
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+}
+
+.billing-flash {
+  color: var(--cins-blue);
+  font-size: var(--billing-type-sm);
+  margin: 0 0 0.65rem;
+  line-height: 1.45;
+}
+
+/* ── Bảng hoá đơn ── */
+.billing-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 0 calc(var(--billing-panel-pad) * -0.35);
+  padding: 0 calc(var(--billing-panel-pad) * 0.35);
+}
+
+.billing-table {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: var(--billing-type-sm);
+  line-height: 1.45;
+}
+
+.billing-table th,
+.billing-table td {
+  text-align: left;
+  padding: 0.8rem 0.7rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.billing-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  font-size: var(--billing-type-xs);
+  font-weight: var(--weight-semibold, 600);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  white-space: nowrap;
+  background: color-mix(in srgb, var(--bg-page) 70%, var(--bg-surface));
+  border-bottom-color: color-mix(in srgb, var(--border) 80%, var(--ink-muted));
+}
+
+.billing-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.billing-table tbody tr:hover td {
+  background: color-mix(in srgb, var(--cins-blue) 3.5%, var(--bg-surface));
+}
+
+.billing-td-main {
+  font-weight: var(--weight-semibold, 600);
+  color: var(--ink-display);
+  font-size: var(--billing-type-sm);
+}
+
+.billing-table td:nth-child(n + 3):nth-child(-n + 7),
+.billing-table th:nth-child(n + 3):nth-child(-n + 7) {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.billing-table td.danger {
+  font-weight: var(--weight-semibold, 600);
+}
+
+/* ── Form controls ── */
+.billing-pt-add {
+  display: flex;
+  gap: 0.55rem;
+  margin-top: 0.85rem;
+  flex-wrap: wrap;
+}
+
+.billing-input {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 10px);
+  padding: 0 0.8rem;
+  font: inherit;
+  font-size: var(--billing-type-sm);
+  color: var(--ink-display);
+  background: var(--bg-page);
+}
+
+.billing-pt-add .billing-input {
+  flex: 1 1 10rem;
+  width: auto;
+}
+
+.billing-label .billing-input,
+.billing-form select.billing-input {
+  flex: none;
+  height: 42px;
+}
+
+.billing-input::placeholder {
+  color: var(--ink-muted);
+}
+
+.billing-input:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--cins-blue) 45%, transparent);
+  outline-offset: 1px;
+  border-color: var(--cins-blue);
+}
+
+.billing-btn {
+  appearance: none;
+  border: none;
+  border-radius: var(--radius-sm, 10px);
+  padding: 0.6rem 1rem;
+  font: inherit;
+  font-size: var(--billing-type-sm);
+  font-weight: var(--weight-semibold, 600);
+  line-height: 1.25;
+  background: var(--cins-blue);
+  color: var(--neutral-0, #fff);
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    opacity 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.billing-btn:hover:not(:disabled) {
+  background: var(--cins-blue-dark);
+}
+
+.billing-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.billing-btn:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--cins-blue) 45%, transparent);
+  outline-offset: 2px;
+}
+
+.billing-btn.ghost {
+  background: transparent;
+  color: var(--ink-title, var(--ink-display));
+  border: 1px solid var(--border);
+}
+
+.billing-btn.ghost:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--cins-blue) 6%, var(--bg-surface));
+  border-color: color-mix(in srgb, var(--cins-blue) 35%, var(--border));
+  color: var(--cins-blue-dark, #155a9c);
+}
+
+.billing-foot {
+  margin: var(--billing-gap) 0 0;
+  padding-top: var(--billing-gap-sm);
+  font-size: var(--billing-type-sm);
+}
+
+.billing-foot a {
+  color: var(--cins-blue);
+  text-decoration: none;
+  font-weight: var(--weight-semibold, 600);
+}
+
+.billing-foot a:hover {
+  color: var(--cins-blue-dark);
+  text-decoration: underline;
+}
+
+.billing-pay-actions {
+  margin-top: 1rem;
+}
+
+.billing-poll {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-top: 0.85rem;
+  font-size: var(--billing-type-sm);
+  color: var(--ink-muted);
+}
+
+.billing-poll--paid {
+  color: var(--cins-blue);
+  font-weight: 500;
+}
+
+.billing-poll--timeout {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.billing-poll-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--cins-blue);
+  flex-shrink: 0;
+}
+
+.billing-poll-dot--pulse {
+  animation: billing-poll-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes billing-poll-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.35;
+    transform: scale(0.85);
+  }
+}
+
+.billing-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.65rem;
+}
+
+.billing-form--grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem 1.1rem;
+  max-width: 42rem;
+}
+
+.billing-form--grid > .billing-btn,
+.billing-form--grid > .billing-pt-add {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 640px) {
+  .billing-form--grid {
+    grid-template-columns: 1fr;
+    max-width: none;
+  }
+}
+
+.billing-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: var(--billing-type-xs);
+  font-weight: var(--weight-semibold, 600);
+  color: var(--ink-muted);
+}
+
+.billing-label .billing-input {
+  font-weight: var(--weight-regular, 400);
+  color: var(--ink-display);
+}
+
+.billing-subhead {
+  margin: 1.35rem 0 0.65rem;
+  font-size: var(--billing-type-md);
+  font-weight: var(--weight-bold, 700);
+  color: var(--ink-display);
+  letter-spacing: -0.01em;
+}
+
+.billing-dv-item--col {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.billing-dv-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem;
+}
+
+.billing-kn-list {
+  list-style: none;
+  margin: 1.15rem 0 0;
+  padding: 0;
+}
+
+.billing-kn-item {
+  padding: 0.95rem 0;
+  border-top: 1px solid var(--border);
+}
+
+.billing-kn-body {
+  margin: 0.4rem 0 0;
+  font-size: var(--billing-type-sm);
+  line-height: 1.55;
+  color: var(--ink-body);
+}
+
+.billing-kn-reply {
+  margin: 0.4rem 0 0;
+  font-size: var(--billing-type-sm);
+  color: var(--cins-blue);
+}
+
+textarea.billing-input {
+  flex: none;
+  width: 100%;
+  height: auto;
+  min-height: 5rem;
+  padding: 0.65rem 0.8rem;
+  resize: vertical;
+}
+
+/* ── Dark theme ── */
+:root[data-theme="dark"] .billing-kpi--hero {
+  background: color-mix(in srgb, var(--danger) 12%, var(--bg-surface));
+}
+
+:root[data-theme="dark"] .billing-table th {
+  background: color-mix(in srgb, var(--bg-page) 45%, var(--bg-surface));
+}
+
+:root[data-theme="dark"] .billing-table tbody tr:hover td {
+  background: color-mix(in srgb, var(--cins-blue) 8%, var(--bg-surface));
+}
+
+:root[data-theme="dark"] .billing-input {
+  background: var(--neutral-100);
+  border-color: var(--border);
+}
+
+:root[data-theme="dark"] .billing-btn {
+  color: var(--neutral-900);
+}
+
+:root[data-theme="dark"] .billing-btn.ghost {
+  color: var(--ink-display);
+}
+
+:root[data-theme="dark"] .billing-btn.ghost:hover:not(:disabled) {
+  background: var(--cins-blue-soft);
+  color: var(--cins-blue);
+}
+
+:root[data-theme="dark"] .billing-qr img {
+  background: var(--neutral-0);
+}
+
+.billing-poll-timeout-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.billing-dialog--success {
+  width: min(28rem, 100%);
+}
+
+.billing-success-icon {
+  color: var(--cins-blue, #1f74c9);
+  vertical-align: -3px;
+  margin-right: 0.35rem;
+}
+
+.billing-success-lede {
+  margin: 0 0 1.1rem;
+  font-size: var(--billing-type-sm);
+  line-height: 1.55;
+  color: var(--ink-muted, #64748b);
+}
+
+.billing-success-dl {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0 0 1.1rem;
+  font-size: var(--billing-type-sm);
+}
+
+.billing-success-dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.billing-success-dl dt {
+  color: var(--ink-muted, #64748b);
+}
+
+.billing-success-dl dd {
+  margin: 0;
+  font-weight: 600;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.billing-success-amount {
+  font-size: 1.2rem;
+  color: var(--cins-blue, #1f74c9);
+}
+
+.billing-success-ky {
+  margin: 0 0 1.1rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md, 14px);
+  background: color-mix(in srgb, var(--bg-muted, #f8fafc) 80%, transparent);
+}
+
+.billing-success-ky-label {
+  margin: 0 0 0.55rem;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-muted, #64748b);
+}
+
+.billing-success-ky ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.billing-success-ky li {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.2rem 0.85rem;
+  font-size: var(--billing-type-sm);
+}
+
+.billing-success-ky-ten {
+  font-weight: 600;
+  grid-column: 1;
+}
+
+.billing-success-ky .billing-muted {
+  grid-column: 1;
+  font-size: var(--billing-type-xs);
+}
+
+.billing-success-ky-amt {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
+  font-weight: 700;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.billing-success-mail {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  margin: 0 0 1.1rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: var(--radius-md, 14px);
+  background: color-mix(in srgb, var(--cins-blue, #1f74c9) 8%, transparent);
+  font-size: var(--billing-type-sm);
+  line-height: 1.45;
+}
+
+.billing-success-mail .spin {
+  animation: billing-poll-pulse 1s linear infinite;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.billing-link-btn {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--cins-blue, #1f74c9);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.billing-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.billing-icon-btn {
+  border: 0;
+  background: transparent;
+  padding: 0.3rem;
+  border-radius: 8px;
+  color: var(--ink-muted);
+  cursor: pointer;
+}
+
+.billing-icon-btn:hover {
+  background: var(--bg-muted, #f1f5f9);
+  color: var(--ink-display);
+}
+
+.billing-kn-anh {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-top: 0.45rem;
+}
+
+.billing-kn-anh-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.billing-kn-anh-item img,
+.billing-kn-anh--readonly img {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.billing-kn-anh-add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 72px;
+  min-height: 72px;
+  padding: 0.5rem;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  font-size: var(--billing-type-xs);
+  font-weight: 600;
+  color: var(--cins-blue);
+  cursor: pointer;
+}
+
+.billing-kn-anh-add:hover {
+  background: color-mix(in srgb, var(--cins-blue) 6%, transparent);
+}
+
+.billing-so-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.billing-so-item {
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.billing-so-item:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.billing-so-hequa {
+  margin: 0.4rem 0;
+  font-size: var(--billing-type-sm);
+  color: var(--ink-muted);
+  line-height: 1.5;
+}
+
+.billing-so-hequa.danger {
+  color: var(--danger, #b91c1c);
+  font-weight: 600;
+}
+
+.billing-td-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.billing-td-actions .billing-btn.ghost {
+  padding: 0.4rem 0.7rem;
+  font-size: var(--billing-type-xs);
+}
+
+.billing-dialog--dong {
+  width: min(44rem, 100%);
+}
+
+.billing-table--dong .billing-dong-loai-tru td {
+  text-decoration: line-through;
+  opacity: 0.72;
+}
+
+.billing-table--dong .billing-dong-loai-tru .billing-td-sub {
+  text-decoration: none;
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .billing-spin,
+  .billing-poll-dot--pulse,
+  .billing-success-mail .spin {
+    animation: none;
+  }
+
+  .billing-btn,
+  .billing-dv-chip {
+    transition: none;
+  }
+}

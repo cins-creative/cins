@@ -69,7 +69,6 @@ const CO_SO_NAV_GROUPS: OrgQuanLyNavGroup[] = [
     items: [
       { id: "hoc-phi", label: "Học phí" },
       { id: "doanh-thu", label: "Doanh thu" },
-      { id: "phi", label: "Phí CINs" },
     ],
   },
 ];

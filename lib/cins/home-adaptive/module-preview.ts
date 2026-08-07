@@ -10,10 +10,12 @@ import {
   loadScoutTaiNang,
 } from "@/lib/cins/home-adaptive/fetches";
 import { loadHangFeature } from "@/lib/cins/home-adaptive/hang-feature";
+import { loadGioHangCuaBan } from "@/lib/cins/home-adaptive/gio-hang";
 import { isModuleId } from "@/lib/cins/home-adaptive/layout-prefs";
 import type { ModulePreviewPayload } from "@/lib/cins/home-adaptive/module-preview-types";
 import type { GiaiDoan, ModuleId } from "@/lib/cins/home-adaptive/persona";
 import { loadProfileCompleteness } from "@/lib/cins/home-adaptive/profile-completeness";
+import { loadQuanLyKho } from "@/lib/cins/home-adaptive/quan-ly-kho";
 import {
   loadDaLuu,
   loadDonCanXuLy,
@@ -28,6 +30,7 @@ import {
   loadUngVienMoi,
 } from "@/lib/cins/home-adaptive/role-fetches";
 import { loadSidebarUpcomingEvents } from "@/lib/cins/home-adaptive/sidebar-upcoming-events";
+import { loadStudiosDangTuyen } from "@/lib/cins/home-adaptive/studio-dang-tuyen";
 import {
   CO_SO_DAO_TAO_LOAI,
   loadFollowSuggestions,
@@ -73,9 +76,7 @@ export async function loadModulePreview(
       return { id, empty: false, people };
     }
     case "goi_y_studio": {
-      const orgs = await loadOrgFollowSuggestions(ctx.viewerId, LIMIT, {
-        loaiToChuc: ["studio", "doanh_nghiep"],
-      });
+      const orgs = await loadStudiosDangTuyen(LIMIT);
       if (orgs.length === 0) return { id, empty: true };
       return { id, empty: false, orgs };
     }
@@ -319,6 +320,19 @@ export async function loadModulePreview(
       const items = await loadHangFeature(ctx.viewerId, { limit: LIMIT });
       if (items.length === 0) return { id, empty: true };
       return { id, empty: false, items };
+    }
+    case "quan_ly_kho": {
+      const { items, canhBao } = await loadQuanLyKho(ctx.viewerId, LIMIT);
+      if (items.length === 0) return { id, empty: true };
+      return { id, empty: false, items, canhBao };
+    }
+    case "gio_hang_cua_ban": {
+      const { items, tongSoDong } = await loadGioHangCuaBan(
+        ctx.viewerId,
+        LIMIT,
+      );
+      if (items.length === 0) return { id, empty: true };
+      return { id, empty: false, items, tongSoDong };
     }
     case "tin_nhan_ban_be":
     case "tin_nhan_to_chuc":

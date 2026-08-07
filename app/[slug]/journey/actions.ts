@@ -4,6 +4,11 @@ import { revalidatePath } from "next/cache";
 
 import type { GiaiDoan } from "@/lib/auth/session";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
+import { revalidateHomeLayout } from "@/lib/cins/home-adaptive/home-layout-store";
+import {
+  buildOnboardingHomeLayout,
+  parseOnboardingIntents,
+} from "@/lib/cins/home-adaptive/presets";
 import { createClient } from "@/lib/supabase/server";
 import {
   adminCoTheSuaBaiNickSeeding,
@@ -178,7 +183,9 @@ export type SubmitOnboardingInput = {
   tenHienThi: string;
   slug: string;
   giaiDoan: GiaiDoan;
-  /** Bước 3 (tuỳ chọn) — bỏ qua thì null/undefined. */
+  /** Bước «Bạn còn làm gì» — multi-select, có thể []. */
+  intents?: string[] | null;
+  /** Bước thông tin cơ bản (tuỳ chọn) — bỏ qua thì null/undefined. */
   gioiTinh?: GioiTinh | null;
   /** ISO date `YYYY-MM-DD` hoặc null khi skip. */
   ngaySinh?: string | null;
@@ -216,7 +223,7 @@ function parseOptionalNgaySinh(
 
 /**
  * Hoàn tất onboarding — UPDATE `ten_hien_thi`, `slug`, `giai_doan`
- * (+ tuỳ chọn `gioi_tinh`, `ngay_sinh`, `avatar_id` ở bước 3).
+ * (+ tuỳ chọn intents → `home_layout`, `gioi_tinh`, `ngay_sinh`, `avatar_id`).
  *
  * Dùng service-role client (server-only) vì hiện tại `user_nguoi_dung` chỉ có SELECT
  * policy; ta tự enforce `auth_user_id = session.user.id`. Sau khi cập nhật xong,
@@ -263,6 +270,8 @@ export async function submitOnboarding(
       field: "giai_doan",
     };
   }
+
+  const intents = parseOnboardingIntents(input.intents ?? []);
 
   let gioiTinh: GioiTinh | null = null;
   if (input.gioiTinh != null && input.gioiTinh !== ("" as GioiTinh)) {
@@ -319,10 +328,13 @@ export async function submitOnboarding(
     }
   }
 
+  const homeLayout = buildOnboardingHomeLayout(input.giaiDoan, intents);
+
   const patch: Record<string, unknown> = {
     ten_hien_thi: tenHienThi,
     slug,
     giai_doan: input.giaiDoan,
+    home_layout: homeLayout,
   };
   if (gioiTinh) patch.gioi_tinh = gioiTinh;
   if (ngayParsed.value) patch.ngay_sinh = ngayParsed.value;
@@ -345,11 +357,14 @@ export async function submitOnboarding(
     };
   }
 
+  revalidateHomeLayout(session.profile.id);
+
   /* Revalidate cả slug cũ lẫn slug mới — slug có thể đã thay đổi. */
   revalidatePath(`/${session.profile.slug}`);
   if (slug !== session.profile.slug) {
     revalidatePath(`/${slug}`);
   }
+  revalidatePath("/");
 
   return { ok: true, data: { slug } };
 }

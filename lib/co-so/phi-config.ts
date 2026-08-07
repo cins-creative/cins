@@ -36,6 +36,21 @@ export function hanTra(ngayChotYmd: string, soNgay: number): string {
   return todayYmdVn(end);
 }
 
+/**
+ * Ân hạn theo lúc thông báo (P0 A3): nếu ngày chốt đã qua thì tính hạn từ hôm nay,
+ * không từ ngày chốt quá khứ — tránh chốt bù nhiều tháng → khóa ngay.
+ * Vẫn thỏa CHECK `han_tra >= ngay_chot`.
+ */
+export function hanTraTuThongBao(
+  ngayChotYmd: string,
+  soNgay: number,
+  now = new Date(),
+): string {
+  const today = todayYmdVn(now);
+  const base = ngayChotYmd < today ? today : ngayChotYmd;
+  return hanTra(base, soNgay);
+}
+
 /** Cộng `days` ngày lịch vào YYYY-MM-DD (VN). */
 export function addDaysYmd(ymd: string, days: number): string {
   const d = new Date(`${ymd}T12:00:00+07:00`);
@@ -53,12 +68,21 @@ export function thangKeTiepYmd(ymd: string): string {
 }
 
 /**
- * Mã CK Sepay: `CINS` + 6 hex ổn định từ orgId + `YYMM` của ngày chốt.
+ * Mã CK Sepay: `CINS` + 6 hex + `YYMM`.
+ * Salt từ `CSDT_PHI_MA_SALT` (env) — tránh đoán mã từ orgId công khai (P0 B1).
+ * `attempt` > 0 khi đụng UNIQUE và cần retry.
  * VD `CINS7F3A9C2604`. ≤ 25 ký tự.
  */
-export function maThamChieu(orgId: string, ngayChotYmd: string): string {
+export function maThamChieu(
+  orgId: string,
+  ngayChotYmd: string,
+  attempt = 0,
+): string {
+  const salt = (process.env.CSDT_PHI_MA_SALT ?? "").trim();
   const hash = createHash("sha256")
-    .update(orgId.trim().toLowerCase())
+    .update(
+      `${salt}:${orgId.trim().toLowerCase()}:${Math.max(0, Math.floor(attempt))}`,
+    )
     .digest("hex")
     .slice(0, 6)
     .toUpperCase();

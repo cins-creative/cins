@@ -9,14 +9,15 @@ import {
   CalendarHeart,
   ClipboardList,
   Compass,
+  DoorOpen,
   Eye,
   GraduationCap,
   Inbox,
   MessageCircle,
   Package,
   Route,
-  School,
   ShoppingBag,
+  ShoppingCart,
   Sparkles,
   Store,
   UserPlus,
@@ -38,7 +39,7 @@ const TITLE_ICON: Partial<Record<ModuleId, LucideIcon>> = {
   duong_toi_do: GraduationCap,
   kham_pha_linh_vuc: Compass,
   khoa_hoc_goi_y: GraduationCap,
-  lop_hoc_cua_ban: School,
+  lop_hoc_cua_ban: DoorOpen,
   ho_so_cua_ban: Route,
   co_hoi: Briefcase,
   cho_ban_duyet: Sparkles,
@@ -59,6 +60,8 @@ const TITLE_ICON: Partial<Record<ModuleId, LucideIcon>> = {
   se_tham_gia: CalendarHeart,
   da_luu: Bookmark,
   hang_feature: Package,
+  quan_ly_kho: Package,
+  gio_hang_cua_ban: ShoppingCart,
 };
 
 const CARD_CLASS: Partial<Record<ModuleId, string>> = {
@@ -74,6 +77,8 @@ const CARD_CLASS: Partial<Record<ModuleId, string>> = {
   tin_nhan_mua_ban: "ha-card--chat",
   lop_hoc_cua_ban: "ha-card--lop",
   hang_feature: "ha-card--hang",
+  quan_ly_kho: "ha-card--kho",
+  gio_hang_cua_ban: "ha-card--gio",
 };
 
 type MockRow = { av: string; title: string; sub: string; extra?: string };
@@ -102,8 +107,8 @@ const MOCK_ROWS: Partial<Record<ModuleId, MockRow[]>> = {
     { av: "PQ", title: "Phúc Quang", sub: "Motion design" },
   ],
   goi_y_studio: [
-    { av: "ST", title: "Studio Nova", sub: "Studio · TP.HCM" },
-    { av: "DN", title: "Pixel Agency", sub: "Doanh nghiệp" },
+    { av: "ST", title: "Studio Nova", sub: "3 tin đang mở" },
+    { av: "DN", title: "Pixel Agency", sub: "1 tin đang mở" },
   ],
   duong_toi_do: [
     { av: "CS", title: "CINs Academy", sub: "Cơ sở đào tạo" },
@@ -132,13 +137,13 @@ const MOCK_ROWS: Partial<Record<ModuleId, MockRow[]>> = {
       av: "NO",
       title: "Junior Designer",
       sub: "Studio Nova · TP.HCM",
-      extra: "Toàn thời gian",
+      extra: "12–18 triệu",
     },
     {
       av: "PX",
       title: "Intern Motion",
       sub: "Pixel · Remote",
-      extra: "Thực tập",
+      extra: "Thỏa thuận",
     },
   ],
   cho_ban_duyet: [
@@ -214,9 +219,19 @@ const MOCK_ROWS: Partial<Record<ModuleId, MockRow[]>> = {
     { av: "TD", title: "Junior Designer", sub: "Tuyển dụng" },
   ],
   hang_feature: [
-    { av: "ST", title: "Sticker pack", sub: "Shop An · Bạn bè" },
-    { av: "PR", title: "Print A3", sub: "Pixel Lab · Gợi ý" },
-    { av: "TG", title: "Tote canvas", sub: "Studio Mộc · Bạn bè" },
+    { av: "S", title: "Sticker pack", sub: "Shop An · Bạn bè", extra: "85.000đ" },
+    { av: "P", title: "Print A3", sub: "Pixel Lab · Gợi ý", extra: "120.000đ" },
+    { av: "T", title: "Tote canvas", sub: "Studio Mộc · Bạn bè", extra: "195.000đ" },
+  ],
+  quan_ly_kho: [
+    { av: "S", title: "Sticker pack", sub: "Size M", extra: "Hết hàng" },
+    { av: "P", title: "Print A3", sub: "Mặc định", extra: "Còn 2" },
+    { av: "T", title: "Tote canvas", sub: "Đen", extra: "Còn 5" },
+  ],
+  gio_hang_cua_ban: [
+    { av: "S", title: "Sticker pack", sub: "Shop An · ×2", extra: "85.000đ" },
+    { av: "P", title: "Print A3", sub: "Pixel Lab · ×1", extra: "120.000đ" },
+    { av: "T", title: "Tote canvas", sub: "Studio Mộc · ×1", extra: "195.000đ" },
   ],
 };
 
@@ -252,6 +267,27 @@ function MockShell({
       </div>
       {children}
     </section>
+  );
+}
+
+function MockHangRows({ rows }: { rows: MockRow[] }) {
+  return (
+    <ul className="ha-hang-list">
+      {rows.map((r) => (
+        <li key={r.title} className="ha-hang-cell">
+          <span className="ha-hang-card">
+            <span className="ha-hang-thumb" aria-hidden>
+              <span className="ha-hang-thumb-fallback">{r.av}</span>
+            </span>
+            <span className="ha-hang-meta">
+              <span className="ha-hang-title">{r.title}</span>
+              {r.extra ? <span className="ha-hang-gia">{r.extra}</span> : null}
+              <span className="ha-hang-sub">{r.sub}</span>
+            </span>
+          </span>
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -439,6 +475,56 @@ export function HomeModuleMockCard({ id }: { id: ModuleId }) {
       return (
         <MockShell id={id}>
           <MockDonRows rows={rows} />
+        </MockShell>
+      );
+    }
+    if (id === "hang_feature") {
+      return (
+        <MockShell id={id}>
+          <MockHangRows rows={rows} />
+        </MockShell>
+      );
+    }
+    if (id === "quan_ly_kho") {
+      return (
+        <MockShell id={id}>
+          <div className="ha-kho-list">
+            {rows.map((r) => (
+              <div
+                key={r.title + r.sub}
+                className={`ha-kho-row${r.extra === "Hết hàng" ? " ha-kho-row--het" : " ha-kho-row--sap_het"}`}
+              >
+                <span className="ha-kho-av" aria-hidden>
+                  <span className="ha-kho-av-fallback">{r.av}</span>
+                </span>
+                <span className="ha-kho-body">
+                  <span className="ha-kho-title">{r.title}</span>
+                  <span className="ha-kho-sub">{r.sub}</span>
+                </span>
+                {r.extra ? <span className="ha-kho-ton">{r.extra}</span> : null}
+              </div>
+            ))}
+          </div>
+        </MockShell>
+      );
+    }
+    if (id === "gio_hang_cua_ban") {
+      return (
+        <MockShell id={id}>
+          <div className="ha-gio-list">
+            {rows.map((r) => (
+              <div key={r.title + r.sub} className="ha-gio-row">
+                <span className="ha-gio-av" aria-hidden>
+                  <span className="ha-gio-av-fallback">{r.av}</span>
+                </span>
+                <span className="ha-gio-body">
+                  <span className="ha-gio-title">{r.title}</span>
+                  <span className="ha-gio-sub">{r.sub}</span>
+                </span>
+                {r.extra ? <span className="ha-gio-gia">{r.extra}</span> : null}
+              </div>
+            ))}
+          </div>
         </MockShell>
       );
     }

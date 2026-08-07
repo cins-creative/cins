@@ -27,8 +27,26 @@ export function maskEmail(email: string): string {
   return `${local.slice(0, 2)}***@${domain}`;
 }
 
+/**
+ * Số giây Supabase yêu cầu đợi trước khi gửi lại — lấy từ message dạng
+ * "For security purposes, you can only request this after 56 seconds."
+ * (giới hạn "Minimum interval per user" ở Dashboard → Auth → SMTP).
+ */
+export function parseRetryAfterSeconds(message: string): number | null {
+  const raw = message.match(/after (\d+) seconds?/i)?.[1];
+  if (!raw) return null;
+  const seconds = Number(raw);
+  return Number.isFinite(seconds) && seconds > 0 ? seconds : null;
+}
+
 export function mapOtpError(message: string): string {
   const lower = message.toLowerCase();
+  if (lower.includes("for security purposes")) {
+    const seconds = parseRetryAfterSeconds(message);
+    return seconds
+      ? `Vui lòng đợi ${seconds} giây rồi gửi lại mã.`
+      : "Vui lòng đợi một lát rồi gửi lại mã.";
+  }
   if (lower.includes("expired") || lower.includes("otp_expired")) {
     return "Mã đã hết hạn. Bấm «Gửi lại mã» để nhận mã mới.";
   }

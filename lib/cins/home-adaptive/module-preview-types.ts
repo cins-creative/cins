@@ -3,6 +3,8 @@
  */
 
 import type { HangFeatureItem } from "@/lib/cins/home-adaptive/hang-feature-types";
+import type { GioHangHomeItem } from "@/lib/cins/home-adaptive/gio-hang-types";
+import type { QuanLyKhoItem } from "@/lib/cins/home-adaptive/quan-ly-kho-types";
 import type { HomeDonHangItem } from "@/lib/cins/home-adaptive/role-types";
 import type { SidebarUpcomingEvent } from "@/lib/cins/home-adaptive/sidebar-upcoming-types";
 import type {
@@ -171,4 +173,18 @@ export type ModulePreviewPayload =
       empty: false;
       items: HangFeatureItem[];
     }
-  | { id: "hang_feature"; empty: true };
+  | { id: "hang_feature"; empty: true }
+  | {
+      id: "quan_ly_kho";
+      empty: false;
+      items: QuanLyKhoItem[];
+      canhBao: number;
+    }
+  | { id: "quan_ly_kho"; empty: true }
+  | {
+      id: "gio_hang_cua_ban";
+      empty: false;
+      items: GioHangHomeItem[];
+      tongSoDong: number;
+    }
+  | { id: "gio_hang_cua_ban"; empty: true };

@@ -424,7 +424,7 @@ export async function createGhiDanh(input: {
       return {
         ok: false,
         error:
-          "Cơ sở đang nợ phí nền tảng quá hạn — không thể thêm ghi danh mới. Thanh toán tại mục Phí CINs.",
+          "Cơ sở đang nợ phí nền tảng quá hạn — không thể thêm ghi danh mới. Thanh toán tại Thanh toán (Cài đặt tài khoản).",
         code: CSDT_PHI_QUA_HAN,
       };
     }

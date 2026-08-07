@@ -4,7 +4,11 @@ import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import { getShopCheckoutPayment } from "@/lib/shop/cua-hang";
 import { buildShopMaDon } from "@/lib/shop/ma-don";
 
-/** GET /api/shop/cua-hang/thanh-toan?sellerId= — STK mặc định + mã đơn gợi ý (QR phía client). */
+/**
+ * GET /api/shop/cua-hang/thanh-toan?sellerId=
+ * STK mặc định + mã đơn gợi ý (QR phía client).
+ * Nhóm C / Q2: khách vãng lai vẫn xem được STK để CK, nhưng không trả `tenChuTaiKhoan`.
+ */
 export async function GET(request: Request) {
   const sellerId = new URL(request.url).searchParams.get("sellerId")?.trim();
   if (!sellerId) {
@@ -22,6 +26,7 @@ export async function GET(request: Request) {
   /* Mã đơn gợi ý — gắn vào VietQR addInfo trước khi tạo đơn; client gửi lại khi POST. */
   let maDon: string | null = null;
   const session = await getCurrentSessionAndProfile();
+  const loggedIn = Boolean(session?.profile);
   if (session?.profile) {
     const buyerLabel =
       session.profile.ten_hien_thi?.trim() ||
@@ -48,7 +53,8 @@ export async function GET(request: Request) {
           id: payment.id,
           nganHang: payment.nganHang,
           soTaiKhoan: payment.soTaiKhoan,
-          tenChuTaiKhoan: payment.tenChuTaiKhoan,
+          /* PII: tên chủ TK chỉ khi đã đăng nhập */
+          tenChuTaiKhoan: loggedIn ? payment.tenChuTaiKhoan : null,
         }
       : null,
   });

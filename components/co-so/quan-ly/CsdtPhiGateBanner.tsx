@@ -3,12 +3,11 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-import { orgQuanLyPath } from "@/lib/to-chuc/org-quan-ly-routes";
-
 type GateLite = {
   trangThai: "hoat_dong" | "canh_bao" | "khoa_ghi_danh";
   tongNoVnd: number;
   hanTraGanNhat: string | null;
+  tuKhaiTamMo?: boolean;
 };
 
 type Props = { orgId: string; orgSlug: string };
@@ -24,7 +23,7 @@ function fmtVnd(n: number): string {
 }
 
 /** Banner gate phí nền tảng — chỉ hiện canh_bao / khoa_ghi_danh. */
-export function CsdtPhiGateBanner({ orgId, orgSlug }: Props) {
+export function CsdtPhiGateBanner({ orgId }: Props) {
   const [gate, setGate] = useState<GateLite | null>(null);
 
   useEffect(() => {
@@ -49,7 +48,7 @@ export function CsdtPhiGateBanner({ orgId, orgSlug }: Props) {
 
   if (!gate || gate.trangThai === "hoat_dong") return null;
 
-  const phiHref = orgQuanLyPath("co_so_dao_tao", orgSlug, "phi");
+  const phiHref = `/tai-khoan/thanh-toan?dv=${encodeURIComponent(orgId)}`;
   const han = gate.hanTraGanNhat ? fmtYmd(gate.hanTraGanNhat) : null;
   const isLock = gate.trangThai === "khoa_ghi_danh";
 
@@ -65,6 +64,11 @@ export function CsdtPhiGateBanner({ orgId, orgSlug }: Props) {
             {han ? ` — thanh toán kỳ hạn ${han}` : ""}
             {gate.tongNoVnd > 0 ? ` (${fmtVnd(gate.tongNoVnd)})` : ""} để mở lại.
           </>
+        ) : gate.tuKhaiTamMo ? (
+          <>
+            Đã ghi nhận chuyển khoản — ghi danh tạm mở trong khi CINs đối soát
+            {gate.tongNoVnd > 0 ? ` · nợ ${fmtVnd(gate.tongNoVnd)}` : ""}.
+          </>
         ) : (
           <>
             Sắp đến hạn trả phí nền tảng
@@ -74,7 +78,7 @@ export function CsdtPhiGateBanner({ orgId, orgSlug }: Props) {
         )}
       </div>
       <Link href={phiHref} className="cso-phi-banner-link">
-        Xem Phí CINs
+        Thanh toán
       </Link>
     </div>
   );

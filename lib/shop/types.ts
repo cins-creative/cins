@@ -25,6 +25,11 @@ export type ShopTrangThaiDon =
   | "hoan_tra"
   | "huy";
 
+/** Đếm «đã bán» / uy tín storefront — chỉ đơn hoàn thành (P3b). */
+export const SHOP_DON_TINH_DA_BAN: ReadonlyArray<ShopTrangThaiDon> = [
+  "hoan_thanh",
+];
+
 export type ShopTrangThaiQuay = "cho_xu_ly" | "da_duyet" | "tu_choi";
 
 export type ShopEvidenceKind = "link" | "file" | "text";
@@ -514,6 +519,13 @@ export type ShopDonHang = {
   vanChuyenMa?: string | null;
   /** Đơn vị vận chuyển shop chọn. */
   vanChuyenDvvc?: string | null;
+  /** P3a khảo sát / đóng đơn */
+  khaoSatLuc?: string | null;
+  khaoSatTraLoi?: "da_nhan" | "chua_nhan" | null;
+  soLanHoanChuaNhan?: number;
+  hoanKhaoSatDen?: string | null;
+  dongTuDongLuc?: string | null;
+  dongBoi?: "buyer" | "seller" | "he_thong" | null;
 };
 /** Sự kiện sắp/đang diễn ra mà shop đã được duyệt quầy — mặt tiền công khai. */
 export type ShopQuaySapCoMat = {

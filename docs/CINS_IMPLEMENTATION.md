@@ -21,6 +21,21 @@
 | `avatar/upload` · `cover/upload` | Upload ảnh đại diện / cover → Cloudflare |
 | `user/ban-hang` | GET/PATCH opt-in bán hàng (`ban_hang_bat` + chấp nhận điều khoản) — L33 |
 
+### Billing / thanh toán phí nền tảng (P1–P2)
+| Route | Việc |
+|---|---|
+| `tai-khoan/thanh-toan` | GET hub: tổng nợ · theo dịch vụ · ưu tiên `cins_hoa_don` (fallback adapter) · STK/QR · phụ trách · khiếu nại |
+| `tai-khoan/thanh-toan/phu-trach` | GET/POST/DELETE người trả hộ (`cins_tk_nguoi_phu_trach`) |
+| `tai-khoan/thanh-toan/tu-khai-da-tra` | POST `{ hoaDonId }` (P2) hoặc `{ kyId, orgId }` legacy — mở rào tạm 3 ngày |
+| `tai-khoan/thanh-toan/khieu-nai` | GET/POST khiếu nại đối soát phí cơ sở |
+| `tai-khoan/thanh-toan/thong-tin` | PATCH bên mua HĐ mặc định (`tk`) hoặc theo dòng (`dich_vu`) |
+| `noi-bo/billing/cron` | POST Bearer `CSDT_PHI_CRON_SECRET` — chốt CSĐT + shop + P3a đóng đơn (`?only=csdt\|shop\|dong_don`) |
+| `noi-bo/csdt-phi/chot-ky` · `noi-bo/shop/chot-ky-phi` · `noi-bo/shop/dong-don` | Cron tách; shop secret `CINS_NOI_BO_SHOP_PHI_SECRET` |
+| `shop/don/[id]` | PATCH `buyer_da_nhan` · `buyer_chua_nhan` (P3a); GET lazy `tickDonHangDongDonLazy` |
+| Soft-limit tạo đơn | `SOFT_LIMIT_*` trên `POST shop/don` · `gio-chung/don` (P3b) |
+
+UI: `/tai-khoan/thanh-toan` · Settings «Thanh toán» · `/admin/tai-chinh` (CSĐT + shop phí + **đóng đơn** + soft-limit). Sepay → log `cins_sepay_giao_dich` rồi `cins_thanh_toan` + `cins_phan_bo` (fallback legacy); hub **poll 5s** `/api/tai-khoan/thanh-toan/poll`. Cron: **`worker.ts`** (OpenNext custom + `scheduled`) · GitHub Actions `billing-cron.yml` · `POST /api/noi-bo/billing/cron`. Notify: chat self-room + **Resend email** (`notify-hoa-don.ts`); Journey ghim: `getBillingJourneyPin` + `JourneyBillingPinBanner` (chỉ owner, CTA `/tai-khoan/thanh-toan`).
+
 ### Shop UGC (`shop`) — L33
 | Route | Việc |
 |---|---|
@@ -249,6 +264,8 @@ Tái dùng đúng pattern Shopee AI cho **user tự import portfolio** của ch�
 | `cong-dong/` | Tạo org, membership, thảo luận, filter, sidebar, mirror tác phẩm, **quản lý thành viên**, categories, event rail, **branding**, **route sự kiện** | `org-create.ts`, `org-profile.ts`, `membership.ts`, `members.ts`, `vai-tro.ts`, `categories.ts`, `event-rail.ts`, `routes.ts` (`congDongSuKienPath` / `ManagePath`), `creator-milestone.ts`, `sync-from-publish.ts`, `tac-pham-mirror.ts` ⚠️§5 |
 | `to-chuc/` | **Cơ sở đào tạo** — trang chi tiết, settings, members, filters, timeline lớp, staff invite, create; **sự kiện + loại vé**; **khóa/lớp/bài tập** | `co-so-page-queries.ts`, `co-so-settings.ts`, `co-so-members.ts`, `co-so-create.ts`, `co-so-vai-tro.ts`, `su-kien.ts`, `su-kien-loai-ve.ts`, `su-kien-constants.ts`, `su-kien-listing.ts`, `khoa-hoc.ts`, `lop-hoc-quan-ly.ts`, `bai-tap-khoa.ts`, `giao-trinh-quan-ly.ts` |
 | `co-so/` | Helpers vận hành CSĐT (học phí, chat lớp, giáo trình…, **phí nền tảng**) | `don-hoc-phi.ts`, `phi.ts` · `phi-config.ts` · `phi-ky.ts` · `phi-gate.ts` · `phi-sepay.ts` · `phi-khieu-nai.ts` · `phi-admin.ts` · `phi-cron.ts`, `lop-chat-phong.ts`, … |
+| `shop/` | Shop UGC + **P3a đóng đơn** | `don-hang.ts` · `dong-don.ts` · `phi.ts` · `khieu-nai.ts` · … |
+| `billing/` | **Billing P1–P2 + SePay log** — tk · hub · hoá đơn · Sepay log thô · dual-write · notify · Journey ghim | `tk.ts` · `hub.ts` · `hoa-don.ts` · `sepay-giao-dich.ts` · `phan-bo.ts` · `notify-hoa-don.ts` · `journey-ghim.ts` · … |
 | `tag/` | Tạo tag, dedup, gen tom-tat, normalize, slug, admin merge | `create.ts`, `gen-tom-tat.ts`, `dedup.ts`, `normalize.ts` |
 | `filter/` | **Filter cá nhân** (user & org): CRUD nhãn, gắn cột mốc/bài org, list theo chủ, đếm visible cho khách, nhãn hệ thống `cong-dong` | `create.ts`, `update.ts`, `delete.ts`, `gan.ts`, `list-cua-user.ts`, `count-visible-to-viewer.ts`, `cong-dong-personal-filter.ts` (+ `.shared.ts`) |
 | `chat/` | **Chat:** DM/org/nhóm, realtime, ghim, nhóm bạn bè, **project con**, thẻ tài nguyên, mốc phòng, bình chọn; overlay tab **Mua bán** (`types` `ChatThreadView`/`ChatMuaBanSub`, cờ shop trên `listAllChatThreads`); **inbox org staff** (`canAccessOrgInbox` · `listOrgInboxThreadsForStaff`) gồm studio | `group-message.ts`, `group-roles.ts`, `project-room.ts`, `room-tags.ts`, `room-moc.ts`, `room-poll.ts`, `direct-message.ts`, `org-message.ts`, `use-chat-realtime.ts` |
@@ -310,6 +327,13 @@ Tái dùng đúng pattern Shopee AI cho **user tự import portfolio** của ch�
 | `migration_khoa_hoc_v2.sql` | **Trang khóa học v2** (gộp, thay `migration_giao_trinh_thu_tu.sql` lẻ): `org_giao_trinh.thu_tu` + `so_buoi`; `org_lop_hoc.lich_hoc` + `giao_vien_text`; `org_khoa_hoc.noi_dung_blocks`. Idempotent + backfill `thu_tu`. Chạy xong → đối chiếu lại schema DB. |
 | `migration_csdt_van_hanh_hoc.sql` | **L34 Plan 1:** `org_chi_nhanh`, `org_goi_hoc_phi`, `org_don_hoc_phi`, `org_ky_hoc`, `org_tien_do_bai`, `org_nop_bai`, `org_diem_danh` + ALTER A1/A2 `org_lop_hoc`. Runner: `npm run migrate:csdt`. **Đã chạy** CINS 2026-07-25. |
 | `migration_csdt_phi_nen_tang.sql` | **Phí nền tảng CSĐT A-1…A-8:** bảng phí + RLS · admin tài chính · ghi dòng · kỳ/gate · quan-ly phí · khóa ghi danh · Sepay · khiếu nại/admin đối soát · cron `POST /api/noi-bo/csdt-phi/chot-ky` (`CSDT_PHI_CRON_SECRET`, `phi-cron.ts`). Plan: `PLAN_csdt_phi_nen_tang_va_lead.md`. Runner: `npm run migrate:csdt-phi`. **Đã chạy** schema 2026-08-05. |
+| `migration_cins_tk_thanh_toan.sql` | **Billing P1:** `cins_tk_thanh_toan` (1:1 user) · `cins_dich_vu` · `cins_tk_nguoi_phu_trach` + RLS (`can_doc_cins_tk` / `can_sua_cins_tk`). Hub `/tai-khoan/thanh-toan` · Settings «Thanh toán» · redirect `/quan-ly/phi`. Runner: `npm run migrate:cins-tk-thanh-toan`; backfill: `npm run backfill:cins-tk-thanh-toan` (`--dry-run`). Plan: `PLAN_thanh_toan_tai_cau_truc.md`. **Đã chạy** 2026-08-07. |
+| `migration_cins_hoa_don.sql` | **Billing P2:** `cins_hoa_don` · `cins_hoa_don_dong` · `cins_thanh_toan` · `cins_phan_bo`; ALTER `org_phi_dong`/`shop_phi_dong.id_hoa_don`; cột shop trên `cins_cau_hinh_tai_chinh` (`shop_ty_le`, `shop_toi_thieu_xuat_ky_vnd`, …). Dual-write từ chốt CSĐT/shop; Sepay → `phan-bo.ts`. Runner: `npm run migrate:cins-hoa-don`; backfill: `npm run backfill:cins-hoa-don`. Cron: `POST /api/noi-bo/billing/cron` + `wrangler` triggers + `.github/workflows/billing-cron.yml`. **Đã chạy** schema 2026-08-07. |
+| `migration_cins_sepay_giao_dich.sql` | **SePay log thô:** `cins_sepay_giao_dich` + view `cins_sepay_doi_soat`. Webhook log-trước-khớp-sau · poll `/api/tai-khoan/thanh-toan/poll` · simulate `npm run simulate:sepay-webhook`. Plan: `PLAN_sepay_cins.md`. Runner: `npm run migrate:cins-sepay`. **Đã chạy** 2026-08-07. |
+| `migration_cins_phi_thong_bao.sql` | **Công bố phí sàn:** `cins_phi_thong_bao` (hiển thị only). Settings bán hàng + `/chinh-sach/phi-san` · `/chinh-sach/phi-csdt` · admin panel. Plan: `PLAN_thong_bao_phi_san.md`. Runner: `npm run migrate:cins-phi-thong-bao`. **Đã chạy** 2026-08-07. |
+| `migration_shop_dong_don_p3.sql` | **P3a đóng đơn shop:** ALTER `shop_don_hang` (`khao_sat_*`, `so_lan_hoan_chua_nhan`, `dong_boi`…) + cột ngày đóng đơn trên `cins_cau_hinh_tai_chinh`. Lib `dong-don.ts` · buyer actions · cron tick. Runner: `npm run migrate:shop-dong-don`. **Đã chạy** 2026-08-07. |
+| `migration_shop_buyer_soft_limit_p3b.sql` | **P3b soft-limit:** `buyer_toi_da_don_*` trên `cins_cau_hinh_tai_chinh`. Runner: `npm run migrate:shop-buyer-soft-limit`. **Đã chạy** 2026-08-07. |
+| `migration_chat_chi_hien_cho_p3b.sql` | **P3b #8 tin một phía:** `chat_tin_nhan.chi_hien_cho uuid[]` + RLS SELECT. Runner: `npm run migrate:chat-chi-hien-cho`. **Đã chạy** 2026-08-07. |
 | `migration_lop_hoc_chi_nhanh.sql` | **Junction lớp ↔ chi nhánh (N):** `org_lop_hoc_chi_nhanh` (PK `id_lop_hoc,id_chi_nhanh`, `thu_tu`); backfill từ `org_lop_hoc.id_chi_nhanh`. Giữ cột `id_chi_nhanh` = chi nhánh chính (`chiNhanhIds[0]`). Runner: `npm run migrate:lop-chi-nhanh`; meta khóa → junction: `npm run backfill:lop-chi-nhanh`. **Đã chạy** CINS 2026-08-03. |
 | `migration_org_hinh_anh_loai_expand.sql` | Mở rộng CHECK `org_hinh_anh.loai`: thêm `ngoai_khoa`, `su_kien`, `hop_tac` (UI gallery tab Hình ảnh). Chạy: `node scripts/run-org-hinh-anh-loai-migration.mjs`. |
 | `migration_drop_giai_doan_moi_bat_dau.sql` | **L36:** bỏ `moi_bat_dau` — data → `dang_hoc` + recreate `giai_doan_enum` (5 value). Chạy: `node scripts/run-drop-giai-doan-moi-bat-dau-migration.mjs`. **Đã chạy** CINS 2026-07-26. |
@@ -432,10 +456,13 @@ CINS_NICK_SEED_SLUGS           (tuỳ chọn — csv slug bổ sung allowlist ni
 
 # Phí nền tảng CSĐT — webhook Sepay (A-6) + cron (A-8)
 SEPAY_WEBHOOK_SECRET           (Authorization: Apikey|Bearer …; POST /api/webhook/sepay)
-CSDT_PHI_CRON_SECRET           (Bearer; POST /api/noi-bo/csdt-phi/chot-ky)
+CSDT_PHI_CRON_SECRET           (Bearer; POST /api/noi-bo/billing/cron · csdt-phi/chot-ky)
+RESEND_API_KEY                 (Resend — email hoá đơn phí trong notify-hoa-don.ts)
+RESEND_FROM                    (optional; mặc định `CINs <noreply@cins.vn>` — domain phải verify trên Resend)
+CINS_NOI_BO_SHOP_PHI_SECRET    (Bearer; shop chốt kỳ — fallback CINS_NOI_BO_DANG_BAI_SECRET)
+CSDT_PHI_MA_SALT               (salt mã CK Sepay — P0 B1; không public)
 # Tuỳ chọn fallback khi bảng cấu hình trống: CSDT_PHI_TY_LE · CSDT_PHI_NGUONG_VND
 ```
-
 **Cloudflare Images — variants** (Dashboard → Images → Variants; cập nhật 2026-07-04):
 
 | Name | Kích thước | Fit | Dùng cho |
@@ -453,7 +480,7 @@ URL: `https://imagedelivery.net/${NEXT_PUBLIC_CF_IMAGES_ACCOUNT_HASH}/${cloudfla
 
 Code map: `lib/journey/images.ts` (role `gallery-grid` → `grid` + `srcset` `gridsm`/`grid`) · `lib/journey/image-grid.ts` (`gridThumbAsset` ảnh đơn dọc → `feed`/`feedsm`) · `lib/truong/images.ts` (`CfImageVariant`) · `scripts/cf-ensure-image-variants.mjs` (đồng bộ variant Dashboard). Ô lưới CSS: `aspect-ratio: 16/9` — **không** dùng `thumbnail` (vuông) hay `public` cho grid thumb ảnh dọc đơn (dùng `feed`).
 
-- **Deploy**: **Cloudflare Workers** qua OpenNext (`@opennextjs/cloudflare`). Config: `wrangler.jsonc` (worker **`cins`**, `nodejs_compat`, binding `HYPERDRIVE` + `ASSETS`), `open-next.config.ts`. Production: **`https://cins.vn`** (và `www.cins.vn`); workers.dev: `https://cins.info-cins-vn.workers.dev`. **Không dùng Vercel** — không deploy / preview / env trên Vercel; không còn `*.vercel.app` trong OAuth hay Site URL.
+- **Deploy**: **Cloudflare Workers** qua OpenNext (`@opennextjs/cloudflare`). Config: `wrangler.jsonc` (`main`: **`worker.ts`** — fetch OpenNext + `scheduled` billing), `open-next.config.ts`, `workers/scheduled.ts`. Production: **`https://cins.vn`** (và `www.cins.vn`); workers.dev: `https://cins.info-cins-vn.workers.dev`. **Không dùng Vercel**.
   - **Build phải dùng webpack** (`next build --webpack`) — build Turbopack chạy trên Workers bị `ChunkLoadError`. Đã cài trong script `build`.
   - **Postgres TCP** (admin SQL `lib/admin/*`, tag trigram `lib/tag/postgres.ts`) đi qua **Hyperdrive** (config `cins-supabase`, binding `HYPERDRIVE`, caching off). Code lấy connection string từ `lib/db/hyperdrive.ts`; fallback `DATABASE_URL` khi chạy Node (`next dev`).
   - **Env**: `NEXT_PUBLIC_*` inline lúc build từ `.env.local`. Secret server-side set bằng `wrangler secret bulk` (SUPABASE_SERVICE_ROLE_KEY, CLOUDFLARE_IMAGES_API_TOKEN, ARTICLE_INLINE_IMAGE_UPLOAD_TOKEN, DATABASE_URL, CLOUDFLARE_STREAM_API_TOKEN, GOOGLE_*, CINS_SYSTEM_USER_ID, **CINS_ORG_DELEGATION_PASSWORD**). `CLOUDFLARE_ACCOUNT_ID` (không bí mật, cần ở runtime cho upload Cloudflare Images/Stream) khai báo trong `wrangler.jsonc` → `vars` (không phải secret). Local preview: `.dev.vars` (gitignore).

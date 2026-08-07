@@ -21,8 +21,12 @@ import {
   type ModuleId,
   type Persona,
 } from "@/lib/cins/home-adaptive/persona";
+import {
+  parsePresetDaAp,
+  type PresetId,
+} from "@/lib/cins/home-adaptive/presets";
 
-export const HOME_LAYOUT_VERSION = 1;
+export const HOME_LAYOUT_VERSION = 2;
 export const HOME_LAYOUT_MAX_IDS = 40;
 export const HOME_LAYOUT_ITEM_LIMIT_MIN = 1;
 export const HOME_LAYOUT_ITEM_LIMIT_MAX = 10;
@@ -35,6 +39,12 @@ export type HomeLayoutFeedPrefs = {
 
 export type HomeLayoutItemLimits = Partial<Record<ModuleId, number>>;
 
+/** Breadcrumb bộ khối đã áp — không tham gia resolve layout. */
+export type HomeLayoutPresetMeta = {
+  da_ap: PresetId[];
+  at?: string;
+};
+
 /** Shape lưu DB (sau chuẩn hoá). */
 export type HomeLayoutStored = {
   v: number;
@@ -44,6 +54,8 @@ export type HomeLayoutStored = {
   /** Số dòng nội dung mỗi khối (1–10). */
   limits?: HomeLayoutItemLimits;
   feed?: HomeLayoutFeedPrefs;
+  /** Bộ khối đã áp (breadcrumb). */
+  preset?: HomeLayoutPresetMeta;
   at?: string;
 };
 
@@ -58,6 +70,8 @@ export type ResolvedHomeLayout = {
   /** true nếu prefs rỗng — đang dùng mặc định persona. */
   isDefault: boolean;
   feed: HomeLayoutFeedPrefs;
+  /** Bộ khối đã áp (breadcrumb) — không ảnh hưởng cột. */
+  presetDaAp: PresetId[];
 };
 
 const MODULE_ID_SET = new Set<string>(ALL_MODULE_IDS);
@@ -150,6 +164,18 @@ export function parseHomeLayout(raw: unknown): HomeLayoutStored | null {
     if (typeof f.composer === "boolean") feed.composer = f.composer;
   }
 
+  let preset: HomeLayoutPresetMeta | undefined;
+  if (o.preset && typeof o.preset === "object" && !Array.isArray(o.preset)) {
+    const p = o.preset as Record<string, unknown>;
+    const da_ap = parsePresetDaAp(p.da_ap);
+    if (da_ap.length > 0) {
+      preset = {
+        da_ap,
+        ...(typeof p.at === "string" ? { at: p.at } : {}),
+      };
+    }
+  }
+
   const v =
     typeof o.v === "number" && Number.isFinite(o.v)
       ? o.v
@@ -164,6 +190,7 @@ export function parseHomeLayout(raw: unknown): HomeLayoutStored | null {
     hidden,
     ...(Object.keys(limits).length > 0 ? { limits } : {}),
     ...(Object.keys(feed).length > 0 ? { feed } : {}),
+    ...(preset ? { preset } : {}),
     ...(at ? { at } : {}),
   };
 }
@@ -324,6 +351,7 @@ export function resolveHomeLayout(
       newlyInjected: [],
       isDefault: true,
       feed: {},
+      presetDaAp: [],
     };
   }
 
@@ -356,6 +384,7 @@ export function resolveHomeLayout(
     newlyInjected: injected.newlyInjected.filter((id) => kept.has(id)),
     isDefault: false,
     feed: parsed.feed ?? {},
+    presetDaAp: parsed.preset?.da_ap ?? [],
   };
 }
 
@@ -364,7 +393,7 @@ export type ValidateHomeLayoutResult =
   | { ok: false; error: string };
 
 /**
- * Validate body PUT từ client. Silent-correct: loại `cho_ban_duyet` khỏi hidden.
+ * Validate body PUT từ client. Silent-correct: loại module non-hideable khỏi hidden.
  */
 export function validateHomeLayoutBody(
   body: unknown,
@@ -404,6 +433,7 @@ export function validateHomeLayoutBody(
     hidden: o.hidden,
     limits: o.limits,
     feed: o.feed,
+    preset: o.preset,
   });
 
   if (!parsed) {
@@ -438,6 +468,14 @@ export function validateHomeLayoutBody(
       ...parsed,
       v: HOME_LAYOUT_VERSION,
       at: new Date().toISOString(),
+      ...(parsed.preset
+        ? {
+            preset: {
+              ...parsed.preset,
+              at: parsed.preset.at ?? new Date().toISOString(),
+            },
+          }
+        : {}),
     },
   };
 }

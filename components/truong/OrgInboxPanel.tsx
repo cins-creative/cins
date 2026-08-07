@@ -52,6 +52,7 @@ import {
   type ChatRealtimeRow,
 } from "@/lib/chat/realtime";
 import { useChatRealtime } from "@/lib/chat/use-chat-realtime";
+import { tinHienVoiViewer } from "@/lib/chat/visibility";
 import { replaceOptimisticAlbumWithRealMessages } from "@/lib/chat/replace-album-batch";
 import type { ChatMessage, ChatMessageReplyPreview } from "@/lib/chat/types";
 import { userEmojiDeliveryUrl } from "@/lib/user-emoji/delivery-url";
@@ -218,6 +219,7 @@ export function OrgInboxPanel({
 
   useChatRealtime(viewerProfileId, (row: ChatRealtimeRow) => {
     if (!viewerProfileId) return;
+    if (!tinHienVoiViewer(row.chi_hien_cho, viewerProfileId)) return;
     const hit = threadsRef.current.find((t) => t.roomId === row.id_phong);
     if (!hit) return;
 

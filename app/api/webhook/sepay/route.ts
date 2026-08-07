@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
 import { timingSafeEqual } from "node:crypto";
 
-import {
-  xuLyWebhookSepay,
-  type SepayWebhookPayload,
-} from "@/lib/co-so/phi-sepay";
+import { parseSepayRequestBody } from "@/lib/billing/sepay-giao-dich";
+import { xuLyWebhookSepay } from "@/lib/co-so/phi-sepay";
 
 export const runtime = "nodejs";
 
@@ -42,8 +40,9 @@ function xacThucSepay(request: Request):
 
 /**
  * POST /api/webhook/sepay
- * Nhận giao dịch vào STK CINs → khớp mã `CINSxxxxxxxxxx` → cộng `da_tra_vnd`.
+ * Log thô → khớp mã `CINSxxxxxxxxxx` → cộng `da_tra_vnd`.
  * Response `{ success: true }` theo convention Sepay.
+ * Plan: docs/PLAN_sepay_cins.md §4.2 — 500 = retry; 200/400 = không retry.
  */
 export async function POST(request: Request) {
   const auth = xacThucSepay(request);
@@ -53,24 +52,39 @@ export async function POST(request: Request) {
     });
   }
 
-  let body: SepayWebhookPayload;
+  let raw: Record<string, unknown>;
   try {
-    body = (await request.json()) as SepayWebhookPayload;
+    raw = await parseSepayRequestBody(request);
   } catch {
+    console.error("[webhook/sepay] body parse failed");
     return NextResponse.json(
-      { success: false, error: "JSON không hợp lệ." },
+      { success: false, error: "Body không hợp lệ." },
       { status: 400 },
     );
   }
 
   try {
-    const result = await xuLyWebhookSepay(body);
+    const result = await xuLyWebhookSepay(raw);
     if (!result.ok) {
       console.error("[webhook/sepay]", result.error);
-      return NextResponse.json(
-        { success: false, error: result.error },
-        { status: 422 },
-      );
+      if (result.transient) {
+        return NextResponse.json(
+          { success: false, error: "Xử lý tạm thất bại." },
+          { status: 500 },
+        );
+      }
+      /* Lỗi không cứu được bằng retry → 200 skipped */
+      return NextResponse.json({
+        success: true,
+        skipped: result.error,
+      });
+    }
+    if ("skipped" in result && result.skipped) {
+      return NextResponse.json({
+        success: true,
+        skipped: result.skipped,
+        sepayId: result.sepayId ?? null,
+      });
     }
     return NextResponse.json({
       success: true,

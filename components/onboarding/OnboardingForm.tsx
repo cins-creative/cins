@@ -14,6 +14,10 @@ import {
 } from "@/components/journey/JourneyAvatarEditor";
 import type { GiaiDoan } from "@/lib/auth/session";
 import {
+  ONBOARDING_INTENT_OPTIONS,
+  type OnboardingIntent,
+} from "@/lib/cins/home-adaptive/presets";
+import {
   DEFAULT_AVATAR_OPTIONS,
   DEFAULT_AVATAR_PATHS,
   defaultAvatarForGioiTinh,
@@ -36,6 +40,8 @@ type SlugStatus =
   | { kind: "error"; message: string };
 
 type AccentTone = "yellow" | "mint" | "orange" | "violet" | "blue";
+
+type OnbStep = 1 | 2 | 3 | 4;
 
 const GIAI_DOAN_OPTIONS: ReadonlyArray<{
   value: GiaiDoan;
@@ -92,11 +98,12 @@ function normalizeSlugInput(raw: string): string {
 }
 
 /**
- * Form onboarding 3 bước cho route `/onboarding` — full page, không backdrop.
+ * Form onboarding 4 bước cho route `/onboarding` — full page, không backdrop.
  *
  * 1. Bạn là ai? (tên + slug)
  * 2. Bạn đang là...? (giai đoạn)
- * 3. Thông tin cơ bản (giới tính, ngày sinh, avatar) — có thể bỏ qua
+ * 3. Bạn còn làm gì trên CINs? (intent → bộ khối sidebar) — có thể bỏ qua
+ * 4. Thông tin cơ bản (giới tính, ngày sinh, avatar) — có thể bỏ qua
  *
  * Sau submit thành công → redirect `/{slug}?welcome=1`.
  */
@@ -105,12 +112,13 @@ export function OnboardingForm({ initialTenHienThi, initialSlug }: Props) {
   const titleId = useId();
   const tenInputRef = useRef<HTMLInputElement>(null);
 
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [step, setStep] = useState<OnbStep>(1);
   const [tenHienThi, setTenHienThi] = useState(initialTenHienThi);
   const [slug, setSlug] = useState(initialSlug);
   const [slugDirty, setSlugDirty] = useState(false);
   const [slugStatus, setSlugStatus] = useState<SlugStatus>({ kind: "idle" });
   const [giaiDoan, setGiaiDoan] = useState<GiaiDoan | null>(null);
+  const [intents, setIntents] = useState<OnboardingIntent[]>([]);
 
   const [gioiTinh, setGioiTinh] = useState<GioiTinhOnboarding | null>(null);
   const [ngaySinh, setNgaySinh] = useState("");
@@ -127,7 +135,7 @@ export function OnboardingForm({ initialTenHienThi, initialSlug }: Props) {
     if (step === 1) tenInputRef.current?.focus();
   }, [step]);
 
-  /* Preload avatar mặc định khi vào bước 2 — sẵn sàng khi tới bước 3. */
+  /* Preload avatar mặc định khi vào bước 2 — sẵn sàng khi tới bước 4. */
   useEffect(() => {
     if (step < 2) return;
     for (const src of DEFAULT_AVATAR_PATHS) {
@@ -136,6 +144,14 @@ export function OnboardingForm({ initialTenHienThi, initialSlug }: Props) {
       img.src = src;
     }
   }, [step]);
+
+  /* Giáo viên → gợi ý sẵn chip «Dạy học». */
+  useEffect(() => {
+    if (giaiDoan !== "dang_day") return;
+    setIntents((prev) =>
+      prev.includes("day_hoc") ? prev : [...prev, "day_hoc"],
+    );
+  }, [giaiDoan]);
 
   useEffect(() => {
     return () => {
@@ -150,6 +166,12 @@ export function OnboardingForm({ initialTenHienThi, initialSlug }: Props) {
     (isDefaultAvatarId(avatarId)
       ? getDefaultAvatarPublicPath(avatarId)
       : null);
+
+  function toggleIntent(id: OnboardingIntent) {
+    setIntents((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  }
 
   async function runSlugCheck(value: string): Promise<boolean> {
     setSlugStatus({ kind: "checking" });
@@ -229,6 +251,7 @@ export function OnboardingForm({ initialTenHienThi, initialSlug }: Props) {
         tenHienThi,
         slug,
         giaiDoan,
+        intents,
         gioiTinh: skip ? null : gioiTinh,
         ngaySinh: skip ? null : ngaySinh.trim() || null,
         avatarId: skip ? null : avatarId,
@@ -242,8 +265,15 @@ export function OnboardingForm({ initialTenHienThi, initialSlug }: Props) {
         if (result.field === "ten_hien_thi") {
           setStep(1);
         }
-        if (result.field === "gioi_tinh" || result.field === "ngay_sinh" || result.field === "avatar_id") {
-          setStep(3);
+        if (result.field === "giai_doan") {
+          setStep(2);
+        }
+        if (
+          result.field === "gioi_tinh" ||
+          result.field === "ngay_sinh" ||
+          result.field === "avatar_id"
+        ) {
+          setStep(4);
         }
         return;
       }
@@ -269,6 +299,10 @@ export function OnboardingForm({ initialTenHienThi, initialSlug }: Props) {
         </li>
         <li className={step >= 3 ? "is-active" : ""}>
           <span className="cins-onb-step-no">3</span>
+          <span>Làm gì trên CINs?</span>
+        </li>
+        <li className={step >= 4 ? "is-active" : ""}>
+          <span className="cins-onb-step-no">4</span>
           <span>Thông tin cơ bản</span>
         </li>
       </ol>
@@ -370,6 +404,39 @@ export function OnboardingForm({ initialTenHienThi, initialSlug }: Props) {
                       "cins-onb-chip" + (selected ? " is-selected" : "")
                     }
                     onClick={() => setGiaiDoan(opt.value)}
+                  >
+                    <span className="cins-onb-chip-label">{opt.label}</span>
+                    <span className="cins-onb-chip-hint">{opt.hint}</span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ) : step === 3 ? (
+        <div className="cins-onb-fields">
+          <p className="cins-onb-q">Bạn còn làm gì trên CINs?</p>
+          <p className="cins-onb-q-sub">
+            Chọn tất cả mục phù hợp — mình xếp sẵn vài khối bên cạnh trang chủ
+            cho bạn. Có thể bỏ qua và tự chỉnh sau.
+          </p>
+          <ul
+            className="cins-onb-chips"
+            role="group"
+            aria-label="Việc bạn làm trên CINs"
+          >
+            {ONBOARDING_INTENT_OPTIONS.map((opt) => {
+              const selected = intents.includes(opt.id);
+              return (
+                <li key={opt.id}>
+                  <button
+                    type="button"
+                    aria-pressed={selected}
+                    data-accent={opt.accent}
+                    className={
+                      "cins-onb-chip" + (selected ? " is-selected" : "")
+                    }
+                    onClick={() => toggleIntent(opt.id)}
                   >
                     <span className="cins-onb-chip-label">{opt.label}</span>
                     <span className="cins-onb-chip-hint">{opt.hint}</span>
@@ -546,7 +613,7 @@ export function OnboardingForm({ initialTenHienThi, initialSlug }: Props) {
       <footer className="cins-onb-foot">
         {step === 1 ? (
           <>
-            <span className="cins-onb-step-label">Bước 1 / 3</span>
+            <span className="cins-onb-step-label">Bước 1 / 4</span>
             <button
               type="button"
               className="cins-onb-btn cins-onb-btn--primary"
@@ -575,12 +642,45 @@ export function OnboardingForm({ initialTenHienThi, initialSlug }: Props) {
               ← Quay lại
             </button>
             <div className="cins-onb-foot-right">
-              <span className="cins-onb-step-label">Bước 2 / 3</span>
+              <span className="cins-onb-step-label">Bước 2 / 4</span>
               <button
                 type="button"
                 className="cins-onb-btn cins-onb-btn--primary"
                 disabled={!giaiDoan || isPending}
                 onClick={() => setStep(3)}
+              >
+                Tiếp tục →
+              </button>
+            </div>
+          </>
+        ) : step === 3 ? (
+          <>
+            <button
+              type="button"
+              className="cins-onb-btn cins-onb-btn--ghost"
+              disabled={isPending}
+              onClick={() => setStep(2)}
+            >
+              ← Quay lại
+            </button>
+            <div className="cins-onb-foot-right">
+              <button
+                type="button"
+                className="cins-onb-btn cins-onb-btn--ghost"
+                disabled={isPending}
+                onClick={() => {
+                  setIntents([]);
+                  setStep(4);
+                }}
+              >
+                Bỏ qua
+              </button>
+              <span className="cins-onb-step-label">Bước 3 / 4</span>
+              <button
+                type="button"
+                className="cins-onb-btn cins-onb-btn--primary"
+                disabled={isPending}
+                onClick={() => setStep(4)}
               >
                 Tiếp tục →
               </button>
@@ -592,7 +692,7 @@ export function OnboardingForm({ initialTenHienThi, initialSlug }: Props) {
               type="button"
               className="cins-onb-btn cins-onb-btn--ghost"
               disabled={isPending}
-              onClick={() => setStep(2)}
+              onClick={() => setStep(3)}
             >
               ← Quay lại
             </button>

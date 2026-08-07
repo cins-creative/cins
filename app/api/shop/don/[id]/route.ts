@@ -10,7 +10,17 @@ import {
   getDonHang,
   hoanTraDonHang,
 } from "@/lib/shop/don-hang";
+import {
+  buyerBaoChuaNhan,
+  buyerCoTheKhaoSat,
+  buyerXacNhanDaNhan,
+  dongDonCfgFromTaiChinh,
+  ngayDenKhaoSat,
+  ngayDenTuDong,
+  tickDonHangDongDonLazy,
+} from "@/lib/shop/dong-don";
 import { SHOP_LY_DO_HUY_MAX } from "@/lib/shop/types";
+import { getCinsTaiChinh } from "@/lib/cins/tai-chinh-config";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -20,7 +30,7 @@ export async function GET(_request: Request, ctx: Ctx) {
     return NextResponse.json({ error: "Chưa đăng nhập." }, { status: 401 });
   }
   const { id } = await ctx.params;
-  const don = await getDonHang(id);
+  let don = await getDonHang(id);
   if (!don) {
     return NextResponse.json({ error: "Không tìm thấy." }, { status: 404 });
   }
@@ -30,9 +40,23 @@ export async function GET(_request: Request, ctx: Ctx) {
   ) {
     return NextResponse.json({ error: "Không có quyền." }, { status: 403 });
   }
+  /* Lazy P3a: tự đóng / đánh dấu khảo sát khi mở đơn (bổ sung cron). */
+  const refreshed = await tickDonHangDongDonLazy(id);
+  if (refreshed) don = refreshed;
+  const cfg = dongDonCfgFromTaiChinh(await getCinsTaiChinh());
+  const canKhaoSat =
+    don.idNguoiMua === session.profile.id && buyerCoTheKhaoSat(don, cfg);
   return NextResponse.json({
     don,
     chatContext: donHangToChatContext(don),
+    dongDon: {
+      canKhaoSat,
+      ngayKhaoSat: ngayDenKhaoSat(don, cfg),
+      ngayTuDong: ngayDenTuDong(don, cfg),
+      soLanHoan: don.soLanHoanChuaNhan ?? 0,
+      soLanChoHoan: cfg.soLanChoHoan,
+      hoanDen: don.hoanKhaoSatDen ?? null,
+    },
   });
 }
 
@@ -80,8 +104,22 @@ export async function PATCH(request: Request, ctx: Ctx) {
       return NextResponse.json({ don, chatContext: donHangToChatContext(don) });
     }
     if (body.action === "hoan_thanh") {
-      const don = await completeDonHang(session.profile.id, id);
+      const don = await completeDonHang(session.profile.id, id, {
+        dongBoi: "seller",
+      });
       return NextResponse.json({ don, chatContext: donHangToChatContext(don) });
+    }
+    if (body.action === "buyer_da_nhan") {
+      const don = await buyerXacNhanDaNhan(session.profile.id, id);
+      return NextResponse.json({ don, chatContext: donHangToChatContext(don) });
+    }
+    if (body.action === "buyer_chua_nhan") {
+      const result = await buyerBaoChuaNhan(session.profile.id, id);
+      return NextResponse.json({
+        don: result.don,
+        ketQua: result.ketQua,
+        chatContext: donHangToChatContext(result.don),
+      });
     }
     if (body.action === "huy") {
       const lyDo =
@@ -167,6 +205,12 @@ export async function PATCH(request: Request, ctx: Ctx) {
     if (msg === "INVALID_STATE" || msg === "INVALID_ACTION") {
       return NextResponse.json(
         { error: "Trạng thái đơn không cho phép thao tác này." },
+        { status: 422 },
+      );
+    }
+    if (msg === "NOT_YET") {
+      return NextResponse.json(
+        { error: "Chưa đến lúc xác nhận nhận hàng / đang trong thời gian hoãn." },
         { status: 422 },
       );
     }

@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import { mapOtpError } from "@/lib/auth/email-otp";
+import { mapOtpError, parseRetryAfterSeconds } from "@/lib/auth/email-otp";
 
 export type OtpVerifyType = "signup" | "email";
 
@@ -18,7 +18,8 @@ export async function sendSignupConfirmationOtp(
   supabase: SupabaseClient,
   email: string,
 ): Promise<
-  { ok: true; verifyType: OtpVerifyType } | { ok: false; message: string }
+  | { ok: true; verifyType: OtpVerifyType }
+  | { ok: false; message: string; retryAfterSec?: number }
 > {
   const trimmed = email.trim().toLowerCase();
   if (!trimmed.includes("@")) {
@@ -41,8 +42,13 @@ export async function sendSignupConfirmationOtp(
     return { ok: true, verifyType: "email" };
   }
 
+  const rawMessage = otpErr.message || resendErr.message;
   return {
     ok: false,
-    message: mapOtpError(otpErr.message || resendErr.message),
+    message: mapOtpError(rawMessage),
+    retryAfterSec:
+      parseRetryAfterSeconds(otpErr.message) ??
+      parseRetryAfterSeconds(resendErr.message) ??
+      undefined,
   };
 }

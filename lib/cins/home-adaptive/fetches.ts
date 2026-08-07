@@ -350,26 +350,36 @@ export async function loadScoutTaiNang(
   return out;
 }
 
-/** HỌC · Lớp đã ghi danh — sắp xếp theo buổi gần nhất (1-click vào phòng chat). */
+/** HỌC / DẠY · Lớp ghi danh hoặc lớp đang phụ trách — 1-click vào phòng chat. */
 export async function loadLopHocCuaBan(
   viewerId: string,
   limit = 5,
 ): Promise<LopHocCuaBanItem[]> {
   const admin = createServiceRoleClient();
-  const { data: hvRows } = await admin
-    .from("user_hoc_vien_lop")
-    .select("id_lop_hoc")
-    .eq("id_nguoi_dung", viewerId)
-    .in("trang_thai", ["da_dang_ky", "dang_hoc"])
-    .not("id_lop_hoc", "is", null)
-    .returns<Array<{ id_lop_hoc: string | null }>>();
+
+  const [hvRes, gvRes] = await Promise.all([
+    admin
+      .from("user_hoc_vien_lop")
+      .select("id_lop_hoc")
+      .eq("id_nguoi_dung", viewerId)
+      .in("trang_thai", ["da_dang_ky", "dang_hoc"])
+      .not("id_lop_hoc", "is", null)
+      .returns<Array<{ id_lop_hoc: string | null }>>(),
+    admin
+      .from("org_lop_hoc")
+      .select("id")
+      .eq("giao_vien_phu_trach", viewerId)
+      .neq("trang_thai", "huy")
+      .returns<Array<{ id: string }>>(),
+  ]);
 
   const lopIds = [
-    ...new Set(
-      (hvRows ?? [])
+    ...new Set([
+      ...(hvRes.data ?? [])
         .map((r) => r.id_lop_hoc)
         .filter((id): id is string => Boolean(id)),
-    ),
+      ...(gvRes.data ?? []).map((r) => r.id),
+    ]),
   ];
   if (lopIds.length === 0) return [];
 

@@ -22,6 +22,7 @@ import {
 import {
   DonCanXuLyModule,
   DonMuaCuaToiModule,
+  QuanLyKhoModule,
   QuayCuaToiModule,
 } from "@/components/cins/home-adaptive/modules/ban-hang";
 import {
@@ -37,6 +38,7 @@ import {
   UngTuyenCuaToiModule,
 } from "@/components/cins/home-adaptive/modules/ket-noi";
 import { HangFeatureModule } from "@/components/cins/home-adaptive/modules/HangFeatureModule";
+import { GioHangCuaBanModule } from "@/components/cins/home-adaptive/modules/GioHangCuaBanModule";
 import {
   TinNhanBanBeModule,
   TinNhanMuaBanModule,
@@ -68,6 +70,7 @@ export const MODULE_REGISTRY: Record<ModuleId, ModuleComponent> = {
   don_can_xu_ly: DonCanXuLyModule,
   don_mua_cua_toi: DonMuaCuaToiModule,
   quay_cua_toi: QuayCuaToiModule,
+  quan_ly_kho: QuanLyKhoModule,
   org_inbox: OrgInboxModule,
   quan_ly_su_kien: QuanLySuKienModule,
   ung_vien_moi: UngVienMoiModule,
@@ -86,6 +89,7 @@ export const MODULE_REGISTRY: Record<ModuleId, ModuleComponent> = {
   se_tham_gia: SeThamGiaModule,
   da_luu: DaLuuModule,
   hang_feature: HangFeatureModule,
+  gio_hang_cua_ban: GioHangCuaBanModule,
 };
 
 /** Chỗ giữ card trong lúc module stream về — cần `.ha-card` để cột không thu gọn. */

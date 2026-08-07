@@ -67,7 +67,10 @@ export async function POST(request: NextRequest) {
   const result = await sendSignupConfirmationOtp(supabase, email);
 
   if (!result.ok) {
-    return NextResponse.json({ error: result.message }, { status: 422 });
+    return NextResponse.json(
+      { error: result.message, retryAfterSec: result.retryAfterSec },
+      { status: 422 },
+    );
   }
 
   return NextResponse.json({ ok: true, verifyType: result.verifyType });

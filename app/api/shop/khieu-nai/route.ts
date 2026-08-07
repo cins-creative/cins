@@ -68,6 +68,7 @@ export async function POST(request: Request) {
       INVALID_STATE: [422, "Trạng thái đơn không cho mở khiếu nại."],
       LY_DO_INVALID: [422, "Lý do khiếu nại không hợp lệ."],
       ALREADY_OPEN: [422, "Đơn này đã có khiếu nại đang mở."],
+      RATE_LIMIT: [429, "Bạn đang có quá nhiều khiếu nại mở. Hãy chờ xử lý xong."],
       CREATE_FAILED: [500, "Không tạo được khiếu nại."],
     };
     const hit = map[msg];

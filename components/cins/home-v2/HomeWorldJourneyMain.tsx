@@ -127,11 +127,13 @@ export async function HomeWorldJourneyMain({
     <HomeWorldJourneyClient
       editingLayout={editing}
       layoutPersona={persona}
+      layoutGiaiDoan={giaiDoan}
       layoutLeft={layout.left}
       layoutRight={layout.right}
       layoutHidden={layout.hidden}
       layoutNewlyInjected={layout.newlyInjected}
       layoutLimits={layout.limits}
+      layoutPresetDaAp={layout.presetDaAp}
       // Element chưa resolve — feed hiện ngay, từng khối stream vào sau.
       moduleNodes={renderHomeModules(moduleIds, moduleCtx)}
       pendingConfirmations={

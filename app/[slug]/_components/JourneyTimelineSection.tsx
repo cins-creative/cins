@@ -1,5 +1,6 @@
 import { JourneyTimeline } from "@/components/journey/JourneyTimeline";
 import { listPendingDongGopFeedbackBanners } from "@/lib/article/dong-gop/notify-feedback";
+import { getBillingJourneyPin } from "@/lib/billing/journey-ghim";
 import type { LoaiMocVisibilityMap } from "@/lib/journey/filter-visibility";
 import {
   getCachedMilestoneTimelinePage,
@@ -35,6 +36,7 @@ export async function JourneyTimelineSection({
     congDongPendingInvites,
     membershipPendingOutbound,
     dongGopFeedbackPending,
+    billingPin,
   ] = await Promise.all([
     getCachedMilestoneTimelinePage({
       userId: ownerId,
@@ -57,6 +59,7 @@ export async function JourneyTimelineSection({
     isOwner && viewerProfileId
       ? listPendingDongGopFeedbackBanners(viewerProfileId)
       : Promise.resolve([]),
+    isOwner ? getBillingJourneyPin(ownerId) : Promise.resolve(null),
   ]);
 
   return (
@@ -73,6 +76,7 @@ export async function JourneyTimelineSection({
       congDongPendingInvites={congDongPendingInvites}
       membershipPendingOutbound={membershipPendingOutbound}
       dongGopFeedbackPending={dongGopFeedbackPending}
+      billingPin={billingPin}
       scrollLoad={{
         ownerSlug,
         hasMore: page.hasMore,

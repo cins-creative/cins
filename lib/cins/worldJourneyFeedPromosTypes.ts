@@ -39,7 +39,7 @@ export type FeedPromoVariant = {
   moreHref: string;
   moreLabel?: string;
   items: FeedPromoCard[];
-  /** Rail người — `dense` = tiêu đề «Gợi ý kết nối thêm» (cùng cap 4 card). */
+  /** Rail người — `dense` = tiêu đề «Gợi ý kết nối thêm» (cùng cap 5 card). */
   density?: "normal" | "dense";
 };
 
@@ -67,15 +67,15 @@ export type FeedPromoCycleSlot = (typeof FEED_PROMO_CYCLE)[number];
 /**
  * Số card theo loại + mật độ + breakpoint.
  * Mobile (`sm`) ưu tiên đủ card để scroll ngang; desktop vẫn fill một hàng.
- * Người: tối đa 4 card / lần hiển thị.
+ * Người: tối đa 5 card / lần hiển thị (rail kéo ngang infinite).
  */
 export const FEED_PROMO_VISIBLE_COUNTS: Record<
   FeedPromoKind,
   { normal: Record<FeedPromoBreakpoint, number>; dense?: Record<FeedPromoBreakpoint, number> }
 > = {
   people: {
-    normal: { sm: 4, md: 4, lg: 4 },
-    dense: { sm: 4, md: 4, lg: 4 },
+    normal: { sm: 5, md: 5, lg: 5 },
+    dense: { sm: 5, md: 5, lg: 5 },
   },
   events: {
     normal: { sm: 4, md: 2, lg: 3 },

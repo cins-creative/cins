@@ -1,7 +1,8 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "cins",
-  "main": ".open-next/worker.js",
+  // Custom worker: OpenNext fetch + scheduled (billing cron). Xem worker.ts.
+  "main": "worker.ts",
   "compatibility_date": "2026-06-29",
   "compatibility_flags": ["nodejs_compat"],
   // Giữ workers.dev khi custom domain chưa gắn xong (tránh deploy fail → mất URL test).
@@ -22,6 +23,12 @@
   },
   "observability": {
     "enabled": true
+  },
+  // Billing P2 — Cron Triggers → worker.ts `scheduled` → POST /api/noi-bo/billing/cron.
+  // GitHub Actions `billing-cron.yml` vẫn gọi HTTP (dự phòng / dual).
+  // 01:00 UTC ≈ 08:00 VN.
+  "triggers": {
+    "crons": ["0 1 * * *"]
   },
   // Local preview cần chuỗi kết nối Postgres: đặt biến
   // WRANGLER_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE trong .dev.vars

@@ -1,0 +1,46 @@
+# Billing cron — chốt kỳ CSĐT + shop (P2).
+# Gọi POST /api/noi-bo/billing/cron (Bearer CSDT_PHI_CRON_SECRET).
+# Secrets: NEXT_PUBLIC_SITE_URL, CSDT_PHI_CRON_SECRET
+# (tuỳ chọn CINS_NOI_BO_SHOP_PHI_SECRET nếu tách secret shop)
+# Query only: csdt | shop | dong_don | both
+name: Billing cron
+
+on:
+  schedule:
+    # 01:00 UTC ≈ 08:00 VN — khớp wrangler triggers.crons
+    - cron: "0 1 * * *"
+  workflow_dispatch:
+    inputs:
+      only:
+        description: "csdt | shop | dong_don | both"
+        required: false
+        default: "both"
+jobs:
+  chot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Chốt kỳ billing
+        env:
+          SITE: ${{ secrets.NEXT_PUBLIC_SITE_URL }}
+          SECRET: ${{ secrets.CSDT_PHI_CRON_SECRET }}
+          ONLY: ${{ github.event.inputs.only || 'both' }}
+        run: |
+          set -euo pipefail
+          BASE="${SITE:-https://cins.vn}"
+          BASE="${BASE%/}"
+          if [ -z "${SECRET:-}" ]; then
+            echo "Missing CSDT_PHI_CRON_SECRET"
+            exit 1
+          fi
+          Q=""
+          if [ "$ONLY" = "csdt" ] || [ "$ONLY" = "shop" ] || [ "$ONLY" = "dong_don" ]; then
+            Q="?only=$ONLY"
+          fi
+          code=$(curl -sS -o /tmp/billing-cron.json -w "%{http_code}" \
+            -X POST "${BASE}/api/noi-bo/billing/cron${Q}" \
+            -H "Authorization: Bearer ${SECRET}" \
+            -H "Content-Type: application/json")
+          cat /tmp/billing-cron.json
+          echo
+          test "$code" = "200"

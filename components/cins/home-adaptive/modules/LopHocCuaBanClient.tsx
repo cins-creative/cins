@@ -1,6 +1,6 @@
 "use client";
 
-import { DoorOpen, School } from "lucide-react";
+import { DoorOpen } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { useCinsChat } from "@/components/cins/CinsChatProvider";
@@ -101,19 +101,19 @@ export function LopHocCuaBanPanel({
   if (rows.length === 0) {
     return (
       <ModuleCard
-        icon={School}
-        title="Lớp học của bạn"
+        icon={DoorOpen}
+        title="Phòng học"
         className="ha-card--lop"
       >
-        <ModuleEmpty>Bạn chưa ghi danh lớp nào.</ModuleEmpty>
+        <ModuleEmpty>Chưa có lớp nào để vào phòng.</ModuleEmpty>
       </ModuleCard>
     );
   }
 
   return (
     <ModuleCard
-      icon={School}
-      title="Lớp học của bạn"
+      icon={DoorOpen}
+      title="Phòng học"
       badge={soonCount > 0 ? String(soonCount) : undefined}
       className="ha-card--lop"
     >

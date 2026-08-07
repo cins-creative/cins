@@ -5,13 +5,14 @@ import {
   Building2,
   CalendarDays,
   Compass,
+  DoorOpen,
   Eye,
   GraduationCap,
   Loader2,
   MapPin,
   Package,
   Route,
-  School,
+  ShoppingCart,
   Sparkles,
   UserRoundPlus,
   Users,
@@ -21,6 +22,8 @@ import Link from "next/link";
 import type { CSSProperties } from "react";
 
 import { HangFeaturePanel } from "@/components/cins/home-adaptive/modules/HangFeatureClient";
+import { GioHangPanel } from "@/components/cins/home-adaptive/modules/GioHangCuaBanClient";
+import { QuanLyKhoPanel } from "@/components/cins/home-adaptive/modules/QuanLyKhoPanel";
 import { HaOrgSuggestionRow } from "@/components/cins/home-adaptive/HaOrgSuggestionRow";
 import { HaOrgUpcomingEventsPanel } from "@/components/cins/home-adaptive/HaOrgUpcomingEventsPanel";
 import { HaUpdateProjectButton } from "@/components/cins/home-adaptive/HaUpdateProjectButton";
@@ -44,13 +47,15 @@ const TITLE_ICON: Partial<Record<ModuleId, LucideIcon>> = {
   duong_toi_do: GraduationCap,
   kham_pha_linh_vuc: Compass,
   khoa_hoc_goi_y: GraduationCap,
-  lop_hoc_cua_ban: School,
+  lop_hoc_cua_ban: DoorOpen,
   ho_so_cua_ban: Route,
   co_hoi: Briefcase,
   cho_ban_duyet: Sparkles,
   hoc_vien_cua_ban: Users,
   scout_tai_nang: Sparkles,
   hang_feature: Package,
+  quan_ly_kho: Package,
+  gio_hang_cua_ban: ShoppingCart,
 };
 
 function PreviewShell({
@@ -85,6 +90,9 @@ export function HomeModuleLivePreview({
   viewerProfileId?: string;
 }) {
   if (payload.empty) {
+    if (payload.id === "gio_hang_cua_ban") {
+      return <GioHangPanel items={[]} tongSoDong={0} />;
+    }
     return (
       <PreviewShell id={payload.id}>
         <p className="ha-card-empty">Chưa có nội dung để hiển thị.</p>
@@ -141,7 +149,13 @@ export function HomeModuleLivePreview({
         >
           <div className="ha-studio-list">
             {payload.orgs.map((o) => (
-              <HaOrgSuggestionRow key={o.id} org={o} />
+              <HaOrgSuggestionRow
+                key={o.id}
+                org={o}
+                subtitle={
+                  payload.id === "goi_y_studio" ? o.reason : undefined
+                }
+              />
             ))}
           </div>
         </PreviewShell>
@@ -292,7 +306,11 @@ export function HomeModuleLivePreview({
                     ) : null}
                     {job.salary ? (
                       <div className="ha-job-sal">{job.salary}</div>
-                    ) : null}
+                    ) : (
+                      <div className="ha-job-sal ha-job-sal--muted">
+                        Thỏa thuận
+                      </div>
+                    )}
                   </div>
                 </div>
               );
@@ -452,6 +470,18 @@ export function HomeModuleLivePreview({
           initialItems={payload.items}
           limit={Math.max(3, payload.items.length)}
         />
+      );
+    case "quan_ly_kho":
+      return (
+        <QuanLyKhoPanel
+          items={payload.items}
+          canhBao={payload.canhBao}
+          limit={Math.max(3, Math.min(payload.items.length, 4))}
+        />
+      );
+    case "gio_hang_cua_ban":
+      return (
+        <GioHangPanel items={payload.items} tongSoDong={payload.tongSoDong} />
       );
     default: {
       const _e: never = payload;

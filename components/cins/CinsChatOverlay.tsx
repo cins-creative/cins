@@ -227,7 +227,8 @@ import {
 
 type Props = {
   launch: ChatLaunchState | null;
-  onClose: () => void;
+  /** Đóng panel; truyền `nextHref` khi rời chat sang trang khác (vd. Journey). */
+  onClose: (nextHref?: string) => void;
   onUnreadChange: (count: number) => void;
   /** Fill vùng shell (giữ topbar/sidebar) — gắn URL `/chat`. */
   shellFill?: boolean;
@@ -1659,15 +1660,11 @@ export function CinsChatOverlay({
       slug: string,
       opts?: { filter?: "unread" | "open" },
     ) => {
-      onClose();
       const base = orgQuanLyPath(kind, slug, "tin-nhan");
-      if (opts?.filter) {
-        router.push(`${base}?filter=${opts.filter}`);
-        return;
-      }
-      router.push(base);
+      const href = opts?.filter ? `${base}?filter=${opts.filter}` : base;
+      onClose(href);
     },
-    [onClose, router],
+    [onClose],
   );
   const tabUnread = useMemo(() => {
     const counts = Object.fromEntries(
@@ -2896,10 +2893,9 @@ export function CinsChatOverlay({
       const slug = thread.peerSlug?.trim();
       if (!slug) return;
       setThreadMenuRoomId(null);
-      onClose();
-      router.push(`/${slug}`);
+      onClose(`/${slug}`);
     },
-    [onClose, router],
+    [onClose],
   );
 
   const handleLeaveGroup = useCallback(

@@ -35,5 +35,7 @@ export async function GET(_req: Request, ctx: Ctx) {
     coStkNhanPhi: gate.coStkNhanPhi,
     phiLuyKeChuaVaoKy: gate.phiLuyKeChuaVaoKy,
     nguongKichHoatVnd: gate.nguongKichHoatVnd,
+    tuKhaiTamMo: gate.tuKhaiTamMo,
+    tuKhaiDenIso: gate.tuKhaiDenIso,
   });
 }

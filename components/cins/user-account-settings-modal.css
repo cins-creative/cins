@@ -138,6 +138,58 @@
   color: var(--ink-muted, rgba(0, 0, 0, 0.45));
 }
 
+/* ── Điều khoản bán hàng render có phân cấp ── */
+.uas-terms {
+  margin-top: 10px;
+}
+
+.uas-terms-intro {
+  margin: 0 0 4px;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--ink-body, rgba(0, 0, 0, 0.72));
+}
+
+.uas-terms-clause {
+  margin-top: 14px;
+}
+
+.uas-terms-clause-title {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  margin: 0 0 4px;
+  font-size: 13.5px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--ink-title, rgba(0, 0, 0, 0.82));
+}
+
+.uas-terms-clause-num {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--cins-blue, #1f74c9);
+  font-variant-numeric: tabular-nums;
+}
+
+.uas-terms-clause p {
+  margin: 0 0 3px 1.4rem;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--ink-body, rgba(0, 0, 0, 0.68));
+}
+
+.uas-terms-outro {
+  margin: 16px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--border, #e4e6eb);
+  font-size: 13px;
+  line-height: 1.6;
+  font-weight: 500;
+  color: var(--ink-title, rgba(0, 0, 0, 0.82));
+}
+
 .uas-layout-stack {
   display: flex;
   flex-direction: column;

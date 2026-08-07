@@ -112,7 +112,8 @@ type CinsChatContextValue = {
   viewerProfileId: string | null;
   totalUnread: number;
   openChat: (options?: OpenChatOptions) => Promise<void>;
-  closeChat: () => void;
+  /** Đóng panel. Nếu `nextHref` — điều hướng tới đó (không `back`/`replace("/")` đua với nav). */
+  closeChat: (nextHref?: string) => void;
   refreshUnread: () => Promise<void>;
   setTotalUnread: (count: number) => void;
   subscribeChatMessages: (listener: ChatMessageListener) => () => void;
@@ -532,6 +533,7 @@ export function CinsChatProvider({
       if (!viewerProfileId) return;
 
       const event = toRealtimeMessageEvent(row, viewerProfileId, "insert");
+      if (!event) return;
       for (const listener of listenersRef.current) {
         listener(event);
       }
@@ -568,6 +570,7 @@ export function CinsChatProvider({
       if (!viewerProfileId) return;
 
       const event = toRealtimeMessageEvent(row, viewerProfileId, "update");
+      if (!event) return;
       for (const listener of listenersRef.current) {
         listener(event);
       }
@@ -617,22 +620,42 @@ export function CinsChatProvider({
     }
   }, []);
 
-  const closeChat = useCallback(() => {
-    setOpen(false);
-    setLaunch(null);
-    setShellFill(false);
-    void refreshUnread();
-    if (chatHistoryPushedRef.current) {
-      ignoreChatPopRef.current = true;
-      chatHistoryPushedRef.current = false;
-      window.history.back();
-      return;
-    }
-    /* Hard load `/chat` — rời route thật. */
-    if (isChatPagePath(window.location.pathname)) {
-      router.replace("/");
-    }
-  }, [refreshUnread, router]);
+  const closeChat = useCallback(
+    (nextHref?: string) => {
+      setOpen(false);
+      setLaunch(null);
+      setShellFill(false);
+      void refreshUnread();
+
+      const dest = nextHref?.trim();
+      if (dest) {
+        /* Một lần nav — tránh history.back()/replace("/") đua với push profile. */
+        if (chatHistoryPushedRef.current) {
+          chatHistoryPushedRef.current = false;
+          router.replace(dest);
+          return;
+        }
+        if (isChatPagePath(window.location.pathname)) {
+          router.replace(dest);
+          return;
+        }
+        router.push(dest);
+        return;
+      }
+
+      if (chatHistoryPushedRef.current) {
+        ignoreChatPopRef.current = true;
+        chatHistoryPushedRef.current = false;
+        window.history.back();
+        return;
+      }
+      /* Hard load `/chat` — rời route thật. */
+      if (isChatPagePath(window.location.pathname)) {
+        router.replace("/");
+      }
+    },
+    [refreshUnread, router],
+  );
 
   /* Hard visit `/chat` — mở overlay trên shell trang đó. */
   useEffect(() => {

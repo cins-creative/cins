@@ -1,4 +1,4 @@
-import { ClipboardList, ShoppingBag } from "lucide-react";
+import { ClipboardList, Package, ShoppingBag } from "lucide-react";
 
 import {
   ModuleCard,
@@ -8,9 +8,11 @@ import {
   DonCanXuLyPanel,
   DonHangHomeList,
 } from "@/components/cins/home-adaptive/modules/DonCanXuLyClient";
+import { QuanLyKhoPanel } from "@/components/cins/home-adaptive/modules/QuanLyKhoPanel";
 import type { HomeModuleCtx } from "@/components/cins/home-adaptive/types";
 import { moduleItemLimit } from "@/components/cins/home-adaptive/types";
 import { HOME_LAYOUT_ITEM_LIMIT_MAX } from "@/lib/cins/home-adaptive/layout-prefs";
+import { loadQuanLyKho } from "@/lib/cins/home-adaptive/quan-ly-kho";
 import {
   loadDonCanXuLy,
   loadDonMuaCuaToi,
@@ -38,12 +40,7 @@ export async function DonCanXuLyModule({ ctx }: { ctx: HomeModuleCtx }) {
     );
   }
 
-  return (
-    <DonCanXuLyPanel
-      items={items}
-      limit={displayLimit}
-    />
-  );
+  return <DonCanXuLyPanel items={items} limit={displayLimit} />;
 }
 
 /** Buyer · Đơn tôi đặt. */
@@ -79,4 +76,31 @@ export async function DonMuaCuaToiModule({ ctx }: { ctx: HomeModuleCtx }) {
 /** Shop · Quầy sự kiện — đã gộp vào `theo_doi_org` tab Quan tâm. */
 export async function QuayCuaToiModule(_props: { ctx: HomeModuleCtx }) {
   return null;
+}
+
+/** Shop · Tồn kho thấp / quản lý kho. */
+export async function QuanLyKhoModule({ ctx }: { ctx: HomeModuleCtx }) {
+  const limit = moduleItemLimit(ctx, "quan_ly_kho", 4);
+  const { items, canhBao } = await loadQuanLyKho(
+    ctx.viewerId,
+    HOME_LAYOUT_ITEM_LIMIT_MAX,
+  );
+
+  if (items.length === 0) {
+    return (
+      <ModuleCard
+        icon={Package}
+        title="Quản lý kho hàng"
+        moreHref="/ban-hang/kho"
+        moreLabel="Mở kho"
+        className="ha-card--kho"
+      >
+        <ModuleEmpty>Chưa có hàng trong kho.</ModuleEmpty>
+      </ModuleCard>
+    );
+  }
+
+  return (
+    <QuanLyKhoPanel items={items} canhBao={canhBao} limit={limit} />
+  );
 }

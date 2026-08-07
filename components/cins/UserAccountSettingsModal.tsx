@@ -66,6 +66,7 @@ type SettingsSection =
   | "journey-display"
   | "lich-su-mua"
   | "ban-hang"
+  | "thanh-toan"
   | "admin"
   | "user-management"
   | "security-2fa";
@@ -79,6 +80,7 @@ const NAV: ReadonlyArray<{
   { id: "journey-display", label: "Bố cục hiển thị" },
   { id: "lich-su-mua", label: "Lịch sử mua hàng" },
   { id: "ban-hang", label: "Bán hàng" },
+  { id: "thanh-toan", label: "Thanh toán" },
   { id: "admin", label: "Admin", adminOnly: true },
   { id: "user-management", label: "Quản lý người dùng" },
   { id: "security-2fa", label: "Bảo mật 2 lớp" },
@@ -572,6 +574,13 @@ export function UserAccountSettingsModal({ open, onClose }: Props) {
               <BanHangSettingsSection titleId={`${titleId}-bh`} />
             ) : null}
 
+            {section === "thanh-toan" ? (
+              <ThanhToanSettingsSection
+                titleId={`${titleId}-tt`}
+                onClose={onClose}
+              />
+            ) : null}
+
             {section === "admin" && isCinsAdmin ? (
               <AdminSettingsSection titleId={`${titleId}-admin`} />
             ) : null}
@@ -795,18 +804,99 @@ function AdminSettingsSection({ titleId }: { titleId: string }) {
   );
 }
 
+function ThanhToanSettingsSection({
+  titleId,
+  onClose,
+}: {
+  titleId: string;
+  onClose: () => void;
+}) {
+  const router = useRouter();
+  return (
+    <section className="uas-section" aria-labelledby={titleId}>
+      <h2 id={titleId} className="uas-section-title">
+        Thanh toán
+      </h2>
+      <p className="uas-section-desc">
+        Phí nền tảng CINs (cơ sở · shop) gom về một tài khoản của bạn. Xem nợ,
+        STK nhận phí và mã chuyển khoản.
+      </p>
+      <div className="uas-row" style={{ marginTop: "0.75rem" }}>
+        <button
+          type="button"
+          className="uas-btn primary"
+          onClick={() => {
+            onClose();
+            router.push("/tai-khoan/thanh-toan");
+          }}
+        >
+          Mở thanh toán
+          <ChevronRight size={16} aria-hidden />
+        </button>
+      </div>
+    </section>
+  );
+}
+
+/**
+ * Render body điều khoản (chuỗi có mục "N. Tiêu đề") thành cấu trúc phân cấp:
+ * đoạn intro, các điều khoản đánh số với heading rõ + dòng nội dung, câu kết.
+ */
+function TermsBody({ body }: { body: string }) {
+  const lines = body.split("\n");
+  type Block =
+    | { kind: "intro" | "outro"; text: string }
+    | { kind: "clause"; num: string; title: string; lines: string[] };
+  const blocks: Block[] = [];
+  let current: Extract<Block, { kind: "clause" }> | null = null;
+  let seenClause = false;
+
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line) continue;
+    const m = /^(\d+)\.\s*(.+)$/.exec(line);
+    if (m) {
+      current = { kind: "clause", num: m[1], title: m[2], lines: [] };
+      blocks.push(current);
+      seenClause = true;
+      continue;
+    }
+    if (current) {
+      current.lines.push(line);
+    } else {
+      blocks.push({ kind: seenClause ? "outro" : "intro", text: line });
+    }
+  }
+
+  return (
+    <div className="uas-terms">
+      {blocks.map((b, i) =>
+        b.kind === "clause" ? (
+          <div key={i} className="uas-terms-clause">
+            <p className="uas-terms-clause-title">
+              <span className="uas-terms-clause-num">{b.num}.</span>
+              {b.title}
+            </p>
+            {b.lines.map((l, j) => (
+              <p key={j}>{l}</p>
+            ))}
+          </div>
+        ) : b.kind === "outro" ? (
+          <p key={i} className="uas-terms-outro">
+            {b.text}
+          </p>
+        ) : (
+          <p key={i} className="uas-terms-intro">
+            {b.text}
+          </p>
+        ),
+      )}
+    </div>
+  );
+}
+
 function BanHangSettingsSection({ titleId }: { titleId: string }) {
   const router = useRouter();
-  const [enabled, setEnabled] = useState(false);
-  const [shopVisible, setShopVisible] = useState(false);
-  const [shopReady, setShopReady] = useState(false);
-  const [shopSetupHref, setShopSetupHref] = useState<string | null>(null);
-  const [acceptTerms, setAcceptTerms] = useState(false);
-  const [termsBody, setTermsBody] = useState("");
-  const [termsTitle, setTermsTitle] = useState("Điều khoản bán hàng");
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
 
   type BanHangJson = {
     enabled?: boolean;
@@ -814,8 +904,38 @@ function BanHangSettingsSection({ titleId }: { titleId: string }) {
     shopReady?: boolean;
     shopSetupHref?: string | null;
     terms?: { title?: string; body?: string };
+    phiSan?: {
+      dangApDung?: {
+        tyLePercent?: number;
+        nguongVnd?: number;
+        toiThieuXuatKyVnd?: number;
+        soNgayHanTra?: number;
+        camKetCongBoTruocNgay?: number;
+      };
+      thongBao?: Array<{
+        id: string;
+        tieuDe: string;
+        noiDung: string;
+        tyLeDuKien: number | null;
+        hieuLucDuKien: string | null;
+        congBoLuc: string;
+      }>;
+      chinhSachHref?: string;
+    };
     error?: string;
   };
+
+  const [enabled, setEnabled] = useState(false);
+  const [shopVisible, setShopVisible] = useState(false);
+  const [shopReady, setShopReady] = useState(false);
+  const [shopSetupHref, setShopSetupHref] = useState<string | null>(null);
+  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [termsBody, setTermsBody] = useState("");
+  const [termsTitle, setTermsTitle] = useState("Điều khoản bán hàng");
+  const [phiSan, setPhiSan] = useState<BanHangJson["phiSan"] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
 
   function applyBanHangJson(json: BanHangJson | null) {
     const next = json?.enabled === true;
@@ -843,6 +963,7 @@ function BanHangSettingsSection({ titleId }: { titleId: string }) {
         setAcceptTerms(json?.enabled === true);
         if (json?.terms?.title) setTermsTitle(json.terms.title);
         if (json?.terms?.body) setTermsBody(json.terms.body);
+        if (json?.phiSan) setPhiSan(json.phiSan);
       } catch {
         if (!cancelled) setErr("Không tải được.");
       } finally {
@@ -989,17 +1110,97 @@ function BanHangSettingsSection({ titleId }: { titleId: string }) {
             <summary style={{ cursor: "pointer", fontWeight: 600 }}>
               {termsTitle}
             </summary>
-            <p
-              style={{
-                whiteSpace: "pre-wrap",
-                fontSize: 13,
-                color: "var(--ink-muted)",
-                marginTop: 8,
-              }}
-            >
-              {termsBody}
-            </p>
+            <TermsBody body={termsBody} />
           </details>
+
+          {phiSan?.dangApDung ? (
+            <details style={{ marginBottom: 16 }}>
+              <summary style={{ cursor: "pointer", fontWeight: 600 }}>
+                Chính sách phí sàn
+              </summary>
+              <p
+                style={{
+                  fontSize: 13,
+                  color: "var(--ink-muted)",
+                  marginTop: 8,
+                  lineHeight: 1.5,
+                }}
+              >
+                Phí sàn hiện tại:{" "}
+                <strong style={{ color: "var(--cins-blue)" }}>
+                  {phiSan.dangApDung.tyLePercent}%
+                </strong>{" "}
+                doanh thu hàng tháng (trả sau). CINs không giữ tiền hàng — bạn
+                trả phí riêng qua mục Thanh toán.
+              </p>
+              <ul
+                style={{
+                  margin: "8px 0 0",
+                  paddingLeft: 18,
+                  fontSize: 13,
+                  color: "var(--ink-muted)",
+                  lineHeight: 1.45,
+                }}
+              >
+                <li>
+                  Tối thiểu xuất kỳ:{" "}
+                  {new Intl.NumberFormat("vi-VN").format(
+                    phiSan.dangApDung.toiThieuXuatKyVnd ?? 0,
+                  )}
+                  ₫
+                </li>
+                <li>
+                  Hạn trả: {phiSan.dangApDung.soNgayHanTra ?? 7} ngày sau thông
+                  báo hoá đơn
+                </li>
+                <li>
+                  Công bố trước tối thiểu{" "}
+                  {phiSan.dangApDung.camKetCongBoTruocNgay ?? 30} ngày nếu đổi
+                  tỷ lệ đã quyết định áp dụng
+                </li>
+              </ul>
+              {(phiSan.thongBao?.length ?? 0) > 0 ? (
+                <ul
+                  style={{
+                    listStyle: "none",
+                    margin: "10px 0 0",
+                    padding: 0,
+                  }}
+                >
+                  {phiSan.thongBao!.map((t) => (
+                    <li
+                      key={t.id}
+                      style={{
+                        marginTop: 8,
+                        paddingTop: 8,
+                        borderTop: "1px solid var(--border)",
+                        fontSize: 13,
+                      }}
+                    >
+                      <strong>{t.tieuDe}</strong>
+                      <p
+                        style={{
+                          margin: "4px 0 0",
+                          color: "var(--ink-muted)",
+                          whiteSpace: "pre-wrap",
+                        }}
+                      >
+                        {t.noiDung}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+              <p style={{ marginTop: 10, fontSize: 13 }}>
+                <Link
+                  href={phiSan.chinhSachHref || "/chinh-sach/phi-san"}
+                  style={{ color: "var(--cins-blue)" }}
+                >
+                  Xem trang chính sách phí sàn
+                </Link>
+              </p>
+            </details>
+          ) : null}
 
           {enabled ? (
             <div>

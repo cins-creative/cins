@@ -58,6 +58,7 @@ import type {
   ChatThread,
 } from "@/lib/chat/types";
 import { useChatRealtime } from "@/lib/chat/use-chat-realtime";
+import { tinHienVoiViewer } from "@/lib/chat/visibility";
 import { imageFilesFromClipboard } from "@/lib/files/clipboard-images";
 import { userEmojiDeliveryUrl } from "@/lib/user-emoji/delivery-url";
 import type { UserEmojiMuc } from "@/lib/user-emoji/types";
@@ -818,6 +819,7 @@ function CoSoRoomsPane({
     viewerId,
     (row: ChatRealtimeRow) => {
       if (!viewerId) return;
+      if (!tinHienVoiViewer(row.chi_hien_cho, viewerId)) return;
       if (!threadsRef.current.some((t) => t.roomId === row.id_phong)) return;
       const mapped = mapRealtimeRow(row, viewerId);
       const activeRoom = selectedRoomIdRef.current;

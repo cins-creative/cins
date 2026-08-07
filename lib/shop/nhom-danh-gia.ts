@@ -30,7 +30,7 @@ async function resolveEligibleDonHangId(
     .select("id")
     .eq("id_nguoi_mua", buyerId)
     .eq("id_nguoi_ban", sellerId)
-    .in("trang_thai", ["da_nhan_tien", "da_giao_tai_su_kien"])
+    .in("trang_thai", ["hoan_thanh"])
     .order("tao_luc", { ascending: false })
     .limit(40);
   if (error) {

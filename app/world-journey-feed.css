@@ -1568,15 +1568,37 @@
 .world-journey-home .wj-feed-promo-rail-track {
   display: flex;
   gap: 8px;
-  overflow-x: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
   padding: 2px 0 6px;
   margin: 0;
   width: 100%;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  cursor: grab;
+  overscroll-behavior-inline: contain;
+  touch-action: pan-x;
+  -webkit-overflow-scrolling: touch;
+}
+
+.world-journey-home .wj-feed-promo-rail-track::-webkit-scrollbar {
+  display: none;
+}
+
+.world-journey-home .wj-feed-promo-rail-track.is-dragging {
+  cursor: grabbing;
+  scroll-snap-type: none;
+  user-select: none;
+}
+
+.world-journey-home .wj-feed-promo-rail-track.is-dragging a,
+.world-journey-home .wj-feed-promo-rail-track.is-dragging button {
+  pointer-events: none;
 }
 
 /* —— Card chung —— */
 .world-journey-home .wj-feed-promo-card {
-  flex: 1 1 0;
+  flex: 0 0 auto;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -1594,11 +1616,14 @@
     box-shadow 0.15s var(--ease);
 }
 
-/* Desktop/tablet: mỗi card promo tối đa 1/3 hàng (grid 3 cột mặc định) —
-   1 studio lẻ không phình full width; rail nhiều card (người/cơ sở) vẫn co đều. */
+/* Desktop: card rộng ≈ 1.5× mức cũ (~1/3 hàng → ~1/2 hàng). Person/org giữ fixed. */
 @media (min-width: 781px) {
-  .world-journey-home .wj-feed-promo-rail .wj-feed-promo-rail-track > .wj-feed-promo-card {
-    max-width: calc((100% - 16px) / 3);
+  .world-journey-home
+    .wj-feed-promo-rail
+    .wj-feed-promo-rail-track
+    > .wj-feed-promo-card:not(.is-person):not(.is-org) {
+    width: calc((100% - 16px) / 2);
+    max-width: calc((100% - 16px) / 2);
   }
 }
 
@@ -1769,43 +1794,21 @@
   overflow: hidden;
 }
 
-/* Người — mini profile card (cover + avatar giữa + bio + CTA) */
+/* Người — mini profile card; nền surface để tách khỏi --bg-page của shell.
+   Rộng ≈ 1.5× mức cũ (148→222) — rail kéo ngang infinite. */
 .world-journey-home .wj-feed-promo-card.is-person {
   position: relative;
-  flex: 1 1 148px;
-  min-width: 136px;
-  width: auto;
-  max-width: none;
+  flex: 0 0 222px;
+  min-width: 222px;
+  width: 222px;
+  max-width: 222px;
   padding: 0;
   gap: 0;
   overflow: hidden;
-  border: 1px solid transparent;
+  border: none;
   border-radius: 18px;
-  background:
-    linear-gradient(var(--surface), var(--surface)) padding-box,
-    linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--blue) 42%, transparent),
-      color-mix(in srgb, var(--gold, #fde859) 46%, transparent)
-    )
-    border-box;
+  background: var(--surface);
   box-shadow: none;
-}
-
-.world-journey-home .wj-feed-promo-card.is-person::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  border-radius: inherit;
-  background: linear-gradient(160deg, rgba(255, 255, 255, 0.28), transparent 40%);
-  opacity: 0.55;
-  z-index: 0;
-}
-
-:root[data-theme="dark"] .world-journey-home .wj-feed-promo-card.is-person::after {
-  background: linear-gradient(160deg, rgba(255, 255, 255, 0.05), transparent 42%);
-  opacity: 0.5;
 }
 
 .world-journey-home .wj-feed-promo-person-cover {
@@ -2031,8 +2034,10 @@
 /* Org / Studio — card ngang rộng: cover + logo + meta + theo dõi */
 .world-journey-home .wj-feed-promo-card.is-org {
   position: relative;
-  width: auto;
-  max-width: none;
+  flex: 0 0 222px;
+  min-width: 222px;
+  width: 222px;
+  max-width: 222px;
   padding: 0;
   gap: 0;
   overflow: hidden;
@@ -2259,6 +2264,9 @@
 /* S6 — rail người «Gợi ý kết nối thêm»: card hơi gọn hơn (vẫn ≤4 / hàng) */
 .world-journey-home .wj-feed-promo-rail.is-dense .wj-feed-promo-card.is-person {
   border-radius: 14px;
+  border: none;
+  background: var(--surface);
+  box-shadow: none;
 }
 
 .world-journey-home .wj-feed-promo-rail.is-dense .wj-feed-promo-person-cover {
@@ -4295,8 +4303,7 @@
     scroll-snap-type: x proximity;
     scroll-padding-inline: 12px;
     overscroll-behavior-inline: contain;
-    /* pan-x only blocked vertical page scroll when finger started on the rail */
-    touch-action: pan-x pan-y;
+    touch-action: pan-x;
     scrollbar-width: none;
     -ms-overflow-style: none;
   }
@@ -4310,9 +4317,10 @@
     .wj-feed-promo-rail-track
     > .wj-feed-promo-card.is-person,
   .world-journey-home .wj-feed-promo-rail-track > .wj-feed-promo-card.is-org {
-    flex: 0 0 160px;
-    width: 160px;
-    min-width: 160px;
+    flex: 0 0 240px;
+    width: 240px;
+    min-width: 240px;
+    max-width: 240px;
     scroll-snap-align: start;
   }
 }
@@ -4692,7 +4700,8 @@
   z-index: 30;
 }
 
-.world-journey-home .ha-card--don .ha-card-head:has(.ha-don-filter.is-open) {
+.world-journey-home .ha-card--don .ha-card-head:has(.ha-don-filter.is-open),
+.world-journey-home .ha-card--kho .ha-card-head:has(.ha-don-filter.is-open) {
   position: relative;
   z-index: 5;
 }
@@ -5374,6 +5383,11 @@
   letter-spacing: -0.01em;
 }
 
+.world-journey-home .ha-job-sal--muted {
+  font-weight: 650;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.45));
+}
+
 /* ── Card hồ sơ (cột trái LÀM) ── */
 .world-journey-home .ha-card--profile .ha-card-head {
   flex-wrap: wrap;
@@ -5611,6 +5625,204 @@
   opacity: 0.55;
   cursor: wait;
 }
+
+/* Quản lý kho — tồn thấp / hết hàng */
+.world-journey-home .ha-kho-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 2px 8px 10px;
+}
+
+.world-journey-home .ha-kho-row,
+.world-journey-home a.ha-kho-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 8px 6px;
+  border-radius: 10px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.world-journey-home a.ha-kho-row:hover {
+  background: color-mix(in srgb, var(--ink-display, #0f172a) 4%, transparent);
+}
+
+.world-journey-home .ha-kho-av {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--neutral-100, #f1f2f5);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.world-journey-home .ha-kho-av img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.world-journey-home .ha-kho-av-fallback {
+  font-size: 0.72rem;
+  font-weight: 750;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.45));
+}
+
+.world-journey-home .ha-kho-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.world-journey-home .ha-kho-title {
+  font-size: 0.8rem;
+  font-weight: 650;
+  color: var(--ink-display, rgba(0, 0, 0, 0.85));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.world-journey-home .ha-kho-sub {
+  font-size: 0.68rem;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.45));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.world-journey-home .ha-kho-ton {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--ink-display, rgba(0, 0, 0, 0.7));
+}
+
+.world-journey-home .ha-kho-row--sap_het .ha-kho-ton {
+  color: var(--cins-orange, #e07a2f);
+}
+
+.world-journey-home .ha-kho-row--het .ha-kho-ton {
+  color: var(--danger, #c0362c);
+}
+
+/* Giỏ hàng của bạn */
+.world-journey-home .ha-gio-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 2px 8px 6px;
+}
+
+.world-journey-home .ha-gio-row,
+.world-journey-home button.ha-gio-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  width: 100%;
+  padding: 8px 6px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+}
+
+.world-journey-home button.ha-gio-row:hover {
+  background: color-mix(in srgb, var(--ink-display, #0f172a) 4%, transparent);
+}
+
+.world-journey-home .ha-gio-av {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--neutral-100, #f1f2f5);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.world-journey-home .ha-gio-av img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.world-journey-home .ha-gio-av-fallback {
+  font-size: 0.72rem;
+  font-weight: 750;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.45));
+}
+
+.world-journey-home .ha-gio-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.world-journey-home .ha-gio-title {
+  font-size: 0.8rem;
+  font-weight: 650;
+  color: var(--ink-display, rgba(0, 0, 0, 0.85));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.world-journey-home .ha-gio-sub {
+  font-size: 0.68rem;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.45));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.world-journey-home .ha-gio-gia {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--ink-display, rgba(0, 0, 0, 0.7));
+}
+
+.world-journey-home .ha-gio-foot {
+  display: flex;
+  justify-content: center;
+  padding: 0 10px 10px;
+}
+
+.world-journey-home .ha-gio-cta {
+  border: 0;
+  background: transparent;
+  color: var(--cins-orange, #e07a2f);
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 8px;
+}
+
+.world-journey-home .ha-gio-cta:hover {
+  background: color-mix(in srgb, var(--cins-orange, #e07a2f) 10%, transparent);
+}
+
 
 .world-journey-home .ha-hang-refresh-err {
   margin: 0;
@@ -7338,6 +7550,57 @@
   padding-bottom: 8px;
   flex: 1;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Preset mockup: chỉ shell scroll, fill hết chiều cao modal. */
+.ha-edit-add-panel--modal .ha-edit-add-scroll.is-preset {
+  overflow: hidden;
+  padding-bottom: 0;
+}
+
+.ha-edit-add-panel--modal .ha-edit-add-scroll.is-preset .ha-edit-preset-section {
+  flex: 1;
+  min-height: 0;
+  margin-bottom: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.ha-edit-add-panel--modal .ha-edit-add-scroll.is-preset .ha-edit-preset-toolbar,
+.ha-edit-add-panel--modal .ha-edit-add-scroll.is-preset > .ha-edit-add-group-label,
+.ha-edit-add-panel--modal .ha-edit-add-scroll.is-preset .ha-edit-preset-section > .ha-edit-add-group-label {
+  flex-shrink: 0;
+}
+
+.ha-edit-add-panel--modal .ha-edit-add-scroll.is-preset .ha-edit-preset-panel {
+  flex: 1;
+  min-height: 0;
+}
+
+.ha-edit-add-panel--modal .ha-edit-add-scroll.is-preset .ha-edit-preset-shell {
+  flex: 1;
+  min-height: 0;
+  height: auto;
+  max-height: none;
+}
+
+.ha-edit-add-panel--modal .ha-edit-add-scroll.is-catalog {
+  overflow: hidden;
+  padding-bottom: 0;
+}
+
+.ha-edit-add-panel--modal .ha-edit-add-scroll.is-catalog .ha-edit-preset-section {
+  flex-shrink: 0;
+  margin-bottom: 0;
+}
+
+.ha-edit-add-panel--modal .ha-edit-add-scroll.is-catalog .ha-edit-catalog-section {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .ha-card-empty--loading {
@@ -7646,9 +7909,10 @@
   top: auto;
   bottom: auto;
   z-index: 1;
-  /* Rộng đủ 3 cột pick (~280px × 3 + gap + padding). */
-  width: min(980px, calc(100vw - 32px));
-  max-height: min(78vh, 720px);
+  /* Rộng đủ mockup 3 cột (trái · feed · phải). */
+  width: min(1120px, calc(100vw - 24px));
+  height: 90vh;
+  max-height: 90vh;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -7680,13 +7944,12 @@
 .ha-edit-add-suggest {
   flex-shrink: 0;
   margin: 8px 4px 2px;
-  padding: 8px 10px;
+  padding: 6px 10px;
   font-size: 0.8rem;
   font-weight: 600;
   line-height: 1.45;
-  color: var(--ink-display, rgba(0, 0, 0, 0.78));
-  background: var(--neutral-100, #f1f2f5);
-  border-radius: 10px;
+  text-align: center;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.48));
 }
 
 .ha-edit-add-search {
@@ -8066,6 +8329,527 @@
 .ha-edit-add-item-hint {
   font-size: 0.7rem;
   color: var(--cins-blue, #1f74c9);
+}
+
+/* —— Bộ khối (preset) — dropdown + mockup trang chủ —— */
+.ha-edit-preset-section {
+  margin-bottom: 12px;
+}
+
+.ha-edit-preset-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 4px 10px;
+  min-width: 0;
+}
+
+.ha-edit-preset-toolbar--solo {
+  justify-content: flex-start;
+  padding-bottom: 8px;
+}
+
+.ha-edit-preset-dd {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  max-width: min(100%, 320px);
+}
+
+.ha-edit-preset-dd-trigger {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid color-mix(in srgb, var(--ink-display, #0f172a) 12%, transparent);
+  background: var(--bg-surface, #fff);
+  border-radius: 12px;
+  padding: 8px 12px;
+  margin: 0;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 650;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.5));
+  text-align: left;
+}
+
+.ha-edit-preset-dd-trigger:hover {
+  border-color: color-mix(in srgb, var(--cins-blue, #1f74c9) 35%, transparent);
+  color: var(--ink-display, rgba(0, 0, 0, 0.82));
+}
+
+.ha-edit-preset-dd-trigger.is-selected {
+  border-color: var(--cins-blue, #1f74c9);
+  background: color-mix(in srgb, var(--cins-blue, #1f74c9) 10%, var(--bg-surface, #fff));
+  color: var(--cins-blue, #1f74c9);
+}
+
+.ha-edit-preset-dd-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ha-edit-preset-dd-chevron {
+  flex-shrink: 0;
+  opacity: 0.7;
+  transition: transform 0.15s ease;
+}
+
+.ha-edit-preset-dd-chevron.is-open {
+  transform: rotate(180deg);
+}
+
+.ha-edit-preset-dd-menu {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--ink-display, #0f172a) 12%, transparent);
+  background: var(--bg-surface, #fff);
+  box-shadow: 0 10px 28px color-mix(in srgb, #000 14%, transparent);
+  max-height: min(280px, 45vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.ha-edit-preset-dd-option {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  padding: 9px 10px;
+  margin: 0;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 650;
+  color: var(--ink-display, rgba(0, 0, 0, 0.82));
+  text-align: left;
+}
+
+.ha-edit-preset-dd-option:hover {
+  background: color-mix(in srgb, var(--ink-display, #0f172a) 5%, transparent);
+}
+
+.ha-edit-preset-dd-option.is-selected {
+  background: color-mix(in srgb, var(--cins-blue, #1f74c9) 10%, transparent);
+  color: var(--cins-blue, #1f74c9);
+}
+
+.ha-edit-preset-dd-option-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ha-edit-preset-dd-check {
+  flex-shrink: 0;
+}
+
+.ha-edit-preset-tab-sep {
+  flex-shrink: 0;
+  align-self: stretch;
+  width: 1px;
+  margin: 4px 2px;
+  background: color-mix(in srgb, var(--ink-display, #0f172a) 12%, transparent);
+}
+
+.ha-edit-preset-tab {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid color-mix(in srgb, var(--ink-display, #0f172a) 12%, transparent);
+  background: var(--bg-surface, #fff);
+  border-radius: 999px;
+  padding: 7px 12px;
+  margin: 0;
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 650;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.5));
+  white-space: nowrap;
+}
+
+.ha-edit-preset-tab:hover {
+  border-color: color-mix(in srgb, var(--cins-blue, #1f74c9) 35%, transparent);
+  color: var(--ink-display, rgba(0, 0, 0, 0.82));
+}
+
+.ha-edit-preset-tab.is-selected {
+  border-color: var(--cins-blue, #1f74c9);
+  background: color-mix(in srgb, var(--cins-blue, #1f74c9) 10%, var(--bg-surface, #fff));
+  color: var(--cins-blue, #1f74c9);
+}
+
+.ha-edit-preset-tab--catalog {
+  flex-shrink: 0;
+}
+
+.ha-edit-preset-tab-used {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  opacity: 0.75;
+}
+
+.ha-edit-preset-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0 4px 4px;
+  min-height: 0;
+}
+
+.ha-edit-preset-panel-meta {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.ha-edit-preset-panel-for {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.48));
+  line-height: 1.4;
+}
+
+.ha-edit-preset-card-cta {
+  flex-shrink: 0;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 0.82rem;
+  font-weight: 650;
+  cursor: pointer;
+  color: #fff;
+  background: var(--cins-blue, #1f74c9);
+}
+
+.ha-edit-preset-card-cta:hover,
+.ha-edit-preset-card-cta:focus-visible {
+  filter: brightness(1.06);
+}
+
+.ha-edit-preset-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr) minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid var(--border, color-mix(in srgb, var(--ink-display) 12%, transparent));
+  background: var(--bg-page);
+  /* Fill chiều cao còn lại (modal flex); scroll nội bộ. */
+  min-height: 220px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  pointer-events: auto;
+  user-select: none;
+}
+
+.ha-edit-preset-col {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.ha-edit-preset-col--feed {
+  align-self: stretch;
+  position: sticky;
+  top: 0;
+  pointer-events: none;
+  opacity: 0.3;
+}
+
+.ha-edit-preset-mod {
+  min-width: 0;
+  pointer-events: none;
+}
+
+.ha-edit-preset-mod .ha-card {
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--ink-display) 8%, transparent);
+  background: var(--bg-surface);
+}
+
+.ha-edit-preset-mod .ha-card-title,
+.ha-edit-preset-mod .ha-org-up-title {
+  font-size: 0.78rem;
+}
+
+.ha-edit-preset-col-empty {
+  margin: 0;
+  padding: 16px 8px;
+  text-align: center;
+  font-size: 0.72rem;
+  color: var(--ink-muted);
+}
+
+.ha-edit-preset-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 280px;
+  padding: 8px;
+  border-radius: 12px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border, color-mix(in srgb, var(--ink-display) 10%, transparent));
+  position: relative;
+}
+
+.ha-edit-preset-feed-composer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--ink-display) 6%, transparent);
+}
+
+.ha-edit-preset-feed-composer-dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--cins-blue, #1f74c9) 45%, var(--neutral-300, #94a3b8));
+  flex-shrink: 0;
+}
+
+.ha-edit-preset-feed-composer-bar {
+  flex: 1;
+  height: 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ink-display) 10%, transparent);
+}
+
+.ha-edit-preset-feed-card {
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--bg-surface) 92%, var(--ink-display));
+  border: 1px solid var(--border, color-mix(in srgb, var(--ink-display) 8%, transparent));
+}
+
+.ha-edit-preset-feed-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: color-mix(in srgb, var(--cins-mint, #6ec6b0) 45%, var(--neutral-400, #64748b));
+}
+
+.ha-edit-preset-feed-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.ha-edit-preset-feed-line {
+  display: block;
+  height: 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ink-display) 12%, transparent);
+  width: 100%;
+}
+
+.ha-edit-preset-feed-line--sm {
+  width: 42%;
+}
+
+.ha-edit-preset-feed-line--mid {
+  width: 68%;
+}
+
+.ha-edit-preset-feed-media {
+  display: block;
+  height: 52px;
+  margin-top: 2px;
+  border-radius: 8px;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--cins-blue, #1f74c9) 22%, var(--bg-page)),
+    color-mix(in srgb, var(--cins-violet, #8b7cf6) 20%, var(--bg-surface))
+  );
+}
+
+.ha-edit-preset-feed-caption {
+  margin: auto 0 0;
+  padding-top: 4px;
+  text-align: center;
+  font-size: 0.68rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+:root[data-theme="dark"] .ha-edit-preset-dd-trigger,
+:root[data-theme="dark"] .ha-edit-preset-tab {
+  background: var(--bg-surface);
+  border-color: color-mix(in srgb, #fff 12%, transparent);
+}
+
+:root[data-theme="dark"] .ha-edit-preset-dd-trigger:hover,
+:root[data-theme="dark"] .ha-edit-preset-tab:hover {
+  border-color: color-mix(in srgb, var(--cins-blue, #1f74c9) 50%, transparent);
+}
+
+:root[data-theme="dark"] .ha-edit-preset-dd-trigger.is-selected,
+:root[data-theme="dark"] .ha-edit-preset-tab.is-selected {
+  background: color-mix(in srgb, var(--cins-blue, #1f74c9) 18%, var(--bg-surface));
+}
+
+:root[data-theme="dark"] .ha-edit-preset-dd-menu {
+  background: var(--bg-surface);
+  border-color: color-mix(in srgb, #fff 12%, transparent);
+  box-shadow: 0 12px 32px color-mix(in srgb, #000 45%, transparent);
+}
+
+:root[data-theme="dark"] .ha-edit-preset-dd-option:hover {
+  background: color-mix(in srgb, #fff 6%, transparent);
+}
+
+:root[data-theme="dark"] .ha-edit-preset-dd-option.is-selected {
+  background: color-mix(in srgb, var(--cins-blue, #1f74c9) 18%, transparent);
+}
+
+:root[data-theme="dark"] .ha-edit-preset-shell {
+  background: color-mix(in srgb, var(--bg-page) 85%, #000);
+  border-color: color-mix(in srgb, #fff 10%, transparent);
+}
+
+:root[data-theme="dark"] .ha-edit-preset-feed {
+  background: var(--bg-surface);
+  border-color: color-mix(in srgb, #fff 10%, transparent);
+}
+
+:root[data-theme="dark"] .ha-edit-preset-feed-card {
+  background: color-mix(in srgb, var(--bg-surface) 88%, #000);
+  border-color: color-mix(in srgb, #fff 8%, transparent);
+}
+
+:root[data-theme="dark"] .ha-edit-preset-mod .ha-card {
+  background: var(--bg-surface);
+  box-shadow: 0 1px 0 color-mix(in srgb, #fff 6%, transparent);
+}
+
+@media (max-width: 720px) {
+  .ha-edit-preset-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .ha-edit-preset-col--feed {
+    order: -1;
+    position: static;
+    min-height: 160px;
+  }
+
+  .ha-edit-preset-feed {
+    min-height: 140px;
+  }
+
+  .ha-edit-preset-feed-card:nth-child(n + 3) {
+    display: none;
+  }
+}
+
+.ha-edit-catalog-section {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 0 4px 4px;
+}
+
+.ha-edit-preset-overflow {
+  padding: 8px 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.ha-edit-preset-overflow-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--ink-display, rgba(0, 0, 0, 0.88));
+}
+
+.ha-edit-preset-overflow-hint {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.45));
+}
+
+.ha-edit-preset-overflow-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ha-edit-preset-overflow-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--ink-display, rgba(0, 0, 0, 0.82));
+}
+
+.ha-edit-preset-overflow-item:hover {
+  background: color-mix(in srgb, var(--ink-display, #0f172a) 5%, transparent);
+}
+
+.ha-edit-preset-overflow-tag {
+  margin-left: auto;
+  font-size: 0.65rem;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--cins-blue, #1f74c9);
+}
+
+.ha-edit-preset-overflow-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.ha-edit-add-pick-cta--ghost {
+  background: transparent !important;
+  color: var(--ink-display, rgba(0, 0, 0, 0.7)) !important;
+  border: 1px solid color-mix(in srgb, var(--ink-display, #0f172a) 14%, transparent);
 }
 
 .ha-spin {

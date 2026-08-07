@@ -71,6 +71,7 @@ export async function GET() {
     hidden: resolved.hidden,
     newlyInjected: resolved.newlyInjected,
     feed: resolved.feed,
+    presetDaAp: resolved.presetDaAp,
     at: stored?.at ?? null,
   });
 }

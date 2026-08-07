@@ -14,7 +14,8 @@ import type { SidebarProfile } from "@/components/journey/JourneySidebar";
 import type { MilestoneItem } from "@/components/journey/milestone-types";
 import type { HomeCapability } from "@/lib/cins/home-adaptive/capability-types";
 import type { HomeLayoutItemLimits } from "@/lib/cins/home-adaptive/layout-prefs";
-import type { ModuleId, Persona } from "@/lib/cins/home-adaptive/persona";
+import type { ModuleId, Persona, GiaiDoan } from "@/lib/cins/home-adaptive/persona";
+import type { PresetId } from "@/lib/cins/home-adaptive/presets";
 import type { WjLinhVucAsideItem } from "@/lib/cins/worldJourneyGuestAside";
 import type { WjFilterChip } from "@/lib/cins/worldJourneyFeedFilters";
 import type { FeedPromoVariant } from "@/lib/cins/worldJourneyFeedPromosTypes";
@@ -41,11 +42,13 @@ type Props = {
   feedPromos?: FeedPromoVariant[];
   editingLayout?: boolean;
   layoutPersona: Persona;
+  layoutGiaiDoan?: GiaiDoan | null;
   layoutLeft: ModuleId[];
   layoutRight: ModuleId[];
   layoutHidden: ModuleId[];
   layoutNewlyInjected?: ModuleId[];
   layoutLimits?: HomeLayoutItemLimits;
+  layoutPresetDaAp?: PresetId[];
   moduleNodes: ReactNode;
   capabilities?: HomeCapability[];
 };
@@ -67,11 +70,13 @@ export function HomeWorldJourneyClient({
   feedPromos,
   editingLayout = false,
   layoutPersona,
+  layoutGiaiDoan = null,
   layoutLeft,
   layoutRight,
   layoutHidden,
   layoutNewlyInjected = [],
   layoutLimits = {},
+  layoutPresetDaAp = [],
   moduleNodes,
   capabilities = [],
 }: Props) {
@@ -101,8 +106,15 @@ export function HomeWorldJourneyClient({
       setEditing(false);
       clearHomeLayoutEditUrl();
       if (opts?.refresh) {
-        // Soft-refresh nền sau khi UI đã thoát edit — không chặn nút Lưu.
-        queueMicrotask(() => router.refresh());
+        /* Soft-refresh nền sau paint — UI đã hiện live preview / skeleton. */
+        const run = () => {
+          router.refresh();
+        };
+        if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+          window.requestIdleCallback(run, { timeout: 1200 });
+        } else {
+          window.setTimeout(run, 50);
+        }
       }
     },
     [router],
@@ -120,11 +132,13 @@ export function HomeWorldJourneyClient({
       <HomeLayoutEditProvider
         editing={editing}
         persona={layoutPersona}
+        giaiDoan={layoutGiaiDoan}
         viewerProfileId={viewerProfileId}
         initialLeft={layoutLeft}
         initialRight={layoutRight}
         initialHidden={layoutHidden}
         initialLimits={layoutLimits}
+        initialPresetDaAp={layoutPresetDaAp}
         newlyInjected={layoutNewlyInjected}
         moduleNodes={moduleNodes}
         exitEditing={exitEditing}

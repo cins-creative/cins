@@ -1,7 +1,7 @@
 import "server-only";
 
 import { tienPhaiTra } from "@/lib/co-so/phi-config";
-import { apDungSoTienVaoKy } from "@/lib/co-so/phi-sepay";
+import { phanBoSoTienVaoKyNo } from "@/lib/co-so/phi-sepay";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 export type AdminCsdtPhiKy = {
@@ -227,8 +227,10 @@ export async function ganGiaoDichVaoKy(input: {
     return { ok: false, error: linkErr.message };
   }
 
-  const applied = await apDungSoTienVaoKy(ky.id, soTien);
-  if (!applied.ok) {
+  const allocated = await phanBoSoTienVaoKyNo(ky.id_to_chuc, soTien, {
+    uuTienKyId: ky.id,
+  });
+  if (!allocated.ok) {
     /* Rollback link nếu cộng tiền fail */
     await admin
       .from("org_phi_thanh_toan")
@@ -239,10 +241,10 @@ export async function ganGiaoDichVaoKy(input: {
         gan_luc: null,
       })
       .eq("id", gd.id);
-    return { ok: false, error: applied.error };
+    return { ok: false, error: "Không phân bổ được số tiền." };
   }
 
-  return { ok: true, daTraKy: applied.daTraKy };
+  return { ok: true, daTraKy: allocated.daTraKyIds.length > 0 };
 }
 
 /** Nhập số hóa đơn thủ công (xuất ngoài hệ thống). */

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { revalidatePath, revalidateTag, unstable_cache } from "next/cache";
+import { revalidateTag, unstable_cache } from "next/cache";
 
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
@@ -48,9 +48,8 @@ export async function loadHomeLayoutRaw(profileId: string): Promise<unknown> {
 
 export function revalidateHomeLayout(profileId: string): void {
   // Route handler không dùng được `updateTag` (chỉ Server Action).
-  // `profile: "max"` = stale-while-revalidate → `router.refresh()` sau Lưu vẫn
-  // nhận layout cũ, khối mới biến mất tới lần refresh sau. `expire: 0` hết hạn
-  // ngay để soft-refresh lấy `home_layout` mới.
+  // `expire: 0` hết hạn ngay → soft-refresh lấy `home_layout` mới.
+  // Không `revalidatePath("/")` ở đây: làm chậm PUT và client đã
+  // `router.refresh()` khi cần hydrate khối mới.
   revalidateTag(homeLayoutTag(profileId), { expire: 0 });
-  revalidatePath("/");
 }

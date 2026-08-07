@@ -1,5 +1,6 @@
 import "server-only";
 
+import { todayYmdVn } from "@/lib/co-so/ky-hoc";
 import {
   applyShopGateFromSignals,
 } from "@/lib/shop/gate";
@@ -244,16 +245,22 @@ export async function adminXacNhanPhiKy(
 
 /**
  * Cron: chốt kỳ tháng trước → chua_tra + thông báo; đánh dấu qua_han; cập nhật gate.
+ * P2: ngưỡng tối thiểu xuất kỳ (B4) — phí nhỏ dồn sang tháng hiện tại; dual-write cins_hoa_don.
  */
 export async function chotKyPhiThang(now = new Date()): Promise<{
   chot: number;
   quaHan: number;
+  donSangKySau: number;
 }> {
   const admin = createServiceRoleClient();
   const ky = kyThangTruoc(now);
   const tyLe = await shopPhiTyLe();
   const hanTra = hanTraChoKy(ky);
+  const { getCinsTaiChinh } = await import("@/lib/cins/tai-chinh-config");
+  const cfg = await getCinsTaiChinh();
+  const toiThieu = cfg.shop.toiThieuXuatKyVnd;
   let chot = 0;
+  let donSangKySau = 0;
 
   /* Lấy seller có dòng phí trong kỳ (theo id_ky hoặc theo tháng tạo). */
   const { data: kys } = await admin
@@ -271,6 +278,7 @@ export async function chotKyPhiThang(now = new Date()): Promise<{
       .single<KyRow>();
     if (!fresh) continue;
     const phi = Number(fresh.phi_phai_tra);
+    const gmv = Number(fresh.gmv_ghi_nhan);
     if (phi <= 0) {
       await admin
         .from("shop_phi_ky")
@@ -283,6 +291,60 @@ export async function chotKyPhiThang(now = new Date()): Promise<{
         .eq("id", fresh.id);
       continue;
     }
+
+    /* B4: dưới ngưỡng → dồn GMV/phí sang kỳ tháng hiện tại, kỳ cũ mien. */
+    if (phi < toiThieu) {
+      const kyHienTai = kyDauThang(now);
+      await admin.from("shop_phi_ky").upsert(
+        {
+          id_nguoi_ban: fresh.id_nguoi_ban,
+          ky: kyHienTai,
+          gmv_ghi_nhan: 0,
+          ty_le: tyLe,
+          phi_phai_tra: 0,
+          trang_thai: "chua_chot",
+          han_tra: hanTraChoKy(kyHienTai),
+          cap_nhat_luc: now.toISOString(),
+        },
+        { onConflict: "id_nguoi_ban,ky", ignoreDuplicates: true },
+      );
+      const { data: nextKy } = await admin
+        .from("shop_phi_ky")
+        .select(KY_SELECT)
+        .eq("id_nguoi_ban", fresh.id_nguoi_ban)
+        .eq("ky", kyHienTai)
+        .maybeSingle<KyRow>();
+      if (nextKy) {
+        await admin
+          .from("shop_phi_ky")
+          .update({
+            gmv_ghi_nhan: Number(nextKy.gmv_ghi_nhan) + gmv,
+            phi_phai_tra: Number(nextKy.phi_phai_tra) + phi,
+            ty_le: tyLe,
+            cap_nhat_luc: now.toISOString(),
+          })
+          .eq("id", nextKy.id);
+        /* Chuyển dòng phí sang kỳ mới nếu có id_ky */
+        await admin
+          .from("shop_phi_dong")
+          .update({ id_ky: nextKy.id })
+          .eq("id_ky", fresh.id);
+      }
+      await admin
+        .from("shop_phi_ky")
+        .update({
+          trang_thai: "mien",
+          han_tra: hanTra,
+          ty_le: tyLe,
+          gmv_ghi_nhan: 0,
+          phi_phai_tra: 0,
+          cap_nhat_luc: now.toISOString(),
+        })
+        .eq("id", fresh.id);
+      donSangKySau += 1;
+      continue;
+    }
+
     await admin
       .from("shop_phi_ky")
       .update({
@@ -293,6 +355,23 @@ export async function chotKyPhiThang(now = new Date()): Promise<{
       })
       .eq("id", fresh.id);
     chot += 1;
+    const mapped = mapKy({
+      ...fresh,
+      trang_thai: "chua_tra",
+      han_tra: hanTra,
+      ty_le: tyLe,
+    });
+    const { syncHoaDonTuShopKy } = await import("@/lib/billing/sync-hoa-don");
+    await syncHoaDonTuShopKy(mapped);
+    const { notifyHoaDonMoi } = await import("@/lib/billing/notify-hoa-don");
+    await notifyHoaDonMoi({
+      userId: fresh.id_nguoi_ban,
+      soTienVnd: roundVnd(phi),
+      hanTra,
+      maThamChieu: null,
+      loai: "shop_phi",
+      kyLabel: ky,
+    });
     await insertSocialThongBao(admin, {
       nguoi_nhan: fresh.id_nguoi_ban,
       loai: "thong_tin",
@@ -302,8 +381,8 @@ export async function chotKyPhiThang(now = new Date()): Promise<{
     });
   }
 
-  /* Quá hạn. */
-  const today = now.toISOString().slice(0, 10);
+  /* Quá hạn — múi giờ VN (đóng B3 / V9). */
+  const today = todayYmdVn(now);
   const { data: overdue } = await admin
     .from("shop_phi_ky")
     .select("id, id_nguoi_ban")
@@ -325,6 +404,14 @@ export async function chotKyPhiThang(now = new Date()): Promise<{
       })
       .eq("id", r.id)
       .eq("trang_thai", "chua_tra");
+    const { syncTrangThaiHoaDonTuNguon } = await import(
+      "@/lib/billing/sync-hoa-don"
+    );
+    await syncTrangThaiHoaDonTuNguon({
+      nguonBang: "shop_phi_ky",
+      nguonId: r.id,
+      trangThai: "qua_han",
+    });
     quaHan += 1;
     sellers.add(r.id_nguoi_ban);
   }
@@ -332,7 +419,7 @@ export async function chotKyPhiThang(now = new Date()): Promise<{
     await applyShopGateFromSignals(s);
   }
 
-  return { chot, quaHan };
+  return { chot, quaHan, donSangKySau };
 }
 
 export async function listPhiKyChoAdmin(limit = 50): Promise<ShopPhiKy[]> {

@@ -1,7 +1,10 @@
 import "server-only";
 
 import { insertSocialThongBao } from "@/lib/social/thong-bao-insert";
-import { applyShopGateFromSignals } from "@/lib/shop/gate";
+import {
+  applyShopGateFromSignals,
+  SHOP_BUYER_TOI_DA_KHIEU_NAI_MO,
+} from "@/lib/shop/gate";
 import { loaiTruPhiDong } from "@/lib/shop/phi";
 import { getDonHang } from "@/lib/shop/don-hang";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
@@ -229,17 +232,31 @@ export async function moKhieuNai(
   const don = await getDonHang(input.idDonHang);
   if (!don) throw new Error("NOT_FOUND");
   if (don.idNguoiMua !== buyerId) throw new Error("FORBIDDEN");
-  if (
-    don.trangThai !== "da_nhan_tien" &&
-    don.trangThai !== "hoan_thanh" &&
-    don.trangThai !== "huy" &&
-    don.trangThai !== "da_giao_tai_su_kien"
-  ) {
+  /* P0 A5: không cho KN trên đơn chưa nhận tiền (vd. huy từ cho_xac_nhan) */
+  const allowedTt = new Set([
+    "da_nhan_tien",
+    "cho_lay_hang",
+    "dang_giao",
+    "da_giao_tai_su_kien",
+    "hoan_thanh",
+  ]);
+  if (!allowedTt.has(don.trangThai)) {
     throw new Error("INVALID_STATE");
   }
   if (!LY_DO.has(input.lyDo)) throw new Error("LY_DO_INVALID");
 
   const admin = createServiceRoleClient();
+
+  /* Rate limit: tối đa N khiếu nại mở / người mua */
+  const { count: openByBuyer } = await admin
+    .from("shop_khieu_nai")
+    .select("id", { count: "exact", head: true })
+    .eq("id_nguoi_mua", buyerId)
+    .in("trang_thai", ["mo", "cho_phan_hoi", "dang_xu_ly", "da_phan_xu"]);
+  if ((openByBuyer ?? 0) >= SHOP_BUYER_TOI_DA_KHIEU_NAI_MO) {
+    throw new Error("RATE_LIMIT");
+  }
+
   const { count } = await admin
     .from("shop_khieu_nai")
     .select("id", { count: "exact", head: true })
@@ -290,6 +307,57 @@ export async function moKhieuNai(
   const [mapped] = await attachBangChung([data]);
   if (!mapped) throw new Error("CREATE_FAILED");
   return mapped;
+}
+
+/**
+ * P3a: hệ thống mở khiếu nại khi buyer báo chưa nhận quá số lần hoãn.
+ * Không tính rate-limit buyer; không phải cáo buộc tự động.
+ */
+export async function moKhieuNaiTuHeThong(input: {
+  idDonHang: string;
+  moTa: string;
+}): Promise<ShopKhieuNai | null> {
+  const don = await getDonHang(input.idDonHang);
+  if (!don) throw new Error("NOT_FOUND");
+
+  const admin = createServiceRoleClient();
+  const { count } = await admin
+    .from("shop_khieu_nai")
+    .select("id", { count: "exact", head: true })
+    .eq("id_don_hang", don.id)
+    .in("trang_thai", ["mo", "cho_phan_hoi", "dang_xu_ly", "da_phan_xu"]);
+  if ((count ?? 0) > 0) return null;
+
+  const { data, error } = await admin
+    .from("shop_khieu_nai")
+    .insert({
+      id_don_hang: don.id,
+      id_nguoi_mua: don.idNguoiMua,
+      id_nguoi_ban: don.idNguoiBan,
+      ly_do: "chua_giao",
+      mo_ta: input.moTa.slice(0, 2000),
+      trang_thai: "mo",
+      han_phan_hoi: null,
+    })
+    .select(KN_SELECT)
+    .single<KnRow>();
+  if (error || !data) {
+    console.error("[shop] moKhieuNaiTuHeThong", error);
+    throw new Error("CREATE_FAILED");
+  }
+
+  await insertSocialThongBao(admin, {
+    nguoi_nhan: don.idNguoiBan,
+    loai: "thong_tin",
+    loai_doi_tuong: SHOP_KHIEU_NAI_MOI_LOAI,
+    id_doi_tuong: data.id,
+    noi_dung: `Khiếu nại hệ thống (chưa nhận quá hạn hoãn) — đơn ${don.maDon ?? don.id.slice(0, 8)}.`,
+  });
+
+  /* Không apply gate từ KN hệ thống — tránh phạt shop oan (plan: không cáo buộc). */
+
+  const [mapped] = await attachBangChung([data]);
+  return mapped ?? null;
 }
 
 /** Seller / buyer bổ sung bằng chứng hoặc ghi chú phản hồi. */

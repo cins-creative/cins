@@ -40,6 +40,8 @@ export type ModuleId =
   | "don_can_xu_ly"
   | "don_mua_cua_toi"
   | "quay_cua_toi"
+  | "quan_ly_kho"
+  | "gio_hang_cua_ban"
   // Phase 4 — tổ chức / vận hành
   | "org_inbox"
   | "quan_ly_su_kien"

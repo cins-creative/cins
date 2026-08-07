@@ -11,10 +11,24 @@ function clampTyLe(n: number): number {
 }
 
 /**
- * Tỷ lệ phí nền tảng: DB `shop_cau_hinh_phi` → env `SHOP_PHI_TY_LE` → 5%.
- * Async — mọi chỗ ghi phí phải await.
+ * Tỷ lệ phí nền tảng: `cins_cau_hinh_tai_chinh.shop_ty_le` (nếu đã set)
+ * → `shop_cau_hinh_phi` → env → 5%.
  */
 export async function shopPhiTyLe(): Promise<number> {
+  try {
+    const admin = createServiceRoleClient();
+    const { data: cins } = await admin
+      .from("cins_cau_hinh_tai_chinh")
+      .select("shop_ty_le")
+      .order("cap_nhat_luc", { ascending: false })
+      .limit(1)
+      .maybeSingle<{ shop_ty_le: number | string | null }>();
+    if (cins?.shop_ty_le != null) {
+      return clampTyLe(Number(cins.shop_ty_le));
+    }
+  } catch (e) {
+    console.error("[shop] shopPhiTyLe cins", e);
+  }
   try {
     const admin = createServiceRoleClient();
     const { data } = await admin

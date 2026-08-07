@@ -15,6 +15,10 @@ import {
   SHOP_TERMS_TITLE,
   SHOP_TERMS_VERSION,
 } from "@/lib/shop/terms";
+import {
+  getPhiDangApDungShop,
+  listPhiThongBaoCongBo,
+} from "@/lib/billing/phi-chinh-sach";
 
 export async function GET(request: Request) {
   const session = await getCurrentSessionAndProfile();
@@ -32,9 +36,11 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Không có quyền." }, { status: 403 });
   }
 
-  const [settings, ready] = await Promise.all([
+  const [settings, ready, dangApDung, thongBao] = await Promise.all([
     getBanHangSettings(acting.ownerId),
     getShopReady(acting.ownerId),
+    getPhiDangApDungShop(),
+    listPhiThongBaoCongBo("shop", 10),
   ]);
   return NextResponse.json({
     ...settings,
@@ -45,6 +51,11 @@ export async function GET(request: Request) {
       version: SHOP_TERMS_VERSION,
       title: SHOP_TERMS_TITLE,
       body: SHOP_TERMS_BODY,
+    },
+    phiSan: {
+      dangApDung,
+      thongBao,
+      chinhSachHref: "/chinh-sach/phi-san",
     },
   });
 }

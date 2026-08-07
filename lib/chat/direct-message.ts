@@ -52,6 +52,10 @@ import type {
 } from "@/lib/chat/types";
 import { CHAT_SELF_THREAD_NAME } from "@/lib/chat/types";
 import {
+  normalizeChiHienCho,
+  tinHienVoiViewer,
+} from "@/lib/chat/visibility";
+import {
   buildNguCanhPayload,
   countUnreadMentions,
   resolveMentionsAgainstMembers,
@@ -97,6 +101,8 @@ export type MessageRow = {
   da_xoa?: boolean;
   da_sua?: boolean;
   sua_luc?: string | null;
+  /** P3b: null = cả phòng; mảng = chỉ các id này thấy. */
+  chi_hien_cho?: string[] | null;
   content_media?: ContentMediaRow | ContentMediaRow[] | null;
 };
 
@@ -121,7 +127,7 @@ function normalizeMessageRow(row: MessageRow): NormalizedMessageRow {
 }
 
 export const MESSAGE_SELECT =
-  "id, id_phong, id_nguoi_gui, noi_dung, loai_tin, id_dinh_kem, id_tin_tra_loi, ngu_canh, tao_luc, da_xoa, da_sua, sua_luc, content_media(cloudflare_id, loai_media, width, height, duration_s)";
+  "id, id_phong, id_nguoi_gui, noi_dung, loai_tin, id_dinh_kem, id_tin_tra_loi, ngu_canh, tao_luc, da_xoa, da_sua, sua_luc, chi_hien_cho, content_media(cloudflare_id, loai_media, width, height, duration_s)";
 
 type ReadRow = {
   id_phong: string;
@@ -418,6 +424,7 @@ export async function fetchMessageById(
     .maybeSingle<MessageRow>();
 
   if (!row) return null;
+  if (!tinHienVoiViewer(row.chi_hien_cho, viewerId)) return null;
 
   const [reactions, pinnedIds] = await Promise.all([
     loadReactionsForMessages([messageId], viewerId),
@@ -1014,6 +1021,7 @@ function countUnreadForRoom(
     (msg) =>
       msg.id_phong === roomId &&
       msg.id_nguoi_gui !== viewerId &&
+      tinHienVoiViewer(msg.chi_hien_cho, viewerId) &&
       (!readAt || msg.tao_luc > readAt),
   ).length;
 }
@@ -1061,10 +1069,12 @@ export async function listDirectThreads(viewerId: string): Promise<ChatThread[]>
     .select(MESSAGE_SELECT)
     .in("id_phong", roomIds)
     .eq("da_xoa", false)
+    .or(`chi_hien_cho.is.null,chi_hien_cho.cs.{${viewerId}}`)
     .order("tao_luc", { ascending: false });
 
   const lastByRoom = new Map<string, MessageRow>();
   for (const msg of messages ?? []) {
+    if (!tinHienVoiViewer(msg.chi_hien_cho, viewerId)) continue;
     if (!lastByRoom.has(msg.id_phong)) {
       lastByRoom.set(msg.id_phong, msg);
     }
@@ -1204,6 +1214,7 @@ export async function listRoomMessages(
     .from("chat_tin_nhan")
     .select(MESSAGE_SELECT)
     .eq("id_phong", roomId)
+    .or(`chi_hien_cho.is.null,chi_hien_cho.cs.{${viewerId}}`)
     .order("tao_luc", { ascending: false })
     .limit(limit + 1);
 
@@ -1318,7 +1329,8 @@ async function listPinnedMessagesForRoom(
     .from("chat_tin_nhan")
     .select(MESSAGE_SELECT)
     .in("id", ids)
-    .eq("da_xoa", false);
+    .eq("da_xoa", false)
+    .or(`chi_hien_cho.is.null,chi_hien_cho.cs.{${viewerId}}`);
 
   if (!rows?.length) return [];
 
@@ -1340,6 +1352,13 @@ export async function sendRoomMessage(
         emojiMucId?: string;
         replyToId?: string;
         nguCanh?: unknown;
+        /**
+         * Server-only (P3b): giới hạn người thấy tin.
+         * API client không được truyền — chỉ lib nội bộ.
+         */
+        chiHienCho?: string[] | null;
+        /** Server-only: `system` cho nhắc khảo sát / hệ thống. */
+        loaiTin?: "text" | "system";
       },
 ): Promise<{ ok: true; message: ChatMessage } | { ok: false; error: string }> {
   const body =
@@ -1358,6 +1377,12 @@ export async function sendRoomMessage(
     typeof input === "string" ? null : parseNguCanh(input.nguCanh);
   const chuyenTiep =
     typeof input !== "string" && parseChatForwarded(input.nguCanh);
+  const chiHienCho =
+    typeof input === "string"
+      ? null
+      : normalizeChiHienCho(input.chiHienCho ?? null);
+  const loaiTinForce =
+    typeof input === "string" ? null : (input.loaiTin ?? null);
 
   if (!body && !cloudflareImageId && !videoMediaId && !emojiMucId && !contextCard) {
     return { ok: false, error: "Tin nhắn trống." };
@@ -1473,6 +1498,7 @@ export async function sendRoomMessage(
         id_dinh_kem: mediaId,
         noi_dung: stickerCloudflareId,
         ...(replyToId ? { id_tin_tra_loi: replyToId } : {}),
+        ...(chiHienCho ? { chi_hien_cho: chiHienCho } : {}),
       }
     : cloudflareImageId
     ? {
@@ -1483,6 +1509,7 @@ export async function sendRoomMessage(
         noi_dung: body || cloudflareImageId,
         ...(replyToId ? { id_tin_tra_loi: replyToId } : {}),
         ...(nguCanhPayload ? { ngu_canh: nguCanhPayload } : {}),
+        ...(chiHienCho ? { chi_hien_cho: chiHienCho } : {}),
       }
     : videoKey
     ? {
@@ -1493,14 +1520,18 @@ export async function sendRoomMessage(
         noi_dung: body || videoKey,
         ...(replyToId ? { id_tin_tra_loi: replyToId } : {}),
         ...(nguCanhPayload ? { ngu_canh: nguCanhPayload } : {}),
+        ...(chiHienCho ? { chi_hien_cho: chiHienCho } : {}),
       }
     : {
         id_phong: roomId,
         id_nguoi_gui: viewerId,
         noi_dung: body || null,
-        loai_tin: "text" as const,
+        loai_tin: (loaiTinForce === "system" ? "system" : "text") as
+          | "text"
+          | "system",
         ...(replyToId ? { id_tin_tra_loi: replyToId } : {}),
         ...(nguCanhPayload ? { ngu_canh: nguCanhPayload } : {}),
+        ...(chiHienCho ? { chi_hien_cho: chiHienCho } : {}),
       };
 
   const { data, error } = await admin
@@ -1514,9 +1545,16 @@ export async function sendRoomMessage(
   }
 
   await admin.from("chat_phong").update({ cap_nhat_luc: now }).eq("id", roomId);
-  await markRoomRead(roomId, viewerId, data.id);
 
-  let message = await fetchMessageById(data.id, viewerId);
+  /* Người gửi không nằm trong chi_hien_cho → không mark-read / không bắt buộc fetch. */
+  const visibleToSender = tinHienVoiViewer(chiHienCho, viewerId);
+  if (visibleToSender) {
+    await markRoomRead(roomId, viewerId, data.id);
+  }
+
+  let message = visibleToSender
+    ? await fetchMessageById(data.id, viewerId)
+    : mapMessageFromRow(data, viewerId);
   if (!message) {
     return { ok: false, error: "Không tải lại được tin nhắn." };
   }
@@ -1528,13 +1566,15 @@ export async function sendRoomMessage(
   );
 
   /* Notify admin org khi HV/khách gửi tin vào phòng tư vấn (fire-and-forget). */
-  void notifyOrgAdminsOfStudentMessage({
-    roomId,
-    senderId: viewerId,
-    messagePreview: messagePreview(data),
-  }).catch((err) => {
-    console.error("[sendRoomMessage] org inbox notify", err);
-  });
+  if (visibleToSender) {
+    void notifyOrgAdminsOfStudentMessage({
+      roomId,
+      senderId: viewerId,
+      messagePreview: messagePreview(data),
+    }).catch((err) => {
+      console.error("[sendRoomMessage] org inbox notify", err);
+    });
+  }
 
   return { ok: true, message };
 }

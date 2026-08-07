@@ -16,10 +16,8 @@ import { ModuleCard } from "@/components/cins/home-adaptive/ModuleCard";
 import type { HomeModuleCtx } from "@/components/cins/home-adaptive/types";
 import { moduleItemLimit } from "@/components/cins/home-adaptive/types";
 import { loadCoHoiForHome, type CoHoiItem } from "@/lib/cins/home-adaptive/co-hoi";
-import {
-  loadFollowSuggestions,
-  loadOrgFollowSuggestions,
-} from "@/lib/cins/home-adaptive/suggestions";
+import { loadStudiosDangTuyen } from "@/lib/cins/home-adaptive/studio-dang-tuyen";
+import { loadFollowSuggestions } from "@/lib/cins/home-adaptive/suggestions";
 import { loadProfileCompleteness } from "@/lib/cins/home-adaptive/profile-completeness";
 import { giaiDoanLabel } from "@/lib/cins/home-adaptive/labels";
 
@@ -106,24 +104,25 @@ export async function NguoiCungNganhModule({ ctx }: { ctx: HomeModuleCtx }) {
   );
 }
 
-/** LÀM · Studio & doanh nghiệp gợi ý theo dõi — tách khỏi gợi ý người. */
+/** LÀM · Studio / DN đang có tin tuyển dụng mở. */
 export async function GoiYStudioModule({ ctx }: { ctx: HomeModuleCtx }) {
-  const orgs = await loadOrgFollowSuggestions(ctx.viewerId, 3, {
-    loaiToChuc: ["studio", "doanh_nghiep"],
-  });
+  const orgs = await loadStudiosDangTuyen(
+    moduleItemLimit(ctx, "goi_y_studio", 3),
+  );
 
   if (orgs.length === 0) return null;
 
   return (
     <ModuleCard
       icon={Building2}
-      title="Studio & doanh nghiệp"
-      moreHref="/to-chuc"
+      title="Studio đang tuyển dụng"
+      moreHref="/tuyen-dung"
+      moreLabel="Xem thêm"
       className="ha-card--studio"
     >
       <div className="ha-studio-list">
         {orgs.map((o) => (
-          <HaOrgSuggestionRow key={o.id} org={o} />
+          <HaOrgSuggestionRow key={o.id} org={o} subtitle={o.reason} />
         ))}
       </div>
     </ModuleCard>
@@ -162,7 +161,9 @@ function CoHoiJobRow({ job }: { job: CoHoiItem }) {
             ))}
           </div>
         ) : null}
-        {job.salary ? <div className="ha-job-sal">{job.salary}</div> : null}
+        {job.salary ? <div className="ha-job-sal">{job.salary}</div> : (
+          <div className="ha-job-sal ha-job-sal--muted">Thỏa thuận</div>
+        )}
       </div>
     </div>
   );

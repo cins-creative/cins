@@ -138,6 +138,8 @@ export function ShopDonDetailModal({
   const [copyFlash, setCopyFlash] = useState<string | null>(null);
   const [vcMaDraft, setVcMaDraft] = useState("");
   const [vcDvvcDraft, setVcDvvcDraft] = useState("");
+  const [canKhaoSat, setCanKhaoSat] = useState(false);
+  const [dongDonHint, setDongDonHint] = useState<string | null>(null);
 
   useEffect(() => {
     setPortalReady(true);
@@ -154,13 +156,36 @@ export function ShopDonDetailModal({
       const json = (await res.json().catch(() => null)) as {
         don?: ShopDonHang;
         error?: string;
+        dongDon?: {
+          canKhaoSat?: boolean;
+          ngayKhaoSat?: string | null;
+          ngayTuDong?: string | null;
+          hoanDen?: string | null;
+          soLanHoan?: number;
+          soLanChoHoan?: number;
+        };
       } | null;
       if (!res.ok || !json?.don) {
         setDon(null);
+        setCanKhaoSat(false);
+        setDongDonHint(null);
         setErr(json?.error ?? "Không tải đơn.");
         return;
       }
       setDon(json.don);
+      setCanKhaoSat(Boolean(json.dongDon?.canKhaoSat));
+      const dd = json.dongDon;
+      if (dd?.hoanDen) {
+        setDongDonHint(
+          `Đã hoãn xác nhận — hỏi lại từ ${dd.hoanDen} (${dd.soLanHoan ?? 0}/${dd.soLanChoHoan ?? 2} lần).`,
+        );
+      } else if (dd?.ngayTuDong) {
+        setDongDonHint(
+          `Có thể tự đóng từ ${dd.ngayTuDong}${dd.ngayKhaoSat ? ` · khảo sát từ ${dd.ngayKhaoSat}` : ""}.`,
+        );
+      } else {
+        setDongDonHint(null);
+      }
       setVcMaDraft(json.don.vanChuyenMa?.trim() || "");
       setVcDvvcDraft(
         json.don.vanChuyenDvvc?.trim() ||
@@ -300,7 +325,9 @@ export function ShopDonDetailModal({
       | "da_nhan_tien"
       | "da_giao_tai_su_kien"
       | "hoan_thanh"
-      | "hoan_tra",
+      | "hoan_tra"
+      | "buyer_da_nhan"
+      | "buyer_chua_nhan",
   ) {
     if (!don) return;
     setBusy(true);
@@ -314,15 +341,26 @@ export function ShopDonDetailModal({
       const json = (await res.json().catch(() => null)) as {
         don?: ShopDonHang;
         error?: string;
+        ketQua?: string;
       } | null;
       if (!res.ok) {
         setErr(json?.error ?? "Không cập nhật được.");
         return;
       }
       invalidateDonCaches();
+      if (json?.ketQua === "mo_khieu_nai") {
+        setKnMsg(
+          "Đã chuyển admin xử lý (báo chưa nhận quá số lần hoãn). Không phải cáo buộc tự động.",
+        );
+      } else if (json?.ketQua === "hoan") {
+        setKnMsg("Đã ghi nhận chưa nhận — sẽ hỏi lại sau vài ngày.");
+      }
       if (json?.don) {
         setDon(json.don);
         onDonChange?.(json.don);
+        if (action === "buyer_da_nhan" || action === "buyer_chua_nhan") {
+          await load(don.id);
+        }
       } else {
         await load(don.id);
       }
@@ -1107,6 +1145,38 @@ export function ShopDonDetailModal({
                   >
                     Hoàn thành
                   </button>
+                ) : null}
+
+                {role === "buyer" &&
+                (don.trangThai === "da_nhan_tien" ||
+                  don.trangThai === "cho_lay_hang" ||
+                  don.trangThai === "dang_giao" ||
+                  don.trangThai === "da_giao_tai_su_kien") ? (
+                  <div className="shop-don-detail-buyer-nhan">
+                    {dongDonHint ? (
+                      <p className="shop-don-detail-note">{dongDonHint}</p>
+                    ) : null}
+                    <div className="shop-don-detail-actions-row">
+                      <button
+                        type="button"
+                        className="shop-don-detail-btn primary"
+                        disabled={busy}
+                        onClick={() => void patch("buyer_da_nhan")}
+                      >
+                        Đã nhận hàng
+                      </button>
+                      {canKhaoSat ? (
+                        <button
+                          type="button"
+                          className="shop-don-detail-btn ghost"
+                          disabled={busy}
+                          onClick={() => void patch("buyer_chua_nhan")}
+                        >
+                          Chưa nhận
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
                 ) : null}
 
                 {(onOpenChat && (role === "seller" || role === "buyer")) ||

@@ -1,13 +1,30 @@
 "use client";
 
 import Link from "next/link";
+import {
+  type PointerEvent as ReactPointerEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import { JourneyOrgPopover } from "@/components/journey/JourneyOrgPopover";
 import { JourneyOrgPopoverActions } from "@/components/journey/JourneyOrgPopoverActions";
 import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
 import { JourneyUserPopoverActions } from "@/components/journey/JourneyUserPopoverActions";
 import { VerifiedTick } from "@/components/journey/VerifiedTick";
-import type { FeedPromoVariant } from "@/lib/cins/worldJourneyFeedPromosTypes";
+import type {
+  FeedPromoCard,
+  FeedPromoVariant,
+} from "@/lib/cins/worldJourneyFeedPromosTypes";
+
+/** Tối đa 5 card / rail — khớp FEED_PROMO_VISIBLE_COUNTS.people. */
+const PROMO_RAIL_MAX_CARDS = 5;
+/** Nhân bản track để kéo ngang vòng vô hạn. */
+const PROMO_RAIL_LOOP_COPIES = 3;
+const DRAG_CLICK_THRESHOLD_PX = 6;
 
 type Props = {
   variant: FeedPromoVariant;
@@ -376,13 +393,186 @@ function orgSlugFromPromoHref(href: string): string {
   }
 }
 
+function renderPromoCard(
+  variant: FeedPromoVariant,
+  item: FeedPromoCard,
+  viewerProfileId: string,
+  reactKey: string,
+) {
+  if (variant.kind === "courses") {
+    return (
+      <PromoCourseCard
+        key={reactKey}
+        href={item.href}
+        title={item.title}
+        sub={item.sub}
+        imageUrl={item.imageUrl}
+        orgLogoUrl={item.orgLogoUrl}
+      />
+    );
+  }
+  if (variant.kind === "careers") {
+    return (
+      <PromoCourseCard
+        key={reactKey}
+        href={item.href}
+        title={item.title}
+        sub={item.sub}
+        imageUrl={item.imageUrl}
+        className="is-career"
+      />
+    );
+  }
+  if (variant.kind === "events") {
+    return (
+      <PromoEventCard
+        key={reactKey}
+        href={item.href}
+        title={item.title}
+        sub={item.sub}
+        imageUrl={item.imageUrl}
+        orgLogoUrl={item.orgLogoUrl}
+        dateBadge={item.dateBadge}
+      />
+    );
+  }
+  if (variant.kind === "people") {
+    return (
+      <PromoPersonCard
+        key={reactKey}
+        href={item.href}
+        title={item.title}
+        sub={item.sub}
+        imageUrl={item.imageUrl}
+        coverUrl={item.coverUrl}
+        bio={item.bio}
+        userId={item.id}
+        giaiDoan={item.giaiDoan}
+        viewerProfileId={viewerProfileId}
+      />
+    );
+  }
+  return (
+    <PromoOrgCard
+      key={reactKey}
+      id={item.id}
+      href={item.href}
+      title={item.title}
+      sub={item.sub}
+      imageUrl={item.imageUrl}
+      coverUrl={item.coverUrl}
+      bio={item.bio}
+      typeLabel={item.typeLabel}
+      location={item.location}
+      orgActionKind={item.orgActionKind}
+    />
+  );
+}
+
 /** Block ngang gợi ý xen kẽ timeline feed (không dùng ở Gallery). */
 export function WorldJourneyFeedPromoRail({
   variant,
   slotKey,
   viewerProfileId,
 }: Props) {
-  if (variant.items.length === 0) return null;
+  const items = useMemo(
+    () => variant.items.slice(0, PROMO_RAIL_MAX_CARDS),
+    [variant.items],
+  );
+  const canLoop = items.length >= 2;
+  const loopedItems = useMemo(() => {
+    if (!canLoop) {
+      return items.map((item, i) => ({ item, key: `${item.id}-${i}` }));
+    }
+    const out: { item: FeedPromoCard; key: string }[] = [];
+    for (let copy = 0; copy < PROMO_RAIL_LOOP_COPIES; copy += 1) {
+      for (const item of items) {
+        out.push({ item, key: `${item.id}-c${copy}` });
+      }
+    }
+    return out;
+  }, [canLoop, items]);
+
+  const trackRef = useRef<HTMLDivElement | null>(null);
+  const dragRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startScroll: number;
+    moved: boolean;
+  } | null>(null);
+  const [dragging, setDragging] = useState(false);
+
+  const wrapInfiniteScroll = useCallback(() => {
+    const el = trackRef.current;
+    if (!el || !canLoop) return;
+    const setWidth = el.scrollWidth / PROMO_RAIL_LOOP_COPIES;
+    if (setWidth <= 0) return;
+    if (el.scrollLeft < setWidth * 0.25) {
+      el.scrollLeft += setWidth;
+    } else if (el.scrollLeft > setWidth * 1.75) {
+      el.scrollLeft -= setWidth;
+    }
+  }, [canLoop]);
+
+  useEffect(() => {
+    const el = trackRef.current;
+    if (!el || !canLoop) return;
+    /* Đặt giữa bộ nhân bản — chỉ khi mount / đổi tập card, không reset khi resize giữa lúc kéo. */
+    const id = window.requestAnimationFrame(() => {
+      const setWidth = el.scrollWidth / PROMO_RAIL_LOOP_COPIES;
+      if (setWidth > 0) el.scrollLeft = setWidth;
+    });
+    return () => window.cancelAnimationFrame(id);
+  }, [canLoop, loopedItems.length, slotKey]);
+
+  const onPointerDown = useCallback((e: ReactPointerEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return;
+    const el = trackRef.current;
+    if (!el) return;
+    dragRef.current = {
+      pointerId: e.pointerId,
+      startX: e.clientX,
+      startScroll: el.scrollLeft,
+      moved: false,
+    };
+    el.setPointerCapture(e.pointerId);
+  }, []);
+
+  const onPointerMove = useCallback(
+    (e: ReactPointerEvent<HTMLDivElement>) => {
+      const drag = dragRef.current;
+      const el = trackRef.current;
+      if (!drag || !el || drag.pointerId !== e.pointerId) return;
+      const dx = e.clientX - drag.startX;
+      if (!drag.moved && Math.abs(dx) < DRAG_CLICK_THRESHOLD_PX) return;
+      if (!drag.moved) {
+        drag.moved = true;
+        setDragging(true);
+      }
+      el.scrollLeft = drag.startScroll - dx;
+      wrapInfiniteScroll();
+    },
+    [wrapInfiniteScroll],
+  );
+
+  const endDrag = useCallback(
+    (e: ReactPointerEvent<HTMLDivElement>) => {
+      const drag = dragRef.current;
+      const el = trackRef.current;
+      if (!drag || drag.pointerId !== e.pointerId) return;
+      if (el?.hasPointerCapture(e.pointerId)) {
+        el.releasePointerCapture(e.pointerId);
+      }
+      if (drag.moved) {
+        wrapInfiniteScroll();
+        setDragging(false);
+      }
+      dragRef.current = null;
+    },
+    [wrapInfiniteScroll],
+  );
+
+  if (items.length === 0) return null;
 
   const density = variant.density ?? "normal";
   const railClass =
@@ -397,79 +587,21 @@ export function WorldJourneyFeedPromoRail({
       data-promo-kind={variant.kind}
       data-promo-density={density}
       data-promo-slot={slotKey}
-      data-promo-count={variant.items.length}
+      data-promo-count={items.length}
     >
-      <div className="wj-feed-promo-rail-track" role="list">
-        {variant.items.map((item) => {
-          if (variant.kind === "courses") {
-            return (
-              <PromoCourseCard
-                key={item.id}
-                href={item.href}
-                title={item.title}
-                sub={item.sub}
-                imageUrl={item.imageUrl}
-                orgLogoUrl={item.orgLogoUrl}
-              />
-            );
-          }
-          if (variant.kind === "careers") {
-            return (
-              <PromoCourseCard
-                key={item.id}
-                href={item.href}
-                title={item.title}
-                sub={item.sub}
-                imageUrl={item.imageUrl}
-                className="is-career"
-              />
-            );
-          }
-          if (variant.kind === "events") {
-            return (
-              <PromoEventCard
-                key={item.id}
-                href={item.href}
-                title={item.title}
-                sub={item.sub}
-                imageUrl={item.imageUrl}
-                orgLogoUrl={item.orgLogoUrl}
-                dateBadge={item.dateBadge}
-              />
-            );
-          }
-          if (variant.kind === "people") {
-            return (
-              <PromoPersonCard
-                key={item.id}
-                href={item.href}
-                title={item.title}
-                sub={item.sub}
-                imageUrl={item.imageUrl}
-                coverUrl={item.coverUrl}
-                bio={item.bio}
-                userId={item.id}
-                giaiDoan={item.giaiDoan}
-                viewerProfileId={viewerProfileId}
-              />
-            );
-          }
-          return (
-            <PromoOrgCard
-              key={item.id}
-              id={item.id}
-              href={item.href}
-              title={item.title}
-              sub={item.sub}
-              imageUrl={item.imageUrl}
-              coverUrl={item.coverUrl}
-              bio={item.bio}
-              typeLabel={item.typeLabel}
-              location={item.location}
-              orgActionKind={item.orgActionKind}
-            />
-          );
-        })}
+      <div
+        ref={trackRef}
+        className={`wj-feed-promo-rail-track${dragging ? " is-dragging" : ""}`}
+        role="list"
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+        onScroll={canLoop ? wrapInfiniteScroll : undefined}
+      >
+        {loopedItems.map(({ item, key }) =>
+          renderPromoCard(variant, item, viewerProfileId, key),
+        )}
       </div>
     </aside>
   );

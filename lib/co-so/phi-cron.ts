@@ -57,6 +57,10 @@ async function notifyFounders(
     .eq("id_to_chuc", orgId)
     .in("vai_tro", ["owner", "admin"]);
 
+  const no = Math.max(
+    0,
+    tienPhaiTra(ky.phiPhaiTraVnd, ky.dieuChinhVnd) - ky.daTraVnd,
+  );
   let n = 0;
   for (const row of (founders ?? []) as Array<{ id_nguoi_dung: string }>) {
     const r = await insertSocialThongBao(admin, {
@@ -67,6 +71,19 @@ async function notifyFounders(
       noi_dung: noiDung,
     });
     if (r.ok) n += 1;
+
+    /* Chat hệ thống (self-room) khi kỳ mới đến hạn — không spam lại khi quá hạn. */
+    if (loai === CSDT_PHI_DEN_HAN_LOAI) {
+      const { notifyHoaDonMoi } = await import("@/lib/billing/notify-hoa-don");
+      await notifyHoaDonMoi({
+        userId: row.id_nguoi_dung,
+        soTienVnd: no,
+        hanTra: ky.hanTra,
+        maThamChieu: ky.maThamChieu,
+        loai: "csdt_phi",
+        kyLabel: fmtYmdVi(ky.ngayChot),
+      });
+    }
   }
   return n;
 }

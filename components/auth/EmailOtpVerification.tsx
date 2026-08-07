@@ -34,7 +34,7 @@ type Props = {
 
 async function requestSignupOtp(email: string): Promise<
   | { ok: true; verifyType: OtpVerifyType }
-  | { ok: false; message: string }
+  | { ok: false; message: string; retryAfterSec?: number }
 > {
   const res = await fetch("/api/auth/resend-signup-otp", {
     method: "POST",
@@ -42,11 +42,20 @@ async function requestSignupOtp(email: string): Promise<
     body: JSON.stringify({ email: email.trim() }),
   });
   const json = (await res.json().catch(() => null)) as
-    | { ok?: boolean; verifyType?: OtpVerifyType; error?: string }
+    | {
+        ok?: boolean;
+        verifyType?: OtpVerifyType;
+        error?: string;
+        retryAfterSec?: number;
+      }
     | null;
 
   if (!res.ok || !json?.ok) {
-    return { ok: false, message: json?.error || "Không gửi được mã. Thử lại sau." };
+    return {
+      ok: false,
+      message: json?.error || "Không gửi được mã. Thử lại sau.",
+      retryAfterSec: json?.retryAfterSec,
+    };
   }
 
   return { ok: true, verifyType: json.verifyType ?? "signup" };
@@ -92,6 +101,8 @@ export function EmailOtpVerification({
         setCooldown(EMAIL_OTP_RESEND_COOLDOWN_SEC);
       } else {
         setError(result.message);
+        /* Supabase còn đang chặn → khoá nút cho tới đúng lúc gửi lại được. */
+        if (result.retryAfterSec) setCooldown(result.retryAfterSec);
       }
     })();
   }, [email, sendOnMount]);
@@ -232,6 +243,7 @@ export function EmailOtpVerification({
 
     if (!result.ok) {
       setError(result.message);
+      if (result.retryAfterSec) setCooldown(result.retryAfterSec);
       return;
     }
 

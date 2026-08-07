@@ -13,10 +13,12 @@ import {
 
 type Props = {
   org: OrgFollowSuggestion;
+  /** Ghi đè dòng phụ (vd. «2 tin đang mở»). */
+  subtitle?: string;
 };
 
 /** Một dòng gợi ý tổ chức — click avatar/tên mở card org, nút riêng để theo dõi. */
-export function HaOrgSuggestionRow({ org }: Props) {
+export function HaOrgSuggestionRow({ org, subtitle }: Props) {
   const orgKind = haOrgKindForPopover(org.loaiToChuc);
   const profileHref = haOrgProfileHref(org.loaiToChuc, org.slug);
 
@@ -35,7 +37,7 @@ export function HaOrgSuggestionRow({ org }: Props) {
       <span className="ha-row-meta">
         <span className="ha-row-name">{org.name}</span>
         <span className="ha-row-sub">
-          {orgFollowSubtitle(org.loaiToChuc, org.reason)}
+          {subtitle ?? orgFollowSubtitle(org.loaiToChuc, org.reason)}
         </span>
       </span>
     </span>

@@ -11,6 +11,8 @@ type Gate = {
   tongNoVnd: number;
   hanTraGanNhat: string | null;
   maThamChieu: string | null;
+  tuKhaiTamMo?: boolean;
+  tuKhaiDenIso?: string | null;
 };
 
 type KyRow = {
@@ -98,6 +100,8 @@ export function PhiQuanLyClient({ orgId }: Props) {
   const [knKyId, setKnKyId] = useState("");
   const [knBusy, setKnBusy] = useState(false);
   const [knMsg, setKnMsg] = useState<string | null>(null);
+  const [tuKhaiBusy, setTuKhaiBusy] = useState(false);
+  const [tuKhaiMsg, setTuKhaiMsg] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -193,6 +197,32 @@ export function PhiQuanLyClient({ orgId }: Props) {
       window.setTimeout(() => setCopyFlash(null), 2000);
     } catch {
       setCopyFlash("Không copy được");
+    }
+  }
+
+  async function submitTuKhai(kyId: string) {
+    setTuKhaiBusy(true);
+    setTuKhaiMsg(null);
+    try {
+      const res = await fetch(`/api/co-so/${orgId}/phi/tu-khai-da-tra`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kyId }),
+      });
+      const json = (await res.json().catch(() => null)) as {
+        error?: string;
+        anHanDen?: string;
+      } | null;
+      if (!res.ok) {
+        setTuKhaiMsg(json?.error ?? "Không ghi nhận được.");
+        return;
+      }
+      setTuKhaiMsg(
+        "Đã ghi nhận — ghi danh tạm mở 3 ngày. CINs sẽ đối soát giao dịch.",
+      );
+      await load();
+    } finally {
+      setTuKhaiBusy(false);
     }
   }
 
@@ -363,6 +393,48 @@ export function PhiQuanLyClient({ orgId }: Props) {
                         height={200}
                       />
                       <p className="cso-phi-muted">Quét VietQR — đã gắn số tiền + mã CK</p>
+                    </div>
+                  ) : null}
+                  {knCanCreate &&
+                  kys.some(
+                    (k) =>
+                      k.trangThai === "chua_tra" || k.trangThai === "qua_han",
+                  ) ? (
+                    <div className="cso-phi-tu-khai" style={{ marginTop: 16 }}>
+                      {tuKhaiMsg ? (
+                        <p className="cso-ql-flash">{tuKhaiMsg}</p>
+                      ) : null}
+                      {gate?.tuKhaiTamMo ? (
+                        <p className="cso-phi-muted">
+                          Đã tự khai chuyển khoản — ghi danh tạm mở
+                          {gate.tuKhaiDenIso
+                            ? ` đến ${new Date(gate.tuKhaiDenIso).toLocaleString("vi-VN")}`
+                            : " 3 ngày"}
+                          . Hệ thống đang đối soát.
+                        </p>
+                      ) : (
+                        <>
+                          <p className="cso-phi-muted">
+                            Đã chuyển khoản nhưng kỳ chưa «Đã trả»? Bấm để tạm mở
+                            ghi danh 3 ngày trong khi CINs đối soát.
+                          </p>
+                          <button
+                            type="button"
+                            className="cso-ql-btn cso-ql-btn--sm"
+                            disabled={tuKhaiBusy}
+                            onClick={() => {
+                              const ky =
+                                kys.find((k) => k.trangThai === "qua_han") ??
+                                kys.find((k) => k.trangThai === "chua_tra");
+                              if (ky) void submitTuKhai(ky.id);
+                            }}
+                          >
+                            {tuKhaiBusy
+                              ? "Đang ghi…"
+                              : "Tôi đã chuyển rồi"}
+                          </button>
+                        </>
+                      )}
                     </div>
                   ) : null}
                 </div>

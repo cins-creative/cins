@@ -87,6 +87,22 @@ export async function POST(request: Request) {
         "Shop đang bị khóa bởi nền tảng (nợ phí / tranh chấp) — chưa nhận đơn.",
       ],
       BLOCKED: [403, "Không thể gửi đơn tới cửa hàng này."],
+      SOFT_LIMIT_CHO_XAC_NHAN: [
+        429,
+        "Bạn đang có quá nhiều đơn chờ shop xác nhận. Hủy bớt hoặc đợi shop xử lý.",
+      ],
+      SOFT_LIMIT_CHO_XAC_NHAN_SHOP: [
+        429,
+        "Bạn đang có quá nhiều đơn chờ xác nhận với shop này.",
+      ],
+      SOFT_LIMIT_MOI_NGAY: [
+        429,
+        "Bạn đã tạo quá nhiều đơn hôm nay. Thử lại vào ngày mai.",
+      ],
+      CREATE_LIMIT_CHECK_FAILED: [
+        503,
+        "Không kiểm tra được hạn mức đơn. Thử lại sau.",
+      ],
     };
     const hit = map[msg];
     if (hit) return NextResponse.json({ error: hit[1] }, { status: hit[0] });
