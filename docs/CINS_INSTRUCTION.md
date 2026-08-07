@@ -66,6 +66,8 @@ Thứ tự ưu tiên khi xung đột: **DB thật (đọc trực tiếp) > CINS_
 
 ## Thay đổi lớn gần đây (tóm tắt — chi tiết ở DECISIONS)
 
+**Shop — Combo & Voucher (2026-08-07):** Tab `/ban-hang/uu-dai`; engine `uu-dai.ts`; ví + săn trên `/cua-hang`; ALTER `shop_don_hang` cột giảm giá. Plan: `PLAN_shop_combo_voucher.md`. Xem DECISIONS LOG + IMPLEMENTATION API/SQL.
+
 **CSĐT — Hard delete khóa/lớp (2026-08-04):** Tách **Tạm dừng** (PATCH trạng thái) vs **Xóa** (hard DELETE + guard + preflight Warning). Plan: `PLAN_hard_delete_khoa_lop.md`. Kèm **Gỡ ghi danh** (`DELETE /api/co-so/[id]/hoc-vien/[hvlId]`) — chặn khi ghi danh còn đơn `da_nhan_tien` để không mất doanh thu.
 
 **CSĐT — Hình thức & địa điểm về lớp (2026-08-03):** Khóa không còn field hình thức/địa chỉ; lớp giữ `hinh_thuc` + N chi nhánh (`org_lop_hoc_chi_nhanh`). Khóa trần ẩn công khai. Xem DECISIONS LOG + IMPLEMENTATION SQL/API khóa·lớp.

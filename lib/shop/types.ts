@@ -83,6 +83,19 @@ export type ShopNhom = {
   noiBat: boolean;
   /** Cache số mẫu (da_xoa=false) gắn nhóm — đồng bộ bằng trigger DB. */
   soMau: number;
+  /** Danh mục canonical CINs (`shop_nhom.id_danh_muc`). */
+  idDanhMuc: string | null;
+  /** Seller/admin đã confirm map danh mục. */
+  danhMucXacNhan: boolean;
+  /** Slug danh mục — enrich khi list (null nếu chưa map). */
+  danhMucSlug: string | null;
+  /**
+   * Facet gắn loại — key = slug facet, value = slug giá trị.
+   * Enrich khi list.
+   */
+  facets: Record<string, string[]>;
+  /** Id giá trị facet đang gắn — dùng editor Kho. */
+  giaTriIds: string[];
   thuTu: number;
   taoLuc: string;
 };
@@ -316,10 +329,20 @@ export type ShopGio = {
 /** Dòng trong giỏ chung — kèm seller để nhóm theo cửa hàng. */
 export type ShopGioChungDong = ShopGioDong & {
   idSanPham: string;
+  /** Loại hàng (shop_nhom truc=1) — khớp combo phạm vi loai_hang. */
+  idNhom: string | null;
   /** Chủ sản phẩm (seller). */
   idNguoiBan: string;
   /** true khi sản phẩm/biến thể đã ngừng bán hoặc bị xóa. */
   ngungBan: boolean;
+};
+
+/** Combo đã áp trên một nhóm giỏ (preview / snapshot). */
+export type ShopComboApDung = {
+  idCombo: string;
+  ten: string;
+  soLan: number;
+  tien: number;
 };
 
 /** Một nhóm hàng cùng một cửa hàng trong giỏ chung — checkout theo nhóm. */
@@ -334,10 +357,102 @@ export type ShopGioChungNhom = {
   /** Seller đã có phương thức nhận tiền → mới gửi đơn được. */
   coThanhToan: boolean;
   dong: ShopGioChungDong[];
+  /** Tiền hàng trước giảm combo/voucher. */
+  tongHang: number;
+  /** Giảm từ combo (0 nếu không khớp). */
+  giamCombo: number;
+  comboApDung: ShopComboApDung[];
+  /** Tổng buyer trả (= tongHang − giamCombo − giamVoucher preview nếu có). */
   tongTien: number;
   tienTe: string;
   /** Có ít nhất một dòng hết tồn / ngừng bán. */
   coVanDe: boolean;
+};
+
+export type ShopLoaiGiam = "phan_tram" | "so_tien";
+export type ShopComboPhamVi = "loai_hang" | "san_pham" | "bien_the";
+export type ShopVoucherDesign = "mac_dinh" | "rieng";
+
+export type ShopComboDieuKien = {
+  id: string;
+  idCombo: string;
+  phamVi: ShopComboPhamVi;
+  idNhom: string | null;
+  idSanPham: string | null;
+  idBienThe: string | null;
+  soLuong: number;
+  /** Nhãn hiển thị (loại / mẫu / biến thể) — optional khi list. */
+  nhan?: string | null;
+};
+
+export type ShopCombo = {
+  id: string;
+  idNguoiDung: string;
+  ten: string;
+  moTa: string | null;
+  loaiGiam: ShopLoaiGiam;
+  giaTri: number;
+  giamToiDa: number | null;
+  apDungLap: boolean;
+  batDau: string | null;
+  ketThuc: string | null;
+  kichHoat: boolean;
+  thuTu: number;
+  taoLuc: string;
+  dieuKien: ShopComboDieuKien[];
+  /** true nếu có điều kiện trỏ entity đã xóa. */
+  dieuKienLoi?: boolean;
+};
+
+export type ShopVoucher = {
+  id: string;
+  idNguoiDung: string;
+  ma: string;
+  ten: string;
+  moTa: string | null;
+  loaiGiam: ShopLoaiGiam;
+  giaTri: number;
+  giamToiDa: number | null;
+  donToiThieu: number;
+  soLuongTong: number | null;
+  soLuongDaDung: number;
+  gioiHanMoiNguoi: number;
+  batDau: string | null;
+  ketThuc: string | null;
+  kichHoat: boolean;
+  congKhai: boolean;
+  designKieu: ShopVoucherDesign;
+  designAnhId: string | null;
+  designAnhUrl: string | null;
+  designMauNen: string | null;
+  designMauChu: string | null;
+  designNhan: string | null;
+  taoLuc: string;
+};
+
+/** Lý do voucher trong ví không còn dùng được. */
+export type ShopVoucherLyDoHet =
+  | "het_luot"
+  | "het_han"
+  | "chua_bat_dau"
+  | "da_dung"
+  | "tat"
+  | "xoa";
+
+export type ShopVoucherViItem = ShopVoucher & {
+  daLuu: true;
+  luuLuc: string;
+  conHieuLuc: boolean;
+  lyDoHetHieuLuc: ShopVoucherLyDoHet | null;
+  /** Tên shop + slug để «Dùng ngay». */
+  tenCuaHang: string | null;
+  sellerSlug: string | null;
+};
+
+/** Snapshot giảm giá lưu trên đơn (giam_snapshot jsonb). */
+export type ShopGiamSnapshot = {
+  combo?: ShopComboApDung[];
+  voucher?: { id: string; ma: string; ten: string; tien: number };
 };
 
 /** Giỏ chung (giỏ chờ mua) — gom mọi cửa hàng, nhóm theo seller. */
@@ -469,6 +584,13 @@ export type ShopDonHang = {
   loaiDon: ShopLoaiDon;
   trangThai: ShopTrangThaiDon;
   tienTe: string;
+  /** Tiền hàng trước giảm (null trên đơn cũ trước migration). */
+  tongHang?: number | null;
+  tienGiamCombo?: number;
+  tienGiamVoucher?: number;
+  idVoucher?: string | null;
+  giamSnapshot?: ShopGiamSnapshot | null;
+  /** Số buyer thực trả (sau giảm). */
   tongTien: number;
   ghiChu: string | null;
   daTruKho: boolean;

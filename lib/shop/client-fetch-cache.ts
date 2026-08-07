@@ -17,6 +17,8 @@ import type {
   ShopSanPham,
   ShopStorefrontItem,
   ShopStorefrontNhomCard,
+  ShopCombo,
+  ShopVoucher,
 } from "@/lib/shop/types";
 
 const BAN_HANG_TTL_MS = 45_000;
@@ -69,6 +71,7 @@ export function invalidateShopClientCaches() {
   nhomCache.invalidateAll();
   matHangCache.invalidateAll();
   quaySapCoMatCache.invalidateAll();
+  uuDaiCache.invalidateAll();
 }
 
 function readBanHangCache(): BanHangClientStatus | null {
@@ -614,6 +617,45 @@ export function prefetchKhoCatalog() {
   sanPhamCache.prefetch();
   bangGiaCache.prefetch();
   nhomCache.prefetch();
+}
+
+type UuDaiPayload = {
+  combos: ShopCombo[];
+  vouchers: ShopVoucher[];
+};
+
+const uuDaiCache = createCachedResource<UuDaiPayload>({
+  keyPrefix: "shop:uu-dai",
+  ttlMs: 60_000,
+  fetcher: async () => {
+    const [cRes, vRes] = await Promise.all([
+      fetch("/api/shop/combo", { cache: "no-store" }),
+      fetch("/api/shop/voucher", { cache: "no-store" }),
+    ]);
+    if (!cRes.ok || !vRes.ok) throw new Error("UU_DAI_FETCH");
+    const cJson = (await cRes.json()) as { items?: ShopCombo[] };
+    const vJson = (await vRes.json()) as { items?: ShopVoucher[] };
+    return {
+      combos: cJson.items ?? [],
+      vouchers: vJson.items ?? [],
+    };
+  },
+});
+
+export function prefetchUuDai() {
+  uuDaiCache.prefetch();
+}
+
+export function peekUuDai() {
+  return uuDaiCache.peek();
+}
+
+export function fetchUuDaiCached(opts?: { force?: boolean }) {
+  return uuDaiCache.fetch(opts);
+}
+
+export function invalidateUuDaiCache() {
+  uuDaiCache.invalidateAll();
 }
 
 registerClientCacheClear(() => {

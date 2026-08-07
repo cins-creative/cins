@@ -239,6 +239,65 @@
   overflow: hidden;
 }
 
+.j-shop-sf-combo-strip {
+  margin: 10px 8px 0;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--border, #e4e6eb) 88%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--cins-orange, #fdad4c) 10%, var(--bg-page, #f7f8fa));
+}
+
+.j-shop-sf-combo-strip-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 8px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.55));
+}
+
+.j-shop-sf-combo-strip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.j-shop-sf-combo-chip {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 8px;
+  max-width: 100%;
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: var(--bg-elevated, #fff);
+  border: 1px solid color-mix(in srgb, var(--border, #e4e6eb) 90%, transparent);
+  font-size: 0.8rem;
+  line-height: 1.25;
+}
+
+.j-shop-sf-combo-chip-ten {
+  font-weight: 700;
+  color: var(--ink-display, rgba(0, 0, 0, 0.88));
+}
+
+.j-shop-sf-combo-chip-giam {
+  font-weight: 700;
+  color: color-mix(in srgb, var(--cins-orange, #fdad4c) 35%, #b45309);
+}
+
+.j-shop-sf-combo-chip-lap {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.5));
+}
+
 .j-shop-sf-section-head {
   position: sticky;
   top: var(--j-topbar-h, var(--site-nav-height, 64px));

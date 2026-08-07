@@ -26,9 +26,15 @@ import {
 } from "@/lib/shop/terms";
 import { shopImageUrl } from "@/lib/shop/settings";
 import { resolveDiaChiSnapshot } from "@/lib/shop/dia-chi-nhan";
+import {
+  assertVoucherApDung,
+  dungVoucherAtomic,
+  hoanVoucherChoDon,
+} from "@/lib/shop/voucher";
 import type {
   ShopDonHang,
   ShopDonHangDong,
+  ShopGiamSnapshot,
   ShopLoaiDon,
   ShopThanhToanSnapshot,
   ShopTrangThaiDon,
@@ -54,6 +60,11 @@ type DonRow = {
   trang_thai: ShopTrangThaiDon;
   tien_te: string;
   tong_tien: number | string;
+  tong_hang?: number | string | null;
+  tien_giam_combo?: number | string | null;
+  tien_giam_voucher?: number | string | null;
+  id_voucher?: string | null;
+  giam_snapshot?: ShopGiamSnapshot | null;
   ghi_chu: string | null;
   da_tru_kho: boolean;
   tao_luc: string;
@@ -88,7 +99,7 @@ type DonRow = {
 };
 
 const DON_SELECT =
-  "id, ma_don, id_nguoi_mua, id_nguoi_ban, id_cot_moc, id_su_kien, loai_don, trang_thai, tien_te, tong_tien, ghi_chu, da_tru_kho, tao_luc, xac_nhan_luc, hoan_thanh_luc, hoan_thanh_boi, huy_luc, ly_do_huy, huy_boi, nguoi_mua_chap_nhan_luc, nguoi_mua_chap_nhan_van_ban, nguoi_mua_chap_nhan_phien_ban, thanh_toan_snapshot, bien_lai_anh_url, bien_lai_anh_id, mua_ho_ten, mua_so_dien_thoai, mua_dia_chi, mua_phuong_xa, mua_phuong_xa_code, mua_tinh_thanh, hinh_thuc_giao, van_chuyen_link, van_chuyen_ma, van_chuyen_dvvc, khao_sat_luc, khao_sat_tra_loi, so_lan_hoan_chua_nhan, hoan_khao_sat_den, dong_tu_dong_luc, dong_boi";
+  "id, ma_don, id_nguoi_mua, id_nguoi_ban, id_cot_moc, id_su_kien, loai_don, trang_thai, tien_te, tong_tien, tong_hang, tien_giam_combo, tien_giam_voucher, id_voucher, giam_snapshot, ghi_chu, da_tru_kho, tao_luc, xac_nhan_luc, hoan_thanh_luc, hoan_thanh_boi, huy_luc, ly_do_huy, huy_boi, nguoi_mua_chap_nhan_luc, nguoi_mua_chap_nhan_van_ban, nguoi_mua_chap_nhan_phien_ban, thanh_toan_snapshot, bien_lai_anh_url, bien_lai_anh_id, mua_ho_ten, mua_so_dien_thoai, mua_dia_chi, mua_phuong_xa, mua_phuong_xa_code, mua_tinh_thanh, hinh_thuc_giao, van_chuyen_link, van_chuyen_ma, van_chuyen_dvvc, khao_sat_luc, khao_sat_tra_loi, so_lan_hoan_chua_nhan, hoan_khao_sat_den, dong_tu_dong_luc, dong_boi";
 
 function normalizeThanhToanSnapshot(
   raw: unknown,
@@ -257,6 +268,17 @@ async function attachDong(dons: DonRow[]): Promise<ShopDonHang[]> {
     loaiDon: d.loai_don,
     trangThai: d.trang_thai,
     tienTe: d.tien_te,
+    tongHang:
+      d.tong_hang != null && d.tong_hang !== ""
+        ? Number(d.tong_hang)
+        : Number(d.tong_tien),
+    tienGiamCombo: Number(d.tien_giam_combo) || 0,
+    tienGiamVoucher: Number(d.tien_giam_voucher) || 0,
+    idVoucher: d.id_voucher ?? null,
+    giamSnapshot:
+      d.giam_snapshot && typeof d.giam_snapshot === "object"
+        ? (d.giam_snapshot as ShopGiamSnapshot)
+        : null,
     tongTien: Number(d.tong_tien),
     ghiChu: d.ghi_chu,
     daTruKho: d.da_tru_kho,
@@ -635,6 +657,7 @@ export async function createDonChungForSeller(
     sellerId: string;
     ghiChu?: string | null;
     maDon?: string | null;
+    maVoucher?: string | null;
     nguoiMuaChapNhanRuiRo?: boolean;
     bienLaiAnhUrl?: string | null;
     bienLaiAnhId?: string | null;
@@ -687,6 +710,41 @@ export async function createDonChungForSeller(
     if (d.soLuong > d.soLuongTon) throw new Error("STOCK_INSUFFICIENT");
   }
 
+  const tongHang = nhom.tongHang;
+  const giamCombo = nhom.giamCombo;
+  let giamVoucher = 0;
+  let voucherId: string | null = null;
+  let voucherMa: string | null = null;
+  let voucherTen: string | null = null;
+  const maVoucherRaw =
+    typeof input.maVoucher === "string" ? input.maVoucher.trim() : "";
+  if (maVoucherRaw) {
+    const applied = await assertVoucherApDung(
+      sellerId,
+      buyerId,
+      maVoucherRaw,
+      tongHang,
+      Math.max(0, tongHang - giamCombo),
+    );
+    giamVoucher = applied.tienGiam;
+    voucherId = applied.voucher.id;
+    voucherMa = applied.voucher.ma;
+    voucherTen = applied.voucher.ten;
+  }
+  const tongCk = Math.max(0, tongHang - giamCombo - giamVoucher);
+  const giamSnapshot: ShopGiamSnapshot = {
+    combo: nhom.comboApDung.length ? nhom.comboApDung : undefined,
+    voucher:
+      voucherId && voucherMa
+        ? {
+            id: voucherId,
+            ma: voucherMa,
+            ten: voucherTen ?? voucherMa,
+            tien: giamVoucher,
+          }
+        : undefined,
+  };
+
   const admin = createServiceRoleClient();
   const { data: buyer } = await admin
     .from("user_nguoi_dung")
@@ -709,7 +767,6 @@ export async function createDonChungForSeller(
   const { payment } = await getShopCheckoutPayment(sellerId);
   if (!payment) throw new Error("PAYMENT_REQUIRED");
 
-  const tongCk = nhom.tongTien;
   const thanhToanSnapshot = buildThanhToanSnapshot(
     payment,
     maDon,
@@ -740,7 +797,12 @@ export async function createDonChungForSeller(
         loai_don: "mua_ngay",
         trang_thai: "cho_xac_nhan",
         tien_te: nhom.tienTe,
-        tong_tien: nhom.tongTien,
+        tong_hang: tongHang,
+        tien_giam_combo: giamCombo,
+        tien_giam_voucher: giamVoucher,
+        id_voucher: voucherId,
+        giam_snapshot: giamSnapshot,
+        tong_tien: tongCk,
         ghi_chu: input.ghiChu?.trim() || null,
         ma_don: maDon,
         dieu_khoan_snapshot: shopTermsSnapshot(),
@@ -776,6 +838,15 @@ export async function createDonChungForSeller(
     throw new Error("CREATE_FAILED");
   }
 
+  if (voucherId) {
+    try {
+      await dungVoucherAtomic(voucherId, buyerId, don.id, giamVoucher);
+    } catch (e) {
+      await admin.from("shop_don_hang").delete().eq("id", don.id);
+      throw e;
+    }
+  }
+
   const { error: dongErr } = await admin.from("shop_don_hang_dong").insert(
     nhom.dong.map((d) => ({
       id_don_hang: don.id,
@@ -788,6 +859,7 @@ export async function createDonChungForSeller(
   );
   if (dongErr) {
     console.error("[shop] createDonChungDong", dongErr);
+    if (voucherId) await hoanVoucherChoDon(don.id);
     await admin.from("shop_don_hang").delete().eq("id", don.id);
     throw new Error("CREATE_FAILED");
   }
@@ -810,6 +882,7 @@ export async function createDonChungForSeller(
       for (const x of deducted.reverse()) {
         await hoanKhoBienThe(x.idBienThe, x.soLuong);
       }
+      if (voucherId) await hoanVoucherChoDon(don.id);
       await admin.from("shop_don_hang").delete().eq("id", don.id);
       if (e instanceof Error && e.message === "STOCK_INSUFFICIENT") throw e;
       console.error("[shop] createDonChungTruKho", e);
@@ -1211,6 +1284,8 @@ export async function cancelDonHang(
   if (don.daTruKho) {
     await restockDon(don.dong);
   }
+
+  await hoanVoucherChoDon(donId);
 
   const updated = await getDonHang(donId);
   if (!updated) throw new Error("NOT_FOUND");

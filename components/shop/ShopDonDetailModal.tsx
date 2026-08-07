@@ -656,7 +656,41 @@ export function ShopDonDetailModal({
             </ul>
 
             <div className="shop-don-detail-tong">
-              <span>Tổng hàng</span>
+              <span>Tiền hàng</span>
+              <strong>
+                {(don.tongHang ?? don.tongTien).toLocaleString("vi-VN")}{" "}
+                {don.tienTe}
+              </strong>
+            </div>
+            {(don.tienGiamCombo ?? 0) > 0 ? (
+              <div className="shop-don-detail-tong is-discount">
+                <span>
+                  Giảm combo
+                  {don.giamSnapshot?.combo?.length
+                    ? ` (${don.giamSnapshot.combo.map((c) => c.ten).join(", ")})`
+                    : ""}
+                </span>
+                <strong>
+                  −{(don.tienGiamCombo ?? 0).toLocaleString("vi-VN")} {don.tienTe}
+                </strong>
+              </div>
+            ) : null}
+            {(don.tienGiamVoucher ?? 0) > 0 ? (
+              <div className="shop-don-detail-tong is-discount">
+                <span>
+                  Giảm voucher
+                  {don.giamSnapshot?.voucher?.ma
+                    ? ` (${don.giamSnapshot.voucher.ma})`
+                    : ""}
+                </span>
+                <strong>
+                  −{(don.tienGiamVoucher ?? 0).toLocaleString("vi-VN")}{" "}
+                  {don.tienTe}
+                </strong>
+              </div>
+            ) : null}
+            <div className="shop-don-detail-tong is-final">
+              <span>Cần thanh toán</span>
               <strong>
                 {don.tongTien.toLocaleString("vi-VN")} {don.tienTe}
               </strong>

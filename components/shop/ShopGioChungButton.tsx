@@ -96,9 +96,18 @@ function applyOptimisticGioQty(
       dong.push({ ...d, soLuong: qty });
     }
     if (dong.length === 0) continue;
-    const tongTien = dong.reduce((s, d) => s + d.giaHienThi * d.soLuong, 0);
+    const tongHang = dong.reduce((s, d) => s + d.giaHienThi * d.soLuong, 0);
     const coVanDe = dong.some((d) => d.ngungBan || d.soLuong > d.soLuongTon);
-    nhom.push({ ...g, dong, tongTien, coVanDe });
+    /* Optimistic: chưa khớp lại combo — server sẽ refresh. */
+    nhom.push({
+      ...g,
+      dong,
+      tongHang,
+      giamCombo: 0,
+      comboApDung: [],
+      tongTien: tongHang,
+      coVanDe,
+    });
   }
   return {
     ...gio,
@@ -659,6 +668,16 @@ function ShopGioChungGroup({
   const [payErr, setPayErr] = useState<string | null>(null);
   const payFetched = useRef(false);
 
+  /* Voucher — preview server; tongCk = tongTien (sau combo) − giamVoucher. */
+  const [maVoucherDraft, setMaVoucherDraft] = useState("");
+  const [maVoucherApDung, setMaVoucherApDung] = useState<string | null>(null);
+  const [giamVoucher, setGiamVoucher] = useState(0);
+  const [voucherChecking, setVoucherChecking] = useState(false);
+  const [voucherErr, setVoucherErr] = useState<string | null>(null);
+  const [viSeller, setViSeller] = useState<
+    Array<{ ma: string; ten: string; conHieuLuc: boolean; lyDoHetHieuLuc: string | null }>
+  >([]);
+
   /* Sổ địa chỉ nhận hàng — chọn 1 hồ sơ (bắt buộc) để gửi đơn. */
   const [dcList, setDcList] = useState<DiaChiNhanItem[]>(
     () => peekDiaChiNhan() ?? [],
@@ -993,7 +1012,96 @@ function ShopGioChungGroup({
     void loadDiaChi();
   }, [checkoutOpen, loadPay, loadDiaChi]);
 
-  const tongCk = group.tongTien;
+  /* Ví voucher của buyer — lọc đúng seller đang checkout. */
+  useEffect(() => {
+    if (!checkoutOpen) return;
+    let alive = true;
+    void (async () => {
+      try {
+        const res = await fetch("/api/shop/voucher/vi", { cache: "no-store" });
+        if (!res.ok || !alive) return;
+        const json = (await res.json().catch(() => null)) as {
+          items?: Array<{
+            ma: string;
+            ten: string;
+            idNguoiDung: string;
+            conHieuLuc: boolean;
+            lyDoHetHieuLuc: string | null;
+          }>;
+        } | null;
+        if (!alive) return;
+        setViSeller(
+          (json?.items ?? [])
+            .filter((v) => v.idNguoiDung === group.idNguoiBan)
+            .map((v) => ({
+              ma: v.ma,
+              ten: v.ten,
+              conHieuLuc: v.conHieuLuc,
+              lyDoHetHieuLuc: v.lyDoHetHieuLuc,
+            })),
+        );
+      } catch {
+        /* bỏ qua — vẫn nhập mã tay được */
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [checkoutOpen, group.idNguoiBan]);
+
+  const tongHang = group.tongHang ?? group.tongTien;
+  const giamCombo = group.giamCombo ?? 0;
+  const tongCk = Math.max(0, group.tongTien - giamVoucher);
+
+  const applyVoucher = useCallback(async () => {
+    const ma = maVoucherDraft.trim().toUpperCase();
+    if (!ma) {
+      setVoucherErr("Nhập mã voucher.");
+      return;
+    }
+    setVoucherChecking(true);
+    setVoucherErr(null);
+    try {
+      const res = await fetch("/api/shop/voucher/kiem-tra", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sellerId: group.idNguoiBan, ma }),
+      });
+      const json = (await res.json().catch(() => null)) as {
+        ok?: boolean;
+        tienGiam?: number;
+        voucher?: { ma?: string };
+        error?: string;
+      } | null;
+      if (!res.ok || !json?.ok) {
+        setMaVoucherApDung(null);
+        setGiamVoucher(0);
+        setVoucherErr(json?.error ?? "Không áp được voucher.");
+        return;
+      }
+      setMaVoucherApDung(json.voucher?.ma ?? ma);
+      setGiamVoucher(Number(json.tienGiam) || 0);
+      setMaVoucherDraft(json.voucher?.ma ?? ma);
+    } catch {
+      setVoucherErr("Không kiểm tra được voucher.");
+    } finally {
+      setVoucherChecking(false);
+    }
+  }, [maVoucherDraft, group.idNguoiBan]);
+
+  const clearVoucher = useCallback(() => {
+    setMaVoucherApDung(null);
+    setGiamVoucher(0);
+    setMaVoucherDraft("");
+    setVoucherErr(null);
+  }, []);
+
+  /* Giỏ đổi → gỡ voucher đã áp (có thể dưới tối thiểu). */
+  useEffect(() => {
+    if (!maVoucherApDung) return;
+    clearVoucher();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- chỉ khi tổng hàng đổi
+  }, [group.tongHang, group.tongTien]);
 
   const submit = useCallback(async () => {
     setSending(true);
@@ -1006,6 +1114,7 @@ function ShopGioChungGroup({
           sellerId: group.idNguoiBan,
           ghiChu: ghiChu.trim() || null,
           maDon,
+          maVoucher: maVoucherApDung,
           nguoiMuaChapNhanRuiRo: true,
           bienLaiAnhUrl: billUrl,
           bienLaiAnhId: billId,
@@ -1033,6 +1142,7 @@ function ShopGioChungGroup({
     group.idNguoiBan,
     ghiChu,
     maDon,
+    maVoucherApDung,
     billUrl,
     billId,
     onSent,
@@ -1065,7 +1175,7 @@ function ShopGioChungGroup({
             <span className="gio-chung-checkout-shop-label">Thanh toán</span>
             <strong>{group.tenCuaHang}</strong>
             <span className="gio-chung-checkout-shop-total">
-              {money(group.tongTien, group.tienTe)}
+              {money(tongCk, group.tienTe)}
             </span>
           </div>
           <div className="gio-chung-nhan">
@@ -1343,6 +1453,109 @@ function ShopGioChungGroup({
             ) : null}
           </div>
 
+          <div className="gio-chung-voucher">
+            <span className="gio-chung-voucher-label">Mã voucher</span>
+            {maVoucherApDung ? (
+              <div className="gio-chung-voucher-chip">
+                <strong>{maVoucherApDung}</strong>
+                <span>−{money(giamVoucher, group.tienTe)}</span>
+                <button type="button" onClick={clearVoucher}>
+                  Gỡ
+                </button>
+              </div>
+            ) : (
+              <>
+                {viSeller.length > 0 ? (
+                  <label className="gio-chung-voucher-select">
+                    <span className="gio-chung-sr-only">Voucher đã lưu</span>
+                    <select
+                      value=""
+                      disabled={voucherChecking}
+                      onChange={(e) => {
+                        const ma = e.target.value;
+                        if (!ma) return;
+                        setMaVoucherDraft(ma);
+                        void (async () => {
+                          setMaVoucherDraft(ma);
+                          setVoucherChecking(true);
+                          setVoucherErr(null);
+                          try {
+                            const res = await fetch("/api/shop/voucher/kiem-tra", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({
+                                sellerId: group.idNguoiBan,
+                                ma,
+                              }),
+                            });
+                            const json = (await res.json().catch(() => null)) as {
+                              ok?: boolean;
+                              tienGiam?: number;
+                              voucher?: { ma?: string };
+                              error?: string;
+                            } | null;
+                            if (!res.ok || !json?.ok) {
+                              setMaVoucherApDung(null);
+                              setGiamVoucher(0);
+                              setVoucherErr(json?.error ?? "Không áp được voucher.");
+                              return;
+                            }
+                            setMaVoucherApDung(json.voucher?.ma ?? ma);
+                            setGiamVoucher(Number(json.tienGiam) || 0);
+                          } catch {
+                            setVoucherErr("Không kiểm tra được voucher.");
+                          } finally {
+                            setVoucherChecking(false);
+                          }
+                        })();
+                      }}
+                    >
+                      <option value="">Voucher đã lưu…</option>
+                      {viSeller.map((v) => (
+                        <option
+                          key={v.ma}
+                          value={v.ma}
+                          disabled={!v.conHieuLuc}
+                        >
+                          {v.ma}
+                          {!v.conHieuLuc
+                            ? ` (${v.lyDoHetHieuLuc === "het_luot" ? "hết lượt" : v.lyDoHetHieuLuc === "het_han" ? "hết hạn" : v.lyDoHetHieuLuc === "da_dung" ? "đã dùng" : "không dùng được"})`
+                            : ` — ${v.ten}`}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : null}
+                <div className="gio-chung-voucher-row">
+                  <input
+                    type="text"
+                    value={maVoucherDraft}
+                    onChange={(e) =>
+                      setMaVoucherDraft(e.target.value.toUpperCase())
+                    }
+                    placeholder="Hoặc nhập mã"
+                    maxLength={20}
+                    autoComplete="off"
+                    disabled={voucherChecking}
+                  />
+                  <button
+                    type="button"
+                    className="gio-chung-voucher-apply"
+                    disabled={voucherChecking || !maVoucherDraft.trim()}
+                    onClick={() => void applyVoucher()}
+                  >
+                    {voucherChecking ? "…" : "Áp dụng"}
+                  </button>
+                </div>
+              </>
+            )}
+            {voucherErr ? (
+              <p className="gio-chung-err" role="alert">
+                {voucherErr}
+              </p>
+            ) : null}
+          </div>
+
           <h4 className="gio-chung-checkout-title">Chuyển khoản tới</h4>
           {payLoading ? (
             <p className="gio-chung-muted">
@@ -1361,10 +1574,22 @@ function ShopGioChungGroup({
                 <p>Chủ TK: {pay.tenChuTaiKhoan}</p>
                 <p>
                   Tiền hàng:{" "}
-                  <strong>{money(group.tongTien, group.tienTe)}</strong>
+                  <strong>{money(tongHang, group.tienTe)}</strong>
                 </p>
+                {giamCombo > 0 ? (
+                  <p>
+                    Giảm combo:{" "}
+                    <strong>−{money(giamCombo, group.tienTe)}</strong>
+                  </p>
+                ) : null}
+                {giamVoucher > 0 ? (
+                  <p>
+                    Giảm voucher:{" "}
+                    <strong>−{money(giamVoucher, group.tienTe)}</strong>
+                  </p>
+                ) : null}
                 <p>
-                  Số tiền CK:{" "}
+                  Cần thanh toán:{" "}
                   <strong>{money(tongCk, group.tienTe)}</strong>
                 </p>
                 {maDon ? (

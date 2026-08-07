@@ -6,7 +6,7 @@ import { softDeleteNhom, updateNhom } from "@/lib/shop/nhom";
 type Ctx = { params: Promise<{ id: string }> };
 
 /**
- * PATCH /api/shop/nhom/[id] — sửa mô tả / nhãn nhóm (seller).
+ * PATCH /api/shop/nhom/[id] — sửa mô tả / nhãn / taxonomy nhóm (seller).
  */
 export async function PATCH(request: Request, ctx: Ctx) {
   const session = await getCurrentSessionAndProfile();
@@ -27,6 +27,9 @@ export async function PATCH(request: Request, ctx: Ctx) {
     videoPhuId?: unknown;
     giaMacDinh?: unknown;
     noiBat?: unknown;
+    idDanhMuc?: unknown;
+    danhMucXacNhan?: unknown;
+    giaTriIds?: unknown;
   };
   try {
     body = (await request.json()) as typeof body;
@@ -42,12 +45,15 @@ export async function PATCH(request: Request, ctx: Ctx) {
     body.anhPhuIds === undefined &&
     body.videoPhuId === undefined &&
     body.giaMacDinh === undefined &&
-    body.noiBat === undefined
+    body.noiBat === undefined &&
+    body.idDanhMuc === undefined &&
+    body.danhMucXacNhan === undefined &&
+    body.giaTriIds === undefined
   ) {
     return NextResponse.json(
       {
         error:
-          "Cần moTa, nhan, anhId, overlayAnhId, anhPhuIds, videoPhuId, giaMacDinh hoặc noiBat.",
+          "Cần moTa, nhan, anhId, overlayAnhId, anhPhuIds, videoPhuId, giaMacDinh, noiBat, idDanhMuc, danhMucXacNhan hoặc giaTriIds.",
       },
       { status: 422 },
     );
@@ -105,6 +111,24 @@ export async function PATCH(request: Request, ctx: Ctx) {
               ? body.giaMacDinh
               : Number(body.giaMacDinh),
       noiBat: typeof body.noiBat === "boolean" ? body.noiBat : undefined,
+      idDanhMuc:
+        body.idDanhMuc === undefined
+          ? undefined
+          : typeof body.idDanhMuc === "string"
+            ? body.idDanhMuc
+            : body.idDanhMuc === null
+              ? null
+              : undefined,
+      danhMucXacNhan:
+        typeof body.danhMucXacNhan === "boolean"
+          ? body.danhMucXacNhan
+          : undefined,
+      giaTriIds:
+        body.giaTriIds === undefined
+          ? undefined
+          : Array.isArray(body.giaTriIds)
+            ? body.giaTriIds.filter((x): x is string => typeof x === "string")
+            : undefined,
     });
     return NextResponse.json({ item });
   } catch (e) {
@@ -143,6 +167,30 @@ export async function PATCH(request: Request, ctx: Ctx) {
       return NextResponse.json(
         { error: "Chỉ loại hàng (trục 1) mới gắn Feature." },
         { status: 422 },
+      );
+    }
+    if (msg === "DANH_MUC_INVALID") {
+      return NextResponse.json(
+        { error: "Danh mục không hợp lệ." },
+        { status: 422 },
+      );
+    }
+    if (msg === "DANH_MUC_REQUIRED") {
+      return NextResponse.json(
+        { error: "Chọn danh mục trước khi xác nhận." },
+        { status: 422 },
+      );
+    }
+    if (msg === "GIA_TRI_INVALID") {
+      return NextResponse.json(
+        { error: "Giá trị thuộc tính không hợp lệ." },
+        { status: 422 },
+      );
+    }
+    if (msg === "TAXONOMY_UNAVAILABLE") {
+      return NextResponse.json(
+        { error: "Chưa áp migration danh mục trên môi trường này." },
+        { status: 503 },
       );
     }
     console.error("[api/shop/nhom/[id]]", e);

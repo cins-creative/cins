@@ -5,6 +5,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 
+import type { AdminTopbarProfile } from "@/components/admin/AdminTopbar";
+import { getNameInitials } from "@/lib/journey/profile";
+
 const NAV = [
   { section: "Nội dung" },
   { href: "/admin/bai-viet", label: "Bài viết", icon: "doc" },
@@ -195,7 +198,13 @@ function NavIcon({ name }: { name: string }) {
   }
 }
 
-export function AdminSidebar() {
+export function AdminSidebar({
+  profile = null,
+  roleLabel = "Admin",
+}: {
+  profile?: AdminTopbarProfile | null;
+  roleLabel?: string;
+}) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -291,11 +300,21 @@ export function AdminSidebar() {
         <div className="sidebar-bottom">
           <div className="sidebar-user">
             <div className="sidebar-avatar" aria-hidden>
-              C
+              {profile?.avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={profile.avatarUrl} alt="" />
+              ) : profile ? (
+                getNameInitials(profile.tenHienThi, profile.slug)
+              ) : (
+                "C"
+              )}
             </div>
             <div className="sidebar-user-info">
-              <p>CINS Admin</p>
-              <small>Owner</small>
+              <p>
+                {profile?.tenHienThi?.trim() ||
+                  (profile ? `@${profile.slug}` : "CINs Admin")}
+              </p>
+              <small>{profile ? roleLabel : "Chưa đăng nhập"}</small>
             </div>
           </div>
         </div>

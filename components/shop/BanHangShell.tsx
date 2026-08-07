@@ -16,6 +16,7 @@ function tabFromPath(pathname: string): ShopDashTab {
   if (pathname.includes("/ban-hang/su-kien")) return "su-kien";
   if (pathname.includes("/ban-hang/cua-hang")) return "cua-hang";
   if (pathname.includes("/ban-hang/bao-cao")) return "bao-cao";
+  if (pathname.includes("/ban-hang/uu-dai")) return "uu-dai";
   return "kho";
 }
 

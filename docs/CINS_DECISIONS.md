@@ -41,6 +41,15 @@
 
 ## LOG — quyết định đã chốt
 
+### Shop — Combo & Voucher (2026-08-07)
+
+- **Chốt:** Tab seller «Combo & Voucher» (`/ban-hang/uu-dai`). Combo đa phạm vi (`loai_hang` / `san_pham` / `bien_the`, CHECK một FK); khớp cụ thể→rộng; nhiều combo → greedy giảm tốt nhất; mỗi unit một lần; `ap_dung_lap` lặp tổ hợp.
+- **Voucher:** mã shop; `don_toi_thieu` so `tongHang` (trước giảm); áp sau combo; RPC atomic `shop_dung_voucher` / `shop_hoan_voucher` khi hủy. Design mặc định / riêng (+ ảnh CF).
+- **Đơn:** giữ `tong_tien` = buyer trả; thêm `tong_hang` · `tien_giam_*` · `id_voucher` · `giam_snapshot`. Phí nền tảng trên `tong_tien` (sau giảm).
+- **Ví:** `shop_voucher_luu` — lưu ≠ giữ chỗ; hết hạn/hết lượt tính lúc đọc. Hub `/cua-hang` săn công khai; checkout chọn ví theo seller + nhập mã.
+- **Plan:** `docs/PLAN_shop_combo_voucher.md`. Migration: `migration_shop_combo_voucher.sql` + `migration_shop_don_giam_gia.sql` · `npm run migrate:shop-combo-voucher`. **Đã chạy** CINs 2026-08-07.
+- *Hệ quả file:* `lib/shop/uu-dai.ts` · `combo.ts` · `voucher.ts` · `don-hang.ts` · `gio-chung.ts`; API `shop/combo*` · `shop/voucher*`; UI `ShopUuDai*` · `CuaHangSanVoucher` · `ShopStorefrontComboStrip`.
+
 ### Video — gỡ hoàn toàn Bunny Stream (2026-08-05)
 
 - Bunny đã migrate sang Cloudflare Stream; code Bunny (`lib/bunny/**`, native player, env/CI bắt buộc) **xóa khỏi repo**.
@@ -296,6 +305,8 @@
 | A18 | `org_goi_hoc_phi` | Thêm `so_buoi`, `phut_moi_buoi`, `ma_goi_meta` | `int4` · `int4` · `text` + unique `(id_khoa_hoc, ma_goi_meta)` WHERE not null | YES | Hợp nhất gói meta khóa → bảng bán; map id JSON khi backfill | Row cũ = NULL; backfill script | **Đã chạy** 2026-08-03 · `migration_hoc_phi_combo.sql` Phần A · `npm run migrate:hoc-phi-combo` |
 | A19 | `org_don_hoc_phi` | Thêm `id_nhom`, `gia_goc_vnd`, `giam_vnd` | uuid → `org_nhom_don_hoc_phi` · `numeric(14,0)` · `numeric(14,0) DEFAULT 0` | YES (trừ `giam_vnd` DEFAULT 0) | Combo nhiều khóa = nhóm đơn; giữ `so_tien_vnd` = số phải trả | Backfill `gia_goc_vnd = so_tien_vnd` | **Đã chạy** 2026-08-03 · `migration_hoc_phi_combo.sql` · `npm run migrate:hoc-phi-combo` |
 | A20 | *(bảng mới)* `org_goi_hoc_phi_khoa` | N–N gói ↔ khóa | `id_goi` → `org_goi_hoc_phi` · `id_khoa_hoc` → `org_khoa_hoc` · UNIQUE cặp | — | Một gói gắn nhiều khóa (VD 1 tháng Online × 3 môn) | Backfill từ `org_goi_hoc_phi.id_khoa_hoc` | **Đã duyệt + chạy** 2026-08-03 · `migration_goi_hoc_phi_nhieu_khoa.sql` · `npm run migrate:goi-nhieu-khoa` |
+| A21 | `shop_nhom` | Thêm `id_danh_muc`, `danh_muc_xac_nhan` | uuid FK → `shop_danh_muc` ON DELETE SET NULL · `boolean NOT NULL DEFAULT false` | `id_danh_muc` YES · flag NO (default false) | Taxonomy canonical hub `/cua-hang` — map loại → danh mục CINs | Loại cũ = NULL / false; bán bình thường | **Đã duyệt §11.7 + chạy** 2026-08-07 · `migration_shop_danh_muc.sql` · `npm run migrate:shop-danh-muc` · kèm bảng mới `shop_danh_muc`/`_alias`/`shop_thuoc_tinh`/`_gia_tri`/`_alias`/`shop_nhom_thuoc_tinh` |
+| A22 | `shop_don_hang` | Thêm `tong_hang`, `tien_giam_combo`, `tien_giam_voucher`, `id_voucher`, `giam_snapshot` | `numeric` · uuid → `shop_voucher` · `jsonb` | YES (có DEFAULT 0 cho tiền giảm) | Snapshot giảm giá combo/voucher; `tong_tien` = buyer trả | Backfill `tong_hang = tong_tien` | **Đã duyệt + chạy** 2026-08-07 · `migration_shop_don_giam_gia.sql` · kèm bảng mới combo/voucher · `npm run migrate:shop-combo-voucher` |
 
 > Khi user duyệt một dòng → đổi **Trạng thái** thành `Đã duyệt YYYY-MM-DD` rồi mới viết/chạy file migration. Khi đã apply trên DB → `Đã chạy` + tên file SQL. Mọi ALTER phát sinh thêm ngoài bảng này → **thêm dòng mới vào inventory trước**, không lén vào migration khác.
 

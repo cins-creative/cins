@@ -25,6 +25,7 @@ import {
   prepareResponseIsValid,
   type VideoPrepareResponse,
 } from "@/lib/video/upload-tus";
+import { ShopKhoLoaiTaxonomy } from "@/components/shop/ShopKhoLoaiTaxonomy";
 import { parseGiaInput } from "@/lib/shop/gia-input";
 import type { ShopNhom, ShopSanPham } from "@/lib/shop/types";
 import {
@@ -223,6 +224,11 @@ export function ShopKhoLoaiHub({
     }
   }
 
+  const chuaGanDanhMuc = loaiList.filter((n) => !n.idDanhMuc).length;
+  const chuaXacNhan = loaiList.filter(
+    (n) => n.idDanhMuc && !n.danhMucXacNhan,
+  ).length;
+
   return (
     <div className="shop-kho-loai-hub">
       <div className="shop-kho-loai-hub-head">
@@ -266,6 +272,19 @@ export function ShopKhoLoaiHub({
           </button>
         </div>
       </div>
+
+      {chuaGanDanhMuc > 0 || chuaXacNhan > 0 ? (
+        <p className="shop-kho-loai-tax-banner" role="status">
+          {chuaGanDanhMuc > 0
+            ? `${chuaGanDanhMuc} loại chưa gắn danh mục CINs`
+            : null}
+          {chuaGanDanhMuc > 0 && chuaXacNhan > 0 ? " · " : null}
+          {chuaXacNhan > 0
+            ? `${chuaXacNhan} loại cần xác nhận gợi ý`
+            : null}
+          . Mở loại để chọn — giúp khách lọc trên /cua-hang.
+        </p>
+      ) : null}
 
       {creating ? (
         <div className="shop-kho-loai-create">
@@ -400,6 +419,15 @@ export function ShopKhoLoaiHub({
                   <span className="shop-kho-loai-card-body">
                     <strong>{n.nhan}</strong>
                     <span>{mauCountByNhomId[n.id] ?? 0} mẫu</span>
+                    {!n.idDanhMuc ? (
+                      <span className="shop-kho-loai-tax-badge">
+                        Chưa gắn danh mục
+                      </span>
+                    ) : !n.danhMucXacNhan ? (
+                      <span className="shop-kho-loai-tax-badge is-soft">
+                        Chưa xác nhận
+                      </span>
+                    ) : null}
                   </span>
                 </button>
                 <button
@@ -1128,13 +1156,14 @@ export function ShopKhoLoaiMeta({
         </div>
 
         <div className="shop-kho-loai-meta-fields">
-          <div className="shop-kho-loai-meta-row">
-            <label>
+          <div className="shop-kho-loai-meta-identity">
+            <label className="shop-kho-loai-meta-name">
               <span>Tên loại</span>
               <input
                 value={nhan}
                 maxLength={40}
                 disabled={saving}
+                placeholder="Ví dụ: Hộp shaker Genshin"
                 onChange={(e) => setNhan(e.target.value)}
                 onBlur={() => {
                   if (nhan.trim() && nhan.trim() !== nhom.nhan) {
@@ -1143,7 +1172,7 @@ export function ShopKhoLoaiMeta({
                 }}
               />
             </label>
-            <label>
+            <label className="shop-kho-loai-meta-gia">
               <span>Giá gốc hiển thị</span>
               <div className="shop-kho-loai-gia-row">
                 <input
@@ -1194,19 +1223,31 @@ export function ShopKhoLoaiMeta({
           {applyMsg ? (
             <p className="shop-kho-loai-gia-note">{applyMsg}</p>
           ) : null}
-          <ShopNhomMoTaField
-            value={moTa}
-            disabled={saving}
-            rows={2}
-            aria-label="Mô tả loại"
-            onChange={setMoTa}
-            onBlur={() => {
-              const next = moTa.trim().slice(0, SHOP_NHOM_MO_TA_MAX) || null;
-              if ((nhom.moTa ?? null) !== next) {
-                void patch({ moTa: next });
-              }
-            }}
-          />
+          <div className="shop-kho-loai-meta-mota">
+            <span className="shop-kho-loai-meta-mota-label">Mô tả</span>
+            <ShopNhomMoTaField
+              value={moTa}
+              disabled={saving}
+              rows={3}
+              aria-label="Mô tả loại"
+              placeholder="Chất liệu, kích thước, lưu ý bán…"
+              onChange={setMoTa}
+              onBlur={() => {
+                const next = moTa.trim().slice(0, SHOP_NHOM_MO_TA_MAX) || null;
+                if ((nhom.moTa ?? null) !== next) {
+                  void patch({ moTa: next });
+                }
+              }}
+            />
+          </div>
+          {nhom.truc === 1 ? (
+            <ShopKhoLoaiTaxonomy
+              nhom={nhom}
+              disabled={saving}
+              onUpdated={onUpdated}
+              onError={onError}
+            />
+          ) : null}
         </div>
       </div>
 

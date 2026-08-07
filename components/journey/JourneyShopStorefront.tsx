@@ -26,6 +26,7 @@ import {
   GIO_CHUNG_CHANGED_EVENT,
   notifyGioChungAdded,
 } from "@/components/shop/ShopGioChungButton";
+import { ShopStorefrontComboStrip } from "@/components/shop/ShopStorefrontComboStrip";
 import { ShopTamDongOverlay } from "@/components/shop/ShopTamDongOverlay";
 import {
   fetchMatHangCached,
@@ -803,6 +804,8 @@ export function JourneyShopStorefront({
         ownerSlug={ownerSlug}
         showBackProfile
       />
+
+      {!shopClosed ? <ShopStorefrontComboStrip sellerId={ownerId} /> : null}
 
       <div className="j-shop-sf-section-head">
         <span className="j-tlb-streak-slow" aria-hidden="true" />

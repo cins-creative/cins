@@ -37,9 +37,9 @@ function CuaHangListingSkeleton() {
     <div className="ch-list-page ch-list-page--loading" aria-busy="true">
       <div className="ch-list-body">
         <div className="ch-list-toolbar--skeleton" />
-        <div className="ch-list-grid">
-          {Array.from({ length: 6 }, (_, i) => (
-            <div key={i} className="ch-list-card ch-list-card--skeleton" />
+        <div className="ch-list-hang-grid">
+          {Array.from({ length: 12 }, (_, i) => (
+            <div key={i} className="ch-list-hang-card ch-list-hang-card--skeleton" />
           ))}
         </div>
       </div>

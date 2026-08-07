@@ -16,6 +16,7 @@ export async function POST(request: Request) {
     sellerId?: unknown;
     ghiChu?: unknown;
     maDon?: unknown;
+    maVoucher?: unknown;
     nguoiMuaChapNhanRuiRo?: unknown;
     bienLaiAnhUrl?: unknown;
     bienLaiAnhId?: unknown;
@@ -48,6 +49,7 @@ export async function POST(request: Request) {
           : body.hinhThucGiao === "tai_su_kien"
             ? "tai_su_kien"
             : "truc_tiep",
+      maVoucher: typeof body.maVoucher === "string" ? body.maVoucher : null,
     });
     return NextResponse.json({ don }, { status: 201 });
   } catch (e) {
@@ -103,6 +105,20 @@ export async function POST(request: Request) {
         503,
         "Không kiểm tra được hạn mức đơn. Thử lại sau.",
       ],
+      VOUCHER_KHONG_TON_TAI: [409, "Mã voucher không tồn tại."],
+      VOUCHER_KHAC_SHOP: [422, "Voucher không thuộc cửa hàng này."],
+      VOUCHER_TAT: [409, "Voucher đã bị tắt."],
+      VOUCHER_CHUA_BAT_DAU: [409, "Voucher chưa đến ngày bắt đầu."],
+      VOUCHER_HET_HAN: [409, "Voucher đã hết hạn."],
+      VOUCHER_HET_LUOT: [409, "Voucher đã hết lượt sử dụng."],
+      VOUCHER_DA_DUNG: [409, "Bạn đã dùng hết lượt voucher này."],
+      VOUCHER_CHUA_DU_TOI_THIEU: [
+        409,
+        "Đơn chưa đạt mức tối thiểu để dùng voucher.",
+      ],
+      VOUCHER_MA_INVALID: [422, "Mã voucher không hợp lệ."],
+      VOUCHER_KHONG_AP_DUNG: [409, "Không thể áp voucher trên đơn này."],
+      VOUCHER_DUNG_FAILED: [409, "Không giữ được lượt voucher — thử lại."],
     };
     const hit = map[msg];
     if (hit) return NextResponse.json({ error: hit[1] }, { status: hit[0] });

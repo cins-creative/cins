@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { BookOpen, FileText, Package, ShieldCheck, Users, X } from "lucide-react";
+import { ShieldCheck, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -279,15 +279,15 @@ export function JourneyOrgPopover({
                         <img src={visible.coverUrl} alt="" />
                       ) : null}
                     </div>
-                    <div className="j-org-pop-avatar" aria-hidden>
-                      {visible.avatarUrl ? (
-                        /* eslint-disable-next-line @next/next/no-img-element */
-                        <img src={visible.avatarUrl} alt="" />
-                      ) : (
-                        <span>{visible.ten.charAt(0).toUpperCase()}</span>
-                      )}
-                    </div>
                     <div className="j-org-pop-body">
+                      <div className="j-org-pop-avatar" aria-hidden>
+                        {visible.avatarUrl ? (
+                          /* eslint-disable-next-line @next/next/no-img-element */
+                          <img src={visible.avatarUrl} alt="" />
+                        ) : (
+                          <span>{visible.ten.charAt(0).toUpperCase()}</span>
+                        )}
+                      </div>
                       <p className="j-org-pop-kicker">
                         {orgKicker(popoverKind)}
                         {visible.daVerify ? (
@@ -299,58 +299,60 @@ export function JourneyOrgPopover({
                       </p>
                       <h3>{visible.ten}</h3>
                       <p className="j-org-pop-slug">{slugPath(popoverKind, visible.slug)}</p>
+                      {visible.tinhThanh ? (
+                        <p className="j-org-pop-meta">{visible.tinhThanh}</p>
+                      ) : null}
                       {visible.moTa ? (
                         <p className="j-org-pop-bio">{visible.moTa}</p>
                       ) : null}
-                      <div className="j-org-pop-stats">
+                      <div className="j-org-pop-stats" aria-label="Thống kê tổ chức">
                         {popoverKind === "co_so_dao_tao" ? (
                           <>
                             <span>
-                              <BookOpen size={14} aria-hidden />
-                              <strong>{visible.soKhoaHoc ?? 0}</strong> khóa học
+                              <strong>{visible.soKhoaHoc ?? 0}</strong>
+                              khóa học
                             </span>
                             <span>
-                              <ShieldCheck size={14} aria-hidden />
-                              <strong>{visible.soXacThuc ?? 0}</strong> xác thực
+                              <strong>{visible.soXacThuc ?? 0}</strong>
+                              xác thực
                             </span>
                           </>
                         ) : popoverKind === "truong" ? (
                           <>
                             <span>
-                              <BookOpen size={14} aria-hidden />
-                              <strong>{visible.soNganh ?? 0}</strong> ngành
+                              <strong>{visible.soNganh ?? 0}</strong>
+                              ngành
                             </span>
                             <span>
-                              <ShieldCheck size={14} aria-hidden />
-                              <strong>{visible.soXacThuc ?? 0}</strong> xác thực
+                              <strong>{visible.soXacThuc ?? 0}</strong>
+                              xác thực
                             </span>
                           </>
                         ) : popoverKind === "studio" ? (
                           <>
                             <span>
-                              <Users size={14} aria-hidden />
-                              <strong>{visible.soThanhVien}</strong> thành viên
+                              <strong>{visible.soThanhVien}</strong>
+                              thành viên
                             </span>
                             <span>
-                              <Package size={14} aria-hidden />
-                              <strong>{visible.soShowcase ?? 0}</strong> showcase
+                              <strong>{visible.soShowcase ?? 0}</strong>
+                              showcase
                             </span>
                           </>
                         ) : (
                           <>
                             <span>
-                              <Users size={14} aria-hidden />
-                              <strong>{visible.soThanhVien}</strong> thành viên
+                              <strong>{visible.soThanhVien}</strong>
+                              thành viên
                             </span>
                             {typeof visible.soBaiViet === "number" ? (
                               <span>
-                                <FileText size={14} aria-hidden />
-                                <strong>{visible.soBaiViet}</strong> bài viết
+                                <strong>{visible.soBaiViet}</strong>
+                                bài viết
                               </span>
                             ) : null}
                           </>
                         )}
-                        {visible.tinhThanh ? <span>{visible.tinhThanh}</span> : null}
                       </div>
                       {visible.id && orgActionKind(popoverKind) ? (
                         <JourneyOrgPopoverActions

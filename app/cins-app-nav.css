@@ -1105,6 +1105,8 @@
   height: var(--site-nav-height);
   background: var(--bg-surface);
   border-bottom: 1px solid var(--border);
+  /* Panel Tạm đóng / dropdown page-slot không bị cắt. */
+  overflow: visible;
   transition:
     transform var(--app-nav-dur) var(--app-nav-ease),
     margin-bottom var(--app-nav-dur) var(--app-nav-ease),
@@ -1142,6 +1144,18 @@
 .cins-app-topbar .tb-left {
   flex: 1;
   min-width: 0;
+}
+
+.cins-app-topbar .tb-page-slot {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex-shrink: 1;
+}
+
+.cins-app-topbar .tb-page-slot:empty {
+  display: none;
 }
 
 .cins-app-topbar .tb-search {

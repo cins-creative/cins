@@ -7,12 +7,20 @@ import {
   ClipboardList,
   Package,
   Store,
+  TicketPercent,
   X,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import { createPortal } from "react-dom";
 
+import { useTopbarPageSlot } from "@/components/cins/useTopbarPageSlot";
 import {
   fetchBanHangClientStatus,
   fetchShopCuaHangClient,
@@ -24,6 +32,7 @@ import {
   prefetchDonHang,
   prefetchKhoCatalog,
   prefetchShopCuaHangClient,
+  prefetchUuDai,
   writeShopCuaHangCache,
 } from "@/lib/shop/client-fetch-cache";
 import { shopEntryHref, shopPublicHref, shopSlugFromTen } from "@/lib/shop/cua-hang-href";
@@ -35,7 +44,7 @@ import {
 } from "@/lib/shop/tam-dong";
 import type { ShopCuaHang } from "@/lib/shop/types";
 
-type ShopDashTab = "kho" | "don" | "su-kien" | "cua-hang" | "bao-cao";
+type ShopDashTab = "kho" | "don" | "su-kien" | "cua-hang" | "bao-cao" | "uu-dai";
 
 export type { ShopDashTab };
 
@@ -67,6 +76,11 @@ const TAB_COPY: Record<
     href: "/ban-hang/bao-cao",
     label: "Báo cáo doanh thu",
     shortLabel: "Báo cáo",
+  },
+  "uu-dai": {
+    href: "/ban-hang/uu-dai",
+    label: "Combo & Voucher",
+    shortLabel: "Ưu đãi",
   },
 };
 
@@ -572,6 +586,7 @@ export function ShopDashTabs({
   active: ShopDashTab;
   actions?: ReactNode;
 }) {
+  const topbarSlot = useTopbarPageSlot();
   const [shopHref, setShopHref] = useState<string | null>(null);
 
   // Background-warm sibling tabs' data after 800ms — user likely to switch
@@ -581,6 +596,7 @@ export function ShopDashTabs({
       if (active !== "bao-cao") prefetchBaoCao();
       if (active !== "cua-hang") prefetchShopCuaHangClient(null);
       if (active !== "kho") prefetchKhoCatalog();
+      if (active !== "uu-dai") prefetchUuDai();
     }, 800);
     return () => clearTimeout(t);
   }, [active]);
@@ -622,73 +638,101 @@ export function ShopDashTabs({
     };
   }, []);
 
+  const topbarControls = (
+    <div className="shop-dash-topbar-controls" role="group" aria-label="Cửa hàng">
+      {shopHref ? (
+        <Link
+          href={shopHref}
+          className="shop-dash-back"
+          aria-label="Về cửa hàng"
+          title="Về cửa hàng"
+        >
+          <Store size={18} strokeWidth={2.2} aria-hidden />
+        </Link>
+      ) : (
+        <span className="shop-dash-back is-pending" aria-hidden>
+          <Store size={18} strokeWidth={2.2} />
+        </span>
+      )}
+      <div className="shop-dash-head-toggles">
+        <ShopVisibleToggle />
+        <ShopTamDongToggle />
+      </div>
+    </div>
+  );
+
   return (
-    <header className="shop-dash-head">
-      <div className="shop-dash-head-row">
-        {shopHref ? (
-          <Link
-            href={shopHref}
-            className="shop-dash-back"
-            aria-label="Về cửa hàng"
-            title="Về cửa hàng"
-          >
-            <Store size={18} strokeWidth={2.2} aria-hidden />
-          </Link>
-        ) : (
-          <span className="shop-dash-back is-pending" aria-hidden>
-            <Store size={18} strokeWidth={2.2} />
-          </span>
-        )}
-        <nav className="shop-dash-tabs" aria-label="Quản lý bán hàng">
-          <TabLink
-            href={TAB_COPY.kho.href}
-            label={TAB_COPY.kho.label}
-            shortLabel={TAB_COPY.kho.shortLabel}
-            active={active === "kho"}
-            icon={<Package size={18} strokeWidth={2} aria-hidden />}
-          />
-          <TabLink
-            href={TAB_COPY.don.href}
-            label={TAB_COPY.don.label}
-            shortLabel={TAB_COPY.don.shortLabel}
-            active={active === "don"}
-            icon={<ClipboardList size={18} strokeWidth={2} aria-hidden />}
-            onDataPrefetch={prefetchDonHang}
-          />
-          <TabLink
-            href={TAB_COPY["su-kien"].href}
-            label={TAB_COPY["su-kien"].label}
-            shortLabel={TAB_COPY["su-kien"].shortLabel}
-            active={active === "su-kien"}
-            icon={<Calendar size={18} strokeWidth={2} aria-hidden />}
-          />
-          <TabLink
-            href={TAB_COPY["cua-hang"].href}
-            label={TAB_COPY["cua-hang"].label}
-            shortLabel={TAB_COPY["cua-hang"].shortLabel}
-            active={active === "cua-hang"}
-            icon={<Store size={18} strokeWidth={2} aria-hidden />}
-            onDataPrefetch={() => prefetchShopCuaHangClient(null)}
-          />
-          <TabLink
-            href={TAB_COPY["bao-cao"].href}
-            label={TAB_COPY["bao-cao"].label}
-            shortLabel={TAB_COPY["bao-cao"].shortLabel}
-            active={active === "bao-cao"}
-            icon={<BarChart3 size={18} strokeWidth={2} aria-hidden />}
-            onDataPrefetch={prefetchBaoCao}
-          />
-        </nav>
-        <div className="shop-dash-head-end">
-          <div className="shop-dash-head-toggles">
-            <ShopVisibleToggle />
-            <ShopTamDongToggle />
-          </div>
+    <>
+      {topbarSlot ? createPortal(topbarControls, topbarSlot) : null}
+      <header className="shop-dash-head">
+        <div className="shop-dash-head-row">
+          <nav className="shop-dash-tabs" aria-label="Quản lý bán hàng">
+            <div
+              className="shop-dash-tabs-group shop-dash-tabs-group--ops"
+              role="group"
+              aria-label="Vận hành"
+            >
+              <TabLink
+                href={TAB_COPY.kho.href}
+                label={TAB_COPY.kho.label}
+                shortLabel={TAB_COPY.kho.shortLabel}
+                active={active === "kho"}
+                icon={<Package size={18} strokeWidth={2} aria-hidden />}
+              />
+              <TabLink
+                href={TAB_COPY["uu-dai"].href}
+                label={TAB_COPY["uu-dai"].label}
+                shortLabel={TAB_COPY["uu-dai"].shortLabel}
+                active={active === "uu-dai"}
+                icon={<TicketPercent size={18} strokeWidth={2} aria-hidden />}
+                onDataPrefetch={prefetchUuDai}
+              />
+              <TabLink
+                href={TAB_COPY.don.href}
+                label={TAB_COPY.don.label}
+                shortLabel={TAB_COPY.don.shortLabel}
+                active={active === "don"}
+                icon={<ClipboardList size={18} strokeWidth={2} aria-hidden />}
+                onDataPrefetch={prefetchDonHang}
+              />
+              <TabLink
+                href={TAB_COPY["su-kien"].href}
+                label={TAB_COPY["su-kien"].label}
+                shortLabel={TAB_COPY["su-kien"].shortLabel}
+                active={active === "su-kien"}
+                icon={<Calendar size={18} strokeWidth={2} aria-hidden />}
+              />
+            </div>
+            <div
+              className="shop-dash-tabs-group shop-dash-tabs-group--manage"
+              role="group"
+              aria-label="Quản lý"
+            >
+              <TabLink
+                href={TAB_COPY["cua-hang"].href}
+                label={TAB_COPY["cua-hang"].label}
+                shortLabel={TAB_COPY["cua-hang"].shortLabel}
+                active={active === "cua-hang"}
+                icon={<Store size={18} strokeWidth={2} aria-hidden />}
+                onDataPrefetch={() => prefetchShopCuaHangClient(null)}
+              />
+              <TabLink
+                href={TAB_COPY["bao-cao"].href}
+                label={TAB_COPY["bao-cao"].label}
+                shortLabel={TAB_COPY["bao-cao"].shortLabel}
+                active={active === "bao-cao"}
+                icon={<BarChart3 size={18} strokeWidth={2} aria-hidden />}
+                onDataPrefetch={prefetchBaoCao}
+              />
+            </div>
+          </nav>
           {actions ? (
-            <div className="shop-dash-head-actions">{actions}</div>
+            <div className="shop-dash-head-end">
+              <div className="shop-dash-head-actions">{actions}</div>
+            </div>
           ) : null}
         </div>
-      </div>
-    </header>
+      </header>
+    </>
   );
 }

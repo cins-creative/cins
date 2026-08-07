@@ -312,10 +312,18 @@
   background: color-mix(in srgb, #16a34a 10%, #f0fdf4);
 }
 
-.shop-don-detail-tong strong {
-  font-size: 16px;
-  font-weight: 800;
-  color: #9a3412;
+.shop-don-detail-tong.is-discount {
+  background: color-mix(in srgb, #16a34a 8%, #f8fafc);
+  font-weight: 600;
+}
+
+.shop-don-detail-tong.is-discount strong {
+  color: #15803d;
+  font-size: 14px;
+}
+
+.shop-don-detail-tong.is-final {
+  margin-top: 4px;
 }
 
 .shop-don-detail-panel.is-paid .shop-don-detail-tong strong {

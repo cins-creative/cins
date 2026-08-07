@@ -6,7 +6,13 @@ import {
   isStreamUid,
 } from "@/lib/cloudflare/stream-embed";
 import { getOrCreateDefaultBangGia } from "@/lib/shop/bang-gia";
+import { mapDanhMucSlugByIds } from "@/lib/shop/danh-muc";
 import { assertBanHangEnabled, shopImageUrl } from "@/lib/shop/settings";
+import {
+  facetsByNhomIds,
+  giaTriIdsByNhomIds,
+  replaceNhomGiaTri,
+} from "@/lib/shop/thuoc-tinh";
 import type { ShopNhom, ShopNhomTruc } from "@/lib/shop/types";
 import {
   SHOP_NHOM_ANH_PHU_MAX,
@@ -18,23 +24,43 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 export const SHOP_NHOM_NHAN_MAX = 40;
 
 const NHOM_COLS_BASE =
-  "id, id_nguoi_dung, truc, nhan, mo_ta, anh_id, overlay_anh_id, anh_phu_ids, video_phu_id, gia_mac_dinh, noi_bat, thu_tu, tao_luc";
+  "id, id_nguoi_dung, truc, nhan, mo_ta, anh_id, overlay_anh_id, anh_phu_ids, video_phu_id, gia_mac_dinh, noi_bat, thu_tu, tao_luc, id_danh_muc, danh_muc_xac_nhan";
 const NHOM_COLS_SO_MAU = `${NHOM_COLS_BASE}, so_mau`;
 
 /**
  * `so_mau` là cột cache tuỳ chọn (migration_shop_nhom_so_mau.sql). Nếu DB chưa
  * áp migration, PostgREST trả 42703 → tự hạ cấp bỏ `so_mau` (soMau hiển thị 0)
  * để không sập cả danh sách loại. Môi trường đã áp migration vẫn lấy số thật.
+ *
+ * `id_danh_muc` / `danh_muc_xac_nhan` (migration_shop_danh_muc.sql) — nếu thiếu
+ * thì hạ cấp bỏ 2 cột taxonomy (giống so_mau).
  */
 let soMauSupported = true;
+let taxonomyColsSupported = true;
 function nhomCols(): string {
-  return soMauSupported ? NHOM_COLS_SO_MAU : NHOM_COLS_BASE;
+  let cols = soMauSupported ? NHOM_COLS_SO_MAU : NHOM_COLS_BASE;
+  if (!taxonomyColsSupported) {
+    cols = cols
+      .replace(", id_danh_muc, danh_muc_xac_nhan", "")
+      .replace(", id_danh_muc", "")
+      .replace(", danh_muc_xac_nhan", "");
+  }
+  return cols;
 }
 function isMissingSoMauErr(
   error: { code?: string; message?: string } | null,
 ): boolean {
   if (!error) return false;
   return error.code === "42703" || /so_mau/i.test(error.message ?? "");
+}
+function isMissingTaxonomyErr(
+  error: { code?: string; message?: string } | null,
+): boolean {
+  if (!error) return false;
+  return (
+    error.code === "42703" &&
+    /id_danh_muc|danh_muc_xac_nhan/i.test(error.message ?? "")
+  );
 }
 
 type PgErrLike = { code?: string; message?: string } | null;
@@ -52,7 +78,15 @@ async function withNhomCols(
   const first = await run(nhomCols());
   if (first.error && soMauSupported && isMissingSoMauErr(first.error)) {
     soMauSupported = false;
-    return run(nhomCols());
+    return withNhomCols(run);
+  }
+  if (
+    first.error &&
+    taxonomyColsSupported &&
+    isMissingTaxonomyErr(first.error)
+  ) {
+    taxonomyColsSupported = false;
+    return withNhomCols(run);
   }
   return first;
 }
@@ -101,6 +135,8 @@ type NhomRow = {
   so_mau?: number | null;
   thu_tu: number;
   tao_luc: string;
+  id_danh_muc?: string | null;
+  danh_muc_xac_nhan?: boolean | null;
 };
 
 function normalizeAnhPhuIds(raw: unknown): string[] {
@@ -163,9 +199,35 @@ function mapNhom(row: NhomRow): ShopNhom {
       gia != null && Number.isFinite(gia) && gia >= 0 ? gia : null,
     noiBat: row.noi_bat === true,
     soMau: Number.isFinite(Number(row.so_mau)) ? Number(row.so_mau) : 0,
+    idDanhMuc: row.id_danh_muc?.trim() || null,
+    danhMucXacNhan: row.danh_muc_xac_nhan === true,
+    danhMucSlug: null,
+    facets: {},
+    giaTriIds: [],
     thuTu: row.thu_tu,
     taoLuc: row.tao_luc,
   };
+}
+
+/** Enrich slug danh mục + facet (slug map + id) sau select. */
+async function enrichNhomTaxonomy(nhoms: ShopNhom[]): Promise<void> {
+  if (nhoms.length === 0) return;
+  const dmIds = nhoms
+    .map((n) => n.idDanhMuc)
+    .filter((id): id is string => Boolean(id));
+  const nhomIds = nhoms.map((n) => n.id);
+  const [slugById, facetsMap, giaTriMap] = await Promise.all([
+    mapDanhMucSlugByIds(dmIds),
+    facetsByNhomIds(nhomIds),
+    giaTriIdsByNhomIds(nhomIds),
+  ]);
+  for (const n of nhoms) {
+    n.danhMucSlug = n.idDanhMuc
+      ? (slugById.get(n.idDanhMuc) ?? null)
+      : null;
+    n.facets = facetsMap.get(n.id) ?? {};
+    n.giaTriIds = giaTriMap.get(n.id) ?? [];
+  }
 }
 
 function normalizeGiaMacDinh(
@@ -218,6 +280,7 @@ export async function listNhom(
   const nhoms = ((data ?? []) as unknown as NhomRow[]).map(mapNhom);
   // Thiếu cột cache `so_mau` → đếm trực tiếp từ shop_san_pham để không hiện 0.
   if (!soMauSupported) await fillSoMauFromProducts(admin, ownerId, nhoms);
+  await enrichNhomTaxonomy(nhoms);
   return nhoms;
 }
 
@@ -239,7 +302,9 @@ export async function getNhomById(
   }
   const row = data as NhomRow | null;
   if (!row) return null;
-  return { ...mapNhom(row), idNguoiDung: row.id_nguoi_dung };
+  const mapped = mapNhom(row);
+  await enrichNhomTaxonomy([mapped]);
+  return { ...mapped, idNguoiDung: row.id_nguoi_dung };
 }
 
 /**
@@ -454,6 +519,12 @@ export async function updateNhom(
     videoPhuId?: string | null;
     giaMacDinh?: number | null;
     noiBat?: boolean;
+    /** null = gỡ map danh mục. */
+    idDanhMuc?: string | null;
+    /** true khi seller chọn/xác nhận (mặc định true nếu truyền idDanhMuc). */
+    danhMucXacNhan?: boolean;
+    /** Thay toàn bộ facet gắn loại (null/undefined = không đổi). */
+    giaTriIds?: string[];
   },
 ): Promise<ShopNhom> {
   await assertBanHangEnabled(ownerId);
@@ -531,19 +602,52 @@ export async function updateNhom(
     patch.noi_bat = input.noiBat;
   }
 
-  const { data: updated, error } = await withNhomCols((cols) =>
-    admin
-      .from("shop_nhom")
-      .update(patch)
-      .eq("id", nhomId)
-      .eq("id_nguoi_dung", ownerId)
-      .select(cols)
-      .single<NhomRow>(),
-  );
-  if (error || !updated) {
-    console.error("[shop] updateNhom", error);
-    if (error?.code === "23505") throw new Error("NHAN_DUP");
-    throw new Error("UPDATE_NHOM_FAILED");
+  if (input.idDanhMuc !== undefined) {
+    if (!taxonomyColsSupported) throw new Error("TAXONOMY_UNAVAILABLE");
+    const dmId = input.idDanhMuc?.trim() || null;
+    if (dmId) {
+      const { data: dm, error: dmErr } = await admin
+        .from("shop_danh_muc")
+        .select("id")
+        .eq("id", dmId)
+        .eq("trang_thai", "hien")
+        .maybeSingle<{ id: string }>();
+      if (dmErr || !dm) throw new Error("DANH_MUC_INVALID");
+      patch.id_danh_muc = dm.id;
+      patch.danh_muc_xac_nhan =
+        input.danhMucXacNhan === false ? false : true;
+    } else {
+      patch.id_danh_muc = null;
+      patch.danh_muc_xac_nhan = false;
+    }
+  } else if (typeof input.danhMucXacNhan === "boolean") {
+    if (!taxonomyColsSupported) throw new Error("TAXONOMY_UNAVAILABLE");
+    if (!row.id_danh_muc) throw new Error("DANH_MUC_REQUIRED");
+    patch.danh_muc_xac_nhan = input.danhMucXacNhan;
+  }
+
+  const hasPatch = Object.keys(patch).length > 1; // besides cap_nhat_luc
+  let updatedRow: NhomRow = row;
+  if (hasPatch) {
+    const { data: updated, error } = await withNhomCols((cols) =>
+      admin
+        .from("shop_nhom")
+        .update(patch)
+        .eq("id", nhomId)
+        .eq("id_nguoi_dung", ownerId)
+        .select(cols)
+        .single<NhomRow>(),
+    );
+    if (error || !updated) {
+      console.error("[shop] updateNhom", error);
+      if (error?.code === "23505") throw new Error("NHAN_DUP");
+      throw new Error("UPDATE_NHOM_FAILED");
+    }
+    updatedRow = updated as NhomRow;
+  }
+
+  if (input.giaTriIds !== undefined) {
+    await replaceNhomGiaTri(nhomId, input.giaTriIds);
   }
 
   if (nextNhan !== row.nhan) {
@@ -571,7 +675,9 @@ export async function updateNhom(
     }
   }
 
-  return mapNhom(updated as NhomRow);
+  const mapped = mapNhom(updatedRow);
+  await enrichNhomTaxonomy([mapped]);
+  return mapped;
 }
 
 /**

@@ -10,6 +10,19 @@ export type PublicShopListingHang = {
   /** Giá gợi ý — `shop_nhom.gia_mac_dinh` (loại) hoặc kế thừa từ loại (mẫu). */
   giaHienThi?: number | null;
   tienTe?: string;
+  /** Feature loại (`shop_nhom.noi_bat`) — mẫu thường false. */
+  noiBat?: boolean;
+  /** Tổng SL đã bán (đơn hoàn thành) — loại = sum mẫu. */
+  soLuongBan?: number;
+  /** Hết tồn mọi biến thể đang bán thuộc loại. */
+  hetHang?: boolean;
+  /** Slug danh mục canonical (`shop_danh_muc`) — null nếu chưa map. */
+  danhMucSlug?: string | null;
+  /**
+   * Facet gắn loại — key = slug facet (`fandom`, `chat-lieu`),
+   * value = slug giá trị. Chỉ có trên loại (`kind=loai`).
+   */
+  facets?: Record<string, string[]>;
 };
 
 export type PublicShopListingItem = {

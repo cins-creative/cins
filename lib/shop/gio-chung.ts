@@ -1,5 +1,6 @@
 import "server-only";
 
+import { listComboKichHoat } from "@/lib/shop/combo";
 import {
   assertShopNotTamDong,
 } from "@/lib/shop/cua-hang";
@@ -9,6 +10,7 @@ import type {
   ShopGioChungDong,
   ShopGioChungNhom,
 } from "@/lib/shop/types";
+import { applyUuDai } from "@/lib/shop/uu-dai";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 /**
@@ -22,6 +24,7 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 type BienTheInfo = {
   idBienThe: string;
   idSanPham: string;
+  idNhom: string | null;
   idNguoiBan: string;
   tenSanPham: string;
   nhanBienThe: string;
@@ -187,6 +190,7 @@ async function resolveBienThe(
     out.set(bt.id, {
       idBienThe: bt.id,
       idSanPham: sp.id,
+      idNhom: sp.id_nhom ?? null,
       idNguoiBan: sp.id_nguoi_dung,
       tenSanPham: sp.ten,
       nhanBienThe: bt.nhan?.trim() || "Mặc định",
@@ -347,6 +351,9 @@ export async function getGioChung(buyerId: string): Promise<ShopGioChung> {
         avatarUrl: ban?.avatarUrl ?? null,
         coThanhToan: ban?.coThanhToan ?? false,
         dong: [],
+        tongHang: 0,
+        giamCombo: 0,
+        comboApDung: [],
         tongTien: 0,
         tienTe: info.tienTe,
         coVanDe: false,
@@ -357,6 +364,7 @@ export async function getGioChung(buyerId: string): Promise<ShopGioChung> {
     const dong: ShopGioChungDong = {
       idBienThe: info.idBienThe,
       idSanPham: info.idSanPham,
+      idNhom: info.idNhom,
       idNguoiBan: info.idNguoiBan,
       soLuong: d.so_luong,
       tenSanPham: info.tenSanPham,
@@ -369,8 +377,18 @@ export async function getGioChung(buyerId: string): Promise<ShopGioChung> {
     };
     nhom.dong.push(dong);
     nhom.tienTe = info.tienTe;
-    if (!info.ngungBan) nhom.tongTien += gia * d.so_luong;
+    if (!info.ngungBan) nhom.tongHang += gia * d.so_luong;
     if (info.ngungBan || info.soLuongTon < d.so_luong) nhom.coVanDe = true;
+  }
+
+  /* Áp combo theo seller — tongTien = sau giảm combo (chưa voucher; voucher lúc checkout). */
+  for (const nhom of nhomBySeller.values()) {
+    const combos = await listComboKichHoat(nhom.idNguoiBan);
+    const uu = applyUuDai(nhom.dong, combos, null);
+    nhom.tongHang = uu.tongHang;
+    nhom.giamCombo = uu.giamCombo;
+    nhom.comboApDung = uu.comboApDung;
+    nhom.tongTien = uu.tongTien;
   }
 
   const nhom = [...nhomBySeller.values()].sort((a, b) =>

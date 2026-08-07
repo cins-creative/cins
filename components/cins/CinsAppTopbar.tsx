@@ -61,13 +61,14 @@ export async function CinsAppTopbar() {
           >
             <MenuIcon size={20} strokeWidth={1.8} aria-hidden />
           </button>
-        </div>
-        <div className="tb-right">
+          {/* Page-specific chrome (ban-hang toggles, trường admin, cộng đồng…) — align trái */}
           <div
             id="app-topbar-page-slot"
             className="tb-page-slot"
             aria-live="polite"
           />
+        </div>
+        <div className="tb-right">
           {session?.profile ? <ShopGioChungButton /> : null}
           {banHangEnabled ? <ShopTopbarButton /> : null}
           {adminInboxStats ? (
