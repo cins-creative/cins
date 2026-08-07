@@ -1141,6 +1141,14 @@
   gap: 10px;
 }
 
+.cins-app-topbar .tb-right-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  min-width: 0;
+}
+
 .cins-app-topbar .tb-left {
   flex: 1;
   min-width: 0;

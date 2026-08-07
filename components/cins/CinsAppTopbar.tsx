@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { Menu as MenuIcon } from "lucide-react";
 import Link from "next/link";
 
@@ -49,6 +50,40 @@ export async function CinsAppTopbar() {
         }
       : null;
 
+  const tbRightGroups: React.ReactNode[] = [];
+  if (session?.profile) {
+    tbRightGroups.push(
+      <div className="tb-right-group" key="shop">
+        <ShopGioChungButton />
+        {banHangEnabled ? <ShopTopbarButton /> : null}
+      </div>,
+    );
+  }
+  if (adminInboxStats) {
+    tbRightGroups.push(
+      <div className="tb-right-group" key="admin">
+        <AdminInboxButton initialStats={adminInboxStats} />
+      </div>,
+    );
+  }
+  if (session?.profile) {
+    tbRightGroups.push(
+      <div className="tb-right-group" key="notify">
+        <JourneyNotifications
+          initialUnreadCount={unreadNotificationCount}
+          viewerProfileId={session.profile.id}
+        />
+      </div>,
+    );
+  }
+  if (accountProfile) {
+    tbRightGroups.push(
+      <div className="tb-right-group" key="account">
+        <UserAccountMenu profile={accountProfile} placement="topbar" />
+      </div>,
+    );
+  }
+
   return (
     <nav className="topbar cins-app-topbar" id="app-topbar">
       <div className="topbar-inner">
@@ -69,23 +104,12 @@ export async function CinsAppTopbar() {
           />
         </div>
         <div className="tb-right">
-          {session?.profile ? <ShopGioChungButton /> : null}
-          {banHangEnabled ? <ShopTopbarButton /> : null}
-          {adminInboxStats ? (
-            <AdminInboxButton initialStats={adminInboxStats} />
-          ) : null}
-          {session?.profile ? (
-            <JourneyNotifications
-              initialUnreadCount={unreadNotificationCount}
-              viewerProfileId={session.profile.id}
-            />
-          ) : null}
-          {accountProfile ? (
-            <UserAccountMenu
-              profile={accountProfile}
-              placement="topbar"
-            />
-          ) : null}
+          {tbRightGroups.map((group, i) => (
+            <Fragment key={i}>
+              {i > 0 ? <span className="tb-divider" aria-hidden /> : null}
+              {group}
+            </Fragment>
+          ))}
           {isAuthed ? null : (
             <>
               <span className="tb-divider" aria-hidden />
