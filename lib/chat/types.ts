@@ -14,7 +14,8 @@ export type ChatMessageKind =
   | "cuoc_goi"
   | "lop_bai"
   | "phong_lop"
-  | "chao_lop";
+  | "chao_lop"
+  | "shop_don_khao_sat";
 
 /** Tin hệ thống chào HV mới vào phòng lớp (`ngu_canh.loai=chao_lop`). */
 export type ChatChaoLopNotice = {
@@ -31,6 +32,12 @@ export type ChatLopBaiNotice = {
   idNopBai?: string;
   idCotMoc?: string;
   slug?: string;
+};
+
+/** Tin hệ thống hỏi buyer đã nhận hàng chưa (`ngu_canh.loai=shop_don_khao_sat`). */
+export type ChatShopDonKhaoSatNotice = {
+  donId: string;
+  maDon: string | null;
 };
 
 /** CTA mở phòng lớp sau xác nhận học phí (`ngu_canh.loai=phong_lop`). */
@@ -203,6 +210,8 @@ export type ChatMessage = {
   chaoLop?: ChatChaoLopNotice | null;
   /** Mời vào phòng lớp sau xác nhận học phí. */
   phongLop?: ChatPhongLopInvite | null;
+  /** Khảo sát buyer: đã nhận hàng chưa (P3a). */
+  shopDonKhaoSat?: ChatShopDonKhaoSatNotice | null;
   /** Bình luận trên canvas — dòng nhỏ trong feed. */
   canvasBinhLuan?: ChatCanvasBinhLuanNotice | null;
   /** Lịch sử / tín hiệu cuộc gọi trong phòng. */

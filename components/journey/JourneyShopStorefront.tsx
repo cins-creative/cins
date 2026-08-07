@@ -805,7 +805,19 @@ export function JourneyShopStorefront({
         showBackProfile
       />
 
-      {!shopClosed ? <ShopStorefrontComboStrip sellerId={ownerId} /> : null}
+      {!shopClosed ? (
+        <ShopStorefrontComboStrip
+          sellerId={ownerId}
+          ownerSlug={ownerSlug}
+          shopName={shopName}
+          shopAvatarUrl={shopAvatarUrl}
+          shopBannerUrl={
+            shopCoverUrl ??
+            (shopBannerSuKienHien ? shopBannerSuKienUrl : null) ??
+            null
+          }
+        />
+      ) : null}
 
       <div className="j-shop-sf-section-head">
         <span className="j-tlb-streak-slow" aria-hidden="true" />

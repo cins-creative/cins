@@ -22,8 +22,13 @@ export type ShopVoucherCardProps = {
   donToiThieu?: number;
   soLuongTong?: number | null;
   soLuongDaDung?: number;
+  /** Số người đã lưu ví, chưa dùng — chỉ hiện khi prop được truyền. */
+  soLuongDaLuu?: number;
   ketThuc?: string | null;
   tenCuaHang?: string | null;
+  shopAvatarUrl?: string | null;
+  shopBannerUrl?: string | null;
+  compact?: boolean;
   conHieuLuc?: boolean;
   lyDoHetHieuLuc?: ShopVoucherLyDoHet | null;
   daLuu?: boolean;
@@ -52,6 +57,12 @@ function formatHetHan(iso: string | null | undefined): string | null {
   return d.toLocaleDateString("vi-VN");
 }
 
+function shopInitial(ten: string | null | undefined): string {
+  const t = ten?.trim();
+  if (!t) return "?";
+  return t.charAt(0).toUpperCase();
+}
+
 export function ShopVoucherCard({
   ma,
   ten,
@@ -65,8 +76,12 @@ export function ShopVoucherCard({
   donToiThieu = 0,
   soLuongTong,
   soLuongDaDung = 0,
+  soLuongDaLuu,
   ketThuc,
   tenCuaHang,
+  shopAvatarUrl,
+  shopBannerUrl,
+  compact = false,
   conHieuLuc = true,
   lyDoHetHieuLuc,
   daLuu,
@@ -78,7 +93,7 @@ export function ShopVoucherCard({
   const badgeLabel =
     lyDoHetHieuLuc != null ? LY_DO_LABEL[lyDoHetHieuLuc] : null;
 
-  const style =
+  const bodyStyle =
     designKieu === "rieng"
       ? ({
           ...(designMauNen ? { backgroundColor: designMauNen } : {}),
@@ -93,53 +108,117 @@ export function ShopVoucherCard({
         } as CSSProperties)
       : undefined;
 
+  const showShopRow = Boolean(tenCuaHang || shopAvatarUrl || shopBannerUrl);
+  const conLai =
+    soLuongTong != null
+      ? Math.max(0, soLuongTong - soLuongDaDung)
+      : null;
+
   return (
     <article
       className={[
         "shop-voucher-card",
         designKieu === "mac_dinh" ? "is-mac-dinh" : "is-rieng",
+        compact ? "shop-voucher-card--compact" : "",
         disabled ? "is-disabled" : "",
       ]
         .filter(Boolean)
         .join(" ")}
-      style={style}
       aria-disabled={disabled || undefined}
     >
-      <div className="shop-voucher-card-inner">
-        {tenCuaHang ? (
-          <p className="shop-voucher-card-shop">{tenCuaHang}</p>
+      <div className="shop-voucher-card-banner">
+        {shopBannerUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            className="shop-voucher-card-banner-img"
+            src={shopBannerUrl}
+            alt=""
+            loading="lazy"
+            decoding="async"
+          />
         ) : null}
-        {designNhan ? (
-          <span className="shop-voucher-card-label">{designNhan}</span>
+        <div className="shop-voucher-card-banner-shade" aria-hidden />
+        {showShopRow ? (
+          <div className="shop-voucher-card-shop-row">
+            <div className="shop-voucher-card-avatar">
+              {shopAvatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={shopAvatarUrl} alt="" loading="lazy" decoding="async" />
+              ) : (
+                <span aria-hidden>{shopInitial(tenCuaHang)}</span>
+              )}
+            </div>
+            {tenCuaHang ? (
+              <span className="shop-voucher-card-shop-name">{tenCuaHang}</span>
+            ) : null}
+          </div>
         ) : null}
-        <p className="shop-voucher-card-ten">{ten}</p>
-        <p className="shop-voucher-card-giam">{formatGiam(loaiGiam, giaTri)}</p>
-        <div className="shop-voucher-card-ma-row">
-          <code className="shop-voucher-card-ma">{ma}</code>
-          {onCopy ? (
-            <button
-              type="button"
-              className="shop-voucher-card-copy"
-              onClick={onCopy}
-              aria-label="Sao chép mã voucher"
-            >
-              <Copy size={16} aria-hidden />
-            </button>
+      </div>
+
+      <div className="shop-voucher-card-body" style={bodyStyle}>
+        <div className="shop-voucher-card-content">
+          <div className="shop-voucher-card-main">
+            <div className="shop-voucher-card-title-row">
+              {designNhan ? (
+                <span className="shop-voucher-card-label">{designNhan}</span>
+              ) : null}
+              <p className="shop-voucher-card-ten">{ten}</p>
+            </div>
+            <p className="shop-voucher-card-giam">
+              {formatGiam(loaiGiam, giaTri)}
+            </p>
+          </div>
+
+          <div className="shop-voucher-card-code-block">
+            <span className="shop-voucher-card-code-label">Mã voucher</span>
+            <div className="shop-voucher-card-ma-row">
+              <code className="shop-voucher-card-ma">{ma}</code>
+              {onCopy ? (
+                <button
+                  type="button"
+                  className="shop-voucher-card-copy"
+                  onClick={onCopy}
+                  aria-label="Sao chép mã voucher"
+                >
+                  <Copy size={16} aria-hidden />
+                </button>
+              ) : null}
+            </div>
+          </div>
+        </div>
+
+        <div className="shop-voucher-card-meta-list">
+          {donToiThieu > 0 ? (
+            <p className="shop-voucher-card-meta">
+              Đơn tối thiểu {donToiThieu.toLocaleString("vi-VN")} ₫
+            </p>
+          ) : null}
+          {hetHanLabel ? (
+            <p className="shop-voucher-card-meta">HSD: {hetHanLabel}</p>
+          ) : null}
+          {soLuongDaLuu != null ? (
+            <p className="shop-voucher-card-meta">
+              Đã lưu {soLuongDaLuu}
+            </p>
+          ) : null}
+          {soLuongTong != null ? (
+            <>
+              <p className="shop-voucher-card-meta">
+                Đã dùng {soLuongDaDung}
+              </p>
+              <p className="shop-voucher-card-meta shop-voucher-card-meta--con-lai">
+                Còn lại{" "}
+                <strong className="shop-voucher-card-meta-highlight">
+                  {conLai}
+                </strong>
+                <span className="shop-voucher-card-meta-total">
+                  {" "}
+                  / {soLuongTong}
+                </span>
+              </p>
+            </>
           ) : null}
         </div>
-        {donToiThieu > 0 ? (
-          <p className="shop-voucher-card-meta">
-            Đơn tối thiểu {donToiThieu.toLocaleString("vi-VN")} ₫
-          </p>
-        ) : null}
-        {hetHanLabel ? (
-          <p className="shop-voucher-card-meta">HSD: {hetHanLabel}</p>
-        ) : null}
-        {soLuongTong != null ? (
-          <p className="shop-voucher-card-meta">
-            Còn {Math.max(0, soLuongTong - soLuongDaDung)} / {soLuongTong} lượt
-          </p>
-        ) : null}
         {daLuu ? (
           <span className="shop-voucher-card-saved">Đã lưu</span>
         ) : null}

@@ -5,8 +5,10 @@ import { tinhGiamVoucher } from "@/lib/shop/uu-dai";
 import type {
   ShopLoaiGiam,
   ShopVoucher,
+  ShopVoucherCongKhaiItem,
   ShopVoucherDesign,
   ShopVoucherLyDoHet,
+  ShopVoucherShopBranding,
   ShopVoucherViItem,
 } from "@/lib/shop/types";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
@@ -562,20 +564,95 @@ export async function hoanVoucherChoDon(donHangId: string): Promise<void> {
   }
 }
 
+type ShopBrandingRow = {
+  id_nguoi_dung: string;
+  ten: string | null;
+  avatar_id: string | null;
+  cover_id: string | null;
+  banner_su_kien_id: string | null;
+  banner_su_kien_hien: boolean;
+};
+
+async function loadShopBrandingBySellerIds(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  sellerIds: string[],
+): Promise<Map<string, ShopVoucherShopBranding>> {
+  const out = new Map<string, ShopVoucherShopBranding>();
+  if (!sellerIds.length) return out;
+
+  const [{ data: shops }, { data: users }] = await Promise.all([
+    admin
+      .from("shop_cua_hang")
+      .select(
+        "id_nguoi_dung, ten, avatar_id, cover_id, banner_su_kien_id, banner_su_kien_hien",
+      )
+      .in("id_nguoi_dung", sellerIds)
+      .eq("da_xoa", false),
+    admin.from("user_nguoi_dung").select("id, slug").in("id", sellerIds),
+  ]);
+  const slugById = new Map(
+    ((users ?? []) as Array<{ id: string; slug: string | null }>).map((u) => [
+      u.id,
+      u.slug,
+    ]),
+  );
+  for (const s of (shops ?? []) as ShopBrandingRow[]) {
+    const coverUrl = shopImageUrl(s.cover_id);
+    const bannerSuKienUrl = shopImageUrl(s.banner_su_kien_id);
+    const bannerUrl =
+      coverUrl ?? (s.banner_su_kien_hien ? bannerSuKienUrl : null);
+    out.set(s.id_nguoi_dung, {
+      tenCuaHang: s.ten?.trim() || null,
+      sellerSlug: slugById.get(s.id_nguoi_dung) ?? null,
+      shopAvatarUrl: shopImageUrl(s.avatar_id),
+      shopBannerUrl: bannerUrl,
+    });
+  }
+  return out;
+}
+
+/** Đếm buyer đã lưu ví nhưng chưa redeem (theo cặp voucher + user). */
+async function loadSoLuongDaLuuChuaDungByVoucherIds(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  voucherIds: string[],
+): Promise<Map<string, number>> {
+  const out = new Map<string, number>();
+  if (!voucherIds.length) return out;
+  for (const id of voucherIds) out.set(id, 0);
+
+  const [{ data: luu }, { data: used }] = await Promise.all([
+    admin
+      .from("shop_voucher_luu")
+      .select("id_voucher, id_nguoi_dung")
+      .in("id_voucher", voucherIds),
+    admin
+      .from("shop_voucher_su_dung")
+      .select("id_voucher, id_nguoi_dung")
+      .in("id_voucher", voucherIds),
+  ]);
+
+  const usedSet = new Set(
+    ((used ?? []) as Array<{ id_voucher: string; id_nguoi_dung: string }>).map(
+      (r) => `${r.id_voucher}:${r.id_nguoi_dung}`,
+    ),
+  );
+
+  for (const r of (luu ?? []) as Array<{
+    id_voucher: string;
+    id_nguoi_dung: string;
+  }>) {
+    if (usedSet.has(`${r.id_voucher}:${r.id_nguoi_dung}`)) continue;
+    out.set(r.id_voucher, (out.get(r.id_voucher) ?? 0) + 1);
+  }
+  return out;
+}
+
 /** Voucher công khai đang chạy — hub /cua-hang hoặc theo seller. */
 export async function listVoucherCongKhai(opts?: {
   sellerId?: string | null;
   buyerId?: string | null;
   limit?: number;
-}): Promise<
-  Array<
-    ShopVoucher & {
-      daLuu: boolean;
-      tenCuaHang: string | null;
-      sellerSlug: string | null;
-    }
-  >
-> {
+}): Promise<ShopVoucherCongKhaiItem[]> {
   const limit = Math.min(Math.max(opts?.limit ?? 20, 1), 50);
   const admin = createServiceRoleClient();
   const nowIso = new Date().toISOString();
@@ -600,38 +677,11 @@ export async function listVoucherCongKhai(opts?: {
   );
 
   const sellerIds = [...new Set(rows.map((v) => v.idNguoiDung))];
-  const shopBySeller = new Map<
-    string,
-    { ten: string | null; slug: string | null }
-  >();
-  if (sellerIds.length) {
-    const [{ data: shops }, { data: users }] = await Promise.all([
-      admin
-        .from("shop_cua_hang")
-        .select("id_nguoi_dung, ten")
-        .in("id_nguoi_dung", sellerIds)
-        .eq("da_xoa", false),
-      admin
-        .from("user_nguoi_dung")
-        .select("id, slug")
-        .in("id", sellerIds),
-    ]);
-    const slugById = new Map(
-      ((users ?? []) as Array<{ id: string; slug: string | null }>).map((u) => [
-        u.id,
-        u.slug,
-      ]),
-    );
-    for (const s of (shops ?? []) as Array<{
-      id_nguoi_dung: string;
-      ten: string | null;
-    }>) {
-      shopBySeller.set(s.id_nguoi_dung, {
-        ten: s.ten,
-        slug: slugById.get(s.id_nguoi_dung) ?? null,
-      });
-    }
-  }
+  const voucherIds = rows.map((v) => v.id);
+  const [shopBySeller, soLuongDaLuuByVoucher] = await Promise.all([
+    loadShopBrandingBySellerIds(admin, sellerIds),
+    loadSoLuongDaLuuChuaDungByVoucherIds(admin, voucherIds),
+  ]);
 
   const daLuu = new Set<string>();
   if (opts?.buyerId && rows.length) {
@@ -653,10 +703,35 @@ export async function listVoucherCongKhai(opts?: {
     return {
       ...v,
       daLuu: daLuu.has(v.id),
-      tenCuaHang: shop?.ten?.trim() || null,
-      sellerSlug: shop?.slug ?? null,
+      soLuongDaLuu: soLuongDaLuuByVoucher.get(v.id) ?? 0,
+      tenCuaHang: shop?.tenCuaHang ?? null,
+      sellerSlug: shop?.sellerSlug ?? null,
+      shopAvatarUrl: shop?.shopAvatarUrl ?? null,
+      shopBannerUrl: shop?.shopBannerUrl ?? null,
     };
   });
+}
+
+/** Shop có ít nhất một voucher đang chạy (bật, còn hạn, còn lượt). */
+export async function sellerCoVoucherDangChay(sellerId: string): Promise<boolean> {
+  const admin = createServiceRoleClient();
+  const nowIso = new Date().toISOString();
+  const { data, error } = await admin
+    .from("shop_voucher")
+    .select("id, so_luong_tong, so_luong_da_dung")
+    .eq("id_nguoi_dung", sellerId)
+    .eq("da_xoa", false)
+    .eq("kich_hoat", true)
+    .or(`bat_dau.is.null,bat_dau.lte.${nowIso}`)
+    .or(`ket_thuc.is.null,ket_thuc.gt.${nowIso}`)
+    .limit(12);
+  if (error) throw new Error("VOUCHER_CO_FAILED");
+  return ((data ?? []) as Array<{
+    so_luong_tong: number | null;
+    so_luong_da_dung: number;
+  }>).some(
+    (r) => r.so_luong_tong == null || r.so_luong_da_dung < r.so_luong_tong,
+  );
 }
 
 export async function luuVoucherVi(
@@ -729,35 +804,7 @@ export async function listVoucherVi(
       [...byId.values()].map((v) => v.idNguoiDung),
     ),
   ];
-  const shopBySeller = new Map<
-    string,
-    { ten: string | null; slug: string | null }
-  >();
-  if (sellerIds.length) {
-    const [{ data: shops }, { data: users }] = await Promise.all([
-      admin
-        .from("shop_cua_hang")
-        .select("id_nguoi_dung, ten")
-        .in("id_nguoi_dung", sellerIds)
-        .eq("da_xoa", false),
-      admin.from("user_nguoi_dung").select("id, slug").in("id", sellerIds),
-    ]);
-    const slugById = new Map(
-      ((users ?? []) as Array<{ id: string; slug: string | null }>).map((u) => [
-        u.id,
-        u.slug,
-      ]),
-    );
-    for (const s of (shops ?? []) as Array<{
-      id_nguoi_dung: string;
-      ten: string | null;
-    }>) {
-      shopBySeller.set(s.id_nguoi_dung, {
-        ten: s.ten,
-        slug: slugById.get(s.id_nguoi_dung) ?? null,
-      });
-    }
-  }
+  const shopBySeller = await loadShopBrandingBySellerIds(admin, sellerIds);
 
   const now = new Date();
   const hideBefore = now.getTime() - 30 * 24 * 60 * 60 * 1000;
@@ -784,8 +831,10 @@ export async function listVoucherVi(
       luuLuc: row.tao_luc,
       conHieuLuc,
       lyDoHetHieuLuc,
-      tenCuaHang: shop?.ten?.trim() || null,
-      sellerSlug: shop?.slug ?? null,
+      tenCuaHang: shop?.tenCuaHang ?? null,
+      sellerSlug: shop?.sellerSlug ?? null,
+      shopAvatarUrl: shop?.shopAvatarUrl ?? null,
+      shopBannerUrl: shop?.shopBannerUrl ?? null,
     });
   }
   return out;

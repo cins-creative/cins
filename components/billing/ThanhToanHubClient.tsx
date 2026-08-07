@@ -53,6 +53,28 @@ const TT_LABEL: Record<HoaDon["trangThai"], string> = {
   mien: "Miễn",
 };
 
+type TtTrangThaiTone = "ok" | "warn" | "danger" | "muted";
+
+function ttTrangThaiUi(trangThai: HoaDon["trangThai"]): {
+  label: string;
+  tone: TtTrangThaiTone;
+} {
+  switch (trangThai) {
+    case "da_tra":
+      return { label: TT_LABEL.da_tra, tone: "ok" };
+    case "chua_tra":
+      return { label: TT_LABEL.chua_tra, tone: "warn" };
+    case "qua_han":
+      return { label: TT_LABEL.qua_han, tone: "danger" };
+    case "chua_chot":
+      return { label: TT_LABEL.chua_chot, tone: "muted" };
+    case "mien":
+      return { label: TT_LABEL.mien, tone: "muted" };
+    default:
+      return { label: trangThai, tone: "muted" };
+  }
+}
+
 const LOAI_LABEL: Record<string, string> = {
   csdt_phi: "Phí cơ sở",
   shop_phi: "Phí shop",
@@ -868,6 +890,7 @@ export function ThanhToanHubClient({ initial }: Props) {
               <tbody>
                 {filteredHoaDon.map((h) => {
                   const pct = fmtTyLePercent(h.tyLe);
+                  const tt = ttTrangThaiUi(h.trangThai);
                   return (
                     <tr key={`${h.nguon}-${h.id}`}>
                       <td>
@@ -896,7 +919,13 @@ export function ThanhToanHubClient({ initial }: Props) {
                         {fmtVnd(h.conNoVnd)}
                       </td>
                       <td>{h.hanTra ? fmtYmd(h.hanTra) : "—"}</td>
-                      <td>{TT_LABEL[h.trangThai] ?? h.trangThai}</td>
+                      <td className="billing-td-tt">
+                        <span
+                          className={`billing-tt-badge billing-tt-badge--${tt.tone}`}
+                        >
+                          {tt.label}
+                        </span>
+                      </td>
                       <td className="mono">{h.maThamChieu || "—"}</td>
                       <td className="billing-td-actions">
                         <button

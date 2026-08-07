@@ -51,7 +51,8 @@
 
 /* Mesh nhẹ — listing toolbar (hub tự khai báo ::before riêng) */
 .tdh-list-toolbar::before,
-.cd-list-toolbar::before {
+.cd-list-toolbar::before,
+.ch-list-toolbar::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -69,7 +70,8 @@
 .cd-v4-moc-bar > *:not(.j-tlb-streak-slow),
 .j-shop-sf-section-head > *:not(.j-tlb-streak-slow),
 .tdh-list-toolbar > *:not(.j-tlb-streak-slow):not(.cins-frost-glass),
-.cd-list-toolbar > *:not(.j-tlb-streak-slow):not(.cins-frost-glass) {
+.cd-list-toolbar > *:not(.j-tlb-streak-slow):not(.cins-frost-glass),
+.ch-list-toolbar > *:not(.j-tlb-streak-slow):not(.cins-frost-glass) {
   position: relative;
   z-index: 1;
 }

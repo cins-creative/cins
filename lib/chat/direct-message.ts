@@ -40,6 +40,7 @@ import {
   parseChatChaoLop,
 } from "@/lib/chat/chao-lop-notice";
 import { parseChatPhongLopInvite } from "@/lib/chat/phong-lop-invite";
+import { parseChatShopDonKhaoSat } from "@/lib/chat/shop-don-khao-sat-notice";
 import type {
   ChatContextCard,
   ChatMessage,
@@ -154,6 +155,10 @@ export function messagePreview(row: MessageRow): string {
   if (mocNhac) {
     return normalized.noi_dung?.trim() || `Nhắc mốc: ${mocNhac.ten}`;
   }
+  const shopKhaoSat = parseChatShopDonKhaoSat(normalized.ngu_canh);
+  if (shopKhaoSat) {
+    return normalized.noi_dung?.trim() || "Xác nhận nhận hàng";
+  }
   const phongLop = parseChatPhongLopInvite(normalized.ngu_canh);
   if (phongLop) {
     return normalized.noi_dung?.trim() || "Tham gia phòng học";
@@ -245,20 +250,24 @@ export function mapMessageFromRow(
     canvasBinhLuan || cuocGoi || mocNhac
       ? null
       : parseChatPhongLopInvite(normalized.ngu_canh);
-  const chaoLop =
+  const shopDonKhaoSat =
     canvasBinhLuan || cuocGoi || mocNhac || phongLop
+      ? null
+      : parseChatShopDonKhaoSat(normalized.ngu_canh);
+  const chaoLop =
+    canvasBinhLuan || cuocGoi || mocNhac || phongLop || shopDonKhaoSat
       ? null
       : parseChatChaoLop(normalized.ngu_canh);
   const lopBai =
-    canvasBinhLuan || cuocGoi || mocNhac || phongLop || chaoLop
+    canvasBinhLuan || cuocGoi || mocNhac || phongLop || shopDonKhaoSat || chaoLop
       ? null
       : parseLopBaiNguCanh(normalized.ngu_canh);
   const nguCanh =
-    canvasBinhLuan || cuocGoi || mocNhac || phongLop || chaoLop || lopBai
+    canvasBinhLuan || cuocGoi || mocNhac || phongLop || shopDonKhaoSat || chaoLop || lopBai
       ? null
       : parseNguCanh(normalized.ngu_canh);
   const mentions =
-    canvasBinhLuan || cuocGoi || mocNhac || phongLop || chaoLop || lopBai
+    canvasBinhLuan || cuocGoi || mocNhac || phongLop || shopDonKhaoSat || chaoLop || lopBai
       ? []
       : parseChatMessageMentions(normalized.ngu_canh);
   const forwarded = parseChatForwarded(normalized.ngu_canh);
@@ -268,23 +277,25 @@ export function mapMessageFromRow(
       ? "cuoc_goi"
       : mocNhac
         ? "moc_nhac"
-        : phongLop
-          ? "phong_lop"
-          : chaoLop
-            ? "chao_lop"
-            : lopBai
-              ? "lop_bai"
-              : nguCanh
-                ? "context"
-                : normalized.loai_tin === "sticker"
-                  ? "sticker"
-                  : normalized.loai_tin === "media"
-                    ? "media"
-                    : normalized.loai_tin === "binh_chon"
-                      ? "binh_chon"
-                      : normalized.loai_tin === "system"
-                        ? "moc_nhac"
-                        : "text";
+        : shopDonKhaoSat
+          ? "shop_don_khao_sat"
+          : phongLop
+            ? "phong_lop"
+            : chaoLop
+              ? "chao_lop"
+              : lopBai
+                ? "lop_bai"
+                : nguCanh
+                  ? "context"
+                  : normalized.loai_tin === "sticker"
+                    ? "sticker"
+                    : normalized.loai_tin === "media"
+                      ? "media"
+                      : normalized.loai_tin === "binh_chon"
+                        ? "binh_chon"
+                        : normalized.loai_tin === "system"
+                          ? "moc_nhac"
+                          : "text";
   const video = kind === "media" ? resolveVideo(normalized) : null;
   const imageId =
     !video && (kind === "media" || kind === "sticker")
@@ -329,6 +340,7 @@ export function mapMessageFromRow(
     mentions: mentions.length > 0 ? mentions : undefined,
     poll: null,
     mocNhac,
+    shopDonKhaoSat,
     phongLop,
     chaoLop,
     lopBai,
@@ -1421,7 +1433,13 @@ export async function sendRoomMessage(
     excludeUserId: viewerId,
   });
   const baseNguCanh = buildNguCanhPayload(
-    contextCard as Record<string, unknown> | null,
+    (contextCard as Record<string, unknown> | null) ??
+      (typeof input !== "string" &&
+      input.nguCanh &&
+      typeof input.nguCanh === "object" &&
+      !Array.isArray(input.nguCanh)
+        ? (input.nguCanh as Record<string, unknown>)
+        : null),
     mentions,
   );
   const nguCanhPayload = chuyenTiep

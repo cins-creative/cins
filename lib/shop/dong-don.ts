@@ -35,6 +35,11 @@ async function guiChatKhaoSatBuyerOnly(
       body: noiDung,
       loaiTin: "system",
       chiHienCho: [don.idNguoiMua],
+      nguCanh: {
+        loai: "shop_don_khao_sat",
+        id: don.id,
+        tieuDe: don.maDon?.trim() || don.id.slice(0, 8),
+      },
     });
     if (!result.ok) {
       console.error("[shop] guiChatKhaoSatBuyerOnly send", result.error);

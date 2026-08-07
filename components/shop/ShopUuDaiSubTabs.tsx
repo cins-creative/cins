@@ -21,7 +21,7 @@ export function ShopUuDaiSubTabs({ active }: Props) {
         className={`shop-dash-subtab${active === "voucher" ? " is-active" : ""}`}
         aria-current={active === "voucher" ? "page" : undefined}
       >
-        Voucher
+        Voucher toàn shop
       </Link>
     </nav>
   );

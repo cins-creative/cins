@@ -383,6 +383,8 @@ export type ShopComboDieuKien = {
   soLuong: number;
   /** Nhãn hiển thị (loại / mẫu / biến thể) — optional khi list. */
   nhan?: string | null;
+  /** Ảnh thumb enrich khi list — optional. */
+  anhUrl?: string | null;
 };
 
 export type ShopCombo = {
@@ -439,15 +441,27 @@ export type ShopVoucherLyDoHet =
   | "tat"
   | "xoa";
 
+/** Branding shop hiển thị trên thẻ voucher. */
+export type ShopVoucherShopBranding = {
+  tenCuaHang: string | null;
+  sellerSlug: string | null;
+  shopAvatarUrl: string | null;
+  shopBannerUrl: string | null;
+};
+
+export type ShopVoucherCongKhaiItem = ShopVoucher &
+  ShopVoucherShopBranding & {
+    daLuu: boolean;
+    /** Số người đã lưu ví, chưa dùng mã (lưu ≠ giữ chỗ). */
+    soLuongDaLuu: number;
+  };
+
 export type ShopVoucherViItem = ShopVoucher & {
   daLuu: true;
   luuLuc: string;
   conHieuLuc: boolean;
   lyDoHetHieuLuc: ShopVoucherLyDoHet | null;
-  /** Tên shop + slug để «Dùng ngay». */
-  tenCuaHang: string | null;
-  sellerSlug: string | null;
-};
+} & ShopVoucherShopBranding;
 
 /** Snapshot giảm giá lưu trên đơn (giam_snapshot jsonb). */
 export type ShopGiamSnapshot = {

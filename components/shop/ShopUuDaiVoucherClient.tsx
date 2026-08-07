@@ -17,11 +17,16 @@ import {
 import { createPortal } from "react-dom";
 
 import {
+  fetchShopCuaHangClient,
   fetchUuDaiCached,
   invalidateUuDaiCache,
   peekUuDai,
 } from "@/lib/shop/client-fetch-cache";
-import type { ShopLoaiGiam, ShopVoucher, ShopVoucherDesign } from "@/lib/shop/types";
+import type {
+  ShopCuaHang,
+  ShopLoaiGiam,
+  ShopVoucher,
+} from "@/lib/shop/types";
 
 import { ShopVoucherCard } from "./ShopVoucherCard";
 import "./shop-dashboard.css";
@@ -38,12 +43,6 @@ type VoucherFormState = {
   batDau: string;
   ketThuc: string;
   congKhai: boolean;
-  designKieu: ShopVoucherDesign;
-  designMauNen: string;
-  designMauChu: string;
-  designNhan: string;
-  designAnhId: string | null;
-  designAnhUrl: string | null;
 };
 
 const EMPTY_FORM = (): VoucherFormState => ({
@@ -58,12 +57,6 @@ const EMPTY_FORM = (): VoucherFormState => ({
   batDau: "",
   ketThuc: "",
   congKhai: true,
-  designKieu: "mac_dinh",
-  designMauNen: "#FDAD4C",
-  designMauChu: "#5C3200",
-  designNhan: "",
-  designAnhId: null,
-  designAnhUrl: null,
 });
 
 function isoToDatetimeLocal(iso: string | null): string {
@@ -121,19 +114,23 @@ function voucherToForm(v: ShopVoucher): VoucherFormState {
     batDau: isoToDatetimeLocal(v.batDau),
     ketThuc: isoToDatetimeLocal(v.ketThuc),
     congKhai: v.congKhai,
-    designKieu: v.designKieu,
-    designMauNen: v.designMauNen ?? "#FDAD4C",
-    designMauChu: v.designMauChu ?? "#5C3200",
-    designNhan: v.designNhan ?? "",
-    designAnhId: v.designAnhId,
-    designAnhUrl: v.designAnhUrl,
   };
+}
+
+function shopBannerUrl(shop: ShopCuaHang | null): string | null {
+  if (!shop) return null;
+  return (
+    shop.coverUrl ??
+    (shop.bannerSuKienHien ? shop.bannerSuKienUrl : null) ??
+    null
+  );
 }
 
 export function ShopUuDaiVoucherClient() {
   const [vouchers, setVouchers] = useState<ShopVoucher[]>(
     () => peekUuDai()?.vouchers ?? [],
   );
+  const [shop, setShop] = useState<ShopCuaHang | null>(null);
   const [loading, setLoading] = useState(!peekUuDai());
   const [err, setErr] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -143,7 +140,6 @@ export function ShopUuDaiVoucherClient() {
   const [formErr, setFormErr] = useState<string | null>(null);
   const [toggleBusy, setToggleBusy] = useState<string | null>(null);
   const [copyOk, setCopyOk] = useState<string | null>(null);
-  const [uploadingAnh, setUploadingAnh] = useState(false);
 
   const load = useCallback(async (force = false) => {
     setLoading(true);
@@ -161,6 +157,16 @@ export function ShopUuDaiVoucherClient() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    void fetchShopCuaHangClient()
+      .then((data) => setShop(data.shop))
+      .catch(() => undefined);
+  }, []);
+
+  const shopTen = shop?.ten?.trim() || null;
+  const shopAvatar = shop?.avatarUrl ?? null;
+  const shopBanner = shopBannerUrl(shop);
 
   const openCreate = () => {
     setEditingId(null);
@@ -249,17 +255,11 @@ export function ShopUuDaiVoucherClient() {
       batDau: datetimeLocalToIso(form.batDau),
       ketThuc: datetimeLocalToIso(form.ketThuc),
       congKhai: form.congKhai,
-      designKieu: form.designKieu,
-      designMauNen:
-        form.designKieu === "rieng" ? form.designMauNen : null,
-      designMauChu:
-        form.designKieu === "rieng" ? form.designMauChu : null,
-      designNhan:
-        form.designKieu === "rieng" && form.designNhan.trim()
-          ? form.designNhan.trim()
-          : null,
-      designAnhId:
-        form.designKieu === "rieng" ? form.designAnhId : null,
+      designKieu: "mac_dinh" as const,
+      designMauNen: null,
+      designMauChu: null,
+      designNhan: null,
+      designAnhId: null,
     };
     try {
       const url = editingId
@@ -326,48 +326,14 @@ export function ShopUuDaiVoucherClient() {
     ketThuc: form.ketThuc ? datetimeLocalToIso(form.ketThuc) : null,
     kichHoat: true,
     congKhai: form.congKhai,
-    designKieu: form.designKieu,
-    designAnhId: form.designKieu === "rieng" ? form.designAnhId : null,
-    designAnhUrl: form.designKieu === "rieng" ? form.designAnhUrl : null,
-    designMauNen: form.designKieu === "rieng" ? form.designMauNen : null,
-    designMauChu: form.designKieu === "rieng" ? form.designMauChu : null,
-    designNhan:
-      form.designKieu === "rieng" && form.designNhan.trim()
-        ? form.designNhan.trim()
-        : null,
+    designKieu: "mac_dinh",
+    designAnhId: null,
+    designAnhUrl: null,
+    designMauNen: null,
+    designMauChu: null,
+    designNhan: null,
     taoLuc: new Date().toISOString(),
   };
-
-  async function uploadDesignAnh(file: File | null) {
-    if (!file) return;
-    setUploadingAnh(true);
-    setFormErr(null);
-    try {
-      const fd = new FormData();
-      fd.append("file", file);
-      const res = await fetch("/api/post-image/upload", {
-        method: "POST",
-        body: fd,
-      });
-      const json = (await res.json().catch(() => null)) as {
-        imageId?: string;
-        url?: string;
-        error?: string;
-      } | null;
-      if (!res.ok || !json?.imageId) {
-        throw new Error(json?.error ?? "Không tải ảnh được.");
-      }
-      setForm((p) => ({
-        ...p,
-        designAnhId: json.imageId!,
-        designAnhUrl: json.url ?? p.designAnhUrl,
-      }));
-    } catch (e) {
-      setFormErr(e instanceof Error ? e.message : "Không tải ảnh được.");
-    } finally {
-      setUploadingAnh(false);
-    }
-  }
 
   const dialog =
     dialogOpen && typeof document !== "undefined"
@@ -375,10 +341,9 @@ export function ShopUuDaiVoucherClient() {
           <div
             className="shop-kho-nhom-backdrop"
             role="presentation"
-            onClick={closeDialog}
           >
             <div
-              className="shop-kho-nhom-dialog shop-uu-dai-dialog shop-uu-dai-dialog--wide"
+              className="shop-kho-nhom-dialog shop-uu-dai-dialog shop-uu-dai-dialog--wide shop-uu-dai-dialog--voucher"
               role="dialog"
               aria-modal="true"
               aria-labelledby="shop-voucher-dialog-title"
@@ -444,31 +409,38 @@ export function ShopUuDaiVoucherClient() {
                       maxLength={80}
                     />
                   </label>
-                  <fieldset className="shop-uu-dai-fieldset">
-                    <legend>Loại giảm</legend>
-                    <label className="shop-uu-dai-radio">
-                      <input
-                        type="radio"
-                        name="vLoaiGiam"
-                        checked={form.loaiGiam === "phan_tram"}
-                        onChange={() =>
-                          setForm((p) => ({ ...p, loaiGiam: "phan_tram" }))
-                        }
-                      />
+                  <div
+                    className="shop-uu-dai-loai-giam-toggle"
+                    role="radiogroup"
+                    aria-label="Loại giảm"
+                  >
+                    <button
+                      type="button"
+                      role="radio"
+                      aria-checked={form.loaiGiam === "phan_tram"}
+                      className={
+                        form.loaiGiam === "phan_tram" ? "is-on" : undefined
+                      }
+                      onClick={() =>
+                        setForm((p) => ({ ...p, loaiGiam: "phan_tram" }))
+                      }
+                    >
                       Phần trăm (%)
-                    </label>
-                    <label className="shop-uu-dai-radio">
-                      <input
-                        type="radio"
-                        name="vLoaiGiam"
-                        checked={form.loaiGiam === "so_tien"}
-                        onChange={() =>
-                          setForm((p) => ({ ...p, loaiGiam: "so_tien" }))
-                        }
-                      />
+                    </button>
+                    <button
+                      type="button"
+                      role="radio"
+                      aria-checked={form.loaiGiam === "so_tien"}
+                      className={
+                        form.loaiGiam === "so_tien" ? "is-on" : undefined
+                      }
+                      onClick={() =>
+                        setForm((p) => ({ ...p, loaiGiam: "so_tien" }))
+                      }
+                    >
                       Số tiền (₫)
-                    </label>
-                  </fieldset>
+                    </button>
+                  </div>
                   <div className="shop-dash-form">
                     <label className="shop-dash-field">
                       Giá trị
@@ -520,7 +492,7 @@ export function ShopUuDaiVoucherClient() {
                       />
                     </label>
                     <label className="shop-dash-field">
-                      Số lượng tổng
+                      Số voucher tung ra
                       <input
                         type="number"
                         min={1}
@@ -582,115 +554,6 @@ export function ShopUuDaiVoucherClient() {
                     />
                     Hiện ở trang /cua-hang (săn voucher)
                   </label>
-                  <fieldset className="shop-uu-dai-fieldset">
-                    <legend>Design</legend>
-                    <label className="shop-uu-dai-radio">
-                      <input
-                        type="radio"
-                        name="designKieu"
-                        checked={form.designKieu === "mac_dinh"}
-                        onChange={() =>
-                          setForm((p) => ({ ...p, designKieu: "mac_dinh" }))
-                        }
-                      />
-                      Mặc định hệ thống
-                    </label>
-                    <label className="shop-uu-dai-radio">
-                      <input
-                        type="radio"
-                        name="designKieu"
-                        checked={form.designKieu === "rieng"}
-                        onChange={() =>
-                          setForm((p) => ({ ...p, designKieu: "rieng" }))
-                        }
-                      />
-                      Design riêng
-                    </label>
-                    {form.designKieu === "rieng" ? (
-                      <div className="shop-uu-dai-design-colors">
-                        <label className="shop-dash-field">
-                          Màu nền
-                          <input
-                            type="color"
-                            value={form.designMauNen}
-                            onChange={(ev) =>
-                              setForm((p) => ({
-                                ...p,
-                                designMauNen: ev.target.value,
-                              }))
-                            }
-                          />
-                        </label>
-                        <label className="shop-dash-field">
-                          Màu chữ
-                          <input
-                            type="color"
-                            value={form.designMauChu}
-                            onChange={(ev) =>
-                              setForm((p) => ({
-                                ...p,
-                                designMauChu: ev.target.value,
-                              }))
-                            }
-                          />
-                        </label>
-                        <label className="shop-dash-field">
-                          Nhãn ngắn
-                          <input
-                            value={form.designNhan}
-                            onChange={(ev) =>
-                              setForm((p) => ({
-                                ...p,
-                                designNhan: ev.target.value,
-                              }))
-                            }
-                            maxLength={24}
-                            placeholder="VD: FLASH SALE"
-                          />
-                        </label>
-                        <div className="shop-uu-dai-design-anh">
-                          <span className="shop-dash-field-label">
-                            Ảnh nền (tuỳ chọn)
-                          </span>
-                          {form.designAnhUrl ? (
-                            <div className="shop-uu-dai-design-anh-preview">
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img src={form.designAnhUrl} alt="" />
-                              <button
-                                type="button"
-                                disabled={uploadingAnh || saving}
-                                onClick={() =>
-                                  setForm((p) => ({
-                                    ...p,
-                                    designAnhId: null,
-                                    designAnhUrl: null,
-                                  }))
-                                }
-                              >
-                                Gỡ ảnh
-                              </button>
-                            </div>
-                          ) : (
-                            <label className="shop-uu-dai-design-anh-btn">
-                              <input
-                                type="file"
-                                accept="image/*"
-                                hidden
-                                disabled={uploadingAnh || saving}
-                                onChange={(ev) => {
-                                  void uploadDesignAnh(
-                                    ev.target.files?.[0] ?? null,
-                                  );
-                                  ev.target.value = "";
-                                }}
-                              />
-                              {uploadingAnh ? "Đang tải…" : "Chọn ảnh nền"}
-                            </label>
-                          )}
-                        </div>
-                      </div>
-                    ) : null}
-                  </fieldset>
                 </div>
                 <div className="shop-uu-dai-preview-col">
                   <p className="shop-uu-dai-preview-label">Xem trước</p>
@@ -699,14 +562,13 @@ export function ShopUuDaiVoucherClient() {
                     ten={previewVoucher.ten}
                     loaiGiam={previewVoucher.loaiGiam}
                     giaTri={previewVoucher.giaTri}
-                    designKieu={previewVoucher.designKieu}
-                    designMauNen={previewVoucher.designMauNen}
-                    designMauChu={previewVoucher.designMauChu}
-                    designNhan={previewVoucher.designNhan}
-                    designAnhUrl={previewVoucher.designAnhUrl}
+                    designKieu="mac_dinh"
                     donToiThieu={previewVoucher.donToiThieu}
                     soLuongTong={previewVoucher.soLuongTong}
                     ketThuc={previewVoucher.ketThuc}
+                    tenCuaHang={shopTen}
+                    shopAvatarUrl={shopAvatar}
+                    shopBannerUrl={shopBanner}
                   />
                 </div>
                 <div className="shop-uu-dai-dialog-actions shop-uu-dai-dialog-actions--full">
@@ -755,11 +617,6 @@ export function ShopUuDaiVoucherClient() {
               Voucher
             </p>
             <h2>Mã giảm cho khách nhập lúc thanh toán</h2>
-            <p className="shop-uu-dai-combo-lead">
-              Tạo mã công khai để săn trên cửa hàng, hoặc mã riêng tư gửi tay.
-              Giới hạn lượt, hạn dùng và thiết kế thẻ — khách copy mã hoặc lưu
-              vào ví.
-            </p>
           </div>
           <div className="shop-uu-dai-combo-hero-aside">
             {vouchers.length > 0 ? (
@@ -836,73 +693,62 @@ export function ShopUuDaiVoucherClient() {
                     ten={v.ten}
                     loaiGiam={v.loaiGiam}
                     giaTri={v.giaTri}
-                    designKieu={v.designKieu}
-                    designMauNen={v.designMauNen}
-                    designMauChu={v.designMauChu}
-                    designNhan={v.designNhan}
-                    designAnhUrl={v.designAnhUrl}
+                    designKieu="mac_dinh"
                     donToiThieu={v.donToiThieu}
                     soLuongTong={v.soLuongTong}
                     soLuongDaDung={v.soLuongDaDung}
                     ketThuc={v.ketThuc}
+                    tenCuaHang={shopTen}
+                    shopAvatarUrl={shopAvatar}
+                    shopBannerUrl={shopBanner}
                     onCopy={() => copyMa(v.ma)}
-                    actions={
-                      <>
-                        <span
-                          className={`shop-uu-dai-status${
-                            status === "Đang chạy" ? " is-live" : ""
-                          }${
-                            status === "Hết hạn" ||
-                            status === "Tắt" ||
-                            status === "Hết lượt"
-                              ? " is-muted"
-                              : ""
-                          }`}
-                        >
-                          {status}
-                        </span>
-                        {!v.congKhai ? (
-                          <span className="shop-uu-dai-tag">Riêng tư</span>
-                        ) : (
-                          <span className="shop-uu-dai-tag is-public">
-                            Công khai
-                          </span>
-                        )}
-                        <button
-                          type="button"
-                          className={`shop-dash-switch${v.kichHoat ? " on" : ""}`}
-                          role="switch"
-                          aria-checked={v.kichHoat}
-                          aria-label={
-                            v.kichHoat ? "Tắt voucher" : "Bật voucher"
-                          }
-                          disabled={toggleBusy === v.id}
-                          onClick={() => void handleToggle(v)}
-                        >
-                          <span
-                            className="shop-dash-switch-knob"
-                            aria-hidden
-                          />
-                        </button>
-                        <button
-                          type="button"
-                          className="shop-uu-dai-icon-btn"
-                          onClick={() => openEdit(v)}
-                          aria-label="Sửa voucher"
-                        >
-                          <Pencil size={16} aria-hidden />
-                        </button>
-                        <button
-                          type="button"
-                          className="shop-uu-dai-icon-btn is-danger"
-                          onClick={() => void handleDelete(v)}
-                          aria-label="Xóa voucher"
-                        >
-                          <Trash2 size={16} aria-hidden />
-                        </button>
-                      </>
-                    }
                   />
+                  <div className="shop-uu-dai-voucher-toolbar">
+                    <span
+                      className={`shop-uu-dai-status${
+                        status === "Đang chạy" ? " is-live" : ""
+                      }${
+                        status === "Hết hạn" ||
+                        status === "Tắt" ||
+                        status === "Hết lượt"
+                          ? " is-muted"
+                          : ""
+                      }`}
+                    >
+                      {status}
+                    </span>
+                    <div className="shop-uu-dai-voucher-toolbar-actions">
+                      <button
+                        type="button"
+                        className={`shop-dash-switch${v.kichHoat ? " on" : ""}`}
+                        role="switch"
+                        aria-checked={v.kichHoat}
+                        aria-label={
+                          v.kichHoat ? "Tắt voucher" : "Bật voucher"
+                        }
+                        disabled={toggleBusy === v.id}
+                        onClick={() => void handleToggle(v)}
+                      >
+                        <span className="shop-dash-switch-knob" aria-hidden />
+                      </button>
+                      <button
+                        type="button"
+                        className="shop-uu-dai-icon-btn"
+                        onClick={() => openEdit(v)}
+                        aria-label="Sửa voucher"
+                      >
+                        <Pencil size={16} aria-hidden />
+                      </button>
+                      <button
+                        type="button"
+                        className="shop-uu-dai-icon-btn is-danger"
+                        onClick={() => void handleDelete(v)}
+                        aria-label="Xóa voucher"
+                      >
+                        <Trash2 size={16} aria-hidden />
+                      </button>
+                    </div>
+                  </div>
                   {progress != null ? (
                     <div
                       className="shop-uu-dai-progress"

@@ -23,6 +23,10 @@ export type PublicShopListingHang = {
    * value = slug giá trị. Chỉ có trên loại (`kind=loai`).
    */
   facets?: Record<string, string[]>;
+  /** Loại/mẫu nằm trong combo đang chạy của shop. */
+  coCombo?: boolean;
+  /** Nhãn gợi ý trên card hub — vd. «combo -35k», «combo -15%». */
+  comboTag?: string | null;
 };
 
 export type PublicShopListingItem = {
@@ -45,4 +49,8 @@ export type PublicShopListingItem = {
   catalogMau: PublicShopListingHang[];
   /** Chuỗi gộp (shop + loại + mẫu) — filter client. */
   searchHaystack: string;
+  /** Shop có voucher công khai đang chạy. */
+  coVoucher?: boolean;
+  /** Dòng ticker voucher trên card shop — vd. «Voucher giảm giá 30k từ 400k». */
+  voucherTickerLines?: string[];
 };

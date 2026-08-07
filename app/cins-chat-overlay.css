@@ -13168,6 +13168,138 @@ button.cins-chat-project-card-mark:hover {
   box-shadow: none;
 }
 
+/* Khảo sát buyer: đã nhận hàng chưa (P3a) */
+.cins-chat-bubble-row.is-shop-khao-sat {
+  align-self: stretch;
+  width: 100%;
+  max-width: none;
+  justify-content: stretch;
+  padding-inline: 0;
+}
+
+.cins-chat-bubble.is-shop-khao-sat {
+  width: 100%;
+  max-width: none;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: color-mix(in srgb, #f59e0b 8%, var(--bg-surface, #fff));
+  border: 1px solid color-mix(in srgb, #f59e0b 28%, var(--border, #e5e7eb));
+  color: var(--ink-body, #1f2937);
+  box-shadow: none;
+}
+
+.cins-chat-shop-khao-sat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.cins-chat-shop-khao-sat-text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-body, #1f2937);
+}
+
+.cins-chat-shop-khao-sat-ma {
+  display: inline-flex;
+  align-self: flex-start;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #92400e;
+  background: color-mix(in srgb, #f59e0b 14%, transparent);
+  border: 1px solid color-mix(in srgb, #f59e0b 22%, transparent);
+}
+
+.cins-chat-shop-khao-sat-note,
+.cins-chat-shop-khao-sat-err,
+.cins-chat-shop-khao-sat-flash {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.cins-chat-shop-khao-sat-note {
+  color: var(--ink-muted, #64748b);
+}
+
+.cins-chat-shop-khao-sat-err {
+  color: var(--danger, #b91c1c);
+}
+
+.cins-chat-shop-khao-sat-flash {
+  color: #047857;
+  font-weight: 600;
+}
+
+.cins-chat-shop-khao-sat-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.15rem;
+}
+
+.cins-chat-shop-khao-sat-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.75rem;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.cins-chat-shop-khao-sat-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.cins-chat-shop-khao-sat-btn.is-primary {
+  border: 1px solid color-mix(in srgb, var(--cins-blue, #1f74c9) 45%, transparent);
+  background: var(--cins-blue, #1f74c9);
+  color: #fff;
+}
+
+.cins-chat-shop-khao-sat-btn.is-primary:hover:not(:disabled) {
+  background: var(--cins-blue-dark, #155a9c);
+}
+
+.cins-chat-shop-khao-sat-btn.is-ghost {
+  border: 1px solid var(--border, #e5e7eb);
+  background: var(--bg-surface, #fff);
+  color: var(--ink-display, #111827);
+}
+
+.cins-chat-shop-khao-sat-btn.is-ghost:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--cins-blue, #1f74c9) 35%, var(--border));
+  background: color-mix(in srgb, var(--cins-blue, #1f74c9) 6%, var(--bg-surface));
+  color: var(--cins-blue-dark, #155a9c);
+}
+
+:root[data-theme="dark"] .cins-chat-bubble.is-shop-khao-sat {
+  background: color-mix(in srgb, #f59e0b 12%, var(--neutral-100, #151a24));
+  border-color: color-mix(in srgb, #f59e0b 30%, var(--border, #2a3040));
+}
+
+:root[data-theme="dark"] .cins-chat-shop-khao-sat-ma {
+  color: #fcd34d;
+}
+
+:root[data-theme="dark"] .cins-chat-shop-khao-sat-btn.is-ghost {
+  background: var(--neutral-100, #151a24);
+  color: var(--ink-display, #e5e7eb);
+}
+
 .cins-chat-bubble-row.is-canvas-comment-notice {
   align-self: center;
   justify-content: center;

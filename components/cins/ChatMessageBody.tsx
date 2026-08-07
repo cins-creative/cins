@@ -15,6 +15,7 @@ import { ChatMessageVideo } from "@/components/cins/ChatMessageVideo";
 import { ChatMocNoticeBubble } from "@/components/cins/ChatMocNoticeBubble";
 import { ChatChaoLopWelcomeBubble } from "@/components/cins/ChatChaoLopWelcomeBubble";
 import { ChatPhongLopInviteBubble } from "@/components/cins/ChatPhongLopInviteBubble";
+import { ChatShopDonKhaoSatBubble } from "@/components/cins/ChatShopDonKhaoSatBubble";
 import { ChatPollBubble } from "@/components/cins/ChatPollBubble";
 import { InlineExternalVideoEmbed } from "@/components/shared/InlineExternalVideoEmbed";
 import {
@@ -24,7 +25,7 @@ import {
 } from "@/lib/chat/don-cap-nhat";
 import { chatImageDeliveryUrl } from "@/lib/chat/image-url";
 import type { ChatMessage, ChatPollSummary } from "@/lib/chat/types";
-import { parseTextWithExternalVideoEmbed } from "@/lib/link/external-video-embed";
+import { shopDonKhaoSatTuBody } from "@/lib/chat/shop-don-khao-sat-notice";
 import {
   findFirstOgPreviewUrl,
   isUrlOnlyBody,
@@ -198,10 +199,34 @@ export function ChatMessageBody({
     );
   }
 
+  if (msg.kind === "shop_don_khao_sat" || msg.shopDonKhaoSat) {
+    const notice =
+      msg.shopDonKhaoSat ??
+      shopDonKhaoSatTuBody(msg.body) ??
+      null;
+    if (notice) {
+      return (
+        <ChatShopDonKhaoSatBubble
+          notice={notice}
+          fallbackBody={msg.body}
+        />
+      );
+    }
+  }
+
   if (msg.kind === "moc_nhac" || msg.mocNhac) {
     if (msg.mocNhac) {
       return (
         <ChatMocNoticeBubble notice={msg.mocNhac} fallbackBody={msg.body} />
+      );
+    }
+    const legacyKhaoSat = shopDonKhaoSatTuBody(msg.body);
+    if (legacyKhaoSat) {
+      return (
+        <ChatShopDonKhaoSatBubble
+          notice={legacyKhaoSat}
+          fallbackBody={msg.body}
+        />
       );
     }
     return <p className="cins-chat-moc-notice-fallback">{msg.body || "Nhắc mốc"}</p>;

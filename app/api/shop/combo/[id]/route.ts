@@ -102,6 +102,7 @@ export async function PATCH(request: Request, ctx: Ctx) {
       COMBO_GIA_TRI_INVALID: [422, "Giá trị giảm không hợp lệ."],
       COMBO_THOI_GIAN_INVALID: [422, "Khoảng thời gian không hợp lệ."],
       COMBO_DIEU_KIEN_INVALID: [422, "Điều kiện không hợp lệ."],
+      COMBO_DIEU_KIEN_TOO_MANY: [422, "Tối đa 4 điều kiện mua trên một combo."],
       COMBO_DIEU_KIEN_DUPLICATE: [422, "Điều kiện bị trùng."],
       BAN_HANG_OFF: [403, "Chưa bật bán hàng."],
     };

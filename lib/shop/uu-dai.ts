@@ -25,6 +25,8 @@ export type UuDaiUnit = {
 const PHAM_VI_ORDER: ShopComboPhamVi[] = ["bien_the", "san_pham", "loai_hang"];
 const MAX_COMBO_LAP = 20;
 const MAX_COMBOS_PER_SHOP = 20;
+/** Tối đa dòng điều kiện mua trên một combo (sau khi expand multi-select). */
+export const MAX_COMBO_DIEU_KIEN = 4;
 
 export function roundVnd(n: number): number {
   if (!Number.isFinite(n) || n <= 0) return 0;
@@ -194,6 +196,62 @@ export function tinhGiamCombo(
 
   giamCombo = roundVnd(Math.min(giamCombo, tongHang));
   return { tongHang, giamCombo, apDung };
+}
+
+export type ShopComboDieuKienTienDo = {
+  id: string;
+  nhan: string;
+  phamVi: ShopComboPhamVi;
+  can: number;
+  coDu: number;
+};
+
+export type ShopComboTienDo = {
+  idCombo: string;
+  ten: string;
+  khopDu: boolean;
+  dieuKien: ShopComboDieuKienTienDo[];
+};
+
+function countMatchingUnits(
+  units: UuDaiUnit[],
+  dk: ShopComboDieuKien,
+): number {
+  let n = 0;
+  for (const u of units) {
+    if (unitMatchesDieuKien(u, dk)) n += 1;
+  }
+  return n;
+}
+
+/** Tiến độ khớp combo trên giỏ (preview — không đánh dấu used). */
+export function tinhComboTienDo(
+  dong: ShopGioChungDong[],
+  combo: ShopCombo,
+): ShopComboTienDo {
+  const units = buildUnits(dong);
+  const dieuKien = combo.dieuKien.map((dk) => ({
+    id: dk.id,
+    nhan: dk.nhan?.trim() || dk.phamVi,
+    phamVi: dk.phamVi,
+    can: dk.soLuong,
+    coDu: Math.min(dk.soLuong, countMatchingUnits(units, dk)),
+  }));
+  const khopDu = tryMatchOnce(units, combo.dieuKien) !== null;
+  return {
+    idCombo: combo.id,
+    ten: combo.ten,
+    khopDu,
+    dieuKien,
+  };
+}
+
+/** Tiến độ nhiều combo trên một nhóm giỏ. */
+export function tinhComboTienDoNhom(
+  dong: ShopGioChungDong[],
+  combos: ShopCombo[],
+): ShopComboTienDo[] {
+  return combos.map((c) => tinhComboTienDo(dong, c));
 }
 
 /** Giảm voucher trên tongSauCombo; don_toi_thieu so với tongHang. */

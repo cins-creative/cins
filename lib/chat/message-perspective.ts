@@ -51,7 +51,8 @@ export function parseChatNguCanh(raw: unknown): ChatContextCard | null {
     loai === "canvas_binh_luan" ||
     loai === "cuoc_goi" ||
     loai === "phong_lop" ||
-    loai === "chao_lop"
+    loai === "chao_lop" ||
+    loai === "shop_don_khao_sat"
   ) {
     return null;
   }

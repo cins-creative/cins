@@ -13,6 +13,7 @@ import {
 } from "react";
 
 import { CuaHangListCard } from "@/components/shop/CuaHangListCard";
+import { ChListingImg } from "@/components/shop/ChListingImg";
 import { CuaHangSanVoucher } from "@/components/shop/CuaHangSanVoucher";
 import type { CuaHangHubTaxonomy } from "@/lib/shop/cua-hang-hub-taxonomy-types";
 import type {
@@ -20,6 +21,7 @@ import type {
   PublicShopListingItem,
 } from "@/lib/shop/cua-hang-listing-types";
 import { shopLoaiHref, shopLoaiMauHref } from "@/lib/shop/cua-hang-href";
+import { useChListLazyBatch } from "@/lib/shop/use-ch-list-lazy-batch";
 
 type Props = {
   shops: PublicShopListingItem[];
@@ -44,6 +46,8 @@ type HangHit = {
   hetHang: boolean;
   danhMucSlug: string | null;
   facets: Record<string, string[]>;
+  coCombo: boolean;
+  comboTag: string | null;
 };
 
 /** Giới hạn khi đang gõ tìm — browse mặc định lấy hết loại đã nạp. */
@@ -61,7 +65,6 @@ function ListingFilterDropdown({
   options,
   selected,
   allLabel,
-  allCount,
   emptyMeansAll = false,
   closeOnPick = false,
   onToggle,
@@ -71,7 +74,6 @@ function ListingFilterDropdown({
   options: FilterOption[];
   selected: string[];
   allLabel?: string;
-  allCount?: number;
   /** true = không chọn gì = «Tất cả» (danh mục). */
   emptyMeansAll?: boolean;
   closeOnPick?: boolean;
@@ -170,9 +172,6 @@ function ListingFilterDropdown({
                 <span className="ch-list-filter-dd-option-copy">
                   <strong>{allLabel ?? "Tất cả"}</strong>
                 </span>
-                {typeof allCount === "number" ? (
-                  <span className="ch-list-filter-dd-count">{allCount}</span>
-                ) : null}
               </button>
             ) : null}
             {options.map((o) => {
@@ -196,7 +195,6 @@ function ListingFilterDropdown({
                   <span className="ch-list-filter-dd-option-copy">
                     <strong>{o.ten}</strong>
                   </span>
-                  <span className="ch-list-filter-dd-count">{o.count}</span>
                 </button>
               );
             })}
@@ -218,6 +216,17 @@ function normalizeQuery(raw: string): string {
 
 function textMatches(hay: string, q: string): boolean {
   return hay.toLocaleLowerCase("vi").includes(q);
+}
+
+function shopHasUuDai(shop: PublicShopListingItem): boolean {
+  if (shop.coVoucher) return true;
+  const hasCombo = (items: PublicShopListingHang[]) =>
+    items.some((h) => h.coCombo === true);
+  return (
+    hasCombo(shop.featuredHang) ||
+    hasCombo(shop.catalogHang) ||
+    hasCombo(shop.catalogMau)
+  );
 }
 
 function shopProfileMatches(shop: PublicShopListingItem, q: string): boolean {
@@ -255,6 +264,8 @@ function hangFromLoai(
     hetHang: hang.hetHang !== false,
     danhMucSlug: hang.danhMucSlug ?? null,
     facets: hang.facets ?? {},
+    coCombo: hang.coCombo === true,
+    comboTag: hang.comboTag ?? null,
   };
 }
 
@@ -281,6 +292,8 @@ function hangFromMau(
     hetHang: mau.hetHang === true,
     danhMucSlug: mau.danhMucSlug ?? null,
     facets: mau.facets ?? {},
+    coCombo: mau.coCombo === true,
+    comboTag: mau.comboTag ?? null,
   };
 }
 
@@ -391,8 +404,7 @@ function HangHitCard({ hit }: { hit: HangHit }) {
     >
       {hit.anhUrl ? (
         <span className="ch-list-hang-card-thumb">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={hit.anhUrl} alt="" loading="lazy" />
+          <ChListingImg src={hit.anhUrl} variant="thumbnail" />
         </span>
       ) : (
         <span className="ch-list-hang-card-thumb is-empty" aria-hidden>
@@ -401,9 +413,12 @@ function HangHitCard({ hit }: { hit: HangHit }) {
       )}
       <div className="ch-list-hang-card-body">
         <div className="ch-list-hang-card-name">{hit.ten}</div>
-        {giaLabel || sold > 0 ? (
+        {giaLabel || hit.comboTag || sold > 0 ? (
           <div className="ch-list-hang-card-foot">
             {giaLabel ? <strong>{giaLabel}</strong> : null}
+            {hit.comboTag ? (
+              <span className="ch-list-hang-combo-tag">{hit.comboTag}</span>
+            ) : null}
             {sold > 0 ? (
               <span className="ch-list-hang-card-sold">
                 Đã bán: {sold.toLocaleString("vi-VN")}
@@ -415,8 +430,7 @@ function HangHitCard({ hit }: { hit: HangHit }) {
           <span className="ch-list-hang-card-seller">
             <span className="ch-list-hang-card-seller-avatar" aria-hidden>
               {hit.shopAvatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={hit.shopAvatarUrl} alt="" loading="lazy" />
+                <ChListingImg src={hit.shopAvatarUrl} variant="avatar" />
               ) : (
                 hit.shopTen.charAt(0).toUpperCase()
               )}
@@ -436,6 +450,7 @@ export function CuaHangListingClient({ shops, taxonomy }: Props) {
 
   const [browseMode, setBrowseMode] = useState<BrowseMode>("hang");
   const [query, setQuery] = useState("");
+  const [discountOnly, setDiscountOnly] = useState(false);
   const [selectedDanhMuc, setSelectedDanhMuc] = useState<string[]>(() =>
     parseCsvParam(searchParams.get("danhMuc")),
   );
@@ -525,9 +540,12 @@ export function CuaHangListingClient({ shops, taxonomy }: Props) {
     selectedDanhMuc.length > 0 ||
     Object.values(selectedFacets).some((v) => v.length > 0);
 
+  const hasListFilter = hasTaxonomyFilter || discountOnly;
+
   const visibleShops = useMemo(() => {
     if (showHang) return [];
-    const list = shops.filter((shop) => shopMatchesQuery(shop, q));
+    let list = shops.filter((shop) => shopMatchesQuery(shop, q));
+    if (discountOnly) list = list.filter(shopHasUuDai);
     if (!q) return list;
     return [...list].sort((a, b) => {
       const aProfile = shopProfileMatches(a, q) ? 0 : 1;
@@ -535,33 +553,38 @@ export function CuaHangListingClient({ shops, taxonomy }: Props) {
       if (aProfile !== bProfile) return aProfile - bProfile;
       return 0;
     });
-  }, [shops, q, showHang]);
+  }, [shops, q, showHang, discountOnly]);
 
   const hangHitsRaw = useMemo(
     () => (showHang ? collectHangHits(shops, q) : []),
     [shops, q, showHang],
   );
 
+  const hangHitsScoped = useMemo(() => {
+    if (!discountOnly) return hangHitsRaw;
+    return hangHitsRaw.filter((h) => h.coCombo);
+  }, [hangHitsRaw, discountOnly]);
+
   const hangHits = useMemo(() => {
-    if (!hasTaxonomyFilter) return hangHitsRaw;
-    return hangHitsRaw.filter((h) =>
+    if (!hasTaxonomyFilter) return hangHitsScoped;
+    return hangHitsScoped.filter((h) =>
       hangMatchesTaxonomy(h, selectedDanhMuc, selectedFacets),
     );
-  }, [hangHitsRaw, hasTaxonomyFilter, selectedDanhMuc, selectedFacets]);
+  }, [hangHitsScoped, hasTaxonomyFilter, selectedDanhMuc, selectedFacets]);
 
   const danhMucCounts = useMemo(() => {
     const counts = new Map<string, number>();
-    for (const h of hangHitsRaw) {
+    for (const h of hangHitsScoped) {
       if (!h.danhMucSlug) continue;
       counts.set(h.danhMucSlug, (counts.get(h.danhMucSlug) ?? 0) + 1);
     }
     return counts;
-  }, [hangHitsRaw]);
+  }, [hangHitsScoped]);
 
   const facetCounts = useMemo(() => {
     const out: Record<string, Map<string, number>> = {};
     for (const f of taxonomy.facets) out[f.slug] = new Map();
-    for (const h of hangHitsRaw) {
+    for (const h of hangHitsScoped) {
       for (const [facetSlug, vals] of Object.entries(h.facets)) {
         const map = out[facetSlug];
         if (!map) continue;
@@ -569,7 +592,7 @@ export function CuaHangListingClient({ shops, taxonomy }: Props) {
       }
     }
     return out;
-  }, [hangHitsRaw, taxonomy.facets]);
+  }, [hangHitsScoped, taxonomy.facets]);
 
   const empty = showHang
     ? hangHits.length === 0
@@ -588,75 +611,137 @@ export function CuaHangListingClient({ shops, taxonomy }: Props) {
     (d) => (danhMucCounts.get(d.slug) ?? 0) > 0,
   );
 
+  const facetSig = useMemo(
+    () =>
+      Object.entries(selectedFacets)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([k, v]) => `${k}:${v.join(",")}`)
+        .join("|"),
+    [selectedFacets],
+  );
+
+  const hangLazyKey = useMemo(
+    () =>
+      `${showHang}|${q}|${discountOnly}|${selectedDanhMuc.join(",")}|${facetSig}|${hangHits.length}|${hangHits[0]?.key ?? ""}|${hangHits.at(-1)?.key ?? ""}`,
+    [showHang, q, discountOnly, selectedDanhMuc, facetSig, hangHits],
+  );
+
+  const shopLazyKey = useMemo(
+    () =>
+      `${showHang}|${q}|${discountOnly}|${visibleShops.length}|${visibleShops[0]?.id ?? ""}|${visibleShops.at(-1)?.id ?? ""}`,
+    [showHang, q, discountOnly, visibleShops],
+  );
+
+  const {
+    visible: lazyHangHits,
+    sentinelRef: hangSentinelRef,
+    hasMore: hasMoreHang,
+  } = useChListLazyBatch(hangHits, hangLazyKey);
+
+  const {
+    visible: lazyVisibleShops,
+    sentinelRef: shopSentinelRef,
+    hasMore: hasMoreShops,
+  } = useChListLazyBatch(visibleShops, shopLazyKey);
+
   return (
     <div className="ch-list-page">
       <h1 className="ch-list-sr-only">Cửa hàng</h1>
 
       <CuaHangSanVoucher />
 
-      <div className="ch-list-body">
-        <div className="ch-list-toolbar">
-          <label className="ch-list-search">
-            <Search size={18} strokeWidth={2} aria-hidden />
-            <input
-              type="search"
-              placeholder={searchPlaceholder}
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              aria-label={searchAria}
-              autoComplete="off"
-              spellCheck={false}
-            />
-            {query ? (
+      <div className="ch-list-toolbar">
+        <div className="cins-frost-glass" aria-hidden />
+        <span className="j-tlb-streak-slow" aria-hidden />
+        <div className="ch-list-toolbar-inner">
+          <div className="ch-list-toolbar-main">
+            <div className="ch-list-toolbar-search">
+              <label className="ch-list-search">
+                <Search size={18} strokeWidth={2} aria-hidden />
+                <input
+                  type="search"
+                  placeholder={searchPlaceholder}
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  aria-label={searchAria}
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+                {query ? (
+                  <button
+                    type="button"
+                    className="ch-list-search-clear"
+                    aria-label="Xóa tìm kiếm"
+                    onClick={() => setQuery("")}
+                  >
+                    <X size={16} strokeWidth={2.25} aria-hidden />
+                  </button>
+                ) : null}
+              </label>
+
+              {searching || hasListFilter ? (
+                <p className="ch-list-result-meta" aria-live="polite">
+                  {empty
+                    ? "Không có kết quả"
+                    : showHang
+                      ? `${hangHits.length} hàng`
+                      : `${visibleShops.length} cửa hàng`}
+                </p>
+              ) : null}
+            </div>
+
+            <div
+              className="ch-list-toolbar-tabs"
+              role="tablist"
+              aria-label="Chế độ xem cửa hàng"
+            >
               <button
                 type="button"
-                className="ch-list-search-clear"
-                aria-label="Xóa tìm kiếm"
-                onClick={() => setQuery("")}
+                role="tab"
+                aria-selected={browseMode === "shop"}
+                className={`ch-list-toolbar-tab${browseMode === "shop" ? " is-active" : ""}`}
+                onClick={() => setBrowseMode("shop")}
               >
-                <X size={16} strokeWidth={2.25} aria-hidden />
+                <Store size={16} strokeWidth={2} aria-hidden />
+                Shop
               </button>
-            ) : null}
-          </label>
-          <div
-            className="j-surface-view-toggle"
-            role="group"
-            aria-label="Chế độ xem cửa hàng"
-          >
-            <button
-              type="button"
-              className={`j-svt-btn${browseMode === "shop" ? " active" : ""}`}
-              aria-pressed={browseMode === "shop"}
-              title="Xem theo cửa hàng"
-              onClick={() => setBrowseMode("shop")}
-            >
-              <Store size={15} strokeWidth={2} aria-hidden />
-              Shop
-            </button>
-            <button
-              type="button"
-              className={`j-svt-btn${browseMode === "hang" ? " active" : ""}`}
-              aria-pressed={browseMode === "hang"}
-              title="Xem theo hàng"
-              onClick={() => setBrowseMode("hang")}
-            >
-              <Package size={15} strokeWidth={2} aria-hidden />
-              Hàng
-            </button>
-          </div>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={browseMode === "hang"}
+                className={`ch-list-toolbar-tab${browseMode === "hang" ? " is-active" : ""}`}
+                onClick={() => setBrowseMode("hang")}
+              >
+                <Package size={16} strokeWidth={2} aria-hidden />
+                Hàng
+              </button>
+            </div>
 
-          {showHang && shops.length > 0 ? (
-            <div
-              className="ch-list-toolbar-filters"
-              role="group"
-              aria-label="Bộ lọc hàng"
+            <button
+              type="button"
+              role="switch"
+              aria-checked={discountOnly}
+              aria-label="Chỉ hiện combo và voucher"
+              className={`ch-list-discount-switch${discountOnly ? " is-on" : ""}`}
+              onClick={() => setDiscountOnly((v) => !v)}
             >
+              <span className="ch-list-discount-switch-track" aria-hidden>
+                <span className="ch-list-discount-switch-thumb" />
+              </span>
+              <span className="ch-list-discount-switch-label">Discount</span>
+            </button>
+
+            {showHang && shops.length > 0 ? (
+              <div
+                className="ch-list-toolbar-filters"
+                role="group"
+                aria-label="Bộ lọc hàng"
+              >
               {visibleDanhMuc.length > 0 ? (
                 <ListingFilterDropdown
                   label="Danh mục"
                   emptyMeansAll
                   allLabel="Tất cả"
-                  allCount={hangHitsRaw.length}
                   options={visibleDanhMuc.map((d) => ({
                     slug: d.slug,
                     ten: d.ten,
@@ -712,18 +797,11 @@ export function CuaHangListingClient({ shops, taxonomy }: Props) {
               ) : null}
             </div>
           ) : null}
-
-          {searching || hasTaxonomyFilter ? (
-            <p className="ch-list-result-meta" aria-live="polite">
-              {empty
-                ? "Không có kết quả"
-                : showHang
-                  ? `${hangHits.length} hàng`
-                  : `${visibleShops.length} cửa hàng`}
-            </p>
-          ) : null}
+          </div>
         </div>
+      </div>
 
+      <div className="ch-list-body">
         {shops.length === 0 ? (
           <div className="ch-list-empty">
             <p>Chưa có cửa hàng nào đang hiển thị.</p>
@@ -731,12 +809,18 @@ export function CuaHangListingClient({ shops, taxonomy }: Props) {
         ) : empty ? (
           <div className="ch-list-empty">
             <p>
-              {searching || hasTaxonomyFilter
+              {searching || hasListFilter
                 ? showHang
                   ? searching
                     ? `Không tìm thấy sản phẩm khớp «${query.trim()}».`
-                    : "Không có sản phẩm khớp bộ lọc."
-                  : `Không tìm thấy cửa hàng khớp «${query.trim()}».`
+                    : discountOnly
+                      ? "Không có sản phẩm combo / ưu đãi khớp bộ lọc."
+                      : "Không có sản phẩm khớp bộ lọc."
+                  : searching
+                    ? `Không tìm thấy cửa hàng khớp «${query.trim()}».`
+                    : discountOnly
+                      ? "Không có shop có combo hoặc voucher."
+                      : "Không tìm thấy cửa hàng."
                 : showHang
                   ? "Chưa có sản phẩm nào đang hiển thị."
                   : "Chưa có cửa hàng nào đang hiển thị."}
@@ -745,18 +829,32 @@ export function CuaHangListingClient({ shops, taxonomy }: Props) {
         ) : showHang ? (
           <section className="ch-list-section" aria-label="Danh sách sản phẩm">
             <div className="ch-list-hang-grid">
-              {hangHits.map((hit) => (
+              {lazyHangHits.map((hit) => (
                 <HangHitCard key={hit.key} hit={hit} />
               ))}
             </div>
+            {hasMoreHang ? (
+              <div
+                ref={hangSentinelRef}
+                className="ch-list-lazy-sentinel"
+                aria-hidden
+              />
+            ) : null}
           </section>
         ) : (
           <section className="ch-list-section" aria-label="Danh sách cửa hàng">
             <div className="ch-list-grid">
-              {visibleShops.map((shop) => (
+              {lazyVisibleShops.map((shop) => (
                 <CuaHangListCard key={shop.id} shop={shop} query={q} />
               ))}
             </div>
+            {hasMoreShops ? (
+              <div
+                ref={shopSentinelRef}
+                className="ch-list-lazy-sentinel"
+                aria-hidden
+              />
+            ) : null}
           </section>
         )}
       </div>

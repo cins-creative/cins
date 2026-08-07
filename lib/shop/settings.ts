@@ -1,13 +1,17 @@
 import "server-only";
 
 import { getCfAccountHash } from "@/lib/cloudflare/account-hash";
+import type { CfNamedVariant } from "@/lib/cloudflare/cf-image-variants";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
-export function shopImageUrl(imageId: string | null | undefined): string | null {
+export function shopImageUrl(
+  imageId: string | null | undefined,
+  variant: CfNamedVariant = "public",
+): string | null {
   if (!imageId?.trim()) return null;
   const hash = getCfAccountHash();
   if (!hash) return null;
-  return `https://imagedelivery.net/${hash}/${imageId.trim()}/public`;
+  return `https://imagedelivery.net/${hash}/${imageId.trim()}/${variant}`;
 }
 
 export async function getBanHangEnabled(userId: string): Promise<boolean> {

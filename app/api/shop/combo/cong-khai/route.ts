@@ -13,19 +13,24 @@ export async function GET(request: Request) {
   }
   try {
     const items = await listComboKichHoat(sellerId);
-    /* Chỉ trả field cần cho badge — không lộ nội bộ. */
     return NextResponse.json({
       items: items.map((c) => ({
         id: c.id,
         ten: c.ten,
+        moTa: c.moTa,
         loaiGiam: c.loaiGiam,
         giaTri: c.giaTri,
         giamToiDa: c.giamToiDa,
         apDungLap: c.apDungLap,
         dieuKien: c.dieuKien.map((d) => ({
+          id: d.id,
           phamVi: d.phamVi,
+          idNhom: d.idNhom,
+          idSanPham: d.idSanPham,
+          idBienThe: d.idBienThe,
           soLuong: d.soLuong,
           nhan: d.nhan ?? null,
+          anhUrl: d.anhUrl ?? null,
         })),
       })),
     });

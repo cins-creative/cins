@@ -1,14 +1,30 @@
 /* Hub /cua-hang — danh sách shop công khai (bám visual cong-dong listing). */
 
+.cins-main:has(> .ch-list-page),
+.cins-main:has(> .ch-list-page--loading) {
+  background-color: var(--bg-page, #f4f5f8);
+  background-image: none;
+  min-height: calc(100dvh - var(--site-nav-height, 64px));
+}
+
 .ch-list-page {
   --ch-list-content-max: 1080px;
   --ch-list-page-pad: 20px;
+  /* Token voucher hub — đồng bộ FAB săn voucher + strip card shop */
+  --ch-voucher-red-light: #ef4444;
+  --ch-voucher-red: #dc2626;
+  --ch-voucher-red-deep: #b91c1c;
+  --ch-voucher-red-soft: #fef2f2;
+  --ch-voucher-red-soft-2: #fee2e2;
+  --ch-voucher-red-ink: #991b1b;
+  --ch-voucher-red-glow: rgba(220, 38, 38, 0.34);
   position: relative;
   width: 100%;
   max-width: none;
   margin: 0;
-  padding: 20px 0 56px;
+  padding: 0 0 56px;
   min-height: calc(100dvh - var(--site-nav-height, 64px));
+  background-color: var(--bg-page, #f4f5f8);
 }
 
 .ch-list-sr-only {
@@ -24,17 +40,166 @@
 }
 
 .ch-list-body {
-  max-width: var(--ch-list-content-max);
-  margin: 0 auto;
+  width: 100%;
+  max-width: none;
+  margin: 0;
   padding: 0 var(--ch-list-page-pad, 20px);
 }
 
 .ch-list-toolbar {
+  position: sticky;
+  top: var(--site-nav-height, 64px);
+  z-index: 50;
+  width: 100%;
+  margin: 0 0 16px;
+  padding: 10px var(--ch-list-page-pad, 20px) 12px;
+  box-sizing: border-box;
+  background: transparent;
+}
+
+.ch-list-toolbar-inner {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  overflow: visible;
+}
+
+.ch-list-toolbar-main {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 10px 12px;
-  margin: 0 0 20px;
+  gap: 8px 12px;
+  overflow: visible;
+}
+
+.ch-list-toolbar-tabs {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: 4px;
+  padding: 3px;
+  border: 1px solid var(--border, #e4e6eb);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--bg-muted, #f0f2f5) 88%, var(--bg-surface, #fff));
+}
+
+.ch-list-toolbar-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--ink-title, rgba(0, 0, 0, 0.62));
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.2;
+  cursor: pointer;
+  transition:
+    color 0.18s ease,
+    background 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.ch-list-toolbar-tab svg {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+
+.ch-list-toolbar-tab:hover {
+  color: var(--ink-display, rgba(0, 0, 0, 0.85));
+}
+
+.ch-list-toolbar-tab.is-active {
+  background: var(--bg-surface, #fff);
+  color: var(--cins-blue, #1f74c9);
+  box-shadow: var(--shadow-xs, 0 1px 2px rgba(15, 23, 42, 0.06));
+}
+
+.ch-list-toolbar-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.ch-list-discount-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink-title, rgba(0, 0, 0, 0.62));
+  font: inherit;
+  cursor: pointer;
+  user-select: none;
+}
+
+.ch-list-discount-switch-label {
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.ch-list-discount-switch-track {
+  position: relative;
+  display: inline-block;
+  width: 38px;
+  height: 22px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--border, #e4e6eb) 72%, var(--bg-muted, #f0f2f5));
+  transition: background 0.18s ease;
+}
+
+.ch-list-discount-switch-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--bg-surface, #fff);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.18);
+  transition: transform 0.18s ease;
+}
+
+.ch-list-discount-switch.is-on {
+  color: var(--cins-blue, #1f74c9);
+}
+
+.ch-list-discount-switch.is-on .ch-list-discount-switch-track {
+  background: color-mix(in srgb, var(--cins-blue, #1f74c9) 88%, #0f172a);
+}
+
+.ch-list-discount-switch.is-on .ch-list-discount-switch-thumb {
+  transform: translateX(16px);
+}
+
+.ch-list-discount-switch:focus-visible {
+  outline: none;
+}
+
+.ch-list-discount-switch:focus-visible .ch-list-discount-switch-track {
+  outline: 2px solid var(--cins-blue, #1f74c9);
+  outline-offset: 2px;
+}
+
+.ch-list-discount-switch:hover .ch-list-discount-switch-label {
+  color: var(--ink-display, rgba(0, 0, 0, 0.85));
+}
+
+.ch-list-discount-switch.is-on:hover .ch-list-discount-switch-label {
+  color: var(--cins-blue, #1f74c9);
 }
 
 .ch-list-toolbar-filters {
@@ -42,12 +207,19 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 6px;
-  flex-shrink: 0;
+  flex: 1 1 auto;
+  justify-content: flex-end;
+  min-width: min(100%, 240px);
+  overflow: visible;
 }
 
 .ch-list-filter-dd {
   position: relative;
   flex-shrink: 0;
+}
+
+.ch-list-filter-dd:has(.ch-list-filter-dd-trigger.is-open) {
+  z-index: 3;
 }
 
 .ch-list-filter-dd-trigger {
@@ -138,11 +310,12 @@
 .ch-list-filter-dd-panel {
   position: absolute;
   top: calc(100% + 6px);
-  left: 0;
-  z-index: 40;
+  right: 0;
+  left: auto;
+  z-index: 60;
   display: flex;
   flex-direction: column;
-  width: min(300px, 78vw);
+  width: min(300px, calc(100vw - 32px));
   max-height: min(340px, 55vh);
   overflow: hidden;
   border: 1px solid var(--border, #e4e6eb);
@@ -166,6 +339,12 @@
   overflow: auto;
   padding: 6px;
   -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.ch-list-filter-dd-options::-webkit-scrollbar {
+  display: none;
 }
 
 .ch-list-filter-dd-option {
@@ -224,14 +403,6 @@
   color: var(--ink-display, rgba(0, 0, 0, 0.85));
 }
 
-.ch-list-filter-dd-count {
-  flex-shrink: 0;
-  font-size: 11.5px;
-  font-weight: 650;
-  font-variant-numeric: tabular-nums;
-  color: var(--ink-muted, rgba(0, 0, 0, 0.42));
-}
-
 .ch-list-filter-clear {
   margin: 0;
   padding: 0 4px;
@@ -248,77 +419,45 @@
 }
 
 @media (max-width: 720px) {
-  .ch-list-toolbar-filters {
+  .ch-san-voucher-fab {
+    top: calc(var(--site-nav-height, 64px) + 92px);
+  }
+
+  .ch-list-toolbar-search {
+    flex: 1 1 180px;
+  }
+
+  .ch-list-search {
     width: 100%;
-    order: 3;
+    max-width: none;
+  }
+
+  .ch-list-toolbar-filters {
+    flex: 1 1 100%;
+    justify-content: flex-start;
   }
 
   .ch-list-result-meta {
-    order: 4;
+    flex-shrink: 0;
   }
 
   .ch-list-filter-dd-panel {
-    left: 0;
     right: auto;
+    left: 0;
     width: min(300px, calc(100vw - 40px));
   }
-}
-
-/* Toggle Shop · Hàng — cùng pattern quầy sự kiện (không phụ thuộc journey.css). */
-.ch-list-toolbar > .j-surface-view-toggle {
-  display: inline-flex;
-  background: transparent;
-  border-radius: var(--radius-pill, 999px);
-  padding: 0;
-  gap: 2px;
-  flex-shrink: 0;
-}
-
-.ch-list-toolbar .j-svt-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  padding: 6px 12px;
-  font-family: inherit;
-  font-size: 12.5px;
-  font-weight: 650;
-  line-height: 1.2;
-  color: var(--ink-title, rgba(0, 0, 0, 0.6));
-  background: transparent;
-  border: 0;
-  border-radius: var(--radius-pill, 999px);
-  cursor: pointer;
-  transition:
-    color 0.18s ease,
-    background 0.18s ease,
-    box-shadow 0.18s ease;
-}
-
-.ch-list-toolbar .j-svt-btn svg {
-  width: 14px;
-  height: 14px;
-  flex-shrink: 0;
-}
-
-.ch-list-toolbar .j-svt-btn:hover {
-  color: var(--ink-display, rgba(0, 0, 0, 0.85));
-}
-
-.ch-list-toolbar .j-svt-btn.active {
-  background: var(--bg-surface, #fff);
-  color: var(--cins-blue, #1f74c9);
-  box-shadow: var(--shadow-xs, 0 1px 2px rgba(15, 23, 42, 0.06));
 }
 
 .ch-list-search {
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex: 1;
-  min-width: min(100%, 280px);
-  padding: 0 14px;
-  height: 44px;
+  gap: 8px;
+  flex: 0 1 auto;
+  width: min(260px, 100%);
+  max-width: 260px;
+  min-width: 180px;
+  padding: 0 12px;
+  height: 38px;
   border-radius: 10px;
   border: 1px solid var(--border, #e4e6eb);
   background: var(--bg-surface, #fff);
@@ -332,7 +471,7 @@
   border: none;
   background: transparent;
   font: inherit;
-  font-size: 15px;
+  font-size: 14px;
   color: var(--ink-display, rgba(0, 0, 0, 0.85));
   outline: none;
 }
@@ -375,6 +514,12 @@
   margin-bottom: 0;
 }
 
+.ch-list-lazy-sentinel {
+  height: 1px;
+  margin: 0;
+  pointer-events: none;
+}
+
 .ch-list-section-title {
   margin: 0 0 12px;
   font-size: 14px;
@@ -388,8 +533,21 @@
   margin: 0 0 8px;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+}
+
+@media (max-width: 720px) {
+  .ch-list-hang-grid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .ch-list-hang-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .ch-list-hang-card {
@@ -400,11 +558,13 @@
   padding: 0;
   border: 0;
   border-radius: 14px;
-  background: #fff;
+  background: var(--bg-surface, #fff);
   box-sizing: border-box;
   text-decoration: none;
   color: inherit;
   overflow: hidden;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 280px;
   transition:
     box-shadow 0.15s ease,
     transform 0.15s ease;
@@ -431,7 +591,11 @@
 }
 
 .ch-list-hang-card-thumb.is-empty {
-  background: color-mix(in srgb, var(--border, #e4e6eb) 35%, #fff);
+  background: color-mix(
+    in srgb,
+    var(--border, #e4e6eb) 35%,
+    var(--bg-surface, #fff)
+  );
 }
 
 .ch-list-hang-card-thumb img {
@@ -450,6 +614,7 @@
 }
 
 .ch-list-hang-card-name {
+  min-width: 0;
   font-size: 13px;
   font-weight: 650;
   color: var(--ink-display, rgba(0, 0, 0, 0.88));
@@ -458,6 +623,21 @@
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+.ch-list-hang-combo-tag {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: #dc2626;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
 .ch-list-hang-card-foot {
@@ -564,11 +744,22 @@
   background: var(--bg-surface, #fff);
   text-decoration: none;
   color: inherit;
-  box-shadow: var(--shadow-sm, 0 2px 8px rgba(15, 23, 42, 0.05));
+  content-visibility: auto;
+  contain-intrinsic-size: auto 320px;
   transition:
     border-color 0.15s ease,
-    box-shadow 0.15s ease,
     transform 0.15s ease;
+}
+
+.ch-list-card-body {
+  position: relative;
+  padding: 0 18px 18px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  min-height: 0;
 }
 
 .ch-list-card:hover {
@@ -577,7 +768,6 @@
     var(--cins-blue, #1f74c9) 28%,
     var(--border, #e4e6eb)
   );
-  box-shadow: var(--shadow-md, 0 10px 28px rgba(15, 23, 42, 0.08));
   transform: translateY(-2px);
 }
 
@@ -586,6 +776,7 @@
 }
 
 .ch-list-card-cover {
+  position: relative;
   height: 88px;
   background: var(--cins-blue-soft, #e7f0fb);
 }
@@ -599,16 +790,6 @@
 
 .ch-list-card.is-paused .ch-list-card-cover img {
   filter: grayscale(0.35);
-}
-
-.ch-list-card-body {
-  position: relative;
-  padding: 0 18px 18px;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
 }
 
 .ch-list-card-avatar {
@@ -759,6 +940,162 @@
   overflow: hidden;
 }
 
+.ch-list-card.has-voucher-strip {
+  border-color: color-mix(
+    in srgb,
+    var(--ch-voucher-red) 32%,
+    var(--border, #e4e6eb)
+  );
+  content-visibility: visible;
+  contain-intrinsic-size: auto 320px;
+}
+
+.ch-list-card.has-voucher-strip:hover {
+  border-color: color-mix(
+    in srgb,
+    var(--ch-voucher-red) 48%,
+    var(--border, #e4e6eb)
+  );
+}
+
+.ch-list-card-voucher-strip {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  flex-shrink: 0;
+  margin-top: auto;
+  min-height: 36px;
+  background: linear-gradient(
+    90deg,
+    var(--ch-voucher-red-light) 0%,
+    var(--ch-voucher-red) 14%,
+    var(--ch-voucher-red-deep) 18%,
+    var(--ch-voucher-red-soft) 18%,
+    var(--ch-voucher-red-soft-2) 100%
+  );
+  overflow: hidden;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.ch-list-card-voucher-strip-perf {
+  position: absolute;
+  top: 0;
+  left: 10px;
+  right: 10px;
+  height: 0;
+  border-top: 1px dashed color-mix(in srgb, var(--ch-voucher-red) 38%, #fff);
+  pointer-events: none;
+}
+
+.ch-list-card-voucher-strip-brand {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  flex-shrink: 0;
+  width: 72px;
+  padding: 6px 8px;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1;
+  background: linear-gradient(
+    180deg,
+    var(--ch-voucher-red-light) 0%,
+    var(--ch-voucher-red) 52%,
+    var(--ch-voucher-red-deep) 100%
+  );
+  box-shadow:
+    inset -1px 0 0 rgba(255, 255, 255, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.ch-list-card-voucher-strip-brand svg {
+  flex-shrink: 0;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.18));
+}
+
+.ch-list-card-voucher-strip-marquee {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+}
+
+.ch-list-card-voucher-strip-track {
+  display: flex;
+  align-items: center;
+  width: max-content;
+  min-width: 100%;
+  padding: 8px 12px 8px 4px;
+  animation: ch-list-voucher-ticker 28s linear infinite;
+}
+
+.ch-list-card-voucher-strip-run {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.ch-list-card-voucher-strip-item {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding-right: 18px;
+  font-size: 11.5px;
+  font-weight: 750;
+  line-height: 1.2;
+  white-space: nowrap;
+  color: var(--ch-voucher-red-ink);
+}
+
+.ch-list-card-voucher-strip-sep {
+  margin-left: 18px;
+  font-size: 7px;
+  line-height: 1;
+  color: color-mix(in srgb, var(--ch-voucher-red) 65%, var(--ch-voucher-red-ink));
+  opacity: 0.85;
+}
+
+@keyframes ch-list-voucher-ticker {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ch-list-card-voucher-strip-track {
+    animation: none;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+    padding: 8px 10px;
+    box-sizing: border-box;
+  }
+
+  .ch-list-card-voucher-strip-run:nth-child(2) {
+    display: none;
+  }
+
+  .ch-list-card-voucher-strip-item:nth-child(n + 2) {
+    display: none;
+  }
+
+  .ch-list-card-voucher-strip-item .ch-list-card-voucher-strip-sep {
+    display: none;
+  }
+}
+
 .ch-list-empty {
   padding: 48px 20px;
   text-align: center;
@@ -767,9 +1104,8 @@
 }
 
 .ch-list-page--loading .ch-list-toolbar--skeleton {
-  height: 44px;
-  max-width: 420px;
-  margin: 0 0 20px;
+  height: 40px;
+  width: min(100%, 640px);
   border-radius: 10px;
   background: var(--bg-muted, #f0f2f5);
   animation: ch-list-pulse 1.2s ease-in-out infinite;
@@ -799,29 +1135,211 @@
   }
 }
 
-/* San voucher */
-.ch-san-voucher {
-  max-width: var(--ch-list-content-max, 1080px);
-  margin: 0 auto 28px;
-  padding: 0 var(--ch-list-page-pad, 20px);
+/* San voucher — FAB cố định dưới toolbar sticky + modal listing */
+.ch-san-voucher-fab {
+  --ch-voucher-red-light: #ef4444;
+  --ch-voucher-red: #dc2626;
+  --ch-voucher-red-deep: #b91c1c;
+  --ch-voucher-red-glow: rgba(220, 38, 38, 0.34);
+  position: fixed;
+  top: calc(var(--site-nav-height, 64px) + 66px);
+  right: max(8px, env(safe-area-inset-right, 0px));
+  z-index: 45;
+  pointer-events: none;
+  max-width: calc(100vw - 16px);
 }
-.ch-san-voucher-head {
-  display: flex;
-  flex-wrap: wrap;
+
+.ch-san-voucher-trigger {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 14px;
+  justify-content: center;
+  gap: 5px;
+  width: auto;
+  min-width: 72px;
+  padding: 12px 10px 14px;
+  border: 0;
+  border-radius: 8px 0 0 8px;
+  background: linear-gradient(
+    180deg,
+    var(--ch-voucher-red-light) 0%,
+    var(--ch-voucher-red) 52%,
+    var(--ch-voucher-red-deep) 100%
+  );
+  color: #fff;
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+  overflow: hidden;
+  isolation: isolate;
+  pointer-events: auto;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.14) inset,
+    -6px 0 22px var(--ch-voucher-red-glow),
+    0 10px 28px rgba(185, 28, 28, 0.36);
+  transition:
+    transform 0.2s cubic-bezier(0.2, 0.7, 0.3, 1),
+    box-shadow 0.2s ease;
+  animation: ch-san-voucher-float 3.2s ease-in-out infinite;
 }
-.ch-san-voucher-title {
+
+.ch-san-voucher-trigger:hover {
+  animation-play-state: paused;
+  transform: translateX(-3px);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.22) inset,
+    -10px 0 28px rgba(220, 38, 38, 0.42),
+    0 14px 32px rgba(185, 28, 28, 0.42);
+}
+
+.ch-san-voucher-trigger:active {
+  animation-play-state: paused;
+  transform: translateX(-2px) scale(0.98);
+}
+
+.ch-san-voucher-trigger:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+@keyframes ch-san-voucher-float {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(-3px);
+  }
+}
+
+.ch-san-voucher-trigger-shimmer {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    115deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.22) 48%,
+    transparent 72%
+  );
+  transform: translateX(-130%);
+  animation: ch-san-voucher-shimmer 3.2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes ch-san-voucher-shimmer {
+  0%,
+  70% {
+    transform: translateX(-130%);
+  }
+  100% {
+    transform: translateX(130%);
+  }
+}
+
+.ch-san-voucher-trigger-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+  opacity: 0;
+  animation: ch-san-voucher-ring 3.2s ease-out infinite;
+  pointer-events: none;
+}
+
+@keyframes ch-san-voucher-ring {
+  0% {
+    opacity: 0.65;
+  }
+  70%,
+  100% {
+    opacity: 0;
+  }
+}
+
+.ch-san-voucher-trigger-icon {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 0;
+  filter: drop-shadow(0 1px 2px rgba(26, 0, 0, 0.22));
+}
+
+.ch-san-voucher-trigger-label {
+  position: relative;
+  z-index: 1;
+  max-width: 4.6em;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 1.12;
+  text-align: center;
+}
+
+.ch-san-voucher-trigger-count {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #fff;
+  color: #dc2626;
+  font-size: 0.7rem;
+  font-weight: 800;
+  line-height: 1;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.22);
+}
+
+.ch-san-voucher-fab:has(.ch-san-voucher-trigger[aria-expanded="true"]) {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease, visibility 0.15s ease;
+}
+
+.ch-san-voucher-modal {
+  width: min(100%, 960px);
+  max-height: min(90vh, 820px);
+}
+
+.ch-san-voucher-modal-head {
+  flex-wrap: wrap;
+  gap: 10px 12px;
+}
+
+.ch-san-voucher-modal-title {
   display: flex;
   align-items: center;
   gap: 8px;
   margin: 0;
-  font-size: 1.15rem;
+  font-size: 1.05rem;
   font-weight: 700;
   color: var(--ink-display, rgba(0, 0, 0, 0.88));
 }
+
+.ch-san-voucher-modal-head .ch-san-voucher-tabs {
+  margin-inline: auto 0;
+}
+
+.ch-san-voucher-modal-body {
+  --sf-shop-orange: #c9760f;
+  --sf-shop-orange-soft: #ffedd5;
+  --sf-shop-orange-ink: #3d2a0a;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 16px 20px 20px;
+}
+
 .ch-san-voucher-tabs {
   display: flex;
   gap: 4px;
@@ -842,45 +1360,350 @@
   cursor: pointer;
 }
 .ch-san-voucher-tab.is-active {
-  background: #fff;
+  background: var(--bg-surface, #fff);
   color: var(--cins-orange, #e8783a);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-xs, 0 1px 3px rgba(0, 0, 0, 0.08));
 }
 .ch-san-voucher-muted {
   margin: 0;
   font-size: 0.9rem;
   color: var(--ink-muted, #64748b);
 }
-.ch-san-voucher-rail {
-  display: flex;
-  gap: 14px;
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  padding-bottom: 8px;
-  -webkit-overflow-scrolling: touch;
+
+.ch-san-voucher-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(420px, 100%), 1fr));
+  gap: 12px;
 }
+
 .ch-san-voucher-item {
-  flex: 0 0 min(280px, 85vw);
-  scroll-snap-align: start;
+  min-width: 0;
 }
+
+/* Voucher card — đồng bộ journey storefront (.j-shop-sf-uu-dai-strip) */
+.ch-san-voucher-modal .ch-san-voucher-item .shop-voucher-card {
+  height: auto;
+  min-height: unset;
+  overflow: visible;
+  background: transparent;
+  box-shadow: none;
+  border: none;
+}
+
+.ch-san-voucher-modal .ch-san-voucher-item .shop-voucher-card.is-mac-dinh,
+.ch-san-voucher-modal .ch-san-voucher-item .shop-voucher-card.is-rieng {
+  background: transparent;
+}
+
+.ch-san-voucher-modal .ch-san-voucher-item .shop-voucher-card::before,
+.ch-san-voucher-modal .ch-san-voucher-item .shop-voucher-card::after {
+  background: var(--bg-surface, #fff);
+  box-shadow: none;
+}
+
+.ch-san-voucher-modal .shop-voucher-card-banner {
+  background: var(--sf-shop-orange, #c9760f);
+  border: 1px solid var(--border, #e4e6eb);
+  border-bottom: none;
+  border-radius: var(--radius-md, 12px) var(--radius-md, 12px) 0 0;
+}
+
+.ch-san-voucher-modal .shop-voucher-card-banner-shade {
+  background: rgba(26, 18, 8, 0.32);
+}
+
+.ch-san-voucher-modal .shop-voucher-card-body {
+  flex: none;
+  height: auto;
+  overflow: visible;
+  background: #fff;
+  border: 1px solid var(--border, #e4e6eb);
+  border-top: 1px dashed color-mix(in srgb, var(--border, #e4e6eb) 85%, transparent);
+  border-radius: 0 0 var(--radius-md, 12px) var(--radius-md, 12px);
+  box-shadow: none;
+  color: var(--ink-display, rgba(0, 0, 0, 0.85));
+}
+
+.ch-san-voucher-modal .shop-voucher-card-label {
+  background: color-mix(in srgb, var(--sf-shop-orange, #c9760f) 12%, #fff);
+  color: var(--sf-shop-orange, #c9760f);
+}
+
+.ch-san-voucher-modal .shop-voucher-card-giam {
+  color: var(--ink-display, rgba(0, 0, 0, 0.88));
+}
+
+.ch-san-voucher-modal .shop-voucher-card-code-label,
+.ch-san-voucher-modal .shop-voucher-card-meta {
+  color: var(--ink-muted, rgba(0, 0, 0, 0.55));
+}
+
+.ch-san-voucher-modal .shop-voucher-card-meta--con-lai {
+  color: var(--ink-body, rgba(0, 0, 0, 0.72));
+}
+
+.ch-san-voucher-modal .shop-voucher-card-meta-highlight {
+  color: var(--sf-shop-orange, #c9760f);
+  font-size: 0.84rem;
+}
+
+.ch-san-voucher-modal .shop-voucher-card-meta-total {
+  color: var(--ink-muted, rgba(0, 0, 0, 0.45));
+}
+
+.ch-san-voucher-modal .shop-voucher-card-ma {
+  border: 1px solid var(--border, #e4e6eb);
+  background: #fff;
+  color: var(--ink-display, rgba(0, 0, 0, 0.85));
+}
+
+.ch-san-voucher-modal .shop-voucher-card-copy {
+  color: var(--ink-muted, rgba(0, 0, 0, 0.55));
+}
+
+.ch-san-voucher-modal .shop-voucher-card-copy:hover {
+  color: var(--sf-shop-orange, #c9760f);
+  background: color-mix(in srgb, var(--sf-shop-orange, #c9760f) 8%, transparent);
+}
+
+.ch-san-voucher-modal .shop-voucher-card-actions {
+  gap: 8px;
+}
+
 .ch-san-voucher-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 36px;
-  padding: 0 12px;
+  min-height: 32px;
+  padding: 0 14px;
   border: 1px solid var(--border, #e4e6eb);
-  border-radius: 8px;
-  background: #fff;
+  border-radius: 999px;
+  background: var(--bg-surface, #fff);
   color: var(--ink-body);
   font: inherit;
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-size: 0.78rem;
+  font-weight: 700;
   text-decoration: none;
   cursor: pointer;
+  white-space: nowrap;
+  transition:
+    filter 0.15s ease,
+    transform 0.15s ease,
+    background 0.15s ease;
 }
+
 .ch-san-voucher-btn.is-primary {
   border-color: transparent;
-  background: var(--cins-orange, #e8783a);
+  background: var(--sf-shop-orange, #c9760f);
   color: #fff;
+  font-weight: 800;
+}
+
+.ch-san-voucher-btn.is-primary:hover,
+.ch-san-voucher-btn.is-primary:focus-visible {
+  color: #fff;
+  filter: brightness(1.04);
+}
+
+.ch-san-voucher-btn:active {
+  transform: scale(0.98);
+}
+
+.ch-san-voucher-modal a.ch-san-voucher-btn.is-primary:hover,
+.ch-san-voucher-modal a.ch-san-voucher-btn.is-primary:focus-visible {
+  color: #fff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ch-san-voucher-trigger,
+  .ch-san-voucher-trigger-shimmer,
+  .ch-san-voucher-trigger-ring {
+    animation: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .ch-san-voucher-trigger {
+    min-width: 68px;
+    padding: 10px 8px 12px;
+  }
+
+  .ch-san-voucher-trigger-label {
+    font-size: 0.72rem;
+  }
+
+  .ch-san-voucher-modal-head {
+    padding-bottom: 12px;
+  }
+
+  .ch-san-voucher-modal-head .ch-san-voucher-tabs {
+    order: 3;
+    width: 100%;
+    margin-inline: 0;
+  }
+}
+
+/* Dark theme — /cua-hang listing */
+:root[data-theme="dark"] .ch-list-hang-card {
+  background: var(--bg-surface, #171b24);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.22);
+}
+
+:root[data-theme="dark"] .ch-list-hang-card:hover {
+  box-shadow: var(--shadow-md, 0 6px 16px rgba(0, 0, 0, 0.45));
+}
+
+:root[data-theme="dark"] .ch-list-hang-card-thumb {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+:root[data-theme="dark"] .ch-list-hang-card-thumb.is-empty {
+  background: color-mix(
+    in srgb,
+    var(--border, #2a3040) 55%,
+    var(--bg-surface, #171b24)
+  );
+}
+
+:root[data-theme="dark"] .ch-list-hang-card-foot strong {
+  color: color-mix(in srgb, var(--cins-orange, #fdad4c) 82%, #fff);
+}
+
+:root[data-theme="dark"] .ch-list-hang-combo-tag {
+  background: #ef4444;
+  color: #fff;
+}
+
+:root[data-theme="dark"] .ch-list-page {
+  --ch-voucher-red-light: #f87171;
+  --ch-voucher-red: #ef4444;
+  --ch-voucher-red-deep: #dc2626;
+  --ch-voucher-red-soft: #2a1212;
+  --ch-voucher-red-soft-2: #3f1515;
+  --ch-voucher-red-ink: #fecaca;
+  --ch-voucher-red-glow: rgba(239, 68, 68, 0.24);
+}
+
+:root[data-theme="dark"] .ch-list-card.has-voucher-strip {
+  border-color: color-mix(in srgb, var(--ch-voucher-red) 42%, var(--border, #333));
+}
+
+:root[data-theme="dark"] .ch-list-card.has-voucher-strip:hover {
+  border-color: color-mix(in srgb, var(--ch-voucher-red-light) 55%, var(--border, #333));
+}
+
+:root[data-theme="dark"] .ch-list-card-voucher-strip {
+  background: linear-gradient(
+    90deg,
+    var(--ch-voucher-red-deep) 0%,
+    var(--ch-voucher-red) 14%,
+    color-mix(in srgb, var(--ch-voucher-red) 88%, #450a0a) 18%,
+    var(--ch-voucher-red-soft) 18%,
+    var(--ch-voucher-red-soft-2) 100%
+  );
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+:root[data-theme="dark"] .ch-list-card-voucher-strip-item {
+  color: var(--ch-voucher-red-ink);
+}
+
+:root[data-theme="dark"] .ch-list-hang-card--skeleton,
+:root[data-theme="dark"] .ch-list-card--skeleton {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+:root[data-theme="dark"] .ch-san-voucher-fab {
+  --ch-voucher-red-light: #f87171;
+  --ch-voucher-red: #ef4444;
+  --ch-voucher-red-deep: #dc2626;
+  --ch-voucher-red-glow: rgba(239, 68, 68, 0.24);
+}
+
+:root[data-theme="dark"] .ch-san-voucher-trigger {
+  background: linear-gradient(
+    180deg,
+    var(--ch-voucher-red-light) 0%,
+    var(--ch-voucher-red) 52%,
+    var(--ch-voucher-red-deep) 100%
+  );
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.1) inset,
+    -4px 0 18px var(--ch-voucher-red-glow),
+    0 8px 24px rgba(185, 28, 28, 0.28);
+}
+
+:root[data-theme="dark"] .ch-san-voucher-tabs {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+:root[data-theme="dark"] .ch-san-voucher-tab {
+  color: var(--ink-muted, rgba(255, 255, 255, 0.55));
+}
+
+:root[data-theme="dark"] .ch-san-voucher-tab.is-active {
+  background: var(--bg-surface, #171b24);
+  color: var(--cins-orange, #fdad4c);
+  box-shadow: none;
+}
+
+:root[data-theme="dark"] .ch-san-voucher-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--border, #333);
+  color: var(--ink-body, rgba(255, 255, 255, 0.82));
+}
+
+:root[data-theme="dark"] .ch-san-voucher-modal a.ch-san-voucher-btn.is-primary,
+:root[data-theme="dark"] .ch-san-voucher-modal .ch-san-voucher-btn.is-primary {
+  background: var(--sf-shop-orange, #c9760f);
+  color: #fff;
+}
+
+:root[data-theme="dark"] .ch-san-voucher-modal .shop-voucher-card-body {
+  background: var(--bg-surface, #171b24);
+  border-color: var(--border, #333);
+  color: var(--ink-display, rgba(255, 255, 255, 0.9));
+}
+
+:root[data-theme="dark"] .ch-san-voucher-modal .shop-voucher-card-banner {
+  background: var(--sf-shop-orange, #c9760f);
+  border-color: var(--border, #333);
+}
+
+:root[data-theme="dark"] .ch-san-voucher-modal .shop-voucher-card-banner-shade {
+  background: rgba(26, 18, 8, 0.28);
+}
+
+:root[data-theme="dark"] .ch-san-voucher-modal .shop-voucher-card-giam {
+  color: var(--ink-display, rgba(255, 255, 255, 0.92));
+}
+
+:root[data-theme="dark"] .ch-san-voucher-modal .shop-voucher-card-ma {
+  background: var(--bg-surface, #171b24);
+  border-color: var(--border, #333);
+  color: var(--ink-display, rgba(255, 255, 255, 0.9));
+}
+
+:root[data-theme="dark"] .ch-list-filter-dd-trigger.has-value {
+  background: color-mix(
+    in srgb,
+    var(--cins-blue, #1f74c9) 14%,
+    var(--bg-surface, #171b24)
+  );
+}
+
+:root[data-theme="dark"] .ch-list-toolbar-tab.is-active {
+  background: var(--bg-surface, #171b24);
+  color: var(--cins-blue, #5eb0ff);
+  box-shadow: none;
+}
+
+:root[data-theme="dark"] .ch-list-toolbar-tabs {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--border, #333);
+}
+
+:root[data-theme="dark"] .ch-san-voucher-modal .shop-voucher-card::before,
+:root[data-theme="dark"] .ch-san-voucher-modal .shop-voucher-card::after {
+  background: var(--bg-surface, #171b24);
 }

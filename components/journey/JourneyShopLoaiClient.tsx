@@ -48,7 +48,7 @@ import { getNameInitials } from "@/lib/journey/profile";
 import { shopLoaiHref, shopPublicHref, shopSlugFromTen } from "@/lib/shop/cua-hang-href";
 import { parseShopNhomMoTa } from "@/lib/shop/nhom-mo-ta";
 import { isShopTamDongActive } from "@/lib/shop/tam-dong";
-import { ShopTamDongOverlay } from "@/components/shop/ShopTamDongOverlay";
+import { ShopComboLoaiHint } from "@/components/shop/ShopComboLoaiHint";
 import type {
   ShopCuaHang,
   ShopNhomDanhGia,
@@ -274,6 +274,7 @@ export function JourneyShopLoaiClient({
   const setShopSlugCtx = useJourneyViewOptional()?.setShopSlug;
   const searchParams = useSearchParams();
   const mauFromQuery = searchParams.get("mau")?.trim() || null;
+  const comboFromQuery = searchParams.get("combo")?.trim() || null;
   const [detail, setDetail] = useState<ShopStorefrontNhomDetail | null>(null);
   const [shop, setShop] = useState<ShopCuaHang | null>(null);
   const [loading, setLoading] = useState(true);
@@ -1237,6 +1238,14 @@ export function JourneyShopLoaiClient({
         inert={shopClosed ? true : undefined}
         aria-hidden={shopClosed || undefined}
       >
+      {ownerId ? (
+        <ShopComboLoaiHint
+          ownerSlug={ownerSlug}
+          sellerId={ownerId}
+          shopName={shop?.ten}
+          comboId={comboFromQuery}
+        />
+      ) : null}
       <div
         className="j-shop-loai-main"
         onPointerDown={onLoaiMainPointerDown}

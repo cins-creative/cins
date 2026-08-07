@@ -239,63 +239,530 @@
   overflow: hidden;
 }
 
-.j-shop-sf-combo-strip {
+.j-shop-sf-uu-dai-strip {
+  --sf-shop-orange: #c9760f;
+  --sf-shop-orange-bg: #fff4e6;
+  --sf-shop-orange-soft: #ffedd5;
+  --sf-shop-orange-on: #1a1208;
+  --sf-shop-orange-ink: #3d2a0a;
+  --j-shop-sf-card-w: min(420px, 78vw);
+  --j-shop-sf-card-ratio: 17 / 10;
+  --j-shop-sf-combo-ratio: 17 / 13;
   margin: 10px 8px 0;
-  padding: 10px 12px;
-  border: 1px solid color-mix(in srgb, var(--border, #e4e6eb) 88%, transparent);
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--cins-orange, #fdad4c) 10%, var(--bg-page, #f7f8fa));
+  padding: 12px 12px 14px;
 }
 
-.j-shop-sf-combo-strip-kicker {
+.j-shop-sf-uu-dai-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 14px;
+  margin-bottom: 12px;
+}
+
+.j-shop-sf-uu-dai-kicker {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin: 0 0 8px;
+  margin: 0;
   font-size: 0.74rem;
   font-weight: 700;
   letter-spacing: 0.02em;
   text-transform: uppercase;
-  color: var(--ink-muted, rgba(0, 0, 0, 0.55));
+  color: var(--sf-shop-orange-ink, #3d2a0a);
 }
 
-.j-shop-sf-combo-strip-list {
-  display: flex;
+.j-shop-sf-uu-dai-tabs {
+  display: inline-flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
+}
+
+.j-shop-sf-uu-dai-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--border, #e4e6eb);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.55));
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.j-shop-sf-uu-dai-tab.is-active {
+  border-color: color-mix(in srgb, var(--sf-shop-orange, #c9760f) 45%, var(--border, #e4e6eb));
+  background: var(--sf-shop-orange-soft, #ffedd5);
+  color: var(--sf-shop-orange-ink, #3d2a0a);
+}
+
+.j-shop-sf-uu-dai-tab-count {
+  display: inline-flex;
+  min-width: 18px;
+  justify-content: center;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #dc2626;
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.j-shop-sf-combo-list {
+  margin-top: 0;
+}
+
+.j-shop-sf-card-rail {
+  position: relative;
+  overflow-x: auto;
+  overflow-y: hidden;
+  margin: 0 -4px;
+  padding: 2px 4px 8px;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.j-shop-sf-card-rail::-webkit-scrollbar {
+  display: none;
+}
+
+.j-shop-sf-card-rail.is-dragging {
+  cursor: grabbing;
+  scroll-behavior: auto;
+}
+
+.j-shop-sf-card-rail .j-shop-sf-combo-list,
+.j-shop-sf-card-rail .j-shop-sf-voucher-rail {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: 12px;
+  width: max-content;
+  min-width: 100%;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.j-shop-sf-combo-chip {
-  display: inline-flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 6px 8px;
-  max-width: 100%;
-  padding: 7px 10px;
-  border-radius: 999px;
-  background: var(--bg-elevated, #fff);
-  border: 1px solid color-mix(in srgb, var(--border, #e4e6eb) 90%, transparent);
-  font-size: 0.8rem;
-  line-height: 1.25;
+.j-shop-sf-uu-dai-strip .j-shop-sf-combo-item,
+.j-shop-sf-uu-dai-strip .j-shop-sf-voucher-item {
+  flex: 0 0 var(--j-shop-sf-card-w);
+  width: var(--j-shop-sf-card-w);
+  scroll-snap-align: start;
+  min-height: 0;
 }
 
-.j-shop-sf-combo-chip-ten {
-  font-weight: 700;
+.j-shop-sf-uu-dai-strip .j-shop-sf-combo-item {
+  aspect-ratio: var(--j-shop-sf-combo-ratio);
+}
+
+.j-shop-sf-uu-dai-strip .j-shop-sf-voucher-item {
+  height: auto;
+  align-self: flex-start;
+}
+
+.j-shop-sf-uu-dai-strip .j-shop-sf-combo-item .shop-uu-dai-combo-card {
+  height: 100%;
+  min-height: 0;
+}
+
+.j-shop-sf-uu-dai-strip .shop-uu-dai-combo-main {
+  overflow: hidden;
+  min-height: 0;
+}
+
+.j-shop-sf-uu-dai-strip .shop-uu-dai-combo-badges {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.j-shop-sf-uu-dai-strip .j-shop-sf-voucher-item .shop-voucher-card {
+  height: auto;
+  min-height: unset;
+  overflow: visible;
+  background: transparent;
+  box-shadow: none;
+  border: none;
+}
+
+.j-shop-sf-uu-dai-strip .j-shop-sf-voucher-item .shop-voucher-card.is-mac-dinh,
+.j-shop-sf-uu-dai-strip .j-shop-sf-voucher-item .shop-voucher-card.is-rieng {
+  background: transparent;
+}
+
+.j-shop-sf-uu-dai-strip .j-shop-sf-voucher-item .shop-voucher-card::before,
+.j-shop-sf-uu-dai-strip .j-shop-sf-voucher-item .shop-voucher-card::after {
+  background: var(--bg-page, #f7f8fa);
+  box-shadow: none;
+}
+
+.j-shop-sf-combo-item .shop-uu-dai-combo-card {
+  border: none;
+  border-radius: 0;
+}
+
+.j-shop-sf-uu-dai-strip a.j-shop-sf-combo-buy,
+.j-shop-sf-combo-buy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: var(--sf-shop-orange, #c9760f);
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    filter 0.15s ease,
+    transform 0.15s ease;
+}
+
+.j-shop-sf-uu-dai-strip a.j-shop-sf-combo-buy:hover,
+.j-shop-sf-uu-dai-strip a.j-shop-sf-combo-buy:focus-visible,
+.j-shop-sf-combo-buy:hover,
+.j-shop-sf-combo-buy:focus-visible {
+  color: #fff;
+  filter: brightness(1.04);
+}
+
+.j-shop-sf-combo-buy:active {
+  transform: scale(0.98);
+}
+
+.j-shop-sf-voucher-rail {
+  display: flex;
+  gap: 12px;
+}
+
+.j-shop-sf-voucher-item {
+  min-width: 0;
+}
+
+/* Storefront strip — theme cam solid (không gradient) */
+.j-shop-sf-uu-dai-strip .shop-uu-dai-combo-item,
+.j-shop-sf-uu-dai-strip .shop-uu-dai-combo-item:hover,
+.j-shop-sf-uu-dai-strip .shop-uu-dai-combo-card,
+.j-shop-sf-uu-dai-strip .shop-uu-dai-combo-card:hover {
+  box-shadow: none;
+}
+
+.j-shop-sf-uu-dai-strip .shop-uu-dai-combo-item.is-live {
+  border-color: color-mix(in srgb, var(--sf-shop-orange) 32%, var(--border, #e4e6eb));
+}
+
+.j-shop-sf-uu-dai-strip .shop-uu-dai-combo-discount {
+  background: var(--sf-shop-orange);
+  color: #fff7e8;
+  border-right-color: color-mix(in srgb, var(--sf-shop-orange) 55%, #1a1208);
+}
+
+.j-shop-sf-uu-dai-strip .shop-uu-dai-combo-discount-kicker,
+.j-shop-sf-uu-dai-strip .shop-uu-dai-combo-discount-label {
+  color: #fff7e8;
+  opacity: 0.82;
+}
+
+.j-shop-sf-uu-dai-strip .shop-uu-dai-combo-main {
+  background: #fff;
+  box-shadow: none;
+  border-left: 1px solid var(--border, #e4e6eb);
+}
+
+.j-shop-sf-uu-dai-strip .shop-uu-dai-combo-giam {
+  color: var(--sf-shop-orange);
+}
+
+.j-shop-sf-uu-dai-strip .shop-uu-dai-tag {
+  background: color-mix(in srgb, var(--sf-shop-orange) 12%, #fff);
+  color: var(--sf-shop-orange-ink);
+}
+
+.j-shop-sf-uu-dai-strip .shop-uu-dai-combo-badge-core {
+  border: 1px solid color-mix(in srgb, var(--sf-shop-orange) 22%, var(--border, #e4e6eb));
+  background: #fff;
+  color: var(--sf-shop-orange-ink);
+}
+
+.j-shop-sf-uu-dai-strip .shop-uu-dai-combo-badge-core em {
+  color: var(--sf-shop-orange);
+}
+
+.j-shop-sf-uu-dai-strip .shop-uu-dai-combo-badge-core.is-link:hover {
+  border-color: color-mix(in srgb, var(--sf-shop-orange) 40%, var(--border, #e4e6eb));
+  background: color-mix(in srgb, var(--sf-shop-orange) 8%, #fff);
+}
+
+.j-shop-sf-uu-dai-strip .shop-voucher-card-banner {
+  background: var(--sf-shop-orange);
+  border: 1px solid var(--border, #e4e6eb);
+  border-bottom: none;
+  border-radius: var(--radius-md, 12px) var(--radius-md, 12px) 0 0;
+}
+
+.j-shop-sf-uu-dai-strip .shop-voucher-card-banner-shade {
+  background: rgba(26, 18, 8, 0.32);
+}
+
+.j-shop-sf-uu-dai-strip .shop-voucher-card-body {
+  flex: none;
+  height: auto;
+  overflow: visible;
+  background: #fff;
+  border: 1px solid var(--border, #e4e6eb);
+  border-top: 1px dashed color-mix(in srgb, var(--border, #e4e6eb) 85%, transparent);
+  border-radius: 0 0 var(--radius-md, 12px) var(--radius-md, 12px);
+  box-shadow: none;
+  color: var(--ink-display, rgba(0, 0, 0, 0.85));
+}
+
+.j-shop-sf-uu-dai-strip .shop-voucher-card-label {
+  background: color-mix(in srgb, var(--sf-shop-orange) 12%, #fff);
+  color: var(--sf-shop-orange);
+}
+
+.j-shop-sf-uu-dai-strip .shop-voucher-card-giam {
   color: var(--ink-display, rgba(0, 0, 0, 0.88));
 }
 
-.j-shop-sf-combo-chip-giam {
-  font-weight: 700;
-  color: color-mix(in srgb, var(--cins-orange, #fdad4c) 35%, #b45309);
+.j-shop-sf-uu-dai-strip .shop-uu-dai-combo-main h3 {
+  color: var(--ink-display, rgba(0, 0, 0, 0.88));
 }
 
-.j-shop-sf-combo-chip-lap {
-  font-size: 0.68rem;
-  font-weight: 600;
-  color: var(--ink-muted, rgba(0, 0, 0, 0.5));
+.j-shop-sf-uu-dai-strip .shop-uu-dai-combo-desc,
+.j-shop-sf-uu-dai-strip .shop-uu-dai-combo-recipe-label {
+  color: var(--ink-muted, rgba(0, 0, 0, 0.55));
+}
+
+.j-shop-sf-uu-dai-strip .shop-voucher-card-code-label,
+.j-shop-sf-uu-dai-strip .shop-voucher-card-meta {
+  color: var(--ink-muted, rgba(0, 0, 0, 0.55));
+}
+
+.j-shop-sf-uu-dai-strip .shop-voucher-card-ma {
+  border: 1px solid var(--border, #e4e6eb);
+  background: #fff;
+  color: var(--ink-display, rgba(0, 0, 0, 0.85));
+}
+
+.j-shop-combo-hint {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin: 0 8px 12px;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, #c9760f 22%, var(--border, #e4e6eb));
+  border-radius: 14px;
+  background: #fff4e6;
+  color: var(--ink-display, rgba(0, 0, 0, 0.85));
+}
+
+.j-shop-combo-hint.is-done {
+  border-color: color-mix(in srgb, #16a34a 28%, var(--border, #e4e6eb));
+  background: color-mix(in srgb, #16a34a 8%, var(--bg-surface, #fff));
+}
+
+.j-shop-combo-hint-body {
+  min-width: 0;
+  flex: 1;
+}
+
+.j-shop-combo-hint-body strong {
+  display: block;
+  font-size: 0.88rem;
+}
+
+.j-shop-combo-hint-body p {
+  margin: 4px 0 0;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.55));
+}
+
+.j-shop-combo-hint-list {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.j-shop-combo-hint-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  padding: 6px 8px;
+  border-radius: 10px;
+  background: var(--bg-surface, #fff);
+  font-size: 0.78rem;
+}
+
+.j-shop-combo-hint-item.is-done {
+  opacity: 0.72;
+}
+
+.j-shop-combo-hint-item-missing {
+  color: var(--cins-orange, #fdad4c);
+  font-weight: 700;
+}
+
+.j-shop-combo-hint-link {
+  margin-left: auto;
+  font-weight: 800;
+  color: #c9760f;
+  text-decoration: none;
+}
+
+.j-shop-combo-hint-note {
+  margin-top: 8px !important;
+  font-size: 0.74rem !important;
+}
+
+:root[data-theme="dark"] .j-shop-sf-uu-dai-strip {
+  --sf-shop-orange: #fdad4c;
+  --sf-shop-orange-bg: #2c2418;
+  --sf-shop-orange-soft: #3d3220;
+  --sf-shop-orange-on: #fff7e8;
+  --sf-shop-orange-ink: #fff0d6;
+}
+
+:root[data-theme="dark"] .j-shop-sf-uu-dai-kicker {
+  color: var(--sf-shop-orange-ink);
+}
+
+:root[data-theme="dark"] .j-shop-sf-uu-dai-tab {
+  background: var(--bg-surface, #171b24);
+  border-color: var(--border, #333);
+  color: var(--ink-muted, rgba(255, 255, 255, 0.55));
+}
+
+:root[data-theme="dark"] .j-shop-sf-uu-dai-tab.is-active {
+  border-color: color-mix(in srgb, var(--sf-shop-orange) 50%, var(--border, #333));
+  background: var(--sf-shop-orange-soft);
+  color: var(--sf-shop-orange-on);
+}
+
+:root[data-theme="dark"] .j-shop-sf-uu-dai-tab-count {
+  background: #dc2626;
+  color: #fff;
+}
+
+:root[data-theme="dark"] .j-shop-sf-combo-item {
+  background: var(--bg-surface);
+  border-color: var(--border, #333);
+}
+
+:root[data-theme="dark"] .j-shop-sf-uu-dai-strip .shop-uu-dai-combo-discount {
+  background: var(--sf-shop-orange);
+  color: #1a1208;
+  border-right-color: color-mix(in srgb, var(--sf-shop-orange) 40%, #1a1208);
+}
+
+:root[data-theme="dark"] .j-shop-sf-uu-dai-strip .shop-uu-dai-combo-discount-kicker,
+:root[data-theme="dark"] .j-shop-sf-uu-dai-strip .shop-uu-dai-combo-discount-label {
+  color: #1a1208;
+  opacity: 0.72;
+}
+
+:root[data-theme="dark"] .j-shop-sf-uu-dai-strip .shop-uu-dai-combo-main {
+  background: var(--bg-surface, #fff);
+  border-left-color: var(--border, #333);
+}
+
+:root[data-theme="dark"] .j-shop-sf-uu-dai-strip .shop-uu-dai-combo-giam {
+  color: var(--sf-shop-orange);
+}
+
+:root[data-theme="dark"] .j-shop-sf-uu-dai-strip .shop-uu-dai-tag {
+  background: color-mix(in srgb, var(--sf-shop-orange) 14%, var(--bg-surface));
+  color: var(--sf-shop-orange-on);
+}
+
+:root[data-theme="dark"] .j-shop-sf-uu-dai-strip .shop-uu-dai-combo-badge-core {
+  border-color: var(--border, #333);
+  background: var(--bg-surface);
+  color: var(--sf-shop-orange-on);
+}
+
+:root[data-theme="dark"] .j-shop-sf-uu-dai-strip .shop-uu-dai-combo-badge-name {
+  color: var(--ink-display, rgba(255, 255, 255, 0.9));
+}
+
+:root[data-theme="dark"] .j-shop-sf-uu-dai-strip .shop-voucher-card-body {
+  background: var(--bg-surface);
+  border-color: var(--border, #333);
+  color: var(--ink-display, rgba(255, 255, 255, 0.9));
+}
+
+:root[data-theme="dark"] .j-shop-sf-uu-dai-strip .j-shop-sf-voucher-item .shop-voucher-card::before,
+:root[data-theme="dark"] .j-shop-sf-uu-dai-strip .j-shop-sf-voucher-item .shop-voucher-card::after {
+  background: var(--bg-page, #0e1117);
+}
+
+:root[data-theme="dark"] .j-shop-sf-uu-dai-strip .shop-voucher-card-banner {
+  background: var(--sf-shop-orange);
+  border: 1px solid var(--border, #333);
+  border-bottom: none;
+  border-radius: var(--radius-md, 12px) var(--radius-md, 12px) 0 0;
+}
+
+:root[data-theme="dark"] .j-shop-sf-uu-dai-strip .shop-voucher-card-banner-shade {
+  background: rgba(26, 18, 8, 0.28);
+}
+
+:root[data-theme="dark"] .j-shop-sf-uu-dai-strip .shop-voucher-card-giam {
+  color: var(--ink-display, rgba(255, 255, 255, 0.92));
+}
+
+:root[data-theme="dark"] .j-shop-sf-uu-dai-strip .shop-uu-dai-combo-main h3 {
+  color: var(--ink-display, rgba(255, 255, 255, 0.92));
+}
+
+:root[data-theme="dark"] .j-shop-sf-uu-dai-strip .shop-uu-dai-combo-badge-core.is-link:hover {
+  border-color: color-mix(in srgb, var(--sf-shop-orange) 45%, var(--border, #333));
+  background: color-mix(in srgb, var(--sf-shop-orange) 10%, var(--bg-surface));
+}
+
+:root[data-theme="dark"] .j-shop-sf-uu-dai-strip a.j-shop-sf-combo-buy,
+:root[data-theme="dark"] .j-shop-sf-combo-buy {
+  background: var(--sf-shop-orange);
+  color: #fff;
+}
+
+:root[data-theme="dark"] .j-shop-sf-uu-dai-strip a.j-shop-sf-combo-buy:hover,
+:root[data-theme="dark"] .j-shop-sf-uu-dai-strip a.j-shop-sf-combo-buy:focus-visible,
+:root[data-theme="dark"] .j-shop-sf-combo-buy:hover,
+:root[data-theme="dark"] .j-shop-sf-combo-buy:focus-visible {
+  color: #fff;
+}
+
+:root[data-theme="dark"] .j-shop-combo-hint {
+  background: #2c2418;
+  border-color: color-mix(in srgb, #fdad4c 32%, var(--border, #333));
+}
+
+:root[data-theme="dark"] .j-shop-combo-hint-link {
+  color: #fdad4c;
+}
+
+:root[data-theme="dark"] .j-shop-combo-hint-item {
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .j-shop-sf-section-head {

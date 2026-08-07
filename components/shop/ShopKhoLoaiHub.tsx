@@ -224,11 +224,6 @@ export function ShopKhoLoaiHub({
     }
   }
 
-  const chuaGanDanhMuc = loaiList.filter((n) => !n.idDanhMuc).length;
-  const chuaXacNhan = loaiList.filter(
-    (n) => n.idDanhMuc && !n.danhMucXacNhan,
-  ).length;
-
   return (
     <div className="shop-kho-loai-hub">
       <div className="shop-kho-loai-hub-head">
@@ -272,19 +267,6 @@ export function ShopKhoLoaiHub({
           </button>
         </div>
       </div>
-
-      {chuaGanDanhMuc > 0 || chuaXacNhan > 0 ? (
-        <p className="shop-kho-loai-tax-banner" role="status">
-          {chuaGanDanhMuc > 0
-            ? `${chuaGanDanhMuc} loại chưa gắn danh mục CINs`
-            : null}
-          {chuaGanDanhMuc > 0 && chuaXacNhan > 0 ? " · " : null}
-          {chuaXacNhan > 0
-            ? `${chuaXacNhan} loại cần xác nhận gợi ý`
-            : null}
-          . Mở loại để chọn — giúp khách lọc trên /cua-hang.
-        </p>
-      ) : null}
 
       {creating ? (
         <div className="shop-kho-loai-create">

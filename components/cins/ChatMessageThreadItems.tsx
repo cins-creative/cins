@@ -606,6 +606,26 @@ function SingleMessageBubble({
     );
   }
 
+  if (msg.kind === "shop_don_khao_sat" || msg.shopDonKhaoSat) {
+    return (
+      <div
+        id={messageRowId(msg.id)}
+        className="cins-chat-bubble-row is-shop-khao-sat"
+      >
+        <div className="cins-chat-bubble is-shop-khao-sat">
+          <ChatMessageBody
+            msg={msg}
+            roomId={roomId}
+            viewerUserId={viewerUserId}
+            onPollUpdated={onPollUpdated}
+            canConfirmHocPhi={canConfirmHocPhi}
+            orgBrand={orgBrand}
+          />
+        </div>
+      </div>
+    );
+  }
+
   if (msg.kind === "moc_nhac" || msg.mocNhac) {
     return (
       <div

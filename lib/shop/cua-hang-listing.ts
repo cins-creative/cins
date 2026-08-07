@@ -12,7 +12,7 @@ import { shopImageUrl } from "@/lib/shop/settings";
 import { isShopTamDongActive } from "@/lib/shop/tam-dong";
 import { mapDanhMucSlugByIds } from "@/lib/shop/danh-muc";
 import { facetsByNhomIds } from "@/lib/shop/thuoc-tinh";
-import { SHOP_DON_TINH_DA_BAN } from "@/lib/shop/types";
+import { SHOP_DON_TINH_DA_BAN, type ShopLoaiGiam } from "@/lib/shop/types";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 const IN_CHUNK = 120;
@@ -123,7 +123,7 @@ function mapNhomToHang(r: NhomCatalogRow): PublicShopListingHang {
   return {
     id: r.id,
     ten: r.nhan.trim() || "Loại hàng",
-    anhUrl: shopImageUrl(r.anh_id),
+    anhUrl: shopImageUrl(r.anh_id, "thumbnail"),
     giaHienThi: parseGiaMacDinh(r.gia_mac_dinh),
     tienTe: "VND",
     noiBat: r.noi_bat === true,
@@ -305,7 +305,7 @@ async function sanPhamCatalogByOwner(
     list.push({
       id: row.id,
       ten,
-      anhUrl: shopImageUrl(row.anh_id),
+      anhUrl: shopImageUrl(row.anh_id, "thumbnail"),
       idNhom: row.id_nhom?.trim() || null,
     });
     out.set(row.id_nguoi_dung, list);
@@ -498,6 +498,260 @@ function attachMauGiaFromNhom(
   });
 }
 
+type ComboOffer = {
+  loaiGiam: ShopLoaiGiam;
+  giaTri: number;
+};
+
+type HubUuDaiFlags = {
+  voucherOwners: Set<string>;
+  voucherLinesByOwner: Map<string, string[]>;
+  comboNhomIds: Set<string>;
+  comboSanPhamIds: Set<string>;
+  comboByNhom: Map<string, ComboOffer>;
+  comboBySanPham: Map<string, ComboOffer>;
+};
+
+function formatVndCompact(n: number): string {
+  if (n >= 1_000_000) {
+    return `${(n / 1_000_000).toLocaleString("vi-VN", {
+      maximumFractionDigits: 1,
+    })}tr`;
+  }
+  if (n >= 1000) {
+    return `${Math.round(n / 1000).toLocaleString("vi-VN")}k`;
+  }
+  return n.toLocaleString("vi-VN");
+}
+
+function formatVoucherTickerLine(
+  loaiGiam: ShopLoaiGiam,
+  giaTri: number,
+  donToiThieu: number,
+): string {
+  const minPart =
+    donToiThieu > 0 ? ` từ ${formatVndCompact(donToiThieu)}` : "";
+  if (loaiGiam === "phan_tram") {
+    return `Voucher giảm giá ${giaTri}%${minPart}`;
+  }
+  return `Voucher giảm giá ${formatVndCompact(giaTri)}${minPart}`;
+}
+
+const VOUCHER_TICKER_MAX = 12;
+
+function isBetterComboOffer(next: ComboOffer, prev: ComboOffer): boolean {
+  if (next.loaiGiam === "phan_tram" && prev.loaiGiam !== "phan_tram") return true;
+  if (prev.loaiGiam === "phan_tram" && next.loaiGiam !== "phan_tram") return false;
+  return next.giaTri > prev.giaTri;
+}
+
+function rememberComboOffer(
+  map: Map<string, ComboOffer>,
+  key: string,
+  offer: ComboOffer,
+): void {
+  const prev = map.get(key);
+  if (!prev || isBetterComboOffer(offer, prev)) map.set(key, offer);
+}
+
+function formatComboListingTag(offer: ComboOffer): string {
+  if (offer.loaiGiam === "phan_tram") {
+    return `combo -${offer.giaTri}%`;
+  }
+  const n = offer.giaTri;
+  if (n >= 1_000_000) {
+    return `combo -${(n / 1_000_000).toLocaleString("vi-VN", {
+      maximumFractionDigits: 1,
+    })}tr`;
+  }
+  if (n >= 1000) {
+    return `combo -${Math.round(n / 1000).toLocaleString("vi-VN")}k`;
+  }
+  return `combo -${n.toLocaleString("vi-VN")}`;
+}
+
+function resolveComboOffer(
+  hang: { id: string; idNhom?: string | null },
+  kind: "loai" | "mau",
+  flags: HubUuDaiFlags,
+): ComboOffer | null {
+  if (kind === "loai") return flags.comboByNhom.get(hang.id) ?? null;
+  return (
+    flags.comboBySanPham.get(hang.id) ??
+    (hang.idNhom?.trim()
+      ? (flags.comboByNhom.get(hang.idNhom.trim()) ?? null)
+      : null)
+  );
+}
+
+/** Voucher công khai + điều kiện combo đang chạy — badge hub `/cua-hang`. */
+async function hubUuDaiFlagsByOwner(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  ownerIds: string[],
+): Promise<HubUuDaiFlags> {
+  const voucherOwners = new Set<string>();
+  const voucherLinesByOwner = new Map<string, string[]>();
+  const comboNhomIds = new Set<string>();
+  const comboSanPhamIds = new Set<string>();
+  const comboByNhom = new Map<string, ComboOffer>();
+  const comboBySanPham = new Map<string, ComboOffer>();
+  if (ownerIds.length === 0) {
+    return {
+      voucherOwners,
+      voucherLinesByOwner,
+      comboNhomIds,
+      comboSanPhamIds,
+      comboByNhom,
+      comboBySanPham,
+    };
+  }
+
+  const nowIso = new Date().toISOString();
+  const { data: voucherRows, error: voucherErr } = await admin
+    .from("shop_voucher")
+    .select(
+      "id_nguoi_dung, loai_giam, gia_tri, don_toi_thieu, so_luong_tong, so_luong_da_dung",
+    )
+    .in("id_nguoi_dung", ownerIds)
+    .eq("da_xoa", false)
+    .eq("kich_hoat", true)
+    .eq("cong_khai", true)
+    .or(`bat_dau.is.null,bat_dau.lte.${nowIso}`)
+    .or(`ket_thuc.is.null,ket_thuc.gt.${nowIso}`);
+
+  if (voucherErr) {
+    console.error("[shop] hubUuDaiFlags voucher", voucherErr);
+  } else {
+    type VoucherDraft = {
+      loaiGiam: ShopLoaiGiam;
+      giaTri: number;
+      donToiThieu: number;
+    };
+    const vouchersByOwner = new Map<string, VoucherDraft[]>();
+
+    for (const row of voucherRows ?? []) {
+      const tong = row.so_luong_tong as number | null;
+      const daDung = Number(row.so_luong_da_dung ?? 0);
+      if (tong != null && daDung >= tong) continue;
+
+      const loaiGiam = row.loai_giam as ShopLoaiGiam;
+      const giaTri = Number(row.gia_tri);
+      if (!Number.isFinite(giaTri) || giaTri <= 0) continue;
+
+      const donRaw = Number(row.don_toi_thieu ?? 0);
+      const donToiThieu = Number.isFinite(donRaw) && donRaw > 0 ? donRaw : 0;
+      const ownerId = String(row.id_nguoi_dung);
+      voucherOwners.add(ownerId);
+
+      const list = vouchersByOwner.get(ownerId) ?? [];
+      list.push({ loaiGiam, giaTri, donToiThieu });
+      vouchersByOwner.set(ownerId, list);
+    }
+
+    for (const [ownerId, list] of vouchersByOwner) {
+      list.sort(
+        (a, b) =>
+          a.donToiThieu - b.donToiThieu ||
+          a.giaTri - b.giaTri,
+      );
+      voucherLinesByOwner.set(
+        ownerId,
+        list
+          .slice(0, VOUCHER_TICKER_MAX)
+          .map((v) =>
+            formatVoucherTickerLine(v.loaiGiam, v.giaTri, v.donToiThieu),
+          ),
+      );
+    }
+  }
+
+  const { data: comboRows, error: comboErr } = await admin
+    .from("shop_combo")
+    .select("id, bat_dau, ket_thuc, loai_giam, gia_tri")
+    .in("id_nguoi_dung", ownerIds)
+    .eq("da_xoa", false)
+    .eq("kich_hoat", true);
+
+  if (comboErr) {
+    console.error("[shop] hubUuDaiFlags combo", comboErr);
+    return {
+      voucherOwners,
+      voucherLinesByOwner,
+      comboNhomIds,
+      comboSanPhamIds,
+      comboByNhom,
+      comboBySanPham,
+    };
+  }
+
+  const now = Date.now();
+  const comboOfferById = new Map<string, ComboOffer>();
+  for (const row of comboRows ?? []) {
+    const batDau = row.bat_dau as string | null;
+    const ketThuc = row.ket_thuc as string | null;
+    if (batDau && Date.parse(batDau) > now) continue;
+    if (ketThuc && Date.parse(ketThuc) <= now) continue;
+    const loaiGiam = row.loai_giam as ShopLoaiGiam;
+    const giaTri = Number(row.gia_tri);
+    if (!Number.isFinite(giaTri) || giaTri <= 0) continue;
+    comboOfferById.set(String(row.id), { loaiGiam, giaTri });
+  }
+
+  const activeComboIds = [...comboOfferById.keys()];
+
+  for (let i = 0; i < activeComboIds.length; i += IN_CHUNK) {
+    const chunk = activeComboIds.slice(i, i + IN_CHUNK);
+    const { data: dkRows, error: dkErr } = await admin
+      .from("shop_combo_dieu_kien")
+      .select("id_combo, pham_vi, id_nhom, id_san_pham")
+      .in("id_combo", chunk);
+
+    if (dkErr) {
+      console.error("[shop] hubUuDaiFlags combo dk", dkErr);
+      continue;
+    }
+
+    for (const dk of dkRows ?? []) {
+      const offer = comboOfferById.get(String(dk.id_combo));
+      if (!offer) continue;
+      const phamVi = String(dk.pham_vi);
+      const idNhom = dk.id_nhom ? String(dk.id_nhom) : null;
+      const idSanPham = dk.id_san_pham ? String(dk.id_san_pham) : null;
+      if (phamVi === "loai_hang" && idNhom) {
+        comboNhomIds.add(idNhom);
+        rememberComboOffer(comboByNhom, idNhom, offer);
+      }
+      if (phamVi === "san_pham" && idSanPham) {
+        comboSanPhamIds.add(idSanPham);
+        rememberComboOffer(comboBySanPham, idSanPham, offer);
+      }
+    }
+  }
+
+  return {
+    voucherOwners,
+    voucherLinesByOwner,
+    comboNhomIds,
+    comboSanPhamIds,
+    comboByNhom,
+    comboBySanPham,
+  };
+}
+
+function tagHangUuDai(
+  hang: PublicShopListingHang,
+  kind: "loai" | "mau",
+  flags: HubUuDaiFlags,
+): PublicShopListingHang {
+  const offer = resolveComboOffer(hang, kind, flags);
+  if (!offer) return hang;
+  return {
+    ...hang,
+    coCombo: true,
+    comboTag: formatComboListingTag(offer),
+  };
+}
+
 /**
  * Hub `/cua-hang`: shop công khai (`ban_hang_bat` + `shop_hien_thi`),
  * chưa soft-delete. Sort: đang mở → có hàng → đủ thông tin mặt tiền → tên;
@@ -544,13 +798,14 @@ export async function listPublicShopCuaHang(): Promise<PublicShopListingItem[]> 
 
   const shopRows = shops ?? [];
   const shopOwnerIds = [...new Set(shopRows.map((r) => r.id_nguoi_dung))];
-  const [ownersWithHang, nhomByOwnerRaw, nhomIdsWithHang, mauByOwner, nhomStats] =
+  const [ownersWithHang, nhomByOwnerRaw, nhomIdsWithHang, mauByOwner, nhomStats, uuDaiFlags] =
     await Promise.all([
       ownersWithHangBan(admin, shopOwnerIds),
       nhomCatalogByOwner(admin, shopOwnerIds),
       nhomIdsWithHangBanByOwner(admin, shopOwnerIds),
       sanPhamCatalogByOwner(admin, shopOwnerIds),
       nhomListingStats(admin, shopOwnerIds),
+      hubUuDaiFlagsByOwner(admin, shopOwnerIds),
     ]);
 
   const items: ListingDraft[] = [];
@@ -572,16 +827,22 @@ export async function listPublicShopCuaHang(): Promise<PublicShopListingItem[]> 
     );
 
     const moTa = row.mo_ta?.trim() || null;
-    const avatarUrl = shopImageUrl(row.avatar_id);
-    const coverUrl = shopImageUrl(row.cover_id);
+    const avatarUrl = shopImageUrl(row.avatar_id, "avatar");
+    const coverUrl = shopImageUrl(row.cover_id, "gridsm");
     const catalogMauRaw = mauByOwner.get(row.id_nguoi_dung) ?? [];
     const nhomCat = filterNhomWithMau(
       nhomByOwnerRaw.get(row.id_nguoi_dung),
       nhomIdsWithHang.get(row.id_nguoi_dung),
     );
-    const catalogHang = applyNhomStats(nhomCat.catalogHang, nhomStats);
-    const featuredHang = applyNhomStats(nhomCat.previewHang, nhomStats);
-    const catalogMau = attachMauGiaFromNhom(catalogMauRaw, catalogHang);
+    const catalogHang = applyNhomStats(nhomCat.catalogHang, nhomStats).map((h) =>
+      tagHangUuDai(h, "loai", uuDaiFlags),
+    );
+    const featuredHang = applyNhomStats(nhomCat.previewHang, nhomStats).map((h) =>
+      tagHangUuDai(h, "loai", uuDaiFlags),
+    );
+    const catalogMau = attachMauGiaFromNhom(catalogMauRaw, catalogHang).map((m) =>
+      tagHangUuDai(m, "mau", uuDaiFlags),
+    );
     const ownerTen = owner.ten_hien_thi?.trim() || null;
     /** Chỉ đếm mẫu đang bán — loại trống không tính «có hàng». */
     const hasHang =
@@ -602,6 +863,9 @@ export async function listPublicShopCuaHang(): Promise<PublicShopListingItem[]> 
       featuredHang,
       catalogHang,
       catalogMau,
+      coVoucher: uuDaiFlags.voucherOwners.has(row.id_nguoi_dung),
+      voucherTickerLines:
+        uuDaiFlags.voucherLinesByOwner.get(row.id_nguoi_dung) ?? [],
       searchHaystack: buildSearchHaystack([
         ten,
         moTa,
@@ -693,13 +957,14 @@ export async function listShopListingCardsByOwnerIds(
   if (shopByOwner.size === 0) return out;
 
   const shopOwnerIds = [...shopByOwner.keys()];
-  const [ownersWithHang, nhomByOwnerRaw, nhomIdsWithHang, mauByOwner, nhomStats] =
+  const [ownersWithHang, nhomByOwnerRaw, nhomIdsWithHang, mauByOwner, nhomStats, uuDaiFlags] =
     await Promise.all([
       ownersWithHangBan(admin, shopOwnerIds),
       nhomCatalogByOwner(admin, shopOwnerIds),
       nhomIdsWithHangBanByOwner(admin, shopOwnerIds),
       sanPhamCatalogByOwner(admin, shopOwnerIds),
       nhomListingStats(admin, shopOwnerIds),
+      hubUuDaiFlagsByOwner(admin, shopOwnerIds),
     ]);
 
   for (const [ownerId, row] of shopByOwner) {
@@ -719,16 +984,22 @@ export async function listShopListingCardsByOwnerIds(
       nowMs,
     );
     const moTa = row.mo_ta?.trim() || null;
-    const avatarUrl = shopImageUrl(row.avatar_id);
-    const coverUrl = shopImageUrl(row.cover_id);
+    const avatarUrl = shopImageUrl(row.avatar_id, "avatar");
+    const coverUrl = shopImageUrl(row.cover_id, "gridsm");
     const catalogMauRaw = mauByOwner.get(ownerId) ?? [];
     const nhomCat = filterNhomWithMau(
       nhomByOwnerRaw.get(ownerId),
       nhomIdsWithHang.get(ownerId),
     );
-    const catalogHang = applyNhomStats(nhomCat.catalogHang, nhomStats);
-    const featuredHang = applyNhomStats(nhomCat.previewHang, nhomStats);
-    const catalogMau = attachMauGiaFromNhom(catalogMauRaw, catalogHang);
+    const catalogHang = applyNhomStats(nhomCat.catalogHang, nhomStats).map((h) =>
+      tagHangUuDai(h, "loai", uuDaiFlags),
+    );
+    const featuredHang = applyNhomStats(nhomCat.previewHang, nhomStats).map((h) =>
+      tagHangUuDai(h, "loai", uuDaiFlags),
+    );
+    const catalogMau = attachMauGiaFromNhom(catalogMauRaw, catalogHang).map((m) =>
+      tagHangUuDai(m, "mau", uuDaiFlags),
+    );
     const ownerTen = owner.ten_hien_thi?.trim() || null;
     void ownersWithHang;
 
@@ -747,6 +1018,8 @@ export async function listShopListingCardsByOwnerIds(
       featuredHang,
       catalogHang,
       catalogMau,
+      coVoucher: uuDaiFlags.voucherOwners.has(ownerId),
+      voucherTickerLines: uuDaiFlags.voucherLinesByOwner.get(ownerId) ?? [],
       searchHaystack: buildSearchHaystack([
         ten,
         moTa,

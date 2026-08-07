@@ -561,6 +561,62 @@
   font-weight: var(--weight-semibold, 600);
 }
 
+/* ── Trạng thái TT hoá đơn (badge) ── */
+.billing-td-tt {
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.billing-tt-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.28rem 0.62rem;
+  border-radius: 999px;
+  font-size: var(--billing-type-xs);
+  font-weight: var(--weight-semibold, 600);
+  line-height: 1.25;
+  letter-spacing: 0.01em;
+  border: 1px solid transparent;
+}
+
+.billing-tt-badge::before {
+  content: "";
+  flex-shrink: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.billing-tt-badge--ok {
+  color: #047857;
+  background: color-mix(in srgb, #10b981 14%, var(--bg-surface));
+  border-color: color-mix(in srgb, #10b981 28%, var(--border));
+}
+
+.billing-tt-badge--warn {
+  color: #b45309;
+  background: color-mix(in srgb, #f59e0b 16%, var(--bg-surface));
+  border-color: color-mix(in srgb, #f59e0b 32%, var(--border));
+}
+
+.billing-tt-badge--danger {
+  color: var(--danger, #b91c1c);
+  background: color-mix(in srgb, var(--danger) 12%, var(--bg-surface));
+  border-color: color-mix(in srgb, var(--danger) 28%, var(--border));
+}
+
+.billing-tt-badge--muted {
+  color: var(--ink-muted);
+  background: color-mix(in srgb, var(--ink-muted) 8%, var(--bg-surface));
+  border-color: var(--border);
+}
+
+.billing-tt-badge--muted::before {
+  opacity: 0.55;
+}
+
 /* ── Form controls ── */
 .billing-pt-add {
   display: flex;
@@ -1293,6 +1349,23 @@ textarea.billing-input {
 
 :root[data-theme="dark"] .billing-so-status--warn {
   color: #fcd34d;
+}
+
+:root[data-theme="dark"] .billing-tt-badge--ok {
+  color: #6ee7b7;
+  background: color-mix(in srgb, #10b981 18%, var(--bg-surface));
+  border-color: color-mix(in srgb, #10b981 35%, var(--border));
+}
+
+:root[data-theme="dark"] .billing-tt-badge--warn {
+  color: #fcd34d;
+  background: color-mix(in srgb, #f59e0b 16%, var(--bg-surface));
+  border-color: color-mix(in srgb, #f59e0b 32%, var(--border));
+}
+
+:root[data-theme="dark"] .billing-tt-badge--danger {
+  color: #fca5a5;
+  background: color-mix(in srgb, var(--danger) 16%, var(--bg-surface));
 }
 
 :root[data-theme="dark"] .billing-so-alert--warn {

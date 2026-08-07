@@ -223,6 +223,41 @@
   background: color-mix(in srgb, var(--ink-muted, #64748b) 4%, transparent);
 }
 
+/* Split + checkout: form cuộn, nút Gửi/Quay lại ghim đáy cột. */
+.gio-chung-panel.is-split.is-paying .gio-chung-col.gio-chung-col--pay {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
+}
+
+.gio-chung-panel.is-split.is-paying .gio-chung-checkout {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  overflow: hidden;
+}
+
+.gio-chung-panel.is-split.is-paying .gio-chung-checkout-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 8px;
+}
+
+.gio-chung-panel.is-split.is-paying .gio-chung-checkout-actions {
+  flex: 0 0 auto;
+  margin-top: 0;
+  padding: 10px 0 0;
+  border-top: 1px solid var(--border);
+  background: color-mix(in srgb, var(--ink-muted, #64748b) 4%, transparent);
+}
+
 .gio-chung-pay-empty {
   display: flex;
   flex-direction: column;
@@ -301,7 +336,7 @@
     padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
   }
 
-  /* Form cuộn riêng — nút Gửi/Quay lại ghim đáy cột, không sticky treo giữa. */
+  /* Form cuộn riêng — mobile full màn; desktop dùng rule .is-split.is-paying chung. */
   .gio-chung-panel.is-paying .gio-chung-col.gio-chung-col--pay {
     display: flex;
     flex-direction: column;
@@ -641,6 +676,63 @@
   font-size: 13px;
   font-weight: 700;
   color: var(--ink-display);
+}
+
+/* ── Combo trong giỏ ──────────────────────────────────────────── */
+.gio-chung-combo-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--cins-blue, #1f74c9) 6%, var(--bg-page, #f7f8fa));
+  border: 1px dashed color-mix(in srgb, var(--cins-blue, #1f74c9) 22%, var(--border, #e4e6eb));
+}
+
+.gio-chung-combo-applied,
+.gio-chung-combo-pending,
+.gio-chung-combo-pending-items {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gio-chung-combo-applied li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #15803d;
+}
+
+.gio-chung-combo-pending > li + li {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid color-mix(in srgb, var(--border, #e4e6eb) 80%, transparent);
+}
+
+.gio-chung-combo-pending-title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--ink-display, rgba(0, 0, 0, 0.85));
+}
+
+.gio-chung-combo-pending-items {
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 11px;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.55));
+}
+
+.gio-chung-combo-link {
+  font-weight: 800;
+  color: var(--cins-blue, #1f74c9);
+  text-decoration: none;
 }
 
 /* ── Warn / pay button ────────────────────────────────────────── */
@@ -1174,30 +1266,69 @@
 .gio-chung-voucher {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin: 0 0 14px;
-  padding: 12px;
+  gap: 10px;
+  margin: 0;
+  padding: 12px 14px;
   border-radius: 12px;
-  border: 1px dashed color-mix(in srgb, var(--cins-orange, #e8783a) 45%, var(--border));
-  background: color-mix(in srgb, var(--cins-orange, #e8783a) 6%, var(--bg-surface));
+  border: 1px solid color-mix(in srgb, var(--cins-orange, #e8783a) 32%, var(--border));
+  background: color-mix(in srgb, var(--cins-orange, #e8783a) 5%, var(--bg-surface));
 }
 
-.gio-chung-voucher-label {
-  font-size: 12px;
+.gio-chung-voucher-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+
+.gio-chung-voucher-head > svg {
+  flex: none;
+  margin-top: 1px;
+  color: var(--cins-orange-strong, #f07800);
+}
+
+.gio-chung-voucher-head-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.gio-chung-voucher-head-copy strong {
+  font-size: 13px;
   font-weight: 700;
-  color: var(--ink-body);
+  color: var(--ink-display);
+}
+
+.gio-chung-voucher-head-copy span {
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--ink-muted);
+}
+
+.gio-chung-voucher-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
 }
 
 .gio-chung-voucher-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 8px;
   align-items: stretch;
 }
 
+.gio-chung-voucher-select {
+  display: block;
+  min-width: 0;
+}
+
 .gio-chung-voucher-select select {
   width: 100%;
-  min-height: 44px;
-  margin-bottom: 8px;
+  min-height: 40px;
+  margin: 0;
   padding: 0 12px;
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -1221,8 +1352,8 @@
 }
 
 .gio-chung-voucher-row input {
-  flex: 1;
-  min-height: 44px;
+  min-width: 0;
+  min-height: 40px;
   padding: 0 12px;
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -1236,8 +1367,8 @@
 }
 
 .gio-chung-voucher-apply {
-  min-height: 44px;
-  min-width: 96px;
+  min-height: 40px;
+  min-width: 88px;
   padding: 0 14px;
   border: 0;
   border-radius: 10px;
@@ -1247,6 +1378,7 @@
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .gio-chung-voucher-apply:disabled {
@@ -1254,12 +1386,12 @@
   cursor: not-allowed;
 }
 
-.gio-chung-voucher-chip {
+.gio-chung-voucher-applied {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px 12px;
-  min-height: 44px;
+  gap: 8px 10px;
+  min-height: 40px;
   padding: 8px 12px;
   border-radius: 10px;
   background: var(--bg-surface);
@@ -1267,9 +1399,20 @@
   font-size: 13px;
 }
 
-.gio-chung-voucher-chip button {
+.gio-chung-voucher-applied-code {
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: var(--ink-display);
+}
+
+.gio-chung-voucher-applied-amt {
+  font-weight: 700;
+  color: var(--cins-orange-strong, #f07800);
+}
+
+.gio-chung-voucher-applied-remove {
   margin-left: auto;
-  min-height: 36px;
+  min-height: 32px;
   padding: 0 12px;
   border: 0;
   border-radius: 8px;
@@ -1278,6 +1421,13 @@
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
+}
+
+.gio-chung-voucher-err {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #b91c1c;
 }
 
 .gio-chung-note textarea {

@@ -20,6 +20,7 @@ import {
   parseChatChaoLop,
 } from "@/lib/chat/chao-lop-notice";
 import { parseChatPhongLopInvite } from "@/lib/chat/phong-lop-invite";
+import { parseChatShopDonKhaoSat } from "@/lib/chat/shop-don-khao-sat-notice";
 import { mentionsIncludeUser } from "@/lib/chat/mentions";
 import { isOptimisticAlbumMessage, isOptimisticMessageId } from "@/lib/chat/optimistic-message";
 import { tinHienVoiViewer } from "@/lib/chat/visibility";
@@ -59,20 +60,24 @@ export function mapRealtimeRow(row: ChatRealtimeRow, viewerId: string): ChatMess
     canvasBinhLuan || cuocGoi || mocNhac
       ? null
       : parseChatPhongLopInvite(row.ngu_canh);
-  const chaoLop =
+  const shopDonKhaoSat =
     canvasBinhLuan || cuocGoi || mocNhac || phongLop
+      ? null
+      : parseChatShopDonKhaoSat(row.ngu_canh);
+  const chaoLop =
+    canvasBinhLuan || cuocGoi || mocNhac || phongLop || shopDonKhaoSat
       ? null
       : parseChatChaoLop(row.ngu_canh);
   const lopBai =
-    canvasBinhLuan || cuocGoi || mocNhac || phongLop || chaoLop
+    canvasBinhLuan || cuocGoi || mocNhac || phongLop || shopDonKhaoSat || chaoLop
       ? null
       : parseLopBaiNguCanh(row.ngu_canh);
   const nguCanh =
-    canvasBinhLuan || cuocGoi || mocNhac || phongLop || chaoLop || lopBai
+    canvasBinhLuan || cuocGoi || mocNhac || phongLop || shopDonKhaoSat || chaoLop || lopBai
       ? null
       : parseChatNguCanh(row.ngu_canh);
   const mentions =
-    canvasBinhLuan || cuocGoi || mocNhac || phongLop || chaoLop || lopBai
+    canvasBinhLuan || cuocGoi || mocNhac || phongLop || shopDonKhaoSat || chaoLop || lopBai
       ? []
       : parseChatMessageMentions(row.ngu_canh);
   const forwarded = parseChatForwarded(row.ngu_canh);
@@ -82,23 +87,25 @@ export function mapRealtimeRow(row: ChatRealtimeRow, viewerId: string): ChatMess
       ? "cuoc_goi"
       : mocNhac
         ? "moc_nhac"
-        : phongLop
-          ? "phong_lop"
-          : chaoLop
-            ? "chao_lop"
-            : lopBai
-              ? "lop_bai"
-              : nguCanh
-                ? "context"
-                : row.loai_tin === "sticker"
-                  ? "sticker"
-                  : row.loai_tin === "media"
-                    ? "media"
-                    : row.loai_tin === "binh_chon"
-                      ? "binh_chon"
-                      : row.loai_tin === "system"
-                        ? "moc_nhac"
-                        : "text";
+        : shopDonKhaoSat
+          ? "shop_don_khao_sat"
+          : phongLop
+            ? "phong_lop"
+            : chaoLop
+              ? "chao_lop"
+              : lopBai
+                ? "lop_bai"
+                : nguCanh
+                  ? "context"
+                  : row.loai_tin === "sticker"
+                    ? "sticker"
+                    : row.loai_tin === "media"
+                      ? "media"
+                      : row.loai_tin === "binh_chon"
+                        ? "binh_chon"
+                        : row.loai_tin === "system"
+                          ? "moc_nhac"
+                          : "text";
   const rawBody = row.noi_dung?.trim() || "";
   let imageId: string | null = null;
   let body = rawBody;
@@ -114,6 +121,7 @@ export function mapRealtimeRow(row: ChatRealtimeRow, viewerId: string): ChatMess
     kind === "context" ||
     kind === "binh_chon" ||
     kind === "moc_nhac" ||
+    kind === "shop_don_khao_sat" ||
     kind === "phong_lop" ||
     kind === "chao_lop" ||
     kind === "lop_bai" ||
@@ -144,6 +152,7 @@ export function mapRealtimeRow(row: ChatRealtimeRow, viewerId: string): ChatMess
     mentions: mentions.length > 0 ? mentions : undefined,
     poll: null,
     mocNhac,
+    shopDonKhaoSat,
     phongLop,
     chaoLop,
     lopBai,
@@ -175,6 +184,10 @@ function realtimePreview(row: ChatRealtimeRow): string {
   if (cuocGoi) return row.noi_dung?.trim() || "Cuộc gọi";
   const mocNhac = parseChatMocNhac(row.ngu_canh);
   if (mocNhac) return row.noi_dung?.trim() || `Nhắc mốc: ${mocNhac.ten}`;
+  const shopKhaoSat = parseChatShopDonKhaoSat(row.ngu_canh);
+  if (shopKhaoSat) {
+    return row.noi_dung?.trim() || "Xác nhận nhận hàng";
+  }
   const chaoLop = parseChatChaoLop(row.ngu_canh);
   if (chaoLop) return row.noi_dung?.trim() || noiDungChaoLopChoHocVien();
   const nguCanh = parseChatNguCanh(row.ngu_canh);

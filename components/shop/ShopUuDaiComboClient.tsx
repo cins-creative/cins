@@ -1,12 +1,9 @@
 "use client";
 
 import {
-  Layers,
   Loader2,
-  Package,
   Pencil,
   Plus,
-  Tag,
   Trash2,
   X,
 } from "lucide-react";
@@ -25,6 +22,7 @@ import {
   invalidateUuDaiCache,
   peekUuDai,
 } from "@/lib/shop/client-fetch-cache";
+import { MAX_COMBO_DIEU_KIEN } from "@/lib/shop/uu-dai";
 import type {
   ShopCombo,
   ShopComboPhamVi,
@@ -33,20 +31,24 @@ import type {
   ShopSanPham,
 } from "@/lib/shop/types";
 
+import {
+  ShopComboDieuKienPicker,
+  type ShopComboPickerOption,
+} from "./ShopComboDieuKienPicker";
+import { ShopComboCard } from "./ShopComboCard";
 import "./shop-dashboard.css";
 
 type DieuKienDraft = {
   key: string;
   phamVi: ShopComboPhamVi;
-  idNhom: string;
-  idSanPham: string;
+  idNhoms: string[];
+  idSanPhams: string[];
   idBienThe: string;
   soLuong: number;
 };
 
 type ComboFormState = {
   ten: string;
-  moTa: string;
   loaiGiam: ShopLoaiGiam;
   giaTri: string;
   giamToiDa: string;
@@ -59,15 +61,18 @@ type ComboFormState = {
 const EMPTY_DK = (): DieuKienDraft => ({
   key: crypto.randomUUID(),
   phamVi: "loai_hang",
-  idNhom: "",
-  idSanPham: "",
+  idNhoms: [],
+  idSanPhams: [],
   idBienThe: "",
   soLuong: 1,
 });
 
+function nhomThumb(n: ShopNhom): string | null {
+  return n.anhUrl ?? n.anhPhuUrls[0] ?? null;
+}
+
 const EMPTY_FORM = (): ComboFormState => ({
   ten: "",
-  moTa: "",
   loaiGiam: "phan_tram",
   giaTri: "",
   giamToiDa: "",
@@ -93,39 +98,6 @@ function datetimeLocalToIso(local: string): string | null {
   return d.toISOString();
 }
 
-function formatGiam(combo: ShopCombo): string {
-  if (combo.loaiGiam === "phan_tram") {
-    const cap =
-      combo.giamToiDa != null
-        ? ` (tối đa ${combo.giamToiDa.toLocaleString("vi-VN")} ₫)`
-        : "";
-    return `${combo.giaTri}%${cap}`;
-  }
-  return `${combo.giaTri.toLocaleString("vi-VN")} ₫`;
-}
-
-function formatGiamHero(combo: ShopCombo): { figure: string; unit: string } {
-  if (combo.loaiGiam === "phan_tram") {
-    return { figure: String(combo.giaTri), unit: "%" };
-  }
-  const n = combo.giaTri;
-  if (n >= 1_000_000) {
-    return {
-      figure: (n / 1_000_000).toLocaleString("vi-VN", {
-        maximumFractionDigits: 1,
-      }),
-      unit: "triệu ₫",
-    };
-  }
-  if (n >= 1000) {
-    return {
-      figure: Math.round(n / 1000).toLocaleString("vi-VN"),
-      unit: "k ₫",
-    };
-  }
-  return { figure: n.toLocaleString("vi-VN"), unit: "₫" };
-}
-
 function comboTrangThai(combo: ShopCombo): string {
   if (!combo.kichHoat) return "Tắt";
   const now = Date.now();
@@ -140,22 +112,9 @@ function comboTrangThai(combo: ShopCombo): string {
   return "Đang chạy";
 }
 
-function phamViIcon(phamVi: ShopComboPhamVi) {
-  if (phamVi === "loai_hang") return <Layers size={12} aria-hidden />;
-  if (phamVi === "san_pham") return <Package size={12} aria-hidden />;
-  return <Tag size={12} aria-hidden />;
-}
-
-function phamViLabel(phamVi: ShopComboPhamVi): string {
-  if (phamVi === "loai_hang") return "Loại hàng";
-  if (phamVi === "san_pham") return "Mặt hàng";
-  return "Biến thể";
-}
-
 function comboToForm(combo: ShopCombo): ComboFormState {
   return {
     ten: combo.ten,
-    moTa: combo.moTa ?? "",
     loaiGiam: combo.loaiGiam,
     giaTri: String(combo.giaTri),
     giamToiDa: combo.giamToiDa != null ? String(combo.giamToiDa) : "",
@@ -167,8 +126,10 @@ function comboToForm(combo: ShopCombo): ComboFormState {
         ? combo.dieuKien.map((dk) => ({
             key: dk.id,
             phamVi: dk.phamVi,
-            idNhom: dk.idNhom ?? "",
-            idSanPham: dk.idSanPham ?? "",
+            idNhoms:
+              dk.phamVi === "loai_hang" && dk.idNhom ? [dk.idNhom] : [],
+            idSanPhams:
+              dk.phamVi === "san_pham" && dk.idSanPham ? [dk.idSanPham] : [],
             idBienThe: dk.idBienThe ?? "",
             soLuong: dk.soLuong,
           }))
@@ -177,13 +138,47 @@ function comboToForm(combo: ShopCombo): ComboFormState {
 }
 
 function dieuKienPayload(rows: DieuKienDraft[]) {
-  return rows.map((row) => ({
-    phamVi: row.phamVi,
-    idNhom: row.phamVi === "loai_hang" ? row.idNhom || null : null,
-    idSanPham: row.phamVi === "san_pham" ? row.idSanPham || null : null,
-    idBienThe: row.phamVi === "bien_the" ? row.idBienThe || null : null,
-    soLuong: row.soLuong,
-  }));
+  const out: Array<{
+    phamVi: ShopComboPhamVi;
+    idNhom: string | null;
+    idSanPham: string | null;
+    idBienThe: string | null;
+    soLuong: number;
+  }> = [];
+  for (const row of rows) {
+    if (row.phamVi === "loai_hang") {
+      for (const idNhom of row.idNhoms) {
+        out.push({
+          phamVi: "loai_hang",
+          idNhom,
+          idSanPham: null,
+          idBienThe: null,
+          soLuong: row.soLuong,
+        });
+      }
+      continue;
+    }
+    if (row.phamVi === "san_pham") {
+      for (const idSanPham of row.idSanPhams) {
+        out.push({
+          phamVi: "san_pham",
+          idNhom: null,
+          idSanPham,
+          idBienThe: null,
+          soLuong: row.soLuong,
+        });
+      }
+      continue;
+    }
+    out.push({
+      phamVi: row.phamVi,
+      idNhom: null,
+      idSanPham: null,
+      idBienThe: row.phamVi === "bien_the" ? row.idBienThe || null : null,
+      soLuong: row.soLuong,
+    });
+  }
+  return out;
 }
 
 function detectNestedWarning(
@@ -192,15 +187,17 @@ function detectNestedWarning(
 ): boolean {
   const nhomIds = new Set(
     rows
-      .filter((r) => r.phamVi === "loai_hang" && r.idNhom)
-      .map((r) => r.idNhom),
+      .filter((r) => r.phamVi === "loai_hang")
+      .flatMap((r) => r.idNhoms),
   );
   if (nhomIds.size === 0) return false;
   const spById = new Map(sanPham.map((sp) => [sp.id, sp]));
   for (const row of rows) {
-    if (row.phamVi !== "san_pham" || !row.idSanPham) continue;
-    const sp = spById.get(row.idSanPham);
-    if (sp?.idNhom && nhomIds.has(sp.idNhom)) return true;
+    if (row.phamVi !== "san_pham") continue;
+    for (const idSanPham of row.idSanPhams) {
+      const sp = spById.get(idSanPham);
+      if (sp?.idNhom && nhomIds.has(sp.idNhom)) return true;
+    }
   }
   return false;
 }
@@ -280,16 +277,49 @@ export function ShopUuDaiComboClient() {
     setFormErr(null);
   };
 
+  const expandedDieuKienCount = useMemo(
+    () => dieuKienPayload(form.dieuKien).length,
+    [form.dieuKien],
+  );
+  const canAddDieuKien = form.dieuKien.length < MAX_COMBO_DIEU_KIEN;
+
   const nestedWarning = useMemo(
     () => detectNestedWarning(form.dieuKien, sanPham),
     [form.dieuKien, sanPham],
   );
 
-  const bienTheOptions = useMemo(() => {
-    const out: Array<{ id: string; label: string }> = [];
+  const nhomPickerOptions = useMemo(
+    (): ShopComboPickerOption[] =>
+      nhomList.map((n) => ({
+        id: n.id,
+        label: n.nhan,
+        thumbUrl: nhomThumb(n),
+        hint: n.soMau > 0 ? `${n.soMau} mẫu` : null,
+      })),
+    [nhomList],
+  );
+
+  const sanPhamPickerOptions = useMemo(
+    (): ShopComboPickerOption[] =>
+      sanPham.map((sp) => ({
+        id: sp.id,
+        label: sp.ten,
+        thumbUrl: sp.anhUrl,
+        hint: sp.phanLoai,
+      })),
+    [sanPham],
+  );
+
+  const bienThePickerOptions = useMemo((): ShopComboPickerOption[] => {
+    const out: ShopComboPickerOption[] = [];
     for (const sp of sanPham) {
       for (const bt of sp.bienThe) {
-        out.push({ id: bt.id, label: `${sp.ten} — ${bt.nhan}` });
+        out.push({
+          id: bt.id,
+          label: `${sp.ten} — ${bt.nhan}`,
+          thumbUrl: bt.anhUrl ?? sp.anhUrl,
+          hint: sp.phanLoai,
+        });
       }
     }
     return out;
@@ -344,9 +374,33 @@ export function ShopUuDaiComboClient() {
     e.preventDefault();
     setSaving(true);
     setFormErr(null);
+    for (const row of form.dieuKien) {
+      if (row.phamVi === "loai_hang" && row.idNhoms.length === 0) {
+        setFormErr("Chọn ít nhất một loại hàng cho mỗi điều kiện.");
+        setSaving(false);
+        return;
+      }
+      if (row.phamVi === "san_pham" && row.idSanPhams.length === 0) {
+        setFormErr("Chọn ít nhất một mặt hàng cho mỗi điều kiện.");
+        setSaving(false);
+        return;
+      }
+      if (row.phamVi === "bien_the" && !row.idBienThe) {
+        setFormErr("Chọn biến thể cho mỗi điều kiện.");
+        setSaving(false);
+        return;
+      }
+    }
+    const expandedDieuKien = dieuKienPayload(form.dieuKien);
+    if (expandedDieuKien.length > MAX_COMBO_DIEU_KIEN) {
+      setFormErr(
+        `Tối đa ${MAX_COMBO_DIEU_KIEN} điều kiện mua. Hiện có ${expandedDieuKien.length} — bớt dòng hoặc bớt mục đã chọn.`,
+      );
+      setSaving(false);
+      return;
+    }
     const payload = {
       ten: form.ten.trim(),
-      moTa: form.moTa.trim() || null,
       loaiGiam: form.loaiGiam,
       giaTri: Number(form.giaTri),
       giamToiDa:
@@ -356,7 +410,7 @@ export function ShopUuDaiComboClient() {
       apDungLap: form.apDungLap,
       batDau: datetimeLocalToIso(form.batDau),
       ketThuc: datetimeLocalToIso(form.ketThuc),
-      dieuKien: dieuKienPayload(form.dieuKien),
+      dieuKien: expandedDieuKien,
     };
     try {
       const url = editingId
@@ -412,10 +466,9 @@ export function ShopUuDaiComboClient() {
           <div
             className="shop-kho-nhom-backdrop"
             role="presentation"
-            onClick={closeDialog}
           >
             <div
-              className="shop-kho-nhom-dialog shop-uu-dai-dialog"
+              className="shop-kho-nhom-dialog shop-uu-dai-dialog shop-uu-dai-dialog--wide"
               role="dialog"
               aria-modal="true"
               aria-labelledby="shop-combo-dialog-title"
@@ -438,245 +491,279 @@ export function ShopUuDaiComboClient() {
                 className="shop-kho-nhom-panel shop-uu-dai-form"
                 onSubmit={handleSubmit}
               >
-                {formErr ? (
-                  <p className="shop-dash-err-inline">{formErr}</p>
-                ) : null}
-                <label className="shop-dash-field">
-                  Tên combo
-                  <input
-                    required
-                    value={form.ten}
-                    onChange={(ev) =>
-                      setForm((p) => ({ ...p, ten: ev.target.value }))
-                    }
-                    maxLength={120}
-                  />
-                </label>
-                <label className="shop-dash-field">
-                  Mô tả (tùy chọn)
-                  <textarea
-                    rows={2}
-                    value={form.moTa}
-                    onChange={(ev) =>
-                      setForm((p) => ({ ...p, moTa: ev.target.value }))
-                    }
-                    className="shop-uu-dai-textarea"
-                  />
-                </label>
-                <fieldset className="shop-uu-dai-fieldset">
-                  <legend>Loại giảm</legend>
-                  <label className="shop-uu-dai-radio">
-                    <input
-                      type="radio"
-                      name="loaiGiam"
-                      checked={form.loaiGiam === "phan_tram"}
-                      onChange={() =>
-                        setForm((p) => ({ ...p, loaiGiam: "phan_tram" }))
-                      }
-                    />
-                    Phần trăm (%)
-                  </label>
-                  <label className="shop-uu-dai-radio">
-                    <input
-                      type="radio"
-                      name="loaiGiam"
-                      checked={form.loaiGiam === "so_tien"}
-                      onChange={() =>
-                        setForm((p) => ({ ...p, loaiGiam: "so_tien" }))
-                      }
-                    />
-                    Số tiền (₫)
-                  </label>
-                </fieldset>
-                <div className="shop-dash-form">
-                  <label className="shop-dash-field">
-                    Giá trị
-                    <input
-                      required
-                      type="number"
-                      min={form.loaiGiam === "phan_tram" ? 1 : 1000}
-                      max={form.loaiGiam === "phan_tram" ? 100 : undefined}
-                      step={form.loaiGiam === "phan_tram" ? 1 : 1000}
-                      value={form.giaTri}
-                      onChange={(ev) =>
-                        setForm((p) => ({ ...p, giaTri: ev.target.value }))
-                      }
-                    />
-                  </label>
-                  {form.loaiGiam === "phan_tram" ? (
+                <div className="shop-uu-dai-form-body">
+                  {formErr ? (
+                    <p className="shop-dash-err-inline">{formErr}</p>
+                  ) : null}
+
+                  <section className="shop-uu-dai-form-section">
+                    <h4 className="shop-uu-dai-form-section-title">Thông tin</h4>
                     <label className="shop-dash-field">
-                      Trần giảm (₫)
+                      Tên combo
                       <input
-                        type="number"
-                        min={0}
-                        step={1000}
-                        value={form.giamToiDa}
+                        required
+                        value={form.ten}
                         onChange={(ev) =>
-                          setForm((p) => ({ ...p, giamToiDa: ev.target.value }))
+                          setForm((p) => ({ ...p, ten: ev.target.value }))
                         }
-                        placeholder="Không giới hạn"
+                        maxLength={120}
                       />
                     </label>
-                  ) : null}
-                </div>
-                <label className="shop-uu-dai-check">
-                  <input
-                    type="checkbox"
-                    checked={form.apDungLap}
-                    onChange={(ev) =>
-                      setForm((p) => ({ ...p, apDungLap: ev.target.checked }))
-                    }
-                  />
-                  Áp dụng bội số (mua 2× tổ hợp → giảm 2×)
-                </label>
-                <div className="shop-dash-form">
-                  <label className="shop-dash-field">
-                    Bắt đầu
-                    <input
-                      type="datetime-local"
-                      value={form.batDau}
-                      onChange={(ev) =>
-                        setForm((p) => ({ ...p, batDau: ev.target.value }))
-                      }
-                    />
-                  </label>
-                  <label className="shop-dash-field">
-                    Kết thúc
-                    <input
-                      type="datetime-local"
-                      value={form.ketThuc}
-                      onChange={(ev) =>
-                        setForm((p) => ({ ...p, ketThuc: ev.target.value }))
-                      }
-                    />
-                  </label>
-                </div>
-                <div className="shop-uu-dai-dk-block">
-                  <div className="shop-uu-dai-dk-head">
-                    <strong>Điều kiện</strong>
-                    {catalogLoading ? (
-                      <Loader2 size={14} className="shop-spin" aria-hidden />
-                    ) : null}
-                  </div>
-                  {nestedWarning ? (
-                    <p className="shop-uu-dai-warn">
-                      Điều kiện lồng nhau — mỗi món chỉ tính cho một điều kiện.
-                    </p>
-                  ) : null}
-                  {form.dieuKien.map((row, idx) => (
-                    <div key={row.key} className="shop-uu-dai-dk-row">
-                      <select
-                        value={row.phamVi}
-                        onChange={(ev) =>
-                          updateDk(row.key, {
-                            phamVi: ev.target.value as ShopComboPhamVi,
-                            idNhom: "",
-                            idSanPham: "",
-                            idBienThe: "",
-                          })
-                        }
-                        aria-label={`Phạm vi điều kiện ${idx + 1}`}
-                      >
-                        <option value="loai_hang">Loại hàng</option>
-                        <option value="san_pham">Mặt hàng</option>
-                        <option value="bien_the">Biến thể</option>
-                      </select>
-                      {row.phamVi === "loai_hang" ? (
-                        <select
-                          required
-                          value={row.idNhom}
-                          onChange={(ev) =>
-                            updateDk(row.key, { idNhom: ev.target.value })
-                          }
-                          aria-label={`Loại hàng ${idx + 1}`}
-                        >
-                          <option value="">Chọn loại hàng…</option>
-                          {nhomList.map((n) => (
-                            <option key={n.id} value={n.id}>
-                              {n.nhan}
-                            </option>
-                          ))}
-                        </select>
-                      ) : null}
-                      {row.phamVi === "san_pham" ? (
-                        <select
-                          required
-                          value={row.idSanPham}
-                          onChange={(ev) =>
-                            updateDk(row.key, { idSanPham: ev.target.value })
-                          }
-                          aria-label={`Mặt hàng ${idx + 1}`}
-                        >
-                          <option value="">Chọn mặt hàng…</option>
-                          {sanPham.map((sp) => (
-                            <option key={sp.id} value={sp.id}>
-                              {sp.ten}
-                            </option>
-                          ))}
-                        </select>
-                      ) : null}
-                      {row.phamVi === "bien_the" ? (
-                        <select
-                          required
-                          value={row.idBienThe}
-                          onChange={(ev) =>
-                            updateDk(row.key, { idBienThe: ev.target.value })
-                          }
-                          aria-label={`Biến thể ${idx + 1}`}
-                        >
-                          <option value="">Chọn biến thể…</option>
-                          {bienTheOptions.map((bt) => (
-                            <option key={bt.id} value={bt.id}>
-                              {bt.label}
-                            </option>
-                          ))}
-                        </select>
-                      ) : null}
-                      <input
-                        type="number"
-                        min={1}
-                        required
-                        value={row.soLuong}
-                        onChange={(ev) =>
-                          updateDk(row.key, {
-                            soLuong: Math.max(1, Number(ev.target.value) || 1),
-                          })
-                        }
-                        aria-label={`Số lượng điều kiện ${idx + 1}`}
-                        className="shop-uu-dai-dk-qty"
-                      />
-                      {form.dieuKien.length > 1 ? (
-                        <button
-                          type="button"
-                          className="shop-uu-dai-icon-btn"
-                          onClick={() =>
-                            setForm((p) => ({
-                              ...p,
-                              dieuKien: p.dieuKien.filter(
-                                (r) => r.key !== row.key,
-                              ),
-                            }))
-                          }
-                          aria-label="Xóa điều kiện"
-                        >
-                          <Trash2 size={16} aria-hidden />
-                        </button>
+                  </section>
+
+                  <section className="shop-uu-dai-form-section">
+                    <div className="shop-uu-dai-dk-head">
+                      <h4 className="shop-uu-dai-form-section-title">
+                        Điều kiện mua
+                      </h4>
+                      {catalogLoading ? (
+                        <Loader2 size={14} className="shop-spin" aria-hidden />
                       ) : null}
                     </div>
-                  ))}
-                  <button
-                    type="button"
-                    className="shop-uu-dai-add-dk"
-                    onClick={() =>
-                      setForm((p) => ({
-                        ...p,
-                        dieuKien: [...p.dieuKien, EMPTY_DK()],
-                      }))
-                    }
-                  >
-                    <Plus size={16} aria-hidden />
-                    Thêm điều kiện
-                  </button>
+                    <p className="shop-uu-dai-form-section-lead">
+                      Khách cần có đủ các món sau trong giỏ để được giảm. Tối
+                      đa {MAX_COMBO_DIEU_KIEN} điều kiện
+                      {expandedDieuKienCount > 0
+                        ? ` (${expandedDieuKienCount}/${MAX_COMBO_DIEU_KIEN})`
+                        : ""}
+                      .
+                    </p>
+                    {expandedDieuKienCount > MAX_COMBO_DIEU_KIEN ? (
+                      <p className="shop-uu-dai-warn">
+                        Quá {MAX_COMBO_DIEU_KIEN} điều kiện — bớt dòng hoặc bớt
+                        mục đã chọn.
+                      </p>
+                    ) : null}
+                    {nestedWarning ? (
+                      <p className="shop-uu-dai-warn">
+                        Điều kiện lồng nhau — mỗi món chỉ tính cho một điều kiện.
+                      </p>
+                    ) : null}
+                    <div className="shop-uu-dai-dk-block">
+                      {form.dieuKien.map((row, idx) => (
+                        <div key={row.key} className="shop-uu-dai-dk-row">
+                          <select
+                            value={row.phamVi}
+                            onChange={(ev) =>
+                              updateDk(row.key, {
+                                phamVi: ev.target.value as ShopComboPhamVi,
+                                idNhoms: [],
+                                idSanPhams: [],
+                                idBienThe: "",
+                              })
+                            }
+                            aria-label={`Phạm vi điều kiện ${idx + 1}`}
+                          >
+                            <option value="loai_hang">Loại hàng</option>
+                            <option value="san_pham">Mặt hàng</option>
+                            <option value="bien_the">Biến thể</option>
+                          </select>
+                          {row.phamVi === "loai_hang" ? (
+                            <ShopComboDieuKienPicker
+                              label={`Loại hàng ${idx + 1}`}
+                              placeholder="Chọn loại hàng…"
+                              options={nhomPickerOptions}
+                              selectedIds={row.idNhoms}
+                              multiple
+                              disabled={catalogLoading}
+                              onChange={(idNhoms) =>
+                                updateDk(row.key, { idNhoms })
+                              }
+                            />
+                          ) : null}
+                          {row.phamVi === "san_pham" ? (
+                            <ShopComboDieuKienPicker
+                              label={`Mặt hàng ${idx + 1}`}
+                              placeholder="Chọn mặt hàng…"
+                              options={sanPhamPickerOptions}
+                              selectedIds={row.idSanPhams}
+                              multiple
+                              disabled={catalogLoading}
+                              onChange={(idSanPhams) =>
+                                updateDk(row.key, { idSanPhams })
+                              }
+                            />
+                          ) : null}
+                          {row.phamVi === "bien_the" ? (
+                            <ShopComboDieuKienPicker
+                              label={`Biến thể ${idx + 1}`}
+                              placeholder="Chọn biến thể…"
+                              options={bienThePickerOptions}
+                              selectedIds={
+                                row.idBienThe ? [row.idBienThe] : []
+                              }
+                              multiple={false}
+                              disabled={catalogLoading}
+                              onChange={(ids) =>
+                                updateDk(row.key, {
+                                  idBienThe: ids[0] ?? "",
+                                })
+                              }
+                            />
+                          ) : null}
+                          <input
+                            type="number"
+                            min={1}
+                            required
+                            value={row.soLuong}
+                            onChange={(ev) =>
+                              updateDk(row.key, {
+                                soLuong: Math.max(
+                                  1,
+                                  Number(ev.target.value) || 1,
+                                ),
+                              })
+                            }
+                            aria-label={`Số lượng điều kiện ${idx + 1}`}
+                            className="shop-uu-dai-dk-qty"
+                          />
+                          {form.dieuKien.length > 1 ? (
+                            <button
+                              type="button"
+                              className="shop-uu-dai-icon-btn"
+                              onClick={() =>
+                                setForm((p) => ({
+                                  ...p,
+                                  dieuKien: p.dieuKien.filter(
+                                    (r) => r.key !== row.key,
+                                  ),
+                                }))
+                              }
+                              aria-label="Xóa điều kiện"
+                            >
+                              <Trash2 size={16} aria-hidden />
+                            </button>
+                          ) : null}
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        className="shop-uu-dai-add-dk"
+                        disabled={!canAddDieuKien}
+                        onClick={() => {
+                          if (!canAddDieuKien) return;
+                          setForm((p) => ({
+                            ...p,
+                            dieuKien: [...p.dieuKien, EMPTY_DK()],
+                          }));
+                        }}
+                      >
+                        <Plus size={16} aria-hidden />
+                        {canAddDieuKien
+                          ? "Thêm điều kiện"
+                          : `Tối đa ${MAX_COMBO_DIEU_KIEN} dòng`}
+                      </button>
+                    </div>
+                  </section>
+
+                  <section className="shop-uu-dai-form-section">
+                    <h4 className="shop-uu-dai-form-section-title">Mức giảm</h4>
+                    <div
+                      className="shop-uu-dai-loai-giam-toggle"
+                      role="radiogroup"
+                      aria-label="Loại giảm"
+                    >
+                      <button
+                        type="button"
+                        role="radio"
+                        aria-checked={form.loaiGiam === "phan_tram"}
+                        className={
+                          form.loaiGiam === "phan_tram" ? "is-on" : undefined
+                        }
+                        onClick={() =>
+                          setForm((p) => ({ ...p, loaiGiam: "phan_tram" }))
+                        }
+                      >
+                        Phần trăm (%)
+                      </button>
+                      <button
+                        type="button"
+                        role="radio"
+                        aria-checked={form.loaiGiam === "so_tien"}
+                        className={
+                          form.loaiGiam === "so_tien" ? "is-on" : undefined
+                        }
+                        onClick={() =>
+                          setForm((p) => ({ ...p, loaiGiam: "so_tien" }))
+                        }
+                      >
+                        Số tiền (₫)
+                      </button>
+                    </div>
+                    <div className="shop-dash-form">
+                      <label className="shop-dash-field">
+                        Giá trị
+                        <input
+                          required
+                          type="number"
+                          min={form.loaiGiam === "phan_tram" ? 1 : 1000}
+                          max={form.loaiGiam === "phan_tram" ? 100 : undefined}
+                          step={form.loaiGiam === "phan_tram" ? 1 : 1000}
+                          value={form.giaTri}
+                          onChange={(ev) =>
+                            setForm((p) => ({ ...p, giaTri: ev.target.value }))
+                          }
+                        />
+                      </label>
+                      {form.loaiGiam === "phan_tram" ? (
+                        <label className="shop-dash-field">
+                          Trần giảm (₫)
+                          <input
+                            type="number"
+                            min={0}
+                            step={1000}
+                            value={form.giamToiDa}
+                            onChange={(ev) =>
+                              setForm((p) => ({
+                                ...p,
+                                giamToiDa: ev.target.value,
+                              }))
+                            }
+                            placeholder="Không giới hạn"
+                          />
+                        </label>
+                      ) : null}
+                    </div>
+                    <label className="shop-uu-dai-check">
+                      <input
+                        type="checkbox"
+                        checked={form.apDungLap}
+                        onChange={(ev) =>
+                          setForm((p) => ({
+                            ...p,
+                            apDungLap: ev.target.checked,
+                          }))
+                        }
+                      />
+                      Áp dụng nhiều lần (VD: Mua 5 combo → giảm ×5)
+                    </label>
+                  </section>
+
+                  <section className="shop-uu-dai-form-section">
+                    <h4 className="shop-uu-dai-form-section-title">Thời gian</h4>
+                    <div className="shop-dash-form">
+                      <label className="shop-dash-field">
+                        Bắt đầu
+                        <input
+                          type="datetime-local"
+                          value={form.batDau}
+                          onChange={(ev) =>
+                            setForm((p) => ({ ...p, batDau: ev.target.value }))
+                          }
+                        />
+                      </label>
+                      <label className="shop-dash-field">
+                        Kết thúc
+                        <input
+                          type="datetime-local"
+                          value={form.ketThuc}
+                          onChange={(ev) =>
+                            setForm((p) => ({ ...p, ketThuc: ev.target.value }))
+                          }
+                        />
+                      </label>
+                    </div>
+                  </section>
                 </div>
                 <div className="shop-uu-dai-dialog-actions">
                   <button type="button" onClick={closeDialog} disabled={saving}>
@@ -773,110 +860,46 @@ export function ShopUuDaiComboClient() {
           <ul className="shop-uu-dai-combo-list">
             {combos.map((combo) => {
               const status = comboTrangThai(combo);
-              const hero = formatGiamHero(combo);
               return (
                 <li
                   key={combo.id}
-                  className={`shop-uu-dai-combo-card${
+                  className={`shop-uu-dai-combo-item${
                     status === "Đang chạy" ? " is-live" : ""
                   }${!combo.kichHoat ? " is-off" : ""}`}
                 >
-                  <div className="shop-uu-dai-combo-discount" aria-hidden>
-                    <span className="shop-uu-dai-combo-discount-fig">
-                      {hero.figure}
-                    </span>
-                    <span className="shop-uu-dai-combo-discount-unit">
-                      {hero.unit}
-                    </span>
-                    <span className="shop-uu-dai-combo-discount-label">
-                      giảm
-                    </span>
-                  </div>
-                  <div className="shop-uu-dai-combo-main">
-                    <div className="shop-uu-dai-combo-title-row">
-                      <h3>{combo.ten}</h3>
-                      <span
-                        className={`shop-uu-dai-status${
-                          status === "Đang chạy" ? " is-live" : ""
-                        }${status === "Hết hạn" || status === "Tắt" ? " is-muted" : ""}`}
+                  <ShopComboCard combo={combo} status={status} />
+                  <div className="shop-uu-dai-voucher-toolbar">
+                    <div className="shop-uu-dai-voucher-toolbar-actions">
+                      <button
+                        type="button"
+                        className={`shop-dash-switch${combo.kichHoat ? " on" : ""}`}
+                        role="switch"
+                        aria-checked={combo.kichHoat}
+                        aria-label={
+                          combo.kichHoat ? "Tắt combo" : "Bật combo"
+                        }
+                        disabled={toggleBusy === combo.id}
+                        onClick={() => void handleToggle(combo)}
                       >
-                        {status}
-                      </span>
+                        <span className="shop-dash-switch-knob" aria-hidden />
+                      </button>
+                      <button
+                        type="button"
+                        className="shop-uu-dai-icon-btn"
+                        onClick={() => openEdit(combo)}
+                        aria-label="Sửa combo"
+                      >
+                        <Pencil size={16} aria-hidden />
+                      </button>
+                      <button
+                        type="button"
+                        className="shop-uu-dai-icon-btn is-danger"
+                        onClick={() => void handleDelete(combo)}
+                        aria-label="Xóa combo"
+                      >
+                        <Trash2 size={16} aria-hidden />
+                      </button>
                     </div>
-                    {combo.moTa ? (
-                      <p className="shop-uu-dai-combo-desc">{combo.moTa}</p>
-                    ) : null}
-                    <p className="shop-uu-dai-combo-recipe-label">
-                      Điều kiện mua
-                    </p>
-                    <div className="shop-uu-dai-combo-badges">
-                      {combo.dieuKien.map((dk, i) => (
-                        <span key={dk.id} className="shop-uu-dai-combo-badge">
-                          {i > 0 ? (
-                            <span
-                              className="shop-uu-dai-combo-badge-join"
-                              aria-hidden
-                            >
-                              +
-                            </span>
-                          ) : null}
-                          <span
-                            className="shop-uu-dai-combo-badge-core"
-                            title={phamViLabel(dk.phamVi)}
-                          >
-                            {phamViIcon(dk.phamVi)}
-                            <span>
-                              {dk.nhan ?? phamViLabel(dk.phamVi)}
-                              <em>×{dk.soLuong}</em>
-                            </span>
-                          </span>
-                        </span>
-                      ))}
-                    </div>
-                    <div className="shop-uu-dai-combo-meta">
-                      <span className="shop-uu-dai-combo-giam-full">
-                        {formatGiam(combo)}
-                      </span>
-                      {combo.dieuKienLoi ? (
-                        <span className="shop-uu-dai-status is-error">
-                          Điều kiện lỗi
-                        </span>
-                      ) : null}
-                      {combo.apDungLap ? (
-                        <span className="shop-uu-dai-tag">Áp dụng bội số</span>
-                      ) : null}
-                    </div>
-                  </div>
-                  <div className="shop-uu-dai-combo-actions">
-                    <button
-                      type="button"
-                      className={`shop-dash-switch${combo.kichHoat ? " on" : ""}`}
-                      role="switch"
-                      aria-checked={combo.kichHoat}
-                      aria-label={
-                        combo.kichHoat ? "Tắt combo" : "Bật combo"
-                      }
-                      disabled={toggleBusy === combo.id}
-                      onClick={() => void handleToggle(combo)}
-                    >
-                      <span className="shop-dash-switch-knob" aria-hidden />
-                    </button>
-                    <button
-                      type="button"
-                      className="shop-uu-dai-icon-btn"
-                      onClick={() => openEdit(combo)}
-                      aria-label="Sửa combo"
-                    >
-                      <Pencil size={18} aria-hidden />
-                    </button>
-                    <button
-                      type="button"
-                      className="shop-uu-dai-icon-btn is-danger"
-                      onClick={() => void handleDelete(combo)}
-                      aria-label="Xóa combo"
-                    >
-                      <Trash2 size={18} aria-hidden />
-                    </button>
                   </div>
                 </li>
               );

@@ -1,6 +1,7 @@
 import "server-only";
 
-import { assertBanHangEnabled } from "@/lib/shop/settings";
+import { assertBanHangEnabled, shopImageUrl } from "@/lib/shop/settings";
+import { MAX_COMBO_DIEU_KIEN } from "@/lib/shop/uu-dai";
 import type {
   ShopCombo,
   ShopComboDieuKien,
@@ -47,7 +48,11 @@ function num(v: number | string | null | undefined): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-function mapDk(r: DkRow, nhan?: string | null): ShopComboDieuKien {
+function mapDk(
+  r: DkRow,
+  nhan?: string | null,
+  anhUrl?: string | null,
+): ShopComboDieuKien {
   return {
     id: r.id,
     idCombo: r.id_combo,
@@ -57,6 +62,7 @@ function mapDk(r: DkRow, nhan?: string | null): ShopComboDieuKien {
     idBienThe: r.id_bien_the,
     soLuong: r.so_luong,
     nhan: nhan ?? null,
+    anhUrl: anhUrl ?? null,
   };
 }
 
@@ -166,6 +172,9 @@ async function assertDieuKienBelongToOwner(
   so_luong: number;
 }>> {
   if (!dieuKien.length) throw new Error("COMBO_DIEU_KIEN_REQUIRED");
+  if (dieuKien.length > MAX_COMBO_DIEU_KIEN) {
+    throw new Error("COMBO_DIEU_KIEN_TOO_MANY");
+  }
   const admin = createServiceRoleClient();
   const rows: Array<{
     pham_vi: ShopComboPhamVi;
@@ -280,54 +289,88 @@ async function loadDieuKien(
   ];
 
   const nhanByNhom = new Map<string, string>();
+  const anhByNhom = new Map<string, string | null>();
   const nhomAlive = new Set<string>();
   if (nhomIds.length) {
     const { data: nhoms } = await admin
       .from("shop_nhom")
-      .select("id, nhan, da_xoa")
+      .select("id, nhan, anh_id, da_xoa")
       .in("id", nhomIds);
     for (const n of (nhoms ?? []) as Array<{
       id: string;
       nhan: string;
+      anh_id: string | null;
       da_xoa: boolean;
     }>) {
       nhanByNhom.set(n.id, n.nhan);
+      anhByNhom.set(n.id, shopImageUrl(n.anh_id));
       if (!n.da_xoa) nhomAlive.add(n.id);
     }
   }
 
   const nhanBySp = new Map<string, string>();
+  const anhBySp = new Map<string, string | null>();
+  const nhomBySp = new Map<string, string | null>();
   const spAlive = new Set<string>();
   if (spIds.length) {
     const { data: sps } = await admin
       .from("shop_san_pham")
-      .select("id, ten, da_xoa")
+      .select("id, ten, anh_id, id_nhom, da_xoa")
       .in("id", spIds);
     for (const s of (sps ?? []) as Array<{
       id: string;
       ten: string;
+      anh_id: string | null;
+      id_nhom: string | null;
       da_xoa: boolean;
     }>) {
       nhanBySp.set(s.id, s.ten);
+      anhBySp.set(s.id, shopImageUrl(s.anh_id));
+      nhomBySp.set(s.id, s.id_nhom);
       if (!s.da_xoa) spAlive.add(s.id);
     }
   }
 
   const nhanByBt = new Map<string, string>();
+  const anhByBt = new Map<string, string | null>();
   const btAlive = new Set<string>();
+  const btSpId = new Map<string, string>();
   if (btIds.length) {
     const { data: bts } = await admin
       .from("shop_bien_the")
-      .select("id, nhan, da_xoa, id_san_pham")
+      .select("id, nhan, anh_id, da_xoa, id_san_pham")
       .in("id", btIds);
     for (const b of (bts ?? []) as Array<{
       id: string;
       nhan: string;
+      anh_id: string | null;
       da_xoa: boolean;
       id_san_pham: string;
     }>) {
       nhanByBt.set(b.id, b.nhan);
+      btSpId.set(b.id, b.id_san_pham);
+      anhByBt.set(b.id, shopImageUrl(b.anh_id));
       if (!b.da_xoa) btAlive.add(b.id);
+    }
+  }
+
+  const extraSpIds = [
+    ...new Set(
+      [...btSpId.values()].filter((id) => !anhBySp.has(id)),
+    ),
+  ];
+  if (extraSpIds.length) {
+    const { data: sps } = await admin
+      .from("shop_san_pham")
+      .select("id, anh_id, id_nhom")
+      .in("id", extraSpIds);
+    for (const s of (sps ?? []) as Array<{
+      id: string;
+      anh_id: string | null;
+      id_nhom: string | null;
+    }>) {
+      anhBySp.set(s.id, shopImageUrl(s.anh_id));
+      if (!nhomBySp.has(s.id)) nhomBySp.set(s.id, s.id_nhom);
     }
   }
 
@@ -336,19 +379,35 @@ async function loadDieuKien(
     const entry = out.get(r.id_combo);
     if (!entry) continue;
     let nhan: string | null = null;
+    let anhUrl: string | null = null;
     let loi = false;
     if (r.pham_vi === "loai_hang") {
       nhan = r.id_nhom ? nhanByNhom.get(r.id_nhom) ?? null : null;
+      anhUrl = r.id_nhom ? anhByNhom.get(r.id_nhom) ?? null : null;
       if (!r.id_nhom || !nhomAlive.has(r.id_nhom)) loi = true;
     } else if (r.pham_vi === "san_pham") {
       nhan = r.id_san_pham ? nhanBySp.get(r.id_san_pham) ?? null : null;
+      anhUrl = r.id_san_pham ? anhBySp.get(r.id_san_pham) ?? null : null;
       if (!r.id_san_pham || !spAlive.has(r.id_san_pham)) loi = true;
     } else {
       nhan = r.id_bien_the ? nhanByBt.get(r.id_bien_the) ?? null : null;
+      anhUrl =
+        (r.id_bien_the ? anhByBt.get(r.id_bien_the) : null) ??
+        (r.id_bien_the
+          ? anhBySp.get(btSpId.get(r.id_bien_the) ?? "") ?? null
+          : null);
       if (!r.id_bien_the || !btAlive.has(r.id_bien_the)) loi = true;
     }
     if (loi) entry.loi = true;
-    entry.dieuKien.push(mapDk(r, nhan));
+    const mapped: DkRow = { ...r };
+    if (r.pham_vi === "san_pham" && r.id_san_pham) {
+      mapped.id_nhom = nhomBySp.get(r.id_san_pham) ?? null;
+    } else if (r.pham_vi === "bien_the" && r.id_bien_the) {
+      const spId = btSpId.get(r.id_bien_the) ?? null;
+      mapped.id_nhom = spId ? nhomBySp.get(spId) ?? null : null;
+      mapped.id_san_pham = spId;
+    }
+    entry.dieuKien.push(mapDk(mapped, nhan, anhUrl));
   }
   return out;
 }

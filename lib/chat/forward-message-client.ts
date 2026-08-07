@@ -38,7 +38,7 @@ export function buildForwardPayloads(msg: ChatMessage): ForwardPayload[] {
 
 export function canForwardMessage(msg: ChatMessage): boolean {
   if (msg.deleted) return false;
-  if (msg.kind === "binh_chon" || msg.kind === "moc_nhac" || msg.kind === "phong_lop" || msg.kind === "chao_lop" || msg.kind === "canvas_binh_luan" || msg.kind === "cuoc_goi") {
+  if (msg.kind === "binh_chon" || msg.kind === "moc_nhac" || msg.kind === "shop_don_khao_sat" || msg.kind === "phong_lop" || msg.kind === "chao_lop" || msg.kind === "canvas_binh_luan" || msg.kind === "cuoc_goi") {
     return false;
   }
   return buildForwardPayloads(msg).length > 0;

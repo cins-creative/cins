@@ -103,6 +103,7 @@ export async function POST(request: Request) {
       COMBO_GIAM_TOI_DA_INVALID: [422, "Trần giảm không hợp lệ."],
       COMBO_THOI_GIAN_INVALID: [422, "Khoảng thời gian không hợp lệ."],
       COMBO_DIEU_KIEN_REQUIRED: [422, "Cần ít nhất một điều kiện."],
+      COMBO_DIEU_KIEN_TOO_MANY: [422, "Tối đa 4 điều kiện mua trên một combo."],
       COMBO_DIEU_KIEN_INVALID: [422, "Điều kiện không hợp lệ hoặc không thuộc shop."],
       COMBO_DIEU_KIEN_DUPLICATE: [422, "Điều kiện bị trùng."],
       BAN_HANG_OFF: [403, "Chưa bật bán hàng."],
