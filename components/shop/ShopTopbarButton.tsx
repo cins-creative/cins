@@ -27,6 +27,12 @@ import {
   SHOP_TRANG_THAI_DON_LABEL,
   type ShopDonHang,
 } from "@/lib/shop/types";
+import {
+  fmtPhiVnd,
+  fmtPhiYmd,
+  phiThanhToanHref,
+  useShopPhiGate,
+} from "@/lib/shop/use-shop-phi-gate";
 import { useShopReadyGate } from "@/lib/shop/use-shop-ready-gate";
 
 import "./shop-topbar.css";
@@ -53,6 +59,7 @@ export function ShopTopbarButton() {
     shopSetupHref,
     loading: readyLoading,
   } = useShopReadyGate();
+  const phiGate = useShopPhiGate();
 
   const pending = items.filter((d) => d.trangThai === "cho_xac_nhan");
   const pendingCount = pending.length;
@@ -191,6 +198,27 @@ export function ShopTopbarButton() {
 
   const preview = pending.slice(0, 6);
 
+  const phiAlert =
+    phiGate && phiGate.trangThai !== "hoat_dong"
+      ? (() => {
+          const isLock = phiGate.trangThai === "khoa_nhan_don";
+          const han = phiGate.hanTraGanNhat
+            ? fmtPhiYmd(phiGate.hanTraGanNhat)
+            : null;
+          const no =
+            phiGate.tongNoVnd > 0 ? fmtPhiVnd(phiGate.tongNoVnd) : null;
+          let text: string;
+          if (isLock) {
+            text = `Đã khóa nhận đơn${han ? ` — kỳ hạn ${han}` : ""}${no ? ` · nợ ${no}` : ""}`;
+          } else if (phiGate.tuKhaiTamMo) {
+            text = `Đang đối soát chuyển khoản${no ? ` · nợ ${no}` : ""}`;
+          } else {
+            text = `Sắp đến hạn phí nền tảng${han ? ` (${han})` : ""}${no ? ` · nợ ${no}` : ""}`;
+          }
+          return { isLock, text, href: phiThanhToanHref(phiGate) };
+        })()
+      : null;
+
   const menuPanel =
     open && menuStyle && portalReady
       ? createPortal(
@@ -226,6 +254,22 @@ export function ShopTopbarButton() {
                 </a>
               ) : null}
             </div>
+
+            {phiAlert ? (
+              <a
+                href={phiAlert.href}
+                target="_blank"
+                rel="noreferrer"
+                className={`shop-topbar-phi${phiAlert.isLock ? " is-lock" : " is-warn"}`}
+                onClick={() => setOpen(false)}
+              >
+                <span className="shop-topbar-phi-text">{phiAlert.text}</span>
+                <span className="shop-topbar-phi-cta">
+                  Thanh toán
+                  <ExternalLink size={12} strokeWidth={2} aria-hidden />
+                </span>
+              </a>
+            ) : null}
 
             {!shopReady ? (
               <div className="shop-topbar-shortcuts">

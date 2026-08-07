@@ -282,7 +282,7 @@ export async function ensureDichVu(input: {
 
   if (error) {
     if (error.code === "23505") {
-      const again = await admin
+      const { data: again } = await admin
         .from("cins_dich_vu")
         .select(DV_SELECT)
         .eq("loai", input.loai)

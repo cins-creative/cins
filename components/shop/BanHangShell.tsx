@@ -7,6 +7,7 @@ import {
   ShopDashTabs,
   type ShopDashTab,
 } from "@/components/shop/ShopDashTabs";
+import { ShopPhiGateBanner } from "@/components/shop/ShopPhiGateBanner";
 
 import "./shop-dashboard.css";
 
@@ -29,6 +30,7 @@ export function BanHangShell({ children }: { children: ReactNode }) {
   return (
     <div className="shop-dash">
       <ShopDashTabs active={active} />
+      <ShopPhiGateBanner />
       <div className="shop-dash-body">{children}</div>
     </div>
   );

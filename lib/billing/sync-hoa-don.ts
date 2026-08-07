@@ -90,8 +90,7 @@ export async function syncHoaDonTuShopKy(
       soTienVnd: so,
       dieuChinhVnd: 0,
       daTraVnd: ky.trangThai === "da_tra" ? so : 0,
-      trangThai:
-        ky.trangThai === "chua_chot" ? "chua_tra" : ky.trangThai,
+      trangThai: ky.trangThai,
       nguonBang: "shop_phi_ky",
       nguonId: ky.id,
       seedMa: `shop:${ky.idNguoiBan}`,

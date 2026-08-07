@@ -8,7 +8,7 @@ import { createPortal } from "react-dom";
 
 import { getCoverUrl } from "@/lib/articles/cover";
 import { buildVietQrImageUrl } from "@/lib/shop/vietqr";
-import type { BillingHubPayload, CinsDichVu, HoaDon } from "@/lib/billing/types";
+import type { BillingHubPayload, CinsDichVu, DichVuNoTong, HoaDon } from "@/lib/billing/types";
 
 import {
   BillingPaySuccessModal,
@@ -65,6 +65,47 @@ const KN_TT: Record<string, string> = {
   da_xu_ly: "Đã xử lý",
   tu_choi: "Từ chối",
 };
+
+type SoTrangThaiUi = {
+  label: string;
+  tone: "ok" | "warn" | "danger";
+};
+
+function soTrangThaiUi(hq: DichVuNoTong["heQua"]): SoTrangThaiUi {
+  switch (hq?.loai) {
+    case "khoa_nhan_don":
+      return { label: "Đã khoá nhận đơn", tone: "danger" };
+    case "khoa_ghi_danh":
+      return { label: "Đã khoá ghi danh", tone: "danger" };
+    case "han_che":
+      return { label: "Đang hạn chế", tone: "warn" };
+    case "canh_bao":
+      return { label: "Cần thanh toán", tone: "warn" };
+    default:
+      return { label: "Hoạt động bình thường", tone: "ok" };
+  }
+}
+
+function soLoaiBadge(loai: string): string {
+  return LOAI_LABEL[loai] ?? loai;
+}
+
+function soCongThucLine(
+  dv: CinsDichVu,
+  phi: BillingHubPayload["phiCongKhai"],
+): string {
+  if (dv.loai === "shop_phi") {
+    const tyLe = fmtTyLePercent(dv.tyLe ?? phi.shopTyLe) ?? "5%";
+    const toiThieu = fmtVnd(dv.toiThieuXuatKyVnd ?? phi.shopToiThieuXuatKyVnd);
+    return `${tyLe} trên GMV đơn hoàn thành · tối thiểu ${toiThieu}/kỳ`;
+  }
+  if (dv.loai === "csdt_phi") {
+    const tyLe = fmtTyLePercent(dv.tyLe ?? phi.csdtTyLe) ?? "10%";
+    const nguong = fmtVnd(dv.nguongChotVnd ?? phi.csdtNguongVnd);
+    return `${tyLe} trên doanh thu học phí (sau ngưỡng ${nguong})`;
+  }
+  return "Phí nền tảng CINs";
+}
 
 type Props = {
   initial: BillingHubPayload;
@@ -742,7 +783,7 @@ export function ThanhToanHubClient({ initial }: Props) {
           </strong>
         </div>
         <div className="billing-kpi">
-          <span className="billing-kpi-label">Hạn gần nhất</span>
+          <span className="billing-kpi-label">Ngày hết hạn</span>
           <strong className="billing-kpi-value">
             {hanFiltered ? fmtYmd(hanFiltered) : "—"}
           </strong>
@@ -896,62 +937,178 @@ export function ThanhToanHubClient({ initial }: Props) {
       </section>
 
       {filteredDichVu.length > 0 ? (
-        <section className="billing-panel" aria-labelledby="billing-so-title">
-          <h2 id="billing-so-title" className="billing-panel-title">
-            {activeSo
-              ? activeSo.dichVu.tenHienThi || "Sổ dịch vụ"
-              : "Sổ dịch vụ"}
-          </h2>
-          <ul className="billing-so-list">
+        <section
+          className="billing-panel billing-so-panel"
+          aria-labelledby="billing-so-title"
+        >
+          <header className="billing-so-head">
+            <h2 id="billing-so-title" className="billing-panel-title">
+              Phí kỳ đang chạy
+            </h2>
+            <p className="billing-muted billing-so-lede">
+              {activeSo
+                ? `Theo dõi phí đang cộng dồn cho ${activeSo.dichVu.tenHienThi || soLoaiBadge(activeSo.dichVu.loai)} — chưa vào hoá đơn cho đến khi chốt kỳ.`
+                : "Mỗi cửa hàng / cơ sở có một sổ phí riêng. Số liệu dưới đây là phí đang tích luỹ trong tháng, chưa phải hoá đơn cần trả."}
+            </p>
+          </header>
+          <div className="billing-so-cards">
             {filteredDichVu.map((d) => {
               const tl = d.dangTichLuy;
               const hq = d.heQua;
+              const st = soTrangThaiUi(hq);
+              const ten =
+                d.dichVu.tenHienThi || soLoaiBadge(d.dichVu.loai);
+              const tyLePct = fmtTyLePercent(d.dichVu.tyLe);
+              const progressPct =
+                tl && tl.nguongXuatKyVnd > 0
+                  ? Math.min(
+                      100,
+                      Math.round(
+                        (tl.phiDuKienVnd / tl.nguongXuatKyVnd) * 100,
+                      ),
+                    )
+                  : 0;
+
               return (
-                <li key={d.dichVu.id} className="billing-so-item">
-                  <div className="billing-td-main">
-                    {d.dichVu.tenHienThi || LOAI_LABEL[d.dichVu.loai]}
-                    <span className="billing-td-sub">
-                      {" "}
-                      · {LOAI_LABEL[d.dichVu.loai] ?? d.dichVu.loai}
+                <article
+                  key={d.dichVu.id}
+                  className={`billing-so-card billing-so-card--${st.tone}`}
+                >
+                  <div className="billing-so-card-head">
+                    <div className="billing-so-card-ident">
+                      <h3 className="billing-so-card-name">{ten}</h3>
+                      <span className="billing-so-badge">
+                        {soLoaiBadge(d.dichVu.loai)}
+                      </span>
+                    </div>
+                    <span
+                      className={`billing-so-status billing-so-status--${st.tone}`}
+                    >
+                      {st.label}
                     </span>
                   </div>
-                  {tl ? (
-                    <p className="billing-muted">
-                      Đang tích luỹ: {fmtVnd(tl.phiDuKienVnd)}
-                      {d.dichVu.loai === "shop_phi"
-                        ? ` trên GMV ${fmtVnd(tl.doanhThuVnd)}`
-                        : ` · DT ${fmtVnd(tl.doanhThuVnd)}`}
-                      {tl.duoiNguong
-                        ? ` — dưới ngưỡng ${fmtVnd(tl.nguongXuatKyVnd)}, sẽ dồn kỳ sau`
-                        : ""}
-                      {tl.ngayChotDuKien
-                        ? ` · chốt dự kiến ${fmtYmd(tl.ngayChotDuKien)}`
-                        : ""}
-                      .
+
+                  <p className="billing-so-formula">
+                    {soCongThucLine(d.dichVu, phi)}
+                  </p>
+
+                  <dl className="billing-so-metrics">
+                    <div className="billing-so-metric">
+                      <dt>Nợ cần trả</dt>
+                      <dd
+                        className={
+                          d.tongNoVnd > 0 ? "billing-so-metric-val danger" : undefined
+                        }
+                      >
+                        {fmtVnd(d.tongNoVnd)}
+                        {d.soKyNo > 0 ? (
+                          <span className="billing-so-metric-sub">
+                            {d.soKyNo} kỳ
+                          </span>
+                        ) : null}
+                      </dd>
+                    </div>
+                    <div className="billing-so-metric">
+                      <dt>Phí tích luỹ tháng này</dt>
+                      <dd className="billing-so-metric-val">
+                        {fmtVnd(tl?.phiDuKienVnd ?? 0)}
+                      </dd>
+                    </div>
+                    <div className="billing-so-metric">
+                      <dt>
+                        {d.dichVu.loai === "shop_phi"
+                          ? "GMV tháng này"
+                          : "Doanh thu học phí"}
+                      </dt>
+                      <dd className="billing-so-metric-val">
+                        {fmtVnd(tl?.doanhThuVnd ?? 0)}
+                      </dd>
+                    </div>
+                    <div className="billing-so-metric">
+                      <dt>Chốt kỳ dự kiến</dt>
+                      <dd className="billing-so-metric-val">
+                        {tl?.ngayChotDuKien
+                          ? fmtYmd(tl.ngayChotDuKien)
+                          : "—"}
+                      </dd>
+                    </div>
+                  </dl>
+
+                  {tl &&
+                  d.dichVu.loai === "shop_phi" &&
+                  tl.duoiNguong &&
+                  tl.nguongXuatKyVnd > 0 ? (
+                    <div className="billing-so-progress">
+                      <div className="billing-so-progress-head">
+                        <span>Tiến độ tối thiểu xuất kỳ</span>
+                        <span>
+                          {fmtVnd(tl.phiDuKienVnd)} /{" "}
+                          {fmtVnd(tl.nguongXuatKyVnd)}
+                        </span>
+                      </div>
+                      <div
+                        className="billing-so-progress-bar"
+                        role="progressbar"
+                        aria-valuenow={progressPct}
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        aria-label="Tiến độ phí tối thiểu xuất kỳ"
+                      >
+                        <span
+                          className="billing-so-progress-fill"
+                          style={{ width: `${progressPct}%` }}
+                        />
+                      </div>
+                      <p className="billing-so-progress-note">
+                        Dưới {fmtVnd(tl.nguongXuatKyVnd)} — phí sẽ dồn sang
+                        tháng sau, chưa phát hoá đơn.
+                      </p>
+                    </div>
+                  ) : null}
+
+                  {tl &&
+                  d.dichVu.loai === "csdt_phi" &&
+                  tyLePct &&
+                  tl.phiDuKienVnd > 0 ? (
+                    <p className="billing-so-csdt-note">
+                      Ước tính {tyLePct} × {fmtVnd(tl.doanhThuVnd)} doanh thu
+                      đã ghi nhận trong kỳ mở.
                     </p>
                   ) : null}
+
                   {hq?.moTa ? (
-                    <p
-                      className={
-                        hq.loai === "khoa_nhan_don" ||
-                        hq.loai === "khoa_ghi_danh"
-                          ? "billing-so-hequa danger"
-                          : "billing-so-hequa"
-                      }
+                    <div
+                      className={`billing-so-alert billing-so-alert--${st.tone}`}
+                      role={st.tone !== "ok" ? "alert" : undefined}
                     >
-                      Hệ quả khi nợ: {hq.moTa}
-                      {hq.lyDo ? ` (${hq.lyDo})` : ""}
-                    </p>
+                      <strong>
+                        {st.tone === "ok"
+                          ? "Khi quá hạn thanh toán"
+                          : "Lưu ý"}
+                      </strong>
+                      <span>{hq.moTa}</span>
+                      {hq.lyDo ? (
+                        <span className="billing-so-alert-lydo">
+                          ({hq.lyDo})
+                        </span>
+                      ) : null}
+                    </div>
                   ) : null}
+
                   {d.quanLyHref ? (
-                    <p className="billing-muted">
-                      <Link href={d.quanLyHref}>Mở trang quản lý →</Link>
-                    </p>
+                    <div className="billing-so-foot">
+                      <Link
+                        href={d.quanLyHref}
+                        className="billing-so-manage-link"
+                      >
+                        Quản lý {ten} →
+                      </Link>
+                    </div>
                   ) : null}
-                </li>
+                </article>
               );
             })}
-          </ul>
+          </div>
         </section>
       ) : null}
 
@@ -965,8 +1122,8 @@ export function ThanhToanHubClient({ initial }: Props) {
             Khiếu nại đối soát
           </h2>
           <p className="billing-muted">
-            Đã chuyển khoản nhưng Sepay chưa ghi nhận? Gửi khiếu nại kèm ảnh
-            biên lai / sao kê (1–3 ảnh). Áp dụng cho phí shop và cơ sở.
+            Đã thanh toán nhưng hệ thống chưa ghi nhận? Gửi khiếu nại kèm ảnh
+            biên lai / sao kê (1–3 ảnh).
           </p>
           {knMsg ? (
             <p className="billing-flash" role="status">
@@ -1198,13 +1355,6 @@ export function ThanhToanHubClient({ initial }: Props) {
                 </p>
               ) : (
                 <>
-                  <p className="billing-muted">
-                    {uuTienHd
-                      ? `Đang trả ${LOAI_LABEL[uuTienHd.loai] ?? uuTienHd.loai} · ${uuTienHd.tenDichVu} · kỳ ${fmtYmd(uuTienHd.tuNgay)} – ${fmtYmd(uuTienHd.denNgay)}. `
-                      : ""}
-                    Chuyển đúng số tiền và mã CK. Một lần chuyển có thể trừ nhiều
-                    kỳ. Đã chuyển mà chưa ghi nhận? → Khiếu nại kèm ảnh.
-                  </p>
                   {copyFlash ? (
                     <p className="billing-flash" role="status">
                       {copyFlash}
@@ -1613,7 +1763,7 @@ export function ThanhToanHubClient({ initial }: Props) {
         onClose={() => setPaySuccessOpen(false)}
         onOpenCaiDat={() => {
           setPaySuccessOpen(false);
-          setCaiDatOpen(true);
+          openThongTinXuatHd();
         }}
         onXemSo={() => {
           setPaySuccessOpen(false);

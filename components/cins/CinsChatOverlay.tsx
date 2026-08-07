@@ -5037,7 +5037,7 @@ export function CinsChatOverlay({
                   className="cins-chat-icon-btn"
                   aria-label="Đóng"
                   title="Đóng"
-                  onClick={onClose}
+                  onClick={() => onClose()}
                 >
                   <X size={18} strokeWidth={1.8} aria-hidden />
                 </button>

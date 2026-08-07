@@ -342,3 +342,57 @@
 :root[data-theme="dark"] .shop-topbar-don-btn {
   color: #1c1208;
 }
+
+/* Cảnh báo phí nền tảng — dòng gọn ngay đầu menu bán hàng. */
+.shop-topbar-phi {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  font-size: 12px;
+  text-decoration: none;
+}
+
+.shop-topbar-phi.is-warn {
+  background: rgba(200, 150, 40, 0.12);
+  border-color: rgba(200, 150, 40, 0.35);
+  color: #7a5500;
+}
+
+.shop-topbar-phi.is-lock {
+  background: rgba(200, 60, 60, 0.1);
+  border-color: rgba(200, 60, 60, 0.35);
+  color: #8a2020;
+}
+
+.shop-topbar-phi:hover {
+  filter: brightness(0.98);
+}
+
+.shop-topbar-phi-text {
+  min-width: 0;
+  flex: 1;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.shop-topbar-phi-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+:root[data-theme="dark"] .shop-topbar-phi.is-warn {
+  color: #fcd34d;
+}
+
+:root[data-theme="dark"] .shop-topbar-phi.is-lock {
+  color: #fca5a5;
+}

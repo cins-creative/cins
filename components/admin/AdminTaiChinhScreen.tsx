@@ -23,6 +23,20 @@ type KnItem = {
   tenDichVu: string | null;
 };
 
+type TuKhaiItem = {
+  id: string;
+  loai: string;
+  tenDichVu: string | null;
+  maThamChieu: string;
+  conNoVnd: number;
+  trangThai: string;
+  hanTra: string | null;
+  tuKhaiDaTraLuc: string;
+  tuKhaiLan: number;
+  anHanHieuLuc: boolean;
+  anHanDenIso: string | null;
+};
+
 type CauHinh = {
   id: string;
   csdt: {
@@ -89,7 +103,13 @@ function fmtLuc(iso: string): string {
 
 type Props = { canEdit: boolean };
 
-type TabId = "csdt" | "shop" | "nhan-tien" | "khieu-nai" | "lich-su";
+type TabId =
+  | "csdt"
+  | "shop"
+  | "nhan-tien"
+  | "khieu-nai"
+  | "tu-khai"
+  | "lich-su";
 
 const TABS: { id: TabId; label: string; hint: string }[] = [
   {
@@ -113,6 +133,11 @@ const TABS: { id: TabId; label: string; hint: string }[] = [
     hint: "Đối soát thanh toán user gửi từ hub",
   },
   {
+    id: "tu-khai",
+    label: "Tự khai",
+    hint: "Shop/cơ sở tự khai đã trả — chờ đối soát SePay hoặc bác để khoá",
+  },
+  {
     id: "lich-su",
     label: "Lịch sử",
     hint: "Mọi lần lưu tạo dòng mới — không ghi đè",
@@ -131,6 +156,9 @@ export function AdminTaiChinhScreen({ canEdit }: Props) {
   const [knCanEdit, setKnCanEdit] = useState(false);
   const [knPhanHoi, setKnPhanHoi] = useState<Record<string, string>>({});
   const [knBusyId, setKnBusyId] = useState<string | null>(null);
+  const [tkItems, setTkItems] = useState<TuKhaiItem[]>([]);
+  const [tkCanEdit, setTkCanEdit] = useState(false);
+  const [tkBusyId, setTkBusyId] = useState<string | null>(null);
 
   const [tyLePercent, setTyLePercent] = useState("10");
   const [nguongVnd, setNguongVnd] = useState("2000000");
@@ -257,6 +285,78 @@ export function AdminTaiChinhScreen({ canEdit }: Props) {
   useEffect(() => {
     void loadKn();
   }, [loadKn]);
+
+  const loadTuKhai = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/tai-chinh/tu-khai", {
+        cache: "no-store",
+      });
+      const json = (await res.json().catch(() => null)) as {
+        items?: TuKhaiItem[];
+        canEdit?: boolean;
+      } | null;
+      if (res.ok) {
+        setTkItems(json?.items ?? []);
+        setTkCanEdit(Boolean(json?.canEdit));
+      }
+    } catch {
+      /* ignore — khối phụ */
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadTuKhai();
+  }, [loadTuKhai]);
+
+  async function xuLyTuKhai(hoaDonId: string, action: "gan" | "bac") {
+    if (!tkCanEdit) {
+      setErr("Chỉ Admin tối cao được xử lý tự khai.");
+      return;
+    }
+    if (action === "bac") {
+      const ok = window.confirm(
+        "Bác tự khai và khoá ngay? Cửa sổ ân hạn sẽ bị xoá; shop/cơ sở bị khoá nếu còn nợ quá hạn.",
+      );
+      if (!ok) return;
+    }
+    setTkBusyId(hoaDonId);
+    setErr(null);
+    setMsg(null);
+    try {
+      const res = await fetch("/api/admin/tai-chinh/tu-khai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ hoaDonId, action }),
+      });
+      const json = (await res.json().catch(() => null)) as {
+        error?: string;
+        synced?: boolean;
+        message?: string;
+        trangThaiMoi?: string | null;
+      } | null;
+      if (!res.ok) {
+        setErr(json?.error ?? "Không xử lý được tự khai.");
+        return;
+      }
+      if (action === "bac") {
+        setMsg(
+          json?.trangThaiMoi
+            ? `Đã bác tự khai — gate: ${json.trangThaiMoi}.`
+            : "Đã bác tự khai — cửa sổ ân hạn đã xoá.",
+        );
+      } else if (json?.synced) {
+        setMsg("Đã gán giao dịch SePay — nợ đã cập nhật.");
+      } else {
+        setErr(
+          json?.message ??
+            "Chưa tìm thấy giao dịch khớp mã CK trong log SePay.",
+        );
+      }
+      await loadTuKhai();
+    } finally {
+      setTkBusyId(null);
+    }
+  }
 
   async function xuLyKn(
     id: string,
@@ -481,6 +581,7 @@ export function AdminTaiChinhScreen({ canEdit }: Props) {
   const knOpenCount = knItems.filter(
     (k) => k.trangThai === "moi" || k.trangThai === "dang_xu_ly",
   ).length;
+  const tkOpenCount = tkItems.filter((t) => t.anHanHieuLuc).length;
 
   return (
     <div className="admin-tc">
@@ -556,13 +657,30 @@ export function AdminTaiChinhScreen({ canEdit }: Props) {
               <span className="value">{knOpenCount}</span>
               <span className="sub">Bấm để xử lý</span>
             </button>
+            <button
+              type="button"
+              className={`admin-tc-snap-cell is-btn ${tkOpenCount > 0 ? "is-gap" : ""}`}
+              onClick={() => setTab("tu-khai")}
+            >
+              <span className="label">Tự khai chờ đối soát</span>
+              <span className="value">{tkOpenCount}</span>
+              <span className="sub">
+                {tkItems.length > tkOpenCount
+                  ? `${tkItems.length} tổng · ${tkOpenCount} còn ân hạn`
+                  : "Bấm để xử lý"}
+              </span>
+            </button>
           </div>
 
           <div className="admin-tc-tabs" role="tablist" aria-label="Nhóm cấu hình tài chính">
             {TABS.map((t) => {
               const selected = tab === t.id;
               const badge =
-                t.id === "khieu-nai" && knOpenCount > 0 ? knOpenCount : null;
+                t.id === "khieu-nai" && knOpenCount > 0
+                  ? knOpenCount
+                  : t.id === "tu-khai" && tkOpenCount > 0
+                    ? tkOpenCount
+                    : null;
               return (
                 <button
                   key={t.id}
@@ -1320,6 +1438,91 @@ export function AdminTaiChinhScreen({ canEdit }: Props) {
                                   onClick={() => void xuLyKn(k.id, "tu_choi")}
                                 >
                                   Từ chối
+                                </button>
+                              </div>
+                            </div>
+                          ) : null}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
+            ) : null}
+
+            {tab === "tu-khai" ? (
+              <section className="admin-tc-panel is-wide">
+                <div className="admin-tc-panel-head">
+                  <h2>Tự khai chờ đối soát</h2>
+                  <p>
+                    Shop/cơ sở đã bấm «Tôi đã chuyển rồi» — nợ vẫn còn, cửa sổ
+                    ân hạn tạm mở. Gán giao dịch SePay theo mã CK nếu tiền đã
+                    về, hoặc bác để xoá ân hạn và khoá lại.
+                  </p>
+                </div>
+                {tkItems.length === 0 ? (
+                  <p className="admin-tc-history-empty">
+                    Không có hoá đơn đang tự khai.
+                  </p>
+                ) : (
+                  <ul className="admin-tc-history-list">
+                    {tkItems.map((t) => (
+                      <li key={t.id} className="admin-tc-history-item">
+                        <time dateTime={t.tuKhaiDaTraLuc}>
+                          {fmtLuc(t.tuKhaiDaTraLuc)}
+                        </time>
+                        <span className="rate">
+                          {t.anHanHieuLuc ? "ân hạn" : "hết ân hạn"}
+                        </span>
+                        <div className="meta">
+                          <strong>
+                            {t.tenDichVu || t.loai}
+                            {t.conNoVnd > 0
+                              ? ` · nợ ${fmtVnd(t.conNoVnd)}₫`
+                              : ""}
+                          </strong>
+                          <span className="note mono">
+                            Mã CK {t.maThamChieu || "—"}
+                          </span>
+                          <span className="note">
+                            TT {t.trangThai}
+                            {t.hanTra ? ` · hạn trả ${t.hanTra}` : ""}
+                            {` · lần tự khai ${t.tuKhaiLan}`}
+                          </span>
+                          {t.anHanDenIso ? (
+                            <span className="note">
+                              Ân hạn đến {fmtLuc(t.anHanDenIso)}
+                            </span>
+                          ) : (
+                            <span className="note">
+                              Cửa sổ ân hạn đã hết — gate sẽ khoá nếu còn nợ
+                              quá hạn
+                            </span>
+                          )}
+                          {tkCanEdit ? (
+                            <div className="admin-tc-kn-actions">
+                              <div className="admin-tc-kn-btns">
+                                <button
+                                  type="button"
+                                  className="admin-tc-btn"
+                                  disabled={tkBusyId === t.id}
+                                  onClick={() =>
+                                    void xuLyTuKhai(t.id, "gan")
+                                  }
+                                >
+                                  {tkBusyId === t.id
+                                    ? "Đang xử lý…"
+                                    : "Gán giao dịch"}
+                                </button>
+                                <button
+                                  type="button"
+                                  className="admin-tc-btn is-ghost"
+                                  disabled={tkBusyId === t.id}
+                                  onClick={() =>
+                                    void xuLyTuKhai(t.id, "bac")
+                                  }
+                                >
+                                  Bác — khoá ngay
                                 </button>
                               </div>
                             </div>

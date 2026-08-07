@@ -68,7 +68,7 @@
   max-width: 46ch;
   font-size: clamp(14.5px, 1.5vw, 16px);
   line-height: 1.65;
-  color: var(--ink-muted);
+  color: var(--ink-body);
 }
 
 .cps-lede-cta {
@@ -130,7 +130,7 @@
   font-weight: 500;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--ink-muted);
+  color: var(--ink-title);
 }
 
 /* ── Section ── */
@@ -159,10 +159,10 @@
 
 .cps-section-note {
   margin: 0;
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 500;
   letter-spacing: 0.04em;
-  color: var(--ink-muted);
+  color: var(--ink-body);
 }
 
 /* ── Definition list (thay 3-card grid) ── */
@@ -204,9 +204,9 @@
 
 .cps-def-desc {
   margin: 0.5rem 0 0 1.85rem;
-  font-size: 14px;
+  font-size: 14.5px;
   line-height: 1.62;
-  color: var(--ink-muted);
+  color: var(--ink-body);
 }
 
 .cps-def--wide .cps-def-desc {
@@ -237,8 +237,8 @@
 
 .cps-terms th {
   width: 30%;
-  font-weight: 500;
-  color: var(--ink-muted);
+  font-weight: 600;
+  color: var(--ink-title);
 }
 
 .cps-terms-val {
@@ -248,8 +248,8 @@
 }
 
 .cps-terms-note {
-  color: var(--ink-muted);
-  font-size: 13px;
+  color: var(--ink-body);
+  font-size: 14px;
   line-height: 1.5;
 }
 
@@ -280,16 +280,16 @@
 
 .cps-fineprint {
   margin: clamp(18px, 2.5vw, 24px) 0 0;
-  font-size: 12.5px;
+  font-size: 13px;
   line-height: 1.6;
-  color: var(--ink-muted);
+  color: var(--ink-body);
 }
 
 /* ── Change log (thay timeline chấm tròn) ── */
 .cps-empty {
   margin: 0;
   font-size: 14px;
-  color: var(--ink-muted);
+  color: var(--ink-body);
   font-style: italic;
 }
 
@@ -340,7 +340,7 @@
 
 .cps-log-eff {
   font-size: 11.5px;
-  color: var(--ink-muted);
+  color: var(--ink-body);
 }
 
 .cps-log-title {
@@ -371,7 +371,7 @@
   font-size: 12px;
   font-weight: 500;
   letter-spacing: 0.04em;
-  color: var(--ink-muted);
+  color: var(--ink-body);
 }
 
 .cps-foot a {

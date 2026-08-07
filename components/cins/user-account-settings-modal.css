@@ -190,6 +190,193 @@
   color: var(--ink-title, rgba(0, 0, 0, 0.82));
 }
 
+/* ── Khối chính sách phí sàn (Settings → Bán hàng) ── */
+.uas-phi-panel {
+  margin: 16px 0;
+  padding: 14px 16px 12px;
+  border: 1px solid color-mix(in srgb, var(--cins-blue, #1f74c9) 22%, var(--border, #e4e6eb));
+  border-radius: var(--radius-md, 14px);
+  background: color-mix(in srgb, var(--cins-blue-soft, #e7f0fb) 38%, var(--bg-surface, #fff));
+}
+
+.uas-phi-panel-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  margin-bottom: 12px;
+}
+
+.uas-phi-panel-title {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 650;
+  color: var(--ink-display, rgba(0, 0, 0, 0.85));
+}
+
+.uas-phi-panel-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--cins-blue-dark, #1656a0);
+  background: color-mix(in srgb, var(--cins-blue-soft, #e7f0fb) 70%, #fff);
+  border: 1px solid color-mix(in srgb, var(--cins-blue, #1f74c9) 18%, transparent);
+}
+
+.uas-phi-panel-hero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 0.2rem;
+  margin-bottom: 8px;
+}
+
+.uas-phi-panel-rate {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 0.1rem;
+  line-height: 1;
+}
+
+.uas-phi-panel-rate-num {
+  font-size: 2.4rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: var(--ink-display, rgba(0, 0, 0, 0.85));
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+.uas-phi-panel-rate-pct {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--cins-blue, #1f74c9);
+}
+
+.uas-phi-panel-rate-cap {
+  flex-basis: 100%;
+  margin: 4px 0 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-body, rgba(0, 0, 0, 0.55));
+}
+
+.uas-phi-panel-lede {
+  margin: 0 0 12px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--ink-body, rgba(0, 0, 0, 0.55));
+}
+
+.uas-phi-panel-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 14px;
+  margin: 0;
+  padding: 12px 0 0;
+  border-top: 1px solid color-mix(in srgb, var(--border, #e4e6eb) 80%, transparent);
+}
+
+.uas-phi-stat {
+  margin: 0;
+  min-width: 0;
+}
+
+.uas-phi-stat-k {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--ink-title, rgba(0, 0, 0, 0.6));
+}
+
+.uas-phi-stat-v {
+  margin: 2px 0 0;
+  font-size: 13.5px;
+  font-weight: 650;
+  color: var(--ink-display, rgba(0, 0, 0, 0.85));
+}
+
+.uas-phi-stat-note {
+  margin: 1px 0 0;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--ink-body, rgba(0, 0, 0, 0.55));
+}
+
+.uas-phi-notices {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid color-mix(in srgb, var(--border, #e4e6eb) 80%, transparent);
+}
+
+.uas-phi-notices-label {
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--ink-title, rgba(0, 0, 0, 0.6));
+}
+
+.uas-phi-notice-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.uas-phi-notice {
+  padding: 8px 10px;
+  border-radius: var(--radius-sm, 10px);
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border, #e4e6eb);
+}
+
+.uas-phi-notice-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--ink-display, rgba(0, 0, 0, 0.85));
+}
+
+.uas-phi-notice-body {
+  margin: 3px 0 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  color: var(--ink-body, rgba(0, 0, 0, 0.55));
+}
+
+.uas-phi-panel-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-top: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cins-blue, #1f74c9);
+  text-decoration: none;
+}
+
+.uas-phi-panel-link:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 480px) {
+  .uas-phi-panel-stats {
+    grid-template-columns: 1fr;
+  }
+}
+
 .uas-layout-stack {
   display: flex;
   flex-direction: column;

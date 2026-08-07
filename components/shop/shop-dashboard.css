@@ -61,6 +61,57 @@
   min-width: 0;
 }
 
+/* Banner gate phí nền tảng shop (/ban-hang) */
+.shop-phi-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  margin: 0 12px 0;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.shop-phi-banner--warn {
+  background: rgba(200, 150, 40, 0.12);
+  border-color: rgba(200, 150, 40, 0.35);
+  color: #7a5500;
+}
+
+.shop-phi-banner--danger {
+  background: rgba(200, 60, 60, 0.1);
+  border-color: rgba(200, 60, 60, 0.35);
+  color: #8a2020;
+}
+
+.shop-phi-banner-text {
+  flex: 1;
+  min-width: 200px;
+}
+
+.shop-phi-banner-link {
+  font-weight: 650;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  color: inherit;
+}
+
+.shop-phi-banner-link:hover {
+  opacity: 0.85;
+}
+
+:root[data-theme="dark"] .shop-phi-banner--warn {
+  color: #fcd34d;
+}
+
+:root[data-theme="dark"] .shop-phi-banner--danger {
+  color: #fca5a5;
+}
+
 /* Kho / đơn: khóa khung, scroll trong grid. */
 .shop-dash:has(.shop-dash-body > .shop-dash-card),
 .shop-dash:has(.shop-dash-body > .shop-grid-wrap) {

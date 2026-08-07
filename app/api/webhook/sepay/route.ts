@@ -86,13 +86,16 @@ export async function POST(request: Request) {
         sepayId: result.sepayId ?? null,
       });
     }
-    return NextResponse.json({
-      success: true,
-      duplicate: result.duplicate ?? false,
-      matched: result.matched,
-      kyId: result.kyId,
-      daTraKy: result.daTraKy ?? false,
-    });
+    if ("matched" in result) {
+      return NextResponse.json({
+        success: true,
+        duplicate: result.duplicate ?? false,
+        matched: result.matched,
+        kyId: result.kyId,
+        daTraKy: result.daTraKy ?? false,
+      });
+    }
+    return NextResponse.json({ success: true });
   } catch (e) {
     console.error("[webhook/sepay]", e);
     return NextResponse.json(

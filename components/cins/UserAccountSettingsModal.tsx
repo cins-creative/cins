@@ -895,6 +895,111 @@ function TermsBody({ body }: { body: string }) {
   );
 }
 
+type PhiSanDangApDung = {
+  tyLePercent?: number;
+  nguongVnd?: number;
+  toiThieuXuatKyVnd?: number;
+  soNgayHanTra?: number;
+  camKetCongBoTruocNgay?: number;
+};
+
+type PhiSanThongBao = {
+  id: string;
+  tieuDe: string;
+  noiDung: string;
+  tyLeDuKien: number | null;
+  hieuLucDuKien: string | null;
+  congBoLuc: string;
+};
+
+type PhiSanPanelProps = {
+  dangApDung: PhiSanDangApDung;
+  thongBao?: PhiSanThongBao[];
+  chinhSachHref?: string;
+};
+
+function fmtVndPanel(n: number): string {
+  return new Intl.NumberFormat("vi-VN").format(n) + "₫";
+}
+
+function PhiSanPanel({ dangApDung, thongBao, chinhSachHref }: PhiSanPanelProps) {
+  if (!dangApDung) return null;
+
+  const stats = [
+    { k: "Kỳ tính", v: "Theo tháng lịch", note: "Chốt ngày 1 tháng sau" },
+    {
+      k: "Tối thiểu xuất kỳ",
+      v: fmtVndPanel(dangApDung.toiThieuXuatKyVnd ?? 0),
+      note: "Dưới mức → dồn tháng sau",
+    },
+    {
+      k: "Hạn trả",
+      v: `${dangApDung.soNgayHanTra ?? 7} ngày`,
+      note: "Kể từ thông báo hoá đơn",
+    },
+    {
+      k: "Đổi tỷ lệ",
+      v: `≥ ${dangApDung.camKetCongBoTruocNgay ?? 30} ngày`,
+      note: "Công bố trước khi áp dụng",
+    },
+  ];
+
+  return (
+    <aside className="uas-phi-panel" aria-labelledby="uas-phi-panel-title">
+      <div className="uas-phi-panel-head">
+        <h4 id="uas-phi-panel-title" className="uas-phi-panel-title">
+          Chính sách phí sàn
+        </h4>
+        <span className="uas-phi-panel-badge">Đang áp dụng</span>
+      </div>
+
+      <div className="uas-phi-panel-hero">
+        <p className="uas-phi-panel-rate" aria-label="Tỷ lệ phí hiện hành">
+          <span className="uas-phi-panel-rate-num">{dangApDung.tyLePercent}</span>
+          <span className="uas-phi-panel-rate-pct">%</span>
+        </p>
+        <p className="uas-phi-panel-rate-cap">doanh thu hàng tháng · trả sau</p>
+      </div>
+
+      <p className="uas-phi-panel-lede">
+        CINs không giữ tiền hàng — bạn trả phí riêng qua mục Thanh toán.
+      </p>
+
+      <dl className="uas-phi-panel-stats">
+        {stats.map((s) => (
+          <div key={s.k} className="uas-phi-stat">
+            <dt className="uas-phi-stat-k">{s.k}</dt>
+            <dd className="uas-phi-stat-v">{s.v}</dd>
+            <dd className="uas-phi-stat-note">{s.note}</dd>
+          </div>
+        ))}
+      </dl>
+
+      {(thongBao?.length ?? 0) > 0 ? (
+        <div className="uas-phi-notices">
+          <p className="uas-phi-notices-label">Thông báo &amp; lộ trình</p>
+          <ul className="uas-phi-notice-list">
+            {thongBao!.map((t) => (
+              <li key={t.id} className="uas-phi-notice">
+                <p className="uas-phi-notice-title">{t.tieuDe}</p>
+                <p className="uas-phi-notice-body">{t.noiDung}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      <Link
+        href={chinhSachHref || "/chinh-sach/phi-san"}
+        className="uas-phi-panel-link"
+      >
+        Xem trang chính sách phí sàn
+        <ChevronRight size={14} aria-hidden />
+      </Link>
+    </aside>
+  );
+}
+
 function BanHangSettingsSection({ titleId }: { titleId: string }) {
   const router = useRouter();
 
@@ -1114,92 +1219,11 @@ function BanHangSettingsSection({ titleId }: { titleId: string }) {
           </details>
 
           {phiSan?.dangApDung ? (
-            <details style={{ marginBottom: 16 }}>
-              <summary style={{ cursor: "pointer", fontWeight: 600 }}>
-                Chính sách phí sàn
-              </summary>
-              <p
-                style={{
-                  fontSize: 13,
-                  color: "var(--ink-muted)",
-                  marginTop: 8,
-                  lineHeight: 1.5,
-                }}
-              >
-                Phí sàn hiện tại:{" "}
-                <strong style={{ color: "var(--cins-blue)" }}>
-                  {phiSan.dangApDung.tyLePercent}%
-                </strong>{" "}
-                doanh thu hàng tháng (trả sau). CINs không giữ tiền hàng — bạn
-                trả phí riêng qua mục Thanh toán.
-              </p>
-              <ul
-                style={{
-                  margin: "8px 0 0",
-                  paddingLeft: 18,
-                  fontSize: 13,
-                  color: "var(--ink-muted)",
-                  lineHeight: 1.45,
-                }}
-              >
-                <li>
-                  Tối thiểu xuất kỳ:{" "}
-                  {new Intl.NumberFormat("vi-VN").format(
-                    phiSan.dangApDung.toiThieuXuatKyVnd ?? 0,
-                  )}
-                  ₫
-                </li>
-                <li>
-                  Hạn trả: {phiSan.dangApDung.soNgayHanTra ?? 7} ngày sau thông
-                  báo hoá đơn
-                </li>
-                <li>
-                  Công bố trước tối thiểu{" "}
-                  {phiSan.dangApDung.camKetCongBoTruocNgay ?? 30} ngày nếu đổi
-                  tỷ lệ đã quyết định áp dụng
-                </li>
-              </ul>
-              {(phiSan.thongBao?.length ?? 0) > 0 ? (
-                <ul
-                  style={{
-                    listStyle: "none",
-                    margin: "10px 0 0",
-                    padding: 0,
-                  }}
-                >
-                  {phiSan.thongBao!.map((t) => (
-                    <li
-                      key={t.id}
-                      style={{
-                        marginTop: 8,
-                        paddingTop: 8,
-                        borderTop: "1px solid var(--border)",
-                        fontSize: 13,
-                      }}
-                    >
-                      <strong>{t.tieuDe}</strong>
-                      <p
-                        style={{
-                          margin: "4px 0 0",
-                          color: "var(--ink-muted)",
-                          whiteSpace: "pre-wrap",
-                        }}
-                      >
-                        {t.noiDung}
-                      </p>
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
-              <p style={{ marginTop: 10, fontSize: 13 }}>
-                <Link
-                  href={phiSan.chinhSachHref || "/chinh-sach/phi-san"}
-                  style={{ color: "var(--cins-blue)" }}
-                >
-                  Xem trang chính sách phí sàn
-                </Link>
-              </p>
-            </details>
+            <PhiSanPanel
+              dangApDung={phiSan.dangApDung}
+              thongBao={phiSan.thongBao}
+              chinhSachHref={phiSan.chinhSachHref}
+            />
           ) : null}
 
           {enabled ? (

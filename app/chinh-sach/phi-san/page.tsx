@@ -50,7 +50,7 @@ export default async function ChinhSachPhiSanPage() {
 
   const chiTiet = [
     { k: "Tỷ lệ", v: `${d.tyLePercent}% GMV`, note: "Trên doanh thu đơn đủ điều kiện ghi phí" },
-    { k: "Kỳ tính", v: "Theo tháng lịch", note: "Chốt cuối kỳ, trả sau" },
+    { k: "Kỳ tính", v: "Theo tháng lịch", note: "Chốt ngày 1 tháng sau, trả sau" },
     {
       k: "Tối thiểu xuất kỳ",
       v: fmtVnd(d.toiThieuXuatKyVnd),

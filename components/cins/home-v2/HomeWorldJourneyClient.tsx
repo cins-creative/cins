@@ -113,7 +113,7 @@ export function HomeWorldJourneyClient({
         if (typeof window !== "undefined" && "requestIdleCallback" in window) {
           window.requestIdleCallback(run, { timeout: 1200 });
         } else {
-          window.setTimeout(run, 50);
+          globalThis.setTimeout(run, 50);
         }
       }
     },

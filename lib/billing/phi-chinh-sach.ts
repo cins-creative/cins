@@ -275,6 +275,18 @@ export async function updatePhiThongBao(input: {
   return { ok: true, item };
 }
 
+export async function getChinhSachPhiPayload(doiTuong: "shop"): Promise<{
+  dangApDung: PhiDangApDungShop;
+  thongBao: PhiThongBaoPublic[];
+}>;
+export async function getChinhSachPhiPayload(doiTuong: "csdt"): Promise<{
+  dangApDung: PhiDangApDungCsdt;
+  thongBao: PhiThongBaoPublic[];
+}>;
+export async function getChinhSachPhiPayload(doiTuong: PhiDoiTuong): Promise<{
+  dangApDung: PhiDangApDungShop | PhiDangApDungCsdt;
+  thongBao: PhiThongBaoPublic[];
+}>;
 export async function getChinhSachPhiPayload(doiTuong: PhiDoiTuong) {
   if (doiTuong === "shop") {
     const [dangApDung, thongBao] = await Promise.all([

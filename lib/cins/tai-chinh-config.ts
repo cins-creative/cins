@@ -266,7 +266,11 @@ function mapRow(row: DbRow): CinsTaiChinh {
         row.shop_nguong_kich_hoat_vnd == null
           ? SHOP_PHI_NGUONG_KICH_HOAT_DEFAULT
           : Math.max(0, Math.floor(Number(row.shop_nguong_kich_hoat_vnd))),
-      toiThieuXuatKyVnd: clampToiThieu(row.shop_toi_thieu_xuat_ky_vnd),
+      toiThieuXuatKyVnd: clampToiThieu(
+        row.shop_toi_thieu_xuat_ky_vnd == null
+          ? null
+          : Number(row.shop_toi_thieu_xuat_ky_vnd),
+      ),
       soNgayHanTra: shopHan,
       soNgayAnHanTuKhai: anHan,
       dongDon: mapDongDon(row),

@@ -105,7 +105,7 @@ export async function backfillCinsTkThanhToan(opts?: {
         .eq("id_nguoi_dung", resolved.ownerId)
         .maybeSingle<{ id: string }>();
       const tk = await getOrCreateTk(resolved.ownerId);
-      if (!before?.id) report.tkCreated += 1;
+      if (!before.data?.id) report.tkCreated += 1;
 
       await ensureDichVu({
         idTk: tk.id,
@@ -146,7 +146,7 @@ export async function backfillCinsTkThanhToan(opts?: {
         .eq("id_nguoi_dung", sellerId)
         .maybeSingle<{ id: string }>();
       const tk = await getOrCreateTk(sellerId);
-      if (!before?.id) report.tkCreated += 1;
+      if (!before.data?.id) report.tkCreated += 1;
       await ensureDichVu({
         idTk: tk.id,
         loai: "shop_phi",
