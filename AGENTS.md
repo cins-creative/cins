@@ -35,3 +35,12 @@
 
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
 <!-- END:nextjs-agent-rules -->
+
+## Cursor Cloud specific instructions
+
+- Node 22 + npm; dependencies install via `npm ci` (no lifecycle hooks). Scripts live in `package.json` (`dev`, `build`, `lint`, `host`).
+- Dev server runs on **port 3001**, not 3000: `npm run dev` serves at localhost port 3001 (Turbopack, ready in <1s). First request to a route triggers on-demand compile, so the initial page load can take several seconds — this is normal, not a hang.
+- Runtime env vars (Supabase URL/anon key, `NEXT_PUBLIC_SITE_URL`, `DATABASE_URL`, Cloudflare Images, service-role key) are injected automatically via Cloud Agent Secrets — no `.env.local` needed for the dev server. If a feature errors with a missing-env message, the corresponding secret just isn't provisioned in this run (add it in the Secrets panel).
+- These secrets point at the **live production Supabase project + Cloudflare account**. There is no local/seeded DB — reads return real data. Be careful with any write/delete actions and with `npm run migrate:*` / `scripts/*` (they mutate production).
+- Quality gate is **`npm run lint`** only (there is no `test` script). The repo has many pre-existing lint errors and CI runs lint with `continue-on-error`, so a non-zero lint exit is expected and not caused by your setup — focus on not adding new errors in files you touch.
+- `npm run build` intentionally uses `--webpack` (Turbopack production build breaks on Cloudflare Workers with `ChunkLoadError`). `preview`/`deploy` go through OpenNext + Wrangler and need Cloudflare deploy secrets; not required for local dev.
