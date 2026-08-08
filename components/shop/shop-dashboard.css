@@ -6511,6 +6511,18 @@ body:has(.shop-dash-gate) .j-chat-dock {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+/* Card shop quầy SK — đồng bộ ticker voucher với hub /cua-hang */
+.shop-quay-shop-grid .ch-list-card.has-voucher-strip,
+.shop-quay-manage-grid .ch-list-card.has-voucher-strip {
+  content-visibility: visible;
+  contain-intrinsic-size: auto 320px;
+}
+
+.shop-quay-shop-grid .ch-list-card-voucher-strip,
+.shop-quay-manage-grid .ch-list-card-voucher-strip {
+  content-visibility: visible;
+}
+
 @media (max-width: 560px) {
   .shop-quay-shop-grid {
     grid-template-columns: 1fr;
@@ -7327,43 +7339,27 @@ body:has(.shop-dash-gate) .j-chat-dock {
 }
 
 .shop-quay-manage-item {
+  display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 10px;
-}
-
-.shop-quay-manage-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-}
-
-@media (max-width: 900px) {
-  .shop-quay-manage-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 560px) {
-  .shop-quay-manage-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-.shop-quay-manage-grid .shop-quay-manage-item {
+  gap: 8px;
   min-width: 0;
   height: 100%;
-  padding: 10px;
+}
+
+.shop-quay-manage-subtitle {
+  margin: 14px 0 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink-display, rgba(0, 0, 0, 0.85));
+}
+
+.ch-list-grid.shop-quay-manage-grid {
+  margin: 0;
 }
 
 .shop-quay-manage-grid .shop-quay-manage-item.is-reason {
   grid-column: 1 / -1;
-}
-
-.shop-quay-manage-grid .shop-quay-manage-row {
-  flex-direction: column;
-  align-items: stretch;
-  gap: 10px;
 }
 
 .shop-quay-manage-grid .shop-quay-manage-shop {
@@ -7373,11 +7369,60 @@ body:has(.shop-dash-gate) .j-chat-dock {
 
 .shop-quay-manage-grid .shop-quay-manage-shop .ch-list-card {
   width: 100%;
+  height: 100%;
 }
 
-.shop-quay-manage-grid .shop-dash-actions {
-  width: 100%;
+.shop-quay-manage-actions {
+  display: flex;
+  align-items: center;
   justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 0 2px;
+}
+
+.shop-quay-manage-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.shop-quay-manage-grid .shop-quay-evidence {
+  margin-top: 2px;
+  padding-top: 8px;
+}
+
+.shop-quay-manage-grid .shop-quay-evidence-title {
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.shop-quay-manage-grid .shop-quay-evidence-grid {
+  grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+  gap: 6px;
+}
+
+.shop-quay-manage-grid .shop-quay-evidence-note,
+.shop-quay-manage-grid .shop-quay-evidence .shop-dash-hint {
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+/* Quản lý SK nhúng — giữ 3 cột tới ~720px */
+.cso-sk-manage-section .shop-quay-manage-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 720px) {
+  .cso-sk-manage-section .shop-quay-manage-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .cso-sk-manage-section .shop-quay-manage-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .shop-quay-manage-row {

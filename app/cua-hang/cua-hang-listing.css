@@ -1,5 +1,16 @@
 /* Hub /cua-hang — danh sách shop công khai (bám visual cong-dong listing). */
 
+:root {
+  /* Token voucher — card shop + FAB săn voucher (dùng cả ngoài .ch-list-page, vd. quầy SK) */
+  --ch-voucher-red-light: #ef4444;
+  --ch-voucher-red: #dc2626;
+  --ch-voucher-red-deep: #b91c1c;
+  --ch-voucher-red-soft: #fef2f2;
+  --ch-voucher-red-soft-2: #fee2e2;
+  --ch-voucher-red-ink: #991b1b;
+  --ch-voucher-red-glow: rgba(220, 38, 38, 0.34);
+}
+
 .cins-main:has(> .ch-list-page),
 .cins-main:has(> .ch-list-page--loading) {
   background-color: var(--bg-page, #f4f5f8);
@@ -10,14 +21,6 @@
 .ch-list-page {
   --ch-list-content-max: 1080px;
   --ch-list-page-pad: 20px;
-  /* Token voucher hub — đồng bộ FAB săn voucher + strip card shop */
-  --ch-voucher-red-light: #ef4444;
-  --ch-voucher-red: #dc2626;
-  --ch-voucher-red-deep: #b91c1c;
-  --ch-voucher-red-soft: #fef2f2;
-  --ch-voucher-red-soft-2: #fee2e2;
-  --ch-voucher-red-ink: #991b1b;
-  --ch-voucher-red-glow: rgba(220, 38, 38, 0.34);
   position: relative;
   width: 100%;
   max-width: none;
@@ -1257,21 +1260,8 @@
 }
 
 .ch-list-card.has-voucher-strip {
-  border-color: color-mix(
-    in srgb,
-    var(--ch-voucher-red) 32%,
-    var(--border, #e4e6eb)
-  );
   content-visibility: visible;
   contain-intrinsic-size: auto 320px;
-}
-
-.ch-list-card.has-voucher-strip:hover {
-  border-color: color-mix(
-    in srgb,
-    var(--ch-voucher-red) 48%,
-    var(--border, #e4e6eb)
-  );
 }
 
 .ch-list-card-voucher-strip {
@@ -1286,8 +1276,8 @@
     var(--ch-voucher-red-light) 0%,
     var(--ch-voucher-red) 14%,
     var(--ch-voucher-red-deep) 18%,
-    var(--ch-voucher-red-soft) 18%,
-    var(--ch-voucher-red-soft-2) 100%
+    color-mix(in srgb, var(--ch-voucher-red) 20%, #fff) 18%,
+    color-mix(in srgb, var(--ch-voucher-red) 20%, #fff) 100%
   );
   overflow: hidden;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
@@ -1343,15 +1333,23 @@
   overflow: hidden;
   display: flex;
   align-items: center;
+  padding: 8px 12px 8px 4px;
 }
 
 .ch-list-card-voucher-strip-track {
   display: flex;
   align-items: center;
   width: max-content;
-  min-width: 100%;
-  padding: 8px 12px 8px 4px;
-  animation: ch-list-voucher-ticker 28s linear infinite;
+  flex-shrink: 0;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  animation: none;
+  will-change: transform;
+}
+
+.ch-list-card-voucher-strip-track.is-ready {
+  animation: ch-list-voucher-ticker var(--ch-voucher-ticker-duration, 16s) linear
+    infinite;
 }
 
 .ch-list-card-voucher-strip-run {
@@ -1382,10 +1380,10 @@
 
 @keyframes ch-list-voucher-ticker {
   0% {
-    transform: translateX(0);
+    transform: translate3d(0, 0, 0);
   }
   100% {
-    transform: translateX(-50%);
+    transform: translate3d(calc(-1 * var(--ch-voucher-ticker-shift, 0px)), 0, 0);
   }
 }
 
@@ -1892,12 +1890,7 @@
   color: color-mix(in srgb, var(--cins-orange, #fdad4c) 82%, #fff);
 }
 
-:root[data-theme="dark"] .ch-list-hang-combo-tag {
-  background: #ef4444;
-  color: #fff;
-}
-
-:root[data-theme="dark"] .ch-list-page {
+:root[data-theme="dark"] {
   --ch-voucher-red-light: #f87171;
   --ch-voucher-red: #ef4444;
   --ch-voucher-red-deep: #dc2626;
@@ -1907,12 +1900,9 @@
   --ch-voucher-red-glow: rgba(239, 68, 68, 0.24);
 }
 
-:root[data-theme="dark"] .ch-list-card.has-voucher-strip {
-  border-color: color-mix(in srgb, var(--ch-voucher-red) 42%, var(--border, #333));
-}
-
-:root[data-theme="dark"] .ch-list-card.has-voucher-strip:hover {
-  border-color: color-mix(in srgb, var(--ch-voucher-red-light) 55%, var(--border, #333));
+:root[data-theme="dark"] .ch-list-hang-combo-tag {
+  background: #ef4444;
+  color: #fff;
 }
 
 :root[data-theme="dark"] .ch-list-card-voucher-strip {
@@ -1921,14 +1911,25 @@
     var(--ch-voucher-red-deep) 0%,
     var(--ch-voucher-red) 14%,
     color-mix(in srgb, var(--ch-voucher-red) 88%, #450a0a) 18%,
-    var(--ch-voucher-red-soft) 18%,
-    var(--ch-voucher-red-soft-2) 100%
+    color-mix(
+      in srgb,
+      var(--ch-voucher-red) 20%,
+      var(--bg-surface, #171b24)
+    )
+      18%,
+    color-mix(
+      in srgb,
+      var(--ch-voucher-red) 20%,
+      var(--bg-surface, #171b24)
+    )
+      100%
   );
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
-:root[data-theme="dark"] .ch-list-card-voucher-strip-item {
-  color: var(--ch-voucher-red-ink);
+:root[data-theme="dark"] .ch-list-card-voucher-strip-item,
+:root[data-theme="dark"] .ch-list-card-voucher-strip-sep {
+  color: #fff;
 }
 
 :root[data-theme="dark"] .ch-list-hang-card--skeleton,

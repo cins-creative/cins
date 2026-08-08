@@ -887,37 +887,35 @@ export function ShopQuaySuKienPanel({
           ) : null}
 
           {approved.length ? (
-            <ul className="shop-dash-list shop-quay-manage-grid">
+            <div className="ch-list-grid shop-quay-manage-grid">
               {approved.map((q) => {
                 const asking = reasonTarget?.id === q.id;
                 return (
-                  <li
+                  <div
                     key={q.id}
                     className={
                       asking
-                        ? "shop-dash-item shop-quay-manage-item is-reason"
-                        : "shop-dash-item shop-quay-manage-item"
+                        ? "shop-quay-manage-item is-reason"
+                        : "shop-quay-manage-item"
                     }
                   >
-                    <div className="shop-quay-manage-row">
-                      <div className="shop-quay-manage-shop">
-                        {q.shop ? (
-                          <CuaHangListCard shop={q.shop} query={deferredSearch} />
-                        ) : (
-                          <QuayUserMeta q={q} />
-                        )}
-                      </div>
-                      <div className="shop-dash-actions">
-                        <span className="shop-dash-hint">Đã duyệt</span>
-                        <button
-                          type="button"
-                          className="shop-dash-danger"
-                          disabled={busyId === q.id}
-                          onClick={() => openReason(q.id, "revoke")}
-                        >
-                          Gỡ
-                        </button>
-                      </div>
+                    <div className="shop-quay-manage-shop">
+                      {q.shop ? (
+                        <CuaHangListCard shop={q.shop} query={deferredSearch} />
+                      ) : (
+                        <QuayUserMeta q={q} />
+                      )}
+                    </div>
+                    <div className="shop-quay-manage-actions">
+                      <span className="shop-dash-hint">Đã duyệt</span>
+                      <button
+                        type="button"
+                        className="shop-dash-danger"
+                        disabled={busyId === q.id}
+                        onClick={() => openReason(q.id, "revoke")}
+                      >
+                        Gỡ
+                      </button>
                     </div>
                     {asking ? (
                       <div className="shop-quay-reason-box">
@@ -954,10 +952,10 @@ export function ShopQuaySuKienPanel({
                         </div>
                       </div>
                     ) : null}
-                  </li>
+                  </div>
                 );
               })}
-            </ul>
+            </div>
           ) : (
             <p className="shop-dash-hint">
               {searchActive
@@ -968,45 +966,49 @@ export function ShopQuaySuKienPanel({
 
           {pending.length > 0 ? (
             <>
-              <h4 style={{ fontSize: 14, margin: "14px 0 8px" }}>
+              <h4 className="shop-quay-manage-subtitle">
                 Chờ duyệt ({pending.length})
               </h4>
-              <ul className="shop-dash-list shop-quay-review-list">
+              <div className="ch-list-grid shop-quay-manage-grid shop-quay-manage-grid--pending">
                 {pending.map((q) => {
                   const asking = reasonTarget?.id === q.id;
                   return (
-                    <li
+                    <div
                       key={q.id}
-                      className="shop-dash-item shop-quay-review-item"
+                      className={
+                        asking
+                          ? "shop-quay-manage-item is-reason"
+                          : "shop-quay-manage-item"
+                      }
                     >
-                      <header className="shop-quay-review-head">
-                        <div className="shop-quay-manage-shop">
-                          {q.shop ? (
-                            <CuaHangListCard shop={q.shop} query={deferredSearch} />
-                          ) : (
-                            <QuayShopFallbackLink q={q} />
-                          )}
-                        </div>
-                        <div className="shop-dash-actions">
-                          <button
-                            type="button"
-                            disabled={busyId === q.id}
-                            onClick={() => void respond(q.id, "approve")}
-                            aria-label="Duyệt"
-                          >
-                            <Check size={14} />
-                          </button>
-                          <button
-                            type="button"
-                            className="shop-dash-danger"
-                            disabled={busyId === q.id}
-                            onClick={() => openReason(q.id, "reject")}
-                            aria-label="Từ chối"
-                          >
-                            <X size={14} />
-                          </button>
-                        </div>
-                      </header>
+                      <div className="shop-quay-manage-shop">
+                        {q.shop ? (
+                          <CuaHangListCard shop={q.shop} query={deferredSearch} />
+                        ) : (
+                          <QuayShopFallbackLink q={q} />
+                        )}
+                      </div>
+                      <div className="shop-quay-manage-actions">
+                        <button
+                          type="button"
+                          disabled={busyId === q.id}
+                          onClick={() => void respond(q.id, "approve")}
+                          aria-label="Duyệt"
+                        >
+                          <Check size={14} />
+                          Duyệt
+                        </button>
+                        <button
+                          type="button"
+                          className="shop-dash-danger"
+                          disabled={busyId === q.id}
+                          onClick={() => openReason(q.id, "reject")}
+                          aria-label="Từ chối"
+                        >
+                          <X size={14} />
+                          Từ chối
+                        </button>
+                      </div>
 
                       {asking ? (
                         <div className="shop-quay-reason-box">
@@ -1045,10 +1047,10 @@ export function ShopQuaySuKienPanel({
                       ) : null}
 
                       <EvidenceBlock items={q.bangChung} />
-                    </li>
+                    </div>
                   );
                 })}
-              </ul>
+              </div>
             </>
           ) : alwaysShow ? (
             <p className="shop-dash-hint" style={{ marginTop: 10 }}>

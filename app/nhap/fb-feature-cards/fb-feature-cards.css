@@ -1,0 +1,389 @@
+/* Draft — Facebook feature intro cards (1:1). Xóa khi user báo clear. */
+
+.fb-present {
+  min-height: 100vh;
+  background: var(--bg-page);
+  font-family: var(--font-be-vietnam), system-ui, sans-serif;
+  color: var(--ink-display);
+  padding: 32px 24px 64px;
+}
+
+.fb-present__header {
+  max-width: 1280px;
+  margin: 0 auto 32px;
+}
+
+.fb-present__eyebrow {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--cins-blue);
+}
+
+.fb-present__title {
+  margin: 0 0 10px;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.fb-present__lead {
+  margin: 0 0 20px;
+  max-width: 62ch;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--ink-body);
+}
+
+.fb-present__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.fb-present__btn {
+  appearance: none;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-surface);
+  color: var(--ink-display);
+  border-radius: var(--radius-md);
+  padding: 8px 14px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.fb-present__btn:hover {
+  border-color: var(--cins-blue);
+}
+
+.fb-present__btn--active {
+  background: var(--cins-blue-soft);
+  border-color: color-mix(in srgb, var(--cins-blue) 45%, var(--border));
+  color: var(--cins-blue-dark);
+}
+
+.fb-present__btn--primary {
+  background: var(--cins-blue);
+  border-color: var(--cins-blue);
+  color: #fff;
+}
+
+.fb-present__btn--primary:hover:not(:disabled) {
+  background: var(--cins-blue-dark);
+  border-color: var(--cins-blue-dark);
+}
+
+.fb-present__btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.fb-present__hint {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+
+.fb-present__grid {
+  max-width: 1280px;
+  margin: 0 auto;
+  display: grid;
+  gap: 40px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.fb-present__grid--export {
+  grid-template-columns: 1fr;
+  max-width: 1080px;
+  gap: 48px;
+}
+
+/* ── Card template (1:1) ── */
+
+.fb-card {
+  --fb-card-size: 600px;
+  --fb-card-pad: calc(var(--fb-card-size) * 0.038);
+  --fb-theme: var(--cins-blue);
+  --fb-theme-soft: var(--cins-blue-soft);
+  --fb-theme-ink: #0a3d73;
+
+  width: 100%;
+  max-width: var(--fb-card-size);
+  justify-self: center;
+  aspect-ratio: 1 / 1;
+  background: #fff;
+  border-radius: 0;
+  padding: var(--fb-card-pad);
+  box-sizing: border-box;
+  display: grid;
+  grid-template-rows: auto auto 1fr auto;
+  gap: calc(var(--fb-card-size) * 0.018);
+  overflow: hidden;
+  border-top: calc(var(--fb-card-size) * 0.008) solid var(--fb-theme);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--fb-theme) 12%, var(--border)),
+    0 16px 48px color-mix(in srgb, var(--fb-theme) 10%, transparent);
+}
+
+.fb-present__grid--export .fb-card {
+  --fb-card-size: 1080px;
+  --fb-card-pad: calc(var(--fb-card-size) * 0.028);
+  margin: 0 auto;
+  gap: calc(var(--fb-card-size) * 0.012);
+}
+
+.fb-present__grid--export .fb-card__highlight {
+  font-size: calc(var(--fb-card-size) * 0.054);
+}
+
+.fb-present__grid--export .fb-card__subtitle {
+  font-size: calc(var(--fb-card-size) * 0.022);
+}
+
+.fb-present__grid--export .fb-card__tags li {
+  font-size: calc(var(--fb-card-size) * 0.018);
+}
+
+/* Top bar — logo + kicker */
+
+.fb-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(var(--fb-card-size) * 0.02);
+  min-height: 0;
+}
+
+.fb-card__brand-logo {
+  width: calc(var(--fb-card-size) * 0.14);
+  height: auto;
+  flex-shrink: 0;
+}
+
+.fb-card__kicker {
+  font-size: calc(var(--fb-card-size) * 0.026);
+  font-weight: 700;
+  color: var(--fb-theme-ink);
+  background: var(--fb-theme-soft);
+  border: 1px solid color-mix(in srgb, var(--fb-theme) 22%, transparent);
+  padding: calc(var(--fb-card-size) * 0.01) calc(var(--fb-card-size) * 0.018);
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+/* Copy — highlight hero */
+
+.fb-card__copy {
+  min-height: 0;
+}
+
+.fb-card__highlight {
+  margin: 0;
+  font-size: calc(var(--fb-card-size) * 0.054);
+  font-weight: 900;
+  line-height: 1.02;
+  letter-spacing: -0.03em;
+  color: var(--fb-theme-ink);
+}
+
+.fb-card__subtitle {
+  margin: calc(var(--fb-card-size) * 0.008) 0 0;
+  font-size: calc(var(--fb-card-size) * 0.022);
+  font-weight: 600;
+  line-height: 1.35;
+  color: rgba(0, 0, 0, 0.58);
+}
+
+.fb-card__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(var(--fb-card-size) * 0.01);
+  margin: calc(var(--fb-card-size) * 0.01) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fb-card__tags li {
+  font-size: calc(var(--fb-card-size) * 0.018);
+  font-weight: 500;
+  color: var(--ink-body);
+  background: none;
+  border: none;
+  padding: 0;
+  border-radius: 0;
+}
+
+/* Visual — full bleed ngang, ảnh width 100% */
+
+.fb-card__visual {
+  min-height: 0;
+  display: flex;
+  margin-inline: calc(-1 * var(--fb-card-pad));
+  width: calc(100% + 2 * var(--fb-card-pad));
+}
+
+.fb-card__visual-frame {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  border-radius: 0;
+  overflow: hidden;
+  background: #fff;
+}
+
+.fb-card__screenshot-wrap {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  display: block;
+  position: relative;
+  background: #fff;
+}
+
+/* 2 ảnh — absolute chồng nhau, scale to hơn */
+
+.fb-card--duo {
+  gap: calc(var(--fb-card-size) * 0.012);
+}
+
+.fb-card__screenshot-duo {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  background: #fff;
+}
+
+.fb-card__screenshot-duo .fb-card__screenshot-wrap {
+  position: absolute;
+  width: 76%;
+  height: 70%;
+  background: #fff;
+  box-shadow: 0 10px 36px rgba(15, 23, 42, 0.14);
+}
+
+.fb-card__screenshot-duo .fb-card__screenshot-wrap--layer-1 {
+  top: 0;
+  left: 0;
+  z-index: 1;
+  transform: rotate(-2.5deg);
+}
+
+.fb-card__screenshot-duo .fb-card__screenshot-wrap--layer-2 {
+  top: 22%;
+  left: 22%;
+  z-index: 2;
+  transform: rotate(1.5deg);
+}
+
+.fb-card__screenshot {
+  display: block;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.fb-card__screenshot--fluid {
+  width: 100%;
+  height: auto;
+  max-height: 100%;
+  object-fit: contain;
+  object-position: top center;
+}
+
+.fb-card__screenshot--fill {
+  object-fit: contain;
+  object-position: top center;
+}
+
+.fb-card__screenshot-wrap--fluid {
+  position: static;
+}
+
+.fb-card__visual-placeholder {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fb-card__visual-bg {
+  position: absolute;
+  inset: 0;
+}
+
+.fb-card__icon-wrap {
+  position: relative;
+  z-index: 1;
+  width: calc(var(--fb-card-size) * 0.22);
+  height: calc(var(--fb-card-size) * 0.22);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.88);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.fb-card__icon-wrap .material-symbols-outlined {
+  font-size: calc(var(--fb-card-size) * 0.11);
+  color: var(--fb-theme-ink);
+  font-variation-settings: "FILL" 0, "wght" 500, "GRAD" 0, "opsz" 48;
+}
+
+/* Footer — logo + URL, lấp phần dưới card */
+
+.fb-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--fb-card-size) * 0.012);
+  padding-top: calc(var(--fb-card-size) * 0.006);
+}
+
+.fb-card__footer-icon {
+  width: calc(var(--fb-card-size) * 0.042);
+  height: calc(var(--fb-card-size) * 0.042);
+}
+
+.fb-card__footer-url {
+  font-size: calc(var(--fb-card-size) * 0.028);
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  color: var(--cins-blue);
+}
+
+/* Placeholder visual (không có ảnh brief) */
+
+.fb-card__visual-bg {
+  background: linear-gradient(
+    145deg,
+    var(--cins-blue-soft) 0%,
+    color-mix(in srgb, var(--cins-blue) 35%, white) 100%
+  );
+}
+
+@media (max-width: 900px) {
+  .fb-present__grid:not(.fb-present__grid--export) {
+    grid-template-columns: 1fr;
+  }
+
+  .fb-card {
+    --fb-card-size: min(560px, 92vw);
+    max-width: min(560px, 92vw);
+  }
+}
+
+@media (max-width: 480px) {
+  .fb-present {
+    padding: 20px 16px 48px;
+  }
+}
