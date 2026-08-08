@@ -6508,7 +6508,7 @@ body:has(.shop-dash-gate) .j-chat-dock {
 
 .shop-quay-shop-grid {
   margin-top: 12px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 /* Card shop quầy SK — đồng bộ ticker voucher với hub /cua-hang */
@@ -6521,6 +6521,12 @@ body:has(.shop-dash-gate) .j-chat-dock {
 .shop-quay-shop-grid .ch-list-card-voucher-strip,
 .shop-quay-manage-grid .ch-list-card-voucher-strip {
   content-visibility: visible;
+}
+
+@media (max-width: 900px) {
+  .shop-quay-shop-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 560px) {
