@@ -17,6 +17,10 @@ export type CanvasNodeLayout = {
   rotation?: number;
   /** Màu nền sticky / frame (token hoặc hex). */
   mau?: string | null;
+  /** Màu chữ — sticky khối chữ (`mau` = transparent). */
+  textColor?: string | null;
+  /** Cỡ chữ (px) — sticky khối chữ. */
+  textSize?: number | null;
   /** Id nhóm để group nhiều node. */
   groupId?: string | null;
   /** Connector: id node nguồn / đích. */

@@ -15,6 +15,7 @@ import {
 } from "react";
 
 import {
+  AlignHorizontalSpaceAround,
   AlertTriangle,
   Eraser,
   Hand,
@@ -232,6 +233,22 @@ export default function ChatCanvasBoard({ roomId, onJumpToMessage }: Props) {
           body: JSON.stringify(patch),
         }).catch(() => {});
       },
+      patchNodesLayoutBatch: async (patches) => {
+        const res = await fetch(
+          `/api/chat/rooms/${roomId}/canvas/nodes/batch`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ patches }),
+          },
+        ).catch(() => null);
+        if (!res?.ok) {
+          const data = (await res?.json().catch(() => null)) as
+            | { error?: string }
+            | null;
+          throw new Error(data?.error ?? "Không lưu được layout.");
+        }
+      },
       deleteNode: async (node) => {
         // Server: xóa row + ẩn tin (nếu message-backed) + xóa CF (ảnh canvas-only).
         if (node.id.startsWith("local-")) return;
@@ -309,7 +326,7 @@ export default function ChatCanvasBoard({ roomId, onJumpToMessage }: Props) {
       ref={wrapRef}
       className={"cins-canvas-wrap" + (fullscreen ? " is-fullscreen" : "")}
     >
-      <div className="cins-canvas-toolbar">
+      <div className="cins-canvas-toolbar is-wrap">
         <div
           className="cins-canvas-tool-seg"
           role="group"
@@ -378,11 +395,19 @@ export default function ChatCanvasBoard({ roomId, onJumpToMessage }: Props) {
           </button>
           <button
             type="button"
-            className="cins-canvas-tool-btn cins-canvas-tool-btn--icon"
-            onClick={() => void boardRef.current?.addText()}
+            className={
+              "cins-canvas-tool-btn cins-canvas-tool-btn--icon" +
+              (tool === "text" ? " is-active" : "")
+            }
+            onClick={() => boardRef.current?.setTool("text")}
             disabled={locked}
-            title={locked ? "Canvas đang khóa" : "Thêm khối chữ (không nền)"}
+            title={
+              locked
+                ? "Canvas đang khóa"
+                : "Thêm chữ (T) — bấm trên canvas để đặt khối chữ"
+            }
             aria-label="Thêm chữ"
+            aria-pressed={tool === "text"}
           >
             <Type size={15} strokeWidth={1.9} aria-hidden />
           </button>
@@ -501,6 +526,22 @@ export default function ChatCanvasBoard({ roomId, onJumpToMessage }: Props) {
           role="group"
           aria-label="Chỉnh sửa"
         >
+          <button
+            type="button"
+            className="cins-canvas-tool-btn cins-canvas-tool-btn--icon"
+            onClick={() => boardRef.current?.autoLayout()}
+            disabled={locked || selection.nodeCount === 0}
+            title={
+              locked
+                ? "Canvas đang khóa"
+                : selection.nodeCount === 0
+                  ? "Canvas trống"
+                  : "Tự sắp xếp — xếp lại block ngăn nắp"
+            }
+            aria-label="Tự sắp xếp"
+          >
+            <AlignHorizontalSpaceAround size={15} strokeWidth={1.9} aria-hidden />
+          </button>
           <button
             type="button"
             className="cins-canvas-tool-btn cins-canvas-tool-btn--icon cins-canvas-tool-btn--danger"

@@ -24,8 +24,8 @@ import {
 /** Node trên board — alias theo node canvas hiện có. */
 export type BoardNode = ChatCanvasNode;
 
-/** Công cụ đang cầm: chọn/kéo node, bàn tay pan, hoặc vẽ tự do. */
-export type BoardTool = "select" | "pan" | "draw";
+/** Công cụ đang cầm: chọn/kéo node, bàn tay pan, vẽ tự do, hoặc đặt chữ. */
+export type BoardTool = "select" | "pan" | "draw" | "text";
 
 /** Camera: screen = (page + {x,y}) * z (cùng quy ước tldraw cũ). */
 export type BoardCamera = { x: number; y: number; z: number };
@@ -92,9 +92,18 @@ export type BoardCreateNodeInput = {
  * `recreateNode` phục vụ undo lệnh xóa: server tạo node mới (id mới),
  * engine tự remap id trong history.
  */
+export type BoardLayoutBatchPatch = {
+  nodeId: string;
+  layout: CanvasNodeLayout;
+};
+
 export type BoardPersistAdapter = {
   createNode: (input: BoardCreateNodeInput) => Promise<BoardNode | null>;
   patchNode: (nodeId: string, patch: BoardNodePatch) => Promise<void>;
+  /** Cập nhật layout nhiều node — một request (auto layout). */
+  patchNodesLayoutBatch?: (
+    patches: BoardLayoutBatchPatch[],
+  ) => Promise<void>;
   /** Xóa node (hoặc ẩn node message-backed — tùy adapter quyết). */
   deleteNode: (node: BoardNode) => Promise<void>;
   /** Tạo lại node đã xóa (undo) — trả node mới hoặc null nếu thất bại. */
@@ -131,13 +140,15 @@ export type BoardHandle = {
   deleteSelection: () => void;
   /** Xóa toàn bộ block trên board (không undo — caller phải confirm trước). */
   clearBoard: () => void;
-  /** Đổi công cụ chọn / bàn tay. */
+  /** Đổi công cụ chọn / bàn tay / vẽ / chữ. */
   setTool: (tool: BoardTool) => void;
   zoomIn: () => void;
   zoomOut: () => void;
   /** Về zoom 100% giữ tâm viewport. */
   zoomReset: () => void;
   zoomToFit: () => void;
+  /** Xếp lại toàn board thành lưới gọn (undo được). */
+  autoLayout: () => void;
   undo: () => void;
   redo: () => void;
 };

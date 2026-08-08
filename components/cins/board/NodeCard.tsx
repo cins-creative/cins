@@ -53,6 +53,57 @@ export function stickyPaperColor(mau: string | null | undefined): string {
 /** Sticky với mau này = khối chữ thuần (không nền) — «+ Chữ». */
 export const TEXT_STICKY_MAU = "transparent";
 
+/** Bảng màu chữ cho khối text (selbar). */
+export const TEXT_COLOR_PALETTE = [
+  "#1a1a1a",
+  "#dc2626",
+  "#2563eb",
+  "#16a34a",
+  "#9333ea",
+  "#ea580c",
+] as const;
+
+export const DEFAULT_TEXT_COLOR = TEXT_COLOR_PALETTE[0]!;
+
+/** Cỡ chữ preset cho khối text (px). */
+export const TEXT_SIZE_PRESETS = [14, 17, 22, 28, 36] as const;
+
+export const DEFAULT_TEXT_SIZE = 17;
+
+export function normalizeTextSize(
+  value: number | null | undefined,
+): number {
+  if (
+    typeof value === "number" &&
+    Number.isFinite(value) &&
+    value >= 10 &&
+    value <= 96
+  ) {
+    return Math.round(value);
+  }
+  return DEFAULT_TEXT_SIZE;
+}
+
+export function textBlockStyle(
+  textColor?: string | null,
+  textSize?: number | null,
+): { color?: string; fontSize?: number } | undefined {
+  const style: { color?: string; fontSize?: number } = {};
+  if (textColor) style.color = textColor;
+  if (textSize) style.fontSize = normalizeTextSize(textSize);
+  return Object.keys(style).length > 0 ? style : undefined;
+}
+
+/** Sticky không nền — chỉ chữ (mau = transparent). */
+export function isTextStickyNode(
+  node: Pick<BoardNode, "loai" | "layout">,
+): boolean {
+  if (node.loai !== "sticky") return false;
+  if (normalizeShapeKind(node.layout.shapeKind)) return false;
+  if (normalizeContentKind(node.layout.contentKind)) return false;
+  return (node.layout.mau?.trim() ?? STICKY_PALETTE[0]) === TEXT_STICKY_MAU;
+}
+
 export type BoardShapeKind = "rect" | "ellipse" | "diamond";
 
 export const SHAPE_KINDS: readonly BoardShapeKind[] = [
@@ -120,6 +171,52 @@ export function hexToGroupTint(hex: string, alpha = 0.18): string {
   const g = Number.parseInt(h.slice(3, 5), 16);
   const b = Number.parseInt(h.slice(5, 7), 16);
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+/** Nút vòng màu — mở `<input type="color">` (toolbar / selbar). */
+export function CanvasColorWheelInput({
+  value,
+  disabled,
+  isActive,
+  onPick,
+  ariaLabel = "Màu tùy chọn",
+  title,
+}: {
+  value: string;
+  disabled?: boolean;
+  isActive?: boolean;
+  onPick: (hex: string) => void;
+  ariaLabel?: string;
+  title?: string;
+}) {
+  const hex = toHexColor(value);
+  return (
+    <label
+      className={
+        "cins-canvas-colorwheel" +
+        (isActive ? " is-open" : "") +
+        (disabled ? " is-disabled" : "")
+      }
+      title={title ?? ariaLabel}
+    >
+      <span className="cins-canvas-colorwheel-ring" aria-hidden />
+      <span
+        className="cins-canvas-colorwheel-current"
+        style={{ background: value }}
+        aria-hidden
+      />
+      <input
+        type="color"
+        value={hex}
+        disabled={disabled}
+        aria-label={ariaLabel}
+        onChange={(e) => onPick(e.target.value)}
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => e.stopPropagation()}
+      />
+    </label>
+  );
 }
 
 /** Ô chọn màu tùy chọn — bọc `<input type="color">`. */
@@ -398,9 +495,13 @@ function StickyEditor({
   onCancelEdit,
   onInputGrow,
   tone = "sticky",
+  textColor,
+  textSize,
 }: Pick<NodeCardProps, "node" | "onCommitText" | "onCancelEdit"> & {
   onInputGrow?: () => void;
   tone?: "sticky" | "comment";
+  textColor?: string | null;
+  textSize?: number | null;
 }) {
   const ref = useRef<HTMLTextAreaElement>(null);
 
@@ -431,6 +532,7 @@ function StickyEditor({
       }
       defaultValue={node.noiDung ?? ""}
       rows={1}
+      style={textBlockStyle(textColor, textSize)}
       onPointerDown={(e) => e.stopPropagation()}
       onInput={syncHeight}
       onKeyDown={(e) => {
@@ -972,8 +1074,11 @@ export function NodeCard({
     );
   } else {
     const shapeKind = normalizeShapeKind(node.layout.shapeKind);
-    const isText = !shapeKind && mau === TEXT_STICKY_MAU;
+    const isText = isTextStickyNode(node);
     const paperMau = stickyPaperColor(mau);
+    const textColor = isText ? node.layout.textColor : null;
+    const textSize = isText ? node.layout.textSize : null;
+    const textStyle = isText ? textBlockStyle(textColor, textSize) : undefined;
     if (shapeKind) {
       body = (
         <div className={`cins-canvas-card cins-canvas-card-shape is-${shapeKind}`}>
@@ -1009,9 +1114,11 @@ export function NodeCard({
               node={node}
               onCommitText={onCommitText}
               onCancelEdit={onCancelEdit}
+              textColor={textColor}
+              textSize={textSize}
             />
           ) : (
-            <span className="cins-canvas-sticky-text">
+            <span className="cins-canvas-sticky-text" style={textStyle}>
               {text || (isText ? "Chữ" : "Ghi chú")}
             </span>
           )}

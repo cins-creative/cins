@@ -1097,11 +1097,13 @@ export function CinsChatOverlay({
   const [mobileShowThread, setMobileShowThread] = useState(
     () => Boolean(launch?.thread && launch.thread.roomId !== "__open_list__"),
   );
+  const [mobileNarrow, setMobileNarrow] = useState(false);
   const [sidePanel, setSidePanel] = useState<ChatSidePanel | null>(null);
   const [membersPopoverOpen, setMembersPopoverOpen] = useState(false);
   const skipPersistSidePanelRef = useRef(true);
   /** Tab cuối khi panel đang mở — dùng khi bấm "Mở rộng" lại sau khi đóng. */
   const lastSidePanelRef = useRef<ChatSidePanel>("mocs");
+  const hideConvoForMobileCanvas = mobileNarrow && sidePanel === "canvas";
   const [composeToolsOpen, setComposeToolsOpen] = useState(false);
   const [mocFormOpenKey, setMocFormOpenKey] = useState(0);
   const [replyTarget, setReplyTarget] = useState<ChatMessage | null>(null);
@@ -1230,6 +1232,14 @@ export function CinsChatOverlay({
   /** Lỗi đính kèm/gửi media — hiện ngay trên khung soạn (loadError chỉ hiện khi list lỗi). */
   const [composeError, setComposeError] = useState<string | null>(null);
   const [canvasNotice, setCanvasNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 1023.98px)");
+    const sync = () => setMobileNarrow(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
 
   useEffect(() => {
     if (!canvasNotice) return;
@@ -4855,9 +4865,9 @@ export function CinsChatOverlay({
         </aside>
 
         <div
-          className={`cins-chat-main${mobileShowThread ? " is-visible-mobile" : ""}`}
+          className={`cins-chat-main${mobileShowThread ? " is-visible-mobile" : ""}${hideConvoForMobileCanvas ? " is-canvas-mobile-focus" : ""}`}
         >
-          {active ? (
+          {active && !hideConvoForMobileCanvas ? (
           <div className="cins-chat-convo">
           <header className="cins-chat-convo-head">
             <button

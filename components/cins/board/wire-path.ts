@@ -194,6 +194,71 @@ export function nearestEdgeAttachment(
   return { side: best.side, offset: best.offset, point: best.point };
 }
 
+/** Ngưỡng (page units) snap tới núm nối 4 cạnh block. */
+export const WIRE_PORT_SNAP_DIST = 32;
+
+/**
+ * Snap tới núm nối gần nhất trên một rect (4 điểm giữa cạnh).
+ */
+export function nearestWirePort(
+  r: BoardRect,
+  p: WirePoint,
+): { side: WireSide; offset: number; point: WirePoint } {
+  let best: {
+    side: WireSide;
+    offset: number;
+    point: WirePoint;
+    dist: number;
+  } | null = null;
+  for (const side of WIRE_SIDES) {
+    const offset = 0.5;
+    const point = sideAnchor(r, side, offset);
+    const dist = Math.hypot(p.x - point.x, p.y - point.y);
+    if (!best || dist < best.dist) {
+      best = { side, offset, point, dist };
+    }
+  }
+  return {
+    side: best!.side,
+    offset: best!.offset,
+    point: best!.point,
+  };
+}
+
+export type WirePortSnapTarget = {
+  nodeId: string;
+  side: WireSide;
+  offset: number;
+  point: WirePoint;
+};
+
+/**
+ * Tìm núm nối gần nhất trên các block (trong ngưỡng).
+ */
+export function findWirePortSnap(
+  candidates: Array<{ id: string; rect: BoardRect }>,
+  p: WirePoint,
+  options?: { excludeIds?: Iterable<string>; maxDist?: number },
+): WirePortSnapTarget | null {
+  const exclude = new Set(options?.excludeIds ?? []);
+  const maxDist = options?.maxDist ?? WIRE_PORT_SNAP_DIST;
+  let best: (WirePortSnapTarget & { dist: number }) | null = null;
+  for (const { id, rect } of candidates) {
+    if (exclude.has(id)) continue;
+    for (const side of WIRE_SIDES) {
+      const offset = 0.5;
+      const point = sideAnchor(rect, side, offset);
+      const dist = Math.hypot(p.x - point.x, p.y - point.y);
+      if (dist <= maxDist && (!best || dist < best.dist)) {
+        best = { nodeId: id, side, offset, point, dist };
+      }
+    }
+  }
+  if (!best) return null;
+  const { dist: _d, ...snap } = best;
+  return snap;
+}
+
 function controlOffset(p1: WirePoint, p2: WirePoint): number {
   const dist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
   return Math.max(36, Math.min(140, dist * 0.45));
@@ -709,9 +774,9 @@ export function wirePathDraft(
   if (toRect) {
     const toOpts = { ...opts };
     if (!toOpts.toSide) {
-      const att = nearestEdgeAttachment(toRect, cursor);
-      toOpts.toSide = att.side;
-      toOpts.toOffset = att.offset;
+      const port = nearestWirePort(toRect, cursor);
+      toOpts.toSide = port.side;
+      toOpts.toOffset = port.offset;
     }
     return wirePathBetween(fromRect, toRect, style, toOpts).d;
   }

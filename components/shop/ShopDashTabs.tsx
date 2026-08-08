@@ -588,6 +588,10 @@ export function ShopDashTabs({
 }) {
   const topbarSlot = useTopbarPageSlot();
   const [shopHref, setShopHref] = useState<string | null>(null);
+  const [useMobileDashChrome, setUseMobileDashChrome] = useState(() =>
+    typeof window !== "undefined" &&
+    window.matchMedia("(max-width: 720px)").matches,
+  );
 
   // Background-warm sibling tabs' data after 800ms — user likely to switch
   useEffect(() => {
@@ -638,6 +642,14 @@ export function ShopDashTabs({
     };
   }, []);
 
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 720px)");
+    const sync = () => setUseMobileDashChrome(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+
   const topbarControls = (
     <div className="shop-dash-topbar-controls" role="group" aria-label="Cửa hàng">
       {shopHref ? (
@@ -663,7 +675,12 @@ export function ShopDashTabs({
 
   return (
     <>
-      {topbarSlot ? createPortal(topbarControls, topbarSlot) : null}
+      {topbarSlot && !useMobileDashChrome
+        ? createPortal(topbarControls, topbarSlot)
+        : null}
+      {useMobileDashChrome ? (
+        <div className="shop-dash-mobile-ops">{topbarControls}</div>
+      ) : null}
       <header className="shop-dash-head">
         <div className="shop-dash-head-row">
           <nav className="shop-dash-tabs" aria-label="Quản lý bán hàng">

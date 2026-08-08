@@ -49,6 +49,10 @@ function coerceLayout(raw: unknown): CanvasNodeLayout {
   if (typeof obj.z === "number") layout.z = obj.z;
   if (typeof obj.rotation === "number") layout.rotation = obj.rotation;
   if (typeof obj.mau === "string") layout.mau = obj.mau;
+  if (typeof obj.textColor === "string") layout.textColor = obj.textColor;
+  if (typeof obj.textSize === "number" && Number.isFinite(obj.textSize)) {
+    layout.textSize = obj.textSize;
+  }
   if ("groupId" in obj) {
     layout.groupId = typeof obj.groupId === "string" ? obj.groupId : null;
   }
@@ -318,6 +322,62 @@ export async function updateNode(
 
   if (error || !data) return { ok: false, error: "Không cập nhật được node." };
   return { ok: true, node: mapNode(data) };
+}
+
+export type BatchLayoutPatch = {
+  nodeId: string;
+  layout: CanvasNodeLayout;
+};
+
+const BATCH_LAYOUT_MAX = 200;
+
+/** Cập nhật layout nhiều node trong một lượt — tránh N request PATCH song song. */
+export async function updateNodesLayoutBatch(
+  canvasId: string,
+  viewerId: string,
+  patches: BatchLayoutPatch[],
+): Promise<CanvasResult<{ updated: number }>> {
+  if (patches.length === 0) return { ok: true, updated: 0 };
+  if (patches.length > BATCH_LAYOUT_MAX) {
+    return { ok: false, error: `Tối đa ${BATCH_LAYOUT_MAX} node mỗi lần.` };
+  }
+
+  const loaded = await loadCanvasContext(canvasId, viewerId);
+  if (!loaded.ok) return loaded;
+
+  const writable = assertCanvasWritable(loaded.ctx);
+  if (!writable.ok) return writable;
+
+  const admin = createServiceRoleClient();
+  const ids = [...new Set(patches.map((p) => p.nodeId))];
+  const { data: rows, error: loadError } = await admin
+    .from("chat_canvas_node")
+    .select("id")
+    .eq("id_canvas", canvasId)
+    .in("id", ids);
+
+  if (loadError) return { ok: false, error: "Không tải được node." };
+
+  const validIds = new Set((rows ?? []).map((r) => (r as { id: string }).id));
+  const byId = new Map<string, CanvasNodeLayout>();
+  for (const patch of patches) {
+    if (!validIds.has(patch.nodeId)) continue;
+    byId.set(patch.nodeId, patch.layout);
+  }
+  if (byId.size === 0) return { ok: false, error: "Không có node hợp lệ." };
+
+  let updated = 0;
+  for (const [nodeId, layout] of byId) {
+    const { error } = await admin
+      .from("chat_canvas_node")
+      .update({ layout })
+      .eq("id", nodeId)
+      .eq("id_canvas", canvasId);
+    if (!error) updated += 1;
+  }
+
+  if (updated === 0) return { ok: false, error: "Không cập nhật được node." };
+  return { ok: true, updated };
 }
 
 /** Xóa node — mọi thành viên có quyền ghi board. */

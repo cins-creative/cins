@@ -144,8 +144,8 @@ export function CuaHangSanVoucher() {
   const triggerLabel = loading
     ? "Đang tải voucher"
     : san.length > 0
-      ? `Săn voucher, ${san.length} mã đang chạy`
-      : "Săn voucher";
+      ? `Shop Voucher, ${san.length} mã đang chạy`
+      : "Shop Voucher";
 
   const modal =
     open && typeof document !== "undefined"
@@ -295,7 +295,7 @@ export function CuaHangSanVoucher() {
               title={
                 !loading && san.length > 0
                   ? `${san.length} mã đang chạy`
-                  : "Săn voucher"
+                  : "Shop Voucher"
               }
               onClick={() => setOpen(true)}
             >
@@ -304,7 +304,7 @@ export function CuaHangSanVoucher() {
               <span className="ch-san-voucher-trigger-icon" aria-hidden>
                 <TicketPercent size={32} strokeWidth={2.15} />
               </span>
-              <span className="ch-san-voucher-trigger-label">Săn voucher</span>
+              <span className="ch-san-voucher-trigger-label">Shop Voucher</span>
               {!loading && san.length > 0 ? (
                 <span className="ch-san-voucher-trigger-count" aria-hidden>
                   {san.length}

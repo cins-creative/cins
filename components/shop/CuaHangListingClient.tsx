@@ -450,6 +450,8 @@ export function CuaHangListingClient({ shops, taxonomy }: Props) {
 
   const [browseMode, setBrowseMode] = useState<BrowseMode>("hang");
   const [query, setQuery] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [discountOnly, setDiscountOnly] = useState(false);
   const [selectedDanhMuc, setSelectedDanhMuc] = useState<string[]>(() =>
     parseCsvParam(searchParams.get("danhMuc")),
@@ -468,6 +470,19 @@ export function CuaHangListingClient({ shops, taxonomy }: Props) {
   const q = normalizeQuery(query);
   const searching = Boolean(q);
   const showHang = browseMode === "hang";
+
+  useEffect(() => {
+    if (!searchOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSearchOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    const t = window.setTimeout(() => searchInputRef.current?.focus(), 40);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      window.clearTimeout(t);
+    };
+  }, [searchOpen]);
 
   const syncUrl = useCallback(
     (danhMuc: string[], facets: Record<string, string[]>) => {
@@ -654,11 +669,30 @@ export function CuaHangListingClient({ shops, taxonomy }: Props) {
         <div className="cins-frost-glass" aria-hidden />
         <span className="j-tlb-streak-slow" aria-hidden />
         <div className="ch-list-toolbar-inner">
-          <div className="ch-list-toolbar-main">
-            <div className="ch-list-toolbar-search">
-              <label className="ch-list-search">
+          <div
+            className={`ch-list-toolbar-main${searchOpen ? " is-search-open" : ""}`}
+          >
+            <div
+              className={`ch-list-toolbar-search${searchOpen ? " is-open" : ""}`}
+            >
+              <button
+                type="button"
+                className={`ch-list-search-toggle${searching ? " has-query" : ""}`}
+                aria-label={searchAria}
+                aria-expanded={searchOpen}
+                onClick={() => setSearchOpen((v) => !v)}
+              >
                 <Search size={18} strokeWidth={2} aria-hidden />
+              </button>
+              <label className="ch-list-search">
+                <Search
+                  size={18}
+                  strokeWidth={2}
+                  aria-hidden
+                  className="ch-list-search-icon-inline"
+                />
                 <input
+                  ref={searchInputRef}
                   type="search"
                   placeholder={searchPlaceholder}
                   value={query}
@@ -672,14 +706,27 @@ export function CuaHangListingClient({ shops, taxonomy }: Props) {
                     type="button"
                     className="ch-list-search-clear"
                     aria-label="Xóa tìm kiếm"
-                    onClick={() => setQuery("")}
+                    onClick={() => {
+                      setQuery("");
+                      searchInputRef.current?.focus();
+                    }}
                   >
                     <X size={16} strokeWidth={2.25} aria-hidden />
                   </button>
                 ) : null}
               </label>
+              {searchOpen ? (
+                <button
+                  type="button"
+                  className="ch-list-search-close"
+                  aria-label="Đóng tìm kiếm"
+                  onClick={() => setSearchOpen(false)}
+                >
+                  <X size={18} strokeWidth={2.2} aria-hidden />
+                </button>
+              ) : null}
 
-              {searching || hasListFilter ? (
+              {searchOpen && (searching || hasListFilter) ? (
                 <p className="ch-list-result-meta" aria-live="polite">
                   {empty
                     ? "Không có kết quả"

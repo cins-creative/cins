@@ -27,17 +27,37 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 
-import { Group, Trash2, Ungroup } from "lucide-react";
+import {
+  AlignHorizontalJustifyCenter,
+  AlignHorizontalJustifyEnd,
+  AlignHorizontalJustifyStart,
+  AlignVerticalJustifyCenter,
+  AlignVerticalJustifyEnd,
+  AlignVerticalJustifyStart,
+  ArrowDown,
+  ArrowUp,
+  ChevronsDown,
+  ChevronsUp,
+  Group,
+  Trash2,
+  Ungroup,
+} from "lucide-react";
 
 import {
   NodeCard,
-  CustomColorSwatch,
+  CanvasColorWheelInput,
+  DEFAULT_TEXT_COLOR,
+  DEFAULT_TEXT_SIZE,
   GROUP_PALETTE,
   SHAPE_KINDS,
   STICKY_PALETTE,
+  TEXT_COLOR_PALETTE,
+  TEXT_SIZE_PRESETS,
   TEXT_STICKY_MAU,
   hexToGroupTint,
   isPresetPaletteColor,
+  isTextStickyNode,
+  normalizeTextSize,
   normalizeShapeKind,
   type BoardShapeKind,
 } from "@/components/cins/board/NodeCard";
@@ -70,13 +90,16 @@ import {
   type BoardSelectionSummary,
   type BoardTool,
 } from "@/components/cins/board/board-types";
+import { applyAutoLayout } from "@/components/cins/board/auto-layout";
 import {
   closestPointOnPoly,
+  findWirePortSnap,
   insertWireAnchor,
-  nearestEdgeAttachment,
+  nearestWirePort,
   normalizeWireArrow,
   normalizeWireStyle,
   WIRE_ARROWS,
+  WIRE_PORT_SNAP_DIST,
   WIRE_SIDES,
   WIRE_STYLES,
   wirePathBetween,
@@ -366,6 +389,97 @@ type Gesture =
 /** Ngưỡng (page units) để hiện điểm snap trên path. */
 const WIRE_SNAP_MAX_DIST = 18;
 
+type SelectionAlignMode =
+  | "left"
+  | "centerH"
+  | "right"
+  | "top"
+  | "centerV"
+  | "bottom";
+
+const SELECTION_ALIGN_ACTIONS: ReadonlyArray<{
+  mode: SelectionAlignMode;
+  label: string;
+  Icon: typeof AlignHorizontalJustifyStart;
+}> = [
+  { mode: "left", label: "Căn trái", Icon: AlignHorizontalJustifyStart },
+  {
+    mode: "centerH",
+    label: "Căn giữa ngang",
+    Icon: AlignHorizontalJustifyCenter,
+  },
+  { mode: "right", label: "Căn phải", Icon: AlignHorizontalJustifyEnd },
+  { mode: "top", label: "Căn trên", Icon: AlignVerticalJustifyStart },
+  {
+    mode: "centerV",
+    label: "Căn giữa dọc",
+    Icon: AlignVerticalJustifyCenter,
+  },
+  { mode: "bottom", label: "Căn dưới", Icon: AlignVerticalJustifyEnd },
+];
+
+type SelectionLayerMode = "forward" | "backward" | "front" | "back";
+
+const SELECTION_LAYER_ACTIONS: ReadonlyArray<{
+  mode: SelectionLayerMode;
+  label: string;
+  Icon: typeof ArrowUp;
+}> = [
+  { mode: "front", label: "Lên trên cùng", Icon: ChevronsUp },
+  { mode: "forward", label: "Lên một lớp", Icon: ArrowUp },
+  { mode: "backward", label: "Xuống một lớp", Icon: ArrowDown },
+  { mode: "back", label: "Xuống dưới cùng", Icon: ChevronsDown },
+];
+
+function computeLayerReorder(
+  pool: BoardNode[],
+  selectedIds: Set<string>,
+  direction: SelectionLayerMode,
+): Map<string, number> | null {
+  if (pool.length < 2) return null;
+  const sorted = [...pool].sort(
+    (a, b) => (a.layout.z ?? 0) - (b.layout.z ?? 0),
+  );
+  const indices = sorted
+    .map((n, i) => (selectedIds.has(n.id) ? i : -1))
+    .filter((i) => i >= 0);
+  if (indices.length === 0) return null;
+
+  const minIdx = Math.min(...indices);
+  const maxIdx = Math.max(...indices);
+  let reordered: BoardNode[] | null = null;
+
+  if (direction === "front") {
+    reordered = [
+      ...sorted.filter((n) => !selectedIds.has(n.id)),
+      ...sorted.filter((n) => selectedIds.has(n.id)),
+    ];
+  } else if (direction === "back") {
+    reordered = [
+      ...sorted.filter((n) => selectedIds.has(n.id)),
+      ...sorted.filter((n) => !selectedIds.has(n.id)),
+    ];
+  } else if (direction === "forward") {
+    if (maxIdx >= sorted.length - 1) return null;
+    const next = sorted[maxIdx + 1]!;
+    reordered = sorted.filter((_, i) => i !== maxIdx + 1);
+    reordered.splice(minIdx, 0, next);
+  } else {
+    if (minIdx <= 0) return null;
+    const prev = sorted[minIdx - 1]!;
+    reordered = sorted.filter((_, i) => i !== minIdx - 1);
+    reordered.splice(maxIdx, 0, prev);
+  }
+
+  if (reordered.every((n, i) => n.id === sorted[i]!.id)) return null;
+
+  const patches = new Map<string, number>();
+  reordered.forEach((n, i) => {
+    patches.set(n.id, i + 1);
+  });
+  return patches;
+}
+
 /** Theo dõi theme sáng/tối theo `<html data-theme>`. */
 function useResolvedTheme(): "light" | "dark" {
   const [theme, setTheme] = useState<"light" | "dark">(() =>
@@ -474,6 +588,36 @@ function centerOf(node: BoardNode): { x: number; y: number } {
   return { x: r.x + r.w / 2, y: r.y + r.h / 2 };
 }
 
+function wirePortCandidates(list: BoardNode[]) {
+  return list
+    .filter((n) => n.loai !== "connector" && n.loai !== "frame")
+    .map((n) => ({ id: n.id, rect: nodeRect(n) }));
+}
+
+/** Snap núm nối — ưu tiên trong ngưỡng, fallback port gần nhất trên block đang hover. */
+function resolveWirePortSnap(
+  list: BoardNode[],
+  p: WirePoint,
+  excludeId?: string,
+  maxDist?: number,
+): ReturnType<typeof findWirePortSnap> {
+  const dist = maxDist ?? WIRE_PORT_SNAP_DIST;
+  const snap = findWirePortSnap(wirePortCandidates(list), p, {
+    excludeIds: excludeId ? [excludeId] : [],
+    maxDist: dist,
+  });
+  if (snap) return snap;
+  const hit = hitNodeAt(list, p, excludeId);
+  if (!hit) return null;
+  const port = nearestWirePort(nodeRect(hit), p);
+  return {
+    nodeId: hit.id,
+    side: port.side,
+    offset: port.offset,
+    point: port.point,
+  };
+}
+
 function hitNodeAt(
   list: BoardNode[],
   p: { x: number; y: number },
@@ -575,6 +719,8 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
       fromSide: WireSide;
       x: number;
       y: number;
+      targetId?: string | null;
+      toSide?: WireSide;
     } | null>(null);
     /** Điểm snap chạy theo path khi rê gần dây đang chọn. */
     const [wireSnap, setWireSnap] = useState<{
@@ -752,10 +898,30 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
 
     const persistNodeLayout = useCallback(
       (node: BoardNode, extra?: { noiDung?: string }) => {
+        if (node.loai === "connector" || isLocalBoardNodeId(node.id)) return;
         void persist.patchNode(node.id, {
           layout: toStoredLayout(node),
           ...(extra?.noiDung !== undefined ? { noiDung: extra.noiDung } : {}),
         });
+      },
+      [persist, toStoredLayout],
+    );
+
+    const persistLayoutBatch = useCallback(
+      async (nodesToPersist: BoardNode[]) => {
+        const patches = nodesToPersist
+          .filter((n) => n.loai !== "connector" && !isLocalBoardNodeId(n.id))
+          .map((n) => ({ nodeId: n.id, layout: toStoredLayout(n) }));
+        if (patches.length === 0) return;
+
+        if (patches.length > 1 && persist.patchNodesLayoutBatch) {
+          await persist.patchNodesLayoutBatch(patches);
+          return;
+        }
+
+        for (const patch of patches) {
+          await persist.patchNode(patch.nodeId, { layout: patch.layout });
+        }
       },
       [persist, toStoredLayout],
     );
@@ -899,6 +1065,47 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
       zoomToRect({ x: minX, y: minY, w: maxX - minX, h: maxY - minY });
     }, [commitCamera, zoomToRect]);
 
+    const autoLayout = useCallback(() => {
+      void (async () => {
+        if (lockedRef.current) return;
+        const current = nodesRef.current;
+        const layoutable = current.filter((n) => n.loai !== "connector");
+        if (layoutable.length === 0) return;
+        const before = layoutable.map(snapshotOf);
+        const next = applyAutoLayout(current);
+        commitNodes(next);
+        const after = layoutable.map((s) => {
+          const n = next.find((x) => x.id === s.nodeId)!;
+          return snapshotOf(n);
+        });
+        history.push({ type: "layout", before, after });
+
+        const beforeById = new Map(before.map((s) => [s.nodeId, s.layout]));
+        const changed = next.filter((n) => {
+          if (n.loai === "connector" || isLocalBoardNodeId(n.id)) return false;
+          const prev = beforeById.get(n.id);
+          if (!prev) return true;
+          return (
+            prev.x !== n.layout.x ||
+            prev.y !== n.layout.y ||
+            prev.w !== n.layout.w ||
+            prev.h !== n.layout.h
+          );
+        });
+
+        await persistLayoutBatch(changed);
+
+        requestAnimationFrame(() => zoomToFit());
+        emitSelection();
+      })();
+    }, [
+      commitNodes,
+      emitSelection,
+      history,
+      persistLayoutBatch,
+      zoomToFit,
+    ]);
+
     const zoomToNode = useCallback(
       (node: BoardNode) => {
         zoomToRect(nodeRect(node), Math.max(1, cameraRef.current.z));
@@ -1034,18 +1241,27 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
     );
 
     const addSticky = useCallback(
-      async (mau: string) => {
+      async (mau: string, page?: { x: number; y: number }) => {
         if (lockedRef.current) return;
-        const rect = rootRef.current?.getBoundingClientRect();
-        const cam = cameraRef.current;
-        const cx = (rect?.width ?? 800) / 2 / cam.z - cam.x;
-        const cy = (rect?.height ?? 600) / 2 / cam.z - cam.y;
         const isText = mau === TEXT_STICKY_MAU;
         const w = isText ? 260 : 240;
         const h = isText ? 80 : 200;
+        let x: number;
+        let y: number;
+        if (page) {
+          x = page.x;
+          y = page.y;
+        } else {
+          const rect = rootRef.current?.getBoundingClientRect();
+          const cam = cameraRef.current;
+          const cx = (rect?.width ?? 800) / 2 / cam.z - cam.x;
+          const cy = (rect?.height ?? 600) / 2 / cam.z - cam.y;
+          x = cx - w / 2;
+          y = cy - h / 2;
+        }
         const created = await persist.createNode({
           loai: "sticky",
-          layout: { x: cx - w / 2, y: cy - h / 2, w, h, mau },
+          layout: { x, y, w, h, mau },
           noiDung: "",
         });
         if (created) {
@@ -1060,6 +1276,11 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
 
     const addText = useCallback(
       () => addSticky(TEXT_STICKY_MAU),
+      [addSticky],
+    );
+
+    const addTextAtPage = useCallback(
+      (page: { x: number; y: number }) => addSticky(TEXT_STICKY_MAU, page),
       [addSticky],
     );
 
@@ -1410,6 +1631,12 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
               };
             }
           }
+          if (n.loai === "sticky" && isTextStickyNode(n)) {
+            return {
+              ...n,
+              layout: { ...n.layout, mau: TEXT_STICKY_MAU, textColor: mau },
+            };
+          }
           return { ...n, layout: { ...n.layout, mau } };
         });
         commitNodes(next);
@@ -1433,6 +1660,157 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
         emitSelection();
       },
       [commitNodes, emitSelection, history, persist, persistNodeLayout],
+    );
+
+    const applyTextSizeToSelection = useCallback(
+      (textSize: number) => {
+        if (lockedRef.current) return;
+        const size = normalizeTextSize(textSize);
+        const targetIds = new Set(
+          nodesRef.current
+            .filter(
+              (n) => selectedRef.current.has(n.id) && isTextStickyNode(n),
+            )
+            .map((n) => n.id),
+        );
+        if (targetIds.size === 0) return;
+        const before = nodesRef.current
+          .filter((n) => targetIds.has(n.id))
+          .map(snapshotOf);
+        const next = nodesRef.current.map((n) =>
+          targetIds.has(n.id)
+            ? { ...n, layout: { ...n.layout, textSize: size } }
+            : n,
+        );
+        commitNodes(next);
+        const after = before.map((s) => ({
+          ...s,
+          layout: { ...s.layout, textSize: size },
+        }));
+        history.push({ type: "layout", before, after });
+        for (const n of next) {
+          if (targetIds.has(n.id)) persistNodeLayout(n);
+        }
+        emitSelection();
+      },
+      [commitNodes, emitSelection, history, persistNodeLayout],
+    );
+
+    const alignSelection = useCallback(
+      (mode: SelectionAlignMode) => {
+        if (lockedRef.current) return;
+        const targets = nodesRef.current.filter(
+          (n) =>
+            selectedRef.current.has(n.id) &&
+            n.loai !== "connector" &&
+            n.loai !== "frame",
+        );
+        if (targets.length < 2) return;
+        const rects = targets.map((n) => ({ id: n.id, ...nodeRect(n) }));
+        const minX = Math.min(...rects.map((r) => r.x));
+        const minY = Math.min(...rects.map((r) => r.y));
+        const maxX = Math.max(...rects.map((r) => r.x + r.w));
+        const maxY = Math.max(...rects.map((r) => r.y + r.h));
+        const midX = (minX + maxX) / 2;
+        const midY = (minY + maxY) / 2;
+        const before = targets.map(snapshotOf);
+        const next = nodesRef.current.map((n) => {
+          if (!selectedRef.current.has(n.id)) return n;
+          if (n.loai === "connector" || n.loai === "frame") return n;
+          const r = nodeRect(n);
+          let x = r.x;
+          let y = r.y;
+          switch (mode) {
+            case "left":
+              x = minX;
+              break;
+            case "centerH":
+              x = midX - r.w / 2;
+              break;
+            case "right":
+              x = maxX - r.w;
+              break;
+            case "top":
+              y = minY;
+              break;
+            case "centerV":
+              y = midY - r.h / 2;
+              break;
+            case "bottom":
+              y = maxY - r.h;
+              break;
+          }
+          return { ...n, layout: { ...n.layout, x, y } };
+        });
+        commitNodes(next);
+        const after = before.map((s) => {
+          const n = next.find((x) => x.id === s.nodeId)!;
+          return snapshotOf(n);
+        });
+        history.push({ type: "layout", before, after });
+        for (const n of next) {
+          if (!selectedRef.current.has(n.id)) continue;
+          if (n.loai === "connector" || n.loai === "frame") continue;
+          persistNodeLayout(n);
+        }
+        emitSelection();
+      },
+      [commitNodes, emitSelection, history, persistNodeLayout],
+    );
+
+    const reorderSelectionLayer = useCallback(
+      (direction: SelectionLayerMode) => {
+        if (lockedRef.current) return;
+
+        const buildPoolPatch = (isFrame: boolean) => {
+          const filter = isFrame
+            ? (n: BoardNode) => n.loai === "frame"
+            : (n: BoardNode) =>
+                n.loai !== "frame" && n.loai !== "connector";
+          const pool = nodesRef.current.filter(filter);
+          const selIds = new Set(
+            pool
+              .filter((n) => selectedRef.current.has(n.id))
+              .map((n) => n.id),
+          );
+          if (selIds.size === 0) return null;
+          return computeLayerReorder(pool, selIds, direction);
+        };
+
+        const framePatches = buildPoolPatch(true);
+        const cardPatches = buildPoolPatch(false);
+        if (!framePatches && !cardPatches) return;
+
+        const allPatchIds = new Set<string>();
+        for (const patches of [framePatches, cardPatches]) {
+          if (!patches) continue;
+          for (const id of patches.keys()) allPatchIds.add(id);
+        }
+
+        const before = nodesRef.current
+          .filter((n) => allPatchIds.has(n.id))
+          .map(snapshotOf);
+
+        const next = nodesRef.current.map((n) => {
+          const z = framePatches?.get(n.id) ?? cardPatches?.get(n.id);
+          if (z === undefined) return n;
+          return { ...n, layout: { ...n.layout, z } };
+        });
+
+        commitNodes(next);
+        const after = before.map((s) => {
+          const node = next.find((x) => x.id === s.nodeId)!;
+          return snapshotOf(node);
+        });
+        history.push({ type: "layout", before, after });
+        zCounterRef.current =
+          Math.max(0, ...next.map((n) => n.layout.z ?? 0)) + 1;
+        for (const n of next) {
+          if (allPatchIds.has(n.id)) persistNodeLayout(n);
+        }
+        emitSelection();
+      },
+      [commitNodes, emitSelection, history, persistNodeLayout],
     );
 
     const patchSelectedWires = useCallback(
@@ -2158,6 +2536,12 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
           return;
         }
 
+        if (toolRef.current === "text" && !lockedRef.current) {
+          e.preventDefault();
+          void addTextAtPage(pageFromClient(e.clientX, e.clientY));
+          return;
+        }
+
         // Nền trống → marquee.
         const start = pageFromClient(e.clientX, e.clientY);
         gestureRef.current = {
@@ -2170,7 +2554,7 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
         if (!e.shiftKey) setSelection(new Set());
         (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
       },
-      [pageFromClient, setSelection],
+      [addTextAtPage, pageFromClient, setSelection],
     );
 
     const onRootPointerMove = useCallback(
@@ -2215,9 +2599,21 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
 
         if (g.type === "wire") {
           const p = pageFromClient(e.clientX, e.clientY);
-          setWireDraft((prev) =>
-            prev ? { ...prev, x: p.x, y: p.y } : prev,
+          const snapDist = WIRE_PORT_SNAP_DIST / cameraRef.current.z;
+          const snap = resolveWirePortSnap(
+            nodesRef.current,
+            p,
+            g.fromId,
+            snapDist,
           );
+          setWireDraft({
+            fromId: g.fromId,
+            fromSide: g.fromSide,
+            x: snap?.point.x ?? p.x,
+            y: snap?.point.y ?? p.y,
+            targetId: snap?.nodeId ?? null,
+            toSide: snap?.side,
+          });
           return;
         }
 
@@ -2289,9 +2685,61 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
 
           const endId =
             g.handle === "from" ? wire.layout.from : wire.layout.to;
+          const otherId =
+            g.handle === "from" ? wire.layout.to : wire.layout.from;
+          const snapDist = WIRE_PORT_SNAP_DIST / cameraRef.current.z;
+          const snap = findWirePortSnap(
+            wirePortCandidates(nodesRef.current),
+            p,
+            {
+              excludeIds: otherId ? [otherId] : [],
+              maxDist: snapDist,
+            },
+          );
+          const hitSnap =
+            snap ??
+            (() => {
+              const hit = hitNodeAt(nodesRef.current, p, otherId ?? undefined);
+              if (!hit || hit.id === otherId) return null;
+              const port = nearestWirePort(nodeRect(hit), p);
+              return {
+                nodeId: hit.id,
+                side: port.side,
+                offset: port.offset,
+                point: port.point,
+              };
+            })();
+          if (hitSnap && hitSnap.nodeId !== otherId) {
+            commitNodes(
+              nodesRef.current.map((n) => {
+                if (n.id !== g.wireId) return n;
+                if (g.handle === "from") {
+                  return {
+                    ...n,
+                    layout: {
+                      ...n.layout,
+                      from: hitSnap.nodeId,
+                      wireFromSide: hitSnap.side,
+                      wireFromOffset: hitSnap.offset,
+                    },
+                  };
+                }
+                return {
+                  ...n,
+                  layout: {
+                    ...n.layout,
+                    to: hitSnap.nodeId,
+                    wireToSide: hitSnap.side,
+                    wireToOffset: hitSnap.offset,
+                  },
+                };
+              }),
+            );
+            return;
+          }
           const endNode = endId ? byId(endId) : null;
           if (!endNode) return;
-          const att = nearestEdgeAttachment(nodeRect(endNode), p);
+          const port = nearestWirePort(nodeRect(endNode), p);
           commitNodes(
             nodesRef.current.map((n) => {
               if (n.id !== g.wireId) return n;
@@ -2300,8 +2748,8 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
                   ...n,
                   layout: {
                     ...n.layout,
-                    wireFromSide: att.side,
-                    wireFromOffset: att.offset,
+                    wireFromSide: port.side,
+                    wireFromOffset: port.offset,
                   },
                 };
               }
@@ -2309,8 +2757,8 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
                 ...n,
                 layout: {
                   ...n.layout,
-                  wireToSide: att.side,
-                  wireToOffset: att.offset,
+                  wireToSide: port.side,
+                  wireToOffset: port.offset,
                 },
               };
             }),
@@ -2477,16 +2925,20 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
         }
 
         if (g.type === "wire") {
-          // Thả lên node nào (trên cùng trước) → tạo connector tới node đó.
           const p = pageFromClient(e.clientX, e.clientY);
-          const hit = hitNodeAt(nodesRef.current, p, g.fromId);
-          if (hit) {
-            const att = nearestEdgeAttachment(nodeRect(hit), p);
-            void createWire(g.fromId, hit.id, {
+          const snapDist = WIRE_PORT_SNAP_DIST / cameraRef.current.z;
+          const snap = resolveWirePortSnap(
+            nodesRef.current,
+            p,
+            g.fromId,
+            snapDist,
+          );
+          if (snap) {
+            void createWire(g.fromId, snap.nodeId, {
               fromSide: g.fromSide,
               fromOffset: 0.5,
-              toSide: att.side,
-              toOffset: att.offset,
+              toSide: snap.side,
+              toOffset: snap.offset,
             });
           }
           return;
@@ -2657,6 +3109,10 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
             setTool("draw");
             return;
           }
+          if (e.key.toLowerCase() === "t") {
+            setTool("text");
+            return;
+          }
         }
         if ((e.ctrlKey || e.metaKey) && (e.key === "=" || e.key === "+")) {
           e.preventDefault();
@@ -2674,7 +3130,7 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
           return;
         }
         if (e.key === "Escape") {
-          if (toolRef.current === "draw") {
+          if (toolRef.current === "draw" || toolRef.current === "text") {
             setTool("select");
             return;
           }
@@ -3034,6 +3490,7 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
         zoomOut,
         zoomReset,
         zoomToFit,
+        autoLayout,
         undo,
         redo,
       }),
@@ -3059,6 +3516,7 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
         zoomOut,
         zoomReset,
         zoomToFit,
+        autoLayout,
       ],
     );
 
@@ -3113,9 +3571,24 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
         Boolean(normalizeShapeKind(n.layout.shapeKind)),
       );
       const canGroup = !selFrame && cards.length >= 2;
-      const hasSticky = cards.some(
+      const canAlign = canGroup;
+      const cardPoolCount = nodes.filter(
+        (n) => n.loai !== "frame" && n.loai !== "connector",
+      ).length;
+      const framePoolCount = nodes.filter((n) => n.loai === "frame").length;
+      const layerTargets = selectedNodes.filter((n) => n.loai !== "connector");
+      const canLayerOrder =
+        layerTargets.length >= 1 &&
+        ((layerTargets.some((n) => n.loai !== "frame") &&
+          cardPoolCount >= 2) ||
+          (layerTargets.some((n) => n.loai === "frame") &&
+            framePoolCount >= 2));
+      const hasTextBlock = cards.some(isTextStickyNode);
+      const hasStickyNote = cards.some(
         (n) =>
-          n.loai === "sticky" && !normalizeShapeKind(n.layout.shapeKind),
+          n.loai === "sticky" &&
+          !normalizeShapeKind(n.layout.shapeKind) &&
+          !isTextStickyNode(n),
       );
       const hasShape = selectedShapes.length > 0;
       const showWireOptions =
@@ -3163,13 +3636,25 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
       const flip = topScreen < 56;
       const y = flip ? (maxY + camera.y) * camera.z + 10 : topScreen - 10;
 
-      const palette = selFrame ? GROUP_PALETTE : STICKY_PALETTE;
+      const palette = selFrame
+        ? GROUP_PALETTE
+        : hasTextBlock && !hasStickyNote && !hasShape
+          ? TEXT_COLOR_PALETTE
+          : STICKY_PALETTE;
       const activeColor = selFrame
         ? (selFrame.layout.mau ?? GROUP_PALETTE[0])
-        : cards.find((n) => n.loai === "sticky")?.layout.mau;
+        : hasTextBlock && !hasStickyNote && !hasShape
+          ? (cards.find(isTextStickyNode)?.layout.textColor ??
+            DEFAULT_TEXT_COLOR)
+          : cards.find((n) => n.loai === "sticky")?.layout.mau;
       const customActive =
         Boolean(activeColor) &&
         !isPresetPaletteColor(activeColor, palette);
+      const showTextOptions =
+        hasTextBlock && !hasStickyNote && !hasShape && !selFrame;
+      const activeTextSize = showTextOptions
+        ? normalizeTextSize(cards.find(isTextStickyNode)?.layout.textSize)
+        : null;
 
       return (
         <div
@@ -3193,16 +3678,18 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
               onKeyDown={(e) => e.stopPropagation()}
             />
           ) : null}
-          {selFrame || hasSticky || hasShape ? (
+          {selFrame || hasStickyNote || hasTextBlock || hasShape ? (
             <div
               className="cins-canvas-palette"
               role="group"
               aria-label={
                 selFrame
                   ? "Màu nền nhóm"
-                  : hasShape && !hasSticky
-                    ? "Màu hình"
-                    : "Màu ghi chú"
+                  : hasTextBlock && !hasStickyNote && !hasShape
+                    ? "Màu chữ"
+                    : hasShape && !hasStickyNote
+                      ? "Màu hình"
+                      : "Màu ghi chú"
               }
             >
               {palette.map((color) => (
@@ -3219,11 +3706,22 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
                   onClick={() => applyColorToSelection(color)}
                 />
               ))}
-              <CustomColorSwatch
-                value={activeColor ?? (selFrame ? "#1f74c9" : STICKY_PALETTE[0]!)}
+              <CanvasColorWheelInput
+                value={
+                  activeColor ??
+                  (selFrame
+                    ? "#1f74c9"
+                    : hasTextBlock && !hasStickyNote && !hasShape
+                      ? DEFAULT_TEXT_COLOR
+                      : STICKY_PALETTE[0]!)
+                }
                 isActive={customActive}
                 ariaLabel={
-                  selFrame ? "Màu nhóm tùy chọn" : "Màu tùy chọn"
+                  selFrame
+                    ? "Màu nhóm tùy chọn"
+                    : hasTextBlock && !hasStickyNote && !hasShape
+                      ? "Màu chữ tùy chọn"
+                      : "Màu tùy chọn"
                 }
                 onPick={(hex) =>
                   applyColorToSelection(
@@ -3231,6 +3729,30 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
                   )
                 }
               />
+            </div>
+          ) : null}
+          {showTextOptions ? (
+            <div
+              className="cins-board-wire-opts"
+              role="group"
+              aria-label="Cỡ chữ"
+            >
+              {TEXT_SIZE_PRESETS.map((size) => (
+                <button
+                  key={size}
+                  type="button"
+                  className={
+                    "cins-board-wire-opt cins-board-text-size-opt" +
+                    (activeTextSize === size ? " is-active" : "")
+                  }
+                  title={`Cỡ chữ ${size}px`}
+                  aria-label={`Cỡ chữ ${size}px`}
+                  aria-pressed={activeTextSize === size}
+                  onClick={() => applyTextSizeToSelection(size)}
+                >
+                  {size}
+                </button>
+              ))}
             </div>
           ) : null}
           {hasShape && !selFrame ? (
@@ -3305,16 +3827,70 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
               </div>
             </>
           ) : null}
-          {canGroup ? (
-            <button
-              type="button"
-              className="cins-canvas-tool-btn"
-              onClick={() => void groupSelection(GROUP_PALETTE[0]!)}
-              title="Gom các mục đã chọn thành một nhóm"
+          {canLayerOrder ? (
+            <div
+              className="cins-board-selbar-group"
+              role="group"
+              aria-label="Lớp"
             >
-              <Group size={14} strokeWidth={1.9} aria-hidden />
-              Nhóm
-            </button>
+              <div
+                className="cins-board-wire-opts"
+                role="group"
+                aria-label="Thứ tự lớp"
+              >
+                {SELECTION_LAYER_ACTIONS.map(({ mode, label, Icon }) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    className="cins-board-wire-opt"
+                    title={label}
+                    aria-label={label}
+                    onClick={() => reorderSelectionLayer(mode)}
+                  >
+                    <Icon size={14} strokeWidth={1.9} aria-hidden />
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+          {canAlign || canGroup ? (
+            <div
+              className="cins-board-selbar-group"
+              role="group"
+              aria-label="Sắp xếp"
+            >
+              {canAlign ? (
+                <div
+                  className="cins-board-wire-opts"
+                  role="group"
+                  aria-label="Căn chỉnh"
+                >
+                  {SELECTION_ALIGN_ACTIONS.map(({ mode, label, Icon }) => (
+                    <button
+                      key={mode}
+                      type="button"
+                      className="cins-board-wire-opt"
+                      title={label}
+                      aria-label={label}
+                      onClick={() => alignSelection(mode)}
+                    >
+                      <Icon size={14} strokeWidth={1.9} aria-hidden />
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+              {canGroup ? (
+                <button
+                  type="button"
+                  className="cins-canvas-tool-btn cins-canvas-tool-btn--icon"
+                  onClick={() => void groupSelection(GROUP_PALETTE[0]!)}
+                  title="Gom các mục đã chọn thành một nhóm"
+                  aria-label="Nhóm"
+                >
+                  <Group size={14} strokeWidth={1.9} aria-hidden />
+                </button>
+              ) : null}
+            </div>
           ) : null}
           {selFrame ? (
             <button
@@ -3347,6 +3923,7 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
           "cins-board" +
           (panning || spaceHeld || tool === "pan" ? " is-panning" : "") +
           (tool === "draw" ? " is-drawing" : "") +
+          (tool === "text" ? " is-text-tool" : "") +
           (locked ? " is-locked" : "") +
           (wireDraft ? " is-wiring" : "")
         }
@@ -3366,7 +3943,8 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
           <div className="cins-board-empty" aria-hidden>
             <p>Canvas trống — bắt đầu bằng cách:</p>
             <ul>
-              <li>Bấm icon ghi chú / chữ / hình / bảng trên thanh công cụ</li>
+              <li>Bấm icon ghi chú / hình / bảng trên thanh công cụ</li>
+              <li>Chọn công cụ chữ (T) rồi bấm trên canvas để đặt khối chữ</li>
               <li>Chọn bút vẽ (D) rồi kéo trên nền trống để vẽ tự do</li>
               <li>Kéo ảnh từ máy vào đây, hoặc dán ảnh (Ctrl+V)</li>
               <li>Trong tin nhắn có ảnh/link: menu ⋯ → «Thêm vào canvas»</li>
@@ -3413,13 +3991,6 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
                 wireRouteOptsFromLayout(w.layout),
               );
               const selected = selectedIds.has(w.id);
-              const guidePts = [
-                path.from,
-                ...(path.anchors.length > 0
-                  ? path.anchors
-                  : [{ x: path.mid.x, y: path.mid.y }]),
-                path.to,
-              ];
               const showLegacyMid =
                 selected && !locked && path.anchors.length === 0;
               return (
@@ -3540,19 +4111,6 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
                   />
                   {selected && !locked ? (
                     <g className="cins-board-wire-anchors">
-                      {guidePts.slice(0, -1).map((pt, i) => {
-                        const next = guidePts[i + 1]!;
-                        return (
-                          <line
-                            key={`g-${i}`}
-                            className="cins-board-wire-guide"
-                            x1={pt.x}
-                            y1={pt.y}
-                            x2={next.x}
-                            y2={next.y}
-                          />
-                        );
-                      })}
                       <circle
                         className="cins-board-wire-anchor"
                         cx={path.from.x}
@@ -3620,14 +4178,15 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
               ? (() => {
                   const from = nodes.find((x) => x.id === wireDraft.fromId);
                   if (!from) return null;
-                  const hover = hitNodeAt(
-                    nodes,
-                    { x: wireDraft.x, y: wireDraft.y },
-                    wireDraft.fromId,
-                  );
+                  const target = wireDraft.targetId
+                    ? nodes.find((x) => x.id === wireDraft.targetId)
+                    : null;
                   const draftOpts = {
                     fromSide: wireDraft.fromSide,
                     fromOffset: 0.5,
+                    ...(wireDraft.toSide
+                      ? { toSide: wireDraft.toSide, toOffset: 0.5 }
+                      : {}),
                   };
                   return (
                     <path
@@ -3635,7 +4194,7 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
                       d={wirePathDraft(
                         nodeRect(from),
                         { x: wireDraft.x, y: wireDraft.y },
-                        hover ? nodeRect(hover) : null,
+                        target ? nodeRect(target) : null,
                         "curve",
                         draftOpts,
                       )}
@@ -3672,7 +4231,8 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
                   `cins-board-node cins-canvas-shape cins-canvas-shape--${node.loai}` +
                   (selected ? " is-selected" : "") +
                   (highlightIds.has(node.id) ? " is-highlight" : "") +
-                  (isComment ? " is-comment" : "")
+                  (isComment ? " is-comment" : "") +
+                  (wireDraft?.targetId === node.id ? " is-wire-target" : "")
                 }
                 style={{
                   transform: `translate(${r.x}px, ${r.y}px)`,
@@ -3683,8 +4243,11 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
                   if (e.button !== 0 || spaceHeldRef.current) return;
                   // Tool bàn tay: node không nuốt event — root pan.
                   if (toolRef.current === "pan") return;
-                  // Tool vẽ: nền trống mới vẽ — click node vẫn chọn/kéo.
-                  if (toolRef.current === "draw") {
+                  // Tool vẽ/chữ: nền trống mới tạo — click node vẫn chọn/kéo.
+                  if (
+                    toolRef.current === "draw" ||
+                    toolRef.current === "text"
+                  ) {
                     e.stopPropagation();
                     startMove(e, node.id);
                     return;
