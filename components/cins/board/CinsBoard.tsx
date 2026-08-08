@@ -1074,7 +1074,7 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
         const before = layoutable.map(snapshotOf);
         const next = applyAutoLayout(current);
         commitNodes(next);
-        const after = layoutable.map((s) => {
+        const after = before.map((s) => {
           const n = next.find((x) => x.id === s.nodeId)!;
           return snapshotOf(n);
         });
