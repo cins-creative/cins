@@ -27,14 +27,13 @@ import {
 } from "@/lib/video/upload-tus";
 import { ShopKhoLoaiTaxonomy } from "@/components/shop/ShopKhoLoaiTaxonomy";
 import { parseGiaInput } from "@/lib/shop/gia-input";
-import type { ShopNhom, ShopSanPham } from "@/lib/shop/types";
+import type { ShopNhom } from "@/lib/shop/types";
 import {
   SHOP_NHOM_ANH_PHU_MAX,
   SHOP_NHOM_FEATURE_MAX,
   SHOP_NHOM_MO_TA_MAX,
 } from "@/lib/shop/types";
 
-import { ShopKhoShopeeImportButton } from "./ShopKhoShopeeImport";
 import { ShopNhomMoTaField } from "./ShopNhomMoTaField";
 
 const MAX_SHOP_VIDEO_BYTES = 500 * 1024 * 1024;
@@ -62,11 +61,6 @@ type Props = {
   onOpenOrphans: () => void;
   onNhomsChanged: (next: ShopNhom[]) => void;
   onError: (msg: string | null) => void;
-  /** Sau import Shopee: cập nhật kho + mở loại vừa tạo. */
-  onShopeeImported?: (payload: {
-    nhom: ShopNhom;
-    products: ShopSanPham[];
-  }) => void;
 };
 
 export function ShopKhoLoaiHub({
@@ -78,7 +72,6 @@ export function ShopKhoLoaiHub({
   onOpenOrphans,
   onNhomsChanged,
   onError,
-  onShopeeImported,
 }: Props) {
   const loaiList = nhoms.filter((n) => n.truc === 1);
   const featureCount = loaiList.filter((n) => n.noiBat).length;
@@ -237,25 +230,6 @@ export function ShopKhoLoaiHub({
           </p>
         </div>
         <div className="shop-kho-loai-hub-actions">
-          <ShopKhoShopeeImportButton
-            disabled={busy || creating}
-            onError={onError}
-            onImported={(payload) => {
-              const item = payload.nhom;
-              const next = [
-                ...loaiList.filter((n) => n.id !== item.id),
-                item,
-              ].sort((a, b) => a.nhan.localeCompare(b.nhan, "vi"));
-              const truc2 = nhoms.filter((n) => n.truc === 2);
-              onNhomsChanged([...next, ...truc2]);
-              if (payload.stayOnList) return;
-              if (onShopeeImported) {
-                onShopeeImported(payload);
-              } else {
-                onOpenNhom(item.id);
-              }
-            }}
-          />
           <button
             type="button"
             className="shop-dash-kho-edit-btn"

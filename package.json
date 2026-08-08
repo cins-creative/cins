@@ -80,7 +80,6 @@
     "migrate:khoa-ma": "node scripts/run-org-khoa-hoc-ma-migration.mjs",
     "autopilot": "node tools/autopilot/cli.mjs",
     "pack:tro-ly-ext": "node scripts/pack-tro-ly-extension.mjs",
-    "pack:shopee-ext": "node scripts/pack-shopee-extension.mjs",
     "pack:behance-ext": "node scripts/pack-behance-extension.mjs",
     "pack:pixiv-ext": "node scripts/pack-pixiv-extension.mjs",
     "migrate:cins-hoa-don-khieu-nai": "node scripts/run-cins-hoa-don-khieu-nai-migration.mjs",

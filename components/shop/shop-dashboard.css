@@ -1,4 +1,4 @@
-/* Nền trơn cho trang quản lý kho / đơn */
+﻿/* Ná»n trÆ¡n cho trang quáº£n lÃ½ kho / Ä‘Æ¡n */
 .cins-shell-column:has(.shop-dash),
 .cins-shell-column:has(.shop-dash-loading),
 .cins-main:has(.shop-dash),
@@ -6,7 +6,7 @@
   background: var(--bg-page, #f4f5f8);
 }
 
-/* Kho/đơn: cột + main fill viewport — scroll nằm trong card/grid. */
+/* Kho/Ä‘Æ¡n: cá»™t + main fill viewport â€” scroll náº±m trong card/grid. */
 .cins-shell-column:has(> .cins-main > .shop-dash),
 .cins-shell-column:has(> .cins-main > .shop-dash-loading) {
   height: 100vh;
@@ -35,8 +35,8 @@
   flex-direction: column;
   gap: 0;
   overflow: hidden;
-  /* Container cho 2 cụm header + toolbar — responsive theo bề rộng shell,
-     không lệ thuộc viewport khi sidebar co/mở. */
+  /* Container cho 2 cá»¥m header + toolbar â€” responsive theo bá» rá»™ng shell,
+     khÃ´ng lá»‡ thuá»™c viewport khi sidebar co/má»Ÿ. */
   container: shopdash / inline-size;
   font-family: var(--font-sans);
   background: var(--bg-page, #f4f5f8);
@@ -61,7 +61,7 @@
   min-width: 0;
 }
 
-/* Banner gate phí nền tảng shop (/ban-hang) */
+/* Banner gate phÃ­ ná»n táº£ng shop (/ban-hang) */
 .shop-phi-banner {
   display: flex;
   flex-wrap: wrap;
@@ -112,7 +112,7 @@
   color: #fca5a5;
 }
 
-/* Kho / đơn: khóa khung, scroll trong grid. */
+/* Kho / Ä‘Æ¡n: khÃ³a khung, scroll trong grid. */
 .shop-dash:has(.shop-dash-body > .shop-dash-card),
 .shop-dash:has(.shop-dash-body > .shop-grid-wrap) {
   overflow: hidden;
@@ -123,7 +123,7 @@
   overflow: hidden;
 }
 
-/* Kho có toolbar: scroll cả trang — bảng xổ hết, không khóa trong grid. */
+/* Kho cÃ³ toolbar: scroll cáº£ trang â€” báº£ng xá»• háº¿t, khÃ´ng khÃ³a trong grid. */
 .shop-dash:has(.shop-dash-card .shop-kho-toolbar) {
   overflow: hidden;
 }
@@ -149,13 +149,13 @@
   top: auto;
 }
 
-/* Hub loại hàng: không có toolbar — scroll trong card, tabs giữ cố định. */
+/* Hub loáº¡i hÃ ng: khÃ´ng cÃ³ toolbar â€” scroll trong card, tabs giá»¯ cá»‘ Ä‘á»‹nh. */
 .shop-dash:has(.shop-dash-card .shop-kho-loai-hub) .shop-dash-card {
   overflow: auto;
   -webkit-overflow-scrolling: touch;
 }
 
-/* Combo / voucher: scroll trong body — card xổ nội dung (mobile). */
+/* Combo / voucher: scroll trong body â€” card xá»• ná»™i dung (mobile). */
 .shop-dash:has(.shop-uu-dai-panel) .shop-dash-body {
   overflow: auto;
   -webkit-overflow-scrolling: touch;
@@ -204,7 +204,7 @@
   min-width: 0;
 }
 
-/* Icon cửa hàng + Hiển thị / Tạm đóng — portal vào #app-topbar .tb-left */
+/* Icon cá»­a hÃ ng + Hiá»ƒn thá»‹ / Táº¡m Ä‘Ã³ng â€” portal vÃ o #app-topbar .tb-left */
 .shop-dash-topbar-controls {
   display: inline-flex;
   align-items: center;
@@ -275,7 +275,7 @@
   background: var(--bg-surface, #fff);
 }
 
-/* Toggle con trong cụm: bỏ viền riêng, dùng chung nền của cụm. */
+/* Toggle con trong cá»¥m: bá» viá»n riÃªng, dÃ¹ng chung ná»n cá»§a cá»¥m. */
 .shop-dash-head-toggles .shop-dash-visible {
   border: 0;
   background: transparent;
@@ -287,7 +287,7 @@
   justify-content: center;
 }
 
-/* Vạch ngăn giữa Hiển thị và Tạm đóng. */
+/* Váº¡ch ngÄƒn giá»¯a Hiá»ƒn thá»‹ vÃ  Táº¡m Ä‘Ã³ng. */
 .shop-dash-head-toggles > * + * {
   border-left: 1px solid var(--border, #e4e6eb);
 }
@@ -691,7 +691,7 @@
 .shop-kho-nhom-backdrop {
   position: fixed;
   inset: 0;
-  /* Portal — trên topbar (200) / sidebar (210) và popover nav (~250) */
+  /* Portal â€” trÃªn topbar (200) / sidebar (210) vÃ  popover nav (~250) */
   z-index: 12500;
   display: flex;
   align-items: center;
@@ -904,7 +904,7 @@
   overflow: auto;
 }
 
-/* Bộ lọc thẻ: chỉ chữ đơn, không ảnh / mô tả */
+/* Bá»™ lá»c tháº»: chá»‰ chá»¯ Ä‘Æ¡n, khÃ´ng áº£nh / mÃ´ táº£ */
 .shop-kho-nhom-list--tags {
   gap: 4px;
   max-height: min(42vh, 340px);
@@ -1216,657 +1216,6 @@
   justify-content: flex-end;
 }
 
-.shop-shopee-import-trigger {
-  border-color: color-mix(in srgb, var(--cins-orange, #fdad4c) 55%, var(--border, #e2e8f0));
-  color: color-mix(in srgb, var(--ink-display, #0f172a) 88%, var(--cins-orange, #fdad4c));
-}
-
-.shop-shopee-import-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 13000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-  background: rgba(15, 23, 42, 0.45);
-}
-
-.shop-shopee-import-modal {
-  width: min(520px, 100%);
-  max-height: 90vh;
-  overflow: auto;
-  border-radius: 16px;
-  background: var(--bg-surface, #fff);
-  color: var(--ink, #0f172a);
-  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.22);
-  padding: 18px 18px 16px;
-}
-
-.shop-shopee-import-modal.is-wide {
-  width: min(640px, 100%);
-}
-
-.shop-shopee-import-ext-shared {
-  margin: 8px 0 0;
-  font-size: 0.82rem;
-  color: var(--ink-muted);
-  line-height: 1.4;
-}
-
-.shop-shopee-import-ext-guide {
-  margin: 8px 0 0;
-  font-size: 0.82rem;
-  color: var(--ink-muted);
-  line-height: 1.4;
-}
-
-.shop-shopee-import-tabs {
-  display: flex;
-  gap: 4px;
-  margin: 12px 0 10px;
-  padding: 3px;
-  border-radius: 10px;
-  background: var(--bg-muted, #f1f5f9);
-}
-
-.shop-shopee-import-tab {
-  flex: 1;
-  border: 0;
-  border-radius: 8px;
-  padding: 8px 10px;
-  font: inherit;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--ink-muted);
-  background: transparent;
-  cursor: pointer;
-}
-
-.shop-shopee-import-tab.is-active {
-  background: var(--bg-surface, #fff);
-  color: var(--ink, #0f172a);
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
-}
-
-.shop-shopee-import-tab:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-.shop-shopee-import-summary {
-  margin: 10px 0 0;
-  font-size: 0.88rem;
-  font-weight: 600;
-  color: color-mix(in srgb, var(--ink, #0f172a) 80%, #15803d);
-}
-
-.shop-shopee-import-progress {
-  margin-top: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.shop-shopee-import-progress-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.82rem;
-  color: var(--ink-muted);
-}
-
-.shop-shopee-import-progress-bar {
-  height: 6px;
-  border-radius: 999px;
-  background: var(--bg-muted, #e2e8f0);
-  overflow: hidden;
-}
-
-.shop-shopee-import-progress-bar > span {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: var(--cins-orange, #fdad4c);
-  transition: width 0.2s ease;
-}
-
-.shop-shopee-import-scan {
-  margin-top: 14px;
-}
-
-.shop-shopee-import-scan-card {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px;
-  border: 1px solid var(--border, #e2e8f0);
-  border-radius: 12px;
-  background: var(--bg-muted, #f8fafc);
-}
-
-.shop-shopee-import-scan-thumbs {
-  display: flex;
-  flex-shrink: 0;
-}
-
-.shop-shopee-import-scan-thumb {
-  width: 44px;
-  height: 44px;
-  border-radius: 8px;
-  object-fit: cover;
-  background: #e2e8f0;
-  border: 2px solid var(--bg-surface, #fff);
-  flex-shrink: 0;
-}
-
-.shop-shopee-import-scan-thumb:not(:first-child) {
-  margin-left: -14px;
-}
-
-.shop-shopee-import-scan-thumb.is-empty {
-  display: inline-block;
-}
-
-.shop-shopee-import-scan-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-  flex: 1;
-}
-
-.shop-shopee-import-scan-name {
-  font-size: 0.82rem;
-  font-weight: 600;
-  line-height: 1.3;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.shop-shopee-import-scan-count {
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: var(--brand, #2563eb);
-}
-
-.shop-shopee-import-scan-toggle {
-  flex-shrink: 0;
-  border: 1px solid var(--border, #e2e8f0);
-  background: var(--bg-surface, #fff);
-  border-radius: 8px;
-  padding: 6px 12px;
-  font-size: 0.78rem;
-  font-weight: 600;
-  cursor: pointer;
-  color: inherit;
-}
-
-.shop-shopee-import-scan-toggle:hover {
-  background: var(--bg-muted, #f1f5f9);
-}
-
-.shop-shopee-import-scan .shop-shopee-import-shop {
-  margin-top: 10px;
-}
-
-.shop-shopee-import-shop {
-  margin-top: 14px;
-  border: 1px solid var(--border, #e2e8f0);
-  border-radius: 12px;
-  overflow: hidden;
-  background: var(--bg-muted, #f8fafc);
-}
-
-.shop-shopee-import-shop-head {
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--border, #e2e8f0);
-  background: var(--bg-surface, #fff);
-}
-
-.shop-shopee-import-shop-all {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.82rem;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.shop-shopee-import-shop-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  max-height: min(42vh, 360px);
-  overflow: auto;
-}
-
-.shop-shopee-import-shop-row {
-  border-bottom: 1px solid var(--border, #e2e8f0);
-}
-
-.shop-shopee-import-shop-row:last-child {
-  border-bottom: 0;
-}
-
-.shop-shopee-import-shop-row.is-ok {
-  background: color-mix(in srgb, #15803d 8%, transparent);
-}
-
-.shop-shopee-import-shop-row.is-fail {
-  background: color-mix(in srgb, #b91c1c 8%, transparent);
-}
-
-.shop-shopee-import-shop-row.is-skip {
-  opacity: 0.55;
-}
-
-.shop-shopee-import-shop-row label {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
-  cursor: pointer;
-}
-
-.shop-shopee-import-shop-thumb {
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
-  object-fit: cover;
-  flex-shrink: 0;
-  background: #e2e8f0;
-}
-
-.shop-shopee-import-shop-thumb.is-empty {
-  display: inline-block;
-}
-
-.shop-shopee-import-shop-meta {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.shop-shopee-import-shop-name {
-  font-size: 0.82rem;
-  font-weight: 600;
-  line-height: 1.3;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.shop-shopee-import-shop-price {
-  font-size: 0.75rem;
-  color: var(--ink-muted);
-}
-
-.shop-shopee-import-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 8px;
-}
-
-.shop-shopee-import-head h2 {
-  margin: 0;
-  font-size: 1.05rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.shop-shopee-import-close {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border: 0;
-  border-radius: 999px;
-  background: transparent;
-  color: var(--ink-muted);
-  cursor: pointer;
-}
-
-.shop-shopee-import-hint {
-  margin: 0 0 12px;
-  font-size: 0.88rem;
-  color: var(--ink-muted);
-  line-height: 1.45;
-}
-
-.shop-shopee-import-field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-
-.shop-shopee-import-field input {
-  font: inherit;
-  font-weight: 400;
-  padding: 10px 12px;
-  border: 1px solid var(--border, #e2e8f0);
-  border-radius: 10px;
-  background: var(--bg-muted, #f8fafc);
-}
-
-.shop-shopee-import-err {
-  margin: 10px 0 0;
-  color: #b91c1c;
-  font-size: 0.88rem;
-}
-
-.shop-shopee-import-preview {
-  margin-top: 14px;
-  padding: 12px;
-  border-radius: 12px;
-  border: 1px solid var(--border, #e2e8f0);
-  background: var(--bg-muted, #f8fafc);
-}
-
-.shop-shopee-import-preview-main {
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
-}
-
-.shop-shopee-import-thumb {
-  width: 72px;
-  height: 72px;
-  border-radius: 10px;
-  object-fit: cover;
-  flex-shrink: 0;
-  background: #e2e8f0;
-}
-
-.shop-shopee-import-thumb.is-empty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.7rem;
-  color: var(--ink-muted);
-  text-align: center;
-  padding: 6px;
-}
-
-.shop-shopee-import-nhan {
-  margin: 0 0 4px;
-  font-weight: 700;
-  font-size: 0.95rem;
-}
-
-.shop-shopee-import-meta {
-  margin: 0;
-  font-size: 0.8rem;
-  color: var(--ink-muted);
-}
-
-.shop-shopee-import-mota {
-  margin: 8px 0 0;
-  font-size: 0.82rem;
-  white-space: pre-wrap;
-  line-height: 1.4;
-}
-
-.shop-shopee-import-warn {
-  margin: 10px 0 0;
-  padding-left: 18px;
-  font-size: 0.78rem;
-  color: #a16207;
-  line-height: 1.4;
-}
-
-.shop-shopee-import-maus {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 10px;
-}
-
-.shop-shopee-import-mau {
-  font-size: 0.75rem;
-  padding: 3px 8px;
-  border-radius: 999px;
-  background: var(--bg-surface, #fff);
-  border: 1px solid var(--border, #e2e8f0);
-}
-
-.shop-shopee-import-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  justify-content: flex-end;
-  margin-top: 16px;
-}
-
-.shop-shopee-import-primary {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 9px 14px;
-  border: 0;
-  border-radius: 10px;
-  background: var(--cins-orange, #fdad4c);
-  color: #1a1208;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.shop-shopee-import-primary:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-.shop-shopee-import-advanced {
-  margin-top: 12px;
-  font-size: 0.85rem;
-}
-
-.shop-shopee-import-advanced summary {
-  cursor: pointer;
-  color: var(--ink-muted);
-  font-weight: 600;
-}
-
-.shop-shopee-import-raw {
-  width: 100%;
-  margin-top: 8px;
-  font: inherit;
-  font-size: 0.78rem;
-  padding: 8px 10px;
-  border-radius: 10px;
-  border: 1px solid var(--border, #e2e8f0);
-  background: var(--bg-muted, #f8fafc);
-  resize: vertical;
-  box-sizing: border-box;
-}
-
-.shop-shopee-import-ext {
-  margin: 0 0 12px;
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid var(--border, #e2e8f0);
-  background: var(--bg-muted, #f8fafc);
-}
-
-.shop-shopee-import-ext.is-ready {
-  border-color: color-mix(in srgb, #16a34a 35%, var(--border, #e2e8f0));
-  background: color-mix(in srgb, #16a34a 8%, var(--bg-surface, #fff));
-}
-
-.shop-shopee-import-ext-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.shop-shopee-import-ext-label {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.shop-shopee-import-ext-step {
-  display: inline-block;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  color: var(--ink-muted);
-}
-
-.shop-shopee-import-ext-status {
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-
-.shop-shopee-import-ext-ok {
-  margin: 8px 0 0;
-  font-size: 0.8rem;
-  color: #15803d;
-}
-
-.shop-shopee-import-field > span {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.shop-shopee-import-ext-acts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.shop-shopee-import-ext-acts a.shop-dash-kho-edit-btn {
-  text-decoration: none;
-}
-
-.shop-shopee-import-ext-steps {
-  margin: 10px 0 0;
-  padding-left: 18px;
-  font-size: 0.8rem;
-  color: var(--ink-muted);
-  line-height: 1.45;
-}
-
-.shop-shopee-import-ext-steps code {
-  font-size: 0.78em;
-}
-
-:root[data-theme="dark"] .shop-shopee-import-backdrop {
-  background: rgba(0, 0, 0, 0.62);
-}
-
-:root[data-theme="dark"] .shop-shopee-import-modal {
-  background: var(--surface-raised, #1c1c1c);
-  color: var(--ink-body, #eee);
-  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.55);
-  border: 1px solid var(--border, #333);
-}
-
-:root[data-theme="dark"] .shop-shopee-import-head h2 {
-  color: var(--ink-display, rgba(255, 255, 255, 0.92));
-}
-
-:root[data-theme="dark"] .shop-shopee-import-close:hover {
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--ink-display, #fff);
-}
-
-:root[data-theme="dark"] .shop-shopee-import-field input,
-:root[data-theme="dark"] .shop-shopee-import-raw {
-  background: var(--bg-surface, #1a1a1a);
-  border-color: var(--border, #333);
-  color: var(--ink-body, #eee);
-}
-
-:root[data-theme="dark"] .shop-shopee-import-field input::placeholder {
-  color: var(--ink-muted, #888);
-}
-
-:root[data-theme="dark"] .shop-shopee-import-ext,
-:root[data-theme="dark"] .shop-shopee-import-preview {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: var(--border, #333);
-}
-
-:root[data-theme="dark"] .shop-shopee-import-ext.is-ready {
-  border-color: color-mix(in srgb, #22c55e 40%, var(--border, #333));
-  background: color-mix(in srgb, #22c55e 12%, var(--surface-raised, #1c1c1c));
-}
-
-:root[data-theme="dark"] .shop-shopee-import-tabs {
-  background: rgba(255, 255, 255, 0.06);
-}
-
-:root[data-theme="dark"] .shop-shopee-import-tab.is-active {
-  background: var(--surface-raised, #1c1c1c);
-  color: var(--ink-display, #eee);
-  box-shadow: none;
-}
-
-:root[data-theme="dark"] .shop-shopee-import-shop,
-:root[data-theme="dark"] .shop-shopee-import-shop-head,
-:root[data-theme="dark"] .shop-shopee-import-scan-card {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: var(--border, #333);
-}
-
-:root[data-theme="dark"] .shop-shopee-import-scan-toggle {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: var(--border, #333);
-}
-
-:root[data-theme="dark"] .shop-shopee-import-scan-thumb {
-  border-color: #1e1e1e;
-}
-
-:root[data-theme="dark"] .shop-shopee-import-shop-name {
-  color: var(--ink-display, #eee);
-}
-
-:root[data-theme="dark"] .shop-shopee-import-progress-bar {
-  background: rgba(255, 255, 255, 0.08);
-}
-
-:root[data-theme="dark"] .shop-shopee-import-ext-ok {
-  color: #4ade80;
-}
-
-:root[data-theme="dark"] .shop-shopee-import-thumb.is-empty,
-:root[data-theme="dark"] .shop-shopee-import-mau {
-  background: var(--bg-surface, #1a1a1a);
-  border-color: var(--border, #333);
-  color: var(--ink-muted, #aaa);
-}
-
-:root[data-theme="dark"] .shop-shopee-import-nhan {
-  color: var(--ink-display, rgba(255, 255, 255, 0.92));
-}
-
-:root[data-theme="dark"] .shop-shopee-import-err {
-  color: #f87171;
-}
-
-:root[data-theme="dark"] .shop-shopee-import-warn {
-  color: #fbbf24;
-}
-
-:root[data-theme="dark"] .shop-shopee-import-trigger {
-  color: color-mix(in srgb, var(--ink-display, #fff) 88%, var(--cins-orange, #fdad4c));
-}
 
 .shop-kho-loai-grid {
   list-style: none;
@@ -2814,7 +2163,7 @@
 
 .shop-kho-loai-meta-overlay-btn {
   width: 100%;
-  /* Checkerboard trong suốt kiểu Photoshop (ô vuông trắng / xám nhạt) */
+  /* Checkerboard trong suá»‘t kiá»ƒu Photoshop (Ã´ vuÃ´ng tráº¯ng / xÃ¡m nháº¡t) */
   background-color: #fff;
   background-image: repeating-conic-gradient(#ccc 0% 25%, #fff 0% 50%);
   background-size: 16px 16px;
@@ -3455,7 +2804,7 @@
   -webkit-overflow-scrolling: touch;
 }
 
-/* Đơn hàng: grid trong body */
+/* ÄÆ¡n hÃ ng: grid trong body */
 .shop-dash-body > .shop-grid-wrap {
   flex: 1 1 auto;
   min-height: 0;
@@ -3555,7 +2904,7 @@
   color: inherit;
 }
 
-/* Ô đã sửa trên dòng nguồn bulk — sẽ copy khi Áp dụng */
+/* Ã” Ä‘Ã£ sá»­a trÃªn dÃ²ng nguá»“n bulk â€” sáº½ copy khi Ãp dá»¥ng */
 .shop-grid-row td.shop-grid-cell--changed,
 .shop-grid-row.is-selected td.shop-grid-cell--changed,
 .shop-grid-row.is-selected:hover td.shop-grid-cell--changed,
@@ -3828,7 +3177,7 @@
   position: relative;
 }
 
-/* Cột đang mở filter nổi trên các th sticky kế bên */
+/* Cá»™t Ä‘ang má»Ÿ filter ná»•i trÃªn cÃ¡c th sticky káº¿ bÃªn */
 .shop-grid th.shop-grid-col-loai:has(.shop-grid-filter-btn.is-open) {
   z-index: 40;
 }
@@ -4098,7 +3447,7 @@
   background: var(--bg-surface, #fff);
 }
 
-/* Nút icon Lưu / Xóa — cùng size */
+/* NÃºt icon LÆ°u / XÃ³a â€” cÃ¹ng size */
 .shop-grid-actions button {
   display: inline-flex;
   align-items: center;
@@ -4133,7 +3482,7 @@
   background: #912018;
 }
 
-/* Nút Thêm trên dòng nhập mới */
+/* NÃºt ThÃªm trÃªn dÃ²ng nháº­p má»›i */
 .shop-grid-row--add .shop-grid-col-actions button {
   display: inline-flex;
   align-items: center;
@@ -5046,7 +4395,7 @@
   gap: 10px;
 }
 
-/* Bảng đơn kiểu spreadsheet — bấm hàng mở modal chi tiết */
+/* Báº£ng Ä‘Æ¡n kiá»ƒu spreadsheet â€” báº¥m hÃ ng má»Ÿ modal chi tiáº¿t */
 .shop-don-sheet {
   min-width: 892px;
 }
@@ -5115,7 +4464,7 @@
   text-align: left;
 }
 
-/* Aging: tuổi đơn cho_xac_nhan — nhắc seller đối soát / đơn quá hạn. */
+/* Aging: tuá»•i Ä‘Æ¡n cho_xac_nhan â€” nháº¯c seller Ä‘á»‘i soÃ¡t / Ä‘Æ¡n quÃ¡ háº¡n. */
 .shop-don-age {
   display: inline-block;
   margin-top: 3px;
@@ -5573,7 +4922,7 @@
   font-weight: 650;
 }
 
-/* Đơn: hàng công cụ (tab trạng thái trái + thao tác bulk phải). */
+/* ÄÆ¡n: hÃ ng cÃ´ng cá»¥ (tab tráº¡ng thÃ¡i trÃ¡i + thao tÃ¡c bulk pháº£i). */
 .shop-don-toolbar {
   flex: 0 0 auto;
   display: flex;
@@ -5601,7 +4950,7 @@
   scrollbar-width: thin;
 }
 
-/* Mobile: pipeline steps → dropdown (see @media max-width 720px) */
+/* Mobile: pipeline steps â†’ dropdown (see @media max-width 720px) */
 .shop-don-status-dropdown {
   display: none;
   position: relative;
@@ -5860,7 +5209,7 @@
   color: #b91c1c;
 }
 
-/* Thanh bulk inline trên bảng: slim khi chưa chọn, nở khi có chọn. */
+/* Thanh bulk inline trÃªn báº£ng: slim khi chÆ°a chá»n, ná»Ÿ khi cÃ³ chá»n. */
 .shop-don-bulk {
   flex: 0 0 auto;
   display: flex;
@@ -6123,7 +5472,7 @@
   background: color-mix(in srgb, var(--bg-page, #f4f5f8) 70%, #000);
 }
 
-/* Dropdown multi-select lọc loại hàng */
+/* Dropdown multi-select lá»c loáº¡i hÃ ng */
 .shop-don-prep-select {
   position: relative;
   flex: 0 0 auto;
@@ -6837,7 +6186,7 @@
   gap: 14px;
 }
 
-/* Sticky bar — reuse Journey `.j-tlb` (frost + streak từ cins-frost-sticky). */
+/* Sticky bar â€” reuse Journey `.j-tlb` (frost + streak tá»« cins-frost-sticky). */
 .shop-quay-panel {
   position: relative;
 }
@@ -6865,7 +6214,7 @@
   padding: 0 4px 0 2px;
 }
 
-/* Studio / cơ sở panel — dính dưới topbar + tab bar. */
+/* Studio / cÆ¡ sá»Ÿ panel â€” dÃ­nh dÆ°á»›i topbar + tab bar. */
 .tdh-page--v6 .shop-quay-tlb.j-tlb {
   top: calc(
     var(--site-nav-height, 64px) + var(--tdh-v6-tabs-h, 50px)
@@ -6878,7 +6227,7 @@
   padding-right: 28px;
 }
 
-/* Trang /su-kien/[id] — chỉ dưới site nav. */
+/* Trang /su-kien/[id] â€” chá»‰ dÆ°á»›i site nav. */
 .sk-detail .shop-quay-tlb.j-tlb {
   top: var(--site-nav-height, 64px);
 }
@@ -7015,7 +6364,7 @@
   transform: translateY(-50%);
 }
 
-/* Toggle 3 view — đủ dùng khi trang chưa nạp journey.css (vd. /su-kien). */
+/* Toggle 3 view â€” Ä‘á»§ dÃ¹ng khi trang chÆ°a náº¡p journey.css (vd. /su-kien). */
 .shop-quay-tlb .j-surface-view-toggle {
   display: inline-flex;
   background: transparent;
@@ -7073,7 +6422,7 @@
   transition: outline-color 0.2s ease;
 }
 
-/* Card đã duyệt = đúng khung Journey (không bọc dash-item). */
+/* Card Ä‘Ã£ duyá»‡t = Ä‘Ãºng khung Journey (khÃ´ng bá»c dash-item). */
 .shop-quay-review-card {
   display: block;
   margin: 0;
@@ -7371,7 +6720,7 @@
   accent-color: var(--cins-orange, #fdad4c);
 }
 
-/* Modal "Thêm hàng bán vào bài" — full màn hình để bảng giá có nhiều chỗ. */
+/* Modal "ThÃªm hÃ ng bÃ¡n vÃ o bÃ i" â€” full mÃ n hÃ¬nh Ä‘á»ƒ báº£ng giÃ¡ cÃ³ nhiá»u chá»—. */
 .shop-attach-backdrop {
   padding: 0;
 }
@@ -7535,7 +6884,7 @@
   flex-shrink: 0;
   font-size: 13px;
   font-weight: 700;
-  /* #fdad4c quá sáng trên nền trắng — mix như shop-kiosk-price */
+  /* #fdad4c quÃ¡ sÃ¡ng trÃªn ná»n tráº¯ng â€” mix nhÆ° shop-kiosk-price */
   color: color-mix(in srgb, var(--cins-orange, #fdad4c) 38%, #7a3f00);
   white-space: nowrap;
 }
@@ -7819,7 +7168,7 @@
   }
 }
 
-/* Xin / tham gia sự kiện — panel tab /ban-hang/su-kien */
+/* Xin / tham gia sá»± kiá»‡n â€” panel tab /ban-hang/su-kien */
 .shop-xin-quay-panel {
   padding: 0;
   overflow: hidden;
@@ -8628,11 +7977,11 @@
   color: #fca5a5;
 }
 
-/* ─── Shop dash responsive ───
- * Breakpoints (content width, sidebar ~64px từ ≥961px):
- *  · ≤1099 — tablet / laptop hẹp: tabs full width
- *  · ≤720  — phone ngang / hẹp: nhãn tab ngắn, ẩn text toggle (topbar)
- *  · ≤480  — phone dọc: padding/chạm gọn hơn
+/* â”€â”€â”€ Shop dash responsive â”€â”€â”€
+ * Breakpoints (content width, sidebar ~64px tá»« â‰¥961px):
+ *  Â· â‰¤1099 â€” tablet / laptop háº¹p: tabs full width
+ *  Â· â‰¤720  â€” phone ngang / háº¹p: nhÃ£n tab ngáº¯n, áº©n text toggle (topbar)
+ *  Â· â‰¤480  â€” phone dá»c: padding/cháº¡m gá»n hÆ¡n
  */
 @media (max-width: 1099px) {
   .shop-dash-tabs {
@@ -8689,7 +8038,7 @@
     gap: 0;
   }
 
-  /* Một hàng tab cuộn ngang — tránh wrap 2 tầng (~110px). */
+  /* Má»™t hÃ ng tab cuá»™n ngang â€” trÃ¡nh wrap 2 táº§ng (~110px). */
   .shop-dash-tabs {
     flex-wrap: nowrap;
     justify-content: flex-start;
@@ -8941,9 +8290,9 @@
   }
 }
 
-/* ══════════════════════════════════════════════════════
-   Báo cáo doanh thu
-══════════════════════════════════════════════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   BÃ¡o cÃ¡o doanh thu
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 .bao-cao-wrap {
   display: flex;
@@ -9074,7 +8423,7 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  /* Light-mode chart tokens — inherited by child SVG */
+  /* Light-mode chart tokens â€” inherited by child SVG */
   --chart-guide: rgba(0, 0, 0, 0.08);
   --chart-empty: rgba(0, 0, 0, 0.1);
   --chart-label: rgba(0, 0, 0, 0.42);
@@ -9339,7 +8688,7 @@
   color: var(--ink-secondary, rgba(0,0,0,.4));
 }
 
-/* Spin animation (reuse nếu chưa có) */
+/* Spin animation (reuse náº¿u chÆ°a cÃ³) */
 @keyframes bao-cao-spin {
   to { transform: rotate(360deg); }
 }
@@ -9381,9 +8730,9 @@
   }
 }
 
-/* ──────────────────────────────────────────────────────
-   Báo cáo doanh thu — Dark mode
-────────────────────────────────────────────────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+   BÃ¡o cÃ¡o doanh thu â€” Dark mode
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 :root[data-theme="dark"] .bao-cao-section {
   background: var(--surface-raised, #1c1c1c);
@@ -9518,7 +8867,7 @@
   color: var(--ink-muted, #555);
 }
 
-/* ── Combo & Voucher (uu-dai) ── */
+/* â”€â”€ Combo & Voucher (uu-dai) â”€â”€ */
 
 .shop-dash-subtabs {
   display: flex;
@@ -9939,7 +9288,7 @@
   min-height: 200px;
 }
 
-/* ── Combo panel redesign ── */
+/* â”€â”€ Combo panel redesign â”€â”€ */
 .shop-uu-dai-combo-panel {
   display: flex;
   flex-direction: column;
@@ -10272,7 +9621,7 @@
   opacity: 0.72;
 }
 
-/* Combo dashboard — theme đồng bộ storefront (cam solid) */
+/* Combo dashboard â€” theme Ä‘á»“ng bá»™ storefront (cam solid) */
 .shop-uu-dai-combo-panel {
   --sf-shop-orange: #c9760f;
   --sf-shop-orange-ink: #3d2a0a;
@@ -10340,7 +9689,7 @@
   background: color-mix(in srgb, var(--sf-shop-orange) 8%, #fff);
 }
 
-/* Combo ticket — đồng bộ layout voucher */
+/* Combo ticket â€” Ä‘á»“ng bá»™ layout voucher */
 .shop-combo-card {
   position: relative;
   display: flex;
@@ -11347,7 +10696,7 @@
   margin-top: 6px;
 }
 
-/* Combo điều kiện — picker có thumbnail + multi-select */
+/* Combo Ä‘iá»u kiá»‡n â€” picker cÃ³ thumbnail + multi-select */
 .shop-combo-picker {
   display: flex;
   flex-direction: column;
@@ -11473,7 +10822,7 @@
 .shop-combo-picker-overlay {
   position: fixed;
   inset: 0;
-  /* Trên .shop-kho-nhom-backdrop (12500) — picker mở từ dialog combo */
+  /* TrÃªn .shop-kho-nhom-backdrop (12500) â€” picker má»Ÿ tá»« dialog combo */
   z-index: 12600;
   display: flex;
   align-items: flex-end;
@@ -11905,7 +11254,7 @@
   }
 }
 
-/* ── Voucher panel (đồng bộ hero/empty với Combo) ── */
+/* â”€â”€ Voucher panel (Ä‘á»“ng bá»™ hero/empty vá»›i Combo) â”€â”€ */
 .shop-uu-dai-voucher-panel {
   display: flex;
   flex-direction: column;
@@ -12392,7 +11741,7 @@
   color: var(--ink-body, #eee);
 }
 
-/* Native select — popup OS cần color-scheme + option nền tối */
+/* Native select â€” popup OS cáº§n color-scheme + option ná»n tá»‘i */
 :root[data-theme="dark"] .shop-uu-dai-form .shop-dash-field select,
 :root[data-theme="dark"] .shop-uu-dai-form .shop-dash-form select,
 :root[data-theme="dark"] .shop-uu-dai-dk-row select {

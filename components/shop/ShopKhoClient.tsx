@@ -2284,17 +2284,6 @@ export function ShopKhoClient() {
             }}
             onNhomsChanged={setNhoms}
             onError={setErr}
-            onShopeeImported={({ nhom, products: created }) => {
-              setProducts((prev) => {
-                const ids = new Set(created.map((p) => p.id));
-                return [
-                  ...created,
-                  ...prev.filter((p) => !ids.has(p.id)),
-                ];
-              });
-              setActiveNhomId(nhom.id);
-              void refreshKho();
-            }}
           />
         </section>
       </>
