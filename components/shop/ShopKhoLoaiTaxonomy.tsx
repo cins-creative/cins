@@ -510,7 +510,6 @@ export function ShopKhoLoaiTaxonomy({
   }
 
   const busy = disabled || saving || loadingTax;
-  const selectedDm = tax?.danhMuc.find((d) => d.id === idDanhMuc) ?? null;
   const selectedFacetIds = (facet: FacetOpt) => {
     const inFacet = new Set(facet.giaTri.map((g) => g.id));
     return giaTriIds.filter((id) => inFacet.has(id));
@@ -520,7 +519,6 @@ export function ShopKhoLoaiTaxonomy({
     <div className="shop-kho-loai-tax">
       <div className="shop-kho-loai-tax-head">
         <strong>Phân loại hàng mới</strong>
-        <span>Gắn danh mục & thuộc tính để khách lọc trên /cua-hang</span>
       </div>
 
       {loadingTax ? (
@@ -532,57 +530,20 @@ export function ShopKhoLoaiTaxonomy({
         <p className="shop-kho-loai-tax-loading">Không tải được danh mục.</p>
       ) : (
         <div className="shop-kho-loai-tax-body">
-          <TaxSelectDropdown
-            label="Danh mục CINs"
-            placeholder="Chọn danh mục…"
-            options={danhMucOptions}
-            selectedIds={idDanhMuc ? [idDanhMuc] : []}
-            multiple={false}
-            searchable
-            searchPlaceholder="Tìm danh mục…"
-            disabled={busy}
-            onToggle={(id) => void onDanhMucPick(id)}
-            onClear={() => void onDanhMucPick("")}
-          />
-          {selectedDm?.moTa ? (
-            <p className="shop-kho-loai-tax-hint">{selectedDm.moTa}</p>
-          ) : null}
+          <div className="shop-kho-loai-tax-row">
+            <TaxSelectDropdown
+              label="Danh mục hàng"
+              placeholder="Chọn danh mục…"
+              options={danhMucOptions}
+              selectedIds={idDanhMuc ? [idDanhMuc] : []}
+              multiple={false}
+              searchable
+              searchPlaceholder="Tìm danh mục…"
+              disabled={busy}
+              onToggle={(id) => void onDanhMucPick(id)}
+              onClear={() => void onDanhMucPick("")}
+            />
 
-          {nhom.idDanhMuc && !nhom.danhMucXacNhan ? (
-            <div className="shop-kho-loai-tax-suggest">
-              <span>Hệ thống đã gợi ý danh mục — xác nhận nếu đúng.</span>
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => void confirmCurrent()}
-              >
-                Xác nhận
-              </button>
-            </div>
-          ) : null}
-
-          {!nhom.idDanhMuc && suggestions.length > 0 ? (
-            <div className="shop-kho-loai-tax-suggest-list" role="list">
-              {suggestions.slice(0, 3).map((s) => (
-                <div
-                  key={s.id}
-                  className="shop-kho-loai-tax-suggest"
-                  role="listitem"
-                >
-                  <span>Gợi ý: {s.ten}</span>
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => void confirmSuggested(s)}
-                  >
-                    Dùng
-                  </button>
-                </div>
-              ))}
-            </div>
-          ) : null}
-
-          <div className="shop-kho-loai-tax-facets">
             {fandomFacet ? (
               <TaxSelectDropdown
                 label={fandomFacet.ten}
@@ -619,6 +580,40 @@ export function ShopKhoLoaiTaxonomy({
               />
             ) : null}
           </div>
+
+          {nhom.idDanhMuc && !nhom.danhMucXacNhan ? (
+            <div className="shop-kho-loai-tax-suggest">
+              <span>Hệ thống đã gợi ý danh mục — xác nhận nếu đúng.</span>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void confirmCurrent()}
+              >
+                Xác nhận
+              </button>
+            </div>
+          ) : null}
+
+          {!nhom.idDanhMuc && suggestions.length > 0 ? (
+            <div className="shop-kho-loai-tax-suggest-list" role="list">
+              {suggestions.slice(0, 3).map((s) => (
+                <div
+                  key={s.id}
+                  className="shop-kho-loai-tax-suggest"
+                  role="listitem"
+                >
+                  <span>Gợi ý: {s.ten}</span>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => void confirmSuggested(s)}
+                  >
+                    Dùng
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : null}
         </div>
       )}
     </div>

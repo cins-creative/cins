@@ -2063,13 +2063,6 @@
   color: var(--ink-display, rgba(0, 0, 0, 0.88));
 }
 
-.shop-kho-loai-tax-head span {
-  font-size: 0.74rem;
-  font-weight: 500;
-  color: var(--ink-muted);
-  line-height: 1.35;
-}
-
 .shop-kho-loai-tax-loading {
   display: inline-flex;
   align-items: center;
@@ -2085,24 +2078,17 @@
   gap: 12px;
 }
 
-.shop-kho-loai-tax-facets {
+.shop-kho-loai-tax-row {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
+  align-items: start;
 }
 
-@media (max-width: 720px) {
-  .shop-kho-loai-tax-facets {
+@media (max-width: 960px) {
+  .shop-kho-loai-tax-row {
     grid-template-columns: 1fr;
   }
-}
-
-.shop-kho-loai-tax-hint {
-  margin: -4px 0 0;
-  font-size: 0.72rem;
-  font-style: normal;
-  color: var(--ink-muted);
-  line-height: 1.4;
 }
 
 .shop-kho-loai-tax-suggest-list {
@@ -2234,10 +2220,10 @@
   align-items: center;
   gap: 4px;
   max-width: 100%;
-  padding: 4px 8px;
-  border: 1px solid color-mix(in srgb, var(--cins-orange, #fdad4c) 35%, var(--border));
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--cins-orange, #fdad4c) 14%, var(--bg-surface));
+  padding: 4px 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   color: var(--cins-orange-ink, #9a3412);
   font: inherit;
   font-size: 0.74rem;
@@ -2253,7 +2239,7 @@
 }
 
 .shop-kho-loai-dd-tag:hover:not(:disabled) {
-  border-color: var(--cins-orange, #fdad4c);
+  color: var(--cins-orange, #fdad4c);
 }
 
 .shop-kho-loai-dd-tag:disabled {
