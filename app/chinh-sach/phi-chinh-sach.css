@@ -285,7 +285,7 @@
   color: var(--ink-body);
 }
 
-/* ── Change log (thay timeline chấm tròn) ── */
+/* ── Thông báo lộ trình (card) ── */
 .cps-empty {
   margin: 0;
   font-size: 14px;
@@ -297,64 +297,126 @@
   list-style: none;
   margin: 0;
   padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(14px, 2.5vw, 20px);
 }
 
-.cps-log-item {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 0.5rem clamp(20px, 3vw, 40px);
-  padding: clamp(14px, 2vw, 20px) 0;
+.cps-log-card {
+  margin: 0;
+  padding: clamp(16px, 2.5vw, 22px);
+  border: 1px solid var(--border, #e4e6eb);
+  border-radius: var(--radius-md, 14px);
+  background: var(--bg-surface, #fff);
+}
+
+.cps-log-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px 16px;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
   border-bottom: 1px solid var(--border, #e4e6eb);
 }
 
-.cps-log-item:first-child {
-  border-top: 1px solid var(--border, #e4e6eb);
-}
-
-@media (min-width: 680px) {
-  .cps-log-item {
-    grid-template-columns: 12rem 1fr;
-  }
-}
-
-.cps-log-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem 0.75rem;
-  align-items: baseline;
-}
-
-.cps-log-date {
-  font-size: 12.5px;
+.cps-log-card-title {
+  margin: 0;
+  flex: 1 1 12rem;
+  min-width: 0;
+  font-size: clamp(15px, 1.6vw, 17px);
   font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.35;
+  color: var(--ink-display);
+}
+
+.cps-log-card-rate {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  flex-shrink: 0;
+  gap: 0.08rem;
+  line-height: 1;
+}
+
+.cps-log-card-rate-num {
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
   color: var(--ink-title);
-  letter-spacing: 0.02em;
   font-variant-numeric: tabular-nums;
 }
 
-.cps-log-rate {
-  font-size: 11.5px;
-  font-weight: 600;
+.cps-log-card-rate-pct {
+  font-size: 0.95rem;
+  font-weight: 700;
   color: var(--cins-blue);
 }
 
-.cps-log-eff {
-  font-size: 11.5px;
+.cps-log-card-rate-label {
+  margin-left: 0.35rem;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   color: var(--ink-body);
 }
 
-.cps-log-title {
-  margin: 0;
-  font-size: 15.5px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  color: var(--ink-title);
+.cps-log-card-dates {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  margin: 0 0 14px;
 }
 
-.cps-log-text {
-  margin: 0.35rem 0 0;
+@media (min-width: 520px) {
+  .cps-log-card-dates {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px 20px;
+  }
+}
+
+.cps-log-card-date {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm, 10px);
+  background: color-mix(in srgb, var(--bg-page, #f5f6f8) 55%, var(--bg-surface, #fff));
+  border: 1px solid color-mix(in srgb, var(--border, #e4e6eb) 85%, transparent);
+}
+
+.cps-log-card-date--eff {
+  background: color-mix(in srgb, var(--cins-blue-soft, #e7f0fb) 35%, var(--bg-surface, #fff));
+  border-color: color-mix(in srgb, var(--cins-blue, #1f74c9) 16%, var(--border, #e4e6eb));
+}
+
+.cps-log-card-date dt {
+  margin: 0;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-body);
+}
+
+.cps-log-card-date dd {
+  margin: 4px 0 0;
   font-size: 14px;
-  line-height: 1.6;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--ink-title);
+  font-variant-numeric: tabular-nums;
+}
+
+.cps-log-card-date--eff dd {
+  color: var(--cins-blue-dark, #1656a0);
+}
+
+.cps-log-card-text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.65;
   white-space: pre-wrap;
   color: var(--ink-body);
 }

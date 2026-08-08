@@ -214,60 +214,8 @@
   color: var(--ink-display, rgba(0, 0, 0, 0.85));
 }
 
-.uas-phi-panel-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-size: 10.5px;
-  font-weight: 600;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  color: var(--cins-blue-dark, #1656a0);
-  background: color-mix(in srgb, var(--cins-blue-soft, #e7f0fb) 70%, #fff);
-  border: 1px solid color-mix(in srgb, var(--cins-blue, #1f74c9) 18%, transparent);
-}
-
-.uas-phi-panel-hero {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0 0.2rem;
-  margin-bottom: 8px;
-}
-
-.uas-phi-panel-rate {
-  margin: 0;
-  display: flex;
-  align-items: baseline;
-  gap: 0.1rem;
-  line-height: 1;
-}
-
-.uas-phi-panel-rate-num {
-  font-size: 2.4rem;
-  font-weight: 800;
-  letter-spacing: -0.04em;
-  color: var(--ink-display, rgba(0, 0, 0, 0.85));
-  font-variant-numeric: lining-nums tabular-nums;
-}
-
-.uas-phi-panel-rate-pct {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--cins-blue, #1f74c9);
-}
-
-.uas-phi-panel-rate-cap {
-  flex-basis: 100%;
-  margin: 4px 0 0;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--ink-body, rgba(0, 0, 0, 0.55));
-}
-
 .uas-phi-panel-lede {
-  margin: 0 0 12px;
+  margin: 0 0 14px;
   font-size: 13px;
   line-height: 1.55;
   color: var(--ink-body, rgba(0, 0, 0, 0.55));
@@ -277,7 +225,7 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px 14px;
-  margin: 0;
+  margin: 4px 0 0;
   padding: 12px 0 0;
   border-top: 1px solid color-mix(in srgb, var(--border, #e4e6eb) 80%, transparent);
 }
@@ -310,47 +258,177 @@
   color: var(--ink-body, rgba(0, 0, 0, 0.55));
 }
 
-.uas-phi-notices {
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid color-mix(in srgb, var(--border, #e4e6eb) 80%, transparent);
-}
-
-.uas-phi-notices-label {
-  margin: 0 0 8px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  color: var(--ink-title, rgba(0, 0, 0, 0.6));
-}
-
-.uas-phi-notice-list {
+/* ── Lộ trình tỷ lệ phí (timeline) ── */
+.uas-phi-timeline {
   list-style: none;
   margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0;
 }
 
-.uas-phi-notice {
-  padding: 8px 10px;
-  border-radius: var(--radius-sm, 10px);
+.uas-phi-timeline-item {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: 0 12px;
+  min-height: 0;
+}
+
+.uas-phi-timeline-item:last-child .uas-phi-timeline-body {
+  padding-bottom: 0;
+}
+
+.uas-phi-timeline-item:not(:last-child) .uas-phi-timeline-body {
+  padding-bottom: 32px;
+}
+
+.uas-phi-timeline-marker {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 4px;
+}
+
+.uas-phi-timeline-dot {
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
   background: var(--bg-surface, #fff);
-  border: 1px solid var(--border, #e4e6eb);
+  border: 2px solid color-mix(in srgb, var(--cins-blue, #1f74c9) 45%, var(--border, #e4e6eb));
+  box-sizing: border-box;
 }
 
-.uas-phi-notice-title {
+.uas-phi-timeline-item--active .uas-phi-timeline-dot {
+  width: 12px;
+  height: 12px;
+  border-width: 3px;
+  border-color: var(--cins-blue, #1f74c9);
+  background: color-mix(in srgb, var(--cins-blue-soft, #e7f0fb) 60%, #fff);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cins-blue, #1f74c9) 14%, transparent);
+}
+
+.uas-phi-timeline-item--upcoming .uas-phi-timeline-dot {
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--cins-blue, #1f74c9) 35%, var(--border, #e4e6eb));
+}
+
+.uas-phi-timeline-line {
+  flex: 1;
+  width: 2px;
+  min-height: 28px;
+  margin: 6px 0;
+  background: color-mix(in srgb, var(--cins-blue, #1f74c9) 22%, var(--border, #e4e6eb));
+}
+
+.uas-phi-timeline-body {
+  padding: 0;
+  min-width: 0;
+}
+
+.uas-phi-timeline-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  margin-bottom: 4px;
+}
+
+.uas-phi-timeline-date {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--ink-title, rgba(0, 0, 0, 0.6));
+  font-variant-numeric: tabular-nums;
+}
+
+.uas-phi-timeline-item--active .uas-phi-timeline-date {
+  color: var(--cins-blue-dark, #1656a0);
+}
+
+.uas-phi-timeline-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--cins-blue-dark, #1656a0);
+  background: color-mix(in srgb, var(--cins-blue-soft, #e7f0fb) 70%, #fff);
+  border: 1px solid color-mix(in srgb, var(--cins-blue, #1f74c9) 18%, transparent);
+}
+
+.uas-phi-timeline-item--upcoming .uas-phi-timeline-badge {
+  color: var(--ink-title, rgba(0, 0, 0, 0.6));
+  background: var(--bg-surface, #fff);
+  border-color: var(--border, #e4e6eb);
+}
+
+.uas-phi-timeline-rate {
   margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 0.1rem;
+  line-height: 1;
+}
+
+.uas-phi-timeline-item--active .uas-phi-timeline-rate-num {
+  font-size: 2rem;
+}
+
+.uas-phi-timeline-item--upcoming .uas-phi-timeline-rate {
+  display: inline;
+  margin-top: 2px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.45;
+  color: var(--ink-body, rgba(0, 0, 0, 0.55));
+}
+
+.uas-phi-timeline-item--upcoming .uas-phi-timeline-rate-num {
+  font-size: inherit;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: inherit;
+}
+
+.uas-phi-timeline-item--upcoming .uas-phi-timeline-rate-pct {
+  font-size: inherit;
+  font-weight: 600;
+  color: inherit;
+}
+
+.uas-phi-timeline-rate-num {
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: var(--ink-display, rgba(0, 0, 0, 0.85));
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+.uas-phi-timeline-rate-pct {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--cins-blue, #1f74c9);
+}
+
+.uas-phi-timeline-item--active .uas-phi-timeline-rate-pct {
+  font-size: 1.15rem;
+}
+
+.uas-phi-timeline-title {
+  margin: 6px 0 0;
   font-size: 13px;
   font-weight: 650;
   color: var(--ink-display, rgba(0, 0, 0, 0.85));
 }
 
-.uas-phi-notice-body {
+.uas-phi-timeline-note {
   margin: 3px 0 0;
-  font-size: 12.5px;
+  font-size: 12px;
   line-height: 1.5;
   white-space: pre-wrap;
   color: var(--ink-body, rgba(0, 0, 0, 0.55));

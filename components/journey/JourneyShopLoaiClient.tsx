@@ -39,6 +39,7 @@ import {
   GIO_CHUNG_CHANGED_EVENT,
   notifyGioChungAdded,
 } from "@/components/shop/ShopGioChungButton";
+import { ShopTamDongOverlay } from "@/components/shop/ShopTamDongOverlay";
 import { imageFilesFromClipboard } from "@/lib/files/clipboard-images";
 import {
   fetchShopCuaHangClient,

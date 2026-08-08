@@ -26,6 +26,7 @@ import {
 import { chatImageDeliveryUrl } from "@/lib/chat/image-url";
 import type { ChatMessage, ChatPollSummary } from "@/lib/chat/types";
 import { shopDonKhaoSatTuBody } from "@/lib/chat/shop-don-khao-sat-notice";
+import { parseTextWithExternalVideoEmbed } from "@/lib/link/external-video-embed";
 import {
   findFirstOgPreviewUrl,
   isUrlOnlyBody,

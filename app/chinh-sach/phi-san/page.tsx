@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { CinsShell } from "@/components/cins/CinsShell";
+import { PhiThongBaoLog } from "@/components/chinh-sach/PhiThongBaoLog";
 import { getChinhSachPhiPayload } from "@/lib/billing/phi-chinh-sach";
 
 import "@/app/chinh-sach/phi-chinh-sach.css";
@@ -14,19 +15,6 @@ export const metadata: Metadata = {
 
 function fmtVnd(n: number): string {
   return new Intl.NumberFormat("vi-VN").format(n) + "₫";
-}
-
-function fmtNgayVn(iso: string): string {
-  try {
-    return new Date(iso).toLocaleDateString("vi-VN", {
-      timeZone: "Asia/Ho_Chi_Minh",
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    });
-  } catch {
-    return iso;
-  }
 }
 
 export default async function ChinhSachPhiSanPage() {
@@ -148,27 +136,7 @@ export default async function ChinhSachPhiSanPage() {
               Chưa có thông báo mới — tỷ lệ nêu trên là bản đang áp dụng.
             </p>
           ) : (
-            <ol className="cps-log">
-              {thongBao.map((t) => (
-                <li key={t.id} className="cps-log-item">
-                  <div className="cps-log-meta">
-                    <time className="cps-log-date">{fmtNgayVn(t.congBoLuc)}</time>
-                    {t.tyLeDuKien != null ? (
-                      <span className="cps-log-rate">
-                        {Math.round(t.tyLeDuKien * 10000) / 100}% dự kiến
-                      </span>
-                    ) : null}
-                    {t.hieuLucDuKien ? (
-                      <span className="cps-log-eff">hiệu lực {t.hieuLucDuKien}</span>
-                    ) : null}
-                  </div>
-                  <div className="cps-log-body">
-                    <h3 className="cps-log-title">{t.tieuDe}</h3>
-                    <p className="cps-log-text">{t.noiDung}</p>
-                  </div>
-                </li>
-              ))}
-            </ol>
+            <PhiThongBaoLog items={thongBao} />
           )}
         </section>
 

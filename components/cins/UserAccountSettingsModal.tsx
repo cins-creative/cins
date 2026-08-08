@@ -922,8 +922,85 @@ function fmtVndPanel(n: number): string {
   return new Intl.NumberFormat("vi-VN").format(n) + "₫";
 }
 
+function fmtNgayVnPanel(raw: string): string {
+  const t = raw.trim();
+  if (!t) return raw;
+  const d = new Date(t);
+  if (!Number.isNaN(d.getTime())) {
+    return d.toLocaleDateString("vi-VN", {
+      timeZone: "Asia/Ho_Chi_Minh",
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+  }
+  return t;
+}
+
+function tyLePercentFromDecimal(tyLe: number): number {
+  return Math.round(tyLe * 10000) / 100;
+}
+
+type PhiTimelineMilestone = {
+  id: string;
+  status: "active" | "upcoming";
+  dateLabel: string;
+  tyLePercent: number;
+  badge: string;
+  title?: string;
+  note?: string;
+};
+
+function buildPhiTimeline(
+  dangApDung: PhiSanDangApDung,
+  thongBao?: PhiSanThongBao[],
+): PhiTimelineMilestone[] {
+  const items: PhiTimelineMilestone[] = [
+    {
+      id: "current",
+      status: "active",
+      dateLabel: "Hiện tại",
+      tyLePercent: dangApDung.tyLePercent ?? 0,
+      badge: "Đang áp dụng",
+      note: "doanh thu hàng tháng · trả sau",
+    },
+  ];
+
+  const upcoming = [...(thongBao ?? [])]
+    .filter((t) => t.tyLeDuKien != null || t.hieuLucDuKien)
+    .sort((a, b) => {
+      const da = a.hieuLucDuKien
+        ? new Date(a.hieuLucDuKien).getTime()
+        : Number.POSITIVE_INFINITY;
+      const db = b.hieuLucDuKien
+        ? new Date(b.hieuLucDuKien).getTime()
+        : Number.POSITIVE_INFINITY;
+      if (da !== db) return da - db;
+      return new Date(b.congBoLuc).getTime() - new Date(a.congBoLuc).getTime();
+    });
+
+  for (const t of upcoming) {
+    items.push({
+      id: t.id,
+      status: "upcoming",
+      dateLabel: t.hieuLucDuKien
+        ? fmtNgayVnPanel(t.hieuLucDuKien)
+        : "Dự kiến",
+      tyLePercent:
+        t.tyLeDuKien != null ? tyLePercentFromDecimal(t.tyLeDuKien) : 0,
+      badge: "Sắp áp dụng",
+      title: t.tieuDe,
+      note: t.noiDung,
+    });
+  }
+
+  return items;
+}
+
 function PhiSanPanel({ dangApDung, thongBao, chinhSachHref }: PhiSanPanelProps) {
   if (!dangApDung) return null;
+
+  const timeline = buildPhiTimeline(dangApDung, thongBao);
 
   const stats = [
     { k: "Kỳ tính", v: "Theo tháng lịch", note: "Chốt ngày 1 tháng sau" },
@@ -950,20 +1027,43 @@ function PhiSanPanel({ dangApDung, thongBao, chinhSachHref }: PhiSanPanelProps) 
         <h4 id="uas-phi-panel-title" className="uas-phi-panel-title">
           Chính sách phí sàn
         </h4>
-        <span className="uas-phi-panel-badge">Đang áp dụng</span>
-      </div>
-
-      <div className="uas-phi-panel-hero">
-        <p className="uas-phi-panel-rate" aria-label="Tỷ lệ phí hiện hành">
-          <span className="uas-phi-panel-rate-num">{dangApDung.tyLePercent}</span>
-          <span className="uas-phi-panel-rate-pct">%</span>
-        </p>
-        <p className="uas-phi-panel-rate-cap">doanh thu hàng tháng · trả sau</p>
       </div>
 
       <p className="uas-phi-panel-lede">
         CINs không giữ tiền hàng — bạn trả phí riêng qua mục Thanh toán.
       </p>
+
+      <ol className="uas-phi-timeline" aria-label="Lộ trình tỷ lệ phí sàn">
+        {timeline.map((m, i) => (
+          <li
+            key={m.id}
+            className={`uas-phi-timeline-item uas-phi-timeline-item--${m.status}`}
+          >
+            <span className="uas-phi-timeline-marker" aria-hidden>
+              <span className="uas-phi-timeline-dot" />
+              {i < timeline.length - 1 ? (
+                <span className="uas-phi-timeline-line" />
+              ) : null}
+            </span>
+            <div className="uas-phi-timeline-body">
+              <div className="uas-phi-timeline-meta">
+                <time className="uas-phi-timeline-date">{m.dateLabel}</time>
+                <span className="uas-phi-timeline-badge">{m.badge}</span>
+              </div>
+              <p className="uas-phi-timeline-rate" aria-label={`Tỷ lệ ${m.tyLePercent}%`}>
+                <span className="uas-phi-timeline-rate-num">{m.tyLePercent}</span>
+                <span className="uas-phi-timeline-rate-pct">%</span>
+              </p>
+              {m.title ? (
+                <p className="uas-phi-timeline-title">{m.title}</p>
+              ) : null}
+              {m.note ? (
+                <p className="uas-phi-timeline-note">{m.note}</p>
+              ) : null}
+            </div>
+          </li>
+        ))}
+      </ol>
 
       <dl className="uas-phi-panel-stats">
         {stats.map((s) => (
@@ -974,20 +1074,6 @@ function PhiSanPanel({ dangApDung, thongBao, chinhSachHref }: PhiSanPanelProps) 
           </div>
         ))}
       </dl>
-
-      {(thongBao?.length ?? 0) > 0 ? (
-        <div className="uas-phi-notices">
-          <p className="uas-phi-notices-label">Thông báo &amp; lộ trình</p>
-          <ul className="uas-phi-notice-list">
-            {thongBao!.map((t) => (
-              <li key={t.id} className="uas-phi-notice">
-                <p className="uas-phi-notice-title">{t.tieuDe}</p>
-                <p className="uas-phi-notice-body">{t.noiDung}</p>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
 
       <Link
         href={chinhSachHref || "/chinh-sach/phi-san"}

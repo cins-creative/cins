@@ -120,7 +120,7 @@ const TABS: { id: TabId; label: string; hint: string }[] = [
   {
     id: "shop",
     label: "Shop",
-    hint: "Phí GMV, lịch đóng đơn và giới hạn đặt hàng",
+    hint: "Phí GMV shop · thông báo công khai · lịch đóng đơn · giới hạn đặt hàng",
   },
   {
     id: "nhan-tien",
@@ -169,6 +169,7 @@ export function AdminTaiChinhScreen({ canEdit }: Props) {
   const [shopToiThieu, setShopToiThieu] = useState("50000");
   const [shopNguong, setShopNguong] = useState("0");
   const [ghiChuShop, setGhiChuShop] = useState("");
+  const [shopFieldErr, setShopFieldErr] = useState<string | null>(null);
 
   const [ddKhaoSuKien, setDdKhaoSuKien] = useState("1");
   const [ddKhaoTrucTiep, setDdKhaoTrucTiep] = useState("3");
@@ -425,6 +426,7 @@ export function AdminTaiChinhScreen({ canEdit }: Props) {
       if (json?.lichSu) setLichSu(json.lichSu);
       if (khoi === "ty_le") setGhiChuTyLe("");
       if (khoi === "shop") setGhiChuShop("");
+      if (khoi === "shop") setShopFieldErr(null);
       if (khoi === "dong_don") setGhiChuDongDon("");
       if (khoi === "buyer_limit") setGhiChuBuyerLimit("");
       setMsg("Đã lưu — tạo dòng lịch sử mới. Kỳ/dòng phí cũ không đổi.");
@@ -462,23 +464,34 @@ export function AdminTaiChinhScreen({ canEdit }: Props) {
   }
 
   function saveShop() {
-    const pct = Number(String(shopTyLePercent).replace(",", "."));
+    setShopFieldErr(null);
+    const pctRaw = String(shopTyLePercent).trim();
+    if (pctRaw === "") {
+      setShopFieldErr("tyle");
+      setErr("Nhập tỷ lệ phí shop (%). 0 = miễn phí GMV.");
+      return;
+    }
+    const pct = Number(pctRaw.replace(",", "."));
     const toi = Number(String(shopToiThieu).replace(/[,\s.]/g, ""));
     const ng = Number(String(shopNguong).replace(/[,\s.]/g, ""));
     if (!Number.isFinite(pct) || pct < 0 || pct > 100) {
+      setShopFieldErr("tyle");
       setErr("Tỷ lệ shop % phải từ 0 đến 100.");
       return;
     }
     if (!Number.isFinite(toi) || toi < 0) {
+      setShopFieldErr("toi");
       setErr("Tối thiểu xuất kỳ không hợp lệ.");
       return;
     }
     if (!Number.isFinite(ng) || ng < 0) {
+      setShopFieldErr("nguong");
       setErr("Ngưỡng shop không hợp lệ.");
       return;
     }
     if (!ghiChuShop.trim()) {
-      setErr("Đổi phí shop bắt buộc ghi chú lý do.");
+      setShopFieldErr("lydo");
+      setErr("Đổi phí shop bắt buộc ghi lý do vào ô bên dưới.");
       return;
     }
     void save("shop", {
@@ -583,6 +596,37 @@ export function AdminTaiChinhScreen({ canEdit }: Props) {
   ).length;
   const tkOpenCount = tkItems.filter((t) => t.anHanHieuLuc).length;
 
+  const shopAppliedTyLe = cauHinh?.shop?.tyLe ?? 0.05;
+  const shopAppliedPct = Number((shopAppliedTyLe * 100).toFixed(4));
+  const shopAppliedToi = cauHinh?.shop?.toiThieuXuatKyVnd ?? 50_000;
+  const shopAppliedNguong = cauHinh?.shop?.nguongVnd ?? 0;
+  const shopPctDraftRaw = String(shopTyLePercent).trim();
+  const shopPctDraft =
+    shopPctDraftRaw === ""
+      ? null
+      : Number(shopPctDraftRaw.replace(",", "."));
+  const shopToiDraft = Number(String(shopToiThieu).replace(/[,\s.]/g, ""));
+  const shopNgDraft = Number(String(shopNguong).replace(/[,\s.]/g, ""));
+  const shopDraftValid =
+    shopPctDraft != null &&
+    Number.isFinite(shopPctDraft) &&
+    shopPctDraft >= 0 &&
+    shopPctDraft <= 100 &&
+    Number.isFinite(shopToiDraft) &&
+    shopToiDraft >= 0 &&
+    Number.isFinite(shopNgDraft) &&
+    shopNgDraft >= 0;
+  const shopFeeDirty =
+    shopDraftValid &&
+    (Math.abs(shopPctDraft - shopAppliedPct) > 1e-6 ||
+      shopToiDraft !== shopAppliedToi ||
+      shopNgDraft !== shopAppliedNguong);
+  const shopExampleGmv = 10_000_000;
+  const shopExamplePhi =
+    shopDraftValid && shopPctDraft != null
+      ? Math.round(shopExampleGmv * (shopPctDraft / 100))
+      : null;
+
   return (
     <div className="admin-tc">
       <header className="admin-tc-head">
@@ -631,10 +675,12 @@ export function AdminTaiChinhScreen({ canEdit }: Props) {
             <div className="admin-tc-snap-cell">
               <span className="label">Phí shop</span>
               <span className="value">
-                {((cauHinh.shop?.tyLe ?? 0.05) * 100).toFixed(2)}%
+                {cauHinh.shop.tyLe === 0
+                  ? "0% · miễn phí"
+                  : `${(cauHinh.shop.tyLe * 100).toFixed(2)}%`}
               </span>
               <span className="sub">
-                Xuất kỳ từ {fmtVnd(cauHinh.shop?.toiThieuXuatKyVnd ?? 50_000)}₫
+                Xuất kỳ từ {fmtVnd(cauHinh.shop.toiThieuXuatKyVnd)}₫
               </span>
             </div>
             <div
@@ -843,70 +889,236 @@ export function AdminTaiChinhScreen({ canEdit }: Props) {
 
             {tab === "shop" ? (
               <>
+                <div className="admin-tc-shop-overview">
+                  <p>
+                    <strong>4 nhóm cấu hình shop</strong> — chỉnh theo thứ tự
+                    dưới đây. Mỗi lần lưu phí / lịch đóng đơn / giới hạn buyer
+                    tạo dòng lịch sử mới; kỳ phí đã chốt giữ nguyên tỷ lệ cũ.
+                  </p>
+                  <ol className="admin-tc-shop-overview-list">
+                    <li>
+                      <strong>Phí nền tảng</strong> — % trên GMV đơn hoàn thành
+                    </li>
+                    <li>
+                      <strong>Thông báo công khai</strong> — chỉ hiển thị, không
+                      đổi % thật
+                    </li>
+                    <li>
+                      <strong>Lịch đóng đơn</strong> — khảo sát buyer → tự đóng
+                    </li>
+                    <li>
+                      <strong>Giới hạn buyer</strong> — chống spam đơn (0 = tắt)
+                    </li>
+                  </ol>
+                </div>
+
                 <section className="admin-tc-panel is-wide">
                   <div className="admin-tc-panel-head">
-                    <h2>Phí shop</h2>
+                    <h2>Phí nền tảng shop</h2>
+                    <span className="admin-tc-status is-ready">
+                      Đang {shopAppliedPct}% GMV
+                    </span>
                     <p>
-                      % trên GMV và mức tối thiểu để xuất kỳ phí. Dưới mức tối
-                      thiểu → dồn sang tháng sau, không xuất hóa đơn.
+                      Tính trên doanh thu đơn <strong>đã hoàn thành</strong>{" "}
+                      (GMV). Chốt theo tháng; shop trả sau hạn in trên kỳ phí.
+                      <strong> 0% = miễn phí nền tảng</strong> — vẫn lưu được
+                      nếu ghi lý do.
                     </p>
                   </div>
-                  <div className="admin-tc-panel-body is-2col">
-                    <div className="admin-tc-field">
-                      <label htmlFor="tc-shop-tyle">Tỷ lệ phí shop (%)</label>
-                      <input
-                        id="tc-shop-tyle"
-                        type="number"
-                        min={0}
-                        max={100}
-                        step={0.1}
-                        value={shopTyLePercent}
-                        disabled={!canEdit || busy != null}
-                        onChange={(e) => setShopTyLePercent(e.target.value)}
-                      />
-                    </div>
-                    <div className="admin-tc-field">
-                      <label htmlFor="tc-shop-toi">Tối thiểu xuất kỳ (VND)</label>
-                      <input
-                        id="tc-shop-toi"
-                        type="number"
-                        min={0}
-                        step={1000}
-                        value={shopToiThieu}
-                        disabled={!canEdit || busy != null}
-                        onChange={(e) => setShopToiThieu(e.target.value)}
-                      />
-                      <span className="hint">
-                        Tránh đòi phí quá nhỏ từng kỳ
+
+                  <div className="admin-tc-callout">
+                    <strong>Cách tính (3 bước):</strong>
+                    <ol className="admin-tc-callout-list">
+                      <li>
+                        Cộng GMV đơn hoàn thành trong kỳ → nhân{" "}
+                        <strong>tỷ lệ %</strong>.
+                      </li>
+                      <li>
+                        Nếu phí kỳ &lt; <strong>tối thiểu xuất kỳ</strong> →
+                        dồn sang tháng sau, chưa tạo hóa đơn.
+                      </li>
+                      <li>
+                        <strong>Ngưỡng kích hoạt</strong> = 0 → chốt mọi tháng;
+                        &gt; 0 → chỉ chốt khi GMV lũy kế vượt ngưỡng.
+                      </li>
+                    </ol>
+                  </div>
+
+                  <div className="admin-tc-fee-preview" aria-live="polite">
+                    <div className="admin-tc-fee-preview-col">
+                      <span className="admin-tc-fee-preview-label">
+                        Đang áp dụng
+                      </span>
+                      <span className="admin-tc-fee-preview-value">
+                        {shopAppliedPct}% GMV
+                      </span>
+                      <span className="admin-tc-fee-preview-sub">
+                        Xuất kỳ từ {fmtVnd(shopAppliedToi)}₫ · ngưỡng{" "}
+                        {shopAppliedNguong === 0
+                          ? "0 (chốt hàng tháng)"
+                          : `${fmtVnd(shopAppliedNguong)}₫`}
                       </span>
                     </div>
-                    <div className="admin-tc-field">
-                      <label htmlFor="tc-shop-nguong">Ngưỡng kích hoạt (VND)</label>
-                      <input
-                        id="tc-shop-nguong"
-                        type="number"
-                        min={0}
-                        step={1000}
-                        value={shopNguong}
-                        disabled={!canEdit || busy != null}
-                        onChange={(e) => setShopNguong(e.target.value)}
-                      />
-                      <span className="hint">
-                        0 = chốt theo tháng (không chờ ngưỡng)
+                    <div
+                      className={`admin-tc-fee-preview-col is-draft${shopFeeDirty ? " is-changed" : ""}`}
+                    >
+                      <span className="admin-tc-fee-preview-label">
+                        Sau khi lưu
                       </span>
-                    </div>
-                    <div className="admin-tc-field is-span-2">
-                      <label htmlFor="tc-shop-lydo">Lý do thay đổi (bắt buộc)</label>
-                      <textarea
-                        id="tc-shop-lydo"
-                        rows={2}
-                        placeholder="Vd: Tối thiểu 50k — tránh đòi phí quá nhỏ"
-                        value={ghiChuShop}
-                        disabled={!canEdit || busy != null}
-                        onChange={(e) => setGhiChuShop(e.target.value)}
-                      />
+                      {shopDraftValid && shopPctDraft != null ? (
+                        <>
+                          <span className="admin-tc-fee-preview-value">
+                            {shopPctDraft}% GMV
+                            {shopPctDraft === 0 ? " · miễn phí" : ""}
+                          </span>
+                          <span className="admin-tc-fee-preview-sub">
+                            Xuất kỳ từ {fmtVnd(shopToiDraft)}₫ · ngưỡng{" "}
+                            {shopNgDraft === 0
+                              ? "0 (chốt hàng tháng)"
+                              : `${fmtVnd(shopNgDraft)}₫`}
+                          </span>
+                          {shopExamplePhi != null ? (
+                            <span className="admin-tc-fee-preview-example">
+                              Ví dụ GMV {fmtVnd(shopExampleGmv)}₫/kỳ → phí{" "}
+                              {fmtVnd(shopExamplePhi)}₫
+                              {shopExamplePhi > 0 &&
+                              shopExamplePhi < shopToiDraft
+                                ? " (dưới tối thiểu → dồn kỳ sau)"
+                                : ""}
+                            </span>
+                          ) : null}
+                        </>
+                      ) : (
+                        <span className="admin-tc-fee-preview-sub">
+                          Nhập đủ các ô bên dưới để xem trước.
+                        </span>
+                      )}
                     </div>
                   </div>
+
+                  <div className="admin-tc-group">
+                    <h3 className="admin-tc-group-title">Tỷ lệ tính phí</h3>
+                    <p className="admin-tc-group-desc">
+                      Phần trăm trên GMV. Chỉ áp cho kỳ phí tạo sau khi lưu.
+                    </p>
+                    <div className="admin-tc-panel-body">
+                      <div
+                        className={`admin-tc-field${shopFieldErr === "tyle" ? " is-invalid" : ""}`}
+                      >
+                        <label htmlFor="tc-shop-tyle">
+                          Tỷ lệ phí shop (%)
+                        </label>
+                        <input
+                          id="tc-shop-tyle"
+                          type="number"
+                          min={0}
+                          max={100}
+                          step={0.1}
+                          inputMode="decimal"
+                          value={shopTyLePercent}
+                          disabled={!canEdit || busy != null}
+                          onChange={(e) => {
+                            setShopTyLePercent(e.target.value);
+                            if (shopFieldErr === "tyle") setShopFieldErr(null);
+                          }}
+                        />
+                        <span className="hint">
+                          0 = miễn phí · 5 = 5% GMV. Nhập rõ số 0, không để
+                          trống.
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="admin-tc-group">
+                    <h3 className="admin-tc-group-title">Quy tắc xuất kỳ</h3>
+                    <p className="admin-tc-group-desc">
+                      Kiểm soát khi nào tạo hóa đơn phí cho shop.
+                    </p>
+                    <div className="admin-tc-panel-body is-2col">
+                      <div
+                        className={`admin-tc-field${shopFieldErr === "toi" ? " is-invalid" : ""}`}
+                      >
+                        <label htmlFor="tc-shop-toi">
+                          Tối thiểu xuất kỳ (VND)
+                        </label>
+                        <input
+                          id="tc-shop-toi"
+                          type="number"
+                          min={0}
+                          step={1000}
+                          value={shopToiThieu}
+                          disabled={!canEdit || busy != null}
+                          onChange={(e) => {
+                            setShopToiThieu(e.target.value);
+                            if (shopFieldErr === "toi") setShopFieldErr(null);
+                          }}
+                        />
+                        <span className="hint">
+                          Phí kỳ dưới mức này không xuất hóa đơn — dồn tháng
+                          sau.
+                        </span>
+                      </div>
+                      <div
+                        className={`admin-tc-field${shopFieldErr === "nguong" ? " is-invalid" : ""}`}
+                      >
+                        <label htmlFor="tc-shop-nguong">
+                          Ngưỡng kích hoạt (VND)
+                        </label>
+                        <input
+                          id="tc-shop-nguong"
+                          type="number"
+                          min={0}
+                          step={1000}
+                          value={shopNguong}
+                          disabled={!canEdit || busy != null}
+                          onChange={(e) => {
+                            setShopNguong(e.target.value);
+                            if (shopFieldErr === "nguong") setShopFieldErr(null);
+                          }}
+                        />
+                        <span className="hint">
+                          0 = chốt mỗi tháng. &gt; 0 = chờ GMV lũy kế vượt
+                          ngưỡng mới chốt.
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="admin-tc-group">
+                    <h3 className="admin-tc-group-title">Ghi audit</h3>
+                    <p className="admin-tc-group-desc">
+                      Bắt buộc mỗi lần đổi phí — hiện trong tab Lịch sử.
+                    </p>
+                    <div className="admin-tc-panel-body">
+                      <div
+                        className={`admin-tc-field${shopFieldErr === "lydo" ? " is-invalid" : ""}`}
+                      >
+                        <label htmlFor="tc-shop-lydo">
+                          Lý do thay đổi{" "}
+                          <span className="admin-tc-required">*</span>
+                        </label>
+                        <textarea
+                          id="tc-shop-lydo"
+                          rows={2}
+                          placeholder="Vd: Giai đoạn khuyến mãi — miễn phí 0% đến hết Q4"
+                          value={ghiChuShop}
+                          disabled={!canEdit || busy != null}
+                          onChange={(e) => {
+                            setGhiChuShop(e.target.value);
+                            if (shopFieldErr === "lydo") setShopFieldErr(null);
+                          }}
+                        />
+                        {!ghiChuShop.trim() ? (
+                          <span className="hint admin-tc-field-warn">
+                            Thiếu lý do là lý do phổ biến khi «Lưu» không
+                            thành công.
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
+
                   {canEdit ? (
                     <div className="admin-tc-panel-foot">
                       <button

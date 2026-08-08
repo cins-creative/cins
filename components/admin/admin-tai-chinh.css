@@ -260,6 +260,117 @@
   color: var(--tc-ink);
 }
 
+.admin-tc-callout-list {
+  margin: 8px 0 0;
+  padding-left: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.admin-tc-callout-list li {
+  line-height: 1.5;
+}
+
+/* ── Shop tab overview ── */
+.admin-tc-shop-overview {
+  grid-column: 1 / -1;
+  padding: 14px 16px;
+  border: 1px solid var(--tc-line);
+  border-radius: var(--radius-md, 14px);
+  background: color-mix(in srgb, var(--tc-blue-soft) 35%, var(--bg-surface, #fff));
+  font-size: 13.5px;
+  line-height: 1.55;
+}
+
+.admin-tc-shop-overview p {
+  margin: 0 0 10px;
+  color: var(--tc-body);
+}
+
+.admin-tc-shop-overview-list {
+  margin: 0;
+  padding-left: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--tc-muted);
+  font-size: 13px;
+}
+
+.admin-tc-shop-overview-list strong {
+  color: var(--tc-ink);
+}
+
+/* ── Fee preview (shop / csdt) ── */
+.admin-tc-fee-preview {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 16px 18px 0;
+}
+
+.admin-tc-fee-preview-col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  border: 1px solid var(--tc-line);
+  border-radius: var(--radius-sm, 10px);
+  background: var(--bg-surface, #fff);
+}
+
+.admin-tc-fee-preview-col.is-draft.is-changed {
+  border-color: color-mix(in srgb, var(--tc-blue) 35%, var(--tc-line));
+  background: color-mix(in srgb, var(--tc-blue-soft) 40%, var(--bg-surface, #fff));
+}
+
+.admin-tc-fee-preview-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--tc-muted);
+}
+
+.admin-tc-fee-preview-value {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--tc-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-tc-fee-preview-sub,
+.admin-tc-fee-preview-example {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--tc-muted);
+}
+
+.admin-tc-fee-preview-example {
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--tc-line);
+  color: var(--tc-body);
+}
+
+.admin-tc-required {
+  color: var(--tc-err);
+  font-weight: 700;
+}
+
+.admin-tc-field-warn {
+  color: var(--tc-warn);
+}
+
+.admin-tc-field.is-invalid input:not([type="checkbox"]),
+.admin-tc-field.is-invalid select,
+.admin-tc-field.is-invalid textarea {
+  border-color: color-mix(in srgb, var(--tc-err) 55%, var(--tc-line));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--tc-err) 12%, transparent);
+}
+
 /* ── Groups ── */
 .admin-tc-group {
   margin: 0;
@@ -629,6 +740,10 @@
 
   .admin-tc-panel-body.is-2col,
   .admin-tc-panel-body.is-3col {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-tc-fee-preview {
     grid-template-columns: 1fr;
   }
 

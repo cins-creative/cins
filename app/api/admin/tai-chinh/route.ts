@@ -25,6 +25,30 @@ const KHOI_OK: ReadonlySet<CinsTaiChinhKhoi> = new Set([
   "doanh_nghiep",
 ]);
 
+/** UI gửi % (0–100); cũng nhận decimal 0–1. `0` và `"0"` đều hợp lệ. */
+function parseTyLeFromBody(
+  body: Record<string, unknown>,
+  percentKey: string,
+  decimalKey: string,
+): number | undefined {
+  const pct = body[percentKey];
+  if (typeof pct === "number" && Number.isFinite(pct)) {
+    return pct / 100;
+  }
+  if (typeof pct === "string") {
+    const t = pct.trim();
+    if (t !== "") {
+      const n = Number(t.replace(",", "."));
+      if (Number.isFinite(n)) return n / 100;
+    }
+  }
+  const dec = body[decimalKey];
+  if (typeof dec === "number" && Number.isFinite(dec)) {
+    return dec;
+  }
+  return undefined;
+}
+
 /** GET /api/admin/tai-chinh — canManageUsers */
 export async function GET() {
   if (!hasServiceRoleEnv()) {
@@ -87,12 +111,8 @@ export async function PATCH(request: Request) {
   };
 
   if (khoi === "ty_le") {
-    /* UI gửi %; cũng nhận decimal 0–1 */
-    if (typeof body.tyLePercent === "number" && Number.isFinite(body.tyLePercent)) {
-      patch.csdtTyLe = body.tyLePercent / 100;
-    } else if (typeof body.csdtTyLe === "number") {
-      patch.csdtTyLe = body.csdtTyLe;
-    }
+    const csdtTyLe = parseTyLeFromBody(body, "tyLePercent", "csdtTyLe");
+    if (csdtTyLe !== undefined) patch.csdtTyLe = csdtTyLe;
     if (typeof body.csdtNguongVnd === "number") {
       patch.csdtNguongVnd = body.csdtNguongVnd;
     }
@@ -100,14 +120,8 @@ export async function PATCH(request: Request) {
       patch.csdtSoNgayHanTra = body.csdtSoNgayHanTra;
     }
   } else if (khoi === "shop") {
-    if (
-      typeof body.shopTyLePercent === "number" &&
-      Number.isFinite(body.shopTyLePercent)
-    ) {
-      patch.shopTyLe = body.shopTyLePercent / 100;
-    } else if (typeof body.shopTyLe === "number") {
-      patch.shopTyLe = body.shopTyLe;
-    }
+    const shopTyLe = parseTyLeFromBody(body, "shopTyLePercent", "shopTyLe");
+    if (shopTyLe !== undefined) patch.shopTyLe = shopTyLe;
     if (typeof body.shopNguongVnd === "number") {
       patch.shopNguongVnd = body.shopNguongVnd;
     }

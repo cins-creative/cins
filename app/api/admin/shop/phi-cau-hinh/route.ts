@@ -39,13 +39,19 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "JSON không hợp lệ." }, { status: 400 });
   }
 
-  let tyLe: number | null = null;
+  let tyLe: number | undefined;
   if (typeof body.tyLePercent === "number" && Number.isFinite(body.tyLePercent)) {
     tyLe = body.tyLePercent / 100;
+  } else if (typeof body.tyLePercent === "string") {
+    const t = body.tyLePercent.trim();
+    if (t !== "") {
+      const n = Number(t.replace(",", "."));
+      if (Number.isFinite(n)) tyLe = n / 100;
+    }
   } else if (typeof body.tyLe === "number" && Number.isFinite(body.tyLe)) {
     tyLe = body.tyLe;
   }
-  if (tyLe == null || tyLe < 0 || tyLe > 1) {
+  if (tyLe === undefined || tyLe < 0 || tyLe > 1) {
     return NextResponse.json(
       { error: "Tỷ lệ phải từ 0% đến 100%." },
       { status: 422 },
