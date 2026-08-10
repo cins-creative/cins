@@ -8,7 +8,7 @@ import type {
 } from "@/lib/tag/admin-types";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
-const TAG_LOAI = ["keyword", "phan_mem"] as const;
+const TAG_LOAI = ["keyword", "phan_mem", "fandom"] as const;
 
 function clampPage(page: number): number {
   return Number.isFinite(page) && page > 0 ? Math.floor(page) : 1;
@@ -31,7 +31,9 @@ async function fetchAdminTagListViaPostgres(
       ? "AND bv.loai_bai_viet = 'keyword'"
       : params.loai === "phan_mem"
         ? "AND bv.loai_bai_viet = 'phan_mem'"
-        : "";
+        : params.loai === "fandom"
+          ? "AND bv.loai_bai_viet = 'fandom'"
+          : "";
 
   const verifyFrag =
     params.trang_thai === "chua_verify"
@@ -55,7 +57,7 @@ async function fetchAdminTagListViaPostgres(
       ? await sql<{ total: string }[]>`
           SELECT COUNT(*)::text AS total
           FROM article_bai_viet bv
-          WHERE bv.loai_bai_viet IN ('keyword', 'phan_mem')
+          WHERE bv.loai_bai_viet IN ('keyword', 'phan_mem', 'fandom')
             AND bv.trang_thai_noi_dung <> 'merged'
             ${sql.unsafe(loaiFrag)}
             ${sql.unsafe(verifyFrag)}
@@ -67,7 +69,7 @@ async function fetchAdminTagListViaPostgres(
       : await sql<{ total: string }[]>`
           SELECT COUNT(*)::text AS total
           FROM article_bai_viet bv
-          WHERE bv.loai_bai_viet IN ('keyword', 'phan_mem')
+          WHERE bv.loai_bai_viet IN ('keyword', 'phan_mem', 'fandom')
             AND bv.trang_thai_noi_dung <> 'merged'
             ${sql.unsafe(loaiFrag)}
             ${sql.unsafe(verifyFrag)}
@@ -123,7 +125,7 @@ async function fetchAdminTagListViaPostgres(
       FROM article_bai_viet bv
       LEFT JOIN user_counts uc ON uc.id_bai_viet = bv.id
       LEFT JOIN work_counts wc ON wc.id_bai_viet = bv.id
-      WHERE bv.loai_bai_viet IN ('keyword', 'phan_mem')
+      WHERE bv.loai_bai_viet IN ('keyword', 'phan_mem', 'fandom')
         AND bv.trang_thai_noi_dung <> 'merged'
         ${sql.unsafe(loaiFrag)}
         ${sql.unsafe(verifyFrag)}
@@ -183,7 +185,7 @@ async function fetchAdminTagListViaPostgres(
       FROM article_bai_viet bv
       LEFT JOIN user_counts uc ON uc.id_bai_viet = bv.id
       LEFT JOIN work_counts wc ON wc.id_bai_viet = bv.id
-      WHERE bv.loai_bai_viet IN ('keyword', 'phan_mem')
+      WHERE bv.loai_bai_viet IN ('keyword', 'phan_mem', 'fandom')
         AND bv.trang_thai_noi_dung <> 'merged'
         ${sql.unsafe(loaiFrag)}
         ${sql.unsafe(verifyFrag)}
@@ -322,7 +324,11 @@ async function fetchAdminTagListViaSupabase(
     .in("loai_bai_viet", [...TAG_LOAI])
     .neq("trang_thai_noi_dung", "merged");
 
-  if (params.loai === "keyword" || params.loai === "phan_mem") {
+  if (
+    params.loai === "keyword" ||
+    params.loai === "phan_mem" ||
+    params.loai === "fandom"
+  ) {
     req = req.eq("loai_bai_viet", params.loai);
   }
   if (params.trang_thai === "chua_verify") {
@@ -383,7 +389,11 @@ export function parseAdminTagListSearchParams(
 ): AdminTagListParams {
   const loaiRaw = sp.get("loai")?.trim() ?? "all";
   const loai =
-    loaiRaw === "keyword" || loaiRaw === "phan_mem" ? loaiRaw : "all";
+    loaiRaw === "keyword" ||
+    loaiRaw === "phan_mem" ||
+    loaiRaw === "fandom"
+      ? loaiRaw
+      : "all";
 
   const trangThaiRaw = sp.get("trang_thai")?.trim() ?? "chua_verify";
   const trang_thai =

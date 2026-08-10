@@ -4,7 +4,10 @@ import { findExactAlias } from "@/lib/tag/dedup";
 import { enqueueTagTomTat } from "@/lib/tag/gen-tom-tat";
 import { uniqueTagArticleSlug } from "@/lib/tag/slug";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
-import type { CreatableTagLoai } from "@/lib/tag/tag-loai";
+import {
+  isCreatableTagLoai,
+  type CreatableTagLoai,
+} from "@/lib/tag/tag-loai";
 
 export type CreateTagInput = {
   ten: string;
@@ -24,19 +27,14 @@ function validateTagInput(input: CreateTagInput): string | null {
   if (ten.length > MAX_TAG_LEN) {
     return `Tên tag tối đa ${MAX_TAG_LEN} ký tự.`;
   }
-  if (
-    input.loai !== "keyword" &&
-    input.loai !== "phan_mem" &&
-    input.loai !== "mon_hoc" &&
-    input.loai !== "nghe"
-  ) {
-    return "loai chỉ được keyword, phan_mem, mon_hoc hoặc nghe.";
+  if (!isCreatableTagLoai(input.loai)) {
+    return "loai chỉ được keyword, phan_mem, mon_hoc, nghe hoặc fandom.";
   }
   return null;
 }
 
 /**
- * Tạo tag keyword/phan_mem/mon_hoc/nghe — không qua article_de_xuat.
+ * Tạo tag keyword/phan_mem/mon_hoc/nghe/fandom — không qua article_de_xuat.
  * Dedup exact trước; AI gen tom_tat async sau khi INSERT.
  */
 export async function createTag(

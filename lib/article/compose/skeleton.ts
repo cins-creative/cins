@@ -18,9 +18,17 @@ const KEYWORD_SECTIONS: SectionHint[] = [
   { title: "Tài liệu tham khảo", hint: "Link hoặc nguồn đáng tin." },
 ];
 
+const FANDOM_SECTIONS: SectionHint[] = [
+  { title: "Giới thiệu", hint: "IP / series này là gì." },
+  { title: "Cộng đồng fan", hint: "Fan Việt sáng tạo quanh IP này như thế nào." },
+  { title: "Merch & fanart", hint: "Sản phẩm / tác phẩm thường gặp." },
+  { title: "Nguồn tham khảo", hint: "Wiki / site chính thức." },
+];
+
 function sectionsForLoai(loaiBaiViet: string): SectionHint[] {
   if (loaiBaiViet === "nghe") return NGHE_SECTIONS;
   if (loaiBaiViet === "keyword") return KEYWORD_SECTIONS;
+  if (loaiBaiViet === "fandom") return FANDOM_SECTIONS;
   return [
     { title: "Giới thiệu", hint: "Tóm tắt chủ đề." },
     { title: "Nội dung chi tiết", hint: "Phần thân bài." },

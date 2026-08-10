@@ -6,6 +6,7 @@ const LOAI_LABELS: Record<string, string> = {
   nganh_dao_tao: "nganh",
   blog: "blog",
   event: "event",
+  fandom: "fandom",
 };
 
 const STATUS_LABELS: Record<string, string> = {

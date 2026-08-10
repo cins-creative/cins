@@ -56,6 +56,7 @@ const LOAI_FILTER_OPTIONS: { id: LoaiFilter; label: string }[] = [
   { id: "mon_hoc", label: "Môn học" },
   { id: "nganh_dao_tao", label: "Ngành" },
   { id: "nghe", label: "Nghề nghiệp" },
+  { id: "fandom", label: "Fandom" },
 ];
 
 const CREATE_LOAI_LABEL: Record<CreatableTagLoai, string> = {
@@ -63,6 +64,7 @@ const CREATE_LOAI_LABEL: Record<CreatableTagLoai, string> = {
   phan_mem: "Phần mềm",
   mon_hoc: "Môn học",
   nghe: "Vị trí công việc",
+  fandom: "Fandom",
 };
 
 function creatableLoaiForFilter(loaiFilter: LoaiFilter): CreatableTagLoai[] {
@@ -612,6 +614,7 @@ export function EditorTagMenu({
                 loai={exactMatch.loai_bai_viet}
                 linhVucTen={exactMatch.linh_vuc_ten}
                 soNguoiTagged={exactMatch.so_nguoi_tagged}
+                soGan={exactMatch.so_gan}
               />
             </button>
           ) : (
@@ -655,6 +658,7 @@ export function EditorTagMenu({
                       loai={item.tag.loai_bai_viet}
                       linhVucTen={item.tag.linh_vuc_ten}
                       soNguoiTagged={item.tag.so_nguoi_tagged}
+                      soGan={item.tag.so_gan}
                     />
                   </button>
                 ) : pickingCreateLoai ? (

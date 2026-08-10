@@ -40,6 +40,7 @@ export function relLoaiKind(loai: string): string {
     linh_vuc: "Lĩnh vực",
     blog: "Blog",
     event: "Sự kiện",
+    fandom: "Fandom",
   };
   return map[loai] ?? loai.replace(/_/g, " ");
 }

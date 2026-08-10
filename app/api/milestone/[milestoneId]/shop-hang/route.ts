@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import { listPostHang, setPostHang } from "@/lib/shop/post-hang";
 import { getBanHangEnabled } from "@/lib/shop/settings";
+import { SHOP_POST_HANG_MAX } from "@/lib/shop/types";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 type Ctx = { params: Promise<{ milestoneId: string }> };
@@ -62,6 +63,15 @@ export async function PUT(request: Request, ctx: Ctx) {
     });
   }
 
+  if (items.length > SHOP_POST_HANG_MAX) {
+    return NextResponse.json(
+      {
+        error: `Mỗi bài chỉ gắn tối đa ${SHOP_POST_HANG_MAX} sản phẩm.`,
+      },
+      { status: 400 },
+    );
+  }
+
   try {
     const saved = await setPostHang(session.profile.id, milestoneId, items);
     return NextResponse.json({ items: saved });
@@ -81,6 +91,14 @@ export async function PUT(request: Request, ctx: Ctx) {
     }
     if (msg === "FORBIDDEN") {
       return NextResponse.json({ error: "Không có quyền." }, { status: 403 });
+    }
+    if (msg === "TOO_MANY") {
+      return NextResponse.json(
+        {
+          error: `Mỗi bài chỉ gắn tối đa ${SHOP_POST_HANG_MAX} sản phẩm.`,
+        },
+        { status: 400 },
+      );
     }
     if (msg === "GIA_NOT_FOUND") {
       return NextResponse.json(

@@ -1,13 +1,24 @@
 import { isTier1EmbedPlatformId } from "@/lib/editor/embed-providers";
+import type { ComposeEditorDraft } from "@/lib/journey/compose-editor-draft";
 
 export type ComposeCreateKind = "article" | "photo" | "video" | "milestone" | "embed";
 
 /** Luồng mở trình soạn — create luôn qua EditorView (một sheet). */
 export type ComposeIntent = "minimal" | "photo" | "video" | "full" | "embed";
 
+/** Nháp compose chưa có `v`/`savedAt` — dùng prefill (vd. Giới thiệu sản phẩm). */
+export type ComposePrefillDraft = Omit<ComposeEditorDraft, "v" | "savedAt">;
+
 export type JourneyComposeState =
   | { kind: "article"; intent?: ComposeIntent }
-  | { kind: "photo"; pendingFiles?: File[] }
+  | {
+      kind: "photo";
+      pendingFiles?: File[];
+      /** Prefill album/blocks khi không có nháp localStorage. Không sync URL. */
+      prefillDraft?: ComposePrefillDraft;
+      /** Hậu tố draft key (vd. `shop-nhom:{id}`) — tránh đè nháp album thường. */
+      draftScope?: string;
+    }
   | { kind: "video"; pendingFile?: File }
   | {
       kind: "embed";

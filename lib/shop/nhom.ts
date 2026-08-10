@@ -7,6 +7,12 @@ import {
 } from "@/lib/cloudflare/stream-embed";
 import { getOrCreateDefaultBangGia } from "@/lib/shop/bang-gia";
 import { mapDanhMucSlugByIds } from "@/lib/shop/danh-muc";
+import {
+  fandomIdsByNhomIds,
+  fandomSlugsByNhomIds,
+  loadFandomRefsByIds,
+  replaceNhomFandom,
+} from "@/lib/shop/fandom";
 import { assertBanHangEnabled, shopImageUrl } from "@/lib/shop/settings";
 import {
   facetsByNhomIds,
@@ -204,6 +210,8 @@ function mapNhom(row: NhomRow): ShopNhom {
     danhMucSlug: null,
     facets: {},
     giaTriIds: [],
+    fandomIds: [],
+    fandoms: [],
     thuTu: row.thu_tu,
     taoLuc: row.tao_luc,
   };
@@ -216,17 +224,43 @@ async function enrichNhomTaxonomy(nhoms: ShopNhom[]): Promise<void> {
     .map((n) => n.idDanhMuc)
     .filter((id): id is string => Boolean(id));
   const nhomIds = nhoms.map((n) => n.id);
-  const [slugById, facetsMap, giaTriMap] = await Promise.all([
-    mapDanhMucSlugByIds(dmIds),
-    facetsByNhomIds(nhomIds),
-    giaTriIdsByNhomIds(nhomIds),
-  ]);
+  const [slugById, facetsMap, giaTriMap, fandomSlugMap, fandomIdMap] =
+    await Promise.all([
+      mapDanhMucSlugByIds(dmIds),
+      facetsByNhomIds(nhomIds),
+      giaTriIdsByNhomIds(nhomIds),
+      fandomSlugsByNhomIds(nhomIds),
+      fandomIdsByNhomIds(nhomIds),
+    ]);
+
+  const allFandomIds = [
+    ...new Set([...fandomIdMap.values()].flat()),
+  ];
+  const fandomRefs = await loadFandomRefsByIds(allFandomIds);
+  const fandomRefById = new Map(fandomRefs.map((r) => [r.id, r] as const));
+
   for (const n of nhoms) {
     n.danhMucSlug = n.idDanhMuc
       ? (slugById.get(n.idDanhMuc) ?? null)
       : null;
-    n.facets = facetsMap.get(n.id) ?? {};
+    const facets = { ...(facetsMap.get(n.id) ?? {}) };
+    // Fandom entity ghi đè key facet ảo — không còn đọc từ shop_thuoc_tinh.
+    delete facets.fandom;
+    const fandomSlugs = fandomSlugMap.get(n.id) ?? [];
+    if (fandomSlugs.length > 0) facets.fandom = fandomSlugs;
+    n.facets = facets;
     n.giaTriIds = giaTriMap.get(n.id) ?? [];
+    const ids = fandomIdMap.get(n.id) ?? [];
+    n.fandomIds = ids;
+    n.fandoms = ids
+      .map((id) => fandomRefById.get(id))
+      .filter((r): r is NonNullable<typeof r> => Boolean(r))
+      .map((r) => ({
+        id: r.id,
+        ten: r.ten,
+        slug: r.slug,
+        daVerify: r.daVerify,
+      }));
   }
 }
 
@@ -525,6 +559,8 @@ export async function updateNhom(
     danhMucXacNhan?: boolean;
     /** Thay toàn bộ facet gắn loại (null/undefined = không đổi). */
     giaTriIds?: string[];
+    /** Thay toàn bộ fandom entity gắn loại. */
+    fandomIds?: string[];
   },
 ): Promise<ShopNhom> {
   await assertBanHangEnabled(ownerId);
@@ -648,6 +684,9 @@ export async function updateNhom(
 
   if (input.giaTriIds !== undefined) {
     await replaceNhomGiaTri(nhomId, input.giaTriIds);
+  }
+  if (input.fandomIds !== undefined) {
+    await replaceNhomFandom(nhomId, input.fandomIds);
   }
 
   if (nextNhan !== row.nhan) {

@@ -91,11 +91,15 @@ export type ShopNhom = {
   danhMucSlug: string | null;
   /**
    * Facet gắn loại — key = slug facet, value = slug giá trị.
-   * Enrich khi list.
+   * Enrich khi list. Key `fandom` lấy từ `shop_nhom_fandom` (entity).
    */
   facets: Record<string, string[]>;
-  /** Id giá trị facet đang gắn — dùng editor Kho. */
+  /** Id giá trị facet đang gắn (chat-lieu…) — dùng editor Kho. */
   giaTriIds: string[];
+  /** Id bài fandom (`article_bai_viet`) đang gắn — dùng editor Kho. */
+  fandomIds: string[];
+  /** Ref fandom đã enrich (id + tên) — editor Kho. */
+  fandoms: Array<{ id: string; ten: string; slug: string; daVerify: boolean }>;
   thuTu: number;
   taoLuc: string;
 };
@@ -194,6 +198,18 @@ export const SHOP_NHOM_DANH_GIA_NOI_DUNG_MAX = 2000;
 export const SHOP_NHOM_DANH_GIA_ANH_MAX = 6;
 /** Ảnh thật phụ trên loại hàng (`shop_nhom.anh_phu_ids`). */
 export const SHOP_NHOM_ANH_PHU_MAX = 8;
+
+/** Trần ảnh prefill bài «Giới thiệu sản phẩm» (album ImageGrid). */
+export const SHOP_GIOI_THIEU_ANH_MAX = 24;
+
+/** Cooldown đăng «Giới thiệu sản phẩm» — 1 lần / loại hàng / khoảng này. */
+export const SHOP_GIOI_THIEU_COOLDOWN_DAYS = 3;
+
+/**
+ * Trần dòng `shop_post_hang` (= biến thể) trên 1 bài Journey.
+ * Áp cho mọi luồng gắn hàng (modal + tự gắn từ Kho).
+ */
+export const SHOP_POST_HANG_MAX = 20;
 
 export type ShopSanPham = {
   id: string;

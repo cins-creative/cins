@@ -15,6 +15,7 @@ const ALLOWED_LOAI: LoaiBaiViet[] = [
   "blog",
   "event",
   "nganh_dao_tao",
+  "fandom",
 ];
 
 function normalizeLoai(raw: string): LoaiBaiViet {

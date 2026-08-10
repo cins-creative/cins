@@ -45,9 +45,13 @@ export async function PATCH(req: Request, ctx: RouteCtx) {
   if (!row) {
     return NextResponse.json({ error: "Tag không tồn tại." }, { status: 404 });
   }
-  if (row.loai_bai_viet !== "keyword" && row.loai_bai_viet !== "phan_mem") {
+  if (
+    row.loai_bai_viet !== "keyword" &&
+    row.loai_bai_viet !== "phan_mem" &&
+    row.loai_bai_viet !== "fandom"
+  ) {
     return NextResponse.json(
-      { error: "Chỉ verify tag keyword/phan_mem." },
+      { error: "Chỉ verify tag keyword/phan_mem/fandom." },
       { status: 400 },
     );
   }

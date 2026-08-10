@@ -47,6 +47,11 @@ const FIELD = {
     label: "Môn học",
     placeholder: "Gắn môn học liên quan…",
   },
+  fandom: {
+    loai: "fandom",
+    label: "Fandom",
+    placeholder: "Gắn fandom liên quan…",
+  },
 } as const satisfies Record<string, ContribRelatedField>;
 
 /** Field gắn thẻ theo loại entity đang đóng góp. */
@@ -64,6 +69,8 @@ export function relatedFieldsForLoaiBaiViet(
       return [FIELD.ngheJobs, FIELD.phanMem, FIELD.keywordPeer];
     case "phan_mem":
       return [FIELD.ngheJobs, FIELD.keyword, FIELD.phanMemPeer];
+    case "fandom":
+      return [FIELD.keyword, FIELD.phanMem, FIELD.fandom];
     default:
       return [FIELD.nganh, FIELD.keyword, FIELD.nghe];
   }

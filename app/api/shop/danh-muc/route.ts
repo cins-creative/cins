@@ -44,10 +44,12 @@ export async function GET(request: Request) {
       );
     }
 
-    const [danhMuc, facets] = await Promise.all([
+    const [danhMuc, facetsRaw] = await Promise.all([
       listDanhMucTree({ nganhHang: "merch" }),
       listFacetsForHub({ nganhHang: "merch" }),
     ]);
+    // Fandom đã chuyển sang article entity — không còn facet shop.
+    const facets = facetsRaw.filter((f) => f.slug !== "fandom");
 
     return NextResponse.json(
       { danhMuc, facets },

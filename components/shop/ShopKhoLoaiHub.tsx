@@ -6,9 +6,11 @@ import {
   Camera,
   Check,
   ClipboardPaste,
+  ExternalLink,
   Film,
   ImagePlus,
   Loader2,
+  Megaphone,
   Plus,
   Star,
   Tags,
@@ -56,7 +58,6 @@ type Props = {
   mauCountByNhomId: Record<string, number>;
   orphanCount: number;
   nhanPhanLoai: string;
-  nhanPhanLoai2: string;
   onOpenNhom: (nhomId: string) => void;
   onOpenOrphans: () => void;
   onNhomsChanged: (next: ShopNhom[]) => void;
@@ -454,12 +455,18 @@ type MetaProps = {
   mauCount: number;
   /** Giá suy từ bảng giá mẫu khi loại chưa có `giaMacDinh`. */
   suggestedGiaMacDinh?: number | null;
+  /** Trang loại hàng trên mặt tiền shop — null khi chưa có slug. */
+  storefrontLoaiHref?: string | null;
   onBack: () => void;
   onUpdated: (n: ShopNhom) => void;
   onDeleted: () => void;
   onError: (msg: string | null) => void;
   /** Khi server báo còn mẫu nhưng client đang thấy 0 — tải lại kho. */
   onRefreshMau?: () => void;
+  /** Mở composer «Giới thiệu sản phẩm» (album + gắn kiosk). */
+  onGioiThieu?: () => void;
+  gioiThieuBusy?: boolean;
+  gioiThieuDisabledReason?: string | null;
 };
 
 function giaInputValue(
@@ -475,11 +482,15 @@ export function ShopKhoLoaiMeta({
   nhom,
   mauCount,
   suggestedGiaMacDinh = null,
+  storefrontLoaiHref = null,
   onBack,
   onUpdated,
   onDeleted,
   onError,
   onRefreshMau,
+  onGioiThieu,
+  gioiThieuBusy = false,
+  gioiThieuDisabledReason = null,
 }: MetaProps) {
   const [nhan, setNhan] = useState(nhom.nhan);
   const [moTa, setMoTa] = useState(nhom.moTa ?? "");
@@ -1009,7 +1020,45 @@ export function ShopKhoLoaiMeta({
           <ArrowLeft size={15} aria-hidden />
           Tất cả loại hàng
         </button>
-        <div className="shop-kho-loai-delete-wrap">
+        <div className="shop-kho-loai-meta-head-actions">
+          {storefrontLoaiHref ? (
+            <a
+              href={storefrontLoaiHref}
+              target="_blank"
+              rel="noreferrer"
+              className="shop-kho-loai-view"
+              title="Xem mặt hàng trên shop"
+              aria-label="Xem mặt hàng trên shop"
+            >
+              <ExternalLink size={15} strokeWidth={2} aria-hidden />
+            </a>
+          ) : null}
+          {onGioiThieu ? (
+            <button
+              type="button"
+              className="shop-kho-loai-gioi-thieu"
+              disabled={
+                mediaBusy ||
+                deleting ||
+                gioiThieuBusy ||
+                Boolean(gioiThieuDisabledReason)
+              }
+              title={
+                gioiThieuDisabledReason ??
+                "Tạo bài album ảnh giới thiệu mặt hàng này"
+              }
+              aria-label="Giới thiệu sản phẩm"
+              onClick={() => onGioiThieu()}
+            >
+              {gioiThieuBusy ? (
+                <Loader2 size={14} className="shop-spin" aria-hidden />
+              ) : (
+                <Megaphone size={14} strokeWidth={2} aria-hidden />
+              )}
+              Giới thiệu sản phẩm
+            </button>
+          ) : null}
+          <div className="shop-kho-loai-delete-wrap">
           <button
             type="button"
             className="shop-kho-loai-delete"
@@ -1031,6 +1080,7 @@ export function ShopKhoLoaiMeta({
               Cần xóa tất cả sản phẩm trước khi xóa mặt hàng này.
             </p>
           ) : null}
+          </div>
         </div>
       </div>
 

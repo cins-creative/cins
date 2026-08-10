@@ -10,6 +10,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 
+import { TagInput, type TagInputValue } from "@/components/tag/TagInput";
 import type { ShopNhom } from "@/lib/shop/types";
 
 type DanhMucOpt = {
@@ -59,7 +60,7 @@ async function loadTaxonomy(): Promise<TaxonomyPayload | null> {
         if (!res.ok || !json?.danhMuc || !json?.facets) return null;
         taxonomyCache = {
           danhMuc: json.danhMuc,
-          facets: json.facets,
+          facets: json.facets.filter((f) => f.slug !== "fandom"),
         };
         return taxonomyCache;
       })
@@ -343,8 +344,8 @@ function TaxSelectDropdown({
 }
 
 /**
- * Form gắn danh mục CINs + facet (Fandom / Chất liệu) trên loại hàng Kho.
- * Facet = dropdown multi-select; danh mục CINs = chọn 1 (schema FK đơn).
+ * Form gắn danh mục CINs + facet (Chất liệu) + Fandom entity trên loại hàng Kho.
+ * Fandom = TagInput creatable; danh mục CINs = chọn 1 (schema FK đơn).
  */
 export function ShopKhoLoaiTaxonomy({
   nhom,
@@ -359,13 +360,29 @@ export function ShopKhoLoaiTaxonomy({
   const [giaTriIds, setGiaTriIds] = useState<string[]>(() => [
     ...(nhom.giaTriIds ?? []),
   ]);
+  const [fandomTags, setFandomTags] = useState<TagInputValue[]>(() =>
+    (nhom.fandoms ?? []).map((f) => ({
+      id: f.id,
+      tieu_de: f.ten,
+      loai_bai_viet: "fandom" as const,
+      da_verify: f.daVerify,
+    })),
+  );
   const [suggestions, setSuggestions] = useState<DanhMucOpt[]>([]);
   const suggestTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     setIdDanhMuc(nhom.idDanhMuc ?? "");
     setGiaTriIds([...(nhom.giaTriIds ?? [])]);
-  }, [nhom.id, nhom.idDanhMuc, nhom.giaTriIds]);
+    setFandomTags(
+      (nhom.fandoms ?? []).map((f) => ({
+        id: f.id,
+        tieu_de: f.ten,
+        loai_bai_viet: "fandom" as const,
+        da_verify: f.daVerify,
+      })),
+    );
+  }, [nhom.id, nhom.idDanhMuc, nhom.giaTriIds, nhom.fandoms]);
 
   useEffect(() => {
     let cancelled = false;
@@ -408,10 +425,6 @@ export function ShopKhoLoaiTaxonomy({
     };
   }, [nhom.nhan, nhom.idDanhMuc, nhom.danhMucXacNhan]);
 
-  const fandomFacet = useMemo(
-    () => tax?.facets.find((f) => f.slug === "fandom") ?? null,
-    [tax],
-  );
   const chatLieuFacet = useMemo(
     () => tax?.facets.find((f) => f.slug === "chat-lieu") ?? null,
     [tax],
@@ -509,6 +522,23 @@ export function ShopKhoLoaiTaxonomy({
     })();
   }
 
+  async function onFandomChange(next: TagInputValue[]) {
+    setFandomTags(next);
+    const nextIds = next.map((t) => t.id);
+    if (sameIdSet(nextIds, nhom.fandomIds ?? [])) return;
+    const ok = await patchTaxonomy({ fandomIds: nextIds });
+    if (!ok) {
+      setFandomTags(
+        (nhom.fandoms ?? []).map((f) => ({
+          id: f.id,
+          tieu_de: f.ten,
+          loai_bai_viet: "fandom" as const,
+          da_verify: f.daVerify,
+        })),
+      );
+    }
+  }
+
   const busy = disabled || saving || loadingTax;
   const selectedFacetIds = (facet: FacetOpt) => {
     const inFacet = new Set(facet.giaTri.map((g) => g.id));
@@ -544,24 +574,6 @@ export function ShopKhoLoaiTaxonomy({
               onClear={() => void onDanhMucPick("")}
             />
 
-            {fandomFacet ? (
-              <TaxSelectDropdown
-                label={fandomFacet.ten}
-                placeholder={`Chọn ${fandomFacet.ten.toLowerCase()}…`}
-                options={fandomFacet.giaTri.map((g) => ({
-                  id: g.id,
-                  ten: g.ten,
-                }))}
-                selectedIds={selectedFacetIds(fandomFacet)}
-                multiple={fandomFacet.kieu === "chon_nhieu"}
-                searchable
-                searchPlaceholder="Tìm fandom…"
-                disabled={busy}
-                onToggle={(id) => toggleGiaTri(id, fandomFacet)}
-                onClear={() => clearFacet(fandomFacet)}
-              />
-            ) : null}
-
             {chatLieuFacet ? (
               <TaxSelectDropdown
                 label={chatLieuFacet.ten}
@@ -579,6 +591,28 @@ export function ShopKhoLoaiTaxonomy({
                 onClear={() => clearFacet(chatLieuFacet)}
               />
             ) : null}
+
+            <div className="shop-kho-loai-dd shop-kho-loai-fandom">
+              <span className="shop-kho-loai-dd-label">Phân loại</span>
+              <TagInput
+                value={fandomTags}
+                onChange={(next) =>
+                  void onFandomChange(
+                    next.map((t) => ({
+                      ...t,
+                      loai_bai_viet: "fandom",
+                    })),
+                  )
+                }
+                mode="multi"
+                maxTags={12}
+                showLimitHint={false}
+                placeholder="Nhập để tìm/thêm fandom"
+                keepPlaceholder
+                disabled={busy}
+                loaiFilterFixed="fandom"
+              />
+            </div>
           </div>
 
           {nhom.idDanhMuc && !nhom.danhMucXacNhan ? (

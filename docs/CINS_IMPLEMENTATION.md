@@ -41,7 +41,8 @@ UI: `/tai-khoan/thanh-toan` · Settings «Thanh toán» · `/admin/tai-chinh` (C
 |---|---|
 | `shop/san-pham` · `shop/san-pham/[id]` | CRUD catalog + biến thể / tồn kho (seller) |
 | `shop/nhom` · `shop/nhom/[id]` | GET/POST list·tạo nhóm; PATCH mô tả/nhãn/**taxonomy** (`idDanhMuc` · `danhMucXacNhan` · `giaTriIds`); **DELETE** soft-delete loại khi không còn `shop_san_pham` gắn. Kho UI: `ShopKhoLoaiTaxonomy` |
-| `shop/danh-muc` | GET taxonomy merch: cây `shop_danh_muc` + facet hub + giá trị `hien`. Query `?q=` gợi ý danh mục; `?facet=fandom&q=` gợi ý giá trị |
+| `shop/nhom/[id]/gioi-thieu` | **GET** trạng thái cooldown «Giới thiệu sản phẩm» (1 lần / loại / 3 ngày); **POST** `{ cotMocId }` ghi mốc sau publish — 429 nếu còn cooldown. Bảng `shop_nhom_gioi_thieu`. Lib: `gioi-thieu.ts` · `gioi-thieu-cooldown.ts`. UI nút trên `ShopKhoLoaiMeta`. |
+| `shop/danh-muc` | GET taxonomy merch: cây `shop_danh_muc` + facet hub (không gồm fandom — đã chuyển entity). Query `?q=` gợi ý danh mục; `?facet=chat-lieu&q=` gợi ý giá trị |
 | `shop/import-shopee` | **POST** (seller) — import loại hàng từ URL Shopee: preview (`apply:false`) hoặc tạo `shop_nhom` + mẫu (`apply:true`). Body `{ url?, apply?, raw?, preview? }`. Lib `lib/shop/shopee/`. UI: `/ban-hang/kho` → **AI · Shopee**. Xem ghi chú *Import Shopee* bên dưới. |
 | `shop/bang-gia` · `shop/bang-gia/[id]` | CRUD bảng giá + dòng giá theo biến thể. **1 bảng giá VND / shop** (2026-07-28): POST/PATCH **ép `tien_te="VND"`**, bỏ nhận `tienTe`. Bảng canonical = `getOrCreateDefaultBangGia(ownerId)` (bảng cũ nhất; tạo "Bảng giá mặc định" VND nếu chưa có). `resolveGiaBienThe` fallback `shop_nhom.gia_mac_dinh` khi thiếu dòng → không "Chưa có giá" khi loại đã có giá gốc; `syncNhomGiaMacDinhToMau` ghi vào canonical + quét biến thể theo `id_nhom` **và** tên `phan_loai`. UI Kho/modal bỏ chọn bảng giá. |
 | `shop/gio` | GET/PATCH/DELETE giỏ buyer — scope **XOR** `cotMocId` (post-kiosk) **hoặc** `cuaHangId` (storefront `/{slug}/shop`) |
@@ -316,6 +317,8 @@ Tái dùng đúng pattern Shopee AI cho **user tự import portfolio** của ch�
 | `migration_shop_ban_hang.sql` | **L33 Shop UGC:** `ban_hang_bat` / `ban_hang_dieu_khoan_luc`; bảng `shop_*` (catalog, giá, post-hang, giỏ, đơn, quầy) + RLS. Chạy: `node scripts/run-shop-ban-hang-migration.mjs`. |
 | `migration_shop_the_khach.sql` | **Thẻ phân loại khách hàng (chat):** `shop_the_khach` + `shop_the_khach_gan` (chỉ seller RLS); seed 3 thẻ mặc định cho seller `ban_hang_bat`. App: `lib/shop/khach-hang.ts` (+ `listShopNguoiBanDaMua`), API `/api/shop/khach-hang/**`, overlay tab «Mua bán» (sub Khách hàng / Mua hàng). Chạy: `npm run migrate:shop-the-khach`. **Đã chạy** CINs 2026-08-02. |
 | `migration_shop_danh_muc.sql` | **Taxonomy hub:** `shop_danh_muc`/`_alias` · `shop_thuoc_tinh`/`_gia_tri`/`_alias` · `shop_nhom_thuoc_tinh` + ALTER `shop_nhom` (`id_danh_muc`, `danh_muc_xac_nhan`). Seed merch 17 danh mục · facet fandom/chat-lieu (+ thuong-hieu `an`). Lib: `danh-muc.ts` · `thuoc-tinh.ts`. Chạy: `npm run migrate:shop-danh-muc`. **Đã chạy** CINs 2026-08-07. Plan: `PLAN_shop_danh_muc_san_pham.md`. |
+| `migration_fandom_entity.sql` | **Fandom entity:** `ALTER TYPE loai_bai_viet_enum ADD VALUE 'fandom'` · bảng `shop_nhom_fandom` + RLS · ẩn facet `shop_thuoc_tinh.slug=fandom`. Lib: `lib/shop/fandom.ts` · lens `/fandom/[slug]`. Chạy: `npm run migrate:fandom-entity` rồi `npm run backfill:fandom-entity`. |
+| `migration_shop_nhom_gioi_thieu.sql` | **Cooldown giới thiệu SP:** bảng `shop_nhom_gioi_thieu` (`id_nhom` PK, `id_cot_moc`, `tao_luc`) + RLS owner qua `shop_nhom`. API `/api/shop/nhom/[id]/gioi-thieu`. Chạy: `npm run migrate:shop-nhom-gioi-thieu`. **Đã chạy** CINs 2026-08-10. |
 | `migration_shop_combo_voucher.sql` | **Combo & Voucher:** enum giảm/phạm vi/design; bảng `shop_combo` · `shop_combo_dieu_kien` · `shop_voucher` · `shop_voucher_su_dung` · `shop_voucher_luu` + RLS; RPC `shop_dung_voucher` / `shop_hoan_voucher`. Lib: `uu-dai.ts` · `combo.ts` · `voucher.ts`. UI `/ban-hang/uu-dai` · hub săn voucher · strip storefront. Test: `npm run test:shop-uu-dai`. Chạy: `npm run migrate:shop-combo-voucher`. **Đã chạy** CINs 2026-08-07. Plan: `PLAN_shop_combo_voucher.md`. |
 | `migration_shop_don_giam_gia.sql` | **ALTER đơn:** `shop_don_hang.tong_hang` · `tien_giam_combo` · `tien_giam_voucher` · `id_voucher` · `giam_snapshot`; backfill `tong_hang = tong_tien`. Chạy cùng runner `migrate:shop-combo-voucher`. **Đã chạy** CINs 2026-08-07. |
 | `migration_ket_ban.sql` | Bảng `user_ket_ban` (thay follow-user) |
@@ -474,6 +477,26 @@ CINS_NOI_BO_SHOP_PHI_SECRET    (Bearer; shop chốt kỳ — fallback CINS_NOI_B
 CSDT_PHI_MA_SALT               (salt mã CK Sepay — P0 B1; không public)
 # Tuỳ chọn fallback khi bảng cấu hình trống: CSDT_PHI_TY_LE · CSDT_PHI_NGUONG_VND
 ```
+
+### Đồng bộ `.env.local` ↔ Worker Cloudflare `cins` (2026-08-10)
+
+> **Không ghi giá trị secret vào doc.** Chỉ checklist tên biến + nơi lấy.
+
+| Biến | Nơi lấy / ghi chú |
+|---|---|
+| `CLOUDFLARE_REALTIMEKIT_APP_ID` | Dashboard → **RealtimeKit** → app **`cins-phong-hoc-dev`** (UUID; **không** dùng Account ID). App `cins-phong-hoc-dev-2` = không dùng cho prod hiện tại. |
+| `CLOUDFLARE_REALTIMEKIT_API_TOKEN` | My Profile → API Tokens → token quyền **Account.Realtime**. Secret Worker không xem lại được → Roll token → cập nhật **cả** `.env.local` + Worker. |
+| `NEXT_PUBLIC_CF_STREAM_CUSTOMER_CODE` | Stream → URL video dạng `https://customer-….cloudflarestream.com/…` → lấy host prefix gồm `customer-…` (vd. `customer-3jxj2x9j7hnu9277`). Alias server: `CLOUDFLARE_STREAM_CUSTOMER_CODE`. `NEXT_PUBLIC_*` cần **rebuild/redeploy**. |
+| `SEPAY_WEBHOOK_SECRET` | SePay → webhook CINs → tab **Bảo mật** = **API Key**. **Không** dán URL `https://cins.vn/api/webhook/sepay` vào biến này. URL webhook = tab Cơ bản. |
+| `RESEND_API_KEY` | Resend → API key riêng app (vd. **`cins-app`**, Sending). Key **`cins-supabase-smtp`** = SMTP Supabase — **không** xóa; không bắt buộc trùng key app. Gắn Worker tên biến `RESEND_API_KEY`. |
+| `CINS_NOI_BO_DANG_BAI_SECRET` | Local và Worker phải **cùng giá trị** nếu gọi API nội bộ prod từ máy local. |
+
+**Không cần lên Worker (local/CLI only):** `CLOUDFLARE_API_TOKEN` (deploy/CLI), `DATABASE_URL` (prod dùng Hyperdrive binding), `CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE`, `NEXT_PUBLIC_SITE_URL=http://localhost:3001`.
+
+**Khi roll token** (Realtime / Stream / SePay…): cập nhật `.env.local` **và** Worker Variables & Secrets — thiếu một bên là local hoặc prod gãy.
+
+**Agent / máy Windows:** cấm tự ý xóa/clean ổ `C:\` — xem `CINS_DEV_RULES.md` §2.
+
 **Cloudflare Images — variants** (Dashboard → Images → Variants; cập nhật 2026-07-04):
 
 | Name | Kích thước | Fit | Dùng cho |
@@ -782,14 +805,17 @@ Trang khóa standalone `/co-so/[slug]/khoa-hoc/[khoa-slug]`. Ưu tiên render m�
 |---|---|---|---|
 | `nghe` | Bài viết đầy đủ | Prose dài, ai_summary | Có |
 | `nganh_dao_tao` | Bài viết đầy đủ | Prose dài | Có |
-| `keyword` | Aggregation only | `tom_tat` AI + người + tác phẩm | **Không** |
-| `phan_mem` | Aggregation only | `tom_tat` AI + người + tác phẩm | **Không** |
+| `keyword` | `/keyword/[slug]` | `tom_tat` AI + đóng góp + thảo luận | **Không** |
+| `phan_mem` | `/software/[slug]` | `tom_tat` AI + thảo luận | **Không** |
+| `fandom` | `/fandom/[slug]` | `tom_tat` AI + đóng góp + thảo luận; shop gắn qua `shop_nhom_fandom` | **Không** |
 
-**Flow tag mới:** autocomplete (`da_verify` trước) → dedup alias → tạo `article_bai_viet` → AI gen `tom_tat` → admin verify sau.
+**Flow tag mới:** autocomplete (`da_verify` trước) → dedup alias → tạo `article_bai_viet` → AI gen `tom_tat` → admin verify sau. Creatable: `keyword` / `phan_mem` / `mon_hoc` / `nghe` / `fandom` (`POST /api/tag`).
 
 **Dedup:** exact lowercase → `article_alias` tự động; AI fuzzy → suggest confirm. Keyword trùng tên khác ngành → qualifier + `article_lien_quan`.
 
 **`tom_tat`:** gen ngay khi tạo; regen khi `so_data_point` tăng (`vector_dong`).
+
+**Shop fandom:** không còn facet `shop_thuoc_tinh` runtime; hub `/cua-hang` inject facet ảo slug `fandom` từ entity (`listFandomChipsForHub`). Kho: `TagInput loaiFilterFixed="fandom"`.
 
 ---
 

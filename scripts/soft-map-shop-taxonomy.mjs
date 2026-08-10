@@ -1,6 +1,9 @@
 /**
- * Soft-map shop_nhom chưa gắn danh mục / facet từ alias (danh_muc_xac_nhan=false).
+ * Soft-map shop_nhom chưa gắn danh mục / facet chat-lieu / fandom entity.
  * Usage: node scripts/soft-map-shop-taxonomy.mjs
+ *
+ * Fandom: map qua article_bai_viet (loai=fandom) + article_alias → shop_nhom_fandom.
+ * Chat-lieu: vẫn qua shop_thuoc_tinh_alias (facet còn hien).
  */
 import dotenv from "dotenv";
 import postgres from "postgres";
@@ -83,13 +86,28 @@ try {
     WHERE d.trang_thai = 'hien' AND d.slug <> 'khac'
   `;
 
+  // Chỉ chat-lieu (và facet hien khác ≠ fandom). Fandom đã chuyển entity.
   const facetAliases = await db`
     SELECT a.tu_khoa, a.id_gia_tri AS id, g.slug AS gia_tri_slug, t.slug AS facet_slug
     FROM public.shop_thuoc_tinh_alias a
     JOIN public.shop_thuoc_tinh_gia_tri g ON g.id = a.id_gia_tri
     JOIN public.shop_thuoc_tinh t ON t.id = a.id_thuoc_tinh
     WHERE g.trang_thai = 'hien' AND t.trang_thai = 'hien'
+      AND t.slug <> 'fandom'
       AND g.slug <> 'khac'
+  `;
+
+  const fandomAliases = await db`
+    SELECT lower(trim(a.ten_alias)) AS tu_khoa, a.id_bai_viet AS id
+    FROM public.article_alias a
+    JOIN public.article_bai_viet b ON b.id = a.id_bai_viet
+    WHERE b.loai_bai_viet = 'fandom'
+      AND b.trang_thai_noi_dung = 'published'
+    UNION ALL
+    SELECT lower(trim(b.tieu_de)) AS tu_khoa, b.id
+    FROM public.article_bai_viet b
+    WHERE b.loai_bai_viet = 'fandom'
+      AND b.trang_thai_noi_dung = 'published'
   `;
 
   const nhoms = await db`
@@ -100,6 +118,7 @@ try {
 
   let mappedDm = 0;
   let mappedFacet = 0;
+  let mappedFandom = 0;
   let skippedDm = 0;
 
   for (const nhom of nhoms) {
@@ -126,7 +145,7 @@ try {
       }
     }
 
-    /** Facet: mọi giá trị khớp (fandom + chat-lieu), không trùng. */
+    /** Facet còn lại (chat-lieu…). */
     const facetHits = new Map();
     for (const a of facetAliases) {
       const kw = a.tu_khoa;
@@ -155,6 +174,35 @@ try {
       `;
       if (inserted.length) mappedFacet += 1;
     }
+
+    /** Fandom entity. */
+    const fandomHits = new Map();
+    for (const a of fandomAliases) {
+      const kw = normalize(String(a.tu_khoa ?? ""));
+      if (!kw || kw.length < 3) continue;
+      let score = 0;
+      if (hay === kw) score = 100;
+      else if (hay.includes(kw)) score = 40 + Math.min(kw.length, 20);
+      else {
+        const tokens = hay.split(" ").filter((t) => t.length >= 3);
+        for (const t of tokens) {
+          if (kw.includes(t) || t.includes(kw)) score += 5;
+        }
+      }
+      if (score < 25) continue;
+      const prev = fandomHits.get(a.id);
+      if (!prev || score > prev) fandomHits.set(a.id, score);
+    }
+
+    for (const [baiId] of fandomHits) {
+      const inserted = await db`
+        INSERT INTO public.shop_nhom_fandom (id_nhom, id_bai_viet)
+        VALUES (${nhom.id}::uuid, ${baiId}::uuid)
+        ON CONFLICT (id_nhom, id_bai_viet) DO NOTHING
+        RETURNING id
+      `;
+      if (inserted.length) mappedFandom += 1;
+    }
   }
 
   /** Refresh so_shop_dung cache cho giá trị facet. */
@@ -178,6 +226,7 @@ try {
         mappedDanhMuc: mappedDm,
         skippedDanhMuc: skippedDm,
         facetLinksAdded: mappedFacet,
+        fandomLinksAdded: mappedFandom,
       },
       null,
       2,

@@ -20,6 +20,7 @@ type IndexRow = {
   loai_bai_viet: string;
   linh_vuc_ten: string | null;
   so_nguoi_tagged: number;
+  so_gan: number;
   cover_id: string | null;
 };
 
@@ -37,6 +38,7 @@ function mapIndexRow(r: IndexRow): TagSuggestRow {
     loai_bai_viet: parsePickableTagLoai(r.loai_bai_viet),
     linh_vuc_ten: r.linh_vuc_ten?.trim() || null,
     so_nguoi_tagged: Number(r.so_nguoi_tagged) || 0,
+    so_gan: Number(r.so_gan) || 0,
     cover_id:
       r.cover_id == null ? null : String(r.cover_id).trim() || null,
   };
@@ -61,6 +63,17 @@ async function loadTagSuggestIndexViaPostgres(): Promise<TagSuggestRow[] | null>
         SELECT id_bai_viet, COUNT(DISTINCT user_id)::int AS so_nguoi
         FROM user_union
         GROUP BY id_bai_viet
+      ),
+      tp_counts AS (
+        SELECT id_bai_viet, COUNT(*)::int AS so_tp
+        FROM article_gan_tac_pham
+        GROUP BY id_bai_viet
+      ),
+      hang_counts AS (
+        SELECT snf.id_bai_viet, COUNT(*)::int AS so_hang
+        FROM shop_nhom_fandom snf
+        INNER JOIN shop_nhom n ON n.id = snf.id_nhom AND n.da_xoa = false
+        GROUP BY snf.id_bai_viet
       )
       SELECT
         bv.id,
@@ -71,13 +84,19 @@ async function loadTagSuggestIndexViaPostgres(): Promise<TagSuggestRow[] | null>
         bv.loai_bai_viet,
         bv.cover_id,
         lv.ten AS linh_vuc_ten,
-        COALESCE(uc.so_nguoi, 0) AS so_nguoi_tagged
+        COALESCE(uc.so_nguoi, 0) AS so_nguoi_tagged,
+        (COALESCE(tc.so_tp, 0) + COALESCE(hc.so_hang, 0))::int AS so_gan
       FROM article_bai_viet bv
       LEFT JOIN linh_vuc lv ON lv.id = bv.id_linh_vuc
       LEFT JOIN user_counts uc ON uc.id_bai_viet = bv.id
-      WHERE bv.loai_bai_viet IN ('keyword', 'phan_mem', 'mon_hoc', 'nganh_dao_tao', 'nghe')
+      LEFT JOIN tp_counts tc ON tc.id_bai_viet = bv.id
+      LEFT JOIN hang_counts hc ON hc.id_bai_viet = bv.id
+      WHERE bv.loai_bai_viet IN ('keyword', 'phan_mem', 'mon_hoc', 'nganh_dao_tao', 'nghe', 'fandom')
         AND bv.trang_thai_noi_dung = 'published'
-      ORDER BY bv.da_verify DESC NULLS LAST, COALESCE(uc.so_nguoi, 0) DESC, bv.cap_nhat_luc DESC
+      ORDER BY bv.da_verify DESC NULLS LAST,
+        (COALESCE(tc.so_tp, 0) + COALESCE(hc.so_hang, 0)) DESC,
+        COALESCE(uc.so_nguoi, 0) DESC,
+        bv.cap_nhat_luc DESC
       LIMIT ${TAG_SUGGEST_INDEX_MAX}
     `;
     return rows.map(mapIndexRow);
@@ -91,23 +110,35 @@ async function attachUsageCounts(
   const ids = rows.map((r) => r.id);
   const admin = createServiceRoleClient();
 
-  const [{ data: mocLinks }, { data: tpLinks }] = await Promise.all([
-    admin
-      .from("article_gan_cot_moc")
-      .select(
-        "id_bai_viet, content_cot_moc:content_cot_moc!inner(id_nguoi_dung, che_do_hien_thi)",
-      )
-      .in("id_bai_viet", ids),
-    admin
-      .from("article_gan_tac_pham")
-      .select(
-        "id_bai_viet, content_tac_pham:content_tac_pham!inner(content_tac_pham_tac_gia ( id_nguoi_dung, trang_thai ))",
-      )
-      .in("id_bai_viet", ids),
-  ]);
+  const [{ data: mocLinks }, { data: tpLinks }, { data: hangLinks }] =
+    await Promise.all([
+      admin
+        .from("article_gan_cot_moc")
+        .select(
+          "id_bai_viet, content_cot_moc:content_cot_moc!inner(id_nguoi_dung, che_do_hien_thi)",
+        )
+        .in("id_bai_viet", ids),
+      admin
+        .from("article_gan_tac_pham")
+        .select(
+          "id_bai_viet, content_tac_pham:content_tac_pham!inner(content_tac_pham_tac_gia ( id_nguoi_dung, trang_thai ))",
+        )
+        .in("id_bai_viet", ids),
+      admin
+        .from("shop_nhom_fandom")
+        .select("id_bai_viet")
+        .in("id_bai_viet", ids)
+        .limit(Math.min(ids.length * 40, 8000)),
+    ]);
 
   const usersByTag = new Map<string, Set<string>>();
-  for (const id of ids) usersByTag.set(id, new Set());
+  const tpCount = new Map<string, number>();
+  const hangCount = new Map<string, number>();
+  for (const id of ids) {
+    usersByTag.set(id, new Set());
+    tpCount.set(id, 0);
+    hangCount.set(id, 0);
+  }
 
   for (const row of mocLinks ?? []) {
     const tagId = String((row as { id_bai_viet?: string }).id_bai_viet ?? "");
@@ -125,6 +156,8 @@ async function attachUsageCounts(
 
   for (const row of tpLinks ?? []) {
     const tagId = String((row as { id_bai_viet?: string }).id_bai_viet ?? "");
+    if (!tagId) continue;
+    tpCount.set(tagId, (tpCount.get(tagId) ?? 0) + 1);
     const tp = (
       row as {
         content_tac_pham?: {
@@ -135,16 +168,22 @@ async function attachUsageCounts(
         } | null;
       }
     ).content_tac_pham;
-    if (!tagId) continue;
     for (const tg of tp?.content_tac_pham_tac_gia ?? []) {
       if (tg.trang_thai !== "accepted" || !tg.id_nguoi_dung) continue;
       usersByTag.get(tagId)?.add(String(tg.id_nguoi_dung));
     }
   }
 
+  for (const row of hangLinks ?? []) {
+    const tagId = String((row as { id_bai_viet?: string }).id_bai_viet ?? "");
+    if (!tagId) continue;
+    hangCount.set(tagId, (hangCount.get(tagId) ?? 0) + 1);
+  }
+
   return rows.map((r) => ({
     ...r,
     so_nguoi_tagged: usersByTag.get(r.id)?.size ?? 0,
+    so_gan: (tpCount.get(r.id) ?? 0) + (hangCount.get(r.id) ?? 0),
   }));
 }
 
@@ -174,6 +213,7 @@ async function loadTagSuggestIndexViaSupabase(): Promise<TagSuggestRow[]> {
       loai_bai_viet: String(row.loai_bai_viet ?? "keyword"),
       linh_vuc_ten: lvNode?.ten?.trim() || null,
       so_nguoi_tagged: 0,
+      so_gan: 0,
       cover_id: (row.cover_id as string | null) ?? null,
     });
   });

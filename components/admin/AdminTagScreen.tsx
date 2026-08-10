@@ -25,6 +25,7 @@ const LOAI_FILTERS: { id: AdminTagLoaiFilter; label: string }[] = [
   { id: "all", label: "Tất cả" },
   { id: "keyword", label: "Khái niệm" },
   { id: "phan_mem", label: "Phần mềm" },
+  { id: "fandom", label: "Fandom" },
 ];
 
 const VERIFY_FILTERS: { id: AdminTagVerifyFilter; label: string }[] = [

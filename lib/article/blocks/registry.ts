@@ -151,11 +151,31 @@ const KEYWORD_SECTIONS: NgheSectionDef[] = [
   },
 ];
 
+const FANDOM_SECTIONS: NgheSectionDef[] = [
+  { title: "Giới thiệu", hint: "IP / series này là gì.", blocks: [] },
+  {
+    title: "Cộng đồng fan",
+    hint: "Fan Việt sáng tạo quanh IP này như thế nào.",
+    blocks: [],
+  },
+  {
+    title: "Merch & fanart",
+    hint: "Sản phẩm / tác phẩm thường gặp.",
+    blocks: [],
+  },
+  {
+    title: "Nguồn tham khảo",
+    hint: "Wiki / site chính thức.",
+    blocks: [],
+  },
+];
+
 function sectionsForLoai(
   loaiBaiViet: string,
 ): NgheSectionDef[] {
   if (loaiBaiViet === "nghe") return NGHE_DONG_GOP_SECTIONS;
   if (loaiBaiViet === "keyword") return KEYWORD_SECTIONS;
+  if (loaiBaiViet === "fandom") return FANDOM_SECTIONS;
   return [
     { title: "Giới thiệu", hint: "Tóm tắt chủ đề.", blocks: [] },
     {

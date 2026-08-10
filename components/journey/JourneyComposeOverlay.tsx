@@ -125,6 +125,10 @@ export function JourneyComposeOverlay({
   const [editLoading, setEditLoading] = useState(compose.kind === "edit");
   const pendingPhotoFiles =
     compose.kind === "photo" ? compose.pendingFiles : undefined;
+  const prefillDraft =
+    compose.kind === "photo" ? compose.prefillDraft : undefined;
+  const draftScope =
+    compose.kind === "photo" ? compose.draftScope : undefined;
   const pendingVideoFile =
     compose.kind === "video" ? compose.pendingFile : undefined;
   const embedPlatform =
@@ -308,6 +312,8 @@ export function JourneyComposeOverlay({
               initialLottieFile={
                 embedPlatform === "lottie" ? pendingEmbedFile : undefined
               }
+              prefillDraft={prefillDraft}
+              draftScope={draftScope}
               congDongCompose={congDongCompose}
               orgBaiDangCompose={orgBaiDangCompose}
               onClose={onClose}

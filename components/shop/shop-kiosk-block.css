@@ -159,8 +159,8 @@
   gap: 3px;
   width: max-content;
   height: var(--shop-kiosk-ticker-size);
-  /* Nội dung ít hơn khung → canh giữa; nhiều hơn → JS đặt scrollLeft vào giữa. */
-  margin-inline: auto;
+  /* Loop vô tận: JS neo scrollLeft [oneSet, 2·oneSet); số bản nhân đủ dài do JS. */
+  margin-inline: 0;
 }
 
 .shop-kiosk-ticker-thumb-btn {

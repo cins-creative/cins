@@ -283,7 +283,7 @@ vai_tro_to_chuc_enum     : owner / admin / quan_ly_tuyen_sinh / quan_ly_noi_dung
 loai_moc_enum            : hoc / lam_viec / du_an / su_kien / thanh_tuu / ca_nhan
 nguon_goc_moc_enum       : tu_tao / sinh_tu_du_an / sinh_tu_su_kien / sinh_tu_org_assign / sinh_tu_hoc_vien_lop
 che_do_hien_thi_moc_enum : feature / public / theo_nhom / chi_minh / cong_dong
-loai_bai_viet_enum       : linh_vuc / nghe / keyword / phan_mem / mon_hoc / blog / event / nganh_dao_tao
+loai_bai_viet_enum       : linh_vuc / nghe / keyword / phan_mem / mon_hoc / blog / event / nganh_dao_tao / fandom
 loai_to_chuc_enum        : truong_dai_hoc / co_so_dao_tao / studio / doanh_nghiep / cong_dong   (doanh_nghiep ẩn UI)
 giai_doan_enum           : dang_hoc / dang_lam / tim_viec / freelance / dang_day
 loai_phong_chat_enum     : 1_1 / 1_1_an_danh / 1_org / nhom / du_an / lop_hoc / su_kien
@@ -315,7 +315,7 @@ Quan hệ: `article_bai_viet.id_linh_vuc` FK → `linh_vuc.id`. Bắt buộc cho
 nghe          : null
 nganh_dao_tao : { "ma_nganh": TEXT, "khoi_thi": TEXT[], "thoi_gian_nam": INT }
 phan_mem      : { "nha_phat_hanh": TEXT, "version": TEXT, "platform": TEXT[], "website": TEXT }
-mon_hoc       : null  keyword: null  linh_vuc: null  blog: null  event: null
+mon_hoc       : null  keyword: null  linh_vuc: null  blog: null  event: null  fandom: null
 ```
 
 Video lưu riêng tại field `main_video TEXT`. Nhóm phân loại KHÔNG lưu trong meta — dùng `article_gan_nhom`.

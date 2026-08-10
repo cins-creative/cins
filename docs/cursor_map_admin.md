@@ -221,6 +221,7 @@ const [{ data: toHop }, { data: modules }, { data: monThi }] = await Promise.all
 | mon-hoc | mon_hoc | Môn học |
 | keyword | keyword | Keyword |
 | software | phan_mem | Software |
+| fandom | fandom | Fandom |
 
 ### Query chung cho tất cả loại bài viết
 

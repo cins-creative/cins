@@ -6,7 +6,8 @@ export type LoaiBaiViet =
   | "mon_hoc"
   | "blog"
   | "event"
-  | "nganh_dao_tao";
+  | "nganh_dao_tao"
+  | "fandom";
 
 export type TrangThaiNoidung =
   | "cho_review"

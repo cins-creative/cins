@@ -898,6 +898,13 @@ type Props = {
   initialVideoFile?: File;
   initialRiveFile?: File;
   initialLottieFile?: File;
+  /**
+   * Prefill khi không có nháp localStorage (vd. Giới thiệu sản phẩm từ Kho).
+   * Nháp đã lưu cùng `draftScope` vẫn thắng.
+   */
+  prefillDraft?: import("@/lib/journey/compose-types").ComposePrefillDraft | null;
+  /** Hậu tố draft key — xem `buildComposeEditorDraftKey.scope`. */
+  draftScope?: string | null;
   onClose?: () => void;
   onPublished?: (detail?: ComposePublishedDetail) => void;
 };
@@ -962,6 +969,8 @@ export function EditorView({
   initialVideoFile,
   initialRiveFile,
   initialLottieFile,
+  prefillDraft = null,
+  draftScope = null,
   onClose,
   onPublished,
 }: Props) {
@@ -1006,6 +1015,7 @@ export function EditorView({
       composeIntent: draftComposeIntent,
       congDongCompose,
       orgBaiDangCompose,
+      scope: draftScope,
     });
     if (embedPlatform) {
       const source = riveSource === "file" ? "file" : "url";
@@ -1019,6 +1029,7 @@ export function EditorView({
     riveSource,
     congDongCompose,
     orgBaiDangCompose,
+    draftScope,
   ]);
 
   let restoredComposeDraft: ComposeEditorDraft | null | undefined;
@@ -1029,7 +1040,7 @@ export function EditorView({
       return null;
     }
     const current = readComposeEditorDraft(composeDraftKey);
-    if (current) {
+    if (current && composeDraftHasRestorableContent(current)) {
       restoredComposeDraft = current;
       return current;
     }
@@ -1040,16 +1051,32 @@ export function EditorView({
         composeIntent: "embed",
         congDongCompose,
         orgBaiDangCompose,
+        scope: draftScope,
       });
       const altSource = riveSource === "file" ? "url" : "file";
       const alt = readComposeEditorDraft(`${base}:${embedPlatform}:${altSource}`);
-      if (alt) {
+      if (alt && composeDraftHasRestorableContent(alt)) {
         restoredComposeDraft = alt;
         return alt;
       }
       const legacy = readComposeEditorDraft(`${base}:${embedPlatform}`);
-      restoredComposeDraft = legacy;
-      return legacy;
+      if (legacy && composeDraftHasRestorableContent(legacy)) {
+        restoredComposeDraft = legacy;
+        return legacy;
+      }
+    }
+    /* Prefill (Giới thiệu sản phẩm…) khi chưa có nháp. */
+    if (prefillDraft && composeDraftHasRestorableContent({
+      v: 1,
+      savedAt: "",
+      ...prefillDraft,
+    })) {
+      restoredComposeDraft = {
+        v: 1,
+        savedAt: new Date().toISOString(),
+        ...prefillDraft,
+      };
+      return restoredComposeDraft;
     }
     restoredComposeDraft = null;
     return null;

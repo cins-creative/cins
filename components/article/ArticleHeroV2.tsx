@@ -20,6 +20,7 @@ const KICKER_LINE: Record<string, string> = {
   linh_vuc: "Lĩnh vực",
   blog: "Blog",
   event: "Sự kiện",
+  fandom: "Fandom",
 };
 
 function kickerClass(loai: string): string {

@@ -12,5 +12,6 @@ export function articlePublicHref(
   if (loai === "keyword") return `/keyword/${s}`;
   if (loai === "phan_mem") return `/software/${s}`;
   if (loai === "nganh_dao_tao") return `/nganh-hoc/${s}`;
+  if (loai === "fandom") return `/fandom/${s}`;
   return `/bai-viet/${s}`;
 }

@@ -312,10 +312,15 @@ export function JourneyComposeProvider({
   const onPublished = useCallback(
     (detail?: ComposePublishedDetail) => {
       /* Xóa nháp trước khi đóng sheet — tránh mở lại còn bài vừa đăng. */
+      const scopes =
+        compose?.kind === "photo" && compose.draftScope
+          ? [compose.draftScope]
+          : undefined;
       clearComposeSessionDrafts({
         ownerSlug,
         congDongCompose,
         orgBaiDangCompose,
+        scopes,
       });
       closeCompose();
       if (
@@ -343,6 +348,7 @@ export function JourneyComposeProvider({
     },
     [
       closeCompose,
+      compose,
       congDongCompose,
       orgBaiDangCompose,
       onAfterPublished,

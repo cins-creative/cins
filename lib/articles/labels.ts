@@ -9,6 +9,7 @@ export const LOAI_LABELS: Record<LoaiBaiViet, string> = {
   linh_vuc: "Lĩnh vực",
   blog: "Blog",
   event: "Sự kiện",
+  fandom: "Fandom",
 };
 
 /** Class Tailwind cho badge loại (khớp brief admin) */
@@ -21,4 +22,5 @@ export const LOAI_BADGE_CLASS: Record<LoaiBaiViet, string> = {
   linh_vuc: "bg-teal-100 text-teal-800",
   blog: "bg-zinc-100 text-zinc-700",
   event: "bg-yellow-100 text-yellow-800",
+  fandom: "bg-pink-100 text-pink-800",
 };

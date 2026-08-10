@@ -61,6 +61,7 @@ const LOAI_OPTIONS = [
   "nganh_dao_tao",
   "blog",
   "event",
+  "fandom",
 ] as const;
 
 const STATUS_OPTIONS = [

@@ -14,6 +14,7 @@ import {
 import { createPortal } from "react-dom";
 
 import type { ShopBangGia, ShopSanPham } from "@/lib/shop/types";
+import { SHOP_POST_HANG_MAX } from "@/lib/shop/types";
 import {
   fetchBangGiaCached,
   fetchNhomCached,
@@ -285,8 +286,16 @@ export function ShopAttachHangModal({
   function toggle(id: string) {
     setSelected((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (next.has(id)) {
+        next.delete(id);
+        return next;
+      }
+      if (next.size >= SHOP_POST_HANG_MAX) {
+        setErr(`Mỗi bài chỉ gắn tối đa ${SHOP_POST_HANG_MAX} sản phẩm.`);
+        return prev;
+      }
+      setErr(null);
+      next.add(id);
       return next;
     });
   }
@@ -298,9 +307,20 @@ export function ShopAttachHangModal({
       const next = new Set(prev);
       if (allOn) {
         for (const id of ids) next.delete(id);
-      } else {
-        for (const id of ids) next.add(id);
+        setErr(null);
+        return next;
       }
+      for (const id of ids) {
+        if (next.has(id)) continue;
+        if (next.size >= SHOP_POST_HANG_MAX) {
+          setErr(
+            `Đã đạt ${SHOP_POST_HANG_MAX}/${SHOP_POST_HANG_MAX} — không thêm được hết nhóm.`,
+          );
+          break;
+        }
+        next.add(id);
+      }
+      if (next.size < SHOP_POST_HANG_MAX) setErr(null);
       return next;
     });
   }
@@ -332,6 +352,10 @@ export function ShopAttachHangModal({
   async function save() {
     if (!bangGiaId) {
       setErr("Chọn bảng giá.");
+      return;
+    }
+    if (selected.size > SHOP_POST_HANG_MAX) {
+      setErr(`Mỗi bài chỉ gắn tối đa ${SHOP_POST_HANG_MAX} sản phẩm.`);
       return;
     }
     setSaving(true);
@@ -453,9 +477,17 @@ export function ShopAttachHangModal({
           <h2 id={titleId} className="uas-title">
             Thêm hàng bán vào bài
           </h2>
-          <button type="button" className="uas-close" onClick={onClose}>
-            <X size={18} />
-          </button>
+          <div className="shop-attach-head-right">
+            <span
+              className={`shop-attach-count${selected.size >= SHOP_POST_HANG_MAX ? " is-max" : ""}`}
+              aria-live="polite"
+            >
+              {selected.size}/{SHOP_POST_HANG_MAX}
+            </span>
+            <button type="button" className="uas-close" onClick={onClose}>
+              <X size={18} />
+            </button>
+          </div>
         </header>
         <div className="shop-attach-body">
           {loading ? (
@@ -623,7 +655,9 @@ export function ShopAttachHangModal({
               <button
                 type="button"
                 className="uas-btn primary"
-                disabled={saving}
+                disabled={
+                  saving || selected.size > SHOP_POST_HANG_MAX
+                }
                 onClick={() => void save()}
               >
                 {saving ? <Loader2 className="shop-spin" size={16} /> : "Lưu"}

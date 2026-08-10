@@ -49,6 +49,7 @@ const LOAI_FILTER_OPTIONS: { id: LoaiFilter; label: string }[] = [
   { id: "mon_hoc", label: "Môn học" },
   { id: "nganh_dao_tao", label: "Ngành" },
   { id: "nghe", label: "Nghề nghiệp" },
+  { id: "fandom", label: "Fandom" },
 ];
 
 type Props = {
@@ -60,6 +61,8 @@ type Props = {
   /** Ẩn dòng gợi ý dưới ô tag (vd. trong sidebar đóng góp). */
   showLimitHint?: boolean;
   placeholder?: string;
+  /** Hiện placeholder cả khi đã có tag (ô tìm/thêm tiếp). */
+  keepPlaceholder?: boolean;
   disabled?: boolean;
   className?: string;
   variant?: "default" | "modal";
@@ -72,6 +75,7 @@ const CREATE_LOAI_LABEL: Record<CreatableTagLoai, string> = {
   phan_mem: "Phần mềm",
   mon_hoc: "Môn học",
   nghe: "Vị trí công việc",
+  fandom: "Fandom",
 };
 
 function creatableLoaiForFilter(loaiFilter: LoaiFilter): CreatableTagLoai[] {
@@ -101,6 +105,11 @@ function formatTagUsage(n: number): string {
   return n === 1 ? "1 người" : `${n} người`;
 }
 
+function formatTagGan(n: number): string {
+  if (n <= 0) return "0";
+  return String(n);
+}
+
 function TagInputMenuItem({
   tag,
   active,
@@ -113,6 +122,8 @@ function TagInputMenuItem({
   const lv = tag.linh_vuc_ten?.trim();
   const usage = formatTagUsage(tag.so_nguoi_tagged ?? 0);
   const hasFoot = Boolean(lv || usage);
+  const isFandom = tag.loai_bai_viet === "fandom";
+  const gan = tag.so_gan ?? 0;
 
   return (
     <button
@@ -157,11 +168,20 @@ function TagInputMenuItem({
             ) : null}
           </div>
         </div>
-        <span
-          className={`tag-input-item-loai is-loai-${tag.loai_bai_viet.replace(/_/g, "-")}`}
-        >
-          {articleTagLabel(tag.loai_bai_viet)}
-        </span>
+        {isFandom ? (
+          <span
+            className="tag-input-item-loai is-loai-fandom is-count"
+            title="Số tác phẩm / loại hàng gắn phân loại này"
+          >
+            {formatTagGan(gan)}
+          </span>
+        ) : (
+          <span
+            className={`tag-input-item-loai is-loai-${tag.loai_bai_viet.replace(/_/g, "-")}`}
+          >
+            {articleTagLabel(tag.loai_bai_viet)}
+          </span>
+        )}
       </div>
     </button>
   );
@@ -174,6 +194,7 @@ export function TagInput({
   maxTags,
   showLimitHint = true,
   placeholder = "Gõ khái niệm, phần mềm, môn học, ngành, nghề nghiệp…",
+  keepPlaceholder = false,
   disabled = false,
   className,
   variant = "default",
@@ -619,7 +640,9 @@ export function TagInput({
             className="tag-input-text"
             type="text"
             value={query}
-            placeholder={value.length === 0 ? placeholder : ""}
+            placeholder={
+              value.length === 0 || keepPlaceholder ? placeholder : ""
+            }
             onChange={(e) => {
               const next = e.target.value;
               setQuery(next);

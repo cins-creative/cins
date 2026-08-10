@@ -11,6 +11,7 @@ const ARTICLE_LOAI = [
   "keyword",
   "phan_mem",
   "blog",
+  "fandom",
 ] as const;
 
 const PUBLIC_ORG_LOAI = [

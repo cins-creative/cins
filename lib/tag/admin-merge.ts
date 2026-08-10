@@ -6,7 +6,7 @@ import { articlePublicHref } from "@/lib/articles/article-href";
 import { normalizeTagName } from "@/lib/tag/normalize";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
-const TAG_LOAI = new Set(["keyword", "phan_mem"]);
+const TAG_LOAI = new Set(["keyword", "phan_mem", "fandom"]);
 
 type TagRow = {
   id: string;
@@ -98,7 +98,7 @@ export async function mergeAdminTags(
     return { ok: false, error: "Tag không tồn tại." };
   }
   if (!TAG_LOAI.has(keep.loai_bai_viet) || !TAG_LOAI.has(merge.loai_bai_viet)) {
-    return { ok: false, error: "Chỉ gộp tag keyword/phan_mem." };
+    return { ok: false, error: "Chỉ gộp tag keyword/phan_mem/fandom." };
   }
   if (keep.loai_bai_viet !== merge.loai_bai_viet) {
     return { ok: false, error: "Chỉ gộp tag cùng loại." };

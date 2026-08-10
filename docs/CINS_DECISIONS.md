@@ -41,6 +41,28 @@
 
 ## LOG — quyết định đã chốt
 
+### Shop — cooldown «Giới thiệu sản phẩm» 3 ngày / loại (2026-08-10)
+
+- **Chốt:** Mỗi loại hàng (`shop_nhom`) chỉ đăng được 1 bài «Giới thiệu sản phẩm» / **3 ngày** — chống spam từ Kho.
+- **DB:** bảng mới `shop_nhom_gioi_thieu` (không ALTER `shop_nhom`). Ghi mốc sau publish thành công (kể cả khi gắn kiosk lỗi).
+- **UX:** nút disable + `title` «Còn X ngày/giờ…»; GET khi mở loại; POST ghi; server 429 là nguồn sự thật.
+- **Migration:** `migration_shop_nhom_gioi_thieu.sql` · `npm run migrate:shop-nhom-gioi-thieu`. **Đã chạy** CINs 2026-08-10.
+- *Hệ quả:* `lib/shop/gioi-thieu-cooldown.ts` · `SHOP_GIOI_THIEU_COOLDOWN_DAYS` · API `shop/nhom/[id]/gioi-thieu` · `ShopKhoClient`.
+
+### Fandom entity — bài viết hạng nhất + thay facet shop (2026-08-10)
+
+- **Chốt:** `fandom` thêm vào `loai_bai_viet_enum`. Mỗi fandom = 1 `article_bai_viet` (trang `/fandom/[slug]`). User tạo tự do như keyword (`CREATABLE_TAG_LOAI`, `da_verify=false`, published ngay); dedupe alias exact + fuzzy gợi ý; admin merge.
+- **Shop:** bỏ facet `shop_thuoc_tinh.slug='fandom'` khỏi runtime — **ẩn** (`trang_thai='an'`), không xóa seed/junction cũ. Gắn loại hàng qua bảng mới `shop_nhom_fandom` (`id_nhom` ↔ `id_bai_viet` fandom). Hub `/cua-hang` vẫn nhận facet ảo slug `fandom` (giữ `?fandom=` + `hit.facets.fandom`).
+- **Không bridge** giữ song song facet + entity; không soft-gate / hàng đợi duyệt.
+- **Inventory ALTER (đã duyệt khi approve plan):**
+  | # | Đối tượng | Thay đổi | Ghi chú |
+  |---|---|---|---|
+  | F1 | Enum `loai_bai_viet_enum` | `ADD VALUE 'fandom'` | Ngoài transaction Postgres |
+  | F2 | Bảng mới `shop_nhom_fandom` | `(id_nhom, id_bai_viet)` UNIQUE + RLS | FK → `shop_nhom`, `article_bai_viet` |
+  | F3 | `shop_thuoc_tinh` row `fandom` | `trang_thai='an'` | Giữ lịch sử alias/gia_tri |
+- **Migration:** `supabase/sql/migration_fandom_entity.sql` · `npm run migrate:fandom-entity`. Backfill: `scripts/backfill-fandom-entity.mjs`. **Đã chạy** CINs 2026-08-10 (13 bài fandom; `vtuber` → slug `vtuber-fandom` vì trùng slug sẵn có; 126 link `shop_nhom_fandom`).
+- *Hệ quả file:* `lib/tag/*` · `lib/shop/fandom.ts` · `ShopKhoLoaiTaxonomy` · `app/fandom/[slug]` · FOUNDATIONS enum · IMPLEMENTATION.
+
 ### Shop — Combo & Voucher (2026-08-07)
 
 - **Chốt:** Tab seller «Combo & Voucher» (`/ban-hang/uu-dai`). Combo đa phạm vi (`loai_hang` / `san_pham` / `bien_the`, CHECK một FK); khớp cụ thể→rộng; nhiều combo → greedy giảm tốt nhất; mỗi unit một lần; `ap_dung_lap` lặp tổ hợp.

@@ -13,4 +13,8 @@ Before implementing or querying CINs domain features (Supabase `org_*`, `article
 4. Prefer field/table names from **DB thật (đọc trực tiếp)** / `CINS_FOUNDATIONS.md` over training data; security/performance from `CINS_DEV_RULES.md`.
 5. Khi user gửi instruction mới: merge vào **đúng file** (không nhồi hết vào một file). Cập nhật router nếu cần.
 
-Stack: Next.js App Router, Supabase (`ospzzzxcomrmhqrnkoiw`), Cloudflare Images, Vercel — `CINS_FOUNDATIONS.md` §3, `CINS_IMPLEMENTATION.md` §4.
+Stack: Next.js App Router, Supabase (`ospzzzxcomrmhqrnkoiw`), Cloudflare Images / Workers — `CINS_FOUNDATIONS.md` §3, `CINS_IMPLEMENTATION.md` §4.
+
+## Cấm dọn ổ / xóa ngoài phạm vi (2026-08-10)
+
+**Không** tự ý xóa bất kỳ file/thư mục nào trên ổ `C:\` (hay ổ khác) ngoài đúng path user chỉ định trong task. **Cấm** clean ổ, Disk Cleanup, xóa Temp/AppData/Downloads/Desktop/OneDrive “cho nhẹ máy”. Chỉ xóa trong workspace dự án khi task yêu cầu. Chi tiết: `docs/CINS_DEV_RULES.md` §2.

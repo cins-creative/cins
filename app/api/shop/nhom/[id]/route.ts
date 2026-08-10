@@ -30,6 +30,7 @@ export async function PATCH(request: Request, ctx: Ctx) {
     idDanhMuc?: unknown;
     danhMucXacNhan?: unknown;
     giaTriIds?: unknown;
+    fandomIds?: unknown;
   };
   try {
     body = (await request.json()) as typeof body;
@@ -48,12 +49,13 @@ export async function PATCH(request: Request, ctx: Ctx) {
     body.noiBat === undefined &&
     body.idDanhMuc === undefined &&
     body.danhMucXacNhan === undefined &&
-    body.giaTriIds === undefined
+    body.giaTriIds === undefined &&
+    body.fandomIds === undefined
   ) {
     return NextResponse.json(
       {
         error:
-          "Cần moTa, nhan, anhId, overlayAnhId, anhPhuIds, videoPhuId, giaMacDinh, noiBat, idDanhMuc, danhMucXacNhan hoặc giaTriIds.",
+          "Cần moTa, nhan, anhId, overlayAnhId, anhPhuIds, videoPhuId, giaMacDinh, noiBat, idDanhMuc, danhMucXacNhan, giaTriIds hoặc fandomIds.",
       },
       { status: 422 },
     );
@@ -129,6 +131,12 @@ export async function PATCH(request: Request, ctx: Ctx) {
           : Array.isArray(body.giaTriIds)
             ? body.giaTriIds.filter((x): x is string => typeof x === "string")
             : undefined,
+      fandomIds:
+        body.fandomIds === undefined
+          ? undefined
+          : Array.isArray(body.fandomIds)
+            ? body.fandomIds.filter((x): x is string => typeof x === "string")
+            : undefined,
     });
     return NextResponse.json({ item });
   } catch (e) {
@@ -185,6 +193,18 @@ export async function PATCH(request: Request, ctx: Ctx) {
       return NextResponse.json(
         { error: "Giá trị thuộc tính không hợp lệ." },
         { status: 422 },
+      );
+    }
+    if (msg === "FANDOM_INVALID") {
+      return NextResponse.json(
+        { error: "Fandom không hợp lệ." },
+        { status: 422 },
+      );
+    }
+    if (msg === "FANDOM_SYNC_FAILED") {
+      return NextResponse.json(
+        { error: "Không lưu được fandom." },
+        { status: 500 },
       );
     }
     if (msg === "TAXONOMY_UNAVAILABLE") {

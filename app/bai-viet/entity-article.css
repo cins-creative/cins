@@ -198,6 +198,10 @@
   background: var(--cins-orange-soft);
   color: #b05a0f;
 }
+.ent-badge.is-fandom {
+  background: color-mix(in srgb, #db2777 14%, #fff);
+  color: #9d174d;
+}
 
 .ent-title-row {
   display: flex;

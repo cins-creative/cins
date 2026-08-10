@@ -230,6 +230,17 @@
   color: color-mix(in srgb, #7c3aed 75%, var(--ink-display, #0f172a));
 }
 
+.tag-input-item-loai.is-loai-fandom {
+  color: color-mix(in srgb, #db2777 80%, var(--ink-display, #0f172a));
+}
+
+.tag-input-item-loai.is-loai-fandom.is-count {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+  text-transform: none;
+  font-weight: 700;
+}
+
 .tag-input-item-titles {
   flex: 1;
   min-width: 0;

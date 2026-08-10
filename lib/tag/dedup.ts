@@ -187,7 +187,7 @@ async function findExactAliasViaPostgres(
     const tagRows = await sql<{ id: string }[]>`
       SELECT id
       FROM article_bai_viet
-      WHERE loai_bai_viet IN ('keyword', 'phan_mem', 'mon_hoc', 'nganh_dao_tao', 'nghe')
+      WHERE loai_bai_viet IN ('keyword', 'phan_mem', 'mon_hoc', 'nganh_dao_tao', 'nghe', 'fandom')
         AND trang_thai_noi_dung = 'published'
         AND (
           lower(trim(tieu_de)) = ${normalized}
@@ -245,7 +245,7 @@ async function suggestFuzzyViaTrigram(
           ) AS sim
         FROM article_bai_viet abv
         LEFT JOIN linh_vuc lv ON lv.id = abv.id_linh_vuc
-        WHERE abv.loai_bai_viet IN ('keyword', 'phan_mem', 'mon_hoc', 'nganh_dao_tao', 'nghe')
+        WHERE abv.loai_bai_viet IN ('keyword', 'phan_mem', 'mon_hoc', 'nganh_dao_tao', 'nghe', 'fandom')
           AND abv.trang_thai_noi_dung = 'published'
           AND (
             similarity(lower(trim(abv.tieu_de)), ${normalized}) > 0.25

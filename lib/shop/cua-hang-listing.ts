@@ -11,6 +11,7 @@ import type {
 import { shopImageUrl } from "@/lib/shop/settings";
 import { isShopTamDongActive } from "@/lib/shop/tam-dong";
 import { mapDanhMucSlugByIds } from "@/lib/shop/danh-muc";
+import { fandomSlugsByNhomIds } from "@/lib/shop/fandom";
 import { facetsByNhomIds } from "@/lib/shop/thuoc-tinh";
 import { SHOP_DON_TINH_DA_BAN, type ShopLoaiGiam } from "@/lib/shop/types";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
@@ -204,16 +205,21 @@ async function nhomCatalogByOwner(
     }
   }
 
-  const [slugByDm, facetsMap] = await Promise.all([
+  const [slugByDm, facetsMap, fandomSlugMap] = await Promise.all([
     mapDanhMucSlugByIds(danhMucIds),
     facetsByNhomIds(nhomIds),
+    fandomSlugsByNhomIds(nhomIds),
   ]);
 
   for (const { catalogHang } of out.values()) {
     for (const h of catalogHang) {
       const dmId = danhMucIdByNhom.get(h.id);
       h.danhMucSlug = dmId ? (slugByDm.get(dmId) ?? null) : null;
-      h.facets = facetsMap.get(h.id) ?? {};
+      const facets = { ...(facetsMap.get(h.id) ?? {}) };
+      delete facets.fandom;
+      const fandomSlugs = fandomSlugMap.get(h.id) ?? [];
+      if (fandomSlugs.length > 0) facets.fandom = fandomSlugs;
+      h.facets = facets;
     }
   }
 

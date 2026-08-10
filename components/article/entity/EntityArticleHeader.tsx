@@ -4,13 +4,19 @@ import type { ReactNode } from "react";
 
 import { NgheHeroMascot } from "@/components/article/nghe/NgheHeroMascot";
 
-export type EntityBadgeKind = "keyword" | "phan_mem" | "mon_hoc" | "nghe";
+export type EntityBadgeKind =
+  | "keyword"
+  | "phan_mem"
+  | "mon_hoc"
+  | "nghe"
+  | "fandom";
 
 const BADGE: Record<EntityBadgeKind, { className: string; label: string }> = {
   keyword: { className: "is-keyword", label: "Khái niệm" },
   phan_mem: { className: "is-phan-mem", label: "Phần mềm" },
   mon_hoc: { className: "is-mon-hoc", label: "Môn học" },
   nghe: { className: "is-nghe", label: "Nghề nghiệp" },
+  fandom: { className: "is-fandom", label: "Fandom" },
 };
 
 type Props = {

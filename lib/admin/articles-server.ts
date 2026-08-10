@@ -60,6 +60,7 @@ export const ADMIN_ARTICLE_LOAI_OPTIONS = [
   "nganh_dao_tao",
   "blog",
   "event",
+  "fandom",
 ] as const;
 
 export type AdminArticleLoai = (typeof ADMIN_ARTICLE_LOAI_OPTIONS)[number];

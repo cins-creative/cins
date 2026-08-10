@@ -34,7 +34,7 @@
 
 ---
 
-## 2. Cấm tuyệt đối (security + DB)
+## 2. Cấm tuyệt đối (security + DB + máy local)
 
 - Secret / API key / password → **`process.env`**, không hardcode. Không commit `.env`.
 - Query Supabase: **không** `select('*')`; list → **pagination** (xem §5).
@@ -42,6 +42,7 @@
 - **Không** `dangerouslySetInnerHTML` / `innerHTML` với data user. **Ngoại lệ hợp lệ:** `noi_dung_html` của bài `nghe` (content admin tạo) — render qua `dangerouslySetInnerHTML` với CSS scope `.article-rich-content`. Đây là content nội bộ đã kiểm soát, **không** phải input user tự do.
 - **Không** log password, token, OTP, email/SĐT chưa public, PII nhạy cảm.
 - **Không** commit `.env`, `node_modules`, artifact build.
+- **CẤM tự ý xóa file / thư mục trên ổ `C:\` (và mọi ổ khác ngoài phạm vi task).** Không “dọn ổ”, không Storage Sense / Disk Cleanup / `cleanmgr` / xóa `Temp` / `AppData` / OneDrive / Desktop / Downloads / `node_modules` toàn máy / Windows Update cache / “giải phóng dung lượng” — kể cả khi agent đoán đó là rác. Sự cố clean ổ gần đây đã gây mất dữ liệu; **chỉ xóa khi user yêu cầu rõ path cụ thể**, và chỉ trong đúng path đó. Trong repo: được sửa/xóa file thuộc task; **không** lan sang ngoài workspace dự án.
 
 → Chi tiết: §6.
 

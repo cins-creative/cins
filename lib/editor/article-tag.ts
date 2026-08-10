@@ -34,6 +34,7 @@ export const LOAI_BAI_VIET_LABEL: Record<string, string> = {
   event: "Sự kiện",
   nganh_dao_tao: "Ngành đào tạo",
   linh_vuc: "Lĩnh vực",
+  fandom: "Fandom",
 };
 
 export function articleTagLabel(loai: string): string {
@@ -49,6 +50,7 @@ const KNOWN_LOAI = new Set([
   "event",
   "nganh_dao_tao",
   "linh_vuc",
+  "fandom",
 ]);
 
 /** CSS modifier class theo loại (dùng cho dropdown picker + pill hiển thị).

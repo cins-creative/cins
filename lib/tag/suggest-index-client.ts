@@ -84,6 +84,9 @@ function scoreMatch(query: string, row: IndexedTagSuggest): number {
   if (row.so_nguoi_tagged > 0) {
     best += Math.min(0.12, row.so_nguoi_tagged * 0.004);
   }
+  if (row.so_gan > 0) {
+    best += Math.min(0.1, row.so_gan * 0.002);
+  }
   return best;
 }
 
@@ -164,6 +167,7 @@ export function enrichTagSuggestRows(
       tieu_de_eng: row.tieu_de_eng ?? cached.tieu_de_eng,
       linh_vuc_ten: row.linh_vuc_ten ?? cached.linh_vuc_ten,
       so_nguoi_tagged: cached.so_nguoi_tagged || row.so_nguoi_tagged,
+      so_gan: cached.so_gan || row.so_gan || 0,
       da_verify: row.da_verify || cached.da_verify,
       cover_id: row.cover_id ?? cached.cover_id ?? null,
     };

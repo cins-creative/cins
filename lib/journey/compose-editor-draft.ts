@@ -45,14 +45,19 @@ export function buildComposeEditorDraftKey(input: {
   composeIntent: ComposeIntent;
   congDongCompose?: CongDongComposeConfig;
   orgBaiDangCompose?: OrgBaiDangComposeConfig;
+  /** Scope riêng (vd. `shop-nhom:{uuid}`) — không đè nháp compose thường. */
+  scope?: string | null;
 }): string {
+  const scope = input.scope?.trim() || "";
+  let base: string;
   if (input.congDongCompose?.orgId) {
-    return `cins-compose-editor:${input.ownerSlug}:cong-dong:${input.congDongCompose.orgId}:${input.composeIntent}`;
+    base = `cins-compose-editor:${input.ownerSlug}:cong-dong:${input.congDongCompose.orgId}:${input.composeIntent}`;
+  } else if (input.orgBaiDangCompose?.orgId) {
+    base = `cins-compose-editor:${input.ownerSlug}:org:${input.orgBaiDangCompose.orgId}:${input.composeIntent}`;
+  } else {
+    base = `cins-compose-editor:${input.ownerSlug}:journey:${input.composeIntent}`;
   }
-  if (input.orgBaiDangCompose?.orgId) {
-    return `cins-compose-editor:${input.ownerSlug}:org:${input.orgBaiDangCompose.orgId}:${input.composeIntent}`;
-  }
-  return `cins-compose-editor:${input.ownerSlug}:journey:${input.composeIntent}`;
+  return scope ? `${base}:${scope}` : base;
 }
 
 function isComposeEditorDraft(value: unknown): value is ComposeEditorDraft {
@@ -113,24 +118,31 @@ export function clearComposeSessionDrafts(input: {
   ownerSlug: string;
   congDongCompose?: CongDongComposeConfig;
   orgBaiDangCompose?: OrgBaiDangComposeConfig;
+  /** Thêm key scoped (vd. `shop-nhom:{id}`) sau publish giới thiệu sản phẩm. */
+  scopes?: string[];
 }): void {
   if (typeof window === "undefined") return;
   const ownerSlug = input.ownerSlug.trim();
   if (!ownerSlug) return;
 
+  const scopes = ["", ...(input.scopes ?? []).map((s) => s.trim()).filter(Boolean)];
+
   for (const intent of COMPOSE_INTENTS) {
-    const base = buildComposeEditorDraftKey({
-      ownerSlug,
-      composeIntent: intent,
-      congDongCompose: input.congDongCompose,
-      orgBaiDangCompose: input.orgBaiDangCompose,
-    });
-    clearComposeEditorDraft(base);
-    if (intent !== "embed") continue;
-    for (const platform of TIER1_EMBED_PLATFORMS) {
-      clearComposeEditorDraft(`${base}:${platform.id}`);
-      clearComposeEditorDraft(`${base}:${platform.id}:file`);
-      clearComposeEditorDraft(`${base}:${platform.id}:url`);
+    for (const scope of scopes) {
+      const base = buildComposeEditorDraftKey({
+        ownerSlug,
+        composeIntent: intent,
+        congDongCompose: input.congDongCompose,
+        orgBaiDangCompose: input.orgBaiDangCompose,
+        scope: scope || null,
+      });
+      clearComposeEditorDraft(base);
+      if (intent !== "embed") continue;
+      for (const platform of TIER1_EMBED_PLATFORMS) {
+        clearComposeEditorDraft(`${base}:${platform.id}`);
+        clearComposeEditorDraft(`${base}:${platform.id}:file`);
+        clearComposeEditorDraft(`${base}:${platform.id}:url`);
+      }
     }
   }
 }

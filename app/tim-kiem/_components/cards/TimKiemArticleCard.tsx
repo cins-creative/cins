@@ -26,6 +26,8 @@ function knowledgeKickerIcon(loai: string | null): LucideIcon {
       return AppWindow;
     case "keyword":
       return Tag;
+    case "fandom":
+      return Tag;
     default:
       return BookMarked;
   }
@@ -43,6 +45,8 @@ function knowledgeFootLabel(loai: string | null): string {
       return "Xem phần mềm";
     case "keyword":
       return "Xem từ khóa";
+    case "fandom":
+      return "Xem fandom";
     default:
       return "Xem bài";
   }

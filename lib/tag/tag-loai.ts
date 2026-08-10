@@ -5,16 +5,18 @@ export const PICKABLE_TAG_LOAI = [
   "mon_hoc",
   "nganh_dao_tao",
   "nghe",
+  "fandom",
 ] as const;
 
 export type PickableTagLoai = (typeof PICKABLE_TAG_LOAI)[number];
 
-/** keyword / phan_mem / mon_hoc / nghe — user tạo tự do (v7 + mon_hoc). */
+/** keyword / phan_mem / mon_hoc / nghe / fandom — user tạo tự do. */
 export const CREATABLE_TAG_LOAI = [
   "keyword",
   "phan_mem",
   "mon_hoc",
   "nghe",
+  "fandom",
 ] as const;
 
 export type CreatableTagLoai = (typeof CREATABLE_TAG_LOAI)[number];
@@ -24,7 +26,8 @@ export function isCreatableTagLoai(loai: string): loai is CreatableTagLoai {
     loai === "keyword" ||
     loai === "phan_mem" ||
     loai === "mon_hoc" ||
-    loai === "nghe"
+    loai === "nghe" ||
+    loai === "fandom"
   );
 }
 
@@ -35,6 +38,7 @@ export function parsePickableTagLoai(
   if (raw === "mon_hoc") return "mon_hoc";
   if (raw === "nganh_dao_tao") return "nganh_dao_tao";
   if (raw === "nghe") return "nghe";
+  if (raw === "fandom") return "fandom";
   return "keyword";
 }
 

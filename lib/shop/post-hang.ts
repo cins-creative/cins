@@ -1,10 +1,10 @@
 import "server-only";
 
-import { resolveGiaBienThe } from "@/lib/shop/bang-gia";
+import { resolveGiaBienTheMany } from "@/lib/shop/bang-gia";
 import { assertShopReady } from "@/lib/shop/cua-hang";
 import { shopImageUrl } from "@/lib/shop/settings";
 import type { ShopPostHangItem } from "@/lib/shop/types";
-import { SHOP_DON_TINH_DA_BAN } from "@/lib/shop/types";
+import { SHOP_DON_TINH_DA_BAN, SHOP_POST_HANG_MAX } from "@/lib/shop/types";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 type PostHangRow = {
@@ -26,7 +26,7 @@ export async function listPostHang(
     .select("id, id_cot_moc, id_bien_the, id_bang_gia, gia_hien_thi, tien_te, thu_tu")
     .eq("id_cot_moc", cotMocId)
     .order("thu_tu", { ascending: true })
-    .limit(100);
+    .limit(SHOP_POST_HANG_MAX);
   if (error) {
     console.error("[shop] listPostHang", error);
     return [];
@@ -154,33 +154,51 @@ export async function setPostHang(
     .eq("id", cotMocId)
     .maybeSingle<{ id: string; id_nguoi_dung: string }>();
   if (!moc || moc.id_nguoi_dung !== ownerId) throw new Error("FORBIDDEN");
+  if (items.length > SHOP_POST_HANG_MAX) throw new Error("TOO_MANY");
 
   await admin.from("shop_post_hang").delete().eq("id_cot_moc", cotMocId);
 
   if (items.length === 0) return [];
 
-  const inserts: Array<{
-    id_cot_moc: string;
-    id_bien_the: string;
-    id_bang_gia: string;
-    gia_hien_thi: number;
-    tien_te: string;
-    thu_tu: number;
-  }> = [];
+  /* Gom theo bảng giá — mỗi bảng 1 batch resolve thay vì N query tuần tự. */
+  const byBangGia = new Map<string, typeof items>();
+  for (const it of items) {
+    const list = byBangGia.get(it.idBangGia) ?? [];
+    list.push(it);
+    byBangGia.set(it.idBangGia, list);
+  }
 
-  for (let i = 0; i < items.length; i++) {
-    const it = items[i];
-    const resolved = await resolveGiaBienThe(it.idBangGia, it.idBienThe);
-    if (!resolved) throw new Error("GIA_NOT_FOUND");
-    inserts.push({
+  const priceByBt = new Map<
+    string,
+    { gia: number; tienTe: string; idBangGia: string }
+  >();
+  for (const [bangGiaId, group] of byBangGia) {
+    const resolved = await resolveGiaBienTheMany(
+      bangGiaId,
+      group.map((g) => g.idBienThe),
+    );
+    for (const it of group) {
+      const r = resolved.get(it.idBienThe);
+      if (!r) throw new Error("GIA_NOT_FOUND");
+      priceByBt.set(it.idBienThe, {
+        gia: r.gia,
+        tienTe: r.tienTe,
+        idBangGia: bangGiaId,
+      });
+    }
+  }
+
+  const inserts = items.map((it, i) => {
+    const r = priceByBt.get(it.idBienThe)!;
+    return {
       id_cot_moc: cotMocId,
       id_bien_the: it.idBienThe,
-      id_bang_gia: it.idBangGia,
-      gia_hien_thi: resolved.gia,
-      tien_te: resolved.tienTe,
+      id_bang_gia: r.idBangGia,
+      gia_hien_thi: r.gia,
+      tien_te: r.tienTe,
       thu_tu: it.thuTu ?? i,
-    });
-  }
+    };
+  });
 
   const { error } = await admin.from("shop_post_hang").insert(inserts);
   if (error) {

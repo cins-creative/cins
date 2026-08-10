@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import { createTag } from "@/lib/tag/create";
+import { isCreatableTagLoai } from "@/lib/tag/tag-loai";
 
 export async function POST(req: Request) {
   const session = await getCurrentSessionAndProfile();
@@ -19,14 +20,12 @@ export async function POST(req: Request) {
   const ten = typeof body.ten === "string" ? body.ten : "";
   const loai = body.loai;
 
-  if (
-    loai !== "keyword" &&
-    loai !== "phan_mem" &&
-    loai !== "mon_hoc" &&
-    loai !== "nghe"
-  ) {
+  if (!loai || !isCreatableTagLoai(loai)) {
     return NextResponse.json(
-      { error: "loai phải là keyword, phan_mem, mon_hoc hoặc nghe." },
+      {
+        error:
+          "loai phải là keyword, phan_mem, mon_hoc, nghe hoặc fandom.",
+      },
       { status: 400 },
     );
   }

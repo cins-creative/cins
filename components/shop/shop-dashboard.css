@@ -2045,6 +2045,114 @@ body:has(.shop-dash-gate) .j-chat-dock {
   margin-bottom: 14px;
 }
 
+.shop-kho-loai-meta-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.shop-kho-loai-view {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-surface);
+  color: var(--ink-muted);
+  text-decoration: none;
+}
+
+.shop-kho-loai-view:hover {
+  color: color-mix(in srgb, var(--cins-orange, #fdad4c) 40%, var(--ink-body));
+  border-color: color-mix(in srgb, var(--cins-orange, #fdad4c) 35%, var(--border));
+  background: color-mix(in srgb, var(--cins-orange, #fdad4c) 8%, var(--bg-surface));
+}
+
+.shop-kho-loai-gioi-thieu {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid color-mix(in srgb, var(--cins-blue) 35%, var(--border));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--cins-blue-soft) 70%, var(--bg-surface));
+  color: var(--cins-blue-dark);
+  font-size: 0.82rem;
+  font-weight: 650;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.shop-kho-loai-gioi-thieu:hover:not(:disabled) {
+  background: var(--cins-blue-soft);
+  border-color: var(--cins-blue);
+}
+
+.shop-kho-loai-gioi-thieu:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.shop-kho-gioi-thieu-toast {
+  margin: 0 0 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--cins-blue) 25%, var(--border));
+  background: color-mix(in srgb, var(--cins-blue-soft) 55%, var(--bg-surface));
+  color: var(--ink-body);
+  font-size: 0.86rem;
+  line-height: 1.4;
+}
+
+.shop-kho-gioi-thieu-retry {
+  border: 0;
+  background: transparent;
+  color: var(--cins-blue-dark);
+  font-weight: 650;
+  font-size: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+}
+
+.shop-attach-head-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.shop-attach-count {
+  font-size: 0.8rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-muted);
+}
+
+.shop-attach-count.is-max {
+  color: var(--cins-blue-dark);
+}
+
+@media (max-width: 480px) {
+  .shop-kho-loai-meta-head-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .shop-kho-loai-gioi-thieu {
+    min-height: 44px;
+    order: 3;
+    width: 100%;
+  }
+}
+
 .shop-kho-loai-back {
   display: inline-flex;
   align-items: center;

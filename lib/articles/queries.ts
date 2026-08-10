@@ -114,6 +114,20 @@ export async function getKeywordArticleBySlug(
   return article;
 }
 
+export async function getFandomArticleBySlug(
+  slug: string,
+): Promise<ArticleBaiViet | null> {
+  const article = await getArticleBySlug(slug);
+  if (!article || article.loai_bai_viet !== "fandom") return null;
+  if (
+    article.trang_thai_noi_dung !== "published" &&
+    article.trang_thai_noi_dung !== "merged"
+  ) {
+    return null;
+  }
+  return article;
+}
+
 export async function getPhanMemArticleBySlug(
   slug: string,
 ): Promise<ArticleBaiViet | null> {

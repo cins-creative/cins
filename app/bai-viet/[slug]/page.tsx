@@ -44,6 +44,7 @@ function coerceLoai(raw: string | undefined): LoaiBaiViet {
     "blog",
     "event",
     "nganh_dao_tao",
+    "fandom",
   ];
   return (allowed.includes(raw as LoaiBaiViet) ? raw : "blog") as LoaiBaiViet;
 }
@@ -134,6 +135,10 @@ export default async function BaiVietSlugPage({ params }: Props) {
 
   if (article.loai_bai_viet === "nganh_dao_tao") {
     permanentRedirect(articlePublicHref("nganh_dao_tao", article.slug));
+  }
+
+  if (article.loai_bai_viet === "fandom") {
+    permanentRedirect(articlePublicHref("fandom", article.slug));
   }
 
   const draftUiEnabled = isInlineArticleEditEnabled();

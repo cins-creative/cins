@@ -60,7 +60,8 @@ export async function startGoogleLogin(
         redirectTo,
         queryParams: {
           access_type: "offline",
-          ...(intent === "register" ? { prompt: "select_account" } : {}),
+          /* Luôn hiện Google account picker — login lẫn register. */
+          prompt: "select_account",
         },
         skipBrowserRedirect: false,
       },

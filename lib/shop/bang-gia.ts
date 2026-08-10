@@ -280,26 +280,133 @@ export async function resolveGiaBienThe(
 async function resolveGiaMacDinhForBienThe(
   bienTheId: string,
 ): Promise<number | null> {
+  const map = await resolveGiaMacDinhForBienTheMany([bienTheId]);
+  return map.get(bienTheId) ?? null;
+}
+
+/** Batch fallback `gia_mac_dinh` theo danh sách biến thể. */
+async function resolveGiaMacDinhForBienTheMany(
+  bienTheIds: string[],
+): Promise<Map<string, number>> {
+  const out = new Map<string, number>();
+  const ids = [...new Set(bienTheIds.map((id) => id.trim()).filter(Boolean))];
+  if (ids.length === 0) return out;
   const admin = createServiceRoleClient();
-  const { data: bt } = await admin
+  const { data: bts } = await admin
     .from("shop_bien_the")
-    .select("id_san_pham")
-    .eq("id", bienTheId)
-    .maybeSingle<{ id_san_pham: string | null }>();
-  if (!bt?.id_san_pham) return null;
-  const { data: sp } = await admin
+    .select("id, id_san_pham")
+    .in("id", ids);
+  const btRows = (bts ?? []) as Array<{
+    id: string;
+    id_san_pham: string | null;
+  }>;
+  const spIds = [
+    ...new Set(btRows.map((b) => b.id_san_pham).filter(Boolean) as string[]),
+  ];
+  if (spIds.length === 0) return out;
+  const { data: sps } = await admin
     .from("shop_san_pham")
-    .select("id_nhom")
-    .eq("id", bt.id_san_pham)
-    .maybeSingle<{ id_nhom: string | null }>();
-  if (!sp?.id_nhom) return null;
-  const { data: nhom } = await admin
+    .select("id, id_nhom")
+    .in("id", spIds);
+  const spRows = (sps ?? []) as Array<{
+    id: string;
+    id_nhom: string | null;
+  }>;
+  const nhomIds = [
+    ...new Set(spRows.map((s) => s.id_nhom).filter(Boolean) as string[]),
+  ];
+  if (nhomIds.length === 0) return out;
+  const { data: nhoms } = await admin
     .from("shop_nhom")
-    .select("gia_mac_dinh")
-    .eq("id", sp.id_nhom)
-    .maybeSingle<{ gia_mac_dinh: number | string | null }>();
-  const g = nhom?.gia_mac_dinh;
-  if (g == null || g === "") return null;
-  const n = Number(g);
-  return Number.isFinite(n) ? n : null;
+    .select("id, gia_mac_dinh")
+    .in("id", nhomIds);
+  const giaByNhom = new Map<string, number>();
+  for (const n of (nhoms ?? []) as Array<{
+    id: string;
+    gia_mac_dinh: number | string | null;
+  }>) {
+    if (n.gia_mac_dinh == null || n.gia_mac_dinh === "") continue;
+    const v = Number(n.gia_mac_dinh);
+    if (Number.isFinite(v)) giaByNhom.set(n.id, v);
+  }
+  const nhomBySp = new Map(
+    spRows.map((s) => [s.id, s.id_nhom] as const),
+  );
+  for (const bt of btRows) {
+    if (!bt.id_san_pham) continue;
+    const nhomId = nhomBySp.get(bt.id_san_pham);
+    if (!nhomId) continue;
+    const g = giaByNhom.get(nhomId);
+    if (g != null) out.set(bt.id, g);
+  }
+  return out;
+}
+
+/**
+ * Resolve giá nhiều biến thể trong cùng bảng giá — 1–2 query thay vì N lần
+ * `resolveGiaBienThe` tuần tự (post-kiosk attach).
+ */
+export async function resolveGiaBienTheMany(
+  bangGiaId: string,
+  bienTheIds: string[],
+): Promise<
+  Map<
+    string,
+    { gia: number; giaBan: number; giaGiam: number | null; tienTe: string }
+  >
+> {
+  const out = new Map<
+    string,
+    { gia: number; giaBan: number; giaGiam: number | null; tienTe: string }
+  >();
+  const ids = [...new Set(bienTheIds.map((id) => id.trim()).filter(Boolean))];
+  if (ids.length === 0) return out;
+  const admin = createServiceRoleClient();
+  const { data: bg } = await admin
+    .from("shop_bang_gia")
+    .select("id, tien_te")
+    .eq("id", bangGiaId)
+    .eq("da_xoa", false)
+    .maybeSingle<{ id: string; tien_te: string }>();
+  if (!bg) return out;
+
+  const { data: dongs } = await admin
+    .from("shop_bang_gia_dong")
+    .select("id_bien_the, gia, gia_giam")
+    .eq("id_bang_gia", bangGiaId)
+    .in("id_bien_the", ids);
+  const missing: string[] = [];
+  const seen = new Set<string>();
+  for (const d of (dongs ?? []) as Array<{
+    id_bien_the: string;
+    gia: number | string;
+    gia_giam: number | string | null;
+  }>) {
+    seen.add(d.id_bien_the);
+    const giaBan = Number(d.gia);
+    const giaGiam = d.gia_giam == null ? null : Number(d.gia_giam);
+    out.set(d.id_bien_the, {
+      gia: shopGiaHieuLuc({ gia: giaBan, giaGiam }),
+      giaBan,
+      giaGiam,
+      tienTe: bg.tien_te,
+    });
+  }
+  for (const id of ids) {
+    if (!seen.has(id)) missing.push(id);
+  }
+  if (missing.length > 0) {
+    const macDinh = await resolveGiaMacDinhForBienTheMany(missing);
+    for (const id of missing) {
+      const g = macDinh.get(id);
+      if (g == null) continue;
+      out.set(id, {
+        gia: g,
+        giaBan: g,
+        giaGiam: null,
+        tienTe: bg.tien_te,
+      });
+    }
+  }
+  return out;
 }

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { ShopComposeProvider } from "@/components/shop/ShopComposeProvider";
 import { ShopKhoClient } from "@/components/shop/ShopKhoClient";
 import { ShopReadyGate } from "@/components/shop/ShopReadyGate";
 
@@ -11,7 +12,9 @@ export const metadata: Metadata = {
 export default function BanHangKhoPage() {
   return (
     <ShopReadyGate>
-      <ShopKhoClient />
+      <ShopComposeProvider>
+        <ShopKhoClient />
+      </ShopComposeProvider>
     </ShopReadyGate>
   );
 }

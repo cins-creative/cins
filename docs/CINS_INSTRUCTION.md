@@ -54,6 +54,8 @@ Thứ tự ưu tiên khi xung đột: **DB thật (đọc trực tiếp) > CINS_
 
 6. **ALTER cột/bảng cũ:** mọi sửa schema trên bảng đã có → **báo cáo user trước** + ghi DECISIONS (inventory ALTER) → chỉ migration sau khi được xác nhận. Xem DEV_RULES §1 + DECISIONS **L34**.
 
+7. **Không tự ý xóa / clean ổ `C:\`.** Chỉ xóa đúng path user chỉ định; không Disk Cleanup / dọn Temp / AppData / “giải phóng dung lượng”. Chi tiết: DEV_RULES §2 · rule Cursor `cins-project-instruction.mdc`.
+
 ---
 
 ## Số liệu neo (cập nhật khi đổi)
