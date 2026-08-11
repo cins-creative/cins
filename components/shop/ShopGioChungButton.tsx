@@ -10,6 +10,7 @@ import {
   Pencil,
   Plus,
   ShoppingBag,
+  ShoppingCart,
   Store,
   TicketPercent,
   Trash2,
@@ -546,7 +547,7 @@ export function ShopGioChungButton() {
             aria-haspopup="dialog"
             onClick={() => setOpen((v) => !v)}
           >
-            <ShoppingBag size={18} strokeWidth={2} aria-hidden />
+            <ShoppingCart size={20} strokeWidth={1.8} aria-hidden />
             {count > 0 ? (
               <span className="gio-chung-count" aria-hidden>
                 {count > 99 ? "99+" : count}

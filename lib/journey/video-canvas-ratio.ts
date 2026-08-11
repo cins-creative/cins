@@ -99,14 +99,22 @@ export function extractVideoCanvasRatio(
   blocks: ReadonlyArray<Block> | null | undefined,
 ): VideoCanvasRatio | null {
   if (!blocks?.length) return null;
+  let fallback: VideoCanvasRatio | null = null;
   for (const block of blocks) {
     if (block.loai !== "embed") continue;
-    const url =
-      typeof block.config?.url === "string" ? block.config.url.trim() : "";
-    if (!url) continue;
-    return parseVideoCanvasRatio(block.config?.videoCanvasRatio);
+    const ratio = parseVideoCanvasRatio(block.config?.videoCanvasRatio);
+    if (!ratio) continue;
+    const cfg = block.config ?? {};
+    const provider =
+      typeof cfg.videoProvider === "string" ? cfg.videoProvider.trim() : "";
+    const videoId =
+      (typeof cfg.videoId === "string" ? cfg.videoId.trim() : "") ||
+      (typeof cfg.bunnyVideoId === "string" ? cfg.bunnyVideoId.trim() : "");
+    /* Ưu tiên embed Stream upload — bỏ qua embed phụ không có ratio. */
+    if (provider === "stream" || videoId) return ratio;
+    if (!fallback) fallback = ratio;
   }
-  return null;
+  return fallback;
 }
 
 export function videoOrientationFromCanvasRatio(

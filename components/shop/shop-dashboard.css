@@ -1584,14 +1584,16 @@ body:has(.shop-dash-gate) .j-chat-dock {
   align-items: center;
   gap: 4px;
   max-width: 100%;
-  padding: 4px 0;
+  height: auto;
+  min-height: 0;
+  padding: 0;
   border: 0;
   border-radius: 0;
   background: transparent;
-  color: var(--cins-orange-ink, #9a3412);
+  color: var(--ink-title, rgba(0, 0, 0, 0.6));
   font: inherit;
-  font-size: 0.74rem;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
   cursor: pointer;
 }
 
@@ -1603,7 +1605,8 @@ body:has(.shop-dash-gate) .j-chat-dock {
 }
 
 .shop-kho-loai-dd-tag:hover:not(:disabled) {
-  color: var(--cins-orange, #fdad4c);
+  background: transparent;
+  color: var(--cins-blue, #1f74c9);
 }
 
 .shop-kho-loai-dd-tag:disabled {
@@ -8249,8 +8252,32 @@ body:has(.shop-dash-gate) .j-chat-dock {
   .shop-grid-wrap {
     flex: 0 0 auto;
     min-height: auto;
+    max-width: 100%;
+    min-width: 0;
     overflow-x: auto;
     overflow-y: visible;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Toolbar kho: desktop cho bảng xổ full — mobile cuộn ngang trong wrap, không tràn card/viewport */
+  .shop-dash:has(.shop-dash-card .shop-kho-toolbar) .shop-grid-wrap {
+    overflow-x: auto;
+    overflow-y: visible;
+    max-width: 100%;
+    min-width: 0;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .shop-dash-card:has(.shop-kho-toolbar) {
+    min-width: 0;
+    overflow-x: clip;
+  }
+
+  .shop-grid {
+    width: max(100%, 720px);
+    table-layout: auto;
   }
 
   .shop-dash-mobile-ops {
@@ -9417,9 +9444,7 @@ body:has(.shop-dash-gate) .j-chat-dock {
   flex-direction: column;
   gap: 10px;
   padding: 14px 16px;
-  background:
-    linear-gradient(90deg, rgba(31, 116, 201, 0.14), transparent 28%),
-    #fff8ec;
+  background: #fff8ec;
 }
 
 .shop-voucher-card.is-mac-dinh .shop-voucher-card-body {

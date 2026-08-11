@@ -14,9 +14,9 @@
   justify-content: center;
   width: 38px;
   height: 38px;
-  border: 1px solid var(--border);
+  border: none;
   border-radius: var(--radius-pill, 999px);
-  background: var(--bg-surface);
+  background: transparent;
   color: var(--ink-body);
   cursor: pointer;
   transition: all var(--app-nav-dur, 0.18s) var(--app-nav-ease, ease);
@@ -25,9 +25,9 @@
 .gio-chung-trigger:hover,
 .gio-chung-trigger.is-open,
 .gio-chung-trigger.has-items {
-  border-color: color-mix(in srgb, var(--shop-accent-strong) 55%, var(--border));
+  border-color: transparent;
   color: color-mix(in srgb, var(--shop-accent-strong) 55%, var(--ink-display));
-  background: color-mix(in srgb, var(--shop-accent) 22%, transparent);
+  background: transparent;
 }
 
 .gio-chung-count {

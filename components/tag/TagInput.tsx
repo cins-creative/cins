@@ -106,8 +106,7 @@ function formatTagUsage(n: number): string {
 }
 
 function formatTagGan(n: number): string {
-  if (n <= 0) return "0";
-  return String(n);
+  return `#${Math.max(0, n)}`;
 }
 
 function TagInputMenuItem({

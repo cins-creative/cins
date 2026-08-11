@@ -463,8 +463,9 @@ type MetaProps = {
   onError: (msg: string | null) => void;
   /** Khi server báo còn mẫu nhưng client đang thấy 0 — tải lại kho. */
   onRefreshMau?: () => void;
-  /** Mở composer «Giới thiệu sản phẩm» (album + gắn kiosk). */
-  onGioiThieu?: () => void;
+  /** Mở composer «Giới thiệu sản phẩm» (album + gắn kiosk).
+   *  Nhận mô tả loại mới nhất (đã flush) — tránh lệch nháp / state cha. */
+  onGioiThieu?: (opts?: { moTa: string }) => void;
   gioiThieuBusy?: boolean;
   gioiThieuDisabledReason?: string | null;
 };
@@ -656,6 +657,17 @@ export function ShopKhoLoaiMeta({
     } finally {
       if (!opts?.quiet) setSaving(false);
     }
+  }
+
+  /** Flush mô tả local trước khi mở composer — giữ xuống dòng / list `- `. */
+  async function flushMoTaThenGioiThieu() {
+    if (!onGioiThieu) return;
+    const next = moTa.trim().slice(0, SHOP_NHOM_MO_TA_MAX) || null;
+    if ((nhom.moTa ?? null) !== next) {
+      const ok = await patch({ moTa: next }, { quiet: true });
+      if (!ok) return;
+    }
+    onGioiThieu({ moTa: next ?? "" });
   }
 
   /**
@@ -1048,7 +1060,7 @@ export function ShopKhoLoaiMeta({
                 "Tạo bài album ảnh giới thiệu mặt hàng này"
               }
               aria-label="Giới thiệu sản phẩm"
-              onClick={() => onGioiThieu()}
+              onClick={() => void flushMoTaThenGioiThieu()}
             >
               {gioiThieuBusy ? (
                 <Loader2 size={14} className="shop-spin" aria-hidden />

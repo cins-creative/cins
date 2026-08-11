@@ -14,6 +14,12 @@ import {
   galleryItemLabel,
   type GalleryMediaKind,
 } from "@/lib/journey/post-media";
+import {
+  resolveVideoPreviewMp4FromBlocks,
+  resolveVideoThumbnailFromBlocks,
+  streamUidFromBlocks,
+} from "@/lib/journey/video-embed";
+import { videoPreviewDimensionsFromRatio } from "@/lib/journey/video-canvas-ratio";
 import { getAvatarUrl } from "@/lib/journey/profile";
 import { listFriends } from "@/lib/social/ket-ban";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
@@ -28,8 +34,11 @@ import { loadOrgBaiDangCoAuthorCredits } from "@/lib/truong/org-bai-dang-coautho
 import type { Block } from "@/lib/editor/types";
 import {
   WORLD_JOURNEY_FEED_RANK_REVALIDATE_SEC,
+  WORLD_JOURNEY_GALLERY_LEAN_POOL,
   WORLD_JOURNEY_GALLERY_PAGE_SIZE,
+  WORLD_JOURNEY_GALLERY_WIDE_POOL,
   WORLD_JOURNEY_PUBLIC_GLOBAL_FEED,
+  WORLD_JOURNEY_VIDEO_SCAN_LIMIT,
 } from "@/lib/cins/worldJourneyFeedConstants";
 import {
   resolveWorldJourneyFeedFilterChip,
@@ -42,10 +51,10 @@ import {
 } from "@/lib/cins/worldJourneyFeedSource";
 import { withWorldBoostGalleryItems } from "@/lib/cins/world-boost";
 
-/** Pool mặc định gallery WJ. */
-const POOL_LIMIT = 120;
-/** Pool rộng khi đang lọc media/nhúng/nguồn — nhiều ô lưới hơn timeline. */
-const FILTER_POOL_LIMIT = 360;
+/** Pool mặc định gallery WJ (lean — trang đầu). */
+const POOL_LIMIT = WORLD_JOURNEY_GALLERY_LEAN_POOL;
+/** Pool rộng khi đang lọc media/nhúng/nguồn. */
+const FILTER_POOL_LIMIT = WORLD_JOURNEY_GALLERY_WIDE_POOL;
 
 type FeatureRow = {
   id_cot_moc: string;
@@ -185,9 +194,18 @@ function featureRowToItem(
     return null;
   }
 
-  const img = imageFromCover(grid.coverId, grid.coverSrc);
-  const isVideo = grid.mediaKind === "video";
-  if (!img?.src && !isVideo && grid.mediaKind !== "embed") return null;
+  const streamUid = streamUidFromBlocks(blocks);
+  const streamPoster = streamUid ? resolveVideoThumbnailFromBlocks(blocks) : null;
+  const streamPreview = streamUid
+    ? resolveVideoPreviewMp4FromBlocks(blocks)
+    : null;
+  const img = imageFromCover(grid.coverId, grid.coverSrc ?? streamPoster);
+  const isVideo = grid.mediaKind === "video" || Boolean(streamUid);
+  if (!img?.src && !isVideo && grid.mediaKind !== "embed" && !streamPoster) {
+    return null;
+  }
+  /* mediaKind=video nhưng không có Stream UID → không phải upload CF (bỏ). */
+  if (grid.mediaKind === "video" && !streamUid) return null;
 
   const author = authors.get(tp.id_nguoi_dung);
   const slug = author?.slug;
@@ -200,13 +218,17 @@ function featureRowToItem(
       : `/${slug}`;
 
   const sortAt = cm.tao_luc ?? cm.thoi_diem;
+  const videoCanvasRatio = grid.videoCanvasRatio;
+  const ratioDims = videoCanvasRatio
+    ? videoPreviewDimensionsFromRatio(videoCanvasRatio)
+    : null;
   return {
     id: `feat-${cm.id}`,
     cotMocId: cm.id,
-    src: img?.src ?? "",
+    src: img?.src || streamPoster || "",
     srcSet: img?.srcSet,
-    width: img?.width,
-    height: img?.height,
+    width: ratioDims?.width ?? img?.width,
+    height: ratioDims?.height ?? img?.height,
     label: galleryItemLabel(tp.tieu_de, grid.mediaKind),
     href,
     meta:
@@ -226,7 +248,14 @@ function featureRowToItem(
               : cm.loai_moc === "ca_nhan"
                 ? "ca-nhan"
                 : "du-an",
-    visibility: cm.che_do_hien_thi === "feature" ? "feature" : "public",
+    visibility:
+      cm.che_do_hien_thi === "feature"
+        ? "feature"
+        : cm.che_do_hien_thi === "theo_nhom"
+          ? "unlisted"
+          : cm.che_do_hien_thi === "chi_minh"
+            ? "private"
+            : "public",
     postSlug: tp.slug,
     postOwnerSlug: slug ?? null,
     tacPhamId: tp.id,
@@ -235,8 +264,10 @@ function featureRowToItem(
     mediaKind: grid.mediaKind,
     embedProvider: grid.embedProvider ?? null,
     isVideo,
+    streamUid,
+    videoCanvasRatio: videoCanvasRatio ?? undefined,
     videoProcessing: grid.videoProcessing,
-    videoPreviewSrc: grid.videoPreviewSrc,
+    videoPreviewSrc: grid.videoPreviewSrc ?? streamPreview,
     authorName: author?.ten_hien_thi?.trim() || author?.slug || null,
     authorAvatarUrl: getAvatarUrl(author?.avatar_id ?? null),
     authorSlug: slug ?? null,
@@ -274,20 +305,32 @@ function showcaseRowToItem(
     return null;
   }
 
-  const img = imageFromCover(grid.coverId, grid.coverSrc);
-  const isVideo = grid.mediaKind === "video";
-  if (!img?.src && !isVideo && grid.mediaKind !== "embed") return null;
+  const streamUid = streamUidFromBlocks(blocks);
+  const streamPoster = streamUid ? resolveVideoThumbnailFromBlocks(blocks) : null;
+  const streamPreview = streamUid
+    ? resolveVideoPreviewMp4FromBlocks(blocks)
+    : null;
+  const img = imageFromCover(grid.coverId, grid.coverSrc ?? streamPoster);
+  const isVideo = grid.mediaKind === "video" || Boolean(streamUid);
+  if (!img?.src && !isVideo && grid.mediaKind !== "embed" && !streamPoster) {
+    return null;
+  }
+  if (grid.mediaKind === "video" && !streamUid) return null;
 
   const orgName = org.ten?.trim() || org.slug.trim();
   const avatarId = org.avatar_id ?? org.logo_id;
+  const videoCanvasRatio = grid.videoCanvasRatio;
+  const ratioDims = videoCanvasRatio
+    ? videoPreviewDimensionsFromRatio(videoCanvasRatio)
+    : null;
 
   return {
     id: `showcase-${row.id}`,
     cotMocId: row.id,
-    src: img?.src ?? "",
+    src: img?.src || streamPoster || "",
     srcSet: img?.srcSet,
-    width: img?.width,
-    height: img?.height,
+    width: ratioDims?.width ?? img?.width,
+    height: ratioDims?.height ?? img?.height,
     label: galleryItemLabel(row.tieu_de, grid.mediaKind),
     href: studioTabPath(org.slug.trim(), "showcase"),
     meta: row.tom_tat?.trim() || `Showcase · ${orgName}`,
@@ -298,8 +341,10 @@ function showcaseRowToItem(
     mediaKind: grid.mediaKind,
     embedProvider: grid.embedProvider ?? null,
     isVideo,
+    streamUid,
+    videoCanvasRatio: videoCanvasRatio ?? undefined,
     videoProcessing: grid.videoProcessing,
-    videoPreviewSrc: grid.videoPreviewSrc,
+    videoPreviewSrc: grid.videoPreviewSrc ?? streamPreview,
     authorName: orgName,
     authorAvatarUrl: getAvatarUrl(avatarId),
     orgAvatarUrl: getAvatarUrl(avatarId),
@@ -348,21 +393,33 @@ function orgBaiDangRowToItem(
     return null;
   }
 
-  const img = imageFromCover(grid.coverId, grid.coverSrc);
-  const isVideo = grid.mediaKind === "video";
-  if (!img?.src && !isVideo && grid.mediaKind !== "embed") return null;
+  const streamUid = streamUidFromBlocks(blocks);
+  const streamPoster = streamUid ? resolveVideoThumbnailFromBlocks(blocks) : null;
+  const streamPreview = streamUid
+    ? resolveVideoPreviewMp4FromBlocks(blocks)
+    : null;
+  const img = imageFromCover(grid.coverId, grid.coverSrc ?? streamPoster);
+  const isVideo = grid.mediaKind === "video" || Boolean(streamUid);
+  if (!img?.src && !isVideo && grid.mediaKind !== "embed" && !streamPoster) {
+    return null;
+  }
+  if (grid.mediaKind === "video" && !streamUid) return null;
 
   const orgSlug = org.slug.trim();
   const orgName = org.ten?.trim() || orgSlug;
   const avatarId = org.avatar_id ?? org.logo_id;
+  const videoCanvasRatio = grid.videoCanvasRatio;
+  const ratioDims = videoCanvasRatio
+    ? videoPreviewDimensionsFromRatio(videoCanvasRatio)
+    : null;
 
   return {
     id: `org-post-${row.id}`,
     cotMocId: row.id,
-    src: img?.src ?? "",
+    src: img?.src || streamPoster || "",
     srcSet: img?.srcSet,
-    width: img?.width,
-    height: img?.height,
+    width: ratioDims?.width ?? img?.width,
+    height: ratioDims?.height ?? img?.height,
     label: galleryItemLabel(row.tieu_de, grid.mediaKind),
     href: orgHref(orgSlug, org.loai_to_chuc),
     meta: row.tom_tat?.trim() || `${orgLoaiKicker(org.loai_to_chuc)} · ${orgName}`,
@@ -373,8 +430,10 @@ function orgBaiDangRowToItem(
     mediaKind: grid.mediaKind,
     embedProvider: grid.embedProvider ?? null,
     isVideo,
+    streamUid,
+    videoCanvasRatio: videoCanvasRatio ?? undefined,
     videoProcessing: grid.videoProcessing,
-    videoPreviewSrc: grid.videoPreviewSrc,
+    videoPreviewSrc: grid.videoPreviewSrc ?? streamPreview,
     authorName: orgName,
     authorAvatarUrl: getAvatarUrl(avatarId),
     orgAvatarUrl: getAvatarUrl(avatarId),
@@ -392,14 +451,17 @@ function orgBaiDangRowToItem(
  * Query từ `content_cot_moc` (order `tao_luc`) — không order `referencedTable`
  * từ bảng nối (PostgREST bỏ qua / đảo chiều → chỉ còn bài cũ).
  */
+type CotMocVisibility = "feature" | "public" | "theo_nhom" | "chi_minh";
+
 async function fetchUserVisualRows(
   limit: number,
-  modes: ReadonlyArray<"feature" | "public">,
+  modes: ReadonlyArray<CotMocVisibility>,
+  opts?: { ownerId?: string },
 ): Promise<FeatureRow[]> {
   if (limit <= 0 || modes.length === 0) return [];
   const admin = createServiceRoleClient();
   const nowIso = new Date().toISOString();
-  const { data } = await admin
+  let query = admin
     .from("content_cot_moc")
     .select(
       `
@@ -413,29 +475,34 @@ async function fetchUserVisualRows(
     .in("che_do_hien_thi", [...modes])
     .lte("tao_luc", nowIso)
     .order("tao_luc", { ascending: false })
-    .limit(limit)
-    .returns<
-      Array<{
-        id: string;
-        thoi_diem: string;
-        loai_moc: string;
-        che_do_hien_thi: string;
-        mo_ta: string | null;
-        tao_luc: string | null;
-        id_nguoi_dung: string;
-        id_to_chuc?: string | null;
-        content_tac_pham_thuoc_moc:
-          | Array<{
-              id_tac_pham: string;
-              content_tac_pham: FeatureRow["content_tac_pham"];
-            }>
-          | {
-              id_tac_pham: string;
-              content_tac_pham: FeatureRow["content_tac_pham"];
-            }
-          | null;
-      }>
-    >();
+    .limit(limit);
+
+  if (opts?.ownerId) {
+    query = query.eq("id_nguoi_dung", opts.ownerId);
+  }
+
+  const { data } = await query.returns<
+    Array<{
+      id: string;
+      thoi_diem: string;
+      loai_moc: string;
+      che_do_hien_thi: string;
+      mo_ta: string | null;
+      tao_luc: string | null;
+      id_nguoi_dung: string;
+      id_to_chuc?: string | null;
+      content_tac_pham_thuoc_moc:
+        | Array<{
+            id_tac_pham: string;
+            content_tac_pham: FeatureRow["content_tac_pham"];
+          }>
+        | {
+            id_tac_pham: string;
+            content_tac_pham: FeatureRow["content_tac_pham"];
+          }
+        | null;
+    }>
+  >();
 
   const out: FeatureRow[] = [];
   for (const row of data ?? []) {
@@ -661,6 +728,14 @@ async function attachSourceAuthorsToWjItems(
   });
 }
 
+type BuildGalleryPoolOpts = {
+  /**
+   * Stack cộng sự góc card — thêm query. Bỏ trên lean pool (filter=all)
+   * để TTFB trang đầu không bị chặn; wide/video vẫn gắn.
+   */
+  attachSourceAuthors?: boolean;
+};
+
 /**
  * Gallery trang chủ: Nổi bật + Công khai (user) + bài cộng đồng có media
  * + showcase studio / bài org — sắp theo thời gian đăng (không ưu tiên featured).
@@ -668,7 +743,11 @@ async function attachSourceAuthorsToWjItems(
 async function buildWorldJourneyGalleryPool(
   viewerId: string,
   poolLimit = POOL_LIMIT,
+  opts: BuildGalleryPoolOpts = {},
 ): Promise<RankedGalleryItem[]> {
+  const attachAuthors = opts.attachSourceAuthors !== false;
+  const sideLimit = Math.min(40, poolLimit);
+
   const [friendIds, followingIds, followingOrgIds, memberCongDongIds] =
     await Promise.all([
       listFriends(viewerId),
@@ -690,9 +769,9 @@ async function buildWorldJourneyGalleryPool(
       WORLD_JOURNEY_PUBLIC_GLOBAL_FEED
         ? fetchUserVisualRows(poolLimit, ["public"])
         : Promise.resolve([] as FeatureRow[]),
-      fetchCongDongVisualRows(congDongOrgIds, Math.min(60, poolLimit)),
-      fetchStudioShowcaseRows(Math.min(60, poolLimit)),
-      fetchOrgBaiDangVisualRows(Math.min(60, poolLimit)),
+      fetchCongDongVisualRows(congDongOrgIds, sideLimit),
+      fetchStudioShowcaseRows(sideLimit),
+      fetchOrgBaiDangVisualRows(sideLimit),
     ]);
 
   const userRows = [...featureRows, ...publicRows];
@@ -758,7 +837,7 @@ async function buildWorldJourneyGalleryPool(
   }
 
   /* Trần gấp đôi khi đã fetch riêng public — tránh bài Công khai bị cắt hết
-     vì Nổi bật / showcase mới hơn chiếm hết slot 120. */
+     vì Nổi bật / showcase mới hơn chiếm hết slot lean. */
   const cap =
     publicRows.length > 0 ? Math.min(items.length, poolLimit * 2) : poolLimit;
 
@@ -767,6 +846,133 @@ async function buildWorldJourneyGalleryPool(
       a.sortAt > b.sortAt ? -1 : a.sortAt < b.sortAt ? 1 : 0,
     )
     .slice(0, cap);
+
+  if (!attachAuthors) return ranked;
+  return attachSourceAuthorsToWjItems(ranked, authors);
+}
+
+/**
+ * Pool riêng cho tab Video / `filter=video`:
+ * - Quét rộng bài feature+public (không bị ảnh mới nuốt hết slot)
+ * - Luôn gồm video Stream của chính viewer (cả bạn bè / chỉ mình) — khớp Journey owner
+ * - Chỉ giữ `mediaKind=video` + `streamUid` (không YouTube/Vimeo)
+ */
+async function buildWorldJourneyVideoPool(
+  viewerId: string,
+): Promise<RankedGalleryItem[]> {
+  const scan = WORLD_JOURNEY_VIDEO_SCAN_LIMIT;
+  const [friendIds, followingIds, followingOrgIds, memberCongDongIds] =
+    await Promise.all([
+      listFriends(viewerId),
+      listFollowingUserIds(viewerId),
+      listFollowingOrgIds(viewerId),
+      listActiveCongDongOrgIds(viewerId),
+    ]);
+
+  const congDongOrgIds = [
+    ...new Set([...memberCongDongIds, ...followingOrgIds]),
+  ];
+
+  const [
+    featureRows,
+    publicRows,
+    ownRows,
+    congDongRows,
+    showcaseRows,
+    orgBaiDangRows,
+  ] = await Promise.all([
+    fetchUserVisualRows(scan, ["feature"]),
+    WORLD_JOURNEY_PUBLIC_GLOBAL_FEED
+      ? fetchUserVisualRows(scan, ["public"])
+      : Promise.resolve([] as FeatureRow[]),
+    fetchUserVisualRows(
+      scan,
+      ["feature", "public", "theo_nhom", "chi_minh"],
+      { ownerId: viewerId },
+    ),
+    fetchCongDongVisualRows(congDongOrgIds, Math.min(120, scan)),
+    fetchStudioShowcaseRows(Math.min(120, scan)),
+    fetchOrgBaiDangVisualRows(Math.min(120, scan)),
+  ]);
+
+  const knownAuthors = new Set<string>([
+    viewerId,
+    ...friendIds,
+    ...followingIds,
+  ]);
+  const userRows = [...ownRows, ...featureRows, ...publicRows];
+  const authorIds = [...userRows, ...congDongRows]
+    .map((r) => r.content_tac_pham?.id_nguoi_dung)
+    .filter((id): id is string => Boolean(id));
+  const congDongOrgMetaIds = congDongRows
+    .map((r) => r.content_cot_moc?.id_to_chuc)
+    .filter((id): id is string => Boolean(id));
+
+  const [authors, congDongMeta] = await Promise.all([
+    loadAuthors(authorIds),
+    loadCongDongOrgMeta(congDongOrgMetaIds),
+  ]);
+
+  const items: RankedGalleryItem[] = [];
+  const seen = new Set<string>();
+
+  const pushStream = (item: RankedGalleryItem | null) => {
+    if (!item || seen.has(item.id)) return;
+    const uid = item.streamUid?.trim();
+    if (!uid) return;
+    seen.add(item.id);
+    /* Chuẩn hoá cho Reels UI — bài viết dài có Stream vẫn phát được. */
+    items.push({
+      ...item,
+      streamUid: uid,
+      mediaKind: "video",
+      isVideo: true,
+      embedProvider: null,
+    });
+  };
+
+  for (const row of userRows) {
+    const owner = row.content_cot_moc?.id_nguoi_dung;
+    pushStream(
+      featureRowToItem(row, authors, {
+        feedSource: "user",
+        feedFollowing: owner ? knownAuthors.has(owner) : false,
+      }),
+    );
+  }
+
+  for (const row of congDongRows) {
+    const orgId = row.content_cot_moc?.id_to_chuc;
+    const meta = orgId ? congDongMeta.get(orgId) : null;
+    pushStream(
+      featureRowToItem(row, authors, {
+        communityHref: meta?.href,
+        communityName: meta?.name,
+        feedSource: "cong_dong",
+        feedFollowing: true,
+      }),
+    );
+  }
+
+  const followedOrgSet = new Set(followingOrgIds);
+  for (const row of showcaseRows) {
+    pushStream(
+      showcaseRowToItem(row, {
+        feedFollowing: followedOrgSet.has(row.id_to_chuc),
+      }),
+    );
+  }
+  for (const row of orgBaiDangRows) {
+    pushStream(
+      orgBaiDangRowToItem(row, {
+        feedFollowing: followedOrgSet.has(row.id_to_chuc),
+      }),
+    );
+  }
+
+  const ranked = items.sort((a, b) =>
+    a.sortAt > b.sortAt ? -1 : a.sortAt < b.sortAt ? 1 : 0,
+  );
 
   return attachSourceAuthorsToWjItems(ranked, authors);
 }
@@ -782,6 +988,11 @@ export type WorldJourneyGalleryPageOptions = {
   filter?: string | null;
   source?: FeedSourceFilter | string | null;
 };
+
+function isVideoGalleryFilter(filter: string | null | undefined): boolean {
+  const chip = resolveWorldJourneyFeedFilterChip(filter);
+  return chip.kind === "media" && chip.media === "video";
+}
 
 function galleryPageNeedsWidePool(opts: WorldJourneyGalleryPageOptions): boolean {
   const filter = opts.filter?.trim();
@@ -826,27 +1037,56 @@ function sliceGalleryPage(
 }
 
 const buildCached = cache((viewerId: string) =>
-  buildWorldJourneyGalleryPool(viewerId, POOL_LIMIT),
+  buildWorldJourneyGalleryPool(viewerId, POOL_LIMIT, {
+    attachSourceAuthors: false,
+  }),
 );
 
 const buildWideCached = cache((viewerId: string) =>
-  buildWorldJourneyGalleryPool(viewerId, FILTER_POOL_LIMIT),
+  buildWorldJourneyGalleryPool(viewerId, FILTER_POOL_LIMIT, {
+    attachSourceAuthors: true,
+  }),
+);
+
+const buildVideoCached = cache((viewerId: string) =>
+  buildWorldJourneyVideoPool(viewerId),
 );
 
 function buildForApi(viewerId: string) {
   return unstable_cache(
-    () => buildWorldJourneyGalleryPool(viewerId, POOL_LIMIT),
-    ["world-journey-gallery-v2", viewerId],
+    () =>
+      buildWorldJourneyGalleryPool(viewerId, POOL_LIMIT, {
+        attachSourceAuthors: false,
+      }),
+    ["world-journey-gallery-lean-v4", viewerId],
     { revalidate: WORLD_JOURNEY_FEED_RANK_REVALIDATE_SEC },
   )();
 }
 
 function buildWideForApi(viewerId: string) {
   return unstable_cache(
-    () => buildWorldJourneyGalleryPool(viewerId, FILTER_POOL_LIMIT),
-    ["world-journey-gallery-wide-v2", viewerId],
+    () =>
+      buildWorldJourneyGalleryPool(viewerId, FILTER_POOL_LIMIT, {
+        attachSourceAuthors: true,
+      }),
+    ["world-journey-gallery-wide-v4", viewerId],
     { revalidate: WORLD_JOURNEY_FEED_RANK_REVALIDATE_SEC },
   )();
+}
+
+function buildVideoForApi(viewerId: string) {
+  return unstable_cache(
+    () => buildWorldJourneyVideoPool(viewerId),
+    ["world-journey-video-v4", viewerId],
+    { revalidate: WORLD_JOURNEY_FEED_RANK_REVALIDATE_SEC },
+  )();
+}
+
+/** Tab Video / Reels — luôn khám phá mọi nguồn Stream (không kẹt org-only). */
+function videoGalleryPageOptions(
+  options: WorldJourneyGalleryPageOptions,
+): WorldJourneyGalleryPageOptions {
+  return { ...options, source: "all" };
 }
 
 export async function fetchWorldJourneyGalleryPage(
@@ -855,6 +1095,16 @@ export async function fetchWorldJourneyGalleryPage(
   limit = WORLD_JOURNEY_GALLERY_PAGE_SIZE,
   options: WorldJourneyGalleryPageOptions = {},
 ): Promise<WorldJourneyGalleryPage> {
+  if (isVideoGalleryFilter(options.filter)) {
+    const ranked = await buildVideoForApi(viewerId);
+    const filtered = applyWorldJourneyGalleryPageFilters(
+      ranked,
+      videoGalleryPageOptions(options),
+    );
+    const boosted = await withWorldBoostGalleryItems(filtered);
+    return sliceGalleryPage(boosted, offset, limit);
+  }
+
   const ranked = galleryPageNeedsWidePool(options)
     ? await buildWideForApi(viewerId)
     : await buildForApi(viewerId);
@@ -869,6 +1119,16 @@ export async function fetchWorldJourneyGalleryPageCached(
   limit = WORLD_JOURNEY_GALLERY_PAGE_SIZE,
   options: WorldJourneyGalleryPageOptions = {},
 ): Promise<WorldJourneyGalleryPage> {
+  if (isVideoGalleryFilter(options.filter)) {
+    const ranked = await buildVideoCached(viewerId);
+    const filtered = applyWorldJourneyGalleryPageFilters(
+      ranked,
+      videoGalleryPageOptions(options),
+    );
+    const boosted = await withWorldBoostGalleryItems(filtered);
+    return sliceGalleryPage(boosted, offset, limit);
+  }
+
   const ranked = galleryPageNeedsWidePool(options)
     ? await buildWideCached(viewerId)
     : await buildCached(viewerId);

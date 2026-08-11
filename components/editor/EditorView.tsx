@@ -1040,6 +1040,20 @@ export function EditorView({
       return null;
     }
     const current = readComposeEditorDraft(composeDraftKey);
+    /* Prefill (Giới thiệu sản phẩm…) thắng nháp localStorage — luôn đồng bộ
+       mô tả/ảnh loại hàng mới nhất (xuống dòng + list). */
+    if (prefillDraft && composeDraftHasRestorableContent({
+      v: 1,
+      savedAt: "",
+      ...prefillDraft,
+    })) {
+      restoredComposeDraft = {
+        v: 1,
+        savedAt: new Date().toISOString(),
+        ...prefillDraft,
+      };
+      return restoredComposeDraft;
+    }
     if (current && composeDraftHasRestorableContent(current)) {
       restoredComposeDraft = current;
       return current;
@@ -1064,19 +1078,6 @@ export function EditorView({
         restoredComposeDraft = legacy;
         return legacy;
       }
-    }
-    /* Prefill (Giới thiệu sản phẩm…) khi chưa có nháp. */
-    if (prefillDraft && composeDraftHasRestorableContent({
-      v: 1,
-      savedAt: "",
-      ...prefillDraft,
-    })) {
-      restoredComposeDraft = {
-        v: 1,
-        savedAt: new Date().toISOString(),
-        ...prefillDraft,
-      };
-      return restoredComposeDraft;
     }
     restoredComposeDraft = null;
     return null;

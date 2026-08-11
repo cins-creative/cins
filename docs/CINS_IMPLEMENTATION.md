@@ -41,7 +41,7 @@ UI: `/tai-khoan/thanh-toan` · Settings «Thanh toán» · `/admin/tai-chinh` (C
 |---|---|
 | `shop/san-pham` · `shop/san-pham/[id]` | CRUD catalog + biến thể / tồn kho (seller) |
 | `shop/nhom` · `shop/nhom/[id]` | GET/POST list·tạo nhóm; PATCH mô tả/nhãn/**taxonomy** (`idDanhMuc` · `danhMucXacNhan` · `giaTriIds`); **DELETE** soft-delete loại khi không còn `shop_san_pham` gắn. Kho UI: `ShopKhoLoaiTaxonomy` |
-| `shop/nhom/[id]/gioi-thieu` | **GET** trạng thái cooldown «Giới thiệu sản phẩm» (1 lần / loại / 3 ngày); **POST** `{ cotMocId }` ghi mốc sau publish — 429 nếu còn cooldown. Bảng `shop_nhom_gioi_thieu`. Lib: `gioi-thieu.ts` · `gioi-thieu-cooldown.ts`. UI nút trên `ShopKhoLoaiMeta`. |
+| `shop/nhom/[id]/gioi-thieu` | **GET** trạng thái cooldown «Giới thiệu sản phẩm» (1 lần / loại / 3 ngày); **POST** `{ cotMocId }` ghi mốc sau publish — 429 nếu còn cooldown. Bảng `shop_nhom_gioi_thieu`. Prefill album = ảnh chính + ảnh phụ loại (**không** ảnh mẫu, **không** video). Lib: `gioi-thieu.ts` · `gioi-thieu-cooldown.ts`. UI nút trên `ShopKhoLoaiMeta`. |
 | `shop/danh-muc` | GET taxonomy merch: cây `shop_danh_muc` + facet hub (không gồm fandom — đã chuyển entity). Query `?q=` gợi ý danh mục; `?facet=chat-lieu&q=` gợi ý giá trị |
 | `shop/import-shopee` | **POST** (seller) — import loại hàng từ URL Shopee: preview (`apply:false`) hoặc tạo `shop_nhom` + mẫu (`apply:true`). Body `{ url?, apply?, raw?, preview? }`. Lib `lib/shop/shopee/`. UI: `/ban-hang/kho` → **AI · Shopee**. Xem ghi chú *Import Shopee* bên dưới. |
 | `shop/bang-gia` · `shop/bang-gia/[id]` | CRUD bảng giá + dòng giá theo biến thể. **1 bảng giá VND / shop** (2026-07-28): POST/PATCH **ép `tien_te="VND"`**, bỏ nhận `tienTe`. Bảng canonical = `getOrCreateDefaultBangGia(ownerId)` (bảng cũ nhất; tạo "Bảng giá mặc định" VND nếu chưa có). `resolveGiaBienThe` fallback `shop_nhom.gia_mac_dinh` khi thiếu dòng → không "Chưa có giá" khi loại đã có giá gốc; `syncNhomGiaMacDinhToMau` ghi vào canonical + quét biến thể theo `id_nhom` **và** tên `phan_loai`. UI Kho/modal bỏ chọn bảng giá. |
@@ -60,6 +60,7 @@ UI: `/tai-khoan/thanh-toan` · Settings «Thanh toán» · `/admin/tai-chinh` (C
 | `su-kien/[suKienId]/quay` · `…/quay/[quayId]` | Xin làm quầy + bằng chứng · owner duyệt/từ chối/gỡ (kèm lý do) · seller rút (`action=withdraw`) · list quầy đã duyệt (**không** kèm `hangSearch` mặc định) |
 | `su-kien/[suKienId]/quay/hang` | GET — catalog hàng theo seller (lazy khi mở chế độ «Hàng»); tôn trọng `getShopHienThi` |
 | `shop/quay/cua-toi` | GET — quầy đang/đã tham gia của seller (`cho_xu_ly` + `da_duyet`) |
+| `mo-shop` | **POST** public — lead «CINs dựng shop hộ» → `shop_dang_ky_mo`. Honeypot + rate limit IP + validate backend. Lib `lib/shop/dang-ky-mo.ts`. UI `/mo-shop`. Admin: `/admin/mo-shop` (list) · `/admin/mo-shop/form` · `/admin/mo-shop/[id]`. Plan: `PLAN_mo-shop-ho.md`. |
 
 #### Import Shopee → kho (`shop/import-shopee`, 2026-07-22)
 
@@ -262,7 +263,7 @@ Tái dùng đúng pattern Shopee AI cho **user tự import portfolio** của ch�
 
 | Domain | Path |
 |---|---|
-| Shop UGC (L33) | `lib/shop/` — types, terms, catalog, giá, giỏ (post + cửa hàng), đơn, storefront, quầy, post-hang, cửa hàng, **hub listing** (`cua-hang-listing.ts` + `cua-hang-listing-types.ts`), **taxonomy** (`danh-muc.ts` · `thuoc-tinh.ts`), **ưu đãi** (`uu-dai.ts` engine · `combo.ts` · `voucher.ts`), **`shopee/`** (import Shopee → kho), **`khach-hang.ts`** (thẻ khách seller + `listShopNguoiBanDaMua` cho tab Mua bán) |
+| Shop UGC (L33) | `lib/shop/` — types, terms, catalog, giá, giỏ (post + cửa hàng), đơn, storefront, quầy, post-hang, cửa hàng, **hub listing** (`cua-hang-listing.ts` + `cua-hang-listing-types.ts`), **taxonomy** (`danh-muc.ts` · `thuoc-tinh.ts`), **ưu đãi** (`uu-dai.ts` engine · `combo.ts` · `voucher.ts`), **`shopee/`** (import Shopee → kho), **`khach-hang.ts`** (thẻ khách seller + `listShopNguoiBanDaMua` cho tab Mua bán), **`dang-ky-mo.ts`** + `dang-ky-mo-constants.ts` (lead dựng shop hộ) |
 
 | Folder | Vai trò chính | File đáng chú ý |
 |---|---|---|
@@ -302,6 +303,7 @@ Tái dùng đúng pattern Shopee AI cho **user tự import portfolio** của ch�
 | File | Tạo gì |
 |---|---|
 | `audit_nghe_seo.sql` | **Readonly audit SEO nghề** — meta/tom_tat/noi_dung/bo_phan. Chạy: `node scripts/audit-nghe-seo.mjs` → `scripts/nghe-content/_audit-seo-report.json`. |
+| `migration_shop_dang_ky_mo.sql` | **Lead dựng shop hộ:** bảng `shop_dang_ky_mo` + enum kênh/trạng thái/hình thức; RLS bật, không policy (chỉ service role). API `POST /api/mo-shop` · UI `/mo-shop`. Chạy: `npm run migrate:shop-dang-ky-mo`. **Đã chạy** CINs 2026-08-11. Plan: `PLAN_mo-shop-ho.md`. |
 | `migration_shop_gio_cua_hang.sql` | Giỏ storefront: `shop_gio.id_cua_hang` + `id_cot_moc` nullable; CHECK XOR scope; unique partial (buyer+moc) / (buyer+cua_hang). Chạy: `node scripts/run-shop-gio-cua-hang-migration.mjs`. |
 | `migration_shop_cua_hang_nhan_phan_loai.sql` | Cột `shop_cua_hang.nhan_phan_loai` / `nhan_phan_loai_2` (đổi tên trục phân loại). Chạy: `node scripts/run-shop-cua-hang-nhan-phan-loai-migration.mjs`. |
 | `migration_shop_cua_hang_tam_dong.sql` | Cột `shop_cua_hang.tam_dong` / `tam_dong_tu` / `tam_dong_den` — nghỉ tạm theo lịch; storefront xám + countdown; chặn giỏ/đơn. Chạy: `node scripts/run-shop-cua-hang-tam-dong-migration.mjs`. |
@@ -561,7 +563,9 @@ Code map: `lib/journey/images.ts` (role `gallery-grid` → `grid` + `srcset` `gr
 | **Trang chủ (đã login)** | `/` → `HomeWorldJourneyMain` — layout 3 cột adaptive (`components/cins/home-adaptive/`), feed giữa `WorldJourneyFeed` (tab Đang theo dõi / Khám phá). Persona từ `giai_doan`. Brief: `cursor_brief_trang_chu_adaptive.md`. |
 | **Cộng đồng** | `/cong-dong` (listing) · `/cong-dong/tao` · `/cong-dong/[slug]` (feed v4) · `/cong-dong/[slug]/su-kien/[suKienId]` (chi tiết/quản lý sự kiện trong shell) · … |
 | **Cửa hàng (L33 hub)** | `/cua-hang` — listing shop công khai (`shop_hien_thi`); card → `/{slug}/shop/{shopSlug}`; khu **Săn voucher** + ví (`CuaHangSanVoucher`) |
+| **Mở shop hộ (cold start)** | `/mo-shop` — form lead public; `?gt=` / `?tu=` nguồn (ẩn, không field UI); phí % live từ `getPhiDangApDungShop`; STK bắt buộc; OG `/mo-shop/opengraph-image`. Admin: `/admin/mo-shop` list + filter `trang_thai`; `/admin/mo-shop/form` nhập hộ; `/admin/mo-shop/[id]` đổi trạng thái + `ghi_chu_noi_bo` (server action). |
 | **Bán hàng — ưu đãi** | `/ban-hang/uu-dai` — tab Combo & Voucher (seller) |
+| **Bán hàng — kho** | `/ban-hang/kho` hub loại · `/ban-hang/kho/[slug]` chi tiết loại (`slugify` tên; trùng tên → thêm 8 ký tự id; `khac` = chưa gán loại). Helper `shopKhoLoaiHref` · `resolveShopKhoLoaiSlug`. |
 | **Cơ sở đào tạo** | `/co-so` (listing) · `/co-so/[slug]` (chi tiết v6) · `/co-so/[slug]/khoa-hoc/[khoa-slug]` (trang khóa — đã có route site) |
 | **Khóa học (cơ sở đào tạo)** | Xem §6 *Khóa học — chi tiết site* |
 | API tính điểm | `GET /api/truong/{org_to_chuc.id}/cau-hinh-tinh-diem?nam=&nganh=` — `nganh` = `org_truong_nganh.id`; `PUT` lưu `org_cau_hinh_mon` |

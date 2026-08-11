@@ -28,6 +28,8 @@ export default async function Home({
   const session = await getCurrentSessionAndProfile();
   const sp = await searchParams;
   const includeGallery = sp.view === "gallery";
+  const includeVideo = sp.view === "video";
+  const includeShopFeed = sp.view === "shop";
   const editingLayout = sp["tuy-chinh"] === "1";
 
   if (session?.profile?.slug) {
@@ -37,6 +39,8 @@ export default async function Home({
           <Suspense fallback={<HomeWorldJourneySkeleton />}>
             <HomeWorldJourneyMain
               includeGallery={includeGallery}
+              includeVideo={includeVideo}
+              includeShopFeed={includeShopFeed}
               editingLayout={editingLayout}
             />
           </Suspense>

@@ -375,9 +375,13 @@ export type WorldJourneyFeedPageOptions = {
   filter?: string | null;
   source?: FeedSourceFilter | string | null;
   linhVuc?: string | null;
+  /** Chỉ bài có kiosk/giỏ hàng gắn trên cột mốc (`shop_post_hang`). */
+  shopOnly?: boolean;
 };
 
 function feedPageNeedsWidePool(opts: WorldJourneyFeedPageOptions): boolean {
+  /* shopOnly không ép wide pool — dùng ranked cache ấm từ trang chủ + set hang.
+     Chỉ widen khi kết quả thưa (xem fetchWorldJourneyFeedPage). */
   const filter = opts.filter?.trim();
   if (filter && filter !== "all") return true;
   if (opts.linhVuc?.trim()) return true;
@@ -398,6 +402,51 @@ function applyWorldJourneyFeedPageFilters(
       worldJourneyMilestoneMatchesFilter(milestone, chip) &&
       worldJourneyMilestoneMatchesLinhVuc(milestone, linhVuc),
   );
+}
+
+/** Trần scan `shop_post_hang` — đủ để lọc feed, tránh full-table. */
+const SHOP_POST_HANG_ID_SCAN_LIMIT = 2000;
+const SHOP_POST_HANG_IDS_REVALIDATE_SEC = 60;
+
+/** Trả mảng (không Set) — `unstable_cache` serialize JSON, Set mất `.has`. */
+async function loadDistinctCotMocIdsWithPostHang(): Promise<string[]> {
+  const admin = createServiceRoleClient();
+  const { data, error } = await admin
+    .from("shop_post_hang")
+    .select("id_cot_moc")
+    .limit(SHOP_POST_HANG_ID_SCAN_LIMIT)
+    .returns<Array<{ id_cot_moc: string }>>();
+  if (error) {
+    console.error("[world-journey] loadDistinctCotMocIdsWithPostHang", error);
+    return [];
+  }
+  const out = new Set<string>();
+  for (const row of data ?? []) {
+    if (row.id_cot_moc) out.add(row.id_cot_moc);
+  }
+  return [...out];
+}
+
+async function loadDistinctCotMocIdsWithPostHangCached(): Promise<
+  Set<string>
+> {
+  const ids = await unstable_cache(
+    () => loadDistinctCotMocIdsWithPostHang(),
+    ["world-journey-shop-post-hang-ids"],
+    { revalidate: SHOP_POST_HANG_IDS_REVALIDATE_SEC },
+  )();
+  return new Set(Array.isArray(ids) ? ids : []);
+}
+
+function filterMilestonesByPostHangIds(
+  items: ReadonlyArray<MilestoneItem>,
+  hangIds: ReadonlySet<string>,
+): MilestoneItem[] {
+  if (hangIds.size === 0) return [];
+  return items.filter((m) => {
+    const id = m.cotMocId?.trim();
+    return Boolean(id && hangIds.has(id));
+  });
 }
 
 async function buildWorldJourneyFeedRanked(
@@ -663,12 +712,57 @@ function fetchWorldJourneyFeedRankedWideForApi(viewerId: string) {
   )();
 }
 
+async function fetchWorldJourneyShopOnlyPage(
+  viewerId: string,
+  offset: number,
+  limit: number,
+  options: WorldJourneyFeedPageOptions,
+  mode: "api" | "rsc",
+): Promise<WorldJourneyFeedPage> {
+  const hangIds = await loadDistinctCotMocIdsWithPostHangCached();
+  if (hangIds.size === 0) {
+    return { milestones: [], hasMore: false, nextOffset: 0, totalCount: 0 };
+  }
+
+  const loadRanked = (wide: boolean) =>
+    mode === "api"
+      ? wide
+        ? fetchWorldJourneyFeedRankedWideForApi(viewerId)
+        : fetchWorldJourneyFeedRankedForApi(viewerId)
+      : wide
+        ? fetchWorldJourneyFeedRankedWideCached(viewerId)
+        : fetchWorldJourneyFeedRankedCached(viewerId);
+
+  /* Ưu tiên pool ranked thường (cache ấm từ trang chủ) — tránh rebuild wide mỗi lần. */
+  let ranked = await loadRanked(false);
+  let boosted = await withWorldBoostMilestones(ranked, { viewerId });
+  let filtered = filterMilestonesByPostHangIds(
+    applyWorldJourneyFeedPageFilters(boosted, options),
+    hangIds,
+  );
+
+  const need = offset + limit;
+  if (filtered.length < need) {
+    ranked = await loadRanked(true);
+    boosted = await withWorldBoostMilestones(ranked, { viewerId });
+    filtered = filterMilestonesByPostHangIds(
+      applyWorldJourneyFeedPageFilters(boosted, options),
+      hangIds,
+    );
+  }
+
+  return sliceWorldJourneyFeedPage(filtered, offset, limit);
+}
+
 export async function fetchWorldJourneyFeedPage(
   viewerId: string,
   offset = 0,
   limit = WORLD_JOURNEY_FEED_PAGE_SIZE,
   options: WorldJourneyFeedPageOptions = {},
 ): Promise<WorldJourneyFeedPage> {
+  if (options.shopOnly) {
+    return fetchWorldJourneyShopOnlyPage(viewerId, offset, limit, options, "api");
+  }
   const ranked = feedPageNeedsWidePool(options)
     ? await fetchWorldJourneyFeedRankedWideForApi(viewerId)
     : await fetchWorldJourneyFeedRankedForApi(viewerId);
@@ -701,6 +795,9 @@ export async function fetchWorldJourneyFeedPageCached(
   limit = WORLD_JOURNEY_FEED_PAGE_SIZE,
   options: WorldJourneyFeedPageOptions = {},
 ): Promise<WorldJourneyFeedPage> {
+  if (options.shopOnly) {
+    return fetchWorldJourneyShopOnlyPage(viewerId, offset, limit, options, "rsc");
+  }
   const ranked = feedPageNeedsWidePool(options)
     ? await fetchWorldJourneyFeedRankedWideCached(viewerId)
     : await fetchWorldJourneyFeedRankedCached(viewerId);

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Check, ChevronDown, Package, Search, Store, X } from "lucide-react";
+import { Check, Package, Search, SlidersHorizontal, Store, X } from "lucide-react";
 import {
   useCallback,
   useEffect,
@@ -11,6 +11,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { createPortal } from "react-dom";
 
 import { CuaHangListCard } from "@/components/shop/CuaHangListCard";
 import { ChListingImg } from "@/components/shop/ChListingImg";
@@ -60,13 +61,45 @@ type FilterOption = {
   title?: string;
 };
 
-function ListingFilterDropdown({
+function normalizeQuery(raw: string): string {
+  return raw.trim().toLocaleLowerCase("vi");
+}
+
+function textMatches(hay: string, q: string): boolean {
+  return hay.toLocaleLowerCase("vi").includes(q);
+}
+
+function filterOptionMatches(option: FilterOption, q: string): boolean {
+  if (!q) return true;
+  if (textMatches(option.ten, q)) return true;
+  if (option.title && textMatches(option.title, q)) return true;
+  return false;
+}
+
+type FilterSectionDef = {
+  key: string;
+  label: string;
+  emptyMeansAll?: boolean;
+  allLabel?: string;
+  options: FilterOption[];
+  selected: string[];
+  onToggle: (slug: string) => void;
+  onSelectAll?: () => void;
+};
+
+function facetDisplayLabel(facet: { slug: string; ten: string }): string {
+  if (facet.slug === "fandom") return "Loại hàng";
+  return facet.ten;
+}
+
+function ListingFilterSection({
   label,
   options,
   selected,
   allLabel,
   emptyMeansAll = false,
-  closeOnPick = false,
+  searchQuery = "",
+  hideHead = false,
   onToggle,
   onSelectAll,
 }: {
@@ -74,46 +107,466 @@ function ListingFilterDropdown({
   options: FilterOption[];
   selected: string[];
   allLabel?: string;
-  /** true = không chọn gì = «Tất cả» (danh mục). */
   emptyMeansAll?: boolean;
-  closeOnPick?: boolean;
+  searchQuery?: string;
+  hideHead?: boolean;
   onToggle: (slug: string) => void;
   onSelectAll?: () => void;
 }) {
+  const q = normalizeQuery(searchQuery);
+  const showAll =
+    emptyMeansAll &&
+    onSelectAll &&
+    (!q || textMatches(allLabel ?? "Tất cả", q));
+  const visibleOptions = q
+    ? options.filter((o) => filterOptionMatches(o, q))
+    : options;
+
+  if (options.length === 0 && !emptyMeansAll) {
+    return (
+      <p className="ch-list-filter-overlay-no-match" role="status">
+        Chưa có mục lọc trong «{label}».
+      </p>
+    );
+  }
+
+  if (!showAll && visibleOptions.length === 0) {
+    return (
+      <p className="ch-list-filter-overlay-no-match" role="status">
+        {q
+          ? `Không có mục khớp «${searchQuery.trim()}».`
+          : `Chưa có mục lọc trong «${label}».`}
+      </p>
+    );
+  }
+
+  return (
+    <section
+      className={`ch-list-filter-section${hideHead ? " is-tab-panel" : ""}`}
+      aria-label={label}
+    >
+      {!hideHead ? (
+        <div className="ch-list-filter-section-head">
+          <span className="ch-list-filter-section-title">{label}</span>
+          {selected.length > 0 ? (
+            <span className="ch-list-filter-section-count">{selected.length}</span>
+          ) : null}
+        </div>
+      ) : null}
+      <div className="ch-list-filter-section-options">
+        {showAll ? (
+          <button
+            type="button"
+            role="option"
+            aria-selected={selected.length === 0}
+            className={`ch-list-filter-dd-option${
+              selected.length === 0 ? " is-on" : ""
+            }`}
+            onClick={onSelectAll}
+          >
+            <span
+              className={`ch-list-filter-dd-check${
+                selected.length === 0 ? " is-on" : ""
+              }`}
+              aria-hidden
+            >
+              {selected.length === 0 ? (
+                <Check size={11} strokeWidth={3} />
+              ) : null}
+            </span>
+            <span className="ch-list-filter-dd-option-copy">
+              <strong>{allLabel ?? "Tất cả"}</strong>
+            </span>
+          </button>
+        ) : null}
+        {visibleOptions.map((o) => {
+          const on = selected.includes(o.slug);
+          return (
+            <button
+              key={o.slug}
+              type="button"
+              role="option"
+              aria-selected={on}
+              title={o.title ?? o.ten}
+              className={`ch-list-filter-dd-option${on ? " is-on" : ""}`}
+              onClick={() => onToggle(o.slug)}
+            >
+              <span
+                className={`ch-list-filter-dd-check${on ? " is-on" : ""}`}
+                aria-hidden
+              >
+                {on ? <Check size={11} strokeWidth={3} /> : null}
+              </span>
+              <span className="ch-list-filter-dd-option-copy">
+                <strong>{o.ten}</strong>
+              </span>
+              {o.count > 0 ? (
+                <span className="ch-list-filter-option-count">{o.count}</span>
+              ) : null}
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function ListingFiltersPopover({
+  taxonomy,
+  visibleDanhMuc,
+  danhMucCounts,
+  facetCounts,
+  selectedDanhMuc,
+  selectedFacets,
+  hasTaxonomyFilter,
+  onToggleDanhMuc,
+  onSelectAllDanhMuc,
+  onToggleFacetValue,
+  onClearTaxonomy,
+}: {
+  taxonomy: CuaHangHubTaxonomy;
+  visibleDanhMuc: CuaHangHubTaxonomy["danhMuc"];
+  danhMucCounts: Map<string, number>;
+  facetCounts: Record<string, Map<string, number>>;
+  selectedDanhMuc: string[];
+  selectedFacets: Record<string, string[]>;
+  hasTaxonomyFilter: boolean;
+  onToggleDanhMuc: (slug: string) => void;
+  onSelectAllDanhMuc: () => void;
+  onToggleFacetValue: (
+    facetSlug: string,
+    valueSlug: string,
+    single: boolean,
+  ) => void;
+  onClearTaxonomy: () => void;
+}) {
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [filterSearch, setFilterSearch] = useState("");
+  const [activeTab, setActiveTab] = useState<string>("");
   const rootRef = useRef<HTMLDivElement>(null);
-  const listId = useId();
+  const searchRef = useRef<HTMLInputElement>(null);
+  const panelId = useId();
+  const titleId = useId();
+  const searchId = useId();
+  const tabsId = useId();
+
+  const visibleFacets = useMemo(
+    () =>
+      taxonomy.facets
+        .map((facet) => {
+          const counts = facetCounts[facet.slug] ?? new Map();
+          const visible = facet.giaTri.filter(
+            (g) => (counts.get(g.slug) ?? 0) > 0,
+          );
+          return visible.length > 0 ? { facet, visible, counts } : null;
+        })
+        .filter(Boolean) as Array<{
+        facet: CuaHangHubTaxonomy["facets"][number];
+        visible: CuaHangHubTaxonomy["facets"][number]["giaTri"];
+        counts: Map<string, number>;
+      }>,
+    [taxonomy.facets, facetCounts],
+  );
+
+  const hasOptions = visibleDanhMuc.length > 0 || visibleFacets.length > 0;
+
+  const activeCount = useMemo(() => {
+    let n = selectedDanhMuc.length;
+    for (const vals of Object.values(selectedFacets)) n += vals.length;
+    return n;
+  }, [selectedDanhMuc, selectedFacets]);
+
+  const filterSections = useMemo((): FilterSectionDef[] => {
+    const cols: FilterSectionDef[] = [];
+
+    if (visibleDanhMuc.length > 0) {
+      cols.push({
+        key: "danh-muc",
+        label: "Danh mục",
+        emptyMeansAll: true,
+        allLabel: "Tất cả",
+        options: visibleDanhMuc.map((d) => ({
+          slug: d.slug,
+          ten: d.ten,
+          count: danhMucCounts.get(d.slug) ?? 0,
+        })),
+        selected: selectedDanhMuc,
+        onToggle: onToggleDanhMuc,
+        onSelectAll: onSelectAllDanhMuc,
+      });
+    }
+
+    const fandomFacet = visibleFacets.find(({ facet }) => facet.slug === "fandom");
+    const otherFacets = visibleFacets.filter(
+      ({ facet }) => facet.slug !== "fandom",
+    );
+
+    for (const { facet, visible, counts } of [
+      ...(fandomFacet ? [fandomFacet] : []),
+      ...otherFacets,
+    ]) {
+      const selected = selectedFacets[facet.slug] ?? [];
+      cols.push({
+        key: facet.slug,
+        label: facetDisplayLabel(facet),
+        options: visible.map((g) => ({
+          slug: g.slug,
+          ten: g.ten,
+          count: counts.get(g.slug) ?? 0,
+          title: g.nhom ? `${g.ten} · ${g.nhom}` : g.ten,
+        })),
+        selected,
+        onToggle: (slug) =>
+          onToggleFacetValue(facet.slug, slug, facet.kieu === "chon_mot"),
+      });
+    }
+
+    return cols;
+  }, [
+    visibleDanhMuc,
+    visibleFacets,
+    danhMucCounts,
+    selectedDanhMuc,
+    selectedFacets,
+    onToggleDanhMuc,
+    onSelectAllDanhMuc,
+    onToggleFacetValue,
+  ]);
+
+  const activeChips = useMemo(() => {
+    const chips: Array<{ key: string; label: string; onRemove: () => void }> =
+      [];
+    for (const slug of selectedDanhMuc) {
+      const dm = visibleDanhMuc.find((d) => d.slug === slug);
+      if (!dm) continue;
+      chips.push({
+        key: `dm:${slug}`,
+        label: dm.ten,
+        onRemove: () => onToggleDanhMuc(slug),
+      });
+    }
+    for (const section of filterSections) {
+      if (section.key === "danh-muc") continue;
+      for (const slug of section.selected) {
+        const opt = section.options.find((o) => o.slug === slug);
+        if (!opt) continue;
+        chips.push({
+          key: `${section.key}:${slug}`,
+          label: opt.ten,
+          onRemove: () => section.onToggle(slug),
+        });
+      }
+    }
+    return chips;
+  }, [selectedDanhMuc, visibleDanhMuc, filterSections, onToggleDanhMuc]);
+
+  const activeSection =
+    filterSections.find((s) => s.key === activeTab) ?? filterSections[0] ?? null;
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!open) {
+      setFilterSearch("");
+      return;
+    }
+    if (
+      filterSections.length > 0 &&
+      !filterSections.some((s) => s.key === activeTab)
+    ) {
+      setActiveTab(filterSections[0]!.key);
+    }
+    const t = window.setTimeout(() => searchRef.current?.focus(), 48);
+    return () => window.clearTimeout(t);
+  }, [open, filterSections, activeTab]);
 
   useEffect(() => {
     if (!open) return;
-    function onDoc(e: MouseEvent) {
-      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
-    }
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") setOpen(false);
     }
-    document.addEventListener("mousedown", onDoc);
     document.addEventListener("keydown", onKey);
     return () => {
-      document.removeEventListener("mousedown", onDoc);
+      document.body.style.overflow = prevOverflow;
       document.removeEventListener("keydown", onKey);
     };
   }, [open]);
 
-  if (options.length === 0 && !emptyMeansAll) return null;
+  if (!hasOptions) return null;
 
-  const activeCount = selected.length;
-  const summary =
-    activeCount === 0
-      ? label
-      : activeCount === 1
-        ? (options.find((o) => o.slug === selected[0])?.ten ?? label)
-        : `${label} · ${activeCount}`;
+  const searchPlaceholder = activeSection
+    ? `Tìm trong ${activeSection.label.toLocaleLowerCase("vi")}…`
+    : "Tìm trong bộ lọc…";
 
-  function pick(slug: string) {
-    onToggle(slug);
-    if (closeOnPick) setOpen(false);
-  }
+  const overlay =
+    open && mounted
+      ? createPortal(
+          <div
+            className="ch-list-filter-overlay-backdrop"
+            role="presentation"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setOpen(false);
+            }}
+          >
+            <div
+              className="ch-list-filter-overlay"
+              id={panelId}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby={titleId}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <header className="ch-list-filter-overlay-head">
+                <div className="ch-list-filter-overlay-head-row">
+                  <h2 id={titleId} className="ch-list-filter-overlay-title">
+                    Bộ lọc
+                    {activeCount > 0 ? (
+                      <span className="ch-list-filter-dd-badge">{activeCount}</span>
+                    ) : null}
+                  </h2>
+                  <button
+                    type="button"
+                    className="ch-list-filter-overlay-close"
+                    aria-label="Đóng bộ lọc"
+                    onClick={() => setOpen(false)}
+                  >
+                    <X size={18} strokeWidth={2.2} aria-hidden />
+                  </button>
+                </div>
+
+                <div
+                  className="ch-list-filter-tabs"
+                  role="tablist"
+                  aria-label="Nhóm bộ lọc"
+                  id={tabsId}
+                  style={{
+                    gridTemplateColumns: `repeat(${Math.max(filterSections.length, 1)}, minmax(0, 1fr))`,
+                  }}
+                >
+                  {filterSections.map((section) => {
+                    const selected = section.key === activeSection?.key;
+                    const count = section.selected.length;
+                    return (
+                      <button
+                        key={section.key}
+                        type="button"
+                        role="tab"
+                        aria-selected={selected}
+                        className={`ch-list-filter-tab${selected ? " is-active" : ""}`}
+                        onClick={() => {
+                          setActiveTab(section.key);
+                          setFilterSearch("");
+                        }}
+                      >
+                        <span>{section.label}</span>
+                        {count > 0 ? (
+                          <span className="ch-list-filter-tab-count">{count}</span>
+                        ) : null}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <label className="ch-list-filter-overlay-search" htmlFor={searchId}>
+                  <Search size={16} strokeWidth={2.2} aria-hidden />
+                  <input
+                    ref={searchRef}
+                    id={searchId}
+                    type="search"
+                    value={filterSearch}
+                    onChange={(e) => setFilterSearch(e.target.value)}
+                    placeholder={searchPlaceholder}
+                    autoComplete="off"
+                    spellCheck={false}
+                    aria-label={searchPlaceholder}
+                  />
+                  {filterSearch ? (
+                    <button
+                      type="button"
+                      className="ch-list-filter-overlay-search-clear"
+                      aria-label="Xóa tìm kiếm"
+                      onClick={() => {
+                        setFilterSearch("");
+                        searchRef.current?.focus();
+                      }}
+                    >
+                      <X size={14} strokeWidth={2.4} aria-hidden />
+                    </button>
+                  ) : null}
+                </label>
+
+                {activeChips.length > 0 ? (
+                  <div
+                    className="ch-list-filter-overlay-chips"
+                    aria-label="Đang lọc"
+                  >
+                    {activeChips.map((chip) => (
+                      <button
+                        key={chip.key}
+                        type="button"
+                        className="ch-list-filter-chip"
+                        onClick={chip.onRemove}
+                      >
+                        <span>{chip.label}</span>
+                        <X size={12} strokeWidth={2.5} aria-hidden />
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </header>
+
+              <div
+                className="ch-list-filter-overlay-body"
+                role="tabpanel"
+                aria-labelledby={tabsId}
+              >
+                {activeSection ? (
+                  <ListingFilterSection
+                    key={activeSection.key}
+                    label={activeSection.label}
+                    options={activeSection.options}
+                    selected={activeSection.selected}
+                    allLabel={activeSection.allLabel}
+                    emptyMeansAll={activeSection.emptyMeansAll}
+                    searchQuery={filterSearch}
+                    hideHead
+                    onToggle={activeSection.onToggle}
+                    onSelectAll={activeSection.onSelectAll}
+                  />
+                ) : (
+                  <p className="ch-list-filter-overlay-no-match" role="status">
+                    Chưa có mục lọc.
+                  </p>
+                )}
+              </div>
+
+              <footer className="ch-list-filter-overlay-foot">
+                <button
+                  type="button"
+                  className="ch-list-filter-foot-btn is-ghost"
+                  disabled={!hasTaxonomyFilter}
+                  onClick={onClearTaxonomy}
+                >
+                  Xóa lọc
+                </button>
+                <button
+                  type="button"
+                  className="ch-list-filter-foot-btn is-primary"
+                  onClick={() => setOpen(false)}
+                >
+                  Xong
+                </button>
+              </footer>
+            </div>
+          </div>,
+          document.body,
+        )
+      : null;
 
   return (
     <div className="ch-list-filter-dd" ref={rootRef}>
@@ -122,85 +575,20 @@ function ListingFilterDropdown({
         className={`ch-list-filter-dd-trigger${open ? " is-open" : ""}${
           activeCount > 0 ? " has-value" : ""
         }`}
-        aria-haspopup="listbox"
+        aria-haspopup="dialog"
         aria-expanded={open}
-        aria-controls={listId}
+        aria-controls={panelId}
         onClick={() => setOpen((v) => !v)}
       >
-        <span className="ch-list-filter-dd-summary">{summary}</span>
+        <SlidersHorizontal size={14} strokeWidth={2.2} aria-hidden />
+        <span className="ch-list-filter-dd-summary">Bộ lọc</span>
         {activeCount > 0 ? (
           <span className="ch-list-filter-dd-badge" aria-hidden>
             {activeCount}
           </span>
         ) : null}
-        <ChevronDown size={14} strokeWidth={2.2} aria-hidden />
       </button>
-
-      {open ? (
-        <div
-          className="ch-list-filter-dd-panel"
-          id={listId}
-          role="listbox"
-          aria-label={label}
-          aria-multiselectable={!closeOnPick || undefined}
-        >
-          <div className="ch-list-filter-dd-panel-head">{label}</div>
-          <div className="ch-list-filter-dd-options">
-            {emptyMeansAll && onSelectAll ? (
-              <button
-                type="button"
-                role="option"
-                aria-selected={selected.length === 0}
-                className={`ch-list-filter-dd-option${
-                  selected.length === 0 ? " is-on" : ""
-                }`}
-                onClick={() => {
-                  onSelectAll();
-                  setOpen(false);
-                }}
-              >
-                <span
-                  className={`ch-list-filter-dd-check${
-                    selected.length === 0 ? " is-on" : ""
-                  }`}
-                  aria-hidden
-                >
-                  {selected.length === 0 ? (
-                    <Check size={11} strokeWidth={3} />
-                  ) : null}
-                </span>
-                <span className="ch-list-filter-dd-option-copy">
-                  <strong>{allLabel ?? "Tất cả"}</strong>
-                </span>
-              </button>
-            ) : null}
-            {options.map((o) => {
-              const on = selected.includes(o.slug);
-              return (
-                <button
-                  key={o.slug}
-                  type="button"
-                  role="option"
-                  aria-selected={on}
-                  title={o.title ?? o.ten}
-                  className={`ch-list-filter-dd-option${on ? " is-on" : ""}`}
-                  onClick={() => pick(o.slug)}
-                >
-                  <span
-                    className={`ch-list-filter-dd-check${on ? " is-on" : ""}`}
-                    aria-hidden
-                  >
-                    {on ? <Check size={11} strokeWidth={3} /> : null}
-                  </span>
-                  <span className="ch-list-filter-dd-option-copy">
-                    <strong>{o.ten}</strong>
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      ) : null}
+      {overlay}
     </div>
   );
 }
@@ -208,14 +596,6 @@ function ListingFilterDropdown({
 function formatHangGia(gia: number | null, tienTe: string): string | null {
   if (gia == null) return null;
   return `${gia.toLocaleString("vi-VN")} ${tienTe || "VND"}`;
-}
-
-function normalizeQuery(raw: string): string {
-  return raw.trim().toLocaleLowerCase("vi");
-}
-
-function textMatches(hay: string, q: string): boolean {
-  return hay.toLocaleLowerCase("vi").includes(q);
 }
 
 function shopHasUuDai(shop: PublicShopListingItem): boolean {
@@ -551,6 +931,11 @@ export function CuaHangListingClient({ shops, taxonomy }: Props) {
     syncUrl([], {});
   }, [syncUrl]);
 
+  const selectAllDanhMuc = useCallback(() => {
+    setSelectedDanhMuc([]);
+    syncUrl([], selectedFacets);
+  }, [selectedFacets, syncUrl]);
+
   const hasTaxonomyFilter =
     selectedDanhMuc.length > 0 ||
     Object.values(selectedFacets).some((v) => v.length > 0);
@@ -784,66 +1169,21 @@ export function CuaHangListingClient({ shops, taxonomy }: Props) {
                 role="group"
                 aria-label="Bộ lọc hàng"
               >
-              {visibleDanhMuc.length > 0 ? (
-                <ListingFilterDropdown
-                  label="Danh mục"
-                  emptyMeansAll
-                  allLabel="Tất cả"
-                  options={visibleDanhMuc.map((d) => ({
-                    slug: d.slug,
-                    ten: d.ten,
-                    count: danhMucCounts.get(d.slug) ?? 0,
-                  }))}
-                  selected={selectedDanhMuc}
-                  onToggle={toggleDanhMuc}
-                  onSelectAll={() => {
-                    setSelectedDanhMuc([]);
-                    syncUrl([], selectedFacets);
-                  }}
+                <ListingFiltersPopover
+                  taxonomy={taxonomy}
+                  visibleDanhMuc={visibleDanhMuc}
+                  danhMucCounts={danhMucCounts}
+                  facetCounts={facetCounts}
+                  selectedDanhMuc={selectedDanhMuc}
+                  selectedFacets={selectedFacets}
+                  hasTaxonomyFilter={hasTaxonomyFilter}
+                  onToggleDanhMuc={toggleDanhMuc}
+                  onSelectAllDanhMuc={selectAllDanhMuc}
+                  onToggleFacetValue={toggleFacetValue}
+                  onClearTaxonomy={clearTaxonomy}
                 />
-              ) : null}
-
-              {taxonomy.facets.map((facet) => {
-                const counts = facetCounts[facet.slug] ?? new Map();
-                const visible = facet.giaTri.filter(
-                  (g) => (counts.get(g.slug) ?? 0) > 0,
-                );
-                if (visible.length === 0) return null;
-                const selected = selectedFacets[facet.slug] ?? [];
-                return (
-                  <ListingFilterDropdown
-                    key={facet.slug}
-                    label={facet.ten}
-                    closeOnPick={facet.kieu === "chon_mot"}
-                    options={visible.map((g) => ({
-                      slug: g.slug,
-                      ten: g.ten,
-                      count: counts.get(g.slug) ?? 0,
-                      title: g.nhom ? `${g.ten} · ${g.nhom}` : g.ten,
-                    }))}
-                    selected={selected}
-                    onToggle={(slug) =>
-                      toggleFacetValue(
-                        facet.slug,
-                        slug,
-                        facet.kieu === "chon_mot",
-                      )
-                    }
-                  />
-                );
-              })}
-
-              {hasTaxonomyFilter ? (
-                <button
-                  type="button"
-                  className="ch-list-filter-clear"
-                  onClick={clearTaxonomy}
-                >
-                  Xóa lọc
-                </button>
-              ) : null}
-            </div>
-          ) : null}
+              </div>
+            ) : null}
           </div>
         </div>
       </div>

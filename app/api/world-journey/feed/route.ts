@@ -20,6 +20,7 @@ export async function GET(request: Request) {
   const filter = searchParams.get("filter");
   const source = normalizeFeedSource(searchParams.get("source"));
   const linhVuc = searchParams.get("linhVuc");
+  const shopOnly = searchParams.get("shopOnly") === "1";
 
   const page = await fetchWorldJourneyFeedPage(
     session.profile.id,
@@ -29,6 +30,7 @@ export async function GET(request: Request) {
       filter,
       source,
       linhVuc,
+      shopOnly,
     },
   );
 

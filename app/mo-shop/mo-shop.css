@@ -1,0 +1,552 @@
+/* /mo-shop — form dựng shop hộ (layout rộng, pattern form CINs, tránh AI slop) */
+
+body.theme-flat {
+  background: var(--bg-page) !important;
+}
+
+.cins-shell--mo-shop .cins-shell-column,
+.cins-shell--mo-shop .cins-main {
+  background: var(--bg-page);
+}
+
+.mo-shop-page {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 24px 20px 56px;
+}
+
+/* ── 2 cột: aside + form ── */
+.mo-shop-layout {
+  display: grid;
+  grid-template-columns: minmax(240px, 280px) minmax(0, 1fr);
+  gap: 28px 32px;
+  align-items: start;
+}
+
+.mo-shop-aside {
+  position: sticky;
+  /* Dưới topbar sticky (64px) — tránh bị khuất khi scroll */
+  top: calc(var(--site-nav-height, 64px) + 12px);
+  align-self: start;
+  z-index: 1;
+}
+
+.mo-shop-main {
+  min-width: 0;
+}
+
+/* ── Intro (trái, không căn giữa) ── */
+.mo-shop-kicker {
+  margin: 0 0 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.mo-shop-title {
+  margin: 0 0 12px;
+  font-size: clamp(1.375rem, 2.2vw, 1.625rem);
+  font-weight: 800;
+  line-height: 1.22;
+  color: var(--ink-display);
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+.mo-shop-sub {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: var(--ink-body);
+}
+
+/* ── Facts (dl, không phải 3 card icon) ── */
+.mo-shop-facts {
+  margin: 10px 0 0;
+  padding: 0;
+}
+
+.mo-shop-aside-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 22px 0 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--ink-title);
+}
+
+.mo-shop-aside-heading svg {
+  color: var(--cins-blue);
+  flex-shrink: 0;
+}
+
+.mo-shop-aside-heading:first-of-type {
+  margin-top: 22px;
+}
+
+.mo-shop-facts div {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.mo-shop-facts div:last-child {
+  border-bottom: none;
+}
+
+.mo-shop-facts dt {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.mo-shop-facts dd {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--ink-display);
+  text-align: right;
+}
+
+
+/* ── Panel form (một khối, kiểu gopy-modal / shop-dash) ── */
+.mo-shop-panel {
+  padding: 24px 26px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+
+.mo-shop-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.mo-shop-form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.mo-shop-form-section + .mo-shop-form-section {
+  padding-top: 22px;
+  margin-top: 22px;
+  border-top: 1px solid var(--border);
+}
+
+/* ── Section heading (icon + step + title + lead) ── */
+.mo-shop-section-head {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.mo-shop-section-head-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  background: var(--cins-blue-soft);
+  color: var(--cins-blue);
+}
+
+:root[data-theme="dark"] .mo-shop-section-head-icon {
+  background: color-mix(in srgb, var(--cins-blue) 18%, var(--bg-surface));
+}
+
+.mo-shop-section-head-step {
+  margin: 0 0 2px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--cins-blue);
+}
+
+.mo-shop-section-head-title {
+  margin: 0 0 4px;
+  font-size: 1.0625rem;
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+  color: var(--ink-display);
+}
+
+.mo-shop-section-head-lead {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--ink-muted);
+}
+
+/* Sub-heading trong section (vd. STK) */
+.mo-shop-subhead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--ink-title);
+}
+
+.mo-shop-subhead-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  background: var(--neutral-100, #f1f2f5);
+  color: var(--cins-blue);
+}
+
+:root[data-theme="dark"] .mo-shop-subhead-icon {
+  background: var(--neutral-100);
+}
+
+.mo-shop-form-section--submit {
+  gap: 14px;
+}
+
+.mo-shop-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mo-shop-label {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--ink-title);
+}
+
+.mo-shop-optional {
+  font-weight: 500;
+  color: var(--ink-muted);
+}
+
+.mo-shop-req {
+  color: var(--cins-blue);
+}
+
+.mo-shop-input,
+.mo-shop-textarea,
+.mo-shop-select {
+  width: 100%;
+  min-height: 42px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-surface);
+  color: var(--ink-display);
+  font: inherit;
+  font-size: 0.9375rem;
+  line-height: 1.4;
+}
+
+.mo-shop-textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+
+.mo-shop-textarea--short {
+  min-height: 72px;
+}
+
+.mo-shop-input::placeholder,
+.mo-shop-textarea::placeholder {
+  color: var(--ink-muted);
+}
+
+.mo-shop-input:focus,
+.mo-shop-textarea:focus,
+.mo-shop-select:focus {
+  outline: none;
+  border-color: var(--cins-blue);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cins-blue) 18%, transparent);
+}
+
+.mo-shop-hint {
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: var(--ink-muted);
+}
+
+.mo-shop-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.mo-shop-chip {
+  min-height: 36px;
+  padding: 7px 13px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-surface);
+  color: var(--ink-title);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.mo-shop-chip.is-active {
+  border-color: var(--cins-blue);
+  background: var(--cins-blue-soft);
+  color: var(--cins-blue-dark);
+}
+
+:root[data-theme="dark"] .mo-shop-chip.is-active {
+  color: var(--cins-blue);
+}
+
+.mo-shop-kenh-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 140px) 1fr;
+  gap: 8px;
+}
+
+.mo-shop-stk {
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--neutral-50, #f8f9fb);
+}
+
+:root[data-theme="dark"] .mo-shop-stk {
+  background: var(--neutral-100);
+}
+
+.mo-shop-stk-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.mo-shop-field--span {
+  grid-column: 1 / -1;
+}
+
+.mo-shop-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--ink-body);
+  cursor: pointer;
+}
+
+.mo-shop-check input {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  flex-shrink: 0;
+  accent-color: var(--cins-blue);
+}
+
+.mo-shop-check--consent {
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--neutral-50, #f8f9fb);
+  border: 1px solid var(--border);
+}
+
+:root[data-theme="dark"] .mo-shop-check--consent {
+  background: var(--neutral-100);
+}
+
+.mo-shop-check a {
+  color: var(--cins-blue);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.mo-shop-hp {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.mo-shop-error {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--danger, #dc2626) 35%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--danger, #dc2626) 10%, var(--bg-surface));
+  color: var(--danger, #b91c1c);
+  font-size: 0.8125rem;
+}
+
+.mo-shop-submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 46px;
+  padding: 11px 18px;
+  border: none;
+  border-radius: 10px;
+  background: var(--cins-blue);
+  color: #fff;
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.mo-shop-submit:hover:not(:disabled) {
+  background: var(--cins-blue-dark);
+}
+
+:root[data-theme="dark"] .mo-shop-submit {
+  color: #0e1117;
+}
+
+.mo-shop-submit:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.mo-shop-spin {
+  animation: mo-shop-spin 0.8s linear infinite;
+}
+
+@keyframes mo-shop-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ── Thank you / notice ── */
+.mo-shop-notice {
+  padding: 22px 24px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--cins-blue);
+  border-radius: 14px;
+}
+
+.mo-shop-notice-kicker {
+  margin: 0 0 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--cins-blue);
+}
+
+.mo-shop-thanks {
+  text-align: left;
+}
+
+.mo-shop-thanks-title {
+  margin: 0 0 10px;
+  font-size: 1.125rem;
+  font-weight: 800;
+  color: var(--ink-display);
+  text-wrap: balance;
+}
+
+.mo-shop-thanks-body {
+  margin: 0 0 12px;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: var(--ink-title);
+}
+
+.mo-shop-thanks-note {
+  margin: 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--ink-muted);
+}
+
+/* ── Footer ── */
+.mo-shop-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin-top: 28px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  font-size: 0.8125rem;
+}
+
+.mo-shop-foot a {
+  color: var(--ink-muted);
+  text-decoration: none;
+}
+
+.mo-shop-foot a:hover {
+  color: var(--cins-blue);
+}
+
+@media (max-width: 780px) {
+  .mo-shop-layout {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .mo-shop-aside {
+    position: static;
+  }
+
+  .mo-shop-facts dd {
+    text-align: left;
+  }
+
+  .mo-shop-facts div {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+
+  .mo-shop-panel {
+    padding: 20px 16px;
+  }
+
+  .mo-shop-kenh-row {
+    grid-template-columns: 1fr;
+  }
+
+  .mo-shop-stk-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 1200px) {
+  .mo-shop-page {
+    max-width: 960px;
+  }
+
+  .mo-shop-layout {
+    grid-template-columns: 300px minmax(0, 1fr);
+    gap: 36px 40px;
+  }
+}

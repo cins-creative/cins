@@ -2001,53 +2001,30 @@
 .cins-post-view .post-rail-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 5px;
+  gap: 8px;
+  margin-bottom: 0;
 }
 
-.cins-post-view .post-rail-tag {
-  display: inline-flex;
-  align-items: center;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--ink-title);
-  background: var(--neutral-100, #f1f2f5);
-  padding: 4px 9px;
-  border-radius: 999px;
-  text-decoration: none;
-  transition: background 120ms ease, color 120ms ease;
-}
-
-.cins-post-view .post-rail-tag:hover {
-  background: var(--cins-blue-soft, #e7f0fb);
-  color: var(--cins-blue-dark, #1656a0);
-  text-decoration: none;
-}
-
-.cins-post-view .post-rail-tag.is-verified-tag {
-  display: inline-flex;
-  align-items: flex-start;
-  gap: 5px;
-  color: var(--j-verified-ink, #15803d);
-  background: var(--j-verified-soft, #dcfce7);
+/* Tag rail — chữ đen, cùng layout journey card (không pill). */
+.cins-post-view .post-rail-tags .tag {
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--ink-display, rgba(0, 0, 0, 0.88));
+  font-size: 12px;
   font-weight: 600;
-  white-space: normal;
-  line-height: 1.35;
-}
-
-.cins-post-view .post-rail-tag.is-verified-tag .post-rail-tag-star {
-  flex-shrink: 0;
-  margin-top: 2px;
-  color: #f59e0b;
-}
-
-.cins-post-view .post-rail-tag.is-verified-tag:hover {
-  color: var(--j-verified-ink, #15803d);
-  background: #bbf7d0;
   text-decoration: none;
+  transition: color 0.12s;
+  max-width: 100%;
+  white-space: normal;
+}
+
+.cins-post-view .post-rail-tags .tag:hover {
+  color: var(--ink-display, rgba(0, 0, 0, 0.72));
+  background: transparent;
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .cins-post-view .post-rail-people {

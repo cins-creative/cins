@@ -8,6 +8,24 @@ export const WORLD_JOURNEY_FEED_PAGE_SIZE = 12;
 export const WORLD_JOURNEY_GALLERY_PAGE_SIZE = 36;
 
 /**
+ * Pool lean mặc định (filter/source = all): ~2 trang + buffer.
+ * Tránh dựng 120–360 ô rồi mới slice trang đầu.
+ */
+export const WORLD_JOURNEY_GALLERY_LEAN_POOL = 80;
+
+/** Pool rộng khi filter/source ≠ all — vẫn nhỏ hơn bản cũ 360. */
+export const WORLD_JOURNEY_GALLERY_WIDE_POOL = 240;
+
+/** Reels / video surface — ít item mỗi trang (full-bleed snap). */
+export const WORLD_JOURNEY_VIDEO_PAGE_SIZE = 8;
+
+/**
+ * Quét pool rộng khi dựng tab Video — gallery thường lấy ~360 bài lẫn ảnh;
+ * video Stream dễ bị cắt hết trước khi filter `media=video`.
+ */
+export const WORLD_JOURNEY_VIDEO_SCAN_LIMIT = 900;
+
+/**
  * Prefetch khi còn khoảng N bài tới cuối timeline (sentinel chèn sau bài
  * `length - N`), không đợi user chạm đáy.
  */

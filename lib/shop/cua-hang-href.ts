@@ -67,3 +67,61 @@ export function shopLoaiMauHref(
 export function shopSetupHref(_slug?: string): string {
   return "/ban-hang/cua-hang";
 }
+
+/** Hub quản lý kho — `/ban-hang/kho`. */
+export function shopKhoHubHref(): string {
+  return "/ban-hang/kho";
+}
+
+/** Segment URL cho loại chưa gán trên Kho. */
+export const SHOP_KHO_ORPHAN_SLUG = "khac";
+
+/** Segment path loại hàng trên Kho — slugify tên; trùng tên → thêm 8 ký tự id. */
+export function shopKhoLoaiPathSegment(
+  nhom: { id: string; nhan: string },
+  siblings: ReadonlyArray<{ id: string; nhan: string }> = [],
+): string {
+  const id = nhom.id.trim();
+  const base = slugifyShopName(nhom.nhan) || "loai";
+  const sameBase = siblings.filter(
+    (s) => (slugifyShopName(s.nhan) || "loai") === base,
+  );
+  if (sameBase.length <= 1) return base;
+  return `${base}-${id.slice(0, 8)}`;
+}
+
+/** Chi tiết loại trên Kho — `/ban-hang/kho/{segment}`. */
+export function shopKhoLoaiHref(
+  nhom: { id: string; nhan: string },
+  siblings: ReadonlyArray<{ id: string; nhan: string }> = [],
+): string {
+  return `${shopKhoHubHref()}/${encodeURIComponent(
+    shopKhoLoaiPathSegment(nhom, siblings),
+  )}`;
+}
+
+export function shopKhoOrphanHref(): string {
+  return `${shopKhoHubHref()}/${SHOP_KHO_ORPHAN_SLUG}`;
+}
+
+/**
+ * Resolve segment URL Kho → `nhom.id` hoặc `SHOP_KHO_ORPHAN_SLUG`.
+ * Chấp nhận UUID đầy đủ (link cũ / storefront-style).
+ */
+export function resolveShopKhoLoaiSlug(
+  slug: string,
+  nhoms: ReadonlyArray<{ id: string; nhan: string }>,
+): string | null {
+  const raw = slug.trim();
+  if (!raw) return null;
+  if (raw === SHOP_KHO_ORPHAN_SLUG) return SHOP_KHO_ORPHAN_SLUG;
+  if (nhoms.some((n) => n.id === raw)) return raw;
+  for (const n of nhoms) {
+    if (shopKhoLoaiPathSegment(n, nhoms) === raw) return n.id;
+  }
+  const baseMatches = nhoms.filter(
+    (n) => (slugifyShopName(n.nhan) || "loai") === raw,
+  );
+  if (baseMatches.length === 1) return baseMatches[0]!.id;
+  return null;
+}

@@ -68,6 +68,7 @@
     "migrate:shop-cua-hang-banner": "node scripts/run-shop-cua-hang-banner-su-kien-migration.mjs",
     "migrate:shop-cua-hang-banner-hien": "node scripts/run-shop-cua-hang-banner-su-kien-hien-migration.mjs",
     "migrate:shop-the-khach": "node scripts/run-shop-the-khach-migration.mjs",
+    "migrate:shop-dang-ky-mo": "node scripts/run-shop-dang-ky-mo-migration.mjs",
     "migrate:shop-danh-muc": "node scripts/run-shop-danh-muc-migration.mjs",
     "migrate:fandom-entity": "node scripts/run-fandom-entity-migration.mjs",
     "backfill:fandom-entity": "node scripts/backfill-fandom-entity.mjs",

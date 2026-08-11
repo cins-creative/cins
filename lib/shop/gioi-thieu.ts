@@ -2,6 +2,7 @@ import type { ArticleTagRef } from "@/lib/editor/article-tag";
 import { IMG_SLOT_GAP_DEFAULT } from "@/lib/editor/image-layout";
 import type { Block as ServerBlock } from "@/lib/editor/types";
 import type { ComposePrefillDraft } from "@/lib/journey/compose-types";
+import { normalizeShopNhomMoTaInput } from "@/lib/shop/nhom-mo-ta";
 import type { ShopBangGia, ShopNhom, ShopSanPham } from "@/lib/shop/types";
 import {
   SHOP_GIOI_THIEU_ANH_MAX,
@@ -30,15 +31,19 @@ export function shopGioiThieuDraftScope(nhomId: string): string {
 }
 
 /**
- * Ảnh (imageId) của loại hàng — chỉ ảnh, bỏ video, dedupe, giữ thứ tự:
- * ảnh chính → ảnh phụ loại → ảnh mẫu.
+ * Ảnh (imageId) của loại hàng — chỉ ảnh chính + ảnh phụ loại.
+ * Bỏ video · bỏ ảnh mẫu / biến thể · dedupe · giữ thứ tự.
  */
 export function thuThapAnhLoaiHang(input: {
   nhom: ShopNhom;
-  mau: ShopSanPham[];
+  /** @deprecated Không còn gom ảnh mẫu — giữ tham số để caller cũ không vỡ. */
+  mau?: ShopSanPham[];
+  /** @deprecated Không còn dùng. */
   gomAnhBienThe?: boolean;
   max?: number;
 }): string[] {
+  void input.mau;
+  void input.gomAnhBienThe;
   const max = input.max ?? SHOP_GIOI_THIEU_ANH_MAX;
   const seen = new Set<string>();
   const out: string[] = [];
@@ -51,14 +56,6 @@ export function thuThapAnhLoaiHang(input: {
 
   push(input.nhom.anhId);
   for (const id of input.nhom.anhPhuIds ?? []) push(id);
-
-  for (const p of input.mau) {
-    if (out.length >= max) break;
-    push(p.anhId);
-    if (input.gomAnhBienThe) {
-      for (const bt of p.bienThe) push(bt.anhId);
-    }
-  }
   return out;
 }
 
@@ -103,7 +100,7 @@ export function buildPrefillGioiThieu(input: {
 
   return {
     tieuDe: input.nhom.nhan.trim() || "Giới thiệu sản phẩm",
-    moTa: input.nhom.moTa?.trim() ?? "",
+    moTa: normalizeShopNhomMoTaInput(input.nhom.moTa ?? "").trim(),
     coverSeed: input.nhom.anhId?.trim() || input.imageIds[0] || null,
     albumGridCompose: true,
     visibility: "public",
@@ -214,21 +211,20 @@ export async function doKichThuocAnh(
   return out;
 }
 
-/** Map imageId → URL từ nhom + mẫu (để đo kích thước). */
+/** Map imageId → URL từ nhom (ảnh chính + ảnh phụ) — để đo kích thước. */
 export function mapAnhUrlLoaiHang(input: {
   nhom: ShopNhom;
-  mau: ShopSanPham[];
+  /** @deprecated Không còn map ảnh mẫu. */
+  mau?: ShopSanPham[];
   imageIds: string[];
 }): Record<string, string | null> {
+  void input.mau;
   const map: Record<string, string | null> = {};
   if (input.nhom.anhId) map[input.nhom.anhId] = input.nhom.anhUrl;
   const phuIds = input.nhom.anhPhuIds ?? [];
   const phuUrls = input.nhom.anhPhuUrls ?? [];
   for (let i = 0; i < phuIds.length; i++) {
     map[phuIds[i]!] = phuUrls[i] ?? null;
-  }
-  for (const p of input.mau) {
-    if (p.anhId) map[p.anhId] = p.anhUrl;
   }
   const out: Record<string, string | null> = {};
   for (const id of input.imageIds) out[id] = map[id] ?? null;

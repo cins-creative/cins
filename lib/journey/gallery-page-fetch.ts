@@ -103,6 +103,11 @@ export type GalleryMainItem = {
   embedProvider?: EmbedProviderId | null;
   isVideo?: boolean;
   videoProcessing?: boolean;
+  /**
+   * Cloudflare Stream UID (hex 32) — chỉ bài upload Stream.
+   * Null/thiếu khi embed ngoài (YouTube…) hoặc chưa có UID.
+   */
+  streamUid?: string | null;
   /** MP4 Bunny — frame đầu khi thumbnail thiếu/lỗi. */
   videoPreviewSrc?: string | null;
   cardLayout?: MilestoneCardLayout;

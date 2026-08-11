@@ -68,6 +68,29 @@ export function videoHintsFromBlocks(
   return {};
 }
 
+/** Stream UID từ blocks — chỉ Cloudflare Stream upload, không YouTube/Vimeo. */
+export function streamUidFromBlocks(
+  blocks: ReadonlyArray<Block> | null | undefined,
+): string | null {
+  if (!blocks?.length) return null;
+  /* Quét mọi embed — không dừng ở URL đầu (có thể là YouTube rồi mới tới Stream). */
+  for (const block of blocks) {
+    if (block.loai !== "embed") continue;
+    const cfg = block.config ?? {};
+    const url = typeof cfg.url === "string" ? cfg.url.trim() : "";
+    const fromUrl = url ? classifyStreamVideoUrl(url)?.uid : null;
+    if (fromUrl) return fromUrl;
+    const videoId =
+      (typeof cfg.videoId === "string" ? cfg.videoId.trim() : "") ||
+      (typeof cfg.bunnyVideoId === "string" ? cfg.bunnyVideoId.trim() : "");
+    if (videoId && isStreamUid(videoId)) return videoId;
+    if (cfg.videoProvider === "stream" && videoId && isStreamUid(videoId)) {
+      return videoId;
+    }
+  }
+  return null;
+}
+
 /** Poster video từ blocks — Cloudflare Stream. */
 export function resolveVideoThumbnailFromBlocks(
   blocks: ReadonlyArray<Block> | null | undefined,

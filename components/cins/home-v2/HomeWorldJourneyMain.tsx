@@ -21,6 +21,7 @@ import {
 import {
   WORLD_JOURNEY_FEED_PAGE_SIZE,
   WORLD_JOURNEY_GALLERY_PAGE_SIZE,
+  WORLD_JOURNEY_VIDEO_PAGE_SIZE,
 } from "@/lib/cins/worldJourneyFeedConstants";
 import { fetchWorldJourneyFeedPageCached } from "@/lib/cins/worldJourneyFeedFetch";
 import { buildWorldJourneyFilterChips } from "@/lib/cins/worldJourneyFeedFilters";
@@ -39,6 +40,10 @@ import "@/app/[slug]/journey/journey.css";
 type Props = {
   /** Chỉ fetch gallery SSR khi URL có `?view=gallery`. */
   includeGallery?: boolean;
+  /** Prefetch Reels khi URL có `?view=video`. */
+  includeVideo?: boolean;
+  /** Feed tab Giỏ hàng — `?view=shop`. */
+  includeShopFeed?: boolean;
   /** `?tuy-chinh=1` — chế độ chỉnh sửa module sidebar (desktop). */
   editingLayout?: boolean;
 };
@@ -46,6 +51,8 @@ type Props = {
 /** Trang chủ đã đăng nhập — World Journey feed + sidebar khám phá. */
 export async function HomeWorldJourneyMain({
   includeGallery = false,
+  includeVideo = false,
+  includeShopFeed = false,
   editingLayout = false,
 }: Props) {
   const session = await getCurrentSessionAndProfile();
@@ -59,8 +66,8 @@ export async function HomeWorldJourneyMain({
     redirect("/onboarding");
   }
 
-  // Gallery ẩn aside — không vào edit mode.
-  const editing = editingLayout && !includeGallery;
+  // Gallery / Video ẩn aside — không vào edit mode.
+  const editing = editingLayout && !includeGallery && !includeVideo;
 
   const filterChips = buildWorldJourneyFilterChips();
   const persona = resolvePersona(giaiDoan);
@@ -79,6 +86,7 @@ export async function HomeWorldJourneyMain({
     listLinhVucForHub(),
     fetchWorldJourneyFeedPageCached(viewerId, 0, WORLD_JOURNEY_FEED_PAGE_SIZE, {
       source: FEED_SOURCE_DEFAULT,
+      shopOnly: includeShopFeed,
     }),
     loadFeedInlinePromos(viewerId, persona),
     includeGallery
@@ -88,11 +96,18 @@ export async function HomeWorldJourneyMain({
           WORLD_JOURNEY_GALLERY_PAGE_SIZE,
           { source: FEED_SOURCE_DEFAULT },
         )
-      : Promise.resolve({
-          items: [],
-          hasMore: false,
-          nextOffset: 0,
-        }),
+      : includeVideo
+        ? fetchWorldJourneyGalleryPageCached(
+            viewerId,
+            0,
+            WORLD_JOURNEY_VIDEO_PAGE_SIZE,
+            { filter: "video", source: "all" },
+          )
+        : Promise.resolve({
+            items: [],
+            hasMore: false,
+            nextOffset: 0,
+          }),
     loadHomeLayoutRaw(viewerId),
     loadHomeCapabilities(viewerId),
   ]);

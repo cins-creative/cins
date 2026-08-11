@@ -20,9 +20,6 @@ import { JourneyArticleTagLink } from "@/components/journey/JourneyArticleTagLin
 import { JourneyMilestoneOwnerMenu } from "@/components/journey/JourneyMilestoneOwnerMenu";
 import { JourneyOrgPopover } from "@/components/journey/JourneyOrgPopover";
 import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
-import {
-  articleTagLoaiClass,
-} from "@/lib/editor/article-tag";
 import type {
   MilestonePostAuthor,
   MilestonePostContributor,
@@ -199,16 +196,9 @@ export function PostMetaRail({
 
       {verifyTags.length > 0 ? (
         <div className="post-rail-blk post-rail-blk--tags post-rail-blk--verify">
-          <div className="post-rail-lbl">Thẻ xác thực</div>
-          <div className="post-rail-tags">
+          <div className="tags jcard-tags post-rail-tags" aria-label="Thẻ xác thực">
             {verifyTags.map((t) => (
-              <JourneyArticleTagLink
-                key={t.id}
-                tag={t}
-                className={`post-rail-tag ${articleTagLoaiClass(t.loai_bai_viet)}`}
-                label={`Được xác thực bởi ${t.tieu_de}`}
-                verified
-              />
+              <JourneyArticleTagLink key={t.id} tag={t} />
             ))}
           </div>
         </div>
@@ -216,13 +206,12 @@ export function PostMetaRail({
 
       {attachTags.length > 0 ? (
         <div className="post-rail-blk post-rail-blk--tags">
-          <div className="post-rail-tags">
+          <div
+            className="tags jcard-tags post-rail-tags"
+            aria-label="Bài viết liên quan"
+          >
             {attachTags.map((t) => (
-              <JourneyArticleTagLink
-                key={t.id}
-                tag={t}
-                className={`post-rail-tag ${articleTagLoaiClass(t.loai_bai_viet)}`}
-              />
+              <JourneyArticleTagLink key={t.id} tag={t} />
             ))}
           </div>
         </div>

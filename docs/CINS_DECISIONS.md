@@ -41,6 +41,12 @@
 
 ## LOG — quyết định đã chốt
 
+### Shop — Giới thiệu sản phẩm chỉ ảnh loại (không ảnh mẫu) (2026-08-11)
+
+- **Chốt:** Prefill album «Giới thiệu sản phẩm» chỉ lấy **ảnh chính** + **ảnh phụ** của loại hàng (`shop_nhom`). **Không** gom ảnh thumbnail mẫu trong grid; **không** video phụ.
+- **UX:** Nút disable khi chưa có ảnh chính/ảnh phụ loại — hint «Thêm ảnh chính hoặc ảnh phụ cho loại hàng trước». Kiosk sau publish vẫn gắn từ mẫu như cũ.
+- *Hệ quả:* `lib/shop/gioi-thieu.ts` (`thuThapAnhLoaiHang`) · `ShopKhoClient`.
+
 ### Shop — cooldown «Giới thiệu sản phẩm» 3 ngày / loại (2026-08-10)
 
 - **Chốt:** Mỗi loại hàng (`shop_nhom`) chỉ đăng được 1 bài «Giới thiệu sản phẩm» / **3 ngày** — chống spam từ Kho.
@@ -476,7 +482,8 @@
   • **Storefront shop:** `/{slug}/shop` bán **toàn catalog** đang bán — **không** bắt buộc gắn bài. Giỏ **theo cửa hàng** (`shop_gio.id_cua_hang`, unique buyer+cua_hang). XOR scope: đúng một trong `id_cot_moc` | `id_cua_hang`. Đơn từ storefront: `shop_don_hang.id_cot_moc` null.
   • **Đơn cứng:** `shop_don_hang` / `shop_don_hang_dong` — `loai_don` = `mua_ngay` | `dat_truoc_nhan_su_kien`. Trạng thái: `nhap` → `cho_xac_nhan` → `da_nhan_tien` | `da_giao_tai_su_kien` (giữ enum `huy` legacy, **không** expose hủy trên UI/API). Chat DM `1_1` gửi card `ngu_canh.loai=don_hang`. **Tồn kho:** `mua_ngay` trừ kho **atomic ngay khi tạo đơn** (`da_tru_kho=true`, RPC `shop_tru_kho_bien_the`) — chặn oversell khi nhiều buyer cùng lúc; `dat_truoc_nhan_su_kien` trừ kho lúc seller xác nhận (thương lượng giao hàng, không giữ chỗ). Seller xác nhận không trừ lại nếu đã `da_tru_kho`. **Không hủy đơn trên CINs** — chuyển khoản P2P, mất tiền tự chịu; CINs không phân xử. Không soft-hold TTL / không payment API.
   • **RSVP sự kiện** (`se_tham_gia`) **không** gate mua hàng. **Xin làm quầy:** `shop_quay_su_kien` + bằng chứng → owner sự kiện duyệt (vừa đủ, không scale sớm). Không nhồi vào `org_milestone_tag_v1`.
-  • *Hệ quả file:* IMPLEMENTATION (SQL + API + UI `/ban-hang/*`); FOUNDATIONS §13 ghi chú shop≠payment; chat context `don_hang`.
+  • **Bổ sung L33 (2026-08-11) — Concierge mở shop (`/mo-shop`):** form public thu lead vào bảng **`shop_dang_ky_mo`** (không ghi thẳng `shop_cua_hang`). Tệp warm (bạn hàng / inbox); trang là **form thuần**, giải thích chi tiết ở inbox. Phí % đọc live từ `cins_cau_hinh_tai_chinh` (không hardcode). Shop dựng hộ thuộc chủ shop; claim bằng email phase 1–2; **transfer** owner xếp phase 3. Checkbox đồng ý dùng ảnh + `dong_y_luc`. Plan: `PLAN_mo-shop-ho.md`.
+  • *Hệ quả file:* IMPLEMENTATION (SQL + API + UI `/ban-hang/*` · `/mo-shop`); FOUNDATIONS §13 ghi chú shop≠payment; chat context `don_hang`.
 
 ### Cộng đồng — vai trò + cài đặt lên app topbar (2026-07-18)
 

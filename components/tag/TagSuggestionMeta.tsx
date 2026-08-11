@@ -14,6 +14,10 @@ function formatUsageCount(n: number): string {
   return n === 1 ? "1 người" : `${n} người`;
 }
 
+function formatTagGanCount(n: number): string {
+  return `#${Math.max(0, n)}`;
+}
+
 /** Badge phụ trong menu gợi ý tag — loại, lĩnh vực, số người đã gắn. */
 export function TagSuggestionMeta({
   loai,
@@ -31,7 +35,7 @@ export function TagSuggestionMeta({
           className="tag-input-item-loai is-loai-fandom is-count"
           title="Số tác phẩm / loại hàng gắn phân loại này"
         >
-          {soGan > 0 ? String(soGan) : "0"}
+          {formatTagGanCount(soGan)}
         </span>
       ) : (
         <span

@@ -335,6 +335,7 @@ export function worldJourneyGalleryItemMatchesFilter(
   item: {
     mediaKind?: GalleryMediaKind;
     embedProvider?: EmbedProviderId | null;
+    streamUid?: string | null;
   },
   chip: WjFilterChip | undefined,
 ): boolean {
@@ -352,7 +353,10 @@ export function worldJourneyGalleryItemMatchesFilter(
     if (item.mediaKind === "embed") return false;
     const kind = item.mediaKind ?? "article";
     if (chip.media === "photo") return kind === "photo";
-    if (chip.media === "video") return kind === "video";
+    /* Video surface — mọi bài có upload Cloudflare Stream (kể cả bài viết dài). */
+    if (chip.media === "video") {
+      return Boolean(item.streamUid?.trim());
+    }
     return kind === "article";
   }
 
@@ -389,6 +393,7 @@ export function buildWorldJourneyFeedQuery(params: {
   filter?: string;
   source?: string;
   linhVuc?: string | null;
+  shopOnly?: boolean;
 }): string {
   const q = new URLSearchParams();
   if (typeof params.offset === "number" && params.offset > 0) {
@@ -407,6 +412,9 @@ export function buildWorldJourneyFeedQuery(params: {
   }
   if (params.linhVuc?.trim()) {
     q.set("linhVuc", params.linhVuc.trim());
+  }
+  if (params.shopOnly) {
+    q.set("shopOnly", "1");
   }
   return q.toString();
 }

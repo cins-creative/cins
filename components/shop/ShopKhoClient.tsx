@@ -17,6 +17,7 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -27,13 +28,23 @@ import {
 import { isAllowedUploadImageFile } from "@/lib/files/infer-image-mime";
 import { uploadPostImageWithProgress } from "@/lib/files/upload-post-image";
 import { useJourneyCompose } from "@/components/journey/JourneyComposeContext";
-import { clearComposeEditorDraft } from "@/lib/journey/compose-editor-draft";
-import { buildComposeEditorDraftKey } from "@/lib/journey/compose-editor-draft";
+import {
+  buildComposeEditorDraftKey,
+  clearComposeEditorDraft,
+} from "@/lib/journey/compose-editor-draft";
 import {
   COMPOSE_PUBLISHED_EVENT,
   type ComposePublishedDetail,
 } from "@/lib/journey/compose-published-sync";
-import { shopLoaiHref, shopSlugFromTen } from "@/lib/shop/cua-hang-href";
+import {
+  resolveShopKhoLoaiSlug,
+  SHOP_KHO_ORPHAN_SLUG,
+  shopKhoHubHref,
+  shopKhoLoaiHref,
+  shopKhoOrphanHref,
+  shopLoaiHref,
+  shopSlugFromTen,
+} from "@/lib/shop/cua-hang-href";
 import { parseGiaInput } from "@/lib/shop/gia-input";
 import {
   buildPrefillGioiThieu,
@@ -120,7 +131,13 @@ async function mapPool<T, R>(
   return results;
 }
 
-export function ShopKhoClient() {
+export function ShopKhoClient({
+  initialLoaiSlug = null,
+}: {
+  /** Segment `/ban-hang/kho/[slug]` — null = hub. */
+  initialLoaiSlug?: string | null;
+}) {
+  const router = useRouter();
   const { openCompose, canCompose, ownerSlug: composeOwnerSlug } =
     useJourneyCompose();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -165,7 +182,15 @@ export function ShopKhoClient() {
   const [exitConfirmOpen, setExitConfirmOpen] = useState(false);
   const [exitingSave, setExitingSave] = useState(false);
   /** null = danh sách loại; uuid / KHO_ORPHAN_KEY = chi tiết. */
-  const [activeNhomId, setActiveNhomId] = useState<string | null>(null);
+  const [activeNhomId, setActiveNhomId] = useState<string | null>(() => {
+    const raw = initialLoaiSlug?.trim();
+    if (!raw) return null;
+    if (raw === SHOP_KHO_ORPHAN_SLUG) return KHO_ORPHAN_KEY;
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(raw)) {
+      return raw;
+    }
+    return null;
+  });
   const [ownerSlug, setOwnerSlug] = useState<string | null>(null);
   const [shopTen, setShopTen] = useState<string | null>(null);
   const [gioiThieuBusy, setGioiThieuBusy] = useState(false);
@@ -192,6 +217,65 @@ export function ShopKhoClient() {
     items: Array<{ idBienThe: string; idBangGia: string; thuTu: number }>;
     biCat: number;
   } | null>(null);
+
+  const goKhoHub = useCallback(() => {
+    setFilterLoai([]);
+    setActiveNhomId(null);
+    router.push(shopKhoHubHref());
+  }, [router]);
+
+  const openKhoNhom = useCallback(
+    (id: string) => {
+      setFilterLoai([]);
+      setActiveNhomId(id);
+      const nhom = nhoms.find((n) => n.id === id);
+      router.push(
+        nhom ? shopKhoLoaiHref(nhom, nhoms) : `${shopKhoHubHref()}/${encodeURIComponent(id)}`,
+      );
+    },
+    [nhoms, router],
+  );
+
+  const openKhoOrphans = useCallback(() => {
+    setFilterLoai([]);
+    setActiveNhomId(KHO_ORPHAN_KEY);
+    router.push(shopKhoOrphanHref());
+  }, [router]);
+
+  /* Sync `/ban-hang/kho/[slug]` → activeNhomId sau khi nhoms sẵn sàng. */
+  useEffect(() => {
+    if (loading || enabled === false) return;
+    const raw = initialLoaiSlug?.trim() ?? "";
+    if (!raw) {
+      setActiveNhomId(null);
+      return;
+    }
+    const resolved = resolveShopKhoLoaiSlug(raw, nhoms);
+    if (resolved === SHOP_KHO_ORPHAN_SLUG) {
+      setActiveNhomId(KHO_ORPHAN_KEY);
+      return;
+    }
+    if (resolved) {
+      setActiveNhomId(resolved);
+      const nhom = nhoms.find((n) => n.id === resolved);
+      if (nhom) {
+        const canonical = shopKhoLoaiHref(nhom, nhoms);
+        const current = `${shopKhoHubHref()}/${encodeURIComponent(raw)}`;
+        if (canonical !== current) router.replace(canonical);
+      }
+      return;
+    }
+    if (nhoms.length === 0 && orphanCount === 0) return;
+    setActiveNhomId(null);
+    router.replace(shopKhoHubHref());
+  }, [
+    loading,
+    enabled,
+    initialLoaiSlug,
+    nhoms,
+    orphanCount,
+    router,
+  ]);
 
   const uploading = Object.keys(thumbUploads).length > 0;
   const uploadProgressAvg = useMemo(() => {
@@ -2233,17 +2317,14 @@ export function ShopKhoClient() {
     if (!activeNhom) return null;
     if (gioiThieuCooldownHint) return gioiThieuCooldownHint;
     if (!canCompose) return "Đang tải phiên đăng nhập…";
-    const ids = thuThapAnhLoaiHang({
-      nhom: activeNhom,
-      mau: filteredProducts,
-    });
+    const ids = thuThapAnhLoaiHang({ nhom: activeNhom });
     if (ids.length === 0) {
-      return "Thêm ảnh cho loại hàng hoặc mẫu trước";
+      return "Thêm ảnh chính hoặc ảnh phụ cho loại hàng trước";
     }
     return null;
-  }, [activeNhom, canCompose, filteredProducts, gioiThieuCooldownHint]);
+  }, [activeNhom, canCompose, gioiThieuCooldownHint]);
 
-  async function onGioiThieuSanPham() {
+  async function onGioiThieuSanPham(opts?: { moTa?: string }) {
     if (!activeNhom || gioiThieuBusy) return;
     if (gioiThieuDisabledReason || !canCompose) {
       setErr(gioiThieuDisabledReason ?? "Chưa sẵn sàng soạn bài.");
@@ -2273,22 +2354,35 @@ export function ShopKhoClient() {
         return;
       }
 
-      const imageIds = thuThapAnhLoaiHang({
-        nhom: activeNhom,
-        mau: filteredProducts,
-      });
+      const moTaFresh =
+        opts?.moTa !== undefined ? opts.moTa : (activeNhom.moTa ?? "");
+      const nhomForPrefill: ShopNhom = {
+        ...activeNhom,
+        moTa: moTaFresh.trim() || null,
+      };
+      const imageIds = thuThapAnhLoaiHang({ nhom: nhomForPrefill });
       const urls = mapAnhUrlLoaiHang({
-        nhom: activeNhom,
-        mau: filteredProducts,
+        nhom: nhomForPrefill,
         imageIds,
       });
       const kichThuoc = await doKichThuocAnh(imageIds, urls);
       const prefillDraft = buildPrefillGioiThieu({
-        nhom: activeNhom,
+        nhom: nhomForPrefill,
         imageIds,
         kichThuoc,
       });
       const draftScope = shopGioiThieuDraftScope(activeNhom.id);
+      /* Xóa nháp cũ cùng scope — tránh mô tả phẳng / mất list từ lần mở trước. */
+      const owner = (composeOwnerSlug || ownerSlug || "").trim();
+      if (owner) {
+        clearComposeEditorDraft(
+          buildComposeEditorDraftKey({
+            ownerSlug: owner,
+            composeIntent: "photo",
+            scope: draftScope,
+          }),
+        );
+      }
       const bg =
         (bangGiaId
           ? priceLists.find((b) => b.id === bangGiaId)
@@ -2345,14 +2439,8 @@ export function ShopKhoClient() {
             mauCountByNhomId={mauCountByNhomId}
             orphanCount={orphanCount}
             nhanPhanLoai={nhanPhanLoai}
-            onOpenNhom={(id) => {
-              setFilterLoai([]);
-              setActiveNhomId(id);
-            }}
-            onOpenOrphans={() => {
-              setFilterLoai([]);
-              setActiveNhomId(KHO_ORPHAN_KEY);
-            }}
+            onOpenNhom={openKhoNhom}
+            onOpenOrphans={openKhoOrphans}
             onNhomsChanged={setNhoms}
             onError={setErr}
           />
@@ -2418,19 +2506,23 @@ export function ShopKhoClient() {
             mauCount={mauCountByNhomId[activeNhom.id] ?? 0}
             suggestedGiaMacDinh={suggestedGiaMacDinh}
             storefrontLoaiHref={activeNhomStorefrontHref}
-            onBack={() => setActiveNhomId(null)}
+            onBack={goKhoHub}
             onUpdated={(n) => {
-              setNhoms((prev) => prev.map((x) => (x.id === n.id ? n : x)));
+              setNhoms((prev) => {
+                const next = prev.map((x) => (x.id === n.id ? n : x));
+                router.replace(shopKhoLoaiHref(n, next));
+                return next;
+              });
               void refreshKho();
             }}
             onDeleted={() => {
               setNhoms((prev) => prev.filter((x) => x.id !== activeNhom.id));
-              setActiveNhomId(null);
+              goKhoHub();
               void refreshKho();
             }}
             onError={setErr}
             onRefreshMau={() => void refreshKho()}
-            onGioiThieu={() => void onGioiThieuSanPham()}
+            onGioiThieu={(opts) => void onGioiThieuSanPham(opts)}
             gioiThieuBusy={gioiThieuBusy}
             gioiThieuDisabledReason={gioiThieuDisabledReason}
           />
@@ -2439,7 +2531,7 @@ export function ShopKhoClient() {
             <button
               type="button"
               className="shop-kho-loai-back"
-              onClick={() => setActiveNhomId(null)}
+              onClick={goKhoHub}
             >
               ← Tất cả loại hàng
             </button>
